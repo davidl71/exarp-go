@@ -1,0 +1,154 @@
+---
+# Python role - Install Python and uv (using uv as primary package manager)
+
+- name: Check if Python is already installed
+  command: python3 --version
+  register: python_version_check
+  changed_when: false
+  failed_when: false
+  ignore_errors: true
+
+- name: Check if uv is already installed
+  shell: |
+    if command -v uv >/dev/null 2>&1; then
+      uv --version
+    elif [ -x "$HOME/.cargo/bin/uv" ]; then
+      "$HOME/.cargo/bin/uv" --version
+    elif [ -x "$HOME/.local/bin/uv" ]; then
+      "$HOME/.local/bin/uv" --version
+    else
+      exit 1
+    fi
+  register: uv_version_check
+  changed_when: false
+  failed_when: false
+  ignore_errors: true
+
+- name: Install Python (Debian/Ubuntu)
+  apt:
+    name:
+      - python3
+      - python3-venv
+      - python3-dev
+      - curl
+    state: present
+    update_cache: yes
+  when: 
+    - ansible_os_family == "Debian"
+    - python_version_check.rc != 0
+
+- name: Install Python (RedHat/CentOS)
+  yum:
+    name:
+      - python3
+      - python3-devel
+      - curl
+    state: present
+  when: 
+    - ansible_os_family == "RedHat"
+    - python_version_check.rc != 0
+
+- name: Install Python (macOS)
+  homebrew:
+    name: "python@{{ python_version }}"
+    state: present
+  when: 
+    - ansible_system == "Darwin"
+    - python_version_check.rc != 0
+
+- name: Verify Python installation
+  command: python3 --version
+  register: python_verify
+  changed_when: false
+
+- name: Get user home directory
+  shell: |
+    getent passwd "{{ project_user }}" | cut -d: -f6 || echo "/home/{{ project_user }}"
+  register: user_home
+  changed_when: false
+  when: project_user is defined
+
+- name: Install uv (official installer - Linux)
+  shell: |
+    curl -LsSf https://astral.sh/uv/install.sh | sh
+  args:
+    creates: "{{ user_home.stdout }}/.cargo/bin/uv"
+    executable: /bin/bash
+  environment:
+    HOME: "{{ user_home.stdout }}"
+    CARGO_HOME: "{{ user_home.stdout }}/.cargo"
+  register: uv_install
+  when:
+    - ansible_system == "Linux"
+    - uv_version_check.rc != 0
+    - project_user is defined
+    - user_home is defined
+
+- name: Install uv (official installer - macOS)
+  shell: |
+    curl -LsSf https://astral.sh/uv/install.sh | sh
+  args:
+    creates: "{{ user_home.stdout }}/.cargo/bin/uv"
+    executable: /bin/bash
+  environment:
+    HOME: "{{ user_home.stdout }}"
+    CARGO_HOME: "{{ user_home.stdout }}/.cargo"
+  register: uv_install
+  when:
+    - ansible_system == "Darwin"
+    - uv_version_check.rc != 0
+    - project_user is defined
+    - user_home is defined
+
+- name: Add uv to PATH (Linux/macOS - via cargo)
+  lineinfile:
+    path: "/home/{{ project_user }}/.bashrc"
+    regexp: '^export PATH=.*\.cargo/bin'
+    line: 'export PATH="$HOME/.cargo/bin:$PATH"'
+    create: yes
+    owner: "{{ project_user }}"
+    group: "{{ project_user }}"
+  when: 
+    - project_user is defined
+    - ansible_system in ["Linux", "Darwin"]
+    - uv_install is defined and uv_install.changed | default(false)
+
+- name: Add uv to PATH (Linux/macOS - via cargo) in .zshrc
+  lineinfile:
+    path: "/home/{{ project_user }}/.zshrc"
+    regexp: '^export PATH=.*\.cargo/bin'
+    line: 'export PATH="$HOME/.cargo/bin:$PATH"'
+    create: yes
+    owner: "{{ project_user }}"
+    group: "{{ project_user }}"
+  when: 
+    - project_user is defined
+    - ansible_system in ["Linux", "Darwin"]
+    - uv_install is defined and uv_install.changed | default(false)
+
+- name: Verify uv installation (check PATH first, then common locations)
+  shell: |
+    export PATH="{{ user_home.stdout }}/.cargo/bin:$PATH"
+    if command -v uv >/dev/null 2>&1; then
+      uv --version
+    elif [ -x "{{ user_home.stdout }}/.cargo/bin/uv" ]; then
+      "{{ user_home.stdout }}/.cargo/bin/uv" --version
+    elif [ -x "{{ user_home.stdout }}/.local/bin/uv" ]; then
+      "{{ user_home.stdout }}/.local/bin/uv" --version
+    else
+      exit 1
+    fi
+  register: uv_verify
+  changed_when: false
+  failed_when: false
+  ignore_errors: true
+  when: 
+    - project_user is defined
+    - user_home is defined
+
+- name: Display Python and uv versions
+  debug:
+    msg:
+      - "Python installed: {{ python_verify.stdout }}"
+      - "uv installed: {{ uv_verify.stdout if uv_verify.rc == 0 else 'Installation may need PATH update (try: export PATH=\"$HOME/.cargo/bin:$PATH\")' }}"
+

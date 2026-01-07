@@ -40,15 +40,33 @@ needs_rebuild() {
     fi
     
     # Check if any Go source file is newer than binary
-    local binary_time=$(stat -f %m "$BINARY_PATH" 2>/dev/null || stat -c %Y "$BINARY_PATH" 2>/dev/null || echo 0)
-    local newest_source=$(find "$PROJECT_ROOT/cmd" "$PROJECT_ROOT/internal" "$PROJECT_ROOT/bridge" \
-        -name "*.go" -type f -exec stat -f %m {} \; 2>/dev/null | \
-        sort -n | tail -1 || \
-        find "$PROJECT_ROOT/cmd" "$PROJECT_ROOT/internal" "$PROJECT_ROOT/bridge" \
-        -name "*.go" -type f -exec stat -c %Y {} \; 2>/dev/null | \
-        sort -n | tail -1 || echo 0)
+    # Try Linux stat format first, fallback to macOS, then default to 0
+    local binary_time=0
+    if stat -c %Y "$BINARY_PATH" >/dev/null 2>&1; then
+        # Linux format
+        binary_time=$(stat -c %Y "$BINARY_PATH" 2>/dev/null || echo 0)
+    elif stat -f %m "$BINARY_PATH" >/dev/null 2>&1; then
+        # macOS format
+        binary_time=$(stat -f %m "$BINARY_PATH" 2>/dev/null || echo 0)
+    fi
     
-    if [[ $newest_source -gt $binary_time ]]; then
+    local newest_source=0
+    # Try Linux stat format first
+    if command -v stat >/dev/null 2>&1; then
+        if stat -c %Y /dev/null >/dev/null 2>&1; then
+            # Linux format
+            newest_source=$(find "$PROJECT_ROOT/cmd" "$PROJECT_ROOT/internal" "$PROJECT_ROOT/bridge" \
+                -name "*.go" -type f -exec stat -c %Y {} \; 2>/dev/null | \
+                sort -n | tail -1 || echo 0)
+        elif stat -f %m /dev/null >/dev/null 2>&1; then
+            # macOS format
+            newest_source=$(find "$PROJECT_ROOT/cmd" "$PROJECT_ROOT/internal" "$PROJECT_ROOT/bridge" \
+                -name "*.go" -type f -exec stat -f %m {} \; 2>/dev/null | \
+                sort -n | tail -1 || echo 0)
+        fi
+    fi
+    
+    if [[ "${newest_source:-0}" -gt "${binary_time:-0}" ]]; then
         return 0  # Needs build
     fi
     
@@ -180,14 +198,21 @@ watch_polling() {
     local last_check=0
     
     while true; do
-        local current_check=$(find "$PROJECT_ROOT/cmd" "$PROJECT_ROOT/internal" "$PROJECT_ROOT/bridge" \
-            -name "*.go" -o -name "*.py" -type f \
-            -exec stat -f %m {} \; 2>/dev/null | sort -n | tail -1 || \
-            find "$PROJECT_ROOT/cmd" "$PROJECT_ROOT/internal" "$PROJECT_ROOT/bridge" \
-            -name "*.go" -o -name "*.py" -type f \
-            -exec stat -c %Y {} \; 2>/dev/null | sort -n | tail -1 || echo "0")
+        local current_check=0
+        # Try Linux stat format first, then macOS
+        if stat -c %Y /dev/null >/dev/null 2>&1; then
+            # Linux format
+            current_check=$(find "$PROJECT_ROOT/cmd" "$PROJECT_ROOT/internal" "$PROJECT_ROOT/bridge" \
+                -name "*.go" -o -name "*.py" -type f \
+                -exec stat -c %Y {} \; 2>/dev/null | sort -n | tail -1 || echo "0")
+        elif stat -f %m /dev/null >/dev/null 2>&1; then
+            # macOS format
+            current_check=$(find "$PROJECT_ROOT/cmd" "$PROJECT_ROOT/internal" "$PROJECT_ROOT/bridge" \
+                -name "*.go" -o -name "*.py" -type f \
+                -exec stat -f %m {} \; 2>/dev/null | sort -n | tail -1 || echo "0")
+        fi
         
-        if [[ $current_check -gt $last_check ]] && [[ $last_check -gt 0 ]]; then
+        if [[ "${current_check:-0}" -gt "${last_check:-0}" ]] && [[ "${last_check:-0}" -gt 0 ]]; then
             echo "[WATCH] File change detected" >&2
             
             # Rebuild on change (but don't restart - Cursor manages the process)

@@ -6,6 +6,9 @@ PYTHON := uv run python
 BINARY_NAME := exarp-go
 BINARY_PATH := bin/$(BINARY_NAME)
 
+# Detect Go binary (check PATH first, then common locations)
+GO := $(shell if command -v go >/dev/null 2>&1; then echo go; elif [ -x /usr/local/go/bin/go ]; then echo /usr/local/go/bin/go; elif [ -x $$HOME/.local/go/bin/go ]; then echo $$HOME/.local/go/bin/go; else echo go; fi)
+
 # Colors for output
 GREEN := \033[0;32m
 YELLOW := \033[1;33m
@@ -24,7 +27,11 @@ help: ## Show this help message
 
 build: ## Build the Go server
 	@echo "$(BLUE)Building $(PROJECT_NAME)...$(NC)"
-	@go build -o $(BINARY_PATH) ./cmd/server || (echo "$(RED)❌ Build failed$(NC)" && exit 1)
+	@if ! command -v $(GO) >/dev/null 2>&1 && [ ! -x "$(GO)" ]; then \
+		echo "$(RED)❌ Go not found. Install Go or set PATH to include Go bin directory$(NC)"; \
+		exit 1; \
+	fi
+	@$(GO) build -o $(BINARY_PATH) ./cmd/server || (echo "$(RED)❌ Build failed$(NC)" && exit 1)
 	@echo "$(GREEN)✅ Server built: $(BINARY_PATH)$(NC)"
 
 run: build ## Run the MCP server
@@ -53,7 +60,7 @@ test: test-go test-python ## Run all tests (Go + Python)
 
 test-go: ## Run Go tests
 	@echo "$(BLUE)Running Go tests...$(NC)"
-	@go test ./... -v || \
+	@$(GO) test ./... -v || \
 	 echo "$(YELLOW)⚠️  Go tests failed or not available$(NC)"
 
 test-python: ## Run Python tests
@@ -66,15 +73,15 @@ test-integration: ## Run integration tests
 	@$(PYTHON) -m pytest tests/integration -v || \
 	 echo "$(YELLOW)⚠️  Integration tests failed$(NC)"
 	@echo "$(BLUE)Running Go tests for coverage...$(NC)"
-	@go test ./... -v || echo "$(YELLOW)⚠️  Go tests failed$(NC)"
+	@$(GO) test ./... -v || echo "$(YELLOW)⚠️  Go tests failed$(NC)"
 
 test-coverage: test-coverage-go test-coverage-python ## Run tests with coverage report
 
 test-coverage-go: ## Generate Go test coverage report
 	@echo "$(BLUE)Running Go tests with coverage...$(NC)"
-	@go test ./... -coverprofile=coverage-go.out -covermode=atomic || \
+	@$(GO) test ./... -coverprofile=coverage-go.out -covermode=atomic || \
 	 echo "$(YELLOW)⚠️  Go coverage failed$(NC)"
-	@go tool cover -html=coverage-go.out -o coverage-go.html 2>/dev/null || true
+	@$(GO) tool cover -html=coverage-go.out -o coverage-go.html 2>/dev/null || true
 	@echo "$(GREEN)✅ Go coverage report: coverage-go.html$(NC)"
 
 test-coverage-python: ## Generate Python test coverage report
@@ -97,7 +104,7 @@ test-tools: build ## Test Go server tools
 
 sanity-check: ## Verify tools/resources/prompts counts match expected values
 	@echo "$(BLUE)Running sanity check...$(NC)"
-	@go build -o bin/sanity-check cmd/sanity-check/main.go 2>/dev/null || true
+	@$(GO) build -o bin/sanity-check cmd/sanity-check/main.go 2>/dev/null || true
 	@./bin/sanity-check || (echo "$(RED)❌ Sanity check failed$(NC)" && exit 1)
 
 test-all: test-tools sanity-check test-cli ## Run all import tests + sanity check + CLI tests
@@ -207,7 +214,11 @@ install-dev: install ## Install development dependencies
 
 go-build: ## Build Go binary
 	@echo "$(BLUE)Building Go binary...$(NC)"
-	@go build -o $(BINARY_PATH) ./cmd/server || \
+	@if ! command -v $(GO) >/dev/null 2>&1 && [ ! -x "$(GO)" ]; then \
+		echo "$(RED)❌ Go not found. Install Go or set PATH to include Go bin directory$(NC)"; \
+		exit 1; \
+	fi
+	@$(GO) build -o $(BINARY_PATH) ./cmd/server || \
 	 (echo "$(RED)❌ Build failed$(NC)" && exit 1)
 	@chmod +x $(BINARY_PATH)
 	@echo "$(GREEN)✅ Build complete: $(BINARY_PATH)$(NC)"
@@ -226,13 +237,13 @@ go-dev-test: ## Go dev mode with auto-test
 
 go-test: ## Run Go tests
 	@echo "$(BLUE)Running Go tests...$(NC)"
-	@go test ./... -v || \
+	@$(GO) test ./... -v || \
 	 (echo "$(RED)❌ Tests failed$(NC)" && exit 1)
 	@echo "$(GREEN)✅ All tests passed$(NC)"
 
 go-bench: ## Run Go benchmarks
 	@echo "$(BLUE)Running Go benchmarks...$(NC)"
-	@go test -bench=. -benchmem ./... || \
+	@$(GO) test -bench=. -benchmem ./... || \
 	 echo "$(YELLOW)⚠️  Benchmarks failed$(NC)"
 
 ##@ Quick Commands

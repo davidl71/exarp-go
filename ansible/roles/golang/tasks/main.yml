@@ -1,0 +1,100 @@
+---
+# Golang role - Install and configure Go
+
+- name: Check if Go is already installed
+  command: go version
+  register: go_version_check
+  changed_when: false
+  failed_when: false
+  ignore_errors: true
+
+- name: Get Go architecture
+  set_fact:
+    go_arch: "{{ 'amd64' if ansible_architecture == 'x86_64' else 'arm64' }}"
+  when: ansible_system == "Linux"
+
+- name: Get Go architecture (macOS)
+  set_fact:
+    go_arch: "{{ 'amd64' if ansible_architecture == 'x86_64' else 'arm64' }}"
+  when: ansible_system == "Darwin"
+
+- name: Download Go (Linux)
+  get_url:
+    url: "https://go.dev/dl/go{{ go_version }}.linux-{{ go_arch }}.tar.gz"
+    dest: /tmp/go{{ go_version }}.tar.gz
+    mode: '0644'
+  when: 
+    - ansible_system == "Linux"
+    - go_version_check.rc != 0 or go_version not in go_version_check.stdout
+
+- name: Download Go (macOS)
+  get_url:
+    url: "https://go.dev/dl/go{{ go_version }}.darwin-{{ go_arch }}.pkg"
+    dest: /tmp/go{{ go_version }}.pkg
+    mode: '0644'
+  when:
+    - ansible_system == "Darwin"
+    - go_version_check.rc != 0 or go_version not in go_version_check.stdout
+
+- name: Remove existing Go installation (Linux)
+  file:
+    path: "{{ go_install_path }}"
+    state: absent
+  when:
+    - ansible_system == "Linux"
+    - go_version_check.rc != 0 or go_version not in go_version_check.stdout
+
+- name: Extract Go archive (Linux)
+  unarchive:
+    src: /tmp/go{{ go_version }}.tar.gz
+    dest: /usr/local
+    remote_src: yes
+    owner: root
+    group: root
+  when:
+    - ansible_system == "Linux"
+    - go_version_check.rc != 0 or go_version not in go_version_check.stdout
+
+- name: Install Go (macOS)
+  shell: installer -pkg /tmp/go{{ go_version }}.pkg -target /
+  when:
+    - ansible_system == "Darwin"
+    - go_version_check.rc != 0 or go_version not in go_version_check.stdout
+
+- name: Create Go workspace directories
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ go_user }}"
+    group: "{{ go_user }}"
+    mode: '0755'
+  loop:
+    - "{{ go_gopath }}"
+    - "{{ go_gopath }}/bin"
+    - "{{ go_gopath }}/src"
+    - "{{ go_gopath }}/pkg"
+  when: go_user is defined
+
+- name: Set up Go environment variables
+  lineinfile:
+    path: "/home/{{ go_user }}/.bashrc"
+    regexp: "^{{ item.regexp }}"
+    line: "{{ item.line }}"
+    create: yes
+    owner: "{{ go_user }}"
+    group: "{{ go_user }}"
+  loop:
+    - { regexp: "^export GOROOT=", line: "export GOROOT={{ go_install_path }}" }
+    - { regexp: "^export GOPATH=", line: "export GOPATH={{ go_gopath }}" }
+    - { regexp: "^export PATH=.*GOPATH", line: "export PATH=$PATH:$GOROOT/bin:$GOPATH/bin" }
+  when: go_user is defined
+
+- name: Verify Go installation
+  command: "{{ go_install_path }}/bin/go version"
+  register: go_verify
+  changed_when: false
+
+- name: Display Go version
+  debug:
+    msg: "Go {{ go_version }} installed successfully: {{ go_verify.stdout }}"
+

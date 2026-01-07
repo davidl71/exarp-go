@@ -74,6 +74,7 @@
           - "Project path: {{ project_path }}"
           - "Linters installed: {{ install_linters | default(false) }}"
           - "Dev tools installed: {{ install_dev_tools | default(false) }}"
+          - "GitHub CLI (gh) installed: {{ install_gh | default(false) }}"
       tags:
         - always
 

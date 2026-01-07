@@ -1,0 +1,27 @@
+[Unit]
+Description=Exarp Go MCP Server
+After=network.target
+
+[Service]
+Type=simple
+User={{ project_user }}
+Group={{ project_user }}
+WorkingDirectory={{ project_path }}
+Environment="PROJECT_ROOT={{ project_path }}"
+ExecStart={{ project_path }}/bin/exarp-go
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=exarp-go
+
+# Security settings
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths={{ project_path }}
+
+[Install]
+WantedBy=multi-user.target
+

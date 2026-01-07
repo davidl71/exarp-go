@@ -1,0 +1,150 @@
+---
+# Linters role - Install development linters and tools
+
+- name: Install golangci-lint
+  shell: |
+    curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b {{ go_bin_path }} latest
+  args:
+    creates: "{{ go_bin_path }}/golangci-lint"
+  when:
+    - "'golangci-lint' in linters"
+    - go_bin_path is defined
+  ignore_errors: true
+  register: golangci_lint_install
+  failed_when: false
+
+- name: Install shellcheck (Debian/Ubuntu)
+  apt:
+    name: shellcheck
+    state: present
+  when:
+    - "'shellcheck' in linters"
+    - ansible_os_family == "Debian"
+  ignore_errors: true
+  register: shellcheck_install
+  failed_when: false
+
+- name: Install shellcheck (RedHat/CentOS)
+  yum:
+    name: ShellCheck
+    state: present
+  when:
+    - "'shellcheck' in linters"
+    - ansible_os_family == "RedHat"
+  ignore_errors: true
+  register: shellcheck_install
+  failed_when: false
+
+- name: Install shellcheck (macOS)
+  homebrew:
+    name: shellcheck
+    state: present
+  when:
+    - "'shellcheck' in linters"
+    - ansible_system == "Darwin"
+  ignore_errors: true
+  register: shellcheck_install
+  failed_when: false
+
+- name: Install shfmt (via go install)
+  shell: "{{ go_install_path }}/bin/go install mvdan.cc/sh/v3/cmd/shfmt@latest"
+  args:
+    creates: "{{ go_bin_path }}/shfmt"
+  when:
+    - "'shfmt' in linters"
+    - go_install_path is defined
+    - go_bin_path is defined
+  ignore_errors: true
+  register: shfmt_install
+  failed_when: false
+
+- name: Install gomarklint (via go install)
+  shell: "{{ go_install_path }}/bin/go install github.com/anton-yurchenko/gomarkdoc/cmd/gomarkdoc@latest"
+  args:
+    creates: "{{ go_bin_path }}/gomarkdoc"
+  when:
+    - "'gomarklint' in linters"
+    - go_install_path is defined
+    - go_bin_path is defined
+  ignore_errors: true
+  register: gomarklint_install
+  failed_when: false
+
+- name: Install markdownlint-cli (via npm)
+  npm:
+    name: markdownlint-cli
+    global: yes
+  when:
+    - "'markdownlint-cli' in linters"
+    - ansible_system != "Darwin"  # macOS handled separately
+  ignore_errors: true
+  register: markdownlint_install
+  failed_when: false
+
+- name: Install markdownlint-cli (macOS)
+  homebrew:
+    name: markdownlint-cli
+    state: present
+  when:
+    - "'markdownlint-cli' in linters"
+    - ansible_system == "Darwin"
+  ignore_errors: true
+  register: markdownlint_install
+  failed_when: false
+
+- name: Install cspell (via npm)
+  npm:
+    name: cspell
+    global: yes
+  when:
+    - "'cspell' in linters"
+    - ansible_system != "Darwin"  # macOS handled separately
+  ignore_errors: true
+  register: cspell_install
+  failed_when: false
+
+- name: Install cspell (macOS)
+  homebrew:
+    name: cspell
+    state: present
+  when:
+    - "'cspell' in linters"
+    - ansible_system == "Darwin"
+  ignore_errors: true
+  register: cspell_install
+  failed_when: false
+
+- name: Verify linter installations
+  command: "{{ item.command }} --version"
+  register: linter_versions
+  changed_when: false
+  failed_when: false
+  loop:
+    - { name: "golangci-lint", command: "{{ go_bin_path }}/golangci-lint", install_var: "golangci_lint_install" }
+    - { name: "shellcheck", command: "shellcheck", install_var: "" }
+    - { name: "shfmt", command: "{{ go_bin_path }}/shfmt", install_var: "shfmt_install" }
+    - { name: "gomarkdoc", command: "{{ go_bin_path }}/gomarkdoc", install_var: "gomarklint_install" }
+    - { name: "markdownlint-cli", command: "markdownlint", install_var: "" }
+    - { name: "cspell", command: "cspell", install_var: "" }
+  when: linters | length > 0
+  ignore_errors: true
+
+- name: Display linter installation summary
+  debug:
+    msg:
+      - "Linter installation summary:"
+      - "  Requested linters: {{ linters | join(', ') }}"
+      - ""
+      - "Go packages (skip gracefully on failure):"
+      - "  golangci-lint: {{ '✅ Installed' if golangci_lint_install is defined and golangci_lint_install.rc == 0 else '⚠️  Skipped (installation failed)' if golangci_lint_install is defined else '⏭️  Not requested' }}"
+      - "  shfmt: {{ '✅ Installed' if shfmt_install is defined and shfmt_install.rc == 0 else '⚠️  Skipped (installation failed)' if shfmt_install is defined else '⏭️  Not requested' }}"
+      - "  gomarkdoc: {{ '✅ Installed' if gomarklint_install is defined and gomarklint_install.rc == 0 else '⚠️  Skipped (installation failed)' if gomarklint_install is defined else '⏭️  Not requested' }}"
+      - ""
+      - "Other packages:"
+      - "  shellcheck: {{ '✅ Installed' if shellcheck_install is defined and shellcheck_install.rc == 0 else '⚠️  Skipped' if shellcheck_install is defined else '⏭️  Not requested' }}"
+      - "  markdownlint-cli: {{ '✅ Installed' if markdownlint_install is defined and markdownlint_install.rc == 0 else '⚠️  Skipped' if markdownlint_install is defined else '⏭️  Not requested' }}"
+      - "  cspell: {{ '✅ Installed' if cspell_install is defined and cspell_install.rc == 0 else '⚠️  Skipped' if cspell_install is defined else '⏭️  Not requested' }}"
+      - ""
+      - "Note: All package installations skip gracefully on failure (network issues, package unavailable, etc.)"
+  when: linters | length > 0
+
