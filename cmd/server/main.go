@@ -4,15 +4,26 @@ import (
 	"context"
 	"log"
 
+	"github.com/davidl/mcp-stdio-tools/internal/cli"
 	"github.com/davidl/mcp-stdio-tools/internal/config"
 	"github.com/davidl/mcp-stdio-tools/internal/factory"
 	"github.com/davidl/mcp-stdio-tools/internal/framework"
-	"github.com/davidl/mcp-stdio-tools/internal/tools"
 	"github.com/davidl/mcp-stdio-tools/internal/prompts"
 	"github.com/davidl/mcp-stdio-tools/internal/resources"
+	"github.com/davidl/mcp-stdio-tools/internal/tools"
 )
 
 func main() {
+	// Detect if running in CLI mode (TTY) or MCP server mode (stdio)
+	if cli.IsTTY() {
+		// CLI mode - run command line interface
+		if err := cli.Run(); err != nil {
+			log.Fatalf("CLI error: %v", err)
+		}
+		return
+	}
+
+	// MCP server mode - run as stdio server
 	// Load configuration
 	cfg, err := config.Load()
 	if err != nil {

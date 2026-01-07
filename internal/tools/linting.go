@@ -79,8 +79,10 @@ func runLinter(ctx context.Context, linter, path string, fix bool) (*LintResult,
 		return runGoimports(ctx, targetPath, fix)
 	case "markdownlint", "markdownlint-cli", "mdl", "markdown":
 		return runMarkdownlint(ctx, targetPath, fix)
+	case "shellcheck", "shfmt", "shell":
+		return runShellcheck(ctx, targetPath, fix)
 	default:
-		return nil, fmt.Errorf("unsupported linter: %s (supported: golangci-lint, go-vet, gofmt, goimports, markdownlint)", linter)
+		return nil, fmt.Errorf("unsupported linter: %s (supported: golangci-lint, go-vet, gofmt, goimports, markdownlint, shellcheck)", linter)
 	}
 }
 
@@ -592,6 +594,8 @@ func detectLinter(path string) string {
 		return "markdownlint"
 	case ".go":
 		return "go-vet"
+	case ".sh", ".bash":
+		return "shellcheck"
 	default:
 		return "go-vet" // Default to Go linter
 	}
@@ -816,6 +820,335 @@ func parseTextOutput(outputStr string, lintErrors *[]LintError) {
 				Rule:     rule,
 				Severity: "warning",
 			})
+		} else {
+			// Fallback: treat entire line as message
+			*lintErrors = append(*lintErrors, LintError{
+				Message:  line,
+				Severity: "warning",
+			})
+		}
+	}
+}
+
+// runShellcheck runs shellcheck (shell script linter)
+func runShellcheck(ctx context.Context, path string, fix bool) (*LintResult, error) {
+	// Try shellcheck first (comprehensive linter)
+	shellcheckCmd := "shellcheck"
+	if _, err := exec.LookPath(shellcheckCmd); err != nil {
+		// Fallback to shfmt (formatter, can detect syntax errors)
+		shellcheckCmd = "shfmt"
+		if _, err := exec.LookPath(shellcheckCmd); err != nil {
+			return &LintResult{
+				Success: false,
+				Linter:  "shellcheck",
+				Output:  "No shell linter found. Install shellcheck with: brew install shellcheck or apt-get install shellcheck",
+				Errors: []LintError{
+					{
+						Message: "shell linter binary not found in PATH",
+						Severity: "error",
+					},
+				},
+			}, nil
+		}
+		// Use shfmt for formatting/checking
+		return runShfmt(ctx, path, fix)
+	}
+
+	// Determine if path is a directory or file
+	info, err := os.Stat(path)
+	isDir := err == nil && info.IsDir()
+
+	// Find project root
+	var projectRoot string
+	var absPath string
+	
+	// Convert path to absolute
+	if filepath.IsAbs(path) {
+		absPath = path
+	} else {
+		if envRoot := os.Getenv("PROJECT_ROOT"); envRoot != "" {
+			absPath = filepath.Join(envRoot, path)
+		} else {
+			wd, _ := os.Getwd()
+			absPath = filepath.Join(wd, path)
+		}
+	}
+	
+	// Walk up to find project root (directory with .shellcheckrc or go.mod)
+	currentPath := absPath
+	if !isDir {
+		currentPath = filepath.Dir(absPath)
+	}
+	for {
+		// Check for shellcheck config
+		if _, err := os.Stat(filepath.Join(currentPath, ".shellcheckrc")); err == nil {
+			projectRoot = currentPath
+			break
+		}
+		if _, err := os.Stat(filepath.Join(currentPath, ".shellcheck")); err == nil {
+			projectRoot = currentPath
+			break
+		}
+		// Check for go.mod (Go project root)
+		if _, err := os.Stat(filepath.Join(currentPath, "go.mod")); err == nil {
+			projectRoot = currentPath
+			break
+		}
+		parent := filepath.Dir(currentPath)
+		if parent == currentPath {
+			projectRoot, _ = os.Getwd()
+			break
+		}
+		currentPath = parent
+	}
+
+	// Get relative path from project root
+	relPath, err := filepath.Rel(projectRoot, absPath)
+	if err != nil {
+		relPath = path
+	}
+
+	// Build command - use JSON output for shellcheck
+	args := []string{"--format=json"}
+	if fix {
+		// shellcheck doesn't have --fix, but we can note it
+		// For actual fixing, would need shfmt
+	}
+	
+	// Add path(s) - shellcheck supports files and directories
+	if isDir {
+		// For directories, find all .sh files
+		args = append(args, filepath.Join(relPath, "*.sh"))
+	} else {
+		args = append(args, relPath)
+	}
+
+	cmd := exec.CommandContext(ctx, shellcheckCmd, args...)
+	cmd.Dir = projectRoot
+
+	output, err := cmd.CombinedOutput()
+	outputStr := string(output)
+
+	// shellcheck returns non-zero exit code when issues are found, but also outputs JSON
+	// So we parse JSON regardless of exit code
+	var lintErrors []LintError
+	success := true // Will be set to false if we find errors
+	
+	if outputStr != "" {
+		// Parse shellcheck JSON output
+		// Format: [{"file":"path","line":N,"column":M,"level":"error|warning|info|style","code":2001,"message":"..."}]
+		var jsonOutput []struct {
+			File     string `json:"file"`
+			Line     int    `json:"line"`
+			EndLine  int    `json:"endLine,omitempty"`
+			Column   int    `json:"column"`
+			EndColumn int   `json:"endColumn,omitempty"`
+			Level    string `json:"level"`
+			Code     int    `json:"code"`
+			Message  string `json:"message"`
+		}
+		
+		if err := json.Unmarshal(output, &jsonOutput); err == nil && len(jsonOutput) > 0 {
+			// Successfully parsed JSON
+			success = false // Found issues
+			for _, issue := range jsonOutput {
+				severity := "warning"
+				if issue.Level == "error" {
+					severity = "error"
+				} else if issue.Level == "info" {
+					severity = "info"
+				} else if issue.Level == "style" {
+					severity = "warning"
+				}
+				
+				// Convert code number to SC#### format
+				code := fmt.Sprintf("SC%d", issue.Code)
+				
+				lintErrors = append(lintErrors, LintError{
+					File:     issue.File,
+					Line:     issue.Line,
+					Column:   issue.Column,
+					Message:  issue.Message,
+					Rule:     code,
+					Severity: severity,
+				})
+			}
+		} else if err != nil {
+			// JSON parsing failed, try to parse text output
+			parseShellcheckTextOutput(outputStr, &lintErrors)
+			if len(lintErrors) > 0 {
+				success = false
+			}
+		}
+	}
+
+	return &LintResult{
+		Success: success,
+		Linter:  "shellcheck",
+		Output:  outputStr,
+		Errors:  lintErrors,
+		Fixed:   false, // shellcheck doesn't auto-fix
+	}, nil
+}
+
+// runShfmt runs shfmt (shell formatter, can detect syntax errors)
+func runShfmt(ctx context.Context, path string, fix bool) (*LintResult, error) {
+	// Check if shfmt is available
+	if _, err := exec.LookPath("shfmt"); err != nil {
+		return &LintResult{
+			Success: false,
+			Linter:  "shfmt",
+			Output:  "shfmt not found. Install with: go install mvdan.cc/sh/v3/cmd/shfmt@latest",
+			Errors: []LintError{
+				{
+					Message: "shfmt binary not found in PATH",
+					Severity: "error",
+				},
+			},
+		}, nil
+	}
+
+	// Find project root
+	var projectRoot string
+	var absPath string
+	
+	if filepath.IsAbs(path) {
+		absPath = path
+	} else {
+		if envRoot := os.Getenv("PROJECT_ROOT"); envRoot != "" {
+			absPath = filepath.Join(envRoot, path)
+		} else {
+			wd, _ := os.Getwd()
+			absPath = filepath.Join(wd, path)
+		}
+	}
+	
+	// Walk up to find project root
+	currentPath := absPath
+	info, err := os.Stat(absPath)
+	if err == nil && !info.IsDir() {
+		currentPath = filepath.Dir(absPath)
+	}
+	for {
+		if _, err := os.Stat(filepath.Join(currentPath, "go.mod")); err == nil {
+			projectRoot = currentPath
+			break
+		}
+		parent := filepath.Dir(currentPath)
+		if parent == currentPath {
+			projectRoot, _ = os.Getwd()
+			break
+		}
+		currentPath = parent
+	}
+
+	relPath, err := filepath.Rel(projectRoot, absPath)
+	if err != nil {
+		relPath = path
+	}
+
+	// Build command
+	args := []string{}
+	if fix {
+		args = append(args, "-w") // Write formatted output
+	} else {
+		args = append(args, "-d") // Diff mode (show what would change)
+	}
+	args = append(args, relPath)
+
+	cmd := exec.CommandContext(ctx, "shfmt", args...)
+	cmd.Dir = projectRoot
+
+	output, err := cmd.CombinedOutput()
+	outputStr := string(output)
+
+	// shfmt returns non-zero if file needs formatting or has syntax errors
+	success := err == nil
+	var lintErrors []LintError
+	
+	if !success && outputStr != "" {
+		// Parse shfmt output (diff format or error messages)
+		lines := strings.Split(strings.TrimSpace(outputStr), "\n")
+		for _, line := range lines {
+			line = strings.TrimSpace(line)
+			if line == "" {
+				continue
+			}
+			
+			// Check for syntax errors
+			if strings.Contains(line, "syntax error") || strings.Contains(line, "parse error") {
+				lintErrors = append(lintErrors, LintError{
+					File:     relPath,
+					Message:  line,
+					Severity: "error",
+				})
+			} else if strings.HasPrefix(line, "-") || strings.HasPrefix(line, "+") {
+				// Formatting differences
+				lintErrors = append(lintErrors, LintError{
+					File:     relPath,
+					Message:  fmt.Sprintf("Formatting issue: %s", line),
+					Severity: "warning",
+				})
+			}
+		}
+	}
+
+	return &LintResult{
+		Success: success,
+		Linter:  "shfmt",
+		Output:  outputStr,
+		Errors:  lintErrors,
+		Fixed:   fix && success,
+	}, nil
+}
+
+// parseShellcheckTextOutput parses shellcheck text output
+func parseShellcheckTextOutput(outputStr string, lintErrors *[]LintError) {
+	lines := strings.Split(strings.TrimSpace(outputStr), "\n")
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+		if line == "" {
+			continue
+		}
+		
+		// Parse format: In path line N: column M: code message
+		// Example: In scripts/check-go-health.sh line 121: column 24: SC2001 See if you can use ${variable//search/replace} instead.
+		if strings.HasPrefix(line, "In ") {
+			parts := strings.SplitN(line, ":", 4)
+			if len(parts) >= 4 {
+				file := strings.TrimPrefix(parts[0], "In ")
+				file = strings.TrimSpace(file)
+				
+				lineNum := 0
+				if strings.HasPrefix(parts[1], " line ") {
+					fmt.Sscanf(parts[1], " line %d", &lineNum)
+				}
+				
+				columnNum := 0
+				if strings.HasPrefix(parts[2], " column ") {
+					fmt.Sscanf(parts[2], " column %d", &columnNum)
+				}
+				
+				codeAndMessage := strings.TrimSpace(parts[3])
+				code := ""
+				message := codeAndMessage
+				
+				// Extract code (e.g., "SC2001")
+				fields := strings.Fields(codeAndMessage)
+				if len(fields) > 0 && strings.HasPrefix(fields[0], "SC") {
+					code = fields[0]
+					message = strings.Join(fields[1:], " ")
+				}
+				
+				*lintErrors = append(*lintErrors, LintError{
+					File:     file,
+					Line:     lineNum,
+					Column:   columnNum,
+					Message:  message,
+					Rule:     code,
+					Severity: "warning",
+				})
+			}
 		} else {
 			// Fallback: treat entire line as message
 			*lintErrors = append(*lintErrors, LintError{

@@ -211,3 +211,19 @@ func (m *MockServer) ReadResource(ctx context.Context, uri string) ([]byte, stri
 	}
 	return resource.Handler(ctx, uri)
 }
+
+// ListTools returns all registered tools (for CLI mode)
+func (m *MockServer) ListTools() []framework.ToolInfo {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	
+	tools := make([]framework.ToolInfo, 0, len(m.tools))
+	for _, tool := range m.tools {
+		tools = append(tools, framework.ToolInfo{
+			Name:        tool.Name,
+			Description: tool.Description,
+			Schema:      tool.Schema,
+		})
+	}
+	return tools
+}

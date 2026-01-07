@@ -81,11 +81,11 @@ func TestRegisterAllTools_RegistrationError(t *testing.T) {
 
 	// Verify batch registration order
 	expectedBatches := [][]string{
-		// Batch 1
-		{"analyze_alignment", "generate_config", "health", "setup_hooks"},
-		// Batch 2
+		// Batch 1: 6 simple tools (T-22 through T-27)
+		{"analyze_alignment", "generate_config", "health", "setup_hooks", "check_attribution", "add_external_tool_hints"},
+		// Batch 2: 8 medium tools (T-28 through T-35)
 		{"memory", "memory_maint", "report", "security", "task_analysis", "task_discovery", "task_workflow", "testing"},
-		// Batch 3
+		// Batch 3: 10 advanced tools (T-37 through T-44, plus ollama and mlx)
 		{"automation", "tool_catalog", "workflow_mode", "lint", "estimation", "git_tools", "session", "infer_session_mode", "ollama", "mlx"},
 	}
 

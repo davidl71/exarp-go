@@ -370,6 +370,9 @@ func handleLint(ctx context.Context, args json.RawMessage) ([]framework.TextCont
 		"markdownlint-cli": true,
 		"mdl":           true,
 		"markdown":      true,
+		"shellcheck":    true,
+		"shfmt":         true,
+		"shell":         true,
 		"auto":          true, // Auto-detection uses native implementation
 	}
 

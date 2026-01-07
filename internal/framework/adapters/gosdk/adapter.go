@@ -10,8 +10,10 @@ import (
 
 // GoSDKAdapter adapts the official Go SDK to the framework interface
 type GoSDKAdapter struct {
-	server *mcp.Server
-	name   string
+	server      *mcp.Server
+	name        string
+	toolHandlers map[string]framework.ToolHandler
+	toolInfo    map[string]framework.ToolInfo
 }
 
 // NewGoSDKAdapter creates a new Go SDK adapter
@@ -21,7 +23,9 @@ func NewGoSDKAdapter(name, version string) *GoSDKAdapter {
 			Name:    name,
 			Version: version,
 		}, nil),
-		name: name,
+		name:         name,
+		toolHandlers: make(map[string]framework.ToolHandler),
+		toolInfo:     make(map[string]framework.ToolInfo),
 	}
 }
 
@@ -117,6 +121,15 @@ func (a *GoSDKAdapter) RegisterTool(name, description string, schema framework.T
 
 	// Use server.AddTool (low-level API) since we're using ToolHandler
 	a.server.AddTool(tool, toolHandler)
+	
+	// Store handler and info for CLI access
+	a.toolHandlers[name] = handler
+	a.toolInfo[name] = framework.ToolInfo{
+		Name:        name,
+		Description: description,
+		Schema:      schema,
+	}
+	
 	return nil
 }
 
@@ -277,5 +290,23 @@ func (a *GoSDKAdapter) Run(ctx context.Context, transport framework.Transport) e
 // GetName returns the server name
 func (a *GoSDKAdapter) GetName() string {
 	return a.name
+}
+
+// CallTool executes a tool directly (for CLI mode)
+func (a *GoSDKAdapter) CallTool(ctx context.Context, name string, args framework.JsonRawMessage) ([]framework.TextContent, error) {
+	handler, exists := a.toolHandlers[name]
+	if !exists {
+		return nil, fmt.Errorf("tool %q not found", name)
+	}
+	return handler(ctx, args)
+}
+
+// ListTools returns all registered tools
+func (a *GoSDKAdapter) ListTools() []framework.ToolInfo {
+	tools := make([]framework.ToolInfo, 0, len(a.toolInfo))
+	for _, info := range a.toolInfo {
+		tools = append(tools, info)
+	}
+	return tools
 }
 

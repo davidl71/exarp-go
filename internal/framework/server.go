@@ -21,6 +21,23 @@ type MCPServer interface {
 
 	// GetName returns the server name
 	GetName() string
+
+	// CLI support methods
+	// CallTool executes a tool directly (for CLI mode)
+	CallTool(ctx context.Context, name string, args json.RawMessage) ([]TextContent, error)
+	
+	// ListTools returns all registered tools
+	ListTools() []ToolInfo
+}
+
+// JsonRawMessage is an alias for json.RawMessage to avoid import conflicts
+type JsonRawMessage = json.RawMessage
+
+// ToolInfo represents tool metadata
+type ToolInfo struct {
+	Name        string
+	Description string
+	Schema      ToolSchema
 }
 
 // ToolHandler handles tool execution
