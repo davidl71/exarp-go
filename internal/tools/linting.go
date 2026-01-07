@@ -9,6 +9,8 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/davidl/mcp-stdio-tools/internal/security"
 )
 
 // LintResult represents the result of a linting operation
@@ -37,25 +39,30 @@ func runLinter(ctx context.Context, linter, path string, fix bool) (*LintResult,
 	ctx, cancel := context.WithTimeout(ctx, 60*time.Second)
 	defer cancel()
 
+	// Get project root for path validation
+	projectRoot := os.Getenv("PROJECT_ROOT")
+	if projectRoot == "" {
+		// Try to find project root
+		var err error
+		projectRoot, err = security.GetProjectRoot(".")
+		if err != nil {
+			// Fallback to current directory
+			projectRoot, _ = os.Getwd()
+		}
+	}
+
 	// Determine target path
 	targetPath := path
 	if targetPath == "" {
 		targetPath = "."
 	}
 
-	// Normalize path
-	if !filepath.IsAbs(targetPath) {
-		wd, err := os.Getwd()
-		if err != nil {
-			return nil, fmt.Errorf("failed to get working directory: %w", err)
-		}
-		targetPath = filepath.Join(wd, targetPath)
+	// Validate and sanitize path to prevent directory traversal
+	validatedPath, err := security.ValidatePathExists(targetPath, projectRoot)
+	if err != nil {
+		return nil, fmt.Errorf("invalid path: %w", err)
 	}
-
-	// Check if path exists
-	if _, err := os.Stat(targetPath); os.IsNotExist(err) {
-		return nil, fmt.Errorf("path does not exist: %s", targetPath)
-	}
+	targetPath = validatedPath
 
 	// Auto-detect linter based on file type if not specified
 	if linter == "" || linter == "auto" {
@@ -275,69 +282,34 @@ func runGoVet(ctx context.Context, path string) (*LintResult, error) {
 		}, nil
 	}
 
-	// Find project root - prefer PROJECT_ROOT env var, then look for go.mod
-	var projectRoot string
-	var absPath string
-	
-	// Try PROJECT_ROOT environment variable first (set by MCP server)
-	if envRoot := os.Getenv("PROJECT_ROOT"); envRoot != "" {
-		if _, err := os.Stat(filepath.Join(envRoot, "go.mod")); err == nil {
-			projectRoot = envRoot
-		}
-	}
-	
-	// If PROJECT_ROOT not set or invalid, find by walking up from path
+	// Get project root for path validation
+	projectRoot := os.Getenv("PROJECT_ROOT")
 	if projectRoot == "" {
-		// Convert path to absolute
-		if filepath.IsAbs(path) {
-			absPath = path
-		} else {
-			// Try PROJECT_ROOT first, then fall back to Getwd
-			if envRoot := os.Getenv("PROJECT_ROOT"); envRoot != "" {
-				absPath = filepath.Join(envRoot, path)
-			} else {
-				wd, _ := os.Getwd()
-				absPath = filepath.Join(wd, path)
-			}
-		}
-		
-		// Walk up from the path to find go.mod
-		currentPath := absPath
-		for {
-			if _, err := os.Stat(filepath.Join(currentPath, "go.mod")); err == nil {
-				projectRoot = currentPath
-				break
-			}
-			parent := filepath.Dir(currentPath)
-			if parent == currentPath {
-				// Reached filesystem root, use current working directory
-				projectRoot, _ = os.Getwd()
-				break
-			}
-			currentPath = parent
-		}
-	} else {
-		// PROJECT_ROOT is set, use it to resolve relative paths
-		if filepath.IsAbs(path) {
-			absPath = path
-		} else {
-			absPath = filepath.Join(projectRoot, path)
+		// Try to find project root
+		var err error
+		projectRoot, err = security.GetProjectRoot(path)
+		if err != nil {
+			// Fallback to current directory
+			projectRoot, _ = os.Getwd()
 		}
 	}
 
-	// Determine if path is a directory
+	// Validate and sanitize path to prevent directory traversal
+	_, relPath, err := security.ValidatePathWithinRoot(path, projectRoot)
+	if err != nil {
+		return nil, fmt.Errorf("invalid path: %w", err)
+	}
+
+	// Determine if path is a directory (validate again to get absPath)
+	absPath, err := security.ValidatePath(path, projectRoot)
+	if err != nil {
+		return nil, fmt.Errorf("invalid path: %w", err)
+	}
 	pathInfo, err := os.Stat(absPath)
-	isDir := err == nil && pathInfo.IsDir()
+	isDir := err == nil && pathInfo != nil && pathInfo.IsDir()
 
 	// Build command
 	args := []string{"vet"}
-	
-	// Get relative path from project root
-	relPath, err := filepath.Rel(projectRoot, absPath)
-	if err != nil {
-		// Fallback: use path as-is if we can't get relative
-		relPath = path
-	}
 
 	// Add path with ... for recursive directory traversal
 	if relPath == "." || relPath == "" {
@@ -415,6 +387,22 @@ func runGofmt(ctx context.Context, path string, fix bool) (*LintResult, error) {
 		}, nil
 	}
 
+	// Get project root for path validation
+	projectRoot := os.Getenv("PROJECT_ROOT")
+	if projectRoot == "" {
+		var err error
+		projectRoot, err = security.GetProjectRoot(path)
+		if err != nil {
+			projectRoot, _ = os.Getwd()
+		}
+	}
+
+	// Validate and sanitize path to prevent directory traversal
+	_, relPath, err := security.ValidatePathWithinRoot(path, projectRoot)
+	if err != nil {
+		return nil, fmt.Errorf("invalid path: %w", err)
+	}
+
 	// Build command
 	args := []string{"-d"}
 	if fix {
@@ -422,22 +410,14 @@ func runGofmt(ctx context.Context, path string, fix bool) (*LintResult, error) {
 	}
 	
 	// Add path
-	relPath, err := filepath.Rel(".", path)
-	if err != nil {
-		relPath = path
-	}
-	if relPath != "." {
+	if relPath != "." && relPath != "" {
 		args = append(args, relPath)
 	} else {
 		args = append(args, ".")
 	}
 
 	cmd := exec.CommandContext(ctx, "gofmt", args...)
-	cmd.Dir = filepath.Dir(path)
-	if cmd.Dir == "." {
-		wd, _ := os.Getwd()
-		cmd.Dir = wd
-	}
+	cmd.Dir = projectRoot
 
 	output, err := cmd.CombinedOutput()
 	outputStr := string(output)
@@ -504,6 +484,22 @@ func runGoimports(ctx context.Context, path string, fix bool) (*LintResult, erro
 		}, nil
 	}
 
+	// Get project root for path validation
+	projectRoot := os.Getenv("PROJECT_ROOT")
+	if projectRoot == "" {
+		var err error
+		projectRoot, err = security.GetProjectRoot(path)
+		if err != nil {
+			projectRoot, _ = os.Getwd()
+		}
+	}
+
+	// Validate and sanitize path to prevent directory traversal
+	_, relPath, err := security.ValidatePathWithinRoot(path, projectRoot)
+	if err != nil {
+		return nil, fmt.Errorf("invalid path: %w", err)
+	}
+
 	// Build command
 	args := []string{"-d"}
 	if fix {
@@ -511,22 +507,14 @@ func runGoimports(ctx context.Context, path string, fix bool) (*LintResult, erro
 	}
 	
 	// Add path
-	relPath, err := filepath.Rel(".", path)
-	if err != nil {
-		relPath = path
-	}
-	if relPath != "." {
+	if relPath != "." && relPath != "" {
 		args = append(args, relPath)
 	} else {
 		args = append(args, ".")
 	}
 
 	cmd := exec.CommandContext(ctx, "goimports", args...)
-	cmd.Dir = filepath.Dir(path)
-	if cmd.Dir == "." {
-		wd, _ := os.Getwd()
-		cmd.Dir = wd
-	}
+	cmd.Dir = projectRoot
 
 	output, err := cmd.CombinedOutput()
 	outputStr := string(output)
@@ -627,64 +615,25 @@ func runMarkdownlint(ctx context.Context, path string, fix bool) (*LintResult, e
 		}
 	}
 
-	// Determine if path is a directory or file
-	info, err := os.Stat(path)
-	isDir := err == nil && info.IsDir()
-
-	// Find project root
-	var projectRoot string
-	var absPath string
-	
-	// Convert path to absolute
-	if filepath.IsAbs(path) {
-		absPath = path
-	} else {
-		if envRoot := os.Getenv("PROJECT_ROOT"); envRoot != "" {
-			absPath = filepath.Join(envRoot, path)
-		} else {
-			wd, _ := os.Getwd()
-			absPath = filepath.Join(wd, path)
-		}
-	}
-	
-	// Walk up to find project root (directory with .gomarklint.json, .markdownlintrc, or go.mod)
-	currentPath := absPath
-	if !isDir {
-		currentPath = filepath.Dir(absPath)
-	}
-	for {
-		// Check for gomarklint config (preferred)
-		if _, err := os.Stat(filepath.Join(currentPath, ".gomarklint.json")); err == nil {
-			projectRoot = currentPath
-			break
-		}
-		// Check for markdownlint config (fallback)
-		if _, err := os.Stat(filepath.Join(currentPath, ".markdownlintrc")); err == nil {
-			projectRoot = currentPath
-			break
-		}
-		if _, err := os.Stat(filepath.Join(currentPath, ".markdownlint.json")); err == nil {
-			projectRoot = currentPath
-			break
-		}
-		// Check for go.mod (Go project root)
-		if _, err := os.Stat(filepath.Join(currentPath, "go.mod")); err == nil {
-			projectRoot = currentPath
-			break
-		}
-		parent := filepath.Dir(currentPath)
-		if parent == currentPath {
+	// Get project root for path validation
+	projectRoot := os.Getenv("PROJECT_ROOT")
+	if projectRoot == "" {
+		var err error
+		projectRoot, err = security.GetProjectRoot(path)
+		if err != nil {
 			projectRoot, _ = os.Getwd()
-			break
 		}
-		currentPath = parent
 	}
-	
-	// Get relative path from project root (needed for archive check)
-	relPath, err := filepath.Rel(projectRoot, absPath)
+
+	// Validate and sanitize path to prevent directory traversal
+	absPath, relPath, err := security.ValidatePathWithinRoot(path, projectRoot)
 	if err != nil {
-		relPath = path
+		return nil, fmt.Errorf("invalid path: %w", err)
 	}
+
+	// Determine if path is a directory or file
+	info, err := os.Stat(absPath)
+	isDir := err == nil && info != nil && info.IsDir()
 	
 	// Exclude archive directory from linting
 	if strings.Contains(absPath, "/archive/") || strings.Contains(relPath, "/archive/") {
@@ -854,59 +803,25 @@ func runShellcheck(ctx context.Context, path string, fix bool) (*LintResult, err
 		return runShfmt(ctx, path, fix)
 	}
 
-	// Determine if path is a directory or file
-	info, err := os.Stat(path)
-	isDir := err == nil && info.IsDir()
-
-	// Find project root
-	var projectRoot string
-	var absPath string
-	
-	// Convert path to absolute
-	if filepath.IsAbs(path) {
-		absPath = path
-	} else {
-		if envRoot := os.Getenv("PROJECT_ROOT"); envRoot != "" {
-			absPath = filepath.Join(envRoot, path)
-		} else {
-			wd, _ := os.Getwd()
-			absPath = filepath.Join(wd, path)
-		}
-	}
-	
-	// Walk up to find project root (directory with .shellcheckrc or go.mod)
-	currentPath := absPath
-	if !isDir {
-		currentPath = filepath.Dir(absPath)
-	}
-	for {
-		// Check for shellcheck config
-		if _, err := os.Stat(filepath.Join(currentPath, ".shellcheckrc")); err == nil {
-			projectRoot = currentPath
-			break
-		}
-		if _, err := os.Stat(filepath.Join(currentPath, ".shellcheck")); err == nil {
-			projectRoot = currentPath
-			break
-		}
-		// Check for go.mod (Go project root)
-		if _, err := os.Stat(filepath.Join(currentPath, "go.mod")); err == nil {
-			projectRoot = currentPath
-			break
-		}
-		parent := filepath.Dir(currentPath)
-		if parent == currentPath {
+	// Get project root for path validation
+	projectRoot := os.Getenv("PROJECT_ROOT")
+	if projectRoot == "" {
+		var err error
+		projectRoot, err = security.GetProjectRoot(path)
+		if err != nil {
 			projectRoot, _ = os.Getwd()
-			break
 		}
-		currentPath = parent
 	}
 
-	// Get relative path from project root
-	relPath, err := filepath.Rel(projectRoot, absPath)
+	// Validate and sanitize path to prevent directory traversal
+	absPath, relPath, err := security.ValidatePathWithinRoot(path, projectRoot)
 	if err != nil {
-		relPath = path
+		return nil, fmt.Errorf("invalid path: %w", err)
 	}
+
+	// Determine if path is a directory or file
+	info, err := os.Stat(absPath)
+	isDir := err == nil && info != nil && info.IsDir()
 
 	// Build command - use JSON output for shellcheck
 	args := []string{"--format=json"}

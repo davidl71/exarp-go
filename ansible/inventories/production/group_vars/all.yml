@@ -1,0 +1,35 @@
+---
+# Production environment variables
+
+# Go configuration
+go_version: "1.24.0"
+go_install_path: "/usr/local/go"
+go_user: "deploy"
+go_gopath: "/home/{{ go_user }}/go"
+go_bin_path: "/home/{{ go_user }}/go/bin"
+
+# Python configuration
+python_version: "3.10"
+python_pip_version: "latest"
+uv_version: "latest"
+
+# Project configuration
+project_name: "mcp-stdio-tools"
+project_path: "/opt/{{ project_name }}"
+project_user: "deploy"
+
+# Optional tools (production typically doesn't need linters)
+install_linters: false
+install_dev_tools: false
+install_file_watchers: false
+
+# Linter configuration (empty for production)
+linters: []
+
+# Development tools (empty for production)
+dev_tools: []
+
+# Node.js tools (for MCP servers)
+node_tools:
+  - npx  # Comes with npm
+

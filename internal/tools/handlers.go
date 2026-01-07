@@ -383,8 +383,8 @@ func handleLint(ctx context.Context, args json.RawMessage) ([]framework.TextCont
 			return nil, fmt.Errorf("lint failed: %w", err)
 		}
 
-		// Convert result to JSON
-		resultJSON, err := json.Marshal(result)
+		// Convert result to JSON with indentation for readability
+		resultJSON, err := json.MarshalIndent(result, "", "  ")
 		if err != nil {
 			return nil, fmt.Errorf("failed to marshal result: %w", err)
 		}

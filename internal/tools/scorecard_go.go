@@ -8,6 +8,8 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/davidl/mcp-stdio-tools/internal/security"
 )
 
 // GoProjectMetrics represents Go-specific project metrics
@@ -41,6 +43,10 @@ type GoHealthChecks struct {
 	GoTestPasses      bool    `json:"go_test_passes"`
 	GoTestCoverage    float64 `json:"go_test_coverage"`
 	GoVulnCheckPasses bool    `json:"go_vulncheck_passes"`
+	// Security features
+	PathBoundaryEnforcement bool `json:"path_boundary_enforcement"`
+	RateLimiting            bool `json:"rate_limiting"`
+	AccessControl           bool `json:"access_control"`
 }
 
 // GoScorecardResult represents the complete Go scorecard
@@ -138,6 +144,11 @@ func performGoHealthChecks(ctx context.Context, projectRoot string) (*GoHealthCh
 
 	// Check govulncheck
 	health.GoVulnCheckPasses = checkGoVulncheck(ctx, projectRoot)
+
+	// Check security features
+	health.PathBoundaryEnforcement = checkPathBoundaryEnforcement(projectRoot)
+	health.RateLimiting = checkRateLimiting(projectRoot)
+	health.AccessControl = checkAccessControl(projectRoot)
 
 	return health, nil
 }
@@ -399,6 +410,54 @@ func checkGoVulncheck(ctx context.Context, root string) bool {
 	return err == nil
 }
 
+// checkPathBoundaryEnforcement checks if path boundary enforcement is implemented
+func checkPathBoundaryEnforcement(projectRoot string) bool {
+	// Check if security/path.go exists and has ValidatePath function
+	pathFile := filepath.Join(projectRoot, "internal", "security", "path.go")
+	if _, err := os.Stat(pathFile); err != nil {
+		return false
+	}
+	// Read file and check for ValidatePath function
+	data, err := os.ReadFile(pathFile)
+	if err != nil {
+		return false
+	}
+	content := string(data)
+	return strings.Contains(content, "func ValidatePath") && strings.Contains(content, "ValidatePathWithinRoot")
+}
+
+// checkRateLimiting checks if rate limiting is implemented
+func checkRateLimiting(projectRoot string) bool {
+	// Check if security/ratelimit.go exists
+	ratelimitFile := filepath.Join(projectRoot, "internal", "security", "ratelimit.go")
+	if _, err := os.Stat(ratelimitFile); err != nil {
+		return false
+	}
+	// Read file and check for RateLimiter
+	data, err := os.ReadFile(ratelimitFile)
+	if err != nil {
+		return false
+	}
+	content := string(data)
+	return strings.Contains(content, "type RateLimiter") && strings.Contains(content, "func Allow")
+}
+
+// checkAccessControl checks if access control is implemented
+func checkAccessControl(projectRoot string) bool {
+	// Check if security/access.go exists
+	accessFile := filepath.Join(projectRoot, "internal", "security", "access.go")
+	if _, err := os.Stat(accessFile); err != nil {
+		return false
+	}
+	// Read file and check for AccessControl
+	data, err := os.ReadFile(accessFile)
+	if err != nil {
+		return false
+	}
+	content := string(data)
+	return strings.Contains(content, "type AccessControl") && strings.Contains(content, "func CheckToolAccess")
+}
+
 // generateGoRecommendations generates recommendations based on health checks
 func generateGoRecommendations(health *GoHealthChecks, metrics *GoProjectMetrics) []string {
 	var recommendations []string
@@ -578,6 +637,13 @@ func FormatGoScorecard(scorecard *GoScorecardResult) string {
 	sb.WriteString(fmt.Sprintf("    govulncheck:          %s\n", checkMark(scorecard.Health.GoVulnCheckPasses)))
 	sb.WriteString("\n")
 
+	// Security Features
+	sb.WriteString("  Security Features:\n")
+	sb.WriteString(fmt.Sprintf("    Path boundary enforcement: %s\n", checkMark(scorecard.Health.PathBoundaryEnforcement)))
+	sb.WriteString(fmt.Sprintf("    Rate limiting:             %s\n", checkMark(scorecard.Health.RateLimiting)))
+	sb.WriteString(fmt.Sprintf("    Access control:            %s\n", checkMark(scorecard.Health.AccessControl)))
+	sb.WriteString("\n")
+
 	// Recommendations
 	if len(scorecard.Recommendations) > 0 {
 		sb.WriteString("  Recommendations:\n")
@@ -608,6 +674,17 @@ func GenerateGoScorecard(ctx context.Context, projectRoot string) (*GoScorecardR
 			return nil, fmt.Errorf("failed to get working directory: %w", err)
 		}
 	}
+
+	// Validate project root path to prevent directory traversal
+	validatedRoot, err := security.ValidatePath(projectRoot, projectRoot)
+	if err != nil {
+		// If validation fails, try to get project root safely
+		validatedRoot, err = security.GetProjectRoot(projectRoot)
+		if err != nil {
+			return nil, fmt.Errorf("invalid project root: %w", err)
+		}
+	}
+	projectRoot = validatedRoot
 
 	// Collect metrics
 	metrics, err := collectGoMetrics(ctx, projectRoot)

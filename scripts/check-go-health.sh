@@ -118,7 +118,7 @@ if go test ./... -coverprofile=coverage.out > /dev/null 2>&1; then
     COVERAGE=$(go tool cover -func=coverage.out 2>/dev/null | grep total | awk '{print $3}')
     rm -f coverage.out
     if [ -n "$COVERAGE" ]; then
-        COVERAGE_NUM=$(echo "$COVERAGE" | sed 's/%//')
+        COVERAGE_NUM=${COVERAGE//%/}
         if (( $(echo "$COVERAGE_NUM >= 80" | bc -l) )); then
             echo -e "${GREEN}✅${NC}  ($COVERAGE)"
             PASS=$((PASS + 1))

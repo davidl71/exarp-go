@@ -1,0 +1,10 @@
+[local]
+localhost ansible_connection=local
+
+[development]
+localhost ansible_connection=local
+
+[all:vars]
+ansible_python_interpreter=auto_silent
+environment=development
+

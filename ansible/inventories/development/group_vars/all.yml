@@ -1,0 +1,43 @@
+---
+# Development environment variables
+
+# Go configuration
+go_version: "1.24.0"
+go_install_path: "/usr/local/go"
+go_user: "{{ ansible_user | default('vagrant') }}"
+go_gopath: "/home/{{ go_user }}/go"
+go_bin_path: "/home/{{ go_user }}/go/bin"
+
+# Python configuration
+python_version: "3.10"
+python_pip_version: "latest"
+uv_version: "latest"
+
+# Project configuration
+project_name: "mcp-stdio-tools"
+project_path: "/opt/{{ project_name }}"
+project_user: "{{ ansible_user | default('vagrant') }}"
+
+# Optional tools (set to true to install)
+install_linters: true
+install_dev_tools: true
+install_file_watchers: true
+
+# Linter configuration
+linters:
+  - golangci-lint
+  - shellcheck
+  - shfmt
+  - gomarklint
+  - markdownlint-cli
+  - cspell
+
+# Development tools
+dev_tools:
+  - fswatch  # macOS file watcher
+  - inotify-tools  # Linux file watcher
+
+# Node.js tools (for MCP servers)
+node_tools:
+  - npx  # Comes with npm
+

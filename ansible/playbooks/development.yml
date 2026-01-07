@@ -1,0 +1,79 @@
+---
+# Development environment setup playbook
+# Installs all dependencies including optional linters and dev tools
+
+- name: Setup Development Environment
+  hosts: development
+  become: yes
+  gather_facts: yes
+
+  roles:
+    - role: common
+      tags:
+        - common
+        - always
+
+    - role: golang
+      tags:
+        - golang
+        - always
+
+    - role: python
+      tags:
+        - python
+        - always
+
+    - role: linters
+      when: install_linters | default(false)
+      tags:
+        - linters
+        - optional
+
+  tasks:
+    - name: Create project directory
+      file:
+        path: "{{ project_path }}"
+        state: directory
+        owner: "{{ project_user }}"
+        group: "{{ project_user }}"
+        mode: '0755'
+      tags:
+        - common
+
+    - name: Install development file watchers
+      when: install_file_watchers | default(false)
+      block:
+        - name: Install fswatch (macOS)
+          when: ansible_system == "Darwin"
+          homebrew:
+            name: fswatch
+            state: present
+          tags:
+            - dev_tools
+            - optional
+
+        - name: Install inotify-tools (Linux)
+          when: ansible_system == "Linux"
+          package:
+            name: inotify-tools
+            state: present
+          tags:
+            - dev_tools
+            - optional
+
+      tags:
+        - dev_tools
+        - optional
+
+    - name: Display development environment summary
+      debug:
+        msg:
+          - "✅ Development environment setup complete"
+          - "Go version: {{ go_version }}"
+          - "Python version: {{ python_version }}"
+          - "Project path: {{ project_path }}"
+          - "Linters installed: {{ install_linters | default(false) }}"
+          - "Dev tools installed: {{ install_dev_tools | default(false) }}"
+      tags:
+        - always
+

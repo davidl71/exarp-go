@@ -67,11 +67,77 @@ This server hosts tools, prompts, and resources that are broken in FastMCP due t
 - `stdio://memories/recent` - Recent memories
 - `stdio://memories/session/{date}` - Session memories
 
+## Dependencies
+
+### Required Dependencies
+
+**System Requirements:**
+- **Go 1.24.0+** - Required for building and running the server
+  - Install from: https://go.dev/dl/
+  - Verify: `go version`
+- **Python 3.10+** - Required for Python bridge scripts
+  - Verify: `python3 --version`
+- **uv** - Python package manager (recommended) or pip
+  - Install: `curl -LsSf https://astral.sh/uv/install.sh | sh`
+  - Verify: `uv --version`
+
+**Go Modules (automatically managed):**
+- `github.com/modelcontextprotocol/go-sdk v1.2.0` - MCP SDK (required)
+- `golang.org/x/term v0.38.0` - Terminal utilities (required)
+- Indirect dependencies are automatically resolved by `go mod`
+
+**Python Dependencies:**
+- No runtime Python dependencies - bridge scripts use standard library only
+- Python bridge scripts are self-contained
+
+### Optional Dependencies
+
+**Development Tools:**
+- **make** - Build automation (recommended for development)
+  - Most systems include make by default
+- **golangci-lint** - Advanced Go linting (optional)
+  - Install: `go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest`
+  - Used by: `make lint`
+- **govulncheck** - Go vulnerability scanner (optional)
+  - Install: `go install golang.org/x/vuln/cmd/govulncheck@latest`
+  - Used by: Health check scripts
+
+**File Watching Tools (for hot reload):**
+- **fswatch** (macOS) - Recommended for file watching
+  - Install: `brew install fswatch`
+  - Used by: `dev-go.sh --watch`
+- **inotifywait** (Linux) - Recommended for file watching
+  - Install: `sudo apt-get install inotify-tools` (Debian/Ubuntu)
+  - Used by: `dev-go.sh --watch`
+- **Polling fallback** - Works without file watchers (slower)
+
+**Python Development Dependencies (optional):**
+Install with: `uv sync --dev` or `uv pip install -e ".[dev]"`
+- `pytest>=7.0.0` - Python testing framework
+- `black>=23.0.0` - Python code formatter
+- `ruff>=0.1.0` - Python linter
+
+**Feature-Specific Optional Dependencies:**
+- **Ollama** - Required for `ollama` tool functionality
+  - Install: https://ollama.ai/
+- **MLX** - Required for `mlx` tool functionality
+  - Install: https://ml-explore.github.io/mlx/
+
 ## Installation
 
 ```bash
 cd /Users/davidl/Projects/mcp-stdio-tools
+
+# Install Python dependencies (if using uv)
 uv sync
+
+# Or install Python dev dependencies (optional)
+uv sync --dev
+
+# Build Go binary
+make build
+# or
+go build -o bin/exarp-go ./cmd/server
 ```
 
 ## Running

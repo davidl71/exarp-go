@@ -1,9 +1,9 @@
 ======================================================================
   📊 EXARP PROJECT SCORE CARD
-  Generated: 2026-01-07 22:32
+  Generated: 2026-01-07 23:21
 ======================================================================
 
-  OVERALL SCORE: 53.5% 🟡
+  OVERALL SCORE: 54.8% 🟡
   Production Ready: NO ❌
   Blockers: Security controls incomplete
 
@@ -18,15 +18,15 @@
     performance    [████████░░░░░░░░░░░░]  40.0% 🔴 (×8%)
     security       [███████░░░░░░░░░░░░░]  36.4% 🔴 (×20%)
     clarity        [████░░░░░░░░░░░░░░░░]  20.0% 🔴 (×6%)
+    dogfooding     [██░░░░░░░░░░░░░░░░░░]  10.0% 🔴 (×13%)
     parallelizable [░░░░░░░░░░░░░░░░░░░░]   0.0% 🔴 (×6%)
-    dogfooding     [░░░░░░░░░░░░░░░░░░░░]   0.0% 🔴 (×13%)
 
   Key Metrics:
     Tasks: 1 pending, 55 completed
     Remaining work: 0h
     Parallelizable: 0 tasks (0.0%)
     Performance: 4/10 optimizations
-    Dogfooding: 0/10 self-checks
+    Dogfooding: 1/10 self-checks
     Uniqueness: 7/8 decisions justified, 8 deps
     🔐 CodeQL: Not configured
 
@@ -34,6 +34,6 @@
     🔴 [Security] Implement path boundary enforcement, rate limiting, and access control
     🟠 [CodeQL] Enable CodeQL workflow for automated security scanning
     🟡 [Performance] Enable: mcp_connection_pooling, async_operations
-    🟡 [Dogfooding] Enable more self-maintenance: pre_commit_hook, pre_push_hook, post_commit_hook...
+    🟡 [Dogfooding] Enable more self-maintenance: pre_commit_hook, pre_push_hook, post_merge_hook...
 
 ======================================================================

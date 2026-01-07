@@ -10,6 +10,8 @@ import (
 	"runtime"
 	"strings"
 	"time"
+
+	"github.com/davidl/mcp-stdio-tools/internal/security"
 )
 
 // getWorkspaceRoot determines the workspace root where bridge scripts are located
@@ -55,8 +57,21 @@ func ExecutePythonTool(ctx context.Context, toolName string, args map[string]int
 	// Get workspace root where bridge scripts are located
 	workspaceRoot := getWorkspaceRoot()
 
+	// Validate workspace root path
+	validatedRoot, err := security.ValidatePath(workspaceRoot, workspaceRoot)
+	if err != nil {
+		return "", fmt.Errorf("invalid workspace root: %w", err)
+	}
+	workspaceRoot = validatedRoot
+
 	// Path to Python bridge script (bridge scripts are in workspace root)
 	bridgeScript := filepath.Join(workspaceRoot, "bridge", "execute_tool.py")
+	
+	// Validate bridge script path is within workspace root
+	_, err = security.ValidatePath(bridgeScript, workspaceRoot)
+	if err != nil {
+		return "", fmt.Errorf("invalid bridge script path: %w", err)
+	}
 
 	// Marshal arguments to JSON
 	argsJSON, err := json.Marshal(args)
@@ -85,8 +100,21 @@ func GetPythonPrompt(ctx context.Context, promptName string) (string, error) {
 	// Get workspace root where bridge scripts are located
 	workspaceRoot := getWorkspaceRoot()
 
+	// Validate workspace root path
+	validatedRoot, err := security.ValidatePath(workspaceRoot, workspaceRoot)
+	if err != nil {
+		return "", fmt.Errorf("invalid workspace root: %w", err)
+	}
+	workspaceRoot = validatedRoot
+
 	// Path to Python bridge script (bridge scripts are in workspace root)
 	bridgeScript := filepath.Join(workspaceRoot, "bridge", "get_prompt.py")
+	
+	// Validate bridge script path is within workspace root
+	_, err = security.ValidatePath(bridgeScript, workspaceRoot)
+	if err != nil {
+		return "", fmt.Errorf("invalid bridge script path: %w", err)
+	}
 
 	// Create command
 	cmd := exec.CommandContext(ctx, "python3", bridgeScript, promptName)
@@ -123,8 +151,21 @@ func ExecutePythonResource(ctx context.Context, uri string) ([]byte, string, err
 	// Get workspace root where bridge scripts are located
 	workspaceRoot := getWorkspaceRoot()
 
+	// Validate workspace root path
+	validatedRoot, err := security.ValidatePath(workspaceRoot, workspaceRoot)
+	if err != nil {
+		return nil, "", fmt.Errorf("invalid workspace root: %w", err)
+	}
+	workspaceRoot = validatedRoot
+
 	// Path to Python bridge script for resources (bridge scripts are in workspace root)
 	bridgeScript := filepath.Join(workspaceRoot, "bridge", "execute_resource.py")
+	
+	// Validate bridge script path is within workspace root
+	_, err = security.ValidatePath(bridgeScript, workspaceRoot)
+	if err != nil {
+		return nil, "", fmt.Errorf("invalid bridge script path: %w", err)
+	}
 
 	// Create command
 	cmd := exec.CommandContext(ctx, "python3", bridgeScript, uri)

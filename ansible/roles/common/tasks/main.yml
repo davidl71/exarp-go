@@ -1,0 +1,63 @@
+---
+# Common role - Base system setup
+
+- name: Update package cache (Debian/Ubuntu)
+  apt:
+    update_cache: yes
+    cache_valid_time: 3600
+  when: ansible_os_family == "Debian"
+
+- name: Update package cache (RedHat/CentOS)
+  yum:
+    update_cache: yes
+  when: ansible_os_family == "RedHat"
+
+- name: Install base packages
+  package:
+    name: "{{ item }}"
+    state: present
+  loop:
+    - curl
+    - wget
+    - git
+    - build-essential  # Debian/Ubuntu
+    - gcc  # RedHat/CentOS
+    - make
+  loop_control:
+    label: "{{ item }}"
+
+- name: Install base packages (macOS)
+  homebrew:
+    name: "{{ item }}"
+    state: present
+  loop:
+    - curl
+    - wget
+    - git
+    - make
+  when: ansible_system == "Darwin"
+  loop_control:
+    label: "{{ item }}"
+
+- name: Create project user
+  user:
+    name: "{{ project_user }}"
+    state: present
+    shell: /bin/bash
+    create_home: yes
+  when: project_user != ansible_user
+
+- name: Create project directories
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ project_user }}"
+    group: "{{ project_user }}"
+    mode: '0755'
+  loop:
+    - "{{ project_path }}"
+    - "{{ project_path }}/bin"
+    - "{{ project_path }}/logs"
+  loop_control:
+    label: "{{ item }}"
+

@@ -1,0 +1,64 @@
+---
+# Production environment setup playbook
+# Installs only essential dependencies (no linters or dev tools)
+
+- name: Setup Production Environment
+  hosts: production
+  become: yes
+  gather_facts: yes
+
+  roles:
+    - role: common
+      tags:
+        - common
+        - always
+
+    - role: golang
+      tags:
+        - golang
+        - always
+
+    - role: python
+      tags:
+        - python
+        - always
+
+  tasks:
+    - name: Create project directory
+      file:
+        path: "{{ project_path }}"
+        state: directory
+        owner: "{{ project_user }}"
+        group: "{{ project_user }}"
+        mode: '0755'
+      tags:
+        - common
+
+    - name: Create systemd service for exarp-go
+      template:
+        src: exarp-go.service.j2
+        dest: /etc/systemd/system/exarp-go.service
+        owner: root
+        group: root
+        mode: '0644'
+      notify: reload systemd
+      tags:
+        - service
+        - production
+
+    - name: Display production environment summary
+      debug:
+        msg:
+          - "✅ Production environment setup complete"
+          - "Go version: {{ go_version }}"
+          - "Python version: {{ python_version }}"
+          - "Project path: {{ project_path }}"
+          - "Linters: Not installed (production)"
+      tags:
+        - always
+
+  handlers:
+    - name: reload systemd
+      systemd:
+        daemon_reload: yes
+
