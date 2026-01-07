@@ -1,0 +1,136 @@
+package main
+
+import (
+	"fmt"
+	"os"
+
+	"github.com/davidl/mcp-stdio-tools/internal/config"
+	"github.com/davidl/mcp-stdio-tools/internal/factory"
+	"github.com/davidl/mcp-stdio-tools/internal/framework"
+	"github.com/davidl/mcp-stdio-tools/internal/tools"
+	"github.com/davidl/mcp-stdio-tools/internal/prompts"
+	"github.com/davidl/mcp-stdio-tools/internal/resources"
+)
+
+// Expected counts
+const (
+	EXPECTED_TOOLS     = 24
+	EXPECTED_PROMPTS   = 15
+	EXPECTED_RESOURCES = 6
+)
+
+// Counting wrapper to track registrations
+type countingServer struct {
+	framework.MCPServer
+	toolCount     int
+	promptCount   int
+	resourceCount int
+}
+
+func (c *countingServer) RegisterTool(name, description string, schema framework.ToolSchema, handler framework.ToolHandler) error {
+	c.toolCount++
+	return c.MCPServer.RegisterTool(name, description, schema, handler)
+}
+
+func (c *countingServer) RegisterPrompt(name, description string, handler framework.PromptHandler) error {
+	c.promptCount++
+	return c.MCPServer.RegisterPrompt(name, description, handler)
+}
+
+func (c *countingServer) RegisterResource(uri, name, description, mimeType string, handler framework.ResourceHandler) error {
+	c.resourceCount++
+	return c.MCPServer.RegisterResource(uri, name, description, mimeType, handler)
+}
+
+func main() {
+	// Load configuration
+	cfg, err := config.Load()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Failed to load config: %v\n", err)
+		os.Exit(1)
+	}
+
+	// Create server using configured framework
+	baseServer, err := factory.NewServerFromConfig(cfg)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Failed to create server: %v\n", err)
+		os.Exit(1)
+	}
+
+	// Wrap with counter
+	server := &countingServer{
+		MCPServer: baseServer,
+	}
+
+	// Register all components (this will increment counters)
+	if err := tools.RegisterAllTools(server); err != nil {
+		fmt.Fprintf(os.Stderr, "Failed to register tools: %v\n", err)
+		os.Exit(1)
+	}
+
+	if err := prompts.RegisterAllPrompts(server); err != nil {
+		fmt.Fprintf(os.Stderr, "Failed to register prompts: %v\n", err)
+		os.Exit(1)
+	}
+
+	if err := resources.RegisterAllResources(server); err != nil {
+		fmt.Fprintf(os.Stderr, "Failed to register resources: %v\n", err)
+		os.Exit(1)
+	}
+
+	// Print results
+	fmt.Println("=== MCP Server Sanity Check ===")
+	fmt.Println()
+
+	// Tools
+	toolCount := server.toolCount
+	toolMatch := toolCount == EXPECTED_TOOLS
+	if toolMatch {
+		fmt.Printf("✅ Tools: %d/%d\n", toolCount, EXPECTED_TOOLS)
+	} else {
+		fmt.Printf("❌ Tools: %d/%d (MISMATCH)\n", toolCount, EXPECTED_TOOLS)
+	}
+
+	// Prompts
+	promptCount := server.promptCount
+	promptMatch := promptCount == EXPECTED_PROMPTS
+	if promptMatch {
+		fmt.Printf("✅ Prompts: %d/%d\n", promptCount, EXPECTED_PROMPTS)
+	} else {
+		fmt.Printf("❌ Prompts: %d/%d (MISMATCH)\n", promptCount, EXPECTED_PROMPTS)
+	}
+
+	// Resources
+	resourceCount := server.resourceCount
+	resourceMatch := resourceCount == EXPECTED_RESOURCES
+	if resourceMatch {
+		fmt.Printf("✅ Resources: %d/%d\n", resourceCount, EXPECTED_RESOURCES)
+	} else {
+		fmt.Printf("❌ Resources: %d/%d (MISMATCH)\n", resourceCount, EXPECTED_RESOURCES)
+	}
+
+	// Summary
+	fmt.Println()
+	if toolMatch && promptMatch && resourceMatch {
+		fmt.Println("✅ All counts match!")
+		fmt.Println()
+		fmt.Printf("Summary: %d tools, %d prompts, %d resources\n", toolCount, promptCount, resourceCount)
+		os.Exit(0)
+	} else {
+		fmt.Println("❌ Count mismatches detected!")
+		fmt.Println()
+		if !toolMatch {
+			fmt.Printf("  Tools: Expected %d, got %d (difference: %d)\n",
+				EXPECTED_TOOLS, toolCount, toolCount-EXPECTED_TOOLS)
+		}
+		if !promptMatch {
+			fmt.Printf("  Prompts: Expected %d, got %d (difference: %d)\n",
+				EXPECTED_PROMPTS, promptCount, promptCount-EXPECTED_PROMPTS)
+		}
+		if !resourceMatch {
+			fmt.Printf("  Resources: Expected %d, got %d (difference: %d)\n",
+				EXPECTED_RESOURCES, resourceCount, resourceCount-EXPECTED_RESOURCES)
+		}
+		os.Exit(1)
+	}
+}

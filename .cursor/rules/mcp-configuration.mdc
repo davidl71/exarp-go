@@ -1,0 +1,149 @@
+---
+description: MCP server configuration and integration guidelines for Cursor IDE
+alwaysApply: true
+---
+
+# 🔌 MCP Server Configuration
+
+**⚠️ CRITICAL: MCP Configuration for Cursor IDE Integration ⚠️**
+
+## Current MCP Servers
+
+The workspace is configured with **5 MCP servers** in `.cursor/mcp.json`:
+
+1. **advisor** - DevWisdom Go MCP Server (Crew Role: Advisor)
+   - Command: `/Users/davidl/Projects/devwisdom-go/devwisdom`
+   - Provides: Wisdom quotes, trusted advisors, inspirational guidance
+
+2. **coordinator** - Exarp Project Management Automation (Crew Role: Coordinator)
+   - Command: `/Users/davidl/Projects/project-management-automation/exarp-uvx-wrapper.sh`
+   - Args: `["--mcp"]`
+   - Provides: Project management automation tools
+
+3. **researcher** - Context7 MCP Server (Crew Role: Researcher)
+   - Command: `npx`
+   - Args: `["-y", "@upstash/context7-mcp"]`
+   - Provides: Advanced context management and retrieval
+
+4. **analyst** - Tractatus Thinking MCP Server (Crew Role: Analyst)
+   - Command: `npx`
+   - Args: `["-y", "tractatus_thinking"]`
+   - Provides: Structured reasoning and logical thinking
+
+5. **exarp-go** - Go-based MCP Server (Crew Role: Executor) ✅ **ACTIVE**
+   - Command: `/Users/davidl/Projects/mcp-stdio-tools/bin/exarp-go`
+   - Args: `[]`
+   - Env: `PROJECT_ROOT={{PROJECT_ROOT}}`
+   - Provides: 24 tools, 15 prompts, 6 resources
+   - Status: Native Go implementation with Python bridge for remaining tools
+
+## Configuration Guidelines
+
+### Server Configuration Format
+```json
+{
+  "mcpServers": {
+    "server-name": {
+      "command": "path/to/binary",
+      "args": ["arg1", "arg2"],
+      "env": {
+        "VAR_NAME": "value",
+        "PROJECT_ROOT": "{{PROJECT_ROOT}}"
+      },
+      "description": "Human-readable description"
+    }
+  }
+}
+```
+
+### Environment Variables
+- **PROJECT_ROOT**: Always use `{{PROJECT_ROOT}}` for workspace path substitution
+- **Custom vars**: Add project-specific environment variables as needed
+- **No secrets**: Never commit API keys or secrets to config file
+
+### Transport Protocol
+- **STDIO**: Recommended for Cursor IDE integration
+- **JSON-RPC 2.0**: Standard protocol for MCP communication
+- **No HTTP/SSE**: Cursor uses STDIO transport exclusively
+
+## Server Development Guidelines
+
+### Binary Location
+- **Development**: Build binary to `bin/exarp-go`
+- **Production**: Install to system PATH or use absolute path
+- **Testing**: Use relative path during development, absolute path in config
+
+### Error Handling
+- **Startup errors**: Log to stderr, exit with non-zero code
+- **Runtime errors**: Return JSON-RPC error responses
+- **Connection errors**: Cursor will retry automatically
+
+### Logging
+- **Stderr**: Use for error logs and diagnostics
+- **Stdout**: Reserved for JSON-RPC communication
+- **No file logging**: Rely on Cursor's log capture
+
+## Integration Testing
+
+### Manual Testing
+```bash
+# Test server startup
+./bin/exarp-go
+
+# Test with MCP client
+# Use Cursor's MCP inspector or external client
+```
+
+### Cursor Integration
+1. **Restart Cursor** after config changes
+2. **Check MCP status** in Cursor settings
+3. **Test tool invocation** via chat interface
+4. **Verify resources** are accessible
+
+## Migration Notes
+
+### From Python to Go
+- **Binary path**: Update from Python script to Go binary
+- **Command format**: Change from `uv run python -m mcp_stdio_tools.server` to binary path
+- **Environment**: Same environment variables, different execution model
+- **Compatibility**: Maintain same tool/prompt/resource interfaces
+
+### Framework-Agnostic Design
+- **Configuration**: Framework selection via config file
+- **No hard dependencies**: Core code independent of framework
+- **Easy switching**: Change framework without code changes
+- **Testing**: Mock adapters for unit testing
+
+## Troubleshooting
+
+### Common Issues
+1. **Server not found**: Check binary path is correct
+2. **Permission denied**: Ensure binary is executable (`chmod +x`)
+3. **Connection failed**: Verify server starts without errors
+4. **Tools not available**: Check server logs for registration errors
+
+### Debug Steps
+1. **Test binary directly**: Run binary manually to check for errors
+2. **Check Cursor logs**: View MCP server logs in Cursor settings
+3. **Validate JSON**: Ensure `.cursor/mcp.json` is valid JSON
+4. **Restart Cursor**: Required after config changes
+
+## Best Practices
+
+### Configuration Management
+- ✅ **Version control**: Commit `.cursor/mcp.json` to repository
+- ✅ **Documentation**: Document each server's purpose and usage
+- ✅ **Validation**: Validate JSON syntax before committing
+- ✅ **Testing**: Test each server independently before adding to config
+
+### Server Development
+- ✅ **Error handling**: Graceful error handling and reporting
+- ✅ **Logging**: Clear, actionable error messages
+- ✅ **Testing**: Comprehensive test coverage
+- ✅ **Documentation**: Clear API documentation for tools/prompts/resources
+
+### Integration
+- ✅ **Compatibility**: Maintain backward compatibility during migration
+- ✅ **Testing**: Test all tools/prompts/resources after changes
+- ✅ **Monitoring**: Monitor server health and performance
+- ✅ **Updates**: Keep servers updated with latest versions

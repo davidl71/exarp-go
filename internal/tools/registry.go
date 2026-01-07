@@ -1,0 +1,1237 @@
+package tools
+
+import (
+	"fmt"
+
+	"github.com/davidl/mcp-stdio-tools/internal/framework"
+)
+
+// RegisterAllTools registers all tools with the server
+func RegisterAllTools(server framework.MCPServer) error {
+	// Batch 1: Simple tools (T-22 through T-27)
+	if err := registerBatch1Tools(server); err != nil {
+		return fmt.Errorf("failed to register Batch 1 tools: %w", err)
+	}
+
+	// Batch 2: Medium tools (T-28 through T-35)
+	if err := registerBatch2Tools(server); err != nil {
+		return fmt.Errorf("failed to register Batch 2 tools: %w", err)
+	}
+
+	// Batch 3: Advanced tools (T-37 through T-44)
+	if err := registerBatch3Tools(server); err != nil {
+		return fmt.Errorf("failed to register Batch 3 tools: %w", err)
+	}
+
+	return nil
+}
+
+// registerBatch1Tools registers Batch 1 tools (6 simple tools)
+func registerBatch1Tools(server framework.MCPServer) error {
+	// T-22: analyze_alignment
+	if err := server.RegisterTool(
+		"analyze_alignment",
+		"[HINT: Alignment analysis. action=todo2|prd. Unified alignment analysis tool.]",
+		framework.ToolSchema{
+			Type: "object",
+			Properties: map[string]interface{}{
+				"action": map[string]interface{}{
+					"type":    "string",
+					"enum":    []string{"todo2", "prd"},
+					"default": "todo2",
+				},
+				"create_followup_tasks": map[string]interface{}{
+					"type":    "boolean",
+					"default": true,
+				},
+				"output_path": map[string]interface{}{
+					"type": "string",
+				},
+			},
+		},
+		handleAnalyzeAlignment,
+	); err != nil {
+		return fmt.Errorf("failed to register analyze_alignment: %w", err)
+	}
+
+	// T-23: generate_config
+	if err := server.RegisterTool(
+		"generate_config",
+		"[HINT: Config generation. action=rules|ignore|simplify. Creates IDE config files.]",
+		framework.ToolSchema{
+			Type: "object",
+			Properties: map[string]interface{}{
+				"action": map[string]interface{}{
+					"type":    "string",
+					"enum":    []string{"rules", "ignore", "simplify"},
+					"default": "rules",
+				},
+				"rules": map[string]interface{}{
+					"type": "string",
+				},
+				"overwrite": map[string]interface{}{
+					"type":    "boolean",
+					"default": false,
+				},
+				"analyze_only": map[string]interface{}{
+					"type":    "boolean",
+					"default": false,
+				},
+				"include_indexing": map[string]interface{}{
+					"type":    "boolean",
+					"default": true,
+				},
+				"analyze_project": map[string]interface{}{
+					"type":    "boolean",
+					"default": true,
+				},
+				"rule_files": map[string]interface{}{
+					"type": "string",
+				},
+				"output_dir": map[string]interface{}{
+					"type": "string",
+				},
+				"dry_run": map[string]interface{}{
+					"type":    "boolean",
+					"default": false,
+				},
+			},
+		},
+		handleGenerateConfig,
+	); err != nil {
+		return fmt.Errorf("failed to register generate_config: %w", err)
+	}
+
+	// T-24: health
+	if err := server.RegisterTool(
+		"health",
+		"[HINT: Health check. action=server|git|docs|dod|cicd. Status and health metrics.]",
+		framework.ToolSchema{
+			Type: "object",
+			Properties: map[string]interface{}{
+				"action": map[string]interface{}{
+					"type":    "string",
+					"enum":    []string{"server", "git", "docs", "dod", "cicd"},
+					"default": "server",
+				},
+				"agent_name": map[string]interface{}{
+					"type": "string",
+				},
+				"check_remote": map[string]interface{}{
+					"type":    "boolean",
+					"default": true,
+				},
+				"output_path": map[string]interface{}{
+					"type": "string",
+				},
+				"create_tasks": map[string]interface{}{
+					"type":    "boolean",
+					"default": true,
+				},
+				"task_id": map[string]interface{}{
+					"type": "string",
+				},
+				"changed_files": map[string]interface{}{
+					"type": "string",
+				},
+				"auto_check": map[string]interface{}{
+					"type":    "boolean",
+					"default": true,
+				},
+				"workflow_path": map[string]interface{}{
+					"type": "string",
+				},
+				"check_runners": map[string]interface{}{
+					"type":    "boolean",
+					"default": true,
+				},
+			},
+		},
+		handleHealth,
+	); err != nil {
+		return fmt.Errorf("failed to register health: %w", err)
+	}
+
+	// T-25: setup_hooks
+	if err := server.RegisterTool(
+		"setup_hooks",
+		"[HINT: Hooks setup. action=git|patterns. Install automation hooks.]",
+		framework.ToolSchema{
+			Type: "object",
+			Properties: map[string]interface{}{
+				"action": map[string]interface{}{
+					"type":    "string",
+					"enum":    []string{"git", "patterns"},
+					"default": "git",
+				},
+				"hooks": map[string]interface{}{
+					"type":  "array",
+					"items": map[string]interface{}{"type": "string"},
+				},
+				"patterns": map[string]interface{}{
+					"type": "string",
+				},
+				"config_path": map[string]interface{}{
+					"type": "string",
+				},
+				"install": map[string]interface{}{
+					"type":    "boolean",
+					"default": true,
+				},
+				"dry_run": map[string]interface{}{
+					"type":    "boolean",
+					"default": false,
+				},
+			},
+		},
+		handleSetupHooks,
+	); err != nil {
+		return fmt.Errorf("failed to register setup_hooks: %w", err)
+	}
+
+	// T-26: check_attribution
+	if err := server.RegisterTool(
+		"check_attribution",
+		"[HINT: Attribution compliance check. Verify proper attribution for all third-party components.]",
+		framework.ToolSchema{
+			Type: "object",
+			Properties: map[string]interface{}{
+				"output_path": map[string]interface{}{
+					"type": "string",
+				},
+				"create_tasks": map[string]interface{}{
+					"type":    "boolean",
+					"default": true,
+				},
+			},
+		},
+		handleCheckAttribution,
+	); err != nil {
+		return fmt.Errorf("failed to register check_attribution: %w", err)
+	}
+
+	// T-27: add_external_tool_hints
+	if err := server.RegisterTool(
+		"add_external_tool_hints",
+		"[HINT: Tool hints. Files scanned, modified, hints added.]",
+		framework.ToolSchema{
+			Type: "object",
+			Properties: map[string]interface{}{
+				"dry_run": map[string]interface{}{
+					"type":    "boolean",
+					"default": false,
+				},
+				"output_path": map[string]interface{}{
+					"type": "string",
+				},
+				"min_file_size": map[string]interface{}{
+					"type":    "integer",
+					"default": 50,
+				},
+			},
+		},
+		handleAddExternalToolHints,
+	); err != nil {
+		return fmt.Errorf("failed to register add_external_tool_hints: %w", err)
+	}
+
+	return nil
+}
+
+// registerBatch2Tools registers Batch 2 tools (8 medium tools)
+func registerBatch2Tools(server framework.MCPServer) error {
+	// T-28: memory
+	if err := server.RegisterTool(
+		"memory",
+		"[HINT: Memory tool. action=save|recall|search. Persist and retrieve AI discoveries.]",
+		framework.ToolSchema{
+			Type: "object",
+			Properties: map[string]interface{}{
+				"action": map[string]interface{}{
+					"type":    "string",
+					"enum":    []string{"save", "recall", "search"},
+					"default": "search",
+				},
+				"title": map[string]interface{}{
+					"type": "string",
+				},
+				"content": map[string]interface{}{
+					"type": "string",
+				},
+				"category": map[string]interface{}{
+					"type":    "string",
+					"default": "insight",
+				},
+				"task_id": map[string]interface{}{
+					"type": "string",
+				},
+				"metadata": map[string]interface{}{
+					"type": "string",
+				},
+				"include_related": map[string]interface{}{
+					"type":    "boolean",
+					"default": true,
+				},
+				"query": map[string]interface{}{
+					"type": "string",
+				},
+				"limit": map[string]interface{}{
+					"type":    "integer",
+					"default": 10,
+				},
+			},
+		},
+		handleMemory,
+	); err != nil {
+		return fmt.Errorf("failed to register memory: %w", err)
+	}
+
+	// T-29: memory_maint
+	if err := server.RegisterTool(
+		"memory_maint",
+		"[HINT: Memory maintenance. action=health|gc|prune|consolidate|dream. Lifecycle management.]",
+		framework.ToolSchema{
+			Type: "object",
+			Properties: map[string]interface{}{
+				"action": map[string]interface{}{
+					"type":    "string",
+					"enum":    []string{"health", "gc", "prune", "consolidate", "dream"},
+					"default": "health",
+				},
+				"max_age_days": map[string]interface{}{
+					"type":    "integer",
+					"default": 90,
+				},
+				"delete_orphaned": map[string]interface{}{
+					"type":    "boolean",
+					"default": true,
+				},
+				"delete_duplicates": map[string]interface{}{
+					"type":    "boolean",
+					"default": true,
+				},
+				"scorecard_max_age_days": map[string]interface{}{
+					"type":    "integer",
+					"default": 7,
+				},
+				"value_threshold": map[string]interface{}{
+					"type":    "number",
+					"default": 0.3,
+				},
+				"keep_minimum": map[string]interface{}{
+					"type":    "integer",
+					"default": 50,
+				},
+				"similarity_threshold": map[string]interface{}{
+					"type":    "number",
+					"default": 0.85,
+				},
+				"merge_strategy": map[string]interface{}{
+					"type":    "string",
+					"default": "newest",
+				},
+				"scope": map[string]interface{}{
+					"type":    "string",
+					"default": "week",
+				},
+				"advisors": map[string]interface{}{
+					"type": "string",
+				},
+				"generate_insights": map[string]interface{}{
+					"type":    "boolean",
+					"default": true,
+				},
+				"save_dream": map[string]interface{}{
+					"type":    "boolean",
+					"default": true,
+				},
+				"dry_run": map[string]interface{}{
+					"type":    "boolean",
+					"default": true,
+				},
+				"interactive": map[string]interface{}{
+					"type":    "boolean",
+					"default": true,
+				},
+			},
+		},
+		handleMemoryMaint,
+	); err != nil {
+		return fmt.Errorf("failed to register memory_maint: %w", err)
+	}
+
+	// T-30: report
+	if err := server.RegisterTool(
+		"report",
+		"[HINT: Report generation. action=overview|scorecard|briefing|prd. Project reports.]",
+		framework.ToolSchema{
+			Type: "object",
+			Properties: map[string]interface{}{
+				"action": map[string]interface{}{
+					"type":    "string",
+					"enum":    []string{"overview", "scorecard", "briefing", "prd"},
+					"default": "overview",
+				},
+				"output_format": map[string]interface{}{
+					"type":    "string",
+					"default": "text",
+				},
+				"output_path": map[string]interface{}{
+					"type": "string",
+				},
+				"include_recommendations": map[string]interface{}{
+					"type":    "boolean",
+					"default": true,
+				},
+				"overall_score": map[string]interface{}{
+					"type":    "number",
+					"default": 50.0,
+				},
+				"security_score": map[string]interface{}{
+					"type":    "number",
+					"default": 50.0,
+				},
+				"testing_score": map[string]interface{}{
+					"type":    "number",
+					"default": 50.0,
+				},
+				"documentation_score": map[string]interface{}{
+					"type":    "number",
+					"default": 50.0,
+				},
+				"completion_score": map[string]interface{}{
+					"type":    "number",
+					"default": 50.0,
+				},
+				"alignment_score": map[string]interface{}{
+					"type":    "number",
+					"default": 50.0,
+				},
+				"project_name": map[string]interface{}{
+					"type": "string",
+				},
+				"include_architecture": map[string]interface{}{
+					"type":    "boolean",
+					"default": true,
+				},
+				"include_metrics": map[string]interface{}{
+					"type":    "boolean",
+					"default": true,
+				},
+				"include_tasks": map[string]interface{}{
+					"type":    "boolean",
+					"default": true,
+				},
+			},
+		},
+		handleReport,
+	); err != nil {
+		return fmt.Errorf("failed to register report: %w", err)
+	}
+
+	// T-31: security
+	if err := server.RegisterTool(
+		"security",
+		"[HINT: Security. action=scan|alerts|report. Vulnerabilities, remediation.]",
+		framework.ToolSchema{
+			Type: "object",
+			Properties: map[string]interface{}{
+				"action": map[string]interface{}{
+					"type":    "string",
+					"enum":    []string{"scan", "alerts", "report"},
+					"default": "report",
+				},
+				"repo": map[string]interface{}{
+					"type":    "string",
+					"default": "davidl71/project-management-automation",
+				},
+				"languages": map[string]interface{}{
+					"type":  "array",
+					"items": map[string]interface{}{"type": "string"},
+				},
+				"config_path": map[string]interface{}{
+					"type": "string",
+				},
+				"state": map[string]interface{}{
+					"type":    "string",
+					"default": "open",
+				},
+				"include_dismissed": map[string]interface{}{
+					"type":    "boolean",
+					"default": false,
+				},
+			},
+		},
+		handleSecurity,
+	); err != nil {
+		return fmt.Errorf("failed to register security: %w", err)
+	}
+
+	// T-32: task_analysis
+	if err := server.RegisterTool(
+		"task_analysis",
+		"[HINT: Task analysis. action=duplicates|tags|hierarchy|dependencies|parallelization. Task quality and structure.]",
+		framework.ToolSchema{
+			Type: "object",
+			Properties: map[string]interface{}{
+				"action": map[string]interface{}{
+					"type":    "string",
+					"enum":    []string{"duplicates", "tags", "hierarchy", "dependencies", "parallelization"},
+					"default": "duplicates",
+				},
+				"similarity_threshold": map[string]interface{}{
+					"type":    "number",
+					"default": 0.85,
+				},
+				"auto_fix": map[string]interface{}{
+					"type":    "boolean",
+					"default": false,
+				},
+				"dry_run": map[string]interface{}{
+					"type":    "boolean",
+					"default": true,
+				},
+				"custom_rules": map[string]interface{}{
+					"type": "string",
+				},
+				"remove_tags": map[string]interface{}{
+					"type": "string",
+				},
+				"output_format": map[string]interface{}{
+					"type":    "string",
+					"default": "text",
+				},
+				"include_recommendations": map[string]interface{}{
+					"type":    "boolean",
+					"default": true,
+				},
+				"output_path": map[string]interface{}{
+					"type": "string",
+				},
+			},
+		},
+		handleTaskAnalysis,
+	); err != nil {
+		return fmt.Errorf("failed to register task_analysis: %w", err)
+	}
+
+	// T-33: task_discovery
+	if err := server.RegisterTool(
+		"task_discovery",
+		"[HINT: Task discovery. action=comments|markdown|orphans|all. Find tasks from various sources.]",
+		framework.ToolSchema{
+			Type: "object",
+			Properties: map[string]interface{}{
+				"action": map[string]interface{}{
+					"type":    "string",
+					"enum":    []string{"comments", "markdown", "orphans", "all"},
+					"default": "all",
+				},
+				"file_patterns": map[string]interface{}{
+					"type": "string",
+				},
+				"include_fixme": map[string]interface{}{
+					"type":    "boolean",
+					"default": true,
+				},
+				"doc_path": map[string]interface{}{
+					"type": "string",
+				},
+				"output_path": map[string]interface{}{
+					"type": "string",
+				},
+				"create_tasks": map[string]interface{}{
+					"type":    "boolean",
+					"default": false,
+				},
+			},
+		},
+		handleTaskDiscovery,
+	); err != nil {
+		return fmt.Errorf("failed to register task_discovery: %w", err)
+	}
+
+	// T-34: task_workflow
+	if err := server.RegisterTool(
+		"task_workflow",
+		"[HINT: Task workflow. action=sync|approve|clarify|clarity|cleanup. Manage task lifecycle.]",
+		framework.ToolSchema{
+			Type: "object",
+			Properties: map[string]interface{}{
+				"action": map[string]interface{}{
+					"type":    "string",
+					"enum":    []string{"sync", "approve", "clarify", "clarity", "cleanup"},
+					"default": "sync",
+				},
+				"dry_run": map[string]interface{}{
+					"type":    "boolean",
+					"default": false,
+				},
+				"status": map[string]interface{}{
+					"type":    "string",
+					"default": "Review",
+				},
+				"new_status": map[string]interface{}{
+					"type":    "string",
+					"default": "Todo",
+				},
+				"clarification_none": map[string]interface{}{
+					"type":    "boolean",
+					"default": true,
+				},
+				"filter_tag": map[string]interface{}{
+					"type": "string",
+				},
+				"task_ids": map[string]interface{}{
+					"type": "string",
+				},
+				"sub_action": map[string]interface{}{
+					"type":    "string",
+					"default": "list",
+				},
+				"task_id": map[string]interface{}{
+					"type": "string",
+				},
+				"clarification_text": map[string]interface{}{
+					"type": "string",
+				},
+				"decision": map[string]interface{}{
+					"type": "string",
+				},
+				"decisions_json": map[string]interface{}{
+					"type": "string",
+				},
+				"move_to_todo": map[string]interface{}{
+					"type":    "boolean",
+					"default": true,
+				},
+				"auto_apply": map[string]interface{}{
+					"type":    "boolean",
+					"default": false,
+				},
+				"output_format": map[string]interface{}{
+					"type":    "string",
+					"default": "text",
+				},
+				"stale_threshold_hours": map[string]interface{}{
+					"type":    "number",
+					"default": 2.0,
+				},
+				"output_path": map[string]interface{}{
+					"type": "string",
+				},
+			},
+		},
+		handleTaskWorkflow,
+	); err != nil {
+		return fmt.Errorf("failed to register task_workflow: %w", err)
+	}
+
+	// T-35: testing
+	if err := server.RegisterTool(
+		"testing",
+		"[HINT: Testing tool. action=run|coverage|suggest|validate. Execute tests, analyze coverage, suggest test cases, or validate test structure.]",
+		framework.ToolSchema{
+			Type: "object",
+			Properties: map[string]interface{}{
+				"action": map[string]interface{}{
+					"type":    "string",
+					"enum":    []string{"run", "coverage", "suggest", "validate"},
+					"default": "run",
+				},
+				"test_path": map[string]interface{}{
+					"type": "string",
+				},
+				"test_framework": map[string]interface{}{
+					"type":    "string",
+					"default": "auto",
+				},
+				"verbose": map[string]interface{}{
+					"type":    "boolean",
+					"default": true,
+				},
+				"coverage": map[string]interface{}{
+					"type":    "boolean",
+					"default": false,
+				},
+				"coverage_file": map[string]interface{}{
+					"type": "string",
+				},
+				"min_coverage": map[string]interface{}{
+					"type":    "integer",
+					"default": 80,
+				},
+				"format": map[string]interface{}{
+					"type":    "string",
+					"default": "html",
+				},
+				"target_file": map[string]interface{}{
+					"type": "string",
+				},
+				"min_confidence": map[string]interface{}{
+					"type":    "number",
+					"default": 0.7,
+				},
+				"framework": map[string]interface{}{
+					"type": "string",
+				},
+				"output_path": map[string]interface{}{
+					"type": "string",
+				},
+			},
+		},
+		handleTesting,
+	); err != nil {
+		return fmt.Errorf("failed to register testing: %w", err)
+	}
+
+	return nil
+}
+
+// registerBatch3Tools registers Batch 3 tools (8 advanced tools)
+func registerBatch3Tools(server framework.MCPServer) error {
+	// T-37: automation
+	if err := server.RegisterTool(
+		"automation",
+		"[HINT: Automation. action=daily|nightly|sprint|discover. Unified automation tool.]",
+		framework.ToolSchema{
+			Type: "object",
+			Properties: map[string]interface{}{
+				"action": map[string]interface{}{
+					"type":    "string",
+					"enum":    []string{"daily", "nightly", "sprint", "discover"},
+					"default": "daily",
+				},
+				"tasks": map[string]interface{}{
+					"type":  "array",
+					"items": map[string]interface{}{"type": "string"},
+				},
+				"include_slow": map[string]interface{}{
+					"type":    "boolean",
+					"default": false,
+				},
+				"max_tasks_per_host": map[string]interface{}{
+					"type":    "integer",
+					"default": 5,
+				},
+				"max_parallel_tasks": map[string]interface{}{
+					"type":    "integer",
+					"default": 10,
+				},
+				"priority_filter": map[string]interface{}{
+					"type": "string",
+				},
+				"tag_filter": map[string]interface{}{
+					"type":  "array",
+					"items": map[string]interface{}{"type": "string"},
+				},
+				"max_iterations": map[string]interface{}{
+					"type":    "integer",
+					"default": 10,
+				},
+				"auto_approve": map[string]interface{}{
+					"type":    "boolean",
+					"default": true,
+				},
+				"extract_subtasks": map[string]interface{}{
+					"type":    "boolean",
+					"default": true,
+				},
+				"run_analysis_tools": map[string]interface{}{
+					"type":    "boolean",
+					"default": true,
+				},
+				"run_testing_tools": map[string]interface{}{
+					"type":    "boolean",
+					"default": true,
+				},
+				"min_value_score": map[string]interface{}{
+					"type":    "number",
+					"default": 0.7,
+				},
+				"dry_run": map[string]interface{}{
+					"type":    "boolean",
+					"default": false,
+				},
+				"output_path": map[string]interface{}{
+					"type": "string",
+				},
+			},
+		},
+		handleAutomation,
+	); err != nil {
+		return fmt.Errorf("failed to register automation: %w", err)
+	}
+
+	// T-38: tool_catalog
+	if err := server.RegisterTool(
+		"tool_catalog",
+		"[HINT: Tool catalog. action=list|help. Unified tool catalog and help.]",
+		framework.ToolSchema{
+			Type: "object",
+			Properties: map[string]interface{}{
+				"action": map[string]interface{}{
+					"type":    "string",
+					"enum":    []string{"list", "help"},
+					"default": "list",
+				},
+				"category": map[string]interface{}{
+					"type": "string",
+				},
+				"persona": map[string]interface{}{
+					"type": "string",
+				},
+				"include_examples": map[string]interface{}{
+					"type":    "boolean",
+					"default": true,
+				},
+				"tool_name": map[string]interface{}{
+					"type": "string",
+				},
+			},
+		},
+		handleToolCatalog,
+	); err != nil {
+		return fmt.Errorf("failed to register tool_catalog: %w", err)
+	}
+
+	// T-39: workflow_mode
+	if err := server.RegisterTool(
+		"workflow_mode",
+		"[HINT: Workflow mode management. action=focus|suggest|stats. Unified workflow operations.]",
+		framework.ToolSchema{
+			Type: "object",
+			Properties: map[string]interface{}{
+				"action": map[string]interface{}{
+					"type":    "string",
+					"enum":    []string{"focus", "suggest", "stats"},
+					"default": "focus",
+				},
+				"mode": map[string]interface{}{
+					"type": "string",
+				},
+				"enable_group": map[string]interface{}{
+					"type": "string",
+				},
+				"disable_group": map[string]interface{}{
+					"type": "string",
+				},
+				"status": map[string]interface{}{
+					"type":    "boolean",
+					"default": false,
+				},
+				"text": map[string]interface{}{
+					"type": "string",
+				},
+				"auto_switch": map[string]interface{}{
+					"type":    "boolean",
+					"default": false,
+				},
+			},
+		},
+		handleWorkflowMode,
+	); err != nil {
+		return fmt.Errorf("failed to register workflow_mode: %w", err)
+	}
+
+	// T-40: lint
+	if err := server.RegisterTool(
+		"lint",
+		"[HINT: Linting tool. action=run|analyze. Run linter or analyze problems.]",
+		framework.ToolSchema{
+			Type: "object",
+			Properties: map[string]interface{}{
+				"action": map[string]interface{}{
+					"type":    "string",
+					"enum":    []string{"run", "analyze"},
+					"default": "run",
+				},
+				"path": map[string]interface{}{
+					"type": "string",
+				},
+				"linter": map[string]interface{}{
+					"type":    "string",
+					"default": "golangci-lint",
+				},
+				"fix": map[string]interface{}{
+					"type":    "boolean",
+					"default": false,
+				},
+				"analyze": map[string]interface{}{
+					"type":    "boolean",
+					"default": true,
+				},
+				"select": map[string]interface{}{
+					"type": "string",
+				},
+				"ignore": map[string]interface{}{
+					"type": "string",
+				},
+				"problems_json": map[string]interface{}{
+					"type": "string",
+				},
+				"include_hints": map[string]interface{}{
+					"type":    "boolean",
+					"default": true,
+				},
+				"output_path": map[string]interface{}{
+					"type": "string",
+				},
+			},
+		},
+		handleLint,
+	); err != nil {
+		return fmt.Errorf("failed to register lint: %w", err)
+	}
+
+	// T-41: estimation
+	if err := server.RegisterTool(
+		"estimation",
+		"[HINT: Estimation. action=estimate|analyze|stats. Unified task duration estimation tool.]",
+		framework.ToolSchema{
+			Type: "object",
+			Properties: map[string]interface{}{
+				"action": map[string]interface{}{
+					"type":    "string",
+					"enum":    []string{"estimate", "analyze", "stats"},
+					"default": "estimate",
+				},
+				"name": map[string]interface{}{
+					"type": "string",
+				},
+				"details": map[string]interface{}{
+					"type":    "string",
+					"default": "",
+				},
+				"tags": map[string]interface{}{
+					"type": "string",
+				},
+				"tag_list": map[string]interface{}{
+					"type":  "array",
+					"items": map[string]interface{}{"type": "string"},
+				},
+				"priority": map[string]interface{}{
+					"type":    "string",
+					"default": "medium",
+				},
+				"use_historical": map[string]interface{}{
+					"type":    "boolean",
+					"default": true,
+				},
+				"detailed": map[string]interface{}{
+					"type":    "boolean",
+					"default": false,
+				},
+				"use_mlx": map[string]interface{}{
+					"type":    "boolean",
+					"default": true,
+				},
+				"mlx_weight": map[string]interface{}{
+					"type":    "number",
+					"default": 0.3,
+				},
+			},
+		},
+		handleEstimation,
+	); err != nil {
+		return fmt.Errorf("failed to register estimation: %w", err)
+	}
+
+	// T-42: git_tools
+	if err := server.RegisterTool(
+		"git_tools",
+		"[HINT: Git tools. action=commits|branches|tasks|diff|graph|merge|set_branch. Unified git-inspired tools.]",
+		framework.ToolSchema{
+			Type: "object",
+			Properties: map[string]interface{}{
+				"action": map[string]interface{}{
+					"type":    "string",
+					"enum":    []string{"commits", "branches", "tasks", "diff", "graph", "merge", "set_branch"},
+					"default": "commits",
+				},
+				"task_id": map[string]interface{}{
+					"type": "string",
+				},
+				"branch": map[string]interface{}{
+					"type": "string",
+				},
+				"limit": map[string]interface{}{
+					"type":    "integer",
+					"default": 50,
+				},
+				"commit1": map[string]interface{}{
+					"type": "string",
+				},
+				"commit2": map[string]interface{}{
+					"type": "string",
+				},
+				"time1": map[string]interface{}{
+					"type": "string",
+				},
+				"time2": map[string]interface{}{
+					"type": "string",
+				},
+				"format": map[string]interface{}{
+					"type":    "string",
+					"default": "text",
+				},
+				"output_path": map[string]interface{}{
+					"type": "string",
+				},
+				"max_commits": map[string]interface{}{
+					"type":    "integer",
+					"default": 50,
+				},
+				"source_branch": map[string]interface{}{
+					"type": "string",
+				},
+				"target_branch": map[string]interface{}{
+					"type": "string",
+				},
+				"conflict_strategy": map[string]interface{}{
+					"type":    "string",
+					"default": "newer",
+				},
+				"author": map[string]interface{}{
+					"type":    "string",
+					"default": "system",
+				},
+				"dry_run": map[string]interface{}{
+					"type":    "boolean",
+					"default": false,
+				},
+			},
+		},
+		handleGitTools,
+	); err != nil {
+		return fmt.Errorf("failed to register git_tools: %w", err)
+	}
+
+	// T-43: session
+	if err := server.RegisterTool(
+		"session",
+		"[HINT: Session. action=prime|handoff|prompts|assignee. Unified session management tools.]",
+		framework.ToolSchema{
+			Type: "object",
+			Properties: map[string]interface{}{
+				"action": map[string]interface{}{
+					"type":    "string",
+					"enum":    []string{"prime", "handoff", "prompts", "assignee"},
+					"default": "prime",
+				},
+				"include_hints": map[string]interface{}{
+					"type":    "boolean",
+					"default": true,
+				},
+				"include_tasks": map[string]interface{}{
+					"type":    "boolean",
+					"default": true,
+				},
+				"override_mode": map[string]interface{}{
+					"type": "string",
+				},
+				"task_id": map[string]interface{}{
+					"type": "string",
+				},
+				"summary": map[string]interface{}{
+					"type": "string",
+				},
+				"blockers": map[string]interface{}{
+					"type": "string",
+				},
+				"next_steps": map[string]interface{}{
+					"type": "string",
+				},
+				"unassign_my_tasks": map[string]interface{}{
+					"type":    "boolean",
+					"default": true,
+				},
+				"include_git_status": map[string]interface{}{
+					"type":    "boolean",
+					"default": true,
+				},
+				"limit": map[string]interface{}{
+					"type":    "integer",
+					"default": 5,
+				},
+				"dry_run": map[string]interface{}{
+					"type":    "boolean",
+					"default": false,
+				},
+				"direction": map[string]interface{}{
+					"type":    "string",
+					"default": "both",
+				},
+				"prefer_agentic_tools": map[string]interface{}{
+					"type":    "boolean",
+					"default": true,
+				},
+				"auto_commit": map[string]interface{}{
+					"type":    "boolean",
+					"default": true,
+				},
+				"mode": map[string]interface{}{
+					"type": "string",
+				},
+				"category": map[string]interface{}{
+					"type": "string",
+				},
+				"keywords": map[string]interface{}{
+					"type": "string",
+				},
+				"assignee_name": map[string]interface{}{
+					"type": "string",
+				},
+				"assignee_type": map[string]interface{}{
+					"type":    "string",
+					"default": "agent",
+				},
+				"hostname": map[string]interface{}{
+					"type": "string",
+				},
+				"status_filter": map[string]interface{}{
+					"type": "string",
+				},
+				"priority_filter": map[string]interface{}{
+					"type": "string",
+				},
+				"include_unassigned": map[string]interface{}{
+					"type":    "boolean",
+					"default": false,
+				},
+				"max_tasks_per_agent": map[string]interface{}{
+					"type":    "integer",
+					"default": 5,
+				},
+			},
+		},
+		handleSession,
+	); err != nil {
+		return fmt.Errorf("failed to register session: %w", err)
+	}
+
+	// T-44: infer_session_mode
+	if err := server.RegisterTool(
+		"infer_session_mode",
+		"[HINT: Session mode inference. Returns AGENT/ASK/MANUAL with confidence.]",
+		framework.ToolSchema{
+			Type: "object",
+			Properties: map[string]interface{}{
+				"force_recompute": map[string]interface{}{
+					"type":    "boolean",
+					"default": false,
+				},
+			},
+		},
+		handleInferSessionMode,
+	); err != nil {
+		return fmt.Errorf("failed to register infer_session_mode: %w", err)
+	}
+
+	// T-6: MLX Integration tools (ollama and mlx)
+	// ollama
+	if err := server.RegisterTool(
+		"ollama",
+		"[HINT: Ollama. action=status|models|generate|pull|hardware|docs|quality|summary. Unified Ollama tool.]",
+		framework.ToolSchema{
+			Type: "object",
+			Properties: map[string]interface{}{
+				"action": map[string]interface{}{
+					"type":    "string",
+					"enum":    []string{"status", "models", "generate", "pull", "hardware", "docs", "quality", "summary"},
+					"default": "status",
+				},
+				"host": map[string]interface{}{
+					"type": "string",
+				},
+				"prompt": map[string]interface{}{
+					"type": "string",
+				},
+				"model": map[string]interface{}{
+					"type":    "string",
+					"default": "llama3.2",
+				},
+				"stream": map[string]interface{}{
+					"type":    "boolean",
+					"default": false,
+				},
+				"options": map[string]interface{}{
+					"type": "string",
+				},
+				"num_gpu": map[string]interface{}{
+					"type": "integer",
+				},
+				"num_threads": map[string]interface{}{
+					"type": "integer",
+				},
+				"context_size": map[string]interface{}{
+					"type": "integer",
+				},
+				"file_path": map[string]interface{}{
+					"type": "string",
+				},
+				"output_path": map[string]interface{}{
+					"type": "string",
+				},
+				"style": map[string]interface{}{
+					"type":    "string",
+					"default": "google",
+				},
+				"include_suggestions": map[string]interface{}{
+					"type":    "boolean",
+					"default": true,
+				},
+				"data": map[string]interface{}{
+					"type": "string",
+				},
+				"level": map[string]interface{}{
+					"type":    "string",
+					"default": "brief",
+				},
+			},
+		},
+		handleOllama,
+	); err != nil {
+		return fmt.Errorf("failed to register ollama: %w", err)
+	}
+
+	// mlx
+	if err := server.RegisterTool(
+		"mlx",
+		"[HINT: MLX. action=status|hardware|models|generate. Unified MLX tool.]",
+		framework.ToolSchema{
+			Type: "object",
+			Properties: map[string]interface{}{
+				"action": map[string]interface{}{
+					"type":    "string",
+					"enum":    []string{"status", "hardware", "models", "generate"},
+					"default": "status",
+				},
+				"prompt": map[string]interface{}{
+					"type": "string",
+				},
+				"model": map[string]interface{}{
+					"type":    "string",
+					"default": "mlx-community/Phi-3.5-mini-instruct-4bit",
+				},
+				"max_tokens": map[string]interface{}{
+					"type":    "integer",
+					"default": 512,
+				},
+				"temperature": map[string]interface{}{
+					"type":    "number",
+					"default": 0.7,
+				},
+				"verbose": map[string]interface{}{
+					"type":    "boolean",
+					"default": false,
+				},
+			},
+		},
+		handleMlx,
+	); err != nil {
+		return fmt.Errorf("failed to register mlx: %w", err)
+	}
+
+	return nil
+}

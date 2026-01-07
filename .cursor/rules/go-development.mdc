@@ -1,0 +1,301 @@
+---
+description: Go development best practices and conventions for mcp-stdio-tools migration
+alwaysApply: true
+---
+
+# 🐹 Go Development Best Practices
+
+**⚠️ AI MUST FOLLOW THESE PRACTICES FOR ALL GO CODE GENERATION ⚠️**
+
+## Essential Go Principles
+
+• **Idiomatic Go** - Follow Go conventions, use standard library first
+• **Error handling** - Always handle errors explicitly, never ignore them
+• **Interface-driven design** - Use interfaces for abstraction and testability
+• **Package organization** - Clear package boundaries, minimal public API
+• **Concurrency safety** - Use channels, sync primitives correctly
+• **Zero values** - Leverage Go's zero values for sensible defaults
+• **Documentation** - Export only what needs to be exported, document public APIs
+• **Testing** - Write table-driven tests, use test helpers, benchmark critical paths
+
+## Go Code Style
+
+### Naming Conventions
+- **Packages**: lowercase, single word, descriptive (`server`, `tools`, `framework`)
+- **Exported functions**: PascalCase, descriptive verbs (`RegisterTool`, `HandleRequest`)
+- **Unexported functions**: camelCase (`registerTool`, `handleRequest`)
+- **Constants**: PascalCase for exported, camelCase for unexported
+- **Interfaces**: Single method = method name + "er" (`Reader`, `Writer`), multiple methods = descriptive name (`MCPServer`)
+
+### Error Handling
+```go
+// ✅ GOOD: Explicit error handling
+result, err := doSomething()
+if err != nil {
+    return fmt.Errorf("failed to do something: %w", err)
+}
+
+// ❌ BAD: Ignoring errors
+result, _ := doSomething()
+
+// ✅ GOOD: Wrapping errors with context
+if err != nil {
+    return fmt.Errorf("registering tool %s: %w", toolName, err)
+}
+```
+
+### Interface Design
+```go
+// ✅ GOOD: Small, focused interfaces
+type ToolHandler interface {
+    Handle(ctx context.Context, args json.RawMessage) (json.RawMessage, error)
+}
+
+// ✅ GOOD: Interface composition
+type MCPServer interface {
+    RegisterTool(name string, handler ToolHandler) error
+    Run(ctx context.Context) error
+}
+
+// ❌ BAD: Large, monolithic interfaces
+type Everything interface {
+    // 20+ methods...
+}
+```
+
+### Package Organization
+```
+cmd/
+  server/
+    main.go          # Application entry point
+internal/
+  framework/         # Framework abstraction layer
+    server.go        # MCPServer interface
+    factory.go       # Framework factory
+  adapters/          # Framework-specific adapters
+    gosdk/
+    mcpgo/
+    gomcp/
+  tools/             # Tool implementations
+  prompts/           # Prompt implementations
+  resources/         # Resource implementations
+pkg/                 # Public API (if needed)
+  api/               # Public interfaces
+```
+
+## Go-Specific Patterns
+
+### Context Usage
+```go
+// ✅ GOOD: Always accept context as first parameter
+func (s *Server) RegisterTool(ctx context.Context, name string, handler ToolHandler) error {
+    // Check context cancellation
+    select {
+    case <-ctx.Done():
+        return ctx.Err()
+    default:
+    }
+    // ... implementation
+}
+
+// ✅ GOOD: Pass context through call chain
+func (s *Server) Run(ctx context.Context) error {
+    return s.handleRequests(ctx)
+}
+```
+
+### Concurrency
+```go
+// ✅ GOOD: Use channels for communication
+type Server struct {
+    requests chan Request
+    done     chan struct{}
+}
+
+// ✅ GOOD: Use sync primitives when needed
+type Counter struct {
+    mu    sync.RWMutex
+    count int
+}
+
+func (c *Counter) Increment() {
+    c.mu.Lock()
+    defer c.mu.Unlock()
+    c.count++
+}
+```
+
+### Testing
+```go
+// ✅ GOOD: Table-driven tests
+func TestRegisterTool(t *testing.T) {
+    tests := []struct {
+        name    string
+        tool    Tool
+        wantErr bool
+    }{
+        {
+            name: "valid tool",
+            tool: Tool{Name: "test", Handler: mockHandler},
+            wantErr: false,
+        },
+        {
+            name: "empty name",
+            tool: Tool{Name: "", Handler: mockHandler},
+            wantErr: true,
+        },
+    }
+    
+    for _, tt := range tests {
+        t.Run(tt.name, func(t *testing.T) {
+            err := server.RegisterTool(tt.tool)
+            if (err != nil) != tt.wantErr {
+                t.Errorf("RegisterTool() error = %v, wantErr %v", err, tt.wantErr)
+            }
+        })
+    }
+}
+```
+
+## MCP Server Specific Guidelines
+
+### Framework-Agnostic Design
+- **Use interfaces** for all framework interactions
+- **Factory pattern** for framework selection
+- **Adapter pattern** for framework-specific implementations
+- **Configuration-driven** framework selection
+
+### Tool Registration
+```go
+// ✅ GOOD: Interface-based tool registration
+type ToolRegistry interface {
+    RegisterTool(name, description string, schema ToolSchema, handler ToolHandler) error
+    ListTools() []ToolInfo
+}
+
+// ✅ GOOD: Type-safe tool handlers
+type ToolHandler func(ctx context.Context, args json.RawMessage) (json.RawMessage, error)
+```
+
+### Resource Management
+```go
+// ✅ GOOD: Resource handlers with proper error handling
+type ResourceHandler func(ctx context.Context, uri string) ([]byte, string, error)
+
+// ✅ GOOD: Resource metadata
+type Resource struct {
+    URI         string
+    Name        string
+    Description string
+    MimeType    string
+    Handler     ResourceHandler
+}
+```
+
+## Migration-Specific Guidelines
+
+### Python Bridge Integration
+- **Use exec.Command** for Python bridge calls
+- **JSON-RPC 2.0** for communication protocol
+- **Error propagation** from Python to Go
+- **Timeout handling** for long-running Python operations
+
+### Framework Switching
+- **Configuration-based** framework selection
+- **No hard dependencies** on specific framework
+- **Adapter pattern** for framework abstraction
+- **Easy testing** with mock adapters
+
+## Performance Considerations
+
+### Memory Management
+- **Avoid allocations** in hot paths
+- **Use sync.Pool** for frequently allocated objects
+- **Buffer reuse** for I/O operations
+- **Profile before optimizing**
+
+### Concurrency
+- **Goroutine pools** for parallel tool execution
+- **Context cancellation** for request timeouts
+- **Channel buffering** for throughput optimization
+- **Avoid goroutine leaks**
+
+## Security Best Practices
+
+### Input Validation
+```go
+// ✅ GOOD: Validate all inputs
+func (s *Server) RegisterTool(name string, handler ToolHandler) error {
+    if name == "" {
+        return fmt.Errorf("tool name cannot be empty")
+    }
+    if handler == nil {
+        return fmt.Errorf("tool handler cannot be nil")
+    }
+    // ... sanitize name, check for conflicts
+}
+```
+
+### Error Messages
+```go
+// ✅ GOOD: Don't leak sensitive information
+return fmt.Errorf("authentication failed")
+
+// ❌ BAD: Leak sensitive information
+return fmt.Errorf("authentication failed: invalid password %q", password)
+```
+
+## Documentation Standards
+
+### Package Documentation
+```go
+// Package server provides an MCP server implementation.
+//
+// The server supports multiple MCP frameworks through a framework-agnostic
+// interface, allowing easy switching between implementations.
+package server
+```
+
+### Function Documentation
+```go
+// RegisterTool registers a new tool with the MCP server.
+//
+// The tool name must be unique and follow MCP naming conventions.
+// The handler will be called when the tool is invoked by a client.
+//
+// Returns an error if the tool name is invalid or already registered.
+func (s *Server) RegisterTool(name string, handler ToolHandler) error {
+    // ...
+}
+```
+
+## Dependencies Management
+
+### Go Modules
+- **Use go.mod** for dependency management
+- **Pin versions** for production dependencies
+- **Minimal dependencies** - prefer standard library
+- **Vendor dependencies** for reproducible builds (if needed)
+
+### Framework Dependencies
+- **Framework adapters** in separate packages
+- **No direct framework imports** in core code
+- **Interface-based** framework interaction
+- **Easy to swap** frameworks via configuration
+
+## AI Enforcement Checklist
+
+**Before generating Go code, ensure:**
+- ✅ Follows Go naming conventions
+- ✅ Handles all errors explicitly
+- ✅ Uses context for cancellation/timeouts
+- ✅ Implements interfaces for testability
+- ✅ Includes appropriate documentation
+- ✅ Uses table-driven tests
+- ✅ Follows framework-agnostic design
+- ✅ Validates all inputs
+- ✅ Uses idiomatic Go patterns
+- ✅ No goroutine leaks
+- ✅ Proper resource cleanup
+
+**These practices are mandatory for professional Go development.**
