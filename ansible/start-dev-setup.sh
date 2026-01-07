@@ -37,7 +37,7 @@ echo ""
 
 # List tasks
 echo "Step 2: Tasks to be executed:"
-ansible-playbook --list-tasks -i inventories/development playbooks/development.yml 2>/dev/null | grep -E "^  " | head -15
+ansible-playbook --list-tasks -i inventories/development playbooks/development.yml 2>/dev/null | grep -E "^  "
 echo ""
 
 # Run playbook

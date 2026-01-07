@@ -2,14 +2,15 @@
 # Python role - Install Python and uv (using uv as primary package manager)
 
 - name: Check if Python is already installed
-  command: python3 --version
+  ansible.builtin.command: python3 --version
   register: python_version_check
   changed_when: false
   failed_when: false
   ignore_errors: true
 
 - name: Check if uv is already installed
-  shell: |
+  ansible.builtin.shell: |
+    set -o pipefail
     if command -v uv >/dev/null 2>&1; then
       uv --version
     elif [ -x "$HOME/.cargo/bin/uv" ]; then
@@ -19,57 +20,63 @@
     else
       exit 1
     fi
+  args:
+    executable: /bin/bash
   register: uv_version_check
   changed_when: false
   failed_when: false
   ignore_errors: true
 
 - name: Install Python (Debian/Ubuntu)
-  apt:
+  ansible.builtin.apt:
     name:
       - python3
       - python3-venv
       - python3-dev
       - curl
     state: present
-    update_cache: yes
-  when: 
+    update_cache: true
+  when:
     - ansible_os_family == "Debian"
     - python_version_check.rc != 0
 
 - name: Install Python (RedHat/CentOS)
-  yum:
+  ansible.builtin.yum:
     name:
       - python3
       - python3-devel
       - curl
     state: present
-  when: 
+  when:
     - ansible_os_family == "RedHat"
     - python_version_check.rc != 0
 
 - name: Install Python (macOS)
-  homebrew:
+  community.general.homebrew:
     name: "python@{{ python_version }}"
     state: present
-  when: 
+  when:
     - ansible_system == "Darwin"
     - python_version_check.rc != 0
 
 - name: Verify Python installation
-  command: python3 --version
+  ansible.builtin.command: python3 --version
   register: python_verify
   changed_when: false
 
 - name: Get user home directory
-  shell: |
+  ansible.builtin.shell: |
+    set -o pipefail
     getent passwd "{{ project_user }}" | cut -d: -f6 || echo "/home/{{ project_user }}"
+  args:
+    executable: /bin/bash
   register: user_home
   changed_when: false
   when: project_user is defined
 
 - name: Install uv (official installer - Linux)
-  shell: |
+  ansible.builtin.shell: |
+    set -o pipefail
     curl -LsSf https://astral.sh/uv/install.sh | sh
   args:
     creates: "{{ user_home.stdout }}/.cargo/bin/uv"
@@ -85,7 +92,8 @@
     - user_home is defined
 
 - name: Install uv (official installer - macOS)
-  shell: |
+  ansible.builtin.shell: |
+    set -o pipefail
     curl -LsSf https://astral.sh/uv/install.sh | sh
   args:
     creates: "{{ user_home.stdout }}/.cargo/bin/uv"
@@ -101,33 +109,35 @@
     - user_home is defined
 
 - name: Add uv to PATH (Linux/macOS - via cargo)
-  lineinfile:
+  ansible.builtin.lineinfile:
     path: "/home/{{ project_user }}/.bashrc"
     regexp: '^export PATH=.*\.cargo/bin'
     line: 'export PATH="$HOME/.cargo/bin:$PATH"'
-    create: yes
+    create: true
     owner: "{{ project_user }}"
     group: "{{ project_user }}"
-  when: 
+    mode: '0644'
+  when:
     - project_user is defined
     - ansible_system in ["Linux", "Darwin"]
     - uv_install is defined and uv_install.changed | default(false)
 
 - name: Add uv to PATH (Linux/macOS - via cargo) in .zshrc
-  lineinfile:
+  ansible.builtin.lineinfile:
     path: "/home/{{ project_user }}/.zshrc"
     regexp: '^export PATH=.*\.cargo/bin'
     line: 'export PATH="$HOME/.cargo/bin:$PATH"'
-    create: yes
+    create: true
     owner: "{{ project_user }}"
     group: "{{ project_user }}"
-  when: 
+    mode: '0644'
+  when:
     - project_user is defined
     - ansible_system in ["Linux", "Darwin"]
     - uv_install is defined and uv_install.changed | default(false)
 
 - name: Verify uv installation (check PATH first, then common locations)
-  shell: |
+  ansible.builtin.shell: |
     export PATH="{{ user_home.stdout }}/.cargo/bin:$PATH"
     if command -v uv >/dev/null 2>&1; then
       uv --version
@@ -138,17 +148,21 @@
     else
       exit 1
     fi
+  args:
+    executable: /bin/bash
   register: uv_verify
   changed_when: false
   failed_when: false
   ignore_errors: true
-  when: 
+  when:
     - project_user is defined
     - user_home is defined
 
 - name: Display Python and uv versions
-  debug:
+  ansible.builtin.debug:
     msg:
       - "Python installed: {{ python_verify.stdout }}"
-      - "uv installed: {{ uv_verify.stdout if uv_verify.rc == 0 else 'Installation may need PATH update (try: export PATH=\"$HOME/.cargo/bin:$PATH\")' }}"
-
+      - >-
+        uv installed:
+        {{ uv_verify.stdout if uv_verify.rc == 0
+        else 'Installation may need PATH update (try: export PATH="$HOME/.cargo/bin:$PATH")' }}

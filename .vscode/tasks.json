@@ -1,0 +1,121 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Ansible: Development Setup",
+            "type": "shell",
+            "command": "ansible-playbook -i inventories/development playbooks/development.yml --ask-become-pass",
+            "options": {
+                "cwd": "${workspaceFolder}/ansible"
+            },
+            "problemMatcher": [],
+            "presentation": {
+                "reveal": "always",
+                "panel": "new",
+                "focus": true,
+                "clear": true
+            },
+            "group": {
+                "kind": "build",
+                "isDefault": false
+            }
+        },
+        {
+            "label": "Ansible: Development Setup (Dry Run)",
+            "type": "shell",
+            "command": "ansible-playbook --check -i inventories/development playbooks/development.yml --ask-become-pass",
+            "options": {
+                "cwd": "${workspaceFolder}/ansible"
+            },
+            "problemMatcher": [],
+            "presentation": {
+                "reveal": "always",
+                "panel": "new"
+            }
+        },
+        {
+            "label": "Ansible: Production Setup",
+            "type": "shell",
+            "command": "ansible-playbook -i inventories/production playbooks/production.yml --ask-become-pass",
+            "options": {
+                "cwd": "${workspaceFolder}/ansible"
+            },
+            "problemMatcher": [],
+            "presentation": {
+                "reveal": "always",
+                "panel": "new",
+                "focus": true
+            }
+        },
+        {
+            "label": "Ansible: Syntax Check (Development)",
+            "type": "shell",
+            "command": "ansible-playbook --syntax-check -i inventories/development playbooks/development.yml",
+            "options": {
+                "cwd": "${workspaceFolder}/ansible"
+            },
+            "problemMatcher": [],
+            "presentation": {
+                "reveal": "always",
+                "panel": "new"
+            }
+        },
+        {
+            "label": "Ansible: List Tasks (Development)",
+            "type": "shell",
+            "command": "ansible-playbook --list-tasks -i inventories/development playbooks/development.yml",
+            "options": {
+                "cwd": "${workspaceFolder}/ansible"
+            },
+            "problemMatcher": [],
+            "presentation": {
+                "reveal": "always",
+                "panel": "new"
+            }
+        },
+        {
+            "label": "Lint: Ansible (ansible-lint)",
+            "type": "shell",
+            "command": "ansible-lint -p -v",
+            "options": {
+                "cwd": "${workspaceFolder}/ansible"
+            },
+            "problemMatcher": [],
+            "presentation": {
+                "reveal": "always",
+                "panel": "new",
+                "focus": true
+            },
+            "group": {
+                "kind": "test",
+                "isDefault": false
+            }
+        },
+        {
+            "label": "Lint: YAML (yamllint)",
+            "type": "shell",
+            "command": "yamllint -f standard .",
+            "options": {
+                "cwd": "${workspaceFolder}/ansible"
+            },
+            "problemMatcher": [],
+            "presentation": {
+                "reveal": "always",
+                "panel": "new"
+            },
+            "group": {
+                "kind": "test",
+                "isDefault": false
+            }
+        },
+        {
+            "label": "Lint: All (Ansible + YAML)",
+            "dependsOn": [
+                "Lint: Ansible (ansible-lint)",
+                "Lint: YAML (yamllint)"
+            ],
+            "dependsOrder": "sequence"
+        }
+    ]
+}
+

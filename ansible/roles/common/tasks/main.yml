@@ -2,45 +2,52 @@
 # Common role - Base system setup
 
 - name: Update package cache (Debian/Ubuntu)
-  apt:
-    update_cache: yes
+  ansible.builtin.apt:
+    update_cache: true
     cache_valid_time: 3600
-    fail_on_apt_warn: no
-  ignore_errors: yes
+  ignore_errors: true
   register: apt_update_result
   changed_when: false
   failed_when: false
   when: ansible_os_family == "Debian"
 
 - name: Warn if apt update had issues
-  debug:
+  ansible.builtin.debug:
     msg: "⚠️  Apt cache update had some issues (broken repositories detected). Continuing with available packages..."
-  when: 
+  when:
     - ansible_os_family == "Debian"
     - apt_update_result is defined
     - (apt_update_result.rc is defined and apt_update_result.rc != 0) or apt_update_result.failed | default(false)
 
 - name: Update package cache (RedHat/CentOS)
-  yum:
-    update_cache: yes
+  ansible.builtin.yum:
+    update_cache: true
   when: ansible_os_family == "RedHat"
 
-- name: Install base packages
-  package:
-    name: "{{ item }}"
+- name: Install base packages (Debian/Ubuntu)
+  ansible.builtin.apt:
+    name:
+      - curl
+      - wget
+      - git
+      - build-essential
     state: present
-  loop:
-    - curl
-    - wget
-    - git
-    - build-essential  # Debian/Ubuntu
-    - gcc  # RedHat/CentOS
-    - make
-  loop_control:
-    label: "{{ item }}"
+  when: ansible_os_family == "Debian"
+
+- name: Install base packages (RedHat/CentOS)
+  ansible.builtin.yum:
+    name:
+      - curl
+      - wget
+      - git
+      - gcc
+      - gcc-c++
+      - make
+    state: present
+  when: ansible_os_family == "RedHat"
 
 - name: Install base packages (macOS)
-  homebrew:
+  community.general.homebrew:
     name: "{{ item }}"
     state: present
   loop:
@@ -52,24 +59,33 @@
   loop_control:
     label: "{{ item }}"
 
+- name: Install Xcode Command Line Tools (macOS)
+  ansible.builtin.command: xcode-select --install
+  args:
+    creates: /Library/Developer/CommandLineTools/usr/bin/gcc
+  register: xcode_tools_result
+  failed_when: false
+  changed_when: xcode_tools_result.rc == 0
+  when: ansible_system == "Darwin"
+
 - name: Get current user
-  command: whoami
+  ansible.builtin.command: whoami
   register: current_user
   changed_when: false
   when: ansible_user is not defined
 
 - name: Create project user
-  user:
+  ansible.builtin.user:
     name: "{{ project_user }}"
     state: present
     shell: /bin/bash
-    create_home: yes
-  when: 
+    create_home: true
+  when:
     - project_user is defined
     - (ansible_user is defined and project_user != ansible_user) or (ansible_user is not defined and project_user != current_user.stdout)
 
 - name: Create project directories
-  file:
+  ansible.builtin.file:
     path: "{{ item }}"
     state: directory
     owner: "{{ project_user }}"
@@ -82,10 +98,10 @@
   loop_control:
     label: "{{ item }}"
 
-##@ GitHub CLI (gh) - Optional installation
+# GitHub CLI (gh) - Optional installation
 
 - name: Check if GitHub CLI (gh) is already installed
-  command: gh --version
+  ansible.builtin.command: gh --version
   register: gh_version_check
   changed_when: false
   failed_when: false
@@ -93,7 +109,9 @@
   when: install_gh | default(false)
 
 - name: Check if GitHub CLI package is available in apt (Debian/Ubuntu)
-  shell: apt-cache search ^gh$ 2>/dev/null | grep -q "^gh " || exit 1
+  ansible.builtin.shell: apt-cache search ^gh$ 2>/dev/null | grep -q "^gh " || exit 1
+  args:
+    executable: /bin/bash
   register: gh_apt_available
   changed_when: false
   failed_when: false
@@ -104,10 +122,10 @@
     - gh_version_check.rc != 0
 
 - name: Install GitHub CLI via apt package (Debian/Ubuntu - if available in repos)
-  apt:
+  ansible.builtin.apt:
     name: gh
     state: present
-    update_cache: yes
+    update_cache: true
   when:
     - install_gh | default(false)
     - ansible_os_family == "Debian"
@@ -116,14 +134,19 @@
     - gh_apt_available.rc == 0  # Only use if package is in default repos
 
 - name: Install GitHub CLI via official apt repository (Debian/Ubuntu - fallback)
-  shell: |
+  ansible.builtin.shell: |
+    set -o pipefail
     type -p curl >/dev/null || (apt-get update && apt-get install curl -y)
-    curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg \
+    curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | \
+      dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg \
     && chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg \
-    && echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | tee /etc/apt/sources.list.d/github-cli.list > /dev/null \
+    && echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] \
+      https://cli.github.com/packages stable main" | \
+      tee /etc/apt/sources.list.d/github-cli.list > /dev/null \
     && apt-get update \
     && apt-get install gh -y
   args:
+    executable: /bin/bash
     creates: /usr/bin/gh
   when:
     - install_gh | default(false)
@@ -133,7 +156,7 @@
     - gh_apt_available.rc != 0  # Use fallback if package not in default repos
 
 - name: Install GitHub CLI (RedHat/CentOS/Fedora)
-  package:
+  ansible.builtin.package:
     name: gh
     state: present
   when:
@@ -142,7 +165,7 @@
     - gh_version_check.rc != 0
 
 - name: Install GitHub CLI (macOS)
-  homebrew:
+  community.general.homebrew:
     name: gh
     state: present
   when:
@@ -151,7 +174,7 @@
     - gh_version_check.rc != 0
 
 - name: Verify GitHub CLI installation
-  command: gh --version
+  ansible.builtin.command: gh --version
   register: gh_verify
   changed_when: false
   failed_when: false
@@ -159,6 +182,8 @@
   when: install_gh | default(false)
 
 - name: Display GitHub CLI installation status
-  debug:
-    msg: "GitHub CLI (gh): {{ gh_verify.stdout if (install_gh | default(false)) and gh_verify.rc == 0 else 'Not installed (set install_gh: true to install)' }}"
-
+  ansible.builtin.debug:
+    msg: >-
+      GitHub CLI (gh):
+      {{ gh_verify.stdout if (install_gh | default(false)) and gh_verify.rc == 0
+      else 'Not installed (set install_gh: true to install)' }}

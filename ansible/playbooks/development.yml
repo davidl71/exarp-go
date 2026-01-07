@@ -4,8 +4,8 @@
 
 - name: Setup Development Environment
   hosts: development
-  become: yes
-  gather_facts: yes
+  become: true
+  gather_facts: true
 
   roles:
     - role: common
@@ -31,7 +31,7 @@
 
   tasks:
     - name: Create project directory
-      file:
+      ansible.builtin.file:
         path: "{{ project_path }}"
         state: directory
         owner: "{{ project_user }}"
@@ -42,31 +42,30 @@
 
     - name: Install development file watchers
       when: install_file_watchers | default(false)
+      tags:
+        - dev_tools
+        - optional
       block:
         - name: Install fswatch (macOS)
-          when: ansible_system == "Darwin"
-          homebrew:
+          community.general.homebrew:
             name: fswatch
             state: present
+          when: ansible_system == "Darwin"
           tags:
             - dev_tools
             - optional
 
         - name: Install inotify-tools (Linux)
-          when: ansible_system == "Linux"
-          package:
+          ansible.builtin.package:
             name: inotify-tools
             state: present
+          when: ansible_system == "Linux"
           tags:
             - dev_tools
             - optional
 
-      tags:
-        - dev_tools
-        - optional
-
     - name: Display development environment summary
-      debug:
+      ansible.builtin.debug:
         msg:
           - "✅ Development environment setup complete"
           - "Go version: {{ go_version }}"
@@ -77,4 +76,3 @@
           - "GitHub CLI (gh) installed: {{ install_gh | default(false) }}"
       tags:
         - always
-
