@@ -1,0 +1,110 @@
+# Project-specific terms for cspell
+
+# Project names
+exarp
+exarp-go
+exarp_pma
+
+# Tools and utilities
+gomarklint
+markdownlint
+golangci-lint
+golangci
+goimports
+gofmt
+govet
+
+# Project management
+Todo2
+
+# MCP and protocols
+MCPServer
+jsonrpc
+JSON-RPC
+stdio
+MCP
+fastmcp
+FastMCP
+modelcontextprotocol
+
+# Go packages and dependencies
+jsonschema
+uritemplate
+shinagawa
+bmatcuk
+doublestar
+inconshreveable
+mousetrap
+spf13
+cobra
+pflag
+
+# Technical terms
+stdin
+stdout
+stderr
+subprocess
+subprocesses
+filepath
+filepaths
+lookpath
+unmarshal
+marshal
+unmarshaling
+marshaling
+
+# Domain-specific
+scorecard
+scorecards
+prompts
+prompt
+handlers
+handler
+resources
+resource
+tool
+tools
+
+# Shell script tools and utilities
+fswatch
+inotifywait
+pytest
+ruff
+uv
+govulncheck
+golangci-lint
+golangci
+
+# Shell script variables and functions
+PROJECT_ROOT
+BINARY_PATH
+BINARY_NAME
+WATCH_MODE
+EXARP_WATCH
+WATCH_FILES
+WATCH_PATTERNS
+WATCH_DIRS
+AUTO_TEST
+AUTO_BUILD
+TEST_WATCH
+BUILD_ONLY
+COVERAGE
+QUIET
+SCRIPT_DIR
+SERVER_PID
+EXPECTED_TOOLS
+EXPECTED_PROMPTS
+EXPECTED_RESOURCES
+watch_fswatch
+watch_inotifywait
+run_tests
+quick_test
+check_deps
+log
+cleanup
+UNFORMATTED
+PASS
+FAIL
+WARN
+CYAN
+NC

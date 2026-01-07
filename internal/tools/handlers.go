@@ -166,6 +166,26 @@ func handleReport(ctx context.Context, args json.RawMessage) ([]framework.TextCo
 		return nil, fmt.Errorf("failed to parse arguments: %w", err)
 	}
 
+	// Check if this is a Go project and scorecard action
+	action, _ := params["action"].(string)
+	if action == "scorecard" {
+		// Check if go.mod exists (Go project)
+		if isGoProject() {
+			// Use Go-specific scorecard
+			projectRoot := getProjectRoot()
+			scorecard, err := GenerateGoScorecard(ctx, projectRoot)
+			if err == nil {
+				// Format as text output
+				result := FormatGoScorecard(scorecard)
+				return []framework.TextContent{
+					{Type: "text", Text: result},
+				}, nil
+			}
+			// Fall through to Python bridge if Go scorecard fails
+		}
+	}
+
+	// Execute via Python bridge (for non-Go projects or other actions)
 	result, err := bridge.ExecutePythonTool(ctx, "report", params)
 	if err != nil {
 		return nil, fmt.Errorf("report failed: %w", err)
@@ -337,8 +357,8 @@ func handleLint(ctx context.Context, args json.RawMessage) ([]framework.TextCont
 		fix = f
 	}
 
-	// Check if this is a Go linter - use native Go implementation
-	goLinters := map[string]bool{
+	// Check if this is a native linter - use native Go implementation
+	nativeLinters := map[string]bool{
 		"golangci-lint": true,
 		"golangcilint":  true,
 		"go-vet":        true,
@@ -346,9 +366,14 @@ func handleLint(ctx context.Context, args json.RawMessage) ([]framework.TextCont
 		"go vet":        true,
 		"gofmt":         true,
 		"goimports":     true,
+		"markdownlint":  true,
+		"markdownlint-cli": true,
+		"mdl":           true,
+		"markdown":      true,
+		"auto":          true, // Auto-detection uses native implementation
 	}
 
-	if goLinters[linter] {
+	if nativeLinters[linter] {
 		// Use native Go implementation
 		result, err := runLinter(ctx, linter, path, fix)
 		if err != nil {

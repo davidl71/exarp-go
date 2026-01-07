@@ -1,0 +1,14 @@
+{
+  "ignore": [
+    "**/archive/**",
+    "**/.cursor/**",
+    "**/.pytest_cache/**",
+    "**/node_modules/**",
+    "**/vendor/**",
+    "**/bin/**",
+    "**/coverage/**",
+    "**/htmlcov/**"
+  ],
+  "enableLinkCheck": false
+}
+

@@ -57,6 +57,16 @@ func runLinter(ctx context.Context, linter, path string, fix bool) (*LintResult,
 		return nil, fmt.Errorf("path does not exist: %s", targetPath)
 	}
 
+	// Auto-detect linter based on file type if not specified
+	if linter == "" || linter == "auto" {
+		linter = detectLinter(targetPath)
+	}
+
+	// Auto-detect linter based on file type if not specified
+	if linter == "" || linter == "auto" {
+		linter = detectLinter(targetPath)
+	}
+
 	// Route to appropriate linter
 	switch linter {
 	case "golangci-lint", "golangcilint":
@@ -67,8 +77,10 @@ func runLinter(ctx context.Context, linter, path string, fix bool) (*LintResult,
 		return runGofmt(ctx, targetPath, fix)
 	case "goimports":
 		return runGoimports(ctx, targetPath, fix)
+	case "markdownlint", "markdownlint-cli", "mdl", "markdown":
+		return runMarkdownlint(ctx, targetPath, fix)
 	default:
-		return nil, fmt.Errorf("unsupported linter: %s (supported: golangci-lint, go-vet, gofmt, goimports)", linter)
+		return nil, fmt.Errorf("unsupported linter: %s (supported: golangci-lint, go-vet, gofmt, goimports, markdownlint)", linter)
 	}
 }
 
@@ -89,33 +101,58 @@ func runGolangciLint(ctx context.Context, path string, fix bool) (*LintResult, e
 		}, nil
 	}
 
-	// Find project root by looking for go.mod
-	// Start from the path and walk up to find go.mod
+	// Find project root - prefer PROJECT_ROOT env var, then look for go.mod
 	var projectRoot string
-	searchPath := path
-	if !filepath.IsAbs(searchPath) {
-		wd, _ := os.Getwd()
-		searchPath = filepath.Join(wd, searchPath)
+	var absPath string
+	
+	// Try PROJECT_ROOT environment variable first (set by MCP server)
+	if envRoot := os.Getenv("PROJECT_ROOT"); envRoot != "" {
+		if _, err := os.Stat(filepath.Join(envRoot, "go.mod")); err == nil {
+			projectRoot = envRoot
+		}
 	}
 	
-	// Walk up from the path to find go.mod
-	currentPath := searchPath
-	for {
-		if _, err := os.Stat(filepath.Join(currentPath, "go.mod")); err == nil {
-			projectRoot = currentPath
-			break
+	// If PROJECT_ROOT not set or invalid, find by walking up from path
+	if projectRoot == "" {
+		// Convert path to absolute
+		if filepath.IsAbs(path) {
+			absPath = path
+		} else {
+			// Try PROJECT_ROOT first, then fall back to Getwd
+			if envRoot := os.Getenv("PROJECT_ROOT"); envRoot != "" {
+				absPath = filepath.Join(envRoot, path)
+			} else {
+				wd, _ := os.Getwd()
+				absPath = filepath.Join(wd, path)
+			}
 		}
-		parent := filepath.Dir(currentPath)
-		if parent == currentPath {
-			// Reached filesystem root, use current working directory
-			projectRoot, _ = os.Getwd()
-			break
+		
+		// Walk up from the path to find go.mod
+		currentPath := absPath
+		for {
+			if _, err := os.Stat(filepath.Join(currentPath, "go.mod")); err == nil {
+				projectRoot = currentPath
+				break
+			}
+			parent := filepath.Dir(currentPath)
+			if parent == currentPath {
+				// Reached filesystem root, use current working directory
+				projectRoot, _ = os.Getwd()
+				break
+			}
+			currentPath = parent
 		}
-		currentPath = parent
+	} else {
+		// PROJECT_ROOT is set, use it to resolve relative paths
+		if filepath.IsAbs(path) {
+			absPath = path
+		} else {
+			absPath = filepath.Join(projectRoot, path)
+		}
 	}
 
 	// Determine if path is a directory
-	pathInfo, err := os.Stat(path)
+	pathInfo, err := os.Stat(absPath)
 	isDir := err == nil && pathInfo.IsDir()
 
 	// Build command
@@ -125,7 +162,7 @@ func runGolangciLint(ctx context.Context, path string, fix bool) (*LintResult, e
 	}
 	
 	// Get relative path from project root
-	relPath, err := filepath.Rel(projectRoot, path)
+	relPath, err := filepath.Rel(projectRoot, absPath)
 	if err != nil {
 		// Fallback: use path as-is if we can't get relative
 		relPath = path
@@ -236,40 +273,65 @@ func runGoVet(ctx context.Context, path string) (*LintResult, error) {
 		}, nil
 	}
 
-	// Find project root by looking for go.mod
-	// Start from the path and walk up to find go.mod
+	// Find project root - prefer PROJECT_ROOT env var, then look for go.mod
 	var projectRoot string
-	searchPath := path
-	if !filepath.IsAbs(searchPath) {
-		wd, _ := os.Getwd()
-		searchPath = filepath.Join(wd, searchPath)
+	var absPath string
+	
+	// Try PROJECT_ROOT environment variable first (set by MCP server)
+	if envRoot := os.Getenv("PROJECT_ROOT"); envRoot != "" {
+		if _, err := os.Stat(filepath.Join(envRoot, "go.mod")); err == nil {
+			projectRoot = envRoot
+		}
 	}
 	
-	// Walk up from the path to find go.mod
-	currentPath := searchPath
-	for {
-		if _, err := os.Stat(filepath.Join(currentPath, "go.mod")); err == nil {
-			projectRoot = currentPath
-			break
+	// If PROJECT_ROOT not set or invalid, find by walking up from path
+	if projectRoot == "" {
+		// Convert path to absolute
+		if filepath.IsAbs(path) {
+			absPath = path
+		} else {
+			// Try PROJECT_ROOT first, then fall back to Getwd
+			if envRoot := os.Getenv("PROJECT_ROOT"); envRoot != "" {
+				absPath = filepath.Join(envRoot, path)
+			} else {
+				wd, _ := os.Getwd()
+				absPath = filepath.Join(wd, path)
+			}
 		}
-		parent := filepath.Dir(currentPath)
-		if parent == currentPath {
-			// Reached filesystem root, use current working directory
-			projectRoot, _ = os.Getwd()
-			break
+		
+		// Walk up from the path to find go.mod
+		currentPath := absPath
+		for {
+			if _, err := os.Stat(filepath.Join(currentPath, "go.mod")); err == nil {
+				projectRoot = currentPath
+				break
+			}
+			parent := filepath.Dir(currentPath)
+			if parent == currentPath {
+				// Reached filesystem root, use current working directory
+				projectRoot, _ = os.Getwd()
+				break
+			}
+			currentPath = parent
 		}
-		currentPath = parent
+	} else {
+		// PROJECT_ROOT is set, use it to resolve relative paths
+		if filepath.IsAbs(path) {
+			absPath = path
+		} else {
+			absPath = filepath.Join(projectRoot, path)
+		}
 	}
 
 	// Determine if path is a directory
-	pathInfo, err := os.Stat(path)
+	pathInfo, err := os.Stat(absPath)
 	isDir := err == nil && pathInfo.IsDir()
 
 	// Build command
 	args := []string{"vet"}
 	
 	// Get relative path from project root
-	relPath, err := filepath.Rel(projectRoot, path)
+	relPath, err := filepath.Rel(projectRoot, absPath)
 	if err != nil {
 		// Fallback: use path as-is if we can't get relative
 		relPath = path
@@ -508,5 +570,259 @@ func runGoimports(ctx context.Context, path string, fix bool) (*LintResult, erro
 		Errors:  lintErrors,
 		Fixed:   fix && success,
 	}, nil
+}
+
+// detectLinter automatically detects the appropriate linter based on file extension
+func detectLinter(path string) string {
+	// Check if path is a directory or file
+	info, err := os.Stat(path)
+	if err != nil {
+		return "go-vet" // Default to Go linter
+	}
+
+	// If it's a directory, default to Go linter
+	if info.IsDir() {
+		return "go-vet"
+	}
+
+	// Check file extension
+	ext := strings.ToLower(filepath.Ext(path))
+	switch ext {
+	case ".md", ".markdown":
+		return "markdownlint"
+	case ".go":
+		return "go-vet"
+	default:
+		return "go-vet" // Default to Go linter
+	}
+}
+
+// runMarkdownlint runs gomarklint (native Go markdown linter)
+func runMarkdownlint(ctx context.Context, path string, fix bool) (*LintResult, error) {
+	// Try gomarklint first (native Go tool)
+	markdownlintCmd := "gomarklint"
+	if _, err := exec.LookPath(markdownlintCmd); err != nil {
+		// Fallback to markdownlint-cli (npm package)
+		markdownlintCmd = "markdownlint-cli"
+		if _, err := exec.LookPath(markdownlintCmd); err != nil {
+			// Fallback to markdownlint (Ruby gem)
+			markdownlintCmd = "markdownlint"
+			if _, err := exec.LookPath(markdownlintCmd); err != nil {
+				return &LintResult{
+					Success: false,
+					Linter:  "markdownlint",
+					Output:  "No markdown linter found. Install gomarklint with: go install github.com/shinagawa-web/gomarklint@latest",
+					Errors: []LintError{
+						{
+							Message: "markdown linter binary not found in PATH",
+							Severity: "error",
+						},
+					},
+				}, nil
+			}
+		}
+	}
+
+	// Determine if path is a directory or file
+	info, err := os.Stat(path)
+	isDir := err == nil && info.IsDir()
+
+	// Find project root
+	var projectRoot string
+	var absPath string
+	
+	// Convert path to absolute
+	if filepath.IsAbs(path) {
+		absPath = path
+	} else {
+		if envRoot := os.Getenv("PROJECT_ROOT"); envRoot != "" {
+			absPath = filepath.Join(envRoot, path)
+		} else {
+			wd, _ := os.Getwd()
+			absPath = filepath.Join(wd, path)
+		}
+	}
+	
+	// Walk up to find project root (directory with .gomarklint.json, .markdownlintrc, or go.mod)
+	currentPath := absPath
+	if !isDir {
+		currentPath = filepath.Dir(absPath)
+	}
+	for {
+		// Check for gomarklint config (preferred)
+		if _, err := os.Stat(filepath.Join(currentPath, ".gomarklint.json")); err == nil {
+			projectRoot = currentPath
+			break
+		}
+		// Check for markdownlint config (fallback)
+		if _, err := os.Stat(filepath.Join(currentPath, ".markdownlintrc")); err == nil {
+			projectRoot = currentPath
+			break
+		}
+		if _, err := os.Stat(filepath.Join(currentPath, ".markdownlint.json")); err == nil {
+			projectRoot = currentPath
+			break
+		}
+		// Check for go.mod (Go project root)
+		if _, err := os.Stat(filepath.Join(currentPath, "go.mod")); err == nil {
+			projectRoot = currentPath
+			break
+		}
+		parent := filepath.Dir(currentPath)
+		if parent == currentPath {
+			projectRoot, _ = os.Getwd()
+			break
+		}
+		currentPath = parent
+	}
+	
+	// Get relative path from project root (needed for archive check)
+	relPath, err := filepath.Rel(projectRoot, absPath)
+	if err != nil {
+		relPath = path
+	}
+	
+	// Exclude archive directory from linting
+	if strings.Contains(absPath, "/archive/") || strings.Contains(relPath, "/archive/") {
+		return &LintResult{
+			Success: true,
+			Linter:  "gomarklint",
+			Output:  "Archive directory excluded from linting",
+			Errors:  []LintError{},
+		}, nil
+	}
+
+	// Build command - use JSON output for gomarklint, text for others
+	args := []string{}
+	useJSON := false
+	
+	if markdownlintCmd == "gomarklint" {
+		// Use gomarklint with JSON output
+		args = append(args, "--output=json")
+		useJSON = true
+	} else {
+		// External tools (markdownlint-cli, markdownlint)
+		if fix {
+			args = append(args, "--fix")
+		}
+	}
+	
+	// relPath already calculated above for archive check
+
+	// Add path(s) - all tools support files and directories
+	if isDir {
+		if markdownlintCmd == "gomarklint" {
+			// gomarklint handles directories directly
+			args = append(args, relPath)
+		} else {
+			// For external tools, use glob pattern
+			args = append(args, filepath.Join(relPath, "**/*.md"))
+		}
+	} else {
+		args = append(args, relPath)
+	}
+
+	cmd := exec.CommandContext(ctx, markdownlintCmd, args...)
+	cmd.Dir = projectRoot
+
+	output, err := cmd.CombinedOutput()
+	outputStr := string(output)
+
+	// All markdown linters return non-zero exit code when issues are found
+	success := err == nil
+	var lintErrors []LintError
+	
+	if !success && outputStr != "" {
+		if useJSON {
+			// Parse gomarklint JSON output
+			// Structure: {"files": N, "lines": M, "errors": K, "details": {"file.md": [{"File": "...", "Line": N, "Message": "..."}]}}
+			var jsonOutput struct {
+				Details map[string][]struct {
+					File    string `json:"File"`
+					Line    int    `json:"Line"`
+					Column  int    `json:"Column,omitempty"`
+					Message string `json:"Message"`
+					Rule    string `json:"Rule,omitempty"`
+				} `json:"details"`
+			}
+			
+			if err := json.Unmarshal(output, &jsonOutput); err == nil {
+				// Successfully parsed JSON - iterate through files
+				for fileName, issues := range jsonOutput.Details {
+					for _, issue := range issues {
+						lintErrors = append(lintErrors, LintError{
+							File:     fileName,
+							Line:     issue.Line,
+							Column:   issue.Column,
+							Message:  issue.Message,
+							Rule:     issue.Rule,
+							Severity: "warning",
+						})
+					}
+				}
+			} else {
+				// JSON parsing failed, fall back to text parsing
+				parseTextOutput(outputStr, &lintErrors)
+			}
+		} else {
+			// Parse text output (for external tools)
+			parseTextOutput(outputStr, &lintErrors)
+		}
+	}
+
+	return &LintResult{
+		Success: success,
+		Linter:  "gomarklint",
+		Output:  outputStr,
+		Errors:  lintErrors,
+		Fixed:   fix && success,
+	}, nil
+}
+
+// parseTextOutput parses text-based markdownlint output
+func parseTextOutput(outputStr string, lintErrors *[]LintError) {
+	lines := strings.Split(strings.TrimSpace(outputStr), "\n")
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+		if line == "" {
+			continue
+		}
+		
+		// Parse format: path:line:column rule message
+		// Example: docs/README.md:5:10 MD001/heading-increment Heading levels should only increment by one level at a time
+		parts := strings.SplitN(line, ":", 3)
+		if len(parts) >= 3 {
+			file := parts[0]
+			lineCol := strings.Fields(parts[1])
+			message := parts[2]
+			
+			lineNum := 0
+			if len(lineCol) > 0 {
+				fmt.Sscanf(lineCol[0], "%d", &lineNum)
+			}
+			
+			// Extract rule name if present
+			rule := ""
+			messageParts := strings.Fields(message)
+			if len(messageParts) > 0 && strings.Contains(messageParts[0], "/") {
+				rule = messageParts[0]
+				message = strings.Join(messageParts[1:], " ")
+			}
+			
+			*lintErrors = append(*lintErrors, LintError{
+				File:     file,
+				Line:     lineNum,
+				Message:  message,
+				Rule:     rule,
+				Severity: "warning",
+			})
+		} else {
+			// Fallback: treat entire line as message
+			*lintErrors = append(*lintErrors, LintError{
+				Message:  line,
+				Severity: "warning",
+			})
+		}
+	}
 }
 

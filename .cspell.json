@@ -1,0 +1,81 @@
+{
+  "$schema": "https://raw.githubusercontent.com/streetsidesoftware/cspell/main/cspell.schema.json",
+  "version": "0.2",
+  "language": "en",
+  "dictionaries": [
+    "golang",
+    "go",
+    "typescript",
+    "node",
+    "npm",
+    "html",
+    "css",
+    "bash",
+    "markdown",
+    "filetypes"
+  ],
+  "dictionaryDefinitions": [
+    {
+      "name": "project-terms",
+      "path": "./.cspell/project-words.txt",
+      "addWords": true
+    }
+  ],
+    "words": [
+        "bmatcuk",
+        "cobra",
+        "coverprofile",
+        "doublestar",
+        "exarp",
+        "exarp-go",
+        "fastmcp",
+        "FastMCP",
+        "fswatch",
+        "gofmt",
+        "goimports",
+        "golangci",
+        "gomarklint",
+        "govet",
+        "govulncheck",
+        "inconshreveable",
+        "inotifywait",
+        "jsonrpc",
+        "jsonschema",
+        "markdownlint",
+        "mcp",
+        "MCP",
+        "MCPServer",
+        "modelcontextprotocol",
+        "mousetrap",
+        "pflag",
+        "pytest",
+        "ruff",
+        "shinagawa",
+        "spf13",
+        "stderr",
+        "stdin",
+        "stdio",
+        "stdout",
+        "Todo2",
+        "uritemplate",
+        "uv"
+    ],
+  "ignorePaths": [
+    "**/node_modules/**",
+    "**/vendor/**",
+    "**/.git/**",
+    "**/bin/**",
+    "**/coverage/**",
+    "**/htmlcov/**",
+    "**/.pytest_cache/**",
+    "**/archive/**",
+    "**/.cursor/**",
+    "**/go.sum",
+    "**/*.lock"
+  ],
+  "flagWords": [],
+  "ignoreWords": [],
+  "import": [
+    ".cspell/project-words.txt"
+  ]
+}
