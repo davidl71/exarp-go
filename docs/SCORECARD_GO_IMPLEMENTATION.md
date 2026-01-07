@@ -186,7 +186,7 @@ exarp-go -tool report -args '{"action":"scorecard"}'
 ### Manual Testing
 ```bash
 # Test Go scorecard generation
-cd /Users/davidl/Projects/mcp-stdio-tools
+cd /Users/davidl/Projects/exarp-go
 go run ./cmd/server -tool report -args '{"action":"scorecard"}'
 
 # Test health check script

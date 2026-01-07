@@ -1,4 +1,4 @@
-module github.com/davidl/mcp-stdio-tools
+module github.com/davidl71/exarp-go
 
 go 1.24.0
 

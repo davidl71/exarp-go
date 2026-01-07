@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/davidl/mcp-stdio-tools/internal/framework"
-	"github.com/davidl/mcp-stdio-tools/tests/fixtures"
+	"github.com/davidl71/exarp-go/internal/framework"
+	"github.com/davidl71/exarp-go/tests/fixtures"
 )
 
 func TestRegisterAllTools(t *testing.T) {

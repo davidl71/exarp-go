@@ -2,7 +2,7 @@
 
 **Date:** 2026-01-07  
 **Status:** 📋 Planning  
-**Purpose:** Define strategy for coordinating multiple AI agents working on the mcp-stdio-tools project
+**Purpose:** Define strategy for coordinating multiple AI agents working on the exarp-go project
 
 ---
 

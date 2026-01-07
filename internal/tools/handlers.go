@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/davidl/mcp-stdio-tools/internal/bridge"
-	"github.com/davidl/mcp-stdio-tools/internal/framework"
+	"github.com/davidl71/exarp-go/internal/bridge"
+	"github.com/davidl71/exarp-go/internal/framework"
 )
 
 // handleAnalyzeAlignment handles the analyze_alignment tool

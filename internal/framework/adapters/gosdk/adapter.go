@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/davidl/mcp-stdio-tools/internal/framework"
+	"github.com/davidl71/exarp-go/internal/framework"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 

@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/davidl/mcp-stdio-tools/tests/fixtures"
+	"github.com/davidl71/exarp-go/tests/fixtures"
 )
 
 func TestRegisterAllPrompts(t *testing.T) {

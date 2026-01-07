@@ -5,6 +5,9 @@ exarp
 exarp-go
 exarp_pma
 
+# Usernames and identifiers
+davidl
+
 # Tools and utilities
 gomarklint
 markdownlint

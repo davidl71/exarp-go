@@ -1,0 +1,28 @@
+[Unit]
+Description=exarp-go MCP Server
+After=network.target
+
+[Service]
+Type=simple
+User={{ project_user }}
+Group={{ project_user }}
+WorkingDirectory={{ project_path }}
+ExecStart={{ project_path }}/bin/exarp-go
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+# Environment variables
+Environment="PROJECT_ROOT={{ project_path }}"
+Environment="GOROOT={{ go_install_path }}"
+Environment="GOPATH={{ go_gopath }}"
+Environment="PATH={{ go_install_path }}/bin:{{ go_bin_path }}:/usr/local/bin:/usr/bin:/bin"
+
+# Security
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
+

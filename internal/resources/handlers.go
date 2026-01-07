@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/davidl/mcp-stdio-tools/internal/bridge"
-	"github.com/davidl/mcp-stdio-tools/internal/framework"
+	"github.com/davidl71/exarp-go/internal/bridge"
+	"github.com/davidl71/exarp-go/internal/framework"
 )
 
 // RegisterAllResources registers all resources with the server

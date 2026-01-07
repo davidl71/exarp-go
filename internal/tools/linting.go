@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/davidl/mcp-stdio-tools/internal/security"
+	"github.com/davidl71/exarp-go/internal/security"
 )
 
 // LintResult represents the result of a linting operation

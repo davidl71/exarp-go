@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/davidl/mcp-stdio-tools/internal/config"
+	"github.com/davidl71/exarp-go/internal/config"
 )
 
 func TestMain_ConfigLoading(t *testing.T) {

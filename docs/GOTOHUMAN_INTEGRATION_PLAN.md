@@ -162,7 +162,7 @@ import (
     "encoding/json"
     "fmt"
     
-    "github.com/davidl/mcp-stdio-tools/internal/framework"
+    "github.com/davidl71/exarp-go/internal/framework"
 )
 
 // requestTaskApproval sends a Todo2 task approval request to gotoHuman

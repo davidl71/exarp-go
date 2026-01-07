@@ -3,8 +3,8 @@ package factory
 import (
 	"testing"
 
-	"github.com/davidl/mcp-stdio-tools/internal/config"
-	"github.com/davidl/mcp-stdio-tools/internal/framework"
+	"github.com/davidl71/exarp-go/internal/config"
+	"github.com/davidl71/exarp-go/internal/framework"
 )
 
 func TestNewServer_GoSDK(t *testing.T) {

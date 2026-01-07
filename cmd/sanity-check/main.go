@@ -4,12 +4,12 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/davidl/mcp-stdio-tools/internal/config"
-	"github.com/davidl/mcp-stdio-tools/internal/factory"
-	"github.com/davidl/mcp-stdio-tools/internal/framework"
-	"github.com/davidl/mcp-stdio-tools/internal/tools"
-	"github.com/davidl/mcp-stdio-tools/internal/prompts"
-	"github.com/davidl/mcp-stdio-tools/internal/resources"
+	"github.com/davidl71/exarp-go/internal/config"
+	"github.com/davidl71/exarp-go/internal/factory"
+	"github.com/davidl71/exarp-go/internal/framework"
+	"github.com/davidl71/exarp-go/internal/tools"
+	"github.com/davidl71/exarp-go/internal/prompts"
+	"github.com/davidl71/exarp-go/internal/resources"
 )
 
 // Expected counts

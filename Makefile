@@ -1,7 +1,7 @@
 .PHONY: help build run test test-watch test-coverage test-html clean install fmt lint dev dev-watch dev-test dev-full bench docs sanity-check test-cli test-cli-list test-cli-tool test-cli-test
 
 # Project configuration
-PROJECT_NAME := mcp-stdio-tools
+PROJECT_NAME := exarp-go
 PYTHON := uv run python
 BINARY_NAME := exarp-go
 BINARY_PATH := bin/$(BINARY_NAME)

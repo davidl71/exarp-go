@@ -1,0 +1,75 @@
+---
+# Golang role - Install and configure Go
+
+- name: Check if Go is already installed
+  command: go version
+  register: go_version_check
+  changed_when: false
+  failed_when: false
+
+- name: Download Go
+  get_url:
+    url: "https://go.dev/dl/go{{ go_version }}.{{ ansible_system }}-{{ ansible_architecture }}.tar.gz"
+    dest: /tmp/go.tar.gz
+    mode: '0644'
+  when: go_version_check.rc != 0 or go_version_check.stdout is not search(go_version)
+
+- name: Remove old Go installation
+  file:
+    path: "{{ go_install_path }}"
+    state: absent
+  when: go_version_check.rc != 0 or go_version_check.stdout is not search(go_version)
+
+- name: Extract Go
+  unarchive:
+    src: /tmp/go.tar.gz
+    dest: /usr/local
+    remote_src: yes
+    owner: root
+    group: root
+  when: go_version_check.rc != 0 or go_version_check.stdout is not search(go_version)
+
+- name: Set Go environment variables
+  lineinfile:
+    path: /etc/environment
+    regexp: "^{{ item.key }}="
+    line: "{{ item.key }}={{ item.value }}"
+    state: present
+  loop:
+    - { key: "GOROOT", value: "{{ go_install_path }}" }
+    - { key: "GOPATH", value: "{{ go_gopath }}" }
+    - { key: "PATH", value: "{{ go_install_path }}/bin:{{ go_bin_path }}:$PATH" }
+  loop_control:
+    label: "{{ item.key }}"
+
+- name: Set Go environment in user profile
+  blockinfile:
+    path: "/home/{{ go_user }}/.bashrc"
+    block: |
+      export GOROOT={{ go_install_path }}
+      export GOPATH={{ go_gopath }}
+      export PATH=$GOROOT/bin:$GOPATH/bin:$PATH
+    marker: "# {mark} ANSIBLE MANAGED BLOCK - Go environment"
+    create: yes
+  when: go_user is defined
+
+- name: Set Go environment in zsh profile
+  blockinfile:
+    path: "/home/{{ go_user }}/.zshrc"
+    block: |
+      export GOROOT={{ go_install_path }}
+      export GOPATH={{ go_gopath }}
+      export PATH=$GOROOT/bin:$GOPATH/bin:$PATH
+    marker: "# {mark} ANSIBLE MANAGED BLOCK - Go environment"
+    create: yes
+  when: go_user is defined and ansible_system != "Darwin"
+
+- name: Verify Go installation
+  command: "{{ go_install_path }}/bin/go version"
+  register: go_verify
+  changed_when: false
+
+- name: Display Go version
+  debug:
+    msg: "Go installed: {{ go_verify.stdout }}"
+

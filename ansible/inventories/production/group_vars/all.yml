@@ -14,7 +14,7 @@ python_pip_version: "latest"
 uv_version: "latest"
 
 # Project configuration
-project_name: "mcp-stdio-tools"
+project_name: "exarp-go"
 project_path: "/opt/{{ project_name }}"
 project_user: "deploy"
 

@@ -68,7 +68,7 @@ go test ./internal/security/... -v
 
 ### Path Validation
 ```go
-import "github.com/davidl/mcp-stdio-tools/internal/security"
+import "github.com/davidl71/exarp-go/internal/security"
 
 // Validate path before file operations
 absPath, err := security.ValidatePath(path, projectRoot)

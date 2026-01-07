@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/davidl/mcp-stdio-tools/internal/security"
+	"github.com/davidl71/exarp-go/internal/security"
 )
 
 // getWorkspaceRoot determines the workspace root where bridge scripts are located

@@ -1,0 +1,109 @@
+---
+# Linters role - Install optional linters and code quality tools
+
+- name: Install golangci-lint
+  shell: |
+    curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b {{ go_bin_path }} latest
+  args:
+    creates: "{{ go_bin_path }}/golangci-lint"
+  when: "'golangci-lint' in linters"
+  tags:
+    - linters
+    - optional
+
+- name: Install gomarklint (Go markdown linter)
+  shell: |
+    go install github.com/shinagawa-web/gomarklint/cmd/gomarklint@latest
+  environment:
+    GOPATH: "{{ go_gopath }}"
+    PATH: "{{ go_install_path }}/bin:{{ go_bin_path }}"
+  args:
+    creates: "{{ go_bin_path }}/gomarklint"
+  when: "'gomarklint' in linters"
+  tags:
+    - linters
+    - optional
+
+- name: Install shellcheck (shell script linter)
+  block:
+    - name: Install shellcheck (Debian/Ubuntu)
+      apt:
+        name: shellcheck
+        state: present
+      when: ansible_os_family == "Debian"
+
+    - name: Install shellcheck (RedHat/CentOS)
+      yum:
+        name: ShellCheck
+        state: present
+      when: ansible_os_family == "RedHat"
+
+    - name: Install shellcheck (macOS)
+      homebrew:
+        name: shellcheck
+        state: present
+      when: ansible_system == "Darwin"
+  when: "'shellcheck' in linters"
+  tags:
+    - linters
+    - optional
+
+- name: Install shfmt (shell formatter)
+  shell: |
+    go install mvdan.cc/sh/v3/cmd/shfmt@latest
+  environment:
+    GOPATH: "{{ go_gopath }}"
+    PATH: "{{ go_install_path }}/bin:{{ go_bin_path }}"
+  args:
+    creates: "{{ go_bin_path }}/shfmt"
+  when: "'shfmt' in linters"
+  tags:
+    - linters
+    - optional
+
+- name: Install markdownlint-cli (markdown linter)
+  shell: |
+    npm install -g markdownlint-cli
+  args:
+    creates: /usr/local/bin/markdownlint
+  when: "'markdownlint-cli' in linters"
+  tags:
+    - linters
+    - optional
+
+- name: Install cspell (code spell checker)
+  shell: |
+    npm install -g cspell
+  args:
+    creates: /usr/local/bin/cspell
+  when: "'cspell' in linters"
+  tags:
+    - linters
+    - optional
+
+- name: Verify linter installations
+  command: "{{ item.command }} --version"
+  register: linter_versions
+  changed_when: false
+  failed_when: false
+  loop:
+    - { name: "golangci-lint", command: "{{ go_bin_path }}/golangci-lint" }
+    - { name: "gomarklint", command: "{{ go_bin_path }}/gomarklint" }
+    - { name: "shellcheck", command: "shellcheck" }
+    - { name: "shfmt", command: "{{ go_bin_path }}/shfmt" }
+    - { name: "markdownlint", command: "markdownlint" }
+    - { name: "cspell", command: "cspell" }
+  when: item.name in linters
+  tags:
+    - linters
+    - optional
+
+- name: Display installed linters
+  debug:
+    msg: "Installed linter: {{ item.item.name }} - {{ item.stdout | default('version check failed') }}"
+  loop: "{{ linter_versions.results | default([]) }}"
+  when: item.rc == 0
+  tags:
+    - linters
+    - optional
+

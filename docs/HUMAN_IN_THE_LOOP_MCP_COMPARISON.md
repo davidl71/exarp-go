@@ -43,7 +43,7 @@
 - **Wrapped Server:** `@gotohuman/mcp-server` (npm package)
 - **Purpose:** Human approval workflow for AI operations
 
-## Current Project (mcp-stdio-tools) Configuration
+## Current Project (exarp-go) Configuration
 
 ### Current MCP Servers
 
@@ -65,7 +65,7 @@
       "description": "Crew Role: Analyst - Tractatus Thinking MCP Server"
     },
     "exarp-go": {
-      "command": "/Users/davidl/Projects/mcp-stdio-tools/bin/exarp-go",
+      "command": "/Users/davidl/Projects/exarp-go/bin/exarp-go",
       "description": "Crew Role: Executor - Go-based MCP server"
     }
   }
@@ -78,7 +78,7 @@
 
 ## Comparison
 
-| Feature | devwisdom-go | mcp-stdio-tools |
+| Feature | devwisdom-go | exarp-go |
 |---------|--------------|-----------------|
 | **Human-in-the-Loop MCP** | ✅ `gotohuman` configured | ❌ Not configured |
 | **Approval Workflow** | ✅ Via gotoHuman inbox | ⚠️ Only in Todo2 workflow rules |
@@ -109,7 +109,7 @@ Both projects have human-in-the-loop patterns in **Todo2 workflow rules**:
 - **Integration:** Native MCP protocol integration
 - **Workflow:** AI → gotoHuman inbox → Human approval → AI continues
 
-## Adding gotoHuman to mcp-stdio-tools
+## Adding gotoHuman to exarp-go
 
 To add human-in-the-loop MCP functionality to the current project:
 

@@ -3,7 +3,7 @@ package resources
 import (
 	"testing"
 
-	"github.com/davidl/mcp-stdio-tools/tests/fixtures"
+	"github.com/davidl71/exarp-go/tests/fixtures"
 )
 
 func TestRegisterAllResources(t *testing.T) {

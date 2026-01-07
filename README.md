@@ -126,7 +126,7 @@ Install with: `uv sync --dev` or `uv pip install -e ".[dev]"`
 ## Installation
 
 ```bash
-cd /Users/davidl/Projects/mcp-stdio-tools
+cd /Users/davidl/Projects/exarp-go
 
 # Install Python dependencies (if using uv)
 uv sync
@@ -159,8 +159,8 @@ Add to `.cursor/mcp.json`:
 ```json
 {
   "mcpServers": {
-    "mcp-stdio-tools": {
-      "command": "{{PROJECT_ROOT}}/../mcp-stdio-tools/bin/exarp-go",
+    "exarp-go": {
+      "command": "{{PROJECT_ROOT}}/../exarp-go/bin/exarp-go",
       "args": [],
       "env": {
         "PROJECT_ROOT": "{{PROJECT_ROOT}}"

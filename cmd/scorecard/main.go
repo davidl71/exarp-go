@@ -6,7 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/davidl/mcp-stdio-tools/internal/tools"
+	"github.com/davidl71/exarp-go/internal/tools"
 )
 
 func main() {

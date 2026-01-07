@@ -1,5 +1,5 @@
 [project]
-name = "mcp-stdio-tools"
+name = "exarp-go"
 version = "0.1.0"
 description = "Python bridge scripts for Go MCP server"
 readme = "README.md"

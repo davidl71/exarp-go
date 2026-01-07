@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/davidl/mcp-stdio-tools/internal/security"
+	"github.com/davidl71/exarp-go/internal/security"
 )
 
 // GoProjectMetrics represents Go-specific project metrics

@@ -42,7 +42,7 @@ All 12 tools are available in stdio server:
 ## Server Status
 
 **Stdio Server:** ✅ Ready
-- Server script: `/Users/davidl/Projects/mcp-stdio-tools/run_server.sh`
+- Server script: `/Users/davidl/Projects/exarp-go/run_server.sh`
 - Server module: `mcp_stdio_tools.server`
 - Tools registered: 12
 - Import status: All tools importable

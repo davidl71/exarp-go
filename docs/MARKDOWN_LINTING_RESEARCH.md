@@ -203,7 +203,7 @@ func runGomarklint(ctx context.Context, path string, fix bool) (*LintResult, err
 ### Phase 1: Add gomarklint Dependency
 
 ```bash
-cd /Users/davidl/Projects/mcp-stdio-tools
+cd /Users/davidl/Projects/exarp-go
 go get github.com/shinagawa-web/gomarklint
 ```
 

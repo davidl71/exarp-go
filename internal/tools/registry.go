@@ -3,7 +3,7 @@ package tools
 import (
 	"fmt"
 
-	"github.com/davidl/mcp-stdio-tools/internal/framework"
+	"github.com/davidl71/exarp-go/internal/framework"
 )
 
 // RegisterAllTools registers all tools with the server

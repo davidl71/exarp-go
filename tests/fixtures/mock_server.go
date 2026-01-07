@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/davidl/mcp-stdio-tools/internal/framework"
+	"github.com/davidl71/exarp-go/internal/framework"
 )
 
 // MockServer is a mock implementation of MCPServer for testing

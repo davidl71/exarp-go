@@ -58,7 +58,7 @@
 ### Path Validation
 
 ```go
-import "github.com/davidl/mcp-stdio-tools/internal/security"
+import "github.com/davidl71/exarp-go/internal/security"
 
 // Validate path is within project root
 absPath, err := security.ValidatePath(path, projectRoot)
@@ -93,7 +93,7 @@ go test ./internal/security/... -v
 ### Path Validation
 
 ```go
-import "github.com/davidl/mcp-stdio-tools/internal/security"
+import "github.com/davidl71/exarp-go/internal/security"
 
 // Validate path is within project root
 absPath, err := security.ValidatePath(path, projectRoot)
@@ -111,7 +111,7 @@ projectRoot, err := security.GetProjectRoot(startPath)
 ### Rate Limiting
 
 ```go
-import "github.com/davidl/mcp-stdio-tools/internal/security"
+import "github.com/davidl71/exarp-go/internal/security"
 
 // Check if request is allowed (uses default: 100 req/min)
 err := security.CheckRateLimit(clientID)
@@ -129,7 +129,7 @@ if !rl.Allow(clientID) {
 ### Access Control
 
 ```go
-import "github.com/davidl/mcp-stdio-tools/internal/security"
+import "github.com/davidl71/exarp-go/internal/security"
 
 // Check tool access (uses default: allow all)
 err := security.CheckToolAccess(toolName)

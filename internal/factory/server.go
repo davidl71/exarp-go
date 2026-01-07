@@ -3,9 +3,9 @@ package factory
 import (
 	"fmt"
 
-	"github.com/davidl/mcp-stdio-tools/internal/config"
-	"github.com/davidl/mcp-stdio-tools/internal/framework"
-	"github.com/davidl/mcp-stdio-tools/internal/framework/adapters/gosdk"
+	"github.com/davidl71/exarp-go/internal/config"
+	"github.com/davidl71/exarp-go/internal/framework"
+	"github.com/davidl71/exarp-go/internal/framework/adapters/gosdk"
 )
 
 // NewServer creates a new MCP server using the specified framework
