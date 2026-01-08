@@ -522,14 +522,15 @@ func handleEstimation(ctx context.Context, args json.RawMessage) ([]framework.Te
 	}, nil
 }
 
-// handleGitTools handles the git_tools tool
+// handleGitTools handles the git_tools tool using native Go implementation
 func handleGitTools(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
-	var params map[string]interface{}
+	var params GitToolsParams
 	if err := json.Unmarshal(args, &params); err != nil {
 		return nil, fmt.Errorf("failed to parse arguments: %w", err)
 	}
 
-	result, err := bridge.ExecutePythonTool(ctx, "git_tools", params)
+	// Use native Go implementation
+	result, err := HandleGitToolsNative(ctx, params)
 	if err != nil {
 		return nil, fmt.Errorf("git_tools failed: %w", err)
 	}
