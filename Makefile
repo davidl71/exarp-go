@@ -20,7 +20,12 @@ BLUE := \033[0;34m
 NC := \033[0m # No Color
 
 # Default target
-.DEFAULT_GOAL := help
+.DEFAULT_GOAL := all
+
+##@ Main Targets
+
+all: build sanity-check test-tools ## Build essential components and run sanity tests
+	@echo "$(GREEN)✅ All essential builds and sanity checks completed successfully$(NC)"
 
 ##@ Configuration
 
@@ -81,14 +86,20 @@ help: ## Show this help message
 		echo ""; \
 		echo "$(YELLOW)💡 Tip: Run 'make config' to detect available tools and optimize targets$(NC)"; \
 	fi
+	@echo ""
+	@echo "$(BLUE)Quick start:$(NC)"
+	@echo "  $(GREEN)make all$(NC)        - Build and run sanity checks (default)"
+	@echo "  $(GREEN)make build$(NC)      - Build the binary"
+	@echo "  $(GREEN)make test$(NC)       - Run all tests"
 
-build: ## Build the Go server
+build: ## Build the Go server (without CGO by default)
 	@echo "$(BLUE)Building $(PROJECT_NAME)...$(NC)"
 	@if ! command -v $(GO) >/dev/null 2>&1 && [ ! -x "$(GO)" ]; then \
 		echo "$(RED)❌ Go not found. Install Go or set PATH to include Go bin directory$(NC)"; \
 		exit 1; \
 	fi
-	@$(GO) build -o $(BINARY_PATH) ./cmd/server || (echo "$(RED)❌ Build failed$(NC)" && exit 1)
+	@echo "$(YELLOW)Note: Building without CGO (use 'make build-apple-fm' for Apple Foundation Models support)$(NC)"
+	@CGO_ENABLED=0 $(GO) build -o $(BINARY_PATH) ./cmd/server || (echo "$(RED)❌ Build failed$(NC)" && exit 1)
 	@echo "$(GREEN)✅ Server built: $(BINARY_PATH)$(NC)"
 
 run: build ## Run the MCP server
@@ -248,43 +259,52 @@ test-cli-mode: build ## Test CLI mode detection (TTY vs stdio)
 ##@ Code Quality
 
 fmt: ## Format code with exarp-go (gofmt/goimports) (requires build)
-ifeq ($(HAVE_EXARP_GO),1)
-	@echo "$(BLUE)Formatting code...$(NC)"
-	@$(BINARY_PATH) -tool lint -args '{"action":"run","linter":"gofmt","path":".","fix":true}' 2>/dev/null || \
-		echo "$(YELLOW)exarp-go format tool completed (check output above)$(NC)"
-	@echo "$(GREEN)✅ Code formatted$(NC)"
-else
-	@echo "$(YELLOW)⚠️  exarp-go binary not found$(NC)"
-	@echo "$(YELLOW)   Building binary first...$(NC)"
-	@$(MAKE) build
-	@$(MAKE) fmt
-endif
+	@if [ -f $(BINARY_PATH) ]; then \
+		echo "$(BLUE)Formatting code...$(NC)"; \
+		$(BINARY_PATH) -tool lint -args '{"action":"run","linter":"gofmt","path":".","fix":true}' 2>/dev/null || \
+			echo "$(YELLOW)exarp-go format tool completed (check output above)$(NC)"; \
+		echo "$(GREEN)✅ Code formatted$(NC)"; \
+	else \
+		echo "$(YELLOW)⚠️  exarp-go binary not found$(NC)"; \
+		echo "$(YELLOW)   Building binary first...$(NC)"; \
+		$(MAKE) build; \
+		echo "$(BLUE)Formatting code...$(NC)"; \
+		$(BINARY_PATH) -tool lint -args '{"action":"run","linter":"gofmt","path":".","fix":true}' 2>/dev/null || \
+			echo "$(YELLOW)exarp-go format tool completed (check output above)$(NC)"; \
+		echo "$(GREEN)✅ Code formatted$(NC)"; \
+	fi
 
 lint: ## Lint code with exarp-go (requires build)
-ifeq ($(HAVE_EXARP_GO),1)
-	@echo "$(BLUE)Linting code...$(NC)"
-	@$(BINARY_PATH) -tool lint -args '{"action":"run","linter":"auto","path":"."}' 2>/dev/null || \
-		echo "$(YELLOW)exarp-go lint tool completed (check output above)$(NC)"
-	@echo "$(GREEN)✅ Linting complete$(NC)"
-else
-	@echo "$(YELLOW)⚠️  exarp-go binary not found$(NC)"
-	@echo "$(YELLOW)   Building binary first...$(NC)"
-	@$(MAKE) build
-	@$(MAKE) lint
-endif
+	@if [ -f $(BINARY_PATH) ]; then \
+		echo "$(BLUE)Linting code...$(NC)"; \
+		$(BINARY_PATH) -tool lint -args '{"action":"run","linter":"auto","path":"."}' 2>/dev/null || \
+			echo "$(YELLOW)exarp-go lint tool completed (check output above)$(NC)"; \
+		echo "$(GREEN)✅ Linting complete$(NC)"; \
+	else \
+		echo "$(YELLOW)⚠️  exarp-go binary not found$(NC)"; \
+		echo "$(YELLOW)   Building binary first...$(NC)"; \
+		$(MAKE) build; \
+		echo "$(BLUE)Linting code...$(NC)"; \
+		$(BINARY_PATH) -tool lint -args '{"action":"run","linter":"auto","path":"."}' 2>/dev/null || \
+			echo "$(YELLOW)exarp-go lint tool completed (check output above)$(NC)"; \
+		echo "$(GREEN)✅ Linting complete$(NC)"; \
+	fi
 
 lint-fix: ## Lint and auto-fix code with exarp-go (requires build)
-ifeq ($(HAVE_EXARP_GO),1)
-	@echo "$(BLUE)Linting and fixing code...$(NC)"
-	@$(BINARY_PATH) -tool lint -args '{"action":"run","linter":"auto","path":".","fix":true}' 2>/dev/null || \
-		echo "$(YELLOW)exarp-go lint-fix tool completed (check output above)$(NC)"
-	@echo "$(GREEN)✅ Linting and fixes complete$(NC)"
-else
-	@echo "$(YELLOW)⚠️  exarp-go binary not found$(NC)"
-	@echo "$(YELLOW)   Building binary first...$(NC)"
-	@$(MAKE) build
-	@$(MAKE) lint-fix
-endif
+	@if [ -f $(BINARY_PATH) ]; then \
+		echo "$(BLUE)Linting and fixing code...$(NC)"; \
+		$(BINARY_PATH) -tool lint -args '{"action":"run","linter":"auto","path":".","fix":true}' 2>/dev/null || \
+			echo "$(YELLOW)exarp-go lint-fix tool completed (check output above)$(NC)"; \
+		echo "$(GREEN)✅ Linting and fixes complete$(NC)"; \
+	else \
+		echo "$(YELLOW)⚠️  exarp-go binary not found$(NC)"; \
+		echo "$(YELLOW)   Building binary first...$(NC)"; \
+		$(MAKE) build; \
+		echo "$(BLUE)Linting and fixing code...$(NC)"; \
+		$(BINARY_PATH) -tool lint -args '{"action":"run","linter":"auto","path":".","fix":true}' 2>/dev/null || \
+			echo "$(YELLOW)exarp-go lint-fix tool completed (check output above)$(NC)"; \
+		echo "$(GREEN)✅ Linting and fixes complete$(NC)"; \
+	fi
 
 ##@ Benchmarking
 
@@ -392,20 +412,46 @@ go-bench: ## Run Go benchmarks
 
 ##@ Apple Foundation Models
 
-build-apple-fm: ## Build with Apple Foundation Models support (CGO_ENABLED=1)
+build-apple-fm: build-swift-bridge ## Build with Apple Foundation Models support (CGO_ENABLED=1)
 	@echo "$(BLUE)Building with Apple Foundation Models support...$(NC)"
-	@CGO_ENABLED=1 go build -o $(BINARY_PATH) ./cmd/server || \
-	 (echo "$(RED)❌ Build failed - may need Swift bridge$(NC)" && exit 1)
+	@if [ -d "vendor" ]; then \
+		echo "$(BLUE)Using vendor directory for build...$(NC)"; \
+		CGO_ENABLED=1 go build -mod=vendor -o $(BINARY_PATH) ./cmd/server || \
+		 (echo "$(RED)❌ Build failed - may need Swift bridge$(NC)" && exit 1); \
+	else \
+		CGO_ENABLED=1 go build -o $(BINARY_PATH) ./cmd/server || \
+		 (echo "$(RED)❌ Build failed - may need Swift bridge$(NC)" && exit 1); \
+	fi
 	@echo "$(GREEN)✅ Server built with Apple FM support: $(BINARY_PATH)$(NC)"
 
 build-swift-bridge: ## Build Swift bridge in go-foundationmodels package
 	@echo "$(BLUE)Building Swift bridge for go-foundationmodels...$(NC)"
-	@if [ -d "$$(go list -m -f '{{.Dir}}' github.com/blacktop/go-foundationmodels@v0.1.8)" ]; then \
+	@echo "$(YELLOW)Note: Module cache is read-only, using vendor directory...$(NC)"
+	@if [ ! -d "vendor" ]; then \
+		echo "$(BLUE)Creating vendor directory...$(NC)"; \
+		go mod vendor; \
+	fi
+	@if [ -d "vendor/github.com/blacktop/go-foundationmodels" ]; then \
+		cd vendor/github.com/blacktop/go-foundationmodels && \
+		if [ -f "libFMShim.a" ]; then \
+			echo "$(GREEN)✅ Swift bridge already built$(NC)"; \
+		else \
+			echo "$(BLUE)Compiling Swift bridge...$(NC)"; \
+			swiftc -sdk $$(xcrun --show-sdk-path) -target arm64-apple-macos26 -emit-object -parse-as-library -whole-module-optimization -O -o libFMShim.o FoundationModelsShim.swift && \
+			ar rcs libFMShim.a libFMShim.o && \
+			rm -f libFMShim.o && \
+			echo "$(GREEN)✅ Swift bridge built in vendor directory$(NC)"; \
+		fi; \
+	elif [ -d "$$(go list -m -f '{{.Dir}}' github.com/blacktop/go-foundationmodels@v0.1.8)" ]; then \
+		echo "$(YELLOW)⚠️  Vendor directory not found, trying module cache (may fail)...$(NC)"; \
 		cd $$(go list -m -f '{{.Dir}}' github.com/blacktop/go-foundationmodels@v0.1.8) && \
-		go generate && \
+		swiftc -sdk $$(xcrun --show-sdk-path) -target arm64-apple-macos26 -emit-object -parse-as-library -whole-module-optimization -O -o libFMShim.o FoundationModelsShim.swift && \
+		ar rcs libFMShim.a libFMShim.o && \
+		rm -f libFMShim.o && \
 		echo "$(GREEN)✅ Swift bridge built$(NC)"; \
 	else \
 		echo "$(RED)❌ go-foundationmodels package not found$(NC)"; \
+		echo "$(YELLOW)   Try running: go mod vendor$(NC)"; \
 		exit 1; \
 	fi
 
