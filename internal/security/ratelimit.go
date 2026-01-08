@@ -171,15 +171,15 @@ func AllowRequest(clientID string) bool {
 
 // RateLimitError represents a rate limit error
 type RateLimitError struct {
-	ClientID     string
-	RetryAfter   time.Duration
-	Remaining    int
-	MaxRequests  int
-	Window       time.Duration
+	ClientID    string
+	RetryAfter  time.Duration
+	Remaining   int
+	MaxRequests int
+	Window      time.Duration
 }
 
 func (e *RateLimitError) Error() string {
-	return fmt.Sprintf("rate limit exceeded for client %s: %d requests in %v (max: %d)", 
+	return fmt.Sprintf("rate limit exceeded for client %s: %d requests in %v (max: %d)",
 		e.ClientID, e.MaxRequests-e.Remaining, e.Window, e.MaxRequests)
 }
 
@@ -197,4 +197,3 @@ func CheckRateLimit(clientID string) error {
 	}
 	return nil
 }
-

@@ -22,7 +22,7 @@ type AccessControl struct {
 	mu            sync.RWMutex
 	toolPerms     map[string]Permission // tool name -> permission
 	resourcePerms map[string]Permission // resource URI -> permission
-	defaultPolicy  Permission           // default permission if not specified
+	defaultPolicy Permission            // default permission if not specified
 	allowedTools  map[string]bool       // explicit allow list (if default is deny)
 	deniedTools   map[string]bool       // explicit deny list (if default is allow)
 }
@@ -182,4 +182,3 @@ func CheckToolAccess(toolName string) error {
 func CheckResourceAccess(uri string) error {
 	return GetDefaultAccessControl().CheckResource(uri)
 }
-

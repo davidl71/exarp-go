@@ -122,25 +122,52 @@ curl -X POST http://localhost:9999/v1/chat/completions \
 - **Pros:** Accessible from any device in your Tailscale network
 - **Cons:** Requires Tailscale connection
 
-### Both Configurations
+### Three Recommended Configurations
 
-You can add both configurations and switch between them:
+You can add all three configurations and switch between them:
+
+**1. AFM Local (Recommended for Development)**
+- **Name:** `Apple Foundation Models (Local)`
+- **Base URL:** `http://localhost:9999/v1`
+- **Model ID:** `foundation`
+- **Use Case:** Fast local access, development
+
+**2. AFM Tailscale (Recommended for Remote Access)**
+- **Name:** `Apple Foundation Models (Tailscale)`
+- **Base URL:** `http://davids-mac-mini.tailf62197.ts.net/v1`
+- **Model ID:** `foundation`
+- **Use Case:** Remote access from any Tailscale device
+
+**3. AFM Local Alternative**
+- **Name:** `Apple Foundation Models (Local Alt)`
+- **Base URL:** `http://127.0.0.1:9999/v1`
+- **Model ID:** `foundation`
+- **Use Case:** Alternative local access (127.0.0.1 instead of localhost)
 
 ```json
 {
   "cursor.models": {
     "custom": [
       {
-        "name": "AFM Local",
+        "name": "Apple Foundation Models (Local)",
         "provider": "openai",
         "baseUrl": "http://localhost:9999/v1",
-        "model": "foundation"
+        "model": "foundation",
+        "apiKey": ""
       },
       {
-        "name": "AFM Tailscale",
+        "name": "Apple Foundation Models (Tailscale)",
         "provider": "openai",
         "baseUrl": "http://davids-mac-mini.tailf62197.ts.net/v1",
-        "model": "foundation"
+        "model": "foundation",
+        "apiKey": ""
+      },
+      {
+        "name": "Apple Foundation Models (Local Alt)",
+        "provider": "openai",
+        "baseUrl": "http://127.0.0.1:9999/v1",
+        "model": "foundation",
+        "apiKey": ""
       }
     ]
   }

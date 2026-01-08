@@ -25,7 +25,7 @@ type MCPServer interface {
 	// CLI support methods
 	// CallTool executes a tool directly (for CLI mode)
 	CallTool(ctx context.Context, name string, args json.RawMessage) ([]TextContent, error)
-	
+
 	// ListTools returns all registered tools
 	ListTools() []ToolInfo
 }
@@ -67,4 +67,3 @@ type Transport interface {
 	// Transport-specific methods
 	// Each framework will implement this differently
 }
-
