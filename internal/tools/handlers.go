@@ -7,6 +7,7 @@ import (
 
 	"github.com/davidl71/exarp-go/internal/bridge"
 	"github.com/davidl71/exarp-go/internal/framework"
+	"github.com/davidl71/exarp-go/internal/platform"
 )
 
 // handleAnalyzeAlignment handles the analyze_alignment tool
@@ -160,14 +161,19 @@ func handleMemoryMaint(ctx context.Context, args json.RawMessage) ([]framework.T
 }
 
 // handleReport handles the report tool
+// Uses MLX to enhance reports with AI-generated insights when available
 func handleReport(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
 	var params map[string]interface{}
 	if err := json.Unmarshal(args, &params); err != nil {
 		return nil, fmt.Errorf("failed to parse arguments: %w", err)
 	}
 
-	// Check if this is a Go project and scorecard action
 	action, _ := params["action"].(string)
+	if action == "" {
+		action = "overview"
+	}
+
+	// Check if this is a Go project and scorecard action
 	if action == "scorecard" {
 		// Check if go.mod exists (Go project)
 		if isGoProject() {
@@ -175,7 +181,23 @@ func handleReport(ctx context.Context, args json.RawMessage) ([]framework.TextCo
 			projectRoot := getProjectRoot()
 			scorecard, err := GenerateGoScorecard(ctx, projectRoot)
 			if err == nil {
-				// Format as text output
+				// Convert to map for MLX enhancement
+				scorecardMap := goScorecardToMap(scorecard)
+				
+				// Enhance with MLX if available
+				enhanced, err := enhanceReportWithMLX(ctx, scorecardMap, action)
+				if err == nil && enhanced != nil {
+					// Check if MLX insights were added
+					if insights, ok := enhanced["ai_insights"].(map[string]interface{}); ok {
+						// Format with MLX insights
+						result := FormatGoScorecardWithMLX(scorecard, insights)
+						return []framework.TextContent{
+							{Type: "text", Text: result},
+						}, nil
+					}
+				}
+
+				// Format as text output (without MLX if enhancement failed)
 				result := FormatGoScorecard(scorecard)
 				return []framework.TextContent{
 					{Type: "text", Text: result},
@@ -189,6 +211,32 @@ func handleReport(ctx context.Context, args json.RawMessage) ([]framework.TextCo
 	result, err := bridge.ExecutePythonTool(ctx, "report", params)
 	if err != nil {
 		return nil, fmt.Errorf("report failed: %w", err)
+	}
+
+	// Try to enhance with MLX insights
+	// Parse the result to extract data
+	var reportData map[string]interface{}
+	if err := json.Unmarshal([]byte(result), &reportData); err == nil {
+		// Enhance with MLX
+		enhanced, err := enhanceReportWithMLX(ctx, reportData, action)
+		if err == nil && enhanced != nil {
+			// Check if we should include MLX insights
+			includeMLX := true
+			if mlxParam, ok := params["use_mlx"].(bool); ok {
+				includeMLX = mlxParam
+			} else {
+				// Default to true for scorecard and overview
+				includeMLX = action == "scorecard" || action == "overview"
+			}
+
+			if includeMLX {
+				// Re-marshal with MLX insights
+				enhancedJSON, err := json.MarshalIndent(enhanced, "", "  ")
+				if err == nil {
+					result = string(enhancedJSON)
+				}
+			}
+		}
 	}
 
 	return []framework.TextContent{
@@ -214,12 +262,31 @@ func handleSecurity(ctx context.Context, args json.RawMessage) ([]framework.Text
 }
 
 // handleTaskAnalysis handles the task_analysis tool
+// Uses native Go with Apple Foundation Models when available
 func handleTaskAnalysis(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
 	var params map[string]interface{}
 	if err := json.Unmarshal(args, &params); err != nil {
 		return nil, fmt.Errorf("failed to parse arguments: %w", err)
 	}
 
+	// Try native Go implementation first (for hierarchy action with Apple FM)
+	action, _ := params["action"].(string)
+	if action == "" {
+		action = "duplicates"
+	}
+
+	if action == "hierarchy" {
+		support := platform.CheckAppleFoundationModelsSupport()
+		if support.Supported {
+			result, err := handleTaskAnalysisNative(ctx, params)
+			if err == nil {
+				return result, nil
+			}
+			// If native fails, fall through to Python bridge
+		}
+	}
+
+	// For other actions or when Apple FM unavailable, use Python bridge
 	result, err := bridge.ExecutePythonTool(ctx, "task_analysis", params)
 	if err != nil {
 		return nil, fmt.Errorf("task_analysis failed: %w", err)
@@ -231,12 +298,24 @@ func handleTaskAnalysis(ctx context.Context, args json.RawMessage) ([]framework.
 }
 
 // handleTaskDiscovery handles the task_discovery tool
+// Uses native Go with Apple Foundation Models for semantic extraction when available
 func handleTaskDiscovery(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
 	var params map[string]interface{}
 	if err := json.Unmarshal(args, &params); err != nil {
 		return nil, fmt.Errorf("failed to parse arguments: %w", err)
 	}
 
+	// Try native Go implementation first (uses Apple FM for semantic extraction)
+	support := platform.CheckAppleFoundationModelsSupport()
+	if support.Supported {
+		result, err := handleTaskDiscoveryNative(ctx, params)
+		if err == nil {
+			return result, nil
+		}
+		// If native fails, fall through to Python bridge
+	}
+
+	// When Apple FM unavailable, use Python bridge
 	result, err := bridge.ExecutePythonTool(ctx, "task_discovery", params)
 	if err != nil {
 		return nil, fmt.Errorf("task_discovery failed: %w", err)
@@ -248,12 +327,31 @@ func handleTaskDiscovery(ctx context.Context, args json.RawMessage) ([]framework
 }
 
 // handleTaskWorkflow handles the task_workflow tool
+// Uses native Go with Apple Foundation Models for clarify action when available
 func handleTaskWorkflow(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
 	var params map[string]interface{}
 	if err := json.Unmarshal(args, &params); err != nil {
 		return nil, fmt.Errorf("failed to parse arguments: %w", err)
 	}
 
+	// Try native Go implementation first (for clarify action with Apple FM)
+	action, _ := params["action"].(string)
+	if action == "" {
+		action = "sync"
+	}
+
+	if action == "clarify" {
+		support := platform.CheckAppleFoundationModelsSupport()
+		if support.Supported {
+			result, err := handleTaskWorkflowNative(ctx, params)
+			if err == nil {
+				return result, nil
+			}
+			// If native fails, fall through to Python bridge
+		}
+	}
+
+	// For other actions or when Apple FM unavailable, use Python bridge
 	result, err := bridge.ExecutePythonTool(ctx, "task_workflow", params)
 	if err != nil {
 		return nil, fmt.Errorf("task_workflow failed: %w", err)
@@ -515,12 +613,56 @@ func handleMlx(ctx context.Context, args json.RawMessage) ([]framework.TextConte
 // unified handlers below that use action parameters.
 
 // handleContext handles the context tool (unified wrapper)
+// Uses native Go with Apple Foundation Models for summarization when available
 func handleContext(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
 	var params map[string]interface{}
 	if err := json.Unmarshal(args, &params); err != nil {
 		return nil, fmt.Errorf("failed to parse arguments: %w", err)
 	}
 
+	// Get action (default: "summarize")
+	action := "summarize"
+	if actionRaw, ok := params["action"].(string); ok && actionRaw != "" {
+		action = actionRaw
+	}
+
+	// Route to native Go implementations when available
+	switch action {
+	case "summarize":
+		// Try native Go with Apple FM first
+		support := platform.CheckAppleFoundationModelsSupport()
+		if support.Supported {
+			// Use native Go implementation with Apple FM
+			result, err := handleContextSummarizeNative(ctx, params)
+			if err == nil {
+				return result, nil
+			}
+			// If native implementation fails, fall through to Python bridge
+		}
+		// If Apple FM not available, fall through to Python bridge
+
+	case "budget":
+		// Use native Go implementation for budget analysis
+		// Convert params to json.RawMessage for handleContextBudget
+		budgetArgs, err := json.Marshal(params)
+		if err != nil {
+			return nil, fmt.Errorf("failed to marshal budget arguments: %w", err)
+		}
+		result, err := handleContextBudget(ctx, budgetArgs)
+		if err == nil {
+			return result, nil
+		}
+		// If native implementation fails, fall through to Python bridge
+
+	case "batch":
+		// Batch action still uses Python bridge (not yet migrated to native Go)
+		// Fall through to Python bridge
+
+	default:
+		// Unknown action, fall through to Python bridge
+	}
+
+	// For actions not handled natively or when native implementations fail, use Python bridge
 	result, err := bridge.ExecutePythonTool(ctx, "context", params)
 	if err != nil {
 		return nil, fmt.Errorf("context failed: %w", err)
