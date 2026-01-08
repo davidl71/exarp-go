@@ -15,9 +15,9 @@ func TestRegisterAllPrompts(t *testing.T) {
 		t.Fatalf("RegisterAllPrompts() error = %v", err)
 	}
 
-	// Verify all 15 prompts are registered (8 original + 7 workflow prompts)
-	if server.PromptCount() != 15 {
-		t.Errorf("server.PromptCount() = %v, want 15", server.PromptCount())
+	// Verify all 17 prompts are registered (8 original + 7 workflow + 2 mcp-generic-tools)
+	if server.PromptCount() != 17 {
+		t.Errorf("server.PromptCount() = %v, want 17", server.PromptCount())
 	}
 
 	// Verify specific prompts are registered
@@ -38,6 +38,9 @@ func TestRegisterAllPrompts(t *testing.T) {
 		"post_impl",
 		"sync",
 		"dups",
+		// mcp-generic-tools prompts
+		"context",
+		"mode",
 	}
 
 	for _, promptName := range expectedPrompts {
@@ -69,6 +72,7 @@ func TestRegisterAllPrompts_HandlerCreation(t *testing.T) {
 		"scorecard", "overview", "dashboard", "remember",
 		"daily_checkin", "sprint_start", "sprint_end",
 		"pre_sprint", "post_impl", "sync", "dups",
+		"context", "mode",
 	}
 
 	for _, promptName := range expectedPrompts {

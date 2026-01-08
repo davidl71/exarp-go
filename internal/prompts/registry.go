@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/davidl71/exarp-go/internal/bridge"
 	"github.com/davidl71/exarp-go/internal/framework"
 )
 
@@ -50,15 +49,20 @@ func RegisterAllPrompts(server framework.MCPServer) error {
 	return nil
 }
 
-// createPromptHandler creates a prompt handler that retrieves the prompt from Python
+// createPromptHandler creates a prompt handler that uses Go templates
 func createPromptHandler(promptName string) framework.PromptHandler {
 	return func(ctx context.Context, args map[string]interface{}) (string, error) {
-		// Retrieve prompt template from Python bridge
-		promptText, err := bridge.GetPythonPrompt(ctx, promptName)
+		// Retrieve prompt template from Go map
+		promptText, err := GetPromptTemplate(promptName)
 		if err != nil {
 			return "", fmt.Errorf("failed to get prompt %s: %w", promptName, err)
 		}
+
+		// Apply template substitution if args provided
+		if len(args) > 0 {
+			promptText = substituteTemplate(promptText, args)
+		}
+
 		return promptText, nil
 	}
 }
-
