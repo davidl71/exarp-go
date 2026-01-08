@@ -11,8 +11,8 @@ import sys
 import os
 from pathlib import Path
 
-# Add parent project to path
-PROJECT_ROOT = Path(__file__).parent.parent.parent / "project-management-automation"
+# Add local project_management_automation to path (copied to exarp-go)
+PROJECT_ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
 def get_prompt(prompt_name: str):
