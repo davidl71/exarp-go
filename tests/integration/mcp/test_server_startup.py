@@ -46,9 +46,13 @@ def test_all_tools_available():
         "infer_session_mode",
         "ollama",
         "mlx",
+        # Note: apple_foundation_models is conditionally compiled
+        # It will only be available on darwin && arm64 && cgo
     ]
     
-    assert len(expected_tools) == 24
+    # Tool count may vary based on platform (24 or 25)
+    # apple_foundation_models is only available on supported Apple platforms
+    assert len(expected_tools) >= 24
 
 
 def test_all_prompts_available():

@@ -37,6 +37,9 @@ def get_prompt(prompt_name: str):
                 POST_IMPLEMENTATION_REVIEW,
                 TASK_SYNC,
                 DUPLICATE_TASK_CLEANUP,
+                # mcp-generic-tools prompts
+                CONTEXT_MANAGEMENT,
+                MODE_SUGGESTION,
             )
         except ImportError:
             # Fallback to absolute import
@@ -58,6 +61,9 @@ def get_prompt(prompt_name: str):
                 POST_IMPLEMENTATION_REVIEW,
                 TASK_SYNC,
                 DUPLICATE_TASK_CLEANUP,
+                # mcp-generic-tools prompts
+                CONTEXT_MANAGEMENT,
+                MODE_SUGGESTION,
             )
         
         # Map prompt names to templates
@@ -78,6 +84,9 @@ def get_prompt(prompt_name: str):
             "post_impl": POST_IMPLEMENTATION_REVIEW,
             "sync": TASK_SYNC,
             "dups": DUPLICATE_TASK_CLEANUP,
+            # mcp-generic-tools prompts
+            "context": CONTEXT_MANAGEMENT,
+            "mode": MODE_SUGGESTION,
         }
         
         prompt_text = prompt_map.get(prompt_name)

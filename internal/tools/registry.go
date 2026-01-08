@@ -23,6 +23,16 @@ func RegisterAllTools(server framework.MCPServer) error {
 		return fmt.Errorf("failed to register Batch 3 tools: %w", err)
 	}
 
+	// Batch 4: mcp-generic-tools migration (8 tools)
+	if err := registerBatch4Tools(server); err != nil {
+		return fmt.Errorf("failed to register Batch 4 tools: %w", err)
+	}
+
+	// Batch 5: Phase 3 migration - remaining unified tools (6 tools)
+	if err := registerBatch5Tools(server); err != nil {
+		return fmt.Errorf("failed to register Batch 5 tools: %w", err)
+	}
+
 	return nil
 }
 
@@ -1231,6 +1241,447 @@ func registerBatch3Tools(server framework.MCPServer) error {
 		handleMlx,
 	); err != nil {
 		return fmt.Errorf("failed to register mlx: %w", err)
+	}
+
+	// Apple Foundation Models tool (platform-specific, conditional compilation)
+	if err := registerAppleFoundationModelsTool(server); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// registerBatch4Tools registers Batch 4 tools (8 tools from mcp-generic-tools migration)
+func registerBatch4Tools(server framework.MCPServer) error {
+	// Native Go tools (2)
+
+	// context_budget
+	if err := server.RegisterTool(
+		"context_budget",
+		"[HINT: Context budget. Estimate token usage and suggest context reduction strategy.]",
+		framework.ToolSchema{
+			Type: "object",
+			Properties: map[string]interface{}{
+				"items": map[string]interface{}{
+					"type":        "string",
+					"description": "JSON array of items to analyze",
+				},
+				"budget_tokens": map[string]interface{}{
+					"type":        "integer",
+					"default":     4000,
+					"description": "Target token budget",
+				},
+			},
+			Required: []string{"items"},
+		},
+		handleContextBudget,
+	); err != nil {
+		return fmt.Errorf("failed to register context_budget: %w", err)
+	}
+
+	// list_models
+	if err := server.RegisterTool(
+		"list_models",
+		"[HINT: List models. List all available AI models with capabilities.]",
+		framework.ToolSchema{
+			Type:       "object",
+			Properties: map[string]interface{}{},
+		},
+		handleListModels,
+	); err != nil {
+		return fmt.Errorf("failed to register list_models: %w", err)
+	}
+
+	// Python bridge tools (6)
+
+	// context_summarize
+	if err := server.RegisterTool(
+		"context_summarize",
+		"[HINT: Context summarize. Summarize tool outputs for efficient context usage.]",
+		framework.ToolSchema{
+			Type: "object",
+			Properties: map[string]interface{}{
+				"data": map[string]interface{}{
+					"type":        "string",
+					"description": "JSON string or dict to summarize",
+				},
+				"level": map[string]interface{}{
+					"type":        "string",
+					"enum":        []string{"brief", "detailed", "key_metrics", "actionable"},
+					"default":     "brief",
+					"description": "Summarization level",
+				},
+				"tool_type": map[string]interface{}{
+					"type":        "string",
+					"description": "Tool type hint for smarter summarization",
+				},
+				"max_tokens": map[string]interface{}{
+					"type":        "integer",
+					"description": "Maximum tokens for output",
+				},
+				"include_raw": map[string]interface{}{
+					"type":        "boolean",
+					"default":     false,
+					"description": "Include original data in response",
+				},
+			},
+			Required: []string{"data"},
+		},
+		handleContextSummarize,
+	); err != nil {
+		return fmt.Errorf("failed to register context_summarize: %w", err)
+	}
+
+	// context_batch
+	if err := server.RegisterTool(
+		"context_batch",
+		"[HINT: Context batch. Batch summarize multiple tool results.]",
+		framework.ToolSchema{
+			Type: "object",
+			Properties: map[string]interface{}{
+				"items": map[string]interface{}{
+					"type":        "string",
+					"description": "JSON array of items to summarize",
+				},
+				"level": map[string]interface{}{
+					"type":        "string",
+					"enum":        []string{"brief", "detailed", "key_metrics", "actionable"},
+					"default":     "brief",
+					"description": "Summarization level",
+				},
+				"combine": map[string]interface{}{
+					"type":        "boolean",
+					"default":     true,
+					"description": "Merge all summaries into combined view",
+				},
+			},
+			Required: []string{"items"},
+		},
+		handleContextBatch,
+	); err != nil {
+		return fmt.Errorf("failed to register context_batch: %w", err)
+	}
+
+	// prompt_log
+	if err := server.RegisterTool(
+		"prompt_log",
+		"[HINT: Prompt log. Log a prompt iteration for workflow optimization.]",
+		framework.ToolSchema{
+			Type: "object",
+			Properties: map[string]interface{}{
+				"prompt": map[string]interface{}{
+					"type":        "string",
+					"description": "The prompt text to log",
+				},
+				"task_id": map[string]interface{}{
+					"type":        "string",
+					"description": "Optional associated task ID",
+				},
+				"mode": map[string]interface{}{
+					"type":        "string",
+					"enum":        []string{"AGENT", "ASK"},
+					"description": "AGENT or ASK mode used",
+				},
+				"outcome": map[string]interface{}{
+					"type":        "string",
+					"enum":        []string{"success", "failed", "partial"},
+					"description": "Outcome of the prompt",
+				},
+				"iteration": map[string]interface{}{
+					"type":        "integer",
+					"default":     1,
+					"description": "Iteration number (1 for first try)",
+				},
+				"project_root": map[string]interface{}{
+					"type":        "string",
+					"description": "Optional project root path (auto-detected if not provided)",
+				},
+			},
+			Required: []string{"prompt"},
+		},
+		handlePromptLog,
+	); err != nil {
+		return fmt.Errorf("failed to register prompt_log: %w", err)
+	}
+
+	// prompt_analyze
+	if err := server.RegisterTool(
+		"prompt_analyze",
+		"[HINT: Prompt analyze. Analyze prompt iterations over time.]",
+		framework.ToolSchema{
+			Type: "object",
+			Properties: map[string]interface{}{
+				"days": map[string]interface{}{
+					"type":        "integer",
+					"default":     7,
+					"description": "Number of days to analyze",
+				},
+				"project_root": map[string]interface{}{
+					"type":        "string",
+					"description": "Optional project root path (auto-detected if not provided)",
+				},
+			},
+		},
+		handlePromptAnalyze,
+	); err != nil {
+		return fmt.Errorf("failed to register prompt_analyze: %w", err)
+	}
+
+	// recommend_model
+	if err := server.RegisterTool(
+		"recommend_model",
+		"[HINT: Recommend model. Recommend optimal AI model based on task type.]",
+		framework.ToolSchema{
+			Type: "object",
+			Properties: map[string]interface{}{
+				"task_description": map[string]interface{}{
+					"type":        "string",
+					"description": "Description of the task",
+				},
+				"task_type": map[string]interface{}{
+					"type":        "string",
+					"description": "Optional explicit task type",
+				},
+				"optimize_for": map[string]interface{}{
+					"type":        "string",
+					"enum":        []string{"quality", "speed", "cost"},
+					"default":     "quality",
+					"description": "Optimization target",
+				},
+				"include_alternatives": map[string]interface{}{
+					"type":        "boolean",
+					"default":     true,
+					"description": "Include alternative recommendations",
+				},
+			},
+		},
+		handleRecommendModel,
+	); err != nil {
+		return fmt.Errorf("failed to register recommend_model: %w", err)
+	}
+
+	// recommend_workflow
+	if err := server.RegisterTool(
+		"recommend_workflow",
+		"[HINT: Recommend workflow. Recommend AGENT vs ASK mode based on task complexity.]",
+		framework.ToolSchema{
+			Type: "object",
+			Properties: map[string]interface{}{
+				"task_description": map[string]interface{}{
+					"type":        "string",
+					"description": "Description of the task",
+				},
+				"tags": map[string]interface{}{
+					"type":        "string",
+					"description": "Optional JSON string of tags to consider",
+				},
+				"include_rationale": map[string]interface{}{
+					"type":        "boolean",
+					"default":     true,
+					"description": "Whether to include detailed reasoning",
+				},
+			},
+		},
+		handleRecommendWorkflow,
+	); err != nil {
+		return fmt.Errorf("failed to register recommend_workflow: %w", err)
+	}
+
+	return nil
+}
+
+// registerBatch5Tools registers Batch 5 tools (Phase 3 migration - 6 unified tools)
+func registerBatch5Tools(server framework.MCPServer) error {
+	// context - Unified context management (summarize/budget/batch actions)
+	if err := server.RegisterTool(
+		"context",
+		"[HINT: Context management. action=summarize|budget|batch. Unified context operations.]",
+		framework.ToolSchema{
+			Type: "object",
+			Properties: map[string]interface{}{
+				"action": map[string]interface{}{
+					"type":        "string",
+					"enum":        []string{"summarize", "budget", "batch"},
+					"default":     "summarize",
+					"description": "Action to perform",
+				},
+				"data": map[string]interface{}{
+					"type":        "string",
+					"description": "JSON string to summarize (summarize action)",
+				},
+				"level": map[string]interface{}{
+					"type":        "string",
+					"enum":        []string{"brief", "detailed", "key_metrics", "actionable"},
+					"default":     "brief",
+					"description": "Summarization level (summarize action)",
+				},
+				"tool_type": map[string]interface{}{
+					"type":        "string",
+					"description": "Tool type hint for smarter summarization (summarize action)",
+				},
+				"max_tokens": map[string]interface{}{
+					"type":        "integer",
+					"description": "Maximum tokens for output (summarize action)",
+				},
+				"include_raw": map[string]interface{}{
+					"type":        "boolean",
+					"default":     false,
+					"description": "Include original data in response (summarize action)",
+				},
+				"items": map[string]interface{}{
+					"type":        "string",
+					"description": "JSON array of items to analyze (budget/batch actions)",
+				},
+				"budget_tokens": map[string]interface{}{
+					"type":        "integer",
+					"default":     4000,
+					"description": "Target token budget (budget action)",
+				},
+				"combine": map[string]interface{}{
+					"type":        "boolean",
+					"default":     true,
+					"description": "Merge summaries into combined view (batch action)",
+				},
+			},
+		},
+		handleContext,
+	); err != nil {
+		return fmt.Errorf("failed to register context: %w", err)
+	}
+
+	// prompt_tracking - Unified prompt tracking (log/analyze actions)
+	if err := server.RegisterTool(
+		"prompt_tracking",
+		"[HINT: Prompt tracking. action=log|analyze. Track and analyze prompts.]",
+		framework.ToolSchema{
+			Type: "object",
+			Properties: map[string]interface{}{
+				"action": map[string]interface{}{
+					"type":        "string",
+					"enum":        []string{"log", "analyze"},
+					"default":     "analyze",
+					"description": "Action to perform",
+				},
+				"prompt": map[string]interface{}{
+					"type":        "string",
+					"description": "Prompt text to log (log action)",
+				},
+				"task_id": map[string]interface{}{
+					"type":        "string",
+					"description": "Optional task ID",
+				},
+				"mode": map[string]interface{}{
+					"type":        "string",
+					"description": "Optional mode",
+				},
+				"outcome": map[string]interface{}{
+					"type":        "string",
+					"description": "Optional outcome",
+				},
+				"iteration": map[string]interface{}{
+					"type":        "integer",
+					"default":     1,
+					"description": "Iteration number (log action)",
+				},
+				"days": map[string]interface{}{
+					"type":        "integer",
+					"default":     7,
+					"description": "Number of days to analyze (analyze action)",
+				},
+			},
+		},
+		handlePromptTracking,
+	); err != nil {
+		return fmt.Errorf("failed to register prompt_tracking: %w", err)
+	}
+
+	// recommend - Unified recommendation tool (model/workflow/advisor actions)
+	if err := server.RegisterTool(
+		"recommend",
+		"[HINT: Recommend. action=model|workflow|advisor. Unified recommendation tool.]",
+		framework.ToolSchema{
+			Type: "object",
+			Properties: map[string]interface{}{
+				"action": map[string]interface{}{
+					"type":        "string",
+					"enum":        []string{"model", "workflow", "advisor"},
+					"default":     "model",
+					"description": "Action to perform",
+				},
+				"task_description": map[string]interface{}{
+					"type":        "string",
+					"description": "Description of the task",
+				},
+				"tags": map[string]interface{}{
+					"type":        "string",
+					"description": "Optional JSON string of tags to consider",
+				},
+				"include_rationale": map[string]interface{}{
+					"type":        "boolean",
+					"default":     true,
+					"description": "Whether to include detailed reasoning",
+				},
+				"task_type": map[string]interface{}{
+					"type":        "string",
+					"description": "Optional explicit task type (model action)",
+				},
+				"optimize_for": map[string]interface{}{
+					"type":        "string",
+					"enum":        []string{"quality", "speed", "cost"},
+					"default":     "quality",
+					"description": "Optimization target (model action)",
+				},
+				"include_alternatives": map[string]interface{}{
+					"type":        "boolean",
+					"default":     true,
+					"description": "Include alternative recommendations (model action)",
+				},
+			},
+		},
+		handleRecommend,
+	); err != nil {
+		return fmt.Errorf("failed to register recommend: %w", err)
+	}
+
+	// server_status - Server status and health check
+	if err := server.RegisterTool(
+		"server_status",
+		"[HINT: Server status. Get the current status of the project management automation server.]",
+		framework.ToolSchema{
+			Type:       "object",
+			Properties: map[string]interface{}{},
+		},
+		handleServerStatus,
+	); err != nil {
+		return fmt.Errorf("failed to register server_status: %w", err)
+	}
+
+	// demonstrate_elicit - Demonstration of FastMCP elicit() API
+	// Note: Requires FastMCP Context, will return error in stdio mode
+	if err := server.RegisterTool(
+		"demonstrate_elicit",
+		"[HINT: Elicit API demo. Interactive example showing inline chat questions.] Demonstrates FastMCP's elicit() API for inline chat questions. Requires FastMCP Context.",
+		framework.ToolSchema{
+			Type:       "object",
+			Properties: map[string]interface{}{},
+		},
+		handleDemonstrateElicit,
+	); err != nil {
+		return fmt.Errorf("failed to register demonstrate_elicit: %w", err)
+	}
+
+	// interactive_task_create - Interactive task creation using FastMCP elicit() API
+	// Note: Requires FastMCP Context, will return error in stdio mode
+	if err := server.RegisterTool(
+		"interactive_task_create",
+		"[HINT: Interactive task creation. Create task with inline chat questions.] Demonstrates creating a task interactively using inline chat questions. Requires FastMCP Context.",
+		framework.ToolSchema{
+			Type:       "object",
+			Properties: map[string]interface{}{},
+		},
+		handleInteractiveTaskCreate,
+	); err != nil {
+		return fmt.Errorf("failed to register interactive_task_create: %w", err)
 	}
 
 	return nil

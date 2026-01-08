@@ -1,8 +1,9 @@
 module github.com/davidl71/exarp-go
 
-go 1.24.0
+go 1.25
 
 require (
+	github.com/blacktop/go-foundationmodels v0.1.8
 	github.com/modelcontextprotocol/go-sdk v1.2.0
 	golang.org/x/term v0.38.0
 )

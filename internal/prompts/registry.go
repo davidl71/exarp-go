@@ -10,7 +10,7 @@ import (
 
 // RegisterAllPrompts registers all prompts with the server
 func RegisterAllPrompts(server framework.MCPServer) error {
-	// Register 15 prompts (8 original + 7 high-value workflow prompts)
+	// Register 17 prompts (8 original + 7 high-value workflow prompts + 2 mcp-generic-tools prompts)
 	prompts := []struct {
 		name        string
 		description string
@@ -32,6 +32,9 @@ func RegisterAllPrompts(server framework.MCPServer) error {
 		{"post_impl", "Post-implementation review workflow: docs, security, automation."},
 		{"sync", "Synchronize tasks between shared TODO table and Todo2."},
 		{"dups", "Find and consolidate duplicate Todo2 tasks."},
+		// mcp-generic-tools prompts
+		{"context", "Manage LLM context with summarization and budget tools."},
+		{"mode", "Suggest optimal Cursor IDE mode (Agent vs Ask) for a task."},
 	}
 
 	for _, p := range prompts {

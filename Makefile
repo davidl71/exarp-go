@@ -235,6 +235,40 @@ go-bench: ## Run Go benchmarks
 	@go test -bench=. -benchmem ./... || \
 	 echo "$(YELLOW)⚠️  Benchmarks failed$(NC)"
 
+##@ Apple Foundation Models
+
+build-apple-fm: ## Build with Apple Foundation Models support (CGO_ENABLED=1)
+	@echo "$(BLUE)Building with Apple Foundation Models support...$(NC)"
+	@CGO_ENABLED=1 go build -o $(BINARY_PATH) ./cmd/server || \
+	 (echo "$(RED)❌ Build failed - may need Swift bridge$(NC)" && exit 1)
+	@echo "$(GREEN)✅ Server built with Apple FM support: $(BINARY_PATH)$(NC)"
+
+build-swift-bridge: ## Build Swift bridge in go-foundationmodels package
+	@echo "$(BLUE)Building Swift bridge for go-foundationmodels...$(NC)"
+	@if [ -d "$$(go list -m -f '{{.Dir}}' github.com/blacktop/go-foundationmodels@v0.1.8)" ]; then \
+		cd $$(go list -m -f '{{.Dir}}' github.com/blacktop/go-foundationmodels@v0.1.8) && \
+		go generate && \
+		echo "$(GREEN)✅ Swift bridge built$(NC)"; \
+	else \
+		echo "$(RED)❌ go-foundationmodels package not found$(NC)"; \
+		exit 1; \
+	fi
+
+test-apple-fm: test-apple-fm-unit test-apple-fm-integration ## Run all Apple Foundation Models tests
+
+test-apple-fm-unit: ## Run Apple Foundation Models unit tests (no Swift bridge required)
+	@echo "$(BLUE)Running Apple FM unit tests...$(NC)"
+	@go test ./internal/tools/apple_foundation_helpers_test.go ./internal/tools/apple_foundation_helpers.go -v || \
+	 echo "$(YELLOW)⚠️  Unit tests failed or skipped$(NC)"
+
+test-apple-fm-integration: build-apple-fm ## Run Apple Foundation Models integration tests (requires Swift bridge)
+	@echo "$(BLUE)Running Apple FM integration tests...$(NC)"
+	@echo "$(YELLOW)Note: Requires Swift bridge to be built$(NC)"
+	@CGO_ENABLED=1 go test ./internal/tools -run TestHandleAppleFoundationModels -v || \
+	 echo "$(YELLOW)⚠️  Integration tests failed (may need Swift bridge)$(NC)"
+	@$(PYTHON) -m pytest tests/integration/mcp/test_apple_foundation_models.py -v || \
+	 echo "$(YELLOW)⚠️  Python integration tests failed$(NC)"
+
 ##@ Quick Commands
 
 quick-test: test-tools ## Quick test (tools only)

@@ -507,3 +507,217 @@ func handleMlx(ctx context.Context, args json.RawMessage) ([]framework.TextConte
 	}, nil
 }
 
+// mcp-generic-tools: Context management tools
+
+// handleContextSummarize handles the context_summarize tool
+func handleContextSummarize(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
+	var params map[string]interface{}
+	if err := json.Unmarshal(args, &params); err != nil {
+		return nil, fmt.Errorf("failed to parse arguments: %w", err)
+	}
+
+	result, err := bridge.ExecutePythonTool(ctx, "context_summarize", params)
+	if err != nil {
+		return nil, fmt.Errorf("context_summarize failed: %w", err)
+	}
+
+	return []framework.TextContent{
+		{Type: "text", Text: result},
+	}, nil
+}
+
+// handleContextBatch handles the context_batch tool
+func handleContextBatch(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
+	var params map[string]interface{}
+	if err := json.Unmarshal(args, &params); err != nil {
+		return nil, fmt.Errorf("failed to parse arguments: %w", err)
+	}
+
+	result, err := bridge.ExecutePythonTool(ctx, "context_batch", params)
+	if err != nil {
+		return nil, fmt.Errorf("context_batch failed: %w", err)
+	}
+
+	return []framework.TextContent{
+		{Type: "text", Text: result},
+	}, nil
+}
+
+// mcp-generic-tools: Prompt tracking tools
+
+// handlePromptLog handles the prompt_log tool
+func handlePromptLog(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
+	var params map[string]interface{}
+	if err := json.Unmarshal(args, &params); err != nil {
+		return nil, fmt.Errorf("failed to parse arguments: %w", err)
+	}
+
+	result, err := bridge.ExecutePythonTool(ctx, "prompt_log", params)
+	if err != nil {
+		return nil, fmt.Errorf("prompt_log failed: %w", err)
+	}
+
+	return []framework.TextContent{
+		{Type: "text", Text: result},
+	}, nil
+}
+
+// handlePromptAnalyze handles the prompt_analyze tool
+func handlePromptAnalyze(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
+	var params map[string]interface{}
+	if err := json.Unmarshal(args, &params); err != nil {
+		return nil, fmt.Errorf("failed to parse arguments: %w", err)
+	}
+
+	result, err := bridge.ExecutePythonTool(ctx, "prompt_analyze", params)
+	if err != nil {
+		return nil, fmt.Errorf("prompt_analyze failed: %w", err)
+	}
+
+	return []framework.TextContent{
+		{Type: "text", Text: result},
+	}, nil
+}
+
+// mcp-generic-tools: Recommendation tools
+
+// handleRecommendModel handles the recommend_model tool
+func handleRecommendModel(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
+	var params map[string]interface{}
+	if err := json.Unmarshal(args, &params); err != nil {
+		return nil, fmt.Errorf("failed to parse arguments: %w", err)
+	}
+
+	result, err := bridge.ExecutePythonTool(ctx, "recommend_model", params)
+	if err != nil {
+		return nil, fmt.Errorf("recommend_model failed: %w", err)
+	}
+
+	return []framework.TextContent{
+		{Type: "text", Text: result},
+	}, nil
+}
+
+// handleRecommendWorkflow handles the recommend_workflow tool
+func handleRecommendWorkflow(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
+	var params map[string]interface{}
+	if err := json.Unmarshal(args, &params); err != nil {
+		return nil, fmt.Errorf("failed to parse arguments: %w", err)
+	}
+
+	result, err := bridge.ExecutePythonTool(ctx, "recommend_workflow", params)
+	if err != nil {
+		return nil, fmt.Errorf("recommend_workflow failed: %w", err)
+	}
+
+	return []framework.TextContent{
+		{Type: "text", Text: result},
+	}, nil
+}
+
+// Phase 3 Migration: Unified tools
+
+// handleContext handles the context tool (unified wrapper)
+func handleContext(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
+	var params map[string]interface{}
+	if err := json.Unmarshal(args, &params); err != nil {
+		return nil, fmt.Errorf("failed to parse arguments: %w", err)
+	}
+
+	result, err := bridge.ExecutePythonTool(ctx, "context", params)
+	if err != nil {
+		return nil, fmt.Errorf("context failed: %w", err)
+	}
+
+	return []framework.TextContent{
+		{Type: "text", Text: result},
+	}, nil
+}
+
+// handlePromptTracking handles the prompt_tracking tool (unified wrapper)
+func handlePromptTracking(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
+	var params map[string]interface{}
+	if err := json.Unmarshal(args, &params); err != nil {
+		return nil, fmt.Errorf("failed to parse arguments: %w", err)
+	}
+
+	result, err := bridge.ExecutePythonTool(ctx, "prompt_tracking", params)
+	if err != nil {
+		return nil, fmt.Errorf("prompt_tracking failed: %w", err)
+	}
+
+	return []framework.TextContent{
+		{Type: "text", Text: result},
+	}, nil
+}
+
+// handleRecommend handles the recommend tool (unified wrapper)
+func handleRecommend(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
+	var params map[string]interface{}
+	if err := json.Unmarshal(args, &params); err != nil {
+		return nil, fmt.Errorf("failed to parse arguments: %w", err)
+	}
+
+	result, err := bridge.ExecutePythonTool(ctx, "recommend", params)
+	if err != nil {
+		return nil, fmt.Errorf("recommend failed: %w", err)
+	}
+
+	return []framework.TextContent{
+		{Type: "text", Text: result},
+	}, nil
+}
+
+// handleServerStatus handles the server_status tool
+func handleServerStatus(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
+	var params map[string]interface{}
+	if err := json.Unmarshal(args, &params); err != nil {
+		return nil, fmt.Errorf("failed to parse arguments: %w", err)
+	}
+
+	result, err := bridge.ExecutePythonTool(ctx, "server_status", params)
+	if err != nil {
+		return nil, fmt.Errorf("server_status failed: %w", err)
+	}
+
+	return []framework.TextContent{
+		{Type: "text", Text: result},
+	}, nil
+}
+
+// handleDemonstrateElicit handles the demonstrate_elicit tool
+// Note: This tool requires FastMCP Context for elicit() API, so it will return an error in stdio mode
+func handleDemonstrateElicit(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
+	var params map[string]interface{}
+	if err := json.Unmarshal(args, &params); err != nil {
+		return nil, fmt.Errorf("failed to parse arguments: %w", err)
+	}
+
+	result, err := bridge.ExecutePythonTool(ctx, "demonstrate_elicit", params)
+	if err != nil {
+		return nil, fmt.Errorf("demonstrate_elicit failed: %w", err)
+	}
+
+	return []framework.TextContent{
+		{Type: "text", Text: result},
+	}, nil
+}
+
+// handleInteractiveTaskCreate handles the interactive_task_create tool
+// Note: This tool requires FastMCP Context for elicit() API, so it will return an error in stdio mode
+func handleInteractiveTaskCreate(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
+	var params map[string]interface{}
+	if err := json.Unmarshal(args, &params); err != nil {
+		return nil, fmt.Errorf("failed to parse arguments: %w", err)
+	}
+
+	result, err := bridge.ExecutePythonTool(ctx, "interactive_task_create", params)
+	if err != nil {
+		return nil, fmt.Errorf("interactive_task_create failed: %w", err)
+	}
+
+	return []framework.TextContent{
+		{Type: "text", Text: result},
+	}, nil
+}
+

@@ -1,36 +1,51 @@
 {
-    "mcpServers": {
-        "advisor": {
-            "command": "/Users/davidl/Projects/devwisdom-go/devwisdom",
-            "args": [],
-            "env": {
-                "PROJECT_ROOT": "{{PROJECT_ROOT}}"
-            },
-            "description": "Crew Role: Advisor - DevWisdom Go MCP Server - Wisdom quotes, trusted advisors, and inspirational guidance"
-        },
-        "researcher": {
-            "args": [
-                "-y",
-                "@upstash/context7-mcp"
-            ],
-            "command": "npx",
-            "description": "Crew Role: Researcher - Context7 MCP Server - Advanced context management and documentation retrieval"
-        },
-        "analyst": {
-            "args": [
-                "-y",
-                "tractatus_thinking"
-            ],
-            "command": "npx",
-            "description": "Crew Role: Analyst - Tractatus Thinking MCP Server - Structured reasoning, logical analysis, and problem decomposition"
-        },
-        "exarp-go": {
-            "command": "/Users/davidl/Projects/mcp-stdio-tools/bin/exarp-go",
-            "args": [],
-            "env": {
-                "PROJECT_ROOT": "{{PROJECT_ROOT}}"
-            },
-            "description": "Crew Role: Executor - Go-based MCP server - 24 tools, 15 prompts, 6 resources"
-        }
+  "mcpServers": {
+    "advisor": {
+      "command": "/Users/davidl/Projects/devwisdom-go/devwisdom",
+      "args": [],
+      "env": {
+        "PROJECT_ROOT": "{{PROJECT_ROOT}}"
+      },
+      "description": "Crew Role: Advisor - DevWisdom Go MCP Server - Wisdom quotes, trusted advisors, and inspirational guidance"
+    },
+    "researcher": {
+      "args": [
+        "-y",
+        "@upstash/context7-mcp"
+      ],
+      "command": "npx",
+      "description": "Crew Role: Researcher - Context7 MCP Server - Advanced context management and documentation retrieval"
+    },
+    "analyst": {
+      "args": [
+        "-y",
+        "tractatus_thinking"
+      ],
+      "command": "npx",
+      "description": "Crew Role: Analyst - Tractatus Thinking MCP Server - Structured reasoning, logical analysis, and problem decomposition"
+    },
+    "exarp-go": {
+      "command": "/Users/davidl/Projects/exarp-go/bin/exarp-go",
+      "args": [],
+      "env": {
+        "PROJECT_ROOT": "{{PROJECT_ROOT}}",
+        "PATH": "/Users/davidl/go/bin:/Users/davidl/.nvm/versions/node/v20.19.5/bin:/usr/local/bin:/System/Cryptexes/App/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/local/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin:/opt/pmk/env/global/bin:/opt/X11/bin:/Applications/Wireshark.app/Contents/MacOS:/opt/homebrew/bin"
+      },
+      "description": "Crew Role: Executor - Go-based MCP server - 24 tools, 15 prompts, 6 resources"
+    },
+    "gotohuman": {
+      "command": "uvx",
+      "args": [
+        "mcpower-proxy==0.0.87",
+        "--wrapped-config",
+        "{\"command\": \"npx\", \"args\": [\"-y\", \"@gotohuman/mcp-server\"]}",
+        "--name",
+        "gotohuman"
+      ],
+      "description": "Human-in-the-loop platform - Allow AI agents and automations to send requests for approval to your gotoHuman inbox",
+      "env": {
+        "GOTOHUMAN_API_KEY": "YOUR_API_KEY_HERE"
+      }
     }
+  }
 }
