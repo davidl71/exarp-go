@@ -9,29 +9,24 @@ alwaysApply: true
 
 ## Current MCP Servers
 
-The workspace is configured with **5 MCP servers** in `.cursor/mcp.json`:
+The workspace is configured with **4 MCP servers** in `.cursor/mcp.json`:
 
 1. **advisor** - DevWisdom Go MCP Server (Crew Role: Advisor)
    - Command: `/Users/davidl/Projects/devwisdom-go/devwisdom`
    - Provides: Wisdom quotes, trusted advisors, inspirational guidance
 
-2. **coordinator** - Exarp Project Management Automation (Crew Role: Coordinator)
-   - Command: `/Users/davidl/Projects/project-management-automation/exarp-uvx-wrapper.sh`
-   - Args: `["--mcp"]`
-   - Provides: Project management automation tools
-
-3. **researcher** - Context7 MCP Server (Crew Role: Researcher)
+2. **researcher** - Context7 MCP Server (Crew Role: Researcher)
    - Command: `npx`
    - Args: `["-y", "@upstash/context7-mcp"]`
    - Provides: Advanced context management and retrieval
 
-4. **analyst** - Tractatus Thinking MCP Server (Crew Role: Analyst)
+3. **analyst** - Tractatus Thinking MCP Server (Crew Role: Analyst)
    - Command: `npx`
    - Args: `["-y", "tractatus_thinking"]`
    - Provides: Structured reasoning and logical thinking
 
-5. **exarp-go** - Go-based MCP Server (Crew Role: Executor) ✅ **ACTIVE**
-   - Command: `/Users/davidl/Projects/mcp-stdio-tools/bin/exarp-go`
+4. **exarp-go** - Go-based MCP Server (Crew Role: Executor) ✅ **ACTIVE**
+   - Command: `/Users/davidl/Projects/exarp-go/bin/exarp-go`
    - Args: `[]`
    - Env: `PROJECT_ROOT={{PROJECT_ROOT}}`
    - Provides: 24 tools, 15 prompts, 6 resources
