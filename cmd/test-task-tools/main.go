@@ -17,7 +17,7 @@ func main() {
 
 	ctx := context.Background()
 
-	fmt.Println("Testing Task Tools Migration to Native Go with Apple FM\n")
+	fmt.Println("Testing Task Tools Migration to Native Go with Apple FM")
 
 	// Test 1: task_analysis(action="hierarchy")
 	fmt.Println("=== Test 1: task_analysis(action='hierarchy') ===")

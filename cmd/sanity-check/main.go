@@ -84,11 +84,11 @@ func main() {
 	fmt.Println("=== MCP Server Sanity Check ===")
 	fmt.Println()
 
-	// Tools
+	// Tools (allow +1 for conditional Apple Foundation Models tool)
 	toolCount := server.toolCount
-	toolMatch := toolCount == EXPECTED_TOOLS
+	toolMatch := toolCount == EXPECTED_TOOLS || toolCount == EXPECTED_TOOLS+1
 	if toolMatch {
-		fmt.Printf("✅ Tools: %d/%d\n", toolCount, EXPECTED_TOOLS)
+		fmt.Printf("✅ Tools: %d/%d (or %d with Apple FM)\n", toolCount, EXPECTED_TOOLS, EXPECTED_TOOLS+1)
 	} else {
 		fmt.Printf("❌ Tools: %d/%d (MISMATCH)\n", toolCount, EXPECTED_TOOLS)
 	}

@@ -18,7 +18,7 @@ func main() {
 
 	ctx := context.Background()
 
-	fmt.Println("Testing MLX Integration for Report Generation\n")
+	fmt.Println("Testing MLX Integration for Report Generation")
 
 	// Test 1: report(action="scorecard") with MLX
 	fmt.Println("=== Test 1: report(action='scorecard') with MLX ===")
