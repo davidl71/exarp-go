@@ -371,57 +371,9 @@ def execute_tool(tool_name: str, args_json: str):
                 temperature=args.get("temperature", 0.7),
                 verbose=args.get("verbose", False),
             )
-        # mcp-generic-tools: Context management tools
-        elif tool_name == "context_summarize":
-            result = _context(
-                action="summarize",
-                data=args.get("data"),
-                level=args.get("level", "brief"),
-                tool_type=args.get("tool_type"),
-                max_tokens=args.get("max_tokens"),
-                include_raw=args.get("include_raw", False),
-            )
-        elif tool_name == "context_batch":
-            result = _context(
-                action="batch",
-                items=args.get("items"),
-                level=args.get("level", "brief"),
-                combine=args.get("combine", True),
-            )
-        # mcp-generic-tools: Prompt tracking tools
-        elif tool_name == "prompt_log":
-            result = _prompt_tracking(
-                action="log",
-                prompt=args.get("prompt"),
-                task_id=args.get("task_id"),
-                mode=args.get("mode"),
-                outcome=args.get("outcome"),
-                iteration=args.get("iteration", 1),
-                project_root=args.get("project_root"),
-            )
-        elif tool_name == "prompt_analyze":
-            result = _prompt_tracking(
-                action="analyze",
-                days=args.get("days", 7),
-                project_root=args.get("project_root"),
-            )
-        # mcp-generic-tools: Recommendation tools
-        elif tool_name == "recommend_model":
-            result = _recommend(
-                action="model",
-                task_description=args.get("task_description"),
-                task_type=args.get("task_type"),
-                optimize_for=args.get("optimize_for", "quality"),
-                include_alternatives=args.get("include_alternatives", True),
-            )
-        elif tool_name == "recommend_workflow":
-            result = _recommend(
-                action="workflow",
-                task_description=args.get("task_description"),
-                tags=args.get("tags"),
-                include_rationale=args.get("include_rationale", True),
-            )
         # Phase 3 Migration: Unified tools
+        # Note: Individual tools (context_summarize, context_batch, prompt_log, prompt_analyze,
+        # recommend_model, recommend_workflow) were removed in favor of unified tools below
         elif tool_name == "context":
             result = _context_unified(
                 action=args.get("action", "summarize"),
@@ -464,22 +416,8 @@ def execute_tool(tool_name: str, args_json: str):
                 "tools_available": "See tool catalog",
                 "project_root": project_root,
             }, indent=2)
-        elif tool_name == "demonstrate_elicit":
-            # FastMCP-only tool (requires Context for elicit())
-            result = json.dumps({
-                "success": False,
-                "error": "demonstrate_elicit requires FastMCP Context (not available in stdio mode)",
-                "note": "This tool uses FastMCP's elicit() API for inline chat questions. Use FastMCP mode to access it.",
-                "alternative": "Use interactive-mcp tools for pop-up questions in stdio mode"
-            }, indent=2)
-        elif tool_name == "interactive_task_create":
-            # FastMCP-only tool (requires Context for elicit())
-            result = json.dumps({
-                "success": False,
-                "error": "interactive_task_create requires FastMCP Context (not available in stdio mode)",
-                "note": "This tool uses FastMCP's elicit() API for inline chat questions. Use FastMCP mode to access it.",
-                "alternative": "Use interactive-mcp tools for pop-up questions in stdio mode"
-            }, indent=2)
+        # Note: demonstrate_elicit and interactive_task_create removed
+        # These tools required FastMCP Context (not available in stdio mode)
         else:
             error_result = {
                 "success": False,

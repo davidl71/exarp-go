@@ -1,7 +1,8 @@
 # Python Bridge vs Native Go Implementation - Table View
 
 **Date:** 2026-01-07  
-**Status:** ✅ Complete Analysis with Testing
+**Last Updated:** 2026-01-07  
+**Status:** ✅ Complete Analysis with Current Implementation Status
 
 ---
 
@@ -17,7 +18,7 @@
 | 6 | `add_external_tool_hints` | Python Bridge | ❌ No | ✅ Safe | Direct function call |
 | 7 | `memory` | Python Bridge | ❌ No | ✅ Safe | Direct function call |
 | 8 | `memory_maint` | Python Bridge | ❌ No | ✅ Safe | Direct function call |
-| 9 | `report` | Python Bridge | ❌ No | ✅ Safe | Direct function call |
+| 9 | `report` | Python Bridge | ❌ No | ✅ Safe | Direct function call (Go scorecard fallback for Go projects) |
 | 10 | `security` | Python Bridge | ❌ No | ✅ Safe | Direct function call |
 | 11 | `task_analysis` | Python Bridge | ❌ No | ✅ Safe | Direct function call |
 | 12 | `task_discovery` | Python Bridge | ❌ No | ✅ Safe | Direct function call |
@@ -26,19 +27,25 @@
 | 15 | `automation` | Python Bridge | ❌ No | ✅ Safe | Direct function call |
 | 16 | `tool_catalog` | Python Bridge | ❌ No | ✅ Safe | Direct function call |
 | 17 | `workflow_mode` | Python Bridge | ❌ No | ✅ Safe | Direct function call |
-| 18 | `lint` | **Hybrid** | ❌ No | ✅ Safe | Go linters: Native Go<br>Non-Go: Python bridge |
+| 18 | `lint` | **Hybrid** | ❌ No | ✅ Safe | **Native Go** for: golangci-lint, go-vet, gofmt, goimports, markdownlint, shellcheck, shfmt<br>**Python Bridge** for: ruff and other non-Go linters |
 | 19 | `estimation` | Python Bridge | ❌ No | ✅ Safe | Direct function call |
 | 20 | `git_tools` | Python Bridge | ❌ No | ✅ Safe | Direct function call |
 | 21 | `session` | Python Bridge | ❌ No | ✅ Safe | Direct function call |
 | 22 | `infer_session_mode` | Python Bridge | ❌ No | ✅ Safe | Direct function call |
 | 23 | `ollama` | Python Bridge | ❌ No | ✅ Safe | Direct function call |
 | 24 | `mlx` | Python Bridge | ❌ No | ✅ Safe | Direct function call |
+| 25 | `context_budget` | **Native Go** | ❌ No | ✅ Safe | Full native Go implementation |
+| 26 | `list_models` | **Native Go** | ❌ No | ✅ Safe | Full native Go implementation |
+| 27 | `context` | Python Bridge | ❌ No | ✅ Safe | Unified wrapper (action=summarize|budget|batch) - replaces context_summarize, context_batch |
+| 28 | `prompt_tracking` | Python Bridge | ❌ No | ✅ Safe | Unified wrapper (action=log|analyze) - replaces prompt_log, prompt_analyze |
+| 29 | `recommend` | Python Bridge | ❌ No | ✅ Safe | Unified wrapper (action=model|workflow|advisor) - replaces recommend_model, recommend_workflow |
+| 30 | `server_status` | Python Bridge | ❌ No | ✅ Safe | Direct function call |
 
 **Summary:**
-- **Total Tools:** 24
-- **Native Go (full):** 0
-- **Native Go (partial):** 1 (`lint` - Go linters only)
-- **Python Bridge:** 23
+- **Total Tools:** 30 (consolidated from 38 - removed 6 duplicate tools + 2 FastMCP-only tools)
+- **Native Go (full):** 2 (`context_budget`, `list_models`)
+- **Native Go (hybrid):** 1 (`lint` - native for Go linters, Python bridge for others)
+- **Python Bridge:** 27
 - **FastMCP Used:** 0 (all bypass FastMCP)
 - **Dict Issue Risk:** ✅ All safe (bridge handles conversion)
 
@@ -83,11 +90,13 @@
 | 13 | `post_impl` | Python Bridge | ❌ No | ✅ Safe | Direct template import |
 | 14 | `sync` | Python Bridge | ❌ No | ✅ Safe | Direct template import |
 | 15 | `dups` | Python Bridge | ❌ No | ✅ Safe | Direct template import |
+| 16 | `context` | Python Bridge | ❌ No | ✅ Safe | Direct template import |
+| 17 | `mode` | Python Bridge | ❌ No | ✅ Safe | Direct template import |
 
 **Summary:**
-- **Total Prompts:** 15
+- **Total Prompts:** 17
 - **Native Go:** 0
-- **Python Bridge:** 15
+- **Python Bridge:** 17
 - **FastMCP Used:** 0 (all bypass FastMCP)
 - **Dict Issue Risk:** ✅ All safe (prompts return strings, not dicts)
 
@@ -95,12 +104,17 @@
 
 ## Implementation Type Summary
 
-| Category | Native Go | Python Bridge | Total |
-|----------|-----------|---------------|-------|
-| **Tools** | 1 (partial) | 23 | 24 |
-| **Resources** | 0 | 6 | 6 |
-| **Prompts** | 0 | 15 | 15 |
-| **TOTAL** | **1** | **44** | **45** |
+| Category | Native Go (Full) | Native Go (Hybrid) | Python Bridge | Total |
+|----------|------------------|-------------------|---------------|-------|
+| **Tools** | 2 | 1 | 35 | 38 |
+| **Resources** | 0 | 0 | 6 | 6 |
+| **Prompts** | 0 | 0 | 17 | 17 |
+| **TOTAL** | **2** | **1** | **58** | **61** |
+
+**Native Go Tools:**
+- ✅ `context_budget` - Full native Go implementation
+- ✅ `list_models` - Full native Go implementation  
+- ✅ `lint` - Hybrid (native for Go linters: golangci-lint, go-vet, gofmt, goimports, markdownlint, shellcheck, shfmt; Python bridge for others like ruff)
 
 ---
 
@@ -230,16 +244,25 @@ $ python3 bridge/get_prompt.py align
    - Would eliminate dict/string branching in bridge
 
 3. **Native Go Migration**
-   - Only `lint` has partial Go implementation
-   - Consider migrating frequently-used tools to native Go
+   - ✅ `lint` has hybrid Go implementation (native for Go linters)
+   - ✅ `context_budget` and `list_models` are fully native Go
+   - Consider migrating frequently-used tools to native Go for better performance
+   - Current native Go coverage: 3/38 tools (7.9%)
 
 ---
 
 ## Quick Reference
 
 **Implementation Counts:**
-- Native Go: 1 tool (partial - `lint`)
-- Python Bridge: 44 items (23 tools + 6 resources + 15 prompts)
+- **Native Go (full):** 2 tools (`context_budget`, `list_models`)
+- **Native Go (hybrid):** 1 tool (`lint` - native for Go linters, Python bridge for others)
+- **Python Bridge:** 58 items (35 tools + 6 resources + 17 prompts)
+
+**Migration Progress:**
+- **Tools:** 3/38 native (7.9%) | 35/38 Python bridge (92.1%)
+- **Resources:** 0/6 native (0%) | 6/6 Python bridge (100%)
+- **Prompts:** 0/17 native (0%) | 17/17 Python bridge (100%)
+- **Overall:** 3/61 native (4.9%) | 58/61 Python bridge (95.1%)
 
 **FastMCP Status:**
 - Bridge Layer: ❌ Not used (bypassed)

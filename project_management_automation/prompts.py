@@ -412,9 +412,9 @@ CONTEXT_MANAGEMENT = """Strategically manage LLM context to reduce token usage.
    → Combined summaries of multiple items
    ```
 
-4. **focus_mode()** - Reduce visible tools
+4. **workflow_mode(action="focus")** - Reduce visible tools
    ```
-   focus_mode(mode="security_review")
+   workflow_mode(action="focus", mode="security_review")
    → 74% fewer tools shown = less context
    ```
 
@@ -422,14 +422,14 @@ CONTEXT_MANAGEMENT = """Strategically manage LLM context to reduce token usage.
 
 | Method | Reduction | Best For |
 |--------|-----------|----------|
-| focus_mode() | 50-80% tools | Start of task |
+| workflow_mode(action="focus") | 50-80% tools | Start of task |
 | context(action="summarize", level="brief") | 70-90% data | Tool results |
 | context(action="summarize", level="key_metrics") | 80-95% data | Numeric data |
 | context(action="budget") | Planning | Multiple results |
 
 **Example Workflow:**
 
-1. Start task → `focus_mode(mode="security_review")`
+1. Start task → `workflow_mode(action="focus", mode="security_review")`
 2. Run tool → Get large JSON output
 3. Compress → `context(action="summarize", data=output, level="brief")`
 4. Continue → Reduced context, same key info

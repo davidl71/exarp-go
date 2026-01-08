@@ -7,15 +7,17 @@ import (
 	"github.com/davidl71/exarp-go/internal/config"
 	"github.com/davidl71/exarp-go/internal/factory"
 	"github.com/davidl71/exarp-go/internal/framework"
-	"github.com/davidl71/exarp-go/internal/tools"
 	"github.com/davidl71/exarp-go/internal/prompts"
 	"github.com/davidl71/exarp-go/internal/resources"
+	"github.com/davidl71/exarp-go/internal/tools"
 )
 
 // Expected counts
+// Note: Tools = 30 base tools + 1 conditional (Apple Foundation Models on macOS) = 31 total
+// Prompts = 17 (updated from 15)
 const (
-	EXPECTED_TOOLS     = 24
-	EXPECTED_PROMPTS   = 15
+	EXPECTED_TOOLS     = 30 // Base tools (31 with conditional Apple Foundation Models)
+	EXPECTED_PROMPTS   = 17 // Updated from 15
 	EXPECTED_RESOURCES = 6
 )
 
