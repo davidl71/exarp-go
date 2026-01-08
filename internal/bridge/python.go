@@ -18,7 +18,7 @@ import (
 func getWorkspaceRoot() string {
 	// Check environment variable first
 	projectRoot := os.Getenv("PROJECT_ROOT")
-	
+
 	// If PROJECT_ROOT contains placeholder (not substituted), ignore it
 	if strings.Contains(projectRoot, "{{PROJECT_ROOT}}") || projectRoot == "" {
 		// Try to find workspace root relative to executable location
@@ -33,7 +33,7 @@ func getWorkspaceRoot() string {
 			// Otherwise, assume executable is in workspace root
 			return execDir
 		}
-		
+
 		// Fallback: try to find workspace root using __file__ equivalent
 		// In Go, we can use runtime.Caller to find the source file location
 		_, filename, _, ok := runtime.Caller(0)
@@ -42,12 +42,12 @@ func getWorkspaceRoot() string {
 			return filepath.Join(filepath.Dir(filename), "..", "..")
 		}
 	}
-	
+
 	// If PROJECT_ROOT was set and valid, use it
 	if projectRoot != "" && !strings.Contains(projectRoot, "{{") {
 		return projectRoot
 	}
-	
+
 	// Last resort: assume current directory or relative path
 	return "."
 }
@@ -66,7 +66,7 @@ func ExecutePythonTool(ctx context.Context, toolName string, args map[string]int
 
 	// Path to Python bridge script (bridge scripts are in workspace root)
 	bridgeScript := filepath.Join(workspaceRoot, "bridge", "execute_tool.py")
-	
+
 	// Validate bridge script path is within workspace root
 	_, err = security.ValidatePath(bridgeScript, workspaceRoot)
 	if err != nil {
@@ -95,57 +95,6 @@ func ExecutePythonTool(ctx context.Context, toolName string, args map[string]int
 	return string(output), nil
 }
 
-// GetPythonPrompt retrieves a prompt template from Python
-func GetPythonPrompt(ctx context.Context, promptName string) (string, error) {
-	// Get workspace root where bridge scripts are located
-	workspaceRoot := getWorkspaceRoot()
-
-	// Validate workspace root path
-	validatedRoot, err := security.ValidatePath(workspaceRoot, workspaceRoot)
-	if err != nil {
-		return "", fmt.Errorf("invalid workspace root: %w", err)
-	}
-	workspaceRoot = validatedRoot
-
-	// Path to Python bridge script (bridge scripts are in workspace root)
-	bridgeScript := filepath.Join(workspaceRoot, "bridge", "get_prompt.py")
-	
-	// Validate bridge script path is within workspace root
-	_, err = security.ValidatePath(bridgeScript, workspaceRoot)
-	if err != nil {
-		return "", fmt.Errorf("invalid bridge script path: %w", err)
-	}
-
-	// Create command
-	cmd := exec.CommandContext(ctx, "python3", bridgeScript, promptName)
-
-	// Set timeout
-	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
-	defer cancel()
-
-	// Execute command
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		return "", fmt.Errorf("python prompt retrieval failed: %w, output: %s", err, output)
-	}
-
-	// Parse JSON response
-	var result struct {
-		Success bool   `json:"success"`
-		Prompt  string `json:"prompt"`
-		Error   string `json:"error,omitempty"`
-	}
-	if err := json.Unmarshal(output, &result); err != nil {
-		return "", fmt.Errorf("failed to parse prompt response: %w", err)
-	}
-
-	if !result.Success {
-		return "", fmt.Errorf("prompt retrieval failed: %s", result.Error)
-	}
-
-	return result.Prompt, nil
-}
-
 // ExecutePythonResource executes a Python resource handler via subprocess
 func ExecutePythonResource(ctx context.Context, uri string) ([]byte, string, error) {
 	// Get workspace root where bridge scripts are located
@@ -160,7 +109,7 @@ func ExecutePythonResource(ctx context.Context, uri string) ([]byte, string, err
 
 	// Path to Python bridge script for resources (bridge scripts are in workspace root)
 	bridgeScript := filepath.Join(workspaceRoot, "bridge", "execute_resource.py")
-	
+
 	// Validate bridge script path is within workspace root
 	_, err = security.ValidatePath(bridgeScript, workspaceRoot)
 	if err != nil {
@@ -183,4 +132,3 @@ func ExecutePythonResource(ctx context.Context, uri string) ([]byte, string, err
 	// Return as JSON
 	return output, "application/json", nil
 }
-

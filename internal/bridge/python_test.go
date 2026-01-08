@@ -111,87 +111,6 @@ func TestExecutePythonTool_PROJECT_ROOT(t *testing.T) {
 	}
 }
 
-func TestGetPythonPrompt_JSONParsing(t *testing.T) {
-	tests := []struct {
-		name       string
-		jsonInput  string
-		wantPrompt string
-		wantErr    bool
-	}{
-		{
-			name:       "valid response",
-			jsonInput:  `{"success": true, "prompt": "test prompt"}`,
-			wantPrompt: "test prompt",
-			wantErr:    false,
-		},
-		{
-			name:      "error response",
-			jsonInput: `{"success": false, "error": "test error"}`,
-			wantErr:   true,
-		},
-		{
-			name:      "invalid JSON",
-			jsonInput: `{invalid json}`,
-			wantErr:   true,
-		},
-		{
-			name:      "missing success field",
-			jsonInput: `{"prompt": "test"}`,
-			wantErr:   true,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			var result struct {
-				Success bool   `json:"success"`
-				Prompt  string `json:"prompt"`
-				Error   string `json:"error,omitempty"`
-			}
-
-			err := json.Unmarshal([]byte(tt.jsonInput), &result)
-			
-			// Invalid JSON should cause unmarshal error
-			if tt.name == "invalid JSON" {
-				if err == nil {
-					t.Error("json.Unmarshal() error = nil, want error for invalid JSON")
-				}
-				return
-			}
-			
-			// Valid JSON should parse without error
-			if err != nil {
-				t.Errorf("json.Unmarshal() error = %v, want no error", err)
-				return
-			}
-
-			// For success cases, verify prompt
-			if !tt.wantErr && result.Success {
-				if result.Prompt != tt.wantPrompt {
-					t.Errorf("result.Prompt = %v, want %v", result.Prompt, tt.wantPrompt)
-				}
-			}
-
-			// For error response cases, verify error is present or Success is false
-			if tt.wantErr && tt.name == "error response" {
-				if result.Success {
-					t.Error("result.Success = true, want false for error response")
-				}
-				if result.Error == "" {
-					t.Error("result.Error is empty, want error message")
-				}
-			}
-
-			// For missing success field, verify Success defaults to false
-			if tt.name == "missing success field" {
-				if result.Success {
-					t.Error("result.Success = true, want false when success field is missing")
-				}
-			}
-		})
-	}
-}
-
 func TestContextTimeout(t *testing.T) {
 	t.Run("ExecutePythonTool timeout", func(t *testing.T) {
 		ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
@@ -207,19 +126,6 @@ func TestContextTimeout(t *testing.T) {
 			// Expected
 		case <-time.After(100 * time.Millisecond):
 			t.Error("context should have timed out")
-		}
-	})
-
-	t.Run("GetPythonPrompt timeout", func(t *testing.T) {
-		ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
-		defer cancel()
-
-		// Verify timeout context is cancelled
-		select {
-		case <-ctx.Done():
-			// Expected after timeout
-		case <-time.After(150 * time.Millisecond):
-			// Context timed out
 		}
 	})
 }
