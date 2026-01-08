@@ -36,7 +36,7 @@
 
     - name: Create systemd service for exarp-go
       template:
-        src: exarp-go.service.j2
+        src: templates/exarp-go.service.j2
         dest: /etc/systemd/system/exarp-go.service
         owner: root
         group: root
@@ -54,6 +54,7 @@
           - "Python version: {{ python_version }}"
           - "Project path: {{ project_path }}"
           - "Linters: Not installed (production)"
+          - "GitHub CLI (gh): {{ 'Installed' if install_gh | default(false) else 'Not installed' }}"
       tags:
         - always
 

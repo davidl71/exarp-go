@@ -22,6 +22,7 @@ project_user: "deploy"
 install_linters: false
 install_dev_tools: false
 install_file_watchers: false
+install_gh: false  # GitHub CLI (gh) - optional, useful for release management and authenticated operations
 
 # Linter configuration (empty for production)
 linters: []
