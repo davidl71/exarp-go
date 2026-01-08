@@ -10,8 +10,22 @@ import (
 	"github.com/davidl71/exarp-go/internal/framework"
 )
 
-// handleTaskWorkflowNative is a no-op for non-Apple platforms
+// handleTaskWorkflowNative handles task_workflow with native Go (no Apple FM)
 func handleTaskWorkflowNative(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
-	return nil, fmt.Errorf("Apple Foundation Models not available on this platform")
+	action, _ := params["action"].(string)
+	if action == "" {
+		action = "sync"
+	}
+
+	switch action {
+	case "approve":
+		// Approve doesn't need Apple FM, so it works on all platforms
+		return handleTaskWorkflowApprove(ctx, params)
+	case "clarify":
+		// Clarify requires Apple FM which is not available on this platform
+		return nil, fmt.Errorf("clarify action requires Apple Foundation Models (not available on this platform)")
+	default:
+		return nil, fmt.Errorf("action %s not yet implemented in native Go", action)
+	}
 }
 

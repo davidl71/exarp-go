@@ -334,20 +334,32 @@ func handleTaskWorkflow(ctx context.Context, args json.RawMessage) ([]framework.
 		return nil, fmt.Errorf("failed to parse arguments: %w", err)
 	}
 
-	// Try native Go implementation first (for clarify action with Apple FM)
+	// Try native Go implementation first (for clarify and approve actions)
 	action, _ := params["action"].(string)
 	if action == "" {
 		action = "sync"
 	}
 
-	if action == "clarify" {
-		support := platform.CheckAppleFoundationModelsSupport()
-		if support.Supported {
+	if action == "clarify" || action == "approve" {
+		// For clarify, check Apple FM support; for approve, always try native Go
+		if action == "clarify" {
+			support := platform.CheckAppleFoundationModelsSupport()
+			if !support.Supported {
+				// Fall through to Python bridge if Apple FM not supported
+			} else {
+				result, err := handleTaskWorkflowNative(ctx, params)
+				if err == nil {
+					return result, nil
+				}
+				// If native fails, fall through to Python bridge
+			}
+		} else {
+			// For approve, always try native Go first
 			result, err := handleTaskWorkflowNative(ctx, params)
 			if err == nil {
 				return result, nil
 			}
-			// If native fails, fall through to Python bridge
+			// If native fails (e.g., file access issues), fall through to Python bridge
 		}
 	}
 
@@ -399,37 +411,27 @@ func handleAutomation(ctx context.Context, args json.RawMessage) ([]framework.Te
 }
 
 // handleToolCatalog handles the tool_catalog tool
+// Uses native Go implementation (migrated from Python bridge)
 func handleToolCatalog(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
 	var params map[string]interface{}
 	if err := json.Unmarshal(args, &params); err != nil {
 		return nil, fmt.Errorf("failed to parse arguments: %w", err)
 	}
 
-	result, err := bridge.ExecutePythonTool(ctx, "tool_catalog", params)
-	if err != nil {
-		return nil, fmt.Errorf("tool_catalog failed: %w", err)
-	}
-
-	return []framework.TextContent{
-		{Type: "text", Text: result},
-	}, nil
+	// Use native Go implementation
+	return handleToolCatalogNative(ctx, params)
 }
 
 // handleWorkflowMode handles the workflow_mode tool
+// Uses native Go implementation (migrated from Python bridge)
 func handleWorkflowMode(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
 	var params map[string]interface{}
 	if err := json.Unmarshal(args, &params); err != nil {
 		return nil, fmt.Errorf("failed to parse arguments: %w", err)
 	}
 
-	result, err := bridge.ExecutePythonTool(ctx, "workflow_mode", params)
-	if err != nil {
-		return nil, fmt.Errorf("workflow_mode failed: %w", err)
-	}
-
-	return []framework.TextContent{
-		{Type: "text", Text: result},
-	}, nil
+	// Use native Go implementation
+	return handleWorkflowModeNative(ctx, params)
 }
 
 // handleLint handles the lint tool
@@ -555,20 +557,15 @@ func handleSession(ctx context.Context, args json.RawMessage) ([]framework.TextC
 }
 
 // handleInferSessionMode handles the infer_session_mode tool
+// Uses native Go implementation (migrated from Python bridge)
 func handleInferSessionMode(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
 	var params map[string]interface{}
 	if err := json.Unmarshal(args, &params); err != nil {
 		return nil, fmt.Errorf("failed to parse arguments: %w", err)
 	}
 
-	result, err := bridge.ExecutePythonTool(ctx, "infer_session_mode", params)
-	if err != nil {
-		return nil, fmt.Errorf("infer_session_mode failed: %w", err)
-	}
-
-	return []framework.TextContent{
-		{Type: "text", Text: result},
-	}, nil
+	// Use native Go implementation
+	return handleInferSessionModeNative(ctx, params)
 }
 
 // handleOllama handles the ollama tool
@@ -708,20 +705,10 @@ func handleRecommend(ctx context.Context, args json.RawMessage) ([]framework.Tex
 }
 
 // handleServerStatus handles the server_status tool
+// Uses native Go implementation (migrated from Python bridge)
 func handleServerStatus(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
-	var params map[string]interface{}
-	if err := json.Unmarshal(args, &params); err != nil {
-		return nil, fmt.Errorf("failed to parse arguments: %w", err)
-	}
-
-	result, err := bridge.ExecutePythonTool(ctx, "server_status", params)
-	if err != nil {
-		return nil, fmt.Errorf("server_status failed: %w", err)
-	}
-
-	return []framework.TextContent{
-		{Type: "text", Text: result},
-	}, nil
+	// Use native Go implementation
+	return handleServerStatusNative(ctx, args)
 }
 
 // Note: handleDemonstrateElicit and handleInteractiveTaskCreate removed

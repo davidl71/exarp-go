@@ -34,12 +34,73 @@ def batch_approve_tasks(
         Dictionary with approval results including count, task IDs, and status
     """
     project_root = find_project_root()
+    
+    # Try Todo2 MCP tools directly (fallback from native Go or when script missing)
+    try:
+        from ..utils.todo2_mcp_client import list_todos_mcp, update_todos_mcp
+        
+        # Get tasks filtered by status (MCP handles status normalization)
+        todos = list_todos_mcp(status=status, project_root=project_root) or []
+        
+        # Filter tasks by additional criteria
+        candidates = []
+        for todo in todos:
+            # list_todos_mcp already filtered by status, but verify
+            todo_status = todo.get("status", "")
+            if todo_status.title() != status.title():
+                continue
+            
+            # Filter by specific task IDs if provided
+            if task_ids:
+                if todo.get("id") not in task_ids:
+                    continue
+            
+            # Filter by tag if provided
+            if filter_tag:
+                todo_tags = todo.get("tags", [])
+                if filter_tag not in todo_tags:
+                    continue
+            
+            # Filter by clarification requirement if needed
+            if clarification_none:
+                long_desc = todo.get("long_description", "")
+                if not long_desc or len(long_desc) < 50:
+                    continue
+            
+            candidates.append(todo)
+        
+        if dry_run:
+            task_list = [{"id": t["id"], "content": t.get("name", ""), "status": t.get("status", "")} for t in candidates]
+            return {
+                "success": True,
+                "method": "todo2_mcp",
+                "dry_run": True,
+                "approved_count": len(candidates),
+                "task_ids": [t["id"] for t in candidates],
+                "tasks": task_list
+            }
+        
+        # Update tasks via MCP
+        updates = [{"id": t["id"], "status": new_status} for t in candidates]
+        success = update_todos_mcp(updates=updates, project_root=project_root)
+        
+        if success:
+            return {
+                "success": True,
+                "method": "todo2_mcp",
+                "approved_count": len(candidates),
+                "task_ids": [t["id"] for t in candidates]
+            }
+    except Exception as e:
+        # If MCP fails, try batch script (legacy fallback)
+        pass
+    
+    # Legacy: Try batch script if MCP failed
     batch_script = project_root / "scripts" / "batch_update_todos.py"
-
     if not batch_script.exists():
         return {
             "success": False,
-            "error": f"Batch script not found: {batch_script}",
+            "error": f"Batch script not found: {batch_script}. Todo2 MCP fallback also unavailable.",
             "approved_count": 0,
             "task_ids": []
         }
