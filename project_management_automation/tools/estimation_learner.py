@@ -10,7 +10,7 @@ import logging
 import statistics
 from collections import defaultdict
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Union, Tuple
 
 from ..utils import find_project_root
 
@@ -28,7 +28,7 @@ class EstimationLearner:
     - Adjustments needed for different priorities/tags
     """
 
-    def __init__(self, project_root: Path | None = None):
+    def __init__(self, project_root: Optional[Path] = None):
         """Initialize learner with project root."""
         if project_root is None:
             project_root = find_project_root()
@@ -70,10 +70,16 @@ class EstimationLearner:
                 actual = task.get('actualHours')
 
                 # Calculate active work time from status changes (more accurate than elapsed time)
+                # Falls back to comment-based estimation if status changes are unavailable
                 if not actual:
-                    actual = self._calculate_active_work_time(task)
+                    comments = data.get('comments', [])
+                    task_comments = [c for c in comments if c.get('todoId') == task.get('id')]
+                    actual, method = self._calculate_active_work_time(task, task_comments)
                     if not actual or actual <= 0:
                         continue
+                    # Store method for analysis tracking if needed
+                    if method and method != 'status_changes':
+                        logger.debug(f"Task {task.get('id')} used {method} for actual hours calculation")
 
                 if estimated and estimated > 0 and actual and actual > 0:
                     completed_tasks.append({
@@ -343,22 +349,29 @@ class EstimationLearner:
             logger.error(f"Failed to save learning data: {e}")
             return False
 
-    def _calculate_active_work_time(self, task: dict) -> float | None:
+    def _calculate_active_work_time(
+        self, 
+        task: dict, 
+        comments: Optional[list[dict]] = None
+    ) -> Tuple[Optional[float], Optional[str]]:
         """
-        Calculate active work time from status change history.
+        Calculate active work time from status change history, with fallback to comment-based estimation.
 
-        Only counts time when task was "In Progress", not idle time.
-        Tracks transitions: Todo -> In Progress -> Todo/Done
+        Primary method: Only counts time when task was "In Progress", not idle time.
+        Fallback method: Estimates work time from comment timestamps when status changes unavailable.
+
+        Args:
+            task: Task dictionary from Todo2 state
+            comments: Optional list of comment dictionaries for this task
 
         Returns:
-            Total active work hours, or None if cannot calculate
+            Tuple of (total_active_work_hours, estimation_method)
+            - estimation_method: 'status_changes', 'comment_timestamps_multi', 'comment_timestamps_single', or None
         """
         from datetime import datetime
 
         changes = task.get('changes', [])
-        if not changes:
-            return None
-
+        
         def parse_datetime(dt_str):
             if not dt_str:
                 return None
@@ -371,76 +384,189 @@ class EstimationLearner:
         task.get('status', 'Todo')
         created_time = parse_datetime(task.get('created'))
 
-        # Build timeline of status changes
+        # Build timeline of status changes (if available)
         status_changes = []
-        for change in changes:
-            if change.get('field') == 'status':
-                timestamp = parse_datetime(change.get('timestamp'))
-                old_value = change.get('oldValue', '').strip()
-                new_value = change.get('newValue', '').strip()
+        if changes:
+            for change in changes:
+                if change.get('field') == 'status':
+                    timestamp = parse_datetime(change.get('timestamp'))
+                    old_value = change.get('oldValue', '').strip()
+                    new_value = change.get('newValue', '').strip()
 
-                if timestamp and old_value and new_value:
-                    status_changes.append({
-                        'time': timestamp,
-                        'from': old_value,
-                        'to': new_value
-                    })
+                    if timestamp and old_value and new_value:
+                        status_changes.append({
+                            'time': timestamp,
+                            'from': old_value,
+                            'to': new_value
+                        })
 
-        # Sort by time
-        status_changes.sort(key=lambda x: x['time'])
+            # Sort by time
+            status_changes.sort(key=lambda x: x['time'])
 
-        # Calculate total time in "In Progress" state
+        # Calculate total time in "In Progress" state (only if we have status changes)
         total_seconds = 0
-        in_progress_start = None
+        if status_changes:
+            in_progress_start = None
+            # Start from creation time if available
+            current_status_state = 'Todo'
 
-        # Start from creation time if available
-        current_status_state = 'Todo'
+            if created_time:
+                # Initialize from first status change
+                first_change = status_changes[0]
+                if first_change['from'] == 'Todo' and first_change['to'] == 'In Progress':
+                    current_status_state = 'In Progress'
+                    in_progress_start = first_change['time']
 
-        if created_time and status_changes:
-            # Initialize from first status change
-            first_change = status_changes[0]
-            if first_change['from'] == 'Todo' and first_change['to'] == 'In Progress':
-                first_change['time']
-                current_status_state = 'In Progress'
-                in_progress_start = first_change['time']
+            # Process all status changes
+            for change in status_changes:
+                change_time = change['time']
+                to_status = change['to']
 
-        # Process all status changes
-        for change in status_changes:
-            change_time = change['time']
-            change['from']
-            to_status = change['to']
+                # If we were In Progress, accumulate time until this change
+                if current_status_state == 'In Progress' and in_progress_start:
+                    elapsed = (change_time - in_progress_start).total_seconds()
+                    if elapsed > 0:
+                        total_seconds += elapsed
 
-            # If we were In Progress, accumulate time until this change
+                # Update current state
+                current_status_state = to_status
+
+                # Track when entering In Progress
+                if to_status == 'In Progress':
+                    in_progress_start = change_time
+                else:
+                    in_progress_start = None
+
+            # Handle final state if still In Progress (shouldn't happen for completed tasks)
+            # or if task completed while In Progress
             if current_status_state == 'In Progress' and in_progress_start:
-                elapsed = (change_time - in_progress_start).total_seconds()
-                if elapsed > 0:
-                    total_seconds += elapsed
+                completed_time = parse_datetime(task.get('completedAt')) or parse_datetime(task.get('lastModified'))
+                if completed_time and completed_time > in_progress_start:
+                    elapsed = (completed_time - in_progress_start).total_seconds()
+                    if elapsed > 0:
+                        total_seconds += elapsed
 
-            # Update current state
-            current_status_state = to_status
+            # Convert to hours if we calculated any time
+            if total_seconds > 0:
+                hours = total_seconds / 3600.0
+                # Cap at reasonable maximum (e.g., 100 hours per task)
+                return min(hours, 100.0), 'status_changes'
 
-            # Track when entering In Progress
-            if to_status == 'In Progress':
-                in_progress_start = change_time
+        # Fallback to comment-based estimation if status changes unavailable
+        if comments:
+            comment_estimate = self._estimate_work_time_from_comments(task, comments)
+            if comment_estimate:
+                return comment_estimate['estimated_hours'], comment_estimate['method']
+
+        return None, None
+
+    def _estimate_work_time_from_comments(
+        self, 
+        task: dict, 
+        comments: list[dict]
+    ) -> Optional[dict[str, Any]]:
+        """
+        Estimate work time from comment timestamps as fallback when status changes unavailable.
+
+        Uses heuristic-based estimation:
+        - Single comment: Estimates based on comment type (research=1h, result=0.5h, other=0.3h)
+        - Multiple comments: Estimates based on comment span and activity density
+
+        Args:
+            task: Task dictionary
+            comments: List of comment dictionaries for this task
+
+        Returns:
+            Dictionary with 'estimated_hours' and 'method', or None if cannot estimate
+        """
+        from datetime import datetime
+        import pytz
+
+        def parse_datetime(dt_str):
+            if not dt_str:
+                return None
+            try:
+                dt = datetime.fromisoformat(dt_str.replace('Z', '+00:00'))
+                if dt.tzinfo is None:
+                    dt = pytz.UTC.localize(dt)
+                else:
+                    dt = dt.astimezone(pytz.UTC)
+                return dt
+            except Exception:
+                return None
+
+        if not comments:
+            return None
+
+        # Get all comment timestamps
+        comment_times = []
+        for comment in comments:
+            for ts_field in ['timestamp', 'createdAt', 'created', 'time']:
+                ts = parse_datetime(comment.get(ts_field))
+                if ts:
+                    comment_times.append((ts, comment.get('type', 'unknown')))
+                    break
+
+        if not comment_times:
+            return None
+
+        comment_times.sort(key=lambda x: x[0])
+        created = parse_datetime(task.get('created'))
+
+        if len(comment_times) >= 2:
+            # Multiple comments - calculate span and estimate work
+            first_comment = comment_times[0][0]
+            last_comment = comment_times[-1][0]
+            total_span = (last_comment - first_comment).total_seconds() / 3600.0
+
+            # Heuristic: Estimate actual work time based on comment activity
+            # Assumes 15-50% of comment span is actual active work (concentrated periods)
+            if total_span > 24:
+                # Long span - likely intermittent work (15% active)
+                estimated_hours = max(total_span * 0.15, len(comments) * 0.5)
+            elif total_span > 2:
+                # Medium span - more concentrated (25% active)
+                estimated_hours = max(total_span * 0.25, len(comments) * 0.3)
             else:
-                in_progress_start = None
+                # Short span - highly concentrated (50% active)
+                estimated_hours = max(total_span * 0.5, len(comments) * 0.2)
 
-        # Handle final state if still In Progress (shouldn't happen for completed tasks)
-        # or if task completed while In Progress
-        if current_status_state == 'In Progress' and in_progress_start:
-            completed_time = parse_datetime(task.get('completedAt')) or parse_datetime(task.get('lastModified'))
-            if completed_time and completed_time > in_progress_start:
-                elapsed = (completed_time - in_progress_start).total_seconds()
-                if elapsed > 0:
-                    total_seconds += elapsed
+            time_to_first = (first_comment - created).total_seconds() / 3600.0 if created else None
 
-        # Convert to hours
-        if total_seconds > 0:
-            hours = total_seconds / 3600.0
-            # Cap at reasonable maximum (e.g., 100 hours per task)
-            return min(hours, 100.0)
+            return {
+                'estimated_hours': round(estimated_hours, 1),
+                'method': 'comment_timestamps_multi',
+                'comment_span_hours': round(total_span, 1),
+                'num_comments': len(comments),
+                'first_comment': first_comment,
+                'last_comment': last_comment,
+                'time_to_first_comment_hours': round(time_to_first, 1) if time_to_first else None
+            }
+        else:
+            # Single comment - estimate minimum work time based on comment type
+            comment_type = comment_times[0][1] if comment_times else 'unknown'
+            first_comment_time = comment_times[0][0]
 
-        return None
+            # Estimate based on comment type
+            if 'research' in comment_type.lower():
+                estimated_hours = 1.0  # Research typically takes at least an hour
+            elif 'result' in comment_type.lower():
+                estimated_hours = 0.5  # Result comments are usually quick
+            else:
+                estimated_hours = 0.3  # Other comments assume some work was done
+
+            time_to_first = (first_comment_time - created).total_seconds() / 3600.0 if created else None
+
+            return {
+                'estimated_hours': estimated_hours,
+                'method': 'comment_timestamps_single',
+                'comment_span_hours': 0,
+                'num_comments': 1,
+                'first_comment': first_comment_time,
+                'last_comment': first_comment_time,
+                'time_to_first_comment_hours': round(time_to_first, 1) if time_to_first else None,
+                'comment_type': comment_type
+            }
 
     def load_learning_data(self) -> Optional[Dict[str, Any]]:
         """Load learned patterns from cache file."""

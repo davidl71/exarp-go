@@ -322,6 +322,11 @@ def update_todos_mcp(
     Automatically normalizes status values to Title Case (Todo, In Progress, Done, etc.)
     to ensure consistency across all updates.
     
+    Automatically calculates and sets actualHours when tasks are marked as Done/Completed
+    if not already set, using status change history to calculate active work time (excluding idle time).
+    Falls back to comment-based estimation when status changes are unavailable.
+    This enables the estimation learning system to improve over time.
+    
     Args:
         updates: List of update dictionaries with 'id' and fields to update
         project_root: Project root path (defaults to find_project_root)
@@ -329,18 +334,64 @@ def update_todos_mcp(
     Returns:
         True if successful, False otherwise
     """
+    from datetime import datetime
     from .project_root import find_project_root
     from .todo2_utils import normalize_status_to_title_case
     
     if project_root is None:
         project_root = find_project_root()
     
+    # Load current tasks to check status changes and calculate actualHours
+    state = _load_todo2_file(project_root)
+    task_dict = {}
+    if state:
+        task_dict = {t.get('id'): t for t in state.get('todos', [])}
+    
     # Normalize status values to Title Case before updating
+    # Also calculate actualHours for tasks being marked as Done/Completed
     normalized_updates = []
     for update in updates:
         normalized_update = update.copy()
         if 'status' in normalized_update:
-            normalized_update['status'] = normalize_status_to_title_case(normalized_update['status'])
+            old_status = None
+            new_status = normalize_status_to_title_case(normalized_update['status'])
+            
+            # Check if status is changing to Done/Completed
+            task_id = normalized_update.get('id')
+            if task_id and task_id in task_dict:
+                old_task = task_dict[task_id]
+                old_status = old_task.get('status', '')
+                
+                # If marking as Done/Completed and actualHours not already set
+                if new_status.lower() in ['done', 'completed'] and old_status.lower() not in ['done', 'completed']:
+                    # Check if actualHours already set
+                    if not old_task.get('actualHours'):
+                        # Calculate actualHours from status changes, with fallback to comment-based estimation
+                        try:
+                            from ..tools.estimation_learner import EstimationLearner
+                            learner = EstimationLearner(project_root)
+                            
+                            # Load comments from state file for comment-based fallback
+                            comments = []
+                            if state and 'comments' in state:
+                                comments = [c for c in state.get('comments', []) if c.get('todoId') == task_id]
+                            
+                            actual_hours, method = learner._calculate_active_work_time(old_task, comments)
+                            
+                            if actual_hours and actual_hours > 0:
+                                normalized_update['actualHours'] = round(actual_hours, 1)
+                                logger.info(
+                                    f"Auto-calculated actualHours: {actual_hours:.1f}h for task {task_id} "
+                                    f"(method: {method or 'unknown'})"
+                                )
+                        except Exception as e:
+                            logger.debug(f"Could not calculate actualHours for task {task_id}: {e}")
+                    
+                    # Set completedAt timestamp if not already set
+                    if not old_task.get('completedAt'):
+                        normalized_update['completedAt'] = datetime.utcnow().isoformat() + 'Z'
+            
+            normalized_update['status'] = new_status
         normalized_updates.append(normalized_update)
     
     # Try MCP first
@@ -363,21 +414,39 @@ def update_todos_mcp(
     todos_list = state.get('todos', [])
     task_dict = {t.get('id'): t for t in todos_list}
     
-    # Apply updates
-    for update in updates:
+    # Apply updates (use normalized_updates which already have actualHours calculated)
+    for update in normalized_updates:
         task_id = update.get('id')
         if task_id not in task_dict:
             logger.warning(f"Task {task_id} not found for update")
             continue
         
         task = task_dict[task_id]
-        # Update fields (normalize status if present)
+        
+        # Track status change for history
+        if 'status' in update:
+            old_status = task.get('status', '')
+            new_status = update['status']
+            
+            # Add status change to changes array if status actually changed
+            if old_status != new_status:
+                if 'changes' not in task:
+                    task['changes'] = []
+                
+                task['changes'].append({
+                    'field': 'status',
+                    'oldValue': old_status,
+                    'newValue': new_status,
+                    'timestamp': datetime.utcnow().isoformat() + 'Z'
+                })
+        
+        # Update all fields (including actualHours and completedAt if calculated)
         for key, value in update.items():
             if key != 'id':
-                if key == 'status':
-                    from .todo2_utils import normalize_status_to_title_case
-                    value = normalize_status_to_title_case(value)
                 task[key] = value
+        
+        # Update lastModified
+        task['lastModified'] = datetime.utcnow().isoformat() + 'Z'
     
     # Write back to file
     state['todos'] = list(task_dict.values())

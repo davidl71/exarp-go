@@ -27,13 +27,13 @@ logger = logging.getLogger(__name__)
 class TaskDurationEstimator:
     """Statistical task duration estimator."""
 
-    def __init__(self, project_root: Path | None = None):
+    def __init__(self, project_root: Optional[Path] = None):
         """Initialize estimator with project root."""
         if project_root is None:
             project_root = find_project_root()
         self.project_root = project_root
         self.state_file = project_root / ".todo2" / "state.todo2.json"
-        self._historical_data: list[dict] | None = None
+        self._historical_data: Optional[list[dict]] = None
 
     def load_historical_data(self) -> list[dict]:
         """Load and process historical task data."""
@@ -72,7 +72,34 @@ class TaskDurationEstimator:
                     })
                     continue
 
-                # Calculate duration from timestamps if available
+                # Calculate active work time using EstimationLearner (excludes idle time, uses comment fallback)
+                try:
+                    from .estimation_learner import EstimationLearner
+                    learner = EstimationLearner(self.project_root)
+                    
+                    # Load comments for comment-based fallback
+                    comments = []
+                    if 'comments' in data:
+                        comments = [c for c in data.get('comments', []) if c.get('todoId') == task.get('id')]
+                    
+                    calculated_hours, method = learner._calculate_active_work_time(task, comments)
+                    
+                    if calculated_hours and calculated_hours > 0:
+                        historical.append({
+                            'name': task.get('name', '') or task.get('content', ''),
+                            'details': task.get('details', '') or task.get('long_description', ''),
+                            'tags': task.get('tags', []),
+                            'priority': task.get('priority', 'medium'),
+                            'estimated_hours': task.get('estimatedHours', 0),
+                            'actual_hours': calculated_hours,
+                            'created': task.get('created'),
+                            'completed_at': task.get('completedAt'),
+                        })
+                        continue
+                except Exception as e:
+                    logger.debug(f"Could not calculate active work time for task {task.get('id')}: {e}")
+
+                # Last resort: Calculate duration from timestamps if available (includes idle time - less accurate)
                 created_str = task.get('created')
                 completed_str = task.get('completedAt') or task.get('lastModified')
 
@@ -83,6 +110,7 @@ class TaskDurationEstimator:
 
                         if created and completed and completed > created:
                             # Calculate hours (minimum 0.5 hours)
+                            # Note: This includes idle time, so it's less accurate than status/comment-based methods
                             duration_hours = max(0.5, (completed - created).total_seconds() / 3600)
                             historical.append({
                                 'name': task.get('name', '') or task.get('content', ''),
@@ -106,7 +134,7 @@ class TaskDurationEstimator:
             logger.error(f"Failed to load historical data: {e}", exc_info=True)
             return []
 
-    def _parse_datetime(self, dt_str: str) -> datetime | None:
+    def _parse_datetime(self, dt_str: str) -> Optional[datetime]:
         """Parse datetime string to datetime object."""
         if not dt_str:
             return None
@@ -360,7 +388,7 @@ def estimate_task_duration(
     tags: Optional[List[str]] = None,
     priority: str = "medium",
     use_historical: bool = True,
-    project_root: Path | None = None
+    project_root: Optional[Path] = None
 ) -> float:
     """
     Convenience function for simple duration estimation.
@@ -378,7 +406,7 @@ def estimate_task_duration_detailed(
     tags: Optional[List[str]] = None,
     priority: str = "medium",
     use_historical: bool = True,
-    project_root: Path | None = None
+    project_root: Optional[Path] = None
 ) -> dict[str, Any]:
     """
     Get detailed duration estimation with confidence and metadata.
