@@ -65,8 +65,8 @@ func Init(projectRoot string) error {
 	// Set connection pool settings
 	// SQLite with WAL mode supports multiple readers concurrently
 	// Allow multiple connections for better performance with concurrent queries
-	db.SetMaxOpenConns(10) // Allow multiple readers (WAL mode supports this)
-	db.SetMaxIdleConns(5)  // Keep some idle connections ready
+	db.SetMaxOpenConns(10)   // Allow multiple readers (WAL mode supports this)
+	db.SetMaxIdleConns(5)    // Keep some idle connections ready
 	db.SetConnMaxLifetime(0) // Connections don't expire
 
 	DB = db

@@ -47,9 +47,9 @@ func handleAllTasks(ctx context.Context, uri string) ([]byte, string, error) {
 	}
 
 	result := map[string]interface{}{
-		"tasks":    formatTasksForResource(tasksToReturn),
-		"total":    len(allTasks),
-		"returned": len(tasksToReturn),
+		"tasks":     formatTasksForResource(tasksToReturn),
+		"total":     len(allTasks),
+		"returned":  len(tasksToReturn),
 		"timestamp": time.Now().Format(time.RFC3339),
 	}
 
@@ -479,4 +479,3 @@ func formatTaskForResource(task *database.Todo2Task) map[string]interface{} {
 		"metadata":         task.Metadata,
 	}
 }
-

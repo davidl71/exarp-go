@@ -165,10 +165,10 @@ func handleTaskAnalysisDependencies(ctx context.Context, params map[string]inter
 
 	// Detect cycles
 	cycles := DetectCycles(tg)
-	
+
 	// Find missing dependencies
 	missing := findMissingDependencies(tasks, tg)
-	
+
 	// Build legacy graph format for backward compatibility
 	graph := buildLegacyGraphFormat(tg)
 
@@ -176,24 +176,24 @@ func handleTaskAnalysisDependencies(ctx context.Context, params map[string]inter
 	var criticalPath []string
 	var criticalPathDetails []map[string]interface{}
 	maxLevel := 0
-	
+
 	hasCycles, err := HasCycles(tg)
 	if err == nil && !hasCycles {
 		// Find critical path
 		path, err := FindCriticalPath(tg)
 		if err == nil {
 			criticalPath = path
-			
+
 			// Build detailed path information
 			for _, taskID := range path {
 				for _, task := range tasks {
 					if task.ID == taskID {
 						criticalPathDetails = append(criticalPathDetails, map[string]interface{}{
-							"id":               task.ID,
-							"content":          task.Content,
-							"priority":         task.Priority,
-							"status":           task.Status,
-							"dependencies":     task.Dependencies,
+							"id":                 task.ID,
+							"content":            task.Content,
+							"priority":           task.Priority,
+							"status":             task.Status,
+							"dependencies":       task.Dependencies,
 							"dependencies_count": len(task.Dependencies),
 						})
 						break
@@ -201,7 +201,7 @@ func handleTaskAnalysisDependencies(ctx context.Context, params map[string]inter
 				}
 			}
 		}
-		
+
 		// Get max dependency level
 		levels := GetTaskLevels(tg)
 		for _, level := range levels {
@@ -225,7 +225,7 @@ func handleTaskAnalysisDependencies(ctx context.Context, params map[string]inter
 		"missing_dependencies":  missing,
 		"recommendations":       buildDependencyRecommendations(graph, cycles, missing),
 	}
-	
+
 	// Add critical path information if available
 	if len(criticalPath) > 0 {
 		result["critical_path"] = criticalPath
@@ -317,7 +317,7 @@ func findDuplicateTasks(tasks []Todo2Task, threshold float64) [][]string {
 	if len(tasks) < 100 {
 		return findDuplicateTasksSequential(tasks, threshold)
 	}
-	
+
 	// For larger datasets, use parallel processing
 	return findDuplicateTasksParallel(tasks, threshold)
 }
@@ -658,12 +658,12 @@ type DependencyGraph map[string][]string
 // buildLegacyGraphFormat converts TaskGraph to legacy map format for backward compatibility
 func buildLegacyGraphFormat(tg *TaskGraph) DependencyGraph {
 	graph := make(DependencyGraph)
-	
+
 	nodes := tg.Graph.Nodes()
 	for nodes.Next() {
 		nodeID := nodes.Node().ID()
 		taskID := tg.NodeIDMap[nodeID]
-		
+
 		deps := []string{}
 		fromNodes := tg.Graph.To(nodeID)
 		for fromNodes.Next() {
@@ -672,10 +672,10 @@ func buildLegacyGraphFormat(tg *TaskGraph) DependencyGraph {
 				deps = append(deps, depTaskID)
 			}
 		}
-		
+
 		graph[taskID] = deps
 	}
-	
+
 	return graph
 }
 
@@ -733,7 +733,7 @@ func formatDependencyAnalysisText(result map[string]interface{}) string {
 	if total, ok := result["total_tasks"].(int); ok {
 		sb.WriteString(fmt.Sprintf("Total Tasks: %d\n", total))
 	}
-	
+
 	if maxLevel, ok := result["max_dependency_level"].(int); ok {
 		sb.WriteString(fmt.Sprintf("Max Dependency Level: %d\n", maxLevel))
 	}
@@ -743,18 +743,18 @@ func formatDependencyAnalysisText(result map[string]interface{}) string {
 	if criticalPath, ok := result["critical_path"].([]string); ok && len(criticalPath) > 0 {
 		sb.WriteString("Critical Path (Longest Dependency Chain):\n")
 		sb.WriteString(fmt.Sprintf("  Length: %d tasks\n\n", len(criticalPath)))
-		
+
 		if details, ok := result["critical_path_details"].([]map[string]interface{}); ok {
 			for i, detail := range details {
 				taskID, _ := detail["id"].(string)
 				content, _ := detail["content"].(string)
-				
+
 				sb.WriteString(fmt.Sprintf("  %d. %s", i+1, taskID))
 				if content != "" {
 					sb.WriteString(fmt.Sprintf(": %s", content))
 				}
 				sb.WriteString("\n")
-				
+
 				if deps, ok := detail["dependencies"].([]interface{}); ok && len(deps) > 0 {
 					depStrs := make([]string, len(deps))
 					for j, d := range deps {
@@ -766,7 +766,7 @@ func formatDependencyAnalysisText(result map[string]interface{}) string {
 						sb.WriteString(fmt.Sprintf("     Depends on: %s\n", strings.Join(depStrs, ", ")))
 					}
 				}
-				
+
 				if i < len(details)-1 {
 					sb.WriteString("     ↓\n")
 				}

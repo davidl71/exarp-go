@@ -217,14 +217,14 @@ func formatSecurityScanResults(vulns []Vulnerability, ecosystem string) string {
 
 // DependabotAlert represents a Dependabot alert
 type DependabotAlert struct {
-	Package     string `json:"package"`
-	Severity    string `json:"severity"`
-	CVE         string `json:"cve"`
-	State       string `json:"state"`
-	Ecosystem   string `json:"ecosystem"`
-	Description string `json:"description"`
+	Package      string `json:"package"`
+	Severity     string `json:"severity"`
+	CVE          string `json:"cve"`
+	State        string `json:"state"`
+	Ecosystem    string `json:"ecosystem"`
+	Description  string `json:"description"`
 	FixAvailable bool   `json:"fix_available"`
-	FixVersion  string `json:"fixed_version,omitempty"`
+	FixVersion   string `json:"fixed_version,omitempty"`
 }
 
 // fetchDependabotAlerts fetches Dependabot alerts using gh CLI
@@ -311,4 +311,3 @@ func formatDependabotAlerts(alerts []DependabotAlert) string {
 
 	return sb.String()
 }
-

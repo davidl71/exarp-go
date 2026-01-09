@@ -51,4 +51,3 @@ func saveTodo2TasksToDB(tasks []Todo2Task) error {
 	}
 	return nil
 }
-

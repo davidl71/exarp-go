@@ -84,10 +84,10 @@ func quickselect(arr []float64, k int) float64 {
 	if k >= len(arr) {
 		k = len(arr) - 1
 	}
-	
+
 	// Partition around pivot
 	pivotIdx := partition(arr)
-	
+
 	if k == pivotIdx {
 		return arr[pivotIdx]
 	} else if k < pivotIdx {
@@ -104,18 +104,18 @@ func partition(arr []float64) int {
 	if n <= 1 {
 		return 0
 	}
-	
+
 	// Use last element as pivot
 	pivot := arr[n-1]
 	i := 0
-	
+
 	for j := 0; j < n-1; j++ {
 		if arr[j] <= pivot {
 			arr[i], arr[j] = arr[j], arr[i]
 			i++
 		}
 	}
-	
+
 	// Place pivot in correct position
 	arr[i], arr[n-1] = arr[n-1], arr[i]
 	return i
@@ -168,4 +168,3 @@ func Round(value float64, decimals int) float64 {
 	multiplier := math.Pow(10, float64(decimals))
 	return math.Round(value*multiplier) / multiplier
 }
-

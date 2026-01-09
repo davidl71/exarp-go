@@ -301,4 +301,3 @@ func GetCommentsWithTypeFilter(ctx context.Context, taskID string, commentType s
 
 	return comments, err
 }
-

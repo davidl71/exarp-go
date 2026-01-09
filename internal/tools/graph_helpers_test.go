@@ -8,7 +8,7 @@ import (
 // generateTestTasks creates test tasks with dependencies
 func generateTestTasks(count int, depsPerTask int) []Todo2Task {
 	tasks := make([]Todo2Task, count)
-	
+
 	for i := 0; i < count; i++ {
 		taskID := fmt.Sprintf("T-%d", i+1)
 		tasks[i] = Todo2Task{
@@ -20,7 +20,7 @@ func generateTestTasks(count int, depsPerTask int) []Todo2Task {
 			Tags:            []string{"test"},
 			Dependencies:    []string{},
 		}
-		
+
 		// Add dependencies (simple linear or tree structure)
 		if depsPerTask > 0 && i > 0 {
 			deps := []string{}
@@ -35,18 +35,18 @@ func generateTestTasks(count int, depsPerTask int) []Todo2Task {
 			tasks[i].Dependencies = deps
 		}
 	}
-	
+
 	return tasks
 }
 
 // generateCyclicTasks creates tasks with cycles
 func generateCyclicTasks(count int) []Todo2Task {
 	tasks := make([]Todo2Task, count)
-	
+
 	for i := 0; i < count; i++ {
 		taskID := fmt.Sprintf("T-%d", i+1)
 		deps := []string{}
-		
+
 		// Create cycle: T-1 -> T-2 -> ... -> T-N -> T-1
 		if i == 0 {
 			// Last task depends on first
@@ -54,7 +54,7 @@ func generateCyclicTasks(count int) []Todo2Task {
 		} else {
 			deps = append(deps, fmt.Sprintf("T-%d", i))
 		}
-		
+
 		tasks[i] = Todo2Task{
 			ID:           taskID,
 			Content:      "Cyclic Task " + taskID,
@@ -63,7 +63,7 @@ func generateCyclicTasks(count int) []Todo2Task {
 			Dependencies: deps,
 		}
 	}
-	
+
 	return tasks
 }
 
@@ -94,14 +94,14 @@ func TestBuildTaskGraph(t *testing.T) {
 			want:  50,
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			tg, err := BuildTaskGraph(tt.tasks)
 			if err != nil {
 				t.Fatalf("BuildTaskGraph() error = %v", err)
 			}
-			
+
 			if got := tg.Graph.Nodes().Len(); got != tt.want {
 				t.Errorf("BuildTaskGraph() node count = %v, want %v", got, tt.want)
 			}
@@ -132,14 +132,14 @@ func TestHasCycles(t *testing.T) {
 			want:  false,
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			tg, err := BuildTaskGraph(tt.tasks)
 			if err != nil {
 				t.Fatalf("BuildTaskGraph() error = %v", err)
 			}
-			
+
 			got, err := HasCycles(tg)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("HasCycles() error = %v, wantErr %v", err, tt.wantErr)
@@ -165,27 +165,27 @@ func TestDetectCycles(t *testing.T) {
 			wantCycles: false,
 		},
 		{
-			name:       "cyclic graph",
-			tasks:      generateCyclicTasks(5),
-			wantCycles: true,
+			name:        "cyclic graph",
+			tasks:       generateCyclicTasks(5),
+			wantCycles:  true,
 			minCycleLen: 1,
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			tg, err := BuildTaskGraph(tt.tasks)
 			if err != nil {
 				t.Fatalf("BuildTaskGraph() error = %v", err)
 			}
-			
+
 			cycles := DetectCycles(tg)
 			hasCycles := len(cycles) > 0
-			
+
 			if hasCycles != tt.wantCycles {
 				t.Errorf("DetectCycles() hasCycles = %v, want %v", hasCycles, tt.wantCycles)
 			}
-			
+
 			if tt.wantCycles && len(cycles) < tt.minCycleLen {
 				t.Errorf("DetectCycles() cycle count = %v, want at least %v", len(cycles), tt.minCycleLen)
 			}
@@ -209,20 +209,20 @@ func TestTopoSortTasks(t *testing.T) {
 			wantErr: true,
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			tg, err := BuildTaskGraph(tt.tasks)
 			if err != nil {
 				t.Fatalf("BuildTaskGraph() error = %v", err)
 			}
-			
+
 			sorted, err := TopoSortTasks(tg)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("TopoSortTasks() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			
+
 			if !tt.wantErr && len(sorted) != len(tt.tasks) {
 				t.Errorf("TopoSortTasks() sorted length = %v, want %v", len(sorted), len(tt.tasks))
 			}
@@ -236,13 +236,13 @@ func TestGetTaskLevels(t *testing.T) {
 	if err != nil {
 		t.Fatalf("BuildTaskGraph() error = %v", err)
 	}
-	
+
 	levels := GetTaskLevels(tg)
-	
+
 	if len(levels) != len(tasks) {
 		t.Errorf("GetTaskLevels() level count = %v, want %v", len(levels), len(tasks))
 	}
-	
+
 	// First task should be at level 0 (no dependencies)
 	if level := levels[tasks[0].ID]; level != 0 {
 		t.Errorf("GetTaskLevels() first task level = %v, want 0", level)
@@ -336,4 +336,3 @@ func BenchmarkFindCriticalPath(b *testing.B) {
 		_, _ = FindCriticalPath(tg)
 	}
 }
-

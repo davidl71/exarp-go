@@ -23,11 +23,11 @@ func (n *TaskNode) ID() int64 {
 
 // TaskGraph wraps a gonum DirectedGraph with task ID mapping
 type TaskGraph struct {
-	Graph      *simple.DirectedGraph
-	TaskIDMap  map[string]int64  // task ID -> node ID
-	NodeIDMap  map[int64]string  // node ID -> task ID
-	NodeMap    map[int64]*TaskNode // node ID -> node
-	nodeIDSeq  int64
+	Graph     *simple.DirectedGraph
+	TaskIDMap map[string]int64    // task ID -> node ID
+	NodeIDMap map[int64]string    // node ID -> task ID
+	NodeMap   map[int64]*TaskNode // node ID -> node
+	nodeIDSeq int64
 }
 
 // NewTaskGraph creates a new task graph
@@ -399,7 +399,7 @@ func getTaskLevelsIterative(tg *TaskGraph) map[string]int {
 	for len(changedNodes) > 0 && iteration < maxIterations {
 		iteration++
 		nextChanged := make(map[string]bool)
-		
+
 		// Only process nodes that changed or depend on changed nodes
 		for taskID := range changedNodes {
 			nodeID, exists := tg.TaskIDMap[taskID]
@@ -422,7 +422,7 @@ func getTaskLevelsIterative(tg *TaskGraph) map[string]int {
 			newLevel := maxDepLevel + 1
 			if newLevel > levels[taskID] {
 				levels[taskID] = newLevel
-				
+
 				// Mark dependent nodes for next iteration
 				toNodes := tg.Graph.From(nodeID)
 				for toNodes.Next() {
@@ -433,7 +433,7 @@ func getTaskLevelsIterative(tg *TaskGraph) map[string]int {
 				}
 			}
 		}
-		
+
 		changedNodes = nextChanged
 	}
 
@@ -448,7 +448,7 @@ func AnalyzeCriticalPath(projectRoot string) (map[string]interface{}, error) {
 	}
 
 	result := map[string]interface{}{
-		"total_tasks":        len(tasks),
+		"total_tasks":       len(tasks),
 		"has_critical_path": false,
 	}
 
@@ -488,11 +488,11 @@ func AnalyzeCriticalPath(projectRoot string) (map[string]interface{}, error) {
 		for _, task := range tasks {
 			if task.ID == taskID {
 				pathDetails = append(pathDetails, map[string]interface{}{
-					"id":                task.ID,
-					"content":           task.Content,
-					"priority":          task.Priority,
-					"status":            task.Status,
-					"dependencies":      task.Dependencies,
+					"id":                 task.ID,
+					"content":            task.Content,
+					"priority":           task.Priority,
+					"status":             task.Status,
+					"dependencies":       task.Dependencies,
 					"dependencies_count": len(task.Dependencies),
 				})
 				break
@@ -520,4 +520,3 @@ func AnalyzeCriticalPath(projectRoot string) (map[string]interface{}, error) {
 
 	return result, nil
 }
-

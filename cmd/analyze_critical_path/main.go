@@ -40,15 +40,15 @@ func printCriticalPathAnalysis(result map[string]interface{}) {
 		if length, ok := result["critical_path_length"].(int); ok {
 			fmt.Printf("Critical Path Length: %d tasks\n", length)
 		}
-		
+
 		if maxLevel, ok := result["max_dependency_level"].(int); ok {
 			fmt.Printf("Max Dependency Level: %d\n", maxLevel)
 		}
-		
+
 		fmt.Println()
 		fmt.Println("Critical Path Chain (Longest Dependency Path):")
 		fmt.Println(strings.Repeat("-", 60))
-		
+
 		if path, ok := result["critical_path"].([]string); ok {
 			if details, ok := result["critical_path_details"].([]map[string]interface{}); ok {
 				for i, detail := range details {
@@ -57,13 +57,13 @@ func printCriticalPathAnalysis(result map[string]interface{}) {
 						content, _ := detail["content"].(string)
 						priority, _ := detail["priority"].(string)
 						status, _ := detail["status"].(string)
-						
+
 						fmt.Printf("\n%d. %s", i+1, taskID)
 						if content != "" {
 							fmt.Printf(": %s", content)
 						}
 						fmt.Println()
-						
+
 						if priority != "" {
 							fmt.Printf("   Priority: %s", priority)
 						}
@@ -76,7 +76,7 @@ func printCriticalPathAnalysis(result map[string]interface{}) {
 							fmt.Printf("Status: %s", status)
 						}
 						fmt.Println()
-						
+
 						if deps, ok := detail["dependencies"].([]interface{}); ok && len(deps) > 0 {
 							depStrs := make([]string, 0, len(deps))
 							for _, d := range deps {
@@ -88,7 +88,7 @@ func printCriticalPathAnalysis(result map[string]interface{}) {
 								fmt.Printf("   Depends on: %s\n", strings.Join(depStrs, ", "))
 							}
 						}
-						
+
 						if i < len(details)-1 {
 							fmt.Println("   ↓")
 						}
@@ -99,12 +99,12 @@ func printCriticalPathAnalysis(result map[string]interface{}) {
 				fmt.Printf("  %s\n", strings.Join(path, " → "))
 			}
 		}
-		
+
 		fmt.Println()
 		fmt.Println(strings.Repeat("-", 60))
 		fmt.Println("\n💡 The critical path shows the longest dependency chain.")
 		fmt.Println("   Tasks on this path determine the minimum project duration.")
-		
+
 	} else {
 		fmt.Println()
 		if hasCycles, ok := result["has_cycles"].(bool); ok && hasCycles {
@@ -128,7 +128,6 @@ func printCriticalPathAnalysis(result map[string]interface{}) {
 			fmt.Println("   Graph may be empty or all tasks are independent")
 		}
 	}
-	
+
 	fmt.Println()
 }
-

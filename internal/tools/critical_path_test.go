@@ -62,7 +62,7 @@ func TestCriticalPathOnRealData(t *testing.T) {
 	fmt.Println(strings.Repeat("=", 62))
 	fmt.Printf("\nTotal Tasks: %d\n", len(tasks))
 	fmt.Printf("Critical Path Length: %d tasks\n", len(criticalPath))
-	
+
 	// Get task levels for context
 	levels := GetTaskLevels(tg)
 	maxLevel := 0
@@ -72,7 +72,7 @@ func TestCriticalPathOnRealData(t *testing.T) {
 		}
 	}
 	fmt.Printf("Max Dependency Level: %d\n", maxLevel)
-	
+
 	fmt.Println("\nCritical Path Chain (Longest Dependency Path):")
 	fmt.Println(strings.Repeat("-", 62))
 	for i, taskID := range criticalPath {
@@ -84,7 +84,7 @@ func TestCriticalPathOnRealData(t *testing.T) {
 					fmt.Printf(": %s", task.Content)
 				}
 				fmt.Println()
-				
+
 				if task.Priority != "" || task.Status != "" {
 					fmt.Printf("   ")
 					if task.Priority != "" {
@@ -98,11 +98,11 @@ func TestCriticalPathOnRealData(t *testing.T) {
 					}
 					fmt.Println()
 				}
-				
+
 				if len(task.Dependencies) > 0 {
 					fmt.Printf("   Depends on: %v\n", task.Dependencies)
 				}
-				
+
 				if level, ok := levels[taskID]; ok {
 					fmt.Printf("   Dependency Level: %d\n", level)
 				}
@@ -121,4 +121,3 @@ func TestCriticalPathOnRealData(t *testing.T) {
 }
 
 // Test uses the exported AnalyzeCriticalPath from graph_helpers.go
-

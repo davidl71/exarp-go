@@ -291,10 +291,10 @@ func validateGoTests(projectRoot, testPath string) (string, error) {
 	}
 
 	result := map[string]interface{}{
-		"valid":        len(issues) == 0,
-		"test_files":   len(testFiles),
-		"issues":       issues,
-		"test_path":    testPath,
+		"valid":      len(issues) == 0,
+		"test_files": len(testFiles),
+		"issues":     issues,
+		"test_path":  testPath,
 	}
 
 	jsonResult, _ := json.MarshalIndent(result, "", "  ")
@@ -307,4 +307,3 @@ func parseFloat(s string) (float64, error) {
 	_, err := fmt.Sscanf(s, "%f", &f)
 	return f, err
 }
-

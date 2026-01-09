@@ -39,12 +39,12 @@ func handleMemories(ctx context.Context, uri string) ([]byte, string, error) {
 	}
 
 	result := map[string]interface{}{
-		"memories":            formatMemoriesForResource(memories),
-		"total":               len(allMemories),
-		"returned":            len(memories),
-		"categories":          categories,
+		"memories":             formatMemoriesForResource(memories),
+		"total":                len(allMemories),
+		"returned":             len(memories),
+		"categories":           categories,
 		"available_categories": tools.MemoryCategories,
-		"timestamp":           time.Now().Format(time.RFC3339),
+		"timestamp":            time.Now().Format(time.RFC3339),
 	}
 
 	jsonData, err := json.Marshal(result)
@@ -180,9 +180,9 @@ func handleRecentMemories(ctx context.Context, uri string) ([]byte, string, erro
 	}
 
 	result := map[string]interface{}{
-		"hours":    24,
-		"memories": formatMemoriesForResource(recent),
-		"total":    len(recent),
+		"hours":     24,
+		"memories":  formatMemoriesForResource(recent),
+		"total":     len(recent),
 		"timestamp": time.Now().Format(time.RFC3339),
 	}
 
@@ -261,4 +261,3 @@ func formatMemoriesForResource(memories []tools.Memory) []map[string]interface{}
 	}
 	return result
 }
-

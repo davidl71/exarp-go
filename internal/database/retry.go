@@ -10,8 +10,8 @@ import (
 
 // SQLite error codes (from sqlite3.h)
 const (
-	SQLITE_BUSY   = 5  // The database file is locked
-	SQLITE_LOCKED = 6  // A table in the database is locked
+	SQLITE_BUSY   = 5 // The database file is locked
+	SQLITE_LOCKED = 6 // A table in the database is locked
 )
 
 // maxRetries is the maximum number of retry attempts for transient errors
@@ -49,11 +49,11 @@ func isTransientError(err error) bool {
 
 // contains is a simple case-insensitive substring check
 func contains(s, substr string) bool {
-	return len(s) >= len(substr) && (s == substr || 
-		(len(s) > len(substr) && 
-			(s[:len(substr)] == substr || 
-			 s[len(s)-len(substr):] == substr ||
-			 indexOf(s, substr) >= 0)))
+	return len(s) >= len(substr) && (s == substr ||
+		(len(s) > len(substr) &&
+			(s[:len(substr)] == substr ||
+				s[len(s)-len(substr):] == substr ||
+				indexOf(s, substr) >= 0)))
 }
 
 // indexOf finds the first occurrence of substr in s (case-insensitive)
@@ -85,7 +85,7 @@ func toLower(s string) string {
 // It retries up to maxRetries times with exponential backoff: 10ms, 20ms, 40ms, 80ms, 160ms
 func retryWithBackoff(ctx context.Context, fn func() error) error {
 	var lastErr error
-	
+
 	for attempt := 0; attempt < maxRetries; attempt++ {
 		// Check context cancellation before each attempt
 		if ctx.Err() != nil {
@@ -111,7 +111,7 @@ func retryWithBackoff(ctx context.Context, fn func() error) error {
 
 		// Calculate exponential backoff: 10ms * 2^attempt
 		backoff := initialBackoff * time.Duration(math.Pow(2, float64(attempt)))
-		
+
 		// Create a timer with context cancellation support
 		timer := time.NewTimer(backoff)
 		select {
@@ -150,4 +150,3 @@ func ensureContext(ctx context.Context) context.Context {
 	}
 	return ctx
 }
-

@@ -45,7 +45,7 @@ func generateDuplicateTestTasks(count int, duplicateRatio float64) []Todo2Task {
 	for i := uniqueCount; i < count; i++ {
 		baseIdx := rand.Intn(len(baseTasks))
 		variation := baseTasks[baseIdx]
-		
+
 		// Add slight variations to create similar but not identical tasks
 		if rand.Float64() > 0.5 {
 			variation = variation + " with enhancements"
@@ -132,8 +132,8 @@ func BenchmarkCalculateSimilarity(b *testing.B) {
 // BenchmarkAnalyzeTags benchmarks tag analysis
 func BenchmarkAnalyzeTags(b *testing.B) {
 	sizes := []struct {
-		name      string
-		taskCount int
+		name        string
+		taskCount   int
 		tagsPerTask int
 	}{
 		{"Small_100", 100, 2},
@@ -180,4 +180,3 @@ func generateTaggedTestTasks(count int, tagsPerTask int) []Todo2Task {
 
 	return tasks
 }
-

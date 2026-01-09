@@ -133,14 +133,14 @@ func handleMemorySave(ctx context.Context, params map[string]interface{}) ([]fra
 	}
 
 	result := map[string]interface{}{
-		"success":     true,
-		"method":      "native_go",
-		"memory_id":   memory.ID,
-		"title":       memory.Title,
-		"category":    memory.Category,
+		"success":      true,
+		"method":       "native_go",
+		"memory_id":    memory.ID,
+		"title":        memory.Title,
+		"category":     memory.Category,
 		"linked_tasks": memory.LinkedTasks,
-		"created_at":  memory.CreatedAt,
-		"message":     fmt.Sprintf("✅ Memory saved: %s", title),
+		"created_at":   memory.CreatedAt,
+		"message":      fmt.Sprintf("✅ Memory saved: %s", title),
 	}
 
 	output, _ := json.MarshalIndent(result, "", "  ")
@@ -186,11 +186,11 @@ func handleMemoryRecall(ctx context.Context, params map[string]interface{}) ([]f
 	// (include_related logic would require task dependency analysis)
 
 	result := map[string]interface{}{
-		"success":     true,
-		"method":      "native_go",
-		"task_id":     taskID,
-		"memories":    formatMemories(related),
-		"count":       len(related),
+		"success":         true,
+		"method":          "native_go",
+		"task_id":         taskID,
+		"memories":        formatMemories(related),
+		"count":           len(related),
 		"include_related": includeRelated,
 	}
 
@@ -230,8 +230,8 @@ func handleMemorySearch(ctx context.Context, params map[string]interface{}) ([]f
 	// Basic text search (semantic search would use Python bridge)
 	queryLower := strings.ToLower(query)
 	scored := []struct {
-		score   int
-		memory  Memory
+		score  int
+		memory Memory
 	}{}
 
 	for _, m := range memories {
@@ -264,8 +264,8 @@ func handleMemorySearch(ctx context.Context, params map[string]interface{}) ([]f
 
 		if score > 0 {
 			scored = append(scored, struct {
-				score   int
-				memory  Memory
+				score  int
+				memory Memory
 			}{score: score, memory: m})
 		}
 	}
@@ -349,12 +349,12 @@ func handleMemoryList(ctx context.Context, params map[string]interface{}) ([]fra
 	}
 
 	result := map[string]interface{}{
-		"success":             true,
-		"method":              "native_go",
-		"memories":            formatMemories(memories),
-		"total":               len(allMemories),
-		"returned":            len(memories),
-		"categories":          categories,
+		"success":              true,
+		"method":               "native_go",
+		"memories":             formatMemories(memories),
+		"total":                len(allMemories),
+		"returned":             len(memories),
+		"categories":           categories,
 		"available_categories": MemoryCategories,
 	}
 
@@ -475,4 +475,3 @@ func generateUUID() (string, error) {
 		hex.EncodeToString(b[8:10]),
 		hex.EncodeToString(b[10:16])), nil
 }
-

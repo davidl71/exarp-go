@@ -53,7 +53,7 @@ func TestCreateTask(t *testing.T) {
 	}
 }
 
-func TestGetTask( t *testing.T) {
+func TestGetTask(t *testing.T) {
 	// Setup
 	tmpDir := t.TempDir()
 	err := Init(tmpDir)
@@ -89,7 +89,7 @@ func TestGetTask( t *testing.T) {
 	}
 }
 
-func TestUpdateTask( t *testing.T) {
+func TestUpdateTask(t *testing.T) {
 	// Setup
 	tmpDir := t.TempDir()
 	err := Init(tmpDir)
@@ -137,7 +137,7 @@ func TestUpdateTask( t *testing.T) {
 	}
 }
 
-func TestDeleteTask( t *testing.T) {
+func TestDeleteTask(t *testing.T) {
 	// Setup
 	tmpDir := t.TempDir()
 	err := Init(tmpDir)
@@ -170,7 +170,7 @@ func TestDeleteTask( t *testing.T) {
 	}
 }
 
-func TestListTasks( t *testing.T) {
+func TestListTasks(t *testing.T) {
 	// Setup
 	tmpDir := t.TempDir()
 	err := Init(tmpDir)
@@ -219,7 +219,7 @@ func TestListTasks( t *testing.T) {
 	}
 }
 
-func TestGetTasksByStatus( t *testing.T) {
+func TestGetTasksByStatus(t *testing.T) {
 	// Setup
 	tmpDir := t.TempDir()
 	err := Init(tmpDir)
@@ -302,7 +302,7 @@ func TestGetDependencies(t *testing.T) {
 	}
 }
 
-func TestGetTasksByTag( t *testing.T) {
+func TestGetTasksByTag(t *testing.T) {
 	// Setup
 	tmpDir := t.TempDir()
 	err := Init(tmpDir)
@@ -371,4 +371,3 @@ func TestTaskWithMetadata(t *testing.T) {
 		t.Errorf("Expected metadata['custom'] = 'value', got %v", retrieved.Metadata["custom"])
 	}
 }
-

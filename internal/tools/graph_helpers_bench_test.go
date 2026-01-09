@@ -7,10 +7,10 @@ import (
 // BenchmarkGetTaskLevelsIterative benchmarks getTaskLevelsIterative with various graph sizes
 func BenchmarkGetTaskLevelsIterative(b *testing.B) {
 	sizes := []struct {
-		name      string
-		taskCount int
+		name        string
+		taskCount   int
 		depsPerTask int
-		cyclic    bool
+		cyclic      bool
 	}{
 		{"Small_Acyclic_10", 10, 1, false},
 		{"Small_Cyclic_10", 10, 1, true},
@@ -57,10 +57,10 @@ func BenchmarkGetTaskLevelsIterative(b *testing.B) {
 // BenchmarkGetTaskLevelsOptimized benchmarks the optimized GetTaskLevels (uses topo sort for acyclic)
 func BenchmarkGetTaskLevelsOptimized(b *testing.B) {
 	sizes := []struct {
-		name       string
-		taskCount  int
+		name        string
+		taskCount   int
 		depsPerTask int
-		cyclic     bool
+		cyclic      bool
 	}{
 		{"Small_Acyclic_10", 10, 1, false},
 		{"Small_Cyclic_10", 10, 1, true},
@@ -99,8 +99,8 @@ func BenchmarkGetTaskLevelsOptimized(b *testing.B) {
 // BenchmarkBuildTaskGraph benchmarks graph construction
 func BenchmarkBuildTaskGraph(b *testing.B) {
 	sizes := []struct {
-		name       string
-		taskCount  int
+		name        string
+		taskCount   int
 		depsPerTask int
 	}{
 		{"Small_10", 10, 1},
@@ -122,4 +122,3 @@ func BenchmarkBuildTaskGraph(b *testing.B) {
 		})
 	}
 }
-

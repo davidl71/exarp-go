@@ -278,4 +278,3 @@ func findProjectRoot() (string, error) {
 
 	return "", fmt.Errorf("project root not found (no .todo2 directory)")
 }
-

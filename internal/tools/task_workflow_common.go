@@ -345,9 +345,9 @@ func handleTaskWorkflowSync(ctx context.Context, params map[string]interface{}) 
 	}
 
 	result := map[string]interface{}{
-		"success":     true,
-		"method":      "native_go",
-		"dry_run":     dryRun,
+		"success":      true,
+		"method":       "native_go",
+		"dry_run":      dryRun,
 		"sync_results": syncResults,
 	}
 
@@ -535,11 +535,11 @@ func handleTaskWorkflowCleanup(ctx context.Context, params map[string]interface{
 
 		if dryRun {
 			result := map[string]interface{}{
-				"success":        true,
-				"method":         "database",
-				"dry_run":        true,
-				"stale_count":    len(staleTasks),
-				"stale_tasks":    formatStaleTasksFromPtrs(staleTasks),
+				"success":         true,
+				"method":          "database",
+				"dry_run":         true,
+				"stale_count":     len(staleTasks),
+				"stale_tasks":     formatStaleTasksFromPtrs(staleTasks),
 				"threshold_hours": staleThresholdHours,
 			}
 
@@ -624,11 +624,11 @@ func handleTaskWorkflowCleanup(ctx context.Context, params map[string]interface{
 
 	if dryRun {
 		result := map[string]interface{}{
-			"success":        true,
-			"method":         "file",
-			"dry_run":        true,
-			"stale_count":    len(staleTasks),
-			"stale_tasks":    formatStaleTasks(staleTasks),
+			"success":         true,
+			"method":          "file",
+			"dry_run":         true,
+			"stale_count":     len(staleTasks),
+			"stale_tasks":     formatStaleTasks(staleTasks),
 			"threshold_hours": staleThresholdHours,
 		}
 
@@ -873,13 +873,13 @@ func handleTaskWorkflowCreate(ctx context.Context, params map[string]interface{}
 		"success": true,
 		"method":  "native_go",
 		"task": map[string]interface{}{
-			"id":              task.ID,
-			"name":            task.Content,
+			"id":               task.ID,
+			"name":             task.Content,
 			"long_description": task.LongDescription,
-			"status":          task.Status,
-			"priority":        task.Priority,
-			"tags":            task.Tags,
-			"dependencies":   task.Dependencies,
+			"status":           task.Status,
+			"priority":         task.Priority,
+			"tags":             task.Tags,
+			"dependencies":     task.Dependencies,
 		},
 	}
 

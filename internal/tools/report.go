@@ -146,10 +146,10 @@ func aggregateProjectData(ctx context.Context, projectRoot string) (map[string]i
 		if err == nil {
 			// Calculate component scores using helper functions
 			scores := map[string]float64{
-				"security":     calculateSecurityScore(scorecard),
-				"testing":      calculateTestingScore(scorecard),
+				"security":      calculateSecurityScore(scorecard),
+				"testing":       calculateTestingScore(scorecard),
 				"documentation": calculateDocumentationScore(scorecard),
-				"completion":   calculateCompletionScore(scorecard),
+				"completion":    calculateCompletionScore(scorecard),
 			}
 			// Alignment score would need to be calculated separately
 			scores["alignment"] = 50.0 // Default, could calculate from tasks
@@ -252,15 +252,15 @@ func getCodebaseMetrics(projectRoot string) (map[string]interface{}, error) {
 	})
 
 	metrics := map[string]interface{}{
-		"go_files":      goFiles,
-		"go_lines":      0, // Could count lines if needed
-		"python_files":  pythonFiles,
-		"python_lines":  0, // Could count lines if needed
-		"total_files":   totalFiles,
-		"total_lines":   0, // Could count lines if needed
-		"tools":         30, // From registry
-		"prompts":       19, // From templates.go
-		"resources":     11, // From resources registry
+		"go_files":     goFiles,
+		"go_lines":     0, // Could count lines if needed
+		"python_files": pythonFiles,
+		"python_lines": 0, // Could count lines if needed
+		"total_files":  totalFiles,
+		"total_lines":  0,  // Could count lines if needed
+		"tools":        30, // From registry
+		"prompts":      19, // From templates.go
+		"resources":    11, // From resources registry
 	}
 
 	// Count tools, prompts, resources from registry
@@ -307,7 +307,7 @@ func getTaskMetrics(projectRoot string) (map[string]interface{}, error) {
 		"total":           len(tasks),
 		"pending":         pending,
 		"completed":       completed,
-		"completion_rate":  completionRate,
+		"completion_rate": completionRate,
 		"remaining_hours": totalHours,
 	}, nil
 }
@@ -316,29 +316,29 @@ func getTaskMetrics(projectRoot string) (map[string]interface{}, error) {
 func getProjectPhases() map[string]interface{} {
 	return map[string]interface{}{
 		"phase_1": map[string]interface{}{
-			"name":      "Foundation Tools",
-			"status":    "complete",
-			"progress":  100,
+			"name":     "Foundation Tools",
+			"status":   "complete",
+			"progress": 100,
 		},
 		"phase_2": map[string]interface{}{
-			"name":      "Medium Complexity Tools",
-			"status":    "in_progress",
-			"progress":  44,
+			"name":     "Medium Complexity Tools",
+			"status":   "in_progress",
+			"progress": 44,
 		},
 		"phase_3": map[string]interface{}{
-			"name":      "Complex Tools",
-			"status":    "complete",
-			"progress":  100,
+			"name":     "Complex Tools",
+			"status":   "complete",
+			"progress": 100,
 		},
 		"phase_4": map[string]interface{}{
-			"name":      "Resources",
-			"status":    "complete",
-			"progress":  100,
+			"name":     "Resources",
+			"status":   "complete",
+			"progress": 100,
 		},
 		"phase_5": map[string]interface{}{
-			"name":      "Prompts",
-			"status":    "complete",
-			"progress":  100,
+			"name":     "Prompts",
+			"status":   "complete",
+			"progress": 100,
 		},
 	}
 }
@@ -350,16 +350,16 @@ func getRisksAndBlockers(projectRoot string) ([]map[string]interface{}, error) {
 	// Check for incomplete tasks with high priority
 	tasks, err := LoadTodo2Tasks(projectRoot)
 	if err == nil {
-			for _, task := range tasks {
-				if IsPendingStatus(task.Status) && task.Priority == "critical" {
-					risks = append(risks, map[string]interface{}{
-						"type":        "blocker",
-						"description": task.Content,
-						"task_id":     task.ID,
-						"priority":    task.Priority,
-					})
-				}
+		for _, task := range tasks {
+			if IsPendingStatus(task.Status) && task.Priority == "critical" {
+				risks = append(risks, map[string]interface{}{
+					"type":        "blocker",
+					"description": task.Content,
+					"task_id":     task.ID,
+					"priority":    task.Priority,
+				})
 			}
+		}
 	}
 
 	return risks, nil
@@ -617,4 +617,3 @@ func getFloatParam(params map[string]interface{}, key string, defaultValue float
 	}
 	return defaultValue
 }
-

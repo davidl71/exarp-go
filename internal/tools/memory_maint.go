@@ -124,11 +124,11 @@ func handleMemoryMaintHealth(ctx context.Context, params map[string]interface{})
 		"success":          true,
 		"method":           "native_go",
 		"total_memories":   len(memories),
-		"health_score":    healthScore,
-		"by_category":     byCategory,
+		"health_score":     healthScore,
+		"by_category":      byCategory,
 		"age_distribution": ageDistribution,
-		"issues":          issues,
-		"recommendations": recommendations,
+		"issues":           issues,
+		"recommendations":  recommendations,
 	}
 
 	output, _ := json.MarshalIndent(result, "", "  ")
@@ -259,13 +259,13 @@ func handleMemoryMaintGC(ctx context.Context, params map[string]interface{}) ([]
 	}
 
 	result := map[string]interface{}{
-		"success":        true,
-		"method":         "native_go",
-		"dry_run":        dryRun,
-		"deleted_count":  len(toDelete),
+		"success":         true,
+		"method":          "native_go",
+		"dry_run":         dryRun,
+		"deleted_count":   len(toDelete),
 		"deleted_by_type": deletedCounts,
-		"total_memories": len(memories),
-		"remaining":      len(memories) - len(toDelete),
+		"total_memories":  len(memories),
+		"remaining":       len(memories) - len(toDelete),
 	}
 
 	if dryRun {
@@ -382,14 +382,14 @@ func handleMemoryMaintPrune(ctx context.Context, params map[string]interface{}) 
 	}
 
 	result := map[string]interface{}{
-		"success":        true,
-		"method":         "native_go",
-		"dry_run":        dryRun,
-		"pruned_count":   len(toPrune),
-		"total_memories": len(memories),
-		"remaining":      len(memories) - len(toPrune),
+		"success":         true,
+		"method":          "native_go",
+		"dry_run":         dryRun,
+		"pruned_count":    len(toPrune),
+		"total_memories":  len(memories),
+		"remaining":       len(memories) - len(toPrune),
 		"value_threshold": valueThreshold,
-		"keep_minimum":   keepMinimum,
+		"keep_minimum":    keepMinimum,
 	}
 
 	if dryRun {
@@ -403,4 +403,3 @@ func handleMemoryMaintPrune(ctx context.Context, params map[string]interface{}) 
 		{Type: "text", Text: string(output)},
 	}, nil
 }
-

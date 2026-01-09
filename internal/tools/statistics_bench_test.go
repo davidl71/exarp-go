@@ -166,4 +166,3 @@ func BenchmarkMedianVsMean(b *testing.B) {
 		})
 	}
 }
-

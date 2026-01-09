@@ -65,4 +65,3 @@ func convertScorecardToResourceFormat(scorecard *tools.GoScorecardResult) map[st
 
 	return result
 }
-

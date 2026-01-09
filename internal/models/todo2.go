@@ -17,4 +17,3 @@ type Todo2Task struct {
 type Todo2State struct {
 	Todos []Todo2Task `json:"todos"`
 }
-

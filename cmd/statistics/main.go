@@ -84,4 +84,3 @@ func respondError(message string) {
 	jsonBytes, _ := json.Marshal(response)
 	fmt.Println(string(jsonBytes))
 }
-
