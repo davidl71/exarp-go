@@ -315,8 +315,31 @@ def estimation(
 
     elif action == "analyze":
         from .estimation_learner import EstimationLearner
-        learner = EstimationLearner()
+        from ..utils import find_project_root
+        project_root = find_project_root()
+        learner = EstimationLearner(project_root)
         result = learner.analyze_estimation_accuracy()
+        
+        # Auto-save learning data if analysis was successful
+        if result.get('success') and result.get('completed_tasks_count', 0) > 0:
+            learning_data = {
+                'adjustment_factors': learner.get_adjustment_factors(),
+                'learning_records': [
+                    {
+                        'task_id': t.get('id', ''),
+                        'estimated_hours': t.get('estimated_hours'),
+                        'actual_hours': t.get('actual_hours'),
+                        'ratio': t.get('actual_hours', 0) / t.get('estimated_hours', 1) if t.get('estimated_hours') else 0,
+                        'error_pct': t.get('error_pct', 0)
+                    }
+                    for t in result.get('completed_tasks', [])
+                    if t.get('estimated_hours') and t.get('actual_hours')
+                ],
+                'last_updated': result.get('generated', ''),
+                'metrics': result.get('accuracy_metrics', {})
+            }
+            learner.save_learning_data(learning_data)
+        
         return json.dumps(result, indent=2) if isinstance(result, dict) else result
 
     elif action == "stats":

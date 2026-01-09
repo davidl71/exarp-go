@@ -59,7 +59,8 @@ async def _call_wisdom_tool(tool_name: str, arguments: dict, project_root: Path)
     
     try:
         devwisdom_config = mcp_config.get('devwisdom', {})
-        command = devwisdom_config.get('command', '/Users/davidl/Projects/devwisdom-go/devwisdom')
+        # Use configured command or default to 'devwisdom' (assumes it's in PATH)
+        command = devwisdom_config.get('command', 'devwisdom')
         args = devwisdom_config.get('args', [])
         
         server_params = StdioServerParameters(
@@ -117,7 +118,8 @@ async def _read_wisdom_resource(uri: str, project_root: Path) -> Optional[str]:
     
     try:
         devwisdom_config = mcp_config.get('devwisdom', {})
-        command = devwisdom_config.get('command', '/Users/davidl/Projects/devwisdom-go/devwisdom')
+        # Use configured command or default to 'devwisdom' (assumes it's in PATH)
+        command = devwisdom_config.get('command', 'devwisdom')
         args = devwisdom_config.get('args', [])
         
         server_params = StdioServerParameters(
