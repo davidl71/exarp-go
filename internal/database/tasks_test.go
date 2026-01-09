@@ -1,12 +1,13 @@
 package database
 
 import (
+	"context"
 	"testing"
 
 	"github.com/davidl71/exarp-go/internal/models"
 )
 
-func TestCreateTask(t *testing.T) {
+func TestCreateTask(context.Background(), t *testing.T) {
 	// Setup
 	tmpDir := t.TempDir()
 	err := Init(tmpDir)
@@ -27,15 +28,15 @@ func TestCreateTask(t *testing.T) {
 	}
 
 	// Test
-	err = CreateTask(task)
+	err = CreateTask(context.Background(), task)
 	if err != nil {
-		t.Fatalf("CreateTask() error = %v", err)
+		t.Fatalf("CreateTask(context.Background(), ) error = %v", err)
 	}
 
 	// Verify
-	retrieved, err := GetTask("T-1")
+	retrieved, err := GetTask(context.Background(), "T-1")
 	if err != nil {
-		t.Fatalf("GetTask() error = %v", err)
+		t.Fatalf("GetTask(context.Background(), ) error = %v", err)
 	}
 
 	if retrieved.ID != task.ID {
@@ -52,7 +53,7 @@ func TestCreateTask(t *testing.T) {
 	}
 }
 
-func TestGetTask(t *testing.T) {
+func TestGetTask(context.Background(), t *testing.T) {
 	// Setup
 	tmpDir := t.TempDir()
 	err := Init(tmpDir)
@@ -69,15 +70,15 @@ func TestGetTask(t *testing.T) {
 		Priority: "high",
 		Tags:     []string{"test"},
 	}
-	err = CreateTask(task)
+	err = CreateTask(context.Background(), task)
 	if err != nil {
-		t.Fatalf("CreateTask() error = %v", err)
+		t.Fatalf("CreateTask(context.Background(), ) error = %v", err)
 	}
 
 	// Test
-	retrieved, err := GetTask("T-2")
+	retrieved, err := GetTask(context.Background(), "T-2")
 	if err != nil {
-		t.Fatalf("GetTask() error = %v", err)
+		t.Fatalf("GetTask(context.Background(), ) error = %v", err)
 	}
 
 	if retrieved.ID != "T-2" {
@@ -88,7 +89,7 @@ func TestGetTask(t *testing.T) {
 	}
 }
 
-func TestUpdateTask(t *testing.T) {
+func TestUpdateTask(context.Background(), t *testing.T) {
 	// Setup
 	tmpDir := t.TempDir()
 	err := Init(tmpDir)
@@ -104,9 +105,9 @@ func TestUpdateTask(t *testing.T) {
 		Status:   "Todo",
 		Priority: "low",
 	}
-	err = CreateTask(task)
+	err = CreateTask(context.Background(), task)
 	if err != nil {
-		t.Fatalf("CreateTask() error = %v", err)
+		t.Fatalf("CreateTask(context.Background(), ) error = %v", err)
 	}
 
 	// Update task
@@ -114,15 +115,15 @@ func TestUpdateTask(t *testing.T) {
 	task.Status = "Done"
 	task.Priority = "high"
 	task.Tags = []string{"updated"}
-	err = UpdateTask(task)
+	err = UpdateTask(context.Background(), task)
 	if err != nil {
-		t.Fatalf("UpdateTask() error = %v", err)
+		t.Fatalf("UpdateTask(context.Background(), ) error = %v", err)
 	}
 
 	// Verify
-	retrieved, err := GetTask("T-3")
+	retrieved, err := GetTask(context.Background(), "T-3")
 	if err != nil {
-		t.Fatalf("GetTask() error = %v", err)
+		t.Fatalf("GetTask(context.Background(), ) error = %v", err)
 	}
 
 	if retrieved.Content != "Updated content" {
@@ -136,7 +137,7 @@ func TestUpdateTask(t *testing.T) {
 	}
 }
 
-func TestDeleteTask(t *testing.T) {
+func TestDeleteTask(context.Background(), t *testing.T) {
 	// Setup
 	tmpDir := t.TempDir()
 	err := Init(tmpDir)
@@ -151,25 +152,25 @@ func TestDeleteTask(t *testing.T) {
 		Content: "Task to delete",
 		Status:  "Todo",
 	}
-	err = CreateTask(task)
+	err = CreateTask(context.Background(), task)
 	if err != nil {
-		t.Fatalf("CreateTask() error = %v", err)
+		t.Fatalf("CreateTask(context.Background(), ) error = %v", err)
 	}
 
 	// Delete task
-	err = DeleteTask("T-4")
+	err = DeleteTask(context.Background(), "T-4")
 	if err != nil {
-		t.Fatalf("DeleteTask() error = %v", err)
+		t.Fatalf("DeleteTask(context.Background(), ) error = %v", err)
 	}
 
 	// Verify task is deleted
-	_, err = GetTask("T-4")
+	_, err = GetTask(context.Background(), "T-4")
 	if err == nil {
 		t.Error("Expected error when getting deleted task, got nil")
 	}
 }
 
-func TestListTasks(t *testing.T) {
+func TestListTasks(context.Background(), t *testing.T) {
 	// Setup
 	tmpDir := t.TempDir()
 	err := Init(tmpDir)
@@ -186,16 +187,16 @@ func TestListTasks(t *testing.T) {
 	}
 
 	for _, task := range tasks {
-		err = CreateTask(task)
+		err = CreateTask(context.Background(), task)
 		if err != nil {
-			t.Fatalf("CreateTask() error = %v", err)
+			t.Fatalf("CreateTask(context.Background(), ) error = %v", err)
 		}
 	}
 
 	// Test ListTasks without filters
-	allTasks, err := ListTasks(nil)
+	allTasks, err := ListTasks(context.Background(), nil)
 	if err != nil {
-		t.Fatalf("ListTasks() error = %v", err)
+		t.Fatalf("ListTasks(context.Background(), ) error = %v", err)
 	}
 
 	if len(allTasks) != 3 {
@@ -205,9 +206,9 @@ func TestListTasks(t *testing.T) {
 	// Test filter by status
 	statusFilter := "Done"
 	filters := &TaskFilters{Status: &statusFilter}
-	doneTasks, err := ListTasks(filters)
+	doneTasks, err := ListTasks(context.Background(), filters)
 	if err != nil {
-		t.Fatalf("ListTasks() error = %v", err)
+		t.Fatalf("ListTasks(context.Background(), ) error = %v", err)
 	}
 
 	if len(doneTasks) != 1 {
@@ -235,9 +236,9 @@ func TestGetTasksByStatus(t *testing.T) {
 	}
 
 	for _, task := range tasks {
-		err = CreateTask(task)
+		err = CreateTask(context.Background(), task)
 		if err != nil {
-			t.Fatalf("CreateTask() error = %v", err)
+			t.Fatalf("CreateTask(context.Background(), ) error = %v", err)
 		}
 	}
 
@@ -265,13 +266,13 @@ func TestGetDependencies(t *testing.T) {
 	task1 := &models.Todo2Task{ID: "T-11", Content: "Parent", Status: "Todo"}
 	task2 := &models.Todo2Task{ID: "T-12", Content: "Child", Status: "Todo", Dependencies: []string{"T-11"}}
 
-	err = CreateTask(task1)
+	err = CreateTask(context.Background(), task1)
 	if err != nil {
-		t.Fatalf("CreateTask() error = %v", err)
+		t.Fatalf("CreateTask(context.Background(), ) error = %v", err)
 	}
-	err = CreateTask(task2)
+	err = CreateTask(context.Background(), task2)
 	if err != nil {
-		t.Fatalf("CreateTask() error = %v", err)
+		t.Fatalf("CreateTask(context.Background(), ) error = %v", err)
 	}
 
 	// Test
@@ -318,9 +319,9 @@ func TestGetTasksByTag(t *testing.T) {
 	}
 
 	for _, task := range tasks {
-		err = CreateTask(task)
+		err = CreateTask(context.Background(), task)
 		if err != nil {
-			t.Fatalf("CreateTask() error = %v", err)
+			t.Fatalf("CreateTask(context.Background(), ) error = %v", err)
 		}
 	}
 
@@ -352,15 +353,15 @@ func TestTaskWithMetadata(t *testing.T) {
 		Metadata: map[string]interface{}{"custom": "value", "number": 42},
 	}
 
-	err = CreateTask(task)
+	err = CreateTask(context.Background(), task)
 	if err != nil {
-		t.Fatalf("CreateTask() error = %v", err)
+		t.Fatalf("CreateTask(context.Background(), ) error = %v", err)
 	}
 
 	// Retrieve and verify metadata
-	retrieved, err := GetTask("T-16")
+	retrieved, err := GetTask(context.Background(), "T-16")
 	if err != nil {
-		t.Fatalf("GetTask() error = %v", err)
+		t.Fatalf("GetTask(context.Background(), ) error = %v", err)
 	}
 
 	if retrieved.Metadata == nil {

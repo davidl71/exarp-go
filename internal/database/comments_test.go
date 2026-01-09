@@ -1,6 +1,7 @@
 package database
 
 import (
+	"context"
 	"testing"
 
 	"github.com/davidl71/exarp-go/internal/models"
@@ -21,7 +22,7 @@ func TestAddComments(t *testing.T) {
 		Content: "Test task for comments",
 		Status:  "Todo",
 	}
-	err = CreateTask(task)
+	err = CreateTask(context.Background(), task)
 	if err != nil {
 		t.Fatalf("CreateTask() error = %v", err)
 	}
@@ -34,13 +35,13 @@ func TestAddComments(t *testing.T) {
 		},
 	}
 
-	err = AddComments("T-COMMENT-1", comments)
+	err = AddComments(context.Background(), "T-COMMENT-1", comments)
 	if err != nil {
 		t.Fatalf("AddComments() error = %v", err)
 	}
 
 	// Verify comment was added
-	retrieved, err := GetComments("T-COMMENT-1")
+	retrieved, err := GetComments(context.Background(), "T-COMMENT-1")
 	if err != nil {
 		t.Fatalf("GetComments() error = %v", err)
 	}
@@ -77,7 +78,7 @@ func TestAddCommentsBatch(t *testing.T) {
 		Content: "Test task",
 		Status:  "Todo",
 	}
-	err = CreateTask(task)
+	err = CreateTask(context.Background(), task)
 	if err != nil {
 		t.Fatalf("CreateTask() error = %v", err)
 	}
@@ -98,13 +99,13 @@ func TestAddCommentsBatch(t *testing.T) {
 		},
 	}
 
-	err = AddComments("T-COMMENT-2", comments)
+	err = AddComments(context.Background(), "T-COMMENT-2", comments)
 	if err != nil {
 		t.Fatalf("AddComments() error = %v", err)
 	}
 
 	// Verify all comments were added
-	retrieved, err := GetComments("T-COMMENT-2")
+	retrieved, err := GetComments(context.Background(), "T-COMMENT-2")
 	if err != nil {
 		t.Fatalf("GetComments() error = %v", err)
 	}
@@ -139,7 +140,7 @@ func TestGetComments(t *testing.T) {
 		Content: "Test task",
 		Status:  "Todo",
 	}
-	err = CreateTask(task)
+	err = CreateTask(context.Background(), task)
 	if err != nil {
 		t.Fatalf("CreateTask() error = %v", err)
 	}
@@ -155,13 +156,13 @@ func TestGetComments(t *testing.T) {
 			Content: "Second comment",
 		},
 	}
-	err = AddComments("T-COMMENT-3", comments)
+	err = AddComments(context.Background(), "T-COMMENT-3", comments)
 	if err != nil {
 		t.Fatalf("AddComments() error = %v", err)
 	}
 
 	// Test GetComments
-	retrieved, err := GetComments("T-COMMENT-3")
+	retrieved, err := GetComments(context.Background(), "T-COMMENT-3")
 	if err != nil {
 		t.Fatalf("GetComments() error = %v", err)
 	}
@@ -171,7 +172,7 @@ func TestGetComments(t *testing.T) {
 	}
 
 	// Test empty task
-	empty, err := GetComments("T-NONEXISTENT")
+	empty, err := GetComments(context.Background(), "T-NONEXISTENT")
 	if err != nil {
 		t.Fatalf("GetComments() error = %v", err)
 	}
@@ -193,17 +194,17 @@ func TestGetCommentsByType(t *testing.T) {
 	task1 := &models.Todo2Task{ID: "T-COMMENT-4", Content: "Task 1", Status: "Todo"}
 	task2 := &models.Todo2Task{ID: "T-COMMENT-5", Content: "Task 2", Status: "Todo"}
 
-	err = CreateTask(task1)
+	err = CreateTask(context.Background(), task1)
 	if err != nil {
 		t.Fatalf("CreateTask() error = %v", err)
 	}
-	err = CreateTask(task2)
+	err = CreateTask(context.Background(), task2)
 	if err != nil {
 		t.Fatalf("CreateTask() error = %v", err)
 	}
 
 	// Add mixed comments
-	err = AddComments("T-COMMENT-4", []Comment{
+	err = AddComments(context.Background(), "T-COMMENT-4", []Comment{
 		{Type: CommentTypeResearch, Content: "Research 1"},
 		{Type: CommentTypeNote, Content: "Note 1"},
 	})
@@ -211,7 +212,7 @@ func TestGetCommentsByType(t *testing.T) {
 		t.Fatalf("AddComments() error = %v", err)
 	}
 
-	err = AddComments("T-COMMENT-5", []Comment{
+	err = AddComments(context.Background(), "T-COMMENT-5", []Comment{
 		{Type: CommentTypeResearch, Content: "Research 2"},
 		{Type: CommentTypeResult, Content: "Result 1"},
 	})
@@ -251,13 +252,13 @@ func TestGetCommentsWithTypeFilter(t *testing.T) {
 		Content: "Test task",
 		Status:  "Todo",
 	}
-	err = CreateTask(task)
+	err = CreateTask(context.Background(), task)
 	if err != nil {
 		t.Fatalf("CreateTask() error = %v", err)
 	}
 
 	// Add mixed comments
-	err = AddComments("T-COMMENT-6", []Comment{
+	err = AddComments(context.Background(), "T-COMMENT-6", []Comment{
 		{Type: CommentTypeResearch, Content: "Research"},
 		{Type: CommentTypeNote, Content: "Note"},
 		{Type: CommentTypeResult, Content: "Result"},
@@ -295,13 +296,13 @@ func TestDeleteComment(t *testing.T) {
 		Content: "Test task",
 		Status:  "Todo",
 	}
-	err = CreateTask(task)
+	err = CreateTask(context.Background(), task)
 	if err != nil {
 		t.Fatalf("CreateTask() error = %v", err)
 	}
 
 	// Add comment
-	err = AddComments("T-COMMENT-7", []Comment{
+	err = AddComments(context.Background(), "T-COMMENT-7", []Comment{
 		{Type: CommentTypeNote, Content: "Comment to delete"},
 	})
 	if err != nil {
@@ -309,7 +310,7 @@ func TestDeleteComment(t *testing.T) {
 	}
 
 	// Get comment ID
-	comments, err := GetComments("T-COMMENT-7")
+	comments, err := GetComments(context.Background(), "T-COMMENT-7")
 	if err != nil {
 		t.Fatalf("GetComments() error = %v", err)
 	}
@@ -325,7 +326,7 @@ func TestDeleteComment(t *testing.T) {
 	}
 
 	// Verify comment is deleted
-	remaining, err := GetComments("T-COMMENT-7")
+	remaining, err := GetComments(context.Background(), "T-COMMENT-7")
 	if err != nil {
 		t.Fatalf("GetComments() error = %v", err)
 	}
@@ -355,13 +356,13 @@ func TestCommentCascadeDelete(t *testing.T) {
 		Content: "Test task",
 		Status:  "Todo",
 	}
-	err = CreateTask(task)
+	err = CreateTask(context.Background(), task)
 	if err != nil {
 		t.Fatalf("CreateTask() error = %v", err)
 	}
 
 	// Add comments
-	err = AddComments("T-COMMENT-8", []Comment{
+	err = AddComments(context.Background(), "T-COMMENT-8", []Comment{
 		{Type: CommentTypeNote, Content: "Comment 1"},
 		{Type: CommentTypeResult, Content: "Comment 2"},
 	})
@@ -370,7 +371,7 @@ func TestCommentCascadeDelete(t *testing.T) {
 	}
 
 	// Verify comments exist
-	comments, err := GetComments("T-COMMENT-8")
+	comments, err := GetComments(context.Background(), "T-COMMENT-8")
 	if err != nil {
 		t.Fatalf("GetComments() error = %v", err)
 	}
@@ -379,13 +380,13 @@ func TestCommentCascadeDelete(t *testing.T) {
 	}
 
 	// Delete task (should cascade delete comments)
-	err = DeleteTask("T-COMMENT-8")
+	err = DeleteTask(context.Background(), "T-COMMENT-8")
 	if err != nil {
 		t.Fatalf("DeleteTask() error = %v", err)
 	}
 
 	// Verify comments were cascade deleted
-	remaining, err := GetComments("T-COMMENT-8")
+	remaining, err := GetComments(context.Background(), "T-COMMENT-8")
 	if err != nil {
 		t.Fatalf("GetComments() error = %v", err)
 	}
@@ -404,9 +405,9 @@ func TestAddCommentsEmptyList(t *testing.T) {
 	defer Close()
 
 	// Test adding empty comment list (should not error)
-	err = AddComments("T-COMMENT-9", []Comment{})
+	err = AddComments(context.Background(), "T-COMMENT-9", []Comment{})
 	if err != nil {
-		t.Fatalf("AddComments() with empty list should not error, got %v", err)
+		t.Fatalf("AddComments(context.Background(), ) with empty list should not error, got %v", err)
 	}
 }
 
@@ -425,7 +426,7 @@ func TestAddCommentsWithProvidedID(t *testing.T) {
 		Content: "Test task",
 		Status:  "Todo",
 	}
-	err = CreateTask(task)
+	err = CreateTask(context.Background(), task)
 	if err != nil {
 		t.Fatalf("CreateTask() error = %v", err)
 	}
@@ -440,13 +441,13 @@ func TestAddCommentsWithProvidedID(t *testing.T) {
 		},
 	}
 
-	err = AddComments("T-COMMENT-10", comments)
+	err = AddComments(context.Background(), "T-COMMENT-10", comments)
 	if err != nil {
 		t.Fatalf("AddComments() error = %v", err)
 	}
 
 	// Verify comment has custom ID
-	retrieved, err := GetComments("T-COMMENT-10")
+	retrieved, err := GetComments(context.Background(), "T-COMMENT-10")
 	if err != nil {
 		t.Fatalf("GetComments() error = %v", err)
 	}

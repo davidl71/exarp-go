@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -61,7 +62,7 @@ func main() {
 	defer database.Close()
 
 	// Check if database already has tasks
-	existingTasks, err := database.ListTasks(nil)
+	existingTasks, err := database.ListTasks(context.Background(), nil)
 	if err == nil && len(existingTasks) > 0 {
 		fmt.Printf("Warning: Database already contains %d tasks\n", len(existingTasks))
 		fmt.Print("Continue anyway? (y/N): ")
@@ -106,14 +107,14 @@ func main() {
 
 	for _, task := range tasks {
 		// Check if task already exists
-		existing, err := database.GetTask(task.ID)
+		existing, err := database.GetTask(context.Background(), task.ID)
 		if err == nil && existing != nil {
 			fmt.Printf("  Task %s already exists, skipping...\n", task.ID)
 			continue
 		}
 
 		// Create task
-		if err := database.CreateTask(&task); err != nil {
+		if err := database.CreateTask(context.Background(), &task); err != nil {
 			fmt.Fprintf(os.Stderr, "  Error creating task %s: %v\n", task.ID, err)
 			continue
 		}
@@ -130,7 +131,7 @@ func main() {
 		}
 
 		if len(taskComments) > 0 {
-			if err := database.AddComments(task.ID, taskComments); err != nil {
+			if err := database.AddComments(context.Background(), task.ID, taskComments); err != nil {
 				fmt.Fprintf(os.Stderr, "  Error adding comments for task %s: %v\n", task.ID, err)
 			} else {
 				commentCount += len(taskComments)

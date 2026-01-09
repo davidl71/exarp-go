@@ -128,7 +128,7 @@ func resolveTaskClarification(ctx context.Context, params map[string]interface{}
 
 	// Try database first for efficient single-task update
 	if db, err := database.GetDB(); err == nil && db != nil {
-		task, err := database.GetTask(taskID)
+		task, err := database.GetTask(context.Background(), taskID)
 		if err != nil {
 			return nil, fmt.Errorf("task %s not found: %w", taskID, err)
 		}
@@ -164,7 +164,7 @@ func resolveTaskClarification(ctx context.Context, params map[string]interface{}
 		}
 
 		// Update task in database
-		if err := database.UpdateTask(task); err != nil {
+		if err := database.UpdateTask(context.Background(), task); err != nil {
 			return nil, fmt.Errorf("failed to update task: %w", err)
 		}
 
@@ -274,7 +274,7 @@ func resolveBatchClarifications(ctx context.Context, params map[string]interface
 				continue
 			}
 
-			task, err := database.GetTask(taskID)
+			task, err := database.GetTask(context.Background(), taskID)
 			if err != nil {
 				// Task not found, skip
 				continue
@@ -308,7 +308,7 @@ func resolveBatchClarifications(ctx context.Context, params map[string]interface
 			}
 
 			// Update task in database
-			if err := database.UpdateTask(task); err == nil {
+			if err := database.UpdateTask(context.Background(), task); err == nil {
 				resolved++
 			}
 		}

@@ -71,7 +71,7 @@ func handleTaskWorkflowApprove(ctx context.Context, params map[string]interface{
 		}
 
 		// Get tasks matching filters
-		allTasks, err := database.ListTasks(filters)
+		allTasks, err := database.ListTasks(context.Background(), filters)
 		if err != nil {
 			return nil, fmt.Errorf("failed to load tasks: %w", err)
 		}
@@ -139,7 +139,7 @@ func handleTaskWorkflowApprove(ctx context.Context, params map[string]interface{
 		updatedCount := 0
 		for _, task := range candidates {
 			task.Status = newStatus
-			if err := database.UpdateTask(task); err == nil {
+			if err := database.UpdateTask(context.Background(), task); err == nil {
 				approvedIDs = append(approvedIDs, task.ID)
 				updatedCount++
 			}
@@ -487,7 +487,7 @@ func handleTaskWorkflowCleanup(ctx context.Context, params map[string]interface{
 		// Get all pending tasks
 		pendingStatus := "Todo"
 		filters := &database.TaskFilters{Status: &pendingStatus}
-		tasks, err := database.ListTasks(filters)
+		tasks, err := database.ListTasks(context.Background(), filters)
 		if err != nil {
 			return nil, fmt.Errorf("failed to load tasks: %w", err)
 		}
@@ -495,12 +495,12 @@ func handleTaskWorkflowCleanup(ctx context.Context, params map[string]interface{
 		// Also get "In Progress" and "Review" tasks
 		inProgressStatus := "In Progress"
 		filters.Status = &inProgressStatus
-		inProgressTasks, _ := database.ListTasks(filters)
+		inProgressTasks, _ := database.ListTasks(context.Background(), filters)
 		tasks = append(tasks, inProgressTasks...)
 
 		reviewStatus := "Review"
 		filters.Status = &reviewStatus
-		reviewTasks, _ := database.ListTasks(filters)
+		reviewTasks, _ := database.ListTasks(context.Background(), filters)
 		tasks = append(tasks, reviewTasks...)
 
 		// Identify stale tasks
@@ -552,7 +552,7 @@ func handleTaskWorkflowCleanup(ctx context.Context, params map[string]interface{
 		// Delete stale tasks from database
 		removedIDs := []string{}
 		for _, task := range staleTasks {
-			if err := database.DeleteTask(task.ID); err == nil {
+			if err := database.DeleteTask(context.Background(), task.ID); err == nil {
 				removedIDs = append(removedIDs, task.ID)
 			}
 		}
