@@ -23,8 +23,8 @@
 - **Tools:** `server_status`, `tool_catalog`, `workflow_mode`, `infer_session_mode`, `git_tools`, `context_budget`
 - **Completion:** 100%
 
-### Phase 2: Medium Complexity Tools ⏳ **IN PROGRESS** (~44%)
-- **Status:** 4/9 tools fully native, 5 tools have partial native implementations
+### Phase 2: Medium Complexity Tools ✅ **COMPLETE** (100%)
+- **Status:** All 9 tools have native Go implementations
 - **Fully Native:**
   - ✅ `analyze_alignment` - Native Go (todo2 action)
   - ✅ `generate_config` - Native Go (all actions)
@@ -34,11 +34,10 @@
   - ✅ `health` - Native Go (server action), Python bridge for others
   - ✅ `setup_hooks` - Native Go (git action), Python bridge for others
   - ✅ `recommend` - Native Go (model/workflow actions), Python bridge for advisor
-- **Python Bridge Only:**
-  - ⏳ `report` - Native Go (scorecard action for Go projects), Python bridge for others
-  - ⏳ `security` - Python bridge only
-  - ⏳ `testing` - Python bridge only
-- **Completion:** ~44% (4 fully native, 3 hybrid)
+  - ✅ `report` - Native Go (scorecard, overview, prd actions), Python bridge for briefing (devwisdom MCP)
+  - ✅ `security` - Native Go (scan, alerts, report for Go projects), Python bridge for other languages
+  - ✅ `testing` - Native Go (run, coverage, validate for Go projects), Python bridge for ML features
+- **Completion:** 100% (all tools have native implementations)
 
 ### Phase 3: Complex Tools ✅ **COMPLETE** (100%)
 - **Status:** All critical tools migrated
@@ -93,22 +92,22 @@
 12. `task_workflow` - Full native (all 5 actions)
 13. `task_discovery` - Full native (all 3 actions)
 
-### Hybrid Tools (5 tools - Native + Python Bridge)
+### Hybrid Tools (7 tools - Native + Python Bridge)
 1. `memory` - Native Go CRUD, Python bridge for semantic search
 2. `memory_maint` - Native Go (health/gc/prune), Python bridge for consolidate/dream
 3. `health` - Native Go (server), Python bridge for others
 4. `setup_hooks` - Native Go (git), Python bridge for patterns
 5. `recommend` - Native Go (model/workflow), Python bridge for advisor
-6. `report` - Native Go (scorecard for Go projects), Python bridge for others
-7. `context` - Native Go (summarize/budget), Python bridge for batch
+6. `report` - Native Go (scorecard, overview, prd), Python bridge for briefing (devwisdom MCP)
+7. `security` - Native Go (scan, alerts, report for Go), Python bridge for other languages
+8. `testing` - Native Go (run, coverage, validate for Go), Python bridge for ML features
+9. `context` - Native Go (summarize/budget), Python bridge for batch
 
-### Python Bridge Only Tools (~13 tools)
+### Python Bridge Only Tools (~10 tools)
 - `automation` - Complex workflow engine
 - `session` - Session management
 - `prompt_tracking` - Prompt iteration tracking
 - `estimation` - Task duration estimation
-- `security` - Security scanning
-- `testing` - Test execution and coverage
 - `mlx` - MLX integration (no Go bindings)
 - `ollama` - Ollama integration (no Go bindings)
 - `lint` - Linting (partial native for Go, Python bridge for others)
@@ -139,9 +138,9 @@
 ### Tools
 - **Total Tools:** 30
 - **Fully Native:** 13 tools (43%)
-- **Hybrid (Native + Bridge):** 7 tools (23%)
-- **Python Bridge Only:** ~10 tools (33%)
-- **Overall Native Coverage:** ~66% (20/30 tools have native implementations)
+- **Hybrid (Native + Bridge):** 9 tools (30%)
+- **Python Bridge Only:** ~8 tools (27%)
+- **Overall Native Coverage:** ~73% (22/30 tools have native implementations)
 
 ### Resources
 - **Total Resources:** 11
@@ -198,11 +197,7 @@
 
 ### ⏳ Remaining Work
 1. **Session Tool** - High value, no blockers (can proceed independently)
-2. **Phase 2 Remaining Tools** - Can proceed independently
-   - `report` - Partial (scorecard native, others Python bridge)
-   - `security` - Python bridge only
-   - `testing` - Python bridge only
-3. **Phase 3 Remaining Tools** - Can proceed independently
+2. **Phase 3 Remaining Tools** - Can proceed independently
    - `automation` - Complex workflow engine
    - `prompt_tracking` - Python bridge
    - `estimation` - Python bridge
@@ -224,7 +219,6 @@
 
 ### High Priority (No Blockers)
 1. **Session Tool** - Migrate to native Go (high value)
-2. **Phase 2 Tools** - Complete remaining tools (report, security, testing)
 
 ### Medium Priority
 3. **Phase 3 Tools** - Migrate automation, prompt_tracking, estimation

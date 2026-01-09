@@ -26,6 +26,8 @@ def execute_tool(tool_name: str, args_json: str):
         args = json.loads(args_json) if args_json else {}
         
         # Import tool functions from project_management_automation
+        # Note: tool_catalog, workflow_mode, git_tools, and infer_session_mode removed
+        # These tools are fully native Go with no Python fallback
         from project_management_automation.tools.consolidated import (
             analyze_alignment as _analyze_alignment,
             generate_config as _generate_config,
@@ -41,16 +43,10 @@ def execute_tool(tool_name: str, args_json: str):
             testing as _testing,
             automation as _automation,
             estimation as _estimation,
-            git_tools as _git_tools,
             lint as _lint,
             mlx as _mlx,
             ollama as _ollama,
             session as _session,
-            tool_catalog as _tool_catalog,
-            workflow_mode as _workflow_mode,
-        )
-        from project_management_automation.tools.session_mode_inference_interfaces import (
-            infer_session_mode_tool as _infer_session_mode,
         )
         from project_management_automation.tools.external_tool_hints import (
             add_external_tool_hints as _add_external_tool_hints,
@@ -249,24 +245,6 @@ def execute_tool(tool_name: str, args_json: str):
                 dry_run=args.get("dry_run", False),
                 output_path=args.get("output_path"),
             )
-        elif tool_name == "tool_catalog":
-            result = _tool_catalog(
-                action=args.get("action", "list"),
-                category=args.get("category"),
-                persona=args.get("persona"),
-                include_examples=args.get("include_examples", True),
-                tool_name=args.get("tool_name"),
-            )
-        elif tool_name == "workflow_mode":
-            result = _workflow_mode(
-                action=args.get("action", "focus"),
-                mode=args.get("mode"),
-                enable_group=args.get("enable_group"),
-                disable_group=args.get("disable_group"),
-                status=args.get("status", False),
-                text=args.get("text"),
-                auto_switch=args.get("auto_switch", False),
-            )
         elif tool_name == "lint":
             result = _lint(
                 action=args.get("action", "run"),
@@ -292,25 +270,6 @@ def execute_tool(tool_name: str, args_json: str):
                 detailed=args.get("detailed", False),
                 use_mlx=args.get("use_mlx", True),
                 mlx_weight=args.get("mlx_weight", 0.3),
-            )
-        elif tool_name == "git_tools":
-            result = _git_tools(
-                action=args.get("action", "commits"),
-                task_id=args.get("task_id"),
-                branch=args.get("branch"),
-                limit=args.get("limit", 50),
-                commit1=args.get("commit1"),
-                commit2=args.get("commit2"),
-                time1=args.get("time1"),
-                time2=args.get("time2"),
-                format=args.get("format", "text"),
-                output_path=args.get("output_path"),
-                max_commits=args.get("max_commits", 50),
-                source_branch=args.get("source_branch"),
-                target_branch=args.get("target_branch"),
-                conflict_strategy=args.get("conflict_strategy", "newer"),
-                author=args.get("author", "system"),
-                dry_run=args.get("dry_run", False),
             )
         elif tool_name == "session":
             result = _session(
@@ -339,10 +298,6 @@ def execute_tool(tool_name: str, args_json: str):
                 priority_filter=args.get("priority_filter"),
                 include_unassigned=args.get("include_unassigned", False),
                 max_tasks_per_agent=args.get("max_tasks_per_agent", 5),
-            )
-        elif tool_name == "infer_session_mode":
-            result = _infer_session_mode(
-                force_recompute=args.get("force_recompute", False),
             )
         elif tool_name == "ollama":
             result = _ollama(

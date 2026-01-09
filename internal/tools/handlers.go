@@ -258,8 +258,9 @@ func handleReport(ctx context.Context, args json.RawMessage) ([]framework.TextCo
 		action = "overview"
 	}
 
-	// Check if this is a Go project and scorecard action
-	if action == "scorecard" {
+	// Route to native implementations based on action
+	switch action {
+	case "scorecard":
 		// Check if go.mod exists (Go project)
 		if IsGoProject() {
 			// Use Go-specific scorecard with fast mode by default
@@ -291,9 +292,35 @@ func handleReport(ctx context.Context, args json.RawMessage) ([]framework.TextCo
 			}
 			// Fall through to Python bridge if Go scorecard fails
 		}
+		// Fall through to Python bridge for non-Go projects
+
+	case "overview":
+		// Try native Go implementation
+		result, err := handleReportOverview(ctx, params)
+		if err == nil {
+			return result, nil
+		}
+		// Fall through to Python bridge if native fails
+
+	case "briefing":
+		// Briefing uses devwisdom-go MCP server via Python bridge for now
+		// TODO: Implement native Go MCP client for devwisdom-go
+		result, err := handleReportBriefing(ctx, params)
+		if err == nil {
+			return result, nil
+		}
+		// Fall through to Python bridge if native fails
+
+	case "prd":
+		// Try native Go implementation
+		result, err := handleReportPRD(ctx, params)
+		if err == nil {
+			return result, nil
+		}
+		// Fall through to Python bridge if native fails
 	}
 
-	// Execute via Python bridge (for non-Go projects or other actions)
+	// Execute via Python bridge (for unsupported actions or when native fails)
 	result, err := bridge.ExecutePythonTool(ctx, "report", params)
 	if err != nil {
 		return nil, fmt.Errorf("report failed: %w", err)
@@ -337,6 +364,39 @@ func handleSecurity(ctx context.Context, args json.RawMessage) ([]framework.Text
 		return nil, fmt.Errorf("failed to parse arguments: %w", err)
 	}
 
+	action, _ := params["action"].(string)
+	if action == "" {
+		action = "report"
+	}
+
+	// Route to native implementations based on action
+	switch action {
+	case "scan":
+		// Try native Go implementation first
+		result, err := handleSecurityScan(ctx, params)
+		if err == nil {
+			return result, nil
+		}
+		// Fall through to Python bridge if native fails
+
+	case "alerts":
+		// Try native Go implementation first
+		result, err := handleSecurityAlerts(ctx, params)
+		if err == nil {
+			return result, nil
+		}
+		// Fall through to Python bridge if native fails
+
+	case "report":
+		// Try native Go implementation first
+		result, err := handleSecurityReport(ctx, params)
+		if err == nil {
+			return result, nil
+		}
+		// Fall through to Python bridge if native fails
+	}
+
+	// Execute via Python bridge (for unsupported actions or when native fails)
 	result, err := bridge.ExecutePythonTool(ctx, "security", params)
 	if err != nil {
 		return nil, fmt.Errorf("security failed: %w", err)
@@ -467,6 +527,43 @@ func handleTesting(ctx context.Context, args json.RawMessage) ([]framework.TextC
 		return nil, fmt.Errorf("failed to parse arguments: %w", err)
 	}
 
+	action, _ := params["action"].(string)
+	if action == "" {
+		action = "run"
+	}
+
+	// Route to native implementations based on action
+	switch action {
+	case "run":
+		// Try native Go implementation first
+		result, err := handleTestingRun(ctx, params)
+		if err == nil {
+			return result, nil
+		}
+		// Fall through to Python bridge if native fails
+
+	case "coverage":
+		// Try native Go implementation first
+		result, err := handleTestingCoverage(ctx, params)
+		if err == nil {
+			return result, nil
+		}
+		// Fall through to Python bridge if native fails
+
+	case "validate":
+		// Try native Go implementation first
+		result, err := handleTestingValidate(ctx, params)
+		if err == nil {
+			return result, nil
+		}
+		// Fall through to Python bridge if native fails
+
+	case "suggest", "generate":
+		// ML/AI features - use Python bridge
+		// These require ML capabilities that are better handled in Python
+	}
+
+	// Execute via Python bridge (for unsupported actions or when native fails)
 	result, err := bridge.ExecutePythonTool(ctx, "testing", params)
 	if err != nil {
 		return nil, fmt.Errorf("testing failed: %w", err)
