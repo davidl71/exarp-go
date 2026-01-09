@@ -54,9 +54,21 @@ def analyze_todo2_alignment(
         # Import from package
         from project_management_automation.scripts.automate_todo2_alignment_v2 import Todo2AlignmentAnalyzerV2
         from project_management_automation.utils import find_project_root
+        from pathlib import Path
 
-        # Find project root
-        project_root = find_project_root()
+        # Determine project root: use output_path to infer project root if provided
+        if output_path:
+            # If output_path is absolute, use its parent directory to find project root
+            output_path_obj = Path(output_path)
+            if output_path_obj.is_absolute():
+                # Search up from output_path's parent to find project root
+                project_root = find_project_root(output_path_obj.parent)
+            else:
+                # Relative path - find project root from current directory
+                project_root = find_project_root()
+        else:
+            # No output_path - use default detection
+            project_root = find_project_root()
 
         # Build config
         config = {

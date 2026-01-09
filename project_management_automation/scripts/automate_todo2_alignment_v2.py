@@ -357,9 +357,22 @@ class Todo2AlignmentAnalyzerV2(IntelligentAutomationBase):
                 })
 
             # Identify misaligned or infrastructure tasks
-            if priority == 'high' and not aligned_phases:
+            # Check for AUTO- prefix (automation tasks) - always infrastructure regardless of priority
+            is_automation = task_id.startswith('AUTO-')
+            
+            # Handle AUTO-* tasks first (always infrastructure)
+            if is_automation:
+                analysis['infrastructure_tasks'].append({
+                    'id': task_id,
+                    'content': task.get('content', ''),
+                    'priority': priority,
+                    'status': status
+                })
+            elif priority == 'high' and not aligned_phases:
                 # Use infrastructure keywords loaded from PROJECT_GOALS.md
-                if any(keyword in task_text for keyword in self.infrastructure_keywords):
+                is_infrastructure = any(keyword in task_text for keyword in self.infrastructure_keywords)
+                
+                if is_infrastructure:
                     analysis['infrastructure_tasks'].append({
                         'id': task_id,
                         'content': task.get('content', ''),
