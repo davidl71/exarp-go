@@ -23,13 +23,13 @@ func TestHandler_ArgumentParsing(t *testing.T) {
 				"action":                "todo2",
 				"create_followup_tasks": true,
 			},
-			wantError: true, // Will fail without Python bridge, but we test parsing
+			wantError: false, // Native implementation handles valid args successfully
 		},
 		{
 			name:      "empty args",
 			handler:   handleAnalyzeAlignment,
 			args:      map[string]interface{}{},
-			wantError: true, // Will fail without Python bridge, but we test parsing
+			wantError: false, // Native implementation uses defaults for empty args
 		},
 		{
 			name:      "invalid JSON",

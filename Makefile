@@ -1,4 +1,4 @@
-.PHONY: help build run test test-watch test-coverage test-html clean install fmt lint dev dev-watch dev-test dev-full bench docs sanity-check test-cli test-cli-list test-cli-tool test-cli-test config clean-config sprint-start sprint-end pre-sprint sprint check-tasks update-completed-tasks go-fmt go-vet golangci-lint-check golangci-lint-fix govulncheck check check-fix check-all build-migrate migrate migrate-dry-run install-tools go-mod-tidy go-mod-verify pre-commit ci validate check-deps test-go-parallel version
+.PHONY: help build run test test-watch test-coverage test-html clean install fmt lint dev dev-watch dev-test dev-full bench docs sanity-check sanity-check-cached test-cli test-cli-list test-cli-tool test-cli-test config clean-config sprint-start sprint-end pre-sprint sprint check-tasks update-completed-tasks go-fmt go-vet golangci-lint-check golangci-lint-fix govulncheck check check-fix check-all build-migrate migrate migrate-dry-run install-tools go-mod-tidy go-mod-verify pre-commit ci validate check-deps test-go test-go-fast test-go-verbose test-go-parallel version
 
 # Project configuration
 PROJECT_NAME := exarp-go
@@ -140,10 +140,22 @@ dev-full: ## Full development mode (watch + test + coverage)
 test: test-go $(if $(filter 1,$(HAVE_PYTEST)),test-python,) ## Run all tests (Go + Python)
 	@echo "$(GREEN)✅ All tests passed$(NC)"
 
-test-go: ## Run Go tests
-	@echo "$(BLUE)Running Go tests...$(NC)"
+test-go: ## Run Go tests (optimized for speed with parallel execution)
+	@echo "$(BLUE)Running Go tests (parallel)...$(NC)"
+	@$(GO) test ./... -parallel 4 || \
+	 (echo "$(RED)❌ Go tests failed$(NC)" && exit 1)
+	@echo "$(GREEN)✅ Go tests passed$(NC)"
+
+test-go-fast: ## Run Go tests in parallel (fast, no verbose) - optimized for pre-push
+	@echo "$(BLUE)Running Go tests (parallel, fast)...$(NC)"
+	@$(GO) test ./... -parallel 4 || \
+	 (echo "$(RED)❌ Parallel tests failed$(NC)" && exit 1)
+	@echo "$(GREEN)✅ Go tests passed$(NC)"
+
+test-go-verbose: ## Run Go tests with verbose output
+	@echo "$(BLUE)Running Go tests (verbose)...$(NC)"
 	@$(GO) test ./... -v || \
-	 echo "$(YELLOW)⚠️  Go tests failed or not available$(NC)"
+	 (echo "$(YELLOW)⚠️  Go tests failed or not available$(NC)"
 
 test-go-parallel: ## Run Go tests in parallel (faster)
 	@echo "$(BLUE)Running Go tests in parallel...$(NC)"
@@ -151,17 +163,17 @@ test-go-parallel: ## Run Go tests in parallel (faster)
 	 (echo "$(RED)❌ Parallel tests failed$(NC)" && exit 1)
 	@echo "$(GREEN)✅ Parallel tests passed$(NC)"
 
-test-python: ## Run Python tests (requires pytest)
+test-python: ## Run Python tests (requires pytest) - optimized: no verbose flag
 ifeq ($(HAVE_PYTEST),1)
 	@echo "$(BLUE)Running Python tests...$(NC)"
 	@if command -v uv >/dev/null 2>&1 || [ -x "$$HOME/.cargo/bin/uv" ] || [ -x "$$HOME/.local/bin/uv" ]; then \
-		$(PYTHON) -m pytest tests/unit/python tests/integration -v || \
+		$(PYTHON) -m pytest tests/unit/python tests/integration || \
 		echo "$(YELLOW)⚠️  Python tests failed$(NC)"; \
 	elif [ -n "$(PYTHON_CMD)" ]; then \
-		$(PYTHON_CMD) -m pytest tests/unit/python tests/integration -v || \
+		$(PYTHON_CMD) -m pytest tests/unit/python tests/integration || \
 		echo "$(YELLOW)⚠️  Python tests failed$(NC)"; \
 	else \
-		python3 -m pytest tests/unit/python tests/integration -v || \
+		python3 -m pytest tests/unit/python tests/integration || \
 		echo "$(YELLOW)⚠️  Python tests failed$(NC)"; \
 	fi
 else
@@ -228,6 +240,15 @@ sanity-check: ## Verify tools/resources/prompts counts match expected values
 	@echo "$(BLUE)Running sanity check...$(NC)"
 	@$(GO) build -o bin/sanity-check cmd/sanity-check/main.go 2>/dev/null || true
 	@./bin/sanity-check || (echo "$(RED)❌ Sanity check failed$(NC)" && exit 1)
+
+sanity-check-cached: bin/sanity-check ## Verify tools/resources/prompts counts (cached binary)
+	@echo "$(BLUE)Running sanity check (cached)...$(NC)"
+	@./bin/sanity-check || (echo "$(RED)❌ Sanity check failed$(NC)" && exit 1)
+
+# Build sanity-check binary only if source changed (caching optimization)
+bin/sanity-check: cmd/sanity-check/main.go
+	@echo "$(BLUE)Building sanity-check binary...$(NC)"
+	@$(GO) build -o bin/sanity-check cmd/sanity-check/main.go 2>/dev/null || true
 
 test-all: test-tools sanity-check test-cli ## Run all import tests + sanity check + CLI tests
 

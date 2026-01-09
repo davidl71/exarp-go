@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sync"
 
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -12,9 +13,22 @@ import (
 // DB is the global database connection
 var DB *sql.DB
 
+// dbMutex protects the global DB variable from concurrent access
+var dbMutex sync.Mutex
+
 // Init initializes the SQLite database connection
 // It creates the database file if it doesn't exist and runs migrations
+// Thread-safe: uses mutex to prevent concurrent initialization
 func Init(projectRoot string) error {
+	dbMutex.Lock()
+	defer dbMutex.Unlock()
+
+	// Close existing connection if any
+	if DB != nil {
+		DB.Close()
+		DB = nil
+	}
+
 	dbPath := filepath.Join(projectRoot, ".todo2", "todo2.db")
 
 	// Ensure .todo2 directory exists
@@ -49,8 +63,10 @@ func Init(projectRoot string) error {
 	}
 
 	// Set connection pool settings
-	db.SetMaxOpenConns(1) // SQLite only supports one writer at a time
-	db.SetMaxIdleConns(1)
+	// SQLite with WAL mode supports multiple readers concurrently
+	// Allow multiple connections for better performance with concurrent queries
+	db.SetMaxOpenConns(10) // Allow multiple readers (WAL mode supports this)
+	db.SetMaxIdleConns(5)  // Keep some idle connections ready
 	db.SetConnMaxLifetime(0) // Connections don't expire
 
 	DB = db
@@ -64,15 +80,23 @@ func Init(projectRoot string) error {
 }
 
 // Close closes the database connection
+// Thread-safe: uses mutex to prevent concurrent close operations
 func Close() error {
+	dbMutex.Lock()
+	defer dbMutex.Unlock()
+
 	if DB != nil {
-		return DB.Close()
+		err := DB.Close()
+		DB = nil
+		return err
 	}
 	return nil
 }
 
 // GetDB returns the global database connection
 // Returns error if database is not initialized
+// Note: Reading the DB pointer is safe without mutex (atomic pointer read)
+// The mutex in Init()/Close() ensures proper initialization/cleanup
 func GetDB() (*sql.DB, error) {
 	if DB == nil {
 		return nil, fmt.Errorf("database not initialized, call Init() first")

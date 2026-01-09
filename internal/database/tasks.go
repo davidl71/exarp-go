@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/davidl71/exarp-go/internal/models"
@@ -77,23 +78,37 @@ func CreateTask(task *Todo2Task) error {
 		return fmt.Errorf("failed to insert task: %w", err)
 	}
 
-	// Insert tags
-	for _, tag := range task.Tags {
+	// Insert tags (batch insert for better performance)
+	if len(task.Tags) > 0 {
+		placeholders := make([]string, len(task.Tags))
+		args := make([]interface{}, len(task.Tags)*2)
+		for i, tag := range task.Tags {
+			placeholders[i] = "(?, ?)"
+			args[i*2] = task.ID
+			args[i*2+1] = tag
+		}
 		_, err = tx.Exec(`
-			INSERT INTO task_tags (task_id, tag) VALUES (?, ?)
-		`, task.ID, tag)
+			INSERT INTO task_tags (task_id, tag) VALUES `+strings.Join(placeholders, ", "),
+			args...)
 		if err != nil {
-			return fmt.Errorf("failed to insert tag %s: %w", tag, err)
+			return fmt.Errorf("failed to insert tags: %w", err)
 		}
 	}
 
-	// Insert dependencies
-	for _, depID := range task.Dependencies {
+	// Insert dependencies (batch insert for better performance)
+	if len(task.Dependencies) > 0 {
+		placeholders := make([]string, len(task.Dependencies))
+		args := make([]interface{}, len(task.Dependencies)*2)
+		for i, depID := range task.Dependencies {
+			placeholders[i] = "(?, ?)"
+			args[i*2] = task.ID
+			args[i*2+1] = depID
+		}
 		_, err = tx.Exec(`
-			INSERT INTO task_dependencies (task_id, depends_on_id) VALUES (?, ?)
-		`, task.ID, depID)
+			INSERT INTO task_dependencies (task_id, depends_on_id) VALUES `+strings.Join(placeholders, ", "),
+			args...)
 		if err != nil {
-			return fmt.Errorf("failed to insert dependency %s: %w", depID, err)
+			return fmt.Errorf("failed to insert dependencies: %w", err)
 		}
 	}
 
@@ -115,6 +130,9 @@ func GetTask(id string) (*Todo2Task, error) {
 	var task Todo2Task
 	var metadataJSON sql.NullString
 	var completedInt int
+	var name sql.NullString // name field (not used in Todo2Task struct yet)
+	var created sql.NullString // created field
+	var lastModified sql.NullString // last_modified field
 
 	err = db.QueryRow(`
 		SELECT id, name, content, long_description, status, priority, completed,
@@ -123,14 +141,14 @@ func GetTask(id string) (*Todo2Task, error) {
 		WHERE id = ?
 	`, id).Scan(
 		&task.ID,
-		nil, // name - skip for now
+		&name, // name - scan but don't use (field not in Todo2Task struct yet)
 		&task.Content,
 		&task.LongDescription,
 		&task.Status,
 		&task.Priority,
 		&completedInt,
-		nil, // created - skip for now
-		nil, // last_modified - skip for now
+		&created, // created - scan but don't use
+		&lastModified, // last_modified - scan but don't use
 		&metadataJSON,
 	)
 
@@ -267,13 +285,20 @@ func UpdateTask(task *Todo2Task) error {
 		return fmt.Errorf("failed to delete tags: %w", err)
 	}
 
-	// Insert new tags
-	for _, tag := range task.Tags {
+	// Insert new tags (batch insert for better performance)
+	if len(task.Tags) > 0 {
+		placeholders := make([]string, len(task.Tags))
+		args := make([]interface{}, len(task.Tags)*2)
+		for i, tag := range task.Tags {
+			placeholders[i] = "(?, ?)"
+			args[i*2] = task.ID
+			args[i*2+1] = tag
+		}
 		_, err = tx.Exec(`
-			INSERT INTO task_tags (task_id, tag) VALUES (?, ?)
-		`, task.ID, tag)
+			INSERT INTO task_tags (task_id, tag) VALUES `+strings.Join(placeholders, ", "),
+			args...)
 		if err != nil {
-			return fmt.Errorf("failed to insert tag %s: %w", tag, err)
+			return fmt.Errorf("failed to insert tags: %w", err)
 		}
 	}
 
@@ -283,13 +308,20 @@ func UpdateTask(task *Todo2Task) error {
 		return fmt.Errorf("failed to delete dependencies: %w", err)
 	}
 
-	// Insert new dependencies
-	for _, depID := range task.Dependencies {
+	// Insert new dependencies (batch insert for better performance)
+	if len(task.Dependencies) > 0 {
+		placeholders := make([]string, len(task.Dependencies))
+		args := make([]interface{}, len(task.Dependencies)*2)
+		for i, depID := range task.Dependencies {
+			placeholders[i] = "(?, ?)"
+			args[i*2] = task.ID
+			args[i*2+1] = depID
+		}
 		_, err = tx.Exec(`
-			INSERT INTO task_dependencies (task_id, depends_on_id) VALUES (?, ?)
-		`, task.ID, depID)
+			INSERT INTO task_dependencies (task_id, depends_on_id) VALUES `+strings.Join(placeholders, ", "),
+			args...)
 		if err != nil {
-			return fmt.Errorf("failed to insert dependency %s: %w", depID, err)
+			return fmt.Errorf("failed to insert dependencies: %w", err)
 		}
 	}
 
@@ -331,11 +363,12 @@ func ListTasks(filters *TaskFilters) ([]*Todo2Task, error) {
 		return nil, fmt.Errorf("failed to get database: %w", err)
 	}
 
-	// Build query with filters
-	query := `
+	// Build query with filters (using strings.Builder for better performance)
+	var queryBuilder strings.Builder
+	queryBuilder.WriteString(`
 		SELECT DISTINCT t.id, t.content, t.long_description, t.status, t.priority, t.completed, t.metadata
 		FROM tasks t
-	`
+	`)
 	var args []interface{}
 	var conditions []string
 
@@ -349,7 +382,7 @@ func ListTasks(filters *TaskFilters) ([]*Todo2Task, error) {
 			args = append(args, *filters.Priority)
 		}
 		if filters.Tag != nil {
-			query += ` INNER JOIN task_tags tt ON t.id = tt.task_id `
+			queryBuilder.WriteString(` INNER JOIN task_tags tt ON t.id = tt.task_id `)
 			conditions = append(conditions, "tt.tag = ?")
 			args = append(args, *filters.Tag)
 		}
@@ -360,13 +393,14 @@ func ListTasks(filters *TaskFilters) ([]*Todo2Task, error) {
 	}
 
 	if len(conditions) > 0 {
-		query += " WHERE " + conditions[0]
+		queryBuilder.WriteString(" WHERE " + conditions[0])
 		for i := 1; i < len(conditions); i++ {
-			query += " AND " + conditions[i]
+			queryBuilder.WriteString(" AND " + conditions[i])
 		}
 	}
 
-	query += " ORDER BY t.created_at DESC"
+	queryBuilder.WriteString(" ORDER BY t.created_at DESC")
+	query := queryBuilder.String()
 
 	rows, err := db.Query(query, args...)
 	if err != nil {
@@ -375,6 +409,10 @@ func ListTasks(filters *TaskFilters) ([]*Todo2Task, error) {
 	defer rows.Close()
 
 	var tasks []*Todo2Task
+	var taskIDs []string
+	taskMap := make(map[string]*Todo2Task)
+
+	// First pass: collect all tasks and their IDs
 	for rows.Next() {
 		var task Todo2Task
 		var metadataJSON sql.NullString
@@ -401,20 +439,70 @@ func ListTasks(filters *TaskFilters) ([]*Todo2Task, error) {
 			}
 		}
 
-		// Load tags and dependencies (could be optimized with batch queries)
-		tags, err := GetTagsForTask(task.ID)
-		if err != nil {
-			return nil, fmt.Errorf("failed to get tags for task %s: %w", task.ID, err)
-		}
-		task.Tags = tags
-
-		deps, err := GetDependencies(task.ID)
-		if err != nil {
-			return nil, fmt.Errorf("failed to get dependencies for task %s: %w", task.ID, err)
-		}
-		task.Dependencies = deps
-
+		taskIDs = append(taskIDs, task.ID)
+		taskMap[task.ID] = &task
 		tasks = append(tasks, &task)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating rows: %w", err)
+	}
+
+	// Batch load all tags and dependencies in 2 queries instead of N*2 queries
+	if len(taskIDs) > 0 {
+		// Batch load tags
+		placeholders := make([]string, len(taskIDs))
+		args := make([]interface{}, len(taskIDs))
+		for i, id := range taskIDs {
+			placeholders[i] = "?"
+			args[i] = id
+		}
+		tagRows, err := db.Query(`
+			SELECT task_id, tag FROM task_tags 
+			WHERE task_id IN (`+strings.Join(placeholders, ", ")+`) 
+			ORDER BY task_id, tag
+		`, args...)
+		if err != nil {
+			return nil, fmt.Errorf("failed to batch query tags: %w", err)
+		}
+		defer tagRows.Close()
+
+		for tagRows.Next() {
+			var taskID, tag string
+			if err := tagRows.Scan(&taskID, &tag); err != nil {
+				return nil, fmt.Errorf("failed to scan tag: %w", err)
+			}
+			if task, ok := taskMap[taskID]; ok {
+				task.Tags = append(task.Tags, tag)
+			}
+		}
+		if err = tagRows.Err(); err != nil {
+			return nil, fmt.Errorf("error iterating tag rows: %w", err)
+		}
+
+		// Batch load dependencies
+		depRows, err := db.Query(`
+			SELECT task_id, depends_on_id FROM task_dependencies 
+			WHERE task_id IN (`+strings.Join(placeholders, ", ")+`) 
+			ORDER BY task_id, depends_on_id
+		`, args...)
+		if err != nil {
+			return nil, fmt.Errorf("failed to batch query dependencies: %w", err)
+		}
+		defer depRows.Close()
+
+		for depRows.Next() {
+			var taskID, depID string
+			if err := depRows.Scan(&taskID, &depID); err != nil {
+				return nil, fmt.Errorf("failed to scan dependency: %w", err)
+			}
+			if task, ok := taskMap[taskID]; ok {
+				task.Dependencies = append(task.Dependencies, depID)
+			}
+		}
+		if err = depRows.Err(); err != nil {
+			return nil, fmt.Errorf("error iterating dependency rows: %w", err)
+		}
 	}
 
 	if err = rows.Err(); err != nil {
