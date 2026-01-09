@@ -11,6 +11,7 @@ import (
 )
 
 // handleAnalyzeAlignment handles the analyze_alignment tool
+// Uses native Go implementation for "todo2" action, falls back to Python bridge for "prd" and complex analysis
 func handleAnalyzeAlignment(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
 	// Parse arguments
 	var params map[string]interface{}
@@ -18,37 +19,51 @@ func handleAnalyzeAlignment(ctx context.Context, args json.RawMessage) ([]framew
 		return nil, fmt.Errorf("failed to parse arguments: %w", err)
 	}
 
-	// Execute via Python bridge
-	result, err := bridge.ExecutePythonTool(ctx, "analyze_alignment", params)
+	// Try native Go implementation first
+	result, err := handleAnalyzeAlignmentNative(ctx, params)
+	if err == nil {
+		return result, nil
+	}
+
+	// If native implementation doesn't support the action, fall back to Python bridge
+	bridgeResult, err := bridge.ExecutePythonTool(ctx, "analyze_alignment", params)
 	if err != nil {
 		return nil, fmt.Errorf("analyze_alignment failed: %w", err)
 	}
 
 	return []framework.TextContent{
-		{Type: "text", Text: result},
+		{Type: "text", Text: bridgeResult},
 	}, nil
 }
 
 // handleGenerateConfig handles the generate_config tool
+// Uses native Go implementation for "rules" action, falls back to Python bridge for "ignore" and "simplify"
 func handleGenerateConfig(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
-	// Parse arguments
+	// Try native Go implementation first
+	result, err := handleGenerateConfigNative(ctx, args)
+	if err == nil {
+		return result, nil
+	}
+
+	// If native implementation doesn't support the action, fall back to Python bridge
 	var params map[string]interface{}
 	if err := json.Unmarshal(args, &params); err != nil {
 		return nil, fmt.Errorf("failed to parse arguments: %w", err)
 	}
 
 	// Execute via Python bridge
-	result, err := bridge.ExecutePythonTool(ctx, "generate_config", params)
+	bridgeResult, err := bridge.ExecutePythonTool(ctx, "generate_config", params)
 	if err != nil {
 		return nil, fmt.Errorf("generate_config failed: %w", err)
 	}
 
 	return []framework.TextContent{
-		{Type: "text", Text: result},
+		{Type: "text", Text: bridgeResult},
 	}, nil
 }
 
 // handleHealth handles the health tool
+// Uses native Go implementation for "server" action, falls back to Python bridge for others
 func handleHealth(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
 	// Parse arguments
 	var params map[string]interface{}
@@ -56,18 +71,25 @@ func handleHealth(ctx context.Context, args json.RawMessage) ([]framework.TextCo
 		return nil, fmt.Errorf("failed to parse arguments: %w", err)
 	}
 
-	// Execute via Python bridge
-	result, err := bridge.ExecutePythonTool(ctx, "health", params)
+	// Try native Go implementation first
+	result, err := handleHealthNative(ctx, params)
+	if err == nil {
+		return result, nil
+	}
+
+	// If native implementation doesn't support the action, fall back to Python bridge
+	bridgeResult, err := bridge.ExecutePythonTool(ctx, "health", params)
 	if err != nil {
 		return nil, fmt.Errorf("health failed: %w", err)
 	}
 
 	return []framework.TextContent{
-		{Type: "text", Text: result},
+		{Type: "text", Text: bridgeResult},
 	}, nil
 }
 
 // handleSetupHooks handles the setup_hooks tool
+// Uses native Go implementation for "git" action, falls back to Python bridge for "patterns"
 func handleSetupHooks(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
 	// Parse arguments
 	var params map[string]interface{}
@@ -75,18 +97,25 @@ func handleSetupHooks(ctx context.Context, args json.RawMessage) ([]framework.Te
 		return nil, fmt.Errorf("failed to parse arguments: %w", err)
 	}
 
-	// Execute via Python bridge
-	result, err := bridge.ExecutePythonTool(ctx, "setup_hooks", params)
+	// Try native Go implementation first
+	result, err := handleSetupHooksNative(ctx, params)
+	if err == nil {
+		return result, nil
+	}
+
+	// If native implementation doesn't support the action, fall back to Python bridge
+	bridgeResult, err := bridge.ExecutePythonTool(ctx, "setup_hooks", params)
 	if err != nil {
 		return nil, fmt.Errorf("setup_hooks failed: %w", err)
 	}
 
 	return []framework.TextContent{
-		{Type: "text", Text: result},
+		{Type: "text", Text: bridgeResult},
 	}, nil
 }
 
 // handleCheckAttribution handles the check_attribution tool
+// Uses native Go implementation, falls back to Python bridge for complex analysis
 func handleCheckAttribution(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
 	// Parse arguments
 	var params map[string]interface{}
@@ -94,18 +123,25 @@ func handleCheckAttribution(ctx context.Context, args json.RawMessage) ([]framew
 		return nil, fmt.Errorf("failed to parse arguments: %w", err)
 	}
 
-	// Execute via Python bridge
-	result, err := bridge.ExecutePythonTool(ctx, "check_attribution", params)
+	// Try native Go implementation first
+	result, err := handleCheckAttributionNative(ctx, params)
+	if err == nil {
+		return result, nil
+	}
+
+	// If native implementation fails, fall back to Python bridge
+	bridgeResult, err := bridge.ExecutePythonTool(ctx, "check_attribution", params)
 	if err != nil {
 		return nil, fmt.Errorf("check_attribution failed: %w", err)
 	}
 
 	return []framework.TextContent{
-		{Type: "text", Text: result},
+		{Type: "text", Text: bridgeResult},
 	}, nil
 }
 
 // handleAddExternalToolHints handles the add_external_tool_hints tool
+// Uses native Go implementation, falls back to Python bridge for complex analysis
 func handleAddExternalToolHints(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
 	// Parse arguments
 	var params map[string]interface{}
@@ -113,14 +149,20 @@ func handleAddExternalToolHints(ctx context.Context, args json.RawMessage) ([]fr
 		return nil, fmt.Errorf("failed to parse arguments: %w", err)
 	}
 
-	// Execute via Python bridge
-	result, err := bridge.ExecutePythonTool(ctx, "add_external_tool_hints", params)
+	// Try native Go implementation first
+	result, err := handleAddExternalToolHintsNative(ctx, params)
+	if err == nil {
+		return result, nil
+	}
+
+	// If native implementation fails, fall back to Python bridge
+	bridgeResult, err := bridge.ExecutePythonTool(ctx, "add_external_tool_hints", params)
 	if err != nil {
 		return nil, fmt.Errorf("add_external_tool_hints failed: %w", err)
 	}
 
 	return []framework.TextContent{
-		{Type: "text", Text: result},
+		{Type: "text", Text: bridgeResult},
 	}, nil
 }
 
@@ -653,8 +695,12 @@ func handleContext(ctx context.Context, args json.RawMessage) ([]framework.TextC
 		// If native implementation fails, fall through to Python bridge
 
 	case "batch":
-		// Batch action still uses Python bridge (not yet migrated to native Go)
-		// Fall through to Python bridge
+		// Try native Go implementation for batch action
+		result, err := handleContextBatchNative(ctx, params)
+		if err == nil {
+			return result, nil
+		}
+		// If native implementation fails, fall through to Python bridge
 
 	default:
 		// Unknown action, fall through to Python bridge
@@ -689,19 +735,36 @@ func handlePromptTracking(ctx context.Context, args json.RawMessage) ([]framewor
 }
 
 // handleRecommend handles the recommend tool (unified wrapper)
+// Uses native Go implementation for "model" action, falls back to Python bridge for "workflow" and "advisor"
 func handleRecommend(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
 	var params map[string]interface{}
 	if err := json.Unmarshal(args, &params); err != nil {
 		return nil, fmt.Errorf("failed to parse arguments: %w", err)
 	}
 
-	result, err := bridge.ExecutePythonTool(ctx, "recommend", params)
+	// Get action (default: "model")
+	action := "model"
+	if actionRaw, ok := params["action"].(string); ok && actionRaw != "" {
+		action = actionRaw
+	}
+
+	// Try native Go implementation for "model" action
+	if action == "model" {
+		result, err := handleRecommendModelNative(ctx, params)
+		if err == nil {
+			return result, nil
+		}
+		// If native fails, fall through to Python bridge
+	}
+
+	// For "workflow" and "advisor" actions, or if native fails, use Python bridge
+	bridgeResult, err := bridge.ExecutePythonTool(ctx, "recommend", params)
 	if err != nil {
 		return nil, fmt.Errorf("recommend failed: %w", err)
 	}
 
 	return []framework.TextContent{
-		{Type: "text", Text: result},
+		{Type: "text", Text: bridgeResult},
 	}, nil
 }
 
