@@ -1,3 +1,4 @@
+//go:build ignore
 // +build ignore
 
 package main
@@ -144,4 +145,3 @@ func printCriticalPathAnalysis(result map[string]interface{}) {
 
 	fmt.Println()
 }
-
