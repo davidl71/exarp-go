@@ -6,6 +6,16 @@
 
 ## Summary
 
+
+## External Tool Hints
+
+For documentation on external libraries used in this document, use Context7:
+
+- **pytest**: Use `resolve-library-id` then `query-docs` for pytest documentation
+- **junit**: Use `resolve-library-id` then `query-docs` for junit documentation
+
+
+
 **First Run:** Successfully used **7 exarp-go tools** to analyze the exarp-go project.  
 **Second Run (MCP Enabled):** Tested **11 tools** with improved results - **9 successful (81.8%)**, **2 failed (18.2%)**.
 

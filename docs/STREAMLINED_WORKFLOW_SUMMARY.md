@@ -7,6 +7,15 @@
 
 ## What Was Created
 
+
+## External Tool Hints
+
+For documentation on external libraries used in this document, use Context7:
+
+- **pytest**: Use `resolve-library-id` then `query-docs` for pytest documentation
+
+
+
 ### 1. Comprehensive Makefile ✅
 
 **Location:** `Makefile`

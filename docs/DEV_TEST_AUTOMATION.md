@@ -7,6 +7,15 @@
 
 ## Overview
 
+
+## External Tool Hints
+
+For documentation on external libraries used in this document, use Context7:
+
+- **pytest**: Use `resolve-library-id` then `query-docs` for pytest documentation
+
+
+
 This document describes the automated development and testing workflow that eliminates the need for manual prompting during development. The system provides:
 
 1. **Auto-reload** - Server automatically restarts on file changes

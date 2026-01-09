@@ -72,10 +72,14 @@ func getToolCatalog() map[string]ToolCatalogEntry {
 		},
 		"task_workflow": {
 			Tool:             "task_workflow",
-			Hint:             "Task workflow. action=sync|approve|clarify|clarity|cleanup. Manage task lifecycle.",
+			Hint:             "Task workflow. action=sync|approve|clarify|clarity|cleanup. Manage task lifecycle. ⚠️ CRITICAL: ALWAYS use this tool for task updates - NEVER edit .todo2/state.todo2.json directly.",
 			Category:         "Task Management",
-			Description:      "Manages task workflow: sync, approve, clarify, and cleanup operations",
+			Description:      "Manages task workflow: sync, approve, clarify, and cleanup operations. Use action=approve with task_ids for batch status updates. Automatically calculates actualHours, normalizes status, and tracks history.",
 			RecommendedModel: "claude-haiku",
+			Examples: []string{
+				"Batch update tasks to Done: task_workflow(action=\"approve\", status=\"Todo\", new_status=\"Done\", task_ids='[\"T-0\", \"T-1\"]')",
+				"Never edit .todo2/state.todo2.json directly - use this tool instead",
+			},
 		},
 
 		// Code Quality

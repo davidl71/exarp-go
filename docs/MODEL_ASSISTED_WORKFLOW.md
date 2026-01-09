@@ -8,6 +8,15 @@
 
 ## Executive Summary
 
+
+## External Tool Hints
+
+For documentation on external libraries used in this document, use Context7:
+
+- **cloud**: Use `resolve-library-id` then `query-docs` for cloud documentation
+
+
+
 This document outlines how to use local LLM models (CodeLlama via MLX, Ollama models) to enhance the Todo2 workflow by:
 1. **Task Breakdown** - Decomposing complex tasks into manageable subtasks
 2. **Easy Task Execution** - Automating routine/simple tasks using local models

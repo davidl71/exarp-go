@@ -5,6 +5,15 @@
 
 ## Summary
 
+
+## External Tool Hints
+
+For documentation on external libraries used in this document, use Context7:
+
+- **pytest**: Use `resolve-library-id` then `query-docs` for pytest documentation
+
+
+
 Based on the Python code audit, here's what can be safely deleted:
 
 ## ✅ SAFE TO DELETE IMMEDIATELY

@@ -34,6 +34,8 @@ func RegisterAllPrompts(server framework.MCPServer) error {
 		// mcp-generic-tools prompts
 		{"context", "Manage LLM context with summarization and budget tools."},
 		{"mode", "Suggest optimal Cursor IDE mode (Agent vs Ask) for a task."},
+		// Task management prompts
+		{"task_update", "Update Todo2 task status using proper MCP tools - never edit JSON directly."},
 	}
 
 	for _, p := range prompts {

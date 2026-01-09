@@ -7,6 +7,15 @@
 
 ## Apple Foundation Models Capabilities
 
+
+## External Tool Hints
+
+For documentation on external libraries used in this document, use Context7:
+
+- **rails**: Use `resolve-library-id` then `query-docs` for rails documentation
+
+
+
 Based on the implementation (`internal/tools/apple_foundation.go`), Apple Foundation Models supports:
 
 1. **Text Generation** (`action=generate|respond`)

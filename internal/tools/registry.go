@@ -564,7 +564,7 @@ func registerBatch2Tools(server framework.MCPServer) error {
 	// T-34: task_workflow
 	if err := server.RegisterTool(
 		"task_workflow",
-		"[HINT: Task workflow. action=sync|approve|clarify|clarity|cleanup. Manage task lifecycle.]",
+		"[HINT: Task workflow. action=sync|approve|clarify|clarity|cleanup. Manage task lifecycle. ⚠️ CRITICAL: ALWAYS use this tool for task updates - NEVER edit .todo2/state.todo2.json directly. Use action=approve with task_ids for batch updates.]",
 		framework.ToolSchema{
 			Type: "object",
 			Properties: map[string]interface{}{

@@ -18,7 +18,9 @@ func main() {
 	}
 	projectRoot := filepath.Clean(wd)
 
-	scorecard, err := tools.GenerateGoScorecard(ctx, projectRoot)
+	// Use fast mode by default for CLI (skip expensive operations)
+	opts := &tools.ScorecardOptions{FastMode: true}
+	scorecard, err := tools.GenerateGoScorecard(ctx, projectRoot, opts)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		os.Exit(1)
