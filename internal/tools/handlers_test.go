@@ -26,15 +26,15 @@ func TestHandler_ArgumentParsing(t *testing.T) {
 			wantError: true, // Will fail without Python bridge, but we test parsing
 		},
 		{
-			name:    "empty args",
-			handler: handleAnalyzeAlignment,
-			args:    map[string]interface{}{},
+			name:      "empty args",
+			handler:   handleAnalyzeAlignment,
+			args:      map[string]interface{}{},
 			wantError: true, // Will fail without Python bridge, but we test parsing
 		},
 		{
-			name:    "invalid JSON",
-			handler: handleAnalyzeAlignment,
-			args:    nil,
+			name:      "invalid JSON",
+			handler:   handleAnalyzeAlignment,
+			args:      nil,
 			wantError: true,
 		},
 	}
@@ -118,4 +118,231 @@ func TestHandler_ContextCancellation(t *testing.T) {
 		// Error is expected when context is cancelled
 		// (Python bridge will fail or timeout)
 	}
+}
+
+func TestHandleServerStatus(t *testing.T) {
+	ctx := context.Background()
+
+	tests := []struct {
+		name    string
+		args    json.RawMessage
+		wantErr bool
+		check   func(t *testing.T, result []framework.TextContent)
+	}{
+		{
+			name:    "empty args",
+			args:    json.RawMessage(`{}`),
+			wantErr: false,
+			check: func(t *testing.T, result []framework.TextContent) {
+				if len(result) == 0 {
+					t.Error("expected non-empty result")
+					return
+				}
+				text := result[0].Text
+				// Check that response contains expected fields
+				if !hasSubstring(text, "status") {
+					t.Error("expected 'status' field in response")
+				}
+				if !hasSubstring(text, "operational") {
+					t.Error("expected 'operational' status")
+				}
+				if !hasSubstring(text, "version") {
+					t.Error("expected 'version' field in response")
+				}
+			},
+		},
+		{
+			name:    "no args",
+			args:    json.RawMessage(`null`),
+			wantErr: false,
+			check: func(t *testing.T, result []framework.TextContent) {
+				if len(result) == 0 {
+					t.Error("expected non-empty result")
+				}
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result, err := handleServerStatus(ctx, tt.args)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("handleServerStatus() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !tt.wantErr && tt.check != nil {
+				tt.check(t, result)
+			}
+		})
+	}
+}
+
+func TestHandleToolCatalog(t *testing.T) {
+	ctx := context.Background()
+
+	tests := []struct {
+		name    string
+		args    map[string]interface{}
+		wantErr bool
+		check   func(t *testing.T, result []framework.TextContent)
+	}{
+		{
+			name: "list action - no filters",
+			args: map[string]interface{}{
+				"action": "list",
+			},
+			wantErr: false,
+			check: func(t *testing.T, result []framework.TextContent) {
+				if len(result) == 0 {
+					t.Error("expected non-empty result")
+					return
+				}
+				text := result[0].Text
+				if !hasSubstring(text, "tools") {
+					t.Error("expected 'tools' field in response")
+				}
+				if !hasSubstring(text, "count") {
+					t.Error("expected 'count' field in response")
+				}
+			},
+		},
+		{
+			name: "list action - with category filter",
+			args: map[string]interface{}{
+				"action":   "list",
+				"category": "Task Management",
+			},
+			wantErr: false,
+			check: func(t *testing.T, result []framework.TextContent) {
+				if len(result) == 0 {
+					t.Error("expected non-empty result")
+				}
+			},
+		},
+		{
+			name: "help action - valid tool",
+			args: map[string]interface{}{
+				"action":    "help",
+				"tool_name": "tool_catalog",
+			},
+			wantErr: false,
+			check: func(t *testing.T, result []framework.TextContent) {
+				if len(result) == 0 {
+					t.Error("expected non-empty result")
+					return
+				}
+				text := result[0].Text
+				if !hasSubstring(text, "tool") {
+					t.Error("expected 'tool' field in response")
+				}
+				if !hasSubstring(text, "description") {
+					t.Error("expected 'description' field in response")
+				}
+			},
+		},
+		{
+			name: "help action - missing tool_name",
+			args: map[string]interface{}{
+				"action": "help",
+			},
+			wantErr: false,
+			check: func(t *testing.T, result []framework.TextContent) {
+				if len(result) == 0 {
+					t.Error("expected non-empty result")
+					return
+				}
+				text := result[0].Text
+				if !hasSubstring(text, "error") {
+					t.Error("expected error in response")
+				}
+			},
+		},
+		{
+			name: "help action - invalid tool",
+			args: map[string]interface{}{
+				"action":    "help",
+				"tool_name": "nonexistent_tool",
+			},
+			wantErr: false,
+			check: func(t *testing.T, result []framework.TextContent) {
+				if len(result) == 0 {
+					t.Error("expected non-empty result")
+					return
+				}
+				text := result[0].Text
+				if !hasSubstring(text, "error") {
+					t.Error("expected error in response")
+				}
+			},
+		},
+		{
+			name: "invalid action",
+			args: map[string]interface{}{
+				"action": "invalid",
+			},
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			argsJSON, err := json.Marshal(tt.args)
+			if err != nil {
+				t.Fatalf("json.Marshal() error = %v", err)
+			}
+
+			result, err := handleToolCatalog(ctx, argsJSON)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("handleToolCatalog() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !tt.wantErr && tt.check != nil {
+				tt.check(t, result)
+			}
+		})
+	}
+}
+
+func TestHandleServerStatusNative(t *testing.T) {
+	ctx := context.Background()
+
+	result, err := handleServerStatusNative(ctx, json.RawMessage(`{}`))
+	if err != nil {
+		t.Fatalf("handleServerStatusNative() error = %v", err)
+	}
+
+	if len(result) == 0 {
+		t.Fatal("expected non-empty result")
+	}
+
+	text := result[0].Text
+	// Verify JSON structure
+	var status map[string]interface{}
+	if err := json.Unmarshal([]byte(text), &status); err != nil {
+		t.Fatalf("failed to unmarshal response: %v", err)
+	}
+
+	// Check required fields
+	if status["status"] != "operational" {
+		t.Errorf("expected status 'operational', got %v", status["status"])
+	}
+	if status["version"] != "0.1.0" {
+		t.Errorf("expected version '0.1.0', got %v", status["version"])
+	}
+	if _, ok := status["project_root"]; !ok {
+		t.Error("expected 'project_root' field")
+	}
+	if _, ok := status["tools_available"]; !ok {
+		t.Error("expected 'tools_available' field")
+	}
+}
+
+// hasSubstring checks if a string contains a substring (case-sensitive)
+func hasSubstring(s, substr string) bool {
+	for i := 0; i <= len(s)-len(substr); i++ {
+		if s[i:i+len(substr)] == substr {
+			return true
+		}
+	}
+	return false
 }

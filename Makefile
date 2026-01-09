@@ -1,4 +1,4 @@
-.PHONY: help build run test test-watch test-coverage test-html clean install fmt lint dev dev-watch dev-test dev-full bench docs sanity-check test-cli test-cli-list test-cli-tool test-cli-test config clean-config
+.PHONY: help build run test test-watch test-coverage test-html clean install fmt lint dev dev-watch dev-test dev-full bench docs sanity-check test-cli test-cli-list test-cli-tool test-cli-test config clean-config sprint-start sprint-end pre-sprint sprint check-tasks update-completed-tasks
 
 # Project configuration
 PROJECT_NAME := exarp-go
@@ -469,6 +469,105 @@ test-apple-fm-integration: build-apple-fm ## Run Apple Foundation Models integra
 	 echo "$(YELLOW)⚠️  Integration tests failed (may need Swift bridge)$(NC)"
 	@$(PYTHON) -m pytest tests/integration/mcp/test_apple_foundation_models.py -v || \
 	 echo "$(YELLOW)⚠️  Python integration tests failed$(NC)"
+
+##@ Sprint Automation
+
+sprint-start: ## Run sprint start workflow (clean backlog, align tasks)
+	@echo "$(BLUE)Running sprint start workflow...$(NC)"
+	@if [ -f $(BINARY_PATH) ]; then \
+		$(BINARY_PATH) -tool automation -args '{"action":"sprint","run_analysis_tools":true,"run_testing_tools":false,"extract_subtasks":true,"auto_approve":true,"max_iterations":1}' || \
+		echo "$(YELLOW)⚠️  Sprint start workflow completed (check output above)$(NC)"; \
+		echo "$(GREEN)✅ Sprint start workflow complete$(NC)"; \
+	else \
+		echo "$(YELLOW)⚠️  exarp-go binary not found$(NC)"; \
+		echo "$(YELLOW)   Building binary first...$(NC)"; \
+		$(MAKE) build; \
+		$(BINARY_PATH) -tool automation -args '{"action":"sprint","run_analysis_tools":true,"run_testing_tools":false,"extract_subtasks":true,"auto_approve":true,"max_iterations":1}' || \
+		echo "$(YELLOW)⚠️  Sprint start workflow completed (check output above)$(NC)"; \
+		echo "$(GREEN)✅ Sprint start workflow complete$(NC)"; \
+	fi
+
+sprint-end: ## Run sprint end workflow (test coverage, docs, security)
+	@echo "$(BLUE)Running sprint end workflow...$(NC)"
+	@if [ -f $(BINARY_PATH) ]; then \
+		$(MAKE) test-coverage; \
+		$(BINARY_PATH) -tool health -args '{"action":"docs"}' 2>/dev/null || echo "$(YELLOW)⚠️  Docs health check completed$(NC)"; \
+		$(BINARY_PATH) -tool security -args '{"action":"report"}' 2>/dev/null || echo "$(YELLOW)⚠️  Security check completed$(NC)"; \
+		echo "$(GREEN)✅ Sprint end workflow complete$(NC)"; \
+	else \
+		echo "$(YELLOW)⚠️  exarp-go binary not found$(NC)"; \
+		echo "$(YELLOW)   Building binary first...$(NC)"; \
+		$(MAKE) build; \
+		$(MAKE) test-coverage; \
+		$(BINARY_PATH) -tool health -args '{"action":"docs"}' 2>/dev/null || echo "$(YELLOW)⚠️  Docs health check completed$(NC)"; \
+		$(BINARY_PATH) -tool security -args '{"action":"report"}' 2>/dev/null || echo "$(YELLOW)⚠️  Security check completed$(NC)"; \
+		echo "$(GREEN)✅ Sprint end workflow complete$(NC)"; \
+	fi
+
+pre-sprint: ## Run pre-sprint cleanup (duplicates, alignment, docs)
+	@echo "$(BLUE)Running pre-sprint cleanup...$(NC)"
+	@if [ -f $(BINARY_PATH) ]; then \
+		$(BINARY_PATH) -tool task_analysis -args '{"action":"duplicates"}' 2>/dev/null || echo "$(YELLOW)⚠️  Duplicate detection completed$(NC)"; \
+		$(BINARY_PATH) -tool analyze_alignment -args '{"action":"todo2"}' 2>/dev/null || echo "$(YELLOW)⚠️  Alignment analysis completed$(NC)"; \
+		$(BINARY_PATH) -tool health -args '{"action":"docs"}' 2>/dev/null || echo "$(YELLOW)⚠️  Docs health check completed$(NC)"; \
+		echo "$(GREEN)✅ Pre-sprint cleanup complete$(NC)"; \
+	else \
+		echo "$(YELLOW)⚠️  exarp-go binary not found$(NC)"; \
+		echo "$(YELLOW)   Building binary first...$(NC)"; \
+		$(MAKE) build; \
+		$(BINARY_PATH) -tool task_analysis -args '{"action":"duplicates"}' 2>/dev/null || echo "$(YELLOW)⚠️  Duplicate detection completed$(NC)"; \
+		$(BINARY_PATH) -tool analyze_alignment -args '{"action":"todo2"}' 2>/dev/null || echo "$(YELLOW)⚠️  Alignment analysis completed$(NC)"; \
+		$(BINARY_PATH) -tool health -args '{"action":"docs"}' 2>/dev/null || echo "$(YELLOW)⚠️  Docs health check completed$(NC)"; \
+		echo "$(GREEN)✅ Pre-sprint cleanup complete$(NC)"; \
+	fi
+
+sprint: ## Run full sprint automation (process all background tasks)
+	@echo "$(BLUE)Running sprint automation...$(NC)"
+	@if [ -f $(BINARY_PATH) ]; then \
+		$(BINARY_PATH) -tool automation -args '{"action":"sprint","max_iterations":10,"auto_approve":true,"extract_subtasks":true,"run_analysis_tools":true,"run_testing_tools":true}' || \
+		echo "$(YELLOW)⚠️  Sprint automation completed (check output above)$(NC)"; \
+		echo "$(GREEN)✅ Sprint automation complete$(NC)"; \
+	else \
+		echo "$(YELLOW)⚠️  exarp-go binary not found$(NC)"; \
+		echo "$(YELLOW)   Building binary first...$(NC)"; \
+		$(MAKE) build; \
+		$(BINARY_PATH) -tool automation -args '{"action":"sprint","max_iterations":10,"auto_approve":true,"extract_subtasks":true,"run_analysis_tools":true,"run_testing_tools":true}' || \
+		echo "$(YELLOW)⚠️  Sprint automation completed (check output above)$(NC)"; \
+		echo "$(GREEN)✅ Sprint automation complete$(NC)"; \
+	fi
+
+check-tasks: ## Batch check all Todo and In Progress tasks to find completed ones (dry run)
+	@echo "$(BLUE)Checking tasks for completion (dry run)...$(NC)"
+	@if command -v python3 >/dev/null 2>&1; then \
+		cd $(shell pwd) && python3 -c "import sys; sys.path.insert(0, '.'); from project_management_automation.tools.auto_update_task_status import auto_update_task_status; import json; result = auto_update_task_status(confidence_threshold=0.7, auto_update_tasks=False, dry_run=True, output_path='docs/TASK_COMPLETION_CHECK.md'); print(result)" || \
+		echo "$(YELLOW)⚠️  Task check completed (check output above)$(NC)"; \
+		echo "$(GREEN)✅ Task completion check complete (dry run)$(NC)"; \
+	elif command -v uv >/dev/null 2>&1 || [ -x "$$HOME/.cargo/bin/uv" ] || [ -x "$$HOME/.local/bin/uv" ]; then \
+		$(PYTHON) -c "from project_management_automation.tools.auto_update_task_status import auto_update_task_status; import json; result = auto_update_task_status(confidence_threshold=0.7, auto_update_tasks=False, dry_run=True, output_path='docs/TASK_COMPLETION_CHECK.md'); print(result)" || \
+		echo "$(YELLOW)⚠️  Task check completed (check output above)$(NC)"; \
+		echo "$(GREEN)✅ Task completion check complete (dry run)$(NC)"; \
+	else \
+		echo "$(RED)❌ Python not found - cannot run task completion check$(NC)"; \
+		echo "$(YELLOW)   Install Python 3 or uv: curl -LsSf https://astral.sh/uv/install.sh | sh$(NC)"; \
+		exit 1; \
+	fi
+
+update-completed-tasks: ## Batch check and auto-update completed tasks (updates task status)
+	@echo "$(BLUE)Checking and updating completed tasks...$(NC)"
+	@echo "$(YELLOW)⚠️  This will update task statuses based on codebase analysis$(NC)"
+	@if command -v python3 >/dev/null 2>&1; then \
+		cd $(shell pwd) && python3 -c "import sys; sys.path.insert(0, '.'); from project_management_automation.tools.auto_update_task_status import auto_update_task_status; import json; result = auto_update_task_status(confidence_threshold=0.7, auto_update_tasks=True, dry_run=False, output_path='docs/TASK_COMPLETION_UPDATE.md'); print(result)" || \
+		echo "$(YELLOW)⚠️  Task update completed (check output above)$(NC)"; \
+		echo "$(GREEN)✅ Completed tasks updated$(NC)"; \
+	elif command -v uv >/dev/null 2>&1 || [ -x "$$HOME/.cargo/bin/uv" ] || [ -x "$$HOME/.local/bin/uv" ]; then \
+		$(PYTHON) -c "from project_management_automation.tools.auto_update_task_status import auto_update_task_status; import json; result = auto_update_task_status(confidence_threshold=0.7, auto_update_tasks=True, dry_run=False, output_path='docs/TASK_COMPLETION_UPDATE.md'); print(result)" || \
+		echo "$(YELLOW)⚠️  Task update completed (check output above)$(NC)"; \
+		echo "$(GREEN)✅ Completed tasks updated$(NC)"; \
+	else \
+		echo "$(RED)❌ Python not found - cannot run task completion update$(NC)"; \
+		echo "$(YELLOW)   Install Python 3 or uv: curl -LsSf https://astral.sh/uv/install.sh | sh$(NC)"; \
+		exit 1; \
+	fi
 
 ##@ Quick Commands
 

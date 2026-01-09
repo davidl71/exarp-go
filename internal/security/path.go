@@ -125,4 +125,3 @@ func GetProjectRoot(startPath string) (string, error) {
 		currentPath = parent
 	}
 }
-

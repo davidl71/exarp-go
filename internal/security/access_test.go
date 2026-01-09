@@ -126,4 +126,3 @@ func TestCheckResourceAccess(t *testing.T) {
 		t.Error("Should deny after explicit denial")
 	}
 }
-

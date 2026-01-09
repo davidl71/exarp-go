@@ -25,11 +25,11 @@ type LintResult struct {
 
 // LintError represents a single linting error
 type LintError struct {
-	File    string `json:"file"`
-	Line    int    `json:"line,omitempty"`
-	Column  int    `json:"column,omitempty"`
-	Message string `json:"message"`
-	Rule    string `json:"rule,omitempty"`
+	File     string `json:"file"`
+	Line     int    `json:"line,omitempty"`
+	Column   int    `json:"column,omitempty"`
+	Message  string `json:"message"`
+	Rule     string `json:"rule,omitempty"`
 	Severity string `json:"severity,omitempty"`
 }
 
@@ -103,7 +103,7 @@ func runGolangciLint(ctx context.Context, path string, fix bool) (*LintResult, e
 			Output:  "golangci-lint not found. Install it from https://golangci-lint.run/",
 			Errors: []LintError{
 				{
-					Message: "golangci-lint binary not found in PATH",
+					Message:  "golangci-lint binary not found in PATH",
 					Severity: "error",
 				},
 			},
@@ -113,14 +113,14 @@ func runGolangciLint(ctx context.Context, path string, fix bool) (*LintResult, e
 	// Find project root - prefer PROJECT_ROOT env var, then look for go.mod
 	var projectRoot string
 	var absPath string
-	
+
 	// Try PROJECT_ROOT environment variable first (set by MCP server)
 	if envRoot := os.Getenv("PROJECT_ROOT"); envRoot != "" {
 		if _, err := os.Stat(filepath.Join(envRoot, "go.mod")); err == nil {
 			projectRoot = envRoot
 		}
 	}
-	
+
 	// If PROJECT_ROOT not set or invalid, find by walking up from path
 	if projectRoot == "" {
 		// Convert path to absolute
@@ -135,7 +135,7 @@ func runGolangciLint(ctx context.Context, path string, fix bool) (*LintResult, e
 				absPath = filepath.Join(wd, path)
 			}
 		}
-		
+
 		// Walk up from the path to find go.mod
 		currentPath := absPath
 		for {
@@ -169,7 +169,7 @@ func runGolangciLint(ctx context.Context, path string, fix bool) (*LintResult, e
 	if fix {
 		args = append(args, "--fix")
 	}
-	
+
 	// Get relative path from project root
 	relPath, err := filepath.Rel(projectRoot, absPath)
 	if err != nil {
@@ -207,7 +207,7 @@ func runGolangciLint(ctx context.Context, path string, fix bool) (*LintResult, e
 			Output:  outputStr,
 			Errors: []LintError{
 				{
-					Message: fmt.Sprintf("golangci-lint execution failed: %v", err),
+					Message:  fmt.Sprintf("golangci-lint execution failed: %v", err),
 					Severity: "error",
 				},
 			},
@@ -216,10 +216,10 @@ func runGolangciLint(ctx context.Context, path string, fix bool) (*LintResult, e
 
 	// Parse JSON output
 	var issues []struct {
-		FromLinter string `json:"FromLinter"`
-		Text       string `json:"Text"`
+		FromLinter  string   `json:"FromLinter"`
+		Text        string   `json:"Text"`
 		SourceLines []string `json:"SourceLines,omitempty"`
-		Pos        struct {
+		Pos         struct {
 			Filename string `json:"Filename"`
 			Offset   int    `json:"Offset"`
 			Line     int    `json:"Line"`
@@ -247,7 +247,7 @@ func runGolangciLint(ctx context.Context, path string, fix bool) (*LintResult, e
 			for _, line := range lines {
 				if strings.TrimSpace(line) != "" {
 					lintErrors = append(lintErrors, LintError{
-						Message: line,
+						Message:  line,
 						Severity: "warning",
 					})
 				}
@@ -275,7 +275,7 @@ func runGoVet(ctx context.Context, path string) (*LintResult, error) {
 			Output:  "go command not found. Go must be installed.",
 			Errors: []LintError{
 				{
-					Message: "go binary not found in PATH",
+					Message:  "go binary not found in PATH",
 					Severity: "error",
 				},
 			},
@@ -335,7 +335,7 @@ func runGoVet(ctx context.Context, path string) (*LintResult, error) {
 	// go vet returns non-zero exit code when issues are found
 	success := err == nil
 	var lintErrors []LintError
-	
+
 	if !success && outputStr != "" {
 		// Parse go vet output (format: filename:line:column: message)
 		lines := strings.Split(strings.TrimSpace(outputStr), "\n")
@@ -344,7 +344,7 @@ func runGoVet(ctx context.Context, path string) (*LintResult, error) {
 			if line == "" {
 				continue
 			}
-			
+
 			// Try to parse go vet format
 			parts := strings.SplitN(line, ":", 4)
 			if len(parts) >= 4 {
@@ -380,7 +380,7 @@ func runGofmt(ctx context.Context, path string, fix bool) (*LintResult, error) {
 			Output:  "gofmt not found. Go must be installed.",
 			Errors: []LintError{
 				{
-					Message: "gofmt binary not found in PATH",
+					Message:  "gofmt binary not found in PATH",
 					Severity: "error",
 				},
 			},
@@ -408,7 +408,7 @@ func runGofmt(ctx context.Context, path string, fix bool) (*LintResult, error) {
 	if fix {
 		args = []string{"-w"}
 	}
-	
+
 	// Add path
 	if relPath != "." && relPath != "" {
 		args = append(args, relPath)
@@ -425,7 +425,7 @@ func runGofmt(ctx context.Context, path string, fix bool) (*LintResult, error) {
 	// gofmt returns non-zero exit code when formatting issues are found
 	success := err == nil && (outputStr == "" || !strings.Contains(outputStr, "diff"))
 	var lintErrors []LintError
-	
+
 	if !success && outputStr != "" {
 		// Parse gofmt diff output
 		lines := strings.Split(strings.TrimSpace(outputStr), "\n")
@@ -434,11 +434,11 @@ func runGofmt(ctx context.Context, path string, fix bool) (*LintResult, error) {
 			if line == "" || strings.HasPrefix(line, "diff ") {
 				continue
 			}
-			
+
 			if strings.HasPrefix(line, "---") || strings.HasPrefix(line, "+++") {
 				continue
 			}
-			
+
 			if strings.HasPrefix(line, "@@") {
 				// Extract file and line info
 				parts := strings.Fields(line)
@@ -477,7 +477,7 @@ func runGoimports(ctx context.Context, path string, fix bool) (*LintResult, erro
 			Output:  "goimports not found. Install it with: go install golang.org/x/tools/cmd/goimports@latest",
 			Errors: []LintError{
 				{
-					Message: "goimports binary not found in PATH",
+					Message:  "goimports binary not found in PATH",
 					Severity: "error",
 				},
 			},
@@ -505,7 +505,7 @@ func runGoimports(ctx context.Context, path string, fix bool) (*LintResult, erro
 	if fix {
 		args = []string{"-w"}
 	}
-	
+
 	// Add path
 	if relPath != "." && relPath != "" {
 		args = append(args, relPath)
@@ -522,7 +522,7 @@ func runGoimports(ctx context.Context, path string, fix bool) (*LintResult, erro
 	// goimports returns non-zero exit code when import issues are found
 	success := err == nil && (outputStr == "" || !strings.Contains(outputStr, "diff"))
 	var lintErrors []LintError
-	
+
 	if !success && outputStr != "" {
 		// Parse goimports diff output (similar to gofmt)
 		lines := strings.Split(strings.TrimSpace(outputStr), "\n")
@@ -531,11 +531,11 @@ func runGoimports(ctx context.Context, path string, fix bool) (*LintResult, erro
 			if line == "" || strings.HasPrefix(line, "diff ") {
 				continue
 			}
-			
+
 			if strings.HasPrefix(line, "---") || strings.HasPrefix(line, "+++") {
 				continue
 			}
-			
+
 			if strings.HasPrefix(line, "@@") {
 				parts := strings.Fields(line)
 				if len(parts) > 0 {
@@ -606,7 +606,7 @@ func runMarkdownlint(ctx context.Context, path string, fix bool) (*LintResult, e
 					Output:  "No markdown linter found. Install gomarklint with: go install github.com/shinagawa-web/gomarklint@latest",
 					Errors: []LintError{
 						{
-							Message: "markdown linter binary not found in PATH",
+							Message:  "markdown linter binary not found in PATH",
 							Severity: "error",
 						},
 					},
@@ -634,7 +634,7 @@ func runMarkdownlint(ctx context.Context, path string, fix bool) (*LintResult, e
 	// Determine if path is a directory or file
 	info, err := os.Stat(absPath)
 	isDir := err == nil && info != nil && info.IsDir()
-	
+
 	// Exclude archive directory from linting
 	if strings.Contains(absPath, "/archive/") || strings.Contains(relPath, "/archive/") {
 		return &LintResult{
@@ -648,7 +648,7 @@ func runMarkdownlint(ctx context.Context, path string, fix bool) (*LintResult, e
 	// Build command - use JSON output for gomarklint, text for others
 	args := []string{}
 	useJSON := false
-	
+
 	if markdownlintCmd == "gomarklint" {
 		// Use gomarklint with JSON output
 		args = append(args, "--output=json")
@@ -659,7 +659,7 @@ func runMarkdownlint(ctx context.Context, path string, fix bool) (*LintResult, e
 			args = append(args, "--fix")
 		}
 	}
-	
+
 	// relPath already calculated above for archive check
 
 	// Add path(s) - all tools support files and directories
@@ -684,7 +684,7 @@ func runMarkdownlint(ctx context.Context, path string, fix bool) (*LintResult, e
 	// All markdown linters return non-zero exit code when issues are found
 	success := err == nil
 	var lintErrors []LintError
-	
+
 	if !success && outputStr != "" {
 		if useJSON {
 			// Parse gomarklint JSON output
@@ -698,7 +698,7 @@ func runMarkdownlint(ctx context.Context, path string, fix bool) (*LintResult, e
 					Rule    string `json:"Rule,omitempty"`
 				} `json:"details"`
 			}
-			
+
 			if err := json.Unmarshal(output, &jsonOutput); err == nil {
 				// Successfully parsed JSON - iterate through files
 				for fileName, issues := range jsonOutput.Details {
@@ -740,7 +740,7 @@ func parseTextOutput(outputStr string, lintErrors *[]LintError) {
 		if line == "" {
 			continue
 		}
-		
+
 		// Parse format: path:line:column rule message
 		// Example: docs/README.md:5:10 MD001/heading-increment Heading levels should only increment by one level at a time
 		parts := strings.SplitN(line, ":", 3)
@@ -748,12 +748,12 @@ func parseTextOutput(outputStr string, lintErrors *[]LintError) {
 			file := parts[0]
 			lineCol := strings.Fields(parts[1])
 			message := parts[2]
-			
+
 			lineNum := 0
 			if len(lineCol) > 0 {
 				fmt.Sscanf(lineCol[0], "%d", &lineNum)
 			}
-			
+
 			// Extract rule name if present
 			rule := ""
 			messageParts := strings.Fields(message)
@@ -761,7 +761,7 @@ func parseTextOutput(outputStr string, lintErrors *[]LintError) {
 				rule = messageParts[0]
 				message = strings.Join(messageParts[1:], " ")
 			}
-			
+
 			*lintErrors = append(*lintErrors, LintError{
 				File:     file,
 				Line:     lineNum,
@@ -793,7 +793,7 @@ func runShellcheck(ctx context.Context, path string, fix bool) (*LintResult, err
 				Output:  "No shell linter found. Install shellcheck with: brew install shellcheck or apt-get install shellcheck",
 				Errors: []LintError{
 					{
-						Message: "shell linter binary not found in PATH",
+						Message:  "shell linter binary not found in PATH",
 						Severity: "error",
 					},
 				},
@@ -829,7 +829,7 @@ func runShellcheck(ctx context.Context, path string, fix bool) (*LintResult, err
 		// shellcheck doesn't have --fix, but we can note it
 		// For actual fixing, would need shfmt
 	}
-	
+
 	// Add path(s) - shellcheck supports files and directories
 	if isDir {
 		// For directories, find all .sh files
@@ -848,21 +848,21 @@ func runShellcheck(ctx context.Context, path string, fix bool) (*LintResult, err
 	// So we parse JSON regardless of exit code
 	var lintErrors []LintError
 	success := true // Will be set to false if we find errors
-	
+
 	if outputStr != "" {
 		// Parse shellcheck JSON output
 		// Format: [{"file":"path","line":N,"column":M,"level":"error|warning|info|style","code":2001,"message":"..."}]
 		var jsonOutput []struct {
-			File     string `json:"file"`
-			Line     int    `json:"line"`
-			EndLine  int    `json:"endLine,omitempty"`
-			Column   int    `json:"column"`
-			EndColumn int   `json:"endColumn,omitempty"`
-			Level    string `json:"level"`
-			Code     int    `json:"code"`
-			Message  string `json:"message"`
+			File      string `json:"file"`
+			Line      int    `json:"line"`
+			EndLine   int    `json:"endLine,omitempty"`
+			Column    int    `json:"column"`
+			EndColumn int    `json:"endColumn,omitempty"`
+			Level     string `json:"level"`
+			Code      int    `json:"code"`
+			Message   string `json:"message"`
 		}
-		
+
 		if err := json.Unmarshal(output, &jsonOutput); err == nil && len(jsonOutput) > 0 {
 			// Successfully parsed JSON
 			success = false // Found issues
@@ -875,10 +875,10 @@ func runShellcheck(ctx context.Context, path string, fix bool) (*LintResult, err
 				} else if issue.Level == "style" {
 					severity = "warning"
 				}
-				
+
 				// Convert code number to SC#### format
 				code := fmt.Sprintf("SC%d", issue.Code)
-				
+
 				lintErrors = append(lintErrors, LintError{
 					File:     issue.File,
 					Line:     issue.Line,
@@ -916,7 +916,7 @@ func runShfmt(ctx context.Context, path string, fix bool) (*LintResult, error) {
 			Output:  "shfmt not found. Install with: go install mvdan.cc/sh/v3/cmd/shfmt@latest",
 			Errors: []LintError{
 				{
-					Message: "shfmt binary not found in PATH",
+					Message:  "shfmt binary not found in PATH",
 					Severity: "error",
 				},
 			},
@@ -926,7 +926,7 @@ func runShfmt(ctx context.Context, path string, fix bool) (*LintResult, error) {
 	// Find project root
 	var projectRoot string
 	var absPath string
-	
+
 	if filepath.IsAbs(path) {
 		absPath = path
 	} else {
@@ -937,7 +937,7 @@ func runShfmt(ctx context.Context, path string, fix bool) (*LintResult, error) {
 			absPath = filepath.Join(wd, path)
 		}
 	}
-	
+
 	// Walk up to find project root
 	currentPath := absPath
 	info, err := os.Stat(absPath)
@@ -980,7 +980,7 @@ func runShfmt(ctx context.Context, path string, fix bool) (*LintResult, error) {
 	// shfmt returns non-zero if file needs formatting or has syntax errors
 	success := err == nil
 	var lintErrors []LintError
-	
+
 	if !success && outputStr != "" {
 		// Parse shfmt output (diff format or error messages)
 		lines := strings.Split(strings.TrimSpace(outputStr), "\n")
@@ -989,7 +989,7 @@ func runShfmt(ctx context.Context, path string, fix bool) (*LintResult, error) {
 			if line == "" {
 				continue
 			}
-			
+
 			// Check for syntax errors
 			if strings.Contains(line, "syntax error") || strings.Contains(line, "parse error") {
 				lintErrors = append(lintErrors, LintError{
@@ -1025,7 +1025,7 @@ func parseShellcheckTextOutput(outputStr string, lintErrors *[]LintError) {
 		if line == "" {
 			continue
 		}
-		
+
 		// Parse format: In path line N: column M: code message
 		// Example: In scripts/check-go-health.sh line 121: column 24: SC2001 See if you can use ${variable//search/replace} instead.
 		if strings.HasPrefix(line, "In ") {
@@ -1033,28 +1033,28 @@ func parseShellcheckTextOutput(outputStr string, lintErrors *[]LintError) {
 			if len(parts) >= 4 {
 				file := strings.TrimPrefix(parts[0], "In ")
 				file = strings.TrimSpace(file)
-				
+
 				lineNum := 0
 				if strings.HasPrefix(parts[1], " line ") {
 					fmt.Sscanf(parts[1], " line %d", &lineNum)
 				}
-				
+
 				columnNum := 0
 				if strings.HasPrefix(parts[2], " column ") {
 					fmt.Sscanf(parts[2], " column %d", &columnNum)
 				}
-				
+
 				codeAndMessage := strings.TrimSpace(parts[3])
 				code := ""
 				message := codeAndMessage
-				
+
 				// Extract code (e.g., "SC2001")
 				fields := strings.Fields(codeAndMessage)
 				if len(fields) > 0 && strings.HasPrefix(fields[0], "SC") {
 					code = fields[0]
 					message = strings.Join(fields[1:], " ")
 				}
-				
+
 				*lintErrors = append(*lintErrors, LintError{
 					File:     file,
 					Line:     lineNum,
@@ -1073,4 +1073,3 @@ func parseShellcheckTextOutput(outputStr string, lintErrors *[]LintError) {
 		}
 	}
 }
-

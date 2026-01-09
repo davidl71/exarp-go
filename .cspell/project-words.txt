@@ -111,3 +111,17 @@ FAIL
 WARN
 CYAN
 NC
+
+# Apple Foundation Models and macOS terms
+foundationmodels
+FoundationModels
+libFMShim
+maclocal
+bootout
+nocgo
+coreml
+libai
+compinit
+standups
+Standups
+sess

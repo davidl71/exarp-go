@@ -13,4 +13,3 @@ func registerAppleFoundationModelsTool(server framework.MCPServer) error {
 	// Tool not available on this platform - silently skip registration
 	return nil
 }
-

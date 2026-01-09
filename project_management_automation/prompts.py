@@ -398,6 +398,10 @@ CONTEXT_MANAGEMENT = """Strategically manage LLM context to reduce token usage.
    - detailed: Multi-line with categories
    - key_metrics: Numbers only
    - actionable: Recommendations/tasks only
+   
+   ⚡ **Performance Note:** On Apple Silicon Macs (macOS 26+), summarization uses 
+   Apple Foundation Models for on-device, privacy-focused processing. Falls back 
+   to Python implementation on other platforms.
    ```
 
 2. **context(action="budget")** - Analyze token usage

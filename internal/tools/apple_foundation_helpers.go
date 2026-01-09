@@ -22,4 +22,3 @@ func getMaxTokens(params map[string]interface{}) int {
 	}
 	return 512 // default
 }
-

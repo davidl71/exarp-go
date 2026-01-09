@@ -196,6 +196,8 @@ type Resource struct {
 
 ### Python Bridge Integration
 - **Use exec.Command** for Python bridge calls
+- **PREFER `uv run python`** - Use `uv run python` instead of `python3` when possible
+- **Check for uv first** - Detect `uv` availability before falling back to `python3`
 - **JSON-RPC 2.0** for communication protocol
 - **Error propagation** from Python to Go
 - **Timeout handling** for long-running Python operations
@@ -283,6 +285,129 @@ func (s *Server) RegisterTool(name string, handler ToolHandler) error {
 - **Interface-based** framework interaction
 - **Easy to swap** frameworks via configuration
 
+## Makefile Usage (CRITICAL)
+
+**⚠️ ALWAYS USE MAKEFILE TARGETS INSTEAD OF DIRECT COMMANDS ⚠️**
+
+**Before running any command, check if a Makefile target exists. Use `make <target>` instead of generating files or running commands directly.**
+
+### Available Makefile Targets
+
+**Build Operations:**
+- `make build` - Build the Go server (without CGO by default)
+- `make go-build` - Build Go binary
+- `make build-apple-fm` - Build with Apple Foundation Models support (CGO_ENABLED=1)
+- `make build-swift-bridge` - Build Swift bridge for go-foundationmodels
+
+**Development Operations:**
+- `make run` - Run the MCP server (builds first)
+- `make dev` - Start development mode (auto-reload on changes)
+- `make dev-watch` - Watch files and auto-reload (alias for dev)
+- `make dev-test` - Development mode with auto-test on changes
+- `make dev-full` - Full development mode (watch + test + coverage)
+- `make go-dev` - Start Go development mode (hot reload)
+- `make go-dev-test` - Go dev mode with auto-test
+- `make go-run` - Run Go binary
+
+**Testing:**
+- `make test` - Run all tests (Go + Python)
+- `make test-go` - Run Go tests
+- `make test-python` - Run Python tests (requires pytest)
+- `make test-integration` - Run integration tests
+- `make test-coverage` - Run tests with coverage report
+- `make test-coverage-go` - Generate Go test coverage report
+- `make test-coverage-python` - Generate Python test coverage report
+- `make test-html` - Generate HTML coverage reports
+- `make test-watch` - Run tests in watch mode
+- `make test-tools` - Test Go server tools
+- `make test-all` - Run all import tests + sanity check + CLI tests
+- `make test-cli` - Run all CLI functionality tests
+- `make go-test` - Run Go tests
+- `make test-apple-fm` - Run all Apple Foundation Models tests
+
+**Code Quality:**
+- `make fmt` - Format code with exarp-go (gofmt/goimports) (requires build)
+- `make lint` - Lint code with exarp-go (requires build)
+- `make lint-fix` - Lint and auto-fix code with exarp-go (requires build)
+- `make clean` - Clean build artifacts and cache
+- `make clean-all` - Clean everything including virtual environment
+- `make clean-config` - Remove configuration file
+
+**Configuration:**
+- `make config` - Configure build system (detect available tools)
+- `make sanity-check` - Verify tools/resources/prompts counts match expected values
+
+**Installation:**
+- `make install` - Install Python dependencies (optional)
+- `make install-dev` - Install Python development dependencies
+
+**Benchmarking:**
+- `make bench` - Run benchmarks (requires pytest)
+- `make go-bench` - Run Go benchmarks
+
+**Documentation:**
+- `make docs` - Generate documentation
+
+**Sprint Automation:**
+- `make sprint-start` - Run sprint start workflow (clean backlog, align tasks)
+- `make sprint-end` - Run sprint end workflow (test coverage, docs, security)
+- `make pre-sprint` - Run pre-sprint cleanup (duplicates, alignment, docs)
+- `make sprint` - Run full sprint automation (process all background tasks)
+
+**Task Completion Detection:**
+- `make check-tasks` - Batch check all Todo and In Progress tasks to find completed ones (dry run, no updates)
+- `make update-completed-tasks` - Batch check and auto-update completed tasks (updates task status based on codebase analysis)
+
+**Quick Commands:**
+- `make all` - Build essential components and run sanity tests (default)
+- `make help` - Show help message with all available targets
+
+### Rules for AI
+
+1. **NEVER run `go build` directly** - Use `make build` or `make go-build` instead
+2. **NEVER run `go test` directly** - Use `make test`, `make test-go`, `make test-coverage`, or `make test-html` instead
+3. **NEVER run linting tools directly** - Use `make lint` or `make lint-fix` instead
+4. **NEVER run formatting tools directly** - Use `make fmt` instead
+5. **NEVER create build scripts** - Use existing Makefile targets
+6. **NEVER generate wrapper scripts** - Use `make dev`, `make go-dev`, or other dev targets
+7. **ALWAYS check Makefile first** - Before suggesting any command, verify if a Makefile target exists
+8. **PREFER Makefile targets** - When multiple options exist, choose the Makefile target
+9. **Use `make config` first** - If tools are not detected, run `make config` to configure the build system
+10. **PREFER `uv` for Python operations** - Use `uv run python` or `uvx` instead of direct `python3` commands when possible
+
+### Examples
+
+**❌ WRONG:**
+```bash
+go build -o bin/exarp-go ./cmd/server
+go test ./...
+golangci-lint run ./...
+python3 -m pytest tests/
+pip install package
+```
+
+**✅ CORRECT:**
+```bash
+make build
+make test
+make lint
+uv run pytest tests/  # or make test-python
+uv sync  # or make install
+```
+
+**Python Command Guidelines:**
+- **PREFER `uv`** - Use `uv run python` instead of `python3` when possible
+- **PREFER `uvx`** - Use `uvx package-name` for one-off tool execution
+- **PREFER `uv sync`** - Use `uv sync` instead of `pip install`
+- **Fallback to python3** - Only use `python3` if `uv` is not available
+- **Use Makefile targets** - Prefer `make test-python`, `make install`, etc. over direct commands
+
+**Exception:** Only use direct commands when:
+- The operation is not covered by any Makefile target
+- You need to pass custom flags not supported by Makefile targets
+- You're debugging a specific issue that requires direct command execution
+- `uv` is not available and operation cannot use Makefile target
+
 ## AI Enforcement Checklist
 
 **Before generating Go code, ensure:**
@@ -297,5 +422,6 @@ func (s *Server) RegisterTool(name string, handler ToolHandler) error {
 - ✅ Uses idiomatic Go patterns
 - ✅ No goroutine leaks
 - ✅ Proper resource cleanup
+- ✅ **Uses Makefile targets instead of direct commands**
 
 **These practices are mandatory for professional Go development.**

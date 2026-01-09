@@ -89,4 +89,3 @@ func isMacOS26OrLater(version string) bool {
 
 	return major >= 26
 }
-

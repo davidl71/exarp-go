@@ -23,10 +23,10 @@ func main() {
 	// Test 1: report(action="scorecard") with MLX
 	fmt.Println("=== Test 1: report(action='scorecard') with MLX ===")
 	args1 := map[string]interface{}{
-		"action":                "scorecard",
+		"action":                  "scorecard",
 		"include_recommendations": true,
-		"output_format":         "text",
-		"use_mlx":               true, // Enable MLX
+		"output_format":           "text",
+		"use_mlx":                 true, // Enable MLX
 	}
 	argsBytes1, _ := json.Marshal(args1)
 	result1, err1 := server.CallTool(ctx, "report", argsBytes1)
@@ -51,9 +51,9 @@ func main() {
 	// Test 2: report(action="overview") with MLX
 	fmt.Println("\n=== Test 2: report(action='overview') with MLX ===")
 	args2 := map[string]interface{}{
-		"action":    "overview",
+		"action":        "overview",
 		"output_format": "text",
-		"use_mlx":   true, // Enable MLX
+		"use_mlx":       true, // Enable MLX
 	}
 	argsBytes2, _ := json.Marshal(args2)
 	result2, err2 := server.CallTool(ctx, "report", argsBytes2)
@@ -75,4 +75,3 @@ func main() {
 
 	fmt.Println("\n✅ MLX integration for report generation complete!")
 }
-

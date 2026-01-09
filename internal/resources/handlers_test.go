@@ -14,9 +14,9 @@ func TestRegisterAllResources(t *testing.T) {
 		t.Fatalf("RegisterAllResources() error = %v", err)
 	}
 
-	// Verify all 6 resources are registered
-	if server.ResourceCount() != 6 {
-		t.Errorf("server.ResourceCount() = %v, want 6", server.ResourceCount())
+	// Verify all 11 resources are registered (6 original + 5 new)
+	if server.ResourceCount() != 11 {
+		t.Errorf("server.ResourceCount() = %v, want 11", server.ResourceCount())
 	}
 
 	// Verify specific resources are registered
@@ -27,6 +27,11 @@ func TestRegisterAllResources(t *testing.T) {
 		"stdio://memories/task/{task_id}",
 		"stdio://memories/recent",
 		"stdio://memories/session/{date}",
+		"stdio://prompts",
+		"stdio://prompts/mode/{mode}",
+		"stdio://prompts/persona/{persona}",
+		"stdio://prompts/category/{category}",
+		"stdio://session/mode",
 	}
 
 	for _, uri := range expectedResources {
@@ -91,6 +96,31 @@ func TestRegisterAllResources_URIParsing(t *testing.T) {
 			uri:  "stdio://memories/session/{date}",
 			want: true,
 		},
+		{
+			name: "all prompts",
+			uri:  "stdio://prompts",
+			want: true,
+		},
+		{
+			name: "prompts by mode pattern",
+			uri:  "stdio://prompts/mode/{mode}",
+			want: true,
+		},
+		{
+			name: "prompts by persona pattern",
+			uri:  "stdio://prompts/persona/{persona}",
+			want: true,
+		},
+		{
+			name: "prompts by category pattern",
+			uri:  "stdio://prompts/category/{category}",
+			want: true,
+		},
+		{
+			name: "session mode",
+			uri:  "stdio://session/mode",
+			want: true,
+		},
 	}
 
 	for _, tt := range tests {
@@ -119,6 +149,11 @@ func TestRegisterAllResources_HandlerRegistration(t *testing.T) {
 		"stdio://memories/task/{task_id}",
 		"stdio://memories/recent",
 		"stdio://memories/session/{date}",
+		"stdio://prompts",
+		"stdio://prompts/mode/{mode}",
+		"stdio://prompts/persona/{persona}",
+		"stdio://prompts/category/{category}",
+		"stdio://session/mode",
 	}
 
 	for _, uri := range expectedResources {

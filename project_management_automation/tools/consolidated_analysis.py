@@ -136,7 +136,10 @@ def task_analysis(
         return result if isinstance(result, str) else json.dumps(result, indent=2)
     elif action == "parallelization":
         from .optimize_todo2_parallelization import optimize_todo2_parallelization
-        result = optimize_todo2_parallelization(output_format, output_path)
+        # Get duration_weight parameter (default: 0.3 for lower weight)
+        duration_weight = 0.3  # Lower default weight means duration matters less
+        # Note: This can be made configurable via MCP tool parameters in the future
+        result = optimize_todo2_parallelization(output_format, output_path, duration_weight)
         return result if isinstance(result, str) else json.dumps(result, indent=2)
     else:
         return json.dumps({

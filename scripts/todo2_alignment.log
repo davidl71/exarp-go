@@ -1,0 +1,325 @@
+2026-01-08 16:21:40,176 - __main__ - WARNING - PROJECT_GOALS.md not found at /Users/davidl/Projects/exarp-go/PROJECT_GOALS.md, using defaults
+2026-01-08 16:21:40,176 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Starting intelligent automation: Todo2 Alignment Analysis
+2026-01-08 16:21:40,176 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Starting Tractatus analysis...
+2026-01-08 16:21:40,176 - project_management_automation.scripts.base.mcp_client - WARNING - Tractatus Thinking MCP server not configured
+2026-01-08 16:21:40,176 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Tractatus analysis complete (fallback): 0 components identified
+2026-01-08 16:21:40,176 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Starting Sequential planning...
+2026-01-08 16:21:40,176 - project_management_automation.scripts.base.mcp_client - WARNING - Sequential Thinking MCP server not configured
+2026-01-08 16:21:40,176 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Sequential planning complete (fallback): 4 steps planned
+2026-01-08 16:21:40,176 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Creating/reusing Todo2 task...
+2026-01-08 16:21:40,180 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Todo2 task created: AUTO-20260108162140-178511
+2026-01-08 16:21:40,180 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Starting NetworkX analysis...
+2026-01-08 16:21:40,180 - project_management_automation.scripts.base.intelligent_automation_base - WARNING - NetworkX not available, install with: pip install networkx
+2026-01-08 16:21:40,180 - __main__ - INFO - Executing Todo2 alignment analysis...
+2026-01-08 16:21:40,192 - __main__ - INFO - Loaded 69 tasks from Todo2 MCP (69 matched project)
+2026-01-08 16:21:40,192 - __main__ - INFO - Loaded 69 tasks
+2026-01-08 16:21:40,196 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Results stored in Todo2
+2026-01-08 16:21:40,199 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Todo2 task AUTO-20260108162140-178511 marked as complete via MCP
+2026-01-08 16:21:40,199 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Intelligent automation completed: Todo2 Alignment Analysis
+2026-01-08 16:21:40,199 - __main__ - INFO - Report written to: /Users/davidl/Projects/exarp-go/docs/TODO2_PRIORITY_ALIGNMENT_ANALYSIS.md
+2026-01-08 16:21:40,199 - __main__ - INFO - Alignment score: 100.0%
+2026-01-08 16:45:48,721 - project_management_automation.scripts.automate_todo2_alignment_v2 - WARNING - PROJECT_GOALS.md not found at /Users/davidl/Projects/exarp-go/PROJECT_GOALS.md, using defaults
+2026-01-08 16:45:48,721 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Starting intelligent automation: Todo2 Alignment Analysis
+2026-01-08 16:45:48,721 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Starting Tractatus analysis...
+2026-01-08 16:45:48,722 - project_management_automation.scripts.base.mcp_client - WARNING - Tractatus Thinking MCP server not configured
+2026-01-08 16:45:48,722 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Tractatus analysis complete (fallback): 0 components identified
+2026-01-08 16:45:48,722 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Starting Sequential planning...
+2026-01-08 16:45:48,722 - project_management_automation.scripts.base.mcp_client - WARNING - Sequential Thinking MCP server not configured
+2026-01-08 16:45:48,722 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Sequential planning complete (fallback): 4 steps planned
+2026-01-08 16:45:48,722 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Creating/reusing Todo2 task...
+2026-01-08 16:45:48,727 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Todo2 task created: AUTO-20260108164548-725277
+2026-01-08 16:45:48,727 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Starting NetworkX analysis...
+2026-01-08 16:45:48,727 - project_management_automation.scripts.base.intelligent_automation_base - WARNING - NetworkX not available, install with: pip install networkx
+2026-01-08 16:45:48,727 - project_management_automation.scripts.automate_todo2_alignment_v2 - INFO - Executing Todo2 alignment analysis...
+2026-01-08 16:45:48,737 - project_management_automation.scripts.automate_todo2_alignment_v2 - INFO - Loaded 71 tasks from Todo2 MCP (71 matched project)
+2026-01-08 16:45:48,737 - project_management_automation.scripts.automate_todo2_alignment_v2 - INFO - Loaded 71 tasks
+2026-01-08 16:45:48,741 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Results stored in Todo2
+2026-01-08 16:45:48,744 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Todo2 task AUTO-20260108164548-725277 marked as complete via MCP
+2026-01-08 16:45:48,744 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Intelligent automation completed: Todo2 Alignment Analysis
+2026-01-08 16:45:48,744 - project_management_automation.tools.todo2_alignment - INFO - analyze_todo2_alignment: 0.04s, success=True
+2026-01-08 16:47:37,185 - project_management_automation.scripts.automate_todo2_alignment_v2 - WARNING - PROJECT_GOALS.md not found at /Users/davidl/Projects/exarp-go/PROJECT_GOALS.md, using defaults
+2026-01-08 16:47:37,185 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Starting intelligent automation: Todo2 Alignment Analysis
+2026-01-08 16:47:37,185 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Starting Tractatus analysis...
+2026-01-08 16:47:37,185 - project_management_automation.scripts.base.mcp_client - WARNING - Tractatus Thinking MCP server not configured
+2026-01-08 16:47:37,186 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Tractatus analysis complete (fallback): 0 components identified
+2026-01-08 16:47:37,186 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Starting Sequential planning...
+2026-01-08 16:47:37,186 - project_management_automation.scripts.base.mcp_client - WARNING - Sequential Thinking MCP server not configured
+2026-01-08 16:47:37,186 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Sequential planning complete (fallback): 4 steps planned
+2026-01-08 16:47:37,186 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Creating/reusing Todo2 task...
+2026-01-08 16:47:37,192 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Todo2 task created: AUTO-20260108164737-189826
+2026-01-08 16:47:37,193 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Starting NetworkX analysis...
+2026-01-08 16:47:37,193 - project_management_automation.scripts.base.intelligent_automation_base - WARNING - NetworkX not available, install with: pip install networkx
+2026-01-08 16:47:37,193 - project_management_automation.scripts.automate_todo2_alignment_v2 - INFO - Executing Todo2 alignment analysis...
+2026-01-08 16:47:37,214 - project_management_automation.scripts.automate_todo2_alignment_v2 - INFO - Loaded 72 tasks from Todo2 MCP (72 matched project)
+2026-01-08 16:47:37,214 - project_management_automation.scripts.automate_todo2_alignment_v2 - INFO - Loaded 72 tasks
+2026-01-08 16:47:37,219 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Results stored in Todo2
+2026-01-08 16:47:37,222 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Todo2 task AUTO-20260108164737-189826 marked as complete via MCP
+2026-01-08 16:47:37,222 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Intelligent automation completed: Todo2 Alignment Analysis
+2026-01-08 16:47:37,222 - project_management_automation.tools.todo2_alignment - INFO - analyze_todo2_alignment: 0.05s, success=True
+2026-01-08 16:47:37,310 - project_management_automation.scripts.automate_todo2_alignment_v2 - WARNING - PROJECT_GOALS.md not found at /Users/davidl/Projects/exarp-go/PROJECT_GOALS.md, using defaults
+2026-01-08 16:47:37,310 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Starting intelligent automation: Todo2 Alignment Analysis
+2026-01-08 16:47:37,310 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Starting Tractatus analysis...
+2026-01-08 16:47:37,310 - project_management_automation.scripts.base.mcp_client - WARNING - Tractatus Thinking MCP server not configured
+2026-01-08 16:47:37,310 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Tractatus analysis complete (fallback): 0 components identified
+2026-01-08 16:47:37,310 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Starting Sequential planning...
+2026-01-08 16:47:37,310 - project_management_automation.scripts.base.mcp_client - WARNING - Sequential Thinking MCP server not configured
+2026-01-08 16:47:37,310 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Sequential planning complete (fallback): 4 steps planned
+2026-01-08 16:47:37,310 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Creating/reusing Todo2 task...
+2026-01-08 16:47:37,315 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Todo2 task created: AUTO-20260108164737-312651
+2026-01-08 16:47:37,315 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Starting NetworkX analysis...
+2026-01-08 16:47:37,315 - project_management_automation.scripts.base.intelligent_automation_base - WARNING - NetworkX not available, install with: pip install networkx
+2026-01-08 16:47:37,315 - project_management_automation.scripts.automate_todo2_alignment_v2 - INFO - Executing Todo2 alignment analysis...
+2026-01-08 16:47:37,327 - project_management_automation.scripts.automate_todo2_alignment_v2 - INFO - Loaded 73 tasks from Todo2 MCP (73 matched project)
+2026-01-08 16:47:37,327 - project_management_automation.scripts.automate_todo2_alignment_v2 - INFO - Loaded 73 tasks
+2026-01-08 16:47:37,332 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Results stored in Todo2
+2026-01-08 16:47:37,335 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Todo2 task AUTO-20260108164737-312651 marked as complete via MCP
+2026-01-08 16:47:37,335 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Intelligent automation completed: Todo2 Alignment Analysis
+2026-01-08 16:47:37,335 - project_management_automation.tools.todo2_alignment - INFO - analyze_todo2_alignment: 0.06s, success=True
+2026-01-08 16:47:37,404 - project_management_automation.scripts.automate_todo2_alignment_v2 - WARNING - PROJECT_GOALS.md not found at /Users/davidl/Projects/exarp-go/PROJECT_GOALS.md, using defaults
+2026-01-08 16:47:37,404 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Starting intelligent automation: Todo2 Alignment Analysis
+2026-01-08 16:47:37,404 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Starting Tractatus analysis...
+2026-01-08 16:47:37,404 - project_management_automation.scripts.base.mcp_client - WARNING - Tractatus Thinking MCP server not configured
+2026-01-08 16:47:37,404 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Tractatus analysis complete (fallback): 0 components identified
+2026-01-08 16:47:37,404 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Starting Sequential planning...
+2026-01-08 16:47:37,404 - project_management_automation.scripts.base.mcp_client - WARNING - Sequential Thinking MCP server not configured
+2026-01-08 16:47:37,404 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Sequential planning complete (fallback): 4 steps planned
+2026-01-08 16:47:37,404 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Creating/reusing Todo2 task...
+2026-01-08 16:47:37,409 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Todo2 task created: AUTO-20260108164737-407129
+2026-01-08 16:47:37,409 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Starting NetworkX analysis...
+2026-01-08 16:47:37,409 - project_management_automation.scripts.base.intelligent_automation_base - WARNING - NetworkX not available, install with: pip install networkx
+2026-01-08 16:47:37,409 - project_management_automation.scripts.automate_todo2_alignment_v2 - INFO - Executing Todo2 alignment analysis...
+2026-01-08 16:47:37,423 - project_management_automation.scripts.automate_todo2_alignment_v2 - INFO - Loaded 74 tasks from Todo2 MCP (74 matched project)
+2026-01-08 16:47:37,423 - project_management_automation.scripts.automate_todo2_alignment_v2 - INFO - Loaded 74 tasks
+2026-01-08 16:47:37,428 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Results stored in Todo2
+2026-01-08 16:47:37,432 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Todo2 task AUTO-20260108164737-407129 marked as complete via MCP
+2026-01-08 16:47:37,432 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Intelligent automation completed: Todo2 Alignment Analysis
+2026-01-08 16:47:37,432 - project_management_automation.tools.todo2_alignment - INFO - analyze_todo2_alignment: 0.04s, success=True
+2026-01-08 16:51:46,201 - project_management_automation.scripts.automate_todo2_alignment_v2 - WARNING - PROJECT_GOALS.md not found at /Users/davidl/Projects/exarp-go/PROJECT_GOALS.md, using defaults
+2026-01-08 16:51:46,201 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Starting intelligent automation: Todo2 Alignment Analysis
+2026-01-08 16:51:46,201 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Starting Tractatus analysis...
+2026-01-08 16:51:46,202 - project_management_automation.scripts.base.mcp_client - WARNING - Tractatus Thinking MCP server not configured
+2026-01-08 16:51:46,202 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Tractatus analysis complete (fallback): 0 components identified
+2026-01-08 16:51:46,202 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Starting Sequential planning...
+2026-01-08 16:51:46,202 - project_management_automation.scripts.base.mcp_client - WARNING - Sequential Thinking MCP server not configured
+2026-01-08 16:51:46,202 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Sequential planning complete (fallback): 4 steps planned
+2026-01-08 16:51:46,202 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Creating/reusing Todo2 task...
+2026-01-08 16:51:46,207 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Todo2 task created: AUTO-20260108165146-205697
+2026-01-08 16:51:46,208 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Starting NetworkX analysis...
+2026-01-08 16:51:46,208 - project_management_automation.scripts.base.intelligent_automation_base - WARNING - NetworkX not available, install with: pip install networkx
+2026-01-08 16:51:46,208 - project_management_automation.scripts.automate_todo2_alignment_v2 - INFO - Executing Todo2 alignment analysis...
+2026-01-08 16:51:46,222 - project_management_automation.scripts.automate_todo2_alignment_v2 - INFO - Loaded 75 tasks from Todo2 MCP (75 matched project)
+2026-01-08 16:51:46,222 - project_management_automation.scripts.automate_todo2_alignment_v2 - INFO - Loaded 75 tasks
+2026-01-08 16:51:46,229 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Results stored in Todo2
+2026-01-08 16:51:46,236 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Todo2 task AUTO-20260108165146-205697 marked as complete via MCP
+2026-01-08 16:51:46,236 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Intelligent automation completed: Todo2 Alignment Analysis
+2026-01-08 16:51:46,236 - project_management_automation.tools.todo2_alignment - INFO - analyze_todo2_alignment: 0.05s, success=True
+2026-01-08 16:51:46,313 - project_management_automation.scripts.automate_todo2_alignment_v2 - WARNING - PROJECT_GOALS.md not found at /Users/davidl/Projects/exarp-go/PROJECT_GOALS.md, using defaults
+2026-01-08 16:51:46,313 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Starting intelligent automation: Todo2 Alignment Analysis
+2026-01-08 16:51:46,313 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Starting Tractatus analysis...
+2026-01-08 16:51:46,313 - project_management_automation.scripts.base.mcp_client - WARNING - Tractatus Thinking MCP server not configured
+2026-01-08 16:51:46,313 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Tractatus analysis complete (fallback): 0 components identified
+2026-01-08 16:51:46,313 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Starting Sequential planning...
+2026-01-08 16:51:46,314 - project_management_automation.scripts.base.mcp_client - WARNING - Sequential Thinking MCP server not configured
+2026-01-08 16:51:46,314 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Sequential planning complete (fallback): 4 steps planned
+2026-01-08 16:51:46,314 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Creating/reusing Todo2 task...
+2026-01-08 16:51:46,318 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Todo2 task created: AUTO-20260108165146-316397
+2026-01-08 16:51:46,318 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Starting NetworkX analysis...
+2026-01-08 16:51:46,318 - project_management_automation.scripts.base.intelligent_automation_base - WARNING - NetworkX not available, install with: pip install networkx
+2026-01-08 16:51:46,318 - project_management_automation.scripts.automate_todo2_alignment_v2 - INFO - Executing Todo2 alignment analysis...
+2026-01-08 16:51:46,344 - project_management_automation.scripts.automate_todo2_alignment_v2 - INFO - Loaded 76 tasks from Todo2 MCP (76 matched project)
+2026-01-08 16:51:46,345 - project_management_automation.scripts.automate_todo2_alignment_v2 - INFO - Loaded 76 tasks
+2026-01-08 16:51:46,350 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Results stored in Todo2
+2026-01-08 16:51:46,354 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Todo2 task AUTO-20260108165146-316397 marked as complete via MCP
+2026-01-08 16:51:46,354 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Intelligent automation completed: Todo2 Alignment Analysis
+2026-01-08 16:51:46,354 - project_management_automation.tools.todo2_alignment - INFO - analyze_todo2_alignment: 0.06s, success=True
+2026-01-08 16:51:46,424 - project_management_automation.scripts.automate_todo2_alignment_v2 - WARNING - PROJECT_GOALS.md not found at /Users/davidl/Projects/exarp-go/PROJECT_GOALS.md, using defaults
+2026-01-08 16:51:46,424 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Starting intelligent automation: Todo2 Alignment Analysis
+2026-01-08 16:51:46,424 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Starting Tractatus analysis...
+2026-01-08 16:51:46,424 - project_management_automation.scripts.base.mcp_client - WARNING - Tractatus Thinking MCP server not configured
+2026-01-08 16:51:46,424 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Tractatus analysis complete (fallback): 0 components identified
+2026-01-08 16:51:46,424 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Starting Sequential planning...
+2026-01-08 16:51:46,424 - project_management_automation.scripts.base.mcp_client - WARNING - Sequential Thinking MCP server not configured
+2026-01-08 16:51:46,424 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Sequential planning complete (fallback): 4 steps planned
+2026-01-08 16:51:46,424 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Creating/reusing Todo2 task...
+2026-01-08 16:51:46,429 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Todo2 task created: AUTO-20260108165146-427132
+2026-01-08 16:51:46,429 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Starting NetworkX analysis...
+2026-01-08 16:51:46,429 - project_management_automation.scripts.base.intelligent_automation_base - WARNING - NetworkX not available, install with: pip install networkx
+2026-01-08 16:51:46,429 - project_management_automation.scripts.automate_todo2_alignment_v2 - INFO - Executing Todo2 alignment analysis...
+2026-01-08 16:51:46,441 - project_management_automation.scripts.automate_todo2_alignment_v2 - INFO - Loaded 77 tasks from Todo2 MCP (77 matched project)
+2026-01-08 16:51:46,441 - project_management_automation.scripts.automate_todo2_alignment_v2 - INFO - Loaded 77 tasks
+2026-01-08 16:51:46,446 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Results stored in Todo2
+2026-01-08 16:51:46,450 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Todo2 task AUTO-20260108165146-427132 marked as complete via MCP
+2026-01-08 16:51:46,450 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Intelligent automation completed: Todo2 Alignment Analysis
+2026-01-08 16:51:46,450 - project_management_automation.tools.todo2_alignment - INFO - analyze_todo2_alignment: 0.04s, success=True
+2026-01-08 16:53:14,947 - project_management_automation.scripts.automate_todo2_alignment_v2 - WARNING - PROJECT_GOALS.md not found at /Users/davidl/Projects/exarp-go/PROJECT_GOALS.md, using defaults
+2026-01-08 16:53:14,947 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Starting intelligent automation: Todo2 Alignment Analysis
+2026-01-08 16:53:14,947 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Starting Tractatus analysis...
+2026-01-08 16:53:14,948 - project_management_automation.scripts.base.mcp_client - WARNING - Tractatus Thinking MCP server not configured
+2026-01-08 16:53:14,948 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Tractatus analysis complete (fallback): 0 components identified
+2026-01-08 16:53:14,948 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Starting Sequential planning...
+2026-01-08 16:53:14,948 - project_management_automation.scripts.base.mcp_client - WARNING - Sequential Thinking MCP server not configured
+2026-01-08 16:53:14,948 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Sequential planning complete (fallback): 4 steps planned
+2026-01-08 16:53:14,948 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Creating/reusing Todo2 task...
+2026-01-08 16:53:14,953 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Todo2 task created: AUTO-20260108165314-951593
+2026-01-08 16:53:14,953 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Starting NetworkX analysis...
+2026-01-08 16:53:14,953 - project_management_automation.scripts.base.intelligent_automation_base - WARNING - NetworkX not available, install with: pip install networkx
+2026-01-08 16:53:14,953 - project_management_automation.scripts.automate_todo2_alignment_v2 - INFO - Executing Todo2 alignment analysis...
+2026-01-08 16:53:14,964 - project_management_automation.scripts.automate_todo2_alignment_v2 - INFO - Loaded 79 tasks from Todo2 MCP (79 matched project)
+2026-01-08 16:53:14,964 - project_management_automation.scripts.automate_todo2_alignment_v2 - INFO - Loaded 79 tasks
+2026-01-08 16:53:14,969 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Results stored in Todo2
+2026-01-08 16:53:14,972 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Todo2 task AUTO-20260108165314-951593 marked as complete via MCP
+2026-01-08 16:53:14,972 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Intelligent automation completed: Todo2 Alignment Analysis
+2026-01-08 16:53:14,972 - project_management_automation.tools.todo2_alignment - INFO - analyze_todo2_alignment: 0.04s, success=True
+2026-01-08 16:53:15,032 - project_management_automation.scripts.automate_todo2_alignment_v2 - WARNING - PROJECT_GOALS.md not found at /Users/davidl/Projects/exarp-go/PROJECT_GOALS.md, using defaults
+2026-01-08 16:53:15,032 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Starting intelligent automation: Todo2 Alignment Analysis
+2026-01-08 16:53:15,032 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Starting Tractatus analysis...
+2026-01-08 16:53:15,032 - project_management_automation.scripts.base.mcp_client - WARNING - Tractatus Thinking MCP server not configured
+2026-01-08 16:53:15,032 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Tractatus analysis complete (fallback): 0 components identified
+2026-01-08 16:53:15,032 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Starting Sequential planning...
+2026-01-08 16:53:15,032 - project_management_automation.scripts.base.mcp_client - WARNING - Sequential Thinking MCP server not configured
+2026-01-08 16:53:15,032 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Sequential planning complete (fallback): 4 steps planned
+2026-01-08 16:53:15,032 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Creating/reusing Todo2 task...
+2026-01-08 16:53:15,037 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Todo2 task created: AUTO-20260108165315-034251
+2026-01-08 16:53:15,037 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Starting NetworkX analysis...
+2026-01-08 16:53:15,037 - project_management_automation.scripts.base.intelligent_automation_base - WARNING - NetworkX not available, install with: pip install networkx
+2026-01-08 16:53:15,037 - project_management_automation.scripts.automate_todo2_alignment_v2 - INFO - Executing Todo2 alignment analysis...
+2026-01-08 16:53:15,048 - project_management_automation.scripts.automate_todo2_alignment_v2 - INFO - Loaded 80 tasks from Todo2 MCP (80 matched project)
+2026-01-08 16:53:15,048 - project_management_automation.scripts.automate_todo2_alignment_v2 - INFO - Loaded 80 tasks
+2026-01-08 16:53:15,053 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Results stored in Todo2
+2026-01-08 16:53:15,056 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Todo2 task AUTO-20260108165315-034251 marked as complete via MCP
+2026-01-08 16:53:15,056 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Intelligent automation completed: Todo2 Alignment Analysis
+2026-01-08 16:53:15,056 - project_management_automation.tools.todo2_alignment - INFO - analyze_todo2_alignment: 0.04s, success=True
+2026-01-08 16:53:15,121 - project_management_automation.scripts.automate_todo2_alignment_v2 - WARNING - PROJECT_GOALS.md not found at /Users/davidl/Projects/exarp-go/PROJECT_GOALS.md, using defaults
+2026-01-08 16:53:15,121 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Starting intelligent automation: Todo2 Alignment Analysis
+2026-01-08 16:53:15,122 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Starting Tractatus analysis...
+2026-01-08 16:53:15,122 - project_management_automation.scripts.base.mcp_client - WARNING - Tractatus Thinking MCP server not configured
+2026-01-08 16:53:15,122 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Tractatus analysis complete (fallback): 0 components identified
+2026-01-08 16:53:15,122 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Starting Sequential planning...
+2026-01-08 16:53:15,122 - project_management_automation.scripts.base.mcp_client - WARNING - Sequential Thinking MCP server not configured
+2026-01-08 16:53:15,122 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Sequential planning complete (fallback): 4 steps planned
+2026-01-08 16:53:15,122 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Creating/reusing Todo2 task...
+2026-01-08 16:53:15,127 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Todo2 task created: AUTO-20260108165315-124371
+2026-01-08 16:53:15,127 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Starting NetworkX analysis...
+2026-01-08 16:53:15,127 - project_management_automation.scripts.base.intelligent_automation_base - WARNING - NetworkX not available, install with: pip install networkx
+2026-01-08 16:53:15,127 - project_management_automation.scripts.automate_todo2_alignment_v2 - INFO - Executing Todo2 alignment analysis...
+2026-01-08 16:53:15,139 - project_management_automation.scripts.automate_todo2_alignment_v2 - INFO - Loaded 81 tasks from Todo2 MCP (81 matched project)
+2026-01-08 16:53:15,139 - project_management_automation.scripts.automate_todo2_alignment_v2 - INFO - Loaded 81 tasks
+2026-01-08 16:53:15,143 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Results stored in Todo2
+2026-01-08 16:53:15,147 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Todo2 task AUTO-20260108165315-124371 marked as complete via MCP
+2026-01-08 16:53:15,147 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Intelligent automation completed: Todo2 Alignment Analysis
+2026-01-08 16:53:15,147 - project_management_automation.tools.todo2_alignment - INFO - analyze_todo2_alignment: 0.04s, success=True
+2026-01-09 00:10:32,999 - __main__ - WARNING - PROJECT_GOALS.md not found at /Users/davidl/Projects/exarp-go/PROJECT_GOALS.md, using defaults
+2026-01-09 00:10:32,999 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Starting intelligent automation: Todo2 Alignment Analysis
+2026-01-09 00:10:32,999 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Starting Tractatus analysis...
+2026-01-09 00:10:32,999 - project_management_automation.scripts.base.mcp_client - WARNING - Tractatus Thinking MCP server not configured
+2026-01-09 00:10:32,999 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Tractatus analysis complete (fallback): 0 components identified
+2026-01-09 00:10:32,999 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Starting Sequential planning...
+2026-01-09 00:10:32,999 - project_management_automation.scripts.base.mcp_client - WARNING - Sequential Thinking MCP server not configured
+2026-01-09 00:10:32,999 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Sequential planning complete (fallback): 4 steps planned
+2026-01-09 00:10:32,999 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Creating/reusing Todo2 task...
+2026-01-09 00:10:33,004 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Todo2 task created: AUTO-20260109001033-001898
+2026-01-09 00:10:33,004 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Starting NetworkX analysis...
+2026-01-09 00:10:33,004 - project_management_automation.scripts.base.intelligent_automation_base - WARNING - NetworkX not available, install with: pip install networkx
+2026-01-09 00:10:33,004 - __main__ - INFO - Executing Todo2 alignment analysis...
+2026-01-09 00:10:33,013 - __main__ - INFO - Loaded 85 tasks from Todo2 MCP (85 matched project)
+2026-01-09 00:10:33,013 - __main__ - INFO - Loaded 85 tasks
+2026-01-09 00:10:33,018 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Results stored in Todo2
+2026-01-09 00:10:33,021 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Todo2 task AUTO-20260109001033-001898 marked as complete via MCP
+2026-01-09 00:10:33,021 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Intelligent automation completed: Todo2 Alignment Analysis
+2026-01-09 00:10:33,021 - __main__ - INFO - Report written to: /Users/davidl/Projects/exarp-go/docs/TODO2_PRIORITY_ALIGNMENT_ANALYSIS.md
+2026-01-09 00:10:33,022 - __main__ - INFO - Alignment score: 100.0%
+2026-01-09 00:30:10,132 - project_management_automation.scripts.automate_todo2_alignment_v2 - WARNING - PROJECT_GOALS.md not found at /Users/davidl/Projects/exarp-go/PROJECT_GOALS.md, using defaults
+2026-01-09 00:30:10,132 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Starting intelligent automation: Todo2 Alignment Analysis
+2026-01-09 00:30:10,132 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Starting Tractatus analysis...
+2026-01-09 00:30:10,132 - project_management_automation.scripts.base.mcp_client - WARNING - Tractatus Thinking MCP server not configured
+2026-01-09 00:30:10,132 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Tractatus analysis complete (fallback): 0 components identified
+2026-01-09 00:30:10,132 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Starting Sequential planning...
+2026-01-09 00:30:10,132 - project_management_automation.scripts.base.mcp_client - WARNING - Sequential Thinking MCP server not configured
+2026-01-09 00:30:10,132 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Sequential planning complete (fallback): 4 steps planned
+2026-01-09 00:30:10,132 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Creating/reusing Todo2 task...
+2026-01-09 00:30:10,137 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Todo2 task created: AUTO-20260109003010-134930
+2026-01-09 00:30:10,137 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Starting NetworkX analysis...
+2026-01-09 00:30:10,137 - project_management_automation.scripts.base.intelligent_automation_base - WARNING - NetworkX not available, install with: pip install networkx
+2026-01-09 00:30:10,137 - project_management_automation.scripts.automate_todo2_alignment_v2 - INFO - Executing Todo2 alignment analysis...
+2026-01-09 00:30:10,145 - project_management_automation.scripts.automate_todo2_alignment_v2 - INFO - Loaded 88 tasks from Todo2 MCP (88 matched project)
+2026-01-09 00:30:10,145 - project_management_automation.scripts.automate_todo2_alignment_v2 - INFO - Loaded 88 tasks
+2026-01-09 00:30:10,150 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Results stored in Todo2
+2026-01-09 00:30:10,153 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Todo2 task AUTO-20260109003010-134930 marked as complete via MCP
+2026-01-09 00:30:10,153 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Intelligent automation completed: Todo2 Alignment Analysis
+2026-01-09 00:30:10,153 - project_management_automation.tools.todo2_alignment - INFO - analyze_todo2_alignment: 0.03s, success=True
+2026-01-09 00:34:24,143 - project_management_automation.scripts.automate_todo2_alignment_v2 - WARNING - PROJECT_GOALS.md not found at /Users/davidl/Projects/exarp-go/PROJECT_GOALS.md, using defaults
+2026-01-09 00:34:24,143 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Starting intelligent automation: Todo2 Alignment Analysis
+2026-01-09 00:34:24,143 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Starting Tractatus analysis...
+2026-01-09 00:34:24,143 - project_management_automation.scripts.base.mcp_client - WARNING - Tractatus Thinking MCP server not configured
+2026-01-09 00:34:24,143 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Tractatus analysis complete (fallback): 0 components identified
+2026-01-09 00:34:24,143 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Starting Sequential planning...
+2026-01-09 00:34:24,143 - project_management_automation.scripts.base.mcp_client - WARNING - Sequential Thinking MCP server not configured
+2026-01-09 00:34:24,143 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Sequential planning complete (fallback): 4 steps planned
+2026-01-09 00:34:24,143 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Creating/reusing Todo2 task...
+2026-01-09 00:34:24,148 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Todo2 task created: AUTO-20260109003424-146045
+2026-01-09 00:34:24,148 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Starting NetworkX analysis...
+2026-01-09 00:34:24,148 - project_management_automation.scripts.base.intelligent_automation_base - WARNING - NetworkX not available, install with: pip install networkx
+2026-01-09 00:34:24,148 - project_management_automation.scripts.automate_todo2_alignment_v2 - INFO - Executing Todo2 alignment analysis...
+2026-01-09 00:34:24,157 - project_management_automation.scripts.automate_todo2_alignment_v2 - INFO - Loaded 91 tasks from Todo2 MCP (91 matched project)
+2026-01-09 00:34:24,157 - project_management_automation.scripts.automate_todo2_alignment_v2 - INFO - Loaded 91 tasks
+2026-01-09 00:34:24,162 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Results stored in Todo2
+2026-01-09 00:34:24,166 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Todo2 task AUTO-20260109003424-146045 marked as complete via MCP
+2026-01-09 00:34:24,166 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Intelligent automation completed: Todo2 Alignment Analysis
+2026-01-09 00:34:24,166 - project_management_automation.tools.todo2_alignment - INFO - analyze_todo2_alignment: 0.03s, success=True
+2026-01-09 00:54:27,765 - project_management_automation.scripts.automate_todo2_alignment_v2 - WARNING - PROJECT_GOALS.md not found at /Users/davidl/Projects/exarp-go/PROJECT_GOALS.md, using defaults
+2026-01-09 00:54:27,765 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Starting intelligent automation: Todo2 Alignment Analysis
+2026-01-09 00:54:27,765 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Starting Tractatus analysis...
+2026-01-09 00:54:27,766 - project_management_automation.scripts.base.mcp_client - INFO - Tractatus Thinking: start
+2026-01-09 00:54:27,766 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Tractatus analysis complete: 4 components identified
+2026-01-09 00:54:27,766 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Starting Sequential planning...
+2026-01-09 00:54:27,766 - project_management_automation.scripts.base.mcp_client - WARNING - Sequential Thinking MCP server not configured
+2026-01-09 00:54:27,766 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Sequential planning complete (fallback): 4 steps planned
+2026-01-09 00:54:27,766 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Creating/reusing Todo2 task...
+2026-01-09 00:54:27,769 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Todo2 task created: AUTO-20260109005427-768779
+2026-01-09 00:54:27,769 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Starting NetworkX analysis...
+2026-01-09 00:54:27,769 - project_management_automation.scripts.base.intelligent_automation_base - WARNING - NetworkX not available, install with: pip install networkx
+2026-01-09 00:54:27,769 - project_management_automation.scripts.automate_todo2_alignment_v2 - INFO - Executing Todo2 alignment analysis...
+2026-01-09 00:54:27,777 - project_management_automation.scripts.automate_todo2_alignment_v2 - INFO - Loaded 93 tasks from Todo2 MCP (93 matched project)
+2026-01-09 00:54:27,777 - project_management_automation.scripts.automate_todo2_alignment_v2 - INFO - Loaded 93 tasks
+2026-01-09 00:54:27,780 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Results stored in Todo2
+2026-01-09 00:54:27,781 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Todo2 task AUTO-20260109005427-768779 marked as complete via MCP
+2026-01-09 00:54:27,781 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Intelligent automation completed: Todo2 Alignment Analysis
+2026-01-09 00:54:27,781 - project_management_automation.tools.todo2_alignment - INFO - analyze_todo2_alignment: 0.03s, success=True
+2026-01-09 00:54:27,837 - project_management_automation.scripts.automate_todo2_alignment_v2 - WARNING - PROJECT_GOALS.md not found at /Users/davidl/Projects/exarp-go/PROJECT_GOALS.md, using defaults
+2026-01-09 00:54:27,837 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Starting intelligent automation: Todo2 Alignment Analysis
+2026-01-09 00:54:27,837 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Starting Tractatus analysis...
+2026-01-09 00:54:27,837 - project_management_automation.scripts.base.mcp_client - INFO - Tractatus Thinking: start
+2026-01-09 00:54:27,837 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Tractatus analysis complete: 4 components identified
+2026-01-09 00:54:27,837 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Starting Sequential planning...
+2026-01-09 00:54:27,837 - project_management_automation.scripts.base.mcp_client - WARNING - Sequential Thinking MCP server not configured
+2026-01-09 00:54:27,837 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Sequential planning complete (fallback): 4 steps planned
+2026-01-09 00:54:27,837 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Creating/reusing Todo2 task...
+2026-01-09 00:54:27,839 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Todo2 task created: AUTO-20260109005427-839158
+2026-01-09 00:54:27,839 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Starting NetworkX analysis...
+2026-01-09 00:54:27,840 - project_management_automation.scripts.base.intelligent_automation_base - WARNING - NetworkX not available, install with: pip install networkx
+2026-01-09 00:54:27,840 - project_management_automation.scripts.automate_todo2_alignment_v2 - INFO - Executing Todo2 alignment analysis...
+2026-01-09 00:54:27,847 - project_management_automation.scripts.automate_todo2_alignment_v2 - INFO - Loaded 93 tasks from Todo2 MCP (93 matched project)
+2026-01-09 00:54:27,847 - project_management_automation.scripts.automate_todo2_alignment_v2 - INFO - Loaded 93 tasks
+2026-01-09 00:54:27,850 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Results stored in Todo2
+2026-01-09 00:54:27,851 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Todo2 task AUTO-20260109005427-839158 marked as complete via MCP
+2026-01-09 00:54:27,851 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Intelligent automation completed: Todo2 Alignment Analysis
+2026-01-09 00:54:27,851 - project_management_automation.tools.todo2_alignment - INFO - analyze_todo2_alignment: 0.03s, success=True
+2026-01-09 00:54:27,909 - project_management_automation.scripts.automate_todo2_alignment_v2 - WARNING - PROJECT_GOALS.md not found at /Users/davidl/Projects/exarp-go/PROJECT_GOALS.md, using defaults
+2026-01-09 00:54:27,909 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Starting intelligent automation: Todo2 Alignment Analysis
+2026-01-09 00:54:27,910 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Starting Tractatus analysis...
+2026-01-09 00:54:27,910 - project_management_automation.scripts.base.mcp_client - INFO - Tractatus Thinking: start
+2026-01-09 00:54:27,910 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Tractatus analysis complete: 4 components identified
+2026-01-09 00:54:27,910 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Starting Sequential planning...
+2026-01-09 00:54:27,910 - project_management_automation.scripts.base.mcp_client - WARNING - Sequential Thinking MCP server not configured
+2026-01-09 00:54:27,910 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Sequential planning complete (fallback): 4 steps planned
+2026-01-09 00:54:27,910 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Creating/reusing Todo2 task...
+2026-01-09 00:54:27,913 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Todo2 task created: AUTO-20260109005427-912170
+2026-01-09 00:54:27,913 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Starting NetworkX analysis...
+2026-01-09 00:54:27,913 - project_management_automation.scripts.base.intelligent_automation_base - WARNING - NetworkX not available, install with: pip install networkx
+2026-01-09 00:54:27,913 - project_management_automation.scripts.automate_todo2_alignment_v2 - INFO - Executing Todo2 alignment analysis...
+2026-01-09 00:54:27,921 - project_management_automation.scripts.automate_todo2_alignment_v2 - INFO - Loaded 94 tasks from Todo2 MCP (94 matched project)
+2026-01-09 00:54:27,921 - project_management_automation.scripts.automate_todo2_alignment_v2 - INFO - Loaded 94 tasks
+2026-01-09 00:54:27,924 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Results stored in Todo2
+2026-01-09 00:54:27,925 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Todo2 task AUTO-20260109005427-912170 marked as complete via MCP
+2026-01-09 00:54:27,925 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Intelligent automation completed: Todo2 Alignment Analysis
+2026-01-09 00:54:27,925 - project_management_automation.tools.todo2_alignment - INFO - analyze_todo2_alignment: 0.03s, success=True

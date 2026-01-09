@@ -90,7 +90,7 @@ func handleAlignmentTodo2(ctx context.Context, params map[string]interface{}) ([
 		if !filepath.IsAbs(reportPath) {
 			reportPath = filepath.Join(projectRoot, reportPath)
 		}
-		
+
 		// Ensure directory exists
 		if err := os.MkdirAll(filepath.Dir(reportPath), 0755); err == nil {
 			os.WriteFile(reportPath, []byte(report), 0644)
@@ -100,12 +100,12 @@ func handleAlignmentTodo2(ctx context.Context, params map[string]interface{}) ([
 
 	// Build response
 	responseData := map[string]interface{}{
-		"total_tasks_analyzed":     analysis.TotalTasks,
-		"misaligned_count":         len(analysis.MisalignedTasks),
-		"infrastructure_count":     len(analysis.InfrastructureTasks),
-		"stale_count":              len(analysis.StaleTasks),
-		"average_alignment_score":  analysis.AlignmentScore,
-		"by_priority":              analysis.ByPriority,
+		"total_tasks_analyzed":    analysis.TotalTasks,
+		"misaligned_count":        len(analysis.MisalignedTasks),
+		"infrastructure_count":    len(analysis.InfrastructureTasks),
+		"stale_count":             len(analysis.StaleTasks),
+		"average_alignment_score": analysis.AlignmentScore,
+		"by_priority":             analysis.ByPriority,
 		"by_status":               analysis.ByStatus,
 		"report_path":             analysis.ReportPath,
 		"tasks_created":           tasksCreated,
@@ -124,14 +124,14 @@ func handleAlignmentTodo2(ctx context.Context, params map[string]interface{}) ([
 
 // AlignmentAnalysis represents the results of alignment analysis
 type AlignmentAnalysis struct {
-	TotalTasks            int
-	MisalignedTasks       []Todo2Task
-	InfrastructureTasks   []Todo2Task
-	StaleTasks            []Todo2Task
-	AlignmentScore        float64
-	ByPriority            map[string]int
-	ByStatus              map[string]int
-	ReportPath            string
+	TotalTasks          int
+	MisalignedTasks     []Todo2Task
+	InfrastructureTasks []Todo2Task
+	StaleTasks          []Todo2Task
+	AlignmentScore      float64
+	ByPriority          map[string]int
+	ByStatus            map[string]int
+	ReportPath          string
 }
 
 // analyzeTaskAlignment analyzes task alignment with project goals
@@ -219,7 +219,7 @@ func checkTaskAlignment(task Todo2Task, goalTerms []string) bool {
 
 	// Combine task content and description
 	taskText := strings.ToLower(task.Content + " " + task.LongDescription)
-	
+
 	// Check if task mentions any goal terms
 	for _, term := range goalTerms {
 		if strings.Contains(taskText, term) {
@@ -244,13 +244,13 @@ func checkTaskAlignment(task Todo2Task, goalTerms []string) bool {
 func isInfrastructureTask(task Todo2Task) bool {
 	infraKeywords := []string{"infrastructure", "ci/cd", "cicd", "deployment", "docker", "kubernetes", "setup", "config"}
 	taskText := strings.ToLower(task.Content + " " + task.LongDescription)
-	
+
 	for _, keyword := range infraKeywords {
 		if strings.Contains(taskText, keyword) {
 			return true
 		}
 	}
-	
+
 	return false
 }
 
@@ -263,7 +263,7 @@ func isStaleTask(task Todo2Task) bool {
 			return true
 		}
 	}
-	
+
 	return false
 }
 
@@ -283,7 +283,7 @@ func generateAlignmentReport(analysis AlignmentAnalysis, projectRoot string) str
 
 ## Alignment by Priority
 
-`, 
+`,
 		"2026-01-09", // TODO: Use actual timestamp
 		analysis.TotalTasks,
 		analysis.AlignmentScore,
@@ -310,4 +310,3 @@ func generateAlignmentReport(analysis AlignmentAnalysis, projectRoot string) str
 
 	return report
 }
-

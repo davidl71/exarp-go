@@ -1,0 +1,66 @@
+2026-01-08 16:21:40,103 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Starting intelligent automation: Documentation Health Analysis
+2026-01-08 16:21:40,103 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Starting Tractatus analysis...
+2026-01-08 16:21:40,104 - project_management_automation.scripts.base.mcp_client - WARNING - Tractatus Thinking MCP server not configured
+2026-01-08 16:21:40,104 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Tractatus analysis complete (fallback): 0 components identified
+2026-01-08 16:21:40,104 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Starting Sequential planning...
+2026-01-08 16:21:40,104 - project_management_automation.scripts.base.mcp_client - WARNING - Sequential Thinking MCP server not configured
+2026-01-08 16:21:40,104 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Sequential planning complete (fallback): 4 steps planned
+2026-01-08 16:21:40,104 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Creating/reusing Todo2 task...
+2026-01-08 16:21:40,108 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Todo2 task created: AUTO-20260108162140-106870
+2026-01-08 16:21:40,108 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Starting NetworkX analysis...
+2026-01-08 16:21:40,108 - project_management_automation.scripts.base.intelligent_automation_base - WARNING - NetworkX not available, install with: pip install networkx
+2026-01-08 16:21:40,108 - __main__ - INFO - Executing documentation health analysis...
+2026-01-08 16:21:40,111 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Results stored in Todo2
+2026-01-08 16:21:40,114 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Todo2 task AUTO-20260108162140-106870 marked as complete via MCP
+2026-01-08 16:21:40,114 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Intelligent automation completed: Documentation Health Analysis
+2026-01-08 16:21:40,114 - __main__ - INFO - Report written to: /Users/davidl/Projects/exarp-go/docs/DOCUMENTATION_HEALTH_REPORT.md
+2026-01-08 16:21:40,114 - __main__ - INFO - Health score: 100.0%
+2026-01-08 16:53:25,148 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Starting intelligent automation: Documentation Health Analysis
+2026-01-08 16:53:25,149 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Starting Tractatus analysis...
+2026-01-08 16:53:25,149 - project_management_automation.scripts.base.mcp_client - WARNING - Tractatus Thinking MCP server not configured
+2026-01-08 16:53:25,149 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Tractatus analysis complete (fallback): 0 components identified
+2026-01-08 16:53:25,149 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Starting Sequential planning...
+2026-01-08 16:53:25,149 - project_management_automation.scripts.base.mcp_client - WARNING - Sequential Thinking MCP server not configured
+2026-01-08 16:53:25,149 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Sequential planning complete (fallback): 4 steps planned
+2026-01-08 16:53:25,149 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Creating/reusing Todo2 task...
+2026-01-08 16:53:25,153 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Todo2 task created: AUTO-20260108165325-151298
+2026-01-08 16:53:25,153 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Starting NetworkX analysis...
+2026-01-08 16:53:25,153 - project_management_automation.scripts.base.intelligent_automation_base - WARNING - NetworkX not available, install with: pip install networkx
+2026-01-08 16:53:25,153 - project_management_automation.scripts.automate_docs_health_v2 - INFO - Executing documentation health analysis...
+2026-01-08 16:53:25,156 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Results stored in Todo2
+2026-01-08 16:53:25,160 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Todo2 task AUTO-20260108165325-151298 marked as complete via MCP
+2026-01-08 16:53:25,160 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Intelligent automation completed: Documentation Health Analysis
+2026-01-08 16:53:25,160 - project_management_automation.tools.docs_health - INFO - check_documentation_health: 0.03s, success=True
+2026-01-09 00:10:32,932 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Starting intelligent automation: Documentation Health Analysis
+2026-01-09 00:10:32,933 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Starting Tractatus analysis...
+2026-01-09 00:10:32,933 - project_management_automation.scripts.base.mcp_client - WARNING - Tractatus Thinking MCP server not configured
+2026-01-09 00:10:32,933 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Tractatus analysis complete (fallback): 0 components identified
+2026-01-09 00:10:32,933 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Starting Sequential planning...
+2026-01-09 00:10:32,933 - project_management_automation.scripts.base.mcp_client - WARNING - Sequential Thinking MCP server not configured
+2026-01-09 00:10:32,933 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Sequential planning complete (fallback): 4 steps planned
+2026-01-09 00:10:32,933 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Creating/reusing Todo2 task...
+2026-01-09 00:10:32,941 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Todo2 task created: AUTO-20260109001032-938713
+2026-01-09 00:10:32,941 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Starting NetworkX analysis...
+2026-01-09 00:10:32,941 - project_management_automation.scripts.base.intelligent_automation_base - WARNING - NetworkX not available, install with: pip install networkx
+2026-01-09 00:10:32,941 - __main__ - INFO - Executing documentation health analysis...
+2026-01-09 00:10:32,944 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Results stored in Todo2
+2026-01-09 00:10:32,947 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Todo2 task AUTO-20260109001032-938713 marked as complete via MCP
+2026-01-09 00:10:32,947 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Intelligent automation completed: Documentation Health Analysis
+2026-01-09 00:10:32,947 - __main__ - INFO - Report written to: /Users/davidl/Projects/exarp-go/docs/DOCUMENTATION_HEALTH_REPORT.md
+2026-01-09 00:10:32,947 - __main__ - INFO - Health score: 100.0%
+2026-01-09 00:30:10,925 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Starting intelligent automation: Documentation Health Analysis
+2026-01-09 00:30:10,925 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Starting Tractatus analysis...
+2026-01-09 00:30:10,925 - project_management_automation.scripts.base.mcp_client - WARNING - Tractatus Thinking MCP server not configured
+2026-01-09 00:30:10,926 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Tractatus analysis complete (fallback): 0 components identified
+2026-01-09 00:30:10,926 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Starting Sequential planning...
+2026-01-09 00:30:10,926 - project_management_automation.scripts.base.mcp_client - WARNING - Sequential Thinking MCP server not configured
+2026-01-09 00:30:10,926 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Sequential planning complete (fallback): 4 steps planned
+2026-01-09 00:30:10,926 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Creating/reusing Todo2 task...
+2026-01-09 00:30:10,930 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Todo2 task created: AUTO-20260109003010-928553
+2026-01-09 00:30:10,931 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Starting NetworkX analysis...
+2026-01-09 00:30:10,931 - project_management_automation.scripts.base.intelligent_automation_base - WARNING - NetworkX not available, install with: pip install networkx
+2026-01-09 00:30:10,931 - project_management_automation.scripts.automate_docs_health_v2 - INFO - Executing documentation health analysis...
+2026-01-09 00:30:10,934 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Results stored in Todo2
+2026-01-09 00:30:10,937 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Todo2 task AUTO-20260109003010-928553 marked as complete via MCP
+2026-01-09 00:30:10,937 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Intelligent automation completed: Documentation Health Analysis
+2026-01-09 00:30:10,937 - project_management_automation.tools.docs_health - INFO - check_documentation_health: 0.02s, success=True

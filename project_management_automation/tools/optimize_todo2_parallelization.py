@@ -35,7 +35,8 @@ except ImportError:
 
 def optimize_todo2_parallelization(
     output_format: str = "markdown",
-    output_path: Optional[str] = None
+    output_path: Optional[str] = None,
+    duration_weight: float = 0.3
 ) -> str:
     """
     Identify Todo2 tasks that can run in parallel based on dependency readiness and estimated time.
@@ -43,6 +44,8 @@ def optimize_todo2_parallelization(
     Args:
         output_format: Output format - "text", "json", or "markdown" (default: "markdown")
         output_path: Path for report output (default: docs/TODO2_PARALLELIZATION_OPTIMIZATION_REPORT.md)
+        duration_weight: Weight for estimated duration in grouping (0.0-1.0, default: 0.3)
+                         Lower values reduce the influence of duration on grouping
 
     Returns:
         JSON string with parallelization analysis results
@@ -65,7 +68,7 @@ def optimize_todo2_parallelization(
         task_map = {task.get('id'): task for task in all_tasks}
 
         # Group tasks by dependency readiness
-        parallel_groups = _group_parallelizable_tasks(ready_tasks, all_tasks, task_map)
+        parallel_groups = _group_parallelizable_tasks(ready_tasks, all_tasks, task_map, duration_weight)
 
         # Calculate time savings
         time_savings = _calculate_time_savings(parallel_groups, all_tasks)
@@ -120,25 +123,52 @@ def optimize_todo2_parallelization(
 def _group_parallelizable_tasks(
     ready_tasks: list[dict[str, Any]],
     all_tasks: list[dict[str, Any]],
-    task_map: dict[str, dict[str, Any]]
+    task_map: dict[str, dict[str, Any]],
+    duration_weight: float = 0.3
 ) -> list[list[str]]:
-    """Group tasks that can run in parallel."""
-    # Simple grouping: all ready tasks can run in parallel
-    # More sophisticated: group by estimated time, priority, etc.
-
+    """
+    Group tasks that can run in parallel.
+    
+    Args:
+        ready_tasks: Tasks ready to start (dependencies met)
+        all_tasks: All tasks for reference
+        task_map: Map of task ID to task dict
+        duration_weight: Weight for estimated duration (0.0-1.0)
+                         Lower values reduce duration influence on grouping
+    """
+    # Calculate dynamic threshold based on duration weight
+    # When duration_weight is low, use a larger threshold (more lenient grouping)
+    # When duration_weight is high, use a smaller threshold (stricter grouping)
+    base_threshold = 10.0  # Base threshold in hours
+    duration_threshold = base_threshold * (1.0 - duration_weight)  # Inverted: lower weight = larger threshold
+    
     groups = []
     current_group = []
 
     for task in ready_tasks:
         task_id = task.get('id')
         estimated_hours = task.get('estimatedHours', 0) or task.get('estimated_hours', 0)
+        priority = task.get('priority', 'medium')
 
-        # Group tasks with similar estimated time (within 2 hours)
+        # Group tasks considering duration (with reduced weight) and priority
         if current_group:
             first_task = task_map.get(current_group[0], {})
             first_hours = first_task.get('estimatedHours', 0) or first_task.get('estimated_hours', 0)
+            first_priority = first_task.get('priority', 'medium')
 
-            if abs(estimated_hours - first_hours) <= 2:
+            # Calculate similarity score
+            duration_diff = abs(estimated_hours - first_hours)
+            duration_similarity = 1.0 - min(duration_diff / duration_threshold, 1.0)
+            
+            # Priority similarity (same priority = 1.0, different = 0.5)
+            priority_similarity = 1.0 if priority == first_priority else 0.5
+            
+            # Combined similarity: duration_weight * duration + (1 - duration_weight) * priority
+            # Lower duration_weight means priority matters more, duration matters less
+            combined_similarity = (duration_weight * duration_similarity) + ((1.0 - duration_weight) * priority_similarity)
+            
+            # Group if similarity is above threshold (0.5 = 50% similar)
+            if combined_similarity >= 0.5:
                 current_group.append(task_id)
             else:
                 if current_group:

@@ -128,6 +128,19 @@ PERSONAS = {
             "rationale": "Confucius emphasized teaching and transmitting wisdom to future generations",
         },
     },
+    "infrastructure": {
+        "name": "Infrastructure/DevOps Engineer",
+        "role": "System Operations",
+        "goal": "Maintain reliable infrastructure, automate operations, ensure system health",
+        "keywords": ["automation", "infrastructure", "devops", "ci/cd", "deployment", "monitoring", "sync", "synchronization", "duplicate", "alignment", "system"],
+        "key_metrics": ["Uptime >99.9%", "Automation Coverage >80%", "Deployment Frequency", "MTTR <1h"],
+        "workflows": ["Daily System Health Check", "Automation Review", "Infrastructure Updates", "Monitoring Alerts"],
+        "trusted_advisor": {
+            "advisor": "tao_of_programming",
+            "icon": "⚙️",
+            "rationale": "The Tao teaches that infrastructure should work invisibly - automation flows naturally",
+        },
+    },
 }
 
 # Import error handler
@@ -334,6 +347,8 @@ class PRDGenerator:
             relevance_reasons.append("Test suite present")
         elif persona_id == "architect" and "architecture" in combined:
             relevance_reasons.append("Architecture documentation present")
+        elif persona_id == "infrastructure" and (matches >= 2 or "automation" in combined or "ci/cd" in combined):
+            relevance_reasons.append("Automation and infrastructure tasks present")
 
         return ", ".join(relevance_reasons) if relevance_reasons else ""
 

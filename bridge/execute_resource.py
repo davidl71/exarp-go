@@ -26,6 +26,15 @@ def execute_resource(uri: str):
             get_recent_memories_resource,
             get_session_memories_resource,
         )
+        from project_management_automation.resources.prompt_discovery import (
+            get_all_prompts_compact,
+            get_prompts_for_mode,
+            get_prompts_for_persona,
+            get_prompts_for_category,
+        )
+        from project_management_automation.resources.session import (
+            get_session_mode_resource,
+        )
         from project_management_automation.tools.project_scorecard import (
             generate_project_scorecard,
         )
@@ -46,6 +55,19 @@ def execute_resource(uri: str):
         elif uri.startswith("stdio://memories/session/"):
             date = uri.split("/")[-1]
             result = get_session_memories_resource(date)
+        elif uri == "stdio://prompts":
+            result = get_all_prompts_compact()
+        elif uri.startswith("stdio://prompts/mode/"):
+            mode = uri.split("/")[-1]
+            result = get_prompts_for_mode(mode)
+        elif uri.startswith("stdio://prompts/persona/"):
+            persona = uri.split("/")[-1]
+            result = get_prompts_for_persona(persona)
+        elif uri.startswith("stdio://prompts/category/"):
+            category = uri.split("/")[-1]
+            result = get_prompts_for_category(category)
+        elif uri == "stdio://session/mode":
+            result = get_session_mode_resource()
         else:
             error_result = {
                 "success": False,

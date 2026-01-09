@@ -11,4 +11,3 @@ func NewStdioTransport() Transport {
 }
 
 type stdioTransport struct{}
-

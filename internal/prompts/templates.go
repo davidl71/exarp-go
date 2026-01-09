@@ -288,4 +288,3 @@ func substituteTemplate(template string, args map[string]interface{}) string {
 	}
 	return result
 }
-

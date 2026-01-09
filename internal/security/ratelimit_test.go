@@ -135,4 +135,3 @@ func TestCheckRateLimit(t *testing.T) {
 
 	rl.Stop()
 }
-

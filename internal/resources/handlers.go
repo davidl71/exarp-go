@@ -78,6 +78,61 @@ func RegisterAllResources(server framework.MCPServer) error {
 		return fmt.Errorf("failed to register session memories resource: %w", err)
 	}
 
+	// stdio://prompts
+	if err := server.RegisterResource(
+		"stdio://prompts",
+		"All Prompts",
+		"Get all prompts in compact format for discovery.",
+		"application/json",
+		handleAllPrompts,
+	); err != nil {
+		return fmt.Errorf("failed to register all prompts resource: %w", err)
+	}
+
+	// stdio://prompts/mode/{mode}
+	if err := server.RegisterResource(
+		"stdio://prompts/mode/{mode}",
+		"Prompts by Mode",
+		"Get prompts for a workflow mode (daily_checkin, security_review, task_management, etc.).",
+		"application/json",
+		handlePromptsByMode,
+	); err != nil {
+		return fmt.Errorf("failed to register prompts by mode resource: %w", err)
+	}
+
+	// stdio://prompts/persona/{persona}
+	if err := server.RegisterResource(
+		"stdio://prompts/persona/{persona}",
+		"Prompts by Persona",
+		"Get prompts for a persona (developer, pm, qa, reviewer, etc.).",
+		"application/json",
+		handlePromptsByPersona,
+	); err != nil {
+		return fmt.Errorf("failed to register prompts by persona resource: %w", err)
+	}
+
+	// stdio://prompts/category/{category}
+	if err := server.RegisterResource(
+		"stdio://prompts/category/{category}",
+		"Prompts by Category",
+		"Get prompts in a category (workflow, persona, analysis, etc.).",
+		"application/json",
+		handlePromptsByCategory,
+	); err != nil {
+		return fmt.Errorf("failed to register prompts by category resource: %w", err)
+	}
+
+	// stdio://session/mode
+	if err := server.RegisterResource(
+		"stdio://session/mode",
+		"Session Mode",
+		"Get current inferred session mode (AGENT/ASK/MANUAL) with confidence.",
+		"application/json",
+		handleSessionMode,
+	); err != nil {
+		return fmt.Errorf("failed to register session mode resource: %w", err)
+	}
+
 	return nil
 }
 
@@ -104,5 +159,25 @@ func handleRecentMemories(ctx context.Context, uri string) ([]byte, string, erro
 }
 
 func handleSessionMemories(ctx context.Context, uri string) ([]byte, string, error) {
+	return bridge.ExecutePythonResource(ctx, uri)
+}
+
+func handleAllPrompts(ctx context.Context, uri string) ([]byte, string, error) {
+	return bridge.ExecutePythonResource(ctx, uri)
+}
+
+func handlePromptsByMode(ctx context.Context, uri string) ([]byte, string, error) {
+	return bridge.ExecutePythonResource(ctx, uri)
+}
+
+func handlePromptsByPersona(ctx context.Context, uri string) ([]byte, string, error) {
+	return bridge.ExecutePythonResource(ctx, uri)
+}
+
+func handlePromptsByCategory(ctx context.Context, uri string) ([]byte, string, error) {
+	return bridge.ExecutePythonResource(ctx, uri)
+}
+
+func handleSessionMode(ctx context.Context, uri string) ([]byte, string, error) {
 	return bridge.ExecutePythonResource(ctx, uri)
 }

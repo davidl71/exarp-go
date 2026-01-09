@@ -12,7 +12,7 @@ from pathlib import Path
 from typing import Any, Optional
 
 from ..tools.dynamic_tools import DynamicToolManager, get_tool_manager
-from ..tools.session_mode_inference import (
+from ..tools.session_mode_inference_interfaces import (
     ModeInferenceResult,
     SessionMode,
     SessionModeInference,

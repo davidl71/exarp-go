@@ -216,7 +216,7 @@ func (m *MockServer) ReadResource(ctx context.Context, uri string) ([]byte, stri
 func (m *MockServer) ListTools() []framework.ToolInfo {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
-	
+
 	tools := make([]framework.ToolInfo, 0, len(m.tools))
 	for _, tool := range m.tools {
 		tools = append(tools, framework.ToolInfo{

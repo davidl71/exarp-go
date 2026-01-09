@@ -52,4 +52,3 @@ func TestIsMacOS26OrLater(t *testing.T) {
 		})
 	}
 }
-

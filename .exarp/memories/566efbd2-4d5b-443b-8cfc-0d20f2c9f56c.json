@@ -1,0 +1,13 @@
+{
+  "id": "566efbd2-4d5b-443b-8cfc-0d20f2c9f56c",
+  "title": "Duplicates: 237 found",
+  "content": "Duplicate task detection completed.\n\n## Results\n- Total tasks scanned: 90\n- Duplicate IDs found: 0\n- Exact name matches: 0\n- Similar name matches: 6\n- Similar description matches: 231\n- Self dependencies: 0\n\n## Actions Taken (auto_fix applied)\n- Tasks removed: 0\n- Tasks merged: 0\n- Dependencies updated: 0\n\n## Report\n/Users/davidl/Projects/exarp-go/docs/TODO2_DUPLICATE_DETECTION_REPORT.md\n",
+  "category": "insight",
+  "linked_tasks": [],
+  "metadata": {
+    "type": "duplicate_detection",
+    "auto_fix": true
+  },
+  "created_at": "2026-01-09T00:34:19.786877",
+  "session_date": "2026-01-09"
+}

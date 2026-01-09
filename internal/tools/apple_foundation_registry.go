@@ -51,4 +51,3 @@ func registerAppleFoundationModelsTool(server framework.MCPServer) error {
 
 	return nil
 }
-

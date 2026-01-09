@@ -18,7 +18,7 @@ import (
 const (
 	EXPECTED_TOOLS     = 30 // Base tools (31 with conditional Apple Foundation Models)
 	EXPECTED_PROMPTS   = 17 // Updated from 15
-	EXPECTED_RESOURCES = 6
+	EXPECTED_RESOURCES = 11
 )
 
 // Counting wrapper to track registrations

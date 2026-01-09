@@ -152,4 +152,3 @@ func TestGetProjectRoot(t *testing.T) {
 		t.Errorf("GetProjectRoot() = %v, want %v", root, projectRoot)
 	}
 }
-

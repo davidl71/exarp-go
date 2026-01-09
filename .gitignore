@@ -5,3 +5,6 @@
 .todo2/
 .make.config
 .agentic-tools-mcp/
+
+# OpenMemory - IDE/Assistant specific rules
+.cursor/rules/openmemory.mdc

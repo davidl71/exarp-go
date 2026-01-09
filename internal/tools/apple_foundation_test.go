@@ -6,9 +6,9 @@ package tools
 import (
 	"context"
 	"encoding/json"
+	"strings"
 	"testing"
 )
-
 
 func TestHandleAppleFoundationModels_ArgumentParsing(t *testing.T) {
 	tests := []struct {
@@ -92,7 +92,7 @@ func TestHandleAppleFoundationModels_ArgumentParsing(t *testing.T) {
 			}
 
 			if tt.wantError && tt.errorMsg != "" && err != nil {
-				if err.Error() == "" || !contains(err.Error(), tt.errorMsg) {
+				if err.Error() == "" || !strings.Contains(err.Error(), tt.errorMsg) {
 					t.Errorf("handleAppleFoundationModels() error = %v, want error containing %q", err, tt.errorMsg)
 				}
 			}
@@ -122,7 +122,7 @@ func TestHandleAppleFoundationModels_PlatformDetection(t *testing.T) {
 	// 3. Success (if Swift bridge is built and platform is supported)
 	if err != nil {
 		// Check if it's a platform support error
-		if contains(err.Error(), "not supported") {
+		if strings.Contains(err.Error(), "not supported") {
 			t.Logf("Platform not supported (expected on some systems): %v", err)
 		} else {
 			t.Logf("Foundation Models error (may need Swift bridge): %v", err)
@@ -184,14 +184,13 @@ func TestHandleAppleFoundationModels_ActionRouting(t *testing.T) {
 			// Actual API errors are expected without Swift bridge
 			if err != nil {
 				// Should not be an "unknown action" error for valid actions
-				if contains(err.Error(), "unknown action") && tt.action != "" && tt.action != "invalid" {
+				if strings.Contains(err.Error(), "unknown action") && tt.action != "" && tt.action != "invalid" {
 					t.Errorf("handleAppleFoundationModels() incorrectly reported unknown action for %q: %v", tt.action, err)
 				}
 			}
 		})
 	}
 }
-
 
 func TestHandleAppleFoundationModels_ErrorHandling(t *testing.T) {
 	tests := []struct {
@@ -252,13 +251,8 @@ func TestHandleAppleFoundationModels_TextContentFormat(t *testing.T) {
 	}
 }
 
-// Helper function to check if string contains substring
-func contains(s, substr string) bool {
-	return len(s) >= len(substr) && (s == substr || len(substr) == 0 || 
-		(len(s) > len(substr) && (s[:len(substr)] == substr || 
-		s[len(s)-len(substr):] == substr || 
-		containsSubstring(s, substr))))
-}
+// Helper function to check if string contains substring (using standard library)
+// Removed custom contains function - use strings.Contains instead
 
 func containsSubstring(s, substr string) bool {
 	for i := 0; i <= len(s)-len(substr); i++ {
@@ -268,4 +262,3 @@ func containsSubstring(s, substr string) bool {
 	}
 	return false
 }
-

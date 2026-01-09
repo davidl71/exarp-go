@@ -34,12 +34,12 @@ func main() {
 
 	// Test estimation tool with Apple FM
 	args := map[string]interface{}{
-		"action":         "estimate",
-		"name":           "CLI Test Task - Complex Migration",
-		"details":        "Migrate a complex tool with multiple dependencies, semantic analysis, and hybrid approach. Requires understanding of architecture, implementing native Go code, integrating with existing systems, and comprehensive testing.",
+		"action":          "estimate",
+		"name":            "CLI Test Task - Complex Migration",
+		"details":         "Migrate a complex tool with multiple dependencies, semantic analysis, and hybrid approach. Requires understanding of architecture, implementing native Go code, integrating with existing systems, and comprehensive testing.",
 		"priority":        "high",
-		"tag_list":       []string{"test", "apple-fm", "migration"},
-		"use_historical": true,
+		"tag_list":        []string{"test", "apple-fm", "migration"},
+		"use_historical":  true,
 		"use_apple_fm":    true,
 		"apple_fm_weight": 0.3,
 	}
@@ -89,4 +89,3 @@ func main() {
 		}
 	}
 }
-

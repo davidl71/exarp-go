@@ -361,4 +361,3 @@ func TestSubstituteTemplate_EdgeCases(t *testing.T) {
 		})
 	}
 }
-

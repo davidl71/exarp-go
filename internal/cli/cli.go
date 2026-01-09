@@ -21,12 +21,12 @@ import (
 func Run() error {
 	// Parse command line arguments
 	var (
-		toolName      = flag.String("tool", "", "Tool name to execute")
-		argsJSON      = flag.String("args", "{}", "Tool arguments as JSON")
-		listTools     = flag.Bool("list", false, "List all available tools")
-		testTool      = flag.String("test", "", "Test a tool with example arguments")
-		interactive   = flag.Bool("i", false, "Interactive mode")
-		completion    = flag.String("completion", "", "Generate shell completion script (bash|zsh|fish)")
+		toolName    = flag.String("tool", "", "Tool name to execute")
+		argsJSON    = flag.String("args", "{}", "Tool arguments as JSON")
+		listTools   = flag.Bool("list", false, "List all available tools")
+		testTool    = flag.String("test", "", "Test a tool with example arguments")
+		interactive = flag.Bool("i", false, "Interactive mode")
+		completion  = flag.String("completion", "", "Generate shell completion script (bash|zsh|fish)")
 	)
 	flag.Parse()
 

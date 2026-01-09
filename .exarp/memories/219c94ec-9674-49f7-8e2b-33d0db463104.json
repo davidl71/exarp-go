@@ -1,0 +1,13 @@
+{
+  "id": "219c94ec-9674-49f7-8e2b-33d0db463104",
+  "title": "Scorecard: 52.8% \u274c",
+  "content": "Project scorecard generated.\n\n## Overall Score: 52.8%\nProduction Ready: \u274c No\n\n## Component Scores\n- uniqueness: 87.5%\n- completion: 83.1%\n- codebase: 80%\n- security: 72.7%\n- documentation: 69.4%\n- alignment: 64.4%\n- performance: 60.0%\n- ci_cd: 50.0%\n- clarity: 26.7%\n- parallelizable: 22.2%\n- dogfooding: 10.0%\n- testing: 4.9%\n\n## Blockers\n- Security controls incomplete\n- Test coverage too low\n\n## Recommendations\nNone\n",
+  "category": "insight",
+  "linked_tasks": [],
+  "metadata": {
+    "type": "scorecard",
+    "overall_score": 52.8
+  },
+  "created_at": "2026-01-08T16:47:26.394432",
+  "session_date": "2026-01-08"
+}

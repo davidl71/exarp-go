@@ -22,9 +22,9 @@ func main() {
 	// Test 1: task_analysis(action="hierarchy")
 	fmt.Println("=== Test 1: task_analysis(action='hierarchy') ===")
 	args1 := map[string]interface{}{
-		"action":                "hierarchy",
+		"action":                  "hierarchy",
 		"include_recommendations": true,
-		"output_format":         "json",
+		"output_format":           "json",
 	}
 	argsBytes1, _ := json.Marshal(args1)
 	result1, err1 := server.CallTool(ctx, "task_analysis", argsBytes1)
@@ -48,7 +48,7 @@ func main() {
 	// Test 2: task_discovery(action="comments")
 	fmt.Println("\n=== Test 2: task_discovery(action='comments') ===")
 	args2 := map[string]interface{}{
-		"action":       "comments",
+		"action":        "comments",
 		"include_fixme": true,
 	}
 	argsBytes2, _ := json.Marshal(args2)
@@ -75,7 +75,7 @@ func main() {
 	// Test 3: task_workflow(action="clarify", sub_action="list")
 	fmt.Println("\n=== Test 3: task_workflow(action='clarify', sub_action='list') ===")
 	args3 := map[string]interface{}{
-		"action":    "clarify",
+		"action":     "clarify",
 		"sub_action": "list",
 	}
 	argsBytes3, _ := json.Marshal(args3)
@@ -99,4 +99,3 @@ func main() {
 
 	fmt.Println("\n✅ Migration complete! All three tools now use native Go with Apple FM.")
 }
-

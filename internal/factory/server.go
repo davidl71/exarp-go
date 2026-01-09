@@ -22,4 +22,3 @@ func NewServer(frameworkType config.FrameworkType, name, version string) (framew
 func NewServerFromConfig(cfg *config.Config) (framework.MCPServer, error) {
 	return NewServer(cfg.Framework, cfg.Name, cfg.Version)
 }
-

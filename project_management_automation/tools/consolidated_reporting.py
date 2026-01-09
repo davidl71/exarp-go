@@ -109,7 +109,13 @@ def report(
                 result = json.dumps(result, indent=2)
         elif action == "prd":
             from .prd_generator import generate_prd
-            result = generate_prd(project_name, include_architecture, include_metrics, include_tasks, output_path)
+            result = generate_prd(
+                project_name=project_name,
+                output_path=output_path,
+                include_tasks=include_tasks,
+                include_architecture=include_architecture,
+                include_metrics=include_metrics
+            )
         else:
             result = {
                 "status": "error",
