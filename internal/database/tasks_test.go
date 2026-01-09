@@ -7,7 +7,7 @@ import (
 	"github.com/davidl71/exarp-go/internal/models"
 )
 
-func TestCreateTask(context.Background(), t *testing.T) {
+func TestCreateTask(t *testing.T) {
 	// Setup
 	tmpDir := t.TempDir()
 	err := Init(tmpDir)
@@ -53,7 +53,7 @@ func TestCreateTask(context.Background(), t *testing.T) {
 	}
 }
 
-func TestGetTask(context.Background(), t *testing.T) {
+func TestGetTask( t *testing.T) {
 	// Setup
 	tmpDir := t.TempDir()
 	err := Init(tmpDir)
@@ -89,7 +89,7 @@ func TestGetTask(context.Background(), t *testing.T) {
 	}
 }
 
-func TestUpdateTask(context.Background(), t *testing.T) {
+func TestUpdateTask( t *testing.T) {
 	// Setup
 	tmpDir := t.TempDir()
 	err := Init(tmpDir)
@@ -137,7 +137,7 @@ func TestUpdateTask(context.Background(), t *testing.T) {
 	}
 }
 
-func TestDeleteTask(context.Background(), t *testing.T) {
+func TestDeleteTask( t *testing.T) {
 	// Setup
 	tmpDir := t.TempDir()
 	err := Init(tmpDir)
@@ -170,7 +170,7 @@ func TestDeleteTask(context.Background(), t *testing.T) {
 	}
 }
 
-func TestListTasks(context.Background(), t *testing.T) {
+func TestListTasks( t *testing.T) {
 	// Setup
 	tmpDir := t.TempDir()
 	err := Init(tmpDir)
@@ -219,7 +219,7 @@ func TestListTasks(context.Background(), t *testing.T) {
 	}
 }
 
-func TestGetTasksByStatus(t *testing.T) {
+func TestGetTasksByStatus( t *testing.T) {
 	// Setup
 	tmpDir := t.TempDir()
 	err := Init(tmpDir)
@@ -243,9 +243,9 @@ func TestGetTasksByStatus(t *testing.T) {
 	}
 
 	// Test
-	todoTasks, err := GetTasksByStatus("Todo")
+	todoTasks, err := GetTasksByStatus(context.Background(), "Todo")
 	if err != nil {
-		t.Fatalf("GetTasksByStatus() error = %v", err)
+		t.Fatalf("GetTasksByStatus(context.Background(), ) error = %v", err)
 	}
 
 	if len(todoTasks) != 2 {
@@ -302,7 +302,7 @@ func TestGetDependencies(t *testing.T) {
 	}
 }
 
-func TestGetTasksByTag(t *testing.T) {
+func TestGetTasksByTag( t *testing.T) {
 	// Setup
 	tmpDir := t.TempDir()
 	err := Init(tmpDir)
@@ -326,9 +326,9 @@ func TestGetTasksByTag(t *testing.T) {
 	}
 
 	// Test
-	backendTasks, err := GetTasksByTag("backend")
+	backendTasks, err := GetTasksByTag(context.Background(), "backend")
 	if err != nil {
-		t.Fatalf("GetTasksByTag() error = %v", err)
+		t.Fatalf("GetTasksByTag(context.Background(), ) error = %v", err)
 	}
 
 	if len(backendTasks) != 2 {

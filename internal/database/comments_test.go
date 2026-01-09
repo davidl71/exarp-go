@@ -221,7 +221,7 @@ func TestGetCommentsByType(t *testing.T) {
 	}
 
 	// Test GetCommentsByType
-	researchComments, err := GetCommentsByType(CommentTypeResearch)
+	researchComments, err := GetCommentsByType(context.Background(), CommentTypeResearch)
 	if err != nil {
 		t.Fatalf("GetCommentsByType() error = %v", err)
 	}
@@ -268,7 +268,7 @@ func TestGetCommentsWithTypeFilter(t *testing.T) {
 	}
 
 	// Test filtering by type
-	notes, err := GetCommentsWithTypeFilter("T-COMMENT-6", CommentTypeNote)
+	notes, err := GetCommentsWithTypeFilter(context.Background(), "T-COMMENT-6", CommentTypeNote)
 	if err != nil {
 		t.Fatalf("GetCommentsWithTypeFilter() error = %v", err)
 	}
@@ -320,7 +320,7 @@ func TestDeleteComment(t *testing.T) {
 	commentID := comments[0].ID
 
 	// Delete comment
-	err = DeleteComment(commentID)
+	err = DeleteComment(context.Background(), commentID)
 	if err != nil {
 		t.Fatalf("DeleteComment() error = %v", err)
 	}
@@ -335,7 +335,7 @@ func TestDeleteComment(t *testing.T) {
 	}
 
 	// Test deleting non-existent comment
-	err = DeleteComment("NONEXISTENT")
+	err = DeleteComment(context.Background(), "NONEXISTENT")
 	if err == nil {
 		t.Error("Expected error when deleting non-existent comment, got nil")
 	}
