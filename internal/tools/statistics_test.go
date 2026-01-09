@@ -135,7 +135,7 @@ func TestStdDev(t *testing.T) {
 		{
 			name:     "decimal values",
 			data:     []float64{2.5, 3.0, 4.5, 2.0, 3.5},
-			expected: 0.8944271909999159, // Approximate
+			expected: 0.9617692030835673, // Sample standard deviation (matches Python statistics.stdev)
 		},
 	}
 

@@ -157,6 +157,56 @@ func TestRegisterTool(t *testing.T) {
 }
 ```
 
+### Count Synchronization (CRITICAL)
+**⚠️ ALWAYS KEEP COUNTS IN SYNC BETWEEN IMPLEMENTATION, COMMENTS, AND TESTS ⚠️**
+
+When registering items (tools, prompts, resources, etc.):
+1. **Count items in implementation** - Count actual items being registered
+2. **Update comments** - Update any comments that mention the count
+3. **Update test expectations** - Update test assertions that check counts
+4. **Update expected lists** - Add new items to test expected lists
+
+**Example - Prompt Registration:**
+```go
+// ❌ BAD: Count mismatch
+// Register 17 prompts (8 original + 7 workflow + 2 mcp-generic-tools)
+prompts := []struct{...}{
+    {"align", "..."},
+    // ... 17 prompts ...
+    {"task_update", "..."}, // NEW: 18th prompt added but comment not updated
+}
+
+// Test expects 17 but gets 18
+if server.PromptCount() != 17 { // ❌ WRONG
+    t.Errorf("server.PromptCount() = %v, want 17", server.PromptCount())
+}
+
+// ✅ GOOD: All counts in sync
+// Register 18 prompts (8 original + 7 workflow + 2 mcp-generic-tools + 1 task management)
+prompts := []struct{...}{
+    {"align", "..."},
+    // ... 18 prompts ...
+    {"task_update", "..."},
+}
+
+// Test expects 18
+if server.PromptCount() != 18 { // ✅ CORRECT
+    t.Errorf("server.PromptCount() = %v, want 18", server.PromptCount())
+}
+
+// Test list includes all 18 prompts
+expectedPrompts := []string{
+    "align", "discover", // ... all 18 prompts including "task_update"
+}
+```
+
+**Checklist When Adding/Removing Items:**
+- ✅ Count items in implementation code
+- ✅ Update comment with new count and breakdown
+- ✅ Update test count assertion
+- ✅ Add/remove item from test expected lists
+- ✅ Verify test passes with updated counts
+
 ## MCP Server Specific Guidelines
 
 ### Framework-Agnostic Design

@@ -9,7 +9,7 @@ import (
 
 // RegisterAllPrompts registers all prompts with the server
 func RegisterAllPrompts(server framework.MCPServer) error {
-	// Register 17 prompts (8 original + 7 high-value workflow prompts + 2 mcp-generic-tools prompts)
+	// Register 18 prompts (8 original + 7 high-value workflow prompts + 2 mcp-generic-tools prompts + 1 task management prompt)
 	prompts := []struct {
 		name        string
 		description string
