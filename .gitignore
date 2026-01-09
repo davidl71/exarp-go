@@ -8,3 +8,15 @@
 
 # OpenMemory - IDE/Assistant specific rules
 .cursor/rules/openmemory.mdc
+
+# Go build artifacts
+bin/migrate
+bin/statistics
+*.test
+*.out
+coverage*.out
+coverage*.html
+
+# Go workspace files
+go.work
+go.work.sum
