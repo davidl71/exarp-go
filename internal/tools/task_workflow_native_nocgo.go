@@ -21,6 +21,9 @@ func handleTaskWorkflowNative(ctx context.Context, params map[string]interface{}
 	case "approve":
 		// Approve doesn't need Apple FM, so it works on all platforms
 		return handleTaskWorkflowApprove(ctx, params)
+	case "create":
+		// Create doesn't need Apple FM, so it works on all platforms
+		return handleTaskWorkflowCreate(ctx, params)
 	case "sync":
 		return handleTaskWorkflowSync(ctx, params)
 	case "clarity":

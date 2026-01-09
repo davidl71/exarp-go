@@ -486,8 +486,8 @@ func handleTaskWorkflow(ctx context.Context, args json.RawMessage) ([]framework.
 		action = "sync"
 	}
 
-	if action == "clarify" || action == "approve" {
-		// For clarify, check Apple FM support; for approve, always try native Go
+	if action == "clarify" || action == "approve" || action == "create" {
+		// For clarify, check Apple FM support; for approve and create, always try native Go
 		if action == "clarify" {
 			support := platform.CheckAppleFoundationModelsSupport()
 			if !support.Supported {
@@ -500,7 +500,7 @@ func handleTaskWorkflow(ctx context.Context, args json.RawMessage) ([]framework.
 				// If native fails, fall through to Python bridge
 			}
 		} else {
-			// For approve, always try native Go first
+			// For approve and create, always try native Go first
 			result, err := handleTaskWorkflowNative(ctx, params)
 			if err == nil {
 				return result, nil

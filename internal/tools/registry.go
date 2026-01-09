@@ -564,13 +564,13 @@ func registerBatch2Tools(server framework.MCPServer) error {
 	// T-34: task_workflow
 	if err := server.RegisterTool(
 		"task_workflow",
-		"[HINT: Task workflow. action=sync|approve|clarify|clarity|cleanup. Manage task lifecycle. ⚠️ CRITICAL: ALWAYS use this tool for task updates - NEVER edit .todo2/state.todo2.json directly. Use action=approve with task_ids for batch updates.]",
+		"[HINT: Task workflow. action=sync|approve|clarify|clarity|cleanup|create. Manage task lifecycle. ⚠️ CRITICAL: ALWAYS use this tool for task updates - NEVER edit .todo2/state.todo2.json directly. Use action=approve with task_ids for batch updates. Use action=create to create new tasks.]",
 		framework.ToolSchema{
 			Type: "object",
 			Properties: map[string]interface{}{
 				"action": map[string]interface{}{
 					"type":    "string",
-					"enum":    []string{"sync", "approve", "clarify", "clarity", "cleanup"},
+					"enum":    []string{"sync", "approve", "clarify", "clarity", "cleanup", "create"},
 					"default": "sync",
 				},
 				"dry_run": map[string]interface{}{
@@ -629,6 +629,27 @@ func registerBatch2Tools(server framework.MCPServer) error {
 				},
 				"output_path": map[string]interface{}{
 					"type": "string",
+				},
+				"name": map[string]interface{}{
+					"type":        "string",
+					"description": "Task name (required for create action)",
+				},
+				"long_description": map[string]interface{}{
+					"type":        "string",
+					"description": "Task description (required for create action)",
+				},
+				"tags": map[string]interface{}{
+					"type":        []interface{}{"array", "string"},
+					"description": "Task tags (array of strings or comma-separated string)",
+				},
+				"dependencies": map[string]interface{}{
+					"type":        []interface{}{"array", "string"},
+					"description": "Task dependencies (array of task IDs or comma-separated string)",
+				},
+				"auto_estimate": map[string]interface{}{
+					"type":        "boolean",
+					"default":     true,
+					"description": "Automatically estimate task duration and add as comment (default: true)",
 				},
 			},
 		},

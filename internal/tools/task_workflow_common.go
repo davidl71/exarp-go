@@ -758,3 +758,272 @@ func formatStaleTasksFromPtrs(tasks []*models.Todo2Task) []map[string]interface{
 	}
 	return result
 }
+
+// handleTaskWorkflowCreate handles create action for creating new tasks
+// Uses database for efficient creation, falls back to file-based approach if needed
+// This is platform-agnostic (doesn't require Apple FM)
+func handleTaskWorkflowCreate(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
+	projectRoot, err := FindProjectRoot()
+	if err != nil {
+		return nil, fmt.Errorf("failed to find project root: %w", err)
+	}
+
+	// Extract required parameters
+	name, _ := params["name"].(string)
+	if name == "" {
+		return nil, fmt.Errorf("name is required for task creation")
+	}
+
+	longDescription, _ := params["long_description"].(string)
+	if longDescription == "" {
+		longDescription = name // Use name as fallback
+	}
+
+	// Extract optional parameters
+	status := "Todo"
+	if s, ok := params["status"].(string); ok && s != "" {
+		status = normalizeStatus(s)
+	}
+
+	priority := "medium"
+	if p, ok := params["priority"].(string); ok && p != "" {
+		priority = normalizePriority(p)
+	}
+
+	tags := []string{}
+	if t, ok := params["tags"].([]interface{}); ok {
+		for _, tag := range t {
+			if tagStr, ok := tag.(string); ok {
+				tags = append(tags, tagStr)
+			}
+		}
+	} else if tStr, ok := params["tags"].(string); ok && tStr != "" {
+		// Support comma-separated tags string
+		tagList := strings.Split(tStr, ",")
+		for _, tag := range tagList {
+			tag = strings.TrimSpace(tag)
+			if tag != "" {
+				tags = append(tags, tag)
+			}
+		}
+	}
+
+	dependencies := []string{}
+	if d, ok := params["dependencies"].([]interface{}); ok {
+		for _, dep := range d {
+			if depStr, ok := dep.(string); ok {
+				dependencies = append(dependencies, depStr)
+			}
+		}
+	} else if dStr, ok := params["dependencies"].(string); ok && dStr != "" {
+		// Support comma-separated dependencies string
+		depList := strings.Split(dStr, ",")
+		for _, dep := range depList {
+			dep = strings.TrimSpace(dep)
+			if dep != "" {
+				dependencies = append(dependencies, dep)
+			}
+		}
+	}
+
+	// Load existing tasks to generate next ID and validate dependencies
+	tasks, err := LoadTodo2Tasks(projectRoot)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load tasks: %w", err)
+	}
+
+	// Generate next task ID (T-{next_number})
+	nextID := generateNextTaskID(tasks)
+
+	// Validate dependencies exist
+	taskMap := make(map[string]bool)
+	for _, task := range tasks {
+		taskMap[task.ID] = true
+	}
+	for _, dep := range dependencies {
+		if !taskMap[dep] {
+			return nil, fmt.Errorf("dependency %s does not exist", dep)
+		}
+	}
+
+	// Create task
+	task := &models.Todo2Task{
+		ID:              nextID,
+		Content:         name,
+		LongDescription: longDescription,
+		Status:          status,
+		Priority:        priority,
+		Tags:            tags,
+		Dependencies:    dependencies,
+		Completed:       false,
+		Metadata:        make(map[string]interface{}),
+	}
+
+	// Try database first
+	if err := database.CreateTask(ctx, task); err != nil {
+		// Database failed, try file-based fallback
+		tasks = append(tasks, *task)
+		if err := SaveTodo2Tasks(projectRoot, tasks); err != nil {
+			return nil, fmt.Errorf("failed to create task: database error: %v, file error: %w", err, err)
+		}
+	}
+
+	// Return created task information
+	result := map[string]interface{}{
+		"success": true,
+		"method":  "native_go",
+		"task": map[string]interface{}{
+			"id":              task.ID,
+			"name":            task.Content,
+			"long_description": task.LongDescription,
+			"status":          task.Status,
+			"priority":        task.Priority,
+			"tags":            task.Tags,
+			"dependencies":   task.Dependencies,
+		},
+	}
+
+	outputPath, _ := params["output_path"].(string)
+	if outputPath != "" {
+		output, _ := json.MarshalIndent(result, "", "  ")
+		if err := os.WriteFile(outputPath, output, 0644); err == nil {
+			result["output_path"] = outputPath
+		}
+	}
+
+	// Auto-estimate task if enabled (default: true)
+	// This happens after task creation succeeds, so failures don't affect task creation
+	autoEstimate := true
+	if ae, ok := params["auto_estimate"].(bool); ok {
+		autoEstimate = ae
+	}
+
+	if autoEstimate {
+		// Estimate task duration and add as comment (graceful failure - don't fail task creation)
+		if err := addEstimateComment(ctx, projectRoot, task, name, longDescription, tags, priority); err != nil {
+			// Log error but don't fail task creation
+			// Error is logged to result metadata for debugging
+			if metadata, ok := result["metadata"].(map[string]interface{}); ok {
+				metadata["estimation_error"] = err.Error()
+			} else {
+				result["metadata"] = map[string]interface{}{
+					"estimation_error": err.Error(),
+				}
+			}
+		} else {
+			// Add estimation success indicator
+			if metadata, ok := result["metadata"].(map[string]interface{}); ok {
+				metadata["estimation_added"] = true
+			} else {
+				result["metadata"] = map[string]interface{}{
+					"estimation_added": true,
+				}
+			}
+		}
+	}
+
+	output, _ := json.MarshalIndent(result, "", "  ")
+	return []framework.TextContent{
+		{Type: "text", Text: string(output)},
+	}, nil
+}
+
+// generateNextTaskID generates the next sequential task ID (T-{number})
+// Finds the highest existing task ID number and increments it
+func generateNextTaskID(tasks []Todo2Task) string {
+	maxNum := 0
+
+	// Parse existing task IDs to find the highest number
+	for _, task := range tasks {
+		var num int
+		if _, err := fmt.Sscanf(task.ID, "T-%d", &num); err == nil {
+			if num > maxNum {
+				maxNum = num
+			}
+		}
+	}
+
+	// Return next ID
+	return fmt.Sprintf("T-%d", maxNum+1)
+}
+
+// normalizePriority normalizes priority to valid values
+func normalizePriority(priority string) string {
+	priority = strings.ToLower(strings.TrimSpace(priority))
+	switch priority {
+	case "low", "medium", "high", "critical":
+		return priority
+	default:
+		return "medium" // Default
+	}
+}
+
+// addEstimateComment estimates task duration and adds it as a comment
+// This is called after task creation succeeds, and failures are handled gracefully
+func addEstimateComment(ctx context.Context, projectRoot string, task *models.Todo2Task, name, details string, tags []string, priority string) error {
+	// Call estimation tool
+	estimationParams := map[string]interface{}{
+		"action":         "estimate",
+		"name":           name,
+		"details":        details,
+		"tag_list":       tags,
+		"priority":       priority,
+		"use_historical": true,
+		"detailed":       false,
+	}
+
+	// Try native estimation first (platform-agnostic, will use statistical if Apple FM unavailable)
+	estimationResult, err := handleEstimationNative(ctx, projectRoot, estimationParams)
+	if err != nil {
+		return fmt.Errorf("estimation failed: %w", err)
+	}
+
+	// Parse estimation result
+	var estimate EstimationResult
+	if err := json.Unmarshal([]byte(estimationResult), &estimate); err != nil {
+		return fmt.Errorf("failed to parse estimation result: %w", err)
+	}
+
+	// Format estimate as markdown comment
+	commentContent := formatEstimateComment(estimate)
+
+	// Create comment
+	comment := database.Comment{
+		TaskID:  task.ID,
+		Type:    "note",
+		Content: commentContent,
+	}
+
+	// Add comment via database
+	if err := database.AddComments(ctx, task.ID, []database.Comment{comment}); err != nil {
+		// Database failed, try file-based fallback (future enhancement)
+		// For now, just return error (task creation already succeeded)
+		return fmt.Errorf("failed to add estimate comment: %w", err)
+	}
+
+	return nil
+}
+
+// formatEstimateComment formats estimation result as a markdown comment
+func formatEstimateComment(estimate EstimationResult) string {
+	var builder strings.Builder
+	builder.WriteString("## Task Duration Estimate\n\n")
+	builder.WriteString(fmt.Sprintf("**Estimated Duration:** %.1f hours\n\n", estimate.EstimateHours))
+	builder.WriteString(fmt.Sprintf("**Confidence:** %.0f%%\n\n", estimate.Confidence*100))
+	builder.WriteString(fmt.Sprintf("**Method:** %s\n", estimate.Method))
+
+	if estimate.LowerBound > 0 && estimate.UpperBound > 0 {
+		builder.WriteString(fmt.Sprintf("\n**Range:** %.1f - %.1f hours\n", estimate.LowerBound, estimate.UpperBound))
+	}
+
+	if estimate.Metadata != nil && len(estimate.Metadata) > 0 {
+		if statisticalEst, ok := estimate.Metadata["statistical_estimate"].(float64); ok {
+			builder.WriteString(fmt.Sprintf("\n**Statistical Estimate:** %.1f hours\n", statisticalEst))
+		}
+		if appleFMEst, ok := estimate.Metadata["apple_fm_estimate"].(float64); ok {
+			builder.WriteString(fmt.Sprintf("**AI Estimate:** %.1f hours\n", appleFMEst))
+		}
+	}
+
+	return builder.String()
+}

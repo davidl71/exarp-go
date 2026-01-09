@@ -33,6 +33,8 @@ func handleTaskWorkflowNative(ctx context.Context, params map[string]interface{}
 		return handleTaskWorkflowClarity(ctx, params)
 	case "cleanup":
 		return handleTaskWorkflowCleanup(ctx, params)
+	case "create":
+		return handleTaskWorkflowCreate(ctx, params)
 	default:
 		return nil, fmt.Errorf("unknown action: %s", action)
 	}
