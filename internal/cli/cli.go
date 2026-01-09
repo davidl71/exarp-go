@@ -95,24 +95,24 @@ func IsTTY() bool {
 
 // listAllTools lists all available tools
 func listAllTools(server framework.MCPServer) error {
-	tools := server.ListTools()
-	if len(tools) == 0 {
-		fmt.Println("No tools registered")
+	toolList := server.ListTools()
+	if len(toolList) == 0 {
+		_, _ = fmt.Println("No tools registered")
 		return nil
 	}
 
-	fmt.Printf("Available tools (%d total):\n\n", len(tools))
-	for _, tool := range tools {
-		fmt.Printf("  %s\n", tool.Name)
+	_, _ = fmt.Printf("Available tools (%d total):\n\n", len(toolList))
+	for _, tool := range toolList {
+		_, _ = fmt.Printf("  %s\n", tool.Name)
 		if tool.Description != "" {
 			// Truncate long descriptions
 			desc := tool.Description
 			if len(desc) > 80 {
 				desc = desc[:77] + "..."
 			}
-			fmt.Printf("    %s\n", desc)
+			_, _ = fmt.Printf("    %s\n", desc)
 		}
-		fmt.Println()
+		_, _ = fmt.Println()
 	}
 	return nil
 }
@@ -134,8 +134,8 @@ func executeTool(server framework.MCPServer, toolName, argsJSON string) error {
 	}
 
 	// Execute tool via server
-	fmt.Printf("Executing tool: %s\n", toolName)
-	fmt.Printf("Arguments: %s\n\n", argsJSON)
+	_, _ = fmt.Printf("Executing tool: %s\n", toolName)
+	_, _ = fmt.Printf("Arguments: %s\n\n", argsJSON)
 
 	result, err := server.CallTool(ctx, toolName, argsBytes)
 	if err != nil {
@@ -144,16 +144,16 @@ func executeTool(server framework.MCPServer, toolName, argsJSON string) error {
 
 	// Display results
 	if len(result) == 0 {
-		fmt.Println("Tool executed successfully (no output)")
+		_, _ = fmt.Println("Tool executed successfully (no output)")
 		return nil
 	}
 
-	fmt.Println("Result:")
+	_, _ = fmt.Println("Result:")
 	for i, content := range result {
 		if len(result) > 1 {
-			fmt.Printf("\n[%d] ", i+1)
+			_, _ = fmt.Printf("\n[%d] ", i+1)
 		}
-		fmt.Println(content.Text)
+		_, _ = fmt.Println(content.Text)
 	}
 
 	return nil
@@ -161,13 +161,13 @@ func executeTool(server framework.MCPServer, toolName, argsJSON string) error {
 
 // testToolExecution tests a tool with example arguments (for feature testing)
 func testToolExecution(server framework.MCPServer, toolName string) error {
-	fmt.Printf("Feature Testing: %s\n", toolName)
-	fmt.Println("=" + strings.Repeat("=", len(toolName)+18))
+	_, _ = fmt.Printf("Feature Testing: %s\n", toolName)
+	_, _ = fmt.Println("=" + strings.Repeat("=", len(toolName)+18))
 
 	// Get tool info
-	tools := server.ListTools()
+	toolList := server.ListTools()
 	var toolInfo *framework.ToolInfo
-	for _, t := range tools {
+	for _, t := range toolList {
 		if t.Name == toolName {
 			toolInfo = &t
 			break
@@ -178,39 +178,45 @@ func testToolExecution(server framework.MCPServer, toolName string) error {
 		return fmt.Errorf("tool %q not found", toolName)
 	}
 
-	fmt.Printf("\nTool: %s\n", toolInfo.Name)
+	_, _ = fmt.Printf("\nTool: %s\n", toolInfo.Name)
 	if toolInfo.Description != "" {
-		fmt.Printf("Description: %s\n", toolInfo.Description)
+		_, _ = fmt.Printf("Description: %s\n", toolInfo.Description)
 	}
 
 	// Generate example arguments based on schema
 	exampleArgs := generateExampleArgs(toolInfo.Schema)
-	exampleJSON, _ := json.MarshalIndent(exampleArgs, "  ", "  ")
+	exampleJSON, err := json.MarshalIndent(exampleArgs, "  ", "  ")
+	if err != nil {
+		return fmt.Errorf("failed to marshal example arguments: %w", err)
+	}
 
-	fmt.Println("\nExample Arguments:")
-	fmt.Printf("  %s\n", string(exampleJSON))
+	_, _ = fmt.Println("\nExample Arguments:")
+	_, _ = fmt.Printf("  %s\n", string(exampleJSON))
 
-	fmt.Println("\nExecuting with example arguments...")
-	fmt.Println()
+	_, _ = fmt.Println("\nExecuting with example arguments...")
+	_, _ = fmt.Println()
 
 	// Execute with example arguments
-	argsBytes, _ := json.Marshal(exampleArgs)
+	argsBytes, err := json.Marshal(exampleArgs)
+	if err != nil {
+		return fmt.Errorf("failed to marshal arguments: %w", err)
+	}
 	result, err := server.CallTool(context.Background(), toolName, argsBytes)
 	if err != nil {
-		fmt.Printf("❌ Test failed: %v\n", err)
+		_, _ = fmt.Printf("❌ Test failed: %v\n", err)
 		return err
 	}
 
-	fmt.Println("✅ Test passed!")
+	_, _ = fmt.Println("✅ Test passed!")
 	if len(result) > 0 {
-		fmt.Println("\nOutput:")
+		_, _ = fmt.Println("\nOutput:")
 		for _, content := range result {
 			// Truncate very long outputs
 			output := content.Text
 			if len(output) > 500 {
 				output = output[:497] + "..."
 			}
-			fmt.Printf("  %s\n", output)
+			_, _ = fmt.Printf("  %s\n", output)
 		}
 	}
 
@@ -230,7 +236,10 @@ func generateExampleArgs(schema framework.ToolSchema) map[string]interface{} {
 			continue
 		}
 
-		propType, _ := propMap["type"].(string)
+		propType, ok := propMap["type"].(string)
+		if !ok {
+			continue
+		}
 		switch propType {
 		case "string":
 			if enum, ok := propMap["enum"].([]interface{}); ok && len(enum) > 0 {
@@ -263,9 +272,13 @@ func runInteractive(server framework.MCPServer) error {
 
 	// Simple interactive loop
 	for {
-		fmt.Print("exarp-go> ")
+		_, _ = fmt.Print("exarp-go> ")
 		var input string
-		fmt.Scanln(&input)
+		_, err := fmt.Scanln(&input)
+		if err != nil {
+			// EOF or other error - exit gracefully
+			return nil
+		}
 
 		input = strings.TrimSpace(input)
 		if input == "" {
@@ -284,52 +297,54 @@ func runInteractive(server framework.MCPServer) error {
 		case "help":
 			showHelp()
 		case "list":
-			listAllTools(server)
+			if err := listAllTools(server); err != nil {
+				_, _ = fmt.Printf("Error listing tools: %v\n", err)
+			}
 		default:
-			fmt.Printf("Unknown command: %s\n", cmd)
-			fmt.Println("Type 'help' for available commands")
+			_, _ = fmt.Printf("Unknown command: %s\n", cmd)
+			_, _ = fmt.Println("Type 'help' for available commands")
 		}
 	}
 }
 
 // showUsage displays usage information
 func showUsage() {
-	fmt.Println("exarp-go - Command Line Interface")
-	fmt.Println()
-	fmt.Println("Usage:")
-	fmt.Println("  exarp-go [flags]")
-	fmt.Println()
-	fmt.Println("Flags:")
-	fmt.Println("  -tool <name>        Execute a tool")
-	fmt.Println("  -args <json>        Tool arguments as JSON (default: {})")
-	fmt.Println("  -list               List all available tools")
-	fmt.Println("  -test <name>        Test a tool with example arguments")
-	fmt.Println("  -i                  Interactive mode")
-	fmt.Println("  -completion <shell> Generate shell completion script (bash|zsh|fish)")
-	fmt.Println()
-	fmt.Println("Examples:")
-	fmt.Println("  exarp-go -list")
-	fmt.Println("  exarp-go -tool lint -args '{\"action\":\"run\",\"path\":\".\"}'")
-	fmt.Println("  exarp-go -test lint")
-	fmt.Println("  exarp-go -i")
-	fmt.Println("  exarp-go -completion bash > /usr/local/etc/bash_completion.d/exarp-go")
-	fmt.Println()
+	_, _ = fmt.Println("exarp-go - Command Line Interface")
+	_, _ = fmt.Println()
+	_, _ = fmt.Println("Usage:")
+	_, _ = fmt.Println("  exarp-go [flags]")
+	_, _ = fmt.Println()
+	_, _ = fmt.Println("Flags:")
+	_, _ = fmt.Println("  -tool <name>        Execute a tool")
+	_, _ = fmt.Println("  -args <json>        Tool arguments as JSON (default: {})")
+	_, _ = fmt.Println("  -list               List all available tools")
+	_, _ = fmt.Println("  -test <name>        Test a tool with example arguments")
+	_, _ = fmt.Println("  -i                  Interactive mode")
+	_, _ = fmt.Println("  -completion <shell> Generate shell completion script (bash|zsh|fish)")
+	_, _ = fmt.Println()
+	_, _ = fmt.Println("Examples:")
+	_, _ = fmt.Println("  exarp-go -list")
+	_, _ = fmt.Println("  exarp-go -tool lint -args '{\"action\":\"run\",\"path\":\".\"}'")
+	_, _ = fmt.Println("  exarp-go -test lint")
+	_, _ = fmt.Println("  exarp-go -i")
+	_, _ = fmt.Println("  exarp-go -completion bash > /usr/local/etc/bash_completion.d/exarp-go")
+	_, _ = fmt.Println()
 }
 
 // showHelp displays help information
 func showHelp() {
-	fmt.Println("Available commands:")
-	fmt.Println("  help              Show this help message")
-	fmt.Println("  list              List all available tools")
-	fmt.Println("  exit, quit        Exit interactive mode")
-	fmt.Println()
+	_, _ = fmt.Println("Available commands:")
+	_, _ = fmt.Println("  help              Show this help message")
+	_, _ = fmt.Println("  list              List all available tools")
+	_, _ = fmt.Println("  exit, quit        Exit interactive mode")
+	_, _ = fmt.Println()
 }
 
 // generateCompletion generates shell completion scripts
 func generateCompletion(server framework.MCPServer, shell string) error {
-	tools := server.ListTools()
-	toolNames := make([]string, 0, len(tools))
-	for _, tool := range tools {
+	toolList := server.ListTools()
+	toolNames := make([]string, 0, len(toolList))
+	for _, tool := range toolList {
 		toolNames = append(toolNames, tool.Name)
 	}
 
@@ -347,81 +362,81 @@ func generateCompletion(server framework.MCPServer, shell string) error {
 
 // generateBashCompletion generates bash completion script
 func generateBashCompletion(toolNames []string) error {
-	fmt.Println("# exarp-go bash completion")
-	fmt.Println("_exarp_go() {")
-	fmt.Println("    local cur prev opts")
-	fmt.Println("    COMPREPLY=()")
-	fmt.Println("    cur=\"${COMP_WORDS[COMP_CWORD]}\"")
-	fmt.Println("    prev=\"${COMP_WORDS[COMP_CWORD-1]}\"")
-	fmt.Println("    opts=\"-tool -args -list -test -i -completion\"")
-	fmt.Println()
-	fmt.Println("    case \"${prev}\" in")
-	fmt.Println("        -tool|--tool)")
-	fmt.Printf("            COMPREPLY=($(compgen -W \"%s\" -- \"${cur}\"))\n", strings.Join(toolNames, " "))
-	fmt.Println("            return 0")
-	fmt.Println("            ;;")
-	fmt.Println("        -test|--test)")
-	fmt.Printf("            COMPREPLY=($(compgen -W \"%s\" -- \"${cur}\"))\n", strings.Join(toolNames, " "))
-	fmt.Println("            return 0")
-	fmt.Println("            ;;")
-	fmt.Println("        -completion|--completion)")
-	fmt.Println("            COMPREPLY=($(compgen -W \"bash zsh fish\" -- \"${cur}\"))")
-	fmt.Println("            return 0")
-	fmt.Println("            ;;")
-	fmt.Println("        *)")
-	fmt.Println("            if [[ ${cur} == -* ]] ; then")
-	fmt.Println("                COMPREPLY=($(compgen -W \"${opts}\" -- \"${cur}\"))")
-	fmt.Println("            fi")
-	fmt.Println("            ;;")
-	fmt.Println("    esac")
-	fmt.Println("}")
-	fmt.Println("complete -F _exarp_go exarp-go")
+	_, _ = fmt.Println("# exarp-go bash completion")
+	_, _ = fmt.Println("_exarp_go() {")
+	_, _ = fmt.Println("    local cur prev opts")
+	_, _ = fmt.Println("    COMPREPLY=()")
+	_, _ = fmt.Println("    cur=\"${COMP_WORDS[COMP_CWORD]}\"")
+	_, _ = fmt.Println("    prev=\"${COMP_WORDS[COMP_CWORD-1]}\"")
+	_, _ = fmt.Println("    opts=\"-tool -args -list -test -i -completion\"")
+	_, _ = fmt.Println()
+	_, _ = fmt.Println("    case \"${prev}\" in")
+	_, _ = fmt.Println("        -tool|--tool)")
+	_, _ = fmt.Printf("            COMPREPLY=($(compgen -W \"%s\" -- \"${cur}\"))\n", strings.Join(toolNames, " "))
+	_, _ = fmt.Println("            return 0")
+	_, _ = fmt.Println("            ;;")
+	_, _ = fmt.Println("        -test|--test)")
+	_, _ = fmt.Printf("            COMPREPLY=($(compgen -W \"%s\" -- \"${cur}\"))\n", strings.Join(toolNames, " "))
+	_, _ = fmt.Println("            return 0")
+	_, _ = fmt.Println("            ;;")
+	_, _ = fmt.Println("        -completion|--completion)")
+	_, _ = fmt.Println("            COMPREPLY=($(compgen -W \"bash zsh fish\" -- \"${cur}\"))")
+	_, _ = fmt.Println("            return 0")
+	_, _ = fmt.Println("            ;;")
+	_, _ = fmt.Println("        *)")
+	_, _ = fmt.Println("            if [[ ${cur} == -* ]] ; then")
+	_, _ = fmt.Println("                COMPREPLY=($(compgen -W \"${opts}\" -- \"${cur}\"))")
+	_, _ = fmt.Println("            fi")
+	_, _ = fmt.Println("            ;;")
+	_, _ = fmt.Println("    esac")
+	_, _ = fmt.Println("}")
+	_, _ = fmt.Println("complete -F _exarp_go exarp-go")
 	return nil
 }
 
 // generateZshCompletion generates zsh completion script
 func generateZshCompletion(toolNames []string) error {
-	fmt.Println("#compdef exarp-go")
-	fmt.Println()
-	fmt.Println("_exarp_go() {")
-	fmt.Println("    local context state line")
-	fmt.Println("    local -a tools")
-	fmt.Printf("    tools=(%s)\n", strings.Join(toolNames, " "))
-	fmt.Println()
-	fmt.Println("    _arguments \\")
-	fmt.Println("        '(-tool --tool)-tool[Tool name to execute]:tool:->tools' \\")
-	fmt.Println("        '(-tool --tool)--tool[Tool name to execute]:tool:->tools' \\")
-	fmt.Println("        '(-args --args)-args[Tool arguments as JSON]:args:' \\")
-	fmt.Println("        '(-args --args)--args[Tool arguments as JSON]:args:' \\")
-	fmt.Println("        '(-list --list)-list[List all available tools]' \\")
-	fmt.Println("        '(-list --list)--list[List all available tools]' \\")
-	fmt.Println("        '(-test --test)-test[Test a tool with example arguments]:test:->tools' \\")
-	fmt.Println("        '(-test --test)--test[Test a tool with example arguments]:test:->tools' \\")
-	fmt.Println("        '(-i --interactive)-i[Interactive mode]' \\")
-	fmt.Println("        '(-i --interactive)--interactive[Interactive mode]' \\")
-	fmt.Println("        '(-completion --completion)-completion[Generate shell completion script]:completion:(bash zsh fish)' \\")
-	fmt.Println("        '(-completion --completion)--completion[Generate shell completion script]:completion:(bash zsh fish)'")
-	fmt.Println()
-	fmt.Println("    case $state in")
-	fmt.Println("        tools)")
-	fmt.Println("            _describe 'tools' tools")
-	fmt.Println("            ;;")
-	fmt.Println("    esac")
-	fmt.Println("}")
-	fmt.Println()
-	fmt.Println("_exarp_go \"$@\"")
+	_, _ = fmt.Println("#compdef exarp-go")
+	_, _ = fmt.Println()
+	_, _ = fmt.Println("_exarp_go() {")
+	_, _ = fmt.Println("    local context state line")
+	_, _ = fmt.Println("    local -a tools")
+	_, _ = fmt.Printf("    tools=(%s)\n", strings.Join(toolNames, " "))
+	_, _ = fmt.Println()
+	_, _ = fmt.Println("    _arguments \\")
+	_, _ = fmt.Println("        '(-tool --tool)-tool[Tool name to execute]:tool:->tools' \\")
+	_, _ = fmt.Println("        '(-tool --tool)--tool[Tool name to execute]:tool:->tools' \\")
+	_, _ = fmt.Println("        '(-args --args)-args[Tool arguments as JSON]:args:' \\")
+	_, _ = fmt.Println("        '(-args --args)--args[Tool arguments as JSON]:args:' \\")
+	_, _ = fmt.Println("        '(-list --list)-list[List all available tools]' \\")
+	_, _ = fmt.Println("        '(-list --list)--list[List all available tools]' \\")
+	_, _ = fmt.Println("        '(-test --test)-test[Test a tool with example arguments]:test:->tools' \\")
+	_, _ = fmt.Println("        '(-test --test)--test[Test a tool with example arguments]:test:->tools' \\")
+	_, _ = fmt.Println("        '(-i --interactive)-i[Interactive mode]' \\")
+	_, _ = fmt.Println("        '(-i --interactive)--interactive[Interactive mode]' \\")
+	_, _ = fmt.Println("        '(-completion --completion)-completion[Generate shell completion script]:completion:(bash zsh fish)' \\")
+	_, _ = fmt.Println("        '(-completion --completion)--completion[Generate shell completion script]:completion:(bash zsh fish)'")
+	_, _ = fmt.Println()
+	_, _ = fmt.Println("    case $state in")
+	_, _ = fmt.Println("        tools)")
+	_, _ = fmt.Println("            _describe 'tools' tools")
+	_, _ = fmt.Println("            ;;")
+	_, _ = fmt.Println("    esac")
+	_, _ = fmt.Println("}")
+	_, _ = fmt.Println()
+	_, _ = fmt.Println("_exarp_go \"$@\"")
 	return nil
 }
 
 // generateFishCompletion generates fish completion script
 func generateFishCompletion(toolNames []string) error {
-	fmt.Println("# exarp-go fish completion")
-	fmt.Println()
-	fmt.Printf("complete -c exarp-go -n '__fish_use_subcommand' -s t -l tool -d 'Tool name to execute' -xa '%s'\n", strings.Join(toolNames, " "))
-	fmt.Println("complete -c exarp-go -n '__fish_use_subcommand' -l args -d 'Tool arguments as JSON'")
-	fmt.Println("complete -c exarp-go -n '__fish_use_subcommand' -s l -l list -d 'List all available tools'")
-	fmt.Printf("complete -c exarp-go -n '__fish_use_subcommand' -l test -d 'Test a tool with example arguments' -xa '%s'\n", strings.Join(toolNames, " "))
-	fmt.Println("complete -c exarp-go -n '__fish_use_subcommand' -s i -l interactive -d 'Interactive mode'")
-	fmt.Println("complete -c exarp-go -n '__fish_use_subcommand' -l completion -d 'Generate shell completion script' -xa 'bash zsh fish'")
+	_, _ = fmt.Println("# exarp-go fish completion")
+	_, _ = fmt.Println()
+	_, _ = fmt.Printf("complete -c exarp-go -n '__fish_use_subcommand' -s t -l tool -d 'Tool name to execute' -xa '%s'\n", strings.Join(toolNames, " "))
+	_, _ = fmt.Println("complete -c exarp-go -n '__fish_use_subcommand' -l args -d 'Tool arguments as JSON'")
+	_, _ = fmt.Println("complete -c exarp-go -n '__fish_use_subcommand' -s l -l list -d 'List all available tools'")
+	_, _ = fmt.Printf("complete -c exarp-go -n '__fish_use_subcommand' -l test -d 'Test a tool with example arguments' -xa '%s'\n", strings.Join(toolNames, " "))
+	_, _ = fmt.Println("complete -c exarp-go -n '__fish_use_subcommand' -s i -l interactive -d 'Interactive mode'")
+	_, _ = fmt.Println("complete -c exarp-go -n '__fish_use_subcommand' -l completion -d 'Generate shell completion script' -xa 'bash zsh fish'")
 	return nil
 }
