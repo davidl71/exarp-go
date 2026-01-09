@@ -12,11 +12,24 @@
 # Go build artifacts
 bin/migrate
 bin/statistics
+bin/exarp-go
+bin/exarp-go-test
+bin/sanity-check
 *.test
 *.out
 coverage*.out
 coverage*.html
+coverage.out
 
 # Go workspace files
 go.work
 go.work.sum
+
+# Python virtual environments
+.venv/
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
