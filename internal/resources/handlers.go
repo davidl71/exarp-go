@@ -133,6 +133,72 @@ func RegisterAllResources(server framework.MCPServer) error {
 		return fmt.Errorf("failed to register session mode resource: %w", err)
 	}
 
+	// stdio://tasks
+	if err := server.RegisterResource(
+		"stdio://tasks",
+		"All Tasks",
+		"Get all tasks (read-only, paginated with limit of 50).",
+		"application/json",
+		handleAllTasks,
+	); err != nil {
+		return fmt.Errorf("failed to register all tasks resource: %w", err)
+	}
+
+	// stdio://tasks/{task_id}
+	if err := server.RegisterResource(
+		"stdio://tasks/{task_id}",
+		"Task by ID",
+		"Get a specific task by ID with full details.",
+		"application/json",
+		handleTaskByID,
+	); err != nil {
+		return fmt.Errorf("failed to register task by ID resource: %w", err)
+	}
+
+	// stdio://tasks/status/{status}
+	if err := server.RegisterResource(
+		"stdio://tasks/status/{status}",
+		"Tasks by Status",
+		"Get tasks filtered by status (Todo, In Progress, Done).",
+		"application/json",
+		handleTasksByStatus,
+	); err != nil {
+		return fmt.Errorf("failed to register tasks by status resource: %w", err)
+	}
+
+	// stdio://tasks/priority/{priority}
+	if err := server.RegisterResource(
+		"stdio://tasks/priority/{priority}",
+		"Tasks by Priority",
+		"Get tasks filtered by priority (low, medium, high, critical).",
+		"application/json",
+		handleTasksByPriority,
+	); err != nil {
+		return fmt.Errorf("failed to register tasks by priority resource: %w", err)
+	}
+
+	// stdio://tasks/tag/{tag}
+	if err := server.RegisterResource(
+		"stdio://tasks/tag/{tag}",
+		"Tasks by Tag",
+		"Get tasks filtered by tag (any tag value).",
+		"application/json",
+		handleTasksByTag,
+	); err != nil {
+		return fmt.Errorf("failed to register tasks by tag resource: %w", err)
+	}
+
+	// stdio://tasks/summary
+	if err := server.RegisterResource(
+		"stdio://tasks/summary",
+		"Tasks Summary",
+		"Get task statistics and overview (counts by status, priority, tags).",
+		"application/json",
+		handleTasksSummary,
+	); err != nil {
+		return fmt.Errorf("failed to register tasks summary resource: %w", err)
+	}
+
 	return nil
 }
 

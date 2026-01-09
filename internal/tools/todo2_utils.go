@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/davidl71/exarp-go/internal/models"
 )
@@ -81,7 +82,29 @@ func saveTodo2TasksToJSON(projectRoot string, tasks []Todo2Task) error {
 }
 
 // FindProjectRoot finds the project root by looking for .todo2 directory
+// It first checks the PROJECT_ROOT environment variable (set by Cursor IDE from {{PROJECT_ROOT}}),
+// then searches up from the current working directory for a .todo2 directory.
 func FindProjectRoot() (string, error) {
+	// Check PROJECT_ROOT environment variable first (highest priority)
+	// This is set by Cursor IDE when using {{PROJECT_ROOT}} in mcp.json
+	if envRoot := os.Getenv("PROJECT_ROOT"); envRoot != "" {
+		// Skip if placeholder wasn't substituted (contains {{PROJECT_ROOT}})
+		if !strings.Contains(envRoot, "{{PROJECT_ROOT}}") {
+			// Validate that the path exists and contains .todo2
+			absPath, err := filepath.Abs(envRoot)
+			if err == nil {
+				todo2Path := filepath.Join(absPath, ".todo2")
+				if _, err := os.Stat(todo2Path); err == nil {
+					return absPath, nil
+				}
+				// If PROJECT_ROOT is set but no .todo2, still use it (might be valid project)
+				// This allows working with projects that don't have .todo2 yet
+				return absPath, nil
+			}
+		}
+	}
+
+	// Fallback: search up from current working directory
 	dir, err := os.Getwd()
 	if err != nil {
 		return "", fmt.Errorf("failed to get current directory: %w", err)
