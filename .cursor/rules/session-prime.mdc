@@ -1,0 +1,59 @@
+---
+description: Automatic session priming with exarp-go at conversation start
+alwaysApply: true
+---
+
+# 🚀 Automatic Session Priming
+
+**⚠️ CRITICAL: Auto-Prime Session at Conversation Start ⚠️**
+
+## Mandatory Session Priming
+
+**At the START of EVERY new conversation in Cursor, you MUST:**
+
+1. **Automatically call the session prime tool** before responding to the user's request:
+   ```json
+   {
+     "action": "prime",
+     "include_hints": true,
+     "include_tasks": true
+   }
+   ```
+
+2. **Use the primed context** to inform your responses and understanding of the project state
+
+3. **Include the primed information** in your initial response to provide context-aware assistance
+
+## When to Prime
+
+- ✅ **Every new conversation** - Prime at the very start
+- ✅ **After long breaks** - If conversation has been idle, prime again
+- ✅ **When switching contexts** - Prime when user changes topics significantly
+
+## What Session Prime Provides
+
+The `session(action="prime")` tool provides:
+- **Agent type detection** - Identifies your role (backend, web, security, general)
+- **Mode detection** - Suggests optimal workflow mode based on time of day
+- **Task summary** - Recent tasks and current project status
+- **Tool hints** - Relevant tools for detected mode
+- **Handoff notes** - Messages from other developers/machines
+- **Companion MCP status** - Checks for other MCP servers
+
+## Implementation
+
+**Example workflow:**
+1. User sends first message
+2. AI immediately calls `session(action="prime")` 
+3. AI receives primed context
+4. AI uses primed context to provide informed response
+5. AI mentions key context points from prime (tasks, mode, handoffs)
+
+## Benefits
+
+- **Context-aware assistance** - Always know current project state
+- **Multi-device coordination** - See handoffs from other machines
+- **Optimal tool suggestions** - Get relevant tools for your mode
+- **Task awareness** - Know what's in progress or needs attention
+
+**Remember: Session priming is automatic and mandatory. Never skip it at conversation start.**
