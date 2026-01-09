@@ -19,6 +19,6 @@
 
 ## Alignment by Status
 
-- **Done:** 46
 - **In Progress:** 7
 - **Todo:** 77
+- **Done:** 46
