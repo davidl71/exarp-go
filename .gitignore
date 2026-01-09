@@ -9,17 +9,29 @@
 # OpenMemory - IDE/Assistant specific rules
 .cursor/rules/openmemory.mdc
 
+# Exarp runtime directories (state, cache, logs, temporary files)
+.exarp/
+.todo2/
+
 # Go build artifacts
-bin/migrate
-bin/statistics
-bin/exarp-go
-bin/exarp-go-test
-bin/sanity-check
+bin/
+build/
 *.test
 *.out
 coverage*.out
 coverage*.html
 coverage.out
+
+# Test artifacts
+test-results/
+coverage-report/
+
+# Temporary files
+tmp/
+.tmp/
+temp/
+*.tmp
+*.log
 
 # Go workspace files
 go.work
