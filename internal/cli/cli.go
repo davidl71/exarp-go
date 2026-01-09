@@ -19,6 +19,50 @@ import (
 	"golang.org/x/term"
 )
 
+// initializeDatabase initializes the database if project root is found
+func initializeDatabase() {
+	projectRoot, err := tools.FindProjectRoot()
+	if err != nil {
+		log.Printf("Warning: Could not find project root: %v (database unavailable, will use JSON fallback)", err)
+		return
+	}
+
+	if err := database.Init(projectRoot); err != nil {
+		log.Printf("Warning: Database initialization failed: %v (fallback to JSON)", err)
+		return
+	}
+
+	defer database.Close()
+	log.Printf("Database initialized: %s/.todo2/todo2.db", projectRoot)
+}
+
+// setupServer creates and configures the MCP server
+func setupServer() (framework.MCPServer, error) {
+	cfg, err := config.Load()
+	if err != nil {
+		return nil, fmt.Errorf("failed to load config: %w", err)
+	}
+
+	server, err := factory.NewServerFromConfig(cfg)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create server: %w", err)
+	}
+
+	if err := tools.RegisterAllTools(server); err != nil {
+		return nil, fmt.Errorf("failed to register tools: %w", err)
+	}
+
+	if err := prompts.RegisterAllPrompts(server); err != nil {
+		return nil, fmt.Errorf("failed to register prompts: %w", err)
+	}
+
+	if err := resources.RegisterAllResources(server); err != nil {
+		return nil, fmt.Errorf("failed to register resources: %w", err)
+	}
+
+	return server, nil
+}
+
 // Run starts the CLI interface
 func Run() error {
 	// Parse command line arguments
@@ -33,41 +77,12 @@ func Run() error {
 	flag.Parse()
 
 	// Initialize database (before server creation)
-	projectRoot, err := tools.FindProjectRoot()
+	initializeDatabase()
+
+	// Setup server
+	server, err := setupServer()
 	if err != nil {
-		log.Printf("Warning: Could not find project root: %v (database unavailable, will use JSON fallback)", err)
-	} else {
-		if err := database.Init(projectRoot); err != nil {
-			log.Printf("Warning: Database initialization failed: %v (fallback to JSON)", err)
-		} else {
-			defer database.Close()
-			log.Printf("Database initialized: %s/.todo2/todo2.db", projectRoot)
-		}
-	}
-
-	// Load configuration
-	cfg, err := config.Load()
-	if err != nil {
-		return fmt.Errorf("failed to load config: %w", err)
-	}
-
-	// Create server (we'll use it to access tools)
-	server, err := factory.NewServerFromConfig(cfg)
-	if err != nil {
-		return fmt.Errorf("failed to create server: %w", err)
-	}
-
-	// Register all components
-	if err := tools.RegisterAllTools(server); err != nil {
-		return fmt.Errorf("failed to register tools: %w", err)
-	}
-
-	if err := prompts.RegisterAllPrompts(server); err != nil {
-		return fmt.Errorf("failed to register prompts: %w", err)
-	}
-
-	if err := resources.RegisterAllResources(server); err != nil {
-		return fmt.Errorf("failed to register resources: %w", err)
+		return err
 	}
 
 	// Handle different CLI modes
@@ -159,68 +174,108 @@ func executeTool(server framework.MCPServer, toolName, argsJSON string) error {
 	return nil
 }
 
-// testToolExecution tests a tool with example arguments (for feature testing)
-func testToolExecution(server framework.MCPServer, toolName string) error {
-	_, _ = fmt.Printf("Feature Testing: %s\n", toolName)
-	_, _ = fmt.Println("=" + strings.Repeat("=", len(toolName)+18))
-
-	// Get tool info
+// findToolByName finds a tool by name in the server's tool list
+func findToolByName(server framework.MCPServer, toolName string) (*framework.ToolInfo, error) {
 	toolList := server.ListTools()
-	var toolInfo *framework.ToolInfo
 	for _, t := range toolList {
 		if t.Name == toolName {
-			toolInfo = &t
-			break
+			return &t, nil
 		}
 	}
+	return nil, fmt.Errorf("tool %q not found", toolName)
+}
 
-	if toolInfo == nil {
-		return fmt.Errorf("tool %q not found", toolName)
-	}
-
+// displayToolInfo displays information about a tool
+func displayToolInfo(toolInfo *framework.ToolInfo) {
 	_, _ = fmt.Printf("\nTool: %s\n", toolInfo.Name)
 	if toolInfo.Description != "" {
 		_, _ = fmt.Printf("Description: %s\n", toolInfo.Description)
 	}
+}
 
-	// Generate example arguments based on schema
-	exampleArgs := generateExampleArgs(toolInfo.Schema)
-	exampleJSON, err := json.MarshalIndent(exampleArgs, "  ", "  ")
+// displayExampleArgs displays example arguments for a tool
+func displayExampleArgs(args map[string]interface{}) error {
+	exampleJSON, err := json.MarshalIndent(args, "  ", "  ")
 	if err != nil {
 		return fmt.Errorf("failed to marshal example arguments: %w", err)
 	}
 
 	_, _ = fmt.Println("\nExample Arguments:")
 	_, _ = fmt.Printf("  %s\n", string(exampleJSON))
+	return nil
+}
+
+// displayTestResults displays the results of a tool test
+func displayTestResults(result []framework.TextContent) {
+	_, _ = fmt.Println("✅ Test passed!")
+	if len(result) == 0 {
+		return
+	}
+
+	_, _ = fmt.Println("\nOutput:")
+	for _, content := range result {
+		output := content.Text
+		if len(output) > 500 {
+			output = output[:497] + "..."
+		}
+		_, _ = fmt.Printf("  %s\n", output)
+	}
+}
+
+// testToolExecution tests a tool with example arguments (for feature testing)
+func testToolExecution(server framework.MCPServer, toolName string) error {
+	_, _ = fmt.Printf("Feature Testing: %s\n", toolName)
+	_, _ = fmt.Println("=" + strings.Repeat("=", len(toolName)+18))
+
+	toolInfo, err := findToolByName(server, toolName)
+	if err != nil {
+		return err
+	}
+
+	displayToolInfo(toolInfo)
+
+	exampleArgs := generateExampleArgs(toolInfo.Schema)
+	if displayErr := displayExampleArgs(exampleArgs); displayErr != nil {
+		return displayErr
+	}
 
 	_, _ = fmt.Println("\nExecuting with example arguments...")
 	_, _ = fmt.Println()
 
-	// Execute with example arguments
 	argsBytes, err := json.Marshal(exampleArgs)
 	if err != nil {
 		return fmt.Errorf("failed to marshal arguments: %w", err)
 	}
+
 	result, err := server.CallTool(context.Background(), toolName, argsBytes)
 	if err != nil {
 		_, _ = fmt.Printf("❌ Test failed: %v\n", err)
-		return err
+		return fmt.Errorf("tool execution failed: %w", err)
 	}
 
-	_, _ = fmt.Println("✅ Test passed!")
-	if len(result) > 0 {
-		_, _ = fmt.Println("\nOutput:")
-		for _, content := range result {
-			// Truncate very long outputs
-			output := content.Text
-			if len(output) > 500 {
-				output = output[:497] + "..."
-			}
-			_, _ = fmt.Printf("  %s\n", output)
-		}
-	}
-
+	displayTestResults(result)
 	return nil
+}
+
+// getExampleValueForType generates an example value for a given property type
+func getExampleValueForType(propType string, propMap map[string]interface{}) interface{} {
+	switch propType {
+	case "string":
+		if enum, ok := propMap["enum"].([]interface{}); ok && len(enum) > 0 {
+			return enum[0]
+		}
+		return "example"
+	case "boolean":
+		return false
+	case "number", "integer":
+		return 0
+	case "array":
+		return []interface{}{}
+	case "object":
+		return map[string]interface{}{}
+	default:
+		return nil
+	}
 }
 
 // generateExampleArgs generates example arguments from a tool schema
@@ -231,78 +286,83 @@ func generateExampleArgs(schema framework.ToolSchema) map[string]interface{} {
 	}
 
 	for name, prop := range schema.Properties {
-		propMap, ok := prop.(map[string]interface{})
-		if !ok {
+		propMap, isMap := prop.(map[string]interface{})
+		if !isMap {
 			continue
 		}
 
-		propType, ok := propMap["type"].(string)
-		if !ok {
+		propType, hasType := propMap["type"].(string)
+		if !hasType {
 			continue
 		}
-		switch propType {
-		case "string":
-			if enum, ok := propMap["enum"].([]interface{}); ok && len(enum) > 0 {
-				args[name] = enum[0]
-			} else {
-				args[name] = "example"
-			}
-		case "boolean":
-			args[name] = false
-		case "number", "integer":
-			args[name] = 0
-		case "array":
-			args[name] = []interface{}{}
-		case "object":
-			args[name] = map[string]interface{}{}
-		default:
-			args[name] = nil
-		}
+
+		args[name] = getExampleValueForType(propType, propMap)
 	}
 
 	return args
 }
 
+// handleInteractiveCommand processes a single command in interactive mode
+func handleInteractiveCommand(server framework.MCPServer, cmd string) bool {
+	switch cmd {
+	case "exit", "quit":
+		return false
+	case "help":
+		showHelp()
+	case "list":
+		if err := listAllTools(server); err != nil {
+			_, _ = fmt.Printf("Error listing tools: %v\n", err)
+		}
+	default:
+		_, _ = fmt.Printf("Unknown command: %s\n", cmd)
+		_, _ = fmt.Println("Type 'help' for available commands")
+	}
+	return true
+}
+
+// readInteractiveInput reads a line of input from the user
+func readInteractiveInput() (string, error) {
+	_, _ = fmt.Print("exarp-go> ")
+	var input string
+	_, err := fmt.Scanln(&input)
+	if err != nil {
+		return "", err
+	}
+	return strings.TrimSpace(input), nil
+}
+
+// parseCommand extracts the command from user input
+func parseCommand(input string) string {
+	if input == "" {
+		return ""
+	}
+	parts := strings.Fields(input)
+	if len(parts) == 0 {
+		return ""
+	}
+	return parts[0]
+}
+
 // runInteractive starts an interactive CLI session
 func runInteractive(server framework.MCPServer) error {
-	fmt.Println("Interactive CLI Mode")
-	fmt.Println("===================")
-	fmt.Println("Type 'help' for commands, 'exit' to quit")
-	fmt.Println()
+	_, _ = fmt.Println("Interactive CLI Mode")
+	_, _ = fmt.Println("===================")
+	_, _ = fmt.Println("Type 'help' for commands, 'exit' to quit")
+	_, _ = fmt.Println()
 
-	// Simple interactive loop
 	for {
-		_, _ = fmt.Print("exarp-go> ")
-		var input string
-		_, err := fmt.Scanln(&input)
+		input, err := readInteractiveInput()
 		if err != nil {
-			// EOF or other error - exit gracefully
 			return nil
 		}
 
-		input = strings.TrimSpace(input)
-		if input == "" {
+		cmd := parseCommand(input)
+		if cmd == "" {
 			continue
 		}
 
-		parts := strings.Fields(input)
-		if len(parts) == 0 {
-			continue
-		}
-
-		cmd := parts[0]
-		switch cmd {
-		case "exit", "quit":
+		if !handleInteractiveCommand(server, cmd) {
 			return nil
-		case "help":
-			showHelp()
-		case "list":
-			if err := listAllTools(server); err != nil {
-				_, _ = fmt.Printf("Error listing tools: %v\n", err)
-			}
-		default:
-			_, _ = fmt.Printf("Unknown command: %s\n", cmd)
-			_, _ = fmt.Println("Type 'help' for available commands")
 		}
 	}
 }
