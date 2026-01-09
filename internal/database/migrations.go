@@ -168,7 +168,11 @@ func applyMigration(migration Migration) error {
 	if err != nil {
 		return fmt.Errorf("failed to begin transaction: %w", err)
 	}
-	defer tx.Rollback()
+	defer func() {
+		if err := tx.Rollback(); err != nil {
+			// Ignore rollback errors on successful commit
+		}
+	}()
 
 	// Execute migration SQL
 	if _, err := tx.Exec(migration.SQL); err != nil {

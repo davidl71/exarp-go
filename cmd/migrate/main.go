@@ -74,7 +74,8 @@ func main() {
 	}
 
 	if *dryRun {
-		fmt.Println("\n=== DRY RUN MODE ===\n")
+		fmt.Println("\n=== DRY RUN MODE ===")
+		fmt.Println()
 		fmt.Printf("Would migrate:\n")
 		fmt.Printf("  - %d tasks\n", len(tasks))
 		fmt.Printf("  - %d comments\n", len(comments))
