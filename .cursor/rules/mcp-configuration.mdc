@@ -9,28 +9,36 @@ alwaysApply: true
 
 ## Current MCP Servers
 
-The workspace is configured with **4 MCP servers** in `.cursor/mcp.json`:
+The workspace is configured with **5 MCP servers** in `.cursor/mcp.json`:
 
-1. **advisor** - DevWisdom Go MCP Server (Crew Role: Advisor)
-   - Command: `/Users/davidl/Projects/devwisdom-go/devwisdom`
+1. **devwisdom** - DevWisdom Go MCP Server (Crew Role: Advisor)
+   - Command: `/Users/davidl/Projects/devwisdom-go/run_devwisdom.sh`
    - Provides: Wisdom quotes, trusted advisors, inspirational guidance
+   - Status: ✅ Used by exarp-go's report tool for briefings
 
-2. **researcher** - Context7 MCP Server (Crew Role: Researcher)
+2. **context7** - Context7 MCP Server (Crew Role: Researcher)
    - Command: `npx`
    - Args: `["-y", "@upstash/context7-mcp"]`
-   - Provides: Advanced context management and retrieval
+   - Provides: Advanced context management and documentation retrieval
+   - Status: ✅ Used by add_external_tool_hints tool
 
-3. **analyst** - Tractatus Thinking MCP Server (Crew Role: Analyst)
+3. **tractatus_thinking** - Tractatus Thinking MCP Server (Crew Role: Analyst)
    - Command: `npx`
    - Args: `["-y", "tractatus_thinking"]`
-   - Provides: Structured reasoning and logical thinking
+   - Provides: Structured reasoning, logical analysis, and problem decomposition
+   - Status: ⚠️ Optional - falls back gracefully if unavailable
 
 4. **exarp-go** - Go-based MCP Server (Crew Role: Executor) ✅ **ACTIVE**
-   - Command: `/Users/davidl/Projects/exarp-go/bin/exarp-go`
+   - Command: `/Users/davidl/Projects/exarp-go/run_server.sh`
    - Args: `[]`
    - Env: `PROJECT_ROOT={{PROJECT_ROOT}}`
    - Provides: 24 tools, 15 prompts, 6 resources
    - Status: Native Go implementation with Python bridge for remaining tools
+
+5. **agentic-tools** - AI-Powered Task Management (Crew Role: Intelligence)
+   - Command: `uvx mcpower-proxy==0.0.87 --wrapped-config {...} @pimzino/agentic-tools-mcp`
+   - Provides: AI task intelligence, auto-detection, recommendations
+   - Status: ✅ Unique AI capabilities complementing exarp-go
 
 ## Configuration Guidelines
 
