@@ -1,4 +1,4 @@
-.PHONY: help build run test test-watch test-coverage test-html clean install fmt lint dev dev-watch dev-test dev-full bench docs sanity-check sanity-check-cached test-cli test-cli-list test-cli-tool test-cli-test config clean-config sprint-start sprint-end pre-sprint sprint check-tasks update-completed-tasks go-fmt go-vet golangci-lint-check golangci-lint-fix govulncheck check check-fix check-all build-migrate migrate migrate-dry-run install-tools go-mod-tidy go-mod-verify pre-commit ci validate check-deps test-go test-go-fast test-go-verbose test-go-parallel version
+.PHONY: help build run test test-watch test-coverage test-html clean install fmt lint dev dev-watch dev-test dev-full bench docs sanity-check sanity-check-cached test-cli test-cli-list test-cli-tool test-cli-test config clean-config sprint-start sprint-end pre-sprint sprint check-tasks update-completed-tasks go-fmt go-vet golangci-lint-check golangci-lint-fix govulncheck check check-fix check-all build-migrate migrate migrate-dry-run install-tools go-mod-tidy go-mod-verify pre-commit ci validate check-deps test-go test-go-fast test-go-verbose test-go-parallel version scorecard scorecard-full
 
 # Project configuration
 PROJECT_NAME := exarp-go
@@ -426,6 +426,14 @@ endif
 docs: ## Generate documentation
 	@echo "$(BLUE)Generating documentation...$(NC)"
 	@echo "$(YELLOW)Documentation generation not available for Go server$(NC)"
+
+scorecard: ## Generate project scorecard (fast mode - default)
+	@echo "$(BLUE)Generating project scorecard (fast mode)...$(NC)"
+	@$(GO) run ./cmd/scorecard
+
+scorecard-full: ## Generate project scorecard (full mode - all checks)
+	@echo "$(BLUE)Generating project scorecard (full mode - this may take longer)...$(NC)"
+	@$(GO) run ./cmd/scorecard --full
 
 ##@ Cleanup
 

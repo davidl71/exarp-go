@@ -18,8 +18,12 @@ func main() {
 	}
 	projectRoot := filepath.Clean(wd)
 
-	// Use fast mode by default for CLI (skip expensive operations)
-	opts := &tools.ScorecardOptions{FastMode: true}
+	// Check for --full flag to disable fast mode
+	fastMode := true // Default to fast mode for CLI
+	if len(os.Args) > 1 && os.Args[1] == "--full" {
+		fastMode = false // Disable fast mode for full checks
+	}
+	opts := &tools.ScorecardOptions{FastMode: fastMode}
 	scorecard, err := tools.GenerateGoScorecard(ctx, projectRoot, opts)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)

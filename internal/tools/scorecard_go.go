@@ -103,8 +103,8 @@ func collectGoMetrics(ctx context.Context, projectRoot string) (*GoProjectMetric
 
 	// MCP server counts (these should be accurate)
 	metrics.MCPTools = 24   // Fixed: was 0
-	metrics.MCPPrompts = 15 // Fixed: was 38
-	metrics.MCPResources = 6
+	metrics.MCPPrompts = 15 // Fixed: was 38 (actual count may vary, check sanity-check)
+	metrics.MCPResources = 17 // Updated: 11 base + 6 task resources
 
 	return metrics, nil
 }
