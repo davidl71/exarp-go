@@ -114,13 +114,13 @@ exarp-go task_workflow action=sync || true
 	}
 
 	results := map[string]interface{}{
-		"status":      "success",
-		"action":      "git",
-		"hooks_dir":   hooksDir,
-		"installed":   []string{},
-		"skipped":     []string{},
-		"errors":      []string{},
-		"dry_run":     dryRun,
+		"status":    "success",
+		"action":    "git",
+		"hooks_dir": hooksDir,
+		"installed": []string{},
+		"skipped":   []string{},
+		"errors":    []string{},
+		"dry_run":   dryRun,
 	}
 
 	if dryRun {
@@ -142,7 +142,7 @@ exarp-go task_workflow action=sync || true
 			}
 
 			hookPath := filepath.Join(hooksDir, hook)
-			
+
 			if install {
 				// Write hook file with config content
 				if err := os.WriteFile(hookPath, []byte(config), 0755); err != nil {
@@ -170,4 +170,3 @@ exarp-go task_workflow action=sync || true
 		{Type: "text", Text: string(resultJSON)},
 	}, nil
 }
-

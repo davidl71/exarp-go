@@ -17,4 +17,3 @@ func handleContextSummarizeNative(ctx context.Context, params map[string]interfa
 	// because handleContext checks platform support before calling it
 	return nil, fmt.Errorf("Apple Foundation Models not available on this platform")
 }
-

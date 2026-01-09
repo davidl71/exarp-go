@@ -75,7 +75,7 @@ Your role is to analyze software development tasks and provide accurate time est
 You understand software complexity, development workflows, testing requirements, and integration challenges.
 Always provide realistic estimates based on the actual scope of work described.
 Respond ONLY with valid JSON in the exact format requested.`
-	
+
 	sess := fm.NewSessionWithInstructions(systemInstructions)
 	defer sess.Release()
 
@@ -98,13 +98,13 @@ func parseAppleFMResponse(text string) (*EstimationResult, error) {
 	// Look for JSON object pattern
 	startIdx := strings.Index(text, "{")
 	endIdx := strings.LastIndex(text, "}")
-	
+
 	if startIdx == -1 || endIdx == -1 || endIdx <= startIdx {
 		return nil, fmt.Errorf("no JSON object found in response")
 	}
 
 	jsonStr := text[startIdx : endIdx+1]
-	
+
 	// Parse JSON
 	var parsed struct {
 		EstimateHours float64 `json:"estimate_hours"`
@@ -138,8 +138,8 @@ func parseAppleFMResponse(text string) (*EstimationResult, error) {
 		UpperBound:    math.Round(upperBound*10) / 10,
 		Metadata: map[string]interface{}{
 			"complexity": parsed.Complexity,
-			"reasoning":   parsed.Reasoning,
-			"model":       "apple_foundation_models",
+			"reasoning":  parsed.Reasoning,
+			"model":      "apple_foundation_models",
 		},
 	}, nil
 }
@@ -154,7 +154,7 @@ func handleEstimationNative(ctx context.Context, projectRoot string, params map[
 	if actionStr, ok := params["action"].(string); ok && actionStr != "" {
 		action = actionStr
 	}
-	
+
 	switch action {
 	case "estimate":
 		return handleEstimationEstimate(ctx, projectRoot, params)
@@ -177,22 +177,22 @@ func handleEstimationEstimate(ctx context.Context, projectRoot string, params ma
 	if priority == "" {
 		priority = "medium"
 	}
-	
+
 	useHistorical := true
 	if useHist, ok := params["use_historical"].(bool); ok {
 		useHistorical = useHist
 	}
-	
+
 	useAppleFM := true
 	if useAFM, ok := params["use_apple_fm"].(bool); ok {
 		useAppleFM = useAFM
 	}
-	
+
 	appleFMWeight := 0.3
 	if weight, ok := params["apple_fm_weight"].(float64); ok {
 		appleFMWeight = weight
 	}
-	
+
 	// Parse tags
 	var tags []string
 	if tagList, ok := tagListRaw.([]interface{}); ok {
@@ -209,13 +209,13 @@ func handleEstimationEstimate(ctx context.Context, projectRoot string, params ma
 			}
 		}
 	}
-	
+
 	// Get statistical estimate
 	statisticalResult, err := estimateStatistically(projectRoot, name, details, tags, priority, useHistorical)
 	if err != nil {
 		return "", fmt.Errorf("statistical estimation failed: %w", err)
 	}
-	
+
 	// Get Apple FM estimate if enabled
 	var appleFMResult *EstimationResult
 	if useAppleFM {
@@ -231,7 +231,7 @@ func handleEstimationEstimate(ctx context.Context, projectRoot string, params ma
 			statisticalResult.Metadata["apple_fm_error"] = err.Error()
 		}
 	}
-	
+
 	// Combine estimates
 	var finalResult *EstimationResult
 	if appleFMResult != nil && appleFMWeight > 0 {
@@ -239,7 +239,7 @@ func handleEstimationEstimate(ctx context.Context, projectRoot string, params ma
 		statisticalWeight := 1.0 - appleFMWeight
 		combinedEstimate := statisticalResult.EstimateHours*statisticalWeight + appleFMResult.EstimateHours*appleFMWeight
 		combinedConfidence := statisticalResult.Confidence*statisticalWeight + appleFMResult.Confidence*appleFMWeight
-		
+
 		finalResult = &EstimationResult{
 			EstimateHours: math.Round(combinedEstimate*10) / 10,
 			Confidence:    math.Min(0.95, combinedConfidence),
@@ -248,26 +248,25 @@ func handleEstimationEstimate(ctx context.Context, projectRoot string, params ma
 			UpperBound:    statisticalResult.UpperBound,
 			Metadata: map[string]interface{}{
 				"statistical_estimate": statisticalResult.EstimateHours,
-				"apple_fm_estimate":     appleFMResult.EstimateHours,
-				"statistical_weight":    statisticalWeight,
-				"apple_fm_weight":       appleFMWeight,
-				"statistical_method":    statisticalResult.Method,
-				"apple_fm_metadata":     appleFMResult.Metadata,
+				"apple_fm_estimate":    appleFMResult.EstimateHours,
+				"statistical_weight":   statisticalWeight,
+				"apple_fm_weight":      appleFMWeight,
+				"statistical_method":   statisticalResult.Method,
+				"apple_fm_metadata":    appleFMResult.Metadata,
 			},
 		}
 	} else {
 		// Statistical only
 		finalResult = statisticalResult
 	}
-	
+
 	// Marshal result
 	resultJSON, err := json.MarshalIndent(finalResult, "", "  ")
 	if err != nil {
 		return "", fmt.Errorf("failed to marshal result: %w", err)
 	}
-	
+
 	return string(resultJSON), nil
 }
 
 // handleEstimationAnalyze and handleEstimationStats are in estimation_shared.go
-

@@ -103,10 +103,10 @@ func listTasksAwaitingClarification(ctx context.Context, params map[string]inter
 	}
 
 	result := map[string]interface{}{
-		"success":                true,
-		"method":                 "apple_foundation_models",
+		"success":                      true,
+		"method":                       "apple_foundation_models",
 		"tasks_awaiting_clarification": len(needingClarification),
-		"tasks":                   needingClarification,
+		"tasks":                        needingClarification,
 	}
 
 	output, _ := json.MarshalIndent(result, "", "  ")
@@ -263,11 +263,11 @@ func resolveBatchClarifications(ctx context.Context, params map[string]interface
 	}
 
 	result := map[string]interface{}{
-		"success":      true,
-		"method":       "native_go",
-		"resolved":     resolved,
-		"total":        len(decisions),
-		"message":      fmt.Sprintf("Resolved %d clarifications", resolved),
+		"success":  true,
+		"method":   "native_go",
+		"resolved": resolved,
+		"total":    len(decisions),
+		"message":  fmt.Sprintf("Resolved %d clarifications", resolved),
 	}
 
 	output, _ := json.MarshalIndent(result, "", "  ")
@@ -299,4 +299,3 @@ Generate a single, specific question that would help clarify what needs to be do
 	result := sess.RespondWithOptions(prompt, 100, 0.3)
 	return strings.TrimSpace(result)
 }
-

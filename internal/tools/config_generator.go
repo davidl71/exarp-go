@@ -27,7 +27,7 @@ func handleGenerateConfigNative(ctx context.Context, args json.RawMessage) ([]fr
 	// Get project root - try multiple methods
 	var projectRoot string
 	var err error
-	
+
 	// Try security.GetProjectRoot first
 	projectRoot, err = security.GetProjectRoot(".")
 	if err != nil {
@@ -161,7 +161,7 @@ func handleSimplifyRules(ctx context.Context, params map[string]interface{}, pro
 		"status":          "success",
 		"files_processed": results["files_processed"],
 		"files_skipped":   results["files_skipped"],
-		"simplifications":  results["simplifications"],
+		"simplifications": results["simplifications"],
 		"dry_run":         dryRun,
 	}, "", "  ")
 
@@ -451,9 +451,9 @@ func NewCursorIgnoreGenerator(projectRoot string) *CursorIgnoreGenerator {
 // GenerateIgnore generates .cursorignore and optionally .cursorindexingignore files
 func (g *CursorIgnoreGenerator) GenerateIgnore(includeIndexing bool, analyzeProject bool, dryRun bool) map[string]interface{} {
 	results := map[string]interface{}{
-		"generated":        []interface{}{},
-		"skipped":          []interface{}{},
-		"errors":           []interface{}{},
+		"generated":         []interface{}{},
+		"skipped":           []interface{}{},
+		"errors":            []interface{}{},
 		"detected_patterns": []string{},
 	}
 

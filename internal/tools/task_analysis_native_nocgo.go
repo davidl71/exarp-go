@@ -14,4 +14,3 @@ import (
 func handleTaskAnalysisNative(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	return nil, fmt.Errorf("Apple Foundation Models not available on this platform")
 }
-

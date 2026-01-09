@@ -28,4 +28,3 @@ func handleTaskWorkflowNative(ctx context.Context, params map[string]interface{}
 		return nil, fmt.Errorf("action %s not yet implemented in native Go", action)
 	}
 }
-

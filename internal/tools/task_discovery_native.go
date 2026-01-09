@@ -88,10 +88,10 @@ func handleTaskDiscoveryNative(ctx context.Context, params map[string]interface{
 	}
 
 	result := map[string]interface{}{
-		"action":     action,
+		"action":      action,
 		"discoveries": discoveries,
-		"summary":    summary,
-		"method":     "native_go",
+		"summary":     summary,
+		"method":      "native_go",
 	}
 
 	if useAppleFM {
@@ -172,12 +172,12 @@ func scanComments(projectRoot string, patterns []string, includeFIXME bool, useA
 						taskText = enhanced["description"].(string)
 						if priority, ok := enhanced["priority"].(string); ok {
 							discoveries = append(discoveries, map[string]interface{}{
-								"type":     taskType,
-								"text":     taskText,
-								"file":     strings.TrimPrefix(path, projectRoot+"/"),
-								"line":     lineNum + 1,
-								"source":   "comment",
-								"priority": priority,
+								"type":        taskType,
+								"text":        taskText,
+								"file":        strings.TrimPrefix(path, projectRoot+"/"),
+								"line":        lineNum + 1,
+								"source":      "comment",
+								"priority":    priority,
 								"ai_enhanced": true,
 							})
 							continue
@@ -294,4 +294,3 @@ Return JSON with: {"description": "cleaned task description", "priority": "low|m
 
 	return nil
 }
-

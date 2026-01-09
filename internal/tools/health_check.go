@@ -48,7 +48,7 @@ func handleHealthServer(ctx context.Context, params map[string]interface{}) ([]f
 
 	// Try to get version from go.mod or pyproject.toml
 	version := "unknown"
-	
+
 	// Check go.mod first (Go project)
 	goModPath := filepath.Join(projectRoot, "go.mod")
 	if _, err := os.Stat(goModPath); err == nil {
@@ -91,10 +91,10 @@ func handleHealthServer(ctx context.Context, params map[string]interface{}) ([]f
 
 	// Build result
 	result := map[string]interface{}{
-		"status":      "operational",
-		"version":     version,
+		"status":       "operational",
+		"version":      version,
 		"project_root": projectRoot,
-		"timestamp":   time.Now().Unix(),
+		"timestamp":    time.Now().Unix(),
 	}
 
 	resultJSON, err := json.MarshalIndent(result, "", "  ")
@@ -106,4 +106,3 @@ func handleHealthServer(ctx context.Context, params map[string]interface{}) ([]f
 		{Type: "text", Text: string(resultJSON)},
 	}, nil
 }
-

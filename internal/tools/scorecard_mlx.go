@@ -8,7 +8,7 @@ import (
 // goScorecardToMap converts GoScorecardResult to map for MLX processing
 func goScorecardToMap(scorecard *GoScorecardResult) map[string]interface{} {
 	result := make(map[string]interface{})
-	
+
 	result["overall_score"] = scorecard.Score
 	result["scores"] = map[string]interface{}{
 		"testing":       calculateTestingScore(scorecard),
@@ -17,45 +17,45 @@ func goScorecardToMap(scorecard *GoScorecardResult) map[string]interface{} {
 		"completion":    calculateCompletionScore(scorecard),
 		"ci_cd":         calculateCICDScore(scorecard),
 	}
-	
+
 	result["blockers"] = extractBlockers(scorecard)
 	result["recommendations"] = scorecard.Recommendations
 	result["metrics"] = map[string]interface{}{
-		"go_files":        scorecard.Metrics.GoFiles,
-		"go_lines":        scorecard.Metrics.GoLines,
-		"go_test_files":   scorecard.Metrics.GoTestFiles,
-		"go_test_lines":   scorecard.Metrics.GoTestLines,
-		"test_coverage":   scorecard.Health.GoTestCoverage,
-		"mcp_tools":       scorecard.Metrics.MCPTools,
-		"mcp_prompts":     scorecard.Metrics.MCPPrompts,
-		"mcp_resources":   scorecard.Metrics.MCPResources,
+		"go_files":      scorecard.Metrics.GoFiles,
+		"go_lines":      scorecard.Metrics.GoLines,
+		"go_test_files": scorecard.Metrics.GoTestFiles,
+		"go_test_lines": scorecard.Metrics.GoTestLines,
+		"test_coverage": scorecard.Health.GoTestCoverage,
+		"mcp_tools":     scorecard.Metrics.MCPTools,
+		"mcp_prompts":   scorecard.Metrics.MCPPrompts,
+		"mcp_resources": scorecard.Metrics.MCPResources,
 	}
-	
+
 	return result
 }
 
 // FormatGoScorecardWithMLX formats scorecard with MLX insights
 func FormatGoScorecardWithMLX(scorecard *GoScorecardResult, insights map[string]interface{}) string {
 	var sb strings.Builder
-	
+
 	// Standard scorecard format
 	sb.WriteString(FormatGoScorecard(scorecard))
-	
+
 	// Add MLX insights section
 	if insightsText, ok := insights["insights"].(string); ok && insightsText != "" {
 		sb.WriteString("\n\n")
 		sb.WriteString("═══════════════════════════════════════════════════════════\n")
 		sb.WriteString("🤖 AI-Generated Insights (MLX)\n")
 		sb.WriteString("═══════════════════════════════════════════════════════════\n\n")
-		
+
 		if model, ok := insights["model"].(string); ok {
 			sb.WriteString(fmt.Sprintf("Model: %s\n\n", model))
 		}
-		
+
 		sb.WriteString(insightsText)
 		sb.WriteString("\n")
 	}
-	
+
 	return sb.String()
 }
 
@@ -63,7 +63,7 @@ func FormatGoScorecardWithMLX(scorecard *GoScorecardResult, insights map[string]
 func calculateTestingScore(scorecard *GoScorecardResult) float64 {
 	score := 0.0
 	checks := 0
-	
+
 	if scorecard.Health.GoTestPasses {
 		score += 30
 		checks++
@@ -79,7 +79,7 @@ func calculateTestingScore(scorecard *GoScorecardResult) float64 {
 		score += 30
 		checks++
 	}
-	
+
 	if checks > 0 {
 		return score / float64(checks) * 100
 	}
@@ -89,7 +89,7 @@ func calculateTestingScore(scorecard *GoScorecardResult) float64 {
 func calculateSecurityScore(scorecard *GoScorecardResult) float64 {
 	score := 0.0
 	checks := 0
-	
+
 	if scorecard.Health.GoVulnCheckPasses {
 		score += 40
 		checks++
@@ -106,7 +106,7 @@ func calculateSecurityScore(scorecard *GoScorecardResult) float64 {
 		score += 15
 		checks++
 	}
-	
+
 	if checks > 0 {
 		return score / float64(checks) * 100
 	}
@@ -128,7 +128,7 @@ func calculateCompletionScore(scorecard *GoScorecardResult) float64 {
 func calculateCICDScore(scorecard *GoScorecardResult) float64 {
 	score := 0.0
 	checks := 0
-	
+
 	if scorecard.Health.GoBuildPasses {
 		score += 25
 		checks++
@@ -145,7 +145,7 @@ func calculateCICDScore(scorecard *GoScorecardResult) float64 {
 		score += 25
 		checks++
 	}
-	
+
 	if checks > 0 {
 		return score / float64(checks) * 100
 	}
@@ -154,7 +154,7 @@ func calculateCICDScore(scorecard *GoScorecardResult) float64 {
 
 func extractBlockers(scorecard *GoScorecardResult) []string {
 	blockers := []string{}
-	
+
 	if !scorecard.Health.GoModExists {
 		blockers = append(blockers, "Missing go.mod file")
 	}
@@ -170,7 +170,6 @@ func extractBlockers(scorecard *GoScorecardResult) []string {
 	if !scorecard.Health.GoVulnCheckPasses {
 		blockers = append(blockers, "Security vulnerabilities detected")
 	}
-	
+
 	return blockers
 }
-

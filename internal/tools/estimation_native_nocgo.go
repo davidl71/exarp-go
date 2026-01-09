@@ -17,7 +17,7 @@ func handleEstimationNative(ctx context.Context, projectRoot string, params map[
 	if actionStr, ok := params["action"].(string); ok && actionStr != "" {
 		action = actionStr
 	}
-	
+
 	switch action {
 	case "estimate":
 		return handleEstimationEstimateNoCGO(ctx, projectRoot, params)
@@ -40,12 +40,12 @@ func handleEstimationEstimateNoCGO(ctx context.Context, projectRoot string, para
 	if priority == "" {
 		priority = "medium"
 	}
-	
+
 	useHistorical := true
 	if useHist, ok := params["use_historical"].(bool); ok {
 		useHistorical = useHist
 	}
-	
+
 	// Parse tags
 	var tags []string
 	if tagList, ok := tagListRaw.([]interface{}); ok {
@@ -62,18 +62,18 @@ func handleEstimationEstimateNoCGO(ctx context.Context, projectRoot string, para
 			}
 		}
 	}
-	
+
 	// Get statistical estimate only (no Apple FM on non-Apple platforms)
 	statisticalResult, err := estimateStatistically(projectRoot, name, details, tags, priority, useHistorical)
 	if err != nil {
 		return "", fmt.Errorf("statistical estimation failed: %w", err)
 	}
-	
+
 	// Marshal result
 	resultJSON, err := json.MarshalIndent(statisticalResult, "", "  ")
 	if err != nil {
 		return "", fmt.Errorf("failed to marshal result: %w", err)
 	}
-	
+
 	return string(resultJSON), nil
 }

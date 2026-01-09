@@ -116,11 +116,11 @@ Return JSON array with format: [{"task_id": "T-1", "level": "component", "compon
 
 	// Build analysis result
 	analysis := map[string]interface{}{
-		"success":              true,
-		"method":               "apple_foundation_models",
-		"total_tasks":          len(tasks),
-		"pending_tasks":        len(pendingTasks),
-		"classifications":     classifications,
+		"success":                   true,
+		"method":                    "apple_foundation_models",
+		"total_tasks":               len(tasks),
+		"pending_tasks":             len(pendingTasks),
+		"classifications":           classifications,
 		"hierarchy_recommendations": buildHierarchyRecommendations(classifications, pendingTasks),
 	}
 
@@ -154,7 +154,7 @@ Return JSON array with format: [{"task_id": "T-1", "level": "component", "compon
 // buildHierarchyRecommendations builds recommendations from classifications
 func buildHierarchyRecommendations(classifications []map[string]interface{}, tasks []Todo2Task) []map[string]interface{} {
 	recommendations := []map[string]interface{}{}
-	
+
 	// Group by component
 	componentGroups := make(map[string][]string)
 	for _, cls := range classifications {
@@ -182,10 +182,10 @@ func buildHierarchyRecommendations(classifications []map[string]interface{}, tas
 // formatHierarchyAnalysisText formats analysis as text
 func formatHierarchyAnalysisText(analysis map[string]interface{}) string {
 	var sb strings.Builder
-	
+
 	sb.WriteString("Task Hierarchy Analysis\n")
 	sb.WriteString("=======================\n\n")
-	
+
 	if total, ok := analysis["total_tasks"].(int); ok {
 		sb.WriteString(fmt.Sprintf("Total Tasks: %d\n", total))
 	}
@@ -211,4 +211,3 @@ func formatHierarchyAnalysisText(analysis map[string]interface{}) string {
 
 	return sb.String()
 }
-

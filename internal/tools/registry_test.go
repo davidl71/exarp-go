@@ -22,7 +22,7 @@ func TestRegisterAllTools(t *testing.T) {
 	expectedCount := 30
 	// Apple Foundation Models tool is conditionally registered on macOS, adding +1
 	if server.ToolCount() != expectedCount && server.ToolCount() != expectedCount+1 {
-		t.Errorf("server.ToolCount() = %v, want %d or %d (with conditional Apple Foundation Models)", 
+		t.Errorf("server.ToolCount() = %v, want %d or %d (with conditional Apple Foundation Models)",
 			server.ToolCount(), expectedCount, expectedCount+1)
 	}
 

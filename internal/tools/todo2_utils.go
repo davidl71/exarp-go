@@ -9,15 +9,15 @@ import (
 
 // Todo2Task represents a Todo2 task
 type Todo2Task struct {
-	ID             string                 `json:"id"`
-	Content        string                 `json:"content"`
-	LongDescription string                `json:"long_description,omitempty"`
-	Status         string                 `json:"status"`
-	Priority       string                 `json:"priority,omitempty"`
-	Tags           []string               `json:"tags,omitempty"`
-	Dependencies   []string               `json:"dependencies,omitempty"`
-	Completed      bool                   `json:"completed,omitempty"`
-	Metadata       map[string]interface{} `json:"metadata,omitempty"`
+	ID              string                 `json:"id"`
+	Content         string                 `json:"content"`
+	LongDescription string                 `json:"long_description,omitempty"`
+	Status          string                 `json:"status"`
+	Priority        string                 `json:"priority,omitempty"`
+	Tags            []string               `json:"tags,omitempty"`
+	Dependencies    []string               `json:"dependencies,omitempty"`
+	Completed       bool                   `json:"completed,omitempty"`
+	Metadata        map[string]interface{} `json:"metadata,omitempty"`
 }
 
 // Todo2State represents the Todo2 state file structure
@@ -28,7 +28,7 @@ type Todo2State struct {
 // LoadTodo2Tasks loads tasks from .todo2/state.todo2.json
 func LoadTodo2Tasks(projectRoot string) ([]Todo2Task, error) {
 	todo2Path := filepath.Join(projectRoot, ".todo2", "state.todo2.json")
-	
+
 	data, err := os.ReadFile(todo2Path)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -48,7 +48,7 @@ func LoadTodo2Tasks(projectRoot string) ([]Todo2Task, error) {
 // SaveTodo2Tasks saves tasks to .todo2/state.todo2.json
 func SaveTodo2Tasks(projectRoot string, tasks []Todo2Task) error {
 	todo2Path := filepath.Join(projectRoot, ".todo2", "state.todo2.json")
-	
+
 	// Ensure directory exists
 	dir := filepath.Dir(todo2Path)
 	if err := os.MkdirAll(dir, 0755); err != nil {
@@ -127,4 +127,3 @@ func normalizeStatus(status string) string {
 		return status
 	}
 }
-

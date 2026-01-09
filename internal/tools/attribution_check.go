@@ -57,7 +57,7 @@ func handleCheckAttributionNative(ctx context.Context, params map[string]interfa
 		if !filepath.IsAbs(reportPath) {
 			reportPath = filepath.Join(projectRoot, reportPath)
 		}
-		
+
 		// Ensure directory exists
 		if err := os.MkdirAll(filepath.Dir(reportPath), 0755); err == nil {
 			os.WriteFile(reportPath, []byte(report), 0644)
@@ -67,10 +67,10 @@ func handleCheckAttributionNative(ctx context.Context, params map[string]interfa
 
 	// Build response
 	responseData := map[string]interface{}{
-		"attribution_score":    results.AttributionScore,
-		"compliant_files":      results.CompliantFiles,
-		"missing_attribution":  results.MissingAttribution,
-		"warnings":             results.Warnings,
+		"attribution_score":   results.AttributionScore,
+		"compliant_files":     results.CompliantFiles,
+		"missing_attribution": results.MissingAttribution,
+		"warnings":            results.Warnings,
 		"issues":              results.Issues,
 		"report_path":         results.ReportPath,
 		"tasks_created":       tasksCreated,
@@ -101,7 +101,7 @@ type AttributionResults struct {
 func performAttributionCheck(projectRoot string) AttributionResults {
 	results := AttributionResults{
 		AttributionScore:   100.0,
-		CompliantFiles:      []string{},
+		CompliantFiles:     []string{},
 		MissingAttribution: []string{},
 		Warnings:           []map[string]interface{}{},
 		Issues:             []map[string]interface{}{},
@@ -282,7 +282,7 @@ func generateAttributionReport(results AttributionResults, projectRoot string) s
 
 ## Compliant Files
 
-`, 
+`,
 		results.AttributionScore,
 		len(results.CompliantFiles),
 		len(results.MissingAttribution),
@@ -310,4 +310,3 @@ func generateAttributionReport(results AttributionResults, projectRoot string) s
 
 	return report
 }
-

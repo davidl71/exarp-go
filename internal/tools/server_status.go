@@ -19,10 +19,10 @@ func handleServerStatusNative(ctx context.Context, args json.RawMessage) ([]fram
 
 	// Build status response
 	status := map[string]interface{}{
-		"status":         "operational",
-		"version":        "0.1.0",
+		"status":          "operational",
+		"version":         "0.1.0",
 		"tools_available": "See tool catalog",
-		"project_root":   projectRoot,
+		"project_root":    projectRoot,
 	}
 
 	// Marshal to JSON with indentation
@@ -35,4 +35,3 @@ func handleServerStatusNative(ctx context.Context, args json.RawMessage) ([]fram
 		{Type: "text", Text: string(result)},
 	}, nil
 }
-

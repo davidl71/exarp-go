@@ -60,7 +60,7 @@ func handleAddExternalToolHintsNative(ctx context.Context, params map[string]int
 		if !filepath.IsAbs(reportPath) {
 			reportPath = filepath.Join(projectRoot, reportPath)
 		}
-		
+
 		// Ensure directory exists
 		if err := os.MkdirAll(filepath.Dir(reportPath), 0755); err == nil {
 			os.WriteFile(reportPath, []byte(report), 0644)
@@ -71,13 +71,13 @@ func handleAddExternalToolHintsNative(ctx context.Context, params map[string]int
 	// Build response
 	responseData := map[string]interface{}{
 		"files_scanned":        results.FilesScanned,
-		"files_modified":      results.FilesModified,
+		"files_modified":       results.FilesModified,
 		"files_skipped":        results.FilesSkipped,
 		"hints_added_count":    len(results.HintsAdded),
 		"hints_skipped_count":  len(results.HintsSkipped),
-		"report_path":         results.ReportPath,
-		"dry_run":             dryRun,
-		"status":              "success",
+		"report_path":          results.ReportPath,
+		"dry_run":              dryRun,
+		"status":               "success",
 		"hints_added":          results.HintsAdded,
 		"hints_skipped_sample": results.HintsSkipped,
 	}
@@ -94,12 +94,12 @@ func handleAddExternalToolHintsNative(ctx context.Context, params map[string]int
 
 // ExternalToolHintsResults represents the results of external tool hints processing
 type ExternalToolHintsResults struct {
-	FilesScanned   int
-	FilesModified  int
-	FilesSkipped   int
-	HintsAdded     []map[string]interface{}
-	HintsSkipped   []map[string]interface{}
-	ReportPath     string
+	FilesScanned  int
+	FilesModified int
+	FilesSkipped  int
+	HintsAdded    []map[string]interface{}
+	HintsSkipped  []map[string]interface{}
+	ReportPath    string
 }
 
 // processExternalToolHints processes markdown files to add external tool hints
@@ -290,7 +290,7 @@ func generateHint(libraries []string) string {
 func insertHint(content string, hint string) string {
 	// Try to insert after first heading or at the end
 	lines := strings.Split(content, "\n")
-	
+
 	// Find first heading
 	insertIndex := len(lines)
 	for i, line := range lines {
@@ -327,7 +327,7 @@ func generateExternalToolHintsReport(results ExternalToolHintsResults, projectRo
 
 ## Hints Added
 
-`, 
+`,
 		results.FilesScanned,
 		results.FilesModified,
 		results.FilesSkipped,
@@ -354,4 +354,3 @@ func generateExternalToolHintsReport(results ExternalToolHintsResults, projectRo
 
 	return report
 }
-

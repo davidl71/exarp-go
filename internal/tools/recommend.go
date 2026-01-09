@@ -149,7 +149,7 @@ func handleRecommendModelNative(ctx context.Context, params map[string]interface
 
 	// Find best matching model
 	recommended := findBestModel(taskDescription, taskType, optimizeFor)
-	
+
 	// Build result
 	result := map[string]interface{}{
 		"recommended_model": recommended,
@@ -183,7 +183,7 @@ func handleRecommendModelNative(ctx context.Context, params map[string]interface
 // findBestModel finds the best model for a given task
 func findBestModel(taskDescription, taskType, optimizeFor string) ModelInfo {
 	taskLower := strings.ToLower(taskDescription + " " + taskType)
-	
+
 	// Score each model
 	bestModel := MODEL_CATALOG[0]
 	bestScore := 0.0
@@ -241,7 +241,7 @@ func findBestModel(taskDescription, taskType, optimizeFor string) ModelInfo {
 // findAlternativeModels finds alternative models
 func findAlternativeModels(recommended ModelInfo, optimizeFor string) []ModelInfo {
 	alternatives := []ModelInfo{}
-	
+
 	// Find 2-3 alternatives with different characteristics
 	for _, model := range MODEL_CATALOG {
 		if model.ModelID == recommended.ModelID {

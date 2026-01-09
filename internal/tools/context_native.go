@@ -131,8 +131,8 @@ func handleContextSummarizeNative(ctx context.Context, params map[string]interfa
 		"level":   level,
 		"method":  "apple_foundation_models",
 		"token_estimate": map[string]interface{}{
-			"original":        originalTokens,
-			"summarized":      summaryTokens,
+			"original":          originalTokens,
+			"summarized":        summaryTokens,
 			"reduction_percent": fmt.Sprintf("%.1f", reduction),
 		},
 		"duration_ms": time.Since(startTime).Milliseconds(),
@@ -160,4 +160,3 @@ func handleContextSummarizeNative(ctx context.Context, params map[string]interfa
 		{Type: "text", Text: string(resultJSON)},
 	}, nil
 }
-

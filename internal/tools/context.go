@@ -311,8 +311,8 @@ func handleContextBatchNative(ctx context.Context, params map[string]interface{}
 			"combined_summary": combinedSummaries,
 			"total_items":      len(summaries),
 			"token_estimate": map[string]interface{}{
-				"original":         totalOriginal,
-				"summarized":       totalSummarized,
+				"original":          totalOriginal,
+				"summarized":        totalSummarized,
 				"reduction_percent": fmt.Sprintf("%.1f", reduction),
 			},
 		}
@@ -397,11 +397,11 @@ func createSimpleSummary(dataStr string, level string, toolType string) map[stri
 
 	return map[string]interface{}{
 		"summary": summary,
-		"level":    level,
-		"method":   "simple",
+		"level":   level,
+		"method":  "simple",
 		"token_estimate": map[string]interface{}{
-			"original":         originalTokens,
-			"summarized":       summaryTokens,
+			"original":          originalTokens,
+			"summarized":        summaryTokens,
 			"reduction_percent": fmt.Sprintf("%.1f", reduction),
 		},
 	}

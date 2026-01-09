@@ -58,21 +58,21 @@ func enhanceReportWithMLX(ctx context.Context, reportData map[string]interface{}
 
 	// Extract generated text (MLX returns format_success_response structure)
 	generatedText := ""
-	
+
 	// Try data.generated_text format (format_success_response wraps in "data")
 	if data, ok := mlxResponse["data"].(map[string]interface{}); ok {
 		if text, ok := data["generated_text"].(string); ok {
 			generatedText = text
 		}
 	}
-	
+
 	// Try direct generated_text format (if not wrapped)
 	if generatedText == "" {
 		if text, ok := mlxResponse["generated_text"].(string); ok {
 			generatedText = text
 		}
 	}
-	
+
 	// Try result field (alternative format)
 	if generatedText == "" {
 		if result, ok := mlxResponse["result"].(string); ok {
@@ -250,4 +250,3 @@ func getFloat(m map[string]interface{}, key string) float64 {
 	}
 	return 0.0
 }
-

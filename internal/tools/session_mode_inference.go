@@ -15,9 +15,9 @@ import (
 type SessionMode string
 
 const (
-	SessionModeAGENT  SessionMode = "agent"
-	SessionModeASK    SessionMode = "ask"
-	SessionModeMANUAL SessionMode = "manual"
+	SessionModeAGENT   SessionMode = "agent"
+	SessionModeASK     SessionMode = "ask"
+	SessionModeMANUAL  SessionMode = "manual"
 	SessionModeUNKNOWN SessionMode = "unknown"
 )
 
@@ -286,4 +286,3 @@ func min(a, b float64) float64 {
 	}
 	return b
 }
-

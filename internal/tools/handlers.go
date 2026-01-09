@@ -225,7 +225,7 @@ func handleReport(ctx context.Context, args json.RawMessage) ([]framework.TextCo
 			if err == nil {
 				// Convert to map for MLX enhancement
 				scorecardMap := goScorecardToMap(scorecard)
-				
+
 				// Enhance with MLX if available
 				enhanced, err := enhanceReportWithMLX(ctx, scorecardMap, action)
 				if err == nil && enhanced != nil {

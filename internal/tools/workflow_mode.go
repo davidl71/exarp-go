@@ -14,16 +14,16 @@ import (
 
 // WorkflowModeState represents the persisted workflow mode state
 type WorkflowModeState struct {
-	CurrentMode    string            `json:"current_mode"`
-	ExtraGroups    []string          `json:"extra_groups"`
-	DisabledGroups []string          `json:"disabled_groups"`
-	LastUpdated    string            `json:"last_updated"`
+	CurrentMode    string   `json:"current_mode"`
+	ExtraGroups    []string `json:"extra_groups"`
+	DisabledGroups []string `json:"disabled_groups"`
+	LastUpdated    string   `json:"last_updated"`
 }
 
 // WorkflowModeManager manages workflow mode state
 type WorkflowModeManager struct {
-	state      WorkflowModeState
-	statePath  string
+	state     WorkflowModeState
+	statePath string
 }
 
 var globalWorkflowManager *WorkflowModeManager
@@ -33,12 +33,12 @@ func getWorkflowManager() *WorkflowModeManager {
 	if globalWorkflowManager == nil {
 		// Default state path: .exarp/workflow_mode.json
 		statePath := ".exarp/workflow_mode.json"
-		
+
 		// Try to use PROJECT_ROOT if available
 		if projectRoot := os.Getenv("PROJECT_ROOT"); projectRoot != "" && projectRoot != "unknown" {
 			statePath = filepath.Join(projectRoot, ".exarp", "workflow_mode.json")
 		}
-		
+
 		globalWorkflowManager = &WorkflowModeManager{
 			state: WorkflowModeState{
 				CurrentMode:    "development",
@@ -48,7 +48,7 @@ func getWorkflowManager() *WorkflowModeManager {
 			},
 			statePath: statePath,
 		}
-		
+
 		// Load existing state if available
 		_ = globalWorkflowManager.loadState()
 	}
@@ -225,13 +225,13 @@ func (m *WorkflowModeManager) suggestMode(text string) map[string]interface{} {
 
 	// Simple keyword-based suggestion
 	modeScores := map[string]int{
-		"security_review":   strings.Count(textLower, "security") + strings.Count(textLower, "vulnerability"),
-		"task_management":   strings.Count(textLower, "task") + strings.Count(textLower, "todo"),
-		"code_review":       strings.Count(textLower, "review") + strings.Count(textLower, "test"),
-		"sprint_planning":   strings.Count(textLower, "sprint") + strings.Count(textLower, "plan"),
-		"daily_checkin":     strings.Count(textLower, "daily") + strings.Count(textLower, "status"),
-		"development":       strings.Count(textLower, "implement") + strings.Count(textLower, "develop"),
-		"debugging":         strings.Count(textLower, "debug") + strings.Count(textLower, "bug"),
+		"security_review": strings.Count(textLower, "security") + strings.Count(textLower, "vulnerability"),
+		"task_management": strings.Count(textLower, "task") + strings.Count(textLower, "todo"),
+		"code_review":     strings.Count(textLower, "review") + strings.Count(textLower, "test"),
+		"sprint_planning": strings.Count(textLower, "sprint") + strings.Count(textLower, "plan"),
+		"daily_checkin":   strings.Count(textLower, "daily") + strings.Count(textLower, "status"),
+		"development":     strings.Count(textLower, "implement") + strings.Count(textLower, "develop"),
+		"debugging":       strings.Count(textLower, "debug") + strings.Count(textLower, "bug"),
 	}
 
 	bestMode := ""
@@ -445,4 +445,3 @@ func handleWorkflowModeStats(ctx context.Context, manager *WorkflowModeManager) 
 		{Type: "text", Text: string(result)},
 	}, nil
 }
-
