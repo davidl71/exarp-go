@@ -285,6 +285,186 @@ func (s *Server) RegisterTool(name string, handler ToolHandler) error {
 - **Interface-based** framework interaction
 - **Easy to swap** frameworks via configuration
 
+### Graph Analysis Libraries
+- **gonum.org/v1/gonum/graph** - Used for graph algorithms (cycle detection, topological sort, critical path)
+- **Prefer gonum over manual implementations** for complex graph operations
+- **Use wrapper types** (TaskGraph) to add domain-specific metadata to graph nodes
+- **Performance**: Gonum provides optimized algorithms (O(V + E) for most operations)
+
+## Graph Algorithms and Analysis
+
+### Gonum Graph Library Usage
+
+**When to Use Gonum:**
+- Dependency analysis (task dependencies, circular dependencies)
+- Critical path analysis (longest path in DAG)
+- Topological sorting
+- Cycle detection
+- Complex graph algorithms beyond simple maps
+
+**TaskGraph Wrapper Pattern:**
+```go
+// ✅ GOOD: Wrapper with domain-specific metadata
+type TaskGraph struct {
+    Graph     *simple.DirectedGraph
+    TaskIDMap map[string]int64  // task ID -> node ID
+    NodeIDMap map[int64]string  // node ID -> task ID
+    NodeMap   map[int64]*TaskNode
+}
+
+// ✅ GOOD: Custom node type with metadata
+type TaskNode struct {
+    NodeID   int64  // Internal graph node ID
+    TaskID   string // Domain-specific task ID
+    Name     string
+    Priority string
+    Status   string
+}
+
+func (n *TaskNode) ID() int64 {
+    return n.NodeID
+}
+```
+
+**Graph Building:**
+```go
+// ✅ GOOD: Build graph from domain objects
+func BuildTaskGraph(tasks []Todo2Task) (*TaskGraph, error) {
+    tg := NewTaskGraph()
+    
+    // Add all tasks as nodes first
+    for _, task := range tasks {
+        tg.AddTask(task)
+    }
+    
+    // Then add dependency edges
+    for _, task := range tasks {
+        for _, depID := range task.Dependencies {
+            if err := tg.AddDependency(depID, task.ID); err != nil {
+                return nil, err
+            }
+        }
+    }
+    
+    return tg, nil
+}
+```
+
+**Cycle Detection:**
+```go
+// ✅ GOOD: Use topo.Sort for efficient cycle detection
+func HasCycles(tg *TaskGraph) (bool, error) {
+    _, err := topo.Sort(tg.Graph)
+    if err != nil {
+        return true, nil  // Sort fails if cycles exist
+    }
+    return false, nil
+}
+
+// ✅ GOOD: Custom cycle enumeration when needed (gonum lacks simple_cycles)
+func DetectCycles(tg *TaskGraph) [][]string {
+    // Use DFS to enumerate all cycles
+    // Gonum provides topo.Sort but not cycle enumeration
+}
+```
+
+**Critical Path Analysis:**
+```go
+// ✅ GOOD: Use dynamic programming with topological sort
+func FindCriticalPath(tg *TaskGraph) ([]string, error) {
+    // Check for cycles first
+    hasCycles, err := HasCycles(tg)
+    if err != nil || hasCycles {
+        return nil, fmt.Errorf("cannot find critical path: graph has cycles")
+    }
+    
+    // Get topological sort
+    sorted, err := TopoSortTasks(tg)
+    if err != nil {
+        return nil, err
+    }
+    
+    // Dynamic programming: calculate longest path
+    dist := make(map[string]int)
+    prev := make(map[string]string)
+    
+    for _, taskID := range sorted {
+        // Update distance from dependencies
+        // Track path for reconstruction
+    }
+    
+    // Reconstruct path from end to start
+    return path, nil
+}
+```
+
+**Dependency Level Calculation:**
+```go
+// ✅ GOOD: Optimize with topological sort for acyclic graphs
+func GetTaskLevels(tg *TaskGraph) map[string]int {
+    hasCycles, _ := HasCycles(tg)
+    if !hasCycles {
+        // Use topological sort for O(V + E) performance
+        sorted, _ := topo.Sort(tg.Graph)
+        // Process in order, single pass
+    } else {
+        // Fallback to iterative approach for cyclic graphs
+    }
+}
+```
+
+**Performance Considerations:**
+- **Graph Building**: O(V + E) - acceptable overhead
+- **Cycle Detection**: O(V + E) - very fast with topo.Sort
+- **Topological Sort**: O(V + E) - optimal algorithm
+- **Critical Path**: O(V + E) - dynamic programming approach
+- **GetTaskLevels**: O(V + E) for acyclic, O(V * E) worst case for cyclic
+- **Memory**: ~20-30% overhead vs manual map-based graphs (acceptable trade-off)
+
+**Testing Graph Algorithms:**
+```go
+// ✅ GOOD: Test with various graph structures
+func TestFindCriticalPath(t *testing.T) {
+    tests := []struct {
+        name  string
+        tasks []Todo2Task
+        want  []string
+    }{
+        {
+            name:  "linear chain",
+            tasks: generateTestTasks(10, 1),
+            want:  []string{"T-1", "T-2", ..., "T-10"},
+        },
+        {
+            name: "complex graph",
+            tasks: generateComplexTasks(),
+            want: []string{...},
+        },
+    }
+    
+    for _, tt := range tests {
+        t.Run(tt.name, func(t *testing.T) {
+            tg, _ := BuildTaskGraph(tt.tasks)
+            got, err := FindCriticalPath(tg)
+            // Verify correctness
+        })
+    }
+}
+
+// ✅ GOOD: Benchmark graph operations
+func BenchmarkBuildTaskGraph(b *testing.B) {
+    tasks := generateTestTasks(200, 3)
+    for i := 0; i < b.N; i++ {
+        _, _ = BuildTaskGraph(tasks)
+    }
+}
+```
+
+**When NOT to Use Gonum:**
+- Simple adjacency list needs (use `map[string][]string`)
+- Very small graphs (< 10 nodes) where overhead isn't worth it
+- Operations that don't benefit from graph algorithms
+
 ## Makefile Usage (CRITICAL)
 
 **⚠️ ALWAYS USE MAKEFILE TARGETS INSTEAD OF DIRECT COMMANDS ⚠️**
@@ -423,5 +603,7 @@ uv sync  # or make install
 - ✅ No goroutine leaks
 - ✅ Proper resource cleanup
 - ✅ **Uses Makefile targets instead of direct commands**
+- ✅ **Uses gonum graph for complex graph operations** (when applicable)
+- ✅ **Wraps gonum graphs with domain-specific types** for metadata
 
 **These practices are mandatory for professional Go development.**

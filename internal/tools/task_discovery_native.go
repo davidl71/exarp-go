@@ -280,14 +280,18 @@ func findOrphanTasks(projectRoot string) []map[string]interface{} {
 		taskMap[task.ID] = true
 	}
 
-	// Build dependency graph (reuse from task_analysis)
-	graph := buildDependencyGraph(tasks)
+	// Build dependency graph using gonum
+	tg, err := BuildTaskGraph(tasks)
+	if err != nil {
+		// If graph building fails, continue with empty graph
+		tg = NewTaskGraph()
+	}
 
 	// Find missing dependencies
-	missing := findMissingDependencies(tasks, graph)
+	missing := findMissingDependencies(tasks, tg)
 
-	// Find circular dependencies
-	cycles := detectCycles(graph)
+	// Find circular dependencies using gonum
+	cycles := DetectCycles(tg)
 
 	// Identify orphan tasks
 	for _, task := range tasks {

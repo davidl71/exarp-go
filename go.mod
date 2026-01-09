@@ -7,6 +7,7 @@ require (
 	github.com/mattn/go-sqlite3 v1.14.33
 	github.com/modelcontextprotocol/go-sdk v1.2.0
 	golang.org/x/term v0.38.0
+	gonum.org/v1/gonum v0.16.0
 )
 
 require (

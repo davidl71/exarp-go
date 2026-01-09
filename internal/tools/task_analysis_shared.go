@@ -156,10 +156,59 @@ func handleTaskAnalysisDependencies(ctx context.Context, params map[string]inter
 		return nil, fmt.Errorf("failed to load tasks: %w", err)
 	}
 
-	// Build dependency graph
-	graph := buildDependencyGraph(tasks)
-	cycles := detectCycles(graph)
-	missing := findMissingDependencies(tasks, graph)
+	// Build dependency graph using gonum
+	tg, err := BuildTaskGraph(tasks)
+	if err != nil {
+		return nil, fmt.Errorf("failed to build task graph: %w", err)
+	}
+
+	// Detect cycles
+	cycles := DetectCycles(tg)
+	
+	// Find missing dependencies
+	missing := findMissingDependencies(tasks, tg)
+	
+	// Build legacy graph format for backward compatibility
+	graph := buildLegacyGraphFormat(tg)
+
+	// Calculate critical path if no cycles
+	var criticalPath []string
+	var criticalPathDetails []map[string]interface{}
+	maxLevel := 0
+	
+	hasCycles, err := HasCycles(tg)
+	if err == nil && !hasCycles {
+		// Find critical path
+		path, err := FindCriticalPath(tg)
+		if err == nil {
+			criticalPath = path
+			
+			// Build detailed path information
+			for _, taskID := range path {
+				for _, task := range tasks {
+					if task.ID == taskID {
+						criticalPathDetails = append(criticalPathDetails, map[string]interface{}{
+							"id":               task.ID,
+							"content":          task.Content,
+							"priority":         task.Priority,
+							"status":           task.Status,
+							"dependencies":     task.Dependencies,
+							"dependencies_count": len(task.Dependencies),
+						})
+						break
+					}
+				}
+			}
+		}
+		
+		// Get max dependency level
+		levels := GetTaskLevels(tg)
+		for _, level := range levels {
+			if level > maxLevel {
+				maxLevel = level
+			}
+		}
+	}
 
 	outputFormat := "text"
 	if format, ok := params["output_format"].(string); ok && format != "" {
@@ -174,6 +223,14 @@ func handleTaskAnalysisDependencies(ctx context.Context, params map[string]inter
 		"circular_dependencies": cycles,
 		"missing_dependencies":  missing,
 		"recommendations":       buildDependencyRecommendations(graph, cycles, missing),
+	}
+	
+	// Add critical path information if available
+	if len(criticalPath) > 0 {
+		result["critical_path"] = criticalPath
+		result["critical_path_length"] = len(criticalPath)
+		result["critical_path_details"] = criticalPathDetails
+		result["max_dependency_level"] = maxLevel
 	}
 
 	var output string
@@ -492,71 +549,34 @@ func buildTagRecommendations(analysis TagAnalysis) []map[string]interface{} {
 
 // Helper functions for dependency analysis
 
+// DependencyGraph is the legacy format for backward compatibility
 type DependencyGraph map[string][]string
 
-func buildDependencyGraph(tasks []Todo2Task) DependencyGraph {
+// buildLegacyGraphFormat converts TaskGraph to legacy map format for backward compatibility
+func buildLegacyGraphFormat(tg *TaskGraph) DependencyGraph {
 	graph := make(DependencyGraph)
-	taskMap := make(map[string]bool)
-
-	for _, task := range tasks {
-		taskMap[task.ID] = true
-		graph[task.ID] = []string{}
-	}
-
-	for _, task := range tasks {
-		for _, dep := range task.Dependencies {
-			if taskMap[dep] {
-				graph[task.ID] = append(graph[task.ID], dep)
+	
+	nodes := tg.Graph.Nodes()
+	for nodes.Next() {
+		nodeID := nodes.Node().ID()
+		taskID := tg.NodeIDMap[nodeID]
+		
+		deps := []string{}
+		fromNodes := tg.Graph.To(nodeID)
+		for fromNodes.Next() {
+			fromNodeID := fromNodes.Node().ID()
+			if depTaskID, ok := tg.NodeIDMap[fromNodeID]; ok {
+				deps = append(deps, depTaskID)
 			}
 		}
+		
+		graph[taskID] = deps
 	}
-
+	
 	return graph
 }
 
-func detectCycles(graph DependencyGraph) [][]string {
-	cycles := [][]string{}
-	visited := make(map[string]bool)
-	recStack := make(map[string]bool)
-
-	var dfs func(node string, path []string)
-	dfs = func(node string, path []string) {
-		visited[node] = true
-		recStack[node] = true
-		path = append(path, node)
-
-		for _, neighbor := range graph[node] {
-			if !visited[neighbor] {
-				dfs(neighbor, path)
-			} else if recStack[neighbor] {
-				// Found cycle
-				cycleStart := -1
-				for i, n := range path {
-					if n == neighbor {
-						cycleStart = i
-						break
-					}
-				}
-				if cycleStart >= 0 {
-					cycle := append(path[cycleStart:], neighbor)
-					cycles = append(cycles, cycle)
-				}
-			}
-		}
-
-		recStack[node] = false
-	}
-
-	for node := range graph {
-		if !visited[node] {
-			dfs(node, []string{})
-		}
-	}
-
-	return cycles
-}
-
-func findMissingDependencies(tasks []Todo2Task, graph DependencyGraph) []map[string]interface{} {
+func findMissingDependencies(tasks []Todo2Task, tg *TaskGraph) []map[string]interface{} {
 	missing := []map[string]interface{}{}
 	taskMap := make(map[string]bool)
 
@@ -608,7 +628,51 @@ func formatDependencyAnalysisText(result map[string]interface{}) string {
 	sb.WriteString("==================\n\n")
 
 	if total, ok := result["total_tasks"].(int); ok {
-		sb.WriteString(fmt.Sprintf("Total Tasks: %d\n\n", total))
+		sb.WriteString(fmt.Sprintf("Total Tasks: %d\n", total))
+	}
+	
+	if maxLevel, ok := result["max_dependency_level"].(int); ok {
+		sb.WriteString(fmt.Sprintf("Max Dependency Level: %d\n", maxLevel))
+	}
+	sb.WriteString("\n")
+
+	// Critical Path
+	if criticalPath, ok := result["critical_path"].([]string); ok && len(criticalPath) > 0 {
+		sb.WriteString("Critical Path (Longest Dependency Chain):\n")
+		sb.WriteString(fmt.Sprintf("  Length: %d tasks\n\n", len(criticalPath)))
+		
+		if details, ok := result["critical_path_details"].([]map[string]interface{}); ok {
+			for i, detail := range details {
+				taskID, _ := detail["id"].(string)
+				content, _ := detail["content"].(string)
+				
+				sb.WriteString(fmt.Sprintf("  %d. %s", i+1, taskID))
+				if content != "" {
+					sb.WriteString(fmt.Sprintf(": %s", content))
+				}
+				sb.WriteString("\n")
+				
+				if deps, ok := detail["dependencies"].([]interface{}); ok && len(deps) > 0 {
+					depStrs := make([]string, len(deps))
+					for j, d := range deps {
+						if depStr, ok := d.(string); ok {
+							depStrs[j] = depStr
+						}
+					}
+					if len(depStrs) > 0 {
+						sb.WriteString(fmt.Sprintf("     Depends on: %s\n", strings.Join(depStrs, ", ")))
+					}
+				}
+				
+				if i < len(details)-1 {
+					sb.WriteString("     ↓\n")
+				}
+			}
+		} else {
+			// Fallback to simple path
+			sb.WriteString(fmt.Sprintf("  %s\n", strings.Join(criticalPath, " → ")))
+		}
+		sb.WriteString("\n")
 	}
 
 	if cycles, ok := result["circular_dependencies"].([][]string); ok && len(cycles) > 0 {
@@ -645,8 +709,114 @@ type ParallelGroup struct {
 func findParallelizableTasks(tasks []Todo2Task, durationWeight float64) []ParallelGroup {
 	groups := []ParallelGroup{}
 
-	// Build dependency graph (for future use in dependency-aware parallelization)
-	_ = buildDependencyGraph(tasks)
+	// Build dependency graph using gonum
+	tg, err := BuildTaskGraph(tasks)
+	if err != nil {
+		// Fallback to simple approach if graph building fails
+		return findParallelizableTasksSimple(tasks, durationWeight)
+	}
+
+	taskMap := make(map[string]*Todo2Task)
+	for i := range tasks {
+		taskMap[tasks[i].ID] = &tasks[i]
+	}
+
+	// Filter to pending tasks only
+	pendingTasks := []Todo2Task{}
+	for _, task := range tasks {
+		if IsPendingStatus(task.Status) {
+			pendingTasks = append(pendingTasks, task)
+		}
+	}
+
+	if len(pendingTasks) == 0 {
+		return groups
+	}
+
+	// Use dependency levels to group parallelizable tasks
+	levels := GetTaskLevels(tg)
+
+	// Group tasks by dependency level (tasks at same level can run in parallel)
+	byLevel := make(map[int][]string)
+	for _, task := range pendingTasks {
+		level := levels[task.ID]
+		byLevel[level] = append(byLevel[level], task.ID)
+	}
+
+	// Build parallel groups from each level
+	for level, taskIDs := range byLevel {
+		if len(taskIDs) < 2 {
+			continue // Skip levels with only one task
+		}
+
+		// Group by priority within each level
+		byPriority := make(map[string][]string)
+		for _, taskID := range taskIDs {
+			task := taskMap[taskID]
+			priority := task.Priority
+			if priority == "" {
+				priority = "medium"
+			}
+			byPriority[priority] = append(byPriority[priority], taskID)
+		}
+
+		// Create groups for each priority within this level
+		for priority, ids := range byPriority {
+			if len(ids) > 1 {
+				groups = append(groups, ParallelGroup{
+					Tasks:    ids,
+					Priority: priority,
+					Reason:   fmt.Sprintf("%d tasks at dependency level %d can run in parallel", len(ids), level),
+				})
+			}
+		}
+	}
+
+	// Also include tasks with no dependencies (level 0)
+	if level0Tasks, ok := byLevel[0]; ok && len(level0Tasks) > 0 {
+		byPriority := make(map[string][]string)
+		for _, taskID := range level0Tasks {
+			task := taskMap[taskID]
+			priority := task.Priority
+			if priority == "" {
+				priority = "medium"
+			}
+			byPriority[priority] = append(byPriority[priority], taskID)
+		}
+
+		for priority, ids := range byPriority {
+			if len(ids) > 1 {
+				// Check if we already added this group
+				exists := false
+				for _, g := range groups {
+					if g.Priority == priority && len(g.Tasks) == len(ids) {
+						exists = true
+						break
+					}
+				}
+				if !exists {
+					groups = append(groups, ParallelGroup{
+						Tasks:    ids,
+						Priority: priority,
+						Reason:   fmt.Sprintf("%d tasks with no dependencies can run in parallel", len(ids)),
+					})
+				}
+			}
+		}
+	}
+
+	// Sort groups by priority (high -> medium -> low)
+	sort.Slice(groups, func(i, j int) bool {
+		priorityOrder := map[string]int{"high": 0, "medium": 1, "low": 2}
+		return priorityOrder[groups[i].Priority] < priorityOrder[groups[j].Priority]
+	})
+
+	return groups
+}
+
+// findParallelizableTasksSimple is a fallback implementation without graph analysis
+func findParallelizableTasksSimple(tasks []Todo2Task, durationWeight float64) []ParallelGroup {
+	groups := []ParallelGroup{}
 	taskMap := make(map[string]*Todo2Task)
 	for i := range tasks {
 		taskMap[tasks[i].ID] = &tasks[i]
