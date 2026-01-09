@@ -465,6 +465,96 @@ func BenchmarkBuildTaskGraph(b *testing.B) {
 - Very small graphs (< 10 nodes) where overhead isn't worth it
 - Operations that don't benefit from graph algorithms
 
+## Todo2 Database Integration
+
+### SQLite Database (Primary Storage)
+
+**⚠️ CRITICAL: Todo2 now uses SQLite database as primary storage ⚠️**
+
+**Storage Architecture:**
+- **Primary**: `.todo2/todo2.db` (SQLite database) - **USE THIS**
+- **Fallback**: `.todo2/state.todo2.json` (legacy JSON file, only used if database unavailable)
+
+**Key Functions (Database-First with Fallback):**
+```go
+// LoadTodo2Tasks loads from database first, falls back to JSON if needed
+tasks, err := tools.LoadTodo2Tasks(projectRoot)
+
+// SaveTodo2Tasks saves to database first, falls back to JSON if needed
+err := tools.SaveTodo2Tasks(projectRoot, tasks)
+```
+
+**Direct Database Operations (When Database Available):**
+```go
+import "github.com/davidl71/exarp-go/internal/database"
+
+// Single task operations (O(1) - efficient)
+task, err := database.GetTask(taskID)
+err := database.CreateTask(&task)
+err := database.UpdateTask(&task)
+err := database.DeleteTask(taskID)
+
+// Batch operations with filtering (efficient)
+filters := &database.TaskFilters{
+    Status: &status,  // Filter by status
+    Tag: &tag,        // Filter by tag
+    Priority: &priority,
+}
+tasks, err := database.ListTasks(filters)
+
+// Comments
+comments, err := database.GetComments(taskID)
+err := database.AddComments(taskID, comments)
+```
+
+**Performance Benefits (vs JSON):**
+- **Single task ops**: O(1) query + O(1) update (vs O(n) read/write with JSON)
+- **Filtered queries**: Only load matching tasks, not entire file
+- **Direct deletions**: No need to load/rewrite entire file
+- **Batch operations**: Efficient transactions
+- **Indexed queries**: Fast lookups by status, tag, priority
+
+**Database Initialization:**
+- ✅ Automatically initialized in `cmd/server/main.go` and `internal/cli/cli.go`
+- ✅ Creates database file if it doesn't exist
+- ✅ Runs schema migrations automatically
+- ✅ Graceful error handling with automatic JSON fallback
+
+**Migration Tool:**
+```bash
+# Preview migration (dry run)
+./bin/migrate --dry-run
+
+# Migrate existing JSON data to SQLite (creates backup)
+./bin/migrate --backup
+
+# Specify project root manually
+./bin/migrate --project-root /path/to/project
+```
+
+**Best Practices:**
+- ✅ **Use `LoadTodo2Tasks()` / `SaveTodo2Tasks()`** for compatibility (handles database/JSON automatically)
+- ✅ **Use direct database operations** when you need filtering or single-task ops (more efficient)
+- ✅ **Database-first approach**: All new code should assume database is primary storage
+- ✅ **Graceful degradation**: Code should work even if database unavailable (falls back to JSON)
+- ✅ **Transaction safety**: Use database transactions for multi-step operations
+
+**When to Use Database Functions Directly:**
+- Filtering tasks by status/tag/priority (use `database.ListTasks()` with filters)
+- Single task retrieval/update (use `database.GetTask()` / `database.UpdateTask()`)
+- Efficient deletions (use `database.DeleteTask()`)
+- Batch operations with transactions
+
+**When to Use LoadTodo2Tasks/SaveTodo2Tasks:**
+- Compatibility with existing code
+- When you need to load ALL tasks (no filtering needed)
+- When database availability is uncertain (automatic fallback)
+
+**File Locations:**
+- Database: `.todo2/todo2.db` (SQLite)
+- JSON (fallback): `.todo2/state.todo2.json` (legacy)
+- Backup: `.todo2/state.todo2.json.backup` (created during migration)
+
 ## Makefile Usage (CRITICAL)
 
 **⚠️ ALWAYS USE MAKEFILE TARGETS INSTEAD OF DIRECT COMMANDS ⚠️**
@@ -478,6 +568,7 @@ func BenchmarkBuildTaskGraph(b *testing.B) {
 - `make go-build` - Build Go binary
 - `make build-apple-fm` - Build with Apple Foundation Models support (CGO_ENABLED=1)
 - `make build-swift-bridge` - Build Swift bridge for go-foundationmodels
+- `make build-migrate` - Build JSON to SQLite migration tool
 
 **Development Operations:**
 - `make run` - Run the MCP server (builds first)
@@ -537,6 +628,11 @@ func BenchmarkBuildTaskGraph(b *testing.B) {
 **Task Completion Detection:**
 - `make check-tasks` - Batch check all Todo and In Progress tasks to find completed ones (dry run, no updates)
 - `make update-completed-tasks` - Batch check and auto-update completed tasks (updates task status based on codebase analysis)
+
+**Data Migration:**
+- `make build-migrate` - Build JSON to SQLite migration tool
+- `make migrate` - Run migration tool (requires build-migrate first)
+- `make migrate-dry-run` - Preview migration without actually migrating
 
 **Quick Commands:**
 - `make all` - Build essential components and run sanity tests (default)
@@ -605,5 +701,7 @@ uv sync  # or make install
 - ✅ **Uses Makefile targets instead of direct commands**
 - ✅ **Uses gonum graph for complex graph operations** (when applicable)
 - ✅ **Wraps gonum graphs with domain-specific types** for metadata
+- ✅ **Uses SQLite database as primary storage** (with JSON fallback)
+- ✅ **Prefers direct database operations** for filtering and single-task ops
 
 **These practices are mandatory for professional Go development.**
