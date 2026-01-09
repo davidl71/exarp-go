@@ -1,4 +1,4 @@
-.PHONY: help build run test test-watch test-coverage test-html clean install fmt lint dev dev-watch dev-test dev-full bench docs sanity-check test-cli test-cli-list test-cli-tool test-cli-test config clean-config sprint-start sprint-end pre-sprint sprint check-tasks update-completed-tasks
+.PHONY: help build run test test-watch test-coverage test-html clean install fmt lint dev dev-watch dev-test dev-full bench docs sanity-check test-cli test-cli-list test-cli-tool test-cli-test config clean-config sprint-start sprint-end pre-sprint sprint check-tasks update-completed-tasks go-fmt go-vet golangci-lint-check golangci-lint-fix govulncheck check check-fix check-all build-migrate migrate migrate-dry-run build-migrate migrate migrate-dry-run
 
 # Project configuration
 PROJECT_NAME := exarp-go
@@ -101,6 +101,15 @@ build: ## Build the Go server (without CGO by default)
 	@echo "$(YELLOW)Note: Building without CGO (use 'make build-apple-fm' for Apple Foundation Models support)$(NC)"
 	@CGO_ENABLED=0 $(GO) build -o $(BINARY_PATH) ./cmd/server || (echo "$(RED)❌ Build failed$(NC)" && exit 1)
 	@echo "$(GREEN)✅ Server built: $(BINARY_PATH)$(NC)"
+
+build-migrate: ## Build JSON to SQLite migration tool
+	@echo "$(BLUE)Building migration tool...$(NC)"
+	@if ! command -v $(GO) >/dev/null 2>&1 && [ ! -x "$(GO)" ]; then \
+		echo "$(RED)❌ Go not found. Install Go or set PATH to include Go bin directory$(NC)"; \
+		exit 1; \
+	fi
+	@CGO_ENABLED=1 $(GO) build -o bin/migrate ./cmd/migrate || (echo "$(RED)❌ Migration tool build failed$(NC)" && exit 1)
+	@echo "$(GREEN)✅ Migration tool built: bin/migrate$(NC)"
 
 run: build ## Run the MCP server
 	@echo "$(BLUE)Running $(PROJECT_NAME) server...$(NC)"
@@ -258,6 +267,64 @@ test-cli-mode: build ## Test CLI mode detection (TTY vs stdio)
 
 ##@ Code Quality
 
+# Direct Go tool targets (faster, no binary required)
+go-fmt: ## Format Go code with gofmt
+	@echo "$(BLUE)Formatting Go code with gofmt...$(NC)"
+	@$(GO) fmt ./... || (echo "$(RED)❌ go fmt failed$(NC)" && exit 1)
+	@echo "$(GREEN)✅ Go code formatted$(NC)"
+
+go-vet: ## Check Go code with go vet
+	@echo "$(BLUE)Checking Go code with go vet...$(NC)"
+	@$(GO) vet ./... || (echo "$(RED)❌ go vet found issues$(NC)" && exit 1)
+	@echo "$(GREEN)✅ go vet passed$(NC)"
+
+golangci-lint-check: ## Check code with golangci-lint
+	@echo "$(BLUE)Checking code with golangci-lint...$(NC)"
+	@if command -v golangci-lint >/dev/null 2>&1; then \
+		golangci-lint run --timeout 5m ./... || (echo "$(RED)❌ golangci-lint found issues$(NC)" && exit 1); \
+		echo "$(GREEN)✅ golangci-lint passed$(NC)"; \
+	else \
+		echo "$(YELLOW)⚠️  golangci-lint not found$(NC)"; \
+		echo "$(YELLOW)   Install: go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest$(NC)"; \
+		exit 1; \
+	fi
+
+golangci-lint-fix: ## Fix code with golangci-lint (auto-fix)
+	@echo "$(BLUE)Fixing code with golangci-lint...$(NC)"
+	@if command -v golangci-lint >/dev/null 2>&1; then \
+		golangci-lint run --timeout 5m --fix ./... || (echo "$(YELLOW)⚠️  Some issues could not be auto-fixed$(NC)"); \
+		echo "$(GREEN)✅ golangci-lint fixes applied$(NC)"; \
+	else \
+		echo "$(YELLOW)⚠️  golangci-lint not found$(NC)"; \
+		echo "$(YELLOW)   Install: go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest$(NC)"; \
+		exit 1; \
+	fi
+
+govulncheck: ## Check for vulnerabilities with govulncheck
+	@echo "$(BLUE)Checking for vulnerabilities with govulncheck...$(NC)"
+	@if command -v govulncheck >/dev/null 2>&1 || [ -x "$$HOME/go/bin/govulncheck" ]; then \
+		if command -v govulncheck >/dev/null 2>&1; then \
+			govulncheck ./... || (echo "$(RED)❌ Vulnerabilities found$(NC)" && exit 1); \
+		else \
+			$$HOME/go/bin/govulncheck ./... || (echo "$(RED)❌ Vulnerabilities found$(NC)" && exit 1); \
+		fi; \
+		echo "$(GREEN)✅ No vulnerabilities found$(NC)"; \
+	else \
+		echo "$(YELLOW)⚠️  govulncheck not found$(NC)"; \
+		echo "$(YELLOW)   Install: go install golang.org/x/vuln/cmd/govulncheck@latest$(NC)"; \
+		exit 1; \
+	fi
+
+check: go-fmt go-vet golangci-lint-check ## Check code quality (fmt + vet + lint)
+	@echo "$(GREEN)✅ All code quality checks passed$(NC)"
+
+check-fix: go-fmt golangci-lint-fix ## Check and auto-fix code (fmt + lint-fix)
+	@echo "$(GREEN)✅ Code checked and fixed$(NC)"
+
+check-all: check govulncheck ## Run all checks including security (fmt + vet + lint + vulncheck)
+	@echo "$(GREEN)✅ All checks passed (including security)$(NC)"
+
+# Legacy targets (using exarp-go binary)
 fmt: ## Format code with exarp-go (gofmt/goimports) (requires build)
 	@if [ -f $(BINARY_PATH) ]; then \
 		echo "$(BLUE)Formatting code...$(NC)"; \
@@ -405,7 +472,10 @@ go-test: ## Run Go tests
 	 (echo "$(RED)❌ Tests failed$(NC)" && exit 1)
 	@echo "$(GREEN)✅ All tests passed$(NC)"
 
-go-bench: ## Run Go benchmarks
+go-bench: ## Run Go benchmarks (without CGO to avoid Apple FM dependencies)
+	@echo "$(BLUE)Running Go benchmarks (CGO_ENABLED=0)...$(NC)"
+	@CGO_ENABLED=0 $(GO) test -bench=. -benchmem -benchtime=3s ./internal/tools/... || \
+	 echo "$(YELLOW)⚠️  Go benchmarks failed$(NC)"
 	@echo "$(BLUE)Running Go benchmarks...$(NC)"
 	@$(GO) test -bench=. -benchmem ./... || \
 	 echo "$(YELLOW)⚠️  Benchmarks failed$(NC)"
@@ -568,6 +638,16 @@ update-completed-tasks: ## Batch check and auto-update completed tasks (updates 
 		echo "$(YELLOW)   Install Python 3 or uv: curl -LsSf https://astral.sh/uv/install.sh | sh$(NC)"; \
 		exit 1; \
 	fi
+
+##@ Data Migration
+
+migrate: build-migrate ## Run JSON to SQLite migration tool (requires build-migrate first)
+	@echo "$(BLUE)Running migration tool...$(NC)"
+	@./bin/migrate --backup || (echo "$(RED)❌ Migration failed$(NC)" && exit 1)
+
+migrate-dry-run: build-migrate ## Preview migration without actually migrating
+	@echo "$(BLUE)Running migration tool (dry run)...$(NC)"
+	@./bin/migrate --dry-run
 
 ##@ Quick Commands
 

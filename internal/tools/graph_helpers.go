@@ -370,26 +370,42 @@ func GetTaskLevels(tg *TaskGraph) map[string]int {
 }
 
 // getTaskLevelsIterative is the fallback iterative approach for cyclic graphs
+// Optimized with iteration limit and tracking of changed nodes only
 func getTaskLevelsIterative(tg *TaskGraph) map[string]int {
 	levels := make(map[string]int)
+	const maxIterations = 1000 // Safety limit to prevent infinite loops
 
 	// Initialize all tasks to level 0
 	nodes := tg.Graph.Nodes()
+	allTaskIDs := make([]string, 0)
+	taskIDSet := make(map[string]bool)
 	for nodes.Next() {
 		nodeID := nodes.Node().ID()
 		if taskID, ok := tg.NodeIDMap[nodeID]; ok {
 			levels[taskID] = 0
+			allTaskIDs = append(allTaskIDs, taskID)
+			taskIDSet[taskID] = true
 		}
 	}
 
 	// Calculate levels using iterative approach until convergence
-	changed := true
-	for changed {
-		changed = false
-		nodes = tg.Graph.Nodes()
-		for nodes.Next() {
-			nodeID := nodes.Node().ID()
-			taskID := tg.NodeIDMap[nodeID]
+	// Optimization: Track which nodes changed to only process affected nodes
+	changedNodes := make(map[string]bool)
+	for _, taskID := range allTaskIDs {
+		changedNodes[taskID] = true // Start with all nodes
+	}
+
+	iteration := 0
+	for len(changedNodes) > 0 && iteration < maxIterations {
+		iteration++
+		nextChanged := make(map[string]bool)
+		
+		// Only process nodes that changed or depend on changed nodes
+		for taskID := range changedNodes {
+			nodeID, exists := tg.TaskIDMap[taskID]
+			if !exists {
+				continue
+			}
 
 			// Check all incoming edges
 			fromNodes := tg.Graph.To(nodeID)
@@ -406,9 +422,19 @@ func getTaskLevelsIterative(tg *TaskGraph) map[string]int {
 			newLevel := maxDepLevel + 1
 			if newLevel > levels[taskID] {
 				levels[taskID] = newLevel
-				changed = true
+				
+				// Mark dependent nodes for next iteration
+				toNodes := tg.Graph.From(nodeID)
+				for toNodes.Next() {
+					toNodeID := toNodes.Node().ID()
+					if toTaskID, ok := tg.NodeIDMap[toNodeID]; ok && taskIDSet[toTaskID] {
+						nextChanged[toTaskID] = true
+					}
+				}
 			}
 		}
+		
+		changedNodes = nextChanged
 	}
 
 	return levels

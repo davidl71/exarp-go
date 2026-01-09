@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+	"sync"
 
 	"github.com/davidl71/exarp-go/internal/framework"
 )
@@ -312,6 +313,18 @@ func handleTaskAnalysisParallelization(ctx context.Context, params map[string]in
 // Helper functions for duplicates detection
 
 func findDuplicateTasks(tasks []Todo2Task, threshold float64) [][]string {
+	// For small datasets, use sequential approach (overhead of parallelization not worth it)
+	if len(tasks) < 100 {
+		return findDuplicateTasksSequential(tasks, threshold)
+	}
+	
+	// For larger datasets, use parallel processing
+	return findDuplicateTasksParallel(tasks, threshold)
+}
+
+// findDuplicateTasksSequential is the original sequential implementation
+// Optimized for small datasets where parallel overhead isn't worth it
+func findDuplicateTasksSequential(tasks []Todo2Task, threshold float64) [][]string {
 	duplicates := [][]string{}
 	processed := make(map[string]bool)
 
@@ -337,6 +350,96 @@ func findDuplicateTasks(tasks []Todo2Task, threshold float64) [][]string {
 		if len(group) > 1 {
 			duplicates = append(duplicates, group)
 			processed[task1.ID] = true
+		}
+	}
+
+	return duplicates
+}
+
+// findDuplicateTasksParallel uses worker pool for parallel duplicate detection
+// Optimized for large datasets (>100 tasks)
+func findDuplicateTasksParallel(tasks []Todo2Task, threshold float64) [][]string {
+	const numWorkers = 4 // Adjust based on CPU cores
+	if len(tasks) == 0 {
+		return [][]string{}
+	}
+
+	type taskPair struct {
+		i     int
+		task1 Todo2Task
+	}
+
+	type similarityResult struct {
+		i          int
+		j          int
+		similarity float64
+	}
+
+	// Channel for task pairs to process
+	taskPairs := make(chan taskPair, len(tasks))
+	results := make(chan similarityResult, len(tasks)*len(tasks))
+
+	// Start worker goroutines
+	var wg sync.WaitGroup
+	for w := 0; w < numWorkers; w++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for pair := range taskPairs {
+				task1 := pair.task1
+				for j := pair.i + 1; j < len(tasks); j++ {
+					task2 := tasks[j]
+					similarity := calculateSimilarity(task1, task2)
+					if similarity >= threshold {
+						results <- similarityResult{
+							i:          pair.i,
+							j:          j,
+							similarity: similarity,
+						}
+					}
+				}
+			}
+		}()
+	}
+
+	// Send all task pairs to workers
+	go func() {
+		defer close(taskPairs)
+		for i, task1 := range tasks {
+			taskPairs <- taskPair{i: i, task1: task1}
+		}
+	}()
+
+	// Close results channel when all workers done
+	go func() {
+		wg.Wait()
+		close(results)
+	}()
+
+	// Collect results
+	processed := make(map[string]bool)
+	duplicateMap := make(map[int][]int) // task index -> list of duplicate indices
+
+	for result := range results {
+		if !processed[tasks[result.i].ID] && !processed[tasks[result.j].ID] {
+			if duplicateMap[result.i] == nil {
+				duplicateMap[result.i] = []int{result.i}
+			}
+			duplicateMap[result.i] = append(duplicateMap[result.i], result.j)
+			processed[tasks[result.j].ID] = true
+		}
+	}
+
+	// Build duplicate groups
+	duplicates := [][]string{}
+	for i, group := range duplicateMap {
+		if len(group) > 1 && !processed[tasks[i].ID] {
+			groupIDs := make([]string, len(group))
+			for idx, taskIdx := range group {
+				groupIDs[idx] = tasks[taskIdx].ID
+			}
+			duplicates = append(duplicates, groupIDs)
+			processed[tasks[i].ID] = true
 		}
 	}
 
