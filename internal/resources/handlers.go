@@ -137,30 +137,8 @@ func RegisterAllResources(server framework.MCPServer) error {
 }
 
 // Resource handlers
-
-func handleScorecard(ctx context.Context, uri string) ([]byte, string, error) {
-	return bridge.ExecutePythonResource(ctx, uri)
-}
-
-func handleMemories(ctx context.Context, uri string) ([]byte, string, error) {
-	return bridge.ExecutePythonResource(ctx, uri)
-}
-
-func handleMemoriesByCategory(ctx context.Context, uri string) ([]byte, string, error) {
-	return bridge.ExecutePythonResource(ctx, uri)
-}
-
-func handleMemoriesByTask(ctx context.Context, uri string) ([]byte, string, error) {
-	return bridge.ExecutePythonResource(ctx, uri)
-}
-
-func handleRecentMemories(ctx context.Context, uri string) ([]byte, string, error) {
-	return bridge.ExecutePythonResource(ctx, uri)
-}
-
-func handleSessionMemories(ctx context.Context, uri string) ([]byte, string, error) {
-	return bridge.ExecutePythonResource(ctx, uri)
-}
+// Note: handleScorecard and memory handlers are implemented in scorecard.go and memories.go
+// They are in the same package, so they're automatically available here
 
 func handleAllPrompts(ctx context.Context, uri string) ([]byte, string, error) {
 	return bridge.ExecutePythonResource(ctx, uri)

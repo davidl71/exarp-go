@@ -261,14 +261,14 @@ func handleReport(ctx context.Context, args json.RawMessage) ([]framework.TextCo
 	// Check if this is a Go project and scorecard action
 	if action == "scorecard" {
 		// Check if go.mod exists (Go project)
-		if isGoProject() {
+		if IsGoProject() {
 			// Use Go-specific scorecard with fast mode by default
 			projectRoot := getProjectRoot()
 			opts := &ScorecardOptions{FastMode: true}
 			scorecard, err := GenerateGoScorecard(ctx, projectRoot, opts)
 			if err == nil {
 				// Convert to map for MLX enhancement
-				scorecardMap := goScorecardToMap(scorecard)
+				scorecardMap := GoScorecardToMap(scorecard)
 
 				// Enhance with MLX if available
 				enhanced, err := enhanceReportWithMLX(ctx, scorecardMap, action)

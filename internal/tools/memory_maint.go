@@ -45,7 +45,7 @@ func handleMemoryMaintHealth(ctx context.Context, params map[string]interface{})
 		return nil, fmt.Errorf("failed to find project root: %w", err)
 	}
 
-	memories, err := loadAllMemories(projectRoot)
+	memories, err := LoadAllMemories(projectRoot)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load memories: %w", err)
 	}
@@ -169,7 +169,7 @@ func handleMemoryMaintGC(ctx context.Context, params map[string]interface{}) ([]
 		dryRun = dr
 	}
 
-	memories, err := loadAllMemories(projectRoot)
+	memories, err := LoadAllMemories(projectRoot)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load memories: %w", err)
 	}
@@ -302,7 +302,7 @@ func handleMemoryMaintPrune(ctx context.Context, params map[string]interface{}) 
 		dryRun = dr
 	}
 
-	memories, err := loadAllMemories(projectRoot)
+	memories, err := LoadAllMemories(projectRoot)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load memories: %w", err)
 	}

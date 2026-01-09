@@ -5,8 +5,9 @@ import (
 	"strings"
 )
 
-// goScorecardToMap converts GoScorecardResult to map for MLX processing
-func goScorecardToMap(scorecard *GoScorecardResult) map[string]interface{} {
+// GoScorecardToMap converts GoScorecardResult to map for MLX processing
+// Exported for use by resource handlers
+func GoScorecardToMap(scorecard *GoScorecardResult) map[string]interface{} {
 	result := make(map[string]interface{})
 
 	result["overall_score"] = scorecard.Score
@@ -18,7 +19,7 @@ func goScorecardToMap(scorecard *GoScorecardResult) map[string]interface{} {
 		"ci_cd":         calculateCICDScore(scorecard),
 	}
 
-	result["blockers"] = extractBlockers(scorecard)
+	result["blockers"] = ExtractBlockers(scorecard)
 	result["recommendations"] = scorecard.Recommendations
 	result["metrics"] = map[string]interface{}{
 		"go_files":      scorecard.Metrics.GoFiles,
@@ -152,7 +153,9 @@ func calculateCICDScore(scorecard *GoScorecardResult) float64 {
 	return 0
 }
 
-func extractBlockers(scorecard *GoScorecardResult) []string {
+// ExtractBlockers extracts blockers from scorecard
+// Exported for use by resource handlers
+func ExtractBlockers(scorecard *GoScorecardResult) []string {
 	blockers := []string{}
 
 	if !scorecard.Health.GoModExists {

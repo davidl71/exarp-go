@@ -586,8 +586,9 @@ func calculateGoScore(health *GoHealthChecks, metrics *GoProjectMetrics) float64
 	return (score / maxScore) * 100
 }
 
-// isGoProject checks if the current directory is a Go project
-func isGoProject() bool {
+// IsGoProject checks if the current directory is a Go project
+// Exported for use by resource handlers
+func IsGoProject() bool {
 	wd, err := os.Getwd()
 	if err != nil {
 		return false

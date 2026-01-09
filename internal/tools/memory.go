@@ -166,7 +166,7 @@ func handleMemoryRecall(ctx context.Context, params map[string]interface{}) ([]f
 		return nil, fmt.Errorf("failed to find project root: %w", err)
 	}
 
-	memories, err := loadAllMemories(projectRoot)
+	memories, err := LoadAllMemories(projectRoot)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load memories: %w", err)
 	}
@@ -222,7 +222,7 @@ func handleMemorySearch(ctx context.Context, params map[string]interface{}) ([]f
 		return nil, fmt.Errorf("failed to find project root: %w", err)
 	}
 
-	memories, err := loadAllMemories(projectRoot)
+	memories, err := LoadAllMemories(projectRoot)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load memories: %w", err)
 	}
@@ -320,7 +320,7 @@ func handleMemoryList(ctx context.Context, params map[string]interface{}) ([]fra
 		return nil, fmt.Errorf("failed to find project root: %w", err)
 	}
 
-	memories, err := loadAllMemories(projectRoot)
+	memories, err := LoadAllMemories(projectRoot)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load memories: %w", err)
 	}
@@ -343,7 +343,7 @@ func handleMemoryList(ctx context.Context, params map[string]interface{}) ([]fra
 
 	// Calculate statistics
 	categories := make(map[string]int)
-	allMemories, _ := loadAllMemories(projectRoot)
+	allMemories, _ := LoadAllMemories(projectRoot)
 	for _, m := range allMemories {
 		categories[m.Category]++
 	}
@@ -374,7 +374,9 @@ func getMemoriesDir(projectRoot string) (string, error) {
 	return memoriesDir, nil
 }
 
-func loadAllMemories(projectRoot string) ([]Memory, error) {
+// LoadAllMemories loads all memories from the project root
+// Exported for use by resource handlers
+func LoadAllMemories(projectRoot string) ([]Memory, error) {
 	memoriesDir, err := getMemoriesDir(projectRoot)
 	if err != nil {
 		return nil, err
