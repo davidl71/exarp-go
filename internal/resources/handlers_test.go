@@ -14,9 +14,9 @@ func TestRegisterAllResources(t *testing.T) {
 		t.Fatalf("RegisterAllResources() error = %v", err)
 	}
 
-	// Verify all 11 resources are registered (6 original + 5 new)
-	if server.ResourceCount() != 11 {
-		t.Errorf("server.ResourceCount() = %v, want 11", server.ResourceCount())
+	// Verify all 17 resources are registered (11 original + 6 task resources)
+	if server.ResourceCount() != 17 {
+		t.Errorf("server.ResourceCount() = %v, want 17", server.ResourceCount())
 	}
 
 	// Verify specific resources are registered
@@ -32,6 +32,12 @@ func TestRegisterAllResources(t *testing.T) {
 		"stdio://prompts/persona/{persona}",
 		"stdio://prompts/category/{category}",
 		"stdio://session/mode",
+		"stdio://tasks",
+		"stdio://tasks/{task_id}",
+		"stdio://tasks/status/{status}",
+		"stdio://tasks/priority/{priority}",
+		"stdio://tasks/tag/{tag}",
+		"stdio://tasks/summary",
 	}
 
 	for _, uri := range expectedResources {
@@ -121,6 +127,36 @@ func TestRegisterAllResources_URIParsing(t *testing.T) {
 			uri:  "stdio://session/mode",
 			want: true,
 		},
+		{
+			name: "all tasks",
+			uri:  "stdio://tasks",
+			want: true,
+		},
+		{
+			name: "task by ID pattern",
+			uri:  "stdio://tasks/{task_id}",
+			want: true,
+		},
+		{
+			name: "tasks by status pattern",
+			uri:  "stdio://tasks/status/{status}",
+			want: true,
+		},
+		{
+			name: "tasks by priority pattern",
+			uri:  "stdio://tasks/priority/{priority}",
+			want: true,
+		},
+		{
+			name: "tasks by tag pattern",
+			uri:  "stdio://tasks/tag/{tag}",
+			want: true,
+		},
+		{
+			name: "tasks summary",
+			uri:  "stdio://tasks/summary",
+			want: true,
+		},
 	}
 
 	for _, tt := range tests {
@@ -154,6 +190,12 @@ func TestRegisterAllResources_HandlerRegistration(t *testing.T) {
 		"stdio://prompts/persona/{persona}",
 		"stdio://prompts/category/{category}",
 		"stdio://session/mode",
+		"stdio://tasks",
+		"stdio://tasks/{task_id}",
+		"stdio://tasks/status/{status}",
+		"stdio://tasks/priority/{priority}",
+		"stdio://tasks/tag/{tag}",
+		"stdio://tasks/summary",
 	}
 
 	for _, uri := range expectedResources {
