@@ -14,12 +14,12 @@ import (
 
 // Expected counts
 // Note: Tools = 30 base tools + 1 conditional (Apple Foundation Models on macOS) = 31 total
-// Prompts = 17 (updated from 15)
+// Prompts = 18 (8 original + 7 workflow + 2 mcp-generic-tools + 1 task management)
 // Resources = 11 base + 2 task resources (stdio://tasks, stdio://tasks/{task_id}) = 13
 // Will be 17 when all 6 task resources are implemented
 const (
 	EXPECTED_TOOLS     = 30 // Base tools (31 with conditional Apple Foundation Models)
-	EXPECTED_PROMPTS   = 17 // Updated from 15
+	EXPECTED_PROMPTS   = 18 // 8 original + 7 workflow + 2 mcp-generic-tools + 1 task management
 	EXPECTED_RESOURCES = 17 // 11 base + 6 task resources (stdio://tasks, stdio://tasks/{id}, status, priority, tag, summary)
 )
 
