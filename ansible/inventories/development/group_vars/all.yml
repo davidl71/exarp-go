@@ -27,6 +27,7 @@ install_gh: false  # GitHub CLI (gh) - useful for GitHub API interactions and au
 # Linter configuration
 linters:
   - golangci-lint
+  - govulncheck
   - shellcheck
   - shfmt
   - gomarklint

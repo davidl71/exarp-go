@@ -7,25 +7,15 @@ import (
 	"os"
 	"strings"
 
+	"github.com/davidl71/exarp-go/internal/database"
 	"github.com/davidl71/exarp-go/internal/framework"
+	"github.com/davidl71/exarp-go/internal/models"
 )
 
 // handleTaskWorkflowApprove handles approve action for batch approving tasks
-// Uses native Go with Todo2 file access, falls back to MCP if needed
+// Uses database for efficient updates, falls back to file-based approach if needed
 // This is platform-agnostic (doesn't require Apple FM)
 func handleTaskWorkflowApprove(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
-	projectRoot, err := FindProjectRoot()
-	if err != nil {
-		// Fallback to Todo2 MCP tools if project root not found
-		return handleTaskWorkflowApproveMCP(ctx, params)
-	}
-
-	tasks, err := LoadTodo2Tasks(projectRoot)
-	if err != nil {
-		// Fallback to Todo2 MCP tools if file access fails
-		return handleTaskWorkflowApproveMCP(ctx, params)
-	}
-
 	// Extract parameters
 	status := "Review"
 	if s, ok := params["status"].(string); ok && s != "" {
@@ -72,6 +62,113 @@ func handleTaskWorkflowApprove(ctx context.Context, params map[string]interface{
 		dryRun = dr
 	}
 
+	// Try database first for efficient filtering and updates
+	if db, err := database.GetDB(); err == nil && db != nil {
+		// Build filters
+		filters := &database.TaskFilters{Status: &status}
+		if filterTag != "" {
+			filters.Tag = &filterTag
+		}
+
+		// Get tasks matching filters
+		allTasks, err := database.ListTasks(filters)
+		if err != nil {
+			return nil, fmt.Errorf("failed to load tasks: %w", err)
+		}
+
+		// Filter candidates
+		candidates := []*models.Todo2Task{}
+		for _, task := range allTasks {
+			// Filter by specific task IDs if provided
+			if len(taskIDs) > 0 {
+				found := false
+				for _, id := range taskIDs {
+					if task.ID == id {
+						found = true
+						break
+					}
+				}
+				if !found {
+					continue
+				}
+			}
+
+			// Filter by clarification requirement if needed
+			if clarificationNone {
+				needsClarification := task.LongDescription == "" || len(task.LongDescription) < 50
+				if needsClarification {
+					continue
+				}
+			}
+
+			candidates = append(candidates, task)
+		}
+
+		if dryRun {
+			taskList := make([]map[string]interface{}, len(candidates))
+			for i, task := range candidates {
+				taskList[i] = map[string]interface{}{
+					"id":      task.ID,
+					"content": task.Content,
+					"status":  task.Status,
+				}
+			}
+
+			taskIDList := make([]string, len(candidates))
+			for i, task := range candidates {
+				taskIDList[i] = task.ID
+			}
+
+			result := map[string]interface{}{
+				"success":        true,
+				"method":         "database",
+				"dry_run":        true,
+				"approved_count": len(candidates),
+				"task_ids":       taskIDList,
+				"tasks":          taskList,
+			}
+
+			output, _ := json.MarshalIndent(result, "", "  ")
+			return []framework.TextContent{
+				{Type: "text", Text: string(output)},
+			}, nil
+		}
+
+		// Update tasks in database
+		approvedIDs := []string{}
+		updatedCount := 0
+		for _, task := range candidates {
+			task.Status = newStatus
+			if err := database.UpdateTask(task); err == nil {
+				approvedIDs = append(approvedIDs, task.ID)
+				updatedCount++
+			}
+		}
+
+		result := map[string]interface{}{
+			"success":        true,
+			"method":         "database",
+			"approved_count": updatedCount,
+			"task_ids":       approvedIDs,
+		}
+
+		output, _ := json.MarshalIndent(result, "", "  ")
+		return []framework.TextContent{
+			{Type: "text", Text: string(output)},
+		}, nil
+	}
+
+	// Fallback to file-based approach
+	projectRoot, err := FindProjectRoot()
+	if err != nil {
+		return handleTaskWorkflowApproveMCP(ctx, params)
+	}
+
+	tasks, err := LoadTodo2Tasks(projectRoot)
+	if err != nil {
+		return handleTaskWorkflowApproveMCP(ctx, params)
+	}
+
 	// Filter tasks to approve
 	candidates := []Todo2Task{}
 	for _, task := range tasks {
@@ -110,7 +207,6 @@ func handleTaskWorkflowApprove(ctx context.Context, params map[string]interface{
 
 		// Filter by clarification requirement if needed
 		if clarificationNone {
-			// Check if task needs clarification (similar to clarify list logic)
 			needsClarification := task.LongDescription == "" || len(task.LongDescription) < 50
 			if needsClarification {
 				continue
@@ -121,7 +217,6 @@ func handleTaskWorkflowApprove(ctx context.Context, params map[string]interface{
 	}
 
 	if dryRun {
-		// Return list of tasks that would be approved
 		taskList := make([]map[string]interface{}, len(candidates))
 		for i, task := range candidates {
 			taskList[i] = map[string]interface{}{
@@ -133,7 +228,7 @@ func handleTaskWorkflowApprove(ctx context.Context, params map[string]interface{
 
 		result := map[string]interface{}{
 			"success":        true,
-			"method":         "native_go",
+			"method":         "file",
 			"dry_run":        true,
 			"approved_count": len(candidates),
 			"task_ids":       extractTaskIDs(candidates),
@@ -150,7 +245,6 @@ func handleTaskWorkflowApprove(ctx context.Context, params map[string]interface{
 	approvedIDs := []string{}
 	updatedCount := 0
 	for i := range tasks {
-		// Check if this task should be approved
 		shouldApprove := false
 		for _, candidate := range candidates {
 			if tasks[i].ID == candidate.ID {
@@ -168,13 +262,12 @@ func handleTaskWorkflowApprove(ctx context.Context, params map[string]interface{
 
 	// Save updated tasks
 	if err := SaveTodo2Tasks(projectRoot, tasks); err != nil {
-		// If save fails, try MCP fallback
 		return handleTaskWorkflowApproveMCP(ctx, params)
 	}
 
 	result := map[string]interface{}{
 		"success":        true,
-		"method":         "native_go",
+		"method":         "file",
 		"approved_count": updatedCount,
 		"task_ids":       approvedIDs,
 	}
@@ -379,16 +472,6 @@ func handleTaskWorkflowClarity(ctx context.Context, params map[string]interface{
 
 // handleTaskWorkflowCleanup handles cleanup action for removing stale tasks
 func handleTaskWorkflowCleanup(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
-	projectRoot, err := FindProjectRoot()
-	if err != nil {
-		return nil, fmt.Errorf("failed to find project root: %w", err)
-	}
-
-	tasks, err := LoadTodo2Tasks(projectRoot)
-	if err != nil {
-		return nil, fmt.Errorf("failed to load tasks: %w", err)
-	}
-
 	staleThresholdHours := 2.0
 	if threshold, ok := params["stale_threshold_hours"].(float64); ok {
 		staleThresholdHours = threshold
@@ -399,8 +482,119 @@ func handleTaskWorkflowCleanup(ctx context.Context, params map[string]interface{
 		dryRun = dr
 	}
 
+	// Try database first for efficient filtering and deletion
+	if db, err := database.GetDB(); err == nil && db != nil {
+		// Get all pending tasks
+		pendingStatus := "Todo"
+		filters := &database.TaskFilters{Status: &pendingStatus}
+		tasks, err := database.ListTasks(filters)
+		if err != nil {
+			return nil, fmt.Errorf("failed to load tasks: %w", err)
+		}
+
+		// Also get "In Progress" and "Review" tasks
+		inProgressStatus := "In Progress"
+		filters.Status = &inProgressStatus
+		inProgressTasks, _ := database.ListTasks(filters)
+		tasks = append(tasks, inProgressTasks...)
+
+		reviewStatus := "Review"
+		filters.Status = &reviewStatus
+		reviewTasks, _ := database.ListTasks(filters)
+		tasks = append(tasks, reviewTasks...)
+
+		// Identify stale tasks
+		staleTasks := []*models.Todo2Task{}
+		for _, task := range tasks {
+			if !IsPendingStatus(task.Status) {
+				continue
+			}
+
+			// Check for stale tag
+			isStale := false
+			for _, tag := range task.Tags {
+				if strings.ToLower(tag) == "stale" {
+					isStale = true
+					break
+				}
+			}
+
+			// Check metadata for last update time (if available)
+			if !isStale && task.Metadata != nil {
+				if lastUpdate, ok := task.Metadata["last_updated"].(string); ok {
+					if strings.Contains(strings.ToLower(lastUpdate), "stale") {
+						isStale = true
+					}
+				}
+			}
+
+			if isStale {
+				staleTasks = append(staleTasks, task)
+			}
+		}
+
+		if dryRun {
+			result := map[string]interface{}{
+				"success":        true,
+				"method":         "database",
+				"dry_run":        true,
+				"stale_count":    len(staleTasks),
+				"stale_tasks":    formatStaleTasksFromPtrs(staleTasks),
+				"threshold_hours": staleThresholdHours,
+			}
+
+			output, _ := json.MarshalIndent(result, "", "  ")
+			return []framework.TextContent{
+				{Type: "text", Text: string(output)},
+			}, nil
+		}
+
+		// Delete stale tasks from database
+		removedIDs := []string{}
+		for _, task := range staleTasks {
+			if err := database.DeleteTask(task.ID); err == nil {
+				removedIDs = append(removedIDs, task.ID)
+			}
+		}
+
+		// Get remaining count
+		remainingCount := len(tasks) - len(removedIDs)
+
+		result := map[string]interface{}{
+			"success":         true,
+			"method":          "database",
+			"removed_count":   len(removedIDs),
+			"remaining_count": remainingCount,
+			"removed_tasks":   removedIDs,
+			"threshold_hours": staleThresholdHours,
+		}
+
+		outputPath, _ := params["output_path"].(string)
+		if outputPath != "" {
+			output, _ := json.MarshalIndent(result, "", "  ")
+			if err := os.WriteFile(outputPath, output, 0644); err == nil {
+				result["output_path"] = outputPath
+			}
+		}
+
+		output, _ := json.MarshalIndent(result, "", "  ")
+		return []framework.TextContent{
+			{Type: "text", Text: string(output)},
+		}, nil
+	}
+
+	// Fallback to file-based approach
+	projectRoot, err := FindProjectRoot()
+	if err != nil {
+		return nil, fmt.Errorf("failed to find project root: %w", err)
+	}
+
+	tasks, err := LoadTodo2Tasks(projectRoot)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load tasks: %w", err)
+	}
+
 	// Identify stale tasks
-	// For now, we'll use a simplified heuristic: tasks with "stale" tag or very old
 	staleTasks := []Todo2Task{}
 	for _, task := range tasks {
 		if IsPendingStatus(task.Status) {
@@ -416,8 +610,6 @@ func handleTaskWorkflowCleanup(ctx context.Context, params map[string]interface{
 			// Check metadata for last update time (if available)
 			if !isStale && task.Metadata != nil {
 				if lastUpdate, ok := task.Metadata["last_updated"].(string); ok {
-					// Would parse time and check threshold
-					// For now, just check if marked stale
 					if strings.Contains(strings.ToLower(lastUpdate), "stale") {
 						isStale = true
 					}
@@ -432,11 +624,11 @@ func handleTaskWorkflowCleanup(ctx context.Context, params map[string]interface{
 
 	if dryRun {
 		result := map[string]interface{}{
-			"success":       true,
-			"method":        "native_go",
-			"dry_run":       true,
-			"stale_count":   len(staleTasks),
-			"stale_tasks":   formatStaleTasks(staleTasks),
+			"success":        true,
+			"method":         "file",
+			"dry_run":        true,
+			"stale_count":    len(staleTasks),
+			"stale_tasks":    formatStaleTasks(staleTasks),
 			"threshold_hours": staleThresholdHours,
 		}
 
@@ -466,7 +658,7 @@ func handleTaskWorkflowCleanup(ctx context.Context, params map[string]interface{
 
 	result := map[string]interface{}{
 		"success":         true,
-		"method":          "native_go",
+		"method":          "file",
 		"removed_count":   len(staleTasks),
 		"remaining_count": len(remainingTasks),
 		"removed_tasks":   extractTaskIDs(staleTasks),
@@ -544,6 +736,18 @@ func formatClarityAnalysisText(result map[string]interface{}) string {
 // Helper functions for cleanup action
 
 func formatStaleTasks(tasks []Todo2Task) []map[string]interface{} {
+	result := make([]map[string]interface{}, len(tasks))
+	for i, task := range tasks {
+		result[i] = map[string]interface{}{
+			"id":      task.ID,
+			"content": task.Content,
+			"status":  task.Status,
+		}
+	}
+	return result
+}
+
+func formatStaleTasksFromPtrs(tasks []*models.Todo2Task) []map[string]interface{} {
 	result := make([]map[string]interface{}, len(tasks))
 	for i, task := range tasks {
 		result[i] = map[string]interface{}{

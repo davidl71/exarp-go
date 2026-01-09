@@ -7,9 +7,11 @@ run:
   
   # Include test files
   tests: true
-  
-  # Skip directories
-  skip-dirs:
+
+# Issues configuration
+issues:
+  # Exclude directories
+  exclude-dirs:
     - vendor
     - .git
     - bin
@@ -19,10 +21,16 @@ run:
     - bridge/__pycache__
     - tests/fixtures
   
-  # Skip files
-  skip-files:
+  # Exclude files
+  exclude-files:
     - ".*\\.pb\\.go$"
     - ".*_generated\\.go$"
+  
+  # Maximum issues count per one linter
+  max-issues-per-linter: 50
+  
+  # Maximum count of issues with the same text
+  max-same-issues: 3
 
 # Output configuration
 output:
@@ -52,12 +60,13 @@ linters:
     - unparam           # Unused parameters
     - gocritic          # Go code critic
     - revive            # Fast, configurable linter
-    - exportloopref     # Detect exporting loop variables
+    - copyloopvar       # Detect copying loop variables (replaces exportloopref)
     - gosec             # Security issues
     - gocognit          # Cognitive complexity
     - dupl              # Code duplication
     - errname           # Error naming
     - errorlint         # Error wrapping
+    - err113            # Error handling (replaces goerr113)
     - exhaustive        # Exhaustive switch statements
     - funlen            # Function length
     - gochecknoglobals  # Check for global variables
@@ -66,9 +75,8 @@ linters:
     - gocyclo           # Cyclomatic complexity
     - godot             # Comment formatting
     - godox             # TODO/BUG/FIXME comments
-    - goerr113          # Error handling
     - gofumpt           # Stricter gofmt
-    - gomnd             # Magic number detection
+    - mnd               # Magic number detection (replaces gomnd)
     - goprintffuncname  # Printf function name
     - importas           # Import alias checking
     - lll               # Line length
@@ -78,12 +86,11 @@ linters:
     - nolintlint        # Lint nolint directives
     - prealloc          # Preallocate slices
     - predeclared       # Predeclared identifiers
-    - revive            # Fast linter
     - rowserrcheck      # Rows error checking
     - sqlclosecheck     # SQL close checking
     - stylecheck        # Style checking
     - tagliatelle       # Struct tag checking
-    - tenv              # Testing environment
+    - usetesting        # Testing environment (replaces tenv)
     - thelper           # Test helper detection
     - tparallel         # Parallel tests
     - typecheck         # Type checking
@@ -91,15 +98,6 @@ linters:
     - whitespace        # Whitespace checking
     - wrapcheck         # Error wrapping
     - wsl               # Whitespace lines
-
-  # Disable specific linters
-  disable:
-    - deadcode          # Deprecated
-    - varcheck          # Deprecated
-    - structcheck       # Deprecated
-    - maligned          # Deprecated
-    - interfacer        # Deprecated
-    - scopelint         # Deprecated
 
 # Linters settings
 linters-settings:
@@ -150,16 +148,14 @@ linters-settings:
   godot:
     # Check comments starting from the 3rd comment line
     min-len: 3
-    # Check top-level comments
-    check-all: true
+    # Check all comments (top-level and non-top-level)
+    scope: all
 
   goimports:
     # Put imports beginning with prefix after 3rd-party packages
     local-prefixes: github.com/davidl71/exarp-go
 
   govet:
-    # Report about shadowed variables
-    check-shadowing: true
     # Enable all analyzers
     enable-all: true
 

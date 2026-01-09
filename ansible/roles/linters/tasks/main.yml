@@ -81,6 +81,19 @@
     - linters
     - optional
 
+- name: Install govulncheck (Go vulnerability scanner)
+  shell: |
+    go install golang.org/x/vuln/cmd/govulncheck@latest
+  environment:
+    GOPATH: "{{ go_gopath }}"
+    PATH: "{{ go_install_path }}/bin:{{ go_bin_path }}"
+  args:
+    creates: "{{ go_bin_path }}/govulncheck"
+  when: "'govulncheck' in linters"
+  tags:
+    - linters
+    - optional
+
 - name: Verify linter installations
   command: "{{ item.command }} --version"
   register: linter_versions
@@ -88,6 +101,7 @@
   failed_when: false
   loop:
     - { name: "golangci-lint", command: "{{ go_bin_path }}/golangci-lint" }
+    - { name: "govulncheck", command: "{{ go_bin_path }}/govulncheck" }
     - { name: "gomarklint", command: "{{ go_bin_path }}/gomarklint" }
     - { name: "shellcheck", command: "shellcheck" }
     - { name: "shfmt", command: "{{ go_bin_path }}/shfmt" }

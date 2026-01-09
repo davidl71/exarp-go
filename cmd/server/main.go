@@ -8,6 +8,7 @@ import (
 
 	"github.com/davidl71/exarp-go/internal/cli"
 	"github.com/davidl71/exarp-go/internal/config"
+	"github.com/davidl71/exarp-go/internal/database"
 	"github.com/davidl71/exarp-go/internal/factory"
 	"github.com/davidl71/exarp-go/internal/framework"
 	"github.com/davidl71/exarp-go/internal/prompts"
@@ -47,6 +48,19 @@ func main() {
 
 	// Reset flag parsing for MCP mode (in case it was partially parsed)
 	flag.CommandLine = flag.NewFlagSet(os.Args[0], flag.ContinueOnError)
+
+	// Initialize database (before server creation)
+	projectRoot, err := tools.FindProjectRoot()
+	if err != nil {
+		log.Printf("Warning: Could not find project root: %v (database unavailable, will use JSON fallback)", err)
+	} else {
+		if err := database.Init(projectRoot); err != nil {
+			log.Printf("Warning: Database initialization failed: %v (fallback to JSON)", err)
+		} else {
+			defer database.Close()
+			log.Printf("Database initialized: %s/.todo2/todo2.db", projectRoot)
+		}
+	}
 
 	// MCP server mode - run as stdio server
 	// Load configuration

@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	fm "github.com/blacktop/go-foundationmodels"
+	"github.com/davidl71/exarp-go/internal/database"
 	"github.com/davidl71/exarp-go/internal/framework"
 	"github.com/davidl71/exarp-go/internal/platform"
 )
@@ -125,6 +126,62 @@ func resolveTaskClarification(ctx context.Context, params map[string]interface{}
 		return nil, fmt.Errorf("task_id is required for resolve action")
 	}
 
+	// Try database first for efficient single-task update
+	if db, err := database.GetDB(); err == nil && db != nil {
+		task, err := database.GetTask(taskID)
+		if err != nil {
+			return nil, fmt.Errorf("task %s not found: %w", taskID, err)
+		}
+
+		clarificationText, _ := params["clarification_text"].(string)
+		decision, _ := params["decision"].(string)
+
+		// Update task with clarification response
+		if clarificationText != "" {
+			// Add clarification to long_description
+			if task.LongDescription == "" {
+				task.LongDescription = fmt.Sprintf("Clarification: %s", clarificationText)
+			} else {
+				task.LongDescription += fmt.Sprintf("\n\nClarification: %s", clarificationText)
+			}
+		}
+
+		if decision != "" {
+			// Update task based on decision
+			if task.Metadata == nil {
+				task.Metadata = make(map[string]interface{})
+			}
+			task.Metadata["clarification_decision"] = decision
+		}
+
+		moveToTodo := true
+		if move, ok := params["move_to_todo"].(bool); ok {
+			moveToTodo = move
+		}
+
+		if moveToTodo {
+			task.Status = "Todo"
+		}
+
+		// Update task in database
+		if err := database.UpdateTask(task); err != nil {
+			return nil, fmt.Errorf("failed to update task: %w", err)
+		}
+
+		result := map[string]interface{}{
+			"success": true,
+			"method":  "database",
+			"task_id": taskID,
+			"message": "Clarification resolved",
+		}
+
+		output, _ := json.MarshalIndent(result, "", "  ")
+		return []framework.TextContent{
+			{Type: "text", Text: string(output)},
+		}, nil
+	}
+
+	// Fallback to file-based approach
 	projectRoot, err := FindProjectRoot()
 	if err != nil {
 		return nil, fmt.Errorf("failed to find project root: %w", err)
@@ -185,7 +242,7 @@ func resolveTaskClarification(ctx context.Context, params map[string]interface{}
 
 	result := map[string]interface{}{
 		"success": true,
-		"method":  "native_go",
+		"method":  "file",
 		"task_id": taskID,
 		"message": "Clarification resolved",
 	}
@@ -208,6 +265,69 @@ func resolveBatchClarifications(ctx context.Context, params map[string]interface
 		return nil, fmt.Errorf("failed to parse decisions_json: %w", err)
 	}
 
+	// Try database first for efficient batch updates
+	if db, err := database.GetDB(); err == nil && db != nil {
+		resolved := 0
+		for _, decision := range decisions {
+			taskID, _ := decision["task_id"].(string)
+			if taskID == "" {
+				continue
+			}
+
+			task, err := database.GetTask(taskID)
+			if err != nil {
+				// Task not found, skip
+				continue
+			}
+
+			clarificationText, _ := decision["clarification_text"].(string)
+			decisionText, _ := decision["decision"].(string)
+
+			if clarificationText != "" {
+				if task.LongDescription == "" {
+					task.LongDescription = fmt.Sprintf("Clarification: %s", clarificationText)
+				} else {
+					task.LongDescription += fmt.Sprintf("\n\nClarification: %s", clarificationText)
+				}
+			}
+
+			if decisionText != "" {
+				if task.Metadata == nil {
+					task.Metadata = make(map[string]interface{})
+				}
+				task.Metadata["clarification_decision"] = decisionText
+			}
+
+			moveToTodo := true
+			if move, ok := decision["move_to_todo"].(bool); ok {
+				moveToTodo = move
+			}
+
+			if moveToTodo {
+				task.Status = "Todo"
+			}
+
+			// Update task in database
+			if err := database.UpdateTask(task); err == nil {
+				resolved++
+			}
+		}
+
+		result := map[string]interface{}{
+			"success":  true,
+			"method":   "database",
+			"resolved": resolved,
+			"total":    len(decisions),
+			"message":  fmt.Sprintf("Resolved %d clarifications", resolved),
+		}
+
+		output, _ := json.MarshalIndent(result, "", "  ")
+		return []framework.TextContent{
+			{Type: "text", Text: string(output)},
+		}, nil
+	}
+
+	// Fallback to file-based approach
 	projectRoot, err := FindProjectRoot()
 	if err != nil {
 		return nil, fmt.Errorf("failed to find project root: %w", err)
@@ -267,7 +387,7 @@ func resolveBatchClarifications(ctx context.Context, params map[string]interface
 
 	result := map[string]interface{}{
 		"success":  true,
-		"method":   "native_go",
+		"method":   "file",
 		"resolved": resolved,
 		"total":    len(decisions),
 		"message":  fmt.Sprintf("Resolved %d clarifications", resolved),

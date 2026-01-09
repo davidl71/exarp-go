@@ -14,12 +14,19 @@ Features:
 
 import json
 import logging
-import statistics
+import sys
 from datetime import datetime
 from pathlib import Path
 from typing import Any, List, Optional
 
+# Use Go statistics via bridge wrapper
+# Add bridge directory to path (bridge is at project_root/bridge/)
 from ..utils import find_project_root
+project_root = find_project_root()
+bridge_path = Path(project_root) / "bridge"
+if str(bridge_path) not in sys.path:
+    sys.path.insert(0, str(bridge_path))
+from statistics_bridge import mean, median, stdev, quantile, round as round_stat, StatisticsError
 
 logger = logging.getLogger(__name__)
 
@@ -342,19 +349,18 @@ class TaskDurationEstimator:
         try:
             stats = {
                 'count': len(actual_hours),
-                'mean': round(statistics.mean(actual_hours), 2),
-                'median': round(statistics.median(actual_hours), 2),
-                'stdev': round(statistics.stdev(actual_hours), 2) if len(actual_hours) > 1 else 0.0,
-                'min': round(min(actual_hours), 2),
-                'max': round(max(actual_hours), 2),
+                'mean': round_stat(mean(actual_hours), 2),
+                'median': round_stat(median(actual_hours), 2),
+                'stdev': round_stat(stdev(actual_hours), 2),
+                'min': round_stat(min(actual_hours), 2),
+                'max': round_stat(max(actual_hours), 2),
             }
 
-            # Percentiles
+            # Percentiles using quantile (more accurate than manual calculation)
             if len(actual_hours) > 1:
-                sorted_hours = sorted(actual_hours)
-                stats['p25'] = round(sorted_hours[len(sorted_hours) // 4], 2)
-                stats['p75'] = round(sorted_hours[3 * len(sorted_hours) // 4], 2)
-                stats['p90'] = round(sorted_hours[9 * len(sorted_hours) // 10], 2)
+                stats['p25'] = round_stat(quantile(actual_hours, 0.25), 2)
+                stats['p75'] = round_stat(quantile(actual_hours, 0.75), 2)
+                stats['p90'] = round_stat(quantile(actual_hours, 0.90), 2)
 
             # Accuracy metrics (if estimated hours available)
             with_estimates = [
@@ -367,13 +373,13 @@ class TaskDurationEstimator:
                 errors = [abs(est - act) / act for est, act in with_estimates]
                 stats['estimation_accuracy'] = {
                     'count': len(with_estimates),
-                    'mean_absolute_error': round(statistics.mean(errors), 2),
-                    'mean_error': round(statistics.mean([est - act for est, act in with_estimates]), 2),
+                    'mean_absolute_error': round_stat(mean(errors), 2),
+                    'mean_error': round_stat(mean([est - act for est, act in with_estimates]), 2),
                 }
 
             return json.dumps(stats, indent=2)
 
-        except statistics.StatisticsError as e:
+        except (StatisticsError, RuntimeError, ValueError) as e:
             import json
             logger.warning(f"Statistics calculation failed: {e}")
             return json.dumps({

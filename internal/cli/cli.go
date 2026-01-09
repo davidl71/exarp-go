@@ -5,10 +5,12 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"log"
 	"os"
 	"strings"
 
 	"github.com/davidl71/exarp-go/internal/config"
+	"github.com/davidl71/exarp-go/internal/database"
 	"github.com/davidl71/exarp-go/internal/factory"
 	"github.com/davidl71/exarp-go/internal/framework"
 	"github.com/davidl71/exarp-go/internal/prompts"
@@ -29,6 +31,19 @@ func Run() error {
 		completion  = flag.String("completion", "", "Generate shell completion script (bash|zsh|fish)")
 	)
 	flag.Parse()
+
+	// Initialize database (before server creation)
+	projectRoot, err := tools.FindProjectRoot()
+	if err != nil {
+		log.Printf("Warning: Could not find project root: %v (database unavailable, will use JSON fallback)", err)
+	} else {
+		if err := database.Init(projectRoot); err != nil {
+			log.Printf("Warning: Database initialization failed: %v (fallback to JSON)", err)
+		} else {
+			defer database.Close()
+			log.Printf("Database initialized: %s/.todo2/todo2.db", projectRoot)
+		}
+	}
 
 	// Load configuration
 	cfg, err := config.Load()
