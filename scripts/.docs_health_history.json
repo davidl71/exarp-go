@@ -35,6 +35,15 @@
       },
       "format_errors": 0,
       "stale_files": 0
+    },
+    {
+      "timestamp": "2026-01-09T20:50:17.395907",
+      "health_score": 95.0,
+      "link_validation": {
+        "broken": 5
+      },
+      "format_errors": 0,
+      "stale_files": 0
     }
   ]
 }
