@@ -169,12 +169,39 @@ func handleAddExternalToolHints(ctx context.Context, args json.RawMessage) ([]fr
 // Batch 2 Tool Handlers (T-28 through T-35)
 
 // handleMemory handles the memory tool
+// Uses native Go for CRUD operations, falls back to Python bridge for semantic search
 func handleMemory(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
 	var params map[string]interface{}
 	if err := json.Unmarshal(args, &params); err != nil {
 		return nil, fmt.Errorf("failed to parse arguments: %w", err)
 	}
 
+	action, _ := params["action"].(string)
+	if action == "" {
+		action = "search"
+	}
+
+	// Try native Go implementation first (for save, recall, list, basic search)
+	if action == "save" || action == "recall" || action == "list" {
+		result, err := handleMemoryNative(ctx, args)
+		if err == nil {
+			return result, nil
+		}
+		// If native fails, fall through to Python bridge
+	}
+
+	// For search, try basic text search in Go first
+	if action == "search" {
+		result, err := handleMemoryNative(ctx, args)
+		if err == nil {
+			// Basic search succeeded - return results
+			// For semantic search, user can explicitly request it or we can enhance later
+			return result, nil
+		}
+		// If native search fails, fall through to Python bridge for semantic search
+	}
+
+	// Fall back to Python bridge for semantic search or unknown actions
 	result, err := bridge.ExecutePythonTool(ctx, "memory", params)
 	if err != nil {
 		return nil, fmt.Errorf("memory failed: %w", err)
@@ -186,12 +213,28 @@ func handleMemory(ctx context.Context, args json.RawMessage) ([]framework.TextCo
 }
 
 // handleMemoryMaint handles the memory_maint tool
+// Uses native Go for health, gc, prune; falls back to Python bridge for consolidate, dream
 func handleMemoryMaint(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
 	var params map[string]interface{}
 	if err := json.Unmarshal(args, &params); err != nil {
 		return nil, fmt.Errorf("failed to parse arguments: %w", err)
 	}
 
+	action, _ := params["action"].(string)
+	if action == "" {
+		action = "health"
+	}
+
+	// Try native Go implementation first (for health, gc, prune)
+	if action == "health" || action == "gc" || action == "prune" {
+		result, err := handleMemoryMaintNative(ctx, args)
+		if err == nil {
+			return result, nil
+		}
+		// If native fails, fall through to Python bridge
+	}
+
+	// For consolidate and dream, use Python bridge (requires ML/AI)
 	result, err := bridge.ExecutePythonTool(ctx, "memory_maint", params)
 	if err != nil {
 		return nil, fmt.Errorf("memory_maint failed: %w", err)

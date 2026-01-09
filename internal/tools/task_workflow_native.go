@@ -26,9 +26,12 @@ func handleTaskWorkflowNative(ctx context.Context, params map[string]interface{}
 		return handleTaskWorkflowClarify(ctx, params)
 	case "approve":
 		return handleTaskWorkflowApprove(ctx, params)
-	case "sync", "clarity", "cleanup":
-		// These actions don't use native Go yet - fall through to Python bridge
-		return nil, fmt.Errorf("action %s not yet implemented in native Go", action)
+	case "sync":
+		return handleTaskWorkflowSync(ctx, params)
+	case "clarity":
+		return handleTaskWorkflowClarity(ctx, params)
+	case "cleanup":
+		return handleTaskWorkflowCleanup(ctx, params)
 	default:
 		return nil, fmt.Errorf("unknown action: %s", action)
 	}

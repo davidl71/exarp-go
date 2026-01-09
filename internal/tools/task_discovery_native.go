@@ -62,10 +62,12 @@ func handleTaskDiscoveryNative(ctx context.Context, params map[string]interface{
 		discoveries = append(discoveries, markdownTasks...)
 	}
 
-	// Find orphans (requires task_analysis, so we'll use Python bridge for now)
+	// Find orphans
 	if action == "orphans" || action == "all" {
-		// Orphans detection requires hierarchy analysis - fall back to Python for now
-		// Could be implemented later
+		orphanTasks := findOrphanTasks(projectRoot)
+		for _, orphan := range orphanTasks {
+			discoveries = append(discoveries, orphan)
+		}
 	}
 
 	// Build summary
@@ -261,6 +263,86 @@ func scanMarkdown(projectRoot string, docPath string) []map[string]interface{} {
 	}
 
 	return discoveries
+}
+
+// findOrphanTasks finds orphaned tasks (tasks with invalid structure)
+func findOrphanTasks(projectRoot string) []map[string]interface{} {
+	orphans := []map[string]interface{}{}
+
+	tasks, err := LoadTodo2Tasks(projectRoot)
+	if err != nil {
+		return orphans
+	}
+
+	// Build task map and dependency graph
+	taskMap := make(map[string]bool)
+	for _, task := range tasks {
+		taskMap[task.ID] = true
+	}
+
+	// Build dependency graph (reuse from task_analysis)
+	graph := buildDependencyGraph(tasks)
+
+	// Find missing dependencies
+	missing := findMissingDependencies(tasks, graph)
+
+	// Find circular dependencies
+	cycles := detectCycles(graph)
+
+	// Identify orphan tasks
+	for _, task := range tasks {
+		issues := []string{}
+
+		// Check for missing dependencies
+		for _, dep := range task.Dependencies {
+			if !taskMap[dep] {
+				issues = append(issues, fmt.Sprintf("missing_dependency:%s", dep))
+			}
+		}
+
+		// Check if task is part of a cycle
+		for _, cycle := range cycles {
+			for _, cycleTaskID := range cycle {
+				if cycleTaskID == task.ID {
+					issues = append(issues, "circular_dependency")
+					break
+				}
+			}
+			if len(issues) > 0 {
+				break
+			}
+		}
+
+		// Check for invalid parent references (if tasks have parent field in metadata)
+		if task.Metadata != nil {
+			if parentID, ok := task.Metadata["parent_id"].(string); ok && parentID != "" {
+				if !taskMap[parentID] {
+					issues = append(issues, fmt.Sprintf("missing_parent:%s", parentID))
+				}
+			}
+		}
+
+		// Check for tasks that should have structure but don't
+		if len(task.Dependencies) > 0 && len(task.Tags) == 0 && task.Priority == "" {
+			issues = append(issues, "incomplete_structure")
+		}
+
+		if len(issues) > 0 {
+			orphans = append(orphans, map[string]interface{}{
+				"type":    "ORPHAN",
+				"text":    task.Content,
+				"task_id": task.ID,
+				"status":  task.Status,
+				"issues":  issues,
+				"source":  "orphan_detection",
+			})
+		}
+	}
+
+	// Use missing dependencies info (unused variable fix)
+	_ = missing
+
+	return orphans
 }
 
 // enhanceTaskWithAppleFM uses Apple FM to extract structured task information

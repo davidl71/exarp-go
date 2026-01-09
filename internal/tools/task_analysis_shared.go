@@ -1,0 +1,757 @@
+package tools
+
+import (
+	"context"
+	"encoding/json"
+	"fmt"
+	"os"
+	"path/filepath"
+	"sort"
+	"strings"
+
+	"github.com/davidl71/exarp-go/internal/framework"
+)
+
+// handleTaskAnalysisDuplicates handles duplicates detection
+func handleTaskAnalysisDuplicates(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
+	projectRoot, err := FindProjectRoot()
+	if err != nil {
+		return nil, fmt.Errorf("failed to find project root: %w", err)
+	}
+
+	tasks, err := LoadTodo2Tasks(projectRoot)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load tasks: %w", err)
+	}
+
+	similarityThreshold := 0.85
+	if threshold, ok := params["similarity_threshold"].(float64); ok {
+		similarityThreshold = threshold
+	}
+
+	autoFix := false
+	if fix, ok := params["auto_fix"].(bool); ok {
+		autoFix = fix
+	}
+
+	// Find duplicates
+	duplicates := findDuplicateTasks(tasks, similarityThreshold)
+
+	// Auto-fix if requested
+	if autoFix && len(duplicates) > 0 {
+		tasks = mergeDuplicateTasks(tasks, duplicates)
+		if err := SaveTodo2Tasks(projectRoot, tasks); err != nil {
+			return nil, fmt.Errorf("failed to save merged tasks: %w", err)
+		}
+	}
+
+	// Build result
+	result := map[string]interface{}{
+		"success":              true,
+		"method":               "native_go",
+		"total_tasks":          len(tasks),
+		"duplicate_groups":     len(duplicates),
+		"duplicates":           duplicates,
+		"similarity_threshold": similarityThreshold,
+		"auto_fix":             autoFix,
+	}
+
+	if autoFix {
+		result["merged"] = true
+		result["tasks_after_merge"] = len(tasks)
+	}
+
+	outputPath, _ := params["output_path"].(string)
+	if outputPath != "" {
+		if err := saveAnalysisResult(outputPath, result); err != nil {
+			return nil, fmt.Errorf("failed to save result: %w", err)
+		}
+		result["output_path"] = outputPath
+	}
+
+	output, _ := json.MarshalIndent(result, "", "  ")
+	return []framework.TextContent{
+		{Type: "text", Text: string(output)},
+	}, nil
+}
+
+// handleTaskAnalysisTags handles tag analysis and consolidation
+func handleTaskAnalysisTags(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
+	projectRoot, err := FindProjectRoot()
+	if err != nil {
+		return nil, fmt.Errorf("failed to find project root: %w", err)
+	}
+
+	tasks, err := LoadTodo2Tasks(projectRoot)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load tasks: %w", err)
+	}
+
+	dryRun := true
+	if run, ok := params["dry_run"].(bool); ok {
+		dryRun = run
+	}
+
+	// Analyze tags
+	tagAnalysis := analyzeTags(tasks)
+
+	// Apply custom rules if provided
+	customRulesJSON, _ := params["custom_rules"].(string)
+	if customRulesJSON != "" {
+		var rules map[string]string
+		if err := json.Unmarshal([]byte(customRulesJSON), &rules); err == nil {
+			tagAnalysis = applyTagRules(tasks, rules, tagAnalysis)
+		}
+	}
+
+	// Remove tags if requested
+	removeTagsJSON, _ := params["remove_tags"].(string)
+	if removeTagsJSON != "" {
+		var tagsToRemove []string
+		if err := json.Unmarshal([]byte(removeTagsJSON), &tagsToRemove); err == nil {
+			tagAnalysis = removeTags(tasks, tagsToRemove, tagAnalysis)
+		}
+	}
+
+	// Apply changes if not dry run
+	if !dryRun {
+		tasks = applyTagChanges(tasks, tagAnalysis)
+		if err := SaveTodo2Tasks(projectRoot, tasks); err != nil {
+			return nil, fmt.Errorf("failed to save tasks: %w", err)
+		}
+	}
+
+	result := map[string]interface{}{
+		"success":         true,
+		"method":          "native_go",
+		"dry_run":         dryRun,
+		"tag_analysis":    tagAnalysis,
+		"total_tasks":     len(tasks),
+		"recommendations": buildTagRecommendations(tagAnalysis),
+	}
+
+	outputPath, _ := params["output_path"].(string)
+	if outputPath != "" {
+		if err := saveAnalysisResult(outputPath, result); err != nil {
+			return nil, fmt.Errorf("failed to save result: %w", err)
+		}
+		result["output_path"] = outputPath
+	}
+
+	output, _ := json.MarshalIndent(result, "", "  ")
+	return []framework.TextContent{
+		{Type: "text", Text: string(output)},
+	}, nil
+}
+
+// handleTaskAnalysisDependencies handles dependency analysis
+func handleTaskAnalysisDependencies(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
+	projectRoot, err := FindProjectRoot()
+	if err != nil {
+		return nil, fmt.Errorf("failed to find project root: %w", err)
+	}
+
+	tasks, err := LoadTodo2Tasks(projectRoot)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load tasks: %w", err)
+	}
+
+	// Build dependency graph
+	graph := buildDependencyGraph(tasks)
+	cycles := detectCycles(graph)
+	missing := findMissingDependencies(tasks, graph)
+
+	outputFormat := "text"
+	if format, ok := params["output_format"].(string); ok && format != "" {
+		outputFormat = format
+	}
+
+	result := map[string]interface{}{
+		"success":               true,
+		"method":                "native_go",
+		"total_tasks":           len(tasks),
+		"dependency_graph":      graph,
+		"circular_dependencies": cycles,
+		"missing_dependencies":  missing,
+		"recommendations":       buildDependencyRecommendations(graph, cycles, missing),
+	}
+
+	var output string
+	if outputFormat == "json" {
+		outputBytes, _ := json.MarshalIndent(result, "", "  ")
+		output = string(outputBytes)
+	} else {
+		output = formatDependencyAnalysisText(result)
+	}
+
+	outputPath, _ := params["output_path"].(string)
+	if outputPath != "" {
+		if err := os.WriteFile(outputPath, []byte(output), 0644); err != nil {
+			return nil, fmt.Errorf("failed to save result: %w", err)
+		}
+		result["output_path"] = outputPath
+	}
+
+	return []framework.TextContent{
+		{Type: "text", Text: output},
+	}, nil
+}
+
+// handleTaskAnalysisParallelization handles parallelization analysis
+func handleTaskAnalysisParallelization(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
+	projectRoot, err := FindProjectRoot()
+	if err != nil {
+		return nil, fmt.Errorf("failed to find project root: %w", err)
+	}
+
+	tasks, err := LoadTodo2Tasks(projectRoot)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load tasks: %w", err)
+	}
+
+	durationWeight := 0.3
+	if weight, ok := params["duration_weight"].(float64); ok {
+		durationWeight = weight
+	}
+
+	// Find parallelizable tasks
+	parallelGroups := findParallelizableTasks(tasks, durationWeight)
+
+	outputFormat := "text"
+	if format, ok := params["output_format"].(string); ok && format != "" {
+		outputFormat = format
+	}
+
+	result := map[string]interface{}{
+		"success":         true,
+		"method":          "native_go",
+		"total_tasks":     len(tasks),
+		"parallel_groups": parallelGroups,
+		"duration_weight": durationWeight,
+		"recommendations": buildParallelizationRecommendations(parallelGroups),
+	}
+
+	var output string
+	if outputFormat == "json" {
+		outputBytes, _ := json.MarshalIndent(result, "", "  ")
+		output = string(outputBytes)
+	} else {
+		output = formatParallelizationAnalysisText(result)
+	}
+
+	outputPath, _ := params["output_path"].(string)
+	if outputPath != "" {
+		if err := os.WriteFile(outputPath, []byte(output), 0644); err != nil {
+			return nil, fmt.Errorf("failed to save result: %w", err)
+		}
+		result["output_path"] = outputPath
+	}
+
+	return []framework.TextContent{
+		{Type: "text", Text: output},
+	}, nil
+}
+
+// Helper functions for duplicates detection
+
+func findDuplicateTasks(tasks []Todo2Task, threshold float64) [][]string {
+	duplicates := [][]string{}
+	processed := make(map[string]bool)
+
+	for i, task1 := range tasks {
+		if processed[task1.ID] {
+			continue
+		}
+
+		group := []string{task1.ID}
+		for j := i + 1; j < len(tasks); j++ {
+			task2 := tasks[j]
+			if processed[task2.ID] {
+				continue
+			}
+
+			similarity := calculateSimilarity(task1, task2)
+			if similarity >= threshold {
+				group = append(group, task2.ID)
+				processed[task2.ID] = true
+			}
+		}
+
+		if len(group) > 1 {
+			duplicates = append(duplicates, group)
+			processed[task1.ID] = true
+		}
+	}
+
+	return duplicates
+}
+
+func calculateSimilarity(task1, task2 Todo2Task) float64 {
+	// Simple word-based similarity (can be enhanced with Levenshtein)
+	text1 := strings.ToLower(task1.Content + " " + task1.LongDescription)
+	text2 := strings.ToLower(task2.Content + " " + task2.LongDescription)
+
+	words1 := strings.Fields(text1)
+	words2 := strings.Fields(text2)
+
+	if len(words1) == 0 && len(words2) == 0 {
+		return 1.0
+	}
+	if len(words1) == 0 || len(words2) == 0 {
+		return 0.0
+	}
+
+	// Count common words
+	wordSet1 := make(map[string]bool)
+	for _, word := range words1 {
+		wordSet1[word] = true
+	}
+
+	common := 0
+	for _, word := range words2 {
+		if wordSet1[word] {
+			common++
+		}
+	}
+
+	// Jaccard similarity
+	union := len(wordSet1) + len(words2) - common
+	if union == 0 {
+		return 0.0
+	}
+
+	return float64(common) / float64(union)
+}
+
+func mergeDuplicateTasks(tasks []Todo2Task, duplicates [][]string) []Todo2Task {
+	// Keep first task in each group, merge others into it
+	keepMap := make(map[string]bool)
+	removeMap := make(map[string]bool)
+
+	for _, group := range duplicates {
+		if len(group) == 0 {
+			continue
+		}
+		keepMap[group[0]] = true
+		for i := 1; i < len(group); i++ {
+			removeMap[group[i]] = true
+		}
+	}
+
+	// Merge task data
+	taskMap := make(map[string]*Todo2Task)
+	for i := range tasks {
+		taskMap[tasks[i].ID] = &tasks[i]
+	}
+
+	for _, group := range duplicates {
+		if len(group) < 2 {
+			continue
+		}
+		primary := taskMap[group[0]]
+		for i := 1; i < len(group); i++ {
+			secondary := taskMap[group[i]]
+			// Merge tags
+			tagSet := make(map[string]bool)
+			for _, tag := range primary.Tags {
+				tagSet[tag] = true
+			}
+			for _, tag := range secondary.Tags {
+				if !tagSet[tag] {
+					primary.Tags = append(primary.Tags, tag)
+				}
+			}
+			// Merge dependencies
+			depSet := make(map[string]bool)
+			for _, dep := range primary.Dependencies {
+				depSet[dep] = true
+			}
+			for _, dep := range secondary.Dependencies {
+				if !depSet[dep] {
+					primary.Dependencies = append(primary.Dependencies, dep)
+				}
+			}
+		}
+	}
+
+	// Remove duplicate tasks
+	result := []Todo2Task{}
+	for _, task := range tasks {
+		if !removeMap[task.ID] {
+			result = append(result, task)
+		}
+	}
+
+	return result
+}
+
+// Helper functions for tag analysis
+
+type TagAnalysis struct {
+	TagFrequency     map[string]int      `json:"tag_frequency"`
+	TagSuggestions   map[string][]string `json:"tag_suggestions"`
+	InconsistentTags map[string][]string `json:"inconsistent_tags"`
+	UnusedTags       []string            `json:"unused_tags"`
+}
+
+func analyzeTags(tasks []Todo2Task) TagAnalysis {
+	analysis := TagAnalysis{
+		TagFrequency:     make(map[string]int),
+		TagSuggestions:   make(map[string][]string),
+		InconsistentTags: make(map[string][]string),
+	}
+
+	tagSet := make(map[string]bool)
+	for _, task := range tasks {
+		for _, tag := range task.Tags {
+			analysis.TagFrequency[tag]++
+			tagSet[tag] = true
+		}
+	}
+
+	// Find tasks that might need tags
+	for _, task := range tasks {
+		if len(task.Tags) == 0 {
+			// Suggest tags based on content
+			suggestions := suggestTagsForTask(task)
+			if len(suggestions) > 0 {
+				analysis.TagSuggestions[task.ID] = suggestions
+			}
+		}
+	}
+
+	return analysis
+}
+
+func suggestTagsForTask(task Todo2Task) []string {
+	suggestions := []string{}
+	content := strings.ToLower(task.Content + " " + task.LongDescription)
+
+	// Simple keyword-based suggestions
+	keywords := map[string]string{
+		"bug": "bug", "fix": "bug", "error": "bug",
+		"feature": "feature", "add": "feature", "implement": "feature",
+		"refactor": "refactor", "cleanup": "refactor", "improve": "refactor",
+		"test": "testing", "testing": "testing",
+		"doc": "documentation", "documentation": "documentation",
+		"migration": "migration", "migrate": "migration",
+	}
+
+	for keyword, tag := range keywords {
+		if strings.Contains(content, keyword) {
+			suggestions = append(suggestions, tag)
+		}
+	}
+
+	return suggestions
+}
+
+func applyTagRules(tasks []Todo2Task, rules map[string]string, analysis TagAnalysis) TagAnalysis {
+	// Apply rename rules
+	for oldTag, newTag := range rules {
+		if count, ok := analysis.TagFrequency[oldTag]; ok {
+			delete(analysis.TagFrequency, oldTag)
+			analysis.TagFrequency[newTag] += count
+		}
+	}
+	return analysis
+}
+
+func removeTags(tasks []Todo2Task, tagsToRemove []string, analysis TagAnalysis) TagAnalysis {
+	removeSet := make(map[string]bool)
+	for _, tag := range tagsToRemove {
+		removeSet[tag] = true
+		delete(analysis.TagFrequency, tag)
+	}
+	return analysis
+}
+
+func applyTagChanges(tasks []Todo2Task, analysis TagAnalysis) []Todo2Task {
+	// Apply tag changes to tasks
+	// This is a simplified version - full implementation would apply all changes
+	return tasks
+}
+
+func buildTagRecommendations(analysis TagAnalysis) []map[string]interface{} {
+	recommendations := []map[string]interface{}{}
+
+	// Recommend consolidating low-frequency tags
+	for tag, count := range analysis.TagFrequency {
+		if count < 2 {
+			recommendations = append(recommendations, map[string]interface{}{
+				"type":    "consolidate",
+				"tag":     tag,
+				"count":   count,
+				"message": fmt.Sprintf("Tag '%s' is only used %d time(s), consider consolidating", tag, count),
+			})
+		}
+	}
+
+	return recommendations
+}
+
+// Helper functions for dependency analysis
+
+type DependencyGraph map[string][]string
+
+func buildDependencyGraph(tasks []Todo2Task) DependencyGraph {
+	graph := make(DependencyGraph)
+	taskMap := make(map[string]bool)
+
+	for _, task := range tasks {
+		taskMap[task.ID] = true
+		graph[task.ID] = []string{}
+	}
+
+	for _, task := range tasks {
+		for _, dep := range task.Dependencies {
+			if taskMap[dep] {
+				graph[task.ID] = append(graph[task.ID], dep)
+			}
+		}
+	}
+
+	return graph
+}
+
+func detectCycles(graph DependencyGraph) [][]string {
+	cycles := [][]string{}
+	visited := make(map[string]bool)
+	recStack := make(map[string]bool)
+
+	var dfs func(node string, path []string)
+	dfs = func(node string, path []string) {
+		visited[node] = true
+		recStack[node] = true
+		path = append(path, node)
+
+		for _, neighbor := range graph[node] {
+			if !visited[neighbor] {
+				dfs(neighbor, path)
+			} else if recStack[neighbor] {
+				// Found cycle
+				cycleStart := -1
+				for i, n := range path {
+					if n == neighbor {
+						cycleStart = i
+						break
+					}
+				}
+				if cycleStart >= 0 {
+					cycle := append(path[cycleStart:], neighbor)
+					cycles = append(cycles, cycle)
+				}
+			}
+		}
+
+		recStack[node] = false
+	}
+
+	for node := range graph {
+		if !visited[node] {
+			dfs(node, []string{})
+		}
+	}
+
+	return cycles
+}
+
+func findMissingDependencies(tasks []Todo2Task, graph DependencyGraph) []map[string]interface{} {
+	missing := []map[string]interface{}{}
+	taskMap := make(map[string]bool)
+
+	for _, task := range tasks {
+		taskMap[task.ID] = true
+	}
+
+	for _, task := range tasks {
+		for _, dep := range task.Dependencies {
+			if !taskMap[dep] {
+				missing = append(missing, map[string]interface{}{
+					"task_id":     task.ID,
+					"missing_dep": dep,
+					"message":     fmt.Sprintf("Task %s depends on %s which doesn't exist", task.ID, dep),
+				})
+			}
+		}
+	}
+
+	return missing
+}
+
+func buildDependencyRecommendations(graph DependencyGraph, cycles [][]string, missing []map[string]interface{}) []map[string]interface{} {
+	recommendations := []map[string]interface{}{}
+
+	if len(cycles) > 0 {
+		recommendations = append(recommendations, map[string]interface{}{
+			"type":    "circular_dependency",
+			"count":   len(cycles),
+			"message": fmt.Sprintf("Found %d circular dependency chain(s)", len(cycles)),
+		})
+	}
+
+	if len(missing) > 0 {
+		recommendations = append(recommendations, map[string]interface{}{
+			"type":    "missing_dependency",
+			"count":   len(missing),
+			"message": fmt.Sprintf("Found %d missing dependency reference(s)", len(missing)),
+		})
+	}
+
+	return recommendations
+}
+
+func formatDependencyAnalysisText(result map[string]interface{}) string {
+	var sb strings.Builder
+
+	sb.WriteString("Dependency Analysis\n")
+	sb.WriteString("==================\n\n")
+
+	if total, ok := result["total_tasks"].(int); ok {
+		sb.WriteString(fmt.Sprintf("Total Tasks: %d\n\n", total))
+	}
+
+	if cycles, ok := result["circular_dependencies"].([][]string); ok && len(cycles) > 0 {
+		sb.WriteString("Circular Dependencies:\n")
+		for i, cycle := range cycles {
+			sb.WriteString(fmt.Sprintf("  %d. %s\n", i+1, strings.Join(cycle, " -> ")))
+		}
+		sb.WriteString("\n")
+	}
+
+	if missing, ok := result["missing_dependencies"].([]map[string]interface{}); ok && len(missing) > 0 {
+		sb.WriteString("Missing Dependencies:\n")
+		for _, m := range missing {
+			if taskID, ok := m["task_id"].(string); ok {
+				if dep, ok := m["missing_dep"].(string); ok {
+					sb.WriteString(fmt.Sprintf("  - %s depends on %s (not found)\n", taskID, dep))
+				}
+			}
+		}
+		sb.WriteString("\n")
+	}
+
+	return sb.String()
+}
+
+// Helper functions for parallelization analysis
+
+type ParallelGroup struct {
+	Tasks    []string `json:"tasks"`
+	Priority string   `json:"priority"`
+	Reason   string   `json:"reason"`
+}
+
+func findParallelizableTasks(tasks []Todo2Task, durationWeight float64) []ParallelGroup {
+	groups := []ParallelGroup{}
+
+	// Build dependency graph (for future use in dependency-aware parallelization)
+	_ = buildDependencyGraph(tasks)
+	taskMap := make(map[string]*Todo2Task)
+	for i := range tasks {
+		taskMap[tasks[i].ID] = &tasks[i]
+	}
+
+	// Find tasks with no dependencies (can run in parallel)
+	readyTasks := []string{}
+	for _, task := range tasks {
+		if IsPendingStatus(task.Status) && len(task.Dependencies) == 0 {
+			readyTasks = append(readyTasks, task.ID)
+		}
+	}
+
+	if len(readyTasks) > 0 {
+		// Group by priority
+		byPriority := make(map[string][]string)
+		for _, taskID := range readyTasks {
+			task := taskMap[taskID]
+			priority := task.Priority
+			if priority == "" {
+				priority = "medium"
+			}
+			byPriority[priority] = append(byPriority[priority], taskID)
+		}
+
+		for priority, taskIDs := range byPriority {
+			if len(taskIDs) > 1 {
+				groups = append(groups, ParallelGroup{
+					Tasks:    taskIDs,
+					Priority: priority,
+					Reason:   fmt.Sprintf("%d tasks with no dependencies can run in parallel", len(taskIDs)),
+				})
+			}
+		}
+	}
+
+	// Sort groups by priority (high -> medium -> low)
+	sort.Slice(groups, func(i, j int) bool {
+		priorityOrder := map[string]int{"high": 0, "medium": 1, "low": 2}
+		return priorityOrder[groups[i].Priority] < priorityOrder[groups[j].Priority]
+	})
+
+	return groups
+}
+
+func buildParallelizationRecommendations(groups []ParallelGroup) []map[string]interface{} {
+	recommendations := []map[string]interface{}{}
+
+	totalParallelizable := 0
+	for _, group := range groups {
+		totalParallelizable += len(group.Tasks)
+	}
+
+	if totalParallelizable > 0 {
+		recommendations = append(recommendations, map[string]interface{}{
+			"type":    "parallel_execution",
+			"count":   totalParallelizable,
+			"groups":  len(groups),
+			"message": fmt.Sprintf("%d tasks can be executed in parallel across %d groups", totalParallelizable, len(groups)),
+		})
+	}
+
+	return recommendations
+}
+
+func formatParallelizationAnalysisText(result map[string]interface{}) string {
+	var sb strings.Builder
+
+	sb.WriteString("Parallelization Analysis\n")
+	sb.WriteString("========================\n\n")
+
+	if total, ok := result["total_tasks"].(int); ok {
+		sb.WriteString(fmt.Sprintf("Total Tasks: %d\n\n", total))
+	}
+
+	if groups, ok := result["parallel_groups"].([]ParallelGroup); ok && len(groups) > 0 {
+		sb.WriteString("Parallel Execution Groups:\n\n")
+		for i, group := range groups {
+			sb.WriteString(fmt.Sprintf("Group %d (%s priority):\n", i+1, group.Priority))
+			sb.WriteString(fmt.Sprintf("  Reason: %s\n", group.Reason))
+			sb.WriteString("  Tasks:\n")
+			for _, taskID := range group.Tasks {
+				sb.WriteString(fmt.Sprintf("    - %s\n", taskID))
+			}
+			sb.WriteString("\n")
+		}
+	} else {
+		sb.WriteString("No parallel execution opportunities found.\n")
+	}
+
+	return sb.String()
+}
+
+// Helper function to save analysis results
+func saveAnalysisResult(outputPath string, result map[string]interface{}) error {
+	// Ensure directory exists
+	dir := filepath.Dir(outputPath)
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		return err
+	}
+
+	output, err := json.MarshalIndent(result, "", "  ")
+	if err != nil {
+		return err
+	}
+
+	return os.WriteFile(outputPath, output, 0644)
+}

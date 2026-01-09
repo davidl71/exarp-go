@@ -24,9 +24,14 @@ func handleTaskAnalysisNative(ctx context.Context, params map[string]interface{}
 	switch action {
 	case "hierarchy":
 		return handleTaskAnalysisHierarchy(ctx, params)
-	case "duplicates", "tags", "dependencies", "parallelization":
-		// These actions don't use Apple FM yet - fall through to Python bridge
-		return nil, fmt.Errorf("action %s not yet implemented in native Go", action)
+	case "duplicates":
+		return handleTaskAnalysisDuplicates(ctx, params)
+	case "tags":
+		return handleTaskAnalysisTags(ctx, params)
+	case "dependencies":
+		return handleTaskAnalysisDependencies(ctx, params)
+	case "parallelization":
+		return handleTaskAnalysisParallelization(ctx, params)
 	default:
 		return nil, fmt.Errorf("unknown action: %s", action)
 	}
