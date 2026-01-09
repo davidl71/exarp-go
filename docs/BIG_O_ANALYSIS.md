@@ -593,6 +593,38 @@ Before and after optimization, measure:
 
 ---
 
+## Performance Benchmark Results
+
+**See:** `docs/OPTIMIZATION_RESULTS.md` for detailed benchmark data
+
+### Summary of Optimized Performance
+
+**getTaskLevelsIterative():**
+- Small graphs (10 tasks): 7.5μs (acyclic), 858μs (cyclic)
+- Large graphs (1000 tasks): 167ms (acyclic), 125ms (cyclic)
+- Optimization: Changed node tracking reduces redundant processing
+
+**findDuplicateTasks():**
+- Small (100 tasks): 515μs
+- Medium (500 tasks): 11-13ms (parallel processing)
+- Large (1000 tasks): 41-49ms (parallel processing)
+- Very Large (5000 tasks): 1.0-1.2 seconds (parallel processing essential)
+
+**Median():**
+- Small (100): 599ns (standard median)
+- Medium (1000): 11μs (standard median)
+- Large (10000): 62μs (quickselect kicks in)
+- Very Large (100000): 1.5ms (O(n) quickselect)
+
+### Key Findings
+
+1. **Parallel processing** significantly improves wall-clock time for duplicate detection
+2. **Quickselect** provides O(n) performance for large median calculations
+3. **Changed node tracking** improves iterative graph algorithms
+4. All optimizations maintain backward compatibility
+
+---
+
 **Last Updated:** 2026-01-09  
 **Next Review:** When adding new algorithms or when performance issues are identified
 
