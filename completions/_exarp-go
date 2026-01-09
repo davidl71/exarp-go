@@ -1,0 +1,29 @@
+#compdef exarp-go
+
+_exarp_go() {
+    local context state line
+    local -a tools
+    tools=(context_budget recommend generate_config check_attribution git_tools infer_session_mode mlx memory task_workflow ollama list_models setup_hooks task_analysis task_discovery automation estimation add_external_tool_hints testing health prompt_tracking workflow_mode lint context server_status memory_maint security tool_catalog analyze_alignment report session)
+
+    _arguments \
+        '(-tool --tool)-tool[Tool name to execute]:tool:->tools' \
+        '(-tool --tool)--tool[Tool name to execute]:tool:->tools' \
+        '(-args --args)-args[Tool arguments as JSON]:args:' \
+        '(-args --args)--args[Tool arguments as JSON]:args:' \
+        '(-list --list)-list[List all available tools]' \
+        '(-list --list)--list[List all available tools]' \
+        '(-test --test)-test[Test a tool with example arguments]:test:->tools' \
+        '(-test --test)--test[Test a tool with example arguments]:test:->tools' \
+        '(-i --interactive)-i[Interactive mode]' \
+        '(-i --interactive)--interactive[Interactive mode]' \
+        '(-completion --completion)-completion[Generate shell completion script]:completion:(bash zsh fish)' \
+        '(-completion --completion)--completion[Generate shell completion script]:completion:(bash zsh fish)'
+
+    case $state in
+        tools)
+            _describe 'tools' tools
+            ;;
+    esac
+}
+
+_exarp_go "$@"

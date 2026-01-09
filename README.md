@@ -152,6 +152,28 @@ Or use the wrapper script:
 ./run_server.sh
 ```
 
+## Shell Completion
+
+Shell completion is available for bash, zsh, and fish. See [completions/README.md](completions/README.md) for detailed installation instructions.
+
+**Quick setup:**
+
+```bash
+# Bash
+eval "$(exarp-go -completion bash)" >> ~/.bashrc
+
+# Zsh
+eval "$(exarp-go -completion zsh)" >> ~/.zshrc
+
+# Fish
+exarp-go -completion fish | source >> ~/.config/fish/config.fish
+```
+
+After installation, you'll get tab completion for:
+- Tool names when using `-tool` or `-test` flags
+- All command-line flags
+- Shell types for `-completion` flag
+
 ## MCP Configuration
 
 Add to `.cursor/mcp.json`:

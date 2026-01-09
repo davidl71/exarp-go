@@ -2,7 +2,9 @@ package main
 
 import (
 	"context"
+	"flag"
 	"log"
+	"os"
 
 	"github.com/davidl71/exarp-go/internal/cli"
 	"github.com/davidl71/exarp-go/internal/config"
@@ -14,14 +16,37 @@ import (
 )
 
 func main() {
-	// Detect if running in CLI mode (TTY) or MCP server mode (stdio)
-	if cli.IsTTY() {
+	// Check for CLI flags first (completion, list, etc.) - these should work even without TTY
+	hasCLIFlags := false
+	for i := 1; i < len(os.Args); i++ {
+		arg := os.Args[i]
+		if arg == "-completion" || arg == "--completion" ||
+			arg == "-list" || arg == "--list" ||
+			arg == "-tool" || arg == "--tool" ||
+			arg == "-test" || arg == "--test" ||
+			arg == "-i" || arg == "--interactive" ||
+			arg == "-args" || arg == "--args" ||
+			arg == "-h" || arg == "--help" || arg == "help" {
+			hasCLIFlags = true
+			break
+		}
+		// Stop at first non-flag argument
+		if len(arg) > 0 && arg[0] != '-' {
+			break
+		}
+	}
+
+	// If CLI flags are present or we're in a TTY, run CLI mode
+	if hasCLIFlags || cli.IsTTY() {
 		// CLI mode - run command line interface
 		if err := cli.Run(); err != nil {
 			log.Fatalf("CLI error: %v", err)
 		}
 		return
 	}
+
+	// Reset flag parsing for MCP mode (in case it was partially parsed)
+	flag.CommandLine = flag.NewFlagSet(os.Args[0], flag.ContinueOnError)
 
 	// MCP server mode - run as stdio server
 	// Load configuration
@@ -56,4 +81,3 @@ func main() {
 		log.Fatalf("Server error: %v", err)
 	}
 }
-
