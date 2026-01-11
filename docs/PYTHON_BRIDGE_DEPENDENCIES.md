@@ -33,11 +33,12 @@ This document lists all remaining dependencies on the Python bridge after the re
    - **Complexity**: High (ML/AI content generation, multiple report types)
    - **Migration**: Low priority (complex, depends on ML capabilities)
 
-4. **`security`** - Security scanning
-   - **Location**: `internal/tools/handlers.go:401`
-   - **Status**: Fully Python bridge (partial native for alerts)
-   - **Complexity**: Medium-High (API integrations, vulnerability scanning)
-   - **Migration**: Medium priority
+4. **`security`** - Security scanning ✅ **NOW NATIVE**
+   - **Location**: `internal/tools/handlers.go:361`
+   - **Status**: ✅ Native Go for scan, alerts, report actions
+   - **Implementation**: `internal/tools/security.go`
+   - **Actions**: All 3 actions have native implementations (scan uses govulncheck, alerts uses gh CLI, report combines both)
+   - **Migration**: ✅ Complete (was already native, documentation outdated)
 
 5. **`task_analysis`** - Task analysis ✅ **NOW NATIVE**
    - **Location**: `internal/tools/handlers.go:411`
@@ -207,8 +208,8 @@ Tools with native implementations that still fall back to Python bridge for spec
 6. ✅ `automation` - daily and discover actions (orchestration)
 
 ### 🟡 Medium Priority (Some Complexity)
-1. ⚠️ `health` - Multiple health check types
-2. ⚠️ `security` - API integrations
+1. ⚠️ `health` - Multiple health check types (docs action)
+2. ✅ `security` - **ALREADY NATIVE** (documentation updated)
 3. ⚠️ `session` - prompts, assignee actions
 4. ⚠️ `ollama` - docs, quality, summary actions
 5. ⚠️ `recommend` - workflow action

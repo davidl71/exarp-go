@@ -17,9 +17,9 @@ func TestRegisterAllTools(t *testing.T) {
 		t.Fatalf("RegisterAllTools() error = %v", err)
 	}
 
-	// Verify all 30 tools are registered (31 with conditional Apple Foundation Models on macOS)
-	// Base tools: 30 (reduced from 38 after consolidation - removed 6 duplicate tools + 2 FastMCP-only tools)
-	expectedCount := 30
+	// Verify all 28 tools are registered (29 with conditional Apple Foundation Models on macOS)
+	// Base tools: 28 (reduced from 30 after server_status and list_models converted to resources)
+	expectedCount := 28
 	// Apple Foundation Models tool is conditionally registered on macOS, adding +1
 	if server.ToolCount() != expectedCount && server.ToolCount() != expectedCount+1 {
 		t.Errorf("server.ToolCount() = %v, want %d or %d (with conditional Apple Foundation Models)",

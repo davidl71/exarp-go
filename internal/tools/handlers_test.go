@@ -120,62 +120,8 @@ func TestHandler_ContextCancellation(t *testing.T) {
 	}
 }
 
-func TestHandleServerStatus(t *testing.T) {
-	ctx := context.Background()
-
-	tests := []struct {
-		name    string
-		args    json.RawMessage
-		wantErr bool
-		check   func(t *testing.T, result []framework.TextContent)
-	}{
-		{
-			name:    "empty args",
-			args:    json.RawMessage(`{}`),
-			wantErr: false,
-			check: func(t *testing.T, result []framework.TextContent) {
-				if len(result) == 0 {
-					t.Error("expected non-empty result")
-					return
-				}
-				text := result[0].Text
-				// Check that response contains expected fields
-				if !hasSubstring(text, "status") {
-					t.Error("expected 'status' field in response")
-				}
-				if !hasSubstring(text, "operational") {
-					t.Error("expected 'operational' status")
-				}
-				if !hasSubstring(text, "version") {
-					t.Error("expected 'version' field in response")
-				}
-			},
-		},
-		{
-			name:    "no args",
-			args:    json.RawMessage(`null`),
-			wantErr: false,
-			check: func(t *testing.T, result []framework.TextContent) {
-				if len(result) == 0 {
-					t.Error("expected non-empty result")
-				}
-			},
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			result, err := handleServerStatus(ctx, tt.args)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("handleServerStatus() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if !tt.wantErr && tt.check != nil {
-				tt.check(t, result)
-			}
-		})
-	}
-}
+// Note: TestHandleServerStatus removed - server_status tool converted to stdio://server/status resource
+// See internal/resources/server.go and internal/resources/handlers_test.go for resource tests
 
 func TestHandleToolCatalog(t *testing.T) {
 	ctx := context.Background()
@@ -303,39 +249,8 @@ func TestHandleToolCatalog(t *testing.T) {
 	}
 }
 
-func TestHandleServerStatusNative(t *testing.T) {
-	ctx := context.Background()
-
-	result, err := handleServerStatusNative(ctx, json.RawMessage(`{}`))
-	if err != nil {
-		t.Fatalf("handleServerStatusNative() error = %v", err)
-	}
-
-	if len(result) == 0 {
-		t.Fatal("expected non-empty result")
-	}
-
-	text := result[0].Text
-	// Verify JSON structure
-	var status map[string]interface{}
-	if err := json.Unmarshal([]byte(text), &status); err != nil {
-		t.Fatalf("failed to unmarshal response: %v", err)
-	}
-
-	// Check required fields
-	if status["status"] != "operational" {
-		t.Errorf("expected status 'operational', got %v", status["status"])
-	}
-	if status["version"] != "0.1.0" {
-		t.Errorf("expected version '0.1.0', got %v", status["version"])
-	}
-	if _, ok := status["project_root"]; !ok {
-		t.Error("expected 'project_root' field")
-	}
-	if _, ok := status["tools_available"]; !ok {
-		t.Error("expected 'tools_available' field")
-	}
-}
+// Note: TestHandleServerStatusNative removed - server_status tool converted to stdio://server/status resource
+// See internal/resources/server.go and internal/resources/handlers_test.go for resource tests
 
 // hasSubstring checks if a string contains a substring (case-sensitive)
 func hasSubstring(s, substr string) bool {

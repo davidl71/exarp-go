@@ -923,12 +923,8 @@ func handleRecommend(ctx context.Context, args json.RawMessage) ([]framework.Tex
 	}, nil
 }
 
-// handleServerStatus handles the server_status tool
-// Uses native Go implementation (migrated from Python bridge)
-func handleServerStatus(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
-	// Use native Go implementation
-	return handleServerStatusNative(ctx, args)
-}
+// Note: handleServerStatus removed - server_status tool converted to stdio://server/status resource
+// See internal/resources/server.go for resource implementation
 
 // Note: handleDemonstrateElicit and handleInteractiveTaskCreate removed
 // These tools required FastMCP Context (not available in stdio mode)

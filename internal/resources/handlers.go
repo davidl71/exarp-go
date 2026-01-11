@@ -133,6 +133,28 @@ func RegisterAllResources(server framework.MCPServer) error {
 		return fmt.Errorf("failed to register session mode resource: %w", err)
 	}
 
+	// stdio://server/status
+	if err := server.RegisterResource(
+		"stdio://server/status",
+		"Server Status",
+		"Get server operational status, version, and project root information.",
+		"application/json",
+		handleServerStatus,
+	); err != nil {
+		return fmt.Errorf("failed to register server status resource: %w", err)
+	}
+
+	// stdio://models
+	if err := server.RegisterResource(
+		"stdio://models",
+		"AI Models",
+		"Get all available AI models with capabilities.",
+		"application/json",
+		handleModels,
+	); err != nil {
+		return fmt.Errorf("failed to register models resource: %w", err)
+	}
+
 	// stdio://tasks
 	if err := server.RegisterResource(
 		"stdio://tasks",

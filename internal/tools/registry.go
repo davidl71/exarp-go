@@ -1305,18 +1305,8 @@ func registerBatch4Tools(server framework.MCPServer) error {
 		return fmt.Errorf("failed to register context_budget: %w", err)
 	}
 
-	// list_models
-	if err := server.RegisterTool(
-		"list_models",
-		"[HINT: List models. List all available AI models with capabilities.]",
-		framework.ToolSchema{
-			Type:       "object",
-			Properties: map[string]interface{}{},
-		},
-		handleListModels,
-	); err != nil {
-		return fmt.Errorf("failed to register list_models: %w", err)
-	}
+	// Note: list_models tool removed - converted to stdio://models resource
+	// See internal/resources/models.go for resource implementation
 
 	return nil
 }
@@ -1475,18 +1465,8 @@ func registerBatch5Tools(server framework.MCPServer) error {
 		return fmt.Errorf("failed to register recommend: %w", err)
 	}
 
-	// server_status - Server status and health check
-	if err := server.RegisterTool(
-		"server_status",
-		"[HINT: Server status. Get the current status of the project management automation server.]",
-		framework.ToolSchema{
-			Type:       "object",
-			Properties: map[string]interface{}{},
-		},
-		handleServerStatus,
-	); err != nil {
-		return fmt.Errorf("failed to register server_status: %w", err)
-	}
+	// Note: server_status tool removed - converted to stdio://server/status resource
+	// See internal/resources/server.go for resource implementation
 
 	// Note: demonstrate_elicit and interactive_task_create removed
 	// These tools require FastMCP Context (not available in stdio mode)

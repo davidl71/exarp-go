@@ -1,0 +1,274 @@
+---
+description: Agent locking and agent ID generation guidelines for parallel task execution
+alwaysApply: true
+---
+
+# 🔒 Agent Locking and Agent ID Guidelines
+
+**⚠️ CRITICAL: Use agent locking for parallel task execution to prevent conflicts ⚠️**
+
+## Agent ID Generation
+
+### Automatic Agent ID Detection
+
+Always use `database.GetAgentID()` to generate agent IDs automatically:
+
+```go
+import "github.com/davidl71/exarp-go/internal/database"
+
+// Get agent ID (includes PID for process uniqueness)
+agentID, err := database.GetAgentID()
+if err != nil {
+    return fmt.Errorf("failed to get agent ID: %w", err)
+}
+// Format: "{agent-type}-{hostname}-{pid}"
+// Example: "backend-agent-Davids-Mac-mini-12345"
+
+// Or use simple version (no PID, reusable across process restarts)
+agentID, err := database.GetAgentIDSimple()
+// Format: "{agent-type}-{hostname}"
+// Example: "backend-agent-Davids-Mac-mini"
+```
+
+### Agent Type Detection
+
+Agent type is detected from (in order):
+1. **`EXARP_AGENT` environment variable** (highest priority)
+2. Default: `"general"`
+
+**Set agent type:**
+```bash
+export EXARP_AGENT="backend-agent"
+# or in code:
+os.Setenv("EXARP_AGENT", "backend-agent")
+```
+
+## Task Locking Usage
+
+### When to Use Locking
+
+**✅ ALWAYS use locking when:**
+- Multiple agents/processes may work on the same task concurrently
+- Parallel execution of tasks across machines
+- Background agents processing tasks simultaneously
+- Preventing race conditions on task assignment
+
+**❌ DON'T use locking for:**
+- Single-process, sequential task execution
+- Tasks that are guaranteed to be processed by only one agent
+- Read-only operations (no locking needed)
+
+### Claiming Tasks
+
+```go
+ctx := context.Background()
+agentID, _ := database.GetAgentID()
+leaseDuration := 30 * time.Minute
+
+// Claim task atomically
+result, err := database.ClaimTaskForAgent(ctx, "T-123", agentID, leaseDuration)
+if err != nil {
+    if result != nil && result.WasLocked {
+        // Task already assigned to another agent
+        log.Printf("Task locked by: %s", result.LockedBy)
+        return // Skip this task, try another
+    }
+    return fmt.Errorf("failed to claim task: %w", err)
+}
+
+if !result.Success {
+    return fmt.Errorf("task claim failed: %v", result.Error)
+}
+
+// Task successfully claimed - do work
+task := result.Task
+// ... perform work on task ...
+
+// Release when done (always release in defer)
+defer func() {
+    if err := database.ReleaseTask(ctx, "T-123", agentID); err != nil {
+        log.Printf("Failed to release task: %v", err)
+    }
+}()
+```
+
+### Long-Running Tasks
+
+For tasks that take longer than the lease duration, renew the lease periodically:
+
+```go
+// Initial claim
+result, err := database.ClaimTaskForAgent(ctx, "T-123", agentID, 30*time.Minute)
+// ... verify success ...
+
+// Renew lease every 20 minutes (before 30 min expires)
+ticker := time.NewTicker(20 * time.Minute)
+defer ticker.Stop()
+
+go func() {
+    for range ticker.C {
+        if err := database.RenewLease(ctx, "T-123", agentID, 30*time.Minute); err != nil {
+            log.Printf("Failed to renew lease: %v", err)
+            return
+        }
+    }
+}()
+
+// ... do long-running work ...
+```
+
+### Batch Task Claiming
+
+Claim multiple tasks atomically (all-or-nothing):
+
+```go
+taskIDs := []string{"T-1", "T-2", "T-3"}
+claimed, failed, err := database.BatchClaimTasks(ctx, taskIDs, agentID, 30*time.Minute)
+if err != nil {
+    return fmt.Errorf("batch claim failed: %w", err)
+}
+
+// Process claimed tasks
+for _, taskID := range claimed {
+    // ... work on task ...
+    defer database.ReleaseTask(ctx, taskID, agentID)
+}
+
+// Handle failed claims
+for _, taskID := range failed {
+    log.Printf("Failed to claim task: %s", taskID)
+}
+```
+
+## Stale Lock Detection
+
+### Checking Lock Status
+
+```go
+// Check if a task is locked
+status, err := database.GetLockStatus(ctx, "T-123")
+if err != nil {
+    return fmt.Errorf("failed to get lock status: %w", err)
+}
+
+if status == nil {
+    // Task is not locked - safe to claim
+} else {
+    // Task is locked
+    if status.IsExpired {
+        log.Printf("Lock expired, can be cleaned up")
+    }
+    if status.IsStale {
+        log.Printf("Lock is stale (expired for >5 minutes)")
+    }
+}
+```
+
+### Cleaning Up Expired Locks
+
+```go
+// Detect stale locks
+report, err := database.DetectStaleLocks(ctx, 5*time.Minute)
+if err != nil {
+    return fmt.Errorf("failed to detect stale locks: %w", err)
+}
+
+log.Printf("Expired: %d, Stale: %d, Near expiry: %d",
+    report.ExpiredCount, report.StaleCount, report.NearExpiryCount)
+
+// Cleanup expired locks
+cleaned, taskIDs, err := database.CleanupExpiredLocksWithReport(ctx, 5*time.Minute)
+if err != nil {
+    return fmt.Errorf("failed to cleanup: %w", err)
+}
+
+log.Printf("Cleaned up %d expired locks: %v", cleaned, taskIDs)
+```
+
+## Best Practices
+
+### ✅ DO
+
+1. **Always use `database.GetAgentID()`** - Don't manually construct agent IDs
+2. **Always release locks** - Use `defer database.ReleaseTask()` to ensure cleanup
+3. **Handle lock conflicts gracefully** - If task is locked, skip and try another
+4. **Renew leases for long tasks** - Use `RenewLease()` if task takes > lease duration
+5. **Check lock status before claiming** - Use `GetLockStatus()` to check availability
+6. **Clean up expired locks** - Run cleanup periodically for dead agent recovery
+
+### ❌ DON'T
+
+1. **Don't hardcode agent IDs** - Always use `GetAgentID()` or `GetAgentIDSimple()`
+2. **Don't ignore lock errors** - Handle `WasLocked` errors properly
+3. **Don't forget to release locks** - Always use defer for cleanup
+4. **Don't use file locks for database operations** - Use database locking instead
+5. **Don't assume locks are permanent** - Leases expire, handle renewal
+
+## Error Handling
+
+### Task Already Locked
+
+```go
+result, err := database.ClaimTaskForAgent(ctx, taskID, agentID, leaseDuration)
+if err != nil {
+    if result != nil && result.WasLocked {
+        // Expected: task is locked by another agent
+        log.Printf("Task %s locked by %s (expires at %d)",
+            taskID, result.LockedBy, result.LockExpires)
+        return nil // Skip this task, not an error
+    }
+    return fmt.Errorf("failed to claim task: %w", err)
+}
+```
+
+### Version Mismatch (Optimistic Locking)
+
+```go
+err := database.UpdateTask(ctx, task)
+if err != nil && strings.Contains(err.Error(), "version mismatch") {
+    // Task was modified concurrently
+    // Reload task and retry
+    task, _ := database.GetTask(ctx, task.ID)
+    // ... retry update ...
+}
+```
+
+## Migration from Python
+
+**Legacy Python locking is deprecated.** Use Go locking functions:
+
+- ❌ **Old**: `atomic_assign_task()` (Python)
+- ✅ **New**: `database.ClaimTaskForAgent()` (Go)
+
+- ❌ **Old**: `file_lock.py` (Python)
+- ✅ **New**: `database.ClaimTaskForAgent()` (Go database locking)
+
+## Integration with Task Workflow
+
+When implementing task execution tools:
+
+1. **Get agent ID** at startup
+2. **Claim tasks** before processing
+3. **Release tasks** when done (defer)
+4. **Handle lock conflicts** gracefully
+5. **Monitor stale locks** periodically
+
+**Example workflow:**
+```go
+agentID, _ := database.GetAgentID()
+
+// Find available tasks
+tasks, _ := database.GetTasksByStatus(ctx, "Todo")
+
+for _, task := range tasks {
+    // Try to claim
+    result, err := database.ClaimTaskForAgent(ctx, task.ID, agentID, 30*time.Minute)
+    if err != nil || !result.Success {
+        continue // Skip locked tasks
+    }
+
+    // Process task
+    defer database.ReleaseTask(ctx, task.ID, agentID)
+    // ... do work ...
+}
+```

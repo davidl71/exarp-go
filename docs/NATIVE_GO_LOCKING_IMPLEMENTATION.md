@@ -72,8 +72,20 @@ Atomic task claiming and locking using SQLite `SELECT FOR UPDATE`:
 
 **Usage:**
 ```go
-// Claim a task for an agent
-agentID := "agent-" + hostname
+import (
+    "github.com/davidl71/exarp-go/internal/database"
+)
+
+// Get agent ID (automatic detection from EXARP_AGENT env var + hostname + PID)
+agentID, err := database.GetAgentID()
+if err != nil {
+    return fmt.Errorf("failed to get agent ID: %w", err)
+}
+// Format: "backend-agent-Davids-Mac-mini-12345"
+
+// Or use simpler version (no PID) for reusable agent IDs
+// agentID, _ := database.GetAgentIDSimple()  // Format: "backend-agent-Davids-Mac-mini"
+
 leaseDuration := 30 * time.Minute
 
 result, err := database.ClaimTaskForAgent(ctx, "T-123", agentID, leaseDuration)

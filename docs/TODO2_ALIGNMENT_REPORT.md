@@ -12,9 +12,9 @@
 
 ## Alignment by Priority
 
+- **low:** 8
 - **medium:** 65
 - **high:** 52
-- **low:** 8
 
 ## Alignment by Status
 

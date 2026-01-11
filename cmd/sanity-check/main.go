@@ -13,14 +13,15 @@ import (
 )
 
 // Expected counts
-// Note: Tools = 30 base tools + 1 conditional (Apple Foundation Models on macOS) = 31 total
+// Note: Tools = 28 base tools + 1 conditional (Apple Foundation Models on macOS) = 29 total
+//        (server_status and list_models converted to resources)
 // Prompts = 18 (8 original + 7 workflow + 2 mcp-generic-tools + 1 task management)
-// Resources = 11 base + 2 task resources (stdio://tasks, stdio://tasks/{task_id}) = 13
-// Will be 17 when all 6 task resources are implemented
+// Resources = 11 base + 6 task resources + 1 server resource + 1 models resource = 19
+//        (server_status → stdio://server/status, list_models → stdio://models)
 const (
-	EXPECTED_TOOLS     = 30 // Base tools (31 with conditional Apple Foundation Models)
+	EXPECTED_TOOLS     = 28 // Base tools (29 with conditional Apple Foundation Models, server_status and list_models removed)
 	EXPECTED_PROMPTS   = 18 // 8 original + 7 workflow + 2 mcp-generic-tools + 1 task management
-	EXPECTED_RESOURCES = 17 // 11 base + 6 task resources (stdio://tasks, stdio://tasks/{id}, status, priority, tag, summary)
+	EXPECTED_RESOURCES = 19 // 11 base + 6 task resources + 1 server resource + 1 models resource
 )
 
 // Counting wrapper to track registrations
