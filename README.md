@@ -8,9 +8,9 @@ This server hosts tools, prompts, and resources that are broken in FastMCP due t
 
 ## Contents
 
-### Tools (24 total)
+### Tools (29 total)
 
-**Originally migrated (12 tools):**
+**Originally migrated (23 tools):**
 - `analyze_alignment` - Todo2 alignment analysis
 - `generate_config` - Cursor config generation
 - `health` - Project health checks
@@ -24,7 +24,7 @@ This server hosts tools, prompts, and resources that are broken in FastMCP due t
 - `task_workflow` - Task workflow
 - `testing` - Testing tools
 
-**Newly migrated (12 tools - return dict instead of JSON strings):**
+**Phase 3 migration (6 tools):**
 - `infer_session_mode` - Session mode inference
 - `add_external_tool_hints` - Add Context7 hints to documentation
 - `automation` - Unified automation tool (daily/nightly/sprint/discover)
@@ -38,7 +38,7 @@ This server hosts tools, prompts, and resources that are broken in FastMCP due t
 - `git_tools` - Git-inspired task management
 - `session` - Session management (prime/handoff/prompts/assignee)
 
-### Prompts (15 total)
+### Prompts (18 total)
 
 **Core prompts (8):**
 - `align` - Task alignment analysis
@@ -59,13 +59,31 @@ This server hosts tools, prompts, and resources that are broken in FastMCP due t
 - `sync` - Synchronize tasks between TODO and Todo2
 - `dups` - Find and consolidate duplicate tasks
 
-### Resources (6 total)
+### Resources (21 total)
+**Base resources (11):**
 - `stdio://scorecard` - Project scorecard
 - `stdio://memories` - All memories
 - `stdio://memories/category/{category}` - Memories by category
 - `stdio://memories/task/{task_id}` - Memories for task
 - `stdio://memories/recent` - Recent memories
 - `stdio://memories/session/{date}` - Session memories
+- `stdio://prompts` - All prompts
+- `stdio://prompts/mode/{mode}` - Prompts by mode
+- `stdio://prompts/persona/{persona}` - Prompts by persona
+- `stdio://prompts/category/{category}` - Prompts by category
+- `stdio://session/mode` - Session mode
+- `stdio://server/status` - Server status
+- `stdio://models` - Available models
+- `stdio://tools` - All tools
+- `stdio://tools/{category}` - Tools by category
+
+**Task resources (6):**
+- `stdio://tasks` - All tasks
+- `stdio://tasks/{task_id}` - Task by ID
+- `stdio://tasks/status/{status}` - Tasks by status
+- `stdio://tasks/priority/{priority}` - Tasks by priority
+- `stdio://tasks/tag/{tag}` - Tasks by tag
+- `stdio://tasks/summary` - Task summary
 
 ## Dependencies
 
