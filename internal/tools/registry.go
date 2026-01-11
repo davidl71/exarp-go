@@ -797,7 +797,7 @@ func registerBatch3Tools(server framework.MCPServer) error {
 	// T-38: tool_catalog (help action only - list action converted to stdio://tools resources)
 	if err := server.RegisterTool(
 		"tool_catalog",
-		"[HINT: Tool catalog. action=help. Get help for a specific tool. Use stdio://tools resources for listing tools.]",
+		"[HINT: Tool catalog. action=help. Get help for a specific tool. Use stdio://tools resources for listing tools. Required: tool_name.]",
 		framework.ToolSchema{
 			Type: "object",
 			Properties: map[string]interface{}{
@@ -1276,7 +1276,7 @@ func registerBatch4Tools(server framework.MCPServer) error {
 	// context_budget
 	if err := server.RegisterTool(
 		"context_budget",
-		"[HINT: Context budget. Estimate token usage and suggest context reduction strategy.]",
+		"[HINT: Context budget. Estimate token usage and suggest context reduction strategy. Required: items (JSON array).]",
 		framework.ToolSchema{
 			Type: "object",
 			Properties: map[string]interface{}{
