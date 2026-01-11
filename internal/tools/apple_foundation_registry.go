@@ -14,7 +14,7 @@ import (
 func registerAppleFoundationModelsTool(server framework.MCPServer) error {
 	if err := server.RegisterTool(
 		"apple_foundation_models",
-		"[HINT: Apple Foundation Models. action=generate|summarize|classify. On-device AI on Apple Silicon.]",
+		"[HINT: Apple Foundation Models. action=generate|respond|summarize|classify. On-device AI on Apple Silicon.]",
 		framework.ToolSchema{
 			Type: "object",
 			Properties: map[string]interface{}{

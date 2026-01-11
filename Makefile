@@ -525,13 +525,28 @@ build-apple-fm: build-swift-bridge ## Build with Apple Foundation Models support
 	@echo "$(BLUE)Building with Apple Foundation Models support...$(NC)"
 	@if [ -d "vendor" ]; then \
 		echo "$(BLUE)Using vendor directory for build...$(NC)"; \
-		CGO_ENABLED=1 go build -mod=vendor -o $(BINARY_PATH) ./cmd/server || \
-		 (echo "$(RED)❌ Build failed - may need Swift bridge$(NC)" && exit 1); \
+		if CGO_ENABLED=1 go build -mod=vendor -o $(BINARY_PATH) ./cmd/server 2>/dev/null; then \
+			echo "$(GREEN)✅ Server built with Apple FM support: $(BINARY_PATH)$(NC)"; \
+		else \
+			echo "$(YELLOW)⚠️  Build with Apple FM failed - Swift bridge may not be available$(NC)"; \
+			echo "$(YELLOW)   Building without Apple FM support (CGO disabled)$(NC)"; \
+			CGO_ENABLED=0 go build -mod=vendor -o $(BINARY_PATH) ./cmd/server || \
+			 (echo "$(RED)❌ Build failed$(NC)" && exit 1); \
+			echo "$(GREEN)✅ Server built without Apple FM support: $(BINARY_PATH)$(NC)"; \
+			echo "$(YELLOW)   Note: Apple Foundation Models tool will not be available$(NC)"; \
+		fi; \
 	else \
-		CGO_ENABLED=1 go build -o $(BINARY_PATH) ./cmd/server || \
-		 (echo "$(RED)❌ Build failed - may need Swift bridge$(NC)" && exit 1); \
+		if CGO_ENABLED=1 go build -o $(BINARY_PATH) ./cmd/server 2>/dev/null; then \
+			echo "$(GREEN)✅ Server built with Apple FM support: $(BINARY_PATH)$(NC)"; \
+		else \
+			echo "$(YELLOW)⚠️  Build with Apple FM failed - Swift bridge may not be available$(NC)"; \
+			echo "$(YELLOW)   Building without Apple FM support (CGO disabled)$(NC)"; \
+			CGO_ENABLED=0 go build -o $(BINARY_PATH) ./cmd/server || \
+			 (echo "$(RED)❌ Build failed$(NC)" && exit 1); \
+			echo "$(GREEN)✅ Server built without Apple FM support: $(BINARY_PATH)$(NC)"; \
+			echo "$(YELLOW)   Note: Apple Foundation Models tool will not be available$(NC)"; \
+		fi; \
 	fi
-	@echo "$(GREEN)✅ Server built with Apple FM support: $(BINARY_PATH)$(NC)"
 
 build-swift-bridge: ## Build Swift bridge in go-foundationmodels package
 	@echo "$(BLUE)Building Swift bridge for go-foundationmodels...$(NC)"
@@ -546,22 +561,31 @@ build-swift-bridge: ## Build Swift bridge in go-foundationmodels package
 			echo "$(GREEN)✅ Swift bridge already built$(NC)"; \
 		else \
 			echo "$(BLUE)Compiling Swift bridge...$(NC)"; \
-			swiftc -sdk $$(xcrun --show-sdk-path) -target arm64-apple-macos26 -emit-object -parse-as-library -whole-module-optimization -O -o libFMShim.o FoundationModelsShim.swift && \
-			ar rcs libFMShim.a libFMShim.o && \
-			rm -f libFMShim.o && \
-			echo "$(GREEN)✅ Swift bridge built in vendor directory$(NC)"; \
+			if swiftc -sdk $$(xcrun --show-sdk-path) -target arm64-apple-macos26 -emit-object -parse-as-library -whole-module-optimization -O -o libFMShim.o FoundationModelsShim.swift 2>/dev/null && \
+			   ar rcs libFMShim.a libFMShim.o && \
+			   rm -f libFMShim.o; then \
+				echo "$(GREEN)✅ Swift bridge built in vendor directory$(NC)"; \
+			else \
+				echo "$(YELLOW)⚠️  Swift bridge build failed - Apple FM will not be available$(NC)"; \
+				echo "$(YELLOW)   This is non-fatal - build will continue without Apple FM support$(NC)"; \
+			fi; \
 		fi; \
-	elif [ -d "$$(go list -m -f '{{.Dir}}' github.com/blacktop/go-foundationmodels@v0.1.8)" ]; then \
+	elif [ -d "$$(go list -m -f '{{.Dir}}' github.com/blacktop/go-foundationmodels@v0.1.8 2>/dev/null)" ]; then \
 		echo "$(YELLOW)⚠️  Vendor directory not found, trying module cache (may fail)...$(NC)"; \
 		cd $$(go list -m -f '{{.Dir}}' github.com/blacktop/go-foundationmodels@v0.1.8) && \
-		swiftc -sdk $$(xcrun --show-sdk-path) -target arm64-apple-macos26 -emit-object -parse-as-library -whole-module-optimization -O -o libFMShim.o FoundationModelsShim.swift && \
-		ar rcs libFMShim.a libFMShim.o && \
-		rm -f libFMShim.o && \
-		echo "$(GREEN)✅ Swift bridge built$(NC)"; \
+		if swiftc -sdk $$(xcrun --show-sdk-path) -target arm64-apple-macos26 -emit-object -parse-as-library -whole-module-optimization -O -o libFMShim.o FoundationModelsShim.swift 2>/dev/null && \
+		   ar rcs libFMShim.a libFMShim.o && \
+		   rm -f libFMShim.o; then \
+			echo "$(GREEN)✅ Swift bridge built$(NC)"; \
+		else \
+			echo "$(YELLOW)⚠️  Swift bridge build failed - Apple FM will not be available$(NC)"; \
+			echo "$(YELLOW)   This is non-fatal - build will continue without Apple FM support$(NC)"; \
+		fi; \
 	else \
-		echo "$(RED)❌ go-foundationmodels package not found$(NC)"; \
+		echo "$(YELLOW)⚠️  go-foundationmodels package not found$(NC)"; \
+		echo "$(YELLOW)   Swift bridge cannot be built - Apple FM will not be available$(NC)"; \
+		echo "$(YELLOW)   This is non-fatal - build will continue without Apple FM support$(NC)"; \
 		echo "$(YELLOW)   Try running: go mod vendor$(NC)"; \
-		exit 1; \
 	fi
 
 test-apple-fm: test-apple-fm-unit test-apple-fm-integration ## Run all Apple Foundation Models tests
