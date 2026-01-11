@@ -44,6 +44,9 @@ Consolidated Workflow
 Consolidated tools: workflow_mode, recommend, tool_catalog
 """
 
+# LEGACY: Removed from bridge, kept for testing/backup
+# This tool is now fully native Go (internal/tools/workflow_mode.go)
+# The Python implementation is kept for reference and testing purposes only
 def workflow_mode(
     action: str = "focus",
     # focus action params
@@ -192,6 +195,9 @@ def recommend(
 
 
 
+# LEGACY: Removed from bridge, kept for testing/backup
+# This tool is now fully native Go (internal/tools/tool_catalog.go)
+# The Python implementation is kept for reference and testing purposes only
 def tool_catalog(
     action: str = "list",
     # list action params

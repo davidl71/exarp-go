@@ -305,6 +305,9 @@ def get_session_mode_resource() -> str:
 # MCP TOOL INTERFACE (Agent C)
 # ═══════════════════════════════════════════════════════════════════════════════
 
+# LEGACY: Removed from bridge, kept for testing/backup
+# This tool is now fully native Go (internal/tools/session.go)
+# The Python implementation is kept for reference and testing purposes only
 def infer_session_mode_tool(force_recompute: bool = False) -> str:
     """
     MCP Tool: infer_session_mode

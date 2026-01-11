@@ -44,6 +44,9 @@ Consolidated Git
 Consolidated tools: git_tools, session
 """
 
+# LEGACY: Removed from bridge, kept for testing/backup
+# This tool is now fully native Go (internal/tools/git_tools.go)
+# The Python implementation is kept for reference and testing purposes only
 def git_tools(
     action: str = "commits",
     task_id: Optional[str] = None,
