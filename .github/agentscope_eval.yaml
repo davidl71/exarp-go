@@ -1,0 +1,62 @@
+# AgentScope Evaluation Configuration for exarp-go
+# This configuration defines how AgentScope evaluates exarp-go agent behavior
+
+evaluator:
+  name: "exarp-go-agent-evaluator"
+  type: "basic"
+  description: "Evaluation configuration for exarp-go MCP server agent"
+
+# Test cases for agent evaluation
+test_cases:
+  - name: "mcp_tool_validation"
+    description: "Validate that exarp-go MCP tools execute correctly"
+    test_type: "functional"
+    expected_behavior:
+      - "All 24 tools should be callable"
+      - "Tools should return valid JSON-RPC responses"
+      - "Error handling should be graceful"
+    
+  - name: "task_workflow_validation"
+    description: "Validate task workflow functionality"
+    test_type: "functional"
+    expected_behavior:
+      - "Task creation should work"
+      - "Task status updates should work"
+      - "Todo2 integration should be functional"
+    
+  - name: "automation_workflow_validation"
+    description: "Validate automation workflows"
+    test_type: "functional"
+    expected_behavior:
+      - "Daily automation should execute"
+      - "Sprint automation should execute"
+      - "Task discovery should work"
+    
+  - name: "testing_tool_validation"
+    description: "Validate testing tool functionality"
+    test_type: "functional"
+    expected_behavior:
+      - "Test execution should work"
+      - "Coverage analysis should work"
+      - "Test validation should work"
+
+# Evaluation metrics
+metrics:
+  - name: "tool_success_rate"
+    description: "Percentage of tools that execute successfully"
+    threshold: 0.95  # 95% success rate required
+    
+  - name: "response_time"
+    description: "Average response time for tool execution"
+    threshold: 2.0  # 2 seconds average
+    
+  - name: "error_rate"
+    description: "Percentage of tool executions that result in errors"
+    threshold: 0.05  # 5% error rate maximum
+
+# Output configuration
+output:
+  format: "json"
+  include_details: true
+  include_metrics: true
+  save_traces: true

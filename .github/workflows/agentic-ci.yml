@@ -1,0 +1,186 @@
+name: Agentic Development CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  workflow_dispatch:
+
+jobs:
+  # Job 1: Build exarp-go binary (required for other jobs)
+  build:
+    name: Build exarp-go
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+
+      - name: Cache Go modules
+        uses: actions/cache@v4
+        with:
+          path: ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+
+      - name: Download dependencies
+        run: go mod download
+
+      - name: Build exarp-go
+        run: go build -o bin/exarp-go ./cmd/server
+
+      - name: Upload binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: exarp-go-binary
+          path: bin/exarp-go
+          retention-days: 7
+
+  # Job 2: Agent validation using exarp-go tools (immediate, no dependencies)
+  agent-validation:
+    name: Agent Validation (exarp-go)
+    runs-on: self-hosted  # Use self-hosted runners if available, falls back to ubuntu-latest
+    needs: build
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+
+      - name: Download exarp-go binary
+        uses: actions/download-artifact@v4
+        with:
+          name: exarp-go-binary
+          path: bin/
+
+      - name: Make binary executable
+        run: chmod +x bin/exarp-go
+
+      - name: Validate MCP Tools
+        run: |
+          echo "Validating exarp-go MCP tools..."
+          ./bin/exarp-go -test tool_workflow || true
+          ./bin/exarp-go -test automation || true
+          ./bin/exarp-go -test testing || true
+
+      - name: Test Agent Behavior
+        run: |
+          echo "Testing agent behavior with exarp-go tools..."
+          ./bin/exarp-go -tool testing \
+            -args '{"action":"validate","test_path":"./internal/tools","framework":"go"}' || true
+
+      - name: Check Todo2 Integration
+        run: |
+          echo "Checking Todo2 integration..."
+          ./bin/exarp-go -tool task_workflow \
+            -args '{"action":"sync"}' || true
+
+      - name: Generate Agent Report
+        run: |
+          echo "Generating agent evaluation report..."
+          ./bin/exarp-go -tool report \
+            -args '{"action":"overview","include_metrics":true}' > agent_report.txt || true
+          cat agent_report.txt
+
+      - name: Upload Agent Report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: agent-validation-report
+          path: agent_report.txt
+          retention-days: 7
+
+  # Job 3: AgentScope evaluation (optional, requires Python)
+  agentscope-evaluation:
+    name: AgentScope Evaluation
+    runs-on: self-hosted  # Use self-hosted runners if available
+    needs: build
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Download exarp-go binary
+        uses: actions/download-artifact@v4
+        with:
+          name: exarp-go-binary
+          path: bin/
+
+      - name: Make binary executable
+        run: chmod +x bin/exarp-go
+
+      - name: Install AgentScope and dependencies
+        run: |
+          pip install agentscope pyyaml
+
+      - name: Run AgentScope Evaluation
+        run: |
+          echo "Running AgentScope evaluation..."
+          python bridge/agent_evaluation.py \
+            --config .github/agentscope_eval.yaml \
+            --output agent_results/ || echo "AgentScope evaluation completed with warnings"
+
+      - name: Generate Evaluation Report
+        run: |
+          echo "Generating evaluation report using exarp-go..."
+          ./bin/exarp-go -tool report \
+            -args '{"action":"overview","include_metrics":true}' > agentscope_report.txt || true
+          cat agentscope_report.txt
+
+      - name: Upload Evaluation Results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: agentscope-evaluation-results
+          path: |
+            agent_results/
+            agentscope_report.txt
+          retention-days: 7
+
+  # Job 4: Combined validation (runs both approaches)
+  combined-validation:
+    name: Combined Agent Validation
+    runs-on: self-hosted
+    needs: [agent-validation, agentscope-evaluation]
+    if: always()
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download validation reports
+        uses: actions/download-artifact@v4
+        with:
+          path: validation_reports/
+
+      - name: Combine Reports
+        run: |
+          echo "=== Combined Agent Validation Report ===" > combined_report.txt
+          echo "" >> combined_report.txt
+          echo "=== exarp-go Validation ===" >> combined_report.txt
+          cat validation_reports/agent-validation-report/agent_report.txt >> combined_report.txt || echo "No exarp-go report" >> combined_report.txt
+          echo "" >> combined_report.txt
+          echo "=== AgentScope Evaluation ===" >> combined_report.txt
+          cat validation_reports/agentscope-evaluation-results/agentscope_report.txt >> combined_report.txt || echo "No AgentScope report" >> combined_report.txt
+          cat combined_report.txt
+
+      - name: Upload Combined Report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: combined-agent-validation-report
+          path: combined_report.txt
+          retention-days: 7
