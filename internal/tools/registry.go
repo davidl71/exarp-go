@@ -223,7 +223,7 @@ func registerBatch1Tools(server framework.MCPServer) error {
 	// T-27: add_external_tool_hints
 	if err := server.RegisterTool(
 		"add_external_tool_hints",
-		"[HINT: Tool hints. Files scanned, modified, hints added.]",
+		"[HINT: External tool hints automation. Automatically adds Context7/external tool hints to documentation files.]",
 		framework.ToolSchema{
 			Type: "object",
 			Properties: map[string]interface{}{
@@ -564,7 +564,7 @@ func registerBatch2Tools(server framework.MCPServer) error {
 	// T-34: task_workflow
 	if err := server.RegisterTool(
 		"task_workflow",
-		"[HINT: Task workflow. action=sync|approve|clarify|clarity|cleanup|create. Manage task lifecycle. ⚠️ CRITICAL: ALWAYS use this tool for task updates - NEVER edit .todo2/state.todo2.json directly. Use action=approve with task_ids for batch updates. Use action=create to create new tasks.]",
+		"[HINT: Task workflow. action=sync|approve|clarify|clarity|cleanup|create. Manage task lifecycle. ⚠️ CRITICAL: ALWAYS use this tool for task updates - NEVER edit .todo2/state.todo2.json directly. CREATE TASKS: Use action=create (required: name, long_description). Use action=approve with task_ids for batch updates.]",
 		framework.ToolSchema{
 			Type: "object",
 			Properties: map[string]interface{}{
