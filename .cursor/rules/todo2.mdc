@@ -444,6 +444,11 @@ update_todos({ updates: [{ id: "T-1", status: "Done" }] })
 
 # 📚 MCP Tools Reference
 
+**⚠️ QUICK REFERENCE - Task Creation:**
+- **exarp-go projects:** Use `task_workflow` with `action="create"` (epoch-based IDs)
+- **Other projects:** Use `create_todos` (if available)
+- **Required params for create:** `name`, `long_description`
+
 ## ⚠️ CRITICAL: Task Creation Tool Selection
 
 **For exarp-go projects, ALWAYS use exarp-go's `task_workflow` tool instead of `create_todos`:**

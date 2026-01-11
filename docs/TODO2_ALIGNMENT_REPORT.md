@@ -12,13 +12,13 @@
 
 ## Alignment by Priority
 
+- **medium:** 90
 - **high:** 65
 - **low:** 11
-- **medium:** 90
 
 ## Alignment by Status
 
+- **Todo:** 92
 - **In Progress:** 4
 - **Review:** 1
 - **Done:** 69
-- **Todo:** 92
