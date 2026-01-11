@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/davidl71/exarp-go/internal/framework"
 )
@@ -408,20 +409,12 @@ func createTasksFromDiscoveries(projectRoot string, discoveries []map[string]int
 	return createdTasks
 }
 
-// generateTaskID generates a new task ID using the same logic as task_workflow
+// generateTaskID generates a task ID using epoch milliseconds (T-{epoch_milliseconds})
+// This is O(1) and doesn't require loading all tasks, matching task_workflow implementation
+// Format: T-{epoch_milliseconds} (e.g., T-1768158627000)
+// Note: tasks parameter is kept for backward compatibility but is no longer used
 func generateTaskID(tasks []Todo2Task) string {
-	maxNum := 0
-
-	// Parse existing task IDs to find the highest number
-	for _, task := range tasks {
-		var num int
-		if _, err := fmt.Sscanf(task.ID, "T-%d", &num); err == nil {
-			if num > maxNum {
-				maxNum = num
-			}
-		}
-	}
-
-	// Return next ID
-	return fmt.Sprintf("T-%d", maxNum+1)
+	// Using epoch milliseconds for O(1) ID generation
+	epochMillis := time.Now().UnixMilli()
+	return fmt.Sprintf("T-%d", epochMillis)
 }
