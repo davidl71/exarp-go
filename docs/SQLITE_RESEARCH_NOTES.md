@@ -10,8 +10,8 @@
 
 1. **Driver Choice:**
    - `github.com/mattn/go-sqlite3` - CGO required, most popular
-   - `modernc.org/sqlite` - Pure Go, no CGO, good alternative
-   - Recommendation: Start with `go-sqlite3` for compatibility
+   - `modernc.org/sqlite` - Pure Go, no CGO, good alternative ✅ **CURRENTLY USED**
+   - **Migration completed:** Migrated from `go-sqlite3` to `modernc.org/sqlite` for CGO-free builds
 
 2. **Connection Management:**
    - Use `database/sql` package (standard library)

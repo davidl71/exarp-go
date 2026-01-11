@@ -2,6 +2,7 @@ package database
 
 import (
 	"context"
+	"strings"
 	"testing"
 
 	"github.com/davidl71/exarp-go/internal/models"
@@ -369,5 +370,109 @@ func TestTaskWithMetadata(t *testing.T) {
 	}
 	if retrieved.Metadata["custom"] != "value" {
 		t.Errorf("Expected metadata['custom'] = 'value', got %v", retrieved.Metadata["custom"])
+	}
+}
+
+// TestForeignKeysEnabled verifies that foreign key constraints are enabled
+// and properly reject invalid dependency references
+func TestForeignKeysEnabled(t *testing.T) {
+	// Setup
+	tmpDir := t.TempDir()
+	err := Init(tmpDir)
+	if err != nil {
+		t.Fatalf("Init() error = %v", err)
+	}
+	defer Close()
+
+	// Verify foreign keys are enabled
+	db, err := GetDB()
+	if err != nil {
+		t.Fatalf("GetDB() error = %v", err)
+	}
+
+	var fkEnabled int
+	err = db.QueryRow("PRAGMA foreign_keys").Scan(&fkEnabled)
+	if err != nil {
+		t.Fatalf("Failed to check foreign_keys PRAGMA: %v", err)
+	}
+	if fkEnabled != 1 {
+		t.Errorf("Expected foreign_keys = 1, got %d", fkEnabled)
+	}
+
+	// Test: Create task with invalid dependency should fail
+	invalidTask := &models.Todo2Task{
+		ID:           "T-17",
+		Content:      "Task with invalid dependency",
+		Status:       "Todo",
+		Dependencies: []string{"T-NONEXISTENT"},
+	}
+
+	err = CreateTask(context.Background(), invalidTask)
+	if err == nil {
+		t.Fatal("Expected error when creating task with invalid dependency, got nil")
+	}
+	if !strings.Contains(err.Error(), "foreign key") && !strings.Contains(err.Error(), "FOREIGN KEY constraint") {
+		t.Errorf("Expected foreign key constraint error, got: %v", err)
+	}
+
+	// Verify task was not created (transaction should have rolled back)
+	_, err = GetTask(context.Background(), "T-17")
+	if err == nil {
+		t.Error("Expected task T-17 not to exist after failed creation, but it exists")
+	}
+
+	// Test: Create task with valid dependency should succeed
+	parentTask := &models.Todo2Task{
+		ID:      "T-18",
+		Content: "Parent task",
+		Status:  "Todo",
+	}
+	err = CreateTask(context.Background(), parentTask)
+	if err != nil {
+		t.Fatalf("CreateTask() for parent task error = %v", err)
+	}
+
+	validTask := &models.Todo2Task{
+		ID:           "T-19",
+		Content:      "Task with valid dependency",
+		Status:       "Todo",
+		Dependencies: []string{"T-18"},
+	}
+	err = CreateTask(context.Background(), validTask)
+	if err != nil {
+		t.Fatalf("CreateTask() for valid task error = %v", err)
+	}
+
+	// Verify valid task was created
+	retrieved, err := GetTask(context.Background(), "T-19")
+	if err != nil {
+		t.Fatalf("GetTask() error = %v", err)
+	}
+	if len(retrieved.Dependencies) != 1 || retrieved.Dependencies[0] != "T-18" {
+		t.Errorf("Expected dependency T-18, got %v", retrieved.Dependencies)
+	}
+
+	// Test: Update task with invalid dependency should fail
+	taskToUpdate := &models.Todo2Task{
+		ID:           "T-19",
+		Content:      "Updated task",
+		Status:       "Todo",
+		Dependencies: []string{"T-NONEXISTENT"},
+	}
+	err = UpdateTask(context.Background(), taskToUpdate)
+	if err == nil {
+		t.Fatal("Expected error when updating task with invalid dependency, got nil")
+	}
+	if !strings.Contains(err.Error(), "foreign key") && !strings.Contains(err.Error(), "FOREIGN KEY constraint") {
+		t.Errorf("Expected foreign key constraint error, got: %v", err)
+	}
+
+	// Verify original dependency is still intact (transaction should have rolled back)
+	retrieved, err = GetTask(context.Background(), "T-19")
+	if err != nil {
+		t.Fatalf("GetTask() error = %v", err)
+	}
+	if len(retrieved.Dependencies) != 1 || retrieved.Dependencies[0] != "T-18" {
+		t.Errorf("Expected dependency T-18 to remain after failed update, got %v", retrieved.Dependencies)
 	}
 }

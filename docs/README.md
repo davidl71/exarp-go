@@ -15,6 +15,8 @@
 ### Active Workflows
 - `DEV_TEST_AUTOMATION.md` - Development and testing automation
 - `WORKFLOW_USAGE.md` - Workflow usage guide
+- `WORKFLOW_MODE_TOOL_GROUPS.md` - Tool groups enable/disable functionality
+- `WORKFLOW_MODE_TOOL_GROUPS_TEST_RESULTS.md` - Tool groups test results
 - `STREAMLINED_WORKFLOW_SUMMARY.md` - Current workflow summary
 
 ### Current Features

@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"sync"
 
-	_ "github.com/mattn/go-sqlite3"
+	_ "modernc.org/sqlite"
 )
 
 // DB is the global database connection
@@ -40,8 +40,9 @@ func Init(projectRoot string) error {
 	// Open database connection with foreign keys enabled via DSN parameter
 	// Using DSN parameter ensures foreign keys are enabled for ALL connections in the pool
 	// (PRAGMA statements only affect the connection they're executed on)
+	// Using modernc.org/sqlite (pure Go, no CGO required)
 	dsn := dbPath + "?_foreign_keys=1"
-	db, err := sql.Open("sqlite3", dsn)
+	db, err := sql.Open("sqlite", dsn)
 	if err != nil {
 		return fmt.Errorf("failed to open database: %w", err)
 	}

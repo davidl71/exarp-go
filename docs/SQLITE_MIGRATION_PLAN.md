@@ -299,7 +299,7 @@ import (
 )
 ```
 
-**Alternative:** Consider `modernc.org/sqlite` for pure Go (no CGO):
+**✅ MIGRATED:** Now using `modernc.org/sqlite` for pure Go (no CGO):
 ```go
 import _ "modernc.org/sqlite"
 ```
