@@ -853,3 +853,29 @@ skills:
 The agentic development CI landscape in 2026 offers specialized tools for agent validation (Agent CI, Buildkite MCP) and enhancement platforms (autodevops.ai) that can integrate with existing CI/CD infrastructure. For projects already using GitHub Actions, enhancing workflows with agent-specific testing and validation provides a practical path forward.
 
 **Key Takeaway:** Agent CI appears to be the most purpose-built solution for agentic application CI/CD, while autodevops.ai offers the most flexible integration approach for existing workflows.
+
+---
+
+## exarp-go Integration Analysis
+
+**See:** `docs/research/AGENTIC_CI_EXARP_GO_INTEGRATION.md` for detailed integration analysis.
+
+### Best Integration for exarp-go: **AgentScope 1.0** ⭐
+
+**Why:**
+- ✅ Python-based (works with exarp-go's Python bridge)
+- ✅ MCP compatible (can integrate with exarp-go MCP server)
+- ✅ Evaluation framework (built for CI/CD)
+- ✅ Open source and self-hostable
+- ✅ GitHub Actions ready
+
+### Fallback: **GitHub Actions + exarp-go Tools** ⭐
+
+**Why:**
+- ✅ Already configured (`.github/workflows/go.yml`)
+- ✅ Self-hosted runners available
+- ✅ Uses existing 24 tools (testing, task_workflow, automation)
+- ✅ Zero new dependencies
+- ✅ Full control and customization
+
+**Integration Score:** AgentScope 9.5/10, GitHub Actions 10/10 (fallback)

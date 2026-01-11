@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/davidl71/exarp-go/internal/database"
 	"github.com/davidl71/exarp-go/internal/framework"
@@ -826,14 +827,14 @@ func handleTaskWorkflowCreate(ctx context.Context, params map[string]interface{}
 		}
 	}
 
-	// Load existing tasks to generate next ID and validate dependencies
+	// Load existing tasks for dependency validation only (ID generation is now O(1))
 	tasks, err := LoadTodo2Tasks(projectRoot)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load tasks: %w", err)
 	}
 
-	// Generate next task ID (T-{next_number})
-	nextID := generateNextTaskID(tasks)
+	// Generate next task ID using epoch milliseconds (O(1) - no need to load all tasks)
+	nextID := generateEpochTaskID()
 
 	// Validate dependencies exist
 	taskMap := make(map[string]bool)
@@ -928,23 +929,12 @@ func handleTaskWorkflowCreate(ctx context.Context, params map[string]interface{}
 	}, nil
 }
 
-// generateNextTaskID generates the next sequential task ID (T-{number})
-// Finds the highest existing task ID number and increments it
-func generateNextTaskID(tasks []Todo2Task) string {
-	maxNum := 0
-
-	// Parse existing task IDs to find the highest number
-	for _, task := range tasks {
-		var num int
-		if _, err := fmt.Sscanf(task.ID, "T-%d", &num); err == nil {
-			if num > maxNum {
-				maxNum = num
-			}
-		}
-	}
-
-	// Return next ID
-	return fmt.Sprintf("T-%d", maxNum+1)
+// generateEpochTaskID generates a task ID using epoch milliseconds (T-{epoch_milliseconds})
+// This is O(1) and doesn't require loading all tasks, solving the performance bottleneck
+// Format: T-{epoch_milliseconds} (e.g., T-1768158627000)
+func generateEpochTaskID() string {
+	epochMillis := time.Now().UnixMilli()
+	return fmt.Sprintf("T-%d", epochMillis)
 }
 
 // normalizePriority normalizes priority to valid values
