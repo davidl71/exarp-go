@@ -37,6 +37,11 @@ func ClaimTaskForAgent(ctx context.Context, taskID string, agentID string, lease
 			return result.Error
 		}
 
+		// SQLite doesn't support row-level locking (SELECT FOR UPDATE is a no-op)
+		// We use transactions + WHERE clause checks instead:
+		// 1. Transaction provides atomicity
+		// 2. Check assignee in WHERE clause of UPDATE
+		// 3. Optimistic locking with version field
 		tx, err := db.BeginTx(txCtx, nil)
 		if err != nil {
 			result.Error = fmt.Errorf("failed to begin transaction: %w", err)
@@ -48,7 +53,6 @@ func ClaimTaskForAgent(ctx context.Context, taskID string, agentID string, lease
 			}
 		}()
 
-		// SELECT FOR UPDATE - locks the row until transaction commits
 		var taskData models.Todo2Task
 		var currentAssignee sql.NullString
 		var lockUntil sql.NullInt64
@@ -57,13 +61,14 @@ func ClaimTaskForAgent(ctx context.Context, taskID string, agentID string, lease
 		now := time.Now().Unix()
 		leaseUntil := now + int64(leaseDuration.Seconds())
 
+		// SQLite doesn't support SELECT FOR UPDATE, but transactions provide atomicity
+		// We check assignee in the UPDATE WHERE clause instead
 		err = tx.QueryRowContext(txCtx, `
 			SELECT 
 				id, content, long_description, status, priority, completed,
 				assignee, lock_until, version
 			FROM tasks
 			WHERE id = ? AND (status = ? OR status = ?)
-			FOR UPDATE
 		`, taskID, StatusTodo, StatusInProgress).Scan(
 			&taskData.ID,
 			&taskData.Content,
@@ -95,10 +100,13 @@ func ClaimTaskForAgent(ctx context.Context, taskID string, agentID string, lease
 				result.Error = fmt.Errorf("task already assigned to %s (lock expires at %d)", currentAssignee.String, lockUntil.Int64)
 				return result.Error
 			}
-			// Lease expired - can reassign
+			// Lease expired - can reassign (checked in WHERE clause)
 		}
 
 		// Claim task atomically
+		// SQLite: Check assignee in WHERE clause to prevent race conditions
+		// If assignee is NULL or expired, this UPDATE will succeed
+		// If assignee is set and not expired, this UPDATE will affect 0 rows
 		updateResult, err := tx.ExecContext(txCtx, `
 			UPDATE tasks SET
 				assignee = ?,
@@ -107,8 +115,10 @@ func ClaimTaskForAgent(ctx context.Context, taskID string, agentID string, lease
 				status = ?,
 				version = version + 1,
 				updated_at = strftime('%s', 'now')
-			WHERE id = ? AND version = ?
-		`, agentID, now, leaseUntil, StatusInProgress, taskID, version)
+			WHERE id = ? 
+			  AND version = ?
+			  AND (assignee IS NULL OR lock_until IS NULL OR lock_until < ?)
+		`, agentID, now, leaseUntil, StatusInProgress, taskID, version, now)
 
 		if err != nil {
 			result.Error = fmt.Errorf("failed to update task: %w", err)
@@ -153,6 +163,11 @@ func ClaimTaskForAgent(ctx context.Context, taskID string, agentID string, lease
 		result.Error = err
 	}
 
+	// Return result.Error as the error if set, otherwise nil
+	if result.Error != nil {
+		return result, result.Error
+	}
+
 	return result, nil
 }
 
@@ -179,13 +194,12 @@ func ReleaseTask(ctx context.Context, taskID string, agentID string) error {
 			}
 		}()
 
-		// SELECT FOR UPDATE to lock row
+		// Query current assignee (transaction provides atomicity)
 		var currentAssignee sql.NullString
 		err = tx.QueryRowContext(txCtx, `
 			SELECT assignee
 			FROM tasks
 			WHERE id = ?
-			FOR UPDATE
 		`, taskID).Scan(&currentAssignee)
 
 		if err == sql.ErrNoRows {
@@ -251,13 +265,12 @@ func RenewLease(ctx context.Context, taskID string, agentID string, leaseDuratio
 			}
 		}()
 
-		// SELECT FOR UPDATE to lock row
+		// Query current assignee (transaction provides atomicity)
 		var currentAssignee sql.NullString
 		err = tx.QueryRowContext(txCtx, `
 			SELECT assignee
 			FROM tasks
 			WHERE id = ?
-			FOR UPDATE
 		`, taskID).Scan(&currentAssignee)
 
 		if err == sql.ErrNoRows {
@@ -402,7 +415,6 @@ func BatchClaimTasks(ctx context.Context, taskIDs []string, agentID string, leas
 				SELECT assignee, lock_until, version, status
 				FROM tasks
 				WHERE id = ?
-				FOR UPDATE
 			`, taskID).Scan(&currentAssignee, &lockUntil, &version, &status)
 
 			if err == sql.ErrNoRows {

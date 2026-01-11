@@ -272,7 +272,17 @@ func UpdateTask(ctx context.Context, task *Todo2Task) error {
 			completedInt = 1
 		}
 
-		// Update task
+		// Get current version for optimistic locking
+		var currentVersion int64
+		err = tx.QueryRowContext(txCtx, `SELECT version FROM tasks WHERE id = ?`, task.ID).Scan(&currentVersion)
+		if err == sql.ErrNoRows {
+			return fmt.Errorf("task %s not found", task.ID)
+		}
+		if err != nil {
+			return fmt.Errorf("failed to query task version: %w", err)
+		}
+
+		// Update task with optimistic locking (version check)
 		now := time.Now().Format(time.RFC3339)
 		result, err := tx.ExecContext(txCtx, `
 			UPDATE tasks SET
@@ -283,8 +293,9 @@ func UpdateTask(ctx context.Context, task *Todo2Task) error {
 				completed = ?,
 				last_modified = ?,
 				metadata = ?,
+				version = version + 1,
 				updated_at = strftime('%s', 'now')
-			WHERE id = ?
+			WHERE id = ? AND version = ?
 		`,
 			task.Content,
 			task.LongDescription,
@@ -294,6 +305,7 @@ func UpdateTask(ctx context.Context, task *Todo2Task) error {
 			now,
 			metadataJSON,
 			task.ID,
+			currentVersion,
 		)
 		if err != nil {
 			return fmt.Errorf("failed to update task: %w", err)
@@ -304,7 +316,7 @@ func UpdateTask(ctx context.Context, task *Todo2Task) error {
 			return fmt.Errorf("failed to get rows affected: %w", err)
 		}
 		if rowsAffected == 0 {
-			return fmt.Errorf("task %s not found", task.ID)
+			return fmt.Errorf("task %s not found or was modified by another agent (version mismatch)", task.ID)
 		}
 
 		// Delete existing tags

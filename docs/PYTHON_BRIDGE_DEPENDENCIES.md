@@ -57,12 +57,11 @@ This document lists all remaining dependencies on the Python bridge after the re
    - **Remaining**: Clarify action requires Apple FM (optional enhancement)
    - **Migration**: ✅ Complete for platform-agnostic actions
 
-8. **`automation`** - Automation orchestration
-   - **Location**: `internal/tools/handlers.go:587`
-   - **Status**: Fully Python bridge
-   - **Complexity**: Medium (orchestrates other tools)
-   - **Migration**: See `docs/AUTOMATION_TOOL_MIGRATION_ANALYSIS.md`
-   - **Priority**: High for daily/discover, Medium for others
+8. **`automation`** - Automation orchestration ✅ **NOW NATIVE (Partial)**
+   - **Location**: `internal/tools/handlers.go:551`
+   - **Status**: ✅ Native Go for daily and discover actions
+   - **Remaining**: nightly and sprint actions - falls back to Python bridge (correct behavior)
+   - **Migration**: ✅ Complete for daily and discover actions
 
 9. **`lint`** - Linting ✅ **NOW NATIVE (Partial)**
    - **Location**: `internal/tools/handlers.go:621`

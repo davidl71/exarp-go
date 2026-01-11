@@ -549,19 +549,27 @@ func handleTesting(ctx context.Context, args json.RawMessage) ([]framework.TextC
 // Batch 3 Tool Handlers (T-37 through T-44)
 
 // handleAutomation handles the automation tool
+// Uses native Go implementation for "daily" and "discover" actions, falls back to Python bridge for "nightly" and "sprint"
 func handleAutomation(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
 	var params map[string]interface{}
 	if err := json.Unmarshal(args, &params); err != nil {
 		return nil, fmt.Errorf("failed to parse arguments: %w", err)
 	}
 
-	result, err := bridge.ExecutePythonTool(ctx, "automation", params)
+	// Try native Go implementation first (for daily and discover actions)
+	result, err := handleAutomationNative(ctx, params)
+	if err == nil {
+		return result, nil
+	}
+
+	// If native implementation doesn't support the action, fall back to Python bridge
+	resultText, err := bridge.ExecutePythonTool(ctx, "automation", params)
 	if err != nil {
 		return nil, fmt.Errorf("automation failed: %w", err)
 	}
 
 	return []framework.TextContent{
-		{Type: "text", Text: result},
+		{Type: "text", Text: resultText},
 	}, nil
 }
 
