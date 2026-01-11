@@ -37,7 +37,7 @@ func handleAnalyzeAlignment(ctx context.Context, args json.RawMessage) ([]framew
 }
 
 // handleGenerateConfig handles the generate_config tool
-// Uses native Go implementation for "rules" action, falls back to Python bridge for "ignore" and "simplify"
+// Uses native Go implementation for all actions (rules, ignore, simplify) - fully native
 func handleGenerateConfig(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
 	// Try native Go implementation first
 	result, err := handleGenerateConfigNative(ctx, args)
@@ -225,8 +225,9 @@ func handleMemoryMaint(ctx context.Context, args json.RawMessage) ([]framework.T
 		action = "health"
 	}
 
-	// Try native Go implementation first (for health, gc, prune)
-	if action == "health" || action == "gc" || action == "prune" {
+	// Try native Go implementation first (for health, gc, prune, consolidate)
+	// Dream still requires advisor integration, so falls back to Python bridge
+	if action == "health" || action == "gc" || action == "prune" || action == "consolidate" {
 		result, err := handleMemoryMaintNative(ctx, args)
 		if err == nil {
 			return result, nil
@@ -234,7 +235,7 @@ func handleMemoryMaint(ctx context.Context, args json.RawMessage) ([]framework.T
 		// If native fails, fall through to Python bridge
 	}
 
-	// For consolidate and dream, use Python bridge (requires ML/AI)
+	// For dream and other actions, use Python bridge
 	result, err := bridge.ExecutePythonTool(ctx, "memory_maint", params)
 	if err != nil {
 		return nil, fmt.Errorf("memory_maint failed: %w", err)
@@ -408,115 +409,86 @@ func handleSecurity(ctx context.Context, args json.RawMessage) ([]framework.Text
 }
 
 // handleTaskAnalysis handles the task_analysis tool
-// Uses native Go with Apple Foundation Models when available
+// Uses native Go implementation for all actions (duplicates, tags, dependencies, parallelization work on all platforms)
+// Hierarchy action requires Apple FM (only available on macOS with CGO)
 func handleTaskAnalysis(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
 	var params map[string]interface{}
 	if err := json.Unmarshal(args, &params); err != nil {
 		return nil, fmt.Errorf("failed to parse arguments: %w", err)
 	}
 
-	// Try native Go implementation first (for hierarchy action with Apple FM)
-	action, _ := params["action"].(string)
-	if action == "" {
-		action = "duplicates"
+	// Try native Go implementation first for all actions
+	// Native implementations exist for duplicates, tags, dependencies, parallelization on all platforms
+	// Hierarchy action requires Apple FM (checked inside native implementation)
+	result, err := handleTaskAnalysisNative(ctx, params)
+	if err == nil {
+		return result, nil
 	}
 
-	if action == "hierarchy" {
-		support := platform.CheckAppleFoundationModelsSupport()
-		if support.Supported {
-			result, err := handleTaskAnalysisNative(ctx, params)
-			if err == nil {
-				return result, nil
-			}
-			// If native fails, fall through to Python bridge
-		}
-	}
-
-	// For other actions or when Apple FM unavailable, use Python bridge
-	result, err := bridge.ExecutePythonTool(ctx, "task_analysis", params)
+	// If native fails (e.g., hierarchy without Apple FM, or other errors), fall back to Python bridge
+	bridgeResult, err := bridge.ExecutePythonTool(ctx, "task_analysis", params)
 	if err != nil {
 		return nil, fmt.Errorf("task_analysis failed: %w", err)
 	}
 
 	return []framework.TextContent{
-		{Type: "text", Text: result},
+		{Type: "text", Text: bridgeResult},
 	}, nil
 }
 
 // handleTaskDiscovery handles the task_discovery tool
-// Uses native Go with Apple Foundation Models for semantic extraction when available
+// Uses native Go implementation for basic scanning (comments, markdown, orphans)
+// Apple FM is optional and only enhances semantic extraction when available
 func handleTaskDiscovery(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
 	var params map[string]interface{}
 	if err := json.Unmarshal(args, &params); err != nil {
 		return nil, fmt.Errorf("failed to parse arguments: %w", err)
 	}
 
-	// Try native Go implementation first (uses Apple FM for semantic extraction)
-	support := platform.CheckAppleFoundationModelsSupport()
-	if support.Supported {
-		result, err := handleTaskDiscoveryNative(ctx, params)
-		if err == nil {
-			return result, nil
-		}
-		// If native fails, fall through to Python bridge
+	// Try native Go implementation first
+	// Basic scanning (comments, markdown, orphans) works on all platforms
+	// Apple FM is optional and only enhances results when available
+	result, err := handleTaskDiscoveryNative(ctx, params)
+	if err == nil {
+		return result, nil
 	}
 
-	// When Apple FM unavailable, use Python bridge
-	result, err := bridge.ExecutePythonTool(ctx, "task_discovery", params)
+	// If native fails, fall back to Python bridge
+	bridgeResult, err := bridge.ExecutePythonTool(ctx, "task_discovery", params)
 	if err != nil {
 		return nil, fmt.Errorf("task_discovery failed: %w", err)
 	}
 
 	return []framework.TextContent{
-		{Type: "text", Text: result},
+		{Type: "text", Text: bridgeResult},
 	}, nil
 }
 
 // handleTaskWorkflow handles the task_workflow tool
-// Uses native Go with Apple Foundation Models for clarify action when available
+// Uses native Go implementation for all actions except clarify (which requires Apple FM)
+// approve, create, sync, clarity, cleanup all work on all platforms
 func handleTaskWorkflow(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
 	var params map[string]interface{}
 	if err := json.Unmarshal(args, &params); err != nil {
 		return nil, fmt.Errorf("failed to parse arguments: %w", err)
 	}
 
-	// Try native Go implementation first (for clarify and approve actions)
-	action, _ := params["action"].(string)
-	if action == "" {
-		action = "sync"
+	// Try native Go implementation first for all actions
+	// Most actions (approve, create, sync, clarity, cleanup) work on all platforms
+	// Only clarify action requires Apple FM (checked inside native implementation)
+	result, err := handleTaskWorkflowNative(ctx, params)
+	if err == nil {
+		return result, nil
 	}
 
-	if action == "clarify" || action == "approve" || action == "create" {
-		// For clarify, check Apple FM support; for approve and create, always try native Go
-		if action == "clarify" {
-			support := platform.CheckAppleFoundationModelsSupport()
-			if !support.Supported {
-				// Fall through to Python bridge if Apple FM not supported
-			} else {
-				result, err := handleTaskWorkflowNative(ctx, params)
-				if err == nil {
-					return result, nil
-				}
-				// If native fails, fall through to Python bridge
-			}
-		} else {
-			// For approve and create, always try native Go first
-			result, err := handleTaskWorkflowNative(ctx, params)
-			if err == nil {
-				return result, nil
-			}
-			// If native fails (e.g., file access issues), fall through to Python bridge
-		}
-	}
-
-	// For other actions or when Apple FM unavailable, use Python bridge
-	result, err := bridge.ExecutePythonTool(ctx, "task_workflow", params)
+	// If native fails (e.g., clarify without Apple FM, or other errors), fall back to Python bridge
+	bridgeResult, err := bridge.ExecutePythonTool(ctx, "task_workflow", params)
 	if err != nil {
 		return nil, fmt.Errorf("task_workflow failed: %w", err)
 	}
 
 	return []framework.TextContent{
-		{Type: "text", Text: result},
+		{Type: "text", Text: bridgeResult},
 	}, nil
 }
 
@@ -739,12 +711,28 @@ func handleGitTools(ctx context.Context, args json.RawMessage) ([]framework.Text
 }
 
 // handleSession handles the session tool
+// Uses native Go implementation for prime and handoff actions, falls back to Python bridge for prompts and assignee
 func handleSession(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
 	var params map[string]interface{}
 	if err := json.Unmarshal(args, &params); err != nil {
 		return nil, fmt.Errorf("failed to parse arguments: %w", err)
 	}
 
+	action, _ := params["action"].(string)
+	if action == "" {
+		action = "prime"
+	}
+
+	// Try native Go implementation for prime and handoff actions
+	if action == "prime" || action == "handoff" {
+		result, err := handleSessionNative(ctx, params)
+		if err == nil {
+			return result, nil
+		}
+		// If native fails, fall through to Python bridge
+	}
+
+	// For prompts and assignee actions, or if native fails, use Python bridge
 	result, err := bridge.ExecutePythonTool(ctx, "session", params)
 	if err != nil {
 		return nil, fmt.Errorf("session failed: %w", err)
@@ -768,19 +756,27 @@ func handleInferSessionMode(ctx context.Context, args json.RawMessage) ([]framew
 }
 
 // handleOllama handles the ollama tool
+// Uses native Go HTTP client implementation
 func handleOllama(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
 	var params map[string]interface{}
 	if err := json.Unmarshal(args, &params); err != nil {
 		return nil, fmt.Errorf("failed to parse arguments: %w", err)
 	}
 
-	result, err := bridge.ExecutePythonTool(ctx, "ollama", params)
+	// Try native Go implementation first
+	result, err := handleOllamaNative(ctx, params)
+	if err == nil {
+		return result, nil
+	}
+
+	// Fall back to Python bridge for actions not yet implemented (e.g., docs, quality, summary)
+	resultStr, err := bridge.ExecutePythonTool(ctx, "ollama", params)
 	if err != nil {
 		return nil, fmt.Errorf("ollama failed: %w", err)
 	}
 
 	return []framework.TextContent{
-		{Type: "text", Text: result},
+		{Type: "text", Text: resultStr},
 	}, nil
 }
 
@@ -874,20 +870,15 @@ func handleContext(ctx context.Context, args json.RawMessage) ([]framework.TextC
 }
 
 // handlePromptTracking handles the prompt_tracking tool (unified wrapper)
+// Uses native Go implementation
 func handlePromptTracking(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
 	var params map[string]interface{}
 	if err := json.Unmarshal(args, &params); err != nil {
 		return nil, fmt.Errorf("failed to parse arguments: %w", err)
 	}
 
-	result, err := bridge.ExecutePythonTool(ctx, "prompt_tracking", params)
-	if err != nil {
-		return nil, fmt.Errorf("prompt_tracking failed: %w", err)
-	}
-
-	return []framework.TextContent{
-		{Type: "text", Text: result},
-	}, nil
+	// Use native Go implementation
+	return handlePromptTrackingNative(ctx, params)
 }
 
 // handleRecommend handles the recommend tool (unified wrapper)

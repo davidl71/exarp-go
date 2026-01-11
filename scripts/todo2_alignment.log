@@ -323,3 +323,4 @@
 2026-01-09 00:54:27,925 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Todo2 task AUTO-20260109005427-912170 marked as complete via MCP
 2026-01-09 00:54:27,925 - project_management_automation.scripts.base.intelligent_automation_base - INFO - Intelligent automation completed: Todo2 Alignment Analysis
 2026-01-09 00:54:27,925 - project_management_automation.tools.todo2_alignment - INFO - analyze_todo2_alignment: 0.03s, success=True
+2026-01-09 21:03:31,985 - project_management_automation.scripts.automate_todo2_alignment_v2 - WARNING - PROJECT_GOALS.md not found at /Users/davidl/Projects/exarp-go/PROJECT_GOALS.md, using defaults

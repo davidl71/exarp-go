@@ -82,6 +82,9 @@ func ExecutePythonTool(ctx context.Context, toolName string, args map[string]int
 	// Create command
 	cmd := exec.CommandContext(ctx, "python3", bridgeScript, toolName, string(argsJSON))
 
+	// Pass environment variables to Python subprocess (especially PROJECT_ROOT from Cursor)
+	cmd.Env = os.Environ()
+
 	// Set timeout
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
@@ -118,6 +121,9 @@ func ExecutePythonResource(ctx context.Context, uri string) ([]byte, string, err
 
 	// Create command
 	cmd := exec.CommandContext(ctx, "python3", bridgeScript, uri)
+
+	// Pass environment variables to Python subprocess (especially PROJECT_ROOT from Cursor)
+	cmd.Env = os.Environ()
 
 	// Set timeout
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)

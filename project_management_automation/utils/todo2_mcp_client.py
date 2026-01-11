@@ -629,7 +629,81 @@ def delete_todos_mcp(
         return False
 
 
+class Todo2Client:
+    """
+    Simple wrapper class for Todo2 MCP client operations.
+    
+    Provides a class-based interface matching the expected API usage in context_primer.
+    """
+    
+    def __init__(self, project_root: Optional[Path] = None):
+        """Initialize Todo2Client with optional project root."""
+        from .project_root import find_project_root
+        self.project_root = project_root or find_project_root()
+    
+    def list_todos(
+        self,
+        limit: Optional[int] = None,
+        status: Optional[str] = None,
+        priority: Optional[str] = None,
+        tags: Optional[List[str]] = None,
+        include_completed: bool = True,
+        ready_only: bool = False
+    ) -> Dict[str, Any]:
+        """
+        List todos with optional filtering.
+        
+        Args:
+            limit: Maximum number of todos to return
+            status: Filter by status (Todo, In Progress, Done)
+            priority: Filter by priority (low, medium, high, critical)
+            tags: Filter by tags (list of tag strings)
+            include_completed: Include completed tasks (default: True)
+            ready_only: Only return tasks ready to start (dependencies completed)
+        
+        Returns:
+            Dict with 'todos' list and 'status_counts' dict
+        """
+        # Get all todos (don't filter by status initially if we need to filter completed)
+        # If include_completed is False and status is None, get all and filter later
+        if not include_completed and status is None:
+            todos = list_todos_mcp(
+                project_root=self.project_root,
+                status=None,  # Get all statuses
+                priority=priority,
+                tags=tags,
+                ready_only=ready_only
+            )
+            # Filter out completed tasks
+            todos = [t for t in todos if t.get('status', '').lower() not in ['done', 'completed']]
+        else:
+            # Call the underlying function with status filter
+            todos = list_todos_mcp(
+                project_root=self.project_root,
+                status=status,
+                priority=priority,
+                tags=tags,
+                ready_only=ready_only
+            )
+        
+        # Apply limit
+        if limit:
+            todos = todos[:limit]
+        
+        # Calculate status counts
+        status_counts = {}
+        for todo in todos:
+            todo_status = todo.get('status', 'Unknown')
+            status_counts[todo_status] = status_counts.get(todo_status, 0) + 1
+        
+        return {
+            'todos': todos,
+            'status_counts': status_counts,
+        }
+
+
 __all__ = [
+    'Todo2Client',
     'list_todos_mcp',
     'create_todos_mcp',
     'update_todos_mcp',

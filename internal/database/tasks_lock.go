@@ -1,0 +1,498 @@
+package database
+
+import (
+	"context"
+	"database/sql"
+	"fmt"
+	"time"
+
+	"github.com/davidl71/exarp-go/internal/models"
+)
+
+// TaskClaimResult represents the result of a task claim operation
+type TaskClaimResult struct {
+	Success    bool
+	Task       *models.Todo2Task
+	Error      error
+	WasLocked  bool // True if task was already locked by another agent
+	LockedBy   string // Agent ID that currently holds the lock
+}
+
+// ClaimTaskForAgent atomically claims a task for an agent using SELECT FOR UPDATE
+// Uses pessimistic locking to prevent race conditions
+// Returns TaskClaimResult with success status and task details
+func ClaimTaskForAgent(ctx context.Context, taskID string, agentID string, leaseDuration time.Duration) (*TaskClaimResult, error) {
+	ctx = ensureContext(ctx)
+	txCtx, cancel := withTransactionTimeout(ctx)
+	defer cancel()
+
+	result := &TaskClaimResult{
+		Success: false,
+	}
+
+	err := retryWithBackoff(ctx, func() error {
+		db, err := GetDB()
+		if err != nil {
+			result.Error = fmt.Errorf("failed to get database: %w", err)
+			return result.Error
+		}
+
+		tx, err := db.BeginTx(txCtx, nil)
+		if err != nil {
+			result.Error = fmt.Errorf("failed to begin transaction: %w", err)
+			return result.Error
+		}
+		defer func() {
+			if err != nil {
+				_ = tx.Rollback()
+			}
+		}()
+
+		// SELECT FOR UPDATE - locks the row until transaction commits
+		var taskData models.Todo2Task
+		var currentAssignee sql.NullString
+		var lockUntil sql.NullInt64
+		var version int64
+
+		now := time.Now().Unix()
+		leaseUntil := now + int64(leaseDuration.Seconds())
+
+		err = tx.QueryRowContext(txCtx, `
+			SELECT 
+				id, content, long_description, status, priority, completed,
+				assignee, lock_until, version
+			FROM tasks
+			WHERE id = ? AND (status = ? OR status = ?)
+			FOR UPDATE
+		`, taskID, StatusTodo, StatusInProgress).Scan(
+			&taskData.ID,
+			&taskData.Content,
+			&taskData.LongDescription,
+			&taskData.Status,
+			&taskData.Priority,
+			&taskData.Completed,
+			&currentAssignee,
+			&lockUntil,
+			&version,
+		)
+
+		if err == sql.ErrNoRows {
+			result.Error = fmt.Errorf("task %s not found or not available (must be Todo or In Progress)", taskID)
+			return result.Error
+		}
+		if err != nil {
+			result.Error = fmt.Errorf("failed to query task: %w", err)
+			return result.Error
+		}
+
+		// Check if task is already assigned to another agent
+		if currentAssignee.Valid && currentAssignee.String != "" {
+			// Check if lease is expired
+			if lockUntil.Valid && lockUntil.Int64 > now {
+				// Lock is still valid
+				result.WasLocked = true
+				result.LockedBy = currentAssignee.String
+				result.Error = fmt.Errorf("task already assigned to %s (lock expires at %d)", currentAssignee.String, lockUntil.Int64)
+				return result.Error
+			}
+			// Lease expired - can reassign
+		}
+
+		// Claim task atomically
+		updateResult, err := tx.ExecContext(txCtx, `
+			UPDATE tasks SET
+				assignee = ?,
+				assigned_at = ?,
+				lock_until = ?,
+				status = ?,
+				version = version + 1,
+				updated_at = strftime('%s', 'now')
+			WHERE id = ? AND version = ?
+		`, agentID, now, leaseUntil, StatusInProgress, taskID, version)
+
+		if err != nil {
+			result.Error = fmt.Errorf("failed to update task: %w", err)
+			return result.Error
+		}
+
+		rowsAffected, err := updateResult.RowsAffected()
+		if err != nil {
+			result.Error = fmt.Errorf("failed to get rows affected: %w", err)
+			return result.Error
+		}
+
+		if rowsAffected == 0 {
+			// Version mismatch - task was modified concurrently
+			result.Error = fmt.Errorf("task was modified by another agent (version mismatch)")
+			return result.Error
+		}
+
+		// Load full task details (tags, dependencies)
+		fullTask, err := loadTaskWithRelations(txCtx, tx, taskID)
+		if err != nil {
+			result.Error = fmt.Errorf("failed to load task details: %w", err)
+			return result.Error
+		}
+
+		taskData.Tags = fullTask.Tags
+		taskData.Dependencies = fullTask.Dependencies
+		taskData.Status = StatusInProgress
+
+		// Commit transaction (releases SELECT FOR UPDATE lock)
+		if err = tx.Commit(); err != nil {
+			result.Error = fmt.Errorf("failed to commit transaction: %w", err)
+			return result.Error
+		}
+
+		result.Success = true
+		result.Task = &taskData
+		return nil
+	})
+
+	if err != nil && result.Error == nil {
+		result.Error = err
+	}
+
+	return result, nil
+}
+
+// ReleaseTask releases a task lock (sets assignee to NULL)
+// Only the current assignee can release their own lock
+func ReleaseTask(ctx context.Context, taskID string, agentID string) error {
+	ctx = ensureContext(ctx)
+	txCtx, cancel := withTransactionTimeout(ctx)
+	defer cancel()
+
+	return retryWithBackoff(ctx, func() error {
+		db, err := GetDB()
+		if err != nil {
+			return fmt.Errorf("failed to get database: %w", err)
+		}
+
+		tx, err := db.BeginTx(txCtx, nil)
+		if err != nil {
+			return fmt.Errorf("failed to begin transaction: %w", err)
+		}
+		defer func() {
+			if err != nil {
+				_ = tx.Rollback()
+			}
+		}()
+
+		// SELECT FOR UPDATE to lock row
+		var currentAssignee sql.NullString
+		err = tx.QueryRowContext(txCtx, `
+			SELECT assignee
+			FROM tasks
+			WHERE id = ?
+			FOR UPDATE
+		`, taskID).Scan(&currentAssignee)
+
+		if err == sql.ErrNoRows {
+			return fmt.Errorf("task %s not found", taskID)
+		}
+		if err != nil {
+			return fmt.Errorf("failed to query task: %w", err)
+		}
+
+		// Verify current assignee matches
+		if !currentAssignee.Valid || currentAssignee.String != agentID {
+			return fmt.Errorf("task not assigned to %s (current assignee: %v)", agentID, currentAssignee.String)
+		}
+
+		// Release lock
+		result, err := tx.ExecContext(txCtx, `
+			UPDATE tasks SET
+				assignee = NULL,
+				assigned_at = NULL,
+				lock_until = NULL,
+				version = version + 1,
+				updated_at = strftime('%s', 'now')
+			WHERE id = ? AND assignee = ?
+		`, taskID, agentID)
+
+		if err != nil {
+			return fmt.Errorf("failed to release lock: %w", err)
+		}
+
+		rowsAffected, err := result.RowsAffected()
+		if err != nil {
+			return fmt.Errorf("failed to get rows affected: %w", err)
+		}
+
+		if rowsAffected == 0 {
+			return fmt.Errorf("task not assigned to %s", agentID)
+		}
+
+		return tx.Commit()
+	})
+}
+
+// RenewLease extends the lock duration for an already-claimed task
+// Only the current assignee can renew their lease
+func RenewLease(ctx context.Context, taskID string, agentID string, leaseDuration time.Duration) error {
+	ctx = ensureContext(ctx)
+	txCtx, cancel := withTransactionTimeout(ctx)
+	defer cancel()
+
+	return retryWithBackoff(ctx, func() error {
+		db, err := GetDB()
+		if err != nil {
+			return fmt.Errorf("failed to get database: %w", err)
+		}
+
+		tx, err := db.BeginTx(txCtx, nil)
+		if err != nil {
+			return fmt.Errorf("failed to begin transaction: %w", err)
+		}
+		defer func() {
+			if err != nil {
+				_ = tx.Rollback()
+			}
+		}()
+
+		// SELECT FOR UPDATE to lock row
+		var currentAssignee sql.NullString
+		err = tx.QueryRowContext(txCtx, `
+			SELECT assignee
+			FROM tasks
+			WHERE id = ?
+			FOR UPDATE
+		`, taskID).Scan(&currentAssignee)
+
+		if err == sql.ErrNoRows {
+			return fmt.Errorf("task %s not found", taskID)
+		}
+		if err != nil {
+			return fmt.Errorf("failed to query task: %w", err)
+		}
+
+		// Verify current assignee matches
+		if !currentAssignee.Valid || currentAssignee.String != agentID {
+			return fmt.Errorf("task not assigned to %s (current assignee: %v)", agentID, currentAssignee.String)
+		}
+
+		// Renew lease
+		now := time.Now().Unix()
+		leaseUntil := now + int64(leaseDuration.Seconds())
+
+		result, err := tx.ExecContext(txCtx, `
+			UPDATE tasks SET
+				lock_until = ?,
+				version = version + 1,
+				updated_at = strftime('%s', 'now')
+			WHERE id = ? AND assignee = ?
+		`, leaseUntil, taskID, agentID)
+
+		if err != nil {
+			return fmt.Errorf("failed to renew lease: %w", err)
+		}
+
+		rowsAffected, err := result.RowsAffected()
+		if err != nil {
+			return fmt.Errorf("failed to get rows affected: %w", err)
+		}
+
+		if rowsAffected == 0 {
+			return fmt.Errorf("task not assigned to %s", agentID)
+		}
+
+		return tx.Commit()
+	})
+}
+
+// CleanupExpiredLocks releases locks that have expired (for dead agent cleanup)
+// Returns number of locks cleaned up
+func CleanupExpiredLocks(ctx context.Context) (int, error) {
+	ctx = ensureContext(ctx)
+	txCtx, cancel := withTransactionTimeout(ctx)
+	defer cancel()
+
+	var cleaned int
+
+	err := retryWithBackoff(ctx, func() error {
+		db, err := GetDB()
+		if err != nil {
+			return fmt.Errorf("failed to get database: %w", err)
+		}
+
+		tx, err := db.BeginTx(txCtx, nil)
+		if err != nil {
+			return fmt.Errorf("failed to begin transaction: %w", err)
+		}
+		defer func() {
+			if err != nil {
+				_ = tx.Rollback()
+			}
+		}()
+
+		now := time.Now().Unix()
+
+		// Find and release expired locks
+		result, err := tx.ExecContext(txCtx, `
+			UPDATE tasks SET
+				assignee = NULL,
+				assigned_at = NULL,
+				lock_until = NULL,
+				status = CASE 
+					WHEN status = 'In Progress' THEN 'Todo'
+					ELSE status
+				END,
+				version = version + 1,
+				updated_at = strftime('%s', 'now')
+			WHERE assignee IS NOT NULL
+			  AND lock_until IS NOT NULL
+			  AND lock_until < ?
+		`, now)
+
+		if err != nil {
+			return fmt.Errorf("failed to cleanup expired locks: %w", err)
+		}
+
+		rowsAffected, err := result.RowsAffected()
+		if err != nil {
+			return fmt.Errorf("failed to get rows affected: %w", err)
+		}
+
+		cleaned = int(rowsAffected)
+
+		return tx.Commit()
+	})
+
+	return cleaned, err
+}
+
+// BatchClaimTasks atomically claims multiple tasks (all or nothing)
+// Uses state-level locking to ensure atomic batch assignment
+func BatchClaimTasks(ctx context.Context, taskIDs []string, agentID string, leaseDuration time.Duration) ([]string, []string, error) {
+	ctx = ensureContext(ctx)
+	txCtx, cancel := withTransactionTimeout(ctx)
+	defer cancel()
+
+	var claimed []string
+	var failed []string
+
+	err := retryWithBackoff(ctx, func() error {
+		db, err := GetDB()
+		if err != nil {
+			return fmt.Errorf("failed to get database: %w", err)
+		}
+
+		tx, err := db.BeginTx(txCtx, nil)
+		if err != nil {
+			return fmt.Errorf("failed to begin transaction: %w", err)
+		}
+		defer func() {
+			if err != nil {
+				_ = tx.Rollback()
+			}
+		}()
+
+		now := time.Now().Unix()
+		leaseUntil := now + int64(leaseDuration.Seconds())
+
+		// Check all tasks are available (SELECT FOR UPDATE for each)
+		for _, taskID := range taskIDs {
+			var currentAssignee sql.NullString
+			var lockUntil sql.NullInt64
+			var version int64
+			var status string
+
+			err = tx.QueryRowContext(txCtx, `
+				SELECT assignee, lock_until, version, status
+				FROM tasks
+				WHERE id = ?
+				FOR UPDATE
+			`, taskID).Scan(&currentAssignee, &lockUntil, &version, &status)
+
+			if err == sql.ErrNoRows {
+				failed = append(failed, taskID)
+				continue
+			}
+			if err != nil {
+				return fmt.Errorf("failed to query task %s: %w", taskID, err)
+			}
+
+			// Check if available
+			if currentAssignee.Valid && currentAssignee.String != "" {
+				if lockUntil.Valid && lockUntil.Int64 > now {
+					failed = append(failed, taskID)
+					continue
+				}
+			}
+
+			if status != StatusTodo && status != StatusInProgress {
+				failed = append(failed, taskID)
+				continue
+			}
+
+			// Claim task
+			_, err = tx.ExecContext(txCtx, `
+				UPDATE tasks SET
+					assignee = ?,
+					assigned_at = ?,
+					lock_until = ?,
+					status = ?,
+					version = version + 1,
+					updated_at = strftime('%s', 'now')
+				WHERE id = ? AND version = ?
+			`, agentID, now, leaseUntil, StatusInProgress, taskID, version)
+
+			if err != nil {
+				return fmt.Errorf("failed to claim task %s: %w", taskID, err)
+			}
+
+			claimed = append(claimed, taskID)
+		}
+
+		// Commit only if all tasks were claimed
+		if len(failed) > 0 {
+			return fmt.Errorf("failed to claim %d tasks", len(failed))
+		}
+
+		return tx.Commit()
+	})
+
+	return claimed, failed, err
+}
+
+// Helper function to load task with relations (tags, dependencies)
+func loadTaskWithRelations(ctx context.Context, tx *sql.Tx, taskID string) (*models.Todo2Task, error) {
+	task := &models.Todo2Task{ID: taskID}
+
+	// Load tags
+	tagRows, err := tx.QueryContext(ctx, `
+		SELECT tag FROM task_tags WHERE task_id = ? ORDER BY tag
+	`, taskID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query tags: %w", err)
+	}
+	defer tagRows.Close()
+
+	for tagRows.Next() {
+		var tag string
+		if err := tagRows.Scan(&tag); err != nil {
+			return nil, fmt.Errorf("failed to scan tag: %w", err)
+		}
+		task.Tags = append(task.Tags, tag)
+	}
+
+	// Load dependencies
+	depRows, err := tx.QueryContext(ctx, `
+		SELECT depends_on_id FROM task_dependencies WHERE task_id = ? ORDER BY depends_on_id
+	`, taskID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query dependencies: %w", err)
+	}
+	defer depRows.Close()
+
+	for depRows.Next() {
+		var depID string
+		if err := depRows.Scan(&depID); err != nil {
+			return nil, fmt.Errorf("failed to scan dependency: %w", err)
+		}
+		task.Dependencies = append(task.Dependencies, depID)
+	}
+
+	return task, nil
+}
