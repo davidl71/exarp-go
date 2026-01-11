@@ -97,7 +97,7 @@ func ClaimTaskForAgent(ctx context.Context, taskID string, agentID string, lease
 				// Lock is still valid
 				result.WasLocked = true
 				result.LockedBy = currentAssignee.String
-				result.Error = fmt.Errorf("task already assigned to %s (lock expires at %d)", currentAssignee.String, lockUntil.Int64)
+				result.Error = fmt.Errorf("task %s already assigned to %s (task: %s, lock expires at %d)", taskID, currentAssignee.String, taskID, lockUntil.Int64)
 				return result.Error
 			}
 			// Lease expired - can reassign (checked in WHERE clause)
@@ -211,7 +211,11 @@ func ReleaseTask(ctx context.Context, taskID string, agentID string) error {
 
 		// Verify current assignee matches
 		if !currentAssignee.Valid || currentAssignee.String != agentID {
-			return fmt.Errorf("task not assigned to %s (current assignee: %v)", agentID, currentAssignee.String)
+			currentAssigneeStr := "none"
+			if currentAssignee.Valid {
+				currentAssigneeStr = fmt.Sprintf("%s (task: %s)", currentAssignee.String, taskID)
+			}
+			return fmt.Errorf("task %s not assigned to %s (task: %s) (current assignee: %s)", taskID, agentID, taskID, currentAssigneeStr)
 		}
 
 		// Release lock
@@ -235,7 +239,7 @@ func ReleaseTask(ctx context.Context, taskID string, agentID string) error {
 		}
 
 		if rowsAffected == 0 {
-			return fmt.Errorf("task not assigned to %s", agentID)
+			return fmt.Errorf("task %s not assigned to %s (task: %s)", taskID, agentID, taskID)
 		}
 
 		return tx.Commit()
@@ -282,7 +286,11 @@ func RenewLease(ctx context.Context, taskID string, agentID string, leaseDuratio
 
 		// Verify current assignee matches
 		if !currentAssignee.Valid || currentAssignee.String != agentID {
-			return fmt.Errorf("task not assigned to %s (current assignee: %v)", agentID, currentAssignee.String)
+			currentAssigneeStr := "none"
+			if currentAssignee.Valid {
+				currentAssigneeStr = fmt.Sprintf("%s (task: %s)", currentAssignee.String, taskID)
+			}
+			return fmt.Errorf("task %s not assigned to %s (task: %s) (current assignee: %s)", taskID, agentID, taskID, currentAssigneeStr)
 		}
 
 		// Renew lease
@@ -307,7 +315,7 @@ func RenewLease(ctx context.Context, taskID string, agentID string, leaseDuratio
 		}
 
 		if rowsAffected == 0 {
-			return fmt.Errorf("task not assigned to %s", agentID)
+			return fmt.Errorf("task %s not assigned to %s (task: %s)", taskID, agentID, taskID)
 		}
 
 		return tx.Commit()

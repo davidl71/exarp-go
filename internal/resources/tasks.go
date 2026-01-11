@@ -2,6 +2,7 @@ package resources
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"strings"
@@ -440,12 +441,13 @@ func normalizeStatus(status string) string {
 }
 
 // formatTaskForResource formats a single task for resource output
+// Includes assignee information with task ID context when available
 func formatTaskForResource(task *database.Todo2Task) map[string]interface{} {
 	if task == nil {
 		return nil
 	}
 
-	return map[string]interface{}{
+	result := map[string]interface{}{
 		"id":               task.ID,
 		"content":          task.Content,
 		"long_description": task.LongDescription,
@@ -456,4 +458,20 @@ func formatTaskForResource(task *database.Todo2Task) map[string]interface{} {
 		"completed":        task.Completed,
 		"metadata":         task.Metadata,
 	}
+
+	// Query assignee from database if available
+	ctx := context.Background()
+	db, err := database.GetDB()
+	if err == nil {
+		var assignee sql.NullString
+		err := db.QueryRowContext(ctx, `
+			SELECT assignee FROM tasks WHERE id = ?
+		`, task.ID).Scan(&assignee)
+		if err == nil && assignee.Valid && assignee.String != "" {
+			// Format assignee with task ID context
+			result["assignee"] = fmt.Sprintf("%s (task: %s)", assignee.String, task.ID)
+		}
+	}
+
+	return result
 }
