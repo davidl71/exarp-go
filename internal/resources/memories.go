@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/davidl71/exarp-go/internal/bridge"
@@ -58,11 +57,10 @@ func handleMemories(ctx context.Context, uri string) ([]byte, string, error) {
 // handleMemoriesByCategory handles the stdio://memories/category/{category} resource
 func handleMemoriesByCategory(ctx context.Context, uri string) ([]byte, string, error) {
 	// Parse category from URI: stdio://memories/category/{category}
-	parts := strings.Split(uri, "/")
-	if len(parts) < 4 {
-		return nil, "", fmt.Errorf("invalid URI format: %s", uri)
+	category, err := parseURIVariableByIndexWithValidation(uri, 3, "category", "stdio://memories/category/{category}")
+	if err != nil {
+		return nil, "", err
 	}
-	category := parts[3]
 
 	projectRoot, err := tools.FindProjectRoot()
 	if err != nil {
@@ -106,11 +104,10 @@ func handleMemoriesByCategory(ctx context.Context, uri string) ([]byte, string, 
 // handleMemoriesByTask handles the stdio://memories/task/{task_id} resource
 func handleMemoriesByTask(ctx context.Context, uri string) ([]byte, string, error) {
 	// Parse task_id from URI: stdio://memories/task/{task_id}
-	parts := strings.Split(uri, "/")
-	if len(parts) < 4 {
-		return nil, "", fmt.Errorf("invalid URI format: %s", uri)
+	taskID, err := parseURIVariableByIndexWithValidation(uri, 3, "task ID", "stdio://memories/task/{task_id}")
+	if err != nil {
+		return nil, "", err
 	}
-	taskID := parts[3]
 
 	projectRoot, err := tools.FindProjectRoot()
 	if err != nil {
@@ -197,11 +194,10 @@ func handleRecentMemories(ctx context.Context, uri string) ([]byte, string, erro
 // handleSessionMemories handles the stdio://memories/session/{date} resource
 func handleSessionMemories(ctx context.Context, uri string) ([]byte, string, error) {
 	// Parse date from URI: stdio://memories/session/{date}
-	parts := strings.Split(uri, "/")
-	if len(parts) < 4 {
-		return nil, "", fmt.Errorf("invalid URI format: %s", uri)
+	date, err := parseURIVariableByIndexWithValidation(uri, 3, "date", "stdio://memories/session/{date}")
+	if err != nil {
+		return nil, "", err
 	}
-	date := parts[3]
 
 	// Validate date format (YYYY-MM-DD)
 	if _, err := time.Parse("2006-01-02", date); err != nil {

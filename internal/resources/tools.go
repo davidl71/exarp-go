@@ -65,14 +65,9 @@ func handleAllTools(ctx context.Context, uri string) ([]byte, string, error) {
 // Returns tools filtered by category
 func handleToolsByCategory(ctx context.Context, uri string) ([]byte, string, error) {
 	// Parse category from URI: stdio://tools/{category}
-	parts := strings.Split(uri, "/")
-	if len(parts) < 4 {
-		return nil, "", fmt.Errorf("invalid URI format: %s (expected stdio://tools/{category})", uri)
-	}
-	category := parts[3] // stdio://tools/{category} -> parts[3] is the category
-
-	if category == "" {
-		return nil, "", fmt.Errorf("category cannot be empty")
+	category, err := parseURIVariableByIndexWithValidation(uri, 3, "category", "stdio://tools/{category}")
+	if err != nil {
+		return nil, "", err
 	}
 
 	catalog := tools.GetToolCatalog()

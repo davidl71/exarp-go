@@ -1,0 +1,494 @@
+---
+description: Agentic development CI integration guidelines for leveraging GitHub Actions workflows
+alwaysApply: true
+---
+
+# 🚀 Agentic Development CI Integration
+
+**⚠️ CRITICAL: Leverage Agentic CI Workflows for Agent Development ⚠️**
+
+## Overview
+
+exarp-go has a comprehensive agentic development CI workflow (`.github/workflows/agentic-ci.yml`) that validates agent behavior, tests MCP tools, and provides advanced evaluation capabilities. This rule helps AI assistants understand when and how to leverage these CI capabilities.
+
+---
+
+## Available CI Workflows
+
+### 1. **Agentic Development CI** (Primary)
+
+**Workflow:** `.github/workflows/agentic-ci.yml`  
+**URL:** https://github.com/davidl71/exarp-go/actions/workflows/agentic-ci.yml
+
+**Jobs:**
+1. **Build exarp-go** - Compiles binary for other jobs
+2. **Agent Validation** - Uses exarp-go's native tools (immediate, no dependencies)
+3. **AgentScope Evaluation** - Advanced evaluation (optional, requires AgentScope)
+4. **Combined Validation** - Merges all results
+
+**Triggers:**
+- Push to `main` or `develop` branches
+- Pull requests to `main` or `develop`
+- Manual dispatch via GitHub Actions UI
+
+---
+
+## When to Suggest/Use Agentic CI
+
+### ✅ **ALWAYS Suggest CI Validation When:**
+
+1. **Agent Behavior Changes**
+   - **Trigger:** Code changes to MCP tools, handlers, or agent logic
+   - **Action:** Suggest running agentic CI workflow
+   - **Reason:** "Agent behavior changed - validate with agentic CI workflow"
+   - **Usage:** "Run agentic CI to validate agent behavior changes"
+
+2. **New MCP Tools Added**
+   - **Trigger:** New tool registered in `internal/tools/registry.go`
+   - **Action:** Suggest CI validation
+   - **Reason:** "New MCP tool added - validate in CI"
+   - **Usage:** "Validate new MCP tool with agentic CI"
+
+3. **Task Workflow Changes**
+   - **Trigger:** Changes to `task_workflow` tool or Todo2 integration
+   - **Action:** Suggest CI validation
+   - **Reason:** "Task workflow changed - validate Todo2 integration"
+   - **Usage:** "Test task workflow changes with agentic CI"
+
+4. **Python Bridge Changes**
+   - **Trigger:** Changes to `bridge/execute_tool.py` or bridge scripts
+   - **Action:** Suggest CI validation
+   - **Reason:** "Python bridge changed - validate tool execution"
+   - **Usage:** "Validate Python bridge changes with agentic CI"
+
+5. **Before Merging PRs**
+   - **Trigger:** PR is ready for review
+   - **Action:** Verify agentic CI has passed
+   - **Reason:** "Ensure agentic CI passes before merging"
+   - **Usage:** "Check agentic CI status before merging PR"
+
+6. **After AgentScope Integration**
+   - **Trigger:** AgentScope evaluation added or modified
+   - **Action:** Run full CI workflow
+   - **Reason:** "AgentScope config changed - validate evaluation"
+   - **Usage:** "Run agentic CI to test AgentScope evaluation"
+
+---
+
+## How to Use Agentic CI
+
+### **Automatic Triggers**
+
+The workflow runs automatically on:
+- Push to `main` or `develop`
+- Pull requests to `main` or `develop`
+
+**No action needed** - workflow triggers automatically.
+
+### **Manual Trigger**
+
+```bash
+# Via GitHub CLI
+gh workflow run agentic-ci.yml
+
+# Or visit GitHub Actions UI
+# https://github.com/davidl71/exarp-go/actions/workflows/agentic-ci.yml
+```
+
+### **Check Workflow Status**
+
+```bash
+# List recent runs
+gh run list --workflow=agentic-ci.yml
+
+# Watch current run
+gh run watch
+
+# View specific run
+gh run view <run-id>
+```
+
+---
+
+## CI Workflow Capabilities
+
+### **Job 1: Build exarp-go**
+
+**What it does:**
+- Compiles exarp-go binary
+- Caches Go modules
+- Uploads binary as artifact
+
+**When to check:**
+- If build fails, check Go compilation errors
+- Verify Go version compatibility (1.25)
+
+**Artifact:** `exarp-go-binary`
+
+---
+
+### **Job 2: Agent Validation (exarp-go)**
+
+**What it does:**
+- Validates all 24 MCP tools
+- Tests agent behavior using `testing` tool
+- Checks Todo2 integration using `task_workflow` tool
+- Generates agent report using `report` tool
+
+**When to check:**
+- If validation fails, check tool execution logs
+- Review agent report for issues
+- Verify Todo2 database connectivity
+
+**Artifact:** `agent-validation-report`
+
+**Key Commands Run:**
+```bash
+./bin/exarp-go -test tool_workflow
+./bin/exarp-go -test automation
+./bin/exarp-go -test testing
+./bin/exarp-go -tool testing -args '{"action":"validate",...}'
+./bin/exarp-go -tool task_workflow -args '{"action":"sync"}'
+./bin/exarp-go -tool report -args '{"action":"overview",...}'
+```
+
+---
+
+### **Job 3: AgentScope Evaluation (Optional)**
+
+**What it does:**
+- Runs advanced agent evaluation using AgentScope
+- Tests agent behavior against configured test cases
+- Generates detailed evaluation reports
+
+**When to check:**
+- If evaluation fails, check AgentScope installation
+- Review evaluation results for metrics
+- Verify test case configuration
+
+**Artifact:** `agentscope-evaluation-results`
+
+**Requirements:**
+- AgentScope installed (`pip install agentscope pyyaml`)
+- Configuration file: `.github/agentscope_eval.yaml`
+
+**Note:** This job is optional - workflow continues if AgentScope unavailable.
+
+---
+
+### **Job 4: Combined Validation**
+
+**What it does:**
+- Combines results from both validation approaches
+- Creates unified validation report
+- Uploads combined report
+
+**When to check:**
+- Review combined report for comprehensive validation
+- Check for discrepancies between validation methods
+
+**Artifact:** `combined-agent-validation-report`
+
+---
+
+## Integration with Development Workflow
+
+### **During Development**
+
+**Before Committing:**
+```bash
+# Test locally first
+make build
+./bin/exarp-go -test tool_workflow
+./bin/exarp-go -tool testing -args '{"action":"validate"}'
+```
+
+**After Pushing:**
+- Workflow runs automatically
+- Monitor status: `gh run watch`
+- Review artifacts if validation fails
+
+---
+
+### **During Code Review**
+
+**Check CI Status:**
+- Verify agentic CI workflow has passed
+- Review validation reports in artifacts
+- Check for agent behavior regressions
+
+**If CI Fails:**
+- Review workflow logs
+- Fix issues locally
+- Re-run workflow after fixes
+
+---
+
+### **After Merging**
+
+**Monitor Results:**
+- Review combined validation report
+- Check for any new issues
+- Update AgentScope config if needed
+
+---
+
+## Self-Hosted Runners
+
+### **Configuration**
+
+The workflow uses self-hosted runners when available:
+```yaml
+runs-on: self-hosted  # Falls back to ubuntu-latest
+```
+
+**Benefits:**
+- ✅ Unlimited CI minutes
+- ✅ Faster builds (local network)
+- ✅ Access to local dependencies
+- ✅ Test on real hardware
+
+**Current Runners:**
+- Ubuntu agent: `192.168.192.57` (if configured)
+- macOS M4 agent: `192.168.192.141` (if configured)
+
+**Fallback:** If self-hosted runners unavailable, workflow uses `ubuntu-latest`.
+
+---
+
+## AgentScope Integration
+
+### **Setup (Optional)**
+
+To enable AgentScope evaluation:
+
+```bash
+# Install AgentScope
+pip install agentscope pyyaml
+```
+
+**Configuration:** `.github/agentscope_eval.yaml`
+
+**Test Cases:**
+- MCP tool validation
+- Task workflow validation
+- Automation workflow validation
+- Testing tool validation
+
+**Metrics:**
+- Tool success rate (threshold: 95%)
+- Response time (threshold: 2s average)
+- Error rate (threshold: 5% max)
+
+---
+
+## Troubleshooting CI Issues
+
+### **Build Fails**
+
+**Check:**
+- Go version compatibility (1.25)
+- Go module dependencies
+- Compilation errors
+
+**Fix:**
+```bash
+go mod tidy
+go build ./cmd/server
+```
+
+---
+
+### **Agent Validation Fails**
+
+**Check:**
+- Tool execution logs
+- Todo2 database connectivity
+- MCP tool registration
+
+**Fix:**
+```bash
+# Test locally
+./bin/exarp-go -test tool_workflow
+./bin/exarp-go -tool testing -args '{"action":"validate"}'
+```
+
+---
+
+### **AgentScope Evaluation Fails**
+
+**Check:**
+- AgentScope installation
+- Configuration file syntax
+- Test case definitions
+
+**Fix:**
+```bash
+# Install AgentScope
+pip install agentscope pyyaml
+
+# Test locally
+python bridge/agent_evaluation.py --config .github/agentscope_eval.yaml
+```
+
+**Note:** AgentScope failures don't block workflow - it's optional.
+
+---
+
+## Best Practices
+
+### ✅ **DO:**
+
+1. **Run CI Before Merging**
+   - Always verify agentic CI passes before merging PRs
+   - Review validation reports for issues
+
+2. **Test Locally First**
+   - Run validation commands locally before pushing
+   - Fix issues before triggering CI
+
+3. **Monitor Workflow Status**
+   - Check workflow status after pushing
+   - Review artifacts for detailed results
+
+4. **Update Configs When Needed**
+   - Update AgentScope config when adding test cases
+   - Adjust metrics thresholds as needed
+
+5. **Use Self-Hosted Runners**
+   - Set up self-hosted runners for faster builds
+   - Unlimited CI minutes
+
+### ❌ **DON'T:**
+
+1. **Don't Skip CI**
+   - Always wait for CI to pass before merging
+   - Don't merge PRs with failing CI
+
+2. **Don't Ignore Validation Failures**
+   - Review and fix validation failures
+   - Don't disable validation checks
+
+3. **Don't Hardcode Test Values**
+   - Use configuration files for test cases
+   - Don't hardcode thresholds in code
+
+---
+
+## AI Assistant Guidelines
+
+### **When to Suggest CI:**
+
+1. **After Code Changes**
+   - "Agent behavior changed - run agentic CI to validate"
+   - "New MCP tool added - validate with agentic CI"
+
+2. **Before PR Review**
+   - "Check agentic CI status before requesting review"
+   - "Verify agentic CI passes before merging"
+
+3. **After CI Failures**
+   - "Agentic CI failed - review logs and fix issues"
+   - "Validation failed - check tool execution logs"
+
+4. **For New Features**
+   - "New agent feature added - validate with agentic CI"
+   - "Agent workflow changed - test with agentic CI"
+
+### **How to Reference CI:**
+
+**In Code Comments:**
+```go
+// This tool is validated by agentic CI workflow
+// See: .github/workflows/agentic-ci.yml
+```
+
+**In Task Descriptions:**
+```markdown
+📋 **Acceptance Criteria:**
+- Agentic CI workflow passes
+- All MCP tools validate successfully
+- Agent behavior tests pass
+```
+
+**In PR Descriptions:**
+```markdown
+## CI Status
+- ✅ Agentic CI: [Link to workflow run]
+- ✅ Agent Validation: Passed
+- ✅ AgentScope Evaluation: Passed (optional)
+```
+
+---
+
+## Quick Reference
+
+### **Workflow File**
+- Location: `.github/workflows/agentic-ci.yml`
+- Documentation: `docs/AGENTIC_CI_SETUP.md`
+
+### **Configuration Files**
+- AgentScope Config: `.github/agentscope_eval.yaml`
+- Bridge Script: `bridge/agent_evaluation.py`
+
+### **Key Commands**
+```bash
+# Check workflow status
+gh run list --workflow=agentic-ci.yml
+
+# Watch workflow
+gh run watch
+
+# Manual trigger
+gh workflow run agentic-ci.yml
+
+# Test locally
+make build
+./bin/exarp-go -test tool_workflow
+```
+
+### **Artifacts**
+- `exarp-go-binary` - Compiled binary
+- `agent-validation-report` - exarp-go validation results
+- `agentscope-evaluation-results` - AgentScope evaluation (optional)
+- `combined-agent-validation-report` - Combined results
+
+---
+
+## Integration with Other Rules
+
+### **Todo2 Workflow Integration**
+
+When tasks move to "Review" status:
+- Suggest checking agentic CI status
+- Verify agent behavior hasn't regressed
+- Review validation reports
+
+### **Testing Tool Integration**
+
+The `testing` tool is used in CI:
+- `action=validate` - Validates test structure
+- `action=run` - Runs tests
+- `action=coverage` - Generates coverage
+
+### **Report Tool Integration**
+
+The `report` tool generates CI reports:
+- `action=overview` - Project overview
+- `action=scorecard` - Project scorecard
+- `include_metrics=true` - Include metrics
+
+---
+
+## References
+
+- **Workflow:** `.github/workflows/agentic-ci.yml`
+- **Setup Guide:** `docs/AGENTIC_CI_SETUP.md`
+- **Integration Analysis:** `docs/research/AGENTIC_CI_EXARP_GO_INTEGRATION.md`
+- **Tool Research:** `docs/research/AGENTIC_DEVELOPMENT_CI_TOOLS.md`
+- **AgentScope Config:** `.github/agentscope_eval.yaml`
+- **Bridge Script:** `bridge/agent_evaluation.py`
+
+---
+
+**Remember:** Agentic CI validates that your agent development maintains quality and reliability. Always leverage it when making agent-related changes!

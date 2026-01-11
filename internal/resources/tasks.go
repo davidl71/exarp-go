@@ -65,16 +65,9 @@ func handleAllTasks(ctx context.Context, uri string) ([]byte, string, error) {
 // Returns a single task by ID
 func handleTaskByID(ctx context.Context, uri string) ([]byte, string, error) {
 	// Parse task_id from URI: stdio://tasks/{task_id}
-	// URI format: stdio://tasks/{task_id}
-	// Split by "/" gives: ["stdio:", "", "tasks", "{task_id}"]
-	parts := strings.Split(uri, "/")
-	if len(parts) < 4 {
-		return nil, "", fmt.Errorf("invalid URI format: %s (expected stdio://tasks/{task_id})", uri)
-	}
-	taskID := parts[3] // stdio://tasks/{task_id} -> parts[3] is the task_id
-
-	if taskID == "" {
-		return nil, "", fmt.Errorf("task ID cannot be empty")
+	taskID, err := parseURIVariableByIndexWithValidation(uri, 3, "task ID", "stdio://tasks/{task_id}")
+	if err != nil {
+		return nil, "", err
 	}
 
 	projectRoot, err := tools.FindProjectRoot()
@@ -138,14 +131,9 @@ func formatTasksForResource(tasks []*database.Todo2Task) []map[string]interface{
 // Returns tasks filtered by status (Todo, In Progress, Done)
 func handleTasksByStatus(ctx context.Context, uri string) ([]byte, string, error) {
 	// Parse status from URI: stdio://tasks/status/{status}
-	parts := strings.Split(uri, "/")
-	if len(parts) < 4 {
-		return nil, "", fmt.Errorf("invalid URI format: %s (expected stdio://tasks/status/{status})", uri)
-	}
-	status := parts[3]
-
-	if status == "" {
-		return nil, "", fmt.Errorf("status cannot be empty")
+	status, err := parseURIVariableByIndexWithValidation(uri, 3, "status", "stdio://tasks/status/{status}")
+	if err != nil {
+		return nil, "", err
 	}
 
 	// Normalize status (case-insensitive)
@@ -218,14 +206,9 @@ func handleTasksByStatus(ctx context.Context, uri string) ([]byte, string, error
 // Returns tasks filtered by priority (low, medium, high, critical)
 func handleTasksByPriority(ctx context.Context, uri string) ([]byte, string, error) {
 	// Parse priority from URI: stdio://tasks/priority/{priority}
-	parts := strings.Split(uri, "/")
-	if len(parts) < 4 {
-		return nil, "", fmt.Errorf("invalid URI format: %s (expected stdio://tasks/priority/{priority})", uri)
-	}
-	priority := parts[3]
-
-	if priority == "" {
-		return nil, "", fmt.Errorf("priority cannot be empty")
+	priority, err := parseURIVariableByIndexWithValidation(uri, 3, "priority", "stdio://tasks/priority/{priority}")
+	if err != nil {
+		return nil, "", err
 	}
 
 	// Normalize priority (case-insensitive, lowercase)
@@ -298,14 +281,9 @@ func handleTasksByPriority(ctx context.Context, uri string) ([]byte, string, err
 // Returns tasks filtered by tag (any tag value)
 func handleTasksByTag(ctx context.Context, uri string) ([]byte, string, error) {
 	// Parse tag from URI: stdio://tasks/tag/{tag}
-	parts := strings.Split(uri, "/")
-	if len(parts) < 4 {
-		return nil, "", fmt.Errorf("invalid URI format: %s (expected stdio://tasks/tag/{tag})", uri)
-	}
-	tag := parts[3]
-
-	if tag == "" {
-		return nil, "", fmt.Errorf("tag cannot be empty")
+	tag, err := parseURIVariableByIndexWithValidation(uri, 3, "tag", "stdio://tasks/tag/{tag}")
+	if err != nil {
+		return nil, "", err
 	}
 
 	projectRoot, err := tools.FindProjectRoot()
