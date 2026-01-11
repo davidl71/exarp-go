@@ -794,32 +794,24 @@ func registerBatch3Tools(server framework.MCPServer) error {
 		return fmt.Errorf("failed to register automation: %w", err)
 	}
 
-	// T-38: tool_catalog
+	// T-38: tool_catalog (help action only - list action converted to stdio://tools resources)
 	if err := server.RegisterTool(
 		"tool_catalog",
-		"[HINT: Tool catalog. action=list|help. Unified tool catalog and help.]",
+		"[HINT: Tool catalog. action=help. Get help for a specific tool. Use stdio://tools resources for listing tools.]",
 		framework.ToolSchema{
 			Type: "object",
 			Properties: map[string]interface{}{
 				"action": map[string]interface{}{
 					"type":    "string",
-					"enum":    []string{"list", "help"},
-					"default": "list",
-				},
-				"category": map[string]interface{}{
-					"type": "string",
-				},
-				"persona": map[string]interface{}{
-					"type": "string",
-				},
-				"include_examples": map[string]interface{}{
-					"type":    "boolean",
-					"default": true,
+					"enum":    []string{"help"},
+					"default": "help",
 				},
 				"tool_name": map[string]interface{}{
-					"type": "string",
+					"type":        "string",
+					"description": "Name of the tool to get help for (required)",
 				},
 			},
+			Required: []string{"tool_name"},
 		},
 		handleToolCatalog,
 	); err != nil {

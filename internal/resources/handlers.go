@@ -155,6 +155,28 @@ func RegisterAllResources(server framework.MCPServer) error {
 		return fmt.Errorf("failed to register models resource: %w", err)
 	}
 
+	// stdio://tools
+	if err := server.RegisterResource(
+		"stdio://tools",
+		"All Tools",
+		"Get all tools in the catalog.",
+		"application/json",
+		handleAllTools,
+	); err != nil {
+		return fmt.Errorf("failed to register all tools resource: %w", err)
+	}
+
+	// stdio://tools/{category}
+	if err := server.RegisterResource(
+		"stdio://tools/{category}",
+		"Tools by Category",
+		"Get tools filtered by category.",
+		"application/json",
+		handleToolsByCategory,
+	); err != nil {
+		return fmt.Errorf("failed to register tools by category resource: %w", err)
+	}
+
 	// stdio://tasks
 	if err := server.RegisterResource(
 		"stdio://tasks",

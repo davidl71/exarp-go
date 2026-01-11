@@ -14,9 +14,9 @@ func TestRegisterAllResources(t *testing.T) {
 		t.Fatalf("RegisterAllResources() error = %v", err)
 	}
 
-	// Verify all 19 resources are registered (11 base + 6 task resources + 1 server resource + 1 models resource)
-	if server.ResourceCount() != 19 {
-		t.Errorf("server.ResourceCount() = %v, want 19", server.ResourceCount())
+	// Verify all 21 resources are registered (11 base + 6 task resources + 1 server resource + 1 models resource + 2 tools resources)
+	if server.ResourceCount() != 21 {
+		t.Errorf("server.ResourceCount() = %v, want 21", server.ResourceCount())
 	}
 
 	// Verify specific resources are registered
@@ -34,6 +34,8 @@ func TestRegisterAllResources(t *testing.T) {
 		"stdio://session/mode",
 		"stdio://server/status",
 		"stdio://models",
+		"stdio://tools",
+		"stdio://tools/{category}",
 		"stdio://tasks",
 		"stdio://tasks/{task_id}",
 		"stdio://tasks/status/{status}",
@@ -140,6 +142,16 @@ func TestRegisterAllResources_URIParsing(t *testing.T) {
 			want: true,
 		},
 		{
+			name: "all tools",
+			uri:  "stdio://tools",
+			want: true,
+		},
+		{
+			name: "tools by category pattern",
+			uri:  "stdio://tools/{category}",
+			want: true,
+		},
+		{
 			name: "all tasks",
 			uri:  "stdio://tasks",
 			want: true,
@@ -204,6 +216,8 @@ func TestRegisterAllResources_HandlerRegistration(t *testing.T) {
 		"stdio://session/mode",
 		"stdio://server/status",
 		"stdio://models",
+		"stdio://tools",
+		"stdio://tools/{category}",
 		"stdio://tasks",
 		"stdio://tasks/{task_id}",
 		"stdio://tasks/status/{status}",

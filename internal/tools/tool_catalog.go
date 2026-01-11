@@ -28,9 +28,9 @@ type ToolCatalogResponse struct {
 	FiltersApplied      map[string]interface{} `json:"filters_applied"`
 }
 
-// getToolCatalog returns the static tool catalog
+// GetToolCatalog returns the static tool catalog
 // This is a simplified version that can be enhanced to read from registry dynamically
-func getToolCatalog() map[string]ToolCatalogEntry {
+func GetToolCatalog() map[string]ToolCatalogEntry {
 	return map[string]ToolCatalogEntry{
 		// Project Health
 		"project_scorecard": {
@@ -271,25 +271,25 @@ func getToolCatalog() map[string]ToolCatalogEntry {
 }
 
 // handleToolCatalogNative handles the tool_catalog tool with native Go implementation
+// Note: "list" action converted to stdio://tools and stdio://tools/{category} resources
+// This tool now only handles the "help" action
 func handleToolCatalogNative(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	action, _ := params["action"].(string)
 	if action == "" {
-		action = "list"
+		action = "help"
 	}
 
 	switch action {
-	case "list":
-		return handleToolCatalogList(ctx, params)
 	case "help":
 		return handleToolCatalogHelp(ctx, params)
 	default:
-		return nil, fmt.Errorf("unknown tool_catalog action: %s. Use 'list' or 'help'", action)
+		return nil, fmt.Errorf("unknown tool_catalog action: %s. Use 'help' (list action converted to stdio://tools resources)", action)
 	}
 }
 
 // handleToolCatalogList handles the list action
 func handleToolCatalogList(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
-	catalog := getToolCatalog()
+	catalog := GetToolCatalog()
 
 	// Get filters
 	category, _ := params["category"].(string)
@@ -375,7 +375,7 @@ func handleToolCatalogHelp(ctx context.Context, params map[string]interface{}) (
 		}, nil
 	}
 
-	catalog := getToolCatalog()
+	catalog := GetToolCatalog()
 	tool, exists := catalog[toolName]
 	if !exists {
 		errorResponse := map[string]interface{}{

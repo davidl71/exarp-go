@@ -132,39 +132,8 @@ func TestHandleToolCatalog(t *testing.T) {
 		wantErr bool
 		check   func(t *testing.T, result []framework.TextContent)
 	}{
-		{
-			name: "list action - no filters",
-			args: map[string]interface{}{
-				"action": "list",
-			},
-			wantErr: false,
-			check: func(t *testing.T, result []framework.TextContent) {
-				if len(result) == 0 {
-					t.Error("expected non-empty result")
-					return
-				}
-				text := result[0].Text
-				if !hasSubstring(text, "tools") {
-					t.Error("expected 'tools' field in response")
-				}
-				if !hasSubstring(text, "count") {
-					t.Error("expected 'count' field in response")
-				}
-			},
-		},
-		{
-			name: "list action - with category filter",
-			args: map[string]interface{}{
-				"action":   "list",
-				"category": "Task Management",
-			},
-			wantErr: false,
-			check: func(t *testing.T, result []framework.TextContent) {
-				if len(result) == 0 {
-					t.Error("expected non-empty result")
-				}
-			},
-		},
+		// Note: "list" action converted to stdio://tools and stdio://tools/{category} resources
+		// This test now only covers the "help" action
 		{
 			name: "help action - valid tool",
 			args: map[string]interface{}{
@@ -260,4 +229,210 @@ func hasSubstring(s, substr string) bool {
 		}
 	}
 	return false
+}
+
+func TestHandleContextBatchNative(t *testing.T) {
+	ctx := context.Background()
+
+	tests := []struct {
+		name    string
+		params  map[string]interface{}
+		wantErr bool
+		check   func(t *testing.T, result []framework.TextContent)
+	}{
+		{
+			name: "valid batch with JSON string items - combine true",
+			params: map[string]interface{}{
+				"items": `[{"data": "First item"}, {"data": "Second item"}]`,
+				"level": "brief",
+				"combine": true,
+			},
+			wantErr: false,
+			check: func(t *testing.T, result []framework.TextContent) {
+				if len(result) == 0 {
+					t.Error("expected non-empty result")
+					return
+				}
+				text := result[0].Text
+				if !hasSubstring(text, "combined_summary") {
+					t.Error("expected 'combined_summary' field in response")
+				}
+				if !hasSubstring(text, "total_items") {
+					t.Error("expected 'total_items' field in response")
+				}
+				if !hasSubstring(text, "token_estimate") {
+					t.Error("expected 'token_estimate' field in response")
+				}
+			},
+		},
+		{
+			name: "valid batch with array items - combine false",
+			params: map[string]interface{}{
+				"items": []interface{}{
+					map[string]interface{}{"data": "Item one"},
+					map[string]interface{}{"data": "Item two"},
+				},
+				"combine": false,
+			},
+			wantErr: false,
+			check: func(t *testing.T, result []framework.TextContent) {
+				if len(result) == 0 {
+					t.Error("expected non-empty result")
+					return
+				}
+				text := result[0].Text
+				if !hasSubstring(text, "summaries") {
+					t.Error("expected 'summaries' field in response when combine=false")
+				}
+				// Should not have combined_summary when combine=false
+				if hasSubstring(text, "combined_summary") {
+					t.Error("unexpected 'combined_summary' field when combine=false")
+				}
+			},
+		},
+		{
+			name: "single item batch",
+			params: map[string]interface{}{
+				"items": `[{"data": "Single item to summarize"}]`,
+			},
+			wantErr: false,
+			check: func(t *testing.T, result []framework.TextContent) {
+				if len(result) == 0 {
+					t.Error("expected non-empty result")
+					return
+				}
+				text := result[0].Text
+				if !hasSubstring(text, "total_items") {
+					t.Error("expected 'total_items' field in response")
+				}
+			},
+		},
+		{
+			name: "batch with different levels - brief",
+			params: map[string]interface{}{
+				"items": `[{"data": "Test data for brief summary"}]`,
+				"level": "brief",
+			},
+			wantErr: false,
+			check: func(t *testing.T, result []framework.TextContent) {
+				if len(result) == 0 {
+					t.Error("expected non-empty result")
+					return
+				}
+				text := result[0].Text
+				// Level is stored in individual summaries, verify response structure
+				if !hasSubstring(text, "combined_summary") || !hasSubstring(text, "total_items") {
+					t.Error("expected valid batch response structure")
+				}
+			},
+		},
+		{
+			name: "batch with different levels - detailed",
+			params: map[string]interface{}{
+				"items": `[{"data": "Test data for detailed summary"}]`,
+				"level": "detailed",
+			},
+			wantErr: false,
+			check: func(t *testing.T, result []framework.TextContent) {
+				if len(result) == 0 {
+					t.Error("expected non-empty result")
+					return
+				}
+				text := result[0].Text
+				// Level is stored in individual summaries, verify response structure
+				if !hasSubstring(text, "combined_summary") || !hasSubstring(text, "total_items") {
+					t.Error("expected valid batch response structure")
+				}
+			},
+		},
+		{
+			name: "batch with tool_type",
+			params: map[string]interface{}{
+				"items": `[{"data": "Test data", "tool_type": "analysis"}]`,
+			},
+			wantErr: false,
+			check: func(t *testing.T, result []framework.TextContent) {
+				if len(result) == 0 {
+					t.Error("expected non-empty result")
+					return
+				}
+				// Should process successfully with tool_type
+			},
+		},
+		{
+			name: "empty batch list",
+			params: map[string]interface{}{
+				"items": `[]`,
+			},
+			wantErr: false,
+			check: func(t *testing.T, result []framework.TextContent) {
+				if len(result) == 0 {
+					t.Error("expected non-empty result")
+					return
+				}
+				text := result[0].Text
+				if !hasSubstring(text, "total_items") {
+					t.Error("expected 'total_items' field in response")
+				}
+				if !hasSubstring(text, "0") {
+					t.Error("expected 0 items in response")
+				}
+			},
+		},
+		{
+			name: "missing items parameter",
+			params: map[string]interface{}{
+				"level": "brief",
+			},
+			wantErr: true,
+		},
+		{
+			name: "nil items parameter",
+			params: map[string]interface{}{
+				"items": nil,
+			},
+			wantErr: true,
+		},
+		{
+			name: "invalid JSON items",
+			params: map[string]interface{}{
+				"items": `[invalid json`,
+			},
+			wantErr: true,
+		},
+		{
+			name: "invalid items type (not string or array)",
+			params: map[string]interface{}{
+				"items": 123, // Invalid type
+			},
+			wantErr: true,
+		},
+		{
+			name: "items with data field and direct data",
+			params: map[string]interface{}{
+				"items": `[{"data": "Item with data field"}, "Item without data field"]`,
+			},
+			wantErr: false,
+			check: func(t *testing.T, result []framework.TextContent) {
+				if len(result) == 0 {
+					t.Error("expected non-empty result")
+					return
+				}
+				// Should process both formats
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result, err := handleContextBatchNative(ctx, tt.params)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("handleContextBatchNative() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !tt.wantErr && tt.check != nil {
+				tt.check(t, result)
+			}
+		})
+	}
 }
