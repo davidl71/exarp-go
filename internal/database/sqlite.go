@@ -37,8 +37,11 @@ func Init(projectRoot string) error {
 		return fmt.Errorf("failed to create .todo2 directory: %w", err)
 	}
 
-	// Open database connection
-	db, err := sql.Open("sqlite3", dbPath)
+	// Open database connection with foreign keys enabled via DSN parameter
+	// Using DSN parameter ensures foreign keys are enabled for ALL connections in the pool
+	// (PRAGMA statements only affect the connection they're executed on)
+	dsn := dbPath + "?_foreign_keys=1"
+	db, err := sql.Open("sqlite3", dsn)
 	if err != nil {
 		return fmt.Errorf("failed to open database: %w", err)
 	}
@@ -49,9 +52,7 @@ func Init(projectRoot string) error {
 	}
 
 	// Set SQLite PRAGMA settings (must be done outside transactions)
-	if _, err := db.Exec("PRAGMA foreign_keys = ON"); err != nil {
-		return fmt.Errorf("failed to set foreign_keys: %w", err)
-	}
+	// Note: foreign_keys is now set via DSN parameter above, so we don't need to set it here
 	if _, err := db.Exec("PRAGMA journal_mode = WAL"); err != nil {
 		return fmt.Errorf("failed to set journal_mode: %w", err)
 	}
