@@ -33,8 +33,9 @@ type ModeInferenceResult struct {
 var lastInferenceCache *ModeInferenceResult
 var lastInferenceTime time.Time
 
-// handleInferSessionModeNative handles the infer_session_mode tool with native Go implementation
-func handleInferSessionModeNative(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
+// HandleInferSessionModeNative handles the infer_session_mode tool with native Go implementation
+// Exported for use by resources package
+func HandleInferSessionModeNative(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	forceRecompute, _ := params["force_recompute"].(bool)
 
 	// Check cache (within 2 minutes) unless forcing recompute
@@ -89,6 +90,12 @@ func handleInferSessionModeNative(ctx context.Context, params map[string]interfa
 	lastInferenceTime = time.Now()
 
 	return marshalInferenceResult(result)
+}
+
+// handleInferSessionModeNative is an alias for HandleInferSessionModeNative
+// Kept for backward compatibility with existing tool handler
+func handleInferSessionModeNative(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
+	return HandleInferSessionModeNative(ctx, params)
 }
 
 // marshalInferenceResult marshals the inference result to JSON

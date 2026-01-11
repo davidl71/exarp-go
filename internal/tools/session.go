@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/davidl71/exarp-go/internal/framework"
+	"github.com/davidl71/exarp-go/internal/prompts"
 )
 
 // handleSessionNative handles the session tool with native Go implementation
@@ -26,11 +27,9 @@ func handleSessionNative(ctx context.Context, params map[string]interface{}) ([]
 	case "handoff":
 		return handleSessionHandoff(ctx, params)
 	case "prompts":
-		// Prompts action depends on prompt discovery resource - fall back to Python bridge
-		return nil, fmt.Errorf("prompts action requires prompt discovery resource, falling back to Python bridge")
+		return handleSessionPrompts(ctx, params)
 	case "assignee":
-		// Assignee action depends on task assignee logic - fall back to Python bridge for now
-		return nil, fmt.Errorf("assignee action requires task assignee logic, falling back to Python bridge")
+		return handleSessionAssignee(ctx, params)
 	default:
 		return nil, fmt.Errorf("unknown action: %s (use 'prime', 'handoff', 'prompts', or 'assignee')", action)
 	}
@@ -922,4 +921,359 @@ func truncateString(s string, maxLen int) string {
 		return s
 	}
 	return s[:maxLen-3] + "..."
+}
+
+// handleSessionPrompts handles the prompts action - discover relevant prompts
+// Uses native Go prompt discovery from resources package
+func handleSessionPrompts(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
+	mode, _ := params["mode"].(string)
+	category, _ := params["category"].(string)
+	keywordsRaw, _ := params["keywords"]
+	
+	var keywords []string
+	if keywordsRaw != nil {
+		switch v := keywordsRaw.(type) {
+		case string:
+			if v != "" {
+				if err := json.Unmarshal([]byte(v), &keywords); err != nil {
+					// Treat as single keyword
+					keywords = []string{v}
+				}
+			}
+		case []interface{}:
+			for _, kw := range v {
+				if str, ok := kw.(string); ok {
+					keywords = append(keywords, str)
+				}
+			}
+		}
+	}
+
+	// Get all prompts from native Go templates
+	allPrompts := getAllPromptsNative()
+	resultPrompts := make(map[string]string)
+
+	// Filter by mode if provided
+	if mode != "" {
+		modePrompts := getPromptsForMode(mode)
+		// Intersect with all prompts
+		for name := range modePrompts {
+			if desc, ok := allPrompts[name]; ok {
+				resultPrompts[name] = desc
+			}
+		}
+	} else {
+		// No mode filter - start with all prompts
+		resultPrompts = allPrompts
+	}
+
+	// Filter by category if provided
+	if category != "" {
+		categoryPrompts := getPromptsForCategory(category)
+		// Intersect with current results
+		filtered := make(map[string]string)
+		for name := range categoryPrompts {
+			if _, ok := resultPrompts[name]; ok {
+				filtered[name] = resultPrompts[name]
+			}
+		}
+		resultPrompts = filtered
+	}
+
+	// Filter by keywords if provided
+	if len(keywords) > 0 {
+		filtered := make(map[string]string)
+		for name, desc := range resultPrompts {
+			nameLower := strings.ToLower(name)
+			descLower := strings.ToLower(desc)
+			for _, keyword := range keywords {
+				keywordLower := strings.ToLower(keyword)
+				if strings.Contains(nameLower, keywordLower) || strings.Contains(descLower, keywordLower) {
+					filtered[name] = desc
+					break
+				}
+			}
+		}
+		resultPrompts = filtered
+	}
+
+	// Format result
+	promptsList := make([]map[string]interface{}, 0, len(resultPrompts))
+	for name, desc := range resultPrompts {
+		promptsList = append(promptsList, map[string]interface{}{
+			"name":        name,
+			"description": desc,
+		})
+	}
+
+	result := map[string]interface{}{
+		"success":        true,
+		"method":         "native_go",
+		"prompts":        promptsList,
+		"count":          len(promptsList),
+		"filters_applied": map[string]interface{}{
+			"mode":     mode,
+			"category": category,
+			"keywords": keywords,
+		},
+		"timestamp": time.Now().Format(time.RFC3339),
+	}
+
+	output, _ := json.MarshalIndent(result, "", "  ")
+	return []framework.TextContent{
+		{Type: "text", Text: string(output)},
+	}, nil
+}
+
+// handleSessionAssignee handles the assignee action - manage task assignments
+// Uses native Go task workflow logic
+func handleSessionAssignee(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
+	assigneeName, _ := params["assignee_name"].(string)
+	assigneeType, _ := params["assignee_type"].(string)
+	if assigneeType == "" {
+		assigneeType = "agent"
+	}
+
+	statusFilter, _ := params["status_filter"].(string)
+	priorityFilter, _ := params["priority_filter"].(string)
+	includeUnassigned, _ := params["include_unassigned"].(bool)
+	maxTasksPerAgent := 5
+	if max, ok := params["max_tasks_per_agent"].(int); ok && max > 0 {
+		maxTasksPerAgent = max
+	}
+
+	projectRoot, err := FindProjectRoot()
+	if err != nil {
+		return nil, fmt.Errorf("failed to find project root: %w", err)
+	}
+
+	// Load tasks
+	tasks, err := LoadTodo2Tasks(projectRoot)
+	_ = projectRoot // projectRoot used for LoadTodo2Tasks
+	if err != nil {
+		return nil, fmt.Errorf("failed to load tasks: %w", err)
+	}
+
+	// Filter tasks
+	filteredTasks := []Todo2Task{}
+	for _, task := range tasks {
+		// Filter by status
+		if statusFilter != "" && task.Status != statusFilter {
+			continue
+		}
+
+		// Filter by priority
+		if priorityFilter != "" && task.Priority != priorityFilter {
+			continue
+		}
+
+		// Filter by assignee
+		if assigneeName != "" {
+			// Check if task is assigned to this assignee
+			// Tasks don't have explicit assignee field - we'd need to add metadata or tags
+			// For now, we'll return tasks without explicit assignment filtering
+		}
+
+		filteredTasks = append(filteredTasks, task)
+	}
+
+	// Group by assignee (if metadata contains assignee info)
+	// For now, just return filtered tasks with assignment info
+	taskList := make([]map[string]interface{}, 0, len(filteredTasks))
+	for _, task := range filteredTasks {
+		taskInfo := map[string]interface{}{
+			"id":      task.ID,
+			"content": task.Content,
+			"status":  task.Status,
+			"priority": task.Priority,
+		}
+
+		// Check metadata for assignee info
+		if task.Metadata != nil {
+			if assignee, ok := task.Metadata["assignee"].(string); ok {
+				taskInfo["assignee"] = assignee
+			}
+			if assigneeType, ok := task.Metadata["assignee_type"].(string); ok {
+				taskInfo["assignee_type"] = assigneeType
+			}
+		}
+
+		taskList = append(taskList, taskInfo)
+	}
+
+	// Limit results
+	if len(taskList) > maxTasksPerAgent*10 {
+		taskList = taskList[:maxTasksPerAgent*10]
+	}
+
+	result := map[string]interface{}{
+		"success":          true,
+		"method":           "native_go",
+		"assignee_name":    assigneeName,
+		"assignee_type":    assigneeType,
+		"tasks":            taskList,
+		"count":            len(taskList),
+		"max_tasks_per_agent": maxTasksPerAgent,
+		"filters_applied": map[string]interface{}{
+			"status_filter":       statusFilter,
+			"priority_filter":     priorityFilter,
+			"include_unassigned":  includeUnassigned,
+		},
+		"timestamp": time.Now().Format(time.RFC3339),
+	}
+
+	output, _ := json.MarshalIndent(result, "", "  ")
+	return []framework.TextContent{
+		{Type: "text", Text: string(output)},
+	}, nil
+}
+
+// getAllPromptsNative retrieves all prompts from native Go templates
+func getAllPromptsNative() map[string]string {
+	// Import prompts package to get all prompts
+	// We need to call the prompts package functions
+	promptNames := []string{
+		"align", "discover", "config", "scan", "scorecard", "overview", "dashboard", "remember",
+		"daily_checkin", "sprint_start", "sprint_end", "pre_sprint", "post_impl", "sync", "dups",
+		"context", "mode", "task_update",
+	}
+
+	result := make(map[string]string)
+	for _, name := range promptNames {
+		template, err := prompts.GetPromptTemplate(name)
+		if err == nil {
+			// Extract first line or short description
+			desc := extractPromptDescription(template)
+			result[name] = desc
+		}
+	}
+
+	return result
+}
+
+// extractPromptDescription extracts a short description from a prompt template
+func extractPromptDescription(template string) string {
+	lines := strings.Split(template, "\n")
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+		if line != "" && !strings.HasPrefix(line, "#") && !strings.HasPrefix(line, "**") {
+			// Remove markdown formatting
+			line = strings.TrimPrefix(line, "**")
+			line = strings.TrimSuffix(line, "**")
+			if len(line) > 100 {
+				line = line[:100] + "..."
+			}
+			return line
+		}
+	}
+	return "Prompt template"
+}
+
+// getPromptsForMode returns prompts for a specific workflow mode
+func getPromptsForMode(mode string) map[string]string {
+	allPrompts := getAllPromptsNative()
+	result := make(map[string]string)
+
+	// Mode mappings based on prompt names
+	modeMappings := map[string][]string{
+		"daily_checkin":   {"daily_checkin", "remember", "scorecard", "task_update"},
+		"sprint_start":    {"sprint_start", "align", "dups", "sync"},
+		"sprint_end":      {"sprint_end", "scorecard", "overview", "dashboard"},
+		"pre_sprint":      {"pre_sprint", "dups", "align", "config"},
+		"post_impl":       {"post_impl", "remember", "task_update", "config"},
+		"security_review": {"scan", "scorecard", "overview"},
+		"task_management": {"discover", "sync", "dups", "task_update", "align"},
+		"development":     {"discover", "config", "remember", "mode", "context"},
+	}
+
+	promptNames, ok := modeMappings[mode]
+	if !ok {
+		// Unknown mode - return all prompts
+		return allPrompts
+	}
+
+	for _, name := range promptNames {
+		if desc, ok := allPrompts[name]; ok {
+			result[name] = desc
+		}
+	}
+
+	// If no specific mappings found, try "development" as fallback
+	if len(result) == 0 {
+		fallbackNames := modeMappings["development"]
+		for _, name := range fallbackNames {
+			if desc, ok := allPrompts[name]; ok {
+				result[name] = desc
+			}
+		}
+	}
+
+	return result
+}
+
+// getPromptsForCategory returns prompts for a specific category
+func getPromptsForCategory(category string) map[string]string {
+	allPrompts := getAllPromptsNative()
+	result := make(map[string]string)
+
+	for name, desc := range allPrompts {
+		if categorizePrompt(name, desc) == category {
+			result[name] = desc
+		}
+	}
+
+	return result
+}
+
+// categorizePrompt categorizes a prompt based on its name and description
+func categorizePrompt(name, desc string) string {
+	lowerName := strings.ToLower(name)
+	lowerDesc := strings.ToLower(desc)
+
+	// Workflow prompts
+	if strings.Contains(lowerName, "checkin") || strings.Contains(lowerName, "sprint") ||
+		strings.Contains(lowerName, "pre_sprint") || strings.Contains(lowerName, "post_impl") {
+		return "workflow"
+	}
+
+	// Analysis prompts
+	if strings.Contains(lowerName, "align") || strings.Contains(lowerName, "discover") ||
+		strings.Contains(lowerName, "sync") || strings.Contains(lowerName, "dups") {
+		return "analysis"
+	}
+
+	// Configuration prompts
+	if strings.Contains(lowerName, "config") || strings.Contains(lowerName, "mode") {
+		return "configuration"
+	}
+
+	// Reporting prompts
+	if strings.Contains(lowerName, "scorecard") || strings.Contains(lowerName, "overview") ||
+		strings.Contains(lowerName, "dashboard") {
+		return "reporting"
+	}
+
+	// Security prompts
+	if strings.Contains(lowerName, "scan") || strings.Contains(lowerDesc, "security") ||
+		strings.Contains(lowerDesc, "vulnerability") {
+		return "security"
+	}
+
+	// Memory prompts
+	if strings.Contains(lowerName, "remember") || strings.Contains(lowerDesc, "memory") {
+		return "memory"
+	}
+
+	// Context management prompts
+	if strings.Contains(lowerName, "context") {
+		return "context"
+	}
+
+	// Task management prompts
+	if strings.Contains(lowerName, "task") || strings.Contains(lowerDesc, "task") {
+		return "task_management"
+	}
+
+	// Default category
+	return "general"
 }

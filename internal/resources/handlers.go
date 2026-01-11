@@ -2,10 +2,13 @@ package resources
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"time"
 
 	"github.com/davidl71/exarp-go/internal/bridge"
 	"github.com/davidl71/exarp-go/internal/framework"
+	"github.com/davidl71/exarp-go/internal/tools"
 )
 
 // RegisterAllResources registers all resources with the server
@@ -250,22 +253,145 @@ func RegisterAllResources(server framework.MCPServer) error {
 // Note: handleScorecard and memory handlers are implemented in scorecard.go and memories.go
 // They are in the same package, so they're automatically available here
 
+// handleAllPrompts handles the stdio://prompts resource
+// Uses native Go prompts from internal/prompts/templates.go
 func handleAllPrompts(ctx context.Context, uri string) ([]byte, string, error) {
-	return bridge.ExecutePythonResource(ctx, uri)
+	// Get all prompts from native Go templates
+	allPrompts := getAllPromptsNative()
+	
+	// Build categories mapping
+	byCategory := make(map[string][]map[string]interface{})
+	for name, desc := range allPrompts {
+		category := categorizePrompt(name, desc)
+		if byCategory[category] == nil {
+			byCategory[category] = []map[string]interface{}{}
+		}
+		byCategory[category] = append(byCategory[category], map[string]interface{}{
+			"name":        name,
+			"description": desc,
+		})
+	}
+
+	result := map[string]interface{}{
+		"prompts":       formatPromptsForResource(allPrompts),
+		"total":         len(allPrompts),
+		"by_category":   byCategory,
+		"categories":    getPromptCategories(),
+		"timestamp":     time.Now().Format(time.RFC3339),
+	}
+
+	jsonData, err := json.MarshalIndent(result, "", "  ")
+	if err != nil {
+		return nil, "", fmt.Errorf("failed to marshal prompts: %w", err)
+	}
+
+	return jsonData, "application/json", nil
 }
 
+// handlePromptsByMode handles the stdio://prompts/mode/{mode} resource
+// Uses native Go prompts filtered by mode
 func handlePromptsByMode(ctx context.Context, uri string) ([]byte, string, error) {
-	return bridge.ExecutePythonResource(ctx, uri)
+	// Parse mode from URI: stdio://prompts/mode/{mode}
+	mode, err := parseURIVariableByIndexWithValidation(uri, 3, "mode", "stdio://prompts/mode/{mode}")
+	if err != nil {
+		return nil, "", err
+	}
+
+	// Get prompts for mode
+	modePrompts := getPromptsForMode(mode)
+	
+	result := map[string]interface{}{
+		"mode":       mode,
+		"prompts":    formatPromptsForResource(modePrompts),
+		"count":      len(modePrompts),
+		"available_modes": getAvailableModes(),
+		"timestamp":  time.Now().Format(time.RFC3339),
+	}
+
+	jsonData, err := json.MarshalIndent(result, "", "  ")
+	if err != nil {
+		return nil, "", fmt.Errorf("failed to marshal prompts: %w", err)
+	}
+
+	return jsonData, "application/json", nil
 }
 
+// handlePromptsByPersona handles the stdio://prompts/persona/{persona} resource
+// Uses native Go prompts filtered by persona
 func handlePromptsByPersona(ctx context.Context, uri string) ([]byte, string, error) {
-	return bridge.ExecutePythonResource(ctx, uri)
+	// Parse persona from URI: stdio://prompts/persona/{persona}
+	persona, err := parseURIVariableByIndexWithValidation(uri, 3, "persona", "stdio://prompts/persona/{persona}")
+	if err != nil {
+		return nil, "", err
+	}
+
+	// Get prompts for persona
+	personaPrompts := getPromptsForPersona(persona)
+	
+	result := map[string]interface{}{
+		"persona":        persona,
+		"prompts":        formatPromptsForResource(personaPrompts),
+		"count":          len(personaPrompts),
+		"available_personas": getAvailablePersonas(),
+		"timestamp":      time.Now().Format(time.RFC3339),
+	}
+
+	jsonData, err := json.MarshalIndent(result, "", "  ")
+	if err != nil {
+		return nil, "", fmt.Errorf("failed to marshal prompts: %w", err)
+	}
+
+	return jsonData, "application/json", nil
 }
 
+// handlePromptsByCategory handles the stdio://prompts/category/{category} resource
+// Uses native Go prompts filtered by category
 func handlePromptsByCategory(ctx context.Context, uri string) ([]byte, string, error) {
-	return bridge.ExecutePythonResource(ctx, uri)
+	// Parse category from URI: stdio://prompts/category/{category}
+	category, err := parseURIVariableByIndexWithValidation(uri, 3, "category", "stdio://prompts/category/{category}")
+	if err != nil {
+		return nil, "", err
+	}
+
+	// Get prompts for category
+	categoryPrompts := getPromptsForCategory(category)
+	
+	result := map[string]interface{}{
+		"category":         category,
+		"prompts":          formatPromptsForResource(categoryPrompts),
+		"count":            len(categoryPrompts),
+		"available_categories": getPromptCategories(),
+		"timestamp":        time.Now().Format(time.RFC3339),
+	}
+
+	jsonData, err := json.MarshalIndent(result, "", "  ")
+	if err != nil {
+		return nil, "", fmt.Errorf("failed to marshal prompts: %w", err)
+	}
+
+	return jsonData, "application/json", nil
 }
 
+// handleSessionMode handles the stdio://session/mode resource
+// Uses native Go infer_session_mode tool logic
 func handleSessionMode(ctx context.Context, uri string) ([]byte, string, error) {
+	// Use native Go implementation from infer_session_mode tool
+	params := map[string]interface{}{
+		"force_recompute": false,
+	}
+	
+	// Call the exported function from tools package
+	result, err := tools.HandleInferSessionModeNative(ctx, params)
+	if err != nil {
+		// Fallback to Python bridge if native fails
+		return bridge.ExecutePythonResource(ctx, uri)
+	}
+
+	// Extract text from TextContent response
+	if len(result) > 0 && result[0].Type == "text" {
+		return []byte(result[0].Text), "application/json", nil
+	}
+
+	// Fallback to Python bridge if response format is unexpected
 	return bridge.ExecutePythonResource(ctx, uri)
 }
