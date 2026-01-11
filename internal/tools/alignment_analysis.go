@@ -6,7 +6,9 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
+	"time"
 
 	"github.com/davidl71/exarp-go/internal/framework"
 	"github.com/davidl71/exarp-go/internal/security"
@@ -25,8 +27,7 @@ func handleAnalyzeAlignmentNative(ctx context.Context, params map[string]interfa
 	case "todo2":
 		return handleAlignmentTodo2(ctx, params)
 	case "prd":
-		// PRD alignment is complex, use Python bridge
-		return nil, fmt.Errorf("PRD alignment not yet implemented in native Go, using Python bridge")
+		return handleAlignmentPRD(ctx, params)
 	default:
 		return nil, fmt.Errorf("unknown alignment action: %s. Use 'todo2' or 'prd'", action)
 	}
@@ -309,4 +310,349 @@ func generateAlignmentReport(analysis AlignmentAnalysis, projectRoot string) str
 	}
 
 	return report
+}
+
+// handleAlignmentPRD handles the "prd" action for analyze_alignment
+// Analyzes task alignment against PRD personas and user stories
+func handleAlignmentPRD(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
+	// Get project root
+	projectRoot, err := security.GetProjectRoot(".")
+	if err != nil {
+		// Fallback to PROJECT_ROOT env var or current directory
+		if envRoot := os.Getenv("PROJECT_ROOT"); envRoot != "" {
+			projectRoot = envRoot
+		} else {
+			wd, _ := os.Getwd()
+			projectRoot = wd
+		}
+	}
+
+	// Check if PRD.md exists
+	prdPath := filepath.Join(projectRoot, "docs", "PRD.md")
+	goalsPath := filepath.Join(projectRoot, "PROJECT_GOALS.md")
+
+	results := map[string]interface{}{
+		"timestamp":        time.Now().Format(time.RFC3339),
+		"prd_exists":       false,
+		"goals_exists":     false,
+		"tasks_analyzed":   0,
+		"persona_coverage": map[string]int{},
+		"unaligned_tasks":  []interface{}{},
+		"alignment_by_persona": map[string]interface{}{},
+		"recommendations": []string{},
+	}
+
+	// Check file existence
+	if _, err := os.Stat(prdPath); err == nil {
+		results["prd_exists"] = true
+	}
+	if _, err := os.Stat(goalsPath); err == nil {
+		results["goals_exists"] = true
+	}
+
+	if !results["prd_exists"].(bool) {
+		results["recommendations"] = []string{"Run generate_prd to create PRD.md for persona-based alignment"}
+		resultJSON, _ := json.MarshalIndent(results, "", "  ")
+		return []framework.TextContent{
+			{Type: "text", Text: string(resultJSON)},
+		}, nil
+	}
+
+	// Load tasks
+	tasks, err := LoadTodo2Tasks(projectRoot)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load Todo2 tasks: %w", err)
+	}
+
+	results["tasks_analyzed"] = len(tasks)
+
+	// Parse PRD for user stories
+	prdContent, _ := os.ReadFile(prdPath)
+	userStories := parsePRDUserStories(string(prdContent))
+	results["prd_user_stories"] = len(userStories)
+
+	// Get default personas (simplified - hard-coded for now)
+	personas := getDefaultPersonas()
+
+	// Analyze each task
+	personaCounts := make(map[string]int)
+	for pid := range personas {
+		personaCounts[pid] = 0
+	}
+
+	alignedTasks := []interface{}{}
+	unalignedTasks := []interface{}{}
+
+	for _, task := range tasks {
+		alignment := analyzeTaskPRDAlignment(task, personas)
+
+		if alignment["persona"] != nil && alignment["persona"].(string) != "" {
+			personaID := alignment["persona"].(string)
+			personaCounts[personaID]++
+			alignedTasks = append(alignedTasks, map[string]interface{}{
+				"id":             task.ID,
+				"name":           task.Content,
+				"persona":        personaID,
+				"advisor":        alignment["advisor"],
+				"alignment_score": alignment["score"],
+			})
+		} else {
+			unalignedTasks = append(unalignedTasks, map[string]interface{}{
+				"id":     task.ID,
+				"name":   task.Content,
+				"reason": alignment["reason"],
+			})
+		}
+	}
+
+	results["persona_coverage"] = personaCounts
+	results["aligned_count"] = len(alignedTasks)
+	results["unaligned_count"] = len(unalignedTasks)
+
+	// Top 10 unaligned tasks
+	if len(unalignedTasks) > 10 {
+		results["unaligned_tasks"] = unalignedTasks[:10]
+	} else {
+		results["unaligned_tasks"] = unalignedTasks
+	}
+
+	// Calculate alignment score
+	if len(tasks) > 0 {
+		results["overall_alignment_score"] = roundFloat(float64(len(alignedTasks))/float64(len(tasks))*100, 1)
+	} else {
+		results["overall_alignment_score"] = 0.0
+	}
+
+	// Generate recommendations
+	results["recommendations"] = generatePRDRecommendations(personaCounts, unalignedTasks, personas)
+
+	// Add persona details
+	alignmentByPersona := make(map[string]interface{})
+	for pid, count := range personaCounts {
+		if count > 0 {
+			persona := personas[pid]
+			alignmentByPersona[pid] = map[string]interface{}{
+				"name":    persona["name"],
+				"count":   count,
+				"advisor": persona["advisor"],
+			}
+		}
+	}
+	results["alignment_by_persona"] = alignmentByPersona
+
+	// Get output path
+	outputPath := ""
+	if outputPathRaw, ok := params["output_path"].(string); ok && outputPathRaw != "" {
+		outputPath = outputPathRaw
+	}
+
+	// Save report if requested
+	if outputPath != "" {
+		if !filepath.IsAbs(outputPath) {
+			outputPath = filepath.Join(projectRoot, outputPath)
+		}
+
+		// Ensure directory exists
+		if err := os.MkdirAll(filepath.Dir(outputPath), 0755); err == nil {
+			reportData, _ := json.MarshalIndent(results, "", "  ")
+			os.WriteFile(outputPath, reportData, 0644)
+			results["report_path"] = outputPath
+		}
+	}
+
+	resultJSON, err := json.MarshalIndent(results, "", "  ")
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal result: %w", err)
+	}
+
+	return []framework.TextContent{
+		{Type: "text", Text: string(resultJSON)},
+	}, nil
+}
+
+// parsePRDUserStories parses user stories from PRD.md content
+func parsePRDUserStories(prdContent string) []map[string]string {
+	userStories := []map[string]string{}
+
+	// Find User Stories section
+	storySectionRegex := regexp.MustCompile(`(?i)##\s+\d+\.\s*User\s+Stories\s*\n(.+?)(?=\n##\s+\d+\.|\Z)`)
+	matches := storySectionRegex.FindStringSubmatch(prdContent)
+
+	if len(matches) < 2 {
+		return userStories
+	}
+
+	storiesText := matches[1]
+
+	// Parse individual stories (US-1: Title format)
+	storyRegex := regexp.MustCompile(`(?i)###?\s*US-(\d+):\s*(.+?)\n`)
+	storyMatches := storyRegex.FindAllStringSubmatch(storiesText, -1)
+
+	for _, match := range storyMatches {
+		if len(match) >= 3 {
+			userStories = append(userStories, map[string]string{
+				"id":    fmt.Sprintf("US-%s", match[1]),
+				"title": strings.TrimSpace(match[2]),
+			})
+		}
+	}
+
+	return userStories
+}
+
+// getDefaultPersonas returns default persona definitions
+func getDefaultPersonas() map[string]map[string]interface{} {
+	return map[string]map[string]interface{}{
+		"developer": {
+			"name":    "Developer",
+			"keywords": []string{"implement", "code", "refactor", "migrate", "test", "bug", "fix", "feature"},
+			"advisor": "sage",
+		},
+		"architect": {
+			"name":    "Architect",
+			"keywords": []string{"architecture", "design", "system", "framework", "structure", "pattern", "scalability"},
+			"advisor": "sage",
+		},
+		"qa": {
+			"name":    "QA Engineer",
+			"keywords": []string{"test", "testing", "quality", "coverage", "validation", "verify", "bug"},
+			"advisor": "sage",
+		},
+		"devops": {
+			"name":    "DevOps Engineer",
+			"keywords": []string{"deploy", "ci/cd", "cicd", "infrastructure", "docker", "kubernetes", "automation"},
+			"advisor": "sage",
+		},
+		"product": {
+			"name":    "Product Manager",
+			"keywords": []string{"feature", "requirement", "user", "story", "roadmap", "priority", "release"},
+			"advisor": "sage",
+		},
+		"security": {
+			"name":    "Security Engineer",
+			"keywords": []string{"security", "vulnerability", "scan", "audit", "compliance", "encryption", "auth"},
+			"advisor": "sage",
+		},
+	}
+}
+
+// analyzeTaskPRDAlignment analyzes a single task's alignment with personas
+func analyzeTaskPRDAlignment(task Todo2Task, personas map[string]map[string]interface{}) map[string]interface{} {
+	content := strings.ToLower(task.Content + " " + task.LongDescription)
+	tags := make([]string, len(task.Tags))
+	for i, tag := range task.Tags {
+		tags[i] = strings.ToLower(tag)
+	}
+
+	// Score each persona
+	bestPersona := ""
+	bestScore := 0
+	bestAdvisor := "sage"
+
+	for personaID, personaData := range personas {
+		score := 0
+
+		// Get keywords
+		keywordsRaw, ok := personaData["keywords"].([]string)
+		if !ok {
+			continue
+		}
+
+		// Keyword matching
+		keywordMatches := 0
+		for _, kw := range keywordsRaw {
+			if strings.Contains(content, strings.ToLower(kw)) {
+				keywordMatches++
+			}
+		}
+		score += keywordMatches * 2
+
+		// Tag matching
+		tagMatches := 0
+		for _, kw := range keywordsRaw {
+			for _, tag := range tags {
+				if strings.Contains(tag, strings.ToLower(kw)) {
+					tagMatches++
+					break
+				}
+			}
+		}
+		score += tagMatches * 3
+
+		if score > bestScore {
+			bestScore = score
+			bestPersona = personaID
+			if advisor, ok := personaData["advisor"].(string); ok {
+				bestAdvisor = advisor
+			}
+		}
+	}
+
+	if bestScore >= 2 { // Threshold for alignment
+		return map[string]interface{}{
+			"persona": bestPersona,
+			"advisor": bestAdvisor,
+			"score":   bestScore,
+			"reason":  nil,
+		}
+	}
+
+	return map[string]interface{}{
+		"persona": nil,
+		"advisor": nil,
+		"score":   0,
+		"reason":  "No strong persona match found",
+	}
+}
+
+// generatePRDRecommendations generates alignment recommendations
+func generatePRDRecommendations(personaCounts map[string]int, unalignedTasks []interface{}, personas map[string]map[string]interface{}) []string {
+	recommendations := []string{}
+
+	// Check for underrepresented personas
+	for personaID, count := range personaCounts {
+		if count == 0 {
+			if persona, ok := personas[personaID]; ok {
+				if name, ok := persona["name"].(string); ok {
+					recommendations = append(recommendations, fmt.Sprintf("No tasks aligned with %s persona - consider their needs", name))
+				}
+			}
+		}
+	}
+
+	// Check unaligned ratio
+	total := 0
+	for _, count := range personaCounts {
+		total += count
+	}
+	total += len(unalignedTasks)
+
+	if total > 0 {
+		unalignedRatio := float64(len(unalignedTasks)) / float64(total)
+		if unalignedRatio > 0.2 {
+			recommendations = append(recommendations, fmt.Sprintf("%d tasks (%.0f%%) lack persona alignment - add relevant tags", len(unalignedTasks), unalignedRatio*100))
+		}
+	}
+
+	// Check for imbalance
+	if len(personaCounts) > 0 {
+		maxCount := 0
+		minCount := 0
+		first := true
+		for _, count := range personaCounts {
+			if first || count > maxCount {
+				maxCount = count
+			}
+			if first || count < minCount {
+				minCount = count
+			}
+			first = false
+		}
+
+		if maxCount > 0 && minCount == 0 {
+			recommendations = append(recommendations, "Task distribution is unbalanced across personas")
+		}
+	}
+
+	return recommendations
 }

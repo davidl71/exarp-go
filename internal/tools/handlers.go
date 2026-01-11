@@ -771,13 +771,13 @@ func handleOllama(ctx context.Context, args json.RawMessage) ([]framework.TextCo
 		return nil, fmt.Errorf("failed to parse arguments: %w", err)
 	}
 
-	// Try native Go implementation first
+	// Try native Go implementation first (includes status, models, generate, pull, hardware, docs, quality, summary)
 	result, err := handleOllamaNative(ctx, params)
 	if err == nil {
 		return result, nil
 	}
 
-	// Fall back to Python bridge for actions not yet implemented (e.g., docs, quality, summary)
+	// Fall back to Python bridge if native implementation fails
 	resultStr, err := bridge.ExecutePythonTool(ctx, "ollama", params)
 	if err != nil {
 		return nil, fmt.Errorf("ollama failed: %w", err)
@@ -903,16 +903,22 @@ func handleRecommend(ctx context.Context, args json.RawMessage) ([]framework.Tex
 		action = actionRaw
 	}
 
-	// Try native Go implementation for "model" action
+	// Try native Go implementation for "model" and "workflow" actions
 	if action == "model" {
 		result, err := handleRecommendModelNative(ctx, params)
 		if err == nil {
 			return result, nil
 		}
 		// If native fails, fall through to Python bridge
+	} else if action == "workflow" {
+		result, err := handleRecommendWorkflowNative(ctx, params)
+		if err == nil {
+			return result, nil
+		}
+		// If native fails, fall through to Python bridge
 	}
 
-	// For "workflow" and "advisor" actions, or if native fails, use Python bridge
+	// For "advisor" action, or if native fails, use Python bridge
 	bridgeResult, err := bridge.ExecutePythonTool(ctx, "recommend", params)
 	if err != nil {
 		return nil, fmt.Errorf("recommend failed: %w", err)

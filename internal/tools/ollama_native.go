@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/davidl71/exarp-go/internal/framework"
@@ -71,8 +72,14 @@ func handleOllamaNative(ctx context.Context, params map[string]interface{}) ([]f
 		return handleOllamaPull(ctx, params, host)
 	case "hardware":
 		return handleOllamaHardware(ctx)
+	case "docs":
+		return handleOllamaDocs(ctx, params, host)
+	case "quality":
+		return handleOllamaQuality(ctx, params, host)
+	case "summary":
+		return handleOllamaSummary(ctx, params, host)
 	default:
-		return nil, fmt.Errorf("unknown action: %s (use 'status', 'models', 'generate', 'pull', or 'hardware')", action)
+		return nil, fmt.Errorf("unknown action: %s (use 'status', 'models', 'generate', 'pull', 'hardware', 'docs', 'quality', or 'summary')", action)
 	}
 }
 
@@ -435,6 +442,340 @@ func handleOllamaHardware(ctx context.Context) ([]framework.TextContent, error) 
 	}
 
 	output, _ := json.MarshalIndent(result, "", "  ")
+	return []framework.TextContent{
+		{Type: "text", Text: string(output)},
+	}, nil
+}
+
+// handleOllamaDocs generates code documentation using Ollama
+func handleOllamaDocs(ctx context.Context, params map[string]interface{}, host string) ([]framework.TextContent, error) {
+	filePath, _ := params["file_path"].(string)
+	if filePath == "" {
+		return nil, fmt.Errorf("file_path parameter required for docs action")
+	}
+
+	outputPath, _ := params["output_path"].(string)
+	style, _ := params["style"].(string)
+	if style == "" {
+		style = "google"
+	}
+
+	model, _ := params["model"].(string)
+	if model == "" {
+		model = "codellama"
+	}
+
+	// Read file
+	code, err := os.ReadFile(filePath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read file %s: %w", filePath, err)
+	}
+
+	// Build documentation prompt
+	prompt := fmt.Sprintf(`Generate comprehensive documentation for this code.
+Use %s docstring style.
+
+Requirements:
+1. Module-level docstring explaining the file's purpose
+2. Function/class docstrings with:
+   - Clear description
+   - Parameters (Args section)
+   - Returns section
+   - Raises section (if applicable)
+   - Examples section (if helpful)
+3. Inline comments for complex logic
+4. Type hints where appropriate
+
+Code:
+%s
+
+Generate the documented version of this code.`, style, string(code))
+
+	// Use generate action
+	generateParams := map[string]interface{}{
+		"prompt": prompt,
+		"model":  model,
+		"stream": false,
+	}
+
+	result, err := handleOllamaGenerate(ctx, generateParams, host)
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate documentation: %w", err)
+	}
+
+	// Extract response text
+	var responseText string
+	if len(result) > 0 && result[0].Type == "text" {
+		var generateResult map[string]interface{}
+		if err := json.Unmarshal([]byte(result[0].Text), &generateResult); err == nil {
+			if resp, ok := generateResult["response"].(string); ok {
+				responseText = resp
+			}
+		}
+	}
+
+	// Save to output file if specified
+	if outputPath != "" && responseText != "" {
+		if err := os.WriteFile(outputPath, []byte(responseText), 0644); err != nil {
+			return nil, fmt.Errorf("failed to write output file: %w", err)
+		}
+	}
+
+	// Format result
+	docResult := map[string]interface{}{
+		"success":          true,
+		"method":           "native_go",
+		"file_path":        filePath,
+		"output_path":      outputPath,
+		"style":            style,
+		"documentation":    responseText,
+		"original_length":  len(code),
+		"documented_length": len(responseText),
+	}
+
+	output, _ := json.MarshalIndent(docResult, "", "  ")
+	return []framework.TextContent{
+		{Type: "text", Text: string(output)},
+	}, nil
+}
+
+// handleOllamaQuality analyzes code quality using Ollama
+func handleOllamaQuality(ctx context.Context, params map[string]interface{}, host string) ([]framework.TextContent, error) {
+	filePath, _ := params["file_path"].(string)
+	if filePath == "" {
+		return nil, fmt.Errorf("file_path parameter required for quality action")
+	}
+
+	includeSuggestions := true
+	if suggestions, ok := params["include_suggestions"].(bool); ok {
+		includeSuggestions = suggestions
+	}
+
+	model, _ := params["model"].(string)
+	if model == "" {
+		model = "codellama"
+	}
+
+	// Read file
+	code, err := os.ReadFile(filePath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read file %s: %w", filePath, err)
+	}
+
+	// Build quality analysis prompt
+	suggestionsText := ""
+	if includeSuggestions {
+		suggestionsText = "7. Specific refactoring suggestions"
+	}
+
+	prompt := fmt.Sprintf(`Analyze this code for quality and provide a structured assessment.
+
+Provide:
+1. Overall quality score (0-100) with brief justification
+2. Code smells detected (list specific issues)
+3. Performance issues (if any)
+4. Security concerns (if any)
+5. Best practice violations
+6. Code maintainability assessment
+%s
+
+Format your response as JSON with these keys:
+- quality_score (number)
+- code_smells (array of strings)
+- performance_issues (array of strings)
+- security_concerns (array of strings)
+- best_practice_violations (array of strings)
+- maintainability (string: "excellent" | "good" | "fair" | "poor")
+- suggestions (array of strings, if include_suggestions is true)
+
+Code:
+%s`, suggestionsText, string(code))
+
+	// Use generate action
+	generateParams := map[string]interface{}{
+		"prompt": prompt,
+		"model":  model,
+		"stream": false,
+	}
+
+	result, err := handleOllamaGenerate(ctx, generateParams, host)
+	if err != nil {
+		return nil, fmt.Errorf("failed to analyze code quality: %w", err)
+	}
+
+	// Extract response text
+	var responseText string
+	if len(result) > 0 && result[0].Type == "text" {
+		var generateResult map[string]interface{}
+		if err := json.Unmarshal([]byte(result[0].Text), &generateResult); err == nil {
+			if resp, ok := generateResult["response"].(string); ok {
+				responseText = resp
+			}
+		}
+	}
+
+	// Try to parse JSON from response
+	var qualityData map[string]interface{}
+	if responseText != "" {
+		// Extract JSON if wrapped in markdown
+		jsonText := responseText
+		if idx := strings.Index(jsonText, "```json"); idx >= 0 {
+			jsonStart := idx + 7
+			jsonEnd := strings.Index(jsonText[jsonStart:], "```")
+			if jsonEnd >= 0 {
+				jsonText = strings.TrimSpace(jsonText[jsonStart : jsonStart+jsonEnd])
+			}
+		} else if idx := strings.Index(jsonText, "```"); idx >= 0 {
+			jsonStart := idx + 3
+			jsonEnd := strings.Index(jsonText[jsonStart:], "```")
+			if jsonEnd >= 0 {
+				jsonText = strings.TrimSpace(jsonText[jsonStart : jsonStart+jsonEnd])
+			}
+		}
+
+		// Try to parse JSON
+		if err := json.Unmarshal([]byte(jsonText), &qualityData); err != nil {
+			// If parsing fails, use raw response
+			qualityData = map[string]interface{}{
+				"raw_analysis": responseText,
+			}
+		}
+	}
+
+	// Format result
+	qualityResult := map[string]interface{}{
+		"success":   true,
+		"method":    "native_go",
+		"file_path": filePath,
+		"analysis":  qualityData,
+		"timestamp": time.Now().Format(time.RFC3339),
+	}
+
+	output, _ := json.MarshalIndent(qualityResult, "", "  ")
+	return []framework.TextContent{
+		{Type: "text", Text: string(output)},
+	}, nil
+}
+
+// handleOllamaSummary enhances context summaries using Ollama
+func handleOllamaSummary(ctx context.Context, params map[string]interface{}, host string) ([]framework.TextContent, error) {
+	dataRaw, _ := params["data"]
+	if dataRaw == nil {
+		return nil, fmt.Errorf("data parameter required for summary action")
+	}
+
+	level, _ := params["level"].(string)
+	if level == "" {
+		level = "brief"
+	}
+
+	model, _ := params["model"].(string)
+	if model == "" {
+		model = "codellama"
+	}
+
+	// Convert data to string if needed
+	var dataStr string
+	switch v := dataRaw.(type) {
+	case string:
+		dataStr = v
+	default:
+		dataJSON, err := json.Marshal(v)
+		if err != nil {
+			return nil, fmt.Errorf("failed to marshal data: %w", err)
+		}
+		dataStr = string(dataJSON)
+	}
+
+	// Try to parse as JSON to get structured summary
+	var dataObj interface{}
+	if err := json.Unmarshal([]byte(dataStr), &dataObj); err != nil {
+		// If not JSON, use as-is
+		dataObj = dataStr
+	}
+
+	// Build summary prompt based on level
+	var prompt string
+	switch level {
+	case "brief":
+		prompt = fmt.Sprintf(`Summarize this data in one brief sentence highlighting key points.
+
+Data:
+%s
+
+Provide a concise summary (max 100 words).`, dataStr)
+	case "detailed":
+		prompt = fmt.Sprintf(`Provide a detailed summary of this data with key insights and metrics.
+
+Data:
+%s
+
+Provide a comprehensive summary with:
+- Key metrics
+- Important findings
+- Notable patterns or trends
+- Actionable insights`, dataStr)
+	case "key_metrics":
+		prompt = fmt.Sprintf(`Extract and summarize only the key metrics from this data as a bulleted list.
+
+Data:
+%s
+
+List only the numerical metrics and their values.`, dataStr)
+	case "actionable":
+		prompt = fmt.Sprintf(`Summarize this data focusing on actionable recommendations and next steps.
+
+Data:
+%s
+
+Provide:
+- Key actions to take
+- Priorities
+- Recommendations`, dataStr)
+	default:
+		prompt = fmt.Sprintf(`Summarize this data at a %s level.
+
+Data:
+%s
+
+Provide a structured summary.`, level, dataStr)
+	}
+
+	// Use generate action
+	generateParams := map[string]interface{}{
+		"prompt": prompt,
+		"model":  model,
+		"stream": false,
+	}
+
+	result, err := handleOllamaGenerate(ctx, generateParams, host)
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate summary: %w", err)
+	}
+
+	// Extract response text
+	var responseText string
+	if len(result) > 0 && result[0].Type == "text" {
+		var generateResult map[string]interface{}
+		if err := json.Unmarshal([]byte(result[0].Text), &generateResult); err == nil {
+			if resp, ok := generateResult["response"].(string); ok {
+				responseText = resp
+			}
+		}
+	}
+
+	// Format result
+	summaryResult := map[string]interface{}{
+		"success":         true,
+		"method":          "native_go",
+		"level":           level,
+		"summary":         responseText,
+		"original_length": len(dataStr),
+		"summary_length":  len(responseText),
+		"timestamp":       time.Now().Format(time.RFC3339),
+	}
+
+	output, _ := json.MarshalIndent(summaryResult, "", "  ")
 	return []framework.TextContent{
 		{Type: "text", Text: string(output)},
 	}, nil

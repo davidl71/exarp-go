@@ -107,9 +107,268 @@ func estimateStatistically(projectRoot, name, details string, tags []string, pri
 }
 
 // handleEstimationAnalyze handles the analyze action
+// Analyzes estimation accuracy by comparing estimated vs actual hours from historical tasks
 func handleEstimationAnalyze(projectRoot string, params map[string]interface{}) (string, error) {
-	// TODO: Implement analysis of estimation accuracy
-	return `{"message": "Analysis action not yet implemented in native Go"}`, nil
+	historical, err := loadHistoricalTasks(projectRoot)
+	if err != nil {
+		return "", fmt.Errorf("failed to load historical data: %w", err)
+	}
+
+	// Filter tasks that have both estimated and actual hours
+	completedTasks := make([]struct {
+		name           string
+		tags           []string
+		priority       string
+		estimatedHours float64
+		actualHours    float64
+		error          float64
+		errorPct       float64
+		absErrorPct    float64
+	}, 0)
+
+	for _, task := range historical {
+		if task.EstimatedHours > 0 && task.ActualHours > 0 {
+			error := task.ActualHours - task.EstimatedHours
+			errorPct := (error / task.EstimatedHours) * 100.0
+			absErrorPct := math.Abs(errorPct)
+
+			completedTasks = append(completedTasks, struct {
+				name           string
+				tags           []string
+				priority       string
+				estimatedHours float64
+				actualHours    float64
+				error          float64
+				errorPct       float64
+				absErrorPct    float64
+			}{
+				name:           task.Name,
+				tags:           task.Tags,
+				priority:       task.Priority,
+				estimatedHours: task.EstimatedHours,
+				actualHours:    task.ActualHours,
+				error:          error,
+				errorPct:       errorPct,
+				absErrorPct:    absErrorPct,
+			})
+		}
+	}
+
+	if len(completedTasks) == 0 {
+		return `{"success": false, "message": "No completed tasks with both estimates and actuals", "completed_tasks_count": 0}`, nil
+	}
+
+	// Calculate overall accuracy metrics
+	errors := make([]float64, len(completedTasks))
+	errorPcts := make([]float64, len(completedTasks))
+	absErrorPcts := make([]float64, len(completedTasks))
+	for i, task := range completedTasks {
+		errors[i] = task.error
+		errorPcts[i] = task.errorPct
+		absErrorPcts[i] = task.absErrorPct
+	}
+
+	// Mean error
+	meanError := 0.0
+	for _, e := range errors {
+		meanError += e
+	}
+	meanError /= float64(len(errors))
+
+	// Median error
+	sortedErrors := make([]float64, len(errors))
+	copy(sortedErrors, errors)
+	sort.Float64s(sortedErrors)
+	medianError := sortedErrors[len(sortedErrors)/2]
+	if len(sortedErrors)%2 == 0 {
+		medianError = (sortedErrors[len(sortedErrors)/2-1] + sortedErrors[len(sortedErrors)/2]) / 2
+	}
+
+	// Mean absolute error
+	meanAbsoluteError := 0.0
+	for _, e := range errors {
+		meanAbsoluteError += math.Abs(e)
+	}
+	meanAbsoluteError /= float64(len(errors))
+
+	// Mean error percentage
+	meanErrorPct := 0.0
+	for _, e := range errorPcts {
+		meanErrorPct += e
+	}
+	meanErrorPct /= float64(len(errorPcts))
+
+	// Mean absolute error percentage
+	meanAbsErrorPct := 0.0
+	for _, e := range absErrorPcts {
+		meanAbsErrorPct += e
+	}
+	meanAbsErrorPct /= float64(len(absErrorPcts))
+
+	// Count over/under estimations
+	overEstimatedCount := 0
+	underEstimatedCount := 0
+	accurateCount := 0
+	for _, task := range completedTasks {
+		if task.error < 0 {
+			overEstimatedCount++
+		} else if task.error > 0 {
+			underEstimatedCount++
+		}
+		if task.absErrorPct < 20 {
+			accurateCount++
+		}
+	}
+
+	accuracyMetrics := map[string]interface{}{
+		"total_tasks":                      len(completedTasks),
+		"mean_error":                       math.Round(meanError*100) / 100,
+		"median_error":                     math.Round(medianError*100) / 100,
+		"mean_absolute_error":              math.Round(meanAbsoluteError*100) / 100,
+		"mean_error_percentage":            math.Round(meanErrorPct*100) / 100,
+		"mean_absolute_error_percentage":   math.Round(meanAbsErrorPct*100) / 100,
+		"over_estimated_count":             overEstimatedCount,
+		"under_estimated_count":            underEstimatedCount,
+		"accurate_count":                   accurateCount,
+		"accuracy_rate_percentage":         math.Round(float64(accurateCount)/float64(len(completedTasks))*100*100) / 100,
+	}
+
+	// Analyze by tag
+	tagAccuracy := analyzeByTag(completedTasks)
+
+	// Analyze by priority
+	priorityAccuracy := analyzeByPriority(completedTasks)
+
+	// Build result
+	result := map[string]interface{}{
+		"success":             true,
+		"completed_tasks_count": len(completedTasks),
+		"accuracy_metrics":    accuracyMetrics,
+		"tag_accuracy":        tagAccuracy,
+		"priority_accuracy":   priorityAccuracy,
+		"generated":           time.Now().Format(time.RFC3339),
+	}
+
+	resultJSON, err := json.MarshalIndent(result, "", "  ")
+	if err != nil {
+		return "", fmt.Errorf("failed to marshal result: %w", err)
+	}
+
+	return string(resultJSON), nil
+}
+
+// analyzeByTag analyzes estimation accuracy by tag
+func analyzeByTag(completedTasks []struct {
+	name           string
+	tags           []string
+	priority       string
+	estimatedHours float64
+	actualHours    float64
+	error          float64
+	errorPct       float64
+	absErrorPct    float64
+}) map[string]interface{} {
+	tagTasks := make(map[string][]struct {
+		name           string
+		tags           []string
+		priority       string
+		estimatedHours float64
+		actualHours    float64
+		error          float64
+		errorPct       float64
+		absErrorPct    float64
+	})
+
+	// Group tasks by tag
+	for _, task := range completedTasks {
+		if len(task.tags) == 0 {
+			tagTasks["untagged"] = append(tagTasks["untagged"], task)
+			continue
+		}
+		for _, tag := range task.tags {
+			tagTasks[tag] = append(tagTasks[tag], task)
+		}
+	}
+
+	tagStats := make(map[string]interface{})
+	for tag, tasks := range tagTasks {
+		if len(tasks) == 0 {
+			continue
+		}
+
+		meanError := 0.0
+		meanAbsErrorPct := 0.0
+		for _, task := range tasks {
+			meanError += task.error
+			meanAbsErrorPct += task.absErrorPct
+		}
+		meanError /= float64(len(tasks))
+		meanAbsErrorPct /= float64(len(tasks))
+
+		tagStats[tag] = map[string]interface{}{
+			"count":                      len(tasks),
+			"mean_error":                 math.Round(meanError*100) / 100,
+			"mean_absolute_error_percentage": math.Round(meanAbsErrorPct*100) / 100,
+		}
+	}
+
+	return tagStats
+}
+
+// analyzeByPriority analyzes estimation accuracy by priority
+func analyzeByPriority(completedTasks []struct {
+	name           string
+	tags           []string
+	priority       string
+	estimatedHours float64
+	actualHours    float64
+	error          float64
+	errorPct       float64
+	absErrorPct    float64
+}) map[string]interface{} {
+	priorityTasks := make(map[string][]struct {
+		name           string
+		tags           []string
+		priority       string
+		estimatedHours float64
+		actualHours    float64
+		error          float64
+		errorPct       float64
+		absErrorPct    float64
+	})
+
+	// Group tasks by priority
+	for _, task := range completedTasks {
+		priority := task.priority
+		if priority == "" {
+			priority = "medium"
+		}
+		priorityTasks[priority] = append(priorityTasks[priority], task)
+	}
+
+	priorityStats := make(map[string]interface{})
+	for priority, tasks := range priorityTasks {
+		if len(tasks) == 0 {
+			continue
+		}
+
+		meanError := 0.0
+		meanAbsErrorPct := 0.0
+		for _, task := range tasks {
+			meanError += task.error
+			meanAbsErrorPct += task.absErrorPct
+		}
+		meanError /= float64(len(tasks))
+		meanAbsErrorPct /= float64(len(tasks))
+
+		priorityStats[priority] = map[string]interface{}{
+			"count":                      len(tasks),
+			"mean_error":                 math.Round(meanError*100) / 100,
+			"mean_absolute_error_percentage": math.Round(meanAbsErrorPct*100) / 100,
+		}
+	}
+
+	return priorityStats
 }
 
 // handleEstimationStats handles the stats action
