@@ -16,7 +16,7 @@ import (
 
 // handleReportOverview handles the overview action for report tool
 func handleReportOverview(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
-	projectRoot, err := security.GetProjectRoot()
+	projectRoot, err := security.GetProjectRoot(".")
 	if err != nil {
 		return nil, fmt.Errorf("failed to find project root: %w", err)
 	}
@@ -83,7 +83,7 @@ func handleReportBriefing(ctx context.Context, params map[string]interface{}) ([
 
 // handleReportPRD handles the prd action for report tool
 func handleReportPRD(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
-	projectRoot, err := security.GetProjectRoot()
+	projectRoot, err := security.GetProjectRoot(".")
 	if err != nil {
 		return nil, fmt.Errorf("failed to find project root: %w", err)
 	}

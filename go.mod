@@ -4,7 +4,7 @@ go 1.25
 
 require (
 	github.com/blacktop/go-foundationmodels v0.1.8
-	github.com/davidl71/mcp-go-core v0.2.0
+	github.com/davidl71/mcp-go-core v0.2.1
 	github.com/mattn/go-sqlite3 v1.14.33
 	github.com/modelcontextprotocol/go-sdk v1.2.0
 	golang.org/x/sys v0.39.0
