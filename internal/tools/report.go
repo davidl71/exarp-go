@@ -11,11 +11,12 @@ import (
 
 	"github.com/davidl71/exarp-go/internal/bridge"
 	"github.com/davidl71/exarp-go/internal/framework"
+	"github.com/davidl71/exarp-go/internal/security"
 )
 
 // handleReportOverview handles the overview action for report tool
 func handleReportOverview(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
-	projectRoot, err := FindProjectRoot()
+	projectRoot, err := security.GetProjectRoot()
 	if err != nil {
 		return nil, fmt.Errorf("failed to find project root: %w", err)
 	}
@@ -82,7 +83,7 @@ func handleReportBriefing(ctx context.Context, params map[string]interface{}) ([
 
 // handleReportPRD handles the prd action for report tool
 func handleReportPRD(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
-	projectRoot, err := FindProjectRoot()
+	projectRoot, err := security.GetProjectRoot()
 	if err != nil {
 		return nil, fmt.Errorf("failed to find project root: %w", err)
 	}
