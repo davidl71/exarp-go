@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/davidl71/exarp-go/internal/bridge"
 	"github.com/davidl71/exarp-go/internal/tools"
 )
 
@@ -21,8 +20,7 @@ func handleMemories(ctx context.Context, uri string) ([]byte, string, error) {
 	// Load all memories using native Go implementation
 	memories, err := tools.LoadAllMemories(projectRoot)
 	if err != nil {
-		// Fallback to Python bridge if native fails
-		return bridge.ExecutePythonResource(ctx, uri)
+		return nil, "", fmt.Errorf("failed to load memories: %w", err)
 	}
 
 	limit := 50
@@ -70,7 +68,7 @@ func handleMemoriesByCategory(ctx context.Context, uri string) ([]byte, string, 
 	// Load and filter memories
 	memories, err := tools.LoadAllMemories(projectRoot)
 	if err != nil {
-		return bridge.ExecutePythonResource(ctx, uri)
+		return nil, "", fmt.Errorf("failed to load memories: %w", err)
 	}
 
 	// Filter by category
@@ -117,7 +115,7 @@ func handleMemoriesByTask(ctx context.Context, uri string) ([]byte, string, erro
 	// Load and filter memories
 	memories, err := tools.LoadAllMemories(projectRoot)
 	if err != nil {
-		return bridge.ExecutePythonResource(ctx, uri)
+		return nil, "", fmt.Errorf("failed to load memories: %w", err)
 	}
 
 	// Filter by task_id
@@ -156,7 +154,7 @@ func handleRecentMemories(ctx context.Context, uri string) ([]byte, string, erro
 	// Load all memories
 	memories, err := tools.LoadAllMemories(projectRoot)
 	if err != nil {
-		return bridge.ExecutePythonResource(ctx, uri)
+		return nil, "", fmt.Errorf("failed to load memories: %w", err)
 	}
 
 	// Filter to last 24 hours
@@ -212,7 +210,7 @@ func handleSessionMemories(ctx context.Context, uri string) ([]byte, string, err
 	// Load all memories
 	memories, err := tools.LoadAllMemories(projectRoot)
 	if err != nil {
-		return bridge.ExecutePythonResource(ctx, uri)
+		return nil, "", fmt.Errorf("failed to load memories: %w", err)
 	}
 
 	// Filter by session date

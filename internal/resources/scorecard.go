@@ -11,7 +11,11 @@ import (
 )
 
 // handleScorecard handles the scorecard resource
-// Uses native Go implementation for Go projects, falls back to Python bridge for non-Go projects
+// Uses native Go implementation for Go projects (primary), falls back to Python bridge for non-Go projects only
+//
+// **Intentional Python Bridge Fallback:**
+// - For non-Go projects: Python bridge provides language-agnostic scorecard generation
+// - For Go projects: Native Go is primary - returns errors instead of falling back to Python bridge
 func handleScorecard(ctx context.Context, uri string) ([]byte, string, error) {
 	projectRoot, err := tools.FindProjectRoot()
 	if err != nil {
@@ -20,22 +24,25 @@ func handleScorecard(ctx context.Context, uri string) ([]byte, string, error) {
 
 	// Check if Go project
 	if tools.IsGoProject() {
-		// Use native Go scorecard implementation
+		// Use native Go scorecard implementation (primary for Go projects)
 		opts := &tools.ScorecardOptions{FastMode: true}
 		scorecard, err := tools.GenerateGoScorecard(ctx, projectRoot, opts)
-		if err == nil {
-			// Convert to resource JSON format matching Python implementation
-			result := convertScorecardToResourceFormat(scorecard)
-			jsonData, err := json.Marshal(result)
-			if err != nil {
-				return nil, "", fmt.Errorf("failed to marshal scorecard: %w", err)
-			}
-			return jsonData, "application/json", nil
+		if err != nil {
+			// For Go projects, return error instead of falling back to Python bridge
+			return nil, "", fmt.Errorf("failed to generate Go scorecard: %w", err)
 		}
-		// If native fails, fall through to Python bridge
+
+		// Convert to resource JSON format matching Python implementation
+		result := convertScorecardToResourceFormat(scorecard)
+		jsonData, err := json.Marshal(result)
+		if err != nil {
+			return nil, "", fmt.Errorf("failed to marshal scorecard: %w", err)
+		}
+		return jsonData, "application/json", nil
 	}
 
-	// Fallback to Python bridge for non-Go projects or if native fails
+	// Intentional fallback to Python bridge for non-Go projects
+	// Python bridge provides language-agnostic scorecard generation for non-Go projects
 	return bridge.ExecutePythonResource(ctx, uri)
 }
 
