@@ -24,10 +24,10 @@
 - ✅ `context` (batch action) - **FULLY NATIVE** (summarize ✅, budget ✅, batch ✅) - **COMPLETED!**
 - ⏳ `recommend` - **PENDING** (new implementation)
 
-### Phase 3: Complex Tools ⏳ **IN PROGRESS** (3/13 - 23%)
+### Phase 3: Complex Tools ⏳ **IN PROGRESS** (4/13 - 31%)
 - ✅ `git_tools` - Fully native Go (all 7 actions)
 - ✅ `task_analysis` - **FULLY NATIVE** (all actions: hierarchy ✅, duplicates ✅, tags ✅, dependencies ✅, parallelization ✅) - **COMPLETED!**
-- ⏳ `task_discovery` - **PARTIAL** (comments/markdown/git_json ✅, orphans ⚠️)
+- ✅ `task_discovery` - **FULLY NATIVE** (all actions: comments ✅, markdown ✅, orphans ✅, git_json ✅, all ✅) - **COMPLETED!**
 - ✅ `task_workflow` - **FULLY NATIVE** (all actions: sync ✅, approve ✅, clarify ✅, clarity ✅, cleanup ✅, create ✅) - **COMPLETED!**
 - ⏳ `memory`, `memory_maint`, `report`, `security`, `testing`, `automation`, `estimation`, `session`, `ollama`, `mlx`, `prompt_tracking` - **PENDING**
 
@@ -90,13 +90,18 @@ These tools are already partially native and completing them provides immediate 
   - `parallelization` ✅ - Find parallelizable tasks (handleTaskAnalysisParallelization)
 - **Result:** Fully native Go implementation, all actions work on all platforms (hierarchy requires Apple FM on macOS)
 
-#### 1.6 `task_discovery` - Complete "orphans" Action
-- **Status:** comments/markdown/git_json ✅, orphans ⚠️
-- **Complexity:** Medium (depends on task_analysis)
-- **Estimated Time:** 2-3 days
-- **File:** `internal/tools/task_discovery_native.go`
-- **Action:** Implement `scanOrphanedTasks()` using task_analysis
-- **Dependency:** Requires task_analysis completion
+#### 1.6 `task_discovery` - Complete "orphans" Action ✅ **COMPLETE**
+- **Status:** All actions fully native ✅ (comments ✅, markdown ✅, orphans ✅, git_json ✅, all ✅) - **COMPLETED!**
+- **Complexity:** Medium
+- **Estimated Time:** 2-3 days (actually already implemented)
+- **File:** `internal/tools/task_discovery_native.go`, `task_discovery_native_nocgo.go`
+- **Actions:** All actions implemented
+  - `comments` ✅ - Scan code comments (scanComments/scanCommentsBasic)
+  - `markdown` ✅ - Scan markdown files (scanMarkdown/scanMarkdownBasic)
+  - `orphans` ✅ - Find orphaned tasks (findOrphanTasks/findOrphanTasksBasic)
+  - `git_json` ✅ - Scan git history for JSON files (scanGitJSON)
+  - `all` ✅ - Run all discovery methods
+- **Result:** Fully native Go implementation, all actions work on all platforms (Apple FM enhances semantic extraction when available)
 
 ---
 
@@ -190,8 +195,8 @@ These are more complex and may benefit from hybrid approaches:
 **Current Overall Progress:**
 - **Phase 1:** 3/3 (100%) ✅
 - **Phase 2:** 8/9 (89%) ⏳
-- **Phase 3:** 3/13 (23%) ⏳
-- **Overall Tools:** 14/34 (41%) migrated to native Go
+- **Phase 3:** 4/13 (31%) ⏳
+- **Overall Tools:** 15/34 (44%) migrated to native Go
 
 **After Recommended Next Steps:**
 - **Phase 2:** 8/9 (89%) ⏳ (setup_hooks, check_attribution, add_external_tool_hints, analyze_alignment, generate_config, context) - **6 DONE!** ✅
