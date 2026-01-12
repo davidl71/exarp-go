@@ -20,7 +20,7 @@ Successfully migrated the `setup_hooks` tool's "patterns" action from Python bri
 1. **`handleSetupPatternHooks()`** - Main handler for patterns action
    - Parses parameters (patterns JSON, config_path, dry_run)
    - Loads default patterns or custom patterns
-   - Creates `.cursor/automa_patterns.json` configuration file
+   - Creates `.cursor/exarp_patterns.json` configuration file
    - Sets up integration points (git hooks, file watcher, task status)
 
 2. **`getDefaultPatterns()`** - Default pattern configurations
@@ -37,7 +37,7 @@ Successfully migrated the `setup_hooks` tool's "patterns" action from Python bri
    - Documents integration (actual hooks installed via `setup_hooks action=git`)
 
 5. **`setupFileWatcherIntegration()`** - File watcher script generation
-   - Creates `.cursor/automa_file_watcher.py` Python script
+   - Creates `.cursor/exarp_file_watcher.py` Python script
    - Script monitors file changes and triggers tools based on patterns
 
 6. **`setupTaskStatusIntegration()`** - Task status integration
@@ -54,7 +54,7 @@ Successfully migrated the `setup_hooks` tool's "patterns" action from Python bri
 - ✅ **Custom Patterns** - Support for custom patterns via JSON parameter
 - ✅ **Config File Loading** - Load and merge patterns from config file
 - ✅ **Dry-Run Mode** - Preview changes without creating files
-- ✅ **File Creation** - Creates `.cursor/automa_patterns.json` and `.cursor/automa_file_watcher.py`
+- ✅ **File Creation** - Creates `.cursor/exarp_patterns.json` and `.cursor/exarp_file_watcher.py`
 - ✅ **Integration Setup** - Sets up git hooks, file watcher, and task status integrations
 
 ### Code Statistics

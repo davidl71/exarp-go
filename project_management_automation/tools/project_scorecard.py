@@ -798,7 +798,7 @@ def generate_project_scorecard(
         # Project goals for alignment
         'project_goals': (project_root / 'PROJECT_GOALS.md').exists(),
         # Pattern triggers
-        'pattern_triggers': (project_root / '.cursor' / 'automa_patterns.json').exists(),
+        'pattern_triggers': (project_root / '.cursor' / 'exarp_patterns.json').exists(),
     }
 
     dogfooding_passed = sum(1 for v in dogfooding_checks.values() if v)
