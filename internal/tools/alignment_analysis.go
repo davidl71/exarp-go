@@ -8,12 +8,14 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/davidl71/exarp-go/internal/database"
 	"github.com/davidl71/exarp-go/internal/framework"
+	"github.com/davidl71/exarp-go/internal/models"
 	"github.com/davidl71/exarp-go/internal/security"
 )
 
 // handleAnalyzeAlignmentNative handles the analyze_alignment tool with native Go implementation
-// Currently implements basic "todo2" action, falls back to Python bridge for "prd" and complex analysis
+// Implements "todo2" action fully (including followup task creation), falls back to Python bridge for "prd" action
 func handleAnalyzeAlignmentNative(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	// Get action (default: "todo2")
 	action := "todo2"
@@ -77,10 +79,8 @@ func handleAlignmentTodo2(ctx context.Context, params map[string]interface{}) ([
 
 	// Create followup tasks if requested
 	tasksCreated := 0
-	if createFollowupTasks && len(analysis.MisalignedTasks) > 0 {
-		// For now, we'll skip creating tasks in native Go (complex logic)
-		// This can be added later or left to Python bridge
-		tasksCreated = 0
+	if createFollowupTasks {
+		tasksCreated = createAlignmentFollowupTasks(ctx, analysis)
 	}
 
 	// Save report if output path specified
@@ -309,4 +309,74 @@ func generateAlignmentReport(analysis AlignmentAnalysis, projectRoot string) str
 	}
 
 	return report
+}
+
+// createAlignmentFollowupTasks creates Todo2 tasks for alignment issues
+func createAlignmentFollowupTasks(ctx context.Context, analysis AlignmentAnalysis) int {
+	tasksCreated := 0
+
+	// Create task for misaligned tasks
+	if len(analysis.MisalignedTasks) > 0 {
+		var description strings.Builder
+		description.WriteString(fmt.Sprintf("Review and align %d misaligned tasks with project goals:\n\n", len(analysis.MisalignedTasks)))
+		for _, task := range analysis.MisalignedTasks {
+			description.WriteString(fmt.Sprintf("- %s (%s): %s\n", task.ID, task.Status, task.Content))
+		}
+
+		taskID := generateEpochTaskID()
+		task := &models.Todo2Task{
+			ID:      taskID,
+			Content: "Review misaligned tasks",
+			Status:  "Todo",
+			Priority: "medium",
+			Tags:    []string{"alignment", "review"},
+			Metadata: map[string]interface{}{
+				"misaligned_count": len(analysis.MisalignedTasks),
+				"alignment_score":  analysis.AlignmentScore,
+			},
+		}
+
+		if err := database.CreateTask(ctx, task); err == nil {
+			comment := database.Comment{
+				TaskID:  taskID,
+				Type:    "description",
+				Content: description.String(),
+			}
+			_ = database.AddComments(ctx, taskID, []database.Comment{comment})
+			tasksCreated++
+		}
+	}
+
+	// Create task for stale tasks
+	if len(analysis.StaleTasks) > 0 {
+		var description strings.Builder
+		description.WriteString(fmt.Sprintf("Review %d stale tasks that may need updating or removal:\n\n", len(analysis.StaleTasks)))
+		for _, task := range analysis.StaleTasks {
+			description.WriteString(fmt.Sprintf("- %s (%s): %s\n", task.ID, task.Status, task.Content))
+		}
+
+		taskID := generateEpochTaskID()
+		task := &models.Todo2Task{
+			ID:      taskID,
+			Content: "Review stale tasks",
+			Status:  "Todo",
+			Priority: "low",
+			Tags:    []string{"alignment", "cleanup"},
+			Metadata: map[string]interface{}{
+				"stale_count": len(analysis.StaleTasks),
+			},
+		}
+
+		if err := database.CreateTask(ctx, task); err == nil {
+			comment := database.Comment{
+				TaskID:  taskID,
+				Type:    "description",
+				Content: description.String(),
+			}
+			_ = database.AddComments(ctx, taskID, []database.Comment{comment})
+			tasksCreated++
+		}
+	}
+
+	return tasksCreated
 }
