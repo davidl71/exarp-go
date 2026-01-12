@@ -123,7 +123,7 @@ func handleMemorySave(ctx context.Context, params map[string]interface{}) ([]fra
 	}
 
 	// Save to file
-	projectRoot, err := FindProjectRoot()
+	projectRoot, err := security.GetProjectRoot()
 	if err != nil {
 		return nil, fmt.Errorf("failed to find project root: %w", err)
 	}
@@ -161,7 +161,7 @@ func handleMemoryRecall(ctx context.Context, params map[string]interface{}) ([]f
 		includeRelated = ir
 	}
 
-	projectRoot, err := FindProjectRoot()
+	projectRoot, err := security.GetProjectRoot()
 	if err != nil {
 		return nil, fmt.Errorf("failed to find project root: %w", err)
 	}
@@ -217,7 +217,7 @@ func handleMemorySearch(ctx context.Context, params map[string]interface{}) ([]f
 		category = cat
 	}
 
-	projectRoot, err := FindProjectRoot()
+	projectRoot, err := security.GetProjectRoot()
 	if err != nil {
 		return nil, fmt.Errorf("failed to find project root: %w", err)
 	}
@@ -315,7 +315,7 @@ func handleMemoryList(ctx context.Context, params map[string]interface{}) ([]fra
 		limit = int(l)
 	}
 
-	projectRoot, err := FindProjectRoot()
+	projectRoot, err := security.GetProjectRoot()
 	if err != nil {
 		return nil, fmt.Errorf("failed to find project root: %w", err)
 	}
