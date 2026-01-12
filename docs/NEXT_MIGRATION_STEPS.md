@@ -13,10 +13,10 @@
 - ✅ `tool_catalog` - Fully native Go
 - ✅ `workflow_mode` - Fully native Go
 
-### Phase 2: Medium Complexity Tools ⏳ **IN PROGRESS** (6/9 - 67%)
+### Phase 2: Medium Complexity Tools ⏳ **IN PROGRESS** (7/9 - 78%)
 - ✅ `infer_session_mode` - Fully native Go
 - ✅ `health` - **COMPLETED!** All actions native (server, git, docs, dod, cicd)
-- ⏳ `generate_config` - **FULLY NATIVE** (all actions: rules, ignore, simplify) ✅
+- ✅ `generate_config` - **FULLY NATIVE** (all actions: rules, ignore, simplify) - **COMPLETED!**
 - ✅ `setup_hooks` - **FULLY NATIVE** (git ✅, patterns ✅) - **COMPLETED!**
 - ✅ `check_attribution` - **FULLY NATIVE** (core ✅, task creation ✅) - **COMPLETED!**
 - ✅ `add_external_tool_hints` - **FULLY NATIVE** - **COMPLETED!**
@@ -185,12 +185,12 @@ These are more complex and may benefit from hybrid approaches:
 
 **Current Overall Progress:**
 - **Phase 1:** 3/3 (100%) ✅
-- **Phase 2:** 6/9 (67%) ⏳
+- **Phase 2:** 7/9 (78%) ⏳
 - **Phase 3:** 1/13 (8%) ⏳
-- **Overall Tools:** 10/34 (29%) migrated to native Go
+- **Overall Tools:** 11/34 (32%) migrated to native Go
 
 **After Recommended Next Steps:**
-- **Phase 2:** 6/9 (67%) ⏳ (setup_hooks, check_attribution, add_external_tool_hints, analyze_alignment) - **4 DONE!** ✅
+- **Phase 2:** 7/9 (78%) ⏳ (setup_hooks, check_attribution, add_external_tool_hints, analyze_alignment, generate_config) - **5 DONE!** ✅
 - **Phase 3:** 4/13 (31%) ⏳ (after task_workflow, task_analysis, task_discovery)
 - **Overall Tools:** 9/34 (26%) migrated to native Go
 
