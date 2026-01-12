@@ -627,7 +627,7 @@ func handleLint(ctx context.Context, args json.RawMessage) ([]framework.TextCont
 // handleEstimation handles the estimation tool
 // Uses native Go with Apple Foundation Models when available, falls back to Python bridge
 func handleEstimation(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
-	projectRoot, err := security.GetProjectRoot()
+	projectRoot, err := security.GetProjectRoot(".")
 	if err != nil {
 		return nil, fmt.Errorf("failed to find project root: %w", err)
 	}
