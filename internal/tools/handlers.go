@@ -549,7 +549,7 @@ func handleTesting(ctx context.Context, args json.RawMessage) ([]framework.TextC
 // Batch 3 Tool Handlers (T-37 through T-44)
 
 // handleAutomation handles the automation tool
-// Uses native Go implementation for "daily" and "discover" actions, falls back to Python bridge for "nightly" and "sprint"
+// Uses native Go implementation for all actions ("daily", "discover", "nightly", "sprint"), falls back to Python bridge only if native fails
 func handleAutomation(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
 	var params map[string]interface{}
 	if err := json.Unmarshal(args, &params); err != nil {
@@ -731,23 +731,21 @@ func handleSession(ctx context.Context, args json.RawMessage) ([]framework.TextC
 		action = "prime"
 	}
 
-	// Try native Go implementation for prime and handoff actions
-	if action == "prime" || action == "handoff" {
-		result, err := handleSessionNative(ctx, params)
-		if err == nil {
-			return result, nil
-		}
-		// If native fails, fall through to Python bridge
+	// Try native Go implementation for all supported actions (prime, handoff, prompts, assignee)
+	result, err := handleSessionNative(ctx, params)
+	if err == nil {
+		return result, nil
 	}
+	// If native implementation doesn't support the action or fails, fall back to Python bridge
 
-	// For prompts and assignee actions, or if native fails, use Python bridge
-	result, err := bridge.ExecutePythonTool(ctx, "session", params)
+	// Fall back to Python bridge if native fails
+	bridgeResult, err := bridge.ExecutePythonTool(ctx, "session", params)
 	if err != nil {
 		return nil, fmt.Errorf("session failed: %w", err)
 	}
 
 	return []framework.TextContent{
-		{Type: "text", Text: result},
+		{Type: "text", Text: bridgeResult},
 	}, nil
 }
 
@@ -789,6 +787,12 @@ func handleOllama(ctx context.Context, args json.RawMessage) ([]framework.TextCo
 }
 
 // handleMlx handles the mlx tool
+// NOTE: MLX remains Python bridge only by design.
+// Rationale: No Go bindings available for MLX (Apple's ML library).
+// Creating Go bindings would require CGO and Metal framework integration,
+// which is high effort for optional feature. MLX is used for optional
+// report enhancements, not critical functionality.
+// See docs/MLX_EVALUATION_2026-01-12.md for detailed evaluation.
 func handleMlx(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
 	var params map[string]interface{}
 	if err := json.Unmarshal(args, &params); err != nil {

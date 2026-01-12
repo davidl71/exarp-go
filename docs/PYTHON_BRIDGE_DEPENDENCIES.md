@@ -1,278 +1,377 @@
 # Python Bridge Dependencies
 
-**Last Updated**: 2026-01-09  
-**Status**: After Native Go Migration Phase
+**Last Updated**: 2026-01-12  
+**Status**: After Comprehensive Audit and Documentation Updates (Stream 4)  
+**Audit Reference**: See `docs/MIGRATION_AUDIT_2026-01-12.md`
 
 ## Overview
 
-This document lists all remaining dependencies on the Python bridge after the recent migration phase. Items are categorized by migration priority and complexity.
+This document lists all remaining dependencies on the Python bridge after the comprehensive audit. Items are categorized by migration priority and complexity. **Note:** Most tools use a hybrid approach (native first, Python bridge fallback).
 
 ---
 
-## Tools Still Using Python Bridge
+## Tools Using Python Bridge
 
-### 🔴 Fully Python Bridge (No Native Implementation)
+### 🔴 Fully Python Bridge Only (1 tool)
 
-#### High Priority
-1. **`memory`** - Memory CRUD operations
-   - **Location**: `internal/tools/handlers.go:205`
-   - **Status**: Native Go implementation exists for basic CRUD, but falls back for semantic search
-   - **Complexity**: Medium (semantic search requires ML/AI)
-   - **Migration**: Partially complete - needs semantic search implementation
+Tools with no native implementation (intentional retention):
 
-2. **`memory_maint`** - Memory maintenance (dream action)
-   - **Location**: `internal/tools/handlers.go:239`
-   - **Status**: Native Go for health, gc, prune, consolidate ✅
-   - **Remaining**: `dream` action (requires advisor integration)
-   - **Complexity**: High (requires advisor/ML integration)
-   - **Migration**: Dream action deferred (requires devwisdom-go integration)
+1. **`mlx`** - MLX model operations
+   - **Location**: `internal/tools/handlers.go:791`
+   - **Status**: Fully Python bridge (no Go bindings available)
+   - **Rationale**: MLX is a Python ML framework with no Go bindings - intentional retention
+   - **Complexity**: High (ML framework integration)
+   - **Migration**: ❌ Not recommended (no Go bindings available)
+   - **Decision**: Documented as intentional Python bridge retention
 
-3. **`report`** - Report generation
-   - **Location**: `internal/tools/handlers.go:325`
-   - **Status**: Fully Python bridge
-   - **Complexity**: High (ML/AI content generation, multiple report types)
-   - **Migration**: Low priority (complex, depends on ML capabilities)
+---
 
-4. **`security`** - Security scanning ✅ **NOW NATIVE**
-   - **Location**: `internal/tools/handlers.go:361`
-   - **Status**: ✅ Native Go for scan, alerts, report actions
-   - **Implementation**: `internal/tools/security.go`
-   - **Actions**: All 3 actions have native implementations (scan uses govulncheck, alerts uses gh CLI, report combines both)
-   - **Migration**: ✅ Complete (was already native, documentation outdated)
+### 🟡 Hybrid Tools (22 tools - Native + Python Bridge Fallback)
 
-5. **`task_analysis`** - Task analysis ✅ **NOW NATIVE**
-   - **Location**: `internal/tools/handlers.go:411`
-   - **Status**: ✅ Native Go for duplicates, tags, dependencies, parallelization on all platforms
-   - **Remaining**: Hierarchy action requires Apple FM (optional enhancement)
-   - **Migration**: ✅ Complete for platform-agnostic actions
+Tools that try native Go first, fallback to Python bridge for specific actions or errors:
 
-6. **`task_discovery`** - Task discovery ✅ **NOW NATIVE**
-   - **Location**: `internal/tools/handlers.go:447`
-   - **Status**: ✅ Native Go for comments, markdown, orphans on all platforms
-   - **Remaining**: Apple FM enhancement for semantic extraction (optional)
-   - **Migration**: ✅ Complete for basic scanning functionality
+#### ✅ Completed - All Core Actions Native (Recent Completions)
 
-7. **`task_workflow`** - Task workflow management ✅ **NOW NATIVE**
-   - **Location**: `internal/tools/handlers.go:476`
-   - **Status**: ✅ Native Go for approve, create, sync, clarity, cleanup on all platforms
-   - **Remaining**: Clarify action requires Apple FM (optional enhancement)
-   - **Migration**: ✅ Complete for platform-agnostic actions
-
-8. **`automation`** - Automation orchestration ✅ **NOW NATIVE (Partial)**
-   - **Location**: `internal/tools/handlers.go:551`
-   - **Status**: ✅ Native Go for daily and discover actions
-   - **Remaining**: nightly and sprint actions - falls back to Python bridge (correct behavior)
-   - **Migration**: ✅ Complete for daily and discover actions
-
-9. **`lint`** - Linting ✅ **NOW NATIVE (Partial)**
-   - **Location**: `internal/tools/handlers.go:621`
-   - **Status**: ✅ Native Go for Go linters (golangci-lint, go-vet, gofmt, goimports, markdownlint, shellcheck)
-   - **Remaining**: Python linters (ruff, flake8) - falls back to Python bridge (correct behavior)
-   - **Migration**: ✅ Complete for Go ecosystem linters
-
-10. **`estimation`** - Task duration estimation
-    - **Location**: `internal/tools/handlers.go:714`
-    - **Status**: Fully Python bridge
-    - **Complexity**: High (ML/AI model inference, statistical analysis)
-    - **Migration**: Low priority (requires ML/AI capabilities, MLX integration)
-
-11. **`mlx`** - MLX model operations
-    - **Location**: `internal/tools/handlers.go:819`
-    - **Status**: Fully Python bridge
-    - **Complexity**: High (ML framework integration)
-    - **Migration**: Low priority (platform-specific ML framework)
-
-12. **`recommend`** - Recommendations (workflow, advisor)
-    - **Location**: `internal/tools/handlers.go:937`
-    - **Status**: Native Go for "model" action ✅, Python bridge for "workflow" and "advisor"
-    - **Remaining**: workflow and advisor actions
-    - **Complexity**: Medium-High (requires advisor integration)
-    - **Migration**: Medium priority (workflow can be native, advisor requires devwisdom-go)
-
-#### Medium Priority
-13. **`analyze_alignment`** - Alignment analysis (prd action)
-    - **Location**: `internal/tools/handlers.go:29`
-    - **Status**: Native Go for "todo2" action ✅, Python bridge for "prd" action
-    - **Remaining**: PRD alignment analysis
-    - **Complexity**: Medium
-    - **Migration**: Medium priority
-
-14. **`generate_config`** - Config generation ✅ **NOW FULLY NATIVE**
-   - **Location**: `internal/tools/handlers.go:39`
-   - **Status**: ✅ Native Go for all actions (rules, ignore, simplify) - fully native
+1. **`analyze_alignment`** - Alignment analysis
+   - **Location**: `internal/tools/handlers.go:15`
+   - **Native Actions**: `todo2`, `prd` ✅
+   - **Python Bridge Actions**: Fallback on error
+   - **Status**: Hybrid - Native for all actions, bridge fallback
+   - **Completion**: ✅ Complete (prd action migrated 2026-01-12)
    - **Migration**: ✅ Complete
-    - **Location**: `internal/tools/handlers.go:55`
-    - **Status**: Native Go for "rules" action ✅, Python bridge for "ignore" and "simplify"
-    - **Remaining**: ignore and simplify actions
-    - **Complexity**: Low-Medium
-    - **Migration**: High priority (straightforward file operations)
 
-15. **`health`** - Health checks (dod, cicd)
-    - **Location**: `internal/tools/handlers.go:81`
-    - **Status**: Fully Python bridge
-    - **Complexity**: Medium (multiple health check types)
-    - **Migration**: Medium priority
+2. **`health`** - Health checks
+   - **Location**: `internal/tools/handlers.go:67`
+   - **Native Actions**: `server`, `git`, `docs`, `dod`, `cicd` ✅
+   - **Python Bridge Actions**: Fallback on error
+   - **Status**: Hybrid - Native for all actions, bridge fallback
+   - **Completion**: ✅ Complete (docs, dod, cicd actions migrated 2026-01-12)
+   - **Migration**: ✅ Complete
 
-16. **`setup_hooks`** - Hook setup (patterns)
-    - **Location**: `internal/tools/handlers.go:107`
-    - **Status**: Native Go for "git" action ✅, Python bridge for "patterns"
-    - **Remaining**: patterns action
-    - **Complexity**: Low-Medium
-    - **Migration**: Medium priority
+3. **`setup_hooks`** - Hook setup
+   - **Location**: `internal/tools/handlers.go:93`
+   - **Native Actions**: `git`, `patterns` ✅
+   - **Python Bridge Actions**: Fallback on error
+   - **Status**: Hybrid - Native for all actions, bridge fallback
+   - **Completion**: ✅ Complete (patterns action migrated 2026-01-12)
+   - **Migration**: ✅ Complete
 
-17. **`add_external_tool_hints`** - External tool hints
-    - **Location**: `internal/tools/handlers.go:159`
-    - **Status**: Native Go implementation exists ✅, falls back on error
+4. **`session`** - Session management
+   - **Location**: `internal/tools/handlers.go:721`
+   - **Native Actions**: `prime`, `handoff`, `prompts`, `assignee` ✅
+   - **Python Bridge Actions**: Fallback on error
+   - **Status**: Hybrid - Native for all actions, bridge fallback
+   - **Completion**: ✅ Complete (prompts and assignee actions migrated 2026-01-12)
+   - **Migration**: ✅ Complete
+
+
+6. **`report`** - Report generation
+   - **Location**: `internal/tools/handlers.go:249`
+   - **Native Actions**: `scorecard`, `overview`, `prd` ✅
+   - **Python Bridge Actions**: `briefing` (devwisdom MCP)
+   - **Status**: Hybrid - Native for scorecard/overview/prd, bridge for briefing
+   - **Remaining**: briefing action (requires devwisdom-go MCP server)
+   - **Complexity**: High (requires devwisdom-go integration)
+   - **Migration**: Low priority (briefing requires devwisdom-go MCP server)
+
+#### Medium Priority - Most Actions Native, Fallback on Error
+
+7. **`memory`** - Memory CRUD operations
+   - **Location**: `internal/tools/handlers.go:171`
+   - **Native Actions**: `save`, `recall`, `list` ✅
+   - **Python Bridge Actions**: Semantic search (advanced search action)
+   - **Status**: Hybrid - Native for CRUD, bridge for semantic search
+   - **Remaining**: Semantic search (ML/AI feature)
+   - **Complexity**: High (requires ML/AI semantic search)
+   - **Migration**: Low priority (requires ML/AI capabilities)
+
+8. **`memory_maint`** - Memory maintenance
+   - **Location**: `internal/tools/handlers.go:215`
+   - **Native Actions**: `health`, `gc`, `prune`, `consolidate` ✅
+   - **Python Bridge Actions**: `dream` (requires advisor integration)
+   - **Status**: Hybrid - Native for health/gc/prune/consolidate, bridge for dream
+   - **Remaining**: dream action (requires advisor integration)
+   - **Complexity**: High (requires advisor/ML integration)
+   - **Migration**: Low priority (dream requires devwisdom-go integration)
+
+9. **`automation`** - Automation orchestration
+   - **Location**: `internal/tools/handlers.go:551`
+   - **Native Actions**: `daily`, `discover`, `nightly`, `sprint` ✅
+   - **Python Bridge Actions**: Fallback on error
+   - **Status**: Hybrid - Native for all actions, bridge fallback
+   - **Completion**: ✅ Complete (nightly and sprint actions migrated 2026-01-12)
+   - **Migration**: ✅ Complete
+
+10. **`testing`** - Testing operations
+    - **Location**: `internal/tools/handlers.go:495`
+    - **Native Actions**: `run`, `coverage`, `validate` (Go projects) ✅
+    - **Python Bridge Actions**: Other languages, ML features
+    - **Status**: Hybrid - Native for Go projects, bridge for other languages/ML
+    - **Remaining**: Non-Go language support, ML test generation
+    - **Complexity**: Medium-High (requires multi-language support, ML for test generation)
+    - **Migration**: Low priority (non-Go support requires language-specific tooling)
+
+11. **`security`** - Security scanning
+    - **Location**: `internal/tools/handlers.go:362`
+    - **Native Actions**: `scan`, `alerts`, `report` (Go projects) ✅
+    - **Python Bridge Actions**: Other languages
+    - **Status**: Hybrid - Native for Go projects, bridge for other languages
+    - **Remaining**: Non-Go language support
+    - **Complexity**: Medium (requires language-specific security scanners)
+    - **Migration**: Low priority (non-Go support requires language-specific tooling)
+
+12. **`lint`** - Linting
+    - **Location**: `internal/tools/handlers.go:600`
+    - **Native Actions**: Go linters (golangci-lint, go-vet, gofmt, goimports, markdownlint, shellcheck) ✅
+    - **Python Bridge Actions**: Python linters (ruff, flake8)
+    - **Status**: Hybrid - Native for Go linters, bridge for Python linters
+    - **Remaining**: Python linter support
+    - **Complexity**: Low-Medium (subprocess execution)
+    - **Migration**: Medium priority (can add Python linter support if needed)
+
+#### Low Priority - Native with Optional Bridge Fallback
+
+13. **`check_attribution`** - Attribution checking
+    - **Location**: `internal/tools/handlers.go:119`
+    - **Native Actions**: All actions ✅
+    - **Python Bridge Actions**: Fallback on error
+    - **Status**: Hybrid - Native primary, bridge fallback
     - **Complexity**: Low
-    - **Migration**: Complete but needs error handling review
+    - **Migration**: ✅ Complete (fallback is safety measure)
 
-18. **`testing`** - Testing (suggest, generate)
-    - **Location**: `internal/tools/testing.go:50,94,133`
-    - **Status**: Native Go for run, coverage, validate ✅, Python bridge for suggest and generate
-    - **Remaining**: suggest and generate actions (ML/AI)
-    - **Complexity**: High (ML/AI test generation)
-    - **Migration**: Low priority (requires ML/AI capabilities)
+14. **`add_external_tool_hints`** - External tool hints
+    - **Location**: `internal/tools/handlers.go:143`
+    - **Native Actions**: All actions ✅
+    - **Python Bridge Actions**: Fallback on error
+    - **Status**: Hybrid - Native primary, bridge fallback
+    - **Complexity**: Low
+    - **Migration**: ✅ Complete (fallback is safety measure)
 
-19. **`context`** - Context management (specific actions)
-    - **Location**: `internal/tools/handlers.go:891`
-    - **Status**: Native Go for summarize and batch ✅, Python bridge fallback
-    - **Complexity**: Low-Medium
-    - **Migration**: Mostly complete, verify all actions work
+15. **`generate_config`** - Config generation
+    - **Location**: `internal/tools/handlers.go:39`
+    - **Native Actions**: All actions (rules, ignore, simplify) ✅
+    - **Python Bridge Actions**: Fallback on error (likely unused)
+    - **Status**: Hybrid - Native for all actions, bridge fallback
+    - **Complexity**: Low
+    - **Migration**: ✅ Complete (fallback is safety measure)
 
-20. **`session`** - Session management (prompts, assignee)
-    - **Location**: `internal/tools/handlers.go:765`
-    - **Status**: Native Go for prime and handoff ✅, Python bridge for prompts and assignee
-    - **Remaining**: prompts and assignee actions
-    - **Complexity**: Medium (depends on prompt discovery resource)
-    - **Migration**: Medium priority
+16. **`task_analysis`** - Task analysis
+    - **Location**: `internal/tools/handlers.go:411`
+    - **Native Actions**: All actions (duplicates, tags, dependencies, parallelization, hierarchy) ✅
+    - **Python Bridge Actions**: Fallback on error (hierarchy requires Apple FM, falls back if unavailable)
+    - **Status**: Hybrid - Native for all actions, bridge fallback
+    - **Complexity**: Low
+    - **Migration**: ✅ Complete (fallback for Apple FM unavailability)
 
-21. **`ollama`** - Ollama integration (docs, quality, summary)
-    - **Location**: `internal/tools/handlers.go:802`
-    - **Status**: Native Go for status, models, generate, pull, hardware ✅
-    - **Remaining**: docs, quality, summary actions
-    - **Complexity**: Medium (requires Ollama API analysis)
-    - **Migration**: Medium priority (can use native HTTP client)
+17. **`task_discovery`** - Task discovery
+    - **Location**: `internal/tools/handlers.go:439`
+    - **Native Actions**: All actions (comments, markdown, orphans) ✅
+    - **Python Bridge Actions**: Fallback on error (Apple FM enhancement optional)
+    - **Status**: Hybrid - Native for all actions, bridge fallback
+    - **Complexity**: Low
+    - **Migration**: ✅ Complete (fallback is safety measure)
+
+18. **`task_workflow`** - Task workflow management
+    - **Location**: `internal/tools/handlers.go:467`
+    - **Native Actions**: All actions (sync, approve, clarify, clarity, cleanup) ✅
+    - **Python Bridge Actions**: Fallback on error (clarify requires Apple FM, falls back if unavailable)
+    - **Status**: Hybrid - Native for all actions, bridge fallback
+    - **Complexity**: Low
+    - **Migration**: ✅ Complete (fallback for Apple FM unavailability)
+
+19. **`ollama`** - Ollama integration
+   - **Location**: `internal/tools/handlers.go:766`
+   - **Native Actions**: All actions (status, models, generate, pull, hardware, docs, quality, summary) ✅
+   - **Python Bridge Actions**: Fallback on error
+   - **Status**: Hybrid - Native for all actions via HTTP client, bridge fallback
+   - **Completion**: ✅ Complete (docs, quality, summary actions migrated 2026-01-12)
+   - **Migration**: ✅ Complete (fallback is safety measure)
+
+20. **`context`** - Context management
+   - **Location**: `internal/tools/handlers.go:815`
+   - **Native Actions**: `summarize` (with Apple FM), `budget`, `batch` ✅
+   - **Python Bridge Actions**: Fallback on error or when Apple FM unavailable
+   - **Status**: Hybrid - Native for all actions, bridge fallback
+   - **Complexity**: Low-Medium
+   - **Migration**: ✅ Complete (fallback for Apple FM unavailability)
+
+21. **`estimation`** - Task duration estimation
+   - **Location**: `internal/tools/handlers.go:671`
+   - **Native Actions**: `estimate`, `stats`, `analyze` ✅
+   - **Python Bridge Actions**: MLX inference, fallback on error
+   - **Status**: Hybrid - Native for all actions (estimate, stats, analyze), bridge for MLX inference (optional)
+   - **Completion**: ✅ Complete (analyze action migrated 2026-01-12)
+   - **Migration**: ✅ Complete (MLX inference is optional enhancement)
+
+22. **`recommend`** - Recommendations
+   - **Location**: `internal/tools/handlers.go:892`
+   - **Native Actions**: `model`, `workflow` ✅
+   - **Python Bridge Actions**: `advisor` (requires devwisdom-go), fallback on error
+   - **Status**: Hybrid - Native for model/workflow, bridge for advisor
+   - **Completion**: ✅ Complete (workflow action migrated 2026-01-12)
+   - **Migration**: Low priority (advisor requires devwisdom-go MCP server - intentional bridge usage)
 
 ---
 
-### 🟡 Hybrid (Partial Native, Partial Python Bridge)
+## Resources Using Python Bridge
 
-Tools with native implementations that still fall back to Python bridge for specific actions:
+### 🟡 Hybrid Resources (1 resource)
 
-1. **`analyze_alignment`** - PRD action → Python bridge
-2. **`generate_config`** - ignore, simplify → Python bridge
-3. **`health`** - All actions → Python bridge (may have partial native)
-4. **`setup_hooks`** - patterns → Python bridge
-5. **`memory`** - Semantic search → Python bridge
-6. **`memory_maint`** - dream → Python bridge
-7. **`testing`** - suggest, generate → Python bridge
-8. **`context`** - Fallback on error → Python bridge
-9. **`session`** - prompts, assignee → Python bridge
-10. **`ollama`** - docs, quality, summary → Python bridge
-11. **`recommend`** - workflow, advisor → Python bridge
+Resources with native implementation that fallback to Python bridge:
+
+1. **`stdio://session/mode`** - Session mode resource
+   - **Location**: `internal/resources/handlers.go:377`
+   - **Status**: Native Go (primary), Python bridge (fallback)
+   - **Implementation**: Uses `tools.HandleInferSessionModeNative`
+   - **Fallback**: Python bridge if native fails
+   - **Migration**: ✅ Complete (fallback is safety measure)
 
 ---
 
-## Resources Still Using Python Bridge
+### ✅ Native Resources (20 resources - No Python Bridge)
 
-### Fully Python Bridge Resources
+All other resources are fully native (no Python bridge calls):
 
-1. **`stdio://scorecard`** - Project scorecard
-   - **Location**: `internal/resources/scorecard.go:39`
-   - **Status**: Fully Python bridge
-   - **Complexity**: High (ML/AI content generation)
-   - **Migration**: Low priority (depends on report tool)
+**Memory Resources (5):**
+- `stdio://memories` - Native Go
+- `stdio://memories/category/{category}` - Native Go
+- `stdio://memories/recent` - Native Go
+- `stdio://memories/session/{date}` - Native Go
+- `stdio://memories/task/{task_id}` - Native Go
 
-2. **`stdio://memories/*`** - All memory resources
-   - **Location**: `internal/resources/memories.go:26,75,123,162,219`
-   - **Status**: Fully Python bridge
-   - **Complexity**: Medium (CRUD operations, semantic search)
-   - **Migration**: Medium priority (can reuse memory.go utilities)
+**Prompt Resources (4):**
+- `stdio://prompts` - Native Go (uses getAllPromptsNative)
+- `stdio://prompts/category/{category}` - Native Go
+- `stdio://prompts/mode/{mode}` - Native Go
+- `stdio://prompts/persona/{persona}` - Native Go
 
-3. **Other resources** - Context primer, prompt discovery, session
-   - **Location**: `internal/resources/handlers.go:210,214,218,222,226`
-   - **Status**: Fully Python bridge
-   - **Complexity**: Medium (depends on session tool migration)
-   - **Migration**: Medium priority (depends on related tool migrations)
+**Task Resources (6):**
+- `stdio://tasks` - Native Go
+- `stdio://tasks/priority/{priority}` - Native Go
+- `stdio://tasks/status/{status}` - Native Go
+- `stdio://tasks/summary` - Native Go
+- `stdio://tasks/tag/{tag}` - Native Go
+- `stdio://tasks/{task_id}` - Native Go
+
+**Tool Resources (2):**
+- `stdio://tools` - Native Go
+- `stdio://tools/{category}` - Native Go
+
+**Other Resources (3):**
+- `stdio://scorecard` - Native Go (uses GenerateGoScorecard for Go projects, bridge fallback for non-Go)
+- `stdio://models` - Native Go
+- `stdio://server/status` - Native Go
 
 ---
 
 ## Migration Priority Summary
 
-### 🔴 High Priority (Quick Wins - No ML/AI Required)
-1. ✅ `task_discovery` - File parsing and pattern matching
-2. ✅ `task_workflow` - Todo2 operations (utilities already exist)
-3. ✅ `lint` - Subprocess execution of linters
-4. ✅ `generate_config` - ignore, simplify actions (file operations)
-5. ✅ `task_analysis` - Graph algorithms (gonum already available)
-6. ✅ `automation` - daily and discover actions (orchestration)
+### ✅ Completed (All High-Priority Actions Complete!)
 
-### 🟡 Medium Priority (Some Complexity)
-1. ⚠️ `health` - Multiple health check types (docs action)
-2. ✅ `security` - **ALREADY NATIVE** (documentation updated)
-3. ⚠️ `session` - prompts, assignee actions
-4. ⚠️ `ollama` - docs, quality, summary actions
-5. ⚠️ `recommend` - workflow action
-6. ⚠️ `setup_hooks` - patterns action
-7. ⚠️ `analyze_alignment` - prd action
-8. ⚠️ Memory resources - CRUD operations
+**Tools:**
+- All tools have native implementations (5 fully native, 22 hybrid)
+- Only 1 tool (`mlx`) is intentionally Python bridge only
+- All high-priority actions completed (Stream 1, 2, 3)
 
-### 🟢 Low Priority (Requires ML/AI or Platform-Specific)
-1. ❌ `report` - ML/AI content generation
-2. ❌ `estimation` - ML model inference
-3. ❌ `mlx` - ML framework integration
-4. ❌ `memory_maint` - dream action (requires advisor)
-5. ❌ `recommend` - advisor action (requires devwisdom-go)
-6. ❌ `testing` - suggest, generate actions (ML/AI)
-7. ❌ Memory semantic search - ML/AI capabilities
-8. ❌ Scorecard resource - ML/AI content generation
+**Resources:**
+- All 21 resources have native implementations
+- 21 resources are native (100%)
+- All resources use native Go as primary implementation
+
+### ✅ Recent Completions (2026-01-12)
+
+**Stream 1, 2, 3 Actions Completed:**
+1. ✅ **`session`** - `prompts`, `assignee` actions now native
+2. ✅ **`ollama`** - `docs`, `quality`, `summary` actions now native
+3. ✅ **`recommend`** - `workflow` action now native
+4. ✅ **`setup_hooks`** - `patterns` action now native
+5. ✅ **`analyze_alignment`** - `prd` action now native
+6. ✅ **`health`** - `docs`, `dod`, `cicd` actions now native
+7. ✅ **`estimation`** - `analyze` action now native
+8. ✅ **`automation`** - `nightly`, `sprint` actions now native
+
+### 🟢 Remaining Actions (Low Priority - ML/AI or External Dependencies)
+
+### 🟢 Low Priority (ML/AI or External Dependencies Required)
+
+1. **`mlx`** - ❌ Intentional Python bridge (no Go bindings)
+2. **`memory`** - Semantic search (ML/AI)
+3. **`memory_maint`** - `dream` action (requires devwisdom-go advisor)
+4. **`recommend`** - `advisor` action (requires devwisdom-go)
+5. **`report`** - `briefing` action (requires devwisdom-go)
+6. **`testing`** - Non-Go language support, ML test generation
+7. **`security`** - Non-Go language support
+8. **`estimation`** - MLX inference (intentional bridge usage)
 
 ---
 
 ## Statistics
 
 ### Tools
-- **Total Tools**: 24
-- **Fully Native**: 8 (33%)
-- **Hybrid (Native + Python)**: 8 (33%)
-- **Fully Python Bridge**: 8 (33%)
+- **Total Tools**: 28 (plus 1 conditional Apple FM tool = 28-29)
+- **Fully Native**: 5 tools (18%) - `tool_catalog`, `workflow_mode`, `git_tools`, `infer_session_mode`, `prompt_tracking`
+- **Hybrid (Native + Python)**: 22 tools (79%) - Native primary with Python bridge fallback
+- **Fully Python Bridge**: 1 tool (4% - `mlx` only, intentional - no Go bindings)
+- **Native Coverage**: 96% (27/28 tools have native implementations)
 
 ### Resources
-- **Total Resources**: 6
-- **Fully Native**: 0 (0%)
-- **Fully Python Bridge**: 6 (100%)
+- **Total Resources**: 21
+- **Fully Native**: 21 resources (100%) - All resources use native Go as primary
+- **Hybrid (Native + Python)**: 0 resources (0%)
+- **Fully Python Bridge**: 0 resources (0%)
+- **Native Coverage**: 100% (21/21 resources have native implementations)
 
-### Migration Progress
-- **Recent Migration**: 5 tools migrated to native Go (session, ollama, prompt_tracking, memory_maint consolidate, context batch verified)
-- **High Priority Remaining**: 6 tools
-- **Medium Priority Remaining**: 8 tools
-- **Low Priority Remaining**: 8 tools/features
+---
+
+## Key Findings from Audit (2026-01-12)
+
+1. ✅ **Excellent Progress**: 96% tool coverage, 100% resource coverage
+2. ✅ **Hybrid Pattern Dominant**: 79% of tools use hybrid pattern (native first, bridge fallback)
+3. ✅ **All High-Priority Actions Complete**: Stream 1, 2, 3 actions all migrated (session, ollama, recommend, setup_hooks, analyze_alignment, health, automation, estimation)
+4. ✅ **All Resources Native**: All 21 resources have native implementations (100%)
+5. ✅ **Only 1 Intentional Python Bridge Tool**: `mlx` is the only tool intentionally Python bridge only (no Go bindings)
+6. ✅ **Remaining Work Is Low Priority**: Most remaining actions are ML/AI features or require external dependencies (devwisdom-go, MLX)
 
 ---
 
 ## Next Steps
 
-1. **Focus on High Priority Quick Wins**:
-   - `task_discovery` - File operations
-   - `task_workflow` - Todo2 utilities exist
-   - `lint` - Subprocess execution
-   - `generate_config` - ignore, simplify actions
-   - `task_analysis` - Graph algorithms with gonum
+### ✅ High-Priority Actions Complete!
 
-2. **Resources Migration** (Phase 4):
-   - Start with memory resources (can reuse memory.go)
-   - Context primer and prompt discovery (after session tool)
-   - Scorecard (after report tool)
+All high-priority actions from Stream 1, 2, and 3 have been completed (2026-01-12):
+1. ✅ **`session` tool** - `prompts` and `assignee` actions
+2. ✅ **`health` tool** - `docs`, `dod`, `cicd` actions
+3. ✅ **`setup_hooks` tool** - `patterns` action
+4. ✅ **`analyze_alignment` tool** - `prd` action
+5. ✅ **`automation` tool** - `nightly`, `sprint` actions
+6. ✅ **`ollama` tool** - `docs`, `quality`, `summary` actions
+7. ✅ **`recommend` tool** - `workflow` action
+8. ✅ **`estimation` tool** - `analyze` action
 
-3. **Complex Tools** (Defer):
-   - ML/AI dependent tools (report, estimation, mlx, testing suggest/generate)
-   - Advisor-dependent features (memory_maint dream, recommend advisor)
+### Deferred Actions (ML/AI or External Dependencies)
+
+1. **`mlx`** - ❌ Keep Python bridge (no Go bindings)
+2. **`memory` semantic search** - Requires ML/AI
+3. **`memory_maint` dream** - Requires devwisdom-go advisor
+4. **`recommend` advisor** - Requires devwisdom-go
+5. **`report` briefing** - Requires devwisdom-go
+6. **`testing` non-Go/ML** - Requires language-specific tooling/ML
+7. **`security` non-Go** - Requires language-specific scanners
+8. **`estimation` MLX** - Intentional bridge usage for MLX inference
 
 ---
 
 ## Notes
 
-- **Hybrid Approach**: Many tools successfully use hybrid approach (try native first, fallback to Python)
-- **Error Handling**: Some tools may fall back to Python on error - need to review error handling
-- **Dependencies**: Some migrations depend on others (e.g., automation sprint depends on report tool)
-- **Testing**: All native implementations should be thoroughly tested before removing Python bridge fallbacks
+- **Hybrid Approach Works Well**: 75% of tools successfully use hybrid approach (try native first, fallback to Python)
+- **Fallback is Safety Measure**: Many "Python Bridge" entries are actually fallbacks that rarely trigger
+- **External Dependencies**: Some features (advisor, briefing) require devwisdom-go MCP server - intentional bridge usage
+- **ML/AI Features**: Semantic search, test generation, etc. intentionally use Python bridge for ML capabilities
+- **Platform-Specific**: MLX intentionally uses Python bridge (no Go bindings)
+- **Testing**: All native implementations should be thoroughly tested, but Python bridge fallback provides safety net
+
+---
+
+**Last Audit**: 2026-01-12 (See `docs/MIGRATION_AUDIT_2026-01-12.md`)  
+**Last Updated**: 2026-01-12 (After Stream 1, 2, 3 completions)  
+**Next Review**: After completing testing and documentation updates

@@ -1,8 +1,9 @@
 # Go Migration Status - Current Report
 
-**Date:** 2026-01-09  
-**Last Updated:** After Phase 3 & Phase 4 Completions  
-**Overall Progress:** Significant advancement
+**Date:** 2026-01-12  
+**Last Updated:** After Comprehensive Audit and Documentation Updates (Stream 4)  
+**Overall Progress:** Excellent - 96% tool coverage, 100% resource coverage  
+**Audit Reference:** See `docs/MIGRATION_AUDIT_2026-01-12.md` for detailed audit findings
 
 ---
 
@@ -19,53 +20,77 @@
 ## Migration Progress by Phase
 
 ### Phase 1: Foundation Tools ✅ **COMPLETE** (100%)
-- **Status:** All 3 tools migrated
-- **Tools:** `server_status`, `tool_catalog`, `workflow_mode`, `infer_session_mode`, `git_tools`, `context_budget`
+- **Status:** All 6 foundation tools migrated
+- **Tools:** `tool_catalog`, `workflow_mode`, `infer_session_mode`, `git_tools`, `context_budget`, `prompt_tracking`
+- **Note:** `server_status` converted to resource (`stdio://server/status`)
 - **Completion:** 100%
 
 ### Phase 2: Medium Complexity Tools ✅ **COMPLETE** (100%)
-- **Status:** All 9 tools have native Go implementations
-- **Fully Native:**
-  - ✅ `analyze_alignment` - Native Go (todo2 action)
-  - ✅ `generate_config` - Native Go (all actions)
-  - ✅ `check_attribution` - Native Go (full)
-  - ✅ `add_external_tool_hints` - Native Go (full)
+- **Status:** All tools have native Go implementations (Hybrid pattern)
 - **Hybrid (Native + Python Bridge):**
-  - ✅ `health` - Native Go (server action), Python bridge for others
-  - ✅ `setup_hooks` - Native Go (git action), Python bridge for others
-  - ✅ `recommend` - Native Go (model/workflow actions), Python bridge for advisor
-  - ✅ `report` - Native Go (scorecard, overview, prd actions), Python bridge for briefing (devwisdom MCP)
-  - ✅ `security` - Native Go (scan, alerts, report for Go projects), Python bridge for other languages
-  - ✅ `testing` - Native Go (run, coverage, validate for Go projects), Python bridge for ML features
+  - ✅ `analyze_alignment` - Native Go (todo2, prd actions), bridge fallback
+  - ✅ `generate_config` - Native Go (all actions), bridge fallback
+  - ✅ `check_attribution` - Native Go, bridge fallback
+  - ✅ `add_external_tool_hints` - Native Go, bridge fallback
+  - ✅ `health` - Native Go (server, git, docs, dod, cicd actions), bridge fallback
+  - ✅ `setup_hooks` - Native Go (git, patterns actions), bridge fallback
+  - ✅ `recommend` - Native Go (model, workflow actions), bridge for advisor
+  - ✅ `report` - Native Go (scorecard, overview, prd actions), bridge for briefing (devwisdom MCP)
+  - ✅ `security` - Native Go (scan, alerts, report actions), bridge fallback
+  - ✅ `testing` - Native Go (run, coverage, validate actions), bridge for suggest/generate (ML)
+  - ✅ `lint` - Native Go (Go linters), bridge for Python linters
 - **Completion:** 100% (all tools have native implementations)
+- **Recent Completions:** health docs/dod/cicd, setup_hooks patterns, analyze_alignment prd, recommend workflow
 
 ### Phase 3: Complex Tools ✅ **COMPLETE** (100%)
-- **Status:** All critical tools migrated
-- **Fully Native:**
-  - ✅ `task_analysis` - All 5 actions native (hierarchy, duplicates, tags, dependencies, parallelization)
-  - ✅ `task_workflow` - All 5 actions native (sync, approve, clarify, clarity, cleanup)
-  - ✅ `task_discovery` - All 3 actions native (comments, markdown, orphans)
-  - ✅ `memory` - Native Go CRUD (save, recall, search, list), Python bridge for semantic search
-  - ✅ `memory_maint` - Native Go (health, gc, prune), Python bridge for consolidate/dream
+- **Status:** All tools have native implementations (Hybrid pattern)
+- **Hybrid (Native + Python Bridge):**
+  - ✅ `task_analysis` - Native Go (all actions), bridge fallback
+  - ✅ `task_workflow` - Native Go (all actions), bridge fallback (clarify requires Apple FM)
+  - ✅ `task_discovery` - Native Go (all actions), bridge fallback
+  - ✅ `memory` - Native Go CRUD (save, recall, list, search), bridge for semantic search
+  - ✅ `memory_maint` - Native Go (health, gc, prune, consolidate), bridge for dream
+  - ✅ `automation` - Native Go (daily, discover, nightly, sprint), bridge fallback
+  - ✅ `session` - Native Go (prime, handoff, prompts, assignee), bridge fallback
+  - ✅ `estimation` - Native Go (estimate, stats, analyze), bridge fallback
+  - ✅ `ollama` - Native Go (status, models, generate, pull, hardware, docs, quality, summary), bridge fallback
+  - ✅ `context` - Native Go (summarize/budget/batch), bridge fallback
 - **Python Bridge Only:**
-  - ⏳ `automation` - Complex workflow engine, Python bridge
-  - ⏳ `session` - Session management, Python bridge
-  - ⏳ `prompt_tracking` - Python bridge
-  - ⏳ `estimation` - Python bridge
-  - ⏳ `mlx` - Python bridge (no Go bindings)
-  - ⏳ `ollama` - Python bridge (no Go bindings)
+  - ⏳ `mlx` - Python bridge (no Go bindings available - intentional retention)
 - **Completion:** 100% of critical path items
+- **Recent Completions:** automation nightly/sprint, session prompts/assignee, ollama docs/quality/summary, estimation analyze
 
 ### Phase 4: Resources ✅ **COMPLETE** (100%)
-- **Status:** All 6 resources migrated to native Go
-- **Native Resources:**
-  - ✅ `stdio://scorecard` - Native Go (uses GenerateGoScorecard)
-  - ✅ `stdio://memories` - Native Go (all memories with stats)
-  - ✅ `stdio://memories/category/{category}` - Native Go
-  - ✅ `stdio://memories/task/{task_id}` - Native Go
-  - ✅ `stdio://memories/recent` - Native Go
-  - ✅ `stdio://memories/session/{date}` - Native Go
-- **Completion:** 100% (6/6 resources)
+- **Status:** All 21 resources have native Go implementations
+- **Native Resources (20):**
+  - Memory Resources (5):
+    - ✅ `stdio://memories` - Native Go
+    - ✅ `stdio://memories/category/{category}` - Native Go
+    - ✅ `stdio://memories/recent` - Native Go
+    - ✅ `stdio://memories/session/{date}` - Native Go
+    - ✅ `stdio://memories/task/{task_id}` - Native Go
+  - Prompt Resources (4):
+    - ✅ `stdio://prompts` - Native Go (uses getAllPromptsNative)
+    - ✅ `stdio://prompts/category/{category}` - Native Go
+    - ✅ `stdio://prompts/mode/{mode}` - Native Go
+    - ✅ `stdio://prompts/persona/{persona}` - Native Go
+  - Task Resources (6):
+    - ✅ `stdio://tasks` - Native Go (uses database/JSON)
+    - ✅ `stdio://tasks/priority/{priority}` - Native Go
+    - ✅ `stdio://tasks/status/{status}` - Native Go
+    - ✅ `stdio://tasks/summary` - Native Go
+    - ✅ `stdio://tasks/tag/{tag}` - Native Go
+    - ✅ `stdio://tasks/{task_id}` - Native Go
+  - Tool Resources (2):
+    - ✅ `stdio://tools` - Native Go (uses GetToolCatalog)
+    - ✅ `stdio://tools/{category}` - Native Go
+  - Other Resources (3):
+    - ✅ `stdio://scorecard` - Native Go (uses GenerateGoScorecard for Go projects)
+    - ✅ `stdio://models` - Native Go (uses MODEL_CATALOG)
+    - ✅ `stdio://server/status` - Native Go
+- **Hybrid Resources (1):**
+  - ✅ `stdio://session/mode` - Native Go (primary), bridge fallback
+- **Completion:** 100% (21/21 resources)
 
 ### Phase 5: Prompts ✅ **COMPLETE** (100%)
 - **Status:** Complete - All prompts migrated to native Go
@@ -77,75 +102,113 @@
 
 ## Native Go Implementation Status
 
-### Fully Native Tools (11 tools)
-1. `server_status` - Full native
-2. `tool_catalog` - Full native
-3. `workflow_mode` - Full native
-4. `infer_session_mode` - Full native
-5. `git_tools` - Full native
-6. `context_budget` - Full native
-7. `analyze_alignment` - Full native (todo2 action)
-8. `generate_config` - Full native (all actions)
-9. `check_attribution` - Full native
-10. `add_external_tool_hints` - Full native
-11. `task_analysis` - Full native (all 5 actions)
-12. `task_workflow` - Full native (all 5 actions)
-13. `task_discovery` - Full native (all 3 actions)
+### Fully Native Tools (5 tools)
+Tools with no Python bridge calls (direct native implementation only):
 
-### Hybrid Tools (7 tools - Native + Python Bridge)
-1. `memory` - Native Go CRUD, Python bridge for semantic search
-2. `memory_maint` - Native Go (health/gc/prune), Python bridge for consolidate/dream
-3. `health` - Native Go (server), Python bridge for others
-4. `setup_hooks` - Native Go (git), Python bridge for patterns
-5. `recommend` - Native Go (model/workflow), Python bridge for advisor
-6. `report` - Native Go (scorecard, overview, prd), Python bridge for briefing (devwisdom MCP)
-7. `security` - Native Go (scan, alerts, report for Go), Python bridge for other languages
-8. `testing` - Native Go (run, coverage, validate for Go), Python bridge for ML features
-9. `context` - Native Go (summarize/budget), Python bridge for batch
+1. `git_tools` - Full native Go implementation
+2. `infer_session_mode` - Full native Go implementation
+3. `tool_catalog` - Full native Go implementation
+4. `workflow_mode` - Full native Go implementation
+5. `prompt_tracking` - Full native Go implementation
 
-### Python Bridge Only Tools (~10 tools)
-- `automation` - Complex workflow engine
-- `session` - Session management
-- `prompt_tracking` - Prompt iteration tracking
-- `estimation` - Task duration estimation
-- `mlx` - MLX integration (no Go bindings)
-- `ollama` - Ollama integration (no Go bindings)
-- `lint` - Linting (partial native for Go, Python bridge for others)
+**Note:** `server_status` was converted to `stdio://server/status` resource. `context_budget` is part of the `context` tool (hybrid).
+
+### Hybrid Tools (22 tools - Native + Python Bridge)
+Tools that try native Go first, fallback to Python bridge:
+
+1. `analyze_alignment` - Native (todo2, prd), bridge (fallback)
+2. `add_external_tool_hints` - Native (primary), bridge (fallback)
+3. `automation` - Native (daily, discover, nightly, sprint), bridge (fallback)
+4. `check_attribution` - Native (primary), bridge (fallback)
+5. `context` - Native (summarize/budget/batch), bridge (fallback)
+6. `estimation` - Native (estimate, stats, analyze), bridge (fallback)
+7. `generate_config` - Native (all actions), bridge (fallback)
+8. `health` - Native (server, git, docs, dod, cicd), bridge (fallback)
+9. `lint` - Native (Go linters), bridge (Python linters)
+10. `memory` - Native (CRUD: save/recall/list/search), bridge (semantic search)
+11. `memory_maint` - Native (health/gc/prune/consolidate), bridge (dream)
+12. `ollama` - Native (all actions via HTTP: status, models, generate, pull, hardware, docs, quality, summary), bridge (fallback)
+13. `recommend` - Native (model, workflow), bridge (advisor)
+14. `report` - Native (scorecard, overview, prd), bridge (briefing - devwisdom MCP)
+15. `security` - Native (scan, alerts, report), bridge (fallback)
+16. `session` - Native (prime, handoff, prompts, assignee), bridge (fallback)
+17. `setup_hooks` - Native (git, patterns), bridge (fallback)
+18. `task_analysis` - Native (all actions), bridge (fallback - hierarchy requires Apple FM)
+19. `task_discovery` - Native (all actions), bridge (fallback)
+20. `task_workflow` - Native (all actions), bridge (fallback - clarify requires Apple FM)
+21. `testing` - Native (run, coverage, validate), bridge (suggest, generate - ML features)
+22. `context` - Native (summarize/budget/batch), bridge (fallback)
+
+**Note:** Recent completions (Stream 1, 2, 3): session prompts/assignee, ollama docs/quality/summary, recommend workflow, setup_hooks patterns, analyze_alignment prd, health docs/dod/cicd, automation nightly/sprint, estimation analyze - all now native!
+
+### Python Bridge Only Tools (1 tool)
+Tools with no native implementation (intentional):
+
+1. `mlx` - Python bridge only (no Go bindings available - intentional retention)
 
 ---
 
 ## Resources Status
 
-### Native Resources (6 resources) ✅
-1. `stdio://scorecard` - Native Go implementation
-2. `stdio://memories` - Native Go implementation
-3. `stdio://memories/category/{category}` - Native Go implementation
-4. `stdio://memories/task/{task_id}` - Native Go implementation
-5. `stdio://memories/recent` - Native Go implementation
-6. `stdio://memories/session/{date}` - Native Go implementation
+### Native Resources (20 resources) ✅
 
-### Python Bridge Resources (4 resources)
-- `stdio://prompts` - Python bridge
-- `stdio://prompts/mode/{mode}` - Python bridge
-- `stdio://prompts/persona/{persona}` - Python bridge
-- `stdio://prompts/category/{category}` - Python bridge
-- `stdio://session/mode` - Python bridge
+**Memory Resources (5):**
+1. `stdio://memories` - Native Go (uses LoadAllMemories)
+2. `stdio://memories/category/{category}` - Native Go
+3. `stdio://memories/recent` - Native Go
+4. `stdio://memories/session/{date}` - Native Go
+5. `stdio://memories/task/{task_id}` - Native Go
+
+**Prompt Resources (4):**
+6. `stdio://prompts` - Native Go (uses getAllPromptsNative)
+7. `stdio://prompts/category/{category}` - Native Go
+8. `stdio://prompts/mode/{mode}` - Native Go
+9. `stdio://prompts/persona/{persona}` - Native Go
+
+**Task Resources (6):**
+10. `stdio://tasks` - Native Go (uses database/JSON)
+11. `stdio://tasks/priority/{priority}` - Native Go
+12. `stdio://tasks/status/{status}` - Native Go
+13. `stdio://tasks/summary` - Native Go
+14. `stdio://tasks/tag/{tag}` - Native Go
+15. `stdio://tasks/{task_id}` - Native Go
+
+**Tool Resources (2):**
+16. `stdio://tools` - Native Go (uses GetToolCatalog)
+17. `stdio://tools/{category}` - Native Go
+
+**Other Resources (3):**
+18. `stdio://scorecard` - Native Go (uses GenerateGoScorecard for Go projects, bridge fallback for non-Go)
+19. `stdio://models` - Native Go (uses MODEL_CATALOG)
+20. `stdio://server/status` - Native Go
+
+### Hybrid Resources (1 resource)
+- `stdio://session/mode` - Native Go (primary), bridge fallback
+
+**Note:** All prompt resources are now native (previously documented as Python bridge).
 
 ---
 
 ## Overall Statistics
 
 ### Tools
-- **Total Tools:** 30
-- **Fully Native:** 13 tools (43%)
-- **Hybrid (Native + Bridge):** 9 tools (30%)
-- **Python Bridge Only:** ~8 tools (27%)
-- **Overall Native Coverage:** ~73% (22/30 tools have native implementations)
+- **Total Tools:** 28 (plus 1 conditional Apple FM tool on macOS = 28-29)
+- **Fully Native:** 5 tools (18%) - `tool_catalog`, `workflow_mode`, `git_tools`, `infer_session_mode`, `prompt_tracking`
+- **Hybrid (Native + Bridge):** 22 tools (79%) - Native primary with Python bridge fallback
+- **Python Bridge Only:** 1 tool (4% - `mlx` only, intentional - no Go bindings available)
+- **Overall Native Coverage:** 96% (27/28 tools have native implementations)
+
+**Note:** 2 tools (`server_status`, `list_models`) were converted to resources, reducing tool count from 30 to 28.
+
+**Audit Date:** 2026-01-12  
+**Audit Reference:** See `docs/MIGRATION_AUDIT_2026-01-12.md` for detailed audit findings.
 
 ### Resources
-- **Total Resources:** 11
-- **Native:** 6 resources (55%)
-- **Python Bridge:** 5 resources (45%)
+- **Total Resources:** 21
+- **Native:** 20 resources (95%)
+- **Hybrid:** 1 resource (5% - `stdio://session/mode`)
+- **Python Bridge Only:** 0 resources (0%)
+- **Overall Native Coverage:** 100% (21/21 resources have native implementations)
 
 ### Prompts
 - **Total Prompts:** 19
@@ -154,7 +217,19 @@
 
 ---
 
-## Recent Completions (2026-01-09)
+## Recent Completions (2026-01-12)
+
+### Stream 1, 2, 3 Completions
+1. ✅ **session tool** - `prompts` and `assignee` actions now native
+2. ✅ **ollama tool** - `docs`, `quality`, `summary` actions now native
+3. ✅ **recommend tool** - `workflow` action now native
+4. ✅ **setup_hooks tool** - `patterns` action now native
+5. ✅ **analyze_alignment tool** - `prd` action now native
+6. ✅ **health tool** - `docs`, `dod`, `cicd` actions now native
+7. ✅ **estimation tool** - `analyze` action now native (stats and estimate were already native)
+8. ✅ **automation tool** - `nightly` and `sprint` actions now native
+
+## Previous Completions (2026-01-09)
 
 ### Phase 3 Completions
 1. ✅ `task_analysis` - All 5 actions migrated to native Go
@@ -255,13 +330,26 @@
 - ✅ **Critical Path:** All blocking items complete
 - ✅ **Phase 2:** 100% complete - All medium complexity tools migrated
 - ✅ **Phase 3:** 100% of critical tools migrated
-- ✅ **Phase 4:** 100% of resources migrated
+- ✅ **Phase 4:** 100% of resources migrated (21/21)
 - ✅ **Phase 5:** 100% complete - All prompts migrated to native Go
-- ✅ **Overall Tools:** 73% have native implementations (22/30)
-- ✅ **Resources:** 55% native (6/11)
+- ✅ **Overall Tools:** 96% have native implementations (27/28)
+- ✅ **Resources:** 100% native (21/21)
 - ✅ **Prompts:** 100% native (19/19)
 
 ---
 
-**Status:** Excellent progress - Phase 2, 3, 4, and 5 complete! Critical path cleared!
+## Audit Notes (2026-01-12)
+
+**Comprehensive audit completed** - See `docs/MIGRATION_AUDIT_REPORT_2026-01-12.md` for detailed findings.
+
+**Key Corrections Made:**
+- Updated tool count: 30 → 28 (2 tools converted to resources)
+- Updated resource count: 11 → 21 (10 resources missing from documentation)
+- Reclassified tools: Many "Python Bridge Only" are actually "Hybrid"
+- Reclassified resources: All prompt resources are now native (not Python bridge)
+- Updated native coverage: Tools 73% → 96%, Resources 55% → 100%
+
+---
+
+**Status:** Excellent progress - 96% tool coverage, 100% resource coverage! Critical path cleared!
 
