@@ -71,7 +71,7 @@ func TestExecutePythonTool_PROJECT_ROOT(t *testing.T) {
 		{
 			name:        "without PROJECT_ROOT",
 			projectRoot: "",
-			wantPath:    filepath.Join("..", "project-management-automation", "bridge", "execute_tool.py"),
+			wantPath:    filepath.Join(".", "bridge", "execute_tool.py"),
 		},
 	}
 
@@ -93,7 +93,7 @@ func TestExecutePythonTool_PROJECT_ROOT(t *testing.T) {
 			// Get project root
 			projectRoot := os.Getenv("PROJECT_ROOT")
 			if projectRoot == "" {
-				projectRoot = filepath.Join("..", "project-management-automation")
+				projectRoot = "."
 			}
 
 			// Verify path construction
@@ -141,12 +141,12 @@ func TestExecutePythonResource_URIParsing(t *testing.T) {
 		{
 			name:     "scorecard URI",
 			uri:      "stdio://scorecard",
-			wantPath: filepath.Join("..", "project-management-automation", "bridge", "execute_resource.py"),
+			wantPath: filepath.Join(".", "bridge", "execute_resource.py"),
 		},
 		{
 			name:     "memories URI",
 			uri:      "stdio://memories",
-			wantPath: filepath.Join("..", "project-management-automation", "bridge", "execute_resource.py"),
+			wantPath: filepath.Join(".", "bridge", "execute_resource.py"),
 		},
 	}
 
@@ -155,7 +155,7 @@ func TestExecutePythonResource_URIParsing(t *testing.T) {
 			// Get project root
 			projectRoot := os.Getenv("PROJECT_ROOT")
 			if projectRoot == "" {
-				projectRoot = filepath.Join("..", "project-management-automation")
+				projectRoot = "."
 			}
 
 			// Verify path construction
