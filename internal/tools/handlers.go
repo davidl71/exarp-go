@@ -141,7 +141,7 @@ func handleCheckAttribution(ctx context.Context, args json.RawMessage) ([]framew
 }
 
 // handleAddExternalToolHints handles the add_external_tool_hints tool
-// Uses native Go implementation, falls back to Python bridge for complex analysis
+// Uses native Go implementation - fully native Go, no Python bridge needed
 func handleAddExternalToolHints(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
 	// Parse arguments
 	var params map[string]interface{}
@@ -149,21 +149,8 @@ func handleAddExternalToolHints(ctx context.Context, args json.RawMessage) ([]fr
 		return nil, fmt.Errorf("failed to parse arguments: %w", err)
 	}
 
-	// Try native Go implementation first
-	result, err := handleAddExternalToolHintsNative(ctx, params)
-	if err == nil {
-		return result, nil
-	}
-
-	// If native implementation fails, fall back to Python bridge
-	bridgeResult, err := bridge.ExecutePythonTool(ctx, "add_external_tool_hints", params)
-	if err != nil {
-		return nil, fmt.Errorf("add_external_tool_hints failed: %w", err)
-	}
-
-	return []framework.TextContent{
-		{Type: "text", Text: bridgeResult},
-	}, nil
+	// Use native Go implementation
+	return handleAddExternalToolHintsNative(ctx, params)
 }
 
 // Batch 2 Tool Handlers (T-28 through T-35)
