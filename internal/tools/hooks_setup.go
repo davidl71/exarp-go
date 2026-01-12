@@ -229,7 +229,7 @@ func handleSetupPatternHooks(ctx context.Context, params map[string]interface{})
 
 	// Configuration file location
 	cursorDir := filepath.Join(projectRoot, ".cursor")
-	configFilePath := filepath.Join(cursorDir, "automa_patterns.json")
+	configFilePath := filepath.Join(cursorDir, "exarp_patterns.json")
 
 	results := map[string]interface{}{
 		"status":             "success",
@@ -425,7 +425,7 @@ func setupGitHooksIntegration(projectRoot string, patterns map[string]interface{
 // setupFileWatcherIntegration sets up file watcher integration for pattern triggers
 func setupFileWatcherIntegration(projectRoot string, patterns map[string]interface{}, results map[string]interface{}) {
 	if filePatterns, ok := patterns["file_patterns"].(map[string]interface{}); ok && len(filePatterns) > 0 {
-		watcherScript := filepath.Join(projectRoot, ".cursor", "automa_file_watcher.py")
+		watcherScript := filepath.Join(projectRoot, ".cursor", "exarp_file_watcher.py")
 
 		watcherContent := generateFileWatcherScript()
 
@@ -440,7 +440,7 @@ func setupFileWatcherIntegration(projectRoot string, patterns map[string]interfa
 		results["file_watcher_integration"] = map[string]interface{}{
 			"status": "configured",
 			"script": watcherScript,
-			"note":   "Run manually or via cron: python3 .cursor/automa_file_watcher.py",
+			"note":   "Run manually or via cron: python3 .cursor/exarp_file_watcher.py",
 		}
 	}
 }
@@ -471,7 +471,7 @@ from pathlib import Path
 from typing import Dict, List, Optional
 
 # Load pattern configuration
-CONFIG_FILE = Path(__file__).parent.parent / ".cursor" / "automa_patterns.json"
+CONFIG_FILE = Path(__file__).parent.parent / ".cursor" / "exarp_patterns.json"
 
 def load_patterns() -> Dict:
     """Load pattern configuration."""

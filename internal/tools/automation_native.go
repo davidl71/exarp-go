@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/davidl71/exarp-go/internal/bridge"
+	"github.com/davidl71/exarp-go/internal/database"
 	"github.com/davidl71/exarp-go/internal/framework"
 )
 
@@ -23,9 +24,12 @@ func handleAutomationNative(ctx context.Context, params map[string]interface{}) 
 		return handleAutomationDaily(ctx, params)
 	case "discover":
 		return handleAutomationDiscover(ctx, params)
+	case "nightly":
+		return handleAutomationNightly(ctx, params)
+	case "sprint":
+		return handleAutomationSprint(ctx, params)
 	default:
-		// For nightly and sprint actions, return error to trigger Python bridge fallback
-		return nil, fmt.Errorf("automation action '%s' not yet implemented in native Go, using Python bridge", action)
+		return nil, fmt.Errorf("unknown automation action: %s (use 'daily', 'nightly', 'sprint', or 'discover')", action)
 	}
 }
 
