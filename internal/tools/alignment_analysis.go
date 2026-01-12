@@ -474,15 +474,29 @@ func handleAlignmentPRD(ctx context.Context, params map[string]interface{}) ([]f
 func parsePRDUserStories(prdContent string) []map[string]string {
 	userStories := []map[string]string{}
 
-	// Find User Stories section
-	storySectionRegex := regexp.MustCompile(`(?i)##\s+\d+\.\s*User\s+Stories\s*\n(.+?)(?=\n##\s+\d+\.|\Z)`)
-	matches := storySectionRegex.FindStringSubmatch(prdContent)
-
-	if len(matches) < 2 {
+	// Find User Stories section - find the section header
+	storySectionRegex := regexp.MustCompile(`(?i)(##\s+\d+\.\s*User\s+Stories\s*\n)`)
+	sectionMatch := storySectionRegex.FindStringSubmatchIndex(prdContent)
+	if len(sectionMatch) < 2 {
 		return userStories
 	}
 
-	storiesText := matches[1]
+	// Find where this section ends (next section header or end of content)
+	sectionStart := sectionMatch[1]
+	remainingContent := prdContent[sectionStart:]
+	
+	// Find next section header (## followed by number)
+	nextSectionRegex := regexp.MustCompile(`(?i)\n##\s+\d+\.\s*`)
+	nextSectionMatch := nextSectionRegex.FindStringIndex(remainingContent)
+	
+	var storiesText string
+	if nextSectionMatch != nil {
+		// Extract content up to next section
+		storiesText = remainingContent[:nextSectionMatch[0]]
+	} else {
+		// Extract to end of content
+		storiesText = remainingContent
+	}
 
 	// Parse individual stories (US-1: Title format)
 	storyRegex := regexp.MustCompile(`(?i)###?\s*US-(\d+):\s*(.+?)\n`)

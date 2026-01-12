@@ -135,7 +135,8 @@ func handleSessionPrime(ctx context.Context, params map[string]interface{}) ([]f
 func handleSessionHandoff(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	action, _ := params["action"].(string)
 	// Note: The action parameter for handoff might be nested - check both
-	if action == "" {
+	// If action is "handoff" or empty, determine the sub-action
+	if action == "" || action == "handoff" {
 		// Check if this is called from session tool with action="handoff"
 		if summary, ok := params["summary"].(string); ok && summary != "" {
 			action = "end"
@@ -940,7 +941,11 @@ func handleSessionPrompts(ctx context.Context, params map[string]interface{}) ([
 					keywords = []string{v}
 				}
 			}
+		case []string:
+			// Direct []string type (from Go code)
+			keywords = v
 		case []interface{}:
+			// []interface{} type (from JSON unmarshaling)
 			for _, kw := range v {
 				if str, ok := kw.(string); ok {
 					keywords = append(keywords, str)
