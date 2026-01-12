@@ -24,7 +24,7 @@
 - ✅ `context` (batch action) - **FULLY NATIVE** (summarize ✅, budget ✅, batch ✅) - **COMPLETED!**
 - ⏳ `recommend` - **PENDING** (new implementation)
 
-### Phase 3: Complex Tools ⏳ **IN PROGRESS** (8/13 - 62%)
+### Phase 3: Complex Tools ⏳ **IN PROGRESS** (9/13 - 69%)
 - ✅ `git_tools` - Fully native Go (all 7 actions)
 - ✅ `task_analysis` - **FULLY NATIVE** (all actions: hierarchy ✅, duplicates ✅, tags ✅, dependencies ✅, parallelization ✅) - **COMPLETED!**
 - ✅ `task_discovery` - **FULLY NATIVE** (all actions: comments ✅, markdown ✅, orphans ✅, git_json ✅, all ✅) - **COMPLETED!**
@@ -33,7 +33,7 @@
 - ✅ `security` - **FULLY NATIVE FOR GO PROJECTS** (all actions: scan ✅, alerts ✅, report ✅) - **COMPLETED!** ⚠️ *Note: Actually medium complexity for Go projects*
 - ✅ `testing` - **FULLY NATIVE FOR GO PROJECTS** (all actions: run ✅, coverage ✅, validate ✅) - **COMPLETED!** ⚠️ *Note: Actually medium-high complexity for Go projects*
 - ✅ `session` - **FULLY NATIVE** (all actions: prime ✅, handoff ✅, prompts ✅, assignee ✅) - **COMPLETED!**
-- ⏳ `automation` - **PARTIAL** (daily ✅, discover ✅, nightly ⚠️, sprint ⚠️)
+- ✅ `automation` - **FULLY NATIVE** (all actions: daily ✅, nightly ✅, sprint ✅, discover ✅) - **COMPLETED!**
 - ⏳ `memory`, `memory_maint`, `report`, `estimation`, `ollama`, `mlx` - **PENDING**
 
 ---
@@ -200,8 +200,8 @@ These are more complex and may benefit from hybrid approaches:
 **Current Overall Progress:**
 - **Phase 1:** 3/3 (100%) ✅
 - **Phase 2:** 8/9 (89%) ⏳
-- **Phase 3:** 8/13 (62%) ⏳
-- **Overall Tools:** 19/34 (56%) migrated to native Go
+- **Phase 3:** 9/13 (69%) ⏳
+- **Overall Tools:** 20/34 (59%) migrated to native Go
 
 **After Recommended Next Steps:**
 - **Phase 2:** 8/9 (89%) ⏳ (setup_hooks, check_attribution, add_external_tool_hints, analyze_alignment, generate_config, context) - **6 DONE!** ✅
