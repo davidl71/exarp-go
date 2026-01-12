@@ -198,7 +198,8 @@ func handleMemoryMaint(ctx context.Context, args json.RawMessage) ([]framework.T
 }
 
 // handleReport handles the report tool
-// Uses MLX to enhance reports with AI-generated insights when available
+// Uses native Go for overview, scorecard (Go projects), and prd actions
+// Falls back to Python bridge for briefing (requires devwisdom-go MCP client) and non-Go projects
 func handleReport(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
 	var params map[string]interface{}
 	if err := json.Unmarshal(args, &params); err != nil {
@@ -217,35 +218,35 @@ func handleReport(ctx context.Context, args json.RawMessage) ([]framework.TextCo
 		if IsGoProject() {
 			// Use Go-specific scorecard with fast mode by default
 			projectRoot, err := security.GetProjectRoot()
-			if err != nil {
-				// Fall through to Python bridge if project root not found
-			} else {
-			opts := &ScorecardOptions{FastMode: true}
-			scorecard, err := GenerateGoScorecard(ctx, projectRoot, opts)
 			if err == nil {
-				// Convert to map for MLX enhancement
-				scorecardMap := GoScorecardToMap(scorecard)
+				opts := &ScorecardOptions{FastMode: true}
+				scorecard, err := GenerateGoScorecard(ctx, projectRoot, opts)
+				if err == nil {
+					// Convert to map for MLX enhancement
+					scorecardMap := GoScorecardToMap(scorecard)
 
-				// Enhance with MLX if available
-				enhanced, err := enhanceReportWithMLX(ctx, scorecardMap, action)
-				if err == nil && enhanced != nil {
-					// Check if MLX insights were added
-					if insights, ok := enhanced["ai_insights"].(map[string]interface{}); ok {
-						// Format with MLX insights
-						result := FormatGoScorecardWithMLX(scorecard, insights)
-						return []framework.TextContent{
-							{Type: "text", Text: result},
-						}, nil
+					// Enhance with MLX if available
+					enhanced, err := enhanceReportWithMLX(ctx, scorecardMap, action)
+					if err == nil && enhanced != nil {
+						// Check if MLX insights were added
+						if insights, ok := enhanced["ai_insights"].(map[string]interface{}); ok {
+							// Format with MLX insights
+							result := FormatGoScorecardWithMLX(scorecard, insights)
+							return []framework.TextContent{
+								{Type: "text", Text: result},
+							}, nil
+						}
 					}
-				}
 
-				// Format as text output (without MLX if enhancement failed)
-				result := FormatGoScorecard(scorecard)
-				return []framework.TextContent{
-					{Type: "text", Text: result},
-				}, nil
+					// Format as text output (without MLX if enhancement failed)
+					result := FormatGoScorecard(scorecard)
+					return []framework.TextContent{
+						{Type: "text", Text: result},
+					}, nil
+				}
+				// Fall through to Python bridge if Go scorecard fails
 			}
-			// Fall through to Python bridge if Go scorecard fails
+			// Fall through to Python bridge if project root not found
 		}
 		// Fall through to Python bridge for non-Go projects
 
