@@ -32,7 +32,9 @@
 - ✅ `prompt_tracking` - **FULLY NATIVE** (all actions: log ✅, analyze ✅) - **COMPLETED!** ⚠️ *Note: Actually medium complexity, simpler than expected*
 - ✅ `security` - **FULLY NATIVE FOR GO PROJECTS** (all actions: scan ✅, alerts ✅, report ✅) - **COMPLETED!** ⚠️ *Note: Actually medium complexity for Go projects*
 - ✅ `testing` - **FULLY NATIVE FOR GO PROJECTS** (all actions: run ✅, coverage ✅, validate ✅) - **COMPLETED!** ⚠️ *Note: Actually medium-high complexity for Go projects*
-- ⏳ `memory`, `memory_maint`, `report`, `automation`, `estimation`, `session`, `ollama`, `mlx` - **PENDING**
+- ⏳ `session` - **PARTIAL** (prime ✅, handoff ✅, prompts ⚠️, assignee ⚠️)
+- ⏳ `automation` - **PARTIAL** (daily ✅, discover ✅, nightly ⚠️, sprint ⚠️)
+- ⏳ `memory`, `memory_maint`, `report`, `estimation`, `ollama`, `mlx` - **PENDING**
 
 ---
 
