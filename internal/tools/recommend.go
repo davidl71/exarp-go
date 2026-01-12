@@ -259,3 +259,222 @@ func findAlternativeModels(recommended ModelInfo, optimizeFor string) []ModelInf
 
 	return alternatives
 }
+
+// handleRecommendWorkflowNative handles the "workflow" action for recommend tool
+func handleRecommendWorkflowNative(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
+	// Get task description
+	taskDescription := ""
+	if descRaw, ok := params["task_description"].(string); ok {
+		taskDescription = descRaw
+	}
+
+	// Get task ID if provided
+	taskID := ""
+	if idRaw, ok := params["task_id"].(string); ok {
+		taskID = idRaw
+	}
+
+	includeRationale := true
+	if rationaleRaw, ok := params["include_rationale"].(bool); ok {
+		includeRationale = rationaleRaw
+	}
+
+	// If task_id provided, load task from database
+	if taskID != "" && taskDescription == "" {
+		task, err := database.GetTask(ctx, taskID)
+		if err == nil {
+			taskDescription = task.Content + " " + task.LongDescription
+		}
+	}
+
+	// Analyze task and recommend workflow mode
+	recommendation := analyzeWorkflowMode(taskDescription, includeRationale)
+
+	// Build result
+	result := map[string]interface{}{
+		"recommended_mode": recommendation.Mode,
+		"confidence":       recommendation.Confidence,
+		"description":      recommendation.Description,
+		"agent_score":      recommendation.AgentScore,
+		"ask_score":        recommendation.AskScore,
+	}
+
+	if includeRationale {
+		result["rationale"] = recommendation.Rationale
+		result["guidelines"] = map[string]string{
+			"AGENT": "Best for: Multi-file changes, feature implementation, refactoring, scaffolding",
+			"ASK":   "Best for: Questions, code review, single-file edits, debugging help",
+		}
+		result["suggestion"] = recommendation.Suggestion
+	}
+
+	// Wrap in success response format
+	response := map[string]interface{}{
+		"success":   true,
+		"data":      result,
+		"timestamp": 0,
+	}
+
+	resultJSON, err := json.MarshalIndent(response, "", "  ")
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal result: %w", err)
+	}
+
+	return []framework.TextContent{
+		{Type: "text", Text: string(resultJSON)},
+	}, nil
+}
+
+// WorkflowRecommendation represents a workflow mode recommendation
+type WorkflowRecommendation struct {
+	Mode        string
+	Confidence  float64
+	Description string
+	AgentScore  int
+	AskScore    int
+	Rationale   []string
+	Suggestion  map[string]interface{}
+}
+
+// analyzeWorkflowMode analyzes a task and recommends AGENT or ASK mode
+func analyzeWorkflowMode(taskDescription string, includeRationale bool) WorkflowRecommendation {
+	taskLower := strings.ToLower(taskDescription)
+
+	// AGENT indicators
+	agentKeywords := []string{
+		"implement", "create", "add", "build", "refactor", "migrate",
+		"multi-file", "multiple files", "architecture", "scaffold",
+		"feature", "system", "framework", "restructure",
+	}
+	agentPatterns := []string{
+		`\b(implement|create|add|build|refactor|migrate)\s+\w+`,
+		`\b(multi|multiple)\s+\w*\s*file`,
+		`\b(architecture|system|framework)\s+\w+`,
+	}
+	agentTags := []string{"implementation", "refactoring", "architecture", "feature"}
+
+	// ASK indicators
+	askKeywords := []string{
+		"question", "how", "what", "why", "explain", "review",
+		"debug", "fix", "error", "bug", "single file", "one file",
+		"help", "clarify", "understand",
+	}
+	askPatterns := []string{
+		`\b(how|what|why)\s+\w+`,
+		`\b(explain|review|debug|fix)\s+\w+`,
+		`\b(single|one)\s+\w*\s*file`,
+	}
+	askTags := []string{"question", "review", "debug", "help"}
+
+	// Score AGENT indicators
+	agentScore := 0
+	agentReasons := []string{}
+
+	for _, kw := range agentKeywords {
+		if strings.Contains(taskLower, kw) {
+			agentScore += 2
+			agentReasons = append(agentReasons, fmt.Sprintf("Keyword: '%s'", kw))
+		}
+	}
+
+	// Simple pattern matching (basic regex)
+	for _, pattern := range agentPatterns {
+		if strings.Contains(taskLower, strings.TrimPrefix(pattern, `\b(`)) {
+			agentScore += 3
+			agentReasons = append(agentReasons, fmt.Sprintf("Pattern: '%s'", pattern))
+		}
+	}
+
+	// Score ASK indicators
+	askScore := 0
+	askReasons := []string{}
+
+	for _, kw := range askKeywords {
+		if strings.Contains(taskLower, kw) {
+			askScore += 2
+			askReasons = append(askReasons, fmt.Sprintf("Keyword: '%s'", kw))
+		}
+	}
+
+	// Simple pattern matching
+	for _, pattern := range askPatterns {
+		if strings.Contains(taskLower, strings.TrimPrefix(pattern, `\b(`)) {
+			askScore += 3
+			askReasons = append(askReasons, fmt.Sprintf("Pattern: '%s'", pattern))
+		}
+	}
+
+	// Determine recommendation
+	var mode string
+	var confidence float64
+	var description string
+	var reasons []string
+
+	if agentScore > askScore {
+		mode = "AGENT"
+		totalScore := agentScore + askScore
+		if totalScore > 0 {
+			confidence = float64(agentScore) / float64(totalScore) * 100
+		} else {
+			confidence = 50
+		}
+		if confidence > 95 {
+			confidence = 95
+		}
+		description = "Use AGENT mode for autonomous multi-step implementation"
+		reasons = agentReasons
+	} else if askScore > agentScore {
+		mode = "ASK"
+		totalScore := agentScore + askScore
+		if totalScore > 0 {
+			confidence = float64(askScore) / float64(totalScore) * 100
+		} else {
+			confidence = 50
+		}
+		if confidence > 95 {
+			confidence = 95
+		}
+		description = "Use ASK mode for focused questions and single edits"
+		reasons = askReasons
+	} else {
+		mode = "ASK" // Default to ASK when uncertain
+		confidence = 50
+		description = "Unclear complexity - start with ASK, escalate to AGENT if needed"
+		reasons = []string{"No strong indicators - defaulting to ASK for safety"}
+	}
+
+	// Build suggestion
+	suggestion := map[string]interface{}{
+		"message": fmt.Sprintf("Recommended: %s mode (%.1f%% confidence)", mode, confidence),
+		"action": map[string]string{
+			"AGENT": "Switch to AGENT mode for autonomous implementation",
+			"ASK":   "Stay in ASK mode for guided assistance",
+		}[mode],
+		"instruction": map[string]string{
+			"AGENT": "Enable AGENT mode in Cursor settings",
+			"ASK":   "Continue with ASK mode for this task",
+		}[mode],
+		"benefits": map[string][]string{
+			"AGENT": {"Autonomous multi-step execution", "Handles complex refactoring", "Manages multiple files"},
+			"ASK":   {"Focused assistance", "Quick answers", "Single-file edits"},
+		}[mode],
+	}
+
+	return WorkflowRecommendation{
+		Mode:        mode,
+		Confidence:  confidence,
+		Description: description,
+		AgentScore:  agentScore,
+		AskScore:    askScore,
+		Rationale:   reasons[:min(5, len(reasons))], // Top 5 reasons
+		Suggestion:  suggestion,
+	}
+}
+
+// min returns the minimum of two integers
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
+}
