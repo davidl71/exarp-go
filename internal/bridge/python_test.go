@@ -79,13 +79,15 @@ func TestExecutePythonTool_PROJECT_ROOT(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// Save original env
 			originalRoot := os.Getenv("PROJECT_ROOT")
-			defer os.Setenv("PROJECT_ROOT", originalRoot)
+			defer func() {
+				_ = os.Setenv("PROJECT_ROOT", originalRoot) //nolint:errcheck // Test cleanup
+			}()
 
 			// Set test env
 			if tt.projectRoot != "" {
-				os.Setenv("PROJECT_ROOT", tt.projectRoot)
+				_ = os.Setenv("PROJECT_ROOT", tt.projectRoot) //nolint:errcheck // Test setup
 			} else {
-				os.Unsetenv("PROJECT_ROOT")
+				_ = os.Unsetenv("PROJECT_ROOT") //nolint:errcheck // Test setup
 			}
 
 			// Get project root

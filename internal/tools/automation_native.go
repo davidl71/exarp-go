@@ -35,12 +35,12 @@ func handleAutomationDaily(ctx context.Context, params map[string]interface{}) (
 
 	// Results structure
 	results := map[string]interface{}{
-		"timestamp":     time.Now().Format(time.RFC3339),
-		"action":        "daily",
-		"tasks_run":     []map[string]interface{}{},
+		"timestamp":       time.Now().Format(time.RFC3339),
+		"action":          "daily",
+		"tasks_run":       []map[string]interface{}{},
 		"tasks_succeeded": []string{},
-		"tasks_failed":   []string{},
-		"summary":       map[string]interface{}{},
+		"tasks_failed":    []string{},
+		"summary":         map[string]interface{}{},
 	}
 
 	// Task 1: analyze_alignment (todo2 action)
@@ -115,12 +115,12 @@ func handleAutomationDaily(ctx context.Context, params map[string]interface{}) (
 	totalTasks := len(tasksRun)
 	succeededCount := len(tasksSucceeded)
 	failedCount := len(tasksFailed)
-	
+
 	summary := map[string]interface{}{
-		"total_tasks":   totalTasks,
-		"succeeded":     succeededCount,
-		"failed":        failedCount,
-		"success_rate":  0.0,
+		"total_tasks":      totalTasks,
+		"succeeded":        succeededCount,
+		"failed":           failedCount,
+		"success_rate":     0.0,
 		"duration_seconds": time.Since(startTime).Seconds(),
 	}
 	if totalTasks > 0 {
@@ -152,7 +152,7 @@ func handleAutomationDiscover(ctx context.Context, params map[string]interface{}
 	taskDiscoveryParams := map[string]interface{}{
 		"action": "all",
 	}
-	
+
 	// Get optional parameters
 	if minValueScore, ok := params["min_value_score"].(float64); ok {
 		// Note: task_discovery doesn't have min_value_score, but we can filter results

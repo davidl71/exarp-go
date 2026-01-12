@@ -11,11 +11,11 @@ import (
 
 // TaskClaimResult represents the result of a task claim operation
 type TaskClaimResult struct {
-	Success    bool
-	Task       *models.Todo2Task
-	Error      error
-	WasLocked  bool // True if task was already locked by another agent
-	LockedBy   string // Agent ID that currently holds the lock
+	Success   bool
+	Task      *models.Todo2Task
+	Error     error
+	WasLocked bool   // True if task was already locked by another agent
+	LockedBy  string // Agent ID that currently holds the lock
 }
 
 // ClaimTaskForAgent atomically claims a task for an agent using SELECT FOR UPDATE

@@ -83,16 +83,16 @@ func handleSessionPrime(ctx context.Context, params map[string]interface{}) ([]f
 
 	// 3. Build result
 	result := map[string]interface{}{
-		"auto_primed":  true,
-		"method":       "native_go",
-		"timestamp":    time.Now().Format(time.RFC3339),
-		"duration_ms":  time.Since(startTime).Milliseconds(),
+		"auto_primed": true,
+		"method":      "native_go",
+		"timestamp":   time.Now().Format(time.RFC3339),
+		"duration_ms": time.Since(startTime).Milliseconds(),
 		"detection": map[string]interface{}{
-			"agent":       agentInfo.Agent,
+			"agent":        agentInfo.Agent,
 			"agent_source": agentInfo.Source,
-			"mode":        mode,
-			"mode_source": modeSource,
-			"time_of_day": time.Now().Format("15:04"),
+			"mode":         mode,
+			"mode_source":  modeSource,
+			"time_of_day":  time.Now().Format("15:04"),
 		},
 		"agent_context": map[string]interface{}{
 			"focus_areas":      agentContext.FocusAreas,
@@ -257,13 +257,13 @@ func handleSessionEnd(ctx context.Context, params map[string]interface{}, projec
 
 	// Create handoff note
 	handoff := map[string]interface{}{
-		"id":        fmt.Sprintf("handoff-%d", time.Now().Unix()),
-		"timestamp": time.Now().Format(time.RFC3339),
-		"host":      hostname,
-		"summary":   summary,
-		"blockers":  blockers,
-		"next_steps": nextSteps,
-		"git_status": gitStatus,
+		"id":                fmt.Sprintf("handoff-%d", time.Now().Unix()),
+		"timestamp":         time.Now().Format(time.RFC3339),
+		"host":              hostname,
+		"summary":           summary,
+		"blockers":          blockers,
+		"next_steps":        nextSteps,
+		"git_status":        gitStatus,
 		"tasks_in_progress": tasksInProgress,
 	}
 
@@ -281,11 +281,11 @@ func handleSessionEnd(ctx context.Context, params map[string]interface{}, projec
 	}
 
 	result := map[string]interface{}{
-		"success":     true,
-		"method":      "native_go",
-		"dry_run":     dryRun,
-		"handoff":     handoff,
-		"message":     "Session ended. Handoff note created.",
+		"success": true,
+		"method":  "native_go",
+		"dry_run": dryRun,
+		"handoff": handoff,
+		"message": "Session ended. Handoff note created.",
 	}
 
 	if dryRun {
@@ -304,10 +304,10 @@ func handleSessionResume(ctx context.Context, projectRoot string) ([]framework.T
 
 	if _, err := os.Stat(handoffFile); os.IsNotExist(err) {
 		result := map[string]interface{}{
-			"success":      true,
-			"method":       "native_go",
-			"has_handoff":  false,
-			"message":      "No handoff notes found. Starting fresh session.",
+			"success":     true,
+			"method":      "native_go",
+			"has_handoff": false,
+			"message":     "No handoff notes found. Starting fresh session.",
 		}
 		output, _ := json.MarshalIndent(result, "", "  ")
 		return []framework.TextContent{
@@ -351,12 +351,12 @@ func handleSessionResume(ctx context.Context, projectRoot string) ([]framework.T
 	handoffHost, _ := handoffMap["host"].(string)
 
 	result := map[string]interface{}{
-		"success":     true,
-		"method":      "native_go",
-		"has_handoff": true,
-		"handoff":     handoffMap,
+		"success":        true,
+		"method":         "native_go",
+		"has_handoff":    true,
+		"handoff":        handoffMap,
 		"from_same_host": handoffHost == hostname,
-		"message":     fmt.Sprintf("Resuming session. Latest handoff from %s", handoffHost),
+		"message":        fmt.Sprintf("Resuming session. Latest handoff from %s", handoffHost),
 	}
 
 	output, _ := json.MarshalIndent(result, "", "  ")
@@ -454,7 +454,7 @@ func handleSessionList(ctx context.Context, params map[string]interface{}, proje
 	}
 
 	handoffs, _ := handoffData["handoffs"].([]interface{})
-	
+
 	// Get last N handoffs
 	start := len(handoffs) - limit
 	if start < 0 {
@@ -496,12 +496,12 @@ func handleSessionSync(ctx context.Context, params map[string]interface{}, proje
 	// For sync, we'll use Git operations to pull/push Todo2 state
 	// This is a simplified implementation
 	result := map[string]interface{}{
-		"success":  true,
-		"method":   "native_go",
+		"success":   true,
+		"method":    "native_go",
 		"direction": direction,
-		"dry_run":  dryRun,
-		"message":  "Todo2 state sync via Git (simplified implementation)",
-		"note":     "Full sync implementation requires agentic-tools MCP integration",
+		"dry_run":   dryRun,
+		"message":   "Todo2 state sync via Git (simplified implementation)",
+		"note":      "Full sync implementation requires agentic-tools MCP integration",
 	}
 
 	// Basic Git sync implementation
@@ -557,10 +557,10 @@ type AgentInfo struct {
 }
 
 type AgentContext struct {
-	Agent          string
+	Agent           string
 	RecommendedMode string
-	FocusAreas     []string
-	RelevantTools  []string
+	FocusAreas      []string
+	RelevantTools   []string
 }
 
 type TimeSuggestion struct {
@@ -791,9 +791,9 @@ func getTasksSummary(projectRoot string) map[string]interface{} {
 	}
 
 	return map[string]interface{}{
-		"total":      len(tasks),
-		"by_status":  byStatus,
-		"recent":     recentTasks,
+		"total":     len(tasks),
+		"by_status": byStatus,
+		"recent":    recentTasks,
 	}
 }
 
@@ -832,10 +832,10 @@ func checkHandoffAlert(projectRoot string) map[string]interface{} {
 	// Only show if from different host
 	if handoffHost != hostname {
 		return map[string]interface{}{
-			"from_host": handoffMap["host"],
-			"timestamp": handoffMap["timestamp"],
-			"summary":   truncateString(fmt.Sprintf("%v", handoffMap["summary"]), 100),
-			"blockers":  handoffMap["blockers"],
+			"from_host":  handoffMap["host"],
+			"timestamp":  handoffMap["timestamp"],
+			"summary":    truncateString(fmt.Sprintf("%v", handoffMap["summary"]), 100),
+			"blockers":   handoffMap["blockers"],
 			"next_steps": handoffMap["next_steps"],
 		}
 	}

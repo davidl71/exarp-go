@@ -57,7 +57,11 @@ func main() {
 		if err := database.Init(projectRoot); err != nil {
 			log.Printf("Warning: Database initialization failed: %v (fallback to JSON)", err)
 		} else {
-			defer database.Close()
+			defer func() {
+				if err := database.Close(); err != nil {
+					log.Printf("Warning: Error closing database: %v", err)
+				}
+			}()
 			log.Printf("Database initialized: %s/.todo2/todo2.db", projectRoot)
 		}
 	}

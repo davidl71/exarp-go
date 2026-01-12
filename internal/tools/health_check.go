@@ -269,10 +269,10 @@ func handleHealthDocs(ctx context.Context, params map[string]interface{}) ([]fra
 
 	// Basic documentation checks
 	checks := map[string]interface{}{
-		"readme_exists":     false,
-		"docs_dir_exists":   false,
-		"readme_size":       0,
-		"docs_file_count":   0,
+		"readme_exists":   false,
+		"docs_dir_exists": false,
+		"readme_size":     0,
+		"docs_file_count": 0,
 	}
 
 	// Check for README
@@ -315,11 +315,11 @@ func handleHealthDocs(ctx context.Context, params map[string]interface{}) ([]fra
 
 	// Build result
 	result := map[string]interface{}{
-		"status":        "completed",
-		"health_score":  score,
-		"checks":        checks,
-		"project_root":  projectRoot,
-		"timestamp":     time.Now().Unix(),
+		"status":       "completed",
+		"health_score": score,
+		"checks":       checks,
+		"project_root": projectRoot,
+		"timestamp":    time.Now().Unix(),
 	}
 
 	// Note: For full documentation analysis (broken links, format validation, etc.),
@@ -356,10 +356,10 @@ func handleHealthDOD(ctx context.Context, params map[string]interface{}) ([]fram
 
 	// Basic DOD checks
 	checks := map[string]interface{}{
-		"tests_exist":      false,
-		"docs_exist":       false,
-		"code_review":      false,
-		"no_todos":         false,
+		"tests_exist": false,
+		"docs_exist":  false,
+		"code_review": false,
+		"no_todos":    false,
 	}
 
 	// If task_id is provided, check specific task
@@ -367,11 +367,11 @@ func handleHealthDOD(ctx context.Context, params map[string]interface{}) ([]fram
 		// Note: Full DOD checking requires Todo2 database access
 		// This is a simplified version
 		result := map[string]interface{}{
-			"status":      "partial",
-			"task_id":     taskID,
-			"checks":      checks,
-			"note":        "Full DOD checking requires Python bridge for Todo2 integration",
-			"timestamp":   time.Now().Unix(),
+			"status":    "partial",
+			"task_id":   taskID,
+			"checks":    checks,
+			"note":      "Full DOD checking requires Python bridge for Todo2 integration",
+			"timestamp": time.Now().Unix(),
 		}
 
 		if outputPath != "" {
@@ -405,10 +405,10 @@ func handleHealthDOD(ctx context.Context, params map[string]interface{}) ([]fram
 	}
 
 	result := map[string]interface{}{
-		"status":      "completed",
-		"checks":      checks,
-		"auto_check":  autoCheck,
-		"timestamp":   time.Now().Unix(),
+		"status":     "completed",
+		"checks":     checks,
+		"auto_check": autoCheck,
+		"timestamp":  time.Now().Unix(),
 	}
 
 	if outputPath != "" {
@@ -448,8 +448,8 @@ func handleHealthCICD(ctx context.Context, params map[string]interface{}) ([]fra
 	checks := map[string]interface{}{
 		"github_actions_exists": false,
 		"gitlab_ci_exists":      false,
-		"circleci_exists":        false,
-		"workflow_files":         []string{},
+		"circleci_exists":       false,
+		"workflow_files":        []string{},
 	}
 
 	// Check GitHub Actions

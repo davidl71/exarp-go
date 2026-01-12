@@ -534,7 +534,7 @@ func registerBatch2Tools(server framework.MCPServer) error {
 			Properties: map[string]interface{}{
 				"action": map[string]interface{}{
 					"type":    "string",
-					"enum":    []string{"comments", "markdown", "orphans", "all"},
+					"enum":    []string{"comments", "markdown", "orphans", "git_json", "all"},
 					"default": "all",
 				},
 				"file_patterns": map[string]interface{}{
@@ -546,6 +546,10 @@ func registerBatch2Tools(server framework.MCPServer) error {
 				},
 				"doc_path": map[string]interface{}{
 					"type": "string",
+				},
+				"json_pattern": map[string]interface{}{
+					"type":    "string",
+					"default": "**/.todo2/state.todo2.json",
 				},
 				"output_path": map[string]interface{}{
 					"type": "string",

@@ -58,7 +58,11 @@ func main() {
 		fmt.Fprintf(os.Stderr, "Error initializing database: %v\n", err)
 		os.Exit(1)
 	}
-	defer database.Close()
+	defer func() {
+		if err := database.Close(); err != nil {
+			fmt.Fprintf(os.Stderr, "Warning: Error closing database: %v\n", err)
+		}
+	}()
 
 	// Check if database already has tasks
 	existingTasks, err := database.ListTasks(context.Background(), nil)
@@ -66,7 +70,10 @@ func main() {
 		fmt.Printf("Warning: Database already contains %d tasks\n", len(existingTasks))
 		fmt.Print("Continue anyway? (y/N): ")
 		var response string
-		fmt.Scanln(&response)
+		if _, err := fmt.Scanln(&response); err != nil {
+			fmt.Fprintf(os.Stderr, "Error reading input: %v\n", err)
+			os.Exit(1)
+		}
 		if response != "y" && response != "Y" {
 			fmt.Println("Migration cancelled")
 			os.Exit(0)

@@ -118,7 +118,11 @@ func GetComments(ctx context.Context, taskID string) ([]Comment, error) {
 		if err != nil {
 			return fmt.Errorf("failed to query comments: %w", err)
 		}
-		defer rows.Close()
+		defer func() {
+			if err := rows.Close(); err != nil {
+				// Log error but don't fail - this is cleanup
+			}
+		}()
 
 		var commentList []Comment
 		for rows.Next() {
@@ -177,7 +181,11 @@ func GetCommentsByType(ctx context.Context, commentType string) ([]Comment, erro
 		if err != nil {
 			return fmt.Errorf("failed to query comments by type: %w", err)
 		}
-		defer rows.Close()
+		defer func() {
+			if err := rows.Close(); err != nil {
+				// Log error but don't fail - this is cleanup
+			}
+		}()
 
 		var commentList []Comment
 		for rows.Next() {
@@ -266,7 +274,11 @@ func GetCommentsWithTypeFilter(ctx context.Context, taskID string, commentType s
 		if err != nil {
 			return fmt.Errorf("failed to query comments: %w", err)
 		}
-		defer rows.Close()
+		defer func() {
+			if err := rows.Close(); err != nil {
+				// Log error but don't fail - this is cleanup
+			}
+		}()
 
 		var commentList []Comment
 		for rows.Next() {

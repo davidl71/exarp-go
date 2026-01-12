@@ -32,7 +32,11 @@ func initializeDatabase() {
 		return
 	}
 
-	defer database.Close()
+	defer func() {
+		if err := database.Close(); err != nil {
+			log.Printf("Warning: Error closing database: %v", err)
+		}
+	}()
 	log.Printf("Database initialized: %s/.todo2/todo2.db", projectRoot)
 }
 

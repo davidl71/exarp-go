@@ -243,8 +243,8 @@ func TestHandleContextBatchNative(t *testing.T) {
 		{
 			name: "valid batch with JSON string items - combine true",
 			params: map[string]interface{}{
-				"items": `[{"data": "First item"}, {"data": "Second item"}]`,
-				"level": "brief",
+				"items":   `[{"data": "First item"}, {"data": "Second item"}]`,
+				"level":   "brief",
 				"combine": true,
 			},
 			wantErr: false,
