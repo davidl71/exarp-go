@@ -38,29 +38,10 @@ func handleAnalyzeAlignment(ctx context.Context, args json.RawMessage) ([]framew
 }
 
 // handleGenerateConfig handles the generate_config tool
-// Uses native Go implementation for all actions (rules, ignore, simplify) - fully native
+// Uses native Go implementation for all actions (rules, ignore, simplify) - fully native Go
 func handleGenerateConfig(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
-	// Try native Go implementation first
-	result, err := handleGenerateConfigNative(ctx, args)
-	if err == nil {
-		return result, nil
-	}
-
-	// If native implementation doesn't support the action, fall back to Python bridge
-	var params map[string]interface{}
-	if err := json.Unmarshal(args, &params); err != nil {
-		return nil, fmt.Errorf("failed to parse arguments: %w", err)
-	}
-
-	// Execute via Python bridge
-	bridgeResult, err := bridge.ExecutePythonTool(ctx, "generate_config", params)
-	if err != nil {
-		return nil, fmt.Errorf("generate_config failed: %w", err)
-	}
-
-	return []framework.TextContent{
-		{Type: "text", Text: bridgeResult},
-	}, nil
+	// Use native Go implementation - all actions are fully native
+	return handleGenerateConfigNative(ctx, args)
 }
 
 // handleHealth handles the health tool
