@@ -11,7 +11,8 @@ import (
 )
 
 // handleAnalyzeAlignment handles the analyze_alignment tool
-// Uses native Go implementation for "todo2" action, falls back to Python bridge for "prd" and complex analysis
+// Uses native Go implementation for "todo2" action (fully native with followup task creation)
+// Falls back to Python bridge for "prd" action (complex PRD analysis)
 func handleAnalyzeAlignment(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
 	// Parse arguments
 	var params map[string]interface{}
@@ -25,7 +26,7 @@ func handleAnalyzeAlignment(ctx context.Context, args json.RawMessage) ([]framew
 		return result, nil
 	}
 
-	// If native implementation doesn't support the action, fall back to Python bridge
+	// If native implementation doesn't support the action (e.g., "prd"), fall back to Python bridge
 	bridgeResult, err := bridge.ExecutePythonTool(ctx, "analyze_alignment", params)
 	if err != nil {
 		return nil, fmt.Errorf("analyze_alignment failed: %w", err)
