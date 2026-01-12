@@ -2,9 +2,11 @@ package gosdk
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 
-	"github.com/davidl71/exarp-go/internal/framework"
+	"github.com/davidl71/mcp-go-core/pkg/mcp/framework"
+	"github.com/davidl71/mcp-go-core/pkg/mcp/types"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
@@ -13,7 +15,7 @@ type GoSDKAdapter struct {
 	server       *mcp.Server
 	name         string
 	toolHandlers map[string]framework.ToolHandler
-	toolInfo     map[string]framework.ToolInfo
+	toolInfo     map[string]types.ToolInfo
 }
 
 // NewGoSDKAdapter creates a new Go SDK adapter
@@ -25,12 +27,12 @@ func NewGoSDKAdapter(name, version string) *GoSDKAdapter {
 		}, nil),
 		name:         name,
 		toolHandlers: make(map[string]framework.ToolHandler),
-		toolInfo:     make(map[string]framework.ToolInfo),
+		toolInfo:     make(map[string]types.ToolInfo),
 	}
 }
 
 // RegisterTool registers a tool with the server using the new v1.2.0 API
-func (a *GoSDKAdapter) RegisterTool(name, description string, schema framework.ToolSchema, handler framework.ToolHandler) error {
+func (a *GoSDKAdapter) RegisterTool(name, description string, schema types.ToolSchema, handler framework.ToolHandler) error {
 	// Input validation
 	if name == "" {
 		return fmt.Errorf("tool name cannot be empty")
@@ -124,7 +126,7 @@ func (a *GoSDKAdapter) RegisterTool(name, description string, schema framework.T
 
 	// Store handler and info for CLI access
 	a.toolHandlers[name] = handler
-	a.toolInfo[name] = framework.ToolInfo{
+		a.toolInfo[name] = types.ToolInfo{
 		Name:        name,
 		Description: description,
 		Schema:      schema,
@@ -293,7 +295,7 @@ func (a *GoSDKAdapter) GetName() string {
 }
 
 // CallTool executes a tool directly (for CLI mode)
-func (a *GoSDKAdapter) CallTool(ctx context.Context, name string, args framework.JsonRawMessage) ([]framework.TextContent, error) {
+func (a *GoSDKAdapter) CallTool(ctx context.Context, name string, args json.RawMessage) ([]types.TextContent, error) {
 	handler, exists := a.toolHandlers[name]
 	if !exists {
 		return nil, fmt.Errorf("tool %q not found", name)
@@ -302,8 +304,8 @@ func (a *GoSDKAdapter) CallTool(ctx context.Context, name string, args framework
 }
 
 // ListTools returns all registered tools
-func (a *GoSDKAdapter) ListTools() []framework.ToolInfo {
-	tools := make([]framework.ToolInfo, 0, len(a.toolInfo))
+func (a *GoSDKAdapter) ListTools() []types.ToolInfo {
+	tools := make([]types.ToolInfo, 0, len(a.toolInfo))
 	for _, info := range a.toolInfo {
 		tools = append(tools, info)
 	}
