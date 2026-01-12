@@ -216,7 +216,10 @@ func handleReport(ctx context.Context, args json.RawMessage) ([]framework.TextCo
 		// Check if go.mod exists (Go project)
 		if IsGoProject() {
 			// Use Go-specific scorecard with fast mode by default
-			projectRoot := getProjectRoot()
+			projectRoot, err := security.GetProjectRoot()
+			if err != nil {
+				// Fall through to Python bridge if project root not found
+			} else {
 			opts := &ScorecardOptions{FastMode: true}
 			scorecard, err := GenerateGoScorecard(ctx, projectRoot, opts)
 			if err == nil {
