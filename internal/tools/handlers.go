@@ -688,35 +688,27 @@ func handleGitTools(ctx context.Context, args json.RawMessage) ([]framework.Text
 }
 
 // handleSession handles the session tool
-// Uses native Go implementation for prime and handoff actions, falls back to Python bridge for prompts and assignee
+// Uses native Go implementation for all actions (prime, handoff, prompts, assignee) - fully native Go
 func handleSession(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
 	var params map[string]interface{}
 	if err := json.Unmarshal(args, &params); err != nil {
 		return nil, fmt.Errorf("failed to parse arguments: %w", err)
 	}
 
-	action, _ := params["action"].(string)
-	if action == "" {
-		action = "prime"
+	// Try native Go implementation for all actions
+	result, err := handleSessionNative(ctx, params)
+	if err == nil {
+		return result, nil
 	}
 
-	// Try native Go implementation for prime and handoff actions
-	if action == "prime" || action == "handoff" {
-		result, err := handleSessionNative(ctx, params)
-		if err == nil {
-			return result, nil
-		}
-		// If native fails, fall through to Python bridge
-	}
-
-	// For prompts and assignee actions, or if native fails, use Python bridge
-	result, err := bridge.ExecutePythonTool(ctx, "session", params)
+	// If native fails, fall back to Python bridge
+	resultText, err := bridge.ExecutePythonTool(ctx, "session", params)
 	if err != nil {
 		return nil, fmt.Errorf("session failed: %w", err)
 	}
 
 	return []framework.TextContent{
-		{Type: "text", Text: result},
+		{Type: "text", Text: resultText},
 	}, nil
 }
 
