@@ -29,9 +29,9 @@
 - ✅ `task_analysis` - **FULLY NATIVE** (all actions: hierarchy ✅, duplicates ✅, tags ✅, dependencies ✅, parallelization ✅) - **COMPLETED!**
 - ✅ `task_discovery` - **FULLY NATIVE** (all actions: comments ✅, markdown ✅, orphans ✅, git_json ✅, all ✅) - **COMPLETED!**
 - ✅ `task_workflow` - **FULLY NATIVE** (all actions: sync ✅, approve ✅, clarify ✅, clarity ✅, cleanup ✅, create ✅) - **COMPLETED!**
-- ✅ `prompt_tracking` - **FULLY NATIVE** (all actions: log ✅, analyze ✅) - **COMPLETED!**
-- ✅ `security` - **FULLY NATIVE FOR GO PROJECTS** (all actions: scan ✅, alerts ✅, report ✅) - **COMPLETED!**
-- ✅ `testing` - **FULLY NATIVE FOR GO PROJECTS** (all actions: run ✅, coverage ✅, validate ✅) - **COMPLETED!**
+- ✅ `prompt_tracking` - **FULLY NATIVE** (all actions: log ✅, analyze ✅) - **COMPLETED!** ⚠️ *Note: Actually medium complexity, simpler than expected*
+- ✅ `security` - **FULLY NATIVE FOR GO PROJECTS** (all actions: scan ✅, alerts ✅, report ✅) - **COMPLETED!** ⚠️ *Note: Actually medium complexity for Go projects*
+- ✅ `testing` - **FULLY NATIVE FOR GO PROJECTS** (all actions: run ✅, coverage ✅, validate ✅) - **COMPLETED!** ⚠️ *Note: Actually medium-high complexity for Go projects*
 - ⏳ `memory`, `memory_maint`, `report`, `automation`, `estimation`, `session`, `ollama`, `mlx` - **PENDING**
 
 ---
