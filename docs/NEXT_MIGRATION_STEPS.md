@@ -38,7 +38,8 @@
 - ✅ `report` - **PARTIAL** (overview ✅, scorecard ✅ Go projects, prd ✅ native, briefing ⚠️ Python bridge for MCP client) - **COMPLETED!**
 - ✅ `memory_maint` - **PARTIAL** (health ✅, gc ✅, prune ✅, consolidate ✅ native, dream ⚠️ Python bridge for MCP client) - **COMPLETED!**
 - ✅ `estimation` - **FULLY NATIVE** (estimate ✅, analyze ✅, stats ✅ native Go, falls back to Python bridge only if native fails) - **COMPLETED!**
-- ⏳ `ollama`, `mlx` - **PENDING**
+- ✅ `ollama` - **PARTIAL** (status ✅, models ✅, generate ✅, pull ✅, hardware ✅ native Go, docs ⚠️, quality ⚠️, summary ⚠️ Python bridge) - **COMPLETED!**
+- ⏳ `mlx` - **PENDING** (all actions use Python bridge - requires Python MLX library)
 
 ---
 
@@ -205,7 +206,8 @@ These are more complex and may benefit from hybrid approaches:
 - **Phase 1:** 3/3 (100%) ✅
 - **Phase 2:** 9/9 (100%) ✅ **COMPLETE!**
 - **Phase 3:** 13/13 (100%) ✅ **COMPLETE!**
-- **Overall Tools:** 25/34 (74%) migrated to native Go
+- **External Integrations:** 1/2 (50%) - ollama mostly native, mlx pending
+- **Overall Tools:** 26/34 (76%) migrated to native Go (with 1 partially native - ollama)
 
 **After Recommended Next Steps:**
 - **Phase 2:** 8/9 (89%) ⏳ (setup_hooks, check_attribution, add_external_tool_hints, analyze_alignment, generate_config, context) - **6 DONE!** ✅
