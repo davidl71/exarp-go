@@ -58,8 +58,6 @@ def execute_tool(tool_name: str, args_json: str):
         # Import mcp-generic-tools modules (from bridge directory)
         from context.tool import context as _context
         from recommend.tool import recommend as _recommend
-        # Note: prompt_tracking removed - fully native Go with no Python fallback
-        
         # Import context_tool for unified context wrapper
         from project_management_automation.tools.context_tool import context as _context_unified
         
@@ -341,15 +339,6 @@ def execute_tool(tool_name: str, args_json: str):
                 budget_tokens=args.get("budget_tokens", 4000),
                 combine=args.get("combine", True),
             )
-        elif tool_name == "prompt_tracking":
-            # prompt_tracking is fully native Go - no Python bridge fallback
-            error_result = {
-                "success": False,
-                "error": "prompt_tracking is fully native Go - Python bridge not available",
-                "tool": tool_name
-            }
-            print(json.dumps(error_result, indent=2))
-            return 1
         elif tool_name == "recommend":
             result = _recommend(
                 action=args.get("action", "model"),
@@ -360,15 +349,7 @@ def execute_tool(tool_name: str, args_json: str):
                 optimize_for=args.get("optimize_for", "quality"),
                 include_alternatives=args.get("include_alternatives", True),
             )
-        elif tool_name == "server_status":
-            # server_status is fully native Go - no Python bridge fallback
-            error_result = {
-                "success": False,
-                "error": "server_status is fully native Go - Python bridge not available",
-                "tool": tool_name
-            }
-            print(json.dumps(error_result, indent=2))
-            return 1
+        # Note: prompt_tracking and server_status removed - fully native Go with no Python fallback
         # Note: demonstrate_elicit and interactive_task_create removed
         # These tools required FastMCP Context (not available in stdio mode)
         else:
