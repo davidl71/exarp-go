@@ -89,7 +89,7 @@ func handleHealth(ctx context.Context, args json.RawMessage) ([]framework.TextCo
 }
 
 // handleSetupHooks handles the setup_hooks tool
-// Uses native Go implementation for "git" action, falls back to Python bridge for "patterns"
+// Uses native Go implementation for both "git" and "patterns" actions - fully native Go
 func handleSetupHooks(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
 	// Parse arguments
 	var params map[string]interface{}

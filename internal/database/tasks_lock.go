@@ -473,38 +473,18 @@ func loadTaskWithRelations(ctx context.Context, tx *sql.Tx, taskID string) (*mod
 	task := &models.Todo2Task{ID: taskID}
 
 	// Load tags
-	tagRows, err := tx.QueryContext(ctx, `
-		SELECT tag FROM task_tags WHERE task_id = ? ORDER BY tag
-	`, taskID)
+	tags, err := loadTaskTags(ctx, ctx, tx, taskID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to query tags: %w", err)
+		return nil, err
 	}
-	defer tagRows.Close()
-
-	for tagRows.Next() {
-		var tag string
-		if err := tagRows.Scan(&tag); err != nil {
-			return nil, fmt.Errorf("failed to scan tag: %w", err)
-		}
-		task.Tags = append(task.Tags, tag)
-	}
+	task.Tags = tags
 
 	// Load dependencies
-	depRows, err := tx.QueryContext(ctx, `
-		SELECT depends_on_id FROM task_dependencies WHERE task_id = ? ORDER BY depends_on_id
-	`, taskID)
+	dependencies, err := loadTaskDependencies(ctx, ctx, tx, taskID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to query dependencies: %w", err)
+		return nil, err
 	}
-	defer depRows.Close()
-
-	for depRows.Next() {
-		var depID string
-		if err := depRows.Scan(&depID); err != nil {
-			return nil, fmt.Errorf("failed to scan dependency: %w", err)
-		}
-		task.Dependencies = append(task.Dependencies, depID)
-	}
+	task.Dependencies = dependencies
 
 	return task, nil
 }
