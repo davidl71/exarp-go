@@ -851,7 +851,7 @@ func handlePromptTracking(ctx context.Context, args json.RawMessage) ([]framewor
 }
 
 // handleRecommend handles the recommend tool (unified wrapper)
-// Uses native Go implementation for "model" action, falls back to Python bridge for "workflow" and "advisor"
+// Uses native Go implementation for "model" and "workflow" actions, falls back to Python bridge for "advisor" (requires MCP client)
 func handleRecommend(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
 	var params map[string]interface{}
 	if err := json.Unmarshal(args, &params); err != nil {
@@ -864,16 +864,23 @@ func handleRecommend(ctx context.Context, args json.RawMessage) ([]framework.Tex
 		action = actionRaw
 	}
 
-	// Try native Go implementation for "model" action
-	if action == "model" {
+	// Try native Go implementation for "model" and "workflow" actions
+	switch action {
+	case "model":
 		result, err := handleRecommendModelNative(ctx, params)
+		if err == nil {
+			return result, nil
+		}
+		// If native fails, fall through to Python bridge
+	case "workflow":
+		result, err := handleRecommendWorkflowNative(ctx, params)
 		if err == nil {
 			return result, nil
 		}
 		// If native fails, fall through to Python bridge
 	}
 
-	// For "workflow" and "advisor" actions, or if native fails, use Python bridge
+	// For "advisor" action (requires MCP client to call devwisdom-go), or if native fails, use Python bridge
 	bridgeResult, err := bridge.ExecutePythonTool(ctx, "recommend", params)
 	if err != nil {
 		return nil, fmt.Errorf("recommend failed: %w", err)
