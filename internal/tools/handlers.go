@@ -164,7 +164,8 @@ func handleMemory(ctx context.Context, args json.RawMessage) ([]framework.TextCo
 }
 
 // handleMemoryMaint handles the memory_maint tool
-// Uses native Go for health, gc, prune; falls back to Python bridge for consolidate, dream
+// Uses native Go for health, gc, prune, consolidate actions
+// Falls back to Python bridge for dream action (requires advisor integration via devwisdom-go MCP)
 func handleMemoryMaint(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
 	var params map[string]interface{}
 	if err := json.Unmarshal(args, &params); err != nil {
@@ -177,7 +178,7 @@ func handleMemoryMaint(ctx context.Context, args json.RawMessage) ([]framework.T
 	}
 
 	// Try native Go implementation first (for health, gc, prune, consolidate)
-	// Dream still requires advisor integration, so falls back to Python bridge
+	// Dream requires advisor integration via devwisdom-go MCP, so falls back to Python bridge
 	if action == "health" || action == "gc" || action == "prune" || action == "consolidate" {
 		result, err := handleMemoryMaintNative(ctx, args)
 		if err == nil {
@@ -186,7 +187,7 @@ func handleMemoryMaint(ctx context.Context, args json.RawMessage) ([]framework.T
 		// If native fails, fall through to Python bridge
 	}
 
-	// For dream and other actions, use Python bridge
+	// For dream action (requires devwisdom-go MCP client) and other actions, use Python bridge
 	result, err := bridge.ExecutePythonTool(ctx, "memory_maint", params)
 	if err != nil {
 		return nil, fmt.Errorf("memory_maint failed: %w", err)

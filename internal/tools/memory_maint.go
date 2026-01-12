@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/davidl71/exarp-go/internal/framework"
+	"github.com/davidl71/exarp-go/internal/security"
 )
 
 // handleMemoryMaintNative handles the memory_maint tool with native Go maintenance operations
@@ -43,7 +44,7 @@ func handleMemoryMaintNative(ctx context.Context, args json.RawMessage) ([]frame
 
 // handleMemoryMaintHealth handles health check action
 func handleMemoryMaintHealth(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
-	projectRoot, err := FindProjectRoot()
+	projectRoot, err := security.GetProjectRoot()
 	if err != nil {
 		return nil, fmt.Errorf("failed to find project root: %w", err)
 	}
@@ -142,7 +143,7 @@ func handleMemoryMaintHealth(ctx context.Context, params map[string]interface{})
 
 // handleMemoryMaintGC handles garbage collection action
 func handleMemoryMaintGC(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
-	projectRoot, err := FindProjectRoot()
+	projectRoot, err := security.GetProjectRoot()
 	if err != nil {
 		return nil, fmt.Errorf("failed to find project root: %w", err)
 	}
@@ -285,7 +286,7 @@ func handleMemoryMaintGC(ctx context.Context, params map[string]interface{}) ([]
 
 // handleMemoryMaintPrune handles prune action
 func handleMemoryMaintPrune(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
-	projectRoot, err := FindProjectRoot()
+	projectRoot, err := security.GetProjectRoot()
 	if err != nil {
 		return nil, fmt.Errorf("failed to find project root: %w", err)
 	}
@@ -409,7 +410,7 @@ func handleMemoryMaintPrune(ctx context.Context, params map[string]interface{}) 
 
 // handleMemoryMaintConsolidate handles consolidate action
 func handleMemoryMaintConsolidate(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
-	projectRoot, err := FindProjectRoot()
+	projectRoot, err := security.GetProjectRoot()
 	if err != nil {
 		return nil, fmt.Errorf("failed to find project root: %w", err)
 	}
