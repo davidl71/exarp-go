@@ -10,7 +10,6 @@ import (
 	"github.com/davidl71/exarp-go/internal/config"
 	"github.com/davidl71/exarp-go/internal/database"
 	"github.com/davidl71/exarp-go/internal/factory"
-	"github.com/davidl71/exarp-go/internal/framework"
 	"github.com/davidl71/exarp-go/internal/prompts"
 	"github.com/davidl71/exarp-go/internal/resources"
 	"github.com/davidl71/exarp-go/internal/tools"
@@ -93,9 +92,9 @@ func main() {
 	}
 
 	// Run server with stdio transport
+	// Note: Transport parameter is ignored by Go SDK adapter (always uses stdio)
 	ctx := context.Background()
-	transport := framework.NewStdioTransport()
-	if err := server.Run(ctx, transport); err != nil {
+	if err := server.Run(ctx, nil); err != nil {
 		log.Fatalf("Server error: %v", err)
 	}
 }
