@@ -8,6 +8,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/davidl71/exarp-go/internal/bridge"
+	"github.com/davidl71/exarp-go/internal/config"
 	"github.com/davidl71/exarp-go/internal/database"
 	"github.com/davidl71/exarp-go/internal/framework"
 	"github.com/davidl71/exarp-go/internal/models"
@@ -96,7 +98,8 @@ func handleTaskWorkflowApprove(ctx context.Context, params map[string]interface{
 
 			// Filter by clarification requirement if needed
 			if clarificationNone {
-				needsClarification := task.LongDescription == "" || len(task.LongDescription) < 50
+				minDescLen := config.TaskMinDescriptionLength()
+			needsClarification := task.LongDescription == "" || len(task.LongDescription) < minDescLen
 				if needsClarification {
 					continue
 				}
@@ -208,7 +211,8 @@ func handleTaskWorkflowApprove(ctx context.Context, params map[string]interface{
 
 		// Filter by clarification requirement if needed
 		if clarificationNone {
-			needsClarification := task.LongDescription == "" || len(task.LongDescription) < 50
+			minDescLen := config.TaskMinDescriptionLength()
+			needsClarification := task.LongDescription == "" || len(task.LongDescription) < minDescLen
 			if needsClarification {
 				continue
 			}
@@ -394,7 +398,22 @@ func handleTaskWorkflowList(ctx context.Context, params map[string]interface{}) 
 }
 
 // handleTaskWorkflowSync handles sync action for synchronizing tasks between SQLite and JSON
+// If external=true, syncs with external task sources (agentic-tools) via Python bridge
 func handleTaskWorkflowSync(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
+	// Check if external sync is requested (sync with agentic-tools or other external sources)
+	external, _ := params["external"].(bool)
+	if external {
+		// Use Python bridge for external sync (agentic-tools, etc.)
+		// The Python bridge will call sync_todo_tasks which handles external sync
+		bridgeResult, err := bridge.ExecutePythonTool(ctx, "task_workflow", params)
+		if err != nil {
+			return nil, fmt.Errorf("external task sync failed: %w", err)
+		}
+		return []framework.TextContent{
+			{Type: "text", Text: bridgeResult},
+		}, nil
+	}
+
 	projectRoot, err := FindProjectRoot()
 	if err != nil {
 		return nil, fmt.Errorf("failed to find project root: %w", err)
@@ -508,7 +527,7 @@ func handleTaskWorkflowClarity(ctx context.Context, params map[string]interface{
 		if task.LongDescription == "" {
 			issues = append(issues, "missing_description")
 			suggestions = append(suggestions, "Add a detailed description explaining what needs to be done")
-		} else if len(task.LongDescription) < 50 {
+		} else if len(task.LongDescription) < config.TaskMinDescriptionLength() {
 			issues = append(issues, "brief_description")
 			suggestions = append(suggestions, "Expand description with more details about requirements and acceptance criteria")
 		}

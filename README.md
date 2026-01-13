@@ -67,6 +67,32 @@ This server hosts tools, prompts, and resources that are broken in FastMCP due t
 - `stdio://memories/recent` - Recent memories
 - `stdio://memories/session/{date}` - Session memories
 
+## Configuration
+
+**Per-Project Configuration:**
+- Configuration file: `.exarp/config.yaml` (in project root)
+- Generate default config: `exarp-go config init`
+- Validate config: `exarp-go config validate`
+- View config: `exarp-go config show`
+- All defaults match current hard-coded behavior (backward compatible)
+
+**Configuration Categories:**
+- **Timeouts**: Task locks, tool execution, HTTP clients, database retries
+- **Thresholds**: Similarity, coverage, confidence, limits
+- **Tasks**: Default status/priority/tags, status workflow, cleanup settings
+- **Database**: Connection settings, retry configuration
+- **Security**: Rate limiting, path validation, file size limits
+- **Logging**: Output format, verbosity, file logging
+- **Tools**: Tool-specific settings and overrides
+- **Workflow**: Mode settings, automation parameters
+- **Memory**: Memory management settings
+- **Project**: Project-specific settings
+
+For detailed configuration options, see:
+- `docs/CONFIGURATION_IMPLEMENTATION_PLAN.md`
+- `docs/CONFIGURABLE_PARAMETERS_RECOMMENDATIONS.md`
+- `docs/AUTOMATION_CONFIGURATION_ANALYSIS.md`
+
 ## Dependencies
 
 ### Required Dependencies

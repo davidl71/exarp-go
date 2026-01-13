@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/davidl71/exarp-go/internal/bridge"
+	"github.com/davidl71/exarp-go/internal/config"
 	"github.com/davidl71/exarp-go/internal/framework"
 )
 
@@ -69,7 +70,8 @@ func handleTestingCoverage(ctx context.Context, params map[string]interface{}) (
 		coverageFile = file
 	}
 
-	minCoverage := 80
+	// Use config default, allow override from params
+	minCoverage := config.MinCoverage()
 	if min, ok := params["min_coverage"].(float64); ok {
 		minCoverage = int(min)
 	}
