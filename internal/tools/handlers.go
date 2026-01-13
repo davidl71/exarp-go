@@ -171,9 +171,9 @@ func handleAddExternalToolHints(ctx context.Context, args json.RawMessage) ([]fr
 	// Convert protobuf request to params map if needed
 	if req != nil {
 		params = AddExternalToolHintsRequestToParams(req)
-		if req.MinFileSize == 0 {
-			params["min_file_size"] = 50
-		}
+		request.ApplyDefaults(params, map[string]interface{}{
+			"min_file_size": 50,
+		})
 	}
 
 	// Use native Go implementation
@@ -223,12 +223,10 @@ func handleMemoryMaint(ctx context.Context, args json.RawMessage) ([]framework.T
 	if req != nil {
 		params = MemoryMaintRequestToParams(req)
 		request.ApplyDefaults(params, map[string]interface{}{
-			"action":        "health",
+			"action":         "health",
 			"merge_strategy": "newest",
+			"scope":          "week",
 		})
-		if req.Scope == "" {
-			params["scope"] = "week"
-		}
 	}
 
 	action, _ := params["action"].(string)
@@ -536,18 +534,12 @@ func handleTaskWorkflow(ctx context.Context, args json.RawMessage) ([]framework.
 	if req != nil {
 		params = TaskWorkflowRequestToParams(req)
 		// Set defaults for protobuf request
-		if req.Action == "" {
-			params["action"] = "sync"
-		}
-		if req.SubAction == "" {
-			params["sub_action"] = "list"
-		}
-		if req.OutputFormat == "" {
-			params["output_format"] = "text"
-		}
-		if req.Status == "" {
-			params["status"] = "Review"
-		}
+		request.ApplyDefaults(params, map[string]interface{}{
+			"action":        "sync",
+			"sub_action":    "list",
+			"output_format": "text",
+			"status":        "Review",
+		})
 	}
 
 	// Try native Go implementation first for all actions
@@ -594,9 +586,9 @@ func handleTesting(ctx context.Context, args json.RawMessage) ([]framework.TextC
 	if req != nil {
 		params = TestingRequestToParams(req)
 		request.ApplyDefaults(params, map[string]interface{}{
-			"action":        "run",
+			"action":         "run",
 			"test_framework": "auto",
-			"format":        "html",
+			"format":         "html",
 		})
 	}
 
@@ -661,9 +653,9 @@ func handleAutomation(ctx context.Context, args json.RawMessage) ([]framework.Te
 	// Convert protobuf request to params map if needed
 	if req != nil {
 		params = AutomationRequestToParams(req)
-		if req.Action == "" {
-			params["action"] = "daily"
-		}
+		request.ApplyDefaults(params, map[string]interface{}{
+			"action": "daily",
+		})
 	}
 
 	// Use native Go implementation - all actions are native
@@ -724,8 +716,8 @@ func handleLint(ctx context.Context, args json.RawMessage) ([]framework.TextCont
 	if req != nil {
 		params = LintRequestToParams(req)
 		request.ApplyDefaults(params, map[string]interface{}{
-			"action":  "run",
-			"linter":  "golangci-lint",
+			"action": "run",
+			"linter": "golangci-lint",
 		})
 	}
 
@@ -957,9 +949,9 @@ func handleOllama(ctx context.Context, args json.RawMessage) ([]framework.TextCo
 	// Convert protobuf request to params map if needed
 	if req != nil {
 		params = OllamaRequestToParams(req)
-		if req.Model == "" {
-			params["model"] = "llama3.2"
-		}
+		request.ApplyDefaults(params, map[string]interface{}{
+			"model": "llama3.2",
+		})
 	}
 
 	// Try native Go implementation first
@@ -990,9 +982,9 @@ func handleMlx(ctx context.Context, args json.RawMessage) ([]framework.TextConte
 	// Convert protobuf request to params map if needed
 	if req != nil {
 		params = MlxRequestToParams(req)
-		if req.Model == "" {
-			params["model"] = "mlx-community/Phi-3.5-mini-instruct-4bit"
-		}
+		request.ApplyDefaults(params, map[string]interface{}{
+			"model": "mlx-community/Phi-3.5-mini-instruct-4bit",
+		})
 	}
 
 	result, err := bridge.ExecutePythonTool(ctx, "mlx", params)
