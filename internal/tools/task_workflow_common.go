@@ -459,6 +459,20 @@ func handleTaskWorkflowSync(ctx context.Context, params map[string]interface{}) 
 				issues = append(issues, fmt.Sprintf("Task %s depends on %s which doesn't exist", task.ID, dep))
 			}
 		}
+		
+		// Validate planning document links
+		if linkMeta := GetPlanningLinkMetadata(&task); linkMeta != nil {
+			if linkMeta.PlanningDoc != "" {
+				if err := ValidatePlanningLink(projectRoot, linkMeta.PlanningDoc); err != nil {
+					issues = append(issues, fmt.Sprintf("Task %s has invalid planning doc link: %v", task.ID, err))
+				}
+			}
+			if linkMeta.EpicID != "" {
+				if err := ValidateTaskReference(linkMeta.EpicID, tasks); err != nil {
+					issues = append(issues, fmt.Sprintf("Task %s has invalid epic ID: %v", task.ID, err))
+				}
+			}
+		}
 	}
 
 	syncResults := map[string]interface{}{
@@ -1048,11 +1062,19 @@ func handleTaskWorkflowCreate(ctx context.Context, params map[string]interface{}
 	var planningDoc string
 	if pd, ok := params["planning_doc"].(string); ok && pd != "" {
 		planningDoc = pd
+		// Validate planning document link
+		if err := ValidatePlanningLink(projectRoot, planningDoc); err != nil {
+			return nil, fmt.Errorf("invalid planning document link: %w", err)
+		}
 	}
 	
 	var epicID string
 	if eid, ok := params["epic_id"].(string); ok && eid != "" {
 		epicID = eid
+		// Validate epic ID exists
+		if err := ValidateTaskReference(epicID, tasks); err != nil {
+			return nil, fmt.Errorf("invalid epic ID: %w", err)
+		}
 	}
 
 	// Create task
