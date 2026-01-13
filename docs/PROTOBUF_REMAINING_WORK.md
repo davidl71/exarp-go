@@ -1,7 +1,7 @@
 # Protobuf Migration - Remaining Work
 
 **Last Updated:** 2026-01-13  
-**Status:** 7 of 27 handlers migrated (26% complete)
+**Status:** Tool handlers complete (27/27), Memory system migrated ✅
 
 ## ✅ Migrated Handlers (13)
 
@@ -33,21 +33,41 @@
 26. ✅ **Check Attribution** - `handleCheckAttribution`
 27. ✅ **Add External Tool Hints** - `handleAddExternalToolHints`
 
-## ⏳ Remaining Handlers (0) ✅ COMPLETE
+## ✅ Completed Systems
 
-### High Priority (Frequently Used)
+### 1. Tool Handler Arguments (27/27 handlers) ✅
+- All handlers now support protobuf request parsing with JSON fallback
+- Helper functions created in `internal/tools/protobuf_helpers.go`
+- Backward compatible during transition period
+
+### 2. Memory System File Format ✅
+- `saveMemory()` now saves as `.pb` (protobuf binary)
+- `LoadAllMemories()` auto-detects format (.pb first, .json fallback)
+- Automatic migration from JSON to protobuf on load
+- `deleteMemoryFile()` helper handles both formats
+- Test helpers updated to use protobuf format
+
+## ⏳ Remaining Simplification Opportunities
+
+### High Priority
+
+1. **Python Bridge Communication** - Infrastructure Added ⚠️
+   - Go side: Creates protobuf `ToolRequest` (prepared)
+   - Python side: Still uses JSON (backward compatible)
+   - **Next Step:** Generate Python protobuf code from `bridge.proto`
+   - **Status:** Infrastructure ready, waiting for Python protobuf code generation
 
 ### Medium Priority
 
-6. **Memory Maintenance** - `handleMemoryMaint`
-   - Schema: `MemoryMaintRequest` (exists in proto/tools.proto)
-   - Helper needed: `ParseMemoryMaintRequest`, `MemoryMaintRequestToParams`
+2. **Context Summarization** - Pending
+   - Complex JSON manipulation in batch operations
+   - Can use `proto.ContextItem` for type safety
+   - Files: `internal/tools/context.go`, `internal/tools/context_native.go`
 
-7. **Task Analysis** - `handleTaskAnalysis`
-   - Schema: `TaskAnalysisRequest` (exists in proto/tools.proto)
-   - Helper needed: `ParseTaskAnalysisRequest`, `TaskAnalysisRequestToParams`
-
-8. **Task Discovery** - `handleTaskDiscovery`
+3. **Report/Scorecard Data** - Pending
+   - Nested `map[string]interface{}` structures
+   - Can use `proto.ReportRequest` and `proto.ReportResponse`
+   - Files: `internal/tools/report.go`, `internal/tools/report_mlx.go`
    - Schema: `TaskDiscoveryRequest` (exists in proto/tools.proto)
    - Helper needed: `ParseTaskDiscoveryRequest`, `TaskDiscoveryRequestToParams`
 
