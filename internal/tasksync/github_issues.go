@@ -3,6 +3,7 @@ package tasksync
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/davidl71/exarp-go/internal/models"
@@ -227,7 +228,13 @@ func (s *GitHubIssuesSource) UpdateTask(ctx context.Context, externalID string, 
 		req.Labels = &task.Tags
 	}
 
-	issue, _, err := s.client.Issues.Edit(ctx, s.config.Owner, s.config.Repository, externalID, req)
+	// Convert externalID (string) to int for GitHub API
+	issueNumber, err := strconv.Atoi(externalID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid issue number: %s: %w", externalID, err)
+	}
+
+	issue, _, err := s.client.Issues.Edit(ctx, s.config.Owner, s.config.Repository, issueNumber, req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to update issue: %w", err)
 	}
@@ -237,11 +244,17 @@ func (s *GitHubIssuesSource) UpdateTask(ctx context.Context, externalID string, 
 
 // DeleteTask closes an issue in GitHub (GitHub doesn't allow deleting issues)
 func (s *GitHubIssuesSource) DeleteTask(ctx context.Context, externalID string) error {
+	// Convert externalID (string) to int for GitHub API
+	issueNumber, err := strconv.Atoi(externalID)
+	if err != nil {
+		return fmt.Errorf("invalid issue number: %s: %w", externalID, err)
+	}
+
 	state := "closed"
 	req := &github.IssueRequest{
 		State: &state,
 	}
-	_, _, err := s.client.Issues.Edit(context.Background(), s.config.Owner, s.config.Repository, externalID, req)
+	_, _, err = s.client.Issues.Edit(context.Background(), s.config.Owner, s.config.Repository, issueNumber, req)
 	return err
 }
 
@@ -295,7 +308,7 @@ func (s *GitHubIssuesSource) githubIssueToExternal(issue *github.Issue) *Externa
 
 	// Last modified
 	if updated := issue.GetUpdatedAt(); !updated.IsZero() {
-		extTask.LastModified = updated
+		extTask.LastModified = updated.Time
 	}
 
 	// Created at
