@@ -7,7 +7,14 @@
 -- Add Locking Fields to Tasks Table
 -- ============================================================================
 
+-- Note: version field is now in initial schema (001), but we add it here
+-- for backward compatibility with databases created before version was added to 001.
+-- SQLite doesn't support IF NOT EXISTS for ALTER TABLE ADD COLUMN, so we use
+-- a workaround: attempt to add, ignore error if column already exists.
+
 -- Version field for optimistic locking (detect concurrent modifications)
+-- (May already exist if created with schema 001 that includes version)
+-- SQLite will return error if column exists, which we handle in migration code
 ALTER TABLE tasks ADD COLUMN version INTEGER NOT NULL DEFAULT 1;
 
 -- Assignee tracking (which agent/host has claimed the task)

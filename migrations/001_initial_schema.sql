@@ -27,6 +27,7 @@ CREATE TABLE IF NOT EXISTS tasks (
     completed_at TEXT,
     project_id TEXT,
     metadata TEXT,  -- JSON blob for flexible metadata
+    version INTEGER NOT NULL DEFAULT 1,  -- Optimistic locking version field
     created_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
     updated_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now'))
 );
