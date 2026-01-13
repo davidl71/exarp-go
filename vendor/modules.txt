@@ -36,6 +36,8 @@ github.com/aymanbagabas/go-osc52/v2
 # github.com/blacktop/go-foundationmodels v0.1.8
 ## explicit; go 1.25
 github.com/blacktop/go-foundationmodels
+# github.com/charmbracelet/bubbles v0.13.0
+## explicit; go 1.13
 # github.com/charmbracelet/bubbletea v1.3.10
 ## explicit; go 1.24.0
 github.com/charmbracelet/bubbletea
@@ -55,6 +57,8 @@ github.com/charmbracelet/x/cellbuf
 # github.com/charmbracelet/x/term v0.2.1
 ## explicit; go 1.18
 github.com/charmbracelet/x/term
+# github.com/cockroachdb/datadriven v1.0.2
+## explicit; go 1.17
 # github.com/davidl71/devwisdom-go v0.1.2 => /Users/davidl/Projects/devwisdom-go
 ## explicit; go 1.24.0
 github.com/davidl71/devwisdom-go/internal/config
@@ -135,6 +139,14 @@ github.com/googleapis/gax-go/v2/callctx
 github.com/googleapis/gax-go/v2/internal
 github.com/googleapis/gax-go/v2/internallog
 github.com/googleapis/gax-go/v2/internallog/internal
+# github.com/knz/catwalk v0.1.4
+## explicit; go 1.13
+# github.com/knz/lipgloss-convert v0.1.0
+## explicit; go 1.13
+# github.com/kr/pretty v0.3.1
+## explicit; go 1.12
+# github.com/kr/text v0.2.0
+## explicit
 # github.com/lib/pq v1.10.9
 ## explicit; go 1.13
 github.com/lib/pq
@@ -152,6 +164,8 @@ github.com/mattn/go-localereader
 # github.com/mattn/go-runewidth v0.0.16
 ## explicit; go 1.9
 github.com/mattn/go-runewidth
+# github.com/mattn/go-sqlite3 v1.14.33
+## explicit; go 1.19
 # github.com/modelcontextprotocol/go-sdk v1.2.0
 ## explicit; go 1.23.0
 github.com/modelcontextprotocol/go-sdk/auth
@@ -174,6 +188,8 @@ github.com/muesli/termenv
 # github.com/ncruces/go-strftime v0.1.9
 ## explicit; go 1.17
 github.com/ncruces/go-strftime
+# github.com/pmezard/go-difflib v1.0.0
+## explicit
 # github.com/racingmars/go3270 v0.9.13
 ## explicit; go 1.18
 github.com/racingmars/go3270
@@ -184,6 +200,8 @@ github.com/remyoudompheng/bigfft
 # github.com/rivo/uniseg v0.4.7
 ## explicit; go 1.18
 github.com/rivo/uniseg
+# github.com/rogpeppe/go-internal v1.14.1
+## explicit; go 1.23
 # github.com/xo/terminfo v0.0.0-20220910002029-abceb7e1c41e
 ## explicit; go 1.19
 github.com/xo/terminfo
