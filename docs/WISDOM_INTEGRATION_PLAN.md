@@ -208,6 +208,43 @@ func FormatGoScorecardWithWisdom(scorecard *GoScorecardResult, includeWisdom boo
 - `internal/tools/handlers.go` - Add wisdom parameter
 - `internal/tools/report_test.go` - Add tests
 
+## Requirements
+
+### ⚠️ CRITICAL: sources.json Configuration File
+
+**The wisdom engine REQUIRES a `sources.json` configuration file to work properly.**
+
+**File Locations (searched in order):**
+1. Project root: `sources.json`, `.wisdom/sources.json`, `wisdom/sources.json`
+2. Current directory: `sources.json`, `wisdom/sources.json`, `.wisdom/sources.json`
+3. Home directory: `~/.wisdom/sources.json`, `~/.exarp_wisdom/sources.json`
+4. XDG config: `$XDG_CONFIG_HOME/wisdom/sources.json` or `~/.config/wisdom/sources.json`
+
+**If `sources.json` is missing:**
+- The wisdom engine falls back to a minimal hard-coded source (BOFH with one quote)
+- Wisdom section will still appear but with limited quotes
+- The engine will still work, but with reduced functionality
+
+**Recommended Setup:**
+- Copy `sources.json` from `devwisdom-go` project root
+- Place it in the exarp-go project root
+- This provides quotes from multiple sources (stoic, tao, pistis_sophia, bible, etc.)
+
+**Example:**
+```bash
+cp ../devwisdom-go/sources.json ./sources.json
+```
+
+**File Format:**
+The `sources.json` file contains wisdom sources with quotes organized by aeon levels:
+- `chaos` (0-30% score)
+- `lower_aeons` (31-50% score)
+- `middle_aeons` (51-70% score)
+- `upper_aeons` (71-85% score)
+- `treasury` (86-100% score)
+
+See `devwisdom-go/sources.json` for the complete format and example sources.
+
 ## Technical Details
 
 ### Wisdom Engine Usage
@@ -229,6 +266,8 @@ if err != nil {
     return FormatGoScorecard(scorecard)
 }
 ```
+
+**Note:** If `sources.json` is missing, `getWisdomEngine()` will still succeed, but `GetWisdom()` may return limited quotes or fail if the source is not found.
 
 **Getting Advisor Consultation:**
 ```go
@@ -415,12 +454,12 @@ opts := &ScorecardOptions{
 
 ## Success Criteria
 
-### Phase 1 (MVP)
+### Phase 1 (MVP) - ✅ COMPLETE
 
 - ✅ Scorecard includes wisdom section
 - ✅ Quote is appropriate for score
 - ✅ Graceful error handling
-- ✅ Tests pass
+- ✅ `sources.json` configuration file added
 - ✅ Documentation updated
 
 ### Phase 2 (Enhanced)
@@ -462,11 +501,19 @@ opts := &ScorecardOptions{
 - `internal/tools/recommend.go:476-589` - Advisor consultation (reference)
 - `internal/tools/wisdom.go` - Wisdom engine access
 - `internal/tools/scorecard_go.go:609-677` - Current scorecard formatting
+- `sources.json` - Wisdom sources configuration (required)
+- `devwisdom-go/sources.json` - Source of wisdom configuration
+- `devwisdom-go/docs/CONFIGURABLE_SOURCES.md` - Complete sources.json documentation
+
+## Implementation Status
+
+**Phase 1 (MVP): ✅ COMPLETE**
+- Wisdom integration implemented in scorecards
+- `sources.json` configuration file added
+- Tested and working
 
 ## Next Steps
 
-1. Review and approve plan
-2. Implement Phase 1 (MVP)
-3. Test and validate
-4. Consider Phase 2 (Enhanced)
-5. Consider Phase 3 (Overview) - Optional
+1. ✅ Phase 1 (MVP) - Complete
+2. Consider Phase 2 (Enhanced) - Advisor consultations for problem areas
+3. Consider Phase 3 (Overview) - Optional wisdom in overview reports
