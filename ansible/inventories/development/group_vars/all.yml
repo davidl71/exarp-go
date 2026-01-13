@@ -4,9 +4,11 @@
 # Go configuration
 go_version: "1.24.0"
 go_install_path: "/usr/local/go"
-go_user: "{{ ansible_user | default('vagrant') }}"
-go_gopath: "/home/{{ go_user }}/go"
-go_bin_path: "/home/{{ go_user }}/go/bin"
+# Use current user from environment or system
+go_user: "{{ lookup('env', 'USER') | default(ansible_user_id | default('vagrant')) }}"
+# Use HOME env var, fallback to /Users/username on macOS
+go_gopath: "{{ lookup('env', 'HOME') | default('/Users/' + go_user) }}/go"
+go_bin_path: "{{ go_gopath }}/bin"
 
 # Python configuration
 python_version: "3.10"
@@ -15,8 +17,9 @@ uv_version: "latest"
 
 # Project configuration
 project_name: "exarp-go"
-project_path: "/opt/{{ project_name }}"
-project_user: "{{ ansible_user | default('vagrant') }}"
+# Use HOME env var, fallback to /Users/username on macOS
+project_path: "{{ lookup('env', 'HOME') | default('/Users/' + go_user) }}/Projects/{{ project_name }}"
+project_user: "{{ lookup('env', 'USER') | default(ansible_user_id | default('vagrant')) }}"
 
 # Optional tools (set to true to install)
 install_linters: true
