@@ -117,9 +117,9 @@ func handleContextSummarizeNative(ctx context.Context, params map[string]interfa
 		return nil, fmt.Errorf("Apple FM summarization failed, will fallback: %w", err)
 	}
 
-	// Estimate tokens
-	originalTokens := estimateTokens(dataStr)
-	summaryTokens := estimateTokens(summary)
+	// Estimate tokens (using default tokensPerChar of 0.25)
+	originalTokens := estimateTokens(dataStr, 0.25)
+	summaryTokens := estimateTokens(summary, 0.25)
 	reduction := 0.0
 	if originalTokens > 0 {
 		reduction = (1.0 - float64(summaryTokens)/float64(originalTokens)) * 100.0
