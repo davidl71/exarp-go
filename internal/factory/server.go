@@ -25,11 +25,17 @@ func isGitHookContext() bool {
 }
 
 // createLogger creates a logger with appropriate level based on context
-// In git hook contexts, uses WARN level to suppress INFO messages (reduces token usage)
+// Suppresses INFO logs except for MCP-related operations (tool/prompt/resource registration)
+// MCP registration logs (tool/prompt/resource) are already MCP-related and will show at INFO level
+// Other INFO logs from non-MCP sources (like database initialization) use standard log package
 func createLogger() *logging.Logger {
 	logger := logging.NewLogger()
 
-	// In git hook contexts, suppress INFO messages (only show WARN and ERROR)
+	// Keep INFO level to show MCP registration logs
+	// The MCP registration logs ("Tool registered successfully", etc.) are MCP-related
+	// and will show at INFO level. Other INFO logs from standard log package are separate.
+	
+	// In git hook contexts, suppress all INFO messages (including MCP)
 	if isGitHookContext() {
 		logger.SetLevel(logging.LevelWarn)
 	}

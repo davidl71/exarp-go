@@ -56,9 +56,11 @@ func main() {
 	// Initialize database (before server creation)
 	projectRoot, err := tools.FindProjectRoot()
 	if err != nil {
+		// Only log warnings/errors (not INFO) for non-MCP operations
 		log.Printf("Warning: Could not find project root: %v (database unavailable, will use JSON fallback)", err)
 	} else {
 		if err := database.Init(projectRoot); err != nil {
+			// Only log warnings/errors (not INFO) for non-MCP operations
 			log.Printf("Warning: Database initialization failed: %v (fallback to JSON)", err)
 		} else {
 			defer func() {
@@ -66,7 +68,8 @@ func main() {
 					log.Printf("Warning: Error closing database: %v", err)
 				}
 			}()
-			log.Printf("Database initialized: %s/.todo2/todo2.db", projectRoot)
+			// Suppress INFO log for database initialization (not MCP-related)
+			// Only log at WARN level for important database messages
 		}
 	}
 

@@ -5,26 +5,22 @@ import (
 	"fmt"
 
 	"github.com/davidl71/exarp-go/proto"
+	"github.com/davidl71/mcp-go-core/pkg/mcp/request"
 	protobuf "google.golang.org/protobuf/proto"
 )
 
 // ParseMemoryRequest parses a memory tool request (protobuf or JSON)
 // Returns protobuf request if protobuf format, or nil with JSON params map
 func ParseMemoryRequest(args json.RawMessage) (*proto.MemoryRequest, map[string]interface{}, error) {
-	var req proto.MemoryRequest
-	
-	// Try protobuf binary first
-	if err := protobuf.Unmarshal(args, &req); err == nil {
-		// Successfully parsed as protobuf
-		return &req, nil, nil
+	req, params, err := request.ParseRequest(args, func() *proto.MemoryRequest {
+		return &proto.MemoryRequest{}
+	})
+	if err != nil {
+		return nil, nil, err
 	}
-
-	// Fall back to JSON
-	var params map[string]interface{}
-	if err := json.Unmarshal(args, &params); err != nil {
-		return nil, nil, fmt.Errorf("failed to parse arguments: %w", err)
+	if req != nil {
+		return req, nil, nil
 	}
-
 	return nil, params, nil
 }
 
