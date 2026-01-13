@@ -296,16 +296,108 @@ func extractTaskIDs(tasks []Todo2Task) []string {
 	return ids
 }
 
-// handleTaskWorkflowSync handles sync action for synchronizing tasks across systems
-func handleTaskWorkflowSync(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
+// handleTaskWorkflowList handles list sub-action for displaying tasks
+func handleTaskWorkflowList(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	projectRoot, err := FindProjectRoot()
 	if err != nil {
 		return nil, fmt.Errorf("failed to find project root: %w", err)
 	}
 
+	// Load tasks
 	tasks, err := LoadTodo2Tasks(projectRoot)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load tasks: %w", err)
+	}
+
+	// Apply filters
+	var status, priority, filterTag, taskID string
+	var limit int
+
+	if s, ok := params["status"].(string); ok {
+		status = s
+	}
+	if p, ok := params["priority"].(string); ok {
+		priority = p
+	}
+	if tag, ok := params["filter_tag"].(string); ok {
+		filterTag = tag
+	}
+	if tid, ok := params["task_id"].(string); ok {
+		taskID = tid
+	}
+	if l, ok := params["limit"].(float64); ok {
+		limit = int(l)
+	} else if l, ok := params["limit"].(int); ok {
+		limit = l
+	}
+
+	// Filter tasks
+	filtered := []Todo2Task{}
+	for _, task := range tasks {
+		if taskID != "" && task.ID != taskID {
+			continue
+		}
+		if status != "" && task.Status != status {
+			continue
+		}
+		if priority != "" && task.Priority != priority {
+			continue
+		}
+		if filterTag != "" {
+			found := false
+			for _, tag := range task.Tags {
+				if tag == filterTag {
+					found = true
+					break
+				}
+			}
+			if !found {
+				continue
+			}
+		}
+		filtered = append(filtered, task)
+		if limit > 0 && len(filtered) >= limit {
+			break
+		}
+	}
+
+	// Format output
+	outputFormat, _ := params["output_format"].(string)
+	if outputFormat == "" {
+		outputFormat = "text"
+	}
+
+	var output string
+	if outputFormat == "json" {
+		jsonBytes, _ := json.MarshalIndent(filtered, "", "  ")
+		output = string(jsonBytes)
+	} else {
+		// Text format
+		var sb strings.Builder
+		sb.WriteString(fmt.Sprintf("Tasks (%d total, %d shown)\n", len(tasks), len(filtered)))
+		sb.WriteString(strings.Repeat("=", 80) + "\n")
+		sb.WriteString(fmt.Sprintf("%-8s | %-15s | %-10s | %s\n", "ID", "Status", "Priority", "Content"))
+		sb.WriteString(strings.Repeat("-", 80) + "\n")
+		for _, task := range filtered {
+			content := task.Content
+			if len(content) > 50 {
+				content = content[:47] + "..."
+			}
+			sb.WriteString(fmt.Sprintf("%-8s | %-15s | %-10s | %s\n", task.ID, task.Status, task.Priority, content))
+		}
+		output = sb.String()
+	}
+
+	return []framework.TextContent{
+		{Type: "text", Text: output},
+	}, nil
+}
+
+// handleTaskWorkflowSync handles sync action for synchronizing tasks between SQLite and JSON
+func handleTaskWorkflowSync(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
+	projectRoot, err := FindProjectRoot()
+	if err != nil {
+		return nil, fmt.Errorf("failed to find project root: %w", err)
 	}
 
 	dryRun := false
@@ -313,12 +405,25 @@ func handleTaskWorkflowSync(ctx context.Context, params map[string]interface{}) 
 		dryRun = dr
 	}
 
-	// For now, sync is a simplified implementation that validates task consistency
-	// Full sync with external systems would require additional integration
-	syncResults := map[string]interface{}{
-		"validated_tasks": len(tasks),
-		"issues_found":    0,
-		"issues":          []string{},
+	// Check if this is a list sub-action (for listing tasks)
+	// If sub_action is "list", we just load and return tasks (no sync needed)
+	subAction, _ := params["sub_action"].(string)
+	if subAction == "list" {
+		// For list, just load tasks and format them (no sync)
+		return handleTaskWorkflowList(ctx, params)
+	}
+
+	// Perform bidirectional sync between SQLite and JSON
+	if !dryRun {
+		if err := SyncTodo2Tasks(projectRoot); err != nil {
+			return nil, fmt.Errorf("failed to sync tasks: %w", err)
+		}
+	}
+
+	// Load tasks after sync to validate
+	tasks, err := LoadTodo2Tasks(projectRoot)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load tasks after sync: %w", err)
 	}
 
 	// Validate task consistency
@@ -337,12 +442,11 @@ func handleTaskWorkflowSync(ctx context.Context, params map[string]interface{}) 
 		}
 	}
 
-	syncResults["issues_found"] = len(issues)
-	syncResults["issues"] = issues
-
-	if !dryRun && len(issues) > 0 {
-		// Could auto-fix some issues here
-		// For now, just report them
+	syncResults := map[string]interface{}{
+		"validated_tasks": len(tasks),
+		"issues_found":    len(issues),
+		"issues":          issues,
+		"synced":          !dryRun,
 	}
 
 	result := map[string]interface{}{

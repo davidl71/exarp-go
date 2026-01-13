@@ -127,6 +127,62 @@ func FindProjectRoot() (string, error) {
 	return "", fmt.Errorf("project root not found (no .todo2 directory)")
 }
 
+// SyncTodo2Tasks synchronizes tasks between database and JSON file
+// It loads from both sources, merges them (database takes precedence for conflicts),
+// and saves to both to ensure consistency
+func SyncTodo2Tasks(projectRoot string) error {
+	// Load from both sources
+	dbTasks, dbErr := loadTodo2TasksFromDB()
+	jsonTasks, _ := loadTodo2TasksFromJSON(projectRoot)
+
+	// Build merged task map (database takes precedence)
+	taskMap := make(map[string]Todo2Task)
+
+	// First, add JSON tasks
+	for _, task := range jsonTasks {
+		taskMap[task.ID] = task
+	}
+
+	// Then, override with database tasks (database takes precedence)
+	for _, task := range dbTasks {
+		taskMap[task.ID] = task
+	}
+
+	// Convert map back to slice
+	mergedTasks := make([]Todo2Task, 0, len(taskMap))
+	for _, task := range taskMap {
+		mergedTasks = append(mergedTasks, task)
+	}
+
+	// Save to both sources
+	var dbSaveErr, jsonSaveErr error
+
+	// Try to save to database first
+	if dbErr == nil {
+		// Database is available, save to it
+		dbSaveErr = saveTodo2TasksToDB(mergedTasks)
+	} else {
+		// Database not available, skip
+		dbSaveErr = fmt.Errorf("database not available: %w", dbErr)
+	}
+
+	// Always save to JSON (as fallback)
+	jsonSaveErr = saveTodo2TasksToJSON(projectRoot, mergedTasks)
+
+	// Return error if both failed
+	if dbSaveErr != nil && jsonSaveErr != nil {
+		return fmt.Errorf("failed to save to both sources: database=%v, json=%v", dbSaveErr, jsonSaveErr)
+	}
+
+	// If one succeeded, that's okay (we have at least one source)
+	if dbSaveErr != nil {
+		// Database save failed, but JSON succeeded - that's okay
+		return nil
+	}
+
+	return nil
+}
+
 // IsPendingStatus checks if a status is pending
 func IsPendingStatus(status string) bool {
 	status = normalizeStatus(status)
