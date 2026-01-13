@@ -46,7 +46,7 @@ func handleGenerateConfig(ctx context.Context, args json.RawMessage) ([]framewor
 }
 
 // handleHealth handles the health tool
-// Uses native Go implementation for all actions (server, git, docs, dod, cicd) - fully native Go
+// Uses native Go implementation for all actions (server, git, docs, dod, cicd) - fully native Go with no fallback
 func handleHealth(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
 	// Parse arguments
 	var params map[string]interface{}
@@ -54,21 +54,8 @@ func handleHealth(ctx context.Context, args json.RawMessage) ([]framework.TextCo
 		return nil, fmt.Errorf("failed to parse arguments: %w", err)
 	}
 
-	// Try native Go implementation first
-	result, err := handleHealthNative(ctx, params)
-	if err == nil {
-		return result, nil
-	}
-
-	// If native implementation doesn't support the action, fall back to Python bridge
-	bridgeResult, err := bridge.ExecutePythonTool(ctx, "health", params)
-	if err != nil {
-		return nil, fmt.Errorf("health failed: %w", err)
-	}
-
-	return []framework.TextContent{
-		{Type: "text", Text: bridgeResult},
-	}, nil
+	// Use native Go implementation - all actions are native
+	return handleHealthNative(ctx, params)
 }
 
 // handleSetupHooks handles the setup_hooks tool
@@ -506,28 +493,15 @@ func handleTesting(ctx context.Context, args json.RawMessage) ([]framework.TextC
 // Batch 3 Tool Handlers (T-37 through T-44)
 
 // handleAutomation handles the automation tool
-// Uses native Go implementation for all actions (daily, nightly, sprint, discover) - fully native Go
+// Uses native Go implementation for all actions (daily, nightly, sprint, discover) - fully native Go with no fallback
 func handleAutomation(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
 	var params map[string]interface{}
 	if err := json.Unmarshal(args, &params); err != nil {
 		return nil, fmt.Errorf("failed to parse arguments: %w", err)
 	}
 
-	// Try native Go implementation for all actions
-	result, err := handleAutomationNative(ctx, params)
-	if err == nil {
-		return result, nil
-	}
-
-	// If native fails, fall back to Python bridge
-	resultText, err := bridge.ExecutePythonTool(ctx, "automation", params)
-	if err != nil {
-		return nil, fmt.Errorf("automation failed: %w", err)
-	}
-
-	return []framework.TextContent{
-		{Type: "text", Text: resultText},
-	}, nil
+	// Use native Go implementation - all actions are native
+	return handleAutomationNative(ctx, params)
 }
 
 // handleToolCatalog handles the tool_catalog tool

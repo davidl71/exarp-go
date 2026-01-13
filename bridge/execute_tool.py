@@ -26,12 +26,11 @@ def execute_tool(tool_name: str, args_json: str):
         args = json.loads(args_json) if args_json else {}
         
         # Import tool functions from project_management_automation
-        # Note: tool_catalog, workflow_mode, git_tools, and infer_session_mode removed
+        # Note: tool_catalog, workflow_mode, git_tools, infer_session_mode, health, and automation removed
         # These tools are fully native Go with no Python fallback
         from project_management_automation.tools.consolidated import (
             analyze_alignment as _analyze_alignment,
             generate_config as _generate_config,
-            health as _health,
             setup_hooks as _setup_hooks,
             memory as _memory,
             memory_maint as _memory_maint,
@@ -41,7 +40,6 @@ def execute_tool(tool_name: str, args_json: str):
             task_discovery as _task_discovery,
             task_workflow as _task_workflow,
             testing as _testing,
-            automation as _automation,
             estimation as _estimation,
             lint as _lint,
             mlx as _mlx,
@@ -79,19 +77,6 @@ def execute_tool(tool_name: str, args_json: str):
                 rule_files=args.get("rule_files"),
                 output_dir=args.get("output_dir"),
                 dry_run=args.get("dry_run", False),
-            )
-        elif tool_name == "health":
-            result = _health(
-                action=args.get("action", "server"),
-                agent_name=args.get("agent_name"),
-                check_remote=args.get("check_remote", True),
-                output_path=args.get("output_path"),
-                create_tasks=args.get("create_tasks", True),
-                task_id=args.get("task_id"),
-                changed_files=args.get("changed_files"),
-                auto_check=args.get("auto_check", True),
-                workflow_path=args.get("workflow_path"),
-                check_runners=args.get("check_runners", True),
             )
         elif tool_name == "setup_hooks":
             result = _setup_hooks(
@@ -223,24 +208,6 @@ def execute_tool(tool_name: str, args_json: str):
                 target_file=args.get("target_file"),
                 min_confidence=args.get("min_confidence", 0.7),
                 framework=args.get("framework"),
-                output_path=args.get("output_path"),
-            )
-        elif tool_name == "automation":
-            result = _automation(
-                action=args.get("action", "daily"),
-                tasks=args.get("tasks"),
-                include_slow=args.get("include_slow", False),
-                max_tasks_per_host=args.get("max_tasks_per_host", 5),
-                max_parallel_tasks=args.get("max_parallel_tasks", 10),
-                priority_filter=args.get("priority_filter"),
-                tag_filter=args.get("tag_filter"),
-                max_iterations=args.get("max_iterations", 10),
-                auto_approve=args.get("auto_approve", True),
-                extract_subtasks=args.get("extract_subtasks", True),
-                run_analysis_tools=args.get("run_analysis_tools", True),
-                run_testing_tools=args.get("run_testing_tools", True),
-                min_value_score=args.get("min_value_score", 0.7),
-                dry_run=args.get("dry_run", False),
                 output_path=args.get("output_path"),
             )
         elif tool_name == "lint":
