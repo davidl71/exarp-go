@@ -13,6 +13,7 @@ import (
 	"github.com/davidl71/exarp-go/internal/database"
 	"github.com/davidl71/exarp-go/internal/framework"
 	"github.com/davidl71/exarp-go/internal/models"
+	"github.com/davidl71/mcp-go-core/pkg/mcp/response"
 )
 
 // handleTaskWorkflowApprove handles approve action for batch approving tasks
@@ -132,10 +133,7 @@ func handleTaskWorkflowApprove(ctx context.Context, params map[string]interface{
 				"tasks":          taskList,
 			}
 
-			output, _ := json.MarshalIndent(result, "", "  ")
-			return []framework.TextContent{
-				{Type: "text", Text: string(output)},
-			}, nil
+			return response.FormatResult(result, "")
 		}
 
 		// Update tasks in database
@@ -156,10 +154,7 @@ func handleTaskWorkflowApprove(ctx context.Context, params map[string]interface{
 			"task_ids":       approvedIDs,
 		}
 
-		output, _ := json.MarshalIndent(result, "", "  ")
-		return []framework.TextContent{
-			{Type: "text", Text: string(output)},
-		}, nil
+		return response.FormatResult(result, "")
 	}
 
 	// Fallback to file-based approach
@@ -240,10 +235,7 @@ func handleTaskWorkflowApprove(ctx context.Context, params map[string]interface{
 			"tasks":          taskList,
 		}
 
-		output, _ := json.MarshalIndent(result, "", "  ")
-		return []framework.TextContent{
-			{Type: "text", Text: string(output)},
-		}, nil
+		return response.FormatResult(result, "")
 	}
 
 	// Update tasks
@@ -277,10 +269,7 @@ func handleTaskWorkflowApprove(ctx context.Context, params map[string]interface{
 		"task_ids":       approvedIDs,
 	}
 
-	output, _ := json.MarshalIndent(result, "", "  ")
-	return []framework.TextContent{
-		{Type: "text", Text: string(output)},
-	}, nil
+	return response.FormatResult(result, "")
 }
 
 // handleTaskWorkflowApproveMCP fallback to Todo2 MCP tools when file access fails
@@ -490,17 +479,7 @@ func handleTaskWorkflowSync(ctx context.Context, params map[string]interface{}) 
 	}
 
 	outputPath, _ := params["output_path"].(string)
-	if outputPath != "" {
-		output, _ := json.MarshalIndent(result, "", "  ")
-		if err := os.WriteFile(outputPath, output, 0644); err == nil {
-			result["output_path"] = outputPath
-		}
-	}
-
-	output, _ := json.MarshalIndent(result, "", "  ")
-	return []framework.TextContent{
-		{Type: "text", Text: string(output)},
-	}, nil
+	return response.FormatResult(result, outputPath)
 }
 
 // handleTaskWorkflowClarity handles clarity action for improving task clarity
@@ -732,10 +711,7 @@ func handleTaskWorkflowCleanup(ctx context.Context, params map[string]interface{
 				"include_legacy":  includeLegacy,
 			}
 
-			output, _ := json.MarshalIndent(result, "", "  ")
-			return []framework.TextContent{
-				{Type: "text", Text: string(output)},
-			}, nil
+			return response.FormatResult(result, "")
 		}
 
 		// Delete stale and legacy tasks from database
@@ -762,17 +738,7 @@ func handleTaskWorkflowCleanup(ctx context.Context, params map[string]interface{
 		}
 
 		outputPath, _ := params["output_path"].(string)
-		if outputPath != "" {
-			output, _ := json.MarshalIndent(result, "", "  ")
-			if err := os.WriteFile(outputPath, output, 0644); err == nil {
-				result["output_path"] = outputPath
-			}
-		}
-
-		output, _ := json.MarshalIndent(result, "", "  ")
-		return []framework.TextContent{
-			{Type: "text", Text: string(output)},
-		}, nil
+		return response.FormatResult(result, outputPath)
 	}
 
 	// Fallback to file-based approach
@@ -838,10 +804,7 @@ func handleTaskWorkflowCleanup(ctx context.Context, params map[string]interface{
 			"include_legacy":  includeLegacy,
 		}
 
-		output, _ := json.MarshalIndent(result, "", "  ")
-		return []framework.TextContent{
-			{Type: "text", Text: string(output)},
-		}, nil
+		return response.FormatResult(result, "")
 	}
 
 	// Remove stale and legacy tasks
@@ -878,17 +841,7 @@ func handleTaskWorkflowCleanup(ctx context.Context, params map[string]interface{
 	}
 
 	outputPath, _ := params["output_path"].(string)
-	if outputPath != "" {
-		output, _ := json.MarshalIndent(result, "", "  ")
-		if err := os.WriteFile(outputPath, output, 0644); err == nil {
-			result["output_path"] = outputPath
-		}
-	}
-
-	output, _ := json.MarshalIndent(result, "", "  ")
-	return []framework.TextContent{
-		{Type: "text", Text: string(output)},
-	}, nil
+	return response.FormatResult(result, outputPath)
 }
 
 // Helper functions for clarity action
