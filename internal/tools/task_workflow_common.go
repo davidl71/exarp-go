@@ -594,11 +594,40 @@ func handleTaskWorkflowClarity(ctx context.Context, params map[string]interface{
 	}, nil
 }
 
-// handleTaskWorkflowCleanup handles cleanup action for removing stale tasks
+// isOldSequentialID checks if a task ID uses the old sequential format (T-1, T-2, etc.)
+// vs the new epoch format (T-1768158627000)
+// Old format: T- followed by a small number (< 10000, typically 1-999)
+// New format: T- followed by epoch milliseconds (13 digits, typically 1.6+ trillion)
+func isOldSequentialID(taskID string) bool {
+	if !strings.HasPrefix(taskID, "T-") {
+		return false
+	}
+	
+	// Extract the number part
+	numStr := strings.TrimPrefix(taskID, "T-")
+	
+	// Parse as integer
+	var num int64
+	if _, err := fmt.Sscanf(numStr, "%d", &num); err != nil {
+		return false
+	}
+	
+	// Old sequential IDs are typically small numbers (< 10000)
+	// Epoch milliseconds are 13 digits (1.6+ trillion)
+	// Use 1000000 (1 million) as the threshold to be safe
+	return num < 1000000
+}
+
+// handleTaskWorkflowCleanup handles cleanup action for removing stale tasks and legacy tasks
 func handleTaskWorkflowCleanup(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	staleThresholdHours := 2.0
 	if threshold, ok := params["stale_threshold_hours"].(float64); ok {
 		staleThresholdHours = threshold
+	}
+
+	includeLegacy := false
+	if legacy, ok := params["include_legacy"].(bool); ok {
+		includeLegacy = legacy
 	}
 
 	dryRun := false
@@ -627,9 +656,24 @@ func handleTaskWorkflowCleanup(ctx context.Context, params map[string]interface{
 		reviewTasks, _ := database.ListTasks(context.Background(), filters)
 		tasks = append(tasks, reviewTasks...)
 
-		// Identify stale tasks
+		// Also get "Done" tasks if including legacy (legacy tasks might be marked Done)
+		if includeLegacy {
+			doneStatus := "Done"
+			filters.Status = &doneStatus
+			doneTasks, _ := database.ListTasks(context.Background(), filters)
+			tasks = append(tasks, doneTasks...)
+		}
+
+		// Identify stale and legacy tasks
 		staleTasks := []*models.Todo2Task{}
+		legacyTasks := []*models.Todo2Task{}
 		for _, task := range tasks {
+			// Check for legacy task ID (old sequential format)
+			if includeLegacy && isOldSequentialID(task.ID) {
+				legacyTasks = append(legacyTasks, task)
+				continue
+			}
+
 			if !IsPendingStatus(task.Status) {
 				continue
 			}
@@ -657,6 +701,9 @@ func handleTaskWorkflowCleanup(ctx context.Context, params map[string]interface{
 			}
 		}
 
+		// Combine stale and legacy tasks
+		tasksToRemove := append(staleTasks, legacyTasks...)
+
 		if dryRun {
 			result := map[string]interface{}{
 				"success":         true,
@@ -664,7 +711,11 @@ func handleTaskWorkflowCleanup(ctx context.Context, params map[string]interface{
 				"dry_run":         true,
 				"stale_count":     len(staleTasks),
 				"stale_tasks":     formatStaleTasksFromPtrs(staleTasks),
+				"legacy_count":    len(legacyTasks),
+				"legacy_tasks":    formatStaleTasksFromPtrs(legacyTasks),
+				"total_to_remove": len(tasksToRemove),
 				"threshold_hours": staleThresholdHours,
+				"include_legacy":  includeLegacy,
 			}
 
 			output, _ := json.MarshalIndent(result, "", "  ")
@@ -673,9 +724,9 @@ func handleTaskWorkflowCleanup(ctx context.Context, params map[string]interface{
 			}, nil
 		}
 
-		// Delete stale tasks from database
+		// Delete stale and legacy tasks from database
 		removedIDs := []string{}
-		for _, task := range staleTasks {
+		for _, task := range tasksToRemove {
 			if err := database.DeleteTask(context.Background(), task.ID); err == nil {
 				removedIDs = append(removedIDs, task.ID)
 			}
@@ -688,9 +739,12 @@ func handleTaskWorkflowCleanup(ctx context.Context, params map[string]interface{
 			"success":         true,
 			"method":          "database",
 			"removed_count":   len(removedIDs),
+			"stale_removed":   len(staleTasks),
+			"legacy_removed":  len(legacyTasks),
 			"remaining_count": remainingCount,
 			"removed_tasks":   removedIDs,
 			"threshold_hours": staleThresholdHours,
+			"include_legacy":  includeLegacy,
 		}
 
 		outputPath, _ := params["output_path"].(string)
@@ -718,9 +772,16 @@ func handleTaskWorkflowCleanup(ctx context.Context, params map[string]interface{
 		return nil, fmt.Errorf("failed to load tasks: %w", err)
 	}
 
-	// Identify stale tasks
+	// Identify stale and legacy tasks
 	staleTasks := []Todo2Task{}
+	legacyTasks := []Todo2Task{}
 	for _, task := range tasks {
+		// Check for legacy task ID (old sequential format)
+		if includeLegacy && isOldSequentialID(task.ID) {
+			legacyTasks = append(legacyTasks, task)
+			continue
+		}
+
 		if IsPendingStatus(task.Status) {
 			// Check for stale tag
 			isStale := false
@@ -746,6 +807,9 @@ func handleTaskWorkflowCleanup(ctx context.Context, params map[string]interface{
 		}
 	}
 
+	// Combine stale and legacy tasks
+	tasksToRemove := append(staleTasks, legacyTasks...)
+
 	if dryRun {
 		result := map[string]interface{}{
 			"success":         true,
@@ -753,7 +817,11 @@ func handleTaskWorkflowCleanup(ctx context.Context, params map[string]interface{
 			"dry_run":         true,
 			"stale_count":     len(staleTasks),
 			"stale_tasks":     formatStaleTasks(staleTasks),
+			"legacy_count":    len(legacyTasks),
+			"legacy_tasks":    formatStaleTasks(legacyTasks),
+			"total_to_remove": len(tasksToRemove),
 			"threshold_hours": staleThresholdHours,
+			"include_legacy":  includeLegacy,
 		}
 
 		output, _ := json.MarshalIndent(result, "", "  ")
@@ -762,15 +830,18 @@ func handleTaskWorkflowCleanup(ctx context.Context, params map[string]interface{
 		}, nil
 	}
 
-	// Remove stale tasks
+	// Remove stale and legacy tasks
 	remainingTasks := []Todo2Task{}
-	staleMap := make(map[string]bool)
-	for _, stale := range staleTasks {
-		staleMap[stale.ID] = true
+	removeMap := make(map[string]bool)
+	for _, taskToRemove := range tasksToRemove {
+		removeMap[taskToRemove.ID] = true
 	}
 
+	removedIDs := []string{}
 	for _, task := range tasks {
-		if !staleMap[task.ID] {
+		if removeMap[task.ID] {
+			removedIDs = append(removedIDs, task.ID)
+		} else {
 			remainingTasks = append(remainingTasks, task)
 		}
 	}
@@ -783,10 +854,13 @@ func handleTaskWorkflowCleanup(ctx context.Context, params map[string]interface{
 	result := map[string]interface{}{
 		"success":         true,
 		"method":          "file",
-		"removed_count":   len(staleTasks),
+		"removed_count":   len(removedIDs),
+		"stale_removed":   len(staleTasks),
+		"legacy_removed":  len(legacyTasks),
 		"remaining_count": len(remainingTasks),
-		"removed_tasks":   extractTaskIDs(staleTasks),
+		"removed_tasks":   removedIDs,
 		"threshold_hours": staleThresholdHours,
+		"include_legacy":  includeLegacy,
 	}
 
 	outputPath, _ := params["output_path"].(string)
