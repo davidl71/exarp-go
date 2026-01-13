@@ -30,7 +30,7 @@ sys.path.insert(0, str(PROJECT_ROOT))
 BRIDGE_ROOT = Path(__file__).parent
 sys.path.insert(0, str(BRIDGE_ROOT))
 
-def execute_tool(tool_name: str, args_json: str, use_protobuf: bool = False, protobuf_data: bytes = None):
+def execute_tool(tool_name: str, args_json: str, use_protobuf: bool = False, protobuf_data: bytes = None, request_id: str = None):
     """Execute a Python tool with given arguments.
     
     Args:
@@ -38,7 +38,15 @@ def execute_tool(tool_name: str, args_json: str, use_protobuf: bool = False, pro
         args_json: JSON string with arguments (for JSON mode)
         use_protobuf: Whether to use protobuf format
         protobuf_data: Protobuf binary data (if use_protobuf is True)
+        request_id: Request ID for tracking (from protobuf request)
+    
+    Returns:
+        If use_protobuf and HAVE_PROTOBUF: Returns protobuf ToolResponse binary
+        Otherwise: Returns JSON string
     """
+    import time
+    start_time = time.time()
+    
     try:
         # Parse arguments - try protobuf first if available, fall back to JSON
         args = {}
@@ -48,9 +56,10 @@ def execute_tool(tool_name: str, args_json: str, use_protobuf: bool = False, pro
                 request = bridge_pb2.ToolRequest()
                 request.ParseFromString(protobuf_data)
                 
-                # Extract tool name and arguments from protobuf
+                # Extract tool name, arguments, and request ID from protobuf
                 tool_name = request.tool_name
                 args_json = request.arguments_json
+                request_id = request.request_id if request.request_id else None
                 # Parse JSON arguments from protobuf message
                 args = json.loads(args_json) if args_json else {}
             except Exception as e:
@@ -355,13 +364,36 @@ def execute_tool(tool_name: str, args_json: str, use_protobuf: bool = False, pro
         # Note: demonstrate_elicit and interactive_task_create removed
         # These tools required FastMCP Context (not available in stdio mode)
         else:
+            execution_time_ms = int((time.time() - start_time) * 1000)
             error_result = {
                 "success": False,
                 "error": f"Unknown tool: {tool_name}",
                 "tool": tool_name
             }
+            
+            # If protobuf mode, return protobuf ToolResponse
+            if use_protobuf and HAVE_PROTOBUF:
+                try:
+                    response = bridge_pb2.ToolResponse()
+                    response.success = False
+                    response.error = error_result["error"]
+                    response.execution_time_ms = execution_time_ms
+                    response.exit_code = 1
+                    if request_id:
+                        response.request_id = request_id
+                    sys.stdout.buffer.write(response.SerializeToString())
+                    return 1
+                except Exception:
+                    # Fall back to JSON on error
+                    print(json.dumps(error_result, indent=2))
+                    return 1
+            
+            # Return JSON (backward compatible)
             print(json.dumps(error_result, indent=2))
             return 1
+        
+        # Calculate execution time
+        execution_time_ms = int((time.time() - start_time) * 1000)
         
         # Handle result - tools may return dict or JSON string
         if isinstance(result, dict):
@@ -371,12 +403,53 @@ def execute_tool(tool_name: str, args_json: str, use_protobuf: bool = False, pro
         else:
             result_json = json.dumps({"result": str(result)}, indent=2)
         
-        # If protobuf mode, could return protobuf ToolResponse
-        # For now, return JSON (backward compatible)
-        # Future: Return protobuf ToolResponse when fully migrated
+        # If protobuf mode and protobuf is available, return protobuf ToolResponse
+        if use_protobuf and HAVE_PROTOBUF:
+            try:
+                # Create protobuf ToolResponse
+                response = bridge_pb2.ToolResponse()
+                response.success = True
+                response.result = result_json
+                response.execution_time_ms = execution_time_ms
+                response.exit_code = 0
+                if request_id:
+                    response.request_id = request_id
+                
+                # Serialize to binary and return
+                return response.SerializeToString()
+            except Exception as e:
+                # If protobuf serialization fails, fall back to JSON
+                # Include error in JSON response
+                error_result = {
+                    "success": False,
+                    "error": f"Failed to serialize protobuf response: {str(e)}",
+                    "result": result_json
+                }
+                return json.dumps(error_result, indent=2)
+        
+        # Return JSON (backward compatible)
         return result_json
         
     except Exception as e:
+        # Calculate execution time even on error
+        execution_time_ms = int((time.time() - start_time) * 1000)
+        
+        # If protobuf mode, return protobuf ToolResponse
+        if use_protobuf and HAVE_PROTOBUF:
+            try:
+                response = bridge_pb2.ToolResponse()
+                response.success = False
+                response.error = str(e)
+                response.execution_time_ms = execution_time_ms
+                response.exit_code = 1
+                if request_id:
+                    response.request_id = request_id
+                sys.stdout.buffer.write(response.SerializeToString())
+                return 1
+            except Exception:
+                # Fall back to JSON if protobuf fails
+                pass
+        
         error_result = {
             "success": False,
             "error": str(e),
@@ -409,10 +482,26 @@ if __name__ == "__main__":
         # JSON mode: get JSON string from command line
         args_json = sys.argv[2] if len(sys.argv) > 2 else "{}"
     
-    # Execute tool
-    result = execute_tool(tool_name, args_json if not use_protobuf else "", use_protobuf, protobuf_data)
+    # Extract request_id from protobuf request if available
+    request_id = None
+    if use_protobuf and HAVE_PROTOBUF and protobuf_data:
+        try:
+            request = bridge_pb2.ToolRequest()
+            request.ParseFromString(protobuf_data)
+            request_id = request.request_id if request.request_id else None
+        except Exception:
+            # If parsing fails, continue without request_id
+            pass
     
-    # Return result (execute_tool returns JSON string or exit code)
+    # Execute tool
+    result = execute_tool(tool_name, args_json if not use_protobuf else "", use_protobuf, protobuf_data, request_id)
+    
+    # If protobuf mode and result is bytes (protobuf binary), write to stdout.buffer
+    if use_protobuf and HAVE_PROTOBUF and isinstance(result, bytes):
+        sys.stdout.buffer.write(result)
+        sys.exit(0)
+    
+    # Otherwise, result is JSON string or exit code
     if isinstance(result, str):
         print(result)
         sys.exit(0)
