@@ -151,3 +151,56 @@ func DeserializeMemoryFromProtobuf(data []byte) (*Memory, error) {
 	}
 	return ProtoToMemory(pbMemory)
 }
+
+// ParseContextRequest parses a context tool request (protobuf or JSON)
+// Returns protobuf request if protobuf format, or nil with JSON params map
+func ParseContextRequest(args json.RawMessage) (*proto.ContextRequest, map[string]interface{}, error) {
+	var req proto.ContextRequest
+
+	// Try protobuf binary first
+	if err := protobuf.Unmarshal(args, &req); err == nil {
+		// Successfully parsed as protobuf
+		return &req, nil, nil
+	}
+
+	// Fall back to JSON
+	var params map[string]interface{}
+	if err := json.Unmarshal(args, &params); err != nil {
+		return nil, nil, fmt.Errorf("failed to parse arguments: %w", err)
+	}
+
+	return nil, params, nil
+}
+
+// ContextRequestToParams converts a protobuf ContextRequest to params map for compatibility
+func ContextRequestToParams(req *proto.ContextRequest) map[string]interface{} {
+	params := make(map[string]interface{})
+
+	if req.Action != "" {
+		params["action"] = req.Action
+	}
+	if req.Data != "" {
+		params["data"] = req.Data
+	}
+	if req.Level != "" {
+		params["level"] = req.Level
+	}
+	if req.MaxTokens > 0 {
+		params["max_tokens"] = int(req.MaxTokens)
+	}
+	params["include_raw"] = req.IncludeRaw
+	if req.ToolType != "" {
+		params["tool_type"] = req.ToolType
+	}
+	// For batch action
+	if req.Items != "" {
+		params["items"] = req.Items
+	}
+	params["combine"] = req.Combine
+	// For budget action
+	if req.BudgetTokens > 0 {
+		params["budget_tokens"] = int(req.BudgetTokens)
+	}
+
+	return params
+}

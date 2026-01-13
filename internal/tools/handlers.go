@@ -754,9 +754,28 @@ func handleMlx(ctx context.Context, args json.RawMessage) ([]framework.TextConte
 // handleContext handles the context tool (unified wrapper)
 // Uses native Go with Apple Foundation Models for summarization when available
 func handleContext(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
-	var params map[string]interface{}
-	if err := json.Unmarshal(args, &params); err != nil {
+	// Try protobuf first, fall back to JSON for backward compatibility
+	req, params, err := ParseContextRequest(args)
+	if err != nil {
 		return nil, fmt.Errorf("failed to parse arguments: %w", err)
+	}
+
+	// Convert protobuf request to params map if needed (for compatibility with existing functions)
+	if req != nil {
+		params = ContextRequestToParams(req)
+		// Set defaults for protobuf request
+		if req.Action == "" {
+			params["action"] = "summarize"
+		}
+		if req.Level == "" {
+			params["level"] = "brief"
+		}
+		if req.MaxTokens == 0 {
+			params["max_tokens"] = 512
+		}
+		if !req.Combine {
+			params["combine"] = true // Default is true
+		}
 	}
 
 	// Get action (default: "summarize")
