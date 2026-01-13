@@ -1,10 +1,8 @@
 package resources
 
 import (
-	"context"
 	"fmt"
 
-	"github.com/davidl71/exarp-go/internal/bridge"
 	"github.com/davidl71/exarp-go/internal/framework"
 )
 
@@ -250,22 +248,7 @@ func RegisterAllResources(server framework.MCPServer) error {
 // Note: handleScorecard and memory handlers are implemented in scorecard.go and memories.go
 // They are in the same package, so they're automatically available here
 
-func handleAllPrompts(ctx context.Context, uri string) ([]byte, string, error) {
-	return bridge.ExecutePythonResource(ctx, uri)
-}
-
-func handlePromptsByMode(ctx context.Context, uri string) ([]byte, string, error) {
-	return bridge.ExecutePythonResource(ctx, uri)
-}
-
-func handlePromptsByPersona(ctx context.Context, uri string) ([]byte, string, error) {
-	return bridge.ExecutePythonResource(ctx, uri)
-}
-
-func handlePromptsByCategory(ctx context.Context, uri string) ([]byte, string, error) {
-	return bridge.ExecutePythonResource(ctx, uri)
-}
-
-func handleSessionMode(ctx context.Context, uri string) ([]byte, string, error) {
-	return bridge.ExecutePythonResource(ctx, uri)
-}
+// Resource handlers for prompts and session mode
+// Note: handleAllPrompts, handlePromptsByMode, handlePromptsByPersona, handlePromptsByCategory
+// are implemented in prompts.go (native Go using prompts.GetPromptTemplate)
+// handleSessionMode is implemented in session.go (native Go using infer_session_mode)

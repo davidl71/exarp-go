@@ -685,7 +685,7 @@ func handleInferSessionMode(ctx context.Context, args json.RawMessage) ([]framew
 	}
 
 	// Use native Go implementation
-	return handleInferSessionModeNative(ctx, params)
+	return HandleInferSessionModeNative(ctx, params)
 }
 
 // handleOllama handles the ollama tool
