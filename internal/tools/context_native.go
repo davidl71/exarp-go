@@ -12,6 +12,7 @@ import (
 	fm "github.com/blacktop/go-foundationmodels"
 	"github.com/davidl71/exarp-go/internal/framework"
 	"github.com/davidl71/exarp-go/internal/platform"
+	"github.com/davidl71/mcp-go-core/pkg/mcp/response"
 )
 
 // summarizeWithAppleFM summarizes text using Apple Foundation Models
@@ -152,12 +153,5 @@ func handleContextSummarizeNative(ctx context.Context, params map[string]interfa
 		result["raw_data"] = rawData
 	}
 
-	resultJSON, err := json.MarshalIndent(result, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("failed to marshal result: %w", err)
-	}
-
-	return []framework.TextContent{
-		{Type: "text", Text: string(resultJSON)},
-	}, nil
+	return response.FormatResult(result, "")
 }

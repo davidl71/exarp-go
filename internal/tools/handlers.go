@@ -10,6 +10,7 @@ import (
 	"github.com/davidl71/exarp-go/internal/framework"
 	"github.com/davidl71/exarp-go/internal/platform"
 	"github.com/davidl71/exarp-go/internal/security"
+	"github.com/davidl71/mcp-go-core/pkg/mcp/request"
 )
 
 // handleAnalyzeAlignment handles the analyze_alignment tool
@@ -25,9 +26,9 @@ func handleAnalyzeAlignment(ctx context.Context, args json.RawMessage) ([]framew
 	// Convert protobuf request to params map if needed
 	if req != nil {
 		params = AnalyzeAlignmentRequestToParams(req)
-		if req.Action == "" {
-			params["action"] = "todo2"
-		}
+		request.ApplyDefaults(params, map[string]interface{}{
+			"action": "todo2",
+		})
 	}
 
 	// Try native Go implementation first
@@ -59,9 +60,9 @@ func handleGenerateConfig(ctx context.Context, args json.RawMessage) ([]framewor
 	// Convert protobuf request to params map if needed
 	if req != nil {
 		params = GenerateConfigRequestToParams(req)
-		if req.Action == "" {
-			params["action"] = "rules"
-		}
+		request.ApplyDefaults(params, map[string]interface{}{
+			"action": "rules",
+		})
 	}
 
 	// Convert params to JSON for native handler (it expects json.RawMessage)
@@ -84,9 +85,9 @@ func handleHealth(ctx context.Context, args json.RawMessage) ([]framework.TextCo
 	// Convert protobuf request to params map if needed
 	if req != nil {
 		params = HealthRequestToParams(req)
-		if req.Action == "" {
-			params["action"] = "server"
-		}
+		request.ApplyDefaults(params, map[string]interface{}{
+			"action": "server",
+		})
 	}
 
 	// Use native Go implementation - all actions are native
@@ -105,9 +106,9 @@ func handleSetupHooks(ctx context.Context, args json.RawMessage) ([]framework.Te
 	// Convert protobuf request to params map if needed
 	if req != nil {
 		params = SetupHooksRequestToParams(req)
-		if req.Action == "" {
-			params["action"] = "git"
-		}
+		request.ApplyDefaults(params, map[string]interface{}{
+			"action": "git",
+		})
 	}
 
 	// Try native Go implementation first
@@ -221,12 +222,10 @@ func handleMemoryMaint(ctx context.Context, args json.RawMessage) ([]framework.T
 	// Convert protobuf request to params map if needed
 	if req != nil {
 		params = MemoryMaintRequestToParams(req)
-		if req.Action == "" {
-			params["action"] = "health"
-		}
-		if req.MergeStrategy == "" {
-			params["merge_strategy"] = "newest"
-		}
+		request.ApplyDefaults(params, map[string]interface{}{
+			"action":        "health",
+			"merge_strategy": "newest",
+		})
 		if req.Scope == "" {
 			params["scope"] = "week"
 		}
@@ -272,12 +271,10 @@ func handleReport(ctx context.Context, args json.RawMessage) ([]framework.TextCo
 	if req != nil {
 		params = ReportRequestToParams(req)
 		// Set defaults for protobuf request
-		if req.Action == "" {
-			params["action"] = "overview"
-		}
-		if req.OutputFormat == "" {
-			params["output_format"] = "text"
-		}
+		request.ApplyDefaults(params, map[string]interface{}{
+			"action":        "overview",
+			"output_format": "text",
+		})
 	}
 
 	action, _ := params["action"].(string)
@@ -400,15 +397,11 @@ func handleSecurity(ctx context.Context, args json.RawMessage) ([]framework.Text
 	// Convert protobuf request to params map if needed
 	if req != nil {
 		params = SecurityRequestToParams(req)
-		if req.Action == "" {
-			params["action"] = "report"
-		}
-		if req.Repo == "" {
-			params["repo"] = "davidl71/exarp-go"
-		}
-		if req.State == "" {
-			params["state"] = "open"
-		}
+		request.ApplyDefaults(params, map[string]interface{}{
+			"action": "report",
+			"repo":   "davidl71/exarp-go",
+			"state":  "open",
+		})
 	}
 
 	action, _ := params["action"].(string)
@@ -467,9 +460,9 @@ func handleTaskAnalysis(ctx context.Context, args json.RawMessage) ([]framework.
 	// Convert protobuf request to params map if needed
 	if req != nil {
 		params = TaskAnalysisRequestToParams(req)
-		if req.OutputFormat == "" {
-			params["output_format"] = "text"
-		}
+		request.ApplyDefaults(params, map[string]interface{}{
+			"output_format": "text",
+		})
 	}
 
 	// Try native Go implementation first for all actions
@@ -504,12 +497,10 @@ func handleTaskDiscovery(ctx context.Context, args json.RawMessage) ([]framework
 	// Convert protobuf request to params map if needed
 	if req != nil {
 		params = TaskDiscoveryRequestToParams(req)
-		if req.Action == "" {
-			params["action"] = "all"
-		}
-		if req.JsonPattern == "" {
-			params["json_pattern"] = "**/.todo2/state.todo2.json"
-		}
+		request.ApplyDefaults(params, map[string]interface{}{
+			"action":       "all",
+			"json_pattern": "**/.todo2/state.todo2.json",
+		})
 	}
 
 	// Try native Go implementation first
@@ -602,15 +593,11 @@ func handleTesting(ctx context.Context, args json.RawMessage) ([]framework.TextC
 	// Convert protobuf request to params map if needed
 	if req != nil {
 		params = TestingRequestToParams(req)
-		if req.Action == "" {
-			params["action"] = "run"
-		}
-		if req.TestFramework == "" {
-			params["test_framework"] = "auto"
-		}
-		if req.Format == "" {
-			params["format"] = "html"
-		}
+		request.ApplyDefaults(params, map[string]interface{}{
+			"action":        "run",
+			"test_framework": "auto",
+			"format":        "html",
+		})
 	}
 
 	action, _ := params["action"].(string)
@@ -695,9 +682,9 @@ func handleToolCatalog(ctx context.Context, args json.RawMessage) ([]framework.T
 	// Convert protobuf request to params map if needed
 	if req != nil {
 		params = ToolCatalogRequestToParams(req)
-		if req.Action == "" {
-			params["action"] = "help"
-		}
+		request.ApplyDefaults(params, map[string]interface{}{
+			"action": "help",
+		})
 	}
 
 	// Use native Go implementation
@@ -716,9 +703,9 @@ func handleWorkflowMode(ctx context.Context, args json.RawMessage) ([]framework.
 	// Convert protobuf request to params map if needed
 	if req != nil {
 		params = WorkflowModeRequestToParams(req)
-		if req.Action == "" {
-			params["action"] = "focus"
-		}
+		request.ApplyDefaults(params, map[string]interface{}{
+			"action": "focus",
+		})
 	}
 
 	// Use native Go implementation
@@ -736,12 +723,10 @@ func handleLint(ctx context.Context, args json.RawMessage) ([]framework.TextCont
 	// Convert protobuf request to params map if needed
 	if req != nil {
 		params = LintRequestToParams(req)
-		if req.Action == "" {
-			params["action"] = "run"
-		}
-		if req.Linter == "" {
-			params["linter"] = "golangci-lint"
-		}
+		request.ApplyDefaults(params, map[string]interface{}{
+			"action":  "run",
+			"linter":  "golangci-lint",
+		})
 	}
 
 	// Extract parameters
@@ -825,12 +810,10 @@ func handleEstimation(ctx context.Context, args json.RawMessage) ([]framework.Te
 	// Convert protobuf request to params map if needed
 	if req != nil {
 		params = EstimationRequestToParams(req)
-		if req.Action == "" {
-			params["action"] = "estimate"
-		}
-		if req.Priority == "" {
-			params["priority"] = "medium"
-		}
+		request.ApplyDefaults(params, map[string]interface{}{
+			"action":   "estimate",
+			"priority": "medium",
+		})
 	}
 
 	// Try native Go implementation first
@@ -921,12 +904,10 @@ func handleSession(ctx context.Context, args json.RawMessage) ([]framework.TextC
 	// Convert protobuf request to params map if needed
 	if req != nil {
 		params = SessionRequestToParams(req)
-		if req.Action == "" {
-			params["action"] = "prime"
-		}
-		if req.Direction == "" {
-			params["direction"] = "both"
-		}
+		request.ApplyDefaults(params, map[string]interface{}{
+			"action":    "prime",
+			"direction": "both",
+		})
 	}
 
 	// Try native Go implementation for all actions
@@ -1044,15 +1025,11 @@ func handleContext(ctx context.Context, args json.RawMessage) ([]framework.TextC
 	if req != nil {
 		params = ContextRequestToParams(req)
 		// Set defaults for protobuf request
-		if req.Action == "" {
-			params["action"] = "summarize"
-		}
-		if req.Level == "" {
-			params["level"] = "brief"
-		}
-		if req.MaxTokens == 0 {
-			params["max_tokens"] = 512
-		}
+		request.ApplyDefaults(params, map[string]interface{}{
+			"action":     "summarize",
+			"level":      "brief",
+			"max_tokens": 512,
+		})
 		if !req.Combine {
 			params["combine"] = true // Default is true
 		}
@@ -1127,15 +1104,11 @@ func handlePromptTracking(ctx context.Context, args json.RawMessage) ([]framewor
 	// Convert protobuf request to params map if needed
 	if req != nil {
 		params = PromptTrackingRequestToParams(req)
-		if req.Action == "" {
-			params["action"] = "analyze"
-		}
-		if req.Iteration == 0 {
-			params["iteration"] = 1
-		}
-		if req.Days == 0 {
-			params["days"] = 7
-		}
+		request.ApplyDefaults(params, map[string]interface{}{
+			"action":    "analyze",
+			"iteration": 1,
+			"days":      7,
+		})
 	}
 
 	// Use native Go implementation
@@ -1154,12 +1127,10 @@ func handleRecommend(ctx context.Context, args json.RawMessage) ([]framework.Tex
 	// Convert protobuf request to params map if needed
 	if req != nil {
 		params = RecommendRequestToParams(req)
-		if req.Action == "" {
-			params["action"] = "model"
-		}
-		if req.OptimizeFor == "" {
-			params["optimize_for"] = "quality"
-		}
+		request.ApplyDefaults(params, map[string]interface{}{
+			"action":       "model",
+			"optimize_for": "quality",
+		})
 	}
 
 	// Get action (default: "model")
