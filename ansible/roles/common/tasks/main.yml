@@ -31,6 +31,11 @@
       - wget
       - git
       - build-essential
+      - gcc
+      - g++
+      - make
+      - pkg-config
+      - libc6-dev
     state: present
   when: ansible_os_family == "Debian"
 
@@ -43,6 +48,8 @@
       - gcc
       - gcc-c++
       - make
+      - pkgconfig
+      - glibc-devel
     state: present
   when: ansible_os_family == "RedHat"
 
@@ -68,6 +75,37 @@
   changed_when: xcode_tools_result.rc == 0
   when: ansible_system == "Darwin"
 
+- name: Verify C compiler availability (macOS)
+  ansible.builtin.shell: |
+    command -v gcc >/dev/null 2>&1 || command -v clang >/dev/null 2>&1 || command -v cc >/dev/null 2>&1
+  register: c_compiler_check
+  changed_when: false
+  failed_when: false
+  when: ansible_system == "Darwin"
+
+- name: Verify Swift compiler availability (macOS)
+  ansible.builtin.command: which swiftc
+  register: swift_compiler_check
+  changed_when: false
+  failed_when: false
+  when: ansible_system == "Darwin"
+
+- name: Verify xcrun availability (macOS)
+  ansible.builtin.command: which xcrun
+  register: xcrun_check
+  changed_when: false
+  failed_when: false
+  when: ansible_system == "Darwin"
+
+- name: Display build dependencies status (macOS)
+  ansible.builtin.debug:
+    msg:
+      - "Build Dependencies Status:"
+      - "  C compiler (gcc/clang/cc): {{ '✅ Available' if c_compiler_check.rc == 0 else '❌ Not found' }}"
+      - "  Swift compiler (swiftc): {{ '✅ Available' if swift_compiler_check.rc == 0 else '❌ Not found (required for Apple FM)' }}"
+      - "  Xcode tools (xcrun): {{ '✅ Available' if xcrun_check.rc == 0 else '❌ Not found (required for Apple FM)' }}"
+  when: ansible_system == "Darwin"
+
 - name: Get current user
   ansible.builtin.command: whoami
   register: current_user
@@ -89,7 +127,6 @@
     path: "{{ item }}"
     state: directory
     owner: "{{ project_user }}"
-    group: "{{ project_user }}"
     mode: '0755'
   loop:
     - "{{ project_path }}"
@@ -187,3 +224,81 @@
       GitHub CLI (gh):
       {{ gh_verify.stdout if (install_gh | default(false)) and gh_verify.rc == 0
       else 'Not installed (set install_gh: true to install)' }}
+
+# Runtime dependencies
+
+- name: Install SQLite runtime (Debian/Ubuntu)
+  ansible.builtin.apt:
+    name:
+      - sqlite3
+      - libsqlite3-dev
+    state: present
+  when: ansible_os_family == "Debian"
+
+- name: Install SQLite runtime (RedHat/CentOS)
+  ansible.builtin.yum:
+    name:
+      - sqlite
+      - sqlite-devel
+    state: present
+  when: ansible_os_family == "RedHat"
+
+# ODBC dependencies (optional, for ODBC driver support)
+# Required for github.com/alexbrainman/odbc when using CGO
+
+- name: Install ODBC runtime (Debian/Ubuntu)
+  ansible.builtin.apt:
+    name:
+      - unixodbc
+      - unixodbc-dev
+    state: present
+  when: ansible_os_family == "Debian"
+
+- name: Install ODBC runtime (RedHat/CentOS)
+  ansible.builtin.yum:
+    name:
+      - unixODBC
+      - unixODBC-devel
+    state: present
+  when: ansible_os_family == "RedHat"
+
+- name: Install ODBC runtime (macOS)
+  community.general.homebrew:
+    name: unixodbc
+    state: present
+  when: ansible_system == "Darwin"
+
+- name: Verify ODBC installation
+  ansible.builtin.command: odbcinst --version
+  register: odbc_version
+  changed_when: false
+  failed_when: false
+  ignore_errors: true
+
+- name: Verify SQLite installation
+  ansible.builtin.command: sqlite3 --version
+  register: sqlite_version
+  changed_when: false
+  failed_when: false
+  ignore_errors: true
+
+- name: Verify C compiler availability (Linux)
+  ansible.builtin.command: which gcc || which clang || which cc
+  register: c_compiler_check_linux
+  changed_when: false
+  failed_when: false
+  when: ansible_system == "Linux"
+
+- name: Display build dependencies status (Linux)
+  ansible.builtin.debug:
+    msg:
+      - "Build Dependencies Status:"
+      - "  C compiler (gcc/clang/cc): {{ '✅ Available' if c_compiler_check_linux.rc == 0 else '❌ Not found (required for CGO)' }}"
+  when: ansible_system == "Linux"
+
+- name: Display runtime dependencies status
+  ansible.builtin.debug:
+    msg:
+      - "Runtime Dependencies Status:"
+      - "  SQLite: {{ sqlite_version.stdout if sqlite_version.rc == 0 else '⚠️  Not found (modernc.org/sqlite is pure Go, but system SQLite is recommended)' }}"
+      - "  ODBC: {{ odbc_version.stdout if odbc_version.rc == 0 else '⚠️  Not found (optional - required for ODBC driver with CGO)' }}"
