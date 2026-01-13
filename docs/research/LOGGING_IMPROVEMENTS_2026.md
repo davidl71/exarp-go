@@ -15,7 +15,20 @@
 - ✅ Context-aware logging (request IDs, operation names)
 - ✅ Performance logging (slow operation detection)
 - ✅ Stderr output (MCP protocol compatible)
-- ✅ Git hook suppression (GIT_HOOK=1 sets level to WARN)
+- ✅ Git hook suppression (GIT_HOOK=1 sets level to WARN via factory)
+- ⚠️ Custom implementation (not standard library)
+- ⚠️ Uses MCP_DEBUG env var (not GIT_HOOK directly)
+- ⚠️ No JSON output support
+- ✅ Used in `internal/factory/server.go` for MCP framework operations
+
+**exarp-go Internal Logger** (`internal/logging/logger.go` - NEW):
+- ✅ Uses slog (Go 1.21+ standard library)
+- ✅ JSON output support (LOG_FORMAT=json)
+- ✅ GIT_HOOK suppression
+- ✅ Context-aware logging
+- ✅ Performance tracking
+- ⚠️ Duplicate of mcp-go-core functionality
+- ⚠️ Used only for CLI operations (not MCP framework)
 
 **Standard Go Log Package Usage**:
 - ⚠️ 26 instances of `log.Printf()` in `internal/cli/`
