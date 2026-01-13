@@ -78,8 +78,8 @@ func CreateTask(ctx context.Context, task *Todo2Task) error {
 		_, err = tx.ExecContext(txCtx, `
 			INSERT INTO tasks (
 				id, name, content, long_description, status, priority, completed,
-				created, last_modified, metadata, metadata_protobuf, metadata_format, created_at, updated_at
-			) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, strftime('%s', 'now'), strftime('%s', 'now'))
+				created, last_modified, metadata, metadata_protobuf, metadata_format, version, created_at, updated_at
+			) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, strftime('%s', 'now'), strftime('%s', 'now'))
 		`,
 			task.ID,
 			"", // name - TODO: add to Todo2Task struct if needed
@@ -94,6 +94,26 @@ func CreateTask(ctx context.Context, task *Todo2Task) error {
 			metadataProtobuf, // Protobuf binary data (nil if serialization failed)
 			metadataFormat,    // Format indicator
 		)
+		// If protobuf columns don't exist, fall back to old schema
+		if err != nil && strings.Contains(err.Error(), "no such column") {
+			_, err = tx.ExecContext(txCtx, `
+				INSERT INTO tasks (
+					id, name, content, long_description, status, priority, completed,
+					created, last_modified, metadata, version, created_at, updated_at
+				) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, strftime('%s', 'now'), strftime('%s', 'now'))
+			`,
+				task.ID,
+				"", // name - TODO: add to Todo2Task struct if needed
+				task.Content,
+				task.LongDescription,
+				task.Status,
+				task.Priority,
+				completedInt,
+				now, // created
+				now, // last_modified
+				metadataJSON, // JSON only
+			)
+		}
 		if err != nil {
 			return fmt.Errorf("failed to insert task: %w", err)
 		}

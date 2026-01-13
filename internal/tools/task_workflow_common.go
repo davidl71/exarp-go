@@ -948,18 +948,22 @@ func handleTaskWorkflowCreate(ctx context.Context, params map[string]interface{}
 		longDescription = name // Use name as fallback
 	}
 
-	// Extract optional parameters
-	status := "Todo"
+	// Extract optional parameters - use config defaults
+	status := config.DefaultTaskStatus()
 	if s, ok := params["status"].(string); ok && s != "" {
 		status = normalizeStatus(s)
 	}
 
-	priority := "medium"
+	priority := config.DefaultTaskPriority()
 	if p, ok := params["priority"].(string); ok && p != "" {
 		priority = normalizePriority(p)
 	}
 
-	tags := []string{}
+	// Use config default tags, allow override from params
+	tags := config.DefaultTaskTags()
+	if len(tags) == 0 {
+		tags = []string{} // Ensure it's a slice, not nil
+	}
 	if t, ok := params["tags"].([]interface{}); ok {
 		for _, tag := range t {
 			if tagStr, ok := tag.(string); ok {

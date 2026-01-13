@@ -175,13 +175,32 @@ func applyMigration(migration Migration) error {
 	}()
 
 	// Execute migration SQL
+	// For migrations 002 and 003, we handle "duplicate column" errors gracefully
+	// (columns may already exist if added to initial schema or previously applied)
 	if _, err := tx.Exec(migration.SQL); err != nil {
-		return fmt.Errorf("failed to execute migration SQL: %w", err)
+		// Check if error is "duplicate column" (SQLite error code 1 or contains "duplicate column")
+		errStr := strings.ToLower(err.Error())
+		// Match various forms of duplicate column errors:
+		// - "duplicate column" (standard)
+		// - "already exists" (alternative)
+		// - "sql logic error" with "duplicate" (SQLite format: "SQL logic error: duplicate column name: ...")
+		isDuplicateColumn := strings.Contains(errStr, "duplicate column") ||
+			strings.Contains(errStr, "duplicate column name") ||
+			strings.Contains(errStr, "already exists") ||
+			(strings.Contains(errStr, "sql logic error") && strings.Contains(errStr, "duplicate"))
+		
+		if (migration.Version == 2 || migration.Version == 3) && isDuplicateColumn {
+			// Column already exists - this is OK for migrations 002 and 003
+			// (columns may have been added to initial schema or previously applied)
+			// Continue with migration record insertion (error is ignored)
+		} else {
+			return fmt.Errorf("failed to execute migration SQL: %w", err)
+		}
 	}
 
-	// Record migration
+	// Record migration (ignore if already exists - idempotent)
 	_, err = tx.Exec(
-		"INSERT INTO schema_migrations (version, description) VALUES (?, ?)",
+		"INSERT OR IGNORE INTO schema_migrations (version, description) VALUES (?, ?)",
 		migration.Version,
 		migration.Description,
 	)

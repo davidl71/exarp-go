@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/davidl71/exarp-go/internal/config"
 	"gopkg.in/yaml.v3"
@@ -168,12 +169,166 @@ func handleConfigSet(args []string) error {
 	key := parts[0]
 	value := parts[1]
 
-	fmt.Printf("⚠️  Config set command is not yet fully implemented\n")
-	fmt.Printf("   Key: %s\n", key)
-	fmt.Printf("   Value: %s\n", value)
-	fmt.Printf("   For now, edit %s/.exarp/config.yaml directly\n", projectRoot)
-	fmt.Printf("   Then run 'exarp-go config validate' to verify\n")
+	// Load current config
+	cfg, err := config.LoadConfig(projectRoot)
+	if err != nil {
+		return fmt.Errorf("failed to load config: %w", err)
+	}
+
+	// Set the value based on key path
+	if err := setConfigValue(cfg, key, value); err != nil {
+		return fmt.Errorf("failed to set config value: %w", err)
+	}
+
+	// Save back to YAML
+	configPath := filepath.Join(projectRoot, ".exarp", "config.yaml")
+	data, err := yaml.Marshal(cfg)
+	if err != nil {
+		return fmt.Errorf("failed to marshal config: %w", err)
+	}
+
+	if err := os.WriteFile(configPath, data, 0644); err != nil {
+		return fmt.Errorf("failed to write config file: %w", err)
+	}
+
+	fmt.Printf("✅ Set %s = %s\n", key, value)
+	fmt.Printf("   Config saved to: %s\n", configPath)
+	fmt.Printf("   Run 'exarp-go config validate' to verify\n")
 	return nil
+}
+
+// setConfigValue sets a config value by key path (e.g., "timeouts.task_lock_lease")
+func setConfigValue(cfg *config.FullConfig, keyPath, value string) error {
+	keys := strings.Split(keyPath, ".")
+	if len(keys) == 0 {
+		return fmt.Errorf("invalid key path: %s", keyPath)
+	}
+
+	// Handle top-level keys
+	switch keys[0] {
+	case "version":
+		if len(keys) != 1 {
+			return fmt.Errorf("version is a top-level key")
+		}
+		cfg.Version = value
+		return nil
+	case "timeouts":
+		return setTimeoutsValue(&cfg.Timeouts, keys[1:], value)
+	case "thresholds":
+		return setThresholdsValue(&cfg.Thresholds, keys[1:], value)
+	case "tasks":
+		return setTasksValue(&cfg.Tasks, keys[1:], value)
+	default:
+		return fmt.Errorf("unsupported config section: %s (supported: version, timeouts, thresholds, tasks)", keys[0])
+	}
+}
+
+// setTimeoutsValue sets a timeout value
+func setTimeoutsValue(timeouts *config.TimeoutsConfig, keys []string, value string) error {
+	if len(keys) != 1 {
+		return fmt.Errorf("timeout keys must be one level deep (e.g., timeouts.task_lock_lease)")
+	}
+
+	// Parse duration value
+	duration, err := parseDuration(value)
+	if err != nil {
+		return fmt.Errorf("invalid duration value %q: %w (use format like 30m, 1h, 45s)", value, err)
+	}
+
+	switch keys[0] {
+	case "task_lock_lease":
+		timeouts.TaskLockLease = duration
+	case "task_lock_renewal":
+		timeouts.TaskLockRenewal = duration
+	case "stale_lock_threshold":
+		timeouts.StaleLockThreshold = duration
+	case "tool_default":
+		timeouts.ToolDefault = duration
+	case "tool_scorecard":
+		timeouts.ToolScorecard = duration
+	case "tool_linting":
+		timeouts.ToolLinting = duration
+	case "tool_testing":
+		timeouts.ToolTesting = duration
+	case "tool_report":
+		timeouts.ToolReport = duration
+	case "ollama_download":
+		timeouts.OllamaDownload = duration
+	case "ollama_generate":
+		timeouts.OllamaGenerate = duration
+	case "http_client":
+		timeouts.HTTPClient = duration
+	case "database_retry":
+		timeouts.DatabaseRetry = duration
+	case "context_summarize":
+		timeouts.ContextSummarize = duration
+	case "context_budget":
+		timeouts.ContextBudget = duration
+	default:
+		return fmt.Errorf("unknown timeout key: %s", keys[0])
+	}
+
+	return nil
+}
+
+// setThresholdsValue sets a threshold value
+func setThresholdsValue(thresholds *config.ThresholdsConfig, keys []string, value string) error {
+	if len(keys) != 1 {
+		return fmt.Errorf("threshold keys must be one level deep (e.g., thresholds.similarity_threshold)")
+	}
+
+	// Parse float value
+	floatVal, err := parseFloat(value)
+	if err != nil {
+		return fmt.Errorf("invalid float value %q: %w", value, err)
+	}
+
+	switch keys[0] {
+	case "similarity_threshold":
+		thresholds.SimilarityThreshold = floatVal
+	case "min_coverage":
+		thresholds.MinCoverage = int(floatVal)
+	case "min_task_confidence":
+		thresholds.MinTaskConfidence = floatVal
+	case "min_test_confidence":
+		thresholds.MinTestConfidence = floatVal
+	case "min_description_length":
+		thresholds.MinDescriptionLength = int(floatVal)
+	default:
+		return fmt.Errorf("unknown threshold key: %s", keys[0])
+	}
+
+	return nil
+}
+
+// setTasksValue sets a task config value
+func setTasksValue(tasks *config.TasksConfig, keys []string, value string) error {
+	if len(keys) != 1 {
+		return fmt.Errorf("task keys must be one level deep (e.g., tasks.default_status)")
+	}
+
+	switch keys[0] {
+	case "default_status":
+		tasks.DefaultStatus = value
+	case "default_priority":
+		tasks.DefaultPriority = value
+	default:
+		return fmt.Errorf("unknown task key: %s (supported: default_status, default_priority)", keys[0])
+	}
+
+	return nil
+}
+
+// parseDuration parses a duration string (e.g., "30m", "1h", "45s")
+func parseDuration(s string) (time.Duration, error) {
+	return time.ParseDuration(s)
+}
+
+// parseFloat parses a float string
+func parseFloat(s string) (float64, error) {
+	var f float64
+	_, err := fmt.Sscanf(s, "%f", &f)
+	return f, err
 }
 
 // handleConfigExport exports config to different formats
@@ -341,7 +496,7 @@ Subcommands:
   init              Generate default .exarp/config.yaml file
   validate          Validate the current config file
   show [format]     Display current configuration (yaml or json)
-  set <key>=<value> Set a config value (not yet fully implemented)
+  set <key>=<value> Set a config value
   export [format]   Export config to format (yaml, json, protobuf)
   convert <from> <to> Convert config between formats (yaml ↔ protobuf)
   help              Show this help message

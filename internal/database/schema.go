@@ -1,7 +1,8 @@
 package database
 
 // SchemaVersion represents the current schema version
-const SchemaVersion = 1
+// This should match the highest migration version number
+const SchemaVersion = 3
 
 // Table names
 const (
@@ -31,6 +32,7 @@ const (
 	ColTaskCompletedAt     = "completed_at"
 	ColTaskProjectID       = "project_id"
 	ColTaskMetadata        = "metadata"
+	ColTaskVersion         = "version"
 	ColTaskCreatedAt       = "created_at"
 	ColTaskUpdatedAt       = "updated_at"
 )
