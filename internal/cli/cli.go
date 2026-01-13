@@ -8,6 +8,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/davidl71/exarp-go/internal/config"
 	"github.com/davidl71/exarp-go/internal/database"
@@ -261,25 +262,36 @@ func listAllTools(server framework.MCPServer) error {
 // executeTool executes a tool with the given arguments
 func executeTool(server framework.MCPServer, toolName, argsJSON string) error {
 	ctx := context.Background()
+	
+	// Add operation context for logging
+	ctx = logging.WithOperation(ctx, "executeTool")
+	ctx = logging.WithRequestID(ctx, generateRequestID())
 
 	// Parse JSON arguments
 	var args map[string]interface{}
 	if err := json.Unmarshal([]byte(argsJSON), &args); err != nil {
+		logging.ErrorContext(ctx, "Failed to parse JSON arguments", "error", err, "tool", toolName)
 		return fmt.Errorf("failed to parse JSON arguments: %w", err)
 	}
 
 	// Convert to json.RawMessage for tool handler
 	argsBytes, err := json.Marshal(args)
 	if err != nil {
+		logging.ErrorContext(ctx, "Failed to marshal arguments", "error", err, "tool", toolName)
 		return fmt.Errorf("failed to marshal arguments: %w", err)
 	}
 
 	// Execute tool via server
 	_, _ = fmt.Printf("Executing tool: %s\n", toolName)
 	_, _ = fmt.Printf("Arguments: %s\n\n", argsJSON)
+	
+	// Use context-aware logger to include request_id and operation
+	logger := logging.WithContext(ctx)
+	logger.Info("Executing tool", "tool", toolName)
 
 	result, err := server.CallTool(ctx, toolName, argsBytes)
 	if err != nil {
+		logging.ErrorContext(ctx, "Tool execution failed", "error", err, "tool", toolName)
 		return fmt.Errorf("tool execution failed: %w", err)
 	}
 
@@ -298,6 +310,11 @@ func executeTool(server framework.MCPServer, toolName, argsJSON string) error {
 	}
 
 	return nil
+}
+
+// generateRequestID generates a simple request ID for logging
+func generateRequestID() string {
+	return fmt.Sprintf("req-%d", time.Now().UnixNano())
 }
 
 // findToolByName finds a tool by name in the server's tool list
