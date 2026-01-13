@@ -1,6 +1,7 @@
 package bridge
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -76,30 +77,52 @@ func ExecutePythonTool(ctx context.Context, toolName string, args map[string]int
 		return "", fmt.Errorf("invalid bridge script path: %w", err)
 	}
 
-	// Marshal arguments to JSON
-	// Note: For now, we keep JSON format for Python bridge compatibility
-	// Future: Can migrate to protobuf binary when Python protobuf code is generated
+	// Marshal arguments to JSON (for protobuf message)
 	argsJSON, err := json.Marshal(args)
 	if err != nil {
 		return "", fmt.Errorf("failed to marshal arguments: %w", err)
 	}
 
-	// Create protobuf ToolRequest for future use (currently using JSON for compatibility)
-	// This prepares the infrastructure for full protobuf migration
+	// Create protobuf ToolRequest
 	req := &proto.ToolRequest{
 		ToolName:       toolName,
-		ArgumentsJson:  string(argsJSON), // JSON for now, can be replaced with protobuf later
+		ArgumentsJson:  string(argsJSON), // JSON string for now (can be replaced with protobuf later)
 		ProjectRoot:    workspaceRoot,
 		TimeoutSeconds: 30,
 	}
 
-	// For now, use JSON format (backward compatibility)
-	// TODO: When Python protobuf code is generated, switch to protobuf binary
-	// Marshal protobuf to binary for future use (not used yet)
-	_, _ = protobuf.Marshal(req) // Prepared but not used yet
+	// Marshal protobuf to binary
+	protobufData, err := protobuf.Marshal(req)
+	if err != nil {
+		return "", fmt.Errorf("failed to marshal protobuf request: %w", err)
+	}
 
-	// Create command with JSON format (backward compatible)
-	cmd := exec.CommandContext(ctx, "python3", bridgeScript, toolName, string(argsJSON))
+	// Try protobuf format first (if Python protobuf code is available)
+	// Fall back to JSON format for backward compatibility
+	var stdout, stderr bytes.Buffer
+	
+	// Set timeout
+	ctxWithTimeout, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+	
+	// Try protobuf mode first
+	cmd := exec.CommandContext(ctxWithTimeout, "python3", bridgeScript, toolName, "--protobuf")
+	cmd.Stdin = bytes.NewReader(protobufData)
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+	cmd.Dir = workspaceRoot
+	cmd.Env = append(os.Environ(), fmt.Sprintf("PROJECT_ROOT=%s", workspaceRoot))
+	
+	err = cmd.Run()
+	if err == nil {
+		// Protobuf mode succeeded - output is JSON (Python script returns JSON for now)
+		output := stdout.String()
+		return output, nil
+	}
+	
+	// Protobuf mode failed (likely Python protobuf code not available or error)
+	// Fall back to JSON format (backward compatible)
+	cmd = exec.CommandContext(ctxWithTimeout, "python3", bridgeScript, toolName, string(argsJSON))
 
 	// Pass environment variables to Python subprocess (especially PROJECT_ROOT from Cursor)
 	cmd.Env = os.Environ()

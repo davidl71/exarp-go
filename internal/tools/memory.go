@@ -14,7 +14,6 @@ import (
 	"github.com/davidl71/exarp-go/internal/database"
 	"github.com/davidl71/exarp-go/internal/framework"
 	"github.com/davidl71/exarp-go/internal/security"
-	protobuf "google.golang.org/protobuf/proto"
 )
 
 // Memory represents a stored memory

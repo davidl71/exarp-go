@@ -193,6 +193,11 @@ func handleMemory(ctx context.Context, args json.RawMessage) ([]framework.TextCo
 	}
 
 	// If native fails, fall back to Python bridge (for semantic search or error recovery)
+	// Parse args to params map for Python bridge
+	var params map[string]interface{}
+	if err := json.Unmarshal(args, &params); err != nil {
+		return nil, fmt.Errorf("failed to parse arguments: %w", err)
+	}
 	resultText, err := bridge.ExecutePythonTool(ctx, "memory", params)
 	if err != nil {
 		return nil, fmt.Errorf("memory failed: %w", err)
