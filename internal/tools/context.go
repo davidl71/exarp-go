@@ -23,11 +23,20 @@ type ItemAnalysis struct {
 
 // handleContextBudget handles the context_budget tool
 // Estimates token usage and suggests context reduction strategy
+// Uses protobuf parsing for type-safe argument handling
 func handleContextBudget(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
-	// Parse arguments
-	var params map[string]interface{}
-	if err := json.Unmarshal(args, &params); err != nil {
+	// Try protobuf first, fall back to JSON for backward compatibility
+	req, params, err := ParseContextRequest(args)
+	if err != nil {
 		return nil, fmt.Errorf("failed to parse arguments: %w", err)
+	}
+
+	// Convert protobuf request to params map if needed
+	if req != nil {
+		params = ContextRequestToParams(req)
+		if req.BudgetTokens == 0 {
+			params["budget_tokens"] = config.DefaultContextBudget()
+		}
 	}
 
 	// Get items (required)
@@ -36,17 +45,10 @@ func handleContextBudget(ctx context.Context, args json.RawMessage) ([]framework
 		return nil, fmt.Errorf("items parameter is required")
 	}
 
-	// Parse items - can be JSON string or array
-	var items []interface{}
-	switch v := itemsRaw.(type) {
-	case string:
-		if err := json.Unmarshal([]byte(v), &items); err != nil {
-			return nil, fmt.Errorf("failed to parse items JSON: %w", err)
-		}
-	case []interface{}:
-		items = v
-	default:
-		return nil, fmt.Errorf("items must be a JSON string or array")
+	// Parse items using protobuf helper (simplifies type conversion)
+	contextItems, err := ParseContextItems(itemsRaw)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse items: %w", err)
 	}
 
 	// Get budget_tokens (optional, use config default)
@@ -59,17 +61,13 @@ func handleContextBudget(ctx context.Context, args json.RawMessage) ([]framework
 		}
 	}
 
-	// Analyze items
-	analysis := make([]ItemAnalysis, 0, len(items))
+	// Analyze items using protobuf ContextItem (type-safe)
+	analysis := make([]ItemAnalysis, 0, len(contextItems))
 	totalTokens := 0
 
-	for i, item := range items {
-		// Convert item to JSON string for token estimation
-		itemBytes, err := json.Marshal(item)
-		if err != nil {
-			continue
-		}
-		itemStr := string(itemBytes)
+	for i, contextItem := range contextItems {
+		// Extract data string from ContextItem (type-safe, no marshaling needed)
+		itemStr := ContextItemToDataString(contextItem)
 
 	// Estimate tokens using config ratio
 	tokens := estimateTokens(itemStr, config.TokensPerChar())
@@ -170,6 +168,7 @@ func suggestReductionStrategy(analysis []ItemAnalysis, total, budget int) string
 
 // handleContextBatchNative handles the context batch action using native Go
 // Summarizes multiple items and optionally combines them
+// Uses protobuf ContextItem for type-safe item processing
 func handleContextBatchNative(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	// Get items (required)
 	itemsRaw, ok := params["items"]
@@ -177,17 +176,10 @@ func handleContextBatchNative(ctx context.Context, params map[string]interface{}
 		return nil, fmt.Errorf("items parameter is required for batch action")
 	}
 
-	// Parse items - can be JSON string or array
-	var items []interface{}
-	switch v := itemsRaw.(type) {
-	case string:
-		if err := json.Unmarshal([]byte(v), &items); err != nil {
-			return nil, fmt.Errorf("failed to parse items JSON: %w", err)
-		}
-	case []interface{}:
-		items = v
-	default:
-		return nil, fmt.Errorf("items must be a JSON string or array")
+	// Parse items using protobuf helper (simplifies type conversion)
+	contextItems, err := ParseContextItems(itemsRaw)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse items: %w", err)
 	}
 
 	// Get optional parameters
@@ -201,47 +193,15 @@ func handleContextBatchNative(ctx context.Context, params map[string]interface{}
 		combine = combineRaw
 	}
 
-	// Summarize each item
-	summaries := make([]map[string]interface{}, 0, len(items))
+	// Summarize each item using protobuf ContextItem (type-safe)
+	summaries := make([]map[string]interface{}, 0, len(contextItems))
 	totalOriginal := 0
 	totalSummarized := 0
 
-	for _, itemRaw := range items {
-		// Convert item to map if needed
-		item, ok := itemRaw.(map[string]interface{})
-		if !ok {
-			// If not a map, wrap it
-			item = map[string]interface{}{
-				"data": itemRaw,
-			}
-		}
-
-		// Get data from item (can be in "data" field or the item itself)
-		data := item["data"]
-		if data == nil {
-			data = item
-		}
-
-		// Get tool_type if present
-		toolType := ""
-		if toolTypeRaw, ok := item["tool_type"].(string); ok {
-			toolType = toolTypeRaw
-		}
-
-		// Convert data to string for summarization
-		var dataStr string
-		switch v := data.(type) {
-		case string:
-			dataStr = v
-		case map[string]interface{}, []interface{}:
-			bytes, err := json.Marshal(v)
-			if err != nil {
-				continue
-			}
-			dataStr = string(bytes)
-		default:
-			dataStr = fmt.Sprintf("%v", v)
-		}
+	for _, contextItem := range contextItems {
+		// Extract data string from ContextItem (type-safe, no assertions needed)
+		dataStr := ContextItemToDataString(contextItem)
+		toolType := contextItem.ToolType
 
 		// Create params for summarize
 		summarizeParams := map[string]interface{}{

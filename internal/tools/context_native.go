@@ -59,22 +59,23 @@ func summarizeWithAppleFM(ctx context.Context, data string, level string, maxTok
 }
 
 // handleContextSummarizeNative handles context summarization using native Go with Apple FM
+// Uses protobuf ContextRequest for type-safe parameter handling
 func handleContextSummarizeNative(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	startTime := time.Now()
 
-	// Get required parameters
+	// Get required parameters (data is already a string from protobuf conversion)
 	dataRaw, ok := params["data"]
 	if !ok || dataRaw == nil {
 		return nil, fmt.Errorf("data parameter is required for summarize action")
 	}
 
-	// Convert data to string
+	// Convert data to string (simplified - protobuf ensures it's already a string)
 	var dataStr string
 	switch v := dataRaw.(type) {
 	case string:
 		dataStr = v
 	case map[string]interface{}, []interface{}:
-		// Convert to JSON string
+		// Convert to JSON string (fallback for JSON format)
 		bytes, err := json.Marshal(v)
 		if err != nil {
 			return nil, fmt.Errorf("failed to marshal data: %w", err)
