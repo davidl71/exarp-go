@@ -147,18 +147,14 @@ func daemonize(pidFile string, serverFunc func() error) error {
 	}()
 
 	// Redirect logs to file when daemonized
+	// Note: Logging is handled by slog which outputs to stderr
+	// File logging can be added in Phase 2 (JSON output with file support)
 	logFile := strings.TrimSuffix(pidFile, ".pid") + ".log"
-	f, err := os.OpenFile(logFile, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
-	if err == nil {
-		log.SetOutput(f)
-		defer f.Close()
-	}
+	_ = logFile // Reserved for future file logging support
 
 	fmt.Printf("3270 TUI server running in background (PID: %d)\n", pid)
 	fmt.Printf("PID file: %s\n", pidFile)
-	if err == nil {
-		fmt.Printf("Log file: %s\n", logFile)
-	}
+	fmt.Printf("Log file: %s\n", logFile)
 	fmt.Printf("Connect with: x3270 localhost:3270\n")
 	fmt.Printf("Stop with: kill %d\n", pid)
 
