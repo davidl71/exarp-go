@@ -1129,6 +1129,16 @@ func registerBatch3Tools(server framework.MCPServer) error {
 				"status_filter": map[string]interface{}{
 					"type": "string",
 				},
+				"sub_action": map[string]interface{}{
+					"type": "string",
+				},
+				"output_path": map[string]interface{}{
+					"type": "string",
+				},
+				"export_latest": map[string]interface{}{
+					"type":    "boolean",
+					"default": true,
+				},
 				"priority_filter": map[string]interface{}{
 					"type": "string",
 				},

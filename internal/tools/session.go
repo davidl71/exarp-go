@@ -133,13 +133,17 @@ func handleSessionPrime(ctx context.Context, params map[string]interface{}) ([]f
 	}, nil
 }
 
-// handleSessionHandoff handles handoff actions (end, resume, latest, list, sync)
+// handleSessionHandoff handles handoff actions (end, resume, latest, list, sync, export)
 func handleSessionHandoff(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	action, _ := params["action"].(string)
 	// Note: The action parameter for handoff might be nested - check both
-	if action == "" {
-		// Check if this is called from session tool with action="handoff"
-		if summary, ok := params["summary"].(string); ok && summary != "" {
+	// Also check for sub_action parameter (for nested actions like export)
+	if action == "" || action == "handoff" {
+		// Check for sub_action first (for explicit sub-actions)
+		if subAction, ok := params["sub_action"].(string); ok && subAction != "" {
+			action = subAction
+		} else if summary, ok := params["summary"].(string); ok && summary != "" {
+			// Check if this is called from session tool with action="handoff"
 			action = "end"
 		} else {
 			action = "resume"
@@ -162,8 +166,10 @@ func handleSessionHandoff(ctx context.Context, params map[string]interface{}) ([
 		return handleSessionList(ctx, params, projectRoot)
 	case "sync":
 		return handleSessionSync(ctx, params, projectRoot)
+	case "export":
+		return handleSessionExport(ctx, params, projectRoot)
 	default:
-		return nil, fmt.Errorf("unknown handoff action: %s (use 'end', 'resume', 'latest', 'list', or 'sync')", action)
+		return nil, fmt.Errorf("unknown handoff action: %s (use 'end', 'resume', 'latest', 'list', 'sync', or 'export')", action)
 	}
 }
 
@@ -541,6 +547,93 @@ func handleSessionSync(ctx context.Context, params map[string]interface{}, proje
 				result["pushed"] = true
 			}
 		}
+	}
+
+	output, _ := json.MarshalIndent(result, "", "  ")
+	return []framework.TextContent{
+		{Type: "text", Text: string(output)},
+	}, nil
+}
+
+// handleSessionExport exports handoff data to a JSON file for sharing between agents
+func handleSessionExport(ctx context.Context, params map[string]interface{}, projectRoot string) ([]framework.TextContent, error) {
+	outputPath, _ := params["output_path"].(string)
+	if outputPath == "" {
+		// Default to handoff-export-{timestamp}.json in project root
+		outputPath = filepath.Join(projectRoot, fmt.Sprintf("handoff-export-%d.json", time.Now().Unix()))
+	}
+
+	// Make path absolute if relative
+	if !filepath.IsAbs(outputPath) {
+		outputPath = filepath.Join(projectRoot, outputPath)
+	}
+
+	// Get which handoffs to export (latest or all)
+	exportLatest := true
+	if latest, ok := params["export_latest"].(bool); ok {
+		exportLatest = latest
+	}
+
+	handoffFile := filepath.Join(projectRoot, ".todo2", "handoffs.json")
+
+	// Load handoff data
+	var handoffData map[string]interface{}
+	if _, err := os.Stat(handoffFile); os.IsNotExist(err) {
+		// No handoffs file - return empty export
+		handoffData = map[string]interface{}{
+			"handoffs": []interface{}{},
+			"exported_at": time.Now().Format(time.RFC3339),
+			"export_type": "all",
+			"count": 0,
+		}
+	} else {
+		data, err := os.ReadFile(handoffFile)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read handoff file: %w", err)
+		}
+
+		if err := json.Unmarshal(data, &handoffData); err != nil {
+			return nil, fmt.Errorf("failed to parse handoff file: %w", err)
+		}
+
+		handoffs, _ := handoffData["handoffs"].([]interface{})
+		
+		// If exporting latest only, keep only the last handoff
+		if exportLatest && len(handoffs) > 0 {
+			handoffData["handoffs"] = []interface{}{handoffs[len(handoffs)-1]}
+			handoffData["export_type"] = "latest"
+		} else {
+			handoffData["export_type"] = "all"
+		}
+		
+		handoffData["exported_at"] = time.Now().Format(time.RFC3339)
+		handoffData["count"] = len(handoffData["handoffs"].([]interface{}))
+	}
+
+	// Write to output file
+	// Use compact JSON (no indentation) for better performance and smaller file size
+	// This is more efficient for machine-to-machine transfer
+	data, err := json.Marshal(handoffData)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal handoff data: %w", err)
+	}
+
+	// Ensure directory exists
+	if err := os.MkdirAll(filepath.Dir(outputPath), 0755); err != nil {
+		return nil, fmt.Errorf("failed to create output directory: %w", err)
+	}
+
+	if err := os.WriteFile(outputPath, data, 0644); err != nil {
+		return nil, fmt.Errorf("failed to write export file: %w", err)
+	}
+
+	result := map[string]interface{}{
+		"success":     true,
+		"method":      "native_go",
+		"output_path": outputPath,
+		"export_type": handoffData["export_type"],
+		"count":       handoffData["count"],
+		"message":    fmt.Sprintf("Handoff data exported to %s", outputPath),
 	}
 
 	output, _ := json.MarshalIndent(result, "", "  ")
