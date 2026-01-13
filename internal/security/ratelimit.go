@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"sync"
 	"time"
+
+	"github.com/davidl71/exarp-go/internal/config"
 )
 
 // RateLimiter implements a sliding window rate limiter
@@ -156,10 +158,20 @@ var (
 )
 
 // GetDefaultRateLimiter returns the default rate limiter
-// Default: 100 requests per minute
+// Uses centralized config if available, otherwise defaults to 100 requests per minute
 func GetDefaultRateLimiter() *RateLimiter {
 	once.Do(func() {
-		defaultRateLimiter = NewRateLimiter(1*time.Minute, 100)
+		cfg := config.GetGlobalConfig()
+		if cfg.Security.RateLimit.Enabled {
+			defaultRateLimiter = NewRateLimiter(
+				cfg.Security.RateLimit.WindowDuration,
+				cfg.Security.RateLimit.RequestsPerWindow,
+			)
+		} else {
+			// Rate limiting disabled, create a limiter that allows all requests
+			// Use a very large window and max requests
+			defaultRateLimiter = NewRateLimiter(1*time.Minute, 1000000)
+		}
 	})
 	return defaultRateLimiter
 }
@@ -184,7 +196,14 @@ func (e *RateLimitError) Error() string {
 }
 
 // CheckRateLimit checks rate limit and returns an error if exceeded
+// Uses centralized config to determine if rate limiting is enabled
 func CheckRateLimit(clientID string) error {
+	cfg := config.GetGlobalConfig()
+	if !cfg.Security.RateLimit.Enabled {
+		// Rate limiting disabled, allow all requests
+		return nil
+	}
+
 	rl := GetDefaultRateLimiter()
 	if !rl.Allow(clientID) {
 		remaining := rl.GetRemaining(clientID)

@@ -22,7 +22,17 @@ func ValidateConfig(cfg *FullConfig) error {
 		return fmt.Errorf("tasks validation failed: %w", err)
 	}
 
-	// TODO: Validate other sections in future phases
+	// Validate database
+	if err := validateDatabase(cfg.Database); err != nil {
+		return fmt.Errorf("database validation failed: %w", err)
+	}
+
+	// Validate security
+	if err := validateSecurity(cfg.Security); err != nil {
+		return fmt.Errorf("security validation failed: %w", err)
+	}
+
+	// TODO: Validate other sections in future phases (logging, tools, workflow, memory, project, automations)
 
 	return nil
 }
@@ -193,6 +203,105 @@ func validateTasks(tasks TasksConfig) error {
 	// Validate min description length
 	if tasks.MinDescriptionLength < 0 {
 		return fmt.Errorf("min_description_length (%d) must be non-negative", tasks.MinDescriptionLength)
+	}
+
+	return nil
+}
+
+// validateDatabase validates database configuration
+func validateDatabase(db DatabaseConfig) error {
+	// SQLite path should not be empty if using SQLite
+	if db.SQLitePath == "" {
+		return fmt.Errorf("sqlite_path cannot be empty")
+	}
+
+	// Max connections should be positive
+	if db.MaxConnections < 1 {
+		return fmt.Errorf("max_connections (%d) must be at least 1", db.MaxConnections)
+	}
+
+	// Timeouts should be positive
+	if db.ConnectionTimeout > 0 && db.ConnectionTimeout < time.Second {
+		return fmt.Errorf("connection_timeout (%v) must be at least 1 second", db.ConnectionTimeout)
+	}
+	if db.QueryTimeout > 0 && db.QueryTimeout < time.Second {
+		return fmt.Errorf("query_timeout (%v) must be at least 1 second", db.QueryTimeout)
+	}
+
+	// Retry attempts should be non-negative
+	if db.RetryAttempts < 0 {
+		return fmt.Errorf("retry_attempts (%d) must be non-negative", db.RetryAttempts)
+	}
+
+	// Retry delays should be positive if retry attempts > 0
+	if db.RetryAttempts > 0 {
+		if db.RetryInitialDelay <= 0 {
+			return fmt.Errorf("retry_initial_delay must be positive when retry_attempts > 0")
+		}
+		if db.RetryMaxDelay <= 0 {
+			return fmt.Errorf("retry_max_delay must be positive when retry_attempts > 0")
+		}
+		if db.RetryMaxDelay < db.RetryInitialDelay {
+			return fmt.Errorf("retry_max_delay (%v) must be >= retry_initial_delay (%v)",
+				db.RetryMaxDelay, db.RetryInitialDelay)
+		}
+		if db.RetryMultiplier <= 0 {
+			return fmt.Errorf("retry_multiplier (%f) must be positive", db.RetryMultiplier)
+		}
+	}
+
+	// Checkpoint interval should be positive
+	if db.CheckpointInterval < 0 {
+		return fmt.Errorf("checkpoint_interval (%d) must be non-negative", db.CheckpointInterval)
+	}
+
+	// Backup retention should be non-negative
+	if db.BackupRetentionDays < 0 {
+		return fmt.Errorf("backup_retention_days (%d) must be non-negative", db.BackupRetentionDays)
+	}
+
+	return nil
+}
+
+// validateSecurity validates security configuration
+func validateSecurity(sec SecurityConfig) error {
+	// Validate rate limit
+	if sec.RateLimit.Enabled {
+		if sec.RateLimit.RequestsPerWindow < 1 {
+			return fmt.Errorf("rate_limit.requests_per_window (%d) must be at least 1", sec.RateLimit.RequestsPerWindow)
+		}
+		if sec.RateLimit.WindowDuration <= 0 {
+			return fmt.Errorf("rate_limit.window_duration (%v) must be positive", sec.RateLimit.WindowDuration)
+		}
+		if sec.RateLimit.BurstSize < 1 {
+			return fmt.Errorf("rate_limit.burst_size (%d) must be at least 1", sec.RateLimit.BurstSize)
+		}
+	}
+
+	// Validate path validation
+	if sec.PathValidation.Enabled {
+		if sec.PathValidation.MaxDepth < 1 {
+			return fmt.Errorf("path_validation.max_depth (%d) must be at least 1", sec.PathValidation.MaxDepth)
+		}
+	}
+
+	// Validate file limits
+	if sec.FileLimits.MaxFileSize < 0 {
+		return fmt.Errorf("file_limits.max_file_size (%d) must be non-negative", sec.FileLimits.MaxFileSize)
+	}
+	if sec.FileLimits.MaxFilesPerOperation < 1 {
+		return fmt.Errorf("file_limits.max_files_per_operation (%d) must be at least 1", sec.FileLimits.MaxFilesPerOperation)
+	}
+
+	// Validate access control
+	if sec.AccessControl.Enabled {
+		validPolicies := map[string]bool{
+			"allow": true,
+			"deny":  true,
+		}
+		if sec.AccessControl.DefaultPolicy != "" && !validPolicies[sec.AccessControl.DefaultPolicy] {
+			return fmt.Errorf("access_control.default_policy (%s) must be 'allow' or 'deny'", sec.AccessControl.DefaultPolicy)
+		}
 	}
 
 	return nil

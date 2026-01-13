@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+
+	"github.com/davidl71/exarp-go/internal/config"
 )
 
 // Config holds database configuration
@@ -80,4 +82,49 @@ func GetDefaultDSN(driver DriverType, projectRoot string) string {
 	default:
 		return ""
 	}
+}
+
+// LoadConfigFromCentralized loads database configuration from centralized config system
+// This allows database to use the centralized .exarp/config.yaml configuration
+func LoadConfigFromCentralized(projectRoot string) (*Config, error) {
+	// Load centralized config
+	cfg, err := config.LoadConfig(projectRoot)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load centralized config: %w", err)
+	}
+
+	dbCfg := cfg.Database
+
+	// Convert centralized DatabaseConfig to database.Config
+	// Note: database.Config is simpler (Driver, DSN, AutoMigrate)
+	// We use SQLite path from centralized config for DSN
+	dbConfig := &Config{
+		Driver:      DriverSQLite, // Default to SQLite (can be extended later)
+		DSN:         filepath.Join(projectRoot, dbCfg.SQLitePath),
+		AutoMigrate: true, // Default to true (can be made configurable later)
+	}
+
+	// Override with environment variables if set (environment takes precedence)
+	if driverStr := os.Getenv("DB_DRIVER"); driverStr != "" {
+		driver := DriverType(driverStr)
+		switch driver {
+		case DriverSQLite, DriverMySQL, DriverPostgres, DriverODBC:
+			dbConfig.Driver = driver
+		default:
+			return nil, fmt.Errorf("unsupported database driver: %s", driverStr)
+		}
+	}
+
+	if dsn := os.Getenv("DB_DSN"); dsn != "" {
+		dbConfig.DSN = dsn
+	} else if dbConfig.Driver == DriverSQLite {
+		// Use centralized config path for SQLite
+		dbConfig.DSN = filepath.Join(projectRoot, dbCfg.SQLitePath)
+	}
+
+	if autoMigrate := os.Getenv("DB_AUTO_MIGRATE"); autoMigrate == "false" {
+		dbConfig.AutoMigrate = false
+	}
+
+	return dbConfig, nil
 }

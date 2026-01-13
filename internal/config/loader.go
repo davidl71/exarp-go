@@ -4,28 +4,43 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
+	configpb "github.com/davidl71/exarp-go/proto"
 	"gopkg.in/yaml.v3"
+	"google.golang.org/protobuf/proto"
 )
 
-// LoadConfig loads configuration from .exarp/config.yaml with fallback to defaults
+// LoadConfig loads configuration from .exarp/config.yaml or .exarp/config.pb with fallback to defaults
+// Protobuf format takes priority if both files exist
 func LoadConfig(projectRoot string) (*FullConfig, error) {
 	// Start with defaults
 	cfg := GetDefaults()
 
-	// Try to load config file
-	configPath := filepath.Join(projectRoot, ".exarp", "config.yaml")
-	if _, err := os.Stat(configPath); err == nil {
-		// Config file exists, load it
-		data, err := os.ReadFile(configPath)
+	// Check for protobuf format first (takes priority)
+	pbPath := filepath.Join(projectRoot, ".exarp", "config.pb")
+	if _, err := os.Stat(pbPath); err == nil {
+		// Protobuf file exists, load it
+		loaded, err := LoadConfigProtobuf(projectRoot)
 		if err != nil {
-			return nil, fmt.Errorf("failed to read config file %s: %w", configPath, err)
+			return nil, fmt.Errorf("failed to load protobuf config: %w", err)
+		}
+		return loaded, nil
+	}
+
+	// Fall back to YAML format
+	yamlPath := filepath.Join(projectRoot, ".exarp", "config.yaml")
+	if _, err := os.Stat(yamlPath); err == nil {
+		// Config file exists, load it
+		data, err := os.ReadFile(yamlPath)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read config file %s: %w", yamlPath, err)
 		}
 
 		// Parse YAML
 		var fileConfig FullConfig
 		if err := yaml.Unmarshal(data, &fileConfig); err != nil {
-			return nil, fmt.Errorf("failed to parse config file %s: %w", configPath, err)
+			return nil, fmt.Errorf("failed to parse config file %s: %w", yamlPath, err)
 		}
 
 		// Merge file config with defaults (file config takes precedence)
@@ -41,6 +56,71 @@ func LoadConfig(projectRoot string) (*FullConfig, error) {
 	}
 
 	return cfg, nil
+}
+
+// LoadConfigProtobuf loads configuration from .exarp/config.pb (protobuf binary format)
+func LoadConfigProtobuf(projectRoot string) (*FullConfig, error) {
+	// Start with defaults
+	cfg := GetDefaults()
+
+	// Load protobuf config file
+	configPath := filepath.Join(projectRoot, ".exarp", "config.pb")
+	data, err := os.ReadFile(configPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read protobuf config file %s: %w", configPath, err)
+	}
+
+	// Unmarshal protobuf
+	var pbConfig configpb.FullConfig
+	if err := proto.Unmarshal(data, &pbConfig); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal protobuf config file %s: %w", configPath, err)
+	}
+
+	// Convert protobuf to Go structs
+	fileConfig, err := FromProtobuf(&pbConfig)
+	if err != nil {
+		return nil, fmt.Errorf("failed to convert protobuf config: %w", err)
+	}
+
+	// Merge file config with defaults (file config takes precedence)
+	cfg = mergeConfig(cfg, fileConfig)
+
+	// Apply environment variable overrides
+	applyEnvOverrides(cfg)
+
+	// Validate configuration
+	if err := ValidateConfig(cfg); err != nil {
+		return nil, fmt.Errorf("config validation failed: %w", err)
+	}
+
+	return cfg, nil
+}
+
+// GetConfigFormat returns the format of the config file (yaml, protobuf, or none)
+func GetConfigFormat(projectRoot string) (string, error) {
+	pbPath := filepath.Join(projectRoot, ".exarp", "config.pb")
+	yamlPath := filepath.Join(projectRoot, ".exarp", "config.yaml")
+
+	if _, err := os.Stat(pbPath); err == nil {
+		return "protobuf", nil
+	}
+	if _, err := os.Stat(yamlPath); err == nil {
+		return "yaml", nil
+	}
+	return "none", nil
+}
+
+// detectConfigFormat detects the format of a config file based on its extension
+func detectConfigFormat(configPath string) (string, error) {
+	ext := strings.ToLower(filepath.Ext(configPath))
+	switch ext {
+	case ".yaml", ".yml":
+		return "yaml", nil
+	case ".pb":
+		return "protobuf", nil
+	default:
+		return "", fmt.Errorf("unknown config file format: %s (expected .yaml, .yml, or .pb)", ext)
+	}
 }
 
 // mergeConfig merges fileConfig into defaults, with fileConfig taking precedence
@@ -180,8 +260,87 @@ func mergeConfig(defaults, fileConfig *FullConfig) *FullConfig {
 	merged.Tasks.RequireDescription = fileConfig.Tasks.RequireDescription
 	merged.Tasks.AutoClarify = fileConfig.Tasks.AutoClarify
 
-	// TODO: Merge remaining sections (database, security, logging, tools, workflow, memory, project, automations)
-	// For Phase 1, we focus on timeouts, thresholds, and tasks
+	// Merge database
+	if fileConfig.Database.SQLitePath != "" {
+		merged.Database.SQLitePath = fileConfig.Database.SQLitePath
+	}
+	if fileConfig.Database.JSONFallbackPath != "" {
+		merged.Database.JSONFallbackPath = fileConfig.Database.JSONFallbackPath
+	}
+	if fileConfig.Database.BackupPath != "" {
+		merged.Database.BackupPath = fileConfig.Database.BackupPath
+	}
+	if fileConfig.Database.MaxConnections > 0 {
+		merged.Database.MaxConnections = fileConfig.Database.MaxConnections
+	}
+	if fileConfig.Database.ConnectionTimeout > 0 {
+		merged.Database.ConnectionTimeout = fileConfig.Database.ConnectionTimeout
+	}
+	if fileConfig.Database.QueryTimeout > 0 {
+		merged.Database.QueryTimeout = fileConfig.Database.QueryTimeout
+	}
+	if fileConfig.Database.RetryAttempts > 0 {
+		merged.Database.RetryAttempts = fileConfig.Database.RetryAttempts
+	}
+	if fileConfig.Database.RetryInitialDelay > 0 {
+		merged.Database.RetryInitialDelay = fileConfig.Database.RetryInitialDelay
+	}
+	if fileConfig.Database.RetryMaxDelay > 0 {
+		merged.Database.RetryMaxDelay = fileConfig.Database.RetryMaxDelay
+	}
+	if fileConfig.Database.RetryMultiplier > 0 {
+		merged.Database.RetryMultiplier = fileConfig.Database.RetryMultiplier
+	}
+	merged.Database.AutoVacuum = fileConfig.Database.AutoVacuum
+	merged.Database.WALMode = fileConfig.Database.WALMode
+	if fileConfig.Database.CheckpointInterval > 0 {
+		merged.Database.CheckpointInterval = fileConfig.Database.CheckpointInterval
+	}
+	if fileConfig.Database.BackupRetentionDays > 0 {
+		merged.Database.BackupRetentionDays = fileConfig.Database.BackupRetentionDays
+	}
+
+	// Merge security
+	merged.Security.RateLimit.Enabled = fileConfig.Security.RateLimit.Enabled
+	if fileConfig.Security.RateLimit.RequestsPerWindow > 0 {
+		merged.Security.RateLimit.RequestsPerWindow = fileConfig.Security.RateLimit.RequestsPerWindow
+	}
+	if fileConfig.Security.RateLimit.WindowDuration > 0 {
+		merged.Security.RateLimit.WindowDuration = fileConfig.Security.RateLimit.WindowDuration
+	}
+	if fileConfig.Security.RateLimit.BurstSize > 0 {
+		merged.Security.RateLimit.BurstSize = fileConfig.Security.RateLimit.BurstSize
+	}
+
+	merged.Security.PathValidation.Enabled = fileConfig.Security.PathValidation.Enabled
+	merged.Security.PathValidation.AllowAbsolutePaths = fileConfig.Security.PathValidation.AllowAbsolutePaths
+	if fileConfig.Security.PathValidation.MaxDepth > 0 {
+		merged.Security.PathValidation.MaxDepth = fileConfig.Security.PathValidation.MaxDepth
+	}
+	if len(fileConfig.Security.PathValidation.BlockedPatterns) > 0 {
+		merged.Security.PathValidation.BlockedPatterns = fileConfig.Security.PathValidation.BlockedPatterns
+	}
+
+	if fileConfig.Security.FileLimits.MaxFileSize > 0 {
+		merged.Security.FileLimits.MaxFileSize = fileConfig.Security.FileLimits.MaxFileSize
+	}
+	if fileConfig.Security.FileLimits.MaxFilesPerOperation > 0 {
+		merged.Security.FileLimits.MaxFilesPerOperation = fileConfig.Security.FileLimits.MaxFilesPerOperation
+	}
+	if len(fileConfig.Security.FileLimits.AllowedExtensions) > 0 {
+		merged.Security.FileLimits.AllowedExtensions = fileConfig.Security.FileLimits.AllowedExtensions
+	}
+
+	merged.Security.AccessControl.Enabled = fileConfig.Security.AccessControl.Enabled
+	if fileConfig.Security.AccessControl.DefaultPolicy != "" {
+		merged.Security.AccessControl.DefaultPolicy = fileConfig.Security.AccessControl.DefaultPolicy
+	}
+	if len(fileConfig.Security.AccessControl.RestrictedTools) > 0 {
+		merged.Security.AccessControl.RestrictedTools = fileConfig.Security.AccessControl.RestrictedTools
+	}
+
+	// TODO: Merge remaining sections (logging, tools, workflow, memory, project, automations)
+	// For Phase 2, we focus on database and security
 
 	return &merged
 }

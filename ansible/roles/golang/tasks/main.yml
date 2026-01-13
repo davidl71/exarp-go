@@ -73,3 +73,34 @@
   debug:
     msg: "Go installed: {{ go_verify.stdout }}"
 
+# Install protoc-gen-go (Go protobuf code generator)
+- name: Check if protoc-gen-go is already installed
+  command: protoc-gen-go --version
+  register: protoc_gen_go_check
+  changed_when: false
+  failed_when: false
+  environment:
+    PATH: "{{ go_install_path }}/bin:{{ go_bin_path }}:$PATH"
+
+- name: Install protoc-gen-go
+  command: "{{ go_install_path }}/bin/go install google.golang.org/protobuf/cmd/protoc-gen-go@latest"
+  environment:
+    PATH: "{{ go_install_path }}/bin:{{ go_bin_path }}:$PATH"
+    GOROOT: "{{ go_install_path }}"
+    GOPATH: "{{ go_gopath }}"
+  when: protoc_gen_go_check.rc != 0
+
+- name: Verify protoc-gen-go installation
+  command: protoc-gen-go --version
+  register: protoc_gen_go_verify
+  changed_when: false
+  failed_when: false
+  environment:
+    PATH: "{{ go_install_path }}/bin:{{ go_bin_path }}:$PATH"
+
+- name: Display protoc-gen-go installation status
+  debug:
+    msg: >-
+      protoc-gen-go:
+      {{ protoc_gen_go_verify.stdout if protoc_gen_go_verify.rc == 0
+      else 'Not installed (will be installed on first use)' }}

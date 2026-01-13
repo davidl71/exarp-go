@@ -956,7 +956,8 @@ proto: ## Generate Go code from .proto files
 	@protoc --go_out=. --go_opt=paths=source_relative \
 		proto/todo2.proto \
 		proto/bridge.proto \
-		proto/config.proto || \
+		proto/config.proto \
+		proto/tools.proto || \
 		(echo "$(RED)❌ Protobuf code generation failed$(NC)" && exit 1)
 	@echo "$(GREEN)✅ Protobuf code generated$(NC)"
 
