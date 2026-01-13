@@ -11,7 +11,7 @@ import (
 )
 
 // handleAutomationNative handles the automation tool with native Go implementation
-// Currently implements "daily" and "discover" actions
+// Implements all actions: "daily", "nightly", "sprint", and "discover"
 func handleAutomationNative(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	action, _ := params["action"].(string)
 	if action == "" {
@@ -24,11 +24,9 @@ func handleAutomationNative(ctx context.Context, params map[string]interface{}) 
 	case "discover":
 		return handleAutomationDiscover(ctx, params)
 	case "nightly":
-		// Nightly action not yet implemented - fall back to Python bridge
-		return nil, fmt.Errorf("nightly action not yet implemented in native Go")
+		return handleAutomationNightly(ctx, params)
 	case "sprint":
-		// Sprint action not yet implemented - fall back to Python bridge
-		return nil, fmt.Errorf("sprint action not yet implemented in native Go")
+		return handleAutomationSprint(ctx, params)
 	default:
 		return nil, fmt.Errorf("unknown automation action: %s (use 'daily', 'nightly', 'sprint', or 'discover')", action)
 	}
@@ -92,8 +90,8 @@ func handleAutomationDaily(ctx context.Context, params map[string]interface{}) (
 		results["tasks_failed"] = append(tasksFailed, "task_analysis")
 	}
 
-	// Task 3: health (docs action) - uses Python bridge (not yet native)
-	task3Result := runDailyTaskPython(ctx, "health", map[string]interface{}{
+	// Task 3: health (docs action) - now uses native Go
+	task3Result := runDailyTask(ctx, "health", map[string]interface{}{
 		"action": "docs",
 	})
 	tasksRun, _ = results["tasks_run"].([]map[string]interface{})
@@ -112,6 +110,240 @@ func handleAutomationDaily(ctx context.Context, params map[string]interface{}) (
 	} else {
 		tasksFailed, _ := results["tasks_failed"].([]string)
 		results["tasks_failed"] = append(tasksFailed, "health")
+	}
+
+	// Generate summary
+	tasksSucceeded, _ := results["tasks_succeeded"].([]string)
+	tasksFailed, _ := results["tasks_failed"].([]string)
+	totalTasks := len(tasksRun)
+	succeededCount := len(tasksSucceeded)
+	failedCount := len(tasksFailed)
+
+	summary := map[string]interface{}{
+		"total_tasks":      totalTasks,
+		"succeeded":        succeededCount,
+		"failed":           failedCount,
+		"success_rate":     0.0,
+		"duration_seconds": time.Since(startTime).Seconds(),
+	}
+	if totalTasks > 0 {
+		summary["success_rate"] = float64(succeededCount) / float64(totalTasks) * 100.0
+	}
+	results["summary"] = summary
+	results["duration_seconds"] = time.Since(startTime).Seconds()
+
+	// Build response
+	responseData := map[string]interface{}{
+		"status":  "success",
+		"results": results,
+	}
+
+	resultJSON, err := json.MarshalIndent(responseData, "", "  ")
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal result: %w", err)
+	}
+
+	return []framework.TextContent{
+		{Type: "text", Text: string(resultJSON)},
+	}, nil
+}
+
+// handleAutomationNightly handles the "nightly" action for automation tool
+// Runs maintenance and cleanup tasks that are suitable for overnight execution
+func handleAutomationNightly(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
+	startTime := time.Now()
+
+	// Results structure
+	results := map[string]interface{}{
+		"timestamp":       time.Now().Format(time.RFC3339),
+		"action":          "nightly",
+		"tasks_run":       []map[string]interface{}{},
+		"tasks_succeeded": []string{},
+		"tasks_failed":    []string{},
+		"summary":         map[string]interface{}{},
+	}
+
+	// Task 1: memory_maint (consolidate action - cleanup/maintenance)
+	task1Result := runDailyTaskPython(ctx, "memory_maint", map[string]interface{}{
+		"action": "consolidate",
+	})
+	tasksRun, _ := results["tasks_run"].([]map[string]interface{})
+	tasksRun = append(tasksRun, map[string]interface{}{
+		"task_id":   "memory_maint",
+		"task_name": "Memory Consolidation",
+		"status":    task1Result["status"],
+		"duration":  task1Result["duration"],
+		"error":     task1Result["error"],
+		"summary":   task1Result["summary"],
+	})
+	results["tasks_run"] = tasksRun
+	if task1Result["status"] == "success" {
+		tasksSucceeded, _ := results["tasks_succeeded"].([]string)
+		results["tasks_succeeded"] = append(tasksSucceeded, "memory_maint")
+	} else {
+		tasksFailed, _ := results["tasks_failed"].([]string)
+		results["tasks_failed"] = append(tasksFailed, "memory_maint")
+	}
+
+	// Task 2: task_analysis (tags action - cleanup/organization)
+	task2Result := runDailyTask(ctx, "task_analysis", map[string]interface{}{
+		"action": "tags",
+	})
+	tasksRun, _ = results["tasks_run"].([]map[string]interface{})
+	tasksRun = append(tasksRun, map[string]interface{}{
+		"task_id":   "task_analysis",
+		"task_name": "Task Tag Analysis",
+		"status":    task2Result["status"],
+		"duration":  task2Result["duration"],
+		"error":     task2Result["error"],
+		"summary":   task2Result["summary"],
+	})
+	results["tasks_run"] = tasksRun
+	if task2Result["status"] == "success" {
+		tasksSucceeded, _ := results["tasks_succeeded"].([]string)
+		results["tasks_succeeded"] = append(tasksSucceeded, "task_analysis")
+	} else {
+		tasksFailed, _ := results["tasks_failed"].([]string)
+		results["tasks_failed"] = append(tasksFailed, "task_analysis")
+	}
+
+	// Task 3: health (server action - system health check)
+	task3Result := runDailyTask(ctx, "health", map[string]interface{}{
+		"action": "server",
+	})
+	tasksRun, _ = results["tasks_run"].([]map[string]interface{})
+	tasksRun = append(tasksRun, map[string]interface{}{
+		"task_id":   "health",
+		"task_name": "Server Health Check",
+		"status":    task3Result["status"],
+		"duration":  task3Result["duration"],
+		"error":     task3Result["error"],
+		"summary":   task3Result["summary"],
+	})
+	results["tasks_run"] = tasksRun
+	if task3Result["status"] == "success" {
+		tasksSucceeded, _ := results["tasks_succeeded"].([]string)
+		results["tasks_succeeded"] = append(tasksSucceeded, "health")
+	} else {
+		tasksFailed, _ := results["tasks_failed"].([]string)
+		results["tasks_failed"] = append(tasksFailed, "health")
+	}
+
+	// Generate summary
+	tasksSucceeded, _ := results["tasks_succeeded"].([]string)
+	tasksFailed, _ := results["tasks_failed"].([]string)
+	totalTasks := len(tasksRun)
+	succeededCount := len(tasksSucceeded)
+	failedCount := len(tasksFailed)
+
+	summary := map[string]interface{}{
+		"total_tasks":      totalTasks,
+		"succeeded":        succeededCount,
+		"failed":           failedCount,
+		"success_rate":     0.0,
+		"duration_seconds": time.Since(startTime).Seconds(),
+	}
+	if totalTasks > 0 {
+		summary["success_rate"] = float64(succeededCount) / float64(totalTasks) * 100.0
+	}
+	results["summary"] = summary
+	results["duration_seconds"] = time.Since(startTime).Seconds()
+
+	// Build response
+	responseData := map[string]interface{}{
+		"status":  "success",
+		"results": results,
+	}
+
+	resultJSON, err := json.MarshalIndent(responseData, "", "  ")
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal result: %w", err)
+	}
+
+	return []framework.TextContent{
+		{Type: "text", Text: string(resultJSON)},
+	}, nil
+}
+
+// handleAutomationSprint handles the "sprint" action for automation tool
+// Runs sprint-specific tasks like alignment analysis and reporting
+func handleAutomationSprint(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
+	startTime := time.Now()
+
+	// Results structure
+	results := map[string]interface{}{
+		"timestamp":       time.Now().Format(time.RFC3339),
+		"action":          "sprint",
+		"tasks_run":       []map[string]interface{}{},
+		"tasks_succeeded": []string{},
+		"tasks_failed":    []string{},
+		"summary":         map[string]interface{}{},
+	}
+
+	// Task 1: analyze_alignment (todo2 action - sprint alignment)
+	task1Result := runDailyTask(ctx, "analyze_alignment", map[string]interface{}{
+		"action": "todo2",
+	})
+	tasksRun, _ := results["tasks_run"].([]map[string]interface{})
+	tasksRun = append(tasksRun, map[string]interface{}{
+		"task_id":   "analyze_alignment",
+		"task_name": "Sprint Alignment Analysis",
+		"status":    task1Result["status"],
+		"duration":  task1Result["duration"],
+		"error":     task1Result["error"],
+		"summary":   task1Result["summary"],
+	})
+	results["tasks_run"] = tasksRun
+	if task1Result["status"] == "success" {
+		tasksSucceeded, _ := results["tasks_succeeded"].([]string)
+		results["tasks_succeeded"] = append(tasksSucceeded, "analyze_alignment")
+	} else {
+		tasksFailed, _ := results["tasks_failed"].([]string)
+		results["tasks_failed"] = append(tasksFailed, "analyze_alignment")
+	}
+
+	// Task 2: task_analysis (hierarchy action - sprint planning)
+	task2Result := runDailyTask(ctx, "task_analysis", map[string]interface{}{
+		"action": "hierarchy",
+	})
+	tasksRun, _ = results["tasks_run"].([]map[string]interface{})
+	tasksRun = append(tasksRun, map[string]interface{}{
+		"task_id":   "task_analysis",
+		"task_name": "Task Hierarchy Analysis",
+		"status":    task2Result["status"],
+		"duration":  task2Result["duration"],
+		"error":     task2Result["error"],
+		"summary":   task2Result["summary"],
+	})
+	results["tasks_run"] = tasksRun
+	if task2Result["status"] == "success" {
+		tasksSucceeded, _ := results["tasks_succeeded"].([]string)
+		results["tasks_succeeded"] = append(tasksSucceeded, "task_analysis")
+	} else {
+		tasksFailed, _ := results["tasks_failed"].([]string)
+		results["tasks_failed"] = append(tasksFailed, "task_analysis")
+	}
+
+	// Task 3: report (overview action - sprint reporting)
+	task3Result := runDailyTaskPython(ctx, "report", map[string]interface{}{
+		"action": "overview",
+	})
+	tasksRun, _ = results["tasks_run"].([]map[string]interface{})
+	tasksRun = append(tasksRun, map[string]interface{}{
+		"task_id":   "report",
+		"task_name": "Sprint Overview Report",
+		"status":    task3Result["status"],
+		"duration":  task3Result["duration"],
+		"error":     task3Result["error"],
+		"summary":   task3Result["summary"],
+	})
+	results["tasks_run"] = tasksRun
+	if task3Result["status"] == "success" {
+		tasksSucceeded, _ := results["tasks_succeeded"].([]string)
+		results["tasks_succeeded"] = append(tasksSucceeded, "report")
+	} else {
+		tasksFailed, _ := results["tasks_failed"].([]string)
+		results["tasks_failed"] = append(tasksFailed, "report")
 	}
 
 	// Generate summary
