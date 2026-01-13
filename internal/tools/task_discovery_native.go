@@ -469,7 +469,6 @@ func scanPlanningDocs(projectRoot string, docPath string, useAppleFM bool) []map
 
 	// Basic regex patterns (fallback if Apple FM unavailable or for validation)
 	taskRefPattern := regexp.MustCompile(`(?:Epic|Task)\s+ID[:\s]+` + "`?T-(\\d+)`?")
-	epicPattern := regexp.MustCompile(`(?i)#+\s*(?:Epic|Planning)[:\s]+(.+)`)
 
 	err := filepath.Walk(searchPath, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
