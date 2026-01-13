@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"log"
 	"os"
 	"strconv"
 	"strings"
@@ -14,6 +13,7 @@ import (
 	"github.com/davidl71/exarp-go/internal/database"
 	"github.com/davidl71/exarp-go/internal/factory"
 	"github.com/davidl71/exarp-go/internal/framework"
+	"github.com/davidl71/exarp-go/internal/logging"
 	"github.com/davidl71/exarp-go/internal/prompts"
 	"github.com/davidl71/exarp-go/internal/resources"
 	"github.com/davidl71/exarp-go/internal/tools"
@@ -25,9 +25,10 @@ import (
 // It will be closed when the process exits or explicitly closed
 // Uses centralized config if available, falls back to legacy config
 func initializeDatabase() {
+	logging.InitLogger()
 	projectRoot, err := tools.FindProjectRoot()
 	if err != nil {
-		log.Printf("Warning: Could not find project root: %v (database unavailable, will use JSON fallback)", err)
+		logging.Warn("Could not find project root", "error", err, "operation", "initializeDatabase", "fallback", "JSON")
 		return
 	}
 
@@ -53,21 +54,21 @@ func initializeDatabase() {
 		}
 
 		if err := database.InitWithCentralizedConfig(projectRoot, dbCfg); err != nil {
-			log.Printf("Warning: Database initialization with centralized config failed: %v (fallback to legacy config)", err)
+			logging.Warn("Database initialization with centralized config failed", "error", err, "operation", "initializeDatabase", "fallback", "legacy config")
 			// Fall through to legacy init
 		} else {
-			log.Printf("Database initialized with centralized config: %s", fullCfg.Database.SQLitePath)
+			logging.Info("Database initialized with centralized config", "path", fullCfg.Database.SQLitePath, "operation", "initializeDatabase")
 			return
 		}
 	}
 
 	// Fall back to legacy config
 	if err := database.Init(projectRoot); err != nil {
-		log.Printf("Warning: Database initialization failed: %v (fallback to JSON)", err)
+		logging.Warn("Database initialization failed", "error", err, "operation", "initializeDatabase", "fallback", "JSON")
 		return
 	}
 
-	log.Printf("Database initialized: %s/.todo2/todo2.db", projectRoot)
+	logging.Info("Database initialized", "path", projectRoot+"/.todo2/todo2.db", "operation", "initializeDatabase")
 }
 
 // setupServer creates and configures the MCP server
@@ -200,7 +201,7 @@ func Run() error {
 	// Ensure database is closed when CLI exits
 	defer func() {
 		if err := database.Close(); err != nil {
-			log.Printf("Warning: Error closing database: %v", err)
+			logging.Warn("Error closing database", "error", err, "operation", "closeDatabase")
 		}
 	}()
 

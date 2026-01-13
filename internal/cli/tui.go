@@ -3,7 +3,6 @@ package cli
 import (
 	"context"
 	"fmt"
-	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -14,6 +13,7 @@ import (
 	"github.com/davidl71/exarp-go/internal/config"
 	"github.com/davidl71/exarp-go/internal/database"
 	"github.com/davidl71/exarp-go/internal/framework"
+	"github.com/davidl71/exarp-go/internal/logging"
 	"github.com/davidl71/exarp-go/internal/tools"
 	"gopkg.in/yaml.v3"
 )
@@ -970,11 +970,12 @@ func getModuleName(projectRoot string) string {
 
 // RunTUI starts the TUI interface
 func RunTUI(server framework.MCPServer, status string) error {
+	logging.InitLogger()
 	// Initialize database if needed (without closing it immediately)
 	projectRoot, err := tools.FindProjectRoot()
 	projectName := ""
 	if err != nil {
-		log.Printf("Warning: Could not find project root: %v (database unavailable, will use JSON fallback)", err)
+		logging.Warn("Could not find project root", "error", err, "operation", "RunTUI", "fallback", "JSON")
 	} else {
 		projectName = getProjectName(projectRoot)
 		// Try to use centralized config first
@@ -999,31 +1000,31 @@ func RunTUI(server framework.MCPServer, status string) error {
 			}
 
 			if err := database.InitWithCentralizedConfig(projectRoot, dbCfg); err != nil {
-				log.Printf("Warning: Database initialization with centralized config failed: %v (fallback to legacy config)", err)
+				logging.Warn("Database initialization with centralized config failed", "error", err, "operation", "RunTUI", "fallback", "legacy config")
 				// Fall through to legacy init
 			} else {
 				// Defer close when TUI exits
 				defer func() {
 					if err := database.Close(); err != nil {
-						log.Printf("Warning: Error closing database: %v", err)
+						logging.Warn("Error closing database", "error", err, "operation", "closeDatabase")
 					}
 				}()
-				log.Printf("Database initialized with centralized config: %s", fullCfg.Database.SQLitePath)
+				logging.Info("Database initialized with centralized config", "path", fullCfg.Database.SQLitePath, "operation", "RunTUI")
 				goto databaseInitialized
 			}
 		}
 
 		// Fall back to legacy config
 		if err := database.Init(projectRoot); err != nil {
-			log.Printf("Warning: Database initialization failed: %v (fallback to JSON)", err)
+			logging.Warn("Database initialization failed", "error", err, "operation", "RunTUI", "fallback", "JSON")
 		} else {
 			// Defer close when TUI exits
 			defer func() {
 				if err := database.Close(); err != nil {
-					log.Printf("Warning: Error closing database: %v", err)
+					logging.Warn("Error closing database", "error", err, "operation", "closeDatabase")
 				}
 			}()
-			log.Printf("Database initialized: %s/.todo2/todo2.db", projectRoot)
+			logging.Info("Database initialized", "path", projectRoot+"/.todo2/todo2.db", "operation", "RunTUI")
 		}
 	databaseInitialized:
 	}

@@ -45,8 +45,8 @@ func BenchmarkHandleHealthServer(b *testing.B) {
 	}
 }
 
-// BenchmarkHandleSetupPatternTriggers benchmarks the setup_hooks patterns action
-func BenchmarkHandleSetupPatternTriggers(b *testing.B) {
+// BenchmarkHandleSetupPatternHooks benchmarks the setup_hooks patterns action
+func BenchmarkHandleSetupPatternHooks(b *testing.B) {
 	ctx := context.Background()
 	params := map[string]interface{}{
 		"action":  "patterns",
@@ -55,20 +55,20 @@ func BenchmarkHandleSetupPatternTriggers(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_, _ = handleSetupPatternTriggers(ctx, params)
+		_, _ = handleSetupPatternHooks(ctx, params)
 	}
 }
 
-// BenchmarkHandleAlignmentPRD benchmarks the analyze_alignment prd action
-func BenchmarkHandleAlignmentPRD(b *testing.B) {
+// BenchmarkHandleAlignmentTodo2 benchmarks the analyze_alignment todo2 action
+func BenchmarkHandleAlignmentTodo2(b *testing.B) {
 	ctx := context.Background()
 	params := map[string]interface{}{
-		"action": "prd",
+		"action": "todo2",
 	}
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_, _ = handleAlignmentPRD(ctx, params)
+		_, _ = handleAlignmentTodo2(ctx, params)
 	}
 }
 
