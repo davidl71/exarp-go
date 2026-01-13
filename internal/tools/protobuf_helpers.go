@@ -346,6 +346,316 @@ func ReportRequestToParams(req *proto.ReportRequest) map[string]interface{} {
 	return params
 }
 
+// ProjectInfoToProto converts map[string]interface{} to proto.ProjectInfo
+func ProjectInfoToProto(info map[string]interface{}) *proto.ProjectInfo {
+	pb := &proto.ProjectInfo{}
+	if name, ok := info["name"].(string); ok {
+		pb.Name = name
+	}
+	if version, ok := info["version"].(string); ok {
+		pb.Version = version
+	}
+	if desc, ok := info["description"].(string); ok {
+		pb.Description = desc
+	}
+	if typ, ok := info["type"].(string); ok {
+		pb.Type = typ
+	}
+	if status, ok := info["status"].(string); ok {
+		pb.Status = status
+	}
+	return pb
+}
+
+// ProtoToProjectInfo converts proto.ProjectInfo to map[string]interface{}
+func ProtoToProjectInfo(pb *proto.ProjectInfo) map[string]interface{} {
+	return map[string]interface{}{
+		"name":        pb.Name,
+		"version":     pb.Version,
+		"description": pb.Description,
+		"type":        pb.Type,
+		"status":      pb.Status,
+	}
+}
+
+// HealthDataToProto converts map[string]interface{} to proto.HealthData
+func HealthDataToProto(health map[string]interface{}) *proto.HealthData {
+	pb := &proto.HealthData{}
+	if score, ok := health["overall_score"].(float64); ok {
+		pb.OverallScore = score
+	}
+	if ready, ok := health["production_ready"].(bool); ok {
+		pb.ProductionReady = ready
+	}
+	if scores, ok := health["scores"].(map[string]interface{}); ok {
+		pb.Scores = make(map[string]float64)
+		for k, v := range scores {
+			if score, ok := v.(float64); ok {
+				pb.Scores[k] = score
+			}
+		}
+	}
+	return pb
+}
+
+// ProtoToHealthData converts proto.HealthData to map[string]interface{}
+func ProtoToHealthData(pb *proto.HealthData) map[string]interface{} {
+	result := map[string]interface{}{
+		"overall_score":    pb.OverallScore,
+		"production_ready": pb.ProductionReady,
+	}
+	if len(pb.Scores) > 0 {
+		scores := make(map[string]interface{})
+		for k, v := range pb.Scores {
+			scores[k] = v
+		}
+		result["scores"] = scores
+	}
+	return result
+}
+
+// CodebaseMetricsToProto converts map[string]interface{} to proto.CodebaseMetrics
+func CodebaseMetricsToProto(metrics map[string]interface{}) *proto.CodebaseMetrics {
+	pb := &proto.CodebaseMetrics{}
+	if v, ok := metrics["go_files"].(int); ok {
+		pb.GoFiles = int32(v)
+	} else if v, ok := metrics["go_files"].(float64); ok {
+		pb.GoFiles = int32(v)
+	}
+	if v, ok := metrics["go_lines"].(int); ok {
+		pb.GoLines = int32(v)
+	} else if v, ok := metrics["go_lines"].(float64); ok {
+		pb.GoLines = int32(v)
+	}
+	if v, ok := metrics["python_files"].(int); ok {
+		pb.PythonFiles = int32(v)
+	} else if v, ok := metrics["python_files"].(float64); ok {
+		pb.PythonFiles = int32(v)
+	}
+	if v, ok := metrics["python_lines"].(int); ok {
+		pb.PythonLines = int32(v)
+	} else if v, ok := metrics["python_lines"].(float64); ok {
+		pb.PythonLines = int32(v)
+	}
+	if v, ok := metrics["total_files"].(int); ok {
+		pb.TotalFiles = int32(v)
+	} else if v, ok := metrics["total_files"].(float64); ok {
+		pb.TotalFiles = int32(v)
+	}
+	if v, ok := metrics["total_lines"].(int); ok {
+		pb.TotalLines = int32(v)
+	} else if v, ok := metrics["total_lines"].(float64); ok {
+		pb.TotalLines = int32(v)
+	}
+	if v, ok := metrics["tools"].(int); ok {
+		pb.Tools = int32(v)
+	} else if v, ok := metrics["tools"].(float64); ok {
+		pb.Tools = int32(v)
+	}
+	if v, ok := metrics["prompts"].(int); ok {
+		pb.Prompts = int32(v)
+	} else if v, ok := metrics["prompts"].(float64); ok {
+		pb.Prompts = int32(v)
+	}
+	if v, ok := metrics["resources"].(int); ok {
+		pb.Resources = int32(v)
+	} else if v, ok := metrics["resources"].(float64); ok {
+		pb.Resources = int32(v)
+	}
+	return pb
+}
+
+// ProtoToCodebaseMetrics converts proto.CodebaseMetrics to map[string]interface{}
+func ProtoToCodebaseMetrics(pb *proto.CodebaseMetrics) map[string]interface{} {
+	return map[string]interface{}{
+		"go_files":     int(pb.GoFiles),
+		"go_lines":     int(pb.GoLines),
+		"python_files": int(pb.PythonFiles),
+		"python_lines": int(pb.PythonLines),
+		"total_files":  int(pb.TotalFiles),
+		"total_lines":  int(pb.TotalLines),
+		"tools":        int(pb.Tools),
+		"prompts":      int(pb.Prompts),
+		"resources":    int(pb.Resources),
+	}
+}
+
+// TaskMetricsToProto converts map[string]interface{} to proto.TaskMetrics
+func TaskMetricsToProto(metrics map[string]interface{}) *proto.TaskMetrics {
+	pb := &proto.TaskMetrics{}
+	if v, ok := metrics["total"].(int); ok {
+		pb.Total = int32(v)
+	} else if v, ok := metrics["total"].(float64); ok {
+		pb.Total = int32(v)
+	}
+	if v, ok := metrics["pending"].(int); ok {
+		pb.Pending = int32(v)
+	} else if v, ok := metrics["pending"].(float64); ok {
+		pb.Pending = int32(v)
+	}
+	if v, ok := metrics["completed"].(int); ok {
+		pb.Completed = int32(v)
+	} else if v, ok := metrics["completed"].(float64); ok {
+		pb.Completed = int32(v)
+	}
+	if v, ok := metrics["completion_rate"].(float64); ok {
+		pb.CompletionRate = v
+	}
+	if v, ok := metrics["remaining_hours"].(float64); ok {
+		pb.RemainingHours = v
+	}
+	return pb
+}
+
+// ProtoToTaskMetrics converts proto.TaskMetrics to map[string]interface{}
+func ProtoToTaskMetrics(pb *proto.TaskMetrics) map[string]interface{} {
+	return map[string]interface{}{
+		"total":           int(pb.Total),
+		"pending":         int(pb.Pending),
+		"completed":       int(pb.Completed),
+		"completion_rate": pb.CompletionRate,
+		"remaining_hours": pb.RemainingHours,
+	}
+}
+
+// ProjectOverviewDataToProto converts map[string]interface{} to proto.ProjectOverviewData
+func ProjectOverviewDataToProto(data map[string]interface{}) *proto.ProjectOverviewData {
+	pb := &proto.ProjectOverviewData{}
+	
+	if project, ok := data["project"].(map[string]interface{}); ok {
+		pb.Project = ProjectInfoToProto(project)
+	}
+	if health, ok := data["health"].(map[string]interface{}); ok {
+		pb.Health = HealthDataToProto(health)
+	}
+	if codebase, ok := data["codebase"].(map[string]interface{}); ok {
+		pb.Codebase = CodebaseMetricsToProto(codebase)
+	}
+	if tasks, ok := data["tasks"].(map[string]interface{}); ok {
+		pb.Tasks = TaskMetricsToProto(tasks)
+	}
+	if phases, ok := data["phases"].(map[string]interface{}); ok {
+		// Convert phases map to repeated ProjectPhase
+		for key, phaseRaw := range phases {
+			if phase, ok := phaseRaw.(map[string]interface{}); ok {
+				pbPhase := &proto.ProjectPhase{
+					Name: key,
+				}
+				if status, ok := phase["status"].(string); ok {
+					pbPhase.Status = status
+				}
+				if progress, ok := phase["progress"].(int); ok {
+					pbPhase.Progress = int32(progress)
+				} else if progress, ok := phase["progress"].(float64); ok {
+					pbPhase.Progress = int32(progress)
+				}
+				pb.Phases = append(pb.Phases, pbPhase)
+			}
+		}
+	}
+	if risks, ok := data["risks"].([]interface{}); ok {
+		for _, riskRaw := range risks {
+			if risk, ok := riskRaw.(map[string]interface{}); ok {
+				pbRisk := &proto.RiskOrBlocker{}
+				if typ, ok := risk["type"].(string); ok {
+					pbRisk.Type = typ
+				}
+				if desc, ok := risk["description"].(string); ok {
+					pbRisk.Description = desc
+				}
+				if taskID, ok := risk["task_id"].(string); ok {
+					pbRisk.TaskId = taskID
+				}
+				if priority, ok := risk["priority"].(string); ok {
+					pbRisk.Priority = priority
+				}
+				pb.Risks = append(pb.Risks, pbRisk)
+			}
+		}
+	}
+	if actions, ok := data["next_actions"].([]interface{}); ok {
+		for _, actionRaw := range actions {
+			if action, ok := actionRaw.(map[string]interface{}); ok {
+				pbAction := &proto.NextAction{}
+				if taskID, ok := action["task_id"].(string); ok {
+					pbAction.TaskId = taskID
+				}
+				if name, ok := action["name"].(string); ok {
+					pbAction.Name = name
+				}
+				if priority, ok := action["priority"].(string); ok {
+					pbAction.Priority = priority
+				}
+				if hours, ok := action["estimated_hours"].(float64); ok {
+					pbAction.EstimatedHours = hours
+				}
+				pb.NextActions = append(pb.NextActions, pbAction)
+			}
+		}
+	}
+	if generatedAt, ok := data["generated_at"].(string); ok {
+		pb.GeneratedAt = generatedAt
+	}
+	return pb
+}
+
+// ProtoToProjectOverviewData converts proto.ProjectOverviewData to map[string]interface{}
+func ProtoToProjectOverviewData(pb *proto.ProjectOverviewData) map[string]interface{} {
+	data := make(map[string]interface{})
+	
+	if pb.Project != nil {
+		data["project"] = ProtoToProjectInfo(pb.Project)
+	}
+	if pb.Health != nil {
+		data["health"] = ProtoToHealthData(pb.Health)
+	}
+	if pb.Codebase != nil {
+		data["codebase"] = ProtoToCodebaseMetrics(pb.Codebase)
+	}
+	if pb.Tasks != nil {
+		data["tasks"] = ProtoToTaskMetrics(pb.Tasks)
+	}
+	if len(pb.Phases) > 0 {
+		phases := make(map[string]interface{})
+		for _, phase := range pb.Phases {
+			phases[phase.Name] = map[string]interface{}{
+				"name":     phase.Name,
+				"status":   phase.Status,
+				"progress": int(phase.Progress),
+			}
+		}
+		data["phases"] = phases
+	}
+	if len(pb.Risks) > 0 {
+		risks := make([]interface{}, 0, len(pb.Risks))
+		for _, risk := range pb.Risks {
+			risks = append(risks, map[string]interface{}{
+				"type":        risk.Type,
+				"description": risk.Description,
+				"task_id":     risk.TaskId,
+				"priority":    risk.Priority,
+			})
+		}
+		data["risks"] = risks
+	}
+	if len(pb.NextActions) > 0 {
+		actions := make([]interface{}, 0, len(pb.NextActions))
+		for _, action := range pb.NextActions {
+			actions = append(actions, map[string]interface{}{
+				"task_id":         action.TaskId,
+				"name":            action.Name,
+				"priority":        action.Priority,
+				"estimated_hours": action.EstimatedHours,
+			})
+		}
+		data["next_actions"] = actions
+	}
+	if pb.GeneratedAt != "" {
+		data["generated_at"] = pb.GeneratedAt
+	}
+	return data
+}
+
 // ParseTaskWorkflowRequest parses a task_workflow tool request (protobuf or JSON)
 func ParseTaskWorkflowRequest(args json.RawMessage) (*proto.TaskWorkflowRequest, map[string]interface{}, error) {
 	var req proto.TaskWorkflowRequest
