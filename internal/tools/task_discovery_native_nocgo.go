@@ -74,6 +74,16 @@ func handleTaskDiscoveryNative(ctx context.Context, params map[string]interface{
 		discoveries = append(discoveries, gitJSONTasks...)
 	}
 
+	// Scan planning documents for task/epic links (regex-based fallback)
+	if action == "planning_links" || action == "all" {
+		docPath := ""
+		if path, ok := params["doc_path"].(string); ok {
+			docPath = path
+		}
+		planningLinks := scanPlanningDocsBasic(projectRoot, docPath)
+		discoveries = append(discoveries, planningLinks...)
+	}
+
 	// Build summary
 	bySource := make(map[string]int)
 	byType := make(map[string]int)
@@ -263,6 +273,73 @@ func scanMarkdownBasic(projectRoot string, docPath string) []map[string]interfac
 					})
 				}
 			}
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		// Log error but continue
+	}
+
+	return discoveries
+}
+
+// scanPlanningDocsBasic scans markdown files for planning document structure and task/epic links (regex-based)
+func scanPlanningDocsBasic(projectRoot string, docPath string) []map[string]interface{} {
+	discoveries := []map[string]interface{}{}
+
+	searchPath := projectRoot
+	if docPath != "" {
+		searchPath = filepath.Join(projectRoot, docPath)
+	}
+
+	// Regex patterns for task/epic reference extraction
+	taskRefPattern := regexp.MustCompile(`(?:Epic|Task)\s+ID[:\s]+` + "`?T-(\\d+)`?")
+	epicPattern := regexp.MustCompile(`(?i)#+\s*(?:Epic|Planning)[:\s]+(.+)`)
+
+	err := filepath.Walk(searchPath, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return nil
+		}
+
+		if info.IsDir() {
+			if strings.Contains(path, ".git") || strings.Contains(path, "node_modules") ||
+				strings.Contains(path, "vendor") || strings.Contains(path, "dist") ||
+				strings.Contains(path, "build") {
+				return filepath.SkipDir
+			}
+			return nil
+		}
+
+		if filepath.Ext(path) != ".md" && filepath.Ext(path) != ".markdown" {
+			return nil
+		}
+
+		content, err := os.ReadFile(path)
+		if err != nil {
+			return nil
+		}
+
+		relativePath := strings.TrimPrefix(path, projectRoot+"/")
+		contentStr := string(content)
+
+		// Extract task/epic references using regex
+		taskRefs := taskRefPattern.FindAllStringSubmatch(contentStr, -1)
+		extractedRefs := []string{}
+		for _, match := range taskRefs {
+			if len(match) > 1 {
+				extractedRefs = append(extractedRefs, "T-"+match[1])
+			}
+		}
+
+		if len(extractedRefs) > 0 {
+			discoveries = append(discoveries, map[string]interface{}{
+				"type":      "PLANNING_DOC",
+				"file":      relativePath,
+				"task_refs": extractedRefs,
+				"source":    "planning_doc",
+			})
 		}
 
 		return nil

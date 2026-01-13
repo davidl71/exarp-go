@@ -1044,6 +1044,17 @@ func handleTaskWorkflowCreate(ctx context.Context, params map[string]interface{}
 		}
 	}
 
+	// Extract planning document link (optional)
+	var planningDoc string
+	if pd, ok := params["planning_doc"].(string); ok && pd != "" {
+		planningDoc = pd
+	}
+	
+	var epicID string
+	if eid, ok := params["epic_id"].(string); ok && eid != "" {
+		epicID = eid
+	}
+
 	// Create task
 	task := &models.Todo2Task{
 		ID:              nextID,
@@ -1055,6 +1066,15 @@ func handleTaskWorkflowCreate(ctx context.Context, params map[string]interface{}
 		Dependencies:    dependencies,
 		Completed:       false,
 		Metadata:        make(map[string]interface{}),
+	}
+	
+	// Store planning document link in metadata if provided
+	if planningDoc != "" || epicID != "" {
+		linkMeta := &PlanningLinkMetadata{
+			PlanningDoc: planningDoc,
+			EpicID:      epicID,
+		}
+		SetPlanningLinkMetadata(task, linkMeta)
 	}
 
 	// Try database first

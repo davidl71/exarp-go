@@ -4,6 +4,9 @@ Python Bridge Tool Executor
 
 Executes Python tools from the Go MCP server via subprocess.
 This bridge allows the Go server to execute existing Python tools.
+
+Currently uses JSON format. Protobuf support can be added when Python protobuf
+code is generated from bridge.proto.
 """
 
 import json
@@ -336,8 +339,7 @@ def execute_tool(tool_name: str, args_json: str):
         else:
             result_json = json.dumps({"result": str(result)}, indent=2)
         
-        print(result_json)
-        return 0
+        return result_json
         
     except Exception as e:
         error_result = {
