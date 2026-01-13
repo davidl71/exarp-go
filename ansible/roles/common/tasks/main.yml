@@ -36,6 +36,8 @@
       - make
       - pkg-config
       - libc6-dev
+      - protobuf-compiler
+      - libprotobuf-dev
     state: present
   when: ansible_os_family == "Debian"
 
@@ -50,6 +52,8 @@
       - make
       - pkgconfig
       - glibc-devel
+      - protobuf-compiler
+      - protobuf-devel
     state: present
   when: ansible_os_family == "RedHat"
 
@@ -62,6 +66,7 @@
     - wget
     - git
     - make
+    - protobuf
   when: ansible_system == "Darwin"
   loop_control:
     label: "{{ item }}"

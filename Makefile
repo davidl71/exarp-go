@@ -1,4 +1,4 @@
-.PHONY: help build build-debug build-race run test test-watch test-coverage test-html clean install fmt lint dev dev-watch dev-test dev-full dev-cycle pre-push bench docs sanity-check sanity-check-cached test-cli test-cli-list test-cli-tool test-cli-test config clean-config sprint-start sprint-end pre-sprint sprint check-tasks update-completed-tasks go-fmt go-vet golangci-lint-check golangci-lint-fix govulncheck check check-fix check-all build-migrate migrate migrate-dry-run install-tools go-mod-tidy go-mod-verify pre-commit ci validate check-deps test-go test-go-fast test-go-verbose test-go-parallel version scorecard scorecard-full task-list task-list-todo task-list-in-progress task-list-done task-update
+.PHONY: help build build-debug build-race run test test-watch test-coverage test-html clean install fmt lint dev dev-watch dev-test dev-full dev-cycle pre-push bench docs sanity-check sanity-check-cached test-cli test-cli-list test-cli-tool test-cli-test config clean-config sprint-start sprint-end pre-sprint sprint check-tasks update-completed-tasks go-fmt go-vet golangci-lint-check golangci-lint-fix govulncheck check check-fix check-all build-migrate migrate migrate-dry-run install-tools go-mod-tidy go-mod-verify pre-commit ci validate check-deps test-go test-go-fast test-go-verbose test-go-parallel version scorecard scorecard-full task-list task-list-todo task-list-in-progress task-list-done task-update proto proto-check proto-clean
 
 # Project configuration
 PROJECT_NAME := exarp-go
@@ -552,7 +552,28 @@ clean-all: clean ## Clean everything including virtual environment
 
 ##@ Installation
 
-install: ## Install Python dependencies (optional - no runtime deps needed)
+install-binary: build ## Install exarp-go binary to GOPATH/bin (adds to PATH)
+	@echo "$(BLUE)Installing exarp-go binary...$(NC)"
+	@if [ ! -f "$(BINARY_PATH)" ]; then \
+		echo "$(RED)❌ Binary not found: $(BINARY_PATH)$(NC)"; \
+		echo "$(YELLOW)Run 'make build' first$(NC)"; \
+		exit 1; \
+	fi
+	@GOPATH_BIN=$$($(GO) env GOPATH)/bin; \
+	if [ -z "$$GOPATH_BIN" ] || [ "$$GOPATH_BIN" = "/bin" ]; then \
+		echo "$(RED)❌ Invalid GOPATH/bin: $$GOPATH_BIN$(NC)"; \
+		exit 1; \
+	fi; \
+	mkdir -p "$$GOPATH_BIN"; \
+	cp "$(BINARY_PATH)" "$$GOPATH_BIN/$(BINARY_NAME)"; \
+	chmod +x "$$GOPATH_BIN/$(BINARY_NAME)"; \
+	echo "$(GREEN)✅ Installed to: $$GOPATH_BIN/$(BINARY_NAME)$(NC)"; \
+	if ! echo "$$PATH" | grep -q "$$GOPATH_BIN"; then \
+		echo "$(YELLOW)⚠️  Warning: $$GOPATH_BIN is not in PATH$(NC)"; \
+		echo "$(YELLOW)   Add to ~/.zshrc or ~/.bashrc: export PATH=\"$$GOPATH_BIN:\$$PATH\"$(NC)"; \
+	fi
+
+install: install-binary ## Install exarp-go binary and Python dependencies
 	@echo "$(BLUE)Installing Python dependencies...$(NC)"
 	@if command -v uv >/dev/null 2>&1; then \
 		uv sync || echo "$(YELLOW)uv sync failed, but no runtime Python deps needed$(NC)"; \
@@ -916,9 +937,52 @@ go-mod-verify: ## Verify go.mod and go.sum are in sync
 	@$(GO) mod verify || (echo "$(RED)❌ Module verification failed$(NC)" && exit 1)
 	@echo "$(GREEN)✅ Module verification passed$(NC)"
 
+##@ Protocol Buffers
+
+proto: ## Generate Go code from .proto files
+	@echo "$(BLUE)Generating Go code from protobuf schemas...$(NC)"
+	@if ! command -v protoc >/dev/null 2>&1; then \
+		echo "$(RED)❌ protoc not found. Install with:$(NC)"; \
+		echo "$(YELLOW)   macOS: brew install protobuf$(NC)"; \
+		echo "$(YELLOW)   Linux: apt-get install protobuf-compiler$(NC)"; \
+		exit 1; \
+	fi
+	@if ! command -v protoc-gen-go >/dev/null 2>&1 && [ ! -x "$$HOME/go/bin/protoc-gen-go" ]; then \
+		echo "$(BLUE)Installing protoc-gen-go...$(NC)"; \
+		$(GO) install google.golang.org/protobuf/cmd/protoc-gen-go@latest || \
+		(echo "$(RED)❌ Failed to install protoc-gen-go$(NC)" && exit 1); \
+		echo "$(GREEN)✅ protoc-gen-go installed$(NC)"; \
+	fi
+	@protoc --go_out=. --go_opt=paths=source_relative \
+		proto/todo2.proto \
+		proto/bridge.proto \
+		proto/config.proto || \
+		(echo "$(RED)❌ Protobuf code generation failed$(NC)" && exit 1)
+	@echo "$(GREEN)✅ Protobuf code generated$(NC)"
+
+proto-check: ## Validate .proto files (syntax check)
+	@echo "$(BLUE)Validating protobuf schemas...$(NC)"
+	@if ! command -v protoc >/dev/null 2>&1; then \
+		echo "$(RED)❌ protoc not found. Install with:$(NC)"; \
+		echo "$(YELLOW)   macOS: brew install protobuf$(NC)"; \
+		echo "$(YELLOW)   Linux: apt-get install protobuf-compiler$(NC)"; \
+		exit 1; \
+	fi
+	@for proto_file in proto/*.proto; do \
+		echo "Checking $$proto_file..."; \
+		protoc --proto_path=proto --descriptor_set_out=/dev/null $$proto_file 2>&1 || \
+			(echo "$(RED)❌ Validation failed for $$proto_file$(NC)" && exit 1); \
+	done
+	@echo "$(GREEN)✅ All protobuf schemas are valid$(NC)"
+
+proto-clean: ## Clean generated protobuf Go code
+	@echo "$(BLUE)Cleaning generated protobuf code...$(NC)"
+	@rm -rf proto/todo2 proto/bridge proto/config
+	@echo "$(GREEN)✅ Protobuf code cleaned$(NC)"
+
 ##@ Tool Installation
 
-install-tools: ## Install Go development tools (golangci-lint, govulncheck)
+install-tools: ## Install Go development tools (golangci-lint, govulncheck, protoc-gen-go)
 	@echo "$(BLUE)Installing Go development tools...$(NC)"
 	@if ! command -v golangci-lint >/dev/null 2>&1; then \
 		echo "$(BLUE)Installing golangci-lint...$(NC)"; \
@@ -935,6 +999,14 @@ install-tools: ## Install Go development tools (golangci-lint, govulncheck)
 		echo "$(GREEN)✅ govulncheck installed$(NC)"; \
 	else \
 		echo "$(GREEN)✅ govulncheck already installed$(NC)"; \
+	fi
+	@if ! command -v protoc-gen-go >/dev/null 2>&1 && [ ! -x "$$HOME/go/bin/protoc-gen-go" ]; then \
+		echo "$(BLUE)Installing protoc-gen-go...$(NC)"; \
+		$(GO) install google.golang.org/protobuf/cmd/protoc-gen-go@latest || \
+		(echo "$(YELLOW)⚠️  Failed to install protoc-gen-go$(NC)" && exit 1); \
+		echo "$(GREEN)✅ protoc-gen-go installed$(NC)"; \
+	else \
+		echo "$(GREEN)✅ protoc-gen-go already installed$(NC)"; \
 	fi
 	@echo "$(GREEN)✅ All tools installed$(NC)"
 
