@@ -16,10 +16,18 @@ import (
 // Uses native Go implementation for "todo2" action (fully native with followup task creation)
 // Falls back to Python bridge for "prd" action (complex PRD analysis)
 func handleAnalyzeAlignment(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
-	// Parse arguments
-	var params map[string]interface{}
-	if err := json.Unmarshal(args, &params); err != nil {
+	// Try protobuf first, fall back to JSON for backward compatibility
+	req, params, err := ParseAnalyzeAlignmentRequest(args)
+	if err != nil {
 		return nil, fmt.Errorf("failed to parse arguments: %w", err)
+	}
+
+	// Convert protobuf request to params map if needed
+	if req != nil {
+		params = AnalyzeAlignmentRequestToParams(req)
+		if req.Action == "" {
+			params["action"] = "todo2"
+		}
 	}
 
 	// Try native Go implementation first
@@ -42,8 +50,26 @@ func handleAnalyzeAlignment(ctx context.Context, args json.RawMessage) ([]framew
 // handleGenerateConfig handles the generate_config tool
 // Uses native Go implementation for all actions (rules, ignore, simplify) - fully native Go
 func handleGenerateConfig(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
-	// Use native Go implementation - all actions are fully native
-	return handleGenerateConfigNative(ctx, args)
+	// Try protobuf first, fall back to JSON for backward compatibility
+	req, params, err := ParseGenerateConfigRequest(args)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse arguments: %w", err)
+	}
+
+	// Convert protobuf request to params map if needed
+	if req != nil {
+		params = GenerateConfigRequestToParams(req)
+		if req.Action == "" {
+			params["action"] = "rules"
+		}
+	}
+
+	// Convert params to JSON for native handler (it expects json.RawMessage)
+	argsJSON, err := json.Marshal(params)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal params: %w", err)
+	}
+	return handleGenerateConfigNative(ctx, argsJSON)
 }
 
 // handleHealth handles the health tool
@@ -70,10 +96,18 @@ func handleHealth(ctx context.Context, args json.RawMessage) ([]framework.TextCo
 // handleSetupHooks handles the setup_hooks tool
 // Uses native Go implementation for both "git" and "patterns" actions - fully native Go
 func handleSetupHooks(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
-	// Parse arguments
-	var params map[string]interface{}
-	if err := json.Unmarshal(args, &params); err != nil {
+	// Try protobuf first, fall back to JSON for backward compatibility
+	req, params, err := ParseSetupHooksRequest(args)
+	if err != nil {
 		return nil, fmt.Errorf("failed to parse arguments: %w", err)
+	}
+
+	// Convert protobuf request to params map if needed
+	if req != nil {
+		params = SetupHooksRequestToParams(req)
+		if req.Action == "" {
+			params["action"] = "git"
+		}
 	}
 
 	// Try native Go implementation first
@@ -96,10 +130,15 @@ func handleSetupHooks(ctx context.Context, args json.RawMessage) ([]framework.Te
 // handleCheckAttribution handles the check_attribution tool
 // Uses native Go implementation, falls back to Python bridge for complex analysis
 func handleCheckAttribution(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
-	// Parse arguments
-	var params map[string]interface{}
-	if err := json.Unmarshal(args, &params); err != nil {
+	// Try protobuf first, fall back to JSON for backward compatibility
+	req, params, err := ParseCheckAttributionRequest(args)
+	if err != nil {
 		return nil, fmt.Errorf("failed to parse arguments: %w", err)
+	}
+
+	// Convert protobuf request to params map if needed
+	if req != nil {
+		params = CheckAttributionRequestToParams(req)
 	}
 
 	// Try native Go implementation first
@@ -122,10 +161,18 @@ func handleCheckAttribution(ctx context.Context, args json.RawMessage) ([]framew
 // handleAddExternalToolHints handles the add_external_tool_hints tool
 // Uses native Go implementation - fully native Go, no Python bridge needed
 func handleAddExternalToolHints(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
-	// Parse arguments
-	var params map[string]interface{}
-	if err := json.Unmarshal(args, &params); err != nil {
+	// Try protobuf first, fall back to JSON for backward compatibility
+	req, params, err := ParseAddExternalToolHintsRequest(args)
+	if err != nil {
 		return nil, fmt.Errorf("failed to parse arguments: %w", err)
+	}
+
+	// Convert protobuf request to params map if needed
+	if req != nil {
+		params = AddExternalToolHintsRequestToParams(req)
+		if req.MinFileSize == 0 {
+			params["min_file_size"] = 50
+		}
 	}
 
 	// Use native Go implementation
@@ -138,11 +185,7 @@ func handleAddExternalToolHints(ctx context.Context, args json.RawMessage) ([]fr
 // Uses native Go for all actions (save, recall, search, list) - fully native Go
 // Note: Basic text search is native; semantic search enhancement can be added later if needed
 func handleMemory(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
-	var params map[string]interface{}
-	if err := json.Unmarshal(args, &params); err != nil {
-		return nil, fmt.Errorf("failed to parse arguments: %w", err)
-	}
-
+	// Note: handleMemoryNative already handles protobuf parsing, so we just pass args through
 	// Try native Go implementation for all actions
 	result, err := handleMemoryNative(ctx, args)
 	if err == nil {
@@ -164,9 +207,24 @@ func handleMemory(ctx context.Context, args json.RawMessage) ([]framework.TextCo
 // Uses native Go for health, gc, prune, consolidate actions
 // Falls back to Python bridge for dream action (requires advisor integration via devwisdom-go MCP)
 func handleMemoryMaint(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
-	var params map[string]interface{}
-	if err := json.Unmarshal(args, &params); err != nil {
+	// Try protobuf first, fall back to JSON for backward compatibility
+	req, params, err := ParseMemoryMaintRequest(args)
+	if err != nil {
 		return nil, fmt.Errorf("failed to parse arguments: %w", err)
+	}
+
+	// Convert protobuf request to params map if needed
+	if req != nil {
+		params = MemoryMaintRequestToParams(req)
+		if req.Action == "" {
+			params["action"] = "health"
+		}
+		if req.MergeStrategy == "" {
+			params["merge_strategy"] = "newest"
+		}
+		if req.Scope == "" {
+			params["scope"] = "week"
+		}
 	}
 
 	action, _ := params["action"].(string)
@@ -395,9 +453,18 @@ func handleSecurity(ctx context.Context, args json.RawMessage) ([]framework.Text
 // Uses native Go implementation for all actions (duplicates, tags, dependencies, parallelization work on all platforms)
 // Hierarchy action requires Apple FM (only available on macOS with CGO)
 func handleTaskAnalysis(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
-	var params map[string]interface{}
-	if err := json.Unmarshal(args, &params); err != nil {
+	// Try protobuf first, fall back to JSON for backward compatibility
+	req, params, err := ParseTaskAnalysisRequest(args)
+	if err != nil {
 		return nil, fmt.Errorf("failed to parse arguments: %w", err)
+	}
+
+	// Convert protobuf request to params map if needed
+	if req != nil {
+		params = TaskAnalysisRequestToParams(req)
+		if req.OutputFormat == "" {
+			params["output_format"] = "text"
+		}
 	}
 
 	// Try native Go implementation first for all actions
@@ -423,9 +490,21 @@ func handleTaskAnalysis(ctx context.Context, args json.RawMessage) ([]framework.
 // Uses native Go implementation for basic scanning (comments, markdown, orphans)
 // Apple FM is optional and only enhances semantic extraction when available
 func handleTaskDiscovery(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
-	var params map[string]interface{}
-	if err := json.Unmarshal(args, &params); err != nil {
+	// Try protobuf first, fall back to JSON for backward compatibility
+	req, params, err := ParseTaskDiscoveryRequest(args)
+	if err != nil {
 		return nil, fmt.Errorf("failed to parse arguments: %w", err)
+	}
+
+	// Convert protobuf request to params map if needed
+	if req != nil {
+		params = TaskDiscoveryRequestToParams(req)
+		if req.Action == "" {
+			params["action"] = "all"
+		}
+		if req.JsonPattern == "" {
+			params["json_pattern"] = "**/.todo2/state.todo2.json"
+		}
 	}
 
 	// Try native Go implementation first
@@ -883,9 +962,18 @@ func handleInferSessionMode(ctx context.Context, args json.RawMessage) ([]framew
 // handleOllama handles the ollama tool
 // Uses native Go HTTP client implementation
 func handleOllama(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
-	var params map[string]interface{}
-	if err := json.Unmarshal(args, &params); err != nil {
+	// Try protobuf first, fall back to JSON for backward compatibility
+	req, params, err := ParseOllamaRequest(args)
+	if err != nil {
 		return nil, fmt.Errorf("failed to parse arguments: %w", err)
+	}
+
+	// Convert protobuf request to params map if needed
+	if req != nil {
+		params = OllamaRequestToParams(req)
+		if req.Model == "" {
+			params["model"] = "llama3.2"
+		}
 	}
 
 	// Try native Go implementation first
@@ -907,9 +995,18 @@ func handleOllama(ctx context.Context, args json.RawMessage) ([]framework.TextCo
 
 // handleMlx handles the mlx tool
 func handleMlx(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
-	var params map[string]interface{}
-	if err := json.Unmarshal(args, &params); err != nil {
+	// Try protobuf first, fall back to JSON for backward compatibility
+	req, params, err := ParseMlxRequest(args)
+	if err != nil {
 		return nil, fmt.Errorf("failed to parse arguments: %w", err)
+	}
+
+	// Convert protobuf request to params map if needed
+	if req != nil {
+		params = MlxRequestToParams(req)
+		if req.Model == "" {
+			params["model"] = "mlx-community/Phi-3.5-mini-instruct-4bit"
+		}
 	}
 
 	result, err := bridge.ExecutePythonTool(ctx, "mlx", params)
@@ -1016,9 +1113,24 @@ func handleContext(ctx context.Context, args json.RawMessage) ([]framework.TextC
 // handlePromptTracking handles the prompt_tracking tool (unified wrapper)
 // Uses native Go implementation
 func handlePromptTracking(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
-	var params map[string]interface{}
-	if err := json.Unmarshal(args, &params); err != nil {
+	// Try protobuf first, fall back to JSON for backward compatibility
+	req, params, err := ParsePromptTrackingRequest(args)
+	if err != nil {
 		return nil, fmt.Errorf("failed to parse arguments: %w", err)
+	}
+
+	// Convert protobuf request to params map if needed
+	if req != nil {
+		params = PromptTrackingRequestToParams(req)
+		if req.Action == "" {
+			params["action"] = "analyze"
+		}
+		if req.Iteration == 0 {
+			params["iteration"] = 1
+		}
+		if req.Days == 0 {
+			params["days"] = 7
+		}
 	}
 
 	// Use native Go implementation
@@ -1028,9 +1140,21 @@ func handlePromptTracking(ctx context.Context, args json.RawMessage) ([]framewor
 // handleRecommend handles the recommend tool (unified wrapper)
 // Uses native Go implementation for "model" and "workflow" actions, falls back to Python bridge for "advisor" (requires MCP client)
 func handleRecommend(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
-	var params map[string]interface{}
-	if err := json.Unmarshal(args, &params); err != nil {
+	// Try protobuf first, fall back to JSON for backward compatibility
+	req, params, err := ParseRecommendRequest(args)
+	if err != nil {
 		return nil, fmt.Errorf("failed to parse arguments: %w", err)
+	}
+
+	// Convert protobuf request to params map if needed
+	if req != nil {
+		params = RecommendRequestToParams(req)
+		if req.Action == "" {
+			params["action"] = "model"
+		}
+		if req.OptimizeFor == "" {
+			params["optimize_for"] = "quality"
+		}
 	}
 
 	// Get action (default: "model")
