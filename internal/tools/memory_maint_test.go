@@ -38,16 +38,18 @@ func setupTestProjectRoot(t *testing.T) (string, func()) {
 }
 
 // createTestMemory creates a test memory file in the project root
+// Uses protobuf format (.pb) to match production format
 func createTestMemory(t *testing.T, projectRoot string, memory Memory) {
 	memoriesDir := filepath.Join(projectRoot, ".exarp", "memories")
 	if err := os.MkdirAll(memoriesDir, 0755); err != nil {
 		t.Fatalf("Failed to create memories directory: %v", err)
 	}
 	
-	memoryPath := filepath.Join(memoriesDir, memory.ID+".json")
-	data, err := json.MarshalIndent(memory, "", "  ")
+	// Save as protobuf binary (.pb)
+	memoryPath := filepath.Join(memoriesDir, memory.ID+".pb")
+	data, err := SerializeMemoryToProtobuf(&memory)
 	if err != nil {
-		t.Fatalf("Failed to marshal memory: %v", err)
+		t.Fatalf("Failed to serialize memory to protobuf: %v", err)
 	}
 	
 	if err := os.WriteFile(memoryPath, data, 0644); err != nil {
