@@ -34,14 +34,6 @@ func handleReportOverview(ctx context.Context, params map[string]interface{}) ([
 		return nil, fmt.Errorf("failed to aggregate project data: %w", err)
 	}
 
-	// Convert to protobuf for type-safe processing (optional optimization)
-	// This eliminates type assertions in formatting functions
-	overviewProto := ProjectOverviewDataToProto(overviewData)
-	
-	// Convert back to map for formatting (backward compatibility with existing formatters)
-	// In future, formatters could work directly with protobuf
-	overviewData = ProtoToProjectOverviewData(overviewProto)
-
 	// Format output based on requested format
 	var formattedOutput string
 	switch outputFormat {
