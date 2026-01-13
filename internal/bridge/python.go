@@ -12,6 +12,8 @@ import (
 	"time"
 
 	"github.com/davidl71/exarp-go/internal/security"
+	"github.com/davidl71/exarp-go/proto"
+	protobuf "google.golang.org/protobuf/proto"
 )
 
 // getWorkspaceRoot determines the workspace root where bridge scripts are located
@@ -53,6 +55,7 @@ func getWorkspaceRoot() string {
 }
 
 // ExecutePythonTool executes a Python tool via subprocess
+// Supports both protobuf binary and JSON formats for backward compatibility
 func ExecutePythonTool(ctx context.Context, toolName string, args map[string]interface{}) (string, error) {
 	// Get workspace root where bridge scripts are located
 	workspaceRoot := getWorkspaceRoot()
@@ -74,12 +77,28 @@ func ExecutePythonTool(ctx context.Context, toolName string, args map[string]int
 	}
 
 	// Marshal arguments to JSON
+	// Note: For now, we keep JSON format for Python bridge compatibility
+	// Future: Can migrate to protobuf binary when Python protobuf code is generated
 	argsJSON, err := json.Marshal(args)
 	if err != nil {
 		return "", fmt.Errorf("failed to marshal arguments: %w", err)
 	}
 
-	// Create command
+	// Create protobuf ToolRequest for future use (currently using JSON for compatibility)
+	// This prepares the infrastructure for full protobuf migration
+	req := &proto.ToolRequest{
+		ToolName:       toolName,
+		ArgumentsJson:  string(argsJSON), // JSON for now, can be replaced with protobuf later
+		ProjectRoot:    workspaceRoot,
+		TimeoutSeconds: 30,
+	}
+
+	// For now, use JSON format (backward compatibility)
+	// TODO: When Python protobuf code is generated, switch to protobuf binary
+	// Marshal protobuf to binary for future use (not used yet)
+	_, _ = protobuf.Marshal(req) // Prepared but not used yet
+
+	// Create command with JSON format (backward compatible)
 	cmd := exec.CommandContext(ctx, "python3", bridgeScript, toolName, string(argsJSON))
 
 	// Pass environment variables to Python subprocess (especially PROJECT_ROOT from Cursor)

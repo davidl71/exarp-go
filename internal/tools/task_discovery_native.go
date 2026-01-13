@@ -81,6 +81,16 @@ func handleTaskDiscoveryNative(ctx context.Context, params map[string]interface{
 		discoveries = append(discoveries, gitJSONTasks...)
 	}
 
+	// Scan planning documents for task/epic links
+	if action == "planning_links" || action == "all" {
+		docPath := ""
+		if path, ok := params["doc_path"].(string); ok {
+			docPath = path
+		}
+		planningLinks := scanPlanningDocs(projectRoot, docPath, useAppleFM)
+		discoveries = append(discoveries, planningLinks...)
+	}
+
 	// Build summary
 	bySource := make(map[string]int)
 	byType := make(map[string]int)
@@ -390,6 +400,148 @@ Return JSON with: {"description": "cleaned task description", "priority": "low|m
 	}
 
 	return nil
+}
+
+// enhancePlanningDocWithAppleFM uses Apple FM to extract task/epic references and structure from planning documents
+func enhancePlanningDocWithAppleFM(content string, filePath string) map[string]interface{} {
+	support := platform.CheckAppleFoundationModelsSupport()
+	if !support.Supported {
+		return nil
+	}
+
+	sess := fm.NewSession()
+	defer sess.Release()
+
+	// Limit content size to avoid token limits (keep first 5000 chars)
+	contentLimit := len(content)
+	if contentLimit > 5000 {
+		contentLimit = 5000
+	}
+	contentPreview := content[:contentLimit]
+
+	prompt := fmt.Sprintf(`Analyze this planning document and extract structured information:
+
+File: %s
+
+Content:
+%s
+
+Extract:
+1. Task IDs referenced (format: T-123 or T-1234567890)
+2. Epic IDs referenced (tasks tagged with #epic)
+3. Planning document type (epic_planning, feature_planning, migration_planning, architecture_planning, etc.)
+4. Related planning documents mentioned (file paths)
+5. Task/epic relationships described
+
+Return JSON only (no other text):
+{
+  "task_refs": ["T-123", "T-456"],
+  "epic_refs": ["T-789"],
+  "doc_type": "epic_planning",
+  "related_docs": ["docs/planning/related-plan.md"],
+  "relationships": [{"from": "T-123", "to": "T-456", "type": "depends_on"}]
+}`,
+		filePath, contentPreview)
+
+	result := sess.RespondWithOptions(prompt, 1000, 0.2)
+
+	// Parse JSON from result
+	jsonStart := strings.Index(result, "{")
+	jsonEnd := strings.LastIndex(result, "}")
+	if jsonStart >= 0 && jsonEnd > jsonStart {
+		var enhanced map[string]interface{}
+		if err := json.Unmarshal([]byte(result[jsonStart:jsonEnd+1]), &enhanced); err == nil {
+			return enhanced
+		}
+	}
+
+	return nil
+}
+
+// scanPlanningDocs scans markdown files for planning document structure and task/epic links
+func scanPlanningDocs(projectRoot string, docPath string, useAppleFM bool) []map[string]interface{} {
+	discoveries := []map[string]interface{}{}
+
+	searchPath := projectRoot
+	if docPath != "" {
+		searchPath = filepath.Join(projectRoot, docPath)
+	}
+
+	// Basic regex patterns (fallback if Apple FM unavailable or for validation)
+	taskRefPattern := regexp.MustCompile(`(?:Epic|Task)\s+ID[:\s]+` + "`?T-(\\d+)`?")
+	epicPattern := regexp.MustCompile(`(?i)#+\s*(?:Epic|Planning)[:\s]+(.+)`)
+
+	err := filepath.Walk(searchPath, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return nil
+		}
+
+		if info.IsDir() {
+			if strings.Contains(path, ".git") || strings.Contains(path, "node_modules") ||
+				strings.Contains(path, "vendor") || strings.Contains(path, "dist") ||
+				strings.Contains(path, "build") {
+				return filepath.SkipDir
+			}
+			return nil
+		}
+
+		if filepath.Ext(path) != ".md" && filepath.Ext(path) != ".markdown" {
+			return nil
+		}
+
+		content, err := os.ReadFile(path)
+		if err != nil {
+			return nil
+		}
+
+		relativePath := strings.TrimPrefix(path, projectRoot+"/")
+		contentStr := string(content)
+
+		// Use Apple FM for semantic extraction if available
+		if useAppleFM {
+			enhanced := enhancePlanningDocWithAppleFM(contentStr, relativePath)
+			if enhanced != nil {
+				discoveries = append(discoveries, map[string]interface{}{
+					"type":          "PLANNING_DOC",
+					"file":          relativePath,
+					"task_refs":     enhanced["task_refs"],
+					"epic_refs":     enhanced["epic_refs"],
+					"doc_type":      enhanced["doc_type"],
+					"related_docs":  enhanced["related_docs"],
+					"relationships": enhanced["relationships"],
+					"source":        "planning_doc",
+					"ai_enhanced":   true,
+				})
+				return nil
+			}
+		}
+
+		// Fallback to regex-based extraction
+		taskRefs := taskRefPattern.FindAllStringSubmatch(contentStr, -1)
+		extractedRefs := []string{}
+		for _, match := range taskRefs {
+			if len(match) > 1 {
+				extractedRefs = append(extractedRefs, "T-"+match[1])
+			}
+		}
+
+		if len(extractedRefs) > 0 {
+			discoveries = append(discoveries, map[string]interface{}{
+				"type":      "PLANNING_DOC",
+				"file":      relativePath,
+				"task_refs": extractedRefs,
+				"source":    "planning_doc",
+			})
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		// Log error but continue
+	}
+
+	return discoveries
 }
 
 // scanGitJSON scans git repository for JSON files containing tasks
