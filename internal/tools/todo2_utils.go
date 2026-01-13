@@ -217,40 +217,24 @@ func SyncTodo2Tasks(projectRoot string) error {
 	return nil
 }
 
-// IsPendingStatus checks if a status is pending
-func IsPendingStatus(status string) bool {
-	status = normalizeStatus(status)
-	return status == "Todo" || status == "In Progress" || status == "Review"
-}
-
-// IsCompletedStatus checks if a status is completed
-func IsCompletedStatus(status string) bool {
-	status = normalizeStatus(status)
-	return status == "Done" || status == "Cancelled"
-}
-
-// normalizeStatus normalizes status to Title Case
+// normalizeStatus normalizes status to Title Case.
+// This is a wrapper around NormalizeStatusToTitleCase for backward compatibility.
 func normalizeStatus(status string) string {
-	if status == "" {
-		return "Todo"
-	}
-	// Simple normalization - could be enhanced
-	switch status {
-	case "todo", "TODO", "pending":
-		return "Todo"
-	case "in_progress", "in-progress", "working":
-		return "In Progress"
-	case "review", "Review":
-		return "Review"
-	case "done", "DONE", "completed":
-		return "Done"
-	case "blocked", "Blocked":
-		return "Blocked"
-	case "cancelled", "canceled", "Cancelled":
-		return "Cancelled"
-	default:
-		return status
-	}
+	return NormalizeStatusToTitleCase(status)
+}
+
+// IsPendingStatus checks if a status is pending (only "Todo", not "In Progress" or "Review").
+// Note: This matches Python implementation where only "todo" is considered pending.
+// For active tasks (todo, in_progress, review, blocked), use IsActiveStatusNormalized.
+func IsPendingStatus(status string) bool {
+	normalized := NormalizeStatus(status)
+	return normalized == "todo"
+}
+
+// IsCompletedStatus checks if a status is completed.
+func IsCompletedStatus(status string) bool {
+	normalized := NormalizeStatus(status)
+	return normalized == "completed" || normalized == "cancelled"
 }
 
 // cleanupAutoTasksFromDB removes all AUTO-* tasks from the database
