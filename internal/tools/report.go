@@ -9,7 +9,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/davidl71/exarp-go/internal/bridge"
 	"github.com/davidl71/exarp-go/internal/framework"
 	"github.com/davidl71/exarp-go/internal/security"
 )

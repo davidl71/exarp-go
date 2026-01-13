@@ -547,6 +547,56 @@ func handleMemoryMaintConsolidate(ctx context.Context, params map[string]interfa
 	}, nil
 }
 
+// handleMemoryMaintDream handles the dream action for memory_maint tool
+// Uses devwisdom-go wisdom engine directly (no MCP client needed)
+func handleMemoryMaintDream(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
+	// Get score (default: 50)
+	var score float64 = 50.0
+	if sc, ok := params["score"].(float64); ok {
+		score = sc
+	} else if sc, ok := params["score"].(int); ok {
+		score = float64(sc)
+	}
+
+	// Validate and clamp score
+	if score < 0 {
+		score = 0
+	} else if score > 100 {
+		score = 100
+	}
+
+	// Get wisdom engine
+	engine, err := getWisdomEngine()
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize wisdom engine: %w", err)
+	}
+
+	// Get wisdom quote (use "random" source for variety)
+	quote, err := engine.GetWisdom(score, "random")
+	if err != nil {
+		return nil, fmt.Errorf("failed to get wisdom quote: %w", err)
+	}
+
+	// Build dream result (simple format for now)
+	dream := map[string]interface{}{
+		"quote":         quote.Quote,
+		"source":        quote.Source,
+		"encouragement": quote.Encouragement,
+		"score":         score,
+		"timestamp":     time.Now().Format(time.RFC3339),
+	}
+
+	// Convert to JSON
+	resultJSON, err := json.MarshalIndent(dream, "", "  ")
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal dream: %w", err)
+	}
+
+	return []framework.TextContent{
+		{Type: "text", Text: string(resultJSON)},
+	}, nil
+}
+
 // similarityRatio calculates similarity ratio between two strings (0.0 - 1.0)
 // Simple implementation using character matching
 func similarityRatio(a, b string) float64 {

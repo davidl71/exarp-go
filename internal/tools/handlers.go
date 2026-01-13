@@ -8,6 +8,7 @@ import (
 	"github.com/davidl71/exarp-go/internal/bridge"
 	"github.com/davidl71/exarp-go/internal/framework"
 	"github.com/davidl71/exarp-go/internal/platform"
+	"github.com/davidl71/exarp-go/internal/security"
 )
 
 // handleAnalyzeAlignment handles the analyze_alignment tool
