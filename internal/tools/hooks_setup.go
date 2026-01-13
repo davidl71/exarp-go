@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/davidl71/exarp-go/internal/cache"
 	"github.com/davidl71/exarp-go/internal/framework"
 	"github.com/davidl71/exarp-go/internal/security"
 )
@@ -218,8 +219,9 @@ func handleSetupPatternHooks(ctx context.Context, params map[string]interface{})
 	configPath := ""
 	if configPathRaw, ok := params["config_path"].(string); ok && configPathRaw != "" {
 		configPath = configPathRaw
-		// Load patterns from config file if it exists
-		if data, err := os.ReadFile(configPath); err == nil {
+		// Load patterns from config file if it exists (using file cache)
+		fileCache := cache.GetGlobalFileCache()
+		if data, _, err := fileCache.ReadFile(configPath); err == nil {
 			var filePatterns map[string]interface{}
 			if err := json.Unmarshal(data, &filePatterns); err == nil {
 				// Merge file patterns into existing patterns

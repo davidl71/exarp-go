@@ -188,9 +188,13 @@ build: ## Build the Go server (CGO enabled on Mac Silicon by default, disabled e
 			echo "$(BLUE)Detected Mac Silicon - Attempting build with CGO enabled (Apple Foundation Models support)$(NC)"; \
 			ODBC_PREFIX=$$(brew --prefix unixodbc 2>/dev/null || echo ""); \
 			if [ -n "$$ODBC_PREFIX" ] && [ -d "$$ODBC_PREFIX/include" ]; then \
+				# Build with ODBC support (includes sql.h headers from unixodbc)
+				# Include path: $$ODBC_PREFIX/include (e.g., /opt/homebrew/opt/unixodbc/include)
 				build_output=$$(CGO_ENABLED=1 CGO_CFLAGS="-I$$ODBC_PREFIX/include" CGO_LDFLAGS="-L$$ODBC_PREFIX/lib" $(GO) build -ldflags "-X main.Version=$(VERSION) -X main.BuildTime=$(BUILD_TIME) -X main.GitCommit=$(GIT_COMMIT)" -o $(BINARY_PATH) ./cmd/server 2>&1); \
 			else \
-				build_output=$$(CGO_ENABLED=1 $(GO) build -ldflags "-X main.Version=$(VERSION) -X main.BuildTime=$(BUILD_TIME) -X main.GitCommit=$(GIT_COMMIT)" -o $(BINARY_PATH) ./cmd/server 2>&1); \
+				# Build without ODBC to avoid sql.h dependency (AFM-only build)
+				# Use no_odbc tag to exclude ODBC driver when unixodbc not installed
+				build_output=$$(CGO_ENABLED=1 $(GO) build -tags "no_odbc" -ldflags "-X main.Version=$(VERSION) -X main.BuildTime=$(BUILD_TIME) -X main.GitCommit=$(GIT_COMMIT)" -o $(BINARY_PATH) ./cmd/server 2>&1); \
 			fi; \
 			build_status=$$?; \
 			if [ $$build_status -eq 0 ]; then \
@@ -747,19 +751,15 @@ build-apple-fm: build-swift-bridge ## Build with Apple Foundation Models support
 		exit 1; \
 	fi
 	@echo "$(BLUE)Building with Apple Foundation Models support...$(NC)"
-	@ODBC_PREFIX=$$(brew --prefix unixodbc 2>/dev/null || echo ""); \
-	if [ -d "vendor" ]; then \
+	@echo "$(YELLOW)Note: Using 'no_odbc' build tag to skip ODBC (not needed for AFM, avoids sql.h dependency)$(NC)"
+	@if [ -d "vendor" ]; then \
 		echo "$(BLUE)Using vendor directory for build...$(NC)"; \
-		if [ -n "$$ODBC_PREFIX" ] && [ -d "$$ODBC_PREFIX/lib" ]; then \
-			CGO_ENABLED=1 \
-			CGO_CFLAGS="-I$$ODBC_PREFIX/include" \
-			CGO_LDFLAGS="-L$$ODBC_PREFIX/lib" \
-			go build -mod=vendor -o $(BINARY_PATH) ./cmd/server 2>&1 | grep -v "ld: warning:" || true; \
-		else \
-			CGO_ENABLED=1 go build -mod=vendor -o $(BINARY_PATH) ./cmd/server 2>&1 | grep -v "ld: warning:" || true; \
-		fi; \
+		# Build with AFM support, skip ODBC to avoid sql.h dependency
+		# Use no_odbc tag to exclude ODBC driver (not needed for AFM)
+		CGO_ENABLED=1 go build -tags "no_odbc" -mod=vendor -o $(BINARY_PATH) ./cmd/server 2>&1 | grep -v "ld: warning:" || true; \
 		if [ -f "$(BINARY_PATH)" ]; then \
 			echo "$(GREEN)✅ Server built with Apple FM support: $(BINARY_PATH)$(NC)"; \
+			echo "$(YELLOW)   Note: ODBC driver excluded (use 'make build' with unixodbc for ODBC support)$(NC)"; \
 		else \
 			echo "$(YELLOW)⚠️  Build with Apple FM failed - Swift bridge may not be available$(NC)"; \
 			echo "$(YELLOW)   Building without Apple FM support (CGO disabled)$(NC)"; \
@@ -769,16 +769,12 @@ build-apple-fm: build-swift-bridge ## Build with Apple Foundation Models support
 			echo "$(YELLOW)   Note: Apple Foundation Models tool will not be available$(NC)"; \
 		fi; \
 	else \
-		if [ -n "$$ODBC_PREFIX" ] && [ -d "$$ODBC_PREFIX/lib" ]; then \
-			CGO_ENABLED=1 \
-			CGO_CFLAGS="-I$$ODBC_PREFIX/include" \
-			CGO_LDFLAGS="-L$$ODBC_PREFIX/lib" \
-			go build -o $(BINARY_PATH) ./cmd/server 2>&1 | grep -v "ld: warning:" || true; \
-		else \
-			CGO_ENABLED=1 go build -o $(BINARY_PATH) ./cmd/server 2>&1 | grep -v "ld: warning:" || true; \
-		fi; \
+		# Build with AFM support, skip ODBC to avoid sql.h dependency
+		# Use no_odbc tag to exclude ODBC driver (not needed for AFM)
+		CGO_ENABLED=1 go build -tags "no_odbc" -o $(BINARY_PATH) ./cmd/server 2>&1 | grep -v "ld: warning:" || true; \
 		if [ -f "$(BINARY_PATH)" ]; then \
 			echo "$(GREEN)✅ Server built with Apple FM support: $(BINARY_PATH)$(NC)"; \
+			echo "$(YELLOW)   Note: ODBC driver excluded (use 'make build' with unixodbc for ODBC support)$(NC)"; \
 		else \
 			echo "$(YELLOW)⚠️  Build with Apple FM failed - Swift bridge may not be available$(NC)"; \
 			echo "$(YELLOW)   Building without Apple FM support (CGO disabled)$(NC)"; \

@@ -1,5 +1,5 @@
-//go:build cgo
-// +build cgo
+//go:build cgo && !no_odbc
+// +build cgo,!no_odbc
 
 package database
 

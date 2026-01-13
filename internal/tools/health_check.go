@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/davidl71/exarp-go/internal/cache"
 	"github.com/davidl71/exarp-go/internal/framework"
 	"github.com/davidl71/exarp-go/internal/security"
 	"github.com/davidl71/mcp-go-core/pkg/mcp/response"
@@ -60,11 +61,12 @@ func handleHealthServer(ctx context.Context, params map[string]interface{}) ([]f
 	// Try to get version from go.mod or pyproject.toml
 	version := "unknown"
 
-	// Check go.mod first (Go project)
+	// Check go.mod first (Go project) - using file cache
+	fileCache := cache.GetGlobalFileCache()
 	goModPath := filepath.Join(projectRoot, "go.mod")
 	if _, err := os.Stat(goModPath); err == nil {
 		// Read go.mod to find module version or use git tag
-		content, err := os.ReadFile(goModPath)
+		content, _, err := fileCache.ReadFile(goModPath)
 		if err == nil {
 			// Look for module declaration
 			moduleRegex := regexp.MustCompile(`module\s+([^\s]+)`)
@@ -88,7 +90,7 @@ func handleHealthServer(ctx context.Context, params map[string]interface{}) ([]f
 	if version == "unknown" {
 		pyprojectPath := filepath.Join(projectRoot, "pyproject.toml")
 		if _, err := os.Stat(pyprojectPath); err == nil {
-			content, err := os.ReadFile(pyprojectPath)
+			content, _, err := fileCache.ReadFile(pyprojectPath)
 			if err == nil {
 				// Look for version = "x.y.z"
 				versionRegex := regexp.MustCompile(`version\s*=\s*["']([^"']+)["']`)
