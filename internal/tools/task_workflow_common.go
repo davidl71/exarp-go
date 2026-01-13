@@ -567,18 +567,22 @@ func handleTaskWorkflowClarity(ctx context.Context, params map[string]interface{
 		"recommendations": buildClarityRecommendations(clarityIssues),
 	}
 
-	var output string
+	outputPath, _ := params["output_path"].(string)
+
+	// Handle text vs JSON formatting
 	if outputFormat == "json" {
-		outputBytes, _ := json.MarshalIndent(result, "", "  ")
-		output = string(outputBytes)
-	} else {
-		output = formatClarityAnalysisText(result)
+		// Use response.FormatResult for JSON format
+		return response.FormatResult(result, outputPath)
 	}
 
-	outputPath, _ := params["output_path"].(string)
+	// Text format - use custom formatter
+	output := formatClarityAnalysisText(result)
+
+	// Write to file if outputPath is provided
 	if outputPath != "" {
 		if err := os.WriteFile(outputPath, []byte(output), 0644); err == nil {
-			result["output_path"] = outputPath
+			// File written successfully - note: can't add output_path to text output
+			// but we can log it or include in a comment
 		}
 	}
 
