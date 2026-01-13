@@ -486,9 +486,24 @@ func handleTaskWorkflow(ctx context.Context, args json.RawMessage) ([]framework.
 
 // handleTesting handles the testing tool
 func handleTesting(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
-	var params map[string]interface{}
-	if err := json.Unmarshal(args, &params); err != nil {
+	// Try protobuf first, fall back to JSON for backward compatibility
+	req, params, err := ParseTestingRequest(args)
+	if err != nil {
 		return nil, fmt.Errorf("failed to parse arguments: %w", err)
+	}
+
+	// Convert protobuf request to params map if needed
+	if req != nil {
+		params = TestingRequestToParams(req)
+		if req.Action == "" {
+			params["action"] = "run"
+		}
+		if req.TestFramework == "" {
+			params["test_framework"] = "auto"
+		}
+		if req.Format == "" {
+			params["format"] = "html"
+		}
 	}
 
 	action, _ := params["action"].(string)
@@ -543,9 +558,18 @@ func handleTesting(ctx context.Context, args json.RawMessage) ([]framework.TextC
 // handleAutomation handles the automation tool
 // Uses native Go implementation for all actions (daily, nightly, sprint, discover) - fully native Go with no fallback
 func handleAutomation(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
-	var params map[string]interface{}
-	if err := json.Unmarshal(args, &params); err != nil {
+	// Try protobuf first, fall back to JSON for backward compatibility
+	req, params, err := ParseAutomationRequest(args)
+	if err != nil {
 		return nil, fmt.Errorf("failed to parse arguments: %w", err)
+	}
+
+	// Convert protobuf request to params map if needed
+	if req != nil {
+		params = AutomationRequestToParams(req)
+		if req.Action == "" {
+			params["action"] = "daily"
+		}
 	}
 
 	// Use native Go implementation - all actions are native
@@ -578,9 +602,21 @@ func handleWorkflowMode(ctx context.Context, args json.RawMessage) ([]framework.
 
 // handleLint handles the lint tool
 func handleLint(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
-	var params map[string]interface{}
-	if err := json.Unmarshal(args, &params); err != nil {
+	// Try protobuf first, fall back to JSON for backward compatibility
+	req, params, err := ParseLintRequest(args)
+	if err != nil {
 		return nil, fmt.Errorf("failed to parse arguments: %w", err)
+	}
+
+	// Convert protobuf request to params map if needed
+	if req != nil {
+		params = LintRequestToParams(req)
+		if req.Action == "" {
+			params["action"] = "run"
+		}
+		if req.Linter == "" {
+			params["linter"] = "golangci-lint"
+		}
 	}
 
 	// Extract parameters
