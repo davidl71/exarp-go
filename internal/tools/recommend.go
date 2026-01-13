@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/davidl71/devwisdom-go/pkg/wisdom"
+	"github.com/davidl71/exarp-go/internal/database"
 	"github.com/davidl71/exarp-go/internal/framework"
 )
 
@@ -353,7 +354,6 @@ func analyzeWorkflowMode(taskDescription string, includeRationale bool) Workflow
 		`\b(multi|multiple)\s+\w*\s*file`,
 		`\b(architecture|system|framework)\s+\w+`,
 	}
-	agentTags := []string{"implementation", "refactoring", "architecture", "feature"}
 
 	// ASK indicators
 	askKeywords := []string{
@@ -366,7 +366,6 @@ func analyzeWorkflowMode(taskDescription string, includeRationale bool) Workflow
 		`\b(explain|review|debug|fix)\s+\w+`,
 		`\b(single|one)\s+\w*\s*file`,
 	}
-	askTags := []string{"question", "review", "debug", "help"}
 
 	// Score AGENT indicators
 	agentScore := 0
@@ -468,13 +467,120 @@ func analyzeWorkflowMode(taskDescription string, includeRationale bool) Workflow
 		Description: description,
 		AgentScore:  agentScore,
 		AskScore:    askScore,
-		Rationale:   reasons[:min(5, len(reasons))], // Top 5 reasons
+		Rationale:   reasons[:minInt(5, len(reasons))], // Top 5 reasons
 		Suggestion:  suggestion,
 	}
 }
 
-// min returns the minimum of two integers
-func min(a, b int) int {
+// handleRecommendAdvisorNative handles the "advisor" action for recommend tool
+// Uses devwisdom-go wisdom engine directly (no MCP client needed)
+func handleRecommendAdvisorNative(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
+	// Extract parameters
+	var metric, tool, stage, context string
+	var score float64
+
+	if m, ok := params["metric"].(string); ok {
+		metric = m
+	}
+	if t, ok := params["tool"].(string); ok {
+		tool = t
+	}
+	if st, ok := params["stage"].(string); ok {
+		stage = st
+	}
+	if c, ok := params["context"].(string); ok {
+		context = c
+	}
+	if sc, ok := params["score"].(float64); ok {
+		score = sc
+	} else if sc, ok := params["score"].(int); ok {
+		score = float64(sc)
+	}
+	// Validate and clamp score to 0-100 range
+	if score < 0 {
+		score = 0
+	} else if score > 100 {
+		score = 100
+	}
+
+	// Get wisdom engine
+	engine, err := getWisdomEngine()
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize wisdom engine: %w", err)
+	}
+
+	// Determine advisor based on metric, tool, or stage
+	var advisorInfo *wisdom.AdvisorInfo
+	if metric != "" {
+		advisorInfo, err = engine.GetAdvisors().GetAdvisorForMetric(metric)
+	} else if tool != "" {
+		advisorInfo, err = engine.GetAdvisors().GetAdvisorForTool(tool)
+	} else if stage != "" {
+		advisorInfo, err = engine.GetAdvisors().GetAdvisorForStage(stage)
+	} else {
+		// Default advisor
+		advisorInfo = &wisdom.AdvisorInfo{
+			Advisor:   "pistis_sophia",
+			Icon:      "📜",
+			Rationale: "Default wisdom advisor",
+		}
+	}
+
+	if err != nil || advisorInfo == nil {
+		// Fallback to default
+		advisorInfo = &wisdom.AdvisorInfo{
+			Advisor:   "pistis_sophia",
+			Icon:      "📜",
+			Rationale: "Default wisdom advisor",
+		}
+	}
+
+	// Get wisdom quote
+	quote, err := engine.GetWisdom(score, advisorInfo.Advisor)
+	if err != nil {
+		// Fallback quote
+		quote = &wisdom.Quote{
+			Quote:         "Wisdom comes from experience.",
+			Source:        "Unknown",
+			Encouragement: "Keep learning and growing.",
+		}
+	}
+
+	// Get consultation mode based on score
+	modeConfig := wisdom.GetConsultationMode(score)
+
+	// Create consultation (use map since Consultation type not exported in public API)
+	consultation := map[string]interface{}{
+		"timestamp":         time.Now().Format(time.RFC3339),
+		"consultation_type": "advisor",
+		"advisor":           advisorInfo.Advisor,
+		"advisor_icon":      advisorInfo.Icon,
+		"advisor_name":      advisorInfo.Advisor,
+		"rationale":         advisorInfo.Rationale,
+		"score_at_time":     score,
+		"consultation_mode": modeConfig.Name,
+		"mode_icon":         modeConfig.Icon,
+		"mode_frequency":    modeConfig.Frequency,
+		"mode_guidance":     modeConfig.Description,
+		"quote":             quote.Quote,
+		"quote_source":      quote.Source,
+		"encouragement":     quote.Encouragement,
+		"context":           context,
+	}
+
+	// Convert to JSON
+	resultJSON, err := json.MarshalIndent(consultation, "", "  ")
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal consultation: %w", err)
+	}
+
+	return []framework.TextContent{
+		{Type: "text", Text: string(resultJSON)},
+	}, nil
+}
+
+// minInt returns the minimum of two integers
+func minInt(a, b int) int {
 	if a < b {
 		return a
 	}
