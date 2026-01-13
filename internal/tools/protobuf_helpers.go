@@ -205,6 +205,86 @@ func ContextRequestToParams(req *proto.ContextRequest) map[string]interface{} {
 	return params
 }
 
+// ParseContextItems parses items from protobuf request or JSON string
+// Returns array of ContextItem-like structures for easier processing
+func ParseContextItems(itemsRaw interface{}) ([]*proto.ContextItem, error) {
+	var itemsJSON string
+
+	// Convert itemsRaw to JSON string
+	switch v := itemsRaw.(type) {
+	case string:
+		itemsJSON = v
+	case []interface{}:
+		// Marshal array to JSON string
+		bytes, err := json.Marshal(v)
+		if err != nil {
+			return nil, fmt.Errorf("failed to marshal items array: %w", err)
+		}
+		itemsJSON = string(bytes)
+	default:
+		return nil, fmt.Errorf("items must be a JSON string or array")
+	}
+
+	// Parse JSON array
+	var itemsArray []interface{}
+	if err := json.Unmarshal([]byte(itemsJSON), &itemsArray); err != nil {
+		return nil, fmt.Errorf("failed to parse items JSON: %w", err)
+	}
+
+	// Convert to ContextItem messages
+	contextItems := make([]*proto.ContextItem, 0, len(itemsArray))
+	for _, itemRaw := range itemsArray {
+		item := &proto.ContextItem{}
+
+		// Handle different item formats
+		switch v := itemRaw.(type) {
+		case map[string]interface{}:
+			// Extract data and tool_type from map
+			if dataRaw, ok := v["data"]; ok {
+				// Convert data to JSON string
+				dataBytes, err := json.Marshal(dataRaw)
+				if err == nil {
+					item.Data = string(dataBytes)
+				} else {
+					item.Data = fmt.Sprintf("%v", dataRaw)
+				}
+			} else {
+				// If no "data" field, use entire map as data
+				dataBytes, err := json.Marshal(v)
+				if err == nil {
+					item.Data = string(dataBytes)
+				} else {
+					item.Data = fmt.Sprintf("%v", v)
+				}
+			}
+			if toolType, ok := v["tool_type"].(string); ok {
+				item.ToolType = toolType
+			}
+		case string:
+			// Item is already a string
+			item.Data = v
+		default:
+			// Convert to JSON string
+			dataBytes, err := json.Marshal(v)
+			if err == nil {
+				item.Data = string(dataBytes)
+			} else {
+				item.Data = fmt.Sprintf("%v", v)
+			}
+		}
+
+		contextItems = append(contextItems, item)
+	}
+
+	return contextItems, nil
+}
+
+// ContextItemToDataString extracts data string from ContextItem
+// Helper function to simplify data extraction
+func ContextItemToDataString(item *proto.ContextItem) string {
+	return item.Data
+}
+
 // ParseReportRequest parses a report tool request (protobuf or JSON)
 func ParseReportRequest(args json.RawMessage) (*proto.ReportRequest, map[string]interface{}, error) {
 	var req proto.ReportRequest
@@ -921,8 +1001,8 @@ func OllamaRequestToParams(req *proto.OllamaRequest) map[string]interface{} {
 }
 
 // ParseMlxRequest parses an mlx request (protobuf or JSON)
-func ParseMlxRequest(args json.RawMessage) (*proto.MlxRequest, map[string]interface{}, error) {
-	var req proto.MlxRequest
+func ParseMlxRequest(args json.RawMessage) (*proto.MLXRequest, map[string]interface{}, error) {
+	var req proto.MLXRequest
 
 	if err := protobuf.Unmarshal(args, &req); err == nil {
 		return &req, nil, nil
@@ -937,7 +1017,7 @@ func ParseMlxRequest(args json.RawMessage) (*proto.MlxRequest, map[string]interf
 }
 
 // MlxRequestToParams converts a protobuf MlxRequest to params map
-func MlxRequestToParams(req *proto.MlxRequest) map[string]interface{} {
+func MlxRequestToParams(req *proto.MLXRequest) map[string]interface{} {
 	params := make(map[string]interface{})
 
 	if req.Action != "" {
