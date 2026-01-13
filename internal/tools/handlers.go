@@ -856,13 +856,15 @@ func handleGitTools(ctx context.Context, args json.RawMessage) ([]framework.Text
 			Author:           req.Author,
 			DryRun:           req.DryRun,
 		}
-		if req.Format == "" {
+		// Apply defaults to struct fields (special case - struct not map, can't use request.ApplyDefaults)
+		// Note: This is acceptable as a special case since GitToolsParams is a struct, not a map
+		if params.Format == "" {
 			params.Format = "text"
 		}
-		if req.ConflictStrategy == "" {
+		if params.ConflictStrategy == "" {
 			params.ConflictStrategy = "newer"
 		}
-		if req.Author == "" {
+		if params.Author == "" {
 			params.Author = "system"
 		}
 	} else {
