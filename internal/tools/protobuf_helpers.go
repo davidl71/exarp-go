@@ -151,20 +151,15 @@ func DeserializeMemoryFromProtobuf(data []byte) (*Memory, error) {
 // ParseContextRequest parses a context tool request (protobuf or JSON)
 // Returns protobuf request if protobuf format, or nil with JSON params map
 func ParseContextRequest(args json.RawMessage) (*proto.ContextRequest, map[string]interface{}, error) {
-	var req proto.ContextRequest
-
-	// Try protobuf binary first
-	if err := protobuf.Unmarshal(args, &req); err == nil {
-		// Successfully parsed as protobuf
-		return &req, nil, nil
+	req, params, err := request.ParseRequest(args, func() *proto.ContextRequest {
+		return &proto.ContextRequest{}
+	})
+	if err != nil {
+		return nil, nil, err
 	}
-
-	// Fall back to JSON
-	var params map[string]interface{}
-	if err := json.Unmarshal(args, &params); err != nil {
-		return nil, nil, fmt.Errorf("failed to parse arguments: %w", err)
+	if req != nil {
+		return req, nil, nil
 	}
-
 	return nil, params, nil
 }
 
@@ -283,19 +278,15 @@ func ContextItemToDataString(item *proto.ContextItem) string {
 
 // ParseReportRequest parses a report tool request (protobuf or JSON)
 func ParseReportRequest(args json.RawMessage) (*proto.ReportRequest, map[string]interface{}, error) {
-	var req proto.ReportRequest
-
-	// Try protobuf binary first
-	if err := protobuf.Unmarshal(args, &req); err == nil {
-		return &req, nil, nil
+	req, params, err := request.ParseRequest(args, func() *proto.ReportRequest {
+		return &proto.ReportRequest{}
+	})
+	if err != nil {
+		return nil, nil, err
 	}
-
-	// Fall back to JSON
-	var params map[string]interface{}
-	if err := json.Unmarshal(args, &params); err != nil {
-		return nil, nil, fmt.Errorf("failed to parse arguments: %w", err)
+	if req != nil {
+		return req, nil, nil
 	}
-
 	return nil, params, nil
 }
 
@@ -656,19 +647,15 @@ func ProtoToProjectOverviewData(pb *proto.ProjectOverviewData) map[string]interf
 
 // ParseTaskWorkflowRequest parses a task_workflow tool request (protobuf or JSON)
 func ParseTaskWorkflowRequest(args json.RawMessage) (*proto.TaskWorkflowRequest, map[string]interface{}, error) {
-	var req proto.TaskWorkflowRequest
-
-	// Try protobuf binary first
-	if err := protobuf.Unmarshal(args, &req); err == nil {
-		return &req, nil, nil
+	req, params, err := request.ParseRequest(args, func() *proto.TaskWorkflowRequest {
+		return &proto.TaskWorkflowRequest{}
+	})
+	if err != nil {
+		return nil, nil, err
 	}
-
-	// Fall back to JSON
-	var params map[string]interface{}
-	if err := json.Unmarshal(args, &params); err != nil {
-		return nil, nil, fmt.Errorf("failed to parse arguments: %w", err)
+	if req != nil {
+		return req, nil, nil
 	}
-
 	return nil, params, nil
 }
 
@@ -745,17 +732,15 @@ func TaskWorkflowRequestToParams(req *proto.TaskWorkflowRequest) map[string]inte
 
 // ParseHealthRequest parses a health tool request (protobuf or JSON)
 func ParseHealthRequest(args json.RawMessage) (*proto.HealthRequest, map[string]interface{}, error) {
-	var req proto.HealthRequest
-
-	if err := protobuf.Unmarshal(args, &req); err == nil {
-		return &req, nil, nil
+	req, params, err := request.ParseRequest(args, func() *proto.HealthRequest {
+		return &proto.HealthRequest{}
+	})
+	if err != nil {
+		return nil, nil, err
 	}
-
-	var params map[string]interface{}
-	if err := json.Unmarshal(args, &params); err != nil {
-		return nil, nil, fmt.Errorf("failed to parse arguments: %w", err)
+	if req != nil {
+		return req, nil, nil
 	}
-
 	return nil, params, nil
 }
 
@@ -791,17 +776,15 @@ func HealthRequestToParams(req *proto.HealthRequest) map[string]interface{} {
 
 // ParseSecurityRequest parses a security tool request (protobuf or JSON)
 func ParseSecurityRequest(args json.RawMessage) (*proto.SecurityRequest, map[string]interface{}, error) {
-	var req proto.SecurityRequest
-
-	if err := protobuf.Unmarshal(args, &req); err == nil {
-		return &req, nil, nil
+	req, params, err := request.ParseRequest(args, func() *proto.SecurityRequest {
+		return &proto.SecurityRequest{}
+	})
+	if err != nil {
+		return nil, nil, err
 	}
-
-	var params map[string]interface{}
-	if err := json.Unmarshal(args, &params); err != nil {
-		return nil, nil, fmt.Errorf("failed to parse arguments: %w", err)
+	if req != nil {
+		return req, nil, nil
 	}
-
 	return nil, params, nil
 }
 
@@ -832,17 +815,15 @@ func SecurityRequestToParams(req *proto.SecurityRequest) map[string]interface{} 
 
 // ParseInferSessionModeRequest parses an infer_session_mode request (protobuf or JSON)
 func ParseInferSessionModeRequest(args json.RawMessage) (*proto.InferSessionModeRequest, map[string]interface{}, error) {
-	var req proto.InferSessionModeRequest
-
-	if err := protobuf.Unmarshal(args, &req); err == nil {
-		return &req, nil, nil
+	req, params, err := request.ParseRequest(args, func() *proto.InferSessionModeRequest {
+		return &proto.InferSessionModeRequest{}
+	})
+	if err != nil {
+		return nil, nil, err
 	}
-
-	var params map[string]interface{}
-	if err := json.Unmarshal(args, &params); err != nil {
-		return nil, nil, fmt.Errorf("failed to parse arguments: %w", err)
+	if req != nil {
+		return req, nil, nil
 	}
-
 	return nil, params, nil
 }
 
@@ -857,17 +838,15 @@ func InferSessionModeRequestToParams(req *proto.InferSessionModeRequest) map[str
 
 // ParseToolCatalogRequest parses a tool_catalog request (protobuf or JSON)
 func ParseToolCatalogRequest(args json.RawMessage) (*proto.ToolCatalogRequest, map[string]interface{}, error) {
-	var req proto.ToolCatalogRequest
-
-	if err := protobuf.Unmarshal(args, &req); err == nil {
-		return &req, nil, nil
+	req, params, err := request.ParseRequest(args, func() *proto.ToolCatalogRequest {
+		return &proto.ToolCatalogRequest{}
+	})
+	if err != nil {
+		return nil, nil, err
 	}
-
-	var params map[string]interface{}
-	if err := json.Unmarshal(args, &params); err != nil {
-		return nil, nil, fmt.Errorf("failed to parse arguments: %w", err)
+	if req != nil {
+		return req, nil, nil
 	}
-
 	return nil, params, nil
 }
 
@@ -887,17 +866,15 @@ func ToolCatalogRequestToParams(req *proto.ToolCatalogRequest) map[string]interf
 
 // ParseWorkflowModeRequest parses a workflow_mode request (protobuf or JSON)
 func ParseWorkflowModeRequest(args json.RawMessage) (*proto.WorkflowModeRequest, map[string]interface{}, error) {
-	var req proto.WorkflowModeRequest
-
-	if err := protobuf.Unmarshal(args, &req); err == nil {
-		return &req, nil, nil
+	req, params, err := request.ParseRequest(args, func() *proto.WorkflowModeRequest {
+		return &proto.WorkflowModeRequest{}
+	})
+	if err != nil {
+		return nil, nil, err
 	}
-
-	var params map[string]interface{}
-	if err := json.Unmarshal(args, &params); err != nil {
-		return nil, nil, fmt.Errorf("failed to parse arguments: %w", err)
+	if req != nil {
+		return req, nil, nil
 	}
-
 	return nil, params, nil
 }
 
@@ -928,17 +905,15 @@ func WorkflowModeRequestToParams(req *proto.WorkflowModeRequest) map[string]inte
 
 // ParseEstimationRequest parses an estimation request (protobuf or JSON)
 func ParseEstimationRequest(args json.RawMessage) (*proto.EstimationRequest, map[string]interface{}, error) {
-	var req proto.EstimationRequest
-
-	if err := protobuf.Unmarshal(args, &req); err == nil {
-		return &req, nil, nil
+	req, params, err := request.ParseRequest(args, func() *proto.EstimationRequest {
+		return &proto.EstimationRequest{}
+	})
+	if err != nil {
+		return nil, nil, err
 	}
-
-	var params map[string]interface{}
-	if err := json.Unmarshal(args, &params); err != nil {
-		return nil, nil, fmt.Errorf("failed to parse arguments: %w", err)
+	if req != nil {
+		return req, nil, nil
 	}
-
 	return nil, params, nil
 }
 
@@ -977,17 +952,15 @@ func EstimationRequestToParams(req *proto.EstimationRequest) map[string]interfac
 
 // ParseSessionRequest parses a session request (protobuf or JSON)
 func ParseSessionRequest(args json.RawMessage) (*proto.SessionRequest, map[string]interface{}, error) {
-	var req proto.SessionRequest
-
-	if err := protobuf.Unmarshal(args, &req); err == nil {
-		return &req, nil, nil
+	req, params, err := request.ParseRequest(args, func() *proto.SessionRequest {
+		return &proto.SessionRequest{}
+	})
+	if err != nil {
+		return nil, nil, err
 	}
-
-	var params map[string]interface{}
-	if err := json.Unmarshal(args, &params); err != nil {
-		return nil, nil, fmt.Errorf("failed to parse arguments: %w", err)
+	if req != nil {
+		return req, nil, nil
 	}
-
 	return nil, params, nil
 }
 
@@ -1032,17 +1005,15 @@ func SessionRequestToParams(req *proto.SessionRequest) map[string]interface{} {
 
 // ParseGitToolsRequest parses a git_tools request (protobuf or JSON)
 func ParseGitToolsRequest(args json.RawMessage) (*proto.GitToolsRequest, map[string]interface{}, error) {
-	var req proto.GitToolsRequest
-
-	if err := protobuf.Unmarshal(args, &req); err == nil {
-		return &req, nil, nil
+	req, params, err := request.ParseRequest(args, func() *proto.GitToolsRequest {
+		return &proto.GitToolsRequest{}
+	})
+	if err != nil {
+		return nil, nil, err
 	}
-
-	var params map[string]interface{}
-	if err := json.Unmarshal(args, &params); err != nil {
-		return nil, nil, fmt.Errorf("failed to parse arguments: %w", err)
+	if req != nil {
+		return req, nil, nil
 	}
-
 	return nil, params, nil
 }
 
@@ -1102,17 +1073,15 @@ func GitToolsRequestToParams(req *proto.GitToolsRequest) map[string]interface{} 
 
 // ParseMemoryMaintRequest parses a memory_maint request (protobuf or JSON)
 func ParseMemoryMaintRequest(args json.RawMessage) (*proto.MemoryMaintRequest, map[string]interface{}, error) {
-	var req proto.MemoryMaintRequest
-
-	if err := protobuf.Unmarshal(args, &req); err == nil {
-		return &req, nil, nil
+	req, params, err := request.ParseRequest(args, func() *proto.MemoryMaintRequest {
+		return &proto.MemoryMaintRequest{}
+	})
+	if err != nil {
+		return nil, nil, err
 	}
-
-	var params map[string]interface{}
-	if err := json.Unmarshal(args, &params); err != nil {
-		return nil, nil, fmt.Errorf("failed to parse arguments: %w", err)
+	if req != nil {
+		return req, nil, nil
 	}
-
 	return nil, params, nil
 }
 
@@ -1159,17 +1128,15 @@ func MemoryMaintRequestToParams(req *proto.MemoryMaintRequest) map[string]interf
 
 // ParseTaskAnalysisRequest parses a task_analysis request (protobuf or JSON)
 func ParseTaskAnalysisRequest(args json.RawMessage) (*proto.TaskAnalysisRequest, map[string]interface{}, error) {
-	var req proto.TaskAnalysisRequest
-
-	if err := protobuf.Unmarshal(args, &req); err == nil {
-		return &req, nil, nil
+	req, params, err := request.ParseRequest(args, func() *proto.TaskAnalysisRequest {
+		return &proto.TaskAnalysisRequest{}
+	})
+	if err != nil {
+		return nil, nil, err
 	}
-
-	var params map[string]interface{}
-	if err := json.Unmarshal(args, &params); err != nil {
-		return nil, nil, fmt.Errorf("failed to parse arguments: %w", err)
+	if req != nil {
+		return req, nil, nil
 	}
-
 	return nil, params, nil
 }
 
@@ -1204,17 +1171,15 @@ func TaskAnalysisRequestToParams(req *proto.TaskAnalysisRequest) map[string]inte
 
 // ParseTaskDiscoveryRequest parses a task_discovery request (protobuf or JSON)
 func ParseTaskDiscoveryRequest(args json.RawMessage) (*proto.TaskDiscoveryRequest, map[string]interface{}, error) {
-	var req proto.TaskDiscoveryRequest
-
-	if err := protobuf.Unmarshal(args, &req); err == nil {
-		return &req, nil, nil
+	req, params, err := request.ParseRequest(args, func() *proto.TaskDiscoveryRequest {
+		return &proto.TaskDiscoveryRequest{}
+	})
+	if err != nil {
+		return nil, nil, err
 	}
-
-	var params map[string]interface{}
-	if err := json.Unmarshal(args, &params); err != nil {
-		return nil, nil, fmt.Errorf("failed to parse arguments: %w", err)
+	if req != nil {
+		return req, nil, nil
 	}
-
 	return nil, params, nil
 }
 
@@ -1245,17 +1210,15 @@ func TaskDiscoveryRequestToParams(req *proto.TaskDiscoveryRequest) map[string]in
 
 // ParseOllamaRequest parses an ollama request (protobuf or JSON)
 func ParseOllamaRequest(args json.RawMessage) (*proto.OllamaRequest, map[string]interface{}, error) {
-	var req proto.OllamaRequest
-
-	if err := protobuf.Unmarshal(args, &req); err == nil {
-		return &req, nil, nil
+	req, params, err := request.ParseRequest(args, func() *proto.OllamaRequest {
+		return &proto.OllamaRequest{}
+	})
+	if err != nil {
+		return nil, nil, err
 	}
-
-	var params map[string]interface{}
-	if err := json.Unmarshal(args, &params); err != nil {
-		return nil, nil, fmt.Errorf("failed to parse arguments: %w", err)
+	if req != nil {
+		return req, nil, nil
 	}
-
 	return nil, params, nil
 }
 
@@ -1310,17 +1273,15 @@ func OllamaRequestToParams(req *proto.OllamaRequest) map[string]interface{} {
 
 // ParseMlxRequest parses an mlx request (protobuf or JSON)
 func ParseMlxRequest(args json.RawMessage) (*proto.MLXRequest, map[string]interface{}, error) {
-	var req proto.MLXRequest
-
-	if err := protobuf.Unmarshal(args, &req); err == nil {
-		return &req, nil, nil
+	req, params, err := request.ParseRequest(args, func() *proto.MLXRequest {
+		return &proto.MLXRequest{}
+	})
+	if err != nil {
+		return nil, nil, err
 	}
-
-	var params map[string]interface{}
-	if err := json.Unmarshal(args, &params); err != nil {
-		return nil, nil, fmt.Errorf("failed to parse arguments: %w", err)
+	if req != nil {
+		return req, nil, nil
 	}
-
 	return nil, params, nil
 }
 
@@ -1350,17 +1311,15 @@ func MlxRequestToParams(req *proto.MLXRequest) map[string]interface{} {
 
 // ParsePromptTrackingRequest parses a prompt_tracking request (protobuf or JSON)
 func ParsePromptTrackingRequest(args json.RawMessage) (*proto.PromptTrackingRequest, map[string]interface{}, error) {
-	var req proto.PromptTrackingRequest
-
-	if err := protobuf.Unmarshal(args, &req); err == nil {
-		return &req, nil, nil
+	req, params, err := request.ParseRequest(args, func() *proto.PromptTrackingRequest {
+		return &proto.PromptTrackingRequest{}
+	})
+	if err != nil {
+		return nil, nil, err
 	}
-
-	var params map[string]interface{}
-	if err := json.Unmarshal(args, &params); err != nil {
-		return nil, nil, fmt.Errorf("failed to parse arguments: %w", err)
+	if req != nil {
+		return req, nil, nil
 	}
-
 	return nil, params, nil
 }
 
@@ -1395,17 +1354,15 @@ func PromptTrackingRequestToParams(req *proto.PromptTrackingRequest) map[string]
 
 // ParseRecommendRequest parses a recommend request (protobuf or JSON)
 func ParseRecommendRequest(args json.RawMessage) (*proto.RecommendRequest, map[string]interface{}, error) {
-	var req proto.RecommendRequest
-
-	if err := protobuf.Unmarshal(args, &req); err == nil {
-		return &req, nil, nil
+	req, params, err := request.ParseRequest(args, func() *proto.RecommendRequest {
+		return &proto.RecommendRequest{}
+	})
+	if err != nil {
+		return nil, nil, err
 	}
-
-	var params map[string]interface{}
-	if err := json.Unmarshal(args, &params); err != nil {
-		return nil, nil, fmt.Errorf("failed to parse arguments: %w", err)
+	if req != nil {
+		return req, nil, nil
 	}
-
 	return nil, params, nil
 }
 
@@ -1436,17 +1393,15 @@ func RecommendRequestToParams(req *proto.RecommendRequest) map[string]interface{
 
 // ParseAnalyzeAlignmentRequest parses an analyze_alignment request (protobuf or JSON)
 func ParseAnalyzeAlignmentRequest(args json.RawMessage) (*proto.AnalyzeAlignmentRequest, map[string]interface{}, error) {
-	var req proto.AnalyzeAlignmentRequest
-
-	if err := protobuf.Unmarshal(args, &req); err == nil {
-		return &req, nil, nil
+	req, params, err := request.ParseRequest(args, func() *proto.AnalyzeAlignmentRequest {
+		return &proto.AnalyzeAlignmentRequest{}
+	})
+	if err != nil {
+		return nil, nil, err
 	}
-
-	var params map[string]interface{}
-	if err := json.Unmarshal(args, &params); err != nil {
-		return nil, nil, fmt.Errorf("failed to parse arguments: %w", err)
+	if req != nil {
+		return req, nil, nil
 	}
-
 	return nil, params, nil
 }
 
@@ -1467,17 +1422,15 @@ func AnalyzeAlignmentRequestToParams(req *proto.AnalyzeAlignmentRequest) map[str
 
 // ParseGenerateConfigRequest parses a generate_config request (protobuf or JSON)
 func ParseGenerateConfigRequest(args json.RawMessage) (*proto.GenerateConfigRequest, map[string]interface{}, error) {
-	var req proto.GenerateConfigRequest
-
-	if err := protobuf.Unmarshal(args, &req); err == nil {
-		return &req, nil, nil
+	req, params, err := request.ParseRequest(args, func() *proto.GenerateConfigRequest {
+		return &proto.GenerateConfigRequest{}
+	})
+	if err != nil {
+		return nil, nil, err
 	}
-
-	var params map[string]interface{}
-	if err := json.Unmarshal(args, &params); err != nil {
-		return nil, nil, fmt.Errorf("failed to parse arguments: %w", err)
+	if req != nil {
+		return req, nil, nil
 	}
-
 	return nil, params, nil
 }
 
@@ -1508,17 +1461,15 @@ func GenerateConfigRequestToParams(req *proto.GenerateConfigRequest) map[string]
 
 // ParseSetupHooksRequest parses a setup_hooks request (protobuf or JSON)
 func ParseSetupHooksRequest(args json.RawMessage) (*proto.SetupHooksRequest, map[string]interface{}, error) {
-	var req proto.SetupHooksRequest
-
-	if err := protobuf.Unmarshal(args, &req); err == nil {
-		return &req, nil, nil
+	req, params, err := request.ParseRequest(args, func() *proto.SetupHooksRequest {
+		return &proto.SetupHooksRequest{}
+	})
+	if err != nil {
+		return nil, nil, err
 	}
-
-	var params map[string]interface{}
-	if err := json.Unmarshal(args, &params); err != nil {
-		return nil, nil, fmt.Errorf("failed to parse arguments: %w", err)
+	if req != nil {
+		return req, nil, nil
 	}
-
 	return nil, params, nil
 }
 
@@ -1547,17 +1498,15 @@ func SetupHooksRequestToParams(req *proto.SetupHooksRequest) map[string]interfac
 
 // ParseCheckAttributionRequest parses a check_attribution request (protobuf or JSON)
 func ParseCheckAttributionRequest(args json.RawMessage) (*proto.CheckAttributionRequest, map[string]interface{}, error) {
-	var req proto.CheckAttributionRequest
-
-	if err := protobuf.Unmarshal(args, &req); err == nil {
-		return &req, nil, nil
+	req, params, err := request.ParseRequest(args, func() *proto.CheckAttributionRequest {
+		return &proto.CheckAttributionRequest{}
+	})
+	if err != nil {
+		return nil, nil, err
 	}
-
-	var params map[string]interface{}
-	if err := json.Unmarshal(args, &params); err != nil {
-		return nil, nil, fmt.Errorf("failed to parse arguments: %w", err)
+	if req != nil {
+		return req, nil, nil
 	}
-
 	return nil, params, nil
 }
 
@@ -1575,17 +1524,15 @@ func CheckAttributionRequestToParams(req *proto.CheckAttributionRequest) map[str
 
 // ParseAddExternalToolHintsRequest parses an add_external_tool_hints request (protobuf or JSON)
 func ParseAddExternalToolHintsRequest(args json.RawMessage) (*proto.AddExternalToolHintsRequest, map[string]interface{}, error) {
-	var req proto.AddExternalToolHintsRequest
-
-	if err := protobuf.Unmarshal(args, &req); err == nil {
-		return &req, nil, nil
+	req, params, err := request.ParseRequest(args, func() *proto.AddExternalToolHintsRequest {
+		return &proto.AddExternalToolHintsRequest{}
+	})
+	if err != nil {
+		return nil, nil, err
 	}
-
-	var params map[string]interface{}
-	if err := json.Unmarshal(args, &params); err != nil {
-		return nil, nil, fmt.Errorf("failed to parse arguments: %w", err)
+	if req != nil {
+		return req, nil, nil
 	}
-
 	return nil, params, nil
 }
 
@@ -1606,19 +1553,15 @@ func AddExternalToolHintsRequestToParams(req *proto.AddExternalToolHintsRequest)
 
 // ParseTestingRequest parses a testing tool request (protobuf or JSON)
 func ParseTestingRequest(args json.RawMessage) (*proto.TestingRequest, map[string]interface{}, error) {
-	var req proto.TestingRequest
-
-	// Try protobuf binary first
-	if err := protobuf.Unmarshal(args, &req); err == nil {
-		return &req, nil, nil
+	req, params, err := request.ParseRequest(args, func() *proto.TestingRequest {
+		return &proto.TestingRequest{}
+	})
+	if err != nil {
+		return nil, nil, err
 	}
-
-	// Fall back to JSON
-	var params map[string]interface{}
-	if err := json.Unmarshal(args, &params); err != nil {
-		return nil, nil, fmt.Errorf("failed to parse arguments: %w", err)
+	if req != nil {
+		return req, nil, nil
 	}
-
 	return nil, params, nil
 }
 
@@ -1664,19 +1607,15 @@ func TestingRequestToParams(req *proto.TestingRequest) map[string]interface{} {
 
 // ParseAutomationRequest parses an automation tool request (protobuf or JSON)
 func ParseAutomationRequest(args json.RawMessage) (*proto.AutomationRequest, map[string]interface{}, error) {
-	var req proto.AutomationRequest
-
-	// Try protobuf binary first
-	if err := protobuf.Unmarshal(args, &req); err == nil {
-		return &req, nil, nil
+	req, params, err := request.ParseRequest(args, func() *proto.AutomationRequest {
+		return &proto.AutomationRequest{}
+	})
+	if err != nil {
+		return nil, nil, err
 	}
-
-	// Fall back to JSON
-	var params map[string]interface{}
-	if err := json.Unmarshal(args, &params); err != nil {
-		return nil, nil, fmt.Errorf("failed to parse arguments: %w", err)
+	if req != nil {
+		return req, nil, nil
 	}
-
 	return nil, params, nil
 }
 
@@ -1725,19 +1664,15 @@ func AutomationRequestToParams(req *proto.AutomationRequest) map[string]interfac
 
 // ParseLintRequest parses a lint tool request (protobuf or JSON)
 func ParseLintRequest(args json.RawMessage) (*proto.LintRequest, map[string]interface{}, error) {
-	var req proto.LintRequest
-
-	// Try protobuf binary first
-	if err := protobuf.Unmarshal(args, &req); err == nil {
-		return &req, nil, nil
+	req, params, err := request.ParseRequest(args, func() *proto.LintRequest {
+		return &proto.LintRequest{}
+	})
+	if err != nil {
+		return nil, nil, err
 	}
-
-	// Fall back to JSON
-	var params map[string]interface{}
-	if err := json.Unmarshal(args, &params); err != nil {
-		return nil, nil, fmt.Errorf("failed to parse arguments: %w", err)
+	if req != nil {
+		return req, nil, nil
 	}
-
 	return nil, params, nil
 }
 

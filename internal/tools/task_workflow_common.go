@@ -1123,14 +1123,6 @@ func handleTaskWorkflowCreate(ctx context.Context, params map[string]interface{}
 		},
 	}
 
-	outputPath, _ := params["output_path"].(string)
-	if outputPath != "" {
-		output, _ := json.MarshalIndent(result, "", "  ")
-		if err := os.WriteFile(outputPath, output, 0644); err == nil {
-			result["output_path"] = outputPath
-		}
-	}
-
 	// Auto-estimate task if enabled (default: true)
 	// This happens after task creation succeeds, so failures don't affect task creation
 	autoEstimate := true
@@ -1162,10 +1154,8 @@ func handleTaskWorkflowCreate(ctx context.Context, params map[string]interface{}
 		}
 	}
 
-	output, _ := json.MarshalIndent(result, "", "  ")
-	return []framework.TextContent{
-		{Type: "text", Text: string(output)},
-	}, nil
+	outputPath, _ := params["output_path"].(string)
+	return response.FormatResult(result, outputPath)
 }
 
 // generateEpochTaskID generates a task ID using epoch milliseconds (T-{epoch_milliseconds})
