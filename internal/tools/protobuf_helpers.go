@@ -519,6 +519,7 @@ func ProtoToTaskMetrics(pb *proto.TaskMetrics) map[string]interface{} {
 }
 
 // ProjectOverviewDataToProto converts map[string]interface{} to proto.ProjectOverviewData
+// NOTE: Currently unused - kept for potential future protobuf-based report processing
 func ProjectOverviewDataToProto(data map[string]interface{}) *proto.ProjectOverviewData {
 	pb := &proto.ProjectOverviewData{}
 	
@@ -600,6 +601,7 @@ func ProjectOverviewDataToProto(data map[string]interface{}) *proto.ProjectOverv
 }
 
 // ProtoToProjectOverviewData converts proto.ProjectOverviewData to map[string]interface{}
+// NOTE: Currently unused - kept for potential future protobuf-based report processing
 func ProtoToProjectOverviewData(pb *proto.ProjectOverviewData) map[string]interface{} {
 	data := make(map[string]interface{})
 	
