@@ -49,10 +49,18 @@ func handleGenerateConfig(ctx context.Context, args json.RawMessage) ([]framewor
 // handleHealth handles the health tool
 // Uses native Go implementation for all actions (server, git, docs, dod, cicd) - fully native Go with no fallback
 func handleHealth(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
-	// Parse arguments
-	var params map[string]interface{}
-	if err := json.Unmarshal(args, &params); err != nil {
+	// Try protobuf first, fall back to JSON for backward compatibility
+	req, params, err := ParseHealthRequest(args)
+	if err != nil {
 		return nil, fmt.Errorf("failed to parse arguments: %w", err)
+	}
+
+	// Convert protobuf request to params map if needed
+	if req != nil {
+		params = HealthRequestToParams(req)
+		if req.Action == "" {
+			params["action"] = "server"
+		}
 	}
 
 	// Use native Go implementation - all actions are native
@@ -320,9 +328,24 @@ func handleReport(ctx context.Context, args json.RawMessage) ([]framework.TextCo
 
 // handleSecurity handles the security tool
 func handleSecurity(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
-	var params map[string]interface{}
-	if err := json.Unmarshal(args, &params); err != nil {
+	// Try protobuf first, fall back to JSON for backward compatibility
+	req, params, err := ParseSecurityRequest(args)
+	if err != nil {
 		return nil, fmt.Errorf("failed to parse arguments: %w", err)
+	}
+
+	// Convert protobuf request to params map if needed
+	if req != nil {
+		params = SecurityRequestToParams(req)
+		if req.Action == "" {
+			params["action"] = "report"
+		}
+		if req.Repo == "" {
+			params["repo"] = "davidl71/exarp-go"
+		}
+		if req.State == "" {
+			params["state"] = "open"
+		}
 	}
 
 	action, _ := params["action"].(string)
@@ -579,9 +602,18 @@ func handleAutomation(ctx context.Context, args json.RawMessage) ([]framework.Te
 // handleToolCatalog handles the tool_catalog tool
 // Uses native Go implementation (migrated from Python bridge)
 func handleToolCatalog(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
-	var params map[string]interface{}
-	if err := json.Unmarshal(args, &params); err != nil {
+	// Try protobuf first, fall back to JSON for backward compatibility
+	req, params, err := ParseToolCatalogRequest(args)
+	if err != nil {
 		return nil, fmt.Errorf("failed to parse arguments: %w", err)
+	}
+
+	// Convert protobuf request to params map if needed
+	if req != nil {
+		params = ToolCatalogRequestToParams(req)
+		if req.Action == "" {
+			params["action"] = "help"
+		}
 	}
 
 	// Use native Go implementation
@@ -591,9 +623,18 @@ func handleToolCatalog(ctx context.Context, args json.RawMessage) ([]framework.T
 // handleWorkflowMode handles the workflow_mode tool
 // Uses native Go implementation (migrated from Python bridge)
 func handleWorkflowMode(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
-	var params map[string]interface{}
-	if err := json.Unmarshal(args, &params); err != nil {
+	// Try protobuf first, fall back to JSON for backward compatibility
+	req, params, err := ParseWorkflowModeRequest(args)
+	if err != nil {
 		return nil, fmt.Errorf("failed to parse arguments: %w", err)
+	}
+
+	// Convert protobuf request to params map if needed
+	if req != nil {
+		params = WorkflowModeRequestToParams(req)
+		if req.Action == "" {
+			params["action"] = "focus"
+		}
 	}
 
 	// Use native Go implementation
@@ -691,9 +732,21 @@ func handleEstimation(ctx context.Context, args json.RawMessage) ([]framework.Te
 		return nil, fmt.Errorf("failed to find project root: %w", err)
 	}
 
-	var params map[string]interface{}
-	if err := json.Unmarshal(args, &params); err != nil {
+	// Try protobuf first, fall back to JSON for backward compatibility
+	req, params, err := ParseEstimationRequest(args)
+	if err != nil {
 		return nil, fmt.Errorf("failed to parse arguments: %w", err)
+	}
+
+	// Convert protobuf request to params map if needed
+	if req != nil {
+		params = EstimationRequestToParams(req)
+		if req.Action == "" {
+			params["action"] = "estimate"
+		}
+		if req.Priority == "" {
+			params["priority"] = "medium"
+		}
 	}
 
 	// Try native Go implementation first
@@ -717,9 +770,48 @@ func handleEstimation(ctx context.Context, args json.RawMessage) ([]framework.Te
 
 // handleGitTools handles the git_tools tool using native Go implementation
 func handleGitTools(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
-	var params GitToolsParams
-	if err := json.Unmarshal(args, &params); err != nil {
+	// Try protobuf first, fall back to JSON for backward compatibility
+	req, paramsMap, err := ParseGitToolsRequest(args)
+	if err != nil {
 		return nil, fmt.Errorf("failed to parse arguments: %w", err)
+	}
+
+	var params GitToolsParams
+	if req != nil {
+		// Convert protobuf request to GitToolsParams struct
+		params = GitToolsParams{
+			Action:           req.Action,
+			TaskID:           req.TaskId,
+			Branch:           req.Branch,
+			Limit:            int(req.Limit),
+			Commit1:          req.Commit1,
+			Commit2:          req.Commit2,
+			Time1:            req.Time1,
+			Time2:            req.Time2,
+			Format:           req.Format,
+			OutputPath:       req.OutputPath,
+			MaxCommits:       int(req.MaxCommits),
+			SourceBranch:     req.SourceBranch,
+			TargetBranch:     req.TargetBranch,
+			ConflictStrategy: req.ConflictStrategy,
+			Author:           req.Author,
+			DryRun:           req.DryRun,
+		}
+		if req.Format == "" {
+			params.Format = "text"
+		}
+		if req.ConflictStrategy == "" {
+			params.ConflictStrategy = "newer"
+		}
+		if req.Author == "" {
+			params.Author = "system"
+		}
+	} else {
+		// Convert params map to GitToolsParams struct
+		paramsJSON, _ := json.Marshal(paramsMap)
+		if err := json.Unmarshal(paramsJSON, &params); err != nil {
+			return nil, fmt.Errorf("failed to convert params: %w", err)
+		}
 	}
 
 	// Use native Go implementation
@@ -736,9 +828,21 @@ func handleGitTools(ctx context.Context, args json.RawMessage) ([]framework.Text
 // handleSession handles the session tool
 // Uses native Go implementation for all actions (prime, handoff, prompts, assignee) - fully native Go
 func handleSession(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
-	var params map[string]interface{}
-	if err := json.Unmarshal(args, &params); err != nil {
+	// Try protobuf first, fall back to JSON for backward compatibility
+	req, params, err := ParseSessionRequest(args)
+	if err != nil {
 		return nil, fmt.Errorf("failed to parse arguments: %w", err)
+	}
+
+	// Convert protobuf request to params map if needed
+	if req != nil {
+		params = SessionRequestToParams(req)
+		if req.Action == "" {
+			params["action"] = "prime"
+		}
+		if req.Direction == "" {
+			params["direction"] = "both"
+		}
 	}
 
 	// Try native Go implementation for all actions
@@ -761,9 +865,15 @@ func handleSession(ctx context.Context, args json.RawMessage) ([]framework.TextC
 // handleInferSessionMode handles the infer_session_mode tool
 // Uses native Go implementation (migrated from Python bridge)
 func handleInferSessionMode(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
-	var params map[string]interface{}
-	if err := json.Unmarshal(args, &params); err != nil {
+	// Try protobuf first, fall back to JSON for backward compatibility
+	req, params, err := ParseInferSessionModeRequest(args)
+	if err != nil {
 		return nil, fmt.Errorf("failed to parse arguments: %w", err)
+	}
+
+	// Convert protobuf request to params map if needed
+	if req != nil {
+		params = InferSessionModeRequestToParams(req)
 	}
 
 	// Use native Go implementation
