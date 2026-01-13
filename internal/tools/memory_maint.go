@@ -254,11 +254,9 @@ func handleMemoryMaintGC(ctx context.Context, params map[string]interface{}) ([]
 	}
 
 	if !dryRun {
-		// Delete memory files
-		memoriesDir, _ := getMemoriesDir(projectRoot)
+		// Delete memory files (handles both .pb and .json formats)
 		for _, id := range toDelete {
-			memoryPath := filepath.Join(memoriesDir, id+".json")
-			os.Remove(memoryPath)
+			deleteMemoryFile(projectRoot, id)
 		}
 	}
 
@@ -377,11 +375,9 @@ func handleMemoryMaintPrune(ctx context.Context, params map[string]interface{}) 
 	}
 
 	if !dryRun {
-		// Delete memory files
-		memoriesDir, _ := getMemoriesDir(projectRoot)
+		// Delete memory files (handles both .pb and .json formats)
 		for _, id := range toPrune {
-			memoryPath := filepath.Join(memoriesDir, id+".json")
-			os.Remove(memoryPath)
+			deleteMemoryFile(projectRoot, id)
 		}
 	}
 
@@ -462,13 +458,11 @@ func handleMemoryMaintConsolidate(ctx context.Context, params map[string]interfa
 				return nil, fmt.Errorf("failed to save merged memory: %w", err)
 			}
 
-			// Delete the others
+			// Delete the others (handles both .pb and .json formats)
 			baseID := merged.ID
-			memoriesDir, _ := getMemoriesDir(projectRoot)
 			for _, m := range group {
 				if m.ID != baseID {
-					memoryPath := filepath.Join(memoriesDir, m.ID+".json")
-					if err := os.Remove(memoryPath); err == nil {
+					if deleteMemoryFile(projectRoot, m.ID) {
 						deletedIDs = append(deletedIDs, m.ID)
 					}
 				}

@@ -14,6 +14,7 @@ import (
 	"github.com/davidl71/exarp-go/internal/database"
 	"github.com/davidl71/exarp-go/internal/framework"
 	"github.com/davidl71/exarp-go/internal/security"
+	protobuf "google.golang.org/protobuf/proto"
 )
 
 // Memory represents a stored memory
@@ -421,7 +422,31 @@ func getMemoriesDir(projectRoot string) (string, error) {
 	return memoriesDir, nil
 }
 
+// deleteMemoryFile deletes a memory file, trying both .pb and .json formats
+// Returns true if a file was deleted, false otherwise
+func deleteMemoryFile(projectRoot, memoryID string) bool {
+	memoriesDir, err := getMemoriesDir(projectRoot)
+	if err != nil {
+		return false
+	}
+
+	// Try protobuf format first (.pb)
+	pbPath := filepath.Join(memoriesDir, memoryID+".pb")
+	if err := os.Remove(pbPath); err == nil {
+		return true
+	}
+
+	// Fall back to JSON format (backward compatibility)
+	jsonPath := filepath.Join(memoriesDir, memoryID+".json")
+	if err := os.Remove(jsonPath); err == nil {
+		return true
+	}
+
+	return false
+}
+
 // LoadAllMemories loads all memories from the project root
+// Supports both protobuf (.pb) and JSON (.json) formats for backward compatibility
 // Exported for use by resource handlers
 func LoadAllMemories(projectRoot string) ([]Memory, error) {
 	memoriesDir, err := getMemoriesDir(projectRoot)
@@ -437,22 +462,57 @@ func LoadAllMemories(projectRoot string) ([]Memory, error) {
 	}
 
 	for _, entry := range entries {
-		if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".json") {
+		if entry.IsDir() {
 			continue
 		}
 
+		// Extract memory ID from filename (remove extension)
+		memoryID := strings.TrimSuffix(entry.Name(), filepath.Ext(entry.Name()))
 		memoryPath := filepath.Join(memoriesDir, entry.Name())
-		data, err := os.ReadFile(memoryPath)
-		if err != nil {
-			continue // Skip corrupted files
-		}
 
 		var memory Memory
-		if err := json.Unmarshal(data, &memory); err != nil {
-			continue // Skip invalid JSON
+		var shouldMigrate bool
+
+		// Try protobuf format first (.pb)
+		if strings.HasSuffix(entry.Name(), ".pb") {
+			data, err := os.ReadFile(memoryPath)
+			if err != nil {
+				continue // Skip corrupted files
+			}
+
+			loadedMemory, err := DeserializeMemoryFromProtobuf(data)
+			if err != nil {
+				continue // Skip invalid protobuf
+			}
+			memory = *loadedMemory
+		} else if strings.HasSuffix(entry.Name(), ".json") {
+			// Fall back to JSON format (backward compatibility)
+			data, err := os.ReadFile(memoryPath)
+			if err != nil {
+				continue // Skip corrupted files
+			}
+
+			if err := json.Unmarshal(data, &memory); err != nil {
+				continue // Skip invalid JSON
+			}
+
+			// Mark for migration to protobuf
+			shouldMigrate = true
+		} else {
+			// Skip files that don't match expected formats
+			continue
 		}
 
 		memories = append(memories, memory)
+
+		// Migrate JSON to protobuf format (async, non-blocking)
+		if shouldMigrate {
+			// Convert and save as protobuf
+			if err := saveMemory(projectRoot, memory); err == nil {
+				// Remove old JSON file after successful protobuf save
+				_ = os.Remove(memoryPath)
+			}
+		}
 	}
 
 	// Sort by created_at descending (newest first)
@@ -467,20 +527,29 @@ func LoadAllMemories(projectRoot string) ([]Memory, error) {
 	return memories, nil
 }
 
+// saveMemory saves a memory to file using protobuf binary format
+// Also removes any old JSON file with the same ID for cleanup
 func saveMemory(projectRoot string, memory Memory) error {
 	memoriesDir, err := getMemoriesDir(projectRoot)
 	if err != nil {
 		return err
 	}
 
-	memoryPath := filepath.Join(memoriesDir, memory.ID+".json")
-	data, err := json.MarshalIndent(memory, "", "  ")
+	// Save as protobuf binary (.pb)
+	memoryPath := filepath.Join(memoriesDir, memory.ID+".pb")
+	data, err := SerializeMemoryToProtobuf(&memory)
 	if err != nil {
-		return fmt.Errorf("failed to marshal memory: %w", err)
+		return fmt.Errorf("failed to serialize memory to protobuf: %w", err)
 	}
 
 	if err := os.WriteFile(memoryPath, data, 0644); err != nil {
 		return fmt.Errorf("failed to write memory file: %w", err)
+	}
+
+	// Remove old JSON file if it exists (cleanup during migration)
+	oldJSONPath := filepath.Join(memoriesDir, memory.ID+".json")
+	if _, err := os.Stat(oldJSONPath); err == nil {
+		_ = os.Remove(oldJSONPath) // Best effort cleanup
 	}
 
 	return nil
