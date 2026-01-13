@@ -1,0 +1,54 @@
+syntax = "proto3";
+
+package exarp.todo2;
+
+option go_package = "github.com/davidl71/exarp-go/proto";
+
+// Todo2Task represents a Todo2 task with all its metadata
+message Todo2Task {
+  // Unique task identifier (e.g., "T-123" or epoch-based ID)
+  string id = 1;
+  
+  // Short task name/content
+  string content = 2;
+  
+  // Detailed task description (optional)
+  string long_description = 3;
+  
+  // Task status (e.g., "Todo", "In Progress", "Review", "Done")
+  string status = 4;
+  
+  // Task priority (e.g., "low", "medium", "high", "critical")
+  string priority = 5;
+  
+  // List of tags associated with the task
+  repeated string tags = 6;
+  
+  // List of task IDs this task depends on
+  repeated string dependencies = 7;
+  
+  // Whether the task is completed
+  bool completed = 8;
+  
+  // Additional metadata as key-value pairs (JSON values stored as strings)
+  // For complex values, serialize to JSON string
+  map<string, string> metadata = 9;
+  
+  // Creation timestamp (Unix timestamp in seconds)
+  int64 created_at = 10;
+  
+  // Last modification timestamp (Unix timestamp in seconds)
+  int64 updated_at = 11;
+}
+
+// Todo2State represents the complete Todo2 state file structure
+message Todo2State {
+  // List of all tasks
+  repeated Todo2Task todos = 1;
+  
+  // Version of the state format (for future compatibility)
+  string version = 2;
+  
+  // Timestamp when state was last saved
+  int64 last_saved = 3;
+}

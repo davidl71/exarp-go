@@ -46,29 +46,40 @@ func CreateTask(ctx context.Context, task *Todo2Task) error {
 			}
 		}()
 
-		// Marshal metadata to JSON
-		var metadataJSON string
-		if task.Metadata != nil && len(task.Metadata) > 0 {
-			metadataBytes, err := json.Marshal(task.Metadata)
-			if err != nil {
-				return fmt.Errorf("failed to marshal metadata: %w", err)
-			}
-			metadataJSON = string(metadataBytes)
-		}
-
 		// Convert completed boolean to integer (0 or 1)
 		completedInt := 0
 		if task.Completed {
 			completedInt = 1
 		}
 
-		// Insert task
+		// Serialize task to protobuf (preferred format)
+		var metadataProtobuf []byte
+		var metadataFormat string = "protobuf"
+		protobufData, err := models.SerializeTaskToProtobuf(task)
+		if err != nil {
+			// Fall back to JSON if protobuf serialization fails
+			metadataFormat = "json"
+		} else {
+			metadataProtobuf = protobufData
+		}
+
+		// Also store JSON for backward compatibility
+		var metadataJSON string
+		if task.Metadata != nil && len(task.Metadata) > 0 {
+			metadataBytes, jsonErr := json.Marshal(task.Metadata)
+			if jsonErr != nil {
+				return fmt.Errorf("failed to marshal metadata: %w", jsonErr)
+			}
+			metadataJSON = string(metadataBytes)
+		}
+
+		// Insert task with protobuf data (if available) and JSON (for compatibility)
 		now := time.Now().Format(time.RFC3339)
 		_, err = tx.ExecContext(txCtx, `
 			INSERT INTO tasks (
 				id, name, content, long_description, status, priority, completed,
-				created, last_modified, metadata, created_at, updated_at
-			) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, strftime('%s', 'now'), strftime('%s', 'now'))
+				created, last_modified, metadata, metadata_protobuf, metadata_format, created_at, updated_at
+			) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, strftime('%s', 'now'), strftime('%s', 'now'))
 		`,
 			task.ID,
 			"", // name - TODO: add to Todo2Task struct if needed
@@ -79,7 +90,9 @@ func CreateTask(ctx context.Context, task *Todo2Task) error {
 			completedInt,
 			now, // created
 			now, // last_modified
-			metadataJSON,
+			metadataJSON,      // JSON for backward compatibility
+			metadataProtobuf, // Protobuf binary data (nil if serialization failed)
+			metadataFormat,    // Format indicator
 		)
 		if err != nil {
 			return fmt.Errorf("failed to insert task: %w", err)
@@ -141,17 +154,20 @@ func GetTask(ctx context.Context, id string) (*Todo2Task, error) {
 			return fmt.Errorf("failed to get database: %w", err)
 		}
 
-		// Query task
+		// Query task (include protobuf columns if they exist)
 		var taskData Todo2Task
 		var metadataJSON sql.NullString
+		var metadataProtobuf []byte // BLOB column
+		var metadataFormat sql.NullString
 		var completedInt int
 		var name sql.NullString         // name field (not used in Todo2Task struct yet)
 		var created sql.NullString      // created field
 		var lastModified sql.NullString // last_modified field
 
+		// Try to query with protobuf columns first (new schema)
 		err = db.QueryRowContext(queryCtx, `
 			SELECT id, name, content, long_description, status, priority, completed,
-			       created, last_modified, metadata
+			       created, last_modified, metadata, metadata_protobuf, metadata_format
 			FROM tasks
 			WHERE id = ?
 		`, id).Scan(
@@ -165,7 +181,30 @@ func GetTask(ctx context.Context, id string) (*Todo2Task, error) {
 			&created,      // created - scan but don't use
 			&lastModified, // last_modified - scan but don't use
 			&metadataJSON,
+			&metadataProtobuf,
+			&metadataFormat,
 		)
+
+		// If protobuf columns don't exist, fall back to old schema
+		if err != nil && strings.Contains(err.Error(), "no such column") {
+			err = db.QueryRowContext(queryCtx, `
+				SELECT id, name, content, long_description, status, priority, completed,
+				       created, last_modified, metadata
+				FROM tasks
+				WHERE id = ?
+			`, id).Scan(
+				&taskData.ID,
+				&name,
+				&taskData.Content,
+				&taskData.LongDescription,
+				&taskData.Status,
+				&taskData.Priority,
+				&completedInt,
+				&created,
+				&lastModified,
+				&metadataJSON,
+			)
+		}
 
 		if err == sql.ErrNoRows {
 			return fmt.Errorf("task %s not found", id)
@@ -176,8 +215,23 @@ func GetTask(ctx context.Context, id string) (*Todo2Task, error) {
 
 		taskData.Completed = completedInt == 1
 
-		// Unmarshal metadata
-		if metadataJSON.Valid && metadataJSON.String != "" {
+		// Deserialize metadata: prefer protobuf if available, fall back to JSON
+		if metadataFormat.Valid && metadataFormat.String == "protobuf" && len(metadataProtobuf) > 0 {
+			// Deserialize from protobuf
+			deserializedTask, err := models.DeserializeTaskFromProtobuf(metadataProtobuf)
+			if err == nil {
+				// Use metadata from protobuf deserialization
+				taskData.Metadata = deserializedTask.Metadata
+			} else {
+				// Protobuf deserialization failed, fall back to JSON
+				if metadataJSON.Valid && metadataJSON.String != "" {
+					if err := json.Unmarshal([]byte(metadataJSON.String), &taskData.Metadata); err != nil {
+						taskData.Metadata = nil
+					}
+				}
+			}
+		} else if metadataJSON.Valid && metadataJSON.String != "" {
+			// Use JSON format (legacy or fallback)
 			if err := json.Unmarshal([]byte(metadataJSON.String), &taskData.Metadata); err != nil {
 				// Log but don't fail - metadata is optional
 				taskData.Metadata = nil
@@ -298,20 +352,31 @@ func UpdateTask(ctx context.Context, task *Todo2Task) error {
 			}
 		}()
 
-		// Marshal metadata to JSON
-		var metadataJSON string
-		if task.Metadata != nil && len(task.Metadata) > 0 {
-			metadataBytes, err := json.Marshal(task.Metadata)
-			if err != nil {
-				return fmt.Errorf("failed to marshal metadata: %w", err)
-			}
-			metadataJSON = string(metadataBytes)
-		}
-
 		// Convert completed boolean to integer
 		completedInt := 0
 		if task.Completed {
 			completedInt = 1
+		}
+
+		// Serialize task to protobuf (preferred format)
+		var metadataProtobuf []byte
+		var metadataFormat string = "protobuf"
+		protobufData, err := models.SerializeTaskToProtobuf(task)
+		if err != nil {
+			// Fall back to JSON if protobuf serialization fails
+			metadataFormat = "json"
+		} else {
+			metadataProtobuf = protobufData
+		}
+
+		// Also store JSON for backward compatibility
+		var metadataJSON string
+		if task.Metadata != nil && len(task.Metadata) > 0 {
+			metadataBytes, jsonErr := json.Marshal(task.Metadata)
+			if jsonErr != nil {
+				return fmt.Errorf("failed to marshal metadata: %w", jsonErr)
+			}
+			metadataJSON = string(metadataBytes)
 		}
 
 		// Get current version for optimistic locking
@@ -325,6 +390,7 @@ func UpdateTask(ctx context.Context, task *Todo2Task) error {
 		}
 
 		// Update task with optimistic locking (version check)
+		// Include protobuf columns if they exist in schema
 		now := time.Now().Format(time.RFC3339)
 		result, err := tx.ExecContext(txCtx, `
 			UPDATE tasks SET
@@ -335,6 +401,8 @@ func UpdateTask(ctx context.Context, task *Todo2Task) error {
 				completed = ?,
 				last_modified = ?,
 				metadata = ?,
+				metadata_protobuf = ?,
+				metadata_format = ?,
 				version = version + 1,
 				updated_at = strftime('%s', 'now')
 			WHERE id = ? AND version = ?
@@ -345,10 +413,38 @@ func UpdateTask(ctx context.Context, task *Todo2Task) error {
 			task.Priority,
 			completedInt,
 			now,
-			metadataJSON,
+			metadataJSON,      // JSON for backward compatibility
+			metadataProtobuf, // Protobuf binary data
+			metadataFormat,    // Format indicator
 			task.ID,
 			currentVersion,
 		)
+		// If protobuf columns don't exist, fall back to old schema
+		if err != nil && strings.Contains(err.Error(), "no such column") {
+			result, err = tx.ExecContext(txCtx, `
+				UPDATE tasks SET
+					content = ?,
+					long_description = ?,
+					status = ?,
+					priority = ?,
+					completed = ?,
+					last_modified = ?,
+					metadata = ?,
+					version = version + 1,
+					updated_at = strftime('%s', 'now')
+				WHERE id = ? AND version = ?
+			`,
+				task.Content,
+				task.LongDescription,
+				task.Status,
+				task.Priority,
+				completedInt,
+				now,
+				metadataJSON,
+				task.ID,
+				currentVersion,
+			)
+		}
 		if err != nil {
 			return fmt.Errorf("failed to update task: %w", err)
 		}
@@ -461,9 +557,10 @@ func ListTasks(ctx context.Context, filters *TaskFilters) ([]*Todo2Task, error) 
 		}
 
 		// Build query with filters (using strings.Builder for better performance)
+		// Include protobuf columns if they exist (for new schema)
 		var queryBuilder strings.Builder
 		queryBuilder.WriteString(`
-			SELECT DISTINCT t.id, t.content, t.long_description, t.status, t.priority, t.completed, t.metadata
+			SELECT DISTINCT t.id, t.content, t.long_description, t.status, t.priority, t.completed, t.metadata, t.metadata_protobuf, t.metadata_format
 			FROM tasks t
 		`)
 		var args []interface{}
@@ -499,8 +596,29 @@ func ListTasks(ctx context.Context, filters *TaskFilters) ([]*Todo2Task, error) 
 		queryBuilder.WriteString(" ORDER BY t.created_at DESC")
 		query := queryBuilder.String()
 
+		// Try to query with protobuf columns first
 		rows, err := db.QueryContext(queryCtx, query, args...)
-		if err != nil {
+		hasProtobufColumns := true
+		if err != nil && strings.Contains(err.Error(), "no such column") {
+			// Protobuf columns don't exist, use old schema
+			hasProtobufColumns = false
+			queryBuilderOld := strings.Builder{}
+			queryBuilderOld.WriteString(`
+				SELECT DISTINCT t.id, t.content, t.long_description, t.status, t.priority, t.completed, t.metadata
+				FROM tasks t
+			`)
+			if len(conditions) > 0 {
+				queryBuilderOld.WriteString(" WHERE " + conditions[0])
+				for i := 1; i < len(conditions); i++ {
+					queryBuilderOld.WriteString(" AND " + conditions[i])
+				}
+			}
+			queryBuilderOld.WriteString(" ORDER BY t.created_at DESC")
+			rows, err = db.QueryContext(queryCtx, queryBuilderOld.String(), args...)
+			if err != nil {
+				return fmt.Errorf("failed to query tasks: %w", err)
+			}
+		} else if err != nil {
 			return fmt.Errorf("failed to query tasks: %w", err)
 		}
 		defer rows.Close()
@@ -513,24 +631,59 @@ func ListTasks(ctx context.Context, filters *TaskFilters) ([]*Todo2Task, error) 
 		for rows.Next() {
 			var task Todo2Task
 			var metadataJSON sql.NullString
+			var metadataProtobuf []byte // BLOB column
+			var metadataFormat sql.NullString
 			var completedInt int
 
-			if err := rows.Scan(
-				&task.ID,
-				&task.Content,
-				&task.LongDescription,
-				&task.Status,
-				&task.Priority,
-				&completedInt,
-				&metadataJSON,
-			); err != nil {
-				return fmt.Errorf("failed to scan task: %w", err)
+			// Scan based on whether protobuf columns exist
+			var scanErr error
+			if hasProtobufColumns {
+				scanErr = rows.Scan(
+					&task.ID,
+					&task.Content,
+					&task.LongDescription,
+					&task.Status,
+					&task.Priority,
+					&completedInt,
+					&metadataJSON,
+					&metadataProtobuf,
+					&metadataFormat,
+				)
+			} else {
+				scanErr = rows.Scan(
+					&task.ID,
+					&task.Content,
+					&task.LongDescription,
+					&task.Status,
+					&task.Priority,
+					&completedInt,
+					&metadataJSON,
+				)
+			}
+
+			if scanErr != nil {
+				return fmt.Errorf("failed to scan task: %w", scanErr)
 			}
 
 			task.Completed = completedInt == 1
 
-			// Unmarshal metadata
-			if metadataJSON.Valid && metadataJSON.String != "" {
+			// Deserialize metadata: prefer protobuf if available, fall back to JSON
+			if metadataFormat.Valid && metadataFormat.String == "protobuf" && len(metadataProtobuf) > 0 {
+				// Deserialize from protobuf
+				deserializedTask, err := models.DeserializeTaskFromProtobuf(metadataProtobuf)
+				if err == nil {
+					// Use metadata from protobuf deserialization
+					task.Metadata = deserializedTask.Metadata
+				} else {
+					// Protobuf deserialization failed, fall back to JSON
+					if metadataJSON.Valid && metadataJSON.String != "" {
+						if err := json.Unmarshal([]byte(metadataJSON.String), &task.Metadata); err != nil {
+							task.Metadata = nil
+						}
+					}
+				}
+			} else if metadataJSON.Valid && metadataJSON.String != "" {
+				// Use JSON format (legacy or fallback)
 				if err := json.Unmarshal([]byte(metadataJSON.String), &task.Metadata); err != nil {
 					task.Metadata = nil
 				}

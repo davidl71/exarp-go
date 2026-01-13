@@ -1,0 +1,316 @@
+syntax = "proto3";
+
+package exarp.config;
+
+option go_package = "github.com/davidl71/exarp-go/proto";
+
+// FullConfig represents the complete configuration structure
+message FullConfig {
+  string version = 1;
+  TimeoutsConfig timeouts = 2;
+  ThresholdsConfig thresholds = 3;
+  TasksConfig tasks = 4;
+  DatabaseConfig database = 5;
+  SecurityConfig security = 6;
+  LoggingConfig logging = 7;
+  ToolsConfig tools = 8;
+  WorkflowConfig workflow = 9;
+  MemoryConfig memory = 10;
+  ProjectConfig project = 11;
+}
+
+// TimeoutsConfig contains all timeout and duration settings
+// Durations are stored as seconds (int64) for protobuf compatibility
+message TimeoutsConfig {
+  // Task management timeouts (in seconds)
+  int64 task_lock_lease = 1;
+  int64 task_lock_renewal = 2;
+  int64 stale_lock_threshold = 3;
+  
+  // Tool execution timeouts (in seconds)
+  int64 tool_default = 4;
+  int64 tool_scorecard = 5;
+  int64 tool_linting = 6;
+  int64 tool_testing = 7;
+  int64 tool_report = 8;
+  
+  // External services timeouts (in seconds)
+  int64 ollama_download = 9;
+  int64 ollama_generate = 10;
+  int64 http_client = 11;
+  int64 database_retry = 12;
+  
+  // Context management timeouts (in seconds)
+  int64 context_summarize = 13;
+  int64 context_budget = 14;
+}
+
+// ThresholdsConfig contains all threshold and limit settings
+message ThresholdsConfig {
+  // Task analysis thresholds
+  double similarity_threshold = 1;
+  int32 min_description_length = 2;
+  double min_task_confidence = 3;
+  
+  // Testing thresholds
+  int32 min_coverage = 4;
+  double min_test_confidence = 5;
+  
+  // Estimation thresholds
+  double min_estimation_confidence = 6;
+  double mlx_weight = 7;
+  
+  // Automation thresholds
+  int32 max_parallel_tasks = 8;
+  int32 max_tasks_per_host = 9;
+  int32 max_automation_iterations = 10;
+  
+  // Context management thresholds
+  double tokens_per_char = 11;
+  int32 default_context_budget = 12;
+  double context_reduction_threshold = 13;
+  
+  // Security thresholds
+  int32 rate_limit_requests = 14;
+  int64 rate_limit_window = 15;  // Duration in seconds
+  int64 max_file_size = 16;
+  int32 max_path_depth = 17;
+}
+
+// TasksConfig contains task management defaults and settings
+message TasksConfig {
+  // Defaults
+  string default_status = 1;
+  string default_priority = 2;
+  repeated string default_tags = 3;
+  
+  // Status workflow (map of status -> allowed next statuses)
+  // Stored as JSON string for flexibility: {"Todo": ["In Progress"], ...}
+  string status_workflow_json = 4;
+  
+  // Cleanup settings
+  int32 stale_threshold_hours = 5;
+  bool auto_cleanup_enabled = 6;
+  bool cleanup_dry_run = 7;
+  
+  // Task ID settings
+  string id_format = 8;
+  string id_prefix = 9;
+  
+  // Clarity checks
+  int32 min_description_length = 10;
+  bool require_description = 11;
+  bool auto_clarify = 12;
+}
+
+// DatabaseConfig contains database settings
+message DatabaseConfig {
+  string sqlite_path = 1;
+  string json_fallback_path = 2;
+  string backup_path = 3;
+  int32 max_connections = 4;
+  int64 connection_timeout = 5;  // Duration in seconds
+  int64 query_timeout = 6;       // Duration in seconds
+  int32 retry_attempts = 7;
+  int64 retry_initial_delay = 8;  // Duration in seconds
+  int64 retry_max_delay = 9;      // Duration in seconds
+  double retry_multiplier = 10;
+  bool auto_vacuum = 11;
+  bool wal_mode = 12;
+  int32 checkpoint_interval = 13;
+  int32 backup_retention_days = 14;
+}
+
+// SecurityConfig contains security settings
+message SecurityConfig {
+  RateLimitConfig rate_limit = 1;
+  PathValidationConfig path_validation = 2;
+  FileLimitsConfig file_limits = 3;
+  AccessControlConfig access_control = 4;
+}
+
+// RateLimitConfig contains rate limiting settings
+message RateLimitConfig {
+  bool enabled = 1;
+  int32 requests_per_window = 2;
+  int64 window_duration = 3;  // Duration in seconds
+  int32 burst_size = 4;
+}
+
+// PathValidationConfig contains path validation settings
+message PathValidationConfig {
+  bool enabled = 1;
+  bool allow_absolute_paths = 2;
+  int32 max_depth = 3;
+  repeated string blocked_patterns = 4;
+}
+
+// FileLimitsConfig contains file operation limits
+message FileLimitsConfig {
+  int64 max_file_size = 1;
+  int32 max_files_per_operation = 2;
+  repeated string allowed_extensions = 3;
+}
+
+// AccessControlConfig contains access control settings
+message AccessControlConfig {
+  bool enabled = 1;
+  string default_policy = 2;  // "allow" or "deny"
+  repeated string restricted_tools = 3;
+}
+
+// LoggingConfig contains logging settings
+message LoggingConfig {
+  string level = 1;
+  string tool_level = 2;
+  string framework_level = 3;
+  string format = 4;
+  bool include_timestamps = 5;
+  bool include_caller = 6;
+  bool color_output = 7;
+  string log_dir = 8;
+  string log_file = 9;
+  string session_log_dir = 10;
+  LogRotationConfig log_rotation = 11;
+  int32 retention_days = 12;
+  bool auto_cleanup = 13;
+}
+
+// LogRotationConfig contains log rotation settings
+message LogRotationConfig {
+  bool enabled = 1;
+  int64 max_size = 2;
+  int32 max_files = 3;
+  bool compress = 4;
+}
+
+// ToolsConfig contains tool-specific settings
+message ToolsConfig {
+  ScorecardConfig scorecard = 1;
+  ReportConfig report = 2;
+  LintingConfig linting = 3;
+  TestingConfig testing = 4;
+  MLXConfig mlx = 5;
+  OllamaConfig ollama = 6;
+  ContextConfig context = 7;
+}
+
+// ScorecardConfig contains scorecard tool settings
+message ScorecardConfig {
+  // Default scores as JSON string: {"security": 50, "testing": 50, ...}
+  string default_scores_json = 1;
+  bool include_wisdom = 2;
+  string output_format = 3;
+}
+
+// ReportConfig contains report tool settings
+message ReportConfig {
+  string default_format = 1;
+  string default_output_path = 2;
+  bool include_metrics = 3;
+  bool include_recommendations = 4;
+}
+
+// LintingConfig contains linting tool settings
+message LintingConfig {
+  string default_linter = 1;
+  bool auto_fix = 2;
+  bool include_hints = 3;
+  int64 timeout = 4;  // Duration in seconds
+}
+
+// TestingConfig contains testing tool settings
+message TestingConfig {
+  string default_framework = 1;
+  int32 min_coverage = 2;
+  string coverage_format = 3;
+  bool verbose = 4;
+}
+
+// MLXConfig contains MLX tool settings
+message MLXConfig {
+  string default_model = 1;
+  int32 default_max_tokens = 2;
+  double default_temperature = 3;
+  bool verbose = 4;
+}
+
+// OllamaConfig contains Ollama tool settings
+message OllamaConfig {
+  string default_model = 1;
+  string default_host = 2;
+  int32 default_context_size = 3;
+  int32 default_num_threads = 4;
+  int32 default_num_gpu = 5;
+}
+
+// ContextConfig contains context tool settings
+message ContextConfig {
+  int32 default_budget = 1;
+  string default_summarization_level = 2;
+  double tokens_per_char = 3;
+  bool include_raw = 4;
+}
+
+// WorkflowConfig contains workflow mode settings
+message WorkflowConfig {
+  string default_mode = 1;
+  bool auto_detect_mode = 2;
+  ModeSuggestionsConfig mode_suggestions = 3;
+  // Modes map stored as JSON string for flexibility
+  string modes_json = 4;
+  FocusConfig focus = 5;
+}
+
+// ModeSuggestionsConfig contains time-based mode suggestions
+message ModeSuggestionsConfig {
+  string morning = 1;
+  string afternoon = 2;
+  string evening = 3;
+}
+
+// FocusConfig contains focus mode settings
+message FocusConfig {
+  bool enabled = 1;
+  int32 reduction_target = 2;
+  bool preserve_core_tools = 3;
+}
+
+// MemoryConfig contains memory and session settings
+message MemoryConfig {
+  repeated string categories = 1;
+  string storage_path = 2;
+  string session_log_path = 3;
+  int32 retention_days = 4;
+  bool auto_cleanup = 5;
+  int32 max_memories = 6;
+  ConsolidationConfig consolidation = 7;
+}
+
+// ConsolidationConfig contains memory consolidation settings
+message ConsolidationConfig {
+  bool enabled = 1;
+  double similarity_threshold = 2;
+  string frequency = 3;
+}
+
+// ProjectConfig contains project-specific settings
+message ProjectConfig {
+  string name = 1;
+  string type = 2;
+  string language = 3;
+  string root = 4;
+  string todo2_path = 5;
+  string exarp_path = 6;
+  FeaturesConfig features = 7;
+  repeated string skip_checks = 8;
+  repeated string custom_tools = 9;
+}
+
+// FeaturesConfig contains feature flags
+message FeaturesConfig {
+  bool sqlite_enabled = 1;
+  bool json_fallback = 2;
+  bool python_bridge = 3;
+  repeated string mcp_servers = 4;
+}

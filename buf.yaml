@@ -1,0 +1,29 @@
+version: v2
+
+# Module configuration
+modules:
+  - path: proto
+    name: buf.build/davidl71/exarp-go
+
+# Lint configuration
+lint:
+  use:
+    - DEFAULT
+  except:
+    - PACKAGE_VERSION_SUFFIX  # We use semantic versioning in go_package
+  ignore:
+    - proto/README.md  # Ignore documentation files
+
+# Breaking change detection
+breaking:
+  use:
+    - WIRE
+    - WIRE_JSON
+  ignore_unstable_packages: true
+
+# Remote plugins (for code generation)
+plugins:
+  - remote: buf.build/protocolbuffers/go
+    out: proto
+    opt:
+      - paths=source_relative
