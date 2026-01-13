@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/davidl71/exarp-go/internal/bridge"
 	"github.com/davidl71/exarp-go/internal/framework"
@@ -427,10 +428,23 @@ func handleTaskWorkflow(ctx context.Context, args json.RawMessage) ([]framework.
 		return result, nil
 	}
 
-	// If native fails (e.g., clarify without Apple FM, or other errors), fall back to Python bridge
-	bridgeResult, err := bridge.ExecutePythonTool(ctx, "task_workflow", params)
-	if err != nil {
-		return nil, fmt.Errorf("task_workflow failed: %w", err)
+	// Only fallback to Python bridge for specific errors that indicate native isn't available
+	// Don't fallback for sync/database errors - those should be reported, not hidden
+	errStr := err.Error()
+	shouldFallback := strings.Contains(errStr, "Apple Foundation Models not supported") ||
+		strings.Contains(errStr, "not available on this platform") ||
+		strings.Contains(errStr, "requires Apple Foundation Models")
+
+	if !shouldFallback {
+		// Native implementation failed with a real error (e.g., database save failed)
+		// Return the error instead of falling back to Python bridge
+		return nil, err
+	}
+
+	// If native fails due to platform limitations (e.g., clarify without Apple FM), fall back to Python bridge
+	bridgeResult, bridgeErr := bridge.ExecutePythonTool(ctx, "task_workflow", params)
+	if bridgeErr != nil {
+		return nil, fmt.Errorf("task_workflow failed (native: %v, bridge: %w)", err, bridgeErr)
 	}
 
 	return []framework.TextContent{
