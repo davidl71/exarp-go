@@ -289,8 +289,13 @@ func executeTool(server framework.MCPServer, toolName, argsJSON string) error {
 	logger := logging.WithContext(ctx)
 	logger.Info("Executing tool", "tool", toolName)
 
+	// Track performance
+	perf := logging.StartPerformanceLogging(ctx, "tool_execution", logging.DefaultSlowThreshold)
+	defer perf.Finish()
+	
 	result, err := server.CallTool(ctx, toolName, argsBytes)
 	if err != nil {
+		perf.FinishWithError(err)
 		logging.ErrorContext(ctx, "Tool execution failed", "error", err, "tool", toolName)
 		return fmt.Errorf("tool execution failed: %w", err)
 	}
