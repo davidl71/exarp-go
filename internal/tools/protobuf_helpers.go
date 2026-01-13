@@ -711,3 +711,507 @@ func GitToolsRequestToParams(req *proto.GitToolsRequest) map[string]interface{} 
 
 	return params
 }
+
+// ParseMemoryMaintRequest parses a memory_maint request (protobuf or JSON)
+func ParseMemoryMaintRequest(args json.RawMessage) (*proto.MemoryMaintRequest, map[string]interface{}, error) {
+	var req proto.MemoryMaintRequest
+
+	if err := protobuf.Unmarshal(args, &req); err == nil {
+		return &req, nil, nil
+	}
+
+	var params map[string]interface{}
+	if err := json.Unmarshal(args, &params); err != nil {
+		return nil, nil, fmt.Errorf("failed to parse arguments: %w", err)
+	}
+
+	return nil, params, nil
+}
+
+// MemoryMaintRequestToParams converts a protobuf MemoryMaintRequest to params map
+func MemoryMaintRequestToParams(req *proto.MemoryMaintRequest) map[string]interface{} {
+	params := make(map[string]interface{})
+
+	if req.Action != "" {
+		params["action"] = req.Action
+	}
+	if req.MaxAgeDays > 0 {
+		params["max_age_days"] = int(req.MaxAgeDays)
+	}
+	params["delete_orphaned"] = req.DeleteOrphaned
+	params["delete_duplicates"] = req.DeleteDuplicates
+	if req.ScorecardMaxAgeDays > 0 {
+		params["scorecard_max_age_days"] = int(req.ScorecardMaxAgeDays)
+	}
+	if req.ValueThreshold > 0 {
+		params["value_threshold"] = req.ValueThreshold
+	}
+	if req.KeepMinimum > 0 {
+		params["keep_minimum"] = int(req.KeepMinimum)
+	}
+	if req.SimilarityThreshold > 0 {
+		params["similarity_threshold"] = req.SimilarityThreshold
+	}
+	if req.MergeStrategy != "" {
+		params["merge_strategy"] = req.MergeStrategy
+	}
+	if req.Scope != "" {
+		params["scope"] = req.Scope
+	}
+	params["dry_run"] = req.DryRun
+	params["interactive"] = req.Interactive
+	params["generate_insights"] = req.GenerateInsights
+	params["save_dream"] = req.SaveDream
+	if req.Advisors != "" {
+		params["advisors"] = req.Advisors
+	}
+
+	return params
+}
+
+// ParseTaskAnalysisRequest parses a task_analysis request (protobuf or JSON)
+func ParseTaskAnalysisRequest(args json.RawMessage) (*proto.TaskAnalysisRequest, map[string]interface{}, error) {
+	var req proto.TaskAnalysisRequest
+
+	if err := protobuf.Unmarshal(args, &req); err == nil {
+		return &req, nil, nil
+	}
+
+	var params map[string]interface{}
+	if err := json.Unmarshal(args, &params); err != nil {
+		return nil, nil, fmt.Errorf("failed to parse arguments: %w", err)
+	}
+
+	return nil, params, nil
+}
+
+// TaskAnalysisRequestToParams converts a protobuf TaskAnalysisRequest to params map
+func TaskAnalysisRequestToParams(req *proto.TaskAnalysisRequest) map[string]interface{} {
+	params := make(map[string]interface{})
+
+	if req.Action != "" {
+		params["action"] = req.Action
+	}
+	if req.SimilarityThreshold > 0 {
+		params["similarity_threshold"] = req.SimilarityThreshold
+	}
+	params["auto_fix"] = req.AutoFix
+	params["dry_run"] = req.DryRun
+	if req.CustomRules != "" {
+		params["custom_rules"] = req.CustomRules
+	}
+	if req.RemoveTags != "" {
+		params["remove_tags"] = req.RemoveTags
+	}
+	if req.OutputFormat != "" {
+		params["output_format"] = req.OutputFormat
+	}
+	params["include_recommendations"] = req.IncludeRecommendations
+	if req.OutputPath != "" {
+		params["output_path"] = req.OutputPath
+	}
+
+	return params
+}
+
+// ParseTaskDiscoveryRequest parses a task_discovery request (protobuf or JSON)
+func ParseTaskDiscoveryRequest(args json.RawMessage) (*proto.TaskDiscoveryRequest, map[string]interface{}, error) {
+	var req proto.TaskDiscoveryRequest
+
+	if err := protobuf.Unmarshal(args, &req); err == nil {
+		return &req, nil, nil
+	}
+
+	var params map[string]interface{}
+	if err := json.Unmarshal(args, &params); err != nil {
+		return nil, nil, fmt.Errorf("failed to parse arguments: %w", err)
+	}
+
+	return nil, params, nil
+}
+
+// TaskDiscoveryRequestToParams converts a protobuf TaskDiscoveryRequest to params map
+func TaskDiscoveryRequestToParams(req *proto.TaskDiscoveryRequest) map[string]interface{} {
+	params := make(map[string]interface{})
+
+	if req.Action != "" {
+		params["action"] = req.Action
+	}
+	if req.FilePatterns != "" {
+		params["file_patterns"] = req.FilePatterns
+	}
+	params["include_fixme"] = req.IncludeFixme
+	if req.DocPath != "" {
+		params["doc_path"] = req.DocPath
+	}
+	if req.JsonPattern != "" {
+		params["json_pattern"] = req.JsonPattern
+	}
+	if req.OutputPath != "" {
+		params["output_path"] = req.OutputPath
+	}
+	params["create_tasks"] = req.CreateTasks
+
+	return params
+}
+
+// ParseOllamaRequest parses an ollama request (protobuf or JSON)
+func ParseOllamaRequest(args json.RawMessage) (*proto.OllamaRequest, map[string]interface{}, error) {
+	var req proto.OllamaRequest
+
+	if err := protobuf.Unmarshal(args, &req); err == nil {
+		return &req, nil, nil
+	}
+
+	var params map[string]interface{}
+	if err := json.Unmarshal(args, &params); err != nil {
+		return nil, nil, fmt.Errorf("failed to parse arguments: %w", err)
+	}
+
+	return nil, params, nil
+}
+
+// OllamaRequestToParams converts a protobuf OllamaRequest to params map
+func OllamaRequestToParams(req *proto.OllamaRequest) map[string]interface{} {
+	params := make(map[string]interface{})
+
+	if req.Action != "" {
+		params["action"] = req.Action
+	}
+	if req.Host != "" {
+		params["host"] = req.Host
+	}
+	if req.Prompt != "" {
+		params["prompt"] = req.Prompt
+	}
+	if req.Model != "" {
+		params["model"] = req.Model
+	}
+	params["stream"] = req.Stream
+	if req.Options != "" {
+		params["options"] = req.Options
+	}
+	if req.NumGpu > 0 {
+		params["num_gpu"] = int(req.NumGpu)
+	}
+	if req.NumThreads > 0 {
+		params["num_threads"] = int(req.NumThreads)
+	}
+	if req.ContextSize > 0 {
+		params["context_size"] = int(req.ContextSize)
+	}
+	if req.FilePath != "" {
+		params["file_path"] = req.FilePath
+	}
+	if req.OutputPath != "" {
+		params["output_path"] = req.OutputPath
+	}
+	if req.Data != "" {
+		params["data"] = req.Data
+	}
+	if req.Style != "" {
+		params["style"] = req.Style
+	}
+	if req.Level != "" {
+		params["level"] = req.Level
+	}
+	params["include_suggestions"] = req.IncludeSuggestions
+
+	return params
+}
+
+// ParseMlxRequest parses an mlx request (protobuf or JSON)
+func ParseMlxRequest(args json.RawMessage) (*proto.MlxRequest, map[string]interface{}, error) {
+	var req proto.MlxRequest
+
+	if err := protobuf.Unmarshal(args, &req); err == nil {
+		return &req, nil, nil
+	}
+
+	var params map[string]interface{}
+	if err := json.Unmarshal(args, &params); err != nil {
+		return nil, nil, fmt.Errorf("failed to parse arguments: %w", err)
+	}
+
+	return nil, params, nil
+}
+
+// MlxRequestToParams converts a protobuf MlxRequest to params map
+func MlxRequestToParams(req *proto.MlxRequest) map[string]interface{} {
+	params := make(map[string]interface{})
+
+	if req.Action != "" {
+		params["action"] = req.Action
+	}
+	if req.Prompt != "" {
+		params["prompt"] = req.Prompt
+	}
+	if req.Model != "" {
+		params["model"] = req.Model
+	}
+	if req.MaxTokens > 0 {
+		params["max_tokens"] = int(req.MaxTokens)
+	}
+	if req.Temperature > 0 {
+		params["temperature"] = req.Temperature
+	}
+	params["verbose"] = req.Verbose
+
+	return params
+}
+
+// ParsePromptTrackingRequest parses a prompt_tracking request (protobuf or JSON)
+func ParsePromptTrackingRequest(args json.RawMessage) (*proto.PromptTrackingRequest, map[string]interface{}, error) {
+	var req proto.PromptTrackingRequest
+
+	if err := protobuf.Unmarshal(args, &req); err == nil {
+		return &req, nil, nil
+	}
+
+	var params map[string]interface{}
+	if err := json.Unmarshal(args, &params); err != nil {
+		return nil, nil, fmt.Errorf("failed to parse arguments: %w", err)
+	}
+
+	return nil, params, nil
+}
+
+// PromptTrackingRequestToParams converts a protobuf PromptTrackingRequest to params map
+func PromptTrackingRequestToParams(req *proto.PromptTrackingRequest) map[string]interface{} {
+	params := make(map[string]interface{})
+
+	if req.Action != "" {
+		params["action"] = req.Action
+	}
+	if req.Prompt != "" {
+		params["prompt"] = req.Prompt
+	}
+	if req.TaskId != "" {
+		params["task_id"] = req.TaskId
+	}
+	if req.Mode != "" {
+		params["mode"] = req.Mode
+	}
+	if req.Outcome != "" {
+		params["outcome"] = req.Outcome
+	}
+	if req.Iteration > 0 {
+		params["iteration"] = int(req.Iteration)
+	}
+	if req.Days > 0 {
+		params["days"] = int(req.Days)
+	}
+
+	return params
+}
+
+// ParseRecommendRequest parses a recommend request (protobuf or JSON)
+func ParseRecommendRequest(args json.RawMessage) (*proto.RecommendRequest, map[string]interface{}, error) {
+	var req proto.RecommendRequest
+
+	if err := protobuf.Unmarshal(args, &req); err == nil {
+		return &req, nil, nil
+	}
+
+	var params map[string]interface{}
+	if err := json.Unmarshal(args, &params); err != nil {
+		return nil, nil, fmt.Errorf("failed to parse arguments: %w", err)
+	}
+
+	return nil, params, nil
+}
+
+// RecommendRequestToParams converts a protobuf RecommendRequest to params map
+func RecommendRequestToParams(req *proto.RecommendRequest) map[string]interface{} {
+	params := make(map[string]interface{})
+
+	if req.Action != "" {
+		params["action"] = req.Action
+	}
+	if req.TaskDescription != "" {
+		params["task_description"] = req.TaskDescription
+	}
+	if req.Tags != "" {
+		params["tags"] = req.Tags
+	}
+	params["include_rationale"] = req.IncludeRationale
+	if req.TaskType != "" {
+		params["task_type"] = req.TaskType
+	}
+	if req.OptimizeFor != "" {
+		params["optimize_for"] = req.OptimizeFor
+	}
+	params["include_alternatives"] = req.IncludeAlternatives
+
+	return params
+}
+
+// ParseAnalyzeAlignmentRequest parses an analyze_alignment request (protobuf or JSON)
+func ParseAnalyzeAlignmentRequest(args json.RawMessage) (*proto.AnalyzeAlignmentRequest, map[string]interface{}, error) {
+	var req proto.AnalyzeAlignmentRequest
+
+	if err := protobuf.Unmarshal(args, &req); err == nil {
+		return &req, nil, nil
+	}
+
+	var params map[string]interface{}
+	if err := json.Unmarshal(args, &params); err != nil {
+		return nil, nil, fmt.Errorf("failed to parse arguments: %w", err)
+	}
+
+	return nil, params, nil
+}
+
+// AnalyzeAlignmentRequestToParams converts a protobuf AnalyzeAlignmentRequest to params map
+func AnalyzeAlignmentRequestToParams(req *proto.AnalyzeAlignmentRequest) map[string]interface{} {
+	params := make(map[string]interface{})
+
+	if req.Action != "" {
+		params["action"] = req.Action
+	}
+	params["create_followup_tasks"] = req.CreateFollowupTasks
+	if req.OutputPath != "" {
+		params["output_path"] = req.OutputPath
+	}
+
+	return params
+}
+
+// ParseGenerateConfigRequest parses a generate_config request (protobuf or JSON)
+func ParseGenerateConfigRequest(args json.RawMessage) (*proto.GenerateConfigRequest, map[string]interface{}, error) {
+	var req proto.GenerateConfigRequest
+
+	if err := protobuf.Unmarshal(args, &req); err == nil {
+		return &req, nil, nil
+	}
+
+	var params map[string]interface{}
+	if err := json.Unmarshal(args, &params); err != nil {
+		return nil, nil, fmt.Errorf("failed to parse arguments: %w", err)
+	}
+
+	return nil, params, nil
+}
+
+// GenerateConfigRequestToParams converts a protobuf GenerateConfigRequest to params map
+func GenerateConfigRequestToParams(req *proto.GenerateConfigRequest) map[string]interface{} {
+	params := make(map[string]interface{})
+
+	if req.Action != "" {
+		params["action"] = req.Action
+	}
+	if req.Rules != "" {
+		params["rules"] = req.Rules
+	}
+	params["overwrite"] = req.Overwrite
+	params["analyze_only"] = req.AnalyzeOnly
+	params["include_indexing"] = req.IncludeIndexing
+	params["analyze_project"] = req.AnalyzeProject
+	if req.RuleFiles != "" {
+		params["rule_files"] = req.RuleFiles
+	}
+	if req.OutputDir != "" {
+		params["output_dir"] = req.OutputDir
+	}
+	params["dry_run"] = req.DryRun
+
+	return params
+}
+
+// ParseSetupHooksRequest parses a setup_hooks request (protobuf or JSON)
+func ParseSetupHooksRequest(args json.RawMessage) (*proto.SetupHooksRequest, map[string]interface{}, error) {
+	var req proto.SetupHooksRequest
+
+	if err := protobuf.Unmarshal(args, &req); err == nil {
+		return &req, nil, nil
+	}
+
+	var params map[string]interface{}
+	if err := json.Unmarshal(args, &params); err != nil {
+		return nil, nil, fmt.Errorf("failed to parse arguments: %w", err)
+	}
+
+	return nil, params, nil
+}
+
+// SetupHooksRequestToParams converts a protobuf SetupHooksRequest to params map
+func SetupHooksRequestToParams(req *proto.SetupHooksRequest) map[string]interface{} {
+	params := make(map[string]interface{})
+
+	if req.Action != "" {
+		params["action"] = req.Action
+	}
+	if len(req.Hooks) > 0 {
+		hooksJSON, _ := json.Marshal(req.Hooks)
+		params["hooks"] = string(hooksJSON)
+	}
+	if req.Patterns != "" {
+		params["patterns"] = req.Patterns
+	}
+	if req.ConfigPath != "" {
+		params["config_path"] = req.ConfigPath
+	}
+	params["install"] = req.Install
+	params["dry_run"] = req.DryRun
+
+	return params
+}
+
+// ParseCheckAttributionRequest parses a check_attribution request (protobuf or JSON)
+func ParseCheckAttributionRequest(args json.RawMessage) (*proto.CheckAttributionRequest, map[string]interface{}, error) {
+	var req proto.CheckAttributionRequest
+
+	if err := protobuf.Unmarshal(args, &req); err == nil {
+		return &req, nil, nil
+	}
+
+	var params map[string]interface{}
+	if err := json.Unmarshal(args, &params); err != nil {
+		return nil, nil, fmt.Errorf("failed to parse arguments: %w", err)
+	}
+
+	return nil, params, nil
+}
+
+// CheckAttributionRequestToParams converts a protobuf CheckAttributionRequest to params map
+func CheckAttributionRequestToParams(req *proto.CheckAttributionRequest) map[string]interface{} {
+	params := make(map[string]interface{})
+
+	if req.OutputPath != "" {
+		params["output_path"] = req.OutputPath
+	}
+	params["create_tasks"] = req.CreateTasks
+
+	return params
+}
+
+// ParseAddExternalToolHintsRequest parses an add_external_tool_hints request (protobuf or JSON)
+func ParseAddExternalToolHintsRequest(args json.RawMessage) (*proto.AddExternalToolHintsRequest, map[string]interface{}, error) {
+	var req proto.AddExternalToolHintsRequest
+
+	if err := protobuf.Unmarshal(args, &req); err == nil {
+		return &req, nil, nil
+	}
+
+	var params map[string]interface{}
+	if err := json.Unmarshal(args, &params); err != nil {
+		return nil, nil, fmt.Errorf("failed to parse arguments: %w", err)
+	}
+
+	return nil, params, nil
+}
+
+// AddExternalToolHintsRequestToParams converts a protobuf AddExternalToolHintsRequest to params map
+func AddExternalToolHintsRequestToParams(req *proto.AddExternalToolHintsRequest) map[string]interface{} {
+	params := make(map[string]interface{})
+
+	params["dry_run"] = req.DryRun
+	if req.OutputPath != "" {
+		params["output_path"] = req.OutputPath
+	}
+	if req.MinFileSize > 0 {
+		params["min_file_size"] = int(req.MinFileSize)
+	}
+
+	return params
+}
