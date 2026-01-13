@@ -187,29 +187,52 @@ build: ## Build the Go server (CGO enabled on Mac Silicon by default, disabled e
 		if command -v gcc >/dev/null 2>&1 || command -v clang >/dev/null 2>&1 || command -v cc >/dev/null 2>&1; then \
 			echo "$(BLUE)Detected Mac Silicon - Attempting build with CGO enabled (Apple Foundation Models support)$(NC)"; \
 			ODBC_PREFIX=$$(brew --prefix unixodbc 2>/dev/null || echo ""); \
-			if [ -n "$$ODBC_PREFIX" ] && [ -d "$$ODBC_PREFIX/include" ]; then \
-				# Build with ODBC support (includes sql.h headers from unixodbc)
-				# Include path: $$ODBC_PREFIX/include (e.g., /opt/homebrew/opt/unixodbc/include)
+			SQL_H_FOUND=0; \
+			if [ -n "$$ODBC_PREFIX" ] && [ -f "$$ODBC_PREFIX/include/sql.h" ]; then \
+				SQL_H_FOUND=1; \
+			elif [ -f "/opt/homebrew/include/sql.h" ]; then \
+				SQL_H_FOUND=1; \
+				ODBC_PREFIX="/opt/homebrew"; \
+			elif [ -f "/usr/local/include/sql.h" ]; then \
+				SQL_H_FOUND=1; \
+				ODBC_PREFIX="/usr/local"; \
+			fi; \
+			if [ $$SQL_H_FOUND -eq 1 ]; then \
+				echo "$(BLUE)Found sql.h at $$ODBC_PREFIX/include - Building with ODBC support$(NC)"; \
 				build_output=$$(CGO_ENABLED=1 CGO_CFLAGS="-I$$ODBC_PREFIX/include" CGO_LDFLAGS="-L$$ODBC_PREFIX/lib" $(GO) build -ldflags "-X main.Version=$(VERSION) -X main.BuildTime=$(BUILD_TIME) -X main.GitCommit=$(GIT_COMMIT)" -o $(BINARY_PATH) ./cmd/server 2>&1); \
 			else \
-				# Build without ODBC to avoid sql.h dependency (AFM-only build)
-				# Use no_odbc tag to exclude ODBC driver when unixodbc not installed
+				echo "$(YELLOW)sql.h not found - Building with AFM support only (ODBC excluded)$(NC)"; \
+				echo "$(YELLOW)   To enable ODBC: brew install unixodbc$(NC)"; \
 				build_output=$$(CGO_ENABLED=1 $(GO) build -tags "no_odbc" -ldflags "-X main.Version=$(VERSION) -X main.BuildTime=$(BUILD_TIME) -X main.GitCommit=$(GIT_COMMIT)" -o $(BINARY_PATH) ./cmd/server 2>&1); \
 			fi; \
 			build_status=$$?; \
 			if [ $$build_status -eq 0 ]; then \
 				echo "$(GREEN)✅ Server built with CGO: $(BINARY_PATH) (v$(VERSION))$(NC)"; \
+				if [ $$SQL_H_FOUND -eq 1 ]; then \
+					echo "$(GREEN)   ✅ ODBC support enabled$(NC)"; \
+				else \
+					echo "$(YELLOW)   ⚠️  ODBC support disabled (sql.h not found)$(NC)"; \
+				fi; \
 			else \
 				if echo "$$build_output" | grep -q "sql.h"; then \
-					echo "$(YELLOW)⚠️  CGO build failed - ODBC headers not found$(NC)"; \
-					echo "$(YELLOW)   Install unixodbc: brew install unixodbc$(NC)"; \
-					echo "$(YELLOW)   Falling back to build without CGO...$(NC)"; \
+					echo "$(YELLOW)⚠️  Build failed due to missing sql.h - Retrying with no_odbc tag...$(NC)"; \
+					build_output=$$(CGO_ENABLED=1 $(GO) build -tags "no_odbc" -ldflags "-X main.Version=$(VERSION) -X main.BuildTime=$(BUILD_TIME) -X main.GitCommit=$(GIT_COMMIT)" -o $(BINARY_PATH) ./cmd/server 2>&1); \
+					build_status=$$?; \
+					if [ $$build_status -eq 0 ]; then \
+						echo "$(GREEN)✅ Server built with CGO (AFM only): $(BINARY_PATH) (v$(VERSION))$(NC)"; \
+						echo "$(YELLOW)   ⚠️  ODBC support disabled (sql.h not found)$(NC)"; \
+					else \
+						echo "$(YELLOW)⚠️  CGO build failed - falling back to build without CGO...$(NC)"; \
+						CGO_ENABLED=0 $(GO) build -ldflags "-X main.Version=$(VERSION) -X main.BuildTime=$(BUILD_TIME) -X main.GitCommit=$(GIT_COMMIT)" -o $(BINARY_PATH) ./cmd/server || (echo "$(RED)❌ Build failed$(NC)" && exit 1); \
+						echo "$(GREEN)✅ Server built without CGO: $(BINARY_PATH) (v$(VERSION))$(NC)"; \
+						echo "$(YELLOW)   Note: Apple Foundation Models and ODBC support unavailable$(NC)"; \
+					fi; \
 				else \
 					echo "$(YELLOW)⚠️  CGO build failed - falling back to build without CGO...$(NC)"; \
+					CGO_ENABLED=0 $(GO) build -ldflags "-X main.Version=$(VERSION) -X main.BuildTime=$(BUILD_TIME) -X main.GitCommit=$(GIT_COMMIT)" -o $(BINARY_PATH) ./cmd/server || (echo "$(RED)❌ Build failed$(NC)" && exit 1); \
+					echo "$(GREEN)✅ Server built without CGO: $(BINARY_PATH) (v$(VERSION))$(NC)"; \
+					echo "$(YELLOW)   Note: Apple Foundation Models and ODBC support unavailable$(NC)"; \
 				fi; \
-				CGO_ENABLED=0 $(GO) build -ldflags "-X main.Version=$(VERSION) -X main.BuildTime=$(BUILD_TIME) -X main.GitCommit=$(GIT_COMMIT)" -o $(BINARY_PATH) ./cmd/server || (echo "$(RED)❌ Build failed$(NC)" && exit 1); \
-				echo "$(GREEN)✅ Server built without CGO: $(BINARY_PATH) (v$(VERSION))$(NC)"; \
-				echo "$(YELLOW)   Note: Apple Foundation Models and ODBC support unavailable$(NC)"; \
 			fi; \
 		else \
 			echo "$(YELLOW)⚠️  Mac Silicon detected but C compiler not found - Building without CGO$(NC)"; \
@@ -232,7 +255,15 @@ build-debug: ## Build with debug symbols (for debugging)
 	@# Detect Mac Silicon (Darwin + arm64) - enable CGO if available
 	@if [ "$$(uname -s)" = "Darwin" ] && [ "$$(uname -m)" = "arm64" ]; then \
 		if command -v gcc >/dev/null 2>&1 || command -v clang >/dev/null 2>&1 || command -v cc >/dev/null 2>&1; then \
-			CGO_ENABLED=1 $(GO) build -gcflags="all=-N -l" -ldflags "-X main.Version=$(VERSION) -X main.BuildTime=$(BUILD_TIME) -X main.GitCommit=$(GIT_COMMIT)" -o $(BINARY_PATH) ./cmd/server || (echo "$(RED)❌ Debug build failed$(NC)" && exit 1); \
+			SQL_H_FOUND=0; \
+			if [ -f "/opt/homebrew/include/sql.h" ] || [ -f "/usr/local/include/sql.h" ] || [ -f "$$(brew --prefix unixodbc 2>/dev/null)/include/sql.h" ]; then \
+				SQL_H_FOUND=1; \
+			fi; \
+			if [ $$SQL_H_FOUND -eq 1 ]; then \
+				CGO_ENABLED=1 $(GO) build -gcflags="all=-N -l" -ldflags "-X main.Version=$(VERSION) -X main.BuildTime=$(BUILD_TIME) -X main.GitCommit=$(GIT_COMMIT)" -o $(BINARY_PATH) ./cmd/server || (echo "$(RED)❌ Debug build failed$(NC)" && exit 1); \
+			else \
+				CGO_ENABLED=1 $(GO) build -tags "no_odbc" -gcflags="all=-N -l" -ldflags "-X main.Version=$(VERSION) -X main.BuildTime=$(BUILD_TIME) -X main.GitCommit=$(GIT_COMMIT)" -o $(BINARY_PATH) ./cmd/server || (echo "$(RED)❌ Debug build failed$(NC)" && exit 1); \
+			fi; \
 		else \
 			CGO_ENABLED=0 $(GO) build -gcflags="all=-N -l" -ldflags "-X main.Version=$(VERSION) -X main.BuildTime=$(BUILD_TIME) -X main.GitCommit=$(GIT_COMMIT)" -o $(BINARY_PATH) ./cmd/server || (echo "$(RED)❌ Debug build failed$(NC)" && exit 1); \
 		fi; \
@@ -251,7 +282,15 @@ build-race: ## Build with race detector (for detecting race conditions)
 	@# Detect Mac Silicon (Darwin + arm64) - enable CGO if available
 	@if [ "$$(uname -s)" = "Darwin" ] && [ "$$(uname -m)" = "arm64" ]; then \
 		if command -v gcc >/dev/null 2>&1 || command -v clang >/dev/null 2>&1 || command -v cc >/dev/null 2>&1; then \
-			CGO_ENABLED=1 $(GO) build -race -ldflags "-X main.Version=$(VERSION) -X main.BuildTime=$(BUILD_TIME) -X main.GitCommit=$(GIT_COMMIT)" -o $(BINARY_PATH) ./cmd/server || (echo "$(RED)❌ Race build failed$(NC)" && exit 1); \
+			SQL_H_FOUND=0; \
+			if [ -f "/opt/homebrew/include/sql.h" ] || [ -f "/usr/local/include/sql.h" ] || [ -f "$$(brew --prefix unixodbc 2>/dev/null)/include/sql.h" ]; then \
+				SQL_H_FOUND=1; \
+			fi; \
+			if [ $$SQL_H_FOUND -eq 1 ]; then \
+				CGO_ENABLED=1 $(GO) build -race -ldflags "-X main.Version=$(VERSION) -X main.BuildTime=$(BUILD_TIME) -X main.GitCommit=$(GIT_COMMIT)" -o $(BINARY_PATH) ./cmd/server || (echo "$(RED)❌ Race build failed$(NC)" && exit 1); \
+			else \
+				CGO_ENABLED=1 $(GO) build -tags "no_odbc" -race -ldflags "-X main.Version=$(VERSION) -X main.BuildTime=$(BUILD_TIME) -X main.GitCommit=$(GIT_COMMIT)" -o $(BINARY_PATH) ./cmd/server || (echo "$(RED)❌ Race build failed$(NC)" && exit 1); \
+			fi; \
 		else \
 			CGO_ENABLED=0 $(GO) build -race -ldflags "-X main.Version=$(VERSION) -X main.BuildTime=$(BUILD_TIME) -X main.GitCommit=$(GIT_COMMIT)" -o $(BINARY_PATH) ./cmd/server || (echo "$(RED)❌ Race build failed$(NC)" && exit 1); \
 		fi; \
