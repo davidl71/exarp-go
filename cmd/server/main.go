@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 
+	"github.com/davidl71/exarp-go/internal/bridge"
 	"github.com/davidl71/exarp-go/internal/cli"
 	"github.com/davidl71/exarp-go/internal/config"
 	"github.com/davidl71/exarp-go/internal/database"
@@ -72,6 +73,14 @@ func main() {
 			// Only log at WARN level for important database messages
 		}
 	}
+
+	// Cleanup Python process pool on shutdown
+	defer func() {
+		pool := bridge.GetGlobalPool()
+		if err := pool.Close(); err != nil {
+			log.Printf("Warning: Error closing Python process pool: %v", err)
+		}
+	}()
 
 	// MCP server mode - run as stdio server
 	// Load configuration

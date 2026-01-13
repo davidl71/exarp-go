@@ -56,7 +56,7 @@ github.com/charmbracelet/x/cellbuf
 ## explicit; go 1.18
 github.com/charmbracelet/x/term
 # github.com/davidl71/devwisdom-go v0.1.2 => /Users/davidl/Projects/devwisdom-go
-## explicit; go 1.24.0
+## explicit; go 1.25.5
 github.com/davidl71/devwisdom-go/internal/config
 github.com/davidl71/devwisdom-go/internal/wisdom
 github.com/davidl71/devwisdom-go/internal/wisdom/sefaria

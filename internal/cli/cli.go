@@ -14,7 +14,7 @@ import (
 	"github.com/davidl71/exarp-go/internal/database"
 	"github.com/davidl71/exarp-go/internal/factory"
 	"github.com/davidl71/exarp-go/internal/framework"
-	"github.com/davidl71/exarp-go/internal/logging"
+	"github.com/davidl71/mcp-go-core/pkg/mcp/logging"
 	"github.com/davidl71/exarp-go/internal/prompts"
 	"github.com/davidl71/exarp-go/internal/resources"
 	"github.com/davidl71/exarp-go/internal/tools"
@@ -26,10 +26,9 @@ import (
 // It will be closed when the process exits or explicitly closed
 // Uses centralized config if available, falls back to legacy config
 func initializeDatabase() {
-	logging.InitLogger()
 	projectRoot, err := tools.FindProjectRoot()
 	if err != nil {
-		logging.Warn("Could not find project root", "error", err, "operation", "initializeDatabase", "fallback", "JSON")
+		logWarn(nil, "Could not find project root", "error", err, "operation", "initializeDatabase", "fallback", "JSON")
 		return
 	}
 
@@ -55,21 +54,21 @@ func initializeDatabase() {
 		}
 
 		if err := database.InitWithCentralizedConfig(projectRoot, dbCfg); err != nil {
-			logging.Warn("Database initialization with centralized config failed", "error", err, "operation", "initializeDatabase", "fallback", "legacy config")
+			logWarn(nil, "Database initialization with centralized config failed", "error", err, "operation", "initializeDatabase", "fallback", "legacy config")
 			// Fall through to legacy init
 		} else {
-			logging.Info("Database initialized with centralized config", "path", fullCfg.Database.SQLitePath, "operation", "initializeDatabase")
+			logInfo(nil, "Database initialized with centralized config", "path", fullCfg.Database.SQLitePath, "operation", "initializeDatabase")
 			return
 		}
 	}
 
 	// Fall back to legacy config
 	if err := database.Init(projectRoot); err != nil {
-		logging.Warn("Database initialization failed", "error", err, "operation", "initializeDatabase", "fallback", "JSON")
+		logWarn(nil, "Database initialization failed", "error", err, "operation", "initializeDatabase", "fallback", "JSON")
 		return
 	}
 
-	logging.Info("Database initialized", "path", projectRoot+"/.todo2/todo2.db", "operation", "initializeDatabase")
+	logInfo(nil, "Database initialized", "path", projectRoot+"/.todo2/todo2.db", "operation", "initializeDatabase")
 }
 
 // setupServer creates and configures the MCP server
@@ -202,7 +201,7 @@ func Run() error {
 	// Ensure database is closed when CLI exits
 	defer func() {
 		if err := database.Close(); err != nil {
-			logging.Warn("Error closing database", "error", err, "operation", "closeDatabase")
+			logWarn(nil, "Error closing database", "error", err, "operation", "closeDatabase")
 		}
 	}()
 
@@ -270,14 +269,14 @@ func executeTool(server framework.MCPServer, toolName, argsJSON string) error {
 	// Parse JSON arguments
 	var args map[string]interface{}
 	if err := json.Unmarshal([]byte(argsJSON), &args); err != nil {
-		logging.ErrorContext(ctx, "Failed to parse JSON arguments", "error", err, "tool", toolName)
+		logError(ctx, "Failed to parse JSON arguments", "error", err, "tool", toolName)
 		return fmt.Errorf("failed to parse JSON arguments: %w", err)
 	}
 
 	// Convert to json.RawMessage for tool handler
 	argsBytes, err := json.Marshal(args)
 	if err != nil {
-		logging.ErrorContext(ctx, "Failed to marshal arguments", "error", err, "tool", toolName)
+		logError(ctx, "Failed to marshal arguments", "error", err, "tool", toolName)
 		return fmt.Errorf("failed to marshal arguments: %w", err)
 	}
 
@@ -286,17 +285,16 @@ func executeTool(server framework.MCPServer, toolName, argsJSON string) error {
 	_, _ = fmt.Printf("Arguments: %s\n\n", argsJSON)
 	
 	// Use context-aware logger to include request_id and operation
-	logger := logging.WithContext(ctx)
-	logger.Info("Executing tool", "tool", toolName)
+	logInfo(ctx, "Executing tool", "tool", toolName)
 
 	// Track performance
-	perf := logging.StartPerformanceLogging(ctx, "tool_execution", logging.DefaultSlowThreshold)
+	perf := StartPerformanceLogging(ctx, "tool_execution", DefaultSlowThreshold)
 	defer perf.Finish()
 	
 	result, err := server.CallTool(ctx, toolName, argsBytes)
 	if err != nil {
 		perf.FinishWithError(err)
-		logging.ErrorContext(ctx, "Tool execution failed", "error", err, "tool", toolName)
+		logError(ctx, "Tool execution failed", "error", err, "tool", toolName)
 		return fmt.Errorf("tool execution failed: %w", err)
 	}
 
