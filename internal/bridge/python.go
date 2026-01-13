@@ -83,12 +83,16 @@ func ExecutePythonTool(ctx context.Context, toolName string, args map[string]int
 		return "", fmt.Errorf("failed to marshal arguments: %w", err)
 	}
 
+	// Generate request ID for tracking
+	requestID := fmt.Sprintf("%s-%d", toolName, time.Now().UnixNano())
+	
 	// Create protobuf ToolRequest
 	req := &proto.ToolRequest{
 		ToolName:       toolName,
 		ArgumentsJson:  string(argsJSON), // JSON string for now (can be replaced with protobuf later)
 		ProjectRoot:    workspaceRoot,
 		TimeoutSeconds: 30,
+		RequestId:      requestID,
 	}
 
 	// Marshal protobuf to binary
@@ -115,9 +119,23 @@ func ExecutePythonTool(ctx context.Context, toolName string, args map[string]int
 	
 	err = cmd.Run()
 	if err == nil {
-		// Protobuf mode succeeded - output is JSON (Python script returns JSON for now)
-		output := stdout.String()
-		return output, nil
+		// Protobuf mode succeeded - try to parse protobuf ToolResponse
+		outputBytes := stdout.Bytes()
+		
+		// Try to parse as protobuf ToolResponse
+		var resp proto.ToolResponse
+		if err := protobuf.Unmarshal(outputBytes, &resp); err == nil {
+			// Successfully parsed protobuf response
+			if !resp.Success {
+				// Tool execution failed
+				return "", fmt.Errorf("python tool failed: %s", resp.Error)
+			}
+			// Return the result (JSON string from protobuf message)
+			return resp.Result, nil
+		}
+		
+		// If protobuf parsing failed, treat as JSON (backward compatibility)
+		return string(outputBytes), nil
 	}
 	
 	// Protobuf mode failed (likely Python protobuf code not available or error)
