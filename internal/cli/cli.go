@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/davidl71/exarp-go/internal/config"
@@ -108,6 +109,49 @@ func Run() error {
 
 		// Run TUI
 		return RunTUI(server, status)
+	}
+
+	// Check for tui3270 subcommand
+	if len(os.Args) > 1 && os.Args[1] == "tui3270" {
+		// Parse flags for tui3270
+		daemon := false
+		status := ""
+		port := 3270 // Default 3270 port
+		pidFile := ""
+
+		// Simple flag parsing for tui3270
+		for i := 2; i < len(os.Args); i++ {
+			arg := os.Args[i]
+			switch arg {
+			case "--daemon", "-d":
+				daemon = true
+			case "--pid-file", "--pidfile":
+				if i+1 < len(os.Args) {
+					pidFile = os.Args[i+1]
+					i++
+				}
+			default:
+				// Check if it's a port number
+				if parsedPort, err := strconv.Atoi(arg); err == nil {
+					port = parsedPort
+				} else if status == "" {
+					// First non-flag arg is status
+					status = arg
+				}
+			}
+		}
+
+		// Initialize database (before server creation)
+		initializeDatabase()
+
+		// Setup server
+		server, err := setupServer()
+		if err != nil {
+			return err
+		}
+
+		// Run 3270 TUI server
+		return RunTUI3270(server, status, port, daemon, pidFile)
 	}
 
 	// Parse command line arguments
@@ -420,6 +464,7 @@ func showUsage() {
 	_, _ = fmt.Println("  exarp-go [flags]")
 	_, _ = fmt.Println("  exarp-go task <command> [options]")
 	_, _ = fmt.Println("  exarp-go tui [status]")
+	_, _ = fmt.Println("  exarp-go tui3270 [status] [port]")
 	_, _ = fmt.Println()
 	_, _ = fmt.Println("Flags:")
 	_, _ = fmt.Println("  -tool <name>        Execute a tool")
@@ -440,6 +485,9 @@ func showUsage() {
 	_, _ = fmt.Println("TUI Commands:")
 	_, _ = fmt.Println("  tui                 Launch terminal user interface for task management")
 	_, _ = fmt.Println("  tui <status>        Launch TUI filtered by status (e.g., 'Todo', 'In Progress')")
+	_, _ = fmt.Println("  tui3270 [status] [port] [--daemon] [--pid-file FILE]  Launch 3270 TUI server")
+	_, _ = fmt.Println("    --daemon, -d          Run in background mode (writes PID file, redirects logs)")
+	_, _ = fmt.Println("    --pid-file FILE       Write PID to FILE (default: .exarp-go-tui3270.pid)")
 	_, _ = fmt.Println()
 	_, _ = fmt.Println("Examples:")
 	_, _ = fmt.Println("  exarp-go -list")

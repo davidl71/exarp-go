@@ -636,6 +636,11 @@ func registerBatch2Tools(server framework.MCPServer) error {
 					"type":    "number",
 					"default": 2.0,
 				},
+				"include_legacy": map[string]interface{}{
+					"type":        "boolean",
+					"default":     false,
+					"description": "If true, also identify and remove legacy tasks with old sequential IDs (T-1, T-2, etc.)",
+				},
 				"output_path": map[string]interface{}{
 					"type": "string",
 				},

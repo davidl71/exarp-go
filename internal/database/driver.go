@@ -1,7 +1,6 @@
 package database
 
 import (
-	"context"
 	"database/sql"
 	"fmt"
 )
@@ -149,8 +148,10 @@ var globalRegistry *DriverRegistry
 func init() {
 	globalRegistry = NewDriverRegistry()
 	
-	// Register default SQLite driver
+	// Register default drivers
 	globalRegistry.Register(NewSQLiteDriver())
+	// MySQL and PostgreSQL drivers are registered on-demand when needed
+	// to avoid requiring their dependencies for SQLite-only deployments
 }
 
 // RegisterDriver registers a driver in the global registry
