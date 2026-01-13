@@ -4,6 +4,7 @@ import (
 	"context"
 	"log/slog"
 	"os"
+	"time"
 )
 
 // Logger is a unified logger wrapper that uses slog
@@ -179,4 +180,106 @@ func GetRequestID(ctx context.Context) string {
 // GetOperation extracts operation name from context
 func GetOperation(ctx context.Context) string {
 	return getOperation(ctx)
+}
+
+// PerformanceLogger tracks operation duration and logs slow operations
+type PerformanceLogger struct {
+	operation string
+	start     time.Time
+	ctx       context.Context
+	threshold time.Duration
+}
+
+// StartPerformanceLogging starts tracking performance for an operation
+// Automatically logs slow operations if duration exceeds threshold
+func StartPerformanceLogging(ctx context.Context, operation string, threshold time.Duration) *PerformanceLogger {
+	return &PerformanceLogger{
+		operation: operation,
+		start:     time.Now(),
+		ctx:       ctx,
+		threshold: threshold,
+	}
+}
+
+// Finish logs the operation duration and warns if it exceeded the threshold
+func (pl *PerformanceLogger) Finish() {
+	duration := time.Since(pl.start)
+	
+	logger := WithContext(pl.ctx)
+	
+	// Always log duration for performance tracking
+	logger.Info("Operation completed",
+		"operation", pl.operation,
+		"duration_ms", duration.Milliseconds(),
+		"duration", duration.String(),
+	)
+	
+	// Warn if operation was slow
+	if pl.threshold > 0 && duration > pl.threshold {
+		logger.Warn("Slow operation detected",
+			"operation", pl.operation,
+			"duration_ms", duration.Milliseconds(),
+			"duration", duration.String(),
+			"threshold_ms", pl.threshold.Milliseconds(),
+			"threshold", pl.threshold.String(),
+			"exceeded_by_ms", (duration - pl.threshold).Milliseconds(),
+		)
+	}
+}
+
+// FinishWithError logs the operation duration and error
+func (pl *PerformanceLogger) FinishWithError(err error) {
+	duration := time.Since(pl.start)
+	
+	logger := WithContext(pl.ctx)
+	
+	logger.Error("Operation failed",
+		"operation", pl.operation,
+		"error", err,
+		"duration_ms", duration.Milliseconds(),
+		"duration", duration.String(),
+	)
+}
+
+// LogDuration logs operation duration with optional slow operation detection
+func LogDuration(ctx context.Context, operation string, duration time.Duration, threshold time.Duration) {
+	logger := WithContext(ctx)
+	
+	logger.Info("Operation duration",
+		"operation", operation,
+		"duration_ms", duration.Milliseconds(),
+		"duration", duration.String(),
+	)
+	
+	if threshold > 0 && duration > threshold {
+		logger.Warn("Slow operation",
+			"operation", operation,
+			"duration_ms", duration.Milliseconds(),
+			"duration", duration.String(),
+			"threshold_ms", threshold.Milliseconds(),
+			"threshold", threshold.String(),
+		)
+	}
+}
+
+// DefaultSlowThreshold is the default threshold for slow operation detection (2 seconds)
+const DefaultSlowThreshold = 2 * time.Second
+
+// LogSlowOperation logs a warning if the operation took longer than the threshold
+func LogSlowOperation(ctx context.Context, operation string, duration time.Duration, threshold time.Duration) {
+	if threshold == 0 {
+		threshold = DefaultSlowThreshold
+	}
+	
+	if duration > threshold {
+		logger := WithContext(ctx)
+		logger.Warn("Slow operation",
+			"operation", operation,
+			"duration_ms", duration.Milliseconds(),
+			"duration", duration.String(),
+			"threshold_ms", threshold.Milliseconds(),
+			"threshold", threshold.String(),
+			"exceeded_by_ms", (duration - threshold).Milliseconds(),
+		)
+	}
 }
