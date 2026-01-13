@@ -1,4 +1,4 @@
-.PHONY: help build build-debug build-race run test test-watch test-coverage test-html clean install fmt lint dev dev-watch dev-test dev-full dev-cycle pre-push bench docs sanity-check sanity-check-cached test-cli test-cli-list test-cli-tool test-cli-test config clean-config sprint-start sprint-end pre-sprint sprint check-tasks update-completed-tasks go-fmt go-vet golangci-lint-check golangci-lint-fix govulncheck check check-fix check-all build-migrate migrate migrate-dry-run install-tools go-mod-tidy go-mod-verify pre-commit ci validate check-deps test-go test-go-fast test-go-verbose test-go-parallel version scorecard scorecard-full task-list task-list-todo task-list-in-progress task-list-done task-update proto proto-check proto-clean
+.PHONY: help build build-debug build-race build-no-cgo run test test-watch test-coverage test-html clean install fmt lint dev dev-watch dev-test dev-full dev-cycle pre-push bench docs sanity-check sanity-check-cached test-cli test-cli-list test-cli-tool test-cli-test config clean-config sprint-start sprint-end pre-sprint sprint check-tasks update-completed-tasks go-fmt go-vet golangci-lint-check golangci-lint-fix govulncheck check check-fix check-all build-migrate migrate migrate-dry-run install-tools go-mod-tidy go-mod-verify pre-commit ci validate check-deps test-go test-go-fast test-go-verbose test-go-parallel version scorecard scorecard-full task-list task-list-todo task-list-in-progress task-list-done task-update proto proto-check proto-clean
 
 # Project configuration
 PROJECT_NAME := exarp-go
@@ -176,16 +176,48 @@ help: ## Show this help message
 	@echo "  $(GREEN)make dev-cycle$(NC)  - Format, test, ready for commit"
 	@echo "  $(GREEN)make pre-push$(NC)   - Run before git push"
 
-build: ## Build the Go server (without CGO by default for portability)
+build: ## Build the Go server (CGO enabled on Mac Silicon by default, disabled elsewhere)
 	@echo "$(BLUE)Building $(PROJECT_NAME) v$(VERSION)...$(NC)"
 	@if ! command -v $(GO) >/dev/null 2>&1 && [ ! -x "$(GO)" ]; then \
 		echo "$(RED)❌ Go not found. Install Go or set PATH to include Go bin directory$(NC)"; \
 		exit 1; \
 	fi
-	@echo "$(YELLOW)Note: Building without CGO for portability (static binary, cross-platform)$(NC)"
-	@echo "$(YELLOW)      Use 'make build-apple-fm' for Apple Foundation Models support (requires CGO)$(NC)"
-	@CGO_ENABLED=0 $(GO) build -ldflags "-X main.Version=$(VERSION) -X main.BuildTime=$(BUILD_TIME) -X main.GitCommit=$(GIT_COMMIT)" -o $(BINARY_PATH) ./cmd/server || (echo "$(RED)❌ Build failed$(NC)" && exit 1)
-	@echo "$(GREEN)✅ Server built: $(BINARY_PATH) (v$(VERSION))$(NC)"
+	@# Detect Mac Silicon (Darwin + arm64)
+	@if [ "$$(uname -s)" = "Darwin" ] && [ "$$(uname -m)" = "arm64" ]; then \
+		if command -v gcc >/dev/null 2>&1 || command -v clang >/dev/null 2>&1 || command -v cc >/dev/null 2>&1; then \
+			echo "$(BLUE)Detected Mac Silicon - Attempting build with CGO enabled (Apple Foundation Models support)$(NC)"; \
+			ODBC_PREFIX=$$(brew --prefix unixodbc 2>/dev/null || echo ""); \
+			if [ -n "$$ODBC_PREFIX" ] && [ -d "$$ODBC_PREFIX/include" ]; then \
+				build_output=$$(CGO_ENABLED=1 CGO_CFLAGS="-I$$ODBC_PREFIX/include" CGO_LDFLAGS="-L$$ODBC_PREFIX/lib" $(GO) build -ldflags "-X main.Version=$(VERSION) -X main.BuildTime=$(BUILD_TIME) -X main.GitCommit=$(GIT_COMMIT)" -o $(BINARY_PATH) ./cmd/server 2>&1); \
+			else \
+				build_output=$$(CGO_ENABLED=1 $(GO) build -ldflags "-X main.Version=$(VERSION) -X main.BuildTime=$(BUILD_TIME) -X main.GitCommit=$(GIT_COMMIT)" -o $(BINARY_PATH) ./cmd/server 2>&1); \
+			fi; \
+			build_status=$$?; \
+			if [ $$build_status -eq 0 ]; then \
+				echo "$(GREEN)✅ Server built with CGO: $(BINARY_PATH) (v$(VERSION))$(NC)"; \
+			else \
+				if echo "$$build_output" | grep -q "sql.h"; then \
+					echo "$(YELLOW)⚠️  CGO build failed - ODBC headers not found$(NC)"; \
+					echo "$(YELLOW)   Install unixodbc: brew install unixodbc$(NC)"; \
+					echo "$(YELLOW)   Falling back to build without CGO...$(NC)"; \
+				else \
+					echo "$(YELLOW)⚠️  CGO build failed - falling back to build without CGO...$(NC)"; \
+				fi; \
+				CGO_ENABLED=0 $(GO) build -ldflags "-X main.Version=$(VERSION) -X main.BuildTime=$(BUILD_TIME) -X main.GitCommit=$(GIT_COMMIT)" -o $(BINARY_PATH) ./cmd/server || (echo "$(RED)❌ Build failed$(NC)" && exit 1); \
+				echo "$(GREEN)✅ Server built without CGO: $(BINARY_PATH) (v$(VERSION))$(NC)"; \
+				echo "$(YELLOW)   Note: Apple Foundation Models and ODBC support unavailable$(NC)"; \
+			fi; \
+		else \
+			echo "$(YELLOW)⚠️  Mac Silicon detected but C compiler not found - Building without CGO$(NC)"; \
+			echo "$(YELLOW)   Install Xcode Command Line Tools: xcode-select --install$(NC)"; \
+			CGO_ENABLED=0 $(GO) build -ldflags "-X main.Version=$(VERSION) -X main.BuildTime=$(BUILD_TIME) -X main.GitCommit=$(GIT_COMMIT)" -o $(BINARY_PATH) ./cmd/server || (echo "$(RED)❌ Build failed$(NC)" && exit 1); \
+			echo "$(GREEN)✅ Server built: $(BINARY_PATH) (v$(VERSION))$(NC)"; \
+		fi; \
+	else \
+		echo "$(BLUE)Building without CGO for portability (static binary, cross-platform)$(NC)"; \
+		CGO_ENABLED=0 $(GO) build -ldflags "-X main.Version=$(VERSION) -X main.BuildTime=$(BUILD_TIME) -X main.GitCommit=$(GIT_COMMIT)" -o $(BINARY_PATH) ./cmd/server || (echo "$(RED)❌ Build failed$(NC)" && exit 1); \
+		echo "$(GREEN)✅ Server built: $(BINARY_PATH) (v$(VERSION))$(NC)"; \
+	fi
 
 build-debug: ## Build with debug symbols (for debugging)
 	@echo "$(BLUE)Building $(PROJECT_NAME) v$(VERSION) with debug symbols...$(NC)"
@@ -193,7 +225,16 @@ build-debug: ## Build with debug symbols (for debugging)
 		echo "$(RED)❌ Go not found. Install Go or set PATH to include Go bin directory$(NC)"; \
 		exit 1; \
 	fi
-	@CGO_ENABLED=0 $(GO) build -gcflags="all=-N -l" -ldflags "-X main.Version=$(VERSION) -X main.BuildTime=$(BUILD_TIME) -X main.GitCommit=$(GIT_COMMIT)" -o $(BINARY_PATH) ./cmd/server || (echo "$(RED)❌ Debug build failed$(NC)" && exit 1)
+	@# Detect Mac Silicon (Darwin + arm64) - enable CGO if available
+	@if [ "$$(uname -s)" = "Darwin" ] && [ "$$(uname -m)" = "arm64" ]; then \
+		if command -v gcc >/dev/null 2>&1 || command -v clang >/dev/null 2>&1 || command -v cc >/dev/null 2>&1; then \
+			CGO_ENABLED=1 $(GO) build -gcflags="all=-N -l" -ldflags "-X main.Version=$(VERSION) -X main.BuildTime=$(BUILD_TIME) -X main.GitCommit=$(GIT_COMMIT)" -o $(BINARY_PATH) ./cmd/server || (echo "$(RED)❌ Debug build failed$(NC)" && exit 1); \
+		else \
+			CGO_ENABLED=0 $(GO) build -gcflags="all=-N -l" -ldflags "-X main.Version=$(VERSION) -X main.BuildTime=$(BUILD_TIME) -X main.GitCommit=$(GIT_COMMIT)" -o $(BINARY_PATH) ./cmd/server || (echo "$(RED)❌ Debug build failed$(NC)" && exit 1); \
+		fi; \
+	else \
+		CGO_ENABLED=0 $(GO) build -gcflags="all=-N -l" -ldflags "-X main.Version=$(VERSION) -X main.BuildTime=$(BUILD_TIME) -X main.GitCommit=$(GIT_COMMIT)" -o $(BINARY_PATH) ./cmd/server || (echo "$(RED)❌ Debug build failed$(NC)" && exit 1); \
+	fi
 	@echo "$(GREEN)✅ Debug build complete: $(BINARY_PATH) (v$(VERSION))$(NC)"
 
 build-race: ## Build with race detector (for detecting race conditions)
@@ -203,7 +244,16 @@ build-race: ## Build with race detector (for detecting race conditions)
 		exit 1; \
 	fi
 	@echo "$(YELLOW)Note: Race detector adds overhead - use for testing only$(NC)"
-	@CGO_ENABLED=0 $(GO) build -race -ldflags "-X main.Version=$(VERSION) -X main.BuildTime=$(BUILD_TIME) -X main.GitCommit=$(GIT_COMMIT)" -o $(BINARY_PATH) ./cmd/server || (echo "$(RED)❌ Race build failed$(NC)" && exit 1)
+	@# Detect Mac Silicon (Darwin + arm64) - enable CGO if available
+	@if [ "$$(uname -s)" = "Darwin" ] && [ "$$(uname -m)" = "arm64" ]; then \
+		if command -v gcc >/dev/null 2>&1 || command -v clang >/dev/null 2>&1 || command -v cc >/dev/null 2>&1; then \
+			CGO_ENABLED=1 $(GO) build -race -ldflags "-X main.Version=$(VERSION) -X main.BuildTime=$(BUILD_TIME) -X main.GitCommit=$(GIT_COMMIT)" -o $(BINARY_PATH) ./cmd/server || (echo "$(RED)❌ Race build failed$(NC)" && exit 1); \
+		else \
+			CGO_ENABLED=0 $(GO) build -race -ldflags "-X main.Version=$(VERSION) -X main.BuildTime=$(BUILD_TIME) -X main.GitCommit=$(GIT_COMMIT)" -o $(BINARY_PATH) ./cmd/server || (echo "$(RED)❌ Race build failed$(NC)" && exit 1); \
+		fi; \
+	else \
+		CGO_ENABLED=0 $(GO) build -race -ldflags "-X main.Version=$(VERSION) -X main.BuildTime=$(BUILD_TIME) -X main.GitCommit=$(GIT_COMMIT)" -o $(BINARY_PATH) ./cmd/server || (echo "$(RED)❌ Race build failed$(NC)" && exit 1); \
+	fi
 	@echo "$(GREEN)✅ Race detector build complete: $(BINARY_PATH) (v$(VERSION))$(NC)"
 
 build-migrate: ## Build JSON to SQLite migration tool
@@ -605,14 +655,25 @@ install-dev: install ## Install Python development dependencies (optional)
 
 ##@ Go Development
 
-go-build: ## Build Go binary
+go-build: ## Build Go binary (CGO enabled on Mac Silicon by default)
 	@echo "$(BLUE)Building Go binary...$(NC)"
 	@if ! command -v $(GO) >/dev/null 2>&1 && [ ! -x "$(GO)" ]; then \
 		echo "$(RED)❌ Go not found. Install Go or set PATH to include Go bin directory$(NC)"; \
 		exit 1; \
 	fi
-	@$(GO) build -o $(BINARY_PATH) ./cmd/server || \
-	 (echo "$(RED)❌ Build failed$(NC)" && exit 1)
+	@# Detect Mac Silicon (Darwin + arm64) - enable CGO if available
+	@if [ "$$(uname -s)" = "Darwin" ] && [ "$$(uname -m)" = "arm64" ]; then \
+		if command -v gcc >/dev/null 2>&1 || command -v clang >/dev/null 2>&1 || command -v cc >/dev/null 2>&1; then \
+			CGO_ENABLED=1 $(GO) build -o $(BINARY_PATH) ./cmd/server || \
+			 (echo "$(RED)❌ Build failed$(NC)" && exit 1); \
+		else \
+			CGO_ENABLED=0 $(GO) build -o $(BINARY_PATH) ./cmd/server || \
+			 (echo "$(RED)❌ Build failed$(NC)" && exit 1); \
+		fi; \
+	else \
+		CGO_ENABLED=0 $(GO) build -o $(BINARY_PATH) ./cmd/server || \
+		 (echo "$(RED)❌ Build failed$(NC)" && exit 1); \
+	fi
 	@chmod +x $(BINARY_PATH)
 	@echo "$(GREEN)✅ Build complete: $(BINARY_PATH)$(NC)"
 
@@ -665,7 +726,17 @@ SWIFT_BRIDGE_SUPPORTED := $(shell \
 	fi \
 )
 
-build-apple-fm: build-swift-bridge ## Build with Apple Foundation Models support (CGO_ENABLED=1)
+build-no-cgo: ## Build without CGO (explicitly disable CGO even on Mac Silicon)
+	@echo "$(BLUE)Building $(PROJECT_NAME) v$(VERSION) without CGO...$(NC)"
+	@if ! command -v $(GO) >/dev/null 2>&1 && [ ! -x "$(GO)" ]; then \
+		echo "$(RED)❌ Go not found. Install Go or set PATH to include Go bin directory$(NC)"; \
+		exit 1; \
+	fi
+	@echo "$(YELLOW)Note: Building without CGO (static binary, cross-platform)$(NC)"
+	@CGO_ENABLED=0 $(GO) build -ldflags "-X main.Version=$(VERSION) -X main.BuildTime=$(BUILD_TIME) -X main.GitCommit=$(GIT_COMMIT)" -o $(BINARY_PATH) ./cmd/server || (echo "$(RED)❌ Build failed$(NC)" && exit 1)
+	@echo "$(GREEN)✅ Server built: $(BINARY_PATH) (v$(VERSION))$(NC)"
+
+build-apple-fm: build-swift-bridge ## Build with Apple Foundation Models support (CGO_ENABLED=1, full Swift bridge)
 	@if [ "$(CGO_AVAILABLE)" != "1" ]; then \
 		echo "$(RED)❌ CGO is not available - required for Apple Foundation Models$(NC)"; \
 		echo "$(YELLOW)   Reason: C compiler not found (gcc, clang, or cc)$(NC)"; \

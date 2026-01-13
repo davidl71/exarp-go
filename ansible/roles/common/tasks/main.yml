@@ -280,6 +280,24 @@
   failed_when: false
   ignore_errors: true
 
+- name: Check for ODBC headers (macOS)
+  ansible.builtin.stat:
+    path: "{{ item }}"
+  register: odbc_header_check
+  failed_when: false
+  loop:
+    - /opt/homebrew/include/sql.h
+    - /usr/local/include/sql.h
+    - /opt/homebrew/opt/unixodbc/include/sql.h
+  when: ansible_system == "Darwin"
+
+- name: Verify ODBC headers are available (macOS)
+  ansible.builtin.debug:
+    msg: >-
+      ODBC headers: {{ '✅ Found' if odbc_header_check.results | selectattr('stat.exists', 'equalto', true) | list | length > 0
+      else '⚠️  Not found - CGO builds may fail. Headers should be in /opt/homebrew/include or /usr/local/include' }}
+  when: ansible_system == "Darwin"
+
 - name: Verify SQLite installation
   ansible.builtin.command: sqlite3 --version
   register: sqlite_version
