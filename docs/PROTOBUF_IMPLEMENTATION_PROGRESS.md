@@ -21,8 +21,8 @@
 ## 🚧 In Progress
 
 ### Phase 3: Handler Migration
-- 🔄 **Memory Tool** - Helper functions created, handler update pending
-- ⏳ **Context Tool** - Schema created, handler update pending
+- ✅ **Memory Tool** - Updated `handleMemoryNative` to use `ParseMemoryRequest` (protobuf/JSON dual support)
+- ✅ **Context Tool** - Updated `handleContext` to use `ParseContextRequest` (protobuf/JSON dual support)
 - ⏳ **Report Tool** - Schema created, handler update pending
 - ⏳ **Task Management Tools** - Schema created, handler updates pending
 - ⏳ **All Other Tools** - Schemas created, handler updates pending
