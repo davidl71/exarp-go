@@ -163,8 +163,9 @@ func ExecutePythonResource(ctx context.Context, uri string) ([]byte, string, err
 	cmd.Env = os.Environ()
 
 	// Set timeout
-	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	ctxWithTimeout, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
+	cmd = exec.CommandContext(ctxWithTimeout, "python3", bridgeScript, uri)
 
 	// Execute command
 	output, err := cmd.CombinedOutput()
