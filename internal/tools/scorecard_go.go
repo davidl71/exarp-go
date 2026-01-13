@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/davidl71/devwisdom-go/pkg/wisdom"
 	"github.com/davidl71/exarp-go/internal/security"
 )
 
@@ -671,6 +672,46 @@ func FormatGoScorecard(scorecard *GoScorecardResult) string {
 			sb.WriteString(fmt.Sprintf("    • %s\n", rec))
 		}
 		sb.WriteString("\n")
+	}
+
+	return sb.String()
+}
+
+// FormatGoScorecardWithWisdom formats the Go scorecard with wisdom section
+// Gracefully degrades to base scorecard if wisdom engine fails
+func FormatGoScorecardWithWisdom(scorecard *GoScorecardResult) string {
+	// Get base scorecard
+	base := FormatGoScorecard(scorecard)
+	return addWisdomToScorecard(base, scorecard)
+}
+
+// addWisdomToScorecard adds wisdom section to a formatted scorecard string
+// Gracefully degrades to original string if wisdom engine fails
+func addWisdomToScorecard(formattedScorecard string, scorecard *GoScorecardResult) string {
+	// Try to get wisdom engine
+	engine, err := getWisdomEngine()
+	if err != nil {
+		// Gracefully degrade: return original scorecard without wisdom
+		return formattedScorecard
+	}
+
+	// Get wisdom quote based on score (use "random" for variety, date-seeded for consistency)
+	quote, err := engine.GetWisdom(scorecard.Score, "random")
+	if err != nil {
+		// Gracefully degrade: return original scorecard without wisdom
+		return formattedScorecard
+	}
+
+	// Append wisdom section
+	var sb strings.Builder
+	sb.WriteString(formattedScorecard)
+	sb.WriteString("  ──────────────────────────────────────────────────────────────────\n")
+	sb.WriteString("  🧘 Wisdom for Your Journey\n")
+	sb.WriteString("  ──────────────────────────────────────────────────────────────────\n\n")
+	sb.WriteString(fmt.Sprintf("  > \"%s\"\n", quote.Quote))
+	sb.WriteString(fmt.Sprintf("  > — %s\n\n", quote.Source))
+	if quote.Encouragement != "" {
+		sb.WriteString(fmt.Sprintf("  Encouragement: %s\n", quote.Encouragement))
 	}
 
 	return sb.String()

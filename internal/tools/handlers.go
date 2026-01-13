@@ -219,16 +219,18 @@ func handleReport(ctx context.Context, args json.RawMessage) ([]framework.TextCo
 					if err == nil && enhanced != nil {
 						// Check if MLX insights were added
 						if insights, ok := enhanced["ai_insights"].(map[string]interface{}); ok {
-							// Format with MLX insights
+							// Format with MLX insights (wisdom is added separately after MLX)
 							result := FormatGoScorecardWithMLX(scorecard, insights)
+							// Add wisdom to MLX-enhanced scorecard
+							wisdomResult := addWisdomToScorecard(result, scorecard)
 							return []framework.TextContent{
-								{Type: "text", Text: result},
+								{Type: "text", Text: wisdomResult},
 							}, nil
 						}
 					}
 
-					// Format as text output (without MLX if enhancement failed)
-					result := FormatGoScorecard(scorecard)
+					// Format as text output with wisdom (without MLX if enhancement failed)
+					result := FormatGoScorecardWithWisdom(scorecard)
 					return []framework.TextContent{
 						{Type: "text", Text: result},
 					}, nil
