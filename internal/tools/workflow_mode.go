@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/davidl71/exarp-go/internal/cache"
 	"github.com/davidl71/exarp-go/internal/framework"
 )
 
@@ -63,8 +64,9 @@ func (m *WorkflowModeManager) loadState() error {
 		return fmt.Errorf("failed to create state directory: %w", err)
 	}
 
-	// Try to load existing state
-	data, err := os.ReadFile(m.statePath)
+	// Try to load existing state (using file cache)
+	fileCache := cache.GetGlobalFileCache()
+	data, _, err := fileCache.ReadFile(m.statePath)
 	if err != nil {
 		if os.IsNotExist(err) {
 			// No existing state - use defaults

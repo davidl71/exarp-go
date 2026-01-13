@@ -8,6 +8,7 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/davidl71/exarp-go/internal/cache"
 	"github.com/davidl71/exarp-go/internal/database"
 	"github.com/davidl71/exarp-go/internal/framework"
 	"github.com/davidl71/exarp-go/internal/models"
@@ -131,10 +132,12 @@ func performAttributionCheck(projectRoot string) AttributionResults {
 
 // checkDependencyFiles checks dependency files for license information
 func checkDependencyFiles(projectRoot string, results *AttributionResults) {
+	fileCache := cache.GetGlobalFileCache()
+	
 	// Check go.mod
 	goModPath := filepath.Join(projectRoot, "go.mod")
 	if _, err := os.Stat(goModPath); err == nil {
-		content, err := os.ReadFile(goModPath)
+		content, _, err := fileCache.ReadFile(goModPath)
 		if err == nil {
 			// Check for license comment or note
 			contentStr := string(content)
@@ -153,7 +156,7 @@ func checkDependencyFiles(projectRoot string, results *AttributionResults) {
 	// Check pyproject.toml
 	pyprojectPath := filepath.Join(projectRoot, "pyproject.toml")
 	if _, err := os.Stat(pyprojectPath); err == nil {
-		content, err := os.ReadFile(pyprojectPath)
+		content, _, err := fileCache.ReadFile(pyprojectPath)
 		if err == nil {
 			contentStr := strings.ToLower(string(content))
 			if strings.Contains(contentStr, "license") {

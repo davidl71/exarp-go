@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/davidl71/exarp-go/internal/cache"
 	"github.com/davidl71/exarp-go/internal/config"
 	"github.com/davidl71/exarp-go/internal/database"
 	"github.com/davidl71/exarp-go/internal/framework"
@@ -322,8 +323,9 @@ func handleSessionResume(ctx context.Context, projectRoot string) ([]framework.T
 		}, nil
 	}
 
-	// Load handoff history
-	data, err := os.ReadFile(handoffFile)
+	// Load handoff history (using file cache)
+	fileCache := cache.GetGlobalFileCache()
+	data, _, err := fileCache.ReadFile(handoffFile)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read handoff file: %w", err)
 	}
@@ -389,7 +391,8 @@ func handleSessionLatest(projectRoot string) ([]framework.TextContent, error) {
 		}, nil
 	}
 
-	data, err := os.ReadFile(handoffFile)
+	fileCache := cache.GetGlobalFileCache()
+	data, _, err := fileCache.ReadFile(handoffFile)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read handoff file: %w", err)
 	}
@@ -450,7 +453,8 @@ func handleSessionList(ctx context.Context, params map[string]interface{}, proje
 		}, nil
 	}
 
-	data, err := os.ReadFile(handoffFile)
+	fileCache := cache.GetGlobalFileCache()
+	data, _, err := fileCache.ReadFile(handoffFile)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read handoff file: %w", err)
 	}
@@ -587,7 +591,8 @@ func handleSessionExport(ctx context.Context, params map[string]interface{}, pro
 			"count": 0,
 		}
 	} else {
-		data, err := os.ReadFile(handoffFile)
+		fileCache := cache.GetGlobalFileCache()
+		data, _, err := fileCache.ReadFile(handoffFile)
 		if err != nil {
 			return nil, fmt.Errorf("failed to read handoff file: %w", err)
 		}
@@ -675,8 +680,9 @@ func detectAgentType(projectRoot string) AgentInfo {
 	}
 
 	// 2. cursor-agent.json
+	fileCache := cache.GetGlobalFileCache()
 	agentConfigPath := filepath.Join(projectRoot, "cursor-agent.json")
-	if data, err := os.ReadFile(agentConfigPath); err == nil {
+	if data, _, err := fileCache.ReadFile(agentConfigPath); err == nil {
 		var config map[string]interface{}
 		if err := json.Unmarshal(data, &config); err == nil {
 			agent := ""
@@ -898,7 +904,8 @@ func checkHandoffAlert(projectRoot string) map[string]interface{} {
 		return nil
 	}
 
-	data, err := os.ReadFile(handoffFile)
+	fileCache := cache.GetGlobalFileCache()
+	data, _, err := fileCache.ReadFile(handoffFile)
 	if err != nil {
 		return nil
 	}
@@ -947,8 +954,9 @@ func saveHandoff(projectRoot string, handoff map[string]interface{}) error {
 	}
 
 	// Load existing handoffs
+	fileCache := cache.GetGlobalFileCache()
 	handoffs := []interface{}{}
-	if data, err := os.ReadFile(handoffFile); err == nil {
+	if data, _, err := fileCache.ReadFile(handoffFile); err == nil {
 		var handoffData map[string]interface{}
 		if err := json.Unmarshal(data, &handoffData); err == nil {
 			if existing, ok := handoffData["handoffs"].([]interface{}); ok {

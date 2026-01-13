@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/davidl71/exarp-go/internal/cache"
 	"github.com/davidl71/exarp-go/internal/database"
 	"github.com/davidl71/exarp-go/internal/models"
 )
@@ -33,7 +34,9 @@ func LoadTodo2Tasks(projectRoot string) ([]Todo2Task, error) {
 func loadTodo2TasksFromJSON(projectRoot string) ([]Todo2Task, error) {
 	todo2Path := filepath.Join(projectRoot, ".todo2", "state.todo2.json")
 
-	data, err := os.ReadFile(todo2Path)
+	// Use file cache for frequently accessed todo2.json file
+	fileCache := cache.GetGlobalFileCache()
+	data, _, err := fileCache.ReadFile(todo2Path)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return []Todo2Task{}, nil

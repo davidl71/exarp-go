@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/davidl71/exarp-go/internal/cache"
 	"github.com/davidl71/exarp-go/internal/config"
 	"github.com/davidl71/exarp-go/internal/framework"
 	"github.com/davidl71/exarp-go/internal/security"
@@ -253,9 +254,10 @@ func getProjectInfo(projectRoot string) (map[string]interface{}, error) {
 		"status":      "Active Development",
 	}
 
-	// Try to get from go.mod
+	// Try to get from go.mod (using file cache)
 	goModPath := filepath.Join(projectRoot, "go.mod")
-	if data, err := os.ReadFile(goModPath); err == nil {
+	cache := cache.GetGlobalFileCache()
+	if data, _, err := cache.ReadFile(goModPath); err == nil {
 		content := string(data)
 		if strings.Contains(content, "module ") {
 			lines := strings.Split(content, "\n")
