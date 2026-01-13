@@ -30,19 +30,31 @@
 - ⚠️ Duplicate of mcp-go-core functionality
 - ⚠️ Used only for CLI operations (not MCP framework)
 
-**Standard Go Log Package Usage**:
-- ⚠️ 26 instances of `log.Printf()` in `internal/cli/`
+**exarp-go Internal Logger** (`internal/logging/logger.go` - NEW, Phases 1-3):
+- ✅ Uses slog (Go 1.21+ standard library)
+- ✅ JSON output support (LOG_FORMAT=json)
+- ✅ GIT_HOOK suppression
+- ✅ Context-aware logging
+- ✅ Performance tracking
+- ⚠️ Duplicate of mcp-go-core functionality
+- ⚠️ Used only for CLI operations (not MCP framework)
+
+**Standard Go Log Package Usage** (Legacy - being migrated):
+- ⚠️ Previously 26 instances of `log.Printf()` in `internal/cli/` (now migrated to slog)
 - ⚠️ No log level control
 - ⚠️ Not suppressed in git hooks
 - ⚠️ No structured logging
 - ⚠️ No context information
 
 **Issues Identified**:
-1. **Dual Logging Systems**: MCP logger (structured) vs standard log (unstructured)
-2. **Git Hook Inconsistency**: MCP logs suppressed, standard log not suppressed
-3. **No Structured Format**: Standard log uses plain text, not JSON
-4. **Missing Context**: Standard log lacks request IDs, operation context
-5. **No Performance Tracking**: Standard log doesn't track slow operations
+1. **Triple Logging Systems**: 
+   - mcp-go-core logger (used for MCP framework)
+   - exarp-go internal logger (used for CLI, just created)
+   - standard log package (legacy, being migrated)
+2. **Code Duplication**: Two structured loggers with similar functionality
+3. **Inconsistent Features**: mcp-go-core lacks JSON output and direct GIT_HOOK support
+4. **Git Hook Inconsistency**: Different env vars (MCP_DEBUG vs GIT_HOOK)
+5. **No Unified Approach**: Should consolidate to single logger
 
 ---
 
