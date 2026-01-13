@@ -47,7 +47,7 @@ func handleSecurityScan(ctx context.Context, params map[string]interface{}) ([]f
 
 // handleSecurityAlerts handles the alerts action for security tool
 func handleSecurityAlerts(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
-	repo := "davidl71/project-management-automation"
+	repo := "davidl71/exarp-go"
 	if r, ok := params["repo"].(string); ok && r != "" {
 		repo = r
 	}
