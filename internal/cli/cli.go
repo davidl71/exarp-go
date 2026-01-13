@@ -23,6 +23,7 @@ import (
 // initializeDatabase initializes the database if project root is found
 // Note: Database remains open for the duration of CLI execution
 // It will be closed when the process exits or explicitly closed
+// Uses centralized config if available, falls back to legacy config
 func initializeDatabase() {
 	projectRoot, err := tools.FindProjectRoot()
 	if err != nil {
@@ -30,6 +31,37 @@ func initializeDatabase() {
 		return
 	}
 
+	// Try to use centralized config first
+	fullCfg, err := config.LoadConfig(projectRoot)
+	if err == nil {
+		// Convert centralized config DatabaseConfig to DatabaseConfigFields
+		dbCfg := database.DatabaseConfigFields{
+			SQLitePath:       fullCfg.Database.SQLitePath,
+			JSONFallbackPath: fullCfg.Database.JSONFallbackPath,
+			BackupPath:       fullCfg.Database.BackupPath,
+			MaxConnections:   fullCfg.Database.MaxConnections,
+			ConnectionTimeout: int64(fullCfg.Database.ConnectionTimeout.Seconds()),
+			QueryTimeout:     int64(fullCfg.Database.QueryTimeout.Seconds()),
+			RetryAttempts:    fullCfg.Database.RetryAttempts,
+			RetryInitialDelay: int64(fullCfg.Database.RetryInitialDelay.Seconds()),
+			RetryMaxDelay:    int64(fullCfg.Database.RetryMaxDelay.Seconds()),
+			RetryMultiplier:  fullCfg.Database.RetryMultiplier,
+			AutoVacuum:       fullCfg.Database.AutoVacuum,
+			WALMode:          fullCfg.Database.WALMode,
+			CheckpointInterval: fullCfg.Database.CheckpointInterval,
+			BackupRetentionDays: fullCfg.Database.BackupRetentionDays,
+		}
+
+		if err := database.InitWithCentralizedConfig(projectRoot, dbCfg); err != nil {
+			log.Printf("Warning: Database initialization with centralized config failed: %v (fallback to legacy config)", err)
+			// Fall through to legacy init
+		} else {
+			log.Printf("Database initialized with centralized config: %s", fullCfg.Database.SQLitePath)
+			return
+		}
+	}
+
+	// Fall back to legacy config
 	if err := database.Init(projectRoot); err != nil {
 		log.Printf("Warning: Database initialization failed: %v (fallback to JSON)", err)
 		return

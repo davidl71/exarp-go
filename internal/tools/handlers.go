@@ -191,9 +191,22 @@ func handleMemoryMaint(ctx context.Context, args json.RawMessage) ([]framework.T
 // Uses native Go for overview, scorecard (Go projects), and prd actions
 // Falls back to Python bridge for briefing (requires devwisdom-go MCP client) and non-Go projects
 func handleReport(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
-	var params map[string]interface{}
-	if err := json.Unmarshal(args, &params); err != nil {
+	// Try protobuf first, fall back to JSON for backward compatibility
+	req, params, err := ParseReportRequest(args)
+	if err != nil {
 		return nil, fmt.Errorf("failed to parse arguments: %w", err)
+	}
+
+	// Convert protobuf request to params map if needed (for compatibility with existing functions)
+	if req != nil {
+		params = ReportRequestToParams(req)
+		// Set defaults for protobuf request
+		if req.Action == "" {
+			params["action"] = "overview"
+		}
+		if req.OutputFormat == "" {
+			params["output_format"] = "text"
+		}
 	}
 
 	action, _ := params["action"].(string)
@@ -415,9 +428,28 @@ func handleTaskDiscovery(ctx context.Context, args json.RawMessage) ([]framework
 // Uses native Go implementation for all actions except clarify (which requires Apple FM)
 // approve, create, sync, clarity, cleanup all work on all platforms
 func handleTaskWorkflow(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
-	var params map[string]interface{}
-	if err := json.Unmarshal(args, &params); err != nil {
+	// Try protobuf first, fall back to JSON for backward compatibility
+	req, params, err := ParseTaskWorkflowRequest(args)
+	if err != nil {
 		return nil, fmt.Errorf("failed to parse arguments: %w", err)
+	}
+
+	// Convert protobuf request to params map if needed (for compatibility with existing functions)
+	if req != nil {
+		params = TaskWorkflowRequestToParams(req)
+		// Set defaults for protobuf request
+		if req.Action == "" {
+			params["action"] = "sync"
+		}
+		if req.SubAction == "" {
+			params["sub_action"] = "list"
+		}
+		if req.OutputFormat == "" {
+			params["output_format"] = "text"
+		}
+		if req.Status == "" {
+			params["status"] = "Review"
+		}
 	}
 
 	// Try native Go implementation first for all actions

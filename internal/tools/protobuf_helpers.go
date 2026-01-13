@@ -204,3 +204,153 @@ func ContextRequestToParams(req *proto.ContextRequest) map[string]interface{} {
 
 	return params
 }
+
+// ParseReportRequest parses a report tool request (protobuf or JSON)
+func ParseReportRequest(args json.RawMessage) (*proto.ReportRequest, map[string]interface{}, error) {
+	var req proto.ReportRequest
+
+	// Try protobuf binary first
+	if err := protobuf.Unmarshal(args, &req); err == nil {
+		return &req, nil, nil
+	}
+
+	// Fall back to JSON
+	var params map[string]interface{}
+	if err := json.Unmarshal(args, &params); err != nil {
+		return nil, nil, fmt.Errorf("failed to parse arguments: %w", err)
+	}
+
+	return nil, params, nil
+}
+
+// ReportRequestToParams converts a protobuf ReportRequest to params map
+func ReportRequestToParams(req *proto.ReportRequest) map[string]interface{} {
+	params := make(map[string]interface{})
+
+	if req.Action != "" {
+		params["action"] = req.Action
+	}
+	if req.ProjectName != "" {
+		params["project_name"] = req.ProjectName
+	}
+	params["include_metrics"] = req.IncludeMetrics
+	params["include_architecture"] = req.IncludeArchitecture
+	params["include_tasks"] = req.IncludeTasks
+	params["include_recommendations"] = req.IncludeRecommendations
+	if req.OutputFormat != "" {
+		params["output_format"] = req.OutputFormat
+	}
+	if req.OutputPath != "" {
+		params["output_path"] = req.OutputPath
+	}
+	// Score fields
+	if req.OverallScore > 0 {
+		params["overall_score"] = int(req.OverallScore)
+	}
+	if req.CompletionScore > 0 {
+		params["completion_score"] = int(req.CompletionScore)
+	}
+	if req.DocumentationScore > 0 {
+		params["documentation_score"] = int(req.DocumentationScore)
+	}
+	if req.TestingScore > 0 {
+		params["testing_score"] = int(req.TestingScore)
+	}
+	if req.SecurityScore > 0 {
+		params["security_score"] = int(req.SecurityScore)
+	}
+	if req.AlignmentScore > 0 {
+		params["alignment_score"] = int(req.AlignmentScore)
+	}
+
+	return params
+}
+
+// ParseTaskWorkflowRequest parses a task_workflow tool request (protobuf or JSON)
+func ParseTaskWorkflowRequest(args json.RawMessage) (*proto.TaskWorkflowRequest, map[string]interface{}, error) {
+	var req proto.TaskWorkflowRequest
+
+	// Try protobuf binary first
+	if err := protobuf.Unmarshal(args, &req); err == nil {
+		return &req, nil, nil
+	}
+
+	// Fall back to JSON
+	var params map[string]interface{}
+	if err := json.Unmarshal(args, &params); err != nil {
+		return nil, nil, fmt.Errorf("failed to parse arguments: %w", err)
+	}
+
+	return nil, params, nil
+}
+
+// TaskWorkflowRequestToParams converts a protobuf TaskWorkflowRequest to params map
+func TaskWorkflowRequestToParams(req *proto.TaskWorkflowRequest) map[string]interface{} {
+	params := make(map[string]interface{})
+
+	if req.Action != "" {
+		params["action"] = req.Action
+	}
+	if req.TaskId != "" {
+		params["task_id"] = req.TaskId
+	}
+	if req.TaskIds != "" {
+		params["task_ids"] = req.TaskIds
+	}
+	if req.Name != "" {
+		params["name"] = req.Name
+	}
+	if req.LongDescription != "" {
+		params["long_description"] = req.LongDescription
+	}
+	if req.NewStatus != "" {
+		params["new_status"] = req.NewStatus
+	}
+	if req.Status != "" {
+		params["status"] = req.Status
+	}
+	if req.FilterTag != "" {
+		params["filter_tag"] = req.FilterTag
+	}
+	// Tags and Dependencies are repeated string (arrays)
+	if len(req.Tags) > 0 {
+		// Convert to comma-separated string or JSON array string for compatibility
+		tagsJSON, _ := json.Marshal(req.Tags)
+		params["tags"] = string(tagsJSON)
+	}
+	if len(req.Dependencies) > 0 {
+		// Convert to comma-separated string or JSON array string for compatibility
+		depsJSON, _ := json.Marshal(req.Dependencies)
+		params["dependencies"] = string(depsJSON)
+	}
+	params["auto_estimate"] = req.AutoEstimate
+	params["auto_apply"] = req.AutoApply
+	params["dry_run"] = req.DryRun
+	params["move_to_todo"] = req.MoveToTodo
+	params["clarification_none"] = req.ClarificationNone
+	if req.ClarificationText != "" {
+		params["clarification_text"] = req.ClarificationText
+	}
+	if req.Decision != "" {
+		params["decision"] = req.Decision
+	}
+	if req.DecisionsJson != "" {
+		params["decisions_json"] = req.DecisionsJson
+	}
+	if req.SubAction != "" {
+		params["sub_action"] = req.SubAction
+	}
+	if req.OutputFormat != "" {
+		params["output_format"] = req.OutputFormat
+	}
+	if req.OutputPath != "" {
+		params["output_path"] = req.OutputPath
+	}
+	if req.StaleThresholdHours > 0 {
+		params["stale_threshold_hours"] = int(req.StaleThresholdHours)
+	}
+	params["include_legacy"] = req.IncludeLegacy
+	params["external"] = req.External
+
+	return params
+}
