@@ -5,14 +5,22 @@ Python Bridge Tool Executor
 Executes Python tools from the Go MCP server via subprocess.
 This bridge allows the Go server to execute existing Python tools.
 
-Currently uses JSON format. Protobuf support can be added when Python protobuf
-code is generated from bridge.proto.
+Supports both protobuf binary and JSON formats for backward compatibility.
 """
 
+import base64
 import json
 import sys
 import os
 from pathlib import Path
+
+# Try to import protobuf (required for protobuf support)
+try:
+    from bridge.proto import bridge_pb2
+    HAVE_PROTOBUF = True
+except ImportError:
+    HAVE_PROTOBUF = False
+    # Fall back to JSON-only mode if protobuf not available
 
 # Add local project_management_automation to path (copied to exarp-go)
 PROJECT_ROOT = Path(__file__).parent.parent
@@ -22,11 +30,35 @@ sys.path.insert(0, str(PROJECT_ROOT))
 BRIDGE_ROOT = Path(__file__).parent
 sys.path.insert(0, str(BRIDGE_ROOT))
 
-def execute_tool(tool_name: str, args_json: str):
-    """Execute a Python tool with given arguments."""
+def execute_tool(tool_name: str, args_json: str, use_protobuf: bool = False, protobuf_data: bytes = None):
+    """Execute a Python tool with given arguments.
+    
+    Args:
+        tool_name: Name of the tool to execute
+        args_json: JSON string with arguments (for JSON mode)
+        use_protobuf: Whether to use protobuf format
+        protobuf_data: Protobuf binary data (if use_protobuf is True)
+    """
     try:
-        # Parse arguments
-        args = json.loads(args_json) if args_json else {}
+        # Parse arguments - try protobuf first if available, fall back to JSON
+        args = {}
+        if use_protobuf and HAVE_PROTOBUF and protobuf_data:
+            try:
+                # Parse protobuf ToolRequest
+                request = bridge_pb2.ToolRequest()
+                request.ParseFromString(protobuf_data)
+                
+                # Extract tool name and arguments from protobuf
+                tool_name = request.tool_name
+                args_json = request.arguments_json
+                # Parse JSON arguments from protobuf message
+                args = json.loads(args_json) if args_json else {}
+            except Exception as e:
+                # If protobuf parsing fails, fall back to JSON
+                args = json.loads(args_json) if args_json else {}
+        else:
+            # Use JSON format (backward compatibility)
+            args = json.loads(args_json) if args_json else {}
         
         # Import tool functions from project_management_automation
         # Note: tool_catalog, workflow_mode, git_tools, infer_session_mode, health, and automation removed
@@ -339,6 +371,9 @@ def execute_tool(tool_name: str, args_json: str):
         else:
             result_json = json.dumps({"result": str(result)}, indent=2)
         
+        # If protobuf mode, could return protobuf ToolResponse
+        # For now, return JSON (backward compatible)
+        # Future: Return protobuf ToolResponse when fully migrated
         return result_json
         
     except Exception as e:
@@ -356,7 +391,31 @@ if __name__ == "__main__":
         sys.exit(1)
     
     tool_name = sys.argv[1]
-    args_json = sys.argv[2] if len(sys.argv) > 2 else "{}"
     
-    sys.exit(execute_tool(tool_name, args_json))
+    # Check if protobuf format is being used (--protobuf flag)
+    use_protobuf = False
+    protobuf_data = None
+    
+    if len(sys.argv) > 2 and sys.argv[2] == "--protobuf":
+        # Protobuf mode: read binary data from stdin
+        if HAVE_PROTOBUF:
+            use_protobuf = True
+            protobuf_data = sys.stdin.buffer.read()
+        else:
+            # Protobuf not available, fall back to JSON
+            print(json.dumps({"error": "Protobuf support not available"}, indent=2), file=sys.stderr)
+            sys.exit(1)
+    else:
+        # JSON mode: get JSON string from command line
+        args_json = sys.argv[2] if len(sys.argv) > 2 else "{}"
+    
+    # Execute tool
+    result = execute_tool(tool_name, args_json if not use_protobuf else "", use_protobuf, protobuf_data)
+    
+    # Return result (execute_tool returns JSON string or exit code)
+    if isinstance(result, str):
+        print(result)
+        sys.exit(0)
+    else:
+        sys.exit(result)
 
