@@ -665,6 +665,14 @@ func registerBatch2Tools(server framework.MCPServer) error {
 					"default":     true,
 					"description": "Automatically estimate task duration and add as comment (default: true)",
 				},
+				"planning_doc": map[string]interface{}{
+					"type":        "string",
+					"description": "Path to planning document (optional, stored in task metadata)",
+				},
+				"epic_id": map[string]interface{}{
+					"type":        "string",
+					"description": "Epic task ID if this task is part of an epic (optional, stored in task metadata)",
+				},
 			},
 		},
 		handleTaskWorkflow,
