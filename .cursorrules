@@ -1,0 +1,93 @@
+# exarp-go Development Rules
+
+## Task Management Commands
+
+**⚠️ CRITICAL: Task Status Updates ⚠️**
+
+When updating task status, **PREFER convenience commands** but allow fallback to direct tool calls:
+
+### ✅ PREFERRED: Convenience Commands
+
+**Use convenience commands for common operations:**
+
+```bash
+# List tasks
+exarp-go task list --status "In Progress"
+exarp-go task list --status "Todo"
+exarp-go task list --priority "high"
+
+# Update task status
+exarp-go task update T-123 --new-status "Done"
+exarp-go task update --status "Todo" --new-status "Done" --ids "T-1,T-2"
+
+# Create task
+exarp-go task create "Task name" --description "Description" --priority "high"
+
+# Show task details
+exarp-go task show T-123
+exarp-go task status T-123
+```
+
+### ⚠️ FALLBACK: Direct Tool Calls
+
+**Use direct tool calls for advanced operations or when convenience commands don't support the operation:**
+
+```bash
+# Advanced operations (clarity, cleanup, etc.)
+exarp-go -tool task_workflow -args '{"action":"clarity","task_id":"T-123"}'
+exarp-go -tool task_workflow -args '{"action":"cleanup","stale_threshold_hours":24}'
+
+# Batch operations with complex filters
+exarp-go -tool task_workflow -args '{"action":"sync","sub_action":"list","status":"Review","filter_tag":"migration"}'
+```
+
+### Rules
+
+1. **PREFER convenience commands** (`exarp-go task ...`) for:
+   - Listing tasks by status/priority/tag
+   - Updating single or multiple task statuses
+   - Creating new tasks
+   - Showing task details
+
+2. **FALLBACK to direct tool calls** (`exarp-go -tool task_workflow ...`) for:
+   - Advanced actions (clarity, cleanup, clarify)
+   - Complex filtering not supported by convenience commands
+   - Batch operations with custom parameters
+   - Scripting/automation where JSON is more appropriate
+
+3. **NEVER edit `.todo2/state.todo2.json` directly** - Always use `task_workflow` tool or convenience commands
+
+4. **When in doubt**, use convenience commands first - they're simpler and more readable
+
+## Makefile Task Commands
+
+**Use Makefile targets for common task operations:**
+
+```bash
+# List tasks
+make task-list-todo
+make task-list-in-progress
+make task-list-done
+make task-list TASK_FLAGS="--status Todo --limit 10"
+
+# Update task status
+make task-update TASK_ID=T-123 NEW_STATUS=Done
+```
+
+## Examples
+
+### ✅ GOOD: Convenience Command
+```bash
+exarp-go task update T-123 --new-status "Done"
+```
+
+### ⚠️ ACCEPTABLE: Direct Tool (Advanced Operation)
+```bash
+exarp-go -tool task_workflow -args '{"action":"clarity","task_id":"T-123"}'
+```
+
+### ❌ BAD: Direct File Edit
+```bash
+# NEVER do this
+vim .todo2/state.todo2.json
+```

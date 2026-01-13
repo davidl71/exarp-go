@@ -14,7 +14,11 @@ func TestAddComments(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Init() error = %v", err)
 	}
-	defer Close()
+	defer func() {
+		if err := Close(); err != nil {
+			// Ignore cleanup errors in tests
+		}
+	}()
 
 	// Create a task first (required for foreign key)
 	task := &models.Todo2Task{
@@ -70,7 +74,11 @@ func TestAddCommentsBatch(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Init() error = %v", err)
 	}
-	defer Close()
+	defer func() {
+		if err := Close(); err != nil {
+			// Ignore cleanup errors in tests
+		}
+	}()
 
 	// Create task
 	task := &models.Todo2Task{
@@ -132,7 +140,11 @@ func TestGetComments(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Init() error = %v", err)
 	}
-	defer Close()
+	defer func() {
+		if err := Close(); err != nil {
+			// Ignore cleanup errors in tests
+		}
+	}()
 
 	// Create task
 	task := &models.Todo2Task{
@@ -188,7 +200,11 @@ func TestGetCommentsByType(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Init() error = %v", err)
 	}
-	defer Close()
+	defer func() {
+		if err := Close(); err != nil {
+			// Ignore cleanup errors in tests
+		}
+	}()
 
 	// Create tasks
 	task1 := &models.Todo2Task{ID: "T-COMMENT-4", Content: "Task 1", Status: "Todo"}
@@ -244,7 +260,11 @@ func TestGetCommentsWithTypeFilter(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Init() error = %v", err)
 	}
-	defer Close()
+	defer func() {
+		if err := Close(); err != nil {
+			// Ignore cleanup errors in tests
+		}
+	}()
 
 	// Create task
 	task := &models.Todo2Task{
@@ -288,7 +308,11 @@ func TestDeleteComment(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Init() error = %v", err)
 	}
-	defer Close()
+	defer func() {
+		if err := Close(); err != nil {
+			// Ignore cleanup errors in tests
+		}
+	}()
 
 	// Create task
 	task := &models.Todo2Task{
@@ -348,7 +372,11 @@ func TestCommentCascadeDelete(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Init() error = %v", err)
 	}
-	defer Close()
+	defer func() {
+		if err := Close(); err != nil {
+			// Ignore cleanup errors in tests
+		}
+	}()
 
 	// Create task
 	task := &models.Todo2Task{
@@ -402,7 +430,11 @@ func TestAddCommentsEmptyList(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Init() error = %v", err)
 	}
-	defer Close()
+	defer func() {
+		if err := Close(); err != nil {
+			// Ignore cleanup errors in tests
+		}
+	}()
 
 	// Test adding empty comment list (should not error)
 	err = AddComments(context.Background(), "T-COMMENT-9", []Comment{})
@@ -418,7 +450,11 @@ func TestAddCommentsWithProvidedID(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Init() error = %v", err)
 	}
-	defer Close()
+	defer func() {
+		if err := Close(); err != nil {
+			// Ignore cleanup errors in tests
+		}
+	}()
 
 	// Create task
 	task := &models.Todo2Task{

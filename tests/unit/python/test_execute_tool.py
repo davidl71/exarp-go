@@ -18,7 +18,6 @@ def test_tool_routing():
     known_tools = [
         "analyze_alignment",
         "generate_config",
-        "health",
         "setup_hooks",
         "check_attribution",
         "memory",
@@ -29,14 +28,9 @@ def test_tool_routing():
         "task_discovery",
         "task_workflow",
         "testing",
-        "automation",
-        "tool_catalog",
-        "workflow_mode",
         "lint",
         "estimation",
-        "git_tools",
         "session",
-        "infer_session_mode",
         "ollama",
         "mlx",
     ]

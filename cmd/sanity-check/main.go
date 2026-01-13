@@ -14,10 +14,13 @@ import (
 
 // Expected counts
 // Note: Tools = 28 base tools + 1 conditional (Apple Foundation Models on macOS) = 29 total
-//        (server_status and list_models converted to resources, tool_catalog list action converted to resources)
+//
+//	(server_status and list_models converted to resources, tool_catalog list action converted to resources)
+//
 // Prompts = 18 (8 original + 7 workflow + 2 mcp-generic-tools + 1 task management)
 // Resources = 11 base + 6 task resources + 1 server resource + 1 models resource + 2 tools resources = 21
-//        (server_status → stdio://server/status, list_models → stdio://models, tool_catalog list → stdio://tools + stdio://tools/{category})
+//
+//	(server_status → stdio://server/status, list_models → stdio://models, tool_catalog list → stdio://tools + stdio://tools/{category})
 const (
 	EXPECTED_TOOLS     = 28 // Base tools (29 with conditional Apple Foundation Models, server_status and list_models removed, tool_catalog still exists but only help action)
 	EXPECTED_PROMPTS   = 18 // 8 original + 7 workflow + 2 mcp-generic-tools + 1 task management

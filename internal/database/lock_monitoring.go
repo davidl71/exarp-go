@@ -9,12 +9,12 @@ import (
 
 // LockStatus represents the status of a task lock
 type LockStatus struct {
-	TaskID       string
-	Assignee     string
-	AssignedAt   time.Time
-	LockUntil    time.Time
-	IsExpired    bool
-	IsStale      bool
+	TaskID        string
+	Assignee      string
+	AssignedAt    time.Time
+	LockUntil     time.Time
+	IsExpired     bool
+	IsStale       bool
 	TimeRemaining time.Duration
 	TimeExpired   time.Duration
 }

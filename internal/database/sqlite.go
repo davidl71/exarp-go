@@ -3,7 +3,6 @@ package database
 import (
 	"database/sql"
 	"fmt"
-	"os"
 	"path/filepath"
 	"sync"
 
@@ -13,13 +12,30 @@ import (
 // DB is the global database connection
 var DB *sql.DB
 
+// currentDriver is the currently active database driver
+var currentDriver Driver
+
 // dbMutex protects the global DB variable from concurrent access
 var dbMutex sync.Mutex
 
-// Init initializes the SQLite database connection
-// It creates the database file if it doesn't exist and runs migrations
+// Init initializes the database connection using the default SQLite driver
+// This is kept for backward compatibility
 // Thread-safe: uses mutex to prevent concurrent initialization
 func Init(projectRoot string) error {
+	cfg, err := LoadConfig(projectRoot)
+	if err != nil {
+		return fmt.Errorf("failed to load config: %w", err)
+	}
+	// Override to use SQLite for backward compatibility
+	cfg.Driver = DriverSQLite
+	cfg.DSN = filepath.Join(projectRoot, ".todo2", "todo2.db")
+	return InitWithConfig(cfg)
+}
+
+// InitWithConfig initializes the database connection using the provided configuration
+// Supports multiple database backends (SQLite, MySQL, PostgreSQL, ODBC)
+// Thread-safe: uses mutex to prevent concurrent initialization
+func InitWithConfig(cfg *Config) error {
 	dbMutex.Lock()
 	defer dbMutex.Unlock()
 
@@ -27,55 +43,53 @@ func Init(projectRoot string) error {
 	if DB != nil {
 		DB.Close()
 		DB = nil
+		currentDriver = nil
 	}
 
-	dbPath := filepath.Join(projectRoot, ".todo2", "todo2.db")
-
-	// Ensure .todo2 directory exists
-	dir := filepath.Dir(dbPath)
-	if err := os.MkdirAll(dir, 0755); err != nil {
-		return fmt.Errorf("failed to create .todo2 directory: %w", err)
+	// Get driver for the configured type
+	driver, err := GetDriver(cfg.Driver)
+	if err != nil {
+		// Try to register missing drivers
+		switch cfg.Driver {
+		case DriverMySQL:
+			RegisterDriver(NewMySQLDriver())
+			driver, err = GetDriver(DriverMySQL)
+		case DriverPostgres:
+			RegisterDriver(NewPostgresDriver())
+			driver, err = GetDriver(DriverPostgres)
+		case DriverODBC:
+			odbcDriver := NewODBCDriver()
+			if odbcDriver == nil {
+				return fmt.Errorf("ODBC driver requires cgo (CGO_ENABLED=1)")
+			}
+			RegisterDriver(odbcDriver)
+			driver, err = GetDriver(DriverODBC)
+		}
+		if err != nil {
+			return fmt.Errorf("failed to get driver %s: %w", cfg.Driver, err)
+		}
 	}
 
-	// Open database connection with foreign keys enabled via DSN parameter
-	// Using DSN parameter ensures foreign keys are enabled for ALL connections in the pool
-	// (PRAGMA statements only affect the connection they're executed on)
-	// Using modernc.org/sqlite (pure Go, no CGO required)
-	dsn := dbPath + "?_foreign_keys=1"
-	db, err := sql.Open("sqlite", dsn)
+	// Open database connection
+	db, err := driver.Open(cfg.DSN)
 	if err != nil {
 		return fmt.Errorf("failed to open database: %w", err)
 	}
 
-	// Test connection
-	if err := db.Ping(); err != nil {
-		return fmt.Errorf("failed to ping database: %w", err)
+	// Configure database (PRAGMA, SET, etc.)
+	if err := driver.Configure(db); err != nil {
+		db.Close()
+		return fmt.Errorf("failed to configure database: %w", err)
 	}
-
-	// Set SQLite PRAGMA settings (must be done outside transactions)
-	// Note: foreign_keys is now set via DSN parameter above, so we don't need to set it here
-	if _, err := db.Exec("PRAGMA journal_mode = WAL"); err != nil {
-		return fmt.Errorf("failed to set journal_mode: %w", err)
-	}
-	if _, err := db.Exec("PRAGMA synchronous = NORMAL"); err != nil {
-		return fmt.Errorf("failed to set synchronous: %w", err)
-	}
-	if _, err := db.Exec("PRAGMA busy_timeout = 30000"); err != nil {
-		return fmt.Errorf("failed to set busy_timeout: %w", err)
-	}
-
-	// Set connection pool settings
-	// SQLite with WAL mode supports multiple readers concurrently
-	// Allow multiple connections for better performance with concurrent queries
-	db.SetMaxOpenConns(10)   // Allow multiple readers (WAL mode supports this)
-	db.SetMaxIdleConns(5)    // Keep some idle connections ready
-	db.SetConnMaxLifetime(0) // Connections don't expire
 
 	DB = db
+	currentDriver = driver
 
-	// Run migrations
-	if err := RunMigrations(); err != nil {
-		return fmt.Errorf("failed to run migrations: %w", err)
+	// Run migrations if enabled
+	if cfg.AutoMigrate {
+		if err := RunMigrations(); err != nil {
+			return fmt.Errorf("failed to run migrations: %w", err)
+		}
 	}
 
 	return nil
@@ -90,6 +104,10 @@ func Close() error {
 	if DB != nil {
 		err := DB.Close()
 		DB = nil
+		if currentDriver != nil {
+			currentDriver.Close()
+			currentDriver = nil
+		}
 		return err
 	}
 	return nil
@@ -104,4 +122,23 @@ func GetDB() (*sql.DB, error) {
 		return nil, fmt.Errorf("database not initialized, call Init() first")
 	}
 	return DB, nil
+}
+
+// GetDriver returns the current database driver
+// Returns error if database is not initialized
+func GetCurrentDriver() (Driver, error) {
+	if currentDriver == nil {
+		return nil, fmt.Errorf("database not initialized, call Init() first")
+	}
+	return currentDriver, nil
+}
+
+// GetDialect returns the SQL dialect for the current database
+// Returns error if database is not initialized
+func GetDialect() (Dialect, error) {
+	driver, err := GetCurrentDriver()
+	if err != nil {
+		return nil, err
+	}
+	return driver.Dialect(), nil
 }

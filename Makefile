@@ -1,4 +1,4 @@
-.PHONY: help build run test test-watch test-coverage test-html clean install fmt lint dev dev-watch dev-test dev-full bench docs sanity-check sanity-check-cached test-cli test-cli-list test-cli-tool test-cli-test config clean-config sprint-start sprint-end pre-sprint sprint check-tasks update-completed-tasks go-fmt go-vet golangci-lint-check golangci-lint-fix govulncheck check check-fix check-all build-migrate migrate migrate-dry-run install-tools go-mod-tidy go-mod-verify pre-commit ci validate check-deps test-go test-go-fast test-go-verbose test-go-parallel version scorecard scorecard-full
+.PHONY: help build run test test-watch test-coverage test-html clean install fmt lint dev dev-watch dev-test dev-full bench docs sanity-check sanity-check-cached test-cli test-cli-list test-cli-tool test-cli-test config clean-config sprint-start sprint-end pre-sprint sprint check-tasks update-completed-tasks go-fmt go-vet golangci-lint-check golangci-lint-fix govulncheck check check-fix check-all build-migrate migrate migrate-dry-run install-tools go-mod-tidy go-mod-verify pre-commit ci validate check-deps test-go test-go-fast test-go-verbose test-go-parallel version scorecard scorecard-full task-list task-list-todo task-list-in-progress task-list-done task-update
 
 # Project configuration
 PROJECT_NAME := exarp-go
@@ -652,6 +652,35 @@ pre-sprint: ## Run pre-sprint cleanup (duplicates, alignment, docs)
 		$(BINARY_PATH) -tool analyze_alignment -args '{"action":"todo2"}' 2>/dev/null || echo "$(YELLOW)⚠️  Alignment analysis completed$(NC)"; \
 		$(BINARY_PATH) -tool health -args '{"action":"docs"}' 2>/dev/null || echo "$(YELLOW)⚠️  Docs health check completed$(NC)"; \
 		echo "$(GREEN)✅ Pre-sprint cleanup complete$(NC)"; \
+	fi
+
+task-list: ## List tasks (use TASK_FLAGS="--status Todo" for filtering)
+	@if [ -f $(BINARY_PATH) ]; then \
+		$(BINARY_PATH) task list $(TASK_FLAGS) 2>&1 | grep -v "INFO\|Warning\|Database" || true; \
+	else \
+		echo "$(RED)❌ exarp-go binary not found - run 'make build' first$(NC)"; \
+		exit 1; \
+	fi
+
+task-list-todo: ## List all Todo tasks
+	@$(MAKE) task-list TASK_FLAGS="--status Todo"
+
+task-list-in-progress: ## List all In Progress tasks
+	@$(MAKE) task-list TASK_FLAGS="--status \"In Progress\""
+
+task-list-done: ## List all Done tasks
+	@$(MAKE) task-list TASK_FLAGS="--status Done"
+
+task-update: ## Update task status (use TASK_ID=id NEW_STATUS=status)
+	@if [ -f $(BINARY_PATH) ]; then \
+		if [ -z "$(TASK_ID)" ] || [ -z "$(NEW_STATUS)" ]; then \
+			echo "$(RED)❌ Usage: make task-update TASK_ID=T-123 NEW_STATUS=Done$(NC)"; \
+			exit 1; \
+		fi; \
+		$(BINARY_PATH) task update $(TASK_ID) --new-status "$(NEW_STATUS)" 2>&1 | grep -v "INFO\|Warning\|Database" || true; \
+	else \
+		echo "$(RED)❌ exarp-go binary not found - run 'make build' first$(NC)"; \
+		exit 1; \
 	fi
 
 sprint: ## Run full sprint automation (process all background tasks)

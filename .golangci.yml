@@ -1,6 +1,8 @@
 # golangci-lint configuration for exarp-go
 # See https://golangci-lint.run/usage/configuration/ for full documentation
 
+version: 2
+
 run:
   # Timeout for analysis
   timeout: 5m
@@ -48,13 +50,10 @@ linters:
   # Enable specific linters
   enable:
     - errcheck          # Check for unchecked errors
-    - gosimple          # Simplify code
     - govet             # Go vet
     - ineffassign       # Detect unused assignments
     - staticcheck       # Static analysis
     - unused            # Unused code detection
-    - gofmt             # Format checking
-    - goimports         # Import formatting
     - misspell          # Spelling checker
     - unconvert         # Remove unnecessary conversions
     - unparam           # Unused parameters
@@ -75,10 +74,9 @@ linters:
     - gocyclo           # Cyclomatic complexity
     - godot             # Comment formatting
     - godox             # TODO/BUG/FIXME comments
-    - gofumpt           # Stricter gofmt
     - mnd               # Magic number detection (replaces gomnd)
     - goprintffuncname  # Printf function name
-    - importas           # Import alias checking
+    - importas          # Import alias checking
     - lll               # Line length
     - makezero          # Make zero length slices
     - nakedret          # Naked returns
@@ -88,12 +86,10 @@ linters:
     - predeclared       # Predeclared identifiers
     - rowserrcheck      # Rows error checking
     - sqlclosecheck     # SQL close checking
-    - stylecheck        # Style checking
     - tagliatelle       # Struct tag checking
     - usetesting        # Testing environment (replaces tenv)
     - thelper           # Test helper detection
     - tparallel         # Parallel tests
-    - typecheck         # Type checking
     - varnamelen        # Variable name length
     - whitespace        # Whitespace checking
     - wrapcheck         # Error wrapping

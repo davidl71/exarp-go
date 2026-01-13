@@ -21,9 +21,9 @@ func TestMain_ConfigLoading(t *testing.T) {
 	}()
 
 	// Clear env vars
-	os.Unsetenv("MCP_FRAMEWORK")
-	os.Unsetenv("MCP_SERVER_NAME")
-	os.Unsetenv("MCP_VERSION")
+	_ = os.Unsetenv("MCP_FRAMEWORK")   //nolint:errcheck // Test setup
+	_ = os.Unsetenv("MCP_SERVER_NAME") //nolint:errcheck // Test setup
+	_ = os.Unsetenv("MCP_VERSION")     //nolint:errcheck // Test setup
 
 	cfg, err := config.Load()
 	if err != nil {

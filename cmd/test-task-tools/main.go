@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
 
 	"github.com/davidl71/exarp-go/internal/config"
 	"github.com/davidl71/exarp-go/internal/factory"
@@ -13,7 +14,10 @@ import (
 func main() {
 	cfg, _ := config.Load()
 	server, _ := factory.NewServerFromConfig(cfg)
-	tools.RegisterAllTools(server)
+	if err := tools.RegisterAllTools(server); err != nil {
+		fmt.Printf("Error registering tools: %v\n", err)
+		os.Exit(1)
+	}
 
 	ctx := context.Background()
 

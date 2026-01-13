@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	fm "github.com/blacktop/go-foundationmodels"
+	"github.com/davidl71/exarp-go/internal/config"
 	"github.com/davidl71/exarp-go/internal/database"
 	"github.com/davidl71/exarp-go/internal/framework"
 	"github.com/davidl71/exarp-go/internal/platform"
@@ -89,8 +90,9 @@ func listTasksAwaitingClarification(ctx context.Context, params map[string]inter
 		needsClarification := false
 		clarificationText := ""
 
-		// Check for unclear descriptions
-		if task.LongDescription == "" || len(task.LongDescription) < 50 {
+		// Check for unclear descriptions (use config for min length)
+		minDescLen := config.TaskMinDescriptionLength()
+		if task.LongDescription == "" || len(task.LongDescription) < minDescLen {
 			needsClarification = true
 			clarificationText = "Task description is too brief or missing"
 		}

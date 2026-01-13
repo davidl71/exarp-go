@@ -4,10 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"regexp"
 	"strings"
 	"time"
 
+	"github.com/davidl71/devwisdom-go/pkg/wisdom"
+	"github.com/davidl71/exarp-go/internal/database"
 	"github.com/davidl71/exarp-go/internal/framework"
 )
 
@@ -263,7 +264,6 @@ func findAlternativeModels(recommended ModelInfo, optimizeFor string) []ModelInf
 }
 
 // handleRecommendWorkflowNative handles the "workflow" action for recommend tool
-// Recommends AGENT vs ASK mode based on task complexity
 func handleRecommendWorkflowNative(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	// Get task description
 	taskDescription := ""
@@ -277,99 +277,45 @@ func handleRecommendWorkflowNative(ctx context.Context, params map[string]interf
 		taskID = idRaw
 	}
 
-	// If task ID provided, try to load task description
-	if taskID != "" && taskDescription == "" {
-		// Try to load task from Todo2 database
-		projectRoot, err := FindProjectRoot()
-		if err == nil {
-				tasks, err := LoadTodo2Tasks(projectRoot)
-				if err == nil {
-					for _, task := range tasks {
-						if task.ID == taskID {
-							taskDescription = task.Content + " " + task.LongDescription
-							break
-						}
-					}
-				}
-		}
-	}
-
-	// Get tags if provided (JSON string)
-	tagList := []string{}
-	if tagsRaw, ok := params["tags"].(string); ok && tagsRaw != "" {
-		var tags []interface{}
-		if err := json.Unmarshal([]byte(tagsRaw), &tags); err == nil {
-			for _, tag := range tags {
-				if tagStr, ok := tag.(string); ok {
-					tagList = append(tagList, tagStr)
-				}
-			}
-		}
-	}
-
-	// Get include_rationale flag
 	includeRationale := true
 	if rationaleRaw, ok := params["include_rationale"].(bool); ok {
 		includeRationale = rationaleRaw
 	}
 
-	// Score AGENT vs ASK mode
-	agentScore, agentReasons := scoreAgentIndicators(taskDescription, tagList)
-	askScore, askReasons := scoreAskIndicators(taskDescription, tagList)
-
-	// Determine recommendation
-	var mode string
-	var confidence float64
-	var reasons []string
-	var description string
-
-	if agentScore > askScore {
-		mode = "AGENT"
-		confidence = minFloat(float64(agentScore)/(float64(agentScore)+float64(askScore)+1)*100, 95)
-		reasons = agentReasons
-		description = "Use AGENT mode for autonomous multi-step implementation"
-	} else if askScore > agentScore {
-		mode = "ASK"
-		confidence = minFloat(float64(askScore)/(float64(agentScore)+float64(askScore)+1)*100, 95)
-		reasons = askReasons
-		description = "Use ASK mode for focused questions and single edits"
-	} else {
-		mode = "ASK" // Default to ASK when uncertain
-		confidence = 50
-		reasons = []string{"No strong indicators - defaulting to ASK for safety"}
-		description = "Unclear complexity - start with ASK, escalate to AGENT if needed"
+	// If task_id provided, load task from database
+	if taskID != "" && taskDescription == "" {
+		task, err := database.GetTask(ctx, taskID)
+		if err == nil {
+			taskDescription = task.Content + " " + task.LongDescription
+		}
 	}
+
+	// Analyze task and recommend workflow mode
+	recommendation := analyzeWorkflowMode(taskDescription, includeRationale)
 
 	// Build result
 	result := map[string]interface{}{
-		"recommended_mode": mode,
-		"confidence":       roundFloat(confidence, 1),
-		"description":      description,
-		"agent_score":      agentScore,
-		"ask_score":        askScore,
+		"recommended_mode": recommendation.Mode,
+		"confidence":       recommendation.Confidence,
+		"description":      recommendation.Description,
+		"agent_score":      recommendation.AgentScore,
+		"ask_score":        recommendation.AskScore,
 	}
 
 	if includeRationale {
-		// Top 5 reasons
-		if len(reasons) > 5 {
-			reasons = reasons[:5]
-		}
-		result["rationale"] = reasons
+		result["rationale"] = recommendation.Rationale
 		result["guidelines"] = map[string]string{
 			"AGENT": "Best for: Multi-file changes, feature implementation, refactoring, scaffolding",
 			"ASK":   "Best for: Questions, code review, single-file edits, debugging help",
 		}
+		result["suggestion"] = recommendation.Suggestion
 	}
-
-	// Add user-facing suggestion
-	suggestion := getModeSuggestion(mode, confidence, taskDescription)
-	result["suggestion"] = suggestion
 
 	// Wrap in success response format
 	response := map[string]interface{}{
 		"success":   true,
 		"data":      result,
-		"timestamp": time.Now().Unix(),
+		"timestamp": 0,
 	}
 
 	resultJSON, err := json.MarshalIndent(response, "", "  ")
@@ -382,207 +328,261 @@ func handleRecommendWorkflowNative(ctx context.Context, params map[string]interf
 	}, nil
 }
 
-// AGENT indicators
-var agentKeywords = []string{
-	"implement", "create", "build", "develop", "refactor",
-	"migrate", "upgrade", "integrate", "deploy", "configure",
-	"setup", "install", "automate", "generate", "scaffold",
+// WorkflowRecommendation represents a workflow mode recommendation
+type WorkflowRecommendation struct {
+	Mode        string
+	Confidence  float64
+	Description string
+	AgentScore  int
+	AskScore    int
+	Rationale   []string
+	Suggestion  map[string]interface{}
 }
 
-var agentPatterns = []*regexp.Regexp{
-	regexp.MustCompile(`(?i)multi.?file`),
-	regexp.MustCompile(`(?i)cross.?module`),
-	regexp.MustCompile(`(?i)end.?to.?end`),
-	regexp.MustCompile(`(?i)full.?stack`),
-	regexp.MustCompile(`(?i)complete\s+\w+`),
-}
+// analyzeWorkflowMode analyzes a task and recommends AGENT or ASK mode
+func analyzeWorkflowMode(taskDescription string, includeRationale bool) WorkflowRecommendation {
+	taskLower := strings.ToLower(taskDescription)
 
-var agentTags = []string{
-	"feature", "implementation", "infrastructure", "integration",
-	"refactoring", "migration", "automation",
-}
+	// AGENT indicators
+	agentKeywords := []string{
+		"implement", "create", "add", "build", "refactor", "migrate",
+		"multi-file", "multiple files", "architecture", "scaffold",
+		"feature", "system", "framework", "restructure",
+	}
+	agentPatterns := []string{
+		`\b(implement|create|add|build|refactor|migrate)\s+\w+`,
+		`\b(multi|multiple)\s+\w*\s*file`,
+		`\b(architecture|system|framework)\s+\w+`,
+	}
 
-// ASK indicators
-var askKeywords = []string{
-	"explain", "what", "why", "how", "understand",
-	"clarify", "review", "check", "validate", "analyze",
-	"debug", "find", "locate", "show", "list",
-}
+	// ASK indicators
+	askKeywords := []string{
+		"question", "how", "what", "why", "explain", "review",
+		"debug", "fix", "error", "bug", "single file", "one file",
+		"help", "clarify", "understand",
+	}
+	askPatterns := []string{
+		`\b(how|what|why)\s+\w+`,
+		`\b(explain|review|debug|fix)\s+\w+`,
+		`\b(single|one)\s+\w*\s*file`,
+	}
 
-var askPatterns = []*regexp.Regexp{
-	regexp.MustCompile(`(?i)single\s+file`),
-	regexp.MustCompile(`(?i)quick\s+\w+`),
-	regexp.MustCompile(`(?i)simple\s+\w+`),
-	regexp.MustCompile(`(?i)just\s+\w+`),
-}
+	// Score AGENT indicators
+	agentScore := 0
+	agentReasons := []string{}
 
-var askTags = []string{
-	"question", "documentation", "review", "analysis",
-	"debugging", "research",
-}
-
-// scoreAgentIndicators scores AGENT mode indicators
-func scoreAgentIndicators(content string, tags []string) (int, []string) {
-	score := 0
-	reasons := []string{}
-
-	contentLower := strings.ToLower(content)
-
-	// Score keywords
 	for _, kw := range agentKeywords {
-		if strings.Contains(contentLower, kw) {
-			score += 2
-			reasons = append(reasons, fmt.Sprintf("Keyword: '%s'", kw))
+		if strings.Contains(taskLower, kw) {
+			agentScore += 2
+			agentReasons = append(agentReasons, fmt.Sprintf("Keyword: '%s'", kw))
 		}
 	}
 
-	// Score patterns
+	// Simple pattern matching (basic regex)
 	for _, pattern := range agentPatterns {
-		if pattern.MatchString(contentLower) {
-			score += 3
-			reasons = append(reasons, fmt.Sprintf("Pattern: '%s'", pattern.String()))
+		if strings.Contains(taskLower, strings.TrimPrefix(pattern, `\b(`)) {
+			agentScore += 3
+			agentReasons = append(agentReasons, fmt.Sprintf("Pattern: '%s'", pattern))
 		}
 	}
 
-	// Score tags
-	for _, tag := range tags {
-		tagLower := strings.ToLower(tag)
-		for _, agentTag := range agentTags {
-			if tagLower == strings.ToLower(agentTag) {
-				score += 2
-				reasons = append(reasons, fmt.Sprintf("Tag: '%s'", tag))
-				break
-			}
-		}
-	}
+	// Score ASK indicators
+	askScore := 0
+	askReasons := []string{}
 
-	return score, reasons
-}
-
-// scoreAskIndicators scores ASK mode indicators
-func scoreAskIndicators(content string, tags []string) (int, []string) {
-	score := 0
-	reasons := []string{}
-
-	contentLower := strings.ToLower(content)
-
-	// Score keywords
 	for _, kw := range askKeywords {
-		if strings.Contains(contentLower, kw) {
-			score += 2
-			reasons = append(reasons, fmt.Sprintf("Keyword: '%s'", kw))
+		if strings.Contains(taskLower, kw) {
+			askScore += 2
+			askReasons = append(askReasons, fmt.Sprintf("Keyword: '%s'", kw))
 		}
 	}
 
-	// Score patterns
+	// Simple pattern matching
 	for _, pattern := range askPatterns {
-		if pattern.MatchString(contentLower) {
-			score += 3
-			reasons = append(reasons, fmt.Sprintf("Pattern: '%s'", pattern.String()))
+		if strings.Contains(taskLower, strings.TrimPrefix(pattern, `\b(`)) {
+			askScore += 3
+			askReasons = append(askReasons, fmt.Sprintf("Pattern: '%s'", pattern))
 		}
 	}
 
-	// Score tags
-	for _, tag := range tags {
-		tagLower := strings.ToLower(tag)
-		for _, askTag := range askTags {
-			if tagLower == strings.ToLower(askTag) {
-				score += 2
-				reasons = append(reasons, fmt.Sprintf("Tag: '%s'", tag))
-				break
-			}
+	// Determine recommendation
+	var mode string
+	var confidence float64
+	var description string
+	var reasons []string
+
+	if agentScore > askScore {
+		mode = "AGENT"
+		totalScore := agentScore + askScore
+		if totalScore > 0 {
+			confidence = float64(agentScore) / float64(totalScore) * 100
+		} else {
+			confidence = 50
 		}
-	}
-
-	return score, reasons
-}
-
-// getModeSuggestion generates user-facing suggestion message
-func getModeSuggestion(mode string, confidence float64, taskSummary string) map[string]interface{} {
-	modeSuggestions := map[string]map[string]interface{}{
-		"AGENT": {
-			"emoji":      "🤖",
-			"action":     "Switch to AGENT mode",
-			"instruction": "Click the mode selector (top of chat) → Select 'Agent'",
-			"why":        "AGENT mode enables autonomous multi-file editing with automatic tool execution",
-			"benefits": []string{
-				"Autonomous file creation and modification",
-				"Multi-step task execution",
-				"Automatic tool calls without confirmation",
-				"Better for implementation tasks",
-			},
-		},
-		"ASK": {
-			"emoji":      "💬",
-			"action":     "Switch to ASK mode",
-			"instruction": "Click the mode selector (top of chat) → Select 'Ask'",
-			"why":        "ASK mode provides focused assistance with user control over changes",
-			"benefits": []string{
-				"User confirms each change",
-				"Better for learning and understanding",
-				"Safer for critical code review",
-				"Ideal for questions and explanations",
-			},
-		},
-	}
-
-	suggestion := modeSuggestions[mode]
-	if suggestion == nil {
-		suggestion = modeSuggestions["ASK"]
-	}
-
-	// Build confidence qualifier
-	var qualifier string
-	if confidence >= 80 {
-		qualifier = "strongly recommend"
-	} else if confidence >= 60 {
-		qualifier = "recommend"
+		if confidence > 95 {
+			confidence = 95
+		}
+		description = "Use AGENT mode for autonomous multi-step implementation"
+		reasons = agentReasons
+	} else if askScore > agentScore {
+		mode = "ASK"
+		totalScore := agentScore + askScore
+		if totalScore > 0 {
+			confidence = float64(askScore) / float64(totalScore) * 100
+		} else {
+			confidence = 50
+		}
+		if confidence > 95 {
+			confidence = 95
+		}
+		description = "Use ASK mode for focused questions and single edits"
+		reasons = askReasons
 	} else {
-		qualifier = "suggest"
+		mode = "ASK" // Default to ASK when uncertain
+		confidence = 50
+		description = "Unclear complexity - start with ASK, escalate to AGENT if needed"
+		reasons = []string{"No strong indicators - defaulting to ASK for safety"}
 	}
 
-	// Build message
-	message := fmt.Sprintf("%s **Mode Suggestion: %s**\n\n", suggestion["emoji"], mode)
-	if taskSummary != "" {
-		summary := taskSummary
-		if len(summary) > 50 {
-			summary = summary[:50] + "..."
-		}
-		message += fmt.Sprintf("For this task (%s), I %s using **%s** mode.\n\n", summary, qualifier, mode)
-	} else {
-		message += fmt.Sprintf("I %s using **%s** mode for this task.\n\n", qualifier, mode)
+	// Build suggestion
+	suggestion := map[string]interface{}{
+		"message": fmt.Sprintf("Recommended: %s mode (%.1f%% confidence)", mode, confidence),
+		"action": map[string]string{
+			"AGENT": "Switch to AGENT mode for autonomous implementation",
+			"ASK":   "Stay in ASK mode for guided assistance",
+		}[mode],
+		"instruction": map[string]string{
+			"AGENT": "Enable AGENT mode in Cursor settings",
+			"ASK":   "Continue with ASK mode for this task",
+		}[mode],
+		"benefits": map[string][]string{
+			"AGENT": {"Autonomous multi-step execution", "Handles complex refactoring", "Manages multiple files"},
+			"ASK":   {"Focused assistance", "Quick answers", "Single-file edits"},
+		}[mode],
 	}
-	message += fmt.Sprintf("**Why?** %s\n\n", suggestion["why"])
-	message += "**To switch:**\n"
-	message += fmt.Sprintf("→ %s", suggestion["instruction"])
 
-	return map[string]interface{}{
-		"message":     message,
-		"action":      suggestion["action"],
-		"instruction": suggestion["instruction"],
-		"benefits":    sliceFirstN(suggestion["benefits"].([]string), 3),
+	return WorkflowRecommendation{
+		Mode:        mode,
+		Confidence:  confidence,
+		Description: description,
+		AgentScore:  agentScore,
+		AskScore:    askScore,
+		Rationale:   reasons[:minInt(5, len(reasons))], // Top 5 reasons
+		Suggestion:  suggestion,
 	}
 }
 
-// Helper functions
-func minFloat(a, b float64) float64 {
+// handleRecommendAdvisorNative handles the "advisor" action for recommend tool
+// Uses devwisdom-go wisdom engine directly (no MCP client needed)
+func handleRecommendAdvisorNative(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
+	// Extract parameters
+	var metric, tool, stage, context string
+	var score float64
+
+	if m, ok := params["metric"].(string); ok {
+		metric = m
+	}
+	if t, ok := params["tool"].(string); ok {
+		tool = t
+	}
+	if st, ok := params["stage"].(string); ok {
+		stage = st
+	}
+	if c, ok := params["context"].(string); ok {
+		context = c
+	}
+	if sc, ok := params["score"].(float64); ok {
+		score = sc
+	} else if sc, ok := params["score"].(int); ok {
+		score = float64(sc)
+	}
+	// Validate and clamp score to 0-100 range
+	if score < 0 {
+		score = 0
+	} else if score > 100 {
+		score = 100
+	}
+
+	// Get wisdom engine
+	engine, err := getWisdomEngine()
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize wisdom engine: %w", err)
+	}
+
+	// Determine advisor based on metric, tool, or stage
+	var advisorInfo *wisdom.AdvisorInfo
+	if metric != "" {
+		advisorInfo, err = engine.GetAdvisors().GetAdvisorForMetric(metric)
+	} else if tool != "" {
+		advisorInfo, err = engine.GetAdvisors().GetAdvisorForTool(tool)
+	} else if stage != "" {
+		advisorInfo, err = engine.GetAdvisors().GetAdvisorForStage(stage)
+	} else {
+		// Default advisor
+		advisorInfo = &wisdom.AdvisorInfo{
+			Advisor:   "pistis_sophia",
+			Icon:      "📜",
+			Rationale: "Default wisdom advisor",
+		}
+	}
+
+	if err != nil || advisorInfo == nil {
+		// Fallback to default
+		advisorInfo = &wisdom.AdvisorInfo{
+			Advisor:   "pistis_sophia",
+			Icon:      "📜",
+			Rationale: "Default wisdom advisor",
+		}
+	}
+
+	// Get wisdom quote
+	quote, err := engine.GetWisdom(score, advisorInfo.Advisor)
+	if err != nil {
+		// Fallback quote
+		quote = &wisdom.Quote{
+			Quote:         "Wisdom comes from experience.",
+			Source:        "Unknown",
+			Encouragement: "Keep learning and growing.",
+		}
+	}
+
+	// Get consultation mode based on score
+	modeConfig := wisdom.GetConsultationMode(score)
+
+	// Create consultation (use map since Consultation type not exported in public API)
+	consultation := map[string]interface{}{
+		"timestamp":         time.Now().Format(time.RFC3339),
+		"consultation_type": "advisor",
+		"advisor":           advisorInfo.Advisor,
+		"advisor_icon":      advisorInfo.Icon,
+		"advisor_name":      advisorInfo.Advisor,
+		"rationale":         advisorInfo.Rationale,
+		"score_at_time":     score,
+		"consultation_mode": modeConfig.Name,
+		"mode_icon":         modeConfig.Icon,
+		"mode_frequency":    modeConfig.Frequency,
+		"mode_guidance":     modeConfig.Description,
+		"quote":             quote.Quote,
+		"quote_source":      quote.Source,
+		"encouragement":     quote.Encouragement,
+		"context":           context,
+	}
+
+	// Convert to JSON
+	resultJSON, err := json.MarshalIndent(consultation, "", "  ")
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal consultation: %w", err)
+	}
+
+	return []framework.TextContent{
+		{Type: "text", Text: string(resultJSON)},
+	}, nil
+}
+
+// minInt returns the minimum of two integers
+func minInt(a, b int) int {
 	if a < b {
 		return a
 	}
 	return b
-}
-
-func roundFloat(val float64, precision int) float64 {
-	multiplier := 1.0
-	for i := 0; i < precision; i++ {
-		multiplier *= 10
-	}
-	return float64(int(val*multiplier+0.5)) / multiplier
-}
-
-func sliceFirstN(slice []string, n int) []string {
-	if len(slice) <= n {
-		return slice
-	}
-	return slice[:n]
 }
