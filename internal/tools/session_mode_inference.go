@@ -33,8 +33,9 @@ type ModeInferenceResult struct {
 var lastInferenceCache *ModeInferenceResult
 var lastInferenceTime time.Time
 
-// handleInferSessionModeNative handles the infer_session_mode tool with native Go implementation
-func handleInferSessionModeNative(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
+// HandleInferSessionModeNative handles the infer_session_mode tool with native Go implementation
+// Exported for use by resources package
+func HandleInferSessionModeNative(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	forceRecompute, _ := params["force_recompute"].(bool)
 
 	// Check cache (within 2 minutes) unless forcing recompute
