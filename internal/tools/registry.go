@@ -453,7 +453,7 @@ func registerBatch2Tools(server framework.MCPServer) error {
 				},
 				"repo": map[string]interface{}{
 					"type":    "string",
-					"default": "davidl71/project-management-automation",
+					"default": "davidl71/exarp-go",
 				},
 				"languages": map[string]interface{}{
 					"type":  "array",

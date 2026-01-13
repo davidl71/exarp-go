@@ -148,7 +148,7 @@ def execute_tool(tool_name: str, args_json: str):
         elif tool_name == "security":
             result = _security(
                 action=args.get("action", "report"),
-                repo=args.get("repo", "davidl71/project-management-automation"),
+                repo=args.get("repo", "davidl71/exarp-go"),
                 languages=args.get("languages"),
                 config_path=args.get("config_path"),
                 state=args.get("state", "open"),
