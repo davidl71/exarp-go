@@ -84,6 +84,27 @@ func Run() error {
 		return handleTaskCommand(server, os.Args[2:])
 	}
 
+	// Check for tui subcommand
+	if len(os.Args) > 1 && os.Args[1] == "tui" {
+		// Initialize database (before server creation)
+		initializeDatabase()
+
+		// Setup server
+		server, err := setupServer()
+		if err != nil {
+			return err
+		}
+
+		// Parse status filter if provided
+		status := ""
+		if len(os.Args) > 2 {
+			status = os.Args[2]
+		}
+
+		// Run TUI
+		return RunTUI(server, status)
+	}
+
 	// Parse command line arguments
 	var (
 		toolName    = flag.String("tool", "", "Tool name to execute")
@@ -393,6 +414,7 @@ func showUsage() {
 	_, _ = fmt.Println("Usage:")
 	_, _ = fmt.Println("  exarp-go [flags]")
 	_, _ = fmt.Println("  exarp-go task <command> [options]")
+	_, _ = fmt.Println("  exarp-go tui [status]")
 	_, _ = fmt.Println()
 	_, _ = fmt.Println("Flags:")
 	_, _ = fmt.Println("  -tool <name>        Execute a tool")
@@ -410,11 +432,17 @@ func showUsage() {
 	_, _ = fmt.Println("  task show <task-id>")
 	_, _ = fmt.Println("  task help")
 	_, _ = fmt.Println()
+	_, _ = fmt.Println("TUI Commands:")
+	_, _ = fmt.Println("  tui                 Launch terminal user interface for task management")
+	_, _ = fmt.Println("  tui <status>        Launch TUI filtered by status (e.g., 'Todo', 'In Progress')")
+	_, _ = fmt.Println()
 	_, _ = fmt.Println("Examples:")
 	_, _ = fmt.Println("  exarp-go -list")
 	_, _ = fmt.Println("  exarp-go -tool lint -args '{\"action\":\"run\",\"path\":\".\"}'")
 	_, _ = fmt.Println("  exarp-go -test lint")
 	_, _ = fmt.Println("  exarp-go -i")
+	_, _ = fmt.Println("  exarp-go tui")
+	_, _ = fmt.Println("  exarp-go tui \"In Progress\"")
 	_, _ = fmt.Println("  exarp-go task list --status \"In Progress\"")
 	_, _ = fmt.Println("  exarp-go task update T-1 --new-status \"Done\"")
 	_, _ = fmt.Println("  exarp-go -completion bash > /usr/local/etc/bash_completion.d/exarp-go")
