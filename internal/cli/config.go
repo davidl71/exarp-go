@@ -9,6 +9,7 @@ import (
 
 	"github.com/davidl71/exarp-go/internal/config"
 	"gopkg.in/yaml.v3"
+	"google.golang.org/protobuf/proto"
 )
 
 // handleConfigCommand handles the config subcommand
@@ -27,10 +28,14 @@ func handleConfigCommand(args []string) error {
 		return handleConfigShow(args[1:])
 	case "set":
 		return handleConfigSet(args[1:])
+	case "export":
+		return handleConfigExport(args[1:])
+	case "convert":
+		return handleConfigConvert(args[1:])
 	case "help", "--help", "-h":
 		return printConfigHelp()
 	default:
-		return fmt.Errorf("unknown config subcommand: %s (use: init, validate, show, set, help)", subcommand)
+		return fmt.Errorf("unknown config subcommand: %s (use: init, validate, show, set, export, convert, help)", subcommand)
 	}
 }
 
@@ -88,9 +93,20 @@ func handleConfigValidate(args []string) error {
 		return err
 	}
 
+	// Detect format
+	format, err := config.GetConfigFormat(projectRoot)
+	if err != nil {
+		format = "unknown"
+	}
+
 	fmt.Printf("✅ Config file is valid\n")
 	fmt.Printf("   Version: %s\n", cfg.Version)
-	fmt.Printf("   Config loaded from: %s/.exarp/config.yaml\n", projectRoot)
+	fmt.Printf("   Config format: %s\n", format)
+	if format == "protobuf" {
+		fmt.Printf("   Config loaded from: %s/.exarp/config.pb\n", projectRoot)
+	} else {
+		fmt.Printf("   Config loaded from: %s/.exarp/config.yaml\n", projectRoot)
+	}
 	return nil
 }
 
@@ -160,6 +176,161 @@ func handleConfigSet(args []string) error {
 	return nil
 }
 
+// handleConfigExport exports config to different formats
+func handleConfigExport(args []string) error {
+	// Parse format argument (yaml, json, protobuf)
+	format := "yaml"
+	if len(args) > 0 {
+		format = strings.ToLower(args[0])
+	}
+
+	projectRoot, err := config.FindProjectRoot()
+	if err != nil {
+		return fmt.Errorf("failed to find project root: %w", err)
+	}
+
+	cfg, err := config.LoadConfig(projectRoot)
+	if err != nil {
+		return fmt.Errorf("failed to load config: %w", err)
+	}
+
+	// Export based on format
+	switch format {
+	case "protobuf", "pb":
+		return exportProtobuf(cfg, projectRoot)
+	case "yaml", "yml":
+		return exportYAML(cfg, projectRoot)
+	case "json":
+		return exportJSON(cfg, projectRoot)
+	default:
+		return fmt.Errorf("unknown format: %s (use: yaml, json, protobuf)", format)
+	}
+}
+
+// handleConfigConvert converts between config formats
+func handleConfigConvert(args []string) error {
+	if len(args) < 2 {
+		return fmt.Errorf("usage: exarp-go config convert <from> <to>")
+	}
+
+	fromFormat := strings.ToLower(args[0])
+	toFormat := strings.ToLower(args[1])
+
+	projectRoot, err := config.FindProjectRoot()
+	if err != nil {
+		return fmt.Errorf("failed to find project root: %w", err)
+	}
+
+	// Load from source format
+	var cfg *config.FullConfig
+	switch fromFormat {
+	case "yaml", "yml":
+		cfg, err = config.LoadConfig(projectRoot) // Loads YAML (or protobuf if exists)
+		if err != nil {
+			return fmt.Errorf("failed to load YAML config: %w", err)
+		}
+	case "protobuf", "pb":
+		cfg, err = config.LoadConfigProtobuf(projectRoot)
+		if err != nil {
+			return fmt.Errorf("failed to load protobuf config: %w", err)
+		}
+	default:
+		return fmt.Errorf("unknown source format: %s (use: yaml, protobuf)", fromFormat)
+	}
+
+	// Save to target format
+	switch toFormat {
+	case "yaml", "yml":
+		return saveYAML(cfg, projectRoot)
+	case "protobuf", "pb":
+		return saveProtobuf(cfg, projectRoot)
+	default:
+		return fmt.Errorf("unknown target format: %s (use: yaml, protobuf)", toFormat)
+	}
+}
+
+// exportProtobuf exports config as protobuf binary
+func exportProtobuf(cfg *config.FullConfig, projectRoot string) error {
+	// Convert to protobuf
+	pbConfig, err := config.ToProtobuf(cfg)
+	if err != nil {
+		return fmt.Errorf("failed to convert to protobuf: %w", err)
+	}
+
+	// Marshal to binary
+	data, err := proto.Marshal(pbConfig)
+	if err != nil {
+		return fmt.Errorf("failed to marshal protobuf: %w", err)
+	}
+
+	// Write to file
+	outputPath := filepath.Join(projectRoot, ".exarp", "config.pb")
+	if err := os.MkdirAll(filepath.Dir(outputPath), 0755); err != nil {
+		return fmt.Errorf("failed to create config directory: %w", err)
+	}
+
+	if err := os.WriteFile(outputPath, data, 0644); err != nil {
+		return fmt.Errorf("failed to write protobuf config: %w", err)
+	}
+
+	fmt.Printf("✅ Exported config to protobuf format: %s\n", outputPath)
+	return nil
+}
+
+// saveProtobuf saves config as protobuf binary (alias for exportProtobuf)
+func saveProtobuf(cfg *config.FullConfig, projectRoot string) error {
+	return exportProtobuf(cfg, projectRoot)
+}
+
+// exportYAML exports config as YAML
+func exportYAML(cfg *config.FullConfig, projectRoot string) error {
+	// Marshal to YAML
+	data, err := yaml.Marshal(cfg)
+	if err != nil {
+		return fmt.Errorf("failed to marshal YAML: %w", err)
+	}
+
+	// Write to file
+	outputPath := filepath.Join(projectRoot, ".exarp", "config.yaml")
+	if err := os.MkdirAll(filepath.Dir(outputPath), 0755); err != nil {
+		return fmt.Errorf("failed to create config directory: %w", err)
+	}
+
+	if err := os.WriteFile(outputPath, data, 0644); err != nil {
+		return fmt.Errorf("failed to write YAML config: %w", err)
+	}
+
+	fmt.Printf("✅ Exported config to YAML format: %s\n", outputPath)
+	return nil
+}
+
+// saveYAML saves config as YAML (alias for exportYAML)
+func saveYAML(cfg *config.FullConfig, projectRoot string) error {
+	return exportYAML(cfg, projectRoot)
+}
+
+// exportJSON exports config as JSON
+func exportJSON(cfg *config.FullConfig, projectRoot string) error {
+	// Marshal to JSON
+	data, err := json.MarshalIndent(cfg, "", "  ")
+	if err != nil {
+		return fmt.Errorf("failed to marshal JSON: %w", err)
+	}
+
+	// Write to file
+	outputPath := filepath.Join(projectRoot, ".exarp", "config.json")
+	if err := os.MkdirAll(filepath.Dir(outputPath), 0755); err != nil {
+		return fmt.Errorf("failed to create config directory: %w", err)
+	}
+
+	if err := os.WriteFile(outputPath, data, 0644); err != nil {
+		return fmt.Errorf("failed to write JSON config: %w", err)
+	}
+
+	fmt.Printf("✅ Exported config to JSON format: %s\n", outputPath)
+	return nil
+}
+
 // printConfigHelp prints help for config command
 func printConfigHelp() error {
 	help := `Configuration Management Commands
@@ -171,6 +342,8 @@ Subcommands:
   validate          Validate the current config file
   show [format]     Display current configuration (yaml or json)
   set <key>=<value> Set a config value (not yet fully implemented)
+  export [format]   Export config to format (yaml, json, protobuf)
+  convert <from> <to> Convert config between formats (yaml ↔ protobuf)
   help              Show this help message
 
 Examples:
@@ -178,11 +351,14 @@ Examples:
   exarp-go config validate
   exarp-go config show
   exarp-go config show json
+  exarp-go config export protobuf
+  exarp-go config convert yaml protobuf
+  exarp-go config convert protobuf yaml
   exarp-go config set timeouts.task_lock_lease=45m
 
 Configuration File:
-  Location: .exarp/config.yaml (in project root)
-  Format: YAML
+  Location: .exarp/config.yaml (primary) or .exarp/config.pb (optional)
+  Format: YAML (human-readable) or Protobuf Binary (type-safe)
   Defaults: All defaults match current hard-coded behavior
 
 For more information, see:

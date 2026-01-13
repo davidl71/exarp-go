@@ -21,14 +21,20 @@ var dbMutex sync.Mutex
 // Init initializes the database connection using the default SQLite driver
 // This is kept for backward compatibility
 // Thread-safe: uses mutex to prevent concurrent initialization
+// Now uses centralized config system if available, falls back to legacy config
 func Init(projectRoot string) error {
-	cfg, err := LoadConfig(projectRoot)
+	// Try centralized config first
+	cfg, err := LoadConfigFromCentralized(projectRoot)
 	if err != nil {
-		return fmt.Errorf("failed to load config: %w", err)
+		// Fall back to legacy config loading
+		cfg, err = LoadConfig(projectRoot)
+		if err != nil {
+			return fmt.Errorf("failed to load config: %w", err)
+		}
+		// Override to use SQLite for backward compatibility
+		cfg.Driver = DriverSQLite
+		cfg.DSN = filepath.Join(projectRoot, ".todo2", "todo2.db")
 	}
-	// Override to use SQLite for backward compatibility
-	cfg.Driver = DriverSQLite
-	cfg.DSN = filepath.Join(projectRoot, ".todo2", "todo2.db")
 	return InitWithConfig(cfg)
 }
 

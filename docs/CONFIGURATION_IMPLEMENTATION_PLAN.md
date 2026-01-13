@@ -91,6 +91,30 @@ internal/
 - Timeouts, thresholds, and task defaults configurable
 - CLI tool: `exarp-go config`
 
+### Phase 1.5: Protobuf Integration (NEW)
+
+**Goal:** Integrate protobuf schema with configuration system while maintaining YAML as primary format
+
+**Status:** ⏳ Pending  
+**Estimated Time:** 4-6 hours
+
+#### Tasks:
+1. Create protobuf conversion layer (Go structs ↔ protobuf messages)
+2. Add protobuf format support to loader (dual format: YAML + protobuf)
+3. Add CLI commands for export/convert (yaml ↔ protobuf)
+4. Add schema synchronization validation (ensure schemas stay in sync)
+5. Update documentation (protobuf format guide)
+
+**Deliverables:**
+- `internal/config/protobuf.go` - Conversion functions
+- Updated `loader.go` - Protobuf format support
+- Updated `cli/config.go` - Export/convert commands
+- `docs/CONFIGURATION_PROTOBUF_INTEGRATION.md` - Detailed plan
+
+**See:** `docs/CONFIGURATION_PROTOBUF_INTEGRATION.md` for complete implementation details
+
+---
+
 ### Phase 2: Database & Security (Week 2)
 
 **Goal:** Configure database and security settings
@@ -424,9 +448,10 @@ func ValidateConfig(cfg *Config) error {
 
 1. ✅ Create implementation plan (this document)
 2. ✅ Create tasks in todo2 system
-3. 🔄 Start Phase 1 implementation
-4. ⏳ Complete Phase 1
-5. ⏳ Continue with subsequent phases
+3. ✅ Complete Phase 1 (Foundation)
+4. ⏳ **Phase 1.5: Protobuf Integration** (NEW - see `CONFIGURATION_PROTOBUF_INTEGRATION.md`)
+5. ⏳ Continue with Phase 2 (Database & Security)
+6. ⏳ Continue with subsequent phases
 
 ---
 
@@ -434,5 +459,8 @@ func ValidateConfig(cfg *Config) error {
 
 - `docs/AUTOMATION_CONFIGURATION_ANALYSIS.md` - Automation analysis
 - `docs/CONFIGURABLE_PARAMETERS_RECOMMENDATIONS.md` - All parameters
+- `docs/CONFIGURATION_PROTOBUF_INTEGRATION.md` - **NEW:** Protobuf integration plan (Phase 1.5)
+- `docs/PROTOBUF_ANALYSIS.md` - Protobuf usage analysis
 - `internal/config/config.go` - Current config (minimal)
 - `internal/tools/automation_native.go` - Automation implementation
+- `proto/config.proto` - Protobuf schema definition

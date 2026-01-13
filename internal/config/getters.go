@@ -198,3 +198,132 @@ func RequireTaskDescription() bool {
 func AutoClarifyTasks() bool {
 	return GetGlobalConfig().Tasks.AutoClarify
 }
+
+// Database getters - convenient access to database configuration
+
+// GetDatabaseConfig returns the full database configuration
+func GetDatabaseConfig() DatabaseConfig {
+	return GetGlobalConfig().Database
+}
+
+// SQLitePath returns the SQLite database file path
+func SQLitePath() string {
+	return GetGlobalConfig().Database.SQLitePath
+}
+
+// JSONFallbackPath returns the JSON fallback file path
+func JSONFallbackPath() string {
+	return GetGlobalConfig().Database.JSONFallbackPath
+}
+
+// DatabaseMaxConnections returns the maximum database connections
+func DatabaseMaxConnections() int {
+	return GetGlobalConfig().Database.MaxConnections
+}
+
+// DatabaseConnectionTimeout returns the database connection timeout
+func DatabaseConnectionTimeout() time.Duration {
+	return GetGlobalConfig().Database.ConnectionTimeout
+}
+
+// DatabaseQueryTimeout returns the database query timeout
+func DatabaseQueryTimeout() time.Duration {
+	return GetGlobalConfig().Database.QueryTimeout
+}
+
+// DatabaseRetryAttempts returns the number of database retry attempts
+func DatabaseRetryAttempts() int {
+	return GetGlobalConfig().Database.RetryAttempts
+}
+
+// DatabaseRetryInitialDelay returns the initial retry delay
+func DatabaseRetryInitialDelay() time.Duration {
+	return GetGlobalConfig().Database.RetryInitialDelay
+}
+
+// DatabaseRetryMaxDelay returns the maximum retry delay
+func DatabaseRetryMaxDelay() time.Duration {
+	return GetGlobalConfig().Database.RetryMaxDelay
+}
+
+// DatabaseRetryMultiplier returns the retry delay multiplier
+func DatabaseRetryMultiplier() float64 {
+	return GetGlobalConfig().Database.RetryMultiplier
+}
+
+// Security getters - convenient access to security configuration
+
+// GetSecurityConfig returns the full security configuration
+func GetSecurityConfig() SecurityConfig {
+	return GetGlobalConfig().Security
+}
+
+// RateLimitEnabled returns whether rate limiting is enabled
+func RateLimitEnabled() bool {
+	return GetGlobalConfig().Security.RateLimit.Enabled
+}
+
+// RateLimitRequestsPerWindow returns the number of requests allowed per window
+func RateLimitRequestsPerWindow() int {
+	return GetGlobalConfig().Security.RateLimit.RequestsPerWindow
+}
+
+// RateLimitWindowDuration returns the rate limit window duration
+func RateLimitWindowDuration() time.Duration {
+	return GetGlobalConfig().Security.RateLimit.WindowDuration
+}
+
+// RateLimitBurstSize returns the rate limit burst size
+func RateLimitBurstSize() int {
+	return GetGlobalConfig().Security.RateLimit.BurstSize
+}
+
+// PathValidationEnabled returns whether path validation is enabled
+func PathValidationEnabled() bool {
+	return GetGlobalConfig().Security.PathValidation.Enabled
+}
+
+// PathValidationAllowAbsolutePaths returns whether absolute paths are allowed
+func PathValidationAllowAbsolutePaths() bool {
+	return GetGlobalConfig().Security.PathValidation.AllowAbsolutePaths
+}
+
+// PathValidationMaxDepth returns the maximum path depth
+func PathValidationMaxDepth() int {
+	return GetGlobalConfig().Security.PathValidation.MaxDepth
+}
+
+// PathValidationBlockedPatterns returns the blocked path patterns
+func PathValidationBlockedPatterns() []string {
+	return GetGlobalConfig().Security.PathValidation.BlockedPatterns
+}
+
+// FileLimitsMaxFileSize returns the maximum file size
+func FileLimitsMaxFileSize() int64 {
+	return GetGlobalConfig().Security.FileLimits.MaxFileSize
+}
+
+// FileLimitsMaxFilesPerOperation returns the maximum files per operation
+func FileLimitsMaxFilesPerOperation() int {
+	return GetGlobalConfig().Security.FileLimits.MaxFilesPerOperation
+}
+
+// FileLimitsAllowedExtensions returns the allowed file extensions
+func FileLimitsAllowedExtensions() []string {
+	return GetGlobalConfig().Security.FileLimits.AllowedExtensions
+}
+
+// AccessControlEnabled returns whether access control is enabled
+func AccessControlEnabled() bool {
+	return GetGlobalConfig().Security.AccessControl.Enabled
+}
+
+// AccessControlDefaultPolicy returns the default access control policy
+func AccessControlDefaultPolicy() string {
+	return GetGlobalConfig().Security.AccessControl.DefaultPolicy
+}
+
+// AccessControlRestrictedTools returns the list of restricted tools
+func AccessControlRestrictedTools() []string {
+	return GetGlobalConfig().Security.AccessControl.RestrictedTools
+}

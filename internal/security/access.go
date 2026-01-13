@@ -3,6 +3,8 @@ package security
 import (
 	"fmt"
 	"sync"
+
+	"github.com/davidl71/exarp-go/internal/config"
 )
 
 // Permission represents access permission levels
@@ -37,6 +39,29 @@ func NewAccessControl(defaultPolicy Permission) *AccessControl {
 		allowedTools:  make(map[string]bool),
 		deniedTools:   make(map[string]bool),
 	}
+}
+
+// NewAccessControlFromConfig creates a new access control manager from centralized config
+func NewAccessControlFromConfig() *AccessControl {
+	cfg := config.GetGlobalConfig()
+	ac := NewAccessControl(PermissionAllow) // Default to allow
+
+	// If access control is enabled, configure it
+	if cfg.Security.AccessControl.Enabled {
+		// Set default policy
+		if cfg.Security.AccessControl.DefaultPolicy == "deny" {
+			ac.defaultPolicy = PermissionDeny
+		} else {
+			ac.defaultPolicy = PermissionAllow
+		}
+
+		// Add restricted tools to deny list
+		for _, toolName := range cfg.Security.AccessControl.RestrictedTools {
+			ac.DenyTool(toolName)
+		}
+	}
+
+	return ac
 }
 
 // AllowTool explicitly allows access to a tool
@@ -165,10 +190,10 @@ var (
 )
 
 // GetDefaultAccessControl returns the default access control manager
-// Default policy: Allow (permissive for local MCP server)
+// Uses centralized config if available, otherwise defaults to Allow (permissive for local MCP server)
 func GetDefaultAccessControl() *AccessControl {
 	accessOnce.Do(func() {
-		defaultAccessControl = NewAccessControl(PermissionAllow)
+		defaultAccessControl = NewAccessControlFromConfig()
 	})
 	return defaultAccessControl
 }

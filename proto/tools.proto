@@ -1,0 +1,553 @@
+syntax = "proto3";
+
+package exarp.tools;
+
+option go_package = "github.com/davidl71/exarp-go/proto";
+
+// ============================================================================
+// Memory Tool Messages
+// ============================================================================
+
+// Memory represents a stored memory
+message Memory {
+  string id = 1;
+  string title = 2;
+  string content = 3;
+  string category = 4;
+  repeated string linked_tasks = 5;
+  map<string, string> metadata = 6;  // JSON values stored as strings
+  string created_at = 7;
+  string session_date = 8;
+}
+
+// MemoryRequest represents a request to the memory tool
+message MemoryRequest {
+  string action = 1;  // "save", "recall", "search", "list"
+  string title = 2;
+  string content = 3;
+  string category = 4;  // default: "insight"
+  string task_id = 5;
+  string metadata = 6;  // JSON string
+  bool include_related = 7;  // default: true
+  string query = 8;
+  int32 limit = 9;  // default: 10
+}
+
+// MemoryResponse represents the response from the memory tool
+message MemoryResponse {
+  bool success = 1;
+  string method = 2;  // "native_go" or "python_bridge"
+  repeated Memory memories = 3;
+  int32 count = 4;
+  string memory_id = 5;
+  string message = 6;
+  map<string, int32> categories = 7;  // For list action
+  repeated string available_categories = 8;
+  int32 total_found = 9;  // For search action
+}
+
+// ============================================================================
+// Context Tool Messages
+// ============================================================================
+
+// ContextItem represents a single item in a context batch operation
+message ContextItem {
+  string data = 1;
+  string tool_type = 2;
+}
+
+// ContextRequest represents a request to the context tool
+message ContextRequest {
+  string action = 1;  // "summarize", "budget", "batch"
+  string data = 2;  // JSON string to summarize (summarize action)
+  string level = 3;  // "brief", "detailed", "key_metrics", "actionable" (default: "brief")
+  string tool_type = 4;
+  int32 max_tokens = 5;
+  bool include_raw = 6;  // default: false
+  string items = 7;  // JSON array string (budget/batch actions)
+  int32 budget_tokens = 8;  // default: 4000
+  bool combine = 9;  // default: true (batch action)
+}
+
+// ContextResponse represents the response from the context tool
+message ContextResponse {
+  bool success = 1;
+  string summary = 2;
+  map<string, int32> token_estimate = 3;  // "original", "summarized"
+  string error = 4;
+  repeated ContextSummary summaries = 5;  // For batch action
+  int32 total_original = 6;  // For batch action
+  int32 total_summarized = 7;  // For batch action
+}
+
+// ContextSummary represents a single summary in a batch operation
+message ContextSummary {
+  string summary = 1;
+  map<string, int32> token_estimate = 2;
+  string tool_type = 3;
+}
+
+// ============================================================================
+// Report Tool Messages
+// ============================================================================
+
+// ReportRequest represents a request to the report tool
+message ReportRequest {
+  string action = 1;  // "overview", "scorecard", "briefing", "prd"
+  string output_format = 2;  // default: "text"
+  string output_path = 3;
+  bool include_recommendations = 4;  // default: true
+  double overall_score = 5;  // default: 50.0
+  double security_score = 6;  // default: 50.0
+  double testing_score = 7;  // default: 50.0
+  double documentation_score = 8;  // default: 50.0
+  double completion_score = 9;  // default: 50.0
+  double alignment_score = 10;  // default: 50.0
+  string project_name = 11;
+  bool include_architecture = 12;  // default: true
+  bool include_metrics = 13;  // default: true
+  bool include_tasks = 14;  // default: true
+}
+
+// ReportResponse represents the response from the report tool
+message ReportResponse {
+  bool success = 1;
+  string report = 2;  // Generated report text
+  string output_path = 3;
+  AIInsights ai_insights = 4;  // MLX-enhanced insights (if available)
+  string error = 5;
+}
+
+// AIInsights represents AI-generated insights for reports
+message AIInsights {
+  Metrics metrics = 1;
+  repeated string recommendations = 2;
+  string summary = 3;
+}
+
+// Metrics represents project metrics
+message Metrics {
+  double score = 1;
+  map<string, double> component_scores = 2;
+  map<string, int32> counts = 3;
+}
+
+// ============================================================================
+// Task Management Tool Messages
+// ============================================================================
+
+// AnalyzeAlignmentRequest represents a request to analyze task alignment
+message AnalyzeAlignmentRequest {
+  string action = 1;  // "todo2", "prd"
+  bool create_followup_tasks = 2;  // default: true
+  string output_path = 3;
+}
+
+// TaskAnalysisRequest represents a request for task analysis
+message TaskAnalysisRequest {
+  string action = 1;  // "duplicates", "tags", "hierarchy", "dependencies", "parallelization"
+  double similarity_threshold = 2;  // default: 0.85
+  bool auto_fix = 3;  // default: false
+  bool dry_run = 4;  // default: true
+  string custom_rules = 5;
+  string remove_tags = 6;
+  string output_format = 7;  // default: "text"
+  bool include_recommendations = 8;  // default: true
+  string output_path = 9;
+}
+
+// TaskDiscoveryRequest represents a request for task discovery
+message TaskDiscoveryRequest {
+  string action = 1;  // "comments", "markdown", "orphans", "git_json", "all"
+  string file_patterns = 2;
+  bool include_fixme = 3;  // default: true
+  string doc_path = 4;
+  string json_pattern = 5;  // default: "**/.todo2/state.todo2.json"
+  string output_path = 6;
+  bool create_tasks = 7;  // default: false
+}
+
+// TaskWorkflowRequest represents a request to the task workflow tool
+message TaskWorkflowRequest {
+  string action = 1;  // "sync", "approve", "clarify", "clarity", "cleanup", "create"
+  bool dry_run = 2;  // default: false
+  bool external = 3;  // default: false
+  string status = 4;  // default: "Review"
+  string new_status = 5;  // default: "Todo"
+  bool clarification_none = 6;  // default: true
+  string filter_tag = 7;
+  string task_ids = 8;  // Comma-separated or JSON array
+  string sub_action = 9;  // default: "list"
+  string task_id = 10;
+  string clarification_text = 11;
+  string decision = 12;
+  string decisions_json = 13;
+  bool move_to_todo = 14;  // default: true
+  bool auto_apply = 15;  // default: false
+  string output_format = 16;  // default: "text"
+  double stale_threshold_hours = 17;  // default: 2.0
+  bool include_legacy = 18;  // default: false
+  string output_path = 19;
+  string name = 20;  // Required for create action
+  string long_description = 21;  // Required for create action
+  repeated string tags = 22;  // For create action
+  repeated string dependencies = 23;  // For create action
+  bool auto_estimate = 24;  // default: true
+}
+
+// ============================================================================
+// Automation Tool Messages
+// ============================================================================
+
+// AutomationRequest represents a request to the automation tool
+message AutomationRequest {
+  string action = 1;  // "daily", "nightly", "sprint", "discover"
+  repeated string tasks = 2;
+  bool include_slow = 3;  // default: false
+  int32 max_tasks_per_host = 4;  // default: 5
+  int32 max_parallel_tasks = 5;  // default: 10
+  string priority_filter = 6;
+  repeated string tag_filter = 7;
+  int32 max_iterations = 8;  // default: 10
+  bool auto_approve = 9;  // default: true
+  bool extract_subtasks = 10;  // default: true
+  bool run_analysis_tools = 11;  // default: true
+  bool run_testing_tools = 12;  // default: true
+  double min_value_score = 13;  // default: 0.7
+  bool dry_run = 14;  // default: false
+  string output_path = 15;
+}
+
+// ============================================================================
+// Testing Tool Messages
+// ============================================================================
+
+// TestingRequest represents a request to the testing tool
+message TestingRequest {
+  string action = 1;  // "run", "coverage", "suggest", "validate"
+  string test_path = 2;
+  string test_framework = 3;  // default: "auto"
+  bool verbose = 4;  // default: true
+  bool coverage = 5;  // default: false
+  string coverage_file = 6;
+  int32 min_coverage = 7;  // default: 80
+  string format = 8;  // default: "html"
+  string target_file = 9;
+  double min_confidence = 10;  // default: 0.7
+  string framework = 11;
+  string output_path = 12;
+}
+
+// ============================================================================
+// Configuration Tool Messages
+// ============================================================================
+
+// GenerateConfigRequest represents a request to generate configuration
+message GenerateConfigRequest {
+  string action = 1;  // "rules", "ignore", "simplify"
+  string rules = 2;
+  bool overwrite = 3;  // default: false
+  bool analyze_only = 4;  // default: false
+  bool include_indexing = 5;  // default: true
+  bool analyze_project = 6;  // default: true
+  string rule_files = 7;
+  string output_dir = 8;
+  bool dry_run = 9;  // default: false
+}
+
+// ============================================================================
+// Health Check Tool Messages
+// ============================================================================
+
+// HealthRequest represents a request to the health check tool
+message HealthRequest {
+  string action = 1;  // "server", "git", "docs", "dod", "cicd"
+  string agent_name = 2;
+  bool check_remote = 3;  // default: true
+  string output_path = 4;
+  bool create_tasks = 5;  // default: true
+  string task_id = 6;
+  string changed_files = 7;
+  bool auto_check = 8;  // default: true
+  string workflow_path = 9;
+  bool check_runners = 10;  // default: true
+}
+
+// ============================================================================
+// Security Tool Messages
+// ============================================================================
+
+// SecurityRequest represents a request to the security tool
+message SecurityRequest {
+  string action = 1;  // "scan", "alerts", "report"
+  string repo = 2;  // default: "davidl71/exarp-go"
+  repeated string languages = 3;
+  string config_path = 4;
+  string state = 5;  // default: "open"
+  bool include_dismissed = 6;  // default: false
+}
+
+// ============================================================================
+// Linting Tool Messages
+// ============================================================================
+
+// LintRequest represents a request to the linting tool
+message LintRequest {
+  string action = 1;  // "run", "analyze"
+  string path = 2;
+  string linter = 3;  // default: "golangci-lint"
+  bool fix = 4;  // default: false
+  bool analyze = 5;  // default: true
+  string select = 6;
+  string ignore = 7;
+  string problems_json = 8;
+  bool include_hints = 9;  // default: true
+  string output_path = 10;
+}
+
+// ============================================================================
+// Estimation Tool Messages
+// ============================================================================
+
+// EstimationRequest represents a request to the estimation tool
+message EstimationRequest {
+  string action = 1;  // "estimate", "analyze", "stats"
+  string name = 2;
+  string details = 3;  // default: ""
+  string tags = 4;
+  repeated string tag_list = 5;
+  string priority = 6;  // default: "medium"
+  bool use_historical = 7;  // default: true
+  bool detailed = 8;  // default: false
+  bool use_mlx = 9;  // default: true
+  double mlx_weight = 10;  // default: 0.3
+}
+
+// ============================================================================
+// Git Tools Messages
+// ============================================================================
+
+// GitToolsRequest represents a request to the git tools
+message GitToolsRequest {
+  string action = 1;  // "commits", "branches", "tasks", "diff", "graph", "merge", "set_branch"
+  string task_id = 2;
+  string branch = 3;
+  int32 limit = 4;  // default: 50
+  string commit1 = 5;
+  string commit2 = 6;
+  string time1 = 7;
+  string time2 = 8;
+  string format = 9;  // default: "text"
+  string output_path = 10;
+  int32 max_commits = 11;  // default: 50
+  string source_branch = 12;
+  string target_branch = 13;
+  string conflict_strategy = 14;  // default: "newer"
+  string author = 15;  // default: "system"
+  bool dry_run = 16;  // default: false
+}
+
+// ============================================================================
+// Session Tool Messages
+// ============================================================================
+
+// SessionRequest represents a request to the session tool
+message SessionRequest {
+  string action = 1;  // "prime", "handoff", "prompts", "assignee"
+  bool include_hints = 2;  // default: true
+  bool include_tasks = 3;  // default: true
+  string override_mode = 4;
+  string task_id = 5;
+  string summary = 6;
+  string blockers = 7;
+  string next_steps = 8;
+  bool unassign_my_tasks = 9;  // default: true
+  bool include_git_status = 10;  // default: true
+  int32 limit = 11;  // default: 5
+  bool dry_run = 12;  // default: false
+  string direction = 13;  // default: "both"
+  bool prefer_agentic_tools = 14;  // default: true
+  bool auto_commit = 15;  // default: true
+  string mode = 16;
+  string category = 17;
+  string keywords = 18;
+  string assignee_name = 19;
+  string assignee_type = 20;  // default: "agent"
+  string hostname = 21;
+  string status_filter = 22;
+  string sub_action = 23;
+  string output_path = 24;
+  bool export_latest = 25;  // default: true
+  string priority_filter = 26;
+  bool include_unassigned = 27;  // default: false
+  int32 max_tasks_per_agent = 28;  // default: 5
+}
+
+// ============================================================================
+// Workflow Mode Tool Messages
+// ============================================================================
+
+// WorkflowModeRequest represents a request to the workflow mode tool
+message WorkflowModeRequest {
+  string action = 1;  // "focus", "suggest", "stats"
+  string mode = 2;
+  string enable_group = 3;
+  string disable_group = 4;
+  bool status = 5;  // default: false
+  string text = 6;
+  bool auto_switch = 7;  // default: false
+}
+
+// ============================================================================
+// Setup Hooks Tool Messages
+// ============================================================================
+
+// SetupHooksRequest represents a request to the setup hooks tool
+message SetupHooksRequest {
+  string action = 1;  // "git", "patterns"
+  repeated string hooks = 2;
+  string patterns = 3;
+  string config_path = 4;
+  bool install = 5;  // default: true
+  bool dry_run = 6;  // default: false
+}
+
+// ============================================================================
+// Check Attribution Tool Messages
+// ============================================================================
+
+// CheckAttributionRequest represents a request to check attribution
+message CheckAttributionRequest {
+  string output_path = 1;
+  bool create_tasks = 2;  // default: true
+}
+
+// ============================================================================
+// Add External Tool Hints Messages
+// ============================================================================
+
+// AddExternalToolHintsRequest represents a request to add external tool hints
+message AddExternalToolHintsRequest {
+  bool dry_run = 1;  // default: false
+  string output_path = 2;
+  int32 min_file_size = 3;  // default: 50
+}
+
+// ============================================================================
+// Memory Maintenance Tool Messages
+// ============================================================================
+
+// MemoryMaintRequest represents a request to the memory maintenance tool
+message MemoryMaintRequest {
+  string action = 1;  // "health", "gc", "prune", "consolidate", "dream"
+  int32 max_age_days = 2;  // default: 90
+  bool delete_orphaned = 3;  // default: true
+  bool delete_duplicates = 4;  // default: true
+  int32 scorecard_max_age_days = 5;  // default: 7
+  double value_threshold = 6;  // default: 0.3
+  int32 keep_minimum = 7;  // default: 50
+  double similarity_threshold = 8;  // default: 0.85
+  string merge_strategy = 9;  // default: "newest"
+  string scope = 10;  // default: "week"
+  string advisors = 11;
+  bool generate_insights = 12;  // default: true
+  bool save_dream = 13;  // default: true
+  bool dry_run = 14;  // default: true
+  bool interactive = 15;  // default: true
+}
+
+// ============================================================================
+// Tool Catalog Messages
+// ============================================================================
+
+// ToolCatalogRequest represents a request to the tool catalog
+message ToolCatalogRequest {
+  string action = 1;  // "help"
+  string tool_name = 2;  // Required
+}
+
+// ============================================================================
+// Ollama Tool Messages
+// ============================================================================
+
+// OllamaRequest represents a request to the Ollama tool
+message OllamaRequest {
+  string action = 1;  // "status", "models", "generate", "pull", "hardware", "docs", "quality", "summary"
+  string host = 2;
+  string prompt = 3;
+  string model = 4;  // default: "llama3.2"
+  bool stream = 5;  // default: false
+  string options = 6;  // JSON string
+  int32 num_gpu = 7;
+  int32 num_threads = 8;
+  int32 context_size = 9;
+  string file_path = 10;
+  string output_path = 11;
+  string style = 12;  // default: "google"
+  bool include_suggestions = 13;  // default: true
+  string data = 14;
+  string level = 15;  // default: "brief"
+}
+
+// ============================================================================
+// MLX Tool Messages
+// ============================================================================
+
+// MLXRequest represents a request to the MLX tool
+message MLXRequest {
+  string action = 1;  // "status", "hardware", "models", "generate"
+  string prompt = 2;
+  string model = 3;  // default: "mlx-community/Phi-3.5-mini-instruct-4bit"
+  int32 max_tokens = 4;  // default: 512
+  double temperature = 5;  // default: 0.7
+  bool verbose = 6;  // default: false
+}
+
+// ============================================================================
+// Prompt Tracking Tool Messages
+// ============================================================================
+
+// PromptTrackingRequest represents a request to the prompt tracking tool
+message PromptTrackingRequest {
+  string action = 1;  // "log", "analyze"
+  string prompt = 2;  // Required for log action
+  string task_id = 3;
+  string mode = 4;
+  string outcome = 5;
+  int32 iteration = 6;  // default: 1
+  int32 days = 7;  // default: 7 (for analyze action)
+}
+
+// ============================================================================
+// Recommend Tool Messages
+// ============================================================================
+
+// RecommendRequest represents a request to the recommend tool
+message RecommendRequest {
+  string action = 1;  // "model", "workflow", "advisor"
+  string task_description = 2;
+  string tags = 3;  // JSON string
+  bool include_rationale = 4;  // default: true
+  string task_type = 5;
+  string optimize_for = 6;  // "quality", "speed", "cost" (default: "quality")
+  bool include_alternatives = 7;  // default: true
+}
+
+// ============================================================================
+// Infer Session Mode Messages
+// ============================================================================
+
+// InferSessionModeRequest represents a request to infer session mode
+message InferSessionModeRequest {
+  bool force_recompute = 1;  // default: false
+}
+
+// ============================================================================
+// Context Budget Tool Messages
+// ============================================================================
+
+// ContextBudgetRequest represents a request to the context budget tool
+message ContextBudgetRequest {
+  string items = 1;  // JSON array string (required)
+  int32 budget_tokens = 2;  // default: 4000
+}
