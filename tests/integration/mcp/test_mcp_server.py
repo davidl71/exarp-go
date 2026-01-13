@@ -5,6 +5,11 @@ import subprocess
 import sys
 from pathlib import Path
 
+# Add tests directory to path to import test helpers
+project_root = Path(__file__).parent.parent.parent.parent
+sys.path.insert(0, str(project_root / "tests" / "fixtures"))
+from test_helpers import JSONRPCClient, spawn_server
+
 
 def test_jsonrpc_protocol_compliance():
     """Test JSON-RPC 2.0 protocol compliance."""
@@ -27,32 +32,103 @@ def test_jsonrpc_protocol_compliance():
 
 def test_tool_invocation_via_stdio():
     """Test tool invocation via stdio."""
-    # Test would:
-    # 1. Spawn server binary
-    # 2. Send JSON-RPC request via stdin
-    # 3. Receive response via stdout
-    # 4. Verify response format
-    pass
+    server_process = spawn_server()
+    client = JSONRPCClient(server_process)
+    
+    try:
+        # Initialize server first
+        client.call("initialize", {
+            "protocolVersion": "2024-11-05",
+            "capabilities": {},
+            "clientInfo": {"name": "test", "version": "1.0.0"}
+        })
+        
+        # Invoke a simple tool (server_status)
+        response = client.call("tools/call", {
+            "name": "server_status",
+            "arguments": {}
+        })
+        
+        # Verify response format
+        assert response["jsonrpc"] == "2.0"
+        assert "id" in response
+        assert "result" in response or "error" in response
+        
+        if "error" in response:
+            # Some tools may require specific setup, so we just verify error format
+            assert "code" in response["error"]
+            assert "message" in response["error"]
+        else:
+            # Verify result structure
+            result = response["result"]
+            assert "content" in result or "text" in result or "isError" in result
+        
+    finally:
+        client.close()
 
 
 def test_prompt_retrieval_via_stdio():
     """Test prompt retrieval via stdio."""
-    # Test would:
-    # 1. Spawn server binary
-    # 2. Send prompt request via stdin
-    # 3. Receive prompt response via stdout
-    # 4. Verify response format
-    pass
+    server_process = spawn_server()
+    client = JSONRPCClient(server_process)
+    
+    try:
+        # Initialize server first
+        client.call("initialize", {
+            "protocolVersion": "2024-11-05",
+            "capabilities": {},
+            "clientInfo": {"name": "test", "version": "1.0.0"}
+        })
+        
+        # Get a prompt
+        response = client.call("prompts/get", {
+            "name": "align"
+        })
+        
+        # Verify response format
+        assert response["jsonrpc"] == "2.0"
+        assert "id" in response
+        assert "result" in response or "error" in response
+        
+        if "error" not in response:
+            # Verify prompt structure
+            result = response["result"]
+            assert "messages" in result or "description" in result or "arguments" in result
+        
+    finally:
+        client.close()
 
 
 def test_resource_retrieval_via_stdio():
     """Test resource retrieval via stdio."""
-    # Test would:
-    # 1. Spawn server binary
-    # 2. Send resource request via stdin
-    # 3. Receive resource response via stdout
-    # 4. Verify response format
-    pass
+    server_process = spawn_server()
+    client = JSONRPCClient(server_process)
+    
+    try:
+        # Initialize server first
+        client.call("initialize", {
+            "protocolVersion": "2024-11-05",
+            "capabilities": {},
+            "clientInfo": {"name": "test", "version": "1.0.0"}
+        })
+        
+        # Get a resource
+        response = client.call("resources/read", {
+            "uri": "stdio://scorecard"
+        })
+        
+        # Verify response format
+        assert response["jsonrpc"] == "2.0"
+        assert "id" in response
+        assert "result" in response or "error" in response
+        
+        if "error" not in response:
+            # Verify resource structure
+            result = response["result"]
+            assert "contents" in result or "uri" in result
+        
+    finally:
+        client.close()
 
 
 def test_error_responses():
@@ -99,3 +175,6 @@ def test_batch_requests():
     assert isinstance(parsed, list)
     assert len(parsed) == 2
     assert all("jsonrpc" in req for req in parsed)
+    
+    # Note: Actual batch request execution would require server support
+    # This test verifies the batch request format is valid JSON-RPC 2.0

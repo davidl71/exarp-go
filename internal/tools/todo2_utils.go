@@ -1,12 +1,14 @@
 package tools
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
 
+	"github.com/davidl71/exarp-go/internal/database"
 	"github.com/davidl71/exarp-go/internal/models"
 )
 
@@ -132,19 +134,19 @@ func FindProjectRoot() (string, error) {
 // and saves to both to ensure consistency
 func SyncTodo2Tasks(projectRoot string) error {
 	// Load from both sources
-	dbTasks, dbErr := loadTodo2TasksFromDB()
-	jsonTasks, _ := loadTodo2TasksFromJSON(projectRoot)
+	dbTasksLoaded, dbErr := loadTodo2TasksFromDB()
+	jsonTasksLoaded, _ := loadTodo2TasksFromJSON(projectRoot)
 
 	// Build merged task map (database takes precedence)
 	taskMap := make(map[string]Todo2Task)
 
 	// First, add JSON tasks
-	for _, task := range jsonTasks {
+	for _, task := range jsonTasksLoaded {
 		taskMap[task.ID] = task
 	}
 
 	// Then, override with database tasks (database takes precedence)
-	for _, task := range dbTasks {
+	for _, task := range dbTasksLoaded {
 		taskMap[task.ID] = task
 	}
 
@@ -154,30 +156,59 @@ func SyncTodo2Tasks(projectRoot string) error {
 		mergedTasks = append(mergedTasks, task)
 	}
 
+	// Filter out AUTO-* tasks for database (keep them in JSON only)
+	// AUTO-* tasks are automated/system tasks that don't need to be in database
+	dbTasksToSave := make([]Todo2Task, 0, len(mergedTasks))
+	jsonTasksForSave := make([]Todo2Task, 0, len(mergedTasks))
+	for _, task := range mergedTasks {
+		if strings.HasPrefix(task.ID, "AUTO-") {
+			// Skip AUTO-* tasks for database, but keep in JSON
+			jsonTasksForSave = append(jsonTasksForSave, task)
+		} else {
+			// Regular tasks go to both
+			dbTasksToSave = append(dbTasksToSave, task)
+			jsonTasksForSave = append(jsonTasksForSave, task)
+		}
+	}
+
 	// Save to both sources
 	var dbSaveErr, jsonSaveErr error
 
-	// Try to save to database first
+	// Try to save to database first (without AUTO-* tasks)
 	if dbErr == nil {
-		// Database is available, save to it
-		dbSaveErr = saveTodo2TasksToDB(mergedTasks)
+		// Database is available, save to it (excluding AUTO-* tasks)
+		// Also clean up any existing AUTO-* tasks from database
+		if err := cleanupAutoTasksFromDB(); err != nil {
+			// Log but don't fail - cleanup is best effort
+			fmt.Fprintf(os.Stderr, "Warning: Failed to cleanup AUTO tasks from database: %v\n", err)
+		}
+		dbSaveErr = saveTodo2TasksToDB(dbTasksToSave)
+		if dbSaveErr != nil {
+			// Database save had errors - log but continue
+			// The error message includes details about which tasks failed
+			// We still want to save to JSON as backup
+			// Log the error for debugging
+			fmt.Fprintf(os.Stderr, "WARNING: Database save had errors: %v\n", dbSaveErr)
+		}
 	} else {
 		// Database not available, skip
 		dbSaveErr = fmt.Errorf("database not available: %w", dbErr)
 	}
 
-	// Always save to JSON (as fallback)
-	jsonSaveErr = saveTodo2TasksToJSON(projectRoot, mergedTasks)
+	// Always save to JSON (as fallback, including AUTO-* tasks)
+	jsonSaveErr = saveTodo2TasksToJSON(projectRoot, jsonTasksForSave)
 
 	// Return error if both failed
 	if dbSaveErr != nil && jsonSaveErr != nil {
 		return fmt.Errorf("failed to save to both sources: database=%v, json=%v", dbSaveErr, jsonSaveErr)
 	}
 
-	// If one succeeded, that's okay (we have at least one source)
+	// If database save had errors, return the error (don't silently ignore)
+	// This ensures we know about sync issues even if JSON save succeeded
 	if dbSaveErr != nil {
-		// Database save failed, but JSON succeeded - that's okay
-		return nil
+		// Database save failed - return error so caller knows
+		// JSON save succeeded, so we have a backup, but we should report the issue
+		return fmt.Errorf("database save failed (JSON saved as backup): %w", dbSaveErr)
 	}
 
 	return nil
@@ -217,4 +248,39 @@ func normalizeStatus(status string) string {
 	default:
 		return status
 	}
+}
+
+// cleanupAutoTasksFromDB removes all AUTO-* tasks from the database
+// AUTO-* tasks are automated/system tasks that should only exist in JSON
+func cleanupAutoTasksFromDB() error {
+	if db, err := database.GetDB(); err != nil || db == nil {
+		return fmt.Errorf("database not available")
+	}
+
+	ctx := context.Background()
+	
+	// Get all AUTO-* tasks from database
+	allTasks, err := database.ListTasks(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("failed to list tasks: %w", err)
+	}
+
+	// Delete each AUTO-* task
+	deletedCount := 0
+	for _, task := range allTasks {
+		if strings.HasPrefix(task.ID, "AUTO-") {
+			if err := database.DeleteTask(ctx, task.ID); err != nil {
+				// Log but continue - don't fail on individual deletions
+				fmt.Fprintf(os.Stderr, "Warning: Failed to delete AUTO task %s: %v\n", task.ID, err)
+			} else {
+				deletedCount++
+			}
+		}
+	}
+
+	if deletedCount > 0 {
+		fmt.Fprintf(os.Stderr, "Cleaned up %d AUTO-* tasks from database\n", deletedCount)
+	}
+
+	return nil
 }

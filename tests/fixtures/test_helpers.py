@@ -31,12 +31,24 @@ class JSONRPCClient:
         self.process.stdin.write(request_json.encode())
         self.process.stdin.flush()
         
-        # Read response
-        response_line = self.process.stdout.readline()
-        if not response_line:
-            raise RuntimeError("No response from server")
-        
-        return json.loads(response_line.decode())
+        # Read response (may need to skip notifications)
+        while True:
+            response_line = self.process.stdout.readline()
+            if not response_line:
+                raise RuntimeError("No response from server")
+            
+            response = json.loads(response_line.decode())
+            
+            # Skip notifications (they don't have 'id' field)
+            if "id" in response:
+                return response
+            
+            # If it's a notification, continue reading
+            if "method" in response and response.get("method", "").startswith("notifications/"):
+                continue
+            
+            # If no 'id' and not a notification, return anyway (may be error)
+            return response
     
     def close(self):
         """Close the client."""
@@ -49,15 +61,18 @@ class JSONRPCClient:
             self.process.wait()
 
 
-def spawn_server(server_path: Optional[str] = None) -> subprocess.Popen:
+def spawn_server(server_path: Optional[str] = None, project_root: Optional[str] = None) -> subprocess.Popen:
     """Spawn the MCP server binary."""
     if server_path is None:
         # Default to bin/exarp-go
-        project_root = Path(__file__).parent.parent.parent
-        server_path = project_root / "bin" / "exarp-go"
+        exarp_root = Path(__file__).parent.parent.parent
+        server_path = exarp_root / "bin" / "exarp-go"
     
     env = os.environ.copy()
-    env["PROJECT_ROOT"] = str(Path(__file__).parent.parent.parent.parent / "project-management-automation")
+    if project_root is None:
+        # Default to exarp-go project root for testing
+        project_root = str(Path(__file__).parent.parent.parent)
+    env["PROJECT_ROOT"] = project_root
     
     return subprocess.Popen(
         [str(server_path)],

@@ -21,6 +21,8 @@ import (
 )
 
 // initializeDatabase initializes the database if project root is found
+// Note: Database remains open for the duration of CLI execution
+// It will be closed when the process exits or explicitly closed
 func initializeDatabase() {
 	projectRoot, err := tools.FindProjectRoot()
 	if err != nil {
@@ -33,11 +35,6 @@ func initializeDatabase() {
 		return
 	}
 
-	defer func() {
-		if err := database.Close(); err != nil {
-			log.Printf("Warning: Error closing database: %v", err)
-		}
-	}()
 	log.Printf("Database initialized: %s/.todo2/todo2.db", projectRoot)
 }
 
@@ -167,6 +164,13 @@ func Run() error {
 
 	// Initialize database (before server creation)
 	initializeDatabase()
+	
+	// Ensure database is closed when CLI exits
+	defer func() {
+		if err := database.Close(); err != nil {
+			log.Printf("Warning: Error closing database: %v", err)
+		}
+	}()
 
 	// Setup server
 	server, err := setupServer()

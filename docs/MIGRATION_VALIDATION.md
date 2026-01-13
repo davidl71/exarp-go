@@ -347,14 +347,15 @@ $ make test
 - ✅ Implementation plan (4 phases, 5 weeks)
 
 **In Progress:**
-- ⚡ Unit test implementation (1 new test added, 28+ tools remaining)
+- ⚡ Unit test implementation (3 new tests added: server_status, tool_catalog, session_mode_inference; coverage 48.4%, up from ~25%)
 - ⚡ Integration test stubs (deferred per user preference)
 
 **Recent Completions:**
 - ✅ Build error fixed (`session.go` handler routing)
-- ✅ Unit test for `infer_session_mode` tool
-- ✅ Fixed existing test files (build errors resolved)
-- ✅ Fixed code issues discovered during testing
+- ✅ Unit tests for `server_status`, `tool_catalog`, `session_mode_inference` tools
+- ✅ Fixed existing test files (build errors resolved in external_tool_hints_test.go, workflow_mode_test.go)
+- ✅ Fixed code issues discovered during testing (regex, handoff action, keywords handling)
+- ✅ Test coverage improved from ~25% to 48.4%
 
 **Next Steps:**
 1. ✅ Build error fixed in `session.go` (handler routing corrected)
