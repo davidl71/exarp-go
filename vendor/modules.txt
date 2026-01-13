@@ -1,12 +1,13 @@
 # github.com/blacktop/go-foundationmodels v0.1.8
 ## explicit; go 1.25
 github.com/blacktop/go-foundationmodels
-# github.com/davidl71/devwisdom-go v0.1.1
+# github.com/davidl71/devwisdom-go v0.1.1 => /home/dlowes/projects/devwisdom-go
 ## explicit; go 1.24.0
 github.com/davidl71/devwisdom-go/internal/config
 github.com/davidl71/devwisdom-go/internal/wisdom
 github.com/davidl71/devwisdom-go/internal/wisdom/sefaria
-# github.com/davidl71/mcp-go-core v0.3.0
+github.com/davidl71/devwisdom-go/pkg/wisdom
+# github.com/davidl71/mcp-go-core v0.3.1 => /home/dlowes/projects/mcp-go-core
 ## explicit; go 1.24.0
 github.com/davidl71/mcp-go-core/pkg/mcp/framework
 github.com/davidl71/mcp-go-core/pkg/mcp/framework/adapters/gosdk
@@ -71,3 +72,5 @@ gonum.org/v1/gonum/lapack/gonum
 gonum.org/v1/gonum/lapack/lapack64
 gonum.org/v1/gonum/mat
 gonum.org/v1/gonum/stat
+# github.com/davidl71/mcp-go-core => /home/dlowes/projects/mcp-go-core
+# github.com/davidl71/devwisdom-go => /home/dlowes/projects/devwisdom-go

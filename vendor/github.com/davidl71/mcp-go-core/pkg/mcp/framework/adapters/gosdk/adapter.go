@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"time"
 
 	"github.com/davidl71/mcp-go-core/pkg/mcp/framework"
 	"github.com/davidl71/mcp-go-core/pkg/mcp/logging"
@@ -58,7 +57,7 @@ func (a *GoSDKAdapter) RegisterTool(name, description string, schema types.ToolS
 		return fmt.Errorf("tool schema type must be 'object', got %q", schema.Type)
 	}
 
-	a.logger.Debugf("Registering tool: %s", name)
+	a.logger.Debug("", "Registering tool: %s", name)
 
 	// Convert framework ToolSchema to go-sdk InputSchema
 	// The schema must be a JSON object with type "object"
@@ -124,13 +123,13 @@ func (a *GoSDKAdapter) RegisterTool(name, description string, schema types.ToolS
 		Schema:      schema,
 	}
 
-	a.logger.Infof("Tool registered successfully: %s", name)
+	a.logger.Info("", "Tool registered successfully: %s", name)
 	return nil
 }
 
 // RegisterPrompt registers a prompt with the server
 func (a *GoSDKAdapter) RegisterPrompt(name, description string, handler framework.PromptHandler) error {
-	a.logger.Debugf("Registering prompt: %s", name)
+	a.logger.Debug("", "Registering prompt: %s", name)
 
 	// Input validation
 	if err := ValidateRegistration(name, description, handler); err != nil {
@@ -179,18 +178,23 @@ func (a *GoSDKAdapter) RegisterPrompt(name, description string, handler framewor
 	}
 
 	// Wrap with middleware chain
-	promptHandler := a.middleware.WrapPromptHandler(basePromptHandler)
+	wrappedPromptHandler := a.middleware.WrapPromptHandler(basePromptHandler)
+
+	// Convert PromptHandlerFunc to mcp.PromptHandler by wrapping (function signatures match)
+	promptHandler := mcp.PromptHandler(func(ctx context.Context, req *mcp.GetPromptRequest) (*mcp.GetPromptResult, error) {
+		return wrappedPromptHandler(ctx, req)
+	})
 
 	// Use server.AddPrompt with the new API
 	a.server.AddPrompt(prompt, promptHandler)
 
-	a.logger.Infof("Prompt registered successfully: %s", name)
+	a.logger.Info("", "Prompt registered successfully: %s", name)
 	return nil
 }
 
 // RegisterResource registers a resource with the server
 func (a *GoSDKAdapter) RegisterResource(uri, name, description, mimeType string, handler framework.ResourceHandler) error {
-	a.logger.Debugf("Registering resource: %s", uri)
+	a.logger.Debug("", "Registering resource: %s", uri)
 
 	// Input validation
 	if err := ValidateResourceRegistration(uri, name, description, handler); err != nil {
@@ -241,12 +245,17 @@ func (a *GoSDKAdapter) RegisterResource(uri, name, description, mimeType string,
 	}
 
 	// Wrap with middleware chain
-	resourceHandler := a.middleware.WrapResourceHandler(baseResourceHandler)
+	wrappedResourceHandler := a.middleware.WrapResourceHandler(baseResourceHandler)
+
+	// Convert ResourceHandlerFunc to mcp.ResourceHandler by wrapping (function signatures match)
+	resourceHandler := mcp.ResourceHandler(func(ctx context.Context, req *mcp.ReadResourceRequest) (*mcp.ReadResourceResult, error) {
+		return wrappedResourceHandler(ctx, req)
+	})
 
 	// Use server.AddResource with the new API
 	a.server.AddResource(resource, resourceHandler)
 
-	a.logger.Infof("Resource registered successfully: %s", uri)
+	a.logger.Info("", "Resource registered successfully: %s", uri)
 	return nil
 }
 
@@ -286,7 +295,7 @@ func (a *GoSDKAdapter) Run(ctx context.Context, transport framework.Transport) e
 		// The MCP SDK will use stdio for now, but the framework transport
 		// handles the SSE connection management
 		// TODO: When MCP SDK adds SSE support, integrate it here
-		a.logger.Warnf("SSE transport: MCP SDK SSE support not yet available, using framework transport")
+		a.logger.Warn("", "SSE transport: MCP SDK SSE support not yet available, using framework transport")
 		// For now, we'll use stdio as a fallback, but the framework transport
 		// will handle the actual SSE connections
 		mcpTransport = &mcp.StdioTransport{}
