@@ -55,9 +55,28 @@ func getWorkspaceRoot() string {
 	return "."
 }
 
-// ExecutePythonTool executes a Python tool via subprocess
+// ExecutePythonTool executes a Python tool via subprocess or persistent process pool
 // Supports both protobuf binary and JSON formats for backward compatibility
+// Uses persistent process pool if enabled, falls back to subprocess on error
 func ExecutePythonTool(ctx context.Context, toolName string, args map[string]interface{}) (string, error) {
+	// Try persistent process pool first (if enabled)
+	pool := GetGlobalPool()
+	if poolEnabled {
+		result, err := pool.ExecuteTool(ctx, toolName, args)
+		if err == nil {
+			return result, nil
+		}
+		// Fall back to subprocess on pool error (backward compatibility)
+		// Log error but don't fail - subprocess fallback will handle it
+	}
+
+	// Fallback to subprocess execution (original behavior)
+	return executePythonToolSubprocess(ctx, toolName, args)
+}
+
+// executePythonToolSubprocess executes a Python tool via subprocess
+// This is the original implementation, kept for backward compatibility
+func executePythonToolSubprocess(ctx context.Context, toolName string, args map[string]interface{}) (string, error) {
 	// Get workspace root where bridge scripts are located
 	workspaceRoot := getWorkspaceRoot()
 

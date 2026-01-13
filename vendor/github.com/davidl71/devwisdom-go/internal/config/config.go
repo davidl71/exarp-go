@@ -57,10 +57,29 @@ func (c *Config) Load() error {
 	}
 
 	// Try to load from config file
+	// Save environment variable values before loading file
+	envSource := c.Source
+	envHebrew := c.HebrewEnabled
+	envHebrewOnly := c.HebrewOnly
+	envDisabled := c.Disabled
+
 	if _, err := os.Stat(c.configPath); err == nil {
 		data, err := os.ReadFile(c.configPath)
 		if err == nil {
 			if err := json.Unmarshal(data, c); err == nil {
+				// Restore environment variable values (they take precedence)
+				if envSource != "" && envSource != "pistis_sophia" {
+					c.Source = envSource
+				}
+				if envHebrew {
+					c.HebrewEnabled = true
+				}
+				if envHebrewOnly {
+					c.HebrewOnly = true
+				}
+				if envDisabled {
+					c.Disabled = true
+				}
 				// Config loaded successfully
 				return nil
 			}

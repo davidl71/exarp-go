@@ -1,6 +1,6 @@
 module github.com/davidl71/exarp-go
 
-go 1.25
+go 1.25.5
 
 require (
 	github.com/alexbrainman/odbc v0.0.0-20250601004241-49e6b2bc0cf0
