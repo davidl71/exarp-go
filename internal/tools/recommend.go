@@ -98,33 +98,6 @@ var MODEL_CATALOG = []ModelInfo{
 	},
 }
 
-// handleListModels handles the list_models tool
-// Lists all available AI models with capabilities
-func handleListModels(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
-	// Build result
-	result := map[string]interface{}{
-		"models": MODEL_CATALOG,
-		"count":  len(MODEL_CATALOG),
-		"tip":    "Use recommend_model for task-specific recommendations",
-	}
-
-	// Wrap in success response format
-	response := map[string]interface{}{
-		"success":   true,
-		"data":      result,
-		"timestamp": 0, // Will be set by Python bridge if needed, but this is native Go
-	}
-
-	resultJSON, err := json.MarshalIndent(response, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("failed to marshal result: %w", err)
-	}
-
-	return []framework.TextContent{
-		{Type: "text", Text: string(resultJSON)},
-	}, nil
-}
-
 // handleRecommendModelNative handles the "model" action for recommend tool
 func handleRecommendModelNative(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	// Get task description
