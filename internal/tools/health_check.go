@@ -13,6 +13,7 @@ import (
 
 	"github.com/davidl71/exarp-go/internal/framework"
 	"github.com/davidl71/exarp-go/internal/security"
+	"github.com/davidl71/mcp-go-core/pkg/mcp/response"
 )
 
 // handleHealthNative handles the health tool with native Go implementation
@@ -107,14 +108,7 @@ func handleHealthServer(ctx context.Context, params map[string]interface{}) ([]f
 		"timestamp":    time.Now().Unix(),
 	}
 
-	resultJSON, err := json.MarshalIndent(result, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("failed to marshal result: %w", err)
-	}
-
-	return []framework.TextContent{
-		{Type: "text", Text: string(resultJSON)},
-	}, nil
+	return response.FormatResult(result, "")
 }
 
 // handleHealthGit handles the "git" action for health tool
@@ -239,14 +233,7 @@ func handleHealthGit(ctx context.Context, params map[string]interface{}) ([]fram
 		result["uncommitted_files"] = len(lines)
 	}
 
-	resultJSON, err := json.MarshalIndent(result, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("failed to marshal result: %w", err)
-	}
-
-	return []framework.TextContent{
-		{Type: "text", Text: string(resultJSON)},
-	}, nil
+	return response.FormatResult(result, "")
 }
 
 // handleHealthDocs handles the "docs" action for health tool
@@ -335,14 +322,7 @@ func handleHealthDocs(ctx context.Context, params map[string]interface{}) ([]fra
 		result["tasks_note"] = "Task creation requires Python bridge for full functionality"
 	}
 
-	resultJSON, err := json.MarshalIndent(result, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("failed to marshal result: %w", err)
-	}
-
-	return []framework.TextContent{
-		{Type: "text", Text: string(resultJSON)},
-	}, nil
+	return response.FormatResult(result, "")
 }
 
 // handleHealthDOD handles the "dod" action for health tool
@@ -415,14 +395,7 @@ func handleHealthDOD(ctx context.Context, params map[string]interface{}) ([]fram
 		result["output_path"] = outputPath
 	}
 
-	resultJSON, err := json.MarshalIndent(result, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("failed to marshal result: %w", err)
-	}
-
-	return []framework.TextContent{
-		{Type: "text", Text: string(resultJSON)},
-	}, nil
+	return response.FormatResult(result, "")
 }
 
 // handleHealthCICD handles the "cicd" action for health tool
@@ -499,12 +472,5 @@ func handleHealthCICD(ctx context.Context, params map[string]interface{}) ([]fra
 		result["output_path"] = outputPath
 	}
 
-	resultJSON, err := json.MarshalIndent(result, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("failed to marshal result: %w", err)
-	}
-
-	return []framework.TextContent{
-		{Type: "text", Text: string(resultJSON)},
-	}, nil
+	return response.FormatResult(result, "")
 }

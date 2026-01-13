@@ -8,6 +8,7 @@ import (
 	"github.com/davidl71/exarp-go/internal/config"
 	"github.com/davidl71/exarp-go/internal/framework"
 	"github.com/davidl71/exarp-go/internal/platform"
+	"github.com/davidl71/mcp-go-core/pkg/mcp/response"
 )
 
 // TOKENS_PER_CHAR is the estimated tokens per character (rough approximation)
@@ -114,14 +115,7 @@ func handleContextBudget(ctx context.Context, args json.RawMessage) ([]framework
 		"strategy":         strategy,
 	}
 
-	resultJSON, err := json.MarshalIndent(result, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("failed to marshal result: %w", err)
-	}
-
-	return []framework.TextContent{
-		{Type: "text", Text: string(resultJSON)},
-	}, nil
+	return response.FormatResult(result, "")
 }
 
 // estimateTokens estimates token count for text using provided ratio
@@ -283,14 +277,7 @@ func handleContextBatchNative(ctx context.Context, params map[string]interface{}
 		}
 	}
 
-	resultJSON, err := json.MarshalIndent(result, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("failed to marshal result: %w", err)
-	}
-
-	return []framework.TextContent{
-		{Type: "text", Text: string(resultJSON)},
-	}, nil
+	return response.FormatResult(result, "")
 }
 
 // createSimpleSummary creates a simple summary without Apple FM
