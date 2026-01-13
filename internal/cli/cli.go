@@ -69,6 +69,11 @@ func setupServer() (framework.MCPServer, error) {
 
 // Run starts the CLI interface
 func Run() error {
+	// Check for config subcommand first (before flag parsing, no server needed)
+	if len(os.Args) > 1 && os.Args[1] == "config" {
+		return handleConfigCommand(os.Args[2:])
+	}
+
 	// Check for task subcommand first (before flag parsing)
 	if len(os.Args) > 1 && os.Args[1] == "task" {
 		// Initialize database (before server creation)

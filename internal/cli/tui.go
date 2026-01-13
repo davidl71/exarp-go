@@ -3,12 +3,16 @@ package cli
 import (
 	"context"
 	"fmt"
+	"log"
 	"strings"
+	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/davidl71/exarp-go/internal/config"
 	"github.com/davidl71/exarp-go/internal/database"
 	"github.com/davidl71/exarp-go/internal/framework"
+	"github.com/davidl71/exarp-go/internal/tools"
 )
 
 var (
@@ -29,6 +33,11 @@ var (
 
 	helpStyle = lipgloss.NewStyle().
 			Foreground(lipgloss.Color("#626262"))
+
+	oldIDStyle = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("#FFB800")).
+			Background(lipgloss.Color("#3C3C3C")).
+			Padding(0, 1)
 )
 
 type model struct {
@@ -39,6 +48,8 @@ type model struct {
 	server      framework.MCPServer
 	loading     bool
 	err         error
+	autoRefresh bool
+	lastUpdate  time.Time
 }
 
 type taskLoadedMsg struct {
@@ -48,18 +59,34 @@ type taskLoadedMsg struct {
 
 func initialModel(server framework.MCPServer, status string) model {
 	return model{
-		tasks:    []*database.Todo2Task{},
-		cursor:   0,
-		selected: make(map[int]struct{}),
-		status:   status,
-		server:   server,
-		loading:  true,
+		tasks:       []*database.Todo2Task{},
+		cursor:      0,
+		selected:    make(map[int]struct{}),
+		status:      status,
+		server:      server,
+		loading:     true,
+		autoRefresh: true, // Enable auto-refresh by default
+		lastUpdate:  time.Now(),
 	}
 }
 
 func (m model) Init() tea.Cmd {
-	return loadTasks(m.status)
+	// Load tasks and start auto-refresh ticker
+	return tea.Batch(loadTasks(m.status), tick())
 }
+
+// tick returns a command that sends a tick message at configured interval
+// Uses config for refresh interval, defaults to 5 seconds if not configured
+func tick() tea.Cmd {
+	// Use a reasonable default for TUI refresh (5 seconds)
+	// This could be made configurable in the future
+	refreshInterval := 5 * time.Second
+	return tea.Tick(refreshInterval, func(t time.Time) tea.Msg {
+		return tickMsg(t)
+	})
+}
+
+type tickMsg time.Time
 
 func loadTasks(status string) tea.Cmd {
 	return func() tea.Msg {
@@ -87,6 +114,23 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 		m.tasks = msg.tasks
+		m.lastUpdate = time.Now()
+		// Continue auto-refresh if enabled
+		if m.autoRefresh {
+			return m, tick()
+		}
+		return m, nil
+
+	case tickMsg:
+		// Auto-refresh tasks periodically
+		if m.autoRefresh && !m.loading {
+			m.loading = true
+			return m, loadTasks(m.status)
+		}
+		// Continue ticking
+		if m.autoRefresh {
+			return m, tick()
+		}
 		return m, nil
 
 	case tea.KeyMsg:
@@ -116,6 +160,14 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			// Refresh tasks
 			m.loading = true
 			return m, loadTasks(m.status)
+
+		case "a":
+			// Toggle auto-refresh
+			m.autoRefresh = !m.autoRefresh
+			if m.autoRefresh {
+				return m, tick()
+			}
+			return m, nil
 
 		case "s":
 			// Show task details
@@ -192,8 +244,15 @@ func (m model) View() string {
 		if content == "" {
 			content = task.LongDescription
 		}
-		if len(content) > 50 {
-			content = content[:47] + "..."
+		// Use config for min description length as truncation limit
+		maxDisplayLength := config.TaskMinDescriptionLength()
+		if len(content) > maxDisplayLength {
+			truncateLen := maxDisplayLength - 3
+			if truncateLen > 0 {
+				content = content[:truncateLen] + "..."
+			} else {
+				content = "..."
+			}
 		}
 		if content != "" {
 			line += " " + content
@@ -208,8 +267,20 @@ func (m model) View() string {
 		b.WriteString("\n")
 	}
 
+	// Auto-refresh status
+	refreshStatus := "OFF"
+	if m.autoRefresh {
+		refreshStatus = "ON"
+		lastUpdateStr := time.Since(m.lastUpdate).Round(time.Second).String()
+		refreshStatus += fmt.Sprintf(" (updated %s ago)", lastUpdateStr)
+	}
+	refreshInfo := helpStyle.Render(fmt.Sprintf("  Auto-refresh: %s", refreshStatus))
+	b.WriteString("\n")
+	b.WriteString(refreshInfo)
+	b.WriteString("\n")
+
 	// Help text
-	help := helpStyle.Render("\n  ↑/↓: navigate  space/enter: select  s: details  r: refresh  q: quit\n")
+	help := helpStyle.Render("\n  ↑/↓: navigate  space/enter: select  s: details  r: refresh  a: toggle auto-refresh  q: quit\n")
 	b.WriteString(help)
 
 	return b.String()
@@ -241,8 +312,23 @@ func showTaskDetails(task *database.Todo2Task) tea.Cmd {
 
 // RunTUI starts the TUI interface
 func RunTUI(server framework.MCPServer, status string) error {
-	// Initialize database if needed
-	initializeDatabase()
+	// Initialize database if needed (without closing it immediately)
+	projectRoot, err := tools.FindProjectRoot()
+	if err != nil {
+		log.Printf("Warning: Could not find project root: %v (database unavailable, will use JSON fallback)", err)
+	} else {
+		if err := database.Init(projectRoot); err != nil {
+			log.Printf("Warning: Database initialization failed: %v (fallback to JSON)", err)
+		} else {
+			// Defer close when TUI exits
+			defer func() {
+				if err := database.Close(); err != nil {
+					log.Printf("Warning: Error closing database: %v", err)
+				}
+			}()
+			log.Printf("Database initialized: %s/.todo2/todo2.db", projectRoot)
+		}
+	}
 
 	p := tea.NewProgram(initialModel(server, status))
 	if _, err := p.Run(); err != nil {

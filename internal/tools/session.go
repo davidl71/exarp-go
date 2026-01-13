@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/davidl71/exarp-go/internal/config"
 	"github.com/davidl71/exarp-go/internal/database"
 	"github.com/davidl71/exarp-go/internal/framework"
 )
@@ -1159,7 +1160,7 @@ func handleSessionAssigneeAssign(ctx context.Context, params map[string]interfac
 
 	// Use database ClaimTaskForAgent for atomic assignment
 	// This handles locking and prevents race conditions
-	leaseDuration := 30 * time.Minute
+	leaseDuration := config.TaskLockLease()
 	result, err := database.ClaimTaskForAgent(ctx, taskID, assigneeName, leaseDuration)
 	if err != nil {
 		return nil, fmt.Errorf("failed to assign task: %w", err)

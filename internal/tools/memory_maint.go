@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/davidl71/exarp-go/internal/config"
 	"github.com/davidl71/exarp-go/internal/framework"
 	"github.com/davidl71/exarp-go/internal/security"
 )
@@ -414,7 +415,7 @@ func handleMemoryMaintConsolidate(ctx context.Context, params map[string]interfa
 		return nil, fmt.Errorf("failed to find project root: %w", err)
 	}
 
-	similarityThreshold := 0.85
+	similarityThreshold := config.SimilarityThreshold()
 	if threshold, ok := params["similarity_threshold"].(float64); ok {
 		similarityThreshold = threshold
 	}

@@ -17,9 +17,9 @@ import (
 
 func main() {
 	// Check for CLI flags first (completion, list, etc.) - these should work even without TTY
-	// Also check for task subcommand
+	// Also check for task and config subcommands
 	hasCLIFlags := false
-	if len(os.Args) > 1 && os.Args[1] == "task" {
+	if len(os.Args) > 1 && (os.Args[1] == "task" || os.Args[1] == "config" || os.Args[1] == "tui") {
 		hasCLIFlags = true
 	} else {
 		for i := 1; i < len(os.Args); i++ {

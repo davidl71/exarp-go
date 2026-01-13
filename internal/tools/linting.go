@@ -8,8 +8,8 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
-	"time"
 
+	"github.com/davidl71/exarp-go/internal/config"
 	"github.com/davidl71/exarp-go/internal/security"
 )
 
@@ -35,8 +35,8 @@ type LintError struct {
 
 // runLinter executes a linter command and returns the result
 func runLinter(ctx context.Context, linter, path string, fix bool) (*LintResult, error) {
-	// Set default timeout
-	ctx, cancel := context.WithTimeout(ctx, 60*time.Second)
+	// Set timeout from config
+	ctx, cancel := context.WithTimeout(ctx, config.ToolTimeout("linting"))
 	defer cancel()
 
 	// Get project root for path validation

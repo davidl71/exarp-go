@@ -81,7 +81,9 @@ internal/
 5. ✅ Implement thresholds configuration
 6. ✅ Implement task defaults configuration
 7. ✅ Create CLI tool for config management
-8. ✅ Update documentation
+8. ✅ Update tools to use config values
+9. ✅ Update TUI to use config values
+10. ✅ Update documentation
 
 **Deliverables:**
 - `internal/config/` package with full structure

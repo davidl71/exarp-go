@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/davidl71/exarp-go/internal/config"
 	"github.com/davidl71/exarp-go/internal/framework"
 	"github.com/davidl71/exarp-go/internal/security"
 )
@@ -204,7 +205,7 @@ func aggregateProjectData(ctx context.Context, projectRoot string) (map[string]i
 
 			data["health"] = map[string]interface{}{
 				"overall_score":    scorecard.Score,
-				"production_ready": scorecard.Score >= 80,
+				"production_ready": scorecard.Score >= float64(config.MinCoverage()), // Using coverage threshold as production ready indicator
 				"scores":           scores,
 			}
 		}

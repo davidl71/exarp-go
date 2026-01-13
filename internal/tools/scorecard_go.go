@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/davidl71/exarp-go/internal/config"
 	"github.com/davidl71/exarp-go/internal/security"
 )
 
@@ -313,7 +314,7 @@ func checkGoModTidy(ctx context.Context, root string) bool {
 
 // checkGoBuild checks if go build succeeds
 func checkGoBuild(ctx context.Context, root string) bool {
-	ctx, cancel := context.WithTimeout(ctx, 60*time.Second)
+	ctx, cancel := context.WithTimeout(ctx, config.ToolTimeout("scorecard"))
 	defer cancel()
 
 	cmd := exec.CommandContext(ctx, "go", "build", "./...")
@@ -363,7 +364,7 @@ func checkGolangciLintConfigured(root string) bool {
 
 // checkGolangciLint checks if golangci-lint passes
 func checkGolangciLint(ctx context.Context, root string) bool {
-	ctx, cancel := context.WithTimeout(ctx, 60*time.Second)
+	ctx, cancel := context.WithTimeout(ctx, config.ToolTimeout("scorecard"))
 	defer cancel()
 
 	// Check if golangci-lint is available
@@ -379,7 +380,7 @@ func checkGolangciLint(ctx context.Context, root string) bool {
 
 // checkGoTest checks if go test passes and gets coverage
 func checkGoTest(ctx context.Context, root string) (bool, float64) {
-	ctx, cancel := context.WithTimeout(ctx, 120*time.Second)
+	ctx, cancel := context.WithTimeout(ctx, config.ToolTimeout("testing"))
 	defer cancel()
 
 	// Run tests with coverage
@@ -415,7 +416,7 @@ func checkGoTest(ctx context.Context, root string) (bool, float64) {
 
 // checkGoVulncheck checks if govulncheck passes
 func checkGoVulncheck(ctx context.Context, root string) bool {
-	ctx, cancel := context.WithTimeout(ctx, 60*time.Second)
+	ctx, cancel := context.WithTimeout(ctx, config.ToolTimeout("scorecard"))
 	defer cancel()
 
 	// Check if govulncheck is available
@@ -508,8 +509,9 @@ func generateGoRecommendations(health *GoHealthChecks, metrics *GoProjectMetrics
 	if !health.GoTestPasses {
 		recommendations = append(recommendations, "Fix failing Go tests")
 	}
-	if health.GoTestCoverage < 80.0 {
-		recommendations = append(recommendations, fmt.Sprintf("Increase test coverage (currently %.1f%%, target: 80%%)", health.GoTestCoverage))
+	minCoverage := float64(config.MinCoverage())
+	if health.GoTestCoverage < minCoverage {
+		recommendations = append(recommendations, fmt.Sprintf("Increase test coverage (currently %.1f%%, target: %.0f%%)", health.GoTestCoverage, minCoverage))
 	}
 	if !health.GoVulnCheckPasses {
 		recommendations = append(recommendations, "Install and run 'govulncheck ./...' for security scanning")
@@ -561,7 +563,7 @@ func calculateGoScore(health *GoHealthChecks, metrics *GoProjectMetrics) float64
 	if health.GoTestPasses {
 		score += 15
 	}
-	if health.GoTestCoverage >= 80.0 {
+	if health.GoTestCoverage >= float64(config.MinCoverage()) {
 		score += 15
 	} else if health.GoTestCoverage >= 50.0 {
 		score += 10
@@ -616,7 +618,9 @@ func FormatGoScorecard(scorecard *GoScorecardResult) string {
 
 	// Overall Score
 	sb.WriteString(fmt.Sprintf("  OVERALL SCORE: %.1f%%\n", scorecard.Score))
-	if scorecard.Score >= 80 {
+	// Use coverage threshold as production ready indicator
+	productionReadyThreshold := float64(config.MinCoverage())
+	if scorecard.Score >= productionReadyThreshold {
 		sb.WriteString("  Production Ready: YES ✅\n")
 	} else if scorecard.Score >= 60 {
 		sb.WriteString("  Production Ready: PARTIAL ⚠️\n")

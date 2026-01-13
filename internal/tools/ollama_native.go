@@ -11,6 +11,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/davidl71/exarp-go/internal/config"
 	"github.com/davidl71/exarp-go/internal/framework"
 )
 
@@ -374,7 +375,7 @@ func handleOllamaPull(ctx context.Context, params map[string]interface{}, host s
 	}
 
 	// Make request
-	client := &http.Client{Timeout: 600 * time.Second} // Long timeout for model downloads
+	client := &http.Client{Timeout: config.OllamaDownloadTimeout()} // Long timeout for model downloads
 	url := fmt.Sprintf("%s/api/pull", host)
 
 	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(jsonData))
