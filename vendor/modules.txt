@@ -1,10 +1,11 @@
 # github.com/blacktop/go-foundationmodels v0.1.8
 ## explicit; go 1.25
 github.com/blacktop/go-foundationmodels
-# github.com/davidl71/mcp-go-core v0.2.0
+# github.com/davidl71/mcp-go-core v0.3.0
 ## explicit; go 1.24.0
 github.com/davidl71/mcp-go-core/pkg/mcp/framework
 github.com/davidl71/mcp-go-core/pkg/mcp/framework/adapters/gosdk
+github.com/davidl71/mcp-go-core/pkg/mcp/logging
 github.com/davidl71/mcp-go-core/pkg/mcp/security
 github.com/davidl71/mcp-go-core/pkg/mcp/types
 # github.com/google/jsonschema-go v0.3.0
