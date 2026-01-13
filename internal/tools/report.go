@@ -65,19 +65,67 @@ func handleReportOverview(ctx context.Context, params map[string]interface{}) ([
 }
 
 // handleReportBriefing handles the briefing action for report tool
-// Note: Briefing uses devwisdom-go MCP server which requires Python bridge for now
-// TODO: Implement native Go MCP client for devwisdom-go server
+// Uses devwisdom-go wisdom engine directly (no MCP client needed)
 func handleReportBriefing(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
-	// Briefing requires devwisdom-go MCP server access
-	// For now, delegate to Python bridge which has MCP client access
-	// This is a temporary solution until native Go MCP client is implemented
-	result, err := bridge.ExecutePythonTool(ctx, "report", params)
+	var score float64
+
+	if sc, ok := params["score"].(float64); ok {
+		score = sc
+	} else if sc, ok := params["score"].(int); ok {
+		score = float64(sc)
+	} else {
+		score = 50.0 // Default score
+	}
+
+	// Validate and clamp score
+	if score < 0 {
+		score = 0
+	} else if score > 100 {
+		score = 100
+	}
+
+	// Get wisdom engine
+	engine, err := getWisdomEngine()
 	if err != nil {
-		return nil, fmt.Errorf("briefing failed: %w", err)
+		return nil, fmt.Errorf("failed to initialize wisdom engine: %w", err)
+	}
+
+	// Get multiple quotes from different sources
+	sources := engine.ListSources()
+	briefing := map[string]interface{}{
+		"date":    time.Now().Format("2006-01-02"),
+		"score":   score,
+		"quotes":  []interface{}{},
+		"sources": sources,
+	}
+
+	// Get quotes from a few sources (up to 3)
+	selectedSources := []string{"pistis_sophia", "stoic", "tao"}
+	if len(sources) > 0 {
+		selectedSources = sources
+		if len(selectedSources) > 3 {
+			selectedSources = selectedSources[:3]
+		}
+	}
+
+	quotes := []interface{}{}
+	for _, src := range selectedSources {
+		quote, err := engine.GetWisdom(score, src)
+		if err == nil {
+			quotes = append(quotes, quote)
+		}
+	}
+
+	briefing["quotes"] = quotes
+
+	// Convert to JSON
+	resultJSON, err := json.MarshalIndent(briefing, "", "  ")
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal briefing: %w", err)
 	}
 
 	return []framework.TextContent{
-		{Type: "text", Text: result},
+		{Type: "text", Text: string(resultJSON)},
 	}, nil
 }
 
