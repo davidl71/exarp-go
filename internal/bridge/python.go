@@ -123,15 +123,10 @@ func ExecutePythonTool(ctx context.Context, toolName string, args map[string]int
 	// Protobuf mode failed (likely Python protobuf code not available or error)
 	// Fall back to JSON format (backward compatible)
 	cmd = exec.CommandContext(ctxWithTimeout, "python3", bridgeScript, toolName, string(argsJSON))
+	cmd.Dir = workspaceRoot
+	cmd.Env = append(os.Environ(), fmt.Sprintf("PROJECT_ROOT=%s", workspaceRoot))
 
-	// Pass environment variables to Python subprocess (especially PROJECT_ROOT from Cursor)
-	cmd.Env = os.Environ()
-
-	// Set timeout
-	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
-	defer cancel()
-
-	// Execute command
+	// Execute command (JSON fallback)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		return "", fmt.Errorf("python tool execution failed: %w, output: %s", err, output)

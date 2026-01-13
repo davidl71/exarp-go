@@ -1605,3 +1605,172 @@ func AddExternalToolHintsRequestToParams(req *proto.AddExternalToolHintsRequest)
 
 	return params
 }
+
+// ParseTestingRequest parses a testing tool request (protobuf or JSON)
+func ParseTestingRequest(args json.RawMessage) (*proto.TestingRequest, map[string]interface{}, error) {
+	var req proto.TestingRequest
+
+	// Try protobuf binary first
+	if err := protobuf.Unmarshal(args, &req); err == nil {
+		return &req, nil, nil
+	}
+
+	// Fall back to JSON
+	var params map[string]interface{}
+	if err := json.Unmarshal(args, &params); err != nil {
+		return nil, nil, fmt.Errorf("failed to parse arguments: %w", err)
+	}
+
+	return nil, params, nil
+}
+
+// TestingRequestToParams converts a protobuf TestingRequest to params map
+func TestingRequestToParams(req *proto.TestingRequest) map[string]interface{} {
+	params := make(map[string]interface{})
+
+	if req.Action != "" {
+		params["action"] = req.Action
+	}
+	if req.TestPath != "" {
+		params["test_path"] = req.TestPath
+	}
+	if req.TestFramework != "" {
+		params["test_framework"] = req.TestFramework
+	}
+	params["verbose"] = req.Verbose
+	params["coverage"] = req.Coverage
+	if req.CoverageFile != "" {
+		params["coverage_file"] = req.CoverageFile
+	}
+	if req.MinCoverage > 0 {
+		params["min_coverage"] = int(req.MinCoverage)
+	}
+	if req.Format != "" {
+		params["format"] = req.Format
+	}
+	if req.TargetFile != "" {
+		params["target_file"] = req.TargetFile
+	}
+	if req.MinConfidence > 0 {
+		params["min_confidence"] = req.MinConfidence
+	}
+	if req.Framework != "" {
+		params["framework"] = req.Framework
+	}
+	if req.OutputPath != "" {
+		params["output_path"] = req.OutputPath
+	}
+
+	return params
+}
+
+// ParseAutomationRequest parses an automation tool request (protobuf or JSON)
+func ParseAutomationRequest(args json.RawMessage) (*proto.AutomationRequest, map[string]interface{}, error) {
+	var req proto.AutomationRequest
+
+	// Try protobuf binary first
+	if err := protobuf.Unmarshal(args, &req); err == nil {
+		return &req, nil, nil
+	}
+
+	// Fall back to JSON
+	var params map[string]interface{}
+	if err := json.Unmarshal(args, &params); err != nil {
+		return nil, nil, fmt.Errorf("failed to parse arguments: %w", err)
+	}
+
+	return nil, params, nil
+}
+
+// AutomationRequestToParams converts a protobuf AutomationRequest to params map
+func AutomationRequestToParams(req *proto.AutomationRequest) map[string]interface{} {
+	params := make(map[string]interface{})
+
+	if req.Action != "" {
+		params["action"] = req.Action
+	}
+	if len(req.Tasks) > 0 {
+		tasksJSON, _ := json.Marshal(req.Tasks)
+		params["tasks"] = string(tasksJSON)
+	}
+	params["include_slow"] = req.IncludeSlow
+	if req.MaxTasksPerHost > 0 {
+		params["max_tasks_per_host"] = int(req.MaxTasksPerHost)
+	}
+	if req.MaxParallelTasks > 0 {
+		params["max_parallel_tasks"] = int(req.MaxParallelTasks)
+	}
+	if req.PriorityFilter != "" {
+		params["priority_filter"] = req.PriorityFilter
+	}
+	if len(req.TagFilter) > 0 {
+		tagsJSON, _ := json.Marshal(req.TagFilter)
+		params["tag_filter"] = string(tagsJSON)
+	}
+	if req.MaxIterations > 0 {
+		params["max_iterations"] = int(req.MaxIterations)
+	}
+	params["auto_approve"] = req.AutoApprove
+	params["extract_subtasks"] = req.ExtractSubtasks
+	params["run_analysis_tools"] = req.RunAnalysisTools
+	params["run_testing_tools"] = req.RunTestingTools
+	if req.MinValueScore > 0 {
+		params["min_value_score"] = req.MinValueScore
+	}
+	params["dry_run"] = req.DryRun
+	if req.OutputPath != "" {
+		params["output_path"] = req.OutputPath
+	}
+
+	return params
+}
+
+// ParseLintRequest parses a lint tool request (protobuf or JSON)
+func ParseLintRequest(args json.RawMessage) (*proto.LintRequest, map[string]interface{}, error) {
+	var req proto.LintRequest
+
+	// Try protobuf binary first
+	if err := protobuf.Unmarshal(args, &req); err == nil {
+		return &req, nil, nil
+	}
+
+	// Fall back to JSON
+	var params map[string]interface{}
+	if err := json.Unmarshal(args, &params); err != nil {
+		return nil, nil, fmt.Errorf("failed to parse arguments: %w", err)
+	}
+
+	return nil, params, nil
+}
+
+// LintRequestToParams converts a protobuf LintRequest to params map
+func LintRequestToParams(req *proto.LintRequest) map[string]interface{} {
+	params := make(map[string]interface{})
+
+	if req.Action != "" {
+		params["action"] = req.Action
+	}
+	if req.Path != "" {
+		params["path"] = req.Path
+	}
+	if req.Linter != "" {
+		params["linter"] = req.Linter
+	}
+	params["fix"] = req.Fix
+	params["analyze"] = req.Analyze
+	if req.Select != "" {
+		params["select"] = req.Select
+	}
+	if req.Ignore != "" {
+		params["ignore"] = req.Ignore
+	}
+	if req.ProblemsJson != "" {
+		params["problems_json"] = req.ProblemsJson
+	}
+	params["include_hints"] = req.IncludeHints
+	if req.OutputPath != "" {
+		params["output_path"] = req.OutputPath
+	}
+
+	return params
+}

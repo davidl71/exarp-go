@@ -465,8 +465,6 @@ func LoadAllMemories(projectRoot string) ([]Memory, error) {
 			continue
 		}
 
-		// Extract memory ID from filename (remove extension)
-		memoryID := strings.TrimSuffix(entry.Name(), filepath.Ext(entry.Name()))
 		memoryPath := filepath.Join(memoriesDir, entry.Name())
 
 		var memory Memory
