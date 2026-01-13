@@ -1,6 +1,11 @@
 # github.com/blacktop/go-foundationmodels v0.1.8
 ## explicit; go 1.25
 github.com/blacktop/go-foundationmodels
+# github.com/davidl71/devwisdom-go v0.1.1
+## explicit; go 1.24.0
+github.com/davidl71/devwisdom-go/internal/config
+github.com/davidl71/devwisdom-go/internal/wisdom
+github.com/davidl71/devwisdom-go/internal/wisdom/sefaria
 # github.com/davidl71/mcp-go-core v0.3.0
 ## explicit; go 1.24.0
 github.com/davidl71/mcp-go-core/pkg/mcp/framework

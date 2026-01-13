@@ -177,9 +177,9 @@ func handleMemoryMaint(ctx context.Context, args json.RawMessage) ([]framework.T
 		action = "health"
 	}
 
-	// Try native Go implementation first (for health, gc, prune, consolidate)
-	// Dream requires advisor integration via devwisdom-go MCP, so falls back to Python bridge
-	if action == "health" || action == "gc" || action == "prune" || action == "consolidate" {
+	// Try native Go implementation first (for health, gc, prune, consolidate, dream)
+	// All actions are now native (dream uses devwisdom-go wisdom engine directly)
+	if action == "health" || action == "gc" || action == "prune" || action == "consolidate" || action == "dream" {
 		result, err := handleMemoryMaintNative(ctx, args)
 		if err == nil {
 			return result, nil
@@ -187,7 +187,7 @@ func handleMemoryMaint(ctx context.Context, args json.RawMessage) ([]framework.T
 		// If native fails, fall through to Python bridge
 	}
 
-	// For dream action (requires devwisdom-go MCP client) and other actions, use Python bridge
+	// For unsupported actions or if native fails, use Python bridge
 	result, err := bridge.ExecutePythonTool(ctx, "memory_maint", params)
 	if err != nil {
 		return nil, fmt.Errorf("memory_maint failed: %w", err)
@@ -851,7 +851,7 @@ func handleRecommend(ctx context.Context, args json.RawMessage) ([]framework.Tex
 		action = actionRaw
 	}
 
-	// Try native Go implementation for "model" and "workflow" actions
+	// Try native Go implementation for "model", "workflow", and "advisor" actions
 	switch action {
 	case "model":
 		result, err := handleRecommendModelNative(ctx, params)
@@ -865,9 +865,15 @@ func handleRecommend(ctx context.Context, args json.RawMessage) ([]framework.Tex
 			return result, nil
 		}
 		// If native fails, fall through to Python bridge
+	case "advisor":
+		result, err := handleRecommendAdvisorNative(ctx, params)
+		if err == nil {
+			return result, nil
+		}
+		// If native fails, fall through to Python bridge
 	}
 
-	// For "advisor" action (requires MCP client to call devwisdom-go), or if native fails, use Python bridge
+	// For unsupported actions or if native fails, use Python bridge
 	bridgeResult, err := bridge.ExecutePythonTool(ctx, "recommend", params)
 	if err != nil {
 		return nil, fmt.Errorf("recommend failed: %w", err)

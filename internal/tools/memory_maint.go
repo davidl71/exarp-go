@@ -35,8 +35,7 @@ func handleMemoryMaintNative(ctx context.Context, args json.RawMessage) ([]frame
 	case "consolidate":
 		return handleMemoryMaintConsolidate(ctx, params)
 	case "dream":
-		// Dream requires advisor integration - fall back to Python bridge for now
-		return nil, fmt.Errorf("action %s requires advisor integration, falling back to Python bridge", action)
+		return handleMemoryMaintDream(ctx, params)
 	default:
 		return nil, fmt.Errorf("unknown action: %s (use 'health', 'gc', 'prune', 'consolidate', or 'dream')", action)
 	}
