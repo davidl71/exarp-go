@@ -33,9 +33,28 @@ var MemoryCategories = []string{"debug", "research", "architecture", "preference
 
 // handleMemoryNative handles the memory tool with native Go CRUD operations
 func handleMemoryNative(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
-	var params map[string]interface{}
-	if err := json.Unmarshal(args, &params); err != nil {
+	// Try protobuf first, fall back to JSON for backward compatibility
+	req, params, err := ParseMemoryRequest(args)
+	if err != nil {
 		return nil, fmt.Errorf("failed to parse arguments: %w", err)
+	}
+
+	// Convert protobuf request to params map if needed (for compatibility with existing functions)
+	if req != nil {
+		params = MemoryRequestToParams(req)
+		// Set defaults for protobuf request
+		if req.Action == "" {
+			params["action"] = "search"
+		}
+		if req.Category == "" {
+			params["category"] = "insight"
+		}
+		if req.Limit == 0 {
+			params["limit"] = 10
+		}
+		if !req.IncludeRelated {
+			params["include_related"] = true // Default is true
+		}
 	}
 
 	action, _ := params["action"].(string)

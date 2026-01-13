@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-
-	"github.com/davidl71/exarp-go/internal/config"
 )
 
 // Config holds database configuration
@@ -84,18 +82,30 @@ func GetDefaultDSN(driver DriverType, projectRoot string) string {
 	}
 }
 
-// LoadConfigFromCentralized loads database configuration from centralized config system
+// DatabaseConfigFields holds the database configuration fields from centralized config
+// This struct is used to break the import cycle between database and config packages
+type DatabaseConfigFields struct {
+	SQLitePath      string
+	JSONFallbackPath string
+	BackupPath      string
+	MaxConnections  int
+	ConnectionTimeout int64 // Duration in seconds
+	QueryTimeout    int64  // Duration in seconds
+	RetryAttempts   int
+	RetryInitialDelay int64 // Duration in seconds
+	RetryMaxDelay   int64  // Duration in seconds
+	RetryMultiplier float64
+	AutoVacuum      bool
+	WALMode         bool
+	CheckpointInterval int
+	BackupRetentionDays int
+}
+
+// LoadConfigFromCentralizedFields loads database configuration from centralized config fields
 // This allows database to use the centralized .exarp/config.yaml configuration
-func LoadConfigFromCentralized(projectRoot string) (*Config, error) {
-	// Load centralized config
-	cfg, err := config.LoadConfig(projectRoot)
-	if err != nil {
-		return nil, fmt.Errorf("failed to load centralized config: %w", err)
-	}
-
-	dbCfg := cfg.Database
-
-	// Convert centralized DatabaseConfig to database.Config
+// without creating an import cycle (config package doesn't need to import database)
+func LoadConfigFromCentralizedFields(projectRoot string, dbCfg DatabaseConfigFields) (*Config, error) {
+	// Convert centralized DatabaseConfigFields to database.Config
 	// Note: database.Config is simpler (Driver, DSN, AutoMigrate)
 	// We use SQLite path from centralized config for DSN
 	dbConfig := &Config{
@@ -119,7 +129,12 @@ func LoadConfigFromCentralized(projectRoot string) (*Config, error) {
 		dbConfig.DSN = dsn
 	} else if dbConfig.Driver == DriverSQLite {
 		// Use centralized config path for SQLite
-		dbConfig.DSN = filepath.Join(projectRoot, dbCfg.SQLitePath)
+		if dbCfg.SQLitePath != "" {
+			dbConfig.DSN = filepath.Join(projectRoot, dbCfg.SQLitePath)
+		} else {
+			// Fallback to default
+			dbConfig.DSN = filepath.Join(projectRoot, ".todo2", "todo2.db")
+		}
 	}
 
 	if autoMigrate := os.Getenv("DB_AUTO_MIGRATE"); autoMigrate == "false" {
