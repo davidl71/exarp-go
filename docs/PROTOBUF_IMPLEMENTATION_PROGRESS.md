@@ -23,9 +23,12 @@
 ### Phase 3: Handler Migration
 - ✅ **Memory Tool** - Updated `handleMemoryNative` to use `ParseMemoryRequest` (protobuf/JSON dual support)
 - ✅ **Context Tool** - Updated `handleContext` to use `ParseContextRequest` (protobuf/JSON dual support)
-- ⏳ **Report Tool** - Schema created, handler update pending
-- ⏳ **Task Management Tools** - Schema created, handler updates pending
-- ⏳ **All Other Tools** - Schemas created, handler updates pending
+- ✅ **Report Tool** - Updated `handleReport` to use `ParseReportRequest` (protobuf/JSON dual support)
+- ✅ **Task Workflow Tool** - Updated `handleTaskWorkflow` to use `ParseTaskWorkflowRequest` (protobuf/JSON dual support)
+- ✅ **Automation Tool** - Updated `handleAutomation` to use `ParseAutomationRequest` (protobuf/JSON dual support)
+- ✅ **Testing Tool** - Updated `handleTesting` to use `ParseTestingRequest` (protobuf/JSON dual support)
+- ✅ **Lint Tool** - Updated `handleLint` to use `ParseLintRequest` (protobuf/JSON dual support)
+- ⏳ **Remaining Tools** - ~17 handlers remaining (estimation, git_tools, session, ollama, mlx, etc.)
 
 ## 📋 Remaining Work
 
