@@ -223,7 +223,7 @@ func registerBatch1Tools(server framework.MCPServer) error {
 	// T-27: add_external_tool_hints
 	if err := server.RegisterTool(
 		"add_external_tool_hints",
-		"[HINT: External tool hints automation. Automatically adds Context7/external tool hints to documentation files.]",
+		"[HINT: Tool hints. Files scanned, modified, hints added.]",
 		framework.ToolSchema{
 			Type: "object",
 			Properties: map[string]interface{}{
@@ -534,7 +534,7 @@ func registerBatch2Tools(server framework.MCPServer) error {
 			Properties: map[string]interface{}{
 				"action": map[string]interface{}{
 					"type":    "string",
-					"enum":    []string{"comments", "markdown", "orphans", "all"},
+					"enum":    []string{"comments", "markdown", "orphans", "git_json", "all"},
 					"default": "all",
 				},
 				"file_patterns": map[string]interface{}{
@@ -546,6 +546,10 @@ func registerBatch2Tools(server framework.MCPServer) error {
 				},
 				"doc_path": map[string]interface{}{
 					"type": "string",
+				},
+				"json_pattern": map[string]interface{}{
+					"type":    "string",
+					"default": "**/.todo2/state.todo2.json",
 				},
 				"output_path": map[string]interface{}{
 					"type": "string",
@@ -564,7 +568,7 @@ func registerBatch2Tools(server framework.MCPServer) error {
 	// T-34: task_workflow
 	if err := server.RegisterTool(
 		"task_workflow",
-		"[HINT: Task workflow. action=sync|approve|clarify|clarity|cleanup|create. Manage task lifecycle. ⚠️ CRITICAL: ALWAYS use this tool for task updates - NEVER edit .todo2/state.todo2.json directly. CREATE TASKS: Use action=create (required: name, long_description). Use action=approve with task_ids for batch updates.]",
+		"[HINT: Task workflow. action=sync|approve|clarify|clarity|cleanup|create. Manage task lifecycle. ⚠️ CRITICAL: PREFER convenience commands (exarp-go task ...) for common operations. FALLBACK to this tool for advanced operations (clarity, cleanup, complex filters). NEVER edit .todo2/state.todo2.json directly. Use action=approve with task_ids for batch updates. Use action=create to create new tasks. For external sync (agentic-tools), use action=sync with external=true.]",
 		framework.ToolSchema{
 			Type: "object",
 			Properties: map[string]interface{}{
@@ -576,6 +580,11 @@ func registerBatch2Tools(server framework.MCPServer) error {
 				"dry_run": map[string]interface{}{
 					"type":    "boolean",
 					"default": false,
+				},
+				"external": map[string]interface{}{
+					"type":        "boolean",
+					"default":     false,
+					"description": "If true, sync with external task sources (agentic-tools) via Python bridge. If false, sync between SQLite and JSON only.",
 				},
 				"status": map[string]interface{}{
 					"type":    "string",
@@ -626,6 +635,11 @@ func registerBatch2Tools(server framework.MCPServer) error {
 				"stale_threshold_hours": map[string]interface{}{
 					"type":    "number",
 					"default": 2.0,
+				},
+				"include_legacy": map[string]interface{}{
+					"type":        "boolean",
+					"default":     false,
+					"description": "If true, also identify and remove legacy tasks with old sequential IDs (T-1, T-2, etc.)",
 				},
 				"output_path": map[string]interface{}{
 					"type": "string",
@@ -797,7 +811,7 @@ func registerBatch3Tools(server framework.MCPServer) error {
 	// T-38: tool_catalog (help action only - list action converted to stdio://tools resources)
 	if err := server.RegisterTool(
 		"tool_catalog",
-		"[HINT: Tool catalog. action=help. Get help for a specific tool. Use stdio://tools resources for listing tools. Required: tool_name.]",
+		"[HINT: Tool catalog. action=help. Get help for a specific tool. Use stdio://tools resources for listing tools.]",
 		framework.ToolSchema{
 			Type: "object",
 			Properties: map[string]interface{}{
@@ -1276,7 +1290,7 @@ func registerBatch4Tools(server framework.MCPServer) error {
 	// context_budget
 	if err := server.RegisterTool(
 		"context_budget",
-		"[HINT: Context budget. Estimate token usage and suggest context reduction strategy. Required: items (JSON array).]",
+		"[HINT: Context budget. Estimate token usage and suggest context reduction strategy.]",
 		framework.ToolSchema{
 			Type: "object",
 			Properties: map[string]interface{}{

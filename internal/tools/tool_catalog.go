@@ -72,14 +72,14 @@ func GetToolCatalog() map[string]ToolCatalogEntry {
 		},
 		"task_workflow": {
 			Tool:             "task_workflow",
-			Hint:             "Task workflow. action=sync|approve|clarify|clarity|cleanup|create. Manage task lifecycle. ⚠️ CRITICAL: ALWAYS use this tool for task updates - NEVER edit .todo2/state.todo2.json directly. Use action=create to create new tasks (required: name, long_description).",
+			Hint:             "Task workflow. action=sync|approve|clarify|clarity|cleanup|create. Manage task lifecycle. ⚠️ CRITICAL: PREFER convenience commands (exarp-go task ...) for common operations. FALLBACK to this tool for advanced operations (clarity, cleanup, complex filters). NEVER edit .todo2/state.todo2.json directly.",
 			Category:         "Task Management",
-			Description:      "Manages task workflow: sync, approve, clarify, cleanup, and create operations. Use action=create to create new tasks (required: name, long_description). Use action=approve with task_ids for batch status updates. Automatically calculates actualHours, normalizes status, and tracks history.",
+			Description:      "Manages task workflow: sync, approve, clarify, cleanup, and create operations. PREFER convenience commands (exarp-go task list/update/create/show) for common operations. Use this tool directly for advanced operations (clarity, cleanup) or complex filtering. Automatically calculates actualHours, normalizes status, and tracks history.",
 			RecommendedModel: "claude-haiku",
 			Examples: []string{
-				"Create new task: task_workflow(action=\"create\", name=\"Task name\", long_description=\"Task description\")",
-				"Batch update tasks to Done: task_workflow(action=\"approve\", status=\"Todo\", new_status=\"Done\", task_ids='[\"T-0\", \"T-1\"]')",
-				"Never edit .todo2/state.todo2.json directly - use this tool instead",
+				"PREFERRED: Use convenience commands: exarp-go task update T-123 --new-status Done",
+				"FALLBACK: Advanced operations: task_workflow(action=\"clarity\", task_id=\"T-123\")",
+				"Never edit .todo2/state.todo2.json directly - use convenience commands or this tool",
 			},
 		},
 

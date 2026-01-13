@@ -10,7 +10,6 @@ import (
 	"github.com/davidl71/exarp-go/internal/config"
 	"github.com/davidl71/exarp-go/internal/database"
 	"github.com/davidl71/exarp-go/internal/factory"
-	"github.com/davidl71/exarp-go/internal/framework"
 	"github.com/davidl71/exarp-go/internal/prompts"
 	"github.com/davidl71/exarp-go/internal/resources"
 	"github.com/davidl71/exarp-go/internal/tools"
@@ -18,22 +17,27 @@ import (
 
 func main() {
 	// Check for CLI flags first (completion, list, etc.) - these should work even without TTY
+	// Also check for task and config subcommands
 	hasCLIFlags := false
-	for i := 1; i < len(os.Args); i++ {
-		arg := os.Args[i]
-		if arg == "-completion" || arg == "--completion" ||
-			arg == "-list" || arg == "--list" ||
-			arg == "-tool" || arg == "--tool" ||
-			arg == "-test" || arg == "--test" ||
-			arg == "-i" || arg == "--interactive" ||
-			arg == "-args" || arg == "--args" ||
-			arg == "-h" || arg == "--help" || arg == "help" {
-			hasCLIFlags = true
-			break
-		}
-		// Stop at first non-flag argument
-		if len(arg) > 0 && arg[0] != '-' {
-			break
+	if len(os.Args) > 1 && (os.Args[1] == "task" || os.Args[1] == "config" || os.Args[1] == "tui") {
+		hasCLIFlags = true
+	} else {
+		for i := 1; i < len(os.Args); i++ {
+			arg := os.Args[i]
+			if arg == "-completion" || arg == "--completion" ||
+				arg == "-list" || arg == "--list" ||
+				arg == "-tool" || arg == "--tool" ||
+				arg == "-test" || arg == "--test" ||
+				arg == "-i" || arg == "--interactive" ||
+				arg == "-args" || arg == "--args" ||
+				arg == "-h" || arg == "--help" || arg == "help" {
+				hasCLIFlags = true
+				break
+			}
+			// Stop at first non-flag argument
+			if len(arg) > 0 && arg[0] != '-' {
+				break
+			}
 		}
 	}
 
@@ -57,7 +61,11 @@ func main() {
 		if err := database.Init(projectRoot); err != nil {
 			log.Printf("Warning: Database initialization failed: %v (fallback to JSON)", err)
 		} else {
-			defer database.Close()
+			defer func() {
+				if err := database.Close(); err != nil {
+					log.Printf("Warning: Error closing database: %v", err)
+				}
+			}()
 			log.Printf("Database initialized: %s/.todo2/todo2.db", projectRoot)
 		}
 	}
@@ -89,9 +97,9 @@ func main() {
 	}
 
 	// Run server with stdio transport
+	// Note: Transport parameter is ignored by Go SDK adapter (always uses stdio)
 	ctx := context.Background()
-	transport := framework.NewStdioTransport()
-	if err := server.Run(ctx, transport); err != nil {
+	if err := server.Run(ctx, nil); err != nil {
 		log.Fatalf("Server error: %v", err)
 	}
 }

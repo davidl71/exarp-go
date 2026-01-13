@@ -2,6 +2,7 @@ package tools
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -10,8 +11,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/davidl71/exarp-go/internal/config"
+	"github.com/davidl71/exarp-go/internal/database"
 	"github.com/davidl71/exarp-go/internal/framework"
-	"github.com/davidl71/exarp-go/internal/prompts"
 )
 
 // handleSessionNative handles the session tool with native Go implementation
@@ -82,16 +84,16 @@ func handleSessionPrime(ctx context.Context, params map[string]interface{}) ([]f
 
 	// 3. Build result
 	result := map[string]interface{}{
-		"auto_primed":  true,
-		"method":       "native_go",
-		"timestamp":    time.Now().Format(time.RFC3339),
-		"duration_ms":  time.Since(startTime).Milliseconds(),
+		"auto_primed": true,
+		"method":      "native_go",
+		"timestamp":   time.Now().Format(time.RFC3339),
+		"duration_ms": time.Since(startTime).Milliseconds(),
 		"detection": map[string]interface{}{
-			"agent":       agentInfo.Agent,
+			"agent":        agentInfo.Agent,
 			"agent_source": agentInfo.Source,
-			"mode":        mode,
-			"mode_source": modeSource,
-			"time_of_day": time.Now().Format("15:04"),
+			"mode":         mode,
+			"mode_source":  modeSource,
+			"time_of_day":  time.Now().Format("15:04"),
 		},
 		"agent_context": map[string]interface{}{
 			"focus_areas":      agentContext.FocusAreas,
@@ -135,8 +137,7 @@ func handleSessionPrime(ctx context.Context, params map[string]interface{}) ([]f
 func handleSessionHandoff(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	action, _ := params["action"].(string)
 	// Note: The action parameter for handoff might be nested - check both
-	// If action is "handoff" or empty, determine the sub-action
-	if action == "" || action == "handoff" {
+	if action == "" {
 		// Check if this is called from session tool with action="handoff"
 		if summary, ok := params["summary"].(string); ok && summary != "" {
 			action = "end"
@@ -257,13 +258,13 @@ func handleSessionEnd(ctx context.Context, params map[string]interface{}, projec
 
 	// Create handoff note
 	handoff := map[string]interface{}{
-		"id":        fmt.Sprintf("handoff-%d", time.Now().Unix()),
-		"timestamp": time.Now().Format(time.RFC3339),
-		"host":      hostname,
-		"summary":   summary,
-		"blockers":  blockers,
-		"next_steps": nextSteps,
-		"git_status": gitStatus,
+		"id":                fmt.Sprintf("handoff-%d", time.Now().Unix()),
+		"timestamp":         time.Now().Format(time.RFC3339),
+		"host":              hostname,
+		"summary":           summary,
+		"blockers":          blockers,
+		"next_steps":        nextSteps,
+		"git_status":        gitStatus,
 		"tasks_in_progress": tasksInProgress,
 	}
 
@@ -281,11 +282,11 @@ func handleSessionEnd(ctx context.Context, params map[string]interface{}, projec
 	}
 
 	result := map[string]interface{}{
-		"success":     true,
-		"method":      "native_go",
-		"dry_run":     dryRun,
-		"handoff":     handoff,
-		"message":     "Session ended. Handoff note created.",
+		"success": true,
+		"method":  "native_go",
+		"dry_run": dryRun,
+		"handoff": handoff,
+		"message": "Session ended. Handoff note created.",
 	}
 
 	if dryRun {
@@ -304,10 +305,10 @@ func handleSessionResume(ctx context.Context, projectRoot string) ([]framework.T
 
 	if _, err := os.Stat(handoffFile); os.IsNotExist(err) {
 		result := map[string]interface{}{
-			"success":      true,
-			"method":       "native_go",
-			"has_handoff":  false,
-			"message":      "No handoff notes found. Starting fresh session.",
+			"success":     true,
+			"method":      "native_go",
+			"has_handoff": false,
+			"message":     "No handoff notes found. Starting fresh session.",
 		}
 		output, _ := json.MarshalIndent(result, "", "  ")
 		return []framework.TextContent{
@@ -351,12 +352,12 @@ func handleSessionResume(ctx context.Context, projectRoot string) ([]framework.T
 	handoffHost, _ := handoffMap["host"].(string)
 
 	result := map[string]interface{}{
-		"success":     true,
-		"method":      "native_go",
-		"has_handoff": true,
-		"handoff":     handoffMap,
+		"success":        true,
+		"method":         "native_go",
+		"has_handoff":    true,
+		"handoff":        handoffMap,
 		"from_same_host": handoffHost == hostname,
-		"message":     fmt.Sprintf("Resuming session. Latest handoff from %s", handoffHost),
+		"message":        fmt.Sprintf("Resuming session. Latest handoff from %s", handoffHost),
 	}
 
 	output, _ := json.MarshalIndent(result, "", "  ")
@@ -454,7 +455,7 @@ func handleSessionList(ctx context.Context, params map[string]interface{}, proje
 	}
 
 	handoffs, _ := handoffData["handoffs"].([]interface{})
-	
+
 	// Get last N handoffs
 	start := len(handoffs) - limit
 	if start < 0 {
@@ -496,12 +497,12 @@ func handleSessionSync(ctx context.Context, params map[string]interface{}, proje
 	// For sync, we'll use Git operations to pull/push Todo2 state
 	// This is a simplified implementation
 	result := map[string]interface{}{
-		"success":  true,
-		"method":   "native_go",
+		"success":   true,
+		"method":    "native_go",
 		"direction": direction,
-		"dry_run":  dryRun,
-		"message":  "Todo2 state sync via Git (simplified implementation)",
-		"note":     "Full sync implementation requires agentic-tools MCP integration",
+		"dry_run":   dryRun,
+		"message":   "Todo2 state sync via Git (simplified implementation)",
+		"note":      "Full sync implementation requires agentic-tools MCP integration",
 	}
 
 	// Basic Git sync implementation
@@ -557,10 +558,10 @@ type AgentInfo struct {
 }
 
 type AgentContext struct {
-	Agent          string
+	Agent           string
 	RecommendedMode string
-	FocusAreas     []string
-	RelevantTools  []string
+	FocusAreas      []string
+	RelevantTools   []string
 }
 
 type TimeSuggestion struct {
@@ -791,9 +792,9 @@ func getTasksSummary(projectRoot string) map[string]interface{} {
 	}
 
 	return map[string]interface{}{
-		"total":      len(tasks),
-		"by_status":  byStatus,
-		"recent":     recentTasks,
+		"total":     len(tasks),
+		"by_status": byStatus,
+		"recent":    recentTasks,
 	}
 }
 
@@ -832,10 +833,10 @@ func checkHandoffAlert(projectRoot string) map[string]interface{} {
 	// Only show if from different host
 	if handoffHost != hostname {
 		return map[string]interface{}{
-			"from_host": handoffMap["host"],
-			"timestamp": handoffMap["timestamp"],
-			"summary":   truncateString(fmt.Sprintf("%v", handoffMap["summary"]), 100),
-			"blockers":  handoffMap["blockers"],
+			"from_host":  handoffMap["host"],
+			"timestamp":  handoffMap["timestamp"],
+			"summary":    truncateString(fmt.Sprintf("%v", handoffMap["summary"]), 100),
+			"blockers":   handoffMap["blockers"],
 			"next_steps": handoffMap["next_steps"],
 		}
 	}
@@ -924,104 +925,94 @@ func truncateString(s string, maxLen int) string {
 	return s[:maxLen-3] + "..."
 }
 
-// handleSessionPrompts handles the prompts action - discover relevant prompts
-// Uses native Go prompt discovery from resources package
+// handleSessionPrompts handles the prompts action - lists available prompts
 func handleSessionPrompts(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
+	// Get optional filters
 	mode, _ := params["mode"].(string)
+	persona, _ := params["persona"].(string)
 	category, _ := params["category"].(string)
-	keywordsRaw, _ := params["keywords"]
-	
-	var keywords []string
-	if keywordsRaw != nil {
-		switch v := keywordsRaw.(type) {
-		case string:
-			if v != "" {
-				if err := json.Unmarshal([]byte(v), &keywords); err != nil {
-					// Treat as single keyword
-					keywords = []string{v}
-				}
-			}
-		case []string:
-			// Direct []string type (from Go code)
-			keywords = v
-		case []interface{}:
-			// []interface{} type (from JSON unmarshaling)
-			for _, kw := range v {
-				if str, ok := kw.(string); ok {
-					keywords = append(keywords, str)
-				}
-			}
-		}
+	keywords, _ := params["keywords"].(string)
+	limit := 50
+	if l, ok := params["limit"].(float64); ok {
+		limit = int(l)
 	}
 
-	// Get all prompts from native Go templates
-	allPrompts := getAllPromptsNative()
-	resultPrompts := make(map[string]string)
-
-	// Filter by mode if provided
-	if mode != "" {
-		modePrompts := getPromptsForMode(mode)
-		// Intersect with all prompts
-		for name := range modePrompts {
-			if desc, ok := allPrompts[name]; ok {
-				resultPrompts[name] = desc
-			}
-		}
-	} else {
-		// No mode filter - start with all prompts
-		resultPrompts = allPrompts
+	// Get all registered prompts from the prompts registry
+	// We'll build a simple list from the known prompts
+	allPrompts := []map[string]interface{}{
+		// Original prompts (8)
+		{"name": "align", "description": "Analyze Todo2 task alignment with project goals.", "category": "tasks"},
+		{"name": "discover", "description": "Discover tasks from TODO comments, markdown, and orphaned tasks.", "category": "tasks"},
+		{"name": "config", "description": "Generate IDE configuration files.", "category": "config"},
+		{"name": "scan", "description": "Scan project dependencies for security vulnerabilities. Supports all languages via tool parameter.", "category": "security"},
+		{"name": "scorecard", "description": "Generate comprehensive project health scorecard with all metrics.", "category": "reports"},
+		{"name": "overview", "description": "Generate one-page project overview for stakeholders.", "category": "reports"},
+		{"name": "dashboard", "description": "Display comprehensive project dashboard with key metrics and status overview.", "category": "reports"},
+		{"name": "remember", "description": "Use AI session memory to persist insights.", "category": "memory"},
+		// High-value workflow prompts (7)
+		{"name": "daily_checkin", "description": "Daily check-in workflow: server status, blockers, git health.", "category": "workflow", "mode": "daily_checkin"},
+		{"name": "sprint_start", "description": "Sprint start workflow: clean backlog, align tasks, queue work.", "category": "workflow", "mode": "sprint_planning"},
+		{"name": "sprint_end", "description": "Sprint end workflow: test coverage, docs, security check.", "category": "workflow", "mode": "sprint_planning"},
+		{"name": "pre_sprint", "description": "Pre-sprint cleanup workflow: duplicates, alignment, documentation.", "category": "workflow", "mode": "sprint_planning"},
+		{"name": "post_impl", "description": "Post-implementation review workflow: docs, security, automation.", "category": "workflow"},
+		{"name": "sync", "description": "Synchronize tasks between shared TODO table and Todo2.", "category": "tasks"},
+		{"name": "dups", "description": "Find and consolidate duplicate Todo2 tasks.", "category": "tasks"},
+		// mcp-generic-tools prompts
+		{"name": "context", "description": "Manage LLM context with summarization and budget tools.", "category": "workflow"},
+		{"name": "mode", "description": "Suggest optimal Cursor IDE mode (Agent vs Ask) for a task.", "category": "workflow"},
+		// Task management prompts
+		{"name": "task_update", "description": "Update Todo2 task status using proper MCP tools - never edit JSON directly.", "category": "tasks"},
 	}
 
-	// Filter by category if provided
-	if category != "" {
-		categoryPrompts := getPromptsForCategory(category)
-		// Intersect with current results
-		filtered := make(map[string]string)
-		for name := range categoryPrompts {
-			if _, ok := resultPrompts[name]; ok {
-				filtered[name] = resultPrompts[name]
+	// Filter prompts
+	filtered := []map[string]interface{}{}
+	for _, prompt := range allPrompts {
+		// Filter by mode
+		if mode != "" {
+			if promptMode, ok := prompt["mode"].(string); !ok || promptMode != mode {
+				continue
 			}
 		}
-		resultPrompts = filtered
-	}
 
-	// Filter by keywords if provided
-	if len(keywords) > 0 {
-		filtered := make(map[string]string)
-		for name, desc := range resultPrompts {
-			nameLower := strings.ToLower(name)
-			descLower := strings.ToLower(desc)
-			for _, keyword := range keywords {
-				keywordLower := strings.ToLower(keyword)
-				if strings.Contains(nameLower, keywordLower) || strings.Contains(descLower, keywordLower) {
-					filtered[name] = desc
-					break
-				}
+		// Filter by category
+		if category != "" {
+			if promptCategory, ok := prompt["category"].(string); !ok || promptCategory != category {
+				continue
 			}
 		}
-		resultPrompts = filtered
-	}
 
-	// Format result
-	promptsList := make([]map[string]interface{}, 0, len(resultPrompts))
-	for name, desc := range resultPrompts {
-		promptsList = append(promptsList, map[string]interface{}{
-			"name":        name,
-			"description": desc,
-		})
+		// Filter by keywords (search in name and description)
+		if keywords != "" {
+			keywordsLower := strings.ToLower(keywords)
+			name, _ := prompt["name"].(string)
+			desc, _ := prompt["description"].(string)
+			if !strings.Contains(strings.ToLower(name), keywordsLower) &&
+				!strings.Contains(strings.ToLower(desc), keywordsLower) {
+				continue
+			}
+		}
+
+		// Persona filtering would require persona mapping - skip for now
+		// (would need to add persona field to prompts)
+
+		filtered = append(filtered, prompt)
+		if len(filtered) >= limit {
+			break
+		}
 	}
 
 	result := map[string]interface{}{
-		"success":        true,
-		"method":         "native_go",
-		"prompts":        promptsList,
-		"count":          len(promptsList),
-		"filters_applied": map[string]interface{}{
+		"success":   true,
+		"method":    "native_go",
+		"prompts":   filtered,
+		"total":     len(filtered),
+		"filters": map[string]interface{}{
 			"mode":     mode,
+			"persona":  persona,
 			"category": category,
 			"keywords": keywords,
+			"limit":    limit,
 		},
-		"timestamp": time.Now().Format(time.RFC3339),
 	}
 
 	output, _ := json.MarshalIndent(result, "", "  ")
@@ -1030,101 +1021,102 @@ func handleSessionPrompts(ctx context.Context, params map[string]interface{}) ([
 	}, nil
 }
 
-// handleSessionAssignee handles the assignee action - manage task assignments
-// Uses native Go task workflow logic
+// handleSessionAssignee handles the assignee action - manages task assignments
 func handleSessionAssignee(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
-	assigneeName, _ := params["assignee_name"].(string)
-	assigneeType, _ := params["assignee_type"].(string)
-	if assigneeType == "" {
-		assigneeType = "agent"
+	subAction, _ := params["sub_action"].(string)
+	if subAction == "" {
+		subAction = "list"
+	}
+
+	switch subAction {
+	case "list":
+		return handleSessionAssigneeList(ctx, params)
+	case "assign":
+		return handleSessionAssigneeAssign(ctx, params)
+	case "unassign":
+		return handleSessionAssigneeUnassign(ctx, params)
+	default:
+		return nil, fmt.Errorf("unknown sub_action: %s (use 'list', 'assign', or 'unassign')", subAction)
+	}
+}
+
+// handleSessionAssigneeList lists tasks with their assignees
+func handleSessionAssigneeList(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
+	includeUnassigned := true
+	if unassigned, ok := params["include_unassigned"].(bool); ok {
+		includeUnassigned = unassigned
 	}
 
 	statusFilter, _ := params["status_filter"].(string)
-	priorityFilter, _ := params["priority_filter"].(string)
-	includeUnassigned, _ := params["include_unassigned"].(bool)
-	maxTasksPerAgent := 5
-	if max, ok := params["max_tasks_per_agent"].(int); ok && max > 0 {
-		maxTasksPerAgent = max
+
+	// Get tasks from database
+	var tasks []*database.Todo2Task
+	var err error
+
+	if statusFilter != "" {
+		filters := &database.TaskFilters{Status: &statusFilter}
+		tasks, err = database.ListTasks(ctx, filters)
+	} else {
+		// Get all pending tasks
+		tasks, err = database.ListTasks(ctx, &database.TaskFilters{})
 	}
 
-	projectRoot, err := FindProjectRoot()
-	if err != nil {
-		return nil, fmt.Errorf("failed to find project root: %w", err)
-	}
-
-	// Load tasks
-	tasks, err := LoadTodo2Tasks(projectRoot)
-	_ = projectRoot // projectRoot used for LoadTodo2Tasks
 	if err != nil {
 		return nil, fmt.Errorf("failed to load tasks: %w", err)
 	}
 
-	// Filter tasks
-	filteredTasks := []Todo2Task{}
+	// Get assignee information from database
+	// Note: assignee is stored in tasks_lock table, we'll need to query it
+	db, err := database.GetDB()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get database: %w", err)
+	}
+
+	assignments := []map[string]interface{}{}
 	for _, task := range tasks {
-		// Filter by status
-		if statusFilter != "" && task.Status != statusFilter {
+		// Query assignee from tasks table
+		var assignee sql.NullString
+		var assignedAt sql.NullInt64 // assigned_at is INTEGER (Unix timestamp)
+		err := db.QueryRowContext(ctx, `
+			SELECT assignee, assigned_at
+			FROM tasks
+			WHERE id = ?
+		`, task.ID).Scan(&assignee, &assignedAt)
+
+		hasAssignee := err == nil && assignee.Valid && assignee.String != ""
+
+		if !includeUnassigned && !hasAssignee {
 			continue
 		}
 
-		// Filter by priority
-		if priorityFilter != "" && task.Priority != priorityFilter {
-			continue
+		assignment := map[string]interface{}{
+			"task_id":   task.ID,
+			"content":   task.Content,
+			"status":    task.Status,
+			"assignee":  nil,
+			"assigned_at": nil,
 		}
 
-		// Filter by assignee
-		if assigneeName != "" {
-			// Check if task is assigned to this assignee
-			// Tasks don't have explicit assignee field - we'd need to add metadata or tags
-			// For now, we'll return tasks without explicit assignment filtering
-		}
-
-		filteredTasks = append(filteredTasks, task)
-	}
-
-	// Group by assignee (if metadata contains assignee info)
-	// For now, just return filtered tasks with assignment info
-	taskList := make([]map[string]interface{}, 0, len(filteredTasks))
-	for _, task := range filteredTasks {
-		taskInfo := map[string]interface{}{
-			"id":      task.ID,
-			"content": task.Content,
-			"status":  task.Status,
-			"priority": task.Priority,
-		}
-
-		// Check metadata for assignee info
-		if task.Metadata != nil {
-			if assignee, ok := task.Metadata["assignee"].(string); ok {
-				taskInfo["assignee"] = assignee
-			}
-			if assigneeType, ok := task.Metadata["assignee_type"].(string); ok {
-				taskInfo["assignee_type"] = assigneeType
+		if hasAssignee {
+			assignment["assignee"] = assignee.String
+			if assignedAt.Valid {
+				// Convert Unix timestamp to ISO 8601 string
+				assignment["assigned_at"] = time.Unix(assignedAt.Int64, 0).Format(time.RFC3339)
 			}
 		}
 
-		taskList = append(taskList, taskInfo)
-	}
-
-	// Limit results
-	if len(taskList) > maxTasksPerAgent*10 {
-		taskList = taskList[:maxTasksPerAgent*10]
+		assignments = append(assignments, assignment)
 	}
 
 	result := map[string]interface{}{
-		"success":          true,
-		"method":           "native_go",
-		"assignee_name":    assigneeName,
-		"assignee_type":    assigneeType,
-		"tasks":            taskList,
-		"count":            len(taskList),
-		"max_tasks_per_agent": maxTasksPerAgent,
-		"filters_applied": map[string]interface{}{
-			"status_filter":       statusFilter,
-			"priority_filter":     priorityFilter,
-			"include_unassigned":  includeUnassigned,
+		"success":      true,
+		"method":       "native_go",
+		"assignments":  assignments,
+		"total":        len(assignments),
+		"filters": map[string]interface{}{
+			"status_filter":      statusFilter,
+			"include_unassigned": includeUnassigned,
 		},
-		"timestamp": time.Now().Format(time.RFC3339),
 	}
 
 	output, _ := json.MarshalIndent(result, "", "  ")
@@ -1133,152 +1125,107 @@ func handleSessionAssignee(ctx context.Context, params map[string]interface{}) (
 	}, nil
 }
 
-// getAllPromptsNative retrieves all prompts from native Go templates
-func getAllPromptsNative() map[string]string {
-	// Import prompts package to get all prompts
-	// We need to call the prompts package functions
-	promptNames := []string{
-		"align", "discover", "config", "scan", "scorecard", "overview", "dashboard", "remember",
-		"daily_checkin", "sprint_start", "sprint_end", "pre_sprint", "post_impl", "sync", "dups",
-		"context", "mode", "task_update",
+// handleSessionAssigneeAssign assigns a task to an agent/human/host
+func handleSessionAssigneeAssign(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
+	taskID, _ := params["task_id"].(string)
+	if taskID == "" {
+		return nil, fmt.Errorf("task_id parameter is required")
 	}
 
-	result := make(map[string]string)
-	for _, name := range promptNames {
-		template, err := prompts.GetPromptTemplate(name)
+	assigneeName, _ := params["assignee_name"].(string)
+	if assigneeName == "" {
+		return nil, fmt.Errorf("assignee_name parameter is required")
+	}
+
+	assigneeType := "agent"
+	if t, ok := params["assignee_type"].(string); ok && t != "" {
+		assigneeType = t
+	}
+
+	dryRun := false
+	if dr, ok := params["dry_run"].(bool); ok {
+		dryRun = dr
+	}
+
+	// Get agent ID (for agent type)
+	if assigneeType == "agent" {
+		agentID, err := database.GetAgentID()
 		if err == nil {
-			// Extract first line or short description
-			desc := extractPromptDescription(template)
-			result[name] = desc
+			// Use agent ID format: {agent-type}-{hostname}-{pid}
+			// But for assignment, we might want just the name
+			// For now, use the provided assigneeName
 		}
+		_ = agentID // Use if needed
 	}
 
-	return result
-}
+	// Use database ClaimTaskForAgent for atomic assignment
+	// This handles locking and prevents race conditions
+	leaseDuration := config.TaskLockLease()
+	result, err := database.ClaimTaskForAgent(ctx, taskID, assigneeName, leaseDuration)
+	if err != nil {
+		return nil, fmt.Errorf("failed to assign task: %w", err)
+	}
 
-// extractPromptDescription extracts a short description from a prompt template
-func extractPromptDescription(template string) string {
-	lines := strings.Split(template, "\n")
-	for _, line := range lines {
-		line = strings.TrimSpace(line)
-		if line != "" && !strings.HasPrefix(line, "#") && !strings.HasPrefix(line, "**") {
-			// Remove markdown formatting
-			line = strings.TrimPrefix(line, "**")
-			line = strings.TrimSuffix(line, "**")
-			if len(line) > 100 {
-				line = line[:100] + "..."
+	if !result.Success {
+		if result.WasLocked {
+			response := map[string]interface{}{
+				"success": false,
+				"method":  "native_go",
+				"error":   fmt.Sprintf("Task already assigned to %s", result.LockedBy),
+				"task_id": taskID,
+				"locked_by": result.LockedBy,
 			}
-			return line
+			output, _ := json.MarshalIndent(response, "", "  ")
+			return []framework.TextContent{
+				{Type: "text", Text: string(output)},
+			}, nil
 		}
+		return nil, fmt.Errorf("task assignment failed: %v", result.Error)
 	}
-	return "Prompt template"
+
+	response := map[string]interface{}{
+		"success":     true,
+		"method":      "native_go",
+		"task_id":     taskID,
+		"assignee":    assigneeName,
+		"assignee_type": assigneeType,
+		"assigned_at": time.Now().Format(time.RFC3339),
+		"dry_run":     dryRun,
+	}
+
+	output, _ := json.MarshalIndent(response, "", "  ")
+	return []framework.TextContent{
+		{Type: "text", Text: string(output)},
+	}, nil
 }
 
-// getPromptsForMode returns prompts for a specific workflow mode
-func getPromptsForMode(mode string) map[string]string {
-	allPrompts := getAllPromptsNative()
-	result := make(map[string]string)
-
-	// Mode mappings based on prompt names
-	modeMappings := map[string][]string{
-		"daily_checkin":   {"daily_checkin", "remember", "scorecard", "task_update"},
-		"sprint_start":    {"sprint_start", "align", "dups", "sync"},
-		"sprint_end":      {"sprint_end", "scorecard", "overview", "dashboard"},
-		"pre_sprint":      {"pre_sprint", "dups", "align", "config"},
-		"post_impl":       {"post_impl", "remember", "task_update", "config"},
-		"security_review": {"scan", "scorecard", "overview"},
-		"task_management": {"discover", "sync", "dups", "task_update", "align"},
-		"development":     {"discover", "config", "remember", "mode", "context"},
+// handleSessionAssigneeUnassign unassigns a task
+func handleSessionAssigneeUnassign(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
+	taskID, _ := params["task_id"].(string)
+	if taskID == "" {
+		return nil, fmt.Errorf("task_id parameter is required")
 	}
 
-	promptNames, ok := modeMappings[mode]
-	if !ok {
-		// Unknown mode - return all prompts
-		return allPrompts
+	agentID, err := database.GetAgentID()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get agent ID: %w", err)
 	}
 
-	for _, name := range promptNames {
-		if desc, ok := allPrompts[name]; ok {
-			result[name] = desc
-		}
+	// Release task lock (this unassigns the task)
+	err = database.ReleaseTask(ctx, taskID, agentID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to unassign task: %w", err)
 	}
 
-	// If no specific mappings found, try "development" as fallback
-	if len(result) == 0 {
-		fallbackNames := modeMappings["development"]
-		for _, name := range fallbackNames {
-			if desc, ok := allPrompts[name]; ok {
-				result[name] = desc
-			}
-		}
+	response := map[string]interface{}{
+		"success":  true,
+		"method":   "native_go",
+		"task_id":  taskID,
+		"unassigned_at": time.Now().Format(time.RFC3339),
 	}
 
-	return result
-}
-
-// getPromptsForCategory returns prompts for a specific category
-func getPromptsForCategory(category string) map[string]string {
-	allPrompts := getAllPromptsNative()
-	result := make(map[string]string)
-
-	for name, desc := range allPrompts {
-		if categorizePrompt(name, desc) == category {
-			result[name] = desc
-		}
-	}
-
-	return result
-}
-
-// categorizePrompt categorizes a prompt based on its name and description
-func categorizePrompt(name, desc string) string {
-	lowerName := strings.ToLower(name)
-	lowerDesc := strings.ToLower(desc)
-
-	// Workflow prompts
-	if strings.Contains(lowerName, "checkin") || strings.Contains(lowerName, "sprint") ||
-		strings.Contains(lowerName, "pre_sprint") || strings.Contains(lowerName, "post_impl") {
-		return "workflow"
-	}
-
-	// Analysis prompts
-	if strings.Contains(lowerName, "align") || strings.Contains(lowerName, "discover") ||
-		strings.Contains(lowerName, "sync") || strings.Contains(lowerName, "dups") {
-		return "analysis"
-	}
-
-	// Configuration prompts
-	if strings.Contains(lowerName, "config") || strings.Contains(lowerName, "mode") {
-		return "configuration"
-	}
-
-	// Reporting prompts
-	if strings.Contains(lowerName, "scorecard") || strings.Contains(lowerName, "overview") ||
-		strings.Contains(lowerName, "dashboard") {
-		return "reporting"
-	}
-
-	// Security prompts
-	if strings.Contains(lowerName, "scan") || strings.Contains(lowerDesc, "security") ||
-		strings.Contains(lowerDesc, "vulnerability") {
-		return "security"
-	}
-
-	// Memory prompts
-	if strings.Contains(lowerName, "remember") || strings.Contains(lowerDesc, "memory") {
-		return "memory"
-	}
-
-	// Context management prompts
-	if strings.Contains(lowerName, "context") {
-		return "context"
-	}
-
-	// Task management prompts
-	if strings.Contains(lowerName, "task") || strings.Contains(lowerDesc, "task") {
-		return "task_management"
-	}
-
-	// Default category
-	return "general"
+	output, _ := json.MarshalIndent(response, "", "  ")
+	return []framework.TextContent{
+		{Type: "text", Text: string(output)},
+	}, nil
 }

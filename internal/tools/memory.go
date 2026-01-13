@@ -11,7 +11,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/davidl71/exarp-go/internal/database"
 	"github.com/davidl71/exarp-go/internal/framework"
+	"github.com/davidl71/exarp-go/internal/security"
 )
 
 // Memory represents a stored memory
@@ -123,7 +125,7 @@ func handleMemorySave(ctx context.Context, params map[string]interface{}) ([]fra
 	}
 
 	// Save to file
-	projectRoot, err := FindProjectRoot()
+	projectRoot, err := security.GetProjectRoot(".")
 	if err != nil {
 		return nil, fmt.Errorf("failed to find project root: %w", err)
 	}
@@ -161,7 +163,7 @@ func handleMemoryRecall(ctx context.Context, params map[string]interface{}) ([]f
 		includeRelated = ir
 	}
 
-	projectRoot, err := FindProjectRoot()
+	projectRoot, err := security.GetProjectRoot(".")
 	if err != nil {
 		return nil, fmt.Errorf("failed to find project root: %w", err)
 	}
@@ -182,8 +184,34 @@ func handleMemoryRecall(ctx context.Context, params map[string]interface{}) ([]f
 		}
 	}
 
-	// If include_related, we could find related tasks, but for now just return direct matches
-	// (include_related logic would require task dependency analysis)
+	// If include_related, find memories from related tasks (dependencies)
+	if includeRelated {
+		// Get task dependencies from database
+		dependencies, err := database.GetDependencies(taskID)
+		if err == nil {
+			for _, depID := range dependencies {
+				// Find memories linked to dependency tasks
+				for _, m := range memories {
+					for _, linkedTask := range m.LinkedTasks {
+						if linkedTask == depID {
+							// Check if already in related list
+							found := false
+							for _, existing := range related {
+								if existing.ID == m.ID {
+									found = true
+									break
+								}
+							}
+							if !found {
+								related = append(related, m)
+							}
+							break
+						}
+					}
+				}
+			}
+		}
+	}
 
 	result := map[string]interface{}{
 		"success":         true,
@@ -217,7 +245,7 @@ func handleMemorySearch(ctx context.Context, params map[string]interface{}) ([]f
 		category = cat
 	}
 
-	projectRoot, err := FindProjectRoot()
+	projectRoot, err := security.GetProjectRoot(".")
 	if err != nil {
 		return nil, fmt.Errorf("failed to find project root: %w", err)
 	}
@@ -315,7 +343,7 @@ func handleMemoryList(ctx context.Context, params map[string]interface{}) ([]fra
 		limit = int(l)
 	}
 
-	projectRoot, err := FindProjectRoot()
+	projectRoot, err := security.GetProjectRoot(".")
 	if err != nil {
 		return nil, fmt.Errorf("failed to find project root: %w", err)
 	}

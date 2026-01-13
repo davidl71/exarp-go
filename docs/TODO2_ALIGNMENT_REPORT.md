@@ -4,7 +4,7 @@
 
 ## Summary
 
-- **Total Tasks Analyzed:** 166
+- **Total Tasks Analyzed:** 405
 - **Alignment Score:** 100.0%
 - **Misaligned Tasks:** 0
 - **Infrastructure Tasks:** 0
@@ -12,13 +12,8 @@
 
 ## Alignment by Priority
 
-- **medium:** 90
-- **high:** 65
-- **low:** 11
+- **medium:** 405
 
 ## Alignment by Status
 
-- **Todo:** 92
-- **In Progress:** 4
-- **Review:** 1
-- **Done:** 69
+- **Todo:** 405

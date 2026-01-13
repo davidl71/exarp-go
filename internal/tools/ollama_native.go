@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/davidl71/exarp-go/internal/config"
 	"github.com/davidl71/exarp-go/internal/framework"
 )
 
@@ -36,17 +37,17 @@ type OllamaGenerateRequest struct {
 
 // OllamaGenerateResponse represents the response from generation
 type OllamaGenerateResponse struct {
-	Model              string    `json:"model"`
-	CreatedAt          string    `json:"created_at"`
-	Response           string    `json:"response"`
-	Done               bool      `json:"done"`
-	Context            []int     `json:"context,omitempty"`
-	TotalDuration      int64     `json:"total_duration,omitempty"`
-	LoadDuration       int64     `json:"load_duration,omitempty"`
-	PromptEvalCount    int       `json:"prompt_eval_count,omitempty"`
-	PromptEvalDuration int64     `json:"prompt_eval_duration,omitempty"`
-	EvalCount          int       `json:"eval_count,omitempty"`
-	EvalDuration       int64     `json:"eval_duration,omitempty"`
+	Model              string `json:"model"`
+	CreatedAt          string `json:"created_at"`
+	Response           string `json:"response"`
+	Done               bool   `json:"done"`
+	Context            []int  `json:"context,omitempty"`
+	TotalDuration      int64  `json:"total_duration,omitempty"`
+	LoadDuration       int64  `json:"load_duration,omitempty"`
+	PromptEvalCount    int    `json:"prompt_eval_count,omitempty"`
+	PromptEvalDuration int64  `json:"prompt_eval_duration,omitempty"`
+	EvalCount          int    `json:"eval_count,omitempty"`
+	EvalDuration       int64  `json:"eval_duration,omitempty"`
 }
 
 // handleOllamaNative handles the ollama tool with native Go HTTP client
@@ -381,7 +382,7 @@ func handleOllamaPull(ctx context.Context, params map[string]interface{}, host s
 	}
 
 	// Make request
-	client := &http.Client{Timeout: 600 * time.Second} // Long timeout for model downloads
+	client := &http.Client{Timeout: config.OllamaDownloadTimeout()} // Long timeout for model downloads
 	url := fmt.Sprintf("%s/api/pull", host)
 
 	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(jsonData))

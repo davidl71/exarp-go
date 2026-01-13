@@ -56,7 +56,7 @@ def setup_pattern_triggers(
                 patterns.update(file_patterns)
 
     # Configuration file location
-    config_file_path = project_root / ".cursor" / "automa_patterns.json"
+    config_file_path = project_root / ".cursor" / "exarp_patterns.json"
 
     results = {
         "status": "success",
@@ -229,7 +229,7 @@ def _setup_file_watcher_integration(
         return
 
     # Create file watcher script
-    watcher_script = project_root / ".cursor" / "automa_file_watcher.py"
+    watcher_script = project_root / ".cursor" / "exarp_file_watcher.py"
 
     try:
         watcher_content = _generate_file_watcher_script(patterns["file_patterns"])
@@ -241,7 +241,7 @@ def _setup_file_watcher_integration(
         results["file_watcher_integration"] = {
             "status": "configured",
             "script": str(watcher_script),
-            "note": "Run manually or via cron: python3 .cursor/automa_file_watcher.py"
+            "note": "Run manually or via cron: python3 .cursor/exarp_file_watcher.py"
         }
     except Exception as e:
         results["patterns_skipped"].append({
@@ -283,7 +283,7 @@ from pathlib import Path
 from typing import Dict, List, Optional
 
 # Load pattern configuration
-CONFIG_FILE = Path(__file__).parent.parent / ".cursor" / "automa_patterns.json"
+CONFIG_FILE = Path(__file__).parent.parent / ".cursor" / "exarp_patterns.json"
 
 def load_patterns() -> Dict:
     \"\"\"Load pattern configuration.\"\"\"

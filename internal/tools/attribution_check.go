@@ -9,7 +9,9 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/davidl71/exarp-go/internal/database"
 	"github.com/davidl71/exarp-go/internal/framework"
+	"github.com/davidl71/exarp-go/internal/models"
 	"github.com/davidl71/exarp-go/internal/security"
 )
 
@@ -43,11 +45,10 @@ func handleCheckAttributionNative(ctx context.Context, params map[string]interfa
 	// Perform attribution check
 	results := performAttributionCheck(projectRoot)
 
-	// Create tasks if requested (for now, skip - complex logic)
+	// Create tasks if requested
 	tasksCreated := 0
 	if createTasks {
-		// TODO: Implement task creation logic
-		tasksCreated = 0
+		tasksCreated = createAttributionTasks(ctx, projectRoot, results)
 	}
 
 	// Save report if output path specified
@@ -309,4 +310,87 @@ func generateAttributionReport(results AttributionResults, projectRoot string) s
 	}
 
 	return report
+}
+
+// createAttributionTasks creates Todo2 tasks for attribution compliance issues
+func createAttributionTasks(ctx context.Context, projectRoot string, results AttributionResults) int {
+	tasksCreated := 0
+
+	// Create task for high-severity issues
+	highSeverityIssues := []map[string]interface{}{}
+	for _, issue := range results.Issues {
+		if severity, ok := issue["severity"].(string); ok && severity == "high" {
+			highSeverityIssues = append(highSeverityIssues, issue)
+		}
+	}
+
+	if len(highSeverityIssues) > 0 {
+		// Build task description
+		var description strings.Builder
+		description.WriteString(fmt.Sprintf("Fix %d high-severity attribution compliance issues:\n\n", len(highSeverityIssues)))
+		for _, issue := range highSeverityIssues {
+			file, _ := issue["file"].(string)
+			message, _ := issue["message"].(string)
+			description.WriteString(fmt.Sprintf("- %s: %s\n", file, message))
+		}
+
+		taskID := generateEpochTaskID()
+		task := &models.Todo2Task{
+			ID:      taskID,
+			Content: "Fix high-severity attribution compliance issues",
+			Status:  "Todo",
+			Priority: "high",
+			Tags:    []string{"attribution", "compliance", "legal"},
+			Metadata: map[string]interface{}{
+				"issue_count": len(highSeverityIssues),
+				"attribution_score": results.AttributionScore,
+			},
+		}
+
+		// Add long description as comment
+		if err := database.CreateTask(ctx, task); err == nil {
+			// Add description as comment
+			comment := database.Comment{
+				TaskID:  taskID,
+				Type:    "description",
+				Content: description.String(),
+			}
+			_ = database.AddComments(ctx, taskID, []database.Comment{comment})
+			tasksCreated++
+		}
+	}
+
+	// Create task for missing attribution files
+	if len(results.MissingAttribution) > 0 {
+		var description strings.Builder
+		description.WriteString(fmt.Sprintf("Add missing attribution headers to %d files:\n\n", len(results.MissingAttribution)))
+		for _, file := range results.MissingAttribution {
+			description.WriteString(fmt.Sprintf("- %s\n", file))
+		}
+
+		taskID := generateEpochTaskID()
+		task := &models.Todo2Task{
+			ID:      taskID,
+			Content: "Add missing attribution headers",
+			Status:  "Todo",
+			Priority: "medium",
+			Tags:    []string{"attribution", "compliance"},
+			Metadata: map[string]interface{}{
+				"file_count": len(results.MissingAttribution),
+			},
+		}
+
+		if err := database.CreateTask(ctx, task); err == nil {
+			// Add description as comment
+			comment := database.Comment{
+				TaskID:  taskID,
+				Type:    "description",
+				Content: description.String(),
+			}
+			_ = database.AddComments(ctx, taskID, []database.Comment{comment})
+			tasksCreated++
+		}
+	}
+
+	return tasksCreated
 }

@@ -12,7 +12,7 @@ func TestGetAgentID(t *testing.T) {
 	}
 
 	fmt.Printf("Full Agent ID: %s\n", agentID)
-	
+
 	// Should not be empty
 	if agentID == "" {
 		t.Error("Expected non-empty agent ID, got empty string")
@@ -32,7 +32,7 @@ func TestGetAgentIDSimple(t *testing.T) {
 	}
 
 	fmt.Printf("Simple Agent ID: %s\n", agentID)
-	
+
 	// Should not be empty
 	if agentID == "" {
 		t.Error("Expected non-empty agent ID, got empty string")

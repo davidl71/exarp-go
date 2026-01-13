@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/davidl71/exarp-go/internal/config"
 	"github.com/davidl71/exarp-go/internal/security"
 )
 
@@ -313,7 +314,7 @@ func checkGoModTidy(ctx context.Context, root string) bool {
 
 // checkGoBuild checks if go build succeeds
 func checkGoBuild(ctx context.Context, root string) bool {
-	ctx, cancel := context.WithTimeout(ctx, 60*time.Second)
+	ctx, cancel := context.WithTimeout(ctx, config.ToolTimeout("scorecard"))
 	defer cancel()
 
 	cmd := exec.CommandContext(ctx, "go", "build", "./...")
@@ -363,7 +364,7 @@ func checkGolangciLintConfigured(root string) bool {
 
 // checkGolangciLint checks if golangci-lint passes
 func checkGolangciLint(ctx context.Context, root string) bool {
-	ctx, cancel := context.WithTimeout(ctx, 60*time.Second)
+	ctx, cancel := context.WithTimeout(ctx, config.ToolTimeout("scorecard"))
 	defer cancel()
 
 	// Check if golangci-lint is available
@@ -379,7 +380,7 @@ func checkGolangciLint(ctx context.Context, root string) bool {
 
 // checkGoTest checks if go test passes and gets coverage
 func checkGoTest(ctx context.Context, root string) (bool, float64) {
-	ctx, cancel := context.WithTimeout(ctx, 120*time.Second)
+	ctx, cancel := context.WithTimeout(ctx, config.ToolTimeout("testing"))
 	defer cancel()
 
 	// Run tests with coverage
@@ -415,7 +416,7 @@ func checkGoTest(ctx context.Context, root string) (bool, float64) {
 
 // checkGoVulncheck checks if govulncheck passes
 func checkGoVulncheck(ctx context.Context, root string) bool {
-	ctx, cancel := context.WithTimeout(ctx, 60*time.Second)
+	ctx, cancel := context.WithTimeout(ctx, config.ToolTimeout("scorecard"))
 	defer cancel()
 
 	// Check if govulncheck is available
@@ -508,8 +509,9 @@ func generateGoRecommendations(health *GoHealthChecks, metrics *GoProjectMetrics
 	if !health.GoTestPasses {
 		recommendations = append(recommendations, "Fix failing Go tests")
 	}
-	if health.GoTestCoverage < 80.0 {
-		recommendations = append(recommendations, fmt.Sprintf("Increase test coverage (currently %.1f%%, target: 80%%)", health.GoTestCoverage))
+	minCoverage := float64(config.MinCoverage())
+	if health.GoTestCoverage < minCoverage {
+		recommendations = append(recommendations, fmt.Sprintf("Increase test coverage (currently %.1f%%, target: %.0f%%)", health.GoTestCoverage, minCoverage))
 	}
 	if !health.GoVulnCheckPasses {
 		recommendations = append(recommendations, "Install and run 'govulncheck ./...' for security scanning")
@@ -561,7 +563,7 @@ func calculateGoScore(health *GoHealthChecks, metrics *GoProjectMetrics) float64
 	if health.GoTestPasses {
 		score += 15
 	}
-	if health.GoTestCoverage >= 80.0 {
+	if health.GoTestCoverage >= float64(config.MinCoverage()) {
 		score += 15
 	} else if health.GoTestCoverage >= 50.0 {
 		score += 10
@@ -616,7 +618,9 @@ func FormatGoScorecard(scorecard *GoScorecardResult) string {
 
 	// Overall Score
 	sb.WriteString(fmt.Sprintf("  OVERALL SCORE: %.1f%%\n", scorecard.Score))
-	if scorecard.Score >= 80 {
+	// Use coverage threshold as production ready indicator
+	productionReadyThreshold := float64(config.MinCoverage())
+	if scorecard.Score >= productionReadyThreshold {
 		sb.WriteString("  Production Ready: YES ✅\n")
 	} else if scorecard.Score >= 60 {
 		sb.WriteString("  Production Ready: PARTIAL ⚠️\n")
@@ -671,6 +675,46 @@ func FormatGoScorecard(scorecard *GoScorecardResult) string {
 			sb.WriteString(fmt.Sprintf("    • %s\n", rec))
 		}
 		sb.WriteString("\n")
+	}
+
+	return sb.String()
+}
+
+// FormatGoScorecardWithWisdom formats the Go scorecard with wisdom section
+// Gracefully degrades to base scorecard if wisdom engine fails
+func FormatGoScorecardWithWisdom(scorecard *GoScorecardResult) string {
+	// Get base scorecard
+	base := FormatGoScorecard(scorecard)
+	return addWisdomToScorecard(base, scorecard)
+}
+
+// addWisdomToScorecard adds wisdom section to a formatted scorecard string
+// Gracefully degrades to original string if wisdom engine fails
+func addWisdomToScorecard(formattedScorecard string, scorecard *GoScorecardResult) string {
+	// Try to get wisdom engine
+	engine, err := getWisdomEngine()
+	if err != nil {
+		// Gracefully degrade: return original scorecard without wisdom
+		return formattedScorecard
+	}
+
+	// Get wisdom quote based on score (use "random" for variety, date-seeded for consistency)
+	quote, err := engine.GetWisdom(scorecard.Score, "random")
+	if err != nil {
+		// Gracefully degrade: return original scorecard without wisdom
+		return formattedScorecard
+	}
+
+	// Append wisdom section
+	var sb strings.Builder
+	sb.WriteString(formattedScorecard)
+	sb.WriteString("  ──────────────────────────────────────────────────────────────────\n")
+	sb.WriteString("  🧘 Wisdom for Your Journey\n")
+	sb.WriteString("  ──────────────────────────────────────────────────────────────────\n\n")
+	sb.WriteString(fmt.Sprintf("  > \"%s\"\n", quote.Quote))
+	sb.WriteString(fmt.Sprintf("  > — %s\n\n", quote.Source))
+	if quote.Encouragement != "" {
+		sb.WriteString(fmt.Sprintf("  Encouragement: %s\n", quote.Encouragement))
 	}
 
 	return sb.String()

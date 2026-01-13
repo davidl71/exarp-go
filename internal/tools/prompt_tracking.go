@@ -228,12 +228,12 @@ func handlePromptTrackingAnalyze(ctx context.Context, params map[string]interfac
 
 	// Analyze entries
 	analysis := map[string]interface{}{
-		"period_days":    days,
-		"total_prompts":  len(allEntries),
-		"by_mode":        map[string]int{},
-		"by_outcome":     map[string]int{},
-		"avg_iterations": 0.0,
-		"patterns":       []string{},
+		"period_days":     days,
+		"total_prompts":   len(allEntries),
+		"by_mode":         map[string]int{},
+		"by_outcome":      map[string]int{},
+		"avg_iterations":  0.0,
+		"patterns":        []string{},
 		"recommendations": []string{},
 	}
 
@@ -304,9 +304,9 @@ func handlePromptTrackingAnalyze(ctx context.Context, params map[string]interfac
 	analysis["recommendations"] = recommendations
 
 	result := map[string]interface{}{
-		"success": true,
-		"method":  "native_go",
-		"data":    analysis,
+		"success":   true,
+		"method":    "native_go",
+		"data":      analysis,
 		"timestamp": time.Now().Unix(),
 	}
 

@@ -6,14 +6,13 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/davidl71/exarp-go/internal/framework"
 	"github.com/davidl71/exarp-go/internal/security"
 )
 
 // handleSetupHooksNative handles the setup_hooks tool with native Go implementation
-// Currently implements "git" action, falls back to Python bridge for "patterns"
+// Implements both "git" and "patterns" actions - fully native Go
 func handleSetupHooksNative(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	// Get action (default: "git")
 	action := "git"
@@ -25,7 +24,7 @@ func handleSetupHooksNative(ctx context.Context, params map[string]interface{}) 
 	case "git":
 		return handleSetupGitHooks(ctx, params)
 	case "patterns":
-		return handleSetupPatternTriggers(ctx, params)
+		return handleSetupPatternHooks(ctx, params)
 	default:
 		return nil, fmt.Errorf("unknown hooks action: %s. Use 'git' or 'patterns'", action)
 	}
@@ -171,9 +170,9 @@ exarp-go task_workflow action=sync || true
 	}, nil
 }
 
-// handleSetupPatternTriggers handles the "patterns" action for setup_hooks
-// Sets up pattern-based automation triggers for file changes, git events, and task status changes
-func handleSetupPatternTriggers(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
+// handleSetupPatternHooks handles the "patterns" action for setup_hooks
+// Sets up pattern-based automation triggers
+func handleSetupPatternHooks(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	// Get project root
 	projectRoot, err := security.GetProjectRoot(".")
 	if err != nil {
@@ -187,56 +186,41 @@ func handleSetupPatternTriggers(ctx context.Context, params map[string]interface
 	}
 
 	// Get optional parameters
-	install := true
-	if installRaw, ok := params["install"].(bool); ok {
-		install = installRaw
-	}
-
 	dryRun := false
 	if dryRunRaw, ok := params["dry_run"].(bool); ok {
 		dryRun = dryRunRaw
 	}
 
-	// Get patterns from params or use defaults
-	patterns := getDefaultPatterns()
-
-	// Parse patterns if provided
-	if patternsRaw, ok := params["patterns"]; ok && patternsRaw != nil {
-		var parsedPatterns map[string]interface{}
-		switch v := patternsRaw.(type) {
-		case string:
-			if v != "" {
-				if err := json.Unmarshal([]byte(v), &parsedPatterns); err != nil {
-					return nil, fmt.Errorf("invalid JSON in patterns parameter: %w", err)
-				}
-				// Merge with defaults
-				for k, v := range parsedPatterns {
-					if pMap, ok := v.(map[string]interface{}); ok {
-						patterns[k] = pMap
-					}
-				}
-			}
-		case map[string]interface{}:
-			parsedPatterns = v
-			// Merge with defaults
-			for k, v := range parsedPatterns {
-				if pMap, ok := v.(map[string]interface{}); ok {
-					patterns[k] = pMap
-				}
-			}
+	// Get patterns (optional - can be JSON string or will use defaults)
+	var patterns map[string]interface{}
+	if patternsRaw, ok := params["patterns"].(string); ok && patternsRaw != "" {
+		if err := json.Unmarshal([]byte(patternsRaw), &patterns); err != nil {
+			return nil, fmt.Errorf("failed to parse patterns JSON: %w", err)
 		}
+	} else {
+		// Use default patterns
+		patterns = getDefaultPatterns()
 	}
 
-	// Load from config file if provided
+	// Get config path (optional)
+	configPath := ""
 	if configPathRaw, ok := params["config_path"].(string); ok && configPathRaw != "" {
-		configData, err := os.ReadFile(configPathRaw)
-		if err == nil {
+		configPath = configPathRaw
+		// Load patterns from config file if it exists
+		if data, err := os.ReadFile(configPath); err == nil {
 			var filePatterns map[string]interface{}
-			if err := json.Unmarshal(configData, &filePatterns); err == nil {
-				// Merge with existing patterns
+			if err := json.Unmarshal(data, &filePatterns); err == nil {
+				// Merge file patterns into existing patterns
 				for k, v := range filePatterns {
-					if pMap, ok := v.(map[string]interface{}); ok {
-						patterns[k] = pMap
+					if existing, ok := patterns[k].(map[string]interface{}); ok {
+						// Merge maps
+						if newMap, ok := v.(map[string]interface{}); ok {
+							for k2, v2 := range newMap {
+								existing[k2] = v2
+							}
+						}
+					} else {
+						patterns[k] = v
 					}
 				}
 			}
@@ -245,73 +229,63 @@ func handleSetupPatternTriggers(ctx context.Context, params map[string]interface
 
 	// Configuration file location
 	cursorDir := filepath.Join(projectRoot, ".cursor")
-	configFilePath := filepath.Join(cursorDir, "automa_patterns.json")
+	configFilePath := filepath.Join(cursorDir, "exarp_patterns.json")
 
 	results := map[string]interface{}{
-		"status":              "success",
-		"patterns_configured": []interface{}{},
-		"patterns_skipped":    []interface{}{},
+		"status":             "success",
+		"patterns_configured": []map[string]interface{}{},
+		"patterns_skipped":    []map[string]interface{}{},
 		"config_file":         configFilePath,
 		"dry_run":             dryRun,
 	}
 
 	if dryRun {
 		// Just report what would be configured
-		configured := []interface{}{}
 		for category, patternConfig := range patterns {
-			if pMap, ok := patternConfig.(map[string]interface{}); ok {
-				tools := extractToolsFromPatterns(pMap)
-				configured = append(configured, map[string]interface{}{
-					"category":     category,
-					"patterns":     getMapKeys(pMap),
-					"tools":        tools,
-					"pattern_count": len(pMap),
+			if configMap, ok := patternConfig.(map[string]interface{}); ok {
+				patternNames := []string{}
+				tools := extractToolsFromPatterns(configMap)
+				for patternName := range configMap {
+					patternNames = append(patternNames, patternName)
+				}
+				results["patterns_configured"] = append(results["patterns_configured"].([]map[string]interface{}), map[string]interface{}{
+					"category": category,
+					"patterns": patternNames,
+					"tools":    tools,
 				})
 			}
 		}
-		results["patterns_configured"] = configured
-
-		resultJSON, err := json.MarshalIndent(results, "", "  ")
-		if err != nil {
-			return nil, fmt.Errorf("failed to marshal result: %w", err)
-		}
-
-		return []framework.TextContent{
-			{Type: "text", Text: string(resultJSON)},
-		}, nil
-	}
-
-	// Write configuration file
-	if install {
+	} else {
+		// Write configuration file
 		if err := os.MkdirAll(cursorDir, 0755); err != nil {
 			return nil, fmt.Errorf("failed to create .cursor directory: %w", err)
 		}
 
-		configData, err := json.MarshalIndent(patterns, "", "  ")
+		configJSON, err := json.MarshalIndent(patterns, "", "  ")
 		if err != nil {
 			return nil, fmt.Errorf("failed to marshal patterns: %w", err)
 		}
 
-		if err := os.WriteFile(configFilePath, configData, 0644); err != nil {
+		if err := os.WriteFile(configFilePath, configJSON, 0644); err != nil {
 			return nil, fmt.Errorf("failed to write config file: %w", err)
 		}
 
-		// Setup integration points
-		setupPatternIntegrations(projectRoot, patterns, results)
-
-		// Build configured patterns list
-		configured := []interface{}{}
+		// Build results
 		for category, patternConfig := range patterns {
-			if pMap, ok := patternConfig.(map[string]interface{}); ok {
-				tools := extractToolsFromPatterns(pMap)
-				configured = append(configured, map[string]interface{}{
-					"category":      category,
-					"pattern_count": len(pMap),
-					"tools":         tools,
+			if configMap, ok := patternConfig.(map[string]interface{}); ok {
+				tools := extractToolsFromPatterns(configMap)
+				results["patterns_configured"] = append(results["patterns_configured"].([]map[string]interface{}), map[string]interface{}{
+					"category":     category,
+					"pattern_count": len(configMap),
+					"tools":        tools,
 				})
 			}
 		}
-		results["patterns_configured"] = configured
+
+		// Setup integration points
+		setupGitHooksIntegration(projectRoot, patterns, results)
+		setupFileWatcherIntegration(projectRoot, patterns, results)
+		setupTaskStatusIntegration(projectRoot, patterns, results)
 	}
 
 	resultJSON, err := json.MarshalIndent(results, "", "  ")
@@ -329,56 +303,71 @@ func getDefaultPatterns() map[string]interface{} {
 	return map[string]interface{}{
 		"file_patterns": map[string]interface{}{
 			"docs/**/*.md": map[string]interface{}{
-				"on_change":   "check_documentation_health_tool",
-				"on_create":   "add_external_tool_hints_tool",
+				"on_change": "check_documentation_health_tool",
+				"on_create": "add_external_tool_hints_tool",
 				"description": "Documentation files",
 			},
 			"requirements.txt|Cargo.toml|package.json|pyproject.toml": map[string]interface{}{
-				"on_change":   "scan_dependency_security_tool",
+				"on_change": "scan_dependency_security_tool",
 				"description": "Dependency files",
 			},
 			".todo2/state.todo2.json": map[string]interface{}{
-				"on_change":   "detect_duplicate_tasks_tool",
+				"on_change": "detect_duplicate_tasks_tool",
 				"description": "Todo2 state file",
 			},
 			"CMakeLists.txt|CMakePresets.json": map[string]interface{}{
-				"on_change":   "validate_ci_cd_workflow_tool",
+				"on_change": "validate_ci_cd_workflow_tool",
 				"description": "CMake configuration",
 			},
 		},
 		"git_events": map[string]interface{}{
 			"pre_commit": map[string]interface{}{
-				"tools":       []string{"check_documentation_health_tool --quick", "scan_dependency_security_tool --quick"},
-				"blocking":    true,
+				"tools": []string{
+					"check_documentation_health_tool --quick",
+					"scan_dependency_security_tool --quick",
+				},
+				"blocking": true,
 				"description": "Quick checks before commit",
 			},
 			"pre_push": map[string]interface{}{
-				"tools":       []string{"analyze_todo2_alignment_tool", "scan_dependency_security_tool", "check_documentation_health_tool"},
-				"blocking":    true,
+				"tools": []string{
+					"analyze_todo2_alignment_tool",
+					"scan_dependency_security_tool",
+					"check_documentation_health_tool",
+				},
+				"blocking": true,
 				"description": "Comprehensive checks before push",
 			},
 			"post_commit": map[string]interface{}{
-				"tools":       []string{"find_automation_opportunities_tool --quick"},
-				"blocking":    false,
+				"tools": []string{
+					"find_automation_opportunities_tool --quick",
+				},
+				"blocking": false,
 				"description": "Non-blocking checks after commit",
 			},
 			"post_merge": map[string]interface{}{
-				"tools":       []string{"detect_duplicate_tasks_tool", "sync_todo_tasks_tool"},
-				"blocking":    false,
+				"tools": []string{
+					"detect_duplicate_tasks_tool",
+					"sync_todo_tasks_tool",
+				},
+				"blocking": false,
 				"description": "Checks after merge",
 			},
 		},
 		"task_status_changes": map[string]interface{}{
 			"Todo → In Progress": map[string]interface{}{
-				"tools":       []string{"analyze_todo2_alignment_tool"},
+				"tools": []string{"analyze_todo2_alignment_tool"},
 				"description": "Verify alignment when starting work",
 			},
 			"In Progress → Review": map[string]interface{}{
-				"tools":       []string{"analyze_todo2_alignment_tool", "detect_duplicate_tasks_tool"},
+				"tools": []string{
+					"analyze_todo2_alignment_tool",
+					"detect_duplicate_tasks_tool",
+				},
 				"description": "Quality checks before review",
 			},
 			"Review → Done": map[string]interface{}{
-				"tools":       []string{"detect_duplicate_tasks_tool"},
+				"tools": []string{"detect_duplicate_tasks_tool"},
 				"description": "Final checks on completion",
 			},
 		},
@@ -387,89 +376,78 @@ func getDefaultPatterns() map[string]interface{} {
 
 // extractToolsFromPatterns extracts tool names from pattern configuration
 func extractToolsFromPatterns(patternConfig map[string]interface{}) []string {
-	tools := make(map[string]bool)
+	tools := []string{}
+	toolSet := make(map[string]bool)
 
 	for _, config := range patternConfig {
 		if configMap, ok := config.(map[string]interface{}); ok {
-			// Check for "tools" array
-			if toolsRaw, ok := configMap["tools"].([]interface{}); ok {
-				for _, tool := range toolsRaw {
-					if toolStr, ok := tool.(string); ok {
-						// Extract tool name (remove args)
-						toolName := strings.Fields(toolStr)[0]
-						tools[toolName] = true
+			if toolsList, ok := configMap["tools"].([]interface{}); ok {
+				for _, tool := range toolsList {
+					if toolStr, ok := tool.(string); ok && !toolSet[toolStr] {
+						tools = append(tools, toolStr)
+						toolSet[toolStr] = true
 					}
 				}
 			}
-
-			// Check for "on_change" string
-			if onChange, ok := configMap["on_change"].(string); ok {
-				toolName := strings.Fields(onChange)[0]
-				tools[toolName] = true
+			if onChange, ok := configMap["on_change"].(string); ok && !toolSet[onChange] {
+				tools = append(tools, onChange)
+				toolSet[onChange] = true
 			}
-
-			// Check for "on_create" string
-			if onCreate, ok := configMap["on_create"].(string); ok {
-				toolName := strings.Fields(onCreate)[0]
-				tools[toolName] = true
+			if onCreate, ok := configMap["on_create"].(string); ok && !toolSet[onCreate] {
+				tools = append(tools, onCreate)
+				toolSet[onCreate] = true
 			}
 		}
 	}
 
-	// Convert map keys to slice
-	result := []string{}
-	for tool := range tools {
-		result = append(result, tool)
-	}
-
-	return result
+	return tools
 }
 
-// getMapKeys returns keys of a map as a slice
-func getMapKeys(m map[string]interface{}) []string {
-	keys := []string{}
-	for k := range m {
-		keys = append(keys, k)
-	}
-	return keys
-}
-
-// setupPatternIntegrations sets up integration points for pattern triggers
-func setupPatternIntegrations(projectRoot string, patterns map[string]interface{}, results map[string]interface{}) {
-	// Git hooks integration
-	if _, ok := patterns["git_events"]; ok {
+// setupGitHooksIntegration sets up git hooks integration for pattern triggers
+func setupGitHooksIntegration(projectRoot string, patterns map[string]interface{}, results map[string]interface{}) {
+	if gitEvents, ok := patterns["git_events"].(map[string]interface{}); ok && len(gitEvents) > 0 {
 		hooksDir := filepath.Join(projectRoot, ".git", "hooks")
-		if _, err := os.Stat(hooksDir); err == nil {
-			results["git_hooks_integration"] = map[string]interface{}{
-				"status": "configured",
-				"note":   "Use setup_hooks(action=\"git\") to install actual hooks",
-			}
+		if _, err := os.Stat(hooksDir); os.IsNotExist(err) {
+			results["patterns_skipped"] = append(results["patterns_skipped"].([]map[string]interface{}), map[string]interface{}{
+				"category": "git_events",
+				"reason":   ".git/hooks directory not found",
+			})
+			return
+		}
+
+		results["git_hooks_integration"] = map[string]interface{}{
+			"status": "configured",
+			"note":   "Use setup_hooks action=git to install actual hooks",
 		}
 	}
+}
 
-	// File watcher integration
-	if _, ok := patterns["file_patterns"]; ok {
-		watcherScript := filepath.Join(projectRoot, ".cursor", "automa_file_watcher.py")
-		scriptContent := generateFileWatcherScript()
+// setupFileWatcherIntegration sets up file watcher integration for pattern triggers
+func setupFileWatcherIntegration(projectRoot string, patterns map[string]interface{}, results map[string]interface{}) {
+	if filePatterns, ok := patterns["file_patterns"].(map[string]interface{}); ok && len(filePatterns) > 0 {
+		watcherScript := filepath.Join(projectRoot, ".cursor", "exarp_file_watcher.py")
 
-		if err := os.WriteFile(watcherScript, []byte(scriptContent), 0755); err == nil {
-			results["file_watcher_integration"] = map[string]interface{}{
-				"status": "configured",
-				"script": watcherScript,
-				"note":   "Run manually or via cron: python3 .cursor/automa_file_watcher.py",
-			}
-		} else {
-			if skipped, ok := results["patterns_skipped"].([]interface{}); ok {
-				results["patterns_skipped"] = append(skipped, map[string]interface{}{
-					"category": "file_patterns",
-					"reason":   fmt.Sprintf("Failed to create watcher script: %v", err),
-				})
-			}
+		watcherContent := generateFileWatcherScript()
+
+		if err := os.WriteFile(watcherScript, []byte(watcherContent), 0755); err != nil {
+			results["patterns_skipped"] = append(results["patterns_skipped"].([]map[string]interface{}), map[string]interface{}{
+				"category": "file_patterns",
+				"reason":   fmt.Sprintf("Failed to create watcher script: %v", err),
+			})
+			return
+		}
+
+		results["file_watcher_integration"] = map[string]interface{}{
+			"status": "configured",
+			"script": watcherScript,
+			"note":   "Run manually or via cron: python3 .cursor/exarp_file_watcher.py",
 		}
 	}
+}
 
-	// Task status integration
-	if _, ok := patterns["task_status_changes"]; ok {
+// setupTaskStatusIntegration sets up task status change integration
+func setupTaskStatusIntegration(projectRoot string, patterns map[string]interface{}, results map[string]interface{}) {
+	if taskStatus, ok := patterns["task_status_changes"].(map[string]interface{}); ok && len(taskStatus) > 0 {
 		results["task_status_integration"] = map[string]interface{}{
 			"status": "configured",
 			"note":   "Task status triggers handled by Todo2 MCP server hooks",
@@ -493,7 +471,7 @@ from pathlib import Path
 from typing import Dict, List, Optional
 
 # Load pattern configuration
-CONFIG_FILE = Path(__file__).parent.parent / ".cursor" / "automa_patterns.json"
+CONFIG_FILE = Path(__file__).parent.parent / ".cursor" / "exarp_patterns.json"
 
 def load_patterns() -> Dict:
     """Load pattern configuration."""

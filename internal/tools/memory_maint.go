@@ -9,7 +9,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/davidl71/exarp-go/internal/config"
 	"github.com/davidl71/exarp-go/internal/framework"
+	"github.com/davidl71/exarp-go/internal/security"
 )
 
 // handleMemoryMaintNative handles the memory_maint tool with native Go maintenance operations
@@ -34,8 +36,7 @@ func handleMemoryMaintNative(ctx context.Context, args json.RawMessage) ([]frame
 	case "consolidate":
 		return handleMemoryMaintConsolidate(ctx, params)
 	case "dream":
-		// Dream requires advisor integration - fall back to Python bridge for now
-		return nil, fmt.Errorf("action %s requires advisor integration, falling back to Python bridge", action)
+		return handleMemoryMaintDream(ctx, params)
 	default:
 		return nil, fmt.Errorf("unknown action: %s (use 'health', 'gc', 'prune', 'consolidate', or 'dream')", action)
 	}
@@ -43,7 +44,7 @@ func handleMemoryMaintNative(ctx context.Context, args json.RawMessage) ([]frame
 
 // handleMemoryMaintHealth handles health check action
 func handleMemoryMaintHealth(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
-	projectRoot, err := FindProjectRoot()
+	projectRoot, err := security.GetProjectRoot(".")
 	if err != nil {
 		return nil, fmt.Errorf("failed to find project root: %w", err)
 	}
@@ -142,7 +143,7 @@ func handleMemoryMaintHealth(ctx context.Context, params map[string]interface{})
 
 // handleMemoryMaintGC handles garbage collection action
 func handleMemoryMaintGC(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
-	projectRoot, err := FindProjectRoot()
+	projectRoot, err := security.GetProjectRoot(".")
 	if err != nil {
 		return nil, fmt.Errorf("failed to find project root: %w", err)
 	}
@@ -285,7 +286,7 @@ func handleMemoryMaintGC(ctx context.Context, params map[string]interface{}) ([]
 
 // handleMemoryMaintPrune handles prune action
 func handleMemoryMaintPrune(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
-	projectRoot, err := FindProjectRoot()
+	projectRoot, err := security.GetProjectRoot(".")
 	if err != nil {
 		return nil, fmt.Errorf("failed to find project root: %w", err)
 	}
@@ -409,12 +410,12 @@ func handleMemoryMaintPrune(ctx context.Context, params map[string]interface{}) 
 
 // handleMemoryMaintConsolidate handles consolidate action
 func handleMemoryMaintConsolidate(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
-	projectRoot, err := FindProjectRoot()
+	projectRoot, err := security.GetProjectRoot(".")
 	if err != nil {
 		return nil, fmt.Errorf("failed to find project root: %w", err)
 	}
 
-	similarityThreshold := 0.85
+	similarityThreshold := config.SimilarityThreshold()
 	if threshold, ok := params["similarity_threshold"].(float64); ok {
 		similarityThreshold = threshold
 	}
@@ -544,6 +545,56 @@ func handleMemoryMaintConsolidate(ctx context.Context, params map[string]interfa
 	output, _ := json.MarshalIndent(result, "", "  ")
 	return []framework.TextContent{
 		{Type: "text", Text: string(output)},
+	}, nil
+}
+
+// handleMemoryMaintDream handles the dream action for memory_maint tool
+// Uses devwisdom-go wisdom engine directly (no MCP client needed)
+func handleMemoryMaintDream(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
+	// Get score (default: 50)
+	var score float64 = 50.0
+	if sc, ok := params["score"].(float64); ok {
+		score = sc
+	} else if sc, ok := params["score"].(int); ok {
+		score = float64(sc)
+	}
+
+	// Validate and clamp score
+	if score < 0 {
+		score = 0
+	} else if score > 100 {
+		score = 100
+	}
+
+	// Get wisdom engine
+	engine, err := getWisdomEngine()
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize wisdom engine: %w", err)
+	}
+
+	// Get wisdom quote (use "random" source for variety)
+	quote, err := engine.GetWisdom(score, "random")
+	if err != nil {
+		return nil, fmt.Errorf("failed to get wisdom quote: %w", err)
+	}
+
+	// Build dream result (simple format for now)
+	dream := map[string]interface{}{
+		"quote":         quote.Quote,
+		"source":        quote.Source,
+		"encouragement": quote.Encouragement,
+		"score":         score,
+		"timestamp":     time.Now().Format(time.RFC3339),
+	}
+
+	// Convert to JSON
+	resultJSON, err := json.MarshalIndent(dream, "", "  ")
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal dream: %w", err)
+	}
+
+	return []framework.TextContent{
+		{Type: "text", Text: string(resultJSON)},
 	}, nil
 }
 

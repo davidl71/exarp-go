@@ -19,9 +19,9 @@ func TestClaimTaskForAgent(t *testing.T) {
 
 	// Create a task first
 	task := &models.Todo2Task{
-		ID:      "T-LOCK-1",
-		Content: "Task for locking test",
-		Status:  StatusTodo,
+		ID:       "T-LOCK-1",
+		Content:  "Task for locking test",
+		Status:   StatusTodo,
 		Priority: "medium",
 	}
 	err = CreateTask(context.Background(), task)

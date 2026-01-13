@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/davidl71/exarp-go/internal/config"
 	"github.com/davidl71/exarp-go/internal/framework"
 	"github.com/davidl71/exarp-go/internal/platform"
 )
@@ -48,8 +49,8 @@ func handleContextBudget(ctx context.Context, args json.RawMessage) ([]framework
 		return nil, fmt.Errorf("items must be a JSON string or array")
 	}
 
-	// Get budget_tokens (optional, default: 4000)
-	budgetTokens := 4000
+	// Get budget_tokens (optional, use config default)
+	budgetTokens := config.DefaultContextBudget()
 	if budgetRaw, ok := params["budget_tokens"]; ok {
 		if budgetFloat, ok := budgetRaw.(float64); ok {
 			budgetTokens = int(budgetFloat)
@@ -70,8 +71,8 @@ func handleContextBudget(ctx context.Context, args json.RawMessage) ([]framework
 		}
 		itemStr := string(itemBytes)
 
-		// Estimate tokens
-		tokens := estimateTokens(itemStr)
+	// Estimate tokens using config ratio
+	tokens := estimateTokens(itemStr, config.TokensPerChar())
 		totalTokens += tokens
 
 		// Calculate percentage of budget
@@ -125,9 +126,9 @@ func handleContextBudget(ctx context.Context, args json.RawMessage) ([]framework
 	}, nil
 }
 
-// estimateTokens estimates token count for text
-func estimateTokens(text string) int {
-	return int(float64(len(text)) * TOKENS_PER_CHAR)
+// estimateTokens estimates token count for text using provided ratio
+func estimateTokens(text string, tokensPerChar float64) int {
+	return int(float64(len(text)) * tokensPerChar)
 }
 
 // getBudgetRecommendation gets recommendation for a single item
@@ -335,7 +336,7 @@ func handleContextBatchNative(ctx context.Context, params map[string]interface{}
 // createSimpleSummary creates a simple summary without Apple FM
 // This is a fallback when Apple FM is not available
 func createSimpleSummary(dataStr string, level string, toolType string) map[string]interface{} {
-	originalTokens := estimateTokens(dataStr)
+		originalTokens := estimateTokens(dataStr, config.TokensPerChar())
 
 	// Create a simple summary based on level
 	var summary interface{}
@@ -389,7 +390,7 @@ func createSimpleSummary(dataStr string, level string, toolType string) map[stri
 		summaryStr = string(bytes)
 	}
 
-	summaryTokens := estimateTokens(summaryStr)
+		summaryTokens := estimateTokens(summaryStr, config.TokensPerChar())
 	reduction := 0.0
 	if originalTokens > 0 {
 		reduction = (1.0 - float64(summaryTokens)/float64(originalTokens)) * 100.0
