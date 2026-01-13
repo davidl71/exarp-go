@@ -1004,6 +1004,630 @@ func (x *Metrics) GetCounts() map[string]int32 {
 	return nil
 }
 
+// ProjectOverviewData represents aggregated project data for overview reports
+type ProjectOverviewData struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Project       *ProjectInfo           `protobuf:"bytes,1,opt,name=project,proto3" json:"project,omitempty"`
+	Health        *HealthData            `protobuf:"bytes,2,opt,name=health,proto3" json:"health,omitempty"`
+	Codebase      *CodebaseMetrics       `protobuf:"bytes,3,opt,name=codebase,proto3" json:"codebase,omitempty"`
+	Tasks         *TaskMetrics           `protobuf:"bytes,4,opt,name=tasks,proto3" json:"tasks,omitempty"`
+	Phases        []*ProjectPhase        `protobuf:"bytes,5,rep,name=phases,proto3" json:"phases,omitempty"`
+	Risks         []*RiskOrBlocker       `protobuf:"bytes,6,rep,name=risks,proto3" json:"risks,omitempty"`
+	NextActions   []*NextAction          `protobuf:"bytes,7,rep,name=next_actions,json=nextActions,proto3" json:"next_actions,omitempty"`
+	GeneratedAt   string                 `protobuf:"bytes,8,opt,name=generated_at,json=generatedAt,proto3" json:"generated_at,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ProjectOverviewData) Reset() {
+	*x = ProjectOverviewData{}
+	mi := &file_proto_tools_proto_msgTypes[11]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ProjectOverviewData) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ProjectOverviewData) ProtoMessage() {}
+
+func (x *ProjectOverviewData) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_tools_proto_msgTypes[11]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ProjectOverviewData.ProtoReflect.Descriptor instead.
+func (*ProjectOverviewData) Descriptor() ([]byte, []int) {
+	return file_proto_tools_proto_rawDescGZIP(), []int{11}
+}
+
+func (x *ProjectOverviewData) GetProject() *ProjectInfo {
+	if x != nil {
+		return x.Project
+	}
+	return nil
+}
+
+func (x *ProjectOverviewData) GetHealth() *HealthData {
+	if x != nil {
+		return x.Health
+	}
+	return nil
+}
+
+func (x *ProjectOverviewData) GetCodebase() *CodebaseMetrics {
+	if x != nil {
+		return x.Codebase
+	}
+	return nil
+}
+
+func (x *ProjectOverviewData) GetTasks() *TaskMetrics {
+	if x != nil {
+		return x.Tasks
+	}
+	return nil
+}
+
+func (x *ProjectOverviewData) GetPhases() []*ProjectPhase {
+	if x != nil {
+		return x.Phases
+	}
+	return nil
+}
+
+func (x *ProjectOverviewData) GetRisks() []*RiskOrBlocker {
+	if x != nil {
+		return x.Risks
+	}
+	return nil
+}
+
+func (x *ProjectOverviewData) GetNextActions() []*NextAction {
+	if x != nil {
+		return x.NextActions
+	}
+	return nil
+}
+
+func (x *ProjectOverviewData) GetGeneratedAt() string {
+	if x != nil {
+		return x.GeneratedAt
+	}
+	return ""
+}
+
+// ProjectInfo represents basic project information
+type ProjectInfo struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	Version       string                 `protobuf:"bytes,2,opt,name=version,proto3" json:"version,omitempty"`
+	Description   string                 `protobuf:"bytes,3,opt,name=description,proto3" json:"description,omitempty"`
+	Type          string                 `protobuf:"bytes,4,opt,name=type,proto3" json:"type,omitempty"`
+	Status        string                 `protobuf:"bytes,5,opt,name=status,proto3" json:"status,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ProjectInfo) Reset() {
+	*x = ProjectInfo{}
+	mi := &file_proto_tools_proto_msgTypes[12]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ProjectInfo) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ProjectInfo) ProtoMessage() {}
+
+func (x *ProjectInfo) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_tools_proto_msgTypes[12]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ProjectInfo.ProtoReflect.Descriptor instead.
+func (*ProjectInfo) Descriptor() ([]byte, []int) {
+	return file_proto_tools_proto_rawDescGZIP(), []int{12}
+}
+
+func (x *ProjectInfo) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *ProjectInfo) GetVersion() string {
+	if x != nil {
+		return x.Version
+	}
+	return ""
+}
+
+func (x *ProjectInfo) GetDescription() string {
+	if x != nil {
+		return x.Description
+	}
+	return ""
+}
+
+func (x *ProjectInfo) GetType() string {
+	if x != nil {
+		return x.Type
+	}
+	return ""
+}
+
+func (x *ProjectInfo) GetStatus() string {
+	if x != nil {
+		return x.Status
+	}
+	return ""
+}
+
+// HealthData represents project health metrics
+type HealthData struct {
+	state           protoimpl.MessageState `protogen:"open.v1"`
+	OverallScore    float64                `protobuf:"fixed64,1,opt,name=overall_score,json=overallScore,proto3" json:"overall_score,omitempty"`
+	ProductionReady bool                   `protobuf:"varint,2,opt,name=production_ready,json=productionReady,proto3" json:"production_ready,omitempty"`
+	Scores          map[string]float64     `protobuf:"bytes,3,rep,name=scores,proto3" json:"scores,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"fixed64,2,opt,name=value"` // Component scores (security, testing, etc.)
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
+}
+
+func (x *HealthData) Reset() {
+	*x = HealthData{}
+	mi := &file_proto_tools_proto_msgTypes[13]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *HealthData) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*HealthData) ProtoMessage() {}
+
+func (x *HealthData) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_tools_proto_msgTypes[13]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use HealthData.ProtoReflect.Descriptor instead.
+func (*HealthData) Descriptor() ([]byte, []int) {
+	return file_proto_tools_proto_rawDescGZIP(), []int{13}
+}
+
+func (x *HealthData) GetOverallScore() float64 {
+	if x != nil {
+		return x.OverallScore
+	}
+	return 0
+}
+
+func (x *HealthData) GetProductionReady() bool {
+	if x != nil {
+		return x.ProductionReady
+	}
+	return false
+}
+
+func (x *HealthData) GetScores() map[string]float64 {
+	if x != nil {
+		return x.Scores
+	}
+	return nil
+}
+
+// CodebaseMetrics represents codebase statistics
+type CodebaseMetrics struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	GoFiles       int32                  `protobuf:"varint,1,opt,name=go_files,json=goFiles,proto3" json:"go_files,omitempty"`
+	GoLines       int32                  `protobuf:"varint,2,opt,name=go_lines,json=goLines,proto3" json:"go_lines,omitempty"`
+	PythonFiles   int32                  `protobuf:"varint,3,opt,name=python_files,json=pythonFiles,proto3" json:"python_files,omitempty"`
+	PythonLines   int32                  `protobuf:"varint,4,opt,name=python_lines,json=pythonLines,proto3" json:"python_lines,omitempty"`
+	TotalFiles    int32                  `protobuf:"varint,5,opt,name=total_files,json=totalFiles,proto3" json:"total_files,omitempty"`
+	TotalLines    int32                  `protobuf:"varint,6,opt,name=total_lines,json=totalLines,proto3" json:"total_lines,omitempty"`
+	Tools         int32                  `protobuf:"varint,7,opt,name=tools,proto3" json:"tools,omitempty"`
+	Prompts       int32                  `protobuf:"varint,8,opt,name=prompts,proto3" json:"prompts,omitempty"`
+	Resources     int32                  `protobuf:"varint,9,opt,name=resources,proto3" json:"resources,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CodebaseMetrics) Reset() {
+	*x = CodebaseMetrics{}
+	mi := &file_proto_tools_proto_msgTypes[14]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CodebaseMetrics) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CodebaseMetrics) ProtoMessage() {}
+
+func (x *CodebaseMetrics) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_tools_proto_msgTypes[14]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CodebaseMetrics.ProtoReflect.Descriptor instead.
+func (*CodebaseMetrics) Descriptor() ([]byte, []int) {
+	return file_proto_tools_proto_rawDescGZIP(), []int{14}
+}
+
+func (x *CodebaseMetrics) GetGoFiles() int32 {
+	if x != nil {
+		return x.GoFiles
+	}
+	return 0
+}
+
+func (x *CodebaseMetrics) GetGoLines() int32 {
+	if x != nil {
+		return x.GoLines
+	}
+	return 0
+}
+
+func (x *CodebaseMetrics) GetPythonFiles() int32 {
+	if x != nil {
+		return x.PythonFiles
+	}
+	return 0
+}
+
+func (x *CodebaseMetrics) GetPythonLines() int32 {
+	if x != nil {
+		return x.PythonLines
+	}
+	return 0
+}
+
+func (x *CodebaseMetrics) GetTotalFiles() int32 {
+	if x != nil {
+		return x.TotalFiles
+	}
+	return 0
+}
+
+func (x *CodebaseMetrics) GetTotalLines() int32 {
+	if x != nil {
+		return x.TotalLines
+	}
+	return 0
+}
+
+func (x *CodebaseMetrics) GetTools() int32 {
+	if x != nil {
+		return x.Tools
+	}
+	return 0
+}
+
+func (x *CodebaseMetrics) GetPrompts() int32 {
+	if x != nil {
+		return x.Prompts
+	}
+	return 0
+}
+
+func (x *CodebaseMetrics) GetResources() int32 {
+	if x != nil {
+		return x.Resources
+	}
+	return 0
+}
+
+// TaskMetrics represents task management statistics
+type TaskMetrics struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	Total          int32                  `protobuf:"varint,1,opt,name=total,proto3" json:"total,omitempty"`
+	Pending        int32                  `protobuf:"varint,2,opt,name=pending,proto3" json:"pending,omitempty"`
+	Completed      int32                  `protobuf:"varint,3,opt,name=completed,proto3" json:"completed,omitempty"`
+	CompletionRate float64                `protobuf:"fixed64,4,opt,name=completion_rate,json=completionRate,proto3" json:"completion_rate,omitempty"`
+	RemainingHours float64                `protobuf:"fixed64,5,opt,name=remaining_hours,json=remainingHours,proto3" json:"remaining_hours,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *TaskMetrics) Reset() {
+	*x = TaskMetrics{}
+	mi := &file_proto_tools_proto_msgTypes[15]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *TaskMetrics) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*TaskMetrics) ProtoMessage() {}
+
+func (x *TaskMetrics) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_tools_proto_msgTypes[15]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use TaskMetrics.ProtoReflect.Descriptor instead.
+func (*TaskMetrics) Descriptor() ([]byte, []int) {
+	return file_proto_tools_proto_rawDescGZIP(), []int{15}
+}
+
+func (x *TaskMetrics) GetTotal() int32 {
+	if x != nil {
+		return x.Total
+	}
+	return 0
+}
+
+func (x *TaskMetrics) GetPending() int32 {
+	if x != nil {
+		return x.Pending
+	}
+	return 0
+}
+
+func (x *TaskMetrics) GetCompleted() int32 {
+	if x != nil {
+		return x.Completed
+	}
+	return 0
+}
+
+func (x *TaskMetrics) GetCompletionRate() float64 {
+	if x != nil {
+		return x.CompletionRate
+	}
+	return 0
+}
+
+func (x *TaskMetrics) GetRemainingHours() float64 {
+	if x != nil {
+		return x.RemainingHours
+	}
+	return 0
+}
+
+// ProjectPhase represents a project phase status
+type ProjectPhase struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	Status        string                 `protobuf:"bytes,2,opt,name=status,proto3" json:"status,omitempty"`      // "complete", "in_progress", "pending"
+	Progress      int32                  `protobuf:"varint,3,opt,name=progress,proto3" json:"progress,omitempty"` // 0-100
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ProjectPhase) Reset() {
+	*x = ProjectPhase{}
+	mi := &file_proto_tools_proto_msgTypes[16]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ProjectPhase) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ProjectPhase) ProtoMessage() {}
+
+func (x *ProjectPhase) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_tools_proto_msgTypes[16]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ProjectPhase.ProtoReflect.Descriptor instead.
+func (*ProjectPhase) Descriptor() ([]byte, []int) {
+	return file_proto_tools_proto_rawDescGZIP(), []int{16}
+}
+
+func (x *ProjectPhase) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *ProjectPhase) GetStatus() string {
+	if x != nil {
+		return x.Status
+	}
+	return ""
+}
+
+func (x *ProjectPhase) GetProgress() int32 {
+	if x != nil {
+		return x.Progress
+	}
+	return 0
+}
+
+// RiskOrBlocker represents a project risk or blocker
+type RiskOrBlocker struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Type          string                 `protobuf:"bytes,1,opt,name=type,proto3" json:"type,omitempty"` // "blocker", "risk", etc.
+	Description   string                 `protobuf:"bytes,2,opt,name=description,proto3" json:"description,omitempty"`
+	TaskId        string                 `protobuf:"bytes,3,opt,name=task_id,json=taskId,proto3" json:"task_id,omitempty"`
+	Priority      string                 `protobuf:"bytes,4,opt,name=priority,proto3" json:"priority,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RiskOrBlocker) Reset() {
+	*x = RiskOrBlocker{}
+	mi := &file_proto_tools_proto_msgTypes[17]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RiskOrBlocker) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RiskOrBlocker) ProtoMessage() {}
+
+func (x *RiskOrBlocker) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_tools_proto_msgTypes[17]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RiskOrBlocker.ProtoReflect.Descriptor instead.
+func (*RiskOrBlocker) Descriptor() ([]byte, []int) {
+	return file_proto_tools_proto_rawDescGZIP(), []int{17}
+}
+
+func (x *RiskOrBlocker) GetType() string {
+	if x != nil {
+		return x.Type
+	}
+	return ""
+}
+
+func (x *RiskOrBlocker) GetDescription() string {
+	if x != nil {
+		return x.Description
+	}
+	return ""
+}
+
+func (x *RiskOrBlocker) GetTaskId() string {
+	if x != nil {
+		return x.TaskId
+	}
+	return ""
+}
+
+func (x *RiskOrBlocker) GetPriority() string {
+	if x != nil {
+		return x.Priority
+	}
+	return ""
+}
+
+// NextAction represents a recommended next action
+type NextAction struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	TaskId         string                 `protobuf:"bytes,1,opt,name=task_id,json=taskId,proto3" json:"task_id,omitempty"`
+	Name           string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	Priority       string                 `protobuf:"bytes,3,opt,name=priority,proto3" json:"priority,omitempty"`
+	EstimatedHours float64                `protobuf:"fixed64,4,opt,name=estimated_hours,json=estimatedHours,proto3" json:"estimated_hours,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *NextAction) Reset() {
+	*x = NextAction{}
+	mi := &file_proto_tools_proto_msgTypes[18]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *NextAction) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*NextAction) ProtoMessage() {}
+
+func (x *NextAction) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_tools_proto_msgTypes[18]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use NextAction.ProtoReflect.Descriptor instead.
+func (*NextAction) Descriptor() ([]byte, []int) {
+	return file_proto_tools_proto_rawDescGZIP(), []int{18}
+}
+
+func (x *NextAction) GetTaskId() string {
+	if x != nil {
+		return x.TaskId
+	}
+	return ""
+}
+
+func (x *NextAction) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *NextAction) GetPriority() string {
+	if x != nil {
+		return x.Priority
+	}
+	return ""
+}
+
+func (x *NextAction) GetEstimatedHours() float64 {
+	if x != nil {
+		return x.EstimatedHours
+	}
+	return 0
+}
+
 // AnalyzeAlignmentRequest represents a request to analyze task alignment
 type AnalyzeAlignmentRequest struct {
 	state               protoimpl.MessageState `protogen:"open.v1"`
@@ -1016,7 +1640,7 @@ type AnalyzeAlignmentRequest struct {
 
 func (x *AnalyzeAlignmentRequest) Reset() {
 	*x = AnalyzeAlignmentRequest{}
-	mi := &file_proto_tools_proto_msgTypes[11]
+	mi := &file_proto_tools_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1028,7 +1652,7 @@ func (x *AnalyzeAlignmentRequest) String() string {
 func (*AnalyzeAlignmentRequest) ProtoMessage() {}
 
 func (x *AnalyzeAlignmentRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_tools_proto_msgTypes[11]
+	mi := &file_proto_tools_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1041,7 +1665,7 @@ func (x *AnalyzeAlignmentRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AnalyzeAlignmentRequest.ProtoReflect.Descriptor instead.
 func (*AnalyzeAlignmentRequest) Descriptor() ([]byte, []int) {
-	return file_proto_tools_proto_rawDescGZIP(), []int{11}
+	return file_proto_tools_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *AnalyzeAlignmentRequest) GetAction() string {
@@ -1083,7 +1707,7 @@ type TaskAnalysisRequest struct {
 
 func (x *TaskAnalysisRequest) Reset() {
 	*x = TaskAnalysisRequest{}
-	mi := &file_proto_tools_proto_msgTypes[12]
+	mi := &file_proto_tools_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1095,7 +1719,7 @@ func (x *TaskAnalysisRequest) String() string {
 func (*TaskAnalysisRequest) ProtoMessage() {}
 
 func (x *TaskAnalysisRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_tools_proto_msgTypes[12]
+	mi := &file_proto_tools_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1108,7 +1732,7 @@ func (x *TaskAnalysisRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TaskAnalysisRequest.ProtoReflect.Descriptor instead.
 func (*TaskAnalysisRequest) Descriptor() ([]byte, []int) {
-	return file_proto_tools_proto_rawDescGZIP(), []int{12}
+	return file_proto_tools_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *TaskAnalysisRequest) GetAction() string {
@@ -1190,7 +1814,7 @@ type TaskDiscoveryRequest struct {
 
 func (x *TaskDiscoveryRequest) Reset() {
 	*x = TaskDiscoveryRequest{}
-	mi := &file_proto_tools_proto_msgTypes[13]
+	mi := &file_proto_tools_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1202,7 +1826,7 @@ func (x *TaskDiscoveryRequest) String() string {
 func (*TaskDiscoveryRequest) ProtoMessage() {}
 
 func (x *TaskDiscoveryRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_tools_proto_msgTypes[13]
+	mi := &file_proto_tools_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1215,7 +1839,7 @@ func (x *TaskDiscoveryRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TaskDiscoveryRequest.ProtoReflect.Descriptor instead.
 func (*TaskDiscoveryRequest) Descriptor() ([]byte, []int) {
-	return file_proto_tools_proto_rawDescGZIP(), []int{13}
+	return file_proto_tools_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *TaskDiscoveryRequest) GetAction() string {
@@ -1300,7 +1924,7 @@ type TaskWorkflowRequest struct {
 
 func (x *TaskWorkflowRequest) Reset() {
 	*x = TaskWorkflowRequest{}
-	mi := &file_proto_tools_proto_msgTypes[14]
+	mi := &file_proto_tools_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1312,7 +1936,7 @@ func (x *TaskWorkflowRequest) String() string {
 func (*TaskWorkflowRequest) ProtoMessage() {}
 
 func (x *TaskWorkflowRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_tools_proto_msgTypes[14]
+	mi := &file_proto_tools_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1325,7 +1949,7 @@ func (x *TaskWorkflowRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TaskWorkflowRequest.ProtoReflect.Descriptor instead.
 func (*TaskWorkflowRequest) Descriptor() ([]byte, []int) {
-	return file_proto_tools_proto_rawDescGZIP(), []int{14}
+	return file_proto_tools_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *TaskWorkflowRequest) GetAction() string {
@@ -1520,7 +2144,7 @@ type AutomationRequest struct {
 
 func (x *AutomationRequest) Reset() {
 	*x = AutomationRequest{}
-	mi := &file_proto_tools_proto_msgTypes[15]
+	mi := &file_proto_tools_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1532,7 +2156,7 @@ func (x *AutomationRequest) String() string {
 func (*AutomationRequest) ProtoMessage() {}
 
 func (x *AutomationRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_tools_proto_msgTypes[15]
+	mi := &file_proto_tools_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1545,7 +2169,7 @@ func (x *AutomationRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AutomationRequest.ProtoReflect.Descriptor instead.
 func (*AutomationRequest) Descriptor() ([]byte, []int) {
-	return file_proto_tools_proto_rawDescGZIP(), []int{15}
+	return file_proto_tools_proto_rawDescGZIP(), []int{23}
 }
 
 func (x *AutomationRequest) GetAction() string {
@@ -1674,7 +2298,7 @@ type TestingRequest struct {
 
 func (x *TestingRequest) Reset() {
 	*x = TestingRequest{}
-	mi := &file_proto_tools_proto_msgTypes[16]
+	mi := &file_proto_tools_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1686,7 +2310,7 @@ func (x *TestingRequest) String() string {
 func (*TestingRequest) ProtoMessage() {}
 
 func (x *TestingRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_tools_proto_msgTypes[16]
+	mi := &file_proto_tools_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1699,7 +2323,7 @@ func (x *TestingRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TestingRequest.ProtoReflect.Descriptor instead.
 func (*TestingRequest) Descriptor() ([]byte, []int) {
-	return file_proto_tools_proto_rawDescGZIP(), []int{16}
+	return file_proto_tools_proto_rawDescGZIP(), []int{24}
 }
 
 func (x *TestingRequest) GetAction() string {
@@ -1804,7 +2428,7 @@ type GenerateConfigRequest struct {
 
 func (x *GenerateConfigRequest) Reset() {
 	*x = GenerateConfigRequest{}
-	mi := &file_proto_tools_proto_msgTypes[17]
+	mi := &file_proto_tools_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1816,7 +2440,7 @@ func (x *GenerateConfigRequest) String() string {
 func (*GenerateConfigRequest) ProtoMessage() {}
 
 func (x *GenerateConfigRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_tools_proto_msgTypes[17]
+	mi := &file_proto_tools_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1829,7 +2453,7 @@ func (x *GenerateConfigRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GenerateConfigRequest.ProtoReflect.Descriptor instead.
 func (*GenerateConfigRequest) Descriptor() ([]byte, []int) {
-	return file_proto_tools_proto_rawDescGZIP(), []int{17}
+	return file_proto_tools_proto_rawDescGZIP(), []int{25}
 }
 
 func (x *GenerateConfigRequest) GetAction() string {
@@ -1914,7 +2538,7 @@ type HealthRequest struct {
 
 func (x *HealthRequest) Reset() {
 	*x = HealthRequest{}
-	mi := &file_proto_tools_proto_msgTypes[18]
+	mi := &file_proto_tools_proto_msgTypes[26]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1926,7 +2550,7 @@ func (x *HealthRequest) String() string {
 func (*HealthRequest) ProtoMessage() {}
 
 func (x *HealthRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_tools_proto_msgTypes[18]
+	mi := &file_proto_tools_proto_msgTypes[26]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1939,7 +2563,7 @@ func (x *HealthRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HealthRequest.ProtoReflect.Descriptor instead.
 func (*HealthRequest) Descriptor() ([]byte, []int) {
-	return file_proto_tools_proto_rawDescGZIP(), []int{18}
+	return file_proto_tools_proto_rawDescGZIP(), []int{26}
 }
 
 func (x *HealthRequest) GetAction() string {
@@ -2027,7 +2651,7 @@ type SecurityRequest struct {
 
 func (x *SecurityRequest) Reset() {
 	*x = SecurityRequest{}
-	mi := &file_proto_tools_proto_msgTypes[19]
+	mi := &file_proto_tools_proto_msgTypes[27]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2039,7 +2663,7 @@ func (x *SecurityRequest) String() string {
 func (*SecurityRequest) ProtoMessage() {}
 
 func (x *SecurityRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_tools_proto_msgTypes[19]
+	mi := &file_proto_tools_proto_msgTypes[27]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2052,7 +2676,7 @@ func (x *SecurityRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SecurityRequest.ProtoReflect.Descriptor instead.
 func (*SecurityRequest) Descriptor() ([]byte, []int) {
-	return file_proto_tools_proto_rawDescGZIP(), []int{19}
+	return file_proto_tools_proto_rawDescGZIP(), []int{27}
 }
 
 func (x *SecurityRequest) GetAction() string {
@@ -2116,7 +2740,7 @@ type LintRequest struct {
 
 func (x *LintRequest) Reset() {
 	*x = LintRequest{}
-	mi := &file_proto_tools_proto_msgTypes[20]
+	mi := &file_proto_tools_proto_msgTypes[28]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2128,7 +2752,7 @@ func (x *LintRequest) String() string {
 func (*LintRequest) ProtoMessage() {}
 
 func (x *LintRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_tools_proto_msgTypes[20]
+	mi := &file_proto_tools_proto_msgTypes[28]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2141,7 +2765,7 @@ func (x *LintRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LintRequest.ProtoReflect.Descriptor instead.
 func (*LintRequest) Descriptor() ([]byte, []int) {
-	return file_proto_tools_proto_rawDescGZIP(), []int{20}
+	return file_proto_tools_proto_rawDescGZIP(), []int{28}
 }
 
 func (x *LintRequest) GetAction() string {
@@ -2233,7 +2857,7 @@ type EstimationRequest struct {
 
 func (x *EstimationRequest) Reset() {
 	*x = EstimationRequest{}
-	mi := &file_proto_tools_proto_msgTypes[21]
+	mi := &file_proto_tools_proto_msgTypes[29]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2245,7 +2869,7 @@ func (x *EstimationRequest) String() string {
 func (*EstimationRequest) ProtoMessage() {}
 
 func (x *EstimationRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_tools_proto_msgTypes[21]
+	mi := &file_proto_tools_proto_msgTypes[29]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2258,7 +2882,7 @@ func (x *EstimationRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EstimationRequest.ProtoReflect.Descriptor instead.
 func (*EstimationRequest) Descriptor() ([]byte, []int) {
-	return file_proto_tools_proto_rawDescGZIP(), []int{21}
+	return file_proto_tools_proto_rawDescGZIP(), []int{29}
 }
 
 func (x *EstimationRequest) GetAction() string {
@@ -2356,7 +2980,7 @@ type GitToolsRequest struct {
 
 func (x *GitToolsRequest) Reset() {
 	*x = GitToolsRequest{}
-	mi := &file_proto_tools_proto_msgTypes[22]
+	mi := &file_proto_tools_proto_msgTypes[30]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2368,7 +2992,7 @@ func (x *GitToolsRequest) String() string {
 func (*GitToolsRequest) ProtoMessage() {}
 
 func (x *GitToolsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_tools_proto_msgTypes[22]
+	mi := &file_proto_tools_proto_msgTypes[30]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2381,7 +3005,7 @@ func (x *GitToolsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GitToolsRequest.ProtoReflect.Descriptor instead.
 func (*GitToolsRequest) Descriptor() ([]byte, []int) {
-	return file_proto_tools_proto_rawDescGZIP(), []int{22}
+	return file_proto_tools_proto_rawDescGZIP(), []int{30}
 }
 
 func (x *GitToolsRequest) GetAction() string {
@@ -2533,7 +3157,7 @@ type SessionRequest struct {
 
 func (x *SessionRequest) Reset() {
 	*x = SessionRequest{}
-	mi := &file_proto_tools_proto_msgTypes[23]
+	mi := &file_proto_tools_proto_msgTypes[31]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2545,7 +3169,7 @@ func (x *SessionRequest) String() string {
 func (*SessionRequest) ProtoMessage() {}
 
 func (x *SessionRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_tools_proto_msgTypes[23]
+	mi := &file_proto_tools_proto_msgTypes[31]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2558,7 +3182,7 @@ func (x *SessionRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SessionRequest.ProtoReflect.Descriptor instead.
 func (*SessionRequest) Descriptor() ([]byte, []int) {
-	return file_proto_tools_proto_rawDescGZIP(), []int{23}
+	return file_proto_tools_proto_rawDescGZIP(), []int{31}
 }
 
 func (x *SessionRequest) GetAction() string {
@@ -2773,7 +3397,7 @@ type WorkflowModeRequest struct {
 
 func (x *WorkflowModeRequest) Reset() {
 	*x = WorkflowModeRequest{}
-	mi := &file_proto_tools_proto_msgTypes[24]
+	mi := &file_proto_tools_proto_msgTypes[32]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2785,7 +3409,7 @@ func (x *WorkflowModeRequest) String() string {
 func (*WorkflowModeRequest) ProtoMessage() {}
 
 func (x *WorkflowModeRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_tools_proto_msgTypes[24]
+	mi := &file_proto_tools_proto_msgTypes[32]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2798,7 +3422,7 @@ func (x *WorkflowModeRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WorkflowModeRequest.ProtoReflect.Descriptor instead.
 func (*WorkflowModeRequest) Descriptor() ([]byte, []int) {
-	return file_proto_tools_proto_rawDescGZIP(), []int{24}
+	return file_proto_tools_proto_rawDescGZIP(), []int{32}
 }
 
 func (x *WorkflowModeRequest) GetAction() string {
@@ -2865,7 +3489,7 @@ type SetupHooksRequest struct {
 
 func (x *SetupHooksRequest) Reset() {
 	*x = SetupHooksRequest{}
-	mi := &file_proto_tools_proto_msgTypes[25]
+	mi := &file_proto_tools_proto_msgTypes[33]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2877,7 +3501,7 @@ func (x *SetupHooksRequest) String() string {
 func (*SetupHooksRequest) ProtoMessage() {}
 
 func (x *SetupHooksRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_tools_proto_msgTypes[25]
+	mi := &file_proto_tools_proto_msgTypes[33]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2890,7 +3514,7 @@ func (x *SetupHooksRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetupHooksRequest.ProtoReflect.Descriptor instead.
 func (*SetupHooksRequest) Descriptor() ([]byte, []int) {
-	return file_proto_tools_proto_rawDescGZIP(), []int{25}
+	return file_proto_tools_proto_rawDescGZIP(), []int{33}
 }
 
 func (x *SetupHooksRequest) GetAction() string {
@@ -2946,7 +3570,7 @@ type CheckAttributionRequest struct {
 
 func (x *CheckAttributionRequest) Reset() {
 	*x = CheckAttributionRequest{}
-	mi := &file_proto_tools_proto_msgTypes[26]
+	mi := &file_proto_tools_proto_msgTypes[34]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2958,7 +3582,7 @@ func (x *CheckAttributionRequest) String() string {
 func (*CheckAttributionRequest) ProtoMessage() {}
 
 func (x *CheckAttributionRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_tools_proto_msgTypes[26]
+	mi := &file_proto_tools_proto_msgTypes[34]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2971,7 +3595,7 @@ func (x *CheckAttributionRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CheckAttributionRequest.ProtoReflect.Descriptor instead.
 func (*CheckAttributionRequest) Descriptor() ([]byte, []int) {
-	return file_proto_tools_proto_rawDescGZIP(), []int{26}
+	return file_proto_tools_proto_rawDescGZIP(), []int{34}
 }
 
 func (x *CheckAttributionRequest) GetOutputPath() string {
@@ -3000,7 +3624,7 @@ type AddExternalToolHintsRequest struct {
 
 func (x *AddExternalToolHintsRequest) Reset() {
 	*x = AddExternalToolHintsRequest{}
-	mi := &file_proto_tools_proto_msgTypes[27]
+	mi := &file_proto_tools_proto_msgTypes[35]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3012,7 +3636,7 @@ func (x *AddExternalToolHintsRequest) String() string {
 func (*AddExternalToolHintsRequest) ProtoMessage() {}
 
 func (x *AddExternalToolHintsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_tools_proto_msgTypes[27]
+	mi := &file_proto_tools_proto_msgTypes[35]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3025,7 +3649,7 @@ func (x *AddExternalToolHintsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AddExternalToolHintsRequest.ProtoReflect.Descriptor instead.
 func (*AddExternalToolHintsRequest) Descriptor() ([]byte, []int) {
-	return file_proto_tools_proto_rawDescGZIP(), []int{27}
+	return file_proto_tools_proto_rawDescGZIP(), []int{35}
 }
 
 func (x *AddExternalToolHintsRequest) GetDryRun() bool {
@@ -3073,7 +3697,7 @@ type MemoryMaintRequest struct {
 
 func (x *MemoryMaintRequest) Reset() {
 	*x = MemoryMaintRequest{}
-	mi := &file_proto_tools_proto_msgTypes[28]
+	mi := &file_proto_tools_proto_msgTypes[36]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3085,7 +3709,7 @@ func (x *MemoryMaintRequest) String() string {
 func (*MemoryMaintRequest) ProtoMessage() {}
 
 func (x *MemoryMaintRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_tools_proto_msgTypes[28]
+	mi := &file_proto_tools_proto_msgTypes[36]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3098,7 +3722,7 @@ func (x *MemoryMaintRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MemoryMaintRequest.ProtoReflect.Descriptor instead.
 func (*MemoryMaintRequest) Descriptor() ([]byte, []int) {
-	return file_proto_tools_proto_rawDescGZIP(), []int{28}
+	return file_proto_tools_proto_rawDescGZIP(), []int{36}
 }
 
 func (x *MemoryMaintRequest) GetAction() string {
@@ -3217,7 +3841,7 @@ type ToolCatalogRequest struct {
 
 func (x *ToolCatalogRequest) Reset() {
 	*x = ToolCatalogRequest{}
-	mi := &file_proto_tools_proto_msgTypes[29]
+	mi := &file_proto_tools_proto_msgTypes[37]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3229,7 +3853,7 @@ func (x *ToolCatalogRequest) String() string {
 func (*ToolCatalogRequest) ProtoMessage() {}
 
 func (x *ToolCatalogRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_tools_proto_msgTypes[29]
+	mi := &file_proto_tools_proto_msgTypes[37]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3242,7 +3866,7 @@ func (x *ToolCatalogRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ToolCatalogRequest.ProtoReflect.Descriptor instead.
 func (*ToolCatalogRequest) Descriptor() ([]byte, []int) {
-	return file_proto_tools_proto_rawDescGZIP(), []int{29}
+	return file_proto_tools_proto_rawDescGZIP(), []int{37}
 }
 
 func (x *ToolCatalogRequest) GetAction() string {
@@ -3283,7 +3907,7 @@ type OllamaRequest struct {
 
 func (x *OllamaRequest) Reset() {
 	*x = OllamaRequest{}
-	mi := &file_proto_tools_proto_msgTypes[30]
+	mi := &file_proto_tools_proto_msgTypes[38]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3295,7 +3919,7 @@ func (x *OllamaRequest) String() string {
 func (*OllamaRequest) ProtoMessage() {}
 
 func (x *OllamaRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_tools_proto_msgTypes[30]
+	mi := &file_proto_tools_proto_msgTypes[38]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3308,7 +3932,7 @@ func (x *OllamaRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use OllamaRequest.ProtoReflect.Descriptor instead.
 func (*OllamaRequest) Descriptor() ([]byte, []int) {
-	return file_proto_tools_proto_rawDescGZIP(), []int{30}
+	return file_proto_tools_proto_rawDescGZIP(), []int{38}
 }
 
 func (x *OllamaRequest) GetAction() string {
@@ -3431,7 +4055,7 @@ type MLXRequest struct {
 
 func (x *MLXRequest) Reset() {
 	*x = MLXRequest{}
-	mi := &file_proto_tools_proto_msgTypes[31]
+	mi := &file_proto_tools_proto_msgTypes[39]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3443,7 +4067,7 @@ func (x *MLXRequest) String() string {
 func (*MLXRequest) ProtoMessage() {}
 
 func (x *MLXRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_tools_proto_msgTypes[31]
+	mi := &file_proto_tools_proto_msgTypes[39]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3456,7 +4080,7 @@ func (x *MLXRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MLXRequest.ProtoReflect.Descriptor instead.
 func (*MLXRequest) Descriptor() ([]byte, []int) {
-	return file_proto_tools_proto_rawDescGZIP(), []int{31}
+	return file_proto_tools_proto_rawDescGZIP(), []int{39}
 }
 
 func (x *MLXRequest) GetAction() string {
@@ -3517,7 +4141,7 @@ type PromptTrackingRequest struct {
 
 func (x *PromptTrackingRequest) Reset() {
 	*x = PromptTrackingRequest{}
-	mi := &file_proto_tools_proto_msgTypes[32]
+	mi := &file_proto_tools_proto_msgTypes[40]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3529,7 +4153,7 @@ func (x *PromptTrackingRequest) String() string {
 func (*PromptTrackingRequest) ProtoMessage() {}
 
 func (x *PromptTrackingRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_tools_proto_msgTypes[32]
+	mi := &file_proto_tools_proto_msgTypes[40]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3542,7 +4166,7 @@ func (x *PromptTrackingRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PromptTrackingRequest.ProtoReflect.Descriptor instead.
 func (*PromptTrackingRequest) Descriptor() ([]byte, []int) {
-	return file_proto_tools_proto_rawDescGZIP(), []int{32}
+	return file_proto_tools_proto_rawDescGZIP(), []int{40}
 }
 
 func (x *PromptTrackingRequest) GetAction() string {
@@ -3610,7 +4234,7 @@ type RecommendRequest struct {
 
 func (x *RecommendRequest) Reset() {
 	*x = RecommendRequest{}
-	mi := &file_proto_tools_proto_msgTypes[33]
+	mi := &file_proto_tools_proto_msgTypes[41]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3622,7 +4246,7 @@ func (x *RecommendRequest) String() string {
 func (*RecommendRequest) ProtoMessage() {}
 
 func (x *RecommendRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_tools_proto_msgTypes[33]
+	mi := &file_proto_tools_proto_msgTypes[41]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3635,7 +4259,7 @@ func (x *RecommendRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RecommendRequest.ProtoReflect.Descriptor instead.
 func (*RecommendRequest) Descriptor() ([]byte, []int) {
-	return file_proto_tools_proto_rawDescGZIP(), []int{33}
+	return file_proto_tools_proto_rawDescGZIP(), []int{41}
 }
 
 func (x *RecommendRequest) GetAction() string {
@@ -3697,7 +4321,7 @@ type InferSessionModeRequest struct {
 
 func (x *InferSessionModeRequest) Reset() {
 	*x = InferSessionModeRequest{}
-	mi := &file_proto_tools_proto_msgTypes[34]
+	mi := &file_proto_tools_proto_msgTypes[42]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3709,7 +4333,7 @@ func (x *InferSessionModeRequest) String() string {
 func (*InferSessionModeRequest) ProtoMessage() {}
 
 func (x *InferSessionModeRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_tools_proto_msgTypes[34]
+	mi := &file_proto_tools_proto_msgTypes[42]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3722,7 +4346,7 @@ func (x *InferSessionModeRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use InferSessionModeRequest.ProtoReflect.Descriptor instead.
 func (*InferSessionModeRequest) Descriptor() ([]byte, []int) {
-	return file_proto_tools_proto_rawDescGZIP(), []int{34}
+	return file_proto_tools_proto_rawDescGZIP(), []int{42}
 }
 
 func (x *InferSessionModeRequest) GetForceRecompute() bool {
@@ -3743,7 +4367,7 @@ type ContextBudgetRequest struct {
 
 func (x *ContextBudgetRequest) Reset() {
 	*x = ContextBudgetRequest{}
-	mi := &file_proto_tools_proto_msgTypes[35]
+	mi := &file_proto_tools_proto_msgTypes[43]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3755,7 +4379,7 @@ func (x *ContextBudgetRequest) String() string {
 func (*ContextBudgetRequest) ProtoMessage() {}
 
 func (x *ContextBudgetRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_tools_proto_msgTypes[35]
+	mi := &file_proto_tools_proto_msgTypes[43]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3768,7 +4392,7 @@ func (x *ContextBudgetRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ContextBudgetRequest.ProtoReflect.Descriptor instead.
 func (*ContextBudgetRequest) Descriptor() ([]byte, []int) {
-	return file_proto_tools_proto_rawDescGZIP(), []int{35}
+	return file_proto_tools_proto_rawDescGZIP(), []int{43}
 }
 
 func (x *ContextBudgetRequest) GetItems() string {
@@ -3901,7 +4525,63 @@ const file_proto_tools_proto_rawDesc = "" +
 	"\x05value\x18\x02 \x01(\x01R\x05value:\x028\x01\x1a9\n" +
 	"\vCountsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\x05R\x05value:\x028\x01\"\x86\x01\n" +
+	"\x05value\x18\x02 \x01(\x05R\x05value:\x028\x01\"\xa8\x03\n" +
+	"\x13ProjectOverviewData\x122\n" +
+	"\aproject\x18\x01 \x01(\v2\x18.exarp.tools.ProjectInfoR\aproject\x12/\n" +
+	"\x06health\x18\x02 \x01(\v2\x17.exarp.tools.HealthDataR\x06health\x128\n" +
+	"\bcodebase\x18\x03 \x01(\v2\x1c.exarp.tools.CodebaseMetricsR\bcodebase\x12.\n" +
+	"\x05tasks\x18\x04 \x01(\v2\x18.exarp.tools.TaskMetricsR\x05tasks\x121\n" +
+	"\x06phases\x18\x05 \x03(\v2\x19.exarp.tools.ProjectPhaseR\x06phases\x120\n" +
+	"\x05risks\x18\x06 \x03(\v2\x1a.exarp.tools.RiskOrBlockerR\x05risks\x12:\n" +
+	"\fnext_actions\x18\a \x03(\v2\x17.exarp.tools.NextActionR\vnextActions\x12!\n" +
+	"\fgenerated_at\x18\b \x01(\tR\vgeneratedAt\"\x89\x01\n" +
+	"\vProjectInfo\x12\x12\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\x12\x18\n" +
+	"\aversion\x18\x02 \x01(\tR\aversion\x12 \n" +
+	"\vdescription\x18\x03 \x01(\tR\vdescription\x12\x12\n" +
+	"\x04type\x18\x04 \x01(\tR\x04type\x12\x16\n" +
+	"\x06status\x18\x05 \x01(\tR\x06status\"\xd4\x01\n" +
+	"\n" +
+	"HealthData\x12#\n" +
+	"\roverall_score\x18\x01 \x01(\x01R\foverallScore\x12)\n" +
+	"\x10production_ready\x18\x02 \x01(\bR\x0fproductionReady\x12;\n" +
+	"\x06scores\x18\x03 \x03(\v2#.exarp.tools.HealthData.ScoresEntryR\x06scores\x1a9\n" +
+	"\vScoresEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\x01R\x05value:\x028\x01\"\x9d\x02\n" +
+	"\x0fCodebaseMetrics\x12\x19\n" +
+	"\bgo_files\x18\x01 \x01(\x05R\agoFiles\x12\x19\n" +
+	"\bgo_lines\x18\x02 \x01(\x05R\agoLines\x12!\n" +
+	"\fpython_files\x18\x03 \x01(\x05R\vpythonFiles\x12!\n" +
+	"\fpython_lines\x18\x04 \x01(\x05R\vpythonLines\x12\x1f\n" +
+	"\vtotal_files\x18\x05 \x01(\x05R\n" +
+	"totalFiles\x12\x1f\n" +
+	"\vtotal_lines\x18\x06 \x01(\x05R\n" +
+	"totalLines\x12\x14\n" +
+	"\x05tools\x18\a \x01(\x05R\x05tools\x12\x18\n" +
+	"\aprompts\x18\b \x01(\x05R\aprompts\x12\x1c\n" +
+	"\tresources\x18\t \x01(\x05R\tresources\"\xad\x01\n" +
+	"\vTaskMetrics\x12\x14\n" +
+	"\x05total\x18\x01 \x01(\x05R\x05total\x12\x18\n" +
+	"\apending\x18\x02 \x01(\x05R\apending\x12\x1c\n" +
+	"\tcompleted\x18\x03 \x01(\x05R\tcompleted\x12'\n" +
+	"\x0fcompletion_rate\x18\x04 \x01(\x01R\x0ecompletionRate\x12'\n" +
+	"\x0fremaining_hours\x18\x05 \x01(\x01R\x0eremainingHours\"V\n" +
+	"\fProjectPhase\x12\x12\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\x12\x16\n" +
+	"\x06status\x18\x02 \x01(\tR\x06status\x12\x1a\n" +
+	"\bprogress\x18\x03 \x01(\x05R\bprogress\"z\n" +
+	"\rRiskOrBlocker\x12\x12\n" +
+	"\x04type\x18\x01 \x01(\tR\x04type\x12 \n" +
+	"\vdescription\x18\x02 \x01(\tR\vdescription\x12\x17\n" +
+	"\atask_id\x18\x03 \x01(\tR\x06taskId\x12\x1a\n" +
+	"\bpriority\x18\x04 \x01(\tR\bpriority\"~\n" +
+	"\n" +
+	"NextAction\x12\x17\n" +
+	"\atask_id\x18\x01 \x01(\tR\x06taskId\x12\x12\n" +
+	"\x04name\x18\x02 \x01(\tR\x04name\x12\x1a\n" +
+	"\bpriority\x18\x03 \x01(\tR\bpriority\x12'\n" +
+	"\x0festimated_hours\x18\x04 \x01(\x01R\x0eestimatedHours\"\x86\x01\n" +
 	"\x17AnalyzeAlignmentRequest\x12\x16\n" +
 	"\x06action\x18\x01 \x01(\tR\x06action\x122\n" +
 	"\x15create_followup_tasks\x18\x02 \x01(\bR\x13createFollowupTasks\x12\x1f\n" +
@@ -4220,7 +4900,7 @@ func file_proto_tools_proto_rawDescGZIP() []byte {
 	return file_proto_tools_proto_rawDescData
 }
 
-var file_proto_tools_proto_msgTypes = make([]protoimpl.MessageInfo, 42)
+var file_proto_tools_proto_msgTypes = make([]protoimpl.MessageInfo, 51)
 var file_proto_tools_proto_goTypes = []any{
 	(*Memory)(nil),                      // 0: exarp.tools.Memory
 	(*MemoryRequest)(nil),               // 1: exarp.tools.MemoryRequest
@@ -4233,54 +4913,71 @@ var file_proto_tools_proto_goTypes = []any{
 	(*ReportResponse)(nil),              // 8: exarp.tools.ReportResponse
 	(*AIInsights)(nil),                  // 9: exarp.tools.AIInsights
 	(*Metrics)(nil),                     // 10: exarp.tools.Metrics
-	(*AnalyzeAlignmentRequest)(nil),     // 11: exarp.tools.AnalyzeAlignmentRequest
-	(*TaskAnalysisRequest)(nil),         // 12: exarp.tools.TaskAnalysisRequest
-	(*TaskDiscoveryRequest)(nil),        // 13: exarp.tools.TaskDiscoveryRequest
-	(*TaskWorkflowRequest)(nil),         // 14: exarp.tools.TaskWorkflowRequest
-	(*AutomationRequest)(nil),           // 15: exarp.tools.AutomationRequest
-	(*TestingRequest)(nil),              // 16: exarp.tools.TestingRequest
-	(*GenerateConfigRequest)(nil),       // 17: exarp.tools.GenerateConfigRequest
-	(*HealthRequest)(nil),               // 18: exarp.tools.HealthRequest
-	(*SecurityRequest)(nil),             // 19: exarp.tools.SecurityRequest
-	(*LintRequest)(nil),                 // 20: exarp.tools.LintRequest
-	(*EstimationRequest)(nil),           // 21: exarp.tools.EstimationRequest
-	(*GitToolsRequest)(nil),             // 22: exarp.tools.GitToolsRequest
-	(*SessionRequest)(nil),              // 23: exarp.tools.SessionRequest
-	(*WorkflowModeRequest)(nil),         // 24: exarp.tools.WorkflowModeRequest
-	(*SetupHooksRequest)(nil),           // 25: exarp.tools.SetupHooksRequest
-	(*CheckAttributionRequest)(nil),     // 26: exarp.tools.CheckAttributionRequest
-	(*AddExternalToolHintsRequest)(nil), // 27: exarp.tools.AddExternalToolHintsRequest
-	(*MemoryMaintRequest)(nil),          // 28: exarp.tools.MemoryMaintRequest
-	(*ToolCatalogRequest)(nil),          // 29: exarp.tools.ToolCatalogRequest
-	(*OllamaRequest)(nil),               // 30: exarp.tools.OllamaRequest
-	(*MLXRequest)(nil),                  // 31: exarp.tools.MLXRequest
-	(*PromptTrackingRequest)(nil),       // 32: exarp.tools.PromptTrackingRequest
-	(*RecommendRequest)(nil),            // 33: exarp.tools.RecommendRequest
-	(*InferSessionModeRequest)(nil),     // 34: exarp.tools.InferSessionModeRequest
-	(*ContextBudgetRequest)(nil),        // 35: exarp.tools.ContextBudgetRequest
-	nil,                                 // 36: exarp.tools.Memory.MetadataEntry
-	nil,                                 // 37: exarp.tools.MemoryResponse.CategoriesEntry
-	nil,                                 // 38: exarp.tools.ContextResponse.TokenEstimateEntry
-	nil,                                 // 39: exarp.tools.ContextSummary.TokenEstimateEntry
-	nil,                                 // 40: exarp.tools.Metrics.ComponentScoresEntry
-	nil,                                 // 41: exarp.tools.Metrics.CountsEntry
+	(*ProjectOverviewData)(nil),         // 11: exarp.tools.ProjectOverviewData
+	(*ProjectInfo)(nil),                 // 12: exarp.tools.ProjectInfo
+	(*HealthData)(nil),                  // 13: exarp.tools.HealthData
+	(*CodebaseMetrics)(nil),             // 14: exarp.tools.CodebaseMetrics
+	(*TaskMetrics)(nil),                 // 15: exarp.tools.TaskMetrics
+	(*ProjectPhase)(nil),                // 16: exarp.tools.ProjectPhase
+	(*RiskOrBlocker)(nil),               // 17: exarp.tools.RiskOrBlocker
+	(*NextAction)(nil),                  // 18: exarp.tools.NextAction
+	(*AnalyzeAlignmentRequest)(nil),     // 19: exarp.tools.AnalyzeAlignmentRequest
+	(*TaskAnalysisRequest)(nil),         // 20: exarp.tools.TaskAnalysisRequest
+	(*TaskDiscoveryRequest)(nil),        // 21: exarp.tools.TaskDiscoveryRequest
+	(*TaskWorkflowRequest)(nil),         // 22: exarp.tools.TaskWorkflowRequest
+	(*AutomationRequest)(nil),           // 23: exarp.tools.AutomationRequest
+	(*TestingRequest)(nil),              // 24: exarp.tools.TestingRequest
+	(*GenerateConfigRequest)(nil),       // 25: exarp.tools.GenerateConfigRequest
+	(*HealthRequest)(nil),               // 26: exarp.tools.HealthRequest
+	(*SecurityRequest)(nil),             // 27: exarp.tools.SecurityRequest
+	(*LintRequest)(nil),                 // 28: exarp.tools.LintRequest
+	(*EstimationRequest)(nil),           // 29: exarp.tools.EstimationRequest
+	(*GitToolsRequest)(nil),             // 30: exarp.tools.GitToolsRequest
+	(*SessionRequest)(nil),              // 31: exarp.tools.SessionRequest
+	(*WorkflowModeRequest)(nil),         // 32: exarp.tools.WorkflowModeRequest
+	(*SetupHooksRequest)(nil),           // 33: exarp.tools.SetupHooksRequest
+	(*CheckAttributionRequest)(nil),     // 34: exarp.tools.CheckAttributionRequest
+	(*AddExternalToolHintsRequest)(nil), // 35: exarp.tools.AddExternalToolHintsRequest
+	(*MemoryMaintRequest)(nil),          // 36: exarp.tools.MemoryMaintRequest
+	(*ToolCatalogRequest)(nil),          // 37: exarp.tools.ToolCatalogRequest
+	(*OllamaRequest)(nil),               // 38: exarp.tools.OllamaRequest
+	(*MLXRequest)(nil),                  // 39: exarp.tools.MLXRequest
+	(*PromptTrackingRequest)(nil),       // 40: exarp.tools.PromptTrackingRequest
+	(*RecommendRequest)(nil),            // 41: exarp.tools.RecommendRequest
+	(*InferSessionModeRequest)(nil),     // 42: exarp.tools.InferSessionModeRequest
+	(*ContextBudgetRequest)(nil),        // 43: exarp.tools.ContextBudgetRequest
+	nil,                                 // 44: exarp.tools.Memory.MetadataEntry
+	nil,                                 // 45: exarp.tools.MemoryResponse.CategoriesEntry
+	nil,                                 // 46: exarp.tools.ContextResponse.TokenEstimateEntry
+	nil,                                 // 47: exarp.tools.ContextSummary.TokenEstimateEntry
+	nil,                                 // 48: exarp.tools.Metrics.ComponentScoresEntry
+	nil,                                 // 49: exarp.tools.Metrics.CountsEntry
+	nil,                                 // 50: exarp.tools.HealthData.ScoresEntry
 }
 var file_proto_tools_proto_depIdxs = []int32{
-	36, // 0: exarp.tools.Memory.metadata:type_name -> exarp.tools.Memory.MetadataEntry
+	44, // 0: exarp.tools.Memory.metadata:type_name -> exarp.tools.Memory.MetadataEntry
 	0,  // 1: exarp.tools.MemoryResponse.memories:type_name -> exarp.tools.Memory
-	37, // 2: exarp.tools.MemoryResponse.categories:type_name -> exarp.tools.MemoryResponse.CategoriesEntry
-	38, // 3: exarp.tools.ContextResponse.token_estimate:type_name -> exarp.tools.ContextResponse.TokenEstimateEntry
+	45, // 2: exarp.tools.MemoryResponse.categories:type_name -> exarp.tools.MemoryResponse.CategoriesEntry
+	46, // 3: exarp.tools.ContextResponse.token_estimate:type_name -> exarp.tools.ContextResponse.TokenEstimateEntry
 	6,  // 4: exarp.tools.ContextResponse.summaries:type_name -> exarp.tools.ContextSummary
-	39, // 5: exarp.tools.ContextSummary.token_estimate:type_name -> exarp.tools.ContextSummary.TokenEstimateEntry
+	47, // 5: exarp.tools.ContextSummary.token_estimate:type_name -> exarp.tools.ContextSummary.TokenEstimateEntry
 	9,  // 6: exarp.tools.ReportResponse.ai_insights:type_name -> exarp.tools.AIInsights
 	10, // 7: exarp.tools.AIInsights.metrics:type_name -> exarp.tools.Metrics
-	40, // 8: exarp.tools.Metrics.component_scores:type_name -> exarp.tools.Metrics.ComponentScoresEntry
-	41, // 9: exarp.tools.Metrics.counts:type_name -> exarp.tools.Metrics.CountsEntry
-	10, // [10:10] is the sub-list for method output_type
-	10, // [10:10] is the sub-list for method input_type
-	10, // [10:10] is the sub-list for extension type_name
-	10, // [10:10] is the sub-list for extension extendee
-	0,  // [0:10] is the sub-list for field type_name
+	48, // 8: exarp.tools.Metrics.component_scores:type_name -> exarp.tools.Metrics.ComponentScoresEntry
+	49, // 9: exarp.tools.Metrics.counts:type_name -> exarp.tools.Metrics.CountsEntry
+	12, // 10: exarp.tools.ProjectOverviewData.project:type_name -> exarp.tools.ProjectInfo
+	13, // 11: exarp.tools.ProjectOverviewData.health:type_name -> exarp.tools.HealthData
+	14, // 12: exarp.tools.ProjectOverviewData.codebase:type_name -> exarp.tools.CodebaseMetrics
+	15, // 13: exarp.tools.ProjectOverviewData.tasks:type_name -> exarp.tools.TaskMetrics
+	16, // 14: exarp.tools.ProjectOverviewData.phases:type_name -> exarp.tools.ProjectPhase
+	17, // 15: exarp.tools.ProjectOverviewData.risks:type_name -> exarp.tools.RiskOrBlocker
+	18, // 16: exarp.tools.ProjectOverviewData.next_actions:type_name -> exarp.tools.NextAction
+	50, // 17: exarp.tools.HealthData.scores:type_name -> exarp.tools.HealthData.ScoresEntry
+	18, // [18:18] is the sub-list for method output_type
+	18, // [18:18] is the sub-list for method input_type
+	18, // [18:18] is the sub-list for extension type_name
+	18, // [18:18] is the sub-list for extension extendee
+	0,  // [0:18] is the sub-list for field type_name
 }
 
 func init() { file_proto_tools_proto_init() }
@@ -4294,7 +4991,7 @@ func file_proto_tools_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_tools_proto_rawDesc), len(file_proto_tools_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   42,
+			NumMessages:   51,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
