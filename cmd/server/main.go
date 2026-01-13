@@ -17,22 +17,27 @@ import (
 
 func main() {
 	// Check for CLI flags first (completion, list, etc.) - these should work even without TTY
+	// Also check for task subcommand
 	hasCLIFlags := false
-	for i := 1; i < len(os.Args); i++ {
-		arg := os.Args[i]
-		if arg == "-completion" || arg == "--completion" ||
-			arg == "-list" || arg == "--list" ||
-			arg == "-tool" || arg == "--tool" ||
-			arg == "-test" || arg == "--test" ||
-			arg == "-i" || arg == "--interactive" ||
-			arg == "-args" || arg == "--args" ||
-			arg == "-h" || arg == "--help" || arg == "help" {
-			hasCLIFlags = true
-			break
-		}
-		// Stop at first non-flag argument
-		if len(arg) > 0 && arg[0] != '-' {
-			break
+	if len(os.Args) > 1 && os.Args[1] == "task" {
+		hasCLIFlags = true
+	} else {
+		for i := 1; i < len(os.Args); i++ {
+			arg := os.Args[i]
+			if arg == "-completion" || arg == "--completion" ||
+				arg == "-list" || arg == "--list" ||
+				arg == "-tool" || arg == "--tool" ||
+				arg == "-test" || arg == "--test" ||
+				arg == "-i" || arg == "--interactive" ||
+				arg == "-args" || arg == "--args" ||
+				arg == "-h" || arg == "--help" || arg == "help" {
+				hasCLIFlags = true
+				break
+			}
+			// Stop at first non-flag argument
+			if len(arg) > 0 && arg[0] != '-' {
+				break
+			}
 		}
 	}
 

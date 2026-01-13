@@ -69,6 +69,21 @@ func setupServer() (framework.MCPServer, error) {
 
 // Run starts the CLI interface
 func Run() error {
+	// Check for task subcommand first (before flag parsing)
+	if len(os.Args) > 1 && os.Args[1] == "task" {
+		// Initialize database (before server creation)
+		initializeDatabase()
+
+		// Setup server
+		server, err := setupServer()
+		if err != nil {
+			return err
+		}
+
+		// Handle task subcommand
+		return handleTaskCommand(server, os.Args[2:])
+	}
+
 	// Parse command line arguments
 	var (
 		toolName    = flag.String("tool", "", "Tool name to execute")
@@ -377,6 +392,7 @@ func showUsage() {
 	_, _ = fmt.Println()
 	_, _ = fmt.Println("Usage:")
 	_, _ = fmt.Println("  exarp-go [flags]")
+	_, _ = fmt.Println("  exarp-go task <command> [options]")
 	_, _ = fmt.Println()
 	_, _ = fmt.Println("Flags:")
 	_, _ = fmt.Println("  -tool <name>        Execute a tool")
@@ -386,11 +402,21 @@ func showUsage() {
 	_, _ = fmt.Println("  -i                  Interactive mode")
 	_, _ = fmt.Println("  -completion <shell> Generate shell completion script (bash|zsh|fish)")
 	_, _ = fmt.Println()
+	_, _ = fmt.Println("Task Commands:")
+	_, _ = fmt.Println("  task list [--status <status>] [--priority <priority>] [--tag <tag>]")
+	_, _ = fmt.Println("  task status <task-id>")
+	_, _ = fmt.Println("  task update <task-id> --new-status <status>")
+	_, _ = fmt.Println("  task create <name> [--description <text>] [--priority <priority>]")
+	_, _ = fmt.Println("  task show <task-id>")
+	_, _ = fmt.Println("  task help")
+	_, _ = fmt.Println()
 	_, _ = fmt.Println("Examples:")
 	_, _ = fmt.Println("  exarp-go -list")
 	_, _ = fmt.Println("  exarp-go -tool lint -args '{\"action\":\"run\",\"path\":\".\"}'")
 	_, _ = fmt.Println("  exarp-go -test lint")
 	_, _ = fmt.Println("  exarp-go -i")
+	_, _ = fmt.Println("  exarp-go task list --status \"In Progress\"")
+	_, _ = fmt.Println("  exarp-go task update T-1 --new-status \"Done\"")
 	_, _ = fmt.Println("  exarp-go -completion bash > /usr/local/etc/bash_completion.d/exarp-go")
 	_, _ = fmt.Println()
 }
