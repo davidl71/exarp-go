@@ -1,10 +1,6 @@
-MIT License
+The MIT License (MIT)
 
-<<<<<<<< HEAD:vendor/github.com/ncruces/go-strftime/LICENSE
-Copyright (c) 2022 Nuno Cruces
-========
 Copyright (c) 2016 Anmol Sethi
->>>>>>>> 53a9c23e784ed8b0da4a5f14d74fe59e9b5e5a9d:vendor/github.com/xo/terminfo/LICENSE
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
