@@ -153,28 +153,6 @@ func (s *MicrosoftTodoSource) GetTasks(ctx context.Context, options GetTasksOpti
 	// This is a placeholder - implementation will be completed once SDK is added
 	return nil, fmt.Errorf("Microsoft To-Do implementation pending SDK integration")
 
-	var externalTasks []*ExternalTask
-	for _, item := range tasks.GetValue() {
-		extTask := s.microsoftTaskToExternal(item)
-
-		// Apply filters
-		if options.Status != "" && extTask.Status != options.Status {
-			continue
-		}
-		if !options.IncludeCompleted && extTask.Completed {
-			continue
-		}
-		if options.Since != nil && extTask.LastModified.Before(*options.Since) {
-			continue
-		}
-		if options.Limit > 0 && len(externalTasks) >= options.Limit {
-			break
-		}
-
-		externalTasks = append(externalTasks, extTask)
-	}
-
-	return externalTasks, nil
 }
 
 // CreateTask creates a task in Microsoft To-Do
