@@ -10,7 +10,7 @@ import (
 	"github.com/davidl71/exarp-go/internal/framework"
 )
 
-func TestHandleAlignmentPRD(t *testing.T) {
+func TestHandleAlignmentTodo2(t *testing.T) {
 	tmpDir := t.TempDir()
 	// Create a test PRD file
 	prdDir := filepath.Join(tmpDir, "docs")
@@ -101,9 +101,9 @@ As a user, I want to export my data so that I can backup my information.
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := context.Background()
-			result, err := handleAlignmentPRD(ctx, tt.params)
+			result, err := handleAlignmentTodo2(ctx, tt.params)
 			if (err != nil) != tt.wantError {
-				t.Errorf("handleAlignmentPRD() error = %v, wantError %v", err, tt.wantError)
+				t.Errorf("handleAlignmentTodo2() error = %v, wantError %v", err, tt.wantError)
 				return
 			}
 			if !tt.wantError && tt.validate != nil {
@@ -127,9 +127,9 @@ func TestHandleAnalyzeAlignmentNative(t *testing.T) {
 			wantError: false,
 		},
 		{
-			name: "prd action",
+			name: "todo2 action",
 			params: map[string]interface{}{
-				"action": "prd",
+				"action": "todo2",
 			},
 			wantError: false,
 		},

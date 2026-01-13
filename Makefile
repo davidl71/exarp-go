@@ -289,26 +289,26 @@ dev-full: ## Full development mode (watch + test + coverage)
 test: test-go $(if $(filter 1,$(HAVE_PYTEST)),test-python,) ## Run all tests (Go + Python)
 	@echo "$(GREEN)✅ All tests passed$(NC)"
 
-test-go: ## Run Go tests (optimized for speed with parallel execution)
-	@echo "$(BLUE)Running Go tests (parallel)...$(NC)"
-	@$(GO) test ./... -parallel 4 || \
+test-go: ## Run Go tests (optimized for speed with parallel execution, CGO disabled)
+	@echo "$(BLUE)Running Go tests (parallel, CGO_ENABLED=0)...$(NC)"
+	@CGO_ENABLED=0 $(GO) test ./... -parallel 4 || \
 	 (echo "$(RED)❌ Go tests failed$(NC)" && exit 1)
 	@echo "$(GREEN)✅ Go tests passed$(NC)"
 
-test-go-fast: ## Run Go tests in parallel (fast, no verbose) - optimized for pre-push
-	@echo "$(BLUE)Running Go tests (parallel, fast)...$(NC)"
-	@$(GO) test ./... -parallel 4 || \
+test-go-fast: ## Run Go tests in parallel (fast, no verbose, CGO disabled) - optimized for pre-push
+	@echo "$(BLUE)Running Go tests (parallel, fast, CGO_ENABLED=0)...$(NC)"
+	@CGO_ENABLED=0 $(GO) test ./... -parallel 4 || \
 	 (echo "$(RED)❌ Parallel tests failed$(NC)" && exit 1)
 	@echo "$(GREEN)✅ Go tests passed$(NC)"
 
-test-go-verbose: ## Run Go tests with verbose output
-	@echo "$(BLUE)Running Go tests (verbose)...$(NC)"
-	@$(GO) test ./... -v || \
+test-go-verbose: ## Run Go tests with verbose output (CGO disabled)
+	@echo "$(BLUE)Running Go tests (verbose, CGO_ENABLED=0)...$(NC)"
+	@CGO_ENABLED=0 $(GO) test ./... -v || \
 	 (echo "$(YELLOW)⚠️  Go tests failed or not available$(NC)"
 
-test-go-parallel: ## Run Go tests in parallel (faster)
-	@echo "$(BLUE)Running Go tests in parallel...$(NC)"
-	@$(GO) test ./... -v -parallel 4 || \
+test-go-parallel: ## Run Go tests in parallel (faster, CGO disabled)
+	@echo "$(BLUE)Running Go tests in parallel (CGO_ENABLED=0)...$(NC)"
+	@CGO_ENABLED=0 $(GO) test ./... -v -parallel 4 || \
 	 (echo "$(RED)❌ Parallel tests failed$(NC)" && exit 1)
 	@echo "$(GREEN)✅ Parallel tests passed$(NC)"
 

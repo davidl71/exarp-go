@@ -9,7 +9,7 @@ import (
 	"github.com/davidl71/exarp-go/internal/framework"
 )
 
-func TestHandleSetupPatternTriggers(t *testing.T) {
+func TestHandleSetupPatternHooks(t *testing.T) {
 	tmpDir := t.TempDir()
 
 	tests := []struct {
@@ -120,9 +120,9 @@ func TestHandleSetupPatternTriggers(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := context.Background()
-			result, err := handleSetupPatternTriggers(ctx, tt.params)
+			result, err := handleSetupPatternHooks(ctx, tt.params)
 			if (err != nil) != tt.wantError {
-				t.Errorf("handleSetupPatternTriggers() error = %v, wantError %v", err, tt.wantError)
+				t.Errorf("handleSetupPatternHooks() error = %v, wantError %v", err, tt.wantError)
 				return
 			}
 			if !tt.wantError && tt.validate != nil {

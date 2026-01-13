@@ -3,7 +3,6 @@ package cli
 import (
 	"context"
 	"fmt"
-	"log"
 	"net"
 	"os"
 	"os/signal"
@@ -15,6 +14,7 @@ import (
 	"github.com/davidl71/exarp-go/internal/config"
 	"github.com/davidl71/exarp-go/internal/database"
 	"github.com/davidl71/exarp-go/internal/framework"
+	"github.com/davidl71/exarp-go/internal/logging"
 	"github.com/davidl71/exarp-go/internal/tools"
 	"github.com/racingmars/go3270"
 )
@@ -50,19 +50,20 @@ func RunTUI3270(server framework.MCPServer, status string, port int, daemon bool
 
 // runTUI3270Server runs the actual server (foreground or background)
 func runTUI3270Server(server framework.MCPServer, status string, port int) error {
+	logging.InitLogger()
 	// Initialize database
 	projectRoot, err := tools.FindProjectRoot()
 	projectName := ""
 	if err != nil {
-		log.Printf("Warning: Could not find project root: %v", err)
+		logging.Warn("Could not find project root", "error", err, "operation", "runTUI3270Server")
 	} else {
 		projectName = getProjectName(projectRoot)
 		if err := database.Init(projectRoot); err != nil {
-			log.Printf("Warning: Database initialization failed: %v", err)
+			logging.Warn("Database initialization failed", "error", err, "operation", "runTUI3270Server")
 		} else {
 			defer func() {
 				if err := database.Close(); err != nil {
-					log.Printf("Warning: Error closing database: %v", err)
+					logging.Warn("Error closing database", "error", err, "operation", "closeDatabase")
 				}
 			}()
 		}
@@ -75,8 +76,8 @@ func runTUI3270Server(server framework.MCPServer, status string, port int) error
 	}
 	defer listener.Close()
 
-	log.Printf("3270 TUI server listening on port %d", port)
-	log.Printf("Connect with: x3270 localhost:%d", port)
+	logging.Info("3270 TUI server listening", "port", port, "operation", "runTUI3270Server")
+	logging.Info("Connect with x3270", "host", "localhost", "port", port, "operation", "runTUI3270Server")
 
 	// Set up signal handling for graceful shutdown
 	sigChan := make(chan os.Signal, 1)
@@ -92,7 +93,7 @@ func runTUI3270Server(server framework.MCPServer, status string, port int) error
 				if strings.Contains(err.Error(), "use of closed network connection") {
 					return
 				}
-				log.Printf("Error accepting connection: %v", err)
+				logging.Error("Error accepting connection", "error", err, "operation", "acceptConnection")
 				continue
 			}
 
@@ -104,7 +105,7 @@ func runTUI3270Server(server framework.MCPServer, status string, port int) error
 	// Wait for signal or error
 	select {
 	case sig := <-sigChan:
-		log.Printf("Received signal %v, shutting down gracefully...", sig)
+		logging.Info("Received signal, shutting down gracefully", "signal", sig.String(), "operation", "shutdown")
 		listener.Close()
 		return nil
 	case err := <-errChan:
@@ -185,7 +186,7 @@ func handle3270Connection(conn net.Conn, server framework.MCPServer, status, pro
 	// Negotiate telnet options
 	devInfo, err := go3270.NegotiateTelnet(conn)
 	if err != nil {
-		log.Printf("Telnet negotiation failed: %v", err)
+		logging.Error("Telnet negotiation failed", "error", err, "operation", "negotiateTelnet")
 		return
 	}
 
@@ -213,13 +214,13 @@ func handle3270Connection(conn net.Conn, server framework.MCPServer, status, pro
 		state.tasks, err = database.ListTasks(ctx, filters)
 	}
 	if err != nil {
-		log.Printf("Error loading tasks: %v", err)
+		logging.Error("Error loading tasks", "error", err, "operation", "loadTasks")
 	}
 
 	// Run transactions (main application loop)
 	// Start with main menu transaction
 	if err := go3270.RunTransactions(conn, devInfo, state.mainMenuTransaction, state); err != nil {
-		log.Printf("Transaction error: %v", err)
+		logging.Error("Transaction error", "error", err, "operation", "runTransactions")
 	}
 }
 
@@ -777,7 +778,7 @@ func (state *tui3270State) taskEditorTransaction(conn net.Conn, devInfo go3270.D
 
 		// Update task in database
 		if err := database.UpdateTask(ctx, task); err != nil {
-			log.Printf("Error updating task: %v", err)
+			logging.Error("Error updating task", "error", err, "operation", "updateTask", "task_id", task.ID)
 			// Show error message (could enhance with error field)
 		} else {
 			state.command = ""
@@ -850,7 +851,7 @@ func (state *tui3270State) handleCommand(cmd string, currentTx go3270.Tx) (go327
 				state.tasks, err = database.ListTasks(ctx, filters)
 			}
 			if err != nil {
-				log.Printf("Error reloading tasks: %v", err)
+				logging.Error("Error reloading tasks", "error", err, "operation", "reloadTasks")
 			}
 		}
 		state.command = ""
@@ -869,7 +870,7 @@ func (state *tui3270State) handleCommand(cmd string, currentTx go3270.Tx) (go327
 			state.tasks, err = database.ListTasks(ctx, filters)
 		}
 		if err != nil {
-			log.Printf("Error reloading tasks: %v", err)
+			logging.Error("Error reloading tasks", "error", err, "operation", "reloadTasks")
 		}
 		return state.taskListTransaction, state, nil
 

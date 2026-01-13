@@ -88,7 +88,7 @@ func TestHandleHealthDocs(t *testing.T) {
 	}
 }
 
-func TestHandleHealthDoD(t *testing.T) {
+func TestHandleHealthDOD(t *testing.T) {
 	tests := []struct {
 		name      string
 		params    map[string]interface{}
@@ -159,9 +159,9 @@ func TestHandleHealthDoD(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := context.Background()
-			result, err := handleHealthDoD(ctx, tt.params)
+			result, err := handleHealthDOD(ctx, tt.params)
 			if (err != nil) != tt.wantError {
-				t.Errorf("handleHealthDoD() error = %v, wantError %v", err, tt.wantError)
+				t.Errorf("handleHealthDOD() error = %v, wantError %v", err, tt.wantError)
 				return
 			}
 			if !tt.wantError && tt.validate != nil {
