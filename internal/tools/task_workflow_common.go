@@ -1127,15 +1127,10 @@ func generateEpochTaskID() string {
 	return fmt.Sprintf("T-%d", epochMillis)
 }
 
-// normalizePriority normalizes priority to valid values
+// normalizePriority normalizes priority values to canonical lowercase form.
+// This is a wrapper around NormalizePriority for backward compatibility.
 func normalizePriority(priority string) string {
-	priority = strings.ToLower(strings.TrimSpace(priority))
-	switch priority {
-	case "low", "medium", "high", "critical":
-		return priority
-	default:
-		return "medium" // Default
-	}
+	return NormalizePriority(priority)
 }
 
 // addEstimateComment estimates task duration and adds it as a comment

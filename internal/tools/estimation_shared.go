@@ -453,7 +453,8 @@ func loadHistoricalTasks(projectRoot string) ([]HistoricalTask, error) {
 	historical := make([]HistoricalTask, 0)
 	for _, task := range state.Todos {
 		status := normalizeStatus(task.Status)
-		if status != "Done" && status != "Completed" {
+		// NormalizeStatusToTitleCase maps both "done" and "completed" to "Done"
+		if status != "Done" {
 			continue
 		}
 

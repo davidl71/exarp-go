@@ -423,21 +423,10 @@ func handleTasksSummary(ctx context.Context, uri string) ([]byte, string, error)
 	return jsonData, "application/json", nil
 }
 
-// normalizeStatus normalizes status values (case-insensitive, proper case)
-// Returns: "Todo", "In Progress", "Done" or original if not recognized
+// normalizeStatus normalizes status values to Title Case.
+// This is a wrapper around tools.NormalizeStatusToTitleCase for backward compatibility.
 func normalizeStatus(status string) string {
-	lower := strings.ToLower(status)
-	switch lower {
-	case "todo":
-		return "Todo"
-	case "in progress", "inprogress":
-		return "In Progress"
-	case "done":
-		return "Done"
-	default:
-		// Return original if not recognized (allow custom statuses)
-		return status
-	}
+	return tools.NormalizeStatusToTitleCase(status)
 }
 
 // formatTaskForResource formats a single task for resource output
