@@ -46,7 +46,7 @@ func handleGenerateConfig(ctx context.Context, args json.RawMessage) ([]framewor
 }
 
 // handleHealth handles the health tool
-// Uses native Go implementation for "server" action, falls back to Python bridge for others
+// Uses native Go implementation for all actions (server, git, docs, dod, cicd) - fully native Go
 func handleHealth(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
 	// Parse arguments
 	var params map[string]interface{}
