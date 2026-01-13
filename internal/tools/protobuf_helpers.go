@@ -354,3 +354,360 @@ func TaskWorkflowRequestToParams(req *proto.TaskWorkflowRequest) map[string]inte
 
 	return params
 }
+
+// ParseHealthRequest parses a health tool request (protobuf or JSON)
+func ParseHealthRequest(args json.RawMessage) (*proto.HealthRequest, map[string]interface{}, error) {
+	var req proto.HealthRequest
+
+	if err := protobuf.Unmarshal(args, &req); err == nil {
+		return &req, nil, nil
+	}
+
+	var params map[string]interface{}
+	if err := json.Unmarshal(args, &params); err != nil {
+		return nil, nil, fmt.Errorf("failed to parse arguments: %w", err)
+	}
+
+	return nil, params, nil
+}
+
+// HealthRequestToParams converts a protobuf HealthRequest to params map
+func HealthRequestToParams(req *proto.HealthRequest) map[string]interface{} {
+	params := make(map[string]interface{})
+
+	if req.Action != "" {
+		params["action"] = req.Action
+	}
+	if req.AgentName != "" {
+		params["agent_name"] = req.AgentName
+	}
+	params["check_remote"] = req.CheckRemote
+	if req.OutputPath != "" {
+		params["output_path"] = req.OutputPath
+	}
+	params["create_tasks"] = req.CreateTasks
+	if req.TaskId != "" {
+		params["task_id"] = req.TaskId
+	}
+	if req.ChangedFiles != "" {
+		params["changed_files"] = req.ChangedFiles
+	}
+	params["auto_check"] = req.AutoCheck
+	if req.WorkflowPath != "" {
+		params["workflow_path"] = req.WorkflowPath
+	}
+	params["check_runners"] = req.CheckRunners
+
+	return params
+}
+
+// ParseSecurityRequest parses a security tool request (protobuf or JSON)
+func ParseSecurityRequest(args json.RawMessage) (*proto.SecurityRequest, map[string]interface{}, error) {
+	var req proto.SecurityRequest
+
+	if err := protobuf.Unmarshal(args, &req); err == nil {
+		return &req, nil, nil
+	}
+
+	var params map[string]interface{}
+	if err := json.Unmarshal(args, &params); err != nil {
+		return nil, nil, fmt.Errorf("failed to parse arguments: %w", err)
+	}
+
+	return nil, params, nil
+}
+
+// SecurityRequestToParams converts a protobuf SecurityRequest to params map
+func SecurityRequestToParams(req *proto.SecurityRequest) map[string]interface{} {
+	params := make(map[string]interface{})
+
+	if req.Action != "" {
+		params["action"] = req.Action
+	}
+	if req.Repo != "" {
+		params["repo"] = req.Repo
+	}
+	if len(req.Languages) > 0 {
+		langsJSON, _ := json.Marshal(req.Languages)
+		params["languages"] = string(langsJSON)
+	}
+	if req.ConfigPath != "" {
+		params["config_path"] = req.ConfigPath
+	}
+	if req.State != "" {
+		params["state"] = req.State
+	}
+	params["include_dismissed"] = req.IncludeDismissed
+
+	return params
+}
+
+// ParseInferSessionModeRequest parses an infer_session_mode request (protobuf or JSON)
+func ParseInferSessionModeRequest(args json.RawMessage) (*proto.InferSessionModeRequest, map[string]interface{}, error) {
+	var req proto.InferSessionModeRequest
+
+	if err := protobuf.Unmarshal(args, &req); err == nil {
+		return &req, nil, nil
+	}
+
+	var params map[string]interface{}
+	if err := json.Unmarshal(args, &params); err != nil {
+		return nil, nil, fmt.Errorf("failed to parse arguments: %w", err)
+	}
+
+	return nil, params, nil
+}
+
+// InferSessionModeRequestToParams converts a protobuf InferSessionModeRequest to params map
+func InferSessionModeRequestToParams(req *proto.InferSessionModeRequest) map[string]interface{} {
+	params := make(map[string]interface{})
+
+	params["force_recompute"] = req.ForceRecompute
+
+	return params
+}
+
+// ParseToolCatalogRequest parses a tool_catalog request (protobuf or JSON)
+func ParseToolCatalogRequest(args json.RawMessage) (*proto.ToolCatalogRequest, map[string]interface{}, error) {
+	var req proto.ToolCatalogRequest
+
+	if err := protobuf.Unmarshal(args, &req); err == nil {
+		return &req, nil, nil
+	}
+
+	var params map[string]interface{}
+	if err := json.Unmarshal(args, &params); err != nil {
+		return nil, nil, fmt.Errorf("failed to parse arguments: %w", err)
+	}
+
+	return nil, params, nil
+}
+
+// ToolCatalogRequestToParams converts a protobuf ToolCatalogRequest to params map
+func ToolCatalogRequestToParams(req *proto.ToolCatalogRequest) map[string]interface{} {
+	params := make(map[string]interface{})
+
+	if req.Action != "" {
+		params["action"] = req.Action
+	}
+	if req.ToolName != "" {
+		params["tool_name"] = req.ToolName
+	}
+
+	return params
+}
+
+// ParseWorkflowModeRequest parses a workflow_mode request (protobuf or JSON)
+func ParseWorkflowModeRequest(args json.RawMessage) (*proto.WorkflowModeRequest, map[string]interface{}, error) {
+	var req proto.WorkflowModeRequest
+
+	if err := protobuf.Unmarshal(args, &req); err == nil {
+		return &req, nil, nil
+	}
+
+	var params map[string]interface{}
+	if err := json.Unmarshal(args, &params); err != nil {
+		return nil, nil, fmt.Errorf("failed to parse arguments: %w", err)
+	}
+
+	return nil, params, nil
+}
+
+// WorkflowModeRequestToParams converts a protobuf WorkflowModeRequest to params map
+func WorkflowModeRequestToParams(req *proto.WorkflowModeRequest) map[string]interface{} {
+	params := make(map[string]interface{})
+
+	if req.Action != "" {
+		params["action"] = req.Action
+	}
+	if req.Mode != "" {
+		params["mode"] = req.Mode
+	}
+	if req.EnableGroup != "" {
+		params["enable_group"] = req.EnableGroup
+	}
+	if req.DisableGroup != "" {
+		params["disable_group"] = req.DisableGroup
+	}
+	params["status"] = req.Status
+	if req.Text != "" {
+		params["text"] = req.Text
+	}
+	params["auto_switch"] = req.AutoSwitch
+
+	return params
+}
+
+// ParseEstimationRequest parses an estimation request (protobuf or JSON)
+func ParseEstimationRequest(args json.RawMessage) (*proto.EstimationRequest, map[string]interface{}, error) {
+	var req proto.EstimationRequest
+
+	if err := protobuf.Unmarshal(args, &req); err == nil {
+		return &req, nil, nil
+	}
+
+	var params map[string]interface{}
+	if err := json.Unmarshal(args, &params); err != nil {
+		return nil, nil, fmt.Errorf("failed to parse arguments: %w", err)
+	}
+
+	return nil, params, nil
+}
+
+// EstimationRequestToParams converts a protobuf EstimationRequest to params map
+func EstimationRequestToParams(req *proto.EstimationRequest) map[string]interface{} {
+	params := make(map[string]interface{})
+
+	if req.Action != "" {
+		params["action"] = req.Action
+	}
+	if req.Name != "" {
+		params["name"] = req.Name
+	}
+	if req.Details != "" {
+		params["details"] = req.Details
+	}
+	if req.Tags != "" {
+		params["tags"] = req.Tags
+	}
+	if len(req.TagList) > 0 {
+		tagsJSON, _ := json.Marshal(req.TagList)
+		params["tag_list"] = string(tagsJSON)
+	}
+	if req.Priority != "" {
+		params["priority"] = req.Priority
+	}
+	params["use_historical"] = req.UseHistorical
+	params["detailed"] = req.Detailed
+	params["use_mlx"] = req.UseMlx
+	if req.MlxWeight > 0 {
+		params["mlx_weight"] = req.MlxWeight
+	}
+
+	return params
+}
+
+// ParseSessionRequest parses a session request (protobuf or JSON)
+func ParseSessionRequest(args json.RawMessage) (*proto.SessionRequest, map[string]interface{}, error) {
+	var req proto.SessionRequest
+
+	if err := protobuf.Unmarshal(args, &req); err == nil {
+		return &req, nil, nil
+	}
+
+	var params map[string]interface{}
+	if err := json.Unmarshal(args, &params); err != nil {
+		return nil, nil, fmt.Errorf("failed to parse arguments: %w", err)
+	}
+
+	return nil, params, nil
+}
+
+// SessionRequestToParams converts a protobuf SessionRequest to params map
+func SessionRequestToParams(req *proto.SessionRequest) map[string]interface{} {
+	params := make(map[string]interface{})
+
+	if req.Action != "" {
+		params["action"] = req.Action
+	}
+	params["include_hints"] = req.IncludeHints
+	params["include_tasks"] = req.IncludeTasks
+	if req.OverrideMode != "" {
+		params["override_mode"] = req.OverrideMode
+	}
+	if req.TaskId != "" {
+		params["task_id"] = req.TaskId
+	}
+	if req.Summary != "" {
+		params["summary"] = req.Summary
+	}
+	if req.Blockers != "" {
+		params["blockers"] = req.Blockers
+	}
+	if req.NextSteps != "" {
+		params["next_steps"] = req.NextSteps
+	}
+	params["unassign_my_tasks"] = req.UnassignMyTasks
+	params["include_git_status"] = req.IncludeGitStatus
+	if req.Limit > 0 {
+		params["limit"] = int(req.Limit)
+	}
+	params["dry_run"] = req.DryRun
+	if req.Direction != "" {
+		params["direction"] = req.Direction
+	}
+	params["prefer_agentic_tools"] = req.PreferAgenticTools
+	params["auto_commit"] = req.AutoCommit
+
+	return params
+}
+
+// ParseGitToolsRequest parses a git_tools request (protobuf or JSON)
+func ParseGitToolsRequest(args json.RawMessage) (*proto.GitToolsRequest, map[string]interface{}, error) {
+	var req proto.GitToolsRequest
+
+	if err := protobuf.Unmarshal(args, &req); err == nil {
+		return &req, nil, nil
+	}
+
+	var params map[string]interface{}
+	if err := json.Unmarshal(args, &params); err != nil {
+		return nil, nil, fmt.Errorf("failed to parse arguments: %w", err)
+	}
+
+	return nil, params, nil
+}
+
+// GitToolsRequestToParams converts a protobuf GitToolsRequest to params map
+func GitToolsRequestToParams(req *proto.GitToolsRequest) map[string]interface{} {
+	params := make(map[string]interface{})
+
+	if req.Action != "" {
+		params["action"] = req.Action
+	}
+	if req.TaskId != "" {
+		params["task_id"] = req.TaskId
+	}
+	if req.Branch != "" {
+		params["branch"] = req.Branch
+	}
+	if req.Limit > 0 {
+		params["limit"] = int(req.Limit)
+	}
+	if req.Commit1 != "" {
+		params["commit1"] = req.Commit1
+	}
+	if req.Commit2 != "" {
+		params["commit2"] = req.Commit2
+	}
+	if req.Time1 != "" {
+		params["time1"] = req.Time1
+	}
+	if req.Time2 != "" {
+		params["time2"] = req.Time2
+	}
+	if req.Format != "" {
+		params["format"] = req.Format
+	}
+	if req.OutputPath != "" {
+		params["output_path"] = req.OutputPath
+	}
+	if req.MaxCommits > 0 {
+		params["max_commits"] = int(req.MaxCommits)
+	}
+	if req.SourceBranch != "" {
+		params["source_branch"] = req.SourceBranch
+	}
+	if req.TargetBranch != "" {
+		params["target_branch"] = req.TargetBranch
+	}
+	if req.ConflictStrategy != "" {
+		params["conflict_strategy"] = req.ConflictStrategy
+	}
+	if req.Author != "" {
+		params["author"] = req.Author
+	}
+	params["dry_run"] = req.DryRun
+
+	return params
+}

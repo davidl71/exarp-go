@@ -3,7 +3,7 @@
 **Last Updated:** 2026-01-13  
 **Status:** 7 of 27 handlers migrated (26% complete)
 
-## ✅ Migrated Handlers (7)
+## ✅ Migrated Handlers (13)
 
 1. ✅ **Memory** - `handleMemory` / `handleMemoryNative`
 2. ✅ **Context** - `handleContext`
@@ -12,30 +12,18 @@
 5. ✅ **Automation** - `handleAutomation`
 6. ✅ **Testing** - `handleTesting`
 7. ✅ **Lint** - `handleLint`
+8. ✅ **Health** - `handleHealth`
+9. ✅ **Security** - `handleSecurity`
+10. ✅ **Infer Session Mode** - `handleInferSessionMode`
+11. ✅ **Tool Catalog** - `handleToolCatalog`
+12. ✅ **Workflow Mode** - `handleWorkflowMode`
+13. ✅ **Estimation** - `handleEstimation`
+14. ✅ **Session** - `handleSession`
+15. ✅ **Git Tools** - `handleGitTools`
 
-## ⏳ Remaining Handlers (20)
+## ⏳ Remaining Handlers (14)
 
 ### High Priority (Frequently Used)
-
-1. **Estimation** - `handleEstimation`
-   - Schema: `EstimationRequest` (exists in proto/tools.proto)
-   - Helper needed: `ParseEstimationRequest`, `EstimationRequestToParams`
-
-2. **Session** - `handleSession`
-   - Schema: `SessionRequest` (exists in proto/tools.proto)
-   - Helper needed: `ParseSessionRequest`, `SessionRequestToParams`
-
-3. **Git Tools** - `handleGitTools`
-   - Schema: `GitToolsRequest` (exists in proto/tools.proto)
-   - Helper needed: `ParseGitToolsRequest`, `GitToolsRequestToParams`
-
-4. **Health** - `handleHealth`
-   - Schema: `HealthRequest` (exists in proto/tools.proto)
-   - Helper needed: `ParseHealthRequest`, `HealthRequestToParams`
-
-5. **Security** - `handleSecurity`
-   - Schema: `SecurityRequest` (exists in proto/tools.proto)
-   - Helper needed: `ParseSecurityRequest`, `SecurityRequestToParams`
 
 ### Medium Priority
 
@@ -172,10 +160,10 @@ These handlers have simple parameter structures and can be migrated quickly:
 ## 📊 Progress Summary
 
 - **Total Handlers:** 27
-- **Migrated:** 7 (26%)
-- **Remaining:** 20 (74%)
+- **Migrated:** 13 (48%)
+- **Remaining:** 14 (52%)
 - **Schemas Created:** ✅ All 27 tool schemas exist in `proto/tools.proto`
-- **Helper Functions:** 7 created, 20 remaining
+- **Helper Functions:** 13 created, 14 remaining
 
 ## 🚀 Next Steps
 
