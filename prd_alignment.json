@@ -1,0 +1,82 @@
+{
+  "aligned_count": 160,
+  "alignment_by_persona": {
+    "architect": {
+      "advisor": "sage",
+      "count": 13,
+      "name": "Architect"
+    },
+    "developer": {
+      "advisor": "sage",
+      "count": 53,
+      "name": "Developer"
+    },
+    "devops": {
+      "advisor": "sage",
+      "count": 48,
+      "name": "DevOps Engineer"
+    },
+    "qa": {
+      "advisor": "sage",
+      "count": 46,
+      "name": "QA Engineer"
+    }
+  },
+  "goals_exists": false,
+  "overall_alignment_score": 95.8,
+  "persona_coverage": {
+    "architect": 13,
+    "developer": 53,
+    "devops": 48,
+    "product": 0,
+    "qa": 46,
+    "security": 0
+  },
+  "prd_exists": true,
+  "prd_user_stories": 20,
+  "recommendations": [
+    "No tasks aligned with Product Manager persona - consider their needs",
+    "No tasks aligned with Security Engineer persona - consider their needs",
+    "Task distribution is unbalanced across personas"
+  ],
+  "tasks_analyzed": 167,
+  "timestamp": "2026-01-12T15:30:50+02:00",
+  "unaligned_count": 7,
+  "unaligned_tasks": [
+    {
+      "id": "AFM-1767880652340-4",
+      "name": "Handle missing Swift bridge gracefully. Add build tags to skip foundationmodels when bridge unavailable. Update Makefile targets.",
+      "reason": "No strong persona match found"
+    },
+    {
+      "id": "T-97",
+      "name": "",
+      "reason": "No strong persona match found"
+    },
+    {
+      "id": "T-140",
+      "name": "",
+      "reason": "No strong persona match found"
+    },
+    {
+      "id": "T-115",
+      "name": "",
+      "reason": "No strong persona match found"
+    },
+    {
+      "id": "T-110",
+      "name": "",
+      "reason": "No strong persona match found"
+    },
+    {
+      "id": "T-112",
+      "name": "",
+      "reason": "No strong persona match found"
+    },
+    {
+      "id": "T-120",
+      "name": "",
+      "reason": "No strong persona match found"
+    }
+  ]
+}

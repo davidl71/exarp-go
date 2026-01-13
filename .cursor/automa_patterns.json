@@ -1,0 +1,84 @@
+{
+  "file_changes": {
+    "*.go": {
+      "tools": [
+        "lint",
+        "test"
+      ]
+    }
+  },
+  "file_patterns": {
+    ".todo2/state.todo2.json": {
+      "description": "Todo2 state file",
+      "on_change": "detect_duplicate_tasks_tool"
+    },
+    "CMakeLists.txt|CMakePresets.json": {
+      "description": "CMake configuration",
+      "on_change": "validate_ci_cd_workflow_tool"
+    },
+    "docs/**/*.md": {
+      "description": "Documentation files",
+      "on_change": "check_documentation_health_tool",
+      "on_create": "add_external_tool_hints_tool"
+    },
+    "requirements.txt|Cargo.toml|package.json|pyproject.toml": {
+      "description": "Dependency files",
+      "on_change": "scan_dependency_security_tool"
+    }
+  },
+  "git_events": {
+    "post_commit": {
+      "blocking": false,
+      "description": "Non-blocking checks after commit",
+      "tools": [
+        "find_automation_opportunities_tool --quick"
+      ]
+    },
+    "post_merge": {
+      "blocking": false,
+      "description": "Checks after merge",
+      "tools": [
+        "detect_duplicate_tasks_tool",
+        "sync_todo_tasks_tool"
+      ]
+    },
+    "pre_commit": {
+      "blocking": true,
+      "description": "Quick checks before commit",
+      "tools": [
+        "check_documentation_health_tool --quick",
+        "scan_dependency_security_tool --quick"
+      ]
+    },
+    "pre_push": {
+      "blocking": true,
+      "description": "Comprehensive checks before push",
+      "tools": [
+        "analyze_todo2_alignment_tool",
+        "scan_dependency_security_tool",
+        "check_documentation_health_tool"
+      ]
+    }
+  },
+  "task_status_changes": {
+    "In Progress → Review": {
+      "description": "Quality checks before review",
+      "tools": [
+        "analyze_todo2_alignment_tool",
+        "detect_duplicate_tasks_tool"
+      ]
+    },
+    "Review → Done": {
+      "description": "Final checks on completion",
+      "tools": [
+        "detect_duplicate_tasks_tool"
+      ]
+    },
+    "Todo → In Progress": {
+      "description": "Verify alignment when starting work",
+      "tools": [
+        "analyze_todo2_alignment_tool"
+      ]
+    }
+  }
+}

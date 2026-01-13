@@ -20,11 +20,12 @@ func registerAppleFoundationModelsTool(server framework.MCPServer) error {
 			Properties: map[string]interface{}{
 				"action": map[string]interface{}{
 					"type":    "string",
-					"enum":    []string{"generate", "respond", "summarize", "classify"},
+					"enum":    []string{"status", "hardware", "models", "generate", "respond", "summarize", "classify"},
 					"default": "generate",
 				},
 				"prompt": map[string]interface{}{
-					"type": "string",
+					"type":     "string",
+					"required": false,
 				},
 				"mode": map[string]interface{}{
 					"type":    "string",

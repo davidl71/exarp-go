@@ -32,16 +32,26 @@ func handleAppleFoundationModels(ctx context.Context, args json.RawMessage) ([]f
 		return nil, fmt.Errorf("failed to parse arguments: %w", err)
 	}
 
-	// Get prompt (required)
-	prompt, ok := params["prompt"].(string)
-	if !ok || prompt == "" {
-		return nil, fmt.Errorf("prompt is required")
-	}
-
 	// Get action (optional, default: "generate")
 	action := "generate"
 	if actionStr, ok := params["action"].(string); ok && actionStr != "" {
 		action = actionStr
+	}
+
+	// Handle actions that don't require a prompt
+	switch action {
+	case "status":
+		return handleStatusAction()
+	case "hardware":
+		return handleHardwareAction()
+	case "models":
+		return handleModelsAction()
+	}
+
+	// For other actions, prompt is required
+	prompt, ok := params["prompt"].(string)
+	if !ok || prompt == "" {
+		return nil, fmt.Errorf("prompt is required for action: %s", action)
 	}
 
 	// Create session
@@ -62,7 +72,7 @@ func handleAppleFoundationModels(ctx context.Context, args json.RawMessage) ([]f
 		// Classify text
 		result, err = classifyText(sess, prompt, params)
 	default:
-		return nil, fmt.Errorf("unknown action: %s (supported: generate, respond, summarize, classify)", action)
+		return nil, fmt.Errorf("unknown action: %s (supported: status, hardware, models, generate, respond, summarize, classify)", action)
 	}
 
 	if err != nil {
