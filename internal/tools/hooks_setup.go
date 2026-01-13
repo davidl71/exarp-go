@@ -87,12 +87,18 @@ func handleSetupGitHooks(ctx context.Context, params map[string]interface{}) ([]
 # Exarp pre-commit hook
 # Run documentation health check and security scan
 
+# Suppress INFO logs in git hook context (reduces token usage)
+export GIT_HOOK=1
+
 exarp-go health action=docs || exit 1
 exarp-go security action=scan || exit 1
 `,
 		"pre-push": `#!/bin/sh
 # Exarp pre-push hook
 # Run task alignment and comprehensive security check
+
+# Suppress INFO logs in git hook context (reduces token usage)
+export GIT_HOOK=1
 
 exarp-go analyze_alignment action=todo2 || exit 1
 exarp-go security action=scan || exit 1
@@ -101,11 +107,17 @@ exarp-go security action=scan || exit 1
 # Exarp post-commit hook
 # Run automation discovery (non-blocking)
 
+# Suppress INFO logs in git hook context (reduces token usage)
+export GIT_HOOK=1
+
 exarp-go automation action=discover || true
 `,
 		"post-merge": `#!/bin/sh
 # Exarp post-merge hook
 # Run duplicate detection and task sync (non-blocking)
+
+# Suppress INFO logs in git hook context (reduces token usage)
+export GIT_HOOK=1
 
 exarp-go task_analysis action=duplicates || true
 exarp-go task_workflow action=sync || true
