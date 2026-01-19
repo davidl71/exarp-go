@@ -25,33 +25,20 @@ func ParseMemoryRequest(args json.RawMessage) (*proto.MemoryRequest, map[string]
 }
 
 // MemoryRequestToParams converts a protobuf MemoryRequest to params map for compatibility
+// This function now uses the generic ProtobufToParams converter from mcp-go-core.
 func MemoryRequestToParams(req *proto.MemoryRequest) map[string]interface{} {
-	params := make(map[string]interface{})
-	
-	if req.Action != "" {
-		params["action"] = req.Action
+	if req == nil {
+		return make(map[string]interface{})
 	}
-	if req.Title != "" {
-		params["title"] = req.Title
-	}
-	if req.Content != "" {
-		params["content"] = req.Content
-	}
-	if req.Category != "" {
-		params["category"] = req.Category
-	}
-	if req.TaskId != "" {
-		params["task_id"] = req.TaskId
-	}
-	if req.Metadata != "" {
-		params["metadata"] = req.Metadata
-	}
-	params["include_related"] = req.IncludeRelated
-	if req.Query != "" {
-		params["query"] = req.Query
-	}
-	if req.Limit > 0 {
-		params["limit"] = int(req.Limit)
+
+	params, err := request.ProtobufToParams(req, &request.ProtobufToParamsOptions{
+		FilterEmptyStrings:    true,
+		StringifyArrays:       false,
+		ConvertFloat64ToInt:   true,
+		Float64ToIntFields:    []string{"limit"},
+	})
+	if err != nil {
+		return make(map[string]interface{})
 	}
 	
 	return params
@@ -164,33 +151,20 @@ func ParseContextRequest(args json.RawMessage) (*proto.ContextRequest, map[strin
 }
 
 // ContextRequestToParams converts a protobuf ContextRequest to params map for compatibility
+// This function now uses the generic ProtobufToParams converter from mcp-go-core.
 func ContextRequestToParams(req *proto.ContextRequest) map[string]interface{} {
-	params := make(map[string]interface{})
+	if req == nil {
+		return make(map[string]interface{})
+	}
 
-	if req.Action != "" {
-		params["action"] = req.Action
-	}
-	if req.Data != "" {
-		params["data"] = req.Data
-	}
-	if req.Level != "" {
-		params["level"] = req.Level
-	}
-	if req.MaxTokens > 0 {
-		params["max_tokens"] = int(req.MaxTokens)
-	}
-	params["include_raw"] = req.IncludeRaw
-	if req.ToolType != "" {
-		params["tool_type"] = req.ToolType
-	}
-	// For batch action
-	if req.Items != "" {
-		params["items"] = req.Items
-	}
-	params["combine"] = req.Combine
-	// For budget action
-	if req.BudgetTokens > 0 {
-		params["budget_tokens"] = int(req.BudgetTokens)
+	params, err := request.ProtobufToParams(req, &request.ProtobufToParamsOptions{
+		FilterEmptyStrings:    true,
+		StringifyArrays:       false,
+		ConvertFloat64ToInt:   true,
+		Float64ToIntFields:    []string{"max_tokens", "budget_tokens"},
+	})
+	if err != nil {
+		return make(map[string]interface{})
 	}
 
 	return params
@@ -291,43 +265,20 @@ func ParseReportRequest(args json.RawMessage) (*proto.ReportRequest, map[string]
 }
 
 // ReportRequestToParams converts a protobuf ReportRequest to params map
+// This function now uses the generic ProtobufToParams converter from mcp-go-core.
 func ReportRequestToParams(req *proto.ReportRequest) map[string]interface{} {
-	params := make(map[string]interface{})
+	if req == nil {
+		return make(map[string]interface{})
+	}
 
-	if req.Action != "" {
-		params["action"] = req.Action
-	}
-	if req.ProjectName != "" {
-		params["project_name"] = req.ProjectName
-	}
-	params["include_metrics"] = req.IncludeMetrics
-	params["include_architecture"] = req.IncludeArchitecture
-	params["include_tasks"] = req.IncludeTasks
-	params["include_recommendations"] = req.IncludeRecommendations
-	if req.OutputFormat != "" {
-		params["output_format"] = req.OutputFormat
-	}
-	if req.OutputPath != "" {
-		params["output_path"] = req.OutputPath
-	}
-	// Score fields
-	if req.OverallScore > 0 {
-		params["overall_score"] = int(req.OverallScore)
-	}
-	if req.CompletionScore > 0 {
-		params["completion_score"] = int(req.CompletionScore)
-	}
-	if req.DocumentationScore > 0 {
-		params["documentation_score"] = int(req.DocumentationScore)
-	}
-	if req.TestingScore > 0 {
-		params["testing_score"] = int(req.TestingScore)
-	}
-	if req.SecurityScore > 0 {
-		params["security_score"] = int(req.SecurityScore)
-	}
-	if req.AlignmentScore > 0 {
-		params["alignment_score"] = int(req.AlignmentScore)
+	params, err := request.ProtobufToParams(req, &request.ProtobufToParamsOptions{
+		FilterEmptyStrings:    true,
+		StringifyArrays:       false,
+		ConvertFloat64ToInt:   true,
+		Float64ToIntFields:    []string{"overall_score", "completion_score", "documentation_score", "testing_score", "security_score", "alignment_score"},
+	})
+	if err != nil {
+		return make(map[string]interface{})
 	}
 
 	return params
@@ -660,72 +611,24 @@ func ParseTaskWorkflowRequest(args json.RawMessage) (*proto.TaskWorkflowRequest,
 }
 
 // TaskWorkflowRequestToParams converts a protobuf TaskWorkflowRequest to params map
+// This function now uses the generic ProtobufToParams converter from mcp-go-core
+// to eliminate repetitive field-by-field conversion code.
 func TaskWorkflowRequestToParams(req *proto.TaskWorkflowRequest) map[string]interface{} {
-	params := make(map[string]interface{})
+	if req == nil {
+		return make(map[string]interface{})
+	}
 
-	if req.Action != "" {
-		params["action"] = req.Action
+	// Use generic converter with options matching existing behavior
+	params, err := request.ProtobufToParams(req, &request.ProtobufToParamsOptions{
+		FilterEmptyStrings:    true,  // Filter empty strings and zero numbers
+		StringifyArrays:       true,  // Convert arrays to JSON strings
+		ConvertFloat64ToInt:   true,  // Convert stale_threshold_hours from float64 to int
+		Float64ToIntFields:    []string{"stale_threshold_hours"},
+	})
+	if err != nil {
+		// Fallback to empty map if conversion fails (shouldn't happen in practice)
+		return make(map[string]interface{})
 	}
-	if req.TaskId != "" {
-		params["task_id"] = req.TaskId
-	}
-	if req.TaskIds != "" {
-		params["task_ids"] = req.TaskIds
-	}
-	if req.Name != "" {
-		params["name"] = req.Name
-	}
-	if req.LongDescription != "" {
-		params["long_description"] = req.LongDescription
-	}
-	if req.NewStatus != "" {
-		params["new_status"] = req.NewStatus
-	}
-	if req.Status != "" {
-		params["status"] = req.Status
-	}
-	if req.FilterTag != "" {
-		params["filter_tag"] = req.FilterTag
-	}
-	// Tags and Dependencies are repeated string (arrays)
-	if len(req.Tags) > 0 {
-		// Convert to comma-separated string or JSON array string for compatibility
-		tagsJSON, _ := json.Marshal(req.Tags)
-		params["tags"] = string(tagsJSON)
-	}
-	if len(req.Dependencies) > 0 {
-		// Convert to comma-separated string or JSON array string for compatibility
-		depsJSON, _ := json.Marshal(req.Dependencies)
-		params["dependencies"] = string(depsJSON)
-	}
-	params["auto_estimate"] = req.AutoEstimate
-	params["auto_apply"] = req.AutoApply
-	params["dry_run"] = req.DryRun
-	params["move_to_todo"] = req.MoveToTodo
-	params["clarification_none"] = req.ClarificationNone
-	if req.ClarificationText != "" {
-		params["clarification_text"] = req.ClarificationText
-	}
-	if req.Decision != "" {
-		params["decision"] = req.Decision
-	}
-	if req.DecisionsJson != "" {
-		params["decisions_json"] = req.DecisionsJson
-	}
-	if req.SubAction != "" {
-		params["sub_action"] = req.SubAction
-	}
-	if req.OutputFormat != "" {
-		params["output_format"] = req.OutputFormat
-	}
-	if req.OutputPath != "" {
-		params["output_path"] = req.OutputPath
-	}
-	if req.StaleThresholdHours > 0 {
-		params["stale_threshold_hours"] = int(req.StaleThresholdHours)
-	}
-	params["include_legacy"] = req.IncludeLegacy
-	params["external"] = req.External
 
 	return params
 }
@@ -745,31 +648,19 @@ func ParseHealthRequest(args json.RawMessage) (*proto.HealthRequest, map[string]
 }
 
 // HealthRequestToParams converts a protobuf HealthRequest to params map
+// This function now uses the generic ProtobufToParams converter from mcp-go-core.
 func HealthRequestToParams(req *proto.HealthRequest) map[string]interface{} {
-	params := make(map[string]interface{})
+	if req == nil {
+		return make(map[string]interface{})
+	}
 
-	if req.Action != "" {
-		params["action"] = req.Action
+	params, err := request.ProtobufToParams(req, &request.ProtobufToParamsOptions{
+		FilterEmptyStrings: true,
+		StringifyArrays:    false,
+	})
+	if err != nil {
+		return make(map[string]interface{})
 	}
-	if req.AgentName != "" {
-		params["agent_name"] = req.AgentName
-	}
-	params["check_remote"] = req.CheckRemote
-	if req.OutputPath != "" {
-		params["output_path"] = req.OutputPath
-	}
-	params["create_tasks"] = req.CreateTasks
-	if req.TaskId != "" {
-		params["task_id"] = req.TaskId
-	}
-	if req.ChangedFiles != "" {
-		params["changed_files"] = req.ChangedFiles
-	}
-	params["auto_check"] = req.AutoCheck
-	if req.WorkflowPath != "" {
-		params["workflow_path"] = req.WorkflowPath
-	}
-	params["check_runners"] = req.CheckRunners
 
 	return params
 }
@@ -789,26 +680,19 @@ func ParseSecurityRequest(args json.RawMessage) (*proto.SecurityRequest, map[str
 }
 
 // SecurityRequestToParams converts a protobuf SecurityRequest to params map
+// This function now uses the generic ProtobufToParams converter from mcp-go-core.
 func SecurityRequestToParams(req *proto.SecurityRequest) map[string]interface{} {
-	params := make(map[string]interface{})
+	if req == nil {
+		return make(map[string]interface{})
+	}
 
-	if req.Action != "" {
-		params["action"] = req.Action
+	params, err := request.ProtobufToParams(req, &request.ProtobufToParamsOptions{
+		FilterEmptyStrings: true,
+		StringifyArrays:    true, // Languages is an array
+	})
+	if err != nil {
+		return make(map[string]interface{})
 	}
-	if req.Repo != "" {
-		params["repo"] = req.Repo
-	}
-	if len(req.Languages) > 0 {
-		langsJSON, _ := json.Marshal(req.Languages)
-		params["languages"] = string(langsJSON)
-	}
-	if req.ConfigPath != "" {
-		params["config_path"] = req.ConfigPath
-	}
-	if req.State != "" {
-		params["state"] = req.State
-	}
-	params["include_dismissed"] = req.IncludeDismissed
 
 	return params
 }
@@ -828,10 +712,19 @@ func ParseInferSessionModeRequest(args json.RawMessage) (*proto.InferSessionMode
 }
 
 // InferSessionModeRequestToParams converts a protobuf InferSessionModeRequest to params map
+// This function now uses the generic ProtobufToParams converter from mcp-go-core.
 func InferSessionModeRequestToParams(req *proto.InferSessionModeRequest) map[string]interface{} {
-	params := make(map[string]interface{})
+	if req == nil {
+		return make(map[string]interface{})
+	}
 
-	params["force_recompute"] = req.ForceRecompute
+	params, err := request.ProtobufToParams(req, &request.ProtobufToParamsOptions{
+		FilterEmptyStrings: true,
+		StringifyArrays:    false,
+	})
+	if err != nil {
+		return make(map[string]interface{})
+	}
 
 	return params
 }
@@ -851,14 +744,18 @@ func ParseToolCatalogRequest(args json.RawMessage) (*proto.ToolCatalogRequest, m
 }
 
 // ToolCatalogRequestToParams converts a protobuf ToolCatalogRequest to params map
+// This function now uses the generic ProtobufToParams converter from mcp-go-core.
 func ToolCatalogRequestToParams(req *proto.ToolCatalogRequest) map[string]interface{} {
-	params := make(map[string]interface{})
-
-	if req.Action != "" {
-		params["action"] = req.Action
+	if req == nil {
+		return make(map[string]interface{})
 	}
-	if req.ToolName != "" {
-		params["tool_name"] = req.ToolName
+
+	params, err := request.ProtobufToParams(req, &request.ProtobufToParamsOptions{
+		FilterEmptyStrings: true,
+		StringifyArrays:    false,
+	})
+	if err != nil {
+		return make(map[string]interface{})
 	}
 
 	return params
@@ -879,26 +776,19 @@ func ParseWorkflowModeRequest(args json.RawMessage) (*proto.WorkflowModeRequest,
 }
 
 // WorkflowModeRequestToParams converts a protobuf WorkflowModeRequest to params map
+// This function now uses the generic ProtobufToParams converter from mcp-go-core.
 func WorkflowModeRequestToParams(req *proto.WorkflowModeRequest) map[string]interface{} {
-	params := make(map[string]interface{})
+	if req == nil {
+		return make(map[string]interface{})
+	}
 
-	if req.Action != "" {
-		params["action"] = req.Action
+	params, err := request.ProtobufToParams(req, &request.ProtobufToParamsOptions{
+		FilterEmptyStrings: true,
+		StringifyArrays:    false,
+	})
+	if err != nil {
+		return make(map[string]interface{})
 	}
-	if req.Mode != "" {
-		params["mode"] = req.Mode
-	}
-	if req.EnableGroup != "" {
-		params["enable_group"] = req.EnableGroup
-	}
-	if req.DisableGroup != "" {
-		params["disable_group"] = req.DisableGroup
-	}
-	params["status"] = req.Status
-	if req.Text != "" {
-		params["text"] = req.Text
-	}
-	params["auto_switch"] = req.AutoSwitch
 
 	return params
 }
@@ -918,33 +808,19 @@ func ParseEstimationRequest(args json.RawMessage) (*proto.EstimationRequest, map
 }
 
 // EstimationRequestToParams converts a protobuf EstimationRequest to params map
+// This function now uses the generic ProtobufToParams converter from mcp-go-core.
 func EstimationRequestToParams(req *proto.EstimationRequest) map[string]interface{} {
-	params := make(map[string]interface{})
+	if req == nil {
+		return make(map[string]interface{})
+	}
 
-	if req.Action != "" {
-		params["action"] = req.Action
-	}
-	if req.Name != "" {
-		params["name"] = req.Name
-	}
-	if req.Details != "" {
-		params["details"] = req.Details
-	}
-	if req.Tags != "" {
-		params["tags"] = req.Tags
-	}
-	if len(req.TagList) > 0 {
-		tagsJSON, _ := json.Marshal(req.TagList)
-		params["tag_list"] = string(tagsJSON)
-	}
-	if req.Priority != "" {
-		params["priority"] = req.Priority
-	}
-	params["use_historical"] = req.UseHistorical
-	params["detailed"] = req.Detailed
-	params["use_mlx"] = req.UseMlx
-	if req.MlxWeight > 0 {
-		params["mlx_weight"] = req.MlxWeight
+	params, err := request.ProtobufToParams(req, &request.ProtobufToParamsOptions{
+		FilterEmptyStrings:    true,
+		StringifyArrays:       true, // TagList is an array
+		ConvertFloat64ToInt:   false, // Keep mlx_weight as float64 (it's a weight, not a count)
+	})
+	if err != nil {
+		return make(map[string]interface{})
 	}
 
 	return params
@@ -965,40 +841,21 @@ func ParseSessionRequest(args json.RawMessage) (*proto.SessionRequest, map[strin
 }
 
 // SessionRequestToParams converts a protobuf SessionRequest to params map
+// This function now uses the generic ProtobufToParams converter from mcp-go-core.
 func SessionRequestToParams(req *proto.SessionRequest) map[string]interface{} {
-	params := make(map[string]interface{})
+	if req == nil {
+		return make(map[string]interface{})
+	}
 
-	if req.Action != "" {
-		params["action"] = req.Action
+	params, err := request.ProtobufToParams(req, &request.ProtobufToParamsOptions{
+		FilterEmptyStrings:    true,
+		StringifyArrays:       false,
+		ConvertFloat64ToInt:   true,
+		Float64ToIntFields:    []string{"limit"},
+	})
+	if err != nil {
+		return make(map[string]interface{})
 	}
-	params["include_hints"] = req.IncludeHints
-	params["include_tasks"] = req.IncludeTasks
-	if req.OverrideMode != "" {
-		params["override_mode"] = req.OverrideMode
-	}
-	if req.TaskId != "" {
-		params["task_id"] = req.TaskId
-	}
-	if req.Summary != "" {
-		params["summary"] = req.Summary
-	}
-	if req.Blockers != "" {
-		params["blockers"] = req.Blockers
-	}
-	if req.NextSteps != "" {
-		params["next_steps"] = req.NextSteps
-	}
-	params["unassign_my_tasks"] = req.UnassignMyTasks
-	params["include_git_status"] = req.IncludeGitStatus
-	if req.Limit > 0 {
-		params["limit"] = int(req.Limit)
-	}
-	params["dry_run"] = req.DryRun
-	if req.Direction != "" {
-		params["direction"] = req.Direction
-	}
-	params["prefer_agentic_tools"] = req.PreferAgenticTools
-	params["auto_commit"] = req.AutoCommit
 
 	return params
 }
@@ -1018,55 +875,21 @@ func ParseGitToolsRequest(args json.RawMessage) (*proto.GitToolsRequest, map[str
 }
 
 // GitToolsRequestToParams converts a protobuf GitToolsRequest to params map
+// This function now uses the generic ProtobufToParams converter from mcp-go-core.
 func GitToolsRequestToParams(req *proto.GitToolsRequest) map[string]interface{} {
-	params := make(map[string]interface{})
+	if req == nil {
+		return make(map[string]interface{})
+	}
 
-	if req.Action != "" {
-		params["action"] = req.Action
+	params, err := request.ProtobufToParams(req, &request.ProtobufToParamsOptions{
+		FilterEmptyStrings:    true,
+		StringifyArrays:       false,
+		ConvertFloat64ToInt:   true,
+		Float64ToIntFields:    []string{"limit", "max_commits"},
+	})
+	if err != nil {
+		return make(map[string]interface{})
 	}
-	if req.TaskId != "" {
-		params["task_id"] = req.TaskId
-	}
-	if req.Branch != "" {
-		params["branch"] = req.Branch
-	}
-	if req.Limit > 0 {
-		params["limit"] = int(req.Limit)
-	}
-	if req.Commit1 != "" {
-		params["commit1"] = req.Commit1
-	}
-	if req.Commit2 != "" {
-		params["commit2"] = req.Commit2
-	}
-	if req.Time1 != "" {
-		params["time1"] = req.Time1
-	}
-	if req.Time2 != "" {
-		params["time2"] = req.Time2
-	}
-	if req.Format != "" {
-		params["format"] = req.Format
-	}
-	if req.OutputPath != "" {
-		params["output_path"] = req.OutputPath
-	}
-	if req.MaxCommits > 0 {
-		params["max_commits"] = int(req.MaxCommits)
-	}
-	if req.SourceBranch != "" {
-		params["source_branch"] = req.SourceBranch
-	}
-	if req.TargetBranch != "" {
-		params["target_branch"] = req.TargetBranch
-	}
-	if req.ConflictStrategy != "" {
-		params["conflict_strategy"] = req.ConflictStrategy
-	}
-	if req.Author != "" {
-		params["author"] = req.Author
-	}
-	params["dry_run"] = req.DryRun
 
 	return params
 }
@@ -1086,41 +909,21 @@ func ParseMemoryMaintRequest(args json.RawMessage) (*proto.MemoryMaintRequest, m
 }
 
 // MemoryMaintRequestToParams converts a protobuf MemoryMaintRequest to params map
+// This function now uses the generic ProtobufToParams converter from mcp-go-core.
 func MemoryMaintRequestToParams(req *proto.MemoryMaintRequest) map[string]interface{} {
-	params := make(map[string]interface{})
+	if req == nil {
+		return make(map[string]interface{})
+	}
 
-	if req.Action != "" {
-		params["action"] = req.Action
-	}
-	if req.MaxAgeDays > 0 {
-		params["max_age_days"] = int(req.MaxAgeDays)
-	}
-	params["delete_orphaned"] = req.DeleteOrphaned
-	params["delete_duplicates"] = req.DeleteDuplicates
-	if req.ScorecardMaxAgeDays > 0 {
-		params["scorecard_max_age_days"] = int(req.ScorecardMaxAgeDays)
-	}
-	if req.ValueThreshold > 0 {
-		params["value_threshold"] = req.ValueThreshold
-	}
-	if req.KeepMinimum > 0 {
-		params["keep_minimum"] = int(req.KeepMinimum)
-	}
-	if req.SimilarityThreshold > 0 {
-		params["similarity_threshold"] = req.SimilarityThreshold
-	}
-	if req.MergeStrategy != "" {
-		params["merge_strategy"] = req.MergeStrategy
-	}
-	if req.Scope != "" {
-		params["scope"] = req.Scope
-	}
-	params["dry_run"] = req.DryRun
-	params["interactive"] = req.Interactive
-	params["generate_insights"] = req.GenerateInsights
-	params["save_dream"] = req.SaveDream
-	if req.Advisors != "" {
-		params["advisors"] = req.Advisors
+	params, err := request.ProtobufToParams(req, &request.ProtobufToParamsOptions{
+		FilterEmptyStrings:    true,
+		StringifyArrays:       false,
+		ConvertFloat64ToInt:   true,
+		Float64ToIntFields:    []string{"max_age_days", "scorecard_max_age_days", "keep_minimum"},
+		// Note: value_threshold and similarity_threshold remain as float64 (they're thresholds, not counts)
+	})
+	if err != nil {
+		return make(map[string]interface{})
 	}
 
 	return params
@@ -1141,29 +944,19 @@ func ParseTaskAnalysisRequest(args json.RawMessage) (*proto.TaskAnalysisRequest,
 }
 
 // TaskAnalysisRequestToParams converts a protobuf TaskAnalysisRequest to params map
+// This function now uses the generic ProtobufToParams converter from mcp-go-core.
 func TaskAnalysisRequestToParams(req *proto.TaskAnalysisRequest) map[string]interface{} {
-	params := make(map[string]interface{})
+	if req == nil {
+		return make(map[string]interface{})
+	}
 
-	if req.Action != "" {
-		params["action"] = req.Action
-	}
-	if req.SimilarityThreshold > 0 {
-		params["similarity_threshold"] = req.SimilarityThreshold
-	}
-	params["auto_fix"] = req.AutoFix
-	params["dry_run"] = req.DryRun
-	if req.CustomRules != "" {
-		params["custom_rules"] = req.CustomRules
-	}
-	if req.RemoveTags != "" {
-		params["remove_tags"] = req.RemoveTags
-	}
-	if req.OutputFormat != "" {
-		params["output_format"] = req.OutputFormat
-	}
-	params["include_recommendations"] = req.IncludeRecommendations
-	if req.OutputPath != "" {
-		params["output_path"] = req.OutputPath
+	params, err := request.ProtobufToParams(req, &request.ProtobufToParamsOptions{
+		FilterEmptyStrings:    true,
+		StringifyArrays:       false,
+		ConvertFloat64ToInt:   false, // Keep similarity_threshold as float64 (it's a threshold, not a count)
+	})
+	if err != nil {
+		return make(map[string]interface{})
 	}
 
 	return params
@@ -1184,26 +977,19 @@ func ParseTaskDiscoveryRequest(args json.RawMessage) (*proto.TaskDiscoveryReques
 }
 
 // TaskDiscoveryRequestToParams converts a protobuf TaskDiscoveryRequest to params map
+// This function now uses the generic ProtobufToParams converter from mcp-go-core.
 func TaskDiscoveryRequestToParams(req *proto.TaskDiscoveryRequest) map[string]interface{} {
-	params := make(map[string]interface{})
+	if req == nil {
+		return make(map[string]interface{})
+	}
 
-	if req.Action != "" {
-		params["action"] = req.Action
+	params, err := request.ProtobufToParams(req, &request.ProtobufToParamsOptions{
+		FilterEmptyStrings: true,
+		StringifyArrays:    false,
+	})
+	if err != nil {
+		return make(map[string]interface{})
 	}
-	if req.FilePatterns != "" {
-		params["file_patterns"] = req.FilePatterns
-	}
-	params["include_fixme"] = req.IncludeFixme
-	if req.DocPath != "" {
-		params["doc_path"] = req.DocPath
-	}
-	if req.JsonPattern != "" {
-		params["json_pattern"] = req.JsonPattern
-	}
-	if req.OutputPath != "" {
-		params["output_path"] = req.OutputPath
-	}
-	params["create_tasks"] = req.CreateTasks
 
 	return params
 }
@@ -1223,50 +1009,21 @@ func ParseOllamaRequest(args json.RawMessage) (*proto.OllamaRequest, map[string]
 }
 
 // OllamaRequestToParams converts a protobuf OllamaRequest to params map
+// This function now uses the generic ProtobufToParams converter from mcp-go-core.
 func OllamaRequestToParams(req *proto.OllamaRequest) map[string]interface{} {
-	params := make(map[string]interface{})
+	if req == nil {
+		return make(map[string]interface{})
+	}
 
-	if req.Action != "" {
-		params["action"] = req.Action
+	params, err := request.ProtobufToParams(req, &request.ProtobufToParamsOptions{
+		FilterEmptyStrings:    true,
+		StringifyArrays:       false,
+		ConvertFloat64ToInt:   true,
+		Float64ToIntFields:    []string{"num_gpu", "num_threads", "context_size"},
+	})
+	if err != nil {
+		return make(map[string]interface{})
 	}
-	if req.Host != "" {
-		params["host"] = req.Host
-	}
-	if req.Prompt != "" {
-		params["prompt"] = req.Prompt
-	}
-	if req.Model != "" {
-		params["model"] = req.Model
-	}
-	params["stream"] = req.Stream
-	if req.Options != "" {
-		params["options"] = req.Options
-	}
-	if req.NumGpu > 0 {
-		params["num_gpu"] = int(req.NumGpu)
-	}
-	if req.NumThreads > 0 {
-		params["num_threads"] = int(req.NumThreads)
-	}
-	if req.ContextSize > 0 {
-		params["context_size"] = int(req.ContextSize)
-	}
-	if req.FilePath != "" {
-		params["file_path"] = req.FilePath
-	}
-	if req.OutputPath != "" {
-		params["output_path"] = req.OutputPath
-	}
-	if req.Data != "" {
-		params["data"] = req.Data
-	}
-	if req.Style != "" {
-		params["style"] = req.Style
-	}
-	if req.Level != "" {
-		params["level"] = req.Level
-	}
-	params["include_suggestions"] = req.IncludeSuggestions
 
 	return params
 }
@@ -1286,25 +1043,22 @@ func ParseMlxRequest(args json.RawMessage) (*proto.MLXRequest, map[string]interf
 }
 
 // MlxRequestToParams converts a protobuf MlxRequest to params map
+// This function now uses the generic ProtobufToParams converter from mcp-go-core.
 func MlxRequestToParams(req *proto.MLXRequest) map[string]interface{} {
-	params := make(map[string]interface{})
+	if req == nil {
+		return make(map[string]interface{})
+	}
 
-	if req.Action != "" {
-		params["action"] = req.Action
+	params, err := request.ProtobufToParams(req, &request.ProtobufToParamsOptions{
+		FilterEmptyStrings:    true,
+		StringifyArrays:       false,
+		ConvertFloat64ToInt:   true,
+		Float64ToIntFields:    []string{"max_tokens"},
+		// Note: temperature remains as float64 (it's a threshold, not a count)
+	})
+	if err != nil {
+		return make(map[string]interface{})
 	}
-	if req.Prompt != "" {
-		params["prompt"] = req.Prompt
-	}
-	if req.Model != "" {
-		params["model"] = req.Model
-	}
-	if req.MaxTokens > 0 {
-		params["max_tokens"] = int(req.MaxTokens)
-	}
-	if req.Temperature > 0 {
-		params["temperature"] = req.Temperature
-	}
-	params["verbose"] = req.Verbose
 
 	return params
 }
@@ -1324,29 +1078,20 @@ func ParsePromptTrackingRequest(args json.RawMessage) (*proto.PromptTrackingRequ
 }
 
 // PromptTrackingRequestToParams converts a protobuf PromptTrackingRequest to params map
+// This function now uses the generic ProtobufToParams converter from mcp-go-core.
 func PromptTrackingRequestToParams(req *proto.PromptTrackingRequest) map[string]interface{} {
-	params := make(map[string]interface{})
+	if req == nil {
+		return make(map[string]interface{})
+	}
 
-	if req.Action != "" {
-		params["action"] = req.Action
-	}
-	if req.Prompt != "" {
-		params["prompt"] = req.Prompt
-	}
-	if req.TaskId != "" {
-		params["task_id"] = req.TaskId
-	}
-	if req.Mode != "" {
-		params["mode"] = req.Mode
-	}
-	if req.Outcome != "" {
-		params["outcome"] = req.Outcome
-	}
-	if req.Iteration > 0 {
-		params["iteration"] = int(req.Iteration)
-	}
-	if req.Days > 0 {
-		params["days"] = int(req.Days)
+	params, err := request.ProtobufToParams(req, &request.ProtobufToParamsOptions{
+		FilterEmptyStrings:    true,
+		StringifyArrays:       false,
+		ConvertFloat64ToInt:   true,
+		Float64ToIntFields:    []string{"iteration", "days"},
+	})
+	if err != nil {
+		return make(map[string]interface{})
 	}
 
 	return params
@@ -1367,26 +1112,19 @@ func ParseRecommendRequest(args json.RawMessage) (*proto.RecommendRequest, map[s
 }
 
 // RecommendRequestToParams converts a protobuf RecommendRequest to params map
+// This function now uses the generic ProtobufToParams converter from mcp-go-core.
 func RecommendRequestToParams(req *proto.RecommendRequest) map[string]interface{} {
-	params := make(map[string]interface{})
+	if req == nil {
+		return make(map[string]interface{})
+	}
 
-	if req.Action != "" {
-		params["action"] = req.Action
+	params, err := request.ProtobufToParams(req, &request.ProtobufToParamsOptions{
+		FilterEmptyStrings: true,
+		StringifyArrays:    false,
+	})
+	if err != nil {
+		return make(map[string]interface{})
 	}
-	if req.TaskDescription != "" {
-		params["task_description"] = req.TaskDescription
-	}
-	if req.Tags != "" {
-		params["tags"] = req.Tags
-	}
-	params["include_rationale"] = req.IncludeRationale
-	if req.TaskType != "" {
-		params["task_type"] = req.TaskType
-	}
-	if req.OptimizeFor != "" {
-		params["optimize_for"] = req.OptimizeFor
-	}
-	params["include_alternatives"] = req.IncludeAlternatives
 
 	return params
 }
@@ -1406,15 +1144,18 @@ func ParseAnalyzeAlignmentRequest(args json.RawMessage) (*proto.AnalyzeAlignment
 }
 
 // AnalyzeAlignmentRequestToParams converts a protobuf AnalyzeAlignmentRequest to params map
+// This function now uses the generic ProtobufToParams converter from mcp-go-core.
 func AnalyzeAlignmentRequestToParams(req *proto.AnalyzeAlignmentRequest) map[string]interface{} {
-	params := make(map[string]interface{})
-
-	if req.Action != "" {
-		params["action"] = req.Action
+	if req == nil {
+		return make(map[string]interface{})
 	}
-	params["create_followup_tasks"] = req.CreateFollowupTasks
-	if req.OutputPath != "" {
-		params["output_path"] = req.OutputPath
+
+	params, err := request.ProtobufToParams(req, &request.ProtobufToParamsOptions{
+		FilterEmptyStrings: true,
+		StringifyArrays:    false,
+	})
+	if err != nil {
+		return make(map[string]interface{})
 	}
 
 	return params
@@ -1435,26 +1176,19 @@ func ParseGenerateConfigRequest(args json.RawMessage) (*proto.GenerateConfigRequ
 }
 
 // GenerateConfigRequestToParams converts a protobuf GenerateConfigRequest to params map
+// This function now uses the generic ProtobufToParams converter from mcp-go-core.
 func GenerateConfigRequestToParams(req *proto.GenerateConfigRequest) map[string]interface{} {
-	params := make(map[string]interface{})
+	if req == nil {
+		return make(map[string]interface{})
+	}
 
-	if req.Action != "" {
-		params["action"] = req.Action
+	params, err := request.ProtobufToParams(req, &request.ProtobufToParamsOptions{
+		FilterEmptyStrings: true,
+		StringifyArrays:    false,
+	})
+	if err != nil {
+		return make(map[string]interface{})
 	}
-	if req.Rules != "" {
-		params["rules"] = req.Rules
-	}
-	params["overwrite"] = req.Overwrite
-	params["analyze_only"] = req.AnalyzeOnly
-	params["include_indexing"] = req.IncludeIndexing
-	params["analyze_project"] = req.AnalyzeProject
-	if req.RuleFiles != "" {
-		params["rule_files"] = req.RuleFiles
-	}
-	if req.OutputDir != "" {
-		params["output_dir"] = req.OutputDir
-	}
-	params["dry_run"] = req.DryRun
 
 	return params
 }
@@ -1474,24 +1208,19 @@ func ParseSetupHooksRequest(args json.RawMessage) (*proto.SetupHooksRequest, map
 }
 
 // SetupHooksRequestToParams converts a protobuf SetupHooksRequest to params map
+// This function now uses the generic ProtobufToParams converter from mcp-go-core.
 func SetupHooksRequestToParams(req *proto.SetupHooksRequest) map[string]interface{} {
-	params := make(map[string]interface{})
+	if req == nil {
+		return make(map[string]interface{})
+	}
 
-	if req.Action != "" {
-		params["action"] = req.Action
+	params, err := request.ProtobufToParams(req, &request.ProtobufToParamsOptions{
+		FilterEmptyStrings: true,
+		StringifyArrays:    true, // Hooks is an array
+	})
+	if err != nil {
+		return make(map[string]interface{})
 	}
-	if len(req.Hooks) > 0 {
-		hooksJSON, _ := json.Marshal(req.Hooks)
-		params["hooks"] = string(hooksJSON)
-	}
-	if req.Patterns != "" {
-		params["patterns"] = req.Patterns
-	}
-	if req.ConfigPath != "" {
-		params["config_path"] = req.ConfigPath
-	}
-	params["install"] = req.Install
-	params["dry_run"] = req.DryRun
 
 	return params
 }
@@ -1511,13 +1240,19 @@ func ParseCheckAttributionRequest(args json.RawMessage) (*proto.CheckAttribution
 }
 
 // CheckAttributionRequestToParams converts a protobuf CheckAttributionRequest to params map
+// This function now uses the generic ProtobufToParams converter from mcp-go-core.
 func CheckAttributionRequestToParams(req *proto.CheckAttributionRequest) map[string]interface{} {
-	params := make(map[string]interface{})
-
-	if req.OutputPath != "" {
-		params["output_path"] = req.OutputPath
+	if req == nil {
+		return make(map[string]interface{})
 	}
-	params["create_tasks"] = req.CreateTasks
+
+	params, err := request.ProtobufToParams(req, &request.ProtobufToParamsOptions{
+		FilterEmptyStrings: true,
+		StringifyArrays:    false,
+	})
+	if err != nil {
+		return make(map[string]interface{})
+	}
 
 	return params
 }
@@ -1537,15 +1272,20 @@ func ParseAddExternalToolHintsRequest(args json.RawMessage) (*proto.AddExternalT
 }
 
 // AddExternalToolHintsRequestToParams converts a protobuf AddExternalToolHintsRequest to params map
+// This function now uses the generic ProtobufToParams converter from mcp-go-core.
 func AddExternalToolHintsRequestToParams(req *proto.AddExternalToolHintsRequest) map[string]interface{} {
-	params := make(map[string]interface{})
-
-	params["dry_run"] = req.DryRun
-	if req.OutputPath != "" {
-		params["output_path"] = req.OutputPath
+	if req == nil {
+		return make(map[string]interface{})
 	}
-	if req.MinFileSize > 0 {
-		params["min_file_size"] = int(req.MinFileSize)
+
+	params, err := request.ProtobufToParams(req, &request.ProtobufToParamsOptions{
+		FilterEmptyStrings:    true,
+		StringifyArrays:       false,
+		ConvertFloat64ToInt:   true,
+		Float64ToIntFields:    []string{"min_file_size"},
+	})
+	if err != nil {
+		return make(map[string]interface{})
 	}
 
 	return params
@@ -1566,40 +1306,21 @@ func ParseTestingRequest(args json.RawMessage) (*proto.TestingRequest, map[strin
 }
 
 // TestingRequestToParams converts a protobuf TestingRequest to params map
+// This function now uses the generic ProtobufToParams converter from mcp-go-core.
 func TestingRequestToParams(req *proto.TestingRequest) map[string]interface{} {
-	params := make(map[string]interface{})
+	if req == nil {
+		return make(map[string]interface{})
+	}
 
-	if req.Action != "" {
-		params["action"] = req.Action
-	}
-	if req.TestPath != "" {
-		params["test_path"] = req.TestPath
-	}
-	if req.TestFramework != "" {
-		params["test_framework"] = req.TestFramework
-	}
-	params["verbose"] = req.Verbose
-	params["coverage"] = req.Coverage
-	if req.CoverageFile != "" {
-		params["coverage_file"] = req.CoverageFile
-	}
-	if req.MinCoverage > 0 {
-		params["min_coverage"] = int(req.MinCoverage)
-	}
-	if req.Format != "" {
-		params["format"] = req.Format
-	}
-	if req.TargetFile != "" {
-		params["target_file"] = req.TargetFile
-	}
-	if req.MinConfidence > 0 {
-		params["min_confidence"] = req.MinConfidence
-	}
-	if req.Framework != "" {
-		params["framework"] = req.Framework
-	}
-	if req.OutputPath != "" {
-		params["output_path"] = req.OutputPath
+	params, err := request.ProtobufToParams(req, &request.ProtobufToParamsOptions{
+		FilterEmptyStrings:    true,
+		StringifyArrays:       false,
+		ConvertFloat64ToInt:   true,
+		Float64ToIntFields:    []string{"min_coverage"},
+		// Note: min_confidence remains as float64 (it's a threshold, not a count)
+	})
+	if err != nil {
+		return make(map[string]interface{})
 	}
 
 	return params
@@ -1620,43 +1341,21 @@ func ParseAutomationRequest(args json.RawMessage) (*proto.AutomationRequest, map
 }
 
 // AutomationRequestToParams converts a protobuf AutomationRequest to params map
+// This function now uses the generic ProtobufToParams converter from mcp-go-core.
 func AutomationRequestToParams(req *proto.AutomationRequest) map[string]interface{} {
-	params := make(map[string]interface{})
+	if req == nil {
+		return make(map[string]interface{})
+	}
 
-	if req.Action != "" {
-		params["action"] = req.Action
-	}
-	if len(req.Tasks) > 0 {
-		tasksJSON, _ := json.Marshal(req.Tasks)
-		params["tasks"] = string(tasksJSON)
-	}
-	params["include_slow"] = req.IncludeSlow
-	if req.MaxTasksPerHost > 0 {
-		params["max_tasks_per_host"] = int(req.MaxTasksPerHost)
-	}
-	if req.MaxParallelTasks > 0 {
-		params["max_parallel_tasks"] = int(req.MaxParallelTasks)
-	}
-	if req.PriorityFilter != "" {
-		params["priority_filter"] = req.PriorityFilter
-	}
-	if len(req.TagFilter) > 0 {
-		tagsJSON, _ := json.Marshal(req.TagFilter)
-		params["tag_filter"] = string(tagsJSON)
-	}
-	if req.MaxIterations > 0 {
-		params["max_iterations"] = int(req.MaxIterations)
-	}
-	params["auto_approve"] = req.AutoApprove
-	params["extract_subtasks"] = req.ExtractSubtasks
-	params["run_analysis_tools"] = req.RunAnalysisTools
-	params["run_testing_tools"] = req.RunTestingTools
-	if req.MinValueScore > 0 {
-		params["min_value_score"] = req.MinValueScore
-	}
-	params["dry_run"] = req.DryRun
-	if req.OutputPath != "" {
-		params["output_path"] = req.OutputPath
+	params, err := request.ProtobufToParams(req, &request.ProtobufToParamsOptions{
+		FilterEmptyStrings:    true,
+		StringifyArrays:       true, // Tasks and TagFilter are arrays
+		ConvertFloat64ToInt:   true,
+		Float64ToIntFields:    []string{"max_tasks_per_host", "max_parallel_tasks", "max_iterations"},
+		// Note: min_value_score remains as float64 (it's a threshold, not a count)
+	})
+	if err != nil {
+		return make(map[string]interface{})
 	}
 
 	return params
@@ -1677,32 +1376,18 @@ func ParseLintRequest(args json.RawMessage) (*proto.LintRequest, map[string]inte
 }
 
 // LintRequestToParams converts a protobuf LintRequest to params map
+// This function now uses the generic ProtobufToParams converter from mcp-go-core.
 func LintRequestToParams(req *proto.LintRequest) map[string]interface{} {
-	params := make(map[string]interface{})
+	if req == nil {
+		return make(map[string]interface{})
+	}
 
-	if req.Action != "" {
-		params["action"] = req.Action
-	}
-	if req.Path != "" {
-		params["path"] = req.Path
-	}
-	if req.Linter != "" {
-		params["linter"] = req.Linter
-	}
-	params["fix"] = req.Fix
-	params["analyze"] = req.Analyze
-	if req.Select != "" {
-		params["select"] = req.Select
-	}
-	if req.Ignore != "" {
-		params["ignore"] = req.Ignore
-	}
-	if req.ProblemsJson != "" {
-		params["problems_json"] = req.ProblemsJson
-	}
-	params["include_hints"] = req.IncludeHints
-	if req.OutputPath != "" {
-		params["output_path"] = req.OutputPath
+	params, err := request.ProtobufToParams(req, &request.ProtobufToParamsOptions{
+		FilterEmptyStrings: true,
+		StringifyArrays:    false,
+	})
+	if err != nil {
+		return make(map[string]interface{})
 	}
 
 	return params
