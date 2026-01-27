@@ -70,11 +70,10 @@ def execute_tool(tool_name: str, args_json: str, use_protobuf: bool = False, pro
             args = json.loads(args_json) if args_json else {}
         
         # Import tool functions from project_management_automation
-        # Note: tool_catalog, workflow_mode, git_tools, infer_session_mode, health, and automation removed
-        # These tools are fully native Go with no Python fallback
+        # Note: tool_catalog, workflow_mode, git_tools, infer_session_mode, health, automation,
+        # generate_config, and add_external_tool_hints removed - fully native Go with no Python fallback
         from project_management_automation.tools.consolidated import (
             analyze_alignment as _analyze_alignment,
-            generate_config as _generate_config,
             setup_hooks as _setup_hooks,
             memory as _memory,
             memory_maint as _memory_maint,
@@ -89,9 +88,6 @@ def execute_tool(tool_name: str, args_json: str, use_protobuf: bool = False, pro
             mlx as _mlx,
             ollama as _ollama,
             session as _session,
-        )
-        from project_management_automation.tools.external_tool_hints import (
-            add_external_tool_hints as _add_external_tool_hints,
         )
         from project_management_automation.tools.attribution_check import (
             check_attribution_compliance as _check_attribution_compliance,
@@ -110,18 +106,6 @@ def execute_tool(tool_name: str, args_json: str, use_protobuf: bool = False, pro
                 create_followup_tasks=args.get("create_followup_tasks", True),
                 output_path=args.get("output_path"),
             )
-        elif tool_name == "generate_config":
-            result = _generate_config(
-                action=args.get("action", "rules"),
-                rules=args.get("rules"),
-                overwrite=args.get("overwrite", False),
-                analyze_only=args.get("analyze_only", False),
-                include_indexing=args.get("include_indexing", True),
-                analyze_project=args.get("analyze_project", True),
-                rule_files=args.get("rule_files"),
-                output_dir=args.get("output_dir"),
-                dry_run=args.get("dry_run", False),
-            )
         elif tool_name == "setup_hooks":
             result = _setup_hooks(
                 action=args.get("action", "git"),
@@ -135,12 +119,6 @@ def execute_tool(tool_name: str, args_json: str, use_protobuf: bool = False, pro
             result = _check_attribution_compliance(
                 output_path=args.get("output_path"),
                 create_tasks=args.get("create_tasks", True),
-            )
-        elif tool_name == "add_external_tool_hints":
-            result = _add_external_tool_hints(
-                dry_run=args.get("dry_run", False),
-                output_path=args.get("output_path"),
-                min_file_size=args.get("min_file_size", 50),
             )
         elif tool_name == "memory":
             result = _memory(
