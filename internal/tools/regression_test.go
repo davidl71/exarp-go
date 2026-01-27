@@ -17,7 +17,18 @@ var toolsWithNoBridge = map[string]bool{
 	"prompt_tracking": true, "generate_config": true, "add_external_tool_hints": true,
 }
 
-// TestRegressionSessionPrime tests session prime action (native only; session has no Python fallback)
+// TestRegressionNativeOnlyTools documents tools that completed native migration (no Python bridge).
+// See docs/PYTHON_FALLBACKS_SAFE_TO_REMOVE.md.
+func TestRegressionNativeOnlyTools(t *testing.T) {
+	want := []string{"session", "setup_hooks", "check_attribution", "memory_maint"}
+	for _, name := range want {
+		if !toolsWithNoBridge[name] {
+			t.Errorf("native-only tool %q must be in toolsWithNoBridge", name)
+		}
+	}
+}
+
+// TestRegressionSessionPrime tests session prime action (native only; no Python fallback)
 func TestRegressionSessionPrime(t *testing.T) {
 	ctx := context.Background()
 	params := map[string]interface{}{
@@ -49,53 +60,32 @@ func TestRegressionSessionPrime(t *testing.T) {
 	}
 }
 
-// TestRegressionRecommendWorkflow compares native vs Python bridge for recommend workflow action
+// TestRegressionRecommendWorkflow tests native recommend workflow action.
+// Native is primary; optional bridge comparison when bridge available (hybrid tool).
 func TestRegressionRecommendWorkflow(t *testing.T) {
 	ctx := context.Background()
 	params := map[string]interface{}{
-		"action":          "workflow",
-		"task_description": "Implement a new feature with database migrations",
+		"action":            "workflow",
+		"task_description":  "Implement a new feature with database migrations",
 		"include_rationale": true,
 	}
 
-	// Get native result
+	// Assert native path (migrated to native Go)
 	nativeResult, nativeErr := handleRecommendWorkflowNative(ctx, params)
 	if nativeErr != nil {
 		t.Fatalf("native implementation failed: %v", nativeErr)
 	}
-
-	// Get Python bridge result
-	bridgeResultStr, bridgeErr := bridge.ExecutePythonTool(ctx, "recommend", params)
-	if bridgeErr != nil {
-		t.Skipf("Python bridge not available or failed: %v", bridgeErr)
-		return
-	}
-
-	// Compare results
 	if len(nativeResult) == 0 {
 		t.Error("native result is empty")
 	}
 
-	// Both should return valid JSON
 	var nativeData map[string]interface{}
 	if err := json.Unmarshal([]byte(nativeResult[0].Text), &nativeData); err != nil {
 		t.Errorf("native result is not valid JSON: %v", err)
 	}
-
-	var bridgeData map[string]interface{}
-	if err := json.Unmarshal([]byte(bridgeResultStr), &bridgeData); err != nil {
-		t.Errorf("bridge result is not valid JSON: %v", err)
-	}
-
-	// Both should have success field
 	if nativeSuccess, ok := nativeData["success"].(bool); !ok || !nativeSuccess {
 		t.Error("native result missing success field or not true")
 	}
-	if bridgeSuccess, ok := bridgeData["success"].(bool); !ok || !bridgeSuccess {
-		t.Error("bridge result missing success field or not true")
-	}
-
-	// Both should recommend a workflow mode (AGENT or ASK)
 	if nativeDataMap, ok := nativeData["data"].(map[string]interface{}); ok {
 		if recommendedMode, ok := nativeDataMap["recommended_mode"].(string); ok {
 			if recommendedMode != "AGENT" && recommendedMode != "ASK" {
@@ -105,54 +95,69 @@ func TestRegressionRecommendWorkflow(t *testing.T) {
 			t.Error("native result missing recommended_mode")
 		}
 	}
-}
 
-// TestRegressionHealthServer compares native vs Python bridge for health server action
-func TestRegressionHealthServer(t *testing.T) {
-	ctx := context.Background()
-	params := map[string]interface{}{
-		"action": "server",
-	}
-
-	// Get native result
-	nativeResult, nativeErr := handleHealthNative(ctx, params)
-	if nativeErr != nil {
-		t.Fatalf("native implementation failed: %v", nativeErr)
-	}
-
-	// Get Python bridge result
-	bridgeResultStr, bridgeErr := bridge.ExecutePythonTool(ctx, "health", params)
+	// Optional: compare to Python bridge when available (hybrid fallback)
+	bridgeResultStr, bridgeErr := bridge.ExecutePythonTool(ctx, "recommend", params)
 	if bridgeErr != nil {
-		t.Skipf("Python bridge not available or failed: %v", bridgeErr)
+		t.Skipf("Python bridge not available (optional): %v", bridgeErr)
 		return
 	}
-
-	// Compare results
-	if len(nativeResult) == 0 {
-		t.Error("native result is empty")
-	}
-
-	// Both should return valid JSON
-	var nativeData map[string]interface{}
-	if err := json.Unmarshal([]byte(nativeResult[0].Text), &nativeData); err != nil {
-		t.Errorf("native result is not valid JSON: %v", err)
-	}
-
 	var bridgeData map[string]interface{}
 	if err := json.Unmarshal([]byte(bridgeResultStr), &bridgeData); err != nil {
 		t.Errorf("bridge result is not valid JSON: %v", err)
-	}
-
-	// Both should have success field
-	if nativeSuccess, ok := nativeData["success"].(bool); !ok || !nativeSuccess {
-		t.Error("native result missing success field or not true")
 	}
 	if bridgeSuccess, ok := bridgeData["success"].(bool); !ok || !bridgeSuccess {
 		t.Error("bridge result missing success field or not true")
 	}
 }
 
-// TestRegressionFallbackBehavior tests that tools properly fall back to Python bridge when native fails
+// TestRegressionHealthServer tests native health server action.
+// Native is primary; optional bridge comparison when bridge available (hybrid tool).
+func TestRegressionHealthServer(t *testing.T) {
+	ctx := context.Background()
+	params := map[string]interface{}{
+		"action": "server",
+	}
+
+	// Assert native path (migrated to native Go)
+	nativeResult, nativeErr := handleHealthNative(ctx, params)
+	if nativeErr != nil {
+		t.Fatalf("native implementation failed: %v", nativeErr)
+	}
+	if len(nativeResult) == 0 {
+		t.Error("native result is empty")
+	}
+
+	var nativeData map[string]interface{}
+	if err := json.Unmarshal([]byte(nativeResult[0].Text), &nativeData); err != nil {
+		t.Errorf("native result is not valid JSON: %v", err)
+	}
+	// Native health server returns status/version/project_root (no "success" field)
+	if _, ok := nativeData["status"]; !ok {
+		if success, ok := nativeData["success"].(bool); !ok || !success {
+			t.Error("native health result missing status or success field")
+		}
+	}
+
+	// Optional: compare to Python bridge when available (hybrid fallback)
+	bridgeResultStr, bridgeErr := bridge.ExecutePythonTool(ctx, "health", params)
+	if bridgeErr != nil {
+		t.Skipf("Python bridge not available (optional): %v", bridgeErr)
+		return
+	}
+	var bridgeData map[string]interface{}
+	if err := json.Unmarshal([]byte(bridgeResultStr), &bridgeData); err != nil {
+		t.Errorf("bridge result is not valid JSON: %v", err)
+	}
+	if bridgeSuccess, ok := bridgeData["success"].(bool); !ok || !bridgeSuccess {
+		if _, ok := bridgeData["status"]; !ok {
+			t.Error("bridge result missing success or status field")
+		}
+	}
+}
+
+// TestRegressionFallbackBehavior tests native-only tools have no bridge fallback;
+// hybrid tools may fall back to Python when native fails.
 func TestRegressionFallbackBehavior(t *testing.T) {
 	ctx := context.Background()
 
@@ -327,7 +332,8 @@ func TestRegressionResponseFormat(t *testing.T) {
 	}
 }
 
-// TestRegressionErrorHandling verifies consistent error handling between native and bridge
+// TestRegressionErrorHandling verifies error handling: native-only tools assert native only;
+// hybrid tools compare native vs bridge when bridge available.
 func TestRegressionErrorHandling(t *testing.T) {
 	ctx := context.Background()
 
@@ -420,17 +426,19 @@ func TestRegressionErrorHandling(t *testing.T) {
 	}
 }
 
-// TestRegressionFeatureParity documents intentional differences between native and bridge
+// TestRegressionFeatureParity documents migration status: native-only tools vs hybrid vs bridge-only.
 func TestRegressionFeatureParity(t *testing.T) {
-	// This test documents known differences between native and Python bridge implementations
-	// These are intentional and acceptable differences
+	// Native-only: no Python bridge; hybrid: native first, bridge fallback; bridge-only: intentional.
 
 	knownDifferences := map[string]string{
-		"session": "Native implementation may have different prompt discovery logic, but core functionality is equivalent",
-		"recommend": "Native workflow recommendation uses simplified logic, but produces equivalent recommendations",
-		"health": "Native health checks may have different implementation details, but check the same things",
-		"ollama": "Native uses HTTP client directly, Python bridge may use different Ollama client library",
-		"mlx": "MLX is intentionally Python bridge only - no native implementation exists",
+		"session":           "Fully native; no Python bridge. Prime, handoff, prompts, assignee are native-only.",
+		"setup_hooks":       "Fully native; no Python bridge. Git and patterns actions are native-only.",
+		"check_attribution": "Fully native; no Python bridge.",
+		"memory_maint":      "Fully native; no Python bridge. Health, gc, prune, consolidate, dream are native-only.",
+		"recommend":         "Hybrid: native workflow/model; Python fallback when native fails.",
+		"health":            "Hybrid: native server/docs/dod/cicd; Python fallback when native fails.",
+		"ollama":            "Hybrid: native uses HTTP client; Python bridge may differ.",
+		"mlx":               "Bridge-only by design; no native implementation.",
 	}
 
 	for tool, reason := range knownDifferences {
