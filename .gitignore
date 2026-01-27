@@ -6,9 +6,6 @@
 .make.config
 .agentic-tools-mcp/
 
-# OpenMemory - IDE/Assistant specific rules
-.cursor/rules/openmemory.mdc
-
 # Exarp runtime directories (state, cache, logs, temporary files)
 .exarp/
 .todo2/
