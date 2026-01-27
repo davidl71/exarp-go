@@ -248,56 +248,6 @@
     state: present
   when: ansible_os_family == "RedHat"
 
-# ODBC dependencies (optional, for ODBC driver support)
-# Required for github.com/alexbrainman/odbc when using CGO
-
-- name: Install ODBC runtime (Debian/Ubuntu)
-  ansible.builtin.apt:
-    name:
-      - unixodbc
-      - unixodbc-dev
-    state: present
-  when: ansible_os_family == "Debian"
-
-- name: Install ODBC runtime (RedHat/CentOS)
-  ansible.builtin.yum:
-    name:
-      - unixODBC
-      - unixODBC-devel
-    state: present
-  when: ansible_os_family == "RedHat"
-
-- name: Install ODBC runtime (macOS)
-  community.general.homebrew:
-    name: unixodbc
-    state: present
-  when: ansible_system == "Darwin"
-
-- name: Verify ODBC installation
-  ansible.builtin.command: odbcinst --version
-  register: odbc_version
-  changed_when: false
-  failed_when: false
-  ignore_errors: true
-
-- name: Check for ODBC headers (macOS)
-  ansible.builtin.stat:
-    path: "{{ item }}"
-  register: odbc_header_check
-  failed_when: false
-  loop:
-    - /opt/homebrew/include/sql.h
-    - /usr/local/include/sql.h
-    - /opt/homebrew/opt/unixodbc/include/sql.h
-  when: ansible_system == "Darwin"
-
-- name: Verify ODBC headers are available (macOS)
-  ansible.builtin.debug:
-    msg: >-
-      ODBC headers: {{ '✅ Found' if odbc_header_check.results | selectattr('stat.exists', 'equalto', true) | list | length > 0
-      else '⚠️  Not found - CGO builds may fail. Headers should be in /opt/homebrew/include or /usr/local/include' }}
-  when: ansible_system == "Darwin"
-
 - name: Verify SQLite installation
   ansible.builtin.command: sqlite3 --version
   register: sqlite_version
@@ -324,4 +274,3 @@
     msg:
       - "Runtime Dependencies Status:"
       - "  SQLite: {{ sqlite_version.stdout if sqlite_version.rc == 0 else '⚠️  Not found (modernc.org/sqlite is pure Go, but system SQLite is recommended)' }}"
-      - "  ODBC: {{ odbc_version.stdout if odbc_version.rc == 0 else '⚠️  Not found (optional - required for ODBC driver with CGO)' }}"
