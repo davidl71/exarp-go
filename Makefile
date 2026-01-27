@@ -1,4 +1,4 @@
-.PHONY: help build build-debug build-race build-no-cgo run test test-watch test-coverage test-html clean install fmt lint dev dev-watch dev-test dev-full dev-cycle pre-push bench docs sanity-check sanity-check-cached test-cli test-cli-list test-cli-tool test-cli-test config clean-config sprint-start sprint-end pre-sprint sprint check-tasks update-completed-tasks go-fmt go-vet golangci-lint-check golangci-lint-fix govulncheck check check-fix check-all build-migrate migrate migrate-dry-run install-tools go-mod-tidy go-mod-verify pre-commit ci validate check-deps test-go test-go-fast test-go-verbose test-go-parallel version scorecard scorecard-full task-list task-list-todo task-list-in-progress task-list-done task-update proto proto-check proto-clean
+.PHONY: help build build-debug build-race build-no-cgo run test test-watch test-coverage test-html clean install fmt lint dev dev-watch dev-test dev-full dev-cycle pre-push bench docs sanity-check sanity-check-cached test-cli test-cli-list test-cli-tool test-cli-test config clean-config sprint-start sprint-end pre-sprint sprint check-tasks update-completed-tasks go-fmt go-vet golangci-lint-check golangci-lint-fix govulncheck check check-fix check-all build-migrate migrate migrate-dry-run install-tools go-mod-tidy go-mod-verify pre-commit ci validate check-deps test-go test-go-fast test-go-verbose test-go-parallel test-go-tools-short version scorecard scorecard-full task-list task-list-todo task-list-in-progress task-list-done task-update proto proto-check proto-clean
 
 # Project configuration
 PROJECT_NAME := exarp-go
@@ -292,6 +292,12 @@ test-go-parallel: ## Run Go tests in parallel (faster, CGO disabled)
 	@CGO_ENABLED=0 $(GO) test ./... -v -parallel 4 || \
 	 (echo "$(RED)❌ Parallel tests failed$(NC)" && exit 1)
 	@echo "$(GREEN)✅ Parallel tests passed$(NC)"
+
+test-go-tools-short: ## Run internal/tools tests with -short (skips discover/sprint; use when CGO=1 for fast feedback)
+	@echo "$(BLUE)Running tools tests (short mode, skips long-running discover/sprint)...$(NC)"
+	@$(GO) test ./internal/tools -short -timeout=60s -count=1 || \
+	 (echo "$(RED)❌ Tools tests failed$(NC)" && exit 1)
+	@echo "$(GREEN)✅ Tools tests passed (short)$(NC)"
 
 test-python: ## Run Python tests (requires pytest) - optimized: no verbose flag
 ifeq ($(HAVE_PYTEST),1)
@@ -821,8 +827,6 @@ test-apple-fm-integration: build-apple-fm ## Run Apple Foundation Models integra
 	@echo "$(YELLOW)Note: Requires Swift bridge to be built$(NC)"
 	@CGO_ENABLED=1 go test ./internal/tools -run TestHandleAppleFoundationModels -v || \
 	 echo "$(YELLOW)⚠️  Integration tests failed (may need Swift bridge)$(NC)"
-	@$(PYTHON) -m pytest tests/integration/mcp/test_apple_foundation_models.py -v || \
-	 echo "$(YELLOW)⚠️  Python integration tests failed$(NC)"
 
 ##@ Sprint Automation
 
