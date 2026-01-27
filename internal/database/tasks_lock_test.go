@@ -2,20 +2,49 @@ package database
 
 import (
 	"context"
+	"path/filepath"
+	"runtime"
 	"testing"
 	"time"
 
 	"github.com/davidl71/exarp-go/internal/models"
 )
 
-func TestClaimTaskForAgent(t *testing.T) {
-	// Setup
+// initLockTestDB sets up a temp DB with migrations from the repo so lock columns (assignee, etc.) exist.
+// Uses InitWithConfig with MigrationsDir from repo root (relative to this test file).
+func initLockTestDB(t *testing.T) {
+	t.Helper()
+	_, self, _, _ := runtime.Caller(0)
+	repoRoot := filepath.Dir(filepath.Dir(filepath.Dir(self)))
+	migrationsDir := filepath.Join(repoRoot, "migrations")
 	tmpDir := t.TempDir()
-	err := Init(tmpDir)
+	cfg, err := LoadConfig(tmpDir)
 	if err != nil {
-		t.Fatalf("Init() error = %v", err)
+		t.Fatalf("LoadConfig() error = %v", err)
 	}
-	defer Close()
+	cfg.Driver = DriverSQLite
+	cfg.DSN = filepath.Join(tmpDir, ".todo2", "todo2.db")
+	cfg.MigrationsDir = migrationsDir
+	cfg.AutoMigrate = true // ensure migrations run regardless of DB_AUTO_MIGRATE
+	err = InitWithConfig(cfg)
+	if err != nil {
+		t.Fatalf("InitWithConfig() error = %v (migrationsDir=%s)", err, migrationsDir)
+	}
+	// Require schema ≥ 2 so assignee/lock_until exist
+	ver, err := GetCurrentVersion()
+	if err != nil {
+		t.Fatalf("GetCurrentVersion() after init: %v", err)
+	}
+	if ver < 2 {
+		t.Fatalf("schema not updated to 002: GetCurrentVersion()=%d (migrationsDir=%s, AutoMigrate=%v)",
+			ver, migrationsDir, cfg.AutoMigrate)
+	}
+	t.Cleanup(func() { Close() })
+}
+
+func TestClaimTaskForAgent(t *testing.T) {
+	// Setup (use repo migrations so assignee/lock_until columns exist)
+	initLockTestDB(t)
 
 	// Create a task first
 	task := &models.Todo2Task{
@@ -24,7 +53,7 @@ func TestClaimTaskForAgent(t *testing.T) {
 		Status:   StatusTodo,
 		Priority: "medium",
 	}
-	err = CreateTask(context.Background(), task)
+	err := CreateTask(context.Background(), task)
 	if err != nil {
 		t.Fatalf("CreateTask() error = %v", err)
 	}
@@ -68,13 +97,7 @@ func TestClaimTaskForAgent(t *testing.T) {
 }
 
 func TestClaimTaskForAgent_AlreadyLocked(t *testing.T) {
-	// Setup
-	tmpDir := t.TempDir()
-	err := Init(tmpDir)
-	if err != nil {
-		t.Fatalf("Init() error = %v", err)
-	}
-	defer Close()
+	initLockTestDB(t)
 
 	// Create a task
 	task := &models.Todo2Task{
@@ -82,7 +105,7 @@ func TestClaimTaskForAgent_AlreadyLocked(t *testing.T) {
 		Content: "Task already locked",
 		Status:  StatusTodo,
 	}
-	err = CreateTask(context.Background(), task)
+	err := CreateTask(context.Background(), task)
 	if err != nil {
 		t.Fatalf("CreateTask() error = %v", err)
 	}
@@ -114,13 +137,7 @@ func TestClaimTaskForAgent_AlreadyLocked(t *testing.T) {
 }
 
 func TestReleaseTask(t *testing.T) {
-	// Setup
-	tmpDir := t.TempDir()
-	err := Init(tmpDir)
-	if err != nil {
-		t.Fatalf("Init() error = %v", err)
-	}
-	defer Close()
+	initLockTestDB(t)
 
 	// Create and claim task
 	task := &models.Todo2Task{
@@ -128,7 +145,7 @@ func TestReleaseTask(t *testing.T) {
 		Content: "Task to release",
 		Status:  StatusTodo,
 	}
-	err = CreateTask(context.Background(), task)
+	err := CreateTask(context.Background(), task)
 	if err != nil {
 		t.Fatalf("CreateTask() error = %v", err)
 	}
@@ -159,13 +176,7 @@ func TestReleaseTask(t *testing.T) {
 }
 
 func TestReleaseTask_WrongAgent(t *testing.T) {
-	// Setup
-	tmpDir := t.TempDir()
-	err := Init(tmpDir)
-	if err != nil {
-		t.Fatalf("Init() error = %v", err)
-	}
-	defer Close()
+	initLockTestDB(t)
 
 	// Create and claim task
 	task := &models.Todo2Task{
@@ -173,7 +184,7 @@ func TestReleaseTask_WrongAgent(t *testing.T) {
 		Content: "Task locked by agent1",
 		Status:  StatusTodo,
 	}
-	err = CreateTask(context.Background(), task)
+	err := CreateTask(context.Background(), task)
 	if err != nil {
 		t.Fatalf("CreateTask() error = %v", err)
 	}
@@ -196,13 +207,7 @@ func TestReleaseTask_WrongAgent(t *testing.T) {
 }
 
 func TestRenewLease(t *testing.T) {
-	// Setup
-	tmpDir := t.TempDir()
-	err := Init(tmpDir)
-	if err != nil {
-		t.Fatalf("Init() error = %v", err)
-	}
-	defer Close()
+	initLockTestDB(t)
 
 	// Create and claim task
 	task := &models.Todo2Task{
@@ -210,7 +215,7 @@ func TestRenewLease(t *testing.T) {
 		Content: "Task for lease renewal",
 		Status:  StatusTodo,
 	}
-	err = CreateTask(context.Background(), task)
+	err := CreateTask(context.Background(), task)
 	if err != nil {
 		t.Fatalf("CreateTask() error = %v", err)
 	}
@@ -232,13 +237,7 @@ func TestRenewLease(t *testing.T) {
 }
 
 func TestCleanupExpiredLocks(t *testing.T) {
-	// Setup
-	tmpDir := t.TempDir()
-	err := Init(tmpDir)
-	if err != nil {
-		t.Fatalf("Init() error = %v", err)
-	}
-	defer Close()
+	initLockTestDB(t)
 
 	// Create a task
 	task := &models.Todo2Task{
@@ -246,7 +245,7 @@ func TestCleanupExpiredLocks(t *testing.T) {
 		Content: "Task with expired lock",
 		Status:  StatusTodo,
 	}
-	err = CreateTask(context.Background(), task)
+	err := CreateTask(context.Background(), task)
 	if err != nil {
 		t.Fatalf("CreateTask() error = %v", err)
 	}
@@ -297,15 +296,10 @@ func TestCleanupExpiredLocks(t *testing.T) {
 }
 
 func TestDetectStaleLocks(t *testing.T) {
-	// Setup
-	tmpDir := t.TempDir()
-	err := Init(tmpDir)
-	if err != nil {
-		t.Fatalf("Init() error = %v", err)
-	}
-	defer Close()
+	initLockTestDB(t)
 
 	// Create tasks
+	var err error
 	tasks := []*models.Todo2Task{
 		{ID: "T-LOCK-7", Content: "Task 1", Status: StatusTodo},
 		{ID: "T-LOCK-8", Content: "Task 2", Status: StatusTodo},
@@ -365,13 +359,7 @@ func TestDetectStaleLocks(t *testing.T) {
 }
 
 func TestGetLockStatus(t *testing.T) {
-	// Setup
-	tmpDir := t.TempDir()
-	err := Init(tmpDir)
-	if err != nil {
-		t.Fatalf("Init() error = %v", err)
-	}
-	defer Close()
+	initLockTestDB(t)
 
 	// Create and claim task
 	task := &models.Todo2Task{
@@ -379,7 +367,7 @@ func TestGetLockStatus(t *testing.T) {
 		Content: "Task for status check",
 		Status:  StatusTodo,
 	}
-	err = CreateTask(context.Background(), task)
+	err := CreateTask(context.Background(), task)
 	if err != nil {
 		t.Fatalf("CreateTask() error = %v", err)
 	}
@@ -421,13 +409,7 @@ func TestGetLockStatus(t *testing.T) {
 }
 
 func TestGetLockStatus_NotLocked(t *testing.T) {
-	// Setup
-	tmpDir := t.TempDir()
-	err := Init(tmpDir)
-	if err != nil {
-		t.Fatalf("Init() error = %v", err)
-	}
-	defer Close()
+	initLockTestDB(t)
 
 	// Create task (not locked)
 	task := &models.Todo2Task{
@@ -435,7 +417,7 @@ func TestGetLockStatus_NotLocked(t *testing.T) {
 		Content: "Unlocked task",
 		Status:  StatusTodo,
 	}
-	err = CreateTask(context.Background(), task)
+	err := CreateTask(context.Background(), task)
 	if err != nil {
 		t.Fatalf("CreateTask() error = %v", err)
 	}

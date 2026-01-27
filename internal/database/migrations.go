@@ -10,8 +10,15 @@ import (
 	"strings"
 )
 
-// RunMigrations runs all pending migrations
+// RunMigrations runs all pending migrations using findProjectRoot() to locate migration files.
 func RunMigrations() error {
+	return RunMigrationsFromDir("")
+}
+
+// RunMigrationsFromDir runs all pending migrations.
+// If migrationsDir is non-empty, migration files are read from that directory.
+// Otherwise findProjectRoot() is used to find project root and migrations are read from <root>/migrations.
+func RunMigrationsFromDir(migrationsDir string) error {
 	if DB == nil {
 		return fmt.Errorf("database not initialized")
 	}
@@ -22,7 +29,13 @@ func RunMigrations() error {
 	}
 
 	// Get list of migration files
-	migrations, err := getMigrationFiles()
+	var migrations []Migration
+	var err error
+	if migrationsDir != "" {
+		migrations, err = getMigrationFilesFromDir(migrationsDir)
+	} else {
+		migrations, err = getMigrationFiles()
+	}
 	if err != nil {
 		return fmt.Errorf("failed to get migration files: %w", err)
 	}
@@ -116,6 +129,47 @@ func getMigrationFiles() ([]Migration, error) {
 	return migrations, nil
 }
 
+// getMigrationFilesFromDir reads migration files from the given directory.
+// Used by tests when the DB is in a temp dir that has no migrations (dir is repo migrations path).
+func getMigrationFilesFromDir(dir string) ([]Migration, error) {
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read migrations directory %s: %w", dir, err)
+	}
+	var migrations []Migration
+	for _, entry := range entries {
+		if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".sql") {
+			continue
+		}
+		filename := entry.Name()
+		parts := strings.SplitN(filename, "_", 2)
+		if len(parts) < 1 {
+			continue
+		}
+		version, err := strconv.Atoi(parts[0])
+		if err != nil {
+			continue
+		}
+		migrationPath := filepath.Join(dir, filename)
+		sql, err := os.ReadFile(migrationPath)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read migration file %s: %w", migrationPath, err)
+		}
+		description := strings.TrimSuffix(parts[1], ".sql")
+		description = strings.ReplaceAll(description, "_", " ")
+		migrations = append(migrations, Migration{
+			Version:     version,
+			Filename:    filename,
+			SQL:         string(sql),
+			Description: description,
+		})
+	}
+	sort.Slice(migrations, func(i, j int) bool {
+		return migrations[i].Version < migrations[j].Version
+	})
+	return migrations, nil
+}
+
 // findProjectRoot finds the project root by looking for .todo2 directory
 func findProjectRoot() (string, error) {
 	dir, err := os.Getwd()
@@ -162,43 +216,52 @@ func getAppliedMigrations() (map[int]bool, error) {
 	return applied, rows.Err()
 }
 
-// applyMigration applies a single migration
+// applyMigration applies a single migration.
+// For migrations 002 and 003, runs each statement in its own transaction so that a
+// "duplicate column" on one ALTER (e.g. version already in 001) does not stop later
+// ALTERs (assignee, lock_until) from running. SQLite stops at the first error when
+// Exec runs multiple statements, and a failed Exec can leave the tx unusable.
 func applyMigration(migration Migration) error {
+	runPerStatement := migration.Version == 2 || migration.Version == 3
+	if runPerStatement {
+		for _, stmt := range splitMigrationSQL(migration.SQL) {
+			_, err := DB.Exec(stmt)
+			if err != nil {
+				errStr := strings.ToLower(err.Error())
+				isDuplicateColumn := strings.Contains(errStr, "duplicate column") ||
+					strings.Contains(errStr, "duplicate column name") ||
+					strings.Contains(errStr, "already exists") ||
+					(strings.Contains(errStr, "sql logic error") && strings.Contains(errStr, "duplicate"))
+				if !isDuplicateColumn {
+					return fmt.Errorf("failed to execute migration %d SQL: %w", migration.Version, err)
+				}
+				// Skip this statement, continue with next
+			}
+		}
+		// Record migration in its own transaction
+		_, err := DB.Exec(
+			"INSERT OR IGNORE INTO schema_migrations (version, description) VALUES (?, ?)",
+			migration.Version,
+			migration.Description,
+		)
+		if err != nil {
+			return fmt.Errorf("failed to record migration: %w", err)
+		}
+		return nil
+	}
+
 	tx, err := DB.Begin()
 	if err != nil {
 		return fmt.Errorf("failed to begin transaction: %w", err)
 	}
 	defer func() {
-		if err := tx.Rollback(); err != nil {
-			// Ignore rollback errors on successful commit
-		}
+		_ = tx.Rollback()
 	}()
 
-	// Execute migration SQL
-	// For migrations 002 and 003, we handle "duplicate column" errors gracefully
-	// (columns may already exist if added to initial schema or previously applied)
 	if _, err := tx.Exec(migration.SQL); err != nil {
-		// Check if error is "duplicate column" (SQLite error code 1 or contains "duplicate column")
-		errStr := strings.ToLower(err.Error())
-		// Match various forms of duplicate column errors:
-		// - "duplicate column" (standard)
-		// - "already exists" (alternative)
-		// - "sql logic error" with "duplicate" (SQLite format: "SQL logic error: duplicate column name: ...")
-		isDuplicateColumn := strings.Contains(errStr, "duplicate column") ||
-			strings.Contains(errStr, "duplicate column name") ||
-			strings.Contains(errStr, "already exists") ||
-			(strings.Contains(errStr, "sql logic error") && strings.Contains(errStr, "duplicate"))
-		
-		if (migration.Version == 2 || migration.Version == 3) && isDuplicateColumn {
-			// Column already exists - this is OK for migrations 002 and 003
-			// (columns may have been added to initial schema or previously applied)
-			// Continue with migration record insertion (error is ignored)
-		} else {
-			return fmt.Errorf("failed to execute migration SQL: %w", err)
-		}
+		return fmt.Errorf("failed to execute migration SQL: %w", err)
 	}
 
-	// Record migration (ignore if already exists - idempotent)
 	_, err = tx.Exec(
 		"INSERT OR IGNORE INTO schema_migrations (version, description) VALUES (?, ?)",
 		migration.Version,
@@ -209,6 +272,31 @@ func applyMigration(migration Migration) error {
 	}
 
 	return tx.Commit()
+}
+
+// splitMigrationSQL splits SQL into single statements, trims and skips empty/comment-only.
+func splitMigrationSQL(sql string) []string {
+	var out []string
+	for _, s := range strings.Split(sql, ";") {
+		s = strings.TrimSpace(s)
+		if s == "" {
+			continue
+		}
+		// Skip blocks that are only comments and whitespace
+		lines := strings.Split(s, "\n")
+		var hasContent bool
+		for _, line := range lines {
+			trimmed := strings.TrimSpace(line)
+			if trimmed != "" && !strings.HasPrefix(trimmed, "--") {
+				hasContent = true
+				break
+			}
+		}
+		if hasContent {
+			out = append(out, s)
+		}
+	}
+	return out
 }
 
 // createMigrationsTable creates the schema_migrations table if it doesn't exist
