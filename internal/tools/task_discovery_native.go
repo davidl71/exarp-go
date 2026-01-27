@@ -192,7 +192,9 @@ func scanComments(projectRoot string, patterns []string, includeFIXME bool, useA
 				if useAppleFM && taskText != "" {
 					enhanced := enhanceTaskWithAppleFM(taskText)
 					if enhanced != nil {
-						taskText = enhanced["description"].(string)
+						if desc, ok := enhanced["description"].(string); ok && desc != "" {
+							taskText = desc
+						}
 						if priority, ok := enhanced["priority"].(string); ok {
 							discoveries = append(discoveries, map[string]interface{}{
 								"type":        taskType,
