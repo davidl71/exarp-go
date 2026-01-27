@@ -1,7 +1,7 @@
 # Native Go Migration Plan for exarp-go
 
 **Date:** 2026-01-08  
-**Last Updated:** 2026-01-12 (Comprehensive Audit - Stream 4)  
+**Last Updated:** 2026-01-27 (Bridge cleanup: generate_config, add_external_tool_hints removed from bridge)  
 **Status:** Excellent Progress - 96% Tool Coverage, 100% Resource Coverage  
 **Goal:** Migrate all remaining Python bridge tools, resources, and prompts to native Go implementation
 
@@ -9,9 +9,11 @@
 
 ## Executive Summary
 
-This plan outlines a comprehensive migration strategy to convert all remaining Python bridge implementations to native Go, with strategic use of hybrid approaches where appropriate. This plan represents an **intentional architectural decision** to move away from Python bridge dependencies, diverging from the existing `MIGRATION_STRATEGY.md` recommendation to use Python Bridge for most tools.
+This plan outlines a comprehensive migration strategy to convert all remaining Python bridge implementations to native Go, with strategic use of hybrid approaches where appropriate. This plan represents an **intentional architectural decision** to move away from Python bridge dependencies.
 
-**Key Insight:** The existing strategy prioritizes **speed of migration** (Python Bridge), while this plan prioritizes **performance, maintainability, and reducing external dependencies** (Native Go).
+**Supersedes:** `MIGRATION_STRATEGY.md` (2026-01-07), which recommended Python Bridge for most tools. This plan instead prioritizes **Native Go** and is the current source of truth.
+
+**Key Insight:** The superseded strategy prioritized **speed of migration** (Python Bridge); this plan prioritizes **performance, maintainability, and reducing external dependencies** (Native Go).
 
 ---
 
@@ -46,19 +48,21 @@ This plan outlines a comprehensive migration strategy to convert all remaining P
 
 ---
 
-## Current Status (Updated 2026-01-12)
+## Current Status (Updated 2026-01-27)
 
-**Audit Reference:** See `docs/MIGRATION_AUDIT_2026-01-12.md` for comprehensive audit findings.
+**Audit Reference:** See `docs/MIGRATION_AUDIT_2026-01-12.md` for comprehensive audit findings (and 2026-01-27 note below).
 
-**Native Go Coverage (Actual - from Audit):**
-- **Full Native:** 5 tools (`git_tools`, `infer_session_mode`, `tool_catalog`, `workflow_mode`, `prompt_tracking`)
-- **Hybrid Native:** 22 tools - Native Go with Python bridge fallback (most tools use this pattern)
-- **Python Bridge Only:** 1 tool (`mlx` - intentional, no Go bindings available)
-- **Total Tools:** 28 (plus 1 conditional Apple FM tool = 28-29)
+**Native Go Coverage (Actual):**
+- **Full Native (no bridge):** 11 tools — `git_tools`, `infer_session_mode`, `tool_catalog`, `workflow_mode`, `prompt_tracking`, `generate_config`, `add_external_tool_hints`, **`setup_hooks`**, **`check_attribution`**, **`session`**, **`memory_maint`**
+- **Hybrid Native:** 16 tools — Native Go with Python bridge fallback (analyze_alignment, memory, report, security, task_*, testing, lint, estimation, ollama, context, recommend, etc.)
+- **Python Bridge Only:** 1 tool (`mlx` — intentional, no Go bindings available)
+- **Total Tools:** 28 (plus 1 conditional Apple FM tool = 28–29)
 - **Native Coverage:** 96% (27/28 tools have native implementations)
 
+**2026-01-27:** Four more tools are fully native with no Python fallback: `setup_hooks`, `check_attribution`, `session`, `memory_maint`. Handlers already use native-only; bridge does not route them. Counts updated above. See `PYTHON_FALLBACKS_SAFE_TO_REMOVE.md`.
+
 **Resources (Actual - from Audit):**
-- **Native:** 21 resources (100%) - All resources use native Go as primary implementation
+- **Native:** 21 resources (100%) — All resources use native Go as primary implementation
 - **Hybrid:** 0 resources (0%)
 - **Python Bridge Only:** 0 resources (0%)
 - **Total Resources:** 21
@@ -74,13 +78,13 @@ This plan outlines a comprehensive migration strategy to convert all remaining P
 - **Phase 1:** 3/3 (100%) ✅ **COMPLETE** (server_status converted to resource, infer_session_mode moved to Phase 2)
 - **Phase 2:** 11/11 (100%) ✅ **COMPLETE** (all tools have native implementations)
 - **Phase 3:** 11/11 (100%) ✅ **COMPLETE** (all tools have native implementations, hybrid pattern)
-- **Phase 4:** 21/21 (100%) ✅ **COMPLETE** (all resources migrated)
+- **Phase 4:** 21/21 (100%) ✅ **COMPLETE** (all resources migrated to native Go — see Phase 4 section below)
 - **Phase 5:** 19/19 (100%) ✅ **COMPLETE** (all prompts migrated)
 
-**Recent Completions (2026-01-12):**
-- ✅ Stream 1: All hybrid tool actions completed (session prompts/assignee, ollama docs/quality/summary, recommend workflow, setup_hooks patterns, analyze_alignment prd, health docs/dod/cicd)
-- ✅ Stream 2: Full tool migrations completed (estimation analyze, automation nightly/sprint)
-- ✅ Stream 3: All resource migrations completed (prompts, session/mode, verified memory/scorecard)
+**Recent Completions:**
+- **2026-01-27:** Native migration — `setup_hooks`, `check_attribution`, `session`, `memory_maint` documented as full native (no bridge). Regression tests skip bridge comparison for these tools.
+- **2026-01-27:** Bridge cleanup — removed dead `generate_config` and `add_external_tool_hints` branches from `bridge/execute_tool.py`
+- **2026-01-12:** Stream 1–3 — hybrid tool actions, full tool migrations, resource migrations (see audit doc)
 
 ---
 
@@ -317,16 +321,16 @@ func handleToolNative(ctx context.Context, params map[string]interface{}) ([]fra
 - **File:** `internal/tools/testing.go`
 - **Timeline:** 7-9 days
 
-#### 3.5 `automation`
+#### 3.5 `automation` ✅ **FULLY NATIVE (2026-01-27)**
 - **Complexity:** Very High
 - **Dependencies:** Complex workflow engine, parallel execution
-- **Implementation:** **PYTHON BRIDGE RECOMMENDED** (consider keeping as-is)
-  - This is the core automation engine
-  - Very complex, benefits from Python ecosystem
-  - Consider documenting as intentional Python bridge retention
-- **Alternative:** Partial native Go for simple workflows, Python bridge for complex
-- **Timeline:** 15-20 days (if migrating)
-- **Recommendation:** **Document as intentional Python bridge retention** unless significant benefit
+- **Implementation:** **FULLY NATIVE GO** — no Python bridge
+  - **daily:** analyze_alignment, task_analysis, health (all via `runDailyTask` native)
+  - **nightly:** memory_maint, task_analysis, health (all via `runDailyTask` native)
+  - **sprint:** analyze_alignment, task_analysis, report overview (all via `runDailyTask` native)
+  - **discover:** task_discovery native
+- **File:** `internal/tools/automation_native.go`
+- **Status:** `runDailyTaskPython` removed; all sub-tasks use native handlers (health, memory_maint, report, etc.)
 
 #### 3.6 `estimation`
 - **Complexity:** Medium-High
@@ -400,34 +404,22 @@ func handleToolNative(ctx context.Context, params map[string]interface{}) ([]fra
 
 ---
 
-## Phase 4: Resources Migration
+## Phase 4: Resources Migration ✅ **COMPLETE**
 
-### Resources to Migrate (6 resources)
+**Status:** All 21 resources use native Go as primary implementation. Python bridge via `bridge/execute_resource.py` is no longer the primary path; native implementations live in `internal/resources/`.
 
-All resources currently use Python bridge via `bridge/execute_resource.py`.
+### Resources (21 total — all native)
 
-#### 4.1 `stdio://scorecard`
-- **Implementation:** `internal/resources/scorecard.go`
-- **Source:** Reuse `internal/tools/report.go` scorecard generation
-- **Timeline:** 2-3 days
+| Resource | Implementation | Status |
+|----------|----------------|--------|
+| `stdio://scorecard` | `internal/resources/scorecard.go` | ✅ Native |
+| `stdio://memories` (all variants) | `internal/resources/` (memories) | ✅ Native |
+| `stdio://prompts` (all variants) | `internal/prompts/templates.go` | ✅ Native |
+| `stdio://session/mode` | infer_session_mode tool | ✅ Native |
+| `stdio://server/status` | server status resource | ✅ Native |
+| `stdio://models`, `stdio://tools`, `stdio://tasks` (all variants) | `internal/resources/` | ✅ Native |
 
-#### 4.2 `stdio://memories` (all variants)
-- **Implementation:** `internal/resources/memories.go`
-- **Variants:**
-  - `stdio://memories`
-  - `stdio://memories/category/{category}`
-  - `stdio://memories/task/{task_id}`
-  - `stdio://memories/recent`
-  - `stdio://memories/session/{date}`
-- **Source:** Reuse memory tool implementation from Phase 3
-- **Timeline:** 3-4 days
-
-#### 4.3 Memory resource health check
-- **Implementation:** `internal/resources/memory_health.go`
-- **Source:** Memory system diagnostics
-- **Timeline:** 1-2 days
-
-**Phase 4 Total:** 6-9 days (~1 week)
+**Phase 4 Total:** ✅ **COMPLETE** (2026-01-12) — 21/21 resources migrated. Historical migration scope (scorecard, memories, etc.) is documented in `MIGRATION_AUDIT_2026-01-12.md` and `MIGRATION_STATUS_CURRENT.md`.
 
 ---
 
@@ -528,7 +520,7 @@ internal/tools/
   ├── report.go                     (Phase 3 - hybrid)
   ├── security.go                   (Phase 3 - hybrid)
   ├── testing.go                    (Phase 3 - hybrid)
-  ├── automation.go                 (Phase 3 - document Python bridge retention)
+  ├── automation_native.go          (Phase 3 - fully native, no Python bridge, 2026-01-27)
   ├── estimation.go                 (Phase 3 - hybrid)
   ├── git_tools.go                  (Phase 3)
   ├── session.go                    (Phase 3)
@@ -761,7 +753,7 @@ internal/resources/
 
 2. ✅ **Stream 2: Full Tool Migrations** - All migrations completed:
    - ✅ `estimation` - `analyze` action now native (stats and estimate were already native)
-   - ✅ `automation` - `nightly` and `sprint` actions now native
+   - ✅ `automation` - daily, nightly, sprint, discover all native; `runDailyTaskPython` removed (2026-01-27)
    - ⚠️ `mlx` - Evaluated, documented as intentional Python bridge retention
 
 3. ✅ **Stream 3: Resource Migrations** - All resources migrated:

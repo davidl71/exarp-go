@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/davidl71/exarp-go/internal/bridge"
 	"github.com/davidl71/exarp-go/internal/framework"
 )
 
@@ -164,7 +163,7 @@ func handleAutomationNightly(ctx context.Context, params map[string]interface{})
 	}
 
 	// Task 1: memory_maint (consolidate action - cleanup/maintenance)
-	task1Result := runDailyTaskPython(ctx, "memory_maint", map[string]interface{}{
+	task1Result := runDailyTask(ctx, "memory_maint", map[string]interface{}{
 		"action": "consolidate",
 	})
 	tasksRun, _ := results["tasks_run"].([]map[string]interface{})
@@ -324,8 +323,8 @@ func handleAutomationSprint(ctx context.Context, params map[string]interface{}) 
 		results["tasks_failed"] = append(tasksFailed, "task_analysis")
 	}
 
-	// Task 3: report (overview action - sprint reporting)
-	task3Result := runDailyTaskPython(ctx, "report", map[string]interface{}{
+	// Task 3: report (overview action - sprint reporting, native Go)
+	task3Result := runDailyTask(ctx, "report", map[string]interface{}{
 		"action": "overview",
 	})
 	tasksRun, _ = results["tasks_run"].([]map[string]interface{})
@@ -421,7 +420,7 @@ func runDailyTask(ctx context.Context, toolName string, params map[string]interf
 		"summary":  map[string]interface{}{},
 	}
 
-	// Call appropriate native handler
+	// Call appropriate native handler (no Python bridge - per native Go migration plan)
 	var err error
 	var toolResult []framework.TextContent
 
@@ -430,6 +429,18 @@ func runDailyTask(ctx context.Context, toolName string, params map[string]interf
 		toolResult, err = handleAnalyzeAlignmentNative(ctx, params)
 	case "task_analysis":
 		toolResult, err = handleTaskAnalysisNative(ctx, params)
+	case "health":
+		toolResult, err = handleHealthNative(ctx, params)
+	case "memory_maint":
+		argsJSON, marshalErr := json.Marshal(params)
+		if marshalErr != nil {
+			result["error"] = marshalErr.Error()
+			result["duration"] = time.Since(startTime).Seconds()
+			return result
+		}
+		toolResult, err = handleMemoryMaintNative(ctx, argsJSON)
+	case "report":
+		toolResult, err = handleReportOverview(ctx, params)
 	default:
 		result["error"] = fmt.Sprintf("unknown tool: %s", toolName)
 		result["duration"] = time.Since(startTime).Seconds()
@@ -461,44 +472,6 @@ func runDailyTask(ctx context.Context, toolName string, params map[string]interf
 	} else {
 		result["status"] = "success"
 		result["summary"] = map[string]interface{}{}
-	}
-
-	return result
-}
-
-// runDailyTaskPython runs a Python bridge tool task and returns result
-func runDailyTaskPython(ctx context.Context, toolName string, params map[string]interface{}) map[string]interface{} {
-	startTime := time.Now()
-
-	result := map[string]interface{}{
-		"status":   "error",
-		"duration": 0.0,
-		"error":    "",
-		"summary":  map[string]interface{}{},
-	}
-
-	// Call Python bridge
-	bridgeResult, err := bridge.ExecutePythonTool(ctx, toolName, params)
-	duration := time.Since(startTime).Seconds()
-	result["duration"] = duration
-
-	if err != nil {
-		result["status"] = "error"
-		result["error"] = err.Error()
-		return result
-	}
-
-	// Parse result JSON
-	var resultData map[string]interface{}
-	if err := json.Unmarshal([]byte(bridgeResult), &resultData); err == nil {
-		result["status"] = "success"
-		result["summary"] = resultData
-	} else {
-		// If not JSON, treat as text summary
-		result["status"] = "success"
-		result["summary"] = map[string]interface{}{
-			"output": bridgeResult,
-		}
 	}
 
 	return result
