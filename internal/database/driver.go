@@ -9,10 +9,9 @@ import (
 type DriverType string
 
 const (
-	DriverSQLite    DriverType = "sqlite"
-	DriverMySQL     DriverType = "mysql"
-	DriverPostgres  DriverType = "postgres"
-	DriverODBC      DriverType = "odbc"
+	DriverSQLite   DriverType = "sqlite"
+	DriverMySQL    DriverType = "mysql"
+	DriverPostgres DriverType = "postgres"
 )
 
 // Driver defines the interface for database drivers

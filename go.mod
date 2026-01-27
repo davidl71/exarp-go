@@ -3,7 +3,6 @@ module github.com/davidl71/exarp-go
 go 1.25.5
 
 require (
-	github.com/alexbrainman/odbc v0.0.0-20250601004241-49e6b2bc0cf0
 	github.com/blacktop/go-foundationmodels v0.1.8
 	github.com/charmbracelet/bubbletea v1.3.10
 	github.com/charmbracelet/lipgloss v1.1.0
@@ -15,7 +14,6 @@ require (
 	github.com/racingmars/go3270 v0.9.13
 	golang.org/x/oauth2 v0.34.0
 	golang.org/x/sys v0.39.0
-	golang.org/x/term v0.38.0
 	gonum.org/v1/gonum v0.16.0
 	google.golang.org/api v0.259.0
 	google.golang.org/protobuf v1.36.11
@@ -65,6 +63,7 @@ require (
 	golang.org/x/crypto v0.46.0 // indirect
 	golang.org/x/exp v0.0.0-20250620022241-b7579e27df2b // indirect
 	golang.org/x/net v0.48.0 // indirect
+	golang.org/x/term v0.38.0 // indirect
 	golang.org/x/text v0.32.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20251222181119-0a764e51fe1b // indirect
 	google.golang.org/grpc v1.78.0 // indirect
@@ -73,6 +72,6 @@ require (
 	modernc.org/memory v1.11.0 // indirect
 )
 
-replace github.com/davidl71/mcp-go-core => /Users/davidl/Projects/mcp-go-core
-
 replace github.com/davidl71/devwisdom-go => /Users/davidl/Projects/devwisdom-go
+
+replace github.com/davidl71/mcp-go-core => /Users/davidl/Projects/mcp-go-core

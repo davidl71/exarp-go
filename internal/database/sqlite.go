@@ -46,7 +46,7 @@ func InitWithCentralizedConfig(projectRoot string, dbCfg DatabaseConfigFields) e
 }
 
 // InitWithConfig initializes the database connection using the provided configuration
-// Supports multiple database backends (SQLite, MySQL, PostgreSQL, ODBC)
+// Supports SQLite (default), MySQL, and PostgreSQL backends
 // Thread-safe: uses mutex to prevent concurrent initialization
 func InitWithConfig(cfg *Config) error {
 	dbMutex.Lock()
@@ -70,13 +70,6 @@ func InitWithConfig(cfg *Config) error {
 		case DriverPostgres:
 			RegisterDriver(NewPostgresDriver())
 			driver, err = GetDriver(DriverPostgres)
-		case DriverODBC:
-			odbcDriver := NewODBCDriver()
-			if odbcDriver == nil {
-				return fmt.Errorf("ODBC driver requires cgo (CGO_ENABLED=1)")
-			}
-			RegisterDriver(odbcDriver)
-			driver, err = GetDriver(DriverODBC)
 		}
 		if err != nil {
 			return fmt.Errorf("failed to get driver %s: %w", cfg.Driver, err)
@@ -100,7 +93,7 @@ func InitWithConfig(cfg *Config) error {
 
 	// Run migrations if enabled
 	if cfg.AutoMigrate {
-		if err := RunMigrations(); err != nil {
+		if err := RunMigrationsFromDir(cfg.MigrationsDir); err != nil {
 			return fmt.Errorf("failed to run migrations: %w", err)
 		}
 	}

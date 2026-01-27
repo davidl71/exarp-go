@@ -6,7 +6,6 @@ The database layer has been abstracted to support multiple database backends:
 - **SQLite** (default) - File-based, no server required
 - **MySQL** - Popular relational database
 - **PostgreSQL** - Advanced open-source database
-- **ODBC** - Generic ODBC support (optional, via cgo)
 
 ## Architecture
 
@@ -40,7 +39,7 @@ Each driver provides a `Dialect` that handles SQL differences:
 ### Environment Variables
 
 ```bash
-# Database driver (sqlite, mysql, postgres, odbc)
+# Database driver (sqlite, mysql, postgres)
 export DB_DRIVER=postgres
 
 # Database connection string (DSN)
@@ -88,28 +87,6 @@ user:password@tcp(host:port)/dbname?charset=utf8mb4&parseTime=True&loc=UTC
 ### PostgreSQL
 ```
 postgres://user:password@host:port/dbname?sslmode=disable
-```
-
-### ODBC
-```
-# DSN name (configured in odbc.ini)
-DSN=todo2
-
-# Full connection string
-Driver={PostgreSQL};Server=localhost;Database=todo2;UID=user;PWD=password
-
-# MySQL ODBC
-Driver={MySQL ODBC 8.0 Driver};Server=localhost;Database=todo2;UID=user;PWD=password
-
-# SQL Server ODBC
-Driver={ODBC Driver 17 for SQL Server};Server=localhost;Database=todo2;UID=user;PWD=password
-```
-
-**Note:** ODBC requires cgo to be enabled. Build with:
-```bash
-CGO_ENABLED=1 go build
-# or
-go build -tags cgo
 ```
 
 ## Usage Examples
@@ -177,7 +154,6 @@ placeholder2 := dialect.Placeholder(2)
 | SQLite   | `strftime('%s', 'now')` | `datetime('now')` |
 | MySQL    | `UNIX_TIMESTAMP()` | `NOW()` |
 | PostgreSQL | `EXTRACT(EPOCH FROM NOW())` | `NOW()` |
-| ODBC     | `UNIX_TIMESTAMP()` (generic) | `CURRENT_TIMESTAMP` (standard SQL) |
 
 ### Placeholders
 
@@ -186,7 +162,6 @@ placeholder2 := dialect.Placeholder(2)
 | SQLite   | `?` |
 | MySQL    | `?` |
 | PostgreSQL | `$1, $2, $3, ...` |
-| ODBC     | `?` (most drivers) |
 
 ### Boolean Types
 
@@ -195,7 +170,6 @@ placeholder2 := dialect.Placeholder(2)
 | SQLite   | `INTEGER` | 0 or 1 |
 | MySQL    | `TINYINT(1)` | 0 or 1 |
 | PostgreSQL | `BOOLEAN` | true/false |
-| ODBC     | `BOOLEAN` (standard SQL, may need conversion) | Database-dependent |
 
 ### JSON Types
 
@@ -204,7 +178,6 @@ placeholder2 := dialect.Placeholder(2)
 | SQLite   | `TEXT` | Stored as text |
 | MySQL    | `JSON` | Native JSON type |
 | PostgreSQL | `JSONB` | Binary JSON (faster) |
-| ODBC     | `TEXT` | Generic TEXT for maximum compatibility |
 
 ## Migration Support
 
@@ -278,14 +251,6 @@ database.RegisterDriver(NewMyDriver())
 ### Optional (PostgreSQL)
 - `github.com/lib/pq` - PostgreSQL driver
 
-### Optional (ODBC)
-- `github.com/alexbrainman/odbc` - ODBC driver (requires cgo)
-- Requires ODBC driver manager:
-  - Linux: `unixodbc` and `unixodbc-dev`
-  - macOS: `unixodbc` (via Homebrew)
-  - Windows: Built-in ODBC
-- Database-specific ODBC drivers must be installed separately
-
 ## Backward Compatibility
 
 The existing `Init(projectRoot)` function is maintained for backward compatibility. It defaults to SQLite and uses the same file path as before.
@@ -311,7 +276,6 @@ func TestMySQLDriver(t *testing.T) {
 
 ## Future Enhancements
 
-- [x] ODBC driver implementation ✅
 - [ ] Connection pooling configuration
 - [ ] Read replica support
 - [ ] Database-specific optimizations

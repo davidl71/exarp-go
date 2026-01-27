@@ -8,18 +8,22 @@ import (
 
 // Config holds database configuration
 type Config struct {
-	// Driver is the database driver type (sqlite, mysql, postgres, odbc)
+	// Driver is the database driver type (sqlite, mysql, postgres)
 	Driver DriverType
 
 	// DSN is the database connection string
 	// SQLite: file path or "file:path?mode=rwc"
 	// MySQL: "user:password@tcp(host:port)/dbname?params"
 	// PostgreSQL: "postgres://user:password@host:port/dbname?sslmode=disable"
-	// ODBC: DSN name or connection string
 	DSN string
 
 	// AutoMigrate determines if migrations should run automatically
 	AutoMigrate bool
+
+	// MigrationsDir overrides the directory used to find migration files.
+	// When set, migrations are loaded from this path instead of findProjectRoot()/migrations.
+	// Used by tests when the DB is in a temp dir that has no migrations.
+	MigrationsDir string
 }
 
 // LoadConfig loads database configuration from environment variables
@@ -34,7 +38,7 @@ func LoadConfig(projectRoot string) (*Config, error) {
 	if driverStr := os.Getenv("DB_DRIVER"); driverStr != "" {
 		driver := DriverType(driverStr)
 		switch driver {
-		case DriverSQLite, DriverMySQL, DriverPostgres, DriverODBC:
+		case DriverSQLite, DriverMySQL, DriverPostgres:
 			cfg.Driver = driver
 		default:
 			return nil, fmt.Errorf("unsupported database driver: %s", driverStr)
@@ -53,8 +57,6 @@ func LoadConfig(projectRoot string) (*Config, error) {
 			cfg.DSN = "root:password@tcp(localhost:3306)/todo2?charset=utf8mb4&parseTime=True&loc=UTC"
 		case DriverPostgres:
 			cfg.DSN = "postgres://postgres:password@localhost:5432/todo2?sslmode=disable"
-		case DriverODBC:
-			cfg.DSN = "DSN=todo2"
 		}
 	}
 
@@ -75,8 +77,6 @@ func GetDefaultDSN(driver DriverType, projectRoot string) string {
 		return "root:password@tcp(localhost:3306)/todo2?charset=utf8mb4&parseTime=True&loc=UTC"
 	case DriverPostgres:
 		return "postgres://postgres:password@localhost:5432/todo2?sslmode=disable"
-	case DriverODBC:
-		return "DSN=todo2"
 	default:
 		return ""
 	}
@@ -118,7 +118,7 @@ func LoadConfigFromCentralizedFields(projectRoot string, dbCfg DatabaseConfigFie
 	if driverStr := os.Getenv("DB_DRIVER"); driverStr != "" {
 		driver := DriverType(driverStr)
 		switch driver {
-		case DriverSQLite, DriverMySQL, DriverPostgres, DriverODBC:
+		case DriverSQLite, DriverMySQL, DriverPostgres:
 			dbConfig.Driver = driver
 		default:
 			return nil, fmt.Errorf("unsupported database driver: %s", driverStr)
