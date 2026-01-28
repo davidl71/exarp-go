@@ -88,11 +88,11 @@ func CreateTask(ctx context.Context, task *Todo2Task) error {
 			task.Status,
 			task.Priority,
 			completedInt,
-			now, // created
-			now, // last_modified
-			metadataJSON,      // JSON for backward compatibility
+			now,              // created
+			now,              // last_modified
+			metadataJSON,     // JSON for backward compatibility
 			metadataProtobuf, // Protobuf binary data (nil if serialization failed)
-			metadataFormat,    // Format indicator
+			metadataFormat,   // Format indicator
 		)
 		// If protobuf columns don't exist, fall back to old schema
 		if err != nil && strings.Contains(err.Error(), "no such column") {
@@ -109,8 +109,8 @@ func CreateTask(ctx context.Context, task *Todo2Task) error {
 				task.Status,
 				task.Priority,
 				completedInt,
-				now, // created
-				now, // last_modified
+				now,          // created
+				now,          // last_modified
 				metadataJSON, // JSON only
 			)
 		}
@@ -433,9 +433,9 @@ func UpdateTask(ctx context.Context, task *Todo2Task) error {
 			task.Priority,
 			completedInt,
 			now,
-			metadataJSON,      // JSON for backward compatibility
+			metadataJSON,     // JSON for backward compatibility
 			metadataProtobuf, // Protobuf binary data
-			metadataFormat,    // Format indicator
+			metadataFormat,   // Format indicator
 			task.ID,
 			currentVersion,
 		)
@@ -783,6 +783,138 @@ func ListTasks(ctx context.Context, filters *TaskFilters) ([]*Todo2Task, error) 
 		return nil, err
 	}
 	return tasks, nil
+}
+
+// TaskForEstimation holds Done task fields needed for estimation/historical analysis.
+// Used by the estimation tool to load completed tasks from DB without full Todo2Task.
+type TaskForEstimation struct {
+	ID              string
+	Content         string
+	LongDescription string
+	Status          string
+	Priority        string
+	Created         string
+	LastModified    string
+	CompletedAt     string
+	EstimatedHours  float64
+	ActualHours     float64
+	Tags            []string
+}
+
+// GetDoneTasksForEstimation returns Done tasks with estimation-relevant columns
+// (created, last_modified, completed_at, estimated_hours, actual_hours).
+// Used by estimation tool for DB-first historical loading; falls back to JSON in tools layer.
+func GetDoneTasksForEstimation(ctx context.Context) ([]*TaskForEstimation, error) {
+	ctx = ensureContext(ctx)
+	queryCtx, cancel := withQueryTimeout(ctx)
+	defer cancel()
+
+	var result []*TaskForEstimation
+	err := retryWithBackoff(ctx, func() error {
+		db, err := GetDB()
+		if err != nil {
+			return fmt.Errorf("failed to get database: %w", err)
+		}
+
+		// Schema 001 has created, last_modified, completed_at, estimated_hours, actual_hours
+		rows, err := db.QueryContext(queryCtx, `
+			SELECT id, content, long_description, status, priority,
+			       created, last_modified, completed_at, estimated_hours, actual_hours
+			FROM tasks
+			WHERE status = ?
+			ORDER BY created_at DESC
+		`, StatusDone)
+		if err != nil {
+			return fmt.Errorf("failed to query Done tasks: %w", err)
+		}
+		defer rows.Close()
+
+		var list []*TaskForEstimation
+		var taskIDs []string
+		taskMap := make(map[string]*TaskForEstimation)
+
+		for rows.Next() {
+			var t TaskForEstimation
+			var created, lastMod, completedAt sql.NullString
+			var estHours, actHours sql.NullFloat64
+
+			if err := rows.Scan(
+				&t.ID,
+				&t.Content,
+				&t.LongDescription,
+				&t.Status,
+				&t.Priority,
+				&created,
+				&lastMod,
+				&completedAt,
+				&estHours,
+				&actHours,
+			); err != nil {
+				return fmt.Errorf("failed to scan task: %w", err)
+			}
+			if created.Valid {
+				t.Created = created.String
+			}
+			if lastMod.Valid {
+				t.LastModified = lastMod.String
+			}
+			if completedAt.Valid {
+				t.CompletedAt = completedAt.String
+			}
+			if estHours.Valid {
+				t.EstimatedHours = estHours.Float64
+			}
+			if actHours.Valid {
+				t.ActualHours = actHours.Float64
+			}
+
+			list = append(list, &t)
+			taskIDs = append(taskIDs, t.ID)
+			taskMap[t.ID] = &t
+		}
+		if err = rows.Err(); err != nil {
+			return fmt.Errorf("error iterating rows: %w", err)
+		}
+
+		// Batch load tags
+		if len(taskIDs) > 0 {
+			placeholders := make([]string, len(taskIDs))
+			args := make([]interface{}, len(taskIDs))
+			for i, id := range taskIDs {
+				placeholders[i] = "?"
+				args[i] = id
+			}
+			tagRows, err := db.QueryContext(queryCtx, `
+				SELECT task_id, tag FROM task_tags
+				WHERE task_id IN (`+strings.Join(placeholders, ", ")+`)
+				ORDER BY task_id, tag
+			`, args...)
+			if err != nil {
+				return fmt.Errorf("failed to batch query tags: %w", err)
+			}
+			defer tagRows.Close()
+			for tagRows.Next() {
+				var taskID, tag string
+				if err := tagRows.Scan(&taskID, &tag); err != nil {
+					return fmt.Errorf("failed to scan tag: %w", err)
+				}
+				if t, ok := taskMap[taskID]; ok {
+					t.Tags = append(t.Tags, tag)
+				}
+			}
+			if err = tagRows.Err(); err != nil {
+				return fmt.Errorf("error iterating tag rows: %w", err)
+			}
+		}
+
+		result = list
+		return nil
+	})
+
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
 }
 
 // GetTasksByStatus retrieves all tasks with the specified status

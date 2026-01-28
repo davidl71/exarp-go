@@ -1,6 +1,7 @@
 package tools
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"math"
@@ -9,6 +10,8 @@ import (
 	"sort"
 	"strings"
 	"time"
+
+	"github.com/davidl71/exarp-go/internal/database"
 )
 
 // HistoricalTask represents a completed task for historical analysis
@@ -221,16 +224,16 @@ func handleEstimationAnalyze(projectRoot string, params map[string]interface{}) 
 	}
 
 	accuracyMetrics := map[string]interface{}{
-		"total_tasks":                      len(completedTasks),
-		"mean_error":                       math.Round(meanError*100) / 100,
-		"median_error":                     math.Round(medianError*100) / 100,
-		"mean_absolute_error":              math.Round(meanAbsoluteError*100) / 100,
-		"mean_error_percentage":            math.Round(meanErrorPct*100) / 100,
-		"mean_absolute_error_percentage":   math.Round(meanAbsErrorPct*100) / 100,
-		"over_estimated_count":             overEstimatedCount,
-		"under_estimated_count":            underEstimatedCount,
-		"accurate_count":                   accurateCount,
-		"accuracy_rate_percentage":         math.Round(float64(accurateCount)/float64(len(completedTasks))*100*100) / 100,
+		"total_tasks":                    len(completedTasks),
+		"mean_error":                     math.Round(meanError*100) / 100,
+		"median_error":                   math.Round(medianError*100) / 100,
+		"mean_absolute_error":            math.Round(meanAbsoluteError*100) / 100,
+		"mean_error_percentage":          math.Round(meanErrorPct*100) / 100,
+		"mean_absolute_error_percentage": math.Round(meanAbsErrorPct*100) / 100,
+		"over_estimated_count":           overEstimatedCount,
+		"under_estimated_count":          underEstimatedCount,
+		"accurate_count":                 accurateCount,
+		"accuracy_rate_percentage":       math.Round(float64(accurateCount)/float64(len(completedTasks))*100*100) / 100,
 	}
 
 	// Analyze by tag
@@ -241,12 +244,12 @@ func handleEstimationAnalyze(projectRoot string, params map[string]interface{}) 
 
 	// Build result
 	result := map[string]interface{}{
-		"success":             true,
+		"success":               true,
 		"completed_tasks_count": len(completedTasks),
-		"accuracy_metrics":    accuracyMetrics,
-		"tag_accuracy":        tagAccuracy,
-		"priority_accuracy":   priorityAccuracy,
-		"generated":           time.Now().Format(time.RFC3339),
+		"accuracy_metrics":      accuracyMetrics,
+		"tag_accuracy":          tagAccuracy,
+		"priority_accuracy":     priorityAccuracy,
+		"generated":             time.Now().Format(time.RFC3339),
 	}
 
 	resultJSON, err := json.MarshalIndent(result, "", "  ")
@@ -306,8 +309,8 @@ func analyzeByTag(completedTasks []struct {
 		meanAbsErrorPct /= float64(len(tasks))
 
 		tagStats[tag] = map[string]interface{}{
-			"count":                      len(tasks),
-			"mean_error":                 math.Round(meanError*100) / 100,
+			"count":                          len(tasks),
+			"mean_error":                     math.Round(meanError*100) / 100,
 			"mean_absolute_error_percentage": math.Round(meanAbsErrorPct*100) / 100,
 		}
 	}
@@ -362,8 +365,8 @@ func analyzeByPriority(completedTasks []struct {
 		meanAbsErrorPct /= float64(len(tasks))
 
 		priorityStats[priority] = map[string]interface{}{
-			"count":                      len(tasks),
-			"mean_error":                 math.Round(meanError*100) / 100,
+			"count":                          len(tasks),
+			"mean_error":                     math.Round(meanError*100) / 100,
 			"mean_absolute_error_percentage": math.Round(meanAbsErrorPct*100) / 100,
 		}
 	}
@@ -431,8 +434,63 @@ func handleEstimationStats(projectRoot string, params map[string]interface{}) (s
 	return string(resultJSON), nil
 }
 
-// loadHistoricalTasks loads completed tasks from Todo2
+// loadHistoricalTasks loads completed tasks from Todo2 (DB-first, then JSON fallback).
+// When the project uses SQLite, Done tasks are loaded from the database with
+// estimation columns (created, last_modified, completed_at, estimated_hours, actual_hours).
+// If the database is unavailable or returns no usable rows, falls back to .todo2/state.todo2.json.
 func loadHistoricalTasks(projectRoot string) ([]HistoricalTask, error) {
+	// Try database first (same pattern as LoadTodo2Tasks)
+	if list, err := database.GetDoneTasksForEstimation(context.Background()); err == nil && len(list) > 0 {
+		historical := make([]HistoricalTask, 0, len(list))
+		for _, task := range list {
+			actualHours := task.ActualHours
+			if actualHours == 0 {
+				completedAt := task.CompletedAt
+				if completedAt == "" {
+					completedAt = task.LastModified
+				}
+				if task.Created != "" && completedAt != "" {
+					if createdTime, err := time.Parse(time.RFC3339, task.Created); err == nil {
+						if completedTime, err := time.Parse(time.RFC3339, completedAt); err == nil {
+							duration := completedTime.Sub(createdTime)
+							calendarHours := duration.Hours()
+							days := calendarHours / 24.0
+							estimatedWorkHours := math.Min(calendarHours, days*8.0)
+							estimatedWorkHours = math.Min(16.0, estimatedWorkHours)
+							actualHours = math.Max(0.1, estimatedWorkHours)
+						}
+					}
+				}
+			}
+			if actualHours > 0 {
+				name := task.Content
+				if name == "" {
+					name = task.ID
+				}
+				historical = append(historical, HistoricalTask{
+					Name:           name,
+					Details:        task.LongDescription,
+					Tags:           task.Tags,
+					Priority:       task.Priority,
+					EstimatedHours: task.EstimatedHours,
+					ActualHours:    actualHours,
+					Created:        task.Created,
+					CompletedAt:    task.CompletedAt,
+				})
+			}
+		}
+		if len(historical) > 0 {
+			return historical, nil
+		}
+	}
+
+	// Fallback: load from JSON file (e.g. DB unavailable, or no estimation columns populated)
+	return loadHistoricalTasksFromJSON(projectRoot)
+}
+
+// loadHistoricalTasksFromJSON loads completed tasks from .todo2/state.todo2.json.
+// Used when the database is unavailable or returns no Done tasks with estimation data.
+func loadHistoricalTasksFromJSON(projectRoot string) ([]HistoricalTask, error) {
 	todo2Path := filepath.Join(projectRoot, ".todo2", "state.todo2.json")
 
 	data, err := os.ReadFile(todo2Path)
@@ -453,38 +511,24 @@ func loadHistoricalTasks(projectRoot string) ([]HistoricalTask, error) {
 	historical := make([]HistoricalTask, 0)
 	for _, task := range state.Todos {
 		status := normalizeStatus(task.Status)
-		// NormalizeStatusToTitleCase maps both "done" and "completed" to "Done"
 		if status != "Done" {
 			continue
 		}
 
-		// Get actual hours
 		actualHours := task.ActualHours
-
-		// If no actual hours, try to estimate from timestamps
-		// NOTE: We can't accurately calculate work time from timestamps alone,
-		// so we use a conservative estimate based on the time difference
-		// but cap it at a reasonable maximum to avoid inflated estimates
 		if actualHours == 0 {
 			completedAt := task.CompletedAt
 			if completedAt == "" {
 				completedAt = task.LastModified
 			}
-
 			if task.Created != "" && completedAt != "" {
 				if createdTime, err := time.Parse(time.RFC3339, task.Created); err == nil {
 					if completedTime, err := time.Parse(time.RFC3339, completedAt); err == nil {
 						duration := completedTime.Sub(createdTime)
 						calendarHours := duration.Hours()
-
-						// Conservative estimate: assume at most 8 hours per day of calendar time
-						// This prevents tasks that sat in backlog for weeks from inflating estimates
 						days := calendarHours / 24.0
 						estimatedWorkHours := math.Min(calendarHours, days*8.0)
-
-						// Cap at reasonable maximum (16 hours) unless we have explicit actual hours
 						estimatedWorkHours = math.Min(16.0, estimatedWorkHours)
-
 						actualHours = math.Max(0.1, estimatedWorkHours)
 					}
 				}
@@ -500,7 +544,6 @@ func loadHistoricalTasks(projectRoot string) ([]HistoricalTask, error) {
 			if details == "" {
 				details = task.Details
 			}
-
 			historical = append(historical, HistoricalTask{
 				Name:           name,
 				Details:        details,
