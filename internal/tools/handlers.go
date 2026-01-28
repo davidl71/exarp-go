@@ -841,38 +841,23 @@ func handleInferSessionMode(ctx context.Context, args json.RawMessage) ([]framew
 	return HandleInferSessionModeNative(ctx, params)
 }
 
-// handleOllama handles the ollama tool
-// Uses native Go HTTP client implementation
+// handleOllama handles the ollama tool via DefaultOllama (native first, then bridge fallback).
 func handleOllama(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
-	// Try protobuf first, fall back to JSON for backward compatibility
 	req, params, err := ParseOllamaRequest(args)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse arguments: %w", err)
 	}
-
-	// Convert protobuf request to params map if needed
 	if req != nil {
 		params = OllamaRequestToParams(req)
 		request.ApplyDefaults(params, map[string]interface{}{
 			"model": "llama3.2",
 		})
 	}
-
-	// Try native Go implementation first
-	result, err := handleOllamaNative(ctx, params)
-	if err == nil {
-		return result, nil
-	}
-
-	// Fall back to Python bridge for actions not yet implemented (e.g., docs, quality, summary)
-	resultStr, err := bridge.ExecutePythonTool(ctx, "ollama", params)
+	result, err := DefaultOllama().Invoke(ctx, params)
 	if err != nil {
 		return nil, fmt.Errorf("ollama failed: %w", err)
 	}
-
-	return []framework.TextContent{
-		{Type: "text", Text: resultStr},
-	}, nil
+	return result, nil
 }
 
 // handleMlx handles the mlx tool
