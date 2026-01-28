@@ -1262,7 +1262,7 @@ func registerBatch3Tools(server framework.MCPServer) error {
 	// mlx
 	if err := server.RegisterTool(
 		"mlx",
-		"[HINT: LLM abstraction (MLX). mlx. action=status|hardware|models|generate. Bridge-only; report insights use DefaultReportInsight() (MLX then FM).]",
+		"[HINT: LLM abstraction (MLX). action=status|hardware|models|generate. Native status/hardware/models; generate via shared path. text_generate provider=mlx uses DefaultMLXProvider(); report insights use DefaultReportInsight() (FM then MLX).]",
 		framework.ToolSchema{
 			Type: "object",
 			Properties: map[string]interface{}{
@@ -1404,18 +1404,18 @@ func registerBatch5Tools(server framework.MCPServer) error {
 		return fmt.Errorf("failed to register context: %w", err)
 	}
 
-	// text_generate - Unified generate-text via FM or ReportInsight (LLM abstraction)
+	// text_generate - Unified generate-text via FM, ReportInsight, or MLX (LLM abstraction)
 	if err := server.RegisterTool(
 		"text_generate",
-		"[HINT: Unified generate-text. provider=fm|insight (default fm). Uses DefaultFMProvider (fm) or DefaultReportInsight (insight).]",
+		"[HINT: Unified generate-text. provider=fm|insight|mlx (default fm). Uses DefaultFMProvider (fm), DefaultReportInsight (insight), or DefaultMLXProvider (mlx).]",
 		framework.ToolSchema{
 			Type: "object",
 			Properties: map[string]interface{}{
 				"provider": map[string]interface{}{
 					"type":        "string",
-					"enum":        []string{"fm", "insight"},
+					"enum":        []string{"fm", "insight", "mlx"},
 					"default":     "fm",
-					"description": "Backend: fm (DefaultFMProvider, default) or insight (DefaultReportInsight)",
+					"description": "Backend: fm (DefaultFMProvider, default), insight (DefaultReportInsight), or mlx (DefaultMLXProvider)",
 				},
 				"prompt": map[string]interface{}{
 					"type":        "string",

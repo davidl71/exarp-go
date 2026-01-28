@@ -718,20 +718,30 @@ func handleOllama(ctx context.Context, args json.RawMessage) ([]framework.TextCo
 	return result, nil
 }
 
-// handleMlx handles the mlx tool
+// handleMlx handles the mlx tool. Uses native Go (luxfi/mlx) for status and hardware when available; otherwise Python bridge.
 func handleMlx(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
-	// Try protobuf first, fall back to JSON for backward compatibility
 	req, params, err := ParseMlxRequest(args)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse arguments: %w", err)
 	}
 
-	// Convert protobuf request to params map if needed
 	if req != nil {
 		params = MlxRequestToParams(req)
 		request.ApplyDefaults(params, map[string]interface{}{
 			"model": "mlx-community/Phi-3.5-mini-instruct-4bit",
 		})
+	}
+
+	if MLXNativeAvailable() {
+		result, err := handleMlxNative(ctx, params)
+		if err == nil {
+			return result, nil
+		}
+		// Native not implemented for this action (generate only) or failed — fall through to bridge
+		action, _ := params["action"].(string)
+		if action != "generate" {
+			return nil, err
+		}
 	}
 
 	result, err := bridge.ExecutePythonTool(ctx, "mlx", params)

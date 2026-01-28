@@ -51,13 +51,13 @@ These tools have complete native implementations and **never** use the Python br
 
 ### Hybrid Tools (Native First, Bridge Fallback)
 
-None. All tools with native implementations are now full native; bridge only where required (e.g. `mlx`).
+| Tool | Native (when) | Bridge fallback | Handler |
+|------|----------------|-----------------|---------|
+| `mlx` | status, hardware (darwin + CGO via luxfi/mlx), models (static list, all builds) | generate only; or status/hardware when native unavailable | `handleMlx` / `handleMlxNative` |
 
 ### Python Bridge Only
 
-| Tool | Reason | Handler |
-|------|--------|---------|
-| `mlx` | No Go bindings; intentional bridge-only | `handleMlx` / `insight_provider` |
+None. `mlx` is hybrid (native status/hardware on darwin+CGO, native models list on all builds; bridge for generate only).
 
 ---
 

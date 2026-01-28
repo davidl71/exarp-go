@@ -212,7 +212,7 @@ func GetToolCatalog() map[string]ToolCatalogEntry {
 		},
 		"text_generate": {
 			Tool:             "text_generate",
-			Hint:             "Unified generate-text. provider=fm|insight (default fm). Uses DefaultFMProvider (fm) or DefaultReportInsight (insight).",
+			Hint:             "Unified generate-text. provider=fm|insight|mlx (default fm). Uses DefaultFMProvider (fm), DefaultReportInsight (insight), or DefaultMLXProvider (mlx).",
 			Category:         "AI & ML",
 			Description:      "Unified generate-text via FM (default) or ReportInsight; use when only generate-text is needed",
 			RecommendedModel: "claude-haiku",
