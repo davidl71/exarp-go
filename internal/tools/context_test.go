@@ -41,15 +41,19 @@ func TestHandleContextBudget(t *testing.T) {
 					t.Errorf("invalid JSON: %v", err)
 					return
 				}
-				if success, ok := data["success"].(bool); !ok || !success {
-					t.Error("expected success=true")
+				// Native budget returns total_tokens, budget_tokens, items, strategy (no success key)
+				if _, ok := data["total_tokens"]; !ok {
+					t.Error("expected total_tokens in budget result")
+				}
+				if _, ok := data["items"]; !ok {
+					t.Error("expected items in budget result")
 				}
 			},
 		},
 		{
 			name: "context_budget with items JSON string",
 			params: map[string]interface{}{
-				"items": `["Item 1", "Item 2"]`,
+				"items":         `["Item 1", "Item 2"]`,
 				"budget_tokens": 2000,
 			},
 			wantError: false,
@@ -110,7 +114,8 @@ func TestHandleContext(t *testing.T) {
 				"action": "summarize",
 				"data":   "Some text to summarize",
 			},
-			wantError: false,
+			// Summarize is native-only; returns error when Apple FM not available
+			wantError: !FMAvailable(),
 		},
 		{
 			name: "context_batch action",

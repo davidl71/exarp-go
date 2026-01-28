@@ -1,7 +1,7 @@
 # Native Go Handler Status
 
 **Date:** 2026-01-09  
-**Last Updated:** 2026-01-28 (native migration: 4 removed fallbacks, memory/task_discovery full native)  
+**Last Updated:** 2026-01-28 (task_workflow full native: external sync returns error)  
 **Status:** ✅ Handlers use native implementations; bridge only where required
 
 ---
@@ -46,13 +46,12 @@ These tools have complete native implementations and **never** use the Python br
 | `testing` | `handleTesting` | run, coverage, validate (Go projects only; unsupported action returns error) | ✅ Full Native (fallback removed) |
 | `lint` | `handleLint` | golangci-lint, go-vet, gofmt, goimports, markdownlint, shellcheck, auto; unsupported linter returns error | ✅ Full Native (fallback removed) |
 | `ollama` | `handleOllama` | status, models, generate, docs, quality, summary, etc. (native HTTP only; errors on failure) | ✅ Full Native (fallback removed) |
+| `context` | `handleContext` | summarize (Apple FM), budget, batch; unknown action returns error | ✅ Full Native (fallback removed 2026-01-28) |
+| `task_workflow` | `handleTaskWorkflow` | sync (SQLite↔JSON), approve, clarify (Apple FM), clarity, cleanup, create; external=true returns error | ✅ Full Native (fallback removed 2026-01-28) |
 
 ### Hybrid Tools (Native First, Bridge Fallback)
 
-| Tool | Native | Bridge used when | Handler |
-|------|--------|------------------|---------|
-| `task_workflow` | sync, approve, clarity, cleanup, create; clarify (Apple FM) | Apple FM–related errors; **external sync** (agentic-tools) | `handleTaskWorkflow`, `task_workflow_common` |
-| `context` | summarize, budget (with Apple FM) | Unhandled actions; native fails | `handleContext` |
+None. All tools with native implementations are now full native; bridge only where required (e.g. `mlx`).
 
 ### Python Bridge Only
 

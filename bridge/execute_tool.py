@@ -89,6 +89,7 @@ def execute_tool(tool_name: str, args_json: str, use_protobuf: bool = False, pro
         # Route to appropriate tool
         # memory, task_discovery: migrated to native Go (removed 2026-01-28)
         # report: migrated to native Go (removed)
+        # task_workflow: fully native Go (2026-01-28); this branch only for direct Python invocation
         if tool_name == "task_workflow":
             result = _task_workflow(
                 action=args.get("action", "sync"),

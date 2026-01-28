@@ -484,13 +484,13 @@ func registerBatch2Tools(server framework.MCPServer) error {
 	// T-32: task_analysis
 	if err := server.RegisterTool(
 		"task_analysis",
-		"[HINT: Task analysis. action=duplicates|tags|hierarchy|dependencies|parallelization. Task quality and structure.]",
+		"[HINT: Task analysis. action=duplicates|tags|hierarchy|dependencies|parallelization|validate. Task quality and structure.]",
 		framework.ToolSchema{
 			Type: "object",
 			Properties: map[string]interface{}{
 				"action": map[string]interface{}{
 					"type":    "string",
-					"enum":    []string{"duplicates", "tags", "hierarchy", "dependencies", "parallelization"},
+					"enum":    []string{"duplicates", "tags", "hierarchy", "dependencies", "parallelization", "fix_missing_deps", "validate"},
 					"default": "duplicates",
 				},
 				"similarity_threshold": map[string]interface{}{
@@ -521,6 +521,11 @@ func registerBatch2Tools(server framework.MCPServer) error {
 				},
 				"output_path": map[string]interface{}{
 					"type": "string",
+				},
+				"include_hierarchy": map[string]interface{}{
+					"type":    "boolean",
+					"default": false,
+					"description": "For action=validate: optionally run hierarchy dry-run and report hierarchy_warning (e.g. response_snippet) if FM returns non-JSON",
 				},
 			},
 		},
@@ -572,7 +577,7 @@ func registerBatch2Tools(server framework.MCPServer) error {
 	// T-34: task_workflow
 	if err := server.RegisterTool(
 		"task_workflow",
-		"[HINT: Task workflow. action=sync|approve|clarify|clarity|cleanup|create. Manage task lifecycle. ⚠️ CRITICAL: PREFER convenience commands (exarp-go task ...) for common operations. FALLBACK to this tool for advanced operations (clarity, cleanup, complex filters). NEVER edit .todo2/state.todo2.json directly. Use action=approve with task_ids for batch updates. Use action=create to create new tasks. For external sync (agentic-tools), use action=sync with external=true.]",
+		"[HINT: Task workflow. action=sync|approve|clarify|clarity|cleanup|create. Manage task lifecycle. ⚠️ CRITICAL: PREFER convenience commands (exarp-go task ...) for common operations. FALLBACK to this tool for advanced operations (clarity, cleanup, complex filters). NEVER edit .todo2/state.todo2.json directly. Use action=approve with task_ids for batch updates. Use action=create to create new tasks. Sync is SQLite↔JSON only; external=true is unsupported (returns error).]",
 		framework.ToolSchema{
 			Type: "object",
 			Properties: map[string]interface{}{
@@ -588,7 +593,7 @@ func registerBatch2Tools(server framework.MCPServer) error {
 				"external": map[string]interface{}{
 					"type":        "boolean",
 					"default":     false,
-					"description": "If true, sync with external task sources (agentic-tools) via Python bridge. If false, sync between SQLite and JSON only.",
+					"description": "Unsupported in native Go: if true, returns error. Use false or omit for SQLite↔JSON sync.",
 				},
 				"status": map[string]interface{}{
 					"type":    "string",

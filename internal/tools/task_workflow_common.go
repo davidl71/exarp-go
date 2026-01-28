@@ -8,7 +8,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/davidl71/exarp-go/internal/bridge"
 	"github.com/davidl71/exarp-go/internal/config"
 	"github.com/davidl71/exarp-go/internal/database"
 	"github.com/davidl71/exarp-go/internal/framework"
@@ -100,7 +99,7 @@ func handleTaskWorkflowApprove(ctx context.Context, params map[string]interface{
 			// Filter by clarification requirement if needed
 			if clarificationNone {
 				minDescLen := config.TaskMinDescriptionLength()
-			needsClarification := task.LongDescription == "" || len(task.LongDescription) < minDescLen
+				needsClarification := task.LongDescription == "" || len(task.LongDescription) < minDescLen
 				if needsClarification {
 					continue
 				}
@@ -387,20 +386,10 @@ func handleTaskWorkflowList(ctx context.Context, params map[string]interface{}) 
 }
 
 // handleTaskWorkflowSync handles sync action for synchronizing tasks between SQLite and JSON
-// If external=true, syncs with external task sources (agentic-tools) via Python bridge
 func handleTaskWorkflowSync(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
-	// Check if external sync is requested (sync with agentic-tools or other external sources)
 	external, _ := params["external"].(bool)
 	if external {
-		// Use Python bridge for external sync (agentic-tools, etc.)
-		// The Python bridge will call sync_todo_tasks which handles external sync
-		bridgeResult, err := bridge.ExecutePythonTool(ctx, "task_workflow", params)
-		if err != nil {
-			return nil, fmt.Errorf("external task sync failed: %w", err)
-		}
-		return []framework.TextContent{
-			{Type: "text", Text: bridgeResult},
-		}, nil
+		return nil, fmt.Errorf("external sync (agentic-tools) is not implemented in native Go; omit external or use external=false for SQLite↔JSON sync")
 	}
 
 	projectRoot, err := FindProjectRoot()
@@ -448,7 +437,7 @@ func handleTaskWorkflowSync(ctx context.Context, params map[string]interface{}) 
 				issues = append(issues, fmt.Sprintf("Task %s depends on %s which doesn't exist", task.ID, dep))
 			}
 		}
-		
+
 		// Validate planning document links
 		if linkMeta := GetPlanningLinkMetadata(&task); linkMeta != nil {
 			if linkMeta.PlanningDoc != "" {
@@ -599,16 +588,16 @@ func isOldSequentialID(taskID string) bool {
 	if !strings.HasPrefix(taskID, "T-") {
 		return false
 	}
-	
+
 	// Extract the number part
 	numStr := strings.TrimPrefix(taskID, "T-")
-	
+
 	// Parse as integer
 	var num int64
 	if _, err := fmt.Sscanf(numStr, "%d", &num); err != nil {
 		return false
 	}
-	
+
 	// Old sequential IDs are typically small numbers (< 10000)
 	// Epoch milliseconds are 13 digits (1.6+ trillion)
 	// Use 1000000 (1 million) as the threshold to be safe
@@ -1028,7 +1017,7 @@ func handleTaskWorkflowCreate(ctx context.Context, params map[string]interface{}
 			return nil, fmt.Errorf("invalid planning document link: %w", err)
 		}
 	}
-	
+
 	var epicID string
 	if eid, ok := params["epic_id"].(string); ok && eid != "" {
 		epicID = eid
@@ -1050,7 +1039,7 @@ func handleTaskWorkflowCreate(ctx context.Context, params map[string]interface{}
 		Completed:       false,
 		Metadata:        make(map[string]interface{}),
 	}
-	
+
 	// Store planning document link in metadata if provided
 	if planningDoc != "" || epicID != "" {
 		linkMeta := &PlanningLinkMetadata{
@@ -1191,7 +1180,7 @@ func formatEstimateComment(estimate EstimationResult) string {
 		builder.WriteString(fmt.Sprintf("\n**Range:** %.1f - %.1f hours\n", estimate.LowerBound, estimate.UpperBound))
 	}
 
-	if estimate.Metadata != nil && len(estimate.Metadata) > 0 {
+	if len(estimate.Metadata) > 0 {
 		if statisticalEst, ok := estimate.Metadata["statistical_estimate"].(float64); ok {
 			builder.WriteString(fmt.Sprintf("\n**Statistical Estimate:** %.1f hours\n", statisticalEst))
 		}
