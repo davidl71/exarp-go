@@ -110,24 +110,6 @@ def execute_tool(tool_name: str, args_json: str, use_protobuf: bool = False, pro
                 output_path=args.get("output_path"),
             )
         # estimation: fully native Go, no Python handler (removed 2026-01-27)
-        elif tool_name == "ollama":
-            result = _ollama(
-                action=args.get("action", "status"),
-                host=args.get("host"),
-                prompt=args.get("prompt"),
-                model=args.get("model", "llama3.2"),
-                stream=args.get("stream", False),
-                options=args.get("options"),
-                num_gpu=args.get("num_gpu"),
-                num_threads=args.get("num_threads"),
-                context_size=args.get("context_size"),
-                file_path=args.get("file_path"),
-                output_path=args.get("output_path"),
-                style=args.get("style", "google"),
-                include_suggestions=args.get("include_suggestions", True),
-                data=args.get("data"),
-                level=args.get("level", "brief"),
-            )
         elif tool_name == "mlx":
             result = _mlx(
                 action=args.get("action", "status"),
