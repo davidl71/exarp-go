@@ -13,7 +13,7 @@
 # Go build artifacts
 bin/
 build/
-server
+/server
 *.test
 *.out
 coverage*.out
