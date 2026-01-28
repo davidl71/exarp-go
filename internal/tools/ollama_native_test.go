@@ -30,10 +30,10 @@ func add(a, b int) int {
 		{
 			name: "valid file path",
 			params: map[string]interface{}{
-				"action":     "docs",
-				"file_path":  testFile,
-				"model":      "llama3",
-				"style":      "google",
+				"action":    "docs",
+				"file_path": testFile,
+				"model":     "llama3",
+				"style":     "google",
 			},
 			wantError: false, // Will fail if Ollama not running, but that's expected
 		},
@@ -119,9 +119,9 @@ func add(a, b int) int {
 		{
 			name: "with include_suggestions",
 			params: map[string]interface{}{
-				"action":             "quality",
-				"file_path":          testFile,
-				"model":              "llama3",
+				"action":              "quality",
+				"file_path":           testFile,
+				"model":               "llama3",
 				"include_suggestions": true,
 			},
 			wantError: false, // Will fail if Ollama not running, but that's expected

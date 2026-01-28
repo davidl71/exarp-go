@@ -124,7 +124,7 @@ make test-apple-fm-integration
 - `internal/tools/apple_foundation_test.go` - Handler tests (requires build tags)
 
 ### Integration Tests
-- `tests/integration/mcp/test_apple_foundation_models.py` - MCP integration tests
+- `internal/tools/apple_foundation_test.go` - Go integration tests (`TestHandleAppleFoundationModels_*`); run via `make test-apple-fm-integration`
 
 ### Platform Tests
 - `internal/platform/detection_test.go` - Platform detection tests
