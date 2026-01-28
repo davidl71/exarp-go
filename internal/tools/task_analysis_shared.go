@@ -15,7 +15,7 @@ import (
 )
 
 // handleTaskAnalysisNative dispatches to the appropriate action (duplicates, tags, dependencies, parallelization, hierarchy).
-// Hierarchy uses the FM abstraction (DefaultFM); when FM is not available, hierarchy returns a clear error (no Python fallback).
+// Hierarchy uses the FM abstraction (DefaultFMProvider()); when FM is not available, hierarchy returns a clear error (no Python fallback).
 func handleTaskAnalysisNative(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	action, _ := params["action"].(string)
 	if action == "" {
@@ -1055,7 +1055,7 @@ func saveAnalysisResult(outputPath string, result map[string]interface{}) error 
 }
 
 // handleTaskAnalysisHierarchy handles hierarchy analysis using the FM provider abstraction.
-// When DefaultFM is available (e.g. Apple FM on darwin/arm64/cgo), it classifies tasks; otherwise returns ErrFMNotSupported.
+// When DefaultFMProvider() is available (e.g. Apple FM on darwin/arm64/cgo), it classifies tasks; otherwise returns ErrFMNotSupported.
 func handleTaskAnalysisHierarchy(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	if !FMAvailable() {
 		return nil, fmt.Errorf("hierarchy requires a foundation model: %w", ErrFMNotSupported)
@@ -1110,7 +1110,7 @@ Classify each task into one of these categories:
 Return JSON array with format: [{"task_id": "T-1", "level": "component", "component": "security", "reason": "..."}, ...]`,
 		strings.Join(taskDescriptions, "\n"))
 
-	result, err := DefaultFM.Generate(ctx, prompt, 2000, 0.2)
+	result, err := DefaultFMProvider().Generate(ctx, prompt, 2000, 0.2)
 	if err != nil {
 		return nil, fmt.Errorf("foundation model classification: %w", err)
 	}

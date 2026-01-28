@@ -25,13 +25,13 @@ All three use a **package-level default** set in `init()` so callers don’t con
 - **Insight:** `var defaultReportInsight ReportInsightProvider` — set in `insight_provider.go` to `&compositeReportInsight{}`.
 - **Ollama:** `var defaultOllama OllamaProvider` — set in `ollama_provider.go` to `&compositeOllama{}`.
 
-**Accessor:** FM is used as `DefaultFM` (var). Insight and Ollama use accessors `DefaultReportInsight()` and `DefaultOllama()` with a nil-check fallback (return composite if default is nil). So pattern: **default var + optional accessor**.
+**Accessor:** All three use an accessor for call sites: `DefaultFMProvider()` (returns DefaultFM), `DefaultReportInsight()`, `DefaultOllama()`. Init still sets the package var `DefaultFM`; fm_apple.go and fm_stub.go are the only places that assign to it.
 
 ### 2. Composite: try primary then fallback
 
 Two of three use a **composite** that tries one backend, then another on failure:
 
-- **ReportInsight:** Tries MLX (bridge) first; on failure or empty, uses `DefaultFM.Generate(...)`. Same operation (generate text), two backends.
+- **ReportInsight:** Tries MLX (bridge) first; on failure or empty, uses `DefaultFMProvider().Generate(...)`. Same operation (generate text), two backends.
 - **Ollama:** Tries native `handleOllamaNative(ctx, params)` first; on error, uses `invokeOllamaViaBridge(ctx, params)`. Same operation (invoke tool), two backends.
 
 **FM** does not use a composite: it’s either Apple or stub depending on build tags, not “try A then B”.
@@ -83,7 +83,7 @@ So we have two patterns:
 | Pattern | FM | ReportInsight | Ollama |
 |--------|----|----------------|--------|
 | Default var + init | ✅ DefaultFM | ✅ defaultReportInsight | ✅ defaultOllama |
-| Accessor function | No (use var) | ✅ DefaultReportInsight() | ✅ DefaultOllama() |
+| Accessor function | ✅ DefaultFMProvider() | ✅ DefaultReportInsight() | ✅ DefaultOllama() |
 | Composite (try A then B) | No | ✅ MLX then FM | ✅ Native then bridge |
 | Bridge behind abstraction | N/A (no bridge) | ✅ in insight_provider | ✅ in ollama_provider |
 | Interface shape | Generate(...) (string, error) | Generate(...) (string, error) | Invoke(...) ([]TextContent, error) |
@@ -118,11 +118,10 @@ No refactor required; this is a **documented pattern** and an optional shared in
 
 ### Implemented
 
-- **FMAvailable()** — Call sites no longer repeat `DefaultFM == nil || !DefaultFM.Supported()` or `DefaultFM != nil && DefaultFM.Supported()`. Use `FMAvailable()` (positive check) or `!FMAvailable()` (guard). Defined in `fm_provider.go`; used in handlers, context, estimation, task_analysis, task_workflow, task_discovery, insight_provider.
+- **FMAvailable()** — Call sites use `FMAvailable()` or `!FMAvailable()` instead of repeating nil/Supported checks. Defined in `fm_provider.go`.
+- **DefaultFMProvider() accessor** — For consistency with `DefaultReportInsight()` and `DefaultOllama()`. All FM call sites that read the provider use `DefaultFMProvider()`; only fm_apple.go and fm_stub.go set `DefaultFM` in init.
 
 ### Optional (not implemented)
-
-- **DefaultFMProvider() accessor** — For consistency with `DefaultReportInsight()` and `DefaultOllama()`, FM could use an accessor instead of the var. Low priority; `DefaultFM` is always set in init (stub or Apple), so nil is theoretical.
 - **Shared TextGenerator interface** — FMProvider and ReportInsightProvider share `Supported() bool` + `Generate(...) (string, error)`. A single `TextGenerator` type would let code that only needs “generate text” accept either. Documented above; add only if we start passing providers as parameters.
 - **Composite helper** — ReportInsight and Ollama both use “try A then B”. Shared machinery would add indirection for little gain; keep as-is.
 
@@ -132,7 +131,7 @@ No refactor required; this is a **documented pattern** and an optional shared in
 
 | File | Role |
 |------|------|
-| `internal/tools/fm_provider.go` | FMProvider interface, ErrFMNotSupported, DefaultFM var, FMAvailable() |
+| `internal/tools/fm_provider.go` | FMProvider interface, ErrFMNotSupported, DefaultFM var, DefaultFMProvider(), FMAvailable() |
 | `internal/tools/fm_apple.go` | Apple FM implementation (darwin, arm64, cgo) |
 | `internal/tools/fm_stub.go` | Stub implementation (other platforms) |
 | `internal/tools/insight_provider.go` | ReportInsightProvider, composite (MLX then FM), DefaultReportInsight(), MLX bridge helpers |

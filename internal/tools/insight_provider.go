@@ -1,5 +1,5 @@
 // Package tools: Report insight provider abstraction for AI-generated report/scorecard insights.
-// Implementations: MLX via Python bridge, or DefaultFM (Apple FM when available).
+// Implementations: MLX via Python bridge, or DefaultFMProvider() (Apple FM when available).
 // Report code uses DefaultReportInsight so it does not depend on the bridge or MLX by name.
 
 package tools
@@ -13,7 +13,7 @@ import (
 )
 
 // ReportInsightProvider generates long-form AI insights for report/scorecard content.
-// Implementations: MLX via bridge, or DefaultFM when MLX unavailable.
+// Implementations: MLX via bridge, or DefaultFMProvider() when MLX unavailable.
 type ReportInsightProvider interface {
 	// Supported reports whether this provider can generate insights (e.g. bridge available or FM available).
 	Supported() bool
@@ -36,7 +36,7 @@ func DefaultReportInsight() ReportInsightProvider {
 	return defaultReportInsight
 }
 
-// compositeReportInsight tries MLX (bridge) first, then DefaultFM.
+// compositeReportInsight tries MLX (bridge) first, then DefaultFMProvider().
 type compositeReportInsight struct{}
 
 func (c *compositeReportInsight) Supported() bool {
@@ -48,9 +48,9 @@ func (c *compositeReportInsight) Generate(ctx context.Context, prompt string, ma
 	if text, err := tryMLXReportInsight(ctx, prompt, maxTokens, temperature); err == nil && text != "" {
 		return text, nil
 	}
-	// Fall back to DefaultFM when available
+	// Fall back to DefaultFMProvider() when available
 	if FMAvailable() {
-		return DefaultFM.Generate(ctx, prompt, maxTokens, temperature)
+		return DefaultFMProvider().Generate(ctx, prompt, maxTokens, temperature)
 	}
 	return "", ErrFMNotSupported
 }

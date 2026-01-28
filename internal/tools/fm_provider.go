@@ -21,11 +21,17 @@ type FMProvider interface {
 }
 
 // DefaultFM is set by init() in fm_apple.go (when CGO) or fm_stub.go (otherwise).
-// Tools use this for hierarchy, classification, etc., so they stay all-Go.
+// Prefer DefaultFMProvider() for consistency with DefaultReportInsight() and DefaultOllama().
 var DefaultFM FMProvider
 
+// DefaultFMProvider returns the default FM provider (set in init; never nil).
+// Use for consistency with DefaultReportInsight() and DefaultOllama().
+func DefaultFMProvider() FMProvider {
+	return DefaultFM
+}
+
 // FMAvailable reports whether a foundation model is available (non-nil and supported).
-// Use this instead of repeating DefaultFM != nil && DefaultFM.Supported() at call sites.
 func FMAvailable() bool {
-	return DefaultFM != nil && DefaultFM.Supported()
+	p := DefaultFMProvider()
+	return p != nil && p.Supported()
 }

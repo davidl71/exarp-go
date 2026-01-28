@@ -382,7 +382,7 @@ func enhanceTaskWithAppleFM(ctx context.Context, taskText string) map[string]int
 Return JSON with: {"description": "cleaned task description", "priority": "low|medium|high", "category": "bug|feature|refactor|docs"}`,
 		taskText)
 
-	result, err := DefaultFM.Generate(ctx, prompt, 200, 0.2)
+	result, err := DefaultFMProvider().Generate(ctx, prompt, 200, 0.2)
 	if err != nil {
 		return nil
 	}
@@ -437,7 +437,7 @@ Return JSON only (no other text):
 }`,
 		filePath, contentPreview)
 
-	result, err := DefaultFM.Generate(ctx, prompt, 1000, 0.2)
+	result, err := DefaultFMProvider().Generate(ctx, prompt, 1000, 0.2)
 	if err != nil {
 		return nil
 	}

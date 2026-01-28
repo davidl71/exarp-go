@@ -45,7 +45,7 @@ func summarizeWithAppleFM(ctx context.Context, data string, level string, maxTok
 		maxTokens = 512 // Default for summaries
 	}
 
-	return DefaultFM.Generate(ctx, prompt, maxTokens, temperature)
+	return DefaultFMProvider().Generate(ctx, prompt, maxTokens, temperature)
 }
 
 // handleContextSummarizeNative handles context summarization using native Go with Apple FM

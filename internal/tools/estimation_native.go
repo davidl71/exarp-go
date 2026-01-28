@@ -74,7 +74,7 @@ Respond ONLY with valid JSON in the exact format requested.
 	fullPrompt := systemInstructions + analysisPrompt
 
 	// Lower temperature (0.2) for more deterministic, consistent estimates
-	resp, err := DefaultFM.Generate(ctx, fullPrompt, 200, 0.2)
+	resp, err := DefaultFMProvider().Generate(ctx, fullPrompt, 200, 0.2)
 	if err != nil {
 		return nil, fmt.Errorf("FM generate failed: %w", err)
 	}
