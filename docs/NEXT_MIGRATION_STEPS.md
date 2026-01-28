@@ -40,10 +40,11 @@
 - **Migration testing checklist:** `docs/MIGRATION_TESTING_CHECKLIST.md` (when to add tests, when to update toolsWithNoBridge)
 - Hybrid pattern guide (when native-only vs native+fallback)
 - Bridge call map (handlers, automation, task_workflow_common)
+- **2026-01-28:** `NATIVE_GO_HANDLER_STATUS.md` updated with full-native/hybrid/bridge-only lists and explicit **4 removed Python fallbacks** (`setup_hooks`, `check_attribution`, `session`, `memory_maint`). See `PYTHON_FALLBACKS_SAFE_TO_REMOVE.md`.
 
 ---
 
-**Order (current):** 1) Testing/validation checklist ✅; 2) report overview in automation ✅; 3) analyze_alignment prd ✅; 4) report briefing/scorecard + estimation shrink ✅ (2026-01-28); 5) task_analysis fully native ✅ (2026-01-28); 6) task_discovery CGO parity + scope doc ✅ (create_tasks/output_path shared; NEXT_MIGRATION_STEPS scope). **Next:** testing/validation (unit tests for native impls); optional: remove task_discovery Python fallback for native-only.
+**Order (current):** 1) Testing/validation checklist ✅; 2) report overview in automation ✅; 3) analyze_alignment prd ✅; 4) report briefing/scorecard + estimation shrink ✅ (2026-01-28); 5) task_analysis fully native ✅ (2026-01-28); 6) task_discovery native-only ✅ (scope doc updated 2026-01-28; bridge fallback removed). **4 removed Python fallbacks (2026-01-27):** `setup_hooks`, `check_attribution`, `session`, `memory_maint`. **Next:** testing/validation (unit tests for native impls).
 
 ---
 
@@ -70,9 +71,9 @@ Git’s pre-push hook runs with refs on stdin (e.g. `refs/heads/main ...`). If e
 
 ---
 
-## Scope: task_discovery (native first, bridge fallback on error)
+## Scope: task_discovery (native only, no Python fallback)
 
-**Handler:** Tries `handleTaskDiscoveryNative` first; on error falls back to `bridge.ExecutePythonTool(ctx, "task_discovery", params)`.
+**Handler:** Uses `handleTaskDiscoveryNative` only. On error returns the error; **no** `bridge.ExecutePythonTool` call. Bridge does not route `task_discovery` (removed 2026-01-28).
 
 **Native actions (both CGO and nocgo builds):**
 
@@ -90,6 +91,4 @@ Git’s pre-push hook runs with refs on stdin (e.g. `refs/heads/main ...`). If e
 - **create_tasks:** If true, native creates Todo2 tasks from discoveries via shared `createTasksFromDiscoveries` (in `task_discovery_common.go`). Both CGO and nocgo builds support it.
 - **output_path:** If set, native writes full result JSON to the path (under project root). Both CGO and nocgo support it.
 
-**Automation:** `automation_native.go` discover step uses native only (calls `handleTaskDiscoveryNative` via handler; no direct bridge call). If native fails, the handler falls back to the Python bridge.
-
-**Bridge:** `bridge/execute_tool.py` still routes `task_discovery` when the handler invokes the fallback (e.g. native error on a given platform). Removing the fallback would make the tool native-only; current design keeps fallback for robustness.
+**Automation:** `automation_native.go` discover step uses native only (calls `handleTaskDiscoveryNative`). No bridge fallback.

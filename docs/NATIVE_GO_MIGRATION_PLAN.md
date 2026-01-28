@@ -87,7 +87,7 @@ This plan outlines a comprehensive migration strategy to convert all remaining P
 
 **Recent Completions:**
 - **2026-01-28:** Report briefing native-only; non-Go scorecard returns clear error. Estimation native-only; estimation handler removed from bridge. Tests updated.
-- **2026-01-27:** Native migration — `setup_hooks`, `check_attribution`, `session`, `memory_maint` documented as full native (no bridge). Bridge cleanup — removed dead `generate_config` and `add_external_tool_hints` branches from `bridge/execute_tool.py`.
+- **2026-01-27:** **4 removed Python fallbacks** — `setup_hooks`, `check_attribution`, `session`, `memory_maint` are full native (no bridge). Handlers never call `ExecutePythonTool` for these; bridge does not route them. Bridge cleanup: removed dead `generate_config` and `add_external_tool_hints` branches. See `PYTHON_FALLBACKS_SAFE_TO_REMOVE.md`, `NATIVE_GO_HANDLER_STATUS.md`.
 - **2026-01-12:** Stream 1–3 — hybrid tool actions, full tool migrations, resource migrations (see audit doc)
 
 ---

@@ -14,11 +14,11 @@ import (
 	"github.com/davidl71/exarp-go/internal/database"
 	"github.com/davidl71/exarp-go/internal/factory"
 	"github.com/davidl71/exarp-go/internal/framework"
-	"github.com/davidl71/mcp-go-core/pkg/mcp/logging"
 	"github.com/davidl71/exarp-go/internal/prompts"
 	"github.com/davidl71/exarp-go/internal/resources"
 	"github.com/davidl71/exarp-go/internal/tools"
-	"golang.org/x/term"
+	mcpcli "github.com/davidl71/mcp-go-core/pkg/mcp/cli"
+	"github.com/davidl71/mcp-go-core/pkg/mcp/logging"
 )
 
 // initializeDatabase initializes the database if project root is found
@@ -37,19 +37,19 @@ func initializeDatabase() {
 	if err == nil {
 		// Convert centralized config DatabaseConfig to DatabaseConfigFields
 		dbCfg := database.DatabaseConfigFields{
-			SQLitePath:       fullCfg.Database.SQLitePath,
-			JSONFallbackPath: fullCfg.Database.JSONFallbackPath,
-			BackupPath:       fullCfg.Database.BackupPath,
-			MaxConnections:   fullCfg.Database.MaxConnections,
-			ConnectionTimeout: int64(fullCfg.Database.ConnectionTimeout.Seconds()),
-			QueryTimeout:     int64(fullCfg.Database.QueryTimeout.Seconds()),
-			RetryAttempts:    fullCfg.Database.RetryAttempts,
-			RetryInitialDelay: int64(fullCfg.Database.RetryInitialDelay.Seconds()),
-			RetryMaxDelay:    int64(fullCfg.Database.RetryMaxDelay.Seconds()),
-			RetryMultiplier:  fullCfg.Database.RetryMultiplier,
-			AutoVacuum:       fullCfg.Database.AutoVacuum,
-			WALMode:          fullCfg.Database.WALMode,
-			CheckpointInterval: fullCfg.Database.CheckpointInterval,
+			SQLitePath:          fullCfg.Database.SQLitePath,
+			JSONFallbackPath:    fullCfg.Database.JSONFallbackPath,
+			BackupPath:          fullCfg.Database.BackupPath,
+			MaxConnections:      fullCfg.Database.MaxConnections,
+			ConnectionTimeout:   int64(fullCfg.Database.ConnectionTimeout.Seconds()),
+			QueryTimeout:        int64(fullCfg.Database.QueryTimeout.Seconds()),
+			RetryAttempts:       fullCfg.Database.RetryAttempts,
+			RetryInitialDelay:   int64(fullCfg.Database.RetryInitialDelay.Seconds()),
+			RetryMaxDelay:       int64(fullCfg.Database.RetryMaxDelay.Seconds()),
+			RetryMultiplier:     fullCfg.Database.RetryMultiplier,
+			AutoVacuum:          fullCfg.Database.AutoVacuum,
+			WALMode:             fullCfg.Database.WALMode,
+			CheckpointInterval:  fullCfg.Database.CheckpointInterval,
 			BackupRetentionDays: fullCfg.Database.BackupRetentionDays,
 		}
 
@@ -98,58 +98,38 @@ func setupServer() (framework.MCPServer, error) {
 	return server, nil
 }
 
-// Run starts the CLI interface
+// Run starts the CLI interface.
+// Uses mcp-go-core ParseArgs for structured CLI dispatch; subcommands (config, task, tui, tui3270) keep os.Args-based remainder.
 func Run() error {
-	// Check for config subcommand first (before flag parsing, no server needed)
-	if len(os.Args) > 1 && os.Args[1] == "config" {
+	parsed := mcpcli.ParseArgs(os.Args[1:])
+
+	// Subcommand dispatch (config, task, tui, tui3270)
+	switch parsed.Command {
+	case "config":
 		return handleConfigCommand(os.Args[2:])
-	}
-
-	// Check for task subcommand first (before flag parsing)
-	if len(os.Args) > 1 && os.Args[1] == "task" {
-		// Initialize database (before server creation)
+	case "task":
 		initializeDatabase()
-
-		// Setup server
 		server, err := setupServer()
 		if err != nil {
 			return err
 		}
-
-		// Handle task subcommand
 		return handleTaskCommand(server, os.Args[2:])
-	}
-
-	// Check for tui subcommand
-	if len(os.Args) > 1 && os.Args[1] == "tui" {
-		// Initialize database (before server creation)
+	case "tui":
 		initializeDatabase()
-
-		// Setup server
 		server, err := setupServer()
 		if err != nil {
 			return err
 		}
-
-		// Parse status filter if provided
-		status := ""
-		if len(os.Args) > 2 {
-			status = os.Args[2]
+		status := parsed.Subcommand
+		if status == "" && len(parsed.Positional) > 0 {
+			status = parsed.Positional[0]
 		}
-
-		// Run TUI
 		return RunTUI(server, status)
-	}
-
-	// Check for tui3270 subcommand
-	if len(os.Args) > 1 && os.Args[1] == "tui3270" {
-		// Parse flags for tui3270
+	case "tui3270":
 		daemon := false
 		status := ""
-		port := 3270 // Default 3270 port
+		port := 3270
 		pidFile := ""
-
-		// Simple flag parsing for tui3270
 		for i := 2; i < len(os.Args); i++ {
 			arg := os.Args[i]
 			switch arg {
@@ -161,30 +141,22 @@ func Run() error {
 					i++
 				}
 			default:
-				// Check if it's a port number
 				if parsedPort, err := strconv.Atoi(arg); err == nil {
 					port = parsedPort
 				} else if status == "" {
-					// First non-flag arg is status
 					status = arg
 				}
 			}
 		}
-
-		// Initialize database (before server creation)
 		initializeDatabase()
-
-		// Setup server
 		server, err := setupServer()
 		if err != nil {
 			return err
 		}
-
-		// Run 3270 TUI server
 		return RunTUI3270(server, status, port, daemon, pidFile)
 	}
 
-	// Parse command line arguments
+	// Flag-based modes (-tool, -list, -test, -i, -completion); use flag package (ParseArgs doesn't handle -flag value skip)
 	var (
 		toolName    = flag.String("tool", "", "Tool name to execute")
 		argsJSON    = flag.String("args", "{}", "Tool arguments as JSON")
@@ -193,25 +165,20 @@ func Run() error {
 		interactive = flag.Bool("i", false, "Interactive mode")
 		completion  = flag.String("completion", "", "Generate shell completion script (bash|zsh|fish)")
 	)
-	flag.Parse()
+	_ = flag.CommandLine.Parse(os.Args[1:])
 
-	// Initialize database (before server creation)
 	initializeDatabase()
-	
-	// Ensure database is closed when CLI exits
 	defer func() {
 		if err := database.Close(); err != nil {
 			logWarn(nil, "Error closing database", "error", err, "operation", "closeDatabase")
 		}
 	}()
 
-	// Setup server
 	server, err := setupServer()
 	if err != nil {
 		return err
 	}
 
-	// Handle different CLI modes
 	switch {
 	case *completion != "":
 		return generateCompletion(server, *completion)
@@ -229,9 +196,45 @@ func Run() error {
 	}
 }
 
-// IsTTY checks if stdin is a terminal
+// IsTTY checks if stdin is a terminal.
+// Uses mcp-go-core CLI utilities for shared implementation.
 func IsTTY() bool {
-	return term.IsTerminal(int(os.Stdin.Fd()))
+	return mcpcli.IsTTY()
+}
+
+// IsTTYStdout checks if stdout is a terminal.
+// Use for colored output detection: enable colors only when stdout is a TTY.
+// Uses mcp-go-core IsTTYFile(os.Stdout).
+func IsTTYStdout() bool {
+	return mcpcli.IsTTYFile(os.Stdout)
+}
+
+// ColorEnabled returns true when colored CLI output is appropriate (stdout is a TTY).
+// Callers may use this to enable ANSI color codes for list, tool output, etc.
+func ColorEnabled() bool {
+	return IsTTYStdout()
+}
+
+// ExecutionMode is the detected run mode (cli vs mcp). Re-exported from mcp-go-core.
+type ExecutionMode = mcpcli.ExecutionMode
+
+const (
+	ModeCLI ExecutionMode = mcpcli.ModeCLI
+	ModeMCP ExecutionMode = mcpcli.ModeMCP
+)
+
+// DetectMode detects execution mode from TTY: ModeCLI if stdin is a terminal, else ModeMCP.
+// Uses mcp-go-core DetectMode. Prefer HasCLIFlags for explicit CLI args (e.g. -tool, task).
+func DetectMode() ExecutionMode {
+	return mcpcli.DetectMode()
+}
+
+func colorizeToolName(name string) string {
+	if !ColorEnabled() {
+		return name
+	}
+	const green, reset = "\033[32m", "\033[0m"
+	return green + name + reset
 }
 
 // listAllTools lists all available tools
@@ -244,7 +247,7 @@ func listAllTools(server framework.MCPServer) error {
 
 	_, _ = fmt.Printf("Available tools (%d total):\n\n", len(toolList))
 	for _, tool := range toolList {
-		_, _ = fmt.Printf("  %s\n", tool.Name)
+		_, _ = fmt.Printf("  %s\n", colorizeToolName(tool.Name))
 		if tool.Description != "" {
 			// Truncate long descriptions
 			desc := tool.Description
@@ -261,7 +264,7 @@ func listAllTools(server framework.MCPServer) error {
 // executeTool executes a tool with the given arguments
 func executeTool(server framework.MCPServer, toolName, argsJSON string) error {
 	ctx := context.Background()
-	
+
 	// Add operation context for logging
 	ctx = logging.WithOperation(ctx, "executeTool")
 	ctx = logging.WithRequestID(ctx, generateRequestID())
@@ -283,14 +286,14 @@ func executeTool(server framework.MCPServer, toolName, argsJSON string) error {
 	// Execute tool via server
 	_, _ = fmt.Printf("Executing tool: %s\n", toolName)
 	_, _ = fmt.Printf("Arguments: %s\n\n", argsJSON)
-	
+
 	// Use context-aware logger to include request_id and operation
 	logInfo(ctx, "Executing tool", "tool", toolName)
 
 	// Track performance
 	perf := StartPerformanceLogging(ctx, "tool_execution", DefaultSlowThreshold)
 	defer perf.Finish()
-	
+
 	result, err := server.CallTool(ctx, toolName, argsBytes)
 	if err != nil {
 		perf.FinishWithError(err)
