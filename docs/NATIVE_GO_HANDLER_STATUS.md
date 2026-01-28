@@ -10,7 +10,7 @@
 
 **Key Finding:** Handlers in `internal/tools/handlers.go` use native Go first. Many tools are **fully native** (no Python bridge). Others are **hybrid** (native first, bridge fallback for specific actions or when native fails).
 
-**Python fallbacks removed (2026-01-27 / 2026-01-28):** `setup_hooks`, `check_attribution`, `session`, `memory_maint` (4 tools); `memory`, `task_discovery` (2 tools). Bridge no longer routes these; handlers never call `ExecutePythonTool` for them.
+**Python fallbacks removed (2026-01-27 / 2026-01-28):** `setup_hooks`, `check_attribution`, `session`, `memory_maint` (4 tools); `memory`, `task_discovery` (2 tools); `report` (1 tool). Bridge no longer routes these; handlers never call `ExecutePythonTool` for them.
 
 ---
 
@@ -40,12 +40,12 @@ These tools have complete native implementations and **never** use the Python br
 | `task_discovery` | `handleTaskDiscovery` | `handleTaskDiscoveryNative` | ✅ Full Native (fallback removed 2026-01-28) |
 | `prompt_tracking` | `handlePromptTracking` | `handlePromptTrackingNative` | ✅ Full Native |
 | `health` | `handleHealth` | `handleHealthNative` | ✅ Full Native |
+| `report` | `handleReport` | overview, scorecard (Go-only), briefing, prd (native); unsupported action returns error | ✅ Full Native (fallback removed) |
 
 ### Hybrid Tools (Native First, Bridge Fallback)
 
 | Tool | Native | Bridge used when | Handler |
 |------|--------|------------------|---------|
-| `report` | overview, scorecard (Go-only), briefing (native) | overview/prd native failure; unsupported actions | `handleReport` |
 | `security` | Go scan, `gh` | Non-Go projects; Go scan/gh fails | `handleSecurity` / `security.go` |
 | `task_workflow` | sync, approve, clarity, cleanup, create; clarify (Apple FM) | Apple FM–related errors; **external sync** (agentic-tools) | `handleTaskWorkflow`, `task_workflow_common` |
 | `testing` | Go test/coverage/validate | Non-Go; native fails | `handleTesting` / `testing.go` |

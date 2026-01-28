@@ -20,7 +20,7 @@
 |-------------|-----------|------|------------------|
 | **memory** | ~~handlers.go~~ | ~~Fallback when native fails~~ | ✅ **Done** – Native-only (2026-01-28). Bridge branch removed from execute_tool.py. |
 | **task_discovery** | ~~handlers.go~~ | ~~Fallback when native fails~~ | ✅ **Done** – Native-only (2026-01-28). Bridge branch removed from execute_tool.py. |
-| **report** | `handlers.go` | Unsupported actions / when native fails (e.g. briefing → devwisdom MCP) | ❌ Keep – Briefing uses external MCP. |
+| **report** | ~~handlers.go~~ | ~~Fallback when native failed~~ | ✅ **Done** – Native-only (overview, scorecard, briefing, prd). Bridge branch removed from execute_tool.py. |
 | **security** | `security.go` (3 sites) | Non-Go projects; when Go scan or `gh` fails | ❌ Keep – Multi-language support. |
 | **task_workflow** | `handlers.go`, `task_workflow_common.go` | Fallback when native fails; **external sync** (agentic-tools) | ❌ Keep – External sync is bridge-only for now. |
 | **testing** | `testing.go` (3 sites) | Non-Go projects; when Go test/coverage/validate fails | ❌ Keep – Multi-language support. |
@@ -39,8 +39,7 @@ These handlers have **no** `bridge.ExecutePythonTool` call; they are already ful
 - `analyze_alignment`, `generate_config`, `health`, `setup_hooks`, `check_attribution`, `add_external_tool_hints`
 - `memory_maint` (all actions native, including dream per current implementation)
 - `session`, `estimation`, `task_analysis`, `git_tools`, `infer_session_mode`, `tool_catalog`, `workflow_mode`, `prompt_tracking`
-
-After this pass, **memory** joins the above (bridge fallback removed).
+- `report` (overview, scorecard, briefing, prd – native only; unsupported action returns error)
 
 ---
 
@@ -48,9 +47,9 @@ After this pass, **memory** joins the above (bridge fallback removed).
 
 The bridge still routes these tool names (for fallback or primary use):
 
-- `report`, `security`, `task_workflow`, `testing`, `lint`, `ollama`, `mlx`, `context`, `recommend`
+- `security`, `task_workflow`, `testing`, `lint`, `ollama`, `mlx`, `context`, `recommend`
 
-**Removed 2026-01-28:** `memory`, `task_discovery` – branches and imports removed from execute_tool.py (Go handlers are native-only).
+**Removed 2026-01-28:** `memory`, `task_discovery` – branches and imports removed from execute_tool.py (Go handlers are native-only). **Report** – bridge branch removed (report handler is fully native).
 
 ---
 
@@ -58,7 +57,7 @@ The bridge still routes these tool names (for fallback or primary use):
 
 1. ~~**Done:** Remove memory’s bridge fallback.~~
 2. ~~**Done:** Remove task_discovery bridge fallback and slim bridge (memory + task_discovery branches removed from execute_tool.py).~~
-3. **Optional later:** Remove or narrow context/report bridge usage after verifying behavior.
+3. **Optional later:** Remove or narrow context bridge usage after verifying behavior.
 4. **Optional later:** Remove more dead branches from `execute_tool.py` as tools become fully native; see `SAFE_PYTHON_REMOVAL_PLAN.md`.
 5. **Regression:** Keep `toolsWithNoBridge` and regression tests in sync with handler behavior (see `internal/tools/regression_test.go`).
 
