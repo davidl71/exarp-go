@@ -15,7 +15,7 @@ import (
 // handleStatusAction handles the "status" action (no prompt required)
 func handleStatusAction() ([]framework.TextContent, error) {
 	support := platform.CheckAppleFoundationModelsSupport()
-	
+
 	status := map[string]interface{}{
 		"supported": support.Supported,
 		"reason":    support.Reason,
@@ -42,7 +42,7 @@ func handleStatusAction() ([]framework.TextContent, error) {
 // handleHardwareAction handles the "hardware" action (no prompt required)
 func handleHardwareAction() ([]framework.TextContent, error) {
 	support := platform.CheckAppleFoundationModelsSupport()
-	
+
 	hardware := map[string]interface{}{
 		"supported": support.Supported,
 		"reason":    support.Reason,
@@ -68,7 +68,7 @@ func handleHardwareAction() ([]framework.TextContent, error) {
 // handleModelsAction handles the "models" action (no prompt required)
 func handleModelsAction() ([]framework.TextContent, error) {
 	support := platform.CheckAppleFoundationModelsSupport()
-	
+
 	models := map[string]interface{}{
 		"supported": support.Supported,
 		"reason":    support.Reason,

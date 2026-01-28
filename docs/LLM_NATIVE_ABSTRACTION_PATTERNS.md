@@ -48,23 +48,19 @@ So pattern: **single bridge call site per integration**, behind the provider int
 
 ### 4. Text generation signature (FM and ReportInsight)
 
-**FMProvider** and **ReportInsightProvider** both expose the same core operation for “generate text”:
+**TextGenerator** is the shared interface for “generate text from prompt + options”:
 
 ```go
-Generate(ctx context.Context, prompt string, maxTokens int, temperature float32) (string, error)
+type TextGenerator interface {
+    Supported() bool
+    Generate(ctx context.Context, prompt string, maxTokens int, temperature float32) (string, error)
+}
 ```
 
-So for “generate text with prompt + options” we have:
+- **FMProvider** embeds TextGenerator (Apple or stub).
+- **ReportInsightProvider** embeds TextGenerator (composite MLX then FM).
 
-- **FMProvider:** One backend (Apple or stub).
-- **ReportInsightProvider:** Composite (MLX then FM) for report insights only.
-
-They are not unified into one type because:
-
-- FM is used by many tools (context, estimation, task_analysis, task_workflow, task_discovery) and must stay minimal (Supported + Generate).
-- ReportInsight is used only for report/scorecard insights and composes MLX + FM; it could be seen as an “insight-specific” text generator.
-
-A **shared TextGenerator interface** (e.g. `Supported() bool` + `Generate(ctx, prompt, maxTokens, temp) (string, error)`) would match both FMProvider and ReportInsightProvider. Unifying them is optional; the important point is the **same signature** for generate-text use cases.
+The composite report insight uses a **TextGenerator** for the FM fallback, so code that only needs “generate text” can accept either `DefaultFMProvider()` or `DefaultReportInsight()` via this interface.
 
 ### 5. Tool invocation vs text generation
 
@@ -91,39 +87,16 @@ So we have two patterns:
 
 ---
 
-## Optional: Shared TextGenerator type
-
-If we want to make the “generate text” contract explicit and reusable:
-
-```go
-// TextGenerator generates text from a prompt and options.
-// Implemented by FMProvider and ReportInsightProvider.
-type TextGenerator interface {
-    Supported() bool
-    Generate(ctx context.Context, prompt string, maxTokens int, temperature float32) (string, error)
-}
-```
-
-Then:
-
-- `FMProvider` already satisfies this (same method set).
-- `ReportInsightProvider` already satisfies this.
-- Code that only needs “generate text” could take `TextGenerator` and use either DefaultFM or DefaultReportInsight().
-
-No refactor required; this is a **documented pattern** and an optional shared interface for future use.
-
----
-
 ## Streamlining Opportunities
 
 ### Implemented
 
 - **FMAvailable()** — Call sites use `FMAvailable()` or `!FMAvailable()` instead of repeating nil/Supported checks. Defined in `fm_provider.go`.
 - **DefaultFMProvider() accessor** — For consistency with `DefaultReportInsight()` and `DefaultOllama()`. All FM call sites that read the provider use `DefaultFMProvider()`; only fm_apple.go and fm_stub.go set `DefaultFM` in init.
+- **TextGenerator interface** — Shared contract in `fm_provider.go`: `Supported() bool` + `Generate(...) (string, error)`. FMProvider and ReportInsightProvider both embed it. The report-insight composite uses a `TextGenerator` for the FM fallback.
 
 ### Optional (not implemented)
-- **Shared TextGenerator interface** — FMProvider and ReportInsightProvider share `Supported() bool` + `Generate(...) (string, error)`. A single `TextGenerator` type would let code that only needs “generate text” accept either. Documented above; add only if we start passing providers as parameters.
-- **Composite helper** — ReportInsight and Ollama both use “try A then B”. Shared machinery would add indirection for little gain; keep as-is.
+- **Composite helper** — ReportInsight and Ollama both use "try A then B". Shared machinery would add indirection for little gain; keep as-is.
 
 ---
 
@@ -131,10 +104,10 @@ No refactor required; this is a **documented pattern** and an optional shared in
 
 | File | Role |
 |------|------|
-| `internal/tools/fm_provider.go` | FMProvider interface, ErrFMNotSupported, DefaultFM var, DefaultFMProvider(), FMAvailable() |
+| `internal/tools/fm_provider.go` | TextGenerator interface, FMProvider (embeds TextGenerator), ErrFMNotSupported, DefaultFM var, DefaultFMProvider(), FMAvailable() |
 | `internal/tools/fm_apple.go` | Apple FM implementation (darwin, arm64, cgo) |
 | `internal/tools/fm_stub.go` | Stub implementation (other platforms) |
-| `internal/tools/insight_provider.go` | ReportInsightProvider, composite (MLX then FM), DefaultReportInsight(), MLX bridge helpers |
+| `internal/tools/insight_provider.go` | ReportInsightProvider (embeds TextGenerator), composite (MLX then TextGenerator fallback), DefaultReportInsight(), MLX bridge helpers |
 | `internal/tools/ollama_provider.go` | OllamaProvider, composite (native then bridge), DefaultOllama(), bridge helper |
 
 Handlers and report code use **only** the default providers and never touch the bridge or platform for these three LLM integrations.

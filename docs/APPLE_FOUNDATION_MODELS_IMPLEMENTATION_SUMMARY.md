@@ -58,22 +58,16 @@ All tasks from the iterative build & test plan have been completed.
 
 **Status**: ✅ All targets working
 
-### ✅ 5. Integration Tests Created
+### ✅ 5. Integration Tests
 
-**Files Created:**
-- `tests/integration/mcp/test_apple_foundation_models.py` - MCP integration tests
+**Go integration tests** (in `internal/tools/apple_foundation_test.go`):
+- `TestHandleAppleFoundationModels_ArgumentParsing`
+- `TestHandleAppleFoundationModels_PlatformDetection`
+- `TestHandleAppleFoundationModels_ActionRouting`
+- `TestHandleAppleFoundationModels_ErrorHandling`
+- `TestHandleAppleFoundationModels_TextContentFormat`
 
-**Tests Defined:**
-- Tool registration verification
-- Generate action test
-- Summarize action test
-- Classify action test
-- Platform detection test
-- Invalid arguments test
-- Parameter tests (temperature, max_tokens)
-- Platform requirement test
-
-**Status**: ✅ Test structure complete (requires Swift bridge for execution)
+**Status**: ✅ Run via `make test-apple-fm-integration` (requires Swift bridge). Python stub tests were removed; Go tests provide coverage.
 
 ### ✅ 6. go.mod Updated
 
@@ -126,7 +120,6 @@ All tasks from the iterative build & test plan have been completed.
 - `internal/tools/apple_foundation_test.go` - Handler tests
 - `internal/tools/apple_foundation_registry.go` - Conditional registration
 - `internal/tools/apple_foundation_registry_nocgo.go` - No-op registration
-- `tests/integration/mcp/test_apple_foundation_models.py` - Integration tests
 - `docs/APPLE_FOUNDATION_MODELS_TESTING.md` - Testing guide
 - `docs/APPLE_FOUNDATION_MODELS_IMPLEMENTATION_SUMMARY.md` - This file
 
