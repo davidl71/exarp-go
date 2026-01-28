@@ -9,6 +9,53 @@ import (
 	"github.com/davidl71/exarp-go/internal/models"
 )
 
+// todo2TaskJSON is used when parsing JSON so metadata can be sanitized.
+// Metadata is raw to handle invalid JSON (string, malformed) without failing unmarshal.
+type todo2TaskJSON struct {
+	ID              string          `json:"id"`
+	Content         string          `json:"content"`
+	LongDescription string          `json:"long_description,omitempty"`
+	Status          string          `json:"status"`
+	Priority        string          `json:"priority,omitempty"`
+	Tags            []string        `json:"tags,omitempty"`
+	Dependencies    []string        `json:"dependencies,omitempty"`
+	Completed       bool            `json:"completed,omitempty"`
+	Metadata        json.RawMessage `json:"metadata,omitempty"`
+}
+
+func convertTodo2TaskJSONToTask(raw todo2TaskJSON) models.Todo2Task {
+	t := models.Todo2Task{
+		ID:              raw.ID,
+		Content:         raw.Content,
+		LongDescription: raw.LongDescription,
+		Status:          raw.Status,
+		Priority:        raw.Priority,
+		Tags:            raw.Tags,
+		Dependencies:    raw.Dependencies,
+		Completed:       raw.Completed,
+	}
+	if len(raw.Metadata) > 0 {
+		t.Metadata = database.SanitizeTaskMetadata(string(raw.Metadata))
+	}
+	return t
+}
+
+// ParseTasksFromJSON parses "todos" from state JSON and returns tasks with sanitized metadata.
+// Invalid metadata is coerced to {"raw": "..."} so callers never see parse errors.
+func ParseTasksFromJSON(data []byte) ([]models.Todo2Task, error) {
+	var state struct {
+		Todos []todo2TaskJSON `json:"todos"`
+	}
+	if err := json.Unmarshal(data, &state); err != nil {
+		return nil, fmt.Errorf("failed to parse Todo2 JSON: %w", err)
+	}
+	out := make([]models.Todo2Task, 0, len(state.Todos))
+	for _, raw := range state.Todos {
+		out = append(out, convertTodo2TaskJSONToTask(raw))
+	}
+	return out, nil
+}
+
 // LoadJSONStateFromFile loads tasks and comments from a JSON file
 // Supports both comment formats:
 // 1. Top-level "comments" array with "todoId" or "todo_id" field
@@ -28,13 +75,14 @@ func LoadJSONStateFromFile(jsonPath string) ([]models.Todo2Task, []database.Comm
 // Supports both comment formats:
 // 1. Top-level "comments" array with "todoId" or "todo_id" field
 // 2. Comments nested inside each task object
+// Task metadata is sanitized on load; invalid JSON is coerced to {"raw": "..."}.
 func LoadJSONStateFromContent(data []byte) ([]models.Todo2Task, []database.Comment, error) {
 	var state map[string]interface{}
 	if err := json.Unmarshal(data, &state); err != nil {
 		return nil, nil, fmt.Errorf("failed to parse JSON: %w", err)
 	}
 
-	// Load tasks
+	// Load tasks with metadata sanitization (invalid JSON -> {"raw": "..."})
 	var tasks []models.Todo2Task
 	if todos, ok := state["todos"].([]interface{}); ok {
 		for _, todo := range todos {
@@ -42,13 +90,11 @@ func LoadJSONStateFromContent(data []byte) ([]models.Todo2Task, []database.Comme
 			if err != nil {
 				continue
 			}
-
-			var task models.Todo2Task
-			if err := json.Unmarshal(todoBytes, &task); err != nil {
+			var raw todo2TaskJSON
+			if err := json.Unmarshal(todoBytes, &raw); err != nil {
 				continue
 			}
-
-			tasks = append(tasks, task)
+			tasks = append(tasks, convertTodo2TaskJSONToTask(raw))
 		}
 	}
 

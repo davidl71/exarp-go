@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"log"
 	"strings"
 	"time"
 
@@ -20,6 +21,26 @@ type TaskFilters struct {
 	Priority  *string
 	Tag       *string
 	ProjectID *string
+}
+
+// SanitizeTaskMetadata parses JSON metadata; on failure returns a map with "raw" key and logs.
+// Callers never see invalid character parse errors—invalid JSON is coerced to {"raw": "..."}.
+// Use when loading tasks from DB or JSON so code that expects metadata as a map never fails.
+func SanitizeTaskMetadata(s string) map[string]interface{} {
+	if s == "" {
+		return nil
+	}
+	var out map[string]interface{}
+	if err := json.Unmarshal([]byte(s), &out); err != nil {
+		log.Printf("database: invalid task metadata JSON, coercing to raw: %v", err)
+		return map[string]interface{}{"raw": s}
+	}
+	return out
+}
+
+// unmarshalTaskMetadata is an alias for SanitizeTaskMetadata (internal use).
+func unmarshalTaskMetadata(s string) map[string]interface{} {
+	return SanitizeTaskMetadata(s)
 }
 
 // CreateTask creates a new task in the database
@@ -245,17 +266,12 @@ func GetTask(ctx context.Context, id string) (*Todo2Task, error) {
 			} else {
 				// Protobuf deserialization failed, fall back to JSON
 				if metadataJSON.Valid && metadataJSON.String != "" {
-					if err := json.Unmarshal([]byte(metadataJSON.String), &taskData.Metadata); err != nil {
-						taskData.Metadata = nil
-					}
+					taskData.Metadata = unmarshalTaskMetadata(metadataJSON.String)
 				}
 			}
 		} else if metadataJSON.Valid && metadataJSON.String != "" {
 			// Use JSON format (legacy or fallback)
-			if err := json.Unmarshal([]byte(metadataJSON.String), &taskData.Metadata); err != nil {
-				// Log but don't fail - metadata is optional
-				taskData.Metadata = nil
-			}
+			taskData.Metadata = unmarshalTaskMetadata(metadataJSON.String)
 		}
 
 		// Load tags
@@ -697,16 +713,12 @@ func ListTasks(ctx context.Context, filters *TaskFilters) ([]*Todo2Task, error) 
 				} else {
 					// Protobuf deserialization failed, fall back to JSON
 					if metadataJSON.Valid && metadataJSON.String != "" {
-						if err := json.Unmarshal([]byte(metadataJSON.String), &task.Metadata); err != nil {
-							task.Metadata = nil
-						}
+						task.Metadata = unmarshalTaskMetadata(metadataJSON.String)
 					}
 				}
 			} else if metadataJSON.Valid && metadataJSON.String != "" {
 				// Use JSON format (legacy or fallback)
-				if err := json.Unmarshal([]byte(metadataJSON.String), &task.Metadata); err != nil {
-					task.Metadata = nil
-				}
+				task.Metadata = unmarshalTaskMetadata(metadataJSON.String)
 			}
 
 			taskIDs = append(taskIDs, task.ID)
