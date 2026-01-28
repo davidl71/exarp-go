@@ -8,10 +8,8 @@ This bridge allows the Go server to execute existing Python tools.
 Supports both protobuf binary and JSON formats for backward compatibility.
 """
 
-import base64
 import json
 import sys
-import os
 from pathlib import Path
 
 # Try to import protobuf (required for protobuf support)
@@ -62,7 +60,7 @@ def execute_tool(tool_name: str, args_json: str, use_protobuf: bool = False, pro
                 request_id = request.request_id if request.request_id else None
                 # Parse JSON arguments from protobuf message
                 args = json.loads(args_json) if args_json else {}
-            except Exception as e:
+            except Exception:
                 # If protobuf parsing fails, fall back to JSON
                 args = json.loads(args_json) if args_json else {}
         else:
@@ -71,12 +69,10 @@ def execute_tool(tool_name: str, args_json: str, use_protobuf: bool = False, pro
         
         # Import tool functions from project_management_automation
         # Note: tool_catalog, workflow_mode, git_tools, infer_session_mode, health, automation,
-        # generate_config, and add_external_tool_hints removed - fully native Go with no Python fallback
+        # generate_config, add_external_tool_hints, setup_hooks, check_attribution, session, memory_maint,
+        # analyze_alignment - fully native Go with no Python fallback
         from project_management_automation.tools.consolidated import (
-            analyze_alignment as _analyze_alignment,
-            setup_hooks as _setup_hooks,
             memory as _memory,
-            memory_maint as _memory_maint,
             report as _report,
             security as _security,
             task_analysis as _task_analysis,
@@ -87,40 +83,15 @@ def execute_tool(tool_name: str, args_json: str, use_protobuf: bool = False, pro
             lint as _lint,
             mlx as _mlx,
             ollama as _ollama,
-            session as _session,
-        )
-        from project_management_automation.tools.attribution_check import (
-            check_attribution_compliance as _check_attribution_compliance,
         )
         
         # Import mcp-generic-tools modules (from bridge directory)
-        from context.tool import context as _context
         from recommend.tool import recommend as _recommend
-        # Import context_tool for unified context wrapper
+        # Import context_tool for unified context wrapper (used for "context" tool)
         from project_management_automation.tools.context_tool import context as _context_unified
         
         # Route to appropriate tool
-        if tool_name == "analyze_alignment":
-            result = _analyze_alignment(
-                action=args.get("action", "todo2"),
-                create_followup_tasks=args.get("create_followup_tasks", True),
-                output_path=args.get("output_path"),
-            )
-        elif tool_name == "setup_hooks":
-            result = _setup_hooks(
-                action=args.get("action", "git"),
-                hooks=args.get("hooks"),
-                patterns=args.get("patterns"),
-                config_path=args.get("config_path"),
-                install=args.get("install", True),
-                dry_run=args.get("dry_run", False),
-            )
-        elif tool_name == "check_attribution":
-            result = _check_attribution_compliance(
-                output_path=args.get("output_path"),
-                create_tasks=args.get("create_tasks", True),
-            )
-        elif tool_name == "memory":
+        if tool_name == "memory":
             result = _memory(
                 action=args.get("action", "search"),
                 title=args.get("title"),
@@ -131,24 +102,6 @@ def execute_tool(tool_name: str, args_json: str, use_protobuf: bool = False, pro
                 include_related=args.get("include_related", True),
                 query=args.get("query"),
                 limit=args.get("limit", 10),
-            )
-        elif tool_name == "memory_maint":
-            result = _memory_maint(
-                action=args.get("action", "health"),
-                max_age_days=args.get("max_age_days", 90),
-                delete_orphaned=args.get("delete_orphaned", True),
-                delete_duplicates=args.get("delete_duplicates", True),
-                scorecard_max_age_days=args.get("scorecard_max_age_days", 7),
-                value_threshold=args.get("value_threshold", 0.3),
-                keep_minimum=args.get("keep_minimum", 50),
-                similarity_threshold=args.get("similarity_threshold", 0.85),
-                merge_strategy=args.get("merge_strategy", "newest"),
-                scope=args.get("scope", "week"),
-                advisors=args.get("advisors"),
-                generate_insights=args.get("generate_insights", True),
-                save_dream=args.get("save_dream", True),
-                dry_run=args.get("dry_run", True),
-                interactive=args.get("interactive", True),
             )
         elif tool_name == "report":
             result = _report(
@@ -257,34 +210,6 @@ def execute_tool(tool_name: str, args_json: str, use_protobuf: bool = False, pro
                 detailed=args.get("detailed", False),
                 use_mlx=args.get("use_mlx", True),
                 mlx_weight=args.get("mlx_weight", 0.3),
-            )
-        elif tool_name == "session":
-            result = _session(
-                action=args.get("action", "prime"),
-                include_hints=args.get("include_hints", True),
-                include_tasks=args.get("include_tasks", True),
-                override_mode=args.get("override_mode"),
-                task_id=args.get("task_id"),
-                summary=args.get("summary"),
-                blockers=args.get("blockers"),
-                next_steps=args.get("next_steps"),
-                unassign_my_tasks=args.get("unassign_my_tasks", True),
-                include_git_status=args.get("include_git_status", True),
-                limit=args.get("limit", 5),
-                dry_run=args.get("dry_run", False),
-                direction=args.get("direction", "both"),
-                prefer_agentic_tools=args.get("prefer_agentic_tools", True),
-                auto_commit=args.get("auto_commit", True),
-                mode=args.get("mode"),
-                category=args.get("category"),
-                keywords=args.get("keywords"),
-                assignee_name=args.get("assignee_name"),
-                assignee_type=args.get("assignee_type", "agent"),
-                hostname=args.get("hostname"),
-                status_filter=args.get("status_filter"),
-                priority_filter=args.get("priority_filter"),
-                include_unassigned=args.get("include_unassigned", False),
-                max_tasks_per_agent=args.get("max_tasks_per_agent", 5),
             )
         elif tool_name == "ollama":
             result = _ollama(

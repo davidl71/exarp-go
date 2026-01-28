@@ -13,14 +13,15 @@ import (
 // toolsWithNoBridge lists tools that are fully native with no Python bridge (bridge does not route them).
 var toolsWithNoBridge = map[string]bool{
 	"session": true, "setup_hooks": true, "check_attribution": true, "memory_maint": true,
-	"git_tools": true, "infer_session_mode": true, "tool_catalog": true, "workflow_mode": true,
+	"analyze_alignment": true,
+	"git_tools":         true, "infer_session_mode": true, "tool_catalog": true, "workflow_mode": true,
 	"prompt_tracking": true, "generate_config": true, "add_external_tool_hints": true,
 }
 
 // TestRegressionNativeOnlyTools documents tools that completed native migration (no Python bridge).
 // See docs/PYTHON_FALLBACKS_SAFE_TO_REMOVE.md.
 func TestRegressionNativeOnlyTools(t *testing.T) {
-	want := []string{"session", "setup_hooks", "check_attribution", "memory_maint"}
+	want := []string{"session", "setup_hooks", "check_attribution", "memory_maint", "analyze_alignment"}
 	for _, name := range want {
 		if !toolsWithNoBridge[name] {
 			t.Errorf("native-only tool %q must be in toolsWithNoBridge", name)
@@ -162,13 +163,13 @@ func TestRegressionFallbackBehavior(t *testing.T) {
 	ctx := context.Background()
 
 	tests := []struct {
-		name      string
-		toolName  string
-		params    map[string]interface{}
+		name           string
+		toolName       string
+		params         map[string]interface{}
 		expectFallback bool
 	}{
 		{
-			name: "session with invalid action (native only, no fallback)",
+			name:     "session with invalid action (native only, no fallback)",
 			toolName: "session",
 			params: map[string]interface{}{
 				"action": "invalid_action_that_does_not_exist",
@@ -176,7 +177,7 @@ func TestRegressionFallbackBehavior(t *testing.T) {
 			expectFallback: false, // session is fully native; bridge does not route it
 		},
 		{
-			name: "recommend with invalid action should fallback",
+			name:     "recommend with invalid action should fallback",
 			toolName: "recommend",
 			params: map[string]interface{}{
 				"action": "invalid_action",
@@ -184,7 +185,7 @@ func TestRegressionFallbackBehavior(t *testing.T) {
 			expectFallback: true,
 		},
 		{
-			name: "health with invalid action should fallback",
+			name:     "health with invalid action should fallback",
 			toolName: "health",
 			params: map[string]interface{}{
 				"action": "invalid_action",
@@ -193,7 +194,7 @@ func TestRegressionFallbackBehavior(t *testing.T) {
 		},
 	}
 
-		for _, tt := range tests {
+	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Try native first
 			var nativeErr error
@@ -260,7 +261,7 @@ func TestRegressionResponseFormat(t *testing.T) {
 			name:     "recommend workflow",
 			toolName: "recommend",
 			params: map[string]interface{}{
-				"action":          "workflow",
+				"action":           "workflow",
 				"task_description": "Test task",
 			},
 		},
@@ -338,21 +339,21 @@ func TestRegressionErrorHandling(t *testing.T) {
 	ctx := context.Background()
 
 	tests := []struct {
-		name      string
-		toolName  string
-		params    map[string]interface{}
+		name        string
+		toolName    string
+		params      map[string]interface{}
 		expectError bool
 	}{
 		{
-			name: "session with missing required params",
+			name:     "session with missing required params",
 			toolName: "session",
-			params: map[string]interface{}{
+			params:   map[string]interface{}{
 				// Missing action - should default to "prime"
 			},
 			expectError: false,
 		},
 		{
-			name: "recommend with missing task_description",
+			name:     "recommend with missing task_description",
 			toolName: "recommend",
 			params: map[string]interface{}{
 				"action": "workflow",
@@ -361,9 +362,9 @@ func TestRegressionErrorHandling(t *testing.T) {
 			expectError: false, // Should handle gracefully
 		},
 		{
-			name: "health with missing action",
+			name:     "health with missing action",
 			toolName: "health",
-			params: map[string]interface{}{
+			params:   map[string]interface{}{
 				// Missing action - health may default or require; match current behavior
 			},
 			expectError: false, // Health defaults action when missing
@@ -435,6 +436,7 @@ func TestRegressionFeatureParity(t *testing.T) {
 		"setup_hooks":       "Fully native; no Python bridge. Git and patterns actions are native-only.",
 		"check_attribution": "Fully native; no Python bridge.",
 		"memory_maint":      "Fully native; no Python bridge. Health, gc, prune, consolidate, dream are native-only.",
+		"analyze_alignment": "Fully native for todo2 and prd; no Python bridge.",
 		"recommend":         "Hybrid: native workflow/model; Python fallback when native fails.",
 		"health":            "Hybrid: native server/docs/dod/cicd; Python fallback when native fails.",
 		"ollama":            "Hybrid: native uses HTTP client; Python bridge may differ.",

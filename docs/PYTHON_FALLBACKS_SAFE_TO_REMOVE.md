@@ -7,11 +7,11 @@
 
 ## Summary
 
-**Safely removable (4 tools):** `setup_hooks`, `check_attribution`, `session`, `memory_maint`.
+**Safely removable (5 tools):** `setup_hooks`, `check_attribution`, `session`, `memory_maint`, `analyze_alignment`.
 
 For each, the Go handler already implements all supported actions. The Python fallback is only used when the native path returns an error. Removing it means those errors are surfaced to the user instead of being hidden by a Python run. No behavior is lost for success paths.
 
-**Status (2026-01-27):** These four are **fully native** — handlers call only native code; the bridge does not route them (see comment in `bridge/execute_tool.py`). Automation already uses `runDailyTask(ctx, "memory_maint", ...)`. Migration plan and regression tests updated; handler comments corrected.
+**Status (2026-01-27):** These five are **fully native** — handlers call only native code; the bridge does not route them (see comment in `bridge/execute_tool.py`). Automation uses `runDailyTask(ctx, "memory_maint", ...)` and `runDailyTask(ctx, "analyze_alignment", ...)`. Migration plan and regression tests updated.
 
 ---
 
@@ -24,13 +24,13 @@ For each, the Go handler already implements all supported actions. The Python fa
 | **setup_hooks** | `handleSetupHooksNative`: git + patterns | Native returns error (e.g. not a git repo) | None |
 | **check_attribution** | `handleCheckAttributionNative`: full flow | Native returns error | None |
 | **session** | `handleSessionNative`: prime, handoff, prompts, assignee | Native returns error | None |
-| **memory_maint** | `handleMemoryMaintNative`: health, gc, prune, consolidate, dream | Native returns error | In `automation_native.go`, change `runDailyTaskPython(ctx, "memory_maint", ...)` → `runDailyTask(ctx, "memory_maint", ...)` (e.g. sprint task 1 around line 167) |
+| **memory_maint** | `handleMemoryMaintNative`: health, gc, prune, consolidate, dream | Native returns error | In `automation_native.go`, use `runDailyTask(ctx, "memory_maint", ...)` (done). |
+| **analyze_alignment** | `handleAnalyzeAlignmentNative`: todo2 + prd (persona alignment) | — | Removed fallback 2026-01-27; bridge no longer routes it. |
 
 ### ❌ Not safe to remove (bridge still required)
 
 | Tool | Why bridge is still needed |
 |------|----------------------------|
-| **analyze_alignment** | `action=prd` is only in Python; native supports `todo2` only. |
 | **memory** | Fallback used for semantic search / when native fails. |
 | **report** | Briefing and non-Go scorecard still use bridge; automation uses `runDailyTaskPython(ctx, "report", ...)` for overview. |
 | **security** | Fallback when native scan/alerts/report fails. |

@@ -14,8 +14,7 @@ import (
 )
 
 // handleAnalyzeAlignment handles the analyze_alignment tool
-// Uses native Go implementation for "todo2" action (fully native with followup task creation)
-// Falls back to Python bridge for "prd" action (complex PRD analysis)
+// Fully native Go for both "todo2" and "prd" actions; no Python bridge
 func handleAnalyzeAlignment(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
 	// Try protobuf first, fall back to JSON for backward compatibility
 	req, params, err := ParseAnalyzeAlignmentRequest(args)
@@ -31,21 +30,11 @@ func handleAnalyzeAlignment(ctx context.Context, args json.RawMessage) ([]framew
 		})
 	}
 
-	// Try native Go implementation first
 	result, err := handleAnalyzeAlignmentNative(ctx, params)
-	if err == nil {
-		return result, nil
-	}
-
-	// If native implementation doesn't support the action (e.g., "prd"), fall back to Python bridge
-	bridgeResult, err := bridge.ExecutePythonTool(ctx, "analyze_alignment", params)
 	if err != nil {
 		return nil, fmt.Errorf("analyze_alignment failed: %w", err)
 	}
-
-	return []framework.TextContent{
-		{Type: "text", Text: bridgeResult},
-	}, nil
+	return result, nil
 }
 
 // handleGenerateConfig handles the generate_config tool
@@ -111,25 +100,12 @@ func handleSetupHooks(ctx context.Context, args json.RawMessage) ([]framework.Te
 		})
 	}
 
-	// Try native Go implementation first
-	result, err := handleSetupHooksNative(ctx, params)
-	if err == nil {
-		return result, nil
-	}
-
-	// If native implementation doesn't support the action, fall back to Python bridge
-	bridgeResult, err := bridge.ExecutePythonTool(ctx, "setup_hooks", params)
-	if err != nil {
-		return nil, fmt.Errorf("setup_hooks failed: %w", err)
-	}
-
-	return []framework.TextContent{
-		{Type: "text", Text: bridgeResult},
-	}, nil
+	// Use native Go implementation only (git + patterns actions)
+	return handleSetupHooksNative(ctx, params)
 }
 
 // handleCheckAttribution handles the check_attribution tool
-// Uses native Go implementation, falls back to Python bridge for complex analysis
+// Uses native Go implementation only - fully native Go, no Python fallback
 func handleCheckAttribution(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
 	// Try protobuf first, fall back to JSON for backward compatibility
 	req, params, err := ParseCheckAttributionRequest(args)
@@ -142,21 +118,8 @@ func handleCheckAttribution(ctx context.Context, args json.RawMessage) ([]framew
 		params = CheckAttributionRequestToParams(req)
 	}
 
-	// Try native Go implementation first
-	result, err := handleCheckAttributionNative(ctx, params)
-	if err == nil {
-		return result, nil
-	}
-
-	// If native implementation fails, fall back to Python bridge
-	bridgeResult, err := bridge.ExecutePythonTool(ctx, "check_attribution", params)
-	if err != nil {
-		return nil, fmt.Errorf("check_attribution failed: %w", err)
-	}
-
-	return []framework.TextContent{
-		{Type: "text", Text: bridgeResult},
-	}, nil
+	// Use native Go implementation only
+	return handleCheckAttributionNative(ctx, params)
 }
 
 // handleAddExternalToolHints handles the add_external_tool_hints tool
@@ -210,8 +173,7 @@ func handleMemory(ctx context.Context, args json.RawMessage) ([]framework.TextCo
 }
 
 // handleMemoryMaint handles the memory_maint tool
-// Uses native Go for health, gc, prune, consolidate actions
-// Falls back to Python bridge for dream action (requires advisor integration via devwisdom-go MCP)
+// Uses native Go implementation only (health, gc, prune, consolidate, dream) - fully native Go, no Python fallback
 func handleMemoryMaint(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
 	// Try protobuf first, fall back to JSON for backward compatibility
 	req, params, err := ParseMemoryMaintRequest(args)
@@ -229,30 +191,8 @@ func handleMemoryMaint(ctx context.Context, args json.RawMessage) ([]framework.T
 		})
 	}
 
-	action, _ := params["action"].(string)
-	if action == "" {
-		action = "health"
-	}
-
-	// Try native Go implementation first (for health, gc, prune, consolidate, dream)
-	// All actions are now native (dream uses devwisdom-go wisdom engine directly)
-	if action == "health" || action == "gc" || action == "prune" || action == "consolidate" || action == "dream" {
-		result, err := handleMemoryMaintNative(ctx, args)
-		if err == nil {
-			return result, nil
-		}
-		// If native fails, fall through to Python bridge
-	}
-
-	// For unsupported actions or if native fails, use Python bridge
-	result, err := bridge.ExecutePythonTool(ctx, "memory_maint", params)
-	if err != nil {
-		return nil, fmt.Errorf("memory_maint failed: %w", err)
-	}
-
-	return []framework.TextContent{
-		{Type: "text", Text: result},
-	}, nil
+	// Use native Go implementation only (health, gc, prune, consolidate, dream)
+	return handleMemoryMaintNative(ctx, args)
 }
 
 // handleReport handles the report tool
@@ -285,10 +225,14 @@ func handleReport(ctx context.Context, args json.RawMessage) ([]framework.TextCo
 	case "scorecard":
 		// Check if go.mod exists (Go project)
 		if IsGoProject() {
-			// Use Go-specific scorecard with fast mode by default
+			// Use Go-specific scorecard; fast_mode from params (default true)
 			projectRoot, err := security.GetProjectRoot(".")
 			if err == nil {
-				opts := &ScorecardOptions{FastMode: true}
+				fastMode := true
+				if v, ok := params["fast_mode"].(bool); ok {
+					fastMode = v
+				}
+				opts := &ScorecardOptions{FastMode: fastMode}
 				scorecard, err := GenerateGoScorecard(ctx, projectRoot, opts)
 				if err == nil {
 					// Convert to map for MLX enhancement
@@ -319,7 +263,13 @@ func handleReport(ctx context.Context, args json.RawMessage) ([]framework.TextCo
 			}
 			// Fall through to Python bridge if project root not found
 		}
-		// Fall through to Python bridge for non-Go projects
+		// Fall through to Python bridge for non-Go projects.
+		// NOTE: The Python bridge uses generate_project_scorecard, which is biased toward
+		// exarp-go / project_management_automation (Python-centric: *.py, tools, prompts).
+		// For multi-language projects (C++, Rust, TypeScript, Swift, etc.) or arbitrary
+		// layouts, scorecards may be incomplete or skewed. Per-language scorecards are
+		// not supported. See docs/FEATURE_REQUESTS.md: "Multi-language and per-language
+		// scorecard support".
 
 	case "overview":
 		// Try native Go implementation
@@ -904,21 +854,8 @@ func handleSession(ctx context.Context, args json.RawMessage) ([]framework.TextC
 		})
 	}
 
-	// Try native Go implementation for all actions
-	result, err := handleSessionNative(ctx, params)
-	if err == nil {
-		return result, nil
-	}
-
-	// If native fails, fall back to Python bridge
-	resultText, err := bridge.ExecutePythonTool(ctx, "session", params)
-	if err != nil {
-		return nil, fmt.Errorf("session failed: %w", err)
-	}
-
-	return []framework.TextContent{
-		{Type: "text", Text: resultText},
-	}, nil
+	// Use native Go implementation only (prime, handoff, prompts, assignee)
+	return handleSessionNative(ctx, params)
 }
 
 // handleInferSessionMode handles the infer_session_mode tool
