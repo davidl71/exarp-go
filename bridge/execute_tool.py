@@ -74,9 +74,9 @@ def execute_tool(tool_name: str, args_json: str, use_protobuf: bool = False, pro
         # analyze_alignment, estimation, task_analysis - fully native Go with no Python handler
         # report: migrated to native Go (no Python handler, removed)
         # security: migrated to native Go (removed)
+        # testing: migrated to native Go (removed)
         from project_management_automation.tools.consolidated import (
             task_workflow as _task_workflow,
-            testing as _testing,
             lint as _lint,
             mlx as _mlx,
             ollama as _ollama,
@@ -107,21 +107,6 @@ def execute_tool(tool_name: str, args_json: str, use_protobuf: bool = False, pro
                 auto_apply=args.get("auto_apply", False),
                 output_format=args.get("output_format", "text"),
                 stale_threshold_hours=args.get("stale_threshold_hours", 2.0),
-                output_path=args.get("output_path"),
-            )
-        elif tool_name == "testing":
-            result = _testing(
-                action=args.get("action", "run"),
-                test_path=args.get("test_path"),
-                test_framework=args.get("test_framework", "auto"),
-                verbose=args.get("verbose", True),
-                coverage=args.get("coverage", False),
-                coverage_file=args.get("coverage_file"),
-                min_coverage=args.get("min_coverage", 80),
-                format=args.get("format", "html"),
-                target_file=args.get("target_file"),
-                min_confidence=args.get("min_confidence", 0.7),
-                framework=args.get("framework"),
                 output_path=args.get("output_path"),
             )
         elif tool_name == "lint":

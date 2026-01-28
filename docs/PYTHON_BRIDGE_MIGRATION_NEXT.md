@@ -21,13 +21,13 @@
 | **memory** | ~~handlers.go~~ | ~~Fallback when native fails~~ | ✅ **Done** – Native-only (2026-01-28). Bridge branch removed from execute_tool.py. |
 | **task_discovery** | ~~handlers.go~~ | ~~Fallback when native fails~~ | ✅ **Done** – Native-only (2026-01-28). Bridge branch removed from execute_tool.py. |
 | **report** | ~~handlers.go~~ | ~~Fallback when native failed~~ | ✅ **Done** – Native-only (overview, scorecard, briefing, prd). Bridge branch removed from execute_tool.py. |
-| **security** | `security.go` (3 sites) | Non-Go projects; when Go scan or `gh` fails | ❌ Keep – Multi-language support. |
+| **security** | ~~security.go~~ | ~~Fallback when native failed~~ | ✅ **Done** – Native-only (Go projects only; errors otherwise). Bridge branch removed. |
 | **task_workflow** | `handlers.go`, `task_workflow_common.go` | Fallback when native fails; **external sync** (agentic-tools) | ❌ Keep – External sync is bridge-only for now. |
-| **testing** | `testing.go` (3 sites) | Non-Go projects; when Go test/coverage/validate fails | ❌ Keep – Multi-language support. |
+| **testing** | ~~testing.go~~ | ~~Fallback when native failed~~ | ✅ **Done** – Native-only (Go projects only; errors otherwise). Bridge branch removed. |
 | **lint** | `handlers.go` | Non-Go linters (e.g. ruff) | ❌ Keep – Python/other linters. |
 | **mlx** | `handlers.go`, `insight_provider.go` | Primary (no Go bindings) | ❌ Keep – Intentional bridge-only. |
 | **context** | `handlers.go` | Unhandled actions / when native fails | Optional – Could narrow to specific actions. |
-| **recommend** | `handlers.go` | Advisor action / when native fails | ❌ Keep – Advisor uses external MCP. |
+| **recommend** | ~~handlers.go~~ | ~~Fallback when native failed~~ | ✅ **Done** – Native-only (model, workflow, advisor via devwisdom-go). Bridge branch removed. |
 | **ollama** | `ollama_provider.go` | Fallback when native HTTP fails | ❌ Keep – Resilient fallback. |
 
 ---
@@ -40,6 +40,9 @@ These handlers have **no** `bridge.ExecutePythonTool` call; they are already ful
 - `memory_maint` (all actions native, including dream per current implementation)
 - `session`, `estimation`, `task_analysis`, `git_tools`, `infer_session_mode`, `tool_catalog`, `workflow_mode`, `prompt_tracking`
 - `report` (overview, scorecard, briefing, prd – native only; unsupported action returns error)
+- `recommend` (model, workflow, advisor – native only via devwisdom-go; unsupported action returns error)
+- `security` (scan, alerts, report – Go projects only; errors otherwise)
+- `testing` (run, coverage, validate – Go projects only; unsupported action returns error)
 
 ---
 
@@ -47,9 +50,9 @@ These handlers have **no** `bridge.ExecutePythonTool` call; they are already ful
 
 The bridge still routes these tool names (for fallback or primary use):
 
-- `security`, `task_workflow`, `testing`, `lint`, `ollama`, `mlx`, `context`, `recommend`
+- `task_workflow`, `lint`, `ollama`, `mlx`, `context`
 
-**Removed 2026-01-28:** `memory`, `task_discovery` – branches and imports removed from execute_tool.py (Go handlers are native-only). **Report** – bridge branch removed (report handler is fully native).
+**Removed 2026-01-28:** `memory`, `task_discovery`, `report`, `recommend`, `security`, `testing` – branches and imports removed from execute_tool.py (Go handlers are fully native).
 
 ---
 
