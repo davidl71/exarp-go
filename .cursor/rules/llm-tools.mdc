@@ -1,0 +1,44 @@
+---
+description: When and how to use exarp-go LLM tools (apple_foundation_models, ollama, mlx) and stdio://models
+alwaysApply: true
+---
+
+# LLM Tools and Resources (exarp-go)
+
+**Use exarp-go’s LLM abstraction tools and `stdio://models` to choose the right backend and discover what’s available.**
+
+## Discovering available backends
+
+- **Resource `stdio://models`** — Returns `data.models` (recommend catalog) and **`data.backends`** (LLM backend discovery):
+  - `fm_available` (bool) — Apple Foundation Models (on-device) available on this machine
+  - `apple_fm_tool`, `ollama_tool`, `mlx_tool` — Tool names to call
+  - `hint` — Short guidance on when to use which
+- Prefer reading `stdio://models` (or the tool_catalog) when you need to decide which LLM tool to use, so you can respect `fm_available` and avoid calling unsupported tools.
+
+## Which tool to use
+
+| Goal | Tool | When |
+|------|------|------|
+| **On-device Apple Silicon (no server)** | `apple_foundation_models` | Generate, respond, summarize, classify on Mac with CGO build. Uses DefaultFMProvider(). Only registered when darwin/arm64/cgo. |
+| **Local Ollama server** | `ollama` | Status, models, generate, pull, hardware, docs, quality, summary. Uses DefaultOllama() (native then bridge). Use when user has `ollama serve` or wants Ollama models. |
+| **MLX on Apple Silicon** | `mlx` | Status, hardware, models, generate. Bridge-only. Use when user explicitly wants MLX or a specific MLX model. Report/scorecard insights use DefaultReportInsight() (MLX then FM) internally — no need to call `mlx` for that. |
+| **“Just generate text” (any backend)** | Prefer `apple_foundation_models` if `fm_available`, else `ollama` or `mlx` per user setup | Check `data.backends.fm_available` from `stdio://models` when possible. |
+
+## Tool parameters (quick reference)
+
+- **apple_foundation_models** — `action`: status, hardware, models, generate, respond, summarize, classify; `prompt`, `mode`, `temperature`, `max_tokens`, `categories`.
+- **ollama** — `action`: status, models, generate, pull, hardware, docs, quality, summary; `host`, `prompt`, `model`, `stream`, etc.
+- **mlx** — `action`: status, hardware, models, generate; `prompt`, `model`, `max_tokens`, `temperature`, `verbose`.
+
+## Cursor AI guidance
+
+- When the user asks for **local inference**, **on-device AI**, or **generate/summarize with a local model**: consider `apple_foundation_models` first if the project is built with Apple FM support; otherwise suggest `ollama` or `mlx` and mention checking `stdio://models` for `backends.fm_available`.
+- When the user asks **which models/backends are available**: suggest reading the **`stdio://models`** resource and using `data.backends` (and optionally `data.models` for the recommend catalog).
+- Do not call `apple_foundation_models` when `fm_available` is false (e.g. non-Mac or no CGO build); use `ollama` or `mlx` instead.
+- Report/scorecard **AI insights** are handled inside the **report** tool via DefaultReportInsight() (MLX then FM); the user does not need to call `mlx` or `apple_foundation_models` for that.
+
+## References
+
+- **Patterns:** `docs/LLM_NATIVE_ABSTRACTION_PATTERNS.md`
+- **Exposure:** `docs/LLM_EXPOSURE_OPPORTUNITIES.md`
+- **Backend status:** `internal/tools/llm_backends.go` (LLMBackendStatus)

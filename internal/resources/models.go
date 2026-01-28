@@ -11,11 +11,12 @@ import (
 // handleModels handles the stdio://models resource
 // Returns all available AI models with capabilities
 func handleModels(ctx context.Context, uri string) ([]byte, string, error) {
-	// Build result (matching tool format)
+	// Build result (matching tool format); include LLM backends for discovery
 	result := map[string]interface{}{
-		"models": tools.MODEL_CATALOG,
-		"count":  len(tools.MODEL_CATALOG),
-		"tip":    "Use recommend_model for task-specific recommendations",
+		"models":   tools.MODEL_CATALOG,
+		"count":    len(tools.MODEL_CATALOG),
+		"tip":      "Use recommend_model for task-specific recommendations",
+		"backends": tools.LLMBackendStatus(),
 	}
 
 	// Wrap in success response format (matching tool format)
