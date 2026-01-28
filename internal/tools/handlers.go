@@ -286,42 +286,28 @@ func handleSecurity(ctx context.Context, args json.RawMessage) ([]framework.Text
 		action = "report"
 	}
 
-	// Route to native implementations based on action
+	// Route to native implementations (no Python bridge fallback)
 	switch action {
 	case "scan":
-		// Try native Go implementation first
 		result, err := handleSecurityScan(ctx, params)
-		if err == nil {
-			return result, nil
+		if err != nil {
+			return nil, fmt.Errorf("security scan: %w", err)
 		}
-		// Fall through to Python bridge if native fails
-
+		return result, nil
 	case "alerts":
-		// Try native Go implementation first
 		result, err := handleSecurityAlerts(ctx, params)
-		if err == nil {
-			return result, nil
+		if err != nil {
+			return nil, fmt.Errorf("security alerts: %w", err)
 		}
-		// Fall through to Python bridge if native fails
-
+		return result, nil
 	case "report":
-		// Try native Go implementation first
 		result, err := handleSecurityReport(ctx, params)
-		if err == nil {
-			return result, nil
+		if err != nil {
+			return nil, fmt.Errorf("security report: %w", err)
 		}
-		// Fall through to Python bridge if native fails
+		return result, nil
 	}
-
-	// Execute via Python bridge (for unsupported actions or when native fails)
-	result, err := bridge.ExecutePythonTool(ctx, "security", params)
-	if err != nil {
-		return nil, fmt.Errorf("security failed: %w", err)
-	}
-
-	return []framework.TextContent{
-		{Type: "text", Text: result},
-	}, nil
+	return nil, fmt.Errorf("security action %q not supported; supported: scan, alerts, report", action)
 }
 
 // handleTaskAnalysis handles the task_analysis tool (native Go only, no Python fallback).
@@ -891,8 +877,8 @@ func handlePromptTracking(ctx context.Context, args json.RawMessage) ([]framewor
 	return handlePromptTrackingNative(ctx, params)
 }
 
-// handleRecommend handles the recommend tool (unified wrapper)
-// Uses native Go implementation for "model" and "workflow" actions, falls back to Python bridge for "advisor" (requires MCP client)
+// handleRecommend handles the recommend tool (unified wrapper).
+// Fully native Go: model, workflow, advisor (devwisdom-go in-process). No Python bridge fallback.
 func handleRecommend(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
 	// Try protobuf first, fall back to JSON for backward compatibility
 	req, params, err := ParseRecommendRequest(args)
@@ -915,37 +901,29 @@ func handleRecommend(ctx context.Context, args json.RawMessage) ([]framework.Tex
 		action = actionRaw
 	}
 
-	// Try native Go implementation for "model", "workflow", and "advisor" actions
+	// Route to native implementations (no Python bridge fallback)
 	switch action {
 	case "model":
 		result, err := handleRecommendModelNative(ctx, params)
-		if err == nil {
-			return result, nil
+		if err != nil {
+			return nil, fmt.Errorf("recommend model: %w", err)
 		}
-		// If native fails, fall through to Python bridge
+		return result, nil
 	case "workflow":
 		result, err := handleRecommendWorkflowNative(ctx, params)
-		if err == nil {
-			return result, nil
+		if err != nil {
+			return nil, fmt.Errorf("recommend workflow: %w", err)
 		}
-		// If native fails, fall through to Python bridge
+		return result, nil
 	case "advisor":
 		result, err := handleRecommendAdvisorNative(ctx, params)
-		if err == nil {
-			return result, nil
+		if err != nil {
+			return nil, fmt.Errorf("recommend advisor: %w", err)
 		}
-		// If native fails, fall through to Python bridge
+		return result, nil
 	}
 
-	// For unsupported actions or if native fails, use Python bridge
-	bridgeResult, err := bridge.ExecutePythonTool(ctx, "recommend", params)
-	if err != nil {
-		return nil, fmt.Errorf("recommend failed: %w", err)
-	}
-
-	return []framework.TextContent{
-		{Type: "text", Text: bridgeResult},
-	}, nil
+	return nil, fmt.Errorf("recommend action %q not supported; supported: model, workflow, advisor", action)
 }
 
 // Note: handleServerStatus removed - server_status tool converted to stdio://server/status resource

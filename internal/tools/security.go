@@ -9,37 +9,23 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/davidl71/exarp-go/internal/bridge"
 	"github.com/davidl71/exarp-go/internal/framework"
 )
 
-// handleSecurityScan handles the scan action for security tool
+// handleSecurityScan handles the scan action for security tool (Go projects only; no bridge fallback).
 func handleSecurityScan(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	projectRoot, err := FindProjectRoot()
 	if err != nil {
 		return nil, fmt.Errorf("failed to find project root: %w", err)
 	}
-
-	// For Go projects, use native Go vulnerability checking
-	if IsGoProject() {
-		vulns, err := scanGoDependencies(ctx, projectRoot)
-		if err == nil {
-			result := formatSecurityScanResults(vulns, "go")
-			return []framework.TextContent{
-				{Type: "text", Text: result},
-			}, nil
-		}
-		// If Go scan fails, fall through to Python bridge
+	if !IsGoProject() {
+		return nil, fmt.Errorf("security scan is only supported for Go projects (go.mod)")
 	}
-
-	// For non-Go projects or if Go scan fails, use Python bridge
-	result, err := bridge.ExecutePythonTool(ctx, "security", map[string]interface{}{
-		"action": "scan",
-	})
+	vulns, err := scanGoDependencies(ctx, projectRoot)
 	if err != nil {
-		return nil, fmt.Errorf("security scan failed: %w", err)
+		return nil, fmt.Errorf("security scan: %w", err)
 	}
-
+	result := formatSecurityScanResults(vulns, "go")
 	return []framework.TextContent{
 		{Type: "text", Text: result},
 	}, nil
@@ -57,17 +43,9 @@ func handleSecurityAlerts(ctx context.Context, params map[string]interface{}) ([
 		state = s
 	}
 
-	// Fetch Dependabot alerts using gh CLI (same as Python implementation)
 	alerts, err := fetchDependabotAlerts(ctx, repo, state)
 	if err != nil {
-		// If gh CLI fails, fall back to Python bridge
-		result, bridgeErr := bridge.ExecutePythonTool(ctx, "security", params)
-		if bridgeErr != nil {
-			return nil, fmt.Errorf("security alerts failed: %w (bridge also failed: %v)", err, bridgeErr)
-		}
-		return []framework.TextContent{
-			{Type: "text", Text: result},
-		}, nil
+		return nil, fmt.Errorf("security alerts: %w", err)
 	}
 
 	result := formatDependabotAlerts(alerts)
@@ -109,14 +87,7 @@ func handleSecurityReport(ctx context.Context, params map[string]interface{}) ([
 	}
 
 	if scanErr != nil && alertsErr != nil {
-		// Both failed, try Python bridge
-		result, err := bridge.ExecutePythonTool(ctx, "security", params)
-		if err != nil {
-			return nil, fmt.Errorf("security report failed: %w", err)
-		}
-		return []framework.TextContent{
-			{Type: "text", Text: result},
-		}, nil
+		return nil, fmt.Errorf("security report: scan and alerts both failed (scan: %v; alerts: %v)", scanErr, alertsErr)
 	}
 
 	return []framework.TextContent{

@@ -21,18 +21,11 @@ func TestHandleSecurityScan(t *testing.T) {
 		validate  func(*testing.T, []framework.TextContent)
 	}{
 		{
-			name: "scan action for Go project",
+			name: "scan action (requires go.mod; tmpDir has none)",
 			params: map[string]interface{}{
 				"action": "scan",
 			},
-			wantError: false,
-			validate: func(t *testing.T, result []framework.TextContent) {
-				if len(result) == 0 {
-					t.Error("expected non-empty result")
-					return
-				}
-				// Result may be scan results or error message
-			},
+			wantError: true, // security scan is only supported for Go projects
 		},
 	}
 
@@ -105,11 +98,11 @@ func TestHandleSecurity(t *testing.T) {
 		wantError bool
 	}{
 		{
-			name: "scan action",
+			name: "scan action (no go.mod in tmpDir)",
 			params: map[string]interface{}{
 				"action": "scan",
 			},
-			wantError: false,
+			wantError: true,
 		},
 		{
 			name: "alerts action",

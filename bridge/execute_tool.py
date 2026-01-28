@@ -73,8 +73,8 @@ def execute_tool(tool_name: str, args_json: str, use_protobuf: bool = False, pro
         # generate_config, add_external_tool_hints, setup_hooks, check_attribution, session, memory_maint,
         # analyze_alignment, estimation, task_analysis - fully native Go with no Python handler
         # report: migrated to native Go (no Python handler, removed)
+        # security: migrated to native Go (removed)
         from project_management_automation.tools.consolidated import (
-            security as _security,
             task_workflow as _task_workflow,
             testing as _testing,
             lint as _lint,
@@ -82,24 +82,14 @@ def execute_tool(tool_name: str, args_json: str, use_protobuf: bool = False, pro
             ollama as _ollama,
         )
         
-        # Import mcp-generic-tools modules (from bridge directory)
-        from recommend.tool import recommend as _recommend
+        # recommend: migrated to native Go (no Python handler, removed)
         # Import context_tool for unified context wrapper (used for "context" tool)
         from project_management_automation.tools.context_tool import context as _context_unified
         
         # Route to appropriate tool
         # memory, task_discovery: migrated to native Go (removed 2026-01-28)
         # report: migrated to native Go (removed)
-        if tool_name == "security":
-            result = _security(
-                action=args.get("action", "report"),
-                repo=args.get("repo", "davidl71/exarp-go"),
-                languages=args.get("languages"),
-                config_path=args.get("config_path"),
-                state=args.get("state", "open"),
-                include_dismissed=args.get("include_dismissed", False),
-            )
-        elif tool_name == "task_workflow":
+        if tool_name == "task_workflow":
             result = _task_workflow(
                 action=args.get("action", "sync"),
                 dry_run=args.get("dry_run", False),
@@ -190,16 +180,7 @@ def execute_tool(tool_name: str, args_json: str, use_protobuf: bool = False, pro
                 budget_tokens=args.get("budget_tokens", 4000),
                 combine=args.get("combine", True),
             )
-        elif tool_name == "recommend":
-            result = _recommend(
-                action=args.get("action", "model"),
-                task_description=args.get("task_description"),
-                tags=args.get("tags"),
-                include_rationale=args.get("include_rationale", True),
-                task_type=args.get("task_type"),
-                optimize_for=args.get("optimize_for", "quality"),
-                include_alternatives=args.get("include_alternatives", True),
-            )
+        # recommend: migrated to native Go (removed)
         # Note: prompt_tracking and server_status removed - fully native Go with no Python fallback
         # Note: demonstrate_elicit and interactive_task_create removed
         # These tools required FastMCP Context (not available in stdio mode)
