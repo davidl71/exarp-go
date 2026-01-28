@@ -117,6 +117,20 @@ func handleTaskDiscoveryNative(ctx context.Context, params map[string]interface{
 		result["tasks_created"] = createdTasks
 	}
 
+	// Optionally write result to output_path (parity with CGO build)
+	if outputPath, ok := params["output_path"].(string); ok && outputPath != "" {
+		fullPath := outputPath
+		if !filepath.IsAbs(fullPath) {
+			fullPath = filepath.Join(projectRoot, fullPath)
+		}
+		if err := os.MkdirAll(filepath.Dir(fullPath), 0755); err == nil {
+			raw, _ := json.MarshalIndent(result, "", "  ")
+			if err := os.WriteFile(fullPath, raw, 0644); err == nil {
+				result["report_path"] = fullPath
+			}
+		}
+	}
+
 	output, _ := json.MarshalIndent(result, "", "  ")
 	return []framework.TextContent{
 		{Type: "text", Text: string(output)},
@@ -435,68 +449,7 @@ func findOrphanTasksBasic(projectRoot string) []map[string]interface{} {
 	return orphans
 }
 
-// createTasksFromDiscoveries creates Todo2 tasks from discovered items
-func createTasksFromDiscoveries(projectRoot string, discoveries []map[string]interface{}) []map[string]interface{} {
-	createdTasks := []map[string]interface{}{}
-
-	// Load existing tasks to avoid duplicates
-	existingTasks, err := LoadTodo2Tasks(projectRoot)
-	if err == nil {
-		existingContent := make(map[string]bool)
-		for _, task := range existingTasks {
-			existingContent[strings.ToLower(strings.TrimSpace(task.Content))] = true
-		}
-
-		// Create tasks from discoveries
-		for _, discovery := range discoveries {
-			text, ok := discovery["text"].(string)
-			if !ok || text == "" {
-				continue
-			}
-
-			// Check for duplicates
-			textLower := strings.ToLower(strings.TrimSpace(text))
-			if existingContent[textLower] {
-				continue
-			}
-
-			// Create new task using epoch-based ID (same as task_workflow)
-			taskID := generateEpochTaskID()
-			newTask := Todo2Task{
-				ID:       taskID,
-				Content:  text,
-				Status:   "Todo",
-				Priority: "medium",
-				Tags:     []string{"discovered", discovery["source"].(string)},
-				Metadata: map[string]interface{}{
-					"discovered_from": discovery["file"],
-					"discovered_line": discovery["line"],
-					"discovery_type":  discovery["type"],
-				},
-			}
-
-			// Add to existing tasks
-			existingTasks = append(existingTasks, newTask)
-			existingContent[textLower] = true
-
-			createdTasks = append(createdTasks, map[string]interface{}{
-				"id":      taskID,
-				"content": text,
-				"source":  discovery["source"],
-			})
-		}
-
-		// Save tasks
-		if len(createdTasks) > 0 {
-			_ = SaveTodo2Tasks(projectRoot, existingTasks)
-		}
-	}
-
-	return createdTasks
-}
-
-// generateEpochTaskID is defined in task_workflow_common.go
-// Using epoch-based IDs (T-{epoch_milliseconds}) for consistency with task_workflow
+// createTasksFromDiscoveries is in task_discovery_common.go (shared with CGO build).
 
 // scanGitJSON scans git repository for JSON files containing tasks
 // Finds JSON files committed in git and extracts tasks from them
