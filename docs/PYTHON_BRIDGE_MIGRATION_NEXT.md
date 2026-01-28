@@ -1,0 +1,71 @@
+# Python Bridge → Native Go: Next Migration Steps
+
+**Date:** 2026-01-28  
+**Status:** Active  
+**Based on:** `MIGRATION_STATUS_CURRENT.md`, `SAFE_PYTHON_REMOVAL_PLAN.md`, codebase grep of `ExecutePythonTool`
+
+---
+
+## Executive Summary
+
+- **Current:** 96% tool coverage (27/28 have native); 1 tool bridge-only (`mlx`). Most tools are **hybrid** (native first, bridge fallback).
+- **Next:** Remove optional bridge fallbacks where the native path is complete; then slim the bridge to essential tools only.
+- **This pass:** Memory tool made **fully native** (bridge fallback removed). Audit and doc added for future removals.
+
+---
+
+## Audit: Where Bridge Is Still Called
+
+| Tool / area | Call site | Role | Safe to remove? |
+|-------------|-----------|------|------------------|
+| **memory** | ~~handlers.go~~ | ~~Fallback when native fails~~ | ✅ **Done** – Native-only (2026-01-28). Bridge branch removed from execute_tool.py. |
+| **task_discovery** | ~~handlers.go~~ | ~~Fallback when native fails~~ | ✅ **Done** – Native-only (2026-01-28). Bridge branch removed from execute_tool.py. |
+| **report** | `handlers.go` | Unsupported actions / when native fails (e.g. briefing → devwisdom MCP) | ❌ Keep – Briefing uses external MCP. |
+| **security** | `security.go` (3 sites) | Non-Go projects; when Go scan or `gh` fails | ❌ Keep – Multi-language support. |
+| **task_workflow** | `handlers.go`, `task_workflow_common.go` | Fallback when native fails; **external sync** (agentic-tools) | ❌ Keep – External sync is bridge-only for now. |
+| **testing** | `testing.go` (3 sites) | Non-Go projects; when Go test/coverage/validate fails | ❌ Keep – Multi-language support. |
+| **lint** | `handlers.go` | Non-Go linters (e.g. ruff) | ❌ Keep – Python/other linters. |
+| **mlx** | `handlers.go`, `insight_provider.go` | Primary (no Go bindings) | ❌ Keep – Intentional bridge-only. |
+| **context** | `handlers.go` | Unhandled actions / when native fails | Optional – Could narrow to specific actions. |
+| **recommend** | `handlers.go` | Advisor action / when native fails | ❌ Keep – Advisor uses external MCP. |
+| **ollama** | `ollama_provider.go` | Fallback when native HTTP fails | ❌ Keep – Resilient fallback. |
+
+---
+
+## Handlers That Do Not Call Bridge (Fully Native)
+
+These handlers have **no** `bridge.ExecutePythonTool` call; they are already fully native in Go:
+
+- `analyze_alignment`, `generate_config`, `health`, `setup_hooks`, `check_attribution`, `add_external_tool_hints`
+- `memory_maint` (all actions native, including dream per current implementation)
+- `session`, `estimation`, `task_analysis`, `git_tools`, `infer_session_mode`, `tool_catalog`, `workflow_mode`, `prompt_tracking`
+
+After this pass, **memory** joins the above (bridge fallback removed).
+
+---
+
+## Bridge Routes Still in `bridge/execute_tool.py`
+
+The bridge still routes these tool names (for fallback or primary use):
+
+- `report`, `security`, `task_workflow`, `testing`, `lint`, `ollama`, `mlx`, `context`, `recommend`
+
+**Removed 2026-01-28:** `memory`, `task_discovery` – branches and imports removed from execute_tool.py (Go handlers are native-only).
+
+---
+
+## Next Steps (Recommended Order)
+
+1. ~~**Done:** Remove memory’s bridge fallback.~~
+2. ~~**Done:** Remove task_discovery bridge fallback and slim bridge (memory + task_discovery branches removed from execute_tool.py).~~
+3. **Optional later:** Remove or narrow context/report bridge usage after verifying behavior.
+4. **Optional later:** Remove more dead branches from `execute_tool.py` as tools become fully native; see `SAFE_PYTHON_REMOVAL_PLAN.md`.
+5. **Regression:** Keep `toolsWithNoBridge` and regression tests in sync with handler behavior (see `internal/tools/regression_test.go`).
+
+---
+
+## References
+
+- **Status:** `docs/MIGRATION_STATUS_CURRENT.md`
+- **Safe removal:** `docs/SAFE_PYTHON_REMOVAL_PLAN.md`, `docs/PYTHON_FALLBACKS_SAFE_TO_REMOVE.md`
+- **Regression:** `internal/tools/regression_test.go` (`toolsWithNoBridge`, `TestRegressionFeatureParity`)

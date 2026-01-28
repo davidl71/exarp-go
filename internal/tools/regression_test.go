@@ -13,15 +13,15 @@ import (
 // toolsWithNoBridge lists tools that are fully native with no Python bridge (bridge does not route them).
 var toolsWithNoBridge = map[string]bool{
 	"session": true, "setup_hooks": true, "check_attribution": true, "memory_maint": true,
-	"analyze_alignment": true, "estimation": true, "task_analysis": true,
+	"memory": true, "task_discovery": true, "analyze_alignment": true, "estimation": true, "task_analysis": true,
 	"git_tools": true, "infer_session_mode": true, "tool_catalog": true, "workflow_mode": true,
 	"prompt_tracking": true, "generate_config": true, "add_external_tool_hints": true,
 }
 
 // TestRegressionNativeOnlyTools documents tools that completed native migration (no Python bridge).
-// See docs/PYTHON_FALLBACKS_SAFE_TO_REMOVE.md.
+// See docs/PYTHON_FALLBACKS_SAFE_TO_REMOVE.md and docs/PYTHON_BRIDGE_MIGRATION_NEXT.md.
 func TestRegressionNativeOnlyTools(t *testing.T) {
-	want := []string{"session", "setup_hooks", "check_attribution", "memory_maint", "analyze_alignment", "estimation", "task_analysis"}
+	want := []string{"session", "setup_hooks", "check_attribution", "memory_maint", "memory", "task_discovery", "analyze_alignment", "estimation", "task_analysis"}
 	for _, name := range want {
 		if !toolsWithNoBridge[name] {
 			t.Errorf("native-only tool %q must be in toolsWithNoBridge", name)
@@ -435,8 +435,10 @@ func TestRegressionFeatureParity(t *testing.T) {
 		"session":           "Fully native; no Python bridge. Prime, handoff, prompts, assignee are native-only.",
 		"setup_hooks":       "Fully native; no Python bridge. Git and patterns actions are native-only.",
 		"check_attribution": "Fully native; no Python bridge.",
+		"memory":            "Fully native; no Python bridge. CRUD (save/recall/list/search) native-only; bridge fallback removed 2026-01-28.",
 		"memory_maint":      "Fully native; no Python bridge. Health, gc, prune, consolidate, dream are native-only.",
 		"analyze_alignment": "Fully native for todo2 and prd; no Python bridge.",
+		"task_discovery":    "Fully native; no Python bridge. Comments, markdown, orphans, create_tasks are native-only (removed bridge 2026-01-28).",
 		"recommend":         "Hybrid: native workflow/model; Python fallback when native fails.",
 		"health":            "Hybrid: native server/docs/dod/cicd; Python fallback when native fails.",
 		"ollama":            "Hybrid: native uses HTTP client; Python bridge may differ.",

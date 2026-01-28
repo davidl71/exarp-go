@@ -102,7 +102,7 @@
 
 ## Native Go Implementation Status
 
-### Fully Native Tools (5 tools)
+### Fully Native Tools (7 tools)
 Tools with no Python bridge calls (direct native implementation only):
 
 1. `git_tools` - Full native Go implementation
@@ -110,10 +110,12 @@ Tools with no Python bridge calls (direct native implementation only):
 3. `tool_catalog` - Full native Go implementation
 4. `workflow_mode` - Full native Go implementation
 5. `prompt_tracking` - Full native Go implementation
+6. `memory` - Full native Go (CRUD: save/recall/list/search); bridge fallback removed 2026-01-28
+7. `task_discovery` - Full native Go (comments, markdown, orphans, create_tasks); bridge removed 2026-01-28
 
 **Note:** `server_status` was converted to `stdio://server/status` resource. `context_budget` is part of the `context` tool (hybrid).
 
-### Hybrid Tools (22 tools - Native + Python Bridge)
+### Hybrid Tools (20 tools - Native + Python Bridge)
 Tools that try native Go first, fallback to Python bridge:
 
 1. `analyze_alignment` - Native (todo2, prd), bridge (fallback)
@@ -125,19 +127,17 @@ Tools that try native Go first, fallback to Python bridge:
 7. `generate_config` - Native (all actions), bridge (fallback)
 8. `health` - Native (server, git, docs, dod, cicd), bridge (fallback)
 9. `lint` - Native (Go linters), bridge (Python linters)
-10. `memory` - Native (CRUD: save/recall/list/search), bridge (semantic search)
-11. `memory_maint` - Native (health/gc/prune/consolidate), bridge (dream)
-12. `ollama` - Native (all actions via HTTP: status, models, generate, pull, hardware, docs, quality, summary), bridge (fallback)
-13. `recommend` - Native (model, workflow), bridge (advisor)
-14. `report` - Native (scorecard, overview, prd), bridge (briefing - devwisdom MCP)
-15. `security` - Native (scan, alerts, report), bridge (fallback)
-16. `session` - Native (prime, handoff, prompts, assignee), bridge (fallback)
-17. `setup_hooks` - Native (git, patterns), bridge (fallback)
-18. `task_analysis` - Native (all actions), bridge (fallback - hierarchy requires Apple FM)
-19. `task_discovery` - Native (all actions), bridge (fallback)
-20. `task_workflow` - Native (all actions), bridge (fallback - clarify requires Apple FM)
-21. `testing` - Native (run, coverage, validate), bridge (suggest, generate - ML features)
-22. `context` - Native (summarize/budget/batch), bridge (fallback)
+10. `memory_maint` - Native (health/gc/prune/consolidate), bridge (dream)
+11. `ollama` - Native (all actions via HTTP: status, models, generate, pull, hardware, docs, quality, summary), bridge (fallback)
+12. `recommend` - Native (model, workflow), bridge (advisor)
+13. `report` - Native (scorecard, overview, prd), bridge (briefing - devwisdom MCP)
+14. `security` - Native (scan, alerts, report), bridge (fallback)
+15. `session` - Native (prime, handoff, prompts, assignee), bridge (fallback)
+16. `setup_hooks` - Native (git, patterns), bridge (fallback)
+17. `task_analysis` - Native (all actions), bridge (fallback - hierarchy requires Apple FM)
+18. `task_workflow` - Native (all actions), bridge (fallback - clarify requires Apple FM)
+19. `testing` - Native (run, coverage, validate), bridge (suggest, generate - ML features)
+20. `context` - Native (summarize/budget/batch), bridge (fallback)
 
 **Note:** Recent completions (Stream 1, 2, 3): session prompts/assignee, ollama docs/quality/summary, recommend workflow, setup_hooks patterns, analyze_alignment prd, health docs/dod/cicd, automation nightly/sprint, estimation analyze - all now native!
 
@@ -193,8 +193,8 @@ Tools with no native implementation (intentional):
 
 ### Tools
 - **Total Tools:** 28 (plus 1 conditional Apple FM tool on macOS = 28-29)
-- **Fully Native:** 5 tools (18%) - `tool_catalog`, `workflow_mode`, `git_tools`, `infer_session_mode`, `prompt_tracking`
-- **Hybrid (Native + Bridge):** 22 tools (79%) - Native primary with Python bridge fallback
+- **Fully Native:** 7 tools (25%) - `tool_catalog`, `workflow_mode`, `git_tools`, `infer_session_mode`, `prompt_tracking`, `memory`, `task_discovery`
+- **Hybrid (Native + Bridge):** 20 tools (71%) - Native primary with Python bridge fallback
 - **Python Bridge Only:** 1 tool (4% - `mlx` only, intentional - no Go bindings available)
 - **Overall Native Coverage:** 96% (27/28 tools have native implementations)
 
@@ -217,9 +217,14 @@ Tools with no native implementation (intentional):
 
 ---
 
-## Recent Completions (2026-01-12)
+## Recent Completions
 
-### Stream 1, 2, 3 Completions
+### 2026-01-28
+- **memory tool** - Bridge fallback removed; handler is fully native Go (CRUD only). Semantic search can be added in Go later.
+- **task_discovery tool** - Bridge fallback removed; handler is fully native Go (comments, markdown, orphans, create_tasks).
+- **bridge/execute_tool.py** - Slimmed: removed `memory` and `task_discovery` branches and imports (Go no longer calls them). See `docs/PYTHON_BRIDGE_MIGRATION_NEXT.md`.
+
+### 2026-01-12 (Stream 1, 2, 3 Completions)
 1. ✅ **session tool** - `prompts` and `assignee` actions now native
 2. ✅ **ollama tool** - `docs`, `quality`, `summary` actions now native
 3. ✅ **recommend tool** - `workflow` action now native

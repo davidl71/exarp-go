@@ -68,14 +68,13 @@ def execute_tool(tool_name: str, args_json: str, use_protobuf: bool = False, pro
             args = json.loads(args_json) if args_json else {}
         
         # Import tool functions from project_management_automation
+        # Note: memory, task_discovery - migrated to native Go (no Python handler, removed 2026-01-28)
         # Note: tool_catalog, workflow_mode, git_tools, infer_session_mode, health, automation,
         # generate_config, add_external_tool_hints, setup_hooks, check_attribution, session, memory_maint,
         # analyze_alignment, estimation, task_analysis - fully native Go with no Python handler
         from project_management_automation.tools.consolidated import (
-            memory as _memory,
             report as _report,
             security as _security,
-            task_discovery as _task_discovery,
             task_workflow as _task_workflow,
             testing as _testing,
             lint as _lint,
@@ -89,19 +88,8 @@ def execute_tool(tool_name: str, args_json: str, use_protobuf: bool = False, pro
         from project_management_automation.tools.context_tool import context as _context_unified
         
         # Route to appropriate tool
-        if tool_name == "memory":
-            result = _memory(
-                action=args.get("action", "search"),
-                title=args.get("title"),
-                content=args.get("content"),
-                category=args.get("category", "insight"),
-                task_id=args.get("task_id"),
-                metadata=args.get("metadata"),
-                include_related=args.get("include_related", True),
-                query=args.get("query"),
-                limit=args.get("limit", 10),
-            )
-        elif tool_name == "report":
+        # memory, task_discovery: migrated to native Go (removed 2026-01-28)
+        if tool_name == "report":
             result = _report(
                 action=args.get("action", "overview"),
                 output_format=args.get("output_format", "text"),
@@ -126,15 +114,6 @@ def execute_tool(tool_name: str, args_json: str, use_protobuf: bool = False, pro
                 config_path=args.get("config_path"),
                 state=args.get("state", "open"),
                 include_dismissed=args.get("include_dismissed", False),
-            )
-        elif tool_name == "task_discovery":
-            result = _task_discovery(
-                action=args.get("action", "all"),
-                file_patterns=args.get("file_patterns"),
-                include_fixme=args.get("include_fixme", True),
-                doc_path=args.get("doc_path"),
-                output_path=args.get("output_path"),
-                create_tasks=args.get("create_tasks", False),
             )
         elif tool_name == "task_workflow":
             result = _task_workflow(
