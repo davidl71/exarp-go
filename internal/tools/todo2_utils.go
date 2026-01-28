@@ -30,7 +30,8 @@ func LoadTodo2Tasks(projectRoot string) ([]Todo2Task, error) {
 	return loadTodo2TasksFromJSON(projectRoot)
 }
 
-// loadTodo2TasksFromJSON loads tasks from JSON file (fallback method)
+// loadTodo2TasksFromJSON loads tasks from JSON file (fallback method).
+// Metadata is sanitized on load; invalid JSON is coerced to {"raw": "..."}.
 func loadTodo2TasksFromJSON(projectRoot string) ([]Todo2Task, error) {
 	todo2Path := filepath.Join(projectRoot, ".todo2", "state.todo2.json")
 
@@ -44,12 +45,7 @@ func loadTodo2TasksFromJSON(projectRoot string) ([]Todo2Task, error) {
 		return nil, fmt.Errorf("failed to read Todo2 file: %w", err)
 	}
 
-	var state models.Todo2State
-	if err := json.Unmarshal(data, &state); err != nil {
-		return nil, fmt.Errorf("failed to parse Todo2 JSON: %w", err)
-	}
-
-	return state.Todos, nil
+	return ParseTasksFromJSON(data)
 }
 
 // SaveTodo2Tasks saves tasks to database (preferred) or .todo2/state.todo2.json (fallback)
@@ -245,7 +241,7 @@ func cleanupAutoTasksFromDB() error {
 	}
 
 	ctx := context.Background()
-	
+
 	// Get all AUTO-* tasks from database
 	allTasks, err := database.ListTasks(ctx, nil)
 	if err != nil {
