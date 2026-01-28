@@ -48,18 +48,20 @@ This plan outlines a comprehensive migration strategy to convert all remaining P
 
 ---
 
-## Current Status (Updated 2026-01-27)
+## Current Status (Updated 2026-01-28)
 
-**Audit Reference:** See `docs/MIGRATION_AUDIT_2026-01-12.md` for comprehensive audit findings (and 2026-01-27 note below).
+**Audit Reference:** See `docs/MIGRATION_AUDIT_2026-01-12.md` for comprehensive audit findings (and 2026-01-28 note below).
 
 **Native Go Coverage (Actual):**
-- **Full Native (no bridge):** 11 tools — `git_tools`, `infer_session_mode`, `tool_catalog`, `workflow_mode`, `prompt_tracking`, `generate_config`, `add_external_tool_hints`, **`setup_hooks`**, **`check_attribution`**, **`session`**, **`memory_maint`**
-- **Hybrid Native:** 16 tools — Native Go with Python bridge fallback (analyze_alignment, memory, report, security, task_*, testing, lint, estimation, ollama, context, recommend, etc.)
+- **Full Native (no bridge):** 12 tools — `git_tools`, `infer_session_mode`, `tool_catalog`, `workflow_mode`, `prompt_tracking`, `generate_config`, `add_external_tool_hints`, **`setup_hooks`**, **`check_attribution`**, **`session`**, **`memory_maint`**, **`analyze_alignment`**, **`estimation`**
+- **Hybrid Native:** 15 tools — Native Go with Python bridge fallback (memory, report overview/prd, security, task_*, testing, lint, ollama, context, recommend, etc.)
 - **Python Bridge Only:** 1 tool (`mlx` — intentional, no Go bindings available)
 - **Total Tools:** 28 (plus 1 conditional Apple FM tool = 28–29)
 - **Native Coverage:** 96% (27/28 tools have native implementations)
 
-**2026-01-27:** Four more tools are fully native with no Python fallback: `setup_hooks`, `check_attribution`, `session`, `memory_maint`. Handlers already use native-only; bridge does not route them. Counts updated above. See `PYTHON_FALLBACKS_SAFE_TO_REMOVE.md`.
+**2026-01-28:** Report briefing/scorecard shrink (briefing native-only; non-Go scorecard returns clear error). Estimation native-only, no Python fallback; estimation handler removed from `bridge/execute_tool.py`. Tests updated (regression want list, report scorecard, test_execute_tool known_tools). See `NEXT_MIGRATION_STEPS.md`, `PYTHON_FALLBACKS_SAFE_TO_REMOVE.md`.
+
+**2026-01-27:** Four more tools fully native: `setup_hooks`, `check_attribution`, `session`, `memory_maint`. Bridge cleanup: removed dead `generate_config` and `add_external_tool_hints` branches.
 
 **Resources (Actual - from Audit):**
 - **Native:** 21 resources (100%) — All resources use native Go as primary implementation
@@ -82,8 +84,8 @@ This plan outlines a comprehensive migration strategy to convert all remaining P
 - **Phase 5:** 19/19 (100%) ✅ **COMPLETE** (all prompts migrated)
 
 **Recent Completions:**
-- **2026-01-27:** Native migration — `setup_hooks`, `check_attribution`, `session`, `memory_maint` documented as full native (no bridge). Regression tests skip bridge comparison for these tools.
-- **2026-01-27:** Bridge cleanup — removed dead `generate_config` and `add_external_tool_hints` branches from `bridge/execute_tool.py`
+- **2026-01-28:** Report briefing native-only; non-Go scorecard returns clear error. Estimation native-only; estimation handler removed from bridge. Tests updated.
+- **2026-01-27:** Native migration — `setup_hooks`, `check_attribution`, `session`, `memory_maint` documented as full native (no bridge). Bridge cleanup — removed dead `generate_config` and `add_external_tool_hints` branches from `bridge/execute_tool.py`.
 - **2026-01-12:** Stream 1–3 — hybrid tool actions, full tool migrations, resource migrations (see audit doc)
 
 ---
