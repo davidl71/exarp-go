@@ -1,6 +1,3 @@
-//go:build darwin && arm64 && cgo
-// +build darwin,arm64,cgo
-
 package tools
 
 import (
@@ -14,7 +11,7 @@ import (
 	"github.com/davidl71/exarp-go/internal/framework"
 )
 
-// handleTaskWorkflowNative handles task_workflow with native Go and Apple FM
+// handleTaskWorkflowNative handles task_workflow with native Go and FM chain (Apple → Ollama → stub)
 func handleTaskWorkflowNative(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	action, _ := params["action"].(string)
 	if action == "" {
@@ -108,7 +105,7 @@ func listTasksAwaitingClarification(ctx context.Context, params map[string]inter
 
 	result := map[string]interface{}{
 		"success":                      true,
-		"method":                       "apple_foundation_models",
+		"method":                       "fm_chain",
 		"tasks_awaiting_clarification": len(needingClarification),
 		"tasks":                        needingClarification,
 	}

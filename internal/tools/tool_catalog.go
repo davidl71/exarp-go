@@ -210,6 +210,13 @@ func GetToolCatalog() map[string]ToolCatalogEntry {
 			Description:      "Ollama local LLM; part of LLM abstraction (OllamaProvider, native then bridge)",
 			RecommendedModel: "claude-haiku",
 		},
+		"text_generate": {
+			Tool:             "text_generate",
+			Hint:             "Unified generate-text. provider=fm|insight (default fm). Uses DefaultFMProvider (fm) or DefaultReportInsight (insight).",
+			Category:         "AI & ML",
+			Description:      "Unified generate-text via FM (default) or ReportInsight; use when only generate-text is needed",
+			RecommendedModel: "claude-haiku",
+		},
 		"mlx": {
 			Tool:             "mlx",
 			Hint:             "LLM abstraction (MLX). action=status|hardware|models|generate. Bridge-only; report insights use DefaultReportInsight() (MLX then FM).",

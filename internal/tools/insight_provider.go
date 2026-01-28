@@ -13,22 +13,20 @@ import (
 )
 
 // ReportInsightProvider generates long-form AI insights for report/scorecard content.
-// Implementations: MLX via bridge, or DefaultFMProvider() when MLX unavailable.
+// Implementations: FM chain (Apple → Ollama) first, then MLX via bridge when unavailable.
+// ReportInsightProvider implements TextGenerator.
 type ReportInsightProvider interface {
-	// Supported reports whether this provider can generate insights (e.g. bridge available or FM available).
-	Supported() bool
-	// Generate runs the model with the given prompt and returns generated text.
-	Generate(ctx context.Context, prompt string, maxTokens int, temperature float32) (string, error)
+	TextGenerator
 }
 
-// defaultReportInsight is the shared default; set by init to composite (MLX then FM).
+// defaultReportInsight is the shared default; set by init to composite (FM then MLX).
 var defaultReportInsight ReportInsightProvider
 
 func init() {
 	defaultReportInsight = &compositeReportInsight{}
 }
 
-// DefaultReportInsight returns the default report insight provider (tries MLX then FM).
+// DefaultReportInsight returns the default report insight provider (tries FM chain then MLX).
 func DefaultReportInsight() ReportInsightProvider {
 	if defaultReportInsight == nil {
 		return &compositeReportInsight{}
@@ -36,21 +34,24 @@ func DefaultReportInsight() ReportInsightProvider {
 	return defaultReportInsight
 }
 
-// compositeReportInsight tries MLX (bridge) first, then DefaultFMProvider().
+// compositeReportInsight tries FM chain (Apple → Ollama → stub) first, then MLX (bridge) as last resort.
 type compositeReportInsight struct{}
 
 func (c *compositeReportInsight) Supported() bool {
-	return true // We always "support" by trying MLX then FM
+	return true // We always "support" by trying FM then MLX
 }
 
 func (c *compositeReportInsight) Generate(ctx context.Context, prompt string, maxTokens int, temperature float32) (string, error) {
-	// Try MLX via bridge first
+	// Try FM chain (native: Apple, then Ollama) first
+	var fm TextGenerator = DefaultFMProvider()
+	if fm != nil && fm.Supported() {
+		if text, err := fm.Generate(ctx, prompt, maxTokens, temperature); err == nil && text != "" {
+			return text, nil
+		}
+	}
+	// Fall back to MLX via bridge only when FM chain fails or is unavailable
 	if text, err := tryMLXReportInsight(ctx, prompt, maxTokens, temperature); err == nil && text != "" {
 		return text, nil
-	}
-	// Fall back to DefaultFMProvider() when available
-	if FMAvailable() {
-		return DefaultFMProvider().Generate(ctx, prompt, maxTokens, temperature)
 	}
 	return "", ErrFMNotSupported
 }
