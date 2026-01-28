@@ -1116,15 +1116,30 @@ Return JSON array with format: [{"task_id": "T-1", "level": "component", "compon
 	}
 
 	var classifications []map[string]interface{}
-	if err := json.Unmarshal([]byte(result), &classifications); err != nil {
-		jsonStart := strings.Index(result, "[")
-		jsonEnd := strings.LastIndex(result, "]")
-		if jsonStart >= 0 && jsonEnd > jsonStart {
-			if err := json.Unmarshal([]byte(result[jsonStart:jsonEnd+1]), &classifications); err != nil {
-				return nil, fmt.Errorf("failed to parse classification: %w", err)
+	candidate := result
+	if err := json.Unmarshal([]byte(candidate), &classifications); err != nil {
+		candidate = ExtractJSONArrayFromLLMResponse(result)
+		if err = json.Unmarshal([]byte(candidate), &classifications); err != nil {
+			// Graceful fallback: return success with empty classifications and a warning so
+			// task_analysis doesn't fail hard when the FM returns plain text instead of JSON.
+			snippet := result
+			if len(snippet) > MaxLLMResponseSnippetLen {
+				snippet = snippet[:MaxLLMResponseSnippetLen] + "..."
 			}
-		} else {
-			return nil, fmt.Errorf("failed to parse classification: %w", err)
+			analysis := map[string]interface{}{
+				"success":             true,
+				"method":              "foundation_model",
+				"total_tasks":         len(tasks),
+				"pending_tasks":       len(pendingTasks),
+				"classifications":     []map[string]interface{}{},
+				"hierarchy_skipped":   "fm_response_not_valid_json",
+				"parse_error":         err.Error(),
+				"response_snippet":    snippet,
+			}
+			outputBytes, _ := json.MarshalIndent(analysis, "", "  ")
+			return []framework.TextContent{
+				{Type: "text", Text: string(outputBytes)},
+			}, nil
 		}
 	}
 
