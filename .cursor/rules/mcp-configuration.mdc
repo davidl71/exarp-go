@@ -9,31 +9,16 @@ alwaysApply: true
 
 ## Current MCP Servers
 
-The workspace is configured with **4 MCP servers** in `.cursor/mcp.json`:
+Shared set (single source: `~/.cursor/mcp.json`). Project `.cursor/mcp.json` is gitignored and should be **empty or absent** to avoid duplicates.
 
-1. **devwisdom** - DevWisdom Go MCP Server (Crew Role: Advisor)
-   - Command: `/Users/davidl/Projects/devwisdom-go/run_devwisdom.sh`
-   - Provides: Wisdom quotes, trusted advisors, inspirational guidance
-   - Status: ✅ Used by exarp-go's report tool for briefings
+| Server | Purpose |
+|--------|---------|
+| **devwisdom** | DevWisdom Go MCP Server — wisdom, advisors, guidance (used by exarp-go report briefings) |
+| **exarp-go** | Exarp project management automation (this repo) ✅ **ACTIVE** |
+| **tractatus_thinking** | Tractatus Thinking MCP — structured reasoning, logical analysis |
+| **context7** | Context7 MCP — advanced context and documentation retrieval (e.g. add_external_tool_hints) |
 
-2. **exarp-go** - Go-based MCP Server (Crew Role: Executor) ✅ **ACTIVE**
-   - Command: `/Users/davidl/Projects/exarp-go/run_server.sh`
-   - Args: `[]`
-   - Env: `PROJECT_ROOT={{PROJECT_ROOT}}`
-   - Provides: 24 tools, 15 prompts, 6 resources
-   - Status: Native Go implementation with Python bridge for remaining tools
-
-3. **tractatus_thinking** - Tractatus Thinking MCP Server (Crew Role: Analyst)
-   - Command: `npx`
-   - Args: `["-y", "tractatus_thinking"]`
-   - Provides: Structured reasoning, logical analysis, and problem decomposition
-   - Status: ⚠️ Optional - falls back gracefully if unavailable
-
-4. **context7** - Context7 MCP Server (Crew Role: Researcher)
-   - Command: `npx`
-   - Args: `["-y", "@upstash/context7-mcp"]`
-   - Provides: Advanced context management and documentation retrieval
-   - Status: ✅ Used by add_external_tool_hints tool
+To install or replace: from devwisdom-go run `make install-mcp-config` (or `REPLACE=1` for template only).
 
 ## Configuration Guidelines
 
@@ -123,13 +108,13 @@ The workspace is configured with **4 MCP servers** in `.cursor/mcp.json`:
 ### Debug Steps
 1. **Test binary directly**: Run binary manually to check for errors
 2. **Check Cursor logs**: View MCP server logs in Cursor settings
-3. **Validate JSON**: Ensure `.cursor/mcp.json` is valid JSON
+3. **Validate JSON**: Ensure `~/.cursor/mcp.json` (or project override if used) is valid JSON
 4. **Restart Cursor**: Required after config changes
 
 ## Best Practices
 
 ### Configuration Management
-- ✅ **Version control**: Commit `.cursor/mcp.json` to repository
+- ✅ **Single source**: Use `~/.cursor/mcp.json` (from devwisdom-go `make install-mcp-config`); project `.cursor/mcp.json` empty or absent
 - ✅ **Documentation**: Document each server's purpose and usage
 - ✅ **Validation**: Validate JSON syntax before committing
 - ✅ **Testing**: Test each server independently before adding to config
