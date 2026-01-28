@@ -86,13 +86,21 @@ func handleSetupGitHooks(ctx context.Context, params map[string]interface{}) ([]
 	hookConfigs := map[string]string{
 		"pre-commit": `#!/bin/sh
 # Exarp pre-commit hook
-# Run documentation health check and security scan
+# In exarp-go repo: run build, then docs health and security scan
+# In other repos: run docs health and security scan (exarp-go from PATH)
 
 # Suppress INFO logs in git hook context (reduces token usage)
 export GIT_HOOK=1
 
-exarp-go health action=docs || exit 1
-exarp-go security action=scan || exit 1
+# In exarp-go repo, block commit if build fails
+if [ -f Makefile ] && [ -f go.mod ] && grep -q 'exarp-go' go.mod 2>/dev/null; then
+  make build || exit 1
+  ./bin/exarp-go -tool health -args '{"action":"docs"}' || exit 1
+  ./bin/exarp-go -tool security -args '{"action":"scan"}' || exit 1
+else
+  exarp-go -tool health -args '{"action":"docs"}' || exit 1
+  exarp-go -tool security -args '{"action":"scan"}' || exit 1
+fi
 `,
 		"pre-push": `#!/bin/sh
 # Exarp pre-push hook
@@ -246,7 +254,7 @@ func handleSetupPatternHooks(ctx context.Context, params map[string]interface{})
 	configFilePath := filepath.Join(cursorDir, "exarp_patterns.json")
 
 	results := map[string]interface{}{
-		"status":             "success",
+		"status":              "success",
 		"patterns_configured": []map[string]interface{}{},
 		"patterns_skipped":    []map[string]interface{}{},
 		"config_file":         configFilePath,
@@ -289,9 +297,9 @@ func handleSetupPatternHooks(ctx context.Context, params map[string]interface{})
 			if configMap, ok := patternConfig.(map[string]interface{}); ok {
 				tools := extractToolsFromPatterns(configMap)
 				results["patterns_configured"] = append(results["patterns_configured"].([]map[string]interface{}), map[string]interface{}{
-					"category":     category,
+					"category":      category,
 					"pattern_count": len(configMap),
-					"tools":        tools,
+					"tools":         tools,
 				})
 			}
 		}
@@ -317,20 +325,20 @@ func getDefaultPatterns() map[string]interface{} {
 	return map[string]interface{}{
 		"file_patterns": map[string]interface{}{
 			"docs/**/*.md": map[string]interface{}{
-				"on_change": "check_documentation_health_tool",
-				"on_create": "add_external_tool_hints_tool",
+				"on_change":   "check_documentation_health_tool",
+				"on_create":   "add_external_tool_hints_tool",
 				"description": "Documentation files",
 			},
 			"requirements.txt|Cargo.toml|package.json|pyproject.toml": map[string]interface{}{
-				"on_change": "scan_dependency_security_tool",
+				"on_change":   "scan_dependency_security_tool",
 				"description": "Dependency files",
 			},
 			".todo2/state.todo2.json": map[string]interface{}{
-				"on_change": "detect_duplicate_tasks_tool",
+				"on_change":   "detect_duplicate_tasks_tool",
 				"description": "Todo2 state file",
 			},
 			"CMakeLists.txt|CMakePresets.json": map[string]interface{}{
-				"on_change": "validate_ci_cd_workflow_tool",
+				"on_change":   "validate_ci_cd_workflow_tool",
 				"description": "CMake configuration",
 			},
 		},
@@ -340,7 +348,7 @@ func getDefaultPatterns() map[string]interface{} {
 					"check_documentation_health_tool --quick",
 					"scan_dependency_security_tool --quick",
 				},
-				"blocking": true,
+				"blocking":    true,
 				"description": "Quick checks before commit",
 			},
 			"pre_push": map[string]interface{}{
@@ -349,14 +357,14 @@ func getDefaultPatterns() map[string]interface{} {
 					"scan_dependency_security_tool",
 					"check_documentation_health_tool",
 				},
-				"blocking": true,
+				"blocking":    true,
 				"description": "Comprehensive checks before push",
 			},
 			"post_commit": map[string]interface{}{
 				"tools": []string{
 					"find_automation_opportunities_tool --quick",
 				},
-				"blocking": false,
+				"blocking":    false,
 				"description": "Non-blocking checks after commit",
 			},
 			"post_merge": map[string]interface{}{
@@ -364,13 +372,13 @@ func getDefaultPatterns() map[string]interface{} {
 					"detect_duplicate_tasks_tool",
 					"sync_todo_tasks_tool",
 				},
-				"blocking": false,
+				"blocking":    false,
 				"description": "Checks after merge",
 			},
 		},
 		"task_status_changes": map[string]interface{}{
 			"Todo → In Progress": map[string]interface{}{
-				"tools": []string{"analyze_todo2_alignment_tool"},
+				"tools":       []string{"analyze_todo2_alignment_tool"},
 				"description": "Verify alignment when starting work",
 			},
 			"In Progress → Review": map[string]interface{}{
@@ -381,7 +389,7 @@ func getDefaultPatterns() map[string]interface{} {
 				"description": "Quality checks before review",
 			},
 			"Review → Done": map[string]interface{}{
-				"tools": []string{"detect_duplicate_tasks_tool"},
+				"tools":       []string{"detect_duplicate_tasks_tool"},
 				"description": "Final checks on completion",
 			},
 		},
