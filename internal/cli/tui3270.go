@@ -20,18 +20,18 @@ import (
 
 // tui3270State holds the state for a 3270 TUI session
 type tui3270State struct {
-	server      framework.MCPServer
-	projectRoot string
-	projectName string
-	status      string
-	tasks       []*database.Todo2Task
-	cursor      int
-	listOffset  int // For scrolling in list view
-	mode        string // "tasks", "taskdetail", "config", "editor"
+	server       framework.MCPServer
+	projectRoot  string
+	projectName  string
+	status       string
+	tasks        []*database.Todo2Task
+	cursor       int
+	listOffset   int    // For scrolling in list view
+	mode         string // "tasks", "taskdetail", "config", "editor"
 	selectedTask *database.Todo2Task
-	devInfo     go3270.DevInfo
-	command     string // Command line input
-	filter      string // Current filter/search term
+	devInfo      go3270.DevInfo
+	command      string // Command line input
+	filter       string // Current filter/search term
 }
 
 // RunTUI3270 starts a 3270 TUI server
@@ -339,24 +339,24 @@ func (state *tui3270State) taskListTransaction(conn net.Conn, devInfo go3270.Dev
 
 		// Format task line with line number: > 1  T-123 [Status] [Priority] Description
 		taskLine := fmt.Sprintf("%s%2d  %s", cursor, lineNum, task.ID)
-			if task.Status != "" {
-				taskLine += fmt.Sprintf(" [%s]", task.Status)
-			}
-			if task.Priority != "" {
-				taskLine += fmt.Sprintf(" [%s]", strings.ToUpper(task.Priority))
-			}
+		if task.Status != "" {
+			taskLine += fmt.Sprintf(" [%s]", task.Status)
+		}
+		if task.Priority != "" {
+			taskLine += fmt.Sprintf(" [%s]", strings.ToUpper(task.Priority))
+		}
 
-			// Add description (truncate to fit)
-			content := task.Content
-			if content == "" {
-				content = task.LongDescription
-			}
-			if len(content) > 50 {
-				content = content[:47] + "..."
-			}
-			if content != "" {
-				taskLine += " " + content
-			}
+		// Add description (truncate to fit)
+		content := task.Content
+		if content == "" {
+			content = task.LongDescription
+		}
+		if len(content) > 50 {
+			content = content[:47] + "..."
+		}
+		if content != "" {
+			taskLine += " " + content
+		}
 
 		// Pad to fit screen (accounting for line numbers)
 		maxLen := 72 // 80 - 8 for row/col and line number
@@ -367,8 +367,8 @@ func (state *tui3270State) taskListTransaction(conn net.Conn, devInfo go3270.Dev
 		}
 
 		screen = append(screen, go3270.Field{
-			Row: row,
-			Col: 2,
+			Row:     row,
+			Col:     2,
 			Content: taskLine,
 		})
 
@@ -384,30 +384,30 @@ func (state *tui3270State) taskListTransaction(conn net.Conn, devInfo go3270.Dev
 		statusLine += fmt.Sprintf("  Filter: %s", state.filter)
 	}
 	screen = append(screen, go3270.Field{
-		Row: 22,
-		Col: 2,
+		Row:     22,
+		Col:     2,
 		Content: statusLine,
 	})
 
 	// Add command line (ISPF style)
 	screen = append(screen, go3270.Field{
-		Row: 22,
-		Col: 50,
+		Row:     22,
+		Col:     50,
 		Content: "Command ===>",
 		Intense: true,
 	})
 	screen = append(screen, go3270.Field{
-		Row: 22,
-		Col: 63,
-		Write: true,
-		Name:  "command",
+		Row:     22,
+		Col:     63,
+		Write:   true,
+		Name:    "command",
 		Content: state.command,
 	})
 
 	// Add help line
 	screen = append(screen, go3270.Field{
-		Row: 23,
-		Col: 2,
+		Row:     23,
+		Col:     2,
 		Content: "PF1=Help  PF3=Back  PF7=Up  PF8=Down  Enter=Select  PF12=Cancel  PF2=Edit",
 	})
 
@@ -492,7 +492,7 @@ func (state *tui3270State) taskDetailTransaction(conn net.Conn, devInfo go3270.D
 		return state.taskListTransaction, state, nil
 	}
 
-		task := state.selectedTask
+	task := state.selectedTask
 
 	screen := go3270.Screen{
 		{Row: 1, Col: 2, Content: "TASK DETAILS", Intense: true},
@@ -507,8 +507,8 @@ func (state *tui3270State) taskDetailTransaction(conn net.Conn, devInfo go3270.D
 	row := 7
 	if task.Content != "" {
 		screen = append(screen, go3270.Field{
-			Row: row,
-			Col: 2,
+			Row:     row,
+			Col:     2,
 			Content: "Content:",
 			Intense: true,
 		})
@@ -521,8 +521,8 @@ func (state *tui3270State) taskDetailTransaction(conn net.Conn, devInfo go3270.D
 				lineLen = len(content)
 			}
 			screen = append(screen, go3270.Field{
-				Row: row,
-				Col: 2,
+				Row:     row,
+				Col:     2,
 				Content: content[:lineLen],
 			})
 			row++
@@ -536,8 +536,8 @@ func (state *tui3270State) taskDetailTransaction(conn net.Conn, devInfo go3270.D
 
 	if task.LongDescription != "" {
 		screen = append(screen, go3270.Field{
-			Row: row,
-			Col: 2,
+			Row:     row,
+			Col:     2,
 			Content: "Description:",
 			Intense: true,
 		})
@@ -550,8 +550,8 @@ func (state *tui3270State) taskDetailTransaction(conn net.Conn, devInfo go3270.D
 				lineLen = len(desc)
 			}
 			screen = append(screen, go3270.Field{
-				Row: row,
-				Col: 2,
+				Row:     row,
+				Col:     2,
 				Content: desc[:lineLen],
 			})
 			row++
@@ -565,14 +565,14 @@ func (state *tui3270State) taskDetailTransaction(conn net.Conn, devInfo go3270.D
 
 	if len(task.Tags) > 0 {
 		screen = append(screen, go3270.Field{
-			Row: row,
-			Col: 2,
+			Row:     row,
+			Col:     2,
 			Content: "Tags:",
 			Intense: true,
 		})
 		screen = append(screen, go3270.Field{
-			Row: row,
-			Col: 8,
+			Row:     row,
+			Col:     8,
 			Content: strings.Join(task.Tags, ", "),
 		})
 		row++
@@ -580,14 +580,14 @@ func (state *tui3270State) taskDetailTransaction(conn net.Conn, devInfo go3270.D
 
 	if len(task.Dependencies) > 0 {
 		screen = append(screen, go3270.Field{
-			Row: row,
-			Col: 2,
+			Row:     row,
+			Col:     2,
 			Content: "Dependencies:",
 			Intense: true,
 		})
 		screen = append(screen, go3270.Field{
-			Row: row,
-			Col: 15,
+			Row:     row,
+			Col:     15,
 			Content: strings.Join(task.Dependencies, ", "),
 		})
 		row++
@@ -595,8 +595,8 @@ func (state *tui3270State) taskDetailTransaction(conn net.Conn, devInfo go3270.D
 
 	// Add help line
 	screen = append(screen, go3270.Field{
-		Row: 23,
-		Col: 2,
+		Row:     23,
+		Col:     2,
 		Content: "PF3=Back  PF12=Cancel",
 	})
 
@@ -643,8 +643,8 @@ func (state *tui3270State) configTransaction(conn net.Conn, devInfo go3270.DevIn
 	// Show some config values (simplified - just show that config is loaded)
 	if cfg != nil {
 		screen = append(screen, go3270.Field{
-			Row: 13,
-			Col: 2,
+			Row:     13,
+			Col:     2,
 			Content: "Configuration loaded successfully",
 		})
 	}
@@ -707,8 +707,8 @@ func (state *tui3270State) taskEditorTransaction(conn net.Conn, devInfo go3270.D
 
 	// Add command line
 	screen = append(screen, go3270.Field{
-		Row: 22,
-		Col: 2,
+		Row:     22,
+		Col:     2,
 		Content: "Command ===>",
 		Intense: true,
 	})
@@ -722,8 +722,8 @@ func (state *tui3270State) taskEditorTransaction(conn net.Conn, devInfo go3270.D
 
 	// Add help line
 	screen = append(screen, go3270.Field{
-		Row:    23,
-		Col:    2,
+		Row:     23,
+		Col:     2,
 		Content: "PF3=Exit  PF15=Save  Enter=Execute Command  CANCEL=Abandon",
 	})
 

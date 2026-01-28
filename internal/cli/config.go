@@ -9,8 +9,8 @@ import (
 	"time"
 
 	"github.com/davidl71/exarp-go/internal/config"
-	"gopkg.in/yaml.v3"
 	"google.golang.org/protobuf/proto"
+	"gopkg.in/yaml.v3"
 )
 
 // handleConfigCommand handles the config subcommand
