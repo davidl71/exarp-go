@@ -1,4 +1,4 @@
-.PHONY: help build build-debug build-race build-no-cgo run test test-watch test-coverage test-html clean install fmt lint dev dev-watch dev-test dev-full dev-cycle pre-push bench docs sanity-check sanity-check-cached test-cli test-cli-list test-cli-tool test-cli-test config clean-config sprint-start sprint-end pre-sprint sprint check-tasks update-completed-tasks go-fmt go-vet golangci-lint-check golangci-lint-fix govulncheck check check-fix check-all build-migrate migrate migrate-dry-run install-tools go-mod-tidy go-mod-verify pre-commit ci validate check-deps test-go test-go-fast test-go-verbose test-go-parallel test-go-tools-short version scorecard scorecard-full task-list task-list-todo task-list-in-progress task-list-done task-update proto proto-check proto-clean exarp-list exarp-report-scorecard exarp-report-overview exarp-health-server exarp-health-docs exarp-context-budget exarp-test
+.PHONY: help build build-debug build-race build-no-cgo run test test-watch test-coverage test-html clean install fmt lint dev dev-watch dev-test dev-full dev-cycle pre-push bench docs sanity-check sanity-check-cached test-cli test-cli-list test-cli-tool test-cli-test config clean-config sprint-start sprint-end pre-sprint sprint check-tasks update-completed-tasks task-sanity-check go-fmt go-vet golangci-lint-check golangci-lint-fix govulncheck check check-fix check-all build-migrate migrate migrate-dry-run install-tools go-mod-tidy go-mod-verify pre-commit ci validate check-deps test-go test-go-fast test-go-verbose test-go-parallel test-go-tools-short version scorecard scorecard-full task-list task-list-todo task-list-in-progress task-list-done task-update proto proto-check proto-clean exarp-list exarp-report-scorecard exarp-report-overview exarp-health-server exarp-health-docs exarp-context-budget exarp-test
 
 # Project configuration
 PROJECT_NAME := exarp-go
@@ -966,38 +966,27 @@ sprint: ## Run full sprint automation (process all background tasks)
 		echo "$(GREEN)✅ Sprint automation complete$(NC)"; \
 	fi
 
-check-tasks: ## Batch check all Todo and In Progress tasks to find completed ones (dry run)
+# Native Go: infer_task_progress tool (no Python or agentic-tools MCP required).
+# use_fm=false keeps runs fast on large backlogs; set use_fm=true for FM-enhanced inference.
+check-tasks: build ## Batch check all Todo and In Progress tasks to find completed ones (dry run)
 	@echo "$(BLUE)Checking tasks for completion (dry run)...$(NC)"
-	@if command -v python3 >/dev/null 2>&1; then \
-		cd $(shell pwd) && python3 -c "import sys; sys.path.insert(0, '.'); from project_management_automation.tools.auto_update_task_status import auto_update_task_status; import json; result = auto_update_task_status(confidence_threshold=0.7, auto_update_tasks=False, dry_run=True, output_path='docs/TASK_COMPLETION_CHECK.md'); print(result)" || \
-		echo "$(YELLOW)⚠️  Task check completed (check output above)$(NC)"; \
-		echo "$(GREEN)✅ Task completion check complete (dry run)$(NC)"; \
-	elif command -v uv >/dev/null 2>&1 || [ -x "$$HOME/.cargo/bin/uv" ] || [ -x "$$HOME/.local/bin/uv" ]; then \
-		$(PYTHON) -c "from project_management_automation.tools.auto_update_task_status import auto_update_task_status; import json; result = auto_update_task_status(confidence_threshold=0.7, auto_update_tasks=False, dry_run=True, output_path='docs/TASK_COMPLETION_CHECK.md'); print(result)" || \
-		echo "$(YELLOW)⚠️  Task check completed (check output above)$(NC)"; \
-		echo "$(GREEN)✅ Task completion check complete (dry run)$(NC)"; \
-	else \
-		echo "$(RED)❌ Python not found - cannot run task completion check$(NC)"; \
-		echo "$(YELLOW)   Install Python 3 or uv: curl -LsSf https://astral.sh/uv/install.sh | sh$(NC)"; \
-		exit 1; \
-	fi
+	@PROJECT_ROOT="$(shell pwd)" $(BINARY_PATH) -tool infer_task_progress -args '{"dry_run": true, "use_fm": false, "output_path": "docs/TASK_COMPLETION_CHECK.md"}' && \
+		echo "$(GREEN)✅ Task completion check complete (dry run)$(NC)" || \
+		(echo "$(YELLOW)⚠️  Task check completed (check output above)$(NC)" && exit 1)
 
-update-completed-tasks: ## Batch check and auto-update completed tasks (updates task status)
+# Native Go: same as check-tasks but auto_update_tasks=true (updates task status to Done).
+update-completed-tasks: build ## Batch check and auto-update completed tasks (updates task status)
 	@echo "$(BLUE)Checking and updating completed tasks...$(NC)"
 	@echo "$(YELLOW)⚠️  This will update task statuses based on codebase analysis$(NC)"
-	@if command -v python3 >/dev/null 2>&1; then \
-		cd $(shell pwd) && python3 -c "import sys; sys.path.insert(0, '.'); from project_management_automation.tools.auto_update_task_status import auto_update_task_status; import json; result = auto_update_task_status(confidence_threshold=0.7, auto_update_tasks=True, dry_run=False, output_path='docs/TASK_COMPLETION_UPDATE.md'); print(result)" || \
-		echo "$(YELLOW)⚠️  Task update completed (check output above)$(NC)"; \
-		echo "$(GREEN)✅ Completed tasks updated$(NC)"; \
-	elif command -v uv >/dev/null 2>&1 || [ -x "$$HOME/.cargo/bin/uv" ] || [ -x "$$HOME/.local/bin/uv" ]; then \
-		$(PYTHON) -c "from project_management_automation.tools.auto_update_task_status import auto_update_task_status; import json; result = auto_update_task_status(confidence_threshold=0.7, auto_update_tasks=True, dry_run=False, output_path='docs/TASK_COMPLETION_UPDATE.md'); print(result)" || \
-		echo "$(YELLOW)⚠️  Task update completed (check output above)$(NC)"; \
-		echo "$(GREEN)✅ Completed tasks updated$(NC)"; \
-	else \
-		echo "$(RED)❌ Python not found - cannot run task completion update$(NC)"; \
-		echo "$(YELLOW)   Install Python 3 or uv: curl -LsSf https://astral.sh/uv/install.sh | sh$(NC)"; \
-		exit 1; \
-	fi
+	@PROJECT_ROOT="$(shell pwd)" $(BINARY_PATH) -tool infer_task_progress -args '{"dry_run": false, "auto_update_tasks": true, "use_fm": false, "output_path": "docs/TASK_COMPLETION_UPDATE.md"}' && \
+		echo "$(GREEN)✅ Completed tasks updated$(NC)" || \
+		(echo "$(YELLOW)⚠️  Task update completed (check output above)$(NC)" && exit 1)
+
+task-sanity-check: build ## Run generic Todo2 task sanity check (epoch dates, empty content, valid status, duplicate IDs, missing deps)
+	@echo "$(BLUE)Running Todo2 task sanity check...$(NC)"
+	@PROJECT_ROOT="$(shell pwd)" $(BINARY_PATH) -tool task_workflow -args '{"action":"sanity_check"}' && \
+		echo "$(GREEN)✅ Task sanity check passed$(NC)" || \
+		(echo "$(RED)❌ Task sanity check found issues$(NC)" && exit 1)
 
 ##@ Data Migration
 

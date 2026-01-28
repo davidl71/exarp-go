@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/davidl71/exarp-go/internal/database"
 	"github.com/davidl71/exarp-go/internal/models"
@@ -11,9 +12,14 @@ import (
 
 // todo2TaskJSON is used when parsing JSON so metadata can be sanitized.
 // Metadata is raw to handle invalid JSON (string, malformed) without failing unmarshal.
+// Supports both "created"/"updated" and "created_at"/"last_modified" for compatibility.
+// Supports "name"/"title" (aliases for content) and "description" (alias for long_description) for Todo2 extension compatibility.
 type todo2TaskJSON struct {
 	ID              string          `json:"id"`
+	Name            string          `json:"name,omitempty"`
+	Title           string          `json:"title,omitempty"`
 	Content         string          `json:"content"`
+	Description     string          `json:"description,omitempty"`
 	LongDescription string          `json:"long_description,omitempty"`
 	Status          string          `json:"status"`
 	Priority        string          `json:"priority,omitempty"`
@@ -21,23 +27,131 @@ type todo2TaskJSON struct {
 	Dependencies    []string        `json:"dependencies,omitempty"`
 	Completed       bool            `json:"completed,omitempty"`
 	Metadata        json.RawMessage `json:"metadata,omitempty"`
+	Created         string          `json:"created,omitempty"`
+	CreatedAt       string          `json:"created_at,omitempty"`
+	Updated         string          `json:"updated,omitempty"`
+	LastModified    string          `json:"last_modified,omitempty"`
+	CompletedAt     string          `json:"completed_at,omitempty"`
 }
 
 func convertTodo2TaskJSONToTask(raw todo2TaskJSON) models.Todo2Task {
+	createdAt := raw.CreatedAt
+	if createdAt == "" {
+		createdAt = raw.Created
+	}
+	lastMod := raw.LastModified
+	if lastMod == "" {
+		lastMod = raw.Updated
+	}
+	content := raw.Content
+	if content == "" && raw.Name != "" {
+		content = raw.Name
+	}
+	if content == "" && raw.Title != "" {
+		content = raw.Title
+	}
+	longDesc := raw.LongDescription
+	if longDesc == "" && raw.Description != "" {
+		longDesc = raw.Description
+	}
 	t := models.Todo2Task{
 		ID:              raw.ID,
-		Content:         raw.Content,
-		LongDescription: raw.LongDescription,
+		Content:         content,
+		LongDescription: longDesc,
 		Status:          raw.Status,
 		Priority:        raw.Priority,
 		Tags:            raw.Tags,
 		Dependencies:    raw.Dependencies,
 		Completed:       raw.Completed,
+		CreatedAt:       createdAt,
+		LastModified:    lastMod,
+		CompletedAt:     raw.CompletedAt,
 	}
 	if len(raw.Metadata) > 0 {
 		t.Metadata = database.SanitizeTaskMetadata(string(raw.Metadata))
 	}
+	t.NormalizeEpochDates()
 	return t
+}
+
+// todo2TaskWrite is used when writing state JSON. It includes "name" (same as content),
+// "description" (same as long_description), and "created"/"updated" (same as created_at/last_modified)
+// so the Todo2 extension and overview never show Invalid Date or 1970.
+type todo2TaskWrite struct {
+	ID              string                 `json:"id"`
+	Name            string                 `json:"name,omitempty"`
+	Content         string                 `json:"content"`
+	Description     string                 `json:"description,omitempty"`
+	LongDescription string                 `json:"long_description,omitempty"`
+	Status          string                 `json:"status"`
+	Priority        string                 `json:"priority,omitempty"`
+	Tags            []string               `json:"tags,omitempty"`
+	Dependencies    []string               `json:"dependencies,omitempty"`
+	Completed       bool                   `json:"completed,omitempty"`
+	Metadata        map[string]interface{} `json:"metadata,omitempty"`
+	Created         string                 `json:"created,omitempty"`
+	CreatedAt       string                 `json:"created_at,omitempty"`
+	Updated         string                 `json:"updated,omitempty"`
+	LastModified    string                 `json:"last_modified,omitempty"`
+	CompletedAt     string                 `json:"completed_at,omitempty"`
+}
+
+// MarshalTasksToStateJSON marshals tasks to state.todo2.json format with "name", "description",
+// and "created"/"updated" for Todo2 extension compatibility (no Invalid Date or 1970).
+// Never writes epoch dates; empty dates get a fallback (last_modified or now) so the extension always has a parseable date.
+func MarshalTasksToStateJSON(tasks []models.Todo2Task) ([]byte, error) {
+	nowFallback := time.Now().UTC().Format(time.RFC3339)
+	writes := make([]todo2TaskWrite, len(tasks))
+	for i := range tasks {
+		t := &tasks[i]
+		createdAt := t.CreatedAt
+		if models.IsEpochDate(createdAt) {
+			createdAt = ""
+		}
+		lastMod := t.LastModified
+		if models.IsEpochDate(lastMod) {
+			lastMod = ""
+		}
+		completedAt := t.CompletedAt
+		if models.IsEpochDate(completedAt) {
+			completedAt = ""
+		}
+		// Fallback so extension never sees missing/invalid date (avoids Invalid Date / 1970)
+		if createdAt == "" {
+			createdAt = lastMod
+		}
+		if createdAt == "" {
+			createdAt = nowFallback
+		}
+		if lastMod == "" {
+			lastMod = createdAt
+		}
+		if lastMod == "" {
+			lastMod = nowFallback
+		}
+		writes[i] = todo2TaskWrite{
+			ID:              t.ID,
+			Name:            t.Content,
+			Content:         t.Content,
+			Description:     t.LongDescription,
+			LongDescription: t.LongDescription,
+			Status:          t.Status,
+			Priority:        t.Priority,
+			Tags:            t.Tags,
+			Dependencies:    t.Dependencies,
+			Completed:       t.Completed,
+			Metadata:        t.Metadata,
+			Created:         createdAt,
+			CreatedAt:       createdAt,
+			Updated:         lastMod,
+			LastModified:    lastMod,
+			CompletedAt:     completedAt,
+		}
+	}
+	state := struct {
+		Todos []todo2TaskWrite `json:"todos"`
+	}{Todos: writes}
+	return json.MarshalIndent(state, "", "  ")
 }
 
 // ParseTasksFromJSON parses "todos" from state JSON and returns tasks with sanitized metadata.

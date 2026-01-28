@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/davidl71/exarp-go/internal/config"
@@ -25,15 +26,62 @@ func handleTaskWorkflowNative(ctx context.Context, params map[string]interface{}
 		return handleTaskWorkflowApprove(ctx, params)
 	case "sync":
 		return handleTaskWorkflowSync(ctx, params)
+	case "fix_dates":
+		return handleTaskWorkflowFixDates(ctx, params)
 	case "clarity":
 		return handleTaskWorkflowClarity(ctx, params)
 	case "cleanup":
 		return handleTaskWorkflowCleanup(ctx, params)
 	case "create":
 		return handleTaskWorkflowCreate(ctx, params)
+	case "sanity_check":
+		return handleTaskWorkflowSanityCheck(ctx, params)
 	default:
 		return nil, fmt.Errorf("unknown action: %s", action)
 	}
+}
+
+// handleTaskWorkflowFixDates backfills created/last_modified from DB created_at/updated_at for tasks with empty or 1970 dates, then syncs to JSON.
+func handleTaskWorkflowFixDates(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
+	updated, err := database.FixTaskDates(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("fix_dates: %w", err)
+	}
+	projectRoot, err := FindProjectRoot()
+	if err != nil {
+		// Return success with count even if sync fails (DB is fixed)
+		result := map[string]interface{}{
+			"success":       true,
+			"method":        "native_go",
+			"tasks_updated": updated,
+			"sync_skipped":  true,
+			"sync_error":    err.Error(),
+		}
+		out, _ := json.MarshalIndent(result, "", "  ")
+		return []framework.TextContent{{Type: "text", Text: string(out)}}, nil
+	}
+	if err := SyncTodo2Tasks(projectRoot); err != nil {
+		result := map[string]interface{}{
+			"success":       true,
+			"method":        "native_go",
+			"tasks_updated": updated,
+			"sync_error":    err.Error(),
+		}
+		out, _ := json.MarshalIndent(result, "", "  ")
+		return []framework.TextContent{{Type: "text", Text: string(out)}}, nil
+	}
+	// Regenerate overview so dates never show 1970
+	if overviewErr := WriteTodo2Overview(projectRoot); overviewErr != nil {
+		fmt.Fprintf(os.Stderr, "Warning: failed to write todo2-overview.mdc: %v\n", overviewErr)
+	}
+	result := map[string]interface{}{
+		"success":       true,
+		"method":        "native_go",
+		"tasks_updated": updated,
+		"synced":        true,
+	}
+	out, _ := json.MarshalIndent(result, "", "  ")
+	return []framework.TextContent{{Type: "text", Text: string(out)}}, nil
 }
 
 // handleTaskWorkflowClarify handles clarify action with default FM for question generation

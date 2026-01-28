@@ -1,7 +1,11 @@
 package tools
 
 import (
+	"encoding/json"
+	"strings"
 	"testing"
+
+	"github.com/davidl71/exarp-go/internal/models"
 )
 
 func TestParseTasksFromJSON_ValidMetadata(t *testing.T) {
@@ -116,5 +120,63 @@ func TestParseTasksFromJSON_InvalidJSONFails(t *testing.T) {
 	_, err := ParseTasksFromJSON(data)
 	if err == nil {
 		t.Error("expected error for invalid JSON")
+	}
+}
+
+// TestParseTasksFromJSON_NameAndDescriptionAliases verifies that "name", "title", and "description" are read as content/long_description.
+func TestParseTasksFromJSON_NameAndDescriptionAliases(t *testing.T) {
+	data := []byte(`{"todos":[
+		{"id":"T-1","name":"Task title","status":"Todo"},
+		{"id":"T-2","content":"Title","description":"Full description here","status":"Todo"},
+		{"id":"T-3","title":"Title only no content","status":"Todo"}
+	]}`)
+	tasks, err := ParseTasksFromJSON(data)
+	if err != nil {
+		t.Fatalf("ParseTasksFromJSON: %v", err)
+	}
+	if len(tasks) != 3 {
+		t.Fatalf("len(tasks) = %d, want 3", len(tasks))
+	}
+	if tasks[0].Content != "Task title" {
+		t.Errorf("task 0 content (from name): got %q", tasks[0].Content)
+	}
+	if tasks[1].Content != "Title" {
+		t.Errorf("task 1 content: got %q", tasks[1].Content)
+	}
+	if tasks[1].LongDescription != "Full description here" {
+		t.Errorf("task 1 long_description (from description): got %q", tasks[1].LongDescription)
+	}
+	if tasks[2].Content != "Title only no content" {
+		t.Errorf("task 2 content (from title): got %q", tasks[2].Content)
+	}
+}
+
+// TestMarshalTasksToStateJSON_IncludesNameAndDescription verifies written JSON has "name" and "description" for extension compatibility.
+func TestMarshalTasksToStateJSON_IncludesNameAndDescription(t *testing.T) {
+	tasks := []models.Todo2Task{
+		{ID: "T-1", Content: "Short title", LongDescription: "Long description", Status: "Todo"},
+	}
+	data, err := MarshalTasksToStateJSON(tasks)
+	if err != nil {
+		t.Fatalf("MarshalTasksToStateJSON: %v", err)
+	}
+	var decoded struct {
+		Todos []map[string]interface{} `json:"todos"`
+	}
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		t.Fatalf("Unmarshal: %v", err)
+	}
+	if len(decoded.Todos) != 1 {
+		t.Fatalf("len(todos) = %d, want 1", len(decoded.Todos))
+	}
+	first := decoded.Todos[0]
+	if name, _ := first["name"].(string); name != "Short title" {
+		t.Errorf("name in JSON: got %q", name)
+	}
+	if desc, _ := first["description"].(string); desc != "Long description" {
+		t.Errorf("description in JSON: got %q", desc)
+	}
+	if !strings.Contains(string(data), `"name"`) || !strings.Contains(string(data), `"description"`) {
+		t.Errorf("JSON should contain \"name\" and \"description\" keys: %s", string(data))
 	}
 }

@@ -523,8 +523,8 @@ func registerBatch2Tools(server framework.MCPServer) error {
 					"type": "string",
 				},
 				"include_hierarchy": map[string]interface{}{
-					"type":    "boolean",
-					"default": false,
+					"type":        "boolean",
+					"default":     false,
 					"description": "For action=validate: optionally run hierarchy dry-run and report hierarchy_warning (e.g. response_snippet) if FM returns non-JSON",
 				},
 			},
@@ -577,13 +577,13 @@ func registerBatch2Tools(server framework.MCPServer) error {
 	// T-34: task_workflow
 	if err := server.RegisterTool(
 		"task_workflow",
-		"[HINT: Task workflow. action=sync|approve|clarify|clarity|cleanup|create. Manage task lifecycle. ⚠️ CRITICAL: PREFER convenience commands (exarp-go task ...) for common operations. FALLBACK to this tool for advanced operations (clarity, cleanup, complex filters). NEVER edit .todo2/state.todo2.json directly. Use action=approve with task_ids for batch updates. Use action=create to create new tasks. Sync is SQLite↔JSON only; external=true is unsupported (returns error).]",
+		"[HINT: Task workflow. action=sync|approve|clarify|clarity|cleanup|create|fix_dates|sanity_check. Manage task lifecycle. ⚠️ CRITICAL: PREFER convenience commands (exarp-go task ...) for common operations. FALLBACK to this tool for advanced operations (clarity, cleanup, complex filters). NEVER edit .todo2/state.todo2.json directly. Use action=approve with task_ids for batch updates. Use action=create to create new tasks. Sync is SQLite↔JSON only; external=true is unsupported (returns error).]",
 		framework.ToolSchema{
 			Type: "object",
 			Properties: map[string]interface{}{
 				"action": map[string]interface{}{
 					"type":    "string",
-					"enum":    []string{"sync", "approve", "clarify", "clarity", "cleanup", "create"},
+					"enum":    []string{"sync", "approve", "clarify", "clarity", "cleanup", "create", "fix_dates", "sanity_check"},
 					"default": "sync",
 				},
 				"dry_run": map[string]interface{}{
@@ -687,6 +687,49 @@ func registerBatch2Tools(server framework.MCPServer) error {
 		handleTaskWorkflow,
 	); err != nil {
 		return fmt.Errorf("failed to register task_workflow: %w", err)
+	}
+
+	// T-34b: infer_task_progress
+	if err := server.RegisterTool(
+		"infer_task_progress",
+		"[HINT: Task completion inference. Analyzes In Progress tasks against codebase; returns inferred completions. dry_run, auto_update_tasks, output_path.]",
+		framework.ToolSchema{
+			Type: "object",
+			Properties: map[string]interface{}{
+				"project_root": map[string]interface{}{
+					"type": "string",
+				},
+				"scan_depth": map[string]interface{}{
+					"type":    "number",
+					"default": 3,
+				},
+				"file_extensions": map[string]interface{}{
+					"type": "array",
+				},
+				"confidence_threshold": map[string]interface{}{
+					"type":    "number",
+					"default": 0.7,
+				},
+				"dry_run": map[string]interface{}{
+					"type":    "boolean",
+					"default": true,
+				},
+				"auto_update_tasks": map[string]interface{}{
+					"type":    "boolean",
+					"default": false,
+				},
+				"use_fm": map[string]interface{}{
+					"type":    "boolean",
+					"default": true,
+				},
+				"output_path": map[string]interface{}{
+					"type": "string",
+				},
+			},
+		},
+		handleInferTaskProgress,
+	); err != nil {
+		return fmt.Errorf("failed to register infer_task_progress: %w", err)
 	}
 
 	// T-35: testing

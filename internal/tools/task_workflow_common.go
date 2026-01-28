@@ -415,6 +415,10 @@ func handleTaskWorkflowSync(ctx context.Context, params map[string]interface{}) 
 		if err := SyncTodo2Tasks(projectRoot); err != nil {
 			return nil, fmt.Errorf("failed to sync tasks: %w", err)
 		}
+		// Regenerate overview so dates never show 1970
+		if overviewErr := WriteTodo2Overview(projectRoot); overviewErr != nil {
+			fmt.Fprintf(os.Stderr, "Warning: failed to write todo2-overview.mdc: %v\n", overviewErr)
+		}
 	}
 
 	// Load tasks after sync to validate
@@ -465,6 +469,82 @@ func handleTaskWorkflowSync(ctx context.Context, params map[string]interface{}) 
 		"method":       "native_go",
 		"dry_run":      dryRun,
 		"sync_results": syncResults,
+	}
+
+	outputPath, _ := params["output_path"].(string)
+	return response.FormatResult(result, outputPath)
+}
+
+// Valid task statuses for sanity check.
+var validTaskStatuses = map[string]bool{
+	"Todo": true, "In Progress": true, "Done": true, "Review": true,
+	"todo": true, "in progress": true, "done": true, "review": true,
+}
+
+// handleTaskWorkflowSanityCheck runs generic Todo2 task sanity checks (epoch dates, empty content, valid status, duplicate IDs, missing deps).
+// Use action=sanity_check; optional output_path to write report.
+func handleTaskWorkflowSanityCheck(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
+	projectRoot, err := FindProjectRoot()
+	if err != nil {
+		return nil, fmt.Errorf("failed to find project root: %w", err)
+	}
+
+	tasks, err := LoadTodo2Tasks(projectRoot)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load tasks: %w", err)
+	}
+
+	issues := []string{}
+	taskMap := make(map[string]bool)
+
+	for _, task := range tasks {
+		// Duplicate ID
+		if taskMap[task.ID] {
+			issues = append(issues, fmt.Sprintf("Duplicate task ID: %s", task.ID))
+		}
+		taskMap[task.ID] = true
+
+		// Epoch or invalid dates (1970, 0) for created/last_modified; completed_at only for Done tasks
+		if models.IsEpochDate(task.CreatedAt) {
+			issues = append(issues, fmt.Sprintf("Task %s has epoch/invalid created_at", task.ID))
+		}
+		if models.IsEpochDate(task.LastModified) {
+			issues = append(issues, fmt.Sprintf("Task %s has epoch/invalid last_modified", task.ID))
+		}
+		if strings.TrimSpace(strings.ToLower(task.Status)) == "done" && models.IsEpochDate(task.CompletedAt) {
+			issues = append(issues, fmt.Sprintf("Task %s (Done) has epoch/invalid completed_at", task.ID))
+		}
+
+		// Empty content/name (task title)
+		if strings.TrimSpace(task.Content) == "" {
+			issues = append(issues, fmt.Sprintf("Task %s has empty content/name", task.ID))
+		}
+
+		// Valid status
+		norm := strings.TrimSpace(strings.ToLower(task.Status))
+		if task.Status == "" || !validTaskStatuses[norm] {
+			issues = append(issues, fmt.Sprintf("Task %s has invalid or empty status: %q", task.ID, task.Status))
+		}
+	}
+
+	// Missing dependencies
+	for _, task := range tasks {
+		for _, dep := range task.Dependencies {
+			if !taskMap[dep] {
+				issues = append(issues, fmt.Sprintf("Task %s depends on %s which doesn't exist", task.ID, dep))
+			}
+		}
+	}
+
+	passed := len(issues) == 0
+	result := map[string]interface{}{
+		"success":       true,
+		"method":        "native_go",
+		"passed":        passed,
+		"total_tasks":   len(tasks),
+		"issues_found":  len(issues),
+		"issues":        issues,
+		"sanity_checks": []string{"epoch_dates", "empty_content", "valid_status", "duplicate_ids", "missing_dependencies"},
 	}
 
 	outputPath, _ := params["output_path"].(string)
