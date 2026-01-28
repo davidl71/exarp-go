@@ -18,10 +18,12 @@ var (
 	DefaultSlowThreshold = 2 * time.Second
 )
 
-// initLogger initializes the mcp-go-core logger if not already initialized
+// initLogger initializes the mcp-go-core logger if not already initialized.
+// Default level is WARN so INFO messages (e.g. "Database initialized") are not written to stderr.
 func initLogger() {
 	if logger == nil {
 		logger = logging.NewLogger()
+		logger.SetLevel(logging.LevelWarn)
 		logger.SetSlowThreshold(DefaultSlowThreshold)
 	}
 }
@@ -30,7 +32,7 @@ func initLogger() {
 // Adapts exarp-go's logging.Info(msg, args...) to mcp-go-core's logger
 func logInfo(ctx context.Context, msg string, args ...interface{}) {
 	initLogger()
-	
+
 	// Always use slog logger for structured logging (supports key-value pairs)
 	slogLogger := logger.WithContext(ctx)
 	slogLogger.Info(msg, args...)
@@ -39,7 +41,7 @@ func logInfo(ctx context.Context, msg string, args ...interface{}) {
 // Warn logs a warning message with structured fields
 func logWarn(ctx context.Context, msg string, args ...interface{}) {
 	initLogger()
-	
+
 	slogLogger := logger.WithContext(ctx)
 	slogLogger.Warn(msg, args...)
 }
@@ -47,7 +49,7 @@ func logWarn(ctx context.Context, msg string, args ...interface{}) {
 // Error logs an error message with structured fields
 func logError(ctx context.Context, msg string, args ...interface{}) {
 	initLogger()
-	
+
 	slogLogger := logger.WithContext(ctx)
 	slogLogger.Error(msg, args...)
 }
@@ -55,7 +57,7 @@ func logError(ctx context.Context, msg string, args ...interface{}) {
 // Debug logs a debug message with structured fields
 func logDebug(ctx context.Context, msg string, args ...interface{}) {
 	initLogger()
-	
+
 	slogLogger := logger.WithContext(ctx)
 	slogLogger.Debug(msg, args...)
 }
@@ -82,7 +84,7 @@ func StartPerformanceLogging(ctx context.Context, operation string, threshold ti
 func (pl *PerformanceLogger) Finish() {
 	duration := time.Since(pl.start)
 	initLogger()
-	
+
 	// Build context string for LogPerformance
 	contextStr := ""
 	if pl.ctx != nil {
@@ -99,10 +101,10 @@ func (pl *PerformanceLogger) Finish() {
 			}
 		}
 	}
-	
+
 	// Always log duration using LogPerformance
 	logger.LogPerformance(contextStr, pl.operation, duration)
-	
+
 	// Also log with structured fields if slow
 	if pl.threshold > 0 && duration > pl.threshold {
 		logWarn(pl.ctx, "Slow operation detected",
