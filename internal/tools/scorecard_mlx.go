@@ -42,15 +42,18 @@ func FormatGoScorecardWithMLX(scorecard *GoScorecardResult, insights map[string]
 	// Standard scorecard format
 	sb.WriteString(FormatGoScorecard(scorecard))
 
-	// Add MLX insights section
+	// Add AI insights section (from insight provider: MLX or FM)
 	if insightsText, ok := insights["insights"].(string); ok && insightsText != "" {
 		sb.WriteString("\n\n")
 		sb.WriteString("═══════════════════════════════════════════════════════════\n")
-		sb.WriteString("🤖 AI-Generated Insights (MLX)\n")
+		sb.WriteString("🤖 AI-Generated Insights\n")
 		sb.WriteString("═══════════════════════════════════════════════════════════\n\n")
 
 		if model, ok := insights["model"].(string); ok {
 			sb.WriteString(fmt.Sprintf("Model: %s\n\n", model))
+		}
+		if generatedBy, ok := insights["generated_by"].(string); ok {
+			sb.WriteString(fmt.Sprintf("Source: %s\n\n", generatedBy))
 		}
 
 		sb.WriteString(insightsText)

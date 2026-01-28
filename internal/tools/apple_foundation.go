@@ -84,14 +84,19 @@ func handleAppleFoundationModels(ctx context.Context, args json.RawMessage) ([]f
 	}, nil
 }
 
+// GenerateWithOptions runs Apple FM with the given prompt and options.
+// Used by apple_foundation_models tool and by FMProvider (task_analysis hierarchy, etc.).
+func GenerateWithOptions(prompt string, maxTokens int, temperature float32) (string, error) {
+	sess := fm.NewSession()
+	defer sess.Release()
+	return sess.RespondWithOptions(prompt, maxTokens, temperature), nil
+}
+
 // generateText generates text using Apple Foundation Models
 func generateText(sess *fm.Session, prompt string, params map[string]interface{}) (string, error) {
-	// Use RespondWithOptions with temperature and max tokens
 	maxTokens := getMaxTokens(params)
 	temperature := getTemperature(params)
-
-	response := sess.RespondWithOptions(prompt, maxTokens, temperature)
-	return response, nil
+	return sess.RespondWithOptions(prompt, maxTokens, temperature), nil
 }
 
 // summarizeText summarizes text using Apple Foundation Models

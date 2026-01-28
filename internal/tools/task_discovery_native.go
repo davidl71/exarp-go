@@ -13,9 +13,7 @@ import (
 	"regexp"
 	"strings"
 
-	fm "github.com/blacktop/go-foundationmodels"
 	"github.com/davidl71/exarp-go/internal/framework"
-	"github.com/davidl71/exarp-go/internal/platform"
 )
 
 // handleTaskDiscoveryNative handles task_discovery with native Go and Apple FM
@@ -25,9 +23,8 @@ func handleTaskDiscoveryNative(ctx context.Context, params map[string]interface{
 		action = "all"
 	}
 
-	// Check platform support for Apple FM (used for semantic extraction)
-	support := platform.CheckAppleFoundationModelsSupport()
-	useAppleFM := support.Supported
+	// Use default FM for semantic extraction when available
+	useAppleFM := DefaultFM != nil && DefaultFM.Supported()
 
 	projectRoot, err := FindProjectRoot()
 	if err != nil {
@@ -49,7 +46,7 @@ func handleTaskDiscoveryNative(ctx context.Context, params map[string]interface{
 		if inc, ok := params["include_fixme"].(bool); ok {
 			includeFIXME = inc
 		}
-		commentTasks := scanComments(projectRoot, filePatterns, includeFIXME, useAppleFM)
+		commentTasks := scanComments(ctx, projectRoot, filePatterns, includeFIXME, useAppleFM)
 		discoveries = append(discoveries, commentTasks...)
 	}
 
@@ -87,7 +84,7 @@ func handleTaskDiscoveryNative(ctx context.Context, params map[string]interface{
 		if path, ok := params["doc_path"].(string); ok {
 			docPath = path
 		}
-		planningLinks := scanPlanningDocs(projectRoot, docPath, useAppleFM)
+		planningLinks := scanPlanningDocs(ctx, projectRoot, docPath, useAppleFM)
 		discoveries = append(discoveries, planningLinks...)
 	}
 
@@ -128,7 +125,7 @@ func handleTaskDiscoveryNative(ctx context.Context, params map[string]interface{
 }
 
 // scanComments scans code files for TODO/FIXME comments
-func scanComments(projectRoot string, patterns []string, includeFIXME bool, useAppleFM bool) []map[string]interface{} {
+func scanComments(ctx context.Context, projectRoot string, patterns []string, includeFIXME bool, useAppleFM bool) []map[string]interface{} {
 	discoveries := []map[string]interface{}{}
 
 	// Build regex pattern
@@ -188,9 +185,9 @@ func scanComments(projectRoot string, patterns []string, includeFIXME bool, useA
 					taskText = strings.TrimSpace(matches[1])
 				}
 
-				// Use Apple FM for semantic extraction if available
+				// Use default FM for semantic extraction if available
 				if useAppleFM && taskText != "" {
-					enhanced := enhanceTaskWithAppleFM(taskText)
+					enhanced := enhanceTaskWithAppleFM(ctx, taskText)
 					if enhanced != nil {
 						if desc, ok := enhanced["description"].(string); ok && desc != "" {
 							taskText = desc
@@ -372,15 +369,11 @@ func findOrphanTasks(projectRoot string) []map[string]interface{} {
 	return orphans
 }
 
-// enhanceTaskWithAppleFM uses Apple FM to extract structured task information
-func enhanceTaskWithAppleFM(taskText string) map[string]interface{} {
-	support := platform.CheckAppleFoundationModelsSupport()
-	if !support.Supported {
+// enhanceTaskWithAppleFM uses the default FM to extract structured task information
+func enhanceTaskWithAppleFM(ctx context.Context, taskText string) map[string]interface{} {
+	if DefaultFM == nil || !DefaultFM.Supported() {
 		return nil
 	}
-
-	sess := fm.NewSession()
-	defer sess.Release()
 
 	prompt := fmt.Sprintf(`Extract structured information from this task comment:
 
@@ -389,7 +382,10 @@ func enhanceTaskWithAppleFM(taskText string) map[string]interface{} {
 Return JSON with: {"description": "cleaned task description", "priority": "low|medium|high", "category": "bug|feature|refactor|docs"}`,
 		taskText)
 
-	result := sess.RespondWithOptions(prompt, 200, 0.2)
+	result, err := DefaultFM.Generate(ctx, prompt, 200, 0.2)
+	if err != nil {
+		return nil
+	}
 
 	// Try to parse JSON from result
 	jsonStart := strings.Index(result, "{")
@@ -404,15 +400,11 @@ Return JSON with: {"description": "cleaned task description", "priority": "low|m
 	return nil
 }
 
-// enhancePlanningDocWithAppleFM uses Apple FM to extract task/epic references and structure from planning documents
-func enhancePlanningDocWithAppleFM(content string, filePath string) map[string]interface{} {
-	support := platform.CheckAppleFoundationModelsSupport()
-	if !support.Supported {
+// enhancePlanningDocWithAppleFM uses the default FM to extract task/epic references and structure from planning documents
+func enhancePlanningDocWithAppleFM(ctx context.Context, content string, filePath string) map[string]interface{} {
+	if DefaultFM == nil || !DefaultFM.Supported() {
 		return nil
 	}
-
-	sess := fm.NewSession()
-	defer sess.Release()
 
 	// Limit content size to avoid token limits (keep first 5000 chars)
 	contentLimit := len(content)
@@ -445,7 +437,10 @@ Return JSON only (no other text):
 }`,
 		filePath, contentPreview)
 
-	result := sess.RespondWithOptions(prompt, 1000, 0.2)
+	result, err := DefaultFM.Generate(ctx, prompt, 1000, 0.2)
+	if err != nil {
+		return nil
+	}
 
 	// Parse JSON from result
 	jsonStart := strings.Index(result, "{")
@@ -461,7 +456,7 @@ Return JSON only (no other text):
 }
 
 // scanPlanningDocs scans markdown files for planning document structure and task/epic links
-func scanPlanningDocs(projectRoot string, docPath string, useAppleFM bool) []map[string]interface{} {
+func scanPlanningDocs(ctx context.Context, projectRoot string, docPath string, useAppleFM bool) []map[string]interface{} {
 	discoveries := []map[string]interface{}{}
 
 	searchPath := projectRoot
@@ -498,9 +493,9 @@ func scanPlanningDocs(projectRoot string, docPath string, useAppleFM bool) []map
 		relativePath := strings.TrimPrefix(path, projectRoot+"/")
 		contentStr := string(content)
 
-		// Use Apple FM for semantic extraction if available
+		// Use default FM for semantic extraction if available
 		if useAppleFM {
-			enhanced := enhancePlanningDocWithAppleFM(contentStr, relativePath)
+			enhanced := enhancePlanningDocWithAppleFM(ctx, contentStr, relativePath)
 			if enhanced != nil {
 				discoveries = append(discoveries, map[string]interface{}{
 					"type":          "PLANNING_DOC",

@@ -42,7 +42,7 @@ This plan outlines a comprehensive migration strategy to convert all remaining P
 **Examples of successful hybrid implementations:**
 - `lint`: Native Go for Go linters, Python bridge for others
 - `context`: Native Go for summarize/budget (with Apple FM), Python bridge for batch
-- `task_analysis`: Native Go for hierarchy action (with Apple FM), Python bridge for others
+- `task_analysis`: Fully native Go (all actions); hierarchy uses FM provider abstraction (Apple FM when available). No Python fallback.
 - `task_discovery`: Native Go with Apple FM, Python bridge fallback
 - `task_workflow`: Native Go for clarify action (with Apple FM), Python bridge for others
 
@@ -53,13 +53,15 @@ This plan outlines a comprehensive migration strategy to convert all remaining P
 **Audit Reference:** See `docs/MIGRATION_AUDIT_2026-01-12.md` for comprehensive audit findings (and 2026-01-28 note below).
 
 **Native Go Coverage (Actual):**
-- **Full Native (no bridge):** 12 tools — `git_tools`, `infer_session_mode`, `tool_catalog`, `workflow_mode`, `prompt_tracking`, `generate_config`, `add_external_tool_hints`, **`setup_hooks`**, **`check_attribution`**, **`session`**, **`memory_maint`**, **`analyze_alignment`**, **`estimation`**
-- **Hybrid Native:** 15 tools — Native Go with Python bridge fallback (memory, report overview/prd, security, task_*, testing, lint, ollama, context, recommend, etc.)
+- **Full Native (no bridge):** 13 tools — `git_tools`, `infer_session_mode`, `tool_catalog`, `workflow_mode`, `prompt_tracking`, `generate_config`, `add_external_tool_hints`, **`setup_hooks`**, **`check_attribution`**, **`session`**, **`memory_maint`**, **`analyze_alignment`**, **`estimation`**, **`task_analysis`**
+- **Hybrid Native:** 14 tools — Native Go with Python bridge fallback (memory, report overview/prd, security, task_discovery, task_workflow, testing, lint, ollama, context, recommend, etc.)
 - **Python Bridge Only:** 1 tool (`mlx` — intentional, no Go bindings available)
 - **Total Tools:** 28 (plus 1 conditional Apple FM tool = 28–29)
 - **Native Coverage:** 96% (27/28 tools have native implementations)
 
 **2026-01-28:** Report briefing/scorecard shrink (briefing native-only; non-Go scorecard returns clear error). Estimation native-only, no Python fallback; estimation handler removed from `bridge/execute_tool.py`. Tests updated (regression want list, report scorecard, test_execute_tool known_tools). See `NEXT_MIGRATION_STEPS.md`, `PYTHON_FALLBACKS_SAFE_TO_REMOVE.md`.
+
+**2026-01-28:** `task_analysis` fully native: FM provider abstraction (`fm_provider.go`, `fm_apple.go`, `fm_stub.go`), hierarchy and all actions in `task_analysis_shared.go`; handler uses native only, no Python fallback. Bridge and regression tests updated.
 
 **2026-01-27:** Four more tools fully native: `setup_hooks`, `check_attribution`, `session`, `memory_maint`. Bridge cleanup: removed dead `generate_config` and `add_external_tool_hints` branches.
 
@@ -380,12 +382,11 @@ func handleToolNative(ctx context.Context, params map[string]interface{}) ([]fra
 
 ### Complete Partial Implementations (3 tools)
 
-#### 3.11 `task_analysis` (complete remaining actions)
-- **Status:** Partial (hierarchy action native)
-- **Remaining:** `duplicates`, `tags`, `dependencies`, `parallelization`
-- **Implementation:** Native Go where possible, Python bridge fallback
-- **File:** Extend `internal/tools/task_analysis_native.go`
-- **Timeline:** 8-10 days
+#### 3.11 `task_analysis` (complete)
+- **Status:** Done — fully native Go (all actions: hierarchy, duplicates, tags, dependencies, parallelization)
+- **Implementation:** Single native path in `task_analysis_shared.go`; hierarchy uses FM provider abstraction (`DefaultFM`), Apple FM when available via `internal/tools/apple_foundation.GenerateWithOptions`
+- **File:** `internal/tools/task_analysis_shared.go`; FM abstraction in `fm_provider.go`, `fm_apple.go`, `fm_stub.go`
+- **Bridge:** No Python fallback; `task_analysis` removed from `bridge/execute_tool.py`
 
 #### 3.12 `task_discovery` (complete remaining actions)
 - **Status:** Partial (comments/markdown native)
@@ -529,7 +530,7 @@ internal/tools/
   ├── ollama.go                     (Phase 3 - hybrid)
   ├── mlx.go                        (Phase 3 - hybrid)
   ├── prompt_tracking.go            (Phase 3)
-  ├── task_analysis_native.go       (Phase 3 - extend existing)
+  ├── task_analysis_shared.go       (Phase 3 - fully native, FM provider abstraction)
   ├── task_discovery_native.go      (Phase 3 - extend existing)
   └── task_workflow_native.go       (Phase 3 - extend existing)
 
@@ -699,8 +700,8 @@ internal/resources/
    - Result: 96% of tools have native implementations
 
 3. **Hybrid with Apple FM** - Proven effective for platform-specific features:
-   - `context`, `task_analysis`, `task_discovery`, `task_workflow` - All use this pattern
-   - Pattern: Native Go with Apple FM on macOS, Python bridge fallback elsewhere
+   - `context`, `task_discovery`, `task_workflow` - Use this pattern; `task_analysis` is now fully native using FM provider abstraction
+   - Pattern: Native Go with Apple FM on macOS (via FM provider), Python bridge fallback elsewhere where applicable
    - Result: Platform-specific features work seamlessly
 
 4. **Resource Migration Strategy** - Highly successful:
@@ -709,7 +710,7 @@ internal/resources/
    - Result: Zero Python bridge dependencies for resources
 
 5. **Todo2 Utilities Reuse** - Highly effective:
-   - `infer_session_mode`, `task_analysis`, `task_discovery`, `session` - All use `todo2_utils.go`
+   - `infer_session_mode`, `task_analysis`, `task_discovery`, `session` - All use `todo2_utils.go`; `task_analysis` also uses FM provider for hierarchy
    - Pattern: Create reusable utilities, use across multiple tools
    - Result: Faster development, consistent behavior
 

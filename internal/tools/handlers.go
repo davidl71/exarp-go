@@ -8,7 +8,6 @@ import (
 
 	"github.com/davidl71/exarp-go/internal/bridge"
 	"github.com/davidl71/exarp-go/internal/framework"
-	"github.com/davidl71/exarp-go/internal/platform"
 	"github.com/davidl71/exarp-go/internal/security"
 	"github.com/davidl71/mcp-go-core/pkg/mcp/request"
 )
@@ -389,17 +388,15 @@ func handleSecurity(ctx context.Context, args json.RawMessage) ([]framework.Text
 	}, nil
 }
 
-// handleTaskAnalysis handles the task_analysis tool
-// Uses native Go implementation for all actions (duplicates, tags, dependencies, parallelization work on all platforms)
-// Hierarchy action requires Apple FM (only available on macOS with CGO)
+// handleTaskAnalysis handles the task_analysis tool (native Go only, no Python fallback).
+// All actions (duplicates, tags, dependencies, parallelization, hierarchy) use native Go.
+// Hierarchy uses the FM provider abstraction (Apple FM when available; clear error otherwise).
 func handleTaskAnalysis(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
-	// Try protobuf first, fall back to JSON for backward compatibility
 	req, params, err := ParseTaskAnalysisRequest(args)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse arguments: %w", err)
 	}
 
-	// Convert protobuf request to params map if needed
 	if req != nil {
 		params = TaskAnalysisRequestToParams(req)
 		request.ApplyDefaults(params, map[string]interface{}{
@@ -407,23 +404,7 @@ func handleTaskAnalysis(ctx context.Context, args json.RawMessage) ([]framework.
 		})
 	}
 
-	// Try native Go implementation first for all actions
-	// Native implementations exist for duplicates, tags, dependencies, parallelization on all platforms
-	// Hierarchy action requires Apple FM (checked inside native implementation)
-	result, err := handleTaskAnalysisNative(ctx, params)
-	if err == nil {
-		return result, nil
-	}
-
-	// If native fails (e.g., hierarchy without Apple FM, or other errors), fall back to Python bridge
-	bridgeResult, err := bridge.ExecutePythonTool(ctx, "task_analysis", params)
-	if err != nil {
-		return nil, fmt.Errorf("task_analysis failed: %w", err)
-	}
-
-	return []framework.TextContent{
-		{Type: "text", Text: bridgeResult},
-	}, nil
+	return handleTaskAnalysisNative(ctx, params)
 }
 
 // handleTaskDiscovery handles the task_discovery tool
@@ -959,17 +940,15 @@ func handleContext(ctx context.Context, args json.RawMessage) ([]framework.TextC
 	// Route to native Go implementations when available
 	switch action {
 	case "summarize":
-		// Try native Go with Apple FM first
-		support := platform.CheckAppleFoundationModelsSupport()
-		if support.Supported {
-			// Use native Go implementation with Apple FM
+		// Try native Go with default FM first
+		if DefaultFM != nil && DefaultFM.Supported() {
 			result, err := handleContextSummarizeNative(ctx, params)
 			if err == nil {
 				return result, nil
 			}
 			// If native implementation fails, fall through to Python bridge
 		}
-		// If Apple FM not available, fall through to Python bridge
+		// If FM not available, fall through to Python bridge
 
 	case "budget":
 		// Use native Go implementation for budget analysis

@@ -78,6 +78,8 @@ func handleMlx(ctx context.Context, args json.RawMessage) ([]framework.TextConte
 }
 ```
 
+**Report insights abstraction (2026-01-28):** Report/scorecard AI insights no longer call the bridge directly. They use `DefaultReportInsight()` (see `internal/tools/insight_provider.go`), which tries MLX via the bridge first, then falls back to DefaultFM (Apple FM) when MLX is unavailable. Report code does not depend on the bridge or MLX by name. See `docs/MLX_ABSTRACTION_OPPORTUNITIES.md`.
+
 ---
 
 ## Decision Rationale
