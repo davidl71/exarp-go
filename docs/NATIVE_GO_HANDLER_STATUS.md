@@ -10,7 +10,7 @@
 
 **Key Finding:** Handlers in `internal/tools/handlers.go` use native Go first. Many tools are **fully native** (no Python bridge). Others are **hybrid** (native first, bridge fallback for specific actions or when native fails).
 
-**Python fallbacks removed (2026-01-27 / 2026-01-28):** `setup_hooks`, `check_attribution`, `session`, `memory_maint` (4 tools); `memory`, `task_discovery`, `report`, `recommend`, `security`, `testing`, `lint` (7 tools). Bridge no longer routes these; handlers never call `ExecutePythonTool` for them.
+**Python fallbacks removed (2026-01-27 / 2026-01-28):** `setup_hooks`, `check_attribution`, `session`, `memory_maint` (4 tools); `memory`, `task_discovery`, `report`, `recommend`, `security`, `testing`, `lint`, `ollama` (8 tools). Bridge no longer routes these; handlers never call `ExecutePythonTool` for them.
 
 ---
 
@@ -45,6 +45,7 @@ These tools have complete native implementations and **never** use the Python br
 | `security` | `handleSecurity` | scan, alerts, report (Go projects only; errors otherwise) | ✅ Full Native (fallback removed) |
 | `testing` | `handleTesting` | run, coverage, validate (Go projects only; unsupported action returns error) | ✅ Full Native (fallback removed) |
 | `lint` | `handleLint` | golangci-lint, go-vet, gofmt, goimports, markdownlint, shellcheck, auto; unsupported linter returns error | ✅ Full Native (fallback removed) |
+| `ollama` | `handleOllama` | status, models, generate, docs, quality, summary, etc. (native HTTP only; errors on failure) | ✅ Full Native (fallback removed) |
 
 ### Hybrid Tools (Native First, Bridge Fallback)
 
@@ -52,7 +53,6 @@ These tools have complete native implementations and **never** use the Python br
 |------|--------|------------------|---------|
 | `task_workflow` | sync, approve, clarity, cleanup, create; clarify (Apple FM) | Apple FM–related errors; **external sync** (agentic-tools) | `handleTaskWorkflow`, `task_workflow_common` |
 | `context` | summarize, budget (with Apple FM) | Unhandled actions; native fails | `handleContext` |
-| `ollama` | HTTP API (docs, quality, summary, etc.) | Fallback when native HTTP fails | `ollama_provider` |
 
 ### Python Bridge Only
 

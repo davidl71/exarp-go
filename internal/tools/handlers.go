@@ -699,7 +699,7 @@ func handleInferSessionMode(ctx context.Context, args json.RawMessage) ([]framew
 	return HandleInferSessionModeNative(ctx, params)
 }
 
-// handleOllama handles the ollama tool via DefaultOllama (native first, then bridge fallback).
+// handleOllama handles the ollama tool via DefaultOllama (native only; no bridge fallback).
 func handleOllama(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
 	req, params, err := ParseOllamaRequest(args)
 	if err != nil {

@@ -28,7 +28,7 @@
 | **mlx** | `handlers.go`, `insight_provider.go` | Primary (no Go bindings) | ❌ Keep – Intentional bridge-only. |
 | **context** | `handlers.go` | Unhandled actions / when native fails | Optional – Could narrow to specific actions. |
 | **recommend** | ~~handlers.go~~ | ~~Fallback when native failed~~ | ✅ **Done** – Native-only (model, workflow, advisor via devwisdom-go). Bridge branch removed. |
-| **ollama** | `ollama_provider.go` | Fallback when native HTTP fails | ❌ Keep – Resilient fallback. |
+| **ollama** | ~~ollama_provider.go~~ | ~~Fallback when native failed~~ | ✅ **Done** – Native-only (DefaultOllama uses nativeOnlyOllama; errors on failure). Bridge branch removed. |
 
 ---
 
@@ -44,6 +44,7 @@ These handlers have **no** `bridge.ExecutePythonTool` call; they are already ful
 - `security` (scan, alerts, report – Go projects only; errors otherwise)
 - `testing` (run, coverage, validate – Go projects only; unsupported action returns error)
 - `lint` (golangci-lint, go-vet, gofmt, goimports, markdownlint, shellcheck, auto – unsupported linter returns error)
+- `ollama` (status, models, generate, docs, quality, summary, etc. – native HTTP only; errors on failure)
 
 ---
 
@@ -51,9 +52,9 @@ These handlers have **no** `bridge.ExecutePythonTool` call; they are already ful
 
 The bridge still routes these tool names (for fallback or primary use):
 
-- `task_workflow`, `ollama`, `mlx`, `context`
+- `task_workflow`, `mlx`, `context`
 
-**Removed 2026-01-28:** `memory`, `task_discovery`, `report`, `recommend`, `security`, `testing`, `lint` – branches and imports removed from execute_tool.py (Go handlers are fully native).
+**Removed 2026-01-28:** `memory`, `task_discovery`, `report`, `recommend`, `security`, `testing`, `lint`, `ollama` – branches and imports removed from execute_tool.py (Go handlers are fully native).
 
 ---
 
