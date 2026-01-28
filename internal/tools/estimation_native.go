@@ -157,8 +157,10 @@ func handleEstimationNative(ctx context.Context, projectRoot string, params map[
 		return handleEstimationAnalyze(projectRoot, params)
 	case "stats":
 		return handleEstimationStats(projectRoot, params)
+	case "estimate_batch":
+		return handleEstimationBatch(projectRoot, params)
 	default:
-		return "", fmt.Errorf("unknown action: %s (supported: estimate, analyze, stats)", action)
+		return "", fmt.Errorf("unknown action: %s (supported: estimate, analyze, stats, estimate_batch)", action)
 	}
 }
 

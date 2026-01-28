@@ -37,7 +37,7 @@ func handleTaskCommand(server framework.MCPServer, args []string) error {
 // handleTaskList handles "task list" command
 func handleTaskList(server framework.MCPServer, args []string) error {
 	// Parse flags
-	var status, priority, tag string
+	var status, priority, tag, order string
 	var limit int
 
 	for i := 0; i < len(args); i++ {
@@ -55,6 +55,9 @@ func handleTaskList(server framework.MCPServer, args []string) error {
 		case arg == "--limit" && i+1 < len(args):
 			fmt.Sscanf(args[i+1], "%d", &limit)
 			i++
+		case arg == "--order" && i+1 < len(args):
+			order = args[i+1]
+			i++
 		case strings.HasPrefix(arg, "--status="):
 			status = strings.TrimPrefix(arg, "--status=")
 		case strings.HasPrefix(arg, "--priority="):
@@ -63,6 +66,8 @@ func handleTaskList(server framework.MCPServer, args []string) error {
 			tag = strings.TrimPrefix(arg, "--tag=")
 		case strings.HasPrefix(arg, "--limit="):
 			fmt.Sscanf(strings.TrimPrefix(arg, "--limit="), "%d", &limit)
+		case strings.HasPrefix(arg, "--order="):
+			order = strings.TrimPrefix(arg, "--order=")
 		}
 	}
 
@@ -83,6 +88,9 @@ func handleTaskList(server framework.MCPServer, args []string) error {
 	}
 	if limit > 0 {
 		toolArgs["limit"] = limit
+	}
+	if order == "execution" || order == "dependency" {
+		toolArgs["order"] = order
 	}
 
 	return executeTaskWorkflow(server, toolArgs)

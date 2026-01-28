@@ -28,9 +28,10 @@ func handleReportOverview(ctx context.Context, params map[string]interface{}) ([
 	}
 
 	outputPath, _ := params["output_path"].(string)
+	includePlanning, _ := params["include_planning"].(bool)
 
 	// Aggregate project data
-	overviewData, err := aggregateProjectData(ctx, projectRoot)
+	overviewData, err := aggregateProjectData(ctx, projectRoot, includePlanning)
 	if err != nil {
 		return nil, fmt.Errorf("failed to aggregate project data: %w", err)
 	}
@@ -180,7 +181,7 @@ func handleReportPRD(ctx context.Context, params map[string]interface{}) ([]fram
 }
 
 // aggregateProjectData aggregates all project data for overview
-func aggregateProjectData(ctx context.Context, projectRoot string) (map[string]interface{}, error) {
+func aggregateProjectData(ctx context.Context, projectRoot string, includePlanning bool) (map[string]interface{}, error) {
 	data := make(map[string]interface{})
 
 	// Project info
@@ -239,9 +240,50 @@ func aggregateProjectData(ctx context.Context, projectRoot string) (map[string]i
 		data["next_actions"] = nextActions
 	}
 
+	// Optional: planning snippet (critical path + first N backlog order)
+	if includePlanning {
+		planning := getPlanningSnippet(projectRoot)
+		if planning != nil {
+			data["planning"] = planning
+		}
+	}
+
 	data["generated_at"] = time.Now().Format(time.RFC3339)
 
 	return data, nil
+}
+
+// getPlanningSnippet returns critical path summary and suggested backlog order (first 10).
+func getPlanningSnippet(projectRoot string) map[string]interface{} {
+	out := make(map[string]interface{})
+
+	// Critical path
+	if cp, err := AnalyzeCriticalPath(projectRoot); err == nil {
+		if hasCP, _ := cp["has_critical_path"].(bool); hasCP {
+			if path, ok := cp["critical_path"].([]string); ok && len(path) > 0 {
+				out["critical_path"] = path
+				out["critical_path_summary"] = fmt.Sprintf("%d tasks: %s", len(path), strings.Join(path, ", "))
+			}
+		}
+	}
+
+	// First 10 in backlog execution order
+	tasks, err := LoadTodo2Tasks(projectRoot)
+	if err != nil {
+		return out
+	}
+	orderedIDs, _, _, err := BacklogExecutionOrder(tasks)
+	if err != nil || len(orderedIDs) == 0 {
+		return out
+	}
+	const n = 10
+	if len(orderedIDs) > n {
+		orderedIDs = orderedIDs[:n]
+	}
+	out["suggested_backlog_order"] = orderedIDs
+	out["suggested_backlog_summary"] = fmt.Sprintf("First %d: %s", len(orderedIDs), strings.Join(orderedIDs, ", "))
+
+	return out
 }
 
 // getProjectInfo extracts project metadata
@@ -416,13 +458,28 @@ func getRisksAndBlockers(projectRoot string) ([]map[string]interface{}, error) {
 	return risks, nil
 }
 
-// getNextActions identifies next priority actions
+// isTaskReady returns true if task is in backlog and all its dependencies are Done.
+func isTaskReady(task Todo2Task, taskMap map[string]Todo2Task) bool {
+	for _, depID := range task.Dependencies {
+		if dep, ok := taskMap[depID]; ok && !IsCompletedStatus(dep.Status) {
+			return false
+		}
+	}
+	return true
+}
+
+// getNextActions identifies next priority actions (dependency-aware: only suggests ready tasks).
 func getNextActions(projectRoot string) ([]map[string]interface{}, error) {
 	actions := []map[string]interface{}{}
 
 	tasks, err := LoadTodo2Tasks(projectRoot)
-	if err == nil {
-		// Get high priority pending tasks
+	if err != nil {
+		return actions, nil
+	}
+
+	orderedIDs, _, _, err := BacklogExecutionOrder(tasks)
+	if err != nil {
+		// Fallback: high/critical pending without order
 		for _, task := range tasks {
 			if IsPendingStatus(task.Status) && (task.Priority == "high" || task.Priority == "critical") {
 				estimatedHours := 0.0
@@ -442,8 +499,39 @@ func getNextActions(projectRoot string) ([]map[string]interface{}, error) {
 				}
 			}
 		}
+		return actions, nil
 	}
 
+	taskMap := make(map[string]Todo2Task)
+	for _, t := range tasks {
+		taskMap[t.ID] = t
+	}
+
+	const maxNext = 10
+	for _, taskID := range orderedIDs {
+		if len(actions) >= maxNext {
+			break
+		}
+		task, ok := taskMap[taskID]
+		if !ok || !IsBacklogStatus(task.Status) {
+			continue
+		}
+		if !isTaskReady(task, taskMap) {
+			continue
+		}
+		estimatedHours := 0.0
+		if task.Metadata != nil {
+			if hours, ok := task.Metadata["estimatedHours"].(float64); ok {
+				estimatedHours = hours
+			}
+		}
+		actions = append(actions, map[string]interface{}{
+			"task_id":         task.ID,
+			"name":            task.Content,
+			"priority":        task.Priority,
+			"estimated_hours": estimatedHours,
+		})
+	}
 	return actions, nil
 }
 
@@ -589,6 +677,16 @@ func formatOverviewText(data map[string]interface{}) string {
 		sb.WriteString("\n")
 	}
 
+	// Planning (optional)
+	if planning, ok := data["planning"].(map[string]interface{}); ok {
+		if summary, ok := planning["critical_path_summary"].(string); ok && summary != "" {
+			sb.WriteString("Critical Path: " + summary + "\n\n")
+		}
+		if summary, ok := planning["suggested_backlog_summary"].(string); ok && summary != "" {
+			sb.WriteString("Suggested Backlog Order: " + summary + "\n\n")
+		}
+	}
+
 	return sb.String()
 }
 
@@ -623,6 +721,17 @@ func formatOverviewMarkdown(data map[string]interface{}) string {
 		sb.WriteString(fmt.Sprintf("- **Completed**: %d\n", tasks["completed"]))
 		if rate, ok := tasks["completion_rate"].(float64); ok {
 			sb.WriteString(fmt.Sprintf("- **Completion Rate**: %.1f%%\n\n", rate))
+		}
+	}
+
+	// Planning (optional)
+	if planning, ok := data["planning"].(map[string]interface{}); ok {
+		if summary, ok := planning["critical_path_summary"].(string); ok && summary != "" {
+			sb.WriteString("## Planning\n\n")
+			sb.WriteString("- **Critical Path**: " + summary + "\n\n")
+		}
+		if summary, ok := planning["suggested_backlog_summary"].(string); ok && summary != "" {
+			sb.WriteString("- **Suggested Backlog Order**: " + summary + "\n\n")
 		}
 	}
 

@@ -389,6 +389,11 @@ func registerBatch2Tools(server framework.MCPServer) error {
 				"output_path": map[string]interface{}{
 					"type": "string",
 				},
+				"include_planning": map[string]interface{}{
+					"type":        "boolean",
+					"default":     false,
+					"description": "If true, overview includes critical path and suggested backlog order (first 10)",
+				},
 				"fast_mode": map[string]interface{}{
 					"type":    "boolean",
 					"default": true,
@@ -484,13 +489,13 @@ func registerBatch2Tools(server framework.MCPServer) error {
 	// T-32: task_analysis
 	if err := server.RegisterTool(
 		"task_analysis",
-		"[HINT: Task analysis. action=duplicates|tags|hierarchy|dependencies|parallelization|validate. Task quality and structure.]",
+		"[HINT: Task analysis. action=duplicates|tags|hierarchy|dependencies|parallelization|validate|execution_plan. Task quality and structure.]",
 		framework.ToolSchema{
 			Type: "object",
 			Properties: map[string]interface{}{
 				"action": map[string]interface{}{
 					"type":    "string",
-					"enum":    []string{"duplicates", "tags", "hierarchy", "dependencies", "parallelization", "fix_missing_deps", "validate"},
+					"enum":    []string{"duplicates", "tags", "hierarchy", "dependencies", "parallelization", "fix_missing_deps", "validate", "execution_plan"},
 					"default": "duplicates",
 				},
 				"similarity_threshold": map[string]interface{}{
@@ -636,6 +641,10 @@ func registerBatch2Tools(server framework.MCPServer) error {
 				"auto_apply": map[string]interface{}{
 					"type":    "boolean",
 					"default": false,
+				},
+				"order": map[string]interface{}{
+					"type":        "string",
+					"description": "For sub_action=list: order results by 'execution' or 'dependency' (backlog dependency order)",
 				},
 				"output_format": map[string]interface{}{
 					"type":    "string",
@@ -984,14 +993,22 @@ func registerBatch3Tools(server framework.MCPServer) error {
 	// T-41: estimation
 	if err := server.RegisterTool(
 		"estimation",
-		"[HINT: Estimation. action=estimate|analyze|stats. Unified task duration estimation tool.]",
+		"[HINT: Estimation. action=estimate|analyze|stats|estimate_batch. Unified task duration estimation tool.]",
 		framework.ToolSchema{
 			Type: "object",
 			Properties: map[string]interface{}{
 				"action": map[string]interface{}{
 					"type":    "string",
-					"enum":    []string{"estimate", "analyze", "stats"},
+					"enum":    []string{"estimate", "analyze", "stats", "estimate_batch"},
 					"default": "estimate",
+				},
+				"task_ids": map[string]interface{}{
+					"type":        "array",
+					"description": "For estimate_batch: list of task IDs to estimate (or omit with status_filter for all matching)",
+				},
+				"status_filter": map[string]interface{}{
+					"type":        "string",
+					"description": "For estimate_batch: e.g. 'Todo' to estimate all Todo tasks (max 50)",
 				},
 				"name": map[string]interface{}{
 					"type": "string",

@@ -9,6 +9,7 @@ import (
 	"sort"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/davidl71/exarp-go/internal/config"
 	"github.com/davidl71/exarp-go/internal/framework"
@@ -32,6 +33,12 @@ func handleTaskAnalysisNative(ctx context.Context, params map[string]interface{}
 		return handleTaskAnalysisDependencies(ctx, params)
 	case "parallelization":
 		return handleTaskAnalysisParallelization(ctx, params)
+	case "fix_missing_deps":
+		return handleTaskAnalysisFixMissingDeps(ctx, params)
+	case "validate":
+		return handleTaskAnalysisValidate(ctx, params)
+	case "execution_plan":
+		return handleTaskAnalysisExecutionPlan(ctx, params)
 	default:
 		return nil, fmt.Errorf("unknown action: %s", action)
 	}
@@ -236,7 +243,7 @@ func handleTaskAnalysisDependencies(ctx context.Context, params map[string]inter
 		}
 	}
 
-	outputFormat := "text"
+	outputFormat := "json"
 	if format, ok := params["output_format"].(string); ok && format != "" {
 		outputFormat = format
 	}
@@ -259,6 +266,9 @@ func handleTaskAnalysisDependencies(ctx context.Context, params map[string]inter
 		result["max_dependency_level"] = maxLevel
 	}
 
+	// Include human-readable report in JSON for CLI/consumers
+	result["report"] = formatDependencyAnalysisText(result)
+
 	var output string
 	if outputFormat == "json" {
 		outputBytes, _ := json.MarshalIndent(result, "", "  ")
@@ -278,6 +288,137 @@ func handleTaskAnalysisDependencies(ctx context.Context, params map[string]inter
 	return []framework.TextContent{
 		{Type: "text", Text: output},
 	}, nil
+}
+
+// handleTaskAnalysisExecutionPlan handles execution plan: backlog (Todo + In Progress) in dependency order.
+func handleTaskAnalysisExecutionPlan(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
+	projectRoot, err := FindProjectRoot()
+	if err != nil {
+		return nil, fmt.Errorf("failed to find project root: %w", err)
+	}
+
+	tasks, err := LoadTodo2Tasks(projectRoot)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load tasks: %w", err)
+	}
+
+	orderedIDs, waves, details, err := BacklogExecutionOrder(tasks)
+	if err != nil {
+		return nil, fmt.Errorf("execution order: %w", err)
+	}
+
+	// Optional limit (0 = all)
+	limit := 0
+	if l, ok := params["limit"].(float64); ok && l > 0 {
+		limit = int(l)
+	}
+	if limit > 0 && len(orderedIDs) > limit {
+		orderedIDs = orderedIDs[:limit]
+		// Trim details to match
+		if len(details) > limit {
+			details = details[:limit]
+		}
+	}
+
+	result := map[string]interface{}{
+		"success":          true,
+		"method":           "native_go",
+		"backlog_count":    len(orderedIDs),
+		"ordered_task_ids": orderedIDs,
+		"waves":            waves,
+		"details":          details,
+	}
+
+	outputFormat := "json"
+	if format, ok := params["output_format"].(string); ok && format != "" {
+		outputFormat = format
+	}
+
+	var output string
+	if outputFormat == "json" {
+		outputBytes, _ := json.MarshalIndent(result, "", "  ")
+		output = string(outputBytes)
+	} else {
+		output = formatExecutionPlanText(result)
+	}
+
+	outputPath, _ := params["output_path"].(string)
+	if outputPath != "" {
+		if strings.HasSuffix(strings.ToLower(outputPath), ".md") {
+			md := formatExecutionPlanMarkdown(result, projectRoot)
+			if err := os.WriteFile(outputPath, []byte(md), 0644); err != nil {
+				return nil, fmt.Errorf("failed to save markdown: %w", err)
+			}
+		} else {
+			if err := os.WriteFile(outputPath, []byte(output), 0644); err != nil {
+				return nil, fmt.Errorf("failed to save result: %w", err)
+			}
+		}
+		result["output_path"] = outputPath
+	}
+
+	return []framework.TextContent{
+		{Type: "text", Text: output},
+	}, nil
+}
+
+func formatExecutionPlanText(result map[string]interface{}) string {
+	var sb strings.Builder
+	sb.WriteString("Backlog execution order\n")
+	sb.WriteString(strings.Repeat("-", 40) + "\n")
+	if ids, ok := result["ordered_task_ids"].([]string); ok {
+		for i, id := range ids {
+			sb.WriteString(fmt.Sprintf("%d. %s\n", i+1, id))
+		}
+	}
+	return sb.String()
+}
+
+func formatExecutionPlanMarkdown(result map[string]interface{}, projectRoot string) string {
+	var sb strings.Builder
+	sb.WriteString("# Backlog Execution Plan\n\n")
+	sb.WriteString(fmt.Sprintf("**Generated:** %s\n\n", fmtTime(time.Now())))
+	if count, ok := result["backlog_count"].(int); ok {
+		sb.WriteString(fmt.Sprintf("**Backlog:** %d tasks (Todo + In Progress)\n\n", count))
+	}
+	if w, ok := result["waves"].(map[int][]string); ok && len(w) > 0 {
+		sb.WriteString(fmt.Sprintf("**Waves:** %d dependency levels\n\n", len(w)))
+		details, _ := result["details"].([]BacklogTaskDetail)
+		levelOrder := make([]int, 0, len(w))
+		for k := range w {
+			levelOrder = append(levelOrder, k)
+		}
+		sort.Ints(levelOrder)
+		for _, level := range levelOrder {
+			ids := w[level]
+			sb.WriteString(fmt.Sprintf("## Wave %d\n\n", level))
+			sb.WriteString("| ID | Content | Priority |\n")
+			sb.WriteString("|----|--------|----------|\n")
+			for _, id := range ids {
+				for _, d := range details {
+					if d.ID == id {
+						content := d.Content
+						if len(content) > 60 {
+							content = content[:57] + "..."
+						}
+						sb.WriteString(fmt.Sprintf("| %s | %s | %s |\n", d.ID, content, d.Priority))
+						break
+					}
+				}
+			}
+			sb.WriteString("\n")
+		}
+	}
+	sb.WriteString("## Full order\n\n")
+	if ids, ok := result["ordered_task_ids"].([]string); ok {
+		sb.WriteString(strings.Join(ids, ", "))
+		sb.WriteString("\n")
+	}
+	return sb.String()
+}
+
+func fmtTime(t time.Time) string {
+	return t.Format("2006-01-02 15:04:05")
 }
 
 // handleTaskAnalysisParallelization handles parallelization analysis
@@ -300,7 +441,7 @@ func handleTaskAnalysisParallelization(ctx context.Context, params map[string]in
 	// Find parallelizable tasks
 	parallelGroups := findParallelizableTasks(tasks, durationWeight)
 
-	outputFormat := "text"
+	outputFormat := "json"
 	if format, ok := params["output_format"].(string); ok && format != "" {
 		outputFormat = format
 	}
@@ -313,6 +454,9 @@ func handleTaskAnalysisParallelization(ctx context.Context, params map[string]in
 		"duration_weight": durationWeight,
 		"recommendations": buildParallelizationRecommendations(parallelGroups),
 	}
+
+	// Include human-readable report in JSON for CLI/consumers
+	result["report"] = formatParallelizationAnalysisText(result)
 
 	var output string
 	if outputFormat == "json" {
@@ -333,6 +477,134 @@ func handleTaskAnalysisParallelization(ctx context.Context, params map[string]in
 	return []framework.TextContent{
 		{Type: "text", Text: output},
 	}, nil
+}
+
+// handleTaskAnalysisFixMissingDeps removes invalid dependency refs from tasks and saves.
+// Use once to fix tasks that depend on non-existent IDs (e.g. T-45, T-5 depending on T-4).
+func handleTaskAnalysisFixMissingDeps(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
+	projectRoot, err := FindProjectRoot()
+	if err != nil {
+		return nil, fmt.Errorf("failed to find project root: %w", err)
+	}
+
+	tasks, err := LoadTodo2Tasks(projectRoot)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load tasks: %w", err)
+	}
+
+	tg, err := BuildTaskGraph(tasks)
+	if err != nil {
+		return nil, fmt.Errorf("failed to build task graph: %w", err)
+	}
+
+	missing := findMissingDependencies(tasks, tg)
+	if len(missing) == 0 {
+		out := map[string]interface{}{
+			"success":     true,
+			"message":     "No missing dependency refs to fix",
+			"total_tasks": len(tasks),
+		}
+		b, _ := json.MarshalIndent(out, "", "  ")
+		return []framework.TextContent{{Type: "text", Text: string(b)}}, nil
+	}
+
+	// Per task, collect missing dep IDs to remove
+	missingDepsByTask := make(map[string]map[string]struct{})
+	for _, m := range missing {
+		tid, _ := m["task_id"].(string)
+		dep, _ := m["missing_dep"].(string)
+		if tid == "" || dep == "" {
+			continue
+		}
+		if missingDepsByTask[tid] == nil {
+			missingDepsByTask[tid] = make(map[string]struct{})
+		}
+		missingDepsByTask[tid][dep] = struct{}{}
+	}
+
+	// Remove all invalid deps from each task in one pass
+	fixed := 0
+	for i := range tasks {
+		t := &tasks[i]
+		toRemove := missingDepsByTask[t.ID]
+		if len(toRemove) == 0 {
+			continue
+		}
+		newDeps := make([]string, 0, len(t.Dependencies))
+		for _, d := range t.Dependencies {
+			if _, remove := toRemove[d]; remove {
+				fixed++
+			} else {
+				newDeps = append(newDeps, d)
+			}
+		}
+		t.Dependencies = newDeps
+	}
+
+	if err := SaveTodo2Tasks(projectRoot, tasks); err != nil {
+		return nil, fmt.Errorf("failed to save tasks after fix: %w", err)
+	}
+
+	result := map[string]interface{}{
+		"success":      true,
+		"total_tasks":  len(tasks),
+		"missing_refs": len(missing),
+		"removed":      fixed,
+		"message":      fmt.Sprintf("Removed %d invalid dependency ref(s) and saved", fixed),
+	}
+	b, _ := json.MarshalIndent(result, "", "  ")
+	return []framework.TextContent{{Type: "text", Text: string(b)}}, nil
+}
+
+// handleTaskAnalysisValidate reports missing dependency IDs and optionally hierarchy parse warnings.
+// Returns JSON with missing_deps and optional hierarchy_warning (when FM returns non-JSON).
+func handleTaskAnalysisValidate(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
+	projectRoot, err := FindProjectRoot()
+	if err != nil {
+		return nil, fmt.Errorf("failed to find project root: %w", err)
+	}
+
+	tasks, err := LoadTodo2Tasks(projectRoot)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load tasks: %w", err)
+	}
+
+	tg, err := BuildTaskGraph(tasks)
+	if err != nil {
+		return nil, fmt.Errorf("failed to build task graph: %w", err)
+	}
+
+	missing := findMissingDependencies(tasks, tg)
+	result := map[string]interface{}{
+		"success":       true,
+		"method":        "native_go",
+		"total_tasks":   len(tasks),
+		"missing_deps":  missing,
+		"missing_count": len(missing),
+	}
+
+	includeHierarchy := false
+	if h, ok := params["include_hierarchy"].(bool); ok {
+		includeHierarchy = h
+	}
+	if includeHierarchy && FMAvailable() {
+		hierResult, err := handleTaskAnalysisHierarchy(ctx, params)
+		if err == nil && len(hierResult) > 0 {
+			var hierData map[string]interface{}
+			if json.Unmarshal([]byte(hierResult[0].Text), &hierData) == nil {
+				if skipped, _ := hierData["hierarchy_skipped"].(string); skipped != "" {
+					result["hierarchy_warning"] = map[string]interface{}{
+						"skipped":          skipped,
+						"parse_error":      hierData["parse_error"],
+						"response_snippet": hierData["response_snippet"],
+					}
+				}
+			}
+		}
+	}
+
+	b, _ := json.MarshalIndent(result, "", "  ")
+	return []framework.TextContent{{Type: "text", Text: string(b)}}, nil
 }
 
 // Helper functions for duplicates detection
@@ -1127,14 +1399,14 @@ Return JSON array with format: [{"task_id": "T-1", "level": "component", "compon
 				snippet = snippet[:MaxLLMResponseSnippetLen] + "..."
 			}
 			analysis := map[string]interface{}{
-				"success":             true,
-				"method":              "foundation_model",
-				"total_tasks":         len(tasks),
-				"pending_tasks":       len(pendingTasks),
-				"classifications":     []map[string]interface{}{},
-				"hierarchy_skipped":   "fm_response_not_valid_json",
-				"parse_error":         err.Error(),
-				"response_snippet":    snippet,
+				"success":           true,
+				"method":            "foundation_model",
+				"total_tasks":       len(tasks),
+				"pending_tasks":     len(pendingTasks),
+				"classifications":   []map[string]interface{}{},
+				"hierarchy_skipped": "fm_response_not_valid_json",
+				"parse_error":       err.Error(),
+				"response_snippet":  snippet,
 			}
 			outputBytes, _ := json.MarshalIndent(analysis, "", "  ")
 			return []framework.TextContent{

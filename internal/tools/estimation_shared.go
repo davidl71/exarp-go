@@ -434,6 +434,123 @@ func handleEstimationStats(projectRoot string, params map[string]interface{}) (s
 	return string(resultJSON), nil
 }
 
+const estimateBatchMaxTasks = 50
+
+// handleEstimationBatch estimates duration for multiple tasks (statistical only; cap at estimateBatchMaxTasks).
+// Params: task_ids (array or comma-separated string), or status_filter (e.g. "Todo") to estimate all matching tasks.
+func handleEstimationBatch(projectRoot string, params map[string]interface{}) (string, error) {
+	tasks, err := LoadTodo2Tasks(projectRoot)
+	if err != nil {
+		return "", fmt.Errorf("failed to load tasks: %w", err)
+	}
+
+	// Resolve task set: by IDs or by status filter
+	var target []Todo2Task
+	if idsRaw, ok := params["task_ids"]; ok && idsRaw != nil {
+		var ids []string
+		switch v := idsRaw.(type) {
+		case []interface{}:
+			for _, x := range v {
+				if s, ok := x.(string); ok && s != "" {
+					ids = append(ids, s)
+				}
+			}
+		case string:
+			if v != "" {
+				for _, s := range strings.Split(v, ",") {
+					s = strings.TrimSpace(s)
+					if s != "" {
+						ids = append(ids, s)
+					}
+				}
+			}
+		}
+		idSet := make(map[string]bool)
+		for _, id := range ids {
+			idSet[id] = true
+		}
+		for _, t := range tasks {
+			if idSet[t.ID] {
+				target = append(target, t)
+			}
+		}
+	} else if statusFilter, ok := params["status_filter"].(string); ok && statusFilter != "" {
+		for _, t := range tasks {
+			if t.Status == statusFilter {
+				target = append(target, t)
+			}
+		}
+	} else {
+		// Default: all Todo
+		for _, t := range tasks {
+			if t.Status == "Todo" {
+				target = append(target, t)
+			}
+		}
+	}
+
+	if len(target) == 0 {
+		return `{"total_tasks": 0, "total_hours": 0, "by_priority": {}, "estimates": []}`, nil
+	}
+
+	if len(target) > estimateBatchMaxTasks {
+		target = target[:estimateBatchMaxTasks]
+	}
+
+	useHistorical := true
+	if useHist, ok := params["use_historical"].(bool); ok {
+		useHistorical = useHist
+	}
+
+	totalHours := 0.0
+	byPriority := make(map[string]float64)
+	estimates := make([]map[string]interface{}, 0, len(target))
+
+	for _, task := range target {
+		details := task.LongDescription
+		if details == "" {
+			details = task.Content
+		}
+		priority := task.Priority
+		if priority == "" {
+			priority = "medium"
+		}
+		res, err := estimateStatistically(projectRoot, task.Content, details, task.Tags, priority, useHistorical)
+		if err != nil {
+			estimates = append(estimates, map[string]interface{}{
+				"task_id":        task.ID,
+				"content":        task.Content,
+				"estimate_hours": 0.0,
+				"method":         "error",
+				"error":          err.Error(),
+			})
+			continue
+		}
+		totalHours += res.EstimateHours
+		byPriority[priority] = byPriority[priority] + res.EstimateHours
+		estimates = append(estimates, map[string]interface{}{
+			"task_id":        task.ID,
+			"content":        task.Content,
+			"estimate_hours": res.EstimateHours,
+			"method":         res.Method,
+		})
+	}
+
+	result := map[string]interface{}{
+		"total_tasks": len(estimates),
+		"total_hours": math.Round(totalHours*10) / 10,
+		"by_priority": byPriority,
+		"estimates":   estimates,
+		"capped":      len(target) == estimateBatchMaxTasks,
+	}
+
+	resultJSON, err := json.MarshalIndent(result, "", "  ")
+	if err != nil {
+		return "", fmt.Errorf("failed to marshal batch result: %w", err)
+	}
+	return string(resultJSON), nil
+}
+
 // loadHistoricalTasks loads completed tasks from Todo2 (DB-first, then JSON fallback).
 // When the project uses SQLite, Done tasks are loaded from the database with
 // estimation columns (created, last_modified, completed_at, estimated_hours, actual_hours).
