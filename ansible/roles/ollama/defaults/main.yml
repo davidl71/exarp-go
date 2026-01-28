@@ -1,0 +1,6 @@
+---
+# Ollama role defaults
+# Models to pull after install (llama3.2 = app default; llama3 = used by some tests)
+ollama_models:
+  - llama3.2
+  - llama3

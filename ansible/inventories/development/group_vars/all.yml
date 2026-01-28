@@ -26,6 +26,7 @@ install_linters: true
 install_dev_tools: true
 install_file_watchers: true
 install_gh: false  # GitHub CLI (gh) - useful for GitHub API interactions and authenticated git operations
+install_ollama: true   # Ollama - for ollama tool and native tests (ollama serve + models)
 
 # Linter configuration
 linters:
@@ -45,4 +46,9 @@ dev_tools:
 # Node.js tools (for MCP servers)
 node_tools:
   - npx  # Comes with npm
+
+# Ollama (when install_ollama: true) - models pulled so ollama native tests pass
+ollama_models:
+  - llama3.2   # App default
+  - llama3     # Used by some tests
 

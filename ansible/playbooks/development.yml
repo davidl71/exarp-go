@@ -29,6 +29,12 @@
         - linters
         - optional
 
+    - role: ollama
+      when: install_ollama | default(false)
+      tags:
+        - ollama
+        - optional
+
   tasks:
     - name: Create project directory
       ansible.builtin.file:
@@ -73,5 +79,6 @@
           - "Linters installed: {{ install_linters | default(false) }}"
           - "Dev tools installed: {{ install_dev_tools | default(false) }}"
           - "GitHub CLI (gh) installed: {{ install_gh | default(false) }}"
+          - "Ollama installed: {{ install_ollama | default(false) }} (start with: ollama serve)"
       tags:
         - always

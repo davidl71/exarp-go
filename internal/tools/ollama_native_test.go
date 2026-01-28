@@ -264,7 +264,7 @@ func TestHandleOllamaNative(t *testing.T) {
 			name: "summary action",
 			params: map[string]interface{}{
 				"action": "summary",
-				"text":   "Test text",
+				"data":   "Test text",
 			},
 			wantError: false, // Will fail if Ollama not running, but that's expected
 		},
