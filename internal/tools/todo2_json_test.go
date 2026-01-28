@@ -180,3 +180,42 @@ func TestMarshalTasksToStateJSON_IncludesNameAndDescription(t *testing.T) {
 		t.Errorf("JSON should contain \"name\" and \"description\" keys: %s", string(data))
 	}
 }
+
+// TestSanitizeMetadataForWrite_ProducesValidJSON verifies discovery-style metadata (int line, type, file) marshals to valid JSON.
+func TestSanitizeMetadataForWrite_ProducesValidJSON(t *testing.T) {
+	// Simulate task_discovery metadata: type string, file string, line int
+	metadata := map[string]interface{}{
+		"discovery_type":  "MARKDOWN_TASK",
+		"discovered_from": "docs/foo.md",
+		"discovered_line": 42, // int is JSON-safe but SanitizeMetadataForWrite coerces to float64
+	}
+	sanitized := SanitizeMetadataForWrite(metadata)
+	if sanitized == nil {
+		t.Fatal("SanitizeMetadataForWrite returned nil")
+	}
+	data, err := json.Marshal(sanitized)
+	if err != nil {
+		t.Fatalf("Marshal sanitized metadata: %v", err)
+	}
+	var decoded map[string]interface{}
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		t.Fatalf("Round-trip unmarshal: %v", err)
+	}
+	if decoded["discovery_type"] != "MARKDOWN_TASK" {
+		t.Errorf("discovery_type: got %v", decoded["discovery_type"])
+	}
+	if decoded["discovered_from"] != "docs/foo.md" {
+		t.Errorf("discovered_from: got %v", decoded["discovered_from"])
+	}
+	// int becomes float64 after JSON round-trip
+	if line, ok := decoded["discovered_line"].(float64); !ok || line != 42 {
+		t.Errorf("discovered_line: got %v", decoded["discovered_line"])
+	}
+	// Nil and empty map return nil
+	if SanitizeMetadataForWrite(nil) != nil {
+		t.Error("SanitizeMetadataForWrite(nil) should return nil")
+	}
+	if SanitizeMetadataForWrite(map[string]interface{}{}) != nil {
+		t.Error("SanitizeMetadataForWrite(empty) should return nil")
+	}
+}

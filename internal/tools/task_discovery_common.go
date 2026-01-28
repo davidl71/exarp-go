@@ -1,8 +1,20 @@
 package tools
 
 import (
+	"fmt"
 	"strings"
 )
+
+// toJSONSafeString returns a string for use in JSON output; avoids non-scalar types in tool response.
+func toJSONSafeString(v interface{}) string {
+	if v == nil {
+		return ""
+	}
+	if s, ok := v.(string); ok {
+		return s
+	}
+	return fmt.Sprint(v)
+}
 
 // createTasksFromDiscoveries creates Todo2 tasks from discovered items.
 // Shared by both CGO (task_discovery_native.go) and nocgo (task_discovery_native_nocgo.go) builds.
@@ -44,23 +56,24 @@ func createTasksFromDiscoveries(projectRoot string, discoveries []map[string]int
 		if line, ok := discovery["line"]; ok {
 			metadata["discovered_line"] = line
 		}
-
+		// Sanitize so persisted state and DB never get non-JSON-serializable metadata
 		newTask := Todo2Task{
 			ID:       taskID,
 			Content:  text,
 			Status:   "Todo",
 			Priority: "medium",
 			Tags:     []string{"discovered", sourceTag},
-			Metadata: metadata,
+			Metadata: SanitizeMetadataForWrite(metadata),
 		}
 
 		existingTasks = append(existingTasks, newTask)
 		existingContent[textLower] = true
 
+		// Coerce source to string so tool response JSON is always valid
 		createdTasks = append(createdTasks, map[string]interface{}{
 			"id":      taskID,
 			"content": text,
-			"source":  discovery["source"],
+			"source":  toJSONSafeString(discovery["source"]),
 		})
 	}
 

@@ -96,6 +96,53 @@ type todo2TaskWrite struct {
 	CompletedAt     string                 `json:"completed_at,omitempty"`
 }
 
+// SanitizeMetadataForWrite returns a copy of metadata with all values coerced to types
+// that encoding/json can marshal (string, float64, int, int64, bool, nil, []interface{},
+// map[string]interface{}). Prevents invalid JSON when task_discovery or other code
+// puts non-scalar values into Metadata. Use when writing state JSON or building task metadata.
+func SanitizeMetadataForWrite(metadata map[string]interface{}) map[string]interface{} {
+	if metadata == nil || len(metadata) == 0 {
+		return nil
+	}
+	out := make(map[string]interface{}, len(metadata))
+	for k, v := range metadata {
+		out[k] = jsonSafeValue(v)
+	}
+	return out
+}
+
+func jsonSafeValue(v interface{}) interface{} {
+	if v == nil {
+		return nil
+	}
+	switch x := v.(type) {
+	case string:
+		return x
+	case float64:
+		return x
+	case int:
+		return float64(x)
+	case int64:
+		return float64(x)
+	case bool:
+		return x
+	case []interface{}:
+		out := make([]interface{}, len(x))
+		for i, e := range x {
+			out[i] = jsonSafeValue(e)
+		}
+		return out
+	case map[string]interface{}:
+		out := make(map[string]interface{}, len(x))
+		for k2, val := range x {
+			out[k2] = jsonSafeValue(val)
+		}
+		return out
+	default:
+		return fmt.Sprint(x)
+	}
+}
+
 // MarshalTasksToStateJSON marshals tasks to state.todo2.json format with "name", "description",
 // and "created"/"updated" for Todo2 extension compatibility (no Invalid Date or 1970).
 // Never writes epoch dates; empty dates get a fallback (last_modified or now) so the extension always has a parseable date.
@@ -140,7 +187,7 @@ func MarshalTasksToStateJSON(tasks []models.Todo2Task) ([]byte, error) {
 			Tags:            t.Tags,
 			Dependencies:    t.Dependencies,
 			Completed:       t.Completed,
-			Metadata:        t.Metadata,
+			Metadata:        SanitizeMetadataForWrite(t.Metadata),
 			Created:         createdAt,
 			CreatedAt:       createdAt,
 			Updated:         lastMod,
