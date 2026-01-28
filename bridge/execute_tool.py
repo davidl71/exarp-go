@@ -72,8 +72,8 @@ def execute_tool(tool_name: str, args_json: str, use_protobuf: bool = False, pro
         # Note: tool_catalog, workflow_mode, git_tools, infer_session_mode, health, automation,
         # generate_config, add_external_tool_hints, setup_hooks, check_attribution, session, memory_maint,
         # analyze_alignment, estimation, task_analysis - fully native Go with no Python handler
+        # report: migrated to native Go (no Python handler, removed)
         from project_management_automation.tools.consolidated import (
-            report as _report,
             security as _security,
             task_workflow as _task_workflow,
             testing as _testing,
@@ -89,24 +89,8 @@ def execute_tool(tool_name: str, args_json: str, use_protobuf: bool = False, pro
         
         # Route to appropriate tool
         # memory, task_discovery: migrated to native Go (removed 2026-01-28)
-        if tool_name == "report":
-            result = _report(
-                action=args.get("action", "overview"),
-                output_format=args.get("output_format", "text"),
-                output_path=args.get("output_path"),
-                include_recommendations=args.get("include_recommendations", True),
-                overall_score=args.get("overall_score", 50.0),
-                security_score=args.get("security_score", 50.0),
-                testing_score=args.get("testing_score", 50.0),
-                documentation_score=args.get("documentation_score", 50.0),
-                completion_score=args.get("completion_score", 50.0),
-                alignment_score=args.get("alignment_score", 50.0),
-                project_name=args.get("project_name"),
-                include_architecture=args.get("include_architecture", True),
-                include_metrics=args.get("include_metrics", True),
-                include_tasks=args.get("include_tasks", True),
-            )
-        elif tool_name == "security":
+        # report: migrated to native Go (removed)
+        if tool_name == "security":
             result = _security(
                 action=args.get("action", "report"),
                 repo=args.get("repo", "davidl71/exarp-go"),

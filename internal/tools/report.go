@@ -309,17 +309,17 @@ func getCodebaseMetrics(projectRoot string) (map[string]interface{}, error) {
 		"python_lines": 0, // Could count lines if needed
 		"total_files":  totalFiles,
 		"total_lines":  0,  // Could count lines if needed
-		"tools":        30, // From registry
+		"tools":        28, // From registry (28 base + 1 conditional Apple FM)
 		"prompts":      19, // From templates.go
-		"resources":    11, // From resources registry
+		"resources":    21, // From resources/handlers.go
 	}
 
 	// Count tools, prompts, resources from registry
 	// These would need to be exported from registry.go or counted differently
-	// For now, use approximate values
-	metrics["tools"] = 30
+	// For now, use values matching MIGRATION_STATUS_CURRENT.md
+	metrics["tools"] = 28
 	metrics["prompts"] = 19
-	metrics["resources"] = 11
+	metrics["resources"] = 21
 
 	return metrics, err
 }
@@ -373,8 +373,8 @@ func getProjectPhases() map[string]interface{} {
 		},
 		"phase_2": map[string]interface{}{
 			"name":     "Medium Complexity Tools",
-			"status":   "in_progress",
-			"progress": 44,
+			"status":   "complete",
+			"progress": 100,
 		},
 		"phase_3": map[string]interface{}{
 			"name":     "Complex Tools",

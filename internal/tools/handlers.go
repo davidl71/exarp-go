@@ -178,9 +178,8 @@ func handleMemoryMaint(ctx context.Context, args json.RawMessage) ([]framework.T
 	return handleMemoryMaintNative(ctx, args)
 }
 
-// handleReport handles the report tool
-// Uses native Go for overview, briefing, scorecard (Go projects only), and prd actions.
-// Falls back to Python bridge only for unsupported actions or when overview/prd native fails.
+// handleReport handles the report tool.
+// Fully native Go: overview, scorecard (Go projects only), briefing, prd. No Python bridge fallback.
 func handleReport(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
 	// Try protobuf first, fall back to JSON for backward compatibility
 	req, params, err := ParseReportRequest(args)
@@ -203,112 +202,65 @@ func handleReport(ctx context.Context, args json.RawMessage) ([]framework.TextCo
 		action = "overview"
 	}
 
-	// Route to native implementations based on action
+	// Route to native implementations based on action (no Python bridge fallback)
 	switch action {
 	case "scorecard":
-		// Check if go.mod exists (Go project)
-		if IsGoProject() {
-			// Use Go-specific scorecard; fast_mode from params (default true)
-			projectRoot, err := security.GetProjectRoot(".")
-			if err == nil {
-				fastMode := true
-				if v, ok := params["fast_mode"].(bool); ok {
-					fastMode = v
-				}
-				opts := &ScorecardOptions{FastMode: fastMode}
-				scorecard, err := GenerateGoScorecard(ctx, projectRoot, opts)
-				if err == nil {
-					// Convert to map for MLX enhancement
-					scorecardMap := GoScorecardToMap(scorecard)
-
-					// Enhance with MLX if available
-					enhanced, err := enhanceReportWithMLX(ctx, scorecardMap, action)
-					if err == nil && enhanced != nil {
-						// Check if MLX insights were added
-						if insights, ok := enhanced["ai_insights"].(map[string]interface{}); ok {
-							// Format with MLX insights (wisdom is added separately after MLX)
-							result := FormatGoScorecardWithMLX(scorecard, insights)
-							// Add wisdom to MLX-enhanced scorecard
-							wisdomResult := addWisdomToScorecard(result, scorecard)
-							return []framework.TextContent{
-								{Type: "text", Text: wisdomResult},
-							}, nil
-						}
-					}
-
-					// Format as text output with wisdom (without MLX if enhancement failed)
-					result := FormatGoScorecardWithWisdom(scorecard)
-					return []framework.TextContent{
-						{Type: "text", Text: result},
-					}, nil
-				}
-				// Fall through to Python bridge if Go scorecard fails
-			}
-			// Fall through to Python bridge if project root not found
+		if !IsGoProject() {
+			return nil, fmt.Errorf("scorecard action is only supported for Go projects (go.mod); use action=overview for other project types")
 		}
-		// Non-Go projects: return clear error instead of Python bridge (shrink fallback surface)
-		return nil, fmt.Errorf("scorecard action is only supported for Go projects (go.mod); use action=overview for other project types")
+		projectRoot, err := security.GetProjectRoot(".")
+		if err != nil {
+			return nil, fmt.Errorf("report scorecard: %w", err)
+		}
+		fastMode := true
+		if v, ok := params["fast_mode"].(bool); ok {
+			fastMode = v
+		}
+		opts := &ScorecardOptions{FastMode: fastMode}
+		scorecard, err := GenerateGoScorecard(ctx, projectRoot, opts)
+		if err != nil {
+			return nil, fmt.Errorf("report scorecard: %w", err)
+		}
+		// Convert to map for MLX enhancement
+		scorecardMap := GoScorecardToMap(scorecard)
+		enhanced, err := enhanceReportWithMLX(ctx, scorecardMap, action)
+		if err == nil && enhanced != nil {
+			if insights, ok := enhanced["ai_insights"].(map[string]interface{}); ok {
+				result := FormatGoScorecardWithMLX(scorecard, insights)
+				wisdomResult := addWisdomToScorecard(result, scorecard)
+				return []framework.TextContent{
+					{Type: "text", Text: wisdomResult},
+				}, nil
+			}
+		}
+		result := FormatGoScorecardWithWisdom(scorecard)
+		return []framework.TextContent{
+			{Type: "text", Text: result},
+		}, nil
 
 	case "overview":
-		// Try native Go implementation
 		result, err := handleReportOverview(ctx, params)
-		if err == nil {
-			return result, nil
+		if err != nil {
+			return nil, fmt.Errorf("report overview: %w", err)
 		}
-		// Fall through to Python bridge if native fails
+		return result, nil
 
 	case "briefing":
-		// Native briefing uses in-process wisdom engine (devwisdom-go package); no fallback
 		result, err := handleReportBriefing(ctx, params)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("report briefing: %w", err)
 		}
 		return result, nil
 
 	case "prd":
-		// Try native Go implementation
 		result, err := handleReportPRD(ctx, params)
-		if err == nil {
-			return result, nil
+		if err != nil {
+			return nil, fmt.Errorf("report prd: %w", err)
 		}
-		// Fall through to Python bridge if native fails
+		return result, nil
 	}
 
-	// Execute via Python bridge (for unsupported actions or when native fails)
-	result, err := bridge.ExecutePythonTool(ctx, "report", params)
-	if err != nil {
-		return nil, fmt.Errorf("report failed: %w", err)
-	}
-
-	// Try to enhance with MLX insights
-	// Parse the result to extract data
-	var reportData map[string]interface{}
-	if err := json.Unmarshal([]byte(result), &reportData); err == nil {
-		// Enhance with MLX
-		enhanced, err := enhanceReportWithMLX(ctx, reportData, action)
-		if err == nil && enhanced != nil {
-			// Check if we should include MLX insights
-			includeMLX := true
-			if mlxParam, ok := params["use_mlx"].(bool); ok {
-				includeMLX = mlxParam
-			} else {
-				// Default to true for scorecard and overview
-				includeMLX = action == "scorecard" || action == "overview"
-			}
-
-			if includeMLX {
-				// Re-marshal with MLX insights
-				enhancedJSON, err := json.MarshalIndent(enhanced, "", "  ")
-				if err == nil {
-					result = string(enhancedJSON)
-				}
-			}
-		}
-	}
-
-	return []framework.TextContent{
-		{Type: "text", Text: result},
-	}, nil
+	return nil, fmt.Errorf("report action %q not supported; supported: overview, scorecard, briefing, prd", action)
 }
 
 // handleSecurity handles the security tool
