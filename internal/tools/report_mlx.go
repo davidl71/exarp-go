@@ -7,7 +7,7 @@ import (
 )
 
 // enhanceReportWithMLX enhances report data with AI-generated insights.
-// Uses DefaultReportInsight (tries MLX via bridge, then DefaultFM when MLX unavailable).
+// Uses DefaultReportInsight (tries MLX via bridge, then DefaultFMProvider() when MLX unavailable).
 // Report code does not depend on the bridge or MLX by name.
 func enhanceReportWithMLX(ctx context.Context, reportData map[string]interface{}, action string) (map[string]interface{}, error) {
 	// Build prompt based on action

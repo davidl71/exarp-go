@@ -415,7 +415,7 @@ Reason: %s
 Generate a single, specific question that would help clarify what needs to be done. Return only the question, no explanation.`,
 		task.ID, task.Content, task.LongDescription, reason)
 
-	result, err := DefaultFM.Generate(ctx, prompt, 100, 0.3)
+	result, err := DefaultFMProvider().Generate(ctx, prompt, 100, 0.3)
 	if err != nil {
 		return fmt.Sprintf("Task needs clarification: %s", reason)
 	}
