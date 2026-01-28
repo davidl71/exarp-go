@@ -6,7 +6,9 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
+	"time"
 
 	"github.com/davidl71/exarp-go/internal/database"
 	"github.com/davidl71/exarp-go/internal/framework"
@@ -14,8 +16,27 @@ import (
 	"github.com/davidl71/exarp-go/internal/security"
 )
 
+// prdPersona holds persona metadata for PRD alignment (matches Python prd_generator.PERSONAS).
+type prdPersona struct {
+	Name     string
+	Advisor  string
+	Keywords []string
+}
+
+// prdPersonas defines personas used for task-to-persona alignment (subset of Python PERSONAS).
+var prdPersonas = map[string]prdPersona{
+	"developer":         {Name: "Developer", Advisor: "tao_of_programming", Keywords: []string{"code", "implement", "fix", "build", "debug", "api", "endpoint", "mcp", "tool"}},
+	"project_manager":   {Name: "Project Manager", Advisor: "art_of_war", Keywords: []string{"sprint", "planning", "status", "delivery", "blockers", "progress", "schedule"}},
+	"code_reviewer":     {Name: "Code Reviewer", Advisor: "stoic", Keywords: []string{"pr", "review", "approve", "merge", "quality", "standards"}},
+	"architect":         {Name: "Architect", Advisor: "enochian", Keywords: []string{"design", "architecture", "coupling", "patterns", "structure", "scalability"}},
+	"security_engineer": {Name: "Security Engineer", Advisor: "bofh", Keywords: []string{"vulnerability", "security", "cve", "audit", "scan", "risk"}},
+	"qa_engineer":       {Name: "QA Engineer", Advisor: "stoic", Keywords: []string{"test", "coverage", "quality", "defect", "validation", "qa"}},
+	"executive":         {Name: "Executive/Stakeholder", Advisor: "pistis_sophia", Keywords: []string{"status", "summary", "overview", "stakeholder", "report", "dashboard"}},
+	"tech_writer":       {Name: "Technical Writer", Advisor: "confucius", Keywords: []string{"doc", "documentation", "docs", "readme", "guide", "tutorial"}},
+}
+
 // handleAnalyzeAlignmentNative handles the analyze_alignment tool with native Go implementation
-// Implements "todo2" action fully (including followup task creation), falls back to Python bridge for "prd" action
+// Implements both "todo2" and "prd" actions natively
 func handleAnalyzeAlignmentNative(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	// Get action (default: "todo2")
 	action := "todo2"
@@ -27,8 +48,7 @@ func handleAnalyzeAlignmentNative(ctx context.Context, params map[string]interfa
 	case "todo2":
 		return handleAlignmentTodo2(ctx, params)
 	case "prd":
-		// PRD alignment is complex, use Python bridge
-		return nil, fmt.Errorf("PRD alignment not yet implemented in native Go, using Python bridge")
+		return handleAlignmentPRD(ctx, params)
 	default:
 		return nil, fmt.Errorf("unknown alignment action: %s. Use 'todo2' or 'prd'", action)
 	}
@@ -120,6 +140,214 @@ func handleAlignmentTodo2(ctx context.Context, params map[string]interface{}) ([
 	return []framework.TextContent{
 		{Type: "text", Text: string(resultJSON)},
 	}, nil
+}
+
+// handleAlignmentPRD handles the "prd" action: task-to-persona alignment using PRD.md and persona keywords
+func handleAlignmentPRD(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
+	projectRoot, err := security.GetProjectRoot(".")
+	if err != nil {
+		if envRoot := os.Getenv("PROJECT_ROOT"); envRoot != "" {
+			projectRoot = envRoot
+		} else {
+			wd, _ := os.Getwd()
+			projectRoot = wd
+		}
+	}
+
+	tasks, err := LoadTodo2Tasks(projectRoot)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load Todo2 tasks: %w", err)
+	}
+
+	prdPath := filepath.Join(projectRoot, "docs", "PRD.md")
+	prdExists := false
+	if _, err := os.Stat(prdPath); err == nil {
+		prdExists = true
+	}
+
+	prdUserStories := 0
+	if prdExists {
+		prdUserStories = parsePRDUserStoriesCount(prdPath)
+	}
+
+	personaCounts := make(map[string]int)
+	for id := range prdPersonas {
+		personaCounts[id] = 0
+	}
+
+	var aligned []map[string]interface{}
+	var unaligned []map[string]interface{}
+
+	for _, task := range tasks {
+		bestPersona, bestScore, bestAdvisor, reason := prdScoreTask(task)
+		if bestScore >= 2 {
+			personaCounts[bestPersona]++
+			aligned = append(aligned, map[string]interface{}{
+				"id": task.ID, "name": task.Content,
+				"persona": bestPersona, "advisor": bestAdvisor, "alignment_score": bestScore,
+			})
+		} else {
+			unaligned = append(unaligned, map[string]interface{}{
+				"id": task.ID, "name": task.Content, "reason": reason,
+			})
+		}
+	}
+
+	overallScore := 0.0
+	if len(tasks) > 0 {
+		overallScore = float64(len(aligned)) / float64(len(tasks)) * 100.0
+	}
+
+	recommendations := prdRecommendations(personaCounts, unaligned)
+
+	alignmentByPersona := make(map[string]interface{})
+	for id, count := range personaCounts {
+		if count > 0 {
+			p := prdPersonas[id]
+			alignmentByPersona[id] = map[string]interface{}{
+				"name": p.Name, "count": count, "advisor": p.Advisor,
+			}
+		}
+	}
+
+	unalignedTop10 := unaligned
+	if len(unalignedTop10) > 10 {
+		unalignedTop10 = unalignedTop10[:10]
+	}
+
+	data := map[string]interface{}{
+		"timestamp":               time.Now().Format(time.RFC3339),
+		"prd_exists":              prdExists,
+		"goals_exists":            fileExists(filepath.Join(projectRoot, "PROJECT_GOALS.md")),
+		"tasks_analyzed":          len(tasks),
+		"prd_user_stories":        prdUserStories,
+		"persona_coverage":        personaCounts,
+		"aligned_count":           len(aligned),
+		"unaligned_count":         len(unaligned),
+		"unaligned_tasks":         unalignedTop10,
+		"overall_alignment_score": roundFloat(overallScore, 1),
+		"recommendations":         recommendations,
+		"alignment_by_persona":    alignmentByPersona,
+	}
+
+	outputPath, _ := params["output_path"].(string)
+	if outputPath != "" {
+		fullPath := outputPath
+		if !filepath.IsAbs(fullPath) {
+			fullPath = filepath.Join(projectRoot, fullPath)
+		}
+		if err := os.MkdirAll(filepath.Dir(fullPath), 0755); err == nil {
+			raw, _ := json.MarshalIndent(data, "", "  ")
+			_ = os.WriteFile(fullPath, raw, 0644)
+			data["report_path"] = fullPath
+		}
+	}
+
+	envelope := map[string]interface{}{
+		"success":   true,
+		"data":      data,
+		"timestamp": time.Now().Unix(),
+	}
+	resultJSON, err := json.MarshalIndent(envelope, "", "  ")
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal result: %w", err)
+	}
+	return []framework.TextContent{{Type: "text", Text: string(resultJSON)}}, nil
+}
+
+func fileExists(path string) bool {
+	_, err := os.Stat(path)
+	return err == nil
+}
+
+func roundFloat(v float64, decimals int) float64 {
+	mult := 1.0
+	for i := 0; i < decimals; i++ {
+		mult *= 10
+	}
+	return float64(int(v*mult+0.5)) / mult
+}
+
+// parsePRDUserStoriesCount returns the number of user stories in PRD.md (## N. User Stories / ### US-N: title)
+func parsePRDUserStoriesCount(prdPath string) int {
+	content, err := os.ReadFile(prdPath)
+	if err != nil {
+		return 0
+	}
+	// Match ### US-<num>: <title>
+	re := regexp.MustCompile(`### US-\d+:\s*.+`)
+	matches := re.FindAll(content, -1)
+	return len(matches)
+}
+
+// prdScoreTask scores a task against personas; returns best persona id, score, advisor, and reason if unaligned
+func prdScoreTask(task Todo2Task) (personaID string, score int, advisor, reason string) {
+	content := strings.ToLower(task.Content + " " + task.LongDescription)
+	tags := make([]string, 0, len(task.Tags))
+	for _, t := range task.Tags {
+		tags = append(tags, strings.ToLower(t))
+	}
+
+	bestScore := 0
+	for id, p := range prdPersonas {
+		s := 0
+		for _, kw := range p.Keywords {
+			if strings.Contains(content, kw) {
+				s += 2
+			}
+			for _, tag := range tags {
+				if strings.Contains(tag, kw) {
+					s += 3
+					break
+				}
+			}
+		}
+		if s > bestScore {
+			bestScore = s
+			personaID = id
+			advisor = p.Advisor
+		}
+	}
+	if bestScore >= 2 {
+		return personaID, bestScore, advisor, ""
+	}
+	return "", 0, "", "No strong persona match found"
+}
+
+func prdRecommendations(personaCounts map[string]int, unaligned []map[string]interface{}) []string {
+	var recs []string
+	for id, count := range personaCounts {
+		if count == 0 {
+			if p, ok := prdPersonas[id]; ok {
+				recs = append(recs, fmt.Sprintf("No tasks aligned with %s persona - consider their needs", p.Name))
+			}
+		}
+	}
+	total := 0
+	for _, c := range personaCounts {
+		total += c
+	}
+	total += len(unaligned)
+	if total > 0 {
+		ratio := float64(len(unaligned)) / float64(total)
+		if ratio > 0.2 {
+			recs = append(recs, fmt.Sprintf("%d tasks (%.0f%%) lack persona alignment - add relevant tags", len(unaligned), ratio*100))
+		}
+	}
+	maxCount := 0
+	minCount := -1
+	for _, c := range personaCounts {
+		if c > maxCount {
+			maxCount = c
+		}
+		if minCount < 0 || c < minCount {
+			minCount = c
+		}
+	}
+	if maxCount > 0 && minCount == 0 {
+		recs = append(recs, "Task distribution is unbalanced across personas")
+	}
+	return recs
 }
 
 // AlignmentAnalysis represents the results of alignment analysis
@@ -325,11 +553,11 @@ func createAlignmentFollowupTasks(ctx context.Context, analysis AlignmentAnalysi
 
 		taskID := generateEpochTaskID()
 		task := &models.Todo2Task{
-			ID:      taskID,
-			Content: "Review misaligned tasks",
-			Status:  "Todo",
+			ID:       taskID,
+			Content:  "Review misaligned tasks",
+			Status:   "Todo",
 			Priority: "medium",
-			Tags:    []string{"alignment", "review"},
+			Tags:     []string{"alignment", "review"},
 			Metadata: map[string]interface{}{
 				"misaligned_count": len(analysis.MisalignedTasks),
 				"alignment_score":  analysis.AlignmentScore,
@@ -357,11 +585,11 @@ func createAlignmentFollowupTasks(ctx context.Context, analysis AlignmentAnalysi
 
 		taskID := generateEpochTaskID()
 		task := &models.Todo2Task{
-			ID:      taskID,
-			Content: "Review stale tasks",
-			Status:  "Todo",
+			ID:       taskID,
+			Content:  "Review stale tasks",
+			Status:   "Todo",
 			Priority: "low",
-			Tags:    []string{"alignment", "cleanup"},
+			Tags:     []string{"alignment", "cleanup"},
 			Metadata: map[string]interface{}{
 				"stale_count": len(analysis.StaleTasks),
 			},

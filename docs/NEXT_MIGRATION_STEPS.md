@@ -23,7 +23,7 @@
 | Tool | Next step |
 |------|-----------|
 | **report** | Native overview for sprint automation |
-| **analyze_alignment** | Native `action=prd` or document scope |
+| **analyze_alignment** | Done: native `action=prd` (persona alignment) |
 | **estimation** | Harden native, reduce fallback |
 | **task_analysis** / **task_discovery** | Improve native or document bridge cases |
 
