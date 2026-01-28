@@ -9,7 +9,6 @@ import (
 	"net/http"
 	"os"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/davidl71/exarp-go/internal/config"
@@ -674,23 +673,7 @@ Code:
 	// Try to parse JSON from response
 	var qualityData map[string]interface{}
 	if responseText != "" {
-		// Extract JSON if wrapped in markdown
-		jsonText := responseText
-		if idx := strings.Index(jsonText, "```json"); idx >= 0 {
-			jsonStart := idx + 7
-			jsonEnd := strings.Index(jsonText[jsonStart:], "```")
-			if jsonEnd >= 0 {
-				jsonText = strings.TrimSpace(jsonText[jsonStart : jsonStart+jsonEnd])
-			}
-		} else if idx := strings.Index(jsonText, "```"); idx >= 0 {
-			jsonStart := idx + 3
-			jsonEnd := strings.Index(jsonText[jsonStart:], "```")
-			if jsonEnd >= 0 {
-				jsonText = strings.TrimSpace(jsonText[jsonStart : jsonStart+jsonEnd])
-			}
-		}
-
-		// Try to parse JSON
+		jsonText := ExtractJSONObjectFromLLMResponse(responseText)
 		if err := json.Unmarshal([]byte(jsonText), &qualityData); err != nil {
 			// If parsing fails, use raw response
 			qualityData = map[string]interface{}{
