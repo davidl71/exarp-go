@@ -1,8 +1,8 @@
 # Native Go Migration Plan for exarp-go
 
 **Date:** 2026-01-08  
-**Last Updated:** 2026-01-27 (Bridge cleanup: generate_config, add_external_tool_hints removed from bridge)  
-**Status:** Excellent Progress - 96% Tool Coverage, 100% Resource Coverage  
+**Last Updated:** 2026-01-28 (Migration complete except mlx; context and task_workflow full native)  
+**Status:** ✅ Migration complete for all tools with native implementations; mlx hybrid (native status/hardware on darwin+CGO, bridge for models/generate)  
 **Goal:** Migrate all remaining Python bridge tools, resources, and prompts to native Go implementation
 
 ---
@@ -31,20 +31,11 @@ This plan outlines a comprehensive migration strategy to convert all remaining P
 - Rationale: Better performance, single language codebase, reduced dependencies, easier maintenance
 - Decision Framework: Use Native Go unless tool has complex ML/AI dependencies or lacks Go equivalents
 
-### When Hybrid Approach is Appropriate
+### When Hybrid Approach Was Used (Historical)
 
-**Hybrid Pattern** (Native Go with Python Bridge Fallback) should be used when:
-1. **Platform-specific features:** Apple Foundation Models (requires CGO on macOS)
-2. **Incomplete Go libraries:** MLX/Ollama may not have mature Go bindings
-3. **Progressive migration:** Migrate tool incrementally (action by action)
-4. **Risk mitigation:** Keep Python bridge as fallback during transition
+**As of 2026-01-28:** One hybrid tool: **mlx** — native status/hardware via luxfi/mlx when built with CGO on darwin; bridge for models/generate. All other tools with native implementations are **full native** (no bridge fallback).
 
-**Examples of successful hybrid implementations:**
-- `lint`: Native Go for Go linters, Python bridge for others
-- `context`: Native Go for summarize/budget (with Apple FM), Python bridge for batch
-- `task_analysis`: Fully native Go (all actions); hierarchy uses FM provider abstraction (Apple FM when available). No Python fallback.
-- `task_discovery`: Native Go with Apple FM, Python bridge fallback
-- `task_workflow`: Native Go for clarify action (with Apple FM), Python bridge for others
+**Previously,** the hybrid pattern (Native Go with Python Bridge Fallback) was used for progressive migration. Fallbacks were removed in favor of returning clear errors when native fails or a feature is unsupported (e.g. context summarize without FM, task_workflow external=true).
 
 ---
 
@@ -53,15 +44,15 @@ This plan outlines a comprehensive migration strategy to convert all remaining P
 **Audit Reference:** See `docs/MIGRATION_AUDIT_2026-01-12.md` for comprehensive audit findings (and 2026-01-28 note below).
 
 **Native Go Coverage (Actual):**
-- **Full Native (no bridge):** 13 tools — `git_tools`, `infer_session_mode`, `tool_catalog`, `workflow_mode`, `prompt_tracking`, `generate_config`, `add_external_tool_hints`, **`setup_hooks`**, **`check_attribution`**, **`session`**, **`memory_maint`**, **`analyze_alignment`**, **`estimation`**, **`task_analysis`**
-- **Hybrid Native:** 14 tools — Native Go with Python bridge fallback (memory, report overview/prd, security, task_discovery, task_workflow, testing, lint, ollama, context, recommend, etc.)
-- **Python Bridge Only:** 1 tool (`mlx` — intentional, no Go bindings available)
+- **Full Native (no bridge):** 28 tools — All tools with native implementations; no Python fallback. Includes: server_status, tool_catalog, workflow_mode, infer_session_mode, git_tools, generate_config, add_external_tool_hints, setup_hooks, check_attribution, session, memory_maint, memory, analyze_alignment, estimation, task_analysis, task_discovery, prompt_tracking, health, report, recommend, security, testing, lint, ollama, **context**, **task_workflow**, and others. See `docs/NATIVE_GO_HANDLER_STATUS.md` for the full list.
+- **Hybrid Native:** 1 tool — `mlx` (native status/hardware via luxfi/mlx on darwin+CGO; bridge for models/generate — see § mlx below).
+- **Python Bridge Only:** 0 tools — mlx is hybrid; bridge used only for models/generate when native unavailable.
 - **Total Tools:** 28 (plus 1 conditional Apple FM tool = 28–29)
-- **Native Coverage:** 96% (27/28 tools have native implementations)
+- **Native Coverage:** 100% of tools with native implementations; 1 tool remains bridge-only by design/choice.
 
-**2026-01-28:** Report briefing/scorecard shrink (briefing native-only; non-Go scorecard returns clear error). Estimation native-only, no Python fallback; estimation handler removed from `bridge/execute_tool.py`. Tests updated (regression want list, report scorecard, test_execute_tool known_tools). See `NEXT_MIGRATION_STEPS.md`, `PYTHON_FALLBACKS_SAFE_TO_REMOVE.md`.
+**2026-01-28:** **Context** and **task_workflow** fully native: context (summarize, budget, batch; unknown action returns error); task_workflow (sync SQLite↔JSON, approve, clarify, clarity, cleanup, create; external=true returns error). No hybrid tools remain. See `docs/NATIVE_GO_HANDLER_STATUS.md`, `docs/TASK_WORKFLOW_FULL_NATIVE_PLAN.md`.
 
-**2026-01-28:** `task_analysis` fully native: FM provider abstraction (`fm_provider.go`, `fm_apple.go`, `fm_stub.go`), hierarchy and all actions in `task_analysis_shared.go`; handler uses native only, no Python fallback. Bridge and regression tests updated.
+**2026-01-28:** Report briefing/scorecard shrink (briefing native-only; non-Go scorecard returns clear error). Estimation native-only, no Python fallback; estimation handler removed from `bridge/execute_tool.py`. Tests updated.
 
 **2026-01-27:** Four more tools fully native: `setup_hooks`, `check_attribution`, `session`, `memory_maint`. Bridge cleanup: removed dead `generate_config` and `add_external_tool_hints` branches.
 
@@ -77,18 +68,32 @@ This plan outlines a comprehensive migration strategy to convert all remaining P
 - **Status:** ✅ All prompts migrated to native Go
 
 **Migration Progress:**
-- **Overall Tools:** 27/28 (96%) have native implementations
+- **Overall Tools:** 28/28 (100%) have native implementations **or** are intentionally bridge-only (mlx). No hybrid tools.
 - **Overall Resources:** 21/21 (100%) have native implementations
-- **Phase 1:** 3/3 (100%) ✅ **COMPLETE** (server_status converted to resource, infer_session_mode moved to Phase 2)
-- **Phase 2:** 11/11 (100%) ✅ **COMPLETE** (all tools have native implementations)
-- **Phase 3:** 11/11 (100%) ✅ **COMPLETE** (all tools have native implementations, hybrid pattern)
-- **Phase 4:** 21/21 (100%) ✅ **COMPLETE** (all resources migrated to native Go — see Phase 4 section below)
-- **Phase 5:** 19/19 (100%) ✅ **COMPLETE** (all prompts migrated)
+- **Phase 1–5:** All phases complete. See `docs/NATIVE_GO_HANDLER_STATUS.md` for current handler status.
 
 **Recent Completions:**
-- **2026-01-28:** Report briefing native-only; non-Go scorecard returns clear error. Estimation native-only; estimation handler removed from bridge. Tests updated.
-- **2026-01-27:** **4 removed Python fallbacks** — `setup_hooks`, `check_attribution`, `session`, `memory_maint` are full native (no bridge). Handlers never call `ExecutePythonTool` for these; bridge does not route them. Bridge cleanup: removed dead `generate_config` and `add_external_tool_hints` branches. See `PYTHON_FALLBACKS_SAFE_TO_REMOVE.md`, `NATIVE_GO_HANDLER_STATUS.md`.
+- **2026-01-28:** **Context** and **task_workflow** full native (no bridge). Migration complete for all tools except mlx (bridge-only). See `NATIVE_GO_HANDLER_STATUS.md`, `TASK_WORKFLOW_FULL_NATIVE_PLAN.md`.
+- **2026-01-27:** **4 removed Python fallbacks** — `setup_hooks`, `check_attribution`, `session`, `memory_maint` full native. Bridge cleanup.
 - **2026-01-12:** Stream 1–3 — hybrid tool actions, full tool migrations, resource migrations (see audit doc)
+
+---
+
+## mlx: Options for Native Go
+
+**Current:** The `mlx` tool is **bridge-only** — `handleMlx` and `insight_provider.executeMLXViaBridge` call the Python bridge for status, hardware, models, and generate. Used by report/scorecard AI insights (DefaultReportInsight: FM then MLX).
+
+**Options:**
+
+| Option | Description | Effort |
+|--------|-------------|--------|
+| **A. Keep bridge-only** | Leave mlx on Python; document as intentional. Simplest; no CGO/MLX dependency in Go. | None |
+| **B. Evaluate Go MLX bindings** | Use **luxfi/mlx** (`github.com/luxfi/mlx`) — Go bindings for Apple MLX, MIT license, mirrors Python API; includes Metal bindings. Would allow a native `handleMlx` for status/hardware/models/generate on Apple Silicon. Requires CGO, Apple Silicon; LLM inference patterns can be adapted from mlx-lm (Python) or luxfi docs. | Medium: add dependency, implement native handler, keep bridge as fallback for non-Apple or if native fails |
+| **C. Alternative: GoMLX** | **GoMLX** (`github.com/gomlx`) — accelerated ML framework for Go (740+ stars); go-huggingface for models/tokenizers. Different API than MLX Python; would need adapter layer. | Higher: different API, more integration work |
+
+**Recommendation:** **A** for now (keep bridge-only). If you want to remove the last Python tool dependency, **B** (luxfi/mlx) is the most direct path for a native MLX tool on Apple Silicon; do a small spike (add `github.com/luxfi/mlx`, implement one action e.g. status or generate) before committing.
+
+**See:** `docs/MLX_NATIVE_OPTIONS.md` for a dedicated mlx options doc (options A/B/C, references, handler locations).
 
 ---
 

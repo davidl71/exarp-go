@@ -8,8 +8,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-
-	"github.com/davidl71/exarp-go/internal/bridge"
 )
 
 // ReportInsightProvider generates long-form AI insights for report/scorecard content.
@@ -72,10 +70,10 @@ func tryMLXReportInsight(ctx context.Context, prompt string, maxTokens int, temp
 	return parseGeneratedTextFromMLXResponse(result)
 }
 
-// executeMLXViaBridge invokes the mlx tool via the Python bridge.
-// Extracted so report_mlx and insight_provider can share or so we have a single bridge call site for "mlx" generate.
+// executeMLXViaBridge invokes the mlx tool via the shared path (native then bridge).
+// Uses InvokeMLXTool so report insights and MLX provider use the same path as the mlx tool.
 func executeMLXViaBridge(ctx context.Context, params map[string]interface{}) (string, error) {
-	return bridge.ExecutePythonTool(ctx, "mlx", params)
+	return InvokeMLXTool(ctx, params)
 }
 
 // parseGeneratedTextFromMLXResponse extracts generated text from the MLX bridge response.

@@ -9,8 +9,8 @@ import (
 )
 
 // handleTextGenerate implements the unified text_generate tool.
-// provider=fm uses DefaultFMProvider(); provider=insight uses DefaultReportInsight().
-// Both implement TextGenerator; this tool is a thin wrapper for generate-text use cases.
+// provider=fm uses DefaultFMProvider(); provider=insight uses DefaultReportInsight(); provider=mlx uses DefaultMLXProvider().
+// All implement TextGenerator; this tool is a thin wrapper for generate-text use cases.
 func handleTextGenerate(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
 	var params map[string]interface{}
 	if err := json.Unmarshal(args, &params); err != nil {
@@ -36,8 +36,10 @@ func handleTextGenerate(ctx context.Context, args json.RawMessage) ([]framework.
 		gen = DefaultFMProvider()
 	case "insight":
 		gen = DefaultReportInsight()
+	case "mlx":
+		gen = DefaultMLXProvider()
 	default:
-		return nil, fmt.Errorf("unknown provider: %q (use \"fm\" or \"insight\")", provider)
+		return nil, fmt.Errorf("unknown provider: %q (use \"fm\", \"insight\", or \"mlx\")", provider)
 	}
 
 	if gen == nil || !gen.Supported() {

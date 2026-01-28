@@ -12,6 +12,6 @@ func LLMBackendStatus() map[string]interface{} {
 		"ollama_tool":   "ollama",
 		"mlx_tool":      "mlx",
 		"apple_fm_tool": "apple_foundation_models",
-		"hint":          "Use apple_foundation_models for on-device FM; ollama for Ollama (native then bridge); mlx for MLX; text_generate for unified generate-text. FM chain (Apple → Ollama → stub). ReportInsight: FM then MLX.",
+		"hint":          "Use apple_foundation_models for on-device FM; ollama for Ollama (native then bridge); mlx for MLX; text_generate for unified generate-text (provider=fm|insight|mlx). FM chain (Apple → Ollama → stub). ReportInsight: FM then MLX (via shared path).",
 	}
 }
