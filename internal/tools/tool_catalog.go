@@ -195,19 +195,26 @@ func GetToolCatalog() map[string]ToolCatalogEntry {
 			RecommendedModel: "claude-haiku",
 		},
 
-		// AI & ML
+		// AI & ML (LLM abstraction: FM, Ollama, MLX)
+		"apple_foundation_models": {
+			Tool:             "apple_foundation_models",
+			Hint:             "LLM abstraction (FM). action=generate|respond|summarize|classify. On-device Apple Silicon. Uses DefaultFMProvider().",
+			Category:         "AI & ML",
+			Description:      "Apple Foundation Models on-device; part of LLM abstraction (FMProvider)",
+			RecommendedModel: "claude-haiku",
+		},
 		"ollama": {
 			Tool:             "ollama",
-			Hint:             "Ollama. action=status|models|generate|pull|hardware|docs|quality|summary. Unified Ollama tool.",
+			Hint:             "LLM abstraction. ollama. action=status|models|generate|pull|hardware|docs|quality|summary. Native then bridge (DefaultOllama()).",
 			Category:         "AI & ML",
-			Description:      "Ollama integration for local LLM operations",
+			Description:      "Ollama local LLM; part of LLM abstraction (OllamaProvider, native then bridge)",
 			RecommendedModel: "claude-haiku",
 		},
 		"mlx": {
 			Tool:             "mlx",
-			Hint:             "MLX. action=status|hardware|models|generate. Unified MLX tool.",
+			Hint:             "LLM abstraction (MLX). action=status|hardware|models|generate. Bridge-only; report insights use DefaultReportInsight() (MLX then FM).",
 			Category:         "AI & ML",
-			Description:      "MLX integration for Apple Silicon ML operations",
+			Description:      "MLX on Apple Silicon; part of LLM abstraction (report insights: MLX then FM)",
 			RecommendedModel: "claude-haiku",
 		},
 		"recommend": {

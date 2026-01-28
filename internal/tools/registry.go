@@ -373,7 +373,7 @@ func registerBatch2Tools(server framework.MCPServer) error {
 	// T-30: report
 	if err := server.RegisterTool(
 		"report",
-		"[HINT: Report generation. action=overview|scorecard|briefing|prd. Project reports.]",
+		"[HINT: Report generation. action=overview|scorecard|briefing|prd. For scorecard: fast_mode (default true) or full; fast_mode only applies to Go projects.]",
 		framework.ToolSchema{
 			Type: "object",
 			Properties: map[string]interface{}{
@@ -388,6 +388,10 @@ func registerBatch2Tools(server framework.MCPServer) error {
 				},
 				"output_path": map[string]interface{}{
 					"type": "string",
+				},
+				"fast_mode": map[string]interface{}{
+					"type":    "boolean",
+					"default": true,
 				},
 				"include_recommendations": map[string]interface{}{
 					"type":    "boolean",
@@ -1187,7 +1191,7 @@ func registerBatch3Tools(server framework.MCPServer) error {
 	// ollama
 	if err := server.RegisterTool(
 		"ollama",
-		"[HINT: Ollama. action=status|models|generate|pull|hardware|docs|quality|summary. Unified Ollama tool.]",
+		"[HINT: LLM abstraction. ollama. action=status|models|generate|pull|hardware|docs|quality|summary. Native then bridge (DefaultOllama()).]",
 		framework.ToolSchema{
 			Type: "object",
 			Properties: map[string]interface{}{
@@ -1253,7 +1257,7 @@ func registerBatch3Tools(server framework.MCPServer) error {
 	// mlx
 	if err := server.RegisterTool(
 		"mlx",
-		"[HINT: MLX. action=status|hardware|models|generate. Unified MLX tool.]",
+		"[HINT: LLM abstraction (MLX). mlx. action=status|hardware|models|generate. Bridge-only; report insights use DefaultReportInsight() (MLX then FM).]",
 		framework.ToolSchema{
 			Type: "object",
 			Properties: map[string]interface{}{
