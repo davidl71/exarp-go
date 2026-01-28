@@ -1,0 +1,52 @@
+---
+# Ollama role - Install Ollama and pull models for exarp-go ollama tool / tests
+# Fixes environment so ollama native tests pass (server + models available).
+
+- name: Install Ollama (macOS)
+  community.general.homebrew:
+    name: ollama
+    state: present
+  when: ansible_system == "Darwin"
+  tags:
+    - ollama
+    - optional
+
+- name: Install Ollama (Linux) via official install script
+  ansible.builtin.shell: |
+    curl -fsSL https://ollama.com/install.sh | sh
+  args:
+    creates: /usr/local/bin/ollama
+  when: ansible_system == "Linux"
+  tags:
+    - ollama
+    - optional
+
+- name: Ensure Ollama binary is in PATH (Linux)
+  ansible.builtin.command: which ollama
+  register: ollama_which
+  changed_when: false
+  failed_when: false
+  when: ansible_system == "Linux"
+  tags:
+    - ollama
+    - optional
+
+- name: Pull Ollama models for exarp-go (ollama tool / tests)
+  ansible.builtin.command: "ollama pull {{ item }}"
+  loop: "{{ ollama_models }}"
+  register: ollama_pull
+  changed_when: ollama_pull.rc == 0
+  failed_when: false
+  when: ollama_models | length > 0
+  tags:
+    - ollama
+    - optional
+
+- name: Display Ollama installation status
+  ansible.builtin.debug:
+    msg:
+      - "Ollama: installed. Models pulled: {{ ollama_models | default([]) | join(', ') }}"
+      - "Start server with: ollama serve (or run Ollama app)"
+  tags:
+    - ollama
+    - optional

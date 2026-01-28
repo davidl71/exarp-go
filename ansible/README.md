@@ -18,7 +18,8 @@ ansible/
 │   ├── common/             # Base system setup
 │   ├── golang/             # Go installation
 │   ├── python/             # Python and package managers
-│   └── linters/            # Optional linters
+│   ├── linters/            # Optional linters
+│   └── ollama/             # Optional Ollama (fixes ollama tool / native tests)
 ├── playbooks/
 │   ├── development.yml     # Development setup
 │   └── production.yml      # Production setup
@@ -149,6 +150,7 @@ install_dev_tools: false
 - **markdownlint-cli** - Markdown linter
 - **cspell** - Code spell checker
 - **fswatch** (macOS) / **inotify-tools** (Linux) - File watchers
+- **Ollama** - For the ollama tool and native tests (set `install_ollama: true`; then run `ollama serve`)
 
 ## Tags
 
@@ -158,9 +160,26 @@ Use tags to run specific parts of the playbook:
 - `golang` - Go installation
 - `python` - Python installation
 - `linters` - Linter installation
+- `ollama` - Ollama + models (fixes ollama tool / native tests)
 - `dev_tools` - Development tools
 - `optional` - All optional tools
 - `always` - Always run (default)
+
+### Fix environment for ollama native tests
+
+To fix the environment so ollama native tests pass (server + models):
+
+1. Set `install_ollama: true` in `inventories/development/group_vars/all.yml`.
+2. Run the **ollama-only** playbook (recommended; does not run other roles):
+   ```bash
+   ansible-playbook -i inventories/development playbooks/ollama.yml
+   ```
+   Or run the full development playbook with the ollama tag:
+   ```bash
+   ansible-playbook -i inventories/development playbooks/development.yml --tags ollama
+   ```
+3. Start the Ollama server: `ollama serve` (or run the Ollama app).
+4. Run tests: `make test-go` (ollama tests expect `ollama serve` and models `llama3` / `llama3.2`).
 
 ## Examples
 

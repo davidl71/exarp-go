@@ -22,6 +22,9 @@ ansible-playbook playbooks/development.yml --tags golang,python
 
 # Only linters
 ansible-playbook playbooks/development.yml --tags linters
+
+# Ollama (fixes ollama tool / native tests; then run ollama serve)
+ansible-playbook playbooks/development.yml --tags ollama
 ```
 
 ### Option 2: Use the script
@@ -105,6 +108,7 @@ Edit `inventories/development/group_vars/all.yml` to:
 - Change Go version
 - Enable/disable linters (`install_linters`, `linters` list)
 - Enable GitHub CLI (`install_gh`)
+- Enable Ollama for ollama tool / native tests (`install_ollama: true`; then run `ollama serve`)
 
 ## Troubleshooting
 
