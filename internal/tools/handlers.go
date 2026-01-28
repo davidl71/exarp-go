@@ -713,7 +713,7 @@ func handleLint(ctx context.Context, args json.RawMessage) ([]framework.TextCont
 // handleEstimation handles the estimation tool
 // Native Go only (stats, estimate, analyze when Apple FM available); no Python fallback
 func handleEstimation(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
-	projectRoot, err := security.GetProjectRoot(".")
+	projectRoot, err := FindProjectRoot()
 	if err != nil {
 		return nil, fmt.Errorf("failed to find project root: %w", err)
 	}

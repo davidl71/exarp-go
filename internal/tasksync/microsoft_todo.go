@@ -139,9 +139,9 @@ func (s *MicrosoftTodoSource) SyncTasks(ctx context.Context, todo2Tasks []*model
 		MatchesFound:       len(result.Matches),
 		ConflictsDetected:  len(result.Conflicts),
 		NewTodo2Tasks:      len(result.NewTodo2Tasks),
-		NewExternalTasks:    len(result.NewExternalTasks),
-		UpdatedTasks:        len(result.UpdatedTasks),
-		Errors:              len(result.Errors),
+		NewExternalTasks:   len(result.NewExternalTasks),
+		UpdatedTasks:       len(result.UpdatedTasks),
+		Errors:             len(result.Errors),
 	}
 
 	return result, nil
@@ -186,10 +186,6 @@ func (s *MicrosoftTodoSource) microsoftTaskToExternal(mt interface{}) *ExternalT
 	// TODO: Implement conversion from Microsoft Graph TodoTask to ExternalTask
 	// This is a placeholder - will be implemented once SDK is added
 	return nil
-	// Placeholder implementation - will be completed once SDK is added
-	return &ExternalTask{
-		Source: SourceMicrosoftTodo,
-	}
 }
 
 func (s *MicrosoftTodoSource) todo2ToMicrosoftTask(task *models.Todo2Task) interface{} {
@@ -200,13 +196,13 @@ func (s *MicrosoftTodoSource) todo2ToMicrosoftTask(task *models.Todo2Task) inter
 
 func (s *MicrosoftTodoSource) externalToTodo2(extTask *ExternalTask) *models.Todo2Task {
 	task := &models.Todo2Task{
-		ID:             fmt.Sprintf("MST-%s", extTask.ExternalID),
-		Content:        extTask.Title,
+		ID:              fmt.Sprintf("MST-%s", extTask.ExternalID),
+		Content:         extTask.Title,
 		LongDescription: extTask.Description,
-		Status:         extTask.Status,
-		Priority:       extTask.Priority,
-		Tags:           extTask.Tags,
-		Metadata:       extTask.Metadata,
+		Status:          extTask.Status,
+		Priority:        extTask.Priority,
+		Tags:            extTask.Tags,
+		Metadata:        extTask.Metadata,
 	}
 
 	if extTask.DueDate != nil {
