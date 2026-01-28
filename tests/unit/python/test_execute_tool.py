@@ -13,15 +13,11 @@ import execute_tool
 
 
 def test_tool_routing():
-    """Test tool routing to correct Python functions."""
-    # Test that tool names are recognized
+    """Test tool names that the bridge routes to Python (native-only tools excluded)."""
+    # Tools the bridge execute_tool.py actually routes (setup_hooks, check_attribution,
+    # session, memory_maint, analyze_alignment, estimation are native Go only and removed)
     known_tools = [
-        "analyze_alignment",
-        "generate_config",
-        "setup_hooks",
-        "check_attribution",
         "memory",
-        "memory_maint",
         "report",
         "security",
         "task_analysis",
@@ -29,15 +25,13 @@ def test_tool_routing():
         "task_workflow",
         "testing",
         "lint",
-        "estimation",
-        "session",
         "ollama",
         "mlx",
+        "context",
+        "recommend",
     ]
 
     for tool_name in known_tools:
-        # Verify tool is in the routing logic
-        # (We can't easily test the actual routing without importing the real modules)
         assert tool_name is not None
 
 

@@ -22,9 +22,9 @@
 
 | Tool | Next step |
 |------|-----------|
-| **report** | Done: sprint uses native overview; briefing/non-Go scorecard still bridge. |
+| **report** | Done: overview, briefing (native only, no fallback), scorecard (Go only; non-Go returns clear error). |
 | **analyze_alignment** | Done: native `action=prd` (persona alignment) |
-| **estimation** | Harden native, reduce fallback |
+| **estimation** | Done: native only, no Python fallback. |
 | **task_analysis** / **task_discovery** | Improve native or document bridge cases |
 
 ## 4. Deferred / intentional

@@ -196,8 +196,8 @@ func handleMemoryMaint(ctx context.Context, args json.RawMessage) ([]framework.T
 }
 
 // handleReport handles the report tool
-// Uses native Go for overview, scorecard (Go projects), and prd actions
-// Falls back to Python bridge for briefing (requires devwisdom-go MCP client) and non-Go projects
+// Uses native Go for overview, briefing, scorecard (Go projects only), and prd actions.
+// Falls back to Python bridge only for unsupported actions or when overview/prd native fails.
 func handleReport(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
 	// Try protobuf first, fall back to JSON for backward compatibility
 	req, params, err := ParseReportRequest(args)
@@ -263,13 +263,8 @@ func handleReport(ctx context.Context, args json.RawMessage) ([]framework.TextCo
 			}
 			// Fall through to Python bridge if project root not found
 		}
-		// Fall through to Python bridge for non-Go projects.
-		// NOTE: The Python bridge uses generate_project_scorecard, which is biased toward
-		// exarp-go / project_management_automation (Python-centric: *.py, tools, prompts).
-		// For multi-language projects (C++, Rust, TypeScript, Swift, etc.) or arbitrary
-		// layouts, scorecards may be incomplete or skewed. Per-language scorecards are
-		// not supported. See docs/FEATURE_REQUESTS.md: "Multi-language and per-language
-		// scorecard support".
+		// Non-Go projects: return clear error instead of Python bridge (shrink fallback surface)
+		return nil, fmt.Errorf("scorecard action is only supported for Go projects (go.mod); use action=overview for other project types")
 
 	case "overview":
 		// Try native Go implementation
@@ -280,13 +275,12 @@ func handleReport(ctx context.Context, args json.RawMessage) ([]framework.TextCo
 		// Fall through to Python bridge if native fails
 
 	case "briefing":
-		// Briefing uses devwisdom-go MCP server via Python bridge for now
-		// TODO: Implement native Go MCP client for devwisdom-go
+		// Native briefing uses in-process wisdom engine (devwisdom-go package); no fallback
 		result, err := handleReportBriefing(ctx, params)
-		if err == nil {
-			return result, nil
+		if err != nil {
+			return nil, err
 		}
-		// Fall through to Python bridge if native fails
+		return result, nil
 
 	case "prd":
 		// Try native Go implementation
@@ -736,7 +730,7 @@ func handleLint(ctx context.Context, args json.RawMessage) ([]framework.TextCont
 }
 
 // handleEstimation handles the estimation tool
-// Uses native Go with Apple Foundation Models when available, falls back to Python bridge
+// Native Go only (stats, estimate, analyze when Apple FM available); no Python fallback
 func handleEstimation(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
 	projectRoot, err := security.GetProjectRoot(".")
 	if err != nil {
@@ -758,20 +752,10 @@ func handleEstimation(ctx context.Context, args json.RawMessage) ([]framework.Te
 		})
 	}
 
-	// Try native Go implementation first
 	result, err := handleEstimationNative(ctx, projectRoot, params)
-	if err == nil {
-		return []framework.TextContent{
-			{Type: "text", Text: result},
-		}, nil
-	}
-
-	// Fall back to Python bridge if native implementation fails or not available
-	result, err = bridge.ExecutePythonTool(ctx, "estimation", params)
 	if err != nil {
-		return nil, fmt.Errorf("estimation failed: %w", err)
+		return nil, err
 	}
-
 	return []framework.TextContent{
 		{Type: "text", Text: result},
 	}, nil

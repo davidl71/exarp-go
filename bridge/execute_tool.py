@@ -70,7 +70,7 @@ def execute_tool(tool_name: str, args_json: str, use_protobuf: bool = False, pro
         # Import tool functions from project_management_automation
         # Note: tool_catalog, workflow_mode, git_tools, infer_session_mode, health, automation,
         # generate_config, add_external_tool_hints, setup_hooks, check_attribution, session, memory_maint,
-        # analyze_alignment - fully native Go with no Python fallback
+        # analyze_alignment, estimation - fully native Go with no Python handler
         from project_management_automation.tools.consolidated import (
             memory as _memory,
             report as _report,
@@ -79,7 +79,6 @@ def execute_tool(tool_name: str, args_json: str, use_protobuf: bool = False, pro
             task_discovery as _task_discovery,
             task_workflow as _task_workflow,
             testing as _testing,
-            estimation as _estimation,
             lint as _lint,
             mlx as _mlx,
             ollama as _ollama,
@@ -198,19 +197,7 @@ def execute_tool(tool_name: str, args_json: str, use_protobuf: bool = False, pro
                 include_hints=args.get("include_hints", True),
                 output_path=args.get("output_path"),
             )
-        elif tool_name == "estimation":
-            result = _estimation(
-                action=args.get("action", "estimate"),
-                name=args.get("name"),
-                details=args.get("details", ""),
-                tags=args.get("tags"),
-                tag_list=args.get("tag_list"),
-                priority=args.get("priority", "medium"),
-                use_historical=args.get("use_historical", True),
-                detailed=args.get("detailed", False),
-                use_mlx=args.get("use_mlx", True),
-                mlx_weight=args.get("mlx_weight", 0.3),
-            )
+        # estimation: fully native Go, no Python handler (removed 2026-01-27)
         elif tool_name == "ollama":
             result = _ollama(
                 action=args.get("action", "status"),

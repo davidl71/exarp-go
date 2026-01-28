@@ -159,7 +159,8 @@ func TestHandleReport(t *testing.T) {
 			params: map[string]interface{}{
 				"action": "scorecard",
 			},
-			wantError: false,
+			// scorecard: no error only when IsGoProject(); otherwise expect "only supported for Go projects"
+			wantError: !IsGoProject(),
 		},
 	}
 
