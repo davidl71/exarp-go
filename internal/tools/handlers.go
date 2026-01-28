@@ -145,30 +145,15 @@ func handleAddExternalToolHints(ctx context.Context, args json.RawMessage) ([]fr
 // Batch 2 Tool Handlers (T-28 through T-35)
 
 // handleMemory handles the memory tool
-// Uses native Go for all actions (save, recall, search, list) - fully native Go
-// Note: Basic text search is native; semantic search enhancement can be added later if needed
+// Uses native Go for all actions (save, recall, search, list) - fully native Go, no Python bridge
+// Note: Basic text search is native; semantic search enhancement can be added later in Go if needed
 func handleMemory(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
 	// Note: handleMemoryNative already handles protobuf parsing, so we just pass args through
-	// Try native Go implementation for all actions
 	result, err := handleMemoryNative(ctx, args)
-	if err == nil {
-		return result, nil
-	}
-
-	// If native fails, fall back to Python bridge (for semantic search or error recovery)
-	// Parse args to params map for Python bridge
-	var params map[string]interface{}
-	if err := json.Unmarshal(args, &params); err != nil {
-		return nil, fmt.Errorf("failed to parse arguments: %w", err)
-	}
-	resultText, err := bridge.ExecutePythonTool(ctx, "memory", params)
 	if err != nil {
 		return nil, fmt.Errorf("memory failed: %w", err)
 	}
-
-	return []framework.TextContent{
-		{Type: "text", Text: resultText},
-	}, nil
+	return result, nil
 }
 
 // handleMemoryMaint handles the memory_maint tool
@@ -408,8 +393,7 @@ func handleTaskAnalysis(ctx context.Context, args json.RawMessage) ([]framework.
 }
 
 // handleTaskDiscovery handles the task_discovery tool
-// Uses native Go implementation for basic scanning (comments, markdown, orphans)
-// Apple FM is optional and only enhances semantic extraction when available
+// Uses native Go implementation only (comments, markdown, orphans, create_tasks); no Python bridge
 func handleTaskDiscovery(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
 	// Try protobuf first, fall back to JSON for backward compatibility
 	req, params, err := ParseTaskDiscoveryRequest(args)
@@ -426,23 +410,11 @@ func handleTaskDiscovery(ctx context.Context, args json.RawMessage) ([]framework
 		})
 	}
 
-	// Try native Go implementation first
-	// Basic scanning (comments, markdown, orphans) works on all platforms
-	// Apple FM is optional and only enhances results when available
 	result, err := handleTaskDiscoveryNative(ctx, params)
-	if err == nil {
-		return result, nil
-	}
-
-	// If native fails, fall back to Python bridge
-	bridgeResult, err := bridge.ExecutePythonTool(ctx, "task_discovery", params)
 	if err != nil {
 		return nil, fmt.Errorf("task_discovery failed: %w", err)
 	}
-
-	return []framework.TextContent{
-		{Type: "text", Text: bridgeResult},
-	}, nil
+	return result, nil
 }
 
 // handleTaskWorkflow handles the task_workflow tool

@@ -14,14 +14,12 @@ import execute_tool
 
 def test_tool_routing():
     """Test tool names that the bridge routes to Python (native-only tools excluded)."""
-    # Tools the bridge execute_tool.py actually routes (setup_hooks, check_attribution,
-    # session, memory_maint, analyze_alignment, estimation are native Go only and removed)
+    # Tools the bridge execute_tool.py actually routes (memory, task_discovery removed 2026-01-28;
+    # session, setup_hooks, check_attribution, memory_maint, analyze_alignment, estimation, task_analysis
+    # are native Go only; bridge does not route them)
     known_tools = [
-        "memory",
         "report",
         "security",
-        "task_analysis",
-        "task_discovery",
         "task_workflow",
         "testing",
         "lint",
