@@ -15,18 +15,19 @@ func TestHandleEstimationAnalyze(t *testing.T) {
 		t.Fatalf("failed to create .todo2 directory: %v", err)
 	}
 
-	// Create a test state file with tasks that have estimated and actual hours
+	// Create a test state file with todos that have estimated and actual hours
+	// Format matches .todo2/state.todo2.json (todos array, camelCase for hours)
 	stateFile := filepath.Join(todo2Dir, "state.todo2.json")
 	stateContent := `{
-  "tasks": [
+  "todos": [
     {
       "id": "T-1",
       "content": "Test task 1",
       "status": "Done",
       "priority": "high",
       "tags": ["testing", "backend"],
-      "estimated_hours": 5.0,
-      "actual_hours": 6.0
+      "estimatedHours": 5.0,
+      "actualHours": 6.0
     },
     {
       "id": "T-2",
@@ -34,8 +35,8 @@ func TestHandleEstimationAnalyze(t *testing.T) {
       "status": "Done",
       "priority": "medium",
       "tags": ["testing", "frontend"],
-      "estimated_hours": 3.0,
-      "actual_hours": 2.5
+      "estimatedHours": 3.0,
+      "actualHours": 2.5
     },
     {
       "id": "T-3",
@@ -43,8 +44,8 @@ func TestHandleEstimationAnalyze(t *testing.T) {
       "status": "Done",
       "priority": "low",
       "tags": ["documentation"],
-      "estimated_hours": 2.0,
-      "actual_hours": 2.0
+      "estimatedHours": 2.0,
+      "actualHours": 2.0
     }
   ]
 }`
