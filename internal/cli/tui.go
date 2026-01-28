@@ -26,13 +26,13 @@ var (
 			Padding(0, 1)
 
 	headerLabelStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("#000000")).
-			Background(lipgloss.Color("#00FF00")).
-			Bold(true)
+				Foreground(lipgloss.Color("#000000")).
+				Background(lipgloss.Color("#00FF00")).
+				Bold(true)
 
 	headerValueStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("#000000")).
-			Background(lipgloss.Color("#00FF00"))
+				Foreground(lipgloss.Color("#000000")).
+				Background(lipgloss.Color("#00FF00"))
 
 	// Status bar (bottom)
 	statusBarStyle = lipgloss.NewStyle().
@@ -63,14 +63,14 @@ var (
 
 	// Priority colors (htop-like)
 	highPriorityStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("#FF0000")).
-			Bold(true)
+				Foreground(lipgloss.Color("#FF0000")).
+				Bold(true)
 
 	mediumPriorityStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("#FFFF00"))
+				Foreground(lipgloss.Color("#FFFF00"))
 
 	lowPriorityStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("#00FF00"))
+				Foreground(lipgloss.Color("#00FF00"))
 
 	// Border/separator
 	borderStyle = lipgloss.NewStyle().
@@ -89,13 +89,13 @@ type model struct {
 	lastUpdate  time.Time
 	projectRoot string
 	projectName string
-	
+
 	// Terminal dimensions
 	width  int
 	height int
-	
+
 	// Config editing mode
-	mode          string // "tasks" or "config"
+	mode           string // "tasks" or "config"
 	configSections []configSection
 	configCursor   int
 	configData     *config.FullConfig
@@ -116,7 +116,7 @@ type taskLoadedMsg struct {
 func initialModel(server framework.MCPServer, status string, projectRoot, projectName string) model {
 	// Load config
 	cfg, _ := config.LoadConfig(projectRoot)
-	
+
 	// Build config sections
 	sections := []configSection{
 		{name: "Timeouts", description: "Task locks, tool execution, HTTP clients", keys: []string{"task_lock_lease", "tool_default", "http_client"}},
@@ -125,7 +125,7 @@ func initialModel(server framework.MCPServer, status string, projectRoot, projec
 		{name: "Database", description: "SQLite settings, connection pooling", keys: []string{"sqlite_path", "max_connections", "query_timeout"}},
 		{name: "Security", description: "Rate limiting, path validation", keys: []string{"rate_limit.enabled", "max_file_size", "max_path_depth"}},
 	}
-	
+
 	return model{
 		tasks:          []*database.Todo2Task{},
 		cursor:         0,
@@ -133,8 +133,8 @@ func initialModel(server framework.MCPServer, status string, projectRoot, projec
 		status:         status,
 		server:         server,
 		loading:        true,
-		width:          80,  // Default width
-		height:         24,  // Default height
+		width:          80,   // Default width
+		height:         24,   // Default height
 		autoRefresh:    true, // Enable auto-refresh by default
 		lastUpdate:     time.Now(),
 		projectRoot:    projectRoot,
@@ -327,7 +327,7 @@ func (m model) View() string {
 	if m.mode == "config" {
 		return m.viewConfig()
 	}
-	
+
 	return m.viewTasks()
 }
 
@@ -358,7 +358,7 @@ func (m model) viewTasks() string {
 
 	// Header bar (top/htop style)
 	headerLine := strings.Builder{}
-	
+
 	// Title
 	title := "TASKS"
 	if m.projectName != "" {
@@ -369,13 +369,13 @@ func (m model) viewTasks() string {
 	}
 	headerLine.WriteString(headerStyle.Render(title))
 	headerLine.WriteString(" ")
-	
+
 	// Task count
 	taskCount := len(m.tasks)
 	headerLine.WriteString(headerLabelStyle.Render("Tasks:"))
 	headerLine.WriteString(headerValueStyle.Render(fmt.Sprintf(" %d", taskCount)))
 	headerLine.WriteString(" ")
-	
+
 	// Selected count
 	selectedCount := len(m.selected)
 	if selectedCount > 0 {
@@ -383,7 +383,7 @@ func (m model) viewTasks() string {
 		headerLine.WriteString(headerValueStyle.Render(fmt.Sprintf(" %d", selectedCount)))
 		headerLine.WriteString(" ")
 	}
-	
+
 	// Auto-refresh status
 	if m.autoRefresh {
 		lastUpdateStr := time.Since(m.lastUpdate).Round(time.Second).String()
@@ -393,17 +393,17 @@ func (m model) viewTasks() string {
 		headerLine.WriteString(headerLabelStyle.Render("Auto-refresh:"))
 		headerLine.WriteString(headerValueStyle.Render(" OFF"))
 	}
-	
+
 	// Fill remaining space
 	headerText := headerLine.String()
 	if len(headerText) < availableWidth {
 		padding := strings.Repeat(" ", availableWidth-len(headerText))
 		headerText += headerValueStyle.Render(padding)
 	}
-	
+
 	b.WriteString(headerText)
 	b.WriteString("\n")
-	
+
 	// Separator line
 	b.WriteString(borderStyle.Render(strings.Repeat("─", availableWidth)))
 	b.WriteString("\n")
@@ -424,7 +424,7 @@ func (m model) viewTasks() string {
 	b.WriteString("\n")
 	b.WriteString(borderStyle.Render(strings.Repeat("─", availableWidth)))
 	b.WriteString("\n")
-	
+
 	// Status bar content
 	statusBar := strings.Builder{}
 	statusBar.WriteString(statusBarStyle.Render("Commands:"))
@@ -443,14 +443,14 @@ func (m model) viewTasks() string {
 	statusBar.WriteString(" config  ")
 	statusBar.WriteString(helpStyle.Render("q"))
 	statusBar.WriteString(" quit")
-	
+
 	// Fill remaining space
 	statusText := statusBar.String()
 	if len(statusText) < availableWidth {
 		padding := strings.Repeat(" ", availableWidth-len(statusText))
 		statusText += statusBarStyle.Render(padding)
 	}
-	
+
 	b.WriteString(statusText)
 
 	return b.String()
@@ -469,11 +469,11 @@ func (m model) renderNarrowTaskList(b *strings.Builder, width int) {
 
 		// Minimal info: ID, status, truncated content
 		line := fmt.Sprintf("%s %s", cursor, task.ID)
-		
+
 		if task.Status != "" {
 			line += " " + statusStyle.Render(task.Status)
 		}
-		
+
 		// Truncate content to fit
 		content := task.Content
 		if content == "" {
@@ -504,7 +504,7 @@ func (m model) renderMediumTaskList(b *strings.Builder, width int) {
 	b.WriteString("\n")
 	b.WriteString(borderStyle.Render(strings.Repeat("─", width)))
 	b.WriteString("\n")
-	
+
 	for i, task := range m.tasks {
 		// Cursor indicator
 		cursor := "   "
@@ -514,13 +514,13 @@ func (m model) renderMediumTaskList(b *strings.Builder, width int) {
 				cursor = " ✓ "
 			}
 		}
-		
+
 		// Task ID
 		taskID := task.ID
 		if len(taskID) > 14 {
 			taskID = taskID[:11] + "..."
 		}
-		
+
 		// Status
 		statusStr := task.Status
 		if statusStr == "" {
@@ -529,7 +529,7 @@ func (m model) renderMediumTaskList(b *strings.Builder, width int) {
 		if len(statusStr) > 10 {
 			statusStr = statusStr[:7] + "..."
 		}
-		
+
 		// Priority full name
 		priorityFull := strings.ToUpper(task.Priority)
 		if priorityFull == "" {
@@ -538,13 +538,13 @@ func (m model) renderMediumTaskList(b *strings.Builder, width int) {
 		if len(priorityFull) > 8 {
 			priorityFull = priorityFull[:5] + "..."
 		}
-		
+
 		// Priority short
 		priorityShort := "-"
 		if task.Priority != "" {
 			priorityShort = strings.ToUpper(task.Priority[:1])
 		}
-		
+
 		// Content
 		content := task.Content
 		if content == "" {
@@ -559,17 +559,17 @@ func (m model) renderMediumTaskList(b *strings.Builder, width int) {
 		if content == "" {
 			content = "(no description)"
 		}
-		
+
 		// Build line
 		line := fmt.Sprintf("%s%-4s %-14s %-10s %-8s %s", cursor, taskID, statusStr, priorityFull, priorityShort, content)
-		
+
 		// Apply styling
 		if m.cursor == i {
 			line = selectedStyle.Render(line)
 		} else {
 			line = normalStyle.Render(line)
 		}
-		
+
 		// Apply priority color to short priority indicator
 		if task.Priority != "" {
 			switch strings.ToLower(task.Priority) {
@@ -581,7 +581,7 @@ func (m model) renderMediumTaskList(b *strings.Builder, width int) {
 				line = strings.Replace(line, priorityShort, lowPriorityStyle.Render(priorityShort), 1)
 			}
 		}
-		
+
 		b.WriteString(line)
 		b.WriteString("\n")
 	}
@@ -598,7 +598,7 @@ func (m model) renderWideTaskList(b *strings.Builder, width int) {
 	b.WriteString("\n")
 	b.WriteString(borderStyle.Render(strings.Repeat("─", width)))
 	b.WriteString("\n")
-	
+
 	for i, task := range m.tasks {
 		// Cursor indicator
 		cursor := "   "
@@ -608,13 +608,13 @@ func (m model) renderWideTaskList(b *strings.Builder, width int) {
 				cursor = " ✓ "
 			}
 		}
-		
+
 		// Task ID
 		taskID := task.ID
 		if len(taskID) > 16 {
 			taskID = taskID[:13] + "..."
 		}
-		
+
 		// Status
 		statusStr := task.Status
 		if statusStr == "" {
@@ -623,7 +623,7 @@ func (m model) renderWideTaskList(b *strings.Builder, width int) {
 		if len(statusStr) > 12 {
 			statusStr = statusStr[:9] + "..."
 		}
-		
+
 		// Priority full
 		priorityFull := strings.ToUpper(task.Priority)
 		if priorityFull == "" {
@@ -632,19 +632,19 @@ func (m model) renderWideTaskList(b *strings.Builder, width int) {
 		if len(priorityFull) > 10 {
 			priorityFull = priorityFull[:7] + "..."
 		}
-		
+
 		// Priority short
 		priorityShort := "-"
 		if task.Priority != "" {
 			priorityShort = strings.ToUpper(task.Priority[:1])
 		}
-		
+
 		// OLD indicator
 		oldIndicator := "   "
 		if isOldSequentialID(task.ID) {
 			oldIndicator = oldIDStyle.Render("OLD")
 		}
-		
+
 		// Content
 		content := task.Content
 		if content == "" {
@@ -660,11 +660,11 @@ func (m model) renderWideTaskList(b *strings.Builder, width int) {
 		if content == "" {
 			content = "(no description)"
 		}
-		
+
 		// Build line
-		line := fmt.Sprintf("%s%-4s %-16s %-12s %-10s %-4s %-50s", 
+		line := fmt.Sprintf("%s%-4s %-16s %-12s %-10s %-4s %-50s",
 			cursor, taskID, statusStr, priorityFull, priorityShort, oldIndicator, content)
-		
+
 		// Add tags for very wide terminals
 		if width >= 160 && len(task.Tags) > 0 {
 			tagsStr := strings.Join(task.Tags, ",")
@@ -673,14 +673,14 @@ func (m model) renderWideTaskList(b *strings.Builder, width int) {
 			}
 			line += " " + helpStyle.Render(tagsStr)
 		}
-		
+
 		// Apply styling
 		if m.cursor == i {
 			line = selectedStyle.Render(line)
 		} else {
 			line = normalStyle.Render(line)
 		}
-		
+
 		// Apply priority color
 		if task.Priority != "" {
 			switch strings.ToLower(task.Priority) {
@@ -692,7 +692,7 @@ func (m model) renderWideTaskList(b *strings.Builder, width int) {
 				line = strings.Replace(line, priorityShort, lowPriorityStyle.Render(priorityShort), 1)
 			}
 		}
-		
+
 		b.WriteString(line)
 		b.WriteString("\n")
 	}
@@ -713,7 +713,7 @@ func (m model) viewConfig() string {
 	}
 	headerLine.WriteString(headerStyle.Render(title))
 	headerLine.WriteString(" ")
-	
+
 	// Config path
 	if m.projectRoot != "" {
 		configPath := filepath.Join(m.projectRoot, ".exarp", "config.yaml")
@@ -724,25 +724,25 @@ func (m model) viewConfig() string {
 		headerLine.WriteString(headerValueStyle.Render(fmt.Sprintf(" %s", configPath)))
 		headerLine.WriteString(" ")
 	}
-	
+
 	// Unsaved changes indicator
 	if m.configChanged {
 		headerLine.WriteString(headerLabelStyle.Render("Status:"))
 		headerLine.WriteString(headerValueStyle.Render(" UNSAVED"))
 	}
-	
+
 	// Fill remaining space
 	headerText := headerLine.String()
 	if len(headerText) < availableWidth {
 		padding := strings.Repeat(" ", availableWidth-len(headerText))
 		headerText += headerValueStyle.Render(padding)
 	}
-	
+
 	b.WriteString(headerText)
 	b.WriteString("\n")
 	b.WriteString(borderStyle.Render(strings.Repeat("─", availableWidth)))
 	b.WriteString("\n")
-	
+
 	// Column headers
 	header := fmt.Sprintf("%-4s %-20s %s", "PID", "SECTION", "DESCRIPTION")
 	b.WriteString(helpStyle.Render(header))
@@ -757,33 +757,33 @@ func (m model) viewConfig() string {
 		if m.configCursor == i {
 			cursor = " → "
 		}
-		
+
 		// Section number (like PID)
 		sectionNum := fmt.Sprintf("%-3d", i+1)
-		
+
 		// Section name
 		sectionName := section.name
 		if len(sectionName) > 20 {
 			sectionName = sectionName[:17] + "..."
 		}
-		
+
 		// Description
 		description := section.description
 		maxDescWidth := availableWidth - 30
 		if maxDescWidth > 0 && len(description) > maxDescWidth {
 			description = description[:maxDescWidth-3] + "..."
 		}
-		
+
 		// Build line
 		line := fmt.Sprintf("%s%s %-20s %s", cursor, sectionNum, sectionName, description)
-		
+
 		// Apply styling
 		if m.configCursor == i {
 			line = selectedStyle.Render(line)
 		} else {
 			line = normalStyle.Render(line)
 		}
-		
+
 		b.WriteString(line)
 		b.WriteString("\n")
 	}
@@ -792,7 +792,7 @@ func (m model) viewConfig() string {
 	b.WriteString("\n")
 	b.WriteString(borderStyle.Render(strings.Repeat("─", availableWidth)))
 	b.WriteString("\n")
-	
+
 	statusBar := strings.Builder{}
 	statusBar.WriteString(statusBarStyle.Render("Commands:"))
 	statusBar.WriteString(" ")
@@ -808,13 +808,13 @@ func (m model) viewConfig() string {
 	statusBar.WriteString(" tasks  ")
 	statusBar.WriteString(helpStyle.Render("q"))
 	statusBar.WriteString(" quit")
-	
+
 	statusText := statusBar.String()
 	if len(statusText) < availableWidth {
 		padding := strings.Repeat(" ", availableWidth-len(statusText))
 		statusText += statusBarStyle.Render(padding)
 	}
-	
+
 	b.WriteString(statusText)
 
 	return b.String()
@@ -828,16 +828,16 @@ func isOldSequentialID(taskID string) bool {
 	if !strings.HasPrefix(taskID, "T-") {
 		return false
 	}
-	
+
 	// Extract the number part
 	numStr := strings.TrimPrefix(taskID, "T-")
-	
+
 	// Parse as integer
 	var num int64
 	if _, err := fmt.Sscanf(numStr, "%d", &num); err != nil {
 		return false
 	}
-	
+
 	// Old sequential IDs are typically small numbers (< 10000)
 	// Epoch milliseconds are 13 digits (1.6+ trillion)
 	// Use 1000000 (1 million) as the threshold to be safe
@@ -874,7 +874,7 @@ func showConfigSection(section configSection, cfg *config.FullConfig) tea.Cmd {
 		details.WriteString(fmt.Sprintf("\nConfig Section: %s\n", section.name))
 		details.WriteString(fmt.Sprintf("Description: %s\n", section.description))
 		details.WriteString("\nKey values:\n")
-		
+
 		// Show some key values from the section
 		// This is a simplified view - full editing would require more complex UI
 		switch section.name {
@@ -899,7 +899,7 @@ func showConfigSection(section configSection, cfg *config.FullConfig) tea.Cmd {
 			details.WriteString(fmt.Sprintf("  Max File Size: %d bytes\n", cfg.Thresholds.MaxFileSize))
 			details.WriteString(fmt.Sprintf("  Max Path Depth: %d\n", cfg.Thresholds.MaxPathDepth))
 		}
-		
+
 		details.WriteString("\nNote: Full editing requires editing .exarp/config.yaml directly\n")
 		details.WriteString("Press any key to continue...\n")
 		fmt.Print(details.String())
@@ -910,19 +910,19 @@ func showConfigSection(section configSection, cfg *config.FullConfig) tea.Cmd {
 func saveConfig(projectRoot string, cfg *config.FullConfig) tea.Cmd {
 	return func() tea.Msg {
 		configPath := filepath.Join(projectRoot, ".exarp", "config.yaml")
-		
+
 		// Import yaml for marshaling
 		data, err := yaml.Marshal(cfg)
 		if err != nil {
 			fmt.Printf("\n❌ Error saving config: %v\nPress any key to continue...\n", err)
 			return nil
 		}
-		
+
 		if err := os.WriteFile(configPath, data, 0644); err != nil {
 			fmt.Printf("\n❌ Error writing config file: %v\nPress any key to continue...\n", err)
 			return nil
 		}
-		
+
 		fmt.Printf("\n✅ Config saved to %s\nPress any key to continue...\n", configPath)
 		return configSavedMsg{}
 	}
@@ -935,14 +935,14 @@ func getProjectName(projectRoot string) string {
 	if projectRoot == "" {
 		return ""
 	}
-	
+
 	// Try to get module name from go.mod
 	if moduleName := getModuleName(projectRoot); moduleName != "" {
 		// Extract just the module name (last part after /)
 		parts := strings.Split(moduleName, "/")
 		return parts[len(parts)-1]
 	}
-	
+
 	// Fallback to directory name
 	return filepath.Base(projectRoot)
 }
@@ -954,7 +954,7 @@ func getModuleName(projectRoot string) string {
 	if err != nil {
 		return ""
 	}
-	
+
 	// Parse "module github.com/user/project" from go.mod
 	lines := strings.Split(string(data), "\n")
 	for _, line := range lines {
@@ -981,19 +981,19 @@ func RunTUI(server framework.MCPServer, status string) error {
 		if err == nil {
 			// Convert centralized config DatabaseConfig to DatabaseConfigFields
 			dbCfg := database.DatabaseConfigFields{
-				SQLitePath:       fullCfg.Database.SQLitePath,
-				JSONFallbackPath: fullCfg.Database.JSONFallbackPath,
-				BackupPath:       fullCfg.Database.BackupPath,
-				MaxConnections:   fullCfg.Database.MaxConnections,
-				ConnectionTimeout: int64(fullCfg.Database.ConnectionTimeout.Seconds()),
-				QueryTimeout:     int64(fullCfg.Database.QueryTimeout.Seconds()),
-				RetryAttempts:    fullCfg.Database.RetryAttempts,
-				RetryInitialDelay: int64(fullCfg.Database.RetryInitialDelay.Seconds()),
-				RetryMaxDelay:    int64(fullCfg.Database.RetryMaxDelay.Seconds()),
-				RetryMultiplier:  fullCfg.Database.RetryMultiplier,
-				AutoVacuum:       fullCfg.Database.AutoVacuum,
-				WALMode:          fullCfg.Database.WALMode,
-				CheckpointInterval: fullCfg.Database.CheckpointInterval,
+				SQLitePath:          fullCfg.Database.SQLitePath,
+				JSONFallbackPath:    fullCfg.Database.JSONFallbackPath,
+				BackupPath:          fullCfg.Database.BackupPath,
+				MaxConnections:      fullCfg.Database.MaxConnections,
+				ConnectionTimeout:   int64(fullCfg.Database.ConnectionTimeout.Seconds()),
+				QueryTimeout:        int64(fullCfg.Database.QueryTimeout.Seconds()),
+				RetryAttempts:       fullCfg.Database.RetryAttempts,
+				RetryInitialDelay:   int64(fullCfg.Database.RetryInitialDelay.Seconds()),
+				RetryMaxDelay:       int64(fullCfg.Database.RetryMaxDelay.Seconds()),
+				RetryMultiplier:     fullCfg.Database.RetryMultiplier,
+				AutoVacuum:          fullCfg.Database.AutoVacuum,
+				WALMode:             fullCfg.Database.WALMode,
+				CheckpointInterval:  fullCfg.Database.CheckpointInterval,
 				BackupRetentionDays: fullCfg.Database.BackupRetentionDays,
 			}
 

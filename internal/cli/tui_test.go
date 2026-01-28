@@ -3,7 +3,6 @@ package cli
 import (
 	"context"
 	"testing"
-	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/davidl71/exarp-go/internal/database"
@@ -38,19 +37,19 @@ func createTestTasks(count int) []*database.Todo2Task {
 // TestTUIInitialState tests the initial state of the TUI model
 func TestTUIInitialState(t *testing.T) {
 	server := setupMockServer(t)
-	model := initialModel(server, "", "/test", "test-project")
+	m := initialModel(server, "", "/test", "test-project")
 
 	// Verify initial state
-	if model.cursor != 0 {
-		t.Errorf("Expected cursor at 0, got %d", model.cursor)
+	if m.cursor != 0 {
+		t.Errorf("Expected cursor at 0, got %d", m.cursor)
 	}
-	if model.mode != "tasks" {
-		t.Errorf("Expected mode 'tasks', got %s", model.mode)
+	if m.mode != "tasks" {
+		t.Errorf("Expected mode 'tasks', got %s", m.mode)
 	}
-	if !model.loading {
+	if !m.loading {
 		t.Error("Expected loading=true initially")
 	}
-	if !model.autoRefresh {
+	if !m.autoRefresh {
 		t.Error("Expected autoRefresh=true by default")
 	}
 }
@@ -111,12 +110,12 @@ func TestTUINavigation(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			server := setupMockServer(t)
-			model := initialModel(server, "", "/test", "test-project")
-			model.tasks = createTestTasks(tt.taskCount)
-			model.loading = false
-			model.cursor = tt.startPos
+			m := initialModel(server, "", "/test", "test-project")
+			m.tasks = createTestTasks(tt.taskCount)
+			m.loading = false
+			m.cursor = tt.startPos
 
-			updated, _ := model.Update(tt.key)
+			updated, _ := m.Update(tt.key)
 			updatedModel := updated.(model)
 
 			if updatedModel.cursor != tt.wantPos {
@@ -129,12 +128,12 @@ func TestTUINavigation(t *testing.T) {
 // TestTUIModeSwitching tests switching between tasks and config modes
 func TestTUIModeSwitching(t *testing.T) {
 	server := setupMockServer(t)
-	model := initialModel(server, "", "/test", "test-project")
-	model.tasks = createTestTasks(3)
-	model.loading = false
+	m := initialModel(server, "", "/test", "test-project")
+	m.tasks = createTestTasks(3)
+	m.loading = false
 
 	// Switch to config mode
-	updated, _ := model.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'c'}})
+	updated, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'c'}})
 	updatedModel := updated.(model)
 	if updatedModel.mode != "config" {
 		t.Errorf("Expected mode 'config', got %s", updatedModel.mode)
@@ -157,13 +156,13 @@ func TestTUIModeSwitching(t *testing.T) {
 // TestTUISelection tests task selection with enter/space
 func TestTUISelection(t *testing.T) {
 	server := setupMockServer(t)
-	model := initialModel(server, "", "/test", "test-project")
-	model.tasks = createTestTasks(3)
-	model.loading = false
-	model.cursor = 1
+	m := initialModel(server, "", "/test", "test-project")
+	m.tasks = createTestTasks(3)
+	m.loading = false
+	m.cursor = 1
 
 	// Select task at cursor
-	updated, _ := model.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	updated, _ := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
 	updatedModel := updated.(model)
 	if _, ok := updatedModel.selected[1]; !ok {
 		t.Error("Expected task 1 to be selected")
@@ -187,10 +186,10 @@ func TestTUISelection(t *testing.T) {
 // TestTUIWindowResize tests handling of window size changes
 func TestTUIWindowResize(t *testing.T) {
 	server := setupMockServer(t)
-	model := initialModel(server, "", "/test", "test-project")
+	m := initialModel(server, "", "/test", "test-project")
 
 	// Simulate window resize
-	updated, _ := model.Update(tea.WindowSizeMsg{
+	updated, _ := m.Update(tea.WindowSizeMsg{
 		Width:  120,
 		Height: 40,
 	})
@@ -207,12 +206,12 @@ func TestTUIWindowResize(t *testing.T) {
 // TestTUIRefresh tests manual refresh with 'r' key
 func TestTUIRefresh(t *testing.T) {
 	server := setupMockServer(t)
-	model := initialModel(server, "", "/test", "test-project")
-	model.tasks = createTestTasks(2)
-	model.loading = false
+	m := initialModel(server, "", "/test", "test-project")
+	m.tasks = createTestTasks(2)
+	m.loading = false
 
 	// Trigger refresh
-	updated, cmd := model.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'r'}})
+	updated, cmd := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'r'}})
 	updatedModel := updated.(model)
 
 	if !updatedModel.loading {
@@ -226,12 +225,12 @@ func TestTUIRefresh(t *testing.T) {
 // TestTUIAutoRefreshToggle tests toggling auto-refresh with 'a' key
 func TestTUIAutoRefreshToggle(t *testing.T) {
 	server := setupMockServer(t)
-	model := initialModel(server, "", "/test", "test-project")
-	model.tasks = createTestTasks(2)
-	model.loading = false
+	m := initialModel(server, "", "/test", "test-project")
+	m.tasks = createTestTasks(2)
+	m.loading = false
 
 	// Toggle auto-refresh off
-	updated, cmd := model.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'a'}})
+	updated, cmd := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'a'}})
 	updatedModel := updated.(model)
 	if updatedModel.autoRefresh {
 		t.Error("Expected autoRefresh=false after toggle")
@@ -264,11 +263,11 @@ func TestTUIQuit(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			server := setupMockServer(t)
-			model := initialModel(server, "", "/test", "test-project")
-			model.tasks = createTestTasks(2)
-			model.loading = false
+			m := initialModel(server, "", "/test", "test-project")
+			m.tasks = createTestTasks(2)
+			m.loading = false
 
-			updated, cmd := model.Update(tt.key)
+			updated, cmd := m.Update(tt.key)
 			_ = updated // Updated model not needed for quit test
 
 			if cmd == nil {
@@ -286,11 +285,11 @@ func TestTUIQuit(t *testing.T) {
 // TestTUITaskLoading tests task loading message handling
 func TestTUITaskLoading(t *testing.T) {
 	server := setupMockServer(t)
-	model := initialModel(server, "", "/test", "test-project")
+	m := initialModel(server, "", "/test", "test-project")
 
 	// Simulate tasks loaded successfully
 	tasks := createTestTasks(3)
-	updated, _ := model.Update(taskLoadedMsg{tasks: tasks, err: nil})
+	updated, _ := m.Update(taskLoadedMsg{tasks: tasks, err: nil})
 	updatedModel := updated.(model)
 
 	if updatedModel.loading {
@@ -304,11 +303,11 @@ func TestTUITaskLoading(t *testing.T) {
 // TestTUITaskLoadingError tests error handling during task loading
 func TestTUITaskLoadingError(t *testing.T) {
 	server := setupMockServer(t)
-	model := initialModel(server, "", "/test", "test-project")
+	m := initialModel(server, "", "/test", "test-project")
 
 	// Simulate task loading error
 	err := context.DeadlineExceeded
-	updated, _ := model.Update(taskLoadedMsg{tasks: nil, err: err})
+	updated, _ := m.Update(taskLoadedMsg{tasks: nil, err: err})
 	updatedModel := updated.(model)
 
 	if updatedModel.loading {
@@ -322,11 +321,11 @@ func TestTUITaskLoadingError(t *testing.T) {
 // TestTUIConfigNavigation tests navigation in config mode
 func TestTUIConfigNavigation(t *testing.T) {
 	server := setupMockServer(t)
-	model := initialModel(server, "", "/test", "test-project")
-	model.mode = "config"
+	m := initialModel(server, "", "/test", "test-project")
+	m.mode = "config"
 
 	// Navigate down in config
-	updated, _ := model.Update(tea.KeyMsg{Type: tea.KeyDown})
+	updated, _ := m.Update(tea.KeyMsg{Type: tea.KeyDown})
 	updatedModel := updated.(model)
 	if updatedModel.configCursor != 1 {
 		t.Errorf("Expected config cursor 1, got %d", updatedModel.configCursor)
@@ -343,11 +342,11 @@ func TestTUIConfigNavigation(t *testing.T) {
 // TestTUIEmptyState tests rendering when no tasks are available
 func TestTUIEmptyState(t *testing.T) {
 	server := setupMockServer(t)
-	model := initialModel(server, "Todo", "/test", "test-project")
-	model.tasks = []*database.Todo2Task{}
-	model.loading = false
+	m := initialModel(server, "Todo", "/test", "test-project")
+	m.tasks = []*database.Todo2Task{}
+	m.loading = false
 
-	view := model.View()
+	view := m.View()
 	if view == "" {
 		t.Error("Expected non-empty view")
 	}
@@ -360,13 +359,13 @@ func TestTUIEmptyState(t *testing.T) {
 // TestTUIViewRendering tests that view renders correctly with tasks
 func TestTUIViewRendering(t *testing.T) {
 	server := setupMockServer(t)
-	model := initialModel(server, "", "/test", "test-project")
-	model.tasks = createTestTasks(5)
-	model.loading = false
-	model.width = 80
-	model.height = 24
+	m := initialModel(server, "", "/test", "test-project")
+	m.tasks = createTestTasks(5)
+	m.loading = false
+	m.width = 80
+	m.height = 24
 
-	view := model.View()
+	view := m.View()
 	if view == "" {
 		t.Error("Expected non-empty view")
 	}

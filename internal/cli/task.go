@@ -68,7 +68,7 @@ func handleTaskList(server framework.MCPServer, args []string) error {
 
 	// Build task_workflow args
 	toolArgs := map[string]interface{}{
-		"action":    "sync",
+		"action":     "sync",
 		"sub_action": "list",
 	}
 
@@ -98,9 +98,9 @@ func handleTaskStatus(server framework.MCPServer, args []string) error {
 
 	// Build task_workflow args to get task details
 	toolArgs := map[string]interface{}{
-		"action":    "sync",
+		"action":     "sync",
 		"sub_action": "list",
-		"task_id":   taskID,
+		"task_id":    taskID,
 	}
 
 	return executeTaskWorkflow(server, toolArgs)
@@ -161,7 +161,7 @@ func handleTaskUpdate(server framework.MCPServer, args []string) error {
 	toolArgs := map[string]interface{}{
 		"action":     "approve",
 		"new_status": newStatus,
-		"auto_apply":  autoApply,
+		"auto_apply": autoApply,
 	}
 
 	if oldStatus != "" {
@@ -222,8 +222,8 @@ func handleTaskCreate(server framework.MCPServer, args []string) error {
 
 	// Build task_workflow args
 	toolArgs := map[string]interface{}{
-		"action":          "create",
-		"name":            name,
+		"action":           "create",
+		"name":             name,
 		"long_description": description,
 	}
 
@@ -248,9 +248,9 @@ func handleTaskShow(server framework.MCPServer, args []string) error {
 
 	// Build task_workflow args to get full task details
 	toolArgs := map[string]interface{}{
-		"action":    "sync",
-		"sub_action": "list",
-		"task_id":   taskID,
+		"action":        "sync",
+		"sub_action":    "list",
+		"task_id":       taskID,
 		"output_format": "text",
 	}
 
