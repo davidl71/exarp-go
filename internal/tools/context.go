@@ -7,7 +7,6 @@ import (
 
 	"github.com/davidl71/exarp-go/internal/config"
 	"github.com/davidl71/exarp-go/internal/framework"
-	"github.com/davidl71/exarp-go/internal/platform"
 	"github.com/davidl71/mcp-go-core/pkg/mcp/response"
 )
 
@@ -70,8 +69,8 @@ func handleContextBudget(ctx context.Context, args json.RawMessage) ([]framework
 		// Extract data string from ContextItem (type-safe, no marshaling needed)
 		itemStr := ContextItemToDataString(contextItem)
 
-	// Estimate tokens using config ratio
-	tokens := estimateTokens(itemStr, config.TokensPerChar())
+		// Estimate tokens using config ratio
+		tokens := estimateTokens(itemStr, config.TokensPerChar())
 		totalTokens += tokens
 
 		// Calculate percentage of budget
@@ -204,12 +203,10 @@ func handleContextBatchNative(ctx context.Context, params map[string]interface{}
 			"tool_type": toolType,
 		}
 
-		// Try to use native summarize (with Apple FM if available)
-		// Check if Apple FM is available
-		support := platform.CheckAppleFoundationModelsSupport()
+		// Try to use native summarize (with default FM if available)
 		var summaryResult map[string]interface{}
 
-		if support.Supported {
+		if DefaultFM != nil && DefaultFM.Supported() {
 			// Try native Go with Apple FM
 			result, summarizeErr := handleContextSummarizeNative(ctx, summarizeParams)
 			if summarizeErr == nil && len(result) > 0 {
@@ -225,7 +222,7 @@ func handleContextBatchNative(ctx context.Context, params map[string]interface{}
 				summaryResult = createSimpleSummary(dataStr, level, toolType)
 			}
 		} else {
-			// Apple FM not available, use simple summarization
+			// FM not available, use simple summarization
 			summaryResult = createSimpleSummary(dataStr, level, toolType)
 		}
 
@@ -283,7 +280,7 @@ func handleContextBatchNative(ctx context.Context, params map[string]interface{}
 // createSimpleSummary creates a simple summary without Apple FM
 // This is a fallback when Apple FM is not available
 func createSimpleSummary(dataStr string, level string, toolType string) map[string]interface{} {
-		originalTokens := estimateTokens(dataStr, config.TokensPerChar())
+	originalTokens := estimateTokens(dataStr, config.TokensPerChar())
 
 	// Create a simple summary based on level
 	var summary interface{}
@@ -337,7 +334,7 @@ func createSimpleSummary(dataStr string, level string, toolType string) map[stri
 		summaryStr = string(bytes)
 	}
 
-		summaryTokens := estimateTokens(summaryStr, config.TokensPerChar())
+	summaryTokens := estimateTokens(summaryStr, config.TokensPerChar())
 	reduction := 0.0
 	if originalTokens > 0 {
 		reduction = (1.0 - float64(summaryTokens)/float64(originalTokens)) * 100.0

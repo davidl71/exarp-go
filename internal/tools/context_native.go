@@ -9,23 +9,15 @@ import (
 	"fmt"
 	"time"
 
-	fm "github.com/blacktop/go-foundationmodels"
 	"github.com/davidl71/exarp-go/internal/framework"
-	"github.com/davidl71/exarp-go/internal/platform"
 	"github.com/davidl71/mcp-go-core/pkg/mcp/response"
 )
 
-// summarizeWithAppleFM summarizes text using Apple Foundation Models
+// summarizeWithAppleFM summarizes text using the default FM provider (e.g. Apple Foundation Models when available).
 func summarizeWithAppleFM(ctx context.Context, data string, level string, maxTokens int) (string, error) {
-	// Check platform support
-	support := platform.CheckAppleFoundationModelsSupport()
-	if !support.Supported {
-		return "", fmt.Errorf("Apple Foundation Models not supported: %s", support.Reason)
+	if DefaultFM == nil || !DefaultFM.Supported() {
+		return "", ErrFMNotSupported
 	}
-
-	// Create session
-	sess := fm.NewSession()
-	defer sess.Release()
 
 	// Build prompt based on level
 	var prompt string
@@ -53,10 +45,7 @@ func summarizeWithAppleFM(ctx context.Context, data string, level string, maxTok
 		maxTokens = 512 // Default for summaries
 	}
 
-	// Generate summary
-	summary := sess.RespondWithOptions(prompt, maxTokens, temperature)
-
-	return summary, nil
+	return DefaultFM.Generate(ctx, prompt, maxTokens, temperature)
 }
 
 // handleContextSummarizeNative handles context summarization using native Go with Apple FM
@@ -112,11 +101,11 @@ func handleContextSummarizeNative(ctx context.Context, params map[string]interfa
 		toolType = toolTypeRaw
 	}
 
-	// Try Apple Foundation Models first
+	// Try default FM provider (e.g. Apple FM when available)
 	summary, err := summarizeWithAppleFM(ctx, dataStr, level, maxTokens)
 	if err != nil {
-		// Fallback to Python bridge if Apple FM not available
-		return nil, fmt.Errorf("Apple FM summarization failed, will fallback: %w", err)
+		// Fallback to Python bridge if FM not available
+		return nil, fmt.Errorf("FM summarization failed, will fallback: %w", err)
 	}
 
 	// Estimate tokens (using default tokensPerChar of 0.25)
@@ -131,7 +120,7 @@ func handleContextSummarizeNative(ctx context.Context, params map[string]interfa
 	result := map[string]interface{}{
 		"summary": summary,
 		"level":   level,
-		"method":  "apple_foundation_models",
+		"method":  "fm_provider",
 		"token_estimate": map[string]interface{}{
 			"original":          originalTokens,
 			"summarized":        summaryTokens,

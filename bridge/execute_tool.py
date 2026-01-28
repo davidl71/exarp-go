@@ -70,12 +70,11 @@ def execute_tool(tool_name: str, args_json: str, use_protobuf: bool = False, pro
         # Import tool functions from project_management_automation
         # Note: tool_catalog, workflow_mode, git_tools, infer_session_mode, health, automation,
         # generate_config, add_external_tool_hints, setup_hooks, check_attribution, session, memory_maint,
-        # analyze_alignment, estimation - fully native Go with no Python handler
+        # analyze_alignment, estimation, task_analysis - fully native Go with no Python handler
         from project_management_automation.tools.consolidated import (
             memory as _memory,
             report as _report,
             security as _security,
-            task_analysis as _task_analysis,
             task_discovery as _task_discovery,
             task_workflow as _task_workflow,
             testing as _testing,
@@ -127,18 +126,6 @@ def execute_tool(tool_name: str, args_json: str, use_protobuf: bool = False, pro
                 config_path=args.get("config_path"),
                 state=args.get("state", "open"),
                 include_dismissed=args.get("include_dismissed", False),
-            )
-        elif tool_name == "task_analysis":
-            result = _task_analysis(
-                action=args.get("action", "duplicates"),
-                similarity_threshold=args.get("similarity_threshold", 0.85),
-                auto_fix=args.get("auto_fix", False),
-                dry_run=args.get("dry_run", True),
-                custom_rules=args.get("custom_rules"),
-                remove_tags=args.get("remove_tags"),
-                output_format=args.get("output_format", "text"),
-                include_recommendations=args.get("include_recommendations", True),
-                output_path=args.get("output_path"),
             )
         elif tool_name == "task_discovery":
             result = _task_discovery(

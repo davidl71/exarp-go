@@ -9,11 +9,9 @@ import (
 	"fmt"
 	"strings"
 
-	fm "github.com/blacktop/go-foundationmodels"
 	"github.com/davidl71/exarp-go/internal/config"
 	"github.com/davidl71/exarp-go/internal/database"
 	"github.com/davidl71/exarp-go/internal/framework"
-	"github.com/davidl71/exarp-go/internal/platform"
 )
 
 // handleTaskWorkflowNative handles task_workflow with native Go and Apple FM
@@ -41,12 +39,10 @@ func handleTaskWorkflowNative(ctx context.Context, params map[string]interface{}
 	}
 }
 
-// handleTaskWorkflowClarify handles clarify action with Apple FM for question generation
+// handleTaskWorkflowClarify handles clarify action with default FM for question generation
 func handleTaskWorkflowClarify(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
-	// Check platform support
-	support := platform.CheckAppleFoundationModelsSupport()
-	if !support.Supported {
-		return nil, fmt.Errorf("Apple Foundation Models not supported: %s", support.Reason)
+	if DefaultFM == nil || !DefaultFM.Supported() {
+		return nil, ErrFMNotSupported
 	}
 
 	subAction, _ := params["sub_action"].(string)
@@ -97,9 +93,9 @@ func listTasksAwaitingClarification(ctx context.Context, params map[string]inter
 			clarificationText = "Task description is too brief or missing"
 		}
 
-		// Use Apple FM to detect if task needs clarification
+		// Use default FM to generate clarification question
 		if needsClarification {
-			question := generateClarificationQuestion(task, clarificationText)
+			question := generateClarificationQuestion(ctx, task, clarificationText)
 			needingClarification = append(needingClarification, map[string]interface{}{
 				"task_id":            task.ID,
 				"content":            task.Content,
@@ -403,15 +399,11 @@ func resolveBatchClarifications(ctx context.Context, params map[string]interface
 	}, nil
 }
 
-// generateClarificationQuestion uses Apple FM to generate clarification questions
-func generateClarificationQuestion(task Todo2Task, reason string) string {
-	support := platform.CheckAppleFoundationModelsSupport()
-	if !support.Supported {
+// generateClarificationQuestion uses the default FM to generate clarification questions
+func generateClarificationQuestion(ctx context.Context, task Todo2Task, reason string) string {
+	if DefaultFM == nil || !DefaultFM.Supported() {
 		return fmt.Sprintf("Task needs clarification: %s", reason)
 	}
-
-	sess := fm.NewSession()
-	defer sess.Release()
 
 	prompt := fmt.Sprintf(`Generate a specific clarification question for this task:
 
@@ -423,6 +415,9 @@ Reason: %s
 Generate a single, specific question that would help clarify what needs to be done. Return only the question, no explanation.`,
 		task.ID, task.Content, task.LongDescription, reason)
 
-	result := sess.RespondWithOptions(prompt, 100, 0.3)
+	result, err := DefaultFM.Generate(ctx, prompt, 100, 0.3)
+	if err != nil {
+		return fmt.Sprintf("Task needs clarification: %s", reason)
+	}
 	return strings.TrimSpace(result)
 }

@@ -34,7 +34,7 @@ For each, the Go handler already implements all supported actions. The Python fa
 | **memory** | Fallback used for semantic search / when native fails. |
 | **report** | Briefing and scorecard no longer fall back: briefing is native-only (error if wisdom engine unavailable); non-Go scorecard returns clear error. Overview/prd still fall back to Python on native failure. |
 | **security** | Fallback when native scan/alerts/report fails. |
-| **task_analysis** | Fallback when native fails (e.g. hierarchy without Apple FM). |
+| **task_analysis** | Removed: fully native; no Python fallback (FM provider abstraction; hierarchy returns clear error when FM not supported). |
 | **task_discovery** | Fallback when native fails. |
 | **task_workflow** | (1) Handler fallback for Apple-FM–related errors. (2) **Required:** `task_workflow_common.handleTaskWorkflowSync` calls the bridge when `external=true` (agentic-tools sync). |
 | **testing** | `suggest` / `generate` are Python-only. |

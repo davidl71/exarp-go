@@ -13,7 +13,7 @@ import (
 // toolsWithNoBridge lists tools that are fully native with no Python bridge (bridge does not route them).
 var toolsWithNoBridge = map[string]bool{
 	"session": true, "setup_hooks": true, "check_attribution": true, "memory_maint": true,
-	"analyze_alignment": true, "estimation": true,
+	"analyze_alignment": true, "estimation": true, "task_analysis": true,
 	"git_tools": true, "infer_session_mode": true, "tool_catalog": true, "workflow_mode": true,
 	"prompt_tracking": true, "generate_config": true, "add_external_tool_hints": true,
 }
@@ -21,7 +21,7 @@ var toolsWithNoBridge = map[string]bool{
 // TestRegressionNativeOnlyTools documents tools that completed native migration (no Python bridge).
 // See docs/PYTHON_FALLBACKS_SAFE_TO_REMOVE.md.
 func TestRegressionNativeOnlyTools(t *testing.T) {
-	want := []string{"session", "setup_hooks", "check_attribution", "memory_maint", "analyze_alignment", "estimation"}
+	want := []string{"session", "setup_hooks", "check_attribution", "memory_maint", "analyze_alignment", "estimation", "task_analysis"}
 	for _, name := range want {
 		if !toolsWithNoBridge[name] {
 			t.Errorf("native-only tool %q must be in toolsWithNoBridge", name)

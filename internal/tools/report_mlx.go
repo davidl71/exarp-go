@@ -2,18 +2,14 @@ package tools
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"strings"
-
-	"github.com/davidl71/exarp-go/internal/bridge"
 )
 
-// enhanceReportWithMLX enhances report data with MLX-generated insights
+// enhanceReportWithMLX enhances report data with AI-generated insights.
+// Uses DefaultReportInsight (tries MLX via bridge, then DefaultFM when MLX unavailable).
+// Report code does not depend on the bridge or MLX by name.
 func enhanceReportWithMLX(ctx context.Context, reportData map[string]interface{}, action string) (map[string]interface{}, error) {
-	// Check if MLX is available via Python bridge
-	// We'll use the mlx tool through the bridge to generate insights
-
 	// Build prompt based on action
 	var prompt string
 	var maxTokens int
@@ -26,7 +22,7 @@ func enhanceReportWithMLX(ctx context.Context, reportData map[string]interface{}
 		prompt = buildOverviewInsightPrompt(reportData)
 		maxTokens = 1500 // Even longer for comprehensive overview
 	case "briefing":
-		// Briefing uses devwisdom-go, skip MLX enhancement
+		// Briefing uses devwisdom-go, skip insight enhancement
 		return reportData, nil
 	case "prd":
 		prompt = buildPRDInsightPrompt(reportData)
@@ -35,67 +31,27 @@ func enhanceReportWithMLX(ctx context.Context, reportData map[string]interface{}
 		return reportData, nil
 	}
 
-	// Call MLX via Python bridge
-	mlxParams := map[string]interface{}{
-		"action":      "generate",
-		"prompt":      prompt,
-		"model":       "mlx-community/Mistral-7B-Instruct-v0.2-4bit", // Better for longer outputs
-		"max_tokens":  maxTokens,
-		"temperature": 0.4, // Lower for more focused insights
-	}
-
-	mlxResult, err := bridge.ExecutePythonTool(ctx, "mlx", mlxParams)
-	if err != nil {
-		// If MLX fails, return original data without enhancement
+	provider := DefaultReportInsight()
+	if provider == nil || !provider.Supported() {
 		return reportData, nil
 	}
 
-	// Parse MLX response
-	var mlxResponse map[string]interface{}
-	if err := json.Unmarshal([]byte(mlxResult), &mlxResponse); err != nil {
+	generatedText, err := provider.Generate(ctx, prompt, maxTokens, 0.4)
+	if err != nil || generatedText == "" {
+		// If provider fails or returns empty, return original data without enhancement
 		return reportData, nil
 	}
 
-	// Extract generated text (MLX returns format_success_response structure)
-	generatedText := ""
-
-	// Try data.generated_text format (format_success_response wraps in "data")
-	if data, ok := mlxResponse["data"].(map[string]interface{}); ok {
-		if text, ok := data["generated_text"].(string); ok {
-			generatedText = text
-		}
-	}
-
-	// Try direct generated_text format (if not wrapped)
-	if generatedText == "" {
-		if text, ok := mlxResponse["generated_text"].(string); ok {
-			generatedText = text
-		}
-	}
-
-	// Try result field (alternative format)
-	if generatedText == "" {
-		if result, ok := mlxResponse["result"].(string); ok {
-			generatedText = result
-		}
-	}
-
-	if generatedText == "" {
-		return reportData, nil
-	}
-
-	// Add MLX insights to report data
+	// Add AI insights to report data
 	enhancedData := make(map[string]interface{})
 	for k, v := range reportData {
 		enhancedData[k] = v
 	}
 
-	// Add AI insights section
 	enhancedData["ai_insights"] = map[string]interface{}{
-		"generated_by": "mlx",
-		"model":        "mlx-community/Mistral-7B-Instruct-v0.2-4bit",
+		"generated_by": "insight_provider",
 		"insights":     generatedText,
-		"method":       "mlx_enhanced",
+		"method":       "insight_enhanced",
 	}
 
 	return enhancedData, nil

@@ -9,19 +9,14 @@ import (
 	"fmt"
 	"math"
 	"strings"
-
-	fm "github.com/blacktop/go-foundationmodels"
-	"github.com/davidl71/exarp-go/internal/platform"
 )
 
 // HistoricalTask and EstimationResult types are defined in estimation_shared.go
 
-// estimateWithAppleFM estimates task duration using Apple Foundation Models for semantic analysis
+// estimateWithAppleFM estimates task duration using the default FM provider for semantic analysis
 func estimateWithAppleFM(ctx context.Context, name, details string, tags []string, priority string) (*EstimationResult, error) {
-	// Check platform support
-	support := platform.CheckAppleFoundationModelsSupport()
-	if !support.Supported {
-		return nil, fmt.Errorf("Apple Foundation Models not supported: %s", support.Reason)
+	if DefaultFM == nil || !DefaultFM.Supported() {
+		return nil, ErrFMNotSupported
 	}
 
 	// Build analysis prompt
@@ -68,25 +63,25 @@ EXAMPLE:
     "reasoning": "Moderate complexity feature requiring API integration and testing"
 }`, name, details, tagsStr, priority)
 
-	// Create session with specialized instructions for task estimation
-	// This provides better context than a generic session
-	systemInstructions := `You are an expert software development task estimator. 
+	// Prepend system instructions so the model behaves as a task estimator
+	systemInstructions := `You are an expert software development task estimator.
 Your role is to analyze software development tasks and provide accurate time estimates.
 You understand software complexity, development workflows, testing requirements, and integration challenges.
 Always provide realistic estimates based on the actual scope of work described.
-Respond ONLY with valid JSON in the exact format requested.`
+Respond ONLY with valid JSON in the exact format requested.
 
-	sess := fm.NewSessionWithInstructions(systemInstructions)
-	defer sess.Release()
+`
+	fullPrompt := systemInstructions + analysisPrompt
 
-	// Generate response with Apple Foundation Models
 	// Lower temperature (0.2) for more deterministic, consistent estimates
-	response := sess.RespondWithOptions(analysisPrompt, 200, 0.2) // 200 tokens, temperature 0.2 for more deterministic output
-
-	// Parse response
-	result, err := parseAppleFMResponse(response)
+	resp, err := DefaultFM.Generate(ctx, fullPrompt, 200, 0.2)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse Apple FM response: %w", err)
+		return nil, fmt.Errorf("FM generate failed: %w", err)
+	}
+
+	result, err := parseAppleFMResponse(resp)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse FM response: %w", err)
 	}
 
 	return result, nil
@@ -139,7 +134,7 @@ func parseAppleFMResponse(text string) (*EstimationResult, error) {
 		Metadata: map[string]interface{}{
 			"complexity": parsed.Complexity,
 			"reasoning":  parsed.Reasoning,
-			"model":      "apple_foundation_models",
+			"model":      "fm_provider",
 		},
 	}, nil
 }
