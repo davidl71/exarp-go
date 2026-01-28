@@ -2,11 +2,9 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"flag"
 	"log"
 	"os"
-	"strings"
 
 	"github.com/davidl71/exarp-go/internal/bridge"
 	"github.com/davidl71/exarp-go/internal/cli"
@@ -21,55 +19,13 @@ import (
 func main() {
 	// Normalize "exarp-go tool_name key=value ..." (e.g. from git hooks) to -tool and -args
 	// so we run CLI mode instead of MCP server (which would read stdin and fail on non-JSON).
-	if len(os.Args) >= 2 && len(os.Args[1]) > 0 && os.Args[1][0] != '-' {
-		first := os.Args[1]
-		if first != "task" && first != "config" && first != "tui" && first != "tui3270" &&
-			!strings.Contains(first, "/") {
-			// Treat as tool name with key=value args
-			argsMap := make(map[string]interface{})
-			for _, arg := range os.Args[2:] {
-				if idx := strings.IndexByte(arg, '='); idx >= 0 {
-					key := strings.TrimSpace(arg[:idx])
-					val := strings.TrimSpace(arg[idx+1:])
-					if key != "" {
-						argsMap[key] = val
-					}
-				}
-			}
-			argsJSON, err := json.Marshal(argsMap)
-			if err == nil {
-				os.Args = []string{os.Args[0], "-tool", first, "-args", string(argsJSON)}
-			}
-		}
+	if normalized, ok := cli.NormalizeToolArgs(os.Args); ok {
+		os.Args = normalized
 	}
 
-	// Check for CLI flags first (completion, list, etc.) - these should work even without TTY
-	// Also check for task and config subcommands
-	hasCLIFlags := false
-	if len(os.Args) > 1 && (os.Args[1] == "task" || os.Args[1] == "config" || os.Args[1] == "tui") {
-		hasCLIFlags = true
-	} else {
-		for i := 1; i < len(os.Args); i++ {
-			arg := os.Args[i]
-			if arg == "-completion" || arg == "--completion" ||
-				arg == "-list" || arg == "--list" ||
-				arg == "-tool" || arg == "--tool" ||
-				arg == "-test" || arg == "--test" ||
-				arg == "-i" || arg == "--interactive" ||
-				arg == "-args" || arg == "--args" ||
-				arg == "-h" || arg == "--help" || arg == "help" {
-				hasCLIFlags = true
-				break
-			}
-			// Stop at first non-flag argument
-			if len(arg) > 0 && arg[0] != '-' {
-				break
-			}
-		}
-	}
-
-	// If CLI flags are present or we're in a TTY, run CLI mode
-	if hasCLIFlags || cli.IsTTY() {
+	// Check for CLI flags (completion, list, -tool, task, config, tui, etc.) - work without TTY
+	// Use DetectMode for TTY-based mode; explicit flags take precedence.
+	if cli.HasCLIFlags(os.Args) || cli.DetectMode() == cli.ModeCLI {
 		// CLI mode - run command line interface
 		if err := cli.Run(); err != nil {
 			log.Fatalf("CLI error: %v", err)
