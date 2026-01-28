@@ -348,9 +348,37 @@ func handleTaskWorkflowList(ctx context.Context, params map[string]interface{}) 
 			}
 		}
 		filtered = append(filtered, task)
-		if limit > 0 && len(filtered) >= limit {
-			break
+	}
+
+	// Optional: sort by execution order (dependency order)
+	if order, _ := params["order"].(string); order == "execution" || order == "dependency" {
+		orderedIDs, _, _, err := BacklogExecutionOrder(tasks)
+		if err == nil {
+			filteredMap := make(map[string]Todo2Task)
+			for _, t := range filtered {
+				filteredMap[t.ID] = t
+			}
+			orderedSet := make(map[string]bool)
+			for _, id := range orderedIDs {
+				orderedSet[id] = true
+			}
+			orderedFiltered := make([]Todo2Task, 0, len(filtered))
+			for _, id := range orderedIDs {
+				if t, ok := filteredMap[id]; ok {
+					orderedFiltered = append(orderedFiltered, t)
+				}
+			}
+			for _, t := range filtered {
+				if !orderedSet[t.ID] {
+					orderedFiltered = append(orderedFiltered, t)
+				}
+			}
+			filtered = orderedFiltered
 		}
+	}
+
+	if limit > 0 && len(filtered) > limit {
+		filtered = filtered[:limit]
 	}
 
 	// Format output

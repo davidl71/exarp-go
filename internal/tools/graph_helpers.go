@@ -2,6 +2,7 @@ package tools
 
 import (
 	"fmt"
+	"sort"
 
 	"gonum.org/v1/gonum/graph/simple"
 	"gonum.org/v1/gonum/graph/topo"
@@ -519,4 +520,91 @@ func AnalyzeCriticalPath(projectRoot string) (map[string]interface{}, error) {
 	result["max_dependency_level"] = maxLevel
 
 	return result, nil
+}
+
+// BacklogTaskDetail holds task info for execution-order output.
+type BacklogTaskDetail struct {
+	ID       string `json:"id"`
+	Content  string `json:"content"`
+	Priority string `json:"priority"`
+	Status   string `json:"status"`
+	Level    int    `json:"level"`
+}
+
+// IsBacklogStatus returns true if status is Todo or In Progress.
+func IsBacklogStatus(status string) bool {
+	s := NormalizeStatusToTitleCase(status)
+	return s == "Todo" || s == "In Progress"
+}
+
+// priorityOrderForSort returns sort key for priority (lower = higher priority).
+func priorityOrderForSort(priority string) int {
+	p := NormalizePriority(priority)
+	switch p {
+	case "critical":
+		return 0
+	case "high":
+		return 1
+	case "medium":
+		return 2
+	case "low":
+		return 3
+	default:
+		return 4
+	}
+}
+
+// BacklogExecutionOrder returns backlog tasks (Todo + In Progress) in dependency order.
+// Uses full task set for graph so levels are correct; sorts backlog by level asc, then priority, then ID.
+// Returns ordered IDs, waves (level -> task IDs), and details. If graph has cycles, levels are best-effort.
+func BacklogExecutionOrder(tasks []Todo2Task) (orderedIDs []string, waves map[int][]string, details []BacklogTaskDetail, err error) {
+	orderedIDs = []string{}
+	waves = make(map[int][]string)
+	details = []BacklogTaskDetail{}
+
+	backlog := make([]Todo2Task, 0)
+	taskMap := make(map[string]Todo2Task)
+	for _, t := range tasks {
+		taskMap[t.ID] = t
+		if IsBacklogStatus(t.Status) {
+			backlog = append(backlog, t)
+		}
+	}
+	if len(backlog) == 0 {
+		return orderedIDs, waves, details, nil
+	}
+
+	tg, err := BuildTaskGraph(tasks)
+	if err != nil {
+		return nil, nil, nil, fmt.Errorf("build task graph: %w", err)
+	}
+	levels := GetTaskLevels(tg)
+
+	// Sort backlog by level asc, then priority (critical first), then ID
+	sort.Slice(backlog, func(i, j int) bool {
+		li, lj := levels[backlog[i].ID], levels[backlog[j].ID]
+		if li != lj {
+			return li < lj
+		}
+		pi := priorityOrderForSort(backlog[i].Priority)
+		pj := priorityOrderForSort(backlog[j].Priority)
+		if pi != pj {
+			return pi < pj
+		}
+		return backlog[i].ID < backlog[j].ID
+	})
+
+	for _, t := range backlog {
+		orderedIDs = append(orderedIDs, t.ID)
+		level := levels[t.ID]
+		waves[level] = append(waves[level], t.ID)
+		details = append(details, BacklogTaskDetail{
+			ID:       t.ID,
+			Content:  t.Content,
+			Priority: t.Priority,
+			Status:   t.Status,
+			Level:    level,
+		})
+	}
+	return orderedIDs, waves, details, nil
 }

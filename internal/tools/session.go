@@ -111,6 +111,11 @@ func handleSessionPrime(ctx context.Context, params map[string]interface{}) ([]f
 	if includeTasks {
 		tasksSummary := getTasksSummary(projectRoot)
 		result["tasks"] = tasksSummary
+		// Suggested next tasks in dependency order (first 10)
+		suggestedNext := getSuggestedNextTasks(projectRoot, 10)
+		if len(suggestedNext) > 0 {
+			result["suggested_next"] = suggestedNext
+		}
 	}
 
 	// 5. Add hints if requested (simplified)
@@ -585,10 +590,10 @@ func handleSessionExport(ctx context.Context, params map[string]interface{}, pro
 	if _, err := os.Stat(handoffFile); os.IsNotExist(err) {
 		// No handoffs file - return empty export
 		handoffData = map[string]interface{}{
-			"handoffs": []interface{}{},
+			"handoffs":    []interface{}{},
 			"exported_at": time.Now().Format(time.RFC3339),
 			"export_type": "all",
-			"count": 0,
+			"count":       0,
 		}
 	} else {
 		fileCache := cache.GetGlobalFileCache()
@@ -602,7 +607,7 @@ func handleSessionExport(ctx context.Context, params map[string]interface{}, pro
 		}
 
 		handoffs, _ := handoffData["handoffs"].([]interface{})
-		
+
 		// If exporting latest only, keep only the last handoff
 		if exportLatest && len(handoffs) > 0 {
 			handoffData["handoffs"] = []interface{}{handoffs[len(handoffs)-1]}
@@ -610,7 +615,7 @@ func handleSessionExport(ctx context.Context, params map[string]interface{}, pro
 		} else {
 			handoffData["export_type"] = "all"
 		}
-		
+
 		handoffData["exported_at"] = time.Now().Format(time.RFC3339)
 		handoffData["count"] = len(handoffData["handoffs"].([]interface{}))
 	}
@@ -638,7 +643,7 @@ func handleSessionExport(ctx context.Context, params map[string]interface{}, pro
 		"output_path": outputPath,
 		"export_type": handoffData["export_type"],
 		"count":       handoffData["count"],
-		"message":    fmt.Sprintf("Handoff data exported to %s", outputPath),
+		"message":     fmt.Sprintf("Handoff data exported to %s", outputPath),
 	}
 
 	output, _ := json.MarshalIndent(result, "", "  ")
@@ -897,6 +902,40 @@ func getTasksSummary(projectRoot string) map[string]interface{} {
 	}
 }
 
+// getSuggestedNextTasks returns first N backlog tasks in dependency order (id + content).
+func getSuggestedNextTasks(projectRoot string, limit int) []map[string]interface{} {
+	tasks, err := LoadTodo2Tasks(projectRoot)
+	if err != nil || limit <= 0 {
+		return nil
+	}
+	orderedIDs, _, details, err := BacklogExecutionOrder(tasks)
+	if err != nil || len(orderedIDs) == 0 {
+		return nil
+	}
+	out := make([]map[string]interface{}, 0, limit)
+	detailMap := make(map[string]BacklogTaskDetail)
+	for _, d := range details {
+		detailMap[d.ID] = d
+	}
+	for i, id := range orderedIDs {
+		if i >= limit {
+			break
+		}
+		d, ok := detailMap[id]
+		if !ok {
+			out = append(out, map[string]interface{}{"id": id, "content": ""})
+			continue
+		}
+		out = append(out, map[string]interface{}{
+			"id":       d.ID,
+			"content":  d.Content,
+			"priority": d.Priority,
+			"level":    d.Level,
+		})
+	}
+	return out
+}
+
 // checkHandoffAlert checks for handoff notes from other developers
 func checkHandoffAlert(projectRoot string) map[string]interface{} {
 	handoffFile := filepath.Join(projectRoot, ".todo2", "handoffs.json")
@@ -1103,10 +1142,10 @@ func handleSessionPrompts(ctx context.Context, params map[string]interface{}) ([
 	}
 
 	result := map[string]interface{}{
-		"success":   true,
-		"method":    "native_go",
-		"prompts":   filtered,
-		"total":     len(filtered),
+		"success": true,
+		"method":  "native_go",
+		"prompts": filtered,
+		"total":   len(filtered),
 		"filters": map[string]interface{}{
 			"mode":     mode,
 			"persona":  persona,
@@ -1191,10 +1230,10 @@ func handleSessionAssigneeList(ctx context.Context, params map[string]interface{
 		}
 
 		assignment := map[string]interface{}{
-			"task_id":   task.ID,
-			"content":   task.Content,
-			"status":    task.Status,
-			"assignee":  nil,
+			"task_id":     task.ID,
+			"content":     task.Content,
+			"status":      task.Status,
+			"assignee":    nil,
 			"assigned_at": nil,
 		}
 
@@ -1210,10 +1249,10 @@ func handleSessionAssigneeList(ctx context.Context, params map[string]interface{
 	}
 
 	result := map[string]interface{}{
-		"success":      true,
-		"method":       "native_go",
-		"assignments":  assignments,
-		"total":        len(assignments),
+		"success":     true,
+		"method":      "native_go",
+		"assignments": assignments,
+		"total":       len(assignments),
 		"filters": map[string]interface{}{
 			"status_filter":      statusFilter,
 			"include_unassigned": includeUnassigned,
@@ -1270,10 +1309,10 @@ func handleSessionAssigneeAssign(ctx context.Context, params map[string]interfac
 	if !result.Success {
 		if result.WasLocked {
 			response := map[string]interface{}{
-				"success": false,
-				"method":  "native_go",
-				"error":   fmt.Sprintf("Task already assigned to %s", result.LockedBy),
-				"task_id": taskID,
+				"success":   false,
+				"method":    "native_go",
+				"error":     fmt.Sprintf("Task already assigned to %s", result.LockedBy),
+				"task_id":   taskID,
 				"locked_by": result.LockedBy,
 			}
 			output, _ := json.MarshalIndent(response, "", "  ")
@@ -1285,13 +1324,13 @@ func handleSessionAssigneeAssign(ctx context.Context, params map[string]interfac
 	}
 
 	response := map[string]interface{}{
-		"success":     true,
-		"method":      "native_go",
-		"task_id":     taskID,
-		"assignee":    assigneeName,
+		"success":       true,
+		"method":        "native_go",
+		"task_id":       taskID,
+		"assignee":      assigneeName,
 		"assignee_type": assigneeType,
-		"assigned_at": time.Now().Format(time.RFC3339),
-		"dry_run":     dryRun,
+		"assigned_at":   time.Now().Format(time.RFC3339),
+		"dry_run":       dryRun,
 	}
 
 	output, _ := json.MarshalIndent(response, "", "  ")
@@ -1319,9 +1358,9 @@ func handleSessionAssigneeUnassign(ctx context.Context, params map[string]interf
 	}
 
 	response := map[string]interface{}{
-		"success":  true,
-		"method":   "native_go",
-		"task_id":  taskID,
+		"success":       true,
+		"method":        "native_go",
+		"task_id":       taskID,
 		"unassigned_at": time.Now().Format(time.RFC3339),
 	}
 

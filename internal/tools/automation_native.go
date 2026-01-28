@@ -365,6 +365,33 @@ func handleAutomationSprint(ctx context.Context, params map[string]interface{}) 
 	results["summary"] = summary
 	results["duration_seconds"] = time.Since(startTime).Seconds()
 
+	// Add recommended backlog order for this sprint (first 15 in dependency order)
+	if projectRoot, err := FindProjectRoot(); err == nil {
+		if tasks, err := LoadTodo2Tasks(projectRoot); err == nil {
+			if orderedIDs, _, details, err := BacklogExecutionOrder(tasks); err == nil && len(orderedIDs) > 0 {
+				const sprintOrderLimit = 15
+				sprintOrder := make([]map[string]interface{}, 0, sprintOrderLimit)
+				detailMap := make(map[string]BacklogTaskDetail)
+				for _, d := range details {
+					detailMap[d.ID] = d
+				}
+				for i, id := range orderedIDs {
+					if i >= sprintOrderLimit {
+						break
+					}
+					d := detailMap[id]
+					sprintOrder = append(sprintOrder, map[string]interface{}{
+						"id":       d.ID,
+						"content":  d.Content,
+						"priority": d.Priority,
+						"level":    d.Level,
+					})
+				}
+				results["sprint_backlog_order"] = sprintOrder
+			}
+		}
+	}
+
 	// Build response
 	responseData := map[string]interface{}{
 		"status":  "success",
