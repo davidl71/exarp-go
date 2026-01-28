@@ -60,6 +60,16 @@
 
 ---
 
+## Pre-push hook and non-JSON stdin (fixed 2026-01-28)
+
+Git’s pre-push hook runs with refs on stdin (e.g. `refs/heads/main ...`). If exarp-go is invoked as `exarp-go analyze_alignment action=todo2` without a TTY, it used to start in **MCP server mode** and try to read stdin as JSON-RPC, causing: `invalid character 'r' looking for beginning of value`.
+
+**Fix (in `cmd/server/main.go`):** When the first argument is a single word (not `task`/`config`/`tui`/`tui3270` and not starting with `-`), it is treated as a **tool name** and the rest as `key=value` args. `os.Args` is rewritten to `-tool <name> -args <json>`, so the process runs in **CLI mode** and never parses stdin as JSON.
+
+**If the hook still fails:** Ensure it uses the **rebuilt** binary (e.g. `make build` then run `git push`, or set the hook to call `$(git rev-parse --show-toplevel)/bin/exarp-go` explicitly).
+
+---
+
 ## Scope: task_discovery (native first, bridge fallback on error)
 
 **Handler:** Tries `handleTaskDiscoveryNative` first; on error falls back to `bridge.ExecutePythonTool(ctx, "task_discovery", params)`.
