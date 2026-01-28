@@ -24,7 +24,7 @@
 | **security** | ~~security.go~~ | ~~Fallback when native failed~~ | ✅ **Done** – Native-only (Go projects only; errors otherwise). Bridge branch removed. |
 | **task_workflow** | `handlers.go`, `task_workflow_common.go` | Fallback when native fails; **external sync** (agentic-tools) | ❌ Keep – External sync is bridge-only for now. |
 | **testing** | ~~testing.go~~ | ~~Fallback when native failed~~ | ✅ **Done** – Native-only (Go projects only; errors otherwise). Bridge branch removed. |
-| **lint** | `handlers.go` | Non-Go linters (e.g. ruff) | ❌ Keep – Python/other linters. |
+| **lint** | ~~handlers.go~~ | ~~Fallback for non-native linters (e.g. ruff)~~ | ✅ **Done** – Native-only (golangci-lint, go-vet, gofmt, goimports, markdownlint, shellcheck, auto); unsupported linter returns error. Bridge branch removed. |
 | **mlx** | `handlers.go`, `insight_provider.go` | Primary (no Go bindings) | ❌ Keep – Intentional bridge-only. |
 | **context** | `handlers.go` | Unhandled actions / when native fails | Optional – Could narrow to specific actions. |
 | **recommend** | ~~handlers.go~~ | ~~Fallback when native failed~~ | ✅ **Done** – Native-only (model, workflow, advisor via devwisdom-go). Bridge branch removed. |
@@ -43,6 +43,7 @@ These handlers have **no** `bridge.ExecutePythonTool` call; they are already ful
 - `recommend` (model, workflow, advisor – native only via devwisdom-go; unsupported action returns error)
 - `security` (scan, alerts, report – Go projects only; errors otherwise)
 - `testing` (run, coverage, validate – Go projects only; unsupported action returns error)
+- `lint` (golangci-lint, go-vet, gofmt, goimports, markdownlint, shellcheck, auto – unsupported linter returns error)
 
 ---
 
@@ -50,9 +51,9 @@ These handlers have **no** `bridge.ExecutePythonTool` call; they are already ful
 
 The bridge still routes these tool names (for fallback or primary use):
 
-- `task_workflow`, `lint`, `ollama`, `mlx`, `context`
+- `task_workflow`, `ollama`, `mlx`, `context`
 
-**Removed 2026-01-28:** `memory`, `task_discovery`, `report`, `recommend`, `security`, `testing` – branches and imports removed from execute_tool.py (Go handlers are fully native).
+**Removed 2026-01-28:** `memory`, `task_discovery`, `report`, `recommend`, `security`, `testing`, `lint` – branches and imports removed from execute_tool.py (Go handlers are fully native).
 
 ---
 

@@ -75,9 +75,9 @@ def execute_tool(tool_name: str, args_json: str, use_protobuf: bool = False, pro
         # report: migrated to native Go (no Python handler, removed)
         # security: migrated to native Go (removed)
         # testing: migrated to native Go (removed)
+        # lint: migrated to native Go (removed)
         from project_management_automation.tools.consolidated import (
             task_workflow as _task_workflow,
-            lint as _lint,
             mlx as _mlx,
             ollama as _ollama,
         )
@@ -107,19 +107,6 @@ def execute_tool(tool_name: str, args_json: str, use_protobuf: bool = False, pro
                 auto_apply=args.get("auto_apply", False),
                 output_format=args.get("output_format", "text"),
                 stale_threshold_hours=args.get("stale_threshold_hours", 2.0),
-                output_path=args.get("output_path"),
-            )
-        elif tool_name == "lint":
-            result = _lint(
-                action=args.get("action", "run"),
-                path=args.get("path"),
-                linter=args.get("linter", "ruff"),
-                fix=args.get("fix", False),
-                analyze=args.get("analyze", True),
-                select=args.get("select"),
-                ignore=args.get("ignore"),
-                problems_json=args.get("problems_json"),
-                include_hints=args.get("include_hints", True),
                 output_path=args.get("output_path"),
             )
         # estimation: fully native Go, no Python handler (removed 2026-01-27)
