@@ -41,7 +41,7 @@ func handleTaskWorkflowNative(ctx context.Context, params map[string]interface{}
 
 // handleTaskWorkflowClarify handles clarify action with default FM for question generation
 func handleTaskWorkflowClarify(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
-	if DefaultFM == nil || !DefaultFM.Supported() {
+	if !FMAvailable() {
 		return nil, ErrFMNotSupported
 	}
 
@@ -401,7 +401,7 @@ func resolveBatchClarifications(ctx context.Context, params map[string]interface
 
 // generateClarificationQuestion uses the default FM to generate clarification questions
 func generateClarificationQuestion(ctx context.Context, task Todo2Task, reason string) string {
-	if DefaultFM == nil || !DefaultFM.Supported() {
+	if !FMAvailable() {
 		return fmt.Sprintf("Task needs clarification: %s", reason)
 	}
 

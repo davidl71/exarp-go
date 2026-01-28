@@ -24,7 +24,7 @@ func handleTaskDiscoveryNative(ctx context.Context, params map[string]interface{
 	}
 
 	// Use default FM for semantic extraction when available
-	useAppleFM := DefaultFM != nil && DefaultFM.Supported()
+	useAppleFM := FMAvailable()
 
 	projectRoot, err := FindProjectRoot()
 	if err != nil {
@@ -371,7 +371,7 @@ func findOrphanTasks(projectRoot string) []map[string]interface{} {
 
 // enhanceTaskWithAppleFM uses the default FM to extract structured task information
 func enhanceTaskWithAppleFM(ctx context.Context, taskText string) map[string]interface{} {
-	if DefaultFM == nil || !DefaultFM.Supported() {
+	if !FMAvailable() {
 		return nil
 	}
 
@@ -402,7 +402,7 @@ Return JSON with: {"description": "cleaned task description", "priority": "low|m
 
 // enhancePlanningDocWithAppleFM uses the default FM to extract task/epic references and structure from planning documents
 func enhancePlanningDocWithAppleFM(ctx context.Context, content string, filePath string) map[string]interface{} {
-	if DefaultFM == nil || !DefaultFM.Supported() {
+	if !FMAvailable() {
 		return nil
 	}
 

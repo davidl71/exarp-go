@@ -1057,7 +1057,7 @@ func saveAnalysisResult(outputPath string, result map[string]interface{}) error 
 // handleTaskAnalysisHierarchy handles hierarchy analysis using the FM provider abstraction.
 // When DefaultFM is available (e.g. Apple FM on darwin/arm64/cgo), it classifies tasks; otherwise returns ErrFMNotSupported.
 func handleTaskAnalysisHierarchy(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
-	if DefaultFM == nil || !DefaultFM.Supported() {
+	if !FMAvailable() {
 		return nil, fmt.Errorf("hierarchy requires a foundation model: %w", ErrFMNotSupported)
 	}
 
