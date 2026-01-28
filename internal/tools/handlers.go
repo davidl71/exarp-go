@@ -783,50 +783,37 @@ func handleContext(ctx context.Context, args json.RawMessage) ([]framework.TextC
 	// Route to native Go implementations when available
 	switch action {
 	case "summarize":
-		// Try native Go with default FM first
-		if FMAvailable() {
-			result, err := handleContextSummarizeNative(ctx, params)
-			if err == nil {
-				return result, nil
-			}
-			// If native implementation fails, fall through to Python bridge
+		// Native summarization requires Apple Foundation Models
+		if !FMAvailable() {
+			return nil, fmt.Errorf("context summarize requires Apple Foundation Models (darwin/arm64 with CGO); use action=budget or action=batch for other operations")
 		}
-		// If FM not available, fall through to Python bridge
+		result, err := handleContextSummarizeNative(ctx, params)
+		if err != nil {
+			return nil, fmt.Errorf("context summarize: %w", err)
+		}
+		return result, nil
 
 	case "budget":
-		// Use native Go implementation for budget analysis
-		// Convert params to json.RawMessage for handleContextBudget
 		budgetArgs, err := json.Marshal(params)
 		if err != nil {
 			return nil, fmt.Errorf("failed to marshal budget arguments: %w", err)
 		}
 		result, err := handleContextBudget(ctx, budgetArgs)
-		if err == nil {
-			return result, nil
+		if err != nil {
+			return nil, fmt.Errorf("context budget: %w", err)
 		}
-		// If native implementation fails, fall through to Python bridge
+		return result, nil
 
 	case "batch":
-		// Try native Go implementation for batch action
 		result, err := handleContextBatchNative(ctx, params)
-		if err == nil {
-			return result, nil
+		if err != nil {
+			return nil, fmt.Errorf("context batch: %w", err)
 		}
-		// If native implementation fails, fall through to Python bridge
+		return result, nil
 
 	default:
-		// Unknown action, fall through to Python bridge
+		return nil, fmt.Errorf("unknown context action %q; use summarize, budget, or batch", action)
 	}
-
-	// For actions not handled natively or when native implementations fail, use Python bridge
-	result, err := bridge.ExecutePythonTool(ctx, "context", params)
-	if err != nil {
-		return nil, fmt.Errorf("context failed: %w", err)
-	}
-
-	return []framework.TextContent{
-		{Type: "text", Text: result},
-	}, nil
 }
 
 // handlePromptTracking handles the prompt_tracking tool (unified wrapper)
