@@ -109,8 +109,9 @@ fi
 # Suppress INFO logs in git hook context (reduces token usage)
 export GIT_HOOK=1
 
-exarp-go analyze_alignment action=todo2 || exit 1
-exarp-go security action=scan || exit 1
+# Use explicit JSON args to avoid key=value parsing issues in hooks
+exarp-go -tool analyze_alignment -args '{"action":"todo2"}' || exit 1
+exarp-go -tool security -args '{"action":"scan"}' || exit 1
 `,
 		"post-commit": `#!/bin/sh
 # Exarp post-commit hook
@@ -119,7 +120,7 @@ exarp-go security action=scan || exit 1
 # Suppress INFO logs in git hook context (reduces token usage)
 export GIT_HOOK=1
 
-exarp-go automation action=discover || true
+exarp-go -tool automation -args '{"action":"discover"}' || true
 `,
 		"post-merge": `#!/bin/sh
 # Exarp post-merge hook
@@ -128,8 +129,8 @@ exarp-go automation action=discover || true
 # Suppress INFO logs in git hook context (reduces token usage)
 export GIT_HOOK=1
 
-exarp-go task_analysis action=duplicates || true
-exarp-go task_workflow action=sync || true
+exarp-go -tool task_analysis -args '{"action":"duplicates"}' || true
+exarp-go -tool task_workflow -args '{"action":"sync"}' || true
 `,
 	}
 
