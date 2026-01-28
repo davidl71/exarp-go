@@ -42,4 +42,4 @@
 
 ---
 
-**Order (current):** 1) Testing/validation checklist ✅ doc added below; 2) report overview in automation ✅ done; 3) analyze_alignment prd ✅ done + fallback removed; 4) estimation/task_* hardening next.
+**Order (current):** 1) Testing/validation checklist ✅; 2) report overview in automation ✅; 3) analyze_alignment prd ✅; 4) report briefing/scorecard + estimation shrink ✅ (2026-01-28). **Next:** task_analysis/task_discovery improve native or document bridge cases; testing/validation (unit tests for native impls).
