@@ -405,46 +405,28 @@ func handleTesting(ctx context.Context, args json.RawMessage) ([]framework.TextC
 		action = "run"
 	}
 
-	// Route to native implementations based on action
+	// Route to native implementations (no Python bridge fallback)
 	switch action {
 	case "run":
-		// Try native Go implementation first
 		result, err := handleTestingRun(ctx, params)
-		if err == nil {
-			return result, nil
+		if err != nil {
+			return nil, fmt.Errorf("testing run: %w", err)
 		}
-		// Fall through to Python bridge if native fails
-
+		return result, nil
 	case "coverage":
-		// Try native Go implementation first
 		result, err := handleTestingCoverage(ctx, params)
-		if err == nil {
-			return result, nil
+		if err != nil {
+			return nil, fmt.Errorf("testing coverage: %w", err)
 		}
-		// Fall through to Python bridge if native fails
-
+		return result, nil
 	case "validate":
-		// Try native Go implementation first
 		result, err := handleTestingValidate(ctx, params)
-		if err == nil {
-			return result, nil
+		if err != nil {
+			return nil, fmt.Errorf("testing validate: %w", err)
 		}
-		// Fall through to Python bridge if native fails
-
-	case "suggest", "generate":
-		// ML/AI features - use Python bridge
-		// These require ML capabilities that are better handled in Python
+		return result, nil
 	}
-
-	// Execute via Python bridge (for unsupported actions or when native fails)
-	result, err := bridge.ExecutePythonTool(ctx, "testing", params)
-	if err != nil {
-		return nil, fmt.Errorf("testing failed: %w", err)
-	}
-
-	return []framework.TextContent{
-		{Type: "text", Text: result},
-	}, nil
+	return nil, fmt.Errorf("testing action %q not supported; supported: run, coverage, validate", action)
 }
 
 // Batch 3 Tool Handlers (T-37 through T-44)
@@ -582,15 +564,8 @@ func handleLint(ctx context.Context, args json.RawMessage) ([]framework.TextCont
 		}, nil
 	}
 
-	// Fallback to Python bridge for non-Go linters (e.g., ruff)
-	result, err := bridge.ExecutePythonTool(ctx, "lint", params)
-	if err != nil {
-		return nil, fmt.Errorf("lint failed: %w", err)
-	}
-
-	return []framework.TextContent{
-		{Type: "text", Text: result},
-	}, nil
+	// Unsupported linter: native only (no bridge fallback)
+	return nil, fmt.Errorf("lint linter %q not supported; supported: golangci-lint, go-vet, gofmt, goimports, markdownlint, shellcheck, auto", linter)
 }
 
 // handleEstimation handles the estimation tool
