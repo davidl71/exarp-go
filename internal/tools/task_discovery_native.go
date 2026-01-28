@@ -118,6 +118,26 @@ func handleTaskDiscoveryNative(ctx context.Context, params map[string]interface{
 		result["ai_enhanced"] = true
 	}
 
+	// Optionally create tasks if requested (parity with nocgo build)
+	if createTasks, ok := params["create_tasks"].(bool); ok && createTasks {
+		createdTasks := createTasksFromDiscoveries(projectRoot, discoveries)
+		result["tasks_created"] = createdTasks
+	}
+
+	// Optionally write result to output_path
+	if outputPath, ok := params["output_path"].(string); ok && outputPath != "" {
+		fullPath := outputPath
+		if !filepath.IsAbs(fullPath) {
+			fullPath = filepath.Join(projectRoot, fullPath)
+		}
+		if err := os.MkdirAll(filepath.Dir(fullPath), 0755); err == nil {
+			raw, _ := json.MarshalIndent(result, "", "  ")
+			if err := os.WriteFile(fullPath, raw, 0644); err == nil {
+				result["report_path"] = fullPath
+			}
+		}
+	}
+
 	output, _ := json.MarshalIndent(result, "", "  ")
 	return []framework.TextContent{
 		{Type: "text", Text: string(output)},
