@@ -439,6 +439,7 @@ func TestRegressionFeatureParity(t *testing.T) {
 		"memory_maint":      "Fully native; no Python bridge. Health, gc, prune, consolidate, dream are native-only.",
 		"analyze_alignment": "Fully native for todo2 and prd; no Python bridge.",
 		"task_discovery":    "Fully native; no Python bridge. Comments, markdown, orphans, create_tasks are native-only (removed bridge 2026-01-28).",
+		"task_workflow":     "Fully native. Clarify uses FM chain (Apple → Ollama); clarify Python fallback removed.",
 		"recommend":         "Hybrid: native workflow/model; Python fallback when native fails.",
 		"health":            "Hybrid: native server/docs/dod/cicd; Python fallback when native fails.",
 		"ollama":            "Hybrid: native uses HTTP client; Python bridge may differ.",

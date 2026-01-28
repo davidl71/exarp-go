@@ -1,4 +1,4 @@
-.PHONY: help build build-debug build-race build-no-cgo run test test-watch test-coverage test-html clean install fmt lint dev dev-watch dev-test dev-full dev-cycle pre-push bench docs sanity-check sanity-check-cached test-cli test-cli-list test-cli-tool test-cli-test config clean-config sprint-start sprint-end pre-sprint sprint check-tasks update-completed-tasks go-fmt go-vet golangci-lint-check golangci-lint-fix govulncheck check check-fix check-all build-migrate migrate migrate-dry-run install-tools go-mod-tidy go-mod-verify pre-commit ci validate check-deps test-go test-go-fast test-go-verbose test-go-parallel test-go-tools-short version scorecard scorecard-full task-list task-list-todo task-list-in-progress task-list-done task-update proto proto-check proto-clean
+.PHONY: help build build-debug build-race build-no-cgo run test test-watch test-coverage test-html clean install fmt lint dev dev-watch dev-test dev-full dev-cycle pre-push bench docs sanity-check sanity-check-cached test-cli test-cli-list test-cli-tool test-cli-test config clean-config sprint-start sprint-end pre-sprint sprint check-tasks update-completed-tasks go-fmt go-vet golangci-lint-check golangci-lint-fix govulncheck check check-fix check-all build-migrate migrate migrate-dry-run install-tools go-mod-tidy go-mod-verify pre-commit ci validate check-deps test-go test-go-fast test-go-verbose test-go-parallel test-go-tools-short version scorecard scorecard-full task-list task-list-todo task-list-in-progress task-list-done task-update proto proto-check proto-clean exarp-list exarp-report-scorecard exarp-report-overview exarp-health-server exarp-health-docs exarp-context-budget exarp-test
 
 # Project configuration
 PROJECT_NAME := exarp-go
@@ -907,6 +907,49 @@ task-update: ## Update task status (use TASK_ID=id NEW_STATUS=status)
 		echo "$(RED)❌ exarp-go binary not found - run 'make build' first$(NC)"; \
 		exit 1; \
 	fi
+
+##@ exarp-go tools (CLI)
+
+define exarp_run
+@if [ -f $(BINARY_PATH) ]; then \
+	$(BINARY_PATH) $(1); \
+else \
+	echo "$(RED)❌ exarp-go binary not found - run 'make build' first$(NC)"; \
+	exit 1; \
+fi
+endef
+
+_exarp_report_scorecard_args := '{"action":"scorecard","include_metrics":true}'
+_exarp_report_overview_args   := '{"action":"overview","include_metrics":true}'
+
+exarp-list: ## List exarp-go tools (CLI)
+	$(call exarp_run,-list)
+
+exarp-report-scorecard: ## Run report tool (action=scorecard) via exarp-go CLI
+	$(call exarp_run,-tool report -args $(_exarp_report_scorecard_args))
+
+exarp-report-overview: ## Run report tool (action=overview) via exarp-go CLI
+	$(call exarp_run,-tool report -args $(_exarp_report_overview_args))
+
+exarp-health-server: ## Run health tool (action=server) via exarp-go CLI
+	$(call exarp_run,-tool health -args '{"action":"server"}')
+
+exarp-health-docs: ## Run health tool (action=docs) via exarp-go CLI
+	$(call exarp_run,-tool health -args '{"action":"docs"}')
+
+exarp-context-budget: ## Run context budget; use CONTEXT_JSON='{"action":"budget","items":["a","b"],"budget_tokens":4000}' or leave default
+	@CONTEXT_JSON=$${CONTEXT_JSON:-'{"action":"budget","items":["README","docs"],"budget_tokens":4000}'}; \
+	if [ ! -f $(BINARY_PATH) ]; then \
+		echo "$(RED)❌ exarp-go binary not found - run 'make build' first$(NC)"; exit 1; \
+	fi; \
+	$(BINARY_PATH) -tool context -args "$$CONTEXT_JSON"
+
+exarp-test: ## Smoke-test a tool via exarp-go -test; use TOOL=name (e.g. make exarp-test TOOL=health)
+	@if [ -z "$(TOOL)" ]; then \
+		echo "$(RED)❌ Usage: make exarp-test TOOL=health$(NC)"; \
+		exit 1; \
+	fi
+	$(call exarp_run,-test $(TOOL))
 
 sprint: ## Run full sprint automation (process all background tasks)
 	@echo "$(BLUE)Running sprint automation...$(NC)"

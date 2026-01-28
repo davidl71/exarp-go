@@ -17,10 +17,9 @@ func TestRegisterAllTools(t *testing.T) {
 		t.Fatalf("RegisterAllTools() error = %v", err)
 	}
 
-	// Verify all 28 tools are registered (29 with conditional Apple Foundation Models on macOS)
-	// Base tools: 28 (reduced from 30 after server_status and list_models converted to resources)
-	expectedCount := 28
-	// Apple Foundation Models tool is conditionally registered on macOS, adding +1
+	// Verify all tools are registered (base + text_generate + conditional Apple Foundation Models on macOS)
+	// Base: 29 (including text_generate). +1 when Apple FM tool registered on darwin/arm64/cgo.
+	expectedCount := 29
 	if server.ToolCount() != expectedCount && server.ToolCount() != expectedCount+1 {
 		t.Errorf("server.ToolCount() = %v, want %d or %d (with conditional Apple Foundation Models)",
 			server.ToolCount(), expectedCount, expectedCount+1)
@@ -52,6 +51,7 @@ func TestRegisterAllTools(t *testing.T) {
 		"infer_session_mode",
 		"ollama",
 		"mlx",
+		"text_generate",
 	}
 
 	for _, toolName := range expectedTools {

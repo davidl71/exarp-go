@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"strings"
 
 	"github.com/davidl71/exarp-go/internal/bridge"
 	"github.com/davidl71/exarp-go/internal/framework"
@@ -418,8 +417,7 @@ func handleTaskDiscovery(ctx context.Context, args json.RawMessage) ([]framework
 }
 
 // handleTaskWorkflow handles the task_workflow tool
-// Uses native Go implementation for all actions except clarify (which requires Apple FM)
-// approve, create, sync, clarity, cleanup all work on all platforms
+// Uses native Go only. Clarify uses DefaultFMProvider() (FM chain: Apple → Ollama → stub).
 func handleTaskWorkflow(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
 	// Try protobuf first, fall back to JSON for backward compatibility
 	req, params, err := ParseTaskWorkflowRequest(args)
@@ -439,36 +437,11 @@ func handleTaskWorkflow(ctx context.Context, args json.RawMessage) ([]framework.
 		})
 	}
 
-	// Try native Go implementation first for all actions
-	// Most actions (approve, create, sync, clarity, cleanup) work on all platforms
-	// Only clarify action requires Apple FM (checked inside native implementation)
 	result, err := handleTaskWorkflowNative(ctx, params)
-	if err == nil {
-		return result, nil
-	}
-
-	// Only fallback to Python bridge for specific errors that indicate native isn't available
-	// Don't fallback for sync/database errors - those should be reported, not hidden
-	errStr := err.Error()
-	shouldFallback := strings.Contains(errStr, "Apple Foundation Models not supported") ||
-		strings.Contains(errStr, "not available on this platform") ||
-		strings.Contains(errStr, "requires Apple Foundation Models")
-
-	if !shouldFallback {
-		// Native implementation failed with a real error (e.g., database save failed)
-		// Return the error instead of falling back to Python bridge
+	if err != nil {
 		return nil, err
 	}
-
-	// If native fails due to platform limitations (e.g., clarify without Apple FM), fall back to Python bridge
-	bridgeResult, bridgeErr := bridge.ExecutePythonTool(ctx, "task_workflow", params)
-	if bridgeErr != nil {
-		return nil, fmt.Errorf("task_workflow failed (native: %v, bridge: %w)", err, bridgeErr)
-	}
-
-	return []framework.TextContent{
-		{Type: "text", Text: bridgeResult},
-	}, nil
+	return result, nil
 }
 
 // handleTesting handles the testing tool

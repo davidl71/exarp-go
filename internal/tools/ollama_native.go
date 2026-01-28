@@ -84,6 +84,62 @@ func handleOllamaNative(ctx context.Context, params map[string]interface{}) ([]f
 	}
 }
 
+// ollamaAvailable returns true if the Ollama server at host is reachable (quick GET /api/tags).
+func ollamaAvailable(ctx context.Context, host string) bool {
+	client := &http.Client{Timeout: 2 * time.Second}
+	url := fmt.Sprintf("%s/api/tags", host)
+	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	if err != nil {
+		return false
+	}
+	resp, err := client.Do(req)
+	if err != nil {
+		return false
+	}
+	_ = resp.Body.Close()
+	return resp.StatusCode == http.StatusOK
+}
+
+// ollamaGenerateText performs non-streaming generate and returns only the response text.
+// Used by ollamaTextGenerator (TextGenerator) for FM-style generate.
+func ollamaGenerateText(ctx context.Context, prompt string, maxTokens int, temperature float32, host, model string) (string, error) {
+	options := map[string]interface{}{
+		"num_predict": maxTokens,
+		"temperature": float64(temperature),
+	}
+	reqBody := OllamaGenerateRequest{
+		Model:   model,
+		Prompt:  prompt,
+		Stream:  false,
+		Options: options,
+	}
+	jsonData, err := json.Marshal(reqBody)
+	if err != nil {
+		return "", fmt.Errorf("marshal request: %w", err)
+	}
+	client := &http.Client{Timeout: 120 * time.Second}
+	url := fmt.Sprintf("%s/api/generate", host)
+	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(jsonData))
+	if err != nil {
+		return "", fmt.Errorf("create request: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := client.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("call Ollama API: %w", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return "", fmt.Errorf("Ollama API status %d: %s", resp.StatusCode, string(body))
+	}
+	var genResp OllamaGenerateResponse
+	if err := json.NewDecoder(resp.Body).Decode(&genResp); err != nil {
+		return "", fmt.Errorf("decode response: %w", err)
+	}
+	return genResp.Response, nil
+}
+
 // handleOllamaStatus checks if Ollama server is running
 func handleOllamaStatus(ctx context.Context, host string) ([]framework.TextContent, error) {
 	client := &http.Client{Timeout: 5 * time.Second}
@@ -524,13 +580,13 @@ Generate the documented version of this code.`, style, string(code))
 
 	// Format result
 	docResult := map[string]interface{}{
-		"success":          true,
-		"method":           "native_go",
-		"file_path":        filePath,
-		"output_path":      outputPath,
-		"style":            style,
-		"documentation":    responseText,
-		"original_length":  len(code),
+		"success":           true,
+		"method":            "native_go",
+		"file_path":         filePath,
+		"output_path":       outputPath,
+		"style":             style,
+		"documentation":     responseText,
+		"original_length":   len(code),
 		"documented_length": len(responseText),
 	}
 

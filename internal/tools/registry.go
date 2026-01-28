@@ -1399,6 +1399,41 @@ func registerBatch5Tools(server framework.MCPServer) error {
 		return fmt.Errorf("failed to register context: %w", err)
 	}
 
+	// text_generate - Unified generate-text via FM or ReportInsight (LLM abstraction)
+	if err := server.RegisterTool(
+		"text_generate",
+		"[HINT: Unified generate-text. provider=fm|insight (default fm). Uses DefaultFMProvider (fm) or DefaultReportInsight (insight).]",
+		framework.ToolSchema{
+			Type: "object",
+			Properties: map[string]interface{}{
+				"provider": map[string]interface{}{
+					"type":        "string",
+					"enum":        []string{"fm", "insight"},
+					"default":     "fm",
+					"description": "Backend: fm (DefaultFMProvider, default) or insight (DefaultReportInsight)",
+				},
+				"prompt": map[string]interface{}{
+					"type":        "string",
+					"description": "Prompt for text generation (required)",
+				},
+				"max_tokens": map[string]interface{}{
+					"type":        "integer",
+					"default":     512,
+					"description": "Maximum tokens to generate",
+				},
+				"temperature": map[string]interface{}{
+					"type":        "number",
+					"default":     0.7,
+					"description": "Sampling temperature",
+				},
+			},
+			Required: []string{"prompt"},
+		},
+		handleTextGenerate,
+	); err != nil {
+		return fmt.Errorf("failed to register text_generate: %w", err)
+	}
+
 	// prompt_tracking - Unified prompt tracking (log/analyze actions)
 	if err := server.RegisterTool(
 		"prompt_tracking",

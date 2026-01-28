@@ -23,7 +23,3 @@ func (p *appleFMProvider) Generate(_ context.Context, prompt string, maxTokens i
 	}
 	return GenerateWithOptions(prompt, maxTokens, temperature)
 }
-
-func init() {
-	DefaultFM = &appleFMProvider{}
-}
