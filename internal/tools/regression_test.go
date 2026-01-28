@@ -17,12 +17,14 @@ var toolsWithNoBridge = map[string]bool{
 	"git_tools": true, "infer_session_mode": true, "tool_catalog": true, "workflow_mode": true,
 	"prompt_tracking": true, "generate_config": true, "add_external_tool_hints": true,
 	"report": true,
+	"recommend": true,
+	"security": true,
 }
 
 // TestRegressionNativeOnlyTools documents tools that completed native migration (no Python bridge).
 // See docs/PYTHON_FALLBACKS_SAFE_TO_REMOVE.md and docs/PYTHON_BRIDGE_MIGRATION_NEXT.md.
 func TestRegressionNativeOnlyTools(t *testing.T) {
-	want := []string{"session", "setup_hooks", "check_attribution", "memory_maint", "memory", "task_discovery", "analyze_alignment", "estimation", "task_analysis", "report"}
+	want := []string{"session", "setup_hooks", "check_attribution", "memory_maint", "memory", "task_discovery", "analyze_alignment", "estimation", "task_analysis", "report", "recommend", "security"}
 	for _, name := range want {
 		if !toolsWithNoBridge[name] {
 			t.Errorf("native-only tool %q must be in toolsWithNoBridge", name)
@@ -63,7 +65,7 @@ func TestRegressionSessionPrime(t *testing.T) {
 }
 
 // TestRegressionRecommendWorkflow tests native recommend workflow action.
-// Native is primary; optional bridge comparison when bridge available (hybrid tool).
+// Recommend is fully native (model, workflow, advisor); no Python bridge.
 func TestRegressionRecommendWorkflow(t *testing.T) {
 	ctx := context.Background()
 	params := map[string]interface{}{
@@ -72,7 +74,6 @@ func TestRegressionRecommendWorkflow(t *testing.T) {
 		"include_rationale": true,
 	}
 
-	// Assert native path (migrated to native Go)
 	nativeResult, nativeErr := handleRecommendWorkflowNative(ctx, params)
 	if nativeErr != nil {
 		t.Fatalf("native implementation failed: %v", nativeErr)
@@ -96,20 +97,6 @@ func TestRegressionRecommendWorkflow(t *testing.T) {
 		} else {
 			t.Error("native result missing recommended_mode")
 		}
-	}
-
-	// Optional: compare to Python bridge when available (hybrid fallback)
-	bridgeResultStr, bridgeErr := bridge.ExecutePythonTool(ctx, "recommend", params)
-	if bridgeErr != nil {
-		t.Skipf("Python bridge not available (optional): %v", bridgeErr)
-		return
-	}
-	var bridgeData map[string]interface{}
-	if err := json.Unmarshal([]byte(bridgeResultStr), &bridgeData); err != nil {
-		t.Errorf("bridge result is not valid JSON: %v", err)
-	}
-	if bridgeSuccess, ok := bridgeData["success"].(bool); !ok || !bridgeSuccess {
-		t.Error("bridge result missing success field or not true")
 	}
 }
 
