@@ -10,7 +10,7 @@
 
 **Key Finding:** Handlers in `internal/tools/handlers.go` use native Go first. Many tools are **fully native** (no Python bridge). Others are **hybrid** (native first, bridge fallback for specific actions or when native fails).
 
-**Python fallbacks removed (2026-01-27 / 2026-01-28):** `setup_hooks`, `check_attribution`, `session`, `memory_maint` (4 tools); `memory`, `task_discovery` (2 tools); `report` (1 tool). Bridge no longer routes these; handlers never call `ExecutePythonTool` for them.
+**Python fallbacks removed (2026-01-27 / 2026-01-28):** `setup_hooks`, `check_attribution`, `session`, `memory_maint` (4 tools); `memory`, `task_discovery`, `report`, `recommend`, `security`, `testing` (6 tools). Bridge no longer routes these; handlers never call `ExecutePythonTool` for them.
 
 ---
 
@@ -41,17 +41,17 @@ These tools have complete native implementations and **never** use the Python br
 | `prompt_tracking` | `handlePromptTracking` | `handlePromptTrackingNative` | ✅ Full Native |
 | `health` | `handleHealth` | `handleHealthNative` | ✅ Full Native |
 | `report` | `handleReport` | overview, scorecard (Go-only), briefing, prd (native); unsupported action returns error | ✅ Full Native (fallback removed) |
+| `recommend` | `handleRecommend` | model, workflow, advisor (devwisdom-go in-process) | ✅ Full Native (fallback removed) |
+| `security` | `handleSecurity` | scan, alerts, report (Go projects only; errors otherwise) | ✅ Full Native (fallback removed) |
+| `testing` | `handleTesting` | run, coverage, validate (Go projects only; unsupported action returns error) | ✅ Full Native (fallback removed) |
 
 ### Hybrid Tools (Native First, Bridge Fallback)
 
 | Tool | Native | Bridge used when | Handler |
 |------|--------|------------------|---------|
-| `security` | Go scan, `gh` | Non-Go projects; Go scan/gh fails | `handleSecurity` / `security.go` |
 | `task_workflow` | sync, approve, clarity, cleanup, create; clarify (Apple FM) | Apple FM–related errors; **external sync** (agentic-tools) | `handleTaskWorkflow`, `task_workflow_common` |
-| `testing` | Go test/coverage/validate | Non-Go; native fails | `handleTesting` / `testing.go` |
 | `lint` | Go linters | Non-Go linters (e.g. ruff) | `handleLint` |
 | `context` | summarize, budget (with Apple FM) | Unhandled actions; native fails | `handleContext` |
-| `recommend` | model, workflow | advisor; native fails | `handleRecommend` |
 | `ollama` | HTTP API (docs, quality, summary, etc.) | Fallback when native HTTP fails | `ollama_provider` |
 
 ### Python Bridge Only

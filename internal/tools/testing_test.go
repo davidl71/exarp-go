@@ -10,6 +10,7 @@ import (
 )
 
 func TestHandleTestingRun(t *testing.T) {
+	// Use temp dir (no go.mod) so native handler returns "only supported for Go projects"
 	tmpDir := t.TempDir()
 	os.Setenv("PROJECT_ROOT", tmpDir)
 	defer os.Unsetenv("PROJECT_ROOT")
@@ -21,12 +22,12 @@ func TestHandleTestingRun(t *testing.T) {
 		validate  func(*testing.T, []framework.TextContent)
 	}{
 		{
-			name: "run action with test_path",
+			name: "run action with test_path (non-Go project)",
 			params: map[string]interface{}{
 				"action":    "run",
 				"test_path": "./internal/tools",
 			},
-			wantError: false,
+			wantError: true,
 			validate: func(t *testing.T, result []framework.TextContent) {
 				if len(result) == 0 {
 					t.Error("expected non-empty result")
@@ -36,23 +37,23 @@ func TestHandleTestingRun(t *testing.T) {
 			},
 		},
 		{
-			name: "run action with verbose",
+			name: "run action with verbose (non-Go project)",
 			params: map[string]interface{}{
 				"action":  "run",
 				"verbose": true,
 			},
-			wantError: false,
+			wantError: true,
 			validate: func(t *testing.T, result []framework.TextContent) {
 				// Result may be test output
 			},
 		},
 		{
-			name: "run action with coverage",
+			name: "run action with coverage (non-Go project)",
 			params: map[string]interface{}{
 				"action":   "run",
 				"coverage": true,
 			},
-			wantError: false,
+			wantError: true,
 			validate: func(t *testing.T, result []framework.TextContent) {
 				// Result may be coverage output
 			},
@@ -75,6 +76,7 @@ func TestHandleTestingRun(t *testing.T) {
 }
 
 func TestHandleTestingCoverage(t *testing.T) {
+	// Use temp dir (no go.mod) so native handler returns "only supported for Go projects"
 	tmpDir := t.TempDir()
 	os.Setenv("PROJECT_ROOT", tmpDir)
 	defer os.Unsetenv("PROJECT_ROOT")
@@ -86,11 +88,11 @@ func TestHandleTestingCoverage(t *testing.T) {
 		validate  func(*testing.T, []framework.TextContent)
 	}{
 		{
-			name: "coverage action",
+			name: "coverage action (non-Go project)",
 			params: map[string]interface{}{
 				"action": "coverage",
 			},
-			wantError: false,
+			wantError: true,
 			validate: func(t *testing.T, result []framework.TextContent) {
 				if len(result) == 0 {
 					t.Error("expected non-empty result")
@@ -99,12 +101,12 @@ func TestHandleTestingCoverage(t *testing.T) {
 			},
 		},
 		{
-			name: "coverage with format",
+			name: "coverage with format (non-Go project)",
 			params: map[string]interface{}{
 				"action": "coverage",
 				"format": "html",
 			},
-			wantError: false,
+			wantError: true,
 			validate: func(t *testing.T, result []framework.TextContent) {
 				// Result may be coverage report
 			},
@@ -127,6 +129,7 @@ func TestHandleTestingCoverage(t *testing.T) {
 }
 
 func TestHandleTestingValidate(t *testing.T) {
+	// Use temp dir (no go.mod) so native handler returns "only supported for Go projects"
 	tmpDir := t.TempDir()
 	os.Setenv("PROJECT_ROOT", tmpDir)
 	defer os.Unsetenv("PROJECT_ROOT")
@@ -138,11 +141,11 @@ func TestHandleTestingValidate(t *testing.T) {
 		validate  func(*testing.T, []framework.TextContent)
 	}{
 		{
-			name: "validate action",
+			name: "validate action (non-Go project)",
 			params: map[string]interface{}{
 				"action": "validate",
 			},
-			wantError: false,
+			wantError: true,
 			validate: func(t *testing.T, result []framework.TextContent) {
 				if len(result) == 0 {
 					t.Error("expected non-empty result")
@@ -168,6 +171,7 @@ func TestHandleTestingValidate(t *testing.T) {
 }
 
 func TestHandleTesting(t *testing.T) {
+	// Use temp dir (no go.mod) so native handler returns "only supported for Go projects"
 	tmpDir := t.TempDir()
 	os.Setenv("PROJECT_ROOT", tmpDir)
 	defer os.Unsetenv("PROJECT_ROOT")
@@ -178,25 +182,25 @@ func TestHandleTesting(t *testing.T) {
 		wantError bool
 	}{
 		{
-			name: "run action",
+			name: "run action (non-Go project)",
 			params: map[string]interface{}{
 				"action": "run",
 			},
-			wantError: false,
+			wantError: true,
 		},
 		{
-			name: "coverage action",
+			name: "coverage action (non-Go project)",
 			params: map[string]interface{}{
 				"action": "coverage",
 			},
-			wantError: false,
+			wantError: true,
 		},
 		{
-			name: "validate action",
+			name: "validate action (non-Go project)",
 			params: map[string]interface{}{
 				"action": "validate",
 			},
-			wantError: false,
+			wantError: true,
 		},
 	}
 
