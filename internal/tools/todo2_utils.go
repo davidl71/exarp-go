@@ -2,11 +2,12 @@ package tools
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
+	"time"
 
 	"github.com/davidl71/exarp-go/internal/cache"
 	"github.com/davidl71/exarp-go/internal/database"
@@ -48,10 +49,16 @@ func loadTodo2TasksFromJSON(projectRoot string) ([]Todo2Task, error) {
 	return ParseTasksFromJSON(data)
 }
 
-// SaveTodo2Tasks saves tasks to database (preferred) or .todo2/state.todo2.json (fallback)
+// SaveTodo2Tasks saves tasks to database (preferred) or .todo2/state.todo2.json (fallback).
+// When database save succeeds, also writes the same list to JSON so both stores stay in sync
+// (avoids merge/sync reintroducing removed tasks from stale JSON).
 func SaveTodo2Tasks(projectRoot string, tasks []Todo2Task) error {
 	// Try database first
 	if err := saveTodo2TasksToDB(tasks); err == nil {
+		// Keep JSON in sync so a later sync does not reintroduce removed tasks (e.g. after merge)
+		if jsonErr := saveTodo2TasksToJSON(projectRoot, tasks); jsonErr != nil {
+			return fmt.Errorf("database saved but JSON write failed: %w", jsonErr)
+		}
 		return nil
 	}
 
@@ -69,8 +76,12 @@ func saveTodo2TasksToJSON(projectRoot string, tasks []Todo2Task) error {
 		return fmt.Errorf("failed to create .todo2 directory: %w", err)
 	}
 
-	state := models.Todo2State{Todos: tasks}
-	data, err := json.MarshalIndent(state, "", "  ")
+	// Normalize epoch dates so we never persist 1970-01-01
+	for i := range tasks {
+		tasks[i].NormalizeEpochDates()
+	}
+	// Use MarshalTasksToStateJSON so written JSON includes "name" and "description" for Todo2 extension/overview
+	data, err := MarshalTasksToStateJSON(tasks)
 	if err != nil {
 		return fmt.Errorf("failed to marshal Todo2 state: %w", err)
 	}
@@ -266,4 +277,154 @@ func cleanupAutoTasksFromDB() error {
 	}
 
 	return nil
+}
+
+// formatTaskDate returns a display string for a task date; never returns 1970.
+// Empty or epoch dates return "—".
+func formatTaskDate(s string) string {
+	if s == "" || models.IsEpochDate(s) {
+		return "—"
+	}
+	t, err := time.Parse(time.RFC3339, s)
+	if err != nil {
+		return "—"
+	}
+	return t.Format("01/02/2006, 03:04 PM")
+}
+
+// WriteTodo2Overview writes .cursor/rules/todo2-overview.mdc from current tasks.
+// Uses real dates or "—" for unknown; never displays 1970.
+func WriteTodo2Overview(projectRoot string) error {
+	tasks, err := LoadTodo2Tasks(projectRoot)
+	if err != nil {
+		return fmt.Errorf("load tasks: %w", err)
+	}
+	// Sort by last_modified desc (newest first), then take last 20 for "newest first" display
+	sort.Slice(tasks, func(i, j int) bool {
+		a, b := tasks[i].LastModified, tasks[j].LastModified
+		if a == "" {
+			a = tasks[i].CreatedAt
+		}
+		if b == "" {
+			b = tasks[j].CreatedAt
+		}
+		return a > b
+	})
+	displayCount := 20
+	if len(tasks) < displayCount {
+		displayCount = len(tasks)
+	}
+	displayTasks := tasks
+	if len(tasks) > displayCount {
+		displayTasks = tasks[:displayCount]
+	}
+
+	now := time.Now().Format("01/02/2006, 03:04 PM")
+	var b strings.Builder
+	b.WriteString("---\n")
+	b.WriteString("description: Todo2 task overview for Cursor AI awareness - provides real-time context of current project tasks, priorities, and progress\n")
+	b.WriteString("alwaysApply: true\n")
+	b.WriteString("---\n\n")
+	b.WriteString("# Todo2 Project Context\n\n")
+	b.WriteString("*Last updated: " + now + "*\n")
+	b.WriteString("*Generated automatically from .todo2/state.todo2.json*\n\n")
+	b.WriteString("## Current Task Overview (Last 20 Tasks - Newest First)\n\n")
+
+	for _, t := range displayTasks {
+		name := t.Content
+		if name == "" {
+			name = "undefined"
+		}
+		b.WriteString("### " + t.ID + ": " + name + "\n")
+		b.WriteString("- **Status:** " + t.Status + " ")
+		switch strings.ToLower(t.Status) {
+		case "done":
+			b.WriteString("✅")
+		case "in progress":
+			b.WriteString("⚡")
+		case "review":
+			b.WriteString("👀")
+		default:
+			b.WriteString("📋")
+		}
+		b.WriteString(" | **Priority:** " + t.Priority + " ")
+		// Priority emoji
+		switch strings.ToLower(t.Priority) {
+		case "high", "critical":
+			b.WriteString("🟠")
+		case "medium":
+			b.WriteString("🟡")
+		default:
+			b.WriteString("🟢")
+		}
+		b.WriteString(" | **Created:** " + formatTaskDate(t.CreatedAt) + " | **Updated:** " + formatTaskDate(t.LastModified) + "\n")
+		b.WriteString("- **Tags:** " + strings.Join(t.Tags, ", ") + "\n")
+		b.WriteString("- **Dependencies:** " + strings.Join(t.Dependencies, ", ") + "\n")
+		b.WriteString("- **Comments**: 0 research_with_links, 0 result, 0 notes, 0 manualsetup\n")
+		b.WriteString("- **Status:** " + t.Status + "\n")
+		b.WriteString("- **Key Insight:** *[No key insight available]*\n\n")
+	}
+
+	// Task statistics
+	var todo, inProgress, done int
+	for _, t := range tasks {
+		switch strings.ToLower(t.Status) {
+		case "todo":
+			todo++
+		case "in progress":
+			inProgress++
+		case "done":
+			done++
+		}
+	}
+	high := 0
+	for _, t := range tasks {
+		if strings.ToLower(t.Priority) == "high" || strings.ToLower(t.Priority) == "critical" {
+			high++
+		}
+	}
+	b.WriteString("## Task Statistics\n")
+	b.WriteString(fmt.Sprintf("- **Total Tasks:** %d\n", len(tasks)))
+	b.WriteString(fmt.Sprintf("- **In Progress:** %d tasks\n", inProgress))
+	b.WriteString(fmt.Sprintf("- **Todo:** %d tasks \n", todo))
+	b.WriteString(fmt.Sprintf("- **Done:** %d tasks\n", done))
+	critical := 0
+	for _, t := range tasks {
+		if strings.ToLower(t.Priority) == "critical" {
+			critical++
+		}
+	}
+	b.WriteString(fmt.Sprintf("- **High Priority:** %d tasks\n", high))
+	b.WriteString(fmt.Sprintf("- **Critical Priority:** %d tasks\n", critical))
+	b.WriteString(fmt.Sprintf("- **Tasks with Dependencies:** %d tasks\n\n", countWithDeps(tasks)))
+
+	b.WriteString("## Recent Activity\n")
+	for i, t := range displayTasks {
+		if i >= 10 {
+			break
+		}
+		b.WriteString(fmt.Sprintf("- %s: %s (%s)\n", t.ID, t.Status, formatTaskDate(t.LastModified)))
+	}
+	b.WriteString("\n## Key Project Context\n")
+	b.WriteString("This is an implementation of an automated cursor rules system that will maintain real-time awareness of Todo2 task status for enhanced AI assistance. The system monitors task changes and automatically updates this overview file to provide contextual information to Cursor chat.\n\n")
+	b.WriteString("*This file is automatically maintained by Todo2. Last generation: " + time.Now().Format("01/02/2006, 15:04:05") + "*\n")
+
+	outPath := filepath.Join(projectRoot, ".cursor", "rules", "todo2-overview.mdc")
+	if err := os.MkdirAll(filepath.Dir(outPath), 0755); err != nil {
+		return fmt.Errorf("create .cursor/rules: %w", err)
+	}
+	if err := os.WriteFile(outPath, []byte(b.String()), 0644); err != nil {
+		return fmt.Errorf("write overview: %w", err)
+	}
+	return nil
+}
+
+func countWithDeps(tasks []Todo2Task) int {
+	n := 0
+	for _, t := range tasks {
+		if len(t.Dependencies) > 0 {
+			n++
+		}
+	}
+	return n
 }
