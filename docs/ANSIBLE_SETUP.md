@@ -26,12 +26,12 @@ ansible/
 │           └── all.yml            # Production variables
 ├── playbooks/
 │   ├── development.yml            # Development setup playbook
-│   └── production.yml             # Production setup playbook
+│   ├── production.yml             # Production setup playbook
+│   └── templates/
+│       └── exarp-go.service.j2    # Systemd service template (used by production.yml)
 └── roles/
     ├── common/                    # Base system setup
-    │   ├── tasks/main.yml
-    │   └── templates/
-    │       └── exarp-go.service.j2  # Systemd service template
+    │   └── tasks/main.yml
     ├── golang/                    # Go installation
     │   └── tasks/main.yml
     ├── python/                    # Python & package managers

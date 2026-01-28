@@ -48,11 +48,11 @@ if [[ ! $REPLY =~ ^[Yy]$ ]]; then
     exit 0
 fi
 
-# Run the playbook
+# Run the playbook (--ask-become-pass if sudo required)
 echo ""
 echo "3. Running development setup..."
 echo ""
-ansible-playbook -i inventories/development playbooks/development.yml
+ansible-playbook -i inventories/development playbooks/development.yml --ask-become-pass
 
 echo ""
 echo "=== Setup Complete ==="

@@ -60,6 +60,8 @@ ansible-galaxy install -r requirements.yml
 
 ## Usage
 
+For a short path, see **[QUICKSTART.md](QUICKSTART.md)** or run `./run-dev-setup.sh` from the ansible directory.
+
 ### Development Environment
 
 Setup local development environment with all optional tools:
