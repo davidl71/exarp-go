@@ -23,7 +23,7 @@
 | Tool | Next step |
 |------|-----------|
 | **report** | Done: overview, briefing (native only, no fallback), scorecard (Go only; non-Go returns clear error). |
-| **analyze_alignment** | Done: native `action=prd` (persona alignment) |
+| **analyze_alignment** | Done: native `action=prd` (persona alignment). See scope below. |
 | **estimation** | Done: native only, no Python fallback. |
 | **task_analysis** | Done: fully native (FM provider abstraction; no Python fallback). |
 | **task_discovery** | Improve native or document bridge cases |
@@ -44,3 +44,16 @@
 ---
 
 **Order (current):** 1) Testing/validation checklist ✅; 2) report overview in automation ✅; 3) analyze_alignment prd ✅; 4) report briefing/scorecard + estimation shrink ✅ (2026-01-28); 5) task_analysis fully native ✅ (2026-01-28). **Next:** task_discovery improve native or document bridge cases; testing/validation (unit tests for native impls).
+
+---
+
+## Scope: analyze_alignment (native, no Python)
+
+**Actions (both native Go):**
+
+| Action | Purpose | Implementation |
+|--------|---------|----------------|
+| **todo2** | Align Todo2 tasks with PROJECT_GOALS.md; report goals coverage and gaps | `handleAlignmentTodo2` in `internal/tools/alignment_analysis.go` |
+| **prd** | Task-to-persona alignment using `docs/PRD.md` and persona keywords; outputs alignment_by_persona, unaligned_tasks, recommendations | `handleAlignmentPRD` in `internal/tools/alignment_analysis.go` |
+
+**Usage:** Automation daily workflow calls `analyze_alignment` with `action=todo2`. No Python bridge; handler uses `handleAnalyzeAlignmentNative` only. Bridge does not route this tool.
