@@ -15,7 +15,7 @@ import (
 
 // estimateWithAppleFM estimates task duration using the default FM provider for semantic analysis
 func estimateWithAppleFM(ctx context.Context, name, details string, tags []string, priority string) (*EstimationResult, error) {
-	if DefaultFM == nil || !DefaultFM.Supported() {
+	if !FMAvailable() {
 		return nil, ErrFMNotSupported
 	}
 

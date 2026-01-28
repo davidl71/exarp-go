@@ -15,7 +15,7 @@ import (
 
 // summarizeWithAppleFM summarizes text using the default FM provider (e.g. Apple Foundation Models when available).
 func summarizeWithAppleFM(ctx context.Context, data string, level string, maxTokens int) (string, error) {
-	if DefaultFM == nil || !DefaultFM.Supported() {
+	if !FMAvailable() {
 		return "", ErrFMNotSupported
 	}
 

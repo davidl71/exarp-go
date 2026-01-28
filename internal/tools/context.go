@@ -206,7 +206,7 @@ func handleContextBatchNative(ctx context.Context, params map[string]interface{}
 		// Try to use native summarize (with default FM if available)
 		var summaryResult map[string]interface{}
 
-		if DefaultFM != nil && DefaultFM.Supported() {
+		if FMAvailable() {
 			// Try native Go with Apple FM
 			result, summarizeErr := handleContextSummarizeNative(ctx, summarizeParams)
 			if summarizeErr == nil && len(result) > 0 {

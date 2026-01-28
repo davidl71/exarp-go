@@ -926,7 +926,7 @@ func handleContext(ctx context.Context, args json.RawMessage) ([]framework.TextC
 	switch action {
 	case "summarize":
 		// Try native Go with default FM first
-		if DefaultFM != nil && DefaultFM.Supported() {
+		if FMAvailable() {
 			result, err := handleContextSummarizeNative(ctx, params)
 			if err == nil {
 				return result, nil

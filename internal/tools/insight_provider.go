@@ -49,7 +49,7 @@ func (c *compositeReportInsight) Generate(ctx context.Context, prompt string, ma
 		return text, nil
 	}
 	// Fall back to DefaultFM when available
-	if DefaultFM != nil && DefaultFM.Supported() {
+	if FMAvailable() {
 		return DefaultFM.Generate(ctx, prompt, maxTokens, temperature)
 	}
 	return "", ErrFMNotSupported
