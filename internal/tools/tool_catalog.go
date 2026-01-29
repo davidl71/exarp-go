@@ -2,11 +2,11 @@ package tools
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"strings"
 
 	"github.com/davidl71/exarp-go/internal/framework"
+	mcpresponse "github.com/davidl71/mcp-go-core/pkg/mcp/response"
 )
 
 // ToolCatalogEntry represents a tool in the catalog
@@ -366,14 +366,11 @@ func handleToolCatalogList(ctx context.Context, params map[string]interface{}) (
 		},
 	}
 
-	result, err := json.MarshalIndent(response, "", "  ")
+	m, err := mcpresponse.ConvertToMap(response)
 	if err != nil {
-		return nil, fmt.Errorf("failed to marshal catalog response: %w", err)
+		return nil, fmt.Errorf("failed to convert catalog response: %w", err)
 	}
-
-	return []framework.TextContent{
-		{Type: "text", Text: string(result)},
-	}, nil
+	return mcpresponse.FormatResult(m, "")
 }
 
 // handleToolCatalogHelp handles the help action
@@ -384,10 +381,7 @@ func handleToolCatalogHelp(ctx context.Context, params map[string]interface{}) (
 			"status": "error",
 			"error":  "tool_name parameter required for help action",
 		}
-		result, _ := json.MarshalIndent(errorResponse, "", "  ")
-		return []framework.TextContent{
-			{Type: "text", Text: string(result)},
-		}, nil
+		return mcpresponse.FormatResult(errorResponse, "")
 	}
 
 	catalog := GetToolCatalog()
@@ -397,10 +391,7 @@ func handleToolCatalogHelp(ctx context.Context, params map[string]interface{}) (
 			"status": "error",
 			"error":  fmt.Sprintf("Tool '%s' not found in catalog", toolName),
 		}
-		result, _ := json.MarshalIndent(errorResponse, "", "  ")
-		return []framework.TextContent{
-			{Type: "text", Text: string(result)},
-		}, nil
+		return mcpresponse.FormatResult(errorResponse, "")
 	}
 
 	// Build help response
@@ -415,12 +406,5 @@ func handleToolCatalogHelp(ctx context.Context, params map[string]interface{}) (
 		helpResponse["examples"] = tool.Examples
 	}
 
-	result, err := json.MarshalIndent(helpResponse, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("failed to marshal help response: %w", err)
-	}
-
-	return []framework.TextContent{
-		{Type: "text", Text: string(result)},
-	}, nil
+	return mcpresponse.FormatResult(helpResponse, "")
 }

@@ -9,9 +9,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/davidl71/exarp-go/internal/bridge"
 	"github.com/davidl71/exarp-go/internal/config"
 	"github.com/davidl71/exarp-go/internal/framework"
+	"github.com/davidl71/mcp-go-core/pkg/mcp/response"
 )
 
 // handleTestingRun handles the run action for testing tool
@@ -36,26 +36,18 @@ func handleTestingRun(ctx context.Context, params map[string]interface{}) ([]fra
 		coverage = c
 	}
 
-	// For Go projects, use native Go test execution
-	if IsGoProject() {
-		result, err := runGoTests(ctx, projectRoot, testPath, verbose, coverage)
-		if err == nil {
-			return []framework.TextContent{
-				{Type: "text", Text: result},
-			}, nil
-		}
-		// If Go test fails, fall through to Python bridge
+	if !IsGoProject() {
+		return nil, fmt.Errorf("testing run is only supported for Go projects (go.mod)")
 	}
-
-	// For non-Go projects or if Go test fails, use Python bridge
-	result, err := bridge.ExecutePythonTool(ctx, "testing", params)
+	result, err := runGoTests(ctx, projectRoot, testPath, verbose, coverage)
 	if err != nil {
-		return nil, fmt.Errorf("testing run failed: %w", err)
+		return nil, fmt.Errorf("testing run: %w", err)
 	}
-
-	return []framework.TextContent{
-		{Type: "text", Text: result},
-	}, nil
+	var m map[string]interface{}
+	if err := json.Unmarshal([]byte(result), &m); err != nil {
+		return nil, fmt.Errorf("testing run result: %w", err)
+	}
+	return response.FormatResult(m, "")
 }
 
 // handleTestingCoverage handles the coverage action for testing tool
@@ -81,26 +73,18 @@ func handleTestingCoverage(ctx context.Context, params map[string]interface{}) (
 		format = f
 	}
 
-	// For Go projects, use native Go coverage analysis
-	if IsGoProject() {
-		result, err := analyzeGoCoverage(ctx, projectRoot, coverageFile, minCoverage, format)
-		if err == nil {
-			return []framework.TextContent{
-				{Type: "text", Text: result},
-			}, nil
-		}
-		// If Go coverage fails, fall through to Python bridge
+	if !IsGoProject() {
+		return nil, fmt.Errorf("testing coverage is only supported for Go projects (go.mod)")
 	}
-
-	// For non-Go projects or if Go coverage fails, use Python bridge
-	result, err := bridge.ExecutePythonTool(ctx, "testing", params)
+	result, err := analyzeGoCoverage(ctx, projectRoot, coverageFile, minCoverage, format)
 	if err != nil {
-		return nil, fmt.Errorf("testing coverage failed: %w", err)
+		return nil, fmt.Errorf("testing coverage: %w", err)
 	}
-
-	return []framework.TextContent{
-		{Type: "text", Text: result},
-	}, nil
+	var m map[string]interface{}
+	if err := json.Unmarshal([]byte(result), &m); err != nil {
+		return nil, fmt.Errorf("testing coverage result: %w", err)
+	}
+	return response.FormatResult(m, "")
 }
 
 // handleTestingValidate handles the validate action for testing tool
@@ -120,26 +104,18 @@ func handleTestingValidate(ctx context.Context, params map[string]interface{}) (
 		testFramework = f
 	}
 
-	// For Go projects, use native Go validation
-	if IsGoProject() || testFramework == "go" || testFramework == "auto" {
-		result, err := validateGoTests(projectRoot, testPath)
-		if err == nil {
-			return []framework.TextContent{
-				{Type: "text", Text: result},
-			}, nil
-		}
-		// If Go validation fails, fall through to Python bridge
+	if !IsGoProject() && testFramework != "go" {
+		return nil, fmt.Errorf("testing validate is only supported for Go projects (go.mod) or framework=go")
 	}
-
-	// For non-Go projects or if Go validation fails, use Python bridge
-	result, err := bridge.ExecutePythonTool(ctx, "testing", params)
+	result, err := validateGoTests(projectRoot, testPath)
 	if err != nil {
-		return nil, fmt.Errorf("testing validate failed: %w", err)
+		return nil, fmt.Errorf("testing validate: %w", err)
 	}
-
-	return []framework.TextContent{
-		{Type: "text", Text: result},
-	}, nil
+	var m map[string]interface{}
+	if err := json.Unmarshal([]byte(result), &m); err != nil {
+		return nil, fmt.Errorf("testing validate result: %w", err)
+	}
+	return response.FormatResult(m, "")
 }
 
 // runGoTests runs Go tests and returns formatted results

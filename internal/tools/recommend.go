@@ -2,7 +2,6 @@ package tools
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -10,6 +9,7 @@ import (
 	"github.com/davidl71/devwisdom-go/pkg/wisdom"
 	"github.com/davidl71/exarp-go/internal/database"
 	"github.com/davidl71/exarp-go/internal/framework"
+	mcpresponse "github.com/davidl71/mcp-go-core/pkg/mcp/response"
 )
 
 // ModelInfo represents information about an AI model
@@ -146,14 +146,7 @@ func handleRecommendModelNative(ctx context.Context, params map[string]interface
 		"timestamp": 0,
 	}
 
-	resultJSON, err := json.MarshalIndent(response, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("failed to marshal result: %w", err)
-	}
-
-	return []framework.TextContent{
-		{Type: "text", Text: string(resultJSON)},
-	}, nil
+	return mcpresponse.FormatResult(response, "")
 }
 
 // findBestModel finds the best model for a given task
@@ -291,14 +284,7 @@ func handleRecommendWorkflowNative(ctx context.Context, params map[string]interf
 		"timestamp": 0,
 	}
 
-	resultJSON, err := json.MarshalIndent(response, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("failed to marshal result: %w", err)
-	}
-
-	return []framework.TextContent{
-		{Type: "text", Text: string(resultJSON)},
-	}, nil
+	return mcpresponse.FormatResult(response, "")
 }
 
 // WorkflowRecommendation represents a workflow mode recommendation
@@ -542,14 +528,11 @@ func handleRecommendAdvisorNative(ctx context.Context, params map[string]interfa
 	}
 
 	// Convert to JSON
-	resultJSON, err := json.MarshalIndent(consultation, "", "  ")
+	consultationMap, err := mcpresponse.ConvertToMap(consultation)
 	if err != nil {
-		return nil, fmt.Errorf("failed to marshal consultation: %w", err)
+		return nil, fmt.Errorf("failed to convert consultation: %w", err)
 	}
-
-	return []framework.TextContent{
-		{Type: "text", Text: string(resultJSON)},
-	}, nil
+	return mcpresponse.FormatResult(consultationMap, "")
 }
 
 // minInt returns the minimum of two integers

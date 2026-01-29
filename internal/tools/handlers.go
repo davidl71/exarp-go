@@ -9,6 +9,7 @@ import (
 	"github.com/davidl71/exarp-go/internal/framework"
 	"github.com/davidl71/exarp-go/internal/security"
 	"github.com/davidl71/mcp-go-core/pkg/mcp/request"
+	"github.com/davidl71/mcp-go-core/pkg/mcp/response"
 )
 
 // handleAnalyzeAlignment handles the analyze_alignment tool
@@ -237,13 +238,7 @@ func handleReport(ctx context.Context, args json.RawMessage) ([]framework.TextCo
 				"recommendations":  scorecardProto.GetRecommendations(),
 				"metrics":          scorecardMap["metrics"],
 			}
-			jsonBytes, err := json.Marshal(out)
-			if err != nil {
-				return nil, fmt.Errorf("report scorecard json: %w", err)
-			}
-			return []framework.TextContent{
-				{Type: "text", Text: string(jsonBytes)},
-			}, nil
+			return response.FormatResult(out, "")
 		}
 		// Use proto-derived map for MLX enhancement
 		enhanced, err := enhanceReportWithMLX(ctx, scorecardMap, action)
@@ -589,15 +584,11 @@ func handleLint(ctx context.Context, args json.RawMessage) ([]framework.TextCont
 			return nil, fmt.Errorf("lint failed: %w", err)
 		}
 
-		// Convert result to JSON with indentation for readability
-		resultJSON, err := json.MarshalIndent(result, "", "  ")
+		m, err := response.ConvertToMap(result)
 		if err != nil {
-			return nil, fmt.Errorf("failed to marshal result: %w", err)
+			return nil, fmt.Errorf("failed to convert lint result: %w", err)
 		}
-
-		return []framework.TextContent{
-			{Type: "text", Text: string(resultJSON)},
-		}, nil
+		return response.FormatResult(m, "")
 	}
 
 	// Unsupported linter: native only (no bridge fallback)
@@ -631,9 +622,11 @@ func handleEstimation(ctx context.Context, args json.RawMessage) ([]framework.Te
 	if err != nil {
 		return nil, err
 	}
-	return []framework.TextContent{
-		{Type: "text", Text: result},
-	}, nil
+	var m map[string]interface{}
+	if err := json.Unmarshal([]byte(result), &m); err != nil {
+		return nil, fmt.Errorf("estimation result: %w", err)
+	}
+	return response.FormatResult(m, "")
 }
 
 // handleGitTools handles the git_tools tool using native Go implementation
@@ -689,10 +682,11 @@ func handleGitTools(ctx context.Context, args json.RawMessage) ([]framework.Text
 	if err != nil {
 		return nil, fmt.Errorf("git_tools failed: %w", err)
 	}
-
-	return []framework.TextContent{
-		{Type: "text", Text: result},
-	}, nil
+	var m map[string]interface{}
+	if err := json.Unmarshal([]byte(result), &m); err != nil {
+		return nil, fmt.Errorf("git_tools result: %w", err)
+	}
+	return response.FormatResult(m, "")
 }
 
 // handleSession handles the session tool

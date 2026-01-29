@@ -15,6 +15,7 @@ import (
 	"github.com/davidl71/exarp-go/internal/config"
 	"github.com/davidl71/exarp-go/internal/database"
 	"github.com/davidl71/exarp-go/internal/framework"
+	mcpresponse "github.com/davidl71/mcp-go-core/pkg/mcp/response"
 )
 
 // handleSessionNative handles the session tool with native Go implementation
@@ -133,10 +134,7 @@ func handleSessionPrime(ctx context.Context, params map[string]interface{}) ([]f
 		}
 	}
 
-	output, _ := json.MarshalIndent(result, "", "  ")
-	return []framework.TextContent{
-		{Type: "text", Text: string(output)},
-	}, nil
+	return mcpresponse.FormatResult(result, "")
 }
 
 // handleSessionHandoff handles handoff actions (end, resume, latest, list, sync, export)
@@ -305,10 +303,7 @@ func handleSessionEnd(ctx context.Context, params map[string]interface{}, projec
 		result["message"] = "Dry run: Would create handoff note"
 	}
 
-	output, _ := json.MarshalIndent(result, "", "  ")
-	return []framework.TextContent{
-		{Type: "text", Text: string(output)},
-	}, nil
+	return mcpresponse.FormatResult(result, "")
 }
 
 // handleSessionResume resumes a session by reviewing latest handoff
@@ -322,10 +317,7 @@ func handleSessionResume(ctx context.Context, projectRoot string) ([]framework.T
 			"has_handoff": false,
 			"message":     "No handoff notes found. Starting fresh session.",
 		}
-		output, _ := json.MarshalIndent(result, "", "  ")
-		return []framework.TextContent{
-			{Type: "text", Text: string(output)},
-		}, nil
+		return mcpresponse.FormatResult(result, "")
 	}
 
 	// Load handoff history (using file cache)
@@ -348,10 +340,7 @@ func handleSessionResume(ctx context.Context, projectRoot string) ([]framework.T
 			"has_handoff": false,
 			"message":     "No handoff notes found. Starting fresh session.",
 		}
-		output, _ := json.MarshalIndent(result, "", "  ")
-		return []framework.TextContent{
-			{Type: "text", Text: string(output)},
-		}, nil
+		return mcpresponse.FormatResult(result, "")
 	}
 
 	// Get latest handoff (last in array)
@@ -373,10 +362,7 @@ func handleSessionResume(ctx context.Context, projectRoot string) ([]framework.T
 		"message":        fmt.Sprintf("Resuming session. Latest handoff from %s", handoffHost),
 	}
 
-	output, _ := json.MarshalIndent(result, "", "  ")
-	return []framework.TextContent{
-		{Type: "text", Text: string(output)},
-	}, nil
+	return mcpresponse.FormatResult(result, "")
 }
 
 // handleSessionLatest gets the most recent handoff note
@@ -390,10 +376,7 @@ func handleSessionLatest(projectRoot string) ([]framework.TextContent, error) {
 			"has_handoff": false,
 			"message":     "No handoff notes found",
 		}
-		output, _ := json.MarshalIndent(result, "", "  ")
-		return []framework.TextContent{
-			{Type: "text", Text: string(output)},
-		}, nil
+		return mcpresponse.FormatResult(result, "")
 	}
 
 	fileCache := cache.GetGlobalFileCache()
@@ -415,10 +398,7 @@ func handleSessionLatest(projectRoot string) ([]framework.TextContent, error) {
 			"has_handoff": false,
 			"message":     "No handoff notes found",
 		}
-		output, _ := json.MarshalIndent(result, "", "  ")
-		return []framework.TextContent{
-			{Type: "text", Text: string(output)},
-		}, nil
+		return mcpresponse.FormatResult(result, "")
 	}
 
 	latestHandoff := handoffs[len(handoffs)-1]
@@ -430,10 +410,7 @@ func handleSessionLatest(projectRoot string) ([]framework.TextContent, error) {
 		"handoff":     latestHandoff,
 	}
 
-	output, _ := json.MarshalIndent(result, "", "  ")
-	return []framework.TextContent{
-		{Type: "text", Text: string(output)},
-	}, nil
+	return mcpresponse.FormatResult(result, "")
 }
 
 // handleSessionList lists recent handoff notes
@@ -452,10 +429,7 @@ func handleSessionList(ctx context.Context, params map[string]interface{}, proje
 			"handoffs": []interface{}{},
 			"count":    0,
 		}
-		output, _ := json.MarshalIndent(result, "", "  ")
-		return []framework.TextContent{
-			{Type: "text", Text: string(output)},
-		}, nil
+		return mcpresponse.FormatResult(result, "")
 	}
 
 	fileCache := cache.GetGlobalFileCache()
@@ -486,10 +460,7 @@ func handleSessionList(ctx context.Context, params map[string]interface{}, proje
 		"total":    len(handoffs),
 	}
 
-	output, _ := json.MarshalIndent(result, "", "  ")
-	return []framework.TextContent{
-		{Type: "text", Text: string(output)},
-	}, nil
+	return mcpresponse.FormatResult(result, "")
 }
 
 // handleSessionSync syncs Todo2 state across agents
@@ -558,10 +529,7 @@ func handleSessionSync(ctx context.Context, params map[string]interface{}, proje
 		}
 	}
 
-	output, _ := json.MarshalIndent(result, "", "  ")
-	return []framework.TextContent{
-		{Type: "text", Text: string(output)},
-	}, nil
+	return mcpresponse.FormatResult(result, "")
 }
 
 // handleSessionExport exports handoff data to a JSON file for sharing between agents
@@ -646,10 +614,7 @@ func handleSessionExport(ctx context.Context, params map[string]interface{}, pro
 		"message":     fmt.Sprintf("Handoff data exported to %s", outputPath),
 	}
 
-	output, _ := json.MarshalIndent(result, "", "  ")
-	return []framework.TextContent{
-		{Type: "text", Text: string(output)},
-	}, nil
+	return mcpresponse.FormatResult(result, "")
 }
 
 // Helper types and functions
@@ -908,7 +873,7 @@ func getSuggestedNextTasks(projectRoot string, limit int) []map[string]interface
 	if err != nil || limit <= 0 {
 		return nil
 	}
-	orderedIDs, _, details, err := BacklogExecutionOrder(tasks)
+	orderedIDs, _, details, err := BacklogExecutionOrder(tasks, nil)
 	if err != nil || len(orderedIDs) == 0 {
 		return nil
 	}
@@ -1155,10 +1120,7 @@ func handleSessionPrompts(ctx context.Context, params map[string]interface{}) ([
 		},
 	}
 
-	output, _ := json.MarshalIndent(result, "", "  ")
-	return []framework.TextContent{
-		{Type: "text", Text: string(output)},
-	}, nil
+	return mcpresponse.FormatResult(result, "")
 }
 
 // handleSessionAssignee handles the assignee action - manages task assignments
@@ -1259,10 +1221,7 @@ func handleSessionAssigneeList(ctx context.Context, params map[string]interface{
 		},
 	}
 
-	output, _ := json.MarshalIndent(result, "", "  ")
-	return []framework.TextContent{
-		{Type: "text", Text: string(output)},
-	}, nil
+	return mcpresponse.FormatResult(result, "")
 }
 
 // handleSessionAssigneeAssign assigns a task to an agent/human/host
@@ -1315,10 +1274,7 @@ func handleSessionAssigneeAssign(ctx context.Context, params map[string]interfac
 				"task_id":   taskID,
 				"locked_by": result.LockedBy,
 			}
-			output, _ := json.MarshalIndent(response, "", "  ")
-			return []framework.TextContent{
-				{Type: "text", Text: string(output)},
-			}, nil
+			return mcpresponse.FormatResult(response, "")
 		}
 		return nil, fmt.Errorf("task assignment failed: %v", result.Error)
 	}
@@ -1333,10 +1289,7 @@ func handleSessionAssigneeAssign(ctx context.Context, params map[string]interfac
 		"dry_run":       dryRun,
 	}
 
-	output, _ := json.MarshalIndent(response, "", "  ")
-	return []framework.TextContent{
-		{Type: "text", Text: string(output)},
-	}, nil
+	return mcpresponse.FormatResult(response, "")
 }
 
 // handleSessionAssigneeUnassign unassigns a task
@@ -1364,8 +1317,5 @@ func handleSessionAssigneeUnassign(ctx context.Context, params map[string]interf
 		"unassigned_at": time.Now().Format(time.RFC3339),
 	}
 
-	output, _ := json.MarshalIndent(response, "", "  ")
-	return []framework.TextContent{
-		{Type: "text", Text: string(output)},
-	}, nil
+	return mcpresponse.FormatResult(response, "")
 }

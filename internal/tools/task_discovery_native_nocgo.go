@@ -14,6 +14,7 @@ import (
 	"strings"
 
 	"github.com/davidl71/exarp-go/internal/framework"
+	"github.com/davidl71/mcp-go-core/pkg/mcp/response"
 )
 
 // handleTaskDiscoveryNative handles task_discovery with native Go (no Apple FM)
@@ -87,6 +88,8 @@ func handleTaskDiscoveryNative(ctx context.Context, params map[string]interface{
 	// Build summary
 	bySource := make(map[string]int)
 	byType := make(map[string]int)
+	byTag := make(map[string]int)
+	withTags := 0
 
 	for _, d := range discoveries {
 		if src, ok := d["source"].(string); ok {
@@ -95,12 +98,25 @@ func handleTaskDiscoveryNative(ctx context.Context, params map[string]interface{
 		if typ, ok := d["type"].(string); ok {
 			byType[typ]++
 		}
+		// Count tags
+		if tags, ok := d["tags"].([]string); ok && len(tags) > 0 {
+			withTags++
+			for _, tag := range tags {
+				byTag[tag]++
+			}
+		}
 	}
 
 	summary := map[string]interface{}{
 		"total":     len(discoveries),
 		"by_source": bySource,
 		"by_type":   byType,
+	}
+
+	// Add tag statistics if any tags were found
+	if withTags > 0 {
+		summary["with_tags"] = withTags
+		summary["by_tag"] = byTag
 	}
 
 	result := map[string]interface{}{
@@ -131,10 +147,7 @@ func handleTaskDiscoveryNative(ctx context.Context, params map[string]interface{
 		}
 	}
 
-	output, _ := json.MarshalIndent(result, "", "  ")
-	return []framework.TextContent{
-		{Type: "text", Text: string(output)},
-	}, nil
+	return response.FormatResult(result, "")
 }
 
 // scanCommentsBasic scans code files for TODO/FIXME comments (basic version without AI enhancement)
@@ -218,13 +231,24 @@ func scanCommentsBasic(projectRoot string, patterns []string, includeFIXME bool)
 				taskText = strings.TrimSpace(taskText)
 
 				if taskText != "" {
-					discoveries = append(discoveries, map[string]interface{}{
+					// Extract hashtag-style tags from the comment
+					tags, cleanText := extractTagsFromText(taskText)
+
+					discovery := map[string]interface{}{
 						"type":   taskType,
-						"text":   taskText,
+						"text":   taskText, // Keep original text for reference
 						"file":   strings.TrimPrefix(path, projectRoot+"/"),
 						"line":   lineNum + 1,
 						"source": "comment",
-					})
+					}
+
+					// Add tags if found
+					if len(tags) > 0 {
+						discovery["tags"] = tags
+						discovery["clean_text"] = cleanText // Text without tags
+					}
+
+					discoveries = append(discoveries, discovery)
 				}
 			}
 		}

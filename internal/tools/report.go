@@ -2,7 +2,6 @@ package tools
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -14,6 +13,7 @@ import (
 	"github.com/davidl71/exarp-go/internal/framework"
 	"github.com/davidl71/exarp-go/internal/security"
 	"github.com/davidl71/exarp-go/proto"
+	"github.com/davidl71/mcp-go-core/pkg/mcp/response"
 )
 
 // handleReportOverview handles the overview action for report tool
@@ -42,11 +42,11 @@ func handleReportOverview(ctx context.Context, params map[string]interface{}) ([
 	switch outputFormat {
 	case "json":
 		overviewMap := ProtoToProjectOverviewData(overviewProto)
-		jsonBytes, err := json.MarshalIndent(overviewMap, "", "  ")
+		contents, err := response.FormatResult(overviewMap, outputPath)
 		if err != nil {
-			return nil, fmt.Errorf("failed to marshal JSON: %w", err)
+			return nil, fmt.Errorf("failed to format JSON: %w", err)
 		}
-		formattedOutput = string(jsonBytes)
+		return contents, nil
 	case "markdown":
 		formattedOutput = formatOverviewMarkdownProto(overviewProto)
 	case "html":
@@ -68,8 +68,8 @@ func handleReportOverview(ctx context.Context, params map[string]interface{}) ([
 	}, nil
 }
 
-// handleReportBriefing handles the briefing action for report tool
-// Uses devwisdom-go wisdom engine directly (no MCP client needed)
+// handleReportBriefing handles the briefing action for report tool.
+// Uses proto internally (BuildBriefingDataProto) for type-safe briefing data.
 func handleReportBriefing(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	var score float64
 
@@ -81,56 +81,22 @@ func handleReportBriefing(ctx context.Context, params map[string]interface{}) ([
 		score = 50.0 // Default score
 	}
 
-	// Validate and clamp score
 	if score < 0 {
 		score = 0
 	} else if score > 100 {
 		score = 100
 	}
 
-	// Get wisdom engine
 	engine, err := getWisdomEngine()
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize wisdom engine: %w", err)
 	}
 
-	// Get multiple quotes from different sources
-	sources := engine.ListSources()
-	briefing := map[string]interface{}{
-		"date":    time.Now().Format("2006-01-02"),
-		"score":   score,
-		"quotes":  []interface{}{},
-		"sources": sources,
-	}
+	// Build briefing from proto (type-safe)
+	briefingProto := BuildBriefingDataProto(engine, score)
+	briefingMap := BriefingDataToMap(briefingProto)
 
-	// Get quotes from a few sources (up to 3)
-	selectedSources := []string{"pistis_sophia", "stoic", "tao"}
-	if len(sources) > 0 {
-		selectedSources = sources
-		if len(selectedSources) > 3 {
-			selectedSources = selectedSources[:3]
-		}
-	}
-
-	quotes := []interface{}{}
-	for _, src := range selectedSources {
-		quote, err := engine.GetWisdom(score, src)
-		if err == nil {
-			quotes = append(quotes, quote)
-		}
-	}
-
-	briefing["quotes"] = quotes
-
-	// Convert to JSON
-	resultJSON, err := json.MarshalIndent(briefing, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("failed to marshal briefing: %w", err)
-	}
-
-	return []framework.TextContent{
-		{Type: "text", Text: string(resultJSON)},
-	}, nil
+	return response.FormatResult(briefingMap, "")
 }
 
 // handleReportPRD handles the prd action for report tool
@@ -275,9 +241,9 @@ func aggregateProjectDataProto(ctx context.Context, projectRoot string, includeP
 			}
 			scores["alignment"] = 50.0
 			pb.Health = &proto.HealthData{
-				OverallScore:   scorecard.Score,
+				OverallScore:    scorecard.Score,
 				ProductionReady: scorecard.Score >= float64(config.MinCoverage()),
-				Scores:         scores,
+				Scores:          scores,
 			}
 		}
 	}

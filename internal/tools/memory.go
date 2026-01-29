@@ -14,6 +14,7 @@ import (
 	"github.com/davidl71/exarp-go/internal/database"
 	"github.com/davidl71/exarp-go/internal/framework"
 	"github.com/davidl71/exarp-go/internal/security"
+	"github.com/davidl71/mcp-go-core/pkg/mcp/response"
 )
 
 // Memory represents a stored memory
@@ -164,10 +165,7 @@ func handleMemorySave(ctx context.Context, params map[string]interface{}) ([]fra
 		"message":      fmt.Sprintf("✅ Memory saved: %s", title),
 	}
 
-	output, _ := json.MarshalIndent(result, "", "  ")
-	return []framework.TextContent{
-		{Type: "text", Text: string(output)},
-	}, nil
+	return response.FormatResult(result, "")
 }
 
 // handleMemoryRecall handles recall action
@@ -241,10 +239,7 @@ func handleMemoryRecall(ctx context.Context, params map[string]interface{}) ([]f
 		"include_related": includeRelated,
 	}
 
-	output, _ := json.MarshalIndent(result, "", "  ")
-	return []framework.TextContent{
-		{Type: "text", Text: string(output)},
-	}, nil
+	return response.FormatResult(result, "")
 }
 
 // handleMemorySearch handles search action (basic text search in Go)
@@ -344,10 +339,7 @@ func handleMemorySearch(ctx context.Context, params map[string]interface{}) ([]f
 		"total_found": len(scored),
 	}
 
-	output, _ := json.MarshalIndent(result, "", "  ")
-	return []framework.TextContent{
-		{Type: "text", Text: string(output)},
-	}, nil
+	return response.FormatResult(result, "")
 }
 
 // handleMemoryList handles list action
@@ -405,10 +397,7 @@ func handleMemoryList(ctx context.Context, params map[string]interface{}) ([]fra
 		"available_categories": MemoryCategories,
 	}
 
-	output, _ := json.MarshalIndent(result, "", "  ")
-	return []framework.TextContent{
-		{Type: "text", Text: string(output)},
-	}, nil
+	return response.FormatResult(result, "")
 }
 
 // Helper functions

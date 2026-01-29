@@ -6,7 +6,9 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/davidl71/exarp-go/internal/database"
 	"github.com/davidl71/exarp-go/internal/framework"
+	"github.com/davidl71/mcp-go-core/pkg/mcp/response"
 )
 
 // handleAutomationNative handles the automation tool with native Go implementation
@@ -247,14 +249,7 @@ func handleAutomationDaily(ctx context.Context, params map[string]interface{}) (
 		"results": results,
 	}
 
-	resultJSON, err := json.MarshalIndent(responseData, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("failed to marshal result: %w", err)
-	}
-
-	return []framework.TextContent{
-		{Type: "text", Text: string(resultJSON)},
-	}, nil
+	return response.FormatResult(responseData, "")
 }
 
 // handleAutomationNightly handles the "nightly" action for automation tool
@@ -338,6 +333,41 @@ func handleAutomationNightly(ctx context.Context, params map[string]interface{})
 		results["tasks_failed"] = append(tasksFailed, "health")
 	}
 
+	// Task 4: stale lock detection (alerting for expired/near-expiry task locks)
+	staleLockStart := time.Now()
+	staleLockSummary := map[string]interface{}{"skipped": false}
+	staleLockStatus := "success"
+	var staleLockErr string
+	info, err := database.DetectStaleLocks(ctx, 5*time.Minute)
+	if err != nil {
+		staleLockStatus = "error"
+		staleLockErr = err.Error()
+		staleLockSummary["error"] = err.Error()
+		staleLockSummary["skipped"] = true
+	} else {
+		staleLockSummary["expired_count"] = info.ExpiredCount
+		staleLockSummary["near_expiry_count"] = info.NearExpiryCount
+		staleLockSummary["stale_count"] = info.StaleCount
+		staleLockSummary["locks_total"] = len(info.Locks)
+	}
+	tasksRun, _ = results["tasks_run"].([]map[string]interface{})
+	tasksRun = append(tasksRun, map[string]interface{}{
+		"task_id":   "stale_lock_check",
+		"task_name": "Stale Lock Detection",
+		"status":    staleLockStatus,
+		"duration":  time.Since(staleLockStart).Seconds(),
+		"error":     staleLockErr,
+		"summary":   staleLockSummary,
+	})
+	results["tasks_run"] = tasksRun
+	if staleLockStatus == "success" {
+		tasksSucceeded, _ := results["tasks_succeeded"].([]string)
+		results["tasks_succeeded"] = append(tasksSucceeded, "stale_lock_check")
+	} else {
+		tasksFailed, _ := results["tasks_failed"].([]string)
+		results["tasks_failed"] = append(tasksFailed, "stale_lock_check")
+	}
+
 	// Generate summary
 	tasksSucceeded, _ := results["tasks_succeeded"].([]string)
 	tasksFailed, _ := results["tasks_failed"].([]string)
@@ -364,14 +394,7 @@ func handleAutomationNightly(ctx context.Context, params map[string]interface{})
 		"results": results,
 	}
 
-	resultJSON, err := json.MarshalIndent(responseData, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("failed to marshal result: %w", err)
-	}
-
-	return []framework.TextContent{
-		{Type: "text", Text: string(resultJSON)},
-	}, nil
+	return response.FormatResult(responseData, "")
 }
 
 // handleAutomationSprint handles the "sprint" action for automation tool
@@ -508,14 +531,7 @@ func handleAutomationSprint(ctx context.Context, params map[string]interface{}) 
 		"results": results,
 	}
 
-	resultJSON, err := json.MarshalIndent(responseData, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("failed to marshal result: %w", err)
-	}
-
-	return []framework.TextContent{
-		{Type: "text", Text: string(resultJSON)},
-	}, nil
+	return response.FormatResult(responseData, "")
 }
 
 // handleAutomationDiscover handles the "discover" action for automation tool

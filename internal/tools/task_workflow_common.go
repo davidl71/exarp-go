@@ -503,29 +503,24 @@ func handleTaskWorkflowList(ctx context.Context, params map[string]interface{}) 
 		outputFormat = "text"
 	}
 
-	var output string
 	if outputFormat == "json" {
-		jsonBytes, _ := json.MarshalIndent(filtered, "", "  ")
-		output = string(jsonBytes)
-	} else {
-		// Text format
-		var sb strings.Builder
-		sb.WriteString(fmt.Sprintf("Tasks (%d total, %d shown)\n", len(tasks), len(filtered)))
-		sb.WriteString(strings.Repeat("=", 80) + "\n")
-		sb.WriteString(fmt.Sprintf("%-8s | %-15s | %-10s | %s\n", "ID", "Status", "Priority", "Content"))
-		sb.WriteString(strings.Repeat("-", 80) + "\n")
-		for _, task := range filtered {
-			content := task.Content
-			if len(content) > 50 {
-				content = content[:47] + "..."
-			}
-			sb.WriteString(fmt.Sprintf("%-8s | %-15s | %-10s | %s\n", task.ID, task.Status, task.Priority, content))
-		}
-		output = sb.String()
+		return response.FormatResult(map[string]interface{}{"tasks": filtered}, "")
 	}
-
+	// Text format
+	var sb strings.Builder
+	sb.WriteString(fmt.Sprintf("Tasks (%d total, %d shown)\n", len(tasks), len(filtered)))
+	sb.WriteString(strings.Repeat("=", 80) + "\n")
+	sb.WriteString(fmt.Sprintf("%-8s | %-15s | %-10s | %s\n", "ID", "Status", "Priority", "Content"))
+	sb.WriteString(strings.Repeat("-", 80) + "\n")
+	for _, task := range filtered {
+		content := task.Content
+		if len(content) > 50 {
+			content = content[:47] + "..."
+		}
+		sb.WriteString(fmt.Sprintf("%-8s | %-15s | %-10s | %s\n", task.ID, task.Status, task.Priority, content))
+	}
 	return []framework.TextContent{
-		{Type: "text", Text: output},
+		{Type: "text", Text: sb.String()},
 	}, nil
 }
 
@@ -642,6 +637,11 @@ func handleTaskWorkflowSanityCheck(ctx context.Context, params map[string]interf
 	taskMap := make(map[string]bool)
 
 	for _, task := range tasks {
+		// Invalid task ID (e.g. T-NaN from JS "T-" + NaN)
+		if !isValidTaskID(task.ID) {
+			issues = append(issues, fmt.Sprintf("Task has invalid ID format: %q (expected T-<integer>)", task.ID))
+		}
+
 		// Duplicate ID
 		if taskMap[task.ID] {
 			issues = append(issues, fmt.Sprintf("Duplicate task ID: %s", task.ID))
@@ -680,6 +680,26 @@ func handleTaskWorkflowSanityCheck(ctx context.Context, params map[string]interf
 		}
 	}
 
+	// Duplicate content (same name/description, different IDs)
+	contentToIDs := make(map[string][]string)
+	for _, task := range tasks {
+		key := normalizeTaskContent(task.Content, task.LongDescription)
+		if key == "" {
+			continue
+		}
+		contentToIDs[key] = append(contentToIDs[key], task.ID)
+	}
+	for contentKey, ids := range contentToIDs {
+		if len(ids) > 1 {
+			// Truncate content for display
+			preview := contentKey
+			if len(preview) > 60 {
+				preview = preview[:57] + "..."
+			}
+			issues = append(issues, fmt.Sprintf("Duplicate content (%q): tasks %v", preview, ids))
+		}
+	}
+
 	passed := len(issues) == 0
 	result := map[string]interface{}{
 		"success":       true,
@@ -688,7 +708,7 @@ func handleTaskWorkflowSanityCheck(ctx context.Context, params map[string]interf
 		"total_tasks":   len(tasks),
 		"issues_found":  len(issues),
 		"issues":        issues,
-		"sanity_checks": []string{"epoch_dates", "empty_content", "valid_status", "duplicate_ids", "missing_dependencies"},
+		"sanity_checks": []string{"invalid_task_id", "epoch_dates", "empty_content", "valid_status", "duplicate_ids", "duplicate_content", "missing_dependencies"},
 	}
 
 	outputPath, _ := params["output_path"].(string)
@@ -802,6 +822,20 @@ func handleTaskWorkflowClarity(ctx context.Context, params map[string]interface{
 	return []framework.TextContent{
 		{Type: "text", Text: output},
 	}, nil
+}
+
+// isValidTaskID returns true unless the task ID looks like a malformed T- ID (e.g. T-NaN).
+// IDs with other prefixes (AFM-, AUTO-, etc.) are allowed. Only T-<non-integer> is invalid.
+func isValidTaskID(taskID string) bool {
+	if !strings.HasPrefix(taskID, "T-") {
+		return true
+	}
+	numStr := strings.TrimPrefix(taskID, "T-")
+	var num int64
+	if _, err := fmt.Sscanf(numStr, "%d", &num); err != nil {
+		return false
+	}
+	return num > 0
 }
 
 // isOldSequentialID checks if a task ID uses the old sequential format (T-1, T-2, etc.)
@@ -1276,8 +1310,7 @@ func handleTaskWorkflowLinkPlanning(ctx context.Context, params map[string]inter
 		"updated_ids":   updatedIDs,
 		"skipped":       skippedStatus,
 	}
-	out, _ := json.MarshalIndent(result, "", "  ")
-	return []framework.TextContent{{Type: "text", Text: string(out)}}, nil
+	return response.FormatResult(result, "")
 }
 
 // handleTaskWorkflowCreate handles create action for creating new tasks
@@ -1469,6 +1502,81 @@ func handleTaskWorkflowCreate(ctx context.Context, params map[string]interface{}
 
 	outputPath, _ := params["output_path"].(string)
 	return response.FormatResult(result, outputPath)
+}
+
+// handleTaskWorkflowFixInvalidIDs finds tasks with invalid IDs (e.g. T-NaN from JS), assigns new epoch IDs,
+// updates dependencies, removes old DB rows, and saves. Use after sanity_check reports invalid_task_id.
+func handleTaskWorkflowFixInvalidIDs(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
+	projectRoot, err := FindProjectRoot()
+	if err != nil {
+		return nil, fmt.Errorf("failed to find project root: %w", err)
+	}
+
+	tasks, err := LoadTodo2Tasks(projectRoot)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load tasks: %w", err)
+	}
+
+	type fix struct{ oldID, newID string }
+	var fixes []fix
+	for i := range tasks {
+		if !isValidTaskID(tasks[i].ID) {
+			oldID := tasks[i].ID
+			newID := generateEpochTaskID()
+			tasks[i].ID = newID
+			fixes = append(fixes, fix{oldID, newID})
+		}
+	}
+
+	if len(fixes) == 0 {
+		result := map[string]interface{}{
+			"success": true, "method": "native_go",
+			"fixed_count": 0,
+			"message":     "no invalid task IDs found",
+		}
+		return response.FormatResult(result, "")
+	}
+
+	// Update dependencies: any task referencing an old ID should reference the new ID
+	oldToNew := make(map[string]string)
+	for _, f := range fixes {
+		oldToNew[f.oldID] = f.newID
+	}
+	for i := range tasks {
+		for j, dep := range tasks[i].Dependencies {
+			if newID, ok := oldToNew[dep]; ok {
+				tasks[i].Dependencies[j] = newID
+			}
+		}
+	}
+
+	// Remove old rows from DB so SaveTodo2Tasks will create new rows with new IDs
+	if db, err := database.GetDB(); err == nil && db != nil {
+		for _, f := range fixes {
+			_ = database.DeleteTask(ctx, f.oldID)
+		}
+	}
+
+	if err := SaveTodo2Tasks(projectRoot, tasks); err != nil {
+		return nil, fmt.Errorf("failed to save after fixing IDs: %w", err)
+	}
+
+	// Regenerate overview so .cursor/rules/todo2-overview.mdc reflects new IDs
+	if overviewErr := WriteTodo2Overview(projectRoot); overviewErr != nil {
+		fmt.Fprintf(os.Stderr, "Warning: failed to write todo2-overview.mdc: %v\n", overviewErr)
+	}
+
+	mapping := make(map[string]string)
+	for _, f := range fixes {
+		mapping[f.oldID] = f.newID
+	}
+	result := map[string]interface{}{
+		"success":     true,
+		"method":      "native_go",
+		"fixed_count": len(fixes),
+		"id_mapping":  mapping,
+	}
+	return response.FormatResult(result, "")
 }
 
 // generateEpochTaskID generates a task ID using epoch milliseconds (T-{epoch_milliseconds})

@@ -10,6 +10,7 @@ import (
 	"github.com/davidl71/exarp-go/internal/cache"
 	"github.com/davidl71/exarp-go/internal/framework"
 	"github.com/davidl71/exarp-go/internal/security"
+	"github.com/davidl71/mcp-go-core/pkg/mcp/response"
 )
 
 // handleSetupHooksNative handles the setup_hooks tool with native Go implementation
@@ -92,14 +93,15 @@ func handleSetupGitHooks(ctx context.Context, params map[string]interface{}) ([]
 # Suppress INFO logs in git hook context (reduces token usage)
 export GIT_HOOK=1
 
+# Redirect stdin so exarp-go never sees git refs (avoids JSON parse error if it ran in MCP mode)
 # In exarp-go repo, block commit if build fails
 if [ -f Makefile ] && [ -f go.mod ] && grep -q 'exarp-go' go.mod 2>/dev/null; then
   make build || exit 1
-  ./bin/exarp-go -tool health -args '{"action":"docs"}' || exit 1
-  ./bin/exarp-go -tool security -args '{"action":"scan"}' || exit 1
+  ./bin/exarp-go -tool health -args '{"action":"docs"}' </dev/null || exit 1
+  ./bin/exarp-go -tool security -args '{"action":"scan"}' </dev/null || exit 1
 else
-  exarp-go -tool health -args '{"action":"docs"}' || exit 1
-  exarp-go -tool security -args '{"action":"scan"}' || exit 1
+  exarp-go -tool health -args '{"action":"docs"}' </dev/null || exit 1
+  exarp-go -tool security -args '{"action":"scan"}' </dev/null || exit 1
 fi
 `,
 		"pre-push": `#!/bin/sh
@@ -109,9 +111,10 @@ fi
 # Suppress INFO logs in git hook context (reduces token usage)
 export GIT_HOOK=1
 
+# Redirect stdin so exarp-go never sees git refs (avoids JSON parse error if it ran in MCP mode)
 # Use explicit JSON args to avoid key=value parsing issues in hooks
-exarp-go -tool analyze_alignment -args '{"action":"todo2"}' || exit 1
-exarp-go -tool security -args '{"action":"scan"}' || exit 1
+exarp-go -tool analyze_alignment -args '{"action":"todo2"}' </dev/null || exit 1
+exarp-go -tool security -args '{"action":"scan"}' </dev/null || exit 1
 `,
 		"post-commit": `#!/bin/sh
 # Exarp post-commit hook
@@ -120,7 +123,7 @@ exarp-go -tool security -args '{"action":"scan"}' || exit 1
 # Suppress INFO logs in git hook context (reduces token usage)
 export GIT_HOOK=1
 
-exarp-go -tool automation -args '{"action":"discover"}' || true
+exarp-go -tool automation -args '{"action":"discover"}' </dev/null || true
 `,
 		"post-merge": `#!/bin/sh
 # Exarp post-merge hook
@@ -129,8 +132,8 @@ exarp-go -tool automation -args '{"action":"discover"}' || true
 # Suppress INFO logs in git hook context (reduces token usage)
 export GIT_HOOK=1
 
-exarp-go -tool task_analysis -args '{"action":"duplicates"}' || true
-exarp-go -tool task_workflow -args '{"action":"sync"}' || true
+exarp-go -tool task_analysis -args '{"action":"duplicates"}' </dev/null || true
+exarp-go -tool task_workflow -args '{"action":"sync"}' </dev/null || true
 `,
 	}
 
@@ -182,14 +185,7 @@ exarp-go -tool task_workflow -args '{"action":"sync"}' || true
 		}
 	}
 
-	resultJSON, err := json.MarshalIndent(results, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("failed to marshal result: %w", err)
-	}
-
-	return []framework.TextContent{
-		{Type: "text", Text: string(resultJSON)},
-	}, nil
+	return response.FormatResult(results, "")
 }
 
 // handleSetupPatternHooks handles the "patterns" action for setup_hooks
@@ -311,14 +307,7 @@ func handleSetupPatternHooks(ctx context.Context, params map[string]interface{})
 		setupTaskStatusIntegration(projectRoot, patterns, results)
 	}
 
-	resultJSON, err := json.MarshalIndent(results, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("failed to marshal result: %w", err)
-	}
-
-	return []framework.TextContent{
-		{Type: "text", Text: string(resultJSON)},
-	}, nil
+	return response.FormatResult(results, "")
 }
 
 // getDefaultPatterns returns default pattern configurations

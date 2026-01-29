@@ -10,6 +10,7 @@ import (
 
 	"github.com/davidl71/exarp-go/internal/framework"
 	"github.com/davidl71/exarp-go/internal/security"
+	"github.com/davidl71/mcp-go-core/pkg/mcp/response"
 )
 
 // handleGenerateConfigNative handles the generate_config tool with native Go implementation
@@ -69,8 +70,7 @@ func handleGenerateRules(ctx context.Context, params map[string]interface{}, pro
 			"available_rules": getAvailableRuleNames(),
 			"tip":             "Run without analyze_only to generate recommended rules",
 		}
-		jsonResult, _ := json.MarshalIndent(result, "", "  ")
-		return []framework.TextContent{{Type: "text", Text: string(jsonResult)}}, nil
+		return response.FormatResult(result, "")
 	}
 
 	var rulesList []string
@@ -88,12 +88,10 @@ func handleGenerateRules(ctx context.Context, params map[string]interface{}, pro
 		"errors":    len(results["errors"].([]string)),
 	}
 
-	jsonResult, _ := json.MarshalIndent(map[string]interface{}{
+	return response.FormatResult(map[string]interface{}{
 		"success": true,
 		"data":    results,
-	}, "", "  ")
-
-	return []framework.TextContent{{Type: "text", Text: string(jsonResult)}}, nil
+	}, "")
 }
 
 // handleGenerateIgnore handles the "ignore" action for generate_config
@@ -113,12 +111,10 @@ func handleGenerateIgnore(ctx context.Context, params map[string]interface{}, pr
 	generator := NewCursorIgnoreGenerator(projectRoot)
 	results := generator.GenerateIgnore(includeIndexing, analyzeProject, dryRun)
 
-	jsonResult, _ := json.MarshalIndent(map[string]interface{}{
+	return response.FormatResult(map[string]interface{}{
 		"success": true,
 		"data":    results,
-	}, "", "  ")
-
-	return []framework.TextContent{{Type: "text", Text: string(jsonResult)}}, nil
+	}, "")
 }
 
 // handleSimplifyRules handles the "simplify" action for generate_config
@@ -157,15 +153,13 @@ func handleSimplifyRules(ctx context.Context, params map[string]interface{}, pro
 	simplifier := NewRuleSimplifier(projectRoot)
 	results := simplifier.SimplifyRules(ruleFiles, dryRun, outputDir)
 
-	jsonResult, _ := json.MarshalIndent(map[string]interface{}{
+	return response.FormatResult(map[string]interface{}{
 		"status":          "success",
 		"files_processed": results["files_processed"],
 		"files_skipped":   results["files_skipped"],
 		"simplifications": results["simplifications"],
 		"dry_run":         dryRun,
-	}, "", "  ")
-
-	return []framework.TextContent{{Type: "text", Text: string(jsonResult)}}, nil
+	}, "")
 }
 
 // CursorRulesGenerator generates Cursor rules files based on project analysis

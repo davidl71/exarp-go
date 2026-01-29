@@ -2,7 +2,6 @@ package tools
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -11,6 +10,7 @@ import (
 
 	"github.com/davidl71/exarp-go/internal/framework"
 	"github.com/davidl71/exarp-go/internal/security"
+	"github.com/davidl71/mcp-go-core/pkg/mcp/response"
 )
 
 // handleAddExternalToolHintsNative handles the add_external_tool_hints tool with native Go implementation
@@ -82,14 +82,7 @@ func handleAddExternalToolHintsNative(ctx context.Context, params map[string]int
 		"hints_skipped_sample": results.HintsSkipped,
 	}
 
-	resultJSON, err := json.MarshalIndent(responseData, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("failed to marshal result: %w", err)
-	}
-
-	return []framework.TextContent{
-		{Type: "text", Text: string(resultJSON)},
-	}, nil
+	return response.FormatResult(responseData, "")
 }
 
 // ExternalToolHintsResults represents the results of external tool hints processing

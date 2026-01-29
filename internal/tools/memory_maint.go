@@ -10,6 +10,7 @@ import (
 	"github.com/davidl71/exarp-go/internal/config"
 	"github.com/davidl71/exarp-go/internal/framework"
 	"github.com/davidl71/exarp-go/internal/security"
+	"github.com/davidl71/mcp-go-core/pkg/mcp/response"
 )
 
 // handleMemoryMaintNative handles the memory_maint tool with native Go maintenance operations
@@ -133,10 +134,7 @@ func handleMemoryMaintHealth(ctx context.Context, params map[string]interface{})
 		"recommendations":  recommendations,
 	}
 
-	output, _ := json.MarshalIndent(result, "", "  ")
-	return []framework.TextContent{
-		{Type: "text", Text: string(output)},
-	}, nil
+	return response.FormatResult(result, "")
 }
 
 // handleMemoryMaintGC handles garbage collection action
@@ -274,10 +272,7 @@ func handleMemoryMaintGC(ctx context.Context, params map[string]interface{}) ([]
 		result["deleted_ids"] = toDelete
 	}
 
-	output, _ := json.MarshalIndent(result, "", "  ")
-	return []framework.TextContent{
-		{Type: "text", Text: string(output)},
-	}, nil
+	return response.FormatResult(result, "")
 }
 
 // handleMemoryMaintPrune handles prune action
@@ -396,10 +391,7 @@ func handleMemoryMaintPrune(ctx context.Context, params map[string]interface{}) 
 		result["pruned_ids"] = toPrune
 	}
 
-	output, _ := json.MarshalIndent(result, "", "  ")
-	return []framework.TextContent{
-		{Type: "text", Text: string(output)},
-	}, nil
+	return response.FormatResult(result, "")
 }
 
 // handleMemoryMaintConsolidate handles consolidate action
@@ -534,10 +526,7 @@ func handleMemoryMaintConsolidate(ctx context.Context, params map[string]interfa
 		result["deleted_ids"] = deletedIDs
 	}
 
-	output, _ := json.MarshalIndent(result, "", "  ")
-	return []framework.TextContent{
-		{Type: "text", Text: string(output)},
-	}, nil
+	return response.FormatResult(result, "")
 }
 
 // handleMemoryMaintDream handles the dream action for memory_maint tool
@@ -579,15 +568,7 @@ func handleMemoryMaintDream(ctx context.Context, params map[string]interface{}) 
 		"timestamp":     time.Now().Format(time.RFC3339),
 	}
 
-	// Convert to JSON
-	resultJSON, err := json.MarshalIndent(dream, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("failed to marshal dream: %w", err)
-	}
-
-	return []framework.TextContent{
-		{Type: "text", Text: string(resultJSON)},
-	}, nil
+	return response.FormatResult(dream, "")
 }
 
 // similarityRatio calculates similarity ratio between two strings (0.0 - 1.0)

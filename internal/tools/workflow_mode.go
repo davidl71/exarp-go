@@ -11,6 +11,7 @@ import (
 
 	"github.com/davidl71/exarp-go/internal/cache"
 	"github.com/davidl71/exarp-go/internal/framework"
+	mcpresponse "github.com/davidl71/mcp-go-core/pkg/mcp/response"
 )
 
 // WorkflowModeState represents the persisted workflow mode state
@@ -289,10 +290,7 @@ func handleWorkflowModeNative(ctx context.Context, params map[string]interface{}
 			"status": "error",
 			"error":  fmt.Sprintf("Unknown workflow_mode action: %s. Use 'focus', 'suggest', or 'stats'.", action),
 		}
-		result, _ := json.MarshalIndent(errorResponse, "", "  ")
-		return []framework.TextContent{
-			{Type: "text", Text: string(result)},
-		}, nil
+		return mcpresponse.FormatResult(errorResponse, "")
 	}
 }
 
@@ -305,13 +303,11 @@ func handleWorkflowModeFocus(ctx context.Context, params map[string]interface{},
 
 	// Status only
 	if statusOnly || (mode == "" && enableGroup == "" && disableGroup == "") {
-		result, err := json.MarshalIndent(manager.getStatus(), "", "  ")
+		statusMap, err := mcpresponse.ConvertToMap(manager.getStatus())
 		if err != nil {
-			return nil, fmt.Errorf("failed to marshal status: %w", err)
+			return nil, fmt.Errorf("failed to convert status: %w", err)
 		}
-		return []framework.TextContent{
-			{Type: "text", Text: string(result)},
-		}, nil
+		return mcpresponse.FormatResult(statusMap, "")
 	}
 
 	var response map[string]interface{}
@@ -323,10 +319,7 @@ func handleWorkflowModeFocus(ctx context.Context, params map[string]interface{},
 				"success": false,
 				"error":   err.Error(),
 			}
-			result, _ := json.MarshalIndent(errorResponse, "", "  ")
-			return []framework.TextContent{
-				{Type: "text", Text: string(result)},
-			}, nil
+			return mcpresponse.FormatResult(errorResponse, "")
 		}
 		response = map[string]interface{}{
 			"success":       true,
@@ -344,10 +337,7 @@ func handleWorkflowModeFocus(ctx context.Context, params map[string]interface{},
 				"success": false,
 				"error":   err.Error(),
 			}
-			result, _ := json.MarshalIndent(errorResponse, "", "  ")
-			return []framework.TextContent{
-				{Type: "text", Text: string(result)},
-			}, nil
+			return mcpresponse.FormatResult(errorResponse, "")
 		}
 		response = map[string]interface{}{
 			"success": true,
@@ -364,10 +354,7 @@ func handleWorkflowModeFocus(ctx context.Context, params map[string]interface{},
 				"success": false,
 				"error":   err.Error(),
 			}
-			result, _ := json.MarshalIndent(errorResponse, "", "  ")
-			return []framework.TextContent{
-				{Type: "text", Text: string(result)},
-			}, nil
+			return mcpresponse.FormatResult(errorResponse, "")
 		}
 		response = map[string]interface{}{
 			"success": true,
@@ -380,14 +367,7 @@ func handleWorkflowModeFocus(ctx context.Context, params map[string]interface{},
 		}
 	}
 
-	result, err := json.MarshalIndent(response, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("failed to marshal response: %w", err)
-	}
-
-	return []framework.TextContent{
-		{Type: "text", Text: string(result)},
-	}, nil
+	return mcpresponse.FormatResult(response, "")
 }
 
 // handleWorkflowModeSuggest handles the suggest action
@@ -416,14 +396,7 @@ func handleWorkflowModeSuggest(ctx context.Context, params map[string]interface{
 		suggestion["auto_switched"] = false
 	}
 
-	result, err := json.MarshalIndent(suggestion, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("failed to marshal suggestion: %w", err)
-	}
-
-	return []framework.TextContent{
-		{Type: "text", Text: string(result)},
-	}, nil
+	return mcpresponse.FormatResult(suggestion, "")
 }
 
 // handleWorkflowModeStats handles the stats action
@@ -438,12 +411,5 @@ func handleWorkflowModeStats(ctx context.Context, manager *WorkflowModeManager) 
 		"note":            "Full usage statistics tracking not yet implemented in native Go",
 	}
 
-	result, err := json.MarshalIndent(stats, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("failed to marshal stats: %w", err)
-	}
-
-	return []framework.TextContent{
-		{Type: "text", Text: string(result)},
-	}, nil
+	return mcpresponse.FormatResult(stats, "")
 }
