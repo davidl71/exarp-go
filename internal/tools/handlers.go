@@ -221,8 +221,31 @@ func handleReport(ctx context.Context, args json.RawMessage) ([]framework.TextCo
 		if err != nil {
 			return nil, fmt.Errorf("report scorecard: %w", err)
 		}
-		// Convert to map for MLX enhancement
-		scorecardMap := GoScorecardToMap(scorecard)
+		// Use proto for type-safe scorecard data (report/MLX path)
+		scorecardProto := GoScorecardResultToProto(scorecard)
+		scorecardMap := ProtoToScorecardMap(scorecardProto)
+		outputFormat, _ := params["output_format"].(string)
+		if outputFormat == "json" {
+			// Return JSON for Python/script consumers (e.g. project_overview, consolidated_reporting)
+			blockers := scorecardProto.GetBlockers()
+			productionReady := scorecard.Score >= 70.0 && len(blockers) == 0
+			out := map[string]interface{}{
+				"overall_score":    scorecard.Score,
+				"production_ready": productionReady,
+				"scores":           scorecardMap["scores"],
+				"blockers":         blockers,
+				"recommendations":  scorecardProto.GetRecommendations(),
+				"metrics":          scorecardMap["metrics"],
+			}
+			jsonBytes, err := json.Marshal(out)
+			if err != nil {
+				return nil, fmt.Errorf("report scorecard json: %w", err)
+			}
+			return []framework.TextContent{
+				{Type: "text", Text: string(jsonBytes)},
+			}, nil
+		}
+		// Use proto-derived map for MLX enhancement
 		enhanced, err := enhanceReportWithMLX(ctx, scorecardMap, action)
 		if err == nil && enhanced != nil {
 			if insights, ok := enhanced["ai_insights"].(map[string]interface{}); ok {
@@ -352,6 +375,19 @@ func handleTaskDiscovery(ctx context.Context, args json.RawMessage) ([]framework
 		return nil, fmt.Errorf("task_discovery failed: %w", err)
 	}
 	return result, nil
+}
+
+// handleInferTaskProgress handles the infer_task_progress tool (native Go).
+// Evaluates Todo/In Progress tasks against codebase evidence and infers completion.
+func handleInferTaskProgress(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
+	var params map[string]interface{}
+	if err := json.Unmarshal(args, &params); err != nil {
+		return nil, fmt.Errorf("failed to parse arguments: %w", err)
+	}
+	if params == nil {
+		params = make(map[string]interface{})
+	}
+	return handleInferTaskProgressNative(ctx, params)
 }
 
 // handleTaskWorkflow handles the task_workflow tool
@@ -718,7 +754,7 @@ func handleOllama(ctx context.Context, args json.RawMessage) ([]framework.TextCo
 	return result, nil
 }
 
-// handleMlx handles the mlx tool. Uses native Go (luxfi/mlx) for status and hardware when available; otherwise Python bridge.
+// handleMlx handles the mlx tool. Native MLX removed; uses Python bridge for status, hardware, and generate; static models list in Go.
 func handleMlx(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
 	req, params, err := ParseMlxRequest(args)
 	if err != nil {
