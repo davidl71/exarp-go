@@ -180,82 +180,6 @@ def get_prompts_for_mode(mode: str) -> Dict[str, Any]:
     }
 
 
-def get_prompts_for_persona(persona: str) -> Dict[str, Any]:
-    """
-    Get prompts relevant to a persona.
-    
-    Args:
-        persona: Target persona (developer, project_manager, etc.)
-    
-    Returns:
-        Dict with persona info and relevant prompts
-    """
-    prompts = PROMPT_PERSONA_MAPPING.get(persona, [])
-
-    return {
-        "persona": persona,
-        "prompts": [
-            {
-                "name": p,
-                "description": PROMPT_DESCRIPTIONS.get(p, ""),
-            }
-            for p in prompts
-        ],
-        "count": len(prompts),
-        "available_personas": list(PROMPT_PERSONA_MAPPING.keys()),
-    }
-
-
-def get_prompts_for_category(category: str) -> Dict[str, Any]:
-    """
-    Get prompts in a category.
-    
-    Args:
-        category: Prompt category (documentation, tasks, security, etc.)
-    
-    Returns:
-        Dict with category info and prompts
-    """
-    prompts = PROMPT_CATEGORIES.get(category, [])
-
-    return {
-        "category": category,
-        "prompts": [
-            {
-                "name": p,
-                "description": PROMPT_DESCRIPTIONS.get(p, ""),
-            }
-            for p in prompts
-        ],
-        "count": len(prompts),
-        "available_categories": list(PROMPT_CATEGORIES.keys()),
-    }
-
-
-def get_all_prompts_compact() -> Dict[str, Any]:
-    """
-    Get all prompts in compact format.
-    
-    Returns:
-        Dict with all prompts organized by category
-    """
-    by_category = {}
-    for category, prompts in PROMPT_CATEGORIES.items():
-        by_category[category] = [
-            {
-                "name": p,
-                "description": PROMPT_DESCRIPTIONS.get(p, ""),
-            }
-            for p in prompts
-        ]
-
-    return {
-        "total_prompts": len(PROMPT_DESCRIPTIONS),
-        "categories": list(PROMPT_CATEGORIES.keys()),
-        "by_category": by_category,
-    }
-
-
 def discover_prompts(
     mode: Optional[str] = None,
     persona: Optional[str] = None,
@@ -319,39 +243,6 @@ def discover_prompts(
     }
 
 
-# ═══════════════════════════════════════════════════════════════════════════════
-# MCP RESOURCE REGISTRATION
-# ═══════════════════════════════════════════════════════════════════════════════
-
-def register_prompt_discovery_resources(mcp) -> None:
-    """Register prompt discovery resources with MCP server."""
-    try:
-        @mcp.resource("automation://prompts")
-        def all_prompts_resource() -> str:
-            """Get all prompts in compact format."""
-            return json.dumps(get_all_prompts_compact(), separators=(',', ':'))
-
-        @mcp.resource("automation://prompts/mode/{mode}")
-        def prompts_by_mode_resource(mode: str) -> str:
-            """Get prompts for a workflow mode."""
-            return json.dumps(get_prompts_for_mode(mode), separators=(',', ':'))
-
-        @mcp.resource("automation://prompts/persona/{persona}")
-        def prompts_by_persona_resource(persona: str) -> str:
-            """Get prompts for a persona."""
-            return json.dumps(get_prompts_for_persona(persona), separators=(',', ':'))
-
-        @mcp.resource("automation://prompts/category/{category}")
-        def prompts_by_category_resource(category: str) -> str:
-            """Get prompts in a category."""
-            return json.dumps(get_prompts_for_category(category), separators=(',', ':'))
-
-        logger.info("✅ Registered 4 prompt discovery resources")
-
-    except Exception as e:
-        logger.warning(f"Could not register prompt discovery resources: {e}")
-
-
 # Tool for interactive prompt discovery
 def discover_prompts_tool(
     mode: Optional[str] = None,
@@ -412,12 +303,8 @@ __all__ = [
     "PROMPT_CATEGORIES",
     "PROMPT_DESCRIPTIONS",
     "get_prompts_for_mode",
-    "get_prompts_for_persona",
-    "get_prompts_for_category",
-    "get_all_prompts_compact",
     "discover_prompts",
     "discover_prompts_tool",
-    "register_prompt_discovery_resources",
     "register_prompt_discovery_tools",
 ]
 
