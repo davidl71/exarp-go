@@ -114,7 +114,7 @@ class ToolValidator:
         if not func_body:
             return {
                 'is_valid': False,
-                'issues': [f'Could not extract function body']
+                'issues': ['Could not extract function body']
             }
         
         issues = []
@@ -123,8 +123,8 @@ class ToolValidator:
         # Check 1: No conditional logic based on action parameter
         if self._has_action_based_conditionals(func_body):
             issues.append(
-                f"Tool has conditional logic based on 'action' parameter. "
-                f"Split into separate tools to avoid FastMCP issues."
+                "Tool has conditional logic based on 'action' parameter. "
+                "Split into separate tools to avoid FastMCP issues."
             )
         
         # Check 2: Simple return pattern (preferred)

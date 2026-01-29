@@ -145,15 +145,8 @@ class Todo2AlignmentAnalyzerV2(IntelligentAutomationBase):
             return self._get_default_phases(), default_infrastructure
 
     def _get_current_tool_count(self) -> int:
-        """Get current tool count from tool_count_health module."""
-        try:
-            from project_management_automation.tools.tool_count_health import _count_registered_tools
-            tool_info = _count_registered_tools()
-            return tool_info.get('count', 0)
-        except Exception as e:
-            logger.debug(f"Could not get tool count: {e}")
-            # Fallback: try to count from server.py or estimate
-            return 30  # Default estimate
+        """Expected MCP tool count (exarp-go native: 29 base; design limit 30). Python module removed; use Go health action=tools for live count."""
+        return 29
 
     def _get_default_phases(self) -> dict:
         """Return default phases for generic projects."""

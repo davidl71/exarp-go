@@ -324,7 +324,7 @@ def get_coreml_hardware_info() -> str:
         info = check_coreml_availability()
         
         # Add more details
-        chip = info["chip_model"]
+        info["chip_model"]
         info["compute_units_available"] = {
             "cpu": True,  # Always available
             "gpu": is_apple_silicon(),  # Metal GPU on Apple Silicon

@@ -4,12 +4,10 @@ Task Diff Tools
 Compare different versions of tasks.
 """
 
-import json
 import logging
 from typing import Dict, Any, Optional
 from datetime import datetime
 
-from ..utils import find_project_root
 from ..utils.commit_tracking import get_commit_tracker
 
 logger = logging.getLogger(__name__)

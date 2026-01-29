@@ -13,9 +13,9 @@ import json
 import logging
 import sys
 import time
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))

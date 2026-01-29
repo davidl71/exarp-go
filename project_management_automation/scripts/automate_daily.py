@@ -53,14 +53,7 @@ DAILY_TASKS = {
     },
     # NOTE: external_tool_hints removed from daily automation - it's a one-time setup tool
     # Run manually when new documentation files are added: add_external_tool_hints(dry_run=False)
-    'tool_count_health': {
-        'name': 'Tool Count Health Check',
-        'script': None,  # Uses direct function call
-        'mcp_tool': 'check_tool_count_health',
-        'quick': True,
-        'description': 'Monitor MCP tool count against design limit (≤30)',
-        'function': 'project_management_automation.tools.tool_count_health:check_tool_count_health'
-    },
+    # NOTE: tool_count_health removed - module never existed; use exarp-go automation(daily) for native Go check (health action=tools)
     'handoff_check': {
         'name': 'Handoff Check',
         'script': None,  # Uses direct function call
@@ -100,7 +93,7 @@ class DailyAutomation:
     def __init__(self, config: dict, project_root: Optional[Path] = None):
         self.config = config
         self.project_root = project_root
-        self.tasks_to_run = config.get('tasks', ['handoff_check', 'stale_task_cleanup', 'docs_health', 'todo2_alignment', 'duplicate_detection', 'duplicate_test_names', 'tool_count_health'])
+        self.tasks_to_run = config.get('tasks', ['handoff_check', 'stale_task_cleanup', 'docs_health', 'todo2_alignment', 'duplicate_detection', 'duplicate_test_names'])
         self.dry_run = config.get('dry_run', False)
         self.output_path = config.get('output_path', 'docs/DAILY_AUTOMATION_REPORT.md')
         self.include_slow = config.get('include_slow', False)

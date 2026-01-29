@@ -203,7 +203,7 @@ async def scan_dependency_security_async(
         await _report_progress(ctx, 5, 5, "Finalizing...")
 
         total_vulns = response_data['total_vulnerabilities']
-        critical_count = response_data.get('critical_vulnerabilities', 0)
+        response_data.get('critical_vulnerabilities', 0)
 
         if total_vulns == 0:
             await _log_info(ctx, "✅ No vulnerabilities found!")

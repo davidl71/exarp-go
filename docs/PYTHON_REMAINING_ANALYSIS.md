@@ -4,7 +4,7 @@
 **Last updated:** 2026-01-29 (4 removed Python fallbacks reflected)  
 **Status:** Current state after native Go migration progress
 
-**Migration update (2026-01-27):** Python fallbacks were removed for **`setup_hooks`**, **`check_attribution`**, **`session`**, and **`memory_maint`**. These tools are now full native only (no bridge). See `NATIVE_GO_HANDLER_STATUS.md` and `NEXT_MIGRATION_STEPS.md` for current handler status.
+**Migration update (2026-01-29):** Python **tool_count_health** task removed from `automate_daily.py` (module `project_management_automation.tools.tool_count_health` never existed). Use exarp-go `automation(daily)` or `health(action=tools)` for native Go check. **2026-01-27:** Python fallbacks removed for `setup_hooks`, `check_attribution`, `session`, `memory_maint`. See `NATIVE_GO_HANDLER_STATUS.md` and `NEXT_MIGRATION_STEPS.md`.
 
 ## Executive Summary
 
@@ -29,8 +29,8 @@
    - **Resources are not routed here** — exarp-go serves all 22 resources natively from `internal/resources/`
 
 2. **Supporting Modules:**
-   - `bridge/context/` - Context tool implementation
-   - `bridge/recommend/` - Recommend tool implementation
+   - `bridge/context/` - Removed 2026-01-29 (context is fully native Go; bridge did not use it; context_tool now returns native-only message)
+   - `bridge/recommend/` - Removed 2026-01-29 (recommend is fully native Go; bridge did not route to it)
    - `bridge/agent_evaluation.py` - Agent evaluation utilities
    - `bridge/statistics_bridge.py` - Statistics bridge
 

@@ -33,7 +33,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
 from pathlib import Path
-from typing import Any, Dict, List, Optional, TYPE_CHECKING
+from typing import Any, Dict, Optional, TYPE_CHECKING
 
 if TYPE_CHECKING:
     try:

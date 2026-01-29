@@ -76,42 +76,11 @@ def execute_tool(tool_name: str, args_json: str, use_protobuf: bool = False, pro
         # security: migrated to native Go (removed)
         # testing: migrated to native Go (removed)
         # lint: migrated to native Go (removed)
-        from project_management_automation.tools.consolidated import (
-            task_workflow as _task_workflow,
-            mlx as _mlx,
-            ollama as _ollama,
-        )
-        
-        # recommend: migrated to native Go (no Python handler, removed)
-        # Import context_tool for unified context wrapper (used for "context" tool)
-        from project_management_automation.tools.context_tool import context as _context_unified
-        
-        # Route to appropriate tool
-        # memory, task_discovery: migrated to native Go (removed 2026-01-28)
-        # report: migrated to native Go (removed)
-        # task_workflow: fully native Go (2026-01-28); this branch only for direct Python invocation
-        if tool_name == "task_workflow":
-            result = _task_workflow(
-                action=args.get("action", "sync"),
-                dry_run=args.get("dry_run", False),
-                status=args.get("status", "Review"),
-                new_status=args.get("new_status", "Todo"),
-                clarification_none=args.get("clarification_none", True),
-                filter_tag=args.get("filter_tag"),
-                task_ids=args.get("task_ids"),
-                sub_action=args.get("sub_action", "list"),
-                task_id=args.get("task_id"),
-                clarification_text=args.get("clarification_text"),
-                decision=args.get("decision"),
-                decisions_json=args.get("decisions_json"),
-                move_to_todo=args.get("move_to_todo", True),
-                auto_apply=args.get("auto_apply", False),
-                output_format=args.get("output_format", "text"),
-                stale_threshold_hours=args.get("stale_threshold_hours", 2.0),
-                output_path=args.get("output_path"),
-            )
-        # estimation: fully native Go, no Python handler (removed 2026-01-27)
-        elif tool_name == "mlx":
+        # task_workflow: migrated to native Go (removed from bridge 2026-01-29, Phase B)
+        from project_management_automation.tools.consolidated import mlx as _mlx
+
+        # Route to appropriate tool (bridge only handles mlx; Go uses native for all others)
+        if tool_name == "mlx":
             result = _mlx(
                 action=args.get("action", "status"),
                 prompt=args.get("prompt"),
@@ -120,25 +89,7 @@ def execute_tool(tool_name: str, args_json: str, use_protobuf: bool = False, pro
                 temperature=args.get("temperature", 0.7),
                 verbose=args.get("verbose", False),
             )
-        # Phase 3 Migration: Unified tools
-        # Note: Individual tools (context_summarize, context_batch, prompt_log, prompt_analyze,
-        # recommend_model, recommend_workflow) were removed in favor of unified tools below
-        elif tool_name == "context":
-            result = _context_unified(
-                action=args.get("action", "summarize"),
-                data=args.get("data"),
-                level=args.get("level", "brief"),
-                tool_type=args.get("tool_type"),
-                max_tokens=args.get("max_tokens"),
-                include_raw=args.get("include_raw", False),
-                items=args.get("items"),
-                budget_tokens=args.get("budget_tokens", 4000),
-                combine=args.get("combine", True),
-            )
-        # recommend: migrated to native Go (removed)
-        # Note: prompt_tracking and server_status removed - fully native Go with no Python fallback
-        # Note: demonstrate_elicit and interactive_task_create removed
-        # These tools required FastMCP Context (not available in stdio mode)
+        # task_workflow, context, recommend: native Go only (removed from bridge)
         else:
             execution_time_ms = int((time.time() - start_time) * 1000)
             error_result = {

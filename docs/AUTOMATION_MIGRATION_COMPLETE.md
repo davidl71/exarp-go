@@ -14,10 +14,15 @@ Completed migration of automation tool's **daily** and **discover** actions from
 ### ✅ 1. automation Tool - daily Action
 
 **Status**: Native Go ✅  
-**Actions**: Orchestrates 3 tools sequentially:
+**Actions**: Orchestrates 8 tools sequentially (3 original + 5 migrated from Python daily):
 1. `analyze_alignment` (todo2 action) - Native Go ✅
 2. `task_analysis` (duplicates action) - Native Go ✅
-3. `health` (docs action) - Python bridge (not yet native, correct fallback) ✅
+3. `health` (docs action) - Native Go ✅
+4. `tool_count_health` (health action=tools) - Native Go ✅ (migrated 2026-01)
+5. `dependency_security` (security scan) - Native Go ✅ (migrated 2026-01)
+6. `handoff_check` (session handoff latest) - Native Go ✅ (migrated 2026-01)
+7. `task_progress_inference` (infer_task_progress) - Native Go ✅ (migrated 2026-01)
+8. `stale_task_cleanup` (task_workflow cleanup) - Native Go ✅ (migrated 2026-01)
 
 **Implementation**:
 - File: `internal/tools/automation_native.go`
@@ -27,17 +32,26 @@ Completed migration of automation tool's **daily** and **discover** actions from
 - JSON response format matching Python implementation
 
 **Features**:
-- Runs 3 tasks sequentially (analyze_alignment, task_analysis, health)
+- Runs 8 tasks sequentially (alignment, duplicates, health, tool count health, security scan, handoff check, task progress inference, stale task cleanup)
 - Collects results from each task
 - Aggregates success/failure counts
 - Generates summary with success rate and duration
 - Handles errors gracefully (continues even if one task fails)
 
 **Code Location**:
-- `internal/tools/automation_native.go:32-142` - `handleAutomationDaily`
-- `internal/tools/automation_native.go:214-263` - `runDailyTask` (native Go tools)
-- `internal/tools/automation_native.go:265-298` - `runDailyTaskPython` (Python bridge tools)
-- `internal/tools/handlers.go:551-574` - `handleAutomation` (updated to try native first)
+- `internal/tools/automation_native.go` - `handleAutomationDaily`, `runDailyTask`
+
+**Automations migrated from Python daily (2026-01):**
+- **tool_count_health** → `health` tool, action `tools` (native Go; reports tool count vs design limit ≤30)
+- **dependency_security** → `security` tool, action `scan` (native Go)
+- **handoff_check** → `session` tool, action `handoff`, sub_action `latest` (native Go)
+- **task_progress_inference** → `infer_task_progress` tool (native Go; dry run in daily)
+- **stale_task_cleanup** → `task_workflow` tool, action `cleanup` (native Go)
+
+**Not yet in Go daily (still Python-only if using automate_daily.py):**
+- **duplicate_test_names** — no native Go tool yet; would require new implementation
+
+**Python cleanup (2026-01-29):** `tool_count_health` removed from Python `DAILY_TASKS` (module never existed). `automate_todo2_alignment_v2.py` _get_current_tool_count() now returns constant 29 (no import).
 
 ---
 

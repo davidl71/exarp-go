@@ -111,6 +111,116 @@ func handleAutomationDaily(ctx context.Context, params map[string]interface{}) (
 		results["tasks_failed"] = append(tasksFailed, "health")
 	}
 
+	// Task 4: tool_count_health (health action=tools) - migrated from Python daily
+	task4Result := runDailyTask(ctx, "tool_count_health", map[string]interface{}{
+		"action": "tools",
+	})
+	tasksRun, _ = results["tasks_run"].([]map[string]interface{})
+	tasksRun = append(tasksRun, map[string]interface{}{
+		"task_id":   "tool_count_health",
+		"task_name": "Tool Count Health Check",
+		"status":    task4Result["status"],
+		"duration":  task4Result["duration"],
+		"error":     task4Result["error"],
+		"summary":   task4Result["summary"],
+	})
+	results["tasks_run"] = tasksRun
+	if task4Result["status"] == "success" {
+		tasksSucceeded, _ := results["tasks_succeeded"].([]string)
+		results["tasks_succeeded"] = append(tasksSucceeded, "tool_count_health")
+	} else {
+		tasksFailed, _ := results["tasks_failed"].([]string)
+		results["tasks_failed"] = append(tasksFailed, "tool_count_health")
+	}
+
+	// Task 5: dependency_security (security scan) - migrated from Python daily
+	task5Result := runDailyTask(ctx, "dependency_security", map[string]interface{}{})
+	tasksRun, _ = results["tasks_run"].([]map[string]interface{})
+	tasksRun = append(tasksRun, map[string]interface{}{
+		"task_id":   "dependency_security",
+		"task_name": "Dependency Security Scan",
+		"status":    task5Result["status"],
+		"duration":  task5Result["duration"],
+		"error":     task5Result["error"],
+		"summary":   task5Result["summary"],
+	})
+	results["tasks_run"] = tasksRun
+	if task5Result["status"] == "success" {
+		tasksSucceeded, _ := results["tasks_succeeded"].([]string)
+		results["tasks_succeeded"] = append(tasksSucceeded, "dependency_security")
+	} else {
+		tasksFailed, _ := results["tasks_failed"].([]string)
+		results["tasks_failed"] = append(tasksFailed, "dependency_security")
+	}
+
+	// Task 6: handoff_check (session handoff latest) - migrated from Python daily
+	task6Result := runDailyTask(ctx, "handoff_check", map[string]interface{}{
+		"action":     "handoff",
+		"sub_action": "latest",
+	})
+	tasksRun, _ = results["tasks_run"].([]map[string]interface{})
+	tasksRun = append(tasksRun, map[string]interface{}{
+		"task_id":   "handoff_check",
+		"task_name": "Handoff Check",
+		"status":    task6Result["status"],
+		"duration":  task6Result["duration"],
+		"error":     task6Result["error"],
+		"summary":   task6Result["summary"],
+	})
+	results["tasks_run"] = tasksRun
+	if task6Result["status"] == "success" {
+		tasksSucceeded, _ := results["tasks_succeeded"].([]string)
+		results["tasks_succeeded"] = append(tasksSucceeded, "handoff_check")
+	} else {
+		tasksFailed, _ := results["tasks_failed"].([]string)
+		results["tasks_failed"] = append(tasksFailed, "handoff_check")
+	}
+
+	// Task 7: task_progress_inference (infer_task_progress, dry run) - migrated from Python daily
+	task7Result := runDailyTask(ctx, "task_progress_inference", map[string]interface{}{
+		"dry_run": true,
+	})
+	tasksRun, _ = results["tasks_run"].([]map[string]interface{})
+	tasksRun = append(tasksRun, map[string]interface{}{
+		"task_id":   "task_progress_inference",
+		"task_name": "Task Progress Inference",
+		"status":    task7Result["status"],
+		"duration":  task7Result["duration"],
+		"error":     task7Result["error"],
+		"summary":   task7Result["summary"],
+	})
+	results["tasks_run"] = tasksRun
+	if task7Result["status"] == "success" {
+		tasksSucceeded, _ := results["tasks_succeeded"].([]string)
+		results["tasks_succeeded"] = append(tasksSucceeded, "task_progress_inference")
+	} else {
+		tasksFailed, _ := results["tasks_failed"].([]string)
+		results["tasks_failed"] = append(tasksFailed, "task_progress_inference")
+	}
+
+	// Task 8: stale_task_cleanup (task_workflow cleanup) - migrated from Python daily
+	task8Result := runDailyTask(ctx, "stale_task_cleanup", map[string]interface{}{
+		"action":                "cleanup",
+		"stale_threshold_hours": 24.0,
+	})
+	tasksRun, _ = results["tasks_run"].([]map[string]interface{})
+	tasksRun = append(tasksRun, map[string]interface{}{
+		"task_id":   "stale_task_cleanup",
+		"task_name": "Stale Task Cleanup",
+		"status":    task8Result["status"],
+		"duration":  task8Result["duration"],
+		"error":     task8Result["error"],
+		"summary":   task8Result["summary"],
+	})
+	results["tasks_run"] = tasksRun
+	if task8Result["status"] == "success" {
+		tasksSucceeded, _ := results["tasks_succeeded"].([]string)
+		results["tasks_succeeded"] = append(tasksSucceeded, "stale_task_cleanup")
+	} else {
+		tasksFailed, _ := results["tasks_failed"].([]string)
+		results["tasks_failed"] = append(tasksFailed, "stale_task_cleanup")
+	}
+
 	// Generate summary
 	tasksSucceeded, _ := results["tasks_succeeded"].([]string)
 	tasksFailed, _ := results["tasks_failed"].([]string)
@@ -368,7 +478,7 @@ func handleAutomationSprint(ctx context.Context, params map[string]interface{}) 
 	// Add recommended backlog order for this sprint (first 15 in dependency order)
 	if projectRoot, err := FindProjectRoot(); err == nil {
 		if tasks, err := LoadTodo2Tasks(projectRoot); err == nil {
-			if orderedIDs, _, details, err := BacklogExecutionOrder(tasks); err == nil && len(orderedIDs) > 0 {
+			if orderedIDs, _, details, err := BacklogExecutionOrder(tasks, nil); err == nil && len(orderedIDs) > 0 {
 				const sprintOrderLimit = 15
 				sprintOrder := make([]map[string]interface{}, 0, sprintOrderLimit)
 				detailMap := make(map[string]BacklogTaskDetail)
@@ -458,6 +568,16 @@ func runDailyTask(ctx context.Context, toolName string, params map[string]interf
 		toolResult, err = handleTaskAnalysisNative(ctx, params)
 	case "health":
 		toolResult, err = handleHealthNative(ctx, params)
+	case "tool_count_health":
+		toolResult, err = handleHealthNative(ctx, params)
+	case "dependency_security":
+		toolResult, err = handleSecurityScan(ctx, params)
+	case "handoff_check":
+		toolResult, err = handleSessionNative(ctx, params)
+	case "task_progress_inference":
+		toolResult, err = handleInferTaskProgressNative(ctx, params)
+	case "stale_task_cleanup":
+		toolResult, err = handleTaskWorkflowNative(ctx, params)
 	case "memory_maint":
 		argsJSON, marshalErr := json.Marshal(params)
 		if marshalErr != nil {

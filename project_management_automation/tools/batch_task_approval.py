@@ -91,7 +91,7 @@ def batch_approve_tasks(
                 "approved_count": len(candidates),
                 "task_ids": [t["id"] for t in candidates]
             }
-    except Exception as e:
+    except Exception:
         # If MCP fails, try batch script (legacy fallback)
         pass
     

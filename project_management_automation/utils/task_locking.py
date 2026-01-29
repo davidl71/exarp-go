@@ -7,9 +7,7 @@ working on the same task simultaneously.
 
 import json
 import logging
-import time
 from datetime import datetime
-from pathlib import Path
 from typing import Any, Optional
 
 from .file_lock import state_file_lock, task_lock
@@ -330,7 +328,7 @@ def atomic_batch_assign(
         return {
             "success": False,
             "assigned": [],
-            "failed": [{"task_id": tid, "reason": f"Lock timeout"} for tid in task_ids],
+            "failed": [{"task_id": tid, "reason": "Lock timeout"} for tid in task_ids],
             "total": len(task_ids),
         }
     except Exception as e:

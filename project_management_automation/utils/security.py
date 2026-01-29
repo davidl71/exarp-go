@@ -535,8 +535,8 @@ def require_access(tool_name: Optional[str] = None):
 # SUBPROCESS SANDBOXING
 # ═══════════════════════════════════════════════════════════════════════════════
 
-import subprocess
-from typing import Any
+import subprocess  # noqa: E402
+from typing import Any  # noqa: E402
 
 
 class SubprocessSecurityError(Exception):

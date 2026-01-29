@@ -115,13 +115,13 @@ func registerBatch1Tools(server framework.MCPServer) error {
 	// T-24: health
 	if err := server.RegisterTool(
 		"health",
-		"[HINT: Health check. action=server|git|docs|dod|cicd. Status and health metrics.]",
+		"[HINT: Health check. action=server|git|docs|dod|cicd|tools. Status and health metrics; tools=Tool count vs design limit.]",
 		framework.ToolSchema{
 			Type: "object",
 			Properties: map[string]interface{}{
 				"action": map[string]interface{}{
 					"type":    "string",
-					"enum":    []string{"server", "git", "docs", "dod", "cicd"},
+					"enum":    []string{"server", "git", "docs", "dod", "cicd", "tools"},
 					"default": "server",
 				},
 				"agent_name": map[string]interface{}{
@@ -489,13 +489,13 @@ func registerBatch2Tools(server framework.MCPServer) error {
 	// T-32: task_analysis
 	if err := server.RegisterTool(
 		"task_analysis",
-		"[HINT: Task analysis. action=duplicates|tags|hierarchy|dependencies|parallelization|validate|execution_plan. Task quality and structure.]",
+		"[HINT: Task analysis. action=duplicates|tags|discover_tags|hierarchy|dependencies|parallelization|validate|execution_plan. Task quality and structure. discover_tags scans MD files for tag hints and uses LLM (Apple FM/Ollama) for semantic inference.]",
 		framework.ToolSchema{
 			Type: "object",
 			Properties: map[string]interface{}{
 				"action": map[string]interface{}{
 					"type":    "string",
-					"enum":    []string{"duplicates", "tags", "hierarchy", "dependencies", "parallelization", "fix_missing_deps", "validate", "execution_plan"},
+					"enum":    []string{"duplicates", "tags", "discover_tags", "hierarchy", "dependencies", "parallelization", "fix_missing_deps", "validate", "execution_plan"},
 					"default": "duplicates",
 				},
 				"similarity_threshold": map[string]interface{}{
@@ -510,11 +510,18 @@ func registerBatch2Tools(server framework.MCPServer) error {
 					"type":    "boolean",
 					"default": true,
 				},
+				"use_canonical_rules": map[string]interface{}{
+					"type":        "boolean",
+					"default":     false,
+					"description": "Apply built-in canonical tag rules (scorecard-aligned: testing, docs, security, build, performance, bug, feature, refactor, migration, config, cli, mcp, llm, database)",
+				},
 				"custom_rules": map[string]interface{}{
-					"type": "string",
+					"type":        "string",
+					"description": "JSON object of additional tag rename rules (oldTag -> newTag)",
 				},
 				"remove_tags": map[string]interface{}{
-					"type": "string",
+					"type":        "string",
+					"description": "JSON array of tags to remove",
 				},
 				"output_format": map[string]interface{}{
 					"type":    "string",
@@ -532,6 +539,74 @@ func registerBatch2Tools(server framework.MCPServer) error {
 					"default":     false,
 					"description": "For action=validate: optionally run hierarchy dry-run and report hierarchy_warning (e.g. response_snippet) if FM returns non-JSON",
 				},
+				"use_llm": map[string]interface{}{
+					"type":        "boolean",
+					"default":     true,
+					"description": "For action=discover_tags: use Apple FM or Ollama for semantic tag inference",
+				},
+				"doc_path": map[string]interface{}{
+					"type":        "string",
+					"default":     "docs",
+					"description": "For action=discover_tags: path to scan for markdown files (relative to project root)",
+				},
+				"use_cache": map[string]interface{}{
+					"type":        "boolean",
+					"default":     true,
+					"description": "For action=discover_tags: use SQLite cache for discovered tags (speeds up subsequent runs)",
+				},
+				"clear_cache": map[string]interface{}{
+					"type":        "boolean",
+					"default":     false,
+					"description": "For action=discover_tags: clear tag cache before scanning (force re-scan)",
+				},
+				"timeout_seconds": map[string]interface{}{
+					"type":        "integer",
+					"default":     300,
+					"description": "For action=discover_tags: total operation timeout in seconds (default: 300s/5min). LLM calls have per-file timeout of 10s.",
+				},
+				"llm_batch_size": map[string]interface{}{
+					"type":        "integer",
+					"default":     0,
+					"description": "For action=discover_tags: max files per LLM call. For action=tags with use_llm_semantic: max tasks per LLM call. 0=default 15.",
+				},
+				"backlog_only": map[string]interface{}{
+					"type":        "boolean",
+					"default":     false,
+					"description": "For action=discover_tags: when true, only match and apply tags to Todo2 backlog tasks (status Todo or In Progress). Parse todo2 backlog and update tags.",
+				},
+				"limit": map[string]interface{}{
+					"type":        "integer",
+					"default":     0,
+					"description": "For action=tags or discover_tags: max number of tasks to process in this run (batch size). 0 = no limit. With prioritize_untagged, untagged tasks fill the batch first.",
+				},
+				"prioritize_untagged": map[string]interface{}{
+					"type":        "boolean",
+					"default":     false,
+					"description": "For action=tags or discover_tags: when true, process/return only tasks that have no tags first; with limit, fill batch with untagged tasks.",
+				},
+				"use_llm_semantic": map[string]interface{}{
+					"type":        "boolean",
+					"default":     false,
+					"description": "For action=tags: use Apple FM or Ollama to suggest additional tags from task title and content (batched). Quick tag addition from semantic analysis.",
+				},
+				"match_existing_only": map[string]interface{}{
+					"type":        "boolean",
+					"default":     false,
+					"description": "For action=tags with use_llm_semantic: quick Apple FM tag inference matching only from existing tags (canonical + project/cache). Constrained output, faster.",
+				},
+				"use_tiny_tag_model": map[string]interface{}{
+					"type":        "boolean",
+					"default":     false,
+					"description": "For action=tags with use_llm_semantic: try Ollama with tinyllama then MLX with TinyLlama (1.1B) for faster tag inference before Apple FM.",
+				},
+				"filter_tag": map[string]interface{}{
+					"type":        "string",
+					"description": "For action=execution_plan: restrict backlog to tasks with this tag.",
+				},
+				"filter_tags": map[string]interface{}{
+					"type":        "string",
+					"description": "For action=execution_plan: restrict backlog to tasks with any of these tags (comma-separated).",
+				},
 			},
 		},
 		handleTaskAnalysis,
@@ -542,7 +617,7 @@ func registerBatch2Tools(server framework.MCPServer) error {
 	// T-33: task_discovery
 	if err := server.RegisterTool(
 		"task_discovery",
-		"[HINT: Task discovery. action=comments|markdown|orphans|all. Find tasks from various sources.]",
+		"[HINT: Task discovery. action=comments|markdown|orphans|git_json|planning_links|all. Scans for TODO/FIXME comments, extracts hashtags as tags (e.g., #refactor, #bug). Returns discoveries with tags array. Use create_tasks=true to create Todo2 tasks with extracted tags.]",
 		framework.ToolSchema{
 			Type: "object",
 			Properties: map[string]interface{}{
@@ -582,13 +657,13 @@ func registerBatch2Tools(server framework.MCPServer) error {
 	// T-34: task_workflow
 	if err := server.RegisterTool(
 		"task_workflow",
-		"[HINT: Task workflow. action=sync|approve|clarify|clarity|cleanup|create|fix_dates|sanity_check. Manage task lifecycle. ⚠️ CRITICAL: PREFER convenience commands (exarp-go task ...) for common operations. FALLBACK to this tool for advanced operations (clarity, cleanup, complex filters). NEVER edit .todo2/state.todo2.json directly. Use action=approve with task_ids for batch updates. Use action=create to create new tasks. Sync is SQLite↔JSON only; external=true is unsupported (returns error).]",
+		"[HINT: Task workflow. action=sync|approve|clarify|clarity|cleanup|create|fix_dates|fix_invalid_ids|link_planning|sanity_check. Manage task lifecycle. ⚠️ CRITICAL: PREFER convenience commands (exarp-go task ...) for common operations. FALLBACK to this tool for advanced operations (clarity, cleanup, complex filters). NEVER edit .todo2/state.todo2.json directly. Use action=approve with task_ids for batch updates. Use action=create to create new tasks. Use action=link_planning with task_id/task_ids and planning_doc/epic_id to set planning hints on Todo or In Progress tasks only. Sync is SQLite↔JSON only; external=true is unsupported (returns error).]",
 		framework.ToolSchema{
 			Type: "object",
 			Properties: map[string]interface{}{
 				"action": map[string]interface{}{
 					"type":    "string",
-					"enum":    []string{"sync", "approve", "clarify", "clarity", "cleanup", "create", "fix_dates", "sanity_check"},
+					"enum":    []string{"sync", "approve", "clarify", "clarity", "cleanup", "create", "delete", "fix_dates", "fix_invalid_ids", "link_planning", "sanity_check"},
 					"default": "sync",
 				},
 				"dry_run": map[string]interface{}{
