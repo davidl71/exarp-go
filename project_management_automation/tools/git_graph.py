@@ -4,13 +4,10 @@ Git Graph Visualization
 Generates commit graph visualizations for task management.
 """
 
-import json
 import logging
 from typing import Optional
 from pathlib import Path
-from datetime import datetime
 
-from ..utils import find_project_root
 from ..utils.commit_tracking import get_commit_tracker
 
 logger = logging.getLogger(__name__)

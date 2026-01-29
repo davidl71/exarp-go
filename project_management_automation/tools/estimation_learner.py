@@ -10,7 +10,7 @@ import logging
 import statistics
 from collections import defaultdict
 from pathlib import Path
-from typing import Any, Dict, Optional, Union, Tuple
+from typing import Any, Dict, Optional, Tuple
 
 from ..utils import find_project_root
 

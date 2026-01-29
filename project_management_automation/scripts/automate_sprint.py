@@ -40,8 +40,8 @@ except ImportError:
     sys.path.insert(0, str(repo_root / 'project_management_automation'))
     from utils.todo2_utils import normalize_status, is_pending_status, is_completed_status
 
-# Import base class
-from project_management_automation.scripts.base.intelligent_automation_base import IntelligentAutomationBase
+# Import base class (after path setup above)
+from project_management_automation.scripts.base.intelligent_automation_base import IntelligentAutomationBase  # noqa: E402
 
 logger = logging.getLogger(__name__)
 
@@ -794,7 +794,7 @@ class SprintAutomation(IntelligentAutomationBase):
             for task in in_progress_tasks[:5]:  # Limit to 5 tasks per iteration
                 task_id = task.get('id')
                 task_name = task.get('name', '')
-                task_desc = task.get('long_description', '') or task.get('details', '')
+                task.get('long_description', '') or task.get('details', '')
                 
                 logger.info(f"Attempting to execute task: {task_name} (ID: {task_id})")
                 execution_result = self._execute_task(task)
@@ -827,7 +827,7 @@ class SprintAutomation(IntelligentAutomationBase):
                 result = json.loads(result_json)
                 if result.get('success') and result.get('data'):
                     data = result['data']
-                    tasks_updated = data.get('tasks_updated', 0)
+                    data.get('tasks_updated', 0)
                     inferred_results = data.get('inferred_results', [])
                     
                     # Count how many of our "In Progress" tasks were completed

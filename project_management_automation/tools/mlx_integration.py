@@ -17,7 +17,7 @@ import time
 from typing import Any, TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from mlx_lm import Model, Tokenizer
+    pass
 
 logger = logging.getLogger(__name__)
 
@@ -419,7 +419,7 @@ def generate_with_mlx(
             _MLX_MODEL_CACHE[model] = (model_obj, tokenizer)
             
             if verbose:
-                logger.info(f"Model cached for future use")
+                logger.info("Model cached for future use")
 
         if verbose:
             logger.info(f"Generating with max_tokens={max_tokens}, temperature={temperature}")

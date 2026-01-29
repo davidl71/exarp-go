@@ -6,7 +6,6 @@ Eliminates duplication between @mcp.tool() decorators and manual Tool() definiti
 """
 
 import inspect
-import json
 import re
 from typing import Any, Dict, List, Optional
 
@@ -14,7 +13,7 @@ logger = None
 try:
     import logging
     logger = logging.getLogger(__name__)
-except:
+except Exception:
     pass
 
 
@@ -74,15 +73,15 @@ def extract_tool_metadata(func) -> Dict[str, Any]:
         
         # Get type from annotation
         if param.annotation != inspect.Parameter.empty:
-            if param.annotation == bool:
+            if param.annotation is bool:
                 param_type = "boolean"
-            elif param.annotation == int:
+            elif param.annotation is int:
                 param_type = "integer"
-            elif param.annotation == float:
+            elif param.annotation is float:
                 param_type = "number"
-            elif param.annotation == list or (hasattr(param.annotation, '__origin__') and param.annotation.__origin__ is list):
+            elif param.annotation is list or (hasattr(param.annotation, '__origin__') and param.annotation.__origin__ is list):
                 param_type = "array"
-            elif param.annotation == dict or (hasattr(param.annotation, '__origin__') and param.annotation.__origin__ is dict):
+            elif param.annotation is dict or (hasattr(param.annotation, '__origin__') and param.annotation.__origin__ is dict):
                 param_type = "object"
         
         # Get default value

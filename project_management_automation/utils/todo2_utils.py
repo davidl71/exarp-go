@@ -13,7 +13,7 @@ import logging
 import subprocess
 from collections.abc import Iterable
 from pathlib import Path
-from typing import Iterable, List, Optional, Tuple
+from typing import List, Optional, Tuple
 
 # Remove circular import
 # from . import find_project_root

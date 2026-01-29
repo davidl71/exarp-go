@@ -33,7 +33,8 @@ Consolidated tools:
 import asyncio
 import json
 import logging
-from typing import Any, Dict, List, Optional
+import subprocess
+from typing import Any, List, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -91,8 +92,38 @@ def report(
             from .project_overview import generate_project_overview
             result = generate_project_overview(output_format, output_path)
         elif action == "scorecard":
-            from .project_scorecard import generate_project_scorecard
-            result = generate_project_scorecard(output_format, include_recommendations, output_path)
+            from ..utils import find_project_root
+            from .project_scorecard import (
+                _get_exarp_go_binary,
+                _is_go_project,
+                generate_project_scorecard,
+            )
+            project_root = find_project_root()
+            if _is_go_project(project_root):
+                args_json = json.dumps({
+                    "action": "scorecard",
+                    "output_format": output_format,
+                    "output_path": output_path,
+                })
+                try:
+                    proc = subprocess.run(
+                        [_get_exarp_go_binary(project_root), "-tool", "report", "-args", args_json],
+                        cwd=str(project_root),
+                        capture_output=True,
+                        text=True,
+                        timeout=120,
+                    )
+                    if proc.returncode == 0 and (proc.stdout or "").strip():
+                        raw = proc.stdout.strip()
+                        if "Result:\n" in raw:
+                            raw = raw.split("Result:\n", 1)[1].strip()
+                        result = json.loads(raw) if output_format == "json" and raw.startswith("{") else raw
+                    else:
+                        result = generate_project_scorecard(output_format, include_recommendations, output_path)
+                except Exception:
+                    result = generate_project_scorecard(output_format, include_recommendations, output_path)
+            else:
+                result = generate_project_scorecard(output_format, include_recommendations, output_path)
         elif action == "briefing":
             # Use devwisdom-go MCP server instead of direct import
             from ..utils.wisdom_client import get_daily_briefing

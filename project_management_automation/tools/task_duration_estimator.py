@@ -26,7 +26,7 @@ project_root = find_project_root()
 bridge_path = Path(project_root) / "bridge"
 if str(bridge_path) not in sys.path:
     sys.path.insert(0, str(bridge_path))
-from statistics_bridge import mean, median, stdev, quantile, round as round_stat, StatisticsError
+from statistics_bridge import mean, median, stdev, quantile, round as round_stat, StatisticsError  # noqa: E402
 
 logger = logging.getLogger(__name__)
 

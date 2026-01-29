@@ -110,11 +110,8 @@ class TestCoverageAnalyzer(IntelligentAutomationBase):
 
     def _check_pytest_cov_installed(self) -> bool:
         """Check if pytest-cov is installed."""
-        try:
-            import pytest_cov
-            return True
-        except ImportError:
-            return False
+        import importlib.util
+        return importlib.util.find_spec("pytest_cov") is not None
 
     def _generate_coverage(self):
         """Generate coverage by running tests with coverage."""

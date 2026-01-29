@@ -12,7 +12,6 @@ import argparse
 from pathlib import Path
 
 try:
-    from agentscope import Agent, Pipeline
     from agentscope.eval import Evaluator
     AGENTSCOPE_AVAILABLE = True
 except ImportError:

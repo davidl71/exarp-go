@@ -8,7 +8,7 @@ completed tasks based on code changes, file creation, and implementation evidenc
 import json
 import logging
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Optional
 
 from ..utils import find_project_root
 from ..utils.agentic_tools_client import infer_task_progress_mcp

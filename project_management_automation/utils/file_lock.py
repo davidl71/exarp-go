@@ -89,7 +89,7 @@ class FileLock:
                     logger.debug(f"Lock acquired: {self.lock_file}")
                     return True
 
-                except (IOError, OSError) as e:
+                except (IOError, OSError):
                     # Lock is held by another process
                     if not blocking:
                         os.close(self.lock_fd)
@@ -111,7 +111,7 @@ class FileLock:
             if self.lock_fd is not None:
                 try:
                     os.close(self.lock_fd)
-                except:
+                except OSError:
                     pass
                 self.lock_fd = None
             return False

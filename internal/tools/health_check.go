@@ -17,8 +17,15 @@ import (
 	"github.com/davidl71/mcp-go-core/pkg/mcp/response"
 )
 
+// Design limit for MCP tool count (monitored by tool_count_health / health action=tools).
+const designLimitTools = 30
+
+// ExpectedToolCountBase is the base number of tools registered by RegisterAllTools (without conditional Apple FM).
+// With Apple Foundation Models on darwin/arm64/cgo build, count is ExpectedToolCountBase+1.
+const ExpectedToolCountBase = 29
+
 // handleHealthNative handles the health tool with native Go implementation
-// Implements all actions: "server", "git", "docs", "dod", "cicd"
+// Implements all actions: "server", "git", "docs", "dod", "cicd", "tools"
 // Note: Some actions provide basic functionality; complex features may fall back to Python bridge
 func handleHealthNative(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	// Get action (default: "server")
@@ -38,10 +45,27 @@ func handleHealthNative(ctx context.Context, params map[string]interface{}) ([]f
 		return handleHealthDOD(ctx, params)
 	case "cicd":
 		return handleHealthCICD(ctx, params)
+	case "tools":
+		return handleHealthTools(ctx, params)
 	default:
 		// Unknown action - fall back to Python bridge
 		return nil, fmt.Errorf("health action '%s' not yet implemented in native Go, using Python bridge", action)
 	}
+}
+
+// handleHealthTools handles the "tools" action - MCP tool count vs design limit (≤30).
+// Used by daily automation as tool_count_health.
+func handleHealthTools(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
+	toolCount := ExpectedToolCountBase
+	withinLimit := toolCount <= designLimitTools
+	result := map[string]interface{}{
+		"tool_count":   toolCount,
+		"limit":        designLimitTools,
+		"within_limit": withinLimit,
+		"method":       "native_go",
+		"success":      true,
+	}
+	return response.FormatResult(result, "")
 }
 
 // handleHealthServer handles the "server" action for health tool

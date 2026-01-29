@@ -6,12 +6,11 @@ Provides functions for merging tasks between branches in a Git-inspired task man
 
 import json
 import logging
-from typing import Dict, Any, Optional
+from typing import Dict, Any
 
 from ..utils import find_project_root
 from ..utils.branch_utils import (
     filter_tasks_by_branch,
-    get_all_branches,
     set_task_branch,
     get_task_branch,
 )
@@ -120,7 +119,7 @@ def merge_branches(
             data = json.load(f)
         
         tasks = data.get("todos", [])
-        source_tasks = filter_tasks_by_branch(tasks, source_branch)
+        filter_tasks_by_branch(tasks, source_branch)
         target_task_ids = {task.get("id"): task for task in filter_tasks_by_branch(tasks, target_branch)}
         
         merged_count = 0

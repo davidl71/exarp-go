@@ -6,14 +6,12 @@ Provides MCP resources and tools for accessing inferred session mode information
 
 import json
 import logging
-import os
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Optional
 
-from ..tools.dynamic_tools import DynamicToolManager, get_tool_manager
+from ..tools.dynamic_tools import get_tool_manager
 from ..tools.session_mode_inference_interfaces import (
-    ModeInferenceResult,
     SessionMode,
     SessionModeInference,
 )
@@ -271,7 +269,6 @@ def infer_session_mode_tool(force_recompute: bool = False) -> dict:
         
         # Compute new inference
         inference_engine = SessionModeInference()
-        from datetime import datetime
         session_start = datetime.fromisoformat(manager.usage_tracker.session_start)
         session_duration = (datetime.now() - session_start).total_seconds()
         

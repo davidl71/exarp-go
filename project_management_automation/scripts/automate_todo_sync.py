@@ -398,7 +398,7 @@ class TodoSyncAutomation(IntelligentAutomationBase):
 
     def _create_todo2_from_shared(self, shared: dict) -> dict:
         """Create Todo2 task from shared TODO via MCP (preferred) or JSON file (fallback)."""
-        from project_management_automation.utils.todo2_mcp_client import create_todos_mcp, list_todos_mcp
+        from project_management_automation.utils.todo2_mcp_client import create_todos_mcp
         
         # Prepare task data
         task_name = shared['description']

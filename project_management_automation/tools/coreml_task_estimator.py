@@ -13,7 +13,6 @@ Features:
 
 import json
 import logging
-import re
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -88,7 +87,7 @@ class CoreMLTaskEstimator(TaskDurationEstimator):
             elif not availability.get("neural_engine_support"):
                 logger.info("Neural Engine not available, Core ML will use CPU/GPU")
             else:
-                logger.debug(f"Core ML with Neural Engine support enabled")
+                logger.debug("Core ML with Neural Engine support enabled")
 
         # Initialize learner if enabled
         self.learner = None
@@ -266,7 +265,7 @@ class CoreMLTaskEstimator(TaskDurationEstimator):
         priority = task.get('priority', 'medium').lower()
         
         full_text = (name + ' ' + details).lower()
-        tags_lower = [t.lower() for t in tags]
+        [t.lower() for t in tags]
         
         return {
             'name_length': float(len(name)),
@@ -391,7 +390,7 @@ class CoreMLTaskEstimator(TaskDurationEstimator):
         return {
             "estimate_hours": round(combined_hours, 1),
             "confidence": round(combined_confidence, 2),
-            "method": f"hybrid_statistical_coreml",
+            "method": "hybrid_statistical_coreml",
             "lower_bound": round(combined_hours * 0.7, 1),
             "upper_bound": round(combined_hours * 1.5, 1),
             "complexity": complexity,

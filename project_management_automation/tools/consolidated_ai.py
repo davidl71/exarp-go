@@ -30,10 +30,9 @@ Consolidated tools:
 - recommend(action=model|workflow|advisor) ← recommend_model, recommend_workflow_mode, consult_advisor
 """
 
-import asyncio
 import json
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Optional
 
 logger = logging.getLogger(__name__)
 
