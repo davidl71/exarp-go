@@ -314,6 +314,8 @@ exarp-go -tool automation -args '{"action":"daily"}'
 
 **Python `automate_daily` is deprecated.** Use `exarp-go -tool automation` (Go) instead. The Python script `python -m project_management_automation.scripts.automate_daily` is no longer recommended; it is kept only for mlx bridge and direct Python tool use. See `docs/PYTHON_SAFE_REMOVAL_AND_MIGRATION_PLAN.md`.
 
+**Manual checks (not in Go daily):** Duplicate test names — run if needed: `uv run python -m project_management_automation.scripts.automate_check_duplicate_test_names`.
+
 ## Migration Status
 
 ✅ **Complete** - All broken tools, prompts, and resources migrated from `exarp_pma`
