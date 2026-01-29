@@ -1,7 +1,10 @@
 # Python Code Remaining Analysis
 
 **Date:** 2026-01-12  
+**Last updated:** 2026-01-29 (4 removed Python fallbacks reflected)  
 **Status:** Current state after native Go migration progress
+
+**Migration update (2026-01-27):** Python fallbacks were removed for **`setup_hooks`**, **`check_attribution`**, **`session`**, and **`memory_maint`**. These tools are now full native only (no bridge). See `NATIVE_GO_HANDLER_STATUS.md` and `NEXT_MIGRATION_STEPS.md` for current handler status.
 
 ## Executive Summary
 
@@ -17,18 +20,15 @@
 
 ## Active Bridge Scripts
 
-### Core Bridge Scripts (3 files)
+### Core Bridge Scripts (2 files; resources are Go-only)
 
-1. **`bridge/execute_tool.py`** (361 lines)
-   - Routes 19 tools to Python implementations
+1. **`bridge/execute_tool.py`**
+   - Routes selected tools to Python implementations when Go delegates
    - Imports from `project_management_automation.tools.consolidated`
    - Handles context and recommend tools from bridge directory
+   - **Resources are not routed here** — exarp-go serves all 22 resources natively from `internal/resources/`
 
-2. **`bridge/execute_resource.py`** (109 lines)
-   - Routes 6 resources to Python implementations
-   - Handles memories, prompts, scorecard resources
-
-3. **Supporting Modules:**
+2. **Supporting Modules:**
    - `bridge/context/` - Context tool implementation
    - `bridge/recommend/` - Recommend tool implementation
    - `bridge/agent_evaluation.py` - Agent evaluation utilities
@@ -38,75 +38,50 @@
 
 ## Tools Still Using Python Bridge
 
-**Total: 19 tools still routed through Python bridge**
+**Current (2026-01-29):** For authoritative status see **`NATIVE_GO_HANDLER_STATUS.md`**. Summary: **4 Python fallbacks removed (2026-01-27):** `setup_hooks`, `check_attribution`, `session`, `memory_maint` are full native only. Most other tools with native implementations are also full native (no bridge). Only **`mlx`** remains hybrid (native status/hardware; bridge for generate when needed).
 
-### Fully Python Bridge (No Native Go)
-1. `check_attribution` - Attribution compliance check
-2. `memory` - Memory search/save (fully Python)
-3. `security` - Security scanning (partial: scan is native, alerts/report use Python)
-4. `testing` - Testing tools (fully Python)
-5. `lint` - Linting (hybrid: Go linters native, non-Go linters Python)
-6. `estimation` - Task duration estimation (fully Python)
-7. `session` - Session management (fully Python)
-8. `ollama` - Ollama integration (fully Python)
-9. `mlx` - MLX integration (fully Python)
-10. `context` - Context management (fully Python)
-11. `recommend` - Model/workflow recommendation (partial: advisor action native via devwisdom-go)
+### Tools no longer using Python bridge (fallbacks removed or full native)
+- `setup_hooks`, `check_attribution`, `session`, `memory_maint` — fallbacks removed 2026-01-27
+- `memory`, `task_discovery`, `report`, `recommend`, `security`, `testing`, `lint`, `ollama`, `context`, `task_workflow` — full native (no bridge). See NATIVE_GO_HANDLER_STATUS.md.
 
-### Hybrid (Native + Python Fallback)
-12. `analyze_alignment` - Native for "todo2", Python for "prd"
-13. `setup_hooks` - Native for "git"/"patterns", Python fallback
-14. `memory_maint` - Native for "health"/"gc"/"prune"/"consolidate"/"dream", Python fallback
-15. `report` - Native for "scorecard" (Go projects), "overview" (partial), "briefing" (native via devwisdom-go), Python for "overview" (automation)
-16. `task_analysis` - Native for most actions, Python fallback
-17. `task_discovery` - Native for basic scanning, Python fallback
-18. `task_workflow` - Native for most actions, Python fallback
-19. `add_external_tool_hints` - Fully Python (used by generate_config)
+### Hybrid (native first, bridge only when needed)
+- **`mlx`** — Native status/hardware (darwin+CGO); bridge for models/generate when native unavailable.
+
+### Bridge script routing (historical)
+`bridge/execute_tool.py` may still list tools for backward compatibility; Go handlers do not call the bridge for the tools above. Only `mlx` (generate) uses the bridge from Go when needed.
 
 ---
 
 ## Python Bridge Usage in Go Code
 
-### Files Using Python Bridge
+**Current (2026-01-29):** Bridge is used only for **`mlx`** (generate action when native unavailable). Automation uses native handlers only (`runDailyTask` for report, memory_maint, etc.). See `NATIVE_GO_HANDLER_STATUS.md`.
+
+### Files that may call Python bridge
 
 1. **`internal/tools/handlers.go`**
-   - 17 tools with `ExecutePythonTool` calls
-   - Mix of hybrid and fully Python tools
+   - **`mlx`** — bridge for generate when native (luxfi/mlx) unavailable. All other tools with native implementations use native only.
 
 2. **`internal/tools/automation_native.go`**
-   - `runDailyTaskPython` for:
-     - `memory_maint/consolidate` (in nightly automation)
-     - `report/overview` (in sprint automation)
+   - Uses `runDailyTask` (native) for report, memory_maint, health, etc. No `runDailyTaskPython` for those tools.
 
-3. **`internal/tools/testing.go`**
-   - All testing actions use Python bridge
-
-4. **`internal/tools/security.go`**
-   - `alerts` and `report` actions use Python bridge
-   - `scan` action is native Go
-
-5. **`internal/tools/report_mlx.go`**
-   - MLX enhancement uses Python bridge
+3. **`internal/tools/mlx_invoke.go`** / **`handlers.go`**
+   - MLX tool may call bridge for generate.
 
 ---
 
-## Resources Still Using Python Bridge
+## Resources (All Native Go)
 
-**Total: 6 resources routed through Python bridge**
+**Total: 22 resources — all served by exarp-go (no Python bridge).**
 
-1. `stdio://scorecard` - Project scorecard
-2. `stdio://memories` - All memories
-3. `stdio://memories/category/{category}` - Memories by category
-4. `stdio://memories/task/{task_id}` - Memories by task
-5. `stdio://memories/recent` - Recent memories
-6. `stdio://memories/session/{date}` - Session memories
-7. `stdio://prompts` - All prompts (compact)
-8. `stdio://prompts/mode/{mode}` - Prompts by mode
-9. `stdio://prompts/persona/{persona}` - Prompts by persona
-10. `stdio://prompts/category/{category}` - Prompts by category
-11. `stdio://session/mode` - Session mode
+There is no `execute_resource.py`; the Go MCP server registers and serves all resources in `internal/resources/`:
 
-**Note:** All resources are fully Python bridge (no native Go implementations yet)
+- **Scorecard:** `stdio://scorecard` — native Go (`scorecard.go`, uses `tools.GenerateGoScorecard`)
+- **Memories:** `stdio://memories`, `stdio://memories/category/{category}`, `stdio://memories/task/{task_id}`, `stdio://memories/recent`, `stdio://memories/session/{date}` — native Go (`memories.go`, uses `tools.LoadAllMemories` etc.)
+- **Prompts:** `stdio://prompts`, `stdio://prompts/mode/{mode}`, `stdio://prompts/persona/{persona}`, `stdio://prompts/category/{category}` — native Go (`prompts.go`, uses `internal/prompts`)
+- **Session:** `stdio://session/mode` — native Go (`session.go`, uses infer_session_mode)
+- **Server/models/tools/tasks:** `stdio://server/status`, `stdio://models`, `stdio://cursor/skills`, `stdio://tools`, `stdio://tools/{category}`, `stdio://tasks`, `stdio://tasks/{task_id}`, `stdio://tasks/status/{status}`, `stdio://tasks/priority/{priority}`, `stdio://tasks/tag/{tag}`, `stdio://tasks/summary` — all native Go
+
+**Note:** All resources are fully native Go (no Python bridge for resources).
 
 ---
 
@@ -114,12 +89,11 @@
 
 **Python Test Files (10+ files):**
 - `tests/unit/python/test_execute_tool.py` - Bridge tool routing tests
-- `tests/unit/python/test_execute_resource.py` - Bridge resource tests
+- `tests/unit/python/test_execute_resource.py` - Not present (resources are Go-only)
 - `tests/unit/python/test_get_prompt.py` - Prompt retrieval tests
 - `tests/integration/bridge/test_bridge_integration.py` - Integration tests
 - `tests/integration/mcp/test_server_startup.py` - Server startup tests
 - `tests/integration/mcp/test_mcp_server.py` - MCP protocol tests
-- `tests/integration/mcp/test_apple_foundation_models.py` - Apple FM tests
 - `tests/fixtures/mock_python.py` - Test fixtures
 - `tests/fixtures/test_helpers.py` - Test helpers
 
@@ -134,7 +108,7 @@ This directory contains the actual Python implementations of all tools:
 - `tools/external_tool_hints.py` - External tool hints
 - `tools/attribution_check.py` - Attribution checking
 - `resources/memories.py` - Memory resources
-- `resources/prompt_discovery.py` - Prompt resources
+- `resources/prompt_discovery.py` - **Removed**; manifest and discovery inlined into `context_primer.py`
 - `utils/` - Utility modules
 - And many more...
 
@@ -176,11 +150,11 @@ This directory contains the actual Python implementations of all tools:
 - ❌ `context` - Fully Python
 - ❌ `add_external_tool_hints` - Fully Python (utility)
 
-### Resources (All Python)
-- ❌ All 11 resources are fully Python bridge
+### Resources (All Native Go)
+- ✅ All 22 resources are native Go (`internal/resources/`; no Python bridge for resources)
 
-### Prompts (All Python)
-- ❌ All 15 prompts use Python bridge
+### Prompts (All Native Go)
+- ✅ All 34 prompts are native Go (`internal/prompts/`; server registers and serves them)
 
 ---
 

@@ -204,7 +204,7 @@ def session(
             return result if isinstance(result, str) else json.dumps({"error": "Invalid return type"}, indent=2)
 
         elif action == "prompts":
-            from .resources.prompt_discovery import find_prompts
+            from ..resources.context_primer import discover_prompts_tool as find_prompts
             result = find_prompts(
                 mode=mode,
                 persona=category,  # Using category for persona

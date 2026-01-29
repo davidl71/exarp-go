@@ -8,7 +8,6 @@ Calls Go CLI tool via subprocess for statistical calculations.
 
 import json
 import subprocess
-import sys
 from pathlib import Path
 from typing import List, Optional
 

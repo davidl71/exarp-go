@@ -3,7 +3,7 @@
 **Created:** 2026-01-29  
 **Purpose:** Which Python prompts are obsolete (can be removed), which are already migrated to Go (Python can be deprecated), and which need migration to Go.
 
-**2026-01-29:** Steps 1–3 done. All 16 “need migration” prompts added to Go. `project_management_automation/prompts.py` replaced with minimal stub (`LEGACY_PROMPTS_COUNT = 0`); `project_scorecard` / `project_overview` use it for metrics. `prompt_discovery` keeps its own manifest (no `prompts` import).
+**2026-01-29:** Steps 1–3 done. All 16 “need migration” prompts added to Go. **Python prompt stub removed:** `project_management_automation/prompts.py` deleted; `project_scorecard` and `project_overview` use `prompts_count = 0` (prompts are in exarp-go). Prompt manifest lives in `context_primer.py` only.
 
 ---
 
