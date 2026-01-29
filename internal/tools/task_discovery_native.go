@@ -14,6 +14,7 @@ import (
 	"strings"
 
 	"github.com/davidl71/exarp-go/internal/framework"
+	"github.com/davidl71/mcp-go-core/pkg/mcp/response"
 )
 
 // handleTaskDiscoveryNative handles task_discovery with native Go and Apple FM
@@ -91,6 +92,8 @@ func handleTaskDiscoveryNative(ctx context.Context, params map[string]interface{
 	// Build summary
 	bySource := make(map[string]int)
 	byType := make(map[string]int)
+	byTag := make(map[string]int)
+	withTags := 0
 
 	for _, d := range discoveries {
 		if src, ok := d["source"].(string); ok {
@@ -99,12 +102,25 @@ func handleTaskDiscoveryNative(ctx context.Context, params map[string]interface{
 		if typ, ok := d["type"].(string); ok {
 			byType[typ]++
 		}
+		// Count tags
+		if tags, ok := d["tags"].([]string); ok && len(tags) > 0 {
+			withTags++
+			for _, tag := range tags {
+				byTag[tag]++
+			}
+		}
 	}
 
 	summary := map[string]interface{}{
 		"total":     len(discoveries),
 		"by_source": bySource,
 		"by_type":   byType,
+	}
+
+	// Add tag statistics if any tags were found
+	if withTags > 0 {
+		summary["with_tags"] = withTags
+		summary["by_tag"] = byTag
 	}
 
 	result := map[string]interface{}{
@@ -138,10 +154,7 @@ func handleTaskDiscoveryNative(ctx context.Context, params map[string]interface{
 		}
 	}
 
-	output, _ := json.MarshalIndent(result, "", "  ")
-	return []framework.TextContent{
-		{Type: "text", Text: string(output)},
-	}, nil
+	return response.FormatResult(result, "")
 }
 
 // scanComments scans code files for TODO/FIXME comments
@@ -166,7 +179,10 @@ func scanComments(ctx context.Context, projectRoot string, patterns []string, in
 		if info.IsDir() {
 			// Skip common ignore directories
 			if strings.Contains(path, ".git") || strings.Contains(path, "node_modules") ||
-				strings.Contains(path, "__pycache__") || strings.Contains(path, ".venv") {
+				strings.Contains(path, "__pycache__") || strings.Contains(path, ".venv") ||
+				strings.Contains(path, "vendor") || strings.Contains(path, ".idea") ||
+				strings.Contains(path, ".vscode") || strings.Contains(path, "dist") ||
+				strings.Contains(path, "build") || strings.Contains(path, "target") {
 				return filepath.SkipDir
 			}
 			return nil
@@ -205,6 +221,9 @@ func scanComments(ctx context.Context, projectRoot string, patterns []string, in
 					taskText = strings.TrimSpace(matches[1])
 				}
 
+				// Extract hashtag-style tags from the comment
+				tags, cleanText := extractTagsFromText(taskText)
+
 				// Use default FM for semantic extraction if available
 				if useAppleFM && taskText != "" {
 					enhanced := enhanceTaskWithAppleFM(ctx, taskText)
@@ -213,7 +232,7 @@ func scanComments(ctx context.Context, projectRoot string, patterns []string, in
 							taskText = desc
 						}
 						if priority, ok := enhanced["priority"].(string); ok {
-							discoveries = append(discoveries, map[string]interface{}{
+							discovery := map[string]interface{}{
 								"type":        taskType,
 								"text":        taskText,
 								"file":        strings.TrimPrefix(path, projectRoot+"/"),
@@ -221,19 +240,31 @@ func scanComments(ctx context.Context, projectRoot string, patterns []string, in
 								"source":      "comment",
 								"priority":    priority,
 								"ai_enhanced": true,
-							})
+							}
+							// Add tags if found
+							if len(tags) > 0 {
+								discovery["tags"] = tags
+								discovery["clean_text"] = cleanText
+							}
+							discoveries = append(discoveries, discovery)
 							continue
 						}
 					}
 				}
 
-				discoveries = append(discoveries, map[string]interface{}{
+				discovery := map[string]interface{}{
 					"type":   taskType,
 					"text":   taskText,
 					"file":   strings.TrimPrefix(path, projectRoot+"/"),
 					"line":   lineNum + 1,
 					"source": "comment",
-				})
+				}
+				// Add tags if found
+				if len(tags) > 0 {
+					discovery["tags"] = tags
+					discovery["clean_text"] = cleanText
+				}
+				discoveries = append(discoveries, discovery)
 			}
 		}
 

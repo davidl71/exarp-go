@@ -4,12 +4,10 @@
 package tools
 
 import (
-	"encoding/json"
-	"fmt"
-
 	fm "github.com/blacktop/go-foundationmodels"
 	"github.com/davidl71/exarp-go/internal/framework"
 	"github.com/davidl71/exarp-go/internal/platform"
+	"github.com/davidl71/mcp-go-core/pkg/mcp/response"
 )
 
 // handleStatusAction handles the "status" action (no prompt required)
@@ -29,14 +27,7 @@ func handleStatusAction() ([]framework.TextContent, error) {
 		status["model_available"] = available
 	}
 
-	result, err := json.MarshalIndent(status, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("failed to marshal status: %w", err)
-	}
-
-	return []framework.TextContent{
-		{Type: "text", Text: string(result)},
-	}, nil
+	return response.FormatResult(status, "")
 }
 
 // handleHardwareAction handles the "hardware" action (no prompt required)
@@ -55,14 +46,7 @@ func handleHardwareAction() ([]framework.TextContent, error) {
 		hardware["cgo_enabled"] = true
 	}
 
-	result, err := json.MarshalIndent(hardware, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("failed to marshal hardware info: %w", err)
-	}
-
-	return []framework.TextContent{
-		{Type: "text", Text: string(result)},
-	}, nil
+	return response.FormatResult(hardware, "")
 }
 
 // handleModelsAction handles the "models" action (no prompt required)
@@ -81,12 +65,5 @@ func handleModelsAction() ([]framework.TextContent, error) {
 		models["note"] = "Use CheckModelAvailability() to check model availability"
 	}
 
-	result, err := json.MarshalIndent(models, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("failed to marshal models info: %w", err)
-	}
-
-	return []framework.TextContent{
-		{Type: "text", Text: string(result)},
-	}, nil
+	return response.FormatResult(models, "")
 }

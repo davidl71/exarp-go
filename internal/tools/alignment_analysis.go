@@ -14,6 +14,7 @@ import (
 	"github.com/davidl71/exarp-go/internal/framework"
 	"github.com/davidl71/exarp-go/internal/models"
 	"github.com/davidl71/exarp-go/internal/security"
+	"github.com/davidl71/mcp-go-core/pkg/mcp/response"
 )
 
 // prdPersona holds persona metadata for PRD alignment (matches Python prd_generator.PERSONAS).
@@ -132,14 +133,7 @@ func handleAlignmentTodo2(ctx context.Context, params map[string]interface{}) ([
 		"status":                  "success",
 	}
 
-	resultJSON, err := json.MarshalIndent(responseData, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("failed to marshal result: %w", err)
-	}
-
-	return []framework.TextContent{
-		{Type: "text", Text: string(resultJSON)},
-	}, nil
+	return response.FormatResult(responseData, "")
 }
 
 // handleAlignmentPRD handles the "prd" action: task-to-persona alignment using PRD.md and persona keywords
@@ -248,11 +242,7 @@ func handleAlignmentPRD(ctx context.Context, params map[string]interface{}) ([]f
 		"data":      data,
 		"timestamp": time.Now().Unix(),
 	}
-	resultJSON, err := json.MarshalIndent(envelope, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("failed to marshal result: %w", err)
-	}
-	return []framework.TextContent{{Type: "text", Text: string(resultJSON)}}, nil
+	return response.FormatResult(envelope, "")
 }
 
 func fileExists(path string) bool {

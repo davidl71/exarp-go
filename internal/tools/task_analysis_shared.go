@@ -6,13 +6,16 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"sort"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/davidl71/exarp-go/internal/config"
+	"github.com/davidl71/exarp-go/internal/database"
 	"github.com/davidl71/exarp-go/internal/framework"
+	"github.com/davidl71/mcp-go-core/pkg/mcp/response"
 )
 
 // handleTaskAnalysisNative dispatches to the appropriate action (duplicates, tags, dependencies, parallelization, hierarchy).
@@ -29,6 +32,8 @@ func handleTaskAnalysisNative(ctx context.Context, params map[string]interface{}
 		return handleTaskAnalysisDuplicates(ctx, params)
 	case "tags":
 		return handleTaskAnalysisTags(ctx, params)
+	case "discover_tags":
+		return handleTaskAnalysisDiscoverTags(ctx, params)
 	case "dependencies":
 		return handleTaskAnalysisDependencies(ctx, params)
 	case "parallelization":
@@ -96,20 +101,358 @@ func handleTaskAnalysisDuplicates(ctx context.Context, params map[string]interfa
 
 	outputPath, _ := params["output_path"].(string)
 	if outputPath != "" {
+		if err := os.MkdirAll(filepath.Dir(outputPath), 0755); err != nil {
+			return nil, fmt.Errorf("failed to create output dir: %w", err)
+		}
+	}
+	return response.FormatResult(result, outputPath)
+}
+
+// CanonicalTagRules returns default tag consolidation rules aligned with scorecard dimensions.
+// Categories: testing, docs, security, build, performance, bug, feature, refactor, migration, config, cli, mcp, llm, database, workflow, planning, linting
+func CanonicalTagRules() map[string]string {
+	return map[string]string{
+		// Scorecard: testing
+		"testing-validation": "testing",
+		"test":               "testing",
+		"tests":              "testing",
+		"validation":         "testing",
+		"integration":        "testing",
+
+		// Scorecard: documentation
+		"documentation": "docs",
+		"doc":           "docs",
+		"reporting":     "docs",
+		"inventory":     "docs",
+
+		// Scorecard: security
+		"security-scan":   "security",
+		"vulnerability":   "security",
+		"vulnerabilities": "security",
+		"audit":           "security",
+
+		// Scorecard: build/CI
+		"cicd":           "build",
+		"ci":             "build",
+		"cd":             "build",
+		"ci-cd":          "build",
+		"github-actions": "build",
+		"automation":     "build",
+		"uv":             "build",
+		"setup":          "build",
+
+		// Scorecard: performance
+		"optimization": "performance",
+		"profiling":    "performance",
+		"pgo":          "performance",
+		"gc":           "performance",
+		"memory":       "performance",
+		"caching":      "performance",
+		"file-io":      "performance",
+		"hot-reload":   "performance",
+		"metrics":      "performance",
+
+		// Scorecard: linting/code quality
+		"spelling": "linting",
+		"cspell":   "linting",
+
+		// Type: bug
+		"bug-fix":      "bug",
+		"fix":          "bug",
+		"bugfix":       "bug",
+		"json-parsing": "bug",
+
+		// Type: feature
+		"enhancement":  "feature",
+		"enhancements": "feature",
+
+		// Type: refactor
+		"refactoring":   "refactor",
+		"code-quality":  "refactor",
+		"cleanup":       "refactor",
+		"consolidation": "refactor",
+		"naming":        "refactor",
+
+		// Domain: migration
+		"bridge":         "migration",
+		"legacy-code":    "migration",
+		"python-cleanup": "migration",
+		"native":         "migration",
+
+		// Domain: config
+		"configuration":        "config",
+		"configuration-system": "config",
+		"pyproject":            "config",
+
+		// Domain: CLI
+		"tui":        "cli",
+		"bubble-tea": "cli",
+
+		// Domain: MCP
+		"mcp-config":             "mcp",
+		"mcp-go-core":            "mcp",
+		"mcp-go-core-extraction": "mcp",
+		"go-sdk":                 "mcp",
+		"framework-agnostic":     "mcp",
+		"framework-improvements": "mcp",
+		"todo-sync":              "mcp",
+		"protobuf-integration":   "mcp",
+
+		// Domain: LLM/AI
+		"mlx":                     "llm",
+		"apple-foundation-models": "llm",
+		"apple-silicon":           "llm",
+		"npu":                     "llm",
+		"swift":                   "llm",
+		"devwisdom-go":            "llm",
+		"multi-agent":             "llm",
+
+		// Domain: database
+		"sqlite": "database",
+
+		// Domain: concurrency
+		"goroutines": "concurrency",
+
+		// Domain: git
+		"git-hooks": "git",
+
+		// Domain: planning/workflow
+		"strategy":       "planning",
+		"coordination":   "planning",
+		"task-breakdown": "planning",
+		"crew-roles":     "planning",
+
+		// Batch/phase normalization
+		"batch-1": "batch",
+		"batch-2": "batch",
+		"batch1":  "batch",
+		"batch2":  "batch",
+		"batch3":  "batch",
+		"phase-1": "phase",
+		"phase-2": "phase",
+		"phase-3": "phase",
+		"phase-4": "phase",
+		"phase-5": "phase",
+		"phase-6": "phase",
+	}
+}
+
+// NoiseTags returns tags that should be removed (status/meta tags with no filtering value)
+func NoiseTags() []string {
+	return []string{
+		"complete",
+		"blocking",
+		"review",
+		"development",
+		"project-name",
+		"catwalk",
+	}
+}
+
+// handleTaskAnalysisTags handles tag analysis and consolidation
+func handleTaskAnalysisTags(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
+	t0 := time.Now()
+	projectRoot, err := FindProjectRoot()
+	if err != nil {
+		return nil, fmt.Errorf("failed to find project root: %w", err)
+	}
+
+	tasks, err := LoadTodo2Tasks(projectRoot)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load tasks: %w", err)
+	}
+	profileLoadMs := time.Since(t0).Milliseconds()
+
+	dryRun := true
+	if run, ok := params["dry_run"].(bool); ok {
+		dryRun = run
+	}
+
+	// Analyze tags
+	t1 := time.Now()
+	tagAnalysis := analyzeTags(tasks)
+	profileKeywordMs := time.Since(t1).Milliseconds()
+
+	// Optional batch: limit and/or prioritize tasks with no tags (tag_suggestions only)
+	limit := 0
+	if l, ok := params["limit"].(float64); ok && l > 0 {
+		limit = int(l)
+	} else if l, ok := params["limit"].(int); ok && l > 0 {
+		limit = l
+	}
+	prioritizeUntagged := false
+	if p, ok := params["prioritize_untagged"].(bool); ok {
+		prioritizeUntagged = p
+	}
+	if (limit > 0 || prioritizeUntagged) && len(tagAnalysis.TagSuggestions) > 0 {
+		taskByID := make(map[string]Todo2Task)
+		for _, t := range tasks {
+			taskByID[t.ID] = t
+		}
+		var order []string
+		for taskID := range tagAnalysis.TagSuggestions {
+			order = append(order, taskID)
+		}
+		if prioritizeUntagged {
+			sort.Slice(order, func(i, j int) bool {
+				untaggedI := len(taskByID[order[i]].Tags) == 0
+				untaggedJ := len(taskByID[order[j]].Tags) == 0
+				if untaggedI != untaggedJ {
+					return untaggedI
+				}
+				return order[i] < order[j]
+			})
+		}
+		if limit > 0 && len(order) > limit {
+			order = order[:limit]
+		}
+		batch := make(map[string][]string)
+		for _, taskID := range order {
+			batch[taskID] = tagAnalysis.TagSuggestions[taskID]
+		}
+		tagAnalysis.TagSuggestions = batch
+	}
+
+	// Apply canonical rules if requested
+	useCanonical := false
+	if canonical, ok := params["use_canonical_rules"].(bool); ok {
+		useCanonical = canonical
+	}
+	if useCanonical {
+		tagAnalysis = applyTagRules(tasks, CanonicalTagRules(), tagAnalysis)
+		// Also remove noise tags when using canonical rules
+		tagAnalysis = removeTags(tasks, NoiseTags(), tagAnalysis)
+	}
+
+	// Apply custom rules if provided (in addition to canonical)
+	customRulesJSON, _ := params["custom_rules"].(string)
+	if customRulesJSON != "" {
+		var rules map[string]string
+		if err := json.Unmarshal([]byte(customRulesJSON), &rules); err == nil {
+			tagAnalysis = applyTagRules(tasks, rules, tagAnalysis)
+		}
+	}
+
+	// Remove additional tags if requested
+	removeTagsJSON, _ := params["remove_tags"].(string)
+	if removeTagsJSON != "" {
+		var tagsToRemove []string
+		if err := json.Unmarshal([]byte(removeTagsJSON), &tagsToRemove); err == nil {
+			tagAnalysis = removeTags(tasks, tagsToRemove, tagAnalysis)
+		}
+	}
+
+	// Optional: LLM semantic pass for quick tag addition from task title + content + existing tags
+	useLLMSemantic := false
+	if u, ok := params["use_llm_semantic"].(bool); ok {
+		useLLMSemantic = u
+	}
+	matchExistingOnly := false
+	if m, ok := params["match_existing_only"].(bool); ok {
+		matchExistingOnly = m
+	}
+	useTinyTagModel := false
+	if u, ok := params["use_tiny_tag_model"].(bool); ok {
+		useTinyTagModel = u
+	}
+	llmSemanticMethod := ""
+	llmSemanticProcessed := 0
+	var llmProfile llmTagProfile
+	if useLLMSemantic {
+		llmBatchSize := 0
+		if b, ok := params["llm_batch_size"].(float64); ok && b > 0 {
+			llmBatchSize = int(b)
+		} else if b, ok := params["llm_batch_size"].(int); ok && b > 0 {
+			llmBatchSize = b
+		}
+		llmSemanticMethod, llmSemanticProcessed, llmProfile = enrichTaskTagSuggestionsWithLLM(ctx, tasks, &tagAnalysis, llmBatchSize, matchExistingOnly, useTinyTagModel)
+	}
+
+	// Apply changes if not dry run
+	profileApplyMs := int64(0)
+	if !dryRun {
+		t2 := time.Now()
+		tasks = applyTagChanges(tasks, tagAnalysis)
+		if err := SaveTodo2Tasks(projectRoot, tasks); err != nil {
+			return nil, fmt.Errorf("failed to save tasks: %w", err)
+		}
+		// Update tag cache everywhere: frequency + task-level suggestions (for LLM hints)
+		updateTagFrequencyCache(tasks)
+		for i := range tasks {
+			for _, tag := range tasks[i].Tags {
+				_ = database.SaveTaskTagSuggestion(tasks[i].ID, tag, "tags", true)
+			}
+		}
+		profileApplyMs = time.Since(t2).Milliseconds()
+	}
+
+	// Build profile summary (what's taking the most time)
+	profileMinBatchMs, profileMaxBatchMs, profileAvgBatchMs := int64(0), int64(0), int64(0)
+	if len(llmProfile.PerBatchMs) > 0 {
+		profileMinBatchMs = llmProfile.PerBatchMs[0]
+		for _, ms := range llmProfile.PerBatchMs {
+			if ms < profileMinBatchMs {
+				profileMinBatchMs = ms
+			}
+			if ms > profileMaxBatchMs {
+				profileMaxBatchMs = ms
+			}
+			profileAvgBatchMs += ms
+		}
+		profileAvgBatchMs /= int64(len(llmProfile.PerBatchMs))
+	}
+
+	result := map[string]interface{}{
+		"success":                true,
+		"method":                 "native_go",
+		"dry_run":                dryRun,
+		"tag_analysis":           tagAnalysis,
+		"total_tasks":            len(tasks),
+		"recommendations":        buildTagRecommendations(tagAnalysis),
+		"use_llm_semantic":       useLLMSemantic,
+		"match_existing_only":    matchExistingOnly,
+		"use_tiny_tag_model":     useTinyTagModel,
+		"llm_semantic_method":    llmSemanticMethod,
+		"llm_semantic_processed": llmSemanticProcessed,
+		"profile_ms": map[string]interface{}{
+			"load_tasks":       profileLoadMs,
+			"keyword":          profileKeywordMs,
+			"llm_total":        llmProfile.TotalMs,
+			"llm_batches":      llmProfile.Batches,
+			"llm_batch_min_ms": profileMinBatchMs,
+			"llm_batch_max_ms": profileMaxBatchMs,
+			"llm_batch_avg_ms": profileAvgBatchMs,
+			"apply_and_cache":  profileApplyMs,
+		},
+	}
+
+	outputPath, _ := params["output_path"].(string)
+	if outputPath != "" {
 		if err := saveAnalysisResult(outputPath, result); err != nil {
 			return nil, fmt.Errorf("failed to save result: %w", err)
 		}
 		result["output_path"] = outputPath
 	}
 
-	output, _ := json.MarshalIndent(result, "", "  ")
-	return []framework.TextContent{
-		{Type: "text", Text: string(output)},
-	}, nil
+	return response.FormatResult(result, "")
 }
 
-// handleTaskAnalysisTags handles tag analysis and consolidation
-func handleTaskAnalysisTags(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
+// handleTaskAnalysisDiscoverTags discovers tags from markdown files and uses LLM for semantic inference
+func handleTaskAnalysisDiscoverTags(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
+	startTime := time.Now()
+
+	// Parse timeout parameter (default: 5 minutes)
+	timeoutSec := 300 // 5 minutes default
+	if t, ok := params["timeout_seconds"].(float64); ok && t > 0 {
+		timeoutSec = int(t)
+	} else if t, ok := params["timeout_seconds"].(int); ok && t > 0 {
+		timeoutSec = t
+	}
+
+	// Create timeout context for entire operation
+	timeoutCtx, cancel := context.WithTimeout(ctx, time.Duration(timeoutSec)*time.Second)
+	defer cancel()
+
 	projectRoot, err := FindProjectRoot()
 	if err != nil {
 		return nil, fmt.Errorf("failed to find project root: %w", err)
@@ -125,56 +468,1324 @@ func handleTaskAnalysisTags(ctx context.Context, params map[string]interface{}) 
 		dryRun = run
 	}
 
-	// Analyze tags
-	tagAnalysis := analyzeTags(tasks)
+	useLLM := true
+	if llm, ok := params["use_llm"].(bool); ok {
+		useLLM = llm
+	}
 
-	// Apply custom rules if provided
-	customRulesJSON, _ := params["custom_rules"].(string)
-	if customRulesJSON != "" {
-		var rules map[string]string
-		if err := json.Unmarshal([]byte(customRulesJSON), &rules); err == nil {
-			tagAnalysis = applyTagRules(tasks, rules, tagAnalysis)
+	useCache := true
+	if cache, ok := params["use_cache"].(bool); ok {
+		useCache = cache
+	}
+
+	clearCache := false
+	if clear, ok := params["clear_cache"].(bool); ok {
+		clearCache = clear
+	}
+
+	docPath := "docs"
+	if path, ok := params["doc_path"].(string); ok && path != "" {
+		docPath = path
+	}
+
+	llmBatchSize := 0
+	if b, ok := params["llm_batch_size"].(float64); ok && b > 0 {
+		llmBatchSize = int(b)
+	} else if b, ok := params["llm_batch_size"].(int); ok && b > 0 {
+		llmBatchSize = b
+	}
+
+	// Clear cache if requested
+	cacheCleared := false
+	if clearCache {
+		if err := database.ClearDiscoveredTagsCache(); err == nil {
+			cacheCleared = true
 		}
 	}
 
-	// Remove tags if requested
-	removeTagsJSON, _ := params["remove_tags"].(string)
-	if removeTagsJSON != "" {
-		var tagsToRemove []string
-		if err := json.Unmarshal([]byte(removeTagsJSON), &tagsToRemove); err == nil {
-			tagAnalysis = removeTags(tasks, tagsToRemove, tagAnalysis)
+	// Check timeout before expensive operations
+	select {
+	case <-timeoutCtx.Done():
+		return nil, fmt.Errorf("operation timed out after %ds", timeoutSec)
+	default:
+	}
+
+	// Discover tags from markdown files (with caching)
+	discoveries, cacheHits, cacheMisses := discoverTagsFromMarkdownWithCache(projectRoot, docPath, useCache)
+
+	// Track LLM stats
+	llmTimeouts := 0
+	llmProcessed := 0
+
+	// Use LLM for semantic tag inference if available and requested
+	llmMethod := "none"
+	if useLLM {
+		fm := DefaultFMProvider()
+		if fm != nil && fm.Supported() {
+			llmMethod = "apple_fm"
+			discoveries = enrichTagsWithLLM(timeoutCtx, fm, discoveries, tasks, llmBatchSize)
+		} else {
+			ollama := DefaultOllama()
+			if ollama != nil {
+				llmMethod = "ollama"
+				discoveries = enrichTagsWithOllama(timeoutCtx, ollama, discoveries, tasks, llmBatchSize)
+			}
 		}
 	}
 
-	// Apply changes if not dry run
-	if !dryRun {
-		tasks = applyTagChanges(tasks, tagAnalysis)
-		if err := SaveTodo2Tasks(projectRoot, tasks); err != nil {
-			return nil, fmt.Errorf("failed to save tasks: %w", err)
+	// Count LLM stats from discoveries
+	for _, d := range discoveries {
+		if _, ok := d["llm_suggestions"]; ok {
+			llmProcessed++
 		}
+		if timedOut, ok := d["llm_timeout"].(bool); ok && timedOut {
+			llmTimeouts++
+		}
+	}
+
+	// Save discoveries to cache (if cache is enabled and we have new discoveries)
+	if useCache && cacheMisses > 0 {
+		saveDiscoveriesToCache(discoveries)
+	}
+
+	// Match discovered tags to tasks
+	tagMatches := matchDiscoveredTagsToTasks(discoveries, tasks)
+
+	// Optional batch: limit and/or prioritize tasks with no tags
+	limit := 0
+	if l, ok := params["limit"].(float64); ok && l > 0 {
+		limit = int(l)
+	} else if l, ok := params["limit"].(int); ok && l > 0 {
+		limit = l
+	}
+	prioritizeUntagged := false
+	if p, ok := params["prioritize_untagged"].(bool); ok {
+		prioritizeUntagged = p
+	}
+	if (limit > 0 || prioritizeUntagged) && len(tagMatches) > 0 {
+		taskByID := make(map[string]Todo2Task)
+		for _, t := range tasks {
+			taskByID[t.ID] = t
+		}
+		var order []string
+		for taskID := range tagMatches {
+			order = append(order, taskID)
+		}
+		if prioritizeUntagged {
+			sort.Slice(order, func(i, j int) bool {
+				untaggedI := len(taskByID[order[i]].Tags) == 0
+				untaggedJ := len(taskByID[order[j]].Tags) == 0
+				if untaggedI != untaggedJ {
+					return untaggedI // untagged first
+				}
+				return order[i] < order[j]
+			})
+		}
+		if limit > 0 && len(order) > limit {
+			order = order[:limit]
+		}
+		batch := make(map[string][]string)
+		for _, taskID := range order {
+			batch[taskID] = tagMatches[taskID]
+		}
+		tagMatches = batch
+	}
+
+	// Optional: only backlog (Todo + In Progress) — parse todo2 backlog and update tags for those only
+	backlogOnly := false
+	if b, ok := params["backlog_only"].(bool); ok {
+		backlogOnly = b
+	}
+	if backlogOnly && len(tagMatches) > 0 {
+		taskByID := make(map[string]Todo2Task)
+		for _, t := range tasks {
+			taskByID[t.ID] = t
+		}
+		backlogMatches := make(map[string][]string)
+		for taskID, tags := range tagMatches {
+			if t, ok := taskByID[taskID]; ok && IsBacklogStatus(t.Status) {
+				backlogMatches[taskID] = tags
+			}
+		}
+		tagMatches = backlogMatches
+	}
+
+	// Save file-task tag matches to cache
+	if useCache && !dryRun {
+		saveFileTaskTagsToCache(tagMatches, discoveries)
+	}
+
+	// Apply tags if not dry run
+	appliedCount := 0
+	if !dryRun && len(tagMatches) > 0 {
+		for taskID, newTags := range tagMatches {
+			for i := range tasks {
+				if tasks[i].ID == taskID {
+					// Merge tags (avoid duplicates)
+					existingTags := make(map[string]bool)
+					for _, t := range tasks[i].Tags {
+						existingTags[t] = true
+					}
+					for _, newTag := range newTags {
+						if !existingTags[newTag] {
+							tasks[i].Tags = append(tasks[i].Tags, newTag)
+							appliedCount++
+						}
+					}
+					break
+				}
+			}
+		}
+		if appliedCount > 0 {
+			if err := SaveTodo2Tasks(projectRoot, tasks); err != nil {
+				return nil, fmt.Errorf("failed to save tasks: %w", err)
+			}
+		}
+
+		// Update tag frequency cache
+		updateTagFrequencyCache(tasks)
+	}
+
+	elapsedMs := time.Since(startTime).Milliseconds()
+	effectiveBatch := effectiveLLMBatchSize(llmBatchSize)
+	suggestion := effectiveBatch
+	if useLLM {
+		suggestion = suggestNextLLMBatchSize(effectiveBatch, llmTimeouts, len(discoveries))
 	}
 
 	result := map[string]interface{}{
-		"success":         true,
-		"method":          "native_go",
-		"dry_run":         dryRun,
-		"tag_analysis":    tagAnalysis,
-		"total_tasks":     len(tasks),
-		"recommendations": buildTagRecommendations(tagAnalysis),
+		"cache_hits":           cacheHits,
+		"cache_misses":         cacheMisses,
+		"cache_cleared":        cacheCleared,
+		"success":              true,
+		"method":               "native_go",
+		"llm_method":           llmMethod,
+		"llm_processed":        llmProcessed,
+		"llm_timeouts":         llmTimeouts,
+		"llm_batch_size":       effectiveBatch,
+		"llm_batch_suggestion": suggestion,
+		"timeout_seconds":      timeoutSec,
+		"elapsed_ms":           elapsedMs,
+		"dry_run":              dryRun,
+		"discoveries":          discoveries,
+		"tag_matches":          tagMatches,
+		"total_discoveries":    len(discoveries),
+		"total_matches":        len(tagMatches),
+		"applied_count":        appliedCount,
 	}
 
-	outputPath, _ := params["output_path"].(string)
-	if outputPath != "" {
-		if err := saveAnalysisResult(outputPath, result); err != nil {
-			return nil, fmt.Errorf("failed to save result: %w", err)
+	return response.FormatResult(result, "")
+}
+
+// discoverTagsFromMarkdown scans markdown files for tag patterns
+func discoverTagsFromMarkdown(projectRoot, docPath string) []map[string]interface{} {
+	discoveries := []map[string]interface{}{}
+
+	searchPath := filepath.Join(projectRoot, docPath)
+	if _, err := os.Stat(searchPath); os.IsNotExist(err) {
+		return discoveries
+	}
+
+	// Patterns to match tags in markdown
+	hashtagPattern := regexp.MustCompile(`#([a-zA-Z][a-zA-Z0-9_-]+)`)                    // #tag
+	bracketPattern := regexp.MustCompile(`\[([a-zA-Z][a-zA-Z0-9_-]+)\]`)                 // [tag]
+	tagsLinePattern := regexp.MustCompile(`(?i)^(?:tags?|labels?|categories?):\s*(.+)$`) // Tags: tag1, tag2
+
+	filepath.Walk(searchPath, func(path string, info os.FileInfo, err error) error {
+		if err != nil || info.IsDir() {
+			return nil
 		}
-		result["output_path"] = outputPath
+
+		if filepath.Ext(path) != ".md" && filepath.Ext(path) != ".markdown" {
+			return nil
+		}
+
+		content, err := os.ReadFile(path)
+		if err != nil {
+			return nil
+		}
+
+		relPath := strings.TrimPrefix(path, projectRoot+"/")
+		fileContent := string(content)
+		lines := strings.Split(fileContent, "\n")
+
+		discoveredTags := []string{}
+		tagSources := []string{}
+
+		// Find hashtags
+		for _, match := range hashtagPattern.FindAllStringSubmatch(fileContent, -1) {
+			if len(match) >= 2 {
+				tag := strings.ToLower(match[1])
+				// Skip common false positives
+				if tag != "todo" && tag != "fixme" && tag != "note" && tag != "warning" &&
+					tag != "deprecated" && tag != "see" && tag != "param" && tag != "return" &&
+					len(tag) > 2 {
+					discoveredTags = append(discoveredTags, tag)
+					tagSources = append(tagSources, "hashtag")
+				}
+			}
+		}
+
+		// Find bracket tags (less common, skip if looks like link or code type)
+		bracketFalsePositives := map[string]bool{
+			"string": true, "int": true, "bool": true, "float": true, "number": true,
+			"object": true, "array": true, "map": true, "slice": true, "struct": true,
+			"interface": true, "error": true, "any": true, "void": true, "null": true,
+			"true": true, "false": true, "nil": true, "none": true,
+			"optional": true, "required": true, "default": true,
+			"link": true, "url": true, "path": true, "file": true,
+			"date": true, "time": true, "timestamp": true,
+			"tid": true, "pid": true, "uid": true, "gid": true,
+			"key": true, "value": true, "name": true, "type": true,
+			"status": true, "state": true, "mode": true, "action": true,
+			"observations": true, "example": true, "examples": true,
+		}
+		for _, match := range bracketPattern.FindAllStringSubmatch(fileContent, -1) {
+			if len(match) >= 2 {
+				tag := strings.ToLower(match[1])
+				// Skip if looks like markdown link text, code type, or common words
+				if len(tag) > 2 && len(tag) < 30 && !strings.Contains(tag, " ") && !bracketFalsePositives[tag] {
+					discoveredTags = append(discoveredTags, tag)
+					tagSources = append(tagSources, "bracket")
+				}
+			}
+		}
+
+		// Find explicit tags lines
+		for _, line := range lines {
+			if matches := tagsLinePattern.FindStringSubmatch(line); len(matches) >= 2 {
+				tagList := strings.Split(matches[1], ",")
+				for _, t := range tagList {
+					tag := strings.ToLower(strings.TrimSpace(t))
+					tag = strings.Trim(tag, "#[]`")
+					if len(tag) > 1 {
+						discoveredTags = append(discoveredTags, tag)
+						tagSources = append(tagSources, "explicit")
+					}
+				}
+			}
+		}
+
+		// Dedupe tags
+		seen := make(map[string]bool)
+		uniqueTags := []string{}
+		for _, tag := range discoveredTags {
+			if !seen[tag] {
+				seen[tag] = true
+				uniqueTags = append(uniqueTags, tag)
+			}
+		}
+
+		if len(uniqueTags) > 0 {
+			discoveries = append(discoveries, map[string]interface{}{
+				"file":    relPath,
+				"tags":    uniqueTags,
+				"sources": tagSources,
+				"type":    "markdown_discovery",
+			})
+		}
+
+		return nil
+	})
+
+	return discoveries
+}
+
+// discoverTagsFromMarkdownWithCache scans markdown files with SQLite caching
+func discoverTagsFromMarkdownWithCache(projectRoot, docPath string, useCache bool) ([]map[string]interface{}, int, int) {
+	discoveries := []map[string]interface{}{}
+	cacheHits := 0
+	cacheMisses := 0
+
+	searchPath := filepath.Join(projectRoot, docPath)
+	if _, err := os.Stat(searchPath); os.IsNotExist(err) {
+		return discoveries, cacheHits, cacheMisses
 	}
 
-	output, _ := json.MarshalIndent(result, "", "  ")
-	return []framework.TextContent{
-		{Type: "text", Text: string(output)},
-	}, nil
+	// Patterns to match tags in markdown
+	hashtagPattern := regexp.MustCompile(`#([a-zA-Z][a-zA-Z0-9_-]+)`)
+	bracketPattern := regexp.MustCompile(`\[([a-zA-Z][a-zA-Z0-9_-]+)\]`)
+	tagsLinePattern := regexp.MustCompile(`(?i)^(?:tags?|labels?|categories?):\s*(.+)$`)
+
+	bracketFalsePositives := map[string]bool{
+		"string": true, "int": true, "bool": true, "float": true, "number": true,
+		"object": true, "array": true, "map": true, "slice": true, "struct": true,
+		"interface": true, "error": true, "any": true, "void": true, "null": true,
+		"true": true, "false": true, "nil": true, "none": true,
+		"optional": true, "required": true, "default": true,
+		"link": true, "url": true, "path": true, "file": true,
+		"date": true, "time": true, "timestamp": true,
+		"tid": true, "pid": true, "uid": true, "gid": true,
+		"key": true, "value": true, "name": true, "type": true,
+		"status": true, "state": true, "mode": true, "action": true,
+		"observations": true, "example": true, "examples": true,
+	}
+
+	filepath.Walk(searchPath, func(path string, info os.FileInfo, err error) error {
+		if err != nil || info.IsDir() {
+			return nil
+		}
+
+		if filepath.Ext(path) != ".md" && filepath.Ext(path) != ".markdown" {
+			return nil
+		}
+
+		content, err := os.ReadFile(path)
+		if err != nil {
+			return nil
+		}
+
+		relPath := strings.TrimPrefix(path, projectRoot+"/")
+		fileHash := database.ComputeFileHash(content)
+
+		// Check cache first
+		if useCache {
+			cachedTags, valid, _ := database.GetDiscoveredTagsWithHash(relPath, fileHash)
+			if valid && len(cachedTags) > 0 {
+				cacheHits++
+				// Convert cached tags to discovery format
+				tags := []string{}
+				sources := []string{}
+				for _, ct := range cachedTags {
+					tags = append(tags, ct.Tag)
+					sources = append(sources, ct.Source)
+				}
+				discoveries = append(discoveries, map[string]interface{}{
+					"file":       relPath,
+					"tags":       tags,
+					"sources":    sources,
+					"type":       "markdown_discovery",
+					"from_cache": true,
+				})
+				return nil
+			}
+		}
+
+		cacheMisses++
+		fileContent := string(content)
+		lines := strings.Split(fileContent, "\n")
+
+		discoveredTags := []string{}
+		tagSources := []string{}
+
+		// Find hashtags
+		for _, match := range hashtagPattern.FindAllStringSubmatch(fileContent, -1) {
+			if len(match) >= 2 {
+				tag := strings.ToLower(match[1])
+				if tag != "todo" && tag != "fixme" && tag != "note" && tag != "warning" &&
+					tag != "deprecated" && tag != "see" && tag != "param" && tag != "return" &&
+					len(tag) > 2 {
+					discoveredTags = append(discoveredTags, tag)
+					tagSources = append(tagSources, "hashtag")
+				}
+			}
+		}
+
+		// Find bracket tags
+		for _, match := range bracketPattern.FindAllStringSubmatch(fileContent, -1) {
+			if len(match) >= 2 {
+				tag := strings.ToLower(match[1])
+				if len(tag) > 2 && len(tag) < 30 && !strings.Contains(tag, " ") && !bracketFalsePositives[tag] {
+					discoveredTags = append(discoveredTags, tag)
+					tagSources = append(tagSources, "bracket")
+				}
+			}
+		}
+
+		// Find explicit tags lines
+		for _, line := range lines {
+			if matches := tagsLinePattern.FindStringSubmatch(line); len(matches) >= 2 {
+				tagList := strings.Split(matches[1], ",")
+				for _, t := range tagList {
+					tag := strings.ToLower(strings.TrimSpace(t))
+					tag = strings.Trim(tag, "#[]`")
+					if len(tag) > 1 {
+						discoveredTags = append(discoveredTags, tag)
+						tagSources = append(tagSources, "explicit")
+					}
+				}
+			}
+		}
+
+		// Dedupe tags
+		seen := make(map[string]bool)
+		uniqueTags := []string{}
+		uniqueSources := []string{}
+		for i, tag := range discoveredTags {
+			if !seen[tag] {
+				seen[tag] = true
+				uniqueTags = append(uniqueTags, tag)
+				if i < len(tagSources) {
+					uniqueSources = append(uniqueSources, tagSources[i])
+				}
+			}
+		}
+
+		if len(uniqueTags) > 0 {
+			discoveries = append(discoveries, map[string]interface{}{
+				"file":      relPath,
+				"tags":      uniqueTags,
+				"sources":   uniqueSources,
+				"type":      "markdown_discovery",
+				"file_hash": fileHash,
+			})
+		}
+
+		return nil
+	})
+
+	return discoveries, cacheHits, cacheMisses
+}
+
+// saveDiscoveriesToCache saves tag discoveries to SQLite cache
+func saveDiscoveriesToCache(discoveries []map[string]interface{}) {
+	for _, discovery := range discoveries {
+		filePath, _ := discovery["file"].(string)
+		fileHash, _ := discovery["file_hash"].(string)
+		tags, _ := discovery["tags"].([]string)
+		sources, _ := discovery["sources"].([]string)
+		llmSuggestions, _ := discovery["llm_suggestions"].([]string)
+
+		if filePath == "" || len(tags) == 0 {
+			continue
+		}
+
+		// Build cache entries
+		var cacheEntries []database.DiscoveredTag
+		for i, tag := range tags {
+			source := "unknown"
+			if i < len(sources) {
+				source = sources[i]
+			}
+			cacheEntries = append(cacheEntries, database.DiscoveredTag{
+				FilePath:     filePath,
+				FileHash:     fileHash,
+				Tag:          tag,
+				Source:       source,
+				LLMSuggested: false,
+			})
+		}
+
+		// Add LLM suggestions
+		for _, tag := range llmSuggestions {
+			cacheEntries = append(cacheEntries, database.DiscoveredTag{
+				FilePath:     filePath,
+				FileHash:     fileHash,
+				Tag:          tag,
+				Source:       "llm",
+				LLMSuggested: true,
+			})
+		}
+
+		// Save to database
+		database.SaveDiscoveredTags(filePath, fileHash, cacheEntries)
+	}
+}
+
+// saveFileTaskTagsToCache saves file-task tag matches to cache
+func saveFileTaskTagsToCache(tagMatches map[string][]string, discoveries []map[string]interface{}) {
+	// Build file-to-tags map from discoveries
+	fileTags := make(map[string][]string)
+	for _, discovery := range discoveries {
+		filePath, _ := discovery["file"].(string)
+		tags, _ := discovery["tags"].([]string)
+		if filePath != "" && len(tags) > 0 {
+			fileTags[filePath] = tags
+		}
+	}
+
+	// For each task match, save the file-task-tag relationship
+	for taskID, tags := range tagMatches {
+		for filePath, ftags := range fileTags {
+			for _, tag := range tags {
+				// Check if this tag came from this file
+				for _, ftag := range ftags {
+					if ftag == tag {
+						database.SaveFileTaskTag(filePath, taskID, tag, true)
+						break
+					}
+				}
+			}
+		}
+	}
+}
+
+// updateTagFrequencyCache updates tag frequency statistics in cache
+func updateTagFrequencyCache(tasks []Todo2Task) {
+	tagCounts := make(map[string]int)
+	canonicalTags := getCanonicalTagsList()
+	canonicalSet := make(map[string]bool)
+	for _, tag := range canonicalTags {
+		canonicalSet[tag] = true
+	}
+
+	for _, task := range tasks {
+		for _, tag := range task.Tags {
+			tagCounts[tag]++
+		}
+	}
+
+	for tag, count := range tagCounts {
+		isCanonical := canonicalSet[tag]
+		database.UpdateTagFrequency(tag, count, isCanonical)
+	}
+}
+
+// collectProjectTags extracts all unique tags from existing tasks
+func collectProjectTags(tasks []Todo2Task) []string {
+	tagSet := make(map[string]bool)
+	for _, task := range tasks {
+		for _, tag := range task.Tags {
+			// Skip auto-discovered tags
+			if tag != "markdown" && tag != "discovered" {
+				tagSet[tag] = true
+			}
+		}
+	}
+	tags := make([]string, 0, len(tagSet))
+	for tag := range tagSet {
+		tags = append(tags, tag)
+	}
+	sort.Strings(tags)
+	return tags
+}
+
+// projectTagsWithCacheHints merges project tags from tasks with top tag frequencies from cache (for LLM hints everywhere)
+func projectTagsWithCacheHints(tasks []Todo2Task, cacheLimit int) []string {
+	tagSet := make(map[string]bool)
+	for _, tag := range collectProjectTags(tasks) {
+		tagSet[tag] = true
+	}
+	cacheTags, err := database.GetTopTagFrequencies(cacheLimit)
+	if err == nil {
+		for _, tag := range cacheTags {
+			tagSet[tag] = true
+		}
+	}
+	tags := make([]string, 0, len(tagSet))
+	for tag := range tagSet {
+		tags = append(tags, tag)
+	}
+	sort.Strings(tags)
+	return tags
+}
+
+// getCanonicalTagsList returns the list of canonical tag categories
+func getCanonicalTagsList() []string {
+	return []string{
+		"testing", "docs", "security", "build", "performance", "linting",
+		"bug", "feature", "refactor", "migration", "config", "cli",
+		"mcp", "llm", "database", "concurrency", "git", "planning",
+		"batch", "phase", "epic", "workflow", "research", "analysis",
+	}
+}
+
+// LLM timeout constants
+const (
+	llmPerFileTimeout  = 10 * time.Second                             // Timeout for each file when not batching
+	llmPerBatchTimeout = 45 * time.Second                             // Timeout per batch when batching (one call per batch)
+	llmTotalTimeout    = 2 * time.Minute                              // Total timeout for all LLM processing
+	discoverTagTimeout = 5 * time.Minute                              // Total timeout for discover_tags action
+	llmTagBatchSize    = 25                                           // Default max tasks per LLM call for tag inference (tune via llm_batch_size; bigger = fewer calls, faster)
+	llmTagMaxTokens    = 320                                          // Max tokens for tag-inference response (short JSON; lower = faster generation)
+	ollamaTinyTagModel = "tinyllama"                                  // Small Ollama model for quick tag inference (use_tiny_tag_model)
+	mlxTinyTagModel    = "mlx-community/TinyLlama-1.1B-Chat-v1.0-mlx" // Small MLX model for quick tag inference
+)
+
+func effectiveLLMBatchSize(param int) int {
+	if param > 0 {
+		return param
+	}
+	return llmTagBatchSize
+}
+
+// suggestNextLLMBatchSize returns a suggested llm_batch_size for the next run (feedback loop).
+// If there were timeouts, suggest halving; if none, suggest trying a larger batch up to total files or 50.
+func suggestNextLLMBatchSize(batchSizeUsed, llmTimeouts, totalDiscoveries int) int {
+	const maxSuggested = 50
+	if llmTimeouts > 0 && batchSizeUsed > llmTagBatchSize {
+		next := batchSizeUsed / 2
+		if next < llmTagBatchSize {
+			return llmTagBatchSize
+		}
+		return next
+	}
+	if llmTimeouts == 0 && totalDiscoveries > 0 {
+		// No timeouts: suggest trying larger to find ideal size
+		next := batchSizeUsed + 10
+		if next > totalDiscoveries {
+			next = totalDiscoveries
+		}
+		if next > maxSuggested {
+			next = maxSuggested
+		}
+		return next
+	}
+	return llmTagBatchSize
+}
+
+// batchTimeout returns per-batch timeout; scales slightly with batch size for large batches.
+func batchTimeout(batchSize int) time.Duration {
+	base := llmPerBatchTimeout
+	if batchSize <= llmTagBatchSize {
+		return base
+	}
+	extra := time.Duration(batchSize-llmTagBatchSize) * 2 * time.Second
+	if base+extra > 90*time.Second {
+		return 90 * time.Second
+	}
+	return base + extra
+}
+
+// enrichTagsWithLLM uses Apple FM to infer additional tags, in batches of files per call to speed up.
+// Uses tag cache everywhere: project tags merged with top tag_frequency for LLM hints.
+func enrichTagsWithLLM(ctx context.Context, fm FMProvider, discoveries []map[string]interface{}, tasks []Todo2Task, batchSizeParam int) []map[string]interface{} {
+	batchSize := effectiveLLMBatchSize(batchSizeParam)
+	canonicalTags := getCanonicalTagsList()
+	projectTags := projectTagsWithCacheHints(tasks, 30)
+	if len(projectTags) > 40 {
+		projectTags = projectTags[:40]
+	}
+	totalCtx, totalCancel := context.WithTimeout(ctx, llmTotalTimeout)
+	defer totalCancel()
+
+	for start := 0; start < len(discoveries); start += batchSize {
+		select {
+		case <-totalCtx.Done():
+			return discoveries
+		default:
+		}
+		end := start + batchSize
+		if end > len(discoveries) {
+			end = len(discoveries)
+		}
+		batch := discoveries[start:end]
+
+		prompt := buildBatchTagPrompt(batch, canonicalTags, projectTags)
+		batchCtx, batchCancel := context.WithTimeout(totalCtx, batchTimeout(len(batch)))
+		response, err := fm.Generate(batchCtx, prompt, 800, 0.2)
+		batchCancel()
+
+		if err != nil {
+			if batchCtx.Err() == context.DeadlineExceeded {
+				for i := start; i < end; i++ {
+					discoveries[i]["llm_timeout"] = true
+				}
+			}
+			continue
+		}
+
+		suggestionsByFile := parseBatchTagResponse(response)
+		for i, discovery := range batch {
+			file, _ := discovery["file"].(string)
+			existingTags, _ := discovery["tags"].([]string)
+			suggestedTags := suggestionsByFile[file]
+			if len(suggestedTags) == 0 {
+				continue
+			}
+			if discoveries[start+i]["llm_suggestions"] == nil {
+				discoveries[start+i]["llm_suggestions"] = suggestedTags
+			}
+			allTags := append(existingTags, suggestedTags...)
+			seen := make(map[string]bool)
+			uniqueTags := []string{}
+			for _, tag := range allTags {
+				if !seen[tag] {
+					seen[tag] = true
+					uniqueTags = append(uniqueTags, tag)
+				}
+			}
+			discoveries[start+i]["tags"] = uniqueTags
+		}
+	}
+	return discoveries
+}
+
+// buildBatchTagPrompt builds one concise prompt for a batch of files (smart prompt for speed).
+func buildBatchTagPrompt(batch []map[string]interface{}, canonicalTags, projectTags []string) string {
+	var b strings.Builder
+	b.WriteString("Suggest 0-3 tags per file from path/context. Prefer: ")
+	b.WriteString(strings.Join(canonicalTags, ", "))
+	b.WriteString(". Project tags: ")
+	b.WriteString(strings.Join(projectTags, ", "))
+	b.WriteString(".\n\nFiles (path → existing tags):\n")
+	for _, d := range batch {
+		file, _ := d["file"].(string)
+		existing, _ := d["tags"].([]string)
+		b.WriteString(file)
+		b.WriteString(": ")
+		enc, _ := json.Marshal(existing)
+		b.WriteString(string(enc))
+		b.WriteString("\n")
+	}
+	b.WriteString("\nReturn ONLY a JSON object: {\"path\": [\"tag1\",\"tag2\"]}. No other text. Use file path as key. Empty array [] if none.")
+	return b.String()
+}
+
+// extractOllamaGenerateResponseText extracts the "response" field from Ollama generate JSON.
+// handleOllamaGenerate returns Text as a JSON object with "response" containing the actual LLM output.
+// Returns the inner response string, or the original text if not in that format.
+func extractOllamaGenerateResponseText(text string) string {
+	text = strings.TrimSpace(text)
+	var raw map[string]interface{}
+	if err := json.Unmarshal([]byte(text), &raw); err != nil {
+		return text
+	}
+	if r, ok := raw["response"].(string); ok && r != "" {
+		return r
+	}
+	return text
+}
+
+// parseBatchTagResponse parses LLM response into map[file path][]suggested tags.
+func parseBatchTagResponse(response string) map[string][]string {
+	return parseTagResponseJSON(response)
+}
+
+// parseTaskTagResponse parses LLM response into map[task_id][]suggested tags (same JSON shape).
+func parseTaskTagResponse(response string) map[string][]string {
+	return parseTagResponseJSON(response)
+}
+
+// parseTagResponseJSON parses a JSON object of the form {"id": ["tag1","tag2"], ...} into map[string][]string.
+func parseTagResponseJSON(response string) map[string][]string {
+	response = strings.TrimSpace(response)
+	start := strings.Index(response, "{")
+	end := strings.LastIndex(response, "}")
+	if start < 0 || end <= start {
+		return nil
+	}
+	response = response[start : end+1]
+	var raw map[string]interface{}
+	if err := json.Unmarshal([]byte(response), &raw); err != nil {
+		return nil
+	}
+	out := make(map[string][]string)
+	for id, v := range raw {
+		var tags []string
+		switch arr := v.(type) {
+		case []interface{}:
+			for _, x := range arr {
+				if s, ok := x.(string); ok && s != "" {
+					tags = append(tags, s)
+				}
+			}
+			out[id] = tags
+		case []string:
+			out[id] = arr
+		}
+	}
+	return out
+}
+
+// taskTagLLMBatchItem holds one task's data for LLM tag suggestion (action=tags semantic pass).
+type taskTagLLMBatchItem struct {
+	TaskID       string
+	Title        string
+	Snippet      string
+	ExistingTags []string
+}
+
+const maxTaskSnippetLen = 400
+
+// buildTaskBatchTagPrompt builds one prompt for a batch of tasks (title + content snippet + existing tags).
+func buildTaskBatchTagPrompt(batch []taskTagLLMBatchItem, canonicalTags, projectTags []string) string {
+	var b strings.Builder
+	b.WriteString("Suggest 0-3 tags per task from title and context. Prefer: ")
+	b.WriteString(strings.Join(canonicalTags, ", "))
+	b.WriteString(". Project tags: ")
+	b.WriteString(strings.Join(projectTags, ", "))
+	b.WriteString(".\n\nTasks (task_id → title, snippet, existing tags):\n")
+	for _, item := range batch {
+		b.WriteString(item.TaskID)
+		b.WriteString(": title=")
+		b.WriteString(item.Title)
+		b.WriteString(" snippet=")
+		if len(item.Snippet) > maxTaskSnippetLen {
+			b.WriteString(item.Snippet[:maxTaskSnippetLen])
+			b.WriteString("...")
+		} else {
+			b.WriteString(item.Snippet)
+		}
+		b.WriteString(" existing=")
+		enc, _ := json.Marshal(item.ExistingTags)
+		b.WriteString(string(enc))
+		b.WriteString("\n")
+	}
+	b.WriteString("\nReturn ONLY a JSON object: {\"T-123\": [\"tag1\",\"tag2\"]}. Use task_id as key. No other text. Empty array [] if none.")
+	return b.String()
+}
+
+// buildTaskBatchTagPromptMatchOnly builds a short prompt for quick FM inference: pick 0-3 tags only from allowed list (no free-form).
+func buildTaskBatchTagPromptMatchOnly(batch []taskTagLLMBatchItem, allowedTags []string) string {
+	var b strings.Builder
+	b.WriteString("Pick 0-3 tags per task from this list only: ")
+	b.WriteString(strings.Join(allowedTags, ", "))
+	b.WriteString(".\n\nTasks (task_id, title, snippet):\n")
+	for _, item := range batch {
+		b.WriteString(item.TaskID)
+		b.WriteString(": ")
+		b.WriteString(item.Title)
+		b.WriteString(" | ")
+		snippet := item.Snippet
+		if len(snippet) > 200 {
+			snippet = snippet[:200] + "..."
+		}
+		b.WriteString(snippet)
+		b.WriteString("\n")
+	}
+	b.WriteString("\nReturn ONLY JSON: {\"T-123\": [\"tag1\",\"tag2\"]}. Use task_id as key. Only tags from the list. Empty [] if none.")
+	return b.String()
+}
+
+// filterSuggestionsToAllowed keeps only tags that are in the allowed set (for match_existing_only).
+func filterSuggestionsToAllowed(suggestionsByTask map[string][]string, allowed map[string]bool) map[string][]string {
+	out := make(map[string][]string)
+	for taskID, tags := range suggestionsByTask {
+		filtered := make([]string, 0, len(tags))
+		seen := make(map[string]bool)
+		for _, tag := range tags {
+			if allowed[tag] && !seen[tag] {
+				seen[tag] = true
+				filtered = append(filtered, tag)
+			}
+		}
+		if len(filtered) > 0 {
+			out[taskID] = filtered
+		}
+	}
+	return out
+}
+
+// llmTagProfile holds timing profile for the LLM tag inference phase.
+type llmTagProfile struct {
+	TotalMs    int64
+	Batches    int
+	PerBatchMs []int64
+}
+
+// enrichTaskTagSuggestionsWithLLM runs Apple FM, Ollama, or MLX on batches of tasks and merges suggested tags into analysis.TagSuggestions.
+// Uses tag cache everywhere as quick hints. When matchExistingOnly is true, uses a constrained prompt and filters output to allowed tags only.
+// When useTinyTagModel is true, tries Ollama with tinyllama first, then MLX with TinyLlama (faster small models) before Apple FM.
+// Returns method, processed count, and profile (LLM total ms, batch count, per-batch ms) for profiling.
+func enrichTaskTagSuggestionsWithLLM(ctx context.Context, tasks []Todo2Task, analysis *TagAnalysis, batchSizeParam int, matchExistingOnly bool, useTinyTagModel bool) (method string, processed int, profile llmTagProfile) {
+	batchSize := effectiveLLMBatchSize(batchSizeParam)
+	canonicalTags := getCanonicalTagsList()
+	projectTags := projectTagsWithCacheHints(tasks, 30)
+	if len(projectTags) > 40 {
+		projectTags = projectTags[:40]
+	}
+	allowedSet := make(map[string]bool)
+	for _, t := range canonicalTags {
+		allowedSet[t] = true
+	}
+	for _, t := range projectTags {
+		allowedSet[t] = true
+	}
+	const totalTimeout = 120 * time.Second
+	totalCtx, cancel := context.WithTimeout(ctx, totalTimeout)
+	defer cancel()
+
+	// Build flat list of task batch items (title, snippet, existing = Tags + TagSuggestions + cached suggestions)
+	items := make([]taskTagLLMBatchItem, 0, len(tasks))
+	for _, t := range tasks {
+		existing := make(map[string]bool)
+		for _, tag := range t.Tags {
+			existing[tag] = true
+		}
+		for _, tag := range analysis.TagSuggestions[t.ID] {
+			existing[tag] = true
+		}
+		cached, _ := database.GetTaskTagSuggestions(t.ID)
+		for _, tag := range cached {
+			existing[tag] = true
+		}
+		existingList := make([]string, 0, len(existing))
+		for tag := range existing {
+			existingList = append(existingList, tag)
+		}
+		sort.Strings(existingList)
+		snippet := strings.TrimSpace(t.LongDescription)
+		if snippet == "" {
+			snippet = t.Content
+		}
+		items = append(items, taskTagLLMBatchItem{
+			TaskID:       t.ID,
+			Title:        t.Content,
+			Snippet:      snippet,
+			ExistingTags: existingList,
+		})
+	}
+
+	mergeSuggestions := func(suggestionsByTask map[string][]string) {
+		if matchExistingOnly {
+			suggestionsByTask = filterSuggestionsToAllowed(suggestionsByTask, allowedSet)
+		}
+		for taskID, suggested := range suggestionsByTask {
+			if len(suggested) == 0 {
+				continue
+			}
+			processed++
+			existingSet := make(map[string]bool)
+			for _, tag := range analysis.TagSuggestions[taskID] {
+				existingSet[tag] = true
+			}
+			for _, tag := range suggested {
+				if !existingSet[tag] {
+					existingSet[tag] = true
+					analysis.TagSuggestions[taskID] = append(analysis.TagSuggestions[taskID], tag)
+				}
+			}
+		}
+	}
+
+	llmStart := time.Now()
+
+	// When useTinyTagModel: try Ollama(tinyllama) then MLX(TinyLlama) for faster inference
+	if useTinyTagModel {
+		ollama := DefaultOllama()
+		if ollama != nil {
+			tinyProcessed := 0
+			for start := 0; start < len(items); start += batchSize {
+				select {
+				case <-totalCtx.Done():
+					profile.TotalMs = time.Since(llmStart).Milliseconds()
+					profile.Batches = len(profile.PerBatchMs)
+					return "ollama", processed, profile
+				default:
+				}
+				end := start + batchSize
+				if end > len(items) {
+					end = len(items)
+				}
+				batch := items[start:end]
+				batchStart := time.Now()
+				var prompt string
+				if matchExistingOnly {
+					allowedList := make([]string, 0, len(allowedSet))
+					for tag := range allowedSet {
+						allowedList = append(allowedList, tag)
+					}
+					sort.Strings(allowedList)
+					prompt = buildTaskBatchTagPromptMatchOnly(batch, allowedList)
+				} else {
+					prompt = buildTaskBatchTagPrompt(batch, canonicalTags, projectTags)
+				}
+				batchCtx, batchCancel := context.WithTimeout(totalCtx, batchTimeout(len(batch)))
+				result, err := ollama.Invoke(batchCtx, map[string]interface{}{
+					"action":      "generate",
+					"model":       ollamaTinyTagModel,
+					"prompt":      prompt,
+					"max_tokens":  llmTagMaxTokens,
+					"temperature": 0.2,
+				})
+				batchCancel()
+				profile.PerBatchMs = append(profile.PerBatchMs, time.Since(batchStart).Milliseconds())
+				if err != nil || len(result) == 0 {
+					continue
+				}
+				response := extractOllamaGenerateResponseText(result[0].Text)
+				mergeSuggestions(parseTaskTagResponse(response))
+				tinyProcessed++
+			}
+			if tinyProcessed > 0 {
+				profile.TotalMs = time.Since(llmStart).Milliseconds()
+				profile.Batches = len(profile.PerBatchMs)
+				return "ollama", processed, profile
+			}
+		}
+		// Try MLX with TinyLlama (reset profile so we only report MLX times)
+		profile = llmTagProfile{}
+		mlxProcessed := 0
+		for start := 0; start < len(items); start += batchSize {
+			select {
+			case <-totalCtx.Done():
+				profile.TotalMs = time.Since(llmStart).Milliseconds()
+				profile.Batches = len(profile.PerBatchMs)
+				if mlxProcessed > 0 {
+					return "mlx", processed, profile
+				}
+				goto fallthroughTiny
+			default:
+			}
+			end := start + batchSize
+			if end > len(items) {
+				end = len(items)
+			}
+			batch := items[start:end]
+			batchStart := time.Now()
+			var prompt string
+			if matchExistingOnly {
+				allowedList := make([]string, 0, len(allowedSet))
+				for tag := range allowedSet {
+					allowedList = append(allowedList, tag)
+				}
+				sort.Strings(allowedList)
+				prompt = buildTaskBatchTagPromptMatchOnly(batch, allowedList)
+			} else {
+				prompt = buildTaskBatchTagPrompt(batch, canonicalTags, projectTags)
+			}
+			batchCtx, batchCancel := context.WithTimeout(totalCtx, batchTimeout(len(batch)))
+			raw, err := InvokeMLXTool(batchCtx, map[string]interface{}{
+				"action":      "generate",
+				"model":       mlxTinyTagModel,
+				"prompt":      prompt,
+				"max_tokens":  llmTagMaxTokens,
+				"temperature": 0.2,
+			})
+			batchCancel()
+			profile.PerBatchMs = append(profile.PerBatchMs, time.Since(batchStart).Milliseconds())
+			if err != nil {
+				continue
+			}
+			response, err := parseGeneratedTextFromMLXResponse(raw)
+			if err != nil || response == "" {
+				continue
+			}
+			mergeSuggestions(parseTaskTagResponse(response))
+			mlxProcessed++
+		}
+		if mlxProcessed > 0 {
+			profile.TotalMs = time.Since(llmStart).Milliseconds()
+			profile.Batches = len(profile.PerBatchMs)
+			return "mlx", processed, profile
+		}
+	fallthroughTiny:
+		// Tiny path failed; fall through to Apple FM then Ollama default
+	}
+
+	fm := DefaultFMProvider()
+	if fm != nil && fm.Supported() {
+		method = "apple_fm"
+		for start := 0; start < len(items); start += batchSize {
+			select {
+			case <-totalCtx.Done():
+				profile.TotalMs = time.Since(llmStart).Milliseconds()
+				profile.Batches = len(profile.PerBatchMs)
+				return method, processed, profile
+			default:
+			}
+			end := start + batchSize
+			if end > len(items) {
+				end = len(items)
+			}
+			batch := items[start:end]
+			batchStart := time.Now()
+			var prompt string
+			if matchExistingOnly {
+				allowedList := make([]string, 0, len(allowedSet))
+				for tag := range allowedSet {
+					allowedList = append(allowedList, tag)
+				}
+				sort.Strings(allowedList)
+				prompt = buildTaskBatchTagPromptMatchOnly(batch, allowedList)
+			} else {
+				prompt = buildTaskBatchTagPrompt(batch, canonicalTags, projectTags)
+			}
+			batchCtx, batchCancel := context.WithTimeout(totalCtx, batchTimeout(len(batch)))
+			response, err := fm.Generate(batchCtx, prompt, llmTagMaxTokens, 0.2)
+			batchCancel()
+			profile.PerBatchMs = append(profile.PerBatchMs, time.Since(batchStart).Milliseconds())
+			if err != nil {
+				continue
+			}
+			mergeSuggestions(parseTaskTagResponse(response))
+		}
+		profile.TotalMs = time.Since(llmStart).Milliseconds()
+		profile.Batches = len(profile.PerBatchMs)
+		return method, processed, profile
+	}
+	ollama := DefaultOllama()
+	if ollama != nil {
+		method = "ollama"
+		runBatchOllama := func(batch []taskTagLLMBatchItem) {
+			batchStart := time.Now()
+			var prompt string
+			if matchExistingOnly {
+				allowedList := make([]string, 0, len(allowedSet))
+				for tag := range allowedSet {
+					allowedList = append(allowedList, tag)
+				}
+				sort.Strings(allowedList)
+				prompt = buildTaskBatchTagPromptMatchOnly(batch, allowedList)
+			} else {
+				prompt = buildTaskBatchTagPrompt(batch, canonicalTags, projectTags)
+			}
+			batchCtx, batchCancel := context.WithTimeout(totalCtx, batchTimeout(len(batch)))
+			result, err := ollama.Invoke(batchCtx, map[string]interface{}{
+				"action":      "generate",
+				"prompt":      prompt,
+				"max_tokens":  llmTagMaxTokens,
+				"temperature": 0.2,
+			})
+			batchCancel()
+			profile.PerBatchMs = append(profile.PerBatchMs, time.Since(batchStart).Milliseconds())
+			if err != nil || len(result) == 0 {
+				return
+			}
+			response := extractOllamaGenerateResponseText(result[0].Text)
+			mergeSuggestions(parseTaskTagResponse(response))
+		}
+		for start := 0; start < len(items); start += batchSize {
+			select {
+			case <-totalCtx.Done():
+				profile.TotalMs = time.Since(llmStart).Milliseconds()
+				profile.Batches = len(profile.PerBatchMs)
+				return method, processed, profile
+			default:
+			}
+			end := start + batchSize
+			if end > len(items) {
+				end = len(items)
+			}
+			batch := items[start:end]
+			runBatchOllama(batch)
+		}
+		profile.TotalMs = time.Since(llmStart).Milliseconds()
+		profile.Batches = len(profile.PerBatchMs)
+		return method, processed, profile
+	}
+	return "none", 0, profile
+}
+
+// enrichTagsWithOllama uses Ollama to infer additional tags, in batches (same smart prompt as Apple FM).
+// Uses tag cache everywhere for LLM hints.
+func enrichTagsWithOllama(ctx context.Context, ollama OllamaProvider, discoveries []map[string]interface{}, tasks []Todo2Task, batchSizeParam int) []map[string]interface{} {
+	batchSize := effectiveLLMBatchSize(batchSizeParam)
+	canonicalTags := getCanonicalTagsList()
+	projectTags := projectTagsWithCacheHints(tasks, 30)
+	if len(projectTags) > 40 {
+		projectTags = projectTags[:40]
+	}
+	totalCtx, totalCancel := context.WithTimeout(ctx, llmTotalTimeout)
+	defer totalCancel()
+
+	for start := 0; start < len(discoveries); start += batchSize {
+		select {
+		case <-totalCtx.Done():
+			return discoveries
+		default:
+		}
+		end := start + batchSize
+		if end > len(discoveries) {
+			end = len(discoveries)
+		}
+		batch := discoveries[start:end]
+
+		prompt := buildBatchTagPrompt(batch, canonicalTags, projectTags)
+		batchCtx, batchCancel := context.WithTimeout(totalCtx, batchTimeout(len(batch)))
+		result, err := ollama.Invoke(batchCtx, map[string]interface{}{
+			"action":      "generate",
+			"prompt":      prompt,
+			"max_tokens":  800,
+			"temperature": 0.2,
+		})
+		batchCancel()
+
+		if err != nil || len(result) == 0 {
+			if batchCtx.Err() == context.DeadlineExceeded {
+				for i := start; i < end; i++ {
+					discoveries[i]["llm_timeout"] = true
+				}
+			}
+			continue
+		}
+
+		response := extractOllamaGenerateResponseText(result[0].Text)
+		suggestionsByFile := parseBatchTagResponse(response)
+		for i, discovery := range batch {
+			file, _ := discovery["file"].(string)
+			existingTags, _ := discovery["tags"].([]string)
+			suggestedTags := suggestionsByFile[file]
+			if len(suggestedTags) == 0 {
+				continue
+			}
+			if discoveries[start+i]["llm_suggestions"] == nil {
+				discoveries[start+i]["llm_suggestions"] = suggestedTags
+			}
+			allTags := append(existingTags, suggestedTags...)
+			seen := make(map[string]bool)
+			uniqueTags := []string{}
+			for _, tag := range allTags {
+				if !seen[tag] {
+					seen[tag] = true
+					uniqueTags = append(uniqueTags, tag)
+				}
+			}
+			discoveries[start+i]["tags"] = uniqueTags
+		}
+	}
+	return discoveries
+}
+
+// matchDiscoveredTagsToTasks matches discovered tags from files to related tasks
+func matchDiscoveredTagsToTasks(discoveries []map[string]interface{}, tasks []Todo2Task) map[string][]string {
+	matches := make(map[string][]string)
+
+	for _, discovery := range discoveries {
+		file, _ := discovery["file"].(string)
+		tags, ok := discovery["tags"].([]string)
+		if !ok {
+			continue
+		}
+
+		// Match tasks that reference this file or have related content
+		for _, task := range tasks {
+			matched := false
+
+			// Check if task references the file
+			if strings.Contains(task.Content, file) || strings.Contains(task.LongDescription, file) {
+				matched = true
+			}
+
+			// Check if task was discovered from this file
+			if df, ok := task.Metadata["discovered_from"].(string); ok && df == file {
+				matched = true
+			}
+
+			// Check planning doc link
+			if pd, ok := task.Metadata["planning_doc"].(string); ok && pd == file {
+				matched = true
+			}
+
+			if matched {
+				// Apply canonical rules to discovered tags
+				canonicalRules := CanonicalTagRules()
+				for _, tag := range tags {
+					finalTag := tag
+					if newTag, exists := canonicalRules[tag]; exists && newTag != "" {
+						finalTag = newTag
+					}
+					// Check if task already has this tag
+					hasTag := false
+					for _, existingTag := range task.Tags {
+						if existingTag == finalTag {
+							hasTag = true
+							break
+						}
+					}
+					if !hasTag {
+						matches[task.ID] = append(matches[task.ID], finalTag)
+					}
+				}
+			}
+		}
+	}
+
+	// Dedupe matches
+	for taskID, tags := range matches {
+		seen := make(map[string]bool)
+		unique := []string{}
+		for _, tag := range tags {
+			if !seen[tag] {
+				seen[tag] = true
+				unique = append(unique, tag)
+			}
+		}
+		matches[taskID] = unique
+	}
+
+	return matches
 }
 
 // handleTaskAnalysisDependencies handles dependency analysis
@@ -269,25 +1880,26 @@ func handleTaskAnalysisDependencies(ctx context.Context, params map[string]inter
 	// Include human-readable report in JSON for CLI/consumers
 	result["report"] = formatDependencyAnalysisText(result)
 
-	var output string
-	if outputFormat == "json" {
-		outputBytes, _ := json.MarshalIndent(result, "", "  ")
-		output = string(outputBytes)
-	} else {
-		output = formatDependencyAnalysisText(result)
-	}
-
 	outputPath, _ := params["output_path"].(string)
+	if outputFormat == "json" {
+		if outputPath != "" {
+			if err := os.MkdirAll(filepath.Dir(outputPath), 0755); err != nil {
+				return nil, fmt.Errorf("failed to create output dir: %w", err)
+			}
+		}
+		return response.FormatResult(result, outputPath)
+	}
+	output := formatDependencyAnalysisText(result)
 	if outputPath != "" {
+		if err := os.MkdirAll(filepath.Dir(outputPath), 0755); err != nil {
+			return nil, fmt.Errorf("failed to create output dir: %w", err)
+		}
 		if err := os.WriteFile(outputPath, []byte(output), 0644); err != nil {
 			return nil, fmt.Errorf("failed to save result: %w", err)
 		}
-		result["output_path"] = outputPath
+		output += fmt.Sprintf("\n\n[Saved to: %s]", outputPath)
 	}
-
-	return []framework.TextContent{
-		{Type: "text", Text: output},
-	}, nil
+	return []framework.TextContent{{Type: "text", Text: output}}, nil
 }
 
 // handleTaskAnalysisExecutionPlan handles execution plan: backlog (Todo + In Progress) in dependency order.
@@ -302,7 +1914,45 @@ func handleTaskAnalysisExecutionPlan(ctx context.Context, params map[string]inte
 		return nil, fmt.Errorf("failed to load tasks: %w", err)
 	}
 
-	orderedIDs, waves, details, err := BacklogExecutionOrder(tasks)
+	// Optional tag filter: restrict backlog to tasks with filter_tag or any of filter_tags
+	var backlogFilter map[string]bool
+	if ft, ok := params["filter_tag"].(string); ok && ft != "" {
+		backlogFilter = make(map[string]bool)
+		for _, t := range tasks {
+			if !IsBacklogStatus(t.Status) {
+				continue
+			}
+			for _, tag := range t.Tags {
+				if tag == ft {
+					backlogFilter[t.ID] = true
+					break
+				}
+			}
+		}
+	} else if fts, ok := params["filter_tags"].(string); ok && fts != "" {
+		allowed := strings.Split(fts, ",")
+		for i := range allowed {
+			allowed[i] = strings.TrimSpace(allowed[i])
+		}
+		backlogFilter = make(map[string]bool)
+		for _, t := range tasks {
+			if !IsBacklogStatus(t.Status) {
+				continue
+			}
+			for _, tag := range t.Tags {
+				for _, a := range allowed {
+					if a != "" && tag == a {
+						backlogFilter[t.ID] = true
+						break
+					}
+				}
+				if backlogFilter[t.ID] {
+					break
+				}
+			}
+		}
+	}
+	orderedIDs, waves, details, err := BacklogExecutionOrder(tasks, backlogFilter)
 	if err != nil {
 		return nil, fmt.Errorf("execution order: %w", err)
 	}
@@ -334,16 +1984,20 @@ func handleTaskAnalysisExecutionPlan(ctx context.Context, params map[string]inte
 		outputFormat = format
 	}
 
-	var output string
-	if outputFormat == "json" {
-		outputBytes, _ := json.MarshalIndent(result, "", "  ")
-		output = string(outputBytes)
-	} else {
-		output = formatExecutionPlanText(result)
-	}
-
 	outputPath, _ := params["output_path"].(string)
+	if outputFormat == "json" {
+		if outputPath != "" {
+			if err := os.MkdirAll(filepath.Dir(outputPath), 0755); err != nil {
+				return nil, fmt.Errorf("failed to create output dir: %w", err)
+			}
+		}
+		return response.FormatResult(result, outputPath)
+	}
+	output := formatExecutionPlanText(result)
 	if outputPath != "" {
+		if err := os.MkdirAll(filepath.Dir(outputPath), 0755); err != nil {
+			return nil, fmt.Errorf("failed to create output dir: %w", err)
+		}
 		if strings.HasSuffix(strings.ToLower(outputPath), ".md") {
 			md := formatExecutionPlanMarkdown(result, projectRoot)
 			if err := os.WriteFile(outputPath, []byte(md), 0644); err != nil {
@@ -354,12 +2008,9 @@ func handleTaskAnalysisExecutionPlan(ctx context.Context, params map[string]inte
 				return nil, fmt.Errorf("failed to save result: %w", err)
 			}
 		}
-		result["output_path"] = outputPath
+		output += fmt.Sprintf("\n\n[Saved to: %s]", outputPath)
 	}
-
-	return []framework.TextContent{
-		{Type: "text", Text: output},
-	}, nil
+	return []framework.TextContent{{Type: "text", Text: output}}, nil
 }
 
 func formatExecutionPlanText(result map[string]interface{}) string {
@@ -392,8 +2043,8 @@ func formatExecutionPlanMarkdown(result map[string]interface{}, projectRoot stri
 		for _, level := range levelOrder {
 			ids := w[level]
 			sb.WriteString(fmt.Sprintf("## Wave %d\n\n", level))
-			sb.WriteString("| ID | Content | Priority |\n")
-			sb.WriteString("|----|--------|----------|\n")
+			sb.WriteString("| ID | Content | Priority | Tags |\n")
+			sb.WriteString("|----|--------|----------|------|\n")
 			for _, id := range ids {
 				for _, d := range details {
 					if d.ID == id {
@@ -401,7 +2052,11 @@ func formatExecutionPlanMarkdown(result map[string]interface{}, projectRoot stri
 						if len(content) > 60 {
 							content = content[:57] + "..."
 						}
-						sb.WriteString(fmt.Sprintf("| %s | %s | %s |\n", d.ID, content, d.Priority))
+						tagsStr := strings.Join(d.Tags, ", ")
+						if tagsStr == "" {
+							tagsStr = "-"
+						}
+						sb.WriteString(fmt.Sprintf("| %s | %s | %s | %s |\n", d.ID, content, d.Priority, tagsStr))
 						break
 					}
 				}
@@ -458,25 +2113,26 @@ func handleTaskAnalysisParallelization(ctx context.Context, params map[string]in
 	// Include human-readable report in JSON for CLI/consumers
 	result["report"] = formatParallelizationAnalysisText(result)
 
-	var output string
-	if outputFormat == "json" {
-		outputBytes, _ := json.MarshalIndent(result, "", "  ")
-		output = string(outputBytes)
-	} else {
-		output = formatParallelizationAnalysisText(result)
-	}
-
 	outputPath, _ := params["output_path"].(string)
+	if outputFormat == "json" {
+		if outputPath != "" {
+			if err := os.MkdirAll(filepath.Dir(outputPath), 0755); err != nil {
+				return nil, fmt.Errorf("failed to create output dir: %w", err)
+			}
+		}
+		return response.FormatResult(result, outputPath)
+	}
+	output := formatParallelizationAnalysisText(result)
 	if outputPath != "" {
+		if err := os.MkdirAll(filepath.Dir(outputPath), 0755); err != nil {
+			return nil, fmt.Errorf("failed to create output dir: %w", err)
+		}
 		if err := os.WriteFile(outputPath, []byte(output), 0644); err != nil {
 			return nil, fmt.Errorf("failed to save result: %w", err)
 		}
-		result["output_path"] = outputPath
+		output += fmt.Sprintf("\n\n[Saved to: %s]", outputPath)
 	}
-
-	return []framework.TextContent{
-		{Type: "text", Text: output},
-	}, nil
+	return []framework.TextContent{{Type: "text", Text: output}}, nil
 }
 
 // handleTaskAnalysisFixMissingDeps removes invalid dependency refs from tasks and saves.
@@ -504,8 +2160,7 @@ func handleTaskAnalysisFixMissingDeps(ctx context.Context, params map[string]int
 			"message":     "No missing dependency refs to fix",
 			"total_tasks": len(tasks),
 		}
-		b, _ := json.MarshalIndent(out, "", "  ")
-		return []framework.TextContent{{Type: "text", Text: string(b)}}, nil
+		return response.FormatResult(out, "")
 	}
 
 	// Per task, collect missing dep IDs to remove
@@ -552,8 +2207,7 @@ func handleTaskAnalysisFixMissingDeps(ctx context.Context, params map[string]int
 		"removed":      fixed,
 		"message":      fmt.Sprintf("Removed %d invalid dependency ref(s) and saved", fixed),
 	}
-	b, _ := json.MarshalIndent(result, "", "  ")
-	return []framework.TextContent{{Type: "text", Text: string(b)}}, nil
+	return response.FormatResult(result, "")
 }
 
 // handleTaskAnalysisValidate reports missing dependency IDs and optionally hierarchy parse warnings.
@@ -603,8 +2257,7 @@ func handleTaskAnalysisValidate(ctx context.Context, params map[string]interface
 		}
 	}
 
-	b, _ := json.MarshalIndent(result, "", "  ")
-	return []framework.TextContent{{Type: "text", Text: string(b)}}, nil
+	return response.FormatResult(result, "")
 }
 
 // Helper functions for duplicates detection
@@ -849,6 +2502,8 @@ type TagAnalysis struct {
 	TagSuggestions   map[string][]string `json:"tag_suggestions"`
 	InconsistentTags map[string][]string `json:"inconsistent_tags"`
 	UnusedTags       []string            `json:"unused_tags"`
+	RenameRules      map[string]string   `json:"rename_rules,omitempty"`   // oldTag -> newTag
+	TagsToRemove     []string            `json:"tags_to_remove,omitempty"` // tags to delete
 }
 
 func analyzeTags(tasks []Todo2Task) TagAnalysis {
@@ -866,66 +2521,122 @@ func analyzeTags(tasks []Todo2Task) TagAnalysis {
 		}
 	}
 
-	// Find tasks that might need tags
+	// Suggest tags from semantic analysis of title + content + existing tags (all tasks)
+	existingSet := make(map[string]bool)
 	for _, task := range tasks {
-		if len(task.Tags) == 0 {
-			// Suggest tags based on content
-			suggestions := suggestTagsForTask(task)
-			if len(suggestions) > 0 {
-				analysis.TagSuggestions[task.ID] = suggestions
-			}
+		suggestions := suggestTagsForTask(task)
+		if len(suggestions) > 0 {
+			analysis.TagSuggestions[task.ID] = suggestions
 		}
+		_ = existingSet
 	}
 
 	return analysis
 }
 
 func suggestTagsForTask(task Todo2Task) []string {
-	suggestions := []string{}
-	content := strings.ToLower(task.Content + " " + task.LongDescription)
+	title := strings.ToLower(task.Content)
+	body := strings.ToLower(task.LongDescription)
+	content := title + " " + body
 
-	// Simple keyword-based suggestions
+	existingSet := make(map[string]bool)
+	for _, t := range task.Tags {
+		existingSet[strings.ToLower(t)] = true
+	}
+
 	keywords := map[string]string{
 		"bug": "bug", "fix": "bug", "error": "bug",
 		"feature": "feature", "add": "feature", "implement": "feature",
 		"refactor": "refactor", "cleanup": "refactor", "improve": "refactor",
 		"test": "testing", "testing": "testing",
-		"doc": "documentation", "documentation": "documentation",
+		"doc": "docs", "documentation": "docs", "docs": "docs",
 		"migration": "migration", "migrate": "migration",
+		"config": "config", "cli": "cli", "mcp": "mcp",
+		"security": "security", "performance": "performance", "database": "database",
 	}
 
+	seen := make(map[string]bool)
+	suggestions := []string{}
 	for keyword, tag := range keywords {
+		if existingSet[tag] || seen[tag] {
+			continue
+		}
 		if strings.Contains(content, keyword) {
+			seen[tag] = true
 			suggestions = append(suggestions, tag)
 		}
 	}
-
 	return suggestions
 }
 
 func applyTagRules(tasks []Todo2Task, rules map[string]string, analysis TagAnalysis) TagAnalysis {
-	// Apply rename rules
+	// Store rename rules for later application
+	if analysis.RenameRules == nil {
+		analysis.RenameRules = make(map[string]string)
+	}
+	// Apply rename rules to frequency map and store for task updates
 	for oldTag, newTag := range rules {
 		if count, ok := analysis.TagFrequency[oldTag]; ok {
 			delete(analysis.TagFrequency, oldTag)
 			analysis.TagFrequency[newTag] += count
+			analysis.RenameRules[oldTag] = newTag
 		}
 	}
 	return analysis
 }
 
 func removeTags(tasks []Todo2Task, tagsToRemove []string, analysis TagAnalysis) TagAnalysis {
-	removeSet := make(map[string]bool)
+	// Store tags to remove for later application
+	analysis.TagsToRemove = append(analysis.TagsToRemove, tagsToRemove...)
 	for _, tag := range tagsToRemove {
-		removeSet[tag] = true
 		delete(analysis.TagFrequency, tag)
 	}
 	return analysis
 }
 
 func applyTagChanges(tasks []Todo2Task, analysis TagAnalysis) []Todo2Task {
-	// Apply tag changes to tasks
-	// This is a simplified version - full implementation would apply all changes
+	removeSet := make(map[string]bool)
+	for _, tag := range analysis.TagsToRemove {
+		removeSet[tag] = true
+	}
+
+	for i := range tasks {
+		// Start with current tags (after renames/removals)
+		newTags := make([]string, 0, len(tasks[i].Tags))
+		seen := make(map[string]bool)
+
+		for _, tag := range tasks[i].Tags {
+			if removeSet[tag] {
+				continue
+			}
+			finalTag := tag
+			if newTag, ok := analysis.RenameRules[tag]; ok {
+				finalTag = newTag
+			}
+			if !seen[finalTag] {
+				seen[finalTag] = true
+				newTags = append(newTags, finalTag)
+			}
+		}
+
+		// Quick tag addition: merge semantic/keyword suggestions (don't duplicate)
+		for _, tag := range analysis.TagSuggestions[tasks[i].ID] {
+			if removeSet[tag] {
+				continue
+			}
+			finalTag := tag
+			if newTag, ok := analysis.RenameRules[tag]; ok {
+				finalTag = newTag
+			}
+			if !seen[finalTag] {
+				seen[finalTag] = true
+				newTags = append(newTags, finalTag)
+			}
+		}
+
+		tasks[i].Tags = newTags
+	}
+
 	return tasks
 }
 
@@ -1408,10 +3119,7 @@ Return JSON array with format: [{"task_id": "T-1", "level": "component", "compon
 				"parse_error":       err.Error(),
 				"response_snippet":  snippet,
 			}
-			outputBytes, _ := json.MarshalIndent(analysis, "", "  ")
-			return []framework.TextContent{
-				{Type: "text", Text: string(outputBytes)},
-			}, nil
+			return response.FormatResult(analysis, "")
 		}
 	}
 
@@ -1437,17 +3145,11 @@ Return JSON array with format: [{"task_id": "T-1", "level": "component", "compon
 		outputFormat = format
 	}
 
-	var output string
 	if outputFormat == "text" {
-		output = formatHierarchyAnalysisText(analysis)
-	} else {
-		outputBytes, _ := json.MarshalIndent(analysis, "", "  ")
-		output = string(outputBytes)
+		output := formatHierarchyAnalysisText(analysis)
+		return []framework.TextContent{{Type: "text", Text: output}}, nil
 	}
-
-	return []framework.TextContent{
-		{Type: "text", Text: output},
-	}, nil
+	return response.FormatResult(analysis, "")
 }
 
 func buildHierarchyRecommendations(classifications []map[string]interface{}, tasks []Todo2Task) []map[string]interface{} {

@@ -173,10 +173,7 @@ func handleHealthGit(ctx context.Context, params map[string]interface{}) ([]fram
 			"agent":     "local",
 			"timestamp": time.Now().Unix(),
 		}
-		resultJSON, _ := json.MarshalIndent(result, "", "  ")
-		return []framework.TextContent{
-			{Type: "text", Text: string(resultJSON)},
-		}, nil
+		return response.FormatResult(result, "")
 	}
 
 	// Get git status
@@ -380,14 +377,7 @@ func handleHealthDOD(ctx context.Context, params map[string]interface{}) ([]fram
 			"timestamp": time.Now().Unix(),
 		}
 
-		if outputPath != "" {
-			result["output_path"] = outputPath
-		}
-
-		resultJSON, _ := json.MarshalIndent(result, "", "  ")
-		return []framework.TextContent{
-			{Type: "text", Text: string(resultJSON)},
-		}, nil
+		return response.FormatResult(result, outputPath)
 	}
 
 	// General DOD check (if changed_files provided)

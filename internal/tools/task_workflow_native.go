@@ -10,6 +10,7 @@ import (
 	"github.com/davidl71/exarp-go/internal/config"
 	"github.com/davidl71/exarp-go/internal/database"
 	"github.com/davidl71/exarp-go/internal/framework"
+	"github.com/davidl71/mcp-go-core/pkg/mcp/response"
 )
 
 // handleTaskWorkflowNative handles task_workflow with native Go and FM chain (Apple → Ollama → stub)
@@ -36,6 +37,8 @@ func handleTaskWorkflowNative(ctx context.Context, params map[string]interface{}
 		return handleTaskWorkflowCreate(ctx, params)
 	case "sanity_check":
 		return handleTaskWorkflowSanityCheck(ctx, params)
+	case "fix_invalid_ids":
+		return handleTaskWorkflowFixInvalidIDs(ctx, params)
 	case "link_planning":
 		return handleTaskWorkflowLinkPlanning(ctx, params)
 	case "delete":
@@ -63,8 +66,7 @@ func handleTaskWorkflowFixDates(ctx context.Context, params map[string]interface
 			"sync_skipped":  true,
 			"sync_error":    err.Error(),
 		}
-		out, _ := json.MarshalIndent(result, "", "  ")
-		return []framework.TextContent{{Type: "text", Text: string(out)}}, nil
+		return response.FormatResult(result, "")
 	}
 	if err := SyncTodo2Tasks(projectRoot); err != nil {
 		result := map[string]interface{}{
@@ -73,8 +75,7 @@ func handleTaskWorkflowFixDates(ctx context.Context, params map[string]interface
 			"tasks_updated": updated,
 			"sync_error":    err.Error(),
 		}
-		out, _ := json.MarshalIndent(result, "", "  ")
-		return []framework.TextContent{{Type: "text", Text: string(out)}}, nil
+		return response.FormatResult(result, "")
 	}
 	// Regenerate overview so dates never show 1970
 	if overviewErr := WriteTodo2Overview(projectRoot); overviewErr != nil {
@@ -86,8 +87,7 @@ func handleTaskWorkflowFixDates(ctx context.Context, params map[string]interface
 		"tasks_updated": updated,
 		"synced":        true,
 	}
-	out, _ := json.MarshalIndent(result, "", "  ")
-	return []framework.TextContent{{Type: "text", Text: string(out)}}, nil
+	return response.FormatResult(result, "")
 }
 
 // handleTaskWorkflowClarify handles clarify action with default FM for question generation
@@ -164,10 +164,7 @@ func listTasksAwaitingClarification(ctx context.Context, params map[string]inter
 		"tasks":                        needingClarification,
 	}
 
-	output, _ := json.MarshalIndent(result, "", "  ")
-	return []framework.TextContent{
-		{Type: "text", Text: string(output)},
-	}, nil
+	return response.FormatResult(result, "")
 }
 
 // resolveTaskClarification resolves a single task clarification
@@ -226,10 +223,7 @@ func resolveTaskClarification(ctx context.Context, params map[string]interface{}
 			"message": "Clarification resolved",
 		}
 
-		output, _ := json.MarshalIndent(result, "", "  ")
-		return []framework.TextContent{
-			{Type: "text", Text: string(output)},
-		}, nil
+		return response.FormatResult(result, "")
 	}
 
 	// Fallback to file-based approach
@@ -298,10 +292,7 @@ func resolveTaskClarification(ctx context.Context, params map[string]interface{}
 		"message": "Clarification resolved",
 	}
 
-	output, _ := json.MarshalIndent(result, "", "  ")
-	return []framework.TextContent{
-		{Type: "text", Text: string(output)},
-	}, nil
+	return response.FormatResult(result, "")
 }
 
 // resolveBatchClarifications resolves multiple clarifications
@@ -372,10 +363,7 @@ func resolveBatchClarifications(ctx context.Context, params map[string]interface
 			"message":  fmt.Sprintf("Resolved %d clarifications", resolved),
 		}
 
-		output, _ := json.MarshalIndent(result, "", "  ")
-		return []framework.TextContent{
-			{Type: "text", Text: string(output)},
-		}, nil
+		return response.FormatResult(result, "")
 	}
 
 	// Fallback to file-based approach
@@ -444,41 +432,64 @@ func resolveBatchClarifications(ctx context.Context, params map[string]interface
 		"message":  fmt.Sprintf("Resolved %d clarifications", resolved),
 	}
 
-	output, _ := json.MarshalIndent(result, "", "  ")
-	return []framework.TextContent{
-		{Type: "text", Text: string(output)},
-	}, nil
+	return response.FormatResult(result, "")
 }
 
-// handleTaskWorkflowDelete deletes a task by ID (e.g. wrong project). Syncs DB to JSON after delete.
+// handleTaskWorkflowDelete deletes one or more tasks by ID. Accepts task_id (single) or task_ids (comma-separated or array). Syncs DB to JSON once after all deletes.
 func handleTaskWorkflowDelete(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
-	taskID, _ := params["task_id"].(string)
-	if taskID == "" {
-		return nil, fmt.Errorf("task_id is required for delete action")
+	var ids []string
+	if taskIDsRaw, ok := params["task_ids"]; ok && taskIDsRaw != nil {
+		switch v := taskIDsRaw.(type) {
+		case string:
+			if v != "" {
+				ids = strings.Split(strings.TrimSpace(v), ",")
+				for i := range ids {
+					ids[i] = strings.TrimSpace(ids[i])
+				}
+			}
+		case []interface{}:
+			for _, x := range v {
+				if s, ok := x.(string); ok && s != "" {
+					ids = append(ids, strings.TrimSpace(s))
+				}
+			}
+		}
 	}
-	if err := database.DeleteTask(ctx, taskID); err != nil {
-		return nil, fmt.Errorf("delete task: %w", err)
+	if len(ids) == 0 {
+		if taskID, _ := params["task_id"].(string); taskID != "" {
+			ids = []string{strings.TrimSpace(taskID)}
+		}
+	}
+	if len(ids) == 0 {
+		return nil, fmt.Errorf("task_id or task_ids is required for delete action")
+	}
+	var deleted, failed []string
+	for _, id := range ids {
+		if id == "" {
+			continue
+		}
+		if err := database.DeleteTask(ctx, id); err != nil {
+			failed = append(failed, id+": "+err.Error())
+			continue
+		}
+		deleted = append(deleted, id)
 	}
 	projectRoot, err := FindProjectRoot()
 	if err != nil {
-		result := map[string]interface{}{"success": true, "method": "database", "task_id": taskID, "deleted": true, "sync_skipped": true}
-		out, _ := json.MarshalIndent(result, "", "  ")
-		return []framework.TextContent{{Type: "text", Text: string(out)}}, nil
+		result := map[string]interface{}{"success": len(failed) == 0, "method": "database", "deleted": deleted, "failed": failed, "sync_skipped": true}
+		return response.FormatResult(result, "")
 	}
 	tasks, err := LoadTodo2Tasks(projectRoot)
 	if err != nil {
-		result := map[string]interface{}{"success": true, "method": "database", "task_id": taskID, "deleted": true, "sync_skipped": true}
-		out, _ := json.MarshalIndent(result, "", "  ")
-		return []framework.TextContent{{Type: "text", Text: string(out)}}, nil
+		result := map[string]interface{}{"success": len(failed) == 0, "method": "database", "deleted": deleted, "failed": failed, "sync_skipped": true}
+		return response.FormatResult(result, "")
 	}
 	if err := SaveTodo2Tasks(projectRoot, tasks); err != nil {
-		result := map[string]interface{}{"success": true, "method": "database", "task_id": taskID, "deleted": true, "sync_error": err.Error()}
-		out, _ := json.MarshalIndent(result, "", "  ")
-		return []framework.TextContent{{Type: "text", Text: string(out)}}, nil
+		result := map[string]interface{}{"success": len(failed) == 0, "method": "database", "deleted": deleted, "failed": failed, "sync_error": err.Error()}
+		return response.FormatResult(result, "")
 	}
-	result := map[string]interface{}{"success": true, "method": "database", "task_id": taskID, "deleted": true, "synced": true}
-	out, _ := json.MarshalIndent(result, "", "  ")
-	return []framework.TextContent{{Type: "text", Text: string(out)}}, nil
+	result := map[string]interface{}{"success": len(failed) == 0, "method": "database", "deleted": deleted, "failed": failed, "synced": true}
+	return response.FormatResult(result, "")
 }
 
 // generateClarificationQuestion uses the default FM to generate clarification questions

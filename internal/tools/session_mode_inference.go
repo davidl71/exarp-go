@@ -2,13 +2,13 @@ package tools
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"os"
 	"strings"
 	"time"
 
 	"github.com/davidl71/exarp-go/internal/framework"
+	"github.com/davidl71/mcp-go-core/pkg/mcp/response"
 )
 
 // SessionMode represents the inferred session mode
@@ -41,13 +41,11 @@ func HandleInferSessionModeNative(ctx context.Context, params map[string]interfa
 	// Check cache (within 2 minutes) unless forcing recompute
 	if !forceRecompute && lastInferenceCache != nil {
 		if time.Since(lastInferenceTime) < 2*time.Minute {
-			result, err := json.MarshalIndent(lastInferenceCache, "", "  ")
+			m, err := response.ConvertToMap(lastInferenceCache)
 			if err != nil {
 				return nil, fmt.Errorf("failed to marshal cached result: %w", err)
 			}
-			return []framework.TextContent{
-				{Type: "text", Text: string(result)},
-			}, nil
+			return response.FormatResult(m, "")
 		}
 	}
 
@@ -100,13 +98,11 @@ func handleInferSessionModeNative(ctx context.Context, params map[string]interfa
 
 // marshalInferenceResult marshals the inference result to JSON
 func marshalInferenceResult(result ModeInferenceResult) ([]framework.TextContent, error) {
-	data, err := json.MarshalIndent(result, "", "  ")
+	m, err := response.ConvertToMap(result)
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal inference result: %w", err)
 	}
-	return []framework.TextContent{
-		{Type: "text", Text: string(data)},
-	}, nil
+	return response.FormatResult(m, "")
 }
 
 // inferModeFromTasks infers session mode from Todo2 task patterns
