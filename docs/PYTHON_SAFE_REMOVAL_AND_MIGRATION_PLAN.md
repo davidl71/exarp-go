@@ -68,14 +68,15 @@ After removing bridge/context, bridge still has: execute_tool, execute_tool_daem
 2. **Keep mlx bridge path**  
    Go calls the bridge for mlx when native generate is unavailable. Keep consolidated.mlx and bridge routing for "mlx" until mlx generate is fully native or deprecated.
 
-### Phase C — Python automation path (larger decision)
+### Phase C — Python automation path (larger decision) ✅ Done 2026-01-29
 
-1. **Deprecate Python automation**  
+1. **Deprecate Python automation** ✅  
    - Document: "For daily/sprint automation, use exarp-go -tool automation (Go). Python automate_daily is deprecated."  
+   - Added to README (Automation section), AGILE_DAILY_STANDUP_IMPLEMENTATION.md, and this plan.  
    - Do not delete project_management_automation/ yet; keep for mlx and any direct Python tool use.
 
-2. **Optional: remove Python daily orchestrator**  
-   - If we deprecate Python automation: stop recommending `python -m project_management_automation.scripts.automate_daily`.  
+2. **Optional: remove Python daily orchestrator** (deferred)  
+   - Stop recommending `python -m project_management_automation.scripts.automate_daily` — done in docs.  
    - Removing automate_daily.py and its callers (e.g. daily_automation.py) would allow removing many automate_*.py scripts and their tool implementations in one go.  
    - **Recommendation:** Defer until Go automation fully replaces all desired Python daily tasks and duplicate_test_names is either migrated to Go or dropped.
 
@@ -105,7 +106,7 @@ After removing bridge/context, bridge still has: execute_tool, execute_tool_daem
 | **Update** | context_tool.py: return native-only message | This session |
 | **Done** | execute_tool.py: drop "task_workflow" branch | Phase B ✅ |
 | **Keep** | bridge + consolidated.mlx, statistics_bridge, proto, agent_evaluation | Until mlx generate is native or deprecated |
-| **Deprecate (doc only)** | Python automate_daily | Phase C |
+| **Deprecate (doc only)** | Python automate_daily | Phase C ✅ |
 | **Decide** | duplicate_test_names: Go vs drop vs keep Python | Phase D |
 
 ---
