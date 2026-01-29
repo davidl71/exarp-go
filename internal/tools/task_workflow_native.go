@@ -36,6 +36,12 @@ func handleTaskWorkflowNative(ctx context.Context, params map[string]interface{}
 		return handleTaskWorkflowCreate(ctx, params)
 	case "sanity_check":
 		return handleTaskWorkflowSanityCheck(ctx, params)
+	case "link_planning":
+		return handleTaskWorkflowLinkPlanning(ctx, params)
+	case "delete":
+		return handleTaskWorkflowDelete(ctx, params)
+	case "update":
+		return handleTaskWorkflowUpdate(ctx, params)
 	default:
 		return nil, fmt.Errorf("unknown action: %s", action)
 	}
@@ -442,6 +448,37 @@ func resolveBatchClarifications(ctx context.Context, params map[string]interface
 	return []framework.TextContent{
 		{Type: "text", Text: string(output)},
 	}, nil
+}
+
+// handleTaskWorkflowDelete deletes a task by ID (e.g. wrong project). Syncs DB to JSON after delete.
+func handleTaskWorkflowDelete(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
+	taskID, _ := params["task_id"].(string)
+	if taskID == "" {
+		return nil, fmt.Errorf("task_id is required for delete action")
+	}
+	if err := database.DeleteTask(ctx, taskID); err != nil {
+		return nil, fmt.Errorf("delete task: %w", err)
+	}
+	projectRoot, err := FindProjectRoot()
+	if err != nil {
+		result := map[string]interface{}{"success": true, "method": "database", "task_id": taskID, "deleted": true, "sync_skipped": true}
+		out, _ := json.MarshalIndent(result, "", "  ")
+		return []framework.TextContent{{Type: "text", Text: string(out)}}, nil
+	}
+	tasks, err := LoadTodo2Tasks(projectRoot)
+	if err != nil {
+		result := map[string]interface{}{"success": true, "method": "database", "task_id": taskID, "deleted": true, "sync_skipped": true}
+		out, _ := json.MarshalIndent(result, "", "  ")
+		return []framework.TextContent{{Type: "text", Text: string(out)}}, nil
+	}
+	if err := SaveTodo2Tasks(projectRoot, tasks); err != nil {
+		result := map[string]interface{}{"success": true, "method": "database", "task_id": taskID, "deleted": true, "sync_error": err.Error()}
+		out, _ := json.MarshalIndent(result, "", "  ")
+		return []framework.TextContent{{Type: "text", Text: string(out)}}, nil
+	}
+	result := map[string]interface{}{"success": true, "method": "database", "task_id": taskID, "deleted": true, "synced": true}
+	out, _ := json.MarshalIndent(result, "", "  ")
+	return []framework.TextContent{{Type: "text", Text: string(out)}}, nil
 }
 
 // generateClarificationQuestion uses the default FM to generate clarification questions

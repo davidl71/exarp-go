@@ -537,7 +537,7 @@ func showUsage() {
 	_, _ = fmt.Println("Task Commands:")
 	_, _ = fmt.Println("  task list [--status <status>] [--priority <priority>] [--tag <tag>]")
 	_, _ = fmt.Println("  task status <task-id>")
-	_, _ = fmt.Println("  task update <task-id> --new-status <status>")
+	_, _ = fmt.Println("  task update <task-id> [--new-status <status>] [--new-priority <priority>]")
 	_, _ = fmt.Println("  task create <name> [--description <text>] [--priority <priority>]")
 	_, _ = fmt.Println("  task show <task-id>")
 	_, _ = fmt.Println("  task help")
@@ -558,6 +558,7 @@ func showUsage() {
 	_, _ = fmt.Println("  exarp-go tui \"In Progress\"")
 	_, _ = fmt.Println("  exarp-go task list --status \"In Progress\"")
 	_, _ = fmt.Println("  exarp-go task update T-1 --new-status \"Done\"")
+	_, _ = fmt.Println("  exarp-go task update T-1 --new-priority high")
 	_, _ = fmt.Println("  exarp-go -completion bash > /usr/local/etc/bash_completion.d/exarp-go")
 	_, _ = fmt.Println()
 }

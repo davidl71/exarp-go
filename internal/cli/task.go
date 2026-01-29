@@ -27,10 +27,12 @@ func handleTaskCommand(server framework.MCPServer, args []string) error {
 		return handleTaskCreate(server, args[1:])
 	case "show":
 		return handleTaskShow(server, args[1:])
+	case "delete":
+		return handleTaskDelete(server, args[1:])
 	case "help":
 		return showTaskUsage()
 	default:
-		return fmt.Errorf("unknown task command: %s (use: list, status, update, create, show, help)", cmd)
+		return fmt.Errorf("unknown task command: %s (use: list, status, update, create, show, delete, help)", cmd)
 	}
 }
 
@@ -121,7 +123,7 @@ func handleTaskUpdate(server framework.MCPServer, args []string) error {
 	}
 
 	var taskIDs []string
-	var oldStatus, newStatus string
+	var oldStatus, newStatus, newPriority string
 	var autoApply bool
 
 	// Parse arguments
@@ -134,6 +136,9 @@ func handleTaskUpdate(server framework.MCPServer, args []string) error {
 		case arg == "--new-status" && i+1 < len(args):
 			newStatus = args[i+1]
 			i++
+		case arg == "--new-priority" && i+1 < len(args):
+			newPriority = args[i+1]
+			i++
 		case arg == "--ids" && i+1 < len(args):
 			idsStr := args[i+1]
 			taskIDs = parseTaskIDs(idsStr)
@@ -144,6 +149,8 @@ func handleTaskUpdate(server framework.MCPServer, args []string) error {
 			oldStatus = strings.TrimPrefix(arg, "--status=")
 		case strings.HasPrefix(arg, "--new-status="):
 			newStatus = strings.TrimPrefix(arg, "--new-status=")
+		case strings.HasPrefix(arg, "--new-priority="):
+			newPriority = strings.TrimPrefix(arg, "--new-priority=")
 		case strings.HasPrefix(arg, "--ids="):
 			taskIDs = parseTaskIDs(strings.TrimPrefix(arg, "--ids="))
 		case strings.HasPrefix(arg, "T-"):
@@ -161,30 +168,46 @@ func handleTaskUpdate(server framework.MCPServer, args []string) error {
 		return fmt.Errorf("task update requires task ID(s) or --status flag")
 	}
 
-	if newStatus == "" {
-		return fmt.Errorf("task update requires --new-status flag")
+	if newStatus == "" && newPriority == "" {
+		return fmt.Errorf("task update requires --new-status and/or --new-priority")
 	}
 
-	// Build task_workflow args
+	// Reprioritization or combined update: use action "update" (task_ids + optional new_status + priority)
+	if newPriority != "" {
+		if len(taskIDs) == 0 {
+			return fmt.Errorf("task update with --new-priority requires task ID(s) or --ids")
+		}
+		idsJSON, err := json.Marshal(taskIDs)
+		if err != nil {
+			return fmt.Errorf("failed to marshal task IDs: %w", err)
+		}
+		toolArgs := map[string]interface{}{
+			"action":   "update",
+			"task_ids": string(idsJSON),
+			"priority": newPriority,
+		}
+		if newStatus != "" {
+			toolArgs["new_status"] = newStatus
+		}
+		return executeTaskWorkflow(server, toolArgs)
+	}
+
+	// Status-only update: use action "approve" (supports status filter + task_ids)
 	toolArgs := map[string]interface{}{
 		"action":     "approve",
 		"new_status": newStatus,
 		"auto_apply": autoApply,
 	}
-
 	if oldStatus != "" {
 		toolArgs["status"] = oldStatus
 	}
-
 	if len(taskIDs) > 0 {
-		// Convert task IDs to JSON array string
 		idsJSON, err := json.Marshal(taskIDs)
 		if err != nil {
 			return fmt.Errorf("failed to marshal task IDs: %w", err)
 		}
 		toolArgs["task_ids"] = string(idsJSON)
 	}
-
 	return executeTaskWorkflow(server, toolArgs)
 }
 
@@ -265,6 +288,22 @@ func handleTaskShow(server framework.MCPServer, args []string) error {
 	return executeTaskWorkflow(server, toolArgs)
 }
 
+// handleTaskDelete handles "task delete <task-id>" command
+func handleTaskDelete(server framework.MCPServer, args []string) error {
+	if len(args) == 0 {
+		return fmt.Errorf("task delete requires a task ID")
+	}
+
+	taskID := args[0]
+
+	toolArgs := map[string]interface{}{
+		"action":  "delete",
+		"task_id": taskID,
+	}
+
+	return executeTaskWorkflow(server, toolArgs)
+}
+
 // executeTaskWorkflow executes the task_workflow tool with given arguments
 func executeTaskWorkflow(server framework.MCPServer, toolArgs map[string]interface{}) error {
 	ctx := context.Background()
@@ -321,6 +360,7 @@ func showTaskUsage() error {
 	_, _ = fmt.Println("  update [options]         Update task status")
 	_, _ = fmt.Println("  create <name> [options]  Create new task")
 	_, _ = fmt.Println("  show <task-id>          Show full task details")
+	_, _ = fmt.Println("  delete <task-id>        Delete a task (e.g. wrong project)")
 	_, _ = fmt.Println("  help                    Show this help")
 	_, _ = fmt.Println()
 	_, _ = fmt.Println("List Options:")
@@ -332,7 +372,8 @@ func showTaskUsage() error {
 	_, _ = fmt.Println("Update Options:")
 	_, _ = fmt.Println("  <task-id>               Task ID(s) to update (e.g., T-1 or T-1,T-2)")
 	_, _ = fmt.Println("  --status <status>       Current status (for batch updates)")
-	_, _ = fmt.Println("  --new-status <status>   New status (required)")
+	_, _ = fmt.Println("  --new-status <status>   New status")
+	_, _ = fmt.Println("  --new-priority <pri>    New priority (low, medium, high); requires task ID(s)")
 	_, _ = fmt.Println("  --ids <ids>             Comma-separated task IDs")
 	_, _ = fmt.Println("  --auto-apply            Auto-apply changes without confirmation")
 	_, _ = fmt.Println()
@@ -346,6 +387,7 @@ func showTaskUsage() error {
 	_, _ = fmt.Println("  exarp-go task list --status \"In Progress\"")
 	_, _ = fmt.Println("  exarp-go task status T-123")
 	_, _ = fmt.Println("  exarp-go task update T-1 --new-status \"Done\"")
+	_, _ = fmt.Println("  exarp-go task update T-1 --new-priority high")
 	_, _ = fmt.Println("  exarp-go task update --status \"Todo\" --new-status \"Done\" --ids \"T-1,T-2\"")
 	_, _ = fmt.Println("  exarp-go task create \"Fix bug\" --description \"Fix the bug\" --priority \"high\"")
 	_, _ = fmt.Println("  exarp-go task show T-123")
