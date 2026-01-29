@@ -168,14 +168,11 @@ func handleTaskWorkflowApprove(ctx context.Context, params map[string]interface{
 	}
 
 	// Filter tasks to approve
-	candidates := []Todo2Task{}
+	candidates := []*models.Todo2Task{}
 	for _, task := range tasks {
-		// Filter by status
 		if normalizeStatus(task.Status) != status {
 			continue
 		}
-
-		// Filter by specific task IDs if provided
 		if len(taskIDs) > 0 {
 			found := false
 			for _, id := range taskIDs {
@@ -188,8 +185,6 @@ func handleTaskWorkflowApprove(ctx context.Context, params map[string]interface{
 				continue
 			}
 		}
-
-		// Filter by tag if provided
 		if filterTag != "" {
 			hasTag := false
 			for _, tag := range task.Tags {
@@ -202,8 +197,6 @@ func handleTaskWorkflowApprove(ctx context.Context, params map[string]interface{
 				continue
 			}
 		}
-
-		// Filter by clarification requirement if needed
 		if clarificationNone {
 			minDescLen := config.TaskMinDescriptionLength()
 			needsClarification := task.LongDescription == "" || len(task.LongDescription) < minDescLen
@@ -211,8 +204,7 @@ func handleTaskWorkflowApprove(ctx context.Context, params map[string]interface{
 				continue
 			}
 		}
-
-		candidates = append(candidates, task)
+		candidates = append(candidates, &task)
 	}
 
 	if dryRun {
@@ -224,7 +216,6 @@ func handleTaskWorkflowApprove(ctx context.Context, params map[string]interface{
 				"status":  task.Status,
 			}
 		}
-
 		result := map[string]interface{}{
 			"success":        true,
 			"method":         "file",
@@ -233,43 +224,177 @@ func handleTaskWorkflowApprove(ctx context.Context, params map[string]interface{
 			"task_ids":       extractTaskIDs(candidates),
 			"tasks":          taskList,
 		}
-
 		return response.FormatResult(result, "")
 	}
 
-	// Update tasks
-	approvedIDs := []string{}
+	// Update tasks (file-based)
 	updatedCount := 0
-	for i := range tasks {
-		shouldApprove := false
-		for _, candidate := range candidates {
-			if tasks[i].ID == candidate.ID {
-				shouldApprove = true
+	for _, task := range candidates {
+		task.Status = newStatus
+		// Find index in tasks and update
+		for i := range tasks {
+			if tasks[i].ID == task.ID {
+				tasks[i].Status = newStatus
+				if err := SaveTodo2Tasks(projectRoot, tasks); err != nil {
+					return nil, fmt.Errorf("failed to save tasks: %w", err)
+				}
+				updatedCount++
 				break
 			}
 		}
-
-		if shouldApprove {
-			tasks[i].Status = newStatus
-			approvedIDs = append(approvedIDs, tasks[i].ID)
-			updatedCount++
-		}
-	}
-
-	// Save updated tasks
-	if err := SaveTodo2Tasks(projectRoot, tasks); err != nil {
-		return handleTaskWorkflowApproveMCP(ctx, params)
 	}
 
 	result := map[string]interface{}{
 		"success":        true,
 		"method":         "file",
 		"approved_count": updatedCount,
-		"task_ids":       approvedIDs,
+		"task_ids":       extractTaskIDs(candidates),
 	}
-
 	return response.FormatResult(result, "")
 }
+
+// handleTaskWorkflowUpdate updates task(s) by ID with optional new_status and/or priority.
+// Uses database first; syncs DB to JSON after update.
+// Params: task_ids (required, array or JSON string), new_status (optional), priority (optional).
+func handleTaskWorkflowUpdate(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
+	var taskIDs []string
+	if ids, ok := params["task_ids"].(string); ok && ids != "" {
+		if err := json.Unmarshal([]byte(ids), &taskIDs); err != nil {
+			taskIDs = strings.Split(ids, ",")
+			for i := range taskIDs {
+				taskIDs[i] = strings.TrimSpace(taskIDs[i])
+			}
+		}
+	} else if idsList, ok := params["task_ids"].([]interface{}); ok {
+		taskIDs = make([]string, 0, len(idsList))
+		for _, id := range idsList {
+			if idStr, ok := id.(string); ok {
+				taskIDs = append(taskIDs, idStr)
+			}
+		}
+	}
+	if len(taskIDs) == 0 {
+		return nil, fmt.Errorf("update action requires task_ids")
+	}
+
+	newStatus, _ := params["new_status"].(string)
+	if newStatus != "" {
+		newStatus = normalizeStatus(newStatus)
+	}
+	priority, _ := params["priority"].(string)
+	if priority != "" {
+		priority = normalizePriority(priority)
+	}
+	if newStatus == "" && priority == "" {
+		return nil, fmt.Errorf("update action requires at least one of new_status or priority")
+	}
+
+	// Try database first
+	if db, err := database.GetDB(); err == nil && db != nil {
+		updatedIDs := []string{}
+		updatedCount := 0
+		for _, id := range taskIDs {
+			task, err := database.GetTask(ctx, id)
+			if err != nil {
+				continue
+			}
+			if newStatus != "" {
+				task.Status = newStatus
+			}
+			if priority != "" {
+				task.Priority = priority
+			}
+			if err := database.UpdateTask(ctx, task); err != nil {
+				continue
+			}
+			updatedIDs = append(updatedIDs, id)
+			updatedCount++
+		}
+
+		// Sync DB to JSON
+		projectRoot, syncErr := FindProjectRoot()
+		if syncErr == nil {
+			_ = SyncTodo2Tasks(projectRoot)
+		}
+
+		result := map[string]interface{}{
+			"success":       true,
+			"method":        "database",
+			"updated_count": updatedCount,
+			"task_ids":      updatedIDs,
+		}
+		return response.FormatResult(result, "")
+	}
+
+	// Fallback: file-based load, update, save
+	projectRoot, err := FindProjectRoot()
+	if err != nil {
+		return nil, fmt.Errorf("failed to find project root: %w", err)
+	}
+	tasks, err := LoadTodo2Tasks(projectRoot)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load tasks: %w", err)
+	}
+	taskMap := make(map[string]*models.Todo2Task)
+	for i := range tasks {
+		taskMap[tasks[i].ID] = &tasks[i]
+	}
+	updatedIDs := []string{}
+	for _, id := range taskIDs {
+		t, ok := taskMap[id]
+		if !ok {
+			continue
+		}
+		if newStatus != "" {
+			t.Status = newStatus
+		}
+		if priority != "" {
+			t.Priority = priority
+		}
+		updatedIDs = append(updatedIDs, id)
+	}
+	if len(updatedIDs) == 0 {
+		result := map[string]interface{}{
+			"success":       true,
+			"method":        "file",
+			"updated_count": 0,
+			"task_ids":      []string{},
+		}
+		return response.FormatResult(result, "")
+	}
+	if err := SaveTodo2Tasks(projectRoot, tasks); err != nil {
+		return nil, fmt.Errorf("failed to save tasks: %w", err)
+	}
+	result := map[string]interface{}{
+		"success":       true,
+		"method":        "file",
+		"updated_count": len(updatedIDs),
+		"task_ids":      updatedIDs,
+	}
+	return response.FormatResult(result, "")
+}
+
+// extractTaskIDs returns task IDs from a slice of *Todo2Task (for approve file fallback).
+func extractTaskIDs(candidates []*models.Todo2Task) []string {
+	ids := make([]string, len(candidates))
+	for i, t := range candidates {
+		ids[i] = t.ID
+	}
+	return ids
+}
+
+// handleTaskWorkflowList is moved below to avoid duplicating the file-based approve loop.
+func handleTaskWorkflowListPlaceholder(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
+	tasks, err := LoadTodo2Tasks(ctx.Value("projectRoot").(string))
+	if err != nil {
+		return nil, err
+	}
+	_ = params
+	_ = tasks
+	return nil, nil
+}
+
+var _ = handleTaskWorkflowListPlaceholder // avoid unused; real list is handleTaskWorkflowList
 
 // handleTaskWorkflowApproveMCP fallback to Todo2 MCP tools when file access fails
 func handleTaskWorkflowApproveMCP(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
@@ -277,15 +402,6 @@ func handleTaskWorkflowApproveMCP(ctx context.Context, params map[string]interfa
 	// For now, return an error indicating MCP fallback is needed
 	// The Python bridge will handle it via consolidated_workflow.py
 	return nil, fmt.Errorf("approve action: file access failed, falling back to Python bridge")
-}
-
-// extractTaskIDs extracts IDs from a slice of tasks
-func extractTaskIDs(tasks []Todo2Task) []string {
-	ids := make([]string, len(tasks))
-	for i, task := range tasks {
-		ids[i] = task.ID
-	}
-	return ids
 }
 
 // handleTaskWorkflowList handles list sub-action for displaying tasks
@@ -352,7 +468,7 @@ func handleTaskWorkflowList(ctx context.Context, params map[string]interface{}) 
 
 	// Optional: sort by execution order (dependency order)
 	if order, _ := params["order"].(string); order == "execution" || order == "dependency" {
-		orderedIDs, _, _, err := BacklogExecutionOrder(tasks)
+		orderedIDs, _, _, err := BacklogExecutionOrder(tasks, nil)
 		if err == nil {
 			filteredMap := make(map[string]Todo2Task)
 			for _, t := range filtered {
@@ -1023,6 +1139,145 @@ func formatStaleTasksFromPtrs(tasks []*models.Todo2Task) []map[string]interface{
 		}
 	}
 	return result
+}
+
+// allowedStatusForLinkPlanning restricts link_planning to Todo and In Progress only.
+var allowedStatusForLinkPlanning = map[string]bool{
+	"Todo":        true,
+	"In Progress": true,
+}
+
+// handleTaskWorkflowLinkPlanning sets planning_doc and/or epic_id on existing tasks.
+// Only tasks with status Todo or In Progress are updated.
+func handleTaskWorkflowLinkPlanning(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
+	projectRoot, err := FindProjectRoot()
+	if err != nil {
+		return nil, fmt.Errorf("failed to find project root: %w", err)
+	}
+
+	planningDoc, _ := params["planning_doc"].(string)
+	epicID, _ := params["epic_id"].(string)
+	if planningDoc == "" && epicID == "" {
+		return nil, fmt.Errorf("at least one of planning_doc or epic_id is required for link_planning")
+	}
+
+	if planningDoc != "" {
+		if err := ValidatePlanningLink(projectRoot, planningDoc); err != nil {
+			return nil, fmt.Errorf("invalid planning_doc: %w", err)
+		}
+	}
+
+	// Resolve task IDs: task_id (single) or task_ids (comma or JSON array)
+	var uniqueIDs []string
+	seen := make(map[string]bool)
+	if tid, ok := params["task_id"].(string); ok && tid != "" {
+		tid = strings.TrimSpace(tid)
+		if !seen[tid] {
+			seen[tid] = true
+			uniqueIDs = append(uniqueIDs, tid)
+		}
+	}
+	if ids, ok := params["task_ids"].(string); ok && ids != "" {
+		var parsed []string
+		if json.Unmarshal([]byte(ids), &parsed) == nil {
+			for _, id := range parsed {
+				id = strings.TrimSpace(id)
+				if id != "" && !seen[id] {
+					seen[id] = true
+					uniqueIDs = append(uniqueIDs, id)
+				}
+			}
+		} else {
+			for _, id := range strings.Split(ids, ",") {
+				id = strings.TrimSpace(id)
+				if id != "" && !seen[id] {
+					seen[id] = true
+					uniqueIDs = append(uniqueIDs, id)
+				}
+			}
+		}
+	}
+	if len(uniqueIDs) == 0 {
+		return nil, fmt.Errorf("task_id or task_ids is required for link_planning")
+	}
+
+	// Load all tasks for lookup and (if no DB) for file-based save
+	tasks, err := LoadTodo2Tasks(projectRoot)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load tasks: %w", err)
+	}
+	taskMap := make(map[string]Todo2Task)
+	for _, t := range tasks {
+		taskMap[t.ID] = t
+	}
+
+	if epicID != "" {
+		if err := ValidateTaskReference(epicID, tasks); err != nil {
+			return nil, fmt.Errorf("invalid epic_id: %w", err)
+		}
+	}
+
+	updatedIDs := make([]string, 0)
+	var skippedStatus []string
+	db, dbErr := database.GetDB()
+	useDB := dbErr == nil && db != nil
+
+	for _, id := range uniqueIDs {
+		task, ok := taskMap[id]
+		if !ok {
+			skippedStatus = append(skippedStatus, id+": not found")
+			continue
+		}
+		norm := normalizeStatus(strings.TrimSpace(task.Status))
+		if !allowedStatusForLinkPlanning[norm] {
+			skippedStatus = append(skippedStatus, id+": status is "+norm+", only Todo or In Progress allowed")
+			continue
+		}
+
+		linkMeta := GetPlanningLinkMetadata(&task)
+		if linkMeta == nil {
+			linkMeta = &PlanningLinkMetadata{}
+		}
+		if planningDoc != "" {
+			linkMeta.PlanningDoc = planningDoc
+		}
+		if epicID != "" {
+			linkMeta.EpicID = epicID
+		}
+		SetPlanningLinkMetadata(&task, linkMeta)
+
+		if useDB {
+			if err := database.UpdateTask(ctx, &task); err != nil {
+				skippedStatus = append(skippedStatus, id+": update failed: "+err.Error())
+				continue
+			}
+		} else {
+			for i := range tasks {
+				if tasks[i].ID == id {
+					tasks[i].Metadata = task.Metadata
+					break
+				}
+			}
+		}
+		updatedIDs = append(updatedIDs, id)
+	}
+
+	if !useDB && len(updatedIDs) > 0 {
+		if err := SaveTodo2Tasks(projectRoot, tasks); err != nil {
+			return nil, fmt.Errorf("failed to save tasks: %w", err)
+		}
+	}
+
+	result := map[string]interface{}{
+		"success":       true,
+		"method":        "native_go",
+		"action":        "link_planning",
+		"updated_count": len(updatedIDs),
+		"updated_ids":   updatedIDs,
+		"skipped":       skippedStatus,
+	}
+	out, _ := json.MarshalIndent(result, "", "  ")
+	return []framework.TextContent{{Type: "text", Text: string(out)}}, nil
 }
 
 // handleTaskWorkflowCreate handles create action for creating new tasks
