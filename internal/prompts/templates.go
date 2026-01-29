@@ -254,6 +254,316 @@ Use: task_analysis(action="duplicates", similarity_threshold=0.85, auto_fix=Fals
 	"mode": "Suggest the optimal Cursor IDE mode (Agent vs Ask) for a task.\n\n**When to use this prompt:**\n- Before starting a new task to choose the right mode\n- When you're unsure which mode is more efficient\n- To explain mode differences to users\n\n**Usage:**\nrecommend_workflow_mode(task_description=\"your task here\")\n\n**Mode Guidelines:**\n\n🤖 **AGENT Mode** - Best for:\n- Multi-file changes and refactoring\n- Feature implementation from scratch\n- Scaffolding and code generation\n- Automated workflows with many steps\n- Infrastructure and deployment tasks\n\n💬 **ASK Mode** - Best for:\n- Questions and explanations\n- Code review and understanding\n- Single-file edits and fixes\n- Debugging with user guidance\n- Learning and documentation\n\n**Example Analysis:**\n```\nTask: \"Implement user authentication with OAuth2\"\n→ Recommends AGENT (keywords: implement, OAuth2 integration)\n→ Confidence: 85%\n→ Reason: Multi-file implementation task\n\nTask: \"Explain how the auth module works\"\n→ Recommends ASK (keywords: explain, understand)\n→ Confidence: 90%\n→ Reason: Question/explanation request\n```\n\n**How to Switch Modes:**\n1. Look at the top of the chat window\n2. Click the mode selector dropdown\n3. Choose \"Agent\" or \"Ask\"\n\n**Note:** MCP cannot programmatically change your mode - this is advisory only.",
 
 	"task_update": "Update Todo2 task status using proper MCP tools.\n\n⚠️ **CRITICAL: ALWAYS use MCP tools - NEVER edit .todo2/state.todo2.json directly**\n\n**Why use MCP tools:**\n- ✅ Automatic actualHours calculation when marking as Done\n- ✅ Status normalization (Title Case: Todo, In Progress, Done)\n- ✅ Automatic completedAt timestamps\n- ✅ Status change history tracking\n- ✅ Validation and error handling\n- ✅ Proper state machine transitions\n\n**Method 1: Batch Update via MCP Tool (Recommended)**\n```\nmcp_exarp-go_task_workflow(\n    action=\"approve\",\n    status=\"Todo\",           # Filter by current status\n    new_status=\"Done\",       # New status to set\n    task_ids='[\"T-0\", \"T-1\", \"T-2\"]',  # JSON array string\n    clarification_none=True,  # Optional: only tasks with descriptions\n    filter_tag=None,          # Optional: filter by tag\n    dry_run=False            # Preview without applying\n)\n```\n\n**Method 2: Python Utilities**\n```python\nfrom project_management_automation.utils.todo2_mcp_client import (\n    update_todos_mcp,\n    add_comments_mcp\n)\n\n# Batch update status\nupdates = [\n    {\"id\": \"T-0\", \"status\": \"Done\"},\n    {\"id\": \"T-1\", \"status\": \"Done\"},\n]\nupdate_todos_mcp(updates=updates)\n\n# Add result comments\nadd_comments_mcp(\n    todo_id=\"T-0\",\n    comments=[{\"type\": \"result\", \"content\": \"Task completed...\"}]\n)\n```\n\n**Method 3: CLI Command**\n```bash\n./bin/exarp-go -tool task_workflow -args '{\n  \"action\": \"approve\",\n  \"status\": \"Todo\",\n  \"new_status\": \"Done\",\n  \"task_ids\": \"[\\\"T-0\\\", \\\"T-1\\\"]\"\n}'\n```\n\n**🚫 FORBIDDEN:**\n- ❌ Editing .todo2/state.todo2.json directly\n- ❌ Manually modifying task status, timestamps, or metadata\n- ❌ Bypassing the abstraction layer\n\n**Remember: MCP tools exist for a reason. Use them.**",
+
+	// Migrated from Python (docs/PROMPTS_MIGRATION_AND_OBSOLESCENCE_PLAN.md) - Batch 1: docs, automation, workflow
+	"docs": `Analyze the project documentation health and identify issues.
+
+This prompt will:
+1. Check documentation structure and organization
+2. Validate internal and external links
+3. Identify broken references and formatting issues
+4. Generate a health score (0-100)
+5. Optionally create Todo2 tasks for issues found
+
+Use: health(action="docs", create_tasks=True)`,
+
+	"automation_discover": `Discover new automation opportunities in the codebase.
+
+This prompt will:
+1. Analyze codebase for repetitive patterns
+2. Identify high-value automation opportunities
+3. Score opportunities by value and effort
+4. Generate recommendations for automation
+
+Use: automation(action="discover")`,
+
+	"weekly_maintenance": `Weekly maintenance workflow.
+
+Run these tools weekly:
+1. health(action="docs") - Keep docs healthy
+2. task_analysis(action="duplicates") - Clean up duplicates
+3. security(action="scan") - Check security
+4. task_workflow(action="sync") - Sync across systems
+
+This maintains project health and keeps systems in sync.`,
+
+	"task_review": `Comprehensive task review workflow for backlog hygiene.
+
+Run monthly or after major project changes:
+1. task_analysis(action="duplicates") - Find and merge duplicates
+2. analyze_alignment(action="todo2") - Check task-goal alignment
+3. task_workflow(action="clarify", sub_action="list") - Review blocked tasks
+4. task_analysis(action="hierarchy") - Review task structure
+5. task_workflow(action="approve") - Queue reviewed tasks
+
+Categories to evaluate:
+- Duplicates → Merge or remove
+- Misaligned → Re-scope or cancel
+- Obsolete → Cancel if work already done
+- Stale (>30 days) → Review priority or cancel
+- Blocked → Resolve dependencies`,
+
+	"project_health": `Comprehensive project health assessment.
+
+Run these tools for a full health check:
+1. health(action="server") - Server operational status
+2. health(action="docs") - Documentation score
+3. testing(action="run", coverage=True) - Test results and coverage
+4. testing(action="coverage") - Coverage gap analysis
+5. security(action="report") - Security vulnerabilities
+6. health(action="cicd") - CI/CD pipeline status
+7. analyze_alignment(action="todo2") - Task alignment with goals
+
+This provides a complete picture of:
+- Code quality (tests, coverage)
+- Documentation health
+- Security posture
+- CI/CD reliability
+- Project management state
+
+Use this before major releases or quarterly reviews.`,
+
+	"automation_setup": `One-time automation setup workflow.
+
+Run these tools to enable automated project management:
+
+1. setup_hooks(action="git") - Configure automatic checks on commits
+   - pre-commit: docs health, security scan (blocking)
+   - pre-push: task alignment, comprehensive security (blocking)
+   - post-commit: automation discovery (non-blocking)
+   - post-merge: duplicate detection, task sync (non-blocking)
+
+2. setup_hooks(action="patterns") - Configure file change triggers
+   - docs/**/*.md → documentation health check
+   - src/**/*.py → run tests
+   - requirements.txt → security scan
+
+3. Configure cron jobs (manual):
+   - Daily: automation(action="daily")
+   - Weekly: security(action="scan")
+   - See Makefile targets (e.g. make sprint)
+
+After setup, exarp-go will automatically maintain project health.`,
+
+	// Batch 2: advisor
+	"advisor_consult": `Consult a trusted advisor for wisdom on your current work.
+
+Each project metric has an assigned advisor with unique perspective:
+
+📊 **Metric Advisors:**
+- security → 😈 BOFH: Paranoid, expects users to break everything
+- testing → 🏛️ Stoics: Discipline through adversity
+- documentation → 🎓 Confucius: Teaching and transmitting wisdom
+- completion → ⚔️ Sun Tzu: Strategy and decisive execution
+- alignment → ☯️ Tao: Balance, flow, and purpose
+- clarity → 🎭 Gracián: Models of clarity and pragmatism
+- ci_cd → ⚗️ Kybalion: Cause and effect, mental models
+- dogfooding → 🔧 Murphy: Expect failure, plan for it
+
+⏰ **Stage Advisors:**
+- daily_checkin → 📜 Pistis Sophia: Enlightenment journey
+- planning → ⚔️ Sun Tzu: Strategic planning
+- implementation → 💻 Tao of Programming: Natural flow
+- debugging → 😈 BOFH: Knows all the ways things break
+- review → 🏛️ Stoics: Accepting harsh truths
+
+Use:
+- consult_advisor(metric="security", score=75.0) - Metric advice
+- consult_advisor(stage="daily_checkin") - Stage advice
+- consult_advisor(tool="testing") - Tool guidance`,
+
+	"advisor_briefing": `Get a morning briefing from trusted advisors based on project health.
+
+Use: report(action="briefing", overall_score=75.0, security_score=80.0, ...)
+
+The briefing focuses on your lowest-scoring metrics, providing:
+1. Advisor wisdom matched to score tier
+2. Specific encouragement for improvement
+3. Context-aware guidance
+
+Score tiers affect advisor tone:
+- 🔥 < 30%: Chaos - urgent, every-action guidance
+- 🏗️ 30-60%: Building - focus on fundamentals
+- 🌱 60-80%: Maturing - strategic advice
+- 🎯 80-100%: Mastery - reflective wisdom
+
+Combine with scorecard for context:
+1. report(action="scorecard") - Get current scores
+2. report(action="briefing", overall_score=<score>, ...) - Get focused guidance`,
+
+	// Batch 3: personas
+	"persona_developer": `Developer daily workflow for writing quality code.
+
+**Morning Checkin (~2 min):**
+1. report(action="scorecard") - Quick health check
+2. task_workflow(action="clarify", sub_action="list") - Any blockers?
+3. consult_advisor(stage="daily_checkin") - Morning wisdom 📜
+
+**Before Committing:**
+- health(action="docs") if you touched docs
+- lint(action="run") - Code quality check
+- Git pre-commit hook runs automatically
+
+**Before PR/Push:**
+- analyze_alignment(action="todo2") - Is work aligned with goals?
+- consult_advisor(stage="review") - Stoic wisdom 🏛️
+- Git pre-push hook runs full checks
+
+**During Debugging:**
+- consult_advisor(stage="debugging") - BOFH knows breakage 😈
+- memory(action="save", category="debug") - Save discoveries
+
+**Key Targets:**
+- Cyclomatic Complexity: <10 per function
+- Test Coverage: >80%
+- Bandit Findings: 0 high/critical`,
+
+	"persona_project_manager": `Project Manager workflow for delivery tracking.
+
+**Daily Standup Prep (~3 min):**
+1. report(action="scorecard") - Overall health
+2. task_workflow(action="clarify", sub_action="list") - What needs decisions?
+3. consult_advisor(stage="planning") - Strategic wisdom ⚔️
+
+**Sprint Planning (~15 min):**
+1. report(action="overview", output_format="markdown") - Current state
+2. task_analysis(action="duplicates") - Clean up backlog
+3. analyze_alignment(action="todo2") - Prioritize aligned work
+4. analyze_alignment(action="prd") - Check PRD persona mapping
+
+**Sprint Retrospective (~20 min):**
+1. report(action="scorecard") - Full analysis
+2. consult_advisor(metric="completion") - Sun Tzu on execution ⚔️
+3. Review: Cycle time, First pass yield, Estimation accuracy
+
+**Weekly Status Report (~5 min):**
+- report(action="overview", output_format="html", output_path="docs/WEEKLY_STATUS.html")
+
+**Key Metrics:**
+- Task Completion %: Per sprint goal
+- Blocked Tasks: Target 0
+- Cycle Time: Should be consistent`,
+
+	"persona_code_reviewer": `Code Reviewer workflow for quality gates.
+
+**Pre-Review Check (~1 min):**
+- report(action="scorecard") - Changed since main?
+- consult_advisor(stage="review") - Stoic equanimity 🏛️
+
+**During Review:**
+For complexity concerns:
+  lint(action="run")
+For security concerns:
+  security(action="scan")
+For architecture concerns:
+  report(action="scorecard") - Full coupling/cohesion
+
+**Review Checklist:**
+- [ ] Complexity acceptable? (CC < 10)
+- [ ] Tests added/updated?
+- [ ] No security issues?
+- [ ] Documentation updated?
+
+**Key Targets:**
+- Cyclomatic Complexity: <10 new, <15 existing
+- Bandit Findings: 0 in new code`,
+
+	"persona_executive": `Executive/Stakeholder workflow for strategic view.
+
+**Weekly Check (~2 min):**
+- report(action="overview", output_format="html")
+  One-page summary: health, risks, progress, blockers
+
+**Monthly Review (~10 min):**
+- report(action="scorecard", output_format="markdown")
+  Review GQM goal achievement
+- report(action="briefing") - Advisor wisdom summary
+
+**Executive Dashboard Metrics:**
+| Metric | What It Tells You |
+|--------|-------------------|
+| Health Score (0-100) | Overall project health |
+| Goal Alignment % | Building the right things? |
+| Security Score | Risk exposure |
+| Velocity Trend | Speeding up or slowing? |
+
+**Quarterly Strategy (~30 min):**
+- report(action="scorecard")
+  Review: Uniqueness, Architecture health, Security posture`,
+
+	"persona_security": `Security Engineer workflow for risk management.
+
+**Daily Scan (~5 min):**
+- security(action="scan") - Dependency vulnerabilities
+- consult_advisor(metric="security") - BOFH paranoia 😈
+
+**Weekly Deep Scan (~15 min):**
+1. security(action="report") - Full combined report
+2. report(action="scorecard") - Security score trend
+3. consult_advisor(metric="security", score=<current_score>)
+
+**Security Audit (~1 hour):**
+- report(action="scorecard") - Full analysis
+  Review: All findings, Dependency tree, Security hotspots
+
+**Key Targets:**
+- Critical Vulns: 0
+- High Vulns: 0
+- Bandit High/Critical: 0
+- Security Score: >90%`,
+
+	"persona_architect": `Architect workflow for system design.
+
+**Weekly Architecture Review (~15 min):**
+- report(action="scorecard")
+  Focus: Coupling matrix, Cohesion scores
+- consult_advisor(metric="alignment") - Tao balance ☯️
+
+**Before Major Changes:**
+1. report(action="scorecard", output_path="before.json")
+2. [Make changes]
+3. report(action="scorecard", output_path="after.json")
+4. Compare architecture impact
+
+**Tech Debt Prioritization (~30 min):**
+- report(action="scorecard")
+  Review: High complexity, Dead code, Coupling hotspots
+- task_analysis(action="hierarchy") - Task structure
+
+**Key Targets:**
+- Avg Cyclomatic Complexity: <5
+- Max Complexity: <15
+- Distance from Main Sequence: <0.3`,
+
+	"persona_qa": `QA Engineer workflow for quality assurance.
+
+**Daily Testing Status (~3 min):**
+1. testing(action="run") - Run test suite
+2. testing(action="coverage") - Coverage report
+3. consult_advisor(metric="testing") - Stoic discipline 🏛️
+
+**Sprint Testing Review (~20 min):**
+- report(action="scorecard")
+  Review: Test coverage %, Test ratio, Failing tests
+
+**Key Targets:**
+- Test Coverage: >80%
+- Tests Passing: 100%
+- Defect Density: <5 per KLOC
+- First Pass Yield: >85%`,
+
+	"persona_tech_writer": `Technical Writer workflow for documentation.
+
+**Weekly Doc Health (~5 min):**
+- health(action="docs") - Full docs analysis
+  Check: Broken links, Stale documents, Missing docs
+- consult_advisor(metric="documentation") - Confucius wisdom 🎓
+
+**Key Targets:**
+- Broken Links: 0
+- Stale Docs (>30 days): 0
+- Comment Density: 10-30%
+- Docstring Coverage: >90%`,
 }
 
 // GetPromptTemplate retrieves a prompt template by name

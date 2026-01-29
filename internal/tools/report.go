@@ -272,7 +272,7 @@ func getPlanningSnippet(projectRoot string) map[string]interface{} {
 	if err != nil {
 		return out
 	}
-	orderedIDs, _, _, err := BacklogExecutionOrder(tasks)
+	orderedIDs, _, _, err := BacklogExecutionOrder(tasks, nil)
 	if err != nil || len(orderedIDs) == 0 {
 		return out
 	}
@@ -352,7 +352,7 @@ func getCodebaseMetrics(projectRoot string) (map[string]interface{}, error) {
 		"total_files":  totalFiles,
 		"total_lines":  0,  // Could count lines if needed
 		"tools":        28, // From registry (28 base + 1 conditional Apple FM)
-		"prompts":      19, // From templates.go
+		"prompts":      34, // From templates.go (18 original + 16 migrated from Python)
 		"resources":    21, // From resources/handlers.go
 	}
 
@@ -360,7 +360,7 @@ func getCodebaseMetrics(projectRoot string) (map[string]interface{}, error) {
 	// These would need to be exported from registry.go or counted differently
 	// For now, use values matching MIGRATION_STATUS_CURRENT.md
 	metrics["tools"] = 28
-	metrics["prompts"] = 19
+	metrics["prompts"] = 34
 	metrics["resources"] = 21
 
 	return metrics, err
@@ -477,7 +477,7 @@ func getNextActions(projectRoot string) ([]map[string]interface{}, error) {
 		return actions, nil
 	}
 
-	orderedIDs, _, _, err := BacklogExecutionOrder(tasks)
+	orderedIDs, _, _, err := BacklogExecutionOrder(tasks, nil)
 	if err != nil {
 		// Fallback: high/critical pending without order
 		for _, task := range tasks {

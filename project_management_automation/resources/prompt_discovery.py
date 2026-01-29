@@ -27,84 +27,52 @@ logger = logging.getLogger("exarp.prompt_discovery")
 # PROMPT METADATA (Extracted from prompts.py)
 # ═══════════════════════════════════════════════════════════════════════════════
 
-# Map prompts to workflow modes
+# Map prompts to workflow modes (manifest aligned with stdio://prompts / Go; prompts.py retired)
 PROMPT_MODE_MAPPING: Dict[str, List[str]] = {
     "daily_checkin": [
-        "daily_checkin",
-        "project_scorecard",
-        "project_overview",
         "advisor_consult",
         "advisor_briefing",
     ],
     "security_review": [
-        "security_scan_all",
-        "security_scan_python",
-        "security_scan_rust",
         "persona_security",
     ],
     "task_management": [
-        "task_alignment",
-        "duplicate_cleanup",
-        "task_sync",
-        "task_discovery",
         "task_review",
-        "pre_sprint_cleanup",
+        "weekly_maintenance",
     ],
     "code_review": [
         "project_health",
         "persona_code_reviewer",
-        "post_implementation_review",
     ],
     "sprint_planning": [
-        "sprint_start",
-        "sprint_end",
-        "pre_sprint_cleanup",
         "automation_setup",
         "automation_discovery",
-        "automation_high_value",
         "persona_project_manager",
     ],
     "debugging": [
-        "memory_system",
         "persona_developer",
-        "context_management",
     ],
     "development": [
         "persona_developer",
-        "mode_suggestion",
-        "context_management",
-        "config_generation",
         "weekly_maintenance",
     ],
 }
 
-# Map prompts to personas
+# Map prompts to personas (manifest aligned with stdio://prompts / Go)
 PROMPT_PERSONA_MAPPING: Dict[str, List[str]] = {
     "developer": [
         "persona_developer",
-        "mode_suggestion",
-        "context_management",
-        "config_generation",
-        "memory_system",
     ],
     "project_manager": [
         "persona_project_manager",
-        "sprint_start",
-        "sprint_end",
-        "task_alignment",
         "task_review",
-        "project_overview",
     ],
     "code_reviewer": [
         "persona_code_reviewer",
-        "post_implementation_review",
         "project_health",
     ],
     "security_engineer": [
         "persona_security",
-        "security_scan_all",
-        "security_scan_python",
-        "security_scan_rust",
     ],
     "qa_engineer": [
         "persona_qa",
@@ -112,68 +80,33 @@ PROMPT_PERSONA_MAPPING: Dict[str, List[str]] = {
     ],
     "architect": [
         "persona_architect",
-        "project_scorecard",
     ],
     "tech_writer": [
         "persona_tech_writer",
         "doc_health_check",
-        "doc_quick_check",
     ],
     "executive": [
         "persona_executive",
-        "project_overview",
-        "project_scorecard",
     ],
 }
 
-# Map prompts to categories
+# Map prompts to categories (manifest aligned with stdio://prompts / Go)
 PROMPT_CATEGORIES: Dict[str, List[str]] = {
     "documentation": [
         "doc_health_check",
-        "doc_quick_check",
-    ],
-    "tasks": [
-        "task_alignment",
-        "duplicate_cleanup",
-        "task_sync",
-        "task_discovery",
-    ],
-    "security": [
-        "security_scan_all",
-        "security_scan_python",
-        "security_scan_rust",
     ],
     "automation": [
         "automation_discovery",
-        "automation_high_value",
         "automation_setup",
     ],
-    "config": [
-        "config_generation",
-    ],
     "workflow": [
-        "pre_sprint_cleanup",
-        "post_implementation_review",
         "weekly_maintenance",
-        "daily_checkin",
-        "sprint_start",
-        "sprint_end",
         "task_review",
         "project_health",
-        "mode_suggestion",
-        "context_management",
-    ],
-    "reports": [
-        "project_scorecard",
-        "project_overview",
     ],
     "wisdom": [
         "advisor_consult",
         "advisor_briefing",
-        # advisor_audio removed - migrated to devwisdom-go MCP server
-    ],
-    "memory": [
-        "memory_system",
     ],
     "persona": [
         "persona_developer",
@@ -187,56 +120,23 @@ PROMPT_CATEGORIES: Dict[str, List[str]] = {
     ],
 }
 
-# Compact prompt descriptions for quick discovery
+# Compact prompt descriptions for quick discovery (aligned with stdio://prompts / Go)
 PROMPT_DESCRIPTIONS: Dict[str, str] = {
     # Documentation
     "doc_health_check": "Analyze documentation health and create tasks for issues",
-    "doc_quick_check": "Quick documentation health check without creating tasks",
-
-    # Task Management
-    "task_alignment": "Analyze Todo2 task alignment with project goals",
-    "duplicate_cleanup": "Find and consolidate duplicate Todo2 tasks",
-    "task_sync": "Synchronize tasks between shared TODO table and Todo2",
-    "task_discovery": "Discover tasks from code comments, markdown, and orphans",
-
-    # Security
-    "security_scan_all": "Scan all dependencies for security vulnerabilities",
-    "security_scan_python": "Scan Python dependencies for vulnerabilities",
-    "security_scan_rust": "Scan Rust dependencies for vulnerabilities",
 
     # Automation
     "automation_discovery": "Discover new automation opportunities in codebase",
-    "automation_high_value": "Find only high-value automation opportunities",
     "automation_setup": "One-time automation setup workflow",
 
-    # Config
-    "config_generation": "Generate IDE configuration files",
-
     # Workflows
-    "daily_checkin": "Daily check-in workflow for project health monitoring",
-    "pre_sprint_cleanup": "Pre-sprint cleanup workflow",
-    "post_implementation_review": "Post-implementation review workflow",
     "weekly_maintenance": "Weekly maintenance workflow",
-    "sprint_start": "Sprint start workflow for preparing clean backlog",
-    "sprint_end": "Sprint end workflow for quality assurance",
     "task_review": "Comprehensive task review workflow for backlog hygiene",
     "project_health": "Comprehensive project health assessment",
-
-    # Reports
-    "project_scorecard": "Generate comprehensive project health scorecard",
-    "project_overview": "Generate one-page project overview for stakeholders",
 
     # Wisdom
     "advisor_consult": "Consult a trusted advisor for wisdom on current work",
     "advisor_briefing": "Get morning briefing from trusted advisors",
-    # advisor_audio removed - migrated to devwisdom-go MCP server
-
-    # Memory
-    "memory_system": "Use AI session memory to persist insights across sessions",
-
-    # Workflow Helpers
-    "mode_suggestion": "Suggest optimal Cursor IDE mode (Agent vs Ask)",
-    "context_management": "Strategically manage LLM context to reduce token usage",
 
     # Personas
     "persona_developer": "Developer daily workflow for writing quality code",
