@@ -267,7 +267,7 @@ dev-full: ## Full development mode (watch + test + coverage)
 
 ##@ Testing
 
-test: test-go $(if $(filter 1,$(HAVE_PYTEST)),test-python,) ## Run all tests (Go + Python)
+test: test-go ## Run all tests (Go only; run 'make test-python' for MLX/bridge tests)
 	@echo "$(GREEN)✅ All tests passed$(NC)"
 
 test-go: ## Run Go tests (optimized for speed with parallel execution, CGO disabled)
@@ -335,7 +335,7 @@ else
 	@$(GO) test ./... -v || echo "$(YELLOW)⚠️  Go tests failed$(NC)"
 endif
 
-test-coverage: test-coverage-go $(if $(filter 1,$(HAVE_PYTEST)),test-coverage-python,) ## Run tests with coverage report
+test-coverage: test-coverage-go ## Run tests with coverage (Go only; run 'make test-coverage-python' for MLX)
 
 test-coverage-go: ## Generate Go test coverage report
 	@echo "$(BLUE)Running Go tests with coverage...$(NC)"
@@ -543,19 +543,7 @@ lint-fix: ## Lint and auto-fix code with exarp-go (requires build)
 
 ##@ Benchmarking
 
-bench: ## Run benchmarks (requires pytest)
-ifeq ($(HAVE_PYTEST),1)
-	@echo "$(BLUE)Running benchmarks...$(NC)"
-	@if command -v uv >/dev/null 2>&1 || [ -x "$$HOME/.cargo/bin/uv" ] || [ -x "$$HOME/.local/bin/uv" ]; then \
-		$(PYTHON) -m pytest tests/benchmarks/ -v --benchmark-only 2>/dev/null || \
-		echo "$(YELLOW)No benchmarks found$(NC)"; \
-	else \
-		python3 -m pytest tests/benchmarks/ -v --benchmark-only 2>/dev/null || \
-		echo "$(YELLOW)No benchmarks found$(NC)"; \
-	fi
-else
-	@echo "$(YELLOW)⚠️  pytest not available - skipping benchmarks$(NC)"
-endif
+bench: go-bench ## Run Go benchmarks (Python benchmarks removed; use 'make go-bench')
 
 ##@ Documentation
 
