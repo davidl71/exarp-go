@@ -1,6 +1,3 @@
-//go:build !darwin || !cgo
-// +build !darwin !cgo
-
 package tools
 
 import (
@@ -11,14 +8,12 @@ import (
 	"github.com/davidl71/mcp-go-core/pkg/mcp/response"
 )
 
-// MLXNativeAvailable reports whether native MLX (luxfi/mlx) is available.
-// On non-darwin or without CGO, native MLX is not available.
+// MLXNativeAvailable reports whether native MLX is available. Always false after luxfi/mlx removal; use Python bridge.
 func MLXNativeAvailable() bool {
 	return false
 }
 
-// handleMlxNative handles the mlx tool when luxfi/mlx is not available.
-// Implements "models" (static list); all other actions return an error so the handler can use the bridge.
+// handleMlxNative handles the mlx tool without native luxfi/mlx. Implements "models" (static list); other actions use the bridge.
 func handleMlxNative(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	action, _ := params["action"].(string)
 	if action == "" {

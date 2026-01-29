@@ -22,6 +22,7 @@ func TestHandleGitToolsNative(t *testing.T) {
 			name: "commits action",
 			params: GitToolsParams{
 				Action: "commits",
+				Branch: "main",
 				Limit:  10,
 			},
 			wantError: false,
@@ -48,6 +49,7 @@ func TestHandleGitToolsNative(t *testing.T) {
 			name: "tasks action",
 			params: GitToolsParams{
 				Action: "tasks",
+				Branch: "main",
 			},
 			wantError: false,
 			validate: func(t *testing.T, result string) {
@@ -92,6 +94,7 @@ func TestHandleGitTools(t *testing.T) {
 			name: "commits action",
 			params: GitToolsParams{
 				Action: "commits",
+				Branch: "main",
 				Limit:  10,
 			},
 			wantError: false,
@@ -107,6 +110,7 @@ func TestHandleGitTools(t *testing.T) {
 			name: "tasks action",
 			params: GitToolsParams{
 				Action: "tasks",
+				Branch: "main",
 			},
 			wantError: false,
 		},

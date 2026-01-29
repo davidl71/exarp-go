@@ -190,7 +190,7 @@ func TestHandleSessionAssignee(t *testing.T) {
 		{
 			name: "with assignee name",
 			params: map[string]interface{}{
-				"action":       "assignee",
+				"action":        "assignee",
 				"assignee_name": "test-agent",
 			},
 			wantError: false,

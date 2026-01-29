@@ -55,8 +55,8 @@ func TestHandleTaskWorkflowNative(t *testing.T) {
 		{
 			name: "create action",
 			params: map[string]interface{}{
-				"action":         "create",
-				"name":           "Test Task",
+				"action":           "create",
+				"name":             "Test Task",
 				"long_description": "Test description",
 			},
 			wantError: false,

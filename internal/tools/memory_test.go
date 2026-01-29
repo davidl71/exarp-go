@@ -30,9 +30,9 @@ func TestHandleMemoryNative(t *testing.T) {
 		{
 			name: "save action",
 			params: map[string]interface{}{
-				"action":  "save",
-				"title":  "Test Memory",
-				"content": "This is a test memory",
+				"action":   "save",
+				"title":    "Test Memory",
+				"content":  "This is a test memory",
 				"category": "insight",
 			},
 			wantError: false,
@@ -54,8 +54,8 @@ func TestHandleMemoryNative(t *testing.T) {
 		{
 			name: "recall action",
 			params: map[string]interface{}{
-				"action": "recall",
-				"title":  "Test Memory",
+				"action":  "recall",
+				"task_id": "test-task",
 			},
 			wantError: false,
 			validate: func(t *testing.T, result []framework.TextContent) {
@@ -105,7 +105,7 @@ func TestHandleMemoryNative(t *testing.T) {
 			params: map[string]interface{}{
 				"action": "unknown",
 			},
-			wantError: false, // Falls back to Python bridge
+			wantError: true, // Native returns error for unknown action
 		},
 	}
 
@@ -194,22 +194,22 @@ func TestHandleMemoryRecall(t *testing.T) {
 		wantError bool
 	}{
 		{
-			name: "recall by title",
+			name: "recall by task_id",
 			params: map[string]interface{}{
-				"title": "Test Memory",
+				"task_id": "test-task",
 			},
 			wantError: false,
 		},
 		{
-			name: "recall by id",
+			name: "recall by task_id alternate",
 			params: map[string]interface{}{
-				"id": "test-id",
+				"task_id": "T-123",
 			},
 			wantError: false,
 		},
 		{
-			name: "missing title and id",
-			params: map[string]interface{}{},
+			name:      "missing task_id",
+			params:    map[string]interface{}{},
 			wantError: true,
 		},
 	}

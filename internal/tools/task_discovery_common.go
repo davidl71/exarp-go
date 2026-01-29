@@ -2,8 +2,38 @@ package tools
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
 )
+
+// tagPattern matches hashtags in TODO comments (e.g., #refactor, #bug, #performance)
+var tagPattern = regexp.MustCompile(`#([a-zA-Z][a-zA-Z0-9_-]*)`)
+
+// extractTagsFromText extracts hashtag-style tags from comment text.
+// Returns a slice of tags (without the # prefix) and the text with tags removed.
+func extractTagsFromText(text string) ([]string, string) {
+	matches := tagPattern.FindAllStringSubmatch(text, -1)
+	tags := []string{}
+	seen := make(map[string]bool)
+
+	for _, match := range matches {
+		if len(match) > 1 {
+			tag := strings.ToLower(match[1])
+			if !seen[tag] {
+				tags = append(tags, tag)
+				seen[tag] = true
+			}
+		}
+	}
+
+	// Optionally remove tags from text for cleaner display
+	cleanText := tagPattern.ReplaceAllString(text, "")
+	cleanText = strings.TrimSpace(cleanText)
+	// Clean up multiple spaces
+	cleanText = regexp.MustCompile(`\s+`).ReplaceAllString(cleanText, " ")
+
+	return tags, cleanText
+}
 
 // toJSONSafeString returns a string for use in JSON output; avoids non-scalar types in tool response.
 func toJSONSafeString(v interface{}) string {
@@ -47,6 +77,27 @@ func createTasksFromDiscoveries(projectRoot string, discoveries []map[string]int
 		if src, ok := discovery["source"].(string); ok && src != "" {
 			sourceTag = src
 		}
+
+		// Build tags list: start with discovered + source tag
+		taskTags := []string{"discovered", sourceTag}
+
+		// Add any tags extracted from the TODO comment
+		if discoveredTags, ok := discovery["tags"].([]string); ok && len(discoveredTags) > 0 {
+			for _, tag := range discoveredTags {
+				// Avoid duplicates
+				isDuplicate := false
+				for _, existing := range taskTags {
+					if existing == tag {
+						isDuplicate = true
+						break
+					}
+				}
+				if !isDuplicate {
+					taskTags = append(taskTags, tag)
+				}
+			}
+		}
+
 		metadata := map[string]interface{}{
 			"discovery_type": discovery["type"],
 		}
@@ -62,7 +113,7 @@ func createTasksFromDiscoveries(projectRoot string, discoveries []map[string]int
 			Content:  text,
 			Status:   "Todo",
 			Priority: "medium",
-			Tags:     []string{"discovered", sourceTag},
+			Tags:     taskTags,
 			Metadata: SanitizeMetadataForWrite(metadata),
 		}
 

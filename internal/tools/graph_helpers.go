@@ -524,11 +524,12 @@ func AnalyzeCriticalPath(projectRoot string) (map[string]interface{}, error) {
 
 // BacklogTaskDetail holds task info for execution-order output.
 type BacklogTaskDetail struct {
-	ID       string `json:"id"`
-	Content  string `json:"content"`
-	Priority string `json:"priority"`
-	Status   string `json:"status"`
-	Level    int    `json:"level"`
+	ID       string   `json:"id"`
+	Content  string   `json:"content"`
+	Priority string   `json:"priority"`
+	Status   string   `json:"status"`
+	Level    int      `json:"level"`
+	Tags     []string `json:"tags,omitempty"`
 }
 
 // IsBacklogStatus returns true if status is Todo or In Progress.
@@ -556,8 +557,9 @@ func priorityOrderForSort(priority string) int {
 
 // BacklogExecutionOrder returns backlog tasks (Todo + In Progress) in dependency order.
 // Uses full task set for graph so levels are correct; sorts backlog by level asc, then priority, then ID.
+// If backlogFilter is non-nil, only tasks whose ID is in backlogFilter are included in the backlog.
 // Returns ordered IDs, waves (level -> task IDs), and details. If graph has cycles, levels are best-effort.
-func BacklogExecutionOrder(tasks []Todo2Task) (orderedIDs []string, waves map[int][]string, details []BacklogTaskDetail, err error) {
+func BacklogExecutionOrder(tasks []Todo2Task, backlogFilter map[string]bool) (orderedIDs []string, waves map[int][]string, details []BacklogTaskDetail, err error) {
 	orderedIDs = []string{}
 	waves = make(map[int][]string)
 	details = []BacklogTaskDetail{}
@@ -566,9 +568,13 @@ func BacklogExecutionOrder(tasks []Todo2Task) (orderedIDs []string, waves map[in
 	taskMap := make(map[string]Todo2Task)
 	for _, t := range tasks {
 		taskMap[t.ID] = t
-		if IsBacklogStatus(t.Status) {
-			backlog = append(backlog, t)
+		if !IsBacklogStatus(t.Status) {
+			continue
 		}
+		if backlogFilter != nil && !backlogFilter[t.ID] {
+			continue
+		}
+		backlog = append(backlog, t)
 	}
 	if len(backlog) == 0 {
 		return orderedIDs, waves, details, nil
@@ -598,12 +604,17 @@ func BacklogExecutionOrder(tasks []Todo2Task) (orderedIDs []string, waves map[in
 		orderedIDs = append(orderedIDs, t.ID)
 		level := levels[t.ID]
 		waves[level] = append(waves[level], t.ID)
+		tags := t.Tags
+		if tags == nil {
+			tags = []string{}
+		}
 		details = append(details, BacklogTaskDetail{
 			ID:       t.ID,
 			Content:  t.Content,
 			Priority: t.Priority,
 			Status:   t.Status,
 			Level:    level,
+			Tags:     tags,
 		})
 	}
 	return orderedIDs, waves, details, nil

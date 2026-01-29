@@ -18,7 +18,7 @@ func TestHandleRecommendWorkflowNative(t *testing.T) {
 		{
 			name: "simple task description",
 			params: map[string]interface{}{
-				"action":          "workflow",
+				"action":           "workflow",
 				"task_description": "Fix a bug in the code",
 			},
 			wantError: false,
@@ -45,7 +45,7 @@ func TestHandleRecommendWorkflowNative(t *testing.T) {
 		{
 			name: "complex task description",
 			params: map[string]interface{}{
-				"action":          "workflow",
+				"action":           "workflow",
 				"task_description": "Implement a new feature with multiple components, database migrations, API endpoints, and frontend integration",
 			},
 			wantError: false,
@@ -68,7 +68,7 @@ func TestHandleRecommendWorkflowNative(t *testing.T) {
 		{
 			name: "with tags",
 			params: map[string]interface{}{
-				"action":          "workflow",
+				"action":           "workflow",
 				"task_description": "Refactor code",
 				"tags":             []string{"refactoring", "backend"},
 			},
@@ -85,8 +85,8 @@ func TestHandleRecommendWorkflowNative(t *testing.T) {
 		{
 			name: "with include_rationale",
 			params: map[string]interface{}{
-				"action":           "workflow",
-				"task_description": "Write unit tests",
+				"action":            "workflow",
+				"task_description":  "Write unit tests",
 				"include_rationale": true,
 			},
 			wantError: false,

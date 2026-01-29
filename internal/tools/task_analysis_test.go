@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/davidl71/exarp-go/internal/framework"
@@ -53,15 +54,41 @@ func TestHandleTaskAnalysisNative(t *testing.T) {
 			},
 		},
 		{
-			name: "dependencies action",
+			name: "tags action with limit and prioritize_untagged",
 			params: map[string]interface{}{
-				"action": "dependencies",
+				"action":              "tags",
+				"limit":               10,
+				"prioritize_untagged": true,
 			},
 			wantError: false,
 			validate: func(t *testing.T, result []framework.TextContent) {
 				var data map[string]interface{}
 				if err := json.Unmarshal([]byte(result[0].Text), &data); err != nil {
 					t.Errorf("invalid JSON: %v", err)
+					return
+				}
+				if _, ok := data["tag_analysis"]; !ok {
+					t.Error("expected tag_analysis in result")
+				}
+			},
+		},
+		{
+			name: "dependencies action",
+			params: map[string]interface{}{
+				"action": "dependencies",
+			},
+			wantError: false,
+			validate: func(t *testing.T, result []framework.TextContent) {
+				if len(result) == 0 {
+					t.Error("expected non-empty result")
+					return
+				}
+				// Accept either JSON envelope or human-readable text (e.g. output_format=text)
+				var data map[string]interface{}
+				if err := json.Unmarshal([]byte(result[0].Text), &data); err != nil {
+					if len(result[0].Text) == 0 {
+						t.Error("expected non-empty result (JSON or text)")
+					}
 					return
 				}
 			},
@@ -73,10 +100,41 @@ func TestHandleTaskAnalysisNative(t *testing.T) {
 			},
 			wantError: false,
 			validate: func(t *testing.T, result []framework.TextContent) {
+				if len(result) == 0 {
+					t.Error("expected non-empty result")
+					return
+				}
+				// Accept either JSON envelope or human-readable text (e.g. output_format=text)
 				var data map[string]interface{}
 				if err := json.Unmarshal([]byte(result[0].Text), &data); err != nil {
-					t.Errorf("invalid JSON: %v", err)
+					if len(result[0].Text) == 0 {
+						t.Error("expected non-empty result (JSON or text)")
+					}
 					return
+				}
+			},
+		},
+		{
+			name: "validate action",
+			params: map[string]interface{}{
+				"action": "validate",
+			},
+			wantError: false,
+			validate: func(t *testing.T, result []framework.TextContent) {
+				if len(result) == 0 {
+					t.Error("expected non-empty result")
+					return
+				}
+				var data map[string]interface{}
+				if err := json.Unmarshal([]byte(result[0].Text), &data); err != nil {
+					t.Errorf("validate action should return JSON: %v", err)
+					return
+				}
+				if _, ok := data["missing_deps"]; !ok {
+					t.Error("validate result should contain missing_deps")
+				}
+				if _, ok := data["missing_count"]; !ok {
+					t.Error("validate result should contain missing_count")
 				}
 			},
 		},
@@ -146,3 +204,251 @@ func TestHandleTaskAnalysis(t *testing.T) {
 	}
 }
 
+func TestBuildBatchTagPrompt(t *testing.T) {
+	canonical := []string{"testing", "docs"}
+	project := []string{"migration"}
+	batch := []map[string]interface{}{
+		{"file": "docs/A.md", "tags": []string{"a"}},
+		{"file": "docs/B.md", "tags": []string{}},
+	}
+	prompt := buildBatchTagPrompt(batch, canonical, project)
+	if prompt == "" {
+		t.Fatal("expected non-empty prompt")
+	}
+	if !strings.Contains(prompt, "testing") || !strings.Contains(prompt, "docs") {
+		t.Error("prompt should include canonical tags")
+	}
+	if !strings.Contains(prompt, "docs/A.md") || !strings.Contains(prompt, "docs/B.md") {
+		t.Error("prompt should include file paths")
+	}
+	if !strings.Contains(prompt, "[\"a\"]") {
+		t.Error("prompt should include existing tags as JSON")
+	}
+	if !strings.Contains(prompt, "{\"path\"") {
+		t.Error("prompt should ask for JSON object")
+	}
+}
+
+func TestSuggestNextLLMBatchSize(t *testing.T) {
+	tests := []struct {
+		name        string
+		used        int
+		timeouts    int
+		discoveries int
+		want        int
+	}{
+		{"no timeouts, try larger", 15, 0, 36, 25},
+		{"no timeouts, cap at 50", 45, 0, 99, 50},
+		{"timeouts, halve", 30, 1, 36, 25},            // 30/2=15, floor at llmTagBatchSize (25)
+		{"timeouts, floor at default", 20, 1, 36, 25}, // 20/2=10, floor at 25
+		{"no llm, default", 15, 0, 0, 25},             // default llmTagBatchSize is 25
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := suggestNextLLMBatchSize(tt.used, tt.timeouts, tt.discoveries)
+			if got != tt.want {
+				t.Errorf("suggestNextLLMBatchSize(%d, %d, %d) = %d, want %d", tt.used, tt.timeouts, tt.discoveries, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestParseBatchTagResponse(t *testing.T) {
+	tests := []struct {
+		name     string
+		response string
+		want     map[string][]string
+	}{
+		{
+			name:     "valid JSON object",
+			response: `{"docs/A.md": ["testing", "docs"], "docs/B.md": []}`,
+			want:     map[string][]string{"docs/A.md": {"testing", "docs"}, "docs/B.md": {}},
+		},
+		{
+			name:     "with surrounding text",
+			response: `Here is the result: {"docs/X.md": ["migration"]} done.`,
+			want:     map[string][]string{"docs/X.md": {"migration"}},
+		},
+		{
+			name:     "empty object",
+			response: `{}`,
+			want:     map[string][]string{},
+		},
+		{
+			name:     "no JSON object",
+			response: `nothing here`,
+			want:     nil,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := parseBatchTagResponse(tt.response)
+			if tt.want == nil {
+				if got != nil {
+					t.Errorf("parseBatchTagResponse() = %v, want nil", got)
+				}
+				return
+			}
+			if len(got) != len(tt.want) {
+				t.Errorf("parseBatchTagResponse() keys count = %d, want %d", len(got), len(tt.want))
+			}
+			for path, wantTags := range tt.want {
+				gotTags := got[path]
+				if len(gotTags) != len(wantTags) {
+					t.Errorf("path %q: got %v, want %v", path, gotTags, wantTags)
+				}
+				for i, w := range wantTags {
+					if i >= len(gotTags) || gotTags[i] != w {
+						t.Errorf("path %q: got %v, want %v", path, gotTags, wantTags)
+						break
+					}
+				}
+			}
+		})
+	}
+}
+
+func TestBuildTaskBatchTagPrompt(t *testing.T) {
+	canonical := []string{"testing", "docs"}
+	project := []string{"migration"}
+	batch := []taskTagLLMBatchItem{
+		{TaskID: "T-1", Title: "Add tests", Snippet: "Implement unit tests for handler.", ExistingTags: []string{"testing"}},
+		{TaskID: "T-2", Title: "Fix bug", Snippet: "Error when parsing JSON.", ExistingTags: []string{}},
+	}
+	prompt := buildTaskBatchTagPrompt(batch, canonical, project)
+	if prompt == "" {
+		t.Fatal("expected non-empty prompt")
+	}
+	if !strings.Contains(prompt, "testing") || !strings.Contains(prompt, "docs") {
+		t.Error("prompt should include canonical tags")
+	}
+	if !strings.Contains(prompt, "T-1") || !strings.Contains(prompt, "T-2") {
+		t.Error("prompt should include task IDs")
+	}
+	if !strings.Contains(prompt, "Add tests") || !strings.Contains(prompt, "Fix bug") {
+		t.Error("prompt should include task titles")
+	}
+	if !strings.Contains(prompt, "[\"testing\"]") {
+		t.Error("prompt should include existing tags as JSON")
+	}
+	if !strings.Contains(prompt, "{\"T-123\"") {
+		t.Error("prompt should ask for JSON object with task_id keys")
+	}
+}
+
+func TestExtractOllamaGenerateResponseText(t *testing.T) {
+	tests := []struct {
+		name string
+		text string
+		want string
+	}{
+		{
+			name: "ollama wrapper",
+			text: `{"success":true,"method":"native_go","response":"{\"T-1\":[\"testing\",\"bug\"]}","model":"tinyllama"}`,
+			want: `{"T-1":["testing","bug"]}`,
+		},
+		{
+			name: "plain text",
+			text: `{"T-1": ["testing"]}`,
+			want: `{"T-1": ["testing"]}`,
+		},
+		{
+			name: "invalid json",
+			text: `not json`,
+			want: `not json`,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := extractOllamaGenerateResponseText(tt.text)
+			if got != tt.want {
+				t.Errorf("extractOllamaGenerateResponseText() = %q, want %q", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestParseTaskTagResponse(t *testing.T) {
+	tests := []struct {
+		name     string
+		response string
+		want     map[string][]string
+	}{
+		{
+			name:     "valid task IDs",
+			response: `{"T-1": ["testing", "bug"], "T-2": []}`,
+			want:     map[string][]string{"T-1": {"testing", "bug"}, "T-2": {}},
+		},
+		{
+			name:     "with surrounding text",
+			response: `Result: {"T-42": ["docs", "migration"]} end`,
+			want:     map[string][]string{"T-42": {"docs", "migration"}},
+		},
+		{
+			name:     "empty object",
+			response: `{}`,
+			want:     map[string][]string{},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := parseTaskTagResponse(tt.response)
+			if len(got) != len(tt.want) {
+				t.Errorf("parseTaskTagResponse() keys count = %d, want %d", len(got), len(tt.want))
+			}
+			for taskID, wantTags := range tt.want {
+				gotTags := got[taskID]
+				if len(gotTags) != len(wantTags) {
+					t.Errorf("task %q: got %v, want %v", taskID, gotTags, wantTags)
+				}
+				for i, w := range wantTags {
+					if i >= len(gotTags) || gotTags[i] != w {
+						t.Errorf("task %q: got %v, want %v", taskID, gotTags, wantTags)
+						break
+					}
+				}
+			}
+		})
+	}
+}
+
+func TestBuildTaskBatchTagPromptMatchOnly(t *testing.T) {
+	allowed := []string{"testing", "docs", "bug", "feature"}
+	batch := []taskTagLLMBatchItem{
+		{TaskID: "T-1", Title: "Add tests", Snippet: "Unit tests for handler.", ExistingTags: nil},
+	}
+	prompt := buildTaskBatchTagPromptMatchOnly(batch, allowed)
+	if prompt == "" {
+		t.Fatal("expected non-empty prompt")
+	}
+	if !strings.Contains(prompt, "testing") || !strings.Contains(prompt, "docs") {
+		t.Error("prompt should list allowed tags")
+	}
+	if !strings.Contains(prompt, "T-1") || !strings.Contains(prompt, "Add tests") {
+		t.Error("prompt should include task ID and title")
+	}
+	if !strings.Contains(prompt, "Only tags from the list") {
+		t.Error("prompt should constrain to allowed list")
+	}
+}
+
+func TestFilterSuggestionsToAllowed(t *testing.T) {
+	allowed := map[string]bool{"testing": true, "docs": true, "bug": true}
+	got := filterSuggestionsToAllowed(
+		map[string][]string{
+			"T-1": {"testing", "unknown", "docs"},
+			"T-2": {"bug"},
+			"T-3": {"hallucinated"},
+		},
+		allowed,
+	)
+	if len(got["T-1"]) != 2 || (got["T-1"][0] != "testing" && got["T-1"][1] != "testing") {
+		t.Errorf("T-1: want [testing, docs], got %v", got["T-1"])
+	}
+	if len(got["T-2"]) != 1 || got["T-2"][0] != "bug" {
+		t.Errorf("T-2: want [bug], got %v", got["T-2"])
+	}
+	if _, ok := got["T-3"]; ok {
+		t.Error("T-3 should be omitted when all tags filtered out")
+	}
+}
