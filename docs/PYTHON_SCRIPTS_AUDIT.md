@@ -7,12 +7,9 @@
 
 ## Summary
 
-**No scripts are completely dead.** Every `automate_*.py` script is imported by at least one tool in `project_management_automation/tools/`. exarp-go’s **Go automation does not run any of these scripts** (it uses native tools). They are only used when:
+**No remaining scripts are completely dead.** Every remaining `automate_*.py` script is imported by at least one tool. exarp-go’s **Go automation does not run any of these scripts** (it uses native tools). They are only used when a Python tool is invoked via the bridge or run manually.
 
-1. A Python tool is invoked via the bridge (e.g. `docs_health`, `todo2_alignment`), or  
-2. Someone runs the Python daily orchestrator: `python3 -m project_management_automation.scripts.automate_daily`.
-
-**Deprecation:** For daily/sprint automation, use **exarp-go -tool automation** (Go). Python `automate_daily` is deprecated (Phase C). Duplicate test names check is not in Go daily; run manually if needed (Phase D). See README and `docs/PYTHON_SAFE_REMOVAL_AND_MIGRATION_PLAN.md`.
+**Removed 2026-01-29:** `automate_daily.py` and `daily_automation.py` (Python daily orchestrator). For daily automation use **exarp-go -tool automation** (Go) only. Duplicate test names check: run manually if needed. See README and `docs/PYTHON_SAFE_REMOVAL_AND_MIGRATION_PLAN.md`.
 
 ---
 
@@ -22,8 +19,8 @@
 |--------|--------------------|-----------------------------------|
 | `automate_attribution_check.py` | `tools/attribution_check.py` | No |
 | `automate_automation_opportunities.py` | `tools/automation_opportunities.py` | No |
-| `automate_check_duplicate_test_names.py` | None (only run by `automate_daily.py`) | Yes (run as sub-script) |
-| `automate_daily.py` | `tools/daily_automation.py` | — (orchestrator) |
+| `automate_check_duplicate_test_names.py` | None (run manually or CI) | — (was run by removed automate_daily) |
+| ~~`automate_daily.py`~~ | ~~`tools/daily_automation.py`~~ | **Removed 2026-01-29**; use exarp-go automation. |
 | `automate_dependency_security.py` | `tools/dependency_security.py` | Yes |
 | `automate_docs_health_v2.py` | `tools/docs_health.py` | Yes |
 | `automate_external_tool_hints.py` | `tools/external_tool_hints.py` | No (one-time; removed from daily) |
@@ -42,7 +39,7 @@
 - **Makefile:** `make sprint`, `make sprint-start`, `make pre-sprint` → call **Go binary** `exarp-go -tool automation -args '{"action":"sprint",...}'`.
 - **Go automation** (`internal/tools/automation_native.go`): runs **native tools** only (e.g. `analyze_alignment`, `task_analysis`, `health`, `report`, `memory_maint`). It does **not** invoke any Python script or the bridge for daily/sprint.
 
-So the Python scripts are **bypassed** when using exarp-go’s normal automation path; they are **only** used when the Python tools (or the Python daily orchestrator) are run.
+So the Python scripts are **bypassed** when using exarp-go’s normal automation path; they are **only** used when the Python tools are invoked (e.g. via bridge or manually). Python daily orchestrator was removed 2026-01-29.
 
 ---
 

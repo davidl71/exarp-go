@@ -93,14 +93,12 @@ def automation(
         JSON string with automation results
     """
     if action == "daily":
-        print("DEBUG [consolidated.py automation] action=daily branch", file=sys.stderr, flush=True)
-        from .daily_automation import run_daily_automation
-        print("DEBUG [consolidated.py automation] Calling run_daily_automation", file=sys.stderr, flush=True)
-        result = run_daily_automation(tasks, include_slow, dry_run, output_path)
-        print(f"DEBUG [consolidated.py automation] run_daily_automation returned: type={type(result)}", file=sys.stderr, flush=True)
-        final_result = result if isinstance(result, str) else json.dumps(result, indent=2)
-        print(f"DEBUG [consolidated.py automation] RETURNING (daily): type={type(final_result)}, len={len(final_result) if isinstance(final_result, str) else 'N/A'}", file=sys.stderr, flush=True)
-        return final_result
+        # Python daily orchestrator removed 2026-01-29; use exarp-go -tool automation (Go) only.
+        return json.dumps({
+            "status": "error",
+            "error": "Daily automation is native Go only. Use: exarp-go -tool automation -args '{\"action\":\"daily\"}'.",
+            "native_only": True,
+        }, indent=2)
 
     elif action == "nightly":
         from .nightly_task_automation import run_nightly_task_automation

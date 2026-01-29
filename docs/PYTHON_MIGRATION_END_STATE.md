@@ -26,7 +26,7 @@
 **Target:** Minimal set for mlx + scripts/tools kept for manual or CI use.
 
 - **Required for bridge mlx:** consolidated.mlx and its dependencies (in project_management_automation/tools/ and utils/ as used by mlx).
-- **Kept for manual/CI:** Scripts and tools not in Go daily but still used manually or in CI (e.g. automate_check_duplicate_test_names.py, automate_daily.py and its DAILY_TASKS deps). Python automate_daily is deprecated; prefer exarp-go -tool automation.
+- **Kept for manual/CI:** Scripts and tools not in Go daily but still used manually or in CI (e.g. automate_check_duplicate_test_names.py). Python automate_daily and daily_automation removed 2026-01-29; use exarp-go -tool automation for daily.
 - **No deletion required for Phase E:** The tree remains larger than “mlx-only” by design; further reduction is optional and would be a separate effort (e.g. remove Python daily orchestrator and unused scripts).
 
 ---
