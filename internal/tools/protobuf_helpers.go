@@ -32,15 +32,15 @@ func MemoryRequestToParams(req *proto.MemoryRequest) map[string]interface{} {
 	}
 
 	params, err := request.ProtobufToParams(req, &request.ProtobufToParamsOptions{
-		FilterEmptyStrings:    true,
-		StringifyArrays:       false,
-		ConvertFloat64ToInt:   true,
-		Float64ToIntFields:    []string{"limit"},
+		FilterEmptyStrings:  true,
+		StringifyArrays:     false,
+		ConvertFloat64ToInt: true,
+		Float64ToIntFields:  []string{"limit"},
 	})
 	if err != nil {
 		return make(map[string]interface{})
 	}
-	
+
 	return params
 }
 
@@ -158,10 +158,10 @@ func ContextRequestToParams(req *proto.ContextRequest) map[string]interface{} {
 	}
 
 	params, err := request.ProtobufToParams(req, &request.ProtobufToParamsOptions{
-		FilterEmptyStrings:    true,
-		StringifyArrays:       false,
-		ConvertFloat64ToInt:   true,
-		Float64ToIntFields:    []string{"max_tokens", "budget_tokens"},
+		FilterEmptyStrings:  true,
+		StringifyArrays:     false,
+		ConvertFloat64ToInt: true,
+		Float64ToIntFields:  []string{"max_tokens", "budget_tokens"},
 	})
 	if err != nil {
 		return make(map[string]interface{})
@@ -272,10 +272,10 @@ func ReportRequestToParams(req *proto.ReportRequest) map[string]interface{} {
 	}
 
 	params, err := request.ProtobufToParams(req, &request.ProtobufToParamsOptions{
-		FilterEmptyStrings:    true,
-		StringifyArrays:       false,
-		ConvertFloat64ToInt:   true,
-		Float64ToIntFields:    []string{"overall_score", "completion_score", "documentation_score", "testing_score", "security_score", "alignment_score"},
+		FilterEmptyStrings:  true,
+		StringifyArrays:     false,
+		ConvertFloat64ToInt: true,
+		Float64ToIntFields:  []string{"overall_score", "completion_score", "documentation_score", "testing_score", "security_score", "alignment_score"},
 	})
 	if err != nil {
 		return make(map[string]interface{})
@@ -456,11 +456,64 @@ func ProtoToTaskMetrics(pb *proto.TaskMetrics) map[string]interface{} {
 	}
 }
 
+// GoScorecardResultToProto converts GoScorecardResult to proto.ScorecardData for type-safe report/MLX path.
+func GoScorecardResultToProto(scorecard *GoScorecardResult) *proto.ScorecardData {
+	if scorecard == nil {
+		return nil
+	}
+	pb := &proto.ScorecardData{
+		Score:           scorecard.Score,
+		Recommendations:  scorecard.Recommendations,
+		Blockers:        ExtractBlockers(scorecard),
+		TestCoverage:    scorecard.Health.GoTestCoverage,
+		ComponentScores: map[string]float64{
+			"testing":       calculateTestingScore(scorecard),
+			"security":      calculateSecurityScore(scorecard),
+			"documentation": calculateDocumentationScore(scorecard),
+			"completion":    calculateCompletionScore(scorecard),
+			"ci_cd":         calculateCICDScore(scorecard),
+		},
+		MetricsCounts: map[string]int32{
+			"go_files":      int32(scorecard.Metrics.GoFiles),
+			"go_lines":      int32(scorecard.Metrics.GoLines),
+			"go_test_files": int32(scorecard.Metrics.GoTestFiles),
+			"go_test_lines": int32(scorecard.Metrics.GoTestLines),
+			"mcp_tools":     int32(scorecard.Metrics.MCPTools),
+			"mcp_prompts":   int32(scorecard.Metrics.MCPPrompts),
+			"mcp_resources": int32(scorecard.Metrics.MCPResources),
+		},
+	}
+	return pb
+}
+
+// ProtoToScorecardMap converts proto.ScorecardData to map for MLX/JSON (same shape as GoScorecardToMap).
+func ProtoToScorecardMap(pb *proto.ScorecardData) map[string]interface{} {
+	if pb == nil {
+		return make(map[string]interface{})
+	}
+	scores := make(map[string]interface{})
+	for k, v := range pb.ComponentScores {
+		scores[k] = v
+	}
+	metrics := make(map[string]interface{})
+	for k, v := range pb.MetricsCounts {
+		metrics[k] = int(v)
+	}
+	metrics["test_coverage"] = pb.TestCoverage
+	return map[string]interface{}{
+		"overall_score":   pb.Score,
+		"scores":          scores,
+		"blockers":        pb.Blockers,
+		"recommendations": pb.Recommendations,
+		"metrics":         metrics,
+	}
+}
+
 // ProjectOverviewDataToProto converts map[string]interface{} to proto.ProjectOverviewData
 // NOTE: Currently unused - kept for potential future protobuf-based report processing
 func ProjectOverviewDataToProto(data map[string]interface{}) *proto.ProjectOverviewData {
 	pb := &proto.ProjectOverviewData{}
-	
+
 	if project, ok := data["project"].(map[string]interface{}); ok {
 		pb.Project = ProjectInfoToProto(project)
 	}
@@ -542,7 +595,7 @@ func ProjectOverviewDataToProto(data map[string]interface{}) *proto.ProjectOverv
 // NOTE: Currently unused - kept for potential future protobuf-based report processing
 func ProtoToProjectOverviewData(pb *proto.ProjectOverviewData) map[string]interface{} {
 	data := make(map[string]interface{})
-	
+
 	if pb.Project != nil {
 		data["project"] = ProtoToProjectInfo(pb.Project)
 	}
@@ -620,10 +673,10 @@ func TaskWorkflowRequestToParams(req *proto.TaskWorkflowRequest) map[string]inte
 
 	// Use generic converter with options matching existing behavior
 	params, err := request.ProtobufToParams(req, &request.ProtobufToParamsOptions{
-		FilterEmptyStrings:    true,  // Filter empty strings and zero numbers
-		StringifyArrays:       true,  // Convert arrays to JSON strings
-		ConvertFloat64ToInt:   true,  // Convert stale_threshold_hours from float64 to int
-		Float64ToIntFields:    []string{"stale_threshold_hours"},
+		FilterEmptyStrings:  true, // Filter empty strings and zero numbers
+		StringifyArrays:     true, // Convert arrays to JSON strings
+		ConvertFloat64ToInt: true, // Convert stale_threshold_hours from float64 to int
+		Float64ToIntFields:  []string{"stale_threshold_hours"},
 	})
 	if err != nil {
 		// Fallback to empty map if conversion fails (shouldn't happen in practice)
@@ -815,9 +868,9 @@ func EstimationRequestToParams(req *proto.EstimationRequest) map[string]interfac
 	}
 
 	params, err := request.ProtobufToParams(req, &request.ProtobufToParamsOptions{
-		FilterEmptyStrings:    true,
-		StringifyArrays:       true, // TagList is an array
-		ConvertFloat64ToInt:   false, // Keep mlx_weight as float64 (it's a weight, not a count)
+		FilterEmptyStrings:  true,
+		StringifyArrays:     true,  // TagList is an array
+		ConvertFloat64ToInt: false, // Keep mlx_weight as float64 (it's a weight, not a count)
 	})
 	if err != nil {
 		return make(map[string]interface{})
@@ -848,10 +901,10 @@ func SessionRequestToParams(req *proto.SessionRequest) map[string]interface{} {
 	}
 
 	params, err := request.ProtobufToParams(req, &request.ProtobufToParamsOptions{
-		FilterEmptyStrings:    true,
-		StringifyArrays:       false,
-		ConvertFloat64ToInt:   true,
-		Float64ToIntFields:    []string{"limit"},
+		FilterEmptyStrings:  true,
+		StringifyArrays:     false,
+		ConvertFloat64ToInt: true,
+		Float64ToIntFields:  []string{"limit"},
 	})
 	if err != nil {
 		return make(map[string]interface{})
@@ -882,10 +935,10 @@ func GitToolsRequestToParams(req *proto.GitToolsRequest) map[string]interface{} 
 	}
 
 	params, err := request.ProtobufToParams(req, &request.ProtobufToParamsOptions{
-		FilterEmptyStrings:    true,
-		StringifyArrays:       false,
-		ConvertFloat64ToInt:   true,
-		Float64ToIntFields:    []string{"limit", "max_commits"},
+		FilterEmptyStrings:  true,
+		StringifyArrays:     false,
+		ConvertFloat64ToInt: true,
+		Float64ToIntFields:  []string{"limit", "max_commits"},
 	})
 	if err != nil {
 		return make(map[string]interface{})
@@ -916,10 +969,10 @@ func MemoryMaintRequestToParams(req *proto.MemoryMaintRequest) map[string]interf
 	}
 
 	params, err := request.ProtobufToParams(req, &request.ProtobufToParamsOptions{
-		FilterEmptyStrings:    true,
-		StringifyArrays:       false,
-		ConvertFloat64ToInt:   true,
-		Float64ToIntFields:    []string{"max_age_days", "scorecard_max_age_days", "keep_minimum"},
+		FilterEmptyStrings:  true,
+		StringifyArrays:     false,
+		ConvertFloat64ToInt: true,
+		Float64ToIntFields:  []string{"max_age_days", "scorecard_max_age_days", "keep_minimum"},
 		// Note: value_threshold and similarity_threshold remain as float64 (they're thresholds, not counts)
 	})
 	if err != nil {
@@ -951,9 +1004,9 @@ func TaskAnalysisRequestToParams(req *proto.TaskAnalysisRequest) map[string]inte
 	}
 
 	params, err := request.ProtobufToParams(req, &request.ProtobufToParamsOptions{
-		FilterEmptyStrings:    true,
-		StringifyArrays:       false,
-		ConvertFloat64ToInt:   false, // Keep similarity_threshold as float64 (it's a threshold, not a count)
+		FilterEmptyStrings:  true,
+		StringifyArrays:     false,
+		ConvertFloat64ToInt: false, // Keep similarity_threshold as float64 (it's a threshold, not a count)
 	})
 	if err != nil {
 		return make(map[string]interface{})
@@ -1016,10 +1069,10 @@ func OllamaRequestToParams(req *proto.OllamaRequest) map[string]interface{} {
 	}
 
 	params, err := request.ProtobufToParams(req, &request.ProtobufToParamsOptions{
-		FilterEmptyStrings:    true,
-		StringifyArrays:       false,
-		ConvertFloat64ToInt:   true,
-		Float64ToIntFields:    []string{"num_gpu", "num_threads", "context_size"},
+		FilterEmptyStrings:  true,
+		StringifyArrays:     false,
+		ConvertFloat64ToInt: true,
+		Float64ToIntFields:  []string{"num_gpu", "num_threads", "context_size"},
 	})
 	if err != nil {
 		return make(map[string]interface{})
@@ -1050,10 +1103,10 @@ func MlxRequestToParams(req *proto.MLXRequest) map[string]interface{} {
 	}
 
 	params, err := request.ProtobufToParams(req, &request.ProtobufToParamsOptions{
-		FilterEmptyStrings:    true,
-		StringifyArrays:       false,
-		ConvertFloat64ToInt:   true,
-		Float64ToIntFields:    []string{"max_tokens"},
+		FilterEmptyStrings:  true,
+		StringifyArrays:     false,
+		ConvertFloat64ToInt: true,
+		Float64ToIntFields:  []string{"max_tokens"},
 		// Note: temperature remains as float64 (it's a threshold, not a count)
 	})
 	if err != nil {
@@ -1085,10 +1138,10 @@ func PromptTrackingRequestToParams(req *proto.PromptTrackingRequest) map[string]
 	}
 
 	params, err := request.ProtobufToParams(req, &request.ProtobufToParamsOptions{
-		FilterEmptyStrings:    true,
-		StringifyArrays:       false,
-		ConvertFloat64ToInt:   true,
-		Float64ToIntFields:    []string{"iteration", "days"},
+		FilterEmptyStrings:  true,
+		StringifyArrays:     false,
+		ConvertFloat64ToInt: true,
+		Float64ToIntFields:  []string{"iteration", "days"},
 	})
 	if err != nil {
 		return make(map[string]interface{})
@@ -1279,10 +1332,10 @@ func AddExternalToolHintsRequestToParams(req *proto.AddExternalToolHintsRequest)
 	}
 
 	params, err := request.ProtobufToParams(req, &request.ProtobufToParamsOptions{
-		FilterEmptyStrings:    true,
-		StringifyArrays:       false,
-		ConvertFloat64ToInt:   true,
-		Float64ToIntFields:    []string{"min_file_size"},
+		FilterEmptyStrings:  true,
+		StringifyArrays:     false,
+		ConvertFloat64ToInt: true,
+		Float64ToIntFields:  []string{"min_file_size"},
 	})
 	if err != nil {
 		return make(map[string]interface{})
@@ -1313,10 +1366,10 @@ func TestingRequestToParams(req *proto.TestingRequest) map[string]interface{} {
 	}
 
 	params, err := request.ProtobufToParams(req, &request.ProtobufToParamsOptions{
-		FilterEmptyStrings:    true,
-		StringifyArrays:       false,
-		ConvertFloat64ToInt:   true,
-		Float64ToIntFields:    []string{"min_coverage"},
+		FilterEmptyStrings:  true,
+		StringifyArrays:     false,
+		ConvertFloat64ToInt: true,
+		Float64ToIntFields:  []string{"min_coverage"},
 		// Note: min_confidence remains as float64 (it's a threshold, not a count)
 	})
 	if err != nil {
@@ -1348,10 +1401,10 @@ func AutomationRequestToParams(req *proto.AutomationRequest) map[string]interfac
 	}
 
 	params, err := request.ProtobufToParams(req, &request.ProtobufToParamsOptions{
-		FilterEmptyStrings:    true,
-		StringifyArrays:       true, // Tasks and TagFilter are arrays
-		ConvertFloat64ToInt:   true,
-		Float64ToIntFields:    []string{"max_tasks_per_host", "max_parallel_tasks", "max_iterations"},
+		FilterEmptyStrings:  true,
+		StringifyArrays:     true, // Tasks and TagFilter are arrays
+		ConvertFloat64ToInt: true,
+		Float64ToIntFields:  []string{"max_tasks_per_host", "max_parallel_tasks", "max_iterations"},
 		// Note: min_value_score remains as float64 (it's a threshold, not a count)
 	})
 	if err != nil {

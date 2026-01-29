@@ -132,6 +132,12 @@ message Metrics {
   map<string, int32> counts = 3;
 }
 
+// PlanningSnippet holds optional critical path and backlog summary for overview
+message PlanningSnippet {
+  string critical_path_summary = 1;
+  string suggested_backlog_summary = 2;
+}
+
 // ProjectOverviewData represents aggregated project data for overview reports
 message ProjectOverviewData {
   ProjectInfo project = 1;
@@ -142,6 +148,17 @@ message ProjectOverviewData {
   repeated RiskOrBlocker risks = 6;
   repeated NextAction next_actions = 7;
   string generated_at = 8;
+  PlanningSnippet planning = 9;
+}
+
+// ScorecardData represents Go scorecard result for report/MLX path (type-safe)
+message ScorecardData {
+  double score = 1;
+  repeated string recommendations = 2;
+  repeated string blockers = 3;
+  map<string, double> component_scores = 4;
+  map<string, int32> metrics_counts = 5;
+  double test_coverage = 6;  // GoTestCoverage for metrics map
 }
 
 // ProjectInfo represents basic project information
@@ -218,7 +235,7 @@ message AnalyzeAlignmentRequest {
 
 // TaskAnalysisRequest represents a request for task analysis
 message TaskAnalysisRequest {
-  string action = 1;  // "duplicates", "tags", "hierarchy", "dependencies", "parallelization"
+  string action = 1;  // "duplicates", "tags", "discover_tags", "hierarchy", "dependencies", "parallelization"
   double similarity_threshold = 2;  // default: 0.85
   bool auto_fix = 3;  // default: false
   bool dry_run = 4;  // default: true
@@ -227,6 +244,13 @@ message TaskAnalysisRequest {
   string output_format = 7;  // default: "text"
   bool include_recommendations = 8;  // default: true
   string output_path = 9;
+  int32 limit = 10;  // For tags/discover_tags: max tasks per run (batch size). 0 = no limit.
+  bool prioritize_untagged = 11;  // For tags/discover_tags: process tasks with no tags first.
+  int32 llm_batch_size = 12;  // For discover_tags: max files per LLM call. For action=tags+use_llm_semantic: max tasks per LLM call. 0=default 15.
+  bool backlog_only = 13;  // For discover_tags: only match/apply tags to Todo2 backlog (Todo + In Progress).
+  bool use_llm_semantic = 14;  // For action=tags: use Apple FM or Ollama to suggest tags from task title and content (batched).
+  bool match_existing_only = 15;  // For action=tags+use_llm_semantic: quick FM inference matching only from existing tags (canonical + project/cache).
+  bool use_tiny_tag_model = 16;   // For action=tags+use_llm_semantic: try Ollama tinyllama then MLX TinyLlama for faster inference.
 }
 
 // TaskDiscoveryRequest represents a request for task discovery

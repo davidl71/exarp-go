@@ -13,6 +13,7 @@ import (
 	"github.com/davidl71/exarp-go/internal/config"
 	"github.com/davidl71/exarp-go/internal/framework"
 	"github.com/davidl71/exarp-go/internal/security"
+	"github.com/davidl71/exarp-go/proto"
 )
 
 // handleReportOverview handles the overview action for report tool
@@ -30,27 +31,28 @@ func handleReportOverview(ctx context.Context, params map[string]interface{}) ([
 	outputPath, _ := params["output_path"].(string)
 	includePlanning, _ := params["include_planning"].(bool)
 
-	// Aggregate project data
-	overviewData, err := aggregateProjectData(ctx, projectRoot, includePlanning)
+	// Aggregate project data (proto-based internally)
+	overviewProto, err := aggregateProjectDataProto(ctx, projectRoot, includePlanning)
 	if err != nil {
 		return nil, fmt.Errorf("failed to aggregate project data: %w", err)
 	}
 
-	// Format output based on requested format
+	// Format output based on requested format (use proto for type-safe formatting)
 	var formattedOutput string
 	switch outputFormat {
 	case "json":
-		jsonBytes, err := json.MarshalIndent(overviewData, "", "  ")
+		overviewMap := ProtoToProjectOverviewData(overviewProto)
+		jsonBytes, err := json.MarshalIndent(overviewMap, "", "  ")
 		if err != nil {
 			return nil, fmt.Errorf("failed to marshal JSON: %w", err)
 		}
 		formattedOutput = string(jsonBytes)
 	case "markdown":
-		formattedOutput = formatOverviewMarkdown(overviewData)
+		formattedOutput = formatOverviewMarkdownProto(overviewProto)
 	case "html":
-		formattedOutput = formatOverviewHTML(overviewData)
+		formattedOutput = formatOverviewHTMLProto(overviewProto)
 	default:
-		formattedOutput = formatOverviewText(overviewData)
+		formattedOutput = formatOverviewTextProto(overviewProto)
 	}
 
 	// Save to file if requested
@@ -251,6 +253,111 @@ func aggregateProjectData(ctx context.Context, projectRoot string, includePlanni
 	data["generated_at"] = time.Now().Format(time.RFC3339)
 
 	return data, nil
+}
+
+// aggregateProjectDataProto returns overview data as proto for type-safe report formatting.
+func aggregateProjectDataProto(ctx context.Context, projectRoot string, includePlanning bool) (*proto.ProjectOverviewData, error) {
+	pb := &proto.ProjectOverviewData{}
+
+	if projectInfo, err := getProjectInfo(projectRoot); err == nil {
+		pb.Project = ProjectInfoToProto(projectInfo)
+	}
+
+	if IsGoProject() {
+		opts := &ScorecardOptions{FastMode: true}
+		scorecard, err := GenerateGoScorecard(ctx, projectRoot, opts)
+		if err == nil {
+			scores := map[string]float64{
+				"security":      calculateSecurityScore(scorecard),
+				"testing":       calculateTestingScore(scorecard),
+				"documentation": calculateDocumentationScore(scorecard),
+				"completion":    calculateCompletionScore(scorecard),
+			}
+			scores["alignment"] = 50.0
+			pb.Health = &proto.HealthData{
+				OverallScore:   scorecard.Score,
+				ProductionReady: scorecard.Score >= float64(config.MinCoverage()),
+				Scores:         scores,
+			}
+		}
+	}
+
+	if codebase, err := getCodebaseMetrics(projectRoot); err == nil {
+		pb.Codebase = CodebaseMetricsToProto(codebase)
+	}
+
+	if tasks, err := getTaskMetrics(projectRoot); err == nil {
+		pb.Tasks = TaskMetricsToProto(tasks)
+	}
+
+	phasesMap := getProjectPhases()
+	for _, phaseRaw := range phasesMap {
+		if phase, ok := phaseRaw.(map[string]interface{}); ok {
+			pbPhase := &proto.ProjectPhase{}
+			if name, ok := phase["name"].(string); ok {
+				pbPhase.Name = name
+			}
+			if status, ok := phase["status"].(string); ok {
+				pbPhase.Status = status
+			}
+			if progress, ok := phase["progress"].(int); ok {
+				pbPhase.Progress = int32(progress)
+			} else if progress, ok := phase["progress"].(float64); ok {
+				pbPhase.Progress = int32(progress)
+			}
+			pb.Phases = append(pb.Phases, pbPhase)
+		}
+	}
+
+	if risks, err := getRisksAndBlockers(projectRoot); err == nil {
+		for _, r := range risks {
+			pb.Risks = append(pb.Risks, &proto.RiskOrBlocker{
+				Type:        getStr(r, "type"),
+				Description: getStr(r, "description"),
+				TaskId:      getStr(r, "task_id"),
+				Priority:    getStr(r, "priority"),
+			})
+		}
+	}
+
+	if actions, err := getNextActions(projectRoot); err == nil {
+		for _, a := range actions {
+			hours := 0.0
+			if h, ok := a["estimated_hours"].(float64); ok {
+				hours = h
+			}
+			pb.NextActions = append(pb.NextActions, &proto.NextAction{
+				TaskId:         getStr(a, "task_id"),
+				Name:           getStr(a, "name"),
+				Priority:       getStr(a, "priority"),
+				EstimatedHours: hours,
+			})
+		}
+	}
+
+	pb.GeneratedAt = time.Now().Format(time.RFC3339)
+
+	if includePlanning {
+		planning := getPlanningSnippet(projectRoot)
+		if planning != nil {
+			pb.Planning = &proto.PlanningSnippet{}
+			if s, ok := planning["critical_path_summary"].(string); ok {
+				pb.Planning.CriticalPathSummary = s
+			}
+			if s, ok := planning["suggested_backlog_summary"].(string); ok {
+				pb.Planning.SuggestedBacklogSummary = s
+			}
+		}
+	}
+
+	return pb, nil
+}
+
+func getStr(m map[string]interface{}, key string) string {
+	if s, ok := m[key].(string); ok {
+		return s
+	}
+	return ""
 }
 
 // getPlanningSnippet returns critical path summary and suggested backlog order (first 10).
@@ -763,6 +870,144 @@ func formatOverviewHTML(data map[string]interface{}) string {
 		if score, ok := health["overall_score"].(float64); ok {
 			sb.WriteString(fmt.Sprintf("<p><strong>Overall Score</strong>: %.1f%%</p>\n", score))
 		}
+	}
+
+	sb.WriteString("</body>\n</html>\n")
+
+	return sb.String()
+}
+
+// formatOverviewTextProto formats overview from proto (type-safe, no map assertions).
+func formatOverviewTextProto(pb *proto.ProjectOverviewData) string {
+	if pb == nil {
+		return ""
+	}
+	var sb strings.Builder
+
+	sb.WriteString("======================================================================\n")
+	sb.WriteString("  PROJECT OVERVIEW\n")
+	sb.WriteString("======================================================================\n\n")
+
+	if pb.Project != nil {
+		sb.WriteString("Project Information:\n")
+		sb.WriteString(fmt.Sprintf("  Name:        %s\n", pb.Project.Name))
+		sb.WriteString(fmt.Sprintf("  Version:     %s\n", pb.Project.Version))
+		sb.WriteString(fmt.Sprintf("  Type:        %s\n", pb.Project.Type))
+		sb.WriteString(fmt.Sprintf("  Status:      %s\n", pb.Project.Status))
+		sb.WriteString("\n")
+	}
+
+	if pb.Health != nil {
+		sb.WriteString("Health Scorecard:\n")
+		sb.WriteString(fmt.Sprintf("  Overall Score: %.1f%%\n", pb.Health.OverallScore))
+		if pb.Health.ProductionReady {
+			sb.WriteString("  Production Ready: YES ✅\n")
+		} else {
+			sb.WriteString("  Production Ready: NO ❌\n")
+		}
+		sb.WriteString("\n")
+	}
+
+	if pb.Tasks != nil {
+		sb.WriteString("Task Status:\n")
+		sb.WriteString(fmt.Sprintf("  Total:           %d\n", pb.Tasks.Total))
+		sb.WriteString(fmt.Sprintf("  Pending:        %d\n", pb.Tasks.Pending))
+		sb.WriteString(fmt.Sprintf("  Completed:      %d\n", pb.Tasks.Completed))
+		sb.WriteString(fmt.Sprintf("  Completion:     %.1f%%\n", pb.Tasks.CompletionRate))
+		sb.WriteString(fmt.Sprintf("  Remaining Hours: %.1f\n", pb.Tasks.RemainingHours))
+		sb.WriteString("\n")
+	}
+
+	if len(pb.NextActions) > 0 {
+		sb.WriteString("Next Actions:\n")
+		for i, action := range pb.NextActions {
+			if i >= 5 {
+				break
+			}
+			sb.WriteString(fmt.Sprintf("  %d. %s (Priority: %s)\n", i+1, action.Name, action.Priority))
+		}
+		sb.WriteString("\n")
+	}
+
+	if pb.Planning != nil {
+		if pb.Planning.CriticalPathSummary != "" {
+			sb.WriteString("Critical Path: " + pb.Planning.CriticalPathSummary + "\n\n")
+		}
+		if pb.Planning.SuggestedBacklogSummary != "" {
+			sb.WriteString("Suggested Backlog Order: " + pb.Planning.SuggestedBacklogSummary + "\n\n")
+		}
+	}
+
+	return sb.String()
+}
+
+// formatOverviewMarkdownProto formats overview as markdown from proto.
+func formatOverviewMarkdownProto(pb *proto.ProjectOverviewData) string {
+	if pb == nil {
+		return ""
+	}
+	var sb strings.Builder
+
+	sb.WriteString("# Project Overview\n\n")
+
+	if pb.Project != nil {
+		sb.WriteString("## Project Information\n\n")
+		sb.WriteString(fmt.Sprintf("- **Name**: %s\n", pb.Project.Name))
+		sb.WriteString(fmt.Sprintf("- **Version**: %s\n", pb.Project.Version))
+		sb.WriteString(fmt.Sprintf("- **Type**: %s\n", pb.Project.Type))
+		sb.WriteString(fmt.Sprintf("- **Status**: %s\n\n", pb.Project.Status))
+	}
+
+	if pb.Health != nil {
+		sb.WriteString("## Health Scorecard\n\n")
+		sb.WriteString(fmt.Sprintf("**Overall Score**: %.1f%%\n\n", pb.Health.OverallScore))
+	}
+
+	if pb.Tasks != nil {
+		sb.WriteString("## Task Status\n\n")
+		sb.WriteString(fmt.Sprintf("- **Total**: %d\n", pb.Tasks.Total))
+		sb.WriteString(fmt.Sprintf("- **Pending**: %d\n", pb.Tasks.Pending))
+		sb.WriteString(fmt.Sprintf("- **Completed**: %d\n", pb.Tasks.Completed))
+		sb.WriteString(fmt.Sprintf("- **Completion Rate**: %.1f%%\n\n", pb.Tasks.CompletionRate))
+	}
+
+	if pb.Planning != nil {
+		if pb.Planning.CriticalPathSummary != "" {
+			sb.WriteString("## Planning\n\n")
+			sb.WriteString("- **Critical Path**: " + pb.Planning.CriticalPathSummary + "\n\n")
+		}
+		if pb.Planning.SuggestedBacklogSummary != "" {
+			sb.WriteString("- **Suggested Backlog Order**: " + pb.Planning.SuggestedBacklogSummary + "\n\n")
+		}
+	}
+
+	return sb.String()
+}
+
+// formatOverviewHTMLProto formats overview as HTML from proto.
+func formatOverviewHTMLProto(pb *proto.ProjectOverviewData) string {
+	if pb == nil {
+		return ""
+	}
+	var sb strings.Builder
+
+	sb.WriteString("<!DOCTYPE html>\n<html>\n<head>\n")
+	sb.WriteString("<title>Project Overview</title>\n")
+	sb.WriteString("<style>body{font-family:Arial,sans-serif;margin:40px;}</style>\n")
+	sb.WriteString("</head>\n<body>\n")
+	sb.WriteString("<h1>Project Overview</h1>\n")
+
+	if pb.Project != nil {
+		sb.WriteString("<h2>Project Information</h2>\n<ul>\n")
+		sb.WriteString(fmt.Sprintf("<li><strong>Name</strong>: %s</li>\n", pb.Project.Name))
+		sb.WriteString(fmt.Sprintf("<li><strong>Version</strong>: %s</li>\n", pb.Project.Version))
+		sb.WriteString(fmt.Sprintf("<li><strong>Type</strong>: %s</li>\n", pb.Project.Type))
+		sb.WriteString("</ul>\n")
+	}
+
+	if pb.Health != nil {
+		sb.WriteString("<h2>Health Scorecard</h2>\n")
+		sb.WriteString(fmt.Sprintf("<p><strong>Overall Score</strong>: %.1f%%</p>\n", pb.Health.OverallScore))
 	}
 
 	sb.WriteString("</body>\n</html>\n")
