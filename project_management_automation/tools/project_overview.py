@@ -128,8 +128,18 @@ def _get_project_info(project_root: Path) -> dict:
 
 
 def _get_health_metrics(project_root: Path) -> dict:
-    """Get health metrics from project_scorecard."""
+    """Get health metrics from scorecard (Go: exarp-go; else Python)."""
     try:
+        from .project_scorecard import _call_go_scorecard_json, _is_go_project
+        if _is_go_project(project_root):
+            data = _call_go_scorecard_json(project_root)
+            if data:
+                return {
+                    'overall_score': data.get('overall_score', 0),
+                    'production_ready': data.get('production_ready', False),
+                    'blockers': data.get('blockers', []),
+                    'scores': data.get('scores', {}),
+                }
         from .project_scorecard import generate_project_scorecard
         result = generate_project_scorecard("json", False, None)
         return {
@@ -166,16 +176,8 @@ def _get_codebase_metrics(project_root: Path) -> dict:
     tools_dir = project_root / 'project_management_automation' / 'tools'
     tools_count = len([f for f in tools_dir.glob('*.py') if not f.name.startswith('__')]) if tools_dir.exists() else 0
 
-    try:
-        import sys
-        sys.path.insert(0, str(project_root))
-        try:
-            from project_management_automation.prompts import LEGACY_PROMPTS_COUNT
-        except ImportError:
-            from prompts import LEGACY_PROMPTS_COUNT
-        prompts_count = LEGACY_PROMPTS_COUNT
-    except (ImportError, ModuleNotFoundError):
-        prompts_count = 0
+    # Prompts are in exarp-go (stdio://prompts); Python stub removed
+    prompts_count = 0
 
     return {
         'python_files': len(py_files),

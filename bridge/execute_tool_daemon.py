@@ -11,8 +11,6 @@ Protocol: JSON-RPC 2.0 over line-delimited stdin/stdout
 
 import json
 import sys
-import os
-from pathlib import Path
 
 # Import the existing execute_tool function
 # This allows us to reuse all existing tool logic

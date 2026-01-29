@@ -515,33 +515,8 @@ def get_session_context(task_id: Optional[str] = None) -> dict[str, Any]:
         Dict with task-focused context (FastMCP will serialize)
     """
     try:
-        # Get base auto-prime context
+        # Get base auto-prime context (task-specific context removed; resources.templates was removed)
         base = json.loads(auto_prime(compact=True))
-
-        if task_id:
-            # Add task-specific context
-            from ..resources.templates import get_task_by_id
-            task_data = get_task_by_id(task_id)
-
-            if task_data.get("found"):
-                task = task_data.get("task", {})
-                base["task_context"] = {
-                    "id": task_id,
-                    "name": task.get("name", ""),
-                    "status": task.get("status", ""),
-                    "tags": task.get("tags", []),
-                    "description": task.get("description", "")[:200],  # Truncate
-                }
-
-                # Try to recall relevant memories
-                try:
-                    from ..resources.templates import get_memories_by_category
-                    memories = get_memories_by_category("research")
-                    if memories.get("count", 0) > 0:
-                        base["related_memories"] = memories.get("memories", [])[:3]
-                except Exception:
-                    pass
-
         # Return dict directly - FastMCP will handle serialization
         return base
 

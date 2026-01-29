@@ -7,9 +7,58 @@ Supplies hints, tasks, prompts, and goals based on the current workflow mode.
 
 import json
 import logging
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger("exarp.resources.context_primer")
+
+# Prompt manifest (aligned with stdio://prompts / Go; was in prompt_discovery.py)
+PROMPT_MODE_MAPPING: Dict[str, List[str]] = {
+    "daily_checkin": ["advisor_consult", "advisor_briefing"],
+    "security_review": ["persona_security"],
+    "task_management": ["task_review", "weekly_maintenance"],
+    "code_review": ["project_health", "persona_code_reviewer"],
+    "sprint_planning": ["automation_setup", "automation_discovery", "persona_project_manager"],
+    "debugging": ["persona_developer"],
+    "development": ["persona_developer", "weekly_maintenance"],
+}
+PROMPT_PERSONA_MAPPING: Dict[str, List[str]] = {
+    "developer": ["persona_developer"],
+    "project_manager": ["persona_project_manager", "task_review"],
+    "code_reviewer": ["persona_code_reviewer", "project_health"],
+    "security_engineer": ["persona_security"],
+    "qa_engineer": ["persona_qa", "project_health"],
+    "architect": ["persona_architect"],
+    "tech_writer": ["persona_tech_writer", "doc_health_check"],
+    "executive": ["persona_executive"],
+}
+PROMPT_CATEGORIES: Dict[str, List[str]] = {
+    "documentation": ["doc_health_check"],
+    "automation": ["automation_discovery", "automation_setup"],
+    "workflow": ["weekly_maintenance", "task_review", "project_health"],
+    "wisdom": ["advisor_consult", "advisor_briefing"],
+    "persona": [
+        "persona_developer", "persona_project_manager", "persona_code_reviewer",
+        "persona_executive", "persona_security", "persona_architect", "persona_qa", "persona_tech_writer",
+    ],
+}
+PROMPT_DESCRIPTIONS: Dict[str, str] = {
+    "doc_health_check": "Analyze documentation health and create tasks for issues",
+    "automation_discovery": "Discover new automation opportunities in codebase",
+    "automation_setup": "One-time automation setup workflow",
+    "weekly_maintenance": "Weekly maintenance workflow",
+    "task_review": "Comprehensive task review workflow for backlog hygiene",
+    "project_health": "Comprehensive project health assessment",
+    "advisor_consult": "Consult a trusted advisor for wisdom on current work",
+    "advisor_briefing": "Get morning briefing from trusted advisors",
+    "persona_developer": "Developer daily workflow for writing quality code",
+    "persona_project_manager": "Project Manager workflow for delivery tracking",
+    "persona_code_reviewer": "Code Reviewer workflow for quality gates",
+    "persona_executive": "Executive/Stakeholder workflow for strategic view",
+    "persona_security": "Security Engineer workflow for risk management",
+    "persona_architect": "Architect workflow for system design",
+    "persona_qa": "QA Engineer workflow for quality assurance",
+    "persona_tech_writer": "Technical Writer workflow for documentation",
+}
 
 # Workflow mode context definitions
 WORKFLOW_MODE_CONTEXT: Dict[str, Dict[str, str]] = {
@@ -174,23 +223,55 @@ def get_prompts_for_mode(mode: str) -> Dict[str, Any]:
     Returns:
         Dict with recommended prompts for the mode
     """
-    try:
-        from .prompt_discovery import get_prompts_for_mode as get_mode_prompts
-        
-        result = get_mode_prompts(mode)
-        
-        return {
-            "recommended": result.get("prompts", []),
-            "count": result.get("count", 0),
-            "mode": mode,
+    prompts = PROMPT_MODE_MAPPING.get(mode, PROMPT_MODE_MAPPING.get("development", []))
+    return {
+        "recommended": [{"name": p, "description": PROMPT_DESCRIPTIONS.get(p, "")} for p in prompts],
+        "count": len(prompts),
+        "mode": mode,
+    }
+
+
+def discover_prompts(
+    mode: Optional[str] = None,
+    persona: Optional[str] = None,
+    category: Optional[str] = None,
+    keywords: Optional[List[str]] = None,
+) -> Dict[str, Any]:
+    """
+    Discover prompts by mode/persona/category/keywords.
+    """
+    all_prompts = set(PROMPT_DESCRIPTIONS.keys())
+    if mode:
+        mode_prompts = set(PROMPT_MODE_MAPPING.get(mode, []))
+        all_prompts = all_prompts.intersection(mode_prompts) if mode_prompts else all_prompts
+    if persona:
+        persona_prompts = set(PROMPT_PERSONA_MAPPING.get(persona, []))
+        all_prompts = all_prompts.intersection(persona_prompts) if persona_prompts else all_prompts
+    if category:
+        category_prompts = set(PROMPT_CATEGORIES.get(category, []))
+        all_prompts = all_prompts.intersection(category_prompts) if category_prompts else all_prompts
+    if keywords:
+        keyword_matches = {
+            p for p in all_prompts
+            if any(kw.lower() in PROMPT_DESCRIPTIONS.get(p, "").lower() for kw in keywords)
         }
-    except Exception as e:
-        logger.warning(f"Failed to get prompts for mode {mode}: {e}")
-        return {
-            "recommended": [],
-            "count": 0,
-            "mode": mode,
-        }
+        all_prompts = keyword_matches if keyword_matches else all_prompts
+    return {
+        "prompts": [{"name": p, "description": PROMPT_DESCRIPTIONS.get(p, "")} for p in sorted(all_prompts)],
+        "count": len(all_prompts),
+        "filters_applied": {"mode": mode, "persona": persona, "category": category, "keywords": keywords},
+    }
+
+
+def discover_prompts_tool(
+    mode: Optional[str] = None,
+    persona: Optional[str] = None,
+    category: Optional[str] = None,
+    keywords: Optional[str] = None,
+) -> str:
+    """Discover prompts (returns JSON string for consolidated_git / find_prompts)."""
+    kw_list = [k.strip() for k in keywords.split(",")] if keywords else None
+    return json.dumps(discover_prompts(mode=mode, persona=persona, category=category, keywords=kw_list), separators=(",", ":"))
 
 
 def get_context_primer(
@@ -250,5 +331,7 @@ __all__ = [
     "get_hints_for_mode",
     "get_tasks_summary",
     "get_prompts_for_mode",
+    "discover_prompts",
+    "discover_prompts_tool",
 ]
 

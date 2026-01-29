@@ -8,7 +8,6 @@ This allows exarp-go to use AgentScope for advanced agent evaluation.
 
 import json
 import sys
-import os
 import argparse
 from pathlib import Path
 
