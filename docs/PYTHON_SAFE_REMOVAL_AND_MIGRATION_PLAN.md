@@ -24,7 +24,7 @@
 
 ## 2. What Remains (Do Not Remove Yet)
 
-### 2.1 Bridge (required for mlx and optional task_workflow path)
+### 2.1 Bridge (required for mlx only; task_workflow removed Phase B)
 
 | Path | Used by Go? | Used by bridge script? | Safe to remove? |
 |------|-------------|------------------------|-----------------|
@@ -92,11 +92,11 @@ After removing bridge/context, bridge still has: execute_tool, execute_tool_daem
    - Tools in consolidated or project_management_automation that are never called by Go (e.g. docs_health, todo2_alignment when invoked via bridge): **leave as-is** for direct Python use.  
    - Prefer **exarp-go** for tools that have Go equivalents (see NATIVE_GO_HANDLER_STATUS.md). No bridge routing changes in Phase D.
 
-### Phase E — End state (optional long term)
+### Phase E — End state (optional long term) ✅ Done 2026-01-29
 
-- **Bridge:** Only execute_tool.py + mlx path (+ proto, statistics_bridge, agent_evaluation as needed).
-- **project_management_automation:** Minimal set for mlx (consolidated.mlx and its deps) + any scripts/tools we choose to keep for manual or CI use.
-- **Tests:** Keep Python tests that validate bridge and MCP; migrate or remove as needed.
+- **Bridge (achieved):** Only execute_tool.py + mlx path; proto, statistics_bridge, agent_evaluation kept as needed. Bridge routes **mlx** only; all other tools are native Go. See docs/PYTHON_MIGRATION_END_STATE.md.
+- **project_management_automation:** Minimal set for mlx (consolidated.mlx and its deps) + scripts/tools kept for manual or CI use (e.g. duplicate_test_names, automate_daily). No further reduction required for Phase E; keep for mlx bridge and manual/CI.
+- **Tests:** Keep Python tests that validate bridge and MCP (e.g. tests/unit/python/test_execute_tool.py, tests/integration/bridge/test_bridge_integration.py, tests/regression/test_native_vs_bridge.py); migrate or remove as needed in future.
 
 ---
 
@@ -111,11 +111,13 @@ After removing bridge/context, bridge still has: execute_tool, execute_tool_daem
 | **Keep** | bridge + consolidated.mlx, statistics_bridge, proto, agent_evaluation | Until mlx generate is native or deprecated |
 | **Deprecate (doc only)** | Python automate_daily | Phase C ✅ |
 | **Done** | duplicate_test_names: drop from daily, run manually (Phase D ✅) | Phase D ✅ |
+| **Done** | End state documented; bridge mlx-only; pma minimal for mlx + manual/CI; tests strategy (Phase E ✅) | Phase E ✅ |
 
 ---
 
 ## 5. References
 
+- **End state (Phase E):** docs/PYTHON_MIGRATION_END_STATE.md  
 - **Bridge routing:** bridge/execute_tool.py  
 - **Go handler status:** docs/NATIVE_GO_HANDLER_STATUS.md  
 - **Scripts audit:** docs/PYTHON_SCRIPTS_AUDIT.md  
