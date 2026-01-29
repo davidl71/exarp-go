@@ -58,9 +58,8 @@ for file in "intelligent_automation_base.py" "mcp_client.py"; do
     fi
 done
 
-# List of scripts needed (from grep results)
+# List of scripts needed (from grep results). automate_daily.py removed 2026-01-29; use exarp-go automation.
 NEEDED_SCRIPTS=(
-    "automate_daily.py"
     "automate_docs_health_v2.py"
     "automate_todo2_alignment_v2.py"
     "automate_todo2_duplicate_detection.py"

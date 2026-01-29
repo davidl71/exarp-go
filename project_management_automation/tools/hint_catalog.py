@@ -487,9 +487,9 @@ TOOL_CATALOG = {
         "persona": "developer",
     },
     "run_daily_automation": {
-        "hint": "Daily automation. Run daily checks (docs_health, alignment, duplicates, security).",
+        "hint": "Daily automation: use exarp-go -tool automation -args '{\"action\":\"daily\"}' (Python daily removed).",
         "category": "Automation",
-        "description": "Runs daily maintenance automation: docs health, alignment, duplicates, security",
+        "description": "Daily automation is native Go only. Use exarp-go -tool automation (action=daily).",
         "outputs": ["Automation results", "Summary report"],
         "inputs": {"include_slow": "Include slow checks", "dry_run": "Preview only"},
         "side_effects": "May create tasks, modify files",
