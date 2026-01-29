@@ -14,9 +14,9 @@ func TestRegisterAllResources(t *testing.T) {
 		t.Fatalf("RegisterAllResources() error = %v", err)
 	}
 
-	// Verify all 21 resources are registered (11 base + 6 task resources + 1 server resource + 1 models resource + 2 tools resources)
-	if server.ResourceCount() != 21 {
-		t.Errorf("server.ResourceCount() = %v, want 21", server.ResourceCount())
+	// Verify all 22 resources are registered (11 base + 6 task + 1 server + 1 models + 2 tools + 1 cursor/skills)
+	if server.ResourceCount() != 22 {
+		t.Errorf("server.ResourceCount() = %v, want 22", server.ResourceCount())
 	}
 
 	// Verify specific resources are registered
