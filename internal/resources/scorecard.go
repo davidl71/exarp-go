@@ -6,44 +6,41 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/davidl71/exarp-go/internal/bridge"
 	"github.com/davidl71/exarp-go/internal/tools"
 )
 
-// handleScorecard handles the scorecard resource
-// Uses native Go implementation for Go projects (primary), falls back to Python bridge for non-Go projects only
-//
-// **Intentional Python Bridge Fallback:**
-// - For non-Go projects: Python bridge provides language-agnostic scorecard generation
-// - For Go projects: Native Go is primary - returns errors instead of falling back to Python bridge
+// handleScorecard handles the stdio://scorecard resource.
+// Native Go only: uses GenerateGoScorecard for Go projects; returns a clear JSON error for non-Go projects
+// (aligned with report tool: scorecard is Go-only; no Python bridge fallback).
 func handleScorecard(ctx context.Context, uri string) ([]byte, string, error) {
 	projectRoot, err := tools.FindProjectRoot()
 	if err != nil {
 		return nil, "", fmt.Errorf("failed to find project root: %w", err)
 	}
 
-	// Check if Go project
-	if tools.IsGoProject() {
-		// Use native Go scorecard implementation (primary for Go projects)
-		opts := &tools.ScorecardOptions{FastMode: true}
-		scorecard, err := tools.GenerateGoScorecard(ctx, projectRoot, opts)
-		if err != nil {
-			// For Go projects, return error instead of falling back to Python bridge
-			return nil, "", fmt.Errorf("failed to generate Go scorecard: %w", err)
+	if !tools.IsGoProject() {
+		errResult := map[string]interface{}{
+			"success":   false,
+			"error":     "stdio://scorecard is supported only for Go projects; use report(action=\"scorecard\") for Go projects",
+			"uri":       uri,
+			"timestamp": time.Now().Format(time.RFC3339),
 		}
-
-		// Convert to resource JSON format matching Python implementation
-		result := convertScorecardToResourceFormat(scorecard)
-		jsonData, err := json.Marshal(result)
-		if err != nil {
-			return nil, "", fmt.Errorf("failed to marshal scorecard: %w", err)
-		}
+		jsonData, _ := json.Marshal(errResult)
 		return jsonData, "application/json", nil
 	}
 
-	// Intentional fallback to Python bridge for non-Go projects
-	// Python bridge provides language-agnostic scorecard generation for non-Go projects
-	return bridge.ExecutePythonResource(ctx, uri)
+	opts := &tools.ScorecardOptions{FastMode: true}
+	scorecard, err := tools.GenerateGoScorecard(ctx, projectRoot, opts)
+	if err != nil {
+		return nil, "", fmt.Errorf("failed to generate Go scorecard: %w", err)
+	}
+
+	result := convertScorecardToResourceFormat(scorecard)
+	jsonData, err := json.Marshal(result)
+	if err != nil {
+		return nil, "", fmt.Errorf("failed to marshal scorecard: %w", err)
+	}
+	return jsonData, "application/json", nil
 }
 
 // convertScorecardToResourceFormat converts GoScorecardResult to resource JSON format

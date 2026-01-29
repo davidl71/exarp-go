@@ -41,22 +41,6 @@ def test_prompt_retrieval_end_to_end():
     pass
 
 
-def test_resource_execution_end_to_end():
-    """Test end-to-end Go → Python resource execution."""
-    project_root = Path(__file__).parent.parent.parent.parent
-    bridge_script = project_root / "bridge" / "execute_resource.py"
-    
-    # Verify bridge script exists
-    assert bridge_script.exists(), f"Bridge script not found: {bridge_script}"
-    
-    # Test would execute:
-    # 1. Go code calls ExecutePythonResource
-    # 2. Python script is executed via subprocess
-    # 3. Python script returns JSON result
-    # 4. Go code returns bytes and MIME type
-    pass
-
-
 def test_subprocess_communication():
     """Test subprocess communication format."""
     # Test JSON communication

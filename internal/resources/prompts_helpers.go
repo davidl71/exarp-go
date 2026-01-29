@@ -8,11 +8,15 @@ import (
 
 // getAllPromptsNative retrieves all prompts from native Go templates
 func getAllPromptsNative() map[string]string {
-	// All prompt names from prompts/templates.go
+	// All 34 prompt names (same order as internal/prompts/registry.go)
 	promptNames := []string{
 		"align", "discover", "config", "scan", "scorecard", "overview", "dashboard", "remember",
 		"daily_checkin", "sprint_start", "sprint_end", "pre_sprint", "post_impl", "sync", "dups",
 		"context", "mode", "task_update",
+		"docs", "automation_discover", "weekly_maintenance", "task_review", "project_health",
+		"automation_setup", "advisor_consult", "advisor_briefing",
+		"persona_developer", "persona_project_manager", "persona_code_reviewer", "persona_executive",
+		"persona_security", "persona_architect", "persona_qa", "persona_tech_writer",
 	}
 
 	result := make(map[string]string)
@@ -151,14 +155,14 @@ func getPromptsForPersona(persona string) map[string]string {
 
 	// Persona mappings
 	personaMappings := map[string][]string{
-		"developer":     {"discover", "config", "remember", "context", "mode"},
-		"pm":            {"scorecard", "overview", "dashboard", "align", "sync"},
-		"qa":            {"sprint_end", "scorecard", "scan", "task_update"},
-		"reviewer":      {"align", "dups", "scorecard", "overview"},
-		"security":      {"scan", "scorecard", "overview"},
-		"architect":     {"align", "overview", "dashboard", "context"},
-		"executive":     {"scorecard", "overview", "dashboard"},
-		"tech_writer":   {"config", "remember", "overview", "dashboard"},
+		"developer":   {"discover", "config", "remember", "context", "mode"},
+		"pm":          {"scorecard", "overview", "dashboard", "align", "sync"},
+		"qa":          {"sprint_end", "scorecard", "scan", "task_update"},
+		"reviewer":    {"align", "dups", "scorecard", "overview"},
+		"security":    {"scan", "scorecard", "overview"},
+		"architect":   {"align", "overview", "dashboard", "context"},
+		"executive":   {"scorecard", "overview", "dashboard"},
+		"tech_writer": {"config", "remember", "overview", "dashboard"},
 	}
 
 	promptNames, ok := personaMappings[strings.ToLower(persona)]
@@ -225,4 +229,3 @@ func formatPromptsForResource(prompts map[string]string) []map[string]interface{
 	}
 	return result
 }
-

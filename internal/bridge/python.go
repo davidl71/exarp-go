@@ -104,7 +104,7 @@ func executePythonToolSubprocess(ctx context.Context, toolName string, args map[
 
 	// Generate request ID for tracking
 	requestID := fmt.Sprintf("%s-%d", toolName, time.Now().UnixNano())
-	
+
 	// Create protobuf ToolRequest
 	req := &proto.ToolRequest{
 		ToolName:       toolName,
@@ -123,11 +123,11 @@ func executePythonToolSubprocess(ctx context.Context, toolName string, args map[
 	// Try protobuf format first (if Python protobuf code is available)
 	// Fall back to JSON format for backward compatibility
 	var stdout, stderr bytes.Buffer
-	
+
 	// Set timeout
 	ctxWithTimeout, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
-	
+
 	// Try protobuf mode first
 	cmd := exec.CommandContext(ctxWithTimeout, "python3", bridgeScript, toolName, "--protobuf")
 	cmd.Stdin = bytes.NewReader(protobufData)
@@ -135,12 +135,12 @@ func executePythonToolSubprocess(ctx context.Context, toolName string, args map[
 	cmd.Stderr = &stderr
 	cmd.Dir = workspaceRoot
 	cmd.Env = append(os.Environ(), fmt.Sprintf("PROJECT_ROOT=%s", workspaceRoot))
-	
+
 	err = cmd.Run()
 	if err == nil {
 		// Protobuf mode succeeded - try to parse protobuf ToolResponse
 		outputBytes := stdout.Bytes()
-		
+
 		// Try to parse as protobuf ToolResponse
 		var resp proto.ToolResponse
 		if err := protobuf.Unmarshal(outputBytes, &resp); err == nil {
@@ -152,11 +152,11 @@ func executePythonToolSubprocess(ctx context.Context, toolName string, args map[
 			// Return the result (JSON string from protobuf message)
 			return resp.Result, nil
 		}
-		
+
 		// If protobuf parsing failed, treat as JSON (backward compatibility)
 		return string(outputBytes), nil
 	}
-	
+
 	// Protobuf mode failed (likely Python protobuf code not available or error)
 	// Fall back to JSON format (backward compatible)
 	cmd = exec.CommandContext(ctxWithTimeout, "python3", bridgeScript, toolName, string(argsJSON))
@@ -170,46 +170,4 @@ func executePythonToolSubprocess(ctx context.Context, toolName string, args map[
 	}
 
 	return string(output), nil
-}
-
-// ExecutePythonResource executes a Python resource handler via subprocess
-func ExecutePythonResource(ctx context.Context, uri string) ([]byte, string, error) {
-	// Get workspace root where bridge scripts are located
-	workspaceRoot := getWorkspaceRoot()
-
-	// Validate workspace root path
-	validatedRoot, err := security.ValidatePath(workspaceRoot, workspaceRoot)
-	if err != nil {
-		return nil, "", fmt.Errorf("invalid workspace root: %w", err)
-	}
-	workspaceRoot = validatedRoot
-
-	// Path to Python bridge script for resources (bridge scripts are in workspace root)
-	bridgeScript := filepath.Join(workspaceRoot, "bridge", "execute_resource.py")
-
-	// Validate bridge script path is within workspace root
-	_, err = security.ValidatePath(bridgeScript, workspaceRoot)
-	if err != nil {
-		return nil, "", fmt.Errorf("invalid bridge script path: %w", err)
-	}
-
-	// Create command
-	cmd := exec.CommandContext(ctx, "python3", bridgeScript, uri)
-
-	// Pass environment variables to Python subprocess (especially PROJECT_ROOT from Cursor)
-	cmd.Env = os.Environ()
-
-	// Set timeout
-	ctxWithTimeout, cancel := context.WithTimeout(ctx, 30*time.Second)
-	defer cancel()
-	cmd = exec.CommandContext(ctxWithTimeout, "python3", bridgeScript, uri)
-
-	// Execute command
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		return nil, "application/json", fmt.Errorf("python resource execution failed: %w, output: %s", err, output)
-	}
-
-	// Return as JSON
-	return output, "application/json", nil
 }

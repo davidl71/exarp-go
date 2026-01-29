@@ -13,7 +13,7 @@ import (
 // handleAllPrompts handles the stdio://prompts resource
 // Returns all prompts in compact format (name + description only)
 func handleAllPrompts(ctx context.Context, uri string) ([]byte, string, error) {
-	// Get all prompt names from registry (matching the order in registry.go)
+	// All prompt names in registry order (34 prompts; see internal/prompts/registry.go)
 	promptNames := []string{
 		// Original prompts (8)
 		"align", "discover", "config", "scan", "scorecard", "overview",
@@ -25,6 +25,11 @@ func handleAllPrompts(ctx context.Context, uri string) ([]byte, string, error) {
 		"context", "mode",
 		// Task management prompts
 		"task_update",
+		// Migrated from Python (16): docs, automation, workflow, advisor, personas
+		"docs", "automation_discover", "weekly_maintenance", "task_review", "project_health",
+		"automation_setup", "advisor_consult", "advisor_briefing",
+		"persona_developer", "persona_project_manager", "persona_code_reviewer", "persona_executive",
+		"persona_security", "persona_architect", "persona_qa", "persona_tech_writer",
 	}
 
 	// Build compact format (name + description only)
@@ -250,30 +255,48 @@ func extractPromptDescription(template string) string {
 func getPromptModeMapping() map[string]string {
 	return map[string]string{
 		// Workflow prompts
-		"daily_checkin": "daily_checkin",
-		"sprint_start":  "sprint_management",
-		"sprint_end":    "sprint_management",
-		"pre_sprint":    "sprint_management",
-		"post_impl":     "sprint_management",
+		"daily_checkin":      "daily_checkin",
+		"sprint_start":       "sprint_management",
+		"sprint_end":         "sprint_management",
+		"pre_sprint":         "sprint_management",
+		"post_impl":          "sprint_management",
+		"weekly_maintenance": "sprint_management",
+		"task_review":        "sprint_management",
 		// Task management prompts
 		"align":       "task_management",
 		"discover":    "task_management",
 		"sync":        "task_management",
 		"dups":        "task_management",
 		"task_update": "task_management",
-		// Configuration prompts
-		"config": "configuration",
+		// Configuration / automation
+		"config":              "configuration",
+		"automation_setup":    "configuration",
+		"automation_discover": "configuration",
 		// Security prompts
 		"scan": "security_review",
-		// Reporting prompts
-		"scorecard": "reporting",
-		"overview":  "reporting",
-		"dashboard": "reporting",
+		// Reporting / health
+		"scorecard":      "reporting",
+		"overview":       "reporting",
+		"dashboard":      "reporting",
+		"project_health": "reporting",
+		"docs":           "reporting",
+		// Advisor
+		"advisor_consult":  "advisor",
+		"advisor_briefing": "advisor",
 		// Memory prompts
 		"remember": "memory",
 		// Utility prompts
 		"context": "utility",
 		"mode":    "utility",
+		// Personas (by role)
+		"persona_developer":       "developer",
+		"persona_project_manager": "pm",
+		"persona_code_reviewer":   "developer",
+		"persona_executive":       "executive",
+		"persona_security":        "security",
+		"persona_architect":       "architecture",
+		"persona_qa":              "qa",
+		"persona_tech_writer":     "documentation",
 	}
 }
 
@@ -281,26 +304,43 @@ func getPromptModeMapping() map[string]string {
 func getPromptPersonaMapping() map[string]string {
 	return map[string]string{
 		// PM/Management prompts
-		"daily_checkin": "pm",
-		"sprint_start":  "pm",
-		"sprint_end":    "pm",
-		"pre_sprint":    "pm",
-		"post_impl":     "pm",
-		"scorecard":     "pm",
-		"overview":      "pm",
-		"dashboard":     "pm",
+		"daily_checkin":      "pm",
+		"sprint_start":       "pm",
+		"sprint_end":         "pm",
+		"pre_sprint":         "pm",
+		"post_impl":          "pm",
+		"scorecard":          "pm",
+		"overview":           "pm",
+		"dashboard":          "pm",
+		"weekly_maintenance": "pm",
+		"task_review":        "pm",
+		"project_health":     "pm",
+		"docs":               "pm",
 		// Developer prompts
-		"align":       "developer",
-		"discover":    "developer",
-		"task_update": "developer",
-		"sync":        "developer",
-		"dups":        "developer",
-		"config":      "developer",
-		"remember":    "developer",
-		"context":     "developer",
-		"mode":        "developer",
+		"align":                 "developer",
+		"discover":              "developer",
+		"task_update":           "developer",
+		"sync":                  "developer",
+		"dups":                  "developer",
+		"config":                "developer",
+		"remember":              "developer",
+		"context":               "developer",
+		"mode":                  "developer",
+		"automation_setup":      "developer",
+		"automation_discover":   "developer",
+		"persona_developer":     "developer",
+		"persona_code_reviewer": "developer",
 		// Security prompts
-		"scan": "security",
+		"scan":             "security",
+		"persona_security": "security",
+		// Advisor
+		"advisor_consult":         "pm",
+		"advisor_briefing":        "pm",
+		"persona_project_manager": "pm",
+		"persona_executive":       "executive",
+		"persona_architect":       "architect",
+		"persona_qa":              "qa",
+		"persona_tech_writer":     "tech_writer",
 	}
 }
 
@@ -313,24 +353,42 @@ func getPromptCategoryMapping() map[string]string {
 		"sync":        "task_management",
 		"dups":        "task_management",
 		"task_update": "task_management",
+		"task_review": "task_management",
 		// Workflow
-		"daily_checkin": "workflow",
-		"sprint_start":  "workflow",
-		"sprint_end":    "workflow",
-		"pre_sprint":    "workflow",
-		"post_impl":     "workflow",
-		// Configuration
-		"config": "configuration",
+		"daily_checkin":      "workflow",
+		"sprint_start":       "workflow",
+		"sprint_end":         "workflow",
+		"pre_sprint":         "workflow",
+		"post_impl":          "workflow",
+		"weekly_maintenance": "workflow",
+		// Configuration / automation
+		"config":              "configuration",
+		"automation_setup":    "configuration",
+		"automation_discover": "configuration",
 		// Security
 		"scan": "security",
-		// Reporting
-		"scorecard": "reporting",
-		"overview":  "reporting",
-		"dashboard": "reporting",
+		// Reporting / health
+		"scorecard":      "reporting",
+		"overview":       "reporting",
+		"dashboard":      "reporting",
+		"project_health": "reporting",
+		"docs":           "reporting",
+		// Advisor
+		"advisor_consult":  "advisor",
+		"advisor_briefing": "advisor",
 		// Memory
 		"remember": "memory",
 		// Utility
 		"context": "utility",
 		"mode":    "utility",
+		// Personas
+		"persona_developer":       "persona",
+		"persona_project_manager": "persona",
+		"persona_code_reviewer":   "persona",
+		"persona_executive":       "persona",
+		"persona_security":        "persona",
+		"persona_architect":       "persona",
+		"persona_qa":              "persona",
+		"persona_tech_writer":     "persona",
 	}
 }
