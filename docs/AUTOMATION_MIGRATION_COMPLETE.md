@@ -51,6 +51,8 @@ Completed migration of automation tool's **daily** and **discover** actions from
 **Not yet in Go daily (still Python-only if using automate_daily.py):**
 - **duplicate_test_names** — no native Go tool yet; would require new implementation
 
+**Deprecation (Phase C, 2026-01-29):** For daily/sprint automation, use **exarp-go -tool automation** (Go). Python `automate_daily` is deprecated; see README and `docs/PYTHON_SAFE_REMOVAL_AND_MIGRATION_PLAN.md`.
+
 **Python cleanup (2026-01-29):** `tool_count_health` removed from Python `DAILY_TASKS` (module never existed). `automate_todo2_alignment_v2.py` _get_current_tool_count() now returns constant 29 (no import).
 
 ---

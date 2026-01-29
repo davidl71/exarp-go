@@ -114,6 +114,8 @@ For detailed configuration options, see:
 - `docs/CONFIGURABLE_PARAMETERS_RECOMMENDATIONS.md`
 - `docs/AUTOMATION_CONFIGURATION_ANALYSIS.md`
 
+**Cursor rules (AI guidance):** If you use Cursor, see `docs/CURSOR_RULES.md` for project rules, including **code and planning tag hints** so generated plans and code stay aligned with Todo2 tags.
+
 ## Dependencies
 
 ### Required Dependencies
@@ -300,6 +302,17 @@ make fmt          # Format code
 make lint         # Lint code
 make lint-fix     # Lint and auto-fix
 ```
+
+## Automation (daily / sprint)
+
+**For daily and sprint automation, use the Go automation tool:**
+
+```bash
+exarp-go -tool automation -args '{"action":"daily"}'
+# or: exarp-go -tool automation -args '{"action":"sprint"}'
+```
+
+**Python `automate_daily` is deprecated.** Use `exarp-go -tool automation` (Go) instead. The Python script `python -m project_management_automation.scripts.automate_daily` is no longer recommended; it is kept only for mlx bridge and direct Python tool use. See `docs/PYTHON_SAFE_REMOVAL_AND_MIGRATION_PLAN.md`.
 
 ## Migration Status
 
