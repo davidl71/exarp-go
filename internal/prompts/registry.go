@@ -9,7 +9,7 @@ import (
 
 // RegisterAllPrompts registers all prompts with the server
 func RegisterAllPrompts(server framework.MCPServer) error {
-	// Register 18 prompts (8 original + 7 high-value workflow prompts + 2 mcp-generic-tools prompts + 1 task management prompt)
+	// Register 34 prompts (18 original + 16 migrated from Python per PROMPTS_MIGRATION_AND_OBSOLESCENCE_PLAN.md)
 	prompts := []struct {
 		name        string
 		description string
@@ -36,6 +36,23 @@ func RegisterAllPrompts(server framework.MCPServer) error {
 		{"mode", "Suggest optimal Cursor IDE mode (Agent vs Ask) for a task."},
 		// Task management prompts
 		{"task_update", "Update Todo2 task status using proper MCP tools - never edit JSON directly."},
+		// Migrated from Python (16): docs, automation, workflow, advisor, personas
+		{"docs", "Analyze documentation health and optionally create Todo2 tasks for issues."},
+		{"automation_discover", "Discover new automation opportunities in the codebase."},
+		{"weekly_maintenance", "Weekly maintenance workflow: docs, duplicates, security, sync."},
+		{"task_review", "Comprehensive task review workflow for backlog hygiene."},
+		{"project_health", "Comprehensive project health assessment (server, docs, testing, security, cicd, alignment)."},
+		{"automation_setup", "One-time automation setup: setup_hooks(git), setup_hooks(patterns), cron."},
+		{"advisor_consult", "Consult a trusted advisor by metric, stage, or tool."},
+		{"advisor_briefing", "Get a morning briefing from trusted advisors based on project health."},
+		{"persona_developer", "Developer daily workflow for writing quality code."},
+		{"persona_project_manager", "Project Manager workflow for delivery tracking."},
+		{"persona_code_reviewer", "Code Reviewer workflow for quality gates."},
+		{"persona_executive", "Executive/Stakeholder workflow for strategic view."},
+		{"persona_security", "Security Engineer workflow for risk management."},
+		{"persona_architect", "Architect workflow for system design."},
+		{"persona_qa", "QA Engineer workflow for quality assurance."},
+		{"persona_tech_writer", "Technical Writer workflow for documentation."},
 	}
 
 	for _, p := range prompts {

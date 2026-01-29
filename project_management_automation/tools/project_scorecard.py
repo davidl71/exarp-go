@@ -156,8 +156,11 @@ def generate_project_scorecard(
     try:
         import sys
         sys.path.insert(0, str(project_root))
-        from prompts import PROMPTS
-        prompts_count = len(PROMPTS)
+        try:
+            from project_management_automation.prompts import LEGACY_PROMPTS_COUNT
+        except ImportError:
+            from prompts import LEGACY_PROMPTS_COUNT
+        prompts_count = LEGACY_PROMPTS_COUNT
     except (ImportError, ModuleNotFoundError):
         prompts_count = 0
 

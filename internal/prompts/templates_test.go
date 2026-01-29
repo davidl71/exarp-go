@@ -67,13 +67,17 @@ func TestGetPromptTemplate(t *testing.T) {
 }
 
 func TestGetPromptTemplate_AllPrompts(t *testing.T) {
-	// Test all 17 registered prompts
+	// Test all 34 registered prompts (18 original + 16 migrated from Python)
 	allPrompts := []string{
 		"align", "discover", "config", "scan",
 		"scorecard", "overview", "dashboard", "remember",
 		"daily_checkin", "sprint_start", "sprint_end",
 		"pre_sprint", "post_impl", "sync", "dups",
-		"context", "mode",
+		"context", "mode", "task_update",
+		"docs", "automation_discover", "weekly_maintenance", "task_review", "project_health", "automation_setup",
+		"advisor_consult", "advisor_briefing",
+		"persona_developer", "persona_project_manager", "persona_code_reviewer", "persona_executive",
+		"persona_security", "persona_architect", "persona_qa", "persona_tech_writer",
 	}
 
 	for _, promptName := range allPrompts {
@@ -268,7 +272,11 @@ func TestCreatePromptHandler_AllPrompts(t *testing.T) {
 		"scorecard", "overview", "dashboard", "remember",
 		"daily_checkin", "sprint_start", "sprint_end",
 		"pre_sprint", "post_impl", "sync", "dups",
-		"context", "mode",
+		"context", "mode", "task_update",
+		"docs", "automation_discover", "weekly_maintenance", "task_review", "project_health", "automation_setup",
+		"advisor_consult", "advisor_briefing",
+		"persona_developer", "persona_project_manager", "persona_code_reviewer", "persona_executive",
+		"persona_security", "persona_architect", "persona_qa", "persona_tech_writer",
 	}
 
 	ctx := context.Background()
