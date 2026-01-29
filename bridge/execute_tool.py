@@ -67,17 +67,8 @@ def execute_tool(tool_name: str, args_json: str, use_protobuf: bool = False, pro
             # Use JSON format (backward compatibility)
             args = json.loads(args_json) if args_json else {}
         
-        # Import tool functions from project_management_automation
-        # Note: memory, task_discovery - migrated to native Go (no Python handler, removed 2026-01-28)
-        # Note: tool_catalog, workflow_mode, git_tools, infer_session_mode, health, automation,
-        # generate_config, add_external_tool_hints, setup_hooks, check_attribution, session, memory_maint,
-        # analyze_alignment, estimation, task_analysis - fully native Go with no Python handler
-        # report: migrated to native Go (no Python handler, removed)
-        # security: migrated to native Go (removed)
-        # testing: migrated to native Go (removed)
-        # lint: migrated to native Go (removed)
-        # task_workflow: migrated to native Go (removed from bridge 2026-01-29, Phase B)
-        from project_management_automation.tools.consolidated import mlx as _mlx
+        # Bridge only routes mlx; use slim import so we don't load all consolidated tools
+        from project_management_automation.tools.consolidated_mlx_only import mlx as _mlx
 
         # Route to appropriate tool (bridge only handles mlx; Go uses native for all others)
         if tool_name == "mlx":

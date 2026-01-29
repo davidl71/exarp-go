@@ -1,17 +1,18 @@
 # Native Go Migration Audit - January 12, 2026
 
 **Date:** 2026-01-12  
+**Last Updated:** 2026-01-27 (bridge cleanup: generate_config, add_external_tool_hints)  
 **Auditor:** AI Assistant  
 **Scope:** Complete audit of tool and resource migration status
 
 ## Executive Summary
 
-After completing Stream 1, Stream 2, and Stream 3 implementation tasks, the migration status is significantly improved:
+After completing Stream 1, Stream 2, and Stream 3 implementation tasks, the migration status is significantly improved. **As of 2026-01-27**, `generate_config` and `add_external_tool_hints` are fully native with no bridge branches (dead code removed from `bridge/execute_tool.py`).
 
 - **Tools:** 27 total tools
-  - **Fully Native:** 5 tools (19%)
-  - **Hybrid (Native with Fallback):** 21 tools (78%)
-  - **Fully Python Bridge:** 1 tool (3%) - `mlx` (intentional)
+  - **Fully Native:** 7 tools (26%) — includes `generate_config`, `add_external_tool_hints` as of 2026-01-27
+  - **Hybrid (Native with Fallback):** 19 tools (70%)
+  - **Fully Python Bridge:** 1 tool (4%) - `mlx` (intentional)
 
 - **Resources:** 21 total resources
   - **Fully Native:** All 21 resources (100%)
@@ -20,47 +21,51 @@ After completing Stream 1, Stream 2, and Stream 3 implementation tasks, the migr
 
 ## Tools Analysis (27 total)
 
-### Fully Native Tools (5 tools - 19%)
+### Fully Native Tools (7 tools - 26%)
 
-These tools have no Python bridge fallback:
+These tools have no Python bridge fallback (Go never calls the bridge for them):
 
 1. **tool_catalog** - Native Go implementation only
 2. **workflow_mode** - Native Go implementation only
 3. **git_tools** - Native Go implementation only
 4. **infer_session_mode** - Native Go implementation only
 5. **prompt_tracking** - Native Go implementation only
+6. **generate_config** - Native Go only *(bridge branch removed 2026-01-27)*
+7. **add_external_tool_hints** - Native Go only *(bridge branch removed 2026-01-27)*
 
-### Hybrid Tools (21 tools - 78%)
+### Hybrid Tools (19 tools - 70%)
 
 These tools use native Go as primary implementation with Python bridge fallback:
 
 1. **analyze_alignment** - Native for "todo2" and "prd" actions
-2. **generate_config** - Native for all actions (rules, ignore, simplify)
-3. **health** - Native for "server", "git", "docs", "dod", "cicd" actions
-4. **setup_hooks** - Native for "git" and "patterns" actions
-5. **check_attribution** - Native implementation
-6. **add_external_tool_hints** - Native implementation
-7. **memory** - Native for save/recall/list/search actions
-8. **memory_maint** - Native for health/gc/prune/consolidate actions
-9. **report** - Native for scorecard/overview/briefing/prd actions
-10. **security** - Native for scan/alerts/report actions
-11. **task_analysis** - Native for all actions (duplicates, tags, dependencies, parallelization, hierarchy)
-12. **task_discovery** - Native for all actions (comments, markdown, orphans)
-13. **task_workflow** - Native for all actions (approve, create, sync, clarity, cleanup, clarify)
-14. **testing** - Native for run/coverage/validate actions
-15. **automation** - Native for daily/discover/nightly/sprint actions
-16. **lint** - Native for Go linters (golangci-lint, gofmt, etc.)
-17. **estimation** - Native for estimate/stats/analyze actions
-18. **session** - Native for all actions (prime, handoff, prompts, assignee)
-19. **ollama** - Native for all actions (status, models, generate, pull, hardware, docs, quality, summary)
-20. **context** - Native for summarize/budget/batch actions (with Apple FM)
-21. **recommend** - Native for model/workflow actions
+2. **health** - Native for "server", "git", "docs", "dod", "cicd" actions
+3. **setup_hooks** - Native for "git" and "patterns" actions
+4. **check_attribution** - Native implementation
+5. **memory** - Native for save/recall/list/search actions
+6. **memory_maint** - Native for health/gc/prune/consolidate actions
+7. **report** - Native for scorecard/overview/briefing/prd actions
+8. **security** - Native for scan/alerts/report actions
+9. **task_analysis** - Native for all actions (duplicates, tags, dependencies, parallelization, hierarchy)
+10. **task_discovery** - Native for all actions (comments, markdown, orphans)
+11. **task_workflow** - Native for all actions (approve, create, sync, clarity, cleanup, clarify)
+12. **testing** - Native for run/coverage/validate actions
+13. **automation** - Native for daily/discover/nightly/sprint actions
+14. **lint** - Native for Go linters (golangci-lint, gofmt, etc.)
+15. **estimation** - Native for estimate/stats/analyze actions
+16. **session** - Native for all actions (prime, handoff, prompts, assignee)
+17. **ollama** - Native for all actions (status, models, generate, pull, hardware, docs, quality, summary)
+18. **context** - Native for summarize/budget/batch actions (with Apple FM)
+19. **recommend** - Native for model/workflow actions
 
-### Fully Python Bridge Tools (1 tool - 3%)
+### Fully Python Bridge Tools (1 tool - 4%)
 
 1. **mlx** - Fully Python bridge (intentional - no Go bindings available)
 
 **Note:** The `mlx` tool is intentionally retained as Python bridge due to lack of Go bindings for MLX framework. This is documented as intentional retention.
+
+### Updates (2026-01-27)
+
+- **generate_config** and **add_external_tool_hints** moved from Hybrid to Fully Native. Their branches were removed from `bridge/execute_tool.py`; Go handlers never called the bridge for them. Counts above reflect 7 Fully Native, 19 Hybrid.
 
 ## Resources Analysis (21 total)
 
@@ -98,14 +103,14 @@ All resources use native Go as primary implementation with Python bridge fallbac
 
 | Category | Count | Percentage | Status |
 |----------|-------|------------|--------|
-| Fully Native | 5 | 19% | ✅ Complete |
-| Hybrid (Native Primary) | 21 | 78% | ✅ Complete (with fallback) |
-| Fully Python Bridge | 1 | 3% | ✅ Intentional (mlx) |
+| Fully Native | 7 | 26% | ✅ Complete (incl. generate_config, add_external_tool_hints as of 2026-01-27) |
+| Hybrid (Native Primary) | 19 | 70% | ✅ Complete (with fallback) |
+| Fully Python Bridge | 1 | 4% | ✅ Intentional (mlx) |
 | **Total** | **27** | **100%** | |
 
 **Native Implementation Coverage:** 26/27 tools (96%) have native Go implementations
-- 5 tools are fully native (no fallback)
-- 21 tools are hybrid (native primary, Python fallback)
+- 7 tools are fully native (no fallback; generate_config and add_external_tool_hints bridge branches removed 2026-01-27)
+- 19 tools are hybrid (native primary, Python fallback)
 - 1 tool is intentionally Python bridge (mlx)
 
 ### Resources Migration Progress

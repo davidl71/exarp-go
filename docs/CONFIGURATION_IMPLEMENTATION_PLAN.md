@@ -8,28 +8,31 @@
 
 ## Executive Summary
 
-This document outlines the implementation plan for a comprehensive configuration system that replaces hard-coded values with per-project YAML configuration files. The system will support automations, timeouts, thresholds, and all other configurable parameters identified in the analysis.
+This document outlines the implementation plan for a comprehensive configuration system that replaces hard-coded values with per-project configuration. **Protobuf is mandatory** for file-based config: the runtime loads only `.exarp/config.pb`. YAML is supported for editing via `exarp-go config export yaml` and `exarp-go config convert yaml protobuf`.
 
 ---
 
 ## Goals
 
-1. **Replace hard-coded values** with configurable YAML-based settings
-2. **Maintain backward compatibility** with sensible defaults
+1. **Replace hard-coded values** with configurable settings (protobuf binary format)
+2. **Maintain backward compatibility** with sensible defaults (no file = defaults)
 3. **Enable per-project customization** without code changes
 4. **Provide validation and error handling** for configuration
-5. **Create CLI tools** for config management
+5. **Create CLI tools** for config management (init, validate, show, set, export, convert)
 
 ---
 
 ## Architecture
 
-### Configuration File Structure
+### Configuration File Structure (protobuf mandatory)
 
 ```
 .exarp/
-  └── config.yaml    # Main configuration file (all categories)
+  └── config.pb      # Main configuration file (protobuf binary; mandatory for file-based config)
 ```
+
+- **Runtime**: Only `.exarp/config.pb` is loaded. If only `config.yaml` exists, the loader returns an error instructing the user to run `exarp-go config convert yaml protobuf` or `exarp-go config init`.
+- **Editing**: Use `exarp-go config export yaml` to emit YAML, edit, then `exarp-go config convert yaml protobuf` to write back.
 
 ### Configuration Schema
 
@@ -55,12 +58,12 @@ project: { ... }
 ```
 internal/
   config/
-    config.go              # Main config loading/validation
+    config.go              # MCP server config (Load); full config in loader
     defaults.go            # Default values (backward compatible)
     schema.go              # Configuration schema/types
     validation.go          # Config validation
-    automations.go         # Automation config loading
-    loader.go              # YAML loading with defaults
+    loader.go              # LoadConfig from .exarp/config.pb only; LoadConfigYAML for convert; WriteConfigToProtobufFile
+    protobuf.go            # ToProtobuf / FromProtobuf
   tools/
     # Tools updated to use config instead of hard-coded values
 ```
@@ -91,24 +94,24 @@ internal/
 - Timeouts, thresholds, and task defaults configurable
 - CLI tool: `exarp-go config`
 
-### Phase 1.5: Protobuf Integration (NEW)
+### Phase 1.5: Protobuf Integration ✅ (Protobuf mandatory)
 
-**Goal:** Integrate protobuf schema with configuration system while maintaining YAML as primary format
+**Goal:** Configuration is stored and loaded as protobuf only; YAML is for export/import only.
 
-**Status:** ⏳ Pending  
-**Estimated Time:** 4-6 hours
+**Status:** ✅ Done (protobuf mandatory)  
+**Runtime behavior:** `LoadConfig` loads only `.exarp/config.pb`. If only `config.yaml` exists, it returns an error. No config file = defaults.
 
 #### Tasks:
-1. Create protobuf conversion layer (Go structs ↔ protobuf messages)
-2. Add protobuf format support to loader (dual format: YAML + protobuf)
-3. Add CLI commands for export/convert (yaml ↔ protobuf)
-4. Add schema synchronization validation (ensure schemas stay in sync)
-5. Update documentation (protobuf format guide)
+1. ✅ Create protobuf conversion layer (Go structs ↔ protobuf messages)
+2. ✅ Loader loads only protobuf; `LoadConfigYAML` for convert/import
+3. ✅ CLI: init/set write `.exarp/config.pb`; export/convert for yaml ↔ protobuf
+4. ✅ Schema synchronization validation (see `internal/config/protobuf_test.go`)
+5. ✅ Documentation updated (this plan; protobuf mandatory)
 
 **Deliverables:**
 - `internal/config/protobuf.go` - Conversion functions
-- Updated `loader.go` - Protobuf format support
-- Updated `cli/config.go` - Export/convert commands
+- `internal/config/loader.go` - Load from `.exarp/config.pb` only; `WriteConfigToProtobufFile`; `LoadConfigYAML` for convert
+- `internal/cli/config.go` - init/set write config.pb; export/convert
 - `docs/CONFIGURATION_PROTOBUF_INTEGRATION.md` - Detailed plan
 
 **See:** `docs/CONFIGURATION_PROTOBUF_INTEGRATION.md` for complete implementation details
@@ -449,7 +452,7 @@ func ValidateConfig(cfg *Config) error {
 1. ✅ Create implementation plan (this document)
 2. ✅ Create tasks in todo2 system
 3. ✅ Complete Phase 1 (Foundation)
-4. ⏳ **Phase 1.5: Protobuf Integration** (NEW - see `CONFIGURATION_PROTOBUF_INTEGRATION.md`)
+4. ✅ Complete Phase 1.5 (Protobuf Integration — see `CONFIGURATION_PROTOBUF_INTEGRATION.md`)
 5. ⏳ Continue with Phase 2 (Database & Security)
 6. ⏳ Continue with subsequent phases
 

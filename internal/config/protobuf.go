@@ -282,22 +282,22 @@ func thresholdsToProtobuf(t *ThresholdsConfig) *configpb.ThresholdsConfig {
 	}
 	return &configpb.ThresholdsConfig{
 		SimilarityThreshold:       t.SimilarityThreshold,
-		MinDescriptionLength:       int32(t.MinDescriptionLength),
-		MinTaskConfidence:          t.MinTaskConfidence,
-		MinCoverage:                int32(t.MinCoverage),
-		MinTestConfidence:          t.MinTestConfidence,
-		MinEstimationConfidence:    t.MinEstimationConfidence,
-		MlxWeight:                  t.MLXWeight,
-		MaxParallelTasks:           int32(t.MaxParallelTasks),
-		MaxTasksPerHost:            int32(t.MaxTasksPerHost),
-		MaxAutomationIterations:    int32(t.MaxAutomationIterations),
-		TokensPerChar:              t.TokensPerChar,
-		DefaultContextBudget:       int32(t.DefaultContextBudget),
+		MinDescriptionLength:      int32(t.MinDescriptionLength),
+		MinTaskConfidence:         t.MinTaskConfidence,
+		MinCoverage:               int32(t.MinCoverage),
+		MinTestConfidence:         t.MinTestConfidence,
+		MinEstimationConfidence:   t.MinEstimationConfidence,
+		MlxWeight:                 t.MLXWeight,
+		MaxParallelTasks:          int32(t.MaxParallelTasks),
+		MaxTasksPerHost:           int32(t.MaxTasksPerHost),
+		MaxAutomationIterations:   int32(t.MaxAutomationIterations),
+		TokensPerChar:             t.TokensPerChar,
+		DefaultContextBudget:      int32(t.DefaultContextBudget),
 		ContextReductionThreshold: t.ContextReductionThreshold,
 		RateLimitRequests:         int32(t.RateLimitRequests),
 		RateLimitWindow:           durationToSeconds(t.RateLimitWindow),
-		MaxFileSize:                t.MaxFileSize,
-		MaxPathDepth:               int32(t.MaxPathDepth),
+		MaxFileSize:               t.MaxFileSize,
+		MaxPathDepth:              int32(t.MaxPathDepth),
 	}
 }
 
@@ -307,22 +307,22 @@ func thresholdsFromProtobuf(pb *configpb.ThresholdsConfig) ThresholdsConfig {
 	}
 	return ThresholdsConfig{
 		SimilarityThreshold:       pb.GetSimilarityThreshold(),
-		MinDescriptionLength:       int(pb.GetMinDescriptionLength()),
-		MinTaskConfidence:          pb.GetMinTaskConfidence(),
-		MinCoverage:                int(pb.GetMinCoverage()),
-		MinTestConfidence:          pb.GetMinTestConfidence(),
-		MinEstimationConfidence:    pb.GetMinEstimationConfidence(),
-		MLXWeight:                  pb.GetMlxWeight(),
-		MaxParallelTasks:           int(pb.GetMaxParallelTasks()),
-		MaxTasksPerHost:            int(pb.GetMaxTasksPerHost()),
-		MaxAutomationIterations:    int(pb.GetMaxAutomationIterations()),
-		TokensPerChar:              pb.GetTokensPerChar(),
-		DefaultContextBudget:       int(pb.GetDefaultContextBudget()),
+		MinDescriptionLength:      int(pb.GetMinDescriptionLength()),
+		MinTaskConfidence:         pb.GetMinTaskConfidence(),
+		MinCoverage:               int(pb.GetMinCoverage()),
+		MinTestConfidence:         pb.GetMinTestConfidence(),
+		MinEstimationConfidence:   pb.GetMinEstimationConfidence(),
+		MLXWeight:                 pb.GetMlxWeight(),
+		MaxParallelTasks:          int(pb.GetMaxParallelTasks()),
+		MaxTasksPerHost:           int(pb.GetMaxTasksPerHost()),
+		MaxAutomationIterations:   int(pb.GetMaxAutomationIterations()),
+		TokensPerChar:             pb.GetTokensPerChar(),
+		DefaultContextBudget:      int(pb.GetDefaultContextBudget()),
 		ContextReductionThreshold: pb.GetContextReductionThreshold(),
 		RateLimitRequests:         int(pb.GetRateLimitRequests()),
 		RateLimitWindow:           secondsToDuration(pb.GetRateLimitWindow()),
-		MaxFileSize:                pb.GetMaxFileSize(),
-		MaxPathDepth:               int(pb.GetMaxPathDepth()),
+		MaxFileSize:               pb.GetMaxFileSize(),
+		MaxPathDepth:              int(pb.GetMaxPathDepth()),
 	}
 }
 
@@ -330,17 +330,17 @@ func tasksToProtobuf(t *TasksConfig) *configpb.TasksConfig {
 	if t == nil {
 		return nil
 	}
-	
+
 	// Convert StatusWorkflow map to JSON string
 	statusWorkflowJSON, _ := mapToJSON(t.StatusWorkflow)
-	
+
 	return &configpb.TasksConfig{
 		DefaultStatus:        t.DefaultStatus,
 		DefaultPriority:      t.DefaultPriority,
 		DefaultTags:          t.DefaultTags,
 		StatusWorkflowJson:   statusWorkflowJSON,
-		StaleThresholdHours: int32(t.StaleThresholdHours),
-		AutoCleanupEnabled:  t.AutoCleanupEnabled,
+		StaleThresholdHours:  int32(t.StaleThresholdHours),
+		AutoCleanupEnabled:   t.AutoCleanupEnabled,
 		CleanupDryRun:        t.CleanupDryRun,
 		IdFormat:             t.IDFormat,
 		IdPrefix:             t.IDPrefix,
@@ -354,7 +354,7 @@ func tasksFromProtobuf(pb *configpb.TasksConfig) (TasksConfig, error) {
 	if pb == nil {
 		return TasksConfig{}, nil
 	}
-	
+
 	// Convert JSON string to StatusWorkflow map
 	var statusWorkflow map[string][]string
 	if pb.GetStatusWorkflowJson() != "" {
@@ -362,12 +362,12 @@ func tasksFromProtobuf(pb *configpb.TasksConfig) (TasksConfig, error) {
 			return TasksConfig{}, fmt.Errorf("failed to parse status_workflow_json: %w", err)
 		}
 	}
-	
+
 	return TasksConfig{
 		DefaultStatus:        pb.GetDefaultStatus(),
-		DefaultPriority:       pb.GetDefaultPriority(),
-		DefaultTags:           pb.GetDefaultTags(),
-		StatusWorkflow:        statusWorkflow,
+		DefaultPriority:      pb.GetDefaultPriority(),
+		DefaultTags:          pb.GetDefaultTags(),
+		StatusWorkflow:       statusWorkflow,
 		StaleThresholdHours:  int(pb.GetStaleThresholdHours()),
 		AutoCleanupEnabled:   pb.GetAutoCleanupEnabled(),
 		CleanupDryRun:        pb.GetCleanupDryRun(),
@@ -384,19 +384,19 @@ func databaseToProtobuf(d *DatabaseConfig) *configpb.DatabaseConfig {
 		return nil
 	}
 	return &configpb.DatabaseConfig{
-		SqlitePath:         d.SQLitePath,
-		JsonFallbackPath:   d.JSONFallbackPath,
-		BackupPath:         d.BackupPath,
-		MaxConnections:     int32(d.MaxConnections),
-		ConnectionTimeout:  durationToSeconds(d.ConnectionTimeout),
-		QueryTimeout:       durationToSeconds(d.QueryTimeout),
-		RetryAttempts:      int32(d.RetryAttempts),
-		RetryInitialDelay:  durationToSeconds(d.RetryInitialDelay),
-		RetryMaxDelay:      durationToSeconds(d.RetryMaxDelay),
-		RetryMultiplier:    d.RetryMultiplier,
-		AutoVacuum:         d.AutoVacuum,
-		WalMode:            d.WALMode,
-		CheckpointInterval: int32(d.CheckpointInterval),
+		SqlitePath:          d.SQLitePath,
+		JsonFallbackPath:    d.JSONFallbackPath,
+		BackupPath:          d.BackupPath,
+		MaxConnections:      int32(d.MaxConnections),
+		ConnectionTimeout:   durationToSeconds(d.ConnectionTimeout),
+		QueryTimeout:        durationToSeconds(d.QueryTimeout),
+		RetryAttempts:       int32(d.RetryAttempts),
+		RetryInitialDelay:   durationToSeconds(d.RetryInitialDelay),
+		RetryMaxDelay:       durationToSeconds(d.RetryMaxDelay),
+		RetryMultiplier:     d.RetryMultiplier,
+		AutoVacuum:          d.AutoVacuum,
+		WalMode:             d.WALMode,
+		CheckpointInterval:  int32(d.CheckpointInterval),
 		BackupRetentionDays: int32(d.BackupRetentionDays),
 	}
 }
@@ -406,19 +406,19 @@ func databaseFromProtobuf(pb *configpb.DatabaseConfig) DatabaseConfig {
 		return DatabaseConfig{}
 	}
 	return DatabaseConfig{
-		SQLitePath:         pb.GetSqlitePath(),
-		JSONFallbackPath:   pb.GetJsonFallbackPath(),
-		BackupPath:         pb.GetBackupPath(),
-		MaxConnections:     int(pb.GetMaxConnections()),
-		ConnectionTimeout: secondsToDuration(pb.GetConnectionTimeout()),
-		QueryTimeout:       secondsToDuration(pb.GetQueryTimeout()),
-		RetryAttempts:      int(pb.GetRetryAttempts()),
-		RetryInitialDelay:  secondsToDuration(pb.GetRetryInitialDelay()),
-		RetryMaxDelay:      secondsToDuration(pb.GetRetryMaxDelay()),
-		RetryMultiplier:    pb.GetRetryMultiplier(),
-		AutoVacuum:         pb.GetAutoVacuum(),
-		WALMode:            pb.GetWalMode(),
-		CheckpointInterval: int(pb.GetCheckpointInterval()),
+		SQLitePath:          pb.GetSqlitePath(),
+		JSONFallbackPath:    pb.GetJsonFallbackPath(),
+		BackupPath:          pb.GetBackupPath(),
+		MaxConnections:      int(pb.GetMaxConnections()),
+		ConnectionTimeout:   secondsToDuration(pb.GetConnectionTimeout()),
+		QueryTimeout:        secondsToDuration(pb.GetQueryTimeout()),
+		RetryAttempts:       int(pb.GetRetryAttempts()),
+		RetryInitialDelay:   secondsToDuration(pb.GetRetryInitialDelay()),
+		RetryMaxDelay:       secondsToDuration(pb.GetRetryMaxDelay()),
+		RetryMultiplier:     pb.GetRetryMultiplier(),
+		AutoVacuum:          pb.GetAutoVacuum(),
+		WALMode:             pb.GetWalMode(),
+		CheckpointInterval:  int(pb.GetCheckpointInterval()),
 		BackupRetentionDays: int(pb.GetBackupRetentionDays()),
 	}
 }
@@ -476,10 +476,10 @@ func pathValidationToProtobuf(p *PathValidationConfig) *configpb.PathValidationC
 		return nil
 	}
 	return &configpb.PathValidationConfig{
-		Enabled:          p.Enabled,
+		Enabled:            p.Enabled,
 		AllowAbsolutePaths: p.AllowAbsolutePaths,
-		MaxDepth:         int32(p.MaxDepth),
-		BlockedPatterns:  p.BlockedPatterns,
+		MaxDepth:           int32(p.MaxDepth),
+		BlockedPatterns:    p.BlockedPatterns,
 	}
 }
 
@@ -488,10 +488,10 @@ func pathValidationFromProtobuf(pb *configpb.PathValidationConfig) PathValidatio
 		return PathValidationConfig{}
 	}
 	return PathValidationConfig{
-		Enabled:          pb.GetEnabled(),
+		Enabled:            pb.GetEnabled(),
 		AllowAbsolutePaths: pb.GetAllowAbsolutePaths(),
-		MaxDepth:         int(pb.GetMaxDepth()),
-		BlockedPatterns:  pb.GetBlockedPatterns(),
+		MaxDepth:           int(pb.GetMaxDepth()),
+		BlockedPatterns:    pb.GetBlockedPatterns(),
 	}
 }
 
@@ -544,19 +544,19 @@ func loggingToProtobuf(l *LoggingConfig) *configpb.LoggingConfig {
 		return nil
 	}
 	return &configpb.LoggingConfig{
-		Level:            l.Level,
-		ToolLevel:        l.ToolLevel,
-		FrameworkLevel:   l.FrameworkLevel,
-		Format:           l.Format,
+		Level:             l.Level,
+		ToolLevel:         l.ToolLevel,
+		FrameworkLevel:    l.FrameworkLevel,
+		Format:            l.Format,
 		IncludeTimestamps: l.IncludeTimestamps,
-		IncludeCaller:    l.IncludeCaller,
-		ColorOutput:      l.ColorOutput,
-		LogDir:           l.LogDir,
-		LogFile:          l.LogFile,
-		SessionLogDir:    l.SessionLogDir,
-		LogRotation:      logRotationToProtobuf(&l.LogRotation),
-		RetentionDays:    int32(l.RetentionDays),
-		AutoCleanup:      l.AutoCleanup,
+		IncludeCaller:     l.IncludeCaller,
+		ColorOutput:       l.ColorOutput,
+		LogDir:            l.LogDir,
+		LogFile:           l.LogFile,
+		SessionLogDir:     l.SessionLogDir,
+		LogRotation:       logRotationToProtobuf(&l.LogRotation),
+		RetentionDays:     int32(l.RetentionDays),
+		AutoCleanup:       l.AutoCleanup,
 	}
 }
 
@@ -565,19 +565,19 @@ func loggingFromProtobuf(pb *configpb.LoggingConfig) LoggingConfig {
 		return LoggingConfig{}
 	}
 	return LoggingConfig{
-		Level:            pb.GetLevel(),
-		ToolLevel:        pb.GetToolLevel(),
-		FrameworkLevel:   pb.GetFrameworkLevel(),
-		Format:           pb.GetFormat(),
+		Level:             pb.GetLevel(),
+		ToolLevel:         pb.GetToolLevel(),
+		FrameworkLevel:    pb.GetFrameworkLevel(),
+		Format:            pb.GetFormat(),
 		IncludeTimestamps: pb.GetIncludeTimestamps(),
-		IncludeCaller:    pb.GetIncludeCaller(),
-		ColorOutput:      pb.GetColorOutput(),
-		LogDir:           pb.GetLogDir(),
-		LogFile:          pb.GetLogFile(),
-		SessionLogDir:    pb.GetSessionLogDir(),
-		LogRotation:      logRotationFromProtobuf(pb.GetLogRotation()),
-		RetentionDays:    int(pb.GetRetentionDays()),
-		AutoCleanup:      pb.GetAutoCleanup(),
+		IncludeCaller:     pb.GetIncludeCaller(),
+		ColorOutput:       pb.GetColorOutput(),
+		LogDir:            pb.GetLogDir(),
+		LogFile:           pb.GetLogFile(),
+		SessionLogDir:     pb.GetSessionLogDir(),
+		LogRotation:       logRotationFromProtobuf(pb.GetLogRotation()),
+		RetentionDays:     int(pb.GetRetentionDays()),
+		AutoCleanup:       pb.GetAutoCleanup(),
 	}
 }
 
@@ -624,12 +624,12 @@ func toolsFromProtobuf(pb *configpb.ToolsConfig) (ToolsConfig, error) {
 	if pb == nil {
 		return ToolsConfig{}, nil
 	}
-	
+
 	scorecard, err := scorecardFromProtobuf(pb.GetScorecard())
 	if err != nil {
 		return ToolsConfig{}, fmt.Errorf("failed to convert scorecard config: %w", err)
 	}
-	
+
 	return ToolsConfig{
 		Scorecard: scorecard,
 		Report:    reportFromProtobuf(pb.GetReport()),
@@ -645,10 +645,10 @@ func scorecardToProtobuf(s *ScorecardConfig) *configpb.ScorecardConfig {
 	if s == nil {
 		return nil
 	}
-	
+
 	// Convert DefaultScores map to JSON string
 	defaultScoresJSON, _ := mapToJSON(s.DefaultScores)
-	
+
 	return &configpb.ScorecardConfig{
 		DefaultScoresJson: defaultScoresJSON,
 		IncludeWisdom:     s.IncludeWisdom,
@@ -660,7 +660,7 @@ func scorecardFromProtobuf(pb *configpb.ScorecardConfig) (ScorecardConfig, error
 	if pb == nil {
 		return ScorecardConfig{}, nil
 	}
-	
+
 	// Convert JSON string to DefaultScores map
 	var defaultScores map[string]float64
 	if pb.GetDefaultScoresJson() != "" {
@@ -668,7 +668,7 @@ func scorecardFromProtobuf(pb *configpb.ScorecardConfig) (ScorecardConfig, error
 			return ScorecardConfig{}, fmt.Errorf("failed to parse default_scores_json: %w", err)
 		}
 	}
-	
+
 	return ScorecardConfig{
 		DefaultScores: defaultScores,
 		IncludeWisdom: pb.GetIncludeWisdom(),
@@ -681,9 +681,9 @@ func reportToProtobuf(r *ReportConfig) *configpb.ReportConfig {
 		return nil
 	}
 	return &configpb.ReportConfig{
-		DefaultFormat:         r.DefaultFormat,
-		DefaultOutputPath:     r.DefaultOutputPath,
-		IncludeMetrics:        r.IncludeMetrics,
+		DefaultFormat:          r.DefaultFormat,
+		DefaultOutputPath:      r.DefaultOutputPath,
+		IncludeMetrics:         r.IncludeMetrics,
 		IncludeRecommendations: r.IncludeRecommendations,
 	}
 }
@@ -693,9 +693,9 @@ func reportFromProtobuf(pb *configpb.ReportConfig) ReportConfig {
 		return ReportConfig{}
 	}
 	return ReportConfig{
-		DefaultFormat:         pb.GetDefaultFormat(),
-		DefaultOutputPath:     pb.GetDefaultOutputPath(),
-		IncludeMetrics:        pb.GetIncludeMetrics(),
+		DefaultFormat:          pb.GetDefaultFormat(),
+		DefaultOutputPath:      pb.GetDefaultOutputPath(),
+		IncludeMetrics:         pb.GetIncludeMetrics(),
 		IncludeRecommendations: pb.GetIncludeRecommendations(),
 	}
 }
@@ -730,9 +730,9 @@ func testingToProtobuf(t *TestingConfig) *configpb.TestingConfig {
 	}
 	return &configpb.TestingConfig{
 		DefaultFramework: t.DefaultFramework,
-		MinCoverage:       int32(t.MinCoverage),
-		CoverageFormat:    t.CoverageFormat,
-		Verbose:           t.Verbose,
+		MinCoverage:      int32(t.MinCoverage),
+		CoverageFormat:   t.CoverageFormat,
+		Verbose:          t.Verbose,
 	}
 }
 
@@ -742,9 +742,9 @@ func testingFromProtobuf(pb *configpb.TestingConfig) TestingConfig {
 	}
 	return TestingConfig{
 		DefaultFramework: pb.GetDefaultFramework(),
-		MinCoverage:       int(pb.GetMinCoverage()),
-		CoverageFormat:    pb.GetCoverageFormat(),
-		Verbose:           pb.GetVerbose(),
+		MinCoverage:      int(pb.GetMinCoverage()),
+		CoverageFormat:   pb.GetCoverageFormat(),
+		Verbose:          pb.GetVerbose(),
 	}
 }
 
@@ -753,7 +753,7 @@ func mlxToProtobuf(m *MLXConfig) *configpb.MLXConfig {
 		return nil
 	}
 	return &configpb.MLXConfig{
-		DefaultModel:      m.DefaultModel,
+		DefaultModel:       m.DefaultModel,
 		DefaultMaxTokens:   int32(m.DefaultMaxTokens),
 		DefaultTemperature: m.DefaultTemperature,
 		Verbose:            m.Verbose,
@@ -765,7 +765,7 @@ func mlxFromProtobuf(pb *configpb.MLXConfig) MLXConfig {
 		return MLXConfig{}
 	}
 	return MLXConfig{
-		DefaultModel:      pb.GetDefaultModel(),
+		DefaultModel:       pb.GetDefaultModel(),
 		DefaultMaxTokens:   int(pb.GetDefaultMaxTokens()),
 		DefaultTemperature: pb.GetDefaultTemperature(),
 		Verbose:            pb.GetVerbose(),
@@ -803,10 +803,10 @@ func contextToProtobuf(c *ContextConfig) *configpb.ContextConfig {
 		return nil
 	}
 	return &configpb.ContextConfig{
-		DefaultBudget:            int32(c.DefaultBudget),
+		DefaultBudget:             int32(c.DefaultBudget),
 		DefaultSummarizationLevel: c.DefaultSummarizationLevel,
-		TokensPerChar:            c.TokensPerChar,
-		IncludeRaw:               c.IncludeRaw,
+		TokensPerChar:             c.TokensPerChar,
+		IncludeRaw:                c.IncludeRaw,
 	}
 }
 
@@ -815,10 +815,10 @@ func contextFromProtobuf(pb *configpb.ContextConfig) ContextConfig {
 		return ContextConfig{}
 	}
 	return ContextConfig{
-		DefaultBudget:            int(pb.GetDefaultBudget()),
+		DefaultBudget:             int(pb.GetDefaultBudget()),
 		DefaultSummarizationLevel: pb.GetDefaultSummarizationLevel(),
-		TokensPerChar:            pb.GetTokensPerChar(),
-		IncludeRaw:               pb.GetIncludeRaw(),
+		TokensPerChar:             pb.GetTokensPerChar(),
+		IncludeRaw:                pb.GetIncludeRaw(),
 	}
 }
 
@@ -826,16 +826,16 @@ func workflowToProtobuf(w *WorkflowConfig) *configpb.WorkflowConfig {
 	if w == nil {
 		return nil
 	}
-	
+
 	// Convert Modes map to JSON string
 	modesJSON, _ := mapToJSON(w.Modes)
-	
+
 	return &configpb.WorkflowConfig{
-		DefaultMode:    w.DefaultMode,
-		AutoDetectMode: w.AutoDetectMode,
+		DefaultMode:     w.DefaultMode,
+		AutoDetectMode:  w.AutoDetectMode,
 		ModeSuggestions: modeSuggestionsToProtobuf(&w.ModeSuggestions),
-		ModesJson:      modesJSON,
-		Focus:          focusToProtobuf(&w.Focus),
+		ModesJson:       modesJSON,
+		Focus:           focusToProtobuf(&w.Focus),
 	}
 }
 
@@ -843,7 +843,7 @@ func workflowFromProtobuf(pb *configpb.WorkflowConfig) (WorkflowConfig, error) {
 	if pb == nil {
 		return WorkflowConfig{}, nil
 	}
-	
+
 	// Convert JSON string to Modes map
 	var modes map[string]ModeConfig
 	if pb.GetModesJson() != "" {
@@ -851,13 +851,13 @@ func workflowFromProtobuf(pb *configpb.WorkflowConfig) (WorkflowConfig, error) {
 			return WorkflowConfig{}, fmt.Errorf("failed to parse modes_json: %w", err)
 		}
 	}
-	
+
 	return WorkflowConfig{
-		DefaultMode:    pb.GetDefaultMode(),
-		AutoDetectMode: pb.GetAutoDetectMode(),
+		DefaultMode:     pb.GetDefaultMode(),
+		AutoDetectMode:  pb.GetAutoDetectMode(),
 		ModeSuggestions: modeSuggestionsFromProtobuf(pb.GetModeSuggestions()),
-		Modes:          modes,
-		Focus:          focusFromProtobuf(pb.GetFocus()),
+		Modes:           modes,
+		Focus:           focusFromProtobuf(pb.GetFocus()),
 	}, nil
 }
 
@@ -888,8 +888,8 @@ func focusToProtobuf(f *FocusConfig) *configpb.FocusConfig {
 		return nil
 	}
 	return &configpb.FocusConfig{
-		Enabled:          f.Enabled,
-		ReductionTarget:  int32(f.ReductionTarget),
+		Enabled:           f.Enabled,
+		ReductionTarget:   int32(f.ReductionTarget),
 		PreserveCoreTools: f.PreserveCoreTools,
 	}
 }
@@ -899,8 +899,8 @@ func focusFromProtobuf(pb *configpb.FocusConfig) FocusConfig {
 		return FocusConfig{}
 	}
 	return FocusConfig{
-		Enabled:          pb.GetEnabled(),
-		ReductionTarget:  int(pb.GetReductionTarget()),
+		Enabled:           pb.GetEnabled(),
+		ReductionTarget:   int(pb.GetReductionTarget()),
 		PreserveCoreTools: pb.GetPreserveCoreTools(),
 	}
 }
@@ -940,9 +940,9 @@ func consolidationToProtobuf(c *ConsolidationConfig) *configpb.ConsolidationConf
 		return nil
 	}
 	return &configpb.ConsolidationConfig{
-		Enabled:            c.Enabled,
+		Enabled:             c.Enabled,
 		SimilarityThreshold: c.SimilarityThreshold,
-		Frequency:          c.Frequency,
+		Frequency:           c.Frequency,
 	}
 }
 
@@ -951,9 +951,9 @@ func consolidationFromProtobuf(pb *configpb.ConsolidationConfig) ConsolidationCo
 		return ConsolidationConfig{}
 	}
 	return ConsolidationConfig{
-		Enabled:            pb.GetEnabled(),
+		Enabled:             pb.GetEnabled(),
 		SimilarityThreshold: pb.GetSimilarityThreshold(),
-		Frequency:          pb.GetFrequency(),
+		Frequency:           pb.GetFrequency(),
 	}
 }
 

@@ -26,7 +26,7 @@ import (
 //   - An error if the URI format is invalid or variable is empty
 func parseURIVariableByIndex(uri string, index int, expectedFormat string) (string, error) {
 	parts := strings.Split(uri, "/")
-	
+
 	// Validate URI has enough parts
 	// Minimum: ["stdio:", "", "resource"] = 3 parts (index 2)
 	// For index 3, need at least 4 parts
@@ -36,12 +36,12 @@ func parseURIVariableByIndex(uri string, index int, expectedFormat string) (stri
 		}
 		return "", fmt.Errorf("invalid URI format: %s (index %d out of range, got %d parts)", uri, index, len(parts))
 	}
-	
+
 	value := parts[index]
 	if value == "" {
 		return "", fmt.Errorf("variable at index %d is empty in URI: %s", index, uri)
 	}
-	
+
 	return value, nil
 }
 
@@ -54,10 +54,10 @@ func parseURIVariableByIndexWithValidation(uri string, index int, variableName, 
 	if err != nil {
 		return "", err
 	}
-	
+
 	if value == "" {
 		return "", fmt.Errorf("%s cannot be empty (URI: %s)", variableName, uri)
 	}
-	
+
 	return value, nil
 }

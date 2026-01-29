@@ -1,0 +1,14 @@
+---
+description: Use task-cleanup skill when removing one-off or performance tasks from Todo2. Read .cursor/skills/task-cleanup/SKILL.md for batch delete (task_ids).
+globs: 
+alwaysApply: false
+---
+
+# Task cleanup skill
+
+When the user asks to **remove one-off tasks**, **remove performance tasks**, or says those tasks **reappeared**, use the **task-cleanup** skill:
+
+1. **Read** `.cursor/skills/task-cleanup/SKILL.md` for the ID lists and batch-delete pattern.
+2. **Call** `task_workflow` with `action=delete` and `task_ids` (comma-separated) in one call instead of looping.
+
+Batch delete example: `{"action":"delete","task_ids":"T-321,T-401,T-402,T-403"}` (one-off) or the performance IDs from the skill.

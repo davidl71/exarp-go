@@ -118,6 +118,23 @@ message ReportResponse {
   string error = 5;
 }
 
+// BriefingQuote represents a single wisdom quote in a briefing
+message BriefingQuote {
+  string quote = 1;
+  string source = 2;
+  string encouragement = 3;
+  string wisdom_source = 4;
+  string wisdom_icon = 5;
+}
+
+// BriefingData represents briefing output (date, score, quotes, sources) for type-safe report path
+message BriefingData {
+  string date = 1;
+  double score = 2;
+  repeated BriefingQuote quotes = 3;
+  repeated string sources = 4;
+}
+
 // AIInsights represents AI-generated insights for reports
 message AIInsights {
   Metrics metrics = 1;

@@ -85,19 +85,19 @@ func GetDefaultDSN(driver DriverType, projectRoot string) string {
 // DatabaseConfigFields holds the database configuration fields from centralized config
 // This struct is used to break the import cycle between database and config packages
 type DatabaseConfigFields struct {
-	SQLitePath      string
-	JSONFallbackPath string
-	BackupPath      string
-	MaxConnections  int
-	ConnectionTimeout int64 // Duration in seconds
-	QueryTimeout    int64  // Duration in seconds
-	RetryAttempts   int
-	RetryInitialDelay int64 // Duration in seconds
-	RetryMaxDelay   int64  // Duration in seconds
-	RetryMultiplier float64
-	AutoVacuum      bool
-	WALMode         bool
-	CheckpointInterval int
+	SQLitePath          string
+	JSONFallbackPath    string
+	BackupPath          string
+	MaxConnections      int
+	ConnectionTimeout   int64 // Duration in seconds
+	QueryTimeout        int64 // Duration in seconds
+	RetryAttempts       int
+	RetryInitialDelay   int64 // Duration in seconds
+	RetryMaxDelay       int64 // Duration in seconds
+	RetryMultiplier     float64
+	AutoVacuum          bool
+	WALMode             bool
+	CheckpointInterval  int
 	BackupRetentionDays int
 }
 

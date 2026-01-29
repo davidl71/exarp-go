@@ -5,10 +5,10 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	"log"
 	"strings"
 	"time"
 
+	"github.com/davidl71/exarp-go/internal/logging"
 	"github.com/davidl71/exarp-go/internal/models"
 )
 
@@ -32,7 +32,7 @@ func SanitizeTaskMetadata(s string) map[string]interface{} {
 	}
 	var out map[string]interface{}
 	if err := json.Unmarshal([]byte(s), &out); err != nil {
-		log.Printf("database: invalid task metadata JSON, coercing to raw: %v", err)
+		logging.Warn("database: invalid task metadata JSON, coercing to raw: %v", err)
 		return map[string]interface{}{"raw": s}
 	}
 	return out
@@ -201,32 +201,32 @@ func GetTask(ctx context.Context, id string) (*Todo2Task, error) {
 		var metadataProtobuf []byte // BLOB column
 		var metadataFormat sql.NullString
 		var completedInt int
-		var name sql.NullString         // name field (not used in Todo2Task struct yet)
-		var created sql.NullString      // created field
-		var lastModified sql.NullString // last_modified field
+		var name sql.NullString
+		var created, lastModified, completedAt sql.NullString
 
 		// Try to query with protobuf columns first (new schema)
 		err = db.QueryRowContext(queryCtx, `
 			SELECT id, name, content, long_description, status, priority, completed,
-			       created, last_modified, metadata, metadata_protobuf, metadata_format
+			       created, last_modified, completed_at, metadata, metadata_protobuf, metadata_format
 			FROM tasks
 			WHERE id = ?
 		`, id).Scan(
 			&taskData.ID,
-			&name, // name - scan but don't use (field not in Todo2Task struct yet)
+			&name,
 			&taskData.Content,
 			&taskData.LongDescription,
 			&taskData.Status,
 			&taskData.Priority,
 			&completedInt,
-			&created,      // created - scan but don't use
-			&lastModified, // last_modified - scan but don't use
+			&created,
+			&lastModified,
+			&completedAt,
 			&metadataJSON,
 			&metadataProtobuf,
 			&metadataFormat,
 		)
 
-		// If protobuf columns don't exist, fall back to old schema
+		// If protobuf or completed_at column don't exist, fall back to old schema
 		if err != nil && strings.Contains(err.Error(), "no such column") {
 			err = db.QueryRowContext(queryCtx, `
 				SELECT id, name, content, long_description, status, priority, completed,
@@ -255,6 +255,16 @@ func GetTask(ctx context.Context, id string) (*Todo2Task, error) {
 		}
 
 		taskData.Completed = completedInt == 1
+		if created.Valid {
+			taskData.CreatedAt = created.String
+		}
+		if lastModified.Valid {
+			taskData.LastModified = lastModified.String
+		}
+		if completedAt.Valid {
+			taskData.CompletedAt = completedAt.String
+		}
+		taskData.NormalizeEpochDates()
 
 		// Deserialize metadata: prefer protobuf if available, fall back to JSON
 		if metadataFormat.Valid && metadataFormat.String == "protobuf" && len(metadataProtobuf) > 0 {
@@ -426,8 +436,12 @@ func UpdateTask(ctx context.Context, task *Todo2Task) error {
 		}
 
 		// Update task with optimistic locking (version check)
-		// Include protobuf columns if they exist in schema
+		// Include protobuf columns if they exist in schema; set completed_at when status is Done
 		now := time.Now().Format(time.RFC3339)
+		completedAtVal := task.CompletedAt
+		if task.Status == "Done" && completedAtVal == "" {
+			completedAtVal = now
+		}
 		result, err := tx.ExecContext(txCtx, `
 			UPDATE tasks SET
 				content = ?,
@@ -436,6 +450,7 @@ func UpdateTask(ctx context.Context, task *Todo2Task) error {
 				priority = ?,
 				completed = ?,
 				last_modified = ?,
+				completed_at = ?,
 				metadata = ?,
 				metadata_protobuf = ?,
 				metadata_format = ?,
@@ -449,13 +464,14 @@ func UpdateTask(ctx context.Context, task *Todo2Task) error {
 			task.Priority,
 			completedInt,
 			now,
+			completedAtVal,
 			metadataJSON,     // JSON for backward compatibility
 			metadataProtobuf, // Protobuf binary data
 			metadataFormat,   // Format indicator
 			task.ID,
 			currentVersion,
 		)
-		// If protobuf columns don't exist, fall back to old schema
+		// If protobuf or completed_at columns don't exist, fall back to old schema
 		if err != nil && strings.Contains(err.Error(), "no such column") {
 			result, err = tx.ExecContext(txCtx, `
 				UPDATE tasks SET
@@ -465,6 +481,7 @@ func UpdateTask(ctx context.Context, task *Todo2Task) error {
 					priority = ?,
 					completed = ?,
 					last_modified = ?,
+					completed_at = ?,
 					metadata = ?,
 					version = version + 1,
 					updated_at = strftime('%s', 'now')
@@ -476,6 +493,7 @@ func UpdateTask(ctx context.Context, task *Todo2Task) error {
 				task.Priority,
 				completedInt,
 				now,
+				completedAtVal,
 				metadataJSON,
 				task.ID,
 				currentVersion,
@@ -593,10 +611,10 @@ func ListTasks(ctx context.Context, filters *TaskFilters) ([]*Todo2Task, error) 
 		}
 
 		// Build query with filters (using strings.Builder for better performance)
-		// Include protobuf columns if they exist (for new schema)
+		// Include protobuf columns and date columns if they exist (for new schema)
 		var queryBuilder strings.Builder
 		queryBuilder.WriteString(`
-			SELECT DISTINCT t.id, t.content, t.long_description, t.status, t.priority, t.completed, t.metadata, t.metadata_protobuf, t.metadata_format
+			SELECT DISTINCT t.id, t.content, t.long_description, t.status, t.priority, t.completed, t.created, t.last_modified, t.completed_at, t.metadata, t.metadata_protobuf, t.metadata_format
 			FROM tasks t
 		`)
 		var args []interface{}
@@ -636,11 +654,11 @@ func ListTasks(ctx context.Context, filters *TaskFilters) ([]*Todo2Task, error) 
 		rows, err := db.QueryContext(queryCtx, query, args...)
 		hasProtobufColumns := true
 		if err != nil && strings.Contains(err.Error(), "no such column") {
-			// Protobuf columns don't exist, use old schema
+			// Protobuf or date columns don't exist, use old schema
 			hasProtobufColumns = false
 			queryBuilderOld := strings.Builder{}
 			queryBuilderOld.WriteString(`
-				SELECT DISTINCT t.id, t.content, t.long_description, t.status, t.priority, t.completed, t.metadata
+				SELECT DISTINCT t.id, t.content, t.long_description, t.status, t.priority, t.completed, t.created, t.last_modified, t.completed_at, t.metadata
 				FROM tasks t
 			`)
 			if len(conditions) > 0 {
@@ -670,6 +688,7 @@ func ListTasks(ctx context.Context, filters *TaskFilters) ([]*Todo2Task, error) 
 			var metadataProtobuf []byte // BLOB column
 			var metadataFormat sql.NullString
 			var completedInt int
+			var created, lastMod, completedAt sql.NullString
 
 			// Scan based on whether protobuf columns exist
 			var scanErr error
@@ -681,6 +700,9 @@ func ListTasks(ctx context.Context, filters *TaskFilters) ([]*Todo2Task, error) 
 					&task.Status,
 					&task.Priority,
 					&completedInt,
+					&created,
+					&lastMod,
+					&completedAt,
 					&metadataJSON,
 					&metadataProtobuf,
 					&metadataFormat,
@@ -693,6 +715,9 @@ func ListTasks(ctx context.Context, filters *TaskFilters) ([]*Todo2Task, error) 
 					&task.Status,
 					&task.Priority,
 					&completedInt,
+					&created,
+					&lastMod,
+					&completedAt,
 					&metadataJSON,
 				)
 			}
@@ -702,6 +727,16 @@ func ListTasks(ctx context.Context, filters *TaskFilters) ([]*Todo2Task, error) 
 			}
 
 			task.Completed = completedInt == 1
+			if created.Valid {
+				task.CreatedAt = created.String
+			}
+			if lastMod.Valid {
+				task.LastModified = lastMod.String
+			}
+			if completedAt.Valid {
+				task.CompletedAt = completedAt.String
+			}
+			task.NormalizeEpochDates()
 
 			// Deserialize metadata: prefer protobuf if available, fall back to JSON
 			if metadataFormat.Valid && metadataFormat.String == "protobuf" && len(metadataProtobuf) > 0 {
@@ -945,6 +980,54 @@ func GetTasksByTag(ctx context.Context, tag string) ([]*Todo2Task, error) {
 func GetTasksByPriority(ctx context.Context, priority string) ([]*Todo2Task, error) {
 	filters := &TaskFilters{Priority: &priority}
 	return ListTasks(ctx, filters)
+}
+
+// FixTaskDates backfills created and last_modified from created_at/updated_at (Unix epoch)
+// for rows where created or last_modified is empty or 1970-01-01. Returns the number of rows updated.
+func FixTaskDates(ctx context.Context) (int64, error) {
+	ctx = ensureContext(ctx)
+	txCtx, cancel := withTransactionTimeout(ctx)
+	defer cancel()
+
+	var rowsAffected int64
+	err := retryWithBackoff(ctx, func() error {
+		db, err := GetDB()
+		if err != nil {
+			return fmt.Errorf("failed to get database: %w", err)
+		}
+		// Backfill created and last_modified from integer created_at/updated_at
+		res, err := db.ExecContext(txCtx, `
+			UPDATE tasks SET
+				created = strftime('%Y-%m-%dT%H:%M:%SZ', datetime(created_at, 'unixepoch')),
+				last_modified = strftime('%Y-%m-%dT%H:%M:%SZ', datetime(updated_at, 'unixepoch'))
+			WHERE created = '' OR created LIKE '1970%'
+			   OR last_modified IS NULL OR last_modified = '' OR last_modified LIKE '1970%'
+		`)
+		if err != nil {
+			return fmt.Errorf("failed to fix task dates: %w", err)
+		}
+		rowsAffected, err = res.RowsAffected()
+		if err != nil {
+			return err
+		}
+		// For Done tasks, backfill completed_at from updated_at if missing or epoch
+		_, err = db.ExecContext(txCtx, `
+			UPDATE tasks SET
+				completed_at = strftime('%Y-%m-%dT%H:%M:%SZ', datetime(updated_at, 'unixepoch'))
+			WHERE status = 'Done' AND (completed_at IS NULL OR completed_at = '' OR completed_at LIKE '1970%')
+		`)
+		if err != nil {
+			// completed_at column might not exist in older schema
+			if !strings.Contains(err.Error(), "no such column") {
+				return fmt.Errorf("failed to fix completed_at: %w", err)
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		return 0, err
+	}
+	return rowsAffected, nil
 }
 
 // GetDependencies retrieves all task IDs that the specified task depends on

@@ -6,6 +6,16 @@
 
 ---
 
+## Completed 2026-01-29: Logging consolidation
+
+- **Single facade:** Added `internal/logging` package wrapping mcp-go-core's logger (which already uses slog). Main, database, and CLI share one logger via `logging.Init()` / `logging.Default()`.
+- **main.go:** Replaced all `log` usage with `logging.Warn` / `logging.Fatal`; calls `logging.Init()` at startup.
+- **internal/database/tasks.go:** Replaced `log.Printf` in `SanitizeTaskMetadata` with `logging.Warn`.
+- **internal/cli/logging_adapter.go:** Uses `logging.Default()` instead of creating its own logger; one shared instance.
+- **Tasks closed:** T-1768326545827 (consolidate), T-1768326690159 (mcp-go-core uses slog in vendor), T-1768325405127 (complete migration).
+
+---
+
 ## Current State Analysis
 
 ### Current Logging Architecture

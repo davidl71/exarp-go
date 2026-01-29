@@ -53,10 +53,10 @@
 | Area | Priority | Notes |
 |------|----------|--------|
 | ~~**SchemaVersion constant**~~ | ~~High~~ | Done: set to 5 in schema.go. |
+| ~~**Report/scorecard internals**~~ | ~~Low~~ | Done: overview uses aggregateProjectDataProto + formatOverview*Proto; scorecard uses GoScorecardResultToProto + ProtoToScorecardMap (commit a7a8aea). |
 | **Protobuf build tooling / Ansible** | Medium | Document or automate protoc/Makefile/Ansible for proto generation if not already. |
 | **Documentation** | Medium | Update docs to describe protobuf usage (config, tasks, memory, bridge). T1.5.5. |
 | **Benchmarks / tests** | Low | Run and document protobuf vs JSON benchmarks; add/run tests for protobuf serialization with real tasks. |
-| **Report/scorecard internals** | Low | Optional: use protobuf for internal report data structures (ProjectOverviewData etc.); request/response already use protobuf. |
 
 ---
 
@@ -64,7 +64,8 @@
 
 - **Mark Done (implemented):** Migrate memory to protobuf file format; Create protobuf schemas (tools + high-priority); Update tool handlers to protobuf; T1.5.1 Conversion Layer; T1.5.2 Loader; T1.5.3 CLI; Run migration 003; Update ListTasks/DB to protobuf; Phase 1 Task Management protobuf; Migrate to mcp-go-core request parsing; Migrate Python bridge to protobuf.
 - **Update:** “Fix schema versioning and duplicate migration versions” → scope to “Update SchemaVersion constant from 3 to 5” (no 002→003 rename).
-- **Keep:** Measure performance (benchmarks); Test protobuf serialization with real tasks; Set up protobuf build tooling/Ansible; T1.5.5 docs; Migrate report/scorecard to protobuf (optional); Protobuf Integration Epic (update description to reflect status).
+- **Done:** Migrate report/scorecard to protobuf (T-1768318391643) — overview and scorecard now use proto internally.
+- **Keep:** Measure performance (benchmarks); Test protobuf serialization with real tasks; Set up protobuf build tooling/Ansible; T1.5.5 docs; Protobuf Integration Epic (update description to reflect status).
 - **Obsolete/remove:** Any task that still says “Rename 002_add_protobuf_support to 003” (already 003).
 
 ---

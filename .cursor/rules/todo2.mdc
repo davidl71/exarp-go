@@ -444,35 +444,9 @@ update_todos({ updates: [{ id: "T-1", status: "Done" }] })
 
 # 📚 MCP Tools Reference
 
-**⚠️ QUICK REFERENCE - Task Creation:**
-- **exarp-go projects:** Use `task_workflow` with `action="create"` (epoch-based IDs)
-- **Other projects:** Use `create_todos` (if available)
-- **Required params for create:** `name`, `long_description`
-
-## ⚠️ CRITICAL: Task Creation Tool Selection
-
-**For exarp-go projects, ALWAYS use exarp-go's `task_workflow` tool instead of `create_todos`:**
-
-- ✅ **Use:** `mcp_exarp-go_task_workflow` with `action="create"`
-  - Generates epoch-based IDs: `T-{epoch_milliseconds}` (e.g., `T-1768161407530`)
-  - O(1) ID generation - no need to load all tasks
-  - Maintains consistency with exarp-go's ID format
-  - Integrated with exarp-go's database and tool ecosystem
-
-- ❌ **Don't use:** `mcp_extension-todo2_create_todos`
-  - Uses sequential IDs: `T-1`, `T-2`, etc.
-  - Doesn't match exarp-go's epoch-based ID format
-  - Creates inconsistency in task ID patterns
-
-**Tool Selection Rules:**
-- **exarp-go project:** Use `task_workflow` tool (epoch-based IDs)
-- **Other projects:** Use `create_todos` from extension-todo2 (if available)
-- **When in doubt:** Check project's task ID format - if you see epoch-based IDs, use `task_workflow`
-
 | Tool               | Purpose                                                                           |
 | ------------------ | --------------------------------------------------------------------------------- |
-| task_workflow (exarp-go) | **PREFERRED for exarp-go**: Create task(s) using exarp-go's tool (epoch-based IDs) |
-| create_todos       | Create task(s) with names, long_descriptions, priorities, tags, and dependencies (other projects) |
+| create_todos       | Create task(s) with names, long_descriptions, priorities, tags, and dependencies |
 | list_todos         | View filtered task lists (by status, tag, priority, or dependency readiness)     |
 | update_todos       | Update status, content, tags, dependencies                                       |
 | delete_todos       | Remove obsolete tasks                                                            |
@@ -500,16 +474,14 @@ update_todos({ updates: [{ id: "T-1", status: "Done" }] })
 
 | Rule                                                       | Enforcement |
 | ---------------------------------------------------------- | ----------- |
-| **ALWAYS start with task creation for EVERY user request**   | ✅           |
-| **For exarp-go: Use task_workflow tool (epoch-based IDs)**  | ✅           |
-| **For other projects: Use create_todos tool**               | ✅           |
+| **ALWAYS start with create_todos for EVERY user request**   | ✅           |
 | **INTELLIGENTLY assess complexity for appropriate task count** | ✅           |
 | **ALWAYS use Todo2 workflow - single or multiple tasks**    | ✅           |
 | Always conduct research_with_links before implementation   | ✅           |
 | **Include detailed codebase analysis with code snippets**   | ✅           |
 | **Use detailed task descriptions with 8 required sections** | ✅           |
 | **Define 3-5 measurable acceptance criteria per task**      | ✅           |
-| Use task creation tools for full project breakdowns              | ✅           |
+| Use create_todos for full project breakdowns              | ✅           |
 | Set dependencies during planning                           | ✅           |
 | Never skip result or review                                | ✅           |
 | **STAY STRICTLY within defined task scope - no expansion**  | ✅           |
@@ -547,8 +519,7 @@ update_todos({ updates: [{ id: "T-1", status: "Done" }] })
 | Rule                                                              | AI Agent Behavior | Penalty for Violation |
 | ----------------------------------------------------------------- | ----------------- | -------------------- |
 | **MUST use Todo2 workflow for EVERY user request (no exceptions)** | **ENFORCED**      | **INTERACTION TERMINATED** |
-| **MUST start with task creation before any work**                 | **ENFORCED**      | **INTERACTION TERMINATED** |
-| **MUST use task_workflow for exarp-go projects (epoch-based IDs)** | **ENFORCED**      | **INTERACTION TERMINATED** |
+| **MUST start with create_todos before any work**                 | **ENFORCED**      | **INTERACTION TERMINATED** |
 | **MUST assess complexity and create appropriate task count**      | **ENFORCED**      | **TASK REJECTED**    |
 | **MUST search local codebase first for every research task**     | **ENFORCED**      | **TASK REJECTED**    |
 | **MUST include code snippets in local codebase analysis**        | **ENFORCED**      | **TASK REJECTED**    |
@@ -570,9 +541,7 @@ update_todos({ updates: [{ id: "T-1", status: "Done" }] })
 
 ### ✅ CORRECT Workflow:
 1. **User makes request** (any request, any size)
-2. **AI immediately creates tasks** (first action, always)
-   - **exarp-go projects:** Use `task_workflow` tool with `action="create"` (epoch-based IDs)
-   - **Other projects:** Use `create_todos` tool (if available)
+2. **AI immediately calls create_todos** (first action, always)
 3. **AI follows complete Todo2 workflow** (research → implement → result → review)
 4. **AI completes task and updates todo status**
 
@@ -582,15 +551,13 @@ update_todos({ updates: [{ id: "T-1", status: "Done" }] })
 3. **AI skips todo creation** ← **VIOLATION - INTERACTION TERMINATED**
 
 ### 📝 ENFORCEMENT SUMMARY:
-- **Every user message** → Create tasks first (count based on complexity)
-- **exarp-go projects** → Use `task_workflow` tool (epoch-based IDs: `T-{epoch_milliseconds}`)
-- **Other projects** → Use `create_todos` tool (if available)
+- **Every user message** → Create todo(s) first (count based on complexity)
 - **Every code change** → Todo2 workflow required
 - **Every question** → Todo2 workflow required  
 - **Every analysis** → Todo2 workflow required
 - **Every task** → Todo2 workflow required
 
-**REMEMBER: TODO2 WORKFLOW IS MANDATORY - TASK COUNT IS CONTEXT-DEPENDENT - USE CORRECT TOOL FOR YOUR PROJECT** 
+**REMEMBER: TODO2 WORKFLOW IS MANDATORY - TASK COUNT IS CONTEXT-DEPENDENT** 
 
 ### 🏗️ Software Development Best Practices
 

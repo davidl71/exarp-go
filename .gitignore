@@ -44,3 +44,6 @@ __pycache__/
 *.pyo
 *.pyd
 .Python
+
+# OpenMemory - IDE/Assistant specific rules
+.cursor/rules/openmemory.mdc

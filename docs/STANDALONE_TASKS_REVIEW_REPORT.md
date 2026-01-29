@@ -1,6 +1,7 @@
 # Standalone Tasks Review Report
 
 **Generated**: 2026-01-13  
+**Epic links applied in DB**: 2026-01-29 (T-1768313222082 → Framework Improvements; T-1768317926158, T-1768317926149 → Enhancements)  
 **Project**: exarp-go
 
 ---

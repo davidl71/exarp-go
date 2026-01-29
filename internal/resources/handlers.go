@@ -8,7 +8,7 @@ import (
 
 // RegisterAllResources registers all resources with the server
 func RegisterAllResources(server framework.MCPServer) error {
-	// Register 6 resources (T-45)
+	// Register 22 resources (all native Go; no Python bridge)
 
 	// stdio://scorecard
 	if err := server.RegisterResource(
@@ -151,6 +151,17 @@ func RegisterAllResources(server framework.MCPServer) error {
 		handleModels,
 	); err != nil {
 		return fmt.Errorf("failed to register models resource: %w", err)
+	}
+
+	// stdio://cursor/skills — hints for Cursor about which skills to read when using exarp-go
+	if err := server.RegisterResource(
+		"stdio://cursor/skills",
+		"Cursor skill hints",
+		"Hints for Cursor: which skills to read when using exarp-go (task-workflow, use-exarp-tools, report-scorecard).",
+		"text/markdown",
+		handleCursorSkills,
+	); err != nil {
+		return fmt.Errorf("failed to register cursor skills resource: %w", err)
 	}
 
 	// stdio://tools

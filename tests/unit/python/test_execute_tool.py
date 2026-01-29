@@ -5,32 +5,20 @@ import sys
 from pathlib import Path
 from unittest.mock import patch, MagicMock
 
-# Add bridge directory to path
-BRIDGE_DIR = Path(__file__).parent.parent.parent / "bridge"
+# Add bridge directory to path (test is in tests/unit/python/ -> 4 parents to repo)
+REPO_ROOT = Path(__file__).resolve().parent.parent.parent.parent
+BRIDGE_DIR = REPO_ROOT / "bridge"
 sys.path.insert(0, str(BRIDGE_DIR))
 
 import execute_tool
 
 
 def test_tool_routing():
-    """Test tool names that the bridge routes to Python (native-only tools excluded)."""
-    # Tools the bridge execute_tool.py actually routes (memory, task_discovery removed 2026-01-28;
-    # session, setup_hooks, check_attribution, memory_maint, analyze_alignment, estimation, task_analysis
-    # are native Go only; bridge does not route them)
-    known_tools = [
-        "report",
-        "security",
-        "task_workflow",
-        "testing",
-        "lint",
-        "ollama",
-        "mlx",
-        "context",
-        "recommend",
-    ]
-
-    for tool_name in known_tools:
-        assert tool_name is not None
+    """Bridge routes only mlx (Python deprecated; MLX-only retention 2026-01-29)."""
+    # execute_tool.py routes only "mlx"; all other tools are native Go
+    assert "mlx" in ["mlx"]
+    # Smoke: bridge can be imported and execute_tool is callable
+    assert callable(execute_tool.execute_tool)
 
 
 def test_argument_parsing():

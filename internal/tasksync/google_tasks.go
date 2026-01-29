@@ -192,9 +192,9 @@ func (s *GoogleTasksSource) SyncTasks(ctx context.Context, todo2Tasks []*models.
 		MatchesFound:       len(result.Matches),
 		ConflictsDetected:  len(result.Conflicts),
 		NewTodo2Tasks:      len(result.NewTodo2Tasks),
-		NewExternalTasks:    len(result.NewExternalTasks),
-		UpdatedTasks:        len(result.UpdatedTasks),
-		Errors:              len(result.Errors),
+		NewExternalTasks:   len(result.NewExternalTasks),
+		UpdatedTasks:       len(result.UpdatedTasks),
+		Errors:             len(result.Errors),
 	}
 
 	return result, nil
@@ -226,7 +226,7 @@ func (s *GoogleTasksSource) GetTasks(ctx context.Context, options GetTasksOption
 	var externalTasks []*ExternalTask
 	for _, item := range resp.Items {
 		extTask := s.googleTaskToExternal(item)
-		
+
 		// Apply filters
 		if options.Status != "" && extTask.Status != options.Status {
 			continue
@@ -294,13 +294,13 @@ func (s *GoogleTasksSource) TestConnection(ctx context.Context) error {
 
 func (s *GoogleTasksSource) googleTaskToExternal(gt *tasks.Task) *ExternalTask {
 	extTask := &ExternalTask{
-		ExternalID:   gt.Id,
-		Title:        gt.Title,
-		Description:  gt.Notes,
-		Status:       gt.Status, // "needsAction" or "completed"
-		Completed:    gt.Status == "completed",
-		Source:       SourceGoogleTasks,
-		Metadata:     make(map[string]interface{}),
+		ExternalID:  gt.Id,
+		Title:       gt.Title,
+		Description: gt.Notes,
+		Status:      gt.Status, // "needsAction" or "completed"
+		Completed:   gt.Status == "completed",
+		Source:      SourceGoogleTasks,
+		Metadata:    make(map[string]interface{}),
 	}
 
 	// Parse due date
@@ -355,13 +355,13 @@ func (s *GoogleTasksSource) todo2ToGoogleTask(task *models.Todo2Task) *tasks.Tas
 
 func (s *GoogleTasksSource) externalToTodo2(extTask *ExternalTask) *models.Todo2Task {
 	task := &models.Todo2Task{
-		ID:             fmt.Sprintf("GT-%s", extTask.ExternalID),
-		Content:        extTask.Title,
+		ID:              fmt.Sprintf("GT-%s", extTask.ExternalID),
+		Content:         extTask.Title,
 		LongDescription: extTask.Description,
-		Status:         extTask.Status,
-		Priority:       extTask.Priority,
-		Tags:           extTask.Tags,
-		Metadata:       extTask.Metadata,
+		Status:          extTask.Status,
+		Priority:        extTask.Priority,
+		Tags:            extTask.Tags,
+		Metadata:        extTask.Metadata,
 	}
 
 	if extTask.DueDate != nil {
@@ -380,13 +380,13 @@ func getTokenFromFile(filepath string) (*oauth2.Token, error) {
 	if filepath == "" {
 		return nil, fmt.Errorf("token file path not provided")
 	}
-	
+
 	f, err := os.Open(filepath)
 	if err != nil {
 		return nil, err
 	}
 	defer f.Close()
-	
+
 	tok := &oauth2.Token{}
 	err = json.NewDecoder(f).Decode(tok)
 	return tok, err
@@ -413,13 +413,13 @@ func saveToken(filepath string, token *oauth2.Token) error {
 	if filepath == "" {
 		return fmt.Errorf("token file path not provided")
 	}
-	
+
 	f, err := os.OpenFile(filepath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0600)
 	if err != nil {
 		return fmt.Errorf("unable to cache oauth token: %w", err)
 	}
 	defer f.Close()
-	
+
 	return json.NewEncoder(f).Encode(token)
 }
 

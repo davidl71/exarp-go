@@ -675,9 +675,9 @@ err := database.AddComments(taskID, comments)
 - `make pre-sprint` - Run pre-sprint cleanup (duplicates, alignment, docs)
 - `make sprint` - Run full sprint automation (process all background tasks)
 
-**Task Completion Detection:**
-- `make check-tasks` - Batch check all Todo and In Progress tasks to find completed ones (dry run, no updates)
-- `make update-completed-tasks` - Batch check and auto-update completed tasks (updates task status based on codebase analysis)
+**Task Completion Detection (native Go infer_task_progress):**
+- `make check-tasks` - Batch check In Progress tasks to find completed ones (dry run, no updates). Uses `exarp-go -tool infer_task_progress`; report written to docs/TASK_COMPLETION_CHECK.md.
+- `make update-completed-tasks` - Batch check and auto-update completed tasks (updates task status based on codebase analysis). Same tool with auto_update_tasks=true; report to docs/TASK_COMPLETION_UPDATE.md.
 
 **Data Migration:**
 - `make build-migrate` - Build JSON to SQLite migration tool

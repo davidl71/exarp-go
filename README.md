@@ -87,15 +87,15 @@ This server hosts tools, prompts, and resources that are broken in FastMCP due t
 
 ## Configuration
 
-**Per-Project Configuration:**
-- Configuration file: `.exarp/config.yaml` (primary, human-readable) or `.exarp/config.pb` (optional, binary format)
-- Generate default config: `exarp-go config init`
+**Per-Project Configuration (protobuf mandatory):**
+- Configuration file: `.exarp/config.pb` (required for file-based config; protobuf binary). No file = in-memory defaults.
+- Generate default config: `exarp-go config init` (creates `.exarp/config.pb`)
 - Validate config: `exarp-go config validate`
 - View config: `exarp-go config show [yaml|json]`
 - Export config: `exarp-go config export [yaml|json|protobuf]`
 - Convert formats: `exarp-go config convert yaml protobuf` or `exarp-go config convert protobuf yaml`
-- All defaults match current hard-coded behavior (backward compatible)
-- **Protobuf support:** Type-safe binary format with schema validation (optional, YAML remains primary)
+- **Editing as YAML:** Run `exarp-go config export yaml` to emit YAML, edit, then `exarp-go config convert yaml protobuf` to save.
+- See `docs/CONFIGURATION_PROTOBUF_INTEGRATION.md` and `docs/CONFIGURATION_IMPLEMENTATION_PLAN.md` for details.
 
 **Configuration Categories:**
 - **Timeouts**: Task locks, tool execution, HTTP clients, database retries

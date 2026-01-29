@@ -113,9 +113,9 @@ func (s *GitHubIssuesSource) SyncTasks(ctx context.Context, todo2Tasks []*models
 		MatchesFound:       len(result.Matches),
 		ConflictsDetected:  len(result.Conflicts),
 		NewTodo2Tasks:      len(result.NewTodo2Tasks),
-		NewExternalTasks:    len(result.NewExternalTasks),
-		UpdatedTasks:        len(result.UpdatedTasks),
-		Errors:              len(result.Errors),
+		NewExternalTasks:   len(result.NewExternalTasks),
+		UpdatedTasks:       len(result.UpdatedTasks),
+		Errors:             len(result.Errors),
 	}
 
 	return result, nil
@@ -268,11 +268,11 @@ func (s *GitHubIssuesSource) TestConnection(ctx context.Context) error {
 
 func (s *GitHubIssuesSource) githubIssueToExternal(issue *github.Issue) *ExternalTask {
 	extTask := &ExternalTask{
-		ExternalID:   fmt.Sprintf("%d", issue.GetNumber()),
-		Title:        issue.GetTitle(),
-		Description:  issue.GetBody(),
-		Source:       SourceGitHubIssues,
-		Metadata:     make(map[string]interface{}),
+		ExternalID:  fmt.Sprintf("%d", issue.GetNumber()),
+		Title:       issue.GetTitle(),
+		Description: issue.GetBody(),
+		Source:      SourceGitHubIssues,
+		Metadata:    make(map[string]interface{}),
 	}
 
 	// Status mapping
@@ -350,13 +350,13 @@ func (s *GitHubIssuesSource) todo2ToGitHubIssue(task *models.Todo2Task) *github.
 
 func (s *GitHubIssuesSource) externalToTodo2(extTask *ExternalTask) *models.Todo2Task {
 	task := &models.Todo2Task{
-		ID:             fmt.Sprintf("GH-%s", extTask.ExternalID),
-		Content:        extTask.Title,
+		ID:              fmt.Sprintf("GH-%s", extTask.ExternalID),
+		Content:         extTask.Title,
 		LongDescription: extTask.Description,
-		Status:         extTask.Status,
-		Priority:       extTask.Priority,
-		Tags:           extTask.Tags,
-		Metadata:       extTask.Metadata,
+		Status:          extTask.Status,
+		Priority:        extTask.Priority,
+		Tags:            extTask.Tags,
+		Metadata:        extTask.Metadata,
 	}
 
 	return task

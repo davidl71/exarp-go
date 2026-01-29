@@ -1,0 +1,4 @@
+---
+# Golang role defaults
+# Set to a version string (e.g. "1.25.6") to pin, or "latest" to install latest stable
+go_version: "latest"

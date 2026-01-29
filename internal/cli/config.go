@@ -40,15 +40,14 @@ func handleConfigCommand(args []string) error {
 	}
 }
 
-// handleConfigInit generates a default config file
+// handleConfigInit generates a default config file in protobuf format (.exarp/config.pb)
 func handleConfigInit(args []string) error {
 	projectRoot, err := config.FindProjectRoot()
 	if err != nil {
 		return fmt.Errorf("failed to find project root: %w", err)
 	}
 
-	configDir := filepath.Join(projectRoot, ".exarp")
-	configPath := filepath.Join(configDir, "config.yaml")
+	configPath := filepath.Join(projectRoot, ".exarp", "config.pb")
 
 	// Check if config file already exists
 	if _, err := os.Stat(configPath); err == nil {
@@ -58,25 +57,13 @@ func handleConfigInit(args []string) error {
 		return nil
 	}
 
-	// Create .exarp directory if it doesn't exist
-	if err := os.MkdirAll(configDir, 0755); err != nil {
-		return fmt.Errorf("failed to create config directory: %w", err)
-	}
-
-	// Get defaults and marshal to YAML
 	defaults := config.GetDefaults()
-	data, err := yaml.Marshal(defaults)
-	if err != nil {
-		return fmt.Errorf("failed to marshal default config: %w", err)
-	}
-
-	// Write config file
-	if err := os.WriteFile(configPath, data, 0644); err != nil {
+	if err := config.WriteConfigToProtobufFile(projectRoot, defaults); err != nil {
 		return fmt.Errorf("failed to write config file: %w", err)
 	}
 
 	fmt.Printf("✅ Created default config file: %s\n", configPath)
-	fmt.Printf("   Edit this file to customize configuration for your project\n")
+	fmt.Printf("   Use 'exarp-go config export yaml' to edit as YAML, then 'exarp-go config convert yaml protobuf' to save\n")
 	return nil
 }
 
@@ -106,7 +93,7 @@ func handleConfigValidate(args []string) error {
 	if format == "protobuf" {
 		fmt.Printf("   Config loaded from: %s/.exarp/config.pb\n", projectRoot)
 	} else {
-		fmt.Printf("   Config loaded from: %s/.exarp/config.yaml\n", projectRoot)
+		fmt.Printf("   Config: defaults (no .exarp/config.pb)\n")
 	}
 	return nil
 }
@@ -180,17 +167,11 @@ func handleConfigSet(args []string) error {
 		return fmt.Errorf("failed to set config value: %w", err)
 	}
 
-	// Save back to YAML
-	configPath := filepath.Join(projectRoot, ".exarp", "config.yaml")
-	data, err := yaml.Marshal(cfg)
-	if err != nil {
-		return fmt.Errorf("failed to marshal config: %w", err)
-	}
-
-	if err := os.WriteFile(configPath, data, 0644); err != nil {
+	if err := config.WriteConfigToProtobufFile(projectRoot, cfg); err != nil {
 		return fmt.Errorf("failed to write config file: %w", err)
 	}
 
+	configPath := filepath.Join(projectRoot, ".exarp", "config.pb")
 	fmt.Printf("✅ Set %s = %s\n", key, value)
 	fmt.Printf("   Config saved to: %s\n", configPath)
 	fmt.Printf("   Run 'exarp-go config validate' to verify\n")
@@ -493,10 +474,10 @@ func printConfigHelp() error {
 Usage: exarp-go config <subcommand> [options]
 
 Subcommands:
-  init              Generate default .exarp/config.yaml file
+  init              Generate default .exarp/config.pb file (protobuf)
   validate          Validate the current config file
   show [format]     Display current configuration (yaml or json)
-  set <key>=<value> Set a config value
+  set <key>=<value> Set a config value (saves to .exarp/config.pb)
   export [format]   Export config to format (yaml, json, protobuf)
   convert <from> <to> Convert config between formats (yaml ↔ protobuf)
   help              Show this help message
@@ -506,15 +487,15 @@ Examples:
   exarp-go config validate
   exarp-go config show
   exarp-go config show json
-  exarp-go config export protobuf
+  exarp-go config export yaml
   exarp-go config convert yaml protobuf
   exarp-go config convert protobuf yaml
   exarp-go config set timeouts.task_lock_lease=45m
 
-Configuration File:
-  Location: .exarp/config.yaml (primary) or .exarp/config.pb (optional)
-  Format: YAML (human-readable) or Protobuf Binary (type-safe)
-  Defaults: All defaults match current hard-coded behavior
+Configuration File (protobuf mandatory):
+  Location: .exarp/config.pb (required for file-based config)
+  Format: Protobuf binary. Use 'export yaml' to edit as YAML, then 'convert yaml protobuf' to save.
+  Defaults: Run without a file uses in-memory defaults.
 
 For more information, see:
   docs/CONFIGURATION_IMPLEMENTATION_PLAN.md

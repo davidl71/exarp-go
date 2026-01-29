@@ -3,7 +3,7 @@
 **Date:** 2026-01-09  
 **Reviewer:** AI Assistant  
 **Plan Version:** 2026-01-08  
-**Status:** ✅ Progress Review Complete
+**Status:** ⚠️ **Superseded** — Current status is in `MIGRATION_AUDIT_2026-01-12.md` and `MIGRATION_STATUS_CURRENT.md`. The canonical plan is `NATIVE_GO_MIGRATION_PLAN.md` (updated 2026-01-27). This review is retained for historical context only.
 
 ---
 
@@ -75,8 +75,8 @@ The Native Go Migration Plan is well-structured and comprehensive. However, **si
 |------|------------|---------------|-------|
 | `infer_session_mode` | Planned | ✅ **COMPLETE** | Native Go in `session_mode_inference.go` |
 | `generate_config` | Planned | ⏳ Pending | Python bridge |
-| `setup_hooks` | Planned | ⏳ Pending | Python bridge |
-| `check_attribution` | Planned | ⏳ Pending | Python bridge |
+| `setup_hooks` | Planned | ✅ **COMPLETE** | Full native (fallback removed 2026-01-27) |
+| `check_attribution` | Planned | ✅ **COMPLETE** | Full native (fallback removed 2026-01-27) |
 | `add_external_tool_hints` | Planned | ⏳ Pending | Python bridge |
 | `analyze_alignment` | Planned | ⏳ Pending | Python bridge |
 | `health` | Planned | ⏳ Pending | Python bridge |
@@ -93,13 +93,13 @@ The Native Go Migration Plan is well-structured and comprehensive. However, **si
 |------|------------|---------------|-------|
 | `git_tools` | Planned | ✅ **COMPLETE** | Native Go in `git_tools.go` - **AHEAD OF SCHEDULE!** |
 | `memory` | Hybrid | ⏳ Pending | Python bridge |
-| `memory_maint` | Hybrid | ⏳ Pending | Python bridge |
+| `memory_maint` | Hybrid | ✅ **COMPLETE** | Full native (fallback removed 2026-01-27) |
 | `report` | Hybrid | ⏳ Pending | Python bridge |
 | `security` | Hybrid | ⏳ Pending | Python bridge |
 | `testing` | Hybrid | ⏳ Pending | Python bridge |
 | `automation` | Python Bridge | ⏳ Pending | Python bridge (intentional retention) |
 | `estimation` | Hybrid | ⏳ Pending | Python bridge |
-| `session` | Planned | ⏳ Pending | Python bridge |
+| `session` | Planned | ✅ **COMPLETE** | Full native (fallback removed 2026-01-27) |
 | `ollama` | Hybrid | ⏳ Pending | Python bridge |
 | `mlx` | Hybrid | ⏳ Pending | Python bridge |
 | `prompt_tracking` | Planned | ⏳ Pending | Python bridge |

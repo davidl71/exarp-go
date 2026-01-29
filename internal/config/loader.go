@@ -7,55 +7,74 @@ import (
 	"strings"
 
 	configpb "github.com/davidl71/exarp-go/proto"
-	"gopkg.in/yaml.v3"
 	"google.golang.org/protobuf/proto"
+	"gopkg.in/yaml.v3"
 )
 
-// LoadConfig loads configuration from .exarp/config.yaml or .exarp/config.pb with fallback to defaults
-// Protobuf format takes priority if both files exist
+// LoadConfig loads configuration from .exarp/config.pb only (protobuf mandatory).
+// If no config file exists, returns defaults. If only .exarp/config.yaml exists,
+// returns an error instructing the user to run "exarp-go config init" or "exarp-go config convert".
 func LoadConfig(projectRoot string) (*FullConfig, error) {
-	// Start with defaults
-	cfg := GetDefaults()
-
-	// Check for protobuf format first (takes priority)
 	pbPath := filepath.Join(projectRoot, ".exarp", "config.pb")
-	if _, err := os.Stat(pbPath); err == nil {
-		// Protobuf file exists, load it
-		loaded, err := LoadConfigProtobuf(projectRoot)
-		if err != nil {
-			return nil, fmt.Errorf("failed to load protobuf config: %w", err)
-		}
-		return loaded, nil
-	}
-
-	// Fall back to YAML format
 	yamlPath := filepath.Join(projectRoot, ".exarp", "config.yaml")
-	if _, err := os.Stat(yamlPath); err == nil {
-		// Config file exists, load it
-		data, err := os.ReadFile(yamlPath)
-		if err != nil {
-			return nil, fmt.Errorf("failed to read config file %s: %w", yamlPath, err)
-		}
 
-		// Parse YAML
-		var fileConfig FullConfig
-		if err := yaml.Unmarshal(data, &fileConfig); err != nil {
-			return nil, fmt.Errorf("failed to parse config file %s: %w", yamlPath, err)
-		}
-
-		// Merge file config with defaults (file config takes precedence)
-		cfg = mergeConfig(cfg, &fileConfig)
+	if _, err := os.Stat(pbPath); err == nil {
+		return LoadConfigProtobuf(projectRoot)
 	}
 
-	// Apply environment variable overrides
-	applyEnvOverrides(cfg)
+	// Protobuf mandatory: if YAML exists but no .pb, error with instructions
+	if _, err := os.Stat(yamlPath); err == nil {
+		return nil, fmt.Errorf("configuration must be in protobuf format: run 'exarp-go config convert yaml protobuf' to create .exarp/config.pb, or 'exarp-go config init' for defaults")
+	}
 
-	// Validate configuration
+	// No config file: use defaults
+	cfg := GetDefaults()
+	applyEnvOverrides(cfg)
 	if err := ValidateConfig(cfg); err != nil {
 		return nil, fmt.Errorf("config validation failed: %w", err)
 	}
-
 	return cfg, nil
+}
+
+// LoadConfigYAML loads configuration from .exarp/config.yaml only (for convert/import).
+// Use LoadConfig for normal runtime loading (protobuf mandatory).
+func LoadConfigYAML(projectRoot string) (*FullConfig, error) {
+	cfg := GetDefaults()
+	yamlPath := filepath.Join(projectRoot, ".exarp", "config.yaml")
+	data, err := os.ReadFile(yamlPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read config file %s: %w", yamlPath, err)
+	}
+	var fileConfig FullConfig
+	if err := yaml.Unmarshal(data, &fileConfig); err != nil {
+		return nil, fmt.Errorf("failed to parse config file %s: %w", yamlPath, err)
+	}
+	cfg = mergeConfig(cfg, &fileConfig)
+	applyEnvOverrides(cfg)
+	if err := ValidateConfig(cfg); err != nil {
+		return nil, fmt.Errorf("config validation failed: %w", err)
+	}
+	return cfg, nil
+}
+
+// WriteConfigToProtobufFile writes cfg to .exarp/config.pb (creates .exarp if needed).
+func WriteConfigToProtobufFile(projectRoot string, cfg *FullConfig) error {
+	pbConfig, err := ToProtobuf(cfg)
+	if err != nil {
+		return fmt.Errorf("convert to protobuf: %w", err)
+	}
+	data, err := proto.Marshal(pbConfig)
+	if err != nil {
+		return fmt.Errorf("marshal protobuf: %w", err)
+	}
+	pbPath := filepath.Join(projectRoot, ".exarp", "config.pb")
+	if err := os.MkdirAll(filepath.Dir(pbPath), 0755); err != nil {
+		return fmt.Errorf("create config directory: %w", err)
+	}
+	if err := os.WriteFile(pbPath, data, 0644); err != nil {
+		return fmt.Errorf("write config file %s: %w", pbPath, err)
+	}
+	return nil
 }
 
 // LoadConfigProtobuf loads configuration from .exarp/config.pb (protobuf binary format)

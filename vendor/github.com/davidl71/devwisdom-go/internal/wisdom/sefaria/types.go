@@ -3,12 +3,12 @@ package sefaria
 
 // TextResponse represents a Sefaria API text response
 type TextResponse struct {
+	Metadata *Metadata `json:"-"`
 	Ref      string    `json:"ref"`
 	HeRef    string    `json:"heRef"`
-	Text     []string  `json:"text"` // English verses
-	He       []string  `json:"he"`   // Hebrew verses
+	Text     []string  `json:"text"`
+	He       []string  `json:"he"`
 	Versions []Version `json:"versions"`
-	Metadata *Metadata `json:"-"`
 }
 
 // Version represents a translation version in the Sefaria API response
@@ -22,9 +22,9 @@ type Version struct {
 type Metadata struct {
 	Book         string   `json:"book"`
 	HeTitle      string   `json:"heTitle"`
-	Categories   []string `json:"categories"`
 	IndexTitle   string   `json:"indexTitle"`
 	HeIndexTitle string   `json:"heIndexTitle"`
+	Categories   []string `json:"categories"`
 }
 
 // QuoteRequest represents a request for a specific quote from Sefaria

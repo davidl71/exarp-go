@@ -12,14 +12,14 @@ func TestLoad_DefaultConfig(t *testing.T) {
 	originalVersion := os.Getenv("MCP_VERSION")
 	defer func() {
 		_ = os.Setenv("MCP_FRAMEWORK", originalFramework) //nolint:errcheck // Test cleanup
-		_ = os.Setenv("MCP_SERVER_NAME", originalName)   //nolint:errcheck // Test cleanup
+		_ = os.Setenv("MCP_SERVER_NAME", originalName)    //nolint:errcheck // Test cleanup
 		_ = os.Setenv("MCP_VERSION", originalVersion)     //nolint:errcheck // Test cleanup
 	}()
 
 	// Clear env vars
 	_ = os.Unsetenv("MCP_FRAMEWORK")   //nolint:errcheck // Test setup
-	_ = os.Unsetenv("MCP_SERVER_NAME")  //nolint:errcheck // Test setup
-	_ = os.Unsetenv("MCP_VERSION")      //nolint:errcheck // Test setup
+	_ = os.Unsetenv("MCP_SERVER_NAME") //nolint:errcheck // Test setup
+	_ = os.Unsetenv("MCP_VERSION")     //nolint:errcheck // Test setup
 
 	cfg, err := Load()
 	if err != nil {
@@ -46,8 +46,8 @@ func TestLoad_EnvironmentOverrides(t *testing.T) {
 	originalVersion := os.Getenv("MCP_VERSION")
 	defer func() {
 		_ = os.Setenv("MCP_FRAMEWORK", originalFramework) //nolint:errcheck // Test cleanup
-		_ = os.Setenv("MCP_SERVER_NAME", originalName)     //nolint:errcheck // Test cleanup
-		_ = os.Setenv("MCP_VERSION", originalVersion)      //nolint:errcheck // Test cleanup
+		_ = os.Setenv("MCP_SERVER_NAME", originalName)    //nolint:errcheck // Test cleanup
+		_ = os.Setenv("MCP_VERSION", originalVersion)     //nolint:errcheck // Test cleanup
 	}()
 
 	// Set test env vars

@@ -35,7 +35,7 @@ type Source struct {
 func (s *Source) GetQuote(aeonLevel string) *Quote {
 	quotes, exists := s.Quotes[aeonLevel]
 	if !exists || len(quotes) == 0 {
-		// Fallback to any available quotes
+		// Fallback to any available quotes.
 		for _, qs := range s.Quotes {
 			if len(qs) > 0 {
 				quotes = qs
@@ -52,34 +52,33 @@ func (s *Source) GetQuote(aeonLevel string) *Quote {
 		}
 	}
 
-	// If only one quote, return it directly
+	// If only one quote, return it directly.
 	if len(quotes) == 1 {
 		return &quotes[0]
 	}
 
-	// Date-seeded random selection for daily consistency
-	// Uses same pattern as getRandomSourceLocked() in engine.go
+	// Uses same pattern as getRandomSourceLocked() in engine.go.
 	now := time.Now()
-	dateStr := now.Format("20060102") // YYYYMMDD format
+	dateStr := now.Format("20060102") // YYYYMMDD format.
 
-	// Convert date string to int and add hash offset
+	// Convert date string to int and add hash offset.
 	var dateInt int64
 	if _, err := fmt.Sscanf(dateStr, "%d", &dateInt); err != nil {
-		// This should never fail since we just formatted the date, but handle it gracefully
+		// This should never fail since we just formatted the date, but handle it gracefully.
 		dateInt = int64(now.Unix())
 	}
 
-	// Hash "random_quote" string for offset (different from "random_source" for source selection)
+	// Hash "random_quote" string for offset (different from "random_source" for source selection).
 	h := fnv.New32a()
 	h.Write([]byte("random_quote"))
 	hashOffset := int64(h.Sum32())
 
 	seed := dateInt + hashOffset
 
-	// Create seeded random generator
+	// Create seeded random generator.
 	rng := rand.New(rand.NewSource(seed))
 
-	// Select random quote index
+	// Select random quote index.
 	selectedIndex := rng.Intn(len(quotes))
 	return &quotes[selectedIndex]
 }
@@ -87,17 +86,17 @@ func (s *Source) GetQuote(aeonLevel string) *Quote {
 // Consultation represents an advisor consultation with full metadata.
 // It includes advisor information, quote, rationale, score context, and mode guidance.
 type Consultation struct {
-	Timestamp        string  `json:"timestamp"`
-	ConsultationType string  `json:"consultation_type"`
+	Stage            string  `json:"stage,omitempty"`
+	ConsultationMode string  `json:"consultation_mode"`
 	Advisor          string  `json:"advisor"`
-	AdvisorIcon      string  `json:"advisor_icon"`
+	ModeGuidance     string  `json:"mode_guidance,omitempty"`
 	AdvisorName      string  `json:"advisor_name"`
 	Rationale        string  `json:"rationale"`
 	Metric           string  `json:"metric,omitempty"`
 	Tool             string  `json:"tool,omitempty"`
-	Stage            string  `json:"stage,omitempty"`
-	ScoreAtTime      float64 `json:"score_at_time"`
-	ConsultationMode string  `json:"consultation_mode"`
+	ConsultationType string  `json:"consultation_type"`
+	Timestamp        string  `json:"timestamp"`
+	AdvisorIcon      string  `json:"advisor_icon"`
 	ModeIcon         string  `json:"mode_icon"`
 	ModeFrequency    string  `json:"mode_frequency"`
 	Quote            string  `json:"quote"`
@@ -105,7 +104,7 @@ type Consultation struct {
 	Encouragement    string  `json:"encouragement"`
 	Context          string  `json:"context,omitempty"`
 	SessionMode      string  `json:"session_mode,omitempty"`
-	ModeGuidance     string  `json:"mode_guidance,omitempty"`
+	ScoreAtTime      float64 `json:"score_at_time"`
 }
 
 // AdvisorInfo represents advisor metadata including name, icon, rationale, and context.
@@ -122,11 +121,11 @@ type AdvisorInfo struct {
 type AeonLevel string
 
 const (
-	AeonChaos    AeonLevel = "chaos"        // < 30%
-	AeonLower    AeonLevel = "lower_aeons"  // 30-50%
-	AeonMiddle   AeonLevel = "middle_aeons" // 50-70%
-	AeonUpper    AeonLevel = "upper_aeons"  // 70-85%
-	AeonTreasury AeonLevel = "treasury"     // > 85%
+	AeonChaos    AeonLevel = "chaos"        // < 30%.
+	AeonLower    AeonLevel = "lower_aeons"  // 30-50%.
+	AeonMiddle   AeonLevel = "middle_aeons" // 50-70%.
+	AeonUpper    AeonLevel = "upper_aeons"  // 70-85%.
+	AeonTreasury AeonLevel = "treasury"     // > 85%.
 )
 
 // GetAeonLevel returns the aeon level based on score.
@@ -156,21 +155,21 @@ func GetAeonLevel(score float64) string {
 type ConsultationMode string
 
 const (
-	ModeChaos    ConsultationMode = "chaos"    // < 30%
-	ModeBuilding ConsultationMode = "building" // 30-60%
-	ModeMaturing ConsultationMode = "maturing" // 60-80%
-	ModeMastery  ConsultationMode = "mastery"  // > 80%
+	ModeChaos    ConsultationMode = "chaos"    // < 30%.
+	ModeBuilding ConsultationMode = "building" // 30-60%.
+	ModeMaturing ConsultationMode = "maturing" // 60-80%.
+	ModeMastery  ConsultationMode = "mastery"  // > 80%.
 )
 
 // ConsultationModeConfig represents configuration for a consultation mode.
 // It defines score ranges, frequency, description, and icon for each mode.
 type ConsultationModeConfig struct {
 	Name        string  `json:"name"`
-	MinScore    float64 `json:"min_score"`
-	MaxScore    float64 `json:"max_score"`
 	Frequency   string  `json:"frequency"`
 	Description string  `json:"description"`
 	Icon        string  `json:"icon"`
+	MinScore    float64 `json:"min_score"`
+	MaxScore    float64 `json:"max_score"`
 }
 
 // SessionMode represents different session interaction modes.
@@ -186,7 +185,7 @@ const (
 // ModeConfig represents configuration for session mode-aware advisor selection.
 // It defines preferred advisors, tone, and focus for each session mode.
 type ModeConfig struct {
-	PreferredAdvisors []string `json:"preferred_advisors"`
 	Tone              string   `json:"tone"`
 	Focus             string   `json:"focus"`
+	PreferredAdvisors []string `json:"preferred_advisors"`
 }

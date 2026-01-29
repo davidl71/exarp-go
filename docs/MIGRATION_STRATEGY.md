@@ -1,14 +1,14 @@
 # Migration Strategy: project-management-automation → exarp-go
 
 **Date:** 2026-01-07  
-**Status:** Phase 2 - Strategy Design  
+**Status:** ⚠️ **Superseded** — The canonical migration plan is **`NATIVE_GO_MIGRATION_PLAN.md`** (updated 2026-01-27), which prioritizes Native Go over Python Bridge. This document is retained for historical context.  
 **Task:** T-59
 
 ---
 
 ## Executive Summary
 
-This document defines the migration strategy for completing the migration from `project-management-automation` (Python FastMCP) to `exarp-go` (Go MCP server). Based on Phase 1 analysis, **only 6 tools, 18 prompts, and 13 resources remain** to migrate.
+This document defined the migration strategy for completing the migration from `project-management-automation` (Python FastMCP) to `exarp-go` (Go MCP server). **Current status:** See `NATIVE_GO_MIGRATION_PLAN.md`, `MIGRATION_AUDIT_2026-01-12.md`, and `MIGRATION_STATUS_CURRENT.md`. Based on Phase 1 analysis at the time, 6 tools, 18 prompts, and 13 resources remained to migrate; most are now migrated per the Native Go plan.
 
 ---
 

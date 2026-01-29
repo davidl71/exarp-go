@@ -18,6 +18,21 @@ Shared set (single source: `~/.cursor/mcp.json`). Project `.cursor/mcp.json` is 
 | **tractatus_thinking** | Tractatus Thinking MCP — structured reasoning, logical analysis |
 | **context7** | Context7 MCP — advanced context and documentation retrieval (e.g. add_external_tool_hints) |
 
+### When to Use Context7 vs Web Search
+
+**Prefer Context7** when you need:
+- **Library or framework documentation** — Call `resolve-library-id` with the library name, then `query-docs` with the library ID and your question.
+- **Code examples** for a known package (Go, Ansible, React, etc.).
+- **API or usage details** for a language, framework, or tool that Context7 indexes.
+
+**Use web search** when you need:
+- **Real-time or version-specific facts** (e.g. “latest stable Go version number”, “current release date”).
+- **Project-specific repos or pages** (e.g. a GitHub repo not in Context7’s catalog).
+- **Official announcements or URLs** that are not part of library docs.
+- **Anything Context7 doesn’t cover** — try Context7 first; fall back to web search if no suitable library ID or no useful answer.
+
+**Context7 workflow:** `resolve-library-id` (query + libraryName) → `query-docs` (libraryId + query). Do not call more than 3 times per question.
+
 To install or replace: from devwisdom-go run `make install-mcp-config` (or `REPLACE=1` for template only).
 
 ## Configuration Guidelines

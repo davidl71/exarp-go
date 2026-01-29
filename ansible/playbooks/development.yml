@@ -73,7 +73,7 @@
       ansible.builtin.debug:
         msg:
           - "✅ Development environment setup complete"
-          - "Go version: {{ go_version }}"
+          - "Go version: {{ go_version_resolved | default(go_version) }}"
           - "Python version: {{ python_version }}"
           - "Project path: {{ project_path }}"
           - "Linters installed: {{ install_linters | default(false) }}"

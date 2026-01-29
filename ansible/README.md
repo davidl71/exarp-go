@@ -254,8 +254,13 @@ Then add installation task in `roles/linters/tasks/main.yml`.
 Edit `inventories/development/group_vars/all.yml`:
 
 ```yaml
-go_version: "1.25.0"
+# Latest stable (default), or pin e.g. "1.25.6"
+go_version: "latest"
 ```
+
+## Ansible 2.24 migration
+
+`inject_facts_as_vars` defaults to `False` in Ansible 2.24. This project sets it to `True` explicitly and silences deprecation warnings in `ansible.cfg`. Before upgrading to 2.24, migrate tasks to use `ansible_facts['ansible_*']` instead of top-level `ansible_*` variables.
 
 ## Best Practices
 

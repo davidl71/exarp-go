@@ -2,7 +2,7 @@ package wisdom
 
 import "fmt"
 
-// AdvisorRegistry manages advisor mappings for metrics, tools, and stages
+// AdvisorRegistry manages advisor mappings for metrics, tools, and stages.
 type AdvisorRegistry struct {
 	metricAdvisors map[string]*AdvisorInfo
 	toolAdvisors   map[string]*AdvisorInfo
@@ -10,7 +10,7 @@ type AdvisorRegistry struct {
 	initialized    bool
 }
 
-// NewAdvisorRegistry creates a new advisor registry
+// NewAdvisorRegistry creates a new advisor registry.
 func NewAdvisorRegistry() *AdvisorRegistry {
 	return &AdvisorRegistry{
 		metricAdvisors: make(map[string]*AdvisorInfo),
@@ -19,25 +19,25 @@ func NewAdvisorRegistry() *AdvisorRegistry {
 	}
 }
 
-// Initialize loads advisor mappings
+// Initialize loads advisor mappings.
 func (r *AdvisorRegistry) Initialize() {
 	if r.initialized {
 		return
 	}
 
-	// Load metric advisors
+	// Load metric advisors.
 	r.loadMetricAdvisors()
 
-	// Load tool advisors
+	// Load tool advisors.
 	r.loadToolAdvisors()
 
-	// Load stage advisors
+	// Load stage advisors.
 	r.loadStageAdvisors()
 
 	r.initialized = true
 }
 
-// loadMetricAdvisors populates metric → advisor mappings
+// loadMetricAdvisors populates metric → advisor mappings.
 func (r *AdvisorRegistry) loadMetricAdvisors() {
 	r.metricAdvisors["security"] = &AdvisorInfo{
 		Advisor:   "bofh",
@@ -116,7 +116,7 @@ func (r *AdvisorRegistry) loadMetricAdvisors() {
 		HelpsWith: "Decomposition, independent task design",
 	}
 
-	// Hebrew Advisors - Jewish wisdom traditions
+	// Hebrew Advisors - Jewish wisdom traditions.
 	r.metricAdvisors["ethics"] = &AdvisorInfo{
 		Advisor:   "rebbe",
 		Icon:      "🕎",
@@ -142,7 +142,7 @@ func (r *AdvisorRegistry) loadMetricAdvisors() {
 	}
 }
 
-// loadToolAdvisors populates tool → advisor mappings
+// loadToolAdvisors populates tool → advisor mappings.
 func (r *AdvisorRegistry) loadToolAdvisors() {
 	r.toolAdvisors["project_scorecard"] = &AdvisorInfo{
 		Advisor:   "pistis_sophia",
@@ -194,7 +194,7 @@ func (r *AdvisorRegistry) loadToolAdvisors() {
 		Rationale: "Hot reload because Murphy says restarts will fail at the worst time",
 	}
 
-	// Hebrew advisor tools - for ethical and wisdom-focused operations
+	// Hebrew advisor tools - for ethical and wisdom-focused operations.
 	r.toolAdvisors["ethics_check"] = &AdvisorInfo{
 		Advisor:   "rebbe",
 		Rationale: "Rebbe guides ethical code review and conduct",
@@ -208,7 +208,7 @@ func (r *AdvisorRegistry) loadToolAdvisors() {
 	}
 }
 
-// loadStageAdvisors populates stage → advisor mappings
+// loadStageAdvisors populates stage → advisor mappings.
 func (r *AdvisorRegistry) loadStageAdvisors() {
 	r.stageAdvisors["daily_checkin"] = &AdvisorInfo{
 		Advisor:   "pistis_sophia",
@@ -252,7 +252,7 @@ func (r *AdvisorRegistry) loadStageAdvisors() {
 		Rationale: "Celebrate with drama and poetry!",
 	}
 
-	// Hebrew advisor stages
+	// Hebrew advisor stages.
 	r.stageAdvisors["shabbat"] = &AdvisorInfo{
 		Advisor:   "rebbe",
 		Icon:      "🕎",
@@ -275,7 +275,7 @@ func (r *AdvisorRegistry) loadStageAdvisors() {
 	}
 }
 
-// GetAdvisorForMetric returns the advisor for a given metric
+// GetAdvisorForMetric returns the advisor for a given metric.
 func (r *AdvisorRegistry) GetAdvisorForMetric(metric string) (*AdvisorInfo, error) {
 	advisor, exists := r.metricAdvisors[metric]
 	if !exists {
@@ -288,7 +288,7 @@ func (r *AdvisorRegistry) GetAdvisorForMetric(metric string) (*AdvisorInfo, erro
 	return advisor, nil
 }
 
-// GetAdvisorForTool returns the advisor for a given tool
+// GetAdvisorForTool returns the advisor for a given tool.
 func (r *AdvisorRegistry) GetAdvisorForTool(tool string) (*AdvisorInfo, error) {
 	advisor, exists := r.toolAdvisors[tool]
 	if !exists {
@@ -301,7 +301,7 @@ func (r *AdvisorRegistry) GetAdvisorForTool(tool string) (*AdvisorInfo, error) {
 	return advisor, nil
 }
 
-// GetAdvisorForStage returns the advisor for a given stage
+// GetAdvisorForStage returns the advisor for a given stage.
 func (r *AdvisorRegistry) GetAdvisorForStage(stage string) (*AdvisorInfo, error) {
 	advisor, exists := r.stageAdvisors[stage]
 	if !exists {
@@ -314,7 +314,7 @@ func (r *AdvisorRegistry) GetAdvisorForStage(stage string) (*AdvisorInfo, error)
 	return advisor, nil
 }
 
-// GetConsultationMode returns the consultation mode based on score
+// GetConsultationMode returns the consultation mode based on score.
 func GetConsultationMode(score float64) ConsultationModeConfig {
 	modes := []ConsultationModeConfig{
 		{
@@ -357,17 +357,17 @@ func GetConsultationMode(score float64) ConsultationModeConfig {
 		}
 	}
 
-	// Handle edge cases
+	// Handle edge cases.
 	if score < 0 {
-		// Negative scores default to chaos
-		return modes[0] // ModeChaos
+		// Negative scores default to chaos.
+		return modes[0] // ModeChaos.
 	}
 
-	// Default to mastery for scores >= 100
-	return modes[3] // ModeMastery
+	// Default to mastery for scores >= 100.
+	return modes[3] // ModeMastery.
 }
 
-// GetModeConfig returns configuration for a session mode
+// GetModeConfig returns configuration for a session mode.
 func GetModeConfig(mode SessionMode) *ModeConfig {
 	configs := map[SessionMode]*ModeConfig{
 		SessionModeAgent: {
@@ -391,14 +391,13 @@ func GetModeConfig(mode SessionMode) *ModeConfig {
 		return config
 	}
 
-	// Default config for unknown modes
+	// Default config for unknown modes.
 	return nil
 }
 
-// AdjustAdvisorForMode adjusts advisor selection based on session mode for random consultations
-// Returns the adjusted advisor ID and rationale if adjustment is made, otherwise returns empty strings
+// Returns the adjusted advisor ID and rationale if adjustment is made, otherwise returns empty strings.
 func AdjustAdvisorForMode(sessionMode SessionMode, consultationType string, availableSources []string) (string, string) {
-	// Only adjust for random consultations
+	// Only adjust for random consultations.
 	if consultationType != "random" {
 		return "", ""
 	}
@@ -408,7 +407,7 @@ func AdjustAdvisorForMode(sessionMode SessionMode, consultationType string, avai
 		return "", ""
 	}
 
-	// Find preferred advisors that are available
+	// Find preferred advisors that are available.
 	availablePreferred := []string{}
 	for _, preferred := range modeConfig.PreferredAdvisors {
 		for _, available := range availableSources {
@@ -420,7 +419,7 @@ func AdjustAdvisorForMode(sessionMode SessionMode, consultationType string, avai
 	}
 
 	if len(availablePreferred) > 0 {
-		// Use first available preferred advisor (could be randomized later)
+		// Use first available preferred advisor (could be randomized later).
 		selected := availablePreferred[0]
 		rationale := fmt.Sprintf("Mode-aware selection for %s", sessionMode)
 		return selected, rationale
@@ -429,7 +428,7 @@ func AdjustAdvisorForMode(sessionMode SessionMode, consultationType string, avai
 	return "", ""
 }
 
-// GetAllMetricAdvisors returns all metric → advisor mappings
+// GetAllMetricAdvisors returns all metric → advisor mappings.
 func (r *AdvisorRegistry) GetAllMetricAdvisors() map[string]*AdvisorInfo {
 	if !r.initialized {
 		r.Initialize()
@@ -441,7 +440,7 @@ func (r *AdvisorRegistry) GetAllMetricAdvisors() map[string]*AdvisorInfo {
 	return result
 }
 
-// GetAllToolAdvisors returns all tool → advisor mappings
+// GetAllToolAdvisors returns all tool → advisor mappings.
 func (r *AdvisorRegistry) GetAllToolAdvisors() map[string]*AdvisorInfo {
 	if !r.initialized {
 		r.Initialize()
@@ -453,7 +452,7 @@ func (r *AdvisorRegistry) GetAllToolAdvisors() map[string]*AdvisorInfo {
 	return result
 }
 
-// GetAllStageAdvisors returns all stage → advisor mappings
+// GetAllStageAdvisors returns all stage → advisor mappings.
 func (r *AdvisorRegistry) GetAllStageAdvisors() map[string]*AdvisorInfo {
 	if !r.initialized {
 		r.Initialize()

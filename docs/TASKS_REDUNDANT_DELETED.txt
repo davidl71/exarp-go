@@ -1,0 +1,34 @@
+# Redundant Todo2 tasks – shortlist (deleted)
+
+**Date:** 2026-01-29  
+**Reason:** Duplicate scope or obsolete (work already done).
+
+## Duplicates (same scope, kept one)
+
+| ID | Content | Kept |
+|----|--------|------|
+| T-130 | Approval delegation | T-117 |
+| T-142 | Approval analytics | T-118 |
+| T-141 | Approval history tracking | T-114 |
+| T-126 | Test approval timeout handling | T-115 |
+| T-140 | Approval timeout handling | T-115 |
+| T-138 | Handle approval responses | T-112 |
+| T-139 | Approval status checking | T-122 |
+| T-133 | Test basic approval request | T-106 |
+| T-136 | Enhance task_workflow tool | T-108 |
+| T-362 | Create Go project structure | T-340 |
+| T-364 | Implement basic STDIO server | T-342 |
+| T-365 | Create Python bridge mechanism | T-336 |
+| T-343 | Implement Python bridge mechanism | T-336 |
+
+## Obsolete (migration done)
+
+| ID | Content |
+|----|--------|
+| T-371 | Migrate check_attribution |
+| T-370 | Migrate setup_hooks |
+| T-388 | Migrate session |
+| T-375 | Migrate memory_maint |
+| T-389 | Migrate infer_session_mode |
+
+**Total deleted:** 18 tasks

@@ -1,7 +1,9 @@
 # Migration Status: project-management-automation → exarp-go
 
-**Last Updated:** 2026-01-11  
-**Overall Progress:** 100% Complete ✅
+**Last Updated:** 2026-01-29  
+**Overall Progress:** 100% Complete ✅  
+
+**Note:** For exarp-go Go migration status (tools, resources, prompts, Python fallbacks), see **`docs/MIGRATION_STATUS_CURRENT.md`**.
 
 ---
 

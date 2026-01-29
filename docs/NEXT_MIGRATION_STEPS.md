@@ -44,7 +44,7 @@
 
 ---
 
-**Order (current):** 1) Testing/validation checklist ✅; 2) report overview in automation ✅; 3) analyze_alignment prd ✅; 4) report briefing/scorecard + estimation shrink ✅ (2026-01-28); 5) task_analysis fully native ✅ (2026-01-28); 6) task_discovery native-only ✅ (scope doc updated 2026-01-28; bridge fallback removed). **4 removed Python fallbacks (2026-01-27):** `setup_hooks`, `check_attribution`, `session`, `memory_maint`. **Next:** testing/validation (unit tests for native impls).
+**Order (current):** 1) Testing/validation checklist ✅; 2) report overview in automation ✅; 3) analyze_alignment prd ✅; 4) report briefing/scorecard + estimation shrink ✅ (2026-01-28); 5) task_analysis fully native ✅ (2026-01-28); 6) task_discovery native-only ✅ (scope doc updated 2026-01-28; bridge fallback removed). **4 removed Python fallbacks (2026-01-27):** `setup_hooks`, `check_attribution`, `session`, `memory_maint`. **Logging consolidation (2026-01-29):** Single facade `internal/logging` wrapping mcp-go-core (slog); main, database, CLI use shared logger. **Next:** testing/validation (unit tests for native impls).
 
 ---
 
@@ -61,13 +61,13 @@
 
 ---
 
-## Pre-push hook and non-JSON stdin (fixed 2026-01-28)
+## Pre-push hook and non-JSON stdin (fixed 2026-01-28, hardened 2026-01-29)
 
 Git’s pre-push hook runs with refs on stdin (e.g. `refs/heads/main ...`). If exarp-go is invoked as `exarp-go analyze_alignment action=todo2` without a TTY, it used to start in **MCP server mode** and try to read stdin as JSON-RPC, causing: `invalid character 'r' looking for beginning of value`.
 
-**Fix (in `cmd/server/main.go`):** When the first argument is a single word (not `task`/`config`/`tui`/`tui3270` and not starting with `-`), it is treated as a **tool name** and the rest as `key=value` args. `os.Args` is rewritten to `-tool <name> -args <json>`, so the process runs in **CLI mode** and never parses stdin as JSON.
+**Fixes:** (1) **`cmd/server/main.go`:** When the first argument is a single word (not `task`/`config`/`tui`/`tui3270` and not starting with `-`), it is treated as a **tool name** and the rest as `key=value` args. `os.Args` is rewritten to `-tool <name> -args <json>`, so the process runs in **CLI mode** and never parses stdin as JSON. (2) **2026-01-29:** When `GIT_HOOK=1` and no CLI flags are present, exit with a usage message instead of starting MCP. (3) **2026-01-29:** Installed hook scripts invoke exarp-go with `</dev/null` so stdin is never git refs.
 
-**If the hook still fails:** Ensure it uses the **rebuilt** binary (e.g. `make build` then run `git push`, or set the hook to call `$(git rev-parse --show-toplevel)/bin/exarp-go` explicitly).
+**If the hook still fails:** Ensure it uses the **rebuilt** binary (e.g. `make build` then run `git push`, or set the hook to call `$(git rev-parse --show-toplevel)/bin/exarp-go` explicitly). Re-run `setup_hooks action=git` to get the latest hook scripts with `</dev/null`.
 
 ---
 
