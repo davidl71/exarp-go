@@ -80,14 +80,17 @@ After removing bridge/context, bridge still has: execute_tool, execute_tool_daem
    - Removing automate_daily.py and its callers (e.g. daily_automation.py) would allow removing many automate_*.py scripts and their tool implementations in one go.  
    - **Recommendation:** Defer until Go automation fully replaces all desired Python daily tasks and duplicate_test_names is either migrated to Go or dropped.
 
-### Phase D — Duplicate test names and one-offs
+### Phase D — Duplicate test names and one-offs ✅ Done 2026-01-29
 
-1. **duplicate_test_names**  
-   - Currently: Python script (automate_check_duplicate_test_names.py) run by Python daily; no Go equivalent.  
-   - Options: (a) Implement native Go check and add to automation daily, (b) Drop from daily and run manually if needed, (c) Keep in Python daily only.
+1. **duplicate_test_names** — **Decision: (b) Drop from daily, run manually if needed.**  
+   - Go daily automation does not include duplicate_test_names (stays at 8 tasks).  
+   - No native Go check implemented; Python script remains available for manual or CI use.  
+   - To run manually: `uv run python -m project_management_automation.scripts.automate_check_duplicate_test_names` (or `python3 -m ...`).  
+   - Optional future: (a) implement native Go check and add to automation daily, or (c) keep Python-only.
 
 2. **Other Python-only tools**  
-   - Tools still in consolidated or in project_management_automation that are never called by Go (e.g. docs_health, todo2_alignment when invoked via bridge): leave as-is for direct Python use, or remove from bridge routing and document "use exarp-go" for those tools.
+   - Tools in consolidated or project_management_automation that are never called by Go (e.g. docs_health, todo2_alignment when invoked via bridge): **leave as-is** for direct Python use.  
+   - Prefer **exarp-go** for tools that have Go equivalents (see NATIVE_GO_HANDLER_STATUS.md). No bridge routing changes in Phase D.
 
 ### Phase E — End state (optional long term)
 
@@ -107,7 +110,7 @@ After removing bridge/context, bridge still has: execute_tool, execute_tool_daem
 | **Done** | execute_tool.py: drop "task_workflow" branch | Phase B ✅ |
 | **Keep** | bridge + consolidated.mlx, statistics_bridge, proto, agent_evaluation | Until mlx generate is native or deprecated |
 | **Deprecate (doc only)** | Python automate_daily | Phase C ✅ |
-| **Decide** | duplicate_test_names: Go vs drop vs keep Python | Phase D |
+| **Done** | duplicate_test_names: drop from daily, run manually (Phase D ✅) | Phase D ✅ |
 
 ---
 

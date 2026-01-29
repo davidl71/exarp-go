@@ -48,8 +48,8 @@ Completed migration of automation tool's **daily** and **discover** actions from
 - **task_progress_inference** → `infer_task_progress` tool (native Go; dry run in daily)
 - **stale_task_cleanup** → `task_workflow` tool, action `cleanup` (native Go)
 
-**Not yet in Go daily (still Python-only if using automate_daily.py):**
-- **duplicate_test_names** — no native Go tool yet; would require new implementation
+**Not in Go daily (run manually if needed):**
+- **duplicate_test_names** — Python script only; not in Go daily. Run manually: `uv run python -m project_management_automation.scripts.automate_check_duplicate_test_names` (Phase D decision: drop from daily, run manually).
 
 **Deprecation (Phase C, 2026-01-29):** For daily/sprint automation, use **exarp-go -tool automation** (Go). Python `automate_daily` is deprecated; see README and `docs/PYTHON_SAFE_REMOVAL_AND_MIGRATION_PLAN.md`.
 

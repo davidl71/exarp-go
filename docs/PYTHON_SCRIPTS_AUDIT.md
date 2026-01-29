@@ -12,7 +12,7 @@
 1. A Python tool is invoked via the bridge (e.g. `docs_health`, `todo2_alignment`), or  
 2. Someone runs the Python daily orchestrator: `python3 -m project_management_automation.scripts.automate_daily`.
 
-**Deprecation:** For daily/sprint automation, use **exarp-go -tool automation** (Go). Python `automate_daily` is deprecated (Phase C). See README and `docs/PYTHON_SAFE_REMOVAL_AND_MIGRATION_PLAN.md`.
+**Deprecation:** For daily/sprint automation, use **exarp-go -tool automation** (Go). Python `automate_daily` is deprecated (Phase C). Duplicate test names check is not in Go daily; run manually if needed (Phase D). See README and `docs/PYTHON_SAFE_REMOVAL_AND_MIGRATION_PLAN.md`.
 
 ---
 
