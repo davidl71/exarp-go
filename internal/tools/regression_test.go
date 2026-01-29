@@ -14,6 +14,7 @@ import (
 var toolsWithNoBridge = map[string]bool{
 	"session": true, "setup_hooks": true, "check_attribution": true, "memory_maint": true,
 	"memory": true, "task_discovery": true, "analyze_alignment": true, "estimation": true, "task_analysis": true,
+	"infer_task_progress": true,
 	"git_tools": true, "infer_session_mode": true, "tool_catalog": true, "workflow_mode": true,
 	"prompt_tracking": true, "generate_config": true, "add_external_tool_hints": true,
 	"report": true,
@@ -27,7 +28,7 @@ var toolsWithNoBridge = map[string]bool{
 // TestRegressionNativeOnlyTools documents tools that completed native migration (no Python bridge).
 // See docs/PYTHON_FALLBACKS_SAFE_TO_REMOVE.md and docs/PYTHON_BRIDGE_MIGRATION_NEXT.md.
 func TestRegressionNativeOnlyTools(t *testing.T) {
-	want := []string{"session", "setup_hooks", "check_attribution", "memory_maint", "memory", "task_discovery", "analyze_alignment", "estimation", "task_analysis", "report", "recommend", "security", "testing", "lint", "ollama"}
+	want := []string{"session", "setup_hooks", "check_attribution", "memory_maint", "memory", "task_discovery", "analyze_alignment", "estimation", "task_analysis", "infer_task_progress", "report", "recommend", "security", "testing", "lint", "ollama"}
 	for _, name := range want {
 		if !toolsWithNoBridge[name] {
 			t.Errorf("native-only tool %q must be in toolsWithNoBridge", name)
@@ -431,6 +432,7 @@ func TestRegressionFeatureParity(t *testing.T) {
 		"analyze_alignment": "Fully native for todo2 and prd; no Python bridge.",
 		"task_discovery":    "Fully native; no Python bridge. Comments, markdown, orphans, create_tasks are native-only (removed bridge 2026-01-28).",
 		"task_workflow":     "Fully native; no Python bridge. sync (SQLite↔JSON), approve, clarify (FM), clarity, cleanup, create; external=true returns error (2026-01-28).",
+		"infer_task_progress": "Fully native; no Python bridge. Heuristics + optional FM; dry_run, auto_update_tasks, output_path.",
 		"context":           "Fully native; no Python bridge. summarize (Apple FM), budget, batch; unknown action returns error (2026-01-28).",
 		"recommend":         "Hybrid: native workflow/model; Python fallback when native fails.",
 		"health":            "Hybrid: native server/docs/dod/cicd; Python fallback when native fails.",

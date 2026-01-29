@@ -245,13 +245,37 @@ func TestFormatOverviewHTMLProto(t *testing.T) {
 	}
 }
 
+// TestBriefingDataProto verifies briefing uses proto internally (BriefingDataToMap, BuildBriefingDataProto).
+func TestBriefingDataProto(t *testing.T) {
+	// BriefingDataToMap(nil) returns empty map
+	m := BriefingDataToMap(nil)
+	if m == nil || len(m) != 0 {
+		t.Errorf("BriefingDataToMap(nil) = %v, want non-nil empty map", m)
+	}
+	// Minimal proto produces expected keys
+	pb := &proto.BriefingData{
+		Date:    "2026-01-29",
+		Score:   50,
+		Sources: []string{"stoic"},
+		Quotes:  []*proto.BriefingQuote{{Quote: "Test quote", Source: "stoic"}},
+	}
+	m = BriefingDataToMap(pb)
+	if m["date"] != "2026-01-29" || m["score"] != 50.0 {
+		t.Errorf("BriefingDataToMap: date=%v score=%v", m["date"], m["score"])
+	}
+	quotes, _ := m["quotes"].([]interface{})
+	if len(quotes) != 1 {
+		t.Errorf("BriefingDataToMap: quotes len = %d, want 1", len(quotes))
+	}
+}
+
 // TestGoScorecardResultToProtoAndMap verifies scorecard proto path (step 2).
 func TestGoScorecardResultToProtoAndMap(t *testing.T) {
 	scorecard := &GoScorecardResult{
-		Score:          65.0,
+		Score:           65.0,
 		Recommendations: []string{"add tests"},
-		Metrics:        GoProjectMetrics{GoFiles: 10, MCPTools: 24},
-		Health:         GoHealthChecks{GoTestCoverage: 72.5},
+		Metrics:         GoProjectMetrics{GoFiles: 10, MCPTools: 24},
+		Health:          GoHealthChecks{GoTestCoverage: 72.5},
 	}
 	pb := GoScorecardResultToProto(scorecard)
 	if pb == nil {

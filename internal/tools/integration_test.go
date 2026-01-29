@@ -42,7 +42,7 @@ func TestMCPToolInvocation(t *testing.T) {
 			name:     "recommend workflow action",
 			toolName: "recommend",
 			params: map[string]interface{}{
-				"action":          "workflow",
+				"action":           "workflow",
 				"task_description": "Implement a new feature",
 			},
 			wantError: false,
@@ -210,7 +210,7 @@ func TestToolResponseFormat(t *testing.T) {
 			name:     "recommend workflow",
 			toolName: "recommend",
 			params: map[string]interface{}{
-				"action":          "workflow",
+				"action":           "workflow",
 				"task_description": "Test task",
 			},
 		},

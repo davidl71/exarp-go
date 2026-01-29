@@ -463,7 +463,7 @@ func GoScorecardResultToProto(scorecard *GoScorecardResult) *proto.ScorecardData
 	}
 	pb := &proto.ScorecardData{
 		Score:           scorecard.Score,
-		Recommendations:  scorecard.Recommendations,
+		Recommendations: scorecard.Recommendations,
 		Blockers:        ExtractBlockers(scorecard),
 		TestCoverage:    scorecard.Health.GoTestCoverage,
 		ComponentScores: map[string]float64{
@@ -484,6 +484,32 @@ func GoScorecardResultToProto(scorecard *GoScorecardResult) *proto.ScorecardData
 		},
 	}
 	return pb
+}
+
+// BriefingDataToMap converts proto.BriefingData to map for JSON output (same shape as legacy briefing map).
+func BriefingDataToMap(pb *proto.BriefingData) map[string]interface{} {
+	if pb == nil {
+		return make(map[string]interface{})
+	}
+	quotes := make([]interface{}, 0, len(pb.Quotes))
+	for _, q := range pb.Quotes {
+		if q == nil {
+			continue
+		}
+		quotes = append(quotes, map[string]interface{}{
+			"quote":         q.Quote,
+			"source":        q.Source,
+			"encouragement": q.Encouragement,
+			"wisdom_source": q.WisdomSource,
+			"wisdom_icon":   q.WisdomIcon,
+		})
+	}
+	return map[string]interface{}{
+		"date":    pb.Date,
+		"score":   pb.Score,
+		"quotes":  quotes,
+		"sources": pb.Sources,
+	}
 }
 
 // ProtoToScorecardMap converts proto.ScorecardData to map for MLX/JSON (same shape as GoScorecardToMap).

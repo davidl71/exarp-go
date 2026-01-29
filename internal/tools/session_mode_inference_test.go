@@ -94,14 +94,14 @@ func TestHandleInferSessionModeNative(t *testing.T) {
 
 func TestInferModeFromTasks(t *testing.T) {
 	tests := []struct {
-		name     string
+		name      string
 		tasks     []Todo2Task
 		wantMode  SessionMode
 		wantConf  float64
 		checkConf bool
 	}{
 		{
-			name:     "empty tasks",
+			name:      "empty tasks",
 			tasks:     []Todo2Task{},
 			wantMode:  SessionModeASK,
 			wantConf:  0.3,

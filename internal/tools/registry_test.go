@@ -40,6 +40,7 @@ func TestRegisterAllTools(t *testing.T) {
 		"task_analysis",
 		"task_discovery",
 		"task_workflow",
+		"infer_task_progress",
 		"testing",
 		"automation",
 		"tool_catalog",
@@ -87,8 +88,8 @@ func TestRegisterAllTools_RegistrationError(t *testing.T) {
 	expectedBatches := [][]string{
 		// Batch 1: 6 simple tools (T-22 through T-27)
 		{"analyze_alignment", "generate_config", "health", "setup_hooks", "check_attribution", "add_external_tool_hints"},
-		// Batch 2: 8 medium tools (T-28 through T-35)
-		{"memory", "memory_maint", "report", "security", "task_analysis", "task_discovery", "task_workflow", "testing"},
+		// Batch 2: 9 medium tools (T-28 through T-35, plus infer_task_progress)
+		{"memory", "memory_maint", "report", "security", "task_analysis", "task_discovery", "task_workflow", "infer_task_progress", "testing"},
 		// Batch 3: 10 advanced tools (T-37 through T-44, plus ollama and mlx)
 		{"automation", "tool_catalog", "workflow_mode", "lint", "estimation", "git_tools", "session", "infer_session_mode", "ollama", "mlx"},
 	}

@@ -48,13 +48,13 @@ func saveTodo2TasksToDB(tasks []Todo2Task) error {
 	ctx := context.Background()
 	var errors []string
 	successCount := 0
-	
+
 	// Track tasks that need dependency updates (created without dependencies due to FK constraints)
 	tasksNeedingDeps := make(map[string][]string) // task ID -> original dependencies
 
 	for _, task := range sortedTasks {
 		var saveErr error
-		
+
 		// First, try to find by ID
 		existing, err := database.GetTask(ctx, task.ID)
 		if err != nil {
@@ -66,7 +66,7 @@ func saveTodo2TasksToDB(tasks []Todo2Task) error {
 			if !strings.HasPrefix(task.ID, "AUTO-") {
 				matchedTask = findTaskByContent(ctx, task)
 			}
-			
+
 			if matchedTask != nil {
 				// Found matching task by content - update it with new ID and data
 				// Use the existing task's ID but update with new data
@@ -88,7 +88,7 @@ func saveTodo2TasksToDB(tasks []Todo2Task) error {
 					errors = append(errors, fmt.Sprintf("warning: task %s has invalid dependencies, filtered %d/%d dependencies", task.ID, len(task.Dependencies)-len(validDeps), len(task.Dependencies)))
 				}
 				task.Dependencies = validDeps
-				
+
 				if err := database.CreateTask(ctx, &task); err != nil {
 					// Check if error is due to foreign key constraint
 					if strings.Contains(err.Error(), "FOREIGN KEY constraint") || strings.Contains(err.Error(), "foreign key") {
@@ -96,7 +96,7 @@ func saveTodo2TasksToDB(tasks []Todo2Task) error {
 						// Try creating task without dependencies first, then add dependencies in second pass
 						originalDeps := task.Dependencies
 						task.Dependencies = []string{} // Create without dependencies first
-						
+
 						if createErr := database.CreateTask(ctx, &task); createErr != nil {
 							saveErr = fmt.Errorf("failed to create task %s (even without dependencies): %w", task.ID, createErr)
 						} else {
@@ -148,17 +148,35 @@ func saveTodo2TasksToDB(tasks []Todo2Task) error {
 			errors = append(errors, fmt.Sprintf("warning: task %s not found for dependency update", taskID))
 			continue
 		}
-		
+
 		// Filter dependencies to only include valid ones (now that all tasks should be created)
 		validDeps := filterValidDependencies(ctx, originalDeps, sortedTasks)
 		if len(validDeps) < len(originalDeps) {
 			errors = append(errors, fmt.Sprintf("warning: task %s has %d invalid dependencies (filtered out)", taskID, len(originalDeps)-len(validDeps)))
 		}
-		
+
 		// Update task with dependencies
 		task.Dependencies = validDeps
 		if err := database.UpdateTask(ctx, task); err != nil {
 			errors = append(errors, fmt.Sprintf("warning: task %s created but dependencies could not be added: %v", taskID, err))
+		}
+	}
+
+	// Remove from DB any tasks not in the input list (replace semantics, e.g. after merge)
+	inputIDs := make(map[string]bool)
+	for _, t := range tasks {
+		if !strings.HasPrefix(t.ID, "AUTO-") {
+			inputIDs[t.ID] = true
+		}
+	}
+	allDB, err := database.ListTasks(ctx, nil)
+	if err == nil {
+		for _, t := range allDB {
+			if t != nil && !inputIDs[t.ID] {
+				if delErr := database.DeleteTask(ctx, t.ID); delErr != nil {
+					errors = append(errors, fmt.Sprintf("warning: failed to delete obsolete task %s: %v", t.ID, delErr))
+				}
+			}
 		}
 	}
 
@@ -198,7 +216,7 @@ func tasksMatchByContent(task1, task2 Todo2Task) bool {
 	// Compare normalized content
 	content1 := normalizeTaskContent(task1.Content, task1.LongDescription)
 	content2 := normalizeTaskContent(task2.Content, task2.LongDescription)
-	
+
 	return content1 == content2
 }
 

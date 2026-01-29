@@ -105,7 +105,7 @@ func TestHandleGenerateConfigNative(t *testing.T) {
 			args: fixtures.MustToJSONRawMessage(map[string]interface{}{
 				"action": "unknown",
 			}),
-			wantErr: true,
+			wantErr:        true,
 			validateResult: nil,
 		},
 	}
@@ -174,7 +174,7 @@ func TestHandleGenerateRules(t *testing.T) {
 		{
 			name: "generate rules with dry run",
 			params: map[string]interface{}{
-				"rules":    "go",
+				"rules":     "go",
 				"overwrite": false,
 			},
 			wantErr: false,
@@ -193,7 +193,7 @@ func TestHandleGenerateRules(t *testing.T) {
 		{
 			name: "generate with overwrite",
 			params: map[string]interface{}{
-				"rules":    "go",
+				"rules":     "go",
 				"overwrite": true,
 			},
 			wantErr: false,
@@ -259,8 +259,8 @@ func TestHandleGenerateIgnore(t *testing.T) {
 			name: "with include_indexing",
 			params: map[string]interface{}{
 				"include_indexing": true,
-				"analyze_project":   true,
-				"dry_run":           true,
+				"analyze_project":  true,
+				"dry_run":          true,
 			},
 			wantErr: false,
 			validateResult: func(t *testing.T, result []framework.TextContent) bool {

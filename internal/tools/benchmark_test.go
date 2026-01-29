@@ -22,7 +22,7 @@ func BenchmarkHandleSessionPrime(b *testing.B) {
 func BenchmarkHandleRecommendWorkflow(b *testing.B) {
 	ctx := context.Background()
 	params := map[string]interface{}{
-		"action":          "workflow",
+		"action":           "workflow",
 		"task_description": "Implement a new feature with multiple components, database migrations, API endpoints, and frontend integration",
 	}
 
@@ -94,7 +94,7 @@ func BenchmarkToolInvocationChain(b *testing.B) {
 		// Simulate a common workflow: prime -> recommend -> health
 		_, _ = handleSessionNative(ctx, map[string]interface{}{"action": "prime"})
 		_, _ = handleRecommendWorkflowNative(ctx, map[string]interface{}{
-			"action":          "workflow",
+			"action":           "workflow",
 			"task_description": "Test task",
 		})
 		_, _ = handleHealthNative(ctx, map[string]interface{}{"action": "server"})

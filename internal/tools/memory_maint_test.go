@@ -14,17 +14,17 @@ import (
 // and sets PROJECT_ROOT environment variable for tests
 func setupTestProjectRoot(t *testing.T) (string, func()) {
 	tmpDir := t.TempDir()
-	
+
 	// Create .todo2 directory to satisfy FindProjectRoot()
 	todo2Dir := filepath.Join(tmpDir, ".todo2")
 	if err := os.MkdirAll(todo2Dir, 0755); err != nil {
 		t.Fatalf("Failed to create .todo2 directory: %v", err)
 	}
-	
+
 	// Set PROJECT_ROOT environment variable
 	originalProjectRoot := os.Getenv("PROJECT_ROOT")
 	os.Setenv("PROJECT_ROOT", tmpDir)
-	
+
 	// Cleanup function
 	cleanup := func() {
 		if originalProjectRoot != "" {
@@ -33,7 +33,7 @@ func setupTestProjectRoot(t *testing.T) (string, func()) {
 			os.Unsetenv("PROJECT_ROOT")
 		}
 	}
-	
+
 	return tmpDir, cleanup
 }
 
@@ -44,14 +44,14 @@ func createTestMemory(t *testing.T, projectRoot string, memory Memory) {
 	if err := os.MkdirAll(memoriesDir, 0755); err != nil {
 		t.Fatalf("Failed to create memories directory: %v", err)
 	}
-	
+
 	// Save as protobuf binary (.pb)
 	memoryPath := filepath.Join(memoriesDir, memory.ID+".pb")
 	data, err := SerializeMemoryToProtobuf(&memory)
 	if err != nil {
 		t.Fatalf("Failed to serialize memory to protobuf: %v", err)
 	}
-	
+
 	if err := os.WriteFile(memoryPath, data, 0644); err != nil {
 		t.Fatalf("Failed to write memory file: %v", err)
 	}
@@ -75,13 +75,13 @@ func createTestMemoryWithAge(t *testing.T, projectRoot string, id, title, catego
 func TestHandleMemoryMaintNative_Health(t *testing.T) {
 	projectRoot, cleanup := setupTestProjectRoot(t)
 	defer cleanup()
-	
+
 	tests := []struct {
-		name           string
-		setupMemories  func(*testing.T)
+		name            string
+		setupMemories   func(*testing.T)
 		wantHealthScore float64
-		wantIssues     int
-		wantErr        bool
+		wantIssues      int
+		wantErr         bool
 	}{
 		{
 			name: "empty memories",
@@ -89,8 +89,8 @@ func TestHandleMemoryMaintNative_Health(t *testing.T) {
 				// No memories created
 			},
 			wantHealthScore: 0,
-			wantIssues:     1,
-			wantErr:        false,
+			wantIssues:      1,
+			wantErr:         false,
 		},
 		{
 			name: "healthy memories",
@@ -101,8 +101,8 @@ func TestHandleMemoryMaintNative_Health(t *testing.T) {
 				createTestMemoryWithAge(t, projectRoot, "m3", "Test Memory 3", "architecture", 3, []string{"T-2"})
 			},
 			wantHealthScore: 100,
-			wantIssues:     0,
-			wantErr:        false,
+			wantIssues:      0,
+			wantErr:         false,
 		},
 		{
 			name: "old memories",
@@ -113,44 +113,44 @@ func TestHandleMemoryMaintNative_Health(t *testing.T) {
 				}
 			},
 			wantHealthScore: 70, // Should be penalized for old memories (20 points) and category imbalance (10 points)
-			wantIssues:     2,   // Old memories + category imbalance
-			wantErr:        false,
+			wantIssues:      2,  // Old memories + category imbalance
+			wantErr:         false,
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Clean up any existing memories
 			memoriesDir := filepath.Join(projectRoot, ".exarp", "memories")
 			os.RemoveAll(memoriesDir)
-			
+
 			// Setup test memories
 			tt.setupMemories(t)
-			
+
 			// Call health action
 			ctx := context.Background()
 			params := map[string]interface{}{"action": "health"}
 			result, err := handleMemoryMaintHealth(ctx, params)
-			
+
 			if (err != nil) != tt.wantErr {
 				t.Errorf("handleMemoryMaintHealth() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			
+
 			if err != nil {
 				return
 			}
-			
+
 			// Parse result
 			if len(result) != 1 {
 				t.Fatalf("Expected 1 result, got %d", len(result))
 			}
-			
+
 			var resultData map[string]interface{}
 			if err := json.Unmarshal([]byte(result[0].Text), &resultData); err != nil {
 				t.Fatalf("Failed to unmarshal result: %v", err)
 			}
-			
+
 			// Check health score
 			if score, ok := resultData["health_score"].(float64); ok {
 				if score != tt.wantHealthScore {
@@ -159,7 +159,7 @@ func TestHandleMemoryMaintNative_Health(t *testing.T) {
 			} else {
 				t.Error("health_score not found or wrong type")
 			}
-			
+
 			// Check issues
 			if issues, ok := resultData["issues"].([]interface{}); ok {
 				if len(issues) != tt.wantIssues {
@@ -175,7 +175,7 @@ func TestHandleMemoryMaintNative_Health(t *testing.T) {
 func TestHandleMemoryMaintNative_GC(t *testing.T) {
 	projectRoot, cleanup := setupTestProjectRoot(t)
 	defer cleanup()
-	
+
 	tests := []struct {
 		name          string
 		setupMemories func(*testing.T)
@@ -264,39 +264,39 @@ func TestHandleMemoryMaintNative_GC(t *testing.T) {
 			wantErr:     false,
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Clean up any existing memories
 			memoriesDir := filepath.Join(projectRoot, ".exarp", "memories")
 			os.RemoveAll(memoriesDir)
-			
+
 			// Setup test memories
 			tt.setupMemories(t)
-			
+
 			// Call GC action
 			ctx := context.Background()
 			result, err := handleMemoryMaintGC(ctx, tt.params)
-			
+
 			if (err != nil) != tt.wantErr {
 				t.Errorf("handleMemoryMaintGC() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			
+
 			if err != nil {
 				return
 			}
-			
+
 			// Parse result
 			if len(result) != 1 {
 				t.Fatalf("Expected 1 result, got %d", len(result))
 			}
-			
+
 			var resultData map[string]interface{}
 			if err := json.Unmarshal([]byte(result[0].Text), &resultData); err != nil {
 				t.Fatalf("Failed to unmarshal result: %v", err)
 			}
-			
+
 			// Check deleted count
 			if deletedCount, ok := resultData["deleted_count"].(float64); ok {
 				if int(deletedCount) != tt.wantDeleted {
@@ -312,7 +312,7 @@ func TestHandleMemoryMaintNative_GC(t *testing.T) {
 func TestHandleMemoryMaintNative_Prune(t *testing.T) {
 	projectRoot, cleanup := setupTestProjectRoot(t)
 	defer cleanup()
-	
+
 	tests := []struct {
 		name          string
 		setupMemories func(*testing.T)
@@ -336,7 +336,7 @@ func TestHandleMemoryMaintNative_Prune(t *testing.T) {
 					SessionDate: time.Now().AddDate(0, 0, -50).Format("2006-01-02"),
 				}
 				createTestMemory(t, projectRoot, oldScorecard)
-				
+
 				// High value: recent, linked task
 				createTestMemoryWithAge(t, projectRoot, "high-value", "High Value Memory", "insight", 2, []string{"T-1"})
 			},
@@ -367,39 +367,39 @@ func TestHandleMemoryMaintNative_Prune(t *testing.T) {
 			wantErr:    false,
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Clean up any existing memories
 			memoriesDir := filepath.Join(projectRoot, ".exarp", "memories")
 			os.RemoveAll(memoriesDir)
-			
+
 			// Setup test memories
 			tt.setupMemories(t)
-			
+
 			// Call prune action
 			ctx := context.Background()
 			result, err := handleMemoryMaintPrune(ctx, tt.params)
-			
+
 			if (err != nil) != tt.wantErr {
 				t.Errorf("handleMemoryMaintPrune() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			
+
 			if err != nil {
 				return
 			}
-			
+
 			// Parse result
 			if len(result) != 1 {
 				t.Fatalf("Expected 1 result, got %d", len(result))
 			}
-			
+
 			var resultData map[string]interface{}
 			if err := json.Unmarshal([]byte(result[0].Text), &resultData); err != nil {
 				t.Fatalf("Failed to unmarshal result: %v", err)
 			}
-			
+
 			// Check pruned count
 			if prunedCount, ok := resultData["pruned_count"].(float64); ok {
 				if int(prunedCount) != tt.wantPruned {
@@ -415,7 +415,7 @@ func TestHandleMemoryMaintNative_Prune(t *testing.T) {
 func TestHandleMemoryMaintNative_Consolidate(t *testing.T) {
 	projectRoot, cleanup := setupTestProjectRoot(t)
 	defer cleanup()
-	
+
 	tests := []struct {
 		name          string
 		setupMemories func(*testing.T)
@@ -449,10 +449,10 @@ func TestHandleMemoryMaintNative_Consolidate(t *testing.T) {
 				createTestMemory(t, projectRoot, memory2)
 			},
 			params: map[string]interface{}{
-				"action":                "consolidate",
-				"similarity_threshold":  0.85,
-				"merge_strategy":        "newest",
-				"dry_run":               true,
+				"action":               "consolidate",
+				"similarity_threshold": 0.85,
+				"merge_strategy":       "newest",
+				"dry_run":              true,
 			},
 			wantGroups: 1,
 			wantErr:    false,
@@ -491,39 +491,39 @@ func TestHandleMemoryMaintNative_Consolidate(t *testing.T) {
 			wantErr:    false,
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Clean up any existing memories
 			memoriesDir := filepath.Join(projectRoot, ".exarp", "memories")
 			os.RemoveAll(memoriesDir)
-			
+
 			// Setup test memories
 			tt.setupMemories(t)
-			
+
 			// Call consolidate action
 			ctx := context.Background()
 			result, err := handleMemoryMaintConsolidate(ctx, tt.params)
-			
+
 			if (err != nil) != tt.wantErr {
 				t.Errorf("handleMemoryMaintConsolidate() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			
+
 			if err != nil {
 				return
 			}
-			
+
 			// Parse result
 			if len(result) != 1 {
 				t.Fatalf("Expected 1 result, got %d", len(result))
 			}
-			
+
 			var resultData map[string]interface{}
 			if err := json.Unmarshal([]byte(result[0].Text), &resultData); err != nil {
 				t.Fatalf("Failed to unmarshal result: %v", err)
 			}
-			
+
 			// Check groups found
 			if groupsFound, ok := resultData["groups_found"].(float64); ok {
 				if int(groupsFound) != tt.wantGroups {
@@ -539,18 +539,18 @@ func TestHandleMemoryMaintNative_Consolidate(t *testing.T) {
 func TestHandleMemoryMaintNative_Dream(t *testing.T) {
 	_, cleanup := setupTestProjectRoot(t)
 	defer cleanup()
-	
+
 	// Dream action should return error (requires advisor integration)
 	ctx := context.Background()
 	params := map[string]interface{}{"action": "dream"}
-	
+
 	argsJSON, _ := json.Marshal(params)
 	_, err := handleMemoryMaintNative(ctx, argsJSON)
-	
+
 	if err == nil {
 		t.Error("handleMemoryMaintNative() with dream action should return error")
 	}
-	
+
 	if err != nil && err.Error() == "" {
 		t.Error("Error message should not be empty")
 	}
@@ -559,13 +559,13 @@ func TestHandleMemoryMaintNative_Dream(t *testing.T) {
 func TestHandleMemoryMaintNative_UnknownAction(t *testing.T) {
 	_, cleanup := setupTestProjectRoot(t)
 	defer cleanup()
-	
+
 	ctx := context.Background()
 	params := map[string]interface{}{"action": "unknown_action"}
-	
+
 	argsJSON, _ := json.Marshal(params)
 	_, err := handleMemoryMaintNative(ctx, argsJSON)
-	
+
 	if err == nil {
 		t.Error("handleMemoryMaintNative() with unknown action should return error")
 	}
@@ -574,28 +574,28 @@ func TestHandleMemoryMaintNative_UnknownAction(t *testing.T) {
 func TestHandleMemoryMaintNative_DefaultAction(t *testing.T) {
 	_, cleanup := setupTestProjectRoot(t)
 	defer cleanup()
-	
+
 	// Default action should be "health"
 	ctx := context.Background()
 	params := map[string]interface{}{} // No action specified
-	
+
 	argsJSON, _ := json.Marshal(params)
 	result, err := handleMemoryMaintNative(ctx, argsJSON)
-	
+
 	if err != nil {
 		t.Errorf("handleMemoryMaintNative() with default action error = %v", err)
 		return
 	}
-	
+
 	if len(result) != 1 {
 		t.Fatalf("Expected 1 result, got %d", len(result))
 	}
-	
+
 	var resultData map[string]interface{}
 	if err := json.Unmarshal([]byte(result[0].Text), &resultData); err != nil {
 		t.Fatalf("Failed to unmarshal result: %v", err)
 	}
-	
+
 	// Should have health_score (indicates health action was called)
 	if _, ok := resultData["health_score"]; !ok {
 		t.Error("Expected health_score in result (indicates health action was called)")

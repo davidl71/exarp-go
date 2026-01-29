@@ -53,7 +53,7 @@ func TestHandleHealthDocs(t *testing.T) {
 		{
 			name: "with changed files",
 			params: map[string]interface{}{
-				"action":       "docs",
+				"action":        "docs",
 				"changed_files": "docs/test.md",
 			},
 			wantError: false,
@@ -202,7 +202,7 @@ func TestHandleHealthCICD(t *testing.T) {
 		{
 			name: "with workflow_path",
 			params: map[string]interface{}{
-				"action":       "cicd",
+				"action":        "cicd",
 				"workflow_path": ".github/workflows/test.yml",
 			},
 			wantError: false,

@@ -249,6 +249,85 @@ func TestGetTaskLevels(t *testing.T) {
 	}
 }
 
+func TestBacklogExecutionOrder(t *testing.T) {
+	// Tasks with tags: T-1 (migration), T-2 (migration, bug), T-3 (bug), T-4 (migration)
+	tasks := []Todo2Task{
+		{ID: "T-1", Content: "One", Status: "Todo", Priority: "high", Tags: []string{"migration"}, Dependencies: []string{}},
+		{ID: "T-2", Content: "Two", Status: "Todo", Priority: "medium", Tags: []string{"migration", "bug"}, Dependencies: []string{"T-1"}},
+		{ID: "T-3", Content: "Three", Status: "Todo", Priority: "low", Tags: []string{"bug"}, Dependencies: []string{"T-2"}},
+		{ID: "T-4", Content: "Four", Status: "In Progress", Priority: "medium", Tags: []string{"migration"}, Dependencies: []string{}},
+		{ID: "T-5", Content: "Five", Status: "Done", Priority: "low", Tags: []string{"migration"}, Dependencies: []string{}},
+	}
+	orderedIDs, waves, details, err := BacklogExecutionOrder(tasks, nil)
+	if err != nil {
+		t.Fatalf("BacklogExecutionOrder(nil filter) error = %v", err)
+	}
+	if len(orderedIDs) != 4 {
+		t.Errorf("BacklogExecutionOrder(nil) len(orderedIDs) = %v, want 4 (Todo + In Progress only)", len(orderedIDs))
+	}
+	if len(details) != len(orderedIDs) {
+		t.Errorf("BacklogExecutionOrder(nil) len(details) = %v, want %v", len(details), len(orderedIDs))
+	}
+	for i, d := range details {
+		if d.Tags == nil {
+			t.Errorf("BacklogExecutionOrder(nil) details[%d].Tags is nil, want non-nil", i)
+		}
+	}
+
+	// Filter by tag "migration": only T-1, T-2, T-4 (backlog with migration tag)
+	backlogFilter := map[string]bool{"T-1": true, "T-2": true, "T-4": true}
+	orderedIDs2, _, details2, err := BacklogExecutionOrder(tasks, backlogFilter)
+	if err != nil {
+		t.Fatalf("BacklogExecutionOrder(filter) error = %v", err)
+	}
+	if len(orderedIDs2) != 3 {
+		t.Errorf("BacklogExecutionOrder(filter migration) len = %v, want 3", len(orderedIDs2))
+	}
+	seen := make(map[string]bool)
+	for _, id := range orderedIDs2 {
+		if seen[id] {
+			t.Errorf("BacklogExecutionOrder(filter) duplicate ID %s", id)
+		}
+		seen[id] = true
+		if id != "T-1" && id != "T-2" && id != "T-4" {
+			t.Errorf("BacklogExecutionOrder(filter) unexpected ID %s", id)
+		}
+	}
+	// Order should respect dependencies: T-1 before T-2
+	idx1, idx2 := -1, -1
+	for i, id := range orderedIDs2 {
+		if id == "T-1" {
+			idx1 = i
+		}
+		if id == "T-2" {
+			idx2 = i
+		}
+	}
+	if idx1 >= 0 && idx2 >= 0 && idx1 > idx2 {
+		t.Errorf("BacklogExecutionOrder(filter) T-1 should come before T-2 (dependency order)")
+	}
+	for _, d := range details2 {
+		if d.Tags == nil {
+			t.Errorf("BacklogExecutionOrder(filter) detail %s has nil Tags", d.ID)
+		}
+	}
+
+	// Empty filter map = no backlog tasks returned
+	emptyFilter := map[string]bool{}
+	orderedIDs3, _, _, err := BacklogExecutionOrder(tasks, emptyFilter)
+	if err != nil {
+		t.Fatalf("BacklogExecutionOrder(empty filter) error = %v", err)
+	}
+	if len(orderedIDs3) != 0 {
+		t.Errorf("BacklogExecutionOrder(empty filter) len = %v, want 0", len(orderedIDs3))
+	}
+
+	// Waves should be populated when there are results
+	if len(waves) == 0 && len(orderedIDs) > 0 {
+		t.Errorf("BacklogExecutionOrder(nil) waves empty but orderedIDs non-empty")
+	}
+}
+
 // Benchmark tests
 func BenchmarkBuildTaskGraph_Small(b *testing.B) {
 	tasks := generateTestTasks(50, 2)

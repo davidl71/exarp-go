@@ -25,7 +25,7 @@ import (
 //   - NormalizeStatus("in-progress") -> "in_progress"
 //   - NormalizeStatus("") -> "todo"
 func NormalizeStatus(status string) string {
-	if status == "" {
+	if strings.TrimSpace(status) == "" {
 		return "todo"
 	}
 
@@ -34,21 +34,21 @@ func NormalizeStatus(status string) string {
 	// Map variants to canonical forms
 	statusMap := map[string]string{
 		// Pending/Todo variants
-		"pending":    "todo",
+		"pending":     "todo",
 		"not started": "todo",
-		"new":        "todo",
+		"new":         "todo",
 
 		// In Progress variants
-		"in progress":  "in_progress",
-		"in-progress":  "in_progress",
-		"in_progress":  "in_progress",
-		"working":      "in_progress",
-		"active":       "in_progress",
-		"inprogress":   "in_progress",
+		"in progress": "in_progress",
+		"in-progress": "in_progress",
+		"in_progress": "in_progress",
+		"working":     "in_progress",
+		"active":      "in_progress",
+		"inprogress":  "in_progress",
 
 		// Review variants
-		"review":        "review",
-		"needs review":  "review",
+		"review":          "review",
+		"needs review":    "review",
 		"awaiting review": "review",
 
 		// Completed variants (normalize "done" to "completed")
@@ -91,7 +91,7 @@ func NormalizeStatus(status string) string {
 //   - NormalizeStatusToTitleCase("in_progress") -> "In Progress"
 //   - NormalizeStatusToTitleCase("") -> "Todo"
 func NormalizeStatusToTitleCase(status string) string {
-	if status == "" {
+	if strings.TrimSpace(status) == "" {
 		return "Todo"
 	}
 
@@ -100,13 +100,13 @@ func NormalizeStatusToTitleCase(status string) string {
 
 	// Map canonical lowercase to Title Case
 	titleCaseMap := map[string]string{
-		"todo":      "Todo",
+		"todo":        "Todo",
 		"in_progress": "In Progress",
-		"review":    "Review",
-		"completed": "Done", // Map "completed" to "Done" for consistency
-		"done":      "Done",
-		"blocked":   "Blocked",
-		"cancelled": "Cancelled",
+		"review":      "Review",
+		"completed":   "Done", // Map "completed" to "Done" for consistency
+		"done":        "Done",
+		"blocked":     "Blocked",
+		"cancelled":   "Cancelled",
 	}
 
 	if titleCase, ok := titleCaseMap[normalized]; ok {
@@ -140,7 +140,7 @@ func NormalizeStatusToTitleCase(status string) string {
 //   - NormalizePriority("MEDIUM") -> "medium"
 //   - NormalizePriority("") -> "medium"
 func NormalizePriority(priority string) string {
-	if priority == "" {
+	if strings.TrimSpace(priority) == "" {
 		return "medium"
 	}
 
@@ -154,9 +154,9 @@ func NormalizePriority(priority string) string {
 		"critical": "critical",
 		// Common variants
 		"lowest":   "low",
-		"highest": "critical",
-		"urgent":  "critical",
-		"normal":  "medium",
+		"highest":  "critical",
+		"urgent":   "critical",
+		"normal":   "medium",
 		"standard": "medium",
 	}
 

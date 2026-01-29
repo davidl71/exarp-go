@@ -23,7 +23,7 @@ func TestHandleAddExternalToolHintsNative(t *testing.T) {
 		{
 			name: "add external tool hints with dry_run",
 			params: map[string]interface{}{
-				"dry_run":      true,
+				"dry_run":       true,
 				"min_file_size": 50,
 			},
 			wantError: false,

@@ -133,7 +133,7 @@ func performAttributionCheck(projectRoot string) AttributionResults {
 // checkDependencyFiles checks dependency files for license information
 func checkDependencyFiles(projectRoot string, results *AttributionResults) {
 	fileCache := cache.GetGlobalFileCache()
-	
+
 	// Check go.mod
 	goModPath := filepath.Join(projectRoot, "go.mod")
 	if _, err := os.Stat(goModPath); err == nil {
@@ -332,13 +332,13 @@ func createAttributionTasks(ctx context.Context, projectRoot string, results Att
 
 		taskID := generateEpochTaskID()
 		task := &models.Todo2Task{
-			ID:      taskID,
-			Content: "Fix high-severity attribution compliance issues",
-			Status:  "Todo",
+			ID:       taskID,
+			Content:  "Fix high-severity attribution compliance issues",
+			Status:   "Todo",
 			Priority: "high",
-			Tags:    []string{"attribution", "compliance", "legal"},
+			Tags:     []string{"attribution", "compliance", "legal"},
 			Metadata: map[string]interface{}{
-				"issue_count": len(highSeverityIssues),
+				"issue_count":       len(highSeverityIssues),
 				"attribution_score": results.AttributionScore,
 			},
 		}
@@ -366,11 +366,11 @@ func createAttributionTasks(ctx context.Context, projectRoot string, results Att
 
 		taskID := generateEpochTaskID()
 		task := &models.Todo2Task{
-			ID:      taskID,
-			Content: "Add missing attribution headers",
-			Status:  "Todo",
+			ID:       taskID,
+			Content:  "Add missing attribution headers",
+			Status:   "Todo",
 			Priority: "medium",
-			Tags:    []string{"attribution", "compliance"},
+			Tags:     []string{"attribution", "compliance"},
 			Metadata: map[string]interface{}{
 				"file_count": len(results.MissingAttribution),
 			},
