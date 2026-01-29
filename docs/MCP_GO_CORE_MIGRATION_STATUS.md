@@ -1,16 +1,18 @@
 # mcp-go-core Migration Status
 
 **Date:** 2026-01-13  
-**Status:** ⚠️ **PARTIALLY COMPLETE** - Migration Done, but mcp-go-core Has Compilation Errors
+**Last Updated:** 2026-01-29  
+**Status:** ✅ **COMPLETE** - See `docs/MCP_GO_CORE_MIGRATION_COMPLETE.md`
 
 ---
 
 ## Summary
 
-The migration to use `mcp-go-core`'s adapter directly has been completed at the code level:
-- ✅ Factory already imports from `mcp-go-core/pkg/mcp/framework/adapters/gosdk`
-- ✅ Local adapter copy removed (`internal/framework/adapters/gosdk/adapter.go`)
-- ⚠️ **mcp-go-core adapter has compilation errors** (logger API mismatch)
+The migration to use `mcp-go-core`'s adapter is **complete**. exarp-go builds successfully with mcp-go-core (v0.3.1; logger and adapter issues were fixed). This file is kept for historical context; for current status use **`docs/MCP_GO_CORE_MIGRATION_COMPLETE.md`**.
+
+- ✅ Factory imports from `mcp-go-core/pkg/mcp/framework/adapters/gosdk`
+- ✅ Local adapter copy removed
+- ✅ mcp-go-core adapter fixes applied (logger API, middleware wrapping); exarp-go build passes
 
 ---
 
@@ -26,28 +28,12 @@ The migration to use `mcp-go-core`'s adapter directly has been completed at the 
    - `internal/factory/server.go` imports from `mcp-go-core/pkg/mcp/framework/adapters/gosdk`
    - No code changes needed - migration was already done!
 
-### ⚠️ Issues Found
+### ✅ Issues Resolved (see MCP_GO_CORE_MIGRATION_COMPLETE.md)
 
-**mcp-go-core Adapter Has Compilation Errors:**
-
-The `mcp-go-core` adapter code uses incorrect logger API:
-- **Wrong:** `a.logger.Debugf("format", ...)` 
-- **Correct:** `a.logger.Debug("context", "format", ...)`
-
-The logger API requires a context string as the first parameter:
-```go
-// Correct logger API
-func (l *Logger) Debug(context string, format string, args ...interface{})
-func (l *Logger) Info(context string, format string, args ...interface{})
-func (l *Logger) Warn(context string, format string, args ...interface{})
-```
-
-**Compilation Errors:**
-- `a.logger.Debugf undefined` (should be `Debug`)
-- `a.logger.Infof undefined` (should be `Info`)
-- `a.logger.Warnf undefined` (should be `Warn`)
-- Middleware wrapping issues for prompts/resources
-- Unused `time` import
+Logger API and middleware wrapping were fixed in mcp-go-core; exarp-go builds successfully. Historical issues (for reference only):
+- Logger: `Debugf`/`Infof`/`Warnf` → `Debug`/`Info`/`Warn` with context parameter
+- Middleware wrapping for prompts/resources fixed
+- Unused imports removed
 
 ---
 
@@ -93,19 +79,8 @@ If mcp-go-core fixes are delayed, we could temporarily keep a local adapter, but
 
 - ✅ **Factory:** Uses `mcp-go-core/pkg/mcp/framework/adapters/gosdk`
 - ✅ **Local Adapter:** Removed (orphaned code)
-- ⚠️ **Build Status:** Fails due to mcp-go-core compilation errors
-
-### Build Errors
-
-```bash
-$ go build ./internal/factory
-# github.com/davidl71/mcp-go-core/pkg/mcp/framework/adapters/gosdk
-vendor/github.com/davidl71/mcp-go-core/pkg/mcp/framework/adapters/gosdk/adapter.go:61:11: 
-    a.logger.Debugf undefined (type *logging.Logger has no field or method Debugf)
-vendor/github.com/davidl71/mcp-go-core/pkg/mcp/framework/adapters/gosdk/adapter.go:127:11: 
-    a.logger.Infof undefined (type *logging.Logger has no field or method Infof)
-# ... more errors
-```
+- ✅ **Build Status:** exarp-go builds successfully (`go build ./cmd/server`)
+- **Reference:** Full completion details in `docs/MCP_GO_CORE_MIGRATION_COMPLETE.md`
 
 ---
 

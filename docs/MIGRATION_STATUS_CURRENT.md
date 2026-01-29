@@ -1,9 +1,16 @@
 # Go Migration Status - Current Report
 
 **Date:** 2026-01-12  
-**Last Updated:** After Comprehensive Audit and Documentation Updates (Stream 4)  
+**Last Updated:** 2026-01-29  
 **Overall Progress:** Excellent - 96% tool coverage, 100% resource coverage  
 **Audit Reference:** See `docs/MIGRATION_AUDIT_2026-01-12.md` for detailed audit findings
+
+**Migration updates:**
+- **2026-01-27:** Python fallbacks removed for `setup_hooks`, `check_attribution`, `session`, `memory_maint` (native only).
+- **2026-01-28:** `memory` and `task_discovery` bridge fallbacks removed (native only).
+- **2026-01-29:** Configuration system **protobuf mandatory** (`.exarp/config.pb` only at runtime); T1.5.5 protobuf integration docs updated. See `docs/CONFIGURATION_IMPLEMENTATION_PLAN.md` and `docs/CONFIGURATION_PROTOBUF_INTEGRATION.md`.
+
+For current handler status see **`NATIVE_GO_HANDLER_STATUS.md`**.
 
 ---
 
@@ -30,10 +37,10 @@
 - **Hybrid (Native + Python Bridge):**
   - ✅ `analyze_alignment` - Native Go (todo2, prd actions), bridge fallback
   - ✅ `generate_config` - Native Go (all actions), bridge fallback
-  - ✅ `check_attribution` - Native Go, bridge fallback
-  - ✅ `add_external_tool_hints` - Native Go, bridge fallback
-  - ✅ `health` - Native Go (server, git, docs, dod, cicd actions), bridge fallback
-  - ✅ `setup_hooks` - Native Go (git, patterns actions), bridge fallback
+  - ✅ `check_attribution` - Native Go only (fallback removed 2026-01-27)
+  - ✅ `add_external_tool_hints` - Native Go only
+  - ✅ `health` - Native Go (server, git, docs, dod, cicd actions), no bridge
+  - ✅ `setup_hooks` - Native Go (git, patterns actions) only (fallback removed 2026-01-27)
   - ✅ `recommend` - Native Go (model, workflow actions), bridge for advisor
   - ✅ `report` - Native Go (scorecard, overview, prd actions), bridge for briefing (devwisdom MCP)
   - ✅ `security` - Native Go (scan, alerts, report actions), bridge fallback
@@ -49,9 +56,9 @@
   - ✅ `task_workflow` - Native Go (all actions), bridge fallback (clarify requires Apple FM)
   - ✅ `task_discovery` - Native Go (all actions), bridge fallback
   - ✅ `memory` - Native Go CRUD (save, recall, list, search), bridge for semantic search
-  - ✅ `memory_maint` - Native Go (health, gc, prune, consolidate), bridge for dream
-  - ✅ `automation` - Native Go (daily, discover, nightly, sprint), bridge fallback
-  - ✅ `session` - Native Go (prime, handoff, prompts, assignee), bridge fallback
+  - ✅ `memory_maint` - Native Go only (health, gc, prune, consolidate, dream; fallback removed 2026-01-27)
+  - ✅ `automation` - Native Go (daily, discover, nightly, sprint), no bridge
+  - ✅ `session` - Native Go (prime, handoff, prompts, assignee) only (fallback removed 2026-01-27)
   - ✅ `estimation` - Native Go (estimate, stats, analyze), bridge fallback
   - ✅ `ollama` - Native Go (status, models, generate, pull, hardware, docs, quality, summary), bridge fallback
   - ✅ `context` - Native Go (summarize/budget/batch), bridge fallback
@@ -102,7 +109,7 @@
 
 ## Native Go Implementation Status
 
-### Fully Native Tools (7 tools)
+### Fully Native Tools (11 tools)
 Tools with no Python bridge calls (direct native implementation only):
 
 1. `git_tools` - Full native Go implementation
@@ -110,36 +117,35 @@ Tools with no Python bridge calls (direct native implementation only):
 3. `tool_catalog` - Full native Go implementation
 4. `workflow_mode` - Full native Go implementation
 5. `prompt_tracking` - Full native Go implementation
-6. `memory` - Full native Go (CRUD: save/recall/list/search); bridge fallback removed 2026-01-28
-7. `task_discovery` - Full native Go (comments, markdown, orphans, create_tasks); bridge removed 2026-01-28
+6. `memory` - Full native Go (CRUD); bridge fallback removed 2026-01-28
+7. `task_discovery` - Full native Go; bridge removed 2026-01-28
+8. `check_attribution` - Full native Go; fallback removed 2026-01-27
+9. `setup_hooks` - Full native Go; fallback removed 2026-01-27
+10. `session` - Full native Go; fallback removed 2026-01-27
+11. `memory_maint` - Full native Go; fallback removed 2026-01-27
 
 **Note:** `server_status` was converted to `stdio://server/status` resource. `context_budget` is part of the `context` tool (hybrid).
 
-### Hybrid Tools (20 tools - Native + Python Bridge)
+### Hybrid Tools (16 tools - Native + Python Bridge)
 Tools that try native Go first, fallback to Python bridge:
 
 1. `analyze_alignment` - Native (todo2, prd), bridge (fallback)
 2. `add_external_tool_hints` - Native (primary), bridge (fallback)
 3. `automation` - Native (daily, discover, nightly, sprint), bridge (fallback)
-4. `check_attribution` - Native (primary), bridge (fallback)
-5. `context` - Native (summarize/budget/batch), bridge (fallback)
-6. `estimation` - Native (estimate, stats, analyze), bridge (fallback)
-7. `generate_config` - Native (all actions), bridge (fallback)
-8. `health` - Native (server, git, docs, dod, cicd), bridge (fallback)
-9. `lint` - Native (Go linters), bridge (Python linters)
-10. `memory_maint` - Native (health/gc/prune/consolidate), bridge (dream)
-11. `ollama` - Native (all actions via HTTP: status, models, generate, pull, hardware, docs, quality, summary), bridge (fallback)
-12. `recommend` - Native (model, workflow), bridge (advisor)
-13. `report` - Native (scorecard, overview, prd), bridge (briefing - devwisdom MCP)
-14. `security` - Native (scan, alerts, report), bridge (fallback)
-15. `session` - Native (prime, handoff, prompts, assignee), bridge (fallback)
-16. `setup_hooks` - Native (git, patterns), bridge (fallback)
-17. `task_analysis` - Native (all actions), bridge (fallback - hierarchy requires Apple FM)
-18. `task_workflow` - Native (all actions), bridge (fallback - clarify requires Apple FM)
-19. `testing` - Native (run, coverage, validate), bridge (suggest, generate - ML features)
-20. `context` - Native (summarize/budget/batch), bridge (fallback)
+4. `context` - Native (summarize/budget/batch), bridge (fallback)
+5. `estimation` - Native (estimate, stats, analyze), bridge (fallback)
+6. `generate_config` - Native (all actions), bridge (fallback)
+7. `health` - Native (server, git, docs, dod, cicd), bridge (fallback)
+8. `lint` - Native (Go linters), bridge (Python linters)
+9. `ollama` - Native (all actions via HTTP), bridge (fallback)
+10. `recommend` - Native (model, workflow), bridge (advisor)
+11. `report` - Native (scorecard, overview, prd), bridge (briefing - devwisdom MCP)
+12. `security` - Native (scan, alerts, report), bridge (fallback)
+13. `task_analysis` - Native (all actions), bridge (fallback - hierarchy requires Apple FM)
+14. `task_workflow` - Native (all actions), bridge (fallback - clarify requires Apple FM)
+15. `testing` - Native (run, coverage, validate), bridge (suggest, generate - ML features)
 
-**Note:** Recent completions (Stream 1, 2, 3): session prompts/assignee, ollama docs/quality/summary, recommend workflow, setup_hooks patterns, analyze_alignment prd, health docs/dod/cicd, automation nightly/sprint, estimation analyze - all now native!
+**Native only (fallback removed):** `check_attribution`, `setup_hooks`, `session` (2026-01-27); `memory`, `task_discovery` (2026-01-28). See "Fully Native Tools" above.
 
 ### Python Bridge Only Tools (1 tool)
 Tools with no native implementation (intentional):
@@ -193,8 +199,8 @@ Tools with no native implementation (intentional):
 
 ### Tools
 - **Total Tools:** 28 (plus 1 conditional Apple FM tool on macOS = 28-29)
-- **Fully Native:** 7 tools (25%) - `tool_catalog`, `workflow_mode`, `git_tools`, `infer_session_mode`, `prompt_tracking`, `memory`, `task_discovery`
-- **Hybrid (Native + Bridge):** 20 tools (71%) - Native primary with Python bridge fallback
+- **Fully Native:** 11 tools (39%) - `tool_catalog`, `workflow_mode`, `git_tools`, `infer_session_mode`, `prompt_tracking`, `memory`, `task_discovery`, `check_attribution`, `setup_hooks`, `session`, `memory_maint`
+- **Hybrid (Native + Bridge):** 15 tools (54%) - Native primary with Python bridge fallback
 - **Python Bridge Only:** 1 tool (4% - `mlx` only, intentional - no Go bindings available)
 - **Overall Native Coverage:** 96% (27/28 tools have native implementations)
 
@@ -218,6 +224,9 @@ Tools with no native implementation (intentional):
 ---
 
 ## Recent Completions
+
+### 2026-01-29
+- **Configuration system** - Protobuf mandatory for file-based config (`.exarp/config.pb` only at runtime). T1.5.5 documentation: `docs/CONFIGURATION_PROTOBUF_INTEGRATION.md` and `README.md` updated. See `docs/CONFIGURATION_IMPLEMENTATION_PLAN.md`.
 
 ### 2026-01-28
 - **memory tool** - Bridge fallback removed; handler is fully native Go (CRUD only). Semantic search can be added in Go later.
@@ -276,12 +285,10 @@ Tools with no native implementation (intentional):
 6. ✅ Phase 4 resources - Complete
 
 ### ⏳ Remaining Work
-1. **Session Tool** - High value, no blockers (can proceed independently)
-2. **Phase 3 Remaining Tools** - Can proceed independently
-   - `automation` - Complex workflow engine
-   - `prompt_tracking` - Python bridge
-   - `estimation` - Python bridge
-   - `mlx`/`ollama` - No Go bindings (keep Python bridge)
+1. **mcp-go-core CLI migration** (T-1768327631413) - Migrate exarp-go CLI to use mcp-go-core CLI utilities (ParseArgs, DetectMode, IsTTYFile).
+2. **devwisdom-go → mcp-go-core** (T-1768325426665) - Identify code that can be migrated from devwisdom-go to mcp-go-core.
+3. **Protobuf / config** - T1.5.5 docs done; optional: T1.5.4 schema sync validation, benchmarks (T-1768317407961), build tooling (T-1768316817909).
+4. **mlx** - Python bridge only (intentional; no Go bindings).
 
 ---
 
@@ -297,16 +304,16 @@ Tools with no native implementation (intentional):
 
 ## Next Steps
 
-### High Priority (No Blockers)
-1. **Session Tool** - Migrate to native Go (high value)
+### High Priority
+1. **mcp-go-core CLI** (T-1768327631413) - Migrate CLI to use mcp-go-core ParseArgs, DetectMode, IsTTYFile.
+2. **devwisdom-go → mcp-go-core** (T-1768325426665) - Identify migratable code.
 
 ### Medium Priority
-3. **Phase 3 Tools** - Migrate automation, prompt_tracking, estimation
-4. **Remaining Resources** - Migrate prompt and session resources
+3. **Migration status docs** - Keep this doc and `MCP_GO_CORE_MIGRATION_STATUS.md` in sync (see T-241).
+4. **Protobuf** - Optional: build tooling, benchmarks, schema sync validation.
 
-### Low Priority (Optional)
-5. **Prompts** - Migrate persona and workflow prompts (optional)
-6. **MLX/Ollama** - Keep Python bridge (no Go bindings available)
+### Low Priority
+5. **MLX** - Keep Python bridge (no Go bindings). **Ollama** - Native HTTP; bridge fallback optional.
 
 ---
 

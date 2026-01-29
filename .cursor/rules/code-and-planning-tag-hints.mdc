@@ -1,0 +1,79 @@
+---
+description: Generate code and planning .md files with appropriate Todo2 tag hints
+globs: "**/*.plan.md,.cursor/plans/**/*.md,**/*.go,internal/**/*.go"
+alwaysApply: false
+---
+
+# Code and Planning Tag Hints
+
+When generating or editing **planning markdown files** or **code**, include appropriate tag hints so Todo2 tasks and task_analysis stay consistent and discoverable.
+
+## Planning .md Files
+
+**Scope:** `.cursor/plans/*.plan.md`, `docs/*_PLAN*.md`, `docs/*_STRATEGY*.md`, and similar planning docs.
+
+### Required for planning docs
+
+1. **Document-level tag hints** — At the top (after title or in frontmatter), add:
+
+   ```markdown
+   **Tag hints:** `#migration` `#cli` `#refactor`
+   ```
+
+   Or in YAML frontmatter:
+
+   ```yaml
+   ---
+   title: My Plan
+   tag_hints: [migration, cli, refactor]
+   ---
+   ```
+
+2. **Per-section tag hints** — For implementation steps or phases that map to distinct work, add a short tag hint on the section:
+
+   ```markdown
+   ### 2. Refactor CLI parsing
+   **Tag hints:** `#cli` `#refactor`
+   ```
+
+### Tag hint rules for plans
+
+- Use **1–4 tags** per doc/section from the project canonical set.
+- Prefer: `#migration` `#refactor` `#cli` `#mcp` `#testing` `#docs` `#performance` `#database` `#bug` `#feature` `#config` `#security` `#build` `#linting` `#concurrency` `#git` `#planning` `#workflow` `#research` `#analysis`.
+- Tag hints are **suggestions** for tasks created from the plan; they are not required in the plan body text.
+
+## Code
+
+**Scope:** `**/*.go`, especially `internal/**/*.go` when the change is task-related.
+
+### When to add tag hints in code
+
+- New or significantly modified **packages/files** that implement a tracked feature (e.g. migration, new tool, refactor).
+- **File-level** is enough; avoid cluttering every function.
+
+### Format
+
+Use a single file-level or package-level comment:
+
+```go
+// Package foo implements X. Tag hints for Todo2: #migration #cli
+package foo
+```
+
+Or after the package declaration:
+
+```go
+// exarp-tags: #migration #cli
+```
+
+- Use **1–3 tags** from the same canonical set as above.
+- Omit tag hints for trivial edits, generated code, or tests unless the test file is the main deliverable for a tagged task.
+
+## Summary
+
+| Artifact              | Where to put tag hints              | Example tags        |
+|-----------------------|-------------------------------------|---------------------|
+| Planning .md         | Top of doc or frontmatter; per section optional | `#migration` `#cli` |
+| New/refactored Go pkg | One file-level or package comment   | `#refactor` `#mcp`   |
+
+This keeps plans and code aligned with Todo2 tags and improves task_analysis and discovery.

@@ -3,6 +3,7 @@ package config
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 )
@@ -26,28 +27,44 @@ func TestLoadConfig_NoFile(t *testing.T) {
 	}
 }
 
+func TestLoadConfig_OnlyYAMLReturnsError(t *testing.T) {
+	// Protobuf mandatory: if only config.yaml exists, LoadConfig must error
+	tmpDir := t.TempDir()
+	configDir := filepath.Join(tmpDir, ".exarp")
+	if err := os.MkdirAll(configDir, 0755); err != nil {
+		t.Fatalf("Failed to create config directory: %v", err)
+	}
+	yamlPath := filepath.Join(configDir, "config.yaml")
+	if err := os.WriteFile(yamlPath, []byte("version: \"1.0\"\n"), 0644); err != nil {
+		t.Fatalf("Failed to write YAML file: %v", err)
+	}
+
+	_, err := LoadConfig(tmpDir)
+	if err == nil {
+		t.Fatal("LoadConfig must fail when only config.yaml exists (protobuf mandatory)")
+	}
+	if !strings.Contains(err.Error(), "protobuf") {
+		t.Errorf("error should mention protobuf: %v", err)
+	}
+}
+
 func TestLoadConfig_WithFile(t *testing.T) {
-	// Create temporary directory
+	// Create temporary directory and write config as protobuf (mandatory format)
 	tmpDir := t.TempDir()
 	configDir := filepath.Join(tmpDir, ".exarp")
 	if err := os.MkdirAll(configDir, 0755); err != nil {
 		t.Fatalf("Failed to create config directory: %v", err)
 	}
 
-	// Create test config file
-	configFile := filepath.Join(configDir, "config.yaml")
-	configContent := `version: "1.0"
-timeouts:
-  task_lock_lease: 45m
-  tool_default: 120s
-thresholds:
-  similarity_threshold: 0.9
-  min_coverage: 85
-tasks:
-  default_status: "In Progress"
-  stale_threshold_hours: 4
-`
-	if err := os.WriteFile(configFile, []byte(configContent), 0644); err != nil {
+	fileConfig := GetDefaults()
+	fileConfig.Version = "1.0"
+	fileConfig.Timeouts.TaskLockLease = 45 * time.Minute
+	fileConfig.Timeouts.ToolDefault = 120 * time.Second
+	fileConfig.Thresholds.SimilarityThreshold = 0.9
+	fileConfig.Thresholds.MinCoverage = 85
+	fileConfig.Tasks.DefaultStatus = "In Progress"
+	fileConfig.Tasks.StaleThresholdHours = 4
+	if err := WriteConfigToProtobufFile(tmpDir, fileConfig); err != nil {
 		t.Fatalf("Failed to write config file: %v", err)
 	}
 
@@ -84,22 +101,18 @@ tasks:
 }
 
 func TestLoadConfig_MergeDefaults(t *testing.T) {
-	// Create temporary directory
+	// Create temporary directory and write partial config as protobuf
 	tmpDir := t.TempDir()
 	configDir := filepath.Join(tmpDir, ".exarp")
 	if err := os.MkdirAll(configDir, 0755); err != nil {
 		t.Fatalf("Failed to create config directory: %v", err)
 	}
 
-	// Create partial config file (only some values)
-	configFile := filepath.Join(configDir, "config.yaml")
-	configContent := `version: "1.0"
-timeouts:
-  task_lock_lease: 45m
-thresholds:
-  similarity_threshold: 0.9
-`
-	if err := os.WriteFile(configFile, []byte(configContent), 0644); err != nil {
+	fileConfig := GetDefaults()
+	fileConfig.Version = "1.0"
+	fileConfig.Timeouts.TaskLockLease = 45 * time.Minute
+	fileConfig.Thresholds.SimilarityThreshold = 0.9
+	if err := WriteConfigToProtobufFile(tmpDir, fileConfig); err != nil {
 		t.Fatalf("Failed to write config file: %v", err)
 	}
 
@@ -158,9 +171,11 @@ func TestFindProjectRoot(t *testing.T) {
 		t.Fatalf("FindProjectRoot failed: %v", err)
 	}
 
-	// Should find the directory with .exarp
-	if root != tmpDir {
-		t.Errorf("Expected project root %s, got %s", tmpDir, root)
+	// Should find the directory with .exarp (normalize paths for macOS /var vs /private/var)
+	rootNorm, _ := filepath.EvalSymlinks(root)
+	tmpNorm, _ := filepath.EvalSymlinks(tmpDir)
+	if rootNorm != tmpNorm {
+		t.Errorf("Expected project root %s (normalized %s), got %s (normalized %s)", tmpDir, tmpNorm, root, rootNorm)
 	}
 }
 

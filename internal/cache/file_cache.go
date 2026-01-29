@@ -8,10 +8,10 @@ import (
 
 // cachedFile represents a cached file with its content and metadata
 type cachedFile struct {
-	content   []byte
-	mtime     time.Time
-	cachedAt  time.Time
-	ttl       time.Duration
+	content  []byte
+	mtime    time.Time
+	cachedAt time.Time
+	ttl      time.Duration
 }
 
 // FileCache provides thread-safe file caching with mtime-based invalidation
@@ -31,7 +31,7 @@ func (fc *FileCache) ReadFile(path string) ([]byte, bool, error) {
 	// Check cache first
 	if cached, ok := fc.cache.Load(path); ok {
 		cf := cached.(*cachedFile)
-		
+
 		// Check if cache entry has expired (TTL)
 		if cf.ttl > 0 && time.Since(cf.cachedAt) > cf.ttl {
 			// TTL expired, remove from cache
@@ -44,23 +44,23 @@ func (fc *FileCache) ReadFile(path string) ([]byte, bool, error) {
 				fc.cache.Delete(path)
 				return nil, false, err
 			}
-			
+
 			// Compare mtime - if file hasn't changed, return cached content
 			if info.ModTime().Equal(cf.mtime) || info.ModTime().Before(cf.mtime) {
 				return cf.content, true, nil
 			}
-			
+
 			// File has been modified, remove from cache
 			fc.cache.Delete(path)
 		}
 	}
-	
+
 	// Cache miss or invalid - read file
 	content, err := os.ReadFile(path)
 	if err != nil {
 		return nil, false, err
 	}
-	
+
 	// Get file info for mtime
 	info, err := os.Stat(path)
 	if err != nil {
@@ -72,7 +72,7 @@ func (fc *FileCache) ReadFile(path string) ([]byte, bool, error) {
 		})
 		return content, false, nil
 	}
-	
+
 	// Store in cache
 	fc.cache.Store(path, &cachedFile{
 		content:  content,
@@ -80,7 +80,7 @@ func (fc *FileCache) ReadFile(path string) ([]byte, bool, error) {
 		cachedAt: time.Now(),
 		ttl:      0, // No TTL by default (mtime-based invalidation)
 	})
-	
+
 	return content, false, nil
 }
 
@@ -90,7 +90,7 @@ func (fc *FileCache) ReadFileWithTTL(path string, ttl time.Duration) ([]byte, bo
 	// Check cache first
 	if cached, ok := fc.cache.Load(path); ok {
 		cf := cached.(*cachedFile)
-		
+
 		// Check TTL expiration
 		if time.Since(cf.cachedAt) > ttl {
 			// TTL expired, remove from cache
@@ -103,23 +103,23 @@ func (fc *FileCache) ReadFileWithTTL(path string, ttl time.Duration) ([]byte, bo
 				fc.cache.Delete(path)
 				return nil, false, err
 			}
-			
+
 			// Compare mtime - if file hasn't changed, return cached content
 			if info.ModTime().Equal(cf.mtime) || info.ModTime().Before(cf.mtime) {
 				return cf.content, true, nil
 			}
-			
+
 			// File has been modified, remove from cache
 			fc.cache.Delete(path)
 		}
 	}
-	
+
 	// Cache miss or invalid - read file
 	content, err := os.ReadFile(path)
 	if err != nil {
 		return nil, false, err
 	}
-	
+
 	// Get file info for mtime
 	info, err := os.Stat(path)
 	if err != nil {
@@ -131,7 +131,7 @@ func (fc *FileCache) ReadFileWithTTL(path string, ttl time.Duration) ([]byte, bo
 		})
 		return content, false, nil
 	}
-	
+
 	// Store in cache with TTL
 	fc.cache.Store(path, &cachedFile{
 		content:  content,
@@ -139,7 +139,7 @@ func (fc *FileCache) ReadFileWithTTL(path string, ttl time.Duration) ([]byte, bo
 		cachedAt: time.Now(),
 		ttl:      ttl,
 	})
-	
+
 	return content, false, nil
 }
 
@@ -160,16 +160,16 @@ func (fc *FileCache) Clear() {
 func (fc *FileCache) GetStats() map[string]interface{} {
 	var count int
 	var totalSize int64
-	
+
 	fc.cache.Range(func(key, value interface{}) bool {
 		count++
 		cf := value.(*cachedFile)
 		totalSize += int64(len(cf.content))
 		return true
 	})
-	
+
 	return map[string]interface{}{
-		"entries": count,
+		"entries":          count,
 		"total_size_bytes": totalSize,
 	}
 }

@@ -11,8 +11,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/davidl71/devwisdom-go/internal/wisdom/sefaria"
 	"github.com/davidl71/mcp-go-core/pkg/mcp/security"
+
+	"github.com/davidl71/devwisdom-go/internal/wisdom/sefaria"
 )
 
 // SourceConfig represents a configurable wisdom source
@@ -39,16 +40,16 @@ type SourcesConfig struct {
 
 // SourceLoader handles loading sources from various locations
 type SourceLoader struct {
-	mu            sync.RWMutex
 	sources       map[string]*Source
-	configPaths   []string
 	embeddedFS    *embed.FS
-	embeddedPath  string
-	reloadEnabled bool
-	projectRoot   string // Project root directory for project-specific sources
 	cache         *SourceCache
-	httpClient    *http.Client    // For API-based sources with timeout
-	sefariaClient *sefaria.Client // Sefaria API client
+	httpClient    *http.Client
+	sefariaClient *sefaria.Client
+	embeddedPath  string
+	projectRoot   string
+	configPaths   []string
+	mu            sync.RWMutex
+	reloadEnabled bool
 }
 
 // NewSourceLoader creates a new source loader

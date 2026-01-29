@@ -57,7 +57,7 @@ Set up iterative build and test workflow for Apple Foundation Models integration
 
 **Status**: ✅ **COMPLETE**
 
-**File**: `tests/integration/mcp/test_apple_foundation_models.py` (created)
+**File**: `tests/integration/mcp/test_apple_foundation_models.py` (created; later removed—Go tests in `internal/tools/apple_foundation_test.go` provide integration coverage)
 
 - ✅ Test MCP tool registration
 - ✅ Test tool invocation via MCP protocol
@@ -166,7 +166,7 @@ This ensures:
 - ✅ `internal/tools/apple_foundation_registry_nocgo.go` - No-op registration
 - ✅ `internal/platform/detection.go` - Platform detection
 - ✅ `internal/platform/detection_test.go` - Platform detection tests
-- ✅ `tests/integration/mcp/test_apple_foundation_models.py` - Integration tests
+- ~~`tests/integration/mcp/test_apple_foundation_models.py`~~ - removed; Go integration tests in `apple_foundation_test.go` used instead
 - ✅ `docs/APPLE_FOUNDATION_MODELS_COMPLETE.md` - Implementation summary
 
 ### ✅ Modified:

@@ -1,65 +1,35 @@
-// Package cli provides a logging adapter to bridge exarp-go's logging API
-// with mcp-go-core's logger. This allows gradual migration while maintaining
-// the same API surface.
+// Package cli provides a logging adapter that uses exarp-go's shared logger
+// (internal/logging) so CLI, main, and database share one logger instance.
 package cli
 
 import (
 	"context"
 	"time"
 
-	"github.com/davidl71/mcp-go-core/pkg/mcp/logging"
+	"github.com/davidl71/exarp-go/internal/logging"
 )
 
-var (
-	// logger is the shared mcp-go-core logger instance
-	logger *logging.Logger
+// DefaultSlowThreshold is the default threshold for slow operation detection (2 seconds).
+var DefaultSlowThreshold = 2 * time.Second
 
-	// DefaultSlowThreshold is the default threshold for slow operation detection (2 seconds)
-	DefaultSlowThreshold = 2 * time.Second
-)
-
-// initLogger initializes the mcp-go-core logger if not already initialized.
-// Default level is WARN so INFO messages (e.g. "Database initialized") are not written to stderr.
-func initLogger() {
-	if logger == nil {
-		logger = logging.NewLogger()
-		logger.SetLevel(logging.LevelWarn)
-		logger.SetSlowThreshold(DefaultSlowThreshold)
-	}
-}
-
-// Info logs an info message with structured fields
-// Adapts exarp-go's logging.Info(msg, args...) to mcp-go-core's logger
+// logInfo logs an info message with structured fields using the shared logger.
 func logInfo(ctx context.Context, msg string, args ...interface{}) {
-	initLogger()
-
-	// Always use slog logger for structured logging (supports key-value pairs)
-	slogLogger := logger.WithContext(ctx)
-	slogLogger.Info(msg, args...)
+	logging.Default().WithContext(ctx).Info(msg, args...)
 }
 
-// Warn logs a warning message with structured fields
+// logWarn logs a warning message with structured fields using the shared logger.
 func logWarn(ctx context.Context, msg string, args ...interface{}) {
-	initLogger()
-
-	slogLogger := logger.WithContext(ctx)
-	slogLogger.Warn(msg, args...)
+	logging.Default().WithContext(ctx).Warn(msg, args...)
 }
 
-// Error logs an error message with structured fields
+// logError logs an error message with structured fields using the shared logger.
 func logError(ctx context.Context, msg string, args ...interface{}) {
-	initLogger()
-
-	slogLogger := logger.WithContext(ctx)
-	slogLogger.Error(msg, args...)
+	logging.Default().WithContext(ctx).Error(msg, args...)
 }
 
-// Debug logs a debug message with structured fields
+// logDebug logs a debug message with structured fields using the shared logger.
 func logDebug(ctx context.Context, msg string, args ...interface{}) {
-	initLogger()
-
-	slogLogger := logger.WithContext(ctx)
-	slogLogger.Debug(msg, args...)
+	logging.Default().WithContext(ctx).Debug(msg, args...)
 }
 
 // PerformanceLogger tracks operation duration and logs slow operations
@@ -72,6 +42,7 @@ type PerformanceLogger struct {
 
 // StartPerformanceLogging starts tracking performance for an operation
 func StartPerformanceLogging(ctx context.Context, operation string, threshold time.Duration) *PerformanceLogger {
+	logging.SetSlowThreshold(threshold)
 	return &PerformanceLogger{
 		operation: operation,
 		start:     time.Now(),
@@ -83,12 +54,11 @@ func StartPerformanceLogging(ctx context.Context, operation string, threshold ti
 // Finish logs the operation duration and warns if it exceeded the threshold
 func (pl *PerformanceLogger) Finish() {
 	duration := time.Since(pl.start)
-	initLogger()
+	log := logging.Default()
 
 	// Build context string for LogPerformance
 	contextStr := ""
 	if pl.ctx != nil {
-		// Extract operation and request ID from context
 		type requestIDKey struct{}
 		if reqID, ok := pl.ctx.Value(requestIDKey{}).(string); ok {
 			contextStr = "req:" + reqID
@@ -102,8 +72,7 @@ func (pl *PerformanceLogger) Finish() {
 		}
 	}
 
-	// Always log duration using LogPerformance
-	logger.LogPerformance(contextStr, pl.operation, duration)
+	log.LogPerformance(contextStr, pl.operation, duration)
 
 	// Also log with structured fields if slow
 	if pl.threshold > 0 && duration > pl.threshold {

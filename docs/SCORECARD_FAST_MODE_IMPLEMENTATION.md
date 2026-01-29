@@ -36,8 +36,8 @@
    - Still runs: `go vet`, `gofmt`, file system checks, security checks
 
 4. **Updated handlers**
-   - `handleReport` in `internal/tools/handlers.go` uses fast mode by default
-   - `cmd/scorecard/main.go` uses fast mode by default
+   - `handleReport` in `internal/tools/handlers.go` uses `fast_mode` from params (default `true`); `fast_mode` applies only to Go projects
+   - `cmd/scorecard/main.go` uses `--full` flag to disable fast mode
 
 ### Operations Skipped in Fast Mode
 
@@ -119,10 +119,21 @@ scorecard, err := tools.GenerateGoScorecard(ctx, projectRoot, nil)
 3. **Incremental Checks** - Only check changed files
 4. **Configurable Options** - Allow users to choose which checks to skip
 
+## Entrypoints and mode selection
+
+| Entrypoint | Fast (default) | Full |
+|------------|----------------|------|
+| **report** `action=scorecard` | `fast_mode: true` (default) | `fast_mode: false` |
+| **cmd/scorecard** | no `--full` | `--full` |
+| **Makefile** | `make scorecard` | `make scorecard-full` |
+| **stdio://scorecard** resource | N/A (Python bridge; no fast/full) | N/A |
+
+`fast_mode` and `--full` apply only to **Go projects** (native `GenerateGoScorecard`). The Python bridge path (non-Go) does not support fast vs full.
+
 ## Code Locations
 
 - **Options struct:** `internal/tools/scorecard_go.go:60-63`
 - **Health checks:** `internal/tools/scorecard_go.go:108-154`
-- **Handler:** `internal/tools/handlers.go:224`
-- **CLI:** `cmd/scorecard/main.go:21`
+- **Handler:** `internal/tools/handlers.go` (scorecard branch; reads `fast_mode` from params)
+- **CLI:** `cmd/scorecard/main.go` (`--full` → `FastMode: false`)
 

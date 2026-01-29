@@ -17,6 +17,16 @@ import (
 	protobuf "google.golang.org/protobuf/proto"
 )
 
+// getPythonCommand returns the executable and leading args for running Python.
+// Requires uv (uv run python); project assumes uv is always used.
+func getPythonCommand() (executable string, runArgs []string, err error) {
+	path, lookErr := exec.LookPath("uv")
+	if lookErr != nil || path == "" {
+		return "", nil, fmt.Errorf("uv not found: install uv (https://docs.astral.sh/uv/) or add it to PATH for Python bridge")
+	}
+	return path, []string{"run", "python"}, nil
+}
+
 // getWorkspaceRoot determines the workspace root where bridge scripts are located
 func getWorkspaceRoot() string {
 	// Check environment variable first
@@ -55,22 +65,10 @@ func getWorkspaceRoot() string {
 	return "."
 }
 
-// ExecutePythonTool executes a Python tool via subprocess or persistent process pool
-// Supports both protobuf binary and JSON formats for backward compatibility
-// Uses persistent process pool if enabled, falls back to subprocess on error
+// ExecutePythonTool executes a Python tool via subprocess (execute_tool.py).
+// Supports both protobuf binary and JSON formats for backward compatibility.
+// Pool/daemon (execute_tool_daemon.py) removed 2026-01-29; one-shot subprocess only.
 func ExecutePythonTool(ctx context.Context, toolName string, args map[string]interface{}) (string, error) {
-	// Try persistent process pool first (if enabled)
-	pool := GetGlobalPool()
-	if poolEnabled {
-		result, err := pool.ExecuteTool(ctx, toolName, args)
-		if err == nil {
-			return result, nil
-		}
-		// Fall back to subprocess on pool error (backward compatibility)
-		// Log error but don't fail - subprocess fallback will handle it
-	}
-
-	// Fallback to subprocess execution (original behavior)
 	return executePythonToolSubprocess(ctx, toolName, args)
 }
 
@@ -128,8 +126,13 @@ func executePythonToolSubprocess(ctx context.Context, toolName string, args map[
 	ctxWithTimeout, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 
+	pyExec, pyRunArgs, err := getPythonCommand()
+	if err != nil {
+		return "", err
+	}
+	cmdArgs := append(append(pyRunArgs, bridgeScript, toolName), "--protobuf")
 	// Try protobuf mode first
-	cmd := exec.CommandContext(ctxWithTimeout, "python3", bridgeScript, toolName, "--protobuf")
+	cmd := exec.CommandContext(ctxWithTimeout, pyExec, cmdArgs...)
 	cmd.Stdin = bytes.NewReader(protobufData)
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
@@ -159,7 +162,7 @@ func executePythonToolSubprocess(ctx context.Context, toolName string, args map[
 
 	// Protobuf mode failed (likely Python protobuf code not available or error)
 	// Fall back to JSON format (backward compatible)
-	cmd = exec.CommandContext(ctxWithTimeout, "python3", bridgeScript, toolName, string(argsJSON))
+	cmd = exec.CommandContext(ctxWithTimeout, pyExec, append(append(pyRunArgs, bridgeScript, toolName), string(argsJSON))...)
 	cmd.Dir = workspaceRoot
 	cmd.Env = append(os.Environ(), fmt.Sprintf("PROJECT_ROOT=%s", workspaceRoot))
 

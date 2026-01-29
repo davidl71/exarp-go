@@ -146,7 +146,7 @@ var globalRegistry *DriverRegistry
 // init initializes the global registry with default drivers
 func init() {
 	globalRegistry = NewDriverRegistry()
-	
+
 	// Register default drivers
 	globalRegistry.Register(NewSQLiteDriver())
 	// MySQL and PostgreSQL drivers are registered on-demand when needed

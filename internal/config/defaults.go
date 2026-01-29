@@ -16,11 +16,11 @@ func GetDefaults() *FullConfig {
 			StaleLockThreshold: 5 * time.Minute,
 
 			// Tool execution - matches current hard-coded values
-			ToolDefault:  60 * time.Second,
+			ToolDefault:   60 * time.Second,
 			ToolScorecard: 60 * time.Second,
-			ToolLinting: 60 * time.Second,
-			ToolTesting: 300 * time.Second,
-			ToolReport:  60 * time.Second,
+			ToolLinting:   60 * time.Second,
+			ToolTesting:   300 * time.Second,
+			ToolReport:    60 * time.Second,
 
 			// External services
 			OllamaDownload: 600 * time.Second, // 10 minutes for model downloads
@@ -36,7 +36,7 @@ func GetDefaults() *FullConfig {
 			// Task analysis - matches current hard-coded values
 			SimilarityThreshold:  0.85,
 			MinDescriptionLength: 50,
-			MinTaskConfidence:     0.7,
+			MinTaskConfidence:    0.7,
 
 			// Testing - matches current hard-coded values
 			MinCoverage:       80,
@@ -44,16 +44,16 @@ func GetDefaults() *FullConfig {
 
 			// Estimation
 			MinEstimationConfidence: 0.7,
-			MLXWeight:              0.3,
+			MLXWeight:               0.3,
 
 			// Automation - matches current hard-coded values
-			MaxParallelTasks:       10,
-			MaxTasksPerHost:        5,
+			MaxParallelTasks:        10,
+			MaxTasksPerHost:         5,
 			MaxAutomationIterations: 10,
 
 			// Context management - matches current hard-coded values
-			TokensPerChar:            0.25,
-			DefaultContextBudget:     4000,
+			TokensPerChar:             0.25,
+			DefaultContextBudget:      4000,
 			ContextReductionThreshold: 0.5,
 
 			// Security - matches current hard-coded values
@@ -91,19 +91,19 @@ func GetDefaults() *FullConfig {
 			AutoClarify:          false,
 		},
 		Database: DatabaseConfig{
-			SQLitePath:       ".todo2/todo2.db",
-			JSONFallbackPath: ".todo2/state.todo2.json",
-			BackupPath:       ".todo2/backups",
-			MaxConnections:   10,
-			ConnectionTimeout: 30 * time.Second,
-			QueryTimeout:     60 * time.Second,
-			RetryAttempts:    3,
-			RetryInitialDelay: 100 * time.Millisecond,
-			RetryMaxDelay:    5 * time.Second,
-			RetryMultiplier:  2.0,
-			AutoVacuum:       true,
-			WALMode:          true,
-			CheckpointInterval: 1000,
+			SQLitePath:          ".todo2/todo2.db",
+			JSONFallbackPath:    ".todo2/state.todo2.json",
+			BackupPath:          ".todo2/backups",
+			MaxConnections:      10,
+			ConnectionTimeout:   30 * time.Second,
+			QueryTimeout:        60 * time.Second,
+			RetryAttempts:       3,
+			RetryInitialDelay:   100 * time.Millisecond,
+			RetryMaxDelay:       5 * time.Second,
+			RetryMultiplier:     2.0,
+			AutoVacuum:          true,
+			WALMode:             true,
+			CheckpointInterval:  1000,
 			BackupRetentionDays: 30,
 		},
 		Security: SecurityConfig{
@@ -114,9 +114,9 @@ func GetDefaults() *FullConfig {
 				BurstSize:         10,
 			},
 			PathValidation: PathValidationConfig{
-				Enabled:          true,
+				Enabled:            true,
 				AllowAbsolutePaths: false,
-				MaxDepth:         20,
+				MaxDepth:           20,
 				BlockedPatterns: []string{
 					"**/.git/**",
 					"**/node_modules/**",
@@ -124,27 +124,27 @@ func GetDefaults() *FullConfig {
 				},
 			},
 			FileLimits: FileLimitsConfig{
-				MaxFileSize:         10 * 1024 * 1024, // 10MB
+				MaxFileSize:          10 * 1024 * 1024, // 10MB
 				MaxFilesPerOperation: 1000,
-				AllowedExtensions:   []string{}, // Empty = all allowed
+				AllowedExtensions:    []string{}, // Empty = all allowed
 			},
 			AccessControl: AccessControlConfig{
-				Enabled:        false,
-				DefaultPolicy:  "allow",
+				Enabled:         false,
+				DefaultPolicy:   "allow",
 				RestrictedTools: []string{},
 			},
 		},
 		Logging: LoggingConfig{
-			Level:            "info",
-			ToolLevel:        "info",
-			FrameworkLevel:   "warn",
-			Format:           "json",
+			Level:             "info",
+			ToolLevel:         "info",
+			FrameworkLevel:    "warn",
+			Format:            "json",
 			IncludeTimestamps: true,
-			IncludeCaller:    false,
-			ColorOutput:      true,
-			LogDir:           ".exarp/logs",
-			LogFile:          "exarp.log",
-			SessionLogDir:    ".exarp/logs/sessions",
+			IncludeCaller:     false,
+			ColorOutput:       true,
+			LogDir:            ".exarp/logs",
+			LogFile:           "exarp.log",
+			SessionLogDir:     ".exarp/logs/sessions",
 			LogRotation: LogRotationConfig{
 				Enabled:  true,
 				MaxSize:  10 * 1024 * 1024, // 10MB
@@ -157,21 +157,21 @@ func GetDefaults() *FullConfig {
 		Tools: ToolsConfig{
 			Scorecard: ScorecardConfig{
 				DefaultScores: map[string]float64{
-					"security":     50.0,
-					"testing":      50.0,
+					"security":      50.0,
+					"testing":       50.0,
 					"documentation": 50.0,
-					"completion":   50.0,
-					"alignment":    50.0,
-					"clarity":      50.0,
-					"cicd":         50.0,
-					"dogfooding":   50.0,
+					"completion":    50.0,
+					"alignment":     50.0,
+					"clarity":       50.0,
+					"cicd":          50.0,
+					"dogfooding":    50.0,
 				},
 				IncludeWisdom: true,
 				OutputFormat:  "text",
 			},
 			Report: ReportConfig{
-				DefaultFormat:         "text",
-				DefaultOutputPath:     "",
+				DefaultFormat:          "text",
+				DefaultOutputPath:      "",
 				IncludeMetrics:         true,
 				IncludeRecommendations: true,
 			},
@@ -188,23 +188,23 @@ func GetDefaults() *FullConfig {
 				Verbose:          false,
 			},
 			MLX: MLXConfig{
-				DefaultModel:      "mlx-community/Phi-3.5-mini-instruct-4bit",
-				DefaultMaxTokens:  512,
+				DefaultModel:       "mlx-community/Phi-3.5-mini-instruct-4bit",
+				DefaultMaxTokens:   512,
 				DefaultTemperature: 0.7,
-				Verbose:           false,
+				Verbose:            false,
 			},
 			Ollama: OllamaConfig{
-				DefaultModel:      "llama3.2",
-				DefaultHost:       "http://localhost:11434",
+				DefaultModel:       "llama3.2",
+				DefaultHost:        "http://localhost:11434",
 				DefaultContextSize: 4096,
-				DefaultNumThreads: 4,
-				DefaultNumGPU:    1,
+				DefaultNumThreads:  4,
+				DefaultNumGPU:      1,
 			},
 			Context: ContextConfig{
-				DefaultBudget:            4000,
+				DefaultBudget:             4000,
 				DefaultSummarizationLevel: "brief",
-				TokensPerChar:           0.25,
-				IncludeRaw:              false,
+				TokensPerChar:             0.25,
+				IncludeRaw:                false,
 			},
 		},
 		Workflow: WorkflowConfig{
@@ -233,8 +233,8 @@ func GetDefaults() *FullConfig {
 				},
 			},
 			Focus: FocusConfig{
-				Enabled:          true,
-				ReductionTarget:  70,
+				Enabled:           true,
+				ReductionTarget:   70,
 				PreserveCoreTools: true,
 			},
 		},
@@ -252,13 +252,13 @@ func GetDefaults() *FullConfig {
 			AutoCleanup:    true,
 			MaxMemories:    1000,
 			Consolidation: ConsolidationConfig{
-				Enabled:            true,
+				Enabled:             true,
 				SimilarityThreshold: 0.85,
-				Frequency:          "weekly",
+				Frequency:           "weekly",
 			},
 		},
 		Project: ProjectConfig{
-			Name:      "", // Auto-detected
+			Name:      "",        // Auto-detected
 			Type:      "library", // library | application | service | tool
 			Language:  "go",
 			Root:      ".", // Auto-detected

@@ -102,7 +102,7 @@ type SyncOptions struct {
 type SyncDirection string
 
 const (
-	DirectionBidirectional SyncDirection = "bidirectional"
+	DirectionBidirectional   SyncDirection = "bidirectional"
 	DirectionTodo2ToExternal SyncDirection = "todo2_to_external"
 	DirectionExternalToTodo2 SyncDirection = "external_to_todo2"
 )
@@ -111,10 +111,10 @@ const (
 type ConflictResolution string
 
 const (
-	ConflictResolutionTodo2Wins ConflictResolution = "todo2_wins"
+	ConflictResolutionTodo2Wins    ConflictResolution = "todo2_wins"
 	ConflictResolutionExternalWins ConflictResolution = "external_wins"
-	ConflictResolutionNewerWins ConflictResolution = "newer_wins"
-	ConflictResolutionManual ConflictResolution = "manual"
+	ConflictResolutionNewerWins    ConflictResolution = "newer_wins"
+	ConflictResolutionManual       ConflictResolution = "manual"
 )
 
 // GetTasksOptions contains options for retrieving tasks
@@ -172,10 +172,10 @@ type TaskConflict struct {
 
 // TaskUpdate represents a task that was updated during sync
 type TaskUpdate struct {
-	TaskID      string
-	Source      ExternalSourceType
-	Updated     bool
-	Fields      []string // Fields that were updated
+	TaskID  string
+	Source  ExternalSourceType
+	Updated bool
+	Fields  []string // Fields that were updated
 }
 
 // SyncError represents an error during synchronization
@@ -188,15 +188,15 @@ type SyncError struct {
 
 // SyncStats contains synchronization statistics
 type SyncStats struct {
-	TotalTodo2Tasks      int
-	TotalExternalTasks   int
-	MatchesFound         int
-	ConflictsDetected    int
-	NewTodo2Tasks        int
-	NewExternalTasks     int
-	UpdatedTasks         int
-	Errors               int
-	Duration             time.Duration
+	TotalTodo2Tasks    int
+	TotalExternalTasks int
+	MatchesFound       int
+	ConflictsDetected  int
+	NewTodo2Tasks      int
+	NewExternalTasks   int
+	UpdatedTasks       int
+	Errors             int
+	Duration           time.Duration
 }
 
 // StatusMapper handles status mapping between Todo2 and external sources
@@ -225,11 +225,11 @@ func NewDefaultStatusMapper() *DefaultStatusMapper {
 			"Cancelled":   "cancelled",
 		},
 		externalToTodo2: map[string]string{
-			"pending":    "Todo",
+			"pending":     "Todo",
 			"in-progress": "In Progress",
-			"completed":  "Done",
-			"done":       "Done",
-			"cancelled":  "Cancelled",
+			"completed":   "Done",
+			"done":        "Done",
+			"cancelled":   "Cancelled",
 		},
 	}
 }

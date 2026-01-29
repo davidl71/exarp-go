@@ -7,18 +7,47 @@
   changed_when: false
   failed_when: false
 
+# Ensure go_version_resolved is set (default to go_version; "latest" and "pinned" tasks override)
+- name: Set default resolved Go version
+  set_fact:
+    go_version_resolved: "{{ go_version }}"
+
+# Normalize OS/arch for go.dev/dl URLs (darwin/linux; amd64/arm64)
+- name: Set Go download OS and architecture
+  set_fact:
+    go_dl_os: "{{ ansible_system | lower }}"
+    go_dl_arch: "{{ {'x86_64': 'amd64', 'aarch64': 'arm64'}.get(ansible_architecture, ansible_architecture) }}"
+
+# Resolve latest stable version from GitHub when go_version is "latest"
+- name: Get latest stable Go version from GitHub
+  uri:
+    url: "https://api.github.com/repos/golang/go/releases/latest"
+    return_content: yes
+  register: go_latest_release
+  when: go_version == 'latest'
+
+- name: Set resolved Go version (latest)
+  set_fact:
+    go_version_resolved: "{{ go_latest_release.json.tag_name | regex_replace('^go', '') }}"
+  when: go_version == 'latest' and go_latest_release.json is defined
+
+- name: Set resolved Go version (pinned)
+  set_fact:
+    go_version_resolved: "{{ go_version }}"
+  when: go_version != 'latest'
+
 - name: Download Go
   get_url:
-    url: "https://go.dev/dl/go{{ go_version }}.{{ ansible_system }}-{{ ansible_architecture }}.tar.gz"
+    url: "https://go.dev/dl/go{{ go_version_resolved }}.{{ go_dl_os }}-{{ go_dl_arch }}.tar.gz"
     dest: /tmp/go.tar.gz
     mode: '0644'
-  when: go_version_check.rc != 0 or go_version_check.stdout is not search(go_version)
+  when: (go_version_check.rc != 0 or go_version_check.stdout is not search(go_version_resolved)) and go_version_resolved != 'latest'
 
 - name: Remove old Go installation
   file:
     path: "{{ go_install_path }}"
     state: absent
-  when: go_version_check.rc != 0 or go_version_check.stdout is not search(go_version)
+  when: (go_version_check.rc != 0 or go_version_check.stdout is not search(go_version_resolved)) and go_version_resolved != 'latest'
 
 - name: Extract Go
   unarchive:
@@ -27,7 +56,7 @@
     remote_src: yes
     owner: root
     group: root
-  when: go_version_check.rc != 0 or go_version_check.stdout is not search(go_version)
+  when: (go_version_check.rc != 0 or go_version_check.stdout is not search(go_version_resolved)) and go_version_resolved != 'latest'
 
 - name: Set Go environment variables
   lineinfile:

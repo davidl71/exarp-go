@@ -14,7 +14,6 @@ import (
 	"github.com/davidl71/exarp-go/internal/database"
 	"github.com/davidl71/exarp-go/internal/framework"
 	"github.com/davidl71/exarp-go/internal/tools"
-	"gopkg.in/yaml.v3"
 )
 
 var (
@@ -716,7 +715,7 @@ func (m model) viewConfig() string {
 
 	// Config path
 	if m.projectRoot != "" {
-		configPath := filepath.Join(m.projectRoot, ".exarp", "config.yaml")
+		configPath := filepath.Join(m.projectRoot, ".exarp", "config.pb")
 		if len(configPath) > 40 {
 			configPath = "..." + configPath[len(configPath)-37:]
 		}
@@ -900,7 +899,7 @@ func showConfigSection(section configSection, cfg *config.FullConfig) tea.Cmd {
 			details.WriteString(fmt.Sprintf("  Max Path Depth: %d\n", cfg.Thresholds.MaxPathDepth))
 		}
 
-		details.WriteString("\nNote: Full editing requires editing .exarp/config.yaml directly\n")
+		details.WriteString("\nNote: Config is .exarp/config.pb (protobuf). Use 'exarp-go config export yaml' to edit as YAML, then 'convert yaml protobuf' to save.\n")
 		details.WriteString("Press any key to continue...\n")
 		fmt.Print(details.String())
 		return nil
@@ -909,21 +908,12 @@ func showConfigSection(section configSection, cfg *config.FullConfig) tea.Cmd {
 
 func saveConfig(projectRoot string, cfg *config.FullConfig) tea.Cmd {
 	return func() tea.Msg {
-		configPath := filepath.Join(projectRoot, ".exarp", "config.yaml")
-
-		// Import yaml for marshaling
-		data, err := yaml.Marshal(cfg)
-		if err != nil {
-			fmt.Printf("\n❌ Error saving config: %v\nPress any key to continue...\n", err)
-			return nil
-		}
-
-		if err := os.WriteFile(configPath, data, 0644); err != nil {
+		if err := config.WriteConfigToProtobufFile(projectRoot, cfg); err != nil {
 			fmt.Printf("\n❌ Error writing config file: %v\nPress any key to continue...\n", err)
 			return nil
 		}
 
-		fmt.Printf("\n✅ Config saved to %s\nPress any key to continue...\n", configPath)
+		fmt.Printf("\n✅ Config saved to %s/.exarp/config.pb\nPress any key to continue...\n", projectRoot)
 		return configSavedMsg{}
 	}
 }

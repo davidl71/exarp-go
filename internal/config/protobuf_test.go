@@ -63,10 +63,10 @@ func TestProtobufRoundTripWithCustomValues(t *testing.T) {
 	original := &FullConfig{
 		Version: "2.0",
 		Timeouts: TimeoutsConfig{
-			TaskLockLease:      45 * time.Minute,
-			ToolDefault:        120 * time.Second,
-			OllamaDownload:     900 * time.Second,
-			ContextSummarize:   60 * time.Second,
+			TaskLockLease:    45 * time.Minute,
+			ToolDefault:      120 * time.Second,
+			OllamaDownload:   900 * time.Second,
+			ContextSummarize: 60 * time.Second,
 		},
 		Thresholds: ThresholdsConfig{
 			SimilarityThreshold:  0.95,
@@ -203,7 +203,7 @@ func TestProtobufMapJSONConversion(t *testing.T) {
 
 	// Test DefaultScores map
 	defaultScores := map[string]float64{
-		"security":     75.0,
+		"security":      75.0,
 		"testing":       80.0,
 		"documentation": 65.0,
 	}
@@ -285,10 +285,10 @@ func TestProtobufNestedConfigs(t *testing.T) {
 func TestProtobufScorecardDefaultScores(t *testing.T) {
 	original := GetDefaults()
 	original.Tools.Scorecard.DefaultScores = map[string]float64{
-		"security":     75.0,
-		"testing":      80.0,
+		"security":      75.0,
+		"testing":       80.0,
 		"documentation": 65.0,
-		"completion":   70.0,
+		"completion":    70.0,
 	}
 
 	// Go → Protobuf → Go
@@ -344,9 +344,9 @@ func TestProtobufWorkflowModes(t *testing.T) {
 // TestProtobufEmptyMaps tests conversion with empty maps
 func TestProtobufEmptyMaps(t *testing.T) {
 	original := GetDefaults()
-	original.Tasks.StatusWorkflow = map[string][]string{} // Empty map
+	original.Tasks.StatusWorkflow = map[string][]string{}         // Empty map
 	original.Tools.Scorecard.DefaultScores = map[string]float64{} // Empty map
-	original.Workflow.Modes = map[string]ModeConfig{} // Empty map
+	original.Workflow.Modes = map[string]ModeConfig{}             // Empty map
 
 	// Go → Protobuf → Go
 	pb, err := ToProtobuf(original)
@@ -442,7 +442,7 @@ func TestProtobufSchemaSync(t *testing.T) {
 
 	// Check that all expected nested configs are present
 	requiredSections := []struct {
-		name string
+		name  string
 		check func() bool
 	}{
 		{"Timeouts", func() bool { return pb.GetTimeouts() != nil }},
@@ -475,7 +475,7 @@ func TestProtobufPartialConfig(t *testing.T) {
 		},
 		Thresholds: ThresholdsConfig{
 			SimilarityThreshold: 0.9,
-			MinCoverage:        85,
+			MinCoverage:         85,
 		},
 		// Other sections are zero values
 	}

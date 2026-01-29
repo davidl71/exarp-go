@@ -117,10 +117,10 @@
 | T-1768325747897 | Performance audit: Memory allocation optimization | medium |
 | T-1768325753706 | Performance audit: Concurrent tool execution | medium |
 | T-1768327631413 | Migrate CLI to use mcp-go-core CLI utilities | medium |
-| T-1769531781411 | Remove check_attribution Python fallback | medium |
-| T-1769531785535 | Remove session Python fallback | medium |
-| T-1769531787256 | Remove memory_maint Python fallback | medium |
-| T-1769531792537 | Update migration docs for 4 removed Python fallbacks | medium |
+| T-1769531781411 | Remove check_attribution Python fallback | medium | ✅ Done (2026-01-27) |
+| T-1769531785535 | Remove session Python fallback | medium | ✅ Done (2026-01-27) |
+| T-1769531787256 | Remove memory_maint Python fallback | medium | ✅ Done (2026-01-27) |
+| T-1769531792537 | Update migration docs for 4 removed Python fallbacks | medium | ✅ Done (2026-01-29; PYTHON_REMAINING_ANALYSIS, BACKLOG, etc.) |
 | T-177 | Create baseline performance metrics | medium |
 | T-178 | Backup current code | medium |
 | T-179 | Create `internal/tools/statistics.go` | medium |

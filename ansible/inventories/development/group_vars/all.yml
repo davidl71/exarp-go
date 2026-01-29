@@ -1,8 +1,8 @@
 ---
 # Development environment variables
 
-# Go configuration
-go_version: "1.24.0"
+# Go configuration (use "latest" for latest stable, or pin e.g. "1.25.6")
+go_version: "latest"
 go_install_path: "/usr/local/go"
 # Use current user from environment or system
 go_user: "{{ lookup('env', 'USER') | default(ansible_user_id | default('vagrant')) }}"

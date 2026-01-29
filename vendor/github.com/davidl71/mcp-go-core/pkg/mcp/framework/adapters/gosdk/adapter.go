@@ -32,7 +32,7 @@ func NewGoSDKAdapter(name, version string, opts ...AdapterOption) *GoSDKAdapter 
 		name:         name,
 		toolHandlers: make(map[string]framework.ToolHandler),
 		toolInfo:     make(map[string]types.ToolInfo),
-		logger:       logging.NewLogger(),  // Default logger
+		logger:       logging.NewLogger(), // Default logger
 		middleware:   NewMiddlewareChain(), // Default empty middleware chain
 	}
 
@@ -123,7 +123,7 @@ func (a *GoSDKAdapter) RegisterTool(name, description string, schema types.ToolS
 		Schema:      schema,
 	}
 
-	a.logger.Debug("", "Tool registered successfully: %s", name)
+	a.logger.Info("", "Tool registered successfully: %s", name)
 	return nil
 }
 
@@ -188,7 +188,7 @@ func (a *GoSDKAdapter) RegisterPrompt(name, description string, handler framewor
 	// Use server.AddPrompt with the new API
 	a.server.AddPrompt(prompt, promptHandler)
 
-	a.logger.Debug("", "Prompt registered successfully: %s", name)
+	a.logger.Info("", "Prompt registered successfully: %s", name)
 	return nil
 }
 
@@ -255,7 +255,7 @@ func (a *GoSDKAdapter) RegisterResource(uri, name, description, mimeType string,
 	// Use server.AddResource with the new API
 	a.server.AddResource(resource, resourceHandler)
 
-	a.logger.Debug("", "Resource registered successfully: %s", uri)
+	a.logger.Info("", "Resource registered successfully: %s", uri)
 	return nil
 }
 

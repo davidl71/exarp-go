@@ -129,7 +129,7 @@ linters:
 ### Change Versions
 
 ```yaml
-go_version: "1.24.0"
+go_version: "latest"   # or pin e.g. "1.25.6"
 python_version: "3.10"
 ```
 

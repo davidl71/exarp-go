@@ -12,6 +12,9 @@
 - `BRIDGE_ANALYSIS.md` - Python bridge architecture and implementation
 - `BRIDGE_ANALYSIS_TABLE.md` - Bridge reference table
 
+### Cursor & AI
+- `CURSOR_RULES.md` - Cursor rules index and **code/planning tag hints** for Todo2 alignment
+
 ### Active Workflows
 - `DEV_TEST_AUTOMATION.md` - Development and testing automation
 - `WORKFLOW_USAGE.md` - Workflow usage guide

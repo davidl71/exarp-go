@@ -1,8 +1,10 @@
 # Agentic CI Setup Guide for exarp-go
 
 **Date:** 2026-01-09  
-**Purpose:** Guide for setting up agentic development CI with AgentScope and GitHub Actions  
+**Purpose:** Guide for setting up agentic development CI with GitHub Actions and exarp-go  
 **Status:** ✅ Setup Complete
+
+**Note (2026-01-29):** The AgentScope evaluation job and `bridge/agent_evaluation.py` were removed from agentic CI. CI now runs build → agent-validation (exarp-go) → combined-validation only.
 
 ---
 
@@ -10,8 +12,8 @@
 
 This guide explains how to set up agentic development CI for exarp-go using:
 1. **GitHub Actions** - Primary CI/CD platform (already configured)
-2. **AgentScope** - Open-source agent evaluation framework (optional enhancement)
-3. **exarp-go Tools** - Native agent validation (immediate, no dependencies)
+2. **exarp-go Tools** - Native agent validation (immediate, no dependencies)
+3. **AgentScope** - Removed from CI 2026-01-29; optional local use only if reinstated
 
 ---
 
@@ -25,21 +27,16 @@ This guide explains how to set up agentic development CI for exarp-go using:
 │  ┌──────────────────┐      ┌──────────────────────┐    │
 │  │  Build exarp-go  │ ────▶│ Agent Validation     │    │
 │  │   (Required)     │      │ (exarp-go tools)     │    │
-│  └──────────────────┘      └──────────────────────┘    │
-│         │                            │                   │
-│         │                            ▼                   │
-│         │                  ┌──────────────────────┐    │
-│         │                  │ AgentScope Eval      │    │
-│         │                  │ (Optional)           │    │
-│         │                  └──────────────────────┘    │
-│         │                            │                   │
-│         └────────────────────────────┼───────────────────┘
-│                                      ▼                   │
-│                          ┌──────────────────────┐      │
-│                          │ Combined Report      │      │
-│                          └──────────────────────┘      │
+│  └──────────────────┘      └──────────┬───────────┘    │
+│         │                               │                 │
+│         └───────────────────────────────┼─────────────────┘
+│                                         ▼                 │
+│                          ┌──────────────────────┐       │
+│                          │ Combined Report      │       │
+│                          └──────────────────────┘       │
 └─────────────────────────────────────────────────────────┘
 ```
+(AgentScope job removed 2026-01-29.)
 
 ---
 
@@ -200,22 +197,9 @@ AgentScope evaluation configuration.
 
 ---
 
-### `bridge/agent_evaluation.py`
+### ~~`bridge/agent_evaluation.py`~~ (Removed 2026-01-29)
 
-Python bridge script for AgentScope evaluation.
-
-**Usage:**
-```bash
-python bridge/agent_evaluation.py \
-  --config .github/agentscope_eval.yaml \
-  --output agent_results/
-```
-
-**Features:**
-- Loads evaluation configuration
-- Runs AgentScope evaluation
-- Saves results as JSON
-- Handles errors gracefully
+AgentScope evaluation was removed from agentic CI. Use exarp-go validation (agent-validation job) and combined report only. To run AgentScope locally you would need to re-add a script and config; the workflow no longer references it.
 
 ---
 
@@ -270,20 +254,9 @@ make build
   -args '{"action":"overview","include_metrics":true}'
 ```
 
-### Test AgentScope Evaluation
+### ~~Test AgentScope Evaluation~~ (Removed 2026-01-29)
 
-```bash
-# Install AgentScope
-pip install agentscope
-
-# Run evaluation
-python bridge/agent_evaluation.py \
-  --config .github/agentscope_eval.yaml \
-  --output agent_results/
-
-# View results
-cat agent_results/evaluation_results.json
-```
+AgentScope job and `bridge/agent_evaluation.py` were removed. Use exarp-go validation steps above; combined report contains exarp-go validation only.
 
 ---
 

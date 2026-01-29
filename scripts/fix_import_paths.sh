@@ -1,6 +1,10 @@
 #!/bin/bash
 # Fix Python Import Paths for exarp-go
 # Copies missing scripts directory and files from project-management-automation
+#
+# Obsolete for exarp-go MLX-only (2026-01-29): project_management_automation/scripts
+# was removed. Python is deprecated; only MLX bridge path remains. This script is
+# for reference or external sync only; exarp-go no longer uses these scripts.
 
 set -euo pipefail
 

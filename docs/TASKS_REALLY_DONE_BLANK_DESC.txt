@@ -1,0 +1,89 @@
+# Tasks with blank description that are really done
+
+**Date:** 2026-01-29  
+**Criteria:** Work is implemented in the codebase; task was never marked Done.
+
+## Summary
+
+**Total:** 51 task IDs (all have blank long_description).
+
+---
+
+## 1. Schema & task locking (done)
+
+| ID | Content |
+|----|--------|
+| T-69 | Add `version`, `assignee`, `assigned_at`, `lock_until` fields to schema |
+| T-70 | Create migration script |
+| T-71 | Implement `ClaimTaskForAgent()` with SELECT FOR UPDATE |
+| T-72 | Implement `ReleaseTask()` |
+| T-73 | Update `UpdateTask()` to use version checks |
+
+**Evidence:** migrations/002_add_task_locking_fields.sql, internal/database/tasks_lock.go.
+
+---
+
+## 2. Security: path & rate limit (done)
+
+| ID | Content |
+|----|--------|
+| T-266 | Create `internal/security/path.go` |
+| T-267 | Implement `ValidatePath()` function |
+| T-268 | Update `linting.go` to use path validation |
+| T-269 | Update `scorecard_go.go` to use path validation |
+| T-270 | Update `bridge/python.go` to use path validation |
+| T-271 | Add tests for path boundary enforcement |
+| T-272 | Create `internal/security/ratelimit.go` |
+| T-273 | Implement sliding window rate limiter |
+
+**Evidence:** internal/security/path.go, path_test.go, ratelimit.go; linting.go, scorecard_go.go, bridge/python.go use ValidatePath.
+
+---
+
+## 3. Project structure & server (done)
+
+| ID | Content |
+|----|--------|
+| T-331 | Create `go.mod` with Go SDK dependencies |
+| T-332 | Create `cmd/server/main.go` - Basic server skeleton |
+| T-333 | Create `internal/framework/server.go` - Framework interfaces |
+| T-334 | Create `internal/framework/factory.go` - Framework factory |
+| T-335 | Create `internal/framework/adapters/gosdk/adapter.go` - Go SDK adapter |
+| T-336 | Create `internal/bridge/python.go` - Python bridge mechanism |
+| T-337 | Create `bridge/execute_tool.py` - Python tool executor |
+| T-338 | Create `internal/config/config.go` - Configuration management |
+| T-340 | Set up Go project structure |
+| T-342 | Create basic STDIO server skeleton |
+
+**Evidence:** Files exist; factory lives in internal/factory; adapter in vendor (mcp-go-core).
+
+---
+
+## 4. Migrate tool to native Go (done)
+
+All listed tools are Full Native per docs/NATIVE_GO_HANDLER_STATUS.md (no Python bridge).
+
+| ID | Content |
+|----|--------|
+| T-367 | Migrate `analyze_alignment` |
+| T-368 | Migrate `generate_config` |
+| T-369 | Migrate `health` |
+| T-372 | Migrate `add_external_tool_hints` |
+| T-374 | Migrate `memory` |
+| T-376 | Migrate `report` |
+| T-377 | Migrate `security` |
+| T-378 | Migrate `task_analysis` |
+| T-379 | Migrate `task_discovery` |
+| T-380 | Migrate `task_workflow` |
+| T-381 | Migrate `testing` |
+| T-385 | Migrate `lint` |
+| T-386 | Migrate `estimation` |
+| T-387 | Migrate `git_tools` |
+
+**Evidence:** NATIVE_GO_HANDLER_STATUS.md, internal/tools/handlers.go, toolsWithNoBridge in regression_test.go.
+
+---
+
+## Shortlist of IDs (for bulk update to Done)
+
+T-69, T-70, T-71, T-72, T-73, T-266, T-267, T-268, T-269, T-270, T-271, T-272, T-273, T-331, T-332, T-333, T-334, T-335, T-336, T-337, T-338, T-340, T-342, T-367, T-368, T-369, T-372, T-374, T-376, T-377, T-378, T-379, T-380, T-381, T-385, T-386, T-387

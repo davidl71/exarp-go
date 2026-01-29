@@ -1,0 +1,115 @@
+{
+  "aligned_count": 318,
+  "alignment_by_persona": {
+    "architect": {
+      "advisor": "enochian",
+      "count": 6,
+      "name": "Architect"
+    },
+    "code_reviewer": {
+      "advisor": "stoic",
+      "count": 36,
+      "name": "Code Reviewer"
+    },
+    "developer": {
+      "advisor": "tao_of_programming",
+      "count": 143,
+      "name": "Developer"
+    },
+    "executive": {
+      "advisor": "pistis_sophia",
+      "count": 6,
+      "name": "Executive/Stakeholder"
+    },
+    "project_manager": {
+      "advisor": "art_of_war",
+      "count": 2,
+      "name": "Project Manager"
+    },
+    "qa_engineer": {
+      "advisor": "stoic",
+      "count": 87,
+      "name": "QA Engineer"
+    },
+    "security_engineer": {
+      "advisor": "bofh",
+      "count": 3,
+      "name": "Security Engineer"
+    },
+    "tech_writer": {
+      "advisor": "confucius",
+      "count": 35,
+      "name": "Technical Writer"
+    }
+  },
+  "goals_exists": false,
+  "overall_alignment_score": 81.5,
+  "persona_coverage": {
+    "architect": 6,
+    "code_reviewer": 36,
+    "developer": 143,
+    "executive": 6,
+    "project_manager": 2,
+    "qa_engineer": 87,
+    "security_engineer": 3,
+    "tech_writer": 35
+  },
+  "prd_exists": true,
+  "prd_user_stories": 20,
+  "recommendations": null,
+  "tasks_analyzed": 390,
+  "timestamp": "2026-01-30T00:06:30+02:00",
+  "unaligned_count": 72,
+  "unaligned_tasks": [
+    {
+      "id": "T-299",
+      "name": "Count tasks in JSON file",
+      "reason": "No strong persona match found"
+    },
+    {
+      "id": "T-214",
+      "name": "Add change application logic",
+      "reason": "No strong persona match found"
+    },
+    {
+      "id": "T-303",
+      "name": "Verify all tasks migrated",
+      "reason": "No strong persona match found"
+    },
+    {
+      "id": "T-86",
+      "name": "Open Settings (Cmd+, / Ctrl+,)",
+      "reason": "No strong persona match found"
+    },
+    {
+      "id": "T-90",
+      "name": "Restart Cursor",
+      "reason": "No strong persona match found"
+    },
+    {
+      "id": "T-314",
+      "name": "Verify system works with JSON",
+      "reason": "No strong persona match found"
+    },
+    {
+      "id": "T-68",
+      "name": "apple_foundation_models is conditionally compiled",
+      "reason": "No strong persona match found"
+    },
+    {
+      "id": "T-311",
+      "name": "Restore JSON backup",
+      "reason": "No strong persona match found"
+    },
+    {
+      "id": "T-79",
+      "name": "Agent heartbeat system",
+      "reason": "No strong persona match found"
+    },
+    {
+      "id": "T-76",
+      "name": "Add dead agent cleanup job",
+      "reason": "No strong persona match found"
+    }
+  ]
+}

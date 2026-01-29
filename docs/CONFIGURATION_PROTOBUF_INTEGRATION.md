@@ -8,42 +8,40 @@
 
 ## Executive Summary
 
-This document outlines the implementation plan for integrating Protocol Buffers (protobuf) with the configuration system. The integration will provide type safety, schema validation, and optional binary format support while maintaining YAML as the primary human-readable format.
+This document describes the integration of Protocol Buffers (protobuf) with the configuration system. **Protobuf is mandatory** for file-based config: the runtime loads only `.exarp/config.pb`. YAML is supported for editing via `exarp-go config export yaml` and `exarp-go config convert yaml protobuf`.
 
 ---
 
 ## Goals
 
-1. **Integrate protobuf schema** with existing configuration system
-2. **Support dual format loading** (YAML primary, protobuf optional)
-3. **Maintain backward compatibility** with existing YAML configs
-4. **Provide conversion utilities** between formats
-5. **Enable schema validation** at compile time
-6. **Support version compatibility** for config evolution
+1. **Integrate protobuf schema** with the configuration system
+2. **Mandatory protobuf** for file-based config (`.exarp/config.pb` only at runtime)
+3. **YAML for editing** — export to YAML, edit, then convert back to protobuf
+4. **Provide conversion utilities** between formats (export, convert)
+5. **Schema validation** via tests (see `internal/config/protobuf_test.go`)
+6. **Version compatibility** — schema evolution documented below
 
 ---
 
 ## Architecture
 
-### Configuration Format Support
+### Configuration Format (protobuf mandatory)
 
 ```
 .exarp/
-  ├── config.yaml    # Primary format (human-readable, version controlled)
-  └── config.pb      # Optional binary format (performance, type-safe)
+  └── config.pb      # Required for file-based config (protobuf binary)
 ```
 
-### Format Priority
-
-1. **YAML** (Primary) - Human-readable, easy to edit, version control friendly
-2. **Protobuf Binary** (Optional) - Type-safe, faster loading, schema validated
-3. **Defaults** (Fallback) - Used when no config file exists
+- **Runtime:** Only `.exarp/config.pb` is loaded. If only `config.yaml` exists, the loader returns an error; run `exarp-go config convert yaml protobuf` or `exarp-go config init`.
+- **No file:** Defaults are used (no error).
+- **Editing:** Use `exarp-go config export yaml` to emit YAML, edit, then `exarp-go config convert yaml protobuf` to write back.
 
 ### Conversion Flow
 
 ```
-YAML → Go Structs → Protobuf (for validation/storage)
-Protobuf → Go Structs → YAML (for editing/viewing)
+Protobuf (.pb) → LoadConfig → Go Structs (runtime)
+Go Structs → export yaml → YAML (editing)
+YAML → convert yaml protobuf → Protobuf (.pb) (save)
 ```
 
 ---
@@ -639,25 +637,21 @@ func convertTimeouts(goTimeouts TimeoutsConfig) *config.TimeoutsConfig {
 
 ## Migration Path
 
-### For Existing Projects
+### For Existing Projects (with only config.yaml)
 
-1. **No action required** - YAML remains primary format
-2. **Optional:** Convert to protobuf for performance
+1. **Required:** Create `.exarp/config.pb` (protobuf mandatory)
    ```bash
    exarp-go config convert yaml protobuf
    ```
-3. **Optional:** Use protobuf as primary format
-   - Delete `config.yaml` (or keep as backup)
-   - Use `config.pb` as primary
+2. Optionally keep `config.yaml` as a backup or remove it; runtime uses only `config.pb`.
 
 ### For New Projects
 
-1. **Default:** Use YAML format (human-readable)
-2. **Optional:** Use protobuf for type safety
+1. Create default config (writes `.exarp/config.pb`):
    ```bash
    exarp-go config init
-   exarp-go config export protobuf
    ```
+2. To edit as YAML: `exarp-go config export yaml` → edit file → `exarp-go config convert yaml protobuf`
 
 ---
 
@@ -754,9 +748,23 @@ func convertTimeouts(goTimeouts TimeoutsConfig) *config.TimeoutsConfig {
 
 ---
 
+## Schema evolution
+
+When changing configuration fields:
+
+1. **Update `proto/config.proto`** — Add or deprecate fields with new field numbers; never reuse numbers.
+2. **Regenerate Go:** Run `buf generate` (or `make proto` if available) to refresh `proto/config.pb.go`.
+3. **Update `internal/config/protobuf.go`** — Extend `ToProtobuf` / `FromProtobuf` for new nested structs or fields; preserve zero-value handling.
+4. **Update `internal/config/schema.go`** — Keep Go structs in sync with the proto (and YAML tags for export).
+5. **Run tests:** `go test ./internal/config/...` — `TestProtobufSchemaSync` and round-trip tests will fail if schemas drift.
+
+See **Risks & Mitigation → Schema Drift** above for automation and review practices.
+
+---
+
 ## Related Documents
 
-- `docs/CONFIGURATION_IMPLEMENTATION_PLAN.md` - Main configuration plan
+- `docs/CONFIGURATION_IMPLEMENTATION_PLAN.md` - Main configuration plan (protobuf mandatory, file layout)
 - `docs/PROTOBUF_ANALYSIS.md` - Protobuf usage analysis
 - `docs/CONFIGURABLE_PARAMETERS_RECOMMENDATIONS.md` - All parameters
 - `proto/config.proto` - Protobuf schema definition
@@ -787,17 +795,20 @@ func convertTimeouts(goTimeouts TimeoutsConfig) *config.TimeoutsConfig {
 
 **Usage Examples:**
 ```bash
-# Export config to protobuf format
-exarp-go config export protobuf
+# Create default config (writes .exarp/config.pb)
+exarp-go config init
 
-# Convert YAML to protobuf
+# Export current config to YAML (for editing)
+exarp-go config export yaml
+
+# After editing YAML, write back to protobuf (mandatory for runtime)
 exarp-go config convert yaml protobuf
 
-# Convert protobuf back to YAML
+# Convert existing protobuf to YAML (e.g. for inspection)
 exarp-go config convert protobuf yaml
 
-# View current config format
-exarp-go config validate  # Shows format in output
+# Validate and see format
+exarp-go config validate  # Shows format: protobuf or defaults
 ```
 
 **Next Phase:** Phase 2 - Database & Security Configuration

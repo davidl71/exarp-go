@@ -15,19 +15,17 @@ import (
 // It provides thread-safe access to wisdom sources and advisor consultations.
 // The engine must be initialized before use by calling Initialize().
 type Engine struct {
-	sources     map[string]*Source
-	loader      *SourceLoader
-	advisors    *AdvisorRegistry
-	config      *config.Config
-	initialized bool
-	mu          sync.RWMutex
-	// Performance optimization: cached sorted source list
+	sources         map[string]*Source
+	loader          *SourceLoader
+	advisors        *AdvisorRegistry
+	config          *config.Config
+	cachedDate      string
 	sortedSources   []string
+	cachedDateHash  int64
+	mu              sync.RWMutex
 	sortedSourcesMu sync.RWMutex
-	// Performance optimization: cached date hash for random source selection
-	cachedDateHash int64
-	cachedDate     string // YYYYMMDD format
-	dateHashMu     sync.RWMutex
+	dateHashMu      sync.RWMutex
+	initialized     bool
 }
 
 // NewEngine creates a new wisdom engine instance.
