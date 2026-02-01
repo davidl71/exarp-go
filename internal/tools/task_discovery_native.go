@@ -177,12 +177,13 @@ func scanComments(ctx context.Context, projectRoot string, patterns []string, in
 
 		// Skip directories and non-code files
 		if info.IsDir() {
-			// Skip common ignore directories
+			// Skip common ignore directories and archive
 			if strings.Contains(path, ".git") || strings.Contains(path, "node_modules") ||
 				strings.Contains(path, "__pycache__") || strings.Contains(path, ".venv") ||
 				strings.Contains(path, "vendor") || strings.Contains(path, ".idea") ||
 				strings.Contains(path, ".vscode") || strings.Contains(path, "dist") ||
-				strings.Contains(path, "build") || strings.Contains(path, "target") {
+				strings.Contains(path, "build") || strings.Contains(path, "target") ||
+				strings.Contains(path, "/archive/") {
 				return filepath.SkipDir
 			}
 			return nil
@@ -295,7 +296,8 @@ func scanMarkdown(projectRoot string, docPath string) []map[string]interface{} {
 		}
 
 		if info.IsDir() {
-			if strings.Contains(path, ".git") || strings.Contains(path, "node_modules") {
+			if strings.Contains(path, ".git") || strings.Contains(path, "node_modules") ||
+				strings.Contains(path, "/archive/") {
 				return filepath.SkipDir
 			}
 			return nil
@@ -526,7 +528,7 @@ func scanPlanningDocs(ctx context.Context, projectRoot string, docPath string, u
 		if info.IsDir() {
 			if strings.Contains(path, ".git") || strings.Contains(path, "node_modules") ||
 				strings.Contains(path, "vendor") || strings.Contains(path, "dist") ||
-				strings.Contains(path, "build") {
+				strings.Contains(path, "build") || strings.Contains(path, "/archive/") {
 				return filepath.SkipDir
 			}
 			return nil
