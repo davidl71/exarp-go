@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"time"
 
@@ -146,6 +147,372 @@ func handleReportPRD(ctx context.Context, params map[string]interface{}) ([]fram
 	return []framework.TextContent{
 		{Type: "text", Text: prd},
 	}, nil
+}
+
+// handleReportPlan generates a Cursor-style plan file with .plan.md suffix (Purpose, Technical Foundation, Iterative Milestones, Open Questions).
+// See https://cursor.com/learn/creating-plans. Default output is .cursor/plans/<project-slug>.plan.md so Cursor discovers it and shows Build.
+func handleReportPlan(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
+	projectRoot, err := security.GetProjectRoot(".")
+	if err != nil {
+		return nil, fmt.Errorf("failed to find project root: %w", err)
+	}
+
+	planTitle, _ := params["plan_title"].(string)
+	if planTitle == "" {
+		if info, err := getProjectInfo(projectRoot); err == nil {
+			if name, ok := info["name"].(string); ok && name != "" {
+				planTitle = name
+			}
+		}
+		if planTitle == "" {
+			planTitle = filepath.Base(projectRoot)
+		}
+	}
+
+	outputPath, _ := params["output_path"].(string)
+	if outputPath == "" {
+		slug := planFilenameFromTitle(planTitle) + ".plan.md"
+		outputPath = filepath.Join(projectRoot, ".cursor", "plans", slug)
+	}
+
+	planMD, err := generatePlanMarkdown(ctx, projectRoot, planTitle)
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate plan: %w", err)
+	}
+
+	if dir := filepath.Dir(outputPath); dir != "." {
+		if err := os.MkdirAll(dir, 0755); err != nil {
+			return nil, fmt.Errorf("failed to create plan directory: %w", err)
+		}
+	}
+	if err := os.WriteFile(outputPath, []byte(planMD), 0644); err != nil {
+		return nil, fmt.Errorf("failed to write plan file: %w", err)
+	}
+
+	planMD += fmt.Sprintf("\n\n[Plan saved to: %s]", outputPath)
+	return []framework.TextContent{
+		{Type: "text", Text: planMD},
+	}, nil
+}
+
+// generatePlanMarkdown builds a Cursor-buildable plan aligned with reference format: frontmatter, Scope, Technical Foundation, Backlog table, Milestones, Execution Order, Open Questions, Out-of-Scope.
+func generatePlanMarkdown(ctx context.Context, projectRoot, planTitle string) (string, error) {
+	displayName := planDisplayName(planTitle)
+	info, _ := getProjectInfo(projectRoot)
+	overview := getStr(info, "description")
+	if overview == "" {
+		overview = fmt.Sprintf("Deliver and maintain %s with clear milestones and quality gates.", displayName)
+	}
+
+	tasks, _ := LoadTodo2Tasks(projectRoot)
+	taskByID := make(map[string]Todo2Task)
+	for _, t := range tasks {
+		taskByID[t.ID] = t
+	}
+
+	snippet := getPlanningSnippet(projectRoot)
+	actions, _ := getNextActions(projectRoot)
+	risks, _ := getRisksAndBlockers(projectRoot)
+
+	// Todos for frontmatter (Cursor-buildable: id, content, status so Cursor displays them as Todos)
+	todoEntries := make([]struct{ id, content, status string }, 0, len(actions))
+	for _, a := range actions {
+		id := getStr(a, "task_id")
+		if id == "" {
+			continue
+		}
+		content := getStr(a, "name")
+		status := "pending"
+		if t, ok := taskByID[id]; ok {
+			if content == "" {
+				content = t.Content
+			}
+			status = todo2StatusToCursorStatus(t.Status)
+		}
+		if content == "" {
+			content = id
+		}
+		content = strings.TrimSpace(content)
+		if len(content) > 120 {
+			content = content[:117] + "..."
+		}
+		todoEntries = append(todoEntries, struct{ id, content, status string }{id, content, status})
+	}
+
+	// Execution order and waves (same wave = can run in parallel); computed once for frontmatter and section 4
+	orderedIDs, waves, _, _ := BacklogExecutionOrder(tasks, nil)
+
+	var sb strings.Builder
+
+	// YAML frontmatter (Cursor plan format; todos = [{ id, content, status }]; waves = parallelizable groups)
+	sb.WriteString("---\n")
+	sb.WriteString(fmt.Sprintf("name: %s Plan\n", displayName))
+	sb.WriteString(fmt.Sprintf("overview: %q\n", escapeYAMLString(overview)))
+	if len(todoEntries) > 0 {
+		sb.WriteString("todos:\n")
+		for _, e := range todoEntries {
+			sb.WriteString(fmt.Sprintf("  - id: %s\n", e.id))
+			sb.WriteString(fmt.Sprintf("    content: %q\n", escapeYAMLString(e.content)))
+			sb.WriteString(fmt.Sprintf("    status: %s\n", e.status))
+		}
+	} else {
+		sb.WriteString("todos: []\n")
+	}
+	if len(waves) > 0 {
+		levelOrder := make([]int, 0, len(waves))
+		for k := range waves {
+			levelOrder = append(levelOrder, k)
+		}
+		sort.Ints(levelOrder)
+		sb.WriteString("waves:\n")
+		for _, level := range levelOrder {
+			ids := waves[level]
+			if len(ids) == 0 {
+				continue
+			}
+			quoted := make([]string, len(ids))
+			for i, id := range ids {
+				quoted[i] = fmt.Sprintf("%q", id)
+			}
+			sb.WriteString("  - [" + strings.Join(quoted, ", ") + "]\n")
+		}
+	}
+	sb.WriteString("isProject: true\n")
+	sb.WriteString("status: draft\n")
+	sb.WriteString("---\n\n")
+
+	sb.WriteString(fmt.Sprintf("# %s Plan\n\n", displayName))
+	sb.WriteString(fmt.Sprintf("**Generated:** %s\n\n", time.Now().Format("2006-01-02")))
+	sb.WriteString("## Scope\n\n")
+	sb.WriteString(overview + "\n\n")
+	sb.WriteString("---\n\n")
+
+	// 1. Technical Foundation
+	sb.WriteString("## 1. Technical Foundation\n\n")
+	metrics, err := getCodebaseMetrics(projectRoot)
+	if err == nil {
+		sb.WriteString(fmt.Sprintf("- **Project type:** %s\n", getStr(info, "type")))
+		sb.WriteString(fmt.Sprintf("- **Tools:** %v | **Prompts:** %v | **Resources:** %v\n", metrics["tools"], metrics["prompts"], metrics["resources"]))
+		sb.WriteString(fmt.Sprintf("- **Codebase:** %v files (Go: %v)\n", metrics["total_files"], metrics["go_files"]))
+	}
+	sb.WriteString("- **Storage:** Todo2 (SQLite primary, JSON fallback)\n")
+	sb.WriteString("- **Invariants:** Use Makefile targets; prefer report/task_workflow over direct file edits\n\n")
+	if path, ok := snippet["critical_path"].([]string); ok && len(path) > 0 {
+		sb.WriteString("**Critical path (longest dependency chain):** ")
+		sb.WriteString(strings.Join(path, " → "))
+		sb.WriteString("\n\n")
+	}
+	sb.WriteString("---\n\n")
+
+	// 2. Backlog Tasks (table: Task | Priority | Description)
+	sb.WriteString("## 2. Backlog Tasks\n\n")
+	sb.WriteString("| Task | Priority | Description |\n")
+	sb.WriteString("|------|----------|-------------|\n")
+	if len(actions) > 0 {
+		for _, a := range actions {
+			taskID := getStr(a, "task_id")
+			priority := getStr(a, "priority")
+			name := getStr(a, "name")
+			desc := name
+			if t, ok := taskByID[taskID]; ok && t.LongDescription != "" {
+				desc = tableCellSafe(t.LongDescription)
+			} else if name != "" {
+				desc = tableCellSafe(name)
+			} else {
+				desc = taskID
+			}
+			sb.WriteString(fmt.Sprintf("| **%s** | %s | %s |\n", taskID, priority, desc))
+		}
+	} else {
+		if ids, ok := snippet["suggested_backlog_order"].([]string); ok && len(ids) > 0 {
+			for _, id := range ids {
+				t := taskByID[id]
+				desc := t.Content
+				if t.LongDescription != "" {
+					desc = tableCellSafe(t.LongDescription)
+				} else {
+					desc = tableCellSafe(t.Content)
+				}
+				sb.WriteString(fmt.Sprintf("| **%s** | %s | %s |\n", id, t.Priority, desc))
+			}
+		} else {
+			sb.WriteString("| — | — | *(Add Todo2 tasks; run report with include_planning to populate.)* |\n")
+		}
+	}
+	sb.WriteString("\n---\n\n")
+
+	// 3. Iterative Milestones (checkboxes — Cursor buildable)
+	sb.WriteString("## 3. Iterative Milestones\n\n")
+	sb.WriteString("Each milestone is independently valuable. Check off as done.\n\n")
+	if len(actions) > 0 {
+		for _, a := range actions {
+			name := getStr(a, "name")
+			taskID := getStr(a, "task_id")
+			if name == "" {
+				name = taskID
+			}
+			sb.WriteString(fmt.Sprintf("- [ ] **%s** (%s)\n", name, taskID))
+		}
+	} else {
+		if ids, ok := snippet["suggested_backlog_order"].([]string); ok && len(ids) > 0 {
+			for _, id := range ids {
+				sb.WriteString(fmt.Sprintf("- [ ] %s\n", id))
+			}
+		} else {
+			sb.WriteString("- [ ] *(Add Todo2 tasks to populate milestones)*\n")
+		}
+	}
+	sb.WriteString("\n---\n\n")
+
+	// 4. Recommended Execution Order (critical path + waves/parallelizable + optional mermaid)
+	cp, _ := snippet["critical_path"].([]string)
+
+	sb.WriteString("## 4. Recommended Execution Order\n\n")
+	if len(cp) > 0 {
+		sb.WriteString("```mermaid\nflowchart TD\n")
+		for i := 0; i < len(cp); i++ {
+			node := fmt.Sprintf("CP%d", i+1)
+			label := cp[i]
+			sb.WriteString(fmt.Sprintf("    %s[%s]\n", node, label))
+		}
+		for i := 1; i < len(cp); i++ {
+			sb.WriteString(fmt.Sprintf("    CP%d --> CP%d\n", i, i+1))
+		}
+		sb.WriteString("```\n\n")
+		for i, taskID := range cp {
+			sb.WriteString(fmt.Sprintf("%d. **%s**\n", i+1, taskID))
+		}
+		// Parallel: next actions not on critical path
+		cpSet := make(map[string]bool)
+		for _, id := range cp {
+			cpSet[id] = true
+		}
+		var parallel []string
+		for _, a := range actions {
+			id := getStr(a, "task_id")
+			if !cpSet[id] {
+				parallel = append(parallel, id)
+			}
+		}
+		if len(parallel) > 0 {
+			sb.WriteString("\n**Parallel:** " + strings.Join(parallel, ", ") + "\n")
+		}
+	} else {
+		sb.WriteString("1. Complete backlog in dependency order (see Milestones).\n")
+		if len(actions) > 0 {
+			for i, a := range actions {
+				sb.WriteString(fmt.Sprintf("%d. **%s** (%s)\n", i+1, getStr(a, "name"), getStr(a, "task_id")))
+			}
+		}
+	}
+
+	// Waves: same wave = can run in parallel (from BacklogExecutionOrder dependency levels)
+	if len(waves) > 0 {
+		sb.WriteString("\n### Waves (same wave = can run in parallel)\n\n")
+		levelOrder := make([]int, 0, len(waves))
+		for k := range waves {
+			levelOrder = append(levelOrder, k)
+		}
+		sort.Ints(levelOrder)
+		for _, level := range levelOrder {
+			ids := waves[level]
+			if len(ids) == 0 {
+				continue
+			}
+			if len(ids) >= 2 {
+				sb.WriteString(fmt.Sprintf("- **Wave %d** (parallel): %s\n", level, strings.Join(ids, ", ")))
+			} else {
+				sb.WriteString(fmt.Sprintf("- **Wave %d:** %s\n", level, ids[0]))
+			}
+		}
+		sb.WriteString("\n")
+		if len(orderedIDs) > 0 {
+			sb.WriteString("**Full order:** " + strings.Join(orderedIDs, ", ") + "\n")
+		}
+	}
+	sb.WriteString("\n---\n\n")
+
+	// 5. Open Questions
+	sb.WriteString("## 5. Open Questions\n\n")
+	if len(risks) > 0 {
+		for _, r := range risks {
+			sb.WriteString(fmt.Sprintf("- %s", getStr(r, "description")))
+			if id := getStr(r, "task_id"); id != "" {
+				sb.WriteString(fmt.Sprintf(" (%s)", id))
+			}
+			sb.WriteString("\n")
+		}
+	} else {
+		sb.WriteString("- *(Add open questions or decisions needed during implementation.)*\n")
+	}
+	sb.WriteString("\n---\n\n")
+
+	// 6. Out-of-Scope / Deferred
+	sb.WriteString("## 6. Out-of-Scope / Deferred\n\n")
+	// Low-priority backlog tasks not in next actions, or placeholder
+	var deferred []string
+	actionIDs := make(map[string]bool)
+	for _, a := range actions {
+		actionIDs[getStr(a, "task_id")] = true
+	}
+	for _, t := range tasks {
+		if IsPendingStatus(t.Status) && t.Priority == "low" && !actionIDs[t.ID] {
+			deferred = append(deferred, fmt.Sprintf("**%s** (%s) — low priority", t.ID, t.Content))
+		}
+	}
+	if len(deferred) > 0 {
+		for _, line := range deferred {
+			sb.WriteString("- " + line + "\n")
+		}
+	} else {
+		sb.WriteString("- *(Add deferred or out-of-scope items as needed.)*\n")
+	}
+
+	return sb.String(), nil
+}
+
+// planDisplayName returns a short display name from plan title (e.g. "github.com/davidl71/exarp-go" -> "exarp-go").
+func planDisplayName(title string) string {
+	if title == "" {
+		return "Project"
+	}
+	if strings.Contains(title, "/") {
+		return filepath.Base(title)
+	}
+	return title
+}
+
+// escapeYAMLString escapes a string for YAML double-quoted value.
+func escapeYAMLString(s string) string {
+	s = strings.ReplaceAll(s, "\\", "\\\\")
+	s = strings.ReplaceAll(s, "\"", "\\\"")
+	s = strings.ReplaceAll(s, "\n", " ")
+	return strings.TrimSpace(s)
+}
+
+// todo2StatusToCursorStatus maps Todo2 status to Cursor plan todo status (pending, in_progress, completed).
+func todo2StatusToCursorStatus(todo2Status string) string {
+	switch strings.TrimSpace(strings.ToLower(todo2Status)) {
+	case "done":
+		return "completed"
+	case "in progress", "inprogress":
+		return "in_progress"
+	case "review":
+		return "in_progress"
+	default:
+		return "pending"
+	}
+}
+
+// tableCellSafe makes a string safe for a markdown table cell (no |, newlines -> space).
+func tableCellSafe(s string) string {
+	s = strings.ReplaceAll(s, "|", "-")
+	s = strings.ReplaceAll(s, "\n", " ")
+	s = strings.TrimSpace(s)
+	if len(s) > 200 {
+		s = s[:197] + "..."
+	}
+	return s
 }
 
 // aggregateProjectData aggregates all project data for overview
@@ -326,6 +693,20 @@ func getStr(m map[string]interface{}, key string) string {
 	return ""
 }
 
+// planFilenameFromTitle returns a safe filename stem from a plan title (e.g. "github.com/davidl71/exarp-go" -> "exarp-go").
+func planFilenameFromTitle(title string) string {
+	if title == "" {
+		return "plan"
+	}
+	stem := title
+	if strings.Contains(title, "/") {
+		stem = filepath.Base(title)
+	}
+	stem = strings.ReplaceAll(stem, " ", "-")
+	stem = strings.ReplaceAll(stem, ":", "-")
+	return strings.TrimSpace(stem)
+}
+
 // getPlanningSnippet returns critical path summary and suggested backlog order (first 10).
 func getPlanningSnippet(projectRoot string) map[string]interface{} {
 	out := make(map[string]interface{})
@@ -425,7 +806,7 @@ func getCodebaseMetrics(projectRoot string) (map[string]interface{}, error) {
 		"total_files":  totalFiles,
 		"total_lines":  0,  // Could count lines if needed
 		"tools":        28, // From registry (28 base + 1 conditional Apple FM)
-		"prompts":      34, // From templates.go (18 original + 16 migrated from Python)
+		"prompts":      35, // From templates.go (19 original + 16 migrated from Python)
 		"resources":    21, // From resources/handlers.go
 	}
 
