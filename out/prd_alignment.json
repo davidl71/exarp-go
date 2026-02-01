@@ -1,114 +1,114 @@
 {
-  "aligned_count": 318,
+  "aligned_count": 307,
   "alignment_by_persona": {
     "architect": {
       "advisor": "enochian",
-      "count": 6,
+      "count": 5,
       "name": "Architect"
     },
     "code_reviewer": {
       "advisor": "stoic",
-      "count": 36,
+      "count": 30,
       "name": "Code Reviewer"
     },
     "developer": {
       "advisor": "tao_of_programming",
-      "count": 143,
+      "count": 138,
       "name": "Developer"
     },
     "executive": {
       "advisor": "pistis_sophia",
-      "count": 6,
+      "count": 8,
       "name": "Executive/Stakeholder"
     },
     "project_manager": {
       "advisor": "art_of_war",
-      "count": 2,
+      "count": 7,
       "name": "Project Manager"
     },
     "qa_engineer": {
       "advisor": "stoic",
-      "count": 87,
+      "count": 84,
       "name": "QA Engineer"
     },
     "security_engineer": {
       "advisor": "bofh",
-      "count": 3,
+      "count": 2,
       "name": "Security Engineer"
     },
     "tech_writer": {
       "advisor": "confucius",
-      "count": 35,
+      "count": 33,
       "name": "Technical Writer"
     }
   },
   "goals_exists": false,
-  "overall_alignment_score": 81.5,
+  "overall_alignment_score": 82.3,
   "persona_coverage": {
-    "architect": 6,
-    "code_reviewer": 36,
-    "developer": 143,
-    "executive": 6,
-    "project_manager": 2,
-    "qa_engineer": 87,
-    "security_engineer": 3,
-    "tech_writer": 35
+    "architect": 5,
+    "code_reviewer": 30,
+    "developer": 138,
+    "executive": 8,
+    "project_manager": 7,
+    "qa_engineer": 84,
+    "security_engineer": 2,
+    "tech_writer": 33
   },
   "prd_exists": true,
   "prd_user_stories": 20,
   "recommendations": null,
-  "tasks_analyzed": 390,
-  "timestamp": "2026-01-30T00:06:30+02:00",
-  "unaligned_count": 72,
+  "tasks_analyzed": 373,
+  "timestamp": "2026-02-02T00:55:09+02:00",
+  "unaligned_count": 66,
   "unaligned_tasks": [
     {
-      "id": "T-299",
-      "name": "Count tasks in JSON file",
+      "id": "T-67",
+      "name": "Requires Swift bridge",
       "reason": "No strong persona match found"
     },
     {
-      "id": "T-214",
-      "name": "Add change application logic",
+      "id": "T-219",
+      "name": "Integrate with task creation workflow",
       "reason": "No strong persona match found"
     },
     {
-      "id": "T-303",
-      "name": "Verify all tasks migrated",
+      "id": "T-218",
+      "name": "Add iterative refinement loop",
       "reason": "No strong persona match found"
     },
     {
-      "id": "T-86",
-      "name": "Open Settings (Cmd+, / Ctrl+,)",
+      "id": "T-326",
+      "name": "Check retention dates",
       "reason": "No strong persona match found"
     },
     {
-      "id": "T-90",
-      "name": "Restart Cursor",
+      "id": "T-80",
+      "name": "Lock timeout monitoring/alerts",
       "reason": "No strong persona match found"
     },
     {
-      "id": "T-314",
-      "name": "Verify system works with JSON",
+      "id": "T-341",
+      "name": "Install and configure Go SDK",
       "reason": "No strong persona match found"
     },
     {
-      "id": "T-68",
-      "name": "apple_foundation_models is conditionally compiled",
+      "id": "T-204",
+      "name": "Create model router component",
       "reason": "No strong persona match found"
     },
     {
-      "id": "T-311",
-      "name": "Restore JSON backup",
+      "id": "T-254",
+      "name": "Uses task_analysis for dependency checking",
       "reason": "No strong persona match found"
     },
     {
-      "id": "T-79",
-      "name": "Agent heartbeat system",
+      "id": "T-131",
+      "name": "List all available forms",
       "reason": "No strong persona match found"
     },
     {
-      "id": "T-76",
-      "name": "Add dead agent cleanup job",
+      "id": "T-329",
+      "name": "Update retention policy if needed",
       "reason": "No strong persona match found"
     }
   ]

@@ -92,6 +92,7 @@ func todo2StatusToPlanStatus(s string) string {
 }
 
 // writePlanFileBack updates a .plan.md file so frontmatter todos[].status and milestone checkboxes match Todo2 status.
+// Preserves all other frontmatter fields (name, overview, waves, etc.) to avoid overwriting hand-edits (T-1769980682108).
 func writePlanFileBack(planPath string, todos []PlanTodo, statusByID map[string]string) error {
 	data, err := os.ReadFile(planPath)
 	if err != nil {
@@ -99,18 +100,43 @@ func writePlanFileBack(planPath string, todos []PlanTodo, statusByID map[string]
 	}
 	content := string(data)
 
-	// Build updated frontmatter: same todos but status from Todo2
+	// Parse existing frontmatter as generic map to preserve all fields
+	frontmatterRe := regexp.MustCompile(`(?s)^---\r?\n(.*?)\r?\n---\r?\n`)
+	matches := frontmatterRe.FindStringSubmatch(content)
+	
+	var fmMap map[string]interface{}
+	if len(matches) >= 2 {
+		if err := yaml.Unmarshal([]byte(matches[1]), &fmMap); err != nil {
+			// Fall back to creating new map if parse fails
+			fmMap = make(map[string]interface{})
+		}
+	} else {
+		fmMap = make(map[string]interface{})
+	}
+
+	// Update only the todos status (preserve other todo fields like content)
 	for i := range todos {
 		if s, ok := statusByID[todos[i].ID]; ok {
 			todos[i].Status = todo2StatusToPlanStatus(s)
 		}
 	}
-	fm := PlanFrontmatter{Todos: todos}
-	fmYAML, err := yaml.Marshal(&fm)
+	
+	// Convert todos to interface slice for YAML marshaling
+	todosInterface := make([]interface{}, len(todos))
+	for i, t := range todos {
+		todosInterface[i] = map[string]interface{}{
+			"id":      t.ID,
+			"content": t.Content,
+			"status":  t.Status,
+		}
+	}
+	fmMap["todos"] = todosInterface
+
+	// Marshal with all original fields preserved
+	fmYAML, err := yaml.Marshal(&fmMap)
 	if err != nil {
 		return fmt.Errorf("marshal frontmatter: %w", err)
 	}
-	frontmatterRe := regexp.MustCompile(`(?s)^---\r?\n(.*?)\r?\n---\r?\n`)
 	content = frontmatterRe.ReplaceAllString(content, "---\n"+strings.TrimSpace(string(fmYAML))+"\n---\n")
 
 	// Replace checkbox lines: [x] if Done, [ ] otherwise

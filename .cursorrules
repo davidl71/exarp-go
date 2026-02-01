@@ -73,8 +73,8 @@ exarp-go -tool task_workflow -args '{"action":"sync","sub_action":"list","status
 4. **When in doubt**, use convenience commands first - they're simpler and more readable
 
 5. **Standing rule: Mark Done when completable** — When you complete work that satisfies a task, mark that task Done immediately.
-   - **Prefer Todo2 MCP** `update_todos`: pass `updates: [{ "id": "<task_id>", "status": "Done" }]`. No need to look up current status.
-   - **Fallback CLI** (if MCP unavailable): `exarp-go task update --status "<current_status>" --new-status "Done" --ids "<task_id>"` (use the task's current status: "Todo", "In Progress", or "Review").
+   - **Prefer exarp-go**: `exarp-go task update --status "<current_status>" --new-status "Done" --ids "<task_id>"` or `exarp-go -tool task_workflow -args '{"action":"approve","status":"<current>","new_status":"Done","task_ids":"<id1>,<id2>"}'`.
+   - **Fallback** (if exarp-go unavailable): Todo2 MCP `update_todos`: pass `updates: [{ "id": "<task_id>", "status": "Done" }]`.
 
 ## Makefile Task Commands
 

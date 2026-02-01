@@ -7,7 +7,12 @@ description: Todo2 task management via exarp-go. Prefer task_workflow MCP tool w
 
 Apply this skill when the workspace uses exarp-go and you need to work with Todo2 tasks.
 
-## Prefer MCP, Fallback to CLI
+## Prefer exarp-go for status updates (approve / task update)
+
+- **Mark Done / status changes**: Prefer `exarp-go task update` or `task_workflow` action=approve first (no result-comment block).
+- **Fallback** (if exarp-go unavailable): Todo2 MCP `update_todos`.
+
+## Prefer MCP for tool, Fallback to CLI
 
 - **When exarp-go is available as MCP** (e.g. in Cursor): use the `task_workflow` tool first.
 - **Fallback to CLI** when:
