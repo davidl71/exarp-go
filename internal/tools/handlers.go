@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/davidl71/exarp-go/internal/bridge"
 	"github.com/davidl71/exarp-go/internal/framework"
 	"github.com/davidl71/exarp-go/internal/security"
 	"github.com/davidl71/mcp-go-core/pkg/mcp/request"
@@ -748,7 +747,7 @@ func handleOllama(ctx context.Context, args json.RawMessage) ([]framework.TextCo
 	return result, nil
 }
 
-// handleMlx handles the mlx tool. Native MLX removed; uses Python bridge for status, hardware, and generate; static models list in Go.
+// handleMlx handles the mlx tool. Native-only: models (static list); status/hardware return unavailable message; generate returns error (use ollama or apple_foundation_models). Python bridge removed.
 func handleMlx(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
 	req, params, err := ParseMlxRequest(args)
 	if err != nil {
@@ -762,26 +761,7 @@ func handleMlx(ctx context.Context, args json.RawMessage) ([]framework.TextConte
 		})
 	}
 
-	if MLXNativeAvailable() {
-		result, err := handleMlxNative(ctx, params)
-		if err == nil {
-			return result, nil
-		}
-		// Native not implemented for this action (generate only) or failed — fall through to bridge
-		action, _ := params["action"].(string)
-		if action != "generate" {
-			return nil, err
-		}
-	}
-
-	result, err := bridge.ExecutePythonTool(ctx, "mlx", params)
-	if err != nil {
-		return nil, fmt.Errorf("mlx failed: %w", err)
-	}
-
-	return []framework.TextContent{
-		{Type: "text", Text: result},
-	}, nil
+	return handleMlxNative(ctx, params)
 }
 
 // mcp-generic-tools: Context management tools
