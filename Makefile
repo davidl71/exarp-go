@@ -1,4 +1,4 @@
-.PHONY: help build build-debug build-race build-no-cgo run test test-watch test-coverage test-html clean install fmt lint dev dev-watch dev-test dev-full dev-cycle pre-push bench docs sanity-check sanity-check-cached test-cli test-cli-list test-cli-tool test-cli-test config clean-config sprint-start sprint-end pre-sprint sprint check-tasks update-completed-tasks task-sanity-check go-fmt go-vet golangci-lint-check golangci-lint-fix govulncheck check check-fix check-all build-migrate migrate migrate-dry-run install-tools go-mod-tidy go-mod-verify pre-commit ci validate check-deps test-go test-go-fast test-go-verbose test-go-parallel test-go-tools-short version scorecard scorecard-full task-list task-list-todo task-list-in-progress task-list-done task-update proto proto-check proto-clean exarp-list exarp-report-scorecard exarp-report-overview exarp-health-server exarp-health-docs exarp-context-budget exarp-test
+.PHONY: help build build-debug build-race build-no-cgo run test test-watch test-coverage test-html clean install fmt lint dev dev-watch dev-test dev-full dev-cycle pre-push bench docs sanity-check sanity-check-cached test-cli test-cli-list test-cli-tool test-cli-test config clean-config sprint-start sprint-end pre-sprint sprint check-tasks update-completed-tasks task-sanity-check go-fmt go-vet golangci-lint-check golangci-lint-fix govulncheck check check-fix check-all build-migrate migrate migrate-dry-run install-tools go-mod-tidy go-mod-verify pre-commit ci validate check-deps test-go test-go-fast test-go-verbose test-go-parallel test-go-tools-short version scorecard scorecard-full scorecard-plans report-plan task-list task-list-todo task-list-in-progress task-list-done task-update proto proto-check proto-clean exarp-list exarp-report-scorecard exarp-report-overview exarp-health-server exarp-health-docs exarp-context-budget exarp-test
 
 # Project configuration
 PROJECT_NAME := exarp-go
@@ -482,6 +482,14 @@ scorecard: ## Generate project scorecard (fast mode - default)
 scorecard-full: ## Generate project scorecard (full mode - all checks)
 	@echo "$(BLUE)Generating project scorecard (full mode - this may take longer)...$(NC)"
 	@$(GO) run ./cmd/scorecard --full
+
+scorecard-plans: build ## Create improvement plans per scorecard dimension (testing, security, docs, completion)
+	@echo "$(BLUE)Creating scorecard improvement plans in .cursor/plans/...$(NC)"
+	@PROJECT_ROOT="$(CURDIR)" $(BINARY_PATH) -tool report -args '{"action":"scorecard_plans"}' </dev/null
+
+report-plan: build ## Generate Cursor-style plan (.cursor/plans/<project>.plan.md). Use local binary; avoids bridge path errors.
+	@echo "$(BLUE)Generating plan in .cursor/plans/...$(NC)"
+	@PROJECT_ROOT="$(CURDIR)" $(BINARY_PATH) -tool report -args '{"action":"plan"}'
 
 ##@ Cleanup
 
