@@ -15,6 +15,7 @@ import (
 	"github.com/davidl71/exarp-go/internal/config"
 	"github.com/davidl71/exarp-go/internal/database"
 	"github.com/davidl71/exarp-go/internal/framework"
+	mcpframework "github.com/davidl71/mcp-go-core/pkg/mcp/framework"
 	mcpresponse "github.com/davidl71/mcp-go-core/pkg/mcp/response"
 )
 
@@ -51,6 +52,29 @@ func handleSessionPrime(ctx context.Context, params map[string]interface{}) ([]f
 	includeTasks := true
 	if tasks, ok := params["include_tasks"].(bool); ok {
 		includeTasks = tasks
+	}
+
+	// Optional MCP Elicitation: ask user for prime preferences when ask_preferences is true
+	if ask, _ := params["ask_preferences"].(bool); ask {
+		if eliciter := mcpframework.EliciterFromContext(ctx); eliciter != nil {
+			schema := map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"include_tasks": map[string]interface{}{"type": "boolean", "description": "Include task summary"},
+					"include_hints": map[string]interface{}{"type": "boolean", "description": "Include tool hints"},
+				},
+			}
+			action, content, err := eliciter.ElicitForm(ctx, "Session prime: include task summary and tool hints?", schema)
+			if err == nil && action == "accept" && content != nil {
+				if v, ok := content["include_tasks"].(bool); ok {
+					includeTasks = v
+				}
+				if v, ok := content["include_hints"].(bool); ok {
+					includeHints = v
+				}
+			}
+			// On decline, cancel, or error: keep defaults (no change)
+		}
 	}
 
 	overrideMode, _ := params["override_mode"].(string)
