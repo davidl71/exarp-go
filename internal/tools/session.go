@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -54,7 +55,10 @@ func handleSessionPrime(ctx context.Context, params map[string]interface{}) ([]f
 		includeTasks = tasks
 	}
 
-	// Optional MCP Elicitation: ask user for prime preferences when ask_preferences is true
+	// Optional MCP Elicitation: ask user for prime preferences when ask_preferences is true.
+	// Use a short timeout so prime never blocks indefinitely if the client is slow or doesn't respond.
+	const elicitationTimeout = 5 * time.Second
+	var elicitationOutcome string
 	if ask, _ := params["ask_preferences"].(bool); ask {
 		if eliciter := mcpframework.EliciterFromContext(ctx); eliciter != nil {
 			schema := map[string]interface{}{
@@ -64,16 +68,26 @@ func handleSessionPrime(ctx context.Context, params map[string]interface{}) ([]f
 					"include_hints": map[string]interface{}{"type": "boolean", "description": "Include tool hints"},
 				},
 			}
-			action, content, err := eliciter.ElicitForm(ctx, "Session prime: include task summary and tool hints?", schema)
-			if err == nil && action == "accept" && content != nil {
+			elicitCtx, cancel := context.WithTimeout(ctx, elicitationTimeout)
+			defer cancel()
+			action, content, err := eliciter.ElicitForm(elicitCtx, "Session prime: include task summary and tool hints?", schema)
+			if err != nil {
+				if errors.Is(err, context.DeadlineExceeded) || (elicitCtx.Err() != nil && errors.Is(elicitCtx.Err(), context.DeadlineExceeded)) {
+					elicitationOutcome = "timeout"
+				} else {
+					elicitationOutcome = "error"
+				}
+			} else if action == "accept" && content != nil {
 				if v, ok := content["include_tasks"].(bool); ok {
 					includeTasks = v
 				}
 				if v, ok := content["include_hints"].(bool); ok {
 					includeHints = v
 				}
+				elicitationOutcome = "ok"
+			} else {
+				elicitationOutcome = "declined"
 			}
-			// On decline, cancel, or error: keep defaults (no change)
 		}
 	}
 
@@ -131,15 +145,21 @@ func handleSessionPrime(ctx context.Context, params map[string]interface{}) ([]f
 			"description": getWorkflowModeDescription(mode),
 		},
 	}
+	if elicitationOutcome != "" {
+		result["elicitation"] = elicitationOutcome
+	}
 
-	// 4. Add tasks summary if requested
+	// 4. Add tasks summary if requested (single load for both summary and suggested_next)
 	if includeTasks {
-		tasksSummary := getTasksSummary(projectRoot)
-		result["tasks"] = tasksSummary
-		// Suggested next tasks in dependency order (first 10)
-		suggestedNext := getSuggestedNextTasks(projectRoot, 10)
-		if len(suggestedNext) > 0 {
-			result["suggested_next"] = suggestedNext
+		tasks, tasksErr := LoadTodo2Tasks(projectRoot)
+		if tasksErr == nil {
+			result["tasks"] = getTasksSummaryFromTasks(tasks)
+			suggestedNext := getSuggestedNextTasksFromTasks(tasks, 10)
+			if len(suggestedNext) > 0 {
+				result["suggested_next"] = suggestedNext
+			}
+		} else {
+			result["tasks"] = map[string]interface{}{"error": "Failed to load tasks"}
 		}
 	}
 
@@ -856,24 +876,16 @@ func getHintsForMode(mode string) map[string]string {
 	return hints
 }
 
-// getTasksSummary returns a summary of tasks
-func getTasksSummary(projectRoot string) map[string]interface{} {
-	tasks, err := LoadTodo2Tasks(projectRoot)
-	if err != nil {
-		return map[string]interface{}{
-			"error": "Failed to load tasks",
-		}
-	}
-
+// getTasksSummaryFromTasks returns a summary from already-loaded tasks (avoids duplicate load).
+func getTasksSummaryFromTasks(tasks []Todo2Task) map[string]interface{} {
 	byStatus := make(map[string]int)
 	for _, task := range tasks {
 		byStatus[task.Status]++
 	}
 
-	// Get recent tasks
 	recentTasks := []map[string]interface{}{}
 	for i, task := range tasks {
-		if i >= 10 { // Limit to 10 most recent
+		if i >= 10 {
 			break
 		}
 		recentTasks = append(recentTasks, map[string]interface{}{
@@ -891,10 +903,9 @@ func getTasksSummary(projectRoot string) map[string]interface{} {
 	}
 }
 
-// getSuggestedNextTasks returns first N backlog tasks in dependency order (id + content).
-func getSuggestedNextTasks(projectRoot string, limit int) []map[string]interface{} {
-	tasks, err := LoadTodo2Tasks(projectRoot)
-	if err != nil || limit <= 0 {
+// getSuggestedNextTasksFromTasks returns first N backlog tasks in dependency order (avoids duplicate load).
+func getSuggestedNextTasksFromTasks(tasks []Todo2Task, limit int) []map[string]interface{} {
+	if limit <= 0 {
 		return nil
 	}
 	orderedIDs, _, details, err := BacklogExecutionOrder(tasks, nil)
