@@ -1,7 +1,7 @@
 # Native Go Handler Status
 
 **Date:** 2026-01-09  
-**Last Updated:** 2026-01-28 (task_workflow full native: external sync returns error)  
+**Last Updated:** 2026-02-01 (task_workflow: external sync removed; documented as future nice-to-have, param ignored)  
 **Status:** ✅ Handlers use native implementations; bridge only where required
 
 ---
@@ -47,7 +47,7 @@ These tools have complete native implementations and **never** use the Python br
 | `lint` | `handleLint` | golangci-lint, go-vet, gofmt, goimports, markdownlint, shellcheck, auto; unsupported linter returns error | ✅ Full Native (fallback removed) |
 | `ollama` | `handleOllama` | status, models, generate, docs, quality, summary, etc. (native HTTP only; errors on failure) | ✅ Full Native (fallback removed) |
 | `context` | `handleContext` | summarize (Apple FM), budget, batch; unknown action returns error | ✅ Full Native (fallback removed 2026-01-28) |
-| `task_workflow` | `handleTaskWorkflow` | sync (SQLite↔JSON), approve, clarify (Apple FM), clarity, cleanup, create; external=true returns error | ✅ Full Native (fallback removed 2026-01-28) |
+| `task_workflow` | `handleTaskWorkflow` | sync (SQLite↔JSON), approve, clarify (Apple FM), clarity, cleanup, create; external sync is future nice-to-have (param ignored) | ✅ Full Native |
 
 ### Hybrid Tools (Native First, Bridge Fallback)
 

@@ -199,7 +199,7 @@ def test_automation_sprint_native():
 
 
 def test_task_workflow_sync_native():
-    """Test task_workflow sync action (native Go implementation)."""
+    """Test task_workflow sync action (native Go). External sync is future nice-to-have; param ignored."""
     result = invoke_native_tool("task_workflow", {
         "action": "sync"
     })

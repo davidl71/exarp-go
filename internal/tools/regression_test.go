@@ -431,7 +431,7 @@ func TestRegressionFeatureParity(t *testing.T) {
 		"memory_maint":      "Fully native; no Python bridge. Health, gc, prune, consolidate, dream are native-only.",
 		"analyze_alignment": "Fully native for todo2 and prd; no Python bridge.",
 		"task_discovery":    "Fully native; no Python bridge. Comments, markdown, orphans, create_tasks are native-only (removed bridge 2026-01-28).",
-		"task_workflow":     "Fully native; no Python bridge. sync (SQLite↔JSON), approve, clarify (FM), clarity, cleanup, create; external=true returns error (2026-01-28).",
+		"task_workflow":     "Fully native; no Python bridge. sync (SQLite↔JSON), approve, clarify (FM), clarity, cleanup, create; external sync is future nice-to-have (param ignored).",
 		"infer_task_progress": "Fully native; no Python bridge. Heuristics + optional FM; dry_run, auto_update_tasks, output_path.",
 		"context":           "Fully native; no Python bridge. summarize (Apple FM), budget, batch; unknown action returns error (2026-01-28).",
 		"recommend":         "Hybrid: native workflow/model; Python fallback when native fails.",
