@@ -19,6 +19,7 @@ alwaysApply: true
      "include_tasks": true
    }
    ```
+   For maximum context, use `ask_preferences: true` when the client supports MCP elicitation—prompts the user for include_tasks/include_hints preferences at prime time.
 
 2. **Use the primed context** to inform your responses and understanding of the project state
 

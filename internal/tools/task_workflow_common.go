@@ -12,6 +12,7 @@ import (
 	"github.com/davidl71/exarp-go/internal/database"
 	"github.com/davidl71/exarp-go/internal/framework"
 	"github.com/davidl71/exarp-go/internal/models"
+	mcpframework "github.com/davidl71/mcp-go-core/pkg/mcp/framework"
 	"github.com/davidl71/mcp-go-core/pkg/mcp/response"
 )
 
@@ -63,6 +64,33 @@ func handleTaskWorkflowApprove(ctx context.Context, params map[string]interface{
 	dryRun := false
 	if dr, ok := params["dry_run"].(bool); ok {
 		dryRun = dr
+	}
+
+	// Optional MCP Elicitation: confirm batch approve when confirm_via_elicitation is true
+	if confirm, _ := params["confirm_via_elicitation"].(bool); confirm {
+		if eliciter := mcpframework.EliciterFromContext(ctx); eliciter != nil {
+			schema := map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"proceed": map[string]interface{}{"type": "boolean", "description": "Proceed with batch approve?"},
+					"dry_run": map[string]interface{}{"type": "boolean", "description": "Preview only (no updates)"},
+				},
+			}
+			action, content, err := eliciter.ElicitForm(ctx, "Proceed with batch approve? You can choose dry run to preview only.", schema)
+			if err != nil || action != "accept" {
+				result := map[string]interface{}{"cancelled": true, "message": "Batch approve cancelled by user or elicitation unavailable"}
+				return response.FormatResult(result, "")
+			}
+			if content != nil {
+				if proceed, ok := content["proceed"].(bool); ok && !proceed {
+					result := map[string]interface{}{"cancelled": true, "message": "Batch approve cancelled by user"}
+					return response.FormatResult(result, "")
+				}
+				if dr, ok := content["dry_run"].(bool); ok && dr {
+					dryRun = true
+				}
+			}
+		}
 	}
 
 	// Try database first for efficient filtering and updates
@@ -330,6 +358,21 @@ func handleTaskWorkflowUpdate(ctx context.Context, params map[string]interface{}
 			"updated_count": updatedCount,
 			"task_ids":      updatedIDs,
 		}
+		// When moving to Review, include approval request payloads for gotoHuman (T-109)
+		if newStatus == "Review" && updatedCount > 0 {
+			approvalRequests := make([]ApprovalRequest, 0, len(updatedIDs))
+			for _, id := range updatedIDs {
+				task, err := database.GetTask(ctx, id)
+				if err != nil || task == nil {
+					continue
+				}
+				approvalRequests = append(approvalRequests, BuildApprovalRequestFromTask(task, ""))
+			}
+			if len(approvalRequests) > 0 {
+				result["approval_requests"] = approvalRequests
+				result["goto_human_instructions"] = "Call @gotoHuman request-human-review-with-form with each approval_request (form_id, field_data). Set GOTOHUMAN_API_KEY if needed. See docs/GOTOHUMAN_API_REFERENCE.md."
+			}
+		}
 		return response.FormatResult(result, "")
 	}
 
@@ -377,6 +420,19 @@ func handleTaskWorkflowUpdate(ctx context.Context, params map[string]interface{}
 		"method":        "file",
 		"updated_count": len(updatedIDs),
 		"task_ids":      updatedIDs,
+	}
+	// When moving to Review, include approval request payloads for gotoHuman (T-109)
+	if newStatus == "Review" && len(updatedIDs) > 0 {
+		approvalRequests := make([]ApprovalRequest, 0, len(updatedIDs))
+		for _, id := range updatedIDs {
+			if t, ok := taskMap[id]; ok {
+				approvalRequests = append(approvalRequests, BuildApprovalRequestFromTask(t, ""))
+			}
+		}
+		if len(approvalRequests) > 0 {
+			result["approval_requests"] = approvalRequests
+			result["goto_human_instructions"] = "Call @gotoHuman request-human-review-with-form with each approval_request (form_id, field_data). Set GOTOHUMAN_API_KEY if needed. See docs/GOTOHUMAN_API_REFERENCE.md."
+		}
 	}
 	return response.FormatResult(result, "")
 }

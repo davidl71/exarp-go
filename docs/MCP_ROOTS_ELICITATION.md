@@ -78,6 +78,16 @@ func myToolHandler(ctx context.Context, args json.RawMessage) ([]framework.TextC
 
 ---
 
+## Elicitation support plan
+
+**Current state:** Session prime is the primary elicitation tool: when `ask_preferences=true` and the client supports elicitation, it asks for include_tasks / include_hints. Scope is split: **mcp-go-core** defines the `Eliciter` interface and injects it in the gosdk adapter; **exarp-go** uses `EliciterFromContext(ctx)` in tool handlers and decides when to elicit.
+
+**Pattern:** Always check `EliciterFromContext(ctx) != nil` before calling `ElicitForm`. On decline, cancel, or error, use defaults or skip the prompt (graceful fallback). Do not block CLI or non-elicitation clients.
+
+**Optional second use:** The task_workflow tool supports optional confirmation for batch actions (e.g. approve, delete) via `confirm_via_elicitation`: when true and the client supports elicitation, the user is prompted to confirm (and optionally set dry_run) before the action runs.
+
+---
+
 ## Summary
 
 | Feature     | Direction   | Where it’s used in exarp-go | How to access in code                          |
@@ -86,3 +96,5 @@ func myToolHandler(ctx context.Context, args json.RawMessage) ([]framework.TextC
 | **Elicitation** | Server → client | Tool handlers        | `framework.EliciterFromContext(ctx)` → `ElicitForm(...)` |
 
 Both features are optional: handlers must check for `nil` and fall back when the client does not support them.
+
+**Elicitation pattern (tool handler):** Check `EliciterFromContext(ctx) != nil`, then call `ElicitForm(ctx, message, schema)`; on decline, cancel, or error use defaults or skip the prompt.

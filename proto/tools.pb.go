@@ -2241,33 +2241,34 @@ func (x *TaskDiscoveryRequest) GetCreateTasks() bool {
 
 // TaskWorkflowRequest represents a request to the task workflow tool
 type TaskWorkflowRequest struct {
-	state               protoimpl.MessageState `protogen:"open.v1"`
-	Action              string                 `protobuf:"bytes,1,opt,name=action,proto3" json:"action,omitempty"`                                                 // "sync", "approve", "clarify", "clarity", "cleanup", "create"
-	DryRun              bool                   `protobuf:"varint,2,opt,name=dry_run,json=dryRun,proto3" json:"dry_run,omitempty"`                                  // default: false
-	External            bool                   `protobuf:"varint,3,opt,name=external,proto3" json:"external,omitempty"`                                            // default: false
-	Status              string                 `protobuf:"bytes,4,opt,name=status,proto3" json:"status,omitempty"`                                                 // default: "Review"
-	NewStatus           string                 `protobuf:"bytes,5,opt,name=new_status,json=newStatus,proto3" json:"new_status,omitempty"`                          // default: "Todo"
-	ClarificationNone   bool                   `protobuf:"varint,6,opt,name=clarification_none,json=clarificationNone,proto3" json:"clarification_none,omitempty"` // default: true
-	FilterTag           string                 `protobuf:"bytes,7,opt,name=filter_tag,json=filterTag,proto3" json:"filter_tag,omitempty"`
-	TaskIds             string                 `protobuf:"bytes,8,opt,name=task_ids,json=taskIds,proto3" json:"task_ids,omitempty"`       // Comma-separated or JSON array
-	SubAction           string                 `protobuf:"bytes,9,opt,name=sub_action,json=subAction,proto3" json:"sub_action,omitempty"` // default: "list"
-	TaskId              string                 `protobuf:"bytes,10,opt,name=task_id,json=taskId,proto3" json:"task_id,omitempty"`
-	ClarificationText   string                 `protobuf:"bytes,11,opt,name=clarification_text,json=clarificationText,proto3" json:"clarification_text,omitempty"`
-	Decision            string                 `protobuf:"bytes,12,opt,name=decision,proto3" json:"decision,omitempty"`
-	DecisionsJson       string                 `protobuf:"bytes,13,opt,name=decisions_json,json=decisionsJson,proto3" json:"decisions_json,omitempty"`
-	MoveToTodo          bool                   `protobuf:"varint,14,opt,name=move_to_todo,json=moveToTodo,proto3" json:"move_to_todo,omitempty"`                             // default: true
-	AutoApply           bool                   `protobuf:"varint,15,opt,name=auto_apply,json=autoApply,proto3" json:"auto_apply,omitempty"`                                  // default: false
-	OutputFormat        string                 `protobuf:"bytes,16,opt,name=output_format,json=outputFormat,proto3" json:"output_format,omitempty"`                          // default: "text"
-	StaleThresholdHours float64                `protobuf:"fixed64,17,opt,name=stale_threshold_hours,json=staleThresholdHours,proto3" json:"stale_threshold_hours,omitempty"` // default: 2.0
-	IncludeLegacy       bool                   `protobuf:"varint,18,opt,name=include_legacy,json=includeLegacy,proto3" json:"include_legacy,omitempty"`                      // default: false
-	OutputPath          string                 `protobuf:"bytes,19,opt,name=output_path,json=outputPath,proto3" json:"output_path,omitempty"`
-	Name                string                 `protobuf:"bytes,20,opt,name=name,proto3" json:"name,omitempty"`                                              // Required for create action
-	LongDescription     string                 `protobuf:"bytes,21,opt,name=long_description,json=longDescription,proto3" json:"long_description,omitempty"` // Required for create action
-	Tags                []string               `protobuf:"bytes,22,rep,name=tags,proto3" json:"tags,omitempty"`                                              // For create action
-	Dependencies        []string               `protobuf:"bytes,23,rep,name=dependencies,proto3" json:"dependencies,omitempty"`                              // For create action
-	AutoEstimate        bool                   `protobuf:"varint,24,opt,name=auto_estimate,json=autoEstimate,proto3" json:"auto_estimate,omitempty"`         // default: true
-	unknownFields       protoimpl.UnknownFields
-	sizeCache           protoimpl.SizeCache
+	state                 protoimpl.MessageState `protogen:"open.v1"`
+	Action                string                 `protobuf:"bytes,1,opt,name=action,proto3" json:"action,omitempty"`                                                 // "sync", "approve", "clarify", "clarity", "cleanup", "create"
+	DryRun                bool                   `protobuf:"varint,2,opt,name=dry_run,json=dryRun,proto3" json:"dry_run,omitempty"`                                  // default: false
+	External              bool                   `protobuf:"varint,3,opt,name=external,proto3" json:"external,omitempty"`                                            // default: false
+	Status                string                 `protobuf:"bytes,4,opt,name=status,proto3" json:"status,omitempty"`                                                 // default: "Review"
+	NewStatus             string                 `protobuf:"bytes,5,opt,name=new_status,json=newStatus,proto3" json:"new_status,omitempty"`                          // default: "Todo"
+	ClarificationNone     bool                   `protobuf:"varint,6,opt,name=clarification_none,json=clarificationNone,proto3" json:"clarification_none,omitempty"` // default: true
+	FilterTag             string                 `protobuf:"bytes,7,opt,name=filter_tag,json=filterTag,proto3" json:"filter_tag,omitempty"`
+	TaskIds               string                 `protobuf:"bytes,8,opt,name=task_ids,json=taskIds,proto3" json:"task_ids,omitempty"`       // Comma-separated or JSON array
+	SubAction             string                 `protobuf:"bytes,9,opt,name=sub_action,json=subAction,proto3" json:"sub_action,omitempty"` // default: "list"
+	TaskId                string                 `protobuf:"bytes,10,opt,name=task_id,json=taskId,proto3" json:"task_id,omitempty"`
+	ClarificationText     string                 `protobuf:"bytes,11,opt,name=clarification_text,json=clarificationText,proto3" json:"clarification_text,omitempty"`
+	Decision              string                 `protobuf:"bytes,12,opt,name=decision,proto3" json:"decision,omitempty"`
+	DecisionsJson         string                 `protobuf:"bytes,13,opt,name=decisions_json,json=decisionsJson,proto3" json:"decisions_json,omitempty"`
+	MoveToTodo            bool                   `protobuf:"varint,14,opt,name=move_to_todo,json=moveToTodo,proto3" json:"move_to_todo,omitempty"`                             // default: true
+	AutoApply             bool                   `protobuf:"varint,15,opt,name=auto_apply,json=autoApply,proto3" json:"auto_apply,omitempty"`                                  // default: false
+	OutputFormat          string                 `protobuf:"bytes,16,opt,name=output_format,json=outputFormat,proto3" json:"output_format,omitempty"`                          // default: "text"
+	StaleThresholdHours   float64                `protobuf:"fixed64,17,opt,name=stale_threshold_hours,json=staleThresholdHours,proto3" json:"stale_threshold_hours,omitempty"` // default: 2.0
+	IncludeLegacy         bool                   `protobuf:"varint,18,opt,name=include_legacy,json=includeLegacy,proto3" json:"include_legacy,omitempty"`                      // default: false
+	OutputPath            string                 `protobuf:"bytes,19,opt,name=output_path,json=outputPath,proto3" json:"output_path,omitempty"`
+	Name                  string                 `protobuf:"bytes,20,opt,name=name,proto3" json:"name,omitempty"`                                                                   // Required for create action
+	LongDescription       string                 `protobuf:"bytes,21,opt,name=long_description,json=longDescription,proto3" json:"long_description,omitempty"`                      // Required for create action
+	Tags                  []string               `protobuf:"bytes,22,rep,name=tags,proto3" json:"tags,omitempty"`                                                                   // For create action
+	Dependencies          []string               `protobuf:"bytes,23,rep,name=dependencies,proto3" json:"dependencies,omitempty"`                                                   // For create action
+	AutoEstimate          bool                   `protobuf:"varint,24,opt,name=auto_estimate,json=autoEstimate,proto3" json:"auto_estimate,omitempty"`                              // default: true
+	ConfirmViaElicitation bool                   `protobuf:"varint,25,opt,name=confirm_via_elicitation,json=confirmViaElicitation,proto3" json:"confirm_via_elicitation,omitempty"` // When true and client supports MCP elicitation, prompt to confirm approve/delete
+	unknownFields         protoimpl.UnknownFields
+	sizeCache             protoimpl.SizeCache
 }
 
 func (x *TaskWorkflowRequest) Reset() {
@@ -2464,6 +2465,13 @@ func (x *TaskWorkflowRequest) GetDependencies() []string {
 func (x *TaskWorkflowRequest) GetAutoEstimate() bool {
 	if x != nil {
 		return x.AutoEstimate
+	}
+	return false
+}
+
+func (x *TaskWorkflowRequest) GetConfirmViaElicitation() bool {
+	if x != nil {
+		return x.ConfirmViaElicitation
 	}
 	return false
 }
@@ -3499,6 +3507,7 @@ type SessionRequest struct {
 	PriorityFilter     string                 `protobuf:"bytes,26,opt,name=priority_filter,json=priorityFilter,proto3" json:"priority_filter,omitempty"`
 	IncludeUnassigned  bool                   `protobuf:"varint,27,opt,name=include_unassigned,json=includeUnassigned,proto3" json:"include_unassigned,omitempty"`  // default: false
 	MaxTasksPerAgent   int32                  `protobuf:"varint,28,opt,name=max_tasks_per_agent,json=maxTasksPerAgent,proto3" json:"max_tasks_per_agent,omitempty"` // default: 5
+	AskPreferences     bool                   `protobuf:"varint,29,opt,name=ask_preferences,json=askPreferences,proto3" json:"ask_preferences,omitempty"`           // When true and client supports elicitation, prompt user for include_tasks/include_hints at prime time
 	unknownFields      protoimpl.UnknownFields
 	sizeCache          protoimpl.SizeCache
 }
@@ -3727,6 +3736,13 @@ func (x *SessionRequest) GetMaxTasksPerAgent() int32 {
 		return x.MaxTasksPerAgent
 	}
 	return 0
+}
+
+func (x *SessionRequest) GetAskPreferences() bool {
+	if x != nil {
+		return x.AskPreferences
+	}
+	return false
 }
 
 // WorkflowModeRequest represents a request to the workflow mode tool
@@ -4992,7 +5008,7 @@ const file_proto_tools_proto_rawDesc = "" +
 	"\fjson_pattern\x18\x05 \x01(\tR\vjsonPattern\x12\x1f\n" +
 	"\voutput_path\x18\x06 \x01(\tR\n" +
 	"outputPath\x12!\n" +
-	"\fcreate_tasks\x18\a \x01(\bR\vcreateTasks\"\xaa\x06\n" +
+	"\fcreate_tasks\x18\a \x01(\bR\vcreateTasks\"\xe2\x06\n" +
 	"\x13TaskWorkflowRequest\x12\x16\n" +
 	"\x06action\x18\x01 \x01(\tR\x06action\x12\x17\n" +
 	"\adry_run\x18\x02 \x01(\bR\x06dryRun\x12\x1a\n" +
@@ -5024,7 +5040,8 @@ const file_proto_tools_proto_rawDesc = "" +
 	"\x10long_description\x18\x15 \x01(\tR\x0flongDescription\x12\x12\n" +
 	"\x04tags\x18\x16 \x03(\tR\x04tags\x12\"\n" +
 	"\fdependencies\x18\x17 \x03(\tR\fdependencies\x12#\n" +
-	"\rauto_estimate\x18\x18 \x01(\bR\fautoEstimate\"\xb8\x04\n" +
+	"\rauto_estimate\x18\x18 \x01(\bR\fautoEstimate\x126\n" +
+	"\x17confirm_via_elicitation\x18\x19 \x01(\bR\x15confirmViaElicitation\"\xb8\x04\n" +
 	"\x11AutomationRequest\x12\x16\n" +
 	"\x06action\x18\x01 \x01(\tR\x06action\x12\x14\n" +
 	"\x05tasks\x18\x02 \x03(\tR\x05tasks\x12!\n" +
@@ -5140,7 +5157,7 @@ const file_proto_tools_proto_rawDesc = "" +
 	"\rtarget_branch\x18\r \x01(\tR\ftargetBranch\x12+\n" +
 	"\x11conflict_strategy\x18\x0e \x01(\tR\x10conflictStrategy\x12\x16\n" +
 	"\x06author\x18\x0f \x01(\tR\x06author\x12\x17\n" +
-	"\adry_run\x18\x10 \x01(\bR\x06dryRun\"\xc2\a\n" +
+	"\adry_run\x18\x10 \x01(\bR\x06dryRun\"\xeb\a\n" +
 	"\x0eSessionRequest\x12\x16\n" +
 	"\x06action\x18\x01 \x01(\tR\x06action\x12#\n" +
 	"\rinclude_hints\x18\x02 \x01(\bR\fincludeHints\x12#\n" +
@@ -5174,7 +5191,8 @@ const file_proto_tools_proto_rawDesc = "" +
 	"\rexport_latest\x18\x19 \x01(\bR\fexportLatest\x12'\n" +
 	"\x0fpriority_filter\x18\x1a \x01(\tR\x0epriorityFilter\x12-\n" +
 	"\x12include_unassigned\x18\x1b \x01(\bR\x11includeUnassigned\x12-\n" +
-	"\x13max_tasks_per_agent\x18\x1c \x01(\x05R\x10maxTasksPerAgent\"\xd6\x01\n" +
+	"\x13max_tasks_per_agent\x18\x1c \x01(\x05R\x10maxTasksPerAgent\x12'\n" +
+	"\x0fask_preferences\x18\x1d \x01(\bR\x0easkPreferences\"\xd6\x01\n" +
 	"\x13WorkflowModeRequest\x12\x16\n" +
 	"\x06action\x18\x01 \x01(\tR\x06action\x12\x12\n" +
 	"\x04mode\x18\x02 \x01(\tR\x04mode\x12!\n" +
