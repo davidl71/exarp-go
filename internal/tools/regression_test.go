@@ -3,10 +3,8 @@ package tools
 import (
 	"context"
 	"encoding/json"
-	"os"
 	"testing"
 
-	"github.com/davidl71/exarp-go/internal/bridge"
 	"github.com/davidl71/exarp-go/internal/framework"
 )
 
@@ -15,14 +13,14 @@ var toolsWithNoBridge = map[string]bool{
 	"session": true, "setup_hooks": true, "check_attribution": true, "memory_maint": true,
 	"memory": true, "task_discovery": true, "analyze_alignment": true, "estimation": true, "task_analysis": true,
 	"infer_task_progress": true,
-	"git_tools": true, "infer_session_mode": true, "tool_catalog": true, "workflow_mode": true,
+	"git_tools":           true, "infer_session_mode": true, "tool_catalog": true, "workflow_mode": true,
 	"prompt_tracking": true, "generate_config": true, "add_external_tool_hints": true,
-	"report": true,
+	"report":    true,
 	"recommend": true,
-	"security": true,
-	"testing": true,
-	"lint": true,
-	"ollama": true,
+	"security":  true,
+	"testing":   true,
+	"lint":      true,
+	"ollama":    true,
 }
 
 // TestRegressionNativeOnlyTools documents tools that completed native migration (no Python bridge).
@@ -131,22 +129,6 @@ func TestRegressionHealthServer(t *testing.T) {
 			t.Error("native health result missing status or success field")
 		}
 	}
-
-	// Optional: compare to Python bridge when available (hybrid fallback)
-	bridgeResultStr, bridgeErr := bridge.ExecutePythonTool(ctx, "health", params)
-	if bridgeErr != nil {
-		t.Skipf("Python bridge not available (optional): %v", bridgeErr)
-		return
-	}
-	var bridgeData map[string]interface{}
-	if err := json.Unmarshal([]byte(bridgeResultStr), &bridgeData); err != nil {
-		t.Errorf("bridge result is not valid JSON: %v", err)
-	}
-	if bridgeSuccess, ok := bridgeData["success"].(bool); !ok || !bridgeSuccess {
-		if _, ok := bridgeData["status"]; !ok {
-			t.Error("bridge result missing success or status field")
-		}
-	}
 }
 
 // TestRegressionFallbackBehavior tests native-only tools have no bridge fallback;
@@ -212,23 +194,11 @@ func TestRegressionFallbackBehavior(t *testing.T) {
 				}
 			}
 
-			// Skip bridge comparison for fully-native tools (bridge does not route them)
+			// Skip bridge comparison for fully-native tools (Python bridge removed)
 			if toolsWithNoBridge[tt.toolName] {
 				return
 			}
-
-			// Try Python bridge fallback
-			bridgeResult, bridgeErr := bridge.ExecutePythonTool(ctx, tt.toolName, tt.params)
-			if bridgeErr != nil {
-				t.Skipf("Python bridge not available: %v", bridgeErr)
-				return
-			}
-
-			// Bridge should return valid JSON
-			var bridgeData map[string]interface{}
-			if err := json.Unmarshal([]byte(bridgeResult), &bridgeData); err != nil {
-				t.Errorf("bridge result is not valid JSON: %v", err)
-			}
+			// Python bridge removed; no bridge fallback to compare
 		})
 	}
 }
@@ -366,7 +336,6 @@ func TestRegressionErrorHandling(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			var nativeErr error
-			var bridgeErr error
 
 			switch tt.toolName {
 			case "session":
@@ -391,29 +360,10 @@ func TestRegressionErrorHandling(t *testing.T) {
 				return
 			}
 
-			// Try Python bridge
-			_, bridgeErr = bridge.ExecutePythonTool(ctx, tt.toolName, tt.params)
-			if bridgeErr != nil {
-				// Bridge may not be available - skip if so
-				if os.Getenv("SKIP_BRIDGE_TESTS") != "" {
-					t.Skipf("Python bridge not available (SKIP_BRIDGE_TESTS set)")
-					return
-				}
-			}
-
-			// Both should have same error behavior
+			// Python bridge removed; only assert native behavior
 			nativeHasError := nativeErr != nil
-			bridgeHasError := bridgeErr != nil
-
 			if nativeHasError != tt.expectError {
 				t.Errorf("native error behavior mismatch: got error=%v, want error=%v", nativeHasError, tt.expectError)
-			}
-
-			// If bridge is available, compare error behavior
-			if bridgeErr == nil || os.Getenv("SKIP_BRIDGE_TESTS") == "" {
-				if nativeHasError != bridgeHasError {
-					t.Logf("Error behavior differs: native=%v, bridge=%v (may be acceptable)", nativeHasError, bridgeHasError)
-				}
 			}
 		})
 	}
@@ -424,20 +374,20 @@ func TestRegressionFeatureParity(t *testing.T) {
 	// Native-only: no Python bridge; hybrid: native first, bridge fallback; bridge-only: intentional.
 
 	knownDifferences := map[string]string{
-		"session":           "Fully native; no Python bridge. Prime, handoff, prompts, assignee are native-only.",
-		"setup_hooks":       "Fully native; no Python bridge. Git and patterns actions are native-only.",
-		"check_attribution": "Fully native; no Python bridge.",
-		"memory":            "Fully native; no Python bridge. CRUD (save/recall/list/search) native-only; bridge fallback removed 2026-01-28.",
-		"memory_maint":      "Fully native; no Python bridge. Health, gc, prune, consolidate, dream are native-only.",
-		"analyze_alignment": "Fully native for todo2 and prd; no Python bridge.",
-		"task_discovery":    "Fully native; no Python bridge. Comments, markdown, orphans, create_tasks are native-only (removed bridge 2026-01-28).",
-		"task_workflow":     "Fully native; no Python bridge. sync (SQLite↔JSON), approve, clarify (FM), clarity, cleanup, create; external sync is future nice-to-have (param ignored).",
+		"session":             "Fully native; no Python bridge. Prime, handoff, prompts, assignee are native-only.",
+		"setup_hooks":         "Fully native; no Python bridge. Git and patterns actions are native-only.",
+		"check_attribution":   "Fully native; no Python bridge.",
+		"memory":              "Fully native; no Python bridge. CRUD (save/recall/list/search) native-only; bridge fallback removed 2026-01-28.",
+		"memory_maint":        "Fully native; no Python bridge. Health, gc, prune, consolidate, dream are native-only.",
+		"analyze_alignment":   "Fully native for todo2 and prd; no Python bridge.",
+		"task_discovery":      "Fully native; no Python bridge. Comments, markdown, orphans, create_tasks are native-only (removed bridge 2026-01-28).",
+		"task_workflow":       "Fully native; no Python bridge. sync (SQLite↔JSON), approve, clarify (FM), clarity, cleanup, create; external sync is future nice-to-have (param ignored).",
 		"infer_task_progress": "Fully native; no Python bridge. Heuristics + optional FM; dry_run, auto_update_tasks, output_path.",
-		"context":           "Fully native; no Python bridge. summarize (Apple FM), budget, batch; unknown action returns error (2026-01-28).",
-		"recommend":         "Hybrid: native workflow/model; Python fallback when native fails.",
-		"health":            "Hybrid: native server/docs/dod/cicd; Python fallback when native fails.",
-		"ollama":            "Hybrid: native uses HTTP client; Python bridge may differ.",
-		"mlx":               "Bridge-only by design; no native implementation.",
+		"context":             "Fully native; no Python bridge. summarize (Apple FM), budget, batch; unknown action returns error (2026-01-28).",
+		"recommend":           "Hybrid: native workflow/model; Python fallback when native fails.",
+		"health":              "Hybrid: native server/docs/dod/cicd; Python fallback when native fails.",
+		"ollama":              "Hybrid: native uses HTTP client; Python bridge may differ.",
+		"mlx":                 "Native-only; models (static list); status/hardware return unavailable message; generate returns error (use ollama or apple_foundation_models). Python bridge removed.",
 	}
 
 	for tool, reason := range knownDifferences {

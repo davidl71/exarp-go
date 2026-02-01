@@ -2,7 +2,6 @@
 
 # Project configuration
 PROJECT_NAME := exarp-go
-PYTHON := uv run python
 BINARY_NAME := exarp-go
 BINARY_PATH := bin/$(BINARY_NAME)
 
@@ -82,26 +81,6 @@ config: ## Configure build system (detect available tools)
 		echo "HAVE_GIT = 0" >> .make.config; \
 		echo "$(YELLOW)⚠️  Not found: git (optional - for version info)$(NC)"; \
 	fi
-	@# Detect uv
-	@if command -v uv >/dev/null 2>&1 || [ -x "$$HOME/.cargo/bin/uv" ] || [ -x "$$HOME/.local/bin/uv" ]; then \
-		echo "HAVE_UV = 1" >> .make.config; \
-		echo "$(GREEN)✅ Found: uv$(NC)"; \
-	else \
-		echo "HAVE_UV = 0" >> .make.config; \
-		echo "$(YELLOW)⚠️  Not found: uv (optional - for Python tests)$(NC)"; \
-	fi
-	@# Detect pytest
-	@if command -v uv >/dev/null 2>&1 && uv run python -m pytest --version >/dev/null 2>&1; then \
-		echo "HAVE_PYTEST = 1" >> .make.config; \
-		echo "$(GREEN)✅ Found: pytest (via uv)$(NC)"; \
-	elif command -v python3 >/dev/null 2>&1 && python3 -m pytest --version >/dev/null 2>&1; then \
-		echo "HAVE_PYTEST = 1" >> .make.config; \
-		echo "PYTHON_CMD = python3" >> .make.config; \
-		echo "$(GREEN)✅ Found: pytest (via python3)$(NC)"; \
-	else \
-		echo "HAVE_PYTEST = 0" >> .make.config; \
-		echo "$(YELLOW)⚠️  Not found: pytest (optional - for Python tests)$(NC)"; \
-	fi
 	@# Detect exarp-go binary
 	@if [ -f $(BINARY_PATH) ]; then \
 		echo "HAVE_EXARP_GO = 1" >> .make.config; \
@@ -152,12 +131,6 @@ help: ## Show this help message
 		fi; \
 		if [ -n "$$(grep 'HAVE_SQLITE3 = 1' .make.config 2>/dev/null)" ]; then \
 			echo "  $(GREEN)✅ SQLite3$(NC)"; \
-		fi; \
-		if [ -n "$$(grep 'HAVE_UV = 1' .make.config 2>/dev/null)" ]; then \
-			echo "  $(GREEN)✅ uv$(NC)"; \
-		fi; \
-		if [ -n "$$(grep 'HAVE_PYTEST = 1' .make.config 2>/dev/null)" ]; then \
-			echo "  $(GREEN)✅ pytest$(NC)"; \
 		fi; \
 		if [ -n "$$(grep 'HAVE_FILE_WATCHER = 1' .make.config 2>/dev/null)" ]; then \
 			echo "  $(GREEN)✅ File watcher$(NC)"; \
@@ -267,7 +240,7 @@ dev-full: ## Full development mode (watch + test + coverage)
 
 ##@ Testing
 
-test: test-go ## Run all tests (Go only; run 'make test-python' for MLX/bridge tests)
+test: test-go ## Run all tests (Go only)
 	@echo "$(GREEN)✅ All tests passed$(NC)"
 
 test-go: ## Run Go tests (optimized for speed with parallel execution, CGO disabled)
@@ -299,43 +272,11 @@ test-go-tools-short: ## Run internal/tools tests with -short (skips discover/spr
 	 (echo "$(RED)❌ Tools tests failed$(NC)" && exit 1)
 	@echo "$(GREEN)✅ Tools tests passed (short)$(NC)"
 
-test-python: ## Run Python tests (requires pytest) - optimized: no verbose flag
-ifeq ($(HAVE_PYTEST),1)
-	@echo "$(BLUE)Running Python tests...$(NC)"
-	@if command -v uv >/dev/null 2>&1 || [ -x "$$HOME/.cargo/bin/uv" ] || [ -x "$$HOME/.local/bin/uv" ]; then \
-		$(PYTHON) -m pytest tests/unit/python tests/integration || \
-		echo "$(YELLOW)⚠️  Python tests failed$(NC)"; \
-	elif [ -n "$(PYTHON_CMD)" ]; then \
-		$(PYTHON_CMD) -m pytest tests/unit/python tests/integration || \
-		echo "$(YELLOW)⚠️  Python tests failed$(NC)"; \
-	else \
-		python3 -m pytest tests/unit/python tests/integration || \
-		echo "$(YELLOW)⚠️  Python tests failed$(NC)"; \
-	fi
-else
-	@echo "$(YELLOW)⚠️  pytest not available - skipping Python tests$(NC)"
-	@echo "$(YELLOW)   Install: 'make config' or 'make install-dev'$(NC)"
-endif
-
-test-integration: ## Run integration tests (requires pytest)
-ifeq ($(HAVE_PYTEST),1)
-	@echo "$(BLUE)Running integration tests...$(NC)"
-	@if command -v uv >/dev/null 2>&1 || [ -x "$$HOME/.cargo/bin/uv" ] || [ -x "$$HOME/.local/bin/uv" ]; then \
-		$(PYTHON) -m pytest tests/integration -v || \
-		echo "$(YELLOW)⚠️  Integration tests failed$(NC)"; \
-	else \
-		python3 -m pytest tests/integration -v || \
-		echo "$(YELLOW)⚠️  Integration tests failed$(NC)"; \
-	fi
-	@echo "$(BLUE)Running Go tests for coverage...$(NC)"
-	@$(GO) test ./... -v || echo "$(YELLOW)⚠️  Go tests failed$(NC)"
-else
-	@echo "$(YELLOW)⚠️  pytest not available - skipping integration tests$(NC)"
+test-integration: ## Run Go tests (Python integration tests removed)
 	@echo "$(BLUE)Running Go tests...$(NC)"
 	@$(GO) test ./... -v || echo "$(YELLOW)⚠️  Go tests failed$(NC)"
-endif
 
-test-coverage: test-coverage-go ## Run tests with coverage (Go only; run 'make test-coverage-python' for MLX)
+test-coverage: test-coverage-go ## Run tests with coverage (Go only)
 
 test-coverage-go: ## Generate Go test coverage report
 	@echo "$(BLUE)Running Go tests with coverage...$(NC)"
@@ -343,23 +284,6 @@ test-coverage-go: ## Generate Go test coverage report
 	 echo "$(YELLOW)⚠️  Go coverage failed$(NC)"
 	@$(GO) tool cover -html=coverage-go.out -o coverage-go.html 2>/dev/null || true
 	@echo "$(GREEN)✅ Go coverage report: coverage-go.html$(NC)"
-
-test-coverage-python: ## Generate Python test coverage report (requires pytest)
-ifeq ($(HAVE_PYTEST),1)
-	@echo "$(BLUE)Running Python tests with coverage...$(NC)"
-	@if command -v uv >/dev/null 2>&1 || [ -x "$$HOME/.cargo/bin/uv" ] || [ -x "$$HOME/.local/bin/uv" ]; then \
-		$(PYTHON) -m pytest tests/unit/python tests/integration \
-			--cov=bridge --cov=internal --cov-report=term --cov-report=html || \
-		echo "$(YELLOW)⚠️  Python coverage failed$(NC)"; \
-	else \
-		python3 -m pytest tests/unit/python tests/integration \
-			--cov=bridge --cov=internal --cov-report=term --cov-report=html || \
-		echo "$(YELLOW)⚠️  Python coverage failed$(NC)"; \
-	fi
-	@echo "$(GREEN)✅ Python coverage report: htmlcov/index.html$(NC)"
-else
-	@echo "$(YELLOW)⚠️  pytest not available - skipping Python coverage$(NC)"
-endif
 
 test-html: test-coverage ## Generate HTML coverage reports (alias for test-coverage)
 
@@ -563,7 +487,7 @@ scorecard-full: ## Generate project scorecard (full mode - all checks)
 
 clean: ## Clean build artifacts and cache
 	@echo "$(BLUE)Cleaning...$(NC)"
-	@rm -rf __pycache__ .pytest_cache .coverage htmlcov/ .ruff_cache/
+	@rm -rf __pycache__ .pytest_cache .coverage htmlcov/
 	@rm -f coverage-go.out coverage-go.html
 	@rm -f bin/sanity-check bin/migrate
 	@find . -type d -name __pycache__ -exec rm -r {} + 2>/dev/null || true
@@ -598,35 +522,9 @@ install-binary: build ## Install exarp-go binary to GOPATH/bin (adds to PATH)
 		echo "$(YELLOW)   Add to ~/.zshrc or ~/.bashrc: export PATH=\"$$GOPATH_BIN:\$$PATH\"$(NC)"; \
 	fi
 
-install: install-binary ## Install exarp-go binary and Python dependencies
-	@echo "$(BLUE)Installing Python dependencies...$(NC)"
-	@if command -v uv >/dev/null 2>&1; then \
-		uv sync || echo "$(YELLOW)uv sync failed, but no runtime Python deps needed$(NC)"; \
-	elif [ -x "$HOME/.cargo/bin/uv" ]; then \
-		"$HOME/.cargo/bin/uv" sync || echo "$(YELLOW)uv sync failed, but no runtime Python deps needed$(NC)"; \
-	elif [ -x "$HOME/.local/bin/uv" ]; then \
-		"$HOME/.local/bin/uv" sync || echo "$(YELLOW)uv sync failed, but no runtime Python deps needed$(NC)"; \
-	else \
-		echo "$(YELLOW)uv not found - skipping Python dependencies$(NC)"; \
-		echo "$(YELLOW)Note: No runtime Python dependencies needed (bridge scripts use stdlib only)$(NC)"; \
-		echo "$(YELLOW)Install uv: curl -LsSf https://astral.sh/uv/install.sh | sh$(NC)"; \
-	fi
-	@echo "$(GREEN)✅ Dependencies check complete$(NC)"
+install: install-binary ## Install exarp-go binary (no Python dependencies)
 
-install-dev: install ## Install Python development dependencies (optional)
-	@echo "$(BLUE)Installing Python development dependencies...$(NC)"
-	@if command -v uv >/dev/null 2>&1; then \
-		uv sync --dev || echo "$(YELLOW)uv sync --dev failed$(NC)"; \
-	elif [ -x "$HOME/.cargo/bin/uv" ]; then \
-		"$HOME/.cargo/bin/uv" sync --dev || echo "$(YELLOW)uv sync --dev failed$(NC)"; \
-	elif [ -x "$HOME/.local/bin/uv" ]; then \
-		"$HOME/.local/bin/uv" sync --dev || echo "$(YELLOW)uv sync --dev failed$(NC)"; \
-	else \
-		echo "$(YELLOW)uv not found - skipping Python dev dependencies$(NC)"; \
-		echo "$(YELLOW)Dev deps are optional (pytest, black, ruff) - only needed for Python testing$(NC)"; \
-		echo "$(YELLOW)Install uv: curl -LsSf https://astral.sh/uv/install.sh | sh$(NC)"; \
-	fi
-	@echo "$(GREEN)✅ Development dependencies check complete$(NC)"
+install-dev: install ## Alias for install (no Python dev deps)
 
 ##@ Go Development
 
