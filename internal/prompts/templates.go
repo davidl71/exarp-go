@@ -330,7 +330,7 @@ Run these tools to enable automated project management:
 1. setup_hooks(action="git") - Configure automatic checks on commits
    - pre-commit: docs health, security scan (blocking)
    - pre-push: task alignment, comprehensive security (blocking)
-   - post-commit: automation discovery (non-blocking)
+   - post-commit: no-op (run automation discover manually if needed)
    - post-merge: duplicate detection, task sync (non-blocking)
 
 2. setup_hooks(action="patterns") - Configure file change triggers

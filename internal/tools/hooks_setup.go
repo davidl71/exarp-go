@@ -117,13 +117,9 @@ exarp-go -tool analyze_alignment -args '{"action":"todo2"}' </dev/null || exit 1
 exarp-go -tool security -args '{"action":"scan"}' </dev/null || exit 1
 `,
 		"post-commit": `#!/bin/sh
-# Exarp post-commit hook
-# Run automation discovery (non-blocking)
-
-# Suppress INFO logs in git hook context (reduces token usage)
+# Exarp post-commit hook (no-op; run 'exarp-go -tool automation -args '"'"'{"action":"discover"}'"'"' manually if needed)
 export GIT_HOOK=1
-
-exarp-go -tool automation -args '{"action":"discover"}' </dev/null || true
+# Automation discover removed from hook to avoid slow/noisy runs after every commit
 `,
 		"post-merge": `#!/bin/sh
 # Exarp post-merge hook
