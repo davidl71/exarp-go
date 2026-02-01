@@ -79,7 +79,7 @@ func convertTodo2TaskJSONToTask(raw todo2TaskJSON) models.Todo2Task {
 // so the Todo2 extension and overview never show Invalid Date or 1970.
 type todo2TaskWrite struct {
 	ID              string                 `json:"id"`
-	Name            string                 `json:"name,omitempty"`
+	Name            string                 `json:"name"` // Always write for Todo2 extension display; fallback from content
 	Content         string                 `json:"content"`
 	Description     string                 `json:"description,omitempty"`
 	LongDescription string                 `json:"long_description,omitempty"`
