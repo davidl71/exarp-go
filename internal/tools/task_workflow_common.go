@@ -32,7 +32,8 @@ func handleTaskWorkflowApprove(ctx context.Context, params map[string]interface{
 		newStatus = normalizeStatus(s)
 	}
 
-	clarificationNone := true
+	// Default false: include all matching tasks (including short/empty descriptions)
+	clarificationNone := false
 	if cn, ok := params["clarification_none"].(bool); ok {
 		clarificationNone = cn
 	}
