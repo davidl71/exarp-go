@@ -38,6 +38,7 @@ As of the latest generator, exarp-go plans include:
 - **Location:** Default output is **`.cursor/plans/<project-slug>.plan.md`** so Cursor discovers the plan and shows the Build option (plans in project root may not get Build).
 - **Frontmatter** `name`, `overview`, `todos` (task IDs), `isProject: true`, **`status: draft`** — Cursor plan UI and agents can read these; `status: draft` for new plans; Cursor may set `status: built` when you build from the plan.
 - **Checkboxes** in **Iterative Milestones** — Cursor can track completion; `todos` in frontmatter lists task IDs for tooling.
+- **Plan ↔ Todo2 sync:** Use `task_workflow` with `action=sync_from_plan` (or `sync_plan_status`) and `planning_doc=<path to .plan.md>`. Parses frontmatter and milestone checkboxes, creates/updates Todo2 tasks, and optionally writes the plan file back so checkboxes and frontmatter `todos[].status` match Todo2 (bidirectional). Params: `planning_doc` (required), `dry_run` (optional), `write_plan` (optional, default true).
 - **Tables and mermaid** — Same structure as reference plans so Cursor can parse sections and execution order.
 
 Rebuild exarp-go and run `report(action="plan")` to generate a plan in `.cursor/plans/` with this format. Reference: **~/.cursor/plans/configuration_tasks_plan_983edd1f.plan.md**.

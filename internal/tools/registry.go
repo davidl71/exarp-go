@@ -695,7 +695,7 @@ func registerBatch2Tools(server framework.MCPServer) error {
 				},
 				"clarification_none": map[string]interface{}{
 					"type":    "boolean",
-					"default": true,
+					"default": false,
 				},
 				"filter_tag": map[string]interface{}{
 					"type": "string",
@@ -782,7 +782,12 @@ func registerBatch2Tools(server framework.MCPServer) error {
 				},
 				"planning_doc": map[string]interface{}{
 					"type":        "string",
-					"description": "Path to planning document (optional, stored in task metadata)",
+					"description": "Path to planning document. For link_planning: optional, stored in task metadata. For sync_from_plan/sync_plan_status: required (.plan.md path).",
+				},
+				"write_plan": map[string]interface{}{
+					"type":        "boolean",
+					"default":     true,
+					"description": "For sync_from_plan: when true (default), update plan file checkboxes and frontmatter from Todo2 status (bidirectional).",
 				},
 				"epic_id": map[string]interface{}{
 					"type":        "string",

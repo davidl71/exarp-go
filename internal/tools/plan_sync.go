@@ -77,10 +77,66 @@ func cursorStatusToTodo2(s string) string {
 	}
 }
 
+// todo2StatusToPlanStatus maps Todo2 status to Cursor plan frontmatter status.
+func todo2StatusToPlanStatus(s string) string {
+	switch strings.TrimSpace(s) {
+	case "Done":
+		return "done"
+	case "In Progress":
+		return "in_progress"
+	case "Review":
+		return "review"
+	default:
+		return "pending"
+	}
+}
+
+// writePlanFileBack updates a .plan.md file so frontmatter todos[].status and milestone checkboxes match Todo2 status.
+func writePlanFileBack(planPath string, todos []PlanTodo, statusByID map[string]string) error {
+	data, err := os.ReadFile(planPath)
+	if err != nil {
+		return fmt.Errorf("read plan file: %w", err)
+	}
+	content := string(data)
+
+	// Build updated frontmatter: same todos but status from Todo2
+	for i := range todos {
+		if s, ok := statusByID[todos[i].ID]; ok {
+			todos[i].Status = todo2StatusToPlanStatus(s)
+		}
+	}
+	fm := PlanFrontmatter{Todos: todos}
+	fmYAML, err := yaml.Marshal(&fm)
+	if err != nil {
+		return fmt.Errorf("marshal frontmatter: %w", err)
+	}
+	frontmatterRe := regexp.MustCompile(`(?s)^---\r?\n(.*?)\r?\n---\r?\n`)
+	content = frontmatterRe.ReplaceAllString(content, "---\n"+strings.TrimSpace(string(fmYAML))+"\n---\n")
+
+	// Replace checkbox lines: [x] if Done, [ ] otherwise
+	checkboxRe := regexp.MustCompile(`^(\s*-\s*)\[\s*([ xX])\s*\](\s*(?:\*\*[^*]+\*\*|.+?)\s*\(\s*)([A-Za-z0-9_-]+)(\s*\))$`)
+	lines := strings.Split(content, "\n")
+	for i, line := range lines {
+		subs := checkboxRe.FindStringSubmatch(line)
+		if len(subs) >= 5 {
+			taskID := strings.TrimSpace(subs[4])
+			checked := statusByID[taskID] == "Done"
+			box := "[ ]"
+			if checked {
+				box = "[x]"
+			}
+			lines[i] = subs[1] + box + subs[3] + taskID + subs[5]
+		}
+	}
+	content = strings.Join(lines, "\n")
+
+	return os.WriteFile(planPath, []byte(content), 0644)
+}
+
 // handleTaskWorkflowSyncFromPlan parses a Cursor .plan.md file and creates/updates Todo2 tasks.
-// Bidirectional: reads plan file (todos + checkboxes) and syncs to Todo2.
+// Bidirectional: reads plan file (todos + checkboxes) and syncs to Todo2; optionally writes plan back to match Todo2 status.
 // When Cursor "builds" a plan (user checks off milestones), run this to sync status to Todo2 (T-1769980693841).
-// Params: planning_doc (path to .plan.md, required), dry_run (optional, default false).
+// Params: planning_doc (path to .plan.md, required), dry_run (optional, default false), write_plan (optional, default true = update plan file from Todo2).
 func handleTaskWorkflowSyncFromPlan(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	planningDoc, _ := params["planning_doc"].(string)
 	if planningDoc == "" {
@@ -196,6 +252,34 @@ func handleTaskWorkflowSyncFromPlan(ctx context.Context, params map[string]inter
 	if useDB && (len(created) > 0 || len(updated) > 0) && !dryRun {
 		if err := SyncTodo2Tasks(projectRoot); err != nil {
 			return nil, fmt.Errorf("sync_from_plan: sync to JSON: %w", err)
+		}
+	}
+
+	// Bidirectional: write plan file back so checkboxes and frontmatter match Todo2 status (default true)
+	writePlan := true
+	if w, ok := params["write_plan"].(bool); ok {
+		writePlan = w
+	}
+	if writePlan && !dryRun && len(todos) > 0 {
+		statusByID := make(map[string]string)
+		for _, todo := range todos {
+			if todo.ID == "" {
+				continue
+			}
+			if t, ok := taskByID[todo.ID]; ok {
+				statusByID[todo.ID] = t.Status
+			}
+		}
+		if useDB {
+			// Reload from DB so we have latest status after updates
+			for id := range statusByID {
+				if t, err := database.GetTask(ctx, id); err == nil {
+					statusByID[id] = t.Status
+				}
+			}
+		}
+		if err := writePlanFileBack(planPath, todos, statusByID); err != nil {
+			return nil, fmt.Errorf("sync_from_plan: write plan back: %w", err)
 		}
 	}
 
