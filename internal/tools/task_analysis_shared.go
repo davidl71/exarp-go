@@ -692,7 +692,13 @@ func discoverTagsFromMarkdown(projectRoot, docPath string) []map[string]interfac
 	tagsLinePattern := regexp.MustCompile(`(?i)^(?:tags?|labels?|categories?):\s*(.+)$`) // Tags: tag1, tag2
 
 	filepath.Walk(searchPath, func(path string, info os.FileInfo, err error) error {
-		if err != nil || info.IsDir() {
+		if err != nil {
+			return nil
+		}
+		if info.IsDir() {
+			if strings.Contains(path, "/archive/") {
+				return filepath.SkipDir
+			}
 			return nil
 		}
 
@@ -822,7 +828,13 @@ func discoverTagsFromMarkdownWithCache(projectRoot, docPath string, useCache boo
 	}
 
 	filepath.Walk(searchPath, func(path string, info os.FileInfo, err error) error {
-		if err != nil || info.IsDir() {
+		if err != nil {
+			return nil
+		}
+		if info.IsDir() {
+			if strings.Contains(path, "/archive/") {
+				return filepath.SkipDir
+			}
 			return nil
 		}
 
