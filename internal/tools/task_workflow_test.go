@@ -99,6 +99,118 @@ func TestHandleTaskWorkflowNative(t *testing.T) {
 			},
 			wantError: true,
 		},
+		// sync with sub_action list returns task list (no sync); request JSON for parseable response
+		{
+			name: "sync sub_action list",
+			params: map[string]interface{}{
+				"action":        "sync",
+				"sub_action":    "list",
+				"output_format": "json",
+			},
+			wantError: false,
+			validate: func(t *testing.T, result []framework.TextContent) {
+				if len(result) == 0 {
+					t.Error("expected non-empty result for sync list")
+					return
+				}
+				var data map[string]interface{}
+				if err := json.Unmarshal([]byte(result[0].Text), &data); err != nil {
+					t.Errorf("invalid JSON: %v", err)
+					return
+				}
+				if _, ok := data["tasks"]; !ok {
+					t.Error("expected tasks field in list result")
+				}
+			},
+		},
+		// cleanup with dry_run returns without error
+		{
+			name: "cleanup dry_run",
+			params: map[string]interface{}{
+				"action":  "cleanup",
+				"dry_run": true,
+			},
+			wantError: false,
+			validate: func(t *testing.T, result []framework.TextContent) {
+				if len(result) == 0 {
+					t.Error("expected non-empty result for cleanup dry_run")
+					return
+				}
+				var data map[string]interface{}
+				if err := json.Unmarshal([]byte(result[0].Text), &data); err != nil {
+					t.Errorf("invalid JSON: %v", err)
+					return
+				}
+				if dr, ok := data["dry_run"].(bool); !ok || !dr {
+					t.Error("expected dry_run=true in cleanup result")
+				}
+			},
+		},
+		// clarity analyzes tasks (no task_id required); request JSON for parseable response
+		{
+			name: "clarity action",
+			params: map[string]interface{}{
+				"action":        "clarity",
+				"output_format": "json",
+			},
+			wantError: false,
+			validate: func(t *testing.T, result []framework.TextContent) {
+				if len(result) == 0 {
+					t.Error("expected non-empty result for clarity")
+					return
+				}
+				var data map[string]interface{}
+				if err := json.Unmarshal([]byte(result[0].Text), &data); err != nil {
+					t.Errorf("invalid JSON: %v", err)
+					return
+				}
+				if _, ok := data["clarity_issues"]; !ok {
+					t.Error("expected clarity_issues in clarity result")
+				}
+			},
+		},
+		// delete requires task_id or task_ids
+		{
+			name: "delete without task_ids",
+			params: map[string]interface{}{
+				"action": "delete",
+			},
+			wantError: true,
+		},
+		// update requires task_ids
+		{
+			name: "update without task_ids",
+			params: map[string]interface{}{
+				"action": "update",
+			},
+			wantError: true,
+		},
+		// update requires at least one of new_status or priority
+		{
+			name: "update with task_ids but no new_status or priority",
+			params: map[string]interface{}{
+				"action":   "update",
+				"task_ids": []interface{}{"T-1"},
+			},
+			wantError: true,
+		},
+		// link_planning requires planning_doc or epic_id
+		{
+			name: "link_planning without planning_doc and epic_id",
+			params: map[string]interface{}{
+				"action": "link_planning",
+			},
+			wantError: true,
+		},
+		// link_planning requires task_id or task_ids
+		{
+			name: "link_planning without task_ids",
+			params: map[string]interface{}{
+				"action":       "link_planning",
+				"planning_doc": "docs/plan.md",
+			},
+			wantError: true,
+		},
 	}
 
 	for _, tt := range tests {
@@ -267,7 +379,7 @@ func TestHandleTaskWorkflow(t *testing.T) {
 				t.Errorf("handleTaskWorkflow() error = %v, wantError %v", err, tt.wantError)
 				return
 			}
-			if !tt.wantError && (result == nil || len(result) == 0) {
+			if !tt.wantError && len(result) == 0 {
 				t.Error("expected non-empty result")
 			}
 		})
