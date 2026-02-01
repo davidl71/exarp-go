@@ -1,24 +1,24 @@
 {
-  "aligned_count": 307,
+  "aligned_count": 261,
   "alignment_by_persona": {
     "architect": {
       "advisor": "enochian",
-      "count": 5,
+      "count": 3,
       "name": "Architect"
     },
     "code_reviewer": {
       "advisor": "stoic",
-      "count": 30,
+      "count": 25,
       "name": "Code Reviewer"
     },
     "developer": {
       "advisor": "tao_of_programming",
-      "count": 138,
+      "count": 119,
       "name": "Developer"
     },
     "executive": {
       "advisor": "pistis_sophia",
-      "count": 8,
+      "count": 5,
       "name": "Executive/Stakeholder"
     },
     "project_manager": {
@@ -28,7 +28,7 @@
     },
     "qa_engineer": {
       "advisor": "stoic",
-      "count": 84,
+      "count": 73,
       "name": "QA Engineer"
     },
     "security_engineer": {
@@ -38,52 +38,47 @@
     },
     "tech_writer": {
       "advisor": "confucius",
-      "count": 33,
+      "count": 27,
       "name": "Technical Writer"
     }
   },
   "goals_exists": false,
-  "overall_alignment_score": 82.3,
+  "overall_alignment_score": 85.6,
   "persona_coverage": {
-    "architect": 5,
-    "code_reviewer": 30,
-    "developer": 138,
-    "executive": 8,
+    "architect": 3,
+    "code_reviewer": 25,
+    "developer": 119,
+    "executive": 5,
     "project_manager": 7,
-    "qa_engineer": 84,
+    "qa_engineer": 73,
     "security_engineer": 2,
-    "tech_writer": 33
+    "tech_writer": 27
   },
   "prd_exists": true,
   "prd_user_stories": 20,
   "recommendations": null,
-  "tasks_analyzed": 373,
-  "timestamp": "2026-02-02T00:55:09+02:00",
-  "unaligned_count": 66,
+  "tasks_analyzed": 305,
+  "timestamp": "2026-02-02T01:23:49+02:00",
+  "unaligned_count": 44,
   "unaligned_tasks": [
     {
-      "id": "T-67",
-      "name": "Requires Swift bridge",
+      "id": "T-384",
+      "name": "Migrate `workflow_mode`",
       "reason": "No strong persona match found"
     },
     {
-      "id": "T-219",
-      "name": "Integrate with task creation workflow",
+      "id": "T-132",
+      "name": "Get schema for each form",
       "reason": "No strong persona match found"
     },
     {
-      "id": "T-218",
-      "name": "Add iterative refinement loop",
+      "id": "T-88",
+      "name": "Enable \"Cursor: Background Agents\"",
       "reason": "No strong persona match found"
     },
     {
-      "id": "T-326",
-      "name": "Check retention dates",
-      "reason": "No strong persona match found"
-    },
-    {
-      "id": "T-80",
-      "name": "Lock timeout monitoring/alerts",
+      "id": "T-85",
+      "name": "All critical path items complete",
       "reason": "No strong persona match found"
     },
     {
@@ -92,23 +87,28 @@
       "reason": "No strong persona match found"
     },
     {
-      "id": "T-204",
-      "name": "Create model router component",
+      "id": "T-53",
+      "name": "Ollama uses \"model\" not \"name\"",
       "reason": "No strong persona match found"
     },
     {
-      "id": "T-254",
-      "name": "Uses task_analysis for dependency checking",
+      "id": "T-168",
+      "name": "Create MIGRATION_COMPLETE.md",
       "reason": "No strong persona match found"
     },
     {
-      "id": "T-131",
-      "name": "List all available forms",
+      "id": "T-218",
+      "name": "Add iterative refinement loop",
       "reason": "No strong persona match found"
     },
     {
-      "id": "T-329",
-      "name": "Update retention policy if needed",
+      "id": "T-207",
+      "name": "Add model selection logic",
+      "reason": "No strong persona match found"
+    },
+    {
+      "id": "T-323",
+      "name": "Check for broken references",
       "reason": "No strong persona match found"
     }
   ]
