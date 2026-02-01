@@ -396,12 +396,9 @@ func handleTaskWorkflowListPlaceholder(ctx context.Context, params map[string]in
 
 var _ = handleTaskWorkflowListPlaceholder // avoid unused; real list is handleTaskWorkflowList
 
-// handleTaskWorkflowApproveMCP fallback to Todo2 MCP tools when file access fails
+// handleTaskWorkflowApproveMCP returns an error when project root or task load fails (no bridge).
 func handleTaskWorkflowApproveMCP(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
-	// This is a fallback - in a real implementation, we would call Todo2 MCP update_todos
-	// For now, return an error indicating MCP fallback is needed
-	// The Python bridge will handle it via consolidated_workflow.py
-	return nil, fmt.Errorf("approve action: file access failed, falling back to Python bridge")
+	return nil, fmt.Errorf("approve action: project root or task load failed; cannot approve tasks")
 }
 
 // handleTaskWorkflowList handles list sub-action for displaying tasks
@@ -524,13 +521,9 @@ func handleTaskWorkflowList(ctx context.Context, params map[string]interface{}) 
 	}, nil
 }
 
-// handleTaskWorkflowSync handles sync action for synchronizing tasks between SQLite and JSON
+// handleTaskWorkflowSync handles sync action for synchronizing tasks between SQLite and JSON.
+// The "external" param (sync with external sources, e.g. infer_task_progress) is a future nice-to-have; if passed, it is ignored and SQLite↔JSON sync is performed.
 func handleTaskWorkflowSync(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
-	external, _ := params["external"].(bool)
-	if external {
-		return nil, fmt.Errorf("external sync (agentic-tools) is not implemented in native Go; omit external or use external=false for SQLite↔JSON sync")
-	}
-
 	projectRoot, err := FindProjectRoot()
 	if err != nil {
 		return nil, fmt.Errorf("failed to find project root: %w", err)
@@ -601,6 +594,9 @@ func handleTaskWorkflowSync(ctx context.Context, params map[string]interface{}) 
 		"issues_found":    len(issues),
 		"issues":          issues,
 		"synced":          !dryRun,
+	}
+	if external, _ := params["external"].(bool); external {
+		syncResults["external_sync_note"] = "External sync is a future nice-to-have; performed SQLite↔JSON sync only."
 	}
 
 	result := map[string]interface{}{

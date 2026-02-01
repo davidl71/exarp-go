@@ -30,7 +30,7 @@
 
 ## 4. Deferred / intentional
 
-- **task_workflow** `external=true` → bridge required (agentic-tools)
+- **task_workflow** `external=true` → removed; external sync is a future nice-to-have (param ignored; SQLite↔JSON sync performed)
 - **mlx** → bridge-only by design
 - **lint** → hybrid by design (Go native, others bridge)
 - memory semantic search, testing suggest/generate, security non-Go, recommend advisor

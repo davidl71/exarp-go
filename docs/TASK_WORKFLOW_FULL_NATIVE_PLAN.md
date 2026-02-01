@@ -1,8 +1,8 @@
 # task_workflow Full Native Plan
 
 **Goal:** Make `task_workflow` fully native (no Python bridge).  
-**Status:** Option A implemented 2026-01-28 — `external=true` returns error; no bridge.  
-**Previously:** Single bridge path remained: **sync with `external=true`**.
+**Status:** Done. External sync **removed** as a supported feature; documented as **future nice-to-have**. If `external=true` is passed, it is ignored and SQLite↔JSON sync is performed (no error).  
+**Previously:** Option A returned error when `external=true`; now we ignore the param and document external sync as future nice-to-have.
 
 ---
 
@@ -18,25 +18,21 @@
 |----------|------------------------------------|--------|
 | clarify  | handleTaskWorkflowClarify (Apple FM chain) | No      |
 | approve  | handleTaskWorkflowApprove          | No      |
-| sync     | handleTaskWorkflowSync             | **Yes when `external=true`** |
+| sync     | handleTaskWorkflowSync             | No — `external` ignored; future nice-to-have |
 | clarity  | handleTaskWorkflowClarity          | No      |
 | cleanup  | handleTaskWorkflowCleanup         | No      |
 | create   | handleTaskWorkflowCreate          | No      |
 
-### Where the bridge is used
+### External sync: removed, documented as future nice-to-have
 
 **File:** `internal/tools/task_workflow_common.go`  
 **Function:** `handleTaskWorkflowSync`
 
-```go
-external, _ := params["external"].(bool)
-if external {
-    bridgeResult, err := bridge.ExecutePythonTool(ctx, "task_workflow", params)
-    // ...
-}
-```
+**Current behavior:** The `external` param is **not** implemented. If `external=true` is passed, it is **ignored** and SQLite↔JSON sync is performed. A note is added to the result: `external_sync_note: "External sync is a future nice-to-have; performed SQLite↔JSON sync only."`
 
-When **sync** is called with **`external=true`**, the code invokes the Python bridge. The comment says “syncs with external task sources (agentic-tools)”. The Python `task_workflow()` in `consolidated_automation.py` does **not** take an `external` argument; for `action == "sync"` it only calls `sync_todo_tasks(dry_run, output_path)` (TODO table ↔ Todo2). So today the bridge path runs the same Python sync logic; there is no separate “agentic-tools” sync implementation in the Python code checked.
+**Future nice-to-have:** External sync (e.g. run infer_task_progress in-process then sync) could be added later without any agentic-tools MCP. See "Do we need agentic-tools MCP?" below.
+
+*Historical:* When **sync** was called with **`external=true`**, the code used to invoke the Python bridge. The comment says “syncs with external task sources (agentic-tools)”. The Python `task_workflow()` in `consolidated_automation.py` does **not** take an `external` argument; for `action == "sync"` it only calls `sync_todo_tasks(dry_run, output_path)` (TODO table ↔ Todo2). So today the bridge path runs the same Python sync logic; there is no separate “agentic-tools” sync implementation in the Python code checked.
 
 ### Clarify and FM
 
@@ -118,6 +114,17 @@ When **sync** is called with **`external=true`**, the code invokes the Python br
 
 ---
 
+## Do we need agentic-tools MCP?
+
+**No.** We do **not** need to call an external agentic-tools MCP.
+
+- **"Agentic" in this repo** = **Agentic CI** (`.github/workflows/agentic-ci.yml`) — the workflow that runs exarp-go tools. Not an agentic-tools MCP server.
+- **External sync** was never implemented in Python in this repo: `consolidated_automation.py` sync only does SQLite↔JSON; there is no `auto_update_task_status.py` or `agentic_tools_client` in exarp-go.
+- **We already implement natively:** **infer_task_progress** (native Go: heuristics + optional FM, `auto_update_tasks` to mark completed tasks Done; used in automation daily; no Python, no agentic-tools MCP). **task_workflow** sync/approve/clarify/clarity/cleanup/create/list are all native.
+- **If we want `external=true` to do something:** implement sync(external=true) as "run infer_task_progress (e.g. auto_update_tasks=true) in-process, then SQLite↔JSON sync" — all native, no MCP.
+
+---
+
 ## Recommendation
 
 - **Short term:** **Option A** — return a clear error when `external=true`. That makes `task_workflow` fully native with minimal code and no new dependencies.
@@ -143,4 +150,4 @@ When **sync** is called with **`external=true`**, the code invokes the Python br
 - Sync logic: `internal/tools/task_workflow_common.go` (`handleTaskWorkflowSync`)
 - Native router: `internal/tools/task_workflow_native.go` (`handleTaskWorkflowNative`)
 - Python entry: `project_management_automation/tools/consolidated_automation.py` (`task_workflow`), `todo_sync.py` (`sync_todo_tasks`)
-- Agentic-tools usage: `project_management_automation/tools/auto_update_task_status.py`, `utils/agentic_tools_client.py`
+- (No agentic-tools MCP in this repo; `auto_update_task_status.py` / `agentic_tools_client` are not present — see "Do we need agentic-tools MCP?" above.)
