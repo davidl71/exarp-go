@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/davidl71/exarp-go/internal/framework"
@@ -70,6 +71,28 @@ func TestHandleTaskWorkflowNative(t *testing.T) {
 			},
 		},
 		{
+			name: "sync_from_plan action requires planning_doc",
+			params: map[string]interface{}{
+				"action": "sync_from_plan",
+			},
+			wantError: true,
+		},
+		{
+			name: "request_approval requires task_id",
+			params: map[string]interface{}{
+				"action": "request_approval",
+			},
+			wantError: true,
+		},
+		{
+			name: "apply_approval_result requires task_id",
+			params: map[string]interface{}{
+				"action": "apply_approval_result",
+				"result": "approved",
+			},
+			wantError: true,
+		},
+		{
 			name: "unknown action",
 			params: map[string]interface{}{
 				"action": "unknown",
@@ -134,6 +157,78 @@ func TestHandleTaskWorkflowApproveConfirmViaElicitation(t *testing.T) {
 		if cancelled, _ := data["cancelled"].(bool); cancelled {
 			t.Errorf("expected no cancellation when eliciter is nil, got cancelled=true")
 		}
+	})
+}
+
+func TestApprovalWorkflowActions(t *testing.T) {
+	tmpDir := t.TempDir()
+	os.Setenv("PROJECT_ROOT", tmpDir)
+	defer os.Unsetenv("PROJECT_ROOT")
+
+	todo2Dir := filepath.Join(tmpDir, ".todo2")
+	if err := os.MkdirAll(todo2Dir, 0755); err != nil {
+		t.Fatalf("mkdir .todo2: %v", err)
+	}
+	statePath := filepath.Join(todo2Dir, "state.todo2.json")
+	stateJSON := []byte(`{"todos":[{"id":"T-test-approval","content":"Test Approval Task","long_description":"For approval flow test","status":"Review","priority":"medium"}]}`)
+	if err := os.WriteFile(statePath, stateJSON, 0644); err != nil {
+		t.Fatalf("write state: %v", err)
+	}
+
+	ctx := context.Background()
+
+	t.Run("sync_approvals returns list", func(t *testing.T) {
+		params := map[string]interface{}{"action": "sync_approvals"}
+		result, err := handleTaskWorkflowNative(ctx, params)
+		if err != nil {
+			t.Fatalf("sync_approvals: %v", err)
+		}
+		if len(result) == 0 {
+			t.Fatal("expected non-empty result")
+		}
+		var data map[string]interface{}
+		if err := json.Unmarshal([]byte(result[0].Text), &data); err != nil {
+			t.Fatalf("invalid JSON: %v", err)
+		}
+		if _, ok := data["approval_requests"]; !ok {
+			t.Errorf("expected approval_requests in result")
+		}
+	})
+
+	t.Run("request_approval returns payload for task", func(t *testing.T) {
+		params := map[string]interface{}{"action": "request_approval", "task_id": "T-test-approval"}
+		result, err := handleTaskWorkflowNative(ctx, params)
+		if err != nil {
+			t.Fatalf("request_approval: %v", err)
+		}
+		if len(result) == 0 {
+			t.Fatal("expected non-empty result")
+		}
+		var data map[string]interface{}
+		if err := json.Unmarshal([]byte(result[0].Text), &data); err != nil {
+			t.Fatalf("invalid JSON: %v", err)
+		}
+		if _, ok := data["approval_request"]; !ok {
+			t.Errorf("expected approval_request in result")
+		}
+	})
+
+	t.Run("apply_approval_result updates task", func(t *testing.T) {
+		params := map[string]interface{}{"action": "apply_approval_result", "task_id": "T-test-approval", "result": "approved"}
+		_, err := handleTaskWorkflowNative(ctx, params)
+		if err != nil {
+			t.Fatalf("apply_approval_result: %v", err)
+		}
+		tasks, _ := LoadTodo2Tasks(tmpDir)
+		for _, tsk := range tasks {
+			if tsk.ID == "T-test-approval" {
+				if tsk.Status != "Done" {
+					t.Errorf("expected task status Done after approve, got %s", tsk.Status)
+				}
+				return
+			}
+		}
+		t.Error("task T-test-approval not found after apply_approval_result")
 	})
 }
 

@@ -195,6 +195,142 @@ func handleReportPlan(ctx context.Context, params map[string]interface{}) ([]fra
 	}, nil
 }
 
+// scorecardDimensionConfig holds display name and threshold for a scorecard dimension.
+var scorecardDimensionConfig = map[string]struct {
+	displayName string
+	threshold   float64
+}{
+	"testing":       {"Testing", 100},
+	"security":      {"Security", 100},
+	"documentation": {"Documentation", 100},
+	"completion":    {"Completion & quality", 100},
+}
+
+// recommendationsByDimension classifies scorecard recommendations by dimension (testing, security, documentation, completion).
+func recommendationsByDimension(recs []string) map[string][]string {
+	out := map[string][]string{
+		"testing":       nil,
+		"security":      nil,
+		"documentation": nil,
+		"completion":    nil,
+	}
+	lower := func(s string) string { return strings.ToLower(s) }
+	for _, r := range recs {
+		l := lower(r)
+		switch {
+		case strings.Contains(l, "test") || strings.Contains(l, "coverage"):
+			out["testing"] = append(out["testing"], r)
+		case strings.Contains(l, "govulncheck") || strings.Contains(l, "vuln") || strings.Contains(l, "path boundary") || strings.Contains(l, "rate limit") || strings.Contains(l, "access control"):
+			out["security"] = append(out["security"], r)
+		case strings.Contains(l, "doc") || strings.Contains(l, "readme"):
+			out["documentation"] = append(out["documentation"], r)
+		default:
+			// go.mod, go.sum, tidy, build, vet, fmt, lint
+			out["completion"] = append(out["completion"], r)
+		}
+	}
+	return out
+}
+
+// handleReportScorecardPlans runs the scorecard and writes one Cursor-style plan per dimension that is below threshold.
+// Plans are written to .cursor/plans/improve-<dimension>.plan.md. Use from Makefile (make scorecard-plans) or git hooks.
+func handleReportScorecardPlans(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
+	projectRoot, err := security.GetProjectRoot(".")
+	if err != nil {
+		return nil, fmt.Errorf("failed to find project root: %w", err)
+	}
+	if !IsGoProject() {
+		return nil, fmt.Errorf("scorecard_plans is only supported for Go projects (go.mod)")
+	}
+
+	fastMode := true
+	if v, ok := params["fast_mode"].(bool); ok {
+		fastMode = v
+	}
+	opts := &ScorecardOptions{FastMode: fastMode}
+	scorecard, err := GenerateGoScorecard(ctx, projectRoot, opts)
+	if err != nil {
+		return nil, fmt.Errorf("scorecard for plans: %w", err)
+	}
+
+	scores := map[string]float64{
+		"testing":       calculateTestingScore(scorecard),
+		"security":      calculateSecurityScore(scorecard),
+		"documentation": calculateDocumentationScore(scorecard),
+		"completion":    calculateCompletionScore(scorecard),
+	}
+	byDim := recommendationsByDimension(scorecard.Recommendations)
+
+	// Add a generic documentation recommendation when doc score is below threshold and none exist
+	if scores["documentation"] < 100 && len(byDim["documentation"]) == 0 {
+		byDim["documentation"] = append(byDim["documentation"], "Improve documentation (README, godoc, .cursor/docs)")
+	}
+
+	plansDir := filepath.Join(projectRoot, ".cursor", "plans")
+	if err := os.MkdirAll(plansDir, 0755); err != nil {
+		return nil, fmt.Errorf("create plans dir: %w", err)
+	}
+
+	var created []string
+	for _, dim := range []string{"testing", "security", "documentation", "completion"} {
+		cfg := scorecardDimensionConfig[dim]
+		if scores[dim] >= cfg.threshold {
+			continue
+		}
+		recs := byDim[dim]
+		if len(recs) == 0 && dim != "documentation" {
+			recs = []string{fmt.Sprintf("Review and improve %s (score: %.0f%%)", cfg.displayName, scores[dim])}
+		}
+		planPath := filepath.Join(plansDir, "improve-"+dim+".plan.md")
+		planMD := generateScorecardDimensionPlan(cfg.displayName, dim, scores[dim], cfg.threshold, recs)
+		if err := os.WriteFile(planPath, []byte(planMD), 0644); err != nil {
+			return nil, fmt.Errorf("write %s: %w", planPath, err)
+		}
+		created = append(created, planPath)
+	}
+
+	var sb strings.Builder
+	sb.WriteString("Scorecard improvement plans created:\n")
+	if len(created) == 0 {
+		sb.WriteString("  (none — all dimensions at or above threshold)\n")
+	} else {
+		for _, p := range created {
+			sb.WriteString("  - " + p + "\n")
+		}
+	}
+	return []framework.TextContent{{Type: "text", Text: sb.String()}}, nil
+}
+
+// generateScorecardDimensionPlan returns markdown for a single dimension improvement plan (Cursor-buildable).
+func generateScorecardDimensionPlan(displayName, dimension string, currentScore, targetScore float64, recommendations []string) string {
+	var sb strings.Builder
+	sb.WriteString("---\n")
+	sb.WriteString(fmt.Sprintf("name: Improve %s\n", displayName))
+	sb.WriteString(fmt.Sprintf("overview: \"Current %s score: %.0f%%. Target: %.0f%%. Address the items below to improve this metric.\"\n", displayName, currentScore, targetScore))
+	sb.WriteString("todos:\n")
+	for i, r := range recommendations {
+		id := fmt.Sprintf("rec-%s-%d", dimension, i+1)
+		content := r
+		if len(content) > 120 {
+			content = content[:117] + "..."
+		}
+		sb.WriteString(fmt.Sprintf("  - id: %s\n", id))
+		sb.WriteString(fmt.Sprintf("    content: %q\n", escapeYAMLString(content)))
+		sb.WriteString("    status: pending\n")
+	}
+	sb.WriteString("isProject: false\n")
+	sb.WriteString("status: draft\n")
+	sb.WriteString("---\n\n")
+	sb.WriteString(fmt.Sprintf("# Improve %s\n\n", displayName))
+	sb.WriteString(fmt.Sprintf("**Current score:** %.0f%% | **Target:** %.0f%%\n\n", currentScore, targetScore))
+	sb.WriteString("## Checklist\n\n")
+	for _, r := range recommendations {
+		sb.WriteString(fmt.Sprintf("- [ ] %s\n", r))
+	}
+	sb.WriteString("\n---\n\n*Generated from scorecard by exarp-go report(action=scorecard_plans).*\n")
+	return sb.String()
+}
+
 // generatePlanMarkdown builds a Cursor-buildable plan aligned with reference format: frontmatter, Scope, Technical Foundation, Backlog table, Milestones, Execution Order, Open Questions, Out-of-Scope.
 func generatePlanMarkdown(ctx context.Context, projectRoot, planTitle string) (string, error) {
 	displayName := planDisplayName(planTitle)
@@ -351,12 +487,24 @@ func generatePlanMarkdown(ctx context.Context, projectRoot, planTitle string) (s
 			if name == "" {
 				name = taskID
 			}
-			sb.WriteString(fmt.Sprintf("- [ ] **%s** (%s)\n", name, taskID))
+			line := fmt.Sprintf("- [ ] **%s** (%s)", name, taskID)
+			if t, ok := taskByID[taskID]; ok {
+				if refs := getTaskFileRefs(&t); len(refs) > 0 {
+					line += " — " + strings.Join(refs, ", ")
+				}
+			}
+			sb.WriteString(line + "\n")
 		}
 	} else {
 		if ids, ok := snippet["suggested_backlog_order"].([]string); ok && len(ids) > 0 {
 			for _, id := range ids {
-				sb.WriteString(fmt.Sprintf("- [ ] %s\n", id))
+				line := fmt.Sprintf("- [ ] %s", id)
+				if t, ok := taskByID[id]; ok {
+					if refs := getTaskFileRefs(&t); len(refs) > 0 {
+						line += " — " + strings.Join(refs, ", ")
+					}
+				}
+				sb.WriteString(line + "\n")
 			}
 		} else {
 			sb.WriteString("- [ ] *(Add Todo2 tasks to populate milestones)*\n")
@@ -469,6 +617,37 @@ func generatePlanMarkdown(ctx context.Context, projectRoot, planTitle string) (s
 	}
 
 	return sb.String(), nil
+}
+
+// getTaskFileRefs extracts file/code references from task metadata (T-1769980664971).
+// Returns paths from discovered_from, planning_doc, and planning_links.RelatedDocs.
+func getTaskFileRefs(task *Todo2Task) []string {
+	var refs []string
+	seen := make(map[string]bool)
+	add := func(s string) {
+		s = strings.TrimSpace(s)
+		if s != "" && !seen[s] {
+			seen[s] = true
+			refs = append(refs, s)
+		}
+	}
+	if task.Metadata != nil {
+		if f, ok := task.Metadata["discovered_from"].(string); ok {
+			add(f)
+		}
+		if pd, ok := task.Metadata["planning_doc"].(string); ok {
+			add(pd)
+		}
+		if linkMeta := GetPlanningLinkMetadata(task); linkMeta != nil {
+			if linkMeta.PlanningDoc != "" {
+				add(linkMeta.PlanningDoc)
+			}
+			for _, r := range linkMeta.RelatedDocs {
+				add(r)
+			}
+		}
+	}
+	return refs
 }
 
 // planDisplayName returns a short display name from plan title (e.g. "github.com/davidl71/exarp-go" -> "exarp-go").

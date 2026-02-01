@@ -2,7 +2,7 @@ package database
 
 // SchemaVersion represents the current schema version.
 // Must match the highest migration version (migrations/00N_*.sql).
-const SchemaVersion = 5
+const SchemaVersion = 6
 
 // Table names
 const (
