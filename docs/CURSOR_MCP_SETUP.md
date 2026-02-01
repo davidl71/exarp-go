@@ -19,6 +19,8 @@ The `exarp-go` MCP server is configured in `.cursor/mcp.json`:
 }
 ```
 
+**See also:** [MCP Roots and Elicitation](MCP_ROOTS_ELICITATION.md) — how exarp-go uses client roots and elicitation.
+
 ## Server Status
 
 ✅ **Binary Location:** `/Users/davidl/Projects/exarp-go/bin/exarp-go`
