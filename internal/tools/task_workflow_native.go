@@ -29,6 +29,8 @@ func handleTaskWorkflowNative(ctx context.Context, params map[string]interface{}
 		return handleTaskWorkflowSync(ctx, params)
 	case "fix_dates":
 		return handleTaskWorkflowFixDates(ctx, params)
+	case "fix_empty_descriptions":
+		return handleTaskWorkflowFixEmptyDescriptions(ctx, params)
 	case "clarity":
 		return handleTaskWorkflowClarity(ctx, params)
 	case "cleanup":
@@ -216,6 +218,11 @@ func resolveTaskClarification(ctx context.Context, params map[string]interface{}
 			return nil, fmt.Errorf("failed to update task: %w", err)
 		}
 
+		// Sync DB to JSON (shared workflow)
+		if projectRoot, syncErr := FindProjectRoot(); syncErr == nil {
+			_ = SyncTodo2Tasks(projectRoot)
+		}
+
 		result := map[string]interface{}{
 			"success": true,
 			"method":  "database",
@@ -352,6 +359,13 @@ func resolveBatchClarifications(ctx context.Context, params map[string]interface
 			// Update task in database
 			if err := database.UpdateTask(ctx, task); err == nil {
 				resolved++
+			}
+		}
+
+		// Sync DB to JSON (shared workflow)
+		if resolved > 0 {
+			if projectRoot, syncErr := FindProjectRoot(); syncErr == nil {
+				_ = SyncTodo2Tasks(projectRoot)
 			}
 		}
 
