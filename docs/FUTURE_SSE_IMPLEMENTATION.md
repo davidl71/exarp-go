@@ -110,6 +110,44 @@ Set up HTTP server with SSE endpoint for MCP protocol communication.
 
 ---
 
+### T-231: Implement load balancing
+
+**Priority:** Medium  
+**Status:** Deferred  
+**Tags:** #discovered, #feature, #planned
+
+**Description:**
+Implement load balancing for distributed MCP server deployment.
+
+**Why SSE/HTTP Dependent:**
+Load balancing requires HTTP endpoints to distribute traffic across multiple server instances. With STDIO transport (current implementation), each process is independent and there's no network-level load balancing possible.
+
+**Required Work:**
+1. **HTTP Transport Prerequisites**
+   - SSE/HTTP transport must be implemented first
+   - Server must expose HTTP endpoints for load balancer health checks
+   - Connection affinity may be needed for stateful sessions
+
+2. **Load Balancer Integration**
+   - Health check endpoints (`/health`, `/ready`)
+   - Graceful connection draining
+   - Session stickiness (if needed)
+   - Metrics for load balancer monitoring
+
+3. **Multi-Instance Support**
+   - Shared state management (if any)
+   - Request routing
+   - Failover handling
+
+**Discovered From:**
+- `docs/MULTI_AGENT_PLAN.md`
+
+**Prerequisites:**
+- T-1768253992311: Complete SSE Transport Implementation
+- T-143: Set up HTTP server with SSE endpoint
+
+---
+
 ## Technical Design (Preliminary)
 
 ### Transport Interface
@@ -278,4 +316,4 @@ data: {"jsonrpc":"2.0","result":{"tools":[...]},"id":1}
 
 ---
 
-**Status:** This document serves as a reference for future SSE implementation. Tasks T-1768253992311 and T-143 have been removed from the active backlog and documented here for future reference.
+**Status:** This document serves as a reference for future SSE implementation. Tasks T-1768253992311, T-143, and T-231 have been removed from the active backlog and documented here for future reference.
