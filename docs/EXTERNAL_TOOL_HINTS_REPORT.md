@@ -6,9 +6,9 @@
 
 - **Files Scanned:** 342
 - **Files Modified:** 0
-- **Files Skipped:** 331
-- **Hints Added:** 11
-- **Hints Skipped:** 331
+- **Files Skipped:** 330
+- **Hints Added:** 12
+- **Hints Skipped:** 330
 
 ## Hints Added
 
@@ -20,6 +20,7 @@
 - ✅ /Users/davidl/Projects/exarp-go/docs/EXISTING_TASK_SYNC_LIBRARIES.md
 - ✅ /Users/davidl/Projects/exarp-go/docs/EXTERNAL_TASK_SOURCES.md
 - ✅ /Users/davidl/Projects/exarp-go/docs/FEATURE_REQUESTS.md
+- ✅ /Users/davidl/Projects/exarp-go/docs/FUTURE_SSE_IMPLEMENTATION.md
 - ✅ /Users/davidl/Projects/exarp-go/docs/PYTHON_DEPRECATED_MLX_ONLY.md
 - ✅ /Users/davidl/Projects/exarp-go/docs/SAFE_PYTHON_REMOVAL_PLAN.md
 - ✅ /Users/davidl/Projects/exarp-go/docs/research/AGENTIC_CI_EXARP_GO_INTEGRATION.md
@@ -46,7 +47,6 @@
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/ATTRIBUTION_COMPLIANCE_REPORT.md: Hint already exists
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/AUTOMATION_CONFIGURATION_ANALYSIS.md: No external libraries detected
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/AUTOMATION_MIGRATION_COMPLETE.md: No external libraries detected
-- ⏭️ /Users/davidl/Projects/exarp-go/docs/AUTOMATION_TOOL_MIGRATION_ANALYSIS.md: No external libraries detected
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/AUTO_PROGRESSION_SETUP.md: No external libraries detected
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/BACKLOG_EXECUTION_PLAN.md: Hint already exists
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/BIG_O_ANALYSIS.md: No external libraries detected
@@ -64,7 +64,6 @@
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/CONTEXT7_CONFIGURATION.md: Hint already exists
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/CONTEXT_TOOLS_COMPARISON.md: No external libraries detected
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/CONTEXT_TOOLS_UNIFICATION.md: No external libraries detected
-- ⏭️ /Users/davidl/Projects/exarp-go/docs/CONTEXT_TOOL_APPLE_FM_MIGRATION.md: No external libraries detected
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/CRITICAL_PATH_ANALYSIS.md: Hint already exists
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/CSPELL_CONFIGURATION.md: No external libraries detected
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/CURSOR_BACKGROUND_AGENTS_SETUP.md: No external libraries detected
@@ -76,7 +75,6 @@
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/DESIGN_REVIEW.md: No external libraries detected
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/DESIGN_REVIEW_PRD.md: Hint already exists
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/DEVWISDOM_GO_LESSONS.md: No external libraries detected
-- ⏭️ /Users/davidl/Projects/exarp-go/docs/DEVWISDOM_GO_MCP_SDK_MIGRATION.md: No external libraries detected
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/DEV_TEST_AUTOMATION.md: Hint already exists
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/DOCUMENTATION_CLEANUP_ANALYSIS.md: No external libraries detected
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/DOCUMENTATION_HEALTH_REPORT.md: File too short
@@ -89,7 +87,6 @@
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/EPOCH_TASKS_REVIEW_REPORT.md: No external libraries detected
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/ESTIMATION_INTEGRATION_SUMMARY.md: Hint already exists
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/ESTIMATION_MECHANISM_INTEGRATION.md: Hint already exists
-- ⏭️ /Users/davidl/Projects/exarp-go/docs/ESTIMATION_TOOL_MIGRATION.md: No external libraries detected
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/ESTIMATION_TOOL_MODEL_CACHING_ANALYSIS.md: No external libraries detected
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/EXTERNAL_SOURCES_DEPENDENCIES.md: No external libraries detected
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/EXTERNAL_SOURCES_IMPLEMENTATION_STATUS.md: No external libraries detected
@@ -103,7 +100,6 @@
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/GOTOHUMAN_SETUP.md: No external libraries detected
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/GOTOHUMAN_TOOLS_DISCOVERY.md: No external libraries detected
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/GOTOHUMAN_TOOLS_DOCUMENTATION.md: No external libraries detected
-- ⏭️ /Users/davidl/Projects/exarp-go/docs/GO_SDK_MIGRATION_QUICK_START.md: No external libraries detected
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/GUI_EXTENSION_STATUS.md: No external libraries detected
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/HIGH_PRIORITY_EPICS_WORK_PLAN.md: No external libraries detected
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/HIGH_PRIORITY_MIGRATION_COMPLETE.md: Hint already exists
@@ -130,29 +126,10 @@
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/MCP_GO_CORE_INTEGRATION_COMPLETE.md: No external libraries detected
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/MCP_GO_CORE_INTEGRATION_PLAN.md: No external libraries detected
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/MCP_GO_CORE_MIGRATION_COMPLETE.md: No external libraries detected
-- ⏭️ /Users/davidl/Projects/exarp-go/docs/MCP_GO_CORE_MIGRATION_STATUS.md: No external libraries detected
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/MCP_GO_FRAMEWORK_COMPARISON.md: No external libraries detected
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/MCP_ROOTS_ELICITATION.md: No external libraries detected
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/MCP_SERVER_ANALYSIS.md: Hint already exists
-- ⏭️ /Users/davidl/Projects/exarp-go/docs/MIGRATION_AUDIT_2026-01-12.md: Hint already exists
-- ⏭️ /Users/davidl/Projects/exarp-go/docs/MIGRATION_AUDIT_REPORT_2026-01-12.md: Hint already exists
-- ⏭️ /Users/davidl/Projects/exarp-go/docs/MIGRATION_CANDIDATES.md: No external libraries detected
-- ⏭️ /Users/davidl/Projects/exarp-go/docs/MIGRATION_CHECKLIST.md: No external libraries detected
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/MIGRATION_COMPLETE.md: No external libraries detected
-- ⏭️ /Users/davidl/Projects/exarp-go/docs/MIGRATION_EXECUTION_PLAN.md: No external libraries detected
-- ⏭️ /Users/davidl/Projects/exarp-go/docs/MIGRATION_INVENTORY.md: Hint already exists
-- ⏭️ /Users/davidl/Projects/exarp-go/docs/MIGRATION_PATTERNS.md: No external libraries detected
-- ⏭️ /Users/davidl/Projects/exarp-go/docs/MIGRATION_PHASE1_SUMMARY.md: No external libraries detected
-- ⏭️ /Users/davidl/Projects/exarp-go/docs/MIGRATION_PHASE3_SUMMARY.md: No external libraries detected
-- ⏭️ /Users/davidl/Projects/exarp-go/docs/MIGRATION_PLAN.md: No external libraries detected
-- ⏭️ /Users/davidl/Projects/exarp-go/docs/MIGRATION_PLAN_PYTHON_STATISTICS_TO_GONUM.md: No external libraries detected
-- ⏭️ /Users/davidl/Projects/exarp-go/docs/MIGRATION_STATUS.md: No external libraries detected
-- ⏭️ /Users/davidl/Projects/exarp-go/docs/MIGRATION_STATUS_CURRENT.md: Hint already exists
-- ⏭️ /Users/davidl/Projects/exarp-go/docs/MIGRATION_STRATEGY.md: No external libraries detected
-- ⏭️ /Users/davidl/Projects/exarp-go/docs/MIGRATION_SUMMARY.md: Hint already exists
-- ⏭️ /Users/davidl/Projects/exarp-go/docs/MIGRATION_TESTING_CHECKLIST.md: File too short
-- ⏭️ /Users/davidl/Projects/exarp-go/docs/MIGRATION_VALIDATION.md: Hint already exists
-- ⏭️ /Users/davidl/Projects/exarp-go/docs/MIGRATION_VS_DISCOVERY_COMPARISON.md: No external libraries detected
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/MLX_ABSTRACTION_OPPORTUNITIES.md: No external libraries detected
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/MLX_ARCHITECTURE_ANALYSIS.md: No external libraries detected
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/MLX_CANDIDATES.md: No external libraries detected
@@ -164,10 +141,6 @@
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/MULTI_AGENT_PLAN.md: Hint already exists
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/NATIVE_GO_HANDLER_STATUS.md: Hint already exists
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/NATIVE_GO_LOCKING_IMPLEMENTATION.md: No external libraries detected
-- ⏭️ /Users/davidl/Projects/exarp-go/docs/NATIVE_GO_MIGRATION_PLAN.md: Hint already exists
-- ⏭️ /Users/davidl/Projects/exarp-go/docs/NATIVE_GO_MIGRATION_PLAN_REVIEW.md: Hint already exists
-- ⏭️ /Users/davidl/Projects/exarp-go/docs/NEXT_MIGRATION_OPTIONS.md: No external libraries detected
-- ⏭️ /Users/davidl/Projects/exarp-go/docs/NEXT_MIGRATION_STEPS.md: No external libraries detected
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/NON_TEST_TASKS_SUMMARY.md: No external libraries detected
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/OLLAMA_ABSTRACTION_OPPORTUNITIES.md: No external libraries detected
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/OLLAMA_DOCS_ANALYSIS.md: No external libraries detected
@@ -186,9 +159,7 @@
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/PRD.md: Hint already exists
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/PRD_ALIGNMENT_REPORT.md: No external libraries detected
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/PROJECT_SCORECARD.md: No external libraries detected
-- ⏭️ /Users/davidl/Projects/exarp-go/docs/PROJECT_SCORECARD_MIGRATION_ANALYSIS.md: No external libraries detected
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/PROJECT_STRUCTURE.md: No external libraries detected
-- ⏭️ /Users/davidl/Projects/exarp-go/docs/PROMPTS_MIGRATION_AND_OBSOLESCENCE_PLAN.md: No external libraries detected
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/PROMPTS_RESOURCES_REVIEW.md: No external libraries detected
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/PROTOBUF_ANALYSIS.md: Hint already exists
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/PROTOBUF_IMPLEMENTATION_GAP_ANALYSIS.md: No external libraries detected
@@ -198,7 +169,6 @@
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/PROTOBUF_REMAINING_WORK.md: Hint already exists
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/PROTOBUF_SIMPLIFICATION_OPPORTUNITIES.md: No external libraries detected
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/PYTHON_BRIDGE_DEPENDENCIES.md: Hint already exists
-- ⏭️ /Users/davidl/Projects/exarp-go/docs/PYTHON_BRIDGE_MIGRATION_NEXT.md: Hint already exists
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/PYTHON_BRIDGE_REMAINING_ANALYSIS.md: Hint already exists
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/PYTHON_BRIDGE_TOOLS.md: No external libraries detected
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/PYTHON_CODE_AUDIT_REPORT.md: Hint already exists
@@ -211,18 +181,15 @@
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/PYTHON_MIGRATION_END_STATE.md: No external libraries detected
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/PYTHON_REMAINING_ANALYSIS.md: Hint already exists
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/PYTHON_REMAINING_PLAN.md: No external libraries detected
-- ⏭️ /Users/davidl/Projects/exarp-go/docs/PYTHON_SAFE_REMOVAL_AND_MIGRATION_PLAN.md: No external libraries detected
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/PYTHON_SCRIPTS_AUDIT.md: Hint already exists
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/PYTHON_WHAT_MORE_CAN_REMOVE.md: No external libraries detected
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/README.md: No external libraries detected
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/REGRESSION_TESTING_REPORT_2026-01-12.md: No external libraries detected
-- ⏭️ /Users/davidl/Projects/exarp-go/docs/REMAINING_MIGRATION_OPTIONS.md: No external libraries detected
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/REMOTE_MACOS_SETUP.md: No external libraries detected
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/REMOTE_MCP_SERVERS.md: No external libraries detected
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/REMOTE_OLLAMA_MLX_SETUP.md: No external libraries detected
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/REPORT_MLX_INTEGRATION.md: No external libraries detected
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/RESEARCH_HELPERS_REFERENCE.md: Hint already exists
-- ⏭️ /Users/davidl/Projects/exarp-go/docs/RESOURCE_PROMPT_MIGRATION_PLAN.md: No external libraries detected
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/SAFE_PYTHON_REMOVAL_ANALYSIS.md: No external libraries detected
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/SCORECARD_DETECTION_UPDATE.md: No external libraries detected
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/SCORECARD_FAST_MODE_IMPLEMENTATION.md: No external libraries detected
@@ -240,7 +207,6 @@
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/SQLITE_ESTIMATION_ADJUSTED.md: No external libraries detected
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/SQLITE_ESTIMATION_REVISED.md: No external libraries detected
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/SQLITE_ESTIMATION_VIBE_CODING.md: No external libraries detected
-- ⏭️ /Users/davidl/Projects/exarp-go/docs/SQLITE_MIGRATION_PLAN.md: No external libraries detected
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/SQLITE_PARALLELIZATION_ANALYSIS.md: No external libraries detected
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/SQLITE_PLAN_ALIGNMENT_ANALYSIS.md: No external libraries detected
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/SQLITE_PLAN_REVIEW.md: No external libraries detected
@@ -263,17 +229,14 @@
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/TASKS_AS_CI_AND_AUTOMATION.md: No external libraries detected
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/TASKS_DOCS_RELEVANCE_CHECK.md: Hint already exists
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/TASKS_DOCS_TAG_REVIEW.md: No external libraries detected
-- ⏭️ /Users/davidl/Projects/exarp-go/docs/TASK_CODE_MCP_CORE_MIGRATION.md: No external libraries detected
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/TASK_COMPLETION_CHECK.md: File too short
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/TASK_COMPLETION_CHECK_FM.md: File too short
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/TASK_COMPLETION_CHECK_NATIVE_GO.md: File too short
-- ⏭️ /Users/davidl/Projects/exarp-go/docs/TASK_COMPLETION_INFERENCE_NATIVE_MIGRATION.md: No external libraries detected
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/TASK_COMPLETION_UPDATE.md: File too short
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/TASK_DISCOVERY_GIT_JSON.md: No external libraries detected
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/TASK_EXECUTION_BY_TAG.md: No external libraries detected
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/TASK_RELATED_CODE_SIMPLIFICATION_ANALYSIS.md: No external libraries detected
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/TASK_TOOLS_COMPARISON.md: No external libraries detected
-- ⏭️ /Users/davidl/Projects/exarp-go/docs/TASK_TOOLS_MIGRATION.md: No external libraries detected
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/TASK_TOOLS_SHARED_PATTERNS.md: No external libraries detected
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/TASK_WORKFLOW_ABSTRACTION_ANALYSIS.md: File too short
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/TASK_WORKFLOW_FULL_NATIVE_PLAN.md: Hint already exists
@@ -320,14 +283,52 @@
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/archive/implementation-summaries/T2_T8_IMPLEMENTATION_SUMMARY.md: No external libraries detected
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/archive/implementation-summaries/TNAN_COMPLETION_SUMMARY.md: Hint already exists
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/archive/implementation-summaries/TNAN_GO_PROJECT_SETUP_SUMMARY.md: No external libraries detected
+- ⏭️ /Users/davidl/Projects/exarp-go/docs/archive/migration-planning/AUTOMATION_TOOL_MIGRATION_ANALYSIS.md: No external libraries detected
+- ⏭️ /Users/davidl/Projects/exarp-go/docs/archive/migration-planning/CONTEXT_TOOL_APPLE_FM_MIGRATION.md: No external libraries detected
+- ⏭️ /Users/davidl/Projects/exarp-go/docs/archive/migration-planning/DEVWISDOM_GO_MCP_SDK_MIGRATION.md: No external libraries detected
+- ⏭️ /Users/davidl/Projects/exarp-go/docs/archive/migration-planning/ESTIMATION_TOOL_MIGRATION.md: No external libraries detected
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/archive/migration-planning/GO_SDK_MIGRATION_PLAN.md: Hint already exists
+- ⏭️ /Users/davidl/Projects/exarp-go/docs/archive/migration-planning/GO_SDK_MIGRATION_QUICK_START.md: No external libraries detected
+- ⏭️ /Users/davidl/Projects/exarp-go/docs/archive/migration-planning/MCP_GO_CORE_MIGRATION_STATUS.md: No external libraries detected
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/archive/migration-planning/MIGRATION_ALIGNMENT_ANALYSIS.md: No external libraries detected
+- ⏭️ /Users/davidl/Projects/exarp-go/docs/archive/migration-planning/MIGRATION_AUDIT_2026-01-12.md: Hint already exists
+- ⏭️ /Users/davidl/Projects/exarp-go/docs/archive/migration-planning/MIGRATION_AUDIT_REPORT_2026-01-12.md: Hint already exists
+- ⏭️ /Users/davidl/Projects/exarp-go/docs/archive/migration-planning/MIGRATION_CANDIDATES.md: No external libraries detected
+- ⏭️ /Users/davidl/Projects/exarp-go/docs/archive/migration-planning/MIGRATION_CHECKLIST.md: No external libraries detected
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/archive/migration-planning/MIGRATION_DEPENDENCY_ANALYSIS.md: No external libraries detected
+- ⏭️ /Users/davidl/Projects/exarp-go/docs/archive/migration-planning/MIGRATION_EXECUTION_PLAN.md: No external libraries detected
+- ⏭️ /Users/davidl/Projects/exarp-go/docs/archive/migration-planning/MIGRATION_INVENTORY.md: Hint already exists
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/archive/migration-planning/MIGRATION_PARALLELIZATION_ANALYSIS.md: No external libraries detected
-- ⏭️ /Users/davidl/Projects/exarp-go/docs/archive/migration-planning/MIGRATION_STATUS.md: Hint already exists
+- ⏭️ /Users/davidl/Projects/exarp-go/docs/archive/migration-planning/MIGRATION_PATTERNS.md: No external libraries detected
+- ⏭️ /Users/davidl/Projects/exarp-go/docs/archive/migration-planning/MIGRATION_PHASE1_SUMMARY.md: No external libraries detected
+- ⏭️ /Users/davidl/Projects/exarp-go/docs/archive/migration-planning/MIGRATION_PHASE3_SUMMARY.md: No external libraries detected
+- ⏭️ /Users/davidl/Projects/exarp-go/docs/archive/migration-planning/MIGRATION_PLAN.md: No external libraries detected
+- ⏭️ /Users/davidl/Projects/exarp-go/docs/archive/migration-planning/MIGRATION_PLAN_PYTHON_STATISTICS_TO_GONUM.md: No external libraries detected
+- ⏭️ /Users/davidl/Projects/exarp-go/docs/archive/migration-planning/MIGRATION_STATUS.md: No external libraries detected
+- ⏭️ /Users/davidl/Projects/exarp-go/docs/archive/migration-planning/MIGRATION_STATUS_CURRENT.md: Hint already exists
+- ⏭️ /Users/davidl/Projects/exarp-go/docs/archive/migration-planning/MIGRATION_STRATEGY.md: No external libraries detected
+- ⏭️ /Users/davidl/Projects/exarp-go/docs/archive/migration-planning/MIGRATION_SUMMARY.md: Hint already exists
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/archive/migration-planning/MIGRATION_TASKS_SUMMARY.md: Hint already exists
+- ⏭️ /Users/davidl/Projects/exarp-go/docs/archive/migration-planning/MIGRATION_TESTING_CHECKLIST.md: File too short
+- ⏭️ /Users/davidl/Projects/exarp-go/docs/archive/migration-planning/MIGRATION_VALIDATION.md: Hint already exists
+- ⏭️ /Users/davidl/Projects/exarp-go/docs/archive/migration-planning/MIGRATION_VS_DISCOVERY_COMPARISON.md: No external libraries detected
+- ⏭️ /Users/davidl/Projects/exarp-go/docs/archive/migration-planning/NATIVE_GO_MIGRATION_PLAN.md: Hint already exists
+- ⏭️ /Users/davidl/Projects/exarp-go/docs/archive/migration-planning/NATIVE_GO_MIGRATION_PLAN_REVIEW.md: Hint already exists
+- ⏭️ /Users/davidl/Projects/exarp-go/docs/archive/migration-planning/NEXT_MIGRATION_OPTIONS.md: No external libraries detected
+- ⏭️ /Users/davidl/Projects/exarp-go/docs/archive/migration-planning/NEXT_MIGRATION_STEPS.md: No external libraries detected
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/archive/migration-planning/PARALLEL_MIGRATION_PLAN.md: Hint already exists
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/archive/migration-planning/PARALLEL_MIGRATION_WORKFLOW.md: Hint already exists
+- ⏭️ /Users/davidl/Projects/exarp-go/docs/archive/migration-planning/PROJECT_SCORECARD_MIGRATION_ANALYSIS.md: No external libraries detected
+- ⏭️ /Users/davidl/Projects/exarp-go/docs/archive/migration-planning/PROMPTS_MIGRATION_AND_OBSOLESCENCE_PLAN.md: No external libraries detected
+- ⏭️ /Users/davidl/Projects/exarp-go/docs/archive/migration-planning/PYTHON_BRIDGE_MIGRATION_NEXT.md: Hint already exists
+- ⏭️ /Users/davidl/Projects/exarp-go/docs/archive/migration-planning/PYTHON_SAFE_REMOVAL_AND_MIGRATION_PLAN.md: No external libraries detected
+- ⏭️ /Users/davidl/Projects/exarp-go/docs/archive/migration-planning/REMAINING_MIGRATION_OPTIONS.md: No external libraries detected
+- ⏭️ /Users/davidl/Projects/exarp-go/docs/archive/migration-planning/RESOURCE_PROMPT_MIGRATION_PLAN.md: No external libraries detected
+- ⏭️ /Users/davidl/Projects/exarp-go/docs/archive/migration-planning/SQLITE_MIGRATION_PLAN.md: No external libraries detected
+- ⏭️ /Users/davidl/Projects/exarp-go/docs/archive/migration-planning/TASK_CODE_MCP_CORE_MIGRATION.md: No external libraries detected
+- ⏭️ /Users/davidl/Projects/exarp-go/docs/archive/migration-planning/TASK_COMPLETION_INFERENCE_NATIVE_MIGRATION.md: No external libraries detected
+- ⏭️ /Users/davidl/Projects/exarp-go/docs/archive/migration-planning/TASK_TOOLS_MIGRATION.md: No external libraries detected
+- ⏭️ /Users/davidl/Projects/exarp-go/docs/archive/migration-planning/migration-plan-alignment-analysis.md: No external libraries detected
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/archive/research-phase/BATCH1_PARALLEL_RESEARCH_TNAN_T8.md: Hint already exists
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/archive/research-phase/BATCH2_PARALLEL_RESEARCH_REMAINING_TASKS.md: Hint already exists
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/archive/research-phase/INDIVIDUAL_TOOL_RESEARCH_COMMENTS.md: Hint already exists
@@ -353,7 +354,6 @@
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/daily-standup-2026-01-09.md: File too short
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/example.plan.md: No external libraries detected
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/generated_plan_comparison.plan.md: No external libraries detected
-- ⏭️ /Users/davidl/Projects/exarp-go/docs/migration-plan-alignment-analysis.md: No external libraries detected
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/research/AGENTIC_DEVELOPMENT_CI_TOOLS.md: Hint already exists
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/research/LOGGING_IMPROVEMENTS_2026.md: No external libraries detected
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/research/TUI_CLI_TESTING_TOOLS.md: Hint already exists
