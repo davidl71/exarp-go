@@ -3,9 +3,11 @@ package tools
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/davidl71/exarp-go/internal/config"
 	"github.com/davidl71/exarp-go/internal/database"
@@ -592,7 +594,9 @@ func resolveBatchClarifications(ctx context.Context, params map[string]interface
 
 // handleTaskWorkflowDelete deletes one or more tasks by ID. Accepts task_id (single) or task_ids (comma-separated or array). Syncs DB to JSON once after all deletes.
 func handleTaskWorkflowDelete(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
-	// Optional MCP Elicitation: confirm delete when confirm_via_elicitation is true
+	// Optional MCP Elicitation: confirm delete when confirm_via_elicitation is true.
+	// Use a timeout so elicitation never blocks indefinitely.
+	const elicitationTimeout = 15 * time.Second
 	if confirm, _ := params["confirm_via_elicitation"].(bool); confirm {
 		if eliciter := mcpframework.EliciterFromContext(ctx); eliciter != nil {
 			schema := map[string]interface{}{
@@ -601,9 +605,15 @@ func handleTaskWorkflowDelete(ctx context.Context, params map[string]interface{}
 					"proceed": map[string]interface{}{"type": "boolean", "description": "Proceed with delete?"},
 				},
 			}
-			action, content, err := eliciter.ElicitForm(ctx, "Proceed with deleting the specified task(s)?", schema)
+			elicitCtx, cancel := context.WithTimeout(ctx, elicitationTimeout)
+			defer cancel()
+			action, content, err := eliciter.ElicitForm(elicitCtx, "Proceed with deleting the specified task(s)?", schema)
 			if err != nil || action != "accept" {
-				result := map[string]interface{}{"cancelled": true, "message": "Delete cancelled by user or elicitation unavailable"}
+				msg := "Delete cancelled by user or elicitation unavailable"
+				if err != nil && (errors.Is(err, context.DeadlineExceeded) || (elicitCtx.Err() != nil && errors.Is(elicitCtx.Err(), context.DeadlineExceeded))) {
+					msg = "Delete cancelled: elicitation timed out"
+				}
+				result := map[string]interface{}{"cancelled": true, "message": msg}
 				return response.FormatResult(result, "")
 			}
 			if content != nil {

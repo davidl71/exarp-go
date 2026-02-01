@@ -3,6 +3,7 @@ package tools
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -66,7 +67,9 @@ func handleTaskWorkflowApprove(ctx context.Context, params map[string]interface{
 		dryRun = dr
 	}
 
-	// Optional MCP Elicitation: confirm batch approve when confirm_via_elicitation is true
+	// Optional MCP Elicitation: confirm batch approve when confirm_via_elicitation is true.
+	// Use a timeout so elicitation never blocks indefinitely.
+	const elicitationTimeout = 15 * time.Second
 	if confirm, _ := params["confirm_via_elicitation"].(bool); confirm {
 		if eliciter := mcpframework.EliciterFromContext(ctx); eliciter != nil {
 			schema := map[string]interface{}{
@@ -76,9 +79,15 @@ func handleTaskWorkflowApprove(ctx context.Context, params map[string]interface{
 					"dry_run": map[string]interface{}{"type": "boolean", "description": "Preview only (no updates)"},
 				},
 			}
-			action, content, err := eliciter.ElicitForm(ctx, "Proceed with batch approve? You can choose dry run to preview only.", schema)
+			elicitCtx, cancel := context.WithTimeout(ctx, elicitationTimeout)
+			defer cancel()
+			action, content, err := eliciter.ElicitForm(elicitCtx, "Proceed with batch approve? You can choose dry run to preview only.", schema)
 			if err != nil || action != "accept" {
-				result := map[string]interface{}{"cancelled": true, "message": "Batch approve cancelled by user or elicitation unavailable"}
+				msg := "Batch approve cancelled by user or elicitation unavailable"
+				if err != nil && (errors.Is(err, context.DeadlineExceeded) || (elicitCtx.Err() != nil && errors.Is(elicitCtx.Err(), context.DeadlineExceeded))) {
+					msg = "Batch approve cancelled: elicitation timed out"
+				}
+				result := map[string]interface{}{"cancelled": true, "message": msg}
 				return response.FormatResult(result, "")
 			}
 			if content != nil {

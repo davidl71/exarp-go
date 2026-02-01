@@ -76,6 +76,8 @@ func myToolHandler(ctx context.Context, args json.RawMessage) ([]framework.TextC
 
 **When elicitation is not available:** In CLI mode or when the client does not support elicitation, `EliciterFromContext(ctx)` returns `nil`. Tools should not call it in that case; they should use defaults or skip the prompt.
 
+**Timeouts:** All elicitation calls use a bounded context (`context.WithTimeout`) so they never block indefinitely. Session prime uses 5 seconds; task_workflow confirm (approve/delete) uses 15 seconds. On timeout, the tool falls back (e.g. defaults for prime, cancelled result for approve/delete) and may report "elicitation timed out" in the message.
+
 ---
 
 ## Elicitation support plan
