@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"math"
 	"time"
+
+	"github.com/davidl71/exarp-go/internal/config"
 )
 
 // SQLite error codes (from sqlite3.h)
@@ -13,12 +15,6 @@ const (
 	SQLITE_BUSY   = 5 // The database file is locked
 	SQLITE_LOCKED = 6 // A table in the database is locked
 )
-
-// maxRetries is the maximum number of retry attempts for transient errors
-const maxRetries = 5
-
-// initialBackoff is the initial backoff duration in milliseconds
-const initialBackoff = 10 * time.Millisecond
 
 // isTransientError checks if an error is a transient SQLite error that should be retried
 func isTransientError(err error) bool {
@@ -81,9 +77,27 @@ func toLower(s string) string {
 	return string(result)
 }
 
-// retryWithBackoff executes a function with exponential backoff retry for transient errors
-// It retries up to maxRetries times with exponential backoff: 10ms, 20ms, 40ms, 80ms, 160ms
+// retryWithBackoff executes a function with exponential backoff retry for transient errors.
+// Uses config for retry attempts, initial delay, max delay, and multiplier when available.
 func retryWithBackoff(ctx context.Context, fn func() error) error {
+	cfg := config.GetGlobalConfig()
+	maxRetries := cfg.Database.RetryAttempts
+	if maxRetries <= 0 {
+		maxRetries = 3
+	}
+	initialDelay := cfg.Database.RetryInitialDelay
+	if initialDelay <= 0 {
+		initialDelay = 100 * time.Millisecond
+	}
+	maxDelay := cfg.Database.RetryMaxDelay
+	if maxDelay <= 0 {
+		maxDelay = 5 * time.Second
+	}
+	multiplier := cfg.Database.RetryMultiplier
+	if multiplier <= 0 {
+		multiplier = 2.0
+	}
+
 	var lastErr error
 
 	for attempt := 0; attempt < maxRetries; attempt++ {
@@ -109,8 +123,11 @@ func retryWithBackoff(ctx context.Context, fn func() error) error {
 			break
 		}
 
-		// Calculate exponential backoff: 10ms * 2^attempt
-		backoff := initialBackoff * time.Duration(math.Pow(2, float64(attempt)))
+		// Exponential backoff: initialDelay * multiplier^attempt, capped at maxDelay
+		backoff := time.Duration(float64(initialDelay) * math.Pow(multiplier, float64(attempt)))
+		if backoff > maxDelay {
+			backoff = maxDelay
+		}
 
 		// Create a timer with context cancellation support
 		timer := time.NewTimer(backoff)
@@ -123,24 +140,33 @@ func retryWithBackoff(ctx context.Context, fn func() error) error {
 		}
 	}
 
-	// Return the last error after all retries exhausted
 	return fmt.Errorf("operation failed after %d retries: %w", maxRetries, lastErr)
 }
 
-// withQueryTimeout creates a context with timeout for database queries (30 seconds)
+// withQueryTimeout creates a context with timeout for database queries.
+// Uses config.DatabaseConnectionTimeout when available (default 30s).
 func withQueryTimeout(ctx context.Context) (context.Context, context.CancelFunc) {
 	if ctx == nil {
 		ctx = context.Background()
 	}
-	return context.WithTimeout(ctx, 30*time.Second)
+	timeout := config.DatabaseConnectionTimeout()
+	if timeout <= 0 {
+		timeout = 30 * time.Second
+	}
+	return context.WithTimeout(ctx, timeout)
 }
 
-// withTransactionTimeout creates a context with timeout for database transactions (60 seconds)
+// withTransactionTimeout creates a context with timeout for database transactions.
+// Uses config.DatabaseQueryTimeout when available (default 60s).
 func withTransactionTimeout(ctx context.Context) (context.Context, context.CancelFunc) {
 	if ctx == nil {
 		ctx = context.Background()
 	}
-	return context.WithTimeout(ctx, 60*time.Second)
+	timeout := config.DatabaseQueryTimeout()
+	if timeout <= 0 {
+		timeout = 60 * time.Second
+	}
+	return context.WithTimeout(ctx, timeout)
 }
 
 // ensureContext ensures we have a valid context (uses Background if nil)

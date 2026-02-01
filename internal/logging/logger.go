@@ -5,9 +5,11 @@ package logging
 
 import (
 	"os"
+	"strings"
 	"sync"
 	"time"
 
+	"github.com/davidl71/exarp-go/internal/config"
 	mcplog "github.com/davidl71/mcp-go-core/pkg/mcp/logging"
 )
 
@@ -41,6 +43,25 @@ func Default() *Logger {
 // SetSlowThreshold sets the slow-operation threshold on the default logger.
 func SetSlowThreshold(threshold time.Duration) {
 	Default().SetSlowThreshold(threshold)
+}
+
+// ConfigureFromConfig applies logging configuration from centralized config.
+// Call after config.SetGlobalConfig when config is loaded (e.g. in EnsureConfigAndDatabase).
+// Level mapping: debug, info, warn, error (case-insensitive). Format still comes from LOG_FORMAT env.
+func ConfigureFromConfig(cfg config.LoggingConfig) {
+	l := Default()
+	level := mcplog.LevelInfo
+	switch strings.ToLower(cfg.Level) {
+	case "debug":
+		level = mcplog.LevelDebug
+	case "info":
+		level = mcplog.LevelInfo
+	case "warn", "warning":
+		level = mcplog.LevelWarn
+	case "error":
+		level = mcplog.LevelError
+	}
+	l.SetLevel(level)
 }
 
 // Warn logs a warning using the default logger with context string "".

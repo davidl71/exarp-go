@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/davidl71/exarp-go/internal/cache"
+	"github.com/davidl71/exarp-go/internal/config"
 	"github.com/davidl71/exarp-go/internal/framework"
 	mcpresponse "github.com/davidl71/mcp-go-core/pkg/mcp/response"
 )
@@ -33,17 +34,25 @@ var globalWorkflowManager *WorkflowModeManager
 // getWorkflowManager returns the global workflow mode manager
 func getWorkflowManager() *WorkflowModeManager {
 	if globalWorkflowManager == nil {
-		// Default state path: .exarp/workflow_mode.json
-		statePath := ".exarp/workflow_mode.json"
+		exarpPath := config.ProjectExarpPath()
+		if exarpPath == "" {
+			exarpPath = ".exarp"
+		}
+		defaultMode := config.WorkflowDefaultMode()
+		if defaultMode == "" {
+			defaultMode = "development"
+		}
 
-		// Try to use PROJECT_ROOT if available
-		if projectRoot := os.Getenv("PROJECT_ROOT"); projectRoot != "" && projectRoot != "unknown" {
-			statePath = filepath.Join(projectRoot, ".exarp", "workflow_mode.json")
+		statePath := filepath.Join(exarpPath, "workflow_mode.json")
+		if projectRoot, err := FindProjectRoot(); err == nil && projectRoot != "" {
+			statePath = filepath.Join(projectRoot, exarpPath, "workflow_mode.json")
+		} else if projectRoot := os.Getenv("PROJECT_ROOT"); projectRoot != "" && projectRoot != "unknown" {
+			statePath = filepath.Join(projectRoot, exarpPath, "workflow_mode.json")
 		}
 
 		globalWorkflowManager = &WorkflowModeManager{
 			state: WorkflowModeState{
-				CurrentMode:    "development",
+				CurrentMode:    defaultMode,
 				ExtraGroups:    []string{},
 				DisabledGroups: []string{},
 				LastUpdated:    time.Now().Format(time.RFC3339),
@@ -401,14 +410,13 @@ func handleWorkflowModeSuggest(ctx context.Context, params map[string]interface{
 
 // handleWorkflowModeStats handles the stats action
 func handleWorkflowModeStats(ctx context.Context, manager *WorkflowModeManager) ([]framework.TextContent, error) {
-	// For now, return basic stats
-	// In a full implementation, this would track tool usage over time
 	stats := map[string]interface{}{
+		"success":         true,
 		"current_mode":    manager.state.CurrentMode,
 		"extra_groups":    manager.state.ExtraGroups,
 		"disabled_groups": manager.state.DisabledGroups,
 		"last_updated":    manager.state.LastUpdated,
-		"note":            "Full usage statistics tracking not yet implemented in native Go",
+		"note":            "Stats show current mode state; per-tool usage counts are not tracked.",
 	}
 
 	return mcpresponse.FormatResult(stats, "")

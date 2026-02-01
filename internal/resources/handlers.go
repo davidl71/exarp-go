@@ -252,6 +252,17 @@ func RegisterAllResources(server framework.MCPServer) error {
 		return fmt.Errorf("failed to register tasks summary resource: %w", err)
 	}
 
+	// stdio://suggested-tasks — dependency-ready tasks for Cursor/Todo2 hints
+	if err := server.RegisterResource(
+		"stdio://suggested-tasks",
+		"Suggested Tasks",
+		"Get dependency-ordered tasks ready to start (all dependencies Done). For Cursor and MCP clients.",
+		"application/json",
+		handleSuggestedTasks,
+	); err != nil {
+		return fmt.Errorf("failed to register suggested tasks resource: %w", err)
+	}
+
 	return nil
 }
 

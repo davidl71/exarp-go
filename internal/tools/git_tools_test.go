@@ -57,6 +57,54 @@ func TestHandleGitToolsNative(t *testing.T) {
 			},
 		},
 		{
+			name: "diff action",
+			params: GitToolsParams{
+				Action: "diff",
+				TaskID: "T-1",
+			},
+			wantError: false,
+			validate: func(t *testing.T, result string) {
+				var data map[string]interface{}
+				if err := json.Unmarshal([]byte(result), &data); err != nil {
+					t.Errorf("diff result not valid JSON: %v", err)
+					return
+				}
+				if _, ok := data["total_changes"]; !ok {
+					t.Error("diff result missing total_changes")
+				}
+				if _, ok := data["changes"]; !ok {
+					t.Error("diff result missing changes")
+				}
+			},
+		},
+		{
+			name: "diff action missing task_id",
+			params: GitToolsParams{
+				Action: "diff",
+			},
+			wantError: true,
+		},
+		{
+			name: "graph action",
+			params: GitToolsParams{
+				Action: "graph",
+			},
+			wantError: false,
+			validate: func(t *testing.T, result string) {
+				var data map[string]interface{}
+				if err := json.Unmarshal([]byte(result), &data); err != nil {
+					t.Errorf("graph result not valid JSON: %v", err)
+					return
+				}
+				if _, ok := data["branches"]; !ok {
+					t.Error("graph result missing branches")
+				}
+				if _, ok := data["nodes"]; !ok {
+					t.Error("graph result missing nodes")
+				}
+			},
+		},
+		{
 			name: "unknown action",
 			params: GitToolsParams{
 				Action: "unknown",
@@ -111,6 +159,21 @@ func TestHandleGitTools(t *testing.T) {
 			params: GitToolsParams{
 				Action: "tasks",
 				Branch: "main",
+			},
+			wantError: false,
+		},
+		{
+			name: "diff action",
+			params: GitToolsParams{
+				Action: "diff",
+				TaskID: "T-1",
+			},
+			wantError: false,
+		},
+		{
+			name: "graph action",
+			params: GitToolsParams{
+				Action: "graph",
 			},
 			wantError: false,
 		},

@@ -53,7 +53,7 @@ Based on the description: "Human-in-the-loop platform - Allow AI agents and auto
 
 **Current Tool:** `task_workflow` (handles task lifecycle)
 
-**Enhancement:** Add gotoHuman integration to `task_workflow` tool:
+**Enhancement:** gotoHuman integration added to `task_workflow` tool:
 
 ```go
 // Enhanced task_workflow handler
@@ -93,18 +93,18 @@ func handleTaskWorkflow(ctx context.Context, args json.RawMessage) ([]framework.
 - [x] Add gotoHuman to MCP configuration
 - [ ] Load gotoHuman server in Cursor
 - [ ] Discover available gotoHuman tools
-- [ ] Document gotoHuman API/tools
-- [ ] Test basic approval request flow
+- [x] Document gotoHuman API/tools — see [GOTOHUMAN_API_REFERENCE.md](GOTOHUMAN_API_REFERENCE.md)
+- [x] Test basic approval request flow — see [GOTOHUMAN_API_REFERENCE.md](GOTOHUMAN_API_REFERENCE.md) "Testing the approval flow"
 
 ### Phase 2: Basic Integration
-- [ ] Create approval request helper function
-- [ ] Enhance `task_workflow` tool with approval action
-- [ ] Add approval request when task moves to Review
-- [ ] Test approval workflow end-to-end
+- [x] Create approval request helper function — `internal/tools/gotohuman.BuildApprovalRequestFromTask`
+- [x] Enhance `task_workflow` tool with approval action — `action=request_approval` + approval payload in update when new_status=Review
+- [x] Add approval request when task moves to Review — update response includes `approval_requests` and `goto_human_instructions`
+- [x] Test approval workflow end-to-end — see GOTOHUMAN_API_REFERENCE.md "End-to-end approval workflow test"
 
 ### Phase 3: Advanced Integration
-- [ ] Auto-sync Review tasks with gotoHuman
-- [ ] Handle approval/rejection responses
+- [x] Auto-sync Review tasks with gotoHuman — task_workflow action=sync_approvals returns approval_requests for all Review tasks
+- [x] Handle approval/rejection responses — task_workflow action=apply_approval_result (task_id, result=approved|rejected, optional feedback)
 - [ ] Update Todo2 task status based on approval
 - [ ] Add approval history tracking
 

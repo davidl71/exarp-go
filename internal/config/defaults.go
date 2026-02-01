@@ -246,7 +246,7 @@ func GetDefaults() *FullConfig {
 				"preference",
 				"insight",
 			},
-			StoragePath:    ".exarp/memory",
+			StoragePath:    ".exarp/memories",
 			SessionLogPath: ".exarp/logs/sessions",
 			RetentionDays:  90,
 			AutoCleanup:    true,

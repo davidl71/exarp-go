@@ -292,6 +292,108 @@ func formatTaskDate(s string) string {
 	return t.Format("01/02/2006, 03:04 PM")
 }
 
+// commentCounts holds per-type comment counts for a task.
+type commentCounts struct {
+	Research, Result, Note, Manual int
+}
+
+// getCommentCounts returns comment counts from the database (DB only; JSON fallback has no comments).
+func getCommentCounts(ctx context.Context, taskID string) commentCounts {
+	comments, err := database.GetComments(ctx, taskID)
+	if err != nil {
+		return commentCounts{}
+	}
+	var c commentCounts
+	for _, cmt := range comments {
+		switch cmt.Type {
+		case database.CommentTypeResearch:
+			c.Research++
+		case database.CommentTypeResult:
+			c.Result++
+		case database.CommentTypeNote:
+			c.Note++
+		case database.CommentTypeManual:
+			c.Manual++
+		}
+	}
+	return c
+}
+
+// getKeyInsight returns a truncated key insight from the most recent result or note comment.
+func getKeyInsight(ctx context.Context, taskID string, maxLen int) string {
+	comments, err := database.GetComments(ctx, taskID)
+	if err != nil || len(comments) == 0 {
+		return ""
+	}
+	for i := len(comments) - 1; i >= 0; i-- {
+		if comments[i].Type == database.CommentTypeResult || comments[i].Type == database.CommentTypeNote {
+			s := strings.TrimSpace(comments[i].Content)
+			if len(s) > maxLen {
+				s = s[:maxLen-3] + "..."
+			}
+			return s
+		}
+	}
+	return ""
+}
+
+// GetSuggestedNextTasks returns dependency-ordered tasks ready to start (deps done), up to limit.
+// Used by todo2-overview and stdio://suggested-tasks resource.
+func GetSuggestedNextTasks(projectRoot string, limit int) []BacklogTaskDetail {
+	tasks, err := LoadTodo2Tasks(projectRoot)
+	if err != nil || limit <= 0 {
+		return nil
+	}
+	orderedIDs, _, details, orderErr := BacklogExecutionOrder(tasks, nil)
+	if orderErr != nil || len(orderedIDs) == 0 {
+		return nil
+	}
+	ready := tasksReadyToStart(tasks)
+	detailMap := make(map[string]BacklogTaskDetail)
+	for _, d := range details {
+		detailMap[d.ID] = d
+	}
+	out := make([]BacklogTaskDetail, 0, limit)
+	for _, id := range orderedIDs {
+		if ready[id] {
+			if d, ok := detailMap[id]; ok {
+				out = append(out, d)
+				if len(out) >= limit {
+					break
+				}
+			}
+		}
+	}
+	return out
+}
+
+// tasksReadyToStart returns task IDs whose dependencies are all Done.
+func tasksReadyToStart(tasks []Todo2Task) map[string]bool {
+	done := make(map[string]bool)
+	for _, t := range tasks {
+		if strings.EqualFold(t.Status, "done") {
+			done[t.ID] = true
+		}
+	}
+	ready := make(map[string]bool)
+	for _, t := range tasks {
+		if !IsBacklogStatus(t.Status) {
+			continue
+		}
+		allDone := true
+		for _, dep := range t.Dependencies {
+			if !done[dep] {
+				allDone = false
+				break
+			}
+		}
+		if allDone {
+			ready[t.ID] = true
+		}
+	}
+	return ready
+}
+
 // WriteTodo2Overview writes .cursor/rules/todo2-overview.mdc from current tasks.
 // Uses real dates or "—" for unknown; never displays 1970.
 func WriteTodo2Overview(projectRoot string) error {
@@ -299,6 +401,8 @@ func WriteTodo2Overview(projectRoot string) error {
 	if err != nil {
 		return fmt.Errorf("load tasks: %w", err)
 	}
+	ctx := context.Background()
+
 	// Sort by last_modified desc (newest first), then take last 20 for "newest first" display
 	sort.Slice(tasks, func(i, j int) bool {
 		a, b := tasks[i].LastModified, tasks[j].LastModified
@@ -319,6 +423,8 @@ func WriteTodo2Overview(projectRoot string) error {
 		displayTasks = tasks[:displayCount]
 	}
 
+	suggestedNext := GetSuggestedNextTasks(projectRoot, 5)
+
 	now := time.Now().Format("01/02/2006, 03:04 PM")
 	var b strings.Builder
 	b.WriteString("---\n")
@@ -328,6 +434,15 @@ func WriteTodo2Overview(projectRoot string) error {
 	b.WriteString("# Todo2 Project Context\n\n")
 	b.WriteString("*Last updated: " + now + "*\n")
 	b.WriteString("*Generated automatically from .todo2/state.todo2.json*\n\n")
+
+	if len(suggestedNext) > 0 {
+		b.WriteString("## Suggested Next Tasks (dependency-ready)\n\n")
+		for _, d := range suggestedNext {
+			b.WriteString(fmt.Sprintf("- **%s** (%s): %s\n", d.ID, d.Priority, d.Content))
+		}
+		b.WriteString("\n")
+	}
+
 	b.WriteString("## Current Task Overview (Last 20 Tasks - Newest First)\n\n")
 
 	for _, t := range displayTasks {
@@ -360,9 +475,17 @@ func WriteTodo2Overview(projectRoot string) error {
 		b.WriteString(" | **Created:** " + formatTaskDate(t.CreatedAt) + " | **Updated:** " + formatTaskDate(t.LastModified) + "\n")
 		b.WriteString("- **Tags:** " + strings.Join(t.Tags, ", ") + "\n")
 		b.WriteString("- **Dependencies:** " + strings.Join(t.Dependencies, ", ") + "\n")
-		b.WriteString("- **Comments**: 0 research_with_links, 0 result, 0 notes, 0 manualsetup\n")
+		cc := getCommentCounts(ctx, t.ID)
+		b.WriteString(fmt.Sprintf("- **Comments**: %d research_with_links, %d result, %d notes, %d manualsetup\n",
+			cc.Research, cc.Result, cc.Note, cc.Manual))
 		b.WriteString("- **Status:** " + t.Status + "\n")
-		b.WriteString("- **Key Insight:** *[No key insight available]*\n\n")
+		insight := getKeyInsight(ctx, t.ID, 80)
+		if insight == "" {
+			insight = "*[No key insight available]*"
+		} else {
+			insight = "*" + insight + "*"
+		}
+		b.WriteString("- **Key Insight:** " + insight + "\n\n")
 	}
 
 	// Task statistics

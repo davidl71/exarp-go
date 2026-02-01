@@ -50,16 +50,15 @@ func RunTUI3270(server framework.MCPServer, status string, port int, daemon bool
 // runTUI3270Server runs the actual server (foreground or background)
 func runTUI3270Server(server framework.MCPServer, status string, port int) error {
 	// Logger initialized automatically via adapter
-	// Initialize database
+	// Initialize config and database
 	projectRoot, err := tools.FindProjectRoot()
 	projectName := ""
 	if err != nil {
 		logWarn(nil, "Could not find project root", "error", err, "operation", "runTUI3270Server")
 	} else {
 		projectName = getProjectName(projectRoot)
-		if err := database.Init(projectRoot); err != nil {
-			logWarn(nil, "Database initialization failed", "error", err, "operation", "runTUI3270Server")
-		} else {
+		EnsureConfigAndDatabase(projectRoot)
+		if database.DB != nil {
 			defer func() {
 				if err := database.Close(); err != nil {
 					logWarn(nil, "Error closing database", "error", err, "operation", "closeDatabase")

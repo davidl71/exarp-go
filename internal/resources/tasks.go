@@ -423,6 +423,41 @@ func handleTasksSummary(ctx context.Context, uri string) ([]byte, string, error)
 	return jsonData, "application/json", nil
 }
 
+// handleSuggestedTasks handles the stdio://suggested-tasks resource
+// Returns dependency-ordered tasks ready to start (all dependencies Done), for MCP clients and Cursor.
+func handleSuggestedTasks(ctx context.Context, uri string) ([]byte, string, error) {
+	projectRoot, err := tools.FindProjectRoot()
+	if err != nil {
+		return nil, "", fmt.Errorf("failed to find project root: %w", err)
+	}
+
+	suggested := tools.GetSuggestedNextTasks(projectRoot, 10)
+	taskMaps := make([]map[string]interface{}, len(suggested))
+	for i, d := range suggested {
+		taskMaps[i] = map[string]interface{}{
+			"id":       d.ID,
+			"content":  d.Content,
+			"priority": d.Priority,
+			"status":   d.Status,
+			"level":    d.Level,
+			"tags":     d.Tags,
+		}
+	}
+
+	result := map[string]interface{}{
+		"suggested_tasks": taskMaps,
+		"count":           len(suggested),
+		"timestamp":       time.Now().Format(time.RFC3339),
+	}
+
+	jsonData, err := json.Marshal(result)
+	if err != nil {
+		return nil, "", fmt.Errorf("failed to marshal suggested tasks: %w", err)
+	}
+
+	return jsonData, "application/json", nil
+}
+
 // normalizeStatus normalizes status values to Title Case.
 // This is a wrapper around tools.NormalizeStatusToTitleCase for backward compatibility.
 func normalizeStatus(status string) string {

@@ -67,10 +67,10 @@ func TestGetPromptTemplate(t *testing.T) {
 }
 
 func TestGetPromptTemplate_AllPrompts(t *testing.T) {
-	// Test all 34 registered prompts (18 original + 16 migrated from Python)
+	// Test all 35 registered prompts (19 original + 16 migrated from Python)
 	allPrompts := []string{
 		"align", "discover", "config", "scan",
-		"scorecard", "overview", "dashboard", "remember",
+		"scorecard", "overview", "plan", "dashboard", "remember",
 		"daily_checkin", "sprint_start", "sprint_end",
 		"pre_sprint", "post_impl", "sync", "dups",
 		"context", "mode", "task_update",
@@ -269,7 +269,7 @@ func TestCreatePromptHandler_AllPrompts(t *testing.T) {
 
 	allPrompts := []string{
 		"align", "discover", "config", "scan",
-		"scorecard", "overview", "dashboard", "remember",
+		"scorecard", "overview", "plan", "dashboard", "remember",
 		"daily_checkin", "sprint_start", "sprint_end",
 		"pre_sprint", "post_impl", "sync", "dups",
 		"context", "mode", "task_update",

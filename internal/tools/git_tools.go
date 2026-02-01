@@ -391,16 +391,43 @@ func handleTasksAction(ctx context.Context, projectRoot string, params GitToolsP
 	return string(data), nil
 }
 
-// handleDiffAction handles the diff action (placeholder - needs commit tracking)
+// handleDiffAction returns task change history (commits for the task) as a diff-style list.
 func handleDiffAction(ctx context.Context, projectRoot string, params GitToolsParams) (string, error) {
 	if params.TaskID == "" {
 		return "", fmt.Errorf("task_id parameter required for diff action")
 	}
 
-	// TODO: Implement task diff comparison
+	commits, err := loadCommits(projectRoot)
+	if err != nil {
+		return "", err
+	}
+
+	limit := params.Limit
+	if limit <= 0 {
+		limit = 50
+	}
+
+	var filtered []TaskCommit
+	for _, commit := range commits {
+		if commit.TaskID == params.TaskID {
+			if params.Branch == "" || commit.Branch == params.Branch {
+				filtered = append(filtered, commit)
+			}
+		}
+	}
+
+	sort.Slice(filtered, func(i, j int) bool {
+		return filtered[i].Timestamp.After(filtered[j].Timestamp)
+	})
+	if len(filtered) > limit {
+		filtered = filtered[:limit]
+	}
+
 	result := map[string]interface{}{
-		"task_id": params.TaskID,
-		"message": "Diff action not yet implemented in native Go",
+		"task_id":       params.TaskID,
+		"branch":        params.Branch,
+		"total_changes": len(filtered),
+		"changes":       filtered,
 	}
 
 	data, err := json.MarshalIndent(result, "", "  ")
@@ -411,14 +438,50 @@ func handleDiffAction(ctx context.Context, projectRoot string, params GitToolsPa
 	return string(data), nil
 }
 
-// handleGraphAction handles the graph action (placeholder)
+// handleGraphAction returns a minimal branch/task graph: branches with task counts and task IDs per branch.
 func handleGraphAction(ctx context.Context, projectRoot string, params GitToolsParams) (string, error) {
-	// TODO: Implement commit graph generation
+	tasks, err := LoadTodo2Tasks(projectRoot)
+	if err != nil {
+		return "", err
+	}
+
+	branches := getAllBranches(tasks)
+	statistics := getAllBranchStatistics(tasks)
+
+	// Optional: filter to one branch if requested
+	if params.Branch != "" {
+		if _, ok := statistics[params.Branch]; !ok {
+			branches = []string{params.Branch}
+			statistics = map[string]BranchStatistics{params.Branch: getBranchStatistics(tasks, params.Branch)}
+		} else {
+			branches = []string{params.Branch}
+			statistics = map[string]BranchStatistics{params.Branch: statistics[params.Branch]}
+		}
+	}
+
+	// Build graph nodes: branch -> task IDs (and stats)
+	nodes := make([]map[string]interface{}, 0, len(branches))
+	for _, branch := range branches {
+		branchTasks := filterTasksByBranch(tasks, branch)
+		taskIDs := make([]string, 0, len(branchTasks))
+		for _, t := range branchTasks {
+			taskIDs = append(taskIDs, t.ID)
+		}
+		stats := statistics[branch]
+		nodes = append(nodes, map[string]interface{}{
+			"branch":          branch,
+			"task_count":      stats.TaskCount,
+			"by_status":       stats.ByStatus,
+			"completion_rate": stats.CompletionRate,
+			"task_ids":        taskIDs,
+		})
+	}
+
 	result := map[string]interface{}{
-		"format":  params.Format,
-		"branch":  params.Branch,
-		"task_id": params.TaskID,
-		"message": "Graph action not yet implemented in native Go",
+		"format":   params.Format,
+		"branch":   params.Branch,
+		"branches": branches,
+		"nodes":    nodes,
 	}
 
 	data, err := json.MarshalIndent(result, "", "  ")

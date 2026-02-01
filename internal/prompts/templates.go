@@ -107,6 +107,23 @@ Save to file:
 - output_path="docs/OVERVIEW.html"
 - output_path="docs/OVERVIEW.md" `,
 
+	"plan": `Generate a Cursor-style plan document (.plan.md) for the project.
+
+Use: report(action="plan")
+
+Structure (see https://cursor.com/learn/creating-plans):
+1. Purpose & Success Criteria - What we're building and how we know it's working
+2. Technical Foundation - Architecture, tech stack, invariants
+3. Iterative Milestones - Checkbox list from Todo2 next actions / backlog order
+4. Open Questions - Blockers or decisions needed
+
+Options:
+- output_path omitted - Write to .cursor/plans/<project-slug>.plan.md (Cursor discovers it; frontmatter includes status: draft for Build/Built)
+- output_path=".cursor/plans/my-feature.plan.md" - Per-feature plan
+- plan_title="My Feature" - Override title (default: project name from go.mod)
+
+Use when starting a feature, epic, or sprint to align agents and humans on the plan.`,
+
 	"dashboard": `Display a comprehensive project dashboard with key metrics and status overview.
 
 This prompt generates an at-a-glance view of the project including:

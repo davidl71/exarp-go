@@ -9,18 +9,19 @@ import (
 
 // RegisterAllPrompts registers all prompts with the server
 func RegisterAllPrompts(server framework.MCPServer) error {
-	// Register 34 prompts (18 original + 16 migrated from Python per PROMPTS_MIGRATION_AND_OBSOLESCENCE_PLAN.md)
+	// Register 35 prompts (19 original + 16 migrated from Python per PROMPTS_MIGRATION_AND_OBSOLESCENCE_PLAN.md)
 	prompts := []struct {
 		name        string
 		description string
 	}{
-		// Original prompts (8)
+		// Original prompts (9)
 		{"align", "Analyze Todo2 task alignment with project goals."},
 		{"discover", "Discover tasks from TODO comments, markdown, and orphaned tasks."},
 		{"config", "Generate IDE configuration files."},
 		{"scan", "Scan project dependencies for security vulnerabilities. Supports all languages via tool parameter."},
 		{"scorecard", "Generate comprehensive project health scorecard with all metrics."},
 		{"overview", "Generate one-page project overview for stakeholders."},
+		{"plan", "Generate Cursor-style .plan.md (Purpose, Technical Foundation, Milestones, Open Questions)."},
 		{"dashboard", "Display comprehensive project dashboard with key metrics and status overview."},
 		{"remember", "Use AI session memory to persist insights."},
 		// High-value workflow prompts (7)

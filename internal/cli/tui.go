@@ -966,55 +966,14 @@ func RunTUI(server framework.MCPServer, status string) error {
 		logWarn(nil, "Could not find project root", "error", err, "operation", "RunTUI", "fallback", "JSON")
 	} else {
 		projectName = getProjectName(projectRoot)
-		// Try to use centralized config first
-		fullCfg, err := config.LoadConfig(projectRoot)
-		if err == nil {
-			// Convert centralized config DatabaseConfig to DatabaseConfigFields
-			dbCfg := database.DatabaseConfigFields{
-				SQLitePath:          fullCfg.Database.SQLitePath,
-				JSONFallbackPath:    fullCfg.Database.JSONFallbackPath,
-				BackupPath:          fullCfg.Database.BackupPath,
-				MaxConnections:      fullCfg.Database.MaxConnections,
-				ConnectionTimeout:   int64(fullCfg.Database.ConnectionTimeout.Seconds()),
-				QueryTimeout:        int64(fullCfg.Database.QueryTimeout.Seconds()),
-				RetryAttempts:       fullCfg.Database.RetryAttempts,
-				RetryInitialDelay:   int64(fullCfg.Database.RetryInitialDelay.Seconds()),
-				RetryMaxDelay:       int64(fullCfg.Database.RetryMaxDelay.Seconds()),
-				RetryMultiplier:     fullCfg.Database.RetryMultiplier,
-				AutoVacuum:          fullCfg.Database.AutoVacuum,
-				WALMode:             fullCfg.Database.WALMode,
-				CheckpointInterval:  fullCfg.Database.CheckpointInterval,
-				BackupRetentionDays: fullCfg.Database.BackupRetentionDays,
-			}
-
-			if err := database.InitWithCentralizedConfig(projectRoot, dbCfg); err != nil {
-				logWarn(nil, "Database initialization with centralized config failed", "error", err, "operation", "RunTUI", "fallback", "legacy config")
-				// Fall through to legacy init
-			} else {
-				// Defer close when TUI exits
-				defer func() {
-					if err := database.Close(); err != nil {
-						logWarn(nil, "Error closing database", "error", err, "operation", "closeDatabase")
-					}
-				}()
-				logInfo(nil, "Database initialized with centralized config", "path", fullCfg.Database.SQLitePath, "operation", "RunTUI")
-				goto databaseInitialized
-			}
-		}
-
-		// Fall back to legacy config
-		if err := database.Init(projectRoot); err != nil {
-			logWarn(nil, "Database initialization failed", "error", err, "operation", "RunTUI", "fallback", "JSON")
-		} else {
-			// Defer close when TUI exits
+		EnsureConfigAndDatabase(projectRoot)
+		if database.DB != nil {
 			defer func() {
 				if err := database.Close(); err != nil {
 					logWarn(nil, "Error closing database", "error", err, "operation", "closeDatabase")
 				}
 			}()
-			logInfo(nil, "Database initialized", "path", projectRoot+"/.todo2/todo2.db", "operation", "RunTUI")
 		}
-	databaseInitialized:
 	}
 
 	p := tea.NewProgram(initialModel(server, status, projectRoot, projectName))

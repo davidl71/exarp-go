@@ -48,8 +48,7 @@ func handleHealthNative(ctx context.Context, params map[string]interface{}) ([]f
 	case "tools":
 		return handleHealthTools(ctx, params)
 	default:
-		// Unknown action - fall back to Python bridge
-		return nil, fmt.Errorf("health action '%s' not yet implemented in native Go, using Python bridge", action)
+		return nil, fmt.Errorf("health action %q not supported (use: server, git, docs, dod, cicd, tools)", action)
 	}
 }
 

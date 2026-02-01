@@ -17,12 +17,12 @@ import (
 //
 //	(server_status and list_models converted to resources, tool_catalog list action converted to resources)
 //
-// Prompts = 34 (18 original + 16 migrated from Python per PROMPTS_MIGRATION_AND_OBSOLESCENCE_PLAN.md)
+// Prompts = 35 (19 original + 16 migrated from Python per PROMPTS_MIGRATION_AND_OBSOLESCENCE_PLAN.md)
 // Resources = 22 (scorecard, 5 memories, 4 prompts, session/mode, server/status, models, cursor/skills, 2 tools, 7 tasks)
 const (
 	EXPECTED_TOOLS     = 28 // Base tools (29 with conditional Apple Foundation Models)
-	EXPECTED_PROMPTS   = 34 // 18 original + 16 migrated from Python
-	EXPECTED_RESOURCES = 22 // All native Go in internal/resources/
+	EXPECTED_PROMPTS   = 35 // 19 original + 16 migrated from Python
+	EXPECTED_RESOURCES = 23 // All native Go in internal/resources/ (includes stdio://suggested-tasks)
 )
 
 // Counting wrapper to track registrations

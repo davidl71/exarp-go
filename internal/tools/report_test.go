@@ -132,6 +132,85 @@ func TestHandleReportPRD(t *testing.T) {
 	}
 }
 
+func TestPlanFilenameFromTitle(t *testing.T) {
+	tests := []struct {
+		title string
+		want  string
+	}{
+		{"github.com/davidl71/exarp-go", "exarp-go"},
+		{"exarp-go", "exarp-go"},
+		{"", "plan"},
+		{"My Feature", "My-Feature"},
+		{"path/to/project", "project"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.title, func(t *testing.T) {
+			if got := planFilenameFromTitle(tt.title); got != tt.want {
+				t.Errorf("planFilenameFromTitle(%q) = %q, want %q", tt.title, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestHandleReportPlan(t *testing.T) {
+	tmpDir := t.TempDir()
+	os.Setenv("PROJECT_ROOT", tmpDir)
+	defer os.Unsetenv("PROJECT_ROOT")
+
+	planPath := tmpDir + "/test-project.plan.md"
+	tests := []struct {
+		name      string
+		params    map[string]interface{}
+		wantError bool
+		validate  func(*testing.T, []framework.TextContent)
+	}{
+		{
+			name: "plan action writes plan file with .plan.md suffix",
+			params: map[string]interface{}{
+				"action":      "plan",
+				"output_path": planPath,
+				"plan_title":  "Test Project",
+			},
+			wantError: false,
+			validate: func(t *testing.T, result []framework.TextContent) {
+				if len(result) == 0 {
+					t.Error("expected non-empty result")
+					return
+				}
+				text := result[0].Text
+				for _, s := range []string{"## Scope", "## 1. Technical Foundation", "## 2. Backlog Tasks", "## 3. Iterative Milestones", "## 4. Recommended Execution Order", "## 5. Open Questions", "## 6. Out-of-Scope"} {
+					if !strings.Contains(text, s) {
+						t.Errorf("plan output missing section %q", s)
+					}
+				}
+				if !strings.Contains(text, "name:") || !strings.Contains(text, "overview:") {
+					t.Error("plan output missing YAML frontmatter")
+				}
+				if !strings.Contains(text, "status: draft") {
+					t.Error("plan output missing status: draft (Cursor Build/Built)")
+				}
+				if !strings.Contains(text, "Test Project") {
+					t.Error("plan output missing plan title")
+				}
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx := context.Background()
+			result, err := handleReportPlan(ctx, tt.params)
+			if (err != nil) != tt.wantError {
+				t.Errorf("handleReportPlan() error = %v, wantError %v", err, tt.wantError)
+				return
+			}
+			if !tt.wantError && tt.validate != nil {
+				tt.validate(t, result)
+			}
+		})
+	}
+}
+
 func TestHandleReport(t *testing.T) {
 	tmpDir := t.TempDir()
 	os.Setenv("PROJECT_ROOT", tmpDir)
@@ -153,6 +232,14 @@ func TestHandleReport(t *testing.T) {
 			name: "prd action",
 			params: map[string]interface{}{
 				"action": "prd",
+			},
+			wantError: false,
+		},
+		{
+			name: "plan action",
+			params: map[string]interface{}{
+				"action":      "plan",
+				"output_path": tmpDir + "/exarp-go.plan.md",
 			},
 			wantError: false,
 		},

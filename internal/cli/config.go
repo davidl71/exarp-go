@@ -9,30 +9,43 @@ import (
 	"time"
 
 	"github.com/davidl71/exarp-go/internal/config"
+	mcpcli "github.com/davidl71/mcp-go-core/pkg/mcp/cli"
 	"google.golang.org/protobuf/proto"
 	"gopkg.in/yaml.v3"
 )
 
-// handleConfigCommand handles the config subcommand
-func handleConfigCommand(args []string) error {
-	if len(args) == 0 {
+// handleConfigCommand handles the config subcommand using ParseArgs result
+func handleConfigCommand(parsed *mcpcli.Args) error {
+	subcommand := parsed.Subcommand
+	if subcommand == "" && len(parsed.Positional) > 0 {
+		subcommand = parsed.Positional[0]
+	}
+	if subcommand == "" {
 		return printConfigHelp()
 	}
 
-	subcommand := args[0]
 	switch subcommand {
 	case "init":
-		return handleConfigInit(args[1:])
+		return handleConfigInit(parsed.Positional)
 	case "validate":
-		return handleConfigValidate(args[1:])
+		return handleConfigValidate(parsed.Positional)
 	case "show":
-		return handleConfigShow(args[1:])
+		// Format from positional (e.g. "show yaml") or flag
+		formatArgs := parsed.Positional
+		if format := parsed.GetFlag("format", ""); format != "" {
+			formatArgs = []string{format}
+		}
+		return handleConfigShow(formatArgs)
 	case "set":
-		return handleConfigSet(args[1:])
+		return handleConfigSet(parsed.Positional)
 	case "export":
-		return handleConfigExport(args[1:])
+		formatArgs := parsed.Positional
+		if format := parsed.GetFlag("format", ""); format != "" {
+			formatArgs = []string{format}
+		}
+		return handleConfigExport(formatArgs)
 	case "convert":
-		return handleConfigConvert(args[1:])
+		return handleConfigConvert(parsed.Positional)
 	case "help", "--help", "-h":
 		return printConfigHelp()
 	default:

@@ -40,7 +40,7 @@ func handleMemories(ctx context.Context, uri string) ([]byte, string, error) {
 		"total":                len(allMemories),
 		"returned":             len(memories),
 		"categories":           categories,
-		"available_categories": tools.MemoryCategories,
+		"available_categories": tools.MemoryCategories(),
 		"timestamp":            time.Now().Format(time.RFC3339),
 	}
 
