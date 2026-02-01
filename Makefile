@@ -906,7 +906,7 @@ go-mod-verify: ## Verify go.mod and go.sum are in sync
 
 ##@ Protocol Buffers
 
-proto: ## Generate Go code from .proto files
+proto: ## Generate Go code from .proto files (uses protoc; use proto-buf for buf)
 	@echo "$(BLUE)Generating Go code from protobuf schemas...$(NC)"
 	@if ! command -v protoc >/dev/null 2>&1; then \
 		echo "$(RED)❌ protoc not found. Install with:$(NC)"; \
@@ -947,6 +947,16 @@ proto-clean: ## Clean generated protobuf Go code
 	@echo "$(BLUE)Cleaning generated protobuf code...$(NC)"
 	@rm -rf proto/todo2 proto/bridge proto/config
 	@echo "$(GREEN)✅ Protobuf code cleaned$(NC)"
+
+proto-buf: ## Generate Go code using buf (preferred; falls back to proto if buf unavailable)
+	@echo "$(BLUE)Generating Go code from protobuf schemas (buf)...$(NC)"
+	@if command -v buf >/dev/null 2>&1; then \
+		buf generate || (echo "$(RED)❌ buf generate failed$(NC)" && exit 1); \
+		echo "$(GREEN)✅ Protobuf code generated (buf)$(NC)"; \
+	else \
+		echo "$(YELLOW)buf not found, falling back to protoc$(NC)"; \
+		$(MAKE) proto; \
+	fi
 
 ##@ Tool Installation
 

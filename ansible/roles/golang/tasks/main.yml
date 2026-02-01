@@ -105,6 +105,26 @@
   debug:
     msg: "Go installed: {{ go_verify.stdout }}"
 
+# Install protoc (Protocol Buffers compiler)
+- name: Install protoc (Debian/Ubuntu)
+  apt:
+    name: protobuf-compiler
+    state: present
+    update_cache: yes
+  when: ansible_os_family == "Debian"
+
+- name: Install protoc (macOS)
+  homebrew:
+    name: protobuf
+    state: present
+  when: ansible_system == "Darwin"
+
+- name: Verify protoc installation
+  command: protoc --version
+  register: protoc_verify
+  changed_when: false
+  failed_when: false
+
 # Install protoc-gen-go (Go protobuf code generator)
 - name: Check if protoc-gen-go is already installed
   command: protoc-gen-go --version
