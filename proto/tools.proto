@@ -307,6 +307,7 @@ message TaskWorkflowRequest {
   repeated string tags = 22;  // For create action
   repeated string dependencies = 23;  // For create action
   bool auto_estimate = 24;  // default: true
+  bool confirm_via_elicitation = 25;  // When true and client supports MCP elicitation, prompt to confirm approve/delete
 }
 
 // ============================================================================
@@ -495,6 +496,7 @@ message SessionRequest {
   string priority_filter = 26;
   bool include_unassigned = 27;  // default: false
   int32 max_tasks_per_agent = 28;  // default: 5
+  bool ask_preferences = 29;  // When true and client supports elicitation, prompt user for include_tasks/include_hints at prime time
 }
 
 // ============================================================================

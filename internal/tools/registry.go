@@ -373,13 +373,13 @@ func registerBatch2Tools(server framework.MCPServer) error {
 	// T-30: report
 	if err := server.RegisterTool(
 		"report",
-		"[HINT: Report generation. action=overview|scorecard|briefing|prd. For scorecard: fast_mode (default true) or full; fast_mode only applies to Go projects.]",
+		"[HINT: Report generation. action=overview|scorecard|briefing|prd|plan|scorecard_plans. plan generates Cursor-style .plan.md. scorecard_plans writes one improvement plan per scorecard dimension (testing, security, documentation, completion) to .cursor/plans/improve-<dim>.plan.md. For scorecard: fast_mode (default true) or full.]",
 		framework.ToolSchema{
 			Type: "object",
 			Properties: map[string]interface{}{
 				"action": map[string]interface{}{
 					"type":    "string",
-					"enum":    []string{"overview", "scorecard", "briefing", "prd"},
+					"enum":    []string{"overview", "scorecard", "briefing", "prd", "plan", "scorecard_plans"},
 					"default": "overview",
 				},
 				"output_format": map[string]interface{}{
@@ -387,7 +387,12 @@ func registerBatch2Tools(server framework.MCPServer) error {
 					"default": "text",
 				},
 				"output_path": map[string]interface{}{
-					"type": "string",
+					"type":        "string",
+					"description": "For action=plan: path for plan file (default: .cursor/plans/<project-slug>.plan.md so Cursor shows Build)",
+				},
+				"plan_title": map[string]interface{}{
+					"type":        "string",
+					"description": "For action=plan: title for the plan (default: project name from go.mod or directory)",
 				},
 				"include_planning": map[string]interface{}{
 					"type":        "boolean",
@@ -657,18 +662,23 @@ func registerBatch2Tools(server framework.MCPServer) error {
 	// T-34: task_workflow
 	if err := server.RegisterTool(
 		"task_workflow",
-		"[HINT: Task workflow. action=sync|approve|clarify|clarity|cleanup|create|fix_dates|fix_empty_descriptions|fix_invalid_ids|link_planning|sanity_check. Manage task lifecycle. ⚠️ CRITICAL: PREFER convenience commands (exarp-go task ...) for common operations. FALLBACK to this tool for advanced operations (clarity, cleanup, complex filters). NEVER edit .todo2/state.todo2.json directly. Use action=approve with task_ids for batch updates. Use action=create to create new tasks. Use action=link_planning with task_id/task_ids and planning_doc/epic_id to set planning hints on Todo or In Progress tasks only. Sync is SQLite↔JSON only; external sync is a future nice-to-have (ignored if passed).]",
+		"[HINT: Task workflow. action=sync|approve|clarify|clarity|cleanup|create|fix_dates|fix_empty_descriptions|fix_invalid_ids|link_planning|request_approval|sync_approvals|apply_approval_result|sanity_check. Manage task lifecycle. ⚠️ CRITICAL: PREFER convenience commands (exarp-go task ...) for common operations. FALLBACK to this tool for advanced operations (clarity, cleanup, complex filters). NEVER edit .todo2/state.todo2.json directly. Use action=approve with task_ids for batch updates. Use action=create to create new tasks. Use action=link_planning with task_id/task_ids and planning_doc/epic_id to set planning hints on Todo or In Progress tasks only. Sync is SQLite↔JSON only; external sync is a future nice-to-have (ignored if passed).]",
 		framework.ToolSchema{
 			Type: "object",
 			Properties: map[string]interface{}{
 				"action": map[string]interface{}{
 					"type":    "string",
-					"enum":    []string{"sync", "approve", "clarify", "clarity", "cleanup", "create", "delete", "fix_dates", "fix_empty_descriptions", "fix_invalid_ids", "link_planning", "sanity_check"},
+					"enum":    []string{"sync", "approve", "clarify", "clarity", "cleanup", "create", "delete", "fix_dates", "fix_empty_descriptions", "fix_invalid_ids", "link_planning", "request_approval", "sync_approvals", "apply_approval_result", "sanity_check"},
 					"default": "sync",
 				},
 				"dry_run": map[string]interface{}{
 					"type":    "boolean",
 					"default": false,
+				},
+				"confirm_via_elicitation": map[string]interface{}{
+					"type":        "boolean",
+					"default":     false,
+					"description": "When true and client supports MCP elicitation, prompt user to confirm before approve or delete (form: proceed, optional dry_run for approve)",
 				},
 				"external": map[string]interface{}{
 					"type":        "boolean",
@@ -699,6 +709,18 @@ func registerBatch2Tools(server framework.MCPServer) error {
 				},
 				"task_id": map[string]interface{}{
 					"type": "string",
+				},
+				"form_id": map[string]interface{}{
+					"type":        "string",
+					"description": "For request_approval/sync_approvals: gotoHuman form ID from list-forms (optional)",
+				},
+				"result": map[string]interface{}{
+					"type":        "string",
+					"description": "For apply_approval_result: 'approved' or 'rejected' (from gotoHuman decision)",
+				},
+				"feedback": map[string]interface{}{
+					"type":        "string",
+					"description": "For apply_approval_result: optional feedback when result=rejected (appended to task)",
 				},
 				"clarification_text": map[string]interface{}{
 					"type": "string",
@@ -1199,7 +1221,7 @@ func registerBatch3Tools(server framework.MCPServer) error {
 	// T-43: session
 	if err := server.RegisterTool(
 		"session",
-		"[HINT: Session. action=prime|handoff|prompts|assignee. Unified session management tools.]",
+		"[HINT: Session. action=prime|handoff|prompts|assignee. Use ask_preferences=true for MCP elicitation at prime. Unified session management tools.]",
 		framework.ToolSchema{
 			Type: "object",
 			Properties: map[string]interface{}{
@@ -1215,6 +1237,11 @@ func registerBatch3Tools(server framework.MCPServer) error {
 				"include_tasks": map[string]interface{}{
 					"type":    "boolean",
 					"default": true,
+				},
+				"ask_preferences": map[string]interface{}{
+					"type":        "boolean",
+					"default":     false,
+					"description": "When true and client supports elicitation, prompt user for include_tasks/include_hints preferences at prime time",
 				},
 				"override_mode": map[string]interface{}{
 					"type": "string",

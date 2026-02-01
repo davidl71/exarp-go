@@ -10,6 +10,8 @@ import (
 	"github.com/davidl71/exarp-go/internal/config"
 	"github.com/davidl71/exarp-go/internal/database"
 	"github.com/davidl71/exarp-go/internal/framework"
+	"github.com/davidl71/exarp-go/internal/models"
+	mcpframework "github.com/davidl71/mcp-go-core/pkg/mcp/framework"
 	"github.com/davidl71/mcp-go-core/pkg/mcp/response"
 )
 
@@ -47,9 +49,148 @@ func handleTaskWorkflowNative(ctx context.Context, params map[string]interface{}
 		return handleTaskWorkflowDelete(ctx, params)
 	case "update":
 		return handleTaskWorkflowUpdate(ctx, params)
+	case "request_approval":
+		return handleTaskWorkflowRequestApproval(ctx, params)
+	case "sync_approvals":
+		return handleTaskWorkflowSyncApprovals(ctx, params)
+	case "apply_approval_result":
+		return handleTaskWorkflowApplyApprovalResult(ctx, params)
 	default:
 		return nil, fmt.Errorf("unknown action: %s", action)
 	}
+}
+
+// handleTaskWorkflowSyncApprovals returns approval requests for all tasks in Review (T-111).
+// The client can send each to gotoHuman via request-human-review-with-form.
+func handleTaskWorkflowSyncApprovals(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
+	formID, _ := params["form_id"].(string)
+	var tasks []*models.Todo2Task
+	if db, err := database.GetDB(); err == nil && db != nil {
+		reviewTasks, err := database.GetTasksByStatus(ctx, "Review")
+		if err == nil {
+			tasks = reviewTasks
+		}
+	}
+	if tasks == nil {
+		projectRoot, err := FindProjectRoot()
+		if err != nil {
+			return nil, fmt.Errorf("sync_approvals: %w", err)
+		}
+		all, err := LoadTodo2Tasks(projectRoot)
+		if err != nil {
+			return nil, fmt.Errorf("sync_approvals: failed to load tasks: %w", err)
+		}
+		for i := range all {
+			if all[i].Status == "Review" {
+				tasks = append(tasks, &all[i])
+			}
+		}
+	}
+	approvalRequests := make([]ApprovalRequest, 0, len(tasks))
+	for _, task := range tasks {
+		approvalRequests = append(approvalRequests, BuildApprovalRequestFromTask(task, formID))
+	}
+	result := map[string]interface{}{
+		"review_count":      len(approvalRequests),
+		"approval_requests": approvalRequests,
+		"instructions":      "Call @gotoHuman request-human-review-with-form for each approval_request (form_id, field_data). Set GOTOHUMAN_API_KEY if needed. See docs/GOTOHUMAN_API_REFERENCE.md.",
+	}
+	return response.FormatResult(result, "")
+}
+
+// handleTaskWorkflowApplyApprovalResult updates a task when human approves or rejects in gotoHuman (T-112).
+// Params: task_id (required), result (required: "approved" or "rejected"), feedback (optional, for rejection).
+func handleTaskWorkflowApplyApprovalResult(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
+	taskID, _ := params["task_id"].(string)
+	if taskID == "" {
+		return nil, fmt.Errorf("apply_approval_result requires task_id")
+	}
+	resultVal, _ := params["result"].(string)
+	resultVal = strings.TrimSpace(strings.ToLower(resultVal))
+	if resultVal != "approved" && resultVal != "rejected" {
+		return nil, fmt.Errorf("apply_approval_result requires result=approved or result=rejected")
+	}
+	feedback, _ := params["feedback"].(string)
+	newStatus := "Done"
+	if resultVal == "rejected" {
+		newStatus = "In Progress"
+	}
+	projectRoot, err := FindProjectRoot()
+	if err != nil {
+		return nil, fmt.Errorf("apply_approval_result: %w", err)
+	}
+	// Update via same path as update action
+	updateParams := map[string]interface{}{
+		"task_ids":   taskID,
+		"new_status": newStatus,
+	}
+	out, err := handleTaskWorkflowUpdate(ctx, updateParams)
+	if err != nil {
+		return nil, fmt.Errorf("apply_approval_result: %w", err)
+	}
+	// Optionally add feedback to task (e.g. as comment or in long_description)
+	if feedback != "" && resultVal == "rejected" {
+		tasks, _ := LoadTodo2Tasks(projectRoot)
+		for i := range tasks {
+			if tasks[i].ID == taskID {
+				if tasks[i].LongDescription == "" {
+					tasks[i].LongDescription = "Rejection feedback: " + feedback
+				} else {
+					tasks[i].LongDescription += "\n\nRejection feedback: " + feedback
+				}
+				_ = SaveTodo2Tasks(projectRoot, tasks)
+				break
+			}
+		}
+	}
+	return out, nil
+}
+
+// handleTaskWorkflowRequestApproval builds a gotoHuman approval request payload for a Todo2 task.
+// The client (e.g. Cursor) should call @gotoHuman request-human-review-with-form with the returned payload.
+func handleTaskWorkflowRequestApproval(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
+	taskID, _ := params["task_id"].(string)
+	if taskID == "" {
+		return nil, fmt.Errorf("request_approval requires task_id")
+	}
+	formID, _ := params["form_id"].(string)
+
+	var task *models.Todo2Task
+	if db, err := database.GetDB(); err == nil && db != nil {
+		t, err := database.GetTask(ctx, taskID)
+		if err == nil && t != nil {
+			task = t
+		}
+	}
+	if task == nil {
+		projectRoot, err := FindProjectRoot()
+		if err != nil {
+			return nil, fmt.Errorf("request_approval: %w", err)
+		}
+		tasks, err := LoadTodo2Tasks(projectRoot)
+		if err != nil {
+			return nil, fmt.Errorf("request_approval: failed to load tasks: %w", err)
+		}
+		for i := range tasks {
+			if tasks[i].ID == taskID {
+				task = &tasks[i]
+				break
+			}
+		}
+	}
+	if task == nil {
+		return nil, fmt.Errorf("request_approval: task %s not found", taskID)
+	}
+
+	req := BuildApprovalRequestFromTask(task, formID)
+	payload, _ := json.Marshal(req)
+	instructions := "Call @gotoHuman request-human-review-with-form with formId and fieldData from approval_request. Set GOTOHUMAN_API_KEY if needed. See docs/GOTOHUMAN_API_REFERENCE.md."
+	result := map[string]interface{}{
+		"task_id":          taskID,
+		"approval_request": req,
+		"instructions":     instructions,
+	}
+	return response.FormatResult(result, string(payload))
 }
 
 // handleTaskWorkflowFixDates backfills created/last_modified from DB created_at/updated_at for tasks with empty or 1970 dates, then syncs to JSON.
@@ -451,6 +592,29 @@ func resolveBatchClarifications(ctx context.Context, params map[string]interface
 
 // handleTaskWorkflowDelete deletes one or more tasks by ID. Accepts task_id (single) or task_ids (comma-separated or array). Syncs DB to JSON once after all deletes.
 func handleTaskWorkflowDelete(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
+	// Optional MCP Elicitation: confirm delete when confirm_via_elicitation is true
+	if confirm, _ := params["confirm_via_elicitation"].(bool); confirm {
+		if eliciter := mcpframework.EliciterFromContext(ctx); eliciter != nil {
+			schema := map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"proceed": map[string]interface{}{"type": "boolean", "description": "Proceed with delete?"},
+				},
+			}
+			action, content, err := eliciter.ElicitForm(ctx, "Proceed with deleting the specified task(s)?", schema)
+			if err != nil || action != "accept" {
+				result := map[string]interface{}{"cancelled": true, "message": "Delete cancelled by user or elicitation unavailable"}
+				return response.FormatResult(result, "")
+			}
+			if content != nil {
+				if proceed, ok := content["proceed"].(bool); ok && !proceed {
+					result := map[string]interface{}{"cancelled": true, "message": "Delete cancelled by user"}
+					return response.FormatResult(result, "")
+				}
+			}
+		}
+	}
+
 	var ids []string
 	if taskIDsRaw, ok := params["task_ids"]; ok && taskIDsRaw != nil {
 		switch v := taskIDsRaw.(type) {

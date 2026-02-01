@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/davidl71/exarp-go/internal/framework"
+	mcpframework "github.com/davidl71/mcp-go-core/pkg/mcp/framework"
 )
 
 func TestHandleTaskWorkflowNative(t *testing.T) {
@@ -90,6 +91,50 @@ func TestHandleTaskWorkflowNative(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestHandleTaskWorkflowApproveConfirmViaElicitation(t *testing.T) {
+	tmpDir := t.TempDir()
+	os.Setenv("PROJECT_ROOT", tmpDir)
+	defer os.Unsetenv("PROJECT_ROOT")
+
+	t.Run("confirm_via_elicitation with mock decline returns cancelled", func(t *testing.T) {
+		ctx := context.WithValue(context.Background(), mcpframework.EliciterContextKey, &mockEliciter{Action: "decline"})
+		params := map[string]interface{}{"action": "approve", "confirm_via_elicitation": true}
+		result, err := handleTaskWorkflowApprove(ctx, params)
+		if err != nil {
+			t.Fatalf("handleTaskWorkflowApprove() err = %v", err)
+		}
+		if len(result) == 0 {
+			t.Fatal("expected non-empty result")
+		}
+		var data map[string]interface{}
+		if err := json.Unmarshal([]byte(result[0].Text), &data); err != nil {
+			t.Fatalf("invalid JSON: %v", err)
+		}
+		if cancelled, _ := data["cancelled"].(bool); !cancelled {
+			t.Errorf("expected cancelled=true when user declines, got %v", data)
+		}
+	})
+
+	t.Run("confirm_via_elicitation with no eliciter proceeds", func(t *testing.T) {
+		ctx := context.Background()
+		params := map[string]interface{}{"action": "approve", "confirm_via_elicitation": true}
+		result, err := handleTaskWorkflowApprove(ctx, params)
+		if err != nil {
+			t.Fatalf("handleTaskWorkflowApprove() err = %v", err)
+		}
+		if len(result) == 0 {
+			t.Fatal("expected non-empty result")
+		}
+		var data map[string]interface{}
+		if err := json.Unmarshal([]byte(result[0].Text), &data); err != nil {
+			t.Fatalf("invalid JSON: %v", err)
+		}
+		if cancelled, _ := data["cancelled"].(bool); cancelled {
+			t.Errorf("expected no cancellation when eliciter is nil, got cancelled=true")
+		}
+	})
 }
 
 func TestHandleTaskWorkflow(t *testing.T) {

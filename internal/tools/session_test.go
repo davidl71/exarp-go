@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/davidl71/exarp-go/internal/framework"
+	mcpframework "github.com/davidl71/mcp-go-core/pkg/mcp/framework"
 )
 
 func TestHandleSessionPrompts(t *testing.T) {
@@ -217,6 +218,85 @@ func TestHandleSessionAssignee(t *testing.T) {
 			}
 			if !tt.wantError && tt.validate != nil {
 				tt.validate(t, result)
+			}
+		})
+	}
+}
+
+// mockEliciter implements mcpframework.Eliciter for tests (MCP Elicitation).
+type mockEliciter struct {
+	Action  string
+	Content map[string]interface{}
+	Err     error
+}
+
+func (m *mockEliciter) ElicitForm(_ context.Context, _ string, _ map[string]interface{}) (string, map[string]interface{}, error) {
+	return m.Action, m.Content, m.Err
+}
+
+func TestHandleSessionPrimeElicitation(t *testing.T) {
+	tests := []struct {
+		name      string
+		ctx       context.Context
+		params    map[string]interface{}
+		wantError bool
+		wantTasks bool // result should include tasks summary
+		wantHints bool // result should include hints
+	}{
+		{
+			name:      "no eliciter ask_preferences true uses defaults",
+			ctx:       context.Background(),
+			params:    map[string]interface{}{"action": "prime", "ask_preferences": true},
+			wantError: false,
+			wantTasks: true,
+			wantHints: true,
+		},
+		{
+			name: "mock accept include_tasks false include_hints false",
+			ctx: context.WithValue(context.Background(), mcpframework.EliciterContextKey, &mockEliciter{
+				Action:  "accept",
+				Content: map[string]interface{}{"include_tasks": false, "include_hints": false},
+			}),
+			params:    map[string]interface{}{"action": "prime", "ask_preferences": true},
+			wantError: false,
+			wantTasks: false,
+			wantHints: false,
+		},
+		{
+			name: "mock decline keeps defaults",
+			ctx: context.WithValue(context.Background(), mcpframework.EliciterContextKey, &mockEliciter{
+				Action: "decline",
+			}),
+			params:    map[string]interface{}{"action": "prime", "ask_preferences": true},
+			wantError: false,
+			wantTasks: true,
+			wantHints: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result, err := handleSessionPrime(tt.ctx, tt.params)
+			if (err != nil) != tt.wantError {
+				t.Errorf("handleSessionPrime() error = %v, wantError %v", err, tt.wantError)
+				return
+			}
+			if tt.wantError {
+				return
+			}
+			if result == nil || len(result) == 0 {
+				t.Fatal("expected non-empty result")
+			}
+			var data map[string]interface{}
+			if err := json.Unmarshal([]byte(result[0].Text), &data); err != nil {
+				t.Fatalf("invalid JSON: %v", err)
+			}
+			_, hasTasks := data["tasks"]
+			if hasTasks != tt.wantTasks {
+				t.Errorf("result has tasks = %v, want %v", hasTasks, tt.wantTasks)
+			}
+			_, hasHints := data["hints"]
+			if hasHints != tt.wantHints {
+				t.Errorf("result has hints = %v, want %v", hasHints, tt.wantHints)
 			}
 		})
 	}
