@@ -146,6 +146,13 @@ func handleTaskWorkflowApprove(ctx context.Context, params map[string]interface{
 			}
 		}
 
+		// Sync DB to JSON so CLI and MCP leave Todo2 in sync (shared workflow)
+		if updatedCount > 0 {
+			if projectRoot, syncErr := FindProjectRoot(); syncErr == nil {
+				_ = SyncTodo2Tasks(projectRoot)
+			}
+		}
+
 		result := map[string]interface{}{
 			"success":        true,
 			"method":         "database",
@@ -969,6 +976,13 @@ func handleTaskWorkflowCleanup(ctx context.Context, params map[string]interface{
 			}
 		}
 
+		// Sync DB to JSON (shared workflow)
+		if len(removedIDs) > 0 {
+			if projectRoot, syncErr := FindProjectRoot(); syncErr == nil {
+				_ = SyncTodo2Tasks(projectRoot)
+			}
+		}
+
 		// Get remaining count
 		remainingCount := len(tasks) - len(removedIDs)
 
@@ -1087,6 +1101,116 @@ func handleTaskWorkflowCleanup(ctx context.Context, params map[string]interface{
 		"include_legacy":  includeLegacy,
 	}
 
+	outputPath, _ := params["output_path"].(string)
+	return response.FormatResult(result, outputPath)
+}
+
+// handleTaskWorkflowFixEmptyDescriptions sets long_description from content for tasks with empty long_description, then syncs to JSON.
+func handleTaskWorkflowFixEmptyDescriptions(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
+	dryRun := false
+	if dr, ok := params["dry_run"].(bool); ok {
+		dryRun = dr
+	}
+
+	if db, err := database.GetDB(); err == nil && db != nil {
+		tasks, err := database.ListTasks(ctx, nil)
+		if err != nil {
+			return nil, fmt.Errorf("failed to load tasks: %w", err)
+		}
+
+		var toUpdate []*models.Todo2Task
+		for _, task := range tasks {
+			if strings.TrimSpace(task.LongDescription) == "" && task.Content != "" {
+				t := *task
+				t.LongDescription = task.Content
+				toUpdate = append(toUpdate, &t)
+			}
+		}
+
+		if dryRun {
+			ids := make([]string, len(toUpdate))
+			for i, t := range toUpdate {
+				ids[i] = t.ID
+			}
+			result := map[string]interface{}{
+				"success":       true,
+				"method":        "database",
+				"dry_run":       true,
+				"tasks_updated": len(toUpdate),
+				"task_ids":      ids,
+			}
+			return response.FormatResult(result, "")
+		}
+
+		updatedIDs := []string{}
+		for _, task := range toUpdate {
+			if err := database.UpdateTask(ctx, task); err == nil {
+				updatedIDs = append(updatedIDs, task.ID)
+			}
+		}
+
+		if len(updatedIDs) > 0 {
+			if projectRoot, syncErr := FindProjectRoot(); syncErr == nil {
+				_ = SyncTodo2Tasks(projectRoot)
+			}
+		}
+
+		result := map[string]interface{}{
+			"success":       true,
+			"method":        "database",
+			"tasks_updated": len(updatedIDs),
+			"task_ids":      updatedIDs,
+		}
+		outputPath, _ := params["output_path"].(string)
+		return response.FormatResult(result, outputPath)
+	}
+
+	projectRoot, err := FindProjectRoot()
+	if err != nil {
+		return nil, fmt.Errorf("failed to find project root: %w", err)
+	}
+
+	tasks, err := LoadTodo2Tasks(projectRoot)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load tasks: %w", err)
+	}
+
+	if dryRun {
+		var ids []string
+		for _, t := range tasks {
+			if strings.TrimSpace(t.LongDescription) == "" && t.Content != "" {
+				ids = append(ids, t.ID)
+			}
+		}
+		result := map[string]interface{}{
+			"success":       true,
+			"method":        "file",
+			"dry_run":       true,
+			"tasks_updated": len(ids),
+			"task_ids":      ids,
+		}
+		return response.FormatResult(result, "")
+	}
+
+	var updated int
+	for i := range tasks {
+		if strings.TrimSpace(tasks[i].LongDescription) == "" && tasks[i].Content != "" {
+			tasks[i].LongDescription = tasks[i].Content
+			updated++
+		}
+	}
+
+	if updated > 0 {
+		if err := SaveTodo2Tasks(projectRoot, tasks); err != nil {
+			return nil, fmt.Errorf("failed to save tasks: %w", err)
+		}
+	}
+
+	result := map[string]interface{}{
+		"success":       true,
+		"method":        "file",
+		"tasks_updated": updated,
+	}
 	outputPath, _ := params["output_path"].(string)
 	return response.FormatResult(result, outputPath)
 }
@@ -1292,6 +1416,11 @@ func handleTaskWorkflowLinkPlanning(ctx context.Context, params map[string]inter
 		updatedIDs = append(updatedIDs, id)
 	}
 
+	if useDB && len(updatedIDs) > 0 {
+		if projectRoot, syncErr := FindProjectRoot(); syncErr == nil {
+			_ = SyncTodo2Tasks(projectRoot)
+		}
+	}
 	if !useDB && len(updatedIDs) > 0 {
 		if err := SaveTodo2Tasks(projectRoot, tasks); err != nil {
 			return nil, fmt.Errorf("failed to save tasks: %w", err)
@@ -1448,6 +1577,9 @@ func handleTaskWorkflowCreate(ctx context.Context, params map[string]interface{}
 		if err := SaveTodo2Tasks(projectRoot, tasks); err != nil {
 			return nil, fmt.Errorf("failed to create task: database error: %v, file error: %w", err, err)
 		}
+	} else {
+		// Sync DB to JSON (shared workflow)
+		_ = SyncTodo2Tasks(projectRoot)
 	}
 
 	// Return created task information
