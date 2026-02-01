@@ -3,6 +3,9 @@ package tools
 import (
 	"context"
 	"encoding/json"
+	"os"
+	"path/filepath"
+	"strconv"
 	"testing"
 
 	"github.com/davidl71/exarp-go/internal/framework"
@@ -357,5 +360,98 @@ func TestHandleSessionNative(t *testing.T) {
 				t.Error("expected non-empty result")
 			}
 		})
+	}
+}
+
+func TestShouldSuggestPlanMode(t *testing.T) {
+	tests := []struct {
+		name  string
+		tasks []Todo2Task
+		want  bool
+	}{
+		{
+			name:  "empty tasks",
+			tasks: nil,
+			want:  false,
+		},
+		{
+			name: "no backlog",
+			tasks: []Todo2Task{
+				{ID: "T-1", Status: "Done", Priority: "high"},
+			},
+			want: false,
+		},
+		{
+			name:  "small backlog",
+			tasks: makeBacklogTasks(5, 0, 0),
+			want:  false,
+		},
+		{
+			name:  "large backlog hits threshold",
+			tasks: makeBacklogTasks(20, 0, 0),
+			want:  true,
+		},
+		{
+			name:  "many high priority hits threshold",
+			tasks: makeBacklogTasksWithPriority(10, 6),
+			want:  true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := shouldSuggestPlanMode(tt.tasks); got != tt.want {
+				t.Errorf("shouldSuggestPlanMode() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func makeBacklogTasks(n, highPriority, withDeps int) []Todo2Task {
+	out := make([]Todo2Task, n)
+	for i := 0; i < n; i++ {
+		priority := "medium"
+		if i < highPriority {
+			priority = "high"
+		}
+		deps := []string{}
+		if i < withDeps {
+			deps = []string{"T-0"}
+		}
+		out[i] = Todo2Task{ID: "T-" + strconv.Itoa(i), Status: "Todo", Priority: priority, Dependencies: deps}
+	}
+	return out
+}
+
+func makeBacklogTasksWithPriority(total, highCount int) []Todo2Task {
+	out := make([]Todo2Task, total)
+	for i := 0; i < total; i++ {
+		priority := "medium"
+		if i < highCount {
+			priority = "high"
+		}
+		out[i] = Todo2Task{ID: "T-" + strconv.Itoa(i), Status: "Todo", Priority: priority}
+	}
+	return out
+}
+
+func TestGetCurrentPlanPath(t *testing.T) {
+	tmpDir := t.TempDir()
+	projDir := filepath.Join(tmpDir, "myproj")
+	if err := os.MkdirAll(projDir, 0755); err != nil {
+		t.Fatalf("mkdir proj: %v", err)
+	}
+	plansDir := filepath.Join(projDir, ".cursor", "plans")
+	if err := os.MkdirAll(plansDir, 0755); err != nil {
+		t.Fatalf("mkdir plans: %v", err)
+	}
+	planFile := filepath.Join(plansDir, "myproj.plan.md")
+	if err := os.WriteFile(planFile, []byte("# Plan\n"), 0644); err != nil {
+		t.Fatalf("write plan: %v", err)
+	}
+
+	got := getCurrentPlanPath(projDir)
+	want := filepath.Join(".cursor", "plans", "myproj.plan.md")
+	if got != want {
+		t.Errorf("getCurrentPlanPath() = %q, want %q", got, want)
 	}
 }
