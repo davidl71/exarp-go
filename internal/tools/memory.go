@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/davidl71/exarp-go/internal/config"
 	"github.com/davidl71/exarp-go/internal/database"
 	"github.com/davidl71/exarp-go/internal/framework"
 	"github.com/davidl71/exarp-go/internal/security"
@@ -29,8 +30,15 @@ type Memory struct {
 	SessionDate string                 `json:"session_date"`
 }
 
-// MemoryCategories are the valid memory categories
-var MemoryCategories = []string{"debug", "research", "architecture", "preference", "insight"}
+// MemoryCategories returns the valid memory categories (from config when available).
+// Exported for use by resources and other packages.
+func MemoryCategories() []string {
+	return config.MemoryCategories()
+}
+
+func memoryCategories() []string {
+	return config.MemoryCategories()
+}
 
 // handleMemoryNative handles the memory tool with native Go CRUD operations
 func handleMemoryNative(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
@@ -95,14 +103,14 @@ func handleMemorySave(ctx context.Context, params map[string]interface{}) ([]fra
 
 	// Validate category
 	validCategory := false
-	for _, c := range MemoryCategories {
+	for _, c := range memoryCategories() {
 		if category == c {
 			validCategory = true
 			break
 		}
 	}
 	if !validCategory {
-		return nil, fmt.Errorf("invalid category '%s'. Must be one of: %s", category, strings.Join(MemoryCategories, ", "))
+		return nil, fmt.Errorf("invalid category '%s'. Must be one of: %s", category, strings.Join(memoryCategories(), ", "))
 	}
 
 	// Truncate title if too long
@@ -394,7 +402,7 @@ func handleMemoryList(ctx context.Context, params map[string]interface{}) ([]fra
 		"total":                len(allMemories),
 		"returned":             len(memories),
 		"categories":           categories,
-		"available_categories": MemoryCategories,
+		"available_categories": memoryCategories(),
 	}
 
 	return response.FormatResult(result, "")
@@ -403,7 +411,8 @@ func handleMemoryList(ctx context.Context, params map[string]interface{}) ([]fra
 // Helper functions
 
 func getMemoriesDir(projectRoot string) (string, error) {
-	memoriesDir := filepath.Join(projectRoot, ".exarp", "memories")
+	storagePath := config.MemoryStoragePath()
+	memoriesDir := filepath.Join(projectRoot, filepath.FromSlash(storagePath))
 	if err := os.MkdirAll(memoriesDir, 0755); err != nil {
 		return "", err
 	}

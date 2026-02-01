@@ -3,6 +3,7 @@
 .cursor/rules/todo2.mdc
 .cursor/mcp.json
 .cursor/mcp.json.backup*
+.cursor/plans/
 .todo2/
 .make.config
 .agentic-tools-mcp/

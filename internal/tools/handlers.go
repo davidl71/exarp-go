@@ -275,9 +275,23 @@ func handleReport(ctx context.Context, args json.RawMessage) ([]framework.TextCo
 			return nil, fmt.Errorf("report prd: %w", err)
 		}
 		return result, nil
+
+	case "plan":
+		result, err := handleReportPlan(ctx, params)
+		if err != nil {
+			return nil, fmt.Errorf("report plan: %w", err)
+		}
+		return result, nil
+
+	case "scorecard_plans":
+		result, err := handleReportScorecardPlans(ctx, params)
+		if err != nil {
+			return nil, fmt.Errorf("report scorecard_plans: %w", err)
+		}
+		return result, nil
 	}
 
-	return nil, fmt.Errorf("report action %q not supported; supported: overview, scorecard, briefing, prd", action)
+	return nil, fmt.Errorf("report action %q not supported; supported: overview, scorecard, briefing, prd, plan, scorecard_plans", action)
 }
 
 // handleSecurity handles the security tool

@@ -72,9 +72,9 @@ func GetToolCatalog() map[string]ToolCatalogEntry {
 		},
 		"task_workflow": {
 			Tool:             "task_workflow",
-			Hint:             "Task workflow. action=sync|approve|clarify|clarity|cleanup|create. Manage task lifecycle. ⚠️ CRITICAL: PREFER convenience commands (exarp-go task ...) for common operations. FALLBACK to this tool for advanced operations (clarity, cleanup, complex filters). NEVER edit .todo2/state.todo2.json directly.",
+			Hint:             "Task workflow. action=sync|approve|clarify|clarity|cleanup|create|request_approval|sync_approvals|apply_approval_result. Manage task lifecycle. ⚠️ CRITICAL: PREFER convenience commands (exarp-go task ...) for common operations. FALLBACK to this tool for advanced operations (clarity, cleanup, complex filters). NEVER edit .todo2/state.todo2.json directly.",
 			Category:         "Task Management",
-			Description:      "Manages task workflow: sync, approve, clarify, cleanup, and create operations. PREFER convenience commands (exarp-go task list/update/create/show) for common operations. Use this tool directly for advanced operations (clarity, cleanup) or complex filtering. Automatically calculates actualHours, normalizes status, and tracks history.",
+			Description:      "Manages task workflow: sync, approve, clarify, cleanup, create, and request_approval (gotoHuman). PREFER convenience commands (exarp-go task list/update/create/show) for common operations. Use this tool directly for advanced operations (clarity, cleanup) or complex filtering. Automatically calculates actualHours, normalizes status, and tracks history.",
 			RecommendedModel: "claude-haiku",
 			Examples: []string{
 				"PREFERRED: Use convenience commands: exarp-go task update T-123 --new-status Done",
@@ -180,9 +180,9 @@ func GetToolCatalog() map[string]ToolCatalogEntry {
 		// Reporting
 		"report": {
 			Tool:             "report",
-			Hint:             "Report generation. action=overview|scorecard|briefing|prd. Project reports.",
+			Hint:             "Report generation. action=overview|scorecard|briefing|prd|plan. plan generates Cursor-style .plan.md. Project reports.",
 			Category:         "Reporting",
-			Description:      "Generates project reports: overview, scorecard, briefing, PRD",
+			Description:      "Generates project reports: overview, scorecard, briefing, PRD, plan (.plan.md)",
 			RecommendedModel: "claude-haiku",
 		},
 

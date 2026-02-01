@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/davidl71/exarp-go/internal/config"
 	"github.com/davidl71/exarp-go/internal/database"
 	"github.com/davidl71/exarp-go/internal/framework"
 	"github.com/davidl71/mcp-go-core/pkg/mcp/response"
@@ -201,9 +202,13 @@ func handleAutomationDaily(ctx context.Context, params map[string]interface{}) (
 	}
 
 	// Task 8: stale_task_cleanup (task_workflow cleanup) - migrated from Python daily
+	staleHours := config.StaleThresholdHours()
+	if staleHours <= 0 {
+		staleHours = 24
+	}
 	task8Result := runDailyTask(ctx, "stale_task_cleanup", map[string]interface{}{
 		"action":                "cleanup",
-		"stale_threshold_hours": 24.0,
+		"stale_threshold_hours": float64(staleHours),
 	})
 	tasksRun, _ = results["tasks_run"].([]map[string]interface{})
 	tasksRun = append(tasksRun, map[string]interface{}{
@@ -338,7 +343,11 @@ func handleAutomationNightly(ctx context.Context, params map[string]interface{})
 	staleLockSummary := map[string]interface{}{"skipped": false}
 	staleLockStatus := "success"
 	var staleLockErr string
-	info, err := database.DetectStaleLocks(ctx, 5*time.Minute)
+	staleThreshold := config.GetGlobalConfig().Timeouts.StaleLockThreshold
+	if staleThreshold <= 0 {
+		staleThreshold = 5 * time.Minute
+	}
+	info, err := database.DetectStaleLocks(ctx, staleThreshold)
 	if err != nil {
 		staleLockStatus = "error"
 		staleLockErr = err.Error()
@@ -502,7 +511,10 @@ func handleAutomationSprint(ctx context.Context, params map[string]interface{}) 
 	if projectRoot, err := FindProjectRoot(); err == nil {
 		if tasks, err := LoadTodo2Tasks(projectRoot); err == nil {
 			if orderedIDs, _, details, err := BacklogExecutionOrder(tasks, nil); err == nil && len(orderedIDs) > 0 {
-				const sprintOrderLimit = 15
+				sprintOrderLimit := config.MaxAutomationIterations()
+				if sprintOrderLimit <= 0 {
+					sprintOrderLimit = 15
+				}
 				sprintOrder := make([]map[string]interface{}, 0, sprintOrderLimit)
 				detailMap := make(map[string]BacklogTaskDetail)
 				for _, d := range details {

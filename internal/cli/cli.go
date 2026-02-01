@@ -14,27 +14,24 @@ import (
 	"github.com/davidl71/exarp-go/internal/database"
 	"github.com/davidl71/exarp-go/internal/factory"
 	"github.com/davidl71/exarp-go/internal/framework"
+	"github.com/davidl71/exarp-go/internal/logging"
 	"github.com/davidl71/exarp-go/internal/prompts"
 	"github.com/davidl71/exarp-go/internal/resources"
 	"github.com/davidl71/exarp-go/internal/tools"
 	mcpcli "github.com/davidl71/mcp-go-core/pkg/mcp/cli"
-	"github.com/davidl71/mcp-go-core/pkg/mcp/logging"
+	mcplog "github.com/davidl71/mcp-go-core/pkg/mcp/logging"
 )
 
-// initializeDatabase initializes the database if project root is found
-// Note: Database remains open for the duration of CLI execution
-// It will be closed when the process exits or explicitly closed
-// Uses centralized config if available, falls back to legacy config
-func initializeDatabase() {
-	projectRoot, err := tools.FindProjectRoot()
-	if err != nil {
-		logWarn(nil, "Could not find project root", "error", err, "operation", "initializeDatabase", "fallback", "JSON")
-		return
-	}
-
+// EnsureConfigAndDatabase loads centralized config (if available), sets global config,
+// and initializes the database. Uses centralized config when available, falls back to legacy config.
+// Returns error only if project root cannot be found; database init failures are logged but not returned.
+// Call this at startup before any config getters or database operations.
+func EnsureConfigAndDatabase(projectRoot string) {
 	// Try to use centralized config first
 	fullCfg, err := config.LoadConfig(projectRoot)
 	if err == nil {
+		config.SetGlobalConfig(fullCfg)
+		logging.ConfigureFromConfig(fullCfg.Logging)
 		// Convert centralized config DatabaseConfig to DatabaseConfigFields
 		dbCfg := database.DatabaseConfigFields{
 			SQLitePath:          fullCfg.Database.SQLitePath,
@@ -54,21 +51,34 @@ func initializeDatabase() {
 		}
 
 		if err := database.InitWithCentralizedConfig(projectRoot, dbCfg); err != nil {
-			logWarn(nil, "Database initialization with centralized config failed", "error", err, "operation", "initializeDatabase", "fallback", "legacy config")
+			logWarn(nil, "Database initialization with centralized config failed", "error", err, "operation", "EnsureConfigAndDatabase", "fallback", "legacy config")
 			// Fall through to legacy init
 		} else {
-			logInfo(nil, "Database initialized with centralized config", "path", fullCfg.Database.SQLitePath, "operation", "initializeDatabase")
+			logInfo(nil, "Database initialized with centralized config", "path", fullCfg.Database.SQLitePath, "operation", "EnsureConfigAndDatabase")
 			return
 		}
 	}
 
-	// Fall back to legacy config
+	// Fall back to legacy config (SetGlobalConfig already set defaults via GetGlobalConfig)
 	if err := database.Init(projectRoot); err != nil {
-		logWarn(nil, "Database initialization failed", "error", err, "operation", "initializeDatabase", "fallback", "JSON")
+		logWarn(nil, "Database initialization failed", "error", err, "operation", "EnsureConfigAndDatabase", "fallback", "JSON")
 		return
 	}
 
-	logInfo(nil, "Database initialized", "path", projectRoot+"/.todo2/todo2.db", "operation", "initializeDatabase")
+	logInfo(nil, "Database initialized", "path", projectRoot+"/.todo2/todo2.db", "operation", "EnsureConfigAndDatabase")
+}
+
+// initializeDatabase initializes the database if project root is found
+// Note: Database remains open for the duration of CLI execution
+// It will be closed when the process exits or explicitly closed
+// Uses centralized config if available, falls back to legacy config
+func initializeDatabase() {
+	projectRoot, err := tools.FindProjectRoot()
+	if err != nil {
+		logWarn(nil, "Could not find project root", "error", err, "operation", "initializeDatabase", "fallback", "JSON")
+		return
+	}
+	EnsureConfigAndDatabase(projectRoot)
 }
 
 // setupServer creates and configures the MCP server
@@ -106,14 +116,14 @@ func Run() error {
 	// Subcommand dispatch (config, task, tui, tui3270)
 	switch parsed.Command {
 	case "config":
-		return handleConfigCommand(os.Args[2:])
+		return handleConfigCommand(parsed)
 	case "task":
 		initializeDatabase()
 		server, err := setupServer()
 		if err != nil {
 			return err
 		}
-		return handleTaskCommand(server, os.Args[2:])
+		return handleTaskCommand(server, parsed)
 	case "tui":
 		initializeDatabase()
 		server, err := setupServer()
@@ -126,26 +136,22 @@ func Run() error {
 		}
 		return RunTUI(server, status)
 	case "tui3270":
-		daemon := false
+		tuiParsed := mcpcli.ParseArgs(os.Args[2:])
+		daemon := tuiParsed.GetBoolFlag("daemon", false) || tuiParsed.GetBoolFlag("d", false)
+		pidFile := tuiParsed.GetFlag("pid-file", "")
+		if pidFile == "" {
+			pidFile = tuiParsed.GetFlag("pidfile", "")
+		}
 		status := ""
 		port := 3270
-		pidFile := ""
-		for i := 2; i < len(os.Args); i++ {
-			arg := os.Args[i]
-			switch arg {
-			case "--daemon", "-d":
-				daemon = true
-			case "--pid-file", "--pidfile":
-				if i+1 < len(os.Args) {
-					pidFile = os.Args[i+1]
-					i++
-				}
-			default:
-				if parsedPort, err := strconv.Atoi(arg); err == nil {
-					port = parsedPort
-				} else if status == "" {
-					status = arg
-				}
+		for _, p := range append([]string{tuiParsed.Subcommand}, tuiParsed.Positional...) {
+			if p == "" {
+				continue
+			}
+			if parsedPort, err := strconv.Atoi(p); err == nil && parsedPort > 0 {
+				port = parsedPort
+			} else if status == "" {
+				status = p
 			}
 		}
 		initializeDatabase()
@@ -266,8 +272,8 @@ func executeTool(server framework.MCPServer, toolName, argsJSON string) error {
 	ctx := context.Background()
 
 	// Add operation context for logging
-	ctx = logging.WithOperation(ctx, "executeTool")
-	ctx = logging.WithRequestID(ctx, generateRequestID())
+	ctx = mcplog.WithOperation(ctx, "executeTool")
+	ctx = mcplog.WithRequestID(ctx, generateRequestID())
 
 	// Parse JSON arguments
 	var args map[string]interface{}

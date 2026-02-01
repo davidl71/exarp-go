@@ -77,13 +77,14 @@ This server hosts tools, prompts, and resources that are broken in FastMCP due t
 - `stdio://tools` - All tools
 - `stdio://tools/{category}` - Tools by category
 
-**Task resources (6):**
+**Task resources (7):**
 - `stdio://tasks` - All tasks
 - `stdio://tasks/{task_id}` - Task by ID
 - `stdio://tasks/status/{status}` - Tasks by status
 - `stdio://tasks/priority/{priority}` - Tasks by priority
 - `stdio://tasks/tag/{tag}` - Tasks by tag
 - `stdio://tasks/summary` - Task summary
+- `stdio://suggested-tasks` - Dependency-ready tasks (for Cursor hints)
 
 ## Configuration
 
@@ -95,7 +96,7 @@ This server hosts tools, prompts, and resources that are broken in FastMCP due t
 - Export config: `exarp-go config export [yaml|json|protobuf]`
 - Convert formats: `exarp-go config convert yaml protobuf` or `exarp-go config convert protobuf yaml`
 - **Editing as YAML:** Run `exarp-go config export yaml` to emit YAML, edit, then `exarp-go config convert yaml protobuf` to save.
-- See `docs/CONFIGURATION_PROTOBUF_INTEGRATION.md` and `docs/CONFIGURATION_IMPLEMENTATION_PLAN.md` for details.
+- See `docs/CONFIGURATION_REFERENCE.md` for full parameter reference and project-type examples.
 
 **Configuration Categories:**
 - **Timeouts**: Task locks, tool execution, HTTP clients, database retries
@@ -110,6 +111,7 @@ This server hosts tools, prompts, and resources that are broken in FastMCP due t
 - **Project**: Project-specific settings
 
 For detailed configuration options, see:
+- **`docs/CONFIGURATION_REFERENCE.md`** — Full parameter reference and project-type examples
 - `docs/CONFIGURATION_IMPLEMENTATION_PLAN.md`
 - `docs/CONFIGURABLE_PARAMETERS_RECOMMENDATIONS.md`
 - `docs/AUTOMATION_CONFIGURATION_ANALYSIS.md`

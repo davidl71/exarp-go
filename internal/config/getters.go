@@ -327,3 +327,33 @@ func AccessControlDefaultPolicy() string {
 func AccessControlRestrictedTools() []string {
 	return GetGlobalConfig().Security.AccessControl.RestrictedTools
 }
+
+// Project and Workflow getters - convenient access to project and workflow configuration
+
+// ProjectExarpPath returns the exarp data directory path (e.g. ".exarp")
+func ProjectExarpPath() string {
+	return GetGlobalConfig().Project.ExarpPath
+}
+
+// WorkflowDefaultMode returns the default workflow mode
+func WorkflowDefaultMode() string {
+	return GetGlobalConfig().Workflow.DefaultMode
+}
+
+// MemoryCategories returns the valid memory categories from config
+func MemoryCategories() []string {
+	cfg := GetGlobalConfig()
+	if len(cfg.Memory.Categories) > 0 {
+		return cfg.Memory.Categories
+	}
+	return []string{"debug", "research", "architecture", "preference", "insight"}
+}
+
+// MemoryStoragePath returns the memory storage path (e.g. ".exarp/memories")
+func MemoryStoragePath() string {
+	path := GetGlobalConfig().Memory.StoragePath
+	if path == "" {
+		return ".exarp/memories"
+	}
+	return path
+}

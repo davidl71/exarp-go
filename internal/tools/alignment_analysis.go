@@ -502,7 +502,7 @@ func generateAlignmentReport(analysis AlignmentAnalysis, projectRoot string) str
 ## Alignment by Priority
 
 `,
-		"2026-01-09", // TODO: Use actual timestamp
+		time.Now().Format(time.RFC3339),
 		analysis.TotalTasks,
 		analysis.AlignmentScore,
 		len(analysis.MisalignedTasks),

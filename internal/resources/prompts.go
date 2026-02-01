@@ -13,10 +13,10 @@ import (
 // handleAllPrompts handles the stdio://prompts resource
 // Returns all prompts in compact format (name + description only)
 func handleAllPrompts(ctx context.Context, uri string) ([]byte, string, error) {
-	// All prompt names in registry order (34 prompts; see internal/prompts/registry.go)
+	// All prompt names in registry order (35 prompts; see internal/prompts/registry.go)
 	promptNames := []string{
-		// Original prompts (8)
-		"align", "discover", "config", "scan", "scorecard", "overview",
+		// Original prompts (9)
+		"align", "discover", "config", "scan", "scorecard", "overview", "plan",
 		"dashboard", "remember",
 		// High-value workflow prompts (7)
 		"daily_checkin", "sprint_start", "sprint_end", "pre_sprint",
@@ -277,6 +277,7 @@ func getPromptModeMapping() map[string]string {
 		// Reporting / health
 		"scorecard":      "reporting",
 		"overview":       "reporting",
+		"plan":           "reporting",
 		"dashboard":      "reporting",
 		"project_health": "reporting",
 		"docs":           "reporting",
@@ -311,6 +312,7 @@ func getPromptPersonaMapping() map[string]string {
 		"post_impl":          "pm",
 		"scorecard":          "pm",
 		"overview":           "pm",
+		"plan":               "pm",
 		"dashboard":          "pm",
 		"weekly_maintenance": "pm",
 		"task_review":        "pm",
@@ -370,6 +372,7 @@ func getPromptCategoryMapping() map[string]string {
 		// Reporting / health
 		"scorecard":      "reporting",
 		"overview":       "reporting",
+		"plan":           "reporting",
 		"dashboard":      "reporting",
 		"project_health": "reporting",
 		"docs":           "reporting",

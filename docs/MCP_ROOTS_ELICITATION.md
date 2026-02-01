@@ -7,6 +7,8 @@ exarp-go supports two MCP client features: **Roots** (workspace boundaries) and 
 - [Cursor — Model Context Protocol (MCP)](https://cursor.com/docs/context/mcp)
 - [MCP — Roots](https://modelcontextprotocol.io/docs/concepts/roots)
 - [MCP — Elicitation](https://modelcontextprotocol.io/docs/concepts/elicitation)
+- [FastMCP — User Elicitation (server)](https://gofastmcp.com/servers/elicitation) — Python server API (`ctx.elicit()`)
+- [FastMCP — fastmcp.server.elicitation](https://gofastmcp.com/python-sdk/fastmcp-server-elicitation) — Schema and response types
 
 ---
 
@@ -77,6 +79,17 @@ func myToolHandler(ctx context.Context, args json.RawMessage) ([]framework.TextC
 **When elicitation is not available:** In CLI mode or when the client does not support elicitation, `EliciterFromContext(ctx)` returns `nil`. Tools should not call it in that case; they should use defaults or skip the prompt.
 
 **Timeouts:** All elicitation calls use a bounded context (`context.WithTimeout`) so they never block indefinitely. Session prime uses 5 seconds; task_workflow confirm (approve/delete) uses 15 seconds. On timeout, the tool falls back (e.g. defaults for prime, cancelled result for approve/delete) and may report "elicitation timed out" in the message.
+
+### FastMCP reference (why it used to show in Cursor)
+
+**What is “Context”?** In FastMCP, **Context** is the object the framework passes into each tool (e.g. `async def my_tool(ctx: Context)`). It represents the current request/execution environment and exposes methods like `ctx.elicit(message, response_type=...)` for user input. Context is only available when the client connects in a way that provides it (e.g. Cursor using FastMCP integration); in plain stdio MCP there is no FastMCP Context — the server still gets a Go `context.Context` and, when the client advertises elicitation, an **Eliciter** via `EliciterFromContext(ctx)`.
+
+Elicitation **used to work in Cursor** when the project used a **FastMCP (Python) server**. FastMCP uses the same MCP elicitation protocol under the hood: `ctx.elicit(message, response_type=...)` sends an MCP `elicitation/create` request with a JSON schema. The difference is **how the client surfaces it**:
+
+- **FastMCP mode (Python server):** When Cursor connected to a FastMCP server, it had “FastMCP Context” and could show elicitation **inline in chat** — the question appeared as part of the conversation and the user replied in the same thread. See [DEMONSTRATE_ELICIT_EXAMPLE.md](DEMONSTRATE_ELICIT_EXAMPLE.md) (“This question appeared inline in chat, not as a pop-up”).
+- **Stdio MCP (exarp-go):** exarp-go sends the same MCP `elicitation/create` (form mode) via the official Go SDK. Cursor may advertise the elicitation capability (so we get an Eliciter and the request is sent), but **Cursor’s stdio MCP path may not yet render form elicitation in the UI**. So the server asks, but the user never sees a prompt; after our timeout we fall back to defaults and set `elicitation: "timeout"` in the result.
+
+So: same protocol, different client behavior. When Cursor adds (or exposes) UI for MCP form elicitation in stdio mode, `ask_preferences=true` will show the prompt without code changes in exarp-go.
 
 ---
 

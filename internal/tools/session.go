@@ -328,10 +328,16 @@ func handleSessionEnd(ctx context.Context, params map[string]interface{}, projec
 			return nil, fmt.Errorf("failed to save handoff: %w", err)
 		}
 
-		// Unassign tasks if requested
+		// Unassign tasks if requested (release lock for current agent on in-progress tasks)
 		if unassignMyTasks {
-			// TODO: Implement task unassignment using Todo2 utilities
-			// For now, just log that it should be done
+			agentID, err := database.GetAgentID()
+			if err == nil {
+				for _, m := range tasksInProgress {
+					if id, ok := m["id"].(string); ok && id != "" {
+						_ = database.ReleaseTask(ctx, id, agentID)
+					}
+				}
+			}
 		}
 	}
 

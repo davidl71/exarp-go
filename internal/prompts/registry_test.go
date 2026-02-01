@@ -15,9 +15,9 @@ func TestRegisterAllPrompts(t *testing.T) {
 		t.Fatalf("RegisterAllPrompts() error = %v", err)
 	}
 
-	// Verify all 34 prompts are registered (18 original + 16 migrated from Python)
-	if server.PromptCount() != 34 {
-		t.Errorf("server.PromptCount() = %v, want 34", server.PromptCount())
+	// Verify all 35 prompts are registered (19 original + 16 migrated from Python)
+	if server.PromptCount() != 35 {
+		t.Errorf("server.PromptCount() = %v, want 35", server.PromptCount())
 	}
 
 	// Verify specific prompts are registered

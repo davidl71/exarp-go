@@ -18,18 +18,20 @@
     go_dl_os: "{{ ansible_system | lower }}"
     go_dl_arch: "{{ {'x86_64': 'amd64', 'aarch64': 'arm64'}.get(ansible_architecture, ansible_architecture) }}"
 
-# Resolve latest stable version from GitHub when go_version is "latest"
-- name: Get latest stable Go version from GitHub
+# Resolve latest stable version from go.dev when go_version is "latest"
+- name: Get latest stable Go version from go.dev (plain text)
   uri:
-    url: "https://api.github.com/repos/golang/go/releases/latest"
+    url: "https://go.dev/VERSION?m=text"
     return_content: yes
+    headers:
+      Accept: "text/plain"
   register: go_latest_release
   when: go_version == 'latest'
 
 - name: Set resolved Go version (latest)
   set_fact:
-    go_version_resolved: "{{ go_latest_release.json.tag_name | regex_replace('^go', '') }}"
-  when: go_version == 'latest' and go_latest_release.json is defined
+    go_version_resolved: "{{ (go_latest_release.content | regex_findall('go([0-9]+\\.[0-9]+(?:\\.[0-9]+)?)') | first) | default('1.25.6') }}"
+  when: go_version == 'latest' and go_latest_release.content is defined
 
 - name: Set resolved Go version (pinned)
   set_fact:
@@ -58,7 +60,7 @@
     group: root
   when: (go_version_check.rc != 0 or go_version_check.stdout is not search(go_version_resolved)) and go_version_resolved != 'latest'
 
-- name: Set Go environment variables
+- name: Set Go environment variables (Linux only; macOS has no /etc/environment)
   lineinfile:
     path: /etc/environment
     regexp: "^{{ item.key }}="
@@ -70,8 +72,9 @@
     - { key: "PATH", value: "{{ go_install_path }}/bin:{{ go_bin_path }}:$PATH" }
   loop_control:
     label: "{{ item.key }}"
+  when: ansible_system != "Darwin"
 
-- name: Set Go environment in user profile
+- name: Set Go environment in user profile (Linux only; macOS uses /Users, not /home)
   blockinfile:
     path: "/home/{{ go_user }}/.bashrc"
     block: |
@@ -80,7 +83,7 @@
       export PATH=$GOROOT/bin:$GOPATH/bin:$PATH
     marker: "# {mark} ANSIBLE MANAGED BLOCK - Go environment"
     create: yes
-  when: go_user is defined
+  when: go_user is defined and ansible_system != "Darwin"
 
 - name: Set Go environment in zsh profile
   blockinfile:
@@ -93,8 +96,8 @@
     create: yes
   when: go_user is defined and ansible_system != "Darwin"
 
-- name: Verify Go installation
-  command: "{{ go_install_path }}/bin/go version"
+- name: Verify Go installation (use system go so it works when Go is from Homebrew or role path)
+  command: go version
   register: go_verify
   changed_when: false
 
@@ -109,13 +112,12 @@
   changed_when: false
   failed_when: false
   environment:
-    PATH: "{{ go_install_path }}/bin:{{ go_bin_path }}:$PATH"
+    PATH: "{{ go_bin_path }}:{{ lookup('env', 'PATH') }}"
 
-- name: Install protoc-gen-go
-  command: "{{ go_install_path }}/bin/go install google.golang.org/protobuf/cmd/protoc-gen-go@latest"
+- name: Install protoc-gen-go (use system go so it works when Go is from Homebrew or role path)
+  command: go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
   environment:
-    PATH: "{{ go_install_path }}/bin:{{ go_bin_path }}:$PATH"
-    GOROOT: "{{ go_install_path }}"
+    PATH: "{{ go_bin_path }}:{{ lookup('env', 'PATH') }}"
     GOPATH: "{{ go_gopath }}"
   when: protoc_gen_go_check.rc != 0
 
@@ -125,7 +127,7 @@
   changed_when: false
   failed_when: false
   environment:
-    PATH: "{{ go_install_path }}/bin:{{ go_bin_path }}:$PATH"
+    PATH: "{{ go_bin_path }}:{{ lookup('env', 'PATH') }}"
 
 - name: Display protoc-gen-go installation status
   debug:

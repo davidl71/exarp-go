@@ -44,14 +44,13 @@ func main() {
 	// Reset flag parsing for MCP mode (in case it was partially parsed)
 	flag.CommandLine = flag.NewFlagSet(os.Args[0], flag.ContinueOnError)
 
-	// Initialize database (before server creation)
+	// Initialize config and database (before server creation)
 	projectRoot, err := tools.FindProjectRoot()
 	if err != nil {
 		logging.Warn("Could not find project root: %v (database unavailable, will use JSON fallback)", err)
 	} else {
-		if err := database.Init(projectRoot); err != nil {
-			logging.Warn("Database initialization failed: %v (fallback to JSON)", err)
-		} else {
+		cli.EnsureConfigAndDatabase(projectRoot)
+		if database.DB != nil {
 			defer func() {
 				if err := database.Close(); err != nil {
 					logging.Warn("Error closing database: %v", err)
