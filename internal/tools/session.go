@@ -149,28 +149,49 @@ func handleSessionPrime(ctx context.Context, params map[string]interface{}) ([]f
 		result["elicitation"] = elicitationOutcome
 	}
 
-	// 4. Add tasks summary if requested (single load for both summary and suggested_next)
+	// 4. Load tasks when needed (summary, suggested_next, or plan mode context)
+	var tasks []Todo2Task
+	var tasksErr error
+	// Load tasks if we need them for task summary, hints, or plan mode context
+	if includeTasks || includeHints {
+		tasks, tasksErr = LoadTodo2Tasks(projectRoot)
+	}
 	if includeTasks {
-		tasks, tasksErr := LoadTodo2Tasks(projectRoot)
-		if tasksErr == nil {
+		if tasksErr != nil {
+			result["tasks"] = map[string]interface{}{"error": "Failed to load tasks"}
+		} else {
 			result["tasks"] = getTasksSummaryFromTasks(tasks)
 			suggestedNext := getSuggestedNextTasksFromTasks(tasks, 10)
 			if len(suggestedNext) > 0 {
 				result["suggested_next"] = suggestedNext
 			}
-		} else {
-			result["tasks"] = map[string]interface{}{"error": "Failed to load tasks"}
 		}
 	}
 
 	// 5. Add hints if requested (simplified)
 	if includeHints {
 		hints := getHintsForMode(mode)
+		// Add Plan Mode hint when backlog suggests complex/multi-step work
+		planPath, planModeHint := getPlanModeContext(projectRoot, tasks)
+		if planPath != "" {
+			result["plan_path"] = planPath
+		}
+		if planModeHint != "" {
+			hints["plan_mode"] = planModeHint
+		}
 		result["hints"] = hints
 		result["hints_count"] = len(hints)
 	}
 
-	// 6. Check for handoff notes if requested
+	// 6. Add plan path when tasks included but hints not requested
+	// Note: tasks are already loaded when includeTasks is true (see step 4)
+	if includeTasks && !includeHints {
+		if planPath, _ := getPlanModeContext(projectRoot, tasks); planPath != "" {
+			result["plan_path"] = planPath
+		}
+	}
+
+	// 7. Check for handoff notes if requested
 	if includeHandoff, ok := params["include_handoff"].(bool); !ok || includeHandoff {
 		if handoffAlert := checkHandoffAlert(projectRoot); handoffAlert != nil {
 			result["handoff_alert"] = handoffAlert
@@ -859,6 +880,101 @@ func getWorkflowModeDescription(mode string) string {
 		return desc
 	}
 	return "Development mode: Balanced set"
+}
+
+// getPlanModeContext returns (plan_path, plan_mode_hint) for session prime.
+// plan_path: relative path to current .plan.md if found.
+// plan_mode_hint: suggestion to use Cursor Plan Mode when backlog suggests complex/multi-step work.
+func getPlanModeContext(projectRoot string, tasks []Todo2Task) (planPath, planModeHint string) {
+	planPath = getCurrentPlanPath(projectRoot)
+	if shouldSuggestPlanMode(tasks) {
+		planModeHint = "Consider Cursor Plan Mode for multi-step work when backlog has many high-priority or dependency-heavy tasks"
+	}
+	return planPath, planModeHint
+}
+
+// getCurrentPlanPath returns the relative path to the primary .plan.md file if one exists.
+// Checks: .cursor/plans/{project-slug}.plan.md, {project-slug}.plan.md in root, then most recent in .cursor/plans/.
+func getCurrentPlanPath(projectRoot string) string {
+	slug := filepath.Base(projectRoot)
+	if slug == "." || slug == "" {
+		slug = "exarp-go" // fallback
+	}
+
+	// 1. .cursor/plans/{slug}.plan.md (canonical location)
+	candidates := []string{
+		filepath.Join(".cursor", "plans", slug+".plan.md"),
+		slug + ".plan.md", // project root
+	}
+	for _, rel := range candidates {
+		p := filepath.Join(projectRoot, rel)
+		if fi, err := os.Stat(p); err == nil && !fi.IsDir() {
+			return rel
+		}
+	}
+
+	// 2. Most recently modified .plan.md in .cursor/plans/
+	plansDir := filepath.Join(projectRoot, ".cursor", "plans")
+	entries, err := os.ReadDir(plansDir)
+	if err != nil {
+		return ""
+	}
+	var bestPath string
+	var bestMod time.Time
+	for _, e := range entries {
+		if e.IsDir() {
+			continue
+		}
+		if !strings.HasSuffix(e.Name(), ".plan.md") {
+			continue
+		}
+		info, err := e.Info()
+		if err != nil {
+			continue
+		}
+		if info.ModTime().After(bestMod) {
+			bestMod = info.ModTime()
+			bestPath = filepath.Join(".cursor", "plans", e.Name())
+		}
+	}
+	return bestPath
+}
+
+// shouldSuggestPlanMode returns true when backlog suggests complex or multi-step work.
+// Uses heuristics aligned with infer_session_mode: many high-priority items, large backlog, or high dependency ratio.
+func shouldSuggestPlanMode(tasks []Todo2Task) bool {
+	if len(tasks) == 0 {
+		return false
+	}
+	backlog := 0
+	highPriority := 0
+	withDeps := 0
+	for _, t := range tasks {
+		if !IsBacklogStatus(t.Status) {
+			continue
+		}
+		backlog++
+		if t.Priority == "high" || t.Priority == "critical" {
+			highPriority++
+		}
+		if len(t.Dependencies) > 0 {
+			withDeps++
+		}
+	}
+	if backlog == 0 {
+		return false
+	}
+	total := len(tasks)
+	depsRatio := float64(withDeps) / float64(total)
+
+	// Suggest Plan Mode when: many backlog items, many high-priority, or high dependency ratio
+	const backlogThreshold = 15
+	const highPriorityThreshold = 5
+	const depsRatioThreshold = 0.4
+
+	return backlog >= backlogThreshold ||
+		highPriority >= highPriorityThreshold ||
+		depsRatio >= depsRatioThreshold
 }
 
 // getHintsForMode returns tool hints for a mode (simplified)

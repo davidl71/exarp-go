@@ -38,6 +38,8 @@ The `session(action="prime")` tool provides:
 - **Mode detection** - Suggests optimal workflow mode based on time of day
 - **Task summary** - Recent tasks and current project status
 - **Tool hints** - Relevant tools for detected mode
+- **Plan path** - Path to current .plan.md file when one exists
+- **Plan Mode hint** - Suggests Cursor Plan Mode when backlog has many high-priority or dependency-heavy tasks
 - **Handoff notes** - Messages from other developers/machines
 - **Companion MCP status** - Checks for other MCP servers
 
