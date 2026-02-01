@@ -415,12 +415,14 @@ func generatePlanMarkdown(ctx context.Context, projectRoot, planTitle string) (s
 	}
 	sb.WriteString("isProject: true\n")
 	sb.WriteString("status: draft\n")
+	sb.WriteString("tag_hints: [planning]\n")
 	sb.WriteString("---\n\n")
 
 	sb.WriteString(fmt.Sprintf("# %s Plan\n\n", displayName))
 	sb.WriteString(fmt.Sprintf("**Generated:** %s\n\n", time.Now().Format("2006-01-02")))
 	sb.WriteString("## Scope\n\n")
-	sb.WriteString(overview + "\n\n")
+	sb.WriteString("**Purpose:** " + overview + "\n\n")
+	sb.WriteString("**Success criteria:** Clear milestones and quality gates; backlog aligned with execution order.\n\n")
 	sb.WriteString("---\n\n")
 
 	// 1. Technical Foundation

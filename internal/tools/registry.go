@@ -378,9 +378,10 @@ func registerBatch2Tools(server framework.MCPServer) error {
 			Type: "object",
 			Properties: map[string]interface{}{
 				"action": map[string]interface{}{
-					"type":    "string",
-					"enum":    []string{"overview", "scorecard", "briefing", "prd", "plan", "scorecard_plans"},
-					"default": "overview",
+					"type":        "string",
+					"enum":        []string{"overview", "scorecard", "briefing", "prd", "plan", "scorecard_plans"},
+					"default":     "overview",
+					"description": "plan: write Cursor .plan.md; scorecard_plans: write improve-<dim>.plan.md per dimension",
 				},
 				"output_format": map[string]interface{}{
 					"type":    "string",
