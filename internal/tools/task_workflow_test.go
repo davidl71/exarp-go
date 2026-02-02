@@ -385,3 +385,33 @@ func TestHandleTaskWorkflow(t *testing.T) {
 		})
 	}
 }
+
+func TestParseTaskIDsFromParams(t *testing.T) {
+	tests := []struct {
+		name   string
+		params map[string]interface{}
+		want   []string
+	}{
+		{"empty", map[string]interface{}{}, nil},
+		{"task_id single", map[string]interface{}{"task_id": "T-1"}, []string{"T-1"}},
+		{"task_id trimmed", map[string]interface{}{"task_id": "  T-2  "}, []string{"T-2"}},
+		{"task_ids comma", map[string]interface{}{"task_ids": "T-1,T-2,T-3"}, []string{"T-1", "T-2", "T-3"}},
+		{"task_ids JSON array", map[string]interface{}{"task_ids": `["T-a","T-b"]`}, []string{"T-a", "T-b"}},
+		{"task_ids slice", map[string]interface{}{"task_ids": []interface{}{"T-x", "T-y"}}, []string{"T-x", "T-y"}},
+		{"task_id and task_ids dedupe", map[string]interface{}{"task_id": "T-1", "task_ids": "T-1,T-2"}, []string{"T-1", "T-2"}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := ParseTaskIDsFromParams(tt.params)
+			if len(got) != len(tt.want) {
+				t.Errorf("ParseTaskIDsFromParams() len = %v, want %v", got, tt.want)
+				return
+			}
+			for i := range got {
+				if got[i] != tt.want[i] {
+					t.Errorf("ParseTaskIDsFromParams()[%d] = %q, want %q", i, got[i], tt.want[i])
+				}
+			}
+		})
+	}
+}

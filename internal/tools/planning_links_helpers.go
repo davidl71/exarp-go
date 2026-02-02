@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/davidl71/exarp-go/internal/models"
+	"github.com/davidl71/exarp-go/internal/security"
 )
 
 // PlanningLinkMetadata represents planning document link metadata stored in task metadata
@@ -80,16 +81,17 @@ func GetPlanningLinkMetadata(task *models.Todo2Task) *PlanningLinkMetadata {
 	return nil
 }
 
-// ValidatePlanningLink validates that a planning document link is valid
+// ValidatePlanningLink validates that a planning document link is valid.
+// Rejects paths outside project root (relative or absolute).
 func ValidatePlanningLink(projectRoot string, planningDocPath string) error {
 	if planningDocPath == "" {
 		return fmt.Errorf("planning document path is empty")
 	}
 
-	// Resolve path relative to project root
-	fullPath := planningDocPath
-	if !filepath.IsAbs(planningDocPath) {
-		fullPath = filepath.Join(projectRoot, planningDocPath)
+	// Ensure path is within project root (rejects absolute paths outside root and traversal)
+	fullPath, err := security.ValidatePath(planningDocPath, projectRoot)
+	if err != nil {
+		return err
 	}
 
 	// Check if file exists

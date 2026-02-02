@@ -4,18 +4,16 @@
 
 ## Summary
 
-- **Files Scanned:** 342
+- **Files Scanned:** 346
 - **Files Modified:** 0
-- **Files Skipped:** 330
+- **Files Skipped:** 334
 - **Hints Added:** 12
-- **Hints Skipped:** 330
+- **Hints Skipped:** 334
 
 ## Hints Added
 
 - ✅ /Users/davidl/Projects/exarp-go/docs/AGENT_LOCKING_STRATEGY.md
 - ✅ /Users/davidl/Projects/exarp-go/docs/CONFIGURABLE_PARAMETERS_RECOMMENDATIONS.md
-- ✅ /Users/davidl/Projects/exarp-go/docs/CURSOR_EXTENSION_PLAN.md
-- ✅ /Users/davidl/Projects/exarp-go/docs/CURSOR_EXTENSION_RESEARCH.md
 - ✅ /Users/davidl/Projects/exarp-go/docs/DATABASE_ABSTRACTION.md
 - ✅ /Users/davidl/Projects/exarp-go/docs/EXISTING_TASK_SYNC_LIBRARIES.md
 - ✅ /Users/davidl/Projects/exarp-go/docs/EXTERNAL_TASK_SOURCES.md
@@ -23,12 +21,16 @@
 - ✅ /Users/davidl/Projects/exarp-go/docs/FUTURE_SSE_IMPLEMENTATION.md
 - ✅ /Users/davidl/Projects/exarp-go/docs/PYTHON_DEPRECATED_MLX_ONLY.md
 - ✅ /Users/davidl/Projects/exarp-go/docs/SAFE_PYTHON_REMOVAL_PLAN.md
+- ✅ /Users/davidl/Projects/exarp-go/docs/archive/extension/CURSOR_EXTENSION_PLAN.md
+- ✅ /Users/davidl/Projects/exarp-go/docs/archive/extension/CURSOR_EXTENSION_RESEARCH.md
 - ✅ /Users/davidl/Projects/exarp-go/docs/research/AGENTIC_CI_EXARP_GO_INTEGRATION.md
 
 ## Hints Skipped
 
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/3270_TUI_IMPLEMENTATION.md: No external libraries detected
+- ⏭️ /Users/davidl/Projects/exarp-go/docs/ACCESS_CONTROL_MODEL.md: No external libraries detected
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/AGENTIC_CI_SETUP.md: No external libraries detected
+- ⏭️ /Users/davidl/Projects/exarp-go/docs/AGENT_TUI_DEMO.md: No external libraries detected
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/AGILE_DAILY_STANDUP_IMPLEMENTATION.md: No external libraries detected
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/AI_USAGE_ANALYSIS.md: No external libraries detected
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/ANSIBLE_INSTALLATION_COMPLETE.md: No external libraries detected
@@ -68,7 +70,6 @@
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/CSPELL_CONFIGURATION.md: No external libraries detected
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/CURSOR_BACKGROUND_AGENTS_SETUP.md: No external libraries detected
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/CURSOR_MCP_SETUP.md: No external libraries detected
-- ⏭️ /Users/davidl/Projects/exarp-go/docs/CURSOR_REMOTE_SSH_SETUP.md: No external libraries detected
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/CURSOR_RULES.md: Hint already exists
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/DAILY_AUTOMATION_REPORT.md: File too short
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/DEMONSTRATE_ELICIT_EXAMPLE.md: No external libraries detected
@@ -100,7 +101,6 @@
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/GOTOHUMAN_SETUP.md: No external libraries detected
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/GOTOHUMAN_TOOLS_DISCOVERY.md: No external libraries detected
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/GOTOHUMAN_TOOLS_DOCUMENTATION.md: No external libraries detected
-- ⏭️ /Users/davidl/Projects/exarp-go/docs/GUI_EXTENSION_STATUS.md: No external libraries detected
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/HIGH_PRIORITY_EPICS_WORK_PLAN.md: No external libraries detected
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/HIGH_PRIORITY_MIGRATION_COMPLETE.md: Hint already exists
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/HUMAN_IN_THE_LOOP_MCP_COMPARISON.md: Hint already exists
@@ -166,6 +166,7 @@
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/PROTOBUF_IMPLEMENTATION_PROGRESS.md: No external libraries detected
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/PROTOBUF_IMPLEMENTATION_STATUS.md: No external libraries detected
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/PROTOBUF_IMPLEMENTATION_SUMMARY.md: No external libraries detected
+- ⏭️ /Users/davidl/Projects/exarp-go/docs/PROTOBUF_INTEGRATION.md: No external libraries detected
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/PROTOBUF_REMAINING_WORK.md: Hint already exists
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/PROTOBUF_SIMPLIFICATION_OPPORTUNITIES.md: No external libraries detected
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/PYTHON_BRIDGE_DEPENDENCIES.md: Hint already exists
@@ -200,7 +201,6 @@
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/SECURITY_COMPLETE.md: No external libraries detected
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/SECURITY_IMPLEMENTATION_STATUS.md: No external libraries detected
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/SETUP_HOOKS_PATTERNS_IMPLEMENTATION.md: No external libraries detected
-- ⏭️ /Users/davidl/Projects/exarp-go/docs/SHARED_EXTENSION_ANALYSIS.md: No external libraries detected
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/SHARED_LIBRARY_ANALYSIS.md: No external libraries detected
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/SQLITE_CODE_GENERATION_STRATEGY.md: No external libraries detected
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/SQLITE_ESTIMATION_ACTUAL_VS_ESTIMATED.md: No external libraries detected
@@ -272,6 +272,10 @@
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/archive/analysis/ELICIT_API_AND_PROMPTS_RESOURCES_ANALYSIS.md: No external libraries detected
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/archive/analysis/FASTMCP_GO_ANALYSIS.md: No external libraries detected
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/archive/analysis/MCP_GO_VS_OFFICIAL_SDK_FEATURES.md: No external libraries detected
+- ⏭️ /Users/davidl/Projects/exarp-go/docs/archive/extension/CURSOR_REMOTE_SSH_SETUP.md: No external libraries detected
+- ⏭️ /Users/davidl/Projects/exarp-go/docs/archive/extension/GUI_EXTENSION_STATUS.md: No external libraries detected
+- ⏭️ /Users/davidl/Projects/exarp-go/docs/archive/extension/SHARED_EXTENSION_ANALYSIS.md: No external libraries detected
+- ⏭️ /Users/davidl/Projects/exarp-go/docs/archive/extension/WORKSPACE_SETUP.md: No external libraries detected
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/archive/implementation-summaries/ALL_TASKS_COMPLETE_SUMMARY.md: Hint already exists
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/archive/implementation-summaries/BATCH1_IMPLEMENTATION_SUMMARY.md: Hint already exists
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/archive/implementation-summaries/BATCH2_IMPLEMENTATION_SUMMARY.md: No external libraries detected

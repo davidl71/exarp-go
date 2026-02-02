@@ -48,6 +48,11 @@ type GoHealthChecks struct {
 	PathBoundaryEnforcement bool `json:"path_boundary_enforcement"`
 	RateLimiting            bool `json:"rate_limiting"`
 	AccessControl           bool `json:"access_control"`
+	// Documentation (for documentation score dimension)
+	ReadmeExists    bool `json:"readme_exists"`
+	DocsDirExists   bool `json:"docs_dir_exists"`
+	DocsFileCount   int  `json:"docs_file_count"`
+	CursorDocsExist bool `json:"cursor_docs_exist"` // .cursor/skills or .cursor/rules
 }
 
 // GoScorecardResult represents the complete Go scorecard
@@ -169,6 +174,33 @@ func performGoHealthChecks(ctx context.Context, projectRoot string, opts *Scorec
 	health.PathBoundaryEnforcement = checkPathBoundaryEnforcement(projectRoot)
 	health.RateLimiting = checkRateLimiting(projectRoot)
 	health.AccessControl = checkAccessControl(projectRoot)
+
+	// Documentation checks (README, docs/, .cursor docs)
+	readmePaths := []string{"README.md", "README.rst", "README.txt", "readme.md"}
+	for _, name := range readmePaths {
+		if _, err := os.Stat(filepath.Join(projectRoot, name)); err == nil {
+			health.ReadmeExists = true
+			break
+		}
+	}
+	docsDir := filepath.Join(projectRoot, "docs")
+	if info, err := os.Stat(docsDir); err == nil && info.IsDir() {
+		health.DocsDirExists = true
+		entries, _ := os.ReadDir(docsDir)
+		for _, e := range entries {
+			if !e.IsDir() && (strings.HasSuffix(e.Name(), ".md") || strings.HasSuffix(e.Name(), ".rst")) {
+				health.DocsFileCount++
+			}
+		}
+	}
+	cursorSkills := filepath.Join(projectRoot, ".cursor", "skills")
+	cursorRules := filepath.Join(projectRoot, ".cursor", "rules")
+	if info, _ := os.Stat(cursorSkills); info != nil && info.IsDir() {
+		health.CursorDocsExist = true
+	}
+	if info, _ := os.Stat(cursorRules); info != nil && info.IsDir() {
+		health.CursorDocsExist = true
+	}
 
 	return health, nil
 }

@@ -1975,6 +1975,9 @@ func handleTaskAnalysisExecutionPlan(ctx context.Context, params map[string]inte
 			return nil, fmt.Errorf("failed to create output dir: %w", err)
 		}
 		if strings.HasSuffix(strings.ToLower(outputPath), ".md") {
+			if !strings.HasSuffix(strings.ToLower(outputPath), ".plan.md") {
+				outputPath = outputPath[:len(outputPath)-3] + ".plan.md"
+			}
 			md := formatExecutionPlanMarkdown(result, projectRoot)
 			if err := os.WriteFile(outputPath, []byte(md), 0644); err != nil {
 				return nil, fmt.Errorf("failed to save markdown: %w", err)

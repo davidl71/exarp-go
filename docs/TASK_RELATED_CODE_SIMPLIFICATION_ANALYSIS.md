@@ -149,8 +149,36 @@ Handlers that do "get task → update → sync" can be simplified:
 
 ---
 
-## 7. References
+## 7. Handler and CLI Patterns (Verification)
 
-- [TASK_WORKFLOW_ABSTRACTION_ANALYSIS.md](TASK_WORKFLOW_ABSTRACTION_ANALYSIS.md) — SaveTodo2Tasks / SyncTodo2Tasks behavior
+### 7.1 Tool Handler Pattern (handlers.go)
+
+All tool handlers follow the same pattern:
+
+```go
+req, params, err := ParseXRequest(args)
+if err != nil { return nil, err }
+if req != nil {
+    params = XRequestToParams(req)
+    request.ApplyDefaults(params, map[string]interface{}{ ... })
+}
+return handleXNative(ctx, params)
+```
+
+This is repeated for ~25 tools. Consolidation option: a generic `ParseAndDefault(args, parseFn, toParamsFn, defaults) (params, error)` would reduce boilerplate but is lower priority (pattern is consistent and readable).
+
+### 7.2 CLI Task Commands (cli/task.go)
+
+Task subcommands (list, update, create, show, status, delete) **do not duplicate business logic**. Each builds a `params` map and calls `executeTaskWorkflow(server, toolArgs)`. The CLI is a thin wrapper over the task_workflow tool—no simplification needed here.
+
+### 7.3 Approve and Update Already DB-First
+
+`handleTaskWorkflowApprove` and `handleTaskWorkflowUpdate` already use the database when available (`database.GetDB()`, `database.ListTasks`/`GetTask`, `database.UpdateTask`) and only fall back to `LoadTodo2Tasks` → modify → `SaveTodo2Tasks` when DB is unavailable. Other actions (sync, list, cleanup, fix_dates, fix_empty_descriptions, link_planning, create, fix_invalid_ids) still use load-all; list/sync could use `database.ListTasks` with filters when DB is available for scalability.
+
+---
+
+## 8. References
+
+- [TASK_WORKFLOW_ABSTRACTION_ANALYSIS.md](TASK_WORKFLOW_ABSTRACTION_ANALYSIS.md) — SaveTodo2Tasks / SyncTodo2Tasks behavior (if present)
 - [internal/tools/todo2_utils.go](../internal/tools/todo2_utils.go) — LoadTodo2Tasks, SaveTodo2Tasks, SyncTodo2Tasks
 - [internal/database/tasks.go](../internal/database/tasks.go) — CreateTask, UpdateTask, GetTask

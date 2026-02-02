@@ -41,8 +41,7 @@ Longest dependency chain; completing these in order unblocks the most work.
 
 Each milestone is independently valuable. Check off as done.
 
-- [ ] **Identify code that can be migrated from devwisdom-go to mcp-go-core** (T-1768325426665)
-- [ ] **Migrate CLI to use mcp-go-core CLI utilities** (T-1768327631413)
+- [ ] **Migrate CLI to use mcp-go-core CLI utilities** (T-1769991219035)
 - [ ] **Document gotoHuman API/tools** (T-105)
 - [ ] **Test basic approval request flow** (T-106)
 - [ ] **Create approval request helper function** (T-107)

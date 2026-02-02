@@ -990,7 +990,7 @@ func getHintsForMode(mode string) map[string]string {
 		hints["security"] = "Use security tool for vulnerability scanning"
 	case "code_review":
 		hints["testing"] = "Use testing tool for test coverage"
-		hints["lint"] = "Use lint tool for code quality"
+		hints["lint"] = "Use lint tool for code quality; for docs/markdown includes broken link check (gomarklint)"
 	case "task_management":
 		hints["task_workflow"] = "Use task_workflow for task operations"
 	}

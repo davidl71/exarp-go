@@ -83,9 +83,9 @@ func TestMCPToolViaCLI(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			cmd := exec.Command(binaryPath, "-tool", tt.tool, "-args", tt.args)
 			cmd.Env = append(os.Environ(), "PROJECT_ROOT="+filepath.Join("..", ".."))
-			
+
 			output, err := cmd.CombinedOutput()
-			
+
 			if tt.wantError {
 				if err == nil {
 					t.Errorf("expected error for %s, got success", tt.tool)
@@ -159,9 +159,9 @@ func TestMCPToolErrorHandlingViaCLI(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			cmd := exec.Command(binaryPath, "-tool", tt.tool, "-args", tt.args)
 			cmd.Env = append(os.Environ(), "PROJECT_ROOT="+filepath.Join("..", ".."))
-			
+
 			output, err := cmd.CombinedOutput()
-			
+
 			if tt.wantError && err == nil {
 				t.Errorf("expected error, got success. Output: %s", string(output))
 			}
@@ -194,7 +194,7 @@ func TestMCPToolJSONResponseFormat(t *testing.T) {
 		t.Run(tool.name, func(t *testing.T) {
 			cmd := exec.Command(binaryPath, "-tool", tool.name, "-args", tool.args)
 			cmd.Env = append(os.Environ(), "PROJECT_ROOT="+filepath.Join("..", ".."))
-			
+
 			output, err := cmd.CombinedOutput()
 			if err != nil {
 				// Some tools may fail in test env; skip if so

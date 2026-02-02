@@ -63,7 +63,7 @@ func TestScoreTasksHeuristic(t *testing.T) {
 		{ID: "T-2", Content: "Unrelated task", LongDescription: "Nothing matches"},
 	}
 	evidence := &CodebaseEvidence{
-		Paths:   []string{"internal/foo.go", "cmd/main.go"},
+		Paths:    []string{"internal/foo.go", "cmd/main.go"},
 		Snippets: map[string]string{"internal/foo.go": "package foo func Bar add foo module"},
 	}
 	results := scoreTasksHeuristic(tasks, evidence, 0.5)
@@ -106,7 +106,7 @@ func TestHandleInferTaskProgressNative_ResponseShape(t *testing.T) {
 	params := map[string]interface{}{
 		"project_root": tmpDir,
 		"dry_run":      true,
-		"scan_depth":  1,
+		"scan_depth":   1,
 	}
 	result, err := handleInferTaskProgressNative(ctx, params)
 	if err != nil {
@@ -190,7 +190,7 @@ func TestWriteInferReport(t *testing.T) {
 	result := map[string]interface{}{
 		"total_tasks_analyzed": 2,
 		"inferences_made":      1,
-		"tasks_updated":       0,
+		"tasks_updated":        0,
 		"inferred_results": []InferredResult{
 			{TaskID: "T-1", Confidence: 0.85, Evidence: []string{"path:internal/foo.go", "snippet:internal/foo.go"}},
 		},

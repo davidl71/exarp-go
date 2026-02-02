@@ -1,29 +1,29 @@
 {
-  "aligned_count": 261,
+  "aligned_count": 262,
   "alignment_by_persona": {
     "architect": {
       "advisor": "enochian",
-      "count": 3,
+      "count": 4,
       "name": "Architect"
     },
     "code_reviewer": {
       "advisor": "stoic",
-      "count": 25,
+      "count": 21,
       "name": "Code Reviewer"
     },
     "developer": {
       "advisor": "tao_of_programming",
-      "count": 119,
+      "count": 110,
       "name": "Developer"
     },
     "executive": {
       "advisor": "pistis_sophia",
-      "count": 5,
+      "count": 7,
       "name": "Executive/Stakeholder"
     },
     "project_manager": {
       "advisor": "art_of_war",
-      "count": 7,
+      "count": 9,
       "name": "Project Manager"
     },
     "qa_engineer": {
@@ -33,37 +33,42 @@
     },
     "security_engineer": {
       "advisor": "bofh",
-      "count": 2,
+      "count": 3,
       "name": "Security Engineer"
     },
     "tech_writer": {
       "advisor": "confucius",
-      "count": 27,
+      "count": 35,
       "name": "Technical Writer"
     }
   },
   "goals_exists": false,
-  "overall_alignment_score": 85.6,
+  "overall_alignment_score": 88.2,
   "persona_coverage": {
-    "architect": 3,
-    "code_reviewer": 25,
-    "developer": 119,
-    "executive": 5,
-    "project_manager": 7,
+    "architect": 4,
+    "code_reviewer": 21,
+    "developer": 110,
+    "executive": 7,
+    "project_manager": 9,
     "qa_engineer": 73,
-    "security_engineer": 2,
-    "tech_writer": 27
+    "security_engineer": 3,
+    "tech_writer": 35
   },
   "prd_exists": true,
   "prd_user_stories": 20,
   "recommendations": null,
-  "tasks_analyzed": 305,
-  "timestamp": "2026-02-02T01:23:49+02:00",
-  "unaligned_count": 44,
+  "tasks_analyzed": 297,
+  "timestamp": "2026-02-02T23:20:26+02:00",
+  "unaligned_count": 35,
   "unaligned_tasks": [
     {
-      "id": "T-384",
-      "name": "Migrate `workflow_mode`",
+      "id": "T-78",
+      "name": "Fine-grained file locking (for Git operations)",
+      "reason": "No strong persona match found"
+    },
+    {
+      "id": "T-275",
+      "name": "Configure default limits",
       "reason": "No strong persona match found"
     },
     {
@@ -72,23 +77,13 @@
       "reason": "No strong persona match found"
     },
     {
-      "id": "T-88",
-      "name": "Enable \"Cursor: Background Agents\"",
+      "id": "T-79",
+      "name": "Agent heartbeat system",
       "reason": "No strong persona match found"
     },
     {
-      "id": "T-85",
-      "name": "All critical path items complete",
-      "reason": "No strong persona match found"
-    },
-    {
-      "id": "T-341",
-      "name": "Install and configure Go SDK",
-      "reason": "No strong persona match found"
-    },
-    {
-      "id": "T-53",
-      "name": "Ollama uses \"model\" not \"name\"",
+      "id": "T-84",
+      "name": "Phase 4 resources migrated (after memory)",
       "reason": "No strong persona match found"
     },
     {
@@ -97,18 +92,23 @@
       "reason": "No strong persona match found"
     },
     {
-      "id": "T-218",
-      "name": "Add iterative refinement loop",
+      "id": "T-82",
+      "name": "Memory system migrated (blocks Phase 4)",
       "reason": "No strong persona match found"
     },
     {
-      "id": "T-207",
-      "name": "Add model selection logic",
+      "id": "T-274",
+      "name": "Add middleware to framework",
       "reason": "No strong persona match found"
     },
     {
-      "id": "T-323",
-      "name": "Check for broken references",
+      "id": "T-76",
+      "name": "Add dead agent cleanup job",
+      "reason": "No strong persona match found"
+    },
+    {
+      "id": "T-320",
+      "name": "Lock statistics and metrics",
       "reason": "No strong persona match found"
     }
   ]

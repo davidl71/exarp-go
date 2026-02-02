@@ -103,7 +103,7 @@ func writePlanFileBack(planPath string, todos []PlanTodo, statusByID map[string]
 	// Parse existing frontmatter as generic map to preserve all fields
 	frontmatterRe := regexp.MustCompile(`(?s)^---\r?\n(.*?)\r?\n---\r?\n`)
 	matches := frontmatterRe.FindStringSubmatch(content)
-	
+
 	var fmMap map[string]interface{}
 	if len(matches) >= 2 {
 		if err := yaml.Unmarshal([]byte(matches[1]), &fmMap); err != nil {
@@ -120,7 +120,7 @@ func writePlanFileBack(planPath string, todos []PlanTodo, statusByID map[string]
 			todos[i].Status = todo2StatusToPlanStatus(s)
 		}
 	}
-	
+
 	// Convert todos to interface slice for YAML marshaling
 	todosInterface := make([]interface{}, len(todos))
 	for i, t := range todos {

@@ -175,6 +175,17 @@ With STDIO transport (Cursor IDE), there is a single client connection per proce
 
 ---
 
+### Other SSE/HTTP-related tasks
+
+These tasks are part of the SSE/HTTP scope (deferred until SSE transport is implemented):
+
+| Task ID | Name | Why SSE/HTTP |
+|---------|------|---------------|
+| **T-144** | Configure OAuth if needed | OAuth/auth flows apply when the server is exposed over HTTP/SSE and clients authenticate. |
+| **T-276** | Add per-tool limits | Per-tool rate/limits matter when multiple clients connect over HTTP/SSE; STDIO has a single client per process. |
+
+---
+
 ## Technical Design (Preliminary)
 
 ### Transport Interface

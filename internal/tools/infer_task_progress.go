@@ -260,7 +260,8 @@ func enhanceWithFM(ctx context.Context, tasks []Todo2Task, scored []InferredResu
 			continue
 		}
 		prompt := buildFMCompletionPrompt(task, evidence)
-		resp, err := DefaultFMProvider().Generate(ctx, prompt, 300, 0.2)
+		model := DefaultModelRouter.SelectModel("general", ModelRequirements{})
+		resp, err := DefaultModelRouter.Generate(ctx, model, prompt, 300, 0.2)
 		if err != nil {
 			continue
 		}

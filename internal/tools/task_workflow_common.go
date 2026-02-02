@@ -17,6 +17,43 @@ import (
 	"github.com/davidl71/mcp-go-core/pkg/mcp/response"
 )
 
+// ParseTaskIDsFromParams extracts task IDs from params. Supports task_id (single string) and
+// task_ids (comma-separated string or JSON array, or []interface{}). Returns trimmed, deduplicated
+// IDs in order of first occurrence. Empty slice when none specified.
+func ParseTaskIDsFromParams(params map[string]interface{}) []string {
+	seen := make(map[string]bool)
+	var out []string
+	add := func(id string) {
+		id = strings.TrimSpace(id)
+		if id != "" && !seen[id] {
+			seen[id] = true
+			out = append(out, id)
+		}
+	}
+	if tid, ok := params["task_id"].(string); ok && tid != "" {
+		add(tid)
+	}
+	if ids, ok := params["task_ids"].(string); ok && ids != "" {
+		var parsed []string
+		if json.Unmarshal([]byte(ids), &parsed) == nil {
+			for _, id := range parsed {
+				add(id)
+			}
+		} else {
+			for _, id := range strings.Split(ids, ",") {
+				add(id)
+			}
+		}
+	} else if idsList, ok := params["task_ids"].([]interface{}); ok {
+		for _, id := range idsList {
+			if idStr, ok := id.(string); ok {
+				add(idStr)
+			}
+		}
+	}
+	return out
+}
+
 // handleTaskWorkflowApprove handles approve action for batch approving tasks
 // Uses database for efficient updates, falls back to file-based approach if needed
 // This is platform-agnostic (doesn't require Apple FM)
@@ -43,25 +80,7 @@ func handleTaskWorkflowApprove(ctx context.Context, params map[string]interface{
 		filterTag = tag
 	}
 
-	var taskIDs []string
-	if ids, ok := params["task_ids"].(string); ok && ids != "" {
-		// Parse JSON array of task IDs
-		if err := json.Unmarshal([]byte(ids), &taskIDs); err != nil {
-			// If not JSON, treat as comma-separated
-			taskIDs = strings.Split(ids, ",")
-			for i := range taskIDs {
-				taskIDs[i] = strings.TrimSpace(taskIDs[i])
-			}
-		}
-	} else if idsList, ok := params["task_ids"].([]interface{}); ok {
-		// Handle array directly
-		taskIDs = make([]string, len(idsList))
-		for i, id := range idsList {
-			if idStr, ok := id.(string); ok {
-				taskIDs[i] = idStr
-			}
-		}
-	}
+	taskIDs := ParseTaskIDsFromParams(params)
 
 	dryRun := false
 	if dr, ok := params["dry_run"].(bool); ok {
@@ -185,9 +204,13 @@ func handleTaskWorkflowApprove(ctx context.Context, params map[string]interface{
 		}
 
 		// Sync DB to JSON so CLI and MCP leave Todo2 in sync (shared workflow)
+		var syncErr error
 		if updatedCount > 0 {
-			if projectRoot, syncErr := FindProjectRoot(); syncErr == nil {
-				_ = SyncTodo2Tasks(projectRoot)
+			if projectRoot, findErr := FindProjectRoot(); findErr == nil {
+				syncErr = SyncTodo2Tasks(projectRoot)
+				if syncErr != nil {
+					fmt.Fprintf(os.Stderr, "Warning: sync DB to JSON after approve failed: %v\n", syncErr)
+				}
 			}
 		}
 
@@ -196,6 +219,9 @@ func handleTaskWorkflowApprove(ctx context.Context, params map[string]interface{
 			"method":         "database",
 			"approved_count": updatedCount,
 			"task_ids":       approvedIDs,
+		}
+		if syncErr != nil {
+			result["sync_error"] = syncErr.Error()
 		}
 
 		return response.FormatResult(result, "")
@@ -298,26 +324,49 @@ func handleTaskWorkflowApprove(ctx context.Context, params map[string]interface{
 	return response.FormatResult(result, "")
 }
 
-// handleTaskWorkflowUpdate updates task(s) by ID with optional new_status and/or priority.
-// Uses database first; syncs DB to JSON after update.
-// Params: task_ids (required, array or JSON string), new_status (optional), priority (optional).
-func handleTaskWorkflowUpdate(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
-	var taskIDs []string
-	if ids, ok := params["task_ids"].(string); ok && ids != "" {
-		if err := json.Unmarshal([]byte(ids), &taskIDs); err != nil {
-			taskIDs = strings.Split(ids, ",")
-			for i := range taskIDs {
-				taskIDs[i] = strings.TrimSpace(taskIDs[i])
+// parseTagsFromParams extracts tags from params (comma-separated string or array). Used by create and update.
+func parseTagsFromParams(params map[string]interface{}) []string {
+	var tags []string
+	if t, ok := params["tags"].([]interface{}); ok {
+		for _, tag := range t {
+			if tagStr, ok := tag.(string); ok && tagStr != "" {
+				tags = append(tags, strings.TrimSpace(tagStr))
 			}
 		}
-	} else if idsList, ok := params["task_ids"].([]interface{}); ok {
-		taskIDs = make([]string, 0, len(idsList))
-		for _, id := range idsList {
-			if idStr, ok := id.(string); ok {
-				taskIDs = append(taskIDs, idStr)
+	} else if tStr, ok := params["tags"].(string); ok && tStr != "" {
+		for _, tag := range strings.Split(tStr, ",") {
+			if trimmed := strings.TrimSpace(tag); trimmed != "" {
+				tags = append(tags, trimmed)
 			}
 		}
 	}
+	return tags
+}
+
+// parseRemoveTagsFromParams extracts remove_tags from params (comma-separated string or array). Used by update.
+func parseRemoveTagsFromParams(params map[string]interface{}) []string {
+	var tags []string
+	if t, ok := params["remove_tags"].([]interface{}); ok {
+		for _, tag := range t {
+			if tagStr, ok := tag.(string); ok && tagStr != "" {
+				tags = append(tags, strings.TrimSpace(tagStr))
+			}
+		}
+	} else if tStr, ok := params["remove_tags"].(string); ok && tStr != "" {
+		for _, tag := range strings.Split(tStr, ",") {
+			if trimmed := strings.TrimSpace(tag); trimmed != "" {
+				tags = append(tags, trimmed)
+			}
+		}
+	}
+	return tags
+}
+
+// handleTaskWorkflowUpdate updates task(s) by ID with optional new_status, priority, tags (merge), remove_tags, name, or long_description.
+// Uses database first; syncs DB to JSON after update.
+// Params: task_ids (required), new_status (optional), priority (optional), tags (optional; merged), remove_tags (optional), name (optional), long_description (optional).
+func handleTaskWorkflowUpdate(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
+	taskIDs := ParseTaskIDsFromParams(params)
 	if len(taskIDs) == 0 {
 		return nil, fmt.Errorf("update action requires task_ids")
 	}
@@ -330,8 +379,12 @@ func handleTaskWorkflowUpdate(ctx context.Context, params map[string]interface{}
 	if priority != "" {
 		priority = normalizePriority(priority)
 	}
-	if newStatus == "" && priority == "" {
-		return nil, fmt.Errorf("update action requires at least one of new_status or priority")
+	addTags := parseTagsFromParams(params)
+	removeTags := parseRemoveTagsFromParams(params)
+	name, _ := params["name"].(string)
+	longDescription, _ := params["long_description"].(string)
+	if newStatus == "" && priority == "" && len(addTags) == 0 && len(removeTags) == 0 && name == "" && longDescription == "" {
+		return nil, fmt.Errorf("update action requires at least one of new_status, priority, tags, remove_tags, name, or long_description")
 	}
 
 	// Try database first
@@ -349,6 +402,37 @@ func handleTaskWorkflowUpdate(ctx context.Context, params map[string]interface{}
 			if priority != "" {
 				task.Priority = priority
 			}
+			if len(removeTags) > 0 {
+				removeSet := make(map[string]bool)
+				for _, t := range removeTags {
+					removeSet[t] = true
+				}
+				filtered := task.Tags[:0]
+				for _, t := range task.Tags {
+					if !removeSet[t] {
+						filtered = append(filtered, t)
+					}
+				}
+				task.Tags = filtered
+			}
+			if len(addTags) > 0 {
+				existing := make(map[string]bool)
+				for _, t := range task.Tags {
+					existing[t] = true
+				}
+				for _, t := range addTags {
+					if !existing[t] {
+						task.Tags = append(task.Tags, t)
+						existing[t] = true
+					}
+				}
+			}
+			if name != "" {
+				task.Content = name
+			}
+			if longDescription != "" {
+				task.LongDescription = longDescription
+			}
 			if err := database.UpdateTask(ctx, task); err != nil {
 				continue
 			}
@@ -357,9 +441,13 @@ func handleTaskWorkflowUpdate(ctx context.Context, params map[string]interface{}
 		}
 
 		// Sync DB to JSON
-		projectRoot, syncErr := FindProjectRoot()
-		if syncErr == nil {
-			_ = SyncTodo2Tasks(projectRoot)
+		projectRoot, findErr := FindProjectRoot()
+		var syncErr error
+		if findErr == nil {
+			syncErr = SyncTodo2Tasks(projectRoot)
+			if syncErr != nil {
+				fmt.Fprintf(os.Stderr, "Warning: sync DB to JSON after update failed: %v\n", syncErr)
+			}
 		}
 
 		result := map[string]interface{}{
@@ -367,6 +455,9 @@ func handleTaskWorkflowUpdate(ctx context.Context, params map[string]interface{}
 			"method":        "database",
 			"updated_count": updatedCount,
 			"task_ids":      updatedIDs,
+		}
+		if syncErr != nil {
+			result["sync_error"] = syncErr.Error()
 		}
 		// When moving to Review, include approval request payloads for gotoHuman (T-109)
 		if newStatus == "Review" && updatedCount > 0 {
@@ -410,6 +501,37 @@ func handleTaskWorkflowUpdate(ctx context.Context, params map[string]interface{}
 		}
 		if priority != "" {
 			t.Priority = priority
+		}
+		if len(removeTags) > 0 {
+			removeSet := make(map[string]bool)
+			for _, tag := range removeTags {
+				removeSet[tag] = true
+			}
+			filtered := t.Tags[:0]
+			for _, tag := range t.Tags {
+				if !removeSet[tag] {
+					filtered = append(filtered, tag)
+				}
+			}
+			t.Tags = filtered
+		}
+		if len(addTags) > 0 {
+			existing := make(map[string]bool)
+			for _, tag := range t.Tags {
+				existing[tag] = true
+			}
+			for _, tag := range addTags {
+				if !existing[tag] {
+					t.Tags = append(t.Tags, tag)
+					existing[tag] = true
+				}
+			}
+		}
+		if name != "" {
+			t.Content = name
+		}
+		if longDescription != "" {
+			t.LongDescription = longDescription
 		}
 		updatedIDs = append(updatedIDs, id)
 	}
@@ -1043,9 +1165,13 @@ func handleTaskWorkflowCleanup(ctx context.Context, params map[string]interface{
 		}
 
 		// Sync DB to JSON (shared workflow)
+		var syncErr error
 		if len(removedIDs) > 0 {
-			if projectRoot, syncErr := FindProjectRoot(); syncErr == nil {
-				_ = SyncTodo2Tasks(projectRoot)
+			if projectRoot, findErr := FindProjectRoot(); findErr == nil {
+				syncErr = SyncTodo2Tasks(projectRoot)
+				if syncErr != nil {
+					fmt.Fprintf(os.Stderr, "Warning: sync DB to JSON after cleanup failed: %v\n", syncErr)
+				}
 			}
 		}
 
@@ -1062,6 +1188,9 @@ func handleTaskWorkflowCleanup(ctx context.Context, params map[string]interface{
 			"removed_tasks":   removedIDs,
 			"threshold_hours": staleThresholdHours,
 			"include_legacy":  includeLegacy,
+		}
+		if syncErr != nil {
+			result["sync_error"] = syncErr.Error()
 		}
 
 		outputPath, _ := params["output_path"].(string)
@@ -1215,9 +1344,13 @@ func handleTaskWorkflowFixEmptyDescriptions(ctx context.Context, params map[stri
 			}
 		}
 
+		var syncErr error
 		if len(updatedIDs) > 0 {
-			if projectRoot, syncErr := FindProjectRoot(); syncErr == nil {
-				_ = SyncTodo2Tasks(projectRoot)
+			if projectRoot, findErr := FindProjectRoot(); findErr == nil {
+				syncErr = SyncTodo2Tasks(projectRoot)
+				if syncErr != nil {
+					fmt.Fprintf(os.Stderr, "Warning: sync DB to JSON after fix_dates failed: %v\n", syncErr)
+				}
 			}
 		}
 
@@ -1226,6 +1359,9 @@ func handleTaskWorkflowFixEmptyDescriptions(ctx context.Context, params map[stri
 			"method":        "database",
 			"tasks_updated": len(updatedIDs),
 			"task_ids":      updatedIDs,
+		}
+		if syncErr != nil {
+			result["sync_error"] = syncErr.Error()
 		}
 		outputPath, _ := params["output_path"].(string)
 		return response.FormatResult(result, outputPath)
@@ -1387,36 +1523,7 @@ func handleTaskWorkflowLinkPlanning(ctx context.Context, params map[string]inter
 		}
 	}
 
-	// Resolve task IDs: task_id (single) or task_ids (comma or JSON array)
-	var uniqueIDs []string
-	seen := make(map[string]bool)
-	if tid, ok := params["task_id"].(string); ok && tid != "" {
-		tid = strings.TrimSpace(tid)
-		if !seen[tid] {
-			seen[tid] = true
-			uniqueIDs = append(uniqueIDs, tid)
-		}
-	}
-	if ids, ok := params["task_ids"].(string); ok && ids != "" {
-		var parsed []string
-		if json.Unmarshal([]byte(ids), &parsed) == nil {
-			for _, id := range parsed {
-				id = strings.TrimSpace(id)
-				if id != "" && !seen[id] {
-					seen[id] = true
-					uniqueIDs = append(uniqueIDs, id)
-				}
-			}
-		} else {
-			for _, id := range strings.Split(ids, ",") {
-				id = strings.TrimSpace(id)
-				if id != "" && !seen[id] {
-					seen[id] = true
-					uniqueIDs = append(uniqueIDs, id)
-				}
-			}
-		}
-	}
+	uniqueIDs := ParseTaskIDsFromParams(params)
 	if len(uniqueIDs) == 0 {
 		return nil, fmt.Errorf("task_id or task_ids is required for link_planning")
 	}
@@ -1482,9 +1589,13 @@ func handleTaskWorkflowLinkPlanning(ctx context.Context, params map[string]inter
 		updatedIDs = append(updatedIDs, id)
 	}
 
+	var linkSyncErr error
 	if useDB && len(updatedIDs) > 0 {
-		if projectRoot, syncErr := FindProjectRoot(); syncErr == nil {
-			_ = SyncTodo2Tasks(projectRoot)
+		if projectRoot, findErr := FindProjectRoot(); findErr == nil {
+			linkSyncErr = SyncTodo2Tasks(projectRoot)
+			if linkSyncErr != nil {
+				fmt.Fprintf(os.Stderr, "Warning: sync DB to JSON after link_planning failed: %v\n", linkSyncErr)
+			}
 		}
 	}
 	if !useDB && len(updatedIDs) > 0 {
@@ -1500,6 +1611,9 @@ func handleTaskWorkflowLinkPlanning(ctx context.Context, params map[string]inter
 		"updated_count": len(updatedIDs),
 		"updated_ids":   updatedIDs,
 		"skipped":       skippedStatus,
+	}
+	if linkSyncErr != nil {
+		result["sync_error"] = linkSyncErr.Error()
 	}
 	return response.FormatResult(result, "")
 }
@@ -1645,7 +1759,18 @@ func handleTaskWorkflowCreate(ctx context.Context, params map[string]interface{}
 		}
 	} else {
 		// Sync DB to JSON (shared workflow)
-		_ = SyncTodo2Tasks(projectRoot)
+		if syncErr := SyncTodo2Tasks(projectRoot); syncErr != nil {
+			fmt.Fprintf(os.Stderr, "Warning: sync DB to JSON after create task failed: %v\n", syncErr)
+			result := map[string]interface{}{
+				"success": true, "method": "native_go",
+				"sync_error": syncErr.Error(),
+				"task": map[string]interface{}{
+					"id": task.ID, "name": task.Content, "long_description": task.LongDescription,
+					"status": task.Status, "priority": task.Priority, "tags": task.Tags, "dependencies": task.Dependencies,
+				},
+			}
+			return response.FormatResult(result, "")
+		}
 	}
 
 	// Return created task information
