@@ -2,6 +2,7 @@ package database
 
 import (
 	"context"
+	"database/sql"
 	"path/filepath"
 	"runtime"
 	"testing"
@@ -233,6 +234,53 @@ func TestRenewLease(t *testing.T) {
 	err = RenewLease(context.Background(), "T-LOCK-5", agentID, 30*time.Minute)
 	if err != nil {
 		t.Fatalf("RenewLease() error = %v", err)
+	}
+}
+
+func TestRunLeaseRenewal(t *testing.T) {
+	initLockTestDB(t)
+
+	task := &models.Todo2Task{
+		ID:      "T-LOCK-RENEW",
+		Content: "Task for RunLeaseRenewal",
+		Status:  StatusTodo,
+	}
+	err := CreateTask(context.Background(), task)
+	if err != nil {
+		t.Fatalf("CreateTask() error = %v", err)
+	}
+
+	agentID := "agent-renew-1"
+	_, err = ClaimTaskForAgent(context.Background(), "T-LOCK-RENEW", agentID, 100*time.Millisecond)
+	if err != nil {
+		t.Fatalf("ClaimTaskForAgent() error = %v", err)
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	RunLeaseRenewal(ctx, "T-LOCK-RENEW", agentID, 30*time.Minute, 15*time.Millisecond)
+	// Allow at least one renewal tick
+	time.Sleep(40 * time.Millisecond)
+	cancel()
+	// Brief wait for goroutine to exit
+	time.Sleep(25 * time.Millisecond)
+
+	// Verify task still assigned and lock extended (renewal ran)
+	db, err := GetDB()
+	if err != nil {
+		t.Fatalf("GetDB() error = %v", err)
+	}
+	var assignee sql.NullString
+	var lockUntil sql.NullInt64
+	err = db.QueryRow(`SELECT assignee, lock_until FROM tasks WHERE id = ?`, "T-LOCK-RENEW").Scan(&assignee, &lockUntil)
+	if err != nil {
+		t.Fatalf("QueryRow() error = %v", err)
+	}
+	if !assignee.Valid || assignee.String != agentID {
+		t.Errorf("assignee = %v, want %s", assignee, agentID)
+	}
+	now := time.Now().Unix()
+	if !lockUntil.Valid || lockUntil.Int64 <= now {
+		t.Errorf("lock_until = %v (now=%d), expected extended", lockUntil.Int64, now)
 	}
 }
 
