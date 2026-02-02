@@ -173,6 +173,8 @@ func handleReportPlan(ctx context.Context, params map[string]interface{}) ([]fra
 	if outputPath == "" {
 		slug := planFilenameFromTitle(planTitle) + ".plan.md"
 		outputPath = filepath.Join(projectRoot, ".cursor", "plans", slug)
+	} else {
+		outputPath = ensurePlanMdSuffix(outputPath)
 	}
 
 	planMD, err := generatePlanMarkdown(ctx, projectRoot, planTitle)
@@ -304,6 +306,8 @@ func handleReportScorecardPlans(ctx context.Context, params map[string]interface
 // generateScorecardDimensionPlan returns markdown for a single dimension improvement plan (Cursor-buildable).
 func generateScorecardDimensionPlan(displayName, dimension string, currentScore, targetScore float64, recommendations []string) string {
 	var sb strings.Builder
+	scorecardDate := time.Now().Format("2006-01-02")
+	tagHints := dimension + ", planning"
 	sb.WriteString("---\n")
 	sb.WriteString(fmt.Sprintf("name: Improve %s\n", displayName))
 	sb.WriteString(fmt.Sprintf("overview: \"Current %s score: %.0f%%. Target: %.0f%%. Address the items below to improve this metric.\"\n", displayName, currentScore, targetScore))
@@ -320,14 +324,36 @@ func generateScorecardDimensionPlan(displayName, dimension string, currentScore,
 	}
 	sb.WriteString("isProject: false\n")
 	sb.WriteString("status: draft\n")
+	sb.WriteString(fmt.Sprintf("last_updated: %q\n", scorecardDate))
+	sb.WriteString(fmt.Sprintf("tag_hints: [%s]\n", tagHints))
 	sb.WriteString("---\n\n")
 	sb.WriteString(fmt.Sprintf("# Improve %s\n\n", displayName))
 	sb.WriteString(fmt.Sprintf("**Current score:** %.0f%% | **Target:** %.0f%%\n\n", currentScore, targetScore))
+	sb.WriteString("**Status:** draft\n\n")
+	sb.WriteString(fmt.Sprintf("**Last updated:** %s\n\n", scorecardDate))
+	sb.WriteString("**Referenced by:** (none by default; add agents in `.cursor/agents/` or rules in `.cursor/rules/` to reference this plan)\n\n")
+	sb.WriteString(fmt.Sprintf("**Tag hints:** `#%s` `#planning`\n\n", dimension))
+	sb.WriteString("## Agents\n\n")
+	sb.WriteString("| Agent | Role |\n")
+	sb.WriteString("|-------|------|\n")
+	sb.WriteString("| *(none)* | Add [scorecard-improvement-runner](.cursor/agents/scorecard-improvement-runner.md) or a custom agent to execute this plan |\n\n")
+	sb.WriteString("---\n\n")
+	sb.WriteString("## Objective\n\n")
+	sb.WriteString(fmt.Sprintf("Improve the %s dimension from %.0f%% to %.0f%% by addressing the checklist below.\n\n", displayName, currentScore, targetScore))
+	sb.WriteString("## Success criteria\n\n")
+	sb.WriteString("- Score reaches or exceeds target\n")
+	sb.WriteString("- All checklist items addressed or explicitly deferred\n\n")
 	sb.WriteString("## Checklist\n\n")
 	for _, r := range recommendations {
 		sb.WriteString(fmt.Sprintf("- [ ] %s\n", r))
 	}
-	sb.WriteString("\n---\n\n*Generated from scorecard by exarp-go report(action=scorecard_plans).*\n")
+	sb.WriteString("\n---\n\n")
+	sb.WriteString("## Open Questions\n\n")
+	sb.WriteString("- *(Add open questions or decisions needed.)*\n\n")
+	sb.WriteString("---\n\n")
+	sb.WriteString("## References\n\n")
+	sb.WriteString("- *(See main plan or scorecard output; add links as needed.)*\n\n")
+	sb.WriteString("---\n\n*Generated from scorecard by exarp-go report(action=scorecard_plans).*\n")
 	return sb.String()
 }
 
@@ -413,13 +439,25 @@ func generatePlanMarkdown(ctx context.Context, projectRoot, planTitle string) (s
 			sb.WriteString("  - [" + strings.Join(quoted, ", ") + "]\n")
 		}
 	}
+	planDate := time.Now().Format("2006-01-02")
 	sb.WriteString("isProject: true\n")
 	sb.WriteString("status: draft\n")
+	sb.WriteString(fmt.Sprintf("last_updated: %q\n", planDate))
 	sb.WriteString("tag_hints: [planning]\n")
 	sb.WriteString("---\n\n")
 
 	sb.WriteString(fmt.Sprintf("# %s Plan\n\n", displayName))
-	sb.WriteString(fmt.Sprintf("**Generated:** %s\n\n", time.Now().Format("2006-01-02")))
+	sb.WriteString(fmt.Sprintf("**Generated:** %s\n\n", planDate))
+	sb.WriteString("**Status:** draft\n\n")
+	sb.WriteString(fmt.Sprintf("**Last updated:** %s\n\n", planDate))
+	sb.WriteString("**Referenced by:** [wave-task-runner](.cursor/agents/wave-task-runner.md), [wave-verifier](.cursor/agents/wave-verifier.md), [plan-execution](.cursor/rules/plan-execution.mdc)\n\n")
+	sb.WriteString("**Tag hints:** `#planning`\n\n")
+	sb.WriteString("## Agents\n\n")
+	sb.WriteString("| Agent | Role |\n")
+	sb.WriteString("|-------|------|\n")
+	sb.WriteString("| [wave-task-runner](.cursor/agents/wave-task-runner.md) | Run one task per wave from this plan |\n")
+	sb.WriteString("| [wave-verifier](.cursor/agents/wave-verifier.md) | Verify wave outcomes and update status |\n\n")
+	sb.WriteString("---\n\n")
 	sb.WriteString("## Scope\n\n")
 	sb.WriteString("**Purpose:** " + overview + "\n\n")
 	sb.WriteString("**Success criteria:** Clear milestones and quality gates; backlog aligned with execution order.\n\n")
@@ -617,6 +655,17 @@ func generatePlanMarkdown(ctx context.Context, projectRoot, planTitle string) (s
 	} else {
 		sb.WriteString("- *(Add deferred or out-of-scope items as needed.)*\n")
 	}
+	sb.WriteString("\n---\n\n")
+
+	// 7. Key Files / Implementation Notes
+	sb.WriteString("## 7. Key Files / Implementation Notes\n\n")
+	sb.WriteString("- *(Add key files or implementation notes; or leave as placeholder.)*\n")
+	sb.WriteString("\n---\n\n")
+
+	// 8. References
+	sb.WriteString("## 8. References\n\n")
+	sb.WriteString("- [docs/BACKLOG_EXECUTION_PLAN.md](docs/BACKLOG_EXECUTION_PLAN.md) — full wave breakdown\n")
+	sb.WriteString("- *(Add other plan or doc links as needed.)*\n")
 
 	return sb.String(), nil
 }
@@ -886,6 +935,22 @@ func planFilenameFromTitle(title string) string {
 	stem = strings.ReplaceAll(stem, " ", "-")
 	stem = strings.ReplaceAll(stem, ":", "-")
 	return strings.TrimSpace(stem)
+}
+
+// ensurePlanMdSuffix ensures path ends with .plan.md. If path ends with .md but not .plan.md, replaces with .plan.md; otherwise appends .plan.md.
+func ensurePlanMdSuffix(path string) string {
+	if path == "" {
+		return path
+	}
+	path = filepath.Clean(path)
+	base := filepath.Base(path)
+	if strings.HasSuffix(strings.ToLower(base), ".plan.md") {
+		return path
+	}
+	if strings.HasSuffix(strings.ToLower(base), ".md") {
+		return filepath.Join(filepath.Dir(path), base[:len(base)-3]+".plan.md")
+	}
+	return filepath.Join(filepath.Dir(path), base+".plan.md")
 }
 
 // getPlanningSnippet returns critical path summary and suggested backlog order (first 10).
@@ -1467,6 +1532,16 @@ func formatOverviewTextProto(pb *proto.ProjectOverviewData) string {
 	}
 
 	return sb.String()
+}
+
+// GetOverviewText returns project overview as plain text for TUI/CLI display.
+// It aggregates project data (health when Go project, tasks, codebase, etc.) and formats as text.
+func GetOverviewText(ctx context.Context, projectRoot string) (string, error) {
+	pb, err := aggregateProjectDataProto(ctx, projectRoot, false)
+	if err != nil {
+		return "", err
+	}
+	return formatOverviewTextProto(pb), nil
 }
 
 // formatOverviewMarkdownProto formats overview as markdown from proto.

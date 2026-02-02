@@ -146,6 +146,10 @@ To test the 3270 TUI:
    x3270 localhost:3270
    ```
 
+## Related projects
+
+- **[3270BBS](https://github.com/moshix/3270BBS)** — Full BBS for IBM 3270 terminals (real and emulated). Same codebase runs **Forum3270**. Built with [go3270](https://github.com/racingmars/go3270). Clone: `https://github.com/moshix/3270BBS.git`
+
 ## References
 
 - [go3270 Library](https://github.com/racingmars/go3270) - Core 3270 server library

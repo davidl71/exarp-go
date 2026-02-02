@@ -15,10 +15,10 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
-# Expected counts (from codebase)
-EXPECTED_TOOLS=24
-EXPECTED_PROMPTS=15
-EXPECTED_RESOURCES=6
+# Expected counts (from codebase; tools = 30 base or 31 with Apple FM on darwin/arm64/cgo)
+EXPECTED_TOOLS=30
+EXPECTED_PROMPTS=35
+EXPECTED_RESOURCES=23
 
 # Colors
 RED='\033[0;31m'
