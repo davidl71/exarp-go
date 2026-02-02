@@ -20,11 +20,12 @@ Apply this skill when the workspace uses the exarp-go MCP server and you need to
 | Task list/update/create/show/delete | Prefer `task_workflow` MCP tool when exarp-go MCP is available; fallback: `exarp-go task` CLI (see task-workflow skill). |
 | Project overview, scorecard, or briefing | `report` with `action=overview`, `action=scorecard`, or `action=briefing`. |
 | Docs health, CI, or repo status | `health` with appropriate `action` (e.g. docs, git, cicd). |
+| **Broken references / link check in docs** | `lint` with `path` set to `docs` (or a `.md` file) and `linter=markdownlint` or `auto`. gomarklint link check is enabled in `.gomarklint.json`. See **lint-docs** skill. |
 | Session context at conversation start | `session` with `action=prime`, `include_hints=true`, `include_tasks=true`. |
 | Test structure or runs | `testing` with `action=validate`, `action=run`, or `action=coverage`. |
 | Tool-specific help | `tool_catalog` with `action=help` and `tool_name`, or stdio://tools resources. |
 | **Bulk remove one-off/performance tasks** | Use **task-cleanup** skill (batch delete via `task_workflow` with `task_ids`). See `.cursor/skills/task-cleanup/SKILL.md`. |
-| **Cursor: which skills to use** | Read resource **stdio://cursor/skills** or **.cursor/skills/README.md** for task-workflow, use-exarp-tools, report-scorecard, task-cleanup. |
+| **Cursor: which skills to use** | Read resource **stdio://cursor/skills** or **.cursor/skills/README.md** for task-workflow, use-exarp-tools, report-scorecard, task-cleanup, lint-docs. |
 
 ## General Rules
 

@@ -159,6 +159,23 @@ func TestValidatePlanningLink(t *testing.T) {
 	}
 }
 
+// TestValidatePlanningLinkAbsolutePathOutsideRoot ensures absolute paths outside project root are rejected (T-285).
+func TestValidatePlanningLinkAbsolutePathOutsideRoot(t *testing.T) {
+	tmpDir := t.TempDir()
+	projectRoot := filepath.Join(tmpDir, "project")
+	os.MkdirAll(projectRoot, 0755)
+	// Create a real .md file outside project root so existence check would pass without path validation
+	otherDir := filepath.Join(tmpDir, "other")
+	os.MkdirAll(otherDir, 0755)
+	outsideMD := filepath.Join(otherDir, "plan.md")
+	os.WriteFile(outsideMD, []byte("# Plan"), 0644)
+
+	err := ValidatePlanningLink(projectRoot, outsideMD)
+	if err == nil {
+		t.Error("ValidatePlanningLink(absolute path outside root) expected error, got nil")
+	}
+}
+
 func TestValidateTaskReference(t *testing.T) {
 	testTasks := []models.Todo2Task{
 		{ID: "T-1234567890", Content: "Test Task 1"},

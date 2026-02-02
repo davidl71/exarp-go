@@ -286,7 +286,7 @@ Tools with no native implementation (intentional):
 
 ### ⏳ Remaining Work
 1. **mcp-go-core CLI migration** (T-1768327631413) - Migrate exarp-go CLI to use mcp-go-core CLI utilities (ParseArgs, DetectMode, IsTTYFile).
-2. **devwisdom-go → mcp-go-core** (T-1768325426665) - Identify code that can be migrated from devwisdom-go to mcp-go-core.
+2. **devwisdom-go → mcp-go-core** (no Todo2 task) - Identify code that can be migrated from devwisdom-go to mcp-go-core.
 3. **Protobuf / config** - T1.5.5 docs done; optional: T1.5.4 schema sync validation, benchmarks (T-1768317407961), build tooling (T-1768316817909).
 4. **mlx** - Python bridge only (intentional; no Go bindings).
 
@@ -306,7 +306,7 @@ Tools with no native implementation (intentional):
 
 ### High Priority
 1. **mcp-go-core CLI** (T-1768327631413) - Migrate CLI to use mcp-go-core ParseArgs, DetectMode, IsTTYFile.
-2. **devwisdom-go → mcp-go-core** (T-1768325426665) - Identify migratable code.
+2. **devwisdom-go → mcp-go-core** (no Todo2 task) - Identify migratable code.
 
 ### Medium Priority
 3. **Migration status docs** - Keep this doc and `MCP_GO_CORE_MIGRATION_STATUS.md` in sync (see T-241).

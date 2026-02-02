@@ -2,8 +2,11 @@ package security
 
 import (
 	"context"
+	"errors"
 	"testing"
 	"time"
+
+	"github.com/davidl71/exarp-go/internal/config"
 )
 
 func TestRateLimiter(t *testing.T) {
@@ -134,4 +137,41 @@ func TestCheckRateLimit(t *testing.T) {
 	}
 
 	rl.Stop()
+}
+
+// TestRequestLimitEnforcement verifies that CheckRateLimit enforces the limit and returns
+// RateLimitError when the request limit is exceeded (T-288).
+func TestRequestLimitEnforcement(t *testing.T) {
+	cfg := config.GetDefaults()
+	cfg.Security.RateLimit.Enabled = true
+	cfg.Security.RateLimit.RequestsPerWindow = 2
+	cfg.Security.RateLimit.WindowDuration = 1 * time.Minute
+	cfg.Security.RateLimit.BurstSize = 2
+	config.SetGlobalConfig(cfg)
+	// Reset default rate limiter so it picks up our config (test is the first to use it)
+	// GetDefaultRateLimiter() uses sync.Once; we set config before any CheckRateLimit call
+	// so the default limiter is created with our test config.
+
+	clientID := "enforce-test-client"
+
+	// First two requests should be allowed
+	for i := 0; i < 2; i++ {
+		err := CheckRateLimit(clientID)
+		if err != nil {
+			t.Errorf("Request %d should be allowed, got error: %v", i+1, err)
+		}
+	}
+
+	// Third request should be denied (enforcement)
+	err := CheckRateLimit(clientID)
+	if err == nil {
+		t.Error("Third request should be denied (rate limit enforced), got nil error")
+	}
+	var rateErr *RateLimitError
+	if err != nil && !errors.As(err, &rateErr) {
+		t.Errorf("Expected *RateLimitError, got %T: %v", err, err)
+	}
+	if rateErr != nil && rateErr.ClientID != clientID {
+		t.Errorf("RateLimitError.ClientID = %s, want %s", rateErr.ClientID, clientID)
+	}
 }

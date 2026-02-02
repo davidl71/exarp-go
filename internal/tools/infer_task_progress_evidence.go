@@ -65,7 +65,7 @@ func GatherEvidence(projectRoot string, scanDepth int, extensions []string) (*Co
 	}
 
 	evidence := &CodebaseEvidence{
-		Paths:   make([]string, 0),
+		Paths:    make([]string, 0),
 		Snippets: make(map[string]string),
 	}
 

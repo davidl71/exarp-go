@@ -49,6 +49,13 @@ func TestValidatePath(t *testing.T) {
 			description: "Should reject absolute path outside root",
 		},
 		{
+			name:        "absolute path outside root (portable)",
+			path:        filepath.Join(tmpDir, "other"),
+			projectRoot: projectRoot,
+			wantErr:     true,
+			description: "Should reject absolute path outside root (sibling dir, OS-portable)",
+		},
+		{
 			name:        "path with .. in middle",
 			path:        "subdir/../..",
 			projectRoot: projectRoot,

@@ -1,4 +1,13 @@
+---
+name: ""
+overview: ""
+todos: []
+isProject: false
+---
+
 # Apple Foundation Models - Iterative Build & Test Plan
+
+**Referenced by:** [apple-fm-runner](.cursor/agents/apple-fm-runner.md)
 
 ## Objective
 
@@ -22,6 +31,7 @@ Set up iterative build and test workflow for Apple Foundation Models integration
 - ✅ No changes needed
 
 **Files Created:**
+
 - ✅ `internal/tools/apple_foundation_registry.go` - Conditional registration
 - ✅ `internal/tools/apple_foundation_registry_nocgo.go` - No-op for other platforms
 
@@ -45,6 +55,7 @@ Set up iterative build and test workflow for Apple Foundation Models integration
 - ✅ Handler tests in `apple_foundation_test.go` with build tags
 
 **Test Results:**
+
 - ✅ `TestGetTemperature` - PASS (4/4 cases)
 - ✅ `TestGetMaxTokens` - PASS (4/4 cases, fixed integer handling)
 - ✅ `TestHandleAppleFoundationModels_ArgumentParsing` - PASS (7 test cases)
@@ -69,6 +80,7 @@ Set up iterative build and test workflow for Apple Foundation Models integration
 **Build Tag**: Use `//go:build darwin && arm64 && cgo` to skip on unsupported platforms
 
 **Test Structure:**
+
 - ✅ 9 test cases defined
 - ✅ Platform-specific skip conditions
 - ✅ Ready for Swift bridge integration
@@ -86,6 +98,7 @@ Set up iterative build and test workflow for Apple Foundation Models integration
 - ✅ `build-swift-bridge`: Helper to build Swift bridge in go-foundationmodels package
 
 **Verification:**
+
 - ✅ All targets functional
 - ✅ `make test-apple-fm-unit` - PASS
 - ✅ `make build-apple-fm` - Ready for Swift bridge
@@ -101,6 +114,7 @@ Set up iterative build and test workflow for Apple Foundation Models integration
 - ✅ Build detection working correctly
 
 **Verification:**
+
 - ✅ `CGO_ENABLED=0 go build ./cmd/server` - SUCCESS
 - ✅ Code compiles on all platforms
 - ✅ Build tags working correctly
@@ -210,6 +224,7 @@ This ensures:
 - ✅ Iterative workflow tested and verified
 
 **Next Steps:**
+
 1. Build Swift bridge: `make build-swift-bridge` (when ready)
 2. Run integration tests: `make test-apple-fm-integration` (after Swift bridge)
 3. Test on device: Verify actual Foundation Models API calls
@@ -218,4 +233,3 @@ This ensures:
 
 **Last Updated**: 2026-01-07  
 **Status**: ✅ All Implementation Tasks Complete
-

@@ -86,9 +86,9 @@ func GetToolCatalog() map[string]ToolCatalogEntry {
 		// Code Quality
 		"lint": {
 			Tool:             "lint",
-			Hint:             "Linting tool. action=run|analyze. Run linter or analyze problems.",
+			Hint:             "Linting tool. action=run|analyze. Run linter or analyze problems. For markdown (path=docs or .md), includes broken link/reference check via gomarklint.",
 			Category:         "Code Quality",
-			Description:      "Runs linters and analyzes code quality issues",
+			Description:      "Runs linters and analyzes code quality issues; markdown lint includes broken reference/link check (gomarklint)",
 			RecommendedModel: "claude-haiku",
 		},
 		"testing": {

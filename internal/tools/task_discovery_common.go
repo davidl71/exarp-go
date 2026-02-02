@@ -2,6 +2,7 @@ package tools
 
 import (
 	"fmt"
+	"os"
 	"regexp"
 	"strings"
 )
@@ -129,7 +130,9 @@ func createTasksFromDiscoveries(projectRoot string, discoveries []map[string]int
 	}
 
 	if len(createdTasks) > 0 {
-		_ = SaveTodo2Tasks(projectRoot, existingTasks)
+		if err := SaveTodo2Tasks(projectRoot, existingTasks); err != nil {
+			fmt.Fprintf(os.Stderr, "Warning: failed to save tasks after discovery: %v\n", err)
+		}
 	}
 
 	return createdTasks

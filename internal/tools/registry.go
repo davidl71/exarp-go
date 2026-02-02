@@ -669,7 +669,7 @@ func registerBatch2Tools(server framework.MCPServer) error {
 			Properties: map[string]interface{}{
 				"action": map[string]interface{}{
 					"type":    "string",
-					"enum":    []string{"sync", "approve", "clarify", "clarity", "cleanup", "create", "delete", "fix_dates", "fix_empty_descriptions", "fix_invalid_ids", "link_planning", "request_approval", "sync_approvals", "apply_approval_result", "sanity_check", "sync_from_plan", "sync_plan_status"},
+					"enum":    []string{"sync", "approve", "clarify", "clarity", "cleanup", "create", "delete", "fix_dates", "fix_empty_descriptions", "fix_invalid_ids", "link_planning", "request_approval", "sync_approvals", "apply_approval_result", "sanity_check", "sync_from_plan", "sync_plan_status", "update"},
 					"default": "sync",
 				},
 				"dry_run": map[string]interface{}{
@@ -771,6 +771,10 @@ func registerBatch2Tools(server framework.MCPServer) error {
 				"tags": map[string]interface{}{
 					"type":        []interface{}{"array", "string"},
 					"description": "Task tags (array of strings or comma-separated string)",
+				},
+				"remove_tags": map[string]interface{}{
+					"type":        []interface{}{"array", "string"},
+					"description": "Tags to remove from task(s). For action=update: array or comma-separated string.",
 				},
 				"dependencies": map[string]interface{}{
 					"type":        []interface{}{"array", "string"},
@@ -1046,7 +1050,7 @@ func registerBatch3Tools(server framework.MCPServer) error {
 	// T-40: lint
 	if err := server.RegisterTool(
 		"lint",
-		"[HINT: Linting tool. action=run|analyze. Run linter or analyze problems.]",
+		"[HINT: Linting tool. action=run|analyze. Run linter or analyze problems. For markdown/docs, includes broken link check via gomarklint (enableLinkCheck in .gomarklint.json).]",
 		framework.ToolSchema{
 			Type: "object",
 			Properties: map[string]interface{}{

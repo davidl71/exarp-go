@@ -118,9 +118,28 @@ func calculateSecurityScore(scorecard *GoScorecardResult) float64 {
 }
 
 func calculateDocumentationScore(scorecard *GoScorecardResult) float64 {
-	// Documentation scoring would need additional metrics
-	// For now, return a default
-	return 50.0
+	score := 0.0
+	checks := 0
+	if scorecard.Health.ReadmeExists {
+		score += 40
+		checks++
+	}
+	if scorecard.Health.DocsDirExists {
+		score += 30
+		checks++
+	}
+	if scorecard.Health.DocsFileCount > 0 {
+		score += 15
+		checks++
+	}
+	if scorecard.Health.CursorDocsExist {
+		score += 15
+		checks++
+	}
+	if checks > 0 {
+		return score
+	}
+	return 0
 }
 
 func calculateCompletionScore(scorecard *GoScorecardResult) float64 {

@@ -1,0 +1,23 @@
+# Plan Execution and Wave Parallelization
+
+When executing plan tasks, parallelizing waves, or running subagents for the exarp-go plan:
+
+## Plan (source of truth)
+
+- **Main plan:** [.cursor/plans/exarp-go.plan.md](.cursor/plans/exarp-go.plan.md) — backlog, milestones, waves, scope. Use this for task descriptions, waves, and acceptance criteria.
+- **Prioritized sprint (12 tasks):** [~/.cursor/plans/prioritized_sprint_execution_ece918b5.plan.md](/Users/davidl/.cursor/plans/prioritized_sprint_execution_ece918b5.plan.md) — focused Plan Sync, Approval, Config, quick wins; Waves 1–4.
+- **Parallel execution instructions:** [.cursor/plans/parallel-execution-subagents.plan.md](.cursor/plans/parallel-execution-subagents.plan.md) — how to run Wave 0, Wave 1, Wave 2 with subagents (one subagent per task per wave; waves run sequentially).
+
+## Agents that reference plans
+
+| Agent | Plans referenced |
+|-------|------------------|
+| **wave-task-runner** | exarp-go.plan.md, parallel-execution-subagents.plan.md |
+| **wave-verifier** | exarp-go.plan.md, parallel-execution-subagents.plan.md |
+| **scorecard-improvement-runner** | improve-documentation.plan.md, improve-completion.plan.md |
+| **tractatus-runner** | tractatus-logical-decomposition.plan.md |
+| **apple-fm-runner** | apple_foundation_models_iterative_build_&_test_057c8960.plan.md |
+
+When launching an agent, ensure it (or the parent) has the plan path and task context from the referenced plan(s).
+
+**Example plan (template):** [.cursor/plans/example.plan.md](.cursor/plans/example.plan.md) — full structure including Agents section; use when creating plans by hand or as a Cursor reference.
