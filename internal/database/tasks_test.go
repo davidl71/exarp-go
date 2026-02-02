@@ -2,6 +2,8 @@ package database
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"strings"
 	"testing"
 
@@ -474,5 +476,73 @@ func TestForeignKeysEnabled(t *testing.T) {
 	}
 	if len(retrieved.Dependencies) != 1 || retrieved.Dependencies[0] != "T-18" {
 		t.Errorf("Expected dependency T-18 to remain after failed update, got %v", retrieved.Dependencies)
+	}
+}
+
+func TestIsVersionMismatchError(t *testing.T) {
+	if IsVersionMismatchError(nil) {
+		t.Error("IsVersionMismatchError(nil) should be false")
+	}
+	if IsVersionMismatchError(errors.New("other error")) {
+		t.Error("IsVersionMismatchError(other) should be false")
+	}
+	if !IsVersionMismatchError(ErrVersionMismatch) {
+		t.Error("IsVersionMismatchError(ErrVersionMismatch) should be true")
+	}
+	if !IsVersionMismatchError(fmt.Errorf("wrap: %w", ErrVersionMismatch)) {
+		t.Error("IsVersionMismatchError(wrapped ErrVersionMismatch) should be true")
+	}
+}
+
+func TestCheckUpdateConflict(t *testing.T) {
+	tmpDir := t.TempDir()
+	err := Init(tmpDir)
+	if err != nil {
+		t.Fatalf("Init() error = %v", err)
+	}
+	defer Close()
+
+	task := &models.Todo2Task{
+		ID:       "T-CONFLICT",
+		Content:  "Task for conflict detection",
+		Status:   "Todo",
+		Priority: "medium",
+	}
+	err = CreateTask(context.Background(), task)
+	if err != nil {
+		t.Fatalf("CreateTask() error = %v", err)
+	}
+
+	// After CreateTask, DB version is 1
+	expectedVer := int64(1)
+
+	// No conflict when version matches
+	hasConflict, currentVer, err := CheckUpdateConflict(context.Background(), "T-CONFLICT", expectedVer)
+	if err != nil {
+		t.Fatalf("CheckUpdateConflict() error = %v", err)
+	}
+	if hasConflict {
+		t.Error("CheckUpdateConflict(matching version) should report no conflict")
+	}
+	if currentVer != expectedVer {
+		t.Errorf("currentVersion = %d, want %d", currentVer, expectedVer)
+	}
+
+	// Conflict when version differs
+	hasConflict, currentVer, err = CheckUpdateConflict(context.Background(), "T-CONFLICT", expectedVer-1)
+	if err != nil {
+		t.Fatalf("CheckUpdateConflict() error = %v", err)
+	}
+	if !hasConflict {
+		t.Error("CheckUpdateConflict(stale version) should report conflict")
+	}
+	if currentVer != expectedVer {
+		t.Errorf("currentVersion = %d, want %d", currentVer, expectedVer)
+	}
+
+	// Not found
+	_, _, err = CheckUpdateConflict(context.Background(), "T-NOTFOUND", 0)
+	if err == nil {
+		t.Error("CheckUpdateConflict(nonexistent task) should error")
 	}
 }
