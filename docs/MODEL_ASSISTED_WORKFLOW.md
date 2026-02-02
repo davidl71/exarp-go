@@ -272,33 +272,34 @@ func AnalyzeTask(task Task) (complexity TaskComplexity, canAutoExecute bool, nee
 
 #### 2. Model Router
 
-**Purpose:** Select the best model for a given task.
+**Purpose:** Select the best model for a given task and run generation.
 
-**Selection Logic:**
+**Implementation:** `internal/tools/model_router.go`
+
 ```go
-type ModelType string
-
-const (
-    ModelMLXCodeLlama ModelType = "mlx-codellama"  // Code tasks
-    ModelMLXPhi35     ModelType = "mlx-phi35"       // General reasoning
-    ModelOllamaLlama  ModelType = "ollama-llama"    // General tasks
-    ModelOllamaCode   ModelType = "ollama-codellama" // Code tasks
-)
-
-func SelectModel(taskType TaskType, requirements ModelRequirements) ModelType {
-    // Select based on:
-    // - Task type (code vs. general)
-    // - Hardware availability (Apple Silicon for MLX)
-    // - Model capabilities
-    // - Performance requirements
+type ModelRouter interface {
+    SelectModel(taskType string, requirements ModelRequirements) ModelType
+    Generate(ctx context.Context, model ModelType, prompt string, maxTokens int, temperature float32) (string, error)
 }
+
+// ModelType: fm (FM chain), ollama-llama, ollama-codellama, mlx
+// DefaultModelRouter is the shared instance.
 ```
 
+**Selection Logic (DefaultModelRouter):**
+1. If `FMAvailable()` → use FM chain (Apple → Ollama → stub)
+2. If code task and `MLAvailable()` (darwin/arm64) → use MLX
+3. If code task → use Ollama codellama
+4. If general task and `MLAvailable()` and `PreferCost` → use MLX
+5. Otherwise → use Ollama llama3.2
+
 **Selection Rules:**
-- **Code tasks** → CodeLlama (MLX or Ollama)
-- **General reasoning** → Phi-3.5 (MLX) or llama3.2 (Ollama)
-- **Apple Silicon** → Prefer MLX (faster, more efficient)
-- **Other platforms** → Use Ollama
+- **FM chain** (Apple Foundation Models or Ollama fallback) — first choice when available
+- **Code tasks** — MLX on Apple Silicon, else Ollama codellama
+- **General tasks** — Ollama llama3.2, or MLX when PreferCost on darwin/arm64
+- **Availability** — `FMAvailable()`, `MLAvailable()` (darwin/arm64); see `LLMBackendStatus()` for discovery
+
+**Usage:** `infer_task_progress`, `task_analysis` (tags action with `use_llm_semantic`).
 
 #### 3. Task Breakdown Handler
 

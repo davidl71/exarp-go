@@ -1563,101 +1563,65 @@ func enrichTaskTagSuggestionsWithLLM(ctx context.Context, tasks []Todo2Task, ana
 			return "mlx", processed, profile
 		}
 	fallthroughTiny:
-		// Tiny path failed; fall through to Apple FM then Ollama default
+		// Tiny path failed; fall through to ModelRouter (FM → Ollama → MLX)
 	}
 
-	fm := DefaultFMProvider()
-	if fm != nil && fm.Supported() {
-		method = "apple_fm"
-		for start := 0; start < len(items); start += batchSize {
-			select {
-			case <-totalCtx.Done():
-				profile.TotalMs = time.Since(llmStart).Milliseconds()
-				profile.Batches = len(profile.PerBatchMs)
-				return method, processed, profile
-			default:
-			}
-			end := start + batchSize
-			if end > len(items) {
-				end = len(items)
-			}
-			batch := items[start:end]
-			batchStart := time.Now()
-			var prompt string
-			if matchExistingOnly {
-				allowedList := make([]string, 0, len(allowedSet))
-				for tag := range allowedSet {
-					allowedList = append(allowedList, tag)
-				}
-				sort.Strings(allowedList)
-				prompt = buildTaskBatchTagPromptMatchOnly(batch, allowedList)
-			} else {
-				prompt = buildTaskBatchTagPrompt(batch, canonicalTags, projectTags)
-			}
-			batchCtx, batchCancel := context.WithTimeout(totalCtx, batchTimeout(len(batch)))
-			response, err := fm.Generate(batchCtx, prompt, llmTagMaxTokens, 0.2)
-			batchCancel()
-			profile.PerBatchMs = append(profile.PerBatchMs, time.Since(batchStart).Milliseconds())
-			if err != nil {
-				continue
-			}
-			mergeSuggestions(parseTaskTagResponse(response))
+	// Use DefaultModelRouter for tag enrichment: FM chain, then Ollama, then MLX.
+	requirements := ModelRequirements{PreferSpeed: useTinyTagModel}
+	model := DefaultModelRouter.SelectModel("general", requirements)
+	method = modelTypeToMethodString(model)
+
+	for start := 0; start < len(items); start += batchSize {
+		select {
+		case <-totalCtx.Done():
+			profile.TotalMs = time.Since(llmStart).Milliseconds()
+			profile.Batches = len(profile.PerBatchMs)
+			return method, processed, profile
+		default:
 		}
-		profile.TotalMs = time.Since(llmStart).Milliseconds()
-		profile.Batches = len(profile.PerBatchMs)
-		return method, processed, profile
+		end := start + batchSize
+		if end > len(items) {
+			end = len(items)
+		}
+		batch := items[start:end]
+		batchStart := time.Now()
+		var prompt string
+		if matchExistingOnly {
+			allowedList := make([]string, 0, len(allowedSet))
+			for tag := range allowedSet {
+				allowedList = append(allowedList, tag)
+			}
+			sort.Strings(allowedList)
+			prompt = buildTaskBatchTagPromptMatchOnly(batch, allowedList)
+		} else {
+			prompt = buildTaskBatchTagPrompt(batch, canonicalTags, projectTags)
+		}
+		batchCtx, batchCancel := context.WithTimeout(totalCtx, batchTimeout(len(batch)))
+		response, err := DefaultModelRouter.Generate(batchCtx, model, prompt, llmTagMaxTokens, 0.2)
+		batchCancel()
+		profile.PerBatchMs = append(profile.PerBatchMs, time.Since(batchStart).Milliseconds())
+		if err != nil {
+			continue
+		}
+		mergeSuggestions(parseTaskTagResponse(response))
 	}
-	ollama := DefaultOllama()
-	if ollama != nil {
-		method = "ollama"
-		runBatchOllama := func(batch []taskTagLLMBatchItem) {
-			batchStart := time.Now()
-			var prompt string
-			if matchExistingOnly {
-				allowedList := make([]string, 0, len(allowedSet))
-				for tag := range allowedSet {
-					allowedList = append(allowedList, tag)
-				}
-				sort.Strings(allowedList)
-				prompt = buildTaskBatchTagPromptMatchOnly(batch, allowedList)
-			} else {
-				prompt = buildTaskBatchTagPrompt(batch, canonicalTags, projectTags)
-			}
-			batchCtx, batchCancel := context.WithTimeout(totalCtx, batchTimeout(len(batch)))
-			result, err := ollama.Invoke(batchCtx, map[string]interface{}{
-				"action":      "generate",
-				"prompt":      prompt,
-				"max_tokens":  llmTagMaxTokens,
-				"temperature": 0.2,
-			})
-			batchCancel()
-			profile.PerBatchMs = append(profile.PerBatchMs, time.Since(batchStart).Milliseconds())
-			if err != nil || len(result) == 0 {
-				return
-			}
-			response := extractOllamaGenerateResponseText(result[0].Text)
-			mergeSuggestions(parseTaskTagResponse(response))
-		}
-		for start := 0; start < len(items); start += batchSize {
-			select {
-			case <-totalCtx.Done():
-				profile.TotalMs = time.Since(llmStart).Milliseconds()
-				profile.Batches = len(profile.PerBatchMs)
-				return method, processed, profile
-			default:
-			}
-			end := start + batchSize
-			if end > len(items) {
-				end = len(items)
-			}
-			batch := items[start:end]
-			runBatchOllama(batch)
-		}
-		profile.TotalMs = time.Since(llmStart).Milliseconds()
-		profile.Batches = len(profile.PerBatchMs)
-		return method, processed, profile
+	profile.TotalMs = time.Since(llmStart).Milliseconds()
+	profile.Batches = len(profile.PerBatchMs)
+	return method, processed, profile
+}
+
+// modelTypeToMethodString maps ModelType to the profiling method string used in tag enrichment.
+func modelTypeToMethodString(m ModelType) string {
+	switch m {
+	case ModelFM:
+		return "apple_fm"
+	case ModelOllamaLlama, ModelOllamaCode:
+		return "ollama"
+	case ModelMLX:
+		return "mlx"
+	default:
+		return "model_router"
 	}
-	return "none", 0, profile
 }
 
 // enrichTagsWithOllama uses Ollama to infer additional tags, in batches (same smart prompt as Apple FM).
