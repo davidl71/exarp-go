@@ -1,4 +1,4 @@
-.PHONY: help build build-debug build-race build-no-cgo run test test-watch test-coverage test-html clean install fmt lint dev dev-watch dev-test dev-full dev-cycle pre-push bench docs sanity-check sanity-check-cached test-cli test-cli-list test-cli-tool test-cli-test config clean-config sprint-start sprint-end pre-sprint sprint check-tasks update-completed-tasks task-sanity-check go-fmt go-vet golangci-lint-check golangci-lint-fix govulncheck check check-fix check-all build-migrate migrate migrate-dry-run install-tools go-mod-tidy go-mod-verify pre-commit ci validate check-deps test-go test-go-fast test-go-verbose test-go-parallel test-go-tools-short version scorecard scorecard-full scorecard-plans report-plan task-list task-list-todo task-list-in-progress task-list-done task-update proto analyze-critical-path proto-check proto-clean exarp-list exarp-report-scorecard exarp-report-overview exarp-health-server exarp-health-docs exarp-context-budget exarp-test
+.PHONY: help build build-debug build-race build-no-cgo run test test-watch test-coverage test-html clean install fmt lint dev dev-watch dev-test dev-full dev-cycle pre-push bench docs sanity-check sanity-check-cached test-cli test-cli-list test-cli-tool test-cli-test config clean-config sprint-start sprint-end pre-sprint sprint check-tasks update-completed-tasks task-sanity-check go-fmt go-vet golangci-lint-check golangci-lint-fix govulncheck check check-fix check-all build-migrate migrate migrate-dry-run install-tools go-mod-tidy go-mod-verify pre-commit ci validate check-deps test-go test-go-fast test-go-verbose test-go-parallel test-go-tools-short version scorecard scorecard-full scorecard-plans report-plan task-list task-list-todo task-list-in-progress task-list-done task-update proto delete-expired-archive analyze-critical-path proto-check proto-clean exarp-list exarp-report-scorecard exarp-report-overview exarp-health-server exarp-health-docs exarp-context-budget exarp-test
 
 # Project configuration
 PROJECT_NAME := exarp-go
@@ -490,6 +490,13 @@ scorecard-plans: build ## Create improvement plans per scorecard dimension (test
 report-plan: build ## Generate Cursor-style plan (.cursor/plans/<project>.plan.md). Use local binary; avoids bridge path errors.
 	@echo "$(BLUE)Generating plan in .cursor/plans/...$(NC)"
 	@PROJECT_ROOT="$(CURDIR)" $(BINARY_PATH) -tool report -args '{"action":"plan"}'
+
+delete-expired-archive: ## Delete expired docs/archive files per ARCHIVE_RETENTION_POLICY (dry-run by default; DRY_RUN=0 to actually delete)
+	@if [ "$(DRY_RUN)" = "0" ]; then \
+		$(GO) run ./scripts/delete_expired_archive.go -dry-run=false -project-root=. ; \
+	else \
+		$(GO) run ./scripts/delete_expired_archive.go -dry-run=true -project-root=. ; \
+	fi
 
 analyze-critical-path: ## Run critical path analysis (Todo2 dependency DAG, longest chain)
 	@$(GO) run ./cmd/analyze_critical_path
