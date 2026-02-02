@@ -224,6 +224,63 @@ func SyncTodo2Tasks(projectRoot string) error {
 	return nil
 }
 
+// GetTaskByID returns a task by ID from database (preferred) or JSON file.
+// Caller must not mutate the task if storage is shared; for updates use UpdateTaskStatus or database.UpdateTask.
+func GetTaskByID(ctx context.Context, projectRoot string, id string) (*Todo2Task, error) {
+	if id == "" {
+		return nil, fmt.Errorf("task id is required")
+	}
+	if db, err := database.GetDB(); err == nil && db != nil {
+		task, err := database.GetTask(ctx, id)
+		if err == nil && task != nil {
+			return task, nil
+		}
+	}
+	tasks, err := LoadTodo2Tasks(projectRoot)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load tasks: %w", err)
+	}
+	for i := range tasks {
+		if tasks[i].ID == id {
+			return &tasks[i], nil
+		}
+	}
+	return nil, fmt.Errorf("task %s not found", id)
+}
+
+// UpdateTaskStatus updates a single task's status. Uses database when available, else JSON file.
+func UpdateTaskStatus(ctx context.Context, projectRoot string, taskID string, newStatus string) error {
+	if taskID == "" || newStatus == "" {
+		return fmt.Errorf("task_id and new_status are required")
+	}
+	newStatus = normalizeStatus(newStatus)
+	if db, err := database.GetDB(); err == nil && db != nil {
+		task, err := database.GetTask(ctx, taskID)
+		if err != nil {
+			return fmt.Errorf("get task: %w", err)
+		}
+		task.Status = newStatus
+		if err := database.UpdateTask(ctx, task); err != nil {
+			return fmt.Errorf("update task: %w", err)
+		}
+		if syncErr := SyncTodo2Tasks(projectRoot); syncErr != nil {
+			return fmt.Errorf("sync after update: %w", syncErr)
+		}
+		return nil
+	}
+	tasks, err := LoadTodo2Tasks(projectRoot)
+	if err != nil {
+		return fmt.Errorf("failed to load tasks: %w", err)
+	}
+	for i := range tasks {
+		if tasks[i].ID == taskID {
+			tasks[i].Status = newStatus
+			return SaveTodo2Tasks(projectRoot, tasks)
+		}
+	}
+	return fmt.Errorf("task %s not found", taskID)
+}
+
 // normalizeStatus normalizes status to Title Case.
 // This is a wrapper around NormalizeStatusToTitleCase for backward compatibility.
 func normalizeStatus(status string) string {

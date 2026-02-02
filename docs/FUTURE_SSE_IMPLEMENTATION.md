@@ -148,6 +148,33 @@ Load balancing requires HTTP endpoints to distribute traffic across multiple ser
 
 ---
 
+### T-147: Support multiple concurrent connections
+
+**Priority:** Medium  
+**Status:** Deferred  
+**Tags:** #comparison, #concurrency, #discovered, #markdown, #mcp-cpp
+
+**Description:**
+Support multiple concurrent connections to the MCP server.
+
+**Why SSE/HTTP Dependent:**
+With STDIO transport (Cursor IDE), there is a single client connection per process. Multiple concurrent connections only apply when the server is exposed over HTTP/SSE and multiple clients (browsers, agents, or other tools) connect to the same server instance.
+
+**Required Work (when SSE is implemented):**
+- Connection lifecycle per client
+- Per-connection request/response correlation
+- Connection limits and backpressure
+- Graceful handling of disconnects
+
+**Discovered From:**
+- `docs/MCP_FRAMEWORKS_COMPARISON.md`
+
+**Prerequisites:**
+- T-1768253992311: Complete SSE Transport Implementation
+- T-143: Set up HTTP server with SSE endpoint
+
+---
+
 ## Technical Design (Preliminary)
 
 ### Transport Interface
@@ -316,4 +343,4 @@ data: {"jsonrpc":"2.0","result":{"tools":[...]},"id":1}
 
 ---
 
-**Status:** This document serves as a reference for future SSE implementation. Tasks T-1768253992311, T-143, and T-231 have been removed from the active backlog and documented here for future reference.
+**Status:** This document serves as a reference for future SSE implementation. Tasks T-1768253992311, T-143, T-231, and T-147 have been removed from the active backlog and documented here for future reference.

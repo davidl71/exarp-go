@@ -142,7 +142,10 @@ func handleTaskWorkflowApplyApprovalResult(ctx context.Context, params map[strin
 				} else {
 					tasks[i].LongDescription += "\n\nRejection feedback: " + feedback
 				}
-				_ = SaveTodo2Tasks(projectRoot, tasks)
+				if err := SaveTodo2Tasks(projectRoot, tasks); err != nil {
+					fmt.Fprintf(os.Stderr, "Warning: failed to save rejection feedback: %v\n", err)
+					return nil, fmt.Errorf("failed to save rejection feedback: %w", err)
+				}
 				break
 			}
 		}
@@ -159,31 +162,13 @@ func handleTaskWorkflowRequestApproval(ctx context.Context, params map[string]in
 	}
 	formID, _ := params["form_id"].(string)
 
-	var task *models.Todo2Task
-	if db, err := database.GetDB(); err == nil && db != nil {
-		t, err := database.GetTask(ctx, taskID)
-		if err == nil && t != nil {
-			task = t
-		}
+	projectRoot, err := FindProjectRoot()
+	if err != nil {
+		return nil, fmt.Errorf("request_approval: %w", err)
 	}
-	if task == nil {
-		projectRoot, err := FindProjectRoot()
-		if err != nil {
-			return nil, fmt.Errorf("request_approval: %w", err)
-		}
-		tasks, err := LoadTodo2Tasks(projectRoot)
-		if err != nil {
-			return nil, fmt.Errorf("request_approval: failed to load tasks: %w", err)
-		}
-		for i := range tasks {
-			if tasks[i].ID == taskID {
-				task = &tasks[i]
-				break
-			}
-		}
-	}
-	if task == nil {
-		return nil, fmt.Errorf("request_approval: task %s not found", taskID)
+	task, err := GetTaskByID(ctx, projectRoot, taskID)
+	if err != nil || task == nil {
+		return nil, fmt.Errorf("request_approval: task %s not found: %w", taskID, err)
 	}
 
 	req := BuildApprovalRequestFromTask(task, formID)
@@ -364,8 +349,12 @@ func resolveTaskClarification(ctx context.Context, params map[string]interface{}
 		}
 
 		// Sync DB to JSON (shared workflow)
-		if projectRoot, syncErr := FindProjectRoot(); syncErr == nil {
-			_ = SyncTodo2Tasks(projectRoot)
+		var syncErr error
+		if projectRoot, findErr := FindProjectRoot(); findErr == nil {
+			syncErr = SyncTodo2Tasks(projectRoot)
+			if syncErr != nil {
+				fmt.Fprintf(os.Stderr, "Warning: sync DB to JSON after apply_approval_result failed: %v\n", syncErr)
+			}
 		}
 
 		result := map[string]interface{}{
@@ -373,6 +362,9 @@ func resolveTaskClarification(ctx context.Context, params map[string]interface{}
 			"method":  "database",
 			"task_id": taskID,
 			"message": "Clarification resolved",
+		}
+		if syncErr != nil {
+			result["sync_error"] = syncErr.Error()
 		}
 
 		return response.FormatResult(result, "")
@@ -508,9 +500,13 @@ func resolveBatchClarifications(ctx context.Context, params map[string]interface
 		}
 
 		// Sync DB to JSON (shared workflow)
+		var syncErr error
 		if resolved > 0 {
-			if projectRoot, syncErr := FindProjectRoot(); syncErr == nil {
-				_ = SyncTodo2Tasks(projectRoot)
+			if projectRoot, findErr := FindProjectRoot(); findErr == nil {
+				syncErr = SyncTodo2Tasks(projectRoot)
+				if syncErr != nil {
+					fmt.Fprintf(os.Stderr, "Warning: sync DB to JSON after apply_approval_result (batch) failed: %v\n", syncErr)
+				}
 			}
 		}
 
@@ -520,6 +516,9 @@ func resolveBatchClarifications(ctx context.Context, params map[string]interface
 			"resolved": resolved,
 			"total":    len(decisions),
 			"message":  fmt.Sprintf("Resolved %d clarifications", resolved),
+		}
+		if syncErr != nil {
+			result["sync_error"] = syncErr.Error()
 		}
 
 		return response.FormatResult(result, "")
@@ -627,29 +626,7 @@ func handleTaskWorkflowDelete(ctx context.Context, params map[string]interface{}
 		}
 	}
 
-	var ids []string
-	if taskIDsRaw, ok := params["task_ids"]; ok && taskIDsRaw != nil {
-		switch v := taskIDsRaw.(type) {
-		case string:
-			if v != "" {
-				ids = strings.Split(strings.TrimSpace(v), ",")
-				for i := range ids {
-					ids[i] = strings.TrimSpace(ids[i])
-				}
-			}
-		case []interface{}:
-			for _, x := range v {
-				if s, ok := x.(string); ok && s != "" {
-					ids = append(ids, strings.TrimSpace(s))
-				}
-			}
-		}
-	}
-	if len(ids) == 0 {
-		if taskID, _ := params["task_id"].(string); taskID != "" {
-			ids = []string{strings.TrimSpace(taskID)}
-		}
-	}
+	ids := ParseTaskIDsFromParams(params)
 	if len(ids) == 0 {
 		return nil, fmt.Errorf("task_id or task_ids is required for delete action")
 	}

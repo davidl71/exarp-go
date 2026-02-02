@@ -92,6 +92,22 @@ func TestValidatePath(t *testing.T) {
 	}
 }
 
+// TestValidationValidPath ensures validation accepts a valid path within project root (T-1768320773738).
+func TestValidationValidPath(t *testing.T) {
+	tmpDir := t.TempDir()
+	projectRoot := filepath.Join(tmpDir, "project")
+	os.MkdirAll(projectRoot, 0755)
+	os.MkdirAll(filepath.Join(projectRoot, "subdir"), 0755)
+
+	absPath, err := ValidatePath("subdir", projectRoot)
+	if err != nil {
+		t.Errorf("ValidatePath(valid path) error = %v", err)
+	}
+	if absPath == "" {
+		t.Error("ValidatePath(valid path) returned empty path")
+	}
+}
+
 func TestValidatePathExists(t *testing.T) {
 	tmpDir := t.TempDir()
 	projectRoot := filepath.Join(tmpDir, "project")

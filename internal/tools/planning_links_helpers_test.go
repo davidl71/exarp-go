@@ -103,6 +103,31 @@ func TestGetPlanningLinkMetadataFromIndividualFields(t *testing.T) {
 	}
 }
 
+// TestPlanningLink tests planning document linking: set link metadata on a task and retrieve it (T-1768320725711).
+func TestPlanningLink(t *testing.T) {
+	task := &models.Todo2Task{
+		ID:       "T-plan-link",
+		Content:  "Task linked to plan",
+		Metadata: make(map[string]interface{}),
+	}
+	linkMeta := &PlanningLinkMetadata{
+		PlanningDoc: ".cursor/plans/test.plan.md",
+		EpicID:      "T-epic-1",
+		DocType:     "planning",
+	}
+	SetPlanningLinkMetadata(task, linkMeta)
+	retrieved := GetPlanningLinkMetadata(task)
+	if retrieved == nil {
+		t.Fatal("GetPlanningLinkMetadata returned nil after SetPlanningLinkMetadata")
+	}
+	if retrieved.PlanningDoc != linkMeta.PlanningDoc {
+		t.Errorf("PlanningDoc = %q, want %q", retrieved.PlanningDoc, linkMeta.PlanningDoc)
+	}
+	if retrieved.EpicID != linkMeta.EpicID {
+		t.Errorf("EpicID = %q, want %q", retrieved.EpicID, linkMeta.EpicID)
+	}
+}
+
 func TestValidatePlanningLink(t *testing.T) {
 	// Get project root (assuming we're in the project directory)
 	projectRoot, err := os.Getwd()
