@@ -79,6 +79,18 @@ cleaned, err := database.CleanupExpiredLocks(ctx)
 
 ---
 
+### **Conflict detection** (optimistic locking)
+
+When `UpdateTask` fails due to a concurrent update, use:
+
+- **`database.IsVersionMismatchError(err)`** — reports whether an error is a version mismatch (another agent modified the task).
+- **`database.CheckUpdateConflict(ctx, taskID, expectedVersion)`** — returns whether the task's current version differs from expected (e.g. to check before update or after failure). Returns `(hasConflict, currentVersion, err)`.
+- **`database.ErrVersionMismatch`** — sentinel error; wrap with `%w` when returning version mismatch.
+
+**Flow:** Reload task (e.g. `GetTask`), then retry update with fresh version.
+
+---
+
 ### **Layer 3: Lease Renewal** (Prevention)
 
 **How it works:**

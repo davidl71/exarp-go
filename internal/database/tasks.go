@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -11,6 +12,9 @@ import (
 	"github.com/davidl71/exarp-go/internal/logging"
 	"github.com/davidl71/exarp-go/internal/models"
 )
+
+// ErrVersionMismatch is returned when an update fails because the task was modified by another agent.
+var ErrVersionMismatch = errors.New("task version mismatch")
 
 // Todo2Task is an alias for models.Todo2Task (for convenience)
 type Todo2Task = models.Todo2Task
@@ -508,7 +512,7 @@ func UpdateTask(ctx context.Context, task *Todo2Task) error {
 			return fmt.Errorf("failed to get rows affected: %w", err)
 		}
 		if rowsAffected == 0 {
-			return fmt.Errorf("task %s not found or was modified by another agent (version mismatch)", task.ID)
+			return fmt.Errorf("task %s not found or was modified by another agent: %w", task.ID, ErrVersionMismatch)
 		}
 
 		// Delete existing tags
@@ -563,6 +567,32 @@ func UpdateTask(ctx context.Context, task *Todo2Task) error {
 
 		return nil
 	})
+}
+
+// IsVersionMismatchError reports whether err is a task version mismatch (concurrent update).
+func IsVersionMismatchError(err error) bool {
+	return errors.Is(err, ErrVersionMismatch)
+}
+
+// CheckUpdateConflict returns whether the task's current version differs from expectedVersion.
+// Used to detect conflicts before or after an update attempt. If the task is not found, err is non-nil.
+func CheckUpdateConflict(ctx context.Context, taskID string, expectedVersion int64) (hasConflict bool, currentVersion int64, err error) {
+	ctx = ensureContext(ctx)
+	queryCtx, cancel := withQueryTimeout(ctx)
+	defer cancel()
+
+	db, err := GetDB()
+	if err != nil {
+		return false, 0, fmt.Errorf("failed to get database: %w", err)
+	}
+	err = db.QueryRowContext(queryCtx, `SELECT version FROM tasks WHERE id = ?`, taskID).Scan(&currentVersion)
+	if err == sql.ErrNoRows {
+		return false, 0, fmt.Errorf("task %s not found", taskID)
+	}
+	if err != nil {
+		return false, 0, fmt.Errorf("failed to get task version: %w", err)
+	}
+	return currentVersion != expectedVersion, currentVersion, nil
 }
 
 // DeleteTask deletes a task and all related data (tags, dependencies cascade)
