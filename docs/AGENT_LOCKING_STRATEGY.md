@@ -380,10 +380,25 @@ with task_lock(task_id):
 
 ### **Long Term (Phase 3)**
 
-- [ ] Fine-grained file locking (for Git operations)
+- [ ] Fine-grained file locking (for Git operations) — **Design (T-78):** see [Git lock](#git-lock-t-78) below
 - [ ] Agent heartbeat system
 - [ ] Lock timeout monitoring/alerts
 - [ ] Performance metrics (lock contention, wait times)
+
+---
+
+## Git lock (T-78)
+
+**Scope:** Repo-level — one lock for all `git add` / `commit` / `push` in the project. Any process (session sync, hooks, automation) that performs Git writes must acquire this lock first.
+
+**Lock primitive:**
+
+- **Path:** `.todo2/.git-sync.lock` (under project root). Keeps lock next to Todo2 state; one lock file per repo.
+- **Semantics:** Acquire before any Git write (add, commit, push); release when done. Read-only Git (status, log, ls-files) does **not** require the lock.
+- **Timeout:** e.g. 30–60 seconds to acquire; if timeout, return error and do not proceed with Git write. Prevents one stuck process from blocking others forever.
+- **Implementation:** OS file lock (e.g. `flock` on Unix, equivalent on Windows). Helper: `AcquireGitLock(projectRoot)` / `ReleaseGitLock(projectRoot)` or `WithGitLock(projectRoot, fn)`.
+
+**Usage:** Session sync (`handleSessionSync` in `internal/tools/session.go`) and any future Git-write call sites (e.g. hooks that run git) acquire the lock around add/commit/push only.
 
 ---
 

@@ -420,9 +420,9 @@ func handleOllamaPull(ctx context.Context, params map[string]interface{}, host s
 		return nil, fmt.Errorf("model parameter is required for pull action")
 	}
 
-	// Create pull request
+	// Create pull request (Ollama API expects "model", not "name")
 	reqBody := map[string]interface{}{
-		"name": model,
+		"model": model,
 	}
 
 	jsonData, err := json.Marshal(reqBody)
