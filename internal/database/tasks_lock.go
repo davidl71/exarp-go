@@ -322,6 +322,28 @@ func RenewLease(ctx context.Context, taskID string, agentID string, leaseDuratio
 	})
 }
 
+// RunLeaseRenewal starts a background goroutine that renews the task lease every renewInterval
+// until ctx is cancelled. Call this when holding a task longer than leaseDuration (e.g. long-running work).
+// renewInterval should be less than leaseDuration (e.g. renew every 20 min for a 30 min lease).
+// The goroutine stops when ctx.Done(); release the task with ReleaseTask when work is done.
+func RunLeaseRenewal(ctx context.Context, taskID, agentID string, leaseDuration, renewInterval time.Duration) {
+	if renewInterval <= 0 || leaseDuration <= 0 {
+		return
+	}
+	go func() {
+		ticker := time.NewTicker(renewInterval)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				_ = RenewLease(ctx, taskID, agentID, leaseDuration)
+			}
+		}
+	}()
+}
+
 // CleanupExpiredLocks releases locks that have expired (for dead agent cleanup)
 // Returns number of locks cleaned up
 func CleanupExpiredLocks(ctx context.Context) (int, error) {

@@ -87,17 +87,28 @@ cleaned, err := database.CleanupExpiredLocks(ctx)
 - Missing renewals = dead agent
 
 **Usage:**
+
+One-shot renewal:
 ```go
-// Renew lease periodically (e.g., every 10 minutes)
+err := database.RenewLease(ctx, taskID, agentID, 30*time.Minute)
+```
+
+Background renewal (for long-running work; stops when ctx is cancelled):
+```go
+// Renew every 20 min for a 30 min lease; goroutine stops on ctx.Done()
+database.RunLeaseRenewal(ctx, taskID, agentID, 30*time.Minute, 20*time.Minute)
+defer cancel() // when done, cancel to stop renewal
+```
+
+Manual ticker (alternative to RunLeaseRenewal):
+```go
 ticker := time.NewTicker(10 * time.Minute)
 defer ticker.Stop()
-
 for {
     select {
     case <-ticker.C:
         if err := database.RenewLease(ctx, taskID, agentID, 30*time.Minute); err != nil {
             log.Printf("Failed to renew lease: %v", err)
-            // Agent might have lost lock - need to re-claim
         }
     case <-ctx.Done():
         return
