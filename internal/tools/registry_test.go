@@ -17,9 +17,8 @@ func TestRegisterAllTools(t *testing.T) {
 		t.Fatalf("RegisterAllTools() error = %v", err)
 	}
 
-	// Verify all tools are registered (base + text_generate + conditional Apple Foundation Models on macOS)
-	// Base: 29 (including text_generate). +1 when Apple FM tool registered on darwin/arm64/cgo.
-	expectedCount := 29
+	// Verify all tools are registered (base 30 from RegisterAllTools; +1 when Apple FM on darwin/arm64/cgo).
+	expectedCount := 30
 	if server.ToolCount() != expectedCount && server.ToolCount() != expectedCount+1 {
 		t.Errorf("server.ToolCount() = %v, want %d or %d (with conditional Apple Foundation Models)",
 			server.ToolCount(), expectedCount, expectedCount+1)
@@ -52,7 +51,11 @@ func TestRegisterAllTools(t *testing.T) {
 		"infer_session_mode",
 		"ollama",
 		"mlx",
+		"context_budget",
+		"context",
 		"text_generate",
+		"prompt_tracking",
+		"recommend",
 	}
 
 	for _, toolName := range expectedTools {
@@ -86,12 +89,14 @@ func TestRegisterAllTools_RegistrationError(t *testing.T) {
 
 	// Verify batch registration order
 	expectedBatches := [][]string{
-		// Batch 1: 6 simple tools (T-22 through T-27)
+		// Batch 1: 6 simple tools
 		{"analyze_alignment", "generate_config", "health", "setup_hooks", "check_attribution", "add_external_tool_hints"},
-		// Batch 2: 9 medium tools (T-28 through T-35, plus infer_task_progress)
+		// Batch 2: 9 medium tools
 		{"memory", "memory_maint", "report", "security", "task_analysis", "task_discovery", "task_workflow", "infer_task_progress", "testing"},
-		// Batch 3: 10 advanced tools (T-37 through T-44, plus ollama and mlx)
+		// Batch 3: 10 advanced tools
 		{"automation", "tool_catalog", "workflow_mode", "lint", "estimation", "git_tools", "session", "infer_session_mode", "ollama", "mlx"},
+		// Batch 4 + 5: context_budget, context, text_generate, prompt_tracking, recommend
+		{"context_budget", "context", "text_generate", "prompt_tracking", "recommend"},
 	}
 
 	for _, batch := range expectedBatches {

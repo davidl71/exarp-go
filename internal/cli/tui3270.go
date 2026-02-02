@@ -5,11 +5,13 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"os/exec"
 	"os/signal"
 	"path/filepath"
 	"strconv"
 	"strings"
 	"syscall"
+	"time"
 
 	"github.com/davidl71/exarp-go/internal/config"
 	"github.com/davidl71/exarp-go/internal/database"
@@ -20,18 +22,19 @@ import (
 
 // tui3270State holds the state for a 3270 TUI session
 type tui3270State struct {
-	server       framework.MCPServer
-	projectRoot  string
-	projectName  string
-	status       string
-	tasks        []*database.Todo2Task
-	cursor       int
-	listOffset   int    // For scrolling in list view
-	mode         string // "tasks", "taskdetail", "config", "editor"
-	selectedTask *database.Todo2Task
-	devInfo      go3270.DevInfo
-	command      string // Command line input
-	filter       string // Current filter/search term
+	server        framework.MCPServer
+	projectRoot   string
+	projectName   string
+	status        string
+	tasks         []*database.Todo2Task
+	cursor        int
+	listOffset    int    // For scrolling in list view
+	mode          string // "tasks", "taskdetail", "config", "editor"
+	selectedTask  *database.Todo2Task
+	devInfo       go3270.DevInfo
+	command       string   // Command line input
+	filter        string   // Current filter/search term
+	scorecardRecs []string // Last scorecard recommendations (for Run #)
 }
 
 // RunTUI3270 starts a 3270 TUI server
@@ -227,14 +230,16 @@ func (state *tui3270State) mainMenuTransaction(conn net.Conn, devInfo go3270.Dev
 
 	screen := go3270.Screen{
 		{Row: 2, Col: 2, Content: title, Intense: true},
-		{Row: 4, Col: 2, Content: "Select an option:"},
+		{Row: 4, Col: 2, Content: "Select an option (1-4) or type a command below:"},
 		{Row: 6, Col: 4, Content: "1. Task List"},
 		{Row: 7, Col: 4, Content: "2. Configuration"},
-		{Row: 8, Col: 4, Content: "3. Exit"},
-		{Row: 10, Col: 2, Content: "Option:", Write: true, Name: "option"},
+		{Row: 8, Col: 4, Content: "3. Scorecard"},
+		{Row: 9, Col: 4, Content: "4. Exit"},
+		{Row: 11, Col: 2, Content: "Option: "},
+		{Row: 11, Col: 10, Content: "", Write: true, Name: "option"},
 		{Row: 22, Col: 2, Content: "Command ===>", Intense: true},
 		{Row: 22, Col: 15, Write: true, Name: "command", Content: ""},
-		{Row: 23, Col: 2, Content: "PF1=Help  PF3=Exit  Enter=Select"},
+		{Row: 23, Col: 2, Content: "PF1=Help  PF3=Exit  Enter=Select option or run command"},
 	}
 
 	opts := go3270.ScreenOpts{
@@ -250,6 +255,9 @@ func (state *tui3270State) mainMenuTransaction(conn net.Conn, devInfo go3270.Dev
 	if response.AID == go3270.AIDPF3 {
 		return nil, nil, nil // Exit
 	}
+	if response.AID == go3270.AIDPF1 {
+		return state.helpTransaction, state, nil
+	}
 
 	// Check command line first
 	cmd := strings.TrimSpace(response.Values["command"])
@@ -257,15 +265,18 @@ func (state *tui3270State) mainMenuTransaction(conn net.Conn, devInfo go3270.Dev
 		return state.handleCommand(cmd, state.mainMenuTransaction)
 	}
 
-	// Check field value for option
-	option := strings.TrimSpace(response.Values["option"])
+	// Check field value for option (allow "1", " 1 ", or value after "Option:")
+	optionRaw := strings.TrimSpace(response.Values["option"])
+	option := extractMenuOption(optionRaw)
 	switch option {
 	case "1":
 		return state.taskListTransaction, state, nil
 	case "2":
 		return state.configTransaction, state, nil
-	case "3", "":
-		if response.AID == go3270.AIDEnter {
+	case "3":
+		return state.scorecardTransaction, state, nil
+	case "4", "":
+		if response.AID == go3270.AIDEnter && option == "" {
 			return nil, nil, nil // Exit
 		}
 		return state.mainMenuTransaction, state, nil
@@ -273,6 +284,80 @@ func (state *tui3270State) mainMenuTransaction(conn net.Conn, devInfo go3270.Dev
 		// Invalid option, stay on main menu
 		return state.mainMenuTransaction, state, nil
 	}
+}
+
+// extractMenuOption returns "1", "2", "3", "4" from user input, or "" if none.
+func extractMenuOption(s string) string {
+	s = strings.TrimSpace(s)
+	if s == "" {
+		return ""
+	}
+	// Single digit
+	if len(s) == 1 && s >= "1" && s <= "4" {
+		return s
+	}
+	// Last character (e.g. "Option: 1" -> "1")
+	if len(s) > 0 {
+		c := s[len(s)-1:]
+		if c >= "1" && c <= "4" {
+			return c
+		}
+	}
+	// First digit in string
+	for _, r := range s {
+		if r >= '1' && r <= '4' {
+			return string(r)
+		}
+	}
+	return ""
+}
+
+// helpTransaction shows the help screen (PF1)
+func (state *tui3270State) helpTransaction(conn net.Conn, devInfo go3270.DevInfo, data any) (go3270.Tx, any, error) {
+	lines := []string{
+		"EXARP-GO 3270 - HELP",
+		"",
+		"Main menu options:",
+		"  1 = Task List    2 = Configuration    3 = Scorecard    4 = Exit",
+		"",
+		"Commands (type in Command ===> field, then Enter):",
+		"  TASKS or T     - Go to Task List",
+		"  CONFIG         - Go to Configuration",
+		"  SCORECARD or SC - Go to Scorecard",
+		"  MENU or M      - Go to Main Menu",
+		"  FIND <text>    - Filter tasks by text",
+		"  RESET          - Clear filter",
+		"  VIEW [id]      - View task details",
+		"  EDIT [id]      - Edit task",
+		"  TOP / BOTTOM   - Scroll to top/bottom of list",
+		"",
+		"PF keys:",
+		"  PF1 = Help   PF3 = Back/Exit   PF7/PF8 = Scroll (task list)",
+		"",
+		"Press PF3 to return.",
+	}
+	screen := go3270.Screen{
+		{Row: 1, Col: 2, Content: "HELP", Intense: true},
+		{Row: 22, Col: 2, Content: "PF3=Back to previous screen"},
+	}
+	for i, line := range lines {
+		if i >= 20 {
+			break
+		}
+		if len(line) > 78 {
+			line = line[:75] + "..."
+		}
+		screen = append(screen, go3270.Field{Row: 2 + i, Col: 2, Content: line})
+	}
+	screenOpts := go3270.ScreenOpts{Codepage: devInfo.Codepage()}
+	response, err := go3270.ShowScreenOpts(screen, nil, conn, screenOpts)
+	if err != nil {
+		return nil, nil, err
+	}
+	if response.AID == go3270.AIDPF3 {
+		return state.mainMenuTransaction, state, nil
+	}
+	return state.helpTransaction, state, nil
 }
 
 // taskListTransaction shows the task list
@@ -433,6 +518,9 @@ func (state *tui3270State) taskListTransaction(conn net.Conn, devInfo go3270.Dev
 	}
 
 	// Handle attention keys
+	if response.AID == go3270.AIDPF1 {
+		return state.helpTransaction, state, nil
+	}
 	if response.AID == go3270.AIDPF3 {
 		state.command = ""
 		state.filter = ""
@@ -607,7 +695,9 @@ func (state *tui3270State) taskDetailTransaction(conn net.Conn, devInfo go3270.D
 	if err != nil {
 		return nil, nil, err
 	}
-
+	if response.AID == go3270.AIDPF1 {
+		return state.helpTransaction, state, nil
+	}
 	if response.AID == go3270.AIDPF3 || response.AID == go3270.AIDPF12 {
 		return state.taskListTransaction, state, nil
 	}
@@ -624,7 +714,28 @@ func (state *tui3270State) taskDetailTransaction(conn net.Conn, devInfo go3270.D
 func (state *tui3270State) configTransaction(conn net.Conn, devInfo go3270.DevInfo, data any) (go3270.Tx, any, error) {
 	cfg, err := config.LoadConfig(state.projectRoot)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to load config: %w", err)
+		// Show error screen instead of failing the connection; user can PF3 back
+		msg := err.Error()
+		if len(msg) > 72 {
+			msg = msg[:69] + "..."
+		}
+		errScreen := go3270.Screen{
+			{Row: 1, Col: 2, Content: "CONFIGURATION", Intense: true},
+			{Row: 3, Col: 2, Content: "Config could not be loaded (protobuf required)."},
+			{Row: 5, Col: 2, Content: "Run: exarp-go config init"},
+			{Row: 6, Col: 2, Content: "  or: exarp-go config convert yaml protobuf"},
+			{Row: 8, Col: 2, Content: msg},
+			{Row: 22, Col: 2, Content: "PF3=Back to menu"},
+		}
+		screenOpts := go3270.ScreenOpts{Codepage: devInfo.Codepage()}
+		response, showErr := go3270.ShowScreenOpts(errScreen, nil, conn, screenOpts)
+		if showErr != nil {
+			return nil, nil, showErr
+		}
+		if response.AID == go3270.AIDPF1 {
+			return state.helpTransaction, state, nil
+		}
+		return state.mainMenuTransaction, state, nil
 	}
 
 	screen := go3270.Screen{
@@ -656,7 +767,9 @@ func (state *tui3270State) configTransaction(conn net.Conn, devInfo go3270.DevIn
 	if err != nil {
 		return nil, nil, err
 	}
-
+	if response.AID == go3270.AIDPF1 {
+		return state.helpTransaction, state, nil
+	}
 	if response.AID == go3270.AIDPF3 {
 		return state.mainMenuTransaction, state, nil
 	}
@@ -664,6 +777,174 @@ func (state *tui3270State) configTransaction(conn net.Conn, devInfo go3270.DevIn
 	// For now, just go back to main menu
 	// In a full implementation, you'd handle section selection
 	return state.mainMenuTransaction, state, nil
+}
+
+// recommendationToCommand3270 maps scorecard recommendation text to (name, args); prefers Makefile targets; ok false if not runnable.
+func recommendationToCommand3270(rec string) (name string, args []string, ok bool) {
+	rec = strings.TrimSpace(rec)
+	switch {
+	case strings.Contains(rec, "go mod tidy"):
+		return "make", []string{"go-mod-tidy"}, true
+	case strings.Contains(rec, "go fmt"):
+		return "make", []string{"go-fmt"}, true
+	case strings.Contains(rec, "go vet"):
+		return "make", []string{"go-vet"}, true
+	case strings.Contains(rec, "Fix Go build"):
+		return "make", []string{"build"}, true
+	case strings.Contains(rec, "golangci-lint issues"):
+		return "make", []string{"golangci-lint-fix"}, true
+	case strings.Contains(rec, "failing Go tests"), strings.Contains(rec, "go test"):
+		return "make", []string{"test"}, true
+	case strings.Contains(rec, "govulncheck"):
+		return "make", []string{"govulncheck"}, true
+	case strings.Contains(rec, "test coverage"):
+		return "make", []string{"test-coverage"}, true
+	default:
+		return "", nil, false
+	}
+}
+
+// runRecommendation3270 runs a recommendation command in projectRoot and returns output and error.
+func runRecommendation3270(projectRoot, rec string) (output string, err error) {
+	name, args, ok := recommendationToCommand3270(rec)
+	if !ok {
+		return "", fmt.Errorf("no runnable command for this recommendation")
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+	defer cancel()
+	cmd := exec.CommandContext(ctx, name, args...)
+	cmd.Dir = projectRoot
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		return string(out), err
+	}
+	return string(out), nil
+}
+
+// scorecardTransaction shows project scorecard (Go scorecard when Go project + project overview)
+func (state *tui3270State) scorecardTransaction(conn net.Conn, devInfo go3270.DevInfo, data any) (go3270.Tx, any, error) {
+	ctx := context.Background()
+	var combined strings.Builder
+	var recommendations []string
+
+	if tools.IsGoProject() {
+		scorecardOpts := &tools.ScorecardOptions{FastMode: true}
+		scorecard, err := tools.GenerateGoScorecard(ctx, state.projectRoot, scorecardOpts)
+		if err != nil {
+			errScreen := go3270.Screen{
+				{Row: 2, Col: 2, Content: "SCORECARD", Intense: true},
+				{Row: 4, Col: 2, Content: "Error: " + err.Error()},
+				{Row: 22, Col: 2, Content: "PF3=Back"},
+			}
+			screenOpts := go3270.ScreenOpts{Codepage: devInfo.Codepage()}
+			if _, showErr := go3270.ShowScreenOpts(errScreen, nil, conn, screenOpts); showErr != nil {
+				return nil, nil, showErr
+			}
+			return state.mainMenuTransaction, state, nil
+		}
+		recommendations = scorecard.Recommendations
+		combined.WriteString("=== Go Scorecard ===\n\n")
+		combined.WriteString(tools.FormatGoScorecard(scorecard))
+	}
+
+	overviewText, err := tools.GetOverviewText(ctx, state.projectRoot)
+	if err != nil {
+		if combined.Len() > 0 {
+			combined.WriteString("\n\n=== Project Overview ===\n\n(overview failed: ")
+			combined.WriteString(err.Error())
+			combined.WriteString(")")
+		} else {
+			errScreen := go3270.Screen{
+				{Row: 2, Col: 2, Content: "SCORECARD", Intense: true},
+				{Row: 4, Col: 2, Content: "Error: " + err.Error()},
+				{Row: 22, Col: 2, Content: "PF3=Back"},
+			}
+			screenOpts := go3270.ScreenOpts{Codepage: devInfo.Codepage()}
+			if _, showErr := go3270.ShowScreenOpts(errScreen, nil, conn, screenOpts); showErr != nil {
+				return nil, nil, showErr
+			}
+			return state.mainMenuTransaction, state, nil
+		}
+	} else {
+		if combined.Len() > 0 {
+			combined.WriteString("\n\n")
+		}
+		combined.WriteString("=== Project Overview ===\n\n")
+		combined.WriteString(overviewText)
+	}
+
+	state.scorecardRecs = recommendations
+	text := combined.String()
+	lines := strings.Split(text, "\n")
+	maxRows := 16
+	if len(lines) > maxRows {
+		lines = lines[:maxRows]
+	}
+	screen := go3270.Screen{
+		{Row: 1, Col: 2, Content: "PROJECT SCORECARD", Intense: true},
+		{Row: 22, Col: 2, Content: "PF3=Back to menu"},
+	}
+	if len(state.scorecardRecs) > 0 {
+		screen = append(screen,
+			go3270.Field{Row: 20, Col: 2, Content: "Run # (1-" + strconv.Itoa(len(state.scorecardRecs)) + "):", Intense: true},
+			go3270.Field{Row: 20, Col: 24, Write: true, Name: "run_rec", Content: ""},
+		)
+		screen[1] = go3270.Field{Row: 22, Col: 2, Content: "PF3=Back  Enter=Run selected #"}
+	}
+	for i, line := range lines {
+		if len(line) > 78 {
+			line = line[:75] + "..."
+		}
+		screen = append(screen, go3270.Field{Row: 2 + i, Col: 2, Content: line})
+	}
+	screenOpts := go3270.ScreenOpts{Codepage: devInfo.Codepage()}
+	response, err := go3270.ShowScreenOpts(screen, nil, conn, screenOpts)
+	if err != nil {
+		return nil, nil, err
+	}
+	if response.AID == go3270.AIDPF1 {
+		return state.helpTransaction, state, nil
+	}
+	if response.AID == go3270.AIDPF3 {
+		return state.mainMenuTransaction, state, nil
+	}
+	// Check if user entered a recommendation number to run
+	runRec := strings.TrimSpace(response.Values["run_rec"])
+	if runRec != "" && len(state.scorecardRecs) > 0 {
+		var n int
+		if _, parseErr := fmt.Sscanf(runRec, "%d", &n); parseErr == nil && n >= 1 && n <= len(state.scorecardRecs) {
+			rec := state.scorecardRecs[n-1]
+			out, runErr := runRecommendation3270(state.projectRoot, rec)
+			resultLines := strings.Split(strings.TrimSpace(out), "\n")
+			if runErr != nil {
+				resultLines = append([]string{"Error: " + runErr.Error()}, resultLines...)
+			}
+			if len(resultLines) > 18 {
+				resultLines = resultLines[:18]
+			}
+			resultScreen := go3270.Screen{
+				{Row: 1, Col: 2, Content: "IMPLEMENT RESULT (#" + runRec + ")", Intense: true},
+				{Row: 2, Col: 2, Content: rec},
+				{Row: 22, Col: 2, Content: "PF3=Back to scorecard"},
+			}
+			for i, line := range resultLines {
+				if len(line) > 78 {
+					line = line[:75] + "..."
+				}
+				resultScreen = append(resultScreen, go3270.Field{Row: 4 + i, Col: 2, Content: line})
+			}
+			resp, showErr := go3270.ShowScreenOpts(resultScreen, nil, conn, screenOpts)
+			if showErr != nil {
+				return nil, nil, showErr
+			}
+			if resp.AID == go3270.AIDPF1 {
+				return state.helpTransaction, state, nil
+			}
+			// PF3 or any key -> back to scorecard
+			return state.scorecardTransaction, state, nil
+		}
+	}
+	return state.scorecardTransaction, state, nil
 }
 
 // taskEditorTransaction shows ISPF-like task editor
@@ -786,6 +1067,9 @@ func (state *tui3270State) taskEditorTransaction(conn net.Conn, devInfo go3270.D
 	}
 
 	// Handle PF keys
+	if response.AID == go3270.AIDPF1 {
+		return state.helpTransaction, state, nil
+	}
 	if response.AID == go3270.AIDPF3 {
 		state.command = ""
 		return state.taskListTransaction, state, nil
@@ -810,6 +1094,33 @@ func (state *tui3270State) handleCommand(cmd string, currentTx go3270.Tx) (go327
 	args := parts[1:]
 
 	switch command {
+	case "1":
+		state.command = ""
+		return state.taskListTransaction, state, nil
+	case "2":
+		state.command = ""
+		return state.configTransaction, state, nil
+	case "3":
+		state.command = ""
+		return state.scorecardTransaction, state, nil
+	case "4":
+		state.command = ""
+		return nil, nil, nil // Exit
+	case "SCORECARD", "SC":
+		state.command = ""
+		return state.scorecardTransaction, state, nil
+	case "MENU", "M", "MAIN":
+		state.command = ""
+		return state.mainMenuTransaction, state, nil
+	case "TASKS", "T":
+		state.command = ""
+		return state.taskListTransaction, state, nil
+	case "CONFIG":
+		state.command = ""
+		return state.configTransaction, state, nil
+	case "HELP", "H":
+		state.command = ""
+		return state.helpTransaction, state, nil
 	case "FIND", "F":
 		// Filter/search tasks
 		if len(args) > 0 {

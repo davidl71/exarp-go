@@ -13,16 +13,13 @@ import (
 )
 
 // Expected counts
-// Note: Tools = 28 base tools + 1 conditional (Apple Foundation Models on macOS) = 29 total
-//
-//	(server_status and list_models converted to resources, tool_catalog list action converted to resources)
-//
-// Prompts = 35 (19 original + 16 migrated from Python per PROMPTS_MIGRATION_AND_OBSOLESCENCE_PLAN.md)
-// Resources = 22 (scorecard, 5 memories, 4 prompts, session/mode, server/status, models, cursor/skills, 2 tools, 7 tasks)
+// Tools = 30 base (RegisterAllTools in registry.go) + 1 conditional (Apple Foundation Models on darwin/arm64/cgo) = 31 total on Mac Silicon
+// Prompts = 35 (19 original + 16 migrated from Python)
+// Resources = 23 (scorecard, memories, prompts, session/mode, server/status, models, cursor/skills, tools, tasks)
 const (
-	EXPECTED_TOOLS     = 28 // Base tools (29 with conditional Apple Foundation Models)
-	EXPECTED_PROMPTS   = 35 // 19 original + 16 migrated from Python
-	EXPECTED_RESOURCES = 23 // All native Go in internal/resources/ (includes stdio://suggested-tasks)
+	EXPECTED_TOOLS     = 30 // Base tools (31 with conditional Apple Foundation Models on darwin/arm64/cgo)
+	EXPECTED_PROMPTS   = 35
+	EXPECTED_RESOURCES = 23
 )
 
 // Counting wrapper to track registrations
