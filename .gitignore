@@ -48,3 +48,9 @@ __pycache__/
 
 # OpenMemory - IDE/Assistant specific rules
 .cursor/rules/openmemory.mdc
+
+# Local IDE settings (optional: remove to commit shared .vscode config)
+.vscode/settings.json
+
+# Accidental tool output / JSON-named files under internal/tools
+internal/tools/\{\"*
