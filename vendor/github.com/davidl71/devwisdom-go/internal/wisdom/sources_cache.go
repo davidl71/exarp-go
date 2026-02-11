@@ -29,8 +29,8 @@ func NewSourceCache() *SourceCache {
 	return &SourceCache{
 		entries:    make(map[string]*CacheEntry),
 		defaultTTL: 5 * time.Minute, // Default cache TTL.
-		maxAge:     1 * time.Hour,   // Maximum cache age.
-		enabled:    true,
+		maxAge:      1 * time.Hour,   // Maximum cache age.
+		enabled: true,
 	}
 }
 

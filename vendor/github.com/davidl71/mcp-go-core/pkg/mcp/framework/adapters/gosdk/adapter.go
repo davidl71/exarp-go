@@ -11,37 +11,6 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
-// sessionEliciter wraps *mcp.ServerSession to implement framework.Eliciter (MCP Elicitation).
-type sessionEliciter struct {
-	session *mcp.ServerSession
-}
-
-func (e *sessionEliciter) ElicitForm(ctx context.Context, message string, schema map[string]interface{}) (action string, content map[string]interface{}, err error) {
-	if e.session == nil {
-		return "", nil, fmt.Errorf("session is nil")
-	}
-	params := &mcp.ElicitParams{
-		Mode:            "form",
-		Message:         message,
-		RequestedSchema: schema,
-	}
-	res, err := e.session.Elicit(ctx, params)
-	if err != nil {
-		return "", nil, err
-	}
-	if res == nil {
-		return "cancel", nil, nil
-	}
-	action = res.Action
-	if res.Content != nil {
-		content = make(map[string]interface{}, len(res.Content))
-		for k, v := range res.Content {
-			content[k] = v
-		}
-	}
-	return action, content, nil
-}
-
 // GoSDKAdapter adapts the official Go SDK to the framework interface
 type GoSDKAdapter struct {
 	server       *mcp.Server
@@ -59,18 +28,11 @@ func NewGoSDKAdapter(name, version string, opts ...AdapterOption) *GoSDKAdapter 
 		server: mcp.NewServer(&mcp.Implementation{
 			Name:    name,
 			Version: version,
-		}, &mcp.ServerOptions{
-			RootsListChangedHandler: func(ctx context.Context, req *mcp.RootsListChangedRequest) {
-				// Client notified that roots list changed. Resource handlers will call
-				// ListRoots when needed; no need to cache here unless we add session-scoped state.
-				_ = ctx
-				_ = req
-			},
-		}),
+		}, nil),
 		name:         name,
 		toolHandlers: make(map[string]framework.ToolHandler),
 		toolInfo:     make(map[string]types.ToolInfo),
-		logger:       logging.NewLogger(),  // Default logger
+		logger:       logging.NewLogger(), // Default logger
 		middleware:   NewMiddlewareChain(), // Default empty middleware chain
 	}
 
@@ -119,11 +81,6 @@ func (a *GoSDKAdapter) RegisterTool(name, description string, schema types.ToolS
 		// Validate request
 		if err := ValidateCallToolRequest(req); err != nil {
 			return nil, err
-		}
-
-		// Inject Eliciter into context when session is available (MCP Elicitation feature)
-		if req.Session != nil {
-			ctx = context.WithValue(ctx, framework.EliciterContextKey, &sessionEliciter{session: req.Session})
 		}
 
 		// Call framework handler with raw arguments
@@ -263,17 +220,6 @@ func (a *GoSDKAdapter) RegisterResource(uri, name, description, mimeType string,
 		// Validate request
 		if err := ValidateReadResourceRequest(req); err != nil {
 			return nil, err
-		}
-
-		// Inject client roots into context when available (MCP Roots feature)
-		if req.Session != nil {
-			if rootRes, err := req.Session.ListRoots(ctx, nil); err == nil && rootRes != nil && len(rootRes.Roots) > 0 {
-				infos := make([]framework.RootInfo, 0, len(rootRes.Roots))
-				for _, r := range rootRes.Roots {
-					infos = append(infos, framework.RootInfo{URI: r.URI, Name: r.Name})
-				}
-				ctx = context.WithValue(ctx, framework.RootsContextKey, infos)
-			}
 		}
 
 		// Call framework handler with URI from params

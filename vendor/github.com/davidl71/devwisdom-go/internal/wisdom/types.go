@@ -35,7 +35,7 @@ type Source struct {
 func (s *Source) GetQuote(aeonLevel string) *Quote {
 	quotes, exists := s.Quotes[aeonLevel]
 	if !exists || len(quotes) == 0 {
-		// Fallback to any available quotes.
+				// Fallback to any available quotes.
 		for _, qs := range s.Quotes {
 			if len(qs) > 0 {
 				quotes = qs
@@ -52,33 +52,33 @@ func (s *Source) GetQuote(aeonLevel string) *Quote {
 		}
 	}
 
-	// If only one quote, return it directly.
+		// If only one quote, return it directly.
 	if len(quotes) == 1 {
 		return &quotes[0]
 	}
 
-	// Uses same pattern as getRandomSourceLocked() in engine.go.
+		// Uses same pattern as getRandomSourceLocked() in engine.go.
 	now := time.Now()
 	dateStr := now.Format("20060102") // YYYYMMDD format.
 
-	// Convert date string to int and add hash offset.
+		// Convert date string to int and add hash offset.
 	var dateInt int64
 	if _, err := fmt.Sscanf(dateStr, "%d", &dateInt); err != nil {
-		// This should never fail since we just formatted the date, but handle it gracefully.
+				// This should never fail since we just formatted the date, but handle it gracefully.
 		dateInt = int64(now.Unix())
 	}
 
-	// Hash "random_quote" string for offset (different from "random_source" for source selection).
+		// Hash "random_quote" string for offset (different from "random_source" for source selection).
 	h := fnv.New32a()
 	h.Write([]byte("random_quote"))
 	hashOffset := int64(h.Sum32())
 
 	seed := dateInt + hashOffset
 
-	// Create seeded random generator.
+		// Create seeded random generator.
 	rng := rand.New(rand.NewSource(seed))
 
-	// Select random quote index.
+		// Select random quote index.
 	selectedIndex := rng.Intn(len(quotes))
 	return &quotes[selectedIndex]
 }
