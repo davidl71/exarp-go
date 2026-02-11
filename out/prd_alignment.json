@@ -1,5 +1,5 @@
 {
-  "aligned_count": 262,
+  "aligned_count": 242,
   "alignment_by_persona": {
     "architect": {
       "advisor": "enochian",
@@ -8,77 +8,62 @@
     },
     "code_reviewer": {
       "advisor": "stoic",
-      "count": 21,
+      "count": 20,
       "name": "Code Reviewer"
     },
     "developer": {
       "advisor": "tao_of_programming",
-      "count": 110,
+      "count": 106,
       "name": "Developer"
     },
     "executive": {
       "advisor": "pistis_sophia",
-      "count": 7,
+      "count": 6,
       "name": "Executive/Stakeholder"
     },
     "project_manager": {
       "advisor": "art_of_war",
-      "count": 9,
+      "count": 7,
       "name": "Project Manager"
     },
     "qa_engineer": {
       "advisor": "stoic",
-      "count": 73,
+      "count": 70,
       "name": "QA Engineer"
     },
     "security_engineer": {
       "advisor": "bofh",
-      "count": 3,
+      "count": 1,
       "name": "Security Engineer"
     },
     "tech_writer": {
       "advisor": "confucius",
-      "count": 35,
+      "count": 28,
       "name": "Technical Writer"
     }
   },
   "goals_exists": false,
-  "overall_alignment_score": 88.2,
+  "overall_alignment_score": 89.3,
   "persona_coverage": {
     "architect": 4,
-    "code_reviewer": 21,
-    "developer": 110,
-    "executive": 7,
-    "project_manager": 9,
-    "qa_engineer": 73,
-    "security_engineer": 3,
-    "tech_writer": 35
+    "code_reviewer": 20,
+    "developer": 106,
+    "executive": 6,
+    "project_manager": 7,
+    "qa_engineer": 70,
+    "security_engineer": 1,
+    "tech_writer": 28
   },
   "prd_exists": true,
   "prd_user_stories": 20,
   "recommendations": null,
-  "tasks_analyzed": 297,
-  "timestamp": "2026-02-02T23:20:26+02:00",
-  "unaligned_count": 35,
+  "tasks_analyzed": 271,
+  "timestamp": "2026-02-11T17:18:15+02:00",
+  "unaligned_count": 29,
   "unaligned_tasks": [
     {
-      "id": "T-78",
-      "name": "Fine-grained file locking (for Git operations)",
-      "reason": "No strong persona match found"
-    },
-    {
-      "id": "T-275",
-      "name": "Configure default limits",
-      "reason": "No strong persona match found"
-    },
-    {
-      "id": "T-132",
-      "name": "Get schema for each form",
-      "reason": "No strong persona match found"
-    },
-    {
-      "id": "T-79",
-      "name": "Agent heartbeat system",
+      "id": "T-204",
+      "name": "Create model router component",
       "reason": "No strong persona match found"
     },
     {
@@ -87,28 +72,43 @@
       "reason": "No strong persona match found"
     },
     {
-      "id": "T-168",
-      "name": "Create MIGRATION_COMPLETE.md",
+      "id": "T-131",
+      "name": "List all available forms",
       "reason": "No strong persona match found"
     },
     {
-      "id": "T-82",
-      "name": "Memory system migrated (blocks Phase 4)",
+      "id": "T-80",
+      "name": "Lock timeout monitoring/alerts",
       "reason": "No strong persona match found"
     },
     {
-      "id": "T-274",
-      "name": "Add middleware to framework",
+      "id": "T-85",
+      "name": "All critical path items complete",
       "reason": "No strong persona match found"
     },
     {
-      "id": "T-76",
-      "name": "Add dead agent cleanup job",
+      "id": "T-207",
+      "name": "Add model selection logic",
       "reason": "No strong persona match found"
     },
     {
       "id": "T-320",
       "name": "Lock statistics and metrics",
+      "reason": "No strong persona match found"
+    },
+    {
+      "id": "T-254",
+      "name": "Uses task_analysis for dependency checking",
+      "reason": "No strong persona match found"
+    },
+    {
+      "id": "T-210",
+      "name": "Add breakdown result parser",
+      "reason": "No strong persona match found"
+    },
+    {
+      "id": "T-218",
+      "name": "Add iterative refinement loop",
       "reason": "No strong persona match found"
     }
   ]
