@@ -67,7 +67,7 @@ func TestGetPromptTemplate(t *testing.T) {
 }
 
 func TestGetPromptTemplate_AllPrompts(t *testing.T) {
-	// Test all 35 registered prompts (19 original + 16 migrated from Python)
+	// Test all 36 registered prompts (19 original + 16 migrated from Python + 1 tractatus_decompose)
 	allPrompts := []string{
 		"align", "discover", "config", "scan",
 		"scorecard", "overview", "plan", "dashboard", "remember",
@@ -78,6 +78,7 @@ func TestGetPromptTemplate_AllPrompts(t *testing.T) {
 		"advisor_consult", "advisor_briefing",
 		"persona_developer", "persona_project_manager", "persona_code_reviewer", "persona_executive",
 		"persona_security", "persona_architect", "persona_qa", "persona_tech_writer",
+		"tractatus_decompose",
 	}
 
 	for _, promptName := range allPrompts {
@@ -277,6 +278,7 @@ func TestCreatePromptHandler_AllPrompts(t *testing.T) {
 		"advisor_consult", "advisor_briefing",
 		"persona_developer", "persona_project_manager", "persona_code_reviewer", "persona_executive",
 		"persona_security", "persona_architect", "persona_qa", "persona_tech_writer",
+		"tractatus_decompose",
 	}
 
 	ctx := context.Background()
