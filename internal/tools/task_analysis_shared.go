@@ -51,15 +51,15 @@ func handleTaskAnalysisNative(ctx context.Context, params map[string]interface{}
 
 // handleTaskAnalysisDuplicates handles duplicates detection
 func handleTaskAnalysisDuplicates(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
-	projectRoot, err := FindProjectRoot()
+	store, err := getTaskStore(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("failed to find project root: %w", err)
+		return nil, fmt.Errorf("failed to get task store: %w", err)
 	}
-
-	tasks, err := LoadTodo2Tasks(projectRoot)
+	list, err := store.ListTasks(ctx, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load tasks: %w", err)
 	}
+	tasks := tasksFromPtrs(list)
 
 	// Use config default, allow override from params
 	similarityThreshold := config.SimilarityThreshold()
@@ -78,8 +78,18 @@ func handleTaskAnalysisDuplicates(ctx context.Context, params map[string]interfa
 	// Auto-fix if requested
 	if autoFix && len(duplicates) > 0 {
 		tasks = mergeDuplicateTasks(tasks, duplicates)
-		if err := SaveTodo2Tasks(projectRoot, tasks); err != nil {
-			return nil, fmt.Errorf("failed to save merged tasks: %w", err)
+		// Delete removed task IDs (merge keeps first per group, removes group[1:])
+		for _, grp := range duplicates {
+			for i := 1; i < len(grp); i++ {
+				_ = store.DeleteTask(ctx, grp[i])
+			}
+		}
+		// Update kept/merged tasks
+		for _, t := range tasks {
+			taskPtr := &t
+			if err := store.UpdateTask(ctx, taskPtr); err != nil {
+				return nil, fmt.Errorf("failed to save merged task %s: %w", t.ID, err)
+			}
 		}
 	}
 
@@ -252,15 +262,15 @@ func NoiseTags() []string {
 // handleTaskAnalysisTags handles tag analysis and consolidation
 func handleTaskAnalysisTags(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	t0 := time.Now()
-	projectRoot, err := FindProjectRoot()
+	store, err := getTaskStore(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("failed to find project root: %w", err)
+		return nil, fmt.Errorf("failed to get task store: %w", err)
 	}
-
-	tasks, err := LoadTodo2Tasks(projectRoot)
+	list, err := store.ListTasks(ctx, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load tasks: %w", err)
 	}
+	tasks := tasksFromPtrs(list)
 	profileLoadMs := time.Since(t0).Milliseconds()
 
 	dryRun := true
@@ -373,8 +383,11 @@ func handleTaskAnalysisTags(ctx context.Context, params map[string]interface{}) 
 	if !dryRun {
 		t2 := time.Now()
 		tasks = applyTagChanges(tasks, tagAnalysis)
-		if err := SaveTodo2Tasks(projectRoot, tasks); err != nil {
-			return nil, fmt.Errorf("failed to save tasks: %w", err)
+		for _, t := range tasks {
+			taskPtr := &t
+			if err := store.UpdateTask(ctx, taskPtr); err != nil {
+				return nil, fmt.Errorf("failed to save task %s: %w", t.ID, err)
+			}
 		}
 		// Update tag cache everywhere: frequency + task-level suggestions (for LLM hints)
 		updateTagFrequencyCache(tasks)
@@ -458,10 +471,15 @@ func handleTaskAnalysisDiscoverTags(ctx context.Context, params map[string]inter
 		return nil, fmt.Errorf("failed to find project root: %w", err)
 	}
 
-	tasks, err := LoadTodo2Tasks(projectRoot)
+	store, err := getTaskStore(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get task store: %w", err)
+	}
+	list, err := store.ListTasks(ctx, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load tasks: %w", err)
 	}
+	tasks := tasksFromPtrs(list)
 
 	dryRun := true
 	if run, ok := params["dry_run"].(bool); ok {
@@ -637,8 +655,11 @@ func handleTaskAnalysisDiscoverTags(ctx context.Context, params map[string]inter
 			}
 		}
 		if appliedCount > 0 {
-			if err := SaveTodo2Tasks(projectRoot, tasks); err != nil {
-				return nil, fmt.Errorf("failed to save tasks: %w", err)
+			for _, t := range tasks {
+				taskPtr := &t
+				if err := store.UpdateTask(ctx, taskPtr); err != nil {
+					return nil, fmt.Errorf("failed to save task %s: %w", t.ID, err)
+				}
 			}
 		}
 
@@ -1766,15 +1787,15 @@ func matchDiscoveredTagsToTasks(discoveries []map[string]interface{}, tasks []To
 
 // handleTaskAnalysisDependencies handles dependency analysis
 func handleTaskAnalysisDependencies(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
-	projectRoot, err := FindProjectRoot()
+	store, err := getTaskStore(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("failed to find project root: %w", err)
+		return nil, fmt.Errorf("failed to get task store: %w", err)
 	}
-
-	tasks, err := LoadTodo2Tasks(projectRoot)
+	list, err := store.ListTasks(ctx, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load tasks: %w", err)
 	}
+	tasks := tasksFromPtrs(list)
 
 	// Build dependency graph using gonum
 	tg, err := BuildTaskGraph(tasks)
@@ -1887,11 +1908,15 @@ func handleTaskAnalysisExecutionPlan(ctx context.Context, params map[string]inte
 	if err != nil {
 		return nil, fmt.Errorf("failed to find project root: %w", err)
 	}
-
-	tasks, err := LoadTodo2Tasks(projectRoot)
+	store, err := getTaskStore(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get task store: %w", err)
+	}
+	list, err := store.ListTasks(ctx, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load tasks: %w", err)
 	}
+	tasks := tasksFromPtrs(list)
 
 	// Optional tag filter: restrict backlog to tasks with filter_tag or any of filter_tags
 	var backlogFilter map[string]bool
@@ -2060,15 +2085,15 @@ func fmtTime(t time.Time) string {
 
 // handleTaskAnalysisParallelization handles parallelization analysis
 func handleTaskAnalysisParallelization(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
-	projectRoot, err := FindProjectRoot()
+	store, err := getTaskStore(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("failed to find project root: %w", err)
+		return nil, fmt.Errorf("failed to get task store: %w", err)
 	}
-
-	tasks, err := LoadTodo2Tasks(projectRoot)
+	list, err := store.ListTasks(ctx, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load tasks: %w", err)
 	}
+	tasks := tasksFromPtrs(list)
 
 	durationWeight := 0.3
 	if weight, ok := params["duration_weight"].(float64); ok {
@@ -2120,15 +2145,15 @@ func handleTaskAnalysisParallelization(ctx context.Context, params map[string]in
 // handleTaskAnalysisFixMissingDeps removes invalid dependency refs from tasks and saves.
 // Use once to fix tasks that depend on non-existent IDs (e.g. T-45, T-5 depending on T-4).
 func handleTaskAnalysisFixMissingDeps(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
-	projectRoot, err := FindProjectRoot()
+	store, err := getTaskStore(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("failed to find project root: %w", err)
+		return nil, fmt.Errorf("failed to get task store: %w", err)
 	}
-
-	tasks, err := LoadTodo2Tasks(projectRoot)
+	list, err := store.ListTasks(ctx, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load tasks: %w", err)
 	}
+	tasks := tasksFromPtrs(list)
 
 	tg, err := BuildTaskGraph(tasks)
 	if err != nil {
@@ -2178,8 +2203,13 @@ func handleTaskAnalysisFixMissingDeps(ctx context.Context, params map[string]int
 		t.Dependencies = newDeps
 	}
 
-	if err := SaveTodo2Tasks(projectRoot, tasks); err != nil {
-		return nil, fmt.Errorf("failed to save tasks after fix: %w", err)
+	for _, t := range tasks {
+		if missingDepsByTask[t.ID] != nil {
+			taskPtr := &t
+			if err := store.UpdateTask(ctx, taskPtr); err != nil {
+				return nil, fmt.Errorf("failed to save task %s after fix: %w", t.ID, err)
+			}
+		}
 	}
 
 	result := map[string]interface{}{
@@ -2195,15 +2225,15 @@ func handleTaskAnalysisFixMissingDeps(ctx context.Context, params map[string]int
 // handleTaskAnalysisValidate reports missing dependency IDs and optionally hierarchy parse warnings.
 // Returns JSON with missing_deps and optional hierarchy_warning (when FM returns non-JSON).
 func handleTaskAnalysisValidate(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
-	projectRoot, err := FindProjectRoot()
+	store, err := getTaskStore(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("failed to find project root: %w", err)
+		return nil, fmt.Errorf("failed to get task store: %w", err)
 	}
-
-	tasks, err := LoadTodo2Tasks(projectRoot)
+	list, err := store.ListTasks(ctx, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load tasks: %w", err)
 	}
+	tasks := tasksFromPtrs(list)
 
 	tg, err := BuildTaskGraph(tasks)
 	if err != nil {
@@ -3026,15 +3056,15 @@ func handleTaskAnalysisHierarchy(ctx context.Context, params map[string]interfac
 		return nil, fmt.Errorf("hierarchy requires a foundation model: %w", ErrFMNotSupported)
 	}
 
-	projectRoot, err := FindProjectRoot()
+	store, err := getTaskStore(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("failed to find project root: %w", err)
+		return nil, fmt.Errorf("failed to get task store: %w", err)
 	}
-
-	tasks, err := LoadTodo2Tasks(projectRoot)
+	list, err := store.ListTasks(ctx, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load tasks: %w", err)
 	}
+	tasks := tasksFromPtrs(list)
 
 	pendingTasks := []Todo2Task{}
 	for _, task := range tasks {
