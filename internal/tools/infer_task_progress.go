@@ -124,33 +124,15 @@ func handleInferTaskProgressNative(ctx context.Context, params map[string]interf
 	return response.FormatResult(result, "")
 }
 
-// loadInProgressTasks returns only In Progress tasks (DB-first, then LoadTodo2Tasks + filter).
+// loadInProgressTasks returns only In Progress tasks via TaskStore.
 func loadInProgressTasks(ctx context.Context, projectRoot string) ([]Todo2Task, error) {
-	if db, err := database.GetDB(); err == nil && db != nil {
-		inProgressTasks, err := database.GetTasksByStatus(ctx, database.StatusInProgress)
-		if err != nil {
-			return nil, err
-		}
-		out := make([]Todo2Task, 0, len(inProgressTasks))
-		for _, t := range inProgressTasks {
-			if t != nil {
-				out = append(out, *t)
-			}
-		}
-		return out, nil
-	}
-	tasks, err := LoadTodo2Tasks(projectRoot)
+	store := NewDefaultTaskStore(projectRoot)
+	inProgress := database.StatusInProgress
+	list, err := store.ListTasks(ctx, &database.TaskFilters{Status: &inProgress})
 	if err != nil {
 		return nil, err
 	}
-	out := make([]Todo2Task, 0)
-	for _, t := range tasks {
-		norm := strings.TrimSpace(strings.ToLower(t.Status))
-		if norm == "in progress" || norm == "in_progress" {
-			out = append(out, t)
-		}
-	}
-	return out, nil
+	return tasksFromPtrs(list), nil
 }
 
 var wordTokenRe = regexp.MustCompile(`[a-zA-Z0-9_]{2,}`)
@@ -335,41 +317,21 @@ func applyInferredCompletions(ctx context.Context, projectRoot string, inferred 
 		taskByID[t.ID] = t
 	}
 
-	if db, err := database.GetDB(); err == nil && db != nil {
-		updated := 0
-		for _, r := range inferred {
-			task, err := database.GetTask(ctx, r.TaskID)
-			if err != nil {
-				continue
-			}
-			task.Status = database.StatusDone
-			task.Completed = true
-			if err := database.UpdateTask(ctx, task); err != nil {
-				continue
-			}
-			updated++
-		}
-		return updated, nil
-	}
-
-	allTasks, err := LoadTodo2Tasks(projectRoot)
-	if err != nil {
-		return 0, fmt.Errorf("load all tasks for JSON update: %w", err)
-	}
-	byID := make(map[string]int)
-	for i, t := range allTasks {
-		byID[t.ID] = i
-	}
+	store := NewDefaultTaskStore(projectRoot)
+	updated := 0
 	for _, r := range inferred {
-		if i, ok := byID[r.TaskID]; ok {
-			allTasks[i].Status = database.StatusDone
-			allTasks[i].Completed = true
+		task, err := store.GetTask(ctx, r.TaskID)
+		if err != nil || task == nil {
+			continue
 		}
+		task.Status = database.StatusDone
+		task.Completed = true
+		if err := store.UpdateTask(ctx, task); err != nil {
+			continue
+		}
+		updated++
 	}
-	if err := SaveTodo2Tasks(projectRoot, allTasks); err != nil {
-		return 0, fmt.Errorf("save tasks after JSON update: %w", err)
-	}
-	return len(inferred), nil
+	return updated, nil
 }
 
 // writeInferReport writes a markdown report to outputPath (same structure as Python report).
