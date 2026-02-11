@@ -5,6 +5,8 @@ import (
 	"os"
 	"regexp"
 	"strings"
+
+	"github.com/davidl71/exarp-go/internal/database"
 )
 
 // tagPattern matches hashtags in TODO comments (e.g., #refactor, #bug, #performance)
@@ -115,7 +117,7 @@ func createTasksFromDiscoveries(projectRoot string, discoveries []map[string]int
 			Status:   "Todo",
 			Priority: "medium",
 			Tags:     taskTags,
-			Metadata: SanitizeMetadataForWrite(metadata),
+			Metadata: database.SanitizeMetadataForWrite(metadata),
 		}
 
 		existingTasks = append(existingTasks, newTask)
