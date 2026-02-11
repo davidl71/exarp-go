@@ -1,6 +1,7 @@
 package tools
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"regexp"
@@ -51,13 +52,15 @@ func toJSONSafeString(v interface{}) string {
 
 // createTasksFromDiscoveries creates Todo2 tasks from discovered items.
 // Shared by both CGO (task_discovery_native.go) and nocgo (task_discovery_native_nocgo.go) builds.
-func createTasksFromDiscoveries(projectRoot string, discoveries []map[string]interface{}) []map[string]interface{} {
+func createTasksFromDiscoveries(ctx context.Context, projectRoot string, discoveries []map[string]interface{}) []map[string]interface{} {
 	createdTasks := []map[string]interface{}{}
 
-	existingTasks, err := LoadTodo2Tasks(projectRoot)
+	store := NewDefaultTaskStore(projectRoot)
+	list, err := store.ListTasks(ctx, nil)
 	if err != nil {
 		return createdTasks
 	}
+	existingTasks := tasksFromPtrs(list)
 
 	existingContent := make(map[string]bool)
 	for _, task := range existingTasks {
@@ -111,7 +114,7 @@ func createTasksFromDiscoveries(projectRoot string, discoveries []map[string]int
 			metadata["discovered_line"] = line
 		}
 		// Sanitize so persisted state and DB never get non-JSON-serializable metadata
-		newTask := Todo2Task{
+		newTask := &Todo2Task{
 			ID:       taskID,
 			Content:  text,
 			Status:   "Todo",
@@ -120,7 +123,10 @@ func createTasksFromDiscoveries(projectRoot string, discoveries []map[string]int
 			Metadata: database.SanitizeMetadataForWrite(metadata),
 		}
 
-		existingTasks = append(existingTasks, newTask)
+		if err := store.CreateTask(ctx, newTask); err != nil {
+			fmt.Fprintf(os.Stderr, "Warning: failed to create task %s after discovery: %v\n", taskID, err)
+			continue
+		}
 		existingContent[textLower] = true
 
 		// Coerce source to string so tool response JSON is always valid
@@ -132,8 +138,8 @@ func createTasksFromDiscoveries(projectRoot string, discoveries []map[string]int
 	}
 
 	if len(createdTasks) > 0 {
-		if err := SaveTodo2Tasks(projectRoot, existingTasks); err != nil {
-			fmt.Fprintf(os.Stderr, "Warning: failed to save tasks after discovery: %v\n", err)
+		if err := SyncTodo2Tasks(projectRoot); err != nil {
+			fmt.Fprintf(os.Stderr, "Warning: failed to sync after discovery: %v\n", err)
 		}
 	}
 

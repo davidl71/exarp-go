@@ -61,7 +61,7 @@ func handleTaskDiscoveryNative(ctx context.Context, params map[string]interface{
 
 	// Find orphans
 	if action == "orphans" || action == "all" {
-		orphanTasks := findOrphanTasksBasic(projectRoot)
+		orphanTasks := findOrphanTasksBasic(ctx, projectRoot)
 		discoveries = append(discoveries, orphanTasks...)
 	}
 
@@ -129,7 +129,7 @@ func handleTaskDiscoveryNative(ctx context.Context, params map[string]interface{
 
 	// Optionally create tasks if requested
 	if createTasks, ok := params["create_tasks"].(bool); ok && createTasks {
-		createdTasks := createTasksFromDiscoveries(projectRoot, discoveries)
+		createdTasks := createTasksFromDiscoveries(ctx, projectRoot, discoveries)
 		result["tasks_created"] = createdTasks
 	}
 
@@ -391,13 +391,15 @@ func scanPlanningDocsBasic(projectRoot string, docPath string) []map[string]inte
 }
 
 // findOrphanTasksBasic finds orphaned tasks (tasks with invalid structure)
-func findOrphanTasksBasic(projectRoot string) []map[string]interface{} {
+func findOrphanTasksBasic(ctx context.Context, projectRoot string) []map[string]interface{} {
 	orphans := []map[string]interface{}{}
 
-	tasks, err := LoadTodo2Tasks(projectRoot)
+	store := NewDefaultTaskStore(projectRoot)
+	list, err := store.ListTasks(ctx, nil)
 	if err != nil {
 		return orphans
 	}
+	tasks := tasksFromPtrs(list)
 
 	// Build task map
 	taskMap := make(map[string]bool)
