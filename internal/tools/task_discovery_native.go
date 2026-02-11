@@ -390,13 +390,15 @@ func findOrphanTasks(projectRoot string) []map[string]interface{} {
 			}
 		}
 
-		// Check for invalid parent references (if tasks have parent field in metadata)
-		if task.Metadata != nil {
-			if parentID, ok := task.Metadata["parent_id"].(string); ok && parentID != "" {
-				if !taskMap[parentID] {
-					issues = append(issues, fmt.Sprintf("missing_parent:%s", parentID))
-				}
+		// Check for invalid parent references (task.ParentID or metadata)
+		parentID := task.ParentID
+		if parentID == "" && task.Metadata != nil {
+			if pid, ok := task.Metadata["parent_id"].(string); ok && pid != "" {
+				parentID = pid
 			}
+		}
+		if parentID != "" && !taskMap[parentID] {
+			issues = append(issues, fmt.Sprintf("missing_parent:%s", parentID))
 		}
 
 		// Check for tasks that should have structure but don't

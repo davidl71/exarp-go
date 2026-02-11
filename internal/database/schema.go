@@ -2,7 +2,7 @@ package database
 
 // SchemaVersion represents the current schema version.
 // Must match the highest migration version (migrations/00N_*.sql).
-const SchemaVersion = 6
+const SchemaVersion = 7
 
 // Table names
 const (
@@ -35,6 +35,7 @@ const (
 	ColTaskVersion         = "version"
 	ColTaskCreatedAt       = "created_at"
 	ColTaskUpdatedAt       = "updated_at"
+	ColTaskParentID        = "parent_id"
 )
 
 // Status values

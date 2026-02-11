@@ -25,6 +25,7 @@ type todo2TaskJSON struct {
 	Priority        string          `json:"priority,omitempty"`
 	Tags            []string        `json:"tags,omitempty"`
 	Dependencies    []string        `json:"dependencies,omitempty"`
+	ParentID        string          `json:"parent_id,omitempty"`
 	Completed       bool            `json:"completed,omitempty"`
 	Metadata        json.RawMessage `json:"metadata,omitempty"`
 	Created         string          `json:"created,omitempty"`
@@ -62,6 +63,7 @@ func convertTodo2TaskJSONToTask(raw todo2TaskJSON) models.Todo2Task {
 		Priority:        raw.Priority,
 		Tags:            raw.Tags,
 		Dependencies:    raw.Dependencies,
+		ParentID:        raw.ParentID,
 		Completed:       raw.Completed,
 		CreatedAt:       createdAt,
 		LastModified:    lastMod,
@@ -87,6 +89,7 @@ type todo2TaskWrite struct {
 	Priority        string                 `json:"priority,omitempty"`
 	Tags            []string               `json:"tags,omitempty"`
 	Dependencies    []string               `json:"dependencies,omitempty"`
+	ParentID        string                 `json:"parent_id,omitempty"`
 	Completed       bool                   `json:"completed,omitempty"`
 	Metadata        map[string]interface{} `json:"metadata,omitempty"`
 	Created         string                 `json:"created,omitempty"`
@@ -139,6 +142,7 @@ func MarshalTasksToStateJSON(tasks []models.Todo2Task) ([]byte, error) {
 			Priority:        t.Priority,
 			Tags:            t.Tags,
 			Dependencies:    t.Dependencies,
+			ParentID:        t.ParentID,
 			Completed:       t.Completed,
 			Metadata:        database.SanitizeMetadataForWrite(t.Metadata),
 			Created:         createdAt,

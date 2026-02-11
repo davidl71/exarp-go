@@ -40,6 +40,7 @@ type Todo2Task struct {
 	Priority        string                 `json:"priority,omitempty"`
 	Tags            []string               `json:"tags,omitempty"`
 	Dependencies    []string               `json:"dependencies,omitempty"`
+	ParentID        string                 `json:"parent_id,omitempty"` // Parent task ID (epic or container); hierarchy, not blocking
 	Completed       bool                   `json:"completed,omitempty"`
 	Metadata        map[string]interface{} `json:"metadata,omitempty"`
 	// CreatedAt, LastModified, CompletedAt are RFC3339 timestamps from DB/JSON; preserved on load/save.
