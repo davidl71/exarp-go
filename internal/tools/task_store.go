@@ -95,6 +95,21 @@ func (s *dbOrFileStore) DeleteTask(ctx context.Context, id string) error {
 	return SaveTodo2Tasks(s.projectRoot, kept)
 }
 
+// tasksFromPtrs converts []*Todo2Task from TaskStore.ListTasks to []Todo2Task for helpers
+// that expect a value slice (e.g. getTasksSummaryFromTasks, BacklogExecutionOrder).
+func tasksFromPtrs(pts []*database.Todo2Task) []Todo2Task {
+	if pts == nil {
+		return nil
+	}
+	out := make([]Todo2Task, 0, len(pts))
+	for _, p := range pts {
+		if p != nil {
+			out = append(out, *p)
+		}
+	}
+	return out
+}
+
 // filterTasksToPtrs filters a slice of tasks by database.TaskFilters and returns pointers.
 func filterTasksToPtrs(tasks []Todo2Task, filters *database.TaskFilters) []*database.Todo2Task {
 	if filters == nil {
