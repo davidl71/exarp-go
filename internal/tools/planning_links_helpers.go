@@ -41,6 +41,8 @@ func SetPlanningLinkMetadata(task *models.Todo2Task, linkMeta *PlanningLinkMetad
 	}
 	if linkMeta.EpicID != "" {
 		task.Metadata["epic_id"] = linkMeta.EpicID
+	} else {
+		delete(task.Metadata, "epic_id")
 	}
 	if linkMeta.DocType != "" {
 		task.Metadata["planning_doc_type"] = linkMeta.DocType
