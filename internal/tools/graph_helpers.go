@@ -117,6 +117,18 @@ func BuildTaskGraph(tasks []Todo2Task) (*TaskGraph, error) {
 	return tg, nil
 }
 
+// BuildTaskGraphBacklogOnly builds a task graph from only Todo and In Progress tasks.
+// Done tasks are excluded by default so critical path focuses on remaining work.
+func BuildTaskGraphBacklogOnly(tasks []Todo2Task) (*TaskGraph, error) {
+	var backlog []Todo2Task
+	for _, t := range tasks {
+		if IsBacklogStatus(t.Status) {
+			backlog = append(backlog, t)
+		}
+	}
+	return BuildTaskGraph(backlog)
+}
+
 // HasCycles checks if the graph has cycles using topological sort
 func HasCycles(tg *TaskGraph) (bool, error) {
 	_, err := topo.Sort(tg.Graph)
@@ -457,9 +469,16 @@ func AnalyzeCriticalPath(projectRoot string) (map[string]interface{}, error) {
 		return result, nil
 	}
 
-	tg, err := BuildTaskGraph(tasks)
+	// Build graph from backlog only (Todo + In Progress); exclude Done by default
+	tg, err := BuildTaskGraphBacklogOnly(tasks)
 	if err != nil {
 		return nil, fmt.Errorf("failed to build graph: %w", err)
+	}
+
+	// No backlog tasks — nothing on critical path
+	if tg.Graph.Nodes().Len() == 0 {
+		result["message"] = "No critical path: all tasks are Done"
+		return result, nil
 	}
 
 	// Check for cycles
@@ -477,7 +496,7 @@ func AnalyzeCriticalPath(projectRoot string) (map[string]interface{}, error) {
 		return result, nil
 	}
 
-	// Find critical path
+	// Find critical path (longest chain among backlog tasks)
 	criticalPath, err := FindCriticalPath(tg)
 	if err != nil {
 		return nil, fmt.Errorf("failed to find critical path: %w", err)
