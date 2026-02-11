@@ -55,6 +55,17 @@ type OllamaGenerateResponse struct {
 	EvalDuration       int64  `json:"eval_duration,omitempty"`
 }
 
+// getOllamaModelParam returns the model name from params. Ollama API uses "model"; accept "name" as alias for callers that use it (T-53).
+func getOllamaModelParam(params map[string]interface{}, defaultVal string) string {
+	if m, ok := params["model"].(string); ok && m != "" {
+		return m
+	}
+	if n, ok := params["name"].(string); ok && n != "" {
+		return n
+	}
+	return defaultVal
+}
+
 // handleOllamaNative handles the ollama tool with native Go HTTP client
 func handleOllamaNative(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	action, _ := params["action"].(string)
@@ -276,10 +287,7 @@ func handleOllamaGenerate(ctx context.Context, params map[string]interface{}, ho
 		return nil, fmt.Errorf("prompt parameter is required for generate action")
 	}
 
-	model := "llama3.2"
-	if m, ok := params["model"].(string); ok && m != "" {
-		model = m
-	}
+	model := getOllamaModelParam(params, "llama3.2")
 
 	stream := false
 	if s, ok := params["stream"].(bool); ok {
@@ -415,9 +423,9 @@ func handleOllamaGenerate(ctx context.Context, params map[string]interface{}, ho
 
 // handleOllamaPull pulls/downloads a model
 func handleOllamaPull(ctx context.Context, params map[string]interface{}, host string) ([]framework.TextContent, error) {
-	model, _ := params["model"].(string)
+	model := getOllamaModelParam(params, "")
 	if model == "" {
-		return nil, fmt.Errorf("model parameter is required for pull action")
+		return nil, fmt.Errorf("model parameter is required for pull action (Ollama API uses 'model'; 'name' is accepted as alias)")
 	}
 
 	// Create pull request (Ollama API expects "model", not "name")
@@ -506,10 +514,7 @@ func handleOllamaDocs(ctx context.Context, params map[string]interface{}, host s
 		style = "google"
 	}
 
-	model, _ := params["model"].(string)
-	if model == "" {
-		model = "codellama"
-	}
+	model := getOllamaModelParam(params, "codellama")
 
 	// Read file
 	code, err := os.ReadFile(filePath)
@@ -594,10 +599,7 @@ func handleOllamaQuality(ctx context.Context, params map[string]interface{}, hos
 		includeSuggestions = suggestions
 	}
 
-	model, _ := params["model"].(string)
-	if model == "" {
-		model = "codellama"
-	}
+	model := getOllamaModelParam(params, "codellama")
 
 	// Read file
 	code, err := os.ReadFile(filePath)
@@ -693,10 +695,7 @@ func handleOllamaSummary(ctx context.Context, params map[string]interface{}, hos
 		level = "brief"
 	}
 
-	model, _ := params["model"].(string)
-	if model == "" {
-		model = "codellama"
-	}
+	model := getOllamaModelParam(params, "codellama")
 
 	// Convert data to string if needed
 	var dataStr string
