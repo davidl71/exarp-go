@@ -796,7 +796,11 @@ func registerBatch2Tools(server framework.MCPServer) error {
 				},
 				"epic_id": map[string]interface{}{
 					"type":        "string",
-					"description": "Epic task ID if this task is part of an epic (optional, stored in task metadata)",
+					"description": "Epic task ID if this task is part of an epic (optional, stored in task metadata and parent_id)",
+				},
+				"parent_id": map[string]interface{}{
+					"type":        "string",
+					"description": "Parent task ID for hierarchy (optional; separate from blocking dependencies). For create/update/link_planning.",
 				},
 			},
 		},

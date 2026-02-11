@@ -287,8 +287,9 @@ func handleTaskWorkflowUpdate(ctx context.Context, params map[string]interface{}
 	removeTags := parseRemoveTagsFromParams(params)
 	name, _ := params["name"].(string)
 	longDescription, _ := params["long_description"].(string)
-	if newStatus == "" && priority == "" && len(addTags) == 0 && len(removeTags) == 0 && name == "" && longDescription == "" {
-		return nil, fmt.Errorf("update action requires at least one of new_status, priority, tags, remove_tags, name, or long_description")
+	parentID, _ := params["parent_id"].(string)
+	if newStatus == "" && priority == "" && len(addTags) == 0 && len(removeTags) == 0 && name == "" && longDescription == "" && parentID == "" {
+		return nil, fmt.Errorf("update action requires at least one of new_status, priority, tags, remove_tags, name, long_description, or parent_id")
 	}
 
 	useClaim := newStatus == "In Progress"
@@ -367,6 +368,9 @@ func handleTaskWorkflowUpdate(ctx context.Context, params map[string]interface{}
 		}
 		if !useClaim && newStatus != "" {
 			task.Status = newStatus
+		}
+		if parentID != "" {
+			task.ParentID = parentID
 		}
 		if err := store.UpdateTask(ctx, task); err != nil {
 			continue
@@ -1426,6 +1430,7 @@ func handleTaskWorkflowLinkPlanning(ctx context.Context, params map[string]inter
 		}
 		if epicID != "" {
 			linkMeta.EpicID = epicID
+			task.ParentID = epicID
 		}
 		SetPlanningLinkMetadata(&task, linkMeta)
 
@@ -1592,6 +1597,13 @@ func handleTaskWorkflowCreate(ctx context.Context, params map[string]interface{}
 		}
 	}
 
+	parentID, _ := params["parent_id"].(string)
+	if parentID != "" {
+		if err := ValidateTaskReference(parentID, tasks); err != nil {
+			return nil, fmt.Errorf("invalid parent_id: %w", err)
+		}
+	}
+
 	// Create task
 	task := &models.Todo2Task{
 		ID:              nextID,
@@ -1603,6 +1615,13 @@ func handleTaskWorkflowCreate(ctx context.Context, params map[string]interface{}
 		Dependencies:    dependencies,
 		Completed:       false,
 		Metadata:        make(map[string]interface{}),
+	}
+
+	// Set parent (hierarchy): parent_id explicit param overrides epic_id
+	if parentID != "" {
+		task.ParentID = parentID
+	} else if epicID != "" {
+		task.ParentID = epicID
 	}
 
 	// Store planning document link in metadata if provided
