@@ -19,6 +19,12 @@ import (
 
 // handleTaskWorkflowNative handles task_workflow with native Go and FM chain (Apple → Ollama → stub)
 func handleTaskWorkflowNative(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
+	projectRoot, err := FindProjectRoot()
+	if err != nil {
+		return nil, fmt.Errorf("task_workflow: %w", err)
+	}
+	ctx = context.WithValue(ctx, taskStoreKey, NewDefaultTaskStore(projectRoot))
+
 	action, _ := params["action"].(string)
 	if action == "" {
 		action = "sync"

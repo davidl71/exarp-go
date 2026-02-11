@@ -54,6 +54,24 @@ func ParseTaskIDsFromParams(params map[string]interface{}) []string {
 	return out
 }
 
+// taskStoreKey is the context key for TaskStore (injected by handleTaskWorkflowNative).
+type taskStoreKeyType struct{}
+
+var taskStoreKey = &taskStoreKeyType{}
+
+// getTaskStore returns the TaskStore from context, or builds one from FindProjectRoot() if not set.
+// Use this in handlers to access task storage; allows tests to inject database.NewMockTaskStore().
+func getTaskStore(ctx context.Context) (database.TaskStore, error) {
+	if s, ok := ctx.Value(taskStoreKey).(database.TaskStore); ok && s != nil {
+		return s, nil
+	}
+	projectRoot, err := FindProjectRoot()
+	if err != nil {
+		return nil, err
+	}
+	return NewDefaultTaskStore(projectRoot), nil
+}
+
 // handleTaskWorkflowApprove handles approve action for batch approving tasks
 // Uses database for efficient updates, falls back to file-based approach if needed
 // This is platform-agnostic (doesn't require Apple FM)
@@ -122,128 +140,23 @@ func handleTaskWorkflowApprove(ctx context.Context, params map[string]interface{
 		}
 	}
 
-	// Try database first for efficient filtering and updates
-	if db, err := database.GetDB(); err == nil && db != nil {
-		// Build filters
-		filters := &database.TaskFilters{Status: &status}
-		if filterTag != "" {
-			filters.Tag = &filterTag
-		}
-
-		// Get tasks matching filters
-		allTasks, err := database.ListTasks(context.Background(), filters)
-		if err != nil {
-			return nil, fmt.Errorf("failed to load tasks: %w", err)
-		}
-
-		// Filter candidates
-		candidates := []*models.Todo2Task{}
-		for _, task := range allTasks {
-			// Filter by specific task IDs if provided
-			if len(taskIDs) > 0 {
-				found := false
-				for _, id := range taskIDs {
-					if task.ID == id {
-						found = true
-						break
-					}
-				}
-				if !found {
-					continue
-				}
-			}
-
-			// Filter by clarification requirement if needed
-			if clarificationNone {
-				minDescLen := config.TaskMinDescriptionLength()
-				needsClarification := task.LongDescription == "" || len(task.LongDescription) < minDescLen
-				if needsClarification {
-					continue
-				}
-			}
-
-			candidates = append(candidates, task)
-		}
-
-		if dryRun {
-			taskList := make([]map[string]interface{}, len(candidates))
-			for i, task := range candidates {
-				taskList[i] = map[string]interface{}{
-					"id":      task.ID,
-					"content": task.Content,
-					"status":  task.Status,
-				}
-			}
-
-			taskIDList := make([]string, len(candidates))
-			for i, task := range candidates {
-				taskIDList[i] = task.ID
-			}
-
-			result := map[string]interface{}{
-				"success":        true,
-				"method":         "database",
-				"dry_run":        true,
-				"approved_count": len(candidates),
-				"task_ids":       taskIDList,
-				"tasks":          taskList,
-			}
-
-			return response.FormatResult(result, "")
-		}
-
-		// Update tasks in database
-		approvedIDs := []string{}
-		updatedCount := 0
-		for _, task := range candidates {
-			task.Status = newStatus
-			if err := database.UpdateTask(context.Background(), task); err == nil {
-				approvedIDs = append(approvedIDs, task.ID)
-				updatedCount++
-			}
-		}
-
-		// Sync DB to JSON so CLI and MCP leave Todo2 in sync (shared workflow)
-		var syncErr error
-		if updatedCount > 0 {
-			if projectRoot, findErr := FindProjectRoot(); findErr == nil {
-				syncErr = SyncTodo2Tasks(projectRoot)
-				if syncErr != nil {
-					fmt.Fprintf(os.Stderr, "Warning: sync DB to JSON after approve failed: %v\n", syncErr)
-				}
-			}
-		}
-
-		result := map[string]interface{}{
-			"success":        true,
-			"method":         "database",
-			"approved_count": updatedCount,
-			"task_ids":       approvedIDs,
-		}
-		if syncErr != nil {
-			result["sync_error"] = syncErr.Error()
-		}
-
-		return response.FormatResult(result, "")
-	}
-
-	// Fallback to file-based approach
-	projectRoot, err := FindProjectRoot()
+	// Use TaskStore (DB or file fallback) for filtering and updates
+	store, err := getTaskStore(ctx)
 	if err != nil {
 		return handleTaskWorkflowApproveMCP(ctx, params)
 	}
-
-	tasks, err := LoadTodo2Tasks(projectRoot)
+	filters := &database.TaskFilters{Status: &status}
+	if filterTag != "" {
+		filters.Tag = &filterTag
+	}
+	allTasks, err := store.ListTasks(ctx, filters)
 	if err != nil {
-		return handleTaskWorkflowApproveMCP(ctx, params)
+		return nil, fmt.Errorf("failed to load tasks: %w", err)
 	}
 
-	// Filter tasks to approve
+	// Filter candidates
 	candidates := []*models.Todo2Task{}
-	for _, task := range tasks {
-		if normalizeStatus(task.Status) != status {
-			continue
-		}
+	for _, task := range allTasks {
 		if len(taskIDs) > 0 {
 			found := false
 			for _, id := range taskIDs {
@@ -256,18 +169,6 @@ func handleTaskWorkflowApprove(ctx context.Context, params map[string]interface{
 				continue
 			}
 		}
-		if filterTag != "" {
-			hasTag := false
-			for _, tag := range task.Tags {
-				if tag == filterTag {
-					hasTag = true
-					break
-				}
-			}
-			if !hasTag {
-				continue
-			}
-		}
 		if clarificationNone {
 			minDescLen := config.TaskMinDescriptionLength()
 			needsClarification := task.LongDescription == "" || len(task.LongDescription) < minDescLen
@@ -275,7 +176,7 @@ func handleTaskWorkflowApprove(ctx context.Context, params map[string]interface{
 				continue
 			}
 		}
-		candidates = append(candidates, &task)
+		candidates = append(candidates, task)
 	}
 
 	if dryRun {
@@ -287,39 +188,37 @@ func handleTaskWorkflowApprove(ctx context.Context, params map[string]interface{
 				"status":  task.Status,
 			}
 		}
+		taskIDList := make([]string, len(candidates))
+		for i, task := range candidates {
+			taskIDList[i] = task.ID
+		}
 		result := map[string]interface{}{
 			"success":        true,
-			"method":         "file",
+			"method":         "store",
 			"dry_run":        true,
 			"approved_count": len(candidates),
-			"task_ids":       extractTaskIDs(candidates),
+			"task_ids":       taskIDList,
 			"tasks":          taskList,
 		}
 		return response.FormatResult(result, "")
 	}
 
-	// Update tasks (file-based)
+	// Update tasks via store (handles DB and file; sync is internal)
+	approvedIDs := []string{}
 	updatedCount := 0
 	for _, task := range candidates {
 		task.Status = newStatus
-		// Find index in tasks and update
-		for i := range tasks {
-			if tasks[i].ID == task.ID {
-				tasks[i].Status = newStatus
-				if err := SaveTodo2Tasks(projectRoot, tasks); err != nil {
-					return nil, fmt.Errorf("failed to save tasks: %w", err)
-				}
-				updatedCount++
-				break
-			}
+		if err := store.UpdateTask(ctx, task); err == nil {
+			approvedIDs = append(approvedIDs, task.ID)
+			updatedCount++
 		}
 	}
 
 	result := map[string]interface{}{
 		"success":        true,
-		"method":         "file",
+		"method":         "store",
 		"approved_count": updatedCount,
-		"task_ids":       extractTaskIDs(candidates),
+		"task_ids":       approvedIDs,
 	}
 	return response.FormatResult(result, "")
 }
@@ -363,12 +262,17 @@ func parseRemoveTagsFromParams(params map[string]interface{}) []string {
 }
 
 // handleTaskWorkflowUpdate updates task(s) by ID with optional new_status, priority, tags (merge), remove_tags, name, or long_description.
-// Uses database first; syncs DB to JSON after update.
+// Uses TaskStore (DB or file); when moving to In Progress uses database.ClaimTaskForAgent for locking.
 // Params: task_ids (required), new_status (optional), priority (optional), tags (optional; merged), remove_tags (optional), name (optional), long_description (optional).
 func handleTaskWorkflowUpdate(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	taskIDs := ParseTaskIDsFromParams(params)
 	if len(taskIDs) == 0 {
 		return nil, fmt.Errorf("update action requires task_ids")
+	}
+
+	store, err := getTaskStore(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get task store: %w", err)
 	}
 
 	newStatus, _ := params["new_status"].(string)
@@ -387,218 +291,107 @@ func handleTaskWorkflowUpdate(ctx context.Context, params map[string]interface{}
 		return nil, fmt.Errorf("update action requires at least one of new_status, priority, tags, remove_tags, name, or long_description")
 	}
 
-	// Try database first
-	if db, err := database.GetDB(); err == nil && db != nil {
-		updatedIDs := []string{}
-		updatedCount := 0
-		var skippedLocked []string
-
-		// When moving to In Progress, use atomic claim so the current agent is assigned and locked (T-77).
-		useClaim := newStatus == "In Progress"
-		var agentID string
-		if useClaim {
-			if id, err := database.GetAgentID(); err == nil {
-				agentID = id
-			} else {
-				useClaim = false
-			}
+	useClaim := newStatus == "In Progress"
+	var agentID string
+	if useClaim {
+		if id, err := database.GetAgentID(); err == nil {
+			agentID = id
+		} else {
+			useClaim = false
 		}
+	}
 
-		for _, id := range taskIDs {
-			var task *models.Todo2Task
-			if useClaim && agentID != "" {
-				leaseDuration := config.TaskLockLease()
-				claimResult, err := database.ClaimTaskForAgent(ctx, id, agentID, leaseDuration)
-				if err != nil {
-					continue
-				}
-				if !claimResult.Success {
-					if claimResult.WasLocked {
-						skippedLocked = append(skippedLocked, id)
-					}
-					continue
-				}
-				task = claimResult.Task
-			} else {
-				var err error
-				task, err = database.GetTask(ctx, id)
-				if err != nil {
-					continue
-				}
-				if newStatus != "" {
-					task.Status = newStatus
-				}
-			}
+	updatedIDs := []string{}
+	updatedCount := 0
+	var skippedLocked []string
 
-			// Apply non-status updates (priority, tags, name, long_description).
-			if priority != "" {
-				task.Priority = priority
-			}
-			if len(removeTags) > 0 {
-				removeSet := make(map[string]bool)
-				for _, t := range removeTags {
-					removeSet[t] = true
-				}
-				filtered := task.Tags[:0]
-				for _, t := range task.Tags {
-					if !removeSet[t] {
-						filtered = append(filtered, t)
-					}
-				}
-				task.Tags = filtered
-			}
-			if len(addTags) > 0 {
-				existing := make(map[string]bool)
-				for _, t := range task.Tags {
-					existing[t] = true
-				}
-				for _, t := range addTags {
-					if !existing[t] {
-						task.Tags = append(task.Tags, t)
-						existing[t] = true
-					}
-				}
-			}
-			if name != "" {
-				task.Content = name
-			}
-			if longDescription != "" {
-				task.LongDescription = longDescription
-			}
-			// When we used claim, status is already In Progress; otherwise set here.
-			if !useClaim && newStatus != "" {
-				task.Status = newStatus
-			}
-			if err := database.UpdateTask(ctx, task); err != nil {
+	for _, id := range taskIDs {
+		var task *models.Todo2Task
+		if useClaim && agentID != "" {
+			leaseDuration := config.TaskLockLease()
+			claimResult, err := database.ClaimTaskForAgent(ctx, id, agentID, leaseDuration)
+			if err != nil {
 				continue
 			}
-			updatedIDs = append(updatedIDs, id)
-			updatedCount++
-		}
-
-		// Sync DB to JSON
-		projectRoot, findErr := FindProjectRoot()
-		var syncErr error
-		if findErr == nil {
-			syncErr = SyncTodo2Tasks(projectRoot)
-			if syncErr != nil {
-				fmt.Fprintf(os.Stderr, "Warning: sync DB to JSON after update failed: %v\n", syncErr)
-			}
-		}
-
-		result := map[string]interface{}{
-			"success":       true,
-			"method":        "database",
-			"updated_count": updatedCount,
-			"task_ids":      updatedIDs,
-		}
-		if syncErr != nil {
-			result["sync_error"] = syncErr.Error()
-		}
-		if len(skippedLocked) > 0 {
-			result["skipped_locked"] = skippedLocked
-		}
-		// When moving to Review, include approval request payloads for gotoHuman (T-109)
-		if newStatus == "Review" && updatedCount > 0 {
-			approvalRequests := make([]ApprovalRequest, 0, len(updatedIDs))
-			for _, id := range updatedIDs {
-				task, err := database.GetTask(ctx, id)
-				if err != nil || task == nil {
-					continue
+			if !claimResult.Success {
+				if claimResult.WasLocked {
+					skippedLocked = append(skippedLocked, id)
 				}
-				approvalRequests = append(approvalRequests, BuildApprovalRequestFromTask(task, ""))
+				continue
 			}
-			if len(approvalRequests) > 0 {
-				result["approval_requests"] = approvalRequests
-				result["goto_human_instructions"] = "Call @gotoHuman request-human-review-with-form with each approval_request (form_id, field_data). Set GOTOHUMAN_API_KEY if needed. See docs/GOTOHUMAN_API_REFERENCE.md."
+			task = claimResult.Task
+		} else {
+			var err error
+			task, err = store.GetTask(ctx, id)
+			if err != nil {
+				continue
+			}
+			if newStatus != "" {
+				task.Status = newStatus
 			}
 		}
-		return response.FormatResult(result, "")
-	}
 
-	// Fallback: file-based load, update, save
-	projectRoot, err := FindProjectRoot()
-	if err != nil {
-		return nil, fmt.Errorf("failed to find project root: %w", err)
-	}
-	tasks, err := LoadTodo2Tasks(projectRoot)
-	if err != nil {
-		return nil, fmt.Errorf("failed to load tasks: %w", err)
-	}
-	taskMap := make(map[string]*models.Todo2Task)
-	for i := range tasks {
-		taskMap[tasks[i].ID] = &tasks[i]
-	}
-	updatedIDs := []string{}
-	for _, id := range taskIDs {
-		t, ok := taskMap[id]
-		if !ok {
-			continue
-		}
-		if newStatus != "" {
-			t.Status = newStatus
-		}
 		if priority != "" {
-			t.Priority = priority
+			task.Priority = priority
 		}
 		if len(removeTags) > 0 {
 			removeSet := make(map[string]bool)
-			for _, tag := range removeTags {
-				removeSet[tag] = true
+			for _, t := range removeTags {
+				removeSet[t] = true
 			}
-			filtered := t.Tags[:0]
-			for _, tag := range t.Tags {
-				if !removeSet[tag] {
-					filtered = append(filtered, tag)
+			filtered := task.Tags[:0]
+			for _, t := range task.Tags {
+				if !removeSet[t] {
+					filtered = append(filtered, t)
 				}
 			}
-			t.Tags = filtered
+			task.Tags = filtered
 		}
 		if len(addTags) > 0 {
 			existing := make(map[string]bool)
-			for _, tag := range t.Tags {
-				existing[tag] = true
+			for _, t := range task.Tags {
+				existing[t] = true
 			}
-			for _, tag := range addTags {
-				if !existing[tag] {
-					t.Tags = append(t.Tags, tag)
-					existing[tag] = true
+			for _, t := range addTags {
+				if !existing[t] {
+					task.Tags = append(task.Tags, t)
+					existing[t] = true
 				}
 			}
 		}
 		if name != "" {
-			t.Content = name
+			task.Content = name
 		}
 		if longDescription != "" {
-			t.LongDescription = longDescription
+			task.LongDescription = longDescription
+		}
+		if !useClaim && newStatus != "" {
+			task.Status = newStatus
+		}
+		if err := store.UpdateTask(ctx, task); err != nil {
+			continue
 		}
 		updatedIDs = append(updatedIDs, id)
+		updatedCount++
 	}
-	if len(updatedIDs) == 0 {
-		result := map[string]interface{}{
-			"success":       true,
-			"method":        "file",
-			"updated_count": 0,
-			"task_ids":      []string{},
-		}
-		return response.FormatResult(result, "")
-	}
-	if err := SaveTodo2Tasks(projectRoot, tasks); err != nil {
-		return nil, fmt.Errorf("failed to save tasks: %w", err)
-	}
+
 	result := map[string]interface{}{
 		"success":       true,
-		"method":        "file",
-		"updated_count": len(updatedIDs),
+		"method":        "store",
+		"updated_count": updatedCount,
 		"task_ids":      updatedIDs,
 	}
-	// When moving to Review, include approval request payloads for gotoHuman (T-109)
-	if newStatus == "Review" && len(updatedIDs) > 0 {
+	if len(skippedLocked) > 0 {
+		result["skipped_locked"] = skippedLocked
+	}
+	if newStatus == "Review" && updatedCount > 0 {
 		approvalRequests := make([]ApprovalRequest, 0, len(updatedIDs))
 		for _, id := range updatedIDs {
-			if t, ok := taskMap[id]; ok {
-				approvalRequests = append(approvalRequests, BuildApprovalRequestFromTask(t, ""))
+			task, err := store.GetTask(ctx, id)
+			if err != nil || task == nil {
+				continue
 			}
+			approvalRequests = append(approvalRequests, BuildApprovalRequestFromTask(task, ""))
 		}
 		if len(approvalRequests) > 0 {
 			result["approval_requests"] = approvalRequests
@@ -637,15 +430,17 @@ func handleTaskWorkflowApproveMCP(ctx context.Context, params map[string]interfa
 
 // handleTaskWorkflowList handles list sub-action for displaying tasks
 func handleTaskWorkflowList(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
-	projectRoot, err := FindProjectRoot()
+	store, err := getTaskStore(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("failed to find project root: %w", err)
+		return nil, fmt.Errorf("failed to get task store: %w", err)
 	}
-
-	// Load tasks
-	tasks, err := LoadTodo2Tasks(projectRoot)
+	list, err := store.ListTasks(ctx, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load tasks: %w", err)
+	}
+	tasks := make([]Todo2Task, len(list))
+	for i, t := range list {
+		tasks[i] = *t
 	}
 
 	// Apply filters
@@ -1683,6 +1478,10 @@ func handleTaskWorkflowLinkPlanning(ctx context.Context, params map[string]inter
 // Uses database for efficient creation, falls back to file-based approach if needed
 // This is platform-agnostic (doesn't require Apple FM)
 func handleTaskWorkflowCreate(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
+	store, err := getTaskStore(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get task store: %w", err)
+	}
 	projectRoot, err := FindProjectRoot()
 	if err != nil {
 		return nil, fmt.Errorf("failed to find project root: %w", err)
@@ -1751,9 +1550,13 @@ func handleTaskWorkflowCreate(ctx context.Context, params map[string]interface{}
 	}
 
 	// Load existing tasks for dependency validation only (ID generation is now O(1))
-	tasks, err := LoadTodo2Tasks(projectRoot)
+	list, err := store.ListTasks(ctx, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load tasks: %w", err)
+	}
+	tasks := make([]Todo2Task, len(list))
+	for i, t := range list {
+		tasks[i] = *t
 	}
 
 	// Generate next task ID using epoch milliseconds (O(1) - no need to load all tasks)
@@ -1811,56 +1614,26 @@ func handleTaskWorkflowCreate(ctx context.Context, params map[string]interface{}
 		SetPlanningLinkMetadata(task, linkMeta)
 	}
 
-	// Try database first
-	if err := database.CreateTask(ctx, task); err != nil {
-		// Database failed, try file-based fallback
-		tasks = append(tasks, *task)
-		if err := SaveTodo2Tasks(projectRoot, tasks); err != nil {
-			return nil, fmt.Errorf("failed to create task: database error: %v, file error: %w", err, err)
-		}
-	} else {
-		// Sync DB to JSON (shared workflow)
-		if syncErr := SyncTodo2Tasks(projectRoot); syncErr != nil {
-			fmt.Fprintf(os.Stderr, "Warning: sync DB to JSON after create task failed: %v\n", syncErr)
-			result := map[string]interface{}{
-				"success": true, "method": "native_go",
-				"sync_error": syncErr.Error(),
-				"task": map[string]interface{}{
-					"id": task.ID, "name": task.Content, "long_description": task.LongDescription,
-					"status": task.Status, "priority": task.Priority, "tags": task.Tags, "dependencies": task.Dependencies,
-				},
-			}
-			return response.FormatResult(result, "")
-		}
+	// Create via store (DB or file; sync is internal)
+	if err := store.CreateTask(ctx, task); err != nil {
+		return nil, fmt.Errorf("failed to create task: %w", err)
 	}
 
-	// Return created task information
 	result := map[string]interface{}{
-		"success": true,
-		"method":  "native_go",
+		"success": true, "method": "store",
 		"task": map[string]interface{}{
-			"id":               task.ID,
-			"name":             task.Content,
-			"long_description": task.LongDescription,
-			"status":           task.Status,
-			"priority":         task.Priority,
-			"tags":             task.Tags,
-			"dependencies":     task.Dependencies,
+			"id": task.ID, "name": task.Content, "long_description": task.LongDescription,
+			"status": task.Status, "priority": task.Priority, "tags": task.Tags, "dependencies": task.Dependencies,
 		},
 	}
 
 	// Auto-estimate task if enabled (default: true)
-	// This happens after task creation succeeds, so failures don't affect task creation
 	autoEstimate := true
 	if ae, ok := params["auto_estimate"].(bool); ok {
 		autoEstimate = ae
 	}
-
 	if autoEstimate {
-		// Estimate task duration and add as comment (graceful failure - don't fail task creation)
 		if err := addEstimateComment(ctx, projectRoot, task, name, longDescription, tags, priority); err != nil {
-			// Log error but don't fail task creation
-			// Error is logged to result metadata for debugging
 			if metadata, ok := result["metadata"].(map[string]interface{}); ok {
 				metadata["estimation_error"] = err.Error()
 			} else {
