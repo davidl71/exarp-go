@@ -375,6 +375,44 @@ func TestTaskWithMetadata(t *testing.T) {
 	}
 }
 
+func TestSerializeTaskMetadata(t *testing.T) {
+	task := &Todo2Task{
+		ID:       "T-serial",
+		Content:  "x",
+		Metadata: map[string]interface{}{"k": "v"},
+	}
+	metadataJSON, metadataProtobuf, metadataFormat, err := SerializeTaskMetadata(task)
+	if err != nil {
+		t.Fatalf("SerializeTaskMetadata() error = %v", err)
+	}
+	if metadataFormat != "protobuf" && metadataFormat != "json" {
+		t.Errorf("metadataFormat want protobuf or json, got %q", metadataFormat)
+	}
+	if metadataJSON == "" {
+		t.Error("metadataJSON should be non-empty when task has metadata")
+	}
+	if metadataFormat == "protobuf" && len(metadataProtobuf) == 0 {
+		t.Error("metadataProtobuf should be non-empty when format is protobuf")
+	}
+	// Round-trip via DeserializeTaskMetadata
+	got := DeserializeTaskMetadata(metadataJSON, metadataProtobuf, metadataFormat)
+	if got == nil || got["k"] != "v" {
+		t.Errorf("DeserializeTaskMetadata round-trip: got %v, want map with k=v", got)
+	}
+}
+
+func TestDeserializeTaskMetadata(t *testing.T) {
+	// Empty inputs
+	if got := DeserializeTaskMetadata("", nil, ""); got != nil {
+		t.Errorf("DeserializeTaskMetadata(empty) = %v, want nil", got)
+	}
+	// JSON fallback
+	got := DeserializeTaskMetadata(`{"a":1}`, nil, "json")
+	if got == nil || got["a"] != float64(1) {
+		t.Errorf("DeserializeTaskMetadata(json) = %v, want map a=1", got)
+	}
+}
+
 // TestForeignKeysEnabled verifies that foreign key constraints are enabled
 // and properly reject invalid dependency references
 func TestForeignKeysEnabled(t *testing.T) {
