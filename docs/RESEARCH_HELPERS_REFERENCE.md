@@ -1,17 +1,18 @@
 # Research Helpers Reference
 
 **Date:** 2026-01-07  
-**Status:** ✅ **Implemented**  
-**Location:** `mcp_stdio_tools/research_helpers.py`
+**Status:** ✅ **Updated**  
+**Note:** Python helpers (`mcp_stdio_tools/research_helpers.py`) are deprecated/removed. Use MCP tools directly from Cursor (Context7, tractatus_thinking, etc.).
 
 ---
 
 ## Overview
 
-Research helper functions provide a unified interface for parallel research execution using:
-- **CodeLlama** (MLX/Ollama) - Code review and architecture analysis
-- **Context7** - Library documentation retrieval
-- **Tractatus Thinking** - Structured reasoning and logical decomposition
+Research is done via **MCP tools in Cursor**:
+
+- **Context7** – Library documentation: `resolve-library-id` then `query-docs`.
+- **Tractatus Thinking** – Logical decomposition: call **tractatus_thinking** MCP with `operation=start`, then `add` / `export`. See below.
+- **CodeLlama / MLX / Ollama** – Use exarp-go `mlx`, `ollama`, or `apple_foundation_models` tools, or Cursor’s built-in model for code review and analysis.
 
 ---
 
@@ -144,55 +145,21 @@ Complete library information including documentation
 
 ---
 
-## Tractatus Thinking Helpers
+## Using Tractatus via Cursor MCP
 
-### `tractatus_analyze_concept(concept, depth_limit)`
+**Tractatus Thinking** is available as the **tractatus_thinking** MCP server in Cursor. Cursor AI can call it directly; no Python or exarp-go bridge is required.
 
-Analyze a concept using Tractatus Thinking.
+### Workflow
 
-**Parameters:**
-- `concept` (str): Concept to analyze (e.g., "What is framework-agnostic design?")
-- `depth_limit` (int): Maximum analysis depth (default: 5)
+1. **Start:** Call `tractatus_thinking` with `operation="start"` and `concept="What is X?"` (or your question). Receive a `session_id`.
+2. **Add:** Use `operation="add"` with `session_id`, `content`, and `decomposition_type` (e.g. clarification, analysis, cases) to build propositions. Optionally set `parent_number` for hierarchy.
+3. **Export:** Use `operation="export"` with `session_id` and `format="markdown"` or `"json"` to get the decomposition for implementation or docs.
 
-**Returns:**
-```python
-{
-    "tool": "tractatus",
-    "concept": "What is framework-agnostic design?",
-    "session_id": "session_123",
-    "analysis": "Concept analysis",
-    "propositions": ["prop1", "prop2"],
-    "logical_structure": {"structure": "..."}
-}
-```
+### When to use
 
-**Example:**
-```python
-result = await tractatus_analyze_concept(
-    concept="What is framework-agnostic MCP server design?",
-    depth_limit=5
-)
-```
-
-### `tractatus_decompose_problem(problem)`
-
-Decompose a problem using Tractatus.
-
-**Parameters:**
-- `problem` (str): Problem statement
-
-**Returns:**
-Problem decomposition with components and relationships
-
-### `tractatus_reason_about(statement)`
-
-Perform logical reasoning about a statement.
-
-**Parameters:**
-- `statement` (str): Statement to reason about
-
-**Returns:**
-Reasoning results with logical structure
+- Decompose complex or fuzzy concepts before implementation.
+- Research/design phases where logical structure (what must *all* be true) matters.
+- See also: `.cursor/skills/tractatus-decompose/SKILL.md` and `.cursor/rules/mcp-configuration.mdc` (When to Use Tractatus).
 
 ---
 
@@ -315,13 +282,11 @@ comment = format_research_comment(results)
 
 ## Integration with MCP Tools
 
-These helpers are designed to integrate with MCP tools:
+Use MCP tools directly from Cursor:
 
-- **CodeLlama:** Uses `mlx` or `ollama` MCP tools
-- **Context7:** Uses `context7_resolve_library_id` and `context7_query_docs` MCP tools
-- **Tractatus:** Uses `tractatus_thinking` MCP tool
-
-**Note:** Current implementation provides structure. Full integration requires calling actual MCP tools.
+- **Context7:** `resolve-library-id` then `query-docs`.
+- **Tractatus:** `tractatus_thinking` (operation=start, add, export). See skill `.cursor/skills/tractatus-decompose/SKILL.md`.
+- **LLM/code:** exarp-go `mlx`, `ollama`, or `apple_foundation_models`; or Cursor’s built-in model.
 
 ---
 
@@ -332,5 +297,5 @@ These helpers are designed to integrate with MCP tools:
 
 ---
 
-**Status:** ✅ **Helper functions created.** Ready for integration with MCP tools.
+**Status:** ✅ **MCP-first.** Use tractatus_thinking and Context7 from Cursor; Python helpers removed.
 
