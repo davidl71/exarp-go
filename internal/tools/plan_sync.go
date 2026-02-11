@@ -169,9 +169,17 @@ func handleTaskWorkflowSyncFromPlan(ctx context.Context, params map[string]inter
 		return nil, fmt.Errorf("planning_doc is required for sync_from_plan/sync_plan_status")
 	}
 
-	projectRoot, err := security.GetProjectRoot(".")
-	if err != nil {
-		return nil, fmt.Errorf("sync_from_plan: %w", err)
+	// Prefer PROJECT_ROOT when set (e.g. tests use tmpDir) so path validation uses same root
+	var projectRoot string
+	if envRoot := os.Getenv("PROJECT_ROOT"); envRoot != "" && !strings.Contains(envRoot, "{{PROJECT_ROOT}}") {
+		projectRoot = filepath.Clean(envRoot)
+	}
+	if projectRoot == "" {
+		var err error
+		projectRoot, err = security.GetProjectRoot(".")
+		if err != nil {
+			return nil, fmt.Errorf("sync_from_plan: %w", err)
+		}
 	}
 
 	// Resolve path (relative to project root)
