@@ -159,6 +159,7 @@ build: ## Build the Go server (CGO enabled on Mac Silicon by default, disabled e
 	@if [ "$$(uname -s)" = "Darwin" ] && [ "$$(uname -m)" = "arm64" ]; then \
 		if command -v gcc >/dev/null 2>&1 || command -v clang >/dev/null 2>&1 || command -v cc >/dev/null 2>&1; then \
 			echo "$(BLUE)Detected Mac Silicon - Building with CGO (Apple Foundation Models support)$(NC)"; \
+			$(MAKE) build-swift-bridge 2>/dev/null || true; \
 			CGO_ENABLED=1 $(GO) build -ldflags "-X main.Version=$(VERSION) -X main.BuildTime=$(BUILD_TIME) -X main.GitCommit=$(GIT_COMMIT)" -o $(BINARY_PATH) ./cmd/server 2>&1 || (echo "$(YELLOW)⚠️  CGO build failed - falling back to build without CGO$(NC)" && CGO_ENABLED=0 $(GO) build -ldflags "-X main.Version=$(VERSION) -X main.BuildTime=$(BUILD_TIME) -X main.GitCommit=$(GIT_COMMIT)" -o $(BINARY_PATH) ./cmd/server || (echo "$(RED)❌ Build failed$(NC)" && exit 1)); \
 			echo "$(GREEN)✅ Server built: $(BINARY_PATH) (v$(VERSION))$(NC)"; \
 		else \
