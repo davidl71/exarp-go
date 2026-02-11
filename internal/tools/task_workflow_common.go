@@ -761,16 +761,20 @@ func handleTaskWorkflowSync(ctx context.Context, params map[string]interface{}) 
 		taskMap[task.ID] = true
 	}
 
-	// Check for missing dependencies
-	for _, task := range tasks {
+	// Tasks that had invalid epic ID cleared (so we persist the fix)
+	var tasksWithOrphanedEpicFixed []*models.Todo2Task
+
+	// Check for missing dependencies and invalid planning links
+	for i := range tasks {
+		task := &tasks[i]
 		for _, dep := range task.Dependencies {
 			if !taskMap[dep] {
 				issues = append(issues, fmt.Sprintf("Task %s depends on %s which doesn't exist", task.ID, dep))
 			}
 		}
 
-		// Validate planning document links
-		if linkMeta := GetPlanningLinkMetadata(&task); linkMeta != nil {
+		// Validate planning document links; auto-clear orphaned epic_id
+		if linkMeta := GetPlanningLinkMetadata(task); linkMeta != nil {
 			if linkMeta.PlanningDoc != "" {
 				if err := ValidatePlanningLink(projectRoot, linkMeta.PlanningDoc); err != nil {
 					issues = append(issues, fmt.Sprintf("Task %s has invalid planning doc link: %v", task.ID, err))
@@ -780,6 +784,24 @@ func handleTaskWorkflowSync(ctx context.Context, params map[string]interface{}) 
 				if err := ValidateTaskReference(linkMeta.EpicID, tasks); err != nil {
 					issues = append(issues, fmt.Sprintf("Task %s has invalid epic ID: %v", task.ID, err))
 				}
+				// Clear orphaned epic_id so future syncs are clean
+				linkMeta.EpicID = ""
+				SetPlanningLinkMetadata(task, linkMeta)
+				tasksWithOrphanedEpicFixed = append(tasksWithOrphanedEpicFixed, task)
+			}
+		}
+	}
+
+	// Persist cleared epic_id for tasks that referenced a missing epic
+	if !dryRun && len(tasksWithOrphanedEpicFixed) > 0 {
+		for _, t := range tasksWithOrphanedEpicFixed {
+			if err := database.UpdateTask(ctx, t); err != nil {
+				fmt.Fprintf(os.Stderr, "Warning: failed to clear orphaned epic_id on task %s: %v\n", t.ID, err)
+			}
+		}
+		if len(tasksWithOrphanedEpicFixed) > 0 {
+			if syncErr := SyncTodo2Tasks(projectRoot); syncErr != nil {
+				fmt.Fprintf(os.Stderr, "Warning: sync after clearing orphaned epic_id failed: %v\n", syncErr)
 			}
 		}
 	}
