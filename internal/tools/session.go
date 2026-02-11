@@ -16,6 +16,7 @@ import (
 	"github.com/davidl71/exarp-go/internal/config"
 	"github.com/davidl71/exarp-go/internal/database"
 	"github.com/davidl71/exarp-go/internal/framework"
+	"github.com/davidl71/exarp-go/internal/utils"
 	mcpframework "github.com/davidl71/mcp-go-core/pkg/mcp/framework"
 	mcpresponse "github.com/davidl71/mcp-go-core/pkg/mcp/response"
 )
@@ -562,41 +563,45 @@ func handleSessionSync(ctx context.Context, params map[string]interface{}, proje
 		"note":      "Full sync implementation requires agentic-tools MCP integration",
 	}
 
-	// Basic Git sync implementation
+	// Basic Git sync implementation: all Git writes run under repo-level lock (T-78)
 	if !dryRun {
-		if direction == "pull" || direction == "both" {
-			// Pull latest changes
-			cmd := exec.CommandContext(ctx, "git", "pull", "--no-edit")
-			cmd.Dir = projectRoot
-			if err := cmd.Run(); err == nil {
-				result["pulled"] = true
-			}
-		}
-
-		if (direction == "push" || direction == "both") && autoCommit {
-			// Check if there are changes to commit
-			cmd := exec.CommandContext(ctx, "git", "status", "--porcelain", ".todo2")
-			cmd.Dir = projectRoot
-			output, err := cmd.Output()
-			if err == nil && len(output) > 0 {
-				// Commit changes
-				cmd = exec.CommandContext(ctx, "git", "add", ".todo2")
+		err := utils.WithGitLock(projectRoot, 0, func() error {
+			if direction == "pull" || direction == "both" {
+				cmd := exec.CommandContext(ctx, "git", "pull", "--no-edit")
 				cmd.Dir = projectRoot
-				cmd.Run()
+				if err := cmd.Run(); err == nil {
+					result["pulled"] = true
+				}
+			}
 
-				cmd = exec.CommandContext(ctx, "git", "commit", "-m", "Auto-sync Todo2 state")
+			if (direction == "push" || direction == "both") && autoCommit {
+				cmd := exec.CommandContext(ctx, "git", "status", "--porcelain", ".todo2")
 				cmd.Dir = projectRoot
-				cmd.Run()
+				output, err := cmd.Output()
+				if err == nil && len(output) > 0 {
+					cmd = exec.CommandContext(ctx, "git", "add", ".todo2")
+					cmd.Dir = projectRoot
+					cmd.Run()
 
-				result["committed"] = true
-			}
+					cmd = exec.CommandContext(ctx, "git", "commit", "-m", "Auto-sync Todo2 state")
+					cmd.Dir = projectRoot
+					cmd.Run()
 
-			// Push changes
-			cmd = exec.CommandContext(ctx, "git", "push")
-			cmd.Dir = projectRoot
-			if err := cmd.Run(); err == nil {
-				result["pushed"] = true
+					result["committed"] = true
+				}
+
+				cmd = exec.CommandContext(ctx, "git", "push")
+				cmd.Dir = projectRoot
+				if err := cmd.Run(); err == nil {
+					result["pushed"] = true
+				}
 			}
+			return nil
+		})
+		if err != nil {
+			result["success"] = false
+			result["error"] = err.Error()
+			return mcpresponse.FormatResult(result, "")
 		}
 	}
 
@@ -981,8 +986,9 @@ func shouldSuggestPlanMode(tasks []Todo2Task) bool {
 func getHintsForMode(mode string) map[string]string {
 	// Simplified hints - can be expanded
 	hints := map[string]string{
-		"session": "Use session tool for context priming and handoffs",
-		"tasks":   "Use task_workflow tool for task management",
+		"session":    "Use session tool for context priming and handoffs",
+		"tasks":      "Use task_workflow tool for task management",
+		"tractatus":  "Consider tractatus_thinking for logical decomposition of complex concepts (use operation=start)",
 	}
 
 	switch mode {
