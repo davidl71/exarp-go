@@ -198,18 +198,18 @@ func handleTaskWorkflowSyncFromPlan(ctx context.Context, params map[string]inter
 
 	dryRun, _ := params["dry_run"].(bool)
 
-	tasks, err := LoadTodo2Tasks(projectRoot)
+	store := NewDefaultTaskStore(projectRoot)
+	list, err := store.ListTasks(ctx, nil)
 	if err != nil {
 		return nil, fmt.Errorf("sync_from_plan: load tasks: %w", err)
 	}
+	tasks := tasksFromPtrs(list)
 	taskByID := make(map[string]*Todo2Task)
 	for i := range tasks {
 		taskByID[tasks[i].ID] = &tasks[i]
 	}
 
 	var created, updated []string
-	db, dbErr := database.GetDB()
-	useDB := dbErr == nil && db != nil
 
 	for _, todo := range todos {
 		if todo.ID == "" {
@@ -248,14 +248,10 @@ func handleTaskWorkflowSyncFromPlan(ctx context.Context, params map[string]inter
 				Status:          todo2Status,
 				Priority:        "medium",
 			}
-			if useDB {
-				if err := database.CreateTask(ctx, newTask); err != nil {
-					return nil, fmt.Errorf("sync_from_plan: create task %s: %w", newTask.ID, err)
-				}
-			} else {
-				tasks = append(tasks, *newTask)
-				taskByID[newTask.ID] = &tasks[len(tasks)-1]
+			if err := store.CreateTask(ctx, newTask); err != nil {
+				return nil, fmt.Errorf("sync_from_plan: create task %s: %w", newTask.ID, err)
 			}
+			taskByID[newTask.ID] = newTask
 			created = append(created, newTask.ID)
 		} else {
 			// Update existing task status if different
@@ -265,29 +261,15 @@ func handleTaskWorkflowSyncFromPlan(ctx context.Context, params map[string]inter
 					continue
 				}
 				existing.Status = todo2Status
-				if useDB {
-					if err := database.UpdateTask(ctx, existing); err != nil {
-						return nil, fmt.Errorf("sync_from_plan: update task %s: %w", todo.ID, err)
-					}
-				} else {
-					for i := range tasks {
-						if tasks[i].ID == todo.ID {
-							tasks[i].Status = todo2Status
-							break
-						}
-					}
+				if err := store.UpdateTask(ctx, existing); err != nil {
+					return nil, fmt.Errorf("sync_from_plan: update task %s: %w", todo.ID, err)
 				}
 				updated = append(updated, todo.ID)
 			}
 		}
 	}
 
-	if !useDB && (len(created) > 0 || len(updated) > 0) && !dryRun {
-		if err := SaveTodo2Tasks(projectRoot, tasks); err != nil {
-			return nil, fmt.Errorf("sync_from_plan: save tasks: %w", err)
-		}
-	}
-	if useDB && (len(created) > 0 || len(updated) > 0) && !dryRun {
+	if (len(created) > 0 || len(updated) > 0) && !dryRun {
 		if err := SyncTodo2Tasks(projectRoot); err != nil {
 			return nil, fmt.Errorf("sync_from_plan: sync to JSON: %w", err)
 		}
@@ -308,12 +290,10 @@ func handleTaskWorkflowSyncFromPlan(ctx context.Context, params map[string]inter
 				statusByID[todo.ID] = t.Status
 			}
 		}
-		if useDB {
-			// Reload from DB so we have latest status after updates
-			for id := range statusByID {
-				if t, err := database.GetTask(ctx, id); err == nil {
-					statusByID[id] = t.Status
-				}
+		// Reload from store so we have latest status after updates
+		for id := range statusByID {
+			if t, err := store.GetTask(ctx, id); err == nil && t != nil {
+				statusByID[id] = t.Status
 			}
 		}
 		if err := writePlanFileBack(planPath, todos, statusByID); err != nil {

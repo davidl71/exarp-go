@@ -261,9 +261,32 @@ func parseRemoveTagsFromParams(params map[string]interface{}) []string {
 	return tags
 }
 
-// handleTaskWorkflowUpdate updates task(s) by ID with optional new_status, priority, tags (merge), remove_tags, name, or long_description.
+// parseDependenciesFromParams extracts dependencies from params (comma-separated string or array). Returns nil if not provided.
+func parseDependenciesFromParams(params map[string]interface{}) []string {
+	if d, ok := params["dependencies"].([]interface{}); ok {
+		var deps []string
+		for _, dep := range d {
+			if depStr, ok := dep.(string); ok && depStr != "" {
+				deps = append(deps, strings.TrimSpace(depStr))
+			}
+		}
+		return deps
+	}
+	if dStr, ok := params["dependencies"].(string); ok && dStr != "" {
+		var deps []string
+		for _, dep := range strings.Split(dStr, ",") {
+			if trimmed := strings.TrimSpace(dep); trimmed != "" {
+				deps = append(deps, trimmed)
+			}
+		}
+		return deps
+	}
+	return nil
+}
+
+// handleTaskWorkflowUpdate updates task(s) by ID with optional new_status, priority, tags (merge), remove_tags, name, long_description, or dependencies.
 // Uses TaskStore (DB or file); when moving to In Progress uses database.ClaimTaskForAgent for locking.
-// Params: task_ids (required), new_status (optional), priority (optional), tags (optional; merged), remove_tags (optional), name (optional), long_description (optional).
+// Params: task_ids (required), new_status (optional), priority (optional), tags (optional; merged), remove_tags (optional), name (optional), long_description (optional), dependencies (optional; replaces).
 func handleTaskWorkflowUpdate(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	taskIDs := ParseTaskIDsFromParams(params)
 	if len(taskIDs) == 0 {
@@ -288,8 +311,9 @@ func handleTaskWorkflowUpdate(ctx context.Context, params map[string]interface{}
 	name, _ := params["name"].(string)
 	longDescription, _ := params["long_description"].(string)
 	parentID, _ := params["parent_id"].(string)
-	if newStatus == "" && priority == "" && len(addTags) == 0 && len(removeTags) == 0 && name == "" && longDescription == "" && parentID == "" {
-		return nil, fmt.Errorf("update action requires at least one of new_status, priority, tags, remove_tags, name, long_description, or parent_id")
+	dependencies := parseDependenciesFromParams(params)
+	if newStatus == "" && priority == "" && len(addTags) == 0 && len(removeTags) == 0 && name == "" && longDescription == "" && parentID == "" && dependencies == nil {
+		return nil, fmt.Errorf("update action requires at least one of new_status, priority, tags, remove_tags, name, long_description, parent_id, or dependencies")
 	}
 
 	useClaim := newStatus == "In Progress"
@@ -372,6 +396,9 @@ func handleTaskWorkflowUpdate(ctx context.Context, params map[string]interface{}
 		if parentID != "" {
 			task.ParentID = parentID
 		}
+		if dependencies != nil {
+			task.Dependencies = dependencies
+		}
 		if err := store.UpdateTask(ctx, task); err != nil {
 			continue
 		}
@@ -416,12 +443,15 @@ func extractTaskIDs(candidates []*models.Todo2Task) []string {
 
 // handleTaskWorkflowList is moved below to avoid duplicating the file-based approve loop.
 func handleTaskWorkflowListPlaceholder(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
-	tasks, err := LoadTodo2Tasks(ctx.Value("projectRoot").(string))
+	store, err := getTaskStore(ctx)
+	if err != nil {
+		return nil, err
+	}
+	_, err = store.ListTasks(ctx, nil)
 	if err != nil {
 		return nil, err
 	}
 	_ = params
-	_ = tasks
 	return nil, nil
 }
 
@@ -587,10 +617,15 @@ func handleTaskWorkflowSync(ctx context.Context, params map[string]interface{}) 
 	}
 
 	// Load tasks after sync to validate
-	tasks, err := LoadTodo2Tasks(projectRoot)
+	store, err := getTaskStore(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get task store: %w", err)
+	}
+	list, err := store.ListTasks(ctx, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load tasks after sync: %w", err)
 	}
+	tasks := tasksFromPtrs(list)
 
 	// Validate task consistency
 	issues := []string{}
@@ -674,15 +709,15 @@ var validTaskStatuses = map[string]bool{
 // handleTaskWorkflowSanityCheck runs generic Todo2 task sanity checks (epoch dates, empty content, valid status, duplicate IDs, missing deps).
 // Use action=sanity_check; optional output_path to write report.
 func handleTaskWorkflowSanityCheck(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
-	projectRoot, err := FindProjectRoot()
+	store, err := getTaskStore(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("failed to find project root: %w", err)
+		return nil, fmt.Errorf("failed to get task store: %w", err)
 	}
-
-	tasks, err := LoadTodo2Tasks(projectRoot)
+	list, err := store.ListTasks(ctx, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load tasks: %w", err)
 	}
+	tasks := tasksFromPtrs(list)
 
 	issues := []string{}
 	taskMap := make(map[string]bool)
@@ -768,15 +803,15 @@ func handleTaskWorkflowSanityCheck(ctx context.Context, params map[string]interf
 
 // handleTaskWorkflowClarity handles clarity action for improving task clarity
 func handleTaskWorkflowClarity(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
-	projectRoot, err := FindProjectRoot()
+	store, err := getTaskStore(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("failed to find project root: %w", err)
+		return nil, fmt.Errorf("failed to get task store: %w", err)
 	}
-
-	tasks, err := LoadTodo2Tasks(projectRoot)
+	list, err := store.ListTasks(ctx, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load tasks: %w", err)
 	}
+	tasks := tasksFromPtrs(list)
 
 	autoApply := false
 	if apply, ok := params["auto_apply"].(bool); ok {
@@ -1057,16 +1092,16 @@ func handleTaskWorkflowCleanup(ctx context.Context, params map[string]interface{
 		return response.FormatResult(result, outputPath)
 	}
 
-	// Fallback to file-based approach
-	projectRoot, err := FindProjectRoot()
+	// Fallback to TaskStore
+	store, err := getTaskStore(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("failed to find project root: %w", err)
+		return nil, fmt.Errorf("failed to get task store: %w", err)
 	}
-
-	tasks, err := LoadTodo2Tasks(projectRoot)
+	list, err := store.ListTasks(ctx, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load tasks: %w", err)
 	}
+	tasks := tasksFromPtrs(list)
 
 	// Identify stale and legacy tasks
 	staleTasks := []Todo2Task{}
@@ -1139,9 +1174,11 @@ func handleTaskWorkflowCleanup(ctx context.Context, params map[string]interface{
 		}
 	}
 
-	// Save updated tasks
-	if err := SaveTodo2Tasks(projectRoot, remainingTasks); err != nil {
-		return nil, fmt.Errorf("failed to save tasks: %w", err)
+	// Delete removed tasks via store
+	for _, id := range removedIDs {
+		if err := store.DeleteTask(ctx, id); err != nil {
+			fmt.Fprintf(os.Stderr, "Warning: failed to delete task %s: %v\n", id, err)
+		}
 	}
 
 	result := map[string]interface{}{
@@ -1227,20 +1264,19 @@ func handleTaskWorkflowFixEmptyDescriptions(ctx context.Context, params map[stri
 		return response.FormatResult(result, outputPath)
 	}
 
-	projectRoot, err := FindProjectRoot()
+	store, err := getTaskStore(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("failed to find project root: %w", err)
+		return nil, fmt.Errorf("failed to get task store: %w", err)
 	}
-
-	tasks, err := LoadTodo2Tasks(projectRoot)
+	list, err := store.ListTasks(ctx, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load tasks: %w", err)
 	}
 
 	if dryRun {
 		var ids []string
-		for _, t := range tasks {
-			if strings.TrimSpace(t.LongDescription) == "" && t.Content != "" {
+		for _, t := range list {
+			if t != nil && strings.TrimSpace(t.LongDescription) == "" && t.Content != "" {
 				ids = append(ids, t.ID)
 			}
 		}
@@ -1255,16 +1291,17 @@ func handleTaskWorkflowFixEmptyDescriptions(ctx context.Context, params map[stri
 	}
 
 	var updated int
-	for i := range tasks {
-		if strings.TrimSpace(tasks[i].LongDescription) == "" && tasks[i].Content != "" {
-			tasks[i].LongDescription = tasks[i].Content
-			updated++
+	for _, task := range list {
+		if task == nil {
+			continue
 		}
-	}
-
-	if updated > 0 {
-		if err := SaveTodo2Tasks(projectRoot, tasks); err != nil {
-			return nil, fmt.Errorf("failed to save tasks: %w", err)
+		if strings.TrimSpace(task.LongDescription) == "" && task.Content != "" {
+			task.LongDescription = task.Content
+			if err := store.UpdateTask(ctx, task); err != nil {
+				fmt.Fprintf(os.Stderr, "Warning: failed to update task %s: %v\n", task.ID, err)
+				continue
+			}
+			updated++
 		}
 	}
 
@@ -1388,11 +1425,16 @@ func handleTaskWorkflowLinkPlanning(ctx context.Context, params map[string]inter
 		return nil, fmt.Errorf("task_id or task_ids is required for link_planning")
 	}
 
-	// Load all tasks for lookup and (if no DB) for file-based save
-	tasks, err := LoadTodo2Tasks(projectRoot)
+	// Load all tasks for lookup; use TaskStore for unified DB/file path
+	store, err := getTaskStore(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get task store: %w", err)
+	}
+	list, err := store.ListTasks(ctx, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load tasks: %w", err)
 	}
+	tasks := tasksFromPtrs(list)
 	taskMap := make(map[string]Todo2Task)
 	for _, t := range tasks {
 		taskMap[t.ID] = t
@@ -1406,8 +1448,6 @@ func handleTaskWorkflowLinkPlanning(ctx context.Context, params map[string]inter
 
 	updatedIDs := make([]string, 0)
 	var skippedStatus []string
-	db, dbErr := database.GetDB()
-	useDB := dbErr == nil && db != nil
 
 	for _, id := range uniqueIDs {
 		task, ok := taskMap[id]
@@ -1434,34 +1474,21 @@ func handleTaskWorkflowLinkPlanning(ctx context.Context, params map[string]inter
 		}
 		SetPlanningLinkMetadata(&task, linkMeta)
 
-		if useDB {
-			if err := database.UpdateTask(ctx, &task); err != nil {
-				skippedStatus = append(skippedStatus, id+": update failed: "+err.Error())
-				continue
-			}
-		} else {
-			for i := range tasks {
-				if tasks[i].ID == id {
-					tasks[i].Metadata = task.Metadata
-					break
-				}
-			}
+		taskPtr := &task
+		if err := store.UpdateTask(ctx, taskPtr); err != nil {
+			skippedStatus = append(skippedStatus, id+": update failed: "+err.Error())
+			continue
 		}
 		updatedIDs = append(updatedIDs, id)
 	}
 
 	var linkSyncErr error
-	if useDB && len(updatedIDs) > 0 {
+	if len(updatedIDs) > 0 {
 		if projectRoot, findErr := FindProjectRoot(); findErr == nil {
 			linkSyncErr = SyncTodo2Tasks(projectRoot)
 			if linkSyncErr != nil {
 				fmt.Fprintf(os.Stderr, "Warning: sync DB to JSON after link_planning failed: %v\n", linkSyncErr)
 			}
-		}
-	}
-	if !useDB && len(updatedIDs) > 0 {
-		if err := SaveTodo2Tasks(projectRoot, tasks); err != nil {
-			return nil, fmt.Errorf("failed to save tasks: %w", err)
 		}
 	}
 

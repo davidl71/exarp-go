@@ -82,19 +82,16 @@ func handleTaskWorkflowSyncApprovals(ctx context.Context, params map[string]inte
 		}
 	}
 	if tasks == nil {
-		projectRoot, err := FindProjectRoot()
+		store, err := getTaskStore(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("sync_approvals: %w", err)
 		}
-		all, err := LoadTodo2Tasks(projectRoot)
+		reviewStatus := "Review"
+		list, err := store.ListTasks(ctx, &database.TaskFilters{Status: &reviewStatus})
 		if err != nil {
 			return nil, fmt.Errorf("sync_approvals: failed to load tasks: %w", err)
 		}
-		for i := range all {
-			if all[i].Status == "Review" {
-				tasks = append(tasks, &all[i])
-			}
-		}
+		tasks = list
 	}
 	approvalRequests := make([]ApprovalRequest, 0, len(tasks))
 	for _, task := range tasks {
@@ -125,10 +122,6 @@ func handleTaskWorkflowApplyApprovalResult(ctx context.Context, params map[strin
 	if resultVal == "rejected" {
 		newStatus = "In Progress"
 	}
-	projectRoot, err := FindProjectRoot()
-	if err != nil {
-		return nil, fmt.Errorf("apply_approval_result: %w", err)
-	}
 	// Update via same path as update action
 	updateParams := map[string]interface{}{
 		"task_ids":   taskID,
@@ -140,19 +133,19 @@ func handleTaskWorkflowApplyApprovalResult(ctx context.Context, params map[strin
 	}
 	// Optionally add feedback to task (e.g. as comment or in long_description)
 	if feedback != "" && resultVal == "rejected" {
-		tasks, _ := LoadTodo2Tasks(projectRoot)
-		for i := range tasks {
-			if tasks[i].ID == taskID {
-				if tasks[i].LongDescription == "" {
-					tasks[i].LongDescription = "Rejection feedback: " + feedback
+		store, err := getTaskStore(ctx)
+		if err == nil {
+			task, err := store.GetTask(ctx, taskID)
+			if err == nil && task != nil {
+				if task.LongDescription == "" {
+					task.LongDescription = "Rejection feedback: " + feedback
 				} else {
-					tasks[i].LongDescription += "\n\nRejection feedback: " + feedback
+					task.LongDescription += "\n\nRejection feedback: " + feedback
 				}
-				if err := SaveTodo2Tasks(projectRoot, tasks); err != nil {
+				if err := store.UpdateTask(ctx, task); err != nil {
 					fmt.Fprintf(os.Stderr, "Warning: failed to save rejection feedback: %v\n", err)
 					return nil, fmt.Errorf("failed to save rejection feedback: %w", err)
 				}
-				break
 			}
 		}
 	}
@@ -253,15 +246,15 @@ func handleTaskWorkflowClarify(ctx context.Context, params map[string]interface{
 
 // listTasksAwaitingClarification lists tasks that need clarification
 func listTasksAwaitingClarification(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
-	projectRoot, err := FindProjectRoot()
+	store, err := getTaskStore(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("failed to find project root: %w", err)
+		return nil, fmt.Errorf("failed to get task store: %w", err)
 	}
-
-	tasks, err := LoadTodo2Tasks(projectRoot)
+	list, err := store.ListTasks(ctx, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load tasks: %w", err)
 	}
+	tasks := tasksFromPtrs(list)
 
 	// Find tasks that need clarification (have clarification comments or are unclear)
 	needingClarification := []map[string]interface{}{}
@@ -376,62 +369,41 @@ func resolveTaskClarification(ctx context.Context, params map[string]interface{}
 		return response.FormatResult(result, "")
 	}
 
-	// Fallback to file-based approach
-	projectRoot, err := FindProjectRoot()
+	// Fallback to TaskStore (file-based when DB unavailable)
+	store, err := getTaskStore(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("failed to find project root: %w", err)
+		return nil, fmt.Errorf("failed to get task store: %w", err)
 	}
-
-	tasks, err := LoadTodo2Tasks(projectRoot)
-	if err != nil {
-		return nil, fmt.Errorf("failed to load tasks: %w", err)
-	}
-
-	// Find and update task
-	found := false
-	for i := range tasks {
-		if tasks[i].ID == taskID {
-			clarificationText, _ := params["clarification_text"].(string)
-			decision, _ := params["decision"].(string)
-
-			// Update task with clarification response
-			if clarificationText != "" {
-				// Add clarification to long_description or metadata
-				if tasks[i].LongDescription == "" {
-					tasks[i].LongDescription = fmt.Sprintf("Clarification: %s", clarificationText)
-				} else {
-					tasks[i].LongDescription += fmt.Sprintf("\n\nClarification: %s", clarificationText)
-				}
-			}
-
-			if decision != "" {
-				// Update task based on decision
-				if tasks[i].Metadata == nil {
-					tasks[i].Metadata = make(map[string]interface{})
-				}
-				tasks[i].Metadata["clarification_decision"] = decision
-			}
-
-			moveToTodo := true
-			if move, ok := params["move_to_todo"].(bool); ok {
-				moveToTodo = move
-			}
-
-			if moveToTodo {
-				tasks[i].Status = "Todo"
-			}
-
-			found = true
-			break
-		}
-	}
-
-	if !found {
+	task, err := store.GetTask(ctx, taskID)
+	if err != nil || task == nil {
 		return nil, fmt.Errorf("task %s not found", taskID)
 	}
 
-	// Save updated tasks
-	if err := SaveTodo2Tasks(projectRoot, tasks); err != nil {
+	clarificationText, _ := params["clarification_text"].(string)
+	decision, _ := params["decision"].(string)
+	moveToTodo := true
+	if move, ok := params["move_to_todo"].(bool); ok {
+		moveToTodo = move
+	}
+
+	if clarificationText != "" {
+		if task.LongDescription == "" {
+			task.LongDescription = fmt.Sprintf("Clarification: %s", clarificationText)
+		} else {
+			task.LongDescription += fmt.Sprintf("\n\nClarification: %s", clarificationText)
+		}
+	}
+	if decision != "" {
+		if task.Metadata == nil {
+			task.Metadata = make(map[string]interface{})
+		}
+		task.Metadata["clarification_decision"] = decision
+	}
+	if moveToTodo {
+		task.Status = "Todo"
+	}
+
+	if err := store.UpdateTask(ctx, task); err != nil {
 		return nil, fmt.Errorf("failed to save tasks: %w", err)
 	}
 
@@ -530,15 +502,10 @@ func resolveBatchClarifications(ctx context.Context, params map[string]interface
 		return response.FormatResult(result, "")
 	}
 
-	// Fallback to file-based approach
-	projectRoot, err := FindProjectRoot()
+	// Fallback to TaskStore (file-based when DB unavailable)
+	store, err := getTaskStore(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("failed to find project root: %w", err)
-	}
-
-	tasks, err := LoadTodo2Tasks(projectRoot)
-	if err != nil {
-		return nil, fmt.Errorf("failed to load tasks: %w", err)
+		return nil, fmt.Errorf("failed to get task store: %w", err)
 	}
 
 	resolved := 0
@@ -547,45 +514,39 @@ func resolveBatchClarifications(ctx context.Context, params map[string]interface
 		if taskID == "" {
 			continue
 		}
+		task, err := store.GetTask(ctx, taskID)
+		if err != nil || task == nil {
+			continue
+		}
 
-		for i := range tasks {
-			if tasks[i].ID == taskID {
-				clarificationText, _ := decision["clarification_text"].(string)
-				decisionText, _ := decision["decision"].(string)
+		clarificationText, _ := decision["clarification_text"].(string)
+		decisionText, _ := decision["decision"].(string)
+		moveToTodo := true
+		if move, ok := decision["move_to_todo"].(bool); ok {
+			moveToTodo = move
+		}
 
-				if clarificationText != "" {
-					if tasks[i].LongDescription == "" {
-						tasks[i].LongDescription = fmt.Sprintf("Clarification: %s", clarificationText)
-					} else {
-						tasks[i].LongDescription += fmt.Sprintf("\n\nClarification: %s", clarificationText)
-					}
-				}
-
-				if decisionText != "" {
-					if tasks[i].Metadata == nil {
-						tasks[i].Metadata = make(map[string]interface{})
-					}
-					tasks[i].Metadata["clarification_decision"] = decisionText
-				}
-
-				moveToTodo := true
-				if move, ok := decision["move_to_todo"].(bool); ok {
-					moveToTodo = move
-				}
-
-				if moveToTodo {
-					tasks[i].Status = "Todo"
-				}
-
-				resolved++
-				break
+		if clarificationText != "" {
+			if task.LongDescription == "" {
+				task.LongDescription = fmt.Sprintf("Clarification: %s", clarificationText)
+			} else {
+				task.LongDescription += fmt.Sprintf("\n\nClarification: %s", clarificationText)
 			}
 		}
-	}
+		if decisionText != "" {
+			if task.Metadata == nil {
+				task.Metadata = make(map[string]interface{})
+			}
+			task.Metadata["clarification_decision"] = decisionText
+		}
+		if moveToTodo {
+			task.Status = "Todo"
+		}
 
-	// Save updated tasks
-	if err := SaveTodo2Tasks(projectRoot, tasks); err != nil {
-		return nil, fmt.Errorf("failed to save tasks: %w", err)
+		if err := store.UpdateTask(ctx, task); err != nil {
+			continue
+		}
+		resolved++
 	}
 
 	result := map[string]interface{}{
@@ -652,12 +613,7 @@ func handleTaskWorkflowDelete(ctx context.Context, params map[string]interface{}
 		result := map[string]interface{}{"success": len(failed) == 0, "method": "database", "deleted": deleted, "failed": failed, "sync_skipped": true}
 		return response.FormatResult(result, "")
 	}
-	tasks, err := LoadTodo2Tasks(projectRoot)
-	if err != nil {
-		result := map[string]interface{}{"success": len(failed) == 0, "method": "database", "deleted": deleted, "failed": failed, "sync_skipped": true}
-		return response.FormatResult(result, "")
-	}
-	if err := SaveTodo2Tasks(projectRoot, tasks); err != nil {
+	if err := SyncTodo2Tasks(projectRoot); err != nil {
 		result := map[string]interface{}{"success": len(failed) == 0, "method": "database", "deleted": deleted, "failed": failed, "sync_error": err.Error()}
 		return response.FormatResult(result, "")
 	}

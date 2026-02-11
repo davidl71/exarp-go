@@ -63,7 +63,7 @@ func handleTaskDiscoveryNative(ctx context.Context, params map[string]interface{
 
 	// Find orphans
 	if action == "orphans" || action == "all" {
-		orphanTasks := findOrphanTasks(projectRoot)
+		orphanTasks := findOrphanTasks(ctx, projectRoot)
 		for _, orphan := range orphanTasks {
 			discoveries = append(discoveries, orphan)
 		}
@@ -136,7 +136,7 @@ func handleTaskDiscoveryNative(ctx context.Context, params map[string]interface{
 
 	// Optionally create tasks if requested (parity with nocgo build)
 	if createTasks, ok := params["create_tasks"].(bool); ok && createTasks {
-		createdTasks := createTasksFromDiscoveries(projectRoot, discoveries)
+		createdTasks := createTasksFromDiscoveries(ctx, projectRoot, discoveries)
 		result["tasks_created"] = createdTasks
 	}
 
@@ -339,13 +339,15 @@ func scanMarkdown(projectRoot string, docPath string) []map[string]interface{} {
 }
 
 // findOrphanTasks finds orphaned tasks (tasks with invalid structure)
-func findOrphanTasks(projectRoot string) []map[string]interface{} {
+func findOrphanTasks(ctx context.Context, projectRoot string) []map[string]interface{} {
 	orphans := []map[string]interface{}{}
 
-	tasks, err := LoadTodo2Tasks(projectRoot)
+	store := NewDefaultTaskStore(projectRoot)
+	list, err := store.ListTasks(ctx, nil)
 	if err != nil {
 		return orphans
 	}
+	tasks := tasksFromPtrs(list)
 
 	// Build task map and dependency graph
 	taskMap := make(map[string]bool)
