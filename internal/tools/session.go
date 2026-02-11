@@ -155,7 +155,13 @@ func handleSessionPrime(ctx context.Context, params map[string]interface{}) ([]f
 	var tasksErr error
 	// Load tasks if we need them for task summary, hints, or plan mode context
 	if includeTasks || includeHints {
-		tasks, tasksErr = LoadTodo2Tasks(projectRoot)
+		store := NewDefaultTaskStore(projectRoot)
+		list, err := store.ListTasks(ctx, nil)
+		if err != nil {
+			tasksErr = err
+		} else {
+			tasks = tasksFromPtrs(list)
+		}
 	}
 	if includeTasks {
 		if tasksErr != nil {
@@ -318,8 +324,10 @@ func handleSessionEnd(ctx context.Context, params map[string]interface{}, projec
 	// Get current tasks in progress
 	var tasksInProgress []map[string]interface{}
 	if includeTasks, ok := params["include_tasks"].(bool); !ok || includeTasks {
-		tasks, err := LoadTodo2Tasks(projectRoot)
+		store := NewDefaultTaskStore(projectRoot)
+		list, err := store.ListTasks(ctx, nil)
 		if err == nil {
+			tasks := tasksFromPtrs(list)
 			for _, task := range tasks {
 				if task.Status == "In Progress" {
 					tasksInProgress = append(tasksInProgress, map[string]interface{}{

@@ -366,7 +366,9 @@ func generatePlanMarkdown(ctx context.Context, projectRoot, planTitle string) (s
 		overview = fmt.Sprintf("Deliver and maintain %s with clear milestones and quality gates.", displayName)
 	}
 
-	tasks, _ := LoadTodo2Tasks(projectRoot)
+	store := NewDefaultTaskStore(projectRoot)
+	list, _ := store.ListTasks(ctx, nil)
+	tasks := tasksFromPtrs(list)
 	taskByID := make(map[string]Todo2Task)
 	for _, t := range tasks {
 		taskByID[t.ID] = t
@@ -968,10 +970,12 @@ func getPlanningSnippet(projectRoot string) map[string]interface{} {
 	}
 
 	// First 10 in backlog execution order
-	tasks, err := LoadTodo2Tasks(projectRoot)
+	store := NewDefaultTaskStore(projectRoot)
+	list, err := store.ListTasks(context.Background(), nil)
 	if err != nil {
 		return out
 	}
+	tasks := tasksFromPtrs(list)
 	orderedIDs, _, _, err := BacklogExecutionOrder(tasks, nil)
 	if err != nil || len(orderedIDs) == 0 {
 		return out
@@ -1068,10 +1072,12 @@ func getCodebaseMetrics(projectRoot string) (map[string]interface{}, error) {
 
 // getTaskMetrics collects task statistics
 func getTaskMetrics(projectRoot string) (map[string]interface{}, error) {
-	tasks, err := LoadTodo2Tasks(projectRoot)
+	store := NewDefaultTaskStore(projectRoot)
+	list, err := store.ListTasks(context.Background(), nil)
 	if err != nil {
 		return nil, err
 	}
+	tasks := tasksFromPtrs(list)
 
 	pending := 0
 	completed := 0
@@ -1141,8 +1147,10 @@ func getRisksAndBlockers(projectRoot string) ([]map[string]interface{}, error) {
 	risks := []map[string]interface{}{}
 
 	// Check for incomplete tasks with high priority
-	tasks, err := LoadTodo2Tasks(projectRoot)
+	store := NewDefaultTaskStore(projectRoot)
+	list, err := store.ListTasks(context.Background(), nil)
 	if err == nil {
+		tasks := tasksFromPtrs(list)
 		for _, task := range tasks {
 			if IsPendingStatus(task.Status) && task.Priority == "critical" {
 				risks = append(risks, map[string]interface{}{
@@ -1172,10 +1180,12 @@ func isTaskReady(task Todo2Task, taskMap map[string]Todo2Task) bool {
 func getNextActions(projectRoot string) ([]map[string]interface{}, error) {
 	actions := []map[string]interface{}{}
 
-	tasks, err := LoadTodo2Tasks(projectRoot)
+	store := NewDefaultTaskStore(projectRoot)
+	list, err := store.ListTasks(context.Background(), nil)
 	if err != nil {
 		return actions, nil
 	}
+	tasks := tasksFromPtrs(list)
 
 	orderedIDs, _, _, err := BacklogExecutionOrder(tasks, nil)
 	if err != nil {
@@ -1250,8 +1260,10 @@ func generatePRD(ctx context.Context, projectRoot, projectName string, includeAr
 	// Requirements from Tasks
 	if includeTasks {
 		sb.WriteString("## Requirements\n\n")
-		tasks, err := LoadTodo2Tasks(projectRoot)
+		store := NewDefaultTaskStore(projectRoot)
+		list, err := store.ListTasks(ctx, nil)
 		if err == nil {
+			tasks := tasksFromPtrs(list)
 			// Group tasks by priority
 			criticalTasks := []Todo2Task{}
 			highTasks := []Todo2Task{}
