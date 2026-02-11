@@ -158,7 +158,7 @@
 | T-214 | Add change application logic | medium |
 | T-215 | Integrate with Todo2 execution flow | medium |
 | T-216 | Implement prompt analyzer | medium |
-| T-217 | Create optimization prompt templates | medium |
+| T-217 (replaced) | Create optimization prompt templates → split into T-1770830680695, T-1770830685549, T-1770830686054, T-1770830686525, T-1770830692099 | medium |
 | T-218 | Add iterative refinement loop | medium |
 | T-219 | Integrate with task creation workflow | medium |
 | T-220 | Unit tests for all components | medium |
@@ -173,7 +173,7 @@
 | T-229 | Implement shared state management | medium |
 | T-230 | Design agent pool system | medium |
 | T-231 | Implement load balancing | medium |
-| T-232 | Add monitoring dashboard | medium |
+| ~~T-232~~ | *(removed)* Add monitoring dashboard — documented as future improvement in STALE_LOCK_DETECTION_AND_HANDLING.md, MULTI_AGENT_PLAN.md | — |
 | T-233 | Create native Go implementation file | medium |
 | T-234 | Implement tool logic (or hybrid pattern) | medium |
 | T-235 | Update handler in `internal/tools/handlers.go` | medium |
@@ -254,10 +254,10 @@
 | T-312 | Remove database file | medium |
 | T-313 | Revert code changes | medium |
 | T-314 | Verify system works with JSON | medium |
-| T-315 | Background goroutine for periodic cleanup | medium |
+| ~~T-315~~ | *(removed)* Background goroutine for periodic cleanup — documented as future improvement in STALE_LOCK_DETECTION_AND_HANDLING.md | — |
 | T-316 | CLI command for lock status monitoring | medium |
 | T-317 | Scheduled cleanup via cron | medium |
-| T-318 | Heartbeat mechanism (agents report alive) | medium |
+| ~~T-318~~ | *(removed)* Heartbeat mechanism — documented as future improvement in STALE_LOCK_DETECTION_AND_HANDLING.md | — |
 | T-319 | Process monitoring (verify agent process exists) | medium |
 | T-320 | Lock statistics and metrics | medium |
 | T-321 | Alerting system for stale lock patterns | medium |
@@ -358,7 +358,7 @@
 | T-76 | Add dead agent cleanup job | medium |
 | T-77 | Update task workflow tools to use atomic claims | medium |
 | T-78 | Fine-grained file locking (for Git operations) | medium |
-| T-79 | Agent heartbeat system | medium |
+| ~~T-79~~ | *(removed)* Agent heartbeat system — documented as future improvement in STALE_LOCK_DETECTION_AND_HANDLING.md | — |
 | T-80 | Lock timeout monitoring/alerts | medium |
 | T-81 | Performance metrics (lock contention, wait times) | medium |
 | T-82 | Memory system migrated (blocks Phase 4) | medium |
