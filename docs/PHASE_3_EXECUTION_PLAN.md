@@ -622,7 +622,7 @@ func HandleEstimationNative(ctx context.Context, params EstimationParams) (strin
 - [ ] High complexity tools evaluated and migrated where practical (3C)
 - [ ] Automation tool documented as intentional Python bridge retention
 - [ ] All migrated tools have tests
-- [ ] Hybrid patterns documented
+- [x] Hybrid patterns documented
 - [ ] No regressions in functionality
 
 ---
