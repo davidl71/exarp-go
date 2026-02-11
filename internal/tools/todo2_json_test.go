@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/davidl71/exarp-go/internal/database"
 	"github.com/davidl71/exarp-go/internal/models"
 )
 
@@ -189,7 +190,7 @@ func TestSanitizeMetadataForWrite_ProducesValidJSON(t *testing.T) {
 		"discovered_from": "docs/foo.md",
 		"discovered_line": 42, // int is JSON-safe but SanitizeMetadataForWrite coerces to float64
 	}
-	sanitized := SanitizeMetadataForWrite(metadata)
+	sanitized := database.SanitizeMetadataForWrite(metadata)
 	if sanitized == nil {
 		t.Fatal("SanitizeMetadataForWrite returned nil")
 	}
@@ -212,10 +213,10 @@ func TestSanitizeMetadataForWrite_ProducesValidJSON(t *testing.T) {
 		t.Errorf("discovered_line: got %v", decoded["discovered_line"])
 	}
 	// Nil and empty map return nil
-	if SanitizeMetadataForWrite(nil) != nil {
+	if database.SanitizeMetadataForWrite(nil) != nil {
 		t.Error("SanitizeMetadataForWrite(nil) should return nil")
 	}
-	if SanitizeMetadataForWrite(map[string]interface{}{}) != nil {
+	if database.SanitizeMetadataForWrite(map[string]interface{}{}) != nil {
 		t.Error("SanitizeMetadataForWrite(empty) should return nil")
 	}
 }
