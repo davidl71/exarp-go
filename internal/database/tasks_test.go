@@ -413,6 +413,60 @@ func TestDeserializeTaskMetadata(t *testing.T) {
 	}
 }
 
+func TestIsValidTaskID(t *testing.T) {
+	tests := []struct {
+		id   string
+		want bool
+	}{
+		{"", false},
+		{"T-NaN", false},
+		{"T-undefined", false},
+		{"T-123", true},
+		{"T-1768158627000", true},
+		{"T-0", true},
+		{"T-1a", false},
+		{"X-123", false},
+		{"T-", false},
+	}
+	for _, tt := range tests {
+		if got := IsValidTaskID(tt.id); got != tt.want {
+			t.Errorf("IsValidTaskID(%q) = %v, want %v", tt.id, got, tt.want)
+		}
+	}
+}
+
+func TestCreateTaskReplacesInvalidID(t *testing.T) {
+	tmpDir := t.TempDir()
+	err := Init(tmpDir)
+	if err != nil {
+		t.Fatalf("Init() error = %v", err)
+	}
+	defer Close()
+
+	task := &models.Todo2Task{
+		ID:       "T-NaN",
+		Content:  "Task with invalid ID",
+		Status:   "Todo",
+		Priority: "medium",
+	}
+	err = CreateTask(context.Background(), task)
+	if err != nil {
+		t.Fatalf("CreateTask() error = %v", err)
+	}
+	// CreateTask should have replaced T-NaN with a generated ID
+	if task.ID == "T-NaN" {
+		t.Error("CreateTask should have replaced T-NaN with generated ID")
+	}
+	if !IsValidTaskID(task.ID) {
+		t.Errorf("task.ID after CreateTask = %q, should be valid", task.ID)
+	}
+	// Task should be retrievable by the new ID
+	_, err = GetTask(context.Background(), task.ID)
+	if err != nil {
+		t.Errorf("GetTask(%q) error = %v", task.ID, err)
+	}
+}
+
 // TestForeignKeysEnabled verifies that foreign key constraints are enabled
 // and properly reject invalid dependency references
 func TestForeignKeysEnabled(t *testing.T) {
