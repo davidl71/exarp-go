@@ -38,6 +38,7 @@ Cross-process file-based locking (replaces Python `file_lock.py`):
   - Automatic cleanup on `Close()`
   - Task-level locks: `.todo2/locks/task_{id}.lock`
   - State-level locks: `.todo2/state.todo2.json.lock`
+  - **Git sync lock (T-78):** `.todo2/.git-sync.lock` — repo-level lock for all `git add`/`commit`/`push`. Use `utils.WithGitLock(projectRoot, timeout, fn)`; session sync in `internal/tools/session.go` acquires it for Git writes. Same Windows caveat as above.
 
 **Usage:**
 ```go

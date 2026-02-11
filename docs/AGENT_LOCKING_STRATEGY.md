@@ -400,6 +400,11 @@ with task_lock(task_id):
 
 **Usage:** Session sync (`handleSessionSync` in `internal/tools/session.go`) and any future Git-write call sites (e.g. hooks that run git) acquire the lock around add/commit/push only.
 
+**Implementation:**
+- Path and helpers live in `internal/utils/filelock.go`: `GitSyncLockPath(projectRoot)`, `WithGitLock(projectRoot, timeout, fn)`. Default timeout 60s (T-78).
+- Session sync acquires the lock for the entire non–dry-run Git block (pull, add, commit, push) via `utils.WithGitLock(projectRoot, 0, func() error { ... })`.
+- On Windows, file locking is not implemented; `WithGitLock` returns an error and session sync will report failure when acquiring the lock. See [NATIVE_GO_LOCKING_IMPLEMENTATION.md](NATIVE_GO_LOCKING_IMPLEMENTATION.md) for the general file-lock caveat.
+
 ---
 
 ## 🔍 Comparison of Approaches
