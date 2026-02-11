@@ -581,6 +581,18 @@ For architecture concerns:
 - Stale Docs (>30 days): 0
 - Comment Density: 10-30%
 - Docstring Coverage: >90%`,
+
+	"tractatus_decompose": `Decompose the given concept using Tractatus Thinking before implementation or design.
+
+1. Call the tractatus_thinking MCP tool with operation="start" and concept set to the user's concept (e.g. "What is X?" or the design question). Obtain session_id from the response.
+
+2. Optionally add propositions with operation="add" (session_id, content, decomposition_type such as "clarification" or "analysis", and optional parent_number). Build the logical structure.
+
+3. Call operation="export" with the session_id and format="markdown" to get the decomposition.
+
+4. Use the exported structure to inform your implementation plan or answer: summarize key propositions and dependencies, then proceed with implementation or design steps.
+
+If the user provided a {concept} placeholder, use it as the concept; otherwise prompt for a concept to decompose.`,
 }
 
 // GetPromptTemplate retrieves a prompt template by name

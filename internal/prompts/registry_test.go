@@ -15,9 +15,9 @@ func TestRegisterAllPrompts(t *testing.T) {
 		t.Fatalf("RegisterAllPrompts() error = %v", err)
 	}
 
-	// Verify all 35 prompts are registered (19 original + 16 migrated from Python)
-	if server.PromptCount() != 35 {
-		t.Errorf("server.PromptCount() = %v, want 35", server.PromptCount())
+	// Verify all 36 prompts are registered (19 original + 16 migrated from Python + 1 tractatus_decompose)
+	if server.PromptCount() != 36 {
+		t.Errorf("server.PromptCount() = %v, want 36", server.PromptCount())
 	}
 
 	// Verify specific prompts are registered
@@ -31,6 +31,7 @@ func TestRegisterAllPrompts(t *testing.T) {
 		"advisor_consult", "advisor_briefing",
 		"persona_developer", "persona_project_manager", "persona_code_reviewer", "persona_executive",
 		"persona_security", "persona_architect", "persona_qa", "persona_tech_writer",
+		"tractatus_decompose",
 	}
 
 	for _, promptName := range expectedPrompts {
@@ -67,6 +68,7 @@ func TestRegisterAllPrompts_HandlerCreation(t *testing.T) {
 		"advisor_consult", "advisor_briefing",
 		"persona_developer", "persona_project_manager", "persona_code_reviewer", "persona_executive",
 		"persona_security", "persona_architect", "persona_qa", "persona_tech_writer",
+		"tractatus_decompose",
 	}
 
 	for _, promptName := range expectedPrompts {

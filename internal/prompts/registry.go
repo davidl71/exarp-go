@@ -9,7 +9,7 @@ import (
 
 // RegisterAllPrompts registers all prompts with the server
 func RegisterAllPrompts(server framework.MCPServer) error {
-	// Register 35 prompts (19 original + 16 migrated from Python per PROMPTS_MIGRATION_AND_OBSOLESCENCE_PLAN.md)
+	// Register 36 prompts (19 original + 16 migrated from Python + 1 tractatus_decompose)
 	prompts := []struct {
 		name        string
 		description string
@@ -54,6 +54,7 @@ func RegisterAllPrompts(server framework.MCPServer) error {
 		{"persona_architect", "Architect workflow for system design."},
 		{"persona_qa", "QA Engineer workflow for quality assurance."},
 		{"persona_tech_writer", "Technical Writer workflow for documentation."},
+		{"tractatus_decompose", "Decompose a concept using Tractatus Thinking MCP; instructs AI to call tractatus_thinking (start, add, export) and produce structured output."},
 	}
 
 	for _, p := range prompts {
