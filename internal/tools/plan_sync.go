@@ -226,10 +226,14 @@ func handleTaskWorkflowSyncFromPlan(ctx context.Context, params map[string]inter
 			}
 		}
 
+		todoID := todo.ID
+		if !database.IsValidTaskID(todoID) {
+			todoID = database.GenerateTaskID()
+		}
 		existing, exists := taskByID[todo.ID]
 		if !exists {
 			if dryRun {
-				created = append(created, todo.ID+" (would create)")
+				created = append(created, todoID+" (would create)")
 				continue
 			}
 			// Create new task
@@ -238,7 +242,7 @@ func handleTaskWorkflowSyncFromPlan(ctx context.Context, params map[string]inter
 				content = todo.ID
 			}
 			newTask := &Todo2Task{
-				ID:              todo.ID,
+				ID:              todoID,
 				Content:         content,
 				LongDescription: content,
 				Status:          todo2Status,
@@ -246,13 +250,13 @@ func handleTaskWorkflowSyncFromPlan(ctx context.Context, params map[string]inter
 			}
 			if useDB {
 				if err := database.CreateTask(ctx, newTask); err != nil {
-					return nil, fmt.Errorf("sync_from_plan: create task %s: %w", todo.ID, err)
+					return nil, fmt.Errorf("sync_from_plan: create task %s: %w", newTask.ID, err)
 				}
 			} else {
 				tasks = append(tasks, *newTask)
-				taskByID[todo.ID] = &tasks[len(tasks)-1]
+				taskByID[newTask.ID] = &tasks[len(tasks)-1]
 			}
-			created = append(created, todo.ID)
+			created = append(created, newTask.ID)
 		} else {
 			// Update existing task status if different
 			if existing.Status != todo2Status {

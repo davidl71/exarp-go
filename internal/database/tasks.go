@@ -58,7 +58,8 @@ func SerializeTaskMetadata(task *Todo2Task) (metadataJSON string, metadataProtob
 		metadataProtobuf = protobufData
 	}
 	if len(task.Metadata) > 0 {
-		metadataBytes, jsonErr := json.Marshal(task.Metadata)
+		sanitized := SanitizeMetadataForWrite(task.Metadata)
+		metadataBytes, jsonErr := json.Marshal(sanitized)
 		if jsonErr != nil {
 			return "", nil, "", fmt.Errorf("failed to marshal metadata: %w", jsonErr)
 		}
@@ -82,10 +83,82 @@ func DeserializeTaskMetadata(metadataJSON string, metadataProtobuf []byte, metad
 	return nil
 }
 
+// SanitizeMetadataForWrite returns a copy of metadata with all values coerced to types
+// that encoding/json can marshal (string, float64, int, int64, bool, nil, []interface{},
+// map[string]interface{}). Use when writing DB or state JSON so non-scalar values never break marshaling.
+func SanitizeMetadataForWrite(metadata map[string]interface{}) map[string]interface{} {
+	if len(metadata) == 0 {
+		return nil
+	}
+	out := make(map[string]interface{}, len(metadata))
+	for k, v := range metadata {
+		out[k] = jsonSafeValue(v)
+	}
+	return out
+}
+
+func jsonSafeValue(v interface{}) interface{} {
+	if v == nil {
+		return nil
+	}
+	switch x := v.(type) {
+	case string:
+		return x
+	case float64:
+		return x
+	case int:
+		return float64(x)
+	case int64:
+		return float64(x)
+	case bool:
+		return x
+	case []interface{}:
+		out := make([]interface{}, len(x))
+		for i, e := range x {
+			out[i] = jsonSafeValue(e)
+		}
+		return out
+	case map[string]interface{}:
+		out := make(map[string]interface{}, len(x))
+		for k2, val := range x {
+			out[k2] = jsonSafeValue(val)
+		}
+		return out
+	default:
+		return fmt.Sprint(x)
+	}
+}
+
+// IsValidTaskID returns true if id is a valid task ID (T-<digits>).
+// Rejects empty, "T-NaN", "T-undefined", and any non-numeric suffix.
+func IsValidTaskID(id string) bool {
+	if id == "" || id == "T-NaN" || id == "T-undefined" {
+		return false
+	}
+	if !strings.HasPrefix(id, "T-") || len(id) <= 2 {
+		return false
+	}
+	for _, c := range id[2:] {
+		if c < '0' || c > '9' {
+			return false
+		}
+	}
+	return true
+}
+
+// GenerateTaskID returns a new task ID in the form T-<epoch_milliseconds>.
+func GenerateTaskID() string {
+	return fmt.Sprintf("T-%d", time.Now().UnixMilli())
+}
+
 // CreateTask creates a new task in the database
 // Uses a transaction to atomically insert task, tags, and dependencies
 // Supports context for timeout and cancellation
+// If task.ID is invalid (e.g. T-NaN from MCP), it is replaced with a generated ID.
 func CreateTask(ctx context.Context, task *Todo2Task) error {
+	if !IsValidTaskID(task.ID) {
+		task.ID = GenerateTaskID()
+	}
 	ctx = ensureContext(ctx)
 	txCtx, cancel := withTransactionTimeout(ctx)
 	defer cancel()
