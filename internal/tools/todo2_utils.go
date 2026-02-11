@@ -213,11 +213,18 @@ func SyncTodo2Tasks(projectRoot string) error {
 		return fmt.Errorf("failed to save to both sources: database=%v, json=%v", dbSaveErr, jsonSaveErr)
 	}
 
-	// If database save had errors, return the error (don't silently ignore)
-	// This ensures we know about sync issues even if JSON save succeeded
+	// If JSON save failed, report it
+	if jsonSaveErr != nil {
+		return fmt.Errorf("failed to save to JSON: %w", jsonSaveErr)
+	}
+
+	// Database was never available (e.g. test env without Init): JSON-only sync is success
+	if dbErr != nil {
+		return nil
+	}
+
+	// Database was available but save failed - return error so caller knows (JSON saved as backup)
 	if dbSaveErr != nil {
-		// Database save failed - return error so caller knows
-		// JSON save succeeded, so we have a backup, but we should report the issue
 		return fmt.Errorf("database save failed (JSON saved as backup): %w", dbSaveErr)
 	}
 

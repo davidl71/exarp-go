@@ -391,14 +391,46 @@ func handleTaskWorkflowUpdate(ctx context.Context, params map[string]interface{}
 	if db, err := database.GetDB(); err == nil && db != nil {
 		updatedIDs := []string{}
 		updatedCount := 0
+		var skippedLocked []string
+
+		// When moving to In Progress, use atomic claim so the current agent is assigned and locked (T-77).
+		useClaim := newStatus == "In Progress"
+		var agentID string
+		if useClaim {
+			if id, err := database.GetAgentID(); err == nil {
+				agentID = id
+			} else {
+				useClaim = false
+			}
+		}
+
 		for _, id := range taskIDs {
-			task, err := database.GetTask(ctx, id)
-			if err != nil {
-				continue
+			var task *models.Todo2Task
+			if useClaim && agentID != "" {
+				leaseDuration := config.TaskLockLease()
+				claimResult, err := database.ClaimTaskForAgent(ctx, id, agentID, leaseDuration)
+				if err != nil {
+					continue
+				}
+				if !claimResult.Success {
+					if claimResult.WasLocked {
+						skippedLocked = append(skippedLocked, id)
+					}
+					continue
+				}
+				task = claimResult.Task
+			} else {
+				var err error
+				task, err = database.GetTask(ctx, id)
+				if err != nil {
+					continue
+				}
+				if newStatus != "" {
+					task.Status = newStatus
+				}
 			}
-			if newStatus != "" {
-				task.Status = newStatus
-			}
+
+			// Apply non-status updates (priority, tags, name, long_description).
 			if priority != "" {
 				task.Priority = priority
 			}
@@ -433,6 +465,10 @@ func handleTaskWorkflowUpdate(ctx context.Context, params map[string]interface{}
 			if longDescription != "" {
 				task.LongDescription = longDescription
 			}
+			// When we used claim, status is already In Progress; otherwise set here.
+			if !useClaim && newStatus != "" {
+				task.Status = newStatus
+			}
 			if err := database.UpdateTask(ctx, task); err != nil {
 				continue
 			}
@@ -458,6 +494,9 @@ func handleTaskWorkflowUpdate(ctx context.Context, params map[string]interface{}
 		}
 		if syncErr != nil {
 			result["sync_error"] = syncErr.Error()
+		}
+		if len(skippedLocked) > 0 {
+			result["skipped_locked"] = skippedLocked
 		}
 		// When moving to Review, include approval request payloads for gotoHuman (T-109)
 		if newStatus == "Review" && updatedCount > 0 {

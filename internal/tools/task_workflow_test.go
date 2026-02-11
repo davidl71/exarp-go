@@ -213,6 +213,64 @@ func TestHandleTaskWorkflowNative(t *testing.T) {
 		},
 	}
 
+	// Test planning link with valid doc (T-1768320725711): create task, then link_planning
+	t.Run("link_planning with valid planning_doc", func(t *testing.T) {
+		planDir := filepath.Join(tmpDir, ".cursor", "plans")
+		if err := os.MkdirAll(planDir, 0755); err != nil {
+			t.Fatalf("mkdir plans: %v", err)
+		}
+		planPath := filepath.Join(planDir, "test.plan.md")
+		if err := os.WriteFile(planPath, []byte("# Test Plan\n"), 0644); err != nil {
+			t.Fatalf("write plan: %v", err)
+		}
+		planDoc := ".cursor/plans/test.plan.md"
+
+		ctx := context.Background()
+		// Create a task first (link_planning only applies to Todo/In Progress)
+		createResult, err := handleTaskWorkflowNative(ctx, map[string]interface{}{
+			"action":           "create",
+			"name":             "Plan link test task",
+			"long_description": "For link_planning test",
+		})
+		if err != nil {
+			t.Fatalf("create task: %v", err)
+		}
+		if len(createResult) == 0 {
+			t.Fatal("create returned no result")
+		}
+		var createData map[string]interface{}
+		if err := json.Unmarshal([]byte(createResult[0].Text), &createData); err != nil {
+			t.Fatalf("create result JSON: %v", err)
+		}
+		taskObj, _ := createData["task"].(map[string]interface{})
+		taskID, _ := taskObj["id"].(string)
+		if taskID == "" {
+			t.Fatal("create did not return task id")
+		}
+
+		// Link planning doc to the task
+		linkResult, err := handleTaskWorkflowNative(ctx, map[string]interface{}{
+			"action":       "link_planning",
+			"planning_doc": planDoc,
+			"task_id":      taskID,
+		})
+		if err != nil {
+			t.Fatalf("link_planning: %v", err)
+		}
+		if len(linkResult) == 0 {
+			t.Error("link_planning returned no result")
+			return
+		}
+		var linkData map[string]interface{}
+		if err := json.Unmarshal([]byte(linkResult[0].Text), &linkData); err != nil {
+			t.Errorf("link_planning result JSON: %v", err)
+			return
+		}
+		if updated, _ := linkData["updated_ids"].([]interface{}); len(updated) != 1 {
+			t.Errorf("link_planning updated_ids = %v, want 1 item", updated)
+		}
+	})
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := context.Background()
