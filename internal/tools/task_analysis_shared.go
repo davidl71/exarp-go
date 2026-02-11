@@ -1791,41 +1791,44 @@ func handleTaskAnalysisDependencies(ctx context.Context, params map[string]inter
 	// Build legacy graph format for backward compatibility
 	graph := buildLegacyGraphFormat(tg)
 
-	// Calculate critical path if no cycles
+	// Calculate critical path from backlog only (exclude Done by default)
 	var criticalPath []string
 	var criticalPathDetails []map[string]interface{}
 	maxLevel := 0
 
-	hasCycles, err := HasCycles(tg)
-	if err == nil && !hasCycles {
-		// Find critical path
-		path, err := FindCriticalPath(tg)
-		if err == nil {
-			criticalPath = path
+	tgBacklog, err := BuildTaskGraphBacklogOnly(tasks)
+	if err == nil && tgBacklog.Graph.Nodes().Len() > 0 {
+		hasCycles, err := HasCycles(tgBacklog)
+		if err == nil && !hasCycles {
+			// Find critical path among backlog tasks
+			path, err := FindCriticalPath(tgBacklog)
+			if err == nil {
+				criticalPath = path
 
-			// Build detailed path information
-			for _, taskID := range path {
-				for _, task := range tasks {
-					if task.ID == taskID {
-						criticalPathDetails = append(criticalPathDetails, map[string]interface{}{
-							"id":                 task.ID,
-							"content":            task.Content,
-							"priority":           task.Priority,
-							"status":             task.Status,
-							"dependencies":       task.Dependencies,
-							"dependencies_count": len(task.Dependencies),
-						})
-						break
+				// Build detailed path information
+				for _, taskID := range path {
+					for _, task := range tasks {
+						if task.ID == taskID {
+							criticalPathDetails = append(criticalPathDetails, map[string]interface{}{
+								"id":                 task.ID,
+								"content":            task.Content,
+								"priority":           task.Priority,
+								"status":             task.Status,
+								"dependencies":       task.Dependencies,
+								"dependencies_count": len(task.Dependencies),
+							})
+							break
+						}
 					}
 				}
 			}
-		}
 
-		// Get max dependency level
-		levels := GetTaskLevels(tg)
-		for _, level := range levels {
-			if level > maxLevel {
-				maxLevel = level
+			// Get max dependency level from backlog graph
+			levels := GetTaskLevels(tgBacklog)
+			for _, level := range levels {
+				if level > maxLevel {
+					maxLevel = level
+				}
 			}
 		}
 	}
