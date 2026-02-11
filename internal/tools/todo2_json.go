@@ -68,7 +68,7 @@ func convertTodo2TaskJSONToTask(raw todo2TaskJSON) models.Todo2Task {
 		CompletedAt:     raw.CompletedAt,
 	}
 	if len(raw.Metadata) > 0 {
-		t.Metadata = database.SanitizeTaskMetadata(string(raw.Metadata))
+		t.Metadata = database.DeserializeTaskMetadata(string(raw.Metadata), nil, "")
 	}
 	t.NormalizeEpochDates()
 	return t
@@ -101,7 +101,7 @@ type todo2TaskWrite struct {
 // map[string]interface{}). Prevents invalid JSON when task_discovery or other code
 // puts non-scalar values into Metadata. Use when writing state JSON or building task metadata.
 func SanitizeMetadataForWrite(metadata map[string]interface{}) map[string]interface{} {
-	if metadata == nil || len(metadata) == 0 {
+	if len(metadata) == 0 {
 		return nil
 	}
 	out := make(map[string]interface{}, len(metadata))

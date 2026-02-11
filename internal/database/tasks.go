@@ -47,6 +47,41 @@ func unmarshalTaskMetadata(s string) map[string]interface{} {
 	return SanitizeTaskMetadata(s)
 }
 
+// SerializeTaskMetadata serializes task metadata for DB storage: JSON string, optional protobuf bytes, and format.
+// Returns (metadataJSON, metadataProtobuf, metadataFormat, nil) or error if JSON marshal fails.
+func SerializeTaskMetadata(task *Todo2Task) (metadataJSON string, metadataProtobuf []byte, metadataFormat string, err error) {
+	metadataFormat = "protobuf"
+	protobufData, err := models.SerializeTaskToProtobuf(task)
+	if err != nil {
+		metadataFormat = "json"
+	} else {
+		metadataProtobuf = protobufData
+	}
+	if len(task.Metadata) > 0 {
+		metadataBytes, jsonErr := json.Marshal(task.Metadata)
+		if jsonErr != nil {
+			return "", nil, "", fmt.Errorf("failed to marshal metadata: %w", jsonErr)
+		}
+		metadataJSON = string(metadataBytes)
+	}
+	return metadataJSON, metadataProtobuf, metadataFormat, nil
+}
+
+// DeserializeTaskMetadata deserializes metadata from DB: prefers protobuf when format is "protobuf", else JSON.
+// metadataJSON and metadataFormat may be empty (e.g. from old schema); invalid JSON is coerced via SanitizeTaskMetadata.
+func DeserializeTaskMetadata(metadataJSON string, metadataProtobuf []byte, metadataFormat string) map[string]interface{} {
+	if metadataFormat == "protobuf" && len(metadataProtobuf) > 0 {
+		deserialized, err := models.DeserializeTaskFromProtobuf(metadataProtobuf)
+		if err == nil {
+			return deserialized.Metadata
+		}
+	}
+	if metadataJSON != "" {
+		return SanitizeTaskMetadata(metadataJSON)
+	}
+	return nil
+}
+
 // CreateTask creates a new task in the database
 // Uses a transaction to atomically insert task, tags, and dependencies
 // Supports context for timeout and cancellation
@@ -77,25 +112,9 @@ func CreateTask(ctx context.Context, task *Todo2Task) error {
 			completedInt = 1
 		}
 
-		// Serialize task to protobuf (preferred format)
-		var metadataProtobuf []byte
-		var metadataFormat string = "protobuf"
-		protobufData, err := models.SerializeTaskToProtobuf(task)
+		metadataJSON, metadataProtobuf, metadataFormat, err := SerializeTaskMetadata(task)
 		if err != nil {
-			// Fall back to JSON if protobuf serialization fails
-			metadataFormat = "json"
-		} else {
-			metadataProtobuf = protobufData
-		}
-
-		// Also store JSON for backward compatibility
-		var metadataJSON string
-		if task.Metadata != nil && len(task.Metadata) > 0 {
-			metadataBytes, jsonErr := json.Marshal(task.Metadata)
-			if jsonErr != nil {
-				return fmt.Errorf("failed to marshal metadata: %w", jsonErr)
-			}
-			metadataJSON = string(metadataBytes)
+			return err
 		}
 
 		// Insert task with protobuf data (if available) and JSON (for compatibility)
@@ -270,23 +289,15 @@ func GetTask(ctx context.Context, id string) (*Todo2Task, error) {
 		}
 		taskData.NormalizeEpochDates()
 
-		// Deserialize metadata: prefer protobuf if available, fall back to JSON
-		if metadataFormat.Valid && metadataFormat.String == "protobuf" && len(metadataProtobuf) > 0 {
-			// Deserialize from protobuf
-			deserializedTask, err := models.DeserializeTaskFromProtobuf(metadataProtobuf)
-			if err == nil {
-				// Use metadata from protobuf deserialization
-				taskData.Metadata = deserializedTask.Metadata
-			} else {
-				// Protobuf deserialization failed, fall back to JSON
-				if metadataJSON.Valid && metadataJSON.String != "" {
-					taskData.Metadata = unmarshalTaskMetadata(metadataJSON.String)
-				}
-			}
-		} else if metadataJSON.Valid && metadataJSON.String != "" {
-			// Use JSON format (legacy or fallback)
-			taskData.Metadata = unmarshalTaskMetadata(metadataJSON.String)
+		metadataJSONStr := ""
+		if metadataJSON.Valid {
+			metadataJSONStr = metadataJSON.String
 		}
+		metadataFormatStr := ""
+		if metadataFormat.Valid {
+			metadataFormatStr = metadataFormat.String
+		}
+		taskData.Metadata = DeserializeTaskMetadata(metadataJSONStr, metadataProtobuf, metadataFormatStr)
 
 		// Load tags
 		tags, err := loadTaskTags(ctx, queryCtx, db, id)
@@ -408,25 +419,9 @@ func UpdateTask(ctx context.Context, task *Todo2Task) error {
 			completedInt = 1
 		}
 
-		// Serialize task to protobuf (preferred format)
-		var metadataProtobuf []byte
-		var metadataFormat string = "protobuf"
-		protobufData, err := models.SerializeTaskToProtobuf(task)
+		metadataJSON, metadataProtobuf, metadataFormat, err := SerializeTaskMetadata(task)
 		if err != nil {
-			// Fall back to JSON if protobuf serialization fails
-			metadataFormat = "json"
-		} else {
-			metadataProtobuf = protobufData
-		}
-
-		// Also store JSON for backward compatibility
-		var metadataJSON string
-		if task.Metadata != nil && len(task.Metadata) > 0 {
-			metadataBytes, jsonErr := json.Marshal(task.Metadata)
-			if jsonErr != nil {
-				return fmt.Errorf("failed to marshal metadata: %w", jsonErr)
-			}
-			metadataJSON = string(metadataBytes)
+			return err
 		}
 
 		// Get current version for optimistic locking
