@@ -1,6 +1,108 @@
 {
   "todos": [
     {
+      "id": "T-1770830692099",
+      "name": "Add task-type variants for prompt optimization templates",
+      "content": "Add task-type variants for prompt optimization templates",
+      "description": "Add variants for code, documentation, and general task types. Code variant: file paths, APIs, test requirements. Docs variant: structure, audience, scope. General: balanced. Selection logic or separate template files.",
+      "long_description": "Add variants for code, documentation, and general task types. Code variant: file paths, APIs, test requirements. Docs variant: structure, audience, scope. General: balanced. Selection logic or separate template files.",
+      "status": "Todo",
+      "priority": "medium",
+      "tags": [
+        "markdown",
+        "model-assisted-workflow"
+      ],
+      "dependencies": [
+        "T-1770830685549",
+        "T-1770830686054",
+        "T-1770830686525"
+      ],
+      "created": "2026-02-11T19:24:52+02:00",
+      "created_at": "2026-02-11T19:24:52+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00"
+    },
+    {
+      "id": "T-1770830686525",
+      "name": "Create refinement template for prompt optimization",
+      "content": "Create refinement template for prompt optimization",
+      "description": "Create LLM prompt template that applies suggestions to produce optimized prompt. Accepts original_prompt and suggestions. Preserves intent while improving clarity. Documented with before/after example.",
+      "long_description": "Create LLM prompt template that applies suggestions to produce optimized prompt. Accepts original_prompt and suggestions. Preserves intent while improving clarity. Documented with before/after example.",
+      "status": "Todo",
+      "priority": "medium",
+      "tags": [
+        "markdown",
+        "model-assisted-workflow"
+      ],
+      "dependencies": [
+        "T-1770830680695"
+      ],
+      "created": "2026-02-11T19:24:46+02:00",
+      "created_at": "2026-02-11T19:24:46+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00"
+    },
+    {
+      "id": "T-1770830686054",
+      "name": "Create suggestions-generation template for prompt optimization",
+      "content": "Create suggestions-generation template for prompt optimization",
+      "description": "Create LLM prompt template that given original prompt and analysis generates concrete improvement suggestions. Uses variables from template spec. Documented with example.",
+      "long_description": "Create LLM prompt template that given original prompt and analysis generates concrete improvement suggestions. Uses variables from template spec. Documented with example.",
+      "status": "Todo",
+      "priority": "medium",
+      "tags": [
+        "markdown",
+        "model-assisted-workflow"
+      ],
+      "dependencies": [
+        "T-1770830680695"
+      ],
+      "created": "2026-02-11T19:24:46+02:00",
+      "created_at": "2026-02-11T19:24:46+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00"
+    },
+    {
+      "id": "T-1770830685549",
+      "name": "Create analysis prompt template for prompt optimization",
+      "content": "Create analysis prompt template for prompt optimization",
+      "description": "Create LLM prompt template that evaluates prompts on clarity, specificity, completeness, structure, actionability. Template produces structured analysis. Uses variables from template spec. Works with Ollama/MLX/Apple FM.",
+      "long_description": "Create LLM prompt template that evaluates prompts on clarity, specificity, completeness, structure, actionability. Template produces structured analysis. Uses variables from template spec. Works with Ollama/MLX/Apple FM.",
+      "status": "Todo",
+      "priority": "medium",
+      "tags": [
+        "markdown",
+        "model-assisted-workflow"
+      ],
+      "dependencies": [
+        "T-1770830680695"
+      ],
+      "created": "2026-02-11T19:24:45+02:00",
+      "created_at": "2026-02-11T19:24:45+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00"
+    },
+    {
+      "id": "T-1770830680695",
+      "name": "Define template variables and output format for prompt optimization",
+      "content": "Define template variables and output format for prompt optimization",
+      "description": "Define variable placeholders and output format for prompt optimization templates. Document variables, output schema for analysis (clarity, specificity, completeness, structure, actionability), suggestions format. Store spec in docs.",
+      "long_description": "Define variable placeholders and output format for prompt optimization templates. Document variables, output schema for analysis (clarity, specificity, completeness, structure, actionability), suggestions format. Store spec in docs.",
+      "status": "Todo",
+      "priority": "medium",
+      "tags": [
+        "markdown",
+        "model-assisted-workflow"
+      ],
+      "dependencies": [
+        "T-216"
+      ],
+      "created": "2026-02-11T19:24:40+02:00",
+      "created_at": "2026-02-11T19:24:40+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00"
+    },
+    {
       "id": "T-1770829364114",
       "name": "Implement symlink tests in mcp-go-core security path_test.go",
       "content": "Implement symlink tests in mcp-go-core security path_test.go",
@@ -18,15 +120,12 @@
       ],
       "parent_id": "T-284",
       "metadata": {
-        "epic_id": "T-284",
-        "planning_links": {
-          "epic_id": "T-284"
-        }
+        "planning_links": {}
       },
       "created": "2026-02-11T19:02:44+02:00",
       "created_at": "2026-02-11T19:02:44+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00"
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00"
     },
     {
       "id": "T-1770829363301",
@@ -45,15 +144,12 @@
       ],
       "parent_id": "T-284",
       "metadata": {
-        "epic_id": "T-284",
-        "planning_links": {
-          "epic_id": "T-284"
-        }
+        "planning_links": {}
       },
       "created": "2026-02-11T19:02:43+02:00",
       "created_at": "2026-02-11T19:02:43+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00"
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00"
     },
     {
       "id": "T-1770829362471",
@@ -62,7 +158,7 @@
       "description": "🎯 **Objective:** Capture the test case design for symlink handling in ValidatePath/ValidatePathExists, informing T-284 implementation.\n\n📋 **Drafted test cases:**\n\n**Case 1: Symlink within project → path within project (accept)**\n- Setup: `projectRoot/subdir/link_in` → `projectRoot/real_file.txt`\n- Input: `subdir/link_in`\n- Expect: ValidatePath accepts; ValidatePathExists accepts if target exists\n- Platform: Unix/macOS; `os.Symlink` may need privileges on Windows\n\n**Case 2: Symlink within project → path outside project root (reject)**\n- Setup: `projectRoot/evil_link` → `/etc/passwd` or `filepath.Join(tmpDir,\"outside\",\"secret\")`\n- Input: `evil_link`\n- Expect: If ValidatePath uses `filepath.EvalSymlinks`: reject. Current impl (no EvalSymlinks): may incorrectly accept — document behavior\n- Platform: Unix/macOS; portable target for CI\n\n**Case 3: Broken symlink**\n- Setup: `projectRoot/broken_link` → `nonexistent_target`\n- Input: `broken_link`\n- Expect: ValidatePath: accept (path string within root). ValidatePathExists: reject (path does not exist)\n- Platform: All\n\n**Case 4: Symlink in path component (nested)**\n- Setup: `projectRoot/a/link` → `projectRoot/b/file`; resolve `a/link`\n- Expect: Accept if resolved path stays within root\n\n**Implementation notes:** Use `t.TempDir()`, `os.Symlink`; skip on Windows if needed. Current mcp-go-core ValidatePath does NOT call `filepath.EvalSymlinks`; tests should assert current behavior first.\n\n📚 **Dependencies:** None. Epic: T-284.",
       "long_description": "🎯 **Objective:** Capture the test case design for symlink handling in ValidatePath/ValidatePathExists, informing T-284 implementation.\n\n📋 **Drafted test cases:**\n\n**Case 1: Symlink within project → path within project (accept)**\n- Setup: `projectRoot/subdir/link_in` → `projectRoot/real_file.txt`\n- Input: `subdir/link_in`\n- Expect: ValidatePath accepts; ValidatePathExists accepts if target exists\n- Platform: Unix/macOS; `os.Symlink` may need privileges on Windows\n\n**Case 2: Symlink within project → path outside project root (reject)**\n- Setup: `projectRoot/evil_link` → `/etc/passwd` or `filepath.Join(tmpDir,\"outside\",\"secret\")`\n- Input: `evil_link`\n- Expect: If ValidatePath uses `filepath.EvalSymlinks`: reject. Current impl (no EvalSymlinks): may incorrectly accept — document behavior\n- Platform: Unix/macOS; portable target for CI\n\n**Case 3: Broken symlink**\n- Setup: `projectRoot/broken_link` → `nonexistent_target`\n- Input: `broken_link`\n- Expect: ValidatePath: accept (path string within root). ValidatePathExists: reject (path does not exist)\n- Platform: All\n\n**Case 4: Symlink in path component (nested)**\n- Setup: `projectRoot/a/link` → `projectRoot/b/file`; resolve `a/link`\n- Expect: Accept if resolved path stays within root\n\n**Implementation notes:** Use `t.TempDir()`, `os.Symlink`; skip on Windows if needed. Current mcp-go-core ValidatePath does NOT call `filepath.EvalSymlinks`; tests should assert current behavior first.\n\n📚 **Dependencies:** None. Epic: T-284.",
       "status": "Todo",
-      "priority": "medium",
+      "priority": "high",
       "tags": [
         "design",
         "security",
@@ -70,15 +166,12 @@
       ],
       "parent_id": "T-284",
       "metadata": {
-        "epic_id": "T-284",
-        "planning_links": {
-          "epic_id": "T-284"
-        }
+        "planning_links": {}
       },
       "created": "2026-02-11T19:02:42+02:00",
       "created_at": "2026-02-11T19:02:42+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00"
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00"
     },
     {
       "id": "T-1770829107875",
@@ -95,8 +188,8 @@
       ],
       "created": "2026-02-11T18:58:27+02:00",
       "created_at": "2026-02-11T18:58:27+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00"
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00"
     },
     {
       "id": "T-1770829104089",
@@ -114,8 +207,8 @@
       ],
       "created": "2026-02-11T18:58:24+02:00",
       "created_at": "2026-02-11T18:58:24+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00"
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00"
     },
     {
       "id": "T-1770829100451",
@@ -132,8 +225,8 @@
       ],
       "created": "2026-02-11T18:58:20+02:00",
       "created_at": "2026-02-11T18:58:20+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00"
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00"
     },
     {
       "id": "T-1770828211787",
@@ -150,8 +243,8 @@
       ],
       "created": "2026-02-11T18:43:31+02:00",
       "created_at": "2026-02-11T18:43:31+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-02-11T18:45:45+02:00"
     },
     {
@@ -171,8 +264,8 @@
       ],
       "created": "2026-02-11T18:42:47+02:00",
       "created_at": "2026-02-11T18:42:47+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00"
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00"
     },
     {
       "id": "T-1770828167551",
@@ -192,8 +285,8 @@
       ],
       "created": "2026-02-11T18:42:47+02:00",
       "created_at": "2026-02-11T18:42:47+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00"
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00"
     },
     {
       "id": "T-1770828166659",
@@ -202,7 +295,7 @@
       "description": "Replace in-handler BuildTaskGraph/DetectCycles/findMissingDependencies with task_analysis dependencies result. Map task_analysis output (missing_deps, cycles) to orphan discovery format. Preserve parent_id and incomplete_structure checks.",
       "long_description": "Replace in-handler BuildTaskGraph/DetectCycles/findMissingDependencies with task_analysis dependencies result. Map task_analysis output (missing_deps, cycles) to orphan discovery format. Preserve parent_id and incomplete_structure checks.",
       "status": "Todo",
-      "priority": "medium",
+      "priority": "high",
       "tags": [
         "refactor",
         "task_analysis",
@@ -210,8 +303,8 @@
       ],
       "created": "2026-02-11T18:42:46+02:00",
       "created_at": "2026-02-11T18:42:46+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00"
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00"
     },
     {
       "id": "T-1770827789804",
@@ -219,7 +312,7 @@
       "content": "Migrate git_tools, alignment, and misc tools to TaskStore",
       "description": "Replace LoadTodo2Tasks/SaveTodo2Tasks in git_tools.go (6 call sites), alignment_analysis.go (2), automation_native.go (1), session_mode_inference.go (1), graph_helpers.go (1), and estimation_shared.go (1) with TaskStore. Use NewDefaultTaskStore(projectRoot) where projectRoot is available. Depends on T-1769989774217.",
       "long_description": "Replace LoadTodo2Tasks/SaveTodo2Tasks in git_tools.go (6 call sites), alignment_analysis.go (2), automation_native.go (1), session_mode_inference.go (1), graph_helpers.go (1), and estimation_shared.go (1) with TaskStore. Use NewDefaultTaskStore(projectRoot) where projectRoot is available. Depends on T-1769989774217.",
-      "status": "Todo",
+      "status": "Done",
       "priority": "medium",
       "tags": [
         "TaskStore",
@@ -231,8 +324,9 @@
       ],
       "created": "2026-02-11T18:36:29+02:00",
       "created_at": "2026-02-11T18:36:29+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00"
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
+      "completed_at": "2026-02-11T19:25:26+02:00"
     },
     {
       "id": "T-1770827788823",
@@ -240,7 +334,7 @@
       "content": "Migrate infer_task_progress and task_analysis to TaskStore",
       "description": "Replace LoadTodo2Tasks/SaveTodo2Tasks in infer_task_progress.go (loadInProgressTasks, apply path) and task_analysis_shared.go (many call sites) with TaskStore. Use store.ListTasks with filters instead of load-all-then-filter. Depends on T-1769989774217.",
       "long_description": "Replace LoadTodo2Tasks/SaveTodo2Tasks in infer_task_progress.go (loadInProgressTasks, apply path) and task_analysis_shared.go (many call sites) with TaskStore. Use store.ListTasks with filters instead of load-all-then-filter. Depends on T-1769989774217.",
-      "status": "Todo",
+      "status": "Done",
       "priority": "medium",
       "tags": [
         "TaskStore",
@@ -253,8 +347,9 @@
       ],
       "created": "2026-02-11T18:36:28+02:00",
       "created_at": "2026-02-11T18:36:28+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00"
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
+      "completed_at": "2026-02-11T19:22:20+02:00"
     },
     {
       "id": "T-1770827788204",
@@ -275,8 +370,8 @@
       ],
       "created": "2026-02-11T18:36:28+02:00",
       "created_at": "2026-02-11T18:36:28+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-02-11T18:45:44+02:00"
     },
     {
@@ -285,7 +380,7 @@
       "content": "Migrate plan_sync and task_discovery to TaskStore",
       "description": "Replace LoadTodo2Tasks/SaveTodo2Tasks with TaskStore in plan_sync.go (sync plan ↔ tasks), task_discovery_common.go, and task_discovery_native*.go. Requires passing store via context or constructing NewDefaultTaskStore(projectRoot) where project root is available. Depends on T-1769989774217.",
       "long_description": "Replace LoadTodo2Tasks/SaveTodo2Tasks with TaskStore in plan_sync.go (sync plan ↔ tasks), task_discovery_common.go, and task_discovery_native*.go. Requires passing store via context or constructing NewDefaultTaskStore(projectRoot) where project root is available. Depends on T-1769989774217.",
-      "status": "Todo",
+      "status": "Done",
       "priority": "medium",
       "tags": [
         "TaskStore",
@@ -298,8 +393,9 @@
       ],
       "created": "2026-02-11T18:36:27+02:00",
       "created_at": "2026-02-11T18:36:27+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00"
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
+      "completed_at": "2026-02-11T19:18:44+02:00"
     },
     {
       "id": "T-1770827786553",
@@ -307,7 +403,7 @@
       "content": "Migrate task_workflow remaining handlers to TaskStore",
       "description": "Replace direct LoadTodo2Tasks/SaveTodo2Tasks calls in task_workflow_common.go and task_workflow_native.go with getTaskStore(ctx). Handlers using getTaskStore: approve, link_planning, create (some paths). **Remaining:** sync_action, cleanup, fix_dates, fix_empty_descriptions, fix_invalid_ids, request_approval, apply_approval_result, clarity, discover, and other actions. Use store.ListTasks, store.GetTask, store.UpdateTask instead of LoadTodo2Tasks/SaveTodo2Tasks. Depends on T-1769989774217.",
       "long_description": "Replace direct LoadTodo2Tasks/SaveTodo2Tasks calls in task_workflow_common.go and task_workflow_native.go with getTaskStore(ctx). Handlers using getTaskStore: approve, link_planning, create (some paths). **Remaining:** sync_action, cleanup, fix_dates, fix_empty_descriptions, fix_invalid_ids, request_approval, apply_approval_result, clarity, discover, and other actions. Use store.ListTasks, store.GetTask, store.UpdateTask instead of LoadTodo2Tasks/SaveTodo2Tasks. Depends on T-1769989774217.",
-      "status": "Todo",
+      "status": "Done",
       "priority": "medium",
       "tags": [
         "TaskStore",
@@ -319,8 +415,9 @@
       ],
       "created": "2026-02-11T18:36:26+02:00",
       "created_at": "2026-02-11T18:36:26+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00"
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
+      "completed_at": "2026-02-11T19:18:44+02:00"
     },
     {
       "id": "T-1770825532617",
@@ -340,8 +437,8 @@
       ],
       "created": "2026-02-11T17:58:52+02:00",
       "created_at": "2026-02-11T17:58:52+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-02-11T18:23:05+02:00"
     },
     {
@@ -359,8 +456,8 @@
       ],
       "created": "2026-02-11T16:55:43+02:00",
       "created_at": "2026-02-11T16:55:43+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-02-11T16:58:07+02:00"
     },
     {
@@ -382,8 +479,8 @@
       },
       "created": "2026-02-02T02:37:59+02:00",
       "created_at": "2026-02-02T02:37:59+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-02-11T16:37:52+02:00"
     },
     {
@@ -405,8 +502,8 @@
       },
       "created": "2026-02-02T02:37:57+02:00",
       "created_at": "2026-02-02T02:37:57+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-02-11T16:36:02+02:00"
     },
     {
@@ -424,8 +521,8 @@
       ],
       "created": "2026-02-02T02:13:39+02:00",
       "created_at": "2026-02-02T02:13:39+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-02-02T21:59:51+02:00"
     },
     {
@@ -442,8 +539,8 @@
       ],
       "created": "2026-02-02T02:03:41+02:00",
       "created_at": "2026-02-02T02:03:41+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-02-02T02:43:39+02:00"
     },
     {
@@ -461,8 +558,8 @@
       ],
       "created": "2026-02-02T02:03:40+02:00",
       "created_at": "2026-02-02T02:03:40+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-02-02T02:43:39+02:00"
     },
     {
@@ -480,8 +577,8 @@
       ],
       "created": "2026-02-02T02:03:39+02:00",
       "created_at": "2026-02-02T02:03:39+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-02-02T02:43:39+02:00"
     },
     {
@@ -502,8 +599,8 @@
       ],
       "created": "2026-02-02T01:49:34+02:00",
       "created_at": "2026-02-02T01:49:34+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-02-11T18:36:38+02:00"
     },
     {
@@ -524,8 +621,8 @@
       ],
       "created": "2026-02-02T01:49:33+02:00",
       "created_at": "2026-02-02T01:49:33+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-02-11T16:55:43+02:00"
     },
     {
@@ -546,8 +643,8 @@
       ],
       "created": "2026-02-02T01:49:32+02:00",
       "created_at": "2026-02-02T01:49:32+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-02-02T01:59:45+02:00"
     },
     {
@@ -568,8 +665,8 @@
       ],
       "created": "2026-02-02T01:49:32+02:00",
       "created_at": "2026-02-02T01:49:32+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-02-02T01:59:45+02:00"
     },
     {
@@ -589,8 +686,8 @@
       ],
       "created": "2026-02-02T01:49:31+02:00",
       "created_at": "2026-02-02T01:49:31+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-02-11T16:29:06+02:00"
     },
     {
@@ -615,8 +712,8 @@
       },
       "created": "2026-02-02T01:41:23+02:00",
       "created_at": "2026-02-02T01:41:23+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-02-11T16:25:33+02:00"
     },
     {
@@ -640,8 +737,8 @@
       },
       "created": "2026-02-02T01:41:22+02:00",
       "created_at": "2026-02-02T01:41:22+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-02-11T16:26:17+02:00"
     },
     {
@@ -664,8 +761,8 @@
       },
       "created": "2026-02-02T01:41:21+02:00",
       "created_at": "2026-02-02T01:41:21+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-02-11T16:26:17+02:00"
     },
     {
@@ -688,8 +785,8 @@
       },
       "created": "2026-02-02T01:41:20+02:00",
       "created_at": "2026-02-02T01:41:20+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-02-02T01:58:42+02:00"
     },
     {
@@ -707,8 +804,8 @@
       ],
       "created": "2026-02-01T23:34:25+02:00",
       "created_at": "2026-02-01T23:34:25+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-02-02T00:34:19+02:00"
     },
     {
@@ -726,8 +823,8 @@
       ],
       "created": "2026-02-01T23:34:23+02:00",
       "created_at": "2026-02-01T23:34:23+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-02-02T00:34:19+02:00"
     },
     {
@@ -744,8 +841,8 @@
       ],
       "created": "2026-02-01T23:34:21+02:00",
       "created_at": "2026-02-01T23:34:21+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-02-02T01:09:11+02:00"
     },
     {
@@ -762,8 +859,8 @@
       ],
       "created": "2026-02-01T23:28:50+02:00",
       "created_at": "2026-02-01T23:28:50+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-02-01T23:33:54+02:00"
     },
     {
@@ -781,8 +878,8 @@
       ],
       "created": "2026-02-01T23:28:49+02:00",
       "created_at": "2026-02-01T23:28:49+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-02-01T23:33:49+02:00"
     },
     {
@@ -800,8 +897,8 @@
       ],
       "created": "2026-02-01T23:28:48+02:00",
       "created_at": "2026-02-01T23:28:48+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-02-01T23:33:10+02:00"
     },
     {
@@ -819,8 +916,8 @@
       ],
       "created": "2026-02-01T23:18:13+02:00",
       "created_at": "2026-02-01T23:18:13+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-02-02T01:22:40+02:00"
     },
     {
@@ -837,8 +934,8 @@
       ],
       "created": "2026-02-01T23:18:10+02:00",
       "created_at": "2026-02-01T23:18:10+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-02-02T01:32:12+02:00"
     },
     {
@@ -856,8 +953,8 @@
       ],
       "created": "2026-02-01T23:18:02+02:00",
       "created_at": "2026-02-01T23:18:02+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-02-02T01:22:40+02:00"
     },
     {
@@ -875,8 +972,8 @@
       ],
       "created": "2026-02-01T23:18:00+02:00",
       "created_at": "2026-02-01T23:18:00+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-02-02T00:41:54+02:00"
     },
     {
@@ -893,8 +990,8 @@
       ],
       "created": "2026-02-01T23:17:59+02:00",
       "created_at": "2026-02-01T23:17:59+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-02-02T01:32:12+02:00"
     },
     {
@@ -912,8 +1009,8 @@
       ],
       "created": "2026-02-01T23:17:57+02:00",
       "created_at": "2026-02-01T23:17:57+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-02-02T01:32:12+02:00"
     },
     {
@@ -931,8 +1028,8 @@
       ],
       "created": "2026-02-01T23:17:44+02:00",
       "created_at": "2026-02-01T23:17:44+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-02-02T01:22:40+02:00"
     },
     {
@@ -949,8 +1046,8 @@
       ],
       "created": "2026-01-29T21:48:28+02:00",
       "created_at": "2026-01-29T21:48:28+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-01-29T21:59:41+02:00"
     },
     {
@@ -967,8 +1064,8 @@
       ],
       "created": "2026-01-27T18:36:32+02:00",
       "created_at": "2026-01-27T18:36:32+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-01-29T21:32:22+02:00"
     },
     {
@@ -989,8 +1086,8 @@
       ],
       "created": "2026-01-13T20:11:12+02:00",
       "created_at": "2026-01-13T20:11:12+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-02-02T01:30:17+02:00"
     },
     {
@@ -1009,8 +1106,8 @@
       ],
       "created": "2026-01-13T20:11:06+02:00",
       "created_at": "2026-01-13T20:11:06+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-02-02T01:30:17+02:00"
     },
     {
@@ -1031,8 +1128,8 @@
       ],
       "created": "2026-01-13T20:11:00+02:00",
       "created_at": "2026-01-13T20:11:00+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-02-02T01:30:17+02:00"
     },
     {
@@ -1051,8 +1148,8 @@
       ],
       "created": "2026-01-13T19:53:43+02:00",
       "created_at": "2026-01-13T19:53:43+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-01-29T10:50:08+02:00"
     },
     {
@@ -1078,8 +1175,8 @@
       ],
       "created": "2026-01-13T19:51:41+02:00",
       "created_at": "2026-01-13T19:51:41+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-01-29T10:51:12+02:00"
     },
     {
@@ -1102,8 +1199,8 @@
       ],
       "created": "2026-01-13T19:51:30+02:00",
       "created_at": "2026-01-13T19:51:30+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-01-29T10:47:47+02:00"
     },
     {
@@ -1126,8 +1223,8 @@
       ],
       "created": "2026-01-13T19:49:05+02:00",
       "created_at": "2026-01-13T19:49:05+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-01-29T10:47:47+02:00"
     },
     {
@@ -1152,8 +1249,8 @@
       ],
       "created": "2026-01-13T19:45:24+02:00",
       "created_at": "2026-01-13T19:45:24+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-01-29T00:14:57+02:00"
     },
     {
@@ -1169,8 +1266,8 @@
       ],
       "created": "2026-01-13T19:32:12+02:00",
       "created_at": "2026-01-13T19:32:12+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-01-29T00:14:57+02:00"
     },
     {
@@ -1189,8 +1286,8 @@
       ],
       "created": "2026-01-13T19:32:12+02:00",
       "created_at": "2026-01-13T19:32:12+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-01-29T00:14:57+02:00"
     },
     {
@@ -1210,8 +1307,8 @@
       ],
       "created": "2026-01-13T19:32:12+02:00",
       "created_at": "2026-01-13T19:32:12+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-01-29T22:58:17+02:00"
     },
     {
@@ -1228,8 +1325,8 @@
       ],
       "created": "2026-01-13T19:23:26+02:00",
       "created_at": "2026-01-13T19:23:26+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-02-02T01:32:12+02:00"
     },
     {
@@ -1249,8 +1346,8 @@
       ],
       "created": "2026-01-13T19:12:24+02:00",
       "created_at": "2026-01-13T19:12:24+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-01-29T22:07:21+02:00"
     },
     {
@@ -1270,8 +1367,8 @@
       ],
       "created": "2026-01-13T19:09:22+02:00",
       "created_at": "2026-01-13T19:09:22+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-02-11T16:29:06+02:00"
     },
     {
@@ -1290,8 +1387,8 @@
       ],
       "created": "2026-01-13T18:38:16+02:00",
       "created_at": "2026-01-13T18:38:16+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-01-29T00:14:57+02:00"
     },
     {
@@ -1312,8 +1409,8 @@
       ],
       "created": "2026-01-13T18:38:09+02:00",
       "created_at": "2026-01-13T18:38:09+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-01-29T00:14:57+02:00"
     },
     {
@@ -1333,8 +1430,8 @@
       ],
       "created": "2026-01-13T18:38:01+02:00",
       "created_at": "2026-01-13T18:38:01+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-01-29T00:14:57+02:00"
     },
     {
@@ -1353,8 +1450,8 @@
       ],
       "created": "2026-01-13T18:37:52+02:00",
       "created_at": "2026-01-13T18:37:52+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-01-29T00:14:57+02:00"
     },
     {
@@ -1375,8 +1472,8 @@
       ],
       "created": "2026-01-13T18:37:45+02:00",
       "created_at": "2026-01-13T18:37:45+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-01-29T00:14:57+02:00"
     },
     {
@@ -1396,8 +1493,8 @@
       ],
       "created": "2026-01-13T18:37:38+02:00",
       "created_at": "2026-01-13T18:37:38+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-01-29T00:14:57+02:00"
     },
     {
@@ -1416,8 +1513,8 @@
       ],
       "created": "2026-01-13T18:30:28+02:00",
       "created_at": "2026-01-13T18:30:28+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-02-11T16:29:06+02:00"
     },
     {
@@ -1433,8 +1530,8 @@
       ],
       "created": "2026-01-13T18:12:53+02:00",
       "created_at": "2026-01-13T18:12:53+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-02-11T17:25:21+02:00"
     },
     {
@@ -1450,8 +1547,8 @@
       ],
       "created": "2026-01-13T18:12:05+02:00",
       "created_at": "2026-01-13T18:12:05+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-02-11T17:20:28+02:00"
     },
     {
@@ -1468,8 +1565,8 @@
       ],
       "created": "2026-01-13T18:00:27+02:00",
       "created_at": "2026-01-13T18:00:27+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-01-29T00:14:57+02:00"
     },
     {
@@ -1488,8 +1585,8 @@
       ],
       "created": "2026-01-13 17:43:21",
       "created_at": "2026-01-13 17:43:21",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-02-01T23:38:21+02:00"
     },
     {
@@ -1511,8 +1608,8 @@
       ],
       "created": "2026-01-13 17:43:21",
       "created_at": "2026-01-13 17:43:21",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-02-02T01:32:12+02:00"
     },
     {
@@ -1531,8 +1628,8 @@
       ],
       "created": "2026-01-13 17:34:31",
       "created_at": "2026-01-13 17:34:31",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00"
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00"
     },
     {
       "id": "T-1768318471623",
@@ -1549,8 +1646,8 @@
       ],
       "created": "2026-01-13 17:34:31",
       "created_at": "2026-01-13 17:34:31",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-02-01T22:09:17+02:00"
     },
     {
@@ -1571,8 +1668,8 @@
       "completed": true,
       "created": "2026-01-13 17:34:31",
       "created_at": "2026-01-13 17:34:31",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-01-29T00:14:57+02:00"
     },
     {
@@ -1590,8 +1687,8 @@
       ],
       "created": "2026-01-13 17:34:31",
       "created_at": "2026-01-13 17:34:31",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-01-29T22:58:17+02:00"
     },
     {
@@ -1609,8 +1706,8 @@
       "completed": true,
       "created": "2026-01-13 17:34:31",
       "created_at": "2026-01-13 17:34:31",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-01-29T00:14:57+02:00"
     },
     {
@@ -1628,8 +1725,8 @@
       ],
       "created": "2026-01-13T17:33:11+02:00",
       "created_at": "2026-01-13T17:33:11+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-01-29T22:24:50+02:00"
     },
     {
@@ -1650,8 +1747,8 @@
       ],
       "created": "2026-01-13T17:32:57+02:00",
       "created_at": "2026-01-13T17:32:57+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-01-29T22:07:21+02:00"
     },
     {
@@ -1672,8 +1769,8 @@
       ],
       "created": "2026-01-13T17:32:48+02:00",
       "created_at": "2026-01-13T17:32:48+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-01-29T22:07:21+02:00"
     },
     {
@@ -1692,8 +1789,8 @@
       ],
       "created": "2026-01-13T17:32:39+02:00",
       "created_at": "2026-01-13T17:32:39+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-01-29T22:07:21+02:00"
     },
     {
@@ -1711,8 +1808,8 @@
       ],
       "created": "2026-01-13T17:32:29+02:00",
       "created_at": "2026-01-13T17:32:29+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-01-29T22:07:21+02:00"
     },
     {
@@ -1731,8 +1828,8 @@
       ],
       "created": "2026-01-13T17:27:55+02:00",
       "created_at": "2026-01-13T17:27:55+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-01-29T00:14:57+02:00"
     },
     {
@@ -1749,8 +1846,8 @@
       ],
       "created": "2026-01-13 17:25:26",
       "created_at": "2026-01-13 17:25:26",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-01-29T00:14:57+02:00"
     },
     {
@@ -1766,8 +1863,8 @@
       ],
       "created": "2026-01-13 17:25:26",
       "created_at": "2026-01-13 17:25:26",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-01-29T00:14:57+02:00"
     },
     {
@@ -1786,8 +1883,8 @@
       ],
       "created": "2026-01-13 17:25:26",
       "created_at": "2026-01-13 17:25:26",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-01-29T00:14:57+02:00"
     },
     {
@@ -1811,8 +1908,8 @@
       ],
       "created": "2026-01-13 17:25:26",
       "created_at": "2026-01-13 17:25:26",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-01-29T22:57:09+02:00"
     },
     {
@@ -1835,8 +1932,8 @@
       ],
       "created": "2026-01-13 17:25:26",
       "created_at": "2026-01-13 17:25:26",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-01-29T22:53:48+02:00"
     },
     {
@@ -1859,8 +1956,8 @@
       ],
       "created": "2026-01-13 17:25:26",
       "created_at": "2026-01-13 17:25:26",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-01-29T22:57:09+02:00"
     },
     {
@@ -1883,8 +1980,8 @@
       ],
       "created": "2026-01-13 17:25:26",
       "created_at": "2026-01-13 17:25:26",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-01-29T22:53:48+02:00"
     },
     {
@@ -1906,8 +2003,8 @@
       ],
       "created": "2026-01-13 17:25:26",
       "created_at": "2026-01-13 17:25:26",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-01-29T22:53:48+02:00"
     },
     {
@@ -1924,8 +2021,8 @@
       ],
       "created": "2026-01-13 17:25:26",
       "created_at": "2026-01-13 17:25:26",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-01-29T00:14:57+02:00"
     },
     {
@@ -1952,8 +2049,8 @@
       ],
       "created": "2026-01-13 17:25:26",
       "created_at": "2026-01-13 17:25:26",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-01-29T22:58:17+02:00"
     },
     {
@@ -1975,8 +2072,8 @@
       ],
       "created": "2026-01-13 17:25:26",
       "created_at": "2026-01-13 17:25:26",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-01-29T00:14:57+02:00"
     },
     {
@@ -2002,8 +2099,8 @@
       ],
       "created": "2026-01-13 17:25:26",
       "created_at": "2026-01-13 17:25:26",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-01-29T00:14:57+02:00"
     },
     {
@@ -2028,8 +2125,8 @@
       ],
       "created": "2026-01-13 17:25:26",
       "created_at": "2026-01-13 17:25:26",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-01-29T00:14:57+02:00"
     },
     {
@@ -2056,8 +2153,8 @@
       ],
       "created": "2026-01-13 17:25:26",
       "created_at": "2026-01-13 17:25:26",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-01-29T22:58:17+02:00"
     },
     {
@@ -2078,8 +2175,8 @@
       ],
       "created": "2026-01-13 17:25:26",
       "created_at": "2026-01-13 17:25:26",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-01-29T00:14:57+02:00"
     },
     {
@@ -2096,8 +2193,8 @@
       ],
       "created": "2026-01-13 17:25:26",
       "created_at": "2026-01-13 17:25:26",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-01-29T00:14:57+02:00"
     },
     {
@@ -2114,8 +2211,8 @@
       ],
       "created": "2026-01-13 17:25:26",
       "created_at": "2026-01-13 17:25:26",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-01-29T00:14:57+02:00"
     },
     {
@@ -2131,8 +2228,8 @@
       ],
       "created": "2026-01-13 17:25:26",
       "created_at": "2026-01-13 17:25:26",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-01-29T00:14:57+02:00"
     },
     {
@@ -2155,8 +2252,8 @@
       ],
       "created": "2026-01-13 17:25:26",
       "created_at": "2026-01-13 17:25:26",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-02-01T22:09:17+02:00"
     },
     {
@@ -2178,8 +2275,8 @@
       ],
       "created": "2026-01-13 17:25:26",
       "created_at": "2026-01-13 17:25:26",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-01-29T00:14:57+02:00"
     },
     {
@@ -2204,8 +2301,8 @@
       ],
       "created": "2026-01-13 17:25:26",
       "created_at": "2026-01-13 17:25:26",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-01-29T22:58:17+02:00"
     },
     {
@@ -2231,8 +2328,8 @@
       ],
       "created": "2026-01-13 17:25:26",
       "created_at": "2026-01-13 17:25:26",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-01-29T22:57:09+02:00"
     },
     {
@@ -2259,8 +2356,8 @@
       ],
       "created": "2026-01-13 17:25:26",
       "created_at": "2026-01-13 17:25:26",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-01-29T22:58:17+02:00"
     },
     {
@@ -2282,8 +2379,8 @@
       ],
       "created": "2026-01-13 17:25:26",
       "created_at": "2026-01-13 17:25:26",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-01-29T00:14:57+02:00"
     },
     {
@@ -2304,8 +2401,8 @@
       ],
       "created": "2026-01-13 17:25:26",
       "created_at": "2026-01-13 17:25:26",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-01-29T00:14:57+02:00"
     },
     {
@@ -2327,8 +2424,8 @@
       ],
       "created": "2026-01-13 17:25:26",
       "created_at": "2026-01-13 17:25:26",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-01-29T00:14:57+02:00"
     },
     {
@@ -2351,8 +2448,8 @@
       ],
       "created": "2026-01-13 17:25:26",
       "created_at": "2026-01-13 17:25:26",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-01-29T00:14:57+02:00"
     },
     {
@@ -2373,8 +2470,8 @@
       ],
       "created": "2026-01-13 17:25:26",
       "created_at": "2026-01-13 17:25:26",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-01-29T00:14:57+02:00"
     },
     {
@@ -2398,8 +2495,8 @@
       ],
       "created": "2026-01-13 17:25:26",
       "created_at": "2026-01-13 17:25:26",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-01-29T00:14:57+02:00"
     },
     {
@@ -2424,8 +2521,8 @@
       ],
       "created": "2026-01-13 17:25:26",
       "created_at": "2026-01-13 17:25:26",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-01-29T00:14:57+02:00"
     },
     {
@@ -2447,8 +2544,8 @@
       ],
       "created": "2026-01-13 17:25:26",
       "created_at": "2026-01-13 17:25:26",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-01-29T00:14:57+02:00"
     },
     {
@@ -2473,8 +2570,8 @@
       ],
       "created": "2026-01-13 17:25:26",
       "created_at": "2026-01-13 17:25:26",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-01-29T00:14:57+02:00"
     },
     {
@@ -2495,8 +2592,8 @@
       ],
       "created": "2026-01-13 17:25:26",
       "created_at": "2026-01-13 17:25:26",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-01-29T00:14:57+02:00"
     },
     {
@@ -2519,8 +2616,8 @@
       ],
       "created": "2026-01-13 17:25:26",
       "created_at": "2026-01-13 17:25:26",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-01-29T00:14:57+02:00"
     },
     {
@@ -2549,8 +2646,8 @@
       },
       "created": "2026-01-13 17:25:26",
       "created_at": "2026-01-13 17:25:26",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-01-29T22:58:17+02:00"
     },
     {
@@ -2573,8 +2670,8 @@
       ],
       "created": "2026-01-13 17:25:26",
       "created_at": "2026-01-13 17:25:26",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-01-29T00:14:57+02:00"
     },
     {
@@ -2600,8 +2697,8 @@
       ],
       "created": "2026-01-13 17:25:26",
       "created_at": "2026-01-13 17:25:26",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-01-29T22:58:17+02:00"
     },
     {
@@ -2624,8 +2721,8 @@
       ],
       "created": "2026-01-13 17:25:26",
       "created_at": "2026-01-13 17:25:26",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-01-29T00:14:57+02:00"
     },
     {
@@ -2647,8 +2744,8 @@
       ],
       "created": "2026-01-13 17:25:26",
       "created_at": "2026-01-13 17:25:26",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-01-29T00:14:57+02:00"
     },
     {
@@ -2673,8 +2770,8 @@
       ],
       "created": "2026-01-13 17:24:49",
       "created_at": "2026-01-13 17:24:49",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-01-29T22:58:17+02:00"
     },
     {
@@ -2691,8 +2788,8 @@
       ],
       "created": "2026-01-13T17:21:47+02:00",
       "created_at": "2026-01-13T17:21:47+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-01-29T00:14:57+02:00"
     },
     {
@@ -2718,8 +2815,8 @@
       ],
       "created": "2026-01-13T17:19:14+02:00",
       "created_at": "2026-01-13T17:19:14+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-01-30T00:49:50+02:00"
     },
     {
@@ -2744,8 +2841,8 @@
       ],
       "created": "2026-01-13T17:19:06+02:00",
       "created_at": "2026-01-13T17:19:06+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-01-30T00:49:50+02:00"
     },
     {
@@ -2770,8 +2867,8 @@
       ],
       "created": "2026-01-13T17:18:59+02:00",
       "created_at": "2026-01-13T17:18:59+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-01-29T22:07:21+02:00"
     },
     {
@@ -2796,8 +2893,8 @@
       ],
       "created": "2026-01-13T17:18:50+02:00",
       "created_at": "2026-01-13T17:18:50+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-01-29T22:07:21+02:00"
     },
     {
@@ -2820,8 +2917,8 @@
       ],
       "created": "2026-01-13T17:18:40+02:00",
       "created_at": "2026-01-13T17:18:40+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-01-29T22:07:21+02:00"
     },
     {
@@ -2844,8 +2941,8 @@
       ],
       "created": "2026-01-13T17:16:50+02:00",
       "created_at": "2026-01-13T17:16:50+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-01-29T22:07:21+02:00"
     },
     {
@@ -2867,8 +2964,8 @@
       ],
       "created": "2026-01-13T17:16:45+02:00",
       "created_at": "2026-01-13T17:16:45+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-02-02T01:32:12+02:00"
     },
     {
@@ -2892,8 +2989,8 @@
       ],
       "created": "2026-01-13T17:15:35+02:00",
       "created_at": "2026-01-13T17:15:35+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-01-29T22:07:21+02:00"
     },
     {
@@ -2914,8 +3011,8 @@
       ],
       "created": "2026-01-13T17:08:20+02:00",
       "created_at": "2026-01-13T17:08:20+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-01-29T00:14:57+02:00"
     },
     {
@@ -2941,8 +3038,8 @@
       ],
       "created": "2026-01-13T17:07:08+02:00",
       "created_at": "2026-01-13T17:07:08+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-01-29T22:07:21+02:00"
     },
     {
@@ -2964,8 +3061,8 @@
       ],
       "created": "2026-01-13T17:06:57+02:00",
       "created_at": "2026-01-13T17:06:57+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-02-02T01:32:12+02:00"
     },
     {
@@ -2987,8 +3084,8 @@
       ],
       "created": "2026-01-13T17:06:48+02:00",
       "created_at": "2026-01-13T17:06:48+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-01-29T22:07:21+02:00"
     },
     {
@@ -3007,8 +3104,8 @@
       ],
       "created": "2026-01-13T17:01:39+02:00",
       "created_at": "2026-01-13T17:01:39+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-01-29T00:14:57+02:00"
     },
     {
@@ -3030,8 +3127,8 @@
       },
       "created": "2026-01-13T16:16:07+02:00",
       "created_at": "2026-01-13T16:16:07+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-02-02T02:04:46+02:00"
     },
     {
@@ -3054,8 +3151,8 @@
       },
       "created": "2026-01-13T16:16:07+02:00",
       "created_at": "2026-01-13T16:16:07+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-02-02T02:04:46+02:00"
     },
     {
@@ -3080,8 +3177,8 @@
       },
       "created": "2026-01-13T16:16:07+02:00",
       "created_at": "2026-01-13T16:16:07+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00"
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00"
     },
     {
       "id": "T-111",
@@ -3102,8 +3199,8 @@
       },
       "created": "2026-01-13T16:16:07+02:00",
       "created_at": "2026-01-13T16:16:07+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-02-02T02:04:46+02:00"
     },
     {
@@ -3127,8 +3224,8 @@
       ],
       "created": "2026-01-13T16:16:07+02:00",
       "created_at": "2026-01-13T16:16:07+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-02-01T22:33:03+02:00"
     },
     {
@@ -3151,8 +3248,8 @@
       },
       "created": "2026-01-13T16:16:07+02:00",
       "created_at": "2026-01-13T16:16:07+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-02-02T02:04:39+02:00"
     },
     {
@@ -3175,8 +3272,8 @@
       },
       "created": "2026-01-13T16:16:07+02:00",
       "created_at": "2026-01-13T16:16:07+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-02-01T22:26:24+02:00"
     },
     {
@@ -3199,8 +3296,8 @@
       },
       "created": "2026-01-13T16:16:07+02:00",
       "created_at": "2026-01-13T16:16:07+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-02-01T22:26:24+02:00"
     },
     {
@@ -3222,8 +3319,8 @@
       },
       "created": "2026-01-13T16:16:07+02:00",
       "created_at": "2026-01-13T16:16:07+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-02-02T02:04:46+02:00"
     },
     {
@@ -3245,8 +3342,8 @@
       },
       "created": "2026-01-13T16:16:07+02:00",
       "created_at": "2026-01-13T16:16:07+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-02-11T19:11:23+02:00"
     },
     {
@@ -3272,33 +3369,9 @@
       ],
       "created": "2026-01-13T16:16:07+02:00",
       "created_at": "2026-01-13T16:16:07+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-01-29T00:14:57+02:00"
-    },
-    {
-      "id": "T-217",
-      "name": "Create optimization prompt templates",
-      "content": "Create optimization prompt templates",
-      "description": "Create optimization prompt templates",
-      "long_description": "Create optimization prompt templates",
-      "status": "Todo",
-      "priority": "medium",
-      "tags": [
-        "markdown"
-      ],
-      "dependencies": [
-        "T-216"
-      ],
-      "metadata": {
-        "discovered_from": "docs/MODEL_ASSISTED_WORKFLOW.md",
-        "discovered_line": "",
-        "discovery_type": "MARKDOWN_TASK"
-      },
-      "created": "2026-01-13T16:16:07+02:00",
-      "created_at": "2026-01-13T16:16:07+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00"
     },
     {
       "id": "T-125",
@@ -3320,34 +3393,9 @@
       },
       "created": "2026-01-13T16:16:07+02:00",
       "created_at": "2026-01-13T16:16:07+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-02-02T02:04:39+02:00"
-    },
-    {
-      "id": "T-232",
-      "name": "Add monitoring dashboard",
-      "content": "Add monitoring dashboard",
-      "description": "Add monitoring dashboard",
-      "long_description": "Add monitoring dashboard",
-      "status": "Todo",
-      "priority": "medium",
-      "tags": [
-        "done",
-        "feature",
-        "markdown",
-        "planned",
-        "researched"
-      ],
-      "metadata": {
-        "discovered_from": "docs/MULTI_AGENT_PLAN.md",
-        "discovered_line": "",
-        "discovery_type": "MARKDOWN_TASK"
-      },
-      "created": "2026-01-13T16:16:07+02:00",
-      "created_at": "2026-01-13T16:16:07+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00"
     },
     {
       "id": "T-223",
@@ -3368,8 +3416,8 @@
       },
       "created": "2026-01-13T16:16:07+02:00",
       "created_at": "2026-01-13T16:16:07+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-02-02T02:09:47+02:00"
     },
     {
@@ -3395,8 +3443,8 @@
       },
       "created": "2026-01-13T16:16:07+02:00",
       "created_at": "2026-01-13T16:16:07+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-02-11T19:00:52+02:00"
     },
     {
@@ -3419,17 +3467,17 @@
       },
       "created": "2026-01-13T16:16:07+02:00",
       "created_at": "2026-01-13T16:16:07+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-02-11T19:10:31+02:00"
     },
     {
       "id": "T-212",
       "name": "Implement task complexity classifier",
       "content": "Implement task complexity classifier",
-      "description": "Implement task complexity classifier",
-      "long_description": "Implement task complexity classifier",
-      "status": "Todo",
+      "description": "🎯 **Objective:** Implement a task complexity classifier that determines whether a Todo2 task is simple (auto-executable), medium (needs breakdown), or complex (needs human review), per the Model-Assisted Workflow design.\n\n📋 **Acceptance Criteria:**\n- Define `TaskComplexity` type with constants: `simple`, `medium`, `complex`\n- Implement `AnalyzeTask(task Task) (complexity TaskComplexity, canAutoExecute bool, needsBreakdown bool)` function\n- Apply decision criteria: Simple = well-defined, routine, low-risk, \u003c1h; Medium = multiple steps, needs breakdown; Complex = high-stakes, experimental, human judgment required\n- Classify based on task name, long_description, acceptance criteria, dependency count, and tags\n- Unit tests for classifier covering each complexity level and edge cases\n\n🚫 **Scope Boundaries (CRITICAL):**\n- **Included:** Heuristic/rule-based classification; integration with Todo2 task struct; exported API for task_analyzer (T-208)\n- **Excluded:** LLM-based classification (future enhancement); Model Router integration; actual auto-execution or breakdown logic\n- **Clarification Required:** None\n\n🔧 **Technical Requirements:**\n- Go package in `internal/tools/` or new `internal/taskanalysis/` (align with T-208)\n- Use Todo2 task fields: name, long_description, dependencies, tags, metadata\n- Heuristics: dependency count, description length, keyword detection (e.g. \"refactor\", \"migrate\", \"security\")\n\n📁 **Files/Components:**\n- Create: `internal/taskanalysis/classifier.go` (or under `internal/tools/`) with `AnalyzeTask`, `TaskComplexity` type\n- Update: `internal/tools/task_analysis*.go` (or task_analyzer) to consume classifier when T-208 is implemented\n- Create: `*_test.go` for classifier\n\n🧪 **Testing Requirements:**\n- Table-driven tests: simple/medium/complex examples\n- Edge cases: empty description, many dependencies, ambiguous keywords\n\n⚠️ **Edge Cases:**\n- Empty or minimal task description → default to medium (conservative)\n- Task with 5+ dependencies → likely medium or complex\n- Tasks with \"security\", \"migration\", \"experimental\" → tend toward complex\n\n📚 **Dependencies:** T-207 (Add model selection logic) — for future LLM-assisted classification; heuristic-only implementation can proceed without it.",
+      "long_description": "🎯 **Objective:** Implement a task complexity classifier that determines whether a Todo2 task is simple (auto-executable), medium (needs breakdown), or complex (needs human review), per the Model-Assisted Workflow design.\n\n📋 **Acceptance Criteria:**\n- Define `TaskComplexity` type with constants: `simple`, `medium`, `complex`\n- Implement `AnalyzeTask(task Task) (complexity TaskComplexity, canAutoExecute bool, needsBreakdown bool)` function\n- Apply decision criteria: Simple = well-defined, routine, low-risk, \u003c1h; Medium = multiple steps, needs breakdown; Complex = high-stakes, experimental, human judgment required\n- Classify based on task name, long_description, acceptance criteria, dependency count, and tags\n- Unit tests for classifier covering each complexity level and edge cases\n\n🚫 **Scope Boundaries (CRITICAL):**\n- **Included:** Heuristic/rule-based classification; integration with Todo2 task struct; exported API for task_analyzer (T-208)\n- **Excluded:** LLM-based classification (future enhancement); Model Router integration; actual auto-execution or breakdown logic\n- **Clarification Required:** None\n\n🔧 **Technical Requirements:**\n- Go package in `internal/tools/` or new `internal/taskanalysis/` (align with T-208)\n- Use Todo2 task fields: name, long_description, dependencies, tags, metadata\n- Heuristics: dependency count, description length, keyword detection (e.g. \"refactor\", \"migrate\", \"security\")\n\n📁 **Files/Components:**\n- Create: `internal/taskanalysis/classifier.go` (or under `internal/tools/`) with `AnalyzeTask`, `TaskComplexity` type\n- Update: `internal/tools/task_analysis*.go` (or task_analyzer) to consume classifier when T-208 is implemented\n- Create: `*_test.go` for classifier\n\n🧪 **Testing Requirements:**\n- Table-driven tests: simple/medium/complex examples\n- Edge cases: empty description, many dependencies, ambiguous keywords\n\n⚠️ **Edge Cases:**\n- Empty or minimal task description → default to medium (conservative)\n- Task with 5+ dependencies → likely medium or complex\n- Tasks with \"security\", \"migration\", \"experimental\" → tend toward complex\n\n📚 **Dependencies:** T-207 (Add model selection logic) — for future LLM-assisted classification; heuristic-only implementation can proceed without it.",
+      "status": "Done",
       "priority": "medium",
       "tags": [
         "feature",
@@ -3446,8 +3494,9 @@
       },
       "created": "2026-01-13T16:16:07+02:00",
       "created_at": "2026-01-13T16:16:07+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00"
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
+      "completed_at": "2026-02-11T19:23:59+02:00"
     },
     {
       "id": "T-227",
@@ -3472,8 +3521,8 @@
       },
       "created": "2026-01-13T16:16:07+02:00",
       "created_at": "2026-01-13T16:16:07+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00"
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00"
     },
     {
       "id": "T-1768268669031",
@@ -3493,8 +3542,8 @@
       ],
       "created": "2026-01-13T16:16:07+02:00",
       "created_at": "2026-01-13T16:16:07+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-01-29T00:14:57+02:00"
     },
     {
@@ -3516,8 +3565,8 @@
       },
       "created": "2026-01-13T16:16:07+02:00",
       "created_at": "2026-01-13T16:16:07+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-02-02T02:04:46+02:00"
     },
     {
@@ -3540,8 +3589,8 @@
       },
       "created": "2026-01-13T16:16:07+02:00",
       "created_at": "2026-01-13T16:16:07+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-02-02T02:04:46+02:00"
     },
     {
@@ -3564,8 +3613,8 @@
       },
       "created": "2026-01-13T16:16:07+02:00",
       "created_at": "2026-01-13T16:16:07+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00"
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00"
     },
     {
       "id": "T-117",
@@ -3587,8 +3636,8 @@
       },
       "created": "2026-01-13T16:16:07+02:00",
       "created_at": "2026-01-13T16:16:07+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-02-02T02:04:46+02:00"
     },
     {
@@ -3610,33 +3659,9 @@
       },
       "created": "2026-01-13T16:16:07+02:00",
       "created_at": "2026-01-13T16:16:07+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-02-11T18:59:04+02:00"
-    },
-    {
-      "id": "T-79",
-      "name": "Agent heartbeat system",
-      "content": "Agent heartbeat system",
-      "description": "Agent heartbeat system",
-      "long_description": "Agent heartbeat system",
-      "status": "Todo",
-      "priority": "medium",
-      "tags": [
-        "markdown"
-      ],
-      "dependencies": [
-        "T-77"
-      ],
-      "metadata": {
-        "discovered_from": "docs/AGENT_LOCKING_STRATEGY.md",
-        "discovered_line": "",
-        "discovery_type": "MARKDOWN_TASK"
-      },
-      "created": "2026-01-13T16:16:07+02:00",
-      "created_at": "2026-01-13T16:16:07+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00"
     },
     {
       "id": "T-288",
@@ -3660,8 +3685,8 @@
       },
       "created": "2026-01-13T16:16:07+02:00",
       "created_at": "2026-01-13T16:16:07+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00"
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00"
     },
     {
       "id": "T-284",
@@ -3682,8 +3707,8 @@
       },
       "created": "2026-01-13T16:16:07+02:00",
       "created_at": "2026-01-13T16:16:07+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00"
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00"
     },
     {
       "id": "T-305",
@@ -3705,8 +3730,8 @@
       },
       "created": "2026-01-13T16:16:07+02:00",
       "created_at": "2026-01-13T16:16:07+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-02-02T00:58:27+02:00"
     },
     {
@@ -3734,8 +3759,8 @@
       },
       "created": "2026-01-13T16:16:07+02:00",
       "created_at": "2026-01-13T16:16:07+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00"
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00"
     },
     {
       "id": "T-317",
@@ -3756,8 +3781,8 @@
       },
       "created": "2026-01-13T16:16:07+02:00",
       "created_at": "2026-01-13T16:16:07+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00"
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00"
     },
     {
       "id": "T-285",
@@ -3778,8 +3803,8 @@
       },
       "created": "2026-01-13T16:16:07+02:00",
       "created_at": "2026-01-13T16:16:07+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00"
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00"
     },
     {
       "id": "T-283",
@@ -3800,8 +3825,8 @@
       },
       "created": "2026-01-13T16:16:07+02:00",
       "created_at": "2026-01-13T16:16:07+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00"
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00"
     },
     {
       "id": "T-106",
@@ -3823,8 +3848,8 @@
       },
       "created": "2026-01-13T16:16:07+02:00",
       "created_at": "2026-01-13T16:16:07+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-02-02T02:04:46+02:00"
     },
     {
@@ -3848,8 +3873,8 @@
       },
       "created": "2026-01-13T16:16:07+02:00",
       "created_at": "2026-01-13T16:16:07+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-02-01T22:10:08+02:00"
     },
     {
@@ -3875,8 +3900,8 @@
       },
       "created": "2026-01-13T16:16:07+02:00",
       "created_at": "2026-01-13T16:16:07+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00"
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00"
     },
     {
       "id": "T-249",
@@ -3897,8 +3922,8 @@
       },
       "created": "2026-01-13T16:16:07+02:00",
       "created_at": "2026-01-13T16:16:07+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-02-11T19:12:06+02:00"
     },
     {
@@ -3919,8 +3944,8 @@
       },
       "created": "2026-01-13T16:16:07+02:00",
       "created_at": "2026-01-13T16:16:07+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-02-11T19:00:28+02:00"
     },
     {
@@ -3943,8 +3968,8 @@
       ],
       "created": "2026-01-13T16:16:07+02:00",
       "created_at": "2026-01-13T16:16:07+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-01-29T00:14:57+02:00"
     },
     {
@@ -3973,8 +3998,8 @@
       },
       "created": "2026-01-13T16:16:07+02:00",
       "created_at": "2026-01-13T16:16:07+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00"
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00"
     },
     {
       "id": "T-1768268673151",
@@ -3996,8 +4021,8 @@
       ],
       "created": "2026-01-13T16:16:07+02:00",
       "created_at": "2026-01-13T16:16:07+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-01-29T00:14:57+02:00"
     },
     {
@@ -4026,8 +4051,8 @@
       },
       "created": "2026-01-13T16:16:06+02:00",
       "created_at": "2026-01-13T16:16:06+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00"
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00"
     },
     {
       "id": "T-144",
@@ -4052,8 +4077,8 @@
       },
       "created": "2026-01-13T16:16:06+02:00",
       "created_at": "2026-01-13T16:16:06+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00"
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00"
     },
     {
       "id": "T-112",
@@ -4075,8 +4100,8 @@
       },
       "created": "2026-01-13T16:16:06+02:00",
       "created_at": "2026-01-13T16:16:06+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-02-02T02:04:46+02:00"
     },
     {
@@ -4099,8 +4124,8 @@
       },
       "created": "2026-01-13T16:16:06+02:00",
       "created_at": "2026-01-13T16:16:06+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-02-01T23:40:12+02:00"
     },
     {
@@ -4123,8 +4148,8 @@
       },
       "created": "2026-01-13T16:16:06+02:00",
       "created_at": "2026-01-13T16:16:06+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-02-02T00:54:26+02:00"
     },
     {
@@ -4146,8 +4171,8 @@
       },
       "created": "2026-01-13T16:16:06+02:00",
       "created_at": "2026-01-13T16:16:06+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-02-02T02:33:23+02:00"
     },
     {
@@ -4171,8 +4196,8 @@
       ],
       "created": "2026-01-13T16:16:06+02:00",
       "created_at": "2026-01-13T16:16:06+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-01-29T00:14:57+02:00"
     },
     {
@@ -4193,8 +4218,8 @@
       },
       "created": "2026-01-13T16:16:06+02:00",
       "created_at": "2026-01-13T16:16:06+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-02-11T17:20:28+02:00"
     },
     {
@@ -4218,8 +4243,8 @@
       },
       "created": "2026-01-13T16:16:06+02:00",
       "created_at": "2026-01-13T16:16:06+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00"
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00"
     },
     {
       "id": "T-131",
@@ -4241,8 +4266,8 @@
       },
       "created": "2026-01-13T16:16:06+02:00",
       "created_at": "2026-01-13T16:16:06+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-02-02T02:04:46+02:00"
     },
     {
@@ -4271,8 +4296,8 @@
       },
       "created": "2026-01-13T16:16:06+02:00",
       "created_at": "2026-01-13T16:16:06+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00"
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00"
     },
     {
       "id": "T-1768251810380",
@@ -4291,8 +4316,8 @@
       ],
       "created": "2026-01-13T16:16:06+02:00",
       "created_at": "2026-01-13T16:16:06+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-01-29T00:14:57+02:00"
     },
     {
@@ -4315,8 +4340,8 @@
       },
       "created": "2026-01-13T16:16:06+02:00",
       "created_at": "2026-01-13T16:16:06+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-02-02T02:04:46+02:00"
     },
     {
@@ -4338,8 +4363,8 @@
       },
       "created": "2026-01-13T16:16:06+02:00",
       "created_at": "2026-01-13T16:16:06+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-02-11T19:12:06+02:00"
     },
     {
@@ -4361,8 +4386,8 @@
       },
       "created": "2026-01-13T16:16:06+02:00",
       "created_at": "2026-01-13T16:16:06+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00"
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00"
     },
     {
       "id": "T-319",
@@ -4382,8 +4407,8 @@
       },
       "created": "2026-01-13T16:16:06+02:00",
       "created_at": "2026-01-13T16:16:06+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00"
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00"
     },
     {
       "id": "T-80",
@@ -4403,8 +4428,8 @@
       },
       "created": "2026-01-13T16:16:06+02:00",
       "created_at": "2026-01-13T16:16:06+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-02-11T19:01:16+02:00"
     },
     {
@@ -4424,8 +4449,8 @@
       ],
       "created": "2026-01-13T16:16:06+02:00",
       "created_at": "2026-01-13T16:16:06+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-01-29T00:14:57+02:00"
     },
     {
@@ -4449,8 +4474,8 @@
       },
       "created": "2026-01-13T16:16:06+02:00",
       "created_at": "2026-01-13T16:16:06+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00"
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00"
     },
     {
       "id": "T-307",
@@ -4472,8 +4497,8 @@
       },
       "created": "2026-01-13T16:16:06+02:00",
       "created_at": "2026-01-13T16:16:06+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-02-02T00:58:27+02:00"
     },
     {
@@ -4498,8 +4523,8 @@
       ],
       "created": "2026-01-13T16:16:06+02:00",
       "created_at": "2026-01-13T16:16:06+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-01-29T00:14:57+02:00"
     },
     {
@@ -4521,8 +4546,8 @@
       },
       "created": "2026-01-13T16:16:06+02:00",
       "created_at": "2026-01-13T16:16:06+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00"
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00"
     },
     {
       "id": "T-224",
@@ -4545,8 +4570,8 @@
       },
       "created": "2026-01-13T16:16:06+02:00",
       "created_at": "2026-01-13T16:16:06+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00"
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00"
     },
     {
       "id": "T-1768249093338",
@@ -4571,8 +4596,8 @@
       "completed": true,
       "created": "2026-01-13T16:16:06+02:00",
       "created_at": "2026-01-13T16:16:06+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-01-29T00:14:57+02:00"
     },
     {
@@ -4593,8 +4618,8 @@
       ],
       "created": "2026-01-13T16:16:06+02:00",
       "created_at": "2026-01-13T16:16:06+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-02-01T23:38:14+02:00"
     },
     {
@@ -4617,8 +4642,8 @@
       },
       "created": "2026-01-13T16:16:06+02:00",
       "created_at": "2026-01-13T16:16:06+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-02-01T22:26:24+02:00"
     },
     {
@@ -4643,8 +4668,8 @@
       },
       "created": "2026-01-13T16:16:06+02:00",
       "created_at": "2026-01-13T16:16:06+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00"
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00"
     },
     {
       "id": "T-85",
@@ -4665,8 +4690,8 @@
       },
       "created": "2026-01-13T16:16:06+02:00",
       "created_at": "2026-01-13T16:16:06+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-02-02T02:05:38+02:00"
     },
     {
@@ -4687,8 +4712,8 @@
       ],
       "created": "2026-01-13T16:16:06+02:00",
       "created_at": "2026-01-13T16:16:06+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-02-11T17:25:56+02:00"
     },
     {
@@ -4712,8 +4737,8 @@
       },
       "created": "2026-01-13T16:16:06+02:00",
       "created_at": "2026-01-13T16:16:06+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00"
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00"
     },
     {
       "id": "T-1768268675515",
@@ -4735,8 +4760,8 @@
       ],
       "created": "2026-01-13T16:16:06+02:00",
       "created_at": "2026-01-13T16:16:06+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-01-29T00:14:57+02:00"
     },
     {
@@ -4757,8 +4782,8 @@
       },
       "created": "2026-01-13T16:16:06+02:00",
       "created_at": "2026-01-13T16:16:06+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-02-11T19:12:06+02:00"
     },
     {
@@ -4781,8 +4806,8 @@
       },
       "created": "2026-01-13T16:16:06+02:00",
       "created_at": "2026-01-13T16:16:06+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-02-02T02:04:46+02:00"
     },
     {
@@ -4805,8 +4830,8 @@
       },
       "created": "2026-01-13T16:16:06+02:00",
       "created_at": "2026-01-13T16:16:06+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-02-01T22:26:24+02:00"
     },
     {
@@ -4828,8 +4853,8 @@
       },
       "created": "2026-01-13T16:16:06+02:00",
       "created_at": "2026-01-13T16:16:06+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-02-02T02:04:46+02:00"
     },
     {
@@ -4849,8 +4874,8 @@
       ],
       "created": "2026-01-13T16:16:06+02:00",
       "created_at": "2026-01-13T16:16:06+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-02-11T18:59:13+02:00"
     },
     {
@@ -4866,8 +4891,8 @@
         "markdown"
       ],
       "dependencies": [
-        "T-216",
-        "T-217"
+        "T-1770830692099",
+        "T-216"
       ],
       "metadata": {
         "discovered_from": "docs/MODEL_ASSISTED_WORKFLOW.md",
@@ -4876,8 +4901,8 @@
       },
       "created": "2026-01-13T16:16:06+02:00",
       "created_at": "2026-01-13T16:16:06+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00"
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00"
     },
     {
       "id": "T-274",
@@ -4898,8 +4923,8 @@
       },
       "created": "2026-01-13T16:16:06+02:00",
       "created_at": "2026-01-13T16:16:06+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00"
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00"
     },
     {
       "id": "T-115",
@@ -4921,8 +4946,8 @@
       },
       "created": "2026-01-13T16:16:06+02:00",
       "created_at": "2026-01-13T16:16:06+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-02-02T02:04:46+02:00"
     },
     {
@@ -4946,8 +4971,8 @@
       },
       "created": "2026-01-13T16:16:06+02:00",
       "created_at": "2026-01-13T16:16:06+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-02-02T02:04:46+02:00"
     },
     {
@@ -4971,8 +4996,8 @@
       },
       "created": "2026-01-13T16:16:06+02:00",
       "created_at": "2026-01-13T16:16:06+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-02-01T22:26:24+02:00"
     },
     {
@@ -4995,30 +5020,9 @@
       },
       "created": "2026-01-13T16:16:06+02:00",
       "created_at": "2026-01-13T16:16:06+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-02-02T02:04:46+02:00"
-    },
-    {
-      "id": "T-318",
-      "name": "Heartbeat mechanism (agents report alive)",
-      "content": "Heartbeat mechanism (agents report alive)",
-      "description": "Heartbeat mechanism (agents report alive)",
-      "long_description": "Heartbeat mechanism (agents report alive)",
-      "status": "Todo",
-      "priority": "medium",
-      "tags": [
-        "markdown"
-      ],
-      "metadata": {
-        "discovered_from": "docs/STALE_LOCK_DETECTION_AND_HANDLING.md",
-        "discovered_line": "",
-        "discovery_type": "MARKDOWN_TASK"
-      },
-      "created": "2026-01-13T16:16:06+02:00",
-      "created_at": "2026-01-13T16:16:06+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00"
     },
     {
       "id": "T-75",
@@ -5042,8 +5046,8 @@
       },
       "created": "2026-01-13T16:16:06+02:00",
       "created_at": "2026-01-13T16:16:06+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00"
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00"
     },
     {
       "id": "T-1768268674114",
@@ -5065,8 +5069,8 @@
       ],
       "created": "2026-01-13T16:16:06+02:00",
       "created_at": "2026-01-13T16:16:06+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-01-29T00:14:57+02:00"
     },
     {
@@ -5088,8 +5092,8 @@
       },
       "created": "2026-01-13T16:16:06+02:00",
       "created_at": "2026-01-13T16:16:06+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-02-02T02:04:39+02:00"
     },
     {
@@ -5110,8 +5114,8 @@
       },
       "created": "2026-01-13T16:16:06+02:00",
       "created_at": "2026-01-13T16:16:06+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-02-11T17:22:38+02:00"
     },
     {
@@ -5134,8 +5138,8 @@
       },
       "created": "2026-01-13T16:16:06+02:00",
       "created_at": "2026-01-13T16:16:06+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-02-02T00:47:51+02:00"
     },
     {
@@ -5156,8 +5160,8 @@
       },
       "created": "2026-01-13T16:16:06+02:00",
       "created_at": "2026-01-13T16:16:06+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-02-11T17:25:08+02:00"
     },
     {
@@ -5178,8 +5182,8 @@
       ],
       "created": "2026-01-13T16:16:06+02:00",
       "created_at": "2026-01-13T16:16:06+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00"
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00"
     },
     {
       "id": "T-1768251824236",
@@ -5198,8 +5202,8 @@
       ],
       "created": "2026-01-13T16:16:06+02:00",
       "created_at": "2026-01-13T16:16:06+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00"
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00"
     },
     {
       "id": "T-277",
@@ -5221,8 +5225,8 @@
       },
       "created": "2026-01-13T16:16:06+02:00",
       "created_at": "2026-01-13T16:16:06+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00"
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00"
     },
     {
       "id": "T-1768251815345",
@@ -5241,8 +5245,8 @@
       ],
       "created": "2026-01-13T16:16:06+02:00",
       "created_at": "2026-01-13T16:16:06+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00"
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00"
     },
     {
       "id": "T-1768253994622",
@@ -5263,8 +5267,8 @@
       ],
       "created": "2026-01-13T16:16:06+02:00",
       "created_at": "2026-01-13T16:16:06+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-02-11T17:31:25+02:00"
     },
     {
@@ -5287,8 +5291,8 @@
       },
       "created": "2026-01-13T16:16:06+02:00",
       "created_at": "2026-01-13T16:16:06+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-02-02T02:04:46+02:00"
     },
     {
@@ -5311,8 +5315,8 @@
       },
       "created": "2026-01-13T16:16:06+02:00",
       "created_at": "2026-01-13T16:16:06+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-02-11T17:31:25+02:00"
     },
     {
@@ -5334,8 +5338,8 @@
       },
       "created": "2026-01-13T16:16:06+02:00",
       "created_at": "2026-01-13T16:16:06+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00"
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00"
     },
     {
       "id": "T-225",
@@ -5359,8 +5363,8 @@
       },
       "created": "2026-01-13T16:16:06+02:00",
       "created_at": "2026-01-13T16:16:06+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-02-11T18:58:54+02:00"
     },
     {
@@ -5382,8 +5386,8 @@
       ],
       "created": "2026-01-13T16:16:06+02:00",
       "created_at": "2026-01-13T16:16:06+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-02-02T00:54:26+02:00"
     },
     {
@@ -5405,8 +5409,8 @@
       },
       "created": "2026-01-13T16:16:06+02:00",
       "created_at": "2026-01-13T16:16:06+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-02-02T02:03:55+02:00"
     },
     {
@@ -5430,8 +5434,8 @@
       },
       "created": "2026-01-13T16:16:06+02:00",
       "created_at": "2026-01-13T16:16:06+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-02-02T00:47:44+02:00"
     },
     {
@@ -5441,7 +5445,7 @@
       "description": "Add model selection logic",
       "long_description": "Add model selection logic",
       "status": "Todo",
-      "priority": "medium",
+      "priority": "high",
       "tags": [
         "feature",
         "markdown"
@@ -5456,8 +5460,8 @@
       },
       "created": "2026-01-13T16:16:06+02:00",
       "created_at": "2026-01-13T16:16:06+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00"
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00"
     },
     {
       "id": "T-229",
@@ -5481,8 +5485,8 @@
       },
       "created": "2026-01-13T16:16:06+02:00",
       "created_at": "2026-01-13T16:16:06+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00"
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00"
     },
     {
       "id": "T-116",
@@ -5504,8 +5508,8 @@
       },
       "created": "2026-01-13T16:16:06+02:00",
       "created_at": "2026-01-13T16:16:06+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-02-02T02:04:46+02:00"
     },
     {
@@ -5528,8 +5532,8 @@
       },
       "created": "2026-01-13T16:16:06+02:00",
       "created_at": "2026-01-13T16:16:06+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-02-01T22:10:12+02:00"
     },
     {
@@ -5552,8 +5556,8 @@
       },
       "created": "2026-01-13T16:16:06+02:00",
       "created_at": "2026-01-13T16:16:06+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-02-02T00:31:54+02:00"
     },
     {
@@ -5576,8 +5580,8 @@
       },
       "created": "2026-01-13T16:16:06+02:00",
       "created_at": "2026-01-13T16:16:06+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-02-02T02:04:46+02:00"
     },
     {
@@ -5599,31 +5603,9 @@
       },
       "created": "2026-01-13T16:16:06+02:00",
       "created_at": "2026-01-13T16:16:06+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-02-02T02:04:46+02:00"
-    },
-    {
-      "id": "T-315",
-      "name": "Background goroutine for periodic cleanup",
-      "content": "Background goroutine for periodic cleanup",
-      "description": "Background goroutine for periodic cleanup",
-      "long_description": "Background goroutine for periodic cleanup",
-      "status": "Todo",
-      "priority": "high",
-      "tags": [
-        "markdown",
-        "refactor"
-      ],
-      "metadata": {
-        "discovered_from": "docs/STALE_LOCK_DETECTION_AND_HANDLING.md",
-        "discovered_line": "",
-        "discovery_type": "MARKDOWN_TASK"
-      },
-      "created": "2026-01-13T16:16:06+02:00",
-      "created_at": "2026-01-13T16:16:06+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00"
     },
     {
       "id": "T-122",
@@ -5645,8 +5627,8 @@
       },
       "created": "2026-01-13T16:16:06+02:00",
       "created_at": "2026-01-13T16:16:06+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-02-02T02:04:46+02:00"
     },
     {
@@ -5667,8 +5649,8 @@
       ],
       "created": "2026-01-13T16:16:06+02:00",
       "created_at": "2026-01-13T16:16:06+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00"
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00"
     },
     {
       "id": "T-135",
@@ -5690,8 +5672,8 @@
       },
       "created": "2026-01-13T16:16:06+02:00",
       "created_at": "2026-01-13T16:16:06+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-02-02T02:04:46+02:00"
     },
     {
@@ -5716,8 +5698,8 @@
       },
       "created": "2026-01-13T16:16:06+02:00",
       "created_at": "2026-01-13T16:16:06+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00"
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00"
     },
     {
       "id": "T-221",
@@ -5742,8 +5724,8 @@
       },
       "created": "2026-01-13T16:16:06+02:00",
       "created_at": "2026-01-13T16:16:06+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00"
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00"
     },
     {
       "id": "T-145",
@@ -5767,8 +5749,8 @@
       },
       "created": "2026-01-13T16:16:06+02:00",
       "created_at": "2026-01-13T16:16:06+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-02-02T00:31:54+02:00"
     },
     {
@@ -5789,8 +5771,8 @@
       ],
       "created": "2026-01-13T16:16:06+02:00",
       "created_at": "2026-01-13T16:16:06+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-02-11T17:25:56+02:00"
     },
     {
@@ -5813,8 +5795,8 @@
       },
       "created": "2026-01-13T16:16:06+02:00",
       "created_at": "2026-01-13T16:16:06+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-02-01T22:10:08+02:00"
     },
     {
@@ -5837,8 +5819,8 @@
       },
       "created": "2026-01-13T16:16:06+02:00",
       "created_at": "2026-01-13T16:16:06+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-02-02T02:04:46+02:00"
     },
     {
@@ -5861,8 +5843,8 @@
       },
       "created": "2026-01-13T16:16:06+02:00",
       "created_at": "2026-01-13T16:16:06+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-02-02T00:31:54+02:00"
     },
     {
@@ -5884,8 +5866,8 @@
       },
       "created": "2026-01-13T16:16:06+02:00",
       "created_at": "2026-01-13T16:16:06+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-02-02T00:57:34+02:00"
     },
     {
@@ -5908,8 +5890,8 @@
       },
       "created": "2026-01-13T16:16:06+02:00",
       "created_at": "2026-01-13T16:16:06+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-02-02T00:31:38+02:00"
     },
     {
@@ -5929,8 +5911,8 @@
       ],
       "created": "2026-01-13T16:16:06+02:00",
       "created_at": "2026-01-13T16:16:06+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00"
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00"
     },
     {
       "id": "T-1768251816882",
@@ -5949,8 +5931,8 @@
       ],
       "created": "2026-01-13T16:16:06+02:00",
       "created_at": "2026-01-13T16:16:06+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00"
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00"
     },
     {
       "id": "T-1768313222082",
@@ -5976,8 +5958,8 @@
       },
       "created": "2026-01-13T16:07:02+02:00",
       "created_at": "2026-01-13T16:07:02+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-02-02T01:39:48+02:00"
     },
     {
@@ -5996,8 +5978,8 @@
       ],
       "created": "2026-01-13T15:59:38+02:00",
       "created_at": "2026-01-13T15:59:38+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00"
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00"
     },
     {
       "id": "T-1768312586170",
@@ -6016,8 +5998,8 @@
       ],
       "created": "2026-01-13T15:56:26+02:00",
       "created_at": "2026-01-13T15:56:26+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-02-11T17:20:49+02:00"
     },
     {
@@ -6037,8 +6019,8 @@
       ],
       "created": "2026-01-12T15:18:46+02:00",
       "created_at": "2026-01-12T15:18:46+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-01-30T00:49:50+02:00"
     },
     {
@@ -6059,8 +6041,8 @@
       ],
       "created": "2026-01-12T15:16:05+02:00",
       "created_at": "2026-01-12T15:16:05+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-01-29T22:58:17+02:00"
     },
     {
@@ -6079,8 +6061,8 @@
       ],
       "created": "2026-01-12T00:35:23+02:00",
       "created_at": "2026-01-12T00:35:23+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-01-29T00:14:57+02:00"
     },
     {
@@ -6099,8 +6081,8 @@
       ],
       "created": "2026-01-12T00:35:17+02:00",
       "created_at": "2026-01-12T00:35:17+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-01-29T00:14:57+02:00"
     },
     {
@@ -6118,8 +6100,8 @@
       ],
       "created": "2026-01-12T00:34:51+02:00",
       "created_at": "2026-01-12T00:34:51+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-01-29T00:14:57+02:00"
     },
     {
@@ -6141,8 +6123,8 @@
       ],
       "created": "2026-01-12T00:34:36+02:00",
       "created_at": "2026-01-12T00:34:36+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-01-29T22:57:09+02:00"
     },
     {
@@ -6172,8 +6154,8 @@
       "completed": true,
       "created": "2026-01-12T00:34:35+02:00",
       "created_at": "2026-01-12T00:34:35+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-01-29T00:14:57+02:00"
     },
     {
@@ -6192,8 +6174,8 @@
       ],
       "created": "2026-01-11T22:31:57+02:00",
       "created_at": "2026-01-11T22:31:57+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-01-29T00:14:57+02:00"
     },
     {
@@ -6210,8 +6192,8 @@
       ],
       "created": "2026-01-11T22:25:12+02:00",
       "created_at": "2026-01-11T22:25:12+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-01-29T00:14:57+02:00"
     },
     {
@@ -6227,8 +6209,8 @@
       ],
       "created": "2026-01-11T22:25:11+02:00",
       "created_at": "2026-01-11T22:25:11+02:00",
-      "updated": "2026-02-11T19:13:33+02:00",
-      "last_modified": "2026-02-11T19:13:33+02:00",
+      "updated": "2026-02-11T19:28:02+02:00",
+      "last_modified": "2026-02-11T19:28:02+02:00",
       "completed_at": "2026-01-29T00:14:57+02:00"
     }
   ]

@@ -433,7 +433,7 @@ Both complete → Continue with dependent tasks
 **Tasks:**
 - [ ] Design agent pool system
 - [ ] Implement load balancing
-- [ ] Add monitoring dashboard
+- [ ] ~~Add monitoring dashboard~~ — **Future improvement** *(T-232 removed)*: implies a long-lived web server. Defer until HTTP/SSE server deployment. See `docs/STALE_LOCK_DETECTION_AND_HANDLING.md`.
 
 ---
 

@@ -537,15 +537,15 @@ cleaned, taskIDs, err := database.CleanupExpiredLocksWithReport(ctx, 1*time.Hour
 - [x] `GetLockStatus()` - Individual task status
 - [x] `CleanupExpiredLocksWithReport()` - Detailed cleanup report
 
-### **Phase 3: Background Processes** (TODO)
+### **Phase 3: Background Processes**
 
-- [ ] Background goroutine for periodic cleanup
+- [ ] Background goroutine for periodic cleanup — **Future improvement**: exarp-go runs as STDIO (short-lived per request); a background goroutine only helps long-lived processes (HTTP/SSE). Defer until multi-agent/server deployment.
 - [ ] CLI command for lock status monitoring
 - [ ] Scheduled cleanup via cron
 
 ### **Phase 4: Advanced Features** (TODO)
 
-- [ ] Heartbeat mechanism (agents report alive)
+- [ ] ~~Heartbeat mechanism (agents report alive)~~ — **Future improvement**: requires long-lived agent processes; exarp-go runs as STDIO (short-lived per request). Defer until HTTP/SSE or multi-agent deployment.
 - [ ] Process monitoring (verify agent process exists)
 - [ ] Lock statistics and metrics
 - [ ] Alerting system for stale lock patterns
@@ -561,4 +561,12 @@ cleaned, taskIDs, err := database.CleanupExpiredLocksWithReport(ctx, 1*time.Hour
 
 ---
 
-**Status**: ✅ Core functionality implemented, background cleanup pending
+## 🔮 Future Improvements
+
+- **Background goroutine for periodic cleanup** — exarp-go runs as STDIO (short-lived per request). A background goroutine only helps long-lived processes (HTTP/SSE server). Defer until multi-agent/server deployment. Design: `StartLockCleanupBackground(ctx, 5*time.Minute)` calling `database.CleanupExpiredLocks()` on a ticker; see "Periodic Background Cleanup" section above.
+- **Heartbeat mechanism (agents report alive)** — ~~T-318, T-79~~ *(removed)*. Agents must run continuously to send periodic heartbeats; not applicable with STDIO (short-lived per request). Defer until long-lived agent deployment.
+- **Monitoring dashboard** — ~~T-232~~ *(removed)*. Implies a long-lived web server to serve the UI. Defer until HTTP/SSE server deployment. See `docs/MULTI_AGENT_PLAN.md`.
+
+---
+
+**Status**: ✅ Core functionality implemented; background cleanup and long-lived-only features documented as future improvements
