@@ -15,6 +15,7 @@ import (
 	"github.com/davidl71/exarp-go/internal/config"
 	"github.com/davidl71/exarp-go/internal/database"
 	"github.com/davidl71/exarp-go/internal/framework"
+	"github.com/davidl71/exarp-go/internal/taskanalysis"
 	"github.com/davidl71/mcp-go-core/pkg/mcp/response"
 )
 
@@ -44,6 +45,8 @@ func handleTaskAnalysisNative(ctx context.Context, params map[string]interface{}
 		return handleTaskAnalysisValidate(ctx, params)
 	case "execution_plan":
 		return handleTaskAnalysisExecutionPlan(ctx, params)
+	case "complexity":
+		return handleTaskAnalysisComplexity(ctx, params)
 	default:
 		return nil, fmt.Errorf("unknown action: %s", action)
 	}
@@ -2081,6 +2084,55 @@ func formatExecutionPlanMarkdown(result map[string]interface{}, projectRoot stri
 
 func fmtTime(t time.Time) string {
 	return t.Format("2006-01-02 15:04:05")
+}
+
+// handleTaskAnalysisComplexity classifies task complexity (simple/medium/complex) using heuristic rules.
+func handleTaskAnalysisComplexity(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
+	store, err := getTaskStore(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get task store: %w", err)
+	}
+	list, err := store.ListTasks(ctx, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load tasks: %w", err)
+	}
+
+	// Optional: filter to backlog only
+	statusFilter := params["status_filter"]
+	var tasks []Todo2Task
+	if sf, ok := statusFilter.(string); ok && sf != "" {
+		for _, t := range list {
+			if t != nil && t.Status == sf {
+				tasks = append(tasks, *t)
+			}
+		}
+	} else {
+		tasks = tasksFromPtrs(list)
+	}
+
+	classifications := make([]map[string]interface{}, 0, len(tasks))
+	for _, t := range tasks {
+		taskPtr := &t
+		r := taskanalysis.AnalyzeTask(taskPtr)
+		classifications = append(classifications, map[string]interface{}{
+			"id":                t.ID,
+			"content":           t.Content,
+			"complexity":        string(r.Complexity),
+			"can_auto_execute":  r.CanAutoExecute,
+			"needs_breakdown":   r.NeedsBreakdown,
+			"reason":            r.Reason,
+		})
+	}
+
+	result := map[string]interface{}{
+		"success":         true,
+		"method":          "native_go",
+		"classifications": classifications,
+		"total":           len(classifications),
+	}
+
+	outputPath, _ := params["output_path"].(string)
+	return response.FormatResult(result, outputPath)
 }
 
 // handleTaskAnalysisParallelization handles parallelization analysis
