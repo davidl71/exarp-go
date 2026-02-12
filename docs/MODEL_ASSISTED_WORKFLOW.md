@@ -468,10 +468,10 @@ Mark as Done or Request Changes
 - 📋 Create implementation tasks
 
 ### Phase 2: Model Integration
-- [ ] Create model router component
-- [ ] Implement MLX handler (via Python bridge)
-- [ ] Implement Ollama HTTP client
-- [ ] Add model selection logic
+- [x] Create model router component
+- [x] Implement MLX handler (via Python bridge)
+- [x] Implement Ollama HTTP client
+- [x] Add model selection logic — T-207 Done; `ResolveModelForTask` (recommend + router), `text_generate` provider=auto with task_type/task_description
 
 ### Phase 3: Task Breakdown
 - [ ] Implement task analyzer
@@ -489,8 +489,8 @@ Mark as Done or Request Changes
 - [ ] Implement prompt analyzer
 - [x] Define template spec — [PROMPT_OPTIMIZATION_TEMPLATE_SPEC.md](PROMPT_OPTIMIZATION_TEMPLATE_SPEC.md)
 - [x] Create analysis prompt template — `prompt_optimization_analysis` in `internal/prompts/templates.go`
-- [ ] Create suggestions-generation template (T-1770830686054)
-- [ ] Create refinement template (T-1770830686525)
+- [x] Create suggestions-generation template — `prompt_optimization_suggestions` (T-1770830686054)
+- [x] Create refinement template — `prompt_optimization_refinement` (T-1770830686525)
 - [ ] Add iterative refinement loop
 - [ ] Integrate with task creation workflow
 

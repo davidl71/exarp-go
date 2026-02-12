@@ -80,6 +80,18 @@ The **suggestions** template produces improvement suggestions.
 
 ---
 
+## Task Type Variants
+
+When `{task_type}` is set, apply type-specific guidance:
+
+| Task Type | Analysis/Suggestions focus | Refinement focus |
+|-----------|----------------------------|------------------|
+| **code**  | File paths, APIs, test requirements, concrete I/O | Include file paths, APIs, test requirements |
+| **docs**  | Structure, audience, scope | Clear structure, audience, scope |
+| **general** (or empty) | Balanced across all dimensions | Balanced refinement |
+
+---
+
 ## Template Types
 
 | Template              | Variables       | Output          | Task |

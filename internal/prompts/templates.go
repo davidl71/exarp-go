@@ -604,6 +604,11 @@ If the user provided a {concept} placeholder, use it as the concept; otherwise p
 
 **Task type hint (optional):** {task_type}
 
+**Task type guidance (apply when task_type is set):**
+- **code**: Emphasize file paths, APIs, test requirements, concrete inputs/outputs
+- **docs**: Emphasize structure, audience, scope, clarity for readers
+- **general** (or empty): Balanced evaluation across all dimensions
+
 **Dimensions:**
 - **Clarity** (0.0-1.0): Is the task clearly defined? Unambiguous wording?
 - **Specificity** (0.0-1.0): Are requirements specific enough? Concrete vs vague?
@@ -621,6 +626,65 @@ If the user provided a {concept} placeholder, use it as the concept; otherwise p
   "summary": "<brief overall assessment>",
   "notes": ["<optional per-dimension notes>"]
 }`,
+
+	"prompt_optimization_suggestions": `Given the original prompt and its analysis, generate concrete improvement suggestions for each dimension that scored below 0.8.
+
+**Original prompt:**
+{prompt}
+
+**Analysis (JSON):**
+{analysis}
+
+**Context (optional):** {context}
+
+**Task type hint (optional):** {task_type}
+
+**Task type guidance (apply when task_type is set):**
+- **code**: Focus recommendations on file paths, APIs, test requirements
+- **docs**: Focus on structure, audience, scope
+- **general** (or empty): Balanced suggestions
+
+For each low-scoring dimension (clarity, specificity, completeness, structure, actionability), identify:
+1. **issue** — What is missing or vague in the current prompt
+2. **recommendation** — Concrete, actionable improvement (rewritten phrase or instruction)
+
+**Respond with JSON only:**
+{
+  "suggestions": [
+    {
+      "dimension": "specificity",
+      "issue": "<what is missing or vague>",
+      "recommendation": "<concrete improvement>"
+    }
+  ]
+}
+
+If all dimensions score >= 0.8, return an empty suggestions array. Otherwise include one suggestion per dimension below 0.8.`,
+
+	"prompt_optimization_refinement": `Apply the following improvement suggestions to the original prompt. Produce an optimized version that preserves intent while improving clarity, specificity, completeness, structure, and actionability.
+
+**Original prompt:**
+{prompt}
+
+**Suggestions to apply (JSON):**
+{suggestions}
+
+**Context (optional):** {context}
+
+**Task type hint (optional):** {task_type}
+
+**Task type guidance (apply when task_type is set):**
+- **code**: Ensure refined prompt includes file paths, APIs, test requirements
+- **docs**: Ensure structure, audience, and scope are clear
+- **general** (or empty): Balanced refinement
+
+**Instructions:**
+- Preserve the original intent and scope
+- Incorporate each recommendation from the suggestions
+- Improve wording for clarity and specificity
+- Ensure logical structure and flow
+- Make the prompt actionable (AI can execute without clarification)
+- Return the refined prompt text only — no JSON, no commentary, no before/after labels`,
 }
 
 // GetPromptTemplate retrieves a prompt template by name
