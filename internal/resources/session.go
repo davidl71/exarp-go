@@ -9,6 +9,31 @@ import (
 	"github.com/davidl71/exarp-go/internal/tools"
 )
 
+// handleSessionStatus handles the stdio://session/status resource
+// Returns current context (handoff, task, dashboard) for dynamic UI labels when Cursor adds support.
+func handleSessionStatus(ctx context.Context, uri string) ([]byte, string, error) {
+	projectRoot, err := tools.FindProjectRoot()
+	if err != nil {
+		return nil, "", fmt.Errorf("failed to find project root: %w", err)
+	}
+
+	label, statusCtx, details := tools.GetSessionStatus(projectRoot)
+
+	result := map[string]interface{}{
+		"label":    label,
+		"context":  statusCtx,
+		"details": details,
+		"timestamp": time.Now().Format(time.RFC3339),
+	}
+
+	jsonData, err := json.MarshalIndent(result, "", "  ")
+	if err != nil {
+		return nil, "", fmt.Errorf("failed to marshal session status: %w", err)
+	}
+
+	return jsonData, "application/json", nil
+}
+
 // handleSessionMode handles the stdio://session/mode resource
 // Returns current inferred session mode (AGENT/ASK/MANUAL) with confidence
 // Uses native Go infer_session_mode implementation

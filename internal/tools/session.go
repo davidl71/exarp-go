@@ -238,6 +238,12 @@ func handleSessionPrime(ctx context.Context, params map[string]interface{}) ([]f
 		}
 	}
 
+	// 9. Status context (T-1770909568528): explicit status/label for AI to announce context
+	if statusLabel, statusContext := buildStatusContext(result); statusLabel != "" || statusContext != "" {
+		result["status_label"] = statusLabel
+		result["status_context"] = statusContext
+	}
+
 	return mcpresponse.FormatResult(result, "")
 }
 
@@ -927,6 +933,33 @@ func getWorkflowModeDescription(mode string) string {
 	return "Development mode: Balanced set"
 }
 
+// buildStatusContext derives status_label and status_context from session prime result fields.
+// Enables AI to announce current context (handoff, suggested task, or dashboard) in chat.
+func buildStatusContext(result map[string]interface{}) (label, ctx string) {
+	if handoff, ok := result["handoff_alert"].(map[string]interface{}); ok && handoff != nil {
+		label = "Handoff review"
+		ctx = "Handoff review – 1 item pending"
+		return
+	}
+	if suggested, ok := result["suggested_next"].([]interface{}); ok && len(suggested) > 0 {
+		if first, ok := suggested[0].(map[string]interface{}); ok {
+			id, _ := first["id"].(string)
+			content, _ := first["content"].(string)
+			if id != "" {
+				label = id
+				if content != "" {
+					label = id + " – " + truncateString(content, 40)
+				}
+				ctx = "Suggested: " + label
+				return
+			}
+		}
+	}
+	label = "Project dashboard"
+	ctx = "Project dashboard"
+	return
+}
+
 // getPlanModeContext returns (plan_path, plan_mode_hint) for session prime.
 // plan_path: relative path to current .plan.md if found.
 // plan_mode_hint: suggestion to use Cursor Plan Mode when backlog suggests complex/multi-step work.
@@ -1102,6 +1135,33 @@ func getSuggestedNextTasksFromTasks(tasks []Todo2Task, limit int) []map[string]i
 		})
 	}
 	return out
+}
+
+// GetSessionStatus returns current session context for UI status display (e.g. Cursor when it supports dynamic labels).
+// Returns label (short display text), contextType (handoff|task|dashboard), and details map.
+// Reuses checkHandoffAlert and GetSuggestedNextTasks to avoid duplication.
+func GetSessionStatus(projectRoot string) (label, contextType string, details map[string]interface{}) {
+	details = make(map[string]interface{})
+	if handoff := checkHandoffAlert(projectRoot); handoff != nil {
+		label = "Handoff – review pending"
+		contextType = "handoff"
+		details["handoff"] = handoff
+		details["action"] = "Review handoff from previous developer"
+		return
+	}
+	suggested := GetSuggestedNextTasks(projectRoot, 1)
+	if len(suggested) > 0 {
+		t := suggested[0]
+		label = t.ID + " – " + truncateString(t.Content, 40)
+		contextType = "task"
+		details["task_id"] = t.ID
+		details["content"] = t.Content
+		details["priority"] = t.Priority
+		return
+	}
+	label = "Project dashboard"
+	contextType = "dashboard"
+	return
 }
 
 // checkHandoffAlert checks for handoff notes from other developers

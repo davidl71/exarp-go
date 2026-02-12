@@ -9,6 +9,7 @@ This project uses [Cursor rules](https://docs.cursor.com/context/rules-for-ai) i
 | `agent-locking.mdc` | Task locking and agent ID for parallel execution | Always |
 | `agentic-ci.mdc` | Agentic CI workflow and validation | Always |
 | `code-and-planning-tag-hints.mdc` | **Tag hints in plans and code** | Plans (`.plan.md`, `docs/*_PLAN*.md`) and Go (`**/*.go`) |
+| `plan-todos-required.mdc` | **Todos with task IDs required in plans** | Plans (`**/*.plan.md`, `.cursor/plans/**`) |
 | `go-development.mdc` | Go style, Makefile, Todo2 DB, testing | Go files, always for key sections |
 | `llm-tools.mdc` | LLM backend discovery and tool choice | Always |
 | `mcp-configuration.mdc` | MCP server config and Context7 vs web search | Always |
