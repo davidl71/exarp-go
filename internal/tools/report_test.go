@@ -251,6 +251,15 @@ func TestHandleReport(t *testing.T) {
 			// scorecard: no error only when IsGoProject(); otherwise expect "only supported for Go projects"
 			wantError: !IsGoProject(),
 		},
+		{
+			name: "parallel_execution_plan action (empty project yields no waves)",
+			params: map[string]interface{}{
+				"action":      "parallel_execution_plan",
+				"output_path": tmpDir + "/parallel-execution-subagents.plan.md",
+			},
+			// Empty tmpDir has no Todo2 backlog → "no waves" error
+			wantError: true,
+		},
 	}
 
 	for _, tt := range tests {

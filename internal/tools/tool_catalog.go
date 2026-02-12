@@ -180,7 +180,7 @@ func GetToolCatalog() map[string]ToolCatalogEntry {
 		// Reporting
 		"report": {
 			Tool:             "report",
-			Hint:             "Report generation. action=overview|scorecard|briefing|prd|plan. plan generates Cursor-style .plan.md. Project reports.",
+			Hint:             "Report generation. action=overview|scorecard|briefing|prd|plan|parallel_execution_plan. plan generates .plan.md; include_subagents=true also updates parallel-execution-subagents.plan.md.",
 			Category:         "Reporting",
 			Description:      "Generates project reports: overview, scorecard, briefing, PRD, plan (.plan.md)",
 			RecommendedModel: "claude-haiku",

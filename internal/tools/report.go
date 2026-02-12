@@ -271,7 +271,11 @@ func generateParallelExecutionSubagentsMarkdown(ctx context.Context, projectRoot
 		}
 		sb.WriteString(fmt.Sprintf("## Wave %d (parallel)\n\n", level))
 		sb.WriteString("Launch one `/wave-task-runner` per task in **one** message so Cursor runs them in parallel.\n\n")
-		sb.WriteString(fmt.Sprintf("**Task IDs (%d tasks):**\n\n", len(ids)))
+		countLabel := "tasks"
+		if len(ids) == 1 {
+			countLabel = "task"
+		}
+		sb.WriteString(fmt.Sprintf("**Task IDs (%d %s):**\n\n", len(ids), countLabel))
 		sb.WriteString(strings.Join(ids, ", "))
 		sb.WriteString("\n\n**Prompt (Wave ")
 		sb.WriteString(fmt.Sprint(level))
