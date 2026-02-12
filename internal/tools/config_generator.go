@@ -9,7 +9,6 @@ import (
 	"strings"
 
 	"github.com/davidl71/exarp-go/internal/framework"
-	"github.com/davidl71/exarp-go/internal/security"
 	"github.com/davidl71/mcp-go-core/pkg/mcp/response"
 )
 
@@ -29,8 +28,8 @@ func handleGenerateConfigNative(ctx context.Context, args json.RawMessage) ([]fr
 	var projectRoot string
 	var err error
 
-	// Try security.GetProjectRoot first
-	projectRoot, err = security.GetProjectRoot(".")
+	// Try FindProjectRoot first
+	projectRoot, err = FindProjectRoot()
 	if err != nil {
 		// Fallback to PROJECT_ROOT env var
 		if envRoot := os.Getenv("PROJECT_ROOT"); envRoot != "" {

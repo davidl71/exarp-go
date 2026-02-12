@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/davidl71/exarp-go/internal/config"
+	"github.com/davidl71/exarp-go/internal/projectroot"
 	"github.com/davidl71/exarp-go/internal/security"
 )
 
@@ -776,7 +777,7 @@ func GenerateGoScorecard(ctx context.Context, projectRoot string, opts *Scorecar
 	validatedRoot, err := security.ValidatePath(projectRoot, projectRoot)
 	if err != nil {
 		// If validation fails, try to get project root safely
-		validatedRoot, err = security.GetProjectRoot(projectRoot)
+		validatedRoot, err = projectroot.FindFrom(projectRoot)
 		if err != nil {
 			return nil, fmt.Errorf("invalid project root: %w", err)
 		}

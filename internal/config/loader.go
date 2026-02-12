@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/davidl71/exarp-go/internal/projectroot"
 	configpb "github.com/davidl71/exarp-go/proto"
 	"google.golang.org/protobuf/proto"
 	"gopkg.in/yaml.v3"
@@ -371,34 +372,12 @@ func applyEnvOverrides(cfg *FullConfig) {
 	// For now, we keep it simple and focus on file-based config
 }
 
-// FindProjectRoot finds the project root directory by looking for .exarp or .todo2
+// FindProjectRoot finds the exarp project root. Delegates to projectroot.Find().
+// Returns current directory on error (config needs a path; tools.FindProjectRoot returns error).
 func FindProjectRoot() (string, error) {
-	// Start from current working directory
-	dir, err := os.Getwd()
+	root, err := projectroot.Find()
 	if err != nil {
-		return "", fmt.Errorf("failed to get working directory: %w", err)
+		return os.Getwd()
 	}
-
-	// Walk up the directory tree looking for .exarp or .todo2
-	for {
-		// Check for .exarp directory
-		if _, err := os.Stat(filepath.Join(dir, ".exarp")); err == nil {
-			return dir, nil
-		}
-		// Check for .todo2 directory (fallback)
-		if _, err := os.Stat(filepath.Join(dir, ".todo2")); err == nil {
-			return dir, nil
-		}
-
-		// Move up one directory
-		parent := filepath.Dir(dir)
-		if parent == dir {
-			// Reached root, stop
-			break
-		}
-		dir = parent
-	}
-
-	// If not found, return current directory
-	return os.Getwd()
+	return root, nil
 }

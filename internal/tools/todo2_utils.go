@@ -12,6 +12,7 @@ import (
 	"github.com/davidl71/exarp-go/internal/cache"
 	"github.com/davidl71/exarp-go/internal/database"
 	"github.com/davidl71/exarp-go/internal/models"
+	"github.com/davidl71/exarp-go/internal/projectroot"
 )
 
 // Todo2Task is an alias for models.Todo2Task (for backward compatibility)
@@ -93,50 +94,10 @@ func saveTodo2TasksToJSON(projectRoot string, tasks []Todo2Task) error {
 	return nil
 }
 
-// FindProjectRoot finds the project root by looking for .todo2 directory
-// It first checks the PROJECT_ROOT environment variable (set by Cursor IDE from {{PROJECT_ROOT}}),
-// then searches up from the current working directory for a .todo2 directory.
+// FindProjectRoot finds the exarp project root. Delegates to projectroot.Find().
+// Use this for tools, resources, and handlers that need the project root.
 func FindProjectRoot() (string, error) {
-	// Check PROJECT_ROOT environment variable first (highest priority)
-	// This is set by Cursor IDE when using {{PROJECT_ROOT}} in mcp.json
-	if envRoot := os.Getenv("PROJECT_ROOT"); envRoot != "" {
-		// Skip if placeholder wasn't substituted (contains {{PROJECT_ROOT}})
-		if !strings.Contains(envRoot, "{{PROJECT_ROOT}}") {
-			// Validate that the path exists and contains .todo2
-			absPath, err := filepath.Abs(envRoot)
-			if err == nil {
-				todo2Path := filepath.Join(absPath, ".todo2")
-				if _, err := os.Stat(todo2Path); err == nil {
-					return absPath, nil
-				}
-				// If PROJECT_ROOT is set but no .todo2, still use it (might be valid project)
-				// This allows working with projects that don't have .todo2 yet
-				return absPath, nil
-			}
-		}
-	}
-
-	// Fallback: search up from current working directory
-	dir, err := os.Getwd()
-	if err != nil {
-		return "", fmt.Errorf("failed to get current directory: %w", err)
-	}
-
-	for {
-		todo2Path := filepath.Join(dir, ".todo2")
-		if _, err := os.Stat(todo2Path); err == nil {
-			return dir, nil
-		}
-
-		parent := filepath.Dir(dir)
-		if parent == dir {
-			// Reached root
-			break
-		}
-		dir = parent
-	}
-
-	return "", fmt.Errorf("project root not found (no .todo2 directory)")
+	return projectroot.Find()
 }
 
 // SyncTodo2Tasks synchronizes tasks between database and JSON file

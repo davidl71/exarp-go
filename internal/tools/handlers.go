@@ -6,7 +6,6 @@ import (
 	"fmt"
 
 	"github.com/davidl71/exarp-go/internal/framework"
-	"github.com/davidl71/exarp-go/internal/security"
 	"github.com/davidl71/mcp-go-core/pkg/mcp/request"
 	"github.com/davidl71/mcp-go-core/pkg/mcp/response"
 )
@@ -208,7 +207,7 @@ func handleReport(ctx context.Context, args json.RawMessage) ([]framework.TextCo
 		if !IsGoProject() {
 			return nil, fmt.Errorf("scorecard action is only supported for Go projects (go.mod); use action=overview for other project types")
 		}
-		projectRoot, err := security.GetProjectRoot(".")
+		projectRoot, err := FindProjectRoot()
 		if err != nil {
 			return nil, fmt.Errorf("report scorecard: %w", err)
 		}

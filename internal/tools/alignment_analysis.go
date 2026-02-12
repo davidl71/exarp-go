@@ -13,7 +13,6 @@ import (
 	"github.com/davidl71/exarp-go/internal/database"
 	"github.com/davidl71/exarp-go/internal/framework"
 	"github.com/davidl71/exarp-go/internal/models"
-	"github.com/davidl71/exarp-go/internal/security"
 	"github.com/davidl71/mcp-go-core/pkg/mcp/response"
 )
 
@@ -58,7 +57,7 @@ func handleAnalyzeAlignmentNative(ctx context.Context, params map[string]interfa
 // handleAlignmentTodo2 handles the "todo2" action for analyze_alignment
 func handleAlignmentTodo2(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	// Get project root
-	projectRoot, err := security.GetProjectRoot(".")
+	projectRoot, err := FindProjectRoot()
 	if err != nil {
 		// Fallback to PROJECT_ROOT env var or current directory
 		if envRoot := os.Getenv("PROJECT_ROOT"); envRoot != "" {
@@ -69,11 +68,13 @@ func handleAlignmentTodo2(ctx context.Context, params map[string]interface{}) ([
 		}
 	}
 
-	// Load tasks
-	tasks, err := LoadTodo2Tasks(projectRoot)
+	// Load tasks via TaskStore
+	store := NewDefaultTaskStore(projectRoot)
+	list, err := store.ListTasks(ctx, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load Todo2 tasks: %w", err)
 	}
+	tasks := tasksFromPtrs(list)
 
 	// Load project goals if available
 	goalsPath := filepath.Join(projectRoot, "PROJECT_GOALS.md")
@@ -138,7 +139,7 @@ func handleAlignmentTodo2(ctx context.Context, params map[string]interface{}) ([
 
 // handleAlignmentPRD handles the "prd" action: task-to-persona alignment using PRD.md and persona keywords
 func handleAlignmentPRD(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
-	projectRoot, err := security.GetProjectRoot(".")
+	projectRoot, err := FindProjectRoot()
 	if err != nil {
 		if envRoot := os.Getenv("PROJECT_ROOT"); envRoot != "" {
 			projectRoot = envRoot
@@ -148,10 +149,12 @@ func handleAlignmentPRD(ctx context.Context, params map[string]interface{}) ([]f
 		}
 	}
 
-	tasks, err := LoadTodo2Tasks(projectRoot)
+	store := NewDefaultTaskStore(projectRoot)
+	list, err := store.ListTasks(ctx, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load Todo2 tasks: %w", err)
 	}
+	tasks := tasksFromPtrs(list)
 
 	prdPath := filepath.Join(projectRoot, "docs", "PRD.md")
 	prdExists := false

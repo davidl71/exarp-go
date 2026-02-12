@@ -9,7 +9,6 @@ import (
 
 	"github.com/davidl71/exarp-go/internal/cache"
 	"github.com/davidl71/exarp-go/internal/framework"
-	"github.com/davidl71/exarp-go/internal/security"
 	"github.com/davidl71/mcp-go-core/pkg/mcp/response"
 )
 
@@ -35,7 +34,7 @@ func handleSetupHooksNative(ctx context.Context, params map[string]interface{}) 
 // handleSetupGitHooks handles the "git" action for setup_hooks
 func handleSetupGitHooks(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	// Get project root
-	projectRoot, err := security.GetProjectRoot(".")
+	projectRoot, err := FindProjectRoot()
 	if err != nil {
 		// Fallback to PROJECT_ROOT env var or current directory
 		if envRoot := os.Getenv("PROJECT_ROOT"); envRoot != "" {
@@ -188,7 +187,7 @@ exarp-go -tool task_workflow -args '{"action":"sync"}' </dev/null || true
 // Sets up pattern-based automation triggers
 func handleSetupPatternHooks(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	// Get project root
-	projectRoot, err := security.GetProjectRoot(".")
+	projectRoot, err := FindProjectRoot()
 	if err != nil {
 		// Fallback to PROJECT_ROOT env var or current directory
 		if envRoot := os.Getenv("PROJECT_ROOT"); envRoot != "" {
