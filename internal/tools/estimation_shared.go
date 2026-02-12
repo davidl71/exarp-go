@@ -439,10 +439,12 @@ const estimateBatchMaxTasks = 50
 // handleEstimationBatch estimates duration for multiple tasks (statistical only; cap at estimateBatchMaxTasks).
 // Params: task_ids (array or comma-separated string), or status_filter (e.g. "Todo") to estimate all matching tasks.
 func handleEstimationBatch(projectRoot string, params map[string]interface{}) (string, error) {
-	tasks, err := LoadTodo2Tasks(projectRoot)
+	store := NewDefaultTaskStore(projectRoot)
+	list, err := store.ListTasks(context.Background(), nil)
 	if err != nil {
 		return "", fmt.Errorf("failed to load tasks: %w", err)
 	}
+	tasks := tasksFromPtrs(list)
 
 	// Resolve task set: by IDs or by status filter
 	var target []Todo2Task

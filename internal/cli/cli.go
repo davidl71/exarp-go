@@ -135,6 +135,9 @@ func Run() error {
 			status = parsed.Positional[0]
 		}
 		return RunTUI(server, status)
+	case "lock":
+		initializeDatabase()
+		return handleLockCommand(parsed)
 	case "tui3270":
 		tuiParsed := mcpcli.ParseArgs(os.Args[2:])
 		daemon := tuiParsed.GetBoolFlag("daemon", false) || tuiParsed.GetBoolFlag("d", false)

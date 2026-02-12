@@ -1,6 +1,7 @@
 package tools
 
 import (
+	"context"
 	"fmt"
 	"sort"
 
@@ -455,10 +456,12 @@ func getTaskLevelsIterative(tg *TaskGraph) map[string]int {
 
 // AnalyzeCriticalPath analyzes and returns critical path information for tasks
 func AnalyzeCriticalPath(projectRoot string) (map[string]interface{}, error) {
-	tasks, err := LoadTodo2Tasks(projectRoot)
+	store := NewDefaultTaskStore(projectRoot)
+	list, err := store.ListTasks(context.Background(), nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load tasks: %w", err)
 	}
+	tasks := tasksFromPtrs(list)
 
 	result := map[string]interface{}{
 		"total_tasks":       len(tasks),

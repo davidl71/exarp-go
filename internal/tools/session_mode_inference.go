@@ -67,8 +67,9 @@ func HandleInferSessionModeNative(ctx context.Context, params map[string]interfa
 		}
 	}
 
-	// Load Todo2 tasks
-	tasks, err := LoadTodo2Tasks(projectRoot)
+	// Load Todo2 tasks via TaskStore
+	store := NewDefaultTaskStore(projectRoot)
+	list, err := store.ListTasks(ctx, nil)
 	if err != nil {
 		result := ModeInferenceResult{
 			Mode:       SessionModeUNKNOWN,
@@ -79,6 +80,7 @@ func HandleInferSessionModeNative(ctx context.Context, params map[string]interfa
 		}
 		return marshalInferenceResult(result)
 	}
+	tasks := tasksFromPtrs(list)
 
 	// Infer mode from task patterns
 	result := inferModeFromTasks(tasks, projectRoot)

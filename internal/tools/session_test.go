@@ -256,7 +256,7 @@ func TestHandleSessionPrimeElicitation(t *testing.T) {
 		},
 		{
 			name: "mock accept include_tasks false include_hints false",
-			ctx: context.WithValue(context.Background(), mcpframework.EliciterContextKey, &mockEliciter{
+			ctx: mcpframework.ContextWithEliciter(context.Background(), &mockEliciter{
 				Action:  "accept",
 				Content: map[string]interface{}{"include_tasks": false, "include_hints": false},
 			}),
@@ -267,7 +267,7 @@ func TestHandleSessionPrimeElicitation(t *testing.T) {
 		},
 		{
 			name: "mock decline keeps defaults",
-			ctx: context.WithValue(context.Background(), mcpframework.EliciterContextKey, &mockEliciter{
+			ctx: mcpframework.ContextWithEliciter(context.Background(), &mockEliciter{
 				Action: "decline",
 			}),
 			params:    map[string]interface{}{"action": "prime", "ask_preferences": true},

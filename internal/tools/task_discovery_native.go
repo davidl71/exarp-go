@@ -338,7 +338,9 @@ func scanMarkdown(projectRoot string, docPath string) []map[string]interface{} {
 	return discoveries
 }
 
-// findOrphanTasks finds orphaned tasks (tasks with invalid structure)
+// findOrphanTasks finds orphaned tasks (tasks with invalid structure).
+// Uses GetDependencyAnalysisFromTasks (task_analysis) for cycles and missing deps; preserves
+// parent_id and incomplete_structure checks.
 func findOrphanTasks(ctx context.Context, projectRoot string) []map[string]interface{} {
 	orphans := []map[string]interface{}{}
 
@@ -349,37 +351,33 @@ func findOrphanTasks(ctx context.Context, projectRoot string) []map[string]inter
 	}
 	tasks := tasksFromPtrs(list)
 
-	// Build task map and dependency graph
 	taskMap := make(map[string]bool)
 	for _, task := range tasks {
 		taskMap[task.ID] = true
 	}
 
-	// Build dependency graph using gonum
-	tg, err := BuildTaskGraph(tasks)
+	cycles, missing, err := GetDependencyAnalysisFromTasks(tasks)
 	if err != nil {
-		// If graph building fails, continue with empty graph
-		tg = NewTaskGraph()
+		return orphans
 	}
 
-	// Find missing dependencies
-	missing := findMissingDependencies(tasks, tg)
+	// Build missing_deps by task for efficient lookup
+	missingByTask := make(map[string][]string)
+	for _, m := range missing {
+		tid, _ := m["task_id"].(string)
+		dep, _ := m["missing_dep"].(string)
+		if tid != "" && dep != "" {
+			missingByTask[tid] = append(missingByTask[tid], dep)
+		}
+	}
 
-	// Find circular dependencies using gonum
-	cycles := DetectCycles(tg)
-
-	// Identify orphan tasks
 	for _, task := range tasks {
 		issues := []string{}
 
-		// Check for missing dependencies
-		for _, dep := range task.Dependencies {
-			if !taskMap[dep] {
-				issues = append(issues, fmt.Sprintf("missing_dependency:%s", dep))
-			}
+		for _, dep := range missingByTask[task.ID] {
+			issues = append(issues, fmt.Sprintf("missing_dependency:%s", dep))
 		}
 
-		// Check if task is part of a cycle
 		for _, cycle := range cycles {
 			for _, cycleTaskID := range cycle {
 				if cycleTaskID == task.ID {
@@ -392,7 +390,6 @@ func findOrphanTasks(ctx context.Context, projectRoot string) []map[string]inter
 			}
 		}
 
-		// Check for invalid parent references (task.ParentID or metadata)
 		parentID := task.ParentID
 		if parentID == "" && task.Metadata != nil {
 			if pid, ok := task.Metadata["parent_id"].(string); ok && pid != "" {
@@ -403,7 +400,6 @@ func findOrphanTasks(ctx context.Context, projectRoot string) []map[string]inter
 			issues = append(issues, fmt.Sprintf("missing_parent:%s", parentID))
 		}
 
-		// Check for tasks that should have structure but don't
 		if len(task.Dependencies) > 0 && len(task.Tags) == 0 && task.Priority == "" {
 			issues = append(issues, "incomplete_structure")
 		}
@@ -419,9 +415,6 @@ func findOrphanTasks(ctx context.Context, projectRoot string) []map[string]inter
 			})
 		}
 	}
-
-	// Use missing dependencies info (unused variable fix)
-	_ = missing
 
 	return orphans
 }

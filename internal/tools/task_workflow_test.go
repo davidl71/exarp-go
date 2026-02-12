@@ -292,7 +292,7 @@ func TestHandleTaskWorkflowApproveConfirmViaElicitation(t *testing.T) {
 	defer os.Unsetenv("PROJECT_ROOT")
 
 	t.Run("confirm_via_elicitation with mock decline returns cancelled", func(t *testing.T) {
-		ctx := context.WithValue(context.Background(), mcpframework.EliciterContextKey, &mockEliciter{Action: "decline"})
+		ctx := mcpframework.ContextWithEliciter(context.Background(), &mockEliciter{Action: "decline"})
 		params := map[string]interface{}{"action": "approve", "confirm_via_elicitation": true}
 		result, err := handleTaskWorkflowApprove(ctx, params)
 		if err != nil {

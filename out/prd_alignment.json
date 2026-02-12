@@ -1,24 +1,24 @@
 {
-  "aligned_count": 242,
+  "aligned_count": 244,
   "alignment_by_persona": {
     "architect": {
       "advisor": "enochian",
-      "count": 4,
+      "count": 3,
       "name": "Architect"
     },
     "code_reviewer": {
       "advisor": "stoic",
-      "count": 20,
+      "count": 26,
       "name": "Code Reviewer"
     },
     "developer": {
       "advisor": "tao_of_programming",
-      "count": 106,
+      "count": 107,
       "name": "Developer"
     },
     "executive": {
       "advisor": "pistis_sophia",
-      "count": 6,
+      "count": 7,
       "name": "Executive/Stakeholder"
     },
     "project_manager": {
@@ -28,7 +28,7 @@
     },
     "qa_engineer": {
       "advisor": "stoic",
-      "count": 70,
+      "count": 65,
       "name": "QA Engineer"
     },
     "security_engineer": {
@@ -43,52 +43,52 @@
     }
   },
   "goals_exists": false,
-  "overall_alignment_score": 89.3,
+  "overall_alignment_score": 89.7,
   "persona_coverage": {
-    "architect": 4,
-    "code_reviewer": 20,
-    "developer": 106,
-    "executive": 6,
+    "architect": 3,
+    "code_reviewer": 26,
+    "developer": 107,
+    "executive": 7,
     "project_manager": 7,
-    "qa_engineer": 70,
+    "qa_engineer": 65,
     "security_engineer": 1,
     "tech_writer": 28
   },
   "prd_exists": true,
   "prd_user_stories": 20,
   "recommendations": null,
-  "tasks_analyzed": 271,
-  "timestamp": "2026-02-11T17:18:15+02:00",
-  "unaligned_count": 29,
+  "tasks_analyzed": 272,
+  "timestamp": "2026-02-11T18:44:50+02:00",
+  "unaligned_count": 28,
   "unaligned_tasks": [
     {
-      "id": "T-204",
-      "name": "Create model router component",
+      "id": "T-1769990619515",
+      "name": "Use DefaultModelRouter in task_analysis tag enrichment",
       "reason": "No strong persona match found"
     },
     {
-      "id": "T-84",
-      "name": "Phase 4 resources migrated (after memory)",
+      "id": "T-303",
+      "name": "Verify all tasks migrated",
       "reason": "No strong persona match found"
     },
     {
-      "id": "T-131",
-      "name": "List all available forms",
+      "id": "T-79",
+      "name": "Agent heartbeat system",
       "reason": "No strong persona match found"
     },
     {
-      "id": "T-80",
-      "name": "Lock timeout monitoring/alerts",
+      "id": "T-76",
+      "name": "Add dead agent cleanup job",
       "reason": "No strong persona match found"
     },
     {
-      "id": "T-85",
-      "name": "All critical path items complete",
+      "id": "T-82",
+      "name": "Memory system migrated (blocks Phase 4)",
       "reason": "No strong persona match found"
     },
     {
-      "id": "T-207",
-      "name": "Add model selection logic",
+      "id": "T-215",
+      "name": "Integrate with Todo2 execution flow",
       "reason": "No strong persona match found"
     },
     {
@@ -97,8 +97,8 @@
       "reason": "No strong persona match found"
     },
     {
-      "id": "T-254",
-      "name": "Uses task_analysis for dependency checking",
+      "id": "T-65",
+      "name": "Requires Swift bridge to be built and Apple Intelligence enabled",
       "reason": "No strong persona match found"
     },
     {
@@ -107,8 +107,8 @@
       "reason": "No strong persona match found"
     },
     {
-      "id": "T-218",
-      "name": "Add iterative refinement loop",
+      "id": "T-131",
+      "name": "List all available forms",
       "reason": "No strong persona match found"
     }
   ]

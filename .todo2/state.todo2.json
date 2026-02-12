@@ -248,7 +248,7 @@
       "content": "Create Error Types for Better Error Handling",
       "description": "Replace generic fmt.Errorf calls with typed errors (ErrInvalidTool, ErrToolNotFound, etc.) in pkg/mcp/framework/errors.go to enable better error handling with errors.Is() and errors.As().\n\nProblem: Using fmt.Errorf everywhere makes it hard to handle specific error types.\nSolution: Create typed error structs and helper functions like IsToolNotFound().\n\nLocation: pkg/mcp/framework/errors.go\nPriority: Medium",
       "long_description": "Replace generic fmt.Errorf calls with typed errors (ErrInvalidTool, ErrToolNotFound, etc.) in pkg/mcp/framework/errors.go to enable better error handling with errors.Is() and errors.As().\n\nProblem: Using fmt.Errorf everywhere makes it hard to handle specific error types.\nSolution: Create typed error structs and helper functions like IsToolNotFound().\n\nLocation: pkg/mcp/framework/errors.go\nPriority: Medium",
-      "status": "Todo",
+      "status": "Review",
       "priority": "medium",
       "tags": [
         "bug",
@@ -260,7 +260,16 @@
       "created": "2026-01-13T14:16:06.000Z",
       "created_at": "2026-01-13T16:16:06+02:00",
       "updated": "2026-02-12T16:19:36+02:00",
-      "last_modified": "2026-02-12T16:19:36+02:00"
+      "last_modified": "2026-02-12T16:19:36+02:00",
+      "lastModified": "2026-02-12T14:22:54.163Z",
+      "changes": [
+        {
+          "field": "status",
+          "oldValue": "Todo",
+          "newValue": "Review",
+          "timestamp": "2026-02-12T14:22:54.163Z"
+        }
+      ]
     },
     {
       "id": "T-1769989283751",
@@ -712,7 +721,7 @@
       "content": "Integrate conflict reporting into automation/parallel flow Surface conflict detection in automation, parallel execution, and session prime. Automation reports conflicts before assigning tasks; session prime includes conflict hints; document in MULTI_AGENT_PLAN.md. medium feature,multi-agent,automation",
       "description": "Surface conflict detection in automation, parallel execution, and session prime. Automation reports conflicts before assigning tasks; session prime includes conflict hints; document in MULTI_AGENT_PLAN.md.",
       "long_description": "Surface conflict detection in automation, parallel execution, and session prime. Automation reports conflicts before assigning tasks; session prime includes conflict hints; document in MULTI_AGENT_PLAN.md.",
-      "status": "Todo",
+      "status": "Done",
       "priority": "medium",
       "tags": [
         "automation",
@@ -722,7 +731,16 @@
       "created": "2026-02-11T16:58:27.000Z",
       "created_at": "2026-02-11T18:58:27+02:00",
       "updated": "2026-02-12T16:19:36+02:00",
-      "last_modified": "2026-02-12T16:19:36+02:00"
+      "last_modified": "2026-02-12T16:19:36+02:00",
+      "lastModified": "2026-02-12T14:35:33.882Z",
+      "changes": [
+        {
+          "field": "status",
+          "oldValue": "Todo",
+          "newValue": "Done",
+          "timestamp": "2026-02-12T14:35:33.882Z"
+        }
+      ]
     },
     {
       "id": "T-1768268674677",
@@ -1554,7 +1572,7 @@
       "content": "Implement symlink tests in mcp-go-core security path_test.go",
       "description": "🎯 **Objective:** Add symlink-handling test cases to mcp-go-core pkg/mcp/security/path_test.go (upstream of exarp-go).\n\n📋 **Acceptance Criteria:**\n- Same scenarios as exarp-go: in-root→in-root (accept), in-root→out-root (reject)\n- ValidatePath and ValidatePathExists covered\n- Platform-conditional: skip on Windows if os.Symlink unsupported\n- Tests pass in mcp-go-core\n\n📁 **Files/Components:**\n- Update: mcp-go-core/pkg/mcp/security/path_test.go\n\n📚 **Dependencies:** Design task or T-284",
       "long_description": "🎯 **Objective:** Add symlink-handling test cases to mcp-go-core pkg/mcp/security/path_test.go (upstream of exarp-go).\n\n📋 **Acceptance Criteria:**\n- Same scenarios as exarp-go: in-root→in-root (accept), in-root→out-root (reject)\n- ValidatePath and ValidatePathExists covered\n- Platform-conditional: skip on Windows if os.Symlink unsupported\n- Tests pass in mcp-go-core\n\n📁 **Files/Components:**\n- Update: mcp-go-core/pkg/mcp/security/path_test.go\n\n📚 **Dependencies:** Design task or T-284",
-      "status": "Todo",
+      "status": "Done",
       "priority": "medium",
       "tags": [
         "mcp",
@@ -1571,7 +1589,22 @@
       "created": "2026-02-11T17:02:44.000Z",
       "created_at": "2026-02-11T19:02:44+02:00",
       "updated": "2026-02-12T16:19:36+02:00",
-      "last_modified": "2026-02-12T16:19:36+02:00"
+      "last_modified": "2026-02-12T16:19:36+02:00",
+      "lastModified": "2026-02-12T14:31:13.152Z",
+      "changes": [
+        {
+          "field": "status",
+          "oldValue": "Todo",
+          "newValue": "In Progress",
+          "timestamp": "2026-02-12T14:30:05.558Z"
+        },
+        {
+          "field": "status",
+          "oldValue": "In Progress",
+          "newValue": "Done",
+          "timestamp": "2026-02-12T14:31:13.152Z"
+        }
+      ]
     },
     {
       "id": "T-1768317926159",
@@ -1769,7 +1802,7 @@
       "content": "Document symlink test case design for path validation",
       "description": "🎯 **Objective:** Capture the test case design for symlink handling in ValidatePath/ValidatePathExists, informing T-284 implementation.\n\n📋 **Drafted test cases:**\n\n**Case 1: Symlink within project → path within project (accept)**\n- Setup: `projectRoot/subdir/link_in` → `projectRoot/real_file.txt`\n- Input: `subdir/link_in`\n- Expect: ValidatePath accepts; ValidatePathExists accepts if target exists\n- Platform: Unix/macOS; `os.Symlink` may need privileges on Windows\n\n**Case 2: Symlink within project → path outside project root (reject)**\n- Setup: `projectRoot/evil_link` → `/etc/passwd` or `filepath.Join(tmpDir,\"outside\",\"secret\")`\n- Input: `evil_link`\n- Expect: If ValidatePath uses `filepath.EvalSymlinks`: reject. Current impl (no EvalSymlinks): may incorrectly accept — document behavior\n- Platform: Unix/macOS; portable target for CI\n\n**Case 3: Broken symlink**\n- Setup: `projectRoot/broken_link` → `nonexistent_target`\n- Input: `broken_link`\n- Expect: ValidatePath: accept (path string within root). ValidatePathExists: reject (path does not exist)\n- Platform: All\n\n**Case 4: Symlink in path component (nested)**\n- Setup: `projectRoot/a/link` → `projectRoot/b/file`; resolve `a/link`\n- Expect: Accept if resolved path stays within root\n\n**Implementation notes:** Use `t.TempDir()`, `os.Symlink`; skip on Windows if needed. Current mcp-go-core ValidatePath does NOT call `filepath.EvalSymlinks`; tests should assert current behavior first.\n\n📚 **Dependencies:** None. Epic: T-284.",
       "long_description": "🎯 **Objective:** Capture the test case design for symlink handling in ValidatePath/ValidatePathExists, informing T-284 implementation.\n\n📋 **Drafted test cases:**\n\n**Case 1: Symlink within project → path within project (accept)**\n- Setup: `projectRoot/subdir/link_in` → `projectRoot/real_file.txt`\n- Input: `subdir/link_in`\n- Expect: ValidatePath accepts; ValidatePathExists accepts if target exists\n- Platform: Unix/macOS; `os.Symlink` may need privileges on Windows\n\n**Case 2: Symlink within project → path outside project root (reject)**\n- Setup: `projectRoot/evil_link` → `/etc/passwd` or `filepath.Join(tmpDir,\"outside\",\"secret\")`\n- Input: `evil_link`\n- Expect: If ValidatePath uses `filepath.EvalSymlinks`: reject. Current impl (no EvalSymlinks): may incorrectly accept — document behavior\n- Platform: Unix/macOS; portable target for CI\n\n**Case 3: Broken symlink**\n- Setup: `projectRoot/broken_link` → `nonexistent_target`\n- Input: `broken_link`\n- Expect: ValidatePath: accept (path string within root). ValidatePathExists: reject (path does not exist)\n- Platform: All\n\n**Case 4: Symlink in path component (nested)**\n- Setup: `projectRoot/a/link` → `projectRoot/b/file`; resolve `a/link`\n- Expect: Accept if resolved path stays within root\n\n**Implementation notes:** Use `t.TempDir()`, `os.Symlink`; skip on Windows if needed. Current mcp-go-core ValidatePath does NOT call `filepath.EvalSymlinks`; tests should assert current behavior first.\n\n📚 **Dependencies:** None. Epic: T-284.",
-      "status": "Todo",
+      "status": "Done",
       "priority": "high",
       "tags": [
         "design",
@@ -1783,7 +1816,22 @@
       "created": "2026-02-11T17:02:42.000Z",
       "created_at": "2026-02-11T19:02:42+02:00",
       "updated": "2026-02-12T16:19:36+02:00",
-      "last_modified": "2026-02-12T16:19:36+02:00"
+      "last_modified": "2026-02-12T16:19:36+02:00",
+      "lastModified": "2026-02-12T14:26:52.512Z",
+      "changes": [
+        {
+          "field": "status",
+          "oldValue": "Todo",
+          "newValue": "In Progress",
+          "timestamp": "2026-02-12T14:26:21.838Z"
+        },
+        {
+          "field": "status",
+          "oldValue": "In Progress",
+          "newValue": "Done",
+          "timestamp": "2026-02-12T14:26:52.512Z"
+        }
+      ]
     },
     {
       "id": "T-1768317926184",
@@ -2405,7 +2453,7 @@
       "content": "Migrate internal/resources/tasks.go to TaskStore",
       "description": "Replace manual database-then-JSON fallback with TaskStore in `internal/resources/tasks.go`. Handlers: handleAllTasks, handleTaskByID, handleTasksByStatus, handleTasksByTag, handleTasksByPriority, handleTasksStats (6 call sites). Use `NewDefaultTaskStore(projectRoot)` and `store.ListTasks(ctx, nil)` / `store.GetTask(ctx, id)` instead of direct `database.ListTasks` + `LoadTodo2Tasks` fallback.",
       "long_description": "Replace manual database-then-JSON fallback with TaskStore in `internal/resources/tasks.go`. Handlers: handleAllTasks, handleTaskByID, handleTasksByStatus, handleTasksByTag, handleTasksByPriority, handleTasksStats (6 call sites). Use `NewDefaultTaskStore(projectRoot)` and `store.ListTasks(ctx, nil)` / `store.GetTask(ctx, id)` instead of direct `database.ListTasks` + `LoadTodo2Tasks` fallback.",
-      "status": "Todo",
+      "status": "Done",
       "priority": "medium",
       "tags": [
         "TaskStore",
@@ -2415,7 +2463,22 @@
       "created": "2026-02-11T17:42:12.000Z",
       "created_at": "2026-02-11T19:42:12+02:00",
       "updated": "2026-02-12T16:19:36+02:00",
-      "last_modified": "2026-02-12T16:19:36+02:00"
+      "last_modified": "2026-02-12T16:19:36+02:00",
+      "lastModified": "2026-02-12T14:28:29.496Z",
+      "changes": [
+        {
+          "field": "status",
+          "oldValue": "Todo",
+          "newValue": "In Progress",
+          "timestamp": "2026-02-12T14:26:53.905Z"
+        },
+        {
+          "field": "status",
+          "oldValue": "In Progress",
+          "newValue": "Done",
+          "timestamp": "2026-02-12T14:28:29.496Z"
+        }
+      ]
     },
     {
       "id": "T-1770830685549",
@@ -2705,7 +2768,7 @@
       "content": "Migrate todo2_utils GetTaskByID and UpdateTaskStatus to TaskStore",
       "description": "Refactor `GetTaskByID` and `UpdateTaskStatus` in `internal/tools/todo2_utils.go` to use TaskStore instead of duplicate DB-first + LoadTodo2Tasks fallback logic. Use `NewDefaultTaskStore(projectRoot)` and delegate to store.GetTask / store.UpdateTask.",
       "long_description": "Refactor `GetTaskByID` and `UpdateTaskStatus` in `internal/tools/todo2_utils.go` to use TaskStore instead of duplicate DB-first + LoadTodo2Tasks fallback logic. Use `NewDefaultTaskStore(projectRoot)` and delegate to store.GetTask / store.UpdateTask.",
-      "status": "Todo",
+      "status": "Done",
       "priority": "low",
       "tags": [
         "TaskStore",
@@ -2714,7 +2777,22 @@
       "created": "2026-02-11T17:42:13.000Z",
       "created_at": "2026-02-11T19:42:13+02:00",
       "updated": "2026-02-12T16:19:36+02:00",
-      "last_modified": "2026-02-12T16:19:36+02:00"
+      "last_modified": "2026-02-12T16:19:36+02:00",
+      "lastModified": "2026-02-12T14:36:41.399Z",
+      "changes": [
+        {
+          "field": "status",
+          "oldValue": "Todo",
+          "newValue": "In Progress",
+          "timestamp": "2026-02-12T14:35:41.407Z"
+        },
+        {
+          "field": "status",
+          "oldValue": "In Progress",
+          "newValue": "Done",
+          "timestamp": "2026-02-12T14:36:41.399Z"
+        }
+      ]
     },
     {
       "id": "T-303",
@@ -3319,7 +3397,7 @@
       "content": "Implement file-level conflict detection Detect when multiple agents modify the same file(s) concurrently. Use task_assignee/locked_by; report conflicts before/during parallel execution. medium feature,multi-agent,conflict",
       "description": "Detect when multiple agents modify the same file(s) concurrently. Use task_assignee/locked_by; report conflicts before/during parallel execution.",
       "long_description": "Detect when multiple agents modify the same file(s) concurrently. Use task_assignee/locked_by; report conflicts before/during parallel execution.",
-      "status": "Todo",
+      "status": "Done",
       "priority": "medium",
       "tags": [
         "conflict",
@@ -3329,7 +3407,16 @@
       "created": "2026-02-11T16:58:20.000Z",
       "created_at": "2026-02-11T18:58:20+02:00",
       "updated": "2026-02-12T16:19:36+02:00",
-      "last_modified": "2026-02-12T16:19:36+02:00"
+      "last_modified": "2026-02-12T16:19:36+02:00",
+      "lastModified": "2026-02-12T14:35:33.882Z",
+      "changes": [
+        {
+          "field": "status",
+          "oldValue": "Todo",
+          "newValue": "Done",
+          "timestamp": "2026-02-12T14:35:33.882Z"
+        }
+      ]
     },
     {
       "id": "T-1768326701962",
@@ -3507,7 +3594,7 @@
       "content": "Process monitoring (verify agent process exists)",
       "description": "Process monitoring (verify agent process exists)",
       "long_description": "Process monitoring (verify agent process exists)",
-      "status": "Todo",
+      "status": "Done",
       "priority": "high",
       "tags": [
         "markdown"
@@ -3520,7 +3607,22 @@
       "created": "2026-01-13T14:16:06.000Z",
       "created_at": "2026-01-13T16:16:06+02:00",
       "updated": "2026-02-12T16:19:36+02:00",
-      "last_modified": "2026-02-12T16:19:36+02:00"
+      "last_modified": "2026-02-12T16:19:36+02:00",
+      "lastModified": "2026-02-12T14:30:00.986Z",
+      "changes": [
+        {
+          "field": "status",
+          "oldValue": "Todo",
+          "newValue": "In Progress",
+          "timestamp": "2026-02-12T14:28:34.255Z"
+        },
+        {
+          "field": "status",
+          "oldValue": "In Progress",
+          "newValue": "Done",
+          "timestamp": "2026-02-12T14:30:00.986Z"
+        }
+      ]
     },
     {
       "id": "T-1768319001461",
@@ -5518,7 +5620,7 @@
       "content": "Implement task-overlap conflict detection Detect when agents work on dependent/related tasks simultaneously. Check task dependency graph for overlapping In Progress tasks; integrate with task_analysis/task_workflow. medium feature,multi-agent,conflict,task_analysis",
       "description": "Detect when agents work on dependent/related tasks simultaneously. Check task dependency graph for overlapping In Progress tasks; integrate with task_analysis/task_workflow.",
       "long_description": "Detect when agents work on dependent/related tasks simultaneously. Check task dependency graph for overlapping In Progress tasks; integrate with task_analysis/task_workflow.",
-      "status": "Todo",
+      "status": "Done",
       "priority": "medium",
       "tags": [
         "conflict",
@@ -5529,7 +5631,22 @@
       "created": "2026-02-11T16:58:24.000Z",
       "created_at": "2026-02-11T18:58:24+02:00",
       "updated": "2026-02-12T16:19:36+02:00",
-      "last_modified": "2026-02-12T16:19:36+02:00"
+      "last_modified": "2026-02-12T16:19:36+02:00",
+      "lastModified": "2026-02-12T14:35:33.882Z",
+      "changes": [
+        {
+          "field": "status",
+          "oldValue": "Todo",
+          "newValue": "In Progress",
+          "timestamp": "2026-02-12T14:30:22.229Z"
+        },
+        {
+          "field": "status",
+          "oldValue": "In Progress",
+          "newValue": "Done",
+          "timestamp": "2026-02-12T14:31:53.297Z"
+        }
+      ]
     },
     {
       "id": "T-1768170875007",
@@ -5685,7 +5802,7 @@
       "content": "Migrate todo2_utils GetSuggestedNextTasks and WriteTodo2Overview to TaskStore",
       "description": "Replace direct `LoadTodo2Tasks` with TaskStore in `internal/tools/todo2_utils.go`: `GetSuggestedNextTasks` (line ~407), `WriteTodo2Overview` (line ~464). Use `NewDefaultTaskStore(projectRoot)` and `store.ListTasks(ctx, nil)` instead of LoadTodo2Tasks.",
       "long_description": "Replace direct `LoadTodo2Tasks` with TaskStore in `internal/tools/todo2_utils.go`: `GetSuggestedNextTasks` (line ~407), `WriteTodo2Overview` (line ~464). Use `NewDefaultTaskStore(projectRoot)` and `store.ListTasks(ctx, nil)` instead of LoadTodo2Tasks.",
-      "status": "Todo",
+      "status": "Done",
       "priority": "medium",
       "tags": [
         "TaskStore",
@@ -5694,7 +5811,22 @@
       "created": "2026-02-11T17:42:13.000Z",
       "created_at": "2026-02-11T19:42:13+02:00",
       "updated": "2026-02-12T16:19:36+02:00",
-      "last_modified": "2026-02-12T16:19:36+02:00"
+      "last_modified": "2026-02-12T16:19:36+02:00",
+      "lastModified": "2026-02-12T14:36:41.399Z",
+      "changes": [
+        {
+          "field": "status",
+          "oldValue": "Todo",
+          "newValue": "In Progress",
+          "timestamp": "2026-02-12T14:35:41.407Z"
+        },
+        {
+          "field": "status",
+          "oldValue": "In Progress",
+          "newValue": "Done",
+          "timestamp": "2026-02-12T14:36:41.399Z"
+        }
+      ]
     },
     {
       "id": "T-1768251811938",
@@ -6159,7 +6291,7 @@
       "content": "Implement symlink tests in exarp-go security path_test.go",
       "description": "🎯 **Objective:** Add symlink-handling test cases to exarp-go internal/security/path_test.go per T-284 design.\n\n📋 **Acceptance Criteria:**\n- Test symlink within project pointing to valid path within project (accept)\n- Test symlink within project pointing outside project root (reject - traversal)\n- Test broken symlink behavior (document actual vs desired)\n- Use t.TempDir(), os.Symlink; skip on Windows if os.Symlink fails\n- Tests pass with make test\n\n📁 **Files/Components:**\n- Update: internal/security/path_test.go\n\n📚 **Dependencies:** Task with symlink test case design (or T-284)",
       "long_description": "🎯 **Objective:** Add symlink-handling test cases to exarp-go internal/security/path_test.go per T-284 design.\n\n📋 **Acceptance Criteria:**\n- Test symlink within project pointing to valid path within project (accept)\n- Test symlink within project pointing outside project root (reject - traversal)\n- Test broken symlink behavior (document actual vs desired)\n- Use t.TempDir(), os.Symlink; skip on Windows if os.Symlink fails\n- Tests pass with make test\n\n📁 **Files/Components:**\n- Update: internal/security/path_test.go\n\n📚 **Dependencies:** Task with symlink test case design (or T-284)",
-      "status": "Todo",
+      "status": "Done",
       "priority": "medium",
       "tags": [
         "security",
@@ -6175,7 +6307,22 @@
       "created": "2026-02-11T17:02:43.000Z",
       "created_at": "2026-02-11T19:02:43+02:00",
       "updated": "2026-02-12T16:19:36+02:00",
-      "last_modified": "2026-02-12T16:19:36+02:00"
+      "last_modified": "2026-02-12T16:19:36+02:00",
+      "lastModified": "2026-02-12T14:31:13.152Z",
+      "changes": [
+        {
+          "field": "status",
+          "oldValue": "Todo",
+          "newValue": "In Progress",
+          "timestamp": "2026-02-12T14:30:05.558Z"
+        },
+        {
+          "field": "status",
+          "oldValue": "In Progress",
+          "newValue": "Done",
+          "timestamp": "2026-02-12T14:31:13.152Z"
+        }
+      ]
     },
     {
       "id": "T-1768322265701",
@@ -6242,7 +6389,7 @@
       "completed_at": "2026-01-29T00:14:57+02:00"
     }
   ],
-  "lastModified": "2026-02-12T14:19:39.803Z",
+  "lastModified": "2026-02-12T14:36:41.399Z",
   "comments": [
     {
       "id": "T-1770830680695-C-1",
@@ -6267,6 +6414,110 @@
       "content": "Added prompt_optimization_analysis template to internal/prompts/templates.go. Template:\n- Uses variables {prompt}, {context}, {task_type} per spec\n- Evaluates 5 dimensions (clarity, specificity, completeness, structure, actionability)\n- Instructs model to respond with JSON matching PROMPT_OPTIMIZATION_TEMPLATE_SPEC output schema\n- Internal use (not MCP-registered); retrieved via GetPromptTemplate()\n- Added TestGetPromptTemplate_PromptOptimizationAnalysis and included in TestGetPromptTemplate_AllPrompts",
       "created": "2026-02-12T14:19:39.803Z",
       "lastModified": "2026-02-12T14:19:39.803Z"
+    },
+    {
+      "id": "T-1768251816882-C-1",
+      "todoId": "T-1768251816882",
+      "type": "result",
+      "content": "**Implementation complete.**\n\n- **Phase 1:** Added ErrInvalidRequest, ErrTransport, ErrContextCancelled to `pkg/mcp/framework/errors.go`; updated all Is* helpers to use `errors.As`; added IsInvalidPrompt, IsInvalidResource, IsInvalidRequest, IsTransport, IsContextCancelled. ErrContextCancelled implements Unwrap() for error chains.\n- **Phase 2:** Refactored `validation.go`: ValidateToolRegistration, ValidatePromptRegistration, ValidateResourceRegistration, ValidateCallToolRequest, ValidateGetPromptRequest, ValidateReadResourceRequest now return framework typed errors.\n- **Phase 3:** `adapter.go`: RegisterTool/RegisterPrompt/RegisterResource return validation errors directly; schema type and tool-not-found use ErrInvalidTool/ErrToolNotFound; server nil, SSE type, unsupported transport use ErrTransport; CallTool returns ErrToolNotFound. Handler execution errors kept as fmt.Errorf(..., %w).\n- **Phase 4:** `context.go` returns ErrContextCancelled; `transport.go` returns ErrTransport for already started / not started; fixed fmt.Fprint for non-constant format (vet).\n- **Phase 5:** New tests in errors_test.go for ErrInvalidRequest, ErrTransport, ErrContextCancelled and for Is* with wrapped errors; validation_test.go updated to ValidateToolRegistration; context_test.go updated for ErrContextCancelled (removed invalid errors.As with *error).\n\nAll `pkg/mcp/framework` and `pkg/mcp/framework/adapters/gosdk` tests pass. exarp-go builds (replace points to local mcp-go-core).",
+      "created": "2026-02-12T14:22:53.954Z",
+      "lastModified": "2026-02-12T14:22:53.954Z"
+    },
+    {
+      "id": "T-1770829362471-C-1",
+      "todoId": "T-1770829362471",
+      "type": "result",
+      "content": "Created docs/SYMLINK_TEST_DESIGN.md with four test cases (symlink within→within, within→outside, broken, nested), current mcp-go-core behavior (no EvalSymlinks), and implementation notes for exarp-go and mcp-go-core. Unblocks T-1770829363301 and T-1770829364114.",
+      "created": "2026-02-12T14:26:52.163Z",
+      "lastModified": "2026-02-12T14:26:52.163Z"
+    },
+    {
+      "id": "T-1770831732740-C-1",
+      "todoId": "T-1770831732740",
+      "type": "result",
+      "content": "Migrated all 6 handlers in internal/resources/tasks.go to TaskStore: handleAllTasks, handleTaskByID, handleTasksByStatus, handleTasksByPriority, handleTasksByTag, handleTasksSummary. Each now uses tools.NewDefaultTaskStore(projectRoot) and store.ListTasks(ctx, nil)|store.GetTask(ctx, id)|store.ListTasks(ctx, &database.TaskFilters{...}). Build passes.",
+      "created": "2026-02-12T14:28:29.028Z",
+      "lastModified": "2026-02-12T14:28:29.028Z"
+    },
+    {
+      "id": "T-319-C-1",
+      "todoId": "T-319",
+      "type": "result",
+      "content": "Implemented process monitoring: utils.ProcessExists(pid), database.ParsePIDFromAgentID(agentID), database.AgentProcessExists(agentID). Documented in STALE_LOCK_DETECTION_AND_HANDLING.md. Tests in internal/utils/process_test.go and internal/database/agent_id_test.go.",
+      "created": "2026-02-12T14:30:00.719Z",
+      "lastModified": "2026-02-12T14:30:00.719Z"
+    },
+    {
+      "id": "T-1770829363301-C-1",
+      "todoId": "T-1770829363301",
+      "type": "result",
+      "content": "Added 4 symlink tests to internal/security/path_test.go per docs/SYMLINK_TEST_DESIGN.md: WithinProject, OutsideProject (current behavior), Broken, Nested. Skip on Windows. All pass.",
+      "created": "2026-02-12T14:31:11.219Z",
+      "lastModified": "2026-02-12T14:31:11.219Z"
+    },
+    {
+      "id": "T-1770829364114-C-1",
+      "todoId": "T-1770829364114",
+      "type": "result",
+      "content": "Added 4 symlink tests to mcp-go-core pkg/mcp/security/path_test.go: WithinProject, OutsideProject, Broken, Nested. Skip on Windows. All pass.",
+      "created": "2026-02-12T14:31:12.459Z",
+      "lastModified": "2026-02-12T14:31:12.459Z"
+    },
+    {
+      "id": "T-1770829104089-C-1",
+      "todoId": "T-1770829104089",
+      "type": "research_with_links",
+      "content": "**MANDATORY RESEARCH COMPLETED** ✅\n\n**Local Codebase Analysis:**\n- `task_analysis_shared.go`: Uses `getTaskStore(ctx)` and `store.ListTasks(ctx, filters)` for all actions. Pattern: load tasks, run analysis, return via `response.FormatResult(map, \"\")`.\n- `graph_helpers.go`: `BuildTaskGraph(tasks)`, `BuildTaskGraphBacklogOnly(tasks)`; TaskGraph has TaskIDMap, NodeIDMap, Dependencies. For conflict detection we only need dependency membership check—no graph needed.\n- `infer_task_progress.go`: `loadInProgressTasks` uses `store.ListTasks(ctx, &database.TaskFilters{Status: &inProgress})` — exact pattern for loading In Progress tasks.\n- `database.TaskFilters`: `Status *string`; `database.StatusInProgress = \"In Progress\"`.\n\n**Synthesis:** Implement `DetectTaskOverlapConflicts(inProgress []Todo2Task)` — for each task, if any dependency is also in the In Progress set, record conflict. Add `task_analysis` action `conflicts` that loads via TaskStore and returns `{conflict, conflicts, overlapping, reasons}`.",
+      "created": "2026-02-12T14:31:53.028Z",
+      "lastModified": "2026-02-12T14:31:53.028Z"
+    },
+    {
+      "id": "T-1770829104089-C-2",
+      "todoId": "T-1770829104089",
+      "type": "result",
+      "content": "**Implementation complete.**\n\n- Added `DetectTaskOverlapConflicts(inProgress []Todo2Task) []TaskOverlapConflict` in task_analysis_shared.go\n- Added `handleTaskAnalysisConflicts` — loads In Progress tasks via TaskStore, calls DetectTaskOverlapConflicts, returns JSON with conflict/conflicts/overlapping/reasons\n- Added `task_analysis` action `conflicts`; registered in registry.go enum and hint\n- Table-driven unit tests for DetectTaskOverlapConflicts; integration test for conflicts action\n- Verified via `exarp-go -tool task_analysis -args '{\"action\":\"conflicts\"}'`\n\n**Files changed:** task_analysis_shared.go, registry.go, tool_catalog.go, task_analysis_test.go",
+      "created": "2026-02-12T14:31:53.028Z",
+      "lastModified": "2026-02-12T14:31:53.028Z"
+    },
+    {
+      "id": "T-1770829104089-C-3",
+      "todoId": "T-1770829104089",
+      "type": "result",
+      "content": "Implemented DetectTaskOverlapConflicts in internal/tools/conflict_detection.go. For each In Progress task, checks if any dependency is also In Progress; returns TaskOverlapConflict list. Wired into DetectConflicts, automation (daily/nightly/sprint), and session prime conflict_hints. Documented in MULTI_AGENT_PLAN.md.",
+      "created": "2026-02-12T14:35:30.020Z",
+      "lastModified": "2026-02-12T14:35:30.020Z"
+    },
+    {
+      "id": "T-1770829100451-C-1",
+      "todoId": "T-1770829100451",
+      "type": "result",
+      "content": "Implemented DetectFileConflicts: parse long_description for - Update:/Create:/Modify:/Delete: paths, group by file, emit FileConflict for files shared by ≥2 In Progress tasks. Wired with task-overlap into automation and session prime. Doc in MULTI_AGENT_PLAN.md.",
+      "created": "2026-02-12T14:35:31.588Z",
+      "lastModified": "2026-02-12T14:35:31.588Z"
+    },
+    {
+      "id": "T-1770829107875-C-1",
+      "todoId": "T-1770829107875",
+      "type": "result",
+      "content": "Integrated conflict reporting: automation_native daily/nightly/sprint set results[\"conflicts\"] (task_overlap, file) before running tasks; session prime sets result[\"conflict_hints\"] when conflicts exist. MULTI_AGENT_PLAN.md updated with Conflict Detection section and integration points.",
+      "created": "2026-02-12T14:35:33.142Z",
+      "lastModified": "2026-02-12T14:35:33.142Z"
+    },
+    {
+      "id": "T-1770831733303-C-1",
+      "todoId": "T-1770831733303",
+      "type": "result",
+      "content": "Migrated GetSuggestedNextTasks and WriteTodo2Overview to TaskStore. GetSuggestedNextTasks: store := NewDefaultTaskStore(projectRoot), list := store.ListTasks(ctx, nil), tasks := tasksFromPtrs(list), then BacklogExecutionOrder/tasksReadyToStart unchanged. WriteTodo2Overview: store.ListTasks + tasksFromPtrs, then existing sort/display/suggestedNext logic. No LoadTodo2Tasks in these paths.",
+      "created": "2026-02-12T14:36:39.368Z",
+      "lastModified": "2026-02-12T14:36:39.368Z"
+    },
+    {
+      "id": "T-1770831733871-C-1",
+      "todoId": "T-1770831733871",
+      "type": "result",
+      "content": "Migrated GetTaskByID and UpdateTaskStatus to TaskStore. GetTaskByID: NewDefaultTaskStore(projectRoot); return store.GetTask(ctx, id). UpdateTaskStatus: store.GetTask, set Status, store.UpdateTask, then SyncTodo2Tasks(projectRoot) for DB/JSON sync. Single code path via TaskStore.",
+      "created": "2026-02-12T14:36:40.837Z",
+      "lastModified": "2026-02-12T14:36:40.837Z"
     }
   ],
   "activities": [
@@ -6304,6 +6555,390 @@
         "commentType": "result",
         "commentPreview": "Added prompt_optimization_analysis template to internal/prompts/templates.go. Template:\n- Uses varia...",
         "commentId": "T-1770830685549-C-1"
+      }
+    },
+    {
+      "id": "activity-1770906173954-moy6n35fj",
+      "type": "comment_added",
+      "todoId": "T-1768251816882",
+      "todoName": "Create Error Types for Better Error Handling",
+      "timestamp": "2026-02-12T14:22:53.954Z",
+      "details": {
+        "commentType": "result",
+        "commentPreview": "**Implementation complete.**\n\n- **Phase 1:** Added ErrInvalidRequest, ErrTransport, ErrContextCancel...",
+        "commentId": "T-1768251816882-C-1"
+      }
+    },
+    {
+      "id": "activity-1770906174164-a2lnr1jz7",
+      "type": "status_changed",
+      "todoId": "T-1768251816882",
+      "todoName": "Create Error Types for Better Error Handling",
+      "timestamp": "2026-02-12T14:22:54.164Z",
+      "details": {
+        "field": "status",
+        "oldValue": "Todo",
+        "newValue": "Review"
+      }
+    },
+    {
+      "id": "activity-1770906381838-43k3hixyw",
+      "type": "status_changed",
+      "todoId": "T-1770829362471",
+      "todoName": "Document symlink test case design for path validation",
+      "timestamp": "2026-02-12T14:26:21.838Z",
+      "details": {
+        "field": "status",
+        "oldValue": "Todo",
+        "newValue": "In Progress"
+      }
+    },
+    {
+      "id": "activity-1770906412163-e1r6pz4pc",
+      "type": "comment_added",
+      "todoId": "T-1770829362471",
+      "todoName": "Document symlink test case design for path validation",
+      "timestamp": "2026-02-12T14:26:52.163Z",
+      "details": {
+        "commentType": "result",
+        "commentPreview": "Created docs/SYMLINK_TEST_DESIGN.md with four test cases (symlink within→within, within→outside, bro...",
+        "commentId": "T-1770829362471-C-1"
+      }
+    },
+    {
+      "id": "activity-1770906412513-ehkstpgv0",
+      "type": "status_changed",
+      "todoId": "T-1770829362471",
+      "todoName": "Document symlink test case design for path validation",
+      "timestamp": "2026-02-12T14:26:52.513Z",
+      "details": {
+        "field": "status",
+        "oldValue": "In Progress",
+        "newValue": "Done"
+      }
+    },
+    {
+      "id": "activity-1770906413905-8a3xlprtl",
+      "type": "status_changed",
+      "todoId": "T-1770831732740",
+      "todoName": "Migrate internal/resources/tasks.go to TaskStore",
+      "timestamp": "2026-02-12T14:26:53.905Z",
+      "details": {
+        "field": "status",
+        "oldValue": "Todo",
+        "newValue": "In Progress"
+      }
+    },
+    {
+      "id": "activity-1770906509028-3bvaoa3qh",
+      "type": "comment_added",
+      "todoId": "T-1770831732740",
+      "todoName": "Migrate internal/resources/tasks.go to TaskStore",
+      "timestamp": "2026-02-12T14:28:29.028Z",
+      "details": {
+        "commentType": "result",
+        "commentPreview": "Migrated all 6 handlers in internal/resources/tasks.go to TaskStore: handleAllTasks, handleTaskByID,...",
+        "commentId": "T-1770831732740-C-1"
+      }
+    },
+    {
+      "id": "activity-1770906509496-rdc3oiz1r",
+      "type": "status_changed",
+      "todoId": "T-1770831732740",
+      "todoName": "Migrate internal/resources/tasks.go to TaskStore",
+      "timestamp": "2026-02-12T14:28:29.496Z",
+      "details": {
+        "field": "status",
+        "oldValue": "In Progress",
+        "newValue": "Done"
+      }
+    },
+    {
+      "id": "activity-1770906514255-f4ni304oi",
+      "type": "status_changed",
+      "todoId": "T-319",
+      "todoName": "Process monitoring (verify agent process exists)",
+      "timestamp": "2026-02-12T14:28:34.255Z",
+      "details": {
+        "field": "status",
+        "oldValue": "Todo",
+        "newValue": "In Progress"
+      }
+    },
+    {
+      "id": "activity-1770906600719-gvj27foct",
+      "type": "comment_added",
+      "todoId": "T-319",
+      "todoName": "Process monitoring (verify agent process exists)",
+      "timestamp": "2026-02-12T14:30:00.719Z",
+      "details": {
+        "commentType": "result",
+        "commentPreview": "Implemented process monitoring: utils.ProcessExists(pid), database.ParsePIDFromAgentID(agentID), dat...",
+        "commentId": "T-319-C-1"
+      }
+    },
+    {
+      "id": "activity-1770906600986-on71zj34i",
+      "type": "status_changed",
+      "todoId": "T-319",
+      "todoName": "Process monitoring (verify agent process exists)",
+      "timestamp": "2026-02-12T14:30:00.986Z",
+      "details": {
+        "field": "status",
+        "oldValue": "In Progress",
+        "newValue": "Done"
+      }
+    },
+    {
+      "id": "activity-1770906605558-cuckc6kfx",
+      "type": "status_changed",
+      "todoId": "T-1770829363301",
+      "todoName": "Implement symlink tests in exarp-go security path_test.go",
+      "timestamp": "2026-02-12T14:30:05.558Z",
+      "details": {
+        "field": "status",
+        "oldValue": "Todo",
+        "newValue": "In Progress"
+      }
+    },
+    {
+      "id": "activity-1770906605558-tep3k1pt4",
+      "type": "status_changed",
+      "todoId": "T-1770829364114",
+      "todoName": "Implement symlink tests in mcp-go-core security path_test.go",
+      "timestamp": "2026-02-12T14:30:05.558Z",
+      "details": {
+        "field": "status",
+        "oldValue": "Todo",
+        "newValue": "In Progress"
+      }
+    },
+    {
+      "id": "activity-1770906622229-lwequrkj1",
+      "type": "status_changed",
+      "todoId": "T-1770829104089",
+      "todoName": "Implement task-overlap conflict detection Detect when agents work on dependent/related tasks simultaneously. Check task dependency graph for overlapping In Progress tasks; integrate with task_analysis/task_workflow. medium feature,multi-agent,conflict,task_analysis",
+      "timestamp": "2026-02-12T14:30:22.229Z",
+      "details": {
+        "field": "status",
+        "oldValue": "Todo",
+        "newValue": "In Progress"
+      }
+    },
+    {
+      "id": "activity-1770906671219-b2rbhas46",
+      "type": "comment_added",
+      "todoId": "T-1770829363301",
+      "todoName": "Implement symlink tests in exarp-go security path_test.go",
+      "timestamp": "2026-02-12T14:31:11.219Z",
+      "details": {
+        "commentType": "result",
+        "commentPreview": "Added 4 symlink tests to internal/security/path_test.go per docs/SYMLINK_TEST_DESIGN.md: WithinProje...",
+        "commentId": "T-1770829363301-C-1"
+      }
+    },
+    {
+      "id": "activity-1770906672459-v6725i1cq",
+      "type": "comment_added",
+      "todoId": "T-1770829364114",
+      "todoName": "Implement symlink tests in mcp-go-core security path_test.go",
+      "timestamp": "2026-02-12T14:31:12.459Z",
+      "details": {
+        "commentType": "result",
+        "commentPreview": "Added 4 symlink tests to mcp-go-core pkg/mcp/security/path_test.go: WithinProject, OutsideProject, B...",
+        "commentId": "T-1770829364114-C-1"
+      }
+    },
+    {
+      "id": "activity-1770906673152-1qyjr5f4u",
+      "type": "status_changed",
+      "todoId": "T-1770829363301",
+      "todoName": "Implement symlink tests in exarp-go security path_test.go",
+      "timestamp": "2026-02-12T14:31:13.152Z",
+      "details": {
+        "field": "status",
+        "oldValue": "In Progress",
+        "newValue": "Done"
+      }
+    },
+    {
+      "id": "activity-1770906673152-5isn6ehg6",
+      "type": "status_changed",
+      "todoId": "T-1770829364114",
+      "todoName": "Implement symlink tests in mcp-go-core security path_test.go",
+      "timestamp": "2026-02-12T14:31:13.152Z",
+      "details": {
+        "field": "status",
+        "oldValue": "In Progress",
+        "newValue": "Done"
+      }
+    },
+    {
+      "id": "activity-1770906713028-z5rlkjbfb",
+      "type": "comment_added",
+      "todoId": "T-1770829104089",
+      "todoName": "Implement task-overlap conflict detection Detect when agents work on dependent/related tasks simultaneously. Check task dependency graph for overlapping In Progress tasks; integrate with task_analysis/task_workflow. medium feature,multi-agent,conflict,task_analysis",
+      "timestamp": "2026-02-12T14:31:53.028Z",
+      "details": {
+        "commentType": "research_with_links",
+        "commentPreview": "**MANDATORY RESEARCH COMPLETED** ✅\n\n**Local Codebase Analysis:**\n- `task_analysis_shared.go`: Uses `...",
+        "commentId": "T-1770829104089-C-1"
+      }
+    },
+    {
+      "id": "activity-1770906713028-awyrq0cmr",
+      "type": "comment_added",
+      "todoId": "T-1770829104089",
+      "todoName": "Implement task-overlap conflict detection Detect when agents work on dependent/related tasks simultaneously. Check task dependency graph for overlapping In Progress tasks; integrate with task_analysis/task_workflow. medium feature,multi-agent,conflict,task_analysis",
+      "timestamp": "2026-02-12T14:31:53.028Z",
+      "details": {
+        "commentType": "result",
+        "commentPreview": "**Implementation complete.**\n\n- Added `DetectTaskOverlapConflicts(inProgress []Todo2Task) []TaskOver...",
+        "commentId": "T-1770829104089-C-2"
+      }
+    },
+    {
+      "id": "activity-1770906713297-bz6m1ti2z",
+      "type": "status_changed",
+      "todoId": "T-1770829104089",
+      "todoName": "Implement task-overlap conflict detection Detect when agents work on dependent/related tasks simultaneously. Check task dependency graph for overlapping In Progress tasks; integrate with task_analysis/task_workflow. medium feature,multi-agent,conflict,task_analysis",
+      "timestamp": "2026-02-12T14:31:53.297Z",
+      "details": {
+        "field": "status",
+        "oldValue": "In Progress",
+        "newValue": "Done"
+      }
+    },
+    {
+      "id": "activity-1770906930020-4lx5z4tym",
+      "type": "comment_added",
+      "todoId": "T-1770829104089",
+      "todoName": "Implement task-overlap conflict detection Detect when agents work on dependent/related tasks simultaneously. Check task dependency graph for overlapping In Progress tasks; integrate with task_analysis/task_workflow. medium feature,multi-agent,conflict,task_analysis",
+      "timestamp": "2026-02-12T14:35:30.020Z",
+      "details": {
+        "commentType": "result",
+        "commentPreview": "Implemented DetectTaskOverlapConflicts in internal/tools/conflict_detection.go. For each In Progress...",
+        "commentId": "T-1770829104089-C-3"
+      }
+    },
+    {
+      "id": "activity-1770906931588-a2hfoy6pm",
+      "type": "comment_added",
+      "todoId": "T-1770829100451",
+      "todoName": "Implement file-level conflict detection Detect when multiple agents modify the same file(s) concurrently. Use task_assignee/locked_by; report conflicts before/during parallel execution. medium feature,multi-agent,conflict",
+      "timestamp": "2026-02-12T14:35:31.588Z",
+      "details": {
+        "commentType": "result",
+        "commentPreview": "Implemented DetectFileConflicts: parse long_description for - Update:/Create:/Modify:/Delete: paths,...",
+        "commentId": "T-1770829100451-C-1"
+      }
+    },
+    {
+      "id": "activity-1770906933142-317yc9zxy",
+      "type": "comment_added",
+      "todoId": "T-1770829107875",
+      "todoName": "Integrate conflict reporting into automation/parallel flow Surface conflict detection in automation, parallel execution, and session prime. Automation reports conflicts before assigning tasks; session prime includes conflict hints; document in MULTI_AGENT_PLAN.md. medium feature,multi-agent,automation",
+      "timestamp": "2026-02-12T14:35:33.142Z",
+      "details": {
+        "commentType": "result",
+        "commentPreview": "Integrated conflict reporting: automation_native daily/nightly/sprint set results[\"conflicts\"] (task...",
+        "commentId": "T-1770829107875-C-1"
+      }
+    },
+    {
+      "id": "activity-1770906933883-m1p74vdl8",
+      "type": "status_changed",
+      "todoId": "T-1770829100451",
+      "todoName": "Implement file-level conflict detection Detect when multiple agents modify the same file(s) concurrently. Use task_assignee/locked_by; report conflicts before/during parallel execution. medium feature,multi-agent,conflict",
+      "timestamp": "2026-02-12T14:35:33.883Z",
+      "details": {
+        "field": "status",
+        "oldValue": "Todo",
+        "newValue": "Done"
+      }
+    },
+    {
+      "id": "activity-1770906933883-o45ruaec9",
+      "type": "status_changed",
+      "todoId": "T-1770829107875",
+      "todoName": "Integrate conflict reporting into automation/parallel flow Surface conflict detection in automation, parallel execution, and session prime. Automation reports conflicts before assigning tasks; session prime includes conflict hints; document in MULTI_AGENT_PLAN.md. medium feature,multi-agent,automation",
+      "timestamp": "2026-02-12T14:35:33.883Z",
+      "details": {
+        "field": "status",
+        "oldValue": "Todo",
+        "newValue": "Done"
+      }
+    },
+    {
+      "id": "activity-1770906941407-z71wg4koc",
+      "type": "status_changed",
+      "todoId": "T-1770831733303",
+      "todoName": "Migrate todo2_utils GetSuggestedNextTasks and WriteTodo2Overview to TaskStore",
+      "timestamp": "2026-02-12T14:35:41.407Z",
+      "details": {
+        "field": "status",
+        "oldValue": "Todo",
+        "newValue": "In Progress"
+      }
+    },
+    {
+      "id": "activity-1770906941407-mwv54ah2c",
+      "type": "status_changed",
+      "todoId": "T-1770831733871",
+      "todoName": "Migrate todo2_utils GetTaskByID and UpdateTaskStatus to TaskStore",
+      "timestamp": "2026-02-12T14:35:41.407Z",
+      "details": {
+        "field": "status",
+        "oldValue": "Todo",
+        "newValue": "In Progress"
+      }
+    },
+    {
+      "id": "activity-1770906999368-7ln1h2469",
+      "type": "comment_added",
+      "todoId": "T-1770831733303",
+      "todoName": "Migrate todo2_utils GetSuggestedNextTasks and WriteTodo2Overview to TaskStore",
+      "timestamp": "2026-02-12T14:36:39.369Z",
+      "details": {
+        "commentType": "result",
+        "commentPreview": "Migrated GetSuggestedNextTasks and WriteTodo2Overview to TaskStore. GetSuggestedNextTasks: store := ...",
+        "commentId": "T-1770831733303-C-1"
+      }
+    },
+    {
+      "id": "activity-1770907000837-qjgvo14a4",
+      "type": "comment_added",
+      "todoId": "T-1770831733871",
+      "todoName": "Migrate todo2_utils GetTaskByID and UpdateTaskStatus to TaskStore",
+      "timestamp": "2026-02-12T14:36:40.837Z",
+      "details": {
+        "commentType": "result",
+        "commentPreview": "Migrated GetTaskByID and UpdateTaskStatus to TaskStore. GetTaskByID: NewDefaultTaskStore(projectRoot...",
+        "commentId": "T-1770831733871-C-1"
+      }
+    },
+    {
+      "id": "activity-1770907001399-8ttqbdmql",
+      "type": "status_changed",
+      "todoId": "T-1770831733303",
+      "todoName": "Migrate todo2_utils GetSuggestedNextTasks and WriteTodo2Overview to TaskStore",
+      "timestamp": "2026-02-12T14:36:41.399Z",
+      "details": {
+        "field": "status",
+        "oldValue": "In Progress",
+        "newValue": "Done"
+      }
+    },
+    {
+      "id": "activity-1770907001399-lbxsc1m48",
+      "type": "status_changed",
+      "todoId": "T-1770831733871",
+      "todoName": "Migrate todo2_utils GetTaskByID and UpdateTaskStatus to TaskStore",
+      "timestamp": "2026-02-12T14:36:41.399Z",
+      "details": {
+        "field": "status",
+        "oldValue": "In Progress",
+        "newValue": "Done"
       }
     }
   ]
