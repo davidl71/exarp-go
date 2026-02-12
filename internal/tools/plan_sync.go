@@ -10,7 +10,6 @@ import (
 
 	"github.com/davidl71/exarp-go/internal/database"
 	"github.com/davidl71/exarp-go/internal/framework"
-	"github.com/davidl71/exarp-go/internal/security"
 	"github.com/davidl71/mcp-go-core/pkg/mcp/response"
 	"gopkg.in/yaml.v3"
 )
@@ -176,7 +175,7 @@ func handleTaskWorkflowSyncFromPlan(ctx context.Context, params map[string]inter
 	}
 	if projectRoot == "" {
 		var err error
-		projectRoot, err = security.GetProjectRoot(".")
+		projectRoot, err = FindProjectRoot()
 		if err != nil {
 			return nil, fmt.Errorf("sync_from_plan: %w", err)
 		}

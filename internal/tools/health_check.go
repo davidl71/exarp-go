@@ -13,7 +13,6 @@ import (
 
 	"github.com/davidl71/exarp-go/internal/cache"
 	"github.com/davidl71/exarp-go/internal/framework"
-	"github.com/davidl71/exarp-go/internal/security"
 	"github.com/davidl71/mcp-go-core/pkg/mcp/response"
 )
 
@@ -70,7 +69,7 @@ func handleHealthTools(ctx context.Context, params map[string]interface{}) ([]fr
 // handleHealthServer handles the "server" action for health tool
 func handleHealthServer(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	// Get project root
-	projectRoot, err := security.GetProjectRoot(".")
+	projectRoot, err := FindProjectRoot()
 	if err != nil {
 		// Fallback to PROJECT_ROOT env var or current directory
 		if envRoot := os.Getenv("PROJECT_ROOT"); envRoot != "" {
@@ -140,7 +139,7 @@ func handleHealthServer(ctx context.Context, params map[string]interface{}) ([]f
 // Checks git working copy health (status, uncommitted changes, remote sync)
 func handleHealthGit(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	// Get project root
-	projectRoot, err := security.GetProjectRoot(".")
+	projectRoot, err := FindProjectRoot()
 	if err != nil {
 		if envRoot := os.Getenv("PROJECT_ROOT"); envRoot != "" {
 			projectRoot = envRoot
@@ -262,7 +261,7 @@ func handleHealthGit(ctx context.Context, params map[string]interface{}) ([]fram
 // Checks documentation health (basic checks: README exists, docs directory exists)
 func handleHealthDocs(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	// Get project root
-	projectRoot, err := security.GetProjectRoot(".")
+	projectRoot, err := FindProjectRoot()
 	if err != nil {
 		if envRoot := os.Getenv("PROJECT_ROOT"); envRoot != "" {
 			projectRoot = envRoot
@@ -422,7 +421,7 @@ func handleHealthCICD(ctx context.Context, params map[string]interface{}) ([]fra
 	outputPath, _ := params["output_path"].(string)
 
 	// Get project root
-	projectRoot, err := security.GetProjectRoot(".")
+	projectRoot, err := FindProjectRoot()
 	if err != nil {
 		if envRoot := os.Getenv("PROJECT_ROOT"); envRoot != "" {
 			projectRoot = envRoot

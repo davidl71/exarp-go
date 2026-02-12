@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/davidl71/exarp-go/internal/config"
+	"github.com/davidl71/exarp-go/internal/projectroot"
 	"github.com/davidl71/exarp-go/internal/security"
 )
 
@@ -44,7 +45,7 @@ func runLinter(ctx context.Context, linter, path string, fix bool) (*LintResult,
 	if projectRoot == "" {
 		// Try to find project root
 		var err error
-		projectRoot, err = security.GetProjectRoot(".")
+		projectRoot, err = FindProjectRoot()
 		if err != nil {
 			// Fallback to current directory
 			projectRoot, _ = os.Getwd()
@@ -287,7 +288,7 @@ func runGoVet(ctx context.Context, path string) (*LintResult, error) {
 	if projectRoot == "" {
 		// Try to find project root
 		var err error
-		projectRoot, err = security.GetProjectRoot(path)
+		projectRoot, err = projectroot.FindFrom(path)
 		if err != nil {
 			// Fallback to current directory
 			projectRoot, _ = os.Getwd()
@@ -391,7 +392,7 @@ func runGofmt(ctx context.Context, path string, fix bool) (*LintResult, error) {
 	projectRoot := os.Getenv("PROJECT_ROOT")
 	if projectRoot == "" {
 		var err error
-		projectRoot, err = security.GetProjectRoot(path)
+		projectRoot, err = projectroot.FindFrom(path)
 		if err != nil {
 			projectRoot, _ = os.Getwd()
 		}
@@ -488,7 +489,7 @@ func runGoimports(ctx context.Context, path string, fix bool) (*LintResult, erro
 	projectRoot := os.Getenv("PROJECT_ROOT")
 	if projectRoot == "" {
 		var err error
-		projectRoot, err = security.GetProjectRoot(path)
+		projectRoot, err = projectroot.FindFrom(path)
 		if err != nil {
 			projectRoot, _ = os.Getwd()
 		}
@@ -619,7 +620,7 @@ func runMarkdownlint(ctx context.Context, path string, fix bool) (*LintResult, e
 	projectRoot := os.Getenv("PROJECT_ROOT")
 	if projectRoot == "" {
 		var err error
-		projectRoot, err = security.GetProjectRoot(path)
+		projectRoot, err = projectroot.FindFrom(path)
 		if err != nil {
 			projectRoot, _ = os.Getwd()
 		}
@@ -807,7 +808,7 @@ func runShellcheck(ctx context.Context, path string, fix bool) (*LintResult, err
 	projectRoot := os.Getenv("PROJECT_ROOT")
 	if projectRoot == "" {
 		var err error
-		projectRoot, err = security.GetProjectRoot(path)
+		projectRoot, err = projectroot.FindFrom(path)
 		if err != nil {
 			projectRoot, _ = os.Getwd()
 		}

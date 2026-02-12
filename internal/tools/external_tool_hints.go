@@ -9,14 +9,13 @@ import (
 	"strings"
 
 	"github.com/davidl71/exarp-go/internal/framework"
-	"github.com/davidl71/exarp-go/internal/security"
 	"github.com/davidl71/mcp-go-core/pkg/mcp/response"
 )
 
 // handleAddExternalToolHintsNative handles the add_external_tool_hints tool with native Go implementation
 func handleAddExternalToolHintsNative(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	// Get project root
-	projectRoot, err := security.GetProjectRoot(".")
+	projectRoot, err := FindProjectRoot()
 	if err != nil {
 		// Fallback to PROJECT_ROOT env var or current directory
 		if envRoot := os.Getenv("PROJECT_ROOT"); envRoot != "" {

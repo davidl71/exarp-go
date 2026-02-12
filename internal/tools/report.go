@@ -12,14 +12,13 @@ import (
 	"github.com/davidl71/exarp-go/internal/cache"
 	"github.com/davidl71/exarp-go/internal/config"
 	"github.com/davidl71/exarp-go/internal/framework"
-	"github.com/davidl71/exarp-go/internal/security"
 	"github.com/davidl71/exarp-go/proto"
 	"github.com/davidl71/mcp-go-core/pkg/mcp/response"
 )
 
 // handleReportOverview handles the overview action for report tool
 func handleReportOverview(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
-	projectRoot, err := security.GetProjectRoot(".")
+	projectRoot, err := FindProjectRoot()
 	if err != nil {
 		return nil, fmt.Errorf("failed to find project root: %w", err)
 	}
@@ -102,7 +101,7 @@ func handleReportBriefing(ctx context.Context, params map[string]interface{}) ([
 
 // handleReportPRD handles the prd action for report tool
 func handleReportPRD(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
-	projectRoot, err := security.GetProjectRoot(".")
+	projectRoot, err := FindProjectRoot()
 	if err != nil {
 		return nil, fmt.Errorf("failed to find project root: %w", err)
 	}
@@ -152,7 +151,7 @@ func handleReportPRD(ctx context.Context, params map[string]interface{}) ([]fram
 // handleReportPlan generates a Cursor-style plan file with .plan.md suffix (Purpose, Technical Foundation, Iterative Milestones, Open Questions).
 // See https://cursor.com/learn/creating-plans. Default output is .cursor/plans/<project-slug>.plan.md so Cursor discovers it and shows Build.
 func handleReportPlan(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
-	projectRoot, err := security.GetProjectRoot(".")
+	projectRoot, err := FindProjectRoot()
 	if err != nil {
 		return nil, fmt.Errorf("failed to find project root: %w", err)
 	}
@@ -237,7 +236,7 @@ func recommendationsByDimension(recs []string) map[string][]string {
 // handleReportScorecardPlans runs the scorecard and writes one Cursor-style plan per dimension that is below threshold.
 // Plans are written to .cursor/plans/improve-<dimension>.plan.md. Use from Makefile (make scorecard-plans) or git hooks.
 func handleReportScorecardPlans(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
-	projectRoot, err := security.GetProjectRoot(".")
+	projectRoot, err := FindProjectRoot()
 	if err != nil {
 		return nil, fmt.Errorf("failed to find project root: %w", err)
 	}

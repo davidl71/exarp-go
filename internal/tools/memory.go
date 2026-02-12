@@ -14,7 +14,6 @@ import (
 	"github.com/davidl71/exarp-go/internal/config"
 	"github.com/davidl71/exarp-go/internal/database"
 	"github.com/davidl71/exarp-go/internal/framework"
-	"github.com/davidl71/exarp-go/internal/security"
 	"github.com/davidl71/mcp-go-core/pkg/mcp/response"
 )
 
@@ -153,7 +152,7 @@ func handleMemorySave(ctx context.Context, params map[string]interface{}) ([]fra
 	}
 
 	// Save to file
-	projectRoot, err := security.GetProjectRoot(".")
+	projectRoot, err := FindProjectRoot()
 	if err != nil {
 		return nil, fmt.Errorf("failed to find project root: %w", err)
 	}
@@ -188,7 +187,7 @@ func handleMemoryRecall(ctx context.Context, params map[string]interface{}) ([]f
 		includeRelated = ir
 	}
 
-	projectRoot, err := security.GetProjectRoot(".")
+	projectRoot, err := FindProjectRoot()
 	if err != nil {
 		return nil, fmt.Errorf("failed to find project root: %w", err)
 	}
@@ -267,7 +266,7 @@ func handleMemorySearch(ctx context.Context, params map[string]interface{}) ([]f
 		category = cat
 	}
 
-	projectRoot, err := security.GetProjectRoot(".")
+	projectRoot, err := FindProjectRoot()
 	if err != nil {
 		return nil, fmt.Errorf("failed to find project root: %w", err)
 	}
@@ -362,7 +361,7 @@ func handleMemoryList(ctx context.Context, params map[string]interface{}) ([]fra
 		limit = int(l)
 	}
 
-	projectRoot, err := security.GetProjectRoot(".")
+	projectRoot, err := FindProjectRoot()
 	if err != nil {
 		return nil, fmt.Errorf("failed to find project root: %w", err)
 	}

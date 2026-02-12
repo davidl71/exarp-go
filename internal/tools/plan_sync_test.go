@@ -6,8 +6,6 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
-
-	"github.com/davidl71/exarp-go/internal/security"
 )
 
 func TestParsePlanFile(t *testing.T) {
@@ -71,8 +69,8 @@ todos:
 	prevRoot := os.Getenv("PROJECT_ROOT")
 	os.Setenv("PROJECT_ROOT", tmpDir)
 	defer func() { os.Setenv("PROJECT_ROOT", prevRoot) }()
-	// Ensure security.GetProjectRoot resolves so ValidatePlanningLink can use project root
-	if _, err := security.GetProjectRoot("."); err != nil {
+	// Ensure FindProjectRoot resolves so ValidatePlanningLink can use project root
+	if _, err := FindProjectRoot(); err != nil {
 		t.Skip("PROJECT_ROOT not set for test; skipping sync_from_plan integration test")
 	}
 

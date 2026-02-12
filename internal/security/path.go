@@ -5,14 +5,16 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/davidl71/exarp-go/internal/projectroot"
 	"github.com/davidl71/mcp-go-core/pkg/mcp/security"
 )
 
-// Re-export security functions from mcp-go-core for backward compatibility
-var (
-	GetProjectRoot = security.GetProjectRoot
-	ValidatePath   = security.ValidatePath
-)
+// GetProjectRoot finds the project root by walking up from startPath looking for go.mod.
+// Uses projectroot.FindGoMod (unified with exarp's projectroot package).
+var GetProjectRoot = projectroot.FindGoMod
+
+// ValidatePath re-exported from mcp-go-core for backward compatibility
+var ValidatePath = security.ValidatePath
 
 // ValidatePathExists ensures a path is valid AND exists
 // This is a local extension not in mcp-go-core
