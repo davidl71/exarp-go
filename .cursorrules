@@ -21,6 +21,8 @@ Full index: `.cursor/skills/README.md`.
 
 ## Task Management Commands
 
+**🚫 TASK CREATION: ALWAYS use exarp-go** — Use `exarp-go task create` or `task_workflow` action=create. **Never use Todo2 MCP create_todos** when exarp-go is available.
+
 **⚠️ CRITICAL: Task Status Updates ⚠️**
 
 When updating task status, **PREFER convenience commands** but allow fallback to direct tool calls:
