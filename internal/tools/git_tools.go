@@ -9,6 +9,8 @@ import (
 	"sort"
 	"strings"
 	"time"
+
+	"github.com/davidl71/exarp-go/internal/database"
 )
 
 // Branch tag prefix
@@ -326,10 +328,12 @@ func handleCommitsAction(ctx context.Context, projectRoot string, params GitTool
 
 // handleBranchesAction handles the branches action
 func handleBranchesAction(ctx context.Context, projectRoot string, params GitToolsParams) (string, error) {
-	tasks, err := LoadTodo2Tasks(projectRoot)
+	store := NewDefaultTaskStore(projectRoot)
+	list, err := store.ListTasks(ctx, nil)
 	if err != nil {
 		return "", err
 	}
+	tasks := tasksFromPtrs(list)
 
 	branches := getAllBranches(tasks)
 	statistics := getAllBranchStatistics(tasks)
@@ -353,10 +357,12 @@ func handleTasksAction(ctx context.Context, projectRoot string, params GitToolsP
 		return "", fmt.Errorf("branch parameter required for tasks action")
 	}
 
-	tasks, err := LoadTodo2Tasks(projectRoot)
+	store := NewDefaultTaskStore(projectRoot)
+	list, err := store.ListTasks(ctx, nil)
 	if err != nil {
 		return "", err
 	}
+	tasks := tasksFromPtrs(list)
 
 	branchTasks := filterTasksByBranch(tasks, params.Branch)
 
@@ -440,10 +446,12 @@ func handleDiffAction(ctx context.Context, projectRoot string, params GitToolsPa
 
 // handleGraphAction returns a minimal branch/task graph: branches with task counts and task IDs per branch.
 func handleGraphAction(ctx context.Context, projectRoot string, params GitToolsParams) (string, error) {
-	tasks, err := LoadTodo2Tasks(projectRoot)
+	store := NewDefaultTaskStore(projectRoot)
+	list, err := store.ListTasks(ctx, nil)
 	if err != nil {
 		return "", err
 	}
+	tasks := tasksFromPtrs(list)
 
 	branches := getAllBranches(tasks)
 	statistics := getAllBranchStatistics(tasks)
@@ -498,10 +506,12 @@ func handleMergeAction(ctx context.Context, projectRoot string, params GitToolsP
 		return "", fmt.Errorf("source_branch and target_branch required for merge action")
 	}
 
-	tasks, err := LoadTodo2Tasks(projectRoot)
+	store := NewDefaultTaskStore(projectRoot)
+	list, err := store.ListTasks(ctx, nil)
 	if err != nil {
 		return "", err
 	}
+	tasks := tasksFromPtrs(list)
 
 	conflictStrategy := params.ConflictStrategy
 	if conflictStrategy == "" {
@@ -512,7 +522,7 @@ func handleMergeAction(ctx context.Context, projectRoot string, params GitToolsP
 		return previewMerge(tasks, params.SourceBranch, params.TargetBranch)
 	}
 
-	return mergeBranches(ctx, projectRoot, tasks, params.SourceBranch, params.TargetBranch, conflictStrategy, params.Author)
+	return mergeBranches(ctx, store, tasks, params.SourceBranch, params.TargetBranch, conflictStrategy, params.Author)
 }
 
 // handleSetBranchAction handles the set_branch action
@@ -521,10 +531,12 @@ func handleSetBranchAction(ctx context.Context, projectRoot string, params GitTo
 		return "", fmt.Errorf("task_id and branch required for set_branch action")
 	}
 
-	tasks, err := LoadTodo2Tasks(projectRoot)
+	store := NewDefaultTaskStore(projectRoot)
+	list, err := store.ListTasks(ctx, nil)
 	if err != nil {
 		return "", err
 	}
+	tasks := tasksFromPtrs(list)
 
 	// Find task
 	taskIndex := -1
@@ -546,8 +558,8 @@ func handleSetBranchAction(ctx context.Context, projectRoot string, params GitTo
 	// Update task branch
 	setTaskBranch(&tasks[taskIndex], params.Branch)
 
-	// Save tasks
-	if err := SaveTodo2Tasks(projectRoot, tasks); err != nil {
+	// Save task via store
+	if err := store.UpdateTask(ctx, &tasks[taskIndex]); err != nil {
 		return "", fmt.Errorf("failed to save tasks: %w", err)
 	}
 
@@ -619,7 +631,7 @@ func previewMerge(tasks []Todo2Task, sourceBranch, targetBranch string) (string,
 }
 
 // mergeBranches merges tasks from source branch to target branch
-func mergeBranches(ctx context.Context, projectRoot string, tasks []Todo2Task, sourceBranch, targetBranch, conflictStrategy, author string) (string, error) {
+func mergeBranches(ctx context.Context, store database.TaskStore, tasks []Todo2Task, sourceBranch, targetBranch, conflictStrategy, author string) (string, error) {
 	targetTaskMap := make(map[string]int)
 	for i, task := range tasks {
 		if getTaskBranch(task) == targetBranch {
@@ -630,6 +642,7 @@ func mergeBranches(ctx context.Context, projectRoot string, tasks []Todo2Task, s
 	mergedCount := 0
 	conflictCount := 0
 	newCount := 0
+	var modified []*Todo2Task
 
 	// Update tasks in place
 	for i := range tasks {
@@ -645,9 +658,11 @@ func mergeBranches(ctx context.Context, projectRoot string, tasks []Todo2Task, s
 					// Use task with newer updated_at timestamp (if available)
 					// For now, prefer source
 					setTaskBranch(task, targetBranch)
+					modified = append(modified, task)
 					mergedCount++
 				} else if conflictStrategy == "source" {
 					setTaskBranch(task, targetBranch)
+					modified = append(modified, task)
 					mergedCount++
 				} else if conflictStrategy == "target" {
 					conflictCount++ // Keep target version
@@ -655,15 +670,18 @@ func mergeBranches(ctx context.Context, projectRoot string, tasks []Todo2Task, s
 			} else {
 				// New task - move to target branch
 				setTaskBranch(task, targetBranch)
+				modified = append(modified, task)
 				newCount++
 				mergedCount++
 			}
 		}
 	}
 
-	// Save updated tasks
-	if err := SaveTodo2Tasks(projectRoot, tasks); err != nil {
-		return "", fmt.Errorf("failed to save tasks: %w", err)
+	// Save updated tasks via store
+	for _, t := range modified {
+		if err := store.UpdateTask(ctx, t); err != nil {
+			return "", fmt.Errorf("failed to save task %s: %w", t.ID, err)
+		}
 	}
 
 	result := map[string]interface{}{

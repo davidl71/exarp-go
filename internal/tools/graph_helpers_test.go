@@ -152,6 +152,71 @@ func TestHasCycles(t *testing.T) {
 	}
 }
 
+func TestGetDependencyAnalysisFromTasks(t *testing.T) {
+	tests := []struct {
+		name          string
+		tasks         []Todo2Task
+		wantCycles    bool
+		wantMissing   bool
+		wantMissingID string // task ID that has missing dep
+	}{
+		{
+			name:        "acyclic graph",
+			tasks:       generateTestTasks(5, 1),
+			wantCycles:  false,
+			wantMissing: false,
+		},
+		{
+			name:        "cyclic graph",
+			tasks:       generateCyclicTasks(3),
+			wantCycles:  true,
+			wantMissing: false,
+		},
+		{
+			name: "missing dependency",
+			tasks: []Todo2Task{
+				{ID: "T-1", Content: "Task 1", Status: "Todo", Dependencies: []string{}},
+				{ID: "T-2", Content: "Task 2", Status: "Todo", Dependencies: []string{"T-1", "T-NONEXISTENT"}},
+			},
+			wantCycles:    false,
+			wantMissing:   true,
+			wantMissingID: "T-2",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cycles, missing, err := GetDependencyAnalysisFromTasks(tt.tasks)
+			if err != nil {
+				t.Fatalf("GetDependencyAnalysisFromTasks() error = %v", err)
+			}
+
+			hasCycles := len(cycles) > 0
+			if hasCycles != tt.wantCycles {
+				t.Errorf("GetDependencyAnalysisFromTasks() cycles = %v, want %v", hasCycles, tt.wantCycles)
+			}
+
+			hasMissing := len(missing) > 0
+			if hasMissing != tt.wantMissing {
+				t.Errorf("GetDependencyAnalysisFromTasks() missing = %v, want %v", hasMissing, tt.wantMissing)
+			}
+
+			if tt.wantMissingID != "" {
+				found := false
+				for _, m := range missing {
+					if tid, _ := m["task_id"].(string); tid == tt.wantMissingID {
+						found = true
+						break
+					}
+				}
+				if !found {
+					t.Errorf("GetDependencyAnalysisFromTasks() missing should include task %s, got %v", tt.wantMissingID, missing)
+				}
+			}
+		})
+	}
+}
+
 func TestDetectCycles(t *testing.T) {
 	tests := []struct {
 		name        string

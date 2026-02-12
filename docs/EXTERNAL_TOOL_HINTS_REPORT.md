@@ -4,11 +4,11 @@
 
 ## Summary
 
-- **Files Scanned:** 346
+- **Files Scanned:** 349
 - **Files Modified:** 0
-- **Files Skipped:** 334
+- **Files Skipped:** 337
 - **Hints Added:** 12
-- **Hints Skipped:** 334
+- **Hints Skipped:** 337
 
 ## Hints Added
 
@@ -29,6 +29,7 @@
 
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/3270_TUI_IMPLEMENTATION.md: No external libraries detected
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/ACCESS_CONTROL_MODEL.md: No external libraries detected
+- ⏭️ /Users/davidl/Projects/exarp-go/docs/ACCESS_CONTROL_TASKS.md: No external libraries detected
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/AGENTIC_CI_SETUP.md: No external libraries detected
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/AGENT_TUI_DEMO.md: No external libraries detected
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/AGILE_DAILY_STANDUP_IMPLEMENTATION.md: No external libraries detected
@@ -184,6 +185,7 @@
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/PYTHON_REMAINING_PLAN.md: No external libraries detected
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/PYTHON_SCRIPTS_AUDIT.md: Hint already exists
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/PYTHON_WHAT_MORE_CAN_REMOVE.md: No external libraries detected
+- ⏭️ /Users/davidl/Projects/exarp-go/docs/RATE_LIMITING_TASKS.md: No external libraries detected
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/README.md: No external libraries detected
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/REGRESSION_TESTING_REPORT_2026-01-12.md: No external libraries detected
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/REMOTE_MACOS_SETUP.md: No external libraries detected
@@ -262,6 +264,7 @@
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/WORKFLOW_MODE_TOOL_GROUPS_TEST_RESULTS.md: No external libraries detected
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/WORKFLOW_MODE_USAGE_STATS_FUTURE.md: No external libraries detected
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/WORKFLOW_USAGE.md: No external libraries detected
+- ⏭️ /Users/davidl/Projects/exarp-go/docs/alignment_reprioritize.md: File too short
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/archive/ARCHIVE_RETENTION_POLICY.md: No external libraries detected
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/archive/analysis/COORDINATOR_EXARP_GO_DUPLICATION_ANALYSIS.md: Hint already exists
 - ⏭️ /Users/davidl/Projects/exarp-go/docs/archive/analysis/COORDINATOR_PROMPTS_RESOURCES_ANALYSIS.md: No external libraries detected

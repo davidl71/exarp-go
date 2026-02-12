@@ -7,7 +7,7 @@ import (
 
 // ReservedSubcommands are first-argument values that are CLI subcommands,
 // not tool names. Used by mode detection so "exarp-go task list" stays CLI.
-var ReservedSubcommands = []string{"task", "config", "tui", "tui3270"}
+var ReservedSubcommands = []string{"task", "config", "tui", "tui3270", "lock"}
 
 // CLIFlags are arguments that indicate CLI mode (e.g. from hooks or scripts).
 // If any of these appear in os.Args, we run CLI instead of MCP server.

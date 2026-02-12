@@ -4,6 +4,22 @@
 **Created:** 2026-02-02  
 **Reason:** Current focus is on STDIO transport; SSE/HTTP support deferred until needed
 
+## Nice to have (stdio-irrelevant)
+
+The following work is **not required for STDIO MCP** (e.g. Cursor). It is documented here as **nice to have** for future HTTP/SSE or web deployment. These items are **not tracked in Todo2**; they are deferred until non-stdio transport is needed.
+
+| Ref / former task | Description |
+|-------------------|-------------|
+| **T-145** | Use `url` and `transport` in `mcp.json` — Cursor uses `command` + `args` only; url/transport apply to HTTP clients. |
+| **T-143** | Set up HTTP server with SSE endpoint — HTTP server + SSE endpoint for MCP over the web. |
+| **T-1768253992311** | Complete SSE Transport Implementation — Full SSE transport (connection handling, JSON-RPC over SSE, adapter updates). |
+| **T-231** | Implement load balancing — Requires HTTP/SSE first. |
+| **T-147** | Support multiple concurrent connections — Only relevant when server is exposed over HTTP/SSE. |
+| **T-276** | Add per-tool limits — STDIO has a single client per process; per-tool limits matter when multiple HTTP/SSE clients connect. Deleted from Todo2; see `docs/RATE_LIMITING_TASKS.md`. |
+| **T-290** | Test per-tool limits — Same as T-276; tests deferred feature. Deleted from Todo2 2026-02-11. |
+
+Optional / lower priority for stdio-only: **T-144** (Configure OAuth), **T-146** (Handle authentication tokens), **T-278** (Design access control model) — these matter when the transport has client identity (e.g. HTTP with tokens). T-144 and T-146 are documented in `docs/FUTURE_AUTHENTICATION_IMPLEMENTATION.md` and removed from Todo2 (2026-02-11).
+
 ## Overview
 
 This document captures the planned implementation of Server-Sent Events (SSE) transport for HTTP-based MCP server deployment. Currently, exarp-go uses STDIO transport exclusively (as required by Cursor IDE). SSE support would enable web-based and HTTP deployment scenarios.

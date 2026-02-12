@@ -1711,10 +1711,15 @@ func handleTaskWorkflowFixInvalidIDs(ctx context.Context, params map[string]inte
 		return nil, fmt.Errorf("failed to find project root: %w", err)
 	}
 
-	tasks, err := LoadTodo2Tasks(projectRoot)
+	store, err := getTaskStore(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get task store: %w", err)
+	}
+	list, err := store.ListTasks(ctx, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load tasks: %w", err)
 	}
+	tasks := tasksFromPtrs(list)
 
 	type fix struct{ oldID, newID string }
 	var fixes []fix
@@ -1738,8 +1743,10 @@ func handleTaskWorkflowFixInvalidIDs(ctx context.Context, params map[string]inte
 
 	// Update dependencies: any task referencing an old ID should reference the new ID
 	oldToNew := make(map[string]string)
+	fixedNewIDs := make(map[string]bool)
 	for _, f := range fixes {
 		oldToNew[f.oldID] = f.newID
+		fixedNewIDs[f.newID] = true
 	}
 	for i := range tasks {
 		for j, dep := range tasks[i].Dependencies {
@@ -1749,15 +1756,21 @@ func handleTaskWorkflowFixInvalidIDs(ctx context.Context, params map[string]inte
 		}
 	}
 
-	// Remove old rows from DB so SaveTodo2Tasks will create new rows with new IDs
-	if db, err := database.GetDB(); err == nil && db != nil {
-		for _, f := range fixes {
-			_ = database.DeleteTask(ctx, f.oldID)
-		}
+	// Remove old rows and persist changes via TaskStore
+	for _, f := range fixes {
+		_ = store.DeleteTask(ctx, f.oldID)
 	}
-
-	if err := SaveTodo2Tasks(projectRoot, tasks); err != nil {
-		return nil, fmt.Errorf("failed to save after fixing IDs: %w", err)
+	for i := range tasks {
+		t := &tasks[i]
+		if fixedNewIDs[t.ID] {
+			if err := store.CreateTask(ctx, t); err != nil {
+				return nil, fmt.Errorf("failed to create task %s: %w", t.ID, err)
+			}
+		} else {
+			if err := store.UpdateTask(ctx, t); err != nil {
+				return nil, fmt.Errorf("failed to update task %s: %w", t.ID, err)
+			}
+		}
 	}
 
 	// Regenerate overview so .cursor/rules/todo2-overview.mdc reflects new IDs

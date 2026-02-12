@@ -55,6 +55,12 @@ func TestNormalizeToolArgs(t *testing.T) {
 			wantOK:     false,
 		},
 		{
+			name:       "lock subcommand not normalized",
+			args:       []string{"exarp-go", "lock", "status"},
+			wantPrefix: []string{"exarp-go", "lock", "status"},
+			wantOK:     false,
+		},
+		{
 			name:       "first arg with slash not normalized",
 			args:       []string{"exarp-go", "some/path"},
 			wantPrefix: []string{"exarp-go", "some/path"},
@@ -124,6 +130,7 @@ func TestHasCLIFlags(t *testing.T) {
 		{"config subcommand", []string{"exarp-go", "config"}, true},
 		{"tui subcommand", []string{"exarp-go", "tui"}, true},
 		{"tui3270 subcommand", []string{"exarp-go", "tui3270"}, true},
+		{"lock subcommand", []string{"exarp-go", "lock", "status"}, true},
 		{"-tool flag", []string{"exarp-go", "-tool", "lint"}, true},
 		{"-args flag", []string{"exarp-go", "-args", "{}"}, true},
 		{"-list flag", []string{"exarp-go", "-list"}, true},
@@ -142,10 +149,10 @@ func TestHasCLIFlags(t *testing.T) {
 }
 
 func TestReservedSubcommands(t *testing.T) {
-	if len(ReservedSubcommands) != 4 {
-		t.Errorf("ReservedSubcommands len = %d, want 4", len(ReservedSubcommands))
+	if len(ReservedSubcommands) != 5 {
+		t.Errorf("ReservedSubcommands len = %d, want 5", len(ReservedSubcommands))
 	}
-	want := map[string]bool{"task": true, "config": true, "tui": true, "tui3270": true}
+	want := map[string]bool{"task": true, "config": true, "tui": true, "tui3270": true, "lock": true}
 	for _, s := range ReservedSubcommands {
 		if !want[s] {
 			t.Errorf("ReservedSubcommands contains unexpected %q", s)
