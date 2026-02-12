@@ -3,6 +3,10 @@ package database
 import (
 	"fmt"
 	"os"
+	"strconv"
+	"strings"
+
+	"github.com/davidl71/exarp-go/internal/utils"
 )
 
 // GetAgentID generates a unique agent identifier for task locking
@@ -70,4 +74,34 @@ func GetAgentIDFromSession(projectRoot string) (string, error) {
 	// This would call detectAgentType() from session.go
 	// For now, use the simpler version
 	return GetAgentID()
+}
+
+// ParsePIDFromAgentID extracts the process ID from an agent ID string.
+// Agent ID format: {agent-type}-{hostname}-{pid}, e.g. "general-Davids-Mac-mini-12345".
+// Returns (pid, true) if the last segment is numeric, otherwise (0, false).
+func ParsePIDFromAgentID(agentID string) (pid int, ok bool) {
+	if agentID == "" {
+		return 0, false
+	}
+	parts := strings.Split(agentID, "-")
+	if len(parts) < 2 {
+		return 0, false
+	}
+	last := parts[len(parts)-1]
+	p, err := strconv.Atoi(last)
+	if err != nil || p <= 0 {
+		return 0, false
+	}
+	return p, true
+}
+
+// AgentProcessExists returns true if the agent identified by agentID has a running process.
+// Uses the PID embedded in the agent ID (see GetAgentID). If agentID has no PID
+// (e.g. from GetAgentIDSimple), returns false (cannot verify).
+func AgentProcessExists(agentID string) bool {
+	pid, ok := ParsePIDFromAgentID(agentID)
+	if !ok {
+		return false
+	}
+	return utils.ProcessExists(pid)
 }

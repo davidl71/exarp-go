@@ -20,6 +20,7 @@ Apply this skill when the workspace uses the exarp-go MCP server and you need to
 | Task list/update/create/show/delete | Prefer `task_workflow` MCP tool when exarp-go MCP is available; fallback: `exarp-go task` CLI (see task-workflow skill). |
 | Project overview, scorecard, or briefing | `report` with `action=overview`, `action=scorecard`, or `action=briefing`. |
 | Docs health, CI, or repo status | `health` with appropriate `action` (e.g. docs, git, cicd). |
+| Task branches, merge task changes, task commit history, diff tasks | `git_tools` with `action=commits|branches|tasks|diff|graph|merge|set_branch`. |
 | **Broken references / link check in docs** | `lint` with `path` set to `docs` (or a `.md` file) and `linter=markdownlint` or `auto`. gomarklint link check is enabled in `.gomarklint.json`. See **lint-docs** skill. |
 | Session context at conversation start | `session` with `action=prime`, `include_hints=true`, `include_tasks=true`. |
 | Test structure or runs | `testing` with `action=validate`, `action=run`, or `action=coverage`. |
@@ -39,3 +40,4 @@ Apply this skill when the workspace uses the exarp-go MCP server and you need to
 - *User: "What should I work on next?" or "Suggest next task"* → Use `session` with `action=prime`, `include_tasks=true`, `include_hints=true`. Response includes `suggested_next` (tasks in dependency order).
 - *User: "List my Todo tasks"* → Use task-workflow patterns: `exarp-go task list --status Todo` or `task_workflow` with `action=sync`, `sub_action=list`, `status=Todo`.
 - *User: "Is the docs setup ok?"* → Use `health` with `action=docs`.
+- *User: "Show task change history" or "Merge my task branch"* → Use `git_tools` with `action=commits`, `action=graph`, or `action=merge` (task branches/versioning).

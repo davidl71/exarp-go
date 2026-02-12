@@ -243,6 +243,14 @@ if err != nil && strings.Contains(err.Error(), "version mismatch") {
 - ❌ **Old**: `file_lock.py` (Python)
 - ✅ **New**: `database.ClaimTaskForAgent()` (Go database locking)
 
+## AI Agent Guidance
+
+When assigning tasks to yourself or another agent (especially Todo → In Progress):
+- **Use** exarp-go `task_workflow` (or `exarp-go task update`) — it acquires a lock via `ClaimTaskForAgent`.
+- **Do not use** Todo2 MCP `update_todos` for Todo → In Progress in multi-agent scenarios; that bypasses locking and can cause conflicting assignments.
+
+See task-workflow skill: `.cursor/skills/task-workflow/SKILL.md`.
+
 ## Integration with Task Workflow
 
 When implementing task execution tools:

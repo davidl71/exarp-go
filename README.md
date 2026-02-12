@@ -116,7 +116,7 @@ For detailed configuration options, see:
 - `docs/CONFIGURABLE_PARAMETERS_RECOMMENDATIONS.md`
 - `docs/AUTOMATION_CONFIGURATION_ANALYSIS.md`
 
-**Cursor rules (AI guidance):** If you use Cursor, see `docs/CURSOR_RULES.md` for project rules, including **code and planning tag hints** so generated plans and code stay aligned with Todo2 tags.
+**Cursor rules (AI guidance):** If you use Cursor, see `docs/CURSOR_RULES.md` for project rules, including **code and planning tag hints** so generated plans and code stay aligned with Todo2 tags. For **how to use Cursor skills** (task-workflow, locking, git_tools, conflict detection), see [docs/CURSOR_SKILLS_GUIDE.md](docs/CURSOR_SKILLS_GUIDE.md).
 
 ## Dependencies
 

@@ -192,61 +192,35 @@ func SyncTodo2Tasks(projectRoot string) error {
 	return nil
 }
 
-// GetTaskByID returns a task by ID from database (preferred) or JSON file.
+// GetTaskByID returns a task by ID via TaskStore (database or JSON fallback).
 // Caller must not mutate the task if storage is shared; for updates use UpdateTaskStatus or database.UpdateTask.
 func GetTaskByID(ctx context.Context, projectRoot string, id string) (*Todo2Task, error) {
 	if id == "" {
 		return nil, fmt.Errorf("task id is required")
 	}
-	if db, err := database.GetDB(); err == nil && db != nil {
-		task, err := database.GetTask(ctx, id)
-		if err == nil && task != nil {
-			return task, nil
-		}
-	}
-	tasks, err := LoadTodo2Tasks(projectRoot)
-	if err != nil {
-		return nil, fmt.Errorf("failed to load tasks: %w", err)
-	}
-	for i := range tasks {
-		if tasks[i].ID == id {
-			return &tasks[i], nil
-		}
-	}
-	return nil, fmt.Errorf("task %s not found", id)
+	store := NewDefaultTaskStore(projectRoot)
+	return store.GetTask(ctx, id)
 }
 
-// UpdateTaskStatus updates a single task's status. Uses database when available, else JSON file.
+// UpdateTaskStatus updates a single task's status via TaskStore (database or JSON fallback).
 func UpdateTaskStatus(ctx context.Context, projectRoot string, taskID string, newStatus string) error {
 	if taskID == "" || newStatus == "" {
 		return fmt.Errorf("task_id and new_status are required")
 	}
 	newStatus = normalizeStatus(newStatus)
-	if db, err := database.GetDB(); err == nil && db != nil {
-		task, err := database.GetTask(ctx, taskID)
-		if err != nil {
-			return fmt.Errorf("get task: %w", err)
-		}
-		task.Status = newStatus
-		if err := database.UpdateTask(ctx, task); err != nil {
-			return fmt.Errorf("update task: %w", err)
-		}
-		if syncErr := SyncTodo2Tasks(projectRoot); syncErr != nil {
-			return fmt.Errorf("sync after update: %w", syncErr)
-		}
-		return nil
-	}
-	tasks, err := LoadTodo2Tasks(projectRoot)
+	store := NewDefaultTaskStore(projectRoot)
+	task, err := store.GetTask(ctx, taskID)
 	if err != nil {
-		return fmt.Errorf("failed to load tasks: %w", err)
+		return fmt.Errorf("get task: %w", err)
 	}
-	for i := range tasks {
-		if tasks[i].ID == taskID {
-			tasks[i].Status = newStatus
-			return SaveTodo2Tasks(projectRoot, tasks)
-		}
+	task.Status = newStatus
+	if err := store.UpdateTask(ctx, task); err != nil {
+		return fmt.Errorf("update task: %w", err)
 	}
-	return fmt.Errorf("task %s not found", taskID)
+	if syncErr := SyncTodo2Tasks(projectRoot); syncErr != nil {
+		return fmt.Errorf("sync after update: %w", syncErr)
+	}
+	return nil
 }
 
 // normalizeStatus normalizes status to Title Case.
@@ -363,12 +337,15 @@ func getKeyInsight(ctx context.Context, taskID string, maxLen int) string {
 }
 
 // GetSuggestedNextTasks returns dependency-ordered tasks ready to start (deps done), up to limit.
-// Used by todo2-overview and stdio://suggested-tasks resource.
+// Used by todo2-overview and stdio://suggested-tasks resource. Uses TaskStore.
 func GetSuggestedNextTasks(projectRoot string, limit int) []BacklogTaskDetail {
-	tasks, err := LoadTodo2Tasks(projectRoot)
+	ctx := context.Background()
+	store := NewDefaultTaskStore(projectRoot)
+	list, err := store.ListTasks(ctx, nil)
 	if err != nil || limit <= 0 {
 		return nil
 	}
+	tasks := tasksFromPtrs(list)
 	orderedIDs, _, details, orderErr := BacklogExecutionOrder(tasks, nil)
 	if orderErr != nil || len(orderedIDs) == 0 {
 		return nil
@@ -420,13 +397,15 @@ func tasksReadyToStart(tasks []Todo2Task) map[string]bool {
 }
 
 // WriteTodo2Overview writes .cursor/rules/todo2-overview.mdc from current tasks.
-// Uses real dates or "—" for unknown; never displays 1970.
+// Uses TaskStore. Uses real dates or "—" for unknown; never displays 1970.
 func WriteTodo2Overview(projectRoot string) error {
-	tasks, err := LoadTodo2Tasks(projectRoot)
+	ctx := context.Background()
+	store := NewDefaultTaskStore(projectRoot)
+	list, err := store.ListTasks(ctx, nil)
 	if err != nil {
 		return fmt.Errorf("load tasks: %w", err)
 	}
-	ctx := context.Background()
+	tasks := tasksFromPtrs(list)
 
 	// Sort by last_modified desc (newest first), then take last 20 for "newest first" display
 	sort.Slice(tasks, func(i, j int) bool {

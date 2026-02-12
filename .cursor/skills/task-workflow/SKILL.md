@@ -22,6 +22,8 @@ Apply this skill when the workspace uses exarp-go and you need to work with Todo
 
 Never edit `.todo2/state.todo2.json` or `.todo2/todo2.db` directly; use the tool or CLI.
 
+**Multi-agent:** Moving tasks to In Progress via exarp-go uses database locking (`ClaimTaskForAgent`). Prefer exarp-go over Todo2 MCP when multiple agents may work in parallel.
+
 ---
 
 ## MCP: task_workflow tool

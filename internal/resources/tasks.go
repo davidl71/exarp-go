@@ -20,24 +20,10 @@ func handleAllTasks(ctx context.Context, uri string) ([]byte, string, error) {
 		return nil, "", fmt.Errorf("failed to find project root: %w", err)
 	}
 
-	// Try database first
-	var allTasks []*database.Todo2Task
-	tasks, err := database.ListTasks(ctx, nil)
-	if err == nil && len(tasks) > 0 {
-		// Database available and has tasks
-		allTasks = tasks
-	} else {
-		// Fallback to JSON
-		jsonTasks, err := tools.LoadTodo2Tasks(projectRoot)
-		if err != nil {
-			return nil, "", fmt.Errorf("failed to load tasks: %w", err)
-		}
-
-		// Convert to pointer slice
-		allTasks = make([]*database.Todo2Task, len(jsonTasks))
-		for i := range jsonTasks {
-			allTasks[i] = &jsonTasks[i]
-		}
+	store := tools.NewDefaultTaskStore(projectRoot)
+	allTasks, err := store.ListTasks(ctx, nil)
+	if err != nil {
+		return nil, "", fmt.Errorf("failed to load tasks: %w", err)
 	}
 
 	// Apply limit (50 tasks max)
@@ -76,47 +62,23 @@ func handleTaskByID(ctx context.Context, uri string) ([]byte, string, error) {
 		return nil, "", fmt.Errorf("failed to find project root: %w", err)
 	}
 
-	// Try database first
-	task, err := database.GetTask(ctx, taskID)
-	if err == nil && task != nil {
-		// Database available and task found
-		result := map[string]interface{}{
-			"task":      formatTaskForResource(task),
-			"timestamp": time.Now().Format(time.RFC3339),
-		}
-
-		jsonData, err := json.Marshal(result)
-		if err != nil {
-			return nil, "", fmt.Errorf("failed to marshal task: %w", err)
-		}
-
-		return jsonData, "application/json", nil
+	store := tools.NewDefaultTaskStore(projectRoot)
+	task, err := store.GetTask(ctx, taskID)
+	if err != nil || task == nil {
+		return nil, "", fmt.Errorf("task %s not found", taskID)
 	}
 
-	// Fallback to JSON
-	tasks, err := tools.LoadTodo2Tasks(projectRoot)
+	result := map[string]interface{}{
+		"task":      formatTaskForResource(task),
+		"timestamp": time.Now().Format(time.RFC3339),
+	}
+
+	jsonData, err := json.Marshal(result)
 	if err != nil {
-		return nil, "", fmt.Errorf("failed to load tasks: %w", err)
+		return nil, "", fmt.Errorf("failed to marshal task: %w", err)
 	}
 
-	// Find task by ID
-	for _, t := range tasks {
-		if t.ID == taskID {
-			result := map[string]interface{}{
-				"task":      formatTaskForResource(&t),
-				"timestamp": time.Now().Format(time.RFC3339),
-			}
-
-			jsonData, err := json.Marshal(result)
-			if err != nil {
-				return nil, "", fmt.Errorf("failed to marshal task: %w", err)
-			}
-
-			return jsonData, "application/json", nil
-		}
-	}
-
-	return nil, "", fmt.Errorf("task %s not found", taskID)
+	return jsonData, "application/json", nil
 }
 
 // formatTasksForResource formats a slice of tasks for resource output
@@ -145,53 +107,22 @@ func handleTasksByStatus(ctx context.Context, uri string) ([]byte, string, error
 		return nil, "", fmt.Errorf("failed to find project root: %w", err)
 	}
 
-	// Try database first
-	tasks, err := database.GetTasksByStatus(ctx, status)
-	if err == nil && tasks != nil {
-		// Database available and has results (or empty results)
-		limit := 50
-		if len(tasks) > limit {
-			tasks = tasks[:limit]
-		}
-
-		result := map[string]interface{}{
-			"status":    status,
-			"tasks":     formatTasksForResource(tasks),
-			"total":     len(tasks),
-			"timestamp": time.Now().Format(time.RFC3339),
-		}
-
-		jsonData, err := json.Marshal(result)
-		if err != nil {
-			return nil, "", fmt.Errorf("failed to marshal tasks: %w", err)
-		}
-
-		return jsonData, "application/json", nil
-	}
-
-	// Fallback to JSON
-	allTasks, err := tools.LoadTodo2Tasks(projectRoot)
+	store := tools.NewDefaultTaskStore(projectRoot)
+	filters := &database.TaskFilters{Status: &status}
+	tasks, err := store.ListTasks(ctx, filters)
 	if err != nil {
 		return nil, "", fmt.Errorf("failed to load tasks: %w", err)
 	}
 
-	// Filter by status in memory
-	filtered := []*database.Todo2Task{}
-	for i := range allTasks {
-		if normalizeStatus(allTasks[i].Status) == status {
-			filtered = append(filtered, &allTasks[i])
-		}
-	}
-
 	limit := 50
-	if len(filtered) > limit {
-		filtered = filtered[:limit]
+	if len(tasks) > limit {
+		tasks = tasks[:limit]
 	}
 
 	result := map[string]interface{}{
 		"status":    status,
-		"tasks":     formatTasksForResource(filtered),
-		"total":     len(filtered),
+		"tasks":     formatTasksForResource(tasks),
+		"total":     len(tasks),
 		"timestamp": time.Now().Format(time.RFC3339),
 	}
 
@@ -220,53 +151,22 @@ func handleTasksByPriority(ctx context.Context, uri string) ([]byte, string, err
 		return nil, "", fmt.Errorf("failed to find project root: %w", err)
 	}
 
-	// Try database first
-	tasks, err := database.GetTasksByPriority(ctx, priority)
-	if err == nil && tasks != nil {
-		// Database available and has results (or empty results)
-		limit := 50
-		if len(tasks) > limit {
-			tasks = tasks[:limit]
-		}
-
-		result := map[string]interface{}{
-			"priority":  priority,
-			"tasks":     formatTasksForResource(tasks),
-			"total":     len(tasks),
-			"timestamp": time.Now().Format(time.RFC3339),
-		}
-
-		jsonData, err := json.Marshal(result)
-		if err != nil {
-			return nil, "", fmt.Errorf("failed to marshal tasks: %w", err)
-		}
-
-		return jsonData, "application/json", nil
-	}
-
-	// Fallback to JSON
-	allTasks, err := tools.LoadTodo2Tasks(projectRoot)
+	store := tools.NewDefaultTaskStore(projectRoot)
+	filters := &database.TaskFilters{Priority: &priority}
+	tasks, err := store.ListTasks(ctx, filters)
 	if err != nil {
 		return nil, "", fmt.Errorf("failed to load tasks: %w", err)
 	}
 
-	// Filter by priority in memory
-	filtered := []*database.Todo2Task{}
-	for i := range allTasks {
-		if strings.ToLower(allTasks[i].Priority) == priority {
-			filtered = append(filtered, &allTasks[i])
-		}
-	}
-
 	limit := 50
-	if len(filtered) > limit {
-		filtered = filtered[:limit]
+	if len(tasks) > limit {
+		tasks = tasks[:limit]
 	}
 
 	result := map[string]interface{}{
 		"priority":  priority,
-		"tasks":     formatTasksForResource(filtered),
-		"total":     len(filtered),
+		"tasks":     formatTasksForResource(tasks),
+		"total":     len(tasks),
 		"timestamp": time.Now().Format(time.RFC3339),
 	}
 
@@ -292,56 +192,22 @@ func handleTasksByTag(ctx context.Context, uri string) ([]byte, string, error) {
 		return nil, "", fmt.Errorf("failed to find project root: %w", err)
 	}
 
-	// Try database first
-	tasks, err := database.GetTasksByTag(ctx, tag)
-	if err == nil && tasks != nil {
-		// Database available and has results (or empty results)
-		limit := 50
-		if len(tasks) > limit {
-			tasks = tasks[:limit]
-		}
-
-		result := map[string]interface{}{
-			"tag":       tag,
-			"tasks":     formatTasksForResource(tasks),
-			"total":     len(tasks),
-			"timestamp": time.Now().Format(time.RFC3339),
-		}
-
-		jsonData, err := json.Marshal(result)
-		if err != nil {
-			return nil, "", fmt.Errorf("failed to marshal tasks: %w", err)
-		}
-
-		return jsonData, "application/json", nil
-	}
-
-	// Fallback to JSON
-	allTasks, err := tools.LoadTodo2Tasks(projectRoot)
+	store := tools.NewDefaultTaskStore(projectRoot)
+	filters := &database.TaskFilters{Tag: &tag}
+	tasks, err := store.ListTasks(ctx, filters)
 	if err != nil {
 		return nil, "", fmt.Errorf("failed to load tasks: %w", err)
 	}
 
-	// Filter by tag in memory (tasks can have multiple tags, match any)
-	filtered := []*database.Todo2Task{}
-	for i := range allTasks {
-		for _, taskTag := range allTasks[i].Tags {
-			if taskTag == tag {
-				filtered = append(filtered, &allTasks[i])
-				break // Found match, no need to check other tags
-			}
-		}
-	}
-
 	limit := 50
-	if len(filtered) > limit {
-		filtered = filtered[:limit]
+	if len(tasks) > limit {
+		tasks = tasks[:limit]
 	}
 
 	result := map[string]interface{}{
 		"tag":       tag,
-		"tasks":     formatTasksForResource(filtered),
-		"total":     len(filtered),
+		"tasks":     formatTasksForResource(tasks),
+		"total":     len(tasks),
 		"timestamp": time.Now().Format(time.RFC3339),
 	}
 
@@ -361,24 +227,10 @@ func handleTasksSummary(ctx context.Context, uri string) ([]byte, string, error)
 		return nil, "", fmt.Errorf("failed to find project root: %w", err)
 	}
 
-	// Load all tasks (try database first)
-	var allTasks []*database.Todo2Task
-	tasks, err := database.ListTasks(ctx, nil)
-	if err == nil && tasks != nil {
-		// Database available
-		allTasks = tasks
-	} else {
-		// Fallback to JSON
-		jsonTasks, err := tools.LoadTodo2Tasks(projectRoot)
-		if err != nil {
-			return nil, "", fmt.Errorf("failed to load tasks: %w", err)
-		}
-
-		// Convert to pointer slice
-		allTasks = make([]*database.Todo2Task, len(jsonTasks))
-		for i := range jsonTasks {
-			allTasks[i] = &jsonTasks[i]
-		}
+	store := tools.NewDefaultTaskStore(projectRoot)
+	allTasks, err := store.ListTasks(ctx, nil)
+	if err != nil {
+		return nil, "", fmt.Errorf("failed to load tasks: %w", err)
 	}
 
 	// Calculate statistics
