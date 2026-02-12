@@ -85,6 +85,14 @@ func TestHandleGitToolsNative(t *testing.T) {
 			wantError: true,
 		},
 		{
+			name: "local_commits action",
+			params: GitToolsParams{
+				Action: "local_commits",
+			},
+			// In tmpDir (non-git), git log fails; in real repo would return categorized commits
+			wantError: true,
+		},
+		{
 			name: "graph action",
 			params: GitToolsParams{
 				Action: "graph",

@@ -5,7 +5,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"regexp"
 	"sort"
 	"strings"
 	"time"
@@ -248,6 +250,8 @@ func HandleGitToolsNative(ctx context.Context, params GitToolsParams) (string, e
 	}
 
 	switch action {
+	case "local_commits":
+		return handleLocalCommitsAction(ctx, projectRoot, params)
 	case "commits":
 		return handleCommitsAction(ctx, projectRoot, params)
 	case "branches":
@@ -265,6 +269,109 @@ func HandleGitToolsNative(ctx context.Context, params GitToolsParams) (string, e
 	default:
 		return "", fmt.Errorf("unknown action: %s", action)
 	}
+}
+
+// GitLocalCommit represents a Git repo commit (not a task commit)
+type GitLocalCommit struct {
+	Hash     string `json:"hash"`
+	Subject  string `json:"subject"`
+	Category string `json:"category"`
+	Relevant bool   `json:"relevant"`
+}
+
+// categorizeCommit assigns category from conventional commit patterns
+func categorizeCommit(subject string) string {
+	lower := strings.ToLower(subject)
+	if strings.HasPrefix(lower, "feat") || strings.HasPrefix(lower, "feature") {
+		return "feature"
+	}
+	if strings.HasPrefix(lower, "fix") || strings.HasPrefix(lower, "bugfix") {
+		return "fix"
+	}
+	if strings.HasPrefix(lower, "docs") || strings.HasPrefix(lower, "doc") {
+		return "docs"
+	}
+	if strings.HasPrefix(lower, "refactor") {
+		return "refactor"
+	}
+	if strings.HasPrefix(lower, "test") {
+		return "testing"
+	}
+	if strings.HasPrefix(lower, "chore") || strings.HasPrefix(lower, "ci") || strings.HasPrefix(lower, "build") {
+		return "cleanup"
+	}
+	return "other"
+}
+
+// handleLocalCommitsAction lists Git commits ahead of origin/main and categorizes them (T-1768312778714).
+func handleLocalCommitsAction(ctx context.Context, projectRoot string, params GitToolsParams) (string, error) {
+	upstream := "origin/main"
+	if params.TargetBranch != "" {
+		upstream = params.TargetBranch
+	}
+	cmd := exec.CommandContext(ctx, "git", "log", upstream+"..HEAD", "--format=%h %s")
+	cmd.Dir = projectRoot
+	cmd.Env = append(os.Environ(), "LANG=C")
+	output, err := cmd.Output()
+	if err != nil {
+		if strings.Contains(err.Error(), "executable file not found") ||
+			strings.Contains(err.Error(), "not a git repository") {
+			result := map[string]interface{}{
+				"action":      "local_commits",
+				"upstream":    upstream,
+				"total":       0,
+				"commits":     []GitLocalCommit{},
+				"by_category": map[string]int{},
+				"summary":     "no local commits or not a git repository",
+			}
+			data, _ := json.MarshalIndent(result, "", "  ")
+			return string(data), nil
+		}
+		return "", fmt.Errorf("git log failed: %w", err)
+	}
+	lines := strings.Split(strings.TrimSpace(string(output)), "\n")
+	commits := make([]GitLocalCommit, 0, len(lines))
+	byCategory := make(map[string]int)
+	hashRe := regexp.MustCompile(`^([a-f0-9]+)\s+(.*)$`)
+	limit := params.Limit
+	if limit <= 0 {
+		limit = 50
+	}
+	for i, line := range lines {
+		if i >= limit {
+			break
+		}
+		if line == "" {
+			continue
+		}
+		matches := hashRe.FindStringSubmatch(line)
+		hash, subject := "", line
+		if len(matches) >= 3 {
+			hash, subject = matches[1], matches[2]
+		}
+		category := categorizeCommit(subject)
+		commits = append(commits, GitLocalCommit{
+			Hash:     hash,
+			Subject:  subject,
+			Category: category,
+			Relevant: category != "cleanup" && category != "other",
+		})
+		byCategory[category]++
+	}
+	relevant := byCategory["feature"] + byCategory["fix"] + byCategory["docs"] + byCategory["refactor"] + byCategory["testing"]
+	result := map[string]interface{}{
+		"action":      "local_commits",
+		"upstream":    upstream,
+		"total":       len(commits),
+		"commits":     commits,
+		"by_category": byCategory,
+		"summary":     fmt.Sprintf("%d commit(s) ahead of %s; %d likely relevant", len(commits), upstream, relevant),
+	}
+	data, err := json.MarshalIndent(result, "", "  ")
+	if err != nil {
+		return "", fmt.Errorf("failed to marshal result: %w", err)
+	}
+	return string(data), nil
 }
 
 // handleCommitsAction handles the commits action
