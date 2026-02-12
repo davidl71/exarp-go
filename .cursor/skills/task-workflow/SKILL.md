@@ -7,6 +7,8 @@ description: Todo2 task management via exarp-go. Prefer task_workflow MCP tool w
 
 Apply this skill when the workspace uses exarp-go and you need to work with Todo2 tasks.
 
+**Task creation: ALWAYS use exarp-go** — Use `task_workflow` action=create (MCP) or `exarp-go task create` (CLI). Never use Todo2 MCP `create_todos`.
+
 ## Prefer exarp-go for status updates (approve / task update)
 
 - **Mark Done / status changes**: Prefer `exarp-go task update` or `task_workflow` action=approve first (no result-comment block).

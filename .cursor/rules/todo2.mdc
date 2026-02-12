@@ -9,8 +9,12 @@ alwaysApply: true
 
 **⚠️ ABSOLUTE RULE: EVERY USER REQUEST MUST USE TODO2 WORKFLOW ⚠️**
 
+**🚫 TASK CREATION: ALWAYS USE EXARP-GO — NEVER Todo2 MCP create_todos**
+- **Create tasks via:** exarp-go `task_workflow` (action=create) or `exarp-go task create` CLI
+- **Do NOT use:** Todo2 MCP `create_todos` — use exarp-go for all task creation when available
+
 **BEFORE ANY WORK, YOU MUST:**
-1. 📋 **Create todo(s)** based on intelligent complexity assessment 
+1. 📋 **Create todo(s)** via exarp-go (task_workflow action=create or exarp-go task create) based on intelligent complexity assessment
 2. 🔍 **Search the local codebase** for existing patterns and context
 3. 🌐 **Search the internet** for 2026 information using web search tools
 4. 📝 **Document both searches** in a research_with_links comment with verified links
@@ -77,7 +81,7 @@ This workflow is organized into focused sections for better maintainability:
 **⚠️ ABSOLUTE RULE: EVERY USER REQUEST MUST USE TODO2 WORKFLOW ⚠️**
 
 **BEFORE ANY WORK, YOU MUST:**
-1. 📋 **Create todo(s)** based on intelligent complexity assessment (see guidelines below)
+1. 📋 **Create todo(s)** via exarp-go (task_workflow action=create or exarp-go task create) — NEVER Todo2 MCP create_todos — based on intelligent complexity assessment (see guidelines below)
 2. 🔍 **Search the local codebase** for existing patterns and context
 3. 🌐 **Search the internet** for 2026 information using web search tools
 4. 📝 **Document both searches** in a research_with_links comment with verified links
@@ -123,7 +127,7 @@ This workflow is organized into focused sections for better maintainability:
 - **API Integration** → Multiple tasks (research → implement → test)
 - **Configuration Change** (known parameter) → Single task acceptable
 
-**EVERY SINGLE INTERACTION MUST START WITH create_todos - COUNT BASED ON COMPLEXITY**
+**EVERY SINGLE INTERACTION MUST START WITH TASK CREATION via exarp-go (task_workflow action=create or exarp-go task create) - COUNT BASED ON COMPLEXITY. Do NOT use Todo2 MCP create_todos.**
 
 **🎯 REMEMBER: Optimize for efficiency, not artificial task inflation!**
 
@@ -444,13 +448,15 @@ update_todos({ updates: [{ id: "T-1", status: "Done" }] })
 
 # 📚 MCP Tools Reference
 
-| Tool               | Purpose                                                                           |
+**🚫 TASK CREATION: ALWAYS use exarp-go** — `task_workflow` action=create or `exarp-go task create`. **Do NOT use Todo2 MCP create_todos.**
+
+| Tool / Command     | Purpose                                                                           |
 | ------------------ | --------------------------------------------------------------------------------- |
-| create_todos       | Create task(s) with names, long_descriptions, priorities, tags, and dependencies |
+| **exarp-go task_workflow action=create** or **exarp-go task create** | **Create task(s)** — ALWAYS use exarp-go for creation. |
 | list_todos         | View filtered task lists (by status, tag, priority, or dependency readiness)     |
-| update_todos       | Update status, content, tags, dependencies                                       |
-| delete_todos       | Remove obsolete tasks                                                            |
-| add_comments       | Attach research, result, note, or manualsetup entries                           |
+| update_todos       | Update status, content, tags, dependencies (fallback if exarp-go unavailable)      |
+| delete_todos       | Remove obsolete tasks (fallback if exarp-go unavailable)                          |
+| add_comments       | Attach research, result, note, or manualsetup entries                            |
 | get_todo_details   | Retrieve todos with full comments & dependencies                                 |
 
 ---
@@ -474,14 +480,15 @@ update_todos({ updates: [{ id: "T-1", status: "Done" }] })
 
 | Rule                                                       | Enforcement |
 | ---------------------------------------------------------- | ----------- |
-| **ALWAYS start with create_todos for EVERY user request**   | ✅           |
+| **ALWAYS start with task creation via exarp-go for EVERY user request** | ✅           |
 | **INTELLIGENTLY assess complexity for appropriate task count** | ✅           |
 | **ALWAYS use Todo2 workflow - single or multiple tasks**    | ✅           |
+| **ALWAYS use exarp-go for task creation (never Todo2 MCP create_todos)** | ✅           |
 | Always conduct research_with_links before implementation   | ✅           |
 | **Include detailed codebase analysis with code snippets**   | ✅           |
 | **Use detailed task descriptions with 8 required sections** | ✅           |
 | **Define 3-5 measurable acceptance criteria per task**      | ✅           |
-| Use create_todos for full project breakdowns              | ✅           |
+| Use exarp-go (task_workflow create or task create) for full project breakdowns | ✅           |
 | Set dependencies during planning                           | ✅           |
 | Never skip result or review                                | ✅           |
 | **STAY STRICTLY within defined task scope - no expansion**  | ✅           |
@@ -519,7 +526,7 @@ update_todos({ updates: [{ id: "T-1", status: "Done" }] })
 | Rule                                                              | AI Agent Behavior | Penalty for Violation |
 | ----------------------------------------------------------------- | ----------------- | -------------------- |
 | **MUST use Todo2 workflow for EVERY user request (no exceptions)** | **ENFORCED**      | **INTERACTION TERMINATED** |
-| **MUST start with create_todos before any work**                 | **ENFORCED**      | **INTERACTION TERMINATED** |
+| **MUST start with task creation via exarp-go (task_workflow create or task create) before any work** | **ENFORCED** | **INTERACTION TERMINATED** |
 | **MUST assess complexity and create appropriate task count**      | **ENFORCED**      | **TASK REJECTED**    |
 | **MUST search local codebase first for every research task**     | **ENFORCED**      | **TASK REJECTED**    |
 | **MUST include code snippets in local codebase analysis**        | **ENFORCED**      | **TASK REJECTED**    |
@@ -541,14 +548,15 @@ update_todos({ updates: [{ id: "T-1", status: "Done" }] })
 
 ### ✅ CORRECT Workflow:
 1. **User makes request** (any request, any size)
-2. **AI immediately calls create_todos** (first action, always)
+2. **AI immediately creates tasks via exarp-go** (task_workflow action=create or exarp-go task create) — first action, always
 3. **AI follows complete Todo2 workflow** (research → implement → result → review)
 4. **AI completes task and updates todo status**
 
 ### ❌ FORBIDDEN Workflow:
 1. **User makes request**
 2. **AI starts working directly** ← **VIOLATION - INTERACTION TERMINATED**
-3. **AI skips todo creation** ← **VIOLATION - INTERACTION TERMINATED**
+3. **AI uses Todo2 MCP create_todos instead of exarp-go** ← **VIOLATION - INTERACTION TERMINATED**
+4. **AI skips task creation** ← **VIOLATION - INTERACTION TERMINATED**
 
 ### 📝 ENFORCEMENT SUMMARY:
 - **Every user message** → Create todo(s) first (count based on complexity)
@@ -604,7 +612,7 @@ update_todos({ updates: [{ id: "T-1", status: "Done" }] })
 
 ## 🚨 CRITICAL ENFORCEMENT REMINDER
 
-**Every user interaction MUST start with `create_todos` - no exceptions!**
+**Every user interaction MUST start with task creation via exarp-go (task_workflow action=create or exarp-go task create) — never Todo2 MCP create_todos.**
 
 **🎯 DECISION FRAMEWORK - ASK YOURSELF:**
 1. "Does this require research to understand the approach?" → If YES, likely needs multiple tasks
