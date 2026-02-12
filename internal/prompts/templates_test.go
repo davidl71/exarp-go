@@ -67,7 +67,7 @@ func TestGetPromptTemplate(t *testing.T) {
 }
 
 func TestGetPromptTemplate_AllPrompts(t *testing.T) {
-	// Test all templates (36 MCP prompts + 1 internal prompt_optimization_analysis)
+	// Test all templates (36 MCP prompts + 3 internal prompt optimization templates)
 	allPrompts := []string{
 		"align", "discover", "config", "scan",
 		"scorecard", "overview", "plan", "dashboard", "remember",
@@ -80,6 +80,8 @@ func TestGetPromptTemplate_AllPrompts(t *testing.T) {
 		"persona_security", "persona_architect", "persona_qa", "persona_tech_writer",
 		"tractatus_decompose",
 		"prompt_optimization_analysis",
+		"prompt_optimization_suggestions",
+		"prompt_optimization_refinement",
 	}
 
 	for _, promptName := range allPrompts {
@@ -126,6 +128,82 @@ func TestGetPromptTemplate_PromptOptimizationAnalysis(t *testing.T) {
 	}
 	if !strings.Contains(substituted, "MCP server") {
 		t.Error("substitution failed: context not replaced")
+	}
+}
+
+func TestGetPromptTemplate_PromptOptimizationSuggestions(t *testing.T) {
+	template, err := GetPromptTemplate("prompt_optimization_suggestions")
+	if err != nil {
+		t.Fatalf("GetPromptTemplate(prompt_optimization_suggestions) error = %v", err)
+	}
+	if template == "" {
+		t.Fatal("GetPromptTemplate returned empty string")
+	}
+	for _, ph := range []string{"{prompt}", "{analysis}"} {
+		if !strings.Contains(template, ph) {
+			t.Errorf("template missing %q placeholder", ph)
+		}
+	}
+	if !strings.Contains(template, "suggestions") {
+		t.Error("template missing suggestions output format")
+	}
+	substituted := substituteTemplate(template, map[string]interface{}{
+		"prompt":    "Do the thing",
+		"analysis":  `{"clarity":0.6,"specificity":0.5}`,
+		"context":   "Go project",
+		"task_type": "code",
+	})
+	if !strings.Contains(substituted, "Do the thing") {
+		t.Error("substitution failed: prompt not replaced")
+	}
+	if !strings.Contains(substituted, `{"clarity":0.6,"specificity":0.5}`) {
+		t.Error("substitution failed: analysis not replaced")
+	}
+}
+
+func TestGetPromptTemplate_TaskTypeVariants(t *testing.T) {
+	// Verify all three optimization templates include task-type guidance
+	for _, name := range []string{"prompt_optimization_analysis", "prompt_optimization_suggestions", "prompt_optimization_refinement"} {
+		template, err := GetPromptTemplate(name)
+		if err != nil {
+			t.Errorf("GetPromptTemplate(%q) error = %v", name, err)
+			continue
+		}
+		for _, want := range []string{"code", "docs", "general"} {
+			if !strings.Contains(template, want) {
+				t.Errorf("template %q missing task-type variant %q", name, want)
+			}
+		}
+	}
+}
+
+func TestGetPromptTemplate_PromptOptimizationRefinement(t *testing.T) {
+	template, err := GetPromptTemplate("prompt_optimization_refinement")
+	if err != nil {
+		t.Fatalf("GetPromptTemplate(prompt_optimization_refinement) error = %v", err)
+	}
+	if template == "" {
+		t.Fatal("GetPromptTemplate returned empty string")
+	}
+	for _, ph := range []string{"{prompt}", "{suggestions}"} {
+		if !strings.Contains(template, ph) {
+			t.Errorf("template missing %q placeholder", ph)
+		}
+	}
+	if !strings.Contains(template, "Preserve the original intent") {
+		t.Error("template missing refinement instructions")
+	}
+	substituted := substituteTemplate(template, map[string]interface{}{
+		"prompt":      "Fix it",
+		"suggestions": `[{"dimension":"specificity","issue":"vague","recommendation":"Be concrete"}]`,
+		"context":     "Go project",
+		"task_type":   "code",
+	})
+	if !strings.Contains(substituted, "Fix it") {
+		t.Error("substitution failed: prompt not replaced")
+	}
+	if !strings.Contains(substituted, "Be concrete") {
+		t.Error("substitution failed: suggestions not replaced")
 	}
 }
 
