@@ -297,3 +297,61 @@ func TestValidatePathSymlink_Nested(t *testing.T) {
 		t.Errorf("ValidatePathExists(nested symlink) error = %v, want nil", err)
 	}
 }
+
+// TestValidatePath_EdgeCases tests T-287: edge cases (redundant slashes, dot segments, special chars).
+func TestValidatePath_EdgeCases(t *testing.T) {
+	tmpDir := t.TempDir()
+	projectRoot := filepath.Join(tmpDir, "project")
+	os.MkdirAll(projectRoot, 0755)
+	os.MkdirAll(filepath.Join(projectRoot, "subdir"), 0755)
+
+	tests := []struct {
+		name        string
+		path        string
+		projectRoot string
+		wantErr     bool
+	}{
+		{
+			name:        "redundant slashes",
+			path:        "subdir//file",
+			projectRoot: projectRoot,
+			wantErr:     false,
+		},
+		{
+			name:        "dot segment in path",
+			path:        "subdir/./file",
+			projectRoot: projectRoot,
+			wantErr:     false,
+		},
+		{
+			name:        "trailing slash",
+			path:        "subdir/",
+			projectRoot: projectRoot,
+			wantErr:     false,
+		},
+		{
+			name:        "dot-dot resolved within root",
+			path:        "subdir/../subdir",
+			projectRoot: projectRoot,
+			wantErr:     false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			absPath, err := ValidatePath(tt.path, tt.projectRoot)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("ValidatePath() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !tt.wantErr {
+				relPath, relErr := filepath.Rel(tt.projectRoot, absPath)
+				if relErr != nil {
+					t.Errorf("ValidatePath() returned path outside root: %v", relErr)
+				}
+				if filepath.IsAbs(relPath) || filepath.HasPrefix(relPath, "..") {
+					t.Errorf("ValidatePath() returned path outside root: %s", relPath)
+				}
+			}
+		})
+	}
+}
