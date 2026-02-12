@@ -1,10 +1,12 @@
 package factory
 
 import (
+	"context"
 	"testing"
 
 	"github.com/davidl71/exarp-go/internal/config"
 	"github.com/davidl71/exarp-go/internal/framework"
+	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
 func TestNewServer_GoSDK(t *testing.T) {
@@ -241,6 +243,34 @@ func TestNewServer_MultipleInstances(t *testing.T) {
 		if server.GetName() != names[i] {
 			t.Errorf("server[%d].GetName() = %v, want %v", i, server.GetName(), names[i])
 		}
+	}
+}
+
+// TestToolLoggingMiddleware verifies tool middleware is applied (T-274).
+// The middleware wraps tool handlers; a wrapped handler should still invoke the inner handler.
+func TestToolLoggingMiddleware(t *testing.T) {
+	logger := createLogger()
+	mw := toolLoggingMiddleware(logger)
+	if mw == nil {
+		t.Fatal("toolLoggingMiddleware() returned nil")
+	}
+	// Wrap a no-op handler; middleware should return a non-nil handler
+	next := func(ctx context.Context, req *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		return &mcp.CallToolResult{}, nil
+	}
+	wrapped := mw(next)
+	if wrapped == nil {
+		t.Fatal("middleware(next) returned nil handler")
+	}
+	// Call wrapped handler - should succeed (middleware passes through)
+	ctx := context.Background()
+	req := &mcp.CallToolRequest{Params: &mcp.CallToolParamsRaw{Name: "test_tool"}}
+	res, err := wrapped(ctx, req)
+	if err != nil {
+		t.Errorf("wrapped handler error = %v", err)
+	}
+	if res == nil {
+		t.Error("wrapped handler returned nil result")
 	}
 }
 

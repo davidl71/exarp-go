@@ -19,11 +19,19 @@ func NewDefaultTaskStore(projectRoot string) database.TaskStore {
 }
 
 func (s *dbOrFileStore) GetTask(ctx context.Context, id string) (*database.Todo2Task, error) {
-	task, err := GetTaskByID(ctx, s.projectRoot, id)
-	if task != nil {
-		return task, err
+	if db, err := database.GetDB(); err == nil && db != nil {
+		return database.GetTask(ctx, id)
 	}
-	return nil, err
+	tasks, err := LoadTodo2Tasks(s.projectRoot)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load tasks: %w", err)
+	}
+	for i := range tasks {
+		if tasks[i].ID == id {
+			return &tasks[i], nil
+		}
+	}
+	return nil, fmt.Errorf("task %s not found", id)
 }
 
 func (s *dbOrFileStore) UpdateTask(ctx context.Context, task *database.Todo2Task) error {
