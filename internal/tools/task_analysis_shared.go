@@ -49,6 +49,8 @@ func handleTaskAnalysisNative(ctx context.Context, params map[string]interface{}
 		return handleTaskAnalysisComplexity(ctx, params)
 	case "conflicts":
 		return handleTaskAnalysisConflicts(ctx, params)
+	case "dependencies_summary":
+		return handleTaskAnalysisDependenciesSummary(ctx, params)
 	default:
 		return nil, fmt.Errorf("unknown action: %s", action)
 	}
@@ -1943,6 +1945,25 @@ func handleTaskAnalysisDependencies(ctx context.Context, params map[string]inter
 		output += fmt.Sprintf("\n\n[Saved to: %s]", outputPath)
 	}
 	return []framework.TextContent{{Type: "text", Text: output}}, nil
+}
+
+// handleTaskAnalysisDependenciesSummary combines dependencies, parallelization, and execution_plan (T-227).
+func handleTaskAnalysisDependenciesSummary(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
+	var parts []string
+	deps, err := handleTaskAnalysisDependencies(ctx, params)
+	if err == nil && len(deps) > 0 {
+		parts = append(parts, "## Dependency Analysis\n"+deps[0].Text)
+	}
+	par, err := handleTaskAnalysisParallelization(ctx, params)
+	if err == nil && len(par) > 0 {
+		parts = append(parts, "## Parallelization\n"+par[0].Text)
+	}
+	plan, err := handleTaskAnalysisExecutionPlan(ctx, params)
+	if err == nil && len(plan) > 0 {
+		parts = append(parts, "## Execution Plan\n"+plan[0].Text)
+	}
+	report := "# Task Dependencies Summary\n\n" + strings.Join(parts, "\n\n")
+	return []framework.TextContent{{Type: "text", Text: report}}, nil
 }
 
 // handleTaskAnalysisExecutionPlan handles execution plan: backlog (Todo + In Progress) in dependency order.

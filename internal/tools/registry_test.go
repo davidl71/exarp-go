@@ -17,8 +17,8 @@ func TestRegisterAllTools(t *testing.T) {
 		t.Fatalf("RegisterAllTools() error = %v", err)
 	}
 
-	// Verify all tools are registered (base 30 from RegisterAllTools; +1 when Apple FM on darwin/arm64/cgo).
-	expectedCount := 30
+	// Verify all tools are registered (base 31 from RegisterAllTools including research_aggregator; +1 when Apple FM on darwin/arm64/cgo).
+	expectedCount := 31
 	if server.ToolCount() != expectedCount && server.ToolCount() != expectedCount+1 {
 		t.Errorf("server.ToolCount() = %v, want %d or %d (with conditional Apple Foundation Models)",
 			server.ToolCount(), expectedCount, expectedCount+1)
@@ -56,6 +56,7 @@ func TestRegisterAllTools(t *testing.T) {
 		"text_generate",
 		"prompt_tracking",
 		"recommend",
+		"research_aggregator",
 	}
 
 	for _, toolName := range expectedTools {
@@ -95,8 +96,8 @@ func TestRegisterAllTools_RegistrationError(t *testing.T) {
 		{"memory", "memory_maint", "report", "security", "task_analysis", "task_discovery", "task_workflow", "infer_task_progress", "testing"},
 		// Batch 3: 10 advanced tools
 		{"automation", "tool_catalog", "workflow_mode", "lint", "estimation", "git_tools", "session", "infer_session_mode", "ollama", "mlx"},
-		// Batch 4 + 5: context_budget, context, text_generate, prompt_tracking, recommend
-		{"context_budget", "context", "text_generate", "prompt_tracking", "recommend"},
+		// Batch 4 + 5: context_budget, context, text_generate, prompt_tracking, recommend, research_aggregator
+		{"context_budget", "context", "text_generate", "prompt_tracking", "recommend", "research_aggregator"},
 	}
 
 	for _, batch := range expectedBatches {
