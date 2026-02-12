@@ -288,9 +288,16 @@ func handleReport(ctx context.Context, args json.RawMessage) ([]framework.TextCo
 			return nil, fmt.Errorf("report scorecard_plans: %w", err)
 		}
 		return result, nil
+
+	case "parallel_execution_plan":
+		result, err := handleReportParallelExecutionPlan(ctx, params)
+		if err != nil {
+			return nil, fmt.Errorf("report parallel_execution_plan: %w", err)
+		}
+		return result, nil
 	}
 
-	return nil, fmt.Errorf("report action %q not supported; supported: overview, scorecard, briefing, prd, plan, scorecard_plans", action)
+	return nil, fmt.Errorf("report action %q not supported; supported: overview, scorecard, briefing, prd, plan, scorecard_plans, parallel_execution_plan", action)
 }
 
 // handleSecurity handles the security tool

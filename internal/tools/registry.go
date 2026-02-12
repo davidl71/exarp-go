@@ -373,15 +373,15 @@ func registerBatch2Tools(server framework.MCPServer) error {
 	// T-30: report
 	if err := server.RegisterTool(
 		"report",
-		"[HINT: Report generation. action=overview|scorecard|briefing|prd|plan|scorecard_plans. plan generates Cursor-style .plan.md. scorecard_plans writes one improvement plan per scorecard dimension (testing, security, documentation, completion) to .cursor/plans/improve-<dim>.plan.md. For scorecard: fast_mode (default true) or full.]",
+		"[HINT: Report generation. action=overview|scorecard|briefing|prd|plan|scorecard_plans|parallel_execution_plan. plan generates Cursor-style .plan.md; include_subagents=true also updates parallel-execution-subagents.plan.md. parallel_execution_plan writes subagents plan only.]",
 		framework.ToolSchema{
 			Type: "object",
 			Properties: map[string]interface{}{
 				"action": map[string]interface{}{
 					"type":        "string",
-					"enum":        []string{"overview", "scorecard", "briefing", "prd", "plan", "scorecard_plans"},
+					"enum":        []string{"overview", "scorecard", "briefing", "prd", "plan", "scorecard_plans", "parallel_execution_plan"},
 					"default":     "overview",
-					"description": "plan: write Cursor .plan.md; scorecard_plans: write improve-<dim>.plan.md per dimension",
+					"description": "plan: write .plan.md; scorecard_plans: improve-<dim>.plan.md; parallel_execution_plan: parallel-execution-subagents.plan.md",
 				},
 				"output_format": map[string]interface{}{
 					"type":    "string",
@@ -394,6 +394,11 @@ func registerBatch2Tools(server framework.MCPServer) error {
 				"plan_title": map[string]interface{}{
 					"type":        "string",
 					"description": "For action=plan: title for the plan (default: project name from go.mod or directory)",
+				},
+				"include_subagents": map[string]interface{}{
+					"type":        "boolean",
+					"default":     false,
+					"description": "For action=plan: when true, also update .cursor/plans/parallel-execution-subagents.plan.md from waves",
 				},
 				"include_planning": map[string]interface{}{
 					"type":        "boolean",

@@ -190,9 +190,169 @@ func handleReportPlan(ctx context.Context, params map[string]interface{}) ([]fra
 		return nil, fmt.Errorf("failed to write plan file: %w", err)
 	}
 
+	// Optionally update parallel-execution-subagents.plan.md when include_subagents is true
+	includeSubagents, _ := params["include_subagents"].(bool)
+	if includeSubagents {
+		subagentsMD, subErr := generateParallelExecutionSubagentsMarkdown(ctx, projectRoot, planTitle)
+		if subErr != nil {
+			planMD += fmt.Sprintf("\n\n[Warning: failed to update subagents plan: %v]", subErr)
+		} else {
+			subagentsPath := filepath.Join(projectRoot, ".cursor", "plans", "parallel-execution-subagents.plan.md")
+			if dir := filepath.Dir(subagentsPath); dir != "." {
+				_ = os.MkdirAll(dir, 0755)
+			}
+			if err := os.WriteFile(subagentsPath, []byte(subagentsMD), 0644); err == nil {
+				planMD += fmt.Sprintf("\n\n[Subagents plan updated: %s]", subagentsPath)
+			} else {
+				planMD += fmt.Sprintf("\n\n[Warning: failed to write subagents plan: %v]", err)
+			}
+		}
+	}
+
 	planMD += fmt.Sprintf("\n\n[Plan saved to: %s]", outputPath)
 	return []framework.TextContent{
 		{Type: "text", Text: planMD},
+	}, nil
+}
+
+// generateParallelExecutionSubagentsMarkdown builds the parallel-execution-subagents.plan.md content
+// from current Todo2 backlog and dependency waves. Uses BacklogExecutionOrder for wave assignment.
+func generateParallelExecutionSubagentsMarkdown(ctx context.Context, projectRoot, planTitle string) (string, error) {
+	store := NewDefaultTaskStore(projectRoot)
+	list, err := store.ListTasks(ctx, nil)
+	if err != nil {
+		return "", fmt.Errorf("list tasks: %w", err)
+	}
+	tasks := tasksFromPtrs(list)
+	_, waves, _, err := BacklogExecutionOrder(tasks, nil)
+	if err != nil {
+		return "", fmt.Errorf("backlog execution order: %w", err)
+	}
+	if len(waves) == 0 {
+		return "", fmt.Errorf("no waves (empty backlog or no Todo/In Progress tasks)")
+	}
+
+	mainPlanSlug := planFilenameFromTitle(planTitle)
+	mainPlanFile := mainPlanSlug + ".plan.md"
+
+	levelOrder := make([]int, 0, len(waves))
+	for k := range waves {
+		levelOrder = append(levelOrder, k)
+	}
+	sort.Ints(levelOrder)
+
+	var sb strings.Builder
+	waveCount := len(levelOrder)
+	waveLabel := fmt.Sprintf("Waves 0–%d", waveCount-1)
+	if waveCount == 1 {
+		waveLabel = "Wave 0"
+	}
+
+	sb.WriteString("---\n")
+	sb.WriteString(fmt.Sprintf("name: Parallel Execution (Subagents) — %s\n", waveLabel))
+	sb.WriteString("overview: Run project plan waves using Cursor subagents; one subagent per task within each wave, waves run sequentially.\n")
+	sb.WriteString("isProject: false\n")
+	sb.WriteString("status: draft\n")
+	sb.WriteString("---\n\n")
+	sb.WriteString(fmt.Sprintf("# Parallel Execution Plan: Subagents (%s)\n\n", waveLabel))
+	sb.WriteString(fmt.Sprintf("**Source plan:** [.cursor/plans/%s](.cursor/plans/%s)\n\n", mainPlanFile, mainPlanFile))
+	sb.WriteString("**Strategy:** Execute waves sequentially (Wave 0, then Wave 1, …). Within each wave, launch **one subagent per task** in a single message so they run in parallel. Use the `wave-task-runner` subagent; optionally run `wave-verifier` after each wave.\n\n")
+	sb.WriteString("---\n\n## Execution order\n\n")
+	for i, level := range levelOrder {
+		sb.WriteString(fmt.Sprintf("%d. **Wave %d** — Run all Wave %d tasks in parallel. Optionally run `wave-verifier` when complete.\n", i+1, level, level))
+	}
+	sb.WriteString("\n---\n\n")
+
+	// One section per wave
+	for _, level := range levelOrder {
+		ids := waves[level]
+		if len(ids) == 0 {
+			continue
+		}
+		sb.WriteString(fmt.Sprintf("## Wave %d (parallel)\n\n", level))
+		sb.WriteString("Launch one `/wave-task-runner` per task in **one** message so Cursor runs them in parallel.\n\n")
+		sb.WriteString(fmt.Sprintf("**Task IDs (%d tasks):**\n\n", len(ids)))
+		sb.WriteString(strings.Join(ids, ", "))
+		sb.WriteString("\n\n**Prompt (Wave ")
+		sb.WriteString(fmt.Sprint(level))
+		sb.WriteString("):**\n\n> Execute Wave ")
+		sb.WriteString(fmt.Sprint(level))
+		sb.WriteString(" in parallel: run **wave-task-runner** once per task for the Wave ")
+		sb.WriteString(fmt.Sprint(level))
+		sb.WriteString(" list above. Give each subagent its task_id, the task description from the plan (or Todo2), and plan context from `.cursor/plans/")
+		sb.WriteString(mainPlanFile)
+		sb.WriteString("`. Wait for all to complete, then summarize. Optionally run **wave-verifier** for Wave ")
+		sb.WriteString(fmt.Sprint(level))
+		sb.WriteString(".\n\n")
+		if len(ids) > 20 {
+			sb.WriteString("**Practical note:** Consider batching (e.g. first 10–15 tasks) to avoid UI or token limits.\n\n")
+		}
+		sb.WriteString("---\n\n")
+	}
+
+	sb.WriteString("## Subagents used\n\n")
+	sb.WriteString("| Subagent | Role |\n")
+	sb.WriteString("|----------|------|\n")
+	sb.WriteString("| **wave-task-runner** | One instance per task; implements/completes that task and returns a short summary. |\n")
+	sb.WriteString("| **wave-verifier** | Optional; run once per wave after all wave-task-runner instances return; validates outcomes. |\n\n")
+	sb.WriteString("Defined in [.cursor/agents/wave-task-runner.md](.cursor/agents/wave-task-runner.md) and [.cursor/agents/wave-verifier.md](.cursor/agents/wave-verifier.md).\n\n")
+	sb.WriteString("---\n\n## Quick reference\n\n")
+	sb.WriteString("| Wave | Task count | Run |\n")
+	sb.WriteString("|------|------------|-----|\n")
+	for _, level := range levelOrder {
+		ids := waves[level]
+		if len(ids) == 0 {
+			continue
+		}
+		sb.WriteString(fmt.Sprintf("| Wave %d | %d | One subagent per task in one message (or batches of ~10–15 if large). |\n", level, len(ids)))
+	}
+	sb.WriteString("\n**Order:** Execute waves sequentially (do not start Wave N+1 until Wave N is complete).\n\n")
+	sb.WriteString("*Generated by exarp-go report(action=plan, include_subagents=true) or report(action=parallel_execution_plan).*\n")
+
+	return sb.String(), nil
+}
+
+// handleReportParallelExecutionPlan generates .cursor/plans/parallel-execution-subagents.plan.md from current Todo2 waves.
+func handleReportParallelExecutionPlan(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
+	projectRoot, err := FindProjectRoot()
+	if err != nil {
+		return nil, fmt.Errorf("failed to find project root: %w", err)
+	}
+
+	planTitle, _ := params["plan_title"].(string)
+	if planTitle == "" {
+		if info, err := getProjectInfo(projectRoot); err == nil {
+			if name, ok := info["name"].(string); ok && name != "" {
+				planTitle = name
+			}
+		}
+		if planTitle == "" {
+			planTitle = filepath.Base(projectRoot)
+		}
+	}
+
+	outputPath, _ := params["output_path"].(string)
+	if outputPath == "" {
+		outputPath = filepath.Join(projectRoot, ".cursor", "plans", "parallel-execution-subagents.plan.md")
+	}
+
+	subagentsMD, err := generateParallelExecutionSubagentsMarkdown(ctx, projectRoot, planTitle)
+	if err != nil {
+		return nil, fmt.Errorf("generate parallel execution plan: %w", err)
+	}
+
+	if dir := filepath.Dir(outputPath); dir != "." {
+		if err := os.MkdirAll(dir, 0755); err != nil {
+			return nil, fmt.Errorf("create plan directory: %w", err)
+		}
+	}
+	if err := os.WriteFile(outputPath, []byte(subagentsMD), 0644); err != nil {
+		return nil, fmt.Errorf("write subagents plan: %w", err)
+	}
+
+	msg := fmt.Sprintf("Parallel execution subagents plan saved to: %s", outputPath)
+	return []framework.TextContent{
+		{Type: "text", Text: msg},
 	}, nil
 }
 

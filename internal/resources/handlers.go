@@ -8,7 +8,7 @@ import (
 
 // RegisterAllResources registers all resources with the server
 func RegisterAllResources(server framework.MCPServer) error {
-	// Register 22 resources (all native Go; no Python bridge)
+	// Register 23 resources (all native Go; no Python bridge)
 
 	// stdio://scorecard
 	if err := server.RegisterResource(
@@ -129,6 +129,17 @@ func RegisterAllResources(server framework.MCPServer) error {
 		handleSessionMode,
 	); err != nil {
 		return fmt.Errorf("failed to register session mode resource: %w", err)
+	}
+
+	// stdio://session/status — dynamic context for UI labels (handoff, task, dashboard)
+	if err := server.RegisterResource(
+		"stdio://session/status",
+		"Session Status",
+		"Get current session context (handoff, current task, project dashboard) for dynamic UI labels.",
+		"application/json",
+		handleSessionStatus,
+	); err != nil {
+		return fmt.Errorf("failed to register session status resource: %w", err)
 	}
 
 	// stdio://server/status

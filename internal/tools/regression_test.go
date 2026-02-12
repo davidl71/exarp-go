@@ -64,6 +64,13 @@ func TestRegressionSessionPrime(t *testing.T) {
 			t.Errorf("session result missing expected field: %s", field)
 		}
 	}
+	// T-1770909568528: status_label and status_context for AI context announcement
+	if _, hasLabel := data["status_label"]; !hasLabel {
+		t.Error("session result missing status_label field (T-1770909568528)")
+	}
+	if _, hasCtx := data["status_context"]; !hasCtx {
+		t.Error("session result missing status_context field (T-1770909568528)")
+	}
 }
 
 // TestRegressionRecommendWorkflow tests native recommend workflow action.

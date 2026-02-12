@@ -1705,28 +1705,43 @@ func handleTaskWorkflowCreate(ctx context.Context, params map[string]interface{}
 
 // handleTaskWorkflowFixInvalidIDs finds tasks with invalid IDs (e.g. T-NaN from JS), assigns new epoch IDs,
 // updates dependencies, removes old DB rows, and saves. Use after sanity_check reports invalid_task_id.
+// Loads from both DB and JSON so tasks that exist only in JSON (e.g. created by Todo2 extension) are found.
 func handleTaskWorkflowFixInvalidIDs(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	projectRoot, err := FindProjectRoot()
 	if err != nil {
 		return nil, fmt.Errorf("failed to find project root: %w", err)
 	}
 
-	store, err := getTaskStore(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get task store: %w", err)
+	// Load from both DB and JSON: DB-first, then add JSON-only tasks (e.g. T-NaN from Todo2 extension)
+	taskMap := make(map[string]Todo2Task)
+	if dbList, err := database.ListTasks(ctx, nil); err == nil {
+		for _, t := range dbList {
+			if t != nil {
+				taskMap[t.ID] = *t
+			}
+		}
 	}
-	list, err := store.ListTasks(ctx, nil)
-	if err != nil {
-		return nil, fmt.Errorf("failed to load tasks: %w", err)
+	if jsonTasks, err := loadTodo2TasksFromJSON(projectRoot); err == nil {
+		for _, t := range jsonTasks {
+			if _, ok := taskMap[t.ID]; !ok {
+				taskMap[t.ID] = t
+			}
+		}
 	}
-	tasks := tasksFromPtrs(list)
+	tasks := make([]Todo2Task, 0, len(taskMap))
+	for _, t := range taskMap {
+		tasks = append(tasks, t)
+	}
 
 	type fix struct{ oldID, newID string }
 	var fixes []fix
+	baseEpoch := time.Now().UnixMilli()
+	counter := int64(0)
 	for i := range tasks {
 		if !isValidTaskID(tasks[i].ID) {
 			oldID := tasks[i].ID
-			newID := generateEpochTaskID()
+			counter++
+			newID := fmt.Sprintf("T-%d", baseEpoch+counter)
 			tasks[i].ID = newID
 			fixes = append(fixes, fix{oldID, newID})
 		}
@@ -1756,21 +1771,9 @@ func handleTaskWorkflowFixInvalidIDs(ctx context.Context, params map[string]inte
 		}
 	}
 
-	// Remove old rows and persist changes via TaskStore
-	for _, f := range fixes {
-		_ = store.DeleteTask(ctx, f.oldID)
-	}
-	for i := range tasks {
-		t := &tasks[i]
-		if fixedNewIDs[t.ID] {
-			if err := store.CreateTask(ctx, t); err != nil {
-				return nil, fmt.Errorf("failed to create task %s: %w", t.ID, err)
-			}
-		} else {
-			if err := store.UpdateTask(ctx, t); err != nil {
-				return nil, fmt.Errorf("failed to update task %s: %w", t.ID, err)
-			}
-		}
+	// Persist corrected tasks to both DB and JSON via SaveTodo2Tasks
+	if err := SaveTodo2Tasks(projectRoot, tasks); err != nil {
+		return nil, fmt.Errorf("failed to save fixed tasks: %w", err)
 	}
 
 	// Regenerate overview so .cursor/rules/todo2-overview.mdc reflects new IDs
