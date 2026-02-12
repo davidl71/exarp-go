@@ -138,7 +138,7 @@ To verify that an agent holding a lock is still running (before treating a lock 
 - **`database.ParsePIDFromAgentID(agentID string) (pid int, ok bool)`** — extracts PID from agent ID format `{type}-{hostname}-{pid}`.
 - **`database.AgentProcessExists(agentID string) bool`** — returns true if the agent’s process is running (uses PID from agent ID). Returns false if agent ID has no PID (e.g. from GetAgentIDSimple).
 
-Use in stale-lock logic: e.g. before cleaning an expired lock, call `AgentProcessExists(assignee)`; if true, the process is still alive and the lock might be renewed soon.
+Use in stale-lock logic: `CleanupDeadAgentLocks(ctx, staleThreshold)` does this automatically — it calls `DetectStaleLocks`, then for each expired lock skips when `AgentProcessExists(assignee)` is true, and releases the rest via `releaseLocksForTaskIDs`.
 
 ---
 
@@ -555,10 +555,10 @@ cleaned, taskIDs, err := database.CleanupExpiredLocksWithReport(ctx, 1*time.Hour
 - [ ] CLI command for lock status monitoring
 - [ ] Scheduled cleanup via cron
 
-### **Phase 4: Advanced Features** (TODO)
+### **Phase 4: Advanced Features**
 
-- [ ] ~~Heartbeat mechanism (agents report alive)~~ — **Future improvement**: requires long-lived agent processes; exarp-go runs as STDIO (short-lived per request). Defer until HTTP/SSE or multi-agent deployment.
-- [ ] Process monitoring (verify agent process exists)
+- [x] Process monitoring (verify agent process exists) — T-319 Done; `utils.ProcessExists`, `database.AgentProcessExists`
+- [x] Dead agent cleanup job — T-76 Done; `database.CleanupDeadAgentLocks`, wired into automation (daily/nightly/sprint) and session prime
 - [ ] Lock statistics and metrics
 - [ ] Alerting system for stale lock patterns
 

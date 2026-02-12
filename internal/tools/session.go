@@ -99,6 +99,21 @@ func handleSessionPrime(ctx context.Context, params map[string]interface{}) ([]f
 		return nil, fmt.Errorf("failed to find project root: %w", err)
 	}
 
+	// 0. Dead agent lock cleanup (T-76) - quick cleanup before loading tasks
+	var lockCleanupReport map[string]interface{}
+	if db, dbErr := database.GetDB(); dbErr == nil && db != nil {
+		staleThreshold := config.GetGlobalConfig().Timeouts.StaleLockThreshold
+		if staleThreshold <= 0 {
+			staleThreshold = 5 * time.Minute
+		}
+		if cleaned, taskIDs, cleanupErr := database.CleanupDeadAgentLocks(ctx, staleThreshold); cleanupErr == nil && cleaned > 0 {
+			lockCleanupReport = map[string]interface{}{
+				"cleaned":  cleaned,
+				"task_ids": taskIDs,
+			}
+		}
+	}
+
 	// 1. Detect agent type
 	agentInfo := detectAgentType(projectRoot)
 	agentContext := getAgentContext(agentInfo.Agent)
@@ -148,6 +163,9 @@ func handleSessionPrime(ctx context.Context, params map[string]interface{}) ([]f
 	}
 	if elicitationOutcome != "" {
 		result["elicitation"] = elicitationOutcome
+	}
+	if lockCleanupReport != nil {
+		result["lock_cleanup"] = lockCleanupReport
 	}
 
 	// 4. Load tasks when needed (summary, suggested_next, or plan mode context)

@@ -495,13 +495,13 @@ func registerBatch2Tools(server framework.MCPServer) error {
 	// T-32: task_analysis
 	if err := server.RegisterTool(
 		"task_analysis",
-		"[HINT: Task analysis. action=duplicates|tags|discover_tags|hierarchy|dependencies|parallelization|validate|execution_plan|complexity|conflicts. Task quality and structure. conflicts detects task-overlap (In Progress tasks with dependent also In Progress). complexity classifies tasks (simple/medium/complex) per Model-Assisted Workflow. discover_tags scans MD files for tag hints and uses LLM (Apple FM/Ollama) for semantic inference.]",
+		"[HINT: Task analysis. action=duplicates|tags|discover_tags|hierarchy|dependencies|dependencies_summary|parallelization|validate|execution_plan|complexity|conflicts. Task quality and structure. conflicts detects task-overlap (In Progress tasks with dependent also In Progress). complexity classifies tasks (simple/medium/complex) per Model-Assisted Workflow. discover_tags scans MD files for tag hints and uses LLM (Apple FM/Ollama) for semantic inference.]",
 		framework.ToolSchema{
 			Type: "object",
 			Properties: map[string]interface{}{
 				"action": map[string]interface{}{
 					"type":    "string",
-					"enum":    []string{"duplicates", "tags", "discover_tags", "hierarchy", "dependencies", "parallelization", "fix_missing_deps", "validate", "execution_plan", "complexity", "conflicts"},
+					"enum":    []string{"duplicates", "tags", "discover_tags", "hierarchy", "dependencies", "dependencies_summary", "parallelization", "fix_missing_deps", "validate", "execution_plan", "complexity", "conflicts"},
 					"default": "duplicates",
 				},
 				"similarity_threshold": map[string]interface{}{
@@ -1165,13 +1165,13 @@ func registerBatch3Tools(server framework.MCPServer) error {
 	// T-42: git_tools
 	if err := server.RegisterTool(
 		"git_tools",
-		"[HINT: Git tools. action=commits|branches|tasks|diff|graph|merge|set_branch. Unified git-inspired tools.]",
+		"[HINT: Git tools. action=commits|local_commits|branches|tasks|diff|graph|merge|set_branch. Unified git-inspired tools.]",
 		framework.ToolSchema{
 			Type: "object",
 			Properties: map[string]interface{}{
 				"action": map[string]interface{}{
 					"type":    "string",
-					"enum":    []string{"commits", "branches", "tasks", "diff", "graph", "merge", "set_branch"},
+					"enum":    []string{"commits", "local_commits", "branches", "tasks", "diff", "graph", "merge", "set_branch"},
 					"default": "commits",
 				},
 				"task_id": map[string]interface{}{
@@ -1581,21 +1581,36 @@ func registerBatch5Tools(server framework.MCPServer) error {
 	}
 
 	// text_generate - Unified generate-text via FM, ReportInsight, or MLX (LLM abstraction)
+	// When task_type or task_description is provided, uses ResolveModelForTask (recommend + router) for model selection (T-207).
 	if err := server.RegisterTool(
 		"text_generate",
-		"[HINT: Unified generate-text. provider=fm|insight|mlx (default fm). Uses DefaultFMProvider (fm), DefaultReportInsight (insight), or DefaultMLXProvider (mlx).]",
+		"[HINT: Unified generate-text. provider=fm|insight|mlx|auto (default fm). task_type/task_description enable model selection (recommend+router).]",
 		framework.ToolSchema{
 			Type: "object",
 			Properties: map[string]interface{}{
 				"provider": map[string]interface{}{
 					"type":        "string",
-					"enum":        []string{"fm", "insight", "mlx"},
+					"enum":        []string{"fm", "insight", "mlx", "auto"},
 					"default":     "fm",
-					"description": "Backend: fm (DefaultFMProvider, default), insight (DefaultReportInsight), or mlx (DefaultMLXProvider)",
+					"description": "Backend: fm|insight|mlx (explicit), or auto (model selection from task_type/task_description)",
 				},
 				"prompt": map[string]interface{}{
 					"type":        "string",
 					"description": "Prompt for text generation (required)",
+				},
+				"task_type": map[string]interface{}{
+					"type":        "string",
+					"description": "Task type hint for model selection (e.g. code_analysis, quick_fix). Used with provider=auto.",
+				},
+				"task_description": map[string]interface{}{
+					"type":        "string",
+					"description": "Task description for model selection. Used with provider=auto.",
+				},
+				"optimize_for": map[string]interface{}{
+					"type":        "string",
+					"enum":        []string{"quality", "speed", "cost"},
+					"default":     "quality",
+					"description": "Optimization target for model selection (when provider=auto)",
 				},
 				"max_tokens": map[string]interface{}{
 					"type":        "integer",
@@ -1707,6 +1722,24 @@ func registerBatch5Tools(server framework.MCPServer) error {
 		handleRecommend,
 	); err != nil {
 		return fmt.Errorf("failed to register recommend: %w", err)
+	}
+
+	// T-224: research_aggregator - runs multiple research tools and combines outputs
+	if err := server.RegisterTool(
+		"research_aggregator",
+		"[HINT: Research result aggregator. Runs task_analysis, analyze_alignment, etc. and combines outputs.]",
+		framework.ToolSchema{
+			Type: "object",
+			Properties: map[string]interface{}{
+				"tools": map[string]interface{}{
+					"type": "array",
+					"description": "Tool configs: [{tool, action}] or tool names. Default: duplicates, dependencies, todo2.",
+				},
+			},
+		},
+		handleResearchAggregator,
+	); err != nil {
+		return fmt.Errorf("failed to register research_aggregator: %w", err)
 	}
 
 	// Note: server_status tool removed - converted to stdio://server/status resource

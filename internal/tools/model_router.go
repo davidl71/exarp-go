@@ -103,3 +103,28 @@ func (r *defaultModelRouter) generateOllama(ctx context.Context, modelName, prom
 	host := "http://localhost:11434"
 	return ollamaGenerateText(ctx, prompt, maxTokens, temperature, host, modelName)
 }
+
+// ResolveModelForTask uses the recommend catalog (findBestModel) to pick a model for the given
+// task description and type, then maps to our local ModelType. Implements T-207 model selection logic.
+func ResolveModelForTask(taskDescription, taskType, optimizeFor string) (ModelType, ModelRequirements) {
+	recommended := findBestModel(taskDescription, taskType, optimizeFor)
+	req := ModelRequirements{}
+	switch optimizeFor {
+	case "speed":
+		req.PreferSpeed = true
+	case "cost":
+		req.PreferCost = true
+	}
+	// Map ModelInfo.ModelID to ModelType (local backends only)
+	switch recommended.ModelID {
+	case "ollama-codellama":
+		return ModelOllamaCode, req
+	case "ollama-mistral", "ollama-phi3":
+		return ModelOllamaLlama, req // Fast local models
+	case "ollama-llama3.2":
+		return ModelOllamaLlama, req
+	default:
+		// Cloud models (claude-*, gpt-4o, o1-*, gemini-*) → FM chain
+		return ModelFM, req
+	}
+}
