@@ -58,7 +58,7 @@ func GetToolCatalog() map[string]ToolCatalogEntry {
 		},
 		"task_analysis": {
 			Tool:             "task_analysis",
-			Hint:             "Task analysis. action=duplicates|tags|hierarchy|dependencies|parallelization. Task quality and structure.",
+			Hint:             "Task analysis. action=duplicates|tags|hierarchy|dependencies|parallelization|conflicts. Task quality and structure. conflicts detects task-overlap (In Progress with dependent also In Progress).",
 			Category:         "Task Management",
 			Description:      "Analyzes tasks for duplicates, tags, hierarchy, dependencies, and parallelization opportunities",
 			RecommendedModel: "claude-haiku",
