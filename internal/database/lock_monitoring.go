@@ -277,3 +277,93 @@ func CleanupExpiredLocksWithReport(ctx context.Context, maxAge time.Duration) (i
 
 	return cleaned, cleanedTaskIDs, err
 }
+
+// CleanupDeadAgentLocks releases expired locks only when the assigning agent's process
+// no longer exists (dead agent). Uses DetectStaleLocks and AgentProcessExists per
+// docs/STALE_LOCK_DETECTION_AND_HANDLING.md. Returns cleaned count and task IDs.
+func CleanupDeadAgentLocks(ctx context.Context, staleThreshold time.Duration) (int, []string, error) {
+	info, err := DetectStaleLocks(ctx, staleThreshold)
+	if err != nil {
+		return 0, nil, fmt.Errorf("detect stale locks: %w", err)
+	}
+
+	// Collect expired locks where agent process does not exist
+	var taskIDsToClean []string
+	for _, lock := range info.Locks {
+		if !lock.IsExpired {
+			continue
+		}
+		// Skip if agent process is still running (might renew soon)
+		if AgentProcessExists(lock.Assignee) {
+			continue
+		}
+		taskIDsToClean = append(taskIDsToClean, lock.TaskID)
+	}
+
+	if len(taskIDsToClean) == 0 {
+		return 0, nil, nil
+	}
+
+	return releaseLocksForTaskIDs(ctx, taskIDsToClean)
+}
+
+// releaseLocksForTaskIDs clears assignee/lock_until for the given task IDs
+// (used by CleanupDeadAgentLocks). Returns cleaned count and cleaned task IDs.
+func releaseLocksForTaskIDs(ctx context.Context, taskIDs []string) (int, []string, error) {
+	ctx = ensureContext(ctx)
+	txCtx, cancel := withTransactionTimeout(ctx)
+	defer cancel()
+
+	var cleaned int
+	var cleanedTaskIDs []string
+
+	err := retryWithBackoff(ctx, func() error {
+		db, err := GetDB()
+		if err != nil {
+			return fmt.Errorf("failed to get database: %w", err)
+		}
+
+		tx, err := db.BeginTx(txCtx, nil)
+		if err != nil {
+			return fmt.Errorf("failed to begin transaction: %w", err)
+		}
+		defer func() {
+			if err != nil {
+				_ = tx.Rollback()
+			}
+		}()
+
+		for _, taskID := range taskIDs {
+			result, err := tx.ExecContext(txCtx, `
+				UPDATE tasks SET
+					assignee = NULL,
+					assigned_at = NULL,
+					lock_until = NULL,
+					status = CASE 
+						WHEN status = 'In Progress' THEN 'Todo'
+						ELSE status
+					END,
+					version = version + 1,
+					updated_at = strftime('%s', 'now')
+				WHERE id = ?
+			`, taskID)
+			if err != nil {
+				return fmt.Errorf("failed to release lock for task %s: %w", taskID, err)
+			}
+
+			rowsAffected, err := result.RowsAffected()
+			if err != nil {
+				return fmt.Errorf("failed to get rows affected: %w", err)
+			}
+
+			if rowsAffected > 0 {
+				cleaned++
+				cleanedTaskIDs = append(cleanedTaskIDs, taskID)
+			}
+		}
+
+		return tx.Commit()
+	})
+
+	return cleaned, cleanedTaskIDs, err
+}

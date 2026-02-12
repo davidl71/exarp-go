@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/davidl71/exarp-go/internal/config"
@@ -60,70 +61,56 @@ func handleAutomationDaily(ctx context.Context, params map[string]interface{}) (
 		}
 	}
 
-	// Task 1: analyze_alignment (todo2 action)
-	task1Result := runDailyTask(ctx, "analyze_alignment", map[string]interface{}{
-		"action": "todo2",
-	})
+	// Task 0: dead_agent_cleanup (release expired locks from dead agents)
+	task0Result := runDeadAgentCleanup(ctx)
 	tasksRun, _ := results["tasks_run"].([]map[string]interface{})
 	tasksRun = append(tasksRun, map[string]interface{}{
-		"task_id":   "analyze_alignment",
-		"task_name": "Todo2 Alignment Analysis",
-		"status":    task1Result["status"],
-		"duration":  task1Result["duration"],
-		"error":     task1Result["error"],
-		"summary":   task1Result["summary"],
+		"task_id":   "dead_agent_cleanup",
+		"task_name": "Dead Agent Lock Cleanup",
+		"status":    task0Result["status"],
+		"duration":  task0Result["duration"],
+		"error":     task0Result["error"],
+		"summary":   task0Result["summary"],
 	})
 	results["tasks_run"] = tasksRun
-	if task1Result["status"] == "success" {
+	if task0Result["status"] == "success" {
 		tasksSucceeded, _ := results["tasks_succeeded"].([]string)
-		results["tasks_succeeded"] = append(tasksSucceeded, "analyze_alignment")
+		results["tasks_succeeded"] = append(tasksSucceeded, "dead_agent_cleanup")
 	} else {
 		tasksFailed, _ := results["tasks_failed"].([]string)
-		results["tasks_failed"] = append(tasksFailed, "analyze_alignment")
+		results["tasks_failed"] = append(tasksFailed, "dead_agent_cleanup")
 	}
 
-	// Task 2: task_analysis (duplicates action)
-	task2Result := runDailyTask(ctx, "task_analysis", map[string]interface{}{
-		"action": "duplicates",
-	})
-	tasksRun, _ = results["tasks_run"].([]map[string]interface{})
-	tasksRun = append(tasksRun, map[string]interface{}{
-		"task_id":   "task_analysis",
-		"task_name": "Duplicate Task Detection",
-		"status":    task2Result["status"],
-		"duration":  task2Result["duration"],
-		"error":     task2Result["error"],
-		"summary":   task2Result["summary"],
-	})
-	results["tasks_run"] = tasksRun
-	if task2Result["status"] == "success" {
-		tasksSucceeded, _ := results["tasks_succeeded"].([]string)
-		results["tasks_succeeded"] = append(tasksSucceeded, "task_analysis")
-	} else {
-		tasksFailed, _ := results["tasks_failed"].([]string)
-		results["tasks_failed"] = append(tasksFailed, "task_analysis")
+	// Tasks 1-3: Run in parallel (T-228 parallel execution framework)
+	parallelBatch := []parallelTask{
+		{"analyze_alignment", map[string]interface{}{"action": "todo2"}, "Todo2 Alignment Analysis"},
+		{"task_analysis", map[string]interface{}{"action": "duplicates"}, "Duplicate Task Detection"},
+		{"health", map[string]interface{}{"action": "docs"}, "Documentation Health Check"},
 	}
-
-	// Task 3: health (docs action) - now uses native Go
-	task3Result := runDailyTask(ctx, "health", map[string]interface{}{
-		"action": "docs",
-	})
-	tasksRun, _ = results["tasks_run"].([]map[string]interface{})
-	tasksRun = append(tasksRun, map[string]interface{}{
-		"task_id":   "health",
-		"task_name": "Documentation Health Check",
-		"status":    task3Result["status"],
-		"duration":  task3Result["duration"],
-		"error":     task3Result["error"],
-		"summary":   task3Result["summary"],
-	})
-	results["tasks_run"] = tasksRun
-	if task3Result["status"] == "success" {
-		tasksSucceeded, _ := results["tasks_succeeded"].([]string)
-		results["tasks_succeeded"] = append(tasksSucceeded, "health")
-	} else {
-		tasksFailed, _ := results["tasks_failed"].([]string)
-		results["tasks_failed"] = append(tasksFailed, "health")
+	maxParallel := 3
+	if mp, ok := params["max_parallel_tasks"].(float64); ok && mp > 0 {
+		maxParallel = int(mp)
+	}
+	parallelResults := runParallelTasks(ctx, parallelBatch, maxParallel)
+	taskIDs := []string{"analyze_alignment", "task_analysis", "health"}
+	for i, res := range parallelResults {
+		tasksRun, _ := results["tasks_run"].([]map[string]interface{})
+		tasksRun = append(tasksRun, map[string]interface{}{
+			"task_id":   taskIDs[i],
+			"task_name": parallelBatch[i].taskName,
+			"status":    res["status"],
+			"duration":  res["duration"],
+			"error":     res["error"],
+			"summary":   res["summary"],
+		})
+		results["tasks_run"] = tasksRun
+		if res["status"] == "success" {
+			tasksSucceeded, _ := results["tasks_succeeded"].([]string)
+			results["tasks_succeeded"] = append(tasksSucceeded, taskIDs[i])
+		} else {
+			tasksFailed, _ := results["tasks_failed"].([]string)
+			results["tasks_failed"] = append(tasksFailed, taskIDs[i])
+		}
 	}
 
 	// Task 4: tool_count_health (health action=tools) - migrated from Python daily
@@ -401,6 +388,26 @@ func handleAutomationNightly(ctx context.Context, params map[string]interface{})
 		results["tasks_failed"] = append(tasksFailed, "stale_lock_check")
 	}
 
+	// Task 5: dead_agent_cleanup (release expired locks from dead agents)
+	task5Result := runDeadAgentCleanup(ctx)
+	tasksRun, _ = results["tasks_run"].([]map[string]interface{})
+	tasksRun = append(tasksRun, map[string]interface{}{
+		"task_id":   "dead_agent_cleanup",
+		"task_name": "Dead Agent Lock Cleanup",
+		"status":    task5Result["status"],
+		"duration":  task5Result["duration"],
+		"error":     task5Result["error"],
+		"summary":   task5Result["summary"],
+	})
+	results["tasks_run"] = tasksRun
+	if task5Result["status"] == "success" {
+		tasksSucceeded, _ := results["tasks_succeeded"].([]string)
+		results["tasks_succeeded"] = append(tasksSucceeded, "dead_agent_cleanup")
+	} else {
+		tasksFailed, _ := results["tasks_failed"].([]string)
+		results["tasks_failed"] = append(tasksFailed, "dead_agent_cleanup")
+	}
+
 	// Generate summary
 	tasksSucceeded, _ := results["tasks_succeeded"].([]string)
 	tasksFailed, _ := results["tasks_failed"].([]string)
@@ -457,11 +464,31 @@ func handleAutomationSprint(ctx context.Context, params map[string]interface{}) 
 		}
 	}
 
+	// Task 0: dead_agent_cleanup (release expired locks from dead agents)
+	task0Result := runDeadAgentCleanup(ctx)
+	tasksRun, _ := results["tasks_run"].([]map[string]interface{})
+	tasksRun = append(tasksRun, map[string]interface{}{
+		"task_id":   "dead_agent_cleanup",
+		"task_name": "Dead Agent Lock Cleanup",
+		"status":    task0Result["status"],
+		"duration":  task0Result["duration"],
+		"error":     task0Result["error"],
+		"summary":   task0Result["summary"],
+	})
+	results["tasks_run"] = tasksRun
+	if task0Result["status"] == "success" {
+		tasksSucceeded, _ := results["tasks_succeeded"].([]string)
+		results["tasks_succeeded"] = append(tasksSucceeded, "dead_agent_cleanup")
+	} else {
+		tasksFailed, _ := results["tasks_failed"].([]string)
+		results["tasks_failed"] = append(tasksFailed, "dead_agent_cleanup")
+	}
+
 	// Task 1: analyze_alignment (todo2 action - sprint alignment)
 	task1Result := runDailyTask(ctx, "analyze_alignment", map[string]interface{}{
 		"action": "todo2",
 	})
-	tasksRun, _ := results["tasks_run"].([]map[string]interface{})
+	tasksRun, _ = results["tasks_run"].([]map[string]interface{})
 	tasksRun = append(tasksRun, map[string]interface{}{
 		"task_id":   "analyze_alignment",
 		"task_name": "Sprint Alignment Analysis",
@@ -613,6 +640,72 @@ func handleAutomationDiscover(ctx context.Context, params map[string]interface{}
 	return result, nil
 }
 
+// runDeadAgentCleanup runs dead agent lock cleanup (T-76). Returns result in runDailyTask shape.
+func runDeadAgentCleanup(ctx context.Context) map[string]interface{} {
+	startTime := time.Now()
+	result := map[string]interface{}{
+		"status":   "success",
+		"duration": 0.0,
+		"error":    "",
+		"summary":  map[string]interface{}{"cleaned": 0, "task_ids": []string{}},
+	}
+
+	if _, err := database.GetDB(); err != nil {
+		result["summary"] = map[string]interface{}{"skipped": true, "reason": "database not available"}
+		result["duration"] = time.Since(startTime).Seconds()
+		return result
+	}
+
+	staleThreshold := config.GetGlobalConfig().Timeouts.StaleLockThreshold
+	if staleThreshold <= 0 {
+		staleThreshold = 5 * time.Minute
+	}
+
+	cleaned, taskIDs, err := database.CleanupDeadAgentLocks(ctx, staleThreshold)
+	result["duration"] = time.Since(startTime).Seconds()
+
+	if err != nil {
+		result["status"] = "error"
+		result["error"] = err.Error()
+		result["summary"] = map[string]interface{}{"error": err.Error()}
+		return result
+	}
+
+	result["summary"] = map[string]interface{}{
+		"cleaned":  cleaned,
+		"task_ids": taskIDs,
+	}
+	return result
+}
+
+// parallelTask describes a task for parallel execution (T-228)
+type parallelTask struct {
+	toolName string
+	params   map[string]interface{}
+	taskName string
+}
+
+// runParallelTasks runs multiple tasks concurrently with max parallel limit (T-228)
+func runParallelTasks(ctx context.Context, tasks []parallelTask, maxParallel int) []map[string]interface{} {
+	if maxParallel <= 0 {
+		maxParallel = 3
+	}
+	results := make([]map[string]interface{}, len(tasks))
+	sem := make(chan struct{}, maxParallel)
+	var wg sync.WaitGroup
+	for i, t := range tasks {
+		wg.Add(1)
+		go func(idx int, task parallelTask) {
+			defer wg.Done()
+			sem <- struct{}{}
+			defer func() { <-sem }()
+			results[idx] = runDailyTask(ctx, task.toolName, task.params)
+		}(i, t)
+	}
+	wg.Wait()
+	return results
+}
+
 // runDailyTask runs a native Go tool task and returns result
 func runDailyTask(ctx context.Context, toolName string, params map[string]interface{}) map[string]interface{} {
 	startTime := time.Now()
@@ -645,6 +738,8 @@ func runDailyTask(ctx context.Context, toolName string, params map[string]interf
 		toolResult, err = handleInferTaskProgressNative(ctx, params)
 	case "stale_task_cleanup":
 		toolResult, err = handleTaskWorkflowNative(ctx, params)
+	case "dead_agent_cleanup":
+		return runDeadAgentCleanup(ctx)
 	case "memory_maint":
 		argsJSON, marshalErr := json.Marshal(params)
 		if marshalErr != nil {
