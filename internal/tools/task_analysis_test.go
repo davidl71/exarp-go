@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/davidl71/exarp-go/internal/database"
 	"github.com/davidl71/exarp-go/internal/framework"
 )
 
@@ -69,6 +70,30 @@ func TestHandleTaskAnalysisNative(t *testing.T) {
 				}
 				if _, ok := data["tag_analysis"]; !ok {
 					t.Error("expected tag_analysis in result")
+				}
+			},
+		},
+		{
+			name: "conflicts action",
+			params: map[string]interface{}{
+				"action": "conflicts",
+			},
+			wantError: false,
+			validate: func(t *testing.T, result []framework.TextContent) {
+				if len(result) == 0 {
+					t.Error("expected non-empty result")
+					return
+				}
+				var data map[string]interface{}
+				if err := json.Unmarshal([]byte(result[0].Text), &data); err != nil {
+					t.Errorf("invalid JSON: %v", err)
+					return
+				}
+				if _, ok := data["conflict"]; !ok {
+					t.Error("expected conflict key in result")
+				}
+				if _, ok := data["conflicts"]; !ok {
+					t.Error("expected conflicts key in result")
 				}
 			},
 		},
@@ -429,6 +454,90 @@ func TestBuildTaskBatchTagPromptMatchOnly(t *testing.T) {
 	}
 	if !strings.Contains(prompt, "Only tags from the list") {
 		t.Error("prompt should constrain to allowed list")
+	}
+}
+
+func TestDetectTaskOverlapConflicts(t *testing.T) {
+	ptr := func(id, content, status string, deps []string) *database.Todo2Task {
+		return &database.Todo2Task{ID: id, Content: content, Status: status, Dependencies: deps}
+	}
+	tests := []struct {
+		name      string
+		tasks     []*database.Todo2Task
+		wantCount int
+		wantPairs [][2]string // [dep_task_id, task_id] per conflict (DepTaskID blocks TaskID)
+	}{
+		{
+			name:      "no conflicts - empty",
+			tasks:     nil,
+			wantCount: 0,
+			wantPairs: nil,
+		},
+		{
+			name: "no conflicts - single task",
+			tasks: []*database.Todo2Task{
+				ptr("T-1", "One", "In Progress", nil),
+			},
+			wantCount: 0,
+			wantPairs: nil,
+		},
+		{
+			name: "no conflicts - dep is Todo",
+			tasks: []*database.Todo2Task{
+				ptr("T-1", "One", "Todo", nil),
+				ptr("T-2", "Two", "In Progress", []string{"T-1"}),
+			},
+			wantCount: 0,
+			wantPairs: nil,
+		},
+		{
+			name: "conflict - both In Progress with dep",
+			tasks: []*database.Todo2Task{
+				ptr("T-1", "One", "In Progress", nil),
+				ptr("T-2", "Two", "In Progress", []string{"T-1"}),
+			},
+			wantCount: 1,
+			wantPairs: [][2]string{{"T-1", "T-2"}},
+		},
+		{
+			name: "conflict - chain",
+			tasks: []*database.Todo2Task{
+				ptr("T-1", "One", "In Progress", nil),
+				ptr("T-2", "Two", "In Progress", []string{"T-1"}),
+				ptr("T-3", "Three", "In Progress", []string{"T-2"}),
+			},
+			wantCount: 2,
+			wantPairs: [][2]string{{"T-1", "T-2"}, {"T-2", "T-3"}},
+		},
+		{
+			name: "conflict - multiple deps same blocker",
+			tasks: []*database.Todo2Task{
+				ptr("T-1", "One", "In Progress", nil),
+				ptr("T-2", "Two", "In Progress", []string{"T-1"}),
+				ptr("T-3", "Three", "In Progress", []string{"T-1"}),
+			},
+			wantCount: 2,
+			wantPairs: [][2]string{{"T-1", "T-2"}, {"T-1", "T-3"}},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := DetectTaskOverlapConflicts(tt.tasks)
+			if len(got) != tt.wantCount {
+				t.Errorf("DetectTaskOverlapConflicts() conflict count = %d, want %d", len(got), tt.wantCount)
+			}
+			for i, c := range got {
+				if tt.wantPairs != nil && i < len(tt.wantPairs) {
+					if c.DepTaskID != tt.wantPairs[i][0] || c.TaskID != tt.wantPairs[i][1] {
+						t.Errorf("conflict[%d]: got DepTaskID=%s TaskID=%s, want %s blocks %s",
+							i, c.DepTaskID, c.TaskID, tt.wantPairs[i][0], tt.wantPairs[i][1])
+					}
+				}
+				if c.Reason == "" {
+					t.Error("conflict reason should be non-empty")
+				}
+			}
+		})
 	}
 }
 

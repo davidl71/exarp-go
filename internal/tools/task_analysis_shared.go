@@ -47,9 +47,52 @@ func handleTaskAnalysisNative(ctx context.Context, params map[string]interface{}
 		return handleTaskAnalysisExecutionPlan(ctx, params)
 	case "complexity":
 		return handleTaskAnalysisComplexity(ctx, params)
+	case "conflicts":
+		return handleTaskAnalysisConflicts(ctx, params)
 	default:
 		return nil, fmt.Errorf("unknown action: %s", action)
 	}
+}
+
+// handleTaskAnalysisConflicts detects task-overlap conflicts (In Progress tasks with dependent also In Progress).
+func handleTaskAnalysisConflicts(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
+	store, err := getTaskStore(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get task store: %w", err)
+	}
+	list, err := store.ListTasks(ctx, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load tasks: %w", err)
+	}
+	conflicts := DetectTaskOverlapConflicts(list)
+	hasConflict := len(conflicts) > 0
+	overlapping := make([]string, 0)
+	if hasConflict {
+		seen := make(map[string]bool)
+		for _, c := range conflicts {
+			if !seen[c.DepTaskID] {
+				seen[c.DepTaskID] = true
+				overlapping = append(overlapping, c.DepTaskID)
+			}
+			if !seen[c.TaskID] {
+				seen[c.TaskID] = true
+				overlapping = append(overlapping, c.TaskID)
+			}
+		}
+	}
+	out := map[string]interface{}{
+		"conflict":    hasConflict,
+		"conflicts":   conflicts,
+		"overlapping": overlapping,
+	}
+	if hasConflict {
+		reasons := make([]string, len(conflicts))
+		for i, c := range conflicts {
+			reasons[i] = c.Reason
+		}
+		out["reasons"] = reasons
+	}
+	return response.FormatResult(out, "")
 }
 
 // handleTaskAnalysisDuplicates handles duplicates detection
@@ -1800,19 +1843,16 @@ func handleTaskAnalysisDependencies(ctx context.Context, params map[string]inter
 	}
 	tasks := tasksFromPtrs(list)
 
-	// Build dependency graph using gonum
+	cycles, missing, err := GetDependencyAnalysisFromTasks(tasks)
+	if err != nil {
+		return nil, err
+	}
+
+	// Build legacy graph format for backward compatibility
 	tg, err := BuildTaskGraph(tasks)
 	if err != nil {
 		return nil, fmt.Errorf("failed to build task graph: %w", err)
 	}
-
-	// Detect cycles
-	cycles := DetectCycles(tg)
-
-	// Find missing dependencies
-	missing := findMissingDependencies(tasks, tg)
-
-	// Build legacy graph format for backward compatibility
 	graph := buildLegacyGraphFormat(tg)
 
 	// Calculate critical path from backlog only (exclude Done by default)
@@ -2772,6 +2812,18 @@ func findMissingDependencies(tasks []Todo2Task, tg *TaskGraph) []map[string]inte
 	}
 
 	return missing
+}
+
+// GetDependencyAnalysisFromTasks returns cycles and missing dependencies for the given tasks.
+// Used by task_discovery findOrphanTasks and handleTaskAnalysisDependencies to share graph logic.
+func GetDependencyAnalysisFromTasks(tasks []Todo2Task) (cycles [][]string, missing []map[string]interface{}, err error) {
+	tg, err := BuildTaskGraph(tasks)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to build task graph: %w", err)
+	}
+	cycles = DetectCycles(tg)
+	missing = findMissingDependencies(tasks, tg)
+	return cycles, missing, nil
 }
 
 func buildDependencyRecommendations(graph DependencyGraph, cycles [][]string, missing []map[string]interface{}) []map[string]interface{} {

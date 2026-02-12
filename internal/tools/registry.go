@@ -495,13 +495,13 @@ func registerBatch2Tools(server framework.MCPServer) error {
 	// T-32: task_analysis
 	if err := server.RegisterTool(
 		"task_analysis",
-		"[HINT: Task analysis. action=duplicates|tags|discover_tags|hierarchy|dependencies|parallelization|validate|execution_plan|complexity. Task quality and structure. complexity classifies tasks (simple/medium/complex) per Model-Assisted Workflow. discover_tags scans MD files for tag hints and uses LLM (Apple FM/Ollama) for semantic inference.]",
+		"[HINT: Task analysis. action=duplicates|tags|discover_tags|hierarchy|dependencies|parallelization|validate|execution_plan|complexity|conflicts. Task quality and structure. conflicts detects task-overlap (In Progress tasks with dependent also In Progress). complexity classifies tasks (simple/medium/complex) per Model-Assisted Workflow. discover_tags scans MD files for tag hints and uses LLM (Apple FM/Ollama) for semantic inference.]",
 		framework.ToolSchema{
 			Type: "object",
 			Properties: map[string]interface{}{
 				"action": map[string]interface{}{
 					"type":    "string",
-					"enum":    []string{"duplicates", "tags", "discover_tags", "hierarchy", "dependencies", "parallelization", "fix_missing_deps", "validate", "execution_plan", "complexity"},
+					"enum":    []string{"duplicates", "tags", "discover_tags", "hierarchy", "dependencies", "parallelization", "fix_missing_deps", "validate", "execution_plan", "complexity", "conflicts"},
 					"default": "duplicates",
 				},
 				"similarity_threshold": map[string]interface{}{
