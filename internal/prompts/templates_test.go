@@ -67,7 +67,7 @@ func TestGetPromptTemplate(t *testing.T) {
 }
 
 func TestGetPromptTemplate_AllPrompts(t *testing.T) {
-	// Test all 36 registered prompts (19 original + 16 migrated from Python + 1 tractatus_decompose)
+	// Test all templates (36 MCP prompts + 1 internal prompt_optimization_analysis)
 	allPrompts := []string{
 		"align", "discover", "config", "scan",
 		"scorecard", "overview", "plan", "dashboard", "remember",
@@ -79,6 +79,7 @@ func TestGetPromptTemplate_AllPrompts(t *testing.T) {
 		"persona_developer", "persona_project_manager", "persona_code_reviewer", "persona_executive",
 		"persona_security", "persona_architect", "persona_qa", "persona_tech_writer",
 		"tractatus_decompose",
+		"prompt_optimization_analysis",
 	}
 
 	for _, promptName := range allPrompts {
@@ -96,6 +97,35 @@ func TestGetPromptTemplate_AllPrompts(t *testing.T) {
 				t.Errorf("GetPromptTemplate(%q) returned suspiciously short result: %d chars", promptName, len(result))
 			}
 		})
+	}
+}
+
+func TestGetPromptTemplate_PromptOptimizationAnalysis(t *testing.T) {
+	template, err := GetPromptTemplate("prompt_optimization_analysis")
+	if err != nil {
+		t.Fatalf("GetPromptTemplate(prompt_optimization_analysis) error = %v", err)
+	}
+	if template == "" {
+		t.Fatal("GetPromptTemplate returned empty string")
+	}
+	// Verify required content
+	if !strings.Contains(template, "{prompt}") {
+		t.Error("template missing {prompt} placeholder")
+	}
+	if !strings.Contains(template, "clarity") || !strings.Contains(template, "specificity") {
+		t.Error("template missing dimension labels")
+	}
+	// Test substitution
+	substituted := substituteTemplate(template, map[string]interface{}{
+		"prompt":     "Fix the bug",
+		"context":    "MCP server",
+		"task_type":  "code",
+	})
+	if !strings.Contains(substituted, "Fix the bug") {
+		t.Error("substitution failed: prompt not replaced")
+	}
+	if !strings.Contains(substituted, "MCP server") {
+		t.Error("substitution failed: context not replaced")
 	}
 }
 

@@ -487,7 +487,10 @@ Mark as Done or Request Changes
 
 ### Phase 5: Prompt Optimization
 - [ ] Implement prompt analyzer
-- [ ] Create optimization prompt templates
+- [x] Define template spec — [PROMPT_OPTIMIZATION_TEMPLATE_SPEC.md](PROMPT_OPTIMIZATION_TEMPLATE_SPEC.md)
+- [x] Create analysis prompt template — `prompt_optimization_analysis` in `internal/prompts/templates.go`
+- [ ] Create suggestions-generation template (T-1770830686054)
+- [ ] Create refinement template (T-1770830686525)
 - [ ] Add iterative refinement loop
 - [ ] Integrate with task creation workflow
 

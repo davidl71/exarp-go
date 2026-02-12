@@ -593,6 +593,34 @@ For architecture concerns:
 4. Use the exported structure to inform your implementation plan or answer: summarize key propositions and dependencies, then proceed with implementation or design steps.
 
 If the user provided a {concept} placeholder, use it as the concept; otherwise prompt for a concept to decompose.`,
+
+	// Prompt optimization (internal use; see docs/PROMPT_OPTIMIZATION_TEMPLATE_SPEC.md)
+	"prompt_optimization_analysis": `Analyze the following prompt for quality. Evaluate it on five dimensions (0.0 to 1.0 each): clarity, specificity, completeness, structure, actionability.
+
+**Prompt to analyze:**
+{prompt}
+
+**Context (optional):** {context}
+
+**Task type hint (optional):** {task_type}
+
+**Dimensions:**
+- **Clarity** (0.0-1.0): Is the task clearly defined? Unambiguous wording?
+- **Specificity** (0.0-1.0): Are requirements specific enough? Concrete vs vague?
+- **Completeness** (0.0-1.0): Are all necessary details included? No critical gaps?
+- **Structure** (0.0-1.0): Is the prompt well-organized? Logical flow?
+- **Actionability** (0.0-1.0): Can an AI execute this without clarification?
+
+**Respond with JSON only:**
+{
+  "clarity": <float>,
+  "specificity": <float>,
+  "completeness": <float>,
+  "structure": <float>,
+  "actionability": <float>,
+  "summary": "<brief overall assessment>",
+  "notes": ["<optional per-dimension notes>"]
+}`,
 }
 
 // GetPromptTemplate retrieves a prompt template by name
