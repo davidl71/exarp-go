@@ -47,6 +47,37 @@ This plan outlines how to coordinate multiple AI agents (AI assistants, speciali
 
 ---
 
+## Conflict Detection
+
+Multi-agent conflict detection identifies when multiple agents may be working on conflicting work. Two detectors are implemented and surfaced in automation and session prime.
+
+### 1. Task-overlap detection
+
+**Goal:** Detect when two or more In Progress tasks have a dependency relationship (e.g. A blocks B, both In Progress = conflict).
+
+**Implementation:** `internal/tools/conflict_detection.go` — `DetectTaskOverlapConflicts(tasks)`. Loads all tasks, filters to In Progress, and for each In Progress task checks if any of its dependencies is also In Progress. Returns `TaskOverlapConflict` (TaskID, DepTaskID, Reason).
+
+**Integration:** Automation (daily, nightly, sprint) and session prime. Results include `conflicts.task_overlap`; session prime adds `conflict_hints` with messages like "Task overlap: T-X blocks T-Y; both In Progress".
+
+### 2. File-level conflict detection
+
+**Goal:** Detect when multiple In Progress tasks list the same file(s), suggesting concurrent edits.
+
+**Implementation:** `DetectFileConflicts(tasks)` parses long_description for file paths (pattern: `- Update: path`, `- Create: path`, etc. from Files/Components). Builds file → task IDs map; for any file referenced by ≥2 In Progress tasks, emits a `FileConflict` (TaskIDs, Files).
+
+**Integration:** Same as task-overlap: automation results `conflicts.file`, session prime `conflict_hints` (e.g. "File conflict: tasks T-1, T-2 share file(s): internal/foo.go").
+
+### 3. Integration points
+
+| Place | Behavior |
+|-------|----------|
+| **Automation** (`internal/tools/automation_native.go`) | Before running daily/nightly/sprint tasks, calls `DetectConflicts(ctx, projectRoot)`. If any overlaps or file conflicts, sets `results["conflicts"]` with `task_overlap` and `file` arrays. |
+| **Session prime** (`internal/tools/session.go`) | After handoff check, calls `DetectConflicts`. If any, sets `result["conflict_hints"]` to a list of human-readable strings for the AI to consider. |
+
+**Usage:** Automation can skip or flag conflicting tasks when assigning work; session prime surfaces hints so the AI is aware of existing conflicts at session start.
+
+---
+
 ## Agent Types and Roles
 
 ### 1. Primary AI Assistant (Cursor AI)
@@ -351,7 +382,7 @@ Both complete → Continue with dependent tasks
 **Needed:**
 - ⏳ Agent status tracking
 - ⏳ Result aggregation system
-- ⏳ Conflict detection mechanism
+- ✅ Conflict detection mechanism (task-overlap and file-level; see Conflict Detection section)
 
 ### 2. Monitoring and Evaluation
 
@@ -408,7 +439,7 @@ Both complete → Continue with dependent tasks
 
 **Tasks:**
 - [ ] Create research result aggregator
-- [ ] Implement conflict detection
+- [x] Implement conflict detection (task-overlap + file-level; automation + session prime)
 - [ ] Add agent performance tracking
 
 ### Phase 3: Task Parallelization (Week 3-4)

@@ -2,6 +2,8 @@
 
 Skills in this folder extend the AI with exarp-go workflows. **Read the SKILL.md in each subfolder** when the user's request matches the description.
 
+**For humans:** See [docs/CURSOR_SKILLS_GUIDE.md](../../docs/CURSOR_SKILLS_GUIDE.md) for a guide on how to use these skills (example prompts, locking, git_tools, conflict detection).
+
 | Skill | When to use |
 |-------|-------------|
 | **report-scorecard** | Project overview, scorecard, briefing, or status; after big changes; before reviews. |

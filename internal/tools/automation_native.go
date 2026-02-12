@@ -48,6 +48,18 @@ func handleAutomationDaily(ctx context.Context, params map[string]interface{}) (
 		"summary":         map[string]interface{}{},
 	}
 
+	// Conflict detection (multi-agent): report before running tasks
+	if projectRoot, err := FindProjectRoot(); err == nil {
+		if taskOverlaps, fileConflicts, errDetect := DetectConflicts(ctx, projectRoot); errDetect == nil {
+			if len(taskOverlaps) > 0 || len(fileConflicts) > 0 {
+				results["conflicts"] = map[string]interface{}{
+					"task_overlap": taskOverlaps,
+					"file":         fileConflicts,
+				}
+			}
+		}
+	}
+
 	// Task 1: analyze_alignment (todo2 action)
 	task1Result := runDailyTask(ctx, "analyze_alignment", map[string]interface{}{
 		"action": "todo2",
@@ -272,6 +284,18 @@ func handleAutomationNightly(ctx context.Context, params map[string]interface{})
 		"summary":         map[string]interface{}{},
 	}
 
+	// Conflict detection (multi-agent)
+	if projectRoot, err := FindProjectRoot(); err == nil {
+		if taskOverlaps, fileConflicts, errDetect := DetectConflicts(ctx, projectRoot); errDetect == nil {
+			if len(taskOverlaps) > 0 || len(fileConflicts) > 0 {
+				results["conflicts"] = map[string]interface{}{
+					"task_overlap": taskOverlaps,
+					"file":         fileConflicts,
+				}
+			}
+		}
+	}
+
 	// Task 1: memory_maint (consolidate action - cleanup/maintenance)
 	task1Result := runDailyTask(ctx, "memory_maint", map[string]interface{}{
 		"action": "consolidate",
@@ -421,6 +445,18 @@ func handleAutomationSprint(ctx context.Context, params map[string]interface{}) 
 		"summary":         map[string]interface{}{},
 	}
 
+	// Conflict detection (multi-agent)
+	if projectRoot, err := FindProjectRoot(); err == nil {
+		if taskOverlaps, fileConflicts, errDetect := DetectConflicts(ctx, projectRoot); errDetect == nil {
+			if len(taskOverlaps) > 0 || len(fileConflicts) > 0 {
+				results["conflicts"] = map[string]interface{}{
+					"task_overlap": taskOverlaps,
+					"file":         fileConflicts,
+				}
+			}
+		}
+	}
+
 	// Task 1: analyze_alignment (todo2 action - sprint alignment)
 	task1Result := runDailyTask(ctx, "analyze_alignment", map[string]interface{}{
 		"action": "todo2",
@@ -509,7 +545,10 @@ func handleAutomationSprint(ctx context.Context, params map[string]interface{}) 
 
 	// Add recommended backlog order for this sprint (first 15 in dependency order)
 	if projectRoot, err := FindProjectRoot(); err == nil {
-		if tasks, err := LoadTodo2Tasks(projectRoot); err == nil {
+		store := NewDefaultTaskStore(projectRoot)
+		list, err := store.ListTasks(context.Background(), nil)
+		if err == nil {
+			tasks := tasksFromPtrs(list)
 			if orderedIDs, _, details, err := BacklogExecutionOrder(tasks, nil); err == nil && len(orderedIDs) > 0 {
 				sprintOrderLimit := config.MaxAutomationIterations()
 				if sprintOrderLimit <= 0 {

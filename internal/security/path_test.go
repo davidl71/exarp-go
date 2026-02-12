@@ -3,6 +3,7 @@ package security
 import (
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 )
 
@@ -40,6 +41,13 @@ func TestValidatePath(t *testing.T) {
 			projectRoot: projectRoot,
 			wantErr:     true,
 			description: "Should reject directory traversal",
+		},
+		{
+			name:        "directory traversal prevention (../../../etc/passwd)",
+			path:        "../../../etc/passwd",
+			projectRoot: projectRoot,
+			wantErr:     true,
+			description: "Should reject directory traversal with multiple .. segments",
 		},
 		{
 			name:        "absolute path outside root",
@@ -146,6 +154,12 @@ func TestValidatePathExists(t *testing.T) {
 			projectRoot: projectRoot,
 			wantErr:     true,
 		},
+		{
+			name:        "directory traversal prevention (../../../etc/passwd)",
+			path:        "../../../etc/passwd",
+			projectRoot: projectRoot,
+			wantErr:     true,
+		},
 	}
 
 	for _, tt := range tests {
@@ -173,5 +187,113 @@ func TestGetProjectRoot(t *testing.T) {
 	}
 	if root != projectRoot {
 		t.Errorf("GetProjectRoot() = %v, want %v", root, projectRoot)
+	}
+}
+
+// symlinkSupported reports whether os.Symlink can be used (Unix; on Windows may need privileges).
+func symlinkSupported(t *testing.T) bool {
+	if runtime.GOOS == "windows" {
+		t.Skip("skipping symlink test on Windows (os.Symlink may require privileges)")
+		return false
+	}
+	return true
+}
+
+// TestValidatePathSymlink_WithinProject tests Case 1: symlink within project → target within project.
+// ValidatePath and ValidatePathExists should accept (path string within root; target exists).
+func TestValidatePathSymlink_WithinProject(t *testing.T) {
+	symlinkSupported(t)
+	tmpDir := t.TempDir()
+	projectRoot := filepath.Join(tmpDir, "project")
+	os.MkdirAll(projectRoot, 0755)
+	os.MkdirAll(filepath.Join(projectRoot, "subdir"), 0755)
+	realFile := filepath.Join(projectRoot, "real_file.txt")
+	os.WriteFile(realFile, []byte("data"), 0644)
+	linkPath := filepath.Join(projectRoot, "subdir", "link_in")
+	if err := os.Symlink(realFile, linkPath); err != nil {
+		t.Fatalf("os.Symlink: %v", err)
+	}
+
+	// ValidatePath: accept
+	_, err := ValidatePath("subdir/link_in", projectRoot)
+	if err != nil {
+		t.Errorf("ValidatePath(symlink within→within) error = %v, want nil", err)
+	}
+	// ValidatePathExists: accept (target exists)
+	_, err = ValidatePathExists("subdir/link_in", projectRoot)
+	if err != nil {
+		t.Errorf("ValidatePathExists(symlink within→within) error = %v, want nil", err)
+	}
+}
+
+// TestValidatePathSymlink_OutsideProject tests Case 2: symlink within project → target outside root.
+// Current behavior: ValidatePath accepts (path string is within root; no EvalSymlinks).
+func TestValidatePathSymlink_OutsideProject(t *testing.T) {
+	symlinkSupported(t)
+	tmpDir := t.TempDir()
+	projectRoot := filepath.Join(tmpDir, "project")
+	outsideDir := filepath.Join(tmpDir, "outside")
+	os.MkdirAll(projectRoot, 0755)
+	os.MkdirAll(outsideDir, 0755)
+	secret := filepath.Join(outsideDir, "secret")
+	os.WriteFile(secret, []byte("secret"), 0644)
+	evilLink := filepath.Join(projectRoot, "evil_link")
+	if err := os.Symlink(secret, evilLink); err != nil {
+		t.Fatalf("os.Symlink: %v", err)
+	}
+
+	// Current behavior: ValidatePath accepts (does not resolve symlink)
+	_, err := ValidatePath("evil_link", projectRoot)
+	if err != nil {
+		t.Errorf("ValidatePath(symlink to outside) current behavior: error = %v, want nil (path string within root)", err)
+	}
+}
+
+// TestValidatePathExistsSymlink_Broken tests Case 3: broken symlink.
+// ValidatePath accepts (path string within root); ValidatePathExists rejects (path does not exist).
+func TestValidatePathExistsSymlink_Broken(t *testing.T) {
+	symlinkSupported(t)
+	tmpDir := t.TempDir()
+	projectRoot := filepath.Join(tmpDir, "project")
+	os.MkdirAll(projectRoot, 0755)
+	brokenLink := filepath.Join(projectRoot, "broken_link")
+	if err := os.Symlink("nonexistent_target", brokenLink); err != nil {
+		t.Fatalf("os.Symlink: %v", err)
+	}
+
+	_, err := ValidatePath("broken_link", projectRoot)
+	if err != nil {
+		t.Errorf("ValidatePath(broken symlink) error = %v, want nil", err)
+	}
+	_, err = ValidatePathExists("broken_link", projectRoot)
+	if err == nil {
+		t.Error("ValidatePathExists(broken symlink) want error (path does not exist), got nil")
+	}
+}
+
+// TestValidatePathSymlink_Nested tests Case 4: symlink in path component (a/link → b/file).
+// ValidatePath and ValidatePathExists should accept when target is within root.
+func TestValidatePathSymlink_Nested(t *testing.T) {
+	symlinkSupported(t)
+	tmpDir := t.TempDir()
+	projectRoot := filepath.Join(tmpDir, "project")
+	dirA := filepath.Join(projectRoot, "a")
+	dirB := filepath.Join(projectRoot, "b")
+	os.MkdirAll(dirA, 0755)
+	os.MkdirAll(dirB, 0755)
+	targetFile := filepath.Join(dirB, "file")
+	os.WriteFile(targetFile, []byte("data"), 0644)
+	linkPath := filepath.Join(dirA, "link")
+	if err := os.Symlink(targetFile, linkPath); err != nil {
+		t.Fatalf("os.Symlink: %v", err)
+	}
+
+	_, err := ValidatePath("a/link", projectRoot)
+	if err != nil {
+		t.Errorf("ValidatePath(nested symlink) error = %v, want nil", err)
+	}
+	_, err = ValidatePathExists("a/link", projectRoot)
+	if err != nil {
+		t.Errorf("ValidatePathExists(nested symlink) error = %v, want nil", err)
 	}
 }

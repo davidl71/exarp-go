@@ -61,6 +61,7 @@ Using this rule keeps plans and code aligned with Todo2 and improves task discov
 
 ## See also
 
+- **Cursor skills guide:** [docs/CURSOR_SKILLS_GUIDE.md](CURSOR_SKILLS_GUIDE.md) — How to use skills (task-workflow, locking, git_tools, conflict detection)
 - Task management: `.cursorrules` (convenience commands vs tool calls)
 - Configuration: `docs/CONFIGURABLE_PARAMETERS_RECOMMENDATIONS.md` (default task tags, etc.)
 - Task analysis: `task_analysis` tool and `getCanonicalTagsList()` in codebase

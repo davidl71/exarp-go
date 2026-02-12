@@ -130,6 +130,18 @@ for {
 
 ---
 
+## Process verification (T-319)
+
+To verify that an agent holding a lock is still running (before treating a lock as stale):
+
+- **`utils.ProcessExists(pid int) bool`** — returns true if the process with the given PID exists (Unix: `kill(pid, 0)`; Windows: no-op, returns true).
+- **`database.ParsePIDFromAgentID(agentID string) (pid int, ok bool)`** — extracts PID from agent ID format `{type}-{hostname}-{pid}`.
+- **`database.AgentProcessExists(agentID string) bool`** — returns true if the agent’s process is running (uses PID from agent ID). Returns false if agent ID has no PID (e.g. from GetAgentIDSimple).
+
+Use in stale-lock logic: e.g. before cleaning an expired lock, call `AgentProcessExists(assignee)`; if true, the process is still alive and the lock might be renewed soon.
+
+---
+
 ## 🔍 Detection Strategies
 
 ### **1. Expired Locks (Time-Based)**

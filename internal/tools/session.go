@@ -206,6 +206,20 @@ func handleSessionPrime(ctx context.Context, params map[string]interface{}) ([]f
 		}
 	}
 
+	// 8. Multi-agent conflict hints (task-overlap and file-level)
+	if taskOverlaps, fileConflicts, err := DetectConflicts(ctx, projectRoot); err == nil {
+		var conflictHints []string
+		for _, c := range taskOverlaps {
+			conflictHints = append(conflictHints, "Task overlap: "+c.Reason)
+		}
+		for _, c := range fileConflicts {
+			conflictHints = append(conflictHints, "File conflict: tasks "+strings.Join(c.TaskIDs, ", ")+" share file(s): "+strings.Join(c.Files, ", "))
+		}
+		if len(conflictHints) > 0 {
+			result["conflict_hints"] = conflictHints
+		}
+	}
+
 	return mcpresponse.FormatResult(result, "")
 }
 
