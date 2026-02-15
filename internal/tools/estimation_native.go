@@ -180,8 +180,12 @@ func handleEstimationEstimate(ctx context.Context, projectRoot string, params ma
 		useHistorical = useHist
 	}
 
-	useAppleFM := true
-	if useAFM, ok := params["use_apple_fm"].(bool); ok {
+	// local_ai_backend overrides: fm (Apple), mlx, ollama. When set, use that backend for LLM estimate.
+	backend, _ := params["local_ai_backend"].(string)
+	backend = strings.TrimSpace(strings.ToLower(backend))
+
+	useAppleFM := backend == "" || backend == "fm"
+	if useAFM, ok := params["use_apple_fm"].(bool); ok && backend == "" {
 		useAppleFM = useAFM
 	}
 
@@ -213,47 +217,78 @@ func handleEstimationEstimate(ctx context.Context, projectRoot string, params ma
 		return "", fmt.Errorf("statistical estimation failed: %w", err)
 	}
 
-	// Get Apple FM estimate if enabled
-	var appleFMResult *EstimationResult
-	if useAppleFM {
-		afmResult, err := estimateWithAppleFM(ctx, name, details, tags, priority)
+	// LLM estimate: prefer local_ai_backend (ollama/mlx), else Apple FM when enabled
+	var llmResult *EstimationResult
+	llmMethod := ""
+	switch backend {
+	case "ollama":
+		res, err := EstimateWithOllama(ctx, name, details, tags, priority, "")
 		if err == nil {
-			appleFMResult = afmResult
+			llmResult = res
+			llmMethod = "ollama"
 		} else {
-			// Log error but continue with statistical only
-			// Error is logged to metadata for debugging
 			if statisticalResult.Metadata == nil {
 				statisticalResult.Metadata = make(map[string]interface{})
 			}
-			statisticalResult.Metadata["apple_fm_error"] = err.Error()
+			statisticalResult.Metadata["ollama_error"] = err.Error()
+		}
+	case "mlx":
+		prompt := BuildEstimationPrompt(name, details, tags, priority)
+		raw, err := InvokeMLXTool(ctx, map[string]interface{}{"action": "generate", "prompt": prompt})
+		if err == nil && raw != "" {
+			res, err := ParseLLMEstimationResponse(raw)
+			if err == nil {
+				llmResult = res
+				llmMethod = "mlx"
+			}
+		}
+		if llmResult == nil && statisticalResult.Metadata != nil {
+			statisticalResult.Metadata["mlx_skipped"] = "mlx generate unavailable or failed"
+		}
+	default:
+		if useAppleFM {
+			afmResult, err := estimateWithAppleFM(ctx, name, details, tags, priority)
+			if err == nil {
+				llmResult = afmResult
+				llmMethod = "apple_fm"
+			} else {
+				if statisticalResult.Metadata == nil {
+					statisticalResult.Metadata = make(map[string]interface{})
+				}
+				statisticalResult.Metadata["apple_fm_error"] = err.Error()
+			}
 		}
 	}
 
-	// Combine estimates
+	// Combine estimates (statistical + optional LLM)
 	var finalResult *EstimationResult
-	if appleFMResult != nil && appleFMWeight > 0 {
-		// Hybrid: combine statistical and Apple FM
+	if llmResult != nil && appleFMWeight > 0 {
 		statisticalWeight := 1.0 - appleFMWeight
-		combinedEstimate := statisticalResult.EstimateHours*statisticalWeight + appleFMResult.EstimateHours*appleFMWeight
-		combinedConfidence := statisticalResult.Confidence*statisticalWeight + appleFMResult.Confidence*appleFMWeight
-
+		combinedEstimate := statisticalResult.EstimateHours*statisticalWeight + llmResult.EstimateHours*appleFMWeight
+		combinedConfidence := statisticalResult.Confidence*statisticalWeight + llmResult.Confidence*appleFMWeight
+		methodName := "hybrid_apple_fm"
+		if llmMethod == "ollama" {
+			methodName = "hybrid_ollama"
+		} else if llmMethod == "mlx" {
+			methodName = "hybrid_mlx"
+		}
 		finalResult = &EstimationResult{
 			EstimateHours: math.Round(combinedEstimate*10) / 10,
 			Confidence:    math.Min(0.95, combinedConfidence),
-			Method:        "hybrid_apple_fm",
+			Method:        methodName,
 			LowerBound:    statisticalResult.LowerBound,
 			UpperBound:    statisticalResult.UpperBound,
 			Metadata: map[string]interface{}{
 				"statistical_estimate": statisticalResult.EstimateHours,
-				"apple_fm_estimate":    appleFMResult.EstimateHours,
+				"llm_estimate":         llmResult.EstimateHours,
+				"llm_backend":          llmMethod,
 				"statistical_weight":   statisticalWeight,
-				"apple_fm_weight":      appleFMWeight,
+				"llm_weight":           appleFMWeight,
 				"statistical_method":   statisticalResult.Method,
-				"apple_fm_metadata":    appleFMResult.Metadata,
+				"llm_metadata":         llmResult.Metadata,
 			},
 		}
 	} else {
-		// Statistical only
 		finalResult = statisticalResult
 	}
 

@@ -7,6 +7,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"math"
 	"strings"
 )
 
@@ -32,7 +33,7 @@ func handleEstimationNative(ctx context.Context, projectRoot string, params map[
 	}
 }
 
-// handleEstimationEstimateNoCGO handles estimation without Apple FM (statistical only)
+// handleEstimationEstimateNoCGO handles estimation without Apple FM (statistical + optional Ollama)
 func handleEstimationEstimateNoCGO(ctx context.Context, projectRoot string, params map[string]interface{}) (string, error) {
 	name, _ := params["name"].(string)
 	details, _ := params["details"].(string)
@@ -46,6 +47,14 @@ func handleEstimationEstimateNoCGO(ctx context.Context, projectRoot string, para
 	useHistorical := true
 	if useHist, ok := params["use_historical"].(bool); ok {
 		useHistorical = useHist
+	}
+
+	backend, _ := params["local_ai_backend"].(string)
+	backend = strings.TrimSpace(strings.ToLower(backend))
+
+	appleFMWeight := 0.3
+	if weight, ok := params["apple_fm_weight"].(float64); ok {
+		appleFMWeight = weight
 	}
 
 	// Parse tags
@@ -65,17 +74,47 @@ func handleEstimationEstimateNoCGO(ctx context.Context, projectRoot string, para
 		}
 	}
 
-	// Get statistical estimate only (no Apple FM on non-Apple platforms)
 	statisticalResult, err := estimateStatistically(projectRoot, name, details, tags, priority, useHistorical)
 	if err != nil {
 		return "", fmt.Errorf("statistical estimation failed: %w", err)
 	}
 
-	// Marshal result
-	resultJSON, err := json.MarshalIndent(statisticalResult, "", "  ")
+	var finalResult *EstimationResult
+	if backend == "ollama" {
+		ollamaResult, err := EstimateWithOllama(ctx, name, details, tags, priority, "")
+		if err == nil && appleFMWeight > 0 {
+			statisticalWeight := 1.0 - appleFMWeight
+			combinedEstimate := statisticalResult.EstimateHours*statisticalWeight + ollamaResult.EstimateHours*appleFMWeight
+			combinedConfidence := statisticalResult.Confidence*statisticalWeight + ollamaResult.Confidence*appleFMWeight
+			finalResult = &EstimationResult{
+				EstimateHours: math.Round(combinedEstimate*10) / 10,
+				Confidence:    math.Min(0.95, combinedConfidence),
+				Method:        "hybrid_ollama",
+				LowerBound:    statisticalResult.LowerBound,
+				UpperBound:    statisticalResult.UpperBound,
+				Metadata: map[string]interface{}{
+					"statistical_estimate": statisticalResult.EstimateHours,
+					"llm_estimate":         ollamaResult.EstimateHours,
+					"llm_backend":          "ollama",
+					"statistical_weight":   statisticalWeight,
+					"llm_weight":           appleFMWeight,
+					"llm_metadata":         ollamaResult.Metadata,
+				},
+			}
+		} else {
+			if statisticalResult.Metadata == nil {
+				statisticalResult.Metadata = make(map[string]interface{})
+			}
+			statisticalResult.Metadata["ollama_error"] = err.Error()
+			finalResult = statisticalResult
+		}
+	} else {
+		finalResult = statisticalResult
+	}
+
+	resultJSON, err := json.MarshalIndent(finalResult, "", "  ")
 	if err != nil {
 		return "", fmt.Errorf("failed to marshal result: %w", err)
 	}
-
 	return string(resultJSON), nil
 }

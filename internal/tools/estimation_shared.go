@@ -14,6 +14,25 @@ import (
 	"github.com/davidl71/exarp-go/internal/database"
 )
 
+// MetadataKeyPreferredBackend is the task metadata key for local AI backend preference (fm, mlx, ollama).
+const MetadataKeyPreferredBackend = "preferred_backend"
+
+// GetPreferredBackend returns the preferred local AI backend from task metadata, or "" if unset.
+// Valid values: "fm", "mlx", "ollama".
+func GetPreferredBackend(metadata map[string]interface{}) string {
+	if metadata == nil {
+		return ""
+	}
+	s, _ := metadata[MetadataKeyPreferredBackend].(string)
+	s = strings.TrimSpace(strings.ToLower(s))
+	switch s {
+	case "fm", "mlx", "ollama":
+		return s
+	default:
+		return ""
+	}
+}
+
 // HistoricalTask represents a completed task for historical analysis
 type HistoricalTask struct {
 	Name           string
@@ -735,7 +754,7 @@ func estimateFromHistory(text string, tags []string, priority string, historical
 		}
 
 		// Priority matching
-		if strings.ToLower(priority) == strings.ToLower(record.Priority) {
+		if strings.EqualFold(priority, record.Priority) {
 			score += 0.2
 		}
 
@@ -853,4 +872,101 @@ type HistoricalTaskData struct {
 	Created         string   `json:"created,omitempty"`
 	CompletedAt     string   `json:"completedAt,omitempty"`
 	LastModified    string   `json:"lastModified,omitempty"`
+}
+
+// BuildEstimationPrompt returns the standard task estimation prompt for LLM backends (Ollama, MLX, etc.).
+func BuildEstimationPrompt(name, details string, tags []string, priority string) string {
+	tagsStr := "none"
+	if len(tags) > 0 {
+		tagsStr = strings.Join(tags, ", ")
+	}
+	return fmt.Sprintf(`You are an expert software development task estimator. Respond ONLY with valid JSON.
+
+Estimate the time required to complete this software development task.
+
+TASK INFORMATION:
+- Name: %s
+- Details: %s
+- Tags: %s
+- Priority: %s
+
+RESPONSE FORMAT (JSON only):
+{
+    "estimate_hours": <number between 0.5 and 20>,
+    "confidence": <number between 0.0 and 1.0>,
+    "complexity": <number between 1 and 10>,
+    "reasoning": "<brief 1-2 sentence explanation>"
+}`, name, details, tagsStr, priority)
+}
+
+// ParseLLMEstimationResponse extracts EstimationResult from LLM response text (Ollama/MLX/any JSON).
+func ParseLLMEstimationResponse(text string) (*EstimationResult, error) {
+	jsonStr := ExtractJSONObjectFromLLMResponse(text)
+	if jsonStr == "" {
+		return nil, fmt.Errorf("no JSON object found in response")
+	}
+	var parsed struct {
+		EstimateHours float64 `json:"estimate_hours"`
+		Confidence    float64 `json:"confidence"`
+		Complexity    float64 `json:"complexity"`
+		Reasoning     string  `json:"reasoning"`
+	}
+	if err := json.Unmarshal([]byte(jsonStr), &parsed); err != nil {
+		return nil, fmt.Errorf("failed to parse JSON: %w", err)
+	}
+	if parsed.EstimateHours < 0.5 || parsed.EstimateHours > 20 {
+		parsed.EstimateHours = math.Max(0.5, math.Min(20, parsed.EstimateHours))
+	}
+	if parsed.Confidence < 0 || parsed.Confidence > 1 {
+		parsed.Confidence = math.Max(0, math.Min(1, parsed.Confidence))
+	}
+	stdDev := parsed.EstimateHours * 0.3
+	lowerBound := math.Max(0.5, parsed.EstimateHours-1.96*stdDev)
+	upperBound := parsed.EstimateHours + 1.96*stdDev
+	return &EstimationResult{
+		EstimateHours: math.Round(parsed.EstimateHours*10) / 10,
+		Confidence:    math.Min(0.95, parsed.Confidence),
+		Method:        "ollama",
+		LowerBound:    math.Round(lowerBound*10) / 10,
+		UpperBound:    math.Round(upperBound*10) / 10,
+		Metadata: map[string]interface{}{
+			"complexity": parsed.Complexity,
+			"reasoning":  parsed.Reasoning,
+		},
+	}, nil
+}
+
+// EstimateWithOllama runs task estimation using the default Ollama provider.
+// Model defaults to llama3.2; pass empty to use default.
+func EstimateWithOllama(ctx context.Context, name, details string, tags []string, priority, model string) (*EstimationResult, error) {
+	prompt := BuildEstimationPrompt(name, details, tags, priority)
+	if model == "" {
+		model = "llama3.2"
+	}
+	params := map[string]interface{}{
+		"action":   "generate",
+		"prompt":   prompt,
+		"model":    model,
+		"stream":   false,
+	}
+	tc, err := DefaultOllama().Invoke(ctx, params)
+	if err != nil {
+		return nil, fmt.Errorf("ollama invoke: %w", err)
+	}
+	var responseText string
+	if len(tc) > 0 && tc[0].Text != "" {
+		var genResp map[string]interface{}
+		if err := json.Unmarshal([]byte(tc[0].Text), &genResp); err == nil {
+			if resp, ok := genResp["response"].(string); ok {
+				responseText = resp
+			}
+		}
+		if responseText == "" {
+			responseText = tc[0].Text
+		}
+	}
+	if responseText == "" {
+		return nil, fmt.Errorf("ollama returned empty response")
+	}
+	return ParseLLMEstimationResponse(responseText)
 }

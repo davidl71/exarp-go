@@ -790,6 +790,11 @@ func registerBatch2Tools(server framework.MCPServer) error {
 					"default":     true,
 					"description": "Automatically estimate task duration and add as comment (default: true)",
 				},
+				"local_ai_backend": map[string]interface{}{
+					"type":        "string",
+					"description": "For create: preferred local LLM for estimation (fm|mlx|ollama). Stored in task metadata as preferred_backend.",
+					"enum":        []string{"", "fm", "mlx", "ollama"},
+				},
 				"planning_doc": map[string]interface{}{
 					"type":        "string",
 					"description": "Path to planning document. For link_planning: optional, stored in task metadata. For sync_from_plan/sync_plan_status: required (.plan.md path).",
@@ -1159,6 +1164,11 @@ func registerBatch3Tools(server framework.MCPServer) error {
 				"mlx_weight": map[string]interface{}{
 					"type":    "number",
 					"default": 0.3,
+				},
+				"local_ai_backend": map[string]interface{}{
+					"type":        "string",
+					"description": "Preferred local LLM for estimation: fm (Apple), mlx, ollama. Overrides use_apple_fm when set.",
+					"enum":        []string{"", "fm", "mlx", "ollama"},
 				},
 			},
 		},
