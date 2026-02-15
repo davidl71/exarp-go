@@ -12,6 +12,9 @@
 .exarp/
 .todo2/
 
+# Generated reports (e.g. by analyze_alignment, pre-push hooks)
+docs/TODO2_ALIGNMENT_REPORT.md
+
 # Go build artifacts
 bin/
 build/
