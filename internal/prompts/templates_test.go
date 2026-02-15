@@ -83,6 +83,8 @@ func TestGetPromptTemplate_AllPrompts(t *testing.T) {
 		"prompt_optimization_suggestions",
 		"prompt_optimization_refinement",
 		"task_breakdown",
+		"task_breakdown_brief",
+		"task_execution",
 	}
 
 	for _, promptName := range allPrompts {

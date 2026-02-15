@@ -481,8 +481,8 @@ Mark as Done or Request Changes
 
 ### Phase 4: Auto-Execution
 - [ ] Implement task complexity classifier
-- [ ] Create execution prompt templates
-- [ ] Add change application logic
+- [x] Create execution prompt templates — `task_execution` in `internal/prompts/templates.go` (T-213)
+- [x] Add change application logic — `ApplyChanges`, `ParseExecutionResponse` in `internal/tools/execution_apply.go` (T-214)
 - [ ] Integrate with Todo2 execution flow
 
 ### Phase 5: Prompt Optimization
