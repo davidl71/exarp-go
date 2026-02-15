@@ -1772,6 +1772,14 @@ func handleTaskWorkflowCreate(ctx context.Context, params map[string]interface{}
 		SetPlanningLinkMetadata(task, linkMeta)
 	}
 
+	// Store preferred local AI backend for estimation (fm|mlx|ollama)
+	if backend, ok := params["local_ai_backend"].(string); ok && backend != "" {
+		backend = strings.TrimSpace(strings.ToLower(backend))
+		if backend == "fm" || backend == "mlx" || backend == "ollama" {
+			task.Metadata[MetadataKeyPreferredBackend] = backend
+		}
+	}
+
 	// Create via store (DB or file; sync is internal)
 	if err := store.CreateTask(ctx, task); err != nil {
 		return nil, fmt.Errorf("failed to create task: %w", err)
@@ -1921,9 +1929,9 @@ func normalizePriority(priority string) string {
 }
 
 // addEstimateComment estimates task duration and adds it as a comment
-// This is called after task creation succeeds, and failures are handled gracefully
+// This is called after task creation succeeds, and failures are handled gracefully.
+// Uses task.Metadata["preferred_backend"] (fm|mlx|ollama) when set for local AI backend.
 func addEstimateComment(ctx context.Context, projectRoot string, task *models.Todo2Task, name, details string, tags []string, priority string) error {
-	// Call estimation tool
 	estimationParams := map[string]interface{}{
 		"action":         "estimate",
 		"name":           name,
@@ -1932,6 +1940,9 @@ func addEstimateComment(ctx context.Context, projectRoot string, task *models.To
 		"priority":       priority,
 		"use_historical": true,
 		"detailed":       false,
+	}
+	if backend := GetPreferredBackend(task.Metadata); backend != "" {
+		estimationParams["local_ai_backend"] = backend
 	}
 
 	// Try native estimation first (platform-agnostic, will use statistical if Apple FM unavailable)
@@ -1982,7 +1993,9 @@ func formatEstimateComment(estimate EstimationResult) string {
 		if statisticalEst, ok := estimate.Metadata["statistical_estimate"].(float64); ok {
 			builder.WriteString(fmt.Sprintf("\n**Statistical Estimate:** %.1f hours\n", statisticalEst))
 		}
-		if appleFMEst, ok := estimate.Metadata["apple_fm_estimate"].(float64); ok {
+		if llmEst, ok := estimate.Metadata["llm_estimate"].(float64); ok {
+			builder.WriteString(fmt.Sprintf("**AI Estimate:** %.1f hours\n", llmEst))
+		} else if appleFMEst, ok := estimate.Metadata["apple_fm_estimate"].(float64); ok {
 			builder.WriteString(fmt.Sprintf("**AI Estimate:** %.1f hours\n", appleFMEst))
 		}
 	}
