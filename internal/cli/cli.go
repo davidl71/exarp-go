@@ -138,6 +138,13 @@ func Run() error {
 	case "lock":
 		initializeDatabase()
 		return handleLockCommand(parsed)
+	case "session":
+		initializeDatabase()
+		server, err := setupServer()
+		if err != nil {
+			return err
+		}
+		return handleSessionCommand(server, parsed)
 	case "tui3270":
 		tuiParsed := mcpcli.ParseArgs(os.Args[2:])
 		daemon := tuiParsed.GetBoolFlag("daemon", false) || tuiParsed.GetBoolFlag("d", false)
@@ -327,6 +334,44 @@ func executeTool(server framework.MCPServer, toolName, argsJSON string) error {
 	return nil
 }
 
+// runSessionHandoffList calls the session tool with handoff list and prints the result.
+func runSessionHandoffList(server framework.MCPServer) error {
+	ctx := context.Background()
+	args := map[string]interface{}{"action": "handoff", "sub_action": "list"}
+	argsBytes, err := json.Marshal(args)
+	if err != nil {
+		return err
+	}
+	result, err := server.CallTool(ctx, "session", argsBytes)
+	if err != nil {
+		return err
+	}
+	if len(result) == 0 {
+		_, _ = fmt.Println("No handoff notes.")
+		return nil
+	}
+	for _, content := range result {
+		_, _ = fmt.Println(content.Text)
+	}
+	return nil
+}
+
+// handleSessionCommand handles the "session" subcommand (e.g. session handoffs).
+func handleSessionCommand(server framework.MCPServer, parsed *mcpcli.Args) error {
+	sub := strings.ToLower(strings.TrimSpace(parsed.Subcommand))
+	if sub == "" && len(parsed.Positional) > 0 {
+		sub = strings.ToLower(strings.TrimSpace(parsed.Positional[0]))
+	}
+	switch sub {
+	case "handoffs", "list":
+		return runSessionHandoffList(server)
+	default:
+		_, _ = fmt.Println("Session subcommands: handoffs")
+		_, _ = fmt.Println("  exarp-go session handoffs   View session handoff notes")
+		return nil
+	}
+}
+
 // generateRequestID generates a simple request ID for logging
 func generateRequestID() string {
 	return fmt.Sprintf("req-%d", time.Now().UnixNano())
@@ -471,6 +516,10 @@ func handleInteractiveCommand(server framework.MCPServer, cmd string) bool {
 		if err := listAllTools(server); err != nil {
 			_, _ = fmt.Printf("Error listing tools: %v\n", err)
 		}
+	case "handoffs":
+		if err := runSessionHandoffList(server); err != nil {
+			_, _ = fmt.Printf("Error listing handoffs: %v\n", err)
+		}
 	default:
 		_, _ = fmt.Printf("Unknown command: %s\n", cmd)
 		_, _ = fmt.Println("Type 'help' for available commands")
@@ -534,6 +583,7 @@ func showUsage() {
 	_, _ = fmt.Println("  exarp-go task <command> [options]")
 	_, _ = fmt.Println("  exarp-go tui [status]")
 	_, _ = fmt.Println("  exarp-go tui3270 [status] [port]")
+	_, _ = fmt.Println("  exarp-go session handoffs")
 	_, _ = fmt.Println()
 	_, _ = fmt.Println("Flags:")
 	_, _ = fmt.Println("  -tool <name>        Execute a tool")
@@ -558,6 +608,9 @@ func showUsage() {
 	_, _ = fmt.Println("    --daemon, -d          Run in background mode (writes PID file, redirects logs)")
 	_, _ = fmt.Println("    --pid-file FILE       Write PID to FILE (default: .exarp-go-tui3270.pid)")
 	_, _ = fmt.Println()
+	_, _ = fmt.Println("Session:")
+	_, _ = fmt.Println("  session handoffs       View session handoff notes (from previous sessions)")
+	_, _ = fmt.Println()
 	_, _ = fmt.Println("Examples:")
 	_, _ = fmt.Println("  exarp-go -list")
 	_, _ = fmt.Println("  exarp-go -tool lint -args '{\"action\":\"run\",\"path\":\".\"}'")
@@ -568,6 +621,7 @@ func showUsage() {
 	_, _ = fmt.Println("  exarp-go task list --status \"In Progress\"")
 	_, _ = fmt.Println("  exarp-go task update T-1 --new-status \"Done\"")
 	_, _ = fmt.Println("  exarp-go task update T-1 --new-priority high")
+	_, _ = fmt.Println("  exarp-go session handoffs")
 	_, _ = fmt.Println("  exarp-go -completion bash > /usr/local/etc/bash_completion.d/exarp-go")
 	_, _ = fmt.Println()
 }
@@ -577,6 +631,7 @@ func showHelp() {
 	_, _ = fmt.Println("Available commands:")
 	_, _ = fmt.Println("  help              Show this help message")
 	_, _ = fmt.Println("  list              List all available tools")
+	_, _ = fmt.Println("  handoffs          View session handoff notes")
 	_, _ = fmt.Println("  exit, quit        Exit interactive mode")
 	_, _ = fmt.Println()
 }
