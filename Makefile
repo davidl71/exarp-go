@@ -1,4 +1,4 @@
-.PHONY: help build build-debug build-race build-no-cgo run test test-watch test-coverage test-html clean install fmt lint lint-all lint-all-fix dev dev-watch dev-test dev-full dev-cycle pre-push bench docs sanity-check sanity-check-cached test-cli test-cli-list test-cli-tool test-cli-test config clean-config sprint-start sprint-end pre-sprint sprint check-tasks update-completed-tasks task-sanity-check go-fmt go-vet golangci-lint-check golangci-lint-fix govulncheck check check-fix check-all build-migrate migrate migrate-dry-run install-tools go-mod-tidy go-mod-verify pre-commit ci validate check-deps test-go test-go-fast test-go-verbose test-go-parallel test-go-tools-short version scorecard scorecard-full scorecard-plans report-plan demo-tui task-list task-list-todo task-list-in-progress task-list-done task-update proto delete-expired-archive analyze-critical-path proto-check proto-clean exarp-list exarp-report-scorecard exarp-report-overview exarp-health-server exarp-health-docs exarp-context-budget exarp-test
+.PHONY: help build build-debug build-race build-no-cgo run test test-watch test-coverage test-html clean install fmt lint lint-all lint-all-fix dev dev-watch dev-test dev-full dev-cycle pre-push bench docs sanity-check sanity-check-cached test-cli test-cli-list test-cli-tool test-cli-test config clean-config sprint-start sprint-end pre-sprint sprint check-tasks update-completed-tasks task-sanity-check go-fmt go-vet golangci-lint-check golangci-lint-fix govulncheck check check-fix check-all build-migrate migrate migrate-dry-run install-tools go-mod-tidy go-mod-verify pre-commit ci validate check-deps test-go test-go-fast test-go-verbose test-go-parallel test-go-tools-short test-real-models version scorecard scorecard-full scorecard-plans report-plan demo-tui task-list task-list-todo task-list-in-progress task-list-done task-update proto delete-expired-archive analyze-critical-path proto-check proto-clean exarp-list exarp-report-scorecard exarp-report-overview exarp-health-server exarp-health-docs exarp-context-budget exarp-test
 
 # Project configuration
 PROJECT_NAME := exarp-go
@@ -276,6 +276,10 @@ test-go-tools-short: ## Run internal/tools tests with -short (skips discover/spr
 test-integration: ## Run Go tests (Python integration tests removed)
 	@echo "$(BLUE)Running Go tests...$(NC)"
 	@$(GO) test ./... -v || echo "$(YELLOW)⚠️  Go tests failed$(NC)"
+
+test-real-models: ## Run integration tests with real LLM backends (FM/Ollama/MLX); omit -short, requires local backend
+	@echo "$(BLUE)Running real-models integration tests...$(NC)"
+	@$(GO) test -run RealModels ./internal/tools/... -timeout=120s -count=1 || echo "$(YELLOW)⚠️  Real-models tests failed or skipped (no backend)$(NC)"
 
 test-coverage: test-coverage-go ## Run tests with coverage (Go only)
 
