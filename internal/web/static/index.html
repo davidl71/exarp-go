@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>exarp-go</title>
+  <link rel="manifest" href="/manifest.webmanifest" />
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: system-ui, sans-serif; background: #0f0f12; color: #e4e4e7; min-height: 100vh; }
+    a { color: #818cf8; }
+    a:hover { text-decoration: underline; }
+    nav { padding: 1rem 1.5rem; border-bottom: 1px solid #27272a; display: flex; gap: 1.5rem; }
+    main { padding: 1.5rem; }
+    pre { white-space: pre-wrap; background: #18181b; padding: 1rem; border-radius: 8px; }
+    select, button { margin-left: 8px; background: #27272a; color: #e4e4e7; border: 1px solid #3f3f46; padding: 0.25rem 0.5rem; border-radius: 4px; }
+    ul { list-style: none; padding: 0; }
+    li { padding: 0.5rem 0; border-bottom: 1px solid #27272a; }
+    .loading { color: #71717a; }
+    .error { color: #f87171; }
+  </style>
+</head>
+<body>
+  <nav>
+    <a href="#" data-page="dashboard">Dashboard</a>
+    <a href="#" data-page="tasks">Tasks</a>
+    <a href="#" data-page="report">Report</a>
+    <a href="#" data-page="handoff">Handoff</a>
+  </nav>
+  <main id="content"></main>
+  <script>
+    const content = document.getElementById('content');
+    function setPage(p) {
+      document.querySelectorAll('nav a').forEach(a => a.style.fontWeight = a.dataset.page === p ? 'bold' : '');
+      window.currentPage = p;
+      load();
+    }
+    function firstText(r) {
+      if (r.error) return r.error;
+      if (r.contents && r.contents[0]) return r.contents[0].text;
+      return '';
+    }
+    function firstJSON(r) {
+      try { return JSON.parse(firstText(r) || 'null'); } catch { return null; }
+    }
+    async function load() {
+      const page = window.currentPage || 'dashboard';
+      content.innerHTML = '<p class="loading">Loading...</p>';
+      try {
+        if (page === 'dashboard') {
+          const r = await fetch('/api/session/prime').then(x => x.json());
+          const text = firstText(r);
+          content.innerHTML = '<h1>Dashboard</h1><pre>' + (text || 'No session prime data.') + '</pre>';
+        } else if (page === 'tasks') {
+          const status = window.taskStatus || '';
+          const priority = window.taskPriority || '';
+          const q = new URLSearchParams();
+          if (status) q.set('status', status);
+          if (priority) q.set('priority', priority);
+          const r = await fetch('/api/tasks?' + q).then(x => x.json());
+          const data = firstJSON(r);
+          const tasks = (data && data.tasks) || [];
+          const raw = firstText(r);
+          let html = '<h1>Tasks</h1><div style="margin-bottom:1rem">';
+          html += 'Status <select id="taskStatus"><option value="">All</option><option value="Todo">Todo</option><option value="In Progress">In Progress</option><option value="Review">Review</option><option value="Done">Done</option></select> ';
+          html += 'Priority <select id="taskPriority"><option value="">All</option><option value="low">low</option><option value="medium">medium</option><option value="high">high</option><option value="critical">critical</option></select></div>';
+          if (tasks.length) {
+            html += '<ul>';
+            tasks.forEach(t => { html += '<li><strong>' + (t.id || t.name) + '</strong> ' + (t.status ? '(' + t.status + ')' : '') + ' ' + (t.name || '') + '</li>'; });
+            html += '</ul>';
+          } else {
+            html += '<pre>' + (raw || 'No tasks.') + '</pre>';
+          }
+          content.innerHTML = html;
+          document.getElementById('taskStatus').value = status;
+          document.getElementById('taskPriority').value = priority;
+          document.getElementById('taskStatus').onchange = () => { window.taskStatus = document.getElementById('taskStatus').value; load(); };
+          document.getElementById('taskPriority').onchange = () => { window.taskPriority = document.getElementById('taskPriority').value; load(); };
+        } else if (page === 'report') {
+          const view = window.reportView || 'overview';
+          const r = await fetch('/api/report/' + view).then(x => x.json());
+          const text = firstText(r);
+          content.innerHTML = '<h1>Report</h1><div style="margin-bottom:1rem"><button id="btnOverview">Overview</button> <button id="btnScorecard">Scorecard</button></div><pre>' + (text || 'No report data.') + '</pre>';
+          document.getElementById('btnOverview').onclick = () => { window.reportView = 'overview'; load(); };
+          document.getElementById('btnScorecard').onclick = () => { window.reportView = 'scorecard'; load(); };
+        } else if (page === 'handoff') {
+          const r = await fetch('/api/tools/session', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'handoff', sub_action: 'list' }) }).then(x => x.json());
+          const text = firstText(r);
+          content.innerHTML = '<h1>Session / Handoff</h1><pre>' + (text || 'No handoff notes.') + '</pre>';
+        }
+      } catch (e) {
+        content.innerHTML = '<p class="error">Error: ' + e.message + '</p>';
+      }
+    }
+    document.querySelectorAll('nav a').forEach(a => {
+      a.addEventListener('click', e => { e.preventDefault(); setPage(a.dataset.page); });
+    });
+    setPage('dashboard');
+  </script>
+</body>
+</html>
