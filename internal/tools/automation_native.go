@@ -10,8 +10,26 @@ import (
 	"github.com/davidl71/exarp-go/internal/config"
 	"github.com/davidl71/exarp-go/internal/database"
 	"github.com/davidl71/exarp-go/internal/framework"
+	"github.com/davidl71/exarp-go/proto"
 	"github.com/davidl71/mcp-go-core/pkg/mcp/response"
 )
+
+// AutomationResponseToMap converts AutomationResponse to a map for response.FormatResult (unmarshals result_json).
+func AutomationResponseToMap(resp *proto.AutomationResponse) map[string]interface{} {
+	if resp == nil {
+		return nil
+	}
+	out := map[string]interface{}{"action": resp.GetAction()}
+	if resp.GetResultJson() != "" {
+		var payload map[string]interface{}
+		if json.Unmarshal([]byte(resp.GetResultJson()), &payload) == nil {
+			for k, v := range payload {
+				out[k] = v
+			}
+		}
+	}
+	return out
+}
 
 // handleAutomationNative handles the automation tool with native Go implementation
 // Implements all actions: "daily", "nightly", "sprint", and "discover"
@@ -252,8 +270,9 @@ func handleAutomationDaily(ctx context.Context, params map[string]interface{}) (
 		"status":  "success",
 		"results": results,
 	}
-
-	return response.FormatResult(responseData, "")
+	resultJSON, _ := json.Marshal(responseData)
+	resp := &proto.AutomationResponse{Action: "daily", ResultJson: string(resultJSON)}
+	return response.FormatResult(AutomationResponseToMap(resp), "")
 }
 
 // handleAutomationNightly handles the "nightly" action for automation tool
@@ -433,8 +452,9 @@ func handleAutomationNightly(ctx context.Context, params map[string]interface{})
 		"status":  "success",
 		"results": results,
 	}
-
-	return response.FormatResult(responseData, "")
+	resultJSON, _ := json.Marshal(responseData)
+	resp := &proto.AutomationResponse{Action: "nightly", ResultJson: string(resultJSON)}
+	return response.FormatResult(AutomationResponseToMap(resp), "")
 }
 
 // handleAutomationSprint handles the "sprint" action for automation tool
@@ -608,8 +628,9 @@ func handleAutomationSprint(ctx context.Context, params map[string]interface{}) 
 		"status":  "success",
 		"results": results,
 	}
-
-	return response.FormatResult(responseData, "")
+	resultJSON, _ := json.Marshal(responseData)
+	resp := &proto.AutomationResponse{Action: "sprint", ResultJson: string(resultJSON)}
+	return response.FormatResult(AutomationResponseToMap(resp), "")
 }
 
 // handleAutomationDiscover handles the "discover" action for automation tool

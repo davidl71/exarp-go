@@ -228,3 +228,64 @@ func TestHandleMemoryRecall(t *testing.T) {
 		})
 	}
 }
+
+// memoryResponseAllowedKeys is the set of top-level keys allowed in memory tool
+// success responses (from proto.MemoryResponse / MemoryResponseToMap). Used to
+// enforce that all memory tool responses stay aligned to MemoryResponse.
+var memoryResponseAllowedKeys = map[string]bool{
+	"success": true, "method": true, "count": true, "memory_id": true,
+	"message": true, "memories": true, "categories": true, "available_categories": true,
+	"total_found": true, "task_id": true, "include_related": true, "query": true,
+	"total": true, "returned": true,
+}
+
+// TestMemoryToolResponsesUseMemoryResponseShape ensures every success response
+// from the memory tool has only MemoryResponse proto fields (no ad-hoc keys).
+func TestMemoryToolResponsesUseMemoryResponseShape(t *testing.T) {
+	tmpDir := t.TempDir()
+	os.Setenv("PROJECT_ROOT", tmpDir)
+	defer os.Unsetenv("PROJECT_ROOT")
+	exarpDir := filepath.Join(tmpDir, ".exarp")
+	if err := os.MkdirAll(exarpDir, 0755); err != nil {
+		t.Fatalf("failed to create .exarp directory: %v", err)
+	}
+
+	ctx := context.Background()
+	actions := []struct {
+		name   string
+		params map[string]interface{}
+	}{
+		{"save", map[string]interface{}{"action": "save", "title": "T", "content": "C", "category": "insight"}},
+		{"recall", map[string]interface{}{"action": "recall", "task_id": "x"}},
+		{"search", map[string]interface{}{"action": "search", "query": "q"}},
+		{"list", map[string]interface{}{"action": "list"}},
+	}
+
+	for _, a := range actions {
+		t.Run(a.name, func(t *testing.T) {
+			argsJSON, _ := json.Marshal(a.params)
+			result, err := handleMemoryNative(ctx, argsJSON)
+			if err != nil {
+				t.Fatalf("handleMemoryNative() error = %v", err)
+			}
+			if len(result) == 0 {
+				t.Fatal("expected non-empty result")
+			}
+			var data map[string]interface{}
+			if err := json.Unmarshal([]byte(result[0].Text), &data); err != nil {
+				t.Fatalf("invalid JSON: %v", err)
+			}
+			if success, _ := data["success"].(bool); !success {
+				t.Error("expected success=true")
+			}
+			if _, ok := data["method"]; !ok {
+				t.Error("expected method key (MemoryResponse shape)")
+			}
+			for k := range data {
+				if !memoryResponseAllowedKeys[k] {
+					t.Errorf("response key %q is not a MemoryResponse field; keep memory tool aligned to proto", k)
+				}
+			}
+		})
+	}
+}

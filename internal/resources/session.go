@@ -20,9 +20,9 @@ func handleSessionStatus(ctx context.Context, uri string) ([]byte, string, error
 	label, statusCtx, details := tools.GetSessionStatus(projectRoot)
 
 	result := map[string]interface{}{
-		"label":    label,
-		"context":  statusCtx,
-		"details": details,
+		"label":     label,
+		"context":   statusCtx,
+		"details":   details,
 		"timestamp": time.Now().Format(time.RFC3339),
 	}
 

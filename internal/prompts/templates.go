@@ -685,6 +685,36 @@ If all dimensions score >= 0.8, return an empty suggestions array. Otherwise inc
 - Ensure logical structure and flow
 - Make the prompt actionable (AI can execute without clarification)
 - Return the refined prompt text only — no JSON, no commentary, no before/after labels`,
+
+	// Task breakdown (MODEL_ASSISTED_WORKFLOW Phase 3; see docs/MODEL_ASSISTED_WORKFLOW.md)
+	"task_breakdown": `Analyze this task and break it down into 3-8 subtasks.
+
+**Task:**
+{task_description}
+
+**Acceptance criteria (if provided):**
+{acceptance_criteria}
+
+**Context (optional):** {context}
+
+**Requirements:**
+- Each subtask should be independently executable where possible
+- Subtasks should have clear acceptance criteria
+- Consider dependencies between subtasks (list dependencies explicitly)
+- Estimate complexity (simple/medium/complex) for each subtask
+
+**Respond with JSON only:**
+{
+  "subtasks": [
+    {
+      "name": "<subtask title>",
+      "description": "<brief description>",
+      "acceptance_criteria": ["<criterion 1>", "<criterion 2>"],
+      "complexity": "simple|medium|complex",
+      "dependencies": ["<name of subtask this depends on>"]
+    }
+  ]
+}`,
 }
 
 // GetPromptTemplate retrieves a prompt template by name
@@ -694,6 +724,12 @@ func GetPromptTemplate(name string) (string, error) {
 		return "", fmt.Errorf("unknown prompt: %s", name)
 	}
 	return template, nil
+}
+
+// SubstituteTemplate replaces {variable_name} placeholders with values from args.
+// Exported for use by prompt_analyzer and other packages that need template substitution.
+func SubstituteTemplate(template string, args map[string]interface{}) string {
+	return substituteTemplate(template, args)
 }
 
 // substituteTemplate replaces {variable_name} placeholders with values from args

@@ -20,10 +20,10 @@ const (
 
 // AnalysisResult holds the result of AnalyzeTask.
 type AnalysisResult struct {
-	Complexity      TaskComplexity
-	CanAutoExecute  bool
-	NeedsBreakdown  bool
-	Reason          string
+	Complexity     TaskComplexity
+	CanAutoExecute bool
+	NeedsBreakdown bool
+	Reason         string
 }
 
 // AnalyzeTask determines task complexity and recommendations using heuristic rules.

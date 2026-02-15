@@ -16,8 +16,31 @@ import (
 	"github.com/davidl71/exarp-go/internal/database"
 	"github.com/davidl71/exarp-go/internal/framework"
 	"github.com/davidl71/exarp-go/internal/taskanalysis"
+	"github.com/davidl71/exarp-go/proto"
 	"github.com/davidl71/mcp-go-core/pkg/mcp/response"
 )
+
+// TaskAnalysisResponseToMap converts TaskAnalysisResponse to a map for response.FormatResult (unmarshals result_json into map).
+func TaskAnalysisResponseToMap(resp *proto.TaskAnalysisResponse) map[string]interface{} {
+	if resp == nil {
+		return nil
+	}
+	out := map[string]interface{}{
+		"action": resp.GetAction(),
+	}
+	if resp.GetOutputPath() != "" {
+		out["output_path"] = resp.GetOutputPath()
+	}
+	if resp.GetResultJson() != "" {
+		var payload map[string]interface{}
+		if json.Unmarshal([]byte(resp.GetResultJson()), &payload) == nil {
+			for k, v := range payload {
+				out[k] = v
+			}
+		}
+	}
+	return out
+}
 
 // handleTaskAnalysisNative dispatches to the appropriate action (duplicates, tags, dependencies, parallelization, hierarchy).
 // Hierarchy uses the FM abstraction (DefaultFMProvider()); when FM is not available, hierarchy returns a clear error (no Python fallback).
@@ -94,7 +117,9 @@ func handleTaskAnalysisConflicts(ctx context.Context, params map[string]interfac
 		}
 		out["reasons"] = reasons
 	}
-	return response.FormatResult(out, "")
+	resultJSON, _ := json.Marshal(out)
+	resp := &proto.TaskAnalysisResponse{Action: "conflicts", ResultJson: string(resultJSON)}
+	return response.FormatResult(TaskAnalysisResponseToMap(resp), resp.GetOutputPath())
 }
 
 // handleTaskAnalysisDuplicates handles duplicates detection
@@ -163,7 +188,9 @@ func handleTaskAnalysisDuplicates(ctx context.Context, params map[string]interfa
 			return nil, fmt.Errorf("failed to create output dir: %w", err)
 		}
 	}
-	return response.FormatResult(result, outputPath)
+	resultJSON, _ := json.Marshal(result)
+	resp := &proto.TaskAnalysisResponse{Action: "duplicates", OutputPath: outputPath, ResultJson: string(resultJSON)}
+	return response.FormatResult(TaskAnalysisResponseToMap(resp), resp.GetOutputPath())
 }
 
 // CanonicalTagRules returns default tag consolidation rules aligned with scorecard dimensions.
@@ -495,7 +522,9 @@ func handleTaskAnalysisTags(ctx context.Context, params map[string]interface{}) 
 		result["output_path"] = outputPath
 	}
 
-	return response.FormatResult(result, "")
+	resultJSON, _ := json.Marshal(result)
+	resp := &proto.TaskAnalysisResponse{Action: "tags", OutputPath: outputPath, ResultJson: string(resultJSON)}
+	return response.FormatResult(TaskAnalysisResponseToMap(resp), resp.GetOutputPath())
 }
 
 // handleTaskAnalysisDiscoverTags discovers tags from markdown files and uses LLM for semantic inference
@@ -743,7 +772,9 @@ func handleTaskAnalysisDiscoverTags(ctx context.Context, params map[string]inter
 		"applied_count":        appliedCount,
 	}
 
-	return response.FormatResult(result, "")
+	resultJSON, _ := json.Marshal(result)
+	resp := &proto.TaskAnalysisResponse{Action: "discover_tags", ResultJson: string(resultJSON)}
+	return response.FormatResult(TaskAnalysisResponseToMap(resp), resp.GetOutputPath())
 }
 
 // discoverTagsFromMarkdown scans markdown files for tag patterns
@@ -1932,7 +1963,9 @@ func handleTaskAnalysisDependencies(ctx context.Context, params map[string]inter
 				return nil, fmt.Errorf("failed to create output dir: %w", err)
 			}
 		}
-		return response.FormatResult(result, outputPath)
+		resultJSON, _ := json.Marshal(result)
+		resp := &proto.TaskAnalysisResponse{Action: "dependencies", OutputPath: outputPath, ResultJson: string(resultJSON)}
+		return response.FormatResult(TaskAnalysisResponseToMap(resp), resp.GetOutputPath())
 	}
 	output := formatDependencyAnalysisText(result)
 	if outputPath != "" {
@@ -2059,7 +2092,9 @@ func handleTaskAnalysisExecutionPlan(ctx context.Context, params map[string]inte
 				return nil, fmt.Errorf("failed to create output dir: %w", err)
 			}
 		}
-		return response.FormatResult(result, outputPath)
+		resultJSON, _ := json.Marshal(result)
+		resp := &proto.TaskAnalysisResponse{Action: "execution_plan", OutputPath: outputPath, ResultJson: string(resultJSON)}
+		return response.FormatResult(TaskAnalysisResponseToMap(resp), resp.GetOutputPath())
 	}
 	output := formatExecutionPlanText(result)
 	if outputPath != "" {
@@ -2176,12 +2211,12 @@ func handleTaskAnalysisComplexity(ctx context.Context, params map[string]interfa
 		taskPtr := &t
 		r := taskanalysis.AnalyzeTask(taskPtr)
 		classifications = append(classifications, map[string]interface{}{
-			"id":                t.ID,
-			"content":           t.Content,
-			"complexity":        string(r.Complexity),
-			"can_auto_execute":  r.CanAutoExecute,
-			"needs_breakdown":   r.NeedsBreakdown,
-			"reason":            r.Reason,
+			"id":               t.ID,
+			"content":          t.Content,
+			"complexity":       string(r.Complexity),
+			"can_auto_execute": r.CanAutoExecute,
+			"needs_breakdown":  r.NeedsBreakdown,
+			"reason":           r.Reason,
 		})
 	}
 
@@ -2193,7 +2228,9 @@ func handleTaskAnalysisComplexity(ctx context.Context, params map[string]interfa
 	}
 
 	outputPath, _ := params["output_path"].(string)
-	return response.FormatResult(result, outputPath)
+	resultJSON, _ := json.Marshal(result)
+	resp := &proto.TaskAnalysisResponse{Action: "complexity", OutputPath: outputPath, ResultJson: string(resultJSON)}
+	return response.FormatResult(TaskAnalysisResponseToMap(resp), resp.GetOutputPath())
 }
 
 // handleTaskAnalysisParallelization handles parallelization analysis
@@ -2240,7 +2277,9 @@ func handleTaskAnalysisParallelization(ctx context.Context, params map[string]in
 				return nil, fmt.Errorf("failed to create output dir: %w", err)
 			}
 		}
-		return response.FormatResult(result, outputPath)
+		resultJSON, _ := json.Marshal(result)
+		resp := &proto.TaskAnalysisResponse{Action: "parallelization", OutputPath: outputPath, ResultJson: string(resultJSON)}
+		return response.FormatResult(TaskAnalysisResponseToMap(resp), resp.GetOutputPath())
 	}
 	output := formatParallelizationAnalysisText(result)
 	if outputPath != "" {
@@ -2280,7 +2319,9 @@ func handleTaskAnalysisFixMissingDeps(ctx context.Context, params map[string]int
 			"message":     "No missing dependency refs to fix",
 			"total_tasks": len(tasks),
 		}
-		return response.FormatResult(out, "")
+		resultJSON, _ := json.Marshal(out)
+		resp := &proto.TaskAnalysisResponse{Action: "fix_missing_deps", ResultJson: string(resultJSON)}
+		return response.FormatResult(TaskAnalysisResponseToMap(resp), resp.GetOutputPath())
 	}
 
 	// Per task, collect missing dep IDs to remove
@@ -2332,7 +2373,9 @@ func handleTaskAnalysisFixMissingDeps(ctx context.Context, params map[string]int
 		"removed":      fixed,
 		"message":      fmt.Sprintf("Removed %d invalid dependency ref(s) and saved", fixed),
 	}
-	return response.FormatResult(result, "")
+	resultJSON, _ := json.Marshal(result)
+	resp := &proto.TaskAnalysisResponse{Action: "fix_missing_deps", ResultJson: string(resultJSON)}
+	return response.FormatResult(TaskAnalysisResponseToMap(resp), resp.GetOutputPath())
 }
 
 // handleTaskAnalysisValidate reports missing dependency IDs and optionally hierarchy parse warnings.
@@ -2382,7 +2425,9 @@ func handleTaskAnalysisValidate(ctx context.Context, params map[string]interface
 		}
 	}
 
-	return response.FormatResult(result, "")
+	resultJSON, _ := json.Marshal(result)
+	resp := &proto.TaskAnalysisResponse{Action: "validate", ResultJson: string(resultJSON)}
+	return response.FormatResult(TaskAnalysisResponseToMap(resp), resp.GetOutputPath())
 }
 
 // Helper functions for duplicates detection
@@ -3256,7 +3301,9 @@ Return JSON array with format: [{"task_id": "T-1", "level": "component", "compon
 				"parse_error":       err.Error(),
 				"response_snippet":  snippet,
 			}
-			return response.FormatResult(analysis, "")
+			resultJSON, _ := json.Marshal(analysis)
+			resp := &proto.TaskAnalysisResponse{Action: "hierarchy", ResultJson: string(resultJSON)}
+			return response.FormatResult(TaskAnalysisResponseToMap(resp), resp.GetOutputPath())
 		}
 	}
 
@@ -3286,7 +3333,9 @@ Return JSON array with format: [{"task_id": "T-1", "level": "component", "compon
 		output := formatHierarchyAnalysisText(analysis)
 		return []framework.TextContent{{Type: "text", Text: output}}, nil
 	}
-	return response.FormatResult(analysis, "")
+	resultJSON, _ := json.Marshal(analysis)
+	resp := &proto.TaskAnalysisResponse{Action: "hierarchy", ResultJson: string(resultJSON)}
+	return response.FormatResult(TaskAnalysisResponseToMap(resp), resp.GetOutputPath())
 }
 
 func buildHierarchyRecommendations(classifications []map[string]interface{}, tasks []Todo2Task) []map[string]interface{} {

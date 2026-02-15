@@ -15,8 +15,8 @@ func TestAnalyzeTask(t *testing.T) {
 		wantBreakdown  bool
 	}{
 		{
-			name: "nil task defaults to medium",
-			task: nil,
+			name:           "nil task defaults to medium",
+			task:           nil,
 			wantComplexity: ComplexityMedium,
 			wantAutoExec:   false,
 			wantBreakdown:  true,
@@ -36,8 +36,8 @@ func TestAnalyzeTask(t *testing.T) {
 		{
 			name: "simple: fix typo",
 			task: &models.Todo2Task{
-				ID:       "T-2",
-				Content:  "Fix typo in README",
+				ID:           "T-2",
+				Content:      "Fix typo in README",
 				Dependencies: nil,
 			},
 			wantComplexity: ComplexitySimple,
@@ -47,8 +47,8 @@ func TestAnalyzeTask(t *testing.T) {
 		{
 			name: "complex: security keyword",
 			task: &models.Todo2Task{
-				ID:       "T-3",
-				Content:  "Implement security validation for paths",
+				ID:           "T-3",
+				Content:      "Implement security validation for paths",
 				Dependencies: nil,
 			},
 			wantComplexity: ComplexityComplex,
@@ -58,8 +58,8 @@ func TestAnalyzeTask(t *testing.T) {
 		{
 			name: "complex: migration keyword",
 			task: &models.Todo2Task{
-				ID:       "T-4",
-				Content:  "Migrate Python tools to Go",
+				ID:           "T-4",
+				Content:      "Migrate Python tools to Go",
 				Dependencies: nil,
 			},
 			wantComplexity: ComplexityComplex,
@@ -91,10 +91,10 @@ func TestAnalyzeTask(t *testing.T) {
 		{
 			name: "medium: empty description default",
 			task: &models.Todo2Task{
-				ID:       "T-7",
-				Content:  "",
+				ID:              "T-7",
+				Content:         "",
 				LongDescription: "",
-				Dependencies: nil,
+				Dependencies:    nil,
 			},
 			wantComplexity: ComplexityMedium,
 			wantAutoExec:   false,
@@ -103,8 +103,8 @@ func TestAnalyzeTask(t *testing.T) {
 		{
 			name: "complex: refactor keyword",
 			task: &models.Todo2Task{
-				ID:       "T-8",
-				Content:  "Refactor task analyzer",
+				ID:           "T-8",
+				Content:      "Refactor task analyzer",
 				Dependencies: nil,
 			},
 			wantComplexity: ComplexityComplex,

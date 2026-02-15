@@ -14,6 +14,7 @@ import (
 	"github.com/davidl71/exarp-go/internal/config"
 	"github.com/davidl71/exarp-go/internal/database"
 	"github.com/davidl71/exarp-go/internal/framework"
+	"github.com/davidl71/exarp-go/proto"
 	"github.com/davidl71/mcp-go-core/pkg/mcp/response"
 )
 
@@ -39,7 +40,9 @@ func memoryCategories() []string {
 	return config.MemoryCategories()
 }
 
-// handleMemoryNative handles the memory tool with native Go CRUD operations
+// handleMemoryNative handles the memory tool with native Go CRUD operations.
+// All success responses use proto.MemoryResponse and are formatted via MemoryResponseToMap;
+// do not return ad-hoc maps so that responses stay aligned to the MemoryResponse proto.
 func handleMemoryNative(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
 	// Try protobuf first, fall back to JSON for backward compatibility
 	req, params, err := ParseMemoryRequest(args)
@@ -161,18 +164,17 @@ func handleMemorySave(ctx context.Context, params map[string]interface{}) ([]fra
 		return nil, fmt.Errorf("failed to save memory: %w", err)
 	}
 
-	result := map[string]interface{}{
-		"success":      true,
-		"method":       "native_go",
-		"memory_id":    memory.ID,
-		"title":        memory.Title,
-		"category":     memory.Category,
-		"linked_tasks": memory.LinkedTasks,
-		"created_at":   memory.CreatedAt,
-		"message":      fmt.Sprintf("✅ Memory saved: %s", title),
+	pbMem, _ := MemoryToProto(&memory)
+	resp := &proto.MemoryResponse{
+		Success:  true,
+		Method:   "native_go",
+		MemoryId: memory.ID,
+		Message:  fmt.Sprintf("✅ Memory saved: %s", title),
 	}
-
-	return response.FormatResult(result, "")
+	if pbMem != nil {
+		resp.Memories = []*proto.Memory{pbMem}
+	}
+	return response.FormatResult(MemoryResponseToMap(resp), "")
 }
 
 // handleMemoryRecall handles recall action
@@ -237,16 +239,22 @@ func handleMemoryRecall(ctx context.Context, params map[string]interface{}) ([]f
 		}
 	}
 
-	result := map[string]interface{}{
-		"success":         true,
-		"method":          "native_go",
-		"task_id":         taskID,
-		"memories":        formatMemories(related),
-		"count":           len(related),
-		"include_related": includeRelated,
+	pbMemories := make([]*proto.Memory, 0, len(related))
+	for i := range related {
+		pb, err := MemoryToProto(&related[i])
+		if err == nil && pb != nil {
+			pbMemories = append(pbMemories, pb)
+		}
 	}
-
-	return response.FormatResult(result, "")
+	resp := &proto.MemoryResponse{
+		Success:        true,
+		Method:         "native_go",
+		TaskId:         taskID,
+		Memories:       pbMemories,
+		Count:          int32(len(related)),
+		IncludeRelated: includeRelated,
+	}
+	return response.FormatResult(MemoryResponseToMap(resp), "")
 }
 
 // handleMemorySearch handles search action (basic text search in Go)
@@ -337,16 +345,22 @@ func handleMemorySearch(ctx context.Context, params map[string]interface{}) ([]f
 		results = append(results, s.memory)
 	}
 
-	result := map[string]interface{}{
-		"success":     true,
-		"method":      "native_go",
-		"query":       query,
-		"memories":    formatMemories(results),
-		"count":       len(results),
-		"total_found": len(scored),
+	pbMemories := make([]*proto.Memory, 0, len(results))
+	for i := range results {
+		pb, err := MemoryToProto(&results[i])
+		if err == nil && pb != nil {
+			pbMemories = append(pbMemories, pb)
+		}
 	}
-
-	return response.FormatResult(result, "")
+	resp := &proto.MemoryResponse{
+		Success:    true,
+		Method:     "native_go",
+		Query:      query,
+		Memories:   pbMemories,
+		Count:      int32(len(results)),
+		TotalFound: int32(len(scored)),
+	}
+	return response.FormatResult(MemoryResponseToMap(resp), "")
 }
 
 // handleMemoryList handles list action
@@ -394,17 +408,27 @@ func handleMemoryList(ctx context.Context, params map[string]interface{}) ([]fra
 		categories[m.Category]++
 	}
 
-	result := map[string]interface{}{
-		"success":              true,
-		"method":               "native_go",
-		"memories":             formatMemories(memories),
-		"total":                len(allMemories),
-		"returned":             len(memories),
-		"categories":           categories,
-		"available_categories": memoryCategories(),
+	pbMemories := make([]*proto.Memory, 0, len(memories))
+	for i := range memories {
+		pb, err := MemoryToProto(&memories[i])
+		if err == nil && pb != nil {
+			pbMemories = append(pbMemories, pb)
+		}
 	}
-
-	return response.FormatResult(result, "")
+	catProto := make(map[string]int32)
+	for k, v := range categories {
+		catProto[k] = int32(v)
+	}
+	resp := &proto.MemoryResponse{
+		Success:             true,
+		Method:              "native_go",
+		Memories:            pbMemories,
+		Total:               int32(len(allMemories)),
+		Returned:            int32(len(memories)),
+		Categories:          catProto,
+		AvailableCategories: memoryCategories(),
+	}
+	return response.FormatResult(MemoryResponseToMap(resp), "")
 }
 
 // Helper functions

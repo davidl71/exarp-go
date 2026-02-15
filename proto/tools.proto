@@ -44,6 +44,11 @@ message MemoryResponse {
   map<string, int32> categories = 7;  // For list action
   repeated string available_categories = 8;
   int32 total_found = 9;  // For search action
+  string task_id = 10;    // For recall action
+  bool include_related = 11;  // For recall action
+  string query = 12;     // For search action
+  int32 total = 13;      // For list action (total in store)
+  int32 returned = 14;   // For list action (returned in response)
 }
 
 // ============================================================================
@@ -270,6 +275,38 @@ message TaskAnalysisRequest {
   bool use_tiny_tag_model = 16;   // For action=tags+use_llm_semantic: try Ollama tinyllama then MLX TinyLlama for faster inference.
 }
 
+// TaskAnalysisResponse holds action-specific result (result_json is JSON-encoded payload for MCP response).
+message TaskAnalysisResponse {
+  string action = 1;
+  string output_path = 2;
+  string result_json = 3;  // JSON object for action-specific data (duplicates, conflicts, dependencies, etc.)
+}
+
+// AutomationResponse holds automation tool result (daily, nightly, sprint; result_json is the full response payload).
+message AutomationResponse {
+  string action = 1;       // "daily", "nightly", "sprint"
+  string result_json = 2;  // JSON object: status, results (timestamp, tasks_run, summary, etc.)
+}
+
+// EstimationResult holds estimation tool result (estimate, analyze, stats, estimate_batch).
+message EstimationResult {
+  string action = 1;       // "estimate", "analyze", "stats", "estimate_batch"
+  string result_json = 2;  // JSON payload for MCP response
+}
+
+// HealthReport holds health tool result (server, git, docs, dod, cicd, tools).
+message HealthReport {
+  string action = 1;
+  string output_path = 2;
+  string result_json = 3;
+}
+
+// InferTaskProgressResponse holds infer_task_progress result.
+message InferTaskProgressResponse {
+  string output_path = 1;
+  string result_json = 2;
+}
+
 // TaskDiscoveryRequest represents a request for task discovery
 message TaskDiscoveryRequest {
   string action = 1;  // "comments", "markdown", "orphans", "git_json", "all"
@@ -308,6 +345,38 @@ message TaskWorkflowRequest {
   repeated string dependencies = 23;  // For create action
   bool auto_estimate = 24;  // default: true
   bool confirm_via_elicitation = 25;  // When true and client supports MCP elicitation, prompt to confirm approve/delete
+}
+
+// TaskSummary is a single task entry for list/approve/sync results (type-safe response).
+message TaskSummary {
+  string id = 1;
+  string content = 2;   // short name/title
+  string status = 3;
+  string priority = 4;
+  repeated string tags = 5;
+  string long_description = 6;
+  repeated string dependencies = 7;
+}
+
+// SyncResults holds sync action result details (validated_tasks, issues, etc.).
+message SyncResults {
+  int32 validated_tasks = 1;
+  int32 issues_found = 2;
+  repeated string issues = 3;
+  bool synced = 4;
+}
+
+// TaskWorkflowResponse is the unified type-safe response for task_workflow (list, approve, sync, etc.).
+message TaskWorkflowResponse {
+  bool success = 1;
+  string method = 2;   // "store", "native_go", etc.
+  string message = 3;
+  repeated TaskSummary tasks = 4;
+  repeated string task_ids = 5;
+  int32 approved_count = 6;
+  bool dry_run = 7;
+  SyncResults sync_results = 8;
+  bool cancelled = 9;
 }
 
 // ============================================================================
@@ -351,6 +420,13 @@ message TestingRequest {
   double min_confidence = 10;  // default: 0.7
   string framework = 11;
   string output_path = 12;
+}
+
+// TestingResponse holds testing tool result (run, coverage, suggest, validate).
+message TestingResponse {
+  bool success = 1;
+  string action = 2;       // "run", "coverage", "suggest", "validate"
+  string result_json = 3;  // JSON payload for MCP response
 }
 
 // ============================================================================
@@ -462,6 +538,13 @@ message GitToolsRequest {
   bool dry_run = 16;  // default: false
 }
 
+// GitToolsResponse holds git_tools result (commits, branches, tasks, diff, graph, merge, set_branch).
+message GitToolsResponse {
+  bool success = 1;
+  string action = 2;       // "commits", "branches", "tasks", "diff", "graph", "merge", "set_branch", "local_commits"
+  string result_json = 3;   // JSON payload for MCP response
+}
+
 // ============================================================================
 // Session Tool Messages
 // ============================================================================
@@ -497,6 +580,64 @@ message SessionRequest {
   bool include_unassigned = 27;  // default: false
   int32 max_tasks_per_agent = 28;  // default: 5
   bool ask_preferences = 29;  // When true and client supports elicitation, prompt user for include_tasks/include_hints at prime time
+}
+
+// SessionDetection holds prime detection (agent, mode, etc.)
+message SessionDetection {
+  string agent = 1;
+  string agent_source = 2;
+  string mode = 3;
+  string mode_source = 4;
+  string time_of_day = 5;
+}
+
+// SessionAgentContext holds agent context for prime
+message SessionAgentContext {
+  repeated string focus_areas = 1;
+  repeated string relevant_tools = 2;
+  string recommended_mode = 3;
+}
+
+// SessionWorkflow holds workflow mode for prime
+message SessionWorkflow {
+  string mode = 1;
+  string description = 2;
+}
+
+// LockCleanupReport for prime (cleaned count and task IDs)
+message LockCleanupReport {
+  int32 cleaned = 1;
+  repeated string task_ids = 2;
+}
+
+// SessionPrimeResult is the type-safe prime response (stable schema for Cursor/clients)
+message SessionPrimeResult {
+  bool auto_primed = 1;
+  string method = 2;
+  string timestamp = 3;
+  int64 duration_ms = 4;
+  SessionDetection detection = 5;
+  SessionAgentContext agent_context = 6;
+  SessionWorkflow workflow = 7;
+  string elicitation = 8;
+  LockCleanupReport lock_cleanup = 9;
+  string plan_path = 10;
+  int32 hints_count = 11;
+  string action_required = 12;
+  repeated string conflict_hints = 13;
+  string status_label = 14;
+  string status_context = 15;
+}
+
+// SessionHandoffResult for handoff end/resume (type-safe response)
+message SessionHandoffResult {
+  bool success = 1;
+  string method = 2;
+  bool dry_run = 3;
+  string message = 4;
+  string handoff_json = 5;   // handoff payload as JSON when present
+  bool has_handoff = 6;      // for resume
+  bool from_same_host = 7;  // for resume
 }
 
 // ============================================================================

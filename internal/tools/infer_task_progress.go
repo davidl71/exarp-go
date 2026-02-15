@@ -12,6 +12,7 @@ import (
 
 	"github.com/davidl71/exarp-go/internal/database"
 	"github.com/davidl71/exarp-go/internal/framework"
+	"github.com/davidl71/exarp-go/proto"
 	"github.com/davidl71/mcp-go-core/pkg/mcp/response"
 )
 
@@ -23,6 +24,26 @@ type InferredResult struct {
 	TaskID     string   `json:"task_id"`
 	Confidence float64  `json:"confidence"`
 	Evidence   []string `json:"evidence"`
+}
+
+// InferTaskProgressResponseToMap converts InferTaskProgressResponse proto to map for response.FormatResult.
+func InferTaskProgressResponseToMap(resp *proto.InferTaskProgressResponse) map[string]interface{} {
+	if resp == nil {
+		return nil
+	}
+	out := map[string]interface{}{}
+	if resp.GetOutputPath() != "" {
+		out["output_path"] = resp.GetOutputPath()
+	}
+	if resp.GetResultJson() != "" {
+		var payload map[string]interface{}
+		if json.Unmarshal([]byte(resp.GetResultJson()), &payload) == nil {
+			for k, v := range payload {
+				out[k] = v
+			}
+		}
+	}
+	return out
 }
 
 // handleInferTaskProgressNative runs task completion inference (heuristics only in Iteration 1).
@@ -120,8 +141,9 @@ func handleInferTaskProgressNative(ctx context.Context, params map[string]interf
 			return nil, fmt.Errorf("write report: %w", writeErr)
 		}
 	}
-
-	return response.FormatResult(result, "")
+	resultJSON, _ := json.Marshal(result)
+	resp := &proto.InferTaskProgressResponse{OutputPath: outputPath, ResultJson: string(resultJSON)}
+	return response.FormatResult(InferTaskProgressResponseToMap(resp), resp.GetOutputPath())
 }
 
 // loadInProgressTasks returns only In Progress tasks via TaskStore.

@@ -33,9 +33,10 @@ type tui3270State struct {
 	mode          string // "tasks", "taskdetail", "config", "editor"
 	selectedTask  *database.Todo2Task
 	devInfo       go3270.DevInfo
-	command       string   // Command line input
-	filter        string   // Current filter/search term
-	scorecardRecs []string // Last scorecard recommendations (for Run #)
+	command              string   // Command line input
+	filter               string   // Current filter/search term
+	scorecardRecs        []string // Last scorecard recommendations (for Run #)
+	scorecardFullModeNext bool    // When true, next scorecard load uses full checks (e.g. after Run #)
 }
 
 // loadTasksForStatus loads tasks by status. When status is empty, returns open tasks only (Todo + In Progress).
@@ -379,15 +380,15 @@ func (state *tui3270State) helpTransaction(conn net.Conn, devInfo go3270.DevInfo
 // 3270 task list column layout (fixed-width, aligned like mainframe job list)
 const (
 	t3270ColS        = 2
-	t3270ColID      = 5
-	t3270ColStatus  = 24
+	t3270ColID       = 5
+	t3270ColStatus   = 24
 	t3270ColPriority = 37
-	t3270ColContent = 48
-	t3270WidS       = 2
-	t3270WidID      = 18
-	t3270WidStatus  = 12
+	t3270ColContent  = 48
+	t3270WidS        = 2
+	t3270WidID       = 18
+	t3270WidStatus   = 12
 	t3270WidPriority = 10
-	t3270WidContent = 32
+	t3270WidContent  = 32
 )
 
 func t3270Pad(s string, width int) string {
@@ -839,14 +840,19 @@ func runRecommendation3270(projectRoot, rec string) (output string, err error) {
 	return string(out), nil
 }
 
-// scorecardTransaction shows project scorecard (Go scorecard when Go project + project overview)
+// scorecardTransaction shows project scorecard (Go scorecard when Go project + project overview).
+// When scorecardFullModeNext is set (e.g. after running a recommendation), uses full checks so coverage is shown.
 func (state *tui3270State) scorecardTransaction(conn net.Conn, devInfo go3270.DevInfo, data any) (go3270.Tx, any, error) {
 	ctx := context.Background()
 	var combined strings.Builder
 	var recommendations []string
 
+	// Use full mode when returning from "Run #" so updated coverage/lint is shown
+	useFullMode := state.scorecardFullModeNext
+	state.scorecardFullModeNext = false
+
 	if tools.IsGoProject() {
-		scorecardOpts := &tools.ScorecardOptions{FastMode: true}
+		scorecardOpts := &tools.ScorecardOptions{FastMode: !useFullMode}
 		scorecard, err := tools.GenerateGoScorecard(ctx, state.projectRoot, scorecardOpts)
 		if err != nil {
 			errScreen := go3270.Screen{
@@ -958,7 +964,8 @@ func (state *tui3270State) scorecardTransaction(conn net.Conn, devInfo go3270.De
 			if resp.AID == go3270.AIDPF1 {
 				return state.helpTransaction, state, nil
 			}
-			// PF3 or any key -> back to scorecard
+			// PF3 or any key -> back to scorecard; next load uses full checks so coverage updates
+			state.scorecardFullModeNext = true
 			return state.scorecardTransaction, state, nil
 		}
 	}

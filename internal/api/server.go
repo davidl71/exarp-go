@@ -117,8 +117,8 @@ func (s *Server) handleSessionPrime(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) handleReportOverview(w http.ResponseWriter, r *http.Request) {
 	args := map[string]interface{}{
-		"action":               "overview",
-		"include_metrics":      true,
+		"action":                  "overview",
+		"include_metrics":         true,
 		"include_recommendations": true,
 	}
 	argsBytes, _ := json.Marshal(args)
@@ -129,8 +129,8 @@ func (s *Server) handleReportOverview(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) handleReportScorecard(w http.ResponseWriter, r *http.Request) {
 	args := map[string]interface{}{
-		"action":               "scorecard",
-		"include_metrics":      true,
+		"action":                  "scorecard",
+		"include_metrics":         true,
 		"include_recommendations": true,
 	}
 	argsBytes, _ := json.Marshal(args)

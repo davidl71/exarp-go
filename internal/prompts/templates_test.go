@@ -82,6 +82,7 @@ func TestGetPromptTemplate_AllPrompts(t *testing.T) {
 		"prompt_optimization_analysis",
 		"prompt_optimization_suggestions",
 		"prompt_optimization_refinement",
+		"task_breakdown",
 	}
 
 	for _, promptName := range allPrompts {
@@ -119,9 +120,9 @@ func TestGetPromptTemplate_PromptOptimizationAnalysis(t *testing.T) {
 	}
 	// Test substitution
 	substituted := substituteTemplate(template, map[string]interface{}{
-		"prompt":     "Fix the bug",
-		"context":    "MCP server",
-		"task_type":  "code",
+		"prompt":    "Fix the bug",
+		"context":   "MCP server",
+		"task_type": "code",
 	})
 	if !strings.Contains(substituted, "Fix the bug") {
 		t.Error("substitution failed: prompt not replaced")

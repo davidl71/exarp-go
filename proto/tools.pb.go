@@ -242,7 +242,12 @@ type MemoryResponse struct {
 	Message             string                 `protobuf:"bytes,6,opt,name=message,proto3" json:"message,omitempty"`
 	Categories          map[string]int32       `protobuf:"bytes,7,rep,name=categories,proto3" json:"categories,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"varint,2,opt,name=value"` // For list action
 	AvailableCategories []string               `protobuf:"bytes,8,rep,name=available_categories,json=availableCategories,proto3" json:"available_categories,omitempty"`
-	TotalFound          int32                  `protobuf:"varint,9,opt,name=total_found,json=totalFound,proto3" json:"total_found,omitempty"` // For search action
+	TotalFound          int32                  `protobuf:"varint,9,opt,name=total_found,json=totalFound,proto3" json:"total_found,omitempty"`              // For search action
+	TaskId              string                 `protobuf:"bytes,10,opt,name=task_id,json=taskId,proto3" json:"task_id,omitempty"`                          // For recall action
+	IncludeRelated      bool                   `protobuf:"varint,11,opt,name=include_related,json=includeRelated,proto3" json:"include_related,omitempty"` // For recall action
+	Query               string                 `protobuf:"bytes,12,opt,name=query,proto3" json:"query,omitempty"`                                          // For search action
+	Total               int32                  `protobuf:"varint,13,opt,name=total,proto3" json:"total,omitempty"`                                         // For list action (total in store)
+	Returned            int32                  `protobuf:"varint,14,opt,name=returned,proto3" json:"returned,omitempty"`                                   // For list action (returned in response)
 	unknownFields       protoimpl.UnknownFields
 	sizeCache           protoimpl.SizeCache
 }
@@ -336,6 +341,41 @@ func (x *MemoryResponse) GetAvailableCategories() []string {
 func (x *MemoryResponse) GetTotalFound() int32 {
 	if x != nil {
 		return x.TotalFound
+	}
+	return 0
+}
+
+func (x *MemoryResponse) GetTaskId() string {
+	if x != nil {
+		return x.TaskId
+	}
+	return ""
+}
+
+func (x *MemoryResponse) GetIncludeRelated() bool {
+	if x != nil {
+		return x.IncludeRelated
+	}
+	return false
+}
+
+func (x *MemoryResponse) GetQuery() string {
+	if x != nil {
+		return x.Query
+	}
+	return ""
+}
+
+func (x *MemoryResponse) GetTotal() int32 {
+	if x != nil {
+		return x.Total
+	}
+	return 0
+}
+
+func (x *MemoryResponse) GetReturned() int32 {
+	if x != nil {
+		return x.Returned
 	}
 	return 0
 }
@@ -2146,6 +2186,287 @@ func (x *TaskAnalysisRequest) GetUseTinyTagModel() bool {
 	return false
 }
 
+// TaskAnalysisResponse holds action-specific result (result_json is JSON-encoded payload for MCP response).
+type TaskAnalysisResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Action        string                 `protobuf:"bytes,1,opt,name=action,proto3" json:"action,omitempty"`
+	OutputPath    string                 `protobuf:"bytes,2,opt,name=output_path,json=outputPath,proto3" json:"output_path,omitempty"`
+	ResultJson    string                 `protobuf:"bytes,3,opt,name=result_json,json=resultJson,proto3" json:"result_json,omitempty"` // JSON object for action-specific data (duplicates, conflicts, dependencies, etc.)
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *TaskAnalysisResponse) Reset() {
+	*x = TaskAnalysisResponse{}
+	mi := &file_proto_tools_proto_msgTypes[25]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *TaskAnalysisResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*TaskAnalysisResponse) ProtoMessage() {}
+
+func (x *TaskAnalysisResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_tools_proto_msgTypes[25]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use TaskAnalysisResponse.ProtoReflect.Descriptor instead.
+func (*TaskAnalysisResponse) Descriptor() ([]byte, []int) {
+	return file_proto_tools_proto_rawDescGZIP(), []int{25}
+}
+
+func (x *TaskAnalysisResponse) GetAction() string {
+	if x != nil {
+		return x.Action
+	}
+	return ""
+}
+
+func (x *TaskAnalysisResponse) GetOutputPath() string {
+	if x != nil {
+		return x.OutputPath
+	}
+	return ""
+}
+
+func (x *TaskAnalysisResponse) GetResultJson() string {
+	if x != nil {
+		return x.ResultJson
+	}
+	return ""
+}
+
+// AutomationResponse holds automation tool result (daily, nightly, sprint; result_json is the full response payload).
+type AutomationResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Action        string                 `protobuf:"bytes,1,opt,name=action,proto3" json:"action,omitempty"`                           // "daily", "nightly", "sprint"
+	ResultJson    string                 `protobuf:"bytes,2,opt,name=result_json,json=resultJson,proto3" json:"result_json,omitempty"` // JSON object: status, results (timestamp, tasks_run, summary, etc.)
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AutomationResponse) Reset() {
+	*x = AutomationResponse{}
+	mi := &file_proto_tools_proto_msgTypes[26]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AutomationResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AutomationResponse) ProtoMessage() {}
+
+func (x *AutomationResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_tools_proto_msgTypes[26]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AutomationResponse.ProtoReflect.Descriptor instead.
+func (*AutomationResponse) Descriptor() ([]byte, []int) {
+	return file_proto_tools_proto_rawDescGZIP(), []int{26}
+}
+
+func (x *AutomationResponse) GetAction() string {
+	if x != nil {
+		return x.Action
+	}
+	return ""
+}
+
+func (x *AutomationResponse) GetResultJson() string {
+	if x != nil {
+		return x.ResultJson
+	}
+	return ""
+}
+
+// EstimationResult holds estimation tool result (estimate, analyze, stats, estimate_batch).
+type EstimationResult struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Action        string                 `protobuf:"bytes,1,opt,name=action,proto3" json:"action,omitempty"`                           // "estimate", "analyze", "stats", "estimate_batch"
+	ResultJson    string                 `protobuf:"bytes,2,opt,name=result_json,json=resultJson,proto3" json:"result_json,omitempty"` // JSON payload for MCP response
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *EstimationResult) Reset() {
+	*x = EstimationResult{}
+	mi := &file_proto_tools_proto_msgTypes[27]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *EstimationResult) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*EstimationResult) ProtoMessage() {}
+
+func (x *EstimationResult) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_tools_proto_msgTypes[27]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use EstimationResult.ProtoReflect.Descriptor instead.
+func (*EstimationResult) Descriptor() ([]byte, []int) {
+	return file_proto_tools_proto_rawDescGZIP(), []int{27}
+}
+
+func (x *EstimationResult) GetAction() string {
+	if x != nil {
+		return x.Action
+	}
+	return ""
+}
+
+func (x *EstimationResult) GetResultJson() string {
+	if x != nil {
+		return x.ResultJson
+	}
+	return ""
+}
+
+// HealthReport holds health tool result (server, git, docs, dod, cicd, tools).
+type HealthReport struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Action        string                 `protobuf:"bytes,1,opt,name=action,proto3" json:"action,omitempty"`
+	OutputPath    string                 `protobuf:"bytes,2,opt,name=output_path,json=outputPath,proto3" json:"output_path,omitempty"`
+	ResultJson    string                 `protobuf:"bytes,3,opt,name=result_json,json=resultJson,proto3" json:"result_json,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *HealthReport) Reset() {
+	*x = HealthReport{}
+	mi := &file_proto_tools_proto_msgTypes[28]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *HealthReport) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*HealthReport) ProtoMessage() {}
+
+func (x *HealthReport) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_tools_proto_msgTypes[28]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use HealthReport.ProtoReflect.Descriptor instead.
+func (*HealthReport) Descriptor() ([]byte, []int) {
+	return file_proto_tools_proto_rawDescGZIP(), []int{28}
+}
+
+func (x *HealthReport) GetAction() string {
+	if x != nil {
+		return x.Action
+	}
+	return ""
+}
+
+func (x *HealthReport) GetOutputPath() string {
+	if x != nil {
+		return x.OutputPath
+	}
+	return ""
+}
+
+func (x *HealthReport) GetResultJson() string {
+	if x != nil {
+		return x.ResultJson
+	}
+	return ""
+}
+
+// InferTaskProgressResponse holds infer_task_progress result.
+type InferTaskProgressResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	OutputPath    string                 `protobuf:"bytes,1,opt,name=output_path,json=outputPath,proto3" json:"output_path,omitempty"`
+	ResultJson    string                 `protobuf:"bytes,2,opt,name=result_json,json=resultJson,proto3" json:"result_json,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *InferTaskProgressResponse) Reset() {
+	*x = InferTaskProgressResponse{}
+	mi := &file_proto_tools_proto_msgTypes[29]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *InferTaskProgressResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*InferTaskProgressResponse) ProtoMessage() {}
+
+func (x *InferTaskProgressResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_tools_proto_msgTypes[29]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use InferTaskProgressResponse.ProtoReflect.Descriptor instead.
+func (*InferTaskProgressResponse) Descriptor() ([]byte, []int) {
+	return file_proto_tools_proto_rawDescGZIP(), []int{29}
+}
+
+func (x *InferTaskProgressResponse) GetOutputPath() string {
+	if x != nil {
+		return x.OutputPath
+	}
+	return ""
+}
+
+func (x *InferTaskProgressResponse) GetResultJson() string {
+	if x != nil {
+		return x.ResultJson
+	}
+	return ""
+}
+
 // TaskDiscoveryRequest represents a request for task discovery
 type TaskDiscoveryRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
@@ -2162,7 +2483,7 @@ type TaskDiscoveryRequest struct {
 
 func (x *TaskDiscoveryRequest) Reset() {
 	*x = TaskDiscoveryRequest{}
-	mi := &file_proto_tools_proto_msgTypes[25]
+	mi := &file_proto_tools_proto_msgTypes[30]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2174,7 +2495,7 @@ func (x *TaskDiscoveryRequest) String() string {
 func (*TaskDiscoveryRequest) ProtoMessage() {}
 
 func (x *TaskDiscoveryRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_tools_proto_msgTypes[25]
+	mi := &file_proto_tools_proto_msgTypes[30]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2187,7 +2508,7 @@ func (x *TaskDiscoveryRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TaskDiscoveryRequest.ProtoReflect.Descriptor instead.
 func (*TaskDiscoveryRequest) Descriptor() ([]byte, []int) {
-	return file_proto_tools_proto_rawDescGZIP(), []int{25}
+	return file_proto_tools_proto_rawDescGZIP(), []int{30}
 }
 
 func (x *TaskDiscoveryRequest) GetAction() string {
@@ -2273,7 +2594,7 @@ type TaskWorkflowRequest struct {
 
 func (x *TaskWorkflowRequest) Reset() {
 	*x = TaskWorkflowRequest{}
-	mi := &file_proto_tools_proto_msgTypes[26]
+	mi := &file_proto_tools_proto_msgTypes[31]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2285,7 +2606,7 @@ func (x *TaskWorkflowRequest) String() string {
 func (*TaskWorkflowRequest) ProtoMessage() {}
 
 func (x *TaskWorkflowRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_tools_proto_msgTypes[26]
+	mi := &file_proto_tools_proto_msgTypes[31]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2298,7 +2619,7 @@ func (x *TaskWorkflowRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TaskWorkflowRequest.ProtoReflect.Descriptor instead.
 func (*TaskWorkflowRequest) Descriptor() ([]byte, []int) {
-	return file_proto_tools_proto_rawDescGZIP(), []int{26}
+	return file_proto_tools_proto_rawDescGZIP(), []int{31}
 }
 
 func (x *TaskWorkflowRequest) GetAction() string {
@@ -2476,6 +2797,277 @@ func (x *TaskWorkflowRequest) GetConfirmViaElicitation() bool {
 	return false
 }
 
+// TaskSummary is a single task entry for list/approve/sync results (type-safe response).
+type TaskSummary struct {
+	state           protoimpl.MessageState `protogen:"open.v1"`
+	Id              string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Content         string                 `protobuf:"bytes,2,opt,name=content,proto3" json:"content,omitempty"` // short name/title
+	Status          string                 `protobuf:"bytes,3,opt,name=status,proto3" json:"status,omitempty"`
+	Priority        string                 `protobuf:"bytes,4,opt,name=priority,proto3" json:"priority,omitempty"`
+	Tags            []string               `protobuf:"bytes,5,rep,name=tags,proto3" json:"tags,omitempty"`
+	LongDescription string                 `protobuf:"bytes,6,opt,name=long_description,json=longDescription,proto3" json:"long_description,omitempty"`
+	Dependencies    []string               `protobuf:"bytes,7,rep,name=dependencies,proto3" json:"dependencies,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
+}
+
+func (x *TaskSummary) Reset() {
+	*x = TaskSummary{}
+	mi := &file_proto_tools_proto_msgTypes[32]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *TaskSummary) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*TaskSummary) ProtoMessage() {}
+
+func (x *TaskSummary) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_tools_proto_msgTypes[32]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use TaskSummary.ProtoReflect.Descriptor instead.
+func (*TaskSummary) Descriptor() ([]byte, []int) {
+	return file_proto_tools_proto_rawDescGZIP(), []int{32}
+}
+
+func (x *TaskSummary) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *TaskSummary) GetContent() string {
+	if x != nil {
+		return x.Content
+	}
+	return ""
+}
+
+func (x *TaskSummary) GetStatus() string {
+	if x != nil {
+		return x.Status
+	}
+	return ""
+}
+
+func (x *TaskSummary) GetPriority() string {
+	if x != nil {
+		return x.Priority
+	}
+	return ""
+}
+
+func (x *TaskSummary) GetTags() []string {
+	if x != nil {
+		return x.Tags
+	}
+	return nil
+}
+
+func (x *TaskSummary) GetLongDescription() string {
+	if x != nil {
+		return x.LongDescription
+	}
+	return ""
+}
+
+func (x *TaskSummary) GetDependencies() []string {
+	if x != nil {
+		return x.Dependencies
+	}
+	return nil
+}
+
+// SyncResults holds sync action result details (validated_tasks, issues, etc.).
+type SyncResults struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	ValidatedTasks int32                  `protobuf:"varint,1,opt,name=validated_tasks,json=validatedTasks,proto3" json:"validated_tasks,omitempty"`
+	IssuesFound    int32                  `protobuf:"varint,2,opt,name=issues_found,json=issuesFound,proto3" json:"issues_found,omitempty"`
+	Issues         []string               `protobuf:"bytes,3,rep,name=issues,proto3" json:"issues,omitempty"`
+	Synced         bool                   `protobuf:"varint,4,opt,name=synced,proto3" json:"synced,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *SyncResults) Reset() {
+	*x = SyncResults{}
+	mi := &file_proto_tools_proto_msgTypes[33]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SyncResults) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SyncResults) ProtoMessage() {}
+
+func (x *SyncResults) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_tools_proto_msgTypes[33]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SyncResults.ProtoReflect.Descriptor instead.
+func (*SyncResults) Descriptor() ([]byte, []int) {
+	return file_proto_tools_proto_rawDescGZIP(), []int{33}
+}
+
+func (x *SyncResults) GetValidatedTasks() int32 {
+	if x != nil {
+		return x.ValidatedTasks
+	}
+	return 0
+}
+
+func (x *SyncResults) GetIssuesFound() int32 {
+	if x != nil {
+		return x.IssuesFound
+	}
+	return 0
+}
+
+func (x *SyncResults) GetIssues() []string {
+	if x != nil {
+		return x.Issues
+	}
+	return nil
+}
+
+func (x *SyncResults) GetSynced() bool {
+	if x != nil {
+		return x.Synced
+	}
+	return false
+}
+
+// TaskWorkflowResponse is the unified type-safe response for task_workflow (list, approve, sync, etc.).
+type TaskWorkflowResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Success       bool                   `protobuf:"varint,1,opt,name=success,proto3" json:"success,omitempty"`
+	Method        string                 `protobuf:"bytes,2,opt,name=method,proto3" json:"method,omitempty"` // "store", "native_go", etc.
+	Message       string                 `protobuf:"bytes,3,opt,name=message,proto3" json:"message,omitempty"`
+	Tasks         []*TaskSummary         `protobuf:"bytes,4,rep,name=tasks,proto3" json:"tasks,omitempty"`
+	TaskIds       []string               `protobuf:"bytes,5,rep,name=task_ids,json=taskIds,proto3" json:"task_ids,omitempty"`
+	ApprovedCount int32                  `protobuf:"varint,6,opt,name=approved_count,json=approvedCount,proto3" json:"approved_count,omitempty"`
+	DryRun        bool                   `protobuf:"varint,7,opt,name=dry_run,json=dryRun,proto3" json:"dry_run,omitempty"`
+	SyncResults   *SyncResults           `protobuf:"bytes,8,opt,name=sync_results,json=syncResults,proto3" json:"sync_results,omitempty"`
+	Cancelled     bool                   `protobuf:"varint,9,opt,name=cancelled,proto3" json:"cancelled,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *TaskWorkflowResponse) Reset() {
+	*x = TaskWorkflowResponse{}
+	mi := &file_proto_tools_proto_msgTypes[34]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *TaskWorkflowResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*TaskWorkflowResponse) ProtoMessage() {}
+
+func (x *TaskWorkflowResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_tools_proto_msgTypes[34]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use TaskWorkflowResponse.ProtoReflect.Descriptor instead.
+func (*TaskWorkflowResponse) Descriptor() ([]byte, []int) {
+	return file_proto_tools_proto_rawDescGZIP(), []int{34}
+}
+
+func (x *TaskWorkflowResponse) GetSuccess() bool {
+	if x != nil {
+		return x.Success
+	}
+	return false
+}
+
+func (x *TaskWorkflowResponse) GetMethod() string {
+	if x != nil {
+		return x.Method
+	}
+	return ""
+}
+
+func (x *TaskWorkflowResponse) GetMessage() string {
+	if x != nil {
+		return x.Message
+	}
+	return ""
+}
+
+func (x *TaskWorkflowResponse) GetTasks() []*TaskSummary {
+	if x != nil {
+		return x.Tasks
+	}
+	return nil
+}
+
+func (x *TaskWorkflowResponse) GetTaskIds() []string {
+	if x != nil {
+		return x.TaskIds
+	}
+	return nil
+}
+
+func (x *TaskWorkflowResponse) GetApprovedCount() int32 {
+	if x != nil {
+		return x.ApprovedCount
+	}
+	return 0
+}
+
+func (x *TaskWorkflowResponse) GetDryRun() bool {
+	if x != nil {
+		return x.DryRun
+	}
+	return false
+}
+
+func (x *TaskWorkflowResponse) GetSyncResults() *SyncResults {
+	if x != nil {
+		return x.SyncResults
+	}
+	return nil
+}
+
+func (x *TaskWorkflowResponse) GetCancelled() bool {
+	if x != nil {
+		return x.Cancelled
+	}
+	return false
+}
+
 // AutomationRequest represents a request to the automation tool
 type AutomationRequest struct {
 	state            protoimpl.MessageState `protogen:"open.v1"`
@@ -2500,7 +3092,7 @@ type AutomationRequest struct {
 
 func (x *AutomationRequest) Reset() {
 	*x = AutomationRequest{}
-	mi := &file_proto_tools_proto_msgTypes[27]
+	mi := &file_proto_tools_proto_msgTypes[35]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2512,7 +3104,7 @@ func (x *AutomationRequest) String() string {
 func (*AutomationRequest) ProtoMessage() {}
 
 func (x *AutomationRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_tools_proto_msgTypes[27]
+	mi := &file_proto_tools_proto_msgTypes[35]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2525,7 +3117,7 @@ func (x *AutomationRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AutomationRequest.ProtoReflect.Descriptor instead.
 func (*AutomationRequest) Descriptor() ([]byte, []int) {
-	return file_proto_tools_proto_rawDescGZIP(), []int{27}
+	return file_proto_tools_proto_rawDescGZIP(), []int{35}
 }
 
 func (x *AutomationRequest) GetAction() string {
@@ -2654,7 +3246,7 @@ type TestingRequest struct {
 
 func (x *TestingRequest) Reset() {
 	*x = TestingRequest{}
-	mi := &file_proto_tools_proto_msgTypes[28]
+	mi := &file_proto_tools_proto_msgTypes[36]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2666,7 +3258,7 @@ func (x *TestingRequest) String() string {
 func (*TestingRequest) ProtoMessage() {}
 
 func (x *TestingRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_tools_proto_msgTypes[28]
+	mi := &file_proto_tools_proto_msgTypes[36]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2679,7 +3271,7 @@ func (x *TestingRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TestingRequest.ProtoReflect.Descriptor instead.
 func (*TestingRequest) Descriptor() ([]byte, []int) {
-	return file_proto_tools_proto_rawDescGZIP(), []int{28}
+	return file_proto_tools_proto_rawDescGZIP(), []int{36}
 }
 
 func (x *TestingRequest) GetAction() string {
@@ -2766,6 +3358,67 @@ func (x *TestingRequest) GetOutputPath() string {
 	return ""
 }
 
+// TestingResponse holds testing tool result (run, coverage, suggest, validate).
+type TestingResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Success       bool                   `protobuf:"varint,1,opt,name=success,proto3" json:"success,omitempty"`
+	Action        string                 `protobuf:"bytes,2,opt,name=action,proto3" json:"action,omitempty"`                           // "run", "coverage", "suggest", "validate"
+	ResultJson    string                 `protobuf:"bytes,3,opt,name=result_json,json=resultJson,proto3" json:"result_json,omitempty"` // JSON payload for MCP response
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *TestingResponse) Reset() {
+	*x = TestingResponse{}
+	mi := &file_proto_tools_proto_msgTypes[37]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *TestingResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*TestingResponse) ProtoMessage() {}
+
+func (x *TestingResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_tools_proto_msgTypes[37]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use TestingResponse.ProtoReflect.Descriptor instead.
+func (*TestingResponse) Descriptor() ([]byte, []int) {
+	return file_proto_tools_proto_rawDescGZIP(), []int{37}
+}
+
+func (x *TestingResponse) GetSuccess() bool {
+	if x != nil {
+		return x.Success
+	}
+	return false
+}
+
+func (x *TestingResponse) GetAction() string {
+	if x != nil {
+		return x.Action
+	}
+	return ""
+}
+
+func (x *TestingResponse) GetResultJson() string {
+	if x != nil {
+		return x.ResultJson
+	}
+	return ""
+}
+
 // GenerateConfigRequest represents a request to generate configuration
 type GenerateConfigRequest struct {
 	state           protoimpl.MessageState `protogen:"open.v1"`
@@ -2784,7 +3437,7 @@ type GenerateConfigRequest struct {
 
 func (x *GenerateConfigRequest) Reset() {
 	*x = GenerateConfigRequest{}
-	mi := &file_proto_tools_proto_msgTypes[29]
+	mi := &file_proto_tools_proto_msgTypes[38]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2796,7 +3449,7 @@ func (x *GenerateConfigRequest) String() string {
 func (*GenerateConfigRequest) ProtoMessage() {}
 
 func (x *GenerateConfigRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_tools_proto_msgTypes[29]
+	mi := &file_proto_tools_proto_msgTypes[38]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2809,7 +3462,7 @@ func (x *GenerateConfigRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GenerateConfigRequest.ProtoReflect.Descriptor instead.
 func (*GenerateConfigRequest) Descriptor() ([]byte, []int) {
-	return file_proto_tools_proto_rawDescGZIP(), []int{29}
+	return file_proto_tools_proto_rawDescGZIP(), []int{38}
 }
 
 func (x *GenerateConfigRequest) GetAction() string {
@@ -2894,7 +3547,7 @@ type HealthRequest struct {
 
 func (x *HealthRequest) Reset() {
 	*x = HealthRequest{}
-	mi := &file_proto_tools_proto_msgTypes[30]
+	mi := &file_proto_tools_proto_msgTypes[39]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2906,7 +3559,7 @@ func (x *HealthRequest) String() string {
 func (*HealthRequest) ProtoMessage() {}
 
 func (x *HealthRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_tools_proto_msgTypes[30]
+	mi := &file_proto_tools_proto_msgTypes[39]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2919,7 +3572,7 @@ func (x *HealthRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HealthRequest.ProtoReflect.Descriptor instead.
 func (*HealthRequest) Descriptor() ([]byte, []int) {
-	return file_proto_tools_proto_rawDescGZIP(), []int{30}
+	return file_proto_tools_proto_rawDescGZIP(), []int{39}
 }
 
 func (x *HealthRequest) GetAction() string {
@@ -3007,7 +3660,7 @@ type SecurityRequest struct {
 
 func (x *SecurityRequest) Reset() {
 	*x = SecurityRequest{}
-	mi := &file_proto_tools_proto_msgTypes[31]
+	mi := &file_proto_tools_proto_msgTypes[40]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3019,7 +3672,7 @@ func (x *SecurityRequest) String() string {
 func (*SecurityRequest) ProtoMessage() {}
 
 func (x *SecurityRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_tools_proto_msgTypes[31]
+	mi := &file_proto_tools_proto_msgTypes[40]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3032,7 +3685,7 @@ func (x *SecurityRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SecurityRequest.ProtoReflect.Descriptor instead.
 func (*SecurityRequest) Descriptor() ([]byte, []int) {
-	return file_proto_tools_proto_rawDescGZIP(), []int{31}
+	return file_proto_tools_proto_rawDescGZIP(), []int{40}
 }
 
 func (x *SecurityRequest) GetAction() string {
@@ -3096,7 +3749,7 @@ type LintRequest struct {
 
 func (x *LintRequest) Reset() {
 	*x = LintRequest{}
-	mi := &file_proto_tools_proto_msgTypes[32]
+	mi := &file_proto_tools_proto_msgTypes[41]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3108,7 +3761,7 @@ func (x *LintRequest) String() string {
 func (*LintRequest) ProtoMessage() {}
 
 func (x *LintRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_tools_proto_msgTypes[32]
+	mi := &file_proto_tools_proto_msgTypes[41]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3121,7 +3774,7 @@ func (x *LintRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LintRequest.ProtoReflect.Descriptor instead.
 func (*LintRequest) Descriptor() ([]byte, []int) {
-	return file_proto_tools_proto_rawDescGZIP(), []int{32}
+	return file_proto_tools_proto_rawDescGZIP(), []int{41}
 }
 
 func (x *LintRequest) GetAction() string {
@@ -3213,7 +3866,7 @@ type EstimationRequest struct {
 
 func (x *EstimationRequest) Reset() {
 	*x = EstimationRequest{}
-	mi := &file_proto_tools_proto_msgTypes[33]
+	mi := &file_proto_tools_proto_msgTypes[42]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3225,7 +3878,7 @@ func (x *EstimationRequest) String() string {
 func (*EstimationRequest) ProtoMessage() {}
 
 func (x *EstimationRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_tools_proto_msgTypes[33]
+	mi := &file_proto_tools_proto_msgTypes[42]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3238,7 +3891,7 @@ func (x *EstimationRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EstimationRequest.ProtoReflect.Descriptor instead.
 func (*EstimationRequest) Descriptor() ([]byte, []int) {
-	return file_proto_tools_proto_rawDescGZIP(), []int{33}
+	return file_proto_tools_proto_rawDescGZIP(), []int{42}
 }
 
 func (x *EstimationRequest) GetAction() string {
@@ -3336,7 +3989,7 @@ type GitToolsRequest struct {
 
 func (x *GitToolsRequest) Reset() {
 	*x = GitToolsRequest{}
-	mi := &file_proto_tools_proto_msgTypes[34]
+	mi := &file_proto_tools_proto_msgTypes[43]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3348,7 +4001,7 @@ func (x *GitToolsRequest) String() string {
 func (*GitToolsRequest) ProtoMessage() {}
 
 func (x *GitToolsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_tools_proto_msgTypes[34]
+	mi := &file_proto_tools_proto_msgTypes[43]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3361,7 +4014,7 @@ func (x *GitToolsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GitToolsRequest.ProtoReflect.Descriptor instead.
 func (*GitToolsRequest) Descriptor() ([]byte, []int) {
-	return file_proto_tools_proto_rawDescGZIP(), []int{34}
+	return file_proto_tools_proto_rawDescGZIP(), []int{43}
 }
 
 func (x *GitToolsRequest) GetAction() string {
@@ -3476,6 +4129,67 @@ func (x *GitToolsRequest) GetDryRun() bool {
 	return false
 }
 
+// GitToolsResponse holds git_tools result (commits, branches, tasks, diff, graph, merge, set_branch).
+type GitToolsResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Success       bool                   `protobuf:"varint,1,opt,name=success,proto3" json:"success,omitempty"`
+	Action        string                 `protobuf:"bytes,2,opt,name=action,proto3" json:"action,omitempty"`                           // "commits", "branches", "tasks", "diff", "graph", "merge", "set_branch", "local_commits"
+	ResultJson    string                 `protobuf:"bytes,3,opt,name=result_json,json=resultJson,proto3" json:"result_json,omitempty"` // JSON payload for MCP response
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GitToolsResponse) Reset() {
+	*x = GitToolsResponse{}
+	mi := &file_proto_tools_proto_msgTypes[44]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GitToolsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GitToolsResponse) ProtoMessage() {}
+
+func (x *GitToolsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_tools_proto_msgTypes[44]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GitToolsResponse.ProtoReflect.Descriptor instead.
+func (*GitToolsResponse) Descriptor() ([]byte, []int) {
+	return file_proto_tools_proto_rawDescGZIP(), []int{44}
+}
+
+func (x *GitToolsResponse) GetSuccess() bool {
+	if x != nil {
+		return x.Success
+	}
+	return false
+}
+
+func (x *GitToolsResponse) GetAction() string {
+	if x != nil {
+		return x.Action
+	}
+	return ""
+}
+
+func (x *GitToolsResponse) GetResultJson() string {
+	if x != nil {
+		return x.ResultJson
+	}
+	return ""
+}
+
 // SessionRequest represents a request to the session tool
 type SessionRequest struct {
 	state              protoimpl.MessageState `protogen:"open.v1"`
@@ -3514,7 +4228,7 @@ type SessionRequest struct {
 
 func (x *SessionRequest) Reset() {
 	*x = SessionRequest{}
-	mi := &file_proto_tools_proto_msgTypes[35]
+	mi := &file_proto_tools_proto_msgTypes[45]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3526,7 +4240,7 @@ func (x *SessionRequest) String() string {
 func (*SessionRequest) ProtoMessage() {}
 
 func (x *SessionRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_tools_proto_msgTypes[35]
+	mi := &file_proto_tools_proto_msgTypes[45]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3539,7 +4253,7 @@ func (x *SessionRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SessionRequest.ProtoReflect.Descriptor instead.
 func (*SessionRequest) Descriptor() ([]byte, []int) {
-	return file_proto_tools_proto_rawDescGZIP(), []int{35}
+	return file_proto_tools_proto_rawDescGZIP(), []int{45}
 }
 
 func (x *SessionRequest) GetAction() string {
@@ -3745,6 +4459,500 @@ func (x *SessionRequest) GetAskPreferences() bool {
 	return false
 }
 
+// SessionDetection holds prime detection (agent, mode, etc.)
+type SessionDetection struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Agent         string                 `protobuf:"bytes,1,opt,name=agent,proto3" json:"agent,omitempty"`
+	AgentSource   string                 `protobuf:"bytes,2,opt,name=agent_source,json=agentSource,proto3" json:"agent_source,omitempty"`
+	Mode          string                 `protobuf:"bytes,3,opt,name=mode,proto3" json:"mode,omitempty"`
+	ModeSource    string                 `protobuf:"bytes,4,opt,name=mode_source,json=modeSource,proto3" json:"mode_source,omitempty"`
+	TimeOfDay     string                 `protobuf:"bytes,5,opt,name=time_of_day,json=timeOfDay,proto3" json:"time_of_day,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SessionDetection) Reset() {
+	*x = SessionDetection{}
+	mi := &file_proto_tools_proto_msgTypes[46]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SessionDetection) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SessionDetection) ProtoMessage() {}
+
+func (x *SessionDetection) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_tools_proto_msgTypes[46]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SessionDetection.ProtoReflect.Descriptor instead.
+func (*SessionDetection) Descriptor() ([]byte, []int) {
+	return file_proto_tools_proto_rawDescGZIP(), []int{46}
+}
+
+func (x *SessionDetection) GetAgent() string {
+	if x != nil {
+		return x.Agent
+	}
+	return ""
+}
+
+func (x *SessionDetection) GetAgentSource() string {
+	if x != nil {
+		return x.AgentSource
+	}
+	return ""
+}
+
+func (x *SessionDetection) GetMode() string {
+	if x != nil {
+		return x.Mode
+	}
+	return ""
+}
+
+func (x *SessionDetection) GetModeSource() string {
+	if x != nil {
+		return x.ModeSource
+	}
+	return ""
+}
+
+func (x *SessionDetection) GetTimeOfDay() string {
+	if x != nil {
+		return x.TimeOfDay
+	}
+	return ""
+}
+
+// SessionAgentContext holds agent context for prime
+type SessionAgentContext struct {
+	state           protoimpl.MessageState `protogen:"open.v1"`
+	FocusAreas      []string               `protobuf:"bytes,1,rep,name=focus_areas,json=focusAreas,proto3" json:"focus_areas,omitempty"`
+	RelevantTools   []string               `protobuf:"bytes,2,rep,name=relevant_tools,json=relevantTools,proto3" json:"relevant_tools,omitempty"`
+	RecommendedMode string                 `protobuf:"bytes,3,opt,name=recommended_mode,json=recommendedMode,proto3" json:"recommended_mode,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
+}
+
+func (x *SessionAgentContext) Reset() {
+	*x = SessionAgentContext{}
+	mi := &file_proto_tools_proto_msgTypes[47]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SessionAgentContext) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SessionAgentContext) ProtoMessage() {}
+
+func (x *SessionAgentContext) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_tools_proto_msgTypes[47]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SessionAgentContext.ProtoReflect.Descriptor instead.
+func (*SessionAgentContext) Descriptor() ([]byte, []int) {
+	return file_proto_tools_proto_rawDescGZIP(), []int{47}
+}
+
+func (x *SessionAgentContext) GetFocusAreas() []string {
+	if x != nil {
+		return x.FocusAreas
+	}
+	return nil
+}
+
+func (x *SessionAgentContext) GetRelevantTools() []string {
+	if x != nil {
+		return x.RelevantTools
+	}
+	return nil
+}
+
+func (x *SessionAgentContext) GetRecommendedMode() string {
+	if x != nil {
+		return x.RecommendedMode
+	}
+	return ""
+}
+
+// SessionWorkflow holds workflow mode for prime
+type SessionWorkflow struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Mode          string                 `protobuf:"bytes,1,opt,name=mode,proto3" json:"mode,omitempty"`
+	Description   string                 `protobuf:"bytes,2,opt,name=description,proto3" json:"description,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SessionWorkflow) Reset() {
+	*x = SessionWorkflow{}
+	mi := &file_proto_tools_proto_msgTypes[48]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SessionWorkflow) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SessionWorkflow) ProtoMessage() {}
+
+func (x *SessionWorkflow) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_tools_proto_msgTypes[48]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SessionWorkflow.ProtoReflect.Descriptor instead.
+func (*SessionWorkflow) Descriptor() ([]byte, []int) {
+	return file_proto_tools_proto_rawDescGZIP(), []int{48}
+}
+
+func (x *SessionWorkflow) GetMode() string {
+	if x != nil {
+		return x.Mode
+	}
+	return ""
+}
+
+func (x *SessionWorkflow) GetDescription() string {
+	if x != nil {
+		return x.Description
+	}
+	return ""
+}
+
+// LockCleanupReport for prime (cleaned count and task IDs)
+type LockCleanupReport struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Cleaned       int32                  `protobuf:"varint,1,opt,name=cleaned,proto3" json:"cleaned,omitempty"`
+	TaskIds       []string               `protobuf:"bytes,2,rep,name=task_ids,json=taskIds,proto3" json:"task_ids,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *LockCleanupReport) Reset() {
+	*x = LockCleanupReport{}
+	mi := &file_proto_tools_proto_msgTypes[49]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *LockCleanupReport) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*LockCleanupReport) ProtoMessage() {}
+
+func (x *LockCleanupReport) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_tools_proto_msgTypes[49]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use LockCleanupReport.ProtoReflect.Descriptor instead.
+func (*LockCleanupReport) Descriptor() ([]byte, []int) {
+	return file_proto_tools_proto_rawDescGZIP(), []int{49}
+}
+
+func (x *LockCleanupReport) GetCleaned() int32 {
+	if x != nil {
+		return x.Cleaned
+	}
+	return 0
+}
+
+func (x *LockCleanupReport) GetTaskIds() []string {
+	if x != nil {
+		return x.TaskIds
+	}
+	return nil
+}
+
+// SessionPrimeResult is the type-safe prime response (stable schema for Cursor/clients)
+type SessionPrimeResult struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	AutoPrimed     bool                   `protobuf:"varint,1,opt,name=auto_primed,json=autoPrimed,proto3" json:"auto_primed,omitempty"`
+	Method         string                 `protobuf:"bytes,2,opt,name=method,proto3" json:"method,omitempty"`
+	Timestamp      string                 `protobuf:"bytes,3,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
+	DurationMs     int64                  `protobuf:"varint,4,opt,name=duration_ms,json=durationMs,proto3" json:"duration_ms,omitempty"`
+	Detection      *SessionDetection      `protobuf:"bytes,5,opt,name=detection,proto3" json:"detection,omitempty"`
+	AgentContext   *SessionAgentContext   `protobuf:"bytes,6,opt,name=agent_context,json=agentContext,proto3" json:"agent_context,omitempty"`
+	Workflow       *SessionWorkflow       `protobuf:"bytes,7,opt,name=workflow,proto3" json:"workflow,omitempty"`
+	Elicitation    string                 `protobuf:"bytes,8,opt,name=elicitation,proto3" json:"elicitation,omitempty"`
+	LockCleanup    *LockCleanupReport     `protobuf:"bytes,9,opt,name=lock_cleanup,json=lockCleanup,proto3" json:"lock_cleanup,omitempty"`
+	PlanPath       string                 `protobuf:"bytes,10,opt,name=plan_path,json=planPath,proto3" json:"plan_path,omitempty"`
+	HintsCount     int32                  `protobuf:"varint,11,opt,name=hints_count,json=hintsCount,proto3" json:"hints_count,omitempty"`
+	ActionRequired string                 `protobuf:"bytes,12,opt,name=action_required,json=actionRequired,proto3" json:"action_required,omitempty"`
+	ConflictHints  []string               `protobuf:"bytes,13,rep,name=conflict_hints,json=conflictHints,proto3" json:"conflict_hints,omitempty"`
+	StatusLabel    string                 `protobuf:"bytes,14,opt,name=status_label,json=statusLabel,proto3" json:"status_label,omitempty"`
+	StatusContext  string                 `protobuf:"bytes,15,opt,name=status_context,json=statusContext,proto3" json:"status_context,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *SessionPrimeResult) Reset() {
+	*x = SessionPrimeResult{}
+	mi := &file_proto_tools_proto_msgTypes[50]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SessionPrimeResult) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SessionPrimeResult) ProtoMessage() {}
+
+func (x *SessionPrimeResult) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_tools_proto_msgTypes[50]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SessionPrimeResult.ProtoReflect.Descriptor instead.
+func (*SessionPrimeResult) Descriptor() ([]byte, []int) {
+	return file_proto_tools_proto_rawDescGZIP(), []int{50}
+}
+
+func (x *SessionPrimeResult) GetAutoPrimed() bool {
+	if x != nil {
+		return x.AutoPrimed
+	}
+	return false
+}
+
+func (x *SessionPrimeResult) GetMethod() string {
+	if x != nil {
+		return x.Method
+	}
+	return ""
+}
+
+func (x *SessionPrimeResult) GetTimestamp() string {
+	if x != nil {
+		return x.Timestamp
+	}
+	return ""
+}
+
+func (x *SessionPrimeResult) GetDurationMs() int64 {
+	if x != nil {
+		return x.DurationMs
+	}
+	return 0
+}
+
+func (x *SessionPrimeResult) GetDetection() *SessionDetection {
+	if x != nil {
+		return x.Detection
+	}
+	return nil
+}
+
+func (x *SessionPrimeResult) GetAgentContext() *SessionAgentContext {
+	if x != nil {
+		return x.AgentContext
+	}
+	return nil
+}
+
+func (x *SessionPrimeResult) GetWorkflow() *SessionWorkflow {
+	if x != nil {
+		return x.Workflow
+	}
+	return nil
+}
+
+func (x *SessionPrimeResult) GetElicitation() string {
+	if x != nil {
+		return x.Elicitation
+	}
+	return ""
+}
+
+func (x *SessionPrimeResult) GetLockCleanup() *LockCleanupReport {
+	if x != nil {
+		return x.LockCleanup
+	}
+	return nil
+}
+
+func (x *SessionPrimeResult) GetPlanPath() string {
+	if x != nil {
+		return x.PlanPath
+	}
+	return ""
+}
+
+func (x *SessionPrimeResult) GetHintsCount() int32 {
+	if x != nil {
+		return x.HintsCount
+	}
+	return 0
+}
+
+func (x *SessionPrimeResult) GetActionRequired() string {
+	if x != nil {
+		return x.ActionRequired
+	}
+	return ""
+}
+
+func (x *SessionPrimeResult) GetConflictHints() []string {
+	if x != nil {
+		return x.ConflictHints
+	}
+	return nil
+}
+
+func (x *SessionPrimeResult) GetStatusLabel() string {
+	if x != nil {
+		return x.StatusLabel
+	}
+	return ""
+}
+
+func (x *SessionPrimeResult) GetStatusContext() string {
+	if x != nil {
+		return x.StatusContext
+	}
+	return ""
+}
+
+// SessionHandoffResult for handoff end/resume (type-safe response)
+type SessionHandoffResult struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Success       bool                   `protobuf:"varint,1,opt,name=success,proto3" json:"success,omitempty"`
+	Method        string                 `protobuf:"bytes,2,opt,name=method,proto3" json:"method,omitempty"`
+	DryRun        bool                   `protobuf:"varint,3,opt,name=dry_run,json=dryRun,proto3" json:"dry_run,omitempty"`
+	Message       string                 `protobuf:"bytes,4,opt,name=message,proto3" json:"message,omitempty"`
+	HandoffJson   string                 `protobuf:"bytes,5,opt,name=handoff_json,json=handoffJson,proto3" json:"handoff_json,omitempty"`       // handoff payload as JSON when present
+	HasHandoff    bool                   `protobuf:"varint,6,opt,name=has_handoff,json=hasHandoff,proto3" json:"has_handoff,omitempty"`         // for resume
+	FromSameHost  bool                   `protobuf:"varint,7,opt,name=from_same_host,json=fromSameHost,proto3" json:"from_same_host,omitempty"` // for resume
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SessionHandoffResult) Reset() {
+	*x = SessionHandoffResult{}
+	mi := &file_proto_tools_proto_msgTypes[51]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SessionHandoffResult) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SessionHandoffResult) ProtoMessage() {}
+
+func (x *SessionHandoffResult) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_tools_proto_msgTypes[51]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SessionHandoffResult.ProtoReflect.Descriptor instead.
+func (*SessionHandoffResult) Descriptor() ([]byte, []int) {
+	return file_proto_tools_proto_rawDescGZIP(), []int{51}
+}
+
+func (x *SessionHandoffResult) GetSuccess() bool {
+	if x != nil {
+		return x.Success
+	}
+	return false
+}
+
+func (x *SessionHandoffResult) GetMethod() string {
+	if x != nil {
+		return x.Method
+	}
+	return ""
+}
+
+func (x *SessionHandoffResult) GetDryRun() bool {
+	if x != nil {
+		return x.DryRun
+	}
+	return false
+}
+
+func (x *SessionHandoffResult) GetMessage() string {
+	if x != nil {
+		return x.Message
+	}
+	return ""
+}
+
+func (x *SessionHandoffResult) GetHandoffJson() string {
+	if x != nil {
+		return x.HandoffJson
+	}
+	return ""
+}
+
+func (x *SessionHandoffResult) GetHasHandoff() bool {
+	if x != nil {
+		return x.HasHandoff
+	}
+	return false
+}
+
+func (x *SessionHandoffResult) GetFromSameHost() bool {
+	if x != nil {
+		return x.FromSameHost
+	}
+	return false
+}
+
 // WorkflowModeRequest represents a request to the workflow mode tool
 type WorkflowModeRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
@@ -3761,7 +4969,7 @@ type WorkflowModeRequest struct {
 
 func (x *WorkflowModeRequest) Reset() {
 	*x = WorkflowModeRequest{}
-	mi := &file_proto_tools_proto_msgTypes[36]
+	mi := &file_proto_tools_proto_msgTypes[52]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3773,7 +4981,7 @@ func (x *WorkflowModeRequest) String() string {
 func (*WorkflowModeRequest) ProtoMessage() {}
 
 func (x *WorkflowModeRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_tools_proto_msgTypes[36]
+	mi := &file_proto_tools_proto_msgTypes[52]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3786,7 +4994,7 @@ func (x *WorkflowModeRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WorkflowModeRequest.ProtoReflect.Descriptor instead.
 func (*WorkflowModeRequest) Descriptor() ([]byte, []int) {
-	return file_proto_tools_proto_rawDescGZIP(), []int{36}
+	return file_proto_tools_proto_rawDescGZIP(), []int{52}
 }
 
 func (x *WorkflowModeRequest) GetAction() string {
@@ -3853,7 +5061,7 @@ type SetupHooksRequest struct {
 
 func (x *SetupHooksRequest) Reset() {
 	*x = SetupHooksRequest{}
-	mi := &file_proto_tools_proto_msgTypes[37]
+	mi := &file_proto_tools_proto_msgTypes[53]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3865,7 +5073,7 @@ func (x *SetupHooksRequest) String() string {
 func (*SetupHooksRequest) ProtoMessage() {}
 
 func (x *SetupHooksRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_tools_proto_msgTypes[37]
+	mi := &file_proto_tools_proto_msgTypes[53]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3878,7 +5086,7 @@ func (x *SetupHooksRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetupHooksRequest.ProtoReflect.Descriptor instead.
 func (*SetupHooksRequest) Descriptor() ([]byte, []int) {
-	return file_proto_tools_proto_rawDescGZIP(), []int{37}
+	return file_proto_tools_proto_rawDescGZIP(), []int{53}
 }
 
 func (x *SetupHooksRequest) GetAction() string {
@@ -3934,7 +5142,7 @@ type CheckAttributionRequest struct {
 
 func (x *CheckAttributionRequest) Reset() {
 	*x = CheckAttributionRequest{}
-	mi := &file_proto_tools_proto_msgTypes[38]
+	mi := &file_proto_tools_proto_msgTypes[54]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3946,7 +5154,7 @@ func (x *CheckAttributionRequest) String() string {
 func (*CheckAttributionRequest) ProtoMessage() {}
 
 func (x *CheckAttributionRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_tools_proto_msgTypes[38]
+	mi := &file_proto_tools_proto_msgTypes[54]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3959,7 +5167,7 @@ func (x *CheckAttributionRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CheckAttributionRequest.ProtoReflect.Descriptor instead.
 func (*CheckAttributionRequest) Descriptor() ([]byte, []int) {
-	return file_proto_tools_proto_rawDescGZIP(), []int{38}
+	return file_proto_tools_proto_rawDescGZIP(), []int{54}
 }
 
 func (x *CheckAttributionRequest) GetOutputPath() string {
@@ -3988,7 +5196,7 @@ type AddExternalToolHintsRequest struct {
 
 func (x *AddExternalToolHintsRequest) Reset() {
 	*x = AddExternalToolHintsRequest{}
-	mi := &file_proto_tools_proto_msgTypes[39]
+	mi := &file_proto_tools_proto_msgTypes[55]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4000,7 +5208,7 @@ func (x *AddExternalToolHintsRequest) String() string {
 func (*AddExternalToolHintsRequest) ProtoMessage() {}
 
 func (x *AddExternalToolHintsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_tools_proto_msgTypes[39]
+	mi := &file_proto_tools_proto_msgTypes[55]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4013,7 +5221,7 @@ func (x *AddExternalToolHintsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AddExternalToolHintsRequest.ProtoReflect.Descriptor instead.
 func (*AddExternalToolHintsRequest) Descriptor() ([]byte, []int) {
-	return file_proto_tools_proto_rawDescGZIP(), []int{39}
+	return file_proto_tools_proto_rawDescGZIP(), []int{55}
 }
 
 func (x *AddExternalToolHintsRequest) GetDryRun() bool {
@@ -4061,7 +5269,7 @@ type MemoryMaintRequest struct {
 
 func (x *MemoryMaintRequest) Reset() {
 	*x = MemoryMaintRequest{}
-	mi := &file_proto_tools_proto_msgTypes[40]
+	mi := &file_proto_tools_proto_msgTypes[56]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4073,7 +5281,7 @@ func (x *MemoryMaintRequest) String() string {
 func (*MemoryMaintRequest) ProtoMessage() {}
 
 func (x *MemoryMaintRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_tools_proto_msgTypes[40]
+	mi := &file_proto_tools_proto_msgTypes[56]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4086,7 +5294,7 @@ func (x *MemoryMaintRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MemoryMaintRequest.ProtoReflect.Descriptor instead.
 func (*MemoryMaintRequest) Descriptor() ([]byte, []int) {
-	return file_proto_tools_proto_rawDescGZIP(), []int{40}
+	return file_proto_tools_proto_rawDescGZIP(), []int{56}
 }
 
 func (x *MemoryMaintRequest) GetAction() string {
@@ -4205,7 +5413,7 @@ type ToolCatalogRequest struct {
 
 func (x *ToolCatalogRequest) Reset() {
 	*x = ToolCatalogRequest{}
-	mi := &file_proto_tools_proto_msgTypes[41]
+	mi := &file_proto_tools_proto_msgTypes[57]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4217,7 +5425,7 @@ func (x *ToolCatalogRequest) String() string {
 func (*ToolCatalogRequest) ProtoMessage() {}
 
 func (x *ToolCatalogRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_tools_proto_msgTypes[41]
+	mi := &file_proto_tools_proto_msgTypes[57]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4230,7 +5438,7 @@ func (x *ToolCatalogRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ToolCatalogRequest.ProtoReflect.Descriptor instead.
 func (*ToolCatalogRequest) Descriptor() ([]byte, []int) {
-	return file_proto_tools_proto_rawDescGZIP(), []int{41}
+	return file_proto_tools_proto_rawDescGZIP(), []int{57}
 }
 
 func (x *ToolCatalogRequest) GetAction() string {
@@ -4271,7 +5479,7 @@ type OllamaRequest struct {
 
 func (x *OllamaRequest) Reset() {
 	*x = OllamaRequest{}
-	mi := &file_proto_tools_proto_msgTypes[42]
+	mi := &file_proto_tools_proto_msgTypes[58]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4283,7 +5491,7 @@ func (x *OllamaRequest) String() string {
 func (*OllamaRequest) ProtoMessage() {}
 
 func (x *OllamaRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_tools_proto_msgTypes[42]
+	mi := &file_proto_tools_proto_msgTypes[58]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4296,7 +5504,7 @@ func (x *OllamaRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use OllamaRequest.ProtoReflect.Descriptor instead.
 func (*OllamaRequest) Descriptor() ([]byte, []int) {
-	return file_proto_tools_proto_rawDescGZIP(), []int{42}
+	return file_proto_tools_proto_rawDescGZIP(), []int{58}
 }
 
 func (x *OllamaRequest) GetAction() string {
@@ -4419,7 +5627,7 @@ type MLXRequest struct {
 
 func (x *MLXRequest) Reset() {
 	*x = MLXRequest{}
-	mi := &file_proto_tools_proto_msgTypes[43]
+	mi := &file_proto_tools_proto_msgTypes[59]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4431,7 +5639,7 @@ func (x *MLXRequest) String() string {
 func (*MLXRequest) ProtoMessage() {}
 
 func (x *MLXRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_tools_proto_msgTypes[43]
+	mi := &file_proto_tools_proto_msgTypes[59]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4444,7 +5652,7 @@ func (x *MLXRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MLXRequest.ProtoReflect.Descriptor instead.
 func (*MLXRequest) Descriptor() ([]byte, []int) {
-	return file_proto_tools_proto_rawDescGZIP(), []int{43}
+	return file_proto_tools_proto_rawDescGZIP(), []int{59}
 }
 
 func (x *MLXRequest) GetAction() string {
@@ -4505,7 +5713,7 @@ type PromptTrackingRequest struct {
 
 func (x *PromptTrackingRequest) Reset() {
 	*x = PromptTrackingRequest{}
-	mi := &file_proto_tools_proto_msgTypes[44]
+	mi := &file_proto_tools_proto_msgTypes[60]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4517,7 +5725,7 @@ func (x *PromptTrackingRequest) String() string {
 func (*PromptTrackingRequest) ProtoMessage() {}
 
 func (x *PromptTrackingRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_tools_proto_msgTypes[44]
+	mi := &file_proto_tools_proto_msgTypes[60]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4530,7 +5738,7 @@ func (x *PromptTrackingRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PromptTrackingRequest.ProtoReflect.Descriptor instead.
 func (*PromptTrackingRequest) Descriptor() ([]byte, []int) {
-	return file_proto_tools_proto_rawDescGZIP(), []int{44}
+	return file_proto_tools_proto_rawDescGZIP(), []int{60}
 }
 
 func (x *PromptTrackingRequest) GetAction() string {
@@ -4598,7 +5806,7 @@ type RecommendRequest struct {
 
 func (x *RecommendRequest) Reset() {
 	*x = RecommendRequest{}
-	mi := &file_proto_tools_proto_msgTypes[45]
+	mi := &file_proto_tools_proto_msgTypes[61]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4610,7 +5818,7 @@ func (x *RecommendRequest) String() string {
 func (*RecommendRequest) ProtoMessage() {}
 
 func (x *RecommendRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_tools_proto_msgTypes[45]
+	mi := &file_proto_tools_proto_msgTypes[61]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4623,7 +5831,7 @@ func (x *RecommendRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RecommendRequest.ProtoReflect.Descriptor instead.
 func (*RecommendRequest) Descriptor() ([]byte, []int) {
-	return file_proto_tools_proto_rawDescGZIP(), []int{45}
+	return file_proto_tools_proto_rawDescGZIP(), []int{61}
 }
 
 func (x *RecommendRequest) GetAction() string {
@@ -4685,7 +5893,7 @@ type InferSessionModeRequest struct {
 
 func (x *InferSessionModeRequest) Reset() {
 	*x = InferSessionModeRequest{}
-	mi := &file_proto_tools_proto_msgTypes[46]
+	mi := &file_proto_tools_proto_msgTypes[62]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4697,7 +5905,7 @@ func (x *InferSessionModeRequest) String() string {
 func (*InferSessionModeRequest) ProtoMessage() {}
 
 func (x *InferSessionModeRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_tools_proto_msgTypes[46]
+	mi := &file_proto_tools_proto_msgTypes[62]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4710,7 +5918,7 @@ func (x *InferSessionModeRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use InferSessionModeRequest.ProtoReflect.Descriptor instead.
 func (*InferSessionModeRequest) Descriptor() ([]byte, []int) {
-	return file_proto_tools_proto_rawDescGZIP(), []int{46}
+	return file_proto_tools_proto_rawDescGZIP(), []int{62}
 }
 
 func (x *InferSessionModeRequest) GetForceRecompute() bool {
@@ -4731,7 +5939,7 @@ type ContextBudgetRequest struct {
 
 func (x *ContextBudgetRequest) Reset() {
 	*x = ContextBudgetRequest{}
-	mi := &file_proto_tools_proto_msgTypes[47]
+	mi := &file_proto_tools_proto_msgTypes[63]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4743,7 +5951,7 @@ func (x *ContextBudgetRequest) String() string {
 func (*ContextBudgetRequest) ProtoMessage() {}
 
 func (x *ContextBudgetRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_tools_proto_msgTypes[47]
+	mi := &file_proto_tools_proto_msgTypes[63]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4756,7 +5964,7 @@ func (x *ContextBudgetRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ContextBudgetRequest.ProtoReflect.Descriptor instead.
 func (*ContextBudgetRequest) Descriptor() ([]byte, []int) {
-	return file_proto_tools_proto_rawDescGZIP(), []int{47}
+	return file_proto_tools_proto_rawDescGZIP(), []int{63}
 }
 
 func (x *ContextBudgetRequest) GetItems() string {
@@ -4800,7 +6008,7 @@ const file_proto_tools_proto_rawDesc = "" +
 	"\bmetadata\x18\x06 \x01(\tR\bmetadata\x12'\n" +
 	"\x0finclude_related\x18\a \x01(\bR\x0eincludeRelated\x12\x14\n" +
 	"\x05query\x18\b \x01(\tR\x05query\x12\x14\n" +
-	"\x05limit\x18\t \x01(\x05R\x05limit\"\xa0\x03\n" +
+	"\x05limit\x18\t \x01(\x05R\x05limit\"\xaa\x04\n" +
 	"\x0eMemoryResponse\x12\x18\n" +
 	"\asuccess\x18\x01 \x01(\bR\asuccess\x12\x16\n" +
 	"\x06method\x18\x02 \x01(\tR\x06method\x12/\n" +
@@ -4813,7 +6021,13 @@ const file_proto_tools_proto_rawDesc = "" +
 	"categories\x121\n" +
 	"\x14available_categories\x18\b \x03(\tR\x13availableCategories\x12\x1f\n" +
 	"\vtotal_found\x18\t \x01(\x05R\n" +
-	"totalFound\x1a=\n" +
+	"totalFound\x12\x17\n" +
+	"\atask_id\x18\n" +
+	" \x01(\tR\x06taskId\x12'\n" +
+	"\x0finclude_related\x18\v \x01(\bR\x0eincludeRelated\x12\x14\n" +
+	"\x05query\x18\f \x01(\tR\x05query\x12\x14\n" +
+	"\x05total\x18\r \x01(\x05R\x05total\x12\x1a\n" +
+	"\breturned\x18\x0e \x01(\x05R\breturned\x1a=\n" +
 	"\x0fCategoriesEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\x05R\x05value:\x028\x01\">\n" +
@@ -4999,7 +6213,32 @@ const file_proto_tools_proto_rawDesc = "" +
 	"\fbacklog_only\x18\r \x01(\bR\vbacklogOnly\x12(\n" +
 	"\x10use_llm_semantic\x18\x0e \x01(\bR\x0euseLlmSemantic\x12.\n" +
 	"\x13match_existing_only\x18\x0f \x01(\bR\x11matchExistingOnly\x12+\n" +
-	"\x12use_tiny_tag_model\x18\x10 \x01(\bR\x0fuseTinyTagModel\"\xfa\x01\n" +
+	"\x12use_tiny_tag_model\x18\x10 \x01(\bR\x0fuseTinyTagModel\"p\n" +
+	"\x14TaskAnalysisResponse\x12\x16\n" +
+	"\x06action\x18\x01 \x01(\tR\x06action\x12\x1f\n" +
+	"\voutput_path\x18\x02 \x01(\tR\n" +
+	"outputPath\x12\x1f\n" +
+	"\vresult_json\x18\x03 \x01(\tR\n" +
+	"resultJson\"M\n" +
+	"\x12AutomationResponse\x12\x16\n" +
+	"\x06action\x18\x01 \x01(\tR\x06action\x12\x1f\n" +
+	"\vresult_json\x18\x02 \x01(\tR\n" +
+	"resultJson\"K\n" +
+	"\x10EstimationResult\x12\x16\n" +
+	"\x06action\x18\x01 \x01(\tR\x06action\x12\x1f\n" +
+	"\vresult_json\x18\x02 \x01(\tR\n" +
+	"resultJson\"h\n" +
+	"\fHealthReport\x12\x16\n" +
+	"\x06action\x18\x01 \x01(\tR\x06action\x12\x1f\n" +
+	"\voutput_path\x18\x02 \x01(\tR\n" +
+	"outputPath\x12\x1f\n" +
+	"\vresult_json\x18\x03 \x01(\tR\n" +
+	"resultJson\"]\n" +
+	"\x19InferTaskProgressResponse\x12\x1f\n" +
+	"\voutput_path\x18\x01 \x01(\tR\n" +
+	"outputPath\x12\x1f\n" +
+	"\vresult_json\x18\x02 \x01(\tR\n" +
+	"resultJson\"\xfa\x01\n" +
 	"\x14TaskDiscoveryRequest\x12\x16\n" +
 	"\x06action\x18\x01 \x01(\tR\x06action\x12#\n" +
 	"\rfile_patterns\x18\x02 \x01(\tR\ffilePatterns\x12#\n" +
@@ -5041,7 +6280,30 @@ const file_proto_tools_proto_rawDesc = "" +
 	"\x04tags\x18\x16 \x03(\tR\x04tags\x12\"\n" +
 	"\fdependencies\x18\x17 \x03(\tR\fdependencies\x12#\n" +
 	"\rauto_estimate\x18\x18 \x01(\bR\fautoEstimate\x126\n" +
-	"\x17confirm_via_elicitation\x18\x19 \x01(\bR\x15confirmViaElicitation\"\xb8\x04\n" +
+	"\x17confirm_via_elicitation\x18\x19 \x01(\bR\x15confirmViaElicitation\"\xce\x01\n" +
+	"\vTaskSummary\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x18\n" +
+	"\acontent\x18\x02 \x01(\tR\acontent\x12\x16\n" +
+	"\x06status\x18\x03 \x01(\tR\x06status\x12\x1a\n" +
+	"\bpriority\x18\x04 \x01(\tR\bpriority\x12\x12\n" +
+	"\x04tags\x18\x05 \x03(\tR\x04tags\x12)\n" +
+	"\x10long_description\x18\x06 \x01(\tR\x0flongDescription\x12\"\n" +
+	"\fdependencies\x18\a \x03(\tR\fdependencies\"\x89\x01\n" +
+	"\vSyncResults\x12'\n" +
+	"\x0fvalidated_tasks\x18\x01 \x01(\x05R\x0evalidatedTasks\x12!\n" +
+	"\fissues_found\x18\x02 \x01(\x05R\vissuesFound\x12\x16\n" +
+	"\x06issues\x18\x03 \x03(\tR\x06issues\x12\x16\n" +
+	"\x06synced\x18\x04 \x01(\bR\x06synced\"\xc8\x02\n" +
+	"\x14TaskWorkflowResponse\x12\x18\n" +
+	"\asuccess\x18\x01 \x01(\bR\asuccess\x12\x16\n" +
+	"\x06method\x18\x02 \x01(\tR\x06method\x12\x18\n" +
+	"\amessage\x18\x03 \x01(\tR\amessage\x12.\n" +
+	"\x05tasks\x18\x04 \x03(\v2\x18.exarp.tools.TaskSummaryR\x05tasks\x12\x19\n" +
+	"\btask_ids\x18\x05 \x03(\tR\ataskIds\x12%\n" +
+	"\x0eapproved_count\x18\x06 \x01(\x05R\rapprovedCount\x12\x17\n" +
+	"\adry_run\x18\a \x01(\bR\x06dryRun\x12;\n" +
+	"\fsync_results\x18\b \x01(\v2\x18.exarp.tools.SyncResultsR\vsyncResults\x12\x1c\n" +
+	"\tcancelled\x18\t \x01(\bR\tcancelled\"\xb8\x04\n" +
 	"\x11AutomationRequest\x12\x16\n" +
 	"\x06action\x18\x01 \x01(\tR\x06action\x12\x14\n" +
 	"\x05tasks\x18\x02 \x03(\tR\x05tasks\x12!\n" +
@@ -5076,7 +6338,12 @@ const file_proto_tools_proto_rawDesc = "" +
 	" \x01(\x01R\rminConfidence\x12\x1c\n" +
 	"\tframework\x18\v \x01(\tR\tframework\x12\x1f\n" +
 	"\voutput_path\x18\f \x01(\tR\n" +
-	"outputPath\"\xb1\x02\n" +
+	"outputPath\"d\n" +
+	"\x0fTestingResponse\x12\x18\n" +
+	"\asuccess\x18\x01 \x01(\bR\asuccess\x12\x16\n" +
+	"\x06action\x18\x02 \x01(\tR\x06action\x12\x1f\n" +
+	"\vresult_json\x18\x03 \x01(\tR\n" +
+	"resultJson\"\xb1\x02\n" +
 	"\x15GenerateConfigRequest\x12\x16\n" +
 	"\x06action\x18\x01 \x01(\tR\x06action\x12\x14\n" +
 	"\x05rules\x18\x02 \x01(\tR\x05rules\x12\x1c\n" +
@@ -5157,7 +6424,12 @@ const file_proto_tools_proto_rawDesc = "" +
 	"\rtarget_branch\x18\r \x01(\tR\ftargetBranch\x12+\n" +
 	"\x11conflict_strategy\x18\x0e \x01(\tR\x10conflictStrategy\x12\x16\n" +
 	"\x06author\x18\x0f \x01(\tR\x06author\x12\x17\n" +
-	"\adry_run\x18\x10 \x01(\bR\x06dryRun\"\xeb\a\n" +
+	"\adry_run\x18\x10 \x01(\bR\x06dryRun\"e\n" +
+	"\x10GitToolsResponse\x12\x18\n" +
+	"\asuccess\x18\x01 \x01(\bR\asuccess\x12\x16\n" +
+	"\x06action\x18\x02 \x01(\tR\x06action\x12\x1f\n" +
+	"\vresult_json\x18\x03 \x01(\tR\n" +
+	"resultJson\"\xeb\a\n" +
 	"\x0eSessionRequest\x12\x16\n" +
 	"\x06action\x18\x01 \x01(\tR\x06action\x12#\n" +
 	"\rinclude_hints\x18\x02 \x01(\bR\fincludeHints\x12#\n" +
@@ -5192,7 +6464,54 @@ const file_proto_tools_proto_rawDesc = "" +
 	"\x0fpriority_filter\x18\x1a \x01(\tR\x0epriorityFilter\x12-\n" +
 	"\x12include_unassigned\x18\x1b \x01(\bR\x11includeUnassigned\x12-\n" +
 	"\x13max_tasks_per_agent\x18\x1c \x01(\x05R\x10maxTasksPerAgent\x12'\n" +
-	"\x0fask_preferences\x18\x1d \x01(\bR\x0easkPreferences\"\xd6\x01\n" +
+	"\x0fask_preferences\x18\x1d \x01(\bR\x0easkPreferences\"\xa0\x01\n" +
+	"\x10SessionDetection\x12\x14\n" +
+	"\x05agent\x18\x01 \x01(\tR\x05agent\x12!\n" +
+	"\fagent_source\x18\x02 \x01(\tR\vagentSource\x12\x12\n" +
+	"\x04mode\x18\x03 \x01(\tR\x04mode\x12\x1f\n" +
+	"\vmode_source\x18\x04 \x01(\tR\n" +
+	"modeSource\x12\x1e\n" +
+	"\vtime_of_day\x18\x05 \x01(\tR\ttimeOfDay\"\x88\x01\n" +
+	"\x13SessionAgentContext\x12\x1f\n" +
+	"\vfocus_areas\x18\x01 \x03(\tR\n" +
+	"focusAreas\x12%\n" +
+	"\x0erelevant_tools\x18\x02 \x03(\tR\rrelevantTools\x12)\n" +
+	"\x10recommended_mode\x18\x03 \x01(\tR\x0frecommendedMode\"G\n" +
+	"\x0fSessionWorkflow\x12\x12\n" +
+	"\x04mode\x18\x01 \x01(\tR\x04mode\x12 \n" +
+	"\vdescription\x18\x02 \x01(\tR\vdescription\"H\n" +
+	"\x11LockCleanupReport\x12\x18\n" +
+	"\acleaned\x18\x01 \x01(\x05R\acleaned\x12\x19\n" +
+	"\btask_ids\x18\x02 \x03(\tR\ataskIds\"\x87\x05\n" +
+	"\x12SessionPrimeResult\x12\x1f\n" +
+	"\vauto_primed\x18\x01 \x01(\bR\n" +
+	"autoPrimed\x12\x16\n" +
+	"\x06method\x18\x02 \x01(\tR\x06method\x12\x1c\n" +
+	"\ttimestamp\x18\x03 \x01(\tR\ttimestamp\x12\x1f\n" +
+	"\vduration_ms\x18\x04 \x01(\x03R\n" +
+	"durationMs\x12;\n" +
+	"\tdetection\x18\x05 \x01(\v2\x1d.exarp.tools.SessionDetectionR\tdetection\x12E\n" +
+	"\ragent_context\x18\x06 \x01(\v2 .exarp.tools.SessionAgentContextR\fagentContext\x128\n" +
+	"\bworkflow\x18\a \x01(\v2\x1c.exarp.tools.SessionWorkflowR\bworkflow\x12 \n" +
+	"\velicitation\x18\b \x01(\tR\velicitation\x12A\n" +
+	"\flock_cleanup\x18\t \x01(\v2\x1e.exarp.tools.LockCleanupReportR\vlockCleanup\x12\x1b\n" +
+	"\tplan_path\x18\n" +
+	" \x01(\tR\bplanPath\x12\x1f\n" +
+	"\vhints_count\x18\v \x01(\x05R\n" +
+	"hintsCount\x12'\n" +
+	"\x0faction_required\x18\f \x01(\tR\x0eactionRequired\x12%\n" +
+	"\x0econflict_hints\x18\r \x03(\tR\rconflictHints\x12!\n" +
+	"\fstatus_label\x18\x0e \x01(\tR\vstatusLabel\x12%\n" +
+	"\x0estatus_context\x18\x0f \x01(\tR\rstatusContext\"\xe5\x01\n" +
+	"\x14SessionHandoffResult\x12\x18\n" +
+	"\asuccess\x18\x01 \x01(\bR\asuccess\x12\x16\n" +
+	"\x06method\x18\x02 \x01(\tR\x06method\x12\x17\n" +
+	"\adry_run\x18\x03 \x01(\bR\x06dryRun\x12\x18\n" +
+	"\amessage\x18\x04 \x01(\tR\amessage\x12!\n" +
+	"\fhandoff_json\x18\x05 \x01(\tR\vhandoffJson\x12\x1f\n" +
+	"\vhas_handoff\x18\x06 \x01(\bR\n" +
+	"hasHandoff\x12$\n" +
+	"\x0efrom_same_host\x18\a \x01(\bR\ffromSameHost\"\xd6\x01\n" +
 	"\x13WorkflowModeRequest\x12\x16\n" +
 	"\x06action\x18\x01 \x01(\tR\x06action\x12\x12\n" +
 	"\x04mode\x18\x02 \x01(\tR\x04mode\x12!\n" +
@@ -5303,7 +6622,7 @@ func file_proto_tools_proto_rawDescGZIP() []byte {
 	return file_proto_tools_proto_rawDescData
 }
 
-var file_proto_tools_proto_msgTypes = make([]protoimpl.MessageInfo, 57)
+var file_proto_tools_proto_msgTypes = make([]protoimpl.MessageInfo, 73)
 var file_proto_tools_proto_goTypes = []any{
 	(*Memory)(nil),                      // 0: exarp.tools.Memory
 	(*MemoryRequest)(nil),               // 1: exarp.tools.MemoryRequest
@@ -5330,51 +6649,67 @@ var file_proto_tools_proto_goTypes = []any{
 	(*NextAction)(nil),                  // 22: exarp.tools.NextAction
 	(*AnalyzeAlignmentRequest)(nil),     // 23: exarp.tools.AnalyzeAlignmentRequest
 	(*TaskAnalysisRequest)(nil),         // 24: exarp.tools.TaskAnalysisRequest
-	(*TaskDiscoveryRequest)(nil),        // 25: exarp.tools.TaskDiscoveryRequest
-	(*TaskWorkflowRequest)(nil),         // 26: exarp.tools.TaskWorkflowRequest
-	(*AutomationRequest)(nil),           // 27: exarp.tools.AutomationRequest
-	(*TestingRequest)(nil),              // 28: exarp.tools.TestingRequest
-	(*GenerateConfigRequest)(nil),       // 29: exarp.tools.GenerateConfigRequest
-	(*HealthRequest)(nil),               // 30: exarp.tools.HealthRequest
-	(*SecurityRequest)(nil),             // 31: exarp.tools.SecurityRequest
-	(*LintRequest)(nil),                 // 32: exarp.tools.LintRequest
-	(*EstimationRequest)(nil),           // 33: exarp.tools.EstimationRequest
-	(*GitToolsRequest)(nil),             // 34: exarp.tools.GitToolsRequest
-	(*SessionRequest)(nil),              // 35: exarp.tools.SessionRequest
-	(*WorkflowModeRequest)(nil),         // 36: exarp.tools.WorkflowModeRequest
-	(*SetupHooksRequest)(nil),           // 37: exarp.tools.SetupHooksRequest
-	(*CheckAttributionRequest)(nil),     // 38: exarp.tools.CheckAttributionRequest
-	(*AddExternalToolHintsRequest)(nil), // 39: exarp.tools.AddExternalToolHintsRequest
-	(*MemoryMaintRequest)(nil),          // 40: exarp.tools.MemoryMaintRequest
-	(*ToolCatalogRequest)(nil),          // 41: exarp.tools.ToolCatalogRequest
-	(*OllamaRequest)(nil),               // 42: exarp.tools.OllamaRequest
-	(*MLXRequest)(nil),                  // 43: exarp.tools.MLXRequest
-	(*PromptTrackingRequest)(nil),       // 44: exarp.tools.PromptTrackingRequest
-	(*RecommendRequest)(nil),            // 45: exarp.tools.RecommendRequest
-	(*InferSessionModeRequest)(nil),     // 46: exarp.tools.InferSessionModeRequest
-	(*ContextBudgetRequest)(nil),        // 47: exarp.tools.ContextBudgetRequest
-	nil,                                 // 48: exarp.tools.Memory.MetadataEntry
-	nil,                                 // 49: exarp.tools.MemoryResponse.CategoriesEntry
-	nil,                                 // 50: exarp.tools.ContextResponse.TokenEstimateEntry
-	nil,                                 // 51: exarp.tools.ContextSummary.TokenEstimateEntry
-	nil,                                 // 52: exarp.tools.Metrics.ComponentScoresEntry
-	nil,                                 // 53: exarp.tools.Metrics.CountsEntry
-	nil,                                 // 54: exarp.tools.ScorecardData.ComponentScoresEntry
-	nil,                                 // 55: exarp.tools.ScorecardData.MetricsCountsEntry
-	nil,                                 // 56: exarp.tools.HealthData.ScoresEntry
+	(*TaskAnalysisResponse)(nil),        // 25: exarp.tools.TaskAnalysisResponse
+	(*AutomationResponse)(nil),          // 26: exarp.tools.AutomationResponse
+	(*EstimationResult)(nil),            // 27: exarp.tools.EstimationResult
+	(*HealthReport)(nil),                // 28: exarp.tools.HealthReport
+	(*InferTaskProgressResponse)(nil),   // 29: exarp.tools.InferTaskProgressResponse
+	(*TaskDiscoveryRequest)(nil),        // 30: exarp.tools.TaskDiscoveryRequest
+	(*TaskWorkflowRequest)(nil),         // 31: exarp.tools.TaskWorkflowRequest
+	(*TaskSummary)(nil),                 // 32: exarp.tools.TaskSummary
+	(*SyncResults)(nil),                 // 33: exarp.tools.SyncResults
+	(*TaskWorkflowResponse)(nil),        // 34: exarp.tools.TaskWorkflowResponse
+	(*AutomationRequest)(nil),           // 35: exarp.tools.AutomationRequest
+	(*TestingRequest)(nil),              // 36: exarp.tools.TestingRequest
+	(*TestingResponse)(nil),             // 37: exarp.tools.TestingResponse
+	(*GenerateConfigRequest)(nil),       // 38: exarp.tools.GenerateConfigRequest
+	(*HealthRequest)(nil),               // 39: exarp.tools.HealthRequest
+	(*SecurityRequest)(nil),             // 40: exarp.tools.SecurityRequest
+	(*LintRequest)(nil),                 // 41: exarp.tools.LintRequest
+	(*EstimationRequest)(nil),           // 42: exarp.tools.EstimationRequest
+	(*GitToolsRequest)(nil),             // 43: exarp.tools.GitToolsRequest
+	(*GitToolsResponse)(nil),            // 44: exarp.tools.GitToolsResponse
+	(*SessionRequest)(nil),              // 45: exarp.tools.SessionRequest
+	(*SessionDetection)(nil),            // 46: exarp.tools.SessionDetection
+	(*SessionAgentContext)(nil),         // 47: exarp.tools.SessionAgentContext
+	(*SessionWorkflow)(nil),             // 48: exarp.tools.SessionWorkflow
+	(*LockCleanupReport)(nil),           // 49: exarp.tools.LockCleanupReport
+	(*SessionPrimeResult)(nil),          // 50: exarp.tools.SessionPrimeResult
+	(*SessionHandoffResult)(nil),        // 51: exarp.tools.SessionHandoffResult
+	(*WorkflowModeRequest)(nil),         // 52: exarp.tools.WorkflowModeRequest
+	(*SetupHooksRequest)(nil),           // 53: exarp.tools.SetupHooksRequest
+	(*CheckAttributionRequest)(nil),     // 54: exarp.tools.CheckAttributionRequest
+	(*AddExternalToolHintsRequest)(nil), // 55: exarp.tools.AddExternalToolHintsRequest
+	(*MemoryMaintRequest)(nil),          // 56: exarp.tools.MemoryMaintRequest
+	(*ToolCatalogRequest)(nil),          // 57: exarp.tools.ToolCatalogRequest
+	(*OllamaRequest)(nil),               // 58: exarp.tools.OllamaRequest
+	(*MLXRequest)(nil),                  // 59: exarp.tools.MLXRequest
+	(*PromptTrackingRequest)(nil),       // 60: exarp.tools.PromptTrackingRequest
+	(*RecommendRequest)(nil),            // 61: exarp.tools.RecommendRequest
+	(*InferSessionModeRequest)(nil),     // 62: exarp.tools.InferSessionModeRequest
+	(*ContextBudgetRequest)(nil),        // 63: exarp.tools.ContextBudgetRequest
+	nil,                                 // 64: exarp.tools.Memory.MetadataEntry
+	nil,                                 // 65: exarp.tools.MemoryResponse.CategoriesEntry
+	nil,                                 // 66: exarp.tools.ContextResponse.TokenEstimateEntry
+	nil,                                 // 67: exarp.tools.ContextSummary.TokenEstimateEntry
+	nil,                                 // 68: exarp.tools.Metrics.ComponentScoresEntry
+	nil,                                 // 69: exarp.tools.Metrics.CountsEntry
+	nil,                                 // 70: exarp.tools.ScorecardData.ComponentScoresEntry
+	nil,                                 // 71: exarp.tools.ScorecardData.MetricsCountsEntry
+	nil,                                 // 72: exarp.tools.HealthData.ScoresEntry
 }
 var file_proto_tools_proto_depIdxs = []int32{
-	48, // 0: exarp.tools.Memory.metadata:type_name -> exarp.tools.Memory.MetadataEntry
+	64, // 0: exarp.tools.Memory.metadata:type_name -> exarp.tools.Memory.MetadataEntry
 	0,  // 1: exarp.tools.MemoryResponse.memories:type_name -> exarp.tools.Memory
-	49, // 2: exarp.tools.MemoryResponse.categories:type_name -> exarp.tools.MemoryResponse.CategoriesEntry
-	50, // 3: exarp.tools.ContextResponse.token_estimate:type_name -> exarp.tools.ContextResponse.TokenEstimateEntry
+	65, // 2: exarp.tools.MemoryResponse.categories:type_name -> exarp.tools.MemoryResponse.CategoriesEntry
+	66, // 3: exarp.tools.ContextResponse.token_estimate:type_name -> exarp.tools.ContextResponse.TokenEstimateEntry
 	6,  // 4: exarp.tools.ContextResponse.summaries:type_name -> exarp.tools.ContextSummary
-	51, // 5: exarp.tools.ContextSummary.token_estimate:type_name -> exarp.tools.ContextSummary.TokenEstimateEntry
+	67, // 5: exarp.tools.ContextSummary.token_estimate:type_name -> exarp.tools.ContextSummary.TokenEstimateEntry
 	11, // 6: exarp.tools.ReportResponse.ai_insights:type_name -> exarp.tools.AIInsights
 	9,  // 7: exarp.tools.BriefingData.quotes:type_name -> exarp.tools.BriefingQuote
 	12, // 8: exarp.tools.AIInsights.metrics:type_name -> exarp.tools.Metrics
-	52, // 9: exarp.tools.Metrics.component_scores:type_name -> exarp.tools.Metrics.ComponentScoresEntry
-	53, // 10: exarp.tools.Metrics.counts:type_name -> exarp.tools.Metrics.CountsEntry
+	68, // 9: exarp.tools.Metrics.component_scores:type_name -> exarp.tools.Metrics.ComponentScoresEntry
+	69, // 10: exarp.tools.Metrics.counts:type_name -> exarp.tools.Metrics.CountsEntry
 	16, // 11: exarp.tools.ProjectOverviewData.project:type_name -> exarp.tools.ProjectInfo
 	17, // 12: exarp.tools.ProjectOverviewData.health:type_name -> exarp.tools.HealthData
 	18, // 13: exarp.tools.ProjectOverviewData.codebase:type_name -> exarp.tools.CodebaseMetrics
@@ -5383,14 +6718,20 @@ var file_proto_tools_proto_depIdxs = []int32{
 	21, // 16: exarp.tools.ProjectOverviewData.risks:type_name -> exarp.tools.RiskOrBlocker
 	22, // 17: exarp.tools.ProjectOverviewData.next_actions:type_name -> exarp.tools.NextAction
 	13, // 18: exarp.tools.ProjectOverviewData.planning:type_name -> exarp.tools.PlanningSnippet
-	54, // 19: exarp.tools.ScorecardData.component_scores:type_name -> exarp.tools.ScorecardData.ComponentScoresEntry
-	55, // 20: exarp.tools.ScorecardData.metrics_counts:type_name -> exarp.tools.ScorecardData.MetricsCountsEntry
-	56, // 21: exarp.tools.HealthData.scores:type_name -> exarp.tools.HealthData.ScoresEntry
-	22, // [22:22] is the sub-list for method output_type
-	22, // [22:22] is the sub-list for method input_type
-	22, // [22:22] is the sub-list for extension type_name
-	22, // [22:22] is the sub-list for extension extendee
-	0,  // [0:22] is the sub-list for field type_name
+	70, // 19: exarp.tools.ScorecardData.component_scores:type_name -> exarp.tools.ScorecardData.ComponentScoresEntry
+	71, // 20: exarp.tools.ScorecardData.metrics_counts:type_name -> exarp.tools.ScorecardData.MetricsCountsEntry
+	72, // 21: exarp.tools.HealthData.scores:type_name -> exarp.tools.HealthData.ScoresEntry
+	32, // 22: exarp.tools.TaskWorkflowResponse.tasks:type_name -> exarp.tools.TaskSummary
+	33, // 23: exarp.tools.TaskWorkflowResponse.sync_results:type_name -> exarp.tools.SyncResults
+	46, // 24: exarp.tools.SessionPrimeResult.detection:type_name -> exarp.tools.SessionDetection
+	47, // 25: exarp.tools.SessionPrimeResult.agent_context:type_name -> exarp.tools.SessionAgentContext
+	48, // 26: exarp.tools.SessionPrimeResult.workflow:type_name -> exarp.tools.SessionWorkflow
+	49, // 27: exarp.tools.SessionPrimeResult.lock_cleanup:type_name -> exarp.tools.LockCleanupReport
+	28, // [28:28] is the sub-list for method output_type
+	28, // [28:28] is the sub-list for method input_type
+	28, // [28:28] is the sub-list for extension type_name
+	28, // [28:28] is the sub-list for extension extendee
+	0,  // [0:28] is the sub-list for field type_name
 }
 
 func init() { file_proto_tools_proto_init() }
@@ -5404,7 +6745,7 @@ func file_proto_tools_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_tools_proto_rawDesc), len(file_proto_tools_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   57,
+			NumMessages:   73,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
