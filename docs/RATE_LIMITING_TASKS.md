@@ -51,7 +51,7 @@ Rate limiting tasks originated from `docs/SECURITY_AUDIT.md` Phase 2. Base imple
 ## Related Tasks (Not Archived)
 
 - T-273: Implement sliding window rate limiter — ✅ Done  
-- T-274: Add middleware to framework — integration pending  
+- ~~T-274~~ *(removed)* Add middleware to framework — **Future improvement**: documented in `docs/SECURITY_AUDIT.md`. Defer until HTTP/SSE or multi-transport; mcp-go-core has middleware support.  
 - T-275: Configure default limits — ✅ Done via config  
 - T-277: Add tests for rate limiting — ✅ Done  
 - T-288, T-289, T-291, T-292: Base rate limit tests (T-290 per-tool deleted)  
