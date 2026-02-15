@@ -18,6 +18,7 @@ var cursorSkillPaths = []string{
 	".cursor/skills/report-scorecard/SKILL.md",
 	".cursor/skills/task-cleanup/SKILL.md",
 	".cursor/skills/lint-docs/SKILL.md",
+	".cursor/skills/tractatus-decompose/SKILL.md",
 }
 
 // handleCursorSkills handles the stdio://cursor/skills resource.
@@ -66,7 +67,8 @@ When using exarp-go MCP, consider these skills (read from .cursor/skills/ if pre
 | Health, docs, CI | use-exarp-tools (health tool) |
 | Broken references, validate doc links, lint markdown | lint-docs, use-exarp-tools (lint tool) |
 | Bulk remove one-off/performance tasks | task-cleanup |
+| Logical decomposition, complex concepts | tractatus-decompose |
 
-Paths: .cursor/skills/use-exarp-tools/SKILL.md, .cursor/skills/task-workflow/SKILL.md, .cursor/skills/session-handoff/SKILL.md, .cursor/skills/report-scorecard/SKILL.md, .cursor/skills/task-cleanup/SKILL.md, .cursor/skills/lint-docs/SKILL.md
+Paths: .cursor/skills/use-exarp-tools/SKILL.md, .cursor/skills/task-workflow/SKILL.md, .cursor/skills/session-handoff/SKILL.md, .cursor/skills/report-scorecard/SKILL.md, .cursor/skills/task-cleanup/SKILL.md, .cursor/skills/lint-docs/SKILL.md, .cursor/skills/tractatus-decompose/SKILL.md
 `))
 }
