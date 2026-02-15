@@ -483,7 +483,7 @@ Mark as Done or Request Changes
 - [ ] Implement task complexity classifier
 - [x] Create execution prompt templates — `task_execution` in `internal/prompts/templates.go` (T-213)
 - [x] Add change application logic — `ApplyChanges`, `ParseExecutionResponse` in `internal/tools/execution_apply.go` (T-214)
-- [ ] Integrate with Todo2 execution flow
+- [x] Integrate with Todo2 execution flow — `task_execute` tool in `internal/tools/task_execute.go` (T-215): load task, render template, model generate, parse, apply changes, add result comment
 
 ### Phase 5: Prompt Optimization
 - [ ] Implement prompt analyzer
