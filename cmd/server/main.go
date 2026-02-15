@@ -3,8 +3,10 @@ package main
 import (
 	"context"
 	"flag"
+	"net/http"
 	"os"
 
+	"github.com/davidl71/exarp-go/internal/api"
 	"github.com/davidl71/exarp-go/internal/cli"
 	"github.com/davidl71/exarp-go/internal/config"
 	"github.com/davidl71/exarp-go/internal/database"
@@ -13,10 +15,20 @@ import (
 	"github.com/davidl71/exarp-go/internal/prompts"
 	"github.com/davidl71/exarp-go/internal/resources"
 	"github.com/davidl71/exarp-go/internal/tools"
+	"github.com/davidl71/exarp-go/internal/web"
 )
 
 func main() {
 	logging.Init()
+
+	// -serve :8080 runs HTTP API + embedded PWA UI only
+	serveFs := flag.NewFlagSet("", flag.ContinueOnError)
+	serveAddr := serveFs.String("serve", "", "Listen address for HTTP API and PWA UI (e.g. :8080)")
+	_ = serveFs.Parse(os.Args[1:])
+	if *serveAddr != "" {
+		runServeMode(*serveAddr)
+		return
+	}
 
 	// Normalize "exarp-go tool_name key=value ..." (e.g. from git hooks) to -tool and -args
 	// so we run CLI mode instead of MCP server (which would read stdin and fail on non-JSON).
@@ -85,5 +97,50 @@ func main() {
 	ctx := context.Background()
 	if err := server.Run(ctx, nil); err != nil {
 		logging.Fatal("Server error: %v", err)
+	}
+}
+
+func runServeMode(addr string) {
+	projectRoot, err := tools.FindProjectRoot()
+	if err != nil {
+		logging.Warn("Could not find project root: %v (database unavailable)", err)
+		projectRoot = "."
+	} else {
+		os.Setenv("PROJECT_ROOT", projectRoot)
+		cli.EnsureConfigAndDatabase(projectRoot)
+		if database.DB != nil {
+			defer func() {
+				if err := database.Close(); err != nil {
+					logging.Warn("Error closing database: %v", err)
+				}
+			}()
+		}
+	}
+
+	cfg, err := config.Load()
+	if err != nil {
+		logging.Fatal("Failed to load config: %v", err)
+	}
+
+	server, err := factory.NewServerFromConfig(cfg)
+	if err != nil {
+		logging.Fatal("Failed to create server: %v", err)
+	}
+
+	if err := tools.RegisterAllTools(server); err != nil {
+		logging.Fatal("Failed to register tools: %v", err)
+	}
+	if err := prompts.RegisterAllPrompts(server); err != nil {
+		logging.Fatal("Failed to register prompts: %v", err)
+	}
+	if err := resources.RegisterAllResources(server); err != nil {
+		logging.Fatal("Failed to register resources: %v", err)
+	}
+
+	apiServer := api.NewServer(server, projectRoot)
+	handler := web.SPAHandler(apiServer.Handler())
+	logging.Warn("HTTP API and PWA UI listening on %s", addr)
+	if err := http.ListenAndServe(addr, handler); err != nil {
+		logging.Fatal("Serve error: %v", err)
 	}
 }
