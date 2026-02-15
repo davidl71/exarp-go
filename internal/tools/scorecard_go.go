@@ -62,6 +62,8 @@ type GoScorecardResult struct {
 	Health          GoHealthChecks   `json:"health"`
 	Recommendations []string         `json:"recommendations"`
 	Score           float64          `json:"score"`
+	// FastModeUsed is true when scorecard was generated with FastMode (coverage/lint not run).
+	FastModeUsed bool `json:"fast_mode_used,omitempty"`
 }
 
 // ScorecardOptions configures scorecard generation behavior
@@ -690,7 +692,11 @@ func FormatGoScorecard(scorecard *GoScorecardResult) string {
 	sb.WriteString(fmt.Sprintf("    golangci-lint config: %s\n", checkMark(scorecard.Health.GoLintConfigured)))
 	sb.WriteString(fmt.Sprintf("    golangci-lint:        %s\n", checkMark(scorecard.Health.GoLintPasses)))
 	sb.WriteString(fmt.Sprintf("    go test:              %s\n", checkMark(scorecard.Health.GoTestPasses)))
-	sb.WriteString(fmt.Sprintf("    Test coverage:        %.1f%%\n", scorecard.Health.GoTestCoverage))
+	if scorecard.Health.GoTestCoverage == 0 && scorecard.FastModeUsed {
+		sb.WriteString("    Test coverage:        — (fast mode; refresh scorecard after fixes to see %)\n")
+	} else {
+		sb.WriteString(fmt.Sprintf("    Test coverage:        %.1f%%\n", scorecard.Health.GoTestCoverage))
+	}
 	sb.WriteString(fmt.Sprintf("    govulncheck:          %s\n", checkMark(scorecard.Health.GoVulnCheckPasses)))
 	sb.WriteString("\n")
 
@@ -802,10 +808,12 @@ func GenerateGoScorecard(ctx context.Context, projectRoot string, opts *Scorecar
 	// Calculate score
 	score := calculateGoScore(health, metrics)
 
+	fastMode := opts != nil && opts.FastMode
 	return &GoScorecardResult{
 		Metrics:         *metrics,
 		Health:          *health,
 		Recommendations: recommendations,
 		Score:           score,
+		FastModeUsed:    fastMode,
 	}, nil
 }

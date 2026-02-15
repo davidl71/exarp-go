@@ -13,6 +13,7 @@ import (
 
 	"github.com/davidl71/exarp-go/internal/cache"
 	"github.com/davidl71/exarp-go/internal/framework"
+	"github.com/davidl71/exarp-go/proto"
 	"github.com/davidl71/mcp-go-core/pkg/mcp/response"
 )
 
@@ -51,6 +52,26 @@ func handleHealthNative(ctx context.Context, params map[string]interface{}) ([]f
 	}
 }
 
+// HealthReportToMap converts HealthReport proto to map for response.FormatResult (unmarshals result_json).
+func HealthReportToMap(resp *proto.HealthReport) map[string]interface{} {
+	if resp == nil {
+		return nil
+	}
+	out := map[string]interface{}{"action": resp.GetAction()}
+	if resp.GetOutputPath() != "" {
+		out["output_path"] = resp.GetOutputPath()
+	}
+	if resp.GetResultJson() != "" {
+		var payload map[string]interface{}
+		if json.Unmarshal([]byte(resp.GetResultJson()), &payload) == nil {
+			for k, v := range payload {
+				out[k] = v
+			}
+		}
+	}
+	return out
+}
+
 // handleHealthTools handles the "tools" action - MCP tool count vs design limit (≤31).
 // Used by daily automation as tool_count_health.
 func handleHealthTools(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
@@ -63,7 +84,9 @@ func handleHealthTools(ctx context.Context, params map[string]interface{}) ([]fr
 		"method":       "native_go",
 		"success":      true,
 	}
-	return response.FormatResult(result, "")
+	resultJSON, _ := json.Marshal(result)
+	resp := &proto.HealthReport{Action: "tools", ResultJson: string(resultJSON)}
+	return response.FormatResult(HealthReportToMap(resp), resp.GetOutputPath())
 }
 
 // handleHealthServer handles the "server" action for health tool
@@ -131,8 +154,9 @@ func handleHealthServer(ctx context.Context, params map[string]interface{}) ([]f
 		"project_root": projectRoot,
 		"timestamp":    time.Now().Unix(),
 	}
-
-	return response.FormatResult(result, "")
+	resultJSON, _ := json.Marshal(result)
+	resp := &proto.HealthReport{Action: "server", ResultJson: string(resultJSON)}
+	return response.FormatResult(HealthReportToMap(resp), resp.GetOutputPath())
 }
 
 // handleHealthGit handles the "git" action for health tool
@@ -171,7 +195,9 @@ func handleHealthGit(ctx context.Context, params map[string]interface{}) ([]fram
 			"agent":     "local",
 			"timestamp": time.Now().Unix(),
 		}
-		return response.FormatResult(result, "")
+		resultJSON, _ := json.Marshal(result)
+		resp := &proto.HealthReport{Action: "git", ResultJson: string(resultJSON)}
+		return response.FormatResult(HealthReportToMap(resp), resp.GetOutputPath())
 	}
 
 	// Get git status
@@ -253,8 +279,9 @@ func handleHealthGit(ctx context.Context, params map[string]interface{}) ([]fram
 		lines := strings.Split(strings.TrimSpace(string(statusOutput)), "\n")
 		result["uncommitted_files"] = len(lines)
 	}
-
-	return response.FormatResult(result, "")
+	resultJSON, _ := json.Marshal(result)
+	resp := &proto.HealthReport{Action: "git", ResultJson: string(resultJSON)}
+	return response.FormatResult(HealthReportToMap(resp), resp.GetOutputPath())
 }
 
 // handleHealthDocs handles the "docs" action for health tool
@@ -342,8 +369,9 @@ func handleHealthDocs(ctx context.Context, params map[string]interface{}) ([]fra
 		// For now, just note that tasks would be created
 		result["tasks_note"] = "Task creation requires Python bridge for full functionality"
 	}
-
-	return response.FormatResult(result, "")
+	resultJSON, _ := json.Marshal(result)
+	resp := &proto.HealthReport{Action: "docs", OutputPath: outputPath, ResultJson: string(resultJSON)}
+	return response.FormatResult(HealthReportToMap(resp), resp.GetOutputPath())
 }
 
 // handleHealthDOD handles the "dod" action for health tool
@@ -374,8 +402,9 @@ func handleHealthDOD(ctx context.Context, params map[string]interface{}) ([]fram
 			"note":      "Full DOD checking requires Python bridge for Todo2 integration",
 			"timestamp": time.Now().Unix(),
 		}
-
-		return response.FormatResult(result, outputPath)
+		resultJSON, _ := json.Marshal(result)
+		resp := &proto.HealthReport{Action: "dod", OutputPath: outputPath, ResultJson: string(resultJSON)}
+		return response.FormatResult(HealthReportToMap(resp), resp.GetOutputPath())
 	}
 
 	// General DOD check (if changed_files provided)
@@ -408,8 +437,9 @@ func handleHealthDOD(ctx context.Context, params map[string]interface{}) ([]fram
 	if outputPath != "" {
 		result["output_path"] = outputPath
 	}
-
-	return response.FormatResult(result, "")
+	resultJSON, _ := json.Marshal(result)
+	resp := &proto.HealthReport{Action: "dod", OutputPath: outputPath, ResultJson: string(resultJSON)}
+	return response.FormatResult(HealthReportToMap(resp), resp.GetOutputPath())
 }
 
 // handleHealthCICD handles the "cicd" action for health tool
@@ -485,6 +515,7 @@ func handleHealthCICD(ctx context.Context, params map[string]interface{}) ([]fra
 	if outputPath != "" {
 		result["output_path"] = outputPath
 	}
-
-	return response.FormatResult(result, "")
+	resultJSON, _ := json.Marshal(result)
+	resp := &proto.HealthReport{Action: "cicd", OutputPath: outputPath, ResultJson: string(resultJSON)}
+	return response.FormatResult(HealthReportToMap(resp), resp.GetOutputPath())
 }

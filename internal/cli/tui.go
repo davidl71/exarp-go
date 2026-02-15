@@ -270,7 +270,9 @@ func loadTasks(status string) tea.Cmd {
 	}
 }
 
-func loadScorecard(projectRoot string) tea.Cmd {
+// loadScorecard loads the project scorecard. When fullMode is true, runs full checks (including
+// go test coverage) so the scorecard reflects state after implementing fixes.
+func loadScorecard(projectRoot string, fullMode bool) tea.Cmd {
 	return func() tea.Msg {
 		if projectRoot == "" {
 			return scorecardLoadedMsg{err: fmt.Errorf("no project root")}
@@ -281,7 +283,7 @@ func loadScorecard(projectRoot string) tea.Cmd {
 
 		// Go scorecard (when Go project)
 		if tools.IsGoProject() {
-			opts := &tools.ScorecardOptions{FastMode: true}
+			opts := &tools.ScorecardOptions{FastMode: !fullMode}
 			scorecard, err := tools.GenerateGoScorecard(ctx, projectRoot, opts)
 			if err != nil {
 				return scorecardLoadedMsg{err: err}
@@ -451,9 +453,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.scorecardRunOutput = "(command completed)"
 			}
 		}
-		// Refresh scorecard so updated state (e.g. after make test, make lint) is shown
+		// Refresh scorecard with full checks so updated state (e.g. coverage after make test) is shown
 		m.scorecardLoading = true
-		return m, loadScorecard(m.projectRoot)
+		return m, loadScorecard(m.projectRoot, true)
 
 	case tea.KeyMsg:
 		switch msg.String() {
@@ -496,7 +498,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.scorecardLoading = true
 				m.scorecardErr = nil
 				m.scorecardText = ""
-				return m, loadScorecard(m.projectRoot)
+				return m, loadScorecard(m.projectRoot, false)
 			} else if m.mode == "handoffs" {
 				m.mode = "tasks"
 				m.cursor = 0
@@ -603,9 +605,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 				return m, nil
 			} else if m.mode == "scorecard" {
-				// Refresh scorecard
+				// Refresh scorecard (fast mode for manual refresh; use Run then Enter for full refresh)
 				m.scorecardLoading = true
-				return m, loadScorecard(m.projectRoot)
+				return m, loadScorecard(m.projectRoot, false)
 			} else if m.mode == "handoffs" {
 				// Refresh handoffs
 				m.handoffLoading = true

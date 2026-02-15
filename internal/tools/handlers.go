@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/davidl71/exarp-go/internal/framework"
+	"github.com/davidl71/exarp-go/proto"
 	"github.com/davidl71/mcp-go-core/pkg/mcp/request"
 	"github.com/davidl71/mcp-go-core/pkg/mcp/response"
 )
@@ -615,6 +616,23 @@ func handleLint(ctx context.Context, args json.RawMessage) ([]framework.TextCont
 }
 
 // handleEstimation handles the estimation tool
+// EstimationResultToMap converts EstimationResult proto to map for response.FormatResult (unmarshals result_json).
+func EstimationResultToMap(resp *proto.EstimationResult) map[string]interface{} {
+	if resp == nil {
+		return nil
+	}
+	out := map[string]interface{}{"action": resp.GetAction()}
+	if resp.GetResultJson() != "" {
+		var payload map[string]interface{}
+		if json.Unmarshal([]byte(resp.GetResultJson()), &payload) == nil {
+			for k, v := range payload {
+				out[k] = v
+			}
+		}
+	}
+	return out
+}
+
 // Native Go only (stats, estimate, analyze when Apple FM available); no Python fallback
 func handleEstimation(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
 	projectRoot, err := FindProjectRoot()
@@ -641,11 +659,12 @@ func handleEstimation(ctx context.Context, args json.RawMessage) ([]framework.Te
 	if err != nil {
 		return nil, err
 	}
-	var m map[string]interface{}
-	if err := json.Unmarshal([]byte(result), &m); err != nil {
-		return nil, fmt.Errorf("estimation result: %w", err)
+	action := "estimate"
+	if a, ok := params["action"].(string); ok && a != "" {
+		action = a
 	}
-	return response.FormatResult(m, "")
+	resp := &proto.EstimationResult{Action: action, ResultJson: result}
+	return response.FormatResult(EstimationResultToMap(resp), "")
 }
 
 // handleGitTools handles the git_tools tool using native Go implementation
@@ -701,11 +720,12 @@ func handleGitTools(ctx context.Context, args json.RawMessage) ([]framework.Text
 	if err != nil {
 		return nil, fmt.Errorf("git_tools failed: %w", err)
 	}
-	var m map[string]interface{}
-	if err := json.Unmarshal([]byte(result), &m); err != nil {
-		return nil, fmt.Errorf("git_tools result: %w", err)
+	action := params.Action
+	if action == "" {
+		action = "commits"
 	}
-	return response.FormatResult(m, "")
+	resp := &proto.GitToolsResponse{Success: true, Action: action, ResultJson: result}
+	return response.FormatResult(GitToolsResponseToMap(resp), "")
 }
 
 // handleSession handles the session tool

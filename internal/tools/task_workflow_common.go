@@ -13,6 +13,7 @@ import (
 	"github.com/davidl71/exarp-go/internal/database"
 	"github.com/davidl71/exarp-go/internal/framework"
 	"github.com/davidl71/exarp-go/internal/models"
+	"github.com/davidl71/exarp-go/proto"
 	mcpframework "github.com/davidl71/mcp-go-core/pkg/mcp/framework"
 	"github.com/davidl71/mcp-go-core/pkg/mcp/response"
 )
@@ -72,6 +73,78 @@ func getTaskStore(ctx context.Context) (database.TaskStore, error) {
 	return NewDefaultTaskStore(projectRoot), nil
 }
 
+// TaskWorkflowResponseToMap converts a TaskWorkflowResponse proto to map for response.FormatResult (keeps JSON shape stable).
+func TaskWorkflowResponseToMap(resp *proto.TaskWorkflowResponse) map[string]interface{} {
+	if resp == nil {
+		return nil
+	}
+	out := map[string]interface{}{
+		"success": resp.Success,
+		"method":  resp.Method,
+	}
+	if resp.Message != "" {
+		out["message"] = resp.Message
+	}
+	if len(resp.TaskIds) > 0 {
+		out["task_ids"] = resp.TaskIds
+	}
+	if resp.ApprovedCount != 0 {
+		out["approved_count"] = int(resp.ApprovedCount)
+	}
+	if resp.DryRun {
+		out["dry_run"] = true
+	}
+	if resp.Cancelled {
+		out["cancelled"] = true
+	}
+	if len(resp.Tasks) > 0 {
+		tasks := make([]map[string]interface{}, len(resp.Tasks))
+		for i, t := range resp.Tasks {
+			m := map[string]interface{}{"id": t.Id, "content": t.Content, "status": t.Status}
+			if t.Priority != "" {
+				m["priority"] = t.Priority
+			}
+			if len(t.Tags) > 0 {
+				m["tags"] = t.Tags
+			}
+			if t.LongDescription != "" {
+				m["long_description"] = t.LongDescription
+			}
+			if len(t.Dependencies) > 0 {
+				m["dependencies"] = t.Dependencies
+			}
+			tasks[i] = m
+		}
+		out["tasks"] = tasks
+	}
+	if resp.SyncResults != nil {
+		sr := resp.SyncResults
+		out["sync_results"] = map[string]interface{}{
+			"validated_tasks": int(sr.ValidatedTasks),
+			"issues_found":    int(sr.IssuesFound),
+			"issues":          sr.Issues,
+			"synced":          sr.Synced,
+		}
+	}
+	return out
+}
+
+// taskToTaskSummary converts a Todo2Task to proto TaskSummary.
+func taskToTaskSummary(t *models.Todo2Task) *proto.TaskSummary {
+	if t == nil {
+		return nil
+	}
+	return &proto.TaskSummary{
+		Id:              t.ID,
+		Content:         t.Content,
+		Status:          t.Status,
+		Priority:        t.Priority,
+		Tags:            t.Tags,
+		LongDescription: t.LongDescription,
+		Dependencies:    t.Dependencies,
+	}
+}
+
 // handleTaskWorkflowApprove handles approve action for batch approving tasks
 // Uses database for efficient updates, falls back to file-based approach if needed
 // This is platform-agnostic (doesn't require Apple FM)
@@ -125,13 +198,11 @@ func handleTaskWorkflowApprove(ctx context.Context, params map[string]interface{
 				if err != nil && (errors.Is(err, context.DeadlineExceeded) || (elicitCtx.Err() != nil && errors.Is(elicitCtx.Err(), context.DeadlineExceeded))) {
 					msg = "Batch approve cancelled: elicitation timed out"
 				}
-				result := map[string]interface{}{"cancelled": true, "message": msg}
-				return response.FormatResult(result, "")
+				return response.FormatResult(TaskWorkflowResponseToMap(&proto.TaskWorkflowResponse{Success: false, Cancelled: true, Message: msg}), "")
 			}
 			if content != nil {
 				if proceed, ok := content["proceed"].(bool); ok && !proceed {
-					result := map[string]interface{}{"cancelled": true, "message": "Batch approve cancelled by user"}
-					return response.FormatResult(result, "")
+					return response.FormatResult(TaskWorkflowResponseToMap(&proto.TaskWorkflowResponse{Success: false, Cancelled: true, Message: "Batch approve cancelled by user"}), "")
 				}
 				if dr, ok := content["dry_run"].(bool); ok && dr {
 					dryRun = true
@@ -180,27 +251,21 @@ func handleTaskWorkflowApprove(ctx context.Context, params map[string]interface{
 	}
 
 	if dryRun {
-		taskList := make([]map[string]interface{}, len(candidates))
-		for i, task := range candidates {
-			taskList[i] = map[string]interface{}{
-				"id":      task.ID,
-				"content": task.Content,
-				"status":  task.Status,
-			}
-		}
+		summaries := make([]*proto.TaskSummary, len(candidates))
 		taskIDList := make([]string, len(candidates))
 		for i, task := range candidates {
+			summaries[i] = taskToTaskSummary(task)
 			taskIDList[i] = task.ID
 		}
-		result := map[string]interface{}{
-			"success":        true,
-			"method":         "store",
-			"dry_run":        true,
-			"approved_count": len(candidates),
-			"task_ids":       taskIDList,
-			"tasks":          taskList,
+		resp := &proto.TaskWorkflowResponse{
+			Success:       true,
+			Method:        "store",
+			DryRun:        true,
+			ApprovedCount: int32(len(candidates)),
+			TaskIds:       taskIDList,
+			Tasks:         summaries,
 		}
-		return response.FormatResult(result, "")
+		return response.FormatResult(TaskWorkflowResponseToMap(resp), "")
 	}
 
 	// Update tasks via store (handles DB and file; sync is internal)
@@ -214,13 +279,13 @@ func handleTaskWorkflowApprove(ctx context.Context, params map[string]interface{
 		}
 	}
 
-	result := map[string]interface{}{
-		"success":        true,
-		"method":         "store",
-		"approved_count": updatedCount,
-		"task_ids":       approvedIDs,
+	resp := &proto.TaskWorkflowResponse{
+		Success:       true,
+		Method:        "store",
+		ApprovedCount: int32(updatedCount),
+		TaskIds:       approvedIDs,
 	}
-	return response.FormatResult(result, "")
+	return response.FormatResult(TaskWorkflowResponseToMap(resp), "")
 }
 
 // parseTagsFromParams extracts tags from params (comma-separated string or array). Used by create and update.
@@ -499,13 +564,23 @@ func handleTaskWorkflowList(ctx context.Context, params map[string]interface{}) 
 		limit = l
 	}
 
+	// Default to open tasks only (Todo + In Progress) when no status filter is given
+	openOnly := status == ""
+	if openOnly {
+		status = "" // keep empty so we filter by open set below
+	}
+	showAll := strings.EqualFold(status, "all")
+
 	// Filter tasks
 	filtered := []Todo2Task{}
 	for _, task := range tasks {
 		if taskID != "" && task.ID != taskID {
 			continue
 		}
-		if status != "" && task.Status != status {
+		if status != "" && !showAll && task.Status != status {
+			continue
+		}
+		if openOnly && task.Status != "Todo" && task.Status != "In Progress" {
 			continue
 		}
 		if priority != "" && task.Priority != priority {
@@ -564,20 +639,54 @@ func handleTaskWorkflowList(ctx context.Context, params map[string]interface{}) 
 	}
 
 	if outputFormat == "json" {
-		return response.FormatResult(map[string]interface{}{"tasks": filtered}, "")
+		summaries := make([]*proto.TaskSummary, len(filtered))
+		for i := range filtered {
+			summaries[i] = taskToTaskSummary(&filtered[i])
+		}
+		resp := &proto.TaskWorkflowResponse{Success: true, Method: "list", Tasks: summaries}
+		return response.FormatResult(TaskWorkflowResponseToMap(resp), "")
 	}
-	// Text format
+	// Text format: column widths aligned with TUI (internal/cli/tui.go colIDMedium, colStatus, colPriority)
+	const colID = 18
+	const colStatus = 12
+	const colPriority = 10
+	const colContent = 50
+	truncate := func(s string, w int) string {
+		if len(s) <= w {
+			return s
+		}
+		if w <= 3 {
+			return s[:w]
+		}
+		return s[:w-3] + "..."
+	}
+	pad := func(s string, w int) string {
+		if len(s) >= w {
+			return truncate(s, w)
+		}
+		return s + strings.Repeat(" ", w-len(s))
+	}
 	var sb strings.Builder
 	sb.WriteString(fmt.Sprintf("Tasks (%d total, %d shown)\n", len(tasks), len(filtered)))
-	sb.WriteString(strings.Repeat("=", 80) + "\n")
-	sb.WriteString(fmt.Sprintf("%-8s | %-15s | %-10s | %s\n", "ID", "Status", "Priority", "Content"))
-	sb.WriteString(strings.Repeat("-", 80) + "\n")
+	sepLen := colID + colStatus + colPriority + colContent + 3*3 // 3 " | " separators
+	if sepLen < 80 {
+		sepLen = 80
+	}
+	sb.WriteString(strings.Repeat("=", sepLen) + "\n")
+	sb.WriteString(fmt.Sprintf("%-*s | %-*s | %-*s | %s\n", colID, "ID", colStatus, "Status", colPriority, "Priority", "Content"))
+	sb.WriteString(strings.Repeat("-", sepLen) + "\n")
 	for _, task := range filtered {
-		content := task.Content
-		if len(content) > 50 {
-			content = content[:47] + "..."
+		id := pad(truncate(task.ID, colID), colID)
+		status := pad(truncate(task.Status, colStatus), colStatus)
+		priority := pad(truncate(task.Priority, colPriority), colPriority)
+		content := truncate(task.Content, colContent)
+		if content == "" {
+			content = truncate(task.LongDescription, colContent)
 		}
-		sb.WriteString(fmt.Sprintf("%-8s | %-15s | %-10s | %s\n", task.ID, task.Status, task.Priority, content))
+		if content == "" {
+			content = "(no description)"
+		}
+		sb.WriteString(fmt.Sprintf("%-*s | %-*s | %-*s | %s\n", colID, id, colStatus, status, colPriority, priority, content))
 	}
 	return []framework.TextContent{
 		{Type: "text", Text: sb.String()},
@@ -679,23 +788,26 @@ func handleTaskWorkflowSync(ctx context.Context, params map[string]interface{}) 
 		}
 	}
 
-	syncResults := map[string]interface{}{
-		"validated_tasks": len(tasks),
-		"issues_found":    len(issues),
-		"issues":          issues,
-		"synced":          !dryRun,
+	syncResults := &proto.SyncResults{
+		ValidatedTasks: int32(len(tasks)),
+		IssuesFound:    int32(len(issues)),
+		Issues:         issues,
+		Synced:         !dryRun,
 	}
+	resp := &proto.TaskWorkflowResponse{
+		Success:     true,
+		Method:      "native_go",
+		DryRun:      dryRun,
+		SyncResults: syncResults,
+	}
+	result := TaskWorkflowResponseToMap(resp)
 	if external, _ := params["external"].(bool); external {
-		syncResults["external_sync_note"] = "External sync is a future nice-to-have; performed SQLite↔JSON sync only."
+		if result["sync_results"] != nil {
+			if m, ok := result["sync_results"].(map[string]interface{}); ok {
+				m["external_sync_note"] = "External sync is a future nice-to-have; performed SQLite↔JSON sync only."
+			}
+		}
 	}
-
-	result := map[string]interface{}{
-		"success":      true,
-		"method":       "native_go",
-		"dry_run":      dryRun,
-		"sync_results": syncResults,
-	}
-
 	outputPath, _ := params["output_path"].(string)
 	return response.FormatResult(result, outputPath)
 }

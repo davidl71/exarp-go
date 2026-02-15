@@ -135,6 +135,62 @@ func DeserializeMemoryFromProtobuf(data []byte) (*Memory, error) {
 	return ProtoToMemory(pbMemory)
 }
 
+// MemoryResponseToMap converts MemoryResponse proto to map for response.FormatResult.
+func MemoryResponseToMap(resp *proto.MemoryResponse) map[string]interface{} {
+	if resp == nil {
+		return nil
+	}
+	out := map[string]interface{}{
+		"success": resp.GetSuccess(),
+		"method":  resp.GetMethod(),
+		"count":   resp.GetCount(),
+	}
+	if resp.MemoryId != "" {
+		out["memory_id"] = resp.MemoryId
+	}
+	if resp.Message != "" {
+		out["message"] = resp.Message
+	}
+	if len(resp.Memories) > 0 {
+		memories := make([]Memory, 0, len(resp.Memories))
+		for _, pm := range resp.Memories {
+			if m, err := ProtoToMemory(pm); err == nil {
+				memories = append(memories, *m)
+			}
+		}
+		out["memories"] = formatMemories(memories)
+	}
+	if len(resp.Categories) > 0 {
+		cat := make(map[string]int)
+		for k, v := range resp.Categories {
+			cat[k] = int(v)
+		}
+		out["categories"] = cat
+	}
+	if len(resp.AvailableCategories) > 0 {
+		out["available_categories"] = resp.AvailableCategories
+	}
+	if resp.TotalFound != 0 {
+		out["total_found"] = resp.TotalFound
+	}
+	if resp.TaskId != "" {
+		out["task_id"] = resp.TaskId
+	}
+	if resp.IncludeRelated {
+		out["include_related"] = true
+	}
+	if resp.Query != "" {
+		out["query"] = resp.Query
+	}
+	if resp.Total != 0 {
+		out["total"] = resp.Total
+	}
+	if resp.Returned != 0 {
+		out["returned"] = resp.Returned
+	}
+	return out
+}
+
 // ParseContextRequest parses a context tool request (protobuf or JSON)
 // Returns protobuf request if protobuf format, or nil with JSON params map
 func ParseContextRequest(args json.RawMessage) (*proto.ContextRequest, map[string]interface{}, error) {
@@ -971,6 +1027,46 @@ func GitToolsRequestToParams(req *proto.GitToolsRequest) map[string]interface{} 
 	}
 
 	return params
+}
+
+// GitToolsResponseToMap converts GitToolsResponse proto to map for response.FormatResult (unmarshals result_json).
+func GitToolsResponseToMap(resp *proto.GitToolsResponse) map[string]interface{} {
+	if resp == nil {
+		return nil
+	}
+	out := map[string]interface{}{
+		"success": resp.GetSuccess(),
+		"action":  resp.GetAction(),
+	}
+	if resp.GetResultJson() != "" {
+		var payload map[string]interface{}
+		if json.Unmarshal([]byte(resp.GetResultJson()), &payload) == nil {
+			for k, v := range payload {
+				out[k] = v
+			}
+		}
+	}
+	return out
+}
+
+// TestingResponseToMap converts TestingResponse proto to map for response.FormatResult (unmarshals result_json).
+func TestingResponseToMap(resp *proto.TestingResponse) map[string]interface{} {
+	if resp == nil {
+		return nil
+	}
+	out := map[string]interface{}{
+		"success": resp.GetSuccess(),
+		"action":  resp.GetAction(),
+	}
+	if resp.GetResultJson() != "" {
+		var payload map[string]interface{}
+		if json.Unmarshal([]byte(resp.GetResultJson()), &payload) == nil {
+			for k, v := range payload {
+				out[k] = v
+			}
+		}
+	}
+	return out
 }
 
 // ParseMemoryMaintRequest parses a memory_maint request (protobuf or JSON)

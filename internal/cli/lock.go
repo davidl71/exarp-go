@@ -143,11 +143,11 @@ func printLockStatusJSON(info *database.StaleLockInfo, gitLockPath string, gitHe
 
 	out := struct {
 		TaskLocks struct {
-			Total       int        `json:"total"`
-			Expired     int        `json:"expired"`
-			NearExpiry  int        `json:"near_expiry"`
-			Stale       int        `json:"stale"`
-			Locks       []taskLock `json:"locks"`
+			Total      int        `json:"total"`
+			Expired    int        `json:"expired"`
+			NearExpiry int        `json:"near_expiry"`
+			Stale      int        `json:"stale"`
+			Locks      []taskLock `json:"locks"`
 		} `json:"task_locks"`
 		GitLock struct {
 			Path   string `json:"path"`

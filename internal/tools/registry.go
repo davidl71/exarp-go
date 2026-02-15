@@ -1737,7 +1737,7 @@ func registerBatch5Tools(server framework.MCPServer) error {
 			Type: "object",
 			Properties: map[string]interface{}{
 				"tools": map[string]interface{}{
-					"type": "array",
+					"type":        "array",
 					"description": "Tool configs: [{tool, action}] or tool names. Default: duplicates, dependencies, todo2.",
 				},
 			},

@@ -15,9 +15,9 @@ import (
 
 // TaskOverlapConflict describes a dependency conflict: two tasks both In Progress where one blocks the other.
 type TaskOverlapConflict struct {
-	TaskID    string `json:"task_id"`    // Task that is In Progress
+	TaskID    string `json:"task_id"`     // Task that is In Progress
 	DepTaskID string `json:"dep_task_id"` // Dependency of TaskID that is also In Progress
-	Reason    string `json:"reason"`     // Human-readable reason
+	Reason    string `json:"reason"`      // Human-readable reason
 }
 
 // FileConflict describes overlapping file access: multiple In Progress tasks touch the same file(s).

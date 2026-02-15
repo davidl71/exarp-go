@@ -1,0 +1,46 @@
+---
+description: Require todos with task IDs in all Cursor plans (.plan.md)
+globs: "**/*.plan.md,.cursor/plans/**/*.md"
+alwaysApply: false
+---
+
+# Plan Todos Required
+
+**When creating or editing Cursor plan files (`.plan.md`), always include todos with explicit task IDs.**
+
+## Non-negotiable: Todos in every plan
+
+1. **Frontmatter `todos`** — Every plan MUST have a non-empty `todos` array in YAML frontmatter:
+   ```yaml
+   todos:
+     - id: T-1770829362471
+       content: "Short task description"
+       status: pending
+   ```
+
+2. **Task IDs** — Use Todo2 task IDs (`T-<digits>`) when the work maps to Todo2 tasks. For synthetic or verification steps, use a valid ID format or omit from `todos` to avoid creating spurious Todo2 tasks.
+
+3. **Iterative Milestones section** — Add an "Iterative Milestones" (or equivalent) section with checkboxes for Cursor Build view:
+   ```markdown
+   ## Iterative Milestones
+   
+   - [ ] **Task name** (T-1770829362471)
+   ```
+   Format: `- [ ] **Name** (T-ID)` so `sync_from_plan` can parse them.
+
+## When creating a new plan
+
+- Do NOT create plans with `todos: []` unless the plan genuinely has zero actionable items.
+- Populate `todos` from: session prime suggested_next, getNextActions, or explicit task IDs you assign.
+- Ensure frontmatter todos, backlog table (if present), and milestones stay in sync.
+
+## When editing an existing plan
+
+- If adding implementation steps or tasks, add matching entries to frontmatter `todos` and to the Iterative Milestones section.
+- Preserve existing todos; append new ones.
+
+## Reference
+
+- [.cursor/plans/example.plan.md](.cursor/plans/example.plan.md) — full plan structure
+- [internal/tools/plan_sync.go](internal/tools/plan_sync.go) — checkbox regex expects `(T-ID)` at end of line
+- [.cursor/rules/code-and-planning-tag-hints.mdc](.cursor/rules/code-and-planning-tag-hints.mdc) — tag hints for plans

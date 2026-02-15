@@ -17,6 +17,7 @@ import (
 	"github.com/davidl71/exarp-go/internal/database"
 	"github.com/davidl71/exarp-go/internal/framework"
 	"github.com/davidl71/exarp-go/internal/utils"
+	"github.com/davidl71/exarp-go/proto"
 	mcpframework "github.com/davidl71/mcp-go-core/pkg/mcp/framework"
 	mcpresponse "github.com/davidl71/mcp-go-core/pkg/mcp/response"
 )
@@ -40,6 +41,67 @@ func handleSessionNative(ctx context.Context, params map[string]interface{}) ([]
 	default:
 		return nil, fmt.Errorf("unknown action: %s (use 'prime', 'handoff', 'prompts', or 'assignee')", action)
 	}
+}
+
+// SessionPrimeResultToMap converts SessionPrimeResult proto to map for FormatResult (stable JSON shape).
+func SessionPrimeResultToMap(pb *proto.SessionPrimeResult) map[string]interface{} {
+	if pb == nil {
+		return nil
+	}
+	out := map[string]interface{}{
+		"auto_primed": pb.AutoPrimed,
+		"method":      pb.Method,
+		"timestamp":   pb.Timestamp,
+		"duration_ms": pb.DurationMs,
+		"hints_count": pb.HintsCount,
+	}
+	if pb.Detection != nil {
+		out["detection"] = map[string]interface{}{
+			"agent":        pb.Detection.Agent,
+			"agent_source": pb.Detection.AgentSource,
+			"mode":         pb.Detection.Mode,
+			"mode_source":  pb.Detection.ModeSource,
+			"time_of_day":  pb.Detection.TimeOfDay,
+		}
+	}
+	if pb.AgentContext != nil {
+		out["agent_context"] = map[string]interface{}{
+			"focus_areas":      pb.AgentContext.FocusAreas,
+			"relevant_tools":   pb.AgentContext.RelevantTools,
+			"recommended_mode": pb.AgentContext.RecommendedMode,
+		}
+	}
+	if pb.Workflow != nil {
+		out["workflow"] = map[string]interface{}{
+			"mode":        pb.Workflow.Mode,
+			"description": pb.Workflow.Description,
+		}
+	}
+	if pb.Elicitation != "" {
+		out["elicitation"] = pb.Elicitation
+	}
+	if pb.LockCleanup != nil && pb.LockCleanup.Cleaned > 0 {
+		out["lock_cleanup"] = map[string]interface{}{
+			"cleaned":  int(pb.LockCleanup.Cleaned),
+			"task_ids": pb.LockCleanup.TaskIds,
+		}
+	}
+	if pb.PlanPath != "" {
+		out["plan_path"] = pb.PlanPath
+	}
+	if pb.ActionRequired != "" {
+		out["action_required"] = pb.ActionRequired
+	}
+	if len(pb.ConflictHints) > 0 {
+		out["conflict_hints"] = pb.ConflictHints
+	}
+	if pb.StatusLabel != "" {
+		out["status_label"] = pb.StatusLabel
+	}
+	if pb.StatusContext != "" {
+		out["status_context"] = pb.StatusContext
+	}
+	return out
 }
 
 // handleSessionPrime handles the prime action - auto-prime AI context at session start
@@ -138,40 +200,9 @@ func handleSessionPrime(ctx context.Context, params map[string]interface{}) ([]f
 		}
 	}
 
-	// 3. Build result
-	result := map[string]interface{}{
-		"auto_primed": true,
-		"method":      "native_go",
-		"timestamp":   time.Now().Format(time.RFC3339),
-		"duration_ms": time.Since(startTime).Milliseconds(),
-		"detection": map[string]interface{}{
-			"agent":        agentInfo.Agent,
-			"agent_source": agentInfo.Source,
-			"mode":         mode,
-			"mode_source":  modeSource,
-			"time_of_day":  time.Now().Format("15:04"),
-		},
-		"agent_context": map[string]interface{}{
-			"focus_areas":      agentContext.FocusAreas,
-			"relevant_tools":   agentContext.RelevantTools,
-			"recommended_mode": agentContext.RecommendedMode,
-		},
-		"workflow": map[string]interface{}{
-			"mode":        mode,
-			"description": getWorkflowModeDescription(mode),
-		},
-	}
-	if elicitationOutcome != "" {
-		result["elicitation"] = elicitationOutcome
-	}
-	if lockCleanupReport != nil {
-		result["lock_cleanup"] = lockCleanupReport
-	}
-
-	// 4. Load tasks when needed (summary, suggested_next, or plan mode context)
+	// 3. Load tasks when needed (summary, suggested_next, or plan mode context)
 	var tasks []Todo2Task
 	var tasksErr error
-	// Load tasks if we need them for task summary, hints, or plan mode context
 	if includeTasks || includeHints {
 		store := NewDefaultTaskStore(projectRoot)
 		list, err := store.ListTasks(ctx, nil)
@@ -181,6 +212,70 @@ func handleSessionPrime(ctx context.Context, params map[string]interface{}) ([]f
 			tasks = tasksFromPtrs(list)
 		}
 	}
+
+	// 4. Hints and plan path (needed for proto hints_count and plan_path)
+	var planPath string
+	hints := make(map[string]string)
+	if includeHints {
+		hints = getHintsForMode(mode)
+		planPath, planModeHint := getPlanModeContext(projectRoot, tasks)
+		if planPath != "" {
+			// set below in proto
+		}
+		if planModeHint != "" {
+			hints["plan_mode"] = planModeHint
+		}
+	} else if includeTasks {
+		planPath, _ = getPlanModeContext(projectRoot, tasks)
+	}
+
+	handoffAlert := (map[string]interface{})(nil)
+	if includeHandoff, ok := params["include_handoff"].(bool); !ok || includeHandoff {
+		handoffAlert = checkHandoffAlert(projectRoot)
+	}
+	actionRequired := ""
+	if handoffAlert != nil {
+		actionRequired = "📋 Review handoff from previous developer before starting work"
+	}
+
+	var conflictHints []string
+	if taskOverlaps, fileConflicts, err := DetectConflicts(ctx, projectRoot); err == nil {
+		for _, c := range taskOverlaps {
+			conflictHints = append(conflictHints, "Task overlap: "+c.Reason)
+		}
+		for _, c := range fileConflicts {
+			conflictHints = append(conflictHints, "File conflict: tasks "+strings.Join(c.TaskIDs, ", ")+" share file(s): "+strings.Join(c.Files, ", "))
+		}
+	}
+
+	// 5. Build type-safe proto for prime result
+	pb := &proto.SessionPrimeResult{
+		AutoPrimed:     true,
+		Method:         "native_go",
+		Timestamp:      time.Now().Format(time.RFC3339),
+		DurationMs:     time.Since(startTime).Milliseconds(),
+		Detection:      &proto.SessionDetection{Agent: agentInfo.Agent, AgentSource: agentInfo.Source, Mode: mode, ModeSource: modeSource, TimeOfDay: time.Now().Format("15:04")},
+		AgentContext:   &proto.SessionAgentContext{FocusAreas: agentContext.FocusAreas, RelevantTools: agentContext.RelevantTools, RecommendedMode: agentContext.RecommendedMode},
+		Workflow:       &proto.SessionWorkflow{Mode: mode, Description: getWorkflowModeDescription(mode)},
+		PlanPath:       planPath,
+		HintsCount:     int32(len(hints)),
+		ActionRequired: actionRequired,
+		ConflictHints:  conflictHints,
+	}
+	if elicitationOutcome != "" {
+		pb.Elicitation = elicitationOutcome
+	}
+	if lockCleanupReport != nil {
+		if cleaned, ok := lockCleanupReport["cleaned"].(int); ok {
+			var taskIDs []string
+			if ids, ok := lockCleanupReport["task_ids"].([]string); ok {
+				taskIDs = ids
+			}
+			pb.LockCleanup = &proto.LockCleanupReport{Cleaned: int32(cleaned), TaskIds: taskIDs}
+		}
+	}
+
+	result := SessionPrimeResultToMap(pb)
 	if includeTasks {
 		if tasksErr != nil {
 			result["tasks"] = map[string]interface{}{"error": "Failed to load tasks"}
@@ -192,53 +287,12 @@ func handleSessionPrime(ctx context.Context, params map[string]interface{}) ([]f
 			}
 		}
 	}
-
-	// 5. Add hints if requested (simplified)
 	if includeHints {
-		hints := getHintsForMode(mode)
-		// Add Plan Mode hint when backlog suggests complex/multi-step work
-		planPath, planModeHint := getPlanModeContext(projectRoot, tasks)
-		if planPath != "" {
-			result["plan_path"] = planPath
-		}
-		if planModeHint != "" {
-			hints["plan_mode"] = planModeHint
-		}
 		result["hints"] = hints
-		result["hints_count"] = len(hints)
 	}
-
-	// 6. Add plan path when tasks included but hints not requested
-	// Note: tasks are already loaded when includeTasks is true (see step 4)
-	if includeTasks && !includeHints {
-		if planPath, _ := getPlanModeContext(projectRoot, tasks); planPath != "" {
-			result["plan_path"] = planPath
-		}
+	if handoffAlert != nil {
+		result["handoff_alert"] = handoffAlert
 	}
-
-	// 7. Check for handoff notes if requested
-	if includeHandoff, ok := params["include_handoff"].(bool); !ok || includeHandoff {
-		if handoffAlert := checkHandoffAlert(projectRoot); handoffAlert != nil {
-			result["handoff_alert"] = handoffAlert
-			result["action_required"] = "📋 Review handoff from previous developer before starting work"
-		}
-	}
-
-	// 8. Multi-agent conflict hints (task-overlap and file-level)
-	if taskOverlaps, fileConflicts, err := DetectConflicts(ctx, projectRoot); err == nil {
-		var conflictHints []string
-		for _, c := range taskOverlaps {
-			conflictHints = append(conflictHints, "Task overlap: "+c.Reason)
-		}
-		for _, c := range fileConflicts {
-			conflictHints = append(conflictHints, "File conflict: tasks "+strings.Join(c.TaskIDs, ", ")+" share file(s): "+strings.Join(c.Files, ", "))
-		}
-		if len(conflictHints) > 0 {
-			result["conflict_hints"] = conflictHints
-		}
-	}
-
-	// 9. Status context (T-1770909568528): explicit status/label for AI to announce context
 	if statusLabel, statusContext := buildStatusContext(result); statusLabel != "" || statusContext != "" {
 		result["status_label"] = statusLabel
 		result["status_context"] = statusContext
@@ -1059,9 +1113,9 @@ func shouldSuggestPlanMode(tasks []Todo2Task) bool {
 func getHintsForMode(mode string) map[string]string {
 	// Simplified hints - can be expanded
 	hints := map[string]string{
-		"session":    "Use session tool for context priming and handoffs",
-		"tasks":      "Use task_workflow tool for task management",
-		"tractatus":  "Consider tractatus_thinking for logical decomposition of complex concepts (use operation=start)",
+		"session":   "Use session tool for context priming and handoffs",
+		"tasks":     "Use task_workflow tool for task management",
+		"tractatus": "Consider tractatus_thinking for logical decomposition of complex concepts (use operation=start)",
 	}
 
 	switch mode {
