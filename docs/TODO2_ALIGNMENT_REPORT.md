@@ -1,6 +1,6 @@
 # Todo2 Alignment Analysis Report
 
-**Generated:** 2026-02-15T17:43:28+02:00
+**Generated:** 2026-02-15T17:57:53+02:00
 
 ## Summary
 
@@ -12,11 +12,12 @@
 
 ## Alignment by Priority
 
+- **high:** 51
 - **medium:** 221
 - **low:** 24
-- **high:** 51
 
 ## Alignment by Status
 
-- **Todo:** 20
 - **Done:** 276
+- **Todo:** 19
+- **In Progress:** 1

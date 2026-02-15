@@ -13,7 +13,7 @@
         "refactor",
         "session"
       ],
-      "created": "2026-02-15T15:46:00+02:00",
+      "created": "2026-02-15T13:46:00.000Z",
       "created_at": "2026-02-15T15:46:00+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -32,7 +32,7 @@
         "mlx",
         "model_router"
       ],
-      "created": "2026-02-02T02:03:40+02:00",
+      "created": "2026-02-02T00:03:40.000Z",
       "created_at": "2026-02-02T02:03:40+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -49,7 +49,7 @@
       "tags": [
         "testing"
       ],
-      "created": "2026-01-13T18:12:53+02:00",
+      "created": "2026-01-13T16:12:53.000Z",
       "created_at": "2026-01-13T18:12:53+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -73,7 +73,7 @@
         "discovered_line": "",
         "discovery_type": "MARKDOWN_TASK"
       },
-      "created": "2026-01-13T16:16:06+02:00",
+      "created": "2026-01-13T14:16:06.000Z",
       "created_at": "2026-01-13T16:16:06+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -92,7 +92,7 @@
         "performance",
         "phase6"
       ],
-      "created": "2026-02-15T18:02:29+02:00",
+      "created": "2026-02-15T16:02:29.000Z",
       "created_at": "2026-02-15T18:02:29+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00"
@@ -114,7 +114,7 @@
         "discovered_line": "",
         "discovery_type": "MARKDOWN_TASK"
       },
-      "created": "2026-01-13T16:16:07+02:00",
+      "created": "2026-01-13T14:16:07.000Z",
       "created_at": "2026-01-13T16:16:07+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -133,7 +133,7 @@
         "refactor",
         "testing"
       ],
-      "created": "2026-02-15T15:46:08+02:00",
+      "created": "2026-02-15T13:46:08.000Z",
       "created_at": "2026-02-15T15:46:08+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -155,7 +155,7 @@
       "dependencies": [
         "T-1768318471624"
       ],
-      "created": "2026-01-13T16:16:06+02:00",
+      "created": "2026-01-13T14:16:06.000Z",
       "created_at": "2026-01-13T16:16:06+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -182,7 +182,7 @@
         "discovered_line": "",
         "discovery_type": "MARKDOWN_TASK"
       },
-      "created": "2026-01-13T16:16:06+02:00",
+      "created": "2026-01-13T14:16:06.000Z",
       "created_at": "2026-01-13T16:16:06+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -202,7 +202,7 @@
         "git",
         "testing"
       ],
-      "created": "2026-01-13T19:53:43+02:00",
+      "created": "2026-01-13T17:53:43.000Z",
       "created_at": "2026-01-13T19:53:43+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -222,7 +222,7 @@
         "refactor",
         "testing"
       ],
-      "created": "2026-01-13T18:30:28+02:00",
+      "created": "2026-01-13T16:30:28.000Z",
       "created_at": "2026-01-13T18:30:28+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -249,7 +249,7 @@
       "dependencies": [
         "T-1768318471622"
       ],
-      "created": "2026-01-13T17:07:08+02:00",
+      "created": "2026-01-13T15:07:08.000Z",
       "created_at": "2026-01-13T17:07:08+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -268,7 +268,7 @@
         "elicitation",
         "mcp"
       ],
-      "created": "2026-02-01T23:34:25+02:00",
+      "created": "2026-02-01T21:34:25.000Z",
       "created_at": "2026-02-01T23:34:25+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -290,7 +290,7 @@
         "mcp",
         "testing"
       ],
-      "created": "2026-01-13T17:08:20+02:00",
+      "created": "2026-01-13T15:08:20.000Z",
       "created_at": "2026-01-13T17:08:20+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -308,7 +308,7 @@
         "docs",
         "migration"
       ],
-      "created": "2026-01-29T21:48:28+02:00",
+      "created": "2026-01-29T19:48:28.000Z",
       "created_at": "2026-01-29T21:48:28+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -335,7 +335,7 @@
       "dependencies": [
         "T-1768326690159"
       ],
-      "created": "2026-01-13T19:51:41+02:00",
+      "created": "2026-01-13T17:51:41.000Z",
       "created_at": "2026-01-13T19:51:41+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -359,7 +359,7 @@
         "T-1768268674677",
         "T-1768319001463"
       ],
-      "created": "2026-01-13T16:16:06+02:00",
+      "created": "2026-01-13T14:16:06.000Z",
       "created_at": "2026-01-13T16:16:06+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -378,7 +378,7 @@
         "proto",
         "refactor"
       ],
-      "created": "2026-02-15T17:58:57+02:00",
+      "created": "2026-02-15T15:58:57.000Z",
       "created_at": "2026-02-15T17:58:57+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00"
@@ -401,7 +401,7 @@
         "discovered_line": "",
         "discovery_type": "MARKDOWN_TASK"
       },
-      "created": "2026-01-13T16:16:06+02:00",
+      "created": "2026-01-13T14:16:06.000Z",
       "created_at": "2026-01-13T16:16:06+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -425,7 +425,7 @@
         "discovered_line": "",
         "discovery_type": "MARKDOWN_TASK"
       },
-      "created": "2026-01-13T16:16:06+02:00",
+      "created": "2026-01-13T14:16:06.000Z",
       "created_at": "2026-01-13T16:16:06+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -443,7 +443,7 @@
         "automation",
         "cursor"
       ],
-      "created": "2026-02-15T16:09:09+02:00",
+      "created": "2026-02-15T14:09:09.000Z",
       "created_at": "2026-02-15T16:09:09+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00"
@@ -464,7 +464,7 @@
       "dependencies": [
         "T-1768318471623"
       ],
-      "created": "2026-01-12T15:16:05+02:00",
+      "created": "2026-01-12T13:16:05.000Z",
       "created_at": "2026-01-12T15:16:05+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -488,7 +488,7 @@
         "discovered_line": "",
         "discovery_type": "MARKDOWN_TASK"
       },
-      "created": "2026-01-13T16:16:06+02:00",
+      "created": "2026-01-13T14:16:06.000Z",
       "created_at": "2026-01-13T16:16:06+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -506,7 +506,7 @@
         "migration",
         "testing"
       ],
-      "created": "2026-01-13 17:25:26",
+      "created": "2026-01-13T15:25:26.000Z",
       "created_at": "2026-01-13 17:25:26",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -528,7 +528,7 @@
         "performance",
         "testing"
       ],
-      "created": "2026-01-13T18:37:45+02:00",
+      "created": "2026-01-13T16:37:45.000Z",
       "created_at": "2026-01-13T18:37:45+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -546,7 +546,7 @@
         "docs",
         "local-ai"
       ],
-      "created": "2026-02-15T17:58:59+02:00",
+      "created": "2026-02-15T15:58:59.000Z",
       "created_at": "2026-02-15T17:58:59+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00"
@@ -562,7 +562,7 @@
       "tags": [
         "testing"
       ],
-      "created": "2026-01-13T18:12:05+02:00",
+      "created": "2026-01-13T16:12:05.000Z",
       "created_at": "2026-01-13T18:12:05+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -580,7 +580,7 @@
         "planning",
         "report"
       ],
-      "created": "2026-02-01T23:17:59+02:00",
+      "created": "2026-02-01T21:17:59.000Z",
       "created_at": "2026-02-01T23:17:59+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -600,7 +600,7 @@
         "epic",
         "feature"
       ],
-      "created": "2026-01-13 17:43:21",
+      "created": "2026-01-13T15:43:21.000Z",
       "created_at": "2026-01-13 17:43:21",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -619,7 +619,7 @@
         "proto",
         "refactor"
       ],
-      "created": "2026-02-15T15:46:03+02:00",
+      "created": "2026-02-15T13:46:03.000Z",
       "created_at": "2026-02-15T15:46:03+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -642,7 +642,7 @@
         "performance",
         "testing"
       ],
-      "created": "2026-01-13 17:25:26",
+      "created": "2026-01-13T15:25:26.000Z",
       "created_at": "2026-01-13 17:25:26",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -665,7 +665,7 @@
         "discovered_line": "",
         "discovery_type": "MARKDOWN_TASK"
       },
-      "created": "2026-01-13T16:16:07+02:00",
+      "created": "2026-01-13T14:16:07.000Z",
       "created_at": "2026-01-13T16:16:07+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -688,7 +688,7 @@
         "discovered_line": "",
         "discovery_type": "MARKDOWN_TASK"
       },
-      "created": "2026-01-13T16:16:07+02:00",
+      "created": "2026-01-13T14:16:07.000Z",
       "created_at": "2026-01-13T16:16:07+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -712,7 +712,7 @@
         "phase",
         "testing"
       ],
-      "created": "2026-01-13 17:25:26",
+      "created": "2026-01-13T15:25:26.000Z",
       "created_at": "2026-01-13 17:25:26",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -731,7 +731,7 @@
         "planning",
         "task_workflow"
       ],
-      "created": "2026-02-01T23:18:13+02:00",
+      "created": "2026-02-01T21:18:13.000Z",
       "created_at": "2026-02-01T23:18:13+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -754,7 +754,7 @@
         "discovered_line": "",
         "discovery_type": "MARKDOWN_TASK"
       },
-      "created": "2026-01-13T16:16:07+02:00",
+      "created": "2026-01-13T14:16:07.000Z",
       "created_at": "2026-01-13T16:16:07+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -778,7 +778,7 @@
         "discovered_line": "",
         "discovery_type": "MARKDOWN_TASK"
       },
-      "created": "2026-01-13T16:16:07+02:00",
+      "created": "2026-01-13T14:16:07.000Z",
       "created_at": "2026-01-13T16:16:07+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -799,7 +799,7 @@
         "migration",
         "testing"
       ],
-      "created": "2026-01-13T19:12:24+02:00",
+      "created": "2026-01-13T17:12:24.000Z",
       "created_at": "2026-01-13T19:12:24+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -818,7 +818,7 @@
         "proto",
         "refactor"
       ],
-      "created": "2026-02-15T15:46:06+02:00",
+      "created": "2026-02-15T13:46:06.000Z",
       "created_at": "2026-02-15T15:46:06+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -845,7 +845,7 @@
         "discovered_line": "",
         "discovery_type": "MARKDOWN_TASK"
       },
-      "created": "2026-01-13T16:16:07+02:00",
+      "created": "2026-01-13T14:16:07.000Z",
       "created_at": "2026-01-13T16:16:07+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -868,10 +868,11 @@
         "discovered_line": "",
         "discovery_type": "MARKDOWN_TASK"
       },
-      "created": "2026-01-13T16:16:07+02:00",
+      "created": "2026-01-13T14:16:07.000Z",
       "created_at": "2026-01-13T16:16:07+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
-      "last_modified": "2026-02-15T18:04:53+02:00"
+      "last_modified": "2026-02-15T18:04:53+02:00",
+      "lastModified": "2026-02-15T16:06:23.015Z"
     },
     {
       "id": "T-1768317926176",
@@ -889,7 +890,7 @@
         "phase",
         "testing"
       ],
-      "created": "2026-01-13 17:25:26",
+      "created": "2026-01-13T15:25:26.000Z",
       "created_at": "2026-01-13 17:25:26",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -911,7 +912,7 @@
         "discovered_line": "",
         "discovery_type": "MARKDOWN_TASK"
       },
-      "created": "2026-01-13T16:16:06+02:00",
+      "created": "2026-01-13T14:16:06.000Z",
       "created_at": "2026-01-13T16:16:06+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -930,7 +931,7 @@
         "migration",
         "testing"
       ],
-      "created": "2026-01-13T17:33:11+02:00",
+      "created": "2026-01-13T15:33:11.000Z",
       "created_at": "2026-01-13T17:33:11+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -947,7 +948,7 @@
       "tags": [
         "feature"
       ],
-      "created": "2026-01-11T22:25:11+02:00",
+      "created": "2026-01-11T20:25:11.000Z",
       "created_at": "2026-01-11T22:25:11+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -969,7 +970,7 @@
       "dependencies": [
         "T-1768321828916"
       ],
-      "created": "2026-02-02T01:49:34+02:00",
+      "created": "2026-02-01T23:49:34.000Z",
       "created_at": "2026-02-02T01:49:34+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -988,7 +989,7 @@
         "refactor",
         "task_analysis"
       ],
-      "created": "2026-02-15T15:46:01+02:00",
+      "created": "2026-02-15T13:46:01.000Z",
       "created_at": "2026-02-15T15:46:01+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -1007,7 +1008,7 @@
         "proto",
         "refactor"
       ],
-      "created": "2026-02-15T15:46:07+02:00",
+      "created": "2026-02-15T13:46:07.000Z",
       "created_at": "2026-02-15T15:46:07+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -1030,7 +1031,7 @@
         "discovered_line": "",
         "discovery_type": "MARKDOWN_TASK"
       },
-      "created": "2026-01-13T16:16:07+02:00",
+      "created": "2026-01-13T14:16:07.000Z",
       "created_at": "2026-01-13T16:16:07+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -1058,7 +1059,7 @@
       "metadata": {
         "planning_links": {}
       },
-      "created": "2026-01-13T16:07:02+02:00",
+      "created": "2026-01-13T14:07:02.000Z",
       "created_at": "2026-01-13T16:07:02+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -1080,7 +1081,7 @@
         "refactor",
         "testing"
       ],
-      "created": "2026-01-13T20:11:12+02:00",
+      "created": "2026-01-13T18:11:12.000Z",
       "created_at": "2026-01-13T20:11:12+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -1100,7 +1101,7 @@
         "security",
         "testing"
       ],
-      "created": "2026-01-13T17:01:39+02:00",
+      "created": "2026-01-13T15:01:39.000Z",
       "created_at": "2026-01-13T17:01:39+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -1124,7 +1125,7 @@
         "discovered_line": "",
         "discovery_type": "MARKDOWN_TASK"
       },
-      "created": "2026-01-13T16:16:06+02:00",
+      "created": "2026-01-13T14:16:06.000Z",
       "created_at": "2026-01-13T16:16:06+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -1149,7 +1150,7 @@
         "discovered_line": "",
         "discovery_type": "MARKDOWN_TASK"
       },
-      "created": "2026-01-13T16:16:06+02:00",
+      "created": "2026-01-13T14:16:06.000Z",
       "created_at": "2026-01-13T16:16:06+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00"
@@ -1167,7 +1168,7 @@
         "feature",
         "testing"
       ],
-      "created": "2026-01-13T17:32:29+02:00",
+      "created": "2026-01-13T15:32:29.000Z",
       "created_at": "2026-01-13T17:32:29+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -1194,7 +1195,7 @@
         "discovered_line": "",
         "discovery_type": "MARKDOWN_TASK"
       },
-      "created": "2026-01-13T16:16:07+02:00",
+      "created": "2026-01-13T14:16:07.000Z",
       "created_at": "2026-01-13T16:16:07+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00"
@@ -1217,7 +1218,7 @@
         "discovered_line": "",
         "discovery_type": "MARKDOWN_TASK"
       },
-      "created": "2026-01-13T16:16:07+02:00",
+      "created": "2026-01-13T14:16:07.000Z",
       "created_at": "2026-01-13T16:16:07+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -1240,7 +1241,7 @@
         "discovered_line": "",
         "discovery_type": "MARKDOWN_TASK"
       },
-      "created": "2026-01-13T16:16:06+02:00",
+      "created": "2026-01-13T14:16:06.000Z",
       "created_at": "2026-01-13T16:16:06+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -1250,8 +1251,8 @@
       "id": "T-1769989772115",
       "name": "Add UpdateTaskStatus helper in todo2_utils (DB vs file)",
       "content": "Add UpdateTaskStatus helper in todo2_utils (DB vs file)",
-      "description": "Add UpdateTaskStatus(ctx, projectRoot, taskID, newStatus) in todo2_utils.go; use DB when available else LoadTodo2Tasks-\u003eupdate-\u003eSaveTodo2Tasks. Use in apply_approval_result, approve, clarify resolve. Ref: docs/TASK_RELATED_CODE_SIMPLIFICATION_ANALYSIS.md",
-      "long_description": "Add UpdateTaskStatus(ctx, projectRoot, taskID, newStatus) in todo2_utils.go; use DB when available else LoadTodo2Tasks-\u003eupdate-\u003eSaveTodo2Tasks. Use in apply_approval_result, approve, clarify resolve. Ref: docs/TASK_RELATED_CODE_SIMPLIFICATION_ANALYSIS.md",
+      "description": "Add UpdateTaskStatus(ctx, projectRoot, taskID, newStatus) in todo2_utils.go; use DB when available else LoadTodo2Tasks->update->SaveTodo2Tasks. Use in apply_approval_result, approve, clarify resolve. Ref: docs/TASK_RELATED_CODE_SIMPLIFICATION_ANALYSIS.md",
+      "long_description": "Add UpdateTaskStatus(ctx, projectRoot, taskID, newStatus) in todo2_utils.go; use DB when available else LoadTodo2Tasks->update->SaveTodo2Tasks. Use in apply_approval_result, approve, clarify resolve. Ref: docs/TASK_RELATED_CODE_SIMPLIFICATION_ANALYSIS.md",
       "status": "Done",
       "priority": "medium",
       "tags": [
@@ -1262,7 +1263,7 @@
       "dependencies": [
         "T-1768321828916"
       ],
-      "created": "2026-02-02T01:49:32+02:00",
+      "created": "2026-02-01T23:49:32.000Z",
       "created_at": "2026-02-02T01:49:32+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -1281,7 +1282,7 @@
         "planning",
         "report"
       ],
-      "created": "2026-02-01T23:17:44+02:00",
+      "created": "2026-02-01T21:17:44.000Z",
       "created_at": "2026-02-01T23:17:44+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -1298,7 +1299,7 @@
       "tags": [
         "migration"
       ],
-      "created": "2026-01-13 17:25:26",
+      "created": "2026-01-13T15:25:26.000Z",
       "created_at": "2026-01-13 17:25:26",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -1321,7 +1322,7 @@
         "research",
         "testing"
       ],
-      "created": "2026-01-13 17:25:26",
+      "created": "2026-01-13T15:25:26.000Z",
       "created_at": "2026-01-13 17:25:26",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -1342,7 +1343,7 @@
       "dependencies": [
         "T-1768318471622"
       ],
-      "created": "2026-01-13T16:16:06+02:00",
+      "created": "2026-01-13T14:16:06.000Z",
       "created_at": "2026-01-13T16:16:06+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -1369,7 +1370,7 @@
       "dependencies": [
         "T-1768318471621"
       ],
-      "created": "2026-01-13T16:16:07+02:00",
+      "created": "2026-01-13T14:16:07.000Z",
       "created_at": "2026-01-13T16:16:07+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -1392,7 +1393,7 @@
         "discovered_line": "",
         "discovery_type": "MARKDOWN_TASK"
       },
-      "created": "2026-01-13T16:16:07+02:00",
+      "created": "2026-01-13T14:16:07.000Z",
       "created_at": "2026-01-13T16:16:07+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -1411,7 +1412,7 @@
         "migration",
         "testing"
       ],
-      "created": "2026-01-12T00:34:51+02:00",
+      "created": "2026-01-11T22:34:51.000Z",
       "created_at": "2026-01-12T00:34:51+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -1434,7 +1435,7 @@
       "metadata": {
         "planning_links": {}
       },
-      "created": "2026-02-02T02:37:59+02:00",
+      "created": "2026-02-02T00:37:59.000Z",
       "created_at": "2026-02-02T02:37:59+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -1459,7 +1460,7 @@
         "discovered_line": "",
         "discovery_type": "MARKDOWN_TASK"
       },
-      "created": "2026-01-13T16:16:06+02:00",
+      "created": "2026-01-13T14:16:06.000Z",
       "created_at": "2026-01-13T16:16:06+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -1484,7 +1485,7 @@
           "epic_id": "T-1771171350748"
         }
       },
-      "created": "2026-02-15T18:02:45+02:00",
+      "created": "2026-02-15T16:02:45.000Z",
       "created_at": "2026-02-15T18:02:45+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00"
@@ -1508,7 +1509,7 @@
         "testing",
         "tools"
       ],
-      "created": "2026-01-13 17:25:26",
+      "created": "2026-01-13T15:25:26.000Z",
       "created_at": "2026-01-13 17:25:26",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -1532,7 +1533,7 @@
         "discovered_line": "",
         "discovery_type": "MARKDOWN_TASK"
       },
-      "created": "2026-01-13T16:16:06+02:00",
+      "created": "2026-01-13T14:16:06.000Z",
       "created_at": "2026-01-13T16:16:06+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -1542,8 +1543,8 @@
       "id": "T-212",
       "name": "Implement task complexity classifier",
       "content": "Implement task complexity classifier",
-      "description": "🎯 **Objective:** Implement a task complexity classifier that determines whether a Todo2 task is simple (auto-executable), medium (needs breakdown), or complex (needs human review), per the Model-Assisted Workflow design.\n\n📋 **Acceptance Criteria:**\n- Define `TaskComplexity` type with constants: `simple`, `medium`, `complex`\n- Implement `AnalyzeTask(task Task) (complexity TaskComplexity, canAutoExecute bool, needsBreakdown bool)` function\n- Apply decision criteria: Simple = well-defined, routine, low-risk, \u003c1h; Medium = multiple steps, needs breakdown; Complex = high-stakes, experimental, human judgment required\n- Classify based on task name, long_description, acceptance criteria, dependency count, and tags\n- Unit tests for classifier covering each complexity level and edge cases\n\n🚫 **Scope Boundaries (CRITICAL):**\n- **Included:** Heuristic/rule-based classification; integration with Todo2 task struct; exported API for task_analyzer (T-208)\n- **Excluded:** LLM-based classification (future enhancement); Model Router integration; actual auto-execution or breakdown logic\n- **Clarification Required:** None\n\n🔧 **Technical Requirements:**\n- Go package in `internal/tools/` or new `internal/taskanalysis/` (align with T-208)\n- Use Todo2 task fields: name, long_description, dependencies, tags, metadata\n- Heuristics: dependency count, description length, keyword detection (e.g. \"refactor\", \"migrate\", \"security\")\n\n📁 **Files/Components:**\n- Create: `internal/taskanalysis/classifier.go` (or under `internal/tools/`) with `AnalyzeTask`, `TaskComplexity` type\n- Update: `internal/tools/task_analysis*.go` (or task_analyzer) to consume classifier when T-208 is implemented\n- Create: `*_test.go` for classifier\n\n🧪 **Testing Requirements:**\n- Table-driven tests: simple/medium/complex examples\n- Edge cases: empty description, many dependencies, ambiguous keywords\n\n⚠️ **Edge Cases:**\n- Empty or minimal task description → default to medium (conservative)\n- Task with 5+ dependencies → likely medium or complex\n- Tasks with \"security\", \"migration\", \"experimental\" → tend toward complex\n\n📚 **Dependencies:** T-207 (Add model selection logic) — for future LLM-assisted classification; heuristic-only implementation can proceed without it.",
-      "long_description": "🎯 **Objective:** Implement a task complexity classifier that determines whether a Todo2 task is simple (auto-executable), medium (needs breakdown), or complex (needs human review), per the Model-Assisted Workflow design.\n\n📋 **Acceptance Criteria:**\n- Define `TaskComplexity` type with constants: `simple`, `medium`, `complex`\n- Implement `AnalyzeTask(task Task) (complexity TaskComplexity, canAutoExecute bool, needsBreakdown bool)` function\n- Apply decision criteria: Simple = well-defined, routine, low-risk, \u003c1h; Medium = multiple steps, needs breakdown; Complex = high-stakes, experimental, human judgment required\n- Classify based on task name, long_description, acceptance criteria, dependency count, and tags\n- Unit tests for classifier covering each complexity level and edge cases\n\n🚫 **Scope Boundaries (CRITICAL):**\n- **Included:** Heuristic/rule-based classification; integration with Todo2 task struct; exported API for task_analyzer (T-208)\n- **Excluded:** LLM-based classification (future enhancement); Model Router integration; actual auto-execution or breakdown logic\n- **Clarification Required:** None\n\n🔧 **Technical Requirements:**\n- Go package in `internal/tools/` or new `internal/taskanalysis/` (align with T-208)\n- Use Todo2 task fields: name, long_description, dependencies, tags, metadata\n- Heuristics: dependency count, description length, keyword detection (e.g. \"refactor\", \"migrate\", \"security\")\n\n📁 **Files/Components:**\n- Create: `internal/taskanalysis/classifier.go` (or under `internal/tools/`) with `AnalyzeTask`, `TaskComplexity` type\n- Update: `internal/tools/task_analysis*.go` (or task_analyzer) to consume classifier when T-208 is implemented\n- Create: `*_test.go` for classifier\n\n🧪 **Testing Requirements:**\n- Table-driven tests: simple/medium/complex examples\n- Edge cases: empty description, many dependencies, ambiguous keywords\n\n⚠️ **Edge Cases:**\n- Empty or minimal task description → default to medium (conservative)\n- Task with 5+ dependencies → likely medium or complex\n- Tasks with \"security\", \"migration\", \"experimental\" → tend toward complex\n\n📚 **Dependencies:** T-207 (Add model selection logic) — for future LLM-assisted classification; heuristic-only implementation can proceed without it.",
+      "description": "🎯 **Objective:** Implement a task complexity classifier that determines whether a Todo2 task is simple (auto-executable), medium (needs breakdown), or complex (needs human review), per the Model-Assisted Workflow design.\n\n📋 **Acceptance Criteria:**\n- Define `TaskComplexity` type with constants: `simple`, `medium`, `complex`\n- Implement `AnalyzeTask(task Task) (complexity TaskComplexity, canAutoExecute bool, needsBreakdown bool)` function\n- Apply decision criteria: Simple = well-defined, routine, low-risk, <1h; Medium = multiple steps, needs breakdown; Complex = high-stakes, experimental, human judgment required\n- Classify based on task name, long_description, acceptance criteria, dependency count, and tags\n- Unit tests for classifier covering each complexity level and edge cases\n\n🚫 **Scope Boundaries (CRITICAL):**\n- **Included:** Heuristic/rule-based classification; integration with Todo2 task struct; exported API for task_analyzer (T-208)\n- **Excluded:** LLM-based classification (future enhancement); Model Router integration; actual auto-execution or breakdown logic\n- **Clarification Required:** None\n\n🔧 **Technical Requirements:**\n- Go package in `internal/tools/` or new `internal/taskanalysis/` (align with T-208)\n- Use Todo2 task fields: name, long_description, dependencies, tags, metadata\n- Heuristics: dependency count, description length, keyword detection (e.g. \"refactor\", \"migrate\", \"security\")\n\n📁 **Files/Components:**\n- Create: `internal/taskanalysis/classifier.go` (or under `internal/tools/`) with `AnalyzeTask`, `TaskComplexity` type\n- Update: `internal/tools/task_analysis*.go` (or task_analyzer) to consume classifier when T-208 is implemented\n- Create: `*_test.go` for classifier\n\n🧪 **Testing Requirements:**\n- Table-driven tests: simple/medium/complex examples\n- Edge cases: empty description, many dependencies, ambiguous keywords\n\n⚠️ **Edge Cases:**\n- Empty or minimal task description → default to medium (conservative)\n- Task with 5+ dependencies → likely medium or complex\n- Tasks with \"security\", \"migration\", \"experimental\" → tend toward complex\n\n📚 **Dependencies:** T-207 (Add model selection logic) — for future LLM-assisted classification; heuristic-only implementation can proceed without it.",
+      "long_description": "🎯 **Objective:** Implement a task complexity classifier that determines whether a Todo2 task is simple (auto-executable), medium (needs breakdown), or complex (needs human review), per the Model-Assisted Workflow design.\n\n📋 **Acceptance Criteria:**\n- Define `TaskComplexity` type with constants: `simple`, `medium`, `complex`\n- Implement `AnalyzeTask(task Task) (complexity TaskComplexity, canAutoExecute bool, needsBreakdown bool)` function\n- Apply decision criteria: Simple = well-defined, routine, low-risk, <1h; Medium = multiple steps, needs breakdown; Complex = high-stakes, experimental, human judgment required\n- Classify based on task name, long_description, acceptance criteria, dependency count, and tags\n- Unit tests for classifier covering each complexity level and edge cases\n\n🚫 **Scope Boundaries (CRITICAL):**\n- **Included:** Heuristic/rule-based classification; integration with Todo2 task struct; exported API for task_analyzer (T-208)\n- **Excluded:** LLM-based classification (future enhancement); Model Router integration; actual auto-execution or breakdown logic\n- **Clarification Required:** None\n\n🔧 **Technical Requirements:**\n- Go package in `internal/tools/` or new `internal/taskanalysis/` (align with T-208)\n- Use Todo2 task fields: name, long_description, dependencies, tags, metadata\n- Heuristics: dependency count, description length, keyword detection (e.g. \"refactor\", \"migrate\", \"security\")\n\n📁 **Files/Components:**\n- Create: `internal/taskanalysis/classifier.go` (or under `internal/tools/`) with `AnalyzeTask`, `TaskComplexity` type\n- Update: `internal/tools/task_analysis*.go` (or task_analyzer) to consume classifier when T-208 is implemented\n- Create: `*_test.go` for classifier\n\n🧪 **Testing Requirements:**\n- Table-driven tests: simple/medium/complex examples\n- Edge cases: empty description, many dependencies, ambiguous keywords\n\n⚠️ **Edge Cases:**\n- Empty or minimal task description → default to medium (conservative)\n- Task with 5+ dependencies → likely medium or complex\n- Tasks with \"security\", \"migration\", \"experimental\" → tend toward complex\n\n📚 **Dependencies:** T-207 (Add model selection logic) — for future LLM-assisted classification; heuristic-only implementation can proceed without it.",
       "status": "Done",
       "priority": "medium",
       "tags": [
@@ -1559,7 +1560,7 @@
         "discovered_line": "",
         "discovery_type": "MARKDOWN_TASK"
       },
-      "created": "2026-01-13T16:16:07+02:00",
+      "created": "2026-01-13T14:16:07.000Z",
       "created_at": "2026-01-13T16:16:07+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -1579,7 +1580,7 @@
         "migration",
         "testing"
       ],
-      "created": "2026-01-12T00:35:17+02:00",
+      "created": "2026-01-11T22:35:17.000Z",
       "created_at": "2026-01-12T00:35:17+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -1597,7 +1598,7 @@
         "cli",
         "cursor"
       ],
-      "created": "2026-02-15T16:08:48+02:00",
+      "created": "2026-02-15T14:08:48.000Z",
       "created_at": "2026-02-15T16:08:48+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00"
@@ -1620,7 +1621,7 @@
         "discovered_line": "",
         "discovery_type": "MARKDOWN_TASK"
       },
-      "created": "2026-01-13T16:16:07+02:00",
+      "created": "2026-01-13T14:16:07.000Z",
       "created_at": "2026-01-13T16:16:07+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -1646,7 +1647,7 @@
       "metadata": {
         "planning_links": {}
       },
-      "created": "2026-02-11T19:02:44+02:00",
+      "created": "2026-02-11T17:02:44.000Z",
       "created_at": "2026-02-11T19:02:44+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -1664,7 +1665,7 @@
         "refactor",
         "verification"
       ],
-      "created": "2026-01-13T19:23:26+02:00",
+      "created": "2026-01-13T17:23:26.000Z",
       "created_at": "2026-01-13T19:23:26+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -1688,7 +1689,7 @@
           "planning_doc": "docs/AGENT_LOCKING_STRATEGY.md"
         }
       },
-      "created": "2026-02-02T01:41:20+02:00",
+      "created": "2026-02-01T23:41:20.000Z",
       "created_at": "2026-02-02T01:41:20+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -1714,7 +1715,7 @@
         "discovered_line": "",
         "discovery_type": "MARKDOWN_TASK"
       },
-      "created": "2026-01-13T16:16:06+02:00",
+      "created": "2026-01-13T14:16:06.000Z",
       "created_at": "2026-01-13T16:16:06+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -1734,7 +1735,7 @@
         "mcp",
         "refactor"
       ],
-      "created": "2026-01-11T22:31:57+02:00",
+      "created": "2026-01-11T20:31:57.000Z",
       "created_at": "2026-01-11T22:31:57+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -1752,7 +1753,7 @@
         "TaskStore",
         "refactor"
       ],
-      "created": "2026-02-11T19:42:13+02:00",
+      "created": "2026-02-11T17:42:13.000Z",
       "created_at": "2026-02-11T19:42:13+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00"
@@ -1776,7 +1777,7 @@
           "epic_id": "T-1771171348644"
         }
       },
-      "created": "2026-02-15T18:02:39+02:00",
+      "created": "2026-02-15T16:02:39.000Z",
       "created_at": "2026-02-15T18:02:39+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00"
@@ -1794,7 +1795,7 @@
         "feature",
         "multi-agent"
       ],
-      "created": "2026-02-11T18:58:20+02:00",
+      "created": "2026-02-11T16:58:20.000Z",
       "created_at": "2026-02-11T18:58:20+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -1818,7 +1819,7 @@
         "discovered_line": "",
         "discovery_type": "MARKDOWN_TASK"
       },
-      "created": "2026-01-13T16:16:07+02:00",
+      "created": "2026-01-13T14:16:07.000Z",
       "created_at": "2026-01-13T16:16:07+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -1839,7 +1840,7 @@
         "ollama",
         "task_workflow"
       ],
-      "created": "2026-02-15T16:09:12+02:00",
+      "created": "2026-02-15T14:09:12.000Z",
       "created_at": "2026-02-15T16:09:12+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00"
@@ -1859,7 +1860,7 @@
         "T-1768249093338",
         "T-1768318471618"
       ],
-      "created": "2026-01-13T16:16:06+02:00",
+      "created": "2026-01-13T14:16:06.000Z",
       "created_at": "2026-01-13T16:16:06+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -1883,7 +1884,7 @@
         "discovered_line": "",
         "discovery_type": "MARKDOWN_TASK"
       },
-      "created": "2026-02-15T17:31:50+02:00",
+      "created": "2026-02-15T15:31:50.000Z",
       "created_at": "2026-02-15T17:31:50+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -1902,7 +1903,7 @@
         "refactor",
         "task_workflow"
       ],
-      "created": "2026-02-15T15:45:59+02:00",
+      "created": "2026-02-15T13:45:59.000Z",
       "created_at": "2026-02-15T15:45:59+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -1920,7 +1921,7 @@
         "database",
         "testing"
       ],
-      "created": "2026-01-13T17:21:47+02:00",
+      "created": "2026-01-13T15:21:47.000Z",
       "created_at": "2026-01-13T17:21:47+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -1943,7 +1944,7 @@
         "discovered_line": "",
         "discovery_type": "MARKDOWN_TASK"
       },
-      "created": "2026-01-13T16:16:06+02:00",
+      "created": "2026-01-13T14:16:06.000Z",
       "created_at": "2026-01-13T16:16:06+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -1968,7 +1969,7 @@
         "discovered_line": "",
         "discovery_type": "MARKDOWN_TASK"
       },
-      "created": "2026-01-13T16:16:06+02:00",
+      "created": "2026-01-13T14:16:06.000Z",
       "created_at": "2026-01-13T16:16:06+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -1992,7 +1993,7 @@
         "discovered_line": "",
         "discovery_type": "MARKDOWN_TASK"
       },
-      "created": "2026-01-13T16:16:07+02:00",
+      "created": "2026-01-13T14:16:07.000Z",
       "created_at": "2026-01-13T16:16:07+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -2010,7 +2011,7 @@
         "prime",
         "session"
       ],
-      "created": "2026-02-12T17:19:28+02:00",
+      "created": "2026-02-12T15:19:28.000Z",
       "created_at": "2026-02-12T17:19:28+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00"
@@ -2034,7 +2035,7 @@
         "discovered_line": "",
         "discovery_type": "MARKDOWN_TASK"
       },
-      "created": "2026-01-13T16:16:06+02:00",
+      "created": "2026-01-13T14:16:06.000Z",
       "created_at": "2026-01-13T16:16:06+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -2057,7 +2058,7 @@
         "discovered_line": "",
         "discovery_type": "MARKDOWN_TASK"
       },
-      "created": "2026-01-13T16:16:06+02:00",
+      "created": "2026-01-13T14:16:06.000Z",
       "created_at": "2026-01-13T16:16:06+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -2076,7 +2077,7 @@
         "planning",
         "task_workflow"
       ],
-      "created": "2026-02-01T23:18:00+02:00",
+      "created": "2026-02-01T21:18:00.000Z",
       "created_at": "2026-02-01T23:18:00+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -2096,7 +2097,7 @@
         "multi-agent",
         "task_analysis"
       ],
-      "created": "2026-02-11T18:58:24+02:00",
+      "created": "2026-02-11T16:58:24.000Z",
       "created_at": "2026-02-11T18:58:24+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -2124,7 +2125,7 @@
       "dependencies": [
         "T-1768318471621"
       ],
-      "created": "2026-01-13 17:25:26",
+      "created": "2026-01-13T15:25:26.000Z",
       "created_at": "2026-01-13 17:25:26",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -2153,7 +2154,7 @@
         "discovered_line": "",
         "discovery_type": "MARKDOWN_TASK"
       },
-      "created": "2026-01-13T16:16:07+02:00",
+      "created": "2026-01-13T14:16:07.000Z",
       "created_at": "2026-01-13T16:16:07+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -2176,7 +2177,7 @@
         "discovered_line": 76,
         "discovery_type": "NOTE"
       },
-      "created": "2026-01-13T16:16:06+02:00",
+      "created": "2026-01-13T14:16:06.000Z",
       "created_at": "2026-01-13T16:16:06+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -2200,7 +2201,7 @@
         "discovered_line": "",
         "discovery_type": "MARKDOWN_TASK"
       },
-      "created": "2026-01-13T16:16:06+02:00",
+      "created": "2026-01-13T14:16:06.000Z",
       "created_at": "2026-01-13T16:16:06+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -2219,7 +2220,7 @@
         "migration",
         "refactor"
       ],
-      "created": "2026-01-13 17:34:31",
+      "created": "2026-01-13T15:34:31.000Z",
       "created_at": "2026-01-13 17:34:31",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -2239,7 +2240,7 @@
         "migration",
         "testing"
       ],
-      "created": "2026-01-13T17:27:55+02:00",
+      "created": "2026-01-13T15:27:55.000Z",
       "created_at": "2026-01-13T17:27:55+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -2262,7 +2263,7 @@
         "resources",
         "testing"
       ],
-      "created": "2026-01-13 17:25:26",
+      "created": "2026-01-13T15:25:26.000Z",
       "created_at": "2026-01-13 17:25:26",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -2270,10 +2271,10 @@
     },
     {
       "id": "T-1768170875007",
-      "name": "Stream 5: Testing \u0026 Validation - Comprehensive native implementation testing",
-      "content": "Stream 5: Testing \u0026 Validation - Comprehensive native implementation testing",
-      "description": "🎯 **Objective:** Implement comprehensive testing and validation framework for all native Go implementations as part of the Native Go Migration plan (Stream 5).\n\n📋 **Acceptance Criteria:**\n- Unit test framework established for all native tool implementations\n- Integration test infrastructure implemented for MCP protocol testing\n- Regression testing framework comparing native vs Python bridge outputs\n- Performance benchmarking framework for native vs Python bridge\n- Migration validation test suite verifying no regressions\n- Test coverage reports generated showing 80%+ coverage\n- All existing tests passing, new tests added for uncovered areas\n- Documentation updated with testing patterns and results\n\n🚫 **Scope Boundaries (CRITICAL):**\n- **Included:** Unit tests for native implementations, integration tests via MCP interface, regression testing framework, performance benchmarks, migration validation\n- **Excluded:** Testing of Python bridge tools (out of scope), testing of external dependencies, end-to-end user workflow testing\n- **Clarification Required:** None - scope is clear from plan\n\n🔧 **Technical Requirements:**\n- Use Go testing patterns (table-driven tests, test helpers)\n- Use existing test infrastructure (internal/tools/*_test.go patterns)\n- Benchmark with Go's testing.B framework\n- Integration tests via MCP JSON-RPC 2.0 protocol\n- Test coverage tool: go test -cover\n- Follow patterns from docs/MIGRATION_PATTERNS.md\n\n📁 **Files/Components:**\n- Update: `internal/tools/*_test.go` (add tests for uncovered tools)\n- Update: `tests/integration/mcp/test_mcp_server.py` (implement integration test stubs)\n- Update: `tests/integration/mcp/test_server_startup.py` (implement server startup tests)\n- Create: `tests/regression/` (regression test framework)\n- Create: `tests/performance/` (benchmark suite)\n- Create: `docs/STREAM_5_TESTING_VALIDATION.md` (testing documentation)\n- Update: `docs/MIGRATION_VALIDATION.md` (update with Stream 5 results)\n\n🧪 **Testing Requirements:**\n- All unit tests pass (`make test`)\n- Integration tests verify MCP protocol compliance\n- Regression tests verify feature parity with Python bridge\n- Performance benchmarks show improvements (documented)\n- Test coverage \u003e= 80% for native implementations\n- No regressions in existing functionality\n\n⚠️ **Edge Cases:**\n- Hybrid tools (native + Python bridge fallback) - test both paths\n- Error handling - test error propagation correctly\n- Concurrent tool execution - test thread safety\n- Resource cleanup - test no leaks or hanging processes\n\n📚 **Dependencies:** Stream 4 (Documentation) should provide baseline, but can work in parallel with Streams 1-3",
-      "long_description": "🎯 **Objective:** Implement comprehensive testing and validation framework for all native Go implementations as part of the Native Go Migration plan (Stream 5).\n\n📋 **Acceptance Criteria:**\n- Unit test framework established for all native tool implementations\n- Integration test infrastructure implemented for MCP protocol testing\n- Regression testing framework comparing native vs Python bridge outputs\n- Performance benchmarking framework for native vs Python bridge\n- Migration validation test suite verifying no regressions\n- Test coverage reports generated showing 80%+ coverage\n- All existing tests passing, new tests added for uncovered areas\n- Documentation updated with testing patterns and results\n\n🚫 **Scope Boundaries (CRITICAL):**\n- **Included:** Unit tests for native implementations, integration tests via MCP interface, regression testing framework, performance benchmarks, migration validation\n- **Excluded:** Testing of Python bridge tools (out of scope), testing of external dependencies, end-to-end user workflow testing\n- **Clarification Required:** None - scope is clear from plan\n\n🔧 **Technical Requirements:**\n- Use Go testing patterns (table-driven tests, test helpers)\n- Use existing test infrastructure (internal/tools/*_test.go patterns)\n- Benchmark with Go's testing.B framework\n- Integration tests via MCP JSON-RPC 2.0 protocol\n- Test coverage tool: go test -cover\n- Follow patterns from docs/MIGRATION_PATTERNS.md\n\n📁 **Files/Components:**\n- Update: `internal/tools/*_test.go` (add tests for uncovered tools)\n- Update: `tests/integration/mcp/test_mcp_server.py` (implement integration test stubs)\n- Update: `tests/integration/mcp/test_server_startup.py` (implement server startup tests)\n- Create: `tests/regression/` (regression test framework)\n- Create: `tests/performance/` (benchmark suite)\n- Create: `docs/STREAM_5_TESTING_VALIDATION.md` (testing documentation)\n- Update: `docs/MIGRATION_VALIDATION.md` (update with Stream 5 results)\n\n🧪 **Testing Requirements:**\n- All unit tests pass (`make test`)\n- Integration tests verify MCP protocol compliance\n- Regression tests verify feature parity with Python bridge\n- Performance benchmarks show improvements (documented)\n- Test coverage \u003e= 80% for native implementations\n- No regressions in existing functionality\n\n⚠️ **Edge Cases:**\n- Hybrid tools (native + Python bridge fallback) - test both paths\n- Error handling - test error propagation correctly\n- Concurrent tool execution - test thread safety\n- Resource cleanup - test no leaks or hanging processes\n\n📚 **Dependencies:** Stream 4 (Documentation) should provide baseline, but can work in parallel with Streams 1-3",
+      "name": "Stream 5: Testing & Validation - Comprehensive native implementation testing",
+      "content": "Stream 5: Testing & Validation - Comprehensive native implementation testing",
+      "description": "🎯 **Objective:** Implement comprehensive testing and validation framework for all native Go implementations as part of the Native Go Migration plan (Stream 5).\n\n📋 **Acceptance Criteria:**\n- Unit test framework established for all native tool implementations\n- Integration test infrastructure implemented for MCP protocol testing\n- Regression testing framework comparing native vs Python bridge outputs\n- Performance benchmarking framework for native vs Python bridge\n- Migration validation test suite verifying no regressions\n- Test coverage reports generated showing 80%+ coverage\n- All existing tests passing, new tests added for uncovered areas\n- Documentation updated with testing patterns and results\n\n🚫 **Scope Boundaries (CRITICAL):**\n- **Included:** Unit tests for native implementations, integration tests via MCP interface, regression testing framework, performance benchmarks, migration validation\n- **Excluded:** Testing of Python bridge tools (out of scope), testing of external dependencies, end-to-end user workflow testing\n- **Clarification Required:** None - scope is clear from plan\n\n🔧 **Technical Requirements:**\n- Use Go testing patterns (table-driven tests, test helpers)\n- Use existing test infrastructure (internal/tools/*_test.go patterns)\n- Benchmark with Go's testing.B framework\n- Integration tests via MCP JSON-RPC 2.0 protocol\n- Test coverage tool: go test -cover\n- Follow patterns from docs/MIGRATION_PATTERNS.md\n\n📁 **Files/Components:**\n- Update: `internal/tools/*_test.go` (add tests for uncovered tools)\n- Update: `tests/integration/mcp/test_mcp_server.py` (implement integration test stubs)\n- Update: `tests/integration/mcp/test_server_startup.py` (implement server startup tests)\n- Create: `tests/regression/` (regression test framework)\n- Create: `tests/performance/` (benchmark suite)\n- Create: `docs/STREAM_5_TESTING_VALIDATION.md` (testing documentation)\n- Update: `docs/MIGRATION_VALIDATION.md` (update with Stream 5 results)\n\n🧪 **Testing Requirements:**\n- All unit tests pass (`make test`)\n- Integration tests verify MCP protocol compliance\n- Regression tests verify feature parity with Python bridge\n- Performance benchmarks show improvements (documented)\n- Test coverage >= 80% for native implementations\n- No regressions in existing functionality\n\n⚠️ **Edge Cases:**\n- Hybrid tools (native + Python bridge fallback) - test both paths\n- Error handling - test error propagation correctly\n- Concurrent tool execution - test thread safety\n- Resource cleanup - test no leaks or hanging processes\n\n📚 **Dependencies:** Stream 4 (Documentation) should provide baseline, but can work in parallel with Streams 1-3",
+      "long_description": "🎯 **Objective:** Implement comprehensive testing and validation framework for all native Go implementations as part of the Native Go Migration plan (Stream 5).\n\n📋 **Acceptance Criteria:**\n- Unit test framework established for all native tool implementations\n- Integration test infrastructure implemented for MCP protocol testing\n- Regression testing framework comparing native vs Python bridge outputs\n- Performance benchmarking framework for native vs Python bridge\n- Migration validation test suite verifying no regressions\n- Test coverage reports generated showing 80%+ coverage\n- All existing tests passing, new tests added for uncovered areas\n- Documentation updated with testing patterns and results\n\n🚫 **Scope Boundaries (CRITICAL):**\n- **Included:** Unit tests for native implementations, integration tests via MCP interface, regression testing framework, performance benchmarks, migration validation\n- **Excluded:** Testing of Python bridge tools (out of scope), testing of external dependencies, end-to-end user workflow testing\n- **Clarification Required:** None - scope is clear from plan\n\n🔧 **Technical Requirements:**\n- Use Go testing patterns (table-driven tests, test helpers)\n- Use existing test infrastructure (internal/tools/*_test.go patterns)\n- Benchmark with Go's testing.B framework\n- Integration tests via MCP JSON-RPC 2.0 protocol\n- Test coverage tool: go test -cover\n- Follow patterns from docs/MIGRATION_PATTERNS.md\n\n📁 **Files/Components:**\n- Update: `internal/tools/*_test.go` (add tests for uncovered tools)\n- Update: `tests/integration/mcp/test_mcp_server.py` (implement integration test stubs)\n- Update: `tests/integration/mcp/test_server_startup.py` (implement server startup tests)\n- Create: `tests/regression/` (regression test framework)\n- Create: `tests/performance/` (benchmark suite)\n- Create: `docs/STREAM_5_TESTING_VALIDATION.md` (testing documentation)\n- Update: `docs/MIGRATION_VALIDATION.md` (update with Stream 5 results)\n\n🧪 **Testing Requirements:**\n- All unit tests pass (`make test`)\n- Integration tests verify MCP protocol compliance\n- Regression tests verify feature parity with Python bridge\n- Performance benchmarks show improvements (documented)\n- Test coverage >= 80% for native implementations\n- No regressions in existing functionality\n\n⚠️ **Edge Cases:**\n- Hybrid tools (native + Python bridge fallback) - test both paths\n- Error handling - test error propagation correctly\n- Concurrent tool execution - test thread safety\n- Resource cleanup - test no leaks or hanging processes\n\n📚 **Dependencies:** Stream 4 (Documentation) should provide baseline, but can work in parallel with Streams 1-3",
       "status": "Done",
       "priority": "high",
       "tags": [
@@ -2293,7 +2294,7 @@
         "T-1768318471621"
       ],
       "completed": true,
-      "created": "2026-01-12T00:34:35+02:00",
+      "created": "2026-01-11T22:34:35.000Z",
       "created_at": "2026-01-12T00:34:35+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -2314,7 +2315,7 @@
       "dependencies": [
         "T-1768318471622"
       ],
-      "created": "2026-01-13T16:16:06+02:00",
+      "created": "2026-01-13T14:16:06.000Z",
       "created_at": "2026-01-13T16:16:06+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -2339,7 +2340,7 @@
       "dependencies": [
         "T-1768318471623"
       ],
-      "created": "2026-01-13 17:25:26",
+      "created": "2026-01-13T15:25:26.000Z",
       "created_at": "2026-01-13 17:25:26",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -2357,7 +2358,7 @@
         "mcp",
         "planning"
       ],
-      "created": "2026-02-01T23:18:10+02:00",
+      "created": "2026-02-01T21:18:10.000Z",
       "created_at": "2026-02-01T23:18:10+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -2384,7 +2385,7 @@
       "dependencies": [
         "T-1768318471623"
       ],
-      "created": "2026-01-13 17:25:26",
+      "created": "2026-01-13T15:25:26.000Z",
       "created_at": "2026-01-13 17:25:26",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -2392,8 +2393,8 @@
     },
     {
       "id": "T-1768318471621",
-      "name": "Testing \u0026 Validation Epic",
-      "content": "Testing \u0026 Validation Epic",
+      "name": "Testing & Validation Epic",
+      "content": "Testing & Validation Epic",
       "description": "Comprehensive testing and validation for native Go implementations. Includes unit tests, integration tests, and verification of completed work.",
       "long_description": "Comprehensive testing and validation for native Go implementations. Includes unit tests, integration tests, and verification of completed work.",
       "status": "Done",
@@ -2403,7 +2404,7 @@
         "feature",
         "testing"
       ],
-      "created": "2026-01-13 17:34:31",
+      "created": "2026-01-13T15:34:31.000Z",
       "created_at": "2026-01-13 17:34:31",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -2423,7 +2424,7 @@
         "migration",
         "testing"
       ],
-      "created": "2026-01-12T00:35:23+02:00",
+      "created": "2026-01-11T22:35:23.000Z",
       "created_at": "2026-01-12T00:35:23+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -2449,7 +2450,7 @@
       "dependencies": [
         "T-1768318471623"
       ],
-      "created": "2026-01-13 17:24:49",
+      "created": "2026-01-13T15:24:49.000Z",
       "created_at": "2026-01-13 17:24:49",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -2467,7 +2468,7 @@
         "bug",
         "testing"
       ],
-      "created": "2026-01-11T22:25:12+02:00",
+      "created": "2026-01-11T20:25:12.000Z",
       "created_at": "2026-01-11T22:25:12+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -2490,7 +2491,7 @@
         "migration",
         "testing"
       ],
-      "created": "2026-01-13 17:25:26",
+      "created": "2026-01-13T15:25:26.000Z",
       "created_at": "2026-01-13 17:25:26",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -2514,7 +2515,7 @@
         "T-1768318471622",
         "T-1768319001463"
       ],
-      "created": "2026-01-13T16:16:07+02:00",
+      "created": "2026-01-13T14:16:07.000Z",
       "created_at": "2026-01-13T16:16:07+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -2535,7 +2536,7 @@
         "T-1768249093338",
         "T-1768318471618"
       ],
-      "created": "2026-01-13T16:16:06+02:00",
+      "created": "2026-01-13T14:16:06.000Z",
       "created_at": "2026-01-13T16:16:06+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -2556,7 +2557,7 @@
         "task_execute",
         "task_workflow"
       ],
-      "created": "2026-02-15T17:58:54+02:00",
+      "created": "2026-02-15T15:58:54.000Z",
       "created_at": "2026-02-15T17:58:54+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00"
@@ -2577,7 +2578,7 @@
       "dependencies": [
         "T-1769989774217"
       ],
-      "created": "2026-02-11T18:36:26+02:00",
+      "created": "2026-02-11T16:36:26.000Z",
       "created_at": "2026-02-11T18:36:26+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -2596,7 +2597,7 @@
         "resources",
         "session"
       ],
-      "created": "2026-02-12T17:53:28+02:00",
+      "created": "2026-02-12T15:53:28.000Z",
       "created_at": "2026-02-12T17:53:28+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -2614,7 +2615,7 @@
         "feature",
         "migration"
       ],
-      "created": "2026-01-13 17:25:26",
+      "created": "2026-01-13T15:25:26.000Z",
       "created_at": "2026-01-13 17:25:26",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -2644,7 +2645,7 @@
       "metadata": {
         "planning_links": {}
       },
-      "created": "2026-01-13 17:25:26",
+      "created": "2026-01-13T15:25:26.000Z",
       "created_at": "2026-01-13 17:25:26",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -2666,7 +2667,7 @@
         "refactor"
       ],
       "completed": true,
-      "created": "2026-01-13 17:34:31",
+      "created": "2026-01-13T15:34:31.000Z",
       "created_at": "2026-01-13 17:34:31",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -2707,7 +2708,7 @@
         "discovered_line": "",
         "discovery_type": "MARKDOWN_TASK"
       },
-      "created": "2026-01-13T16:16:06+02:00",
+      "created": "2026-01-13T14:16:06.000Z",
       "created_at": "2026-01-13T16:16:06+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -2730,7 +2731,7 @@
         "T-1770830686054",
         "T-1770830686525"
       ],
-      "created": "2026-02-11T19:24:52+02:00",
+      "created": "2026-02-11T17:24:52.000Z",
       "created_at": "2026-02-11T19:24:52+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -2754,7 +2755,7 @@
       "dependencies": [
         "T-1768319001461"
       ],
-      "created": "2026-01-13T17:18:40+02:00",
+      "created": "2026-01-13T15:18:40.000Z",
       "created_at": "2026-01-13T17:18:40+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -2775,7 +2776,7 @@
       "dependencies": [
         "T-1768318471622"
       ],
-      "created": "2026-01-13T16:16:06+02:00",
+      "created": "2026-01-13T14:16:06.000Z",
       "created_at": "2026-01-13T16:16:06+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -2798,7 +2799,7 @@
       "metadata": {
         "planning_links": {}
       },
-      "created": "2026-02-11T19:02:42+02:00",
+      "created": "2026-02-11T17:02:42.000Z",
       "created_at": "2026-02-11T19:02:42+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -2817,7 +2818,7 @@
         "feature",
         "mcp"
       ],
-      "created": "2026-02-01T23:28:49+02:00",
+      "created": "2026-02-01T21:28:49.000Z",
       "created_at": "2026-02-01T23:28:49+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -2841,7 +2842,7 @@
         "discovered_line": "",
         "discovery_type": "MARKDOWN_TASK"
       },
-      "created": "2026-01-13T16:16:06+02:00",
+      "created": "2026-01-13T14:16:06.000Z",
       "created_at": "2026-01-13T16:16:06+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -2859,7 +2860,7 @@
         "mcp",
         "migration"
       ],
-      "created": "2026-01-13 17:25:26",
+      "created": "2026-01-13T15:25:26.000Z",
       "created_at": "2026-01-13 17:25:26",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -2879,7 +2880,7 @@
         "migration",
         "testing"
       ],
-      "created": "2026-01-13T17:32:39+02:00",
+      "created": "2026-01-13T15:32:39.000Z",
       "created_at": "2026-01-13T17:32:39+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -2897,7 +2898,7 @@
         "cursor",
         "docs"
       ],
-      "created": "2026-02-15T16:09:11+02:00",
+      "created": "2026-02-15T14:09:11.000Z",
       "created_at": "2026-02-15T16:09:11+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00"
@@ -2914,7 +2915,7 @@
         "TaskStore",
         "refactor"
       ],
-      "created": "2026-02-11T19:42:13+02:00",
+      "created": "2026-02-11T17:42:13.000Z",
       "created_at": "2026-02-11T19:42:13+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -2939,7 +2940,7 @@
         "discovered_line": "",
         "discovery_type": "MARKDOWN_TASK"
       },
-      "created": "2026-01-13T16:16:06+02:00",
+      "created": "2026-01-13T14:16:06.000Z",
       "created_at": "2026-01-13T16:16:06+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -2961,7 +2962,7 @@
       "dependencies": [
         "T-1770828166659"
       ],
-      "created": "2026-02-11T18:42:47+02:00",
+      "created": "2026-02-11T16:42:47.000Z",
       "created_at": "2026-02-11T18:42:47+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -2984,7 +2985,7 @@
       "dependencies": [
         "T-1769989774217"
       ],
-      "created": "2026-02-11T18:36:27+02:00",
+      "created": "2026-02-11T16:36:27.000Z",
       "created_at": "2026-02-11T18:36:27+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -3011,7 +3012,7 @@
         "T-1768318471618"
       ],
       "completed": true,
-      "created": "2026-01-13T16:16:06+02:00",
+      "created": "2026-01-13T14:16:06.000Z",
       "created_at": "2026-01-13T16:16:06+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -3033,7 +3034,7 @@
       "dependencies": [
         "T-1769989774217"
       ],
-      "created": "2026-02-11T18:36:29+02:00",
+      "created": "2026-02-11T16:36:29.000Z",
       "created_at": "2026-02-11T18:36:29+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -3056,7 +3057,7 @@
         "resources",
         "testing"
       ],
-      "created": "2026-01-13 17:25:26",
+      "created": "2026-01-13T15:25:26.000Z",
       "created_at": "2026-01-13 17:25:26",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -3081,7 +3082,7 @@
           "epic_id": "T-1771171350748"
         }
       },
-      "created": "2026-02-15T18:02:46+02:00",
+      "created": "2026-02-15T16:02:46.000Z",
       "created_at": "2026-02-15T18:02:46+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00"
@@ -3102,7 +3103,7 @@
       "dependencies": [
         "T-1768321828916"
       ],
-      "created": "2026-02-02T01:49:33+02:00",
+      "created": "2026-02-01T23:49:33.000Z",
       "created_at": "2026-02-02T01:49:33+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -3120,7 +3121,7 @@
         "mcp",
         "migration"
       ],
-      "created": "2026-01-13 17:25:26",
+      "created": "2026-01-13T15:25:26.000Z",
       "created_at": "2026-01-13 17:25:26",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -3144,7 +3145,7 @@
       "dependencies": [
         "T-1768318471623"
       ],
-      "created": "2026-01-13 17:25:26",
+      "created": "2026-01-13T15:25:26.000Z",
       "created_at": "2026-01-13 17:25:26",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -3168,7 +3169,7 @@
       "dependencies": [
         "T-1768319001461"
       ],
-      "created": "2026-01-13T17:16:50+02:00",
+      "created": "2026-01-13T15:16:50.000Z",
       "created_at": "2026-01-13T17:16:50+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -3191,7 +3192,7 @@
         "discovered_line": "",
         "discovery_type": "MARKDOWN_TASK"
       },
-      "created": "2026-01-13T16:16:07+02:00",
+      "created": "2026-01-13T14:16:07.000Z",
       "created_at": "2026-01-13T16:16:07+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -3216,7 +3217,7 @@
         "T-1768318471622",
         "T-1768319001463"
       ],
-      "created": "2026-01-13T16:16:06+02:00",
+      "created": "2026-01-13T14:16:06.000Z",
       "created_at": "2026-01-13T16:16:06+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -3238,7 +3239,7 @@
         "discovered_line": "",
         "discovery_type": "MARKDOWN_TASK"
       },
-      "created": "2026-01-13T16:16:06+02:00",
+      "created": "2026-01-13T14:16:06.000Z",
       "created_at": "2026-01-13T16:16:06+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -3264,7 +3265,7 @@
         "discovered_line": "",
         "discovery_type": "MARKDOWN_TASK"
       },
-      "created": "2026-01-13T16:16:06+02:00",
+      "created": "2026-01-13T14:16:06.000Z",
       "created_at": "2026-01-13T16:16:06+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -3288,7 +3289,7 @@
       "dependencies": [
         "T-1768318471623"
       ],
-      "created": "2026-01-13 17:25:26",
+      "created": "2026-01-13T15:25:26.000Z",
       "created_at": "2026-01-13 17:25:26",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -3310,7 +3311,7 @@
         "T-1768249093338",
         "T-1768318471618"
       ],
-      "created": "2026-01-13T16:16:06+02:00",
+      "created": "2026-01-13T14:16:06.000Z",
       "created_at": "2026-01-13T16:16:06+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -3333,7 +3334,7 @@
         "discovered_line": "",
         "discovery_type": "MARKDOWN_TASK"
       },
-      "created": "2026-01-13T16:16:06+02:00",
+      "created": "2026-01-13T14:16:06.000Z",
       "created_at": "2026-01-13T16:16:06+02:00",
       "updated": "2026-02-15T18:02:58+02:00",
       "last_modified": "2026-02-15T18:02:58+02:00"
@@ -3358,7 +3359,7 @@
       "dependencies": [
         "T-1768318471623"
       ],
-      "created": "2026-01-13 17:25:26",
+      "created": "2026-01-13T15:25:26.000Z",
       "created_at": "2026-01-13 17:25:26",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -3381,7 +3382,7 @@
         "discovered_line": "",
         "discovery_type": "MARKDOWN_TASK"
       },
-      "created": "2026-01-13T16:16:07+02:00",
+      "created": "2026-01-13T14:16:07.000Z",
       "created_at": "2026-01-13T16:16:07+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -3400,7 +3401,7 @@
         "model-assisted",
         "phase6"
       ],
-      "created": "2026-02-15T18:02:30+02:00",
+      "created": "2026-02-15T16:02:30.000Z",
       "created_at": "2026-02-15T18:02:30+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00"
@@ -3422,7 +3423,7 @@
         "discovered_line": "",
         "discovery_type": "MARKDOWN_TASK"
       },
-      "created": "2026-01-13T16:16:06+02:00",
+      "created": "2026-01-13T14:16:06.000Z",
       "created_at": "2026-01-13T16:16:06+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -3445,7 +3446,7 @@
       "metadata": {
         "planning_links": {}
       },
-      "created": "2026-02-02T02:37:57+02:00",
+      "created": "2026-02-02T00:37:57.000Z",
       "created_at": "2026-02-02T02:37:57+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -3464,7 +3465,7 @@
         "proto",
         "refactor"
       ],
-      "created": "2026-02-15T15:46:05+02:00",
+      "created": "2026-02-15T13:46:05.000Z",
       "created_at": "2026-02-15T15:46:05+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -3487,7 +3488,7 @@
       "dependencies": [
         "T-1768318471621"
       ],
-      "created": "2026-01-13T17:16:45+02:00",
+      "created": "2026-01-13T15:16:45.000Z",
       "created_at": "2026-01-13T17:16:45+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -3513,7 +3514,7 @@
         "refactor",
         "testing"
       ],
-      "created": "2026-01-13 17:25:26",
+      "created": "2026-01-13T15:25:26.000Z",
       "created_at": "2026-01-13 17:25:26",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -3536,7 +3537,7 @@
         "planning",
         "testing"
       ],
-      "created": "2026-01-13 17:25:26",
+      "created": "2026-01-13T15:25:26.000Z",
       "created_at": "2026-01-13 17:25:26",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -3544,10 +3545,10 @@
     },
     {
       "id": "T-1769980677401",
-      "name": "Align Scope section with Purpose \u0026 Success Criteria",
-      "content": "Align Scope section with Purpose \u0026 Success Criteria",
-      "description": "Rename Scope to Purpose \u0026 Success Criteria in generatePlanMarkdown; optionally add explicit success criteria from project info (per Cursor Creating Plans)",
-      "long_description": "Rename Scope to Purpose \u0026 Success Criteria in generatePlanMarkdown; optionally add explicit success criteria from project info (per Cursor Creating Plans)",
+      "name": "Align Scope section with Purpose & Success Criteria",
+      "content": "Align Scope section with Purpose & Success Criteria",
+      "description": "Rename Scope to Purpose & Success Criteria in generatePlanMarkdown; optionally add explicit success criteria from project info (per Cursor Creating Plans)",
+      "long_description": "Rename Scope to Purpose & Success Criteria in generatePlanMarkdown; optionally add explicit success criteria from project info (per Cursor Creating Plans)",
       "status": "Done",
       "priority": "low",
       "tags": [
@@ -3555,7 +3556,7 @@
         "planning",
         "report"
       ],
-      "created": "2026-02-01T23:17:57+02:00",
+      "created": "2026-02-01T21:17:57.000Z",
       "created_at": "2026-02-01T23:17:57+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -3579,7 +3580,7 @@
         "testing",
         "tools"
       ],
-      "created": "2026-01-13 17:25:26",
+      "created": "2026-01-13T15:25:26.000Z",
       "created_at": "2026-01-13 17:25:26",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -3598,7 +3599,7 @@
         "task_workflow",
         "testing"
       ],
-      "created": "2026-02-11T18:43:31+02:00",
+      "created": "2026-02-11T16:43:31.000Z",
       "created_at": "2026-02-11T18:43:31+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -3619,7 +3620,7 @@
       "dependencies": [
         "T-1768321828916"
       ],
-      "created": "2026-02-02T01:49:31+02:00",
+      "created": "2026-02-01T23:49:31.000Z",
       "created_at": "2026-02-02T01:49:31+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -3643,7 +3644,7 @@
         "discovered_line": "",
         "discovery_type": "MARKDOWN_TASK"
       },
-      "created": "2026-01-13T16:16:06+02:00",
+      "created": "2026-01-13T14:16:06.000Z",
       "created_at": "2026-01-13T16:16:06+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -3665,7 +3666,7 @@
         "discovered_line": "",
         "discovery_type": "MARKDOWN_TASK"
       },
-      "created": "2026-01-13T16:16:06+02:00",
+      "created": "2026-01-13T14:16:06.000Z",
       "created_at": "2026-01-13T16:16:06+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -3689,7 +3690,7 @@
         "discovered_line": "",
         "discovery_type": "MARKDOWN_TASK"
       },
-      "created": "2026-01-13T16:16:06+02:00",
+      "created": "2026-01-13T14:16:06.000Z",
       "created_at": "2026-01-13T16:16:06+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -3708,7 +3709,7 @@
         "feature",
         "multi-agent"
       ],
-      "created": "2026-02-11T18:58:27+02:00",
+      "created": "2026-02-11T16:58:27.000Z",
       "created_at": "2026-02-11T18:58:27+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -3728,7 +3729,7 @@
         "refactor",
         "testing"
       ],
-      "created": "2026-01-13T20:11:06+02:00",
+      "created": "2026-01-13T18:11:06.000Z",
       "created_at": "2026-01-13T20:11:06+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -3752,7 +3753,7 @@
         "prompts",
         "testing"
       ],
-      "created": "2026-01-13 17:25:26",
+      "created": "2026-01-13T15:25:26.000Z",
       "created_at": "2026-01-13 17:25:26",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -3777,7 +3778,7 @@
         "discovered_line": "",
         "discovery_type": "MARKDOWN_TASK"
       },
-      "created": "2026-01-13T16:16:06+02:00",
+      "created": "2026-01-13T14:16:06.000Z",
       "created_at": "2026-01-13T16:16:06+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00"
@@ -3803,7 +3804,7 @@
           "planning_doc": "docs/DEPENDENCY_ANALYSIS_REPORT.md"
         }
       },
-      "created": "2026-01-13T16:16:06+02:00",
+      "created": "2026-01-13T14:16:06.000Z",
       "created_at": "2026-01-13T16:16:06+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -3824,7 +3825,7 @@
       "dependencies": [
         "T-1768318471622"
       ],
-      "created": "2026-01-13T16:16:06+02:00",
+      "created": "2026-01-13T14:16:06.000Z",
       "created_at": "2026-01-13T16:16:06+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -3847,7 +3848,7 @@
         "discovered_line": "",
         "discovery_type": "MARKDOWN_TASK"
       },
-      "created": "2026-01-13T16:16:06+02:00",
+      "created": "2026-01-13T14:16:06.000Z",
       "created_at": "2026-01-13T16:16:06+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -3864,7 +3865,7 @@
       "tags": [
         "migration"
       ],
-      "created": "2026-01-13 17:25:26",
+      "created": "2026-01-13T15:25:26.000Z",
       "created_at": "2026-01-13 17:25:26",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -3886,7 +3887,7 @@
       "dependencies": [
         "T-1768321828916"
       ],
-      "created": "2026-02-02T01:49:32+02:00",
+      "created": "2026-02-01T23:49:32.000Z",
       "created_at": "2026-02-02T01:49:32+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -3913,7 +3914,7 @@
         "discovered_line": "",
         "discovery_type": "MARKDOWN_TASK"
       },
-      "created": "2026-01-13T16:16:07+02:00",
+      "created": "2026-01-13T14:16:07.000Z",
       "created_at": "2026-01-13T16:16:07+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00"
@@ -3933,7 +3934,7 @@
       "dependencies": [
         "T-1770830680695"
       ],
-      "created": "2026-02-11T19:24:46+02:00",
+      "created": "2026-02-11T17:24:46.000Z",
       "created_at": "2026-02-11T19:24:46+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -3951,7 +3952,7 @@
         "abstraction",
         "refactor"
       ],
-      "created": "2026-02-11T19:43:45+02:00",
+      "created": "2026-02-11T17:43:45.000Z",
       "created_at": "2026-02-11T19:43:45+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -3973,7 +3974,7 @@
         "refactor",
         "testing"
       ],
-      "created": "2026-01-13T17:32:48+02:00",
+      "created": "2026-01-13T15:32:48.000Z",
       "created_at": "2026-01-13T17:32:48+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -3999,7 +4000,7 @@
         "T-1768249093338",
         "T-1768318471618"
       ],
-      "created": "2026-01-13T16:16:06+02:00",
+      "created": "2026-01-13T14:16:06.000Z",
       "created_at": "2026-01-13T16:16:06+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -4025,7 +4026,7 @@
         "discovered_line": "",
         "discovery_type": "MARKDOWN_TASK"
       },
-      "created": "2026-01-13T16:16:06+02:00",
+      "created": "2026-01-13T14:16:06.000Z",
       "created_at": "2026-01-13T16:16:06+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -4043,7 +4044,7 @@
         "feature",
         "migration"
       ],
-      "created": "2026-01-27T18:36:32+02:00",
+      "created": "2026-01-27T16:36:32.000Z",
       "created_at": "2026-01-27T18:36:32+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -4064,7 +4065,7 @@
       "dependencies": [
         "T-1770830680695"
       ],
-      "created": "2026-02-11T19:24:46+02:00",
+      "created": "2026-02-11T17:24:46.000Z",
       "created_at": "2026-02-11T19:24:46+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -4088,7 +4089,7 @@
         "discovered_line": "",
         "discovery_type": "MARKDOWN_TASK"
       },
-      "created": "2026-02-15T17:31:50+02:00",
+      "created": "2026-02-15T15:31:50.000Z",
       "created_at": "2026-02-15T17:31:50+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -4109,7 +4110,7 @@
         "summarization",
         "task_workflow"
       ],
-      "created": "2026-02-15T17:58:52+02:00",
+      "created": "2026-02-15T15:58:52.000Z",
       "created_at": "2026-02-15T17:58:52+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00"
@@ -4130,7 +4131,7 @@
         "refactor",
         "testing"
       ],
-      "created": "2026-01-13T20:11:00+02:00",
+      "created": "2026-01-13T18:11:00.000Z",
       "created_at": "2026-01-13T20:11:00+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -4156,7 +4157,7 @@
         "discovered_line": "",
         "discovery_type": "MARKDOWN_TASK"
       },
-      "created": "2026-01-13T16:16:06+02:00",
+      "created": "2026-01-13T14:16:06.000Z",
       "created_at": "2026-01-13T16:16:06+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -4179,7 +4180,7 @@
         "discovered_line": "",
         "discovery_type": "MARKDOWN_TASK"
       },
-      "created": "2026-01-13T16:16:06+02:00",
+      "created": "2026-01-13T14:16:06.000Z",
       "created_at": "2026-01-13T16:16:06+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -4202,7 +4203,7 @@
       "dependencies": [
         "T-1768318471623"
       ],
-      "created": "2026-01-13 17:25:26",
+      "created": "2026-01-13T15:25:26.000Z",
       "created_at": "2026-01-13 17:25:26",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -4227,7 +4228,7 @@
         "discovered_line": "",
         "discovery_type": "MARKDOWN_TASK"
       },
-      "created": "2026-01-13T16:16:06+02:00",
+      "created": "2026-01-13T14:16:06.000Z",
       "created_at": "2026-01-13T16:16:06+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -4247,7 +4248,7 @@
         "migration",
         "testing"
       ],
-      "created": "2026-01-13T18:38:16+02:00",
+      "created": "2026-01-13T16:38:16.000Z",
       "created_at": "2026-01-13T18:38:16+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -4271,7 +4272,7 @@
         "discovered_line": "",
         "discovery_type": "MARKDOWN_TASK"
       },
-      "created": "2026-01-13T16:16:06+02:00",
+      "created": "2026-01-13T14:16:06.000Z",
       "created_at": "2026-01-13T16:16:06+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -4292,7 +4293,7 @@
         "migration",
         "testing"
       ],
-      "created": "2026-01-13T19:09:22+02:00",
+      "created": "2026-01-13T17:09:22.000Z",
       "created_at": "2026-01-13T19:09:22+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -4315,7 +4316,7 @@
         "performance",
         "refactor"
       ],
-      "created": "2026-01-13 17:43:21",
+      "created": "2026-01-13T15:43:21.000Z",
       "created_at": "2026-01-13 17:43:21",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -4338,7 +4339,7 @@
         "discovered_line": "",
         "discovery_type": "MARKDOWN_TASK"
       },
-      "created": "2026-01-13T16:16:06+02:00",
+      "created": "2026-01-13T14:16:06.000Z",
       "created_at": "2026-01-13T16:16:06+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -4357,7 +4358,7 @@
         "planning",
         "report"
       ],
-      "created": "2026-02-01T23:18:02+02:00",
+      "created": "2026-02-01T21:18:02.000Z",
       "created_at": "2026-02-01T23:18:02+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -4383,7 +4384,7 @@
         "slog",
         "testing"
       ],
-      "created": "2026-01-13T19:45:24+02:00",
+      "created": "2026-01-13T17:45:24.000Z",
       "created_at": "2026-01-13T19:45:24+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -4407,7 +4408,7 @@
         "T-1768318471622",
         "T-1768319001463"
       ],
-      "created": "2026-01-13T16:16:07+02:00",
+      "created": "2026-01-13T14:16:07.000Z",
       "created_at": "2026-01-13T16:16:07+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -4432,7 +4433,7 @@
         "discovered_line": "",
         "discovery_type": "MARKDOWN_TASK"
       },
-      "created": "2026-01-13T16:16:07+02:00",
+      "created": "2026-01-13T14:16:07.000Z",
       "created_at": "2026-01-13T16:16:07+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -4451,7 +4452,7 @@
         "refactor",
         "resources"
       ],
-      "created": "2026-02-11T19:42:12+02:00",
+      "created": "2026-02-11T17:42:12.000Z",
       "created_at": "2026-02-11T19:42:12+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -4471,7 +4472,7 @@
         "migration",
         "testing"
       ],
-      "created": "2026-01-13T18:37:52+02:00",
+      "created": "2026-01-13T16:37:52.000Z",
       "created_at": "2026-01-13T18:37:52+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -4498,7 +4499,7 @@
       "dependencies": [
         "T-1768318471623"
       ],
-      "created": "2026-01-13 17:25:26",
+      "created": "2026-01-13T15:25:26.000Z",
       "created_at": "2026-01-13 17:25:26",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -4524,7 +4525,7 @@
         "discovered_line": "",
         "discovery_type": "MARKDOWN_TASK"
       },
-      "created": "2026-01-13T16:16:07+02:00",
+      "created": "2026-01-13T14:16:07.000Z",
       "created_at": "2026-01-13T16:16:07+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -4546,7 +4547,7 @@
         "discovered_line": "",
         "discovery_type": "MARKDOWN_TASK"
       },
-      "created": "2026-01-13T16:16:07+02:00",
+      "created": "2026-01-13T14:16:07.000Z",
       "created_at": "2026-01-13T16:16:07+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -4568,7 +4569,7 @@
         "discovered_line": "",
         "discovery_type": "MARKDOWN_TASK"
       },
-      "created": "2026-01-13T16:16:06+02:00",
+      "created": "2026-01-13T14:16:06.000Z",
       "created_at": "2026-01-13T16:16:06+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -4585,7 +4586,7 @@
       "tags": [
         "testing"
       ],
-      "created": "2026-01-13T19:32:12+02:00",
+      "created": "2026-01-13T17:32:12.000Z",
       "created_at": "2026-01-13T19:32:12+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -4604,7 +4605,7 @@
         "mcp"
       ],
       "completed": true,
-      "created": "2026-01-13 17:34:31",
+      "created": "2026-01-13T15:34:31.000Z",
       "created_at": "2026-01-13 17:34:31",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -4627,7 +4628,7 @@
         "discovered_line": "",
         "discovery_type": "MARKDOWN_TASK"
       },
-      "created": "2026-01-13T16:16:07+02:00",
+      "created": "2026-01-13T14:16:07.000Z",
       "created_at": "2026-01-13T16:16:07+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -4648,7 +4649,7 @@
         "migration",
         "testing"
       ],
-      "created": "2026-01-13T19:32:12+02:00",
+      "created": "2026-01-13T17:32:12.000Z",
       "created_at": "2026-01-13T19:32:12+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -4672,7 +4673,7 @@
         "discovered_line": "",
         "discovery_type": "MARKDOWN_TASK"
       },
-      "created": "2026-01-13T16:16:07+02:00",
+      "created": "2026-01-13T14:16:07.000Z",
       "created_at": "2026-01-13T16:16:07+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -4695,7 +4696,7 @@
       "dependencies": [
         "T-1769989774217"
       ],
-      "created": "2026-02-11T18:36:28+02:00",
+      "created": "2026-02-11T16:36:28.000Z",
       "created_at": "2026-02-11T18:36:28+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -4719,7 +4720,7 @@
         "discovered_line": "",
         "discovery_type": "MARKDOWN_TASK"
       },
-      "created": "2026-01-13T16:16:06+02:00",
+      "created": "2026-01-13T14:16:06.000Z",
       "created_at": "2026-01-13T16:16:06+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00"
@@ -4743,7 +4744,7 @@
           "epic_id": "T-1771171349874"
         }
       },
-      "created": "2026-02-15T18:02:42+02:00",
+      "created": "2026-02-15T16:02:42.000Z",
       "created_at": "2026-02-15T18:02:42+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00"
@@ -4767,7 +4768,7 @@
         "T-1768318471624",
         "T-1768319001463"
       ],
-      "created": "2026-01-13T16:16:07+02:00",
+      "created": "2026-01-13T14:16:07.000Z",
       "created_at": "2026-01-13T16:16:07+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -4789,7 +4790,7 @@
         "migration",
         "testing"
       ],
-      "created": "2026-01-13 17:25:26",
+      "created": "2026-01-13T15:25:26.000Z",
       "created_at": "2026-01-13 17:25:26",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -4808,7 +4809,7 @@
         "phase6",
         "testing"
       ],
-      "created": "2026-02-15T18:02:28+02:00",
+      "created": "2026-02-15T16:02:28.000Z",
       "created_at": "2026-02-15T18:02:28+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00"
@@ -4831,7 +4832,7 @@
         "discovered_line": "",
         "discovery_type": "MARKDOWN_TASK"
       },
-      "created": "2026-01-13T16:16:06+02:00",
+      "created": "2026-01-13T14:16:06.000Z",
       "created_at": "2026-01-13T16:16:06+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -4853,7 +4854,7 @@
       "dependencies": [
         "T-1768318471624"
       ],
-      "created": "2026-01-13T16:16:06+02:00",
+      "created": "2026-01-13T14:16:06.000Z",
       "created_at": "2026-01-13T16:16:06+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -4873,7 +4874,7 @@
         "refactor",
         "testing"
       ],
-      "created": "2026-01-13 17:34:31",
+      "created": "2026-01-13T15:34:31.000Z",
       "created_at": "2026-01-13 17:34:31",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00"
@@ -4896,7 +4897,7 @@
         "T-1768318471622",
         "T-1768319001463"
       ],
-      "created": "2026-01-13T16:16:06+02:00",
+      "created": "2026-01-13T14:16:06.000Z",
       "created_at": "2026-01-13T16:16:06+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -4915,7 +4916,7 @@
         "mcp",
         "migration"
       ],
-      "created": "2026-02-02T02:13:39+02:00",
+      "created": "2026-02-02T00:13:39.000Z",
       "created_at": "2026-02-02T02:13:39+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -4937,7 +4938,7 @@
         "performance",
         "testing"
       ],
-      "created": "2026-01-13T18:38:09+02:00",
+      "created": "2026-01-13T16:38:09.000Z",
       "created_at": "2026-01-13T18:38:09+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -4961,7 +4962,7 @@
         "discovered_line": "",
         "discovery_type": "MARKDOWN_TASK"
       },
-      "created": "2026-01-13T16:16:06+02:00",
+      "created": "2026-01-13T14:16:06.000Z",
       "created_at": "2026-01-13T16:16:06+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -4983,7 +4984,7 @@
         "migration",
         "testing"
       ],
-      "created": "2026-01-13 17:25:26",
+      "created": "2026-01-13T15:25:26.000Z",
       "created_at": "2026-01-13 17:25:26",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -5002,7 +5003,7 @@
         "protobuf",
         "refactor"
       ],
-      "created": "2026-02-11T16:55:43+02:00",
+      "created": "2026-02-11T14:55:43.000Z",
       "created_at": "2026-02-11T16:55:43+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -5022,7 +5023,7 @@
         "refactor",
         "testing"
       ],
-      "created": "2026-01-13T15:59:38+02:00",
+      "created": "2026-01-13T13:59:38.000Z",
       "created_at": "2026-01-13T15:59:38+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00"
@@ -5047,7 +5048,7 @@
           "planning_doc": "docs/AGENT_LOCKING_STRATEGY.md"
         }
       },
-      "created": "2026-02-02T01:41:23+02:00",
+      "created": "2026-02-01T23:41:23.000Z",
       "created_at": "2026-02-02T01:41:23+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -5070,7 +5071,7 @@
       "dependencies": [
         "T-1768318471622"
       ],
-      "created": "2026-01-13T16:16:06+02:00",
+      "created": "2026-01-13T14:16:06.000Z",
       "created_at": "2026-01-13T16:16:06+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -5092,7 +5093,7 @@
       "dependencies": [
         "T-1768318471624"
       ],
-      "created": "2026-01-13T16:16:06+02:00",
+      "created": "2026-01-13T14:16:06.000Z",
       "created_at": "2026-01-13T16:16:06+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -5116,7 +5117,7 @@
         "discovered_line": "",
         "discovery_type": "MARKDOWN_TASK"
       },
-      "created": "2026-01-13T16:16:07+02:00",
+      "created": "2026-01-13T14:16:07.000Z",
       "created_at": "2026-01-13T16:16:07+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -5141,7 +5142,7 @@
           "planning_doc": "docs/AGENT_LOCKING_STRATEGY.md"
         }
       },
-      "created": "2026-02-02T01:41:22+02:00",
+      "created": "2026-02-01T23:41:22.000Z",
       "created_at": "2026-02-02T01:41:22+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -5165,7 +5166,7 @@
         "discovered_line": "",
         "discovery_type": "MARKDOWN_TASK"
       },
-      "created": "2026-01-13T16:16:06+02:00",
+      "created": "2026-01-13T14:16:06.000Z",
       "created_at": "2026-01-13T16:16:06+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -5189,7 +5190,7 @@
         "slog",
         "testing"
       ],
-      "created": "2026-01-13T19:51:30+02:00",
+      "created": "2026-01-13T17:51:30.000Z",
       "created_at": "2026-01-13T19:51:30+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -5211,7 +5212,7 @@
       "dependencies": [
         "T-1768318471622"
       ],
-      "created": "2026-01-13T16:16:06+02:00",
+      "created": "2026-01-13T14:16:06.000Z",
       "created_at": "2026-01-13T16:16:06+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -5230,7 +5231,7 @@
         "refactor",
         "task_analysis"
       ],
-      "created": "2026-02-02T02:03:39+02:00",
+      "created": "2026-02-02T00:03:39.000Z",
       "created_at": "2026-02-02T02:03:39+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -5254,7 +5255,7 @@
         "discovered_line": "",
         "discovery_type": "MARKDOWN_TASK"
       },
-      "created": "2026-01-13T16:16:06+02:00",
+      "created": "2026-01-13T14:16:06.000Z",
       "created_at": "2026-01-13T16:16:06+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -5278,7 +5279,7 @@
       "dependencies": [
         "T-1768318471623"
       ],
-      "created": "2026-01-13 17:25:26",
+      "created": "2026-01-13T15:25:26.000Z",
       "created_at": "2026-01-13 17:25:26",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -5299,7 +5300,7 @@
         "migration",
         "testing"
       ],
-      "created": "2026-01-13T18:38:01+02:00",
+      "created": "2026-01-13T16:38:01.000Z",
       "created_at": "2026-01-13T18:38:01+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -5324,7 +5325,7 @@
         "T-1768318471624",
         "T-1768319001461"
       ],
-      "created": "2026-01-13T17:15:35+02:00",
+      "created": "2026-01-13T15:15:35.000Z",
       "created_at": "2026-01-13T17:15:35+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -5345,7 +5346,7 @@
       "dependencies": [
         "T-216"
       ],
-      "created": "2026-02-11T19:24:40+02:00",
+      "created": "2026-02-11T17:24:40.000Z",
       "created_at": "2026-02-11T19:24:40+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -5373,7 +5374,7 @@
       "dependencies": [
         "T-1768318471623"
       ],
-      "created": "2026-01-13 17:25:26",
+      "created": "2026-01-13T15:25:26.000Z",
       "created_at": "2026-01-13 17:25:26",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -5394,7 +5395,7 @@
         "T-1768249093338",
         "T-1768318471618"
       ],
-      "created": "2026-01-13T16:16:06+02:00",
+      "created": "2026-01-13T14:16:06.000Z",
       "created_at": "2026-01-13T16:16:06+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -5418,7 +5419,7 @@
           "planning_doc": "docs/AGENT_LOCKING_STRATEGY.md"
         }
       },
-      "created": "2026-02-02T01:41:21+02:00",
+      "created": "2026-02-01T23:41:21.000Z",
       "created_at": "2026-02-02T01:41:21+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -5446,7 +5447,7 @@
       "dependencies": [
         "T-1768318471623"
       ],
-      "created": "2026-01-13 17:25:26",
+      "created": "2026-01-13T15:25:26.000Z",
       "created_at": "2026-01-13 17:25:26",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -5471,7 +5472,7 @@
           "epic_id": "T-1771171348644"
         }
       },
-      "created": "2026-02-15T18:02:37+02:00",
+      "created": "2026-02-15T16:02:37.000Z",
       "created_at": "2026-02-15T18:02:37+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00"
@@ -5497,7 +5498,7 @@
         "discovered_line": "",
         "discovery_type": "MARKDOWN_TASK"
       },
-      "created": "2026-01-13T16:16:06+02:00",
+      "created": "2026-01-13T14:16:06.000Z",
       "created_at": "2026-01-13T16:16:06+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -5520,7 +5521,7 @@
         "discovered_line": "",
         "discovery_type": "MARKDOWN_TASK"
       },
-      "created": "2026-01-13T16:16:06+02:00",
+      "created": "2026-01-13T14:16:06.000Z",
       "created_at": "2026-01-13T16:16:06+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -5542,7 +5543,7 @@
         "refactor",
         "testing"
       ],
-      "created": "2026-01-13 17:25:26",
+      "created": "2026-01-13T15:25:26.000Z",
       "created_at": "2026-01-13 17:25:26",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -5565,7 +5566,7 @@
         "discovered_line": "",
         "discovery_type": "MARKDOWN_TASK"
       },
-      "created": "2026-01-13T16:16:07+02:00",
+      "created": "2026-01-13T14:16:07.000Z",
       "created_at": "2026-01-13T16:16:07+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -5590,7 +5591,7 @@
           "epic_id": "T-1771171349874"
         }
       },
-      "created": "2026-02-15T18:02:41+02:00",
+      "created": "2026-02-15T16:02:41.000Z",
       "created_at": "2026-02-15T18:02:41+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00"
@@ -5615,7 +5616,7 @@
         "discovered_line": "",
         "discovery_type": "MARKDOWN_TASK"
       },
-      "created": "2026-01-13T16:16:06+02:00",
+      "created": "2026-01-13T14:16:06.000Z",
       "created_at": "2026-01-13T16:16:06+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -5638,7 +5639,7 @@
         "discovered_line": "",
         "discovery_type": "MARKDOWN_TASK"
       },
-      "created": "2026-01-13T16:16:06+02:00",
+      "created": "2026-01-13T14:16:06.000Z",
       "created_at": "2026-01-13T16:16:06+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -5657,7 +5658,7 @@
         "proto",
         "refactor"
       ],
-      "created": "2026-02-15T15:46:04+02:00",
+      "created": "2026-02-15T13:46:04.000Z",
       "created_at": "2026-02-15T15:46:04+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -5681,7 +5682,7 @@
         "discovered_line": "",
         "discovery_type": "MARKDOWN_TASK"
       },
-      "created": "2026-01-13T16:16:06+02:00",
+      "created": "2026-01-13T14:16:06.000Z",
       "created_at": "2026-01-13T16:16:06+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -5707,7 +5708,7 @@
         "testing",
         "workflow"
       ],
-      "created": "2026-01-13 17:25:26",
+      "created": "2026-01-13T15:25:26.000Z",
       "created_at": "2026-01-13 17:25:26",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -5728,7 +5729,7 @@
       "dependencies": [
         "T-1768318471623"
       ],
-      "created": "2026-01-12T15:18:46+02:00",
+      "created": "2026-01-12T13:18:46.000Z",
       "created_at": "2026-01-12T15:18:46+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -5752,7 +5753,7 @@
         "discovered_line": 28,
         "discovery_type": "NOTE"
       },
-      "created": "2026-01-13T16:16:06+02:00",
+      "created": "2026-01-13T14:16:06.000Z",
       "created_at": "2026-01-13T16:16:06+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -5778,7 +5779,7 @@
         "T-1768318471624",
         "T-1768319001461"
       ],
-      "created": "2026-01-13T17:19:06+02:00",
+      "created": "2026-01-13T15:19:06.000Z",
       "created_at": "2026-01-13T17:19:06+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -5788,8 +5789,8 @@
       "id": "T-1768317539591",
       "name": "T1.5.3: Add Protobuf CLI Commands",
       "content": "T1.5.3: Add Protobuf CLI Commands",
-      "description": "🎯 **Objective:** Add CLI commands for exporting and converting configuration between YAML and protobuf formats\n\n📋 **Acceptance Criteria:**\n- `config export [format]` command implemented (yaml, json, protobuf)\n- `config convert \u003cfrom\u003e \u003cto\u003e` command implemented (yaml ↔ protobuf)\n- Export helper functions implemented (exportProtobuf, exportYAML, exportJSON)\n- Save helper functions implemented (saveProtobuf, saveYAML)\n- Help text updated with new commands\n- Error handling for invalid formats\n- Examples in help text\n\n🚫 **Scope Boundaries (CRITICAL):**\n- **Included:** CLI command handlers, export/convert functions, help text updates\n- **Excluded:** Conversion layer (T1.5.1), loader support (T1.5.2)\n- **Clarification Required:** None\n\n🔧 **Technical Requirements:**\n- Use conversion functions from T1.5.1\n- Use `proto.Marshal()` for protobuf serialization\n- Support yaml, json, protobuf formats\n- File permissions: 0644 for config files\n\n📁 **Files/Components:**\n- Update: `internal/cli/config.go` (add ~200-250 lines)\n\n🧪 **Testing Requirements:**\n- Test `config export protobuf` command\n- Test `config export yaml` command\n- Test `config export json` command\n- Test `config convert yaml protobuf` command\n- Test `config convert protobuf yaml` command\n- Test error handling for invalid formats\n- Test help text display\n\n⚠️ **Edge Cases:**\n- Invalid format arguments\n- Missing source file\n- Permission errors writing files\n- Conversion errors\n\n📚 **Dependencies:** T1.5.1, T1.5.2",
-      "long_description": "🎯 **Objective:** Add CLI commands for exporting and converting configuration between YAML and protobuf formats\n\n📋 **Acceptance Criteria:**\n- `config export [format]` command implemented (yaml, json, protobuf)\n- `config convert \u003cfrom\u003e \u003cto\u003e` command implemented (yaml ↔ protobuf)\n- Export helper functions implemented (exportProtobuf, exportYAML, exportJSON)\n- Save helper functions implemented (saveProtobuf, saveYAML)\n- Help text updated with new commands\n- Error handling for invalid formats\n- Examples in help text\n\n🚫 **Scope Boundaries (CRITICAL):**\n- **Included:** CLI command handlers, export/convert functions, help text updates\n- **Excluded:** Conversion layer (T1.5.1), loader support (T1.5.2)\n- **Clarification Required:** None\n\n🔧 **Technical Requirements:**\n- Use conversion functions from T1.5.1\n- Use `proto.Marshal()` for protobuf serialization\n- Support yaml, json, protobuf formats\n- File permissions: 0644 for config files\n\n📁 **Files/Components:**\n- Update: `internal/cli/config.go` (add ~200-250 lines)\n\n🧪 **Testing Requirements:**\n- Test `config export protobuf` command\n- Test `config export yaml` command\n- Test `config export json` command\n- Test `config convert yaml protobuf` command\n- Test `config convert protobuf yaml` command\n- Test error handling for invalid formats\n- Test help text display\n\n⚠️ **Edge Cases:**\n- Invalid format arguments\n- Missing source file\n- Permission errors writing files\n- Conversion errors\n\n📚 **Dependencies:** T1.5.1, T1.5.2",
+      "description": "🎯 **Objective:** Add CLI commands for exporting and converting configuration between YAML and protobuf formats\n\n📋 **Acceptance Criteria:**\n- `config export [format]` command implemented (yaml, json, protobuf)\n- `config convert <from> <to>` command implemented (yaml ↔ protobuf)\n- Export helper functions implemented (exportProtobuf, exportYAML, exportJSON)\n- Save helper functions implemented (saveProtobuf, saveYAML)\n- Help text updated with new commands\n- Error handling for invalid formats\n- Examples in help text\n\n🚫 **Scope Boundaries (CRITICAL):**\n- **Included:** CLI command handlers, export/convert functions, help text updates\n- **Excluded:** Conversion layer (T1.5.1), loader support (T1.5.2)\n- **Clarification Required:** None\n\n🔧 **Technical Requirements:**\n- Use conversion functions from T1.5.1\n- Use `proto.Marshal()` for protobuf serialization\n- Support yaml, json, protobuf formats\n- File permissions: 0644 for config files\n\n📁 **Files/Components:**\n- Update: `internal/cli/config.go` (add ~200-250 lines)\n\n🧪 **Testing Requirements:**\n- Test `config export protobuf` command\n- Test `config export yaml` command\n- Test `config export json` command\n- Test `config convert yaml protobuf` command\n- Test `config convert protobuf yaml` command\n- Test error handling for invalid formats\n- Test help text display\n\n⚠️ **Edge Cases:**\n- Invalid format arguments\n- Missing source file\n- Permission errors writing files\n- Conversion errors\n\n📚 **Dependencies:** T1.5.1, T1.5.2",
+      "long_description": "🎯 **Objective:** Add CLI commands for exporting and converting configuration between YAML and protobuf formats\n\n📋 **Acceptance Criteria:**\n- `config export [format]` command implemented (yaml, json, protobuf)\n- `config convert <from> <to>` command implemented (yaml ↔ protobuf)\n- Export helper functions implemented (exportProtobuf, exportYAML, exportJSON)\n- Save helper functions implemented (saveProtobuf, saveYAML)\n- Help text updated with new commands\n- Error handling for invalid formats\n- Examples in help text\n\n🚫 **Scope Boundaries (CRITICAL):**\n- **Included:** CLI command handlers, export/convert functions, help text updates\n- **Excluded:** Conversion layer (T1.5.1), loader support (T1.5.2)\n- **Clarification Required:** None\n\n🔧 **Technical Requirements:**\n- Use conversion functions from T1.5.1\n- Use `proto.Marshal()` for protobuf serialization\n- Support yaml, json, protobuf formats\n- File permissions: 0644 for config files\n\n📁 **Files/Components:**\n- Update: `internal/cli/config.go` (add ~200-250 lines)\n\n🧪 **Testing Requirements:**\n- Test `config export protobuf` command\n- Test `config export yaml` command\n- Test `config export json` command\n- Test `config convert yaml protobuf` command\n- Test `config convert protobuf yaml` command\n- Test error handling for invalid formats\n- Test help text display\n\n⚠️ **Edge Cases:**\n- Invalid format arguments\n- Missing source file\n- Permission errors writing files\n- Conversion errors\n\n📚 **Dependencies:** T1.5.1, T1.5.2",
       "status": "Done",
       "priority": "medium",
       "tags": [
@@ -5804,7 +5805,7 @@
         "T-1768318471624",
         "T-1768319001461"
       ],
-      "created": "2026-01-13T17:18:59+02:00",
+      "created": "2026-01-13T15:18:59.000Z",
       "created_at": "2026-01-13T17:18:59+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -5822,7 +5823,7 @@
         "planning",
         "session"
       ],
-      "created": "2026-02-01T23:34:21+02:00",
+      "created": "2026-02-01T21:34:21.000Z",
       "created_at": "2026-02-01T23:34:21+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -5843,7 +5844,7 @@
       "dependencies": [
         "T-1768318471621"
       ],
-      "created": "2026-01-13T15:56:26+02:00",
+      "created": "2026-01-13T13:56:26.000Z",
       "created_at": "2026-01-13T15:56:26+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -5869,7 +5870,7 @@
         "T-1768318471624",
         "T-1768319001461"
       ],
-      "created": "2026-01-13T17:18:50+02:00",
+      "created": "2026-01-13T15:18:50.000Z",
       "created_at": "2026-01-13T17:18:50+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -5894,7 +5895,7 @@
           "epic_id": "T-1771171350748"
         }
       },
-      "created": "2026-02-15T18:02:47+02:00",
+      "created": "2026-02-15T16:02:47.000Z",
       "created_at": "2026-02-15T18:02:47+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00"
@@ -5915,7 +5916,7 @@
         "discovered_line": "",
         "discovery_type": "MARKDOWN_TASK"
       },
-      "created": "2026-01-13T16:16:06+02:00",
+      "created": "2026-01-13T14:16:06.000Z",
       "created_at": "2026-01-13T16:16:06+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -5934,7 +5935,7 @@
         "proto",
         "refactor"
       ],
-      "created": "2026-02-15T15:46:02+02:00",
+      "created": "2026-02-15T13:46:02.000Z",
       "created_at": "2026-02-15T15:46:02+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -5961,7 +5962,7 @@
           "planning_doc": "docs/DEPENDENCY_ANALYSIS_REPORT.md"
         }
       },
-      "created": "2026-01-13T16:16:06+02:00",
+      "created": "2026-01-13T14:16:06.000Z",
       "created_at": "2026-01-13T16:16:06+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -5979,7 +5980,7 @@
         "cursor",
         "session"
       ],
-      "created": "2026-02-15T16:09:09+02:00",
+      "created": "2026-02-15T14:09:09.000Z",
       "created_at": "2026-02-15T16:09:09+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00"
@@ -6002,7 +6003,7 @@
         "testing",
         "workflow"
       ],
-      "created": "2026-01-13 17:25:26",
+      "created": "2026-01-13T15:25:26.000Z",
       "created_at": "2026-01-13 17:25:26",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -6025,7 +6026,7 @@
       "dependencies": [
         "T-1768319001461"
       ],
-      "created": "2026-01-13T17:06:48+02:00",
+      "created": "2026-01-13T15:06:48.000Z",
       "created_at": "2026-01-13T17:06:48+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -6049,7 +6050,7 @@
         "discovered_line": "",
         "discovery_type": "MARKDOWN_TASK"
       },
-      "created": "2026-01-13T16:16:07+02:00",
+      "created": "2026-01-13T14:16:07.000Z",
       "created_at": "2026-01-13T16:16:07+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -6076,7 +6077,7 @@
         "T-1768318471624",
         "T-1768319001461"
       ],
-      "created": "2026-01-13T17:19:14+02:00",
+      "created": "2026-01-13T15:19:14.000Z",
       "created_at": "2026-01-13T17:19:14+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -6102,7 +6103,7 @@
         "discovered_line": "",
         "discovery_type": "MARKDOWN_TASK"
       },
-      "created": "2026-01-13T16:16:06+02:00",
+      "created": "2026-01-13T14:16:06.000Z",
       "created_at": "2026-01-13T16:16:06+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -6126,7 +6127,7 @@
         "discovered_line": "",
         "discovery_type": "MARKDOWN_TASK"
       },
-      "created": "2026-01-13T16:16:06+02:00",
+      "created": "2026-01-13T14:16:06.000Z",
       "created_at": "2026-01-13T16:16:06+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -6151,7 +6152,7 @@
           "epic_id": "T-1771171348644"
         }
       },
-      "created": "2026-02-15T18:02:40+02:00",
+      "created": "2026-02-15T16:02:40.000Z",
       "created_at": "2026-02-15T18:02:40+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00"
@@ -6175,7 +6176,7 @@
           "epic_id": "T-1771171349874"
         }
       },
-      "created": "2026-02-15T18:02:43+02:00",
+      "created": "2026-02-15T16:02:43.000Z",
       "created_at": "2026-02-15T18:02:43+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00"
@@ -6195,7 +6196,7 @@
       "dependencies": [
         "T-1770828166659"
       ],
-      "created": "2026-02-11T18:42:47+02:00",
+      "created": "2026-02-11T16:42:47.000Z",
       "created_at": "2026-02-11T18:42:47+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -6220,7 +6221,7 @@
       "metadata": {
         "planning_links": {}
       },
-      "created": "2026-02-11T19:02:43+02:00",
+      "created": "2026-02-11T17:02:43.000Z",
       "created_at": "2026-02-11T19:02:43+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -6239,7 +6240,7 @@
         "task_analysis",
         "task_discovery"
       ],
-      "created": "2026-02-11T18:42:46+02:00",
+      "created": "2026-02-11T16:42:46.000Z",
       "created_at": "2026-02-11T18:42:46+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -6262,7 +6263,7 @@
         "discovered_line": "",
         "discovery_type": "MARKDOWN_TASK"
       },
-      "created": "2026-01-13T16:16:07+02:00",
+      "created": "2026-01-13T14:16:07.000Z",
       "created_at": "2026-01-13T16:16:07+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -6285,7 +6286,7 @@
       "dependencies": [
         "T-1769989774217"
       ],
-      "created": "2026-02-11T18:36:28+02:00",
+      "created": "2026-02-11T16:36:28.000Z",
       "created_at": "2026-02-11T18:36:28+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -6308,7 +6309,7 @@
       "dependencies": [
         "T-1768318471621"
       ],
-      "created": "2026-01-13T16:16:06+02:00",
+      "created": "2026-01-13T14:16:06.000Z",
       "created_at": "2026-01-13T16:16:06+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -6330,7 +6331,7 @@
         "refactor",
         "testing"
       ],
-      "created": "2026-01-13T17:32:57+02:00",
+      "created": "2026-01-13T15:32:57.000Z",
       "created_at": "2026-01-13T17:32:57+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -6353,7 +6354,7 @@
       "dependencies": [
         "T-1768319001461"
       ],
-      "created": "2026-01-13T17:06:57+02:00",
+      "created": "2026-01-13T15:06:57.000Z",
       "created_at": "2026-01-13T17:06:57+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -6380,7 +6381,7 @@
         "refactor",
         "testing"
       ],
-      "created": "2026-01-13 17:25:26",
+      "created": "2026-01-13T15:25:26.000Z",
       "created_at": "2026-01-13 17:25:26",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -6404,7 +6405,7 @@
       "dependencies": [
         "T-1768318471623"
       ],
-      "created": "2026-01-13 17:25:26",
+      "created": "2026-01-13T15:25:26.000Z",
       "created_at": "2026-01-13 17:25:26",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -6430,7 +6431,7 @@
         "refactor",
         "testing"
       ],
-      "created": "2026-01-13 17:25:26",
+      "created": "2026-01-13T15:25:26.000Z",
       "created_at": "2026-01-13 17:25:26",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -6449,7 +6450,7 @@
         "cursor",
         "mcp"
       ],
-      "created": "2026-02-15T16:09:10+02:00",
+      "created": "2026-02-15T14:09:10.000Z",
       "created_at": "2026-02-15T16:09:10+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00"
@@ -6466,7 +6467,7 @@
         "docs",
         "mcp"
       ],
-      "created": "2026-02-01T23:28:50+02:00",
+      "created": "2026-02-01T21:28:50.000Z",
       "created_at": "2026-02-01T23:28:50+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -6490,7 +6491,7 @@
         "discovered_line": "",
         "discovery_type": "MARKDOWN_TASK"
       },
-      "created": "2026-01-13T16:16:06+02:00",
+      "created": "2026-01-13T14:16:06.000Z",
       "created_at": "2026-01-13T16:16:06+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -6513,7 +6514,7 @@
       "dependencies": [
         "T-1768318471621"
       ],
-      "created": "2026-01-12T00:34:36+02:00",
+      "created": "2026-01-11T22:34:36.000Z",
       "created_at": "2026-01-12T00:34:36+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -6540,7 +6541,7 @@
           "planning_doc": "docs/DEPENDENCY_ANALYSIS_REPORT.md"
         }
       },
-      "created": "2026-01-13T16:16:07+02:00",
+      "created": "2026-01-13T14:16:07.000Z",
       "created_at": "2026-01-13T16:16:07+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -6564,7 +6565,7 @@
         "discovered_line": "",
         "discovery_type": "MARKDOWN_TASK"
       },
-      "created": "2026-01-13T16:16:06+02:00",
+      "created": "2026-01-13T14:16:06.000Z",
       "created_at": "2026-01-13T16:16:06+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -6588,7 +6589,7 @@
         "discovered_line": "",
         "discovery_type": "MARKDOWN_TASK"
       },
-      "created": "2026-01-13T16:16:06+02:00",
+      "created": "2026-01-13T14:16:06.000Z",
       "created_at": "2026-01-13T16:16:06+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -6608,7 +6609,7 @@
         "local-ai",
         "task_workflow"
       ],
-      "created": "2026-02-15T17:58:56+02:00",
+      "created": "2026-02-15T15:58:56.000Z",
       "created_at": "2026-02-15T17:58:56+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00"
@@ -6631,7 +6632,7 @@
         "discovered_line": "",
         "discovery_type": "MARKDOWN_TASK"
       },
-      "created": "2026-01-13T16:16:06+02:00",
+      "created": "2026-01-13T14:16:06.000Z",
       "created_at": "2026-01-13T16:16:06+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -6653,7 +6654,7 @@
         "discovered_line": 509,
         "discovery_type": "NOTE"
       },
-      "created": "2026-01-13T16:16:06+02:00",
+      "created": "2026-01-13T14:16:06.000Z",
       "created_at": "2026-01-13T16:16:06+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -6673,7 +6674,7 @@
         "refactor",
         "testing"
       ],
-      "created": "2026-01-13T19:32:12+02:00",
+      "created": "2026-01-13T17:32:12.000Z",
       "created_at": "2026-01-13T19:32:12+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -6692,7 +6693,7 @@
         "mcp",
         "roots"
       ],
-      "created": "2026-02-01T23:28:48+02:00",
+      "created": "2026-02-01T21:28:48.000Z",
       "created_at": "2026-02-01T23:28:48+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -6716,7 +6717,7 @@
         "refactor",
         "testing"
       ],
-      "created": "2026-01-13T19:49:05+02:00",
+      "created": "2026-01-13T17:49:05.000Z",
       "created_at": "2026-01-13T19:49:05+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -6735,7 +6736,7 @@
         "mcp",
         "session"
       ],
-      "created": "2026-02-01T23:34:23+02:00",
+      "created": "2026-02-01T21:34:23.000Z",
       "created_at": "2026-02-01T23:34:23+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -6756,7 +6757,7 @@
       "dependencies": [
         "T-1770830680695"
       ],
-      "created": "2026-02-11T19:24:45+02:00",
+      "created": "2026-02-11T17:24:45.000Z",
       "created_at": "2026-02-11T19:24:45+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -6774,7 +6775,7 @@
         "docs",
         "model_router"
       ],
-      "created": "2026-02-02T02:03:41+02:00",
+      "created": "2026-02-02T00:03:41.000Z",
       "created_at": "2026-02-02T02:03:41+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -6794,7 +6795,7 @@
         "performance",
         "testing"
       ],
-      "created": "2026-01-13 17:25:26",
+      "created": "2026-01-13T15:25:26.000Z",
       "created_at": "2026-01-13 17:25:26",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -6818,7 +6819,7 @@
         "discovered_line": "",
         "discovery_type": "MARKDOWN_TASK"
       },
-      "created": "2026-01-13T16:16:07+02:00",
+      "created": "2026-01-13T14:16:07.000Z",
       "created_at": "2026-01-13T16:16:07+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -6844,7 +6845,7 @@
         "discovered_line": "",
         "discovery_type": "MARKDOWN_TASK"
       },
-      "created": "2026-01-13T16:16:06+02:00",
+      "created": "2026-01-13T14:16:06.000Z",
       "created_at": "2026-01-13T16:16:06+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -6866,7 +6867,7 @@
       "dependencies": [
         "T-1769989774217"
       ],
-      "created": "2026-02-11T17:58:52+02:00",
+      "created": "2026-02-11T15:58:52.000Z",
       "created_at": "2026-02-11T17:58:52+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -6888,7 +6889,7 @@
       "dependencies": [
         "T-1768319001463"
       ],
-      "created": "2026-01-13T16:16:07+02:00",
+      "created": "2026-01-13T14:16:07.000Z",
       "created_at": "2026-01-13T16:16:07+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -6906,7 +6907,7 @@
         "feature",
         "testing"
       ],
-      "created": "2026-01-13T18:00:27+02:00",
+      "created": "2026-01-13T16:00:27.000Z",
       "created_at": "2026-01-13T18:00:27+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -6930,7 +6931,7 @@
         "discovered_line": "",
         "discovery_type": "MARKDOWN_TASK"
       },
-      "created": "2026-01-13T16:16:06+02:00",
+      "created": "2026-01-13T14:16:06.000Z",
       "created_at": "2026-01-13T16:16:06+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -6951,7 +6952,7 @@
         "migration",
         "testing"
       ],
-      "created": "2026-01-13T18:37:38+02:00",
+      "created": "2026-01-13T16:37:38.000Z",
       "created_at": "2026-01-13T18:37:38+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
@@ -6974,11 +6975,36 @@
         "discovered_line": "",
         "discovery_type": "MARKDOWN_TASK"
       },
-      "created": "2026-01-13T16:16:07+02:00",
+      "created": "2026-01-13T14:16:07.000Z",
       "created_at": "2026-01-13T16:16:07+02:00",
       "updated": "2026-02-15T18:04:53+02:00",
       "last_modified": "2026-02-15T18:04:53+02:00",
       "completed_at": "2026-02-02T02:04:46+02:00"
+    }
+  ],
+  "lastModified": "2026-02-15T16:06:23.015Z",
+  "comments": [
+    {
+      "id": "T-317-C-1",
+      "todoId": "T-317",
+      "type": "result",
+      "content": "**Implementation exists.** Scheduled cleanup is achieved by running automation daily (e.g. via cron): `exarp-go -tool automation -args '{\"action\":\"daily\"}'`. Daily automation runs dead-agent lock cleanup (runDeadAgentCleanup → CleanupDeadAgentLocks) as task 0 and task 5. Session prime also runs CleanupDeadAgentLocks before loading tasks. No separate cron-specific entrypoint required; closing as done.",
+      "created": "2026-02-15T16:06:23.015Z",
+      "lastModified": "2026-02-15T16:06:23.015Z"
+    }
+  ],
+  "activities": [
+    {
+      "id": "activity-1771171583015-uze7n9rpt",
+      "type": "comment_added",
+      "todoId": "T-317",
+      "todoName": "Scheduled cleanup via cron",
+      "timestamp": "2026-02-15T16:06:23.015Z",
+      "details": {
+        "commentType": "result",
+        "commentPreview": "**Implementation exists.** Scheduled cleanup is achieved by running automation daily (e.g. via cron)...",
+        "commentId": "T-317-C-1"
+      }
     }
   ]
 }
