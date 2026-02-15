@@ -296,6 +296,8 @@ func handleSessionPrime(ctx context.Context, params map[string]interface{}) ([]f
 	if statusLabel, statusContext := buildStatusContext(result); statusLabel != "" || statusContext != "" {
 		result["status_label"] = statusLabel
 		result["status_context"] = statusContext
+		pb.StatusLabel = statusLabel
+		pb.StatusContext = statusContext
 	}
 
 	return mcpresponse.FormatResult(result, "")

@@ -175,3 +175,88 @@ func TestRequestLimitEnforcement(t *testing.T) {
 		t.Errorf("RateLimitError.ClientID = %s, want %s", rateErr.ClientID, clientID)
 	}
 }
+
+// TestSlidingWindowAccuracy verifies that the sliding window correctly allows new requests
+// as old ones expire (T-289). Window=100ms, max=2: first 2 allowed, 3rd denied; after 100ms
+// the first request slides out, so one more should be allowed.
+func TestSlidingWindowAccuracy(t *testing.T) {
+	rl := NewRateLimiter(100*time.Millisecond, 2)
+
+	// First two requests allowed
+	if !rl.Allow("client1") || !rl.Allow("client1") {
+		t.Error("First two requests should be allowed")
+	}
+	// Third denied
+	if rl.Allow("client1") {
+		t.Error("Third request should be denied (window full)")
+	}
+
+	// Wait for the first request to slide out of the window (>100ms)
+	time.Sleep(110 * time.Millisecond)
+
+	// One slot should be free (oldest request expired); one new request allowed
+	if !rl.Allow("client1") {
+		t.Error("Request after window slide should be allowed (one slot free)")
+	}
+	// Second after slide allowed (window now has 2)
+	if !rl.Allow("client1") {
+		t.Error("Second request after slide should be allowed")
+	}
+	// Third after slide denied (window full again)
+	if rl.Allow("client1") {
+		t.Error("Third request after slide should be denied")
+	}
+
+	rl.Stop()
+}
+
+// TestConcurrentRequests verifies rate limiting under concurrent access (T-291).
+func TestConcurrentRequests(t *testing.T) {
+	rl := NewRateLimiter(1*time.Second, 10)
+	const goroutines = 20
+
+	allowed := make(chan bool, goroutines)
+	for i := 0; i < goroutines; i++ {
+		go func() {
+			allowed <- rl.Allow("concurrent-client")
+		}()
+	}
+
+	allowedCount := 0
+	for i := 0; i < goroutines; i++ {
+		if <-allowed {
+			allowedCount++
+		}
+	}
+
+	if allowedCount > 10 {
+		t.Errorf("Concurrent: expected at most 10 allowed, got %d", allowedCount)
+	}
+	rl.Stop()
+}
+
+// TestLimitResetBehavior verifies that after the window expires, limits reset (T-292).
+func TestLimitResetBehavior(t *testing.T) {
+	rl := NewRateLimiter(80*time.Millisecond, 2)
+
+	// Exhaust limit
+	if !rl.Allow("reset-client") || !rl.Allow("reset-client") {
+		t.Error("First two requests should be allowed")
+	}
+	if rl.Allow("reset-client") {
+		t.Error("Third request should be denied")
+	}
+
+	// Wait for full window expiry
+	time.Sleep(100 * time.Millisecond)
+
+	// Limit should be reset; fresh window
+	if !rl.Allow("reset-client") || !rl.Allow("reset-client") {
+		t.Error("After reset: first two requests should be allowed")
+	}
+	if rl.Allow("reset-client") {
+		t.Error("After reset: third request should be denied")
+	}
+
+	rl.Stop()
+}

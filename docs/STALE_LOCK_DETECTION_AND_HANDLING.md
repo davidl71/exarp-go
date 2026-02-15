@@ -468,11 +468,13 @@ cleaned, taskIDs, err := database.CleanupExpiredLocksWithReport(ctx, 1*time.Hour
    ./bin/exarp-go detect-stale-locks
    ```
 
-2. **Set up periodic cleanup**
+2. **Set up periodic cleanup (scheduled via cron)**  
+   The automation tool runs dead-agent lock cleanup as part of `action=daily`. Use system cron to run it from the project root:
    ```bash
-   # Cron job every 5 minutes
-   */5 * * * * ./bin/exarp-go cleanup-locks
+   # Cron: daily at 02:00 (runs automation daily, which includes dead_agent_cleanup)
+   0 2 * * * cd /path/to/exarp-go && ./bin/exarp-go -tool automation -args '{"action":"daily"}' >> /tmp/exarp-automation.log 2>&1
    ```
+   For more frequent cleanup, run the same command every 10–15 minutes; `dead_agent_cleanup` releases expired locks only.
 
 3. **Alert on high stale lock count**
    - Monitor `DetectStaleLocks()` output
@@ -553,7 +555,7 @@ cleaned, taskIDs, err := database.CleanupExpiredLocksWithReport(ctx, 1*time.Hour
 
 - [ ] Background goroutine for periodic cleanup — **Future improvement**: exarp-go runs as STDIO (short-lived per request); a background goroutine only helps long-lived processes (HTTP/SSE). Defer until multi-agent/server deployment.
 - [ ] CLI command for lock status monitoring
-- [ ] Scheduled cleanup via cron
+- [x] Scheduled cleanup via cron — Use system cron to run `exarp-go -tool automation -args '{"action":"daily"}'` from project root (see "Set up periodic cleanup" above). Automation runs `dead_agent_cleanup` which releases expired locks.
 
 ### **Phase 4: Advanced Features**
 

@@ -78,6 +78,25 @@ Multi-agent conflict detection identifies when multiple agents may be working on
 
 ---
 
+## Task dependency analysis
+
+Task dependencies are used to order work and to group tasks into waves for parallel execution.
+
+**Storage:** Todo2 tasks have optional `dependencies` (array of task IDs). Stored in SQLite (`.todo2/todo2.db`) or legacy JSON.
+
+**Analysis tools:**
+- **task_analysis** (exarp-go): `action=dependencies` (full graph), `action=dependencies_summary` (critical path + parallel groups), `action=execution_plan` (ordered backlog), `action=parallelization` (groups by dependency level).
+- **report** (exarp-go): `action=plan` and `action=parallel_execution_plan` use `BacklogExecutionOrder()` to compute waves (same wave = no dependency between tasks = can run in parallel).
+
+**Outputs:**
+- **Critical path:** Longest dependency chain (e.g. T-214 → T-215 → T-221). Defines minimum sequential order.
+- **Dependency levels:** Level 0 = no dependencies; level N = depends only on tasks at level &lt; N.
+- **Waves:** Tasks in the same wave have no dependency ordering among them and can be run in parallel (e.g. Wave 0 in `.cursor/plans/parallel-execution-subagents.plan.md`).
+
+**Usage:** Use `task_analysis` with `action=dependencies_summary` or `action=execution_plan` to inspect order; use the plan’s waves to run subagents in parallel per wave.
+
+---
+
 ## Agent Types and Roles
 
 ### 1. Primary AI Assistant (Cursor AI)
@@ -450,9 +469,9 @@ Both complete → Continue with dependent tasks
 - Implement state synchronization
 
 **Tasks:**
-- [ ] Analyze task dependencies
-- [ ] Create parallel execution framework
-- [ ] Implement shared state management
+- [x] Analyze task dependencies — documented in "Task dependency analysis" above; use task_analysis (dependencies_summary, execution_plan) and report (plan, parallel_execution_plan).
+- [x] Create parallel execution framework — see [docs/PARALLEL_EXECUTION_FRAMEWORK.md](PARALLEL_EXECUTION_FRAMEWORK.md) (waves, runParallelTasks, task_analysis parallelization).
+- [x] Implement shared state management — documented in PARALLEL_EXECUTION_FRAMEWORK.md § Shared state management (Todo2, handoffs, task locks).
 
 ### Phase 4: Advanced Coordination (Week 5+)
 
