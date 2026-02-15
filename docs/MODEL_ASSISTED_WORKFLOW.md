@@ -491,7 +491,7 @@ Mark as Done or Request Changes
 - [x] Create analysis prompt template — `prompt_optimization_analysis` in `internal/prompts/templates.go`
 - [x] Create suggestions-generation template — `prompt_optimization_suggestions` (T-1770830686054)
 - [x] Create refinement template — `prompt_optimization_refinement` (T-1770830686525)
-- [ ] Add iterative refinement loop
+- [x] Add iterative refinement loop — `RefinePromptLoop`, `GenerateSuggestions`, `RefinePrompt` in `internal/tools/prompt_analyzer.go` (T-218)
 - [ ] Integrate with task creation workflow
 
 ### Phase 6: Testing & Documentation
