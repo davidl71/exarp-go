@@ -42,13 +42,13 @@ T-1770828167906: dependencies = [T-1770828166659]
 
 | Task | Current deps | Recommended addition | Rationale |
 |------|--------------|----------------------|-----------|
-| **T-277** (Add tests for rate limiting) | none | T-274 (optional) | If integration tests: need middleware. If unit tests only: ratelimit_test.go exists, can stay independent. |
-| **T-288** (Test request limit enforcement) | none | T-274 | Integration test requires middleware in request path. |
-| **T-289** (Test sliding window accuracy) | none | T-274 | Integration test requires middleware. |
-| **T-291** (Test concurrent requests) | none | T-274 | Integration test requires middleware. |
-| **T-292** (Test limit reset behavior) | none | T-274 | Integration test requires middleware. |
+| **T-277** (Add tests for rate limiting) | none | — | Unit tests in ratelimit_test.go; no middleware dependency. |
+| **T-288** (Test request limit enforcement) | none | — | *(T-274 removed; middleware documented as future improvement. Integration tests deferred.)* |
+| **T-289** (Test sliding window accuracy) | none | — | *(T-274 removed.)* |
+| **T-291** (Test concurrent requests) | none | — | *(T-274 removed.)* |
+| **T-292** (Test limit reset behavior) | none | — | *(T-274 removed.)* |
 
-**Note:** Per `docs/RATE_LIMITING_TASKS.md`, these are lower priority for stdio-only (T-290 per-tool was removed). If keeping these tasks, add T-274 as dependency.
+**Note:** Per `docs/RATE_LIMITING_TASKS.md`, these are lower priority for stdio-only (T-290 per-tool was removed). T-274 (Add middleware to framework) was removed and documented as future improvement in SECURITY_AUDIT.md and RATE_LIMITING_TASKS.md.
 
 ### 3. Agent locking / cleanup (T-76)
 
@@ -88,7 +88,7 @@ Many tasks correctly have no dependencies (level 0) and can run in parallel:
    - T-1770828167906 → T-1770828166659
 
 2. **Add dependencies for rate limit tests** ✅
-   - T-288, T-289, T-291, T-292 → T-274
+   - T-288, T-289, T-291, T-292 — *(previously → T-274; T-274 removed, documented as future improvement)*
 
 3. **Add dependency for dead agent cleanup** ✅
    - T-76 → T-319 (process monitoring)

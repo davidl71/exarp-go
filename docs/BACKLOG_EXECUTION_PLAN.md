@@ -213,7 +213,7 @@
 | T-271 | Add tests for path boundary enforcement | medium |
 | T-272 | Create `internal/security/ratelimit.go` | medium |
 | T-273 | Implement sliding window rate limiter | medium |
-| T-274 | Add middleware to framework | medium |
+| ~~T-274~~ | *(removed)* Add middleware to framework — documented as future improvement in SECURITY_AUDIT.md, RATE_LIMITING_TASKS.md | — |
 | T-275 | Configure default limits | medium |
 | T-276 | Add per-tool limits | medium |
 | T-277 | Add tests for rate limiting | medium |
