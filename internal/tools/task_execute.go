@@ -101,14 +101,15 @@ func RunTaskExecutionFlow(ctx context.Context, p RunTaskExecutionFlowParams) (*R
 		return nil, fmt.Errorf("task_execution template: %w", err)
 	}
 
+	taskDesc := task.LongDescription
+	if taskDesc == "" {
+		taskDesc = task.Content
+	}
 	args := map[string]interface{}{
-		"task_name":        task.Name,
-		"task_description": task.Content,
+		"task_name":        task.Content,
+		"task_description": taskDesc,
 		"code_context":     "",
 		"guidelines":       "",
-	}
-	if task.Content == "" {
-		args["task_description"] = task.Name
 	}
 	prompt := prompts.SubstituteTemplate(tpl, args)
 
