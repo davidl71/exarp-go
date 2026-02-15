@@ -496,7 +496,7 @@ Mark as Done or Request Changes
 
 ### Phase 6: Testing & Documentation
 - [ ] Unit tests for all components
-- [ ] Integration tests with real models
+- [x] Integration tests with real models — See `internal/tools/real_models_integration_test.go`. Run with `make test-real-models` (requires a local backend; skipped in `go test -short`).
 - [ ] Performance benchmarks
 - [ ] User documentation
 
