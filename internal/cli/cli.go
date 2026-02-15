@@ -54,7 +54,7 @@ func EnsureConfigAndDatabase(projectRoot string) {
 			logWarn(nil, "Database initialization with centralized config failed", "error", err, "operation", "EnsureConfigAndDatabase", "fallback", "legacy config")
 			// Fall through to legacy init
 		} else {
-			logInfo(nil, "Database initialized with centralized config", "path", fullCfg.Database.SQLitePath, "operation", "EnsureConfigAndDatabase")
+			logDebug(nil, "Database initialized with centralized config", "path", fullCfg.Database.SQLitePath, "operation", "EnsureConfigAndDatabase")
 			return
 		}
 	}
@@ -65,7 +65,7 @@ func EnsureConfigAndDatabase(projectRoot string) {
 		return
 	}
 
-	logInfo(nil, "Database initialized", "path", projectRoot+"/.todo2/todo2.db", "operation", "EnsureConfigAndDatabase")
+	logDebug(nil, "Database initialized", "path", projectRoot+"/.todo2/todo2.db", "operation", "EnsureConfigAndDatabase")
 }
 
 // initializeDatabase initializes the database if project root is found
