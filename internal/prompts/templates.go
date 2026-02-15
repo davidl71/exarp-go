@@ -715,6 +715,43 @@ If all dimensions score >= 0.8, return an empty suggestions array. Otherwise inc
     }
   ]
 }`,
+
+	// Task breakdown brief (MODEL_ASSISTED_WORKFLOW Phase 3; T-209 — minimal variant for quick breakdowns)
+	"task_breakdown_brief": `Break this task into 3-6 subtasks. Task: {task_description}. Context: {context}. Reply with JSON only: {"subtasks":[{"name":"...","description":"...","complexity":"simple|medium|complex","dependencies":[]}]}.`,
+
+	// Auto-execution (MODEL_ASSISTED_WORKFLOW Phase 4; see docs/MODEL_ASSISTED_WORKFLOW.md)
+	"task_execution": `Execute this task and propose concrete code or file changes. You are acting as an auto-execution agent for a simple, well-scoped task.
+
+**Task name:** {task_name}
+
+**Task description:**
+{task_description}
+
+**Relevant code context (files or snippets):**
+{code_context}
+
+**Guidelines or requirements (optional):**
+{guidelines}
+
+**Instructions:**
+- Produce exactly the changes needed to complete the task
+- Each change must specify: file path, location (line or range), and the new content or a clear before/after
+- Include a brief explanation and a confidence score (0.0 to 1.0)
+- If the task is ambiguous or you cannot safely apply changes, return lower confidence and explain
+
+**Respond with JSON only:**
+{
+  "changes": [
+    {
+      "file": "<path>",
+      "location": "<line or start_line-end_line>",
+      "old_content": "<optional: exact text to replace>",
+      "new_content": "<new text or full replacement>"
+    }
+  ],
+  "explanation": "<brief summary of what was done>",
+  "confidence": <float 0.0-1.0>
+}`,
 }
 
 // GetPromptTemplate retrieves a prompt template by name
