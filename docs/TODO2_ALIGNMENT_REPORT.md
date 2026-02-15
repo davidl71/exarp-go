@@ -1,10 +1,10 @@
 # Todo2 Alignment Analysis Report
 
-**Generated:** 2026-02-15T16:50:25+02:00
+**Generated:** 2026-02-15T17:39:42+02:00
 
 ## Summary
 
-- **Total Tasks Analyzed:** 296
+- **Total Tasks Analyzed:** 295
 - **Alignment Score:** 100.0%
 - **Misaligned Tasks:** 0
 - **Infrastructure Tasks:** 0
@@ -12,11 +12,11 @@
 
 ## Alignment by Priority
 
-- **medium:** 221
-- **low:** 24
+- **medium:** 220
 - **high:** 51
+- **low:** 24
 
 ## Alignment by Status
 
-- **Done:** 257
-- **Todo:** 39
+- **Todo:** 34
+- **Done:** 261

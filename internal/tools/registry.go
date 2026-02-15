@@ -1635,6 +1635,39 @@ func registerBatch5Tools(server framework.MCPServer) error {
 		return fmt.Errorf("failed to register text_generate: %w", err)
 	}
 
+	// task_execute - Run model-assisted execution flow for a Todo2 task (T-215; MODEL_ASSISTED_WORKFLOW Phase 4)
+	if err := server.RegisterTool(
+		"task_execute",
+		"[HINT: Run execution flow for a Todo2 task. Loads task, runs task_execution template, parses response, optionally applies file changes, adds result comment.]",
+		framework.ToolSchema{
+			Type: "object",
+			Properties: map[string]interface{}{
+				"task_id": map[string]interface{}{
+					"type":        "string",
+					"description": "Todo2 task ID to execute (required)",
+				},
+				"project_root": map[string]interface{}{
+					"type":        "string",
+					"description": "Project root for task store and file changes (default: detected)",
+				},
+				"apply": map[string]interface{}{
+					"type":        "boolean",
+					"default":     true,
+					"description": "If true, apply parsed file changes when confidence >= min_confidence",
+				},
+				"min_confidence": map[string]interface{}{
+					"type":        "number",
+					"default":     0.5,
+					"description": "Minimum confidence (0–1) to apply changes",
+				},
+			},
+			Required: []string{"task_id"},
+		},
+		handleTaskExecute,
+	); err != nil {
+		return fmt.Errorf("failed to register task_execute: %w", err)
+	}
+
 	// prompt_tracking - Unified prompt tracking (log/analyze actions)
 	if err := server.RegisterTool(
 		"prompt_tracking",
