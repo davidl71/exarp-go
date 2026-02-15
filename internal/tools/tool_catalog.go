@@ -217,6 +217,13 @@ func GetToolCatalog() map[string]ToolCatalogEntry {
 			Description:      "Unified generate-text via FM (default) or ReportInsight; use when only generate-text is needed",
 			RecommendedModel: "claude-haiku",
 		},
+		"task_execute": {
+			Tool:             "task_execute",
+			Hint:             "Run execution flow for a Todo2 task. task_execution template + model + ApplyChanges + result comment.",
+			Category:         "Workflow",
+			Description:      "Model-assisted task execution: load task, run task_execution prompt, parse response, optionally apply file changes, add result comment (T-215)",
+			RecommendedModel: "claude-haiku",
+		},
 		"mlx": {
 			Tool:             "mlx",
 			Hint:             "LLM abstraction (MLX). action=status|hardware|models|generate. Bridge-only; report insights use DefaultReportInsight() (MLX then FM).",
