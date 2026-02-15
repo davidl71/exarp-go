@@ -2,6 +2,7 @@ package cli
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net"
 	"os"
@@ -35,6 +36,22 @@ type tui3270State struct {
 	command       string   // Command line input
 	filter        string   // Current filter/search term
 	scorecardRecs []string // Last scorecard recommendations (for Run #)
+}
+
+// loadTasksForStatus loads tasks by status. When status is empty, returns open tasks only (Todo + In Progress).
+func loadTasksForStatus(ctx context.Context, status string) ([]*database.Todo2Task, error) {
+	if status != "" {
+		return database.GetTasksByStatus(ctx, status)
+	}
+	todo, err := database.GetTasksByStatus(ctx, "Todo")
+	if err != nil {
+		return nil, err
+	}
+	inProgress, err := database.GetTasksByStatus(ctx, "In Progress")
+	if err != nil {
+		return nil, err
+	}
+	return append(todo, inProgress...), nil
 }
 
 // RunTUI3270 starts a 3270 TUI server
@@ -202,14 +219,9 @@ func handle3270Connection(conn net.Conn, server framework.MCPServer, status, pro
 		filter:      "",
 	}
 
-	// Load initial tasks
+	// Load initial tasks (open only when status is empty)
 	ctx := context.Background()
-	if state.status != "" {
-		state.tasks, err = database.GetTasksByStatus(ctx, state.status)
-	} else {
-		filters := &database.TaskFilters{}
-		state.tasks, err = database.ListTasks(ctx, filters)
-	}
+	state.tasks, err = loadTasksForStatus(ctx, state.status)
 	if err != nil {
 		logError(nil, "Error loading tasks", "error", err, "operation", "loadTasks")
 	}
@@ -230,13 +242,14 @@ func (state *tui3270State) mainMenuTransaction(conn net.Conn, devInfo go3270.Dev
 
 	screen := go3270.Screen{
 		{Row: 2, Col: 2, Content: title, Intense: true},
-		{Row: 4, Col: 2, Content: "Select an option (1-4) or type a command below:"},
+		{Row: 4, Col: 2, Content: "Select an option (1-5) or type a command below:"},
 		{Row: 6, Col: 4, Content: "1. Task List"},
 		{Row: 7, Col: 4, Content: "2. Configuration"},
 		{Row: 8, Col: 4, Content: "3. Scorecard"},
-		{Row: 9, Col: 4, Content: "4. Exit"},
-		{Row: 11, Col: 2, Content: "Option: "},
-		{Row: 11, Col: 10, Content: "", Write: true, Name: "option"},
+		{Row: 9, Col: 4, Content: "4. Session handoffs"},
+		{Row: 10, Col: 4, Content: "5. Exit"},
+		{Row: 12, Col: 2, Content: "Option: "},
+		{Row: 12, Col: 10, Content: "", Write: true, Name: "option"},
 		{Row: 22, Col: 2, Content: "Command ===>", Intense: true},
 		{Row: 22, Col: 15, Write: true, Name: "command", Content: ""},
 		{Row: 23, Col: 2, Content: "PF1=Help  PF3=Exit  Enter=Select option or run command"},
@@ -275,7 +288,9 @@ func (state *tui3270State) mainMenuTransaction(conn net.Conn, devInfo go3270.Dev
 		return state.configTransaction, state, nil
 	case "3":
 		return state.scorecardTransaction, state, nil
-	case "4", "":
+	case "4":
+		return state.handoffTransaction, state, nil
+	case "5", "":
 		if response.AID == go3270.AIDEnter && option == "" {
 			return nil, nil, nil // Exit
 		}
@@ -286,26 +301,26 @@ func (state *tui3270State) mainMenuTransaction(conn net.Conn, devInfo go3270.Dev
 	}
 }
 
-// extractMenuOption returns "1", "2", "3", "4" from user input, or "" if none.
+// extractMenuOption returns "1".."5" from user input, or "" if none.
 func extractMenuOption(s string) string {
 	s = strings.TrimSpace(s)
 	if s == "" {
 		return ""
 	}
 	// Single digit
-	if len(s) == 1 && s >= "1" && s <= "4" {
+	if len(s) == 1 && s >= "1" && s <= "5" {
 		return s
 	}
 	// Last character (e.g. "Option: 1" -> "1")
 	if len(s) > 0 {
 		c := s[len(s)-1:]
-		if c >= "1" && c <= "4" {
+		if c >= "1" && c <= "5" {
 			return c
 		}
 	}
 	// First digit in string
 	for _, r := range s {
-		if r >= '1' && r <= '4' {
+		if r >= '1' && r <= '5' {
 			return string(r)
 		}
 	}
@@ -318,12 +333,13 @@ func (state *tui3270State) helpTransaction(conn net.Conn, devInfo go3270.DevInfo
 		"EXARP-GO 3270 - HELP",
 		"",
 		"Main menu options:",
-		"  1 = Task List    2 = Configuration    3 = Scorecard    4 = Exit",
+		"  1 = Task List  2 = Config  3 = Scorecard  4 = Handoffs  5 = Exit",
 		"",
 		"Commands (type in Command ===> field, then Enter):",
 		"  TASKS or T     - Go to Task List",
 		"  CONFIG         - Go to Configuration",
 		"  SCORECARD or SC - Go to Scorecard",
+		"  HANDOFFS or HO - Go to Session handoffs",
 		"  MENU or M      - Go to Main Menu",
 		"  FIND <text>    - Filter tasks by text",
 		"  RESET          - Clear filter",
@@ -360,49 +376,89 @@ func (state *tui3270State) helpTransaction(conn net.Conn, devInfo go3270.DevInfo
 	return state.helpTransaction, state, nil
 }
 
-// taskListTransaction shows the task list
+// 3270 task list column layout (fixed-width, aligned like mainframe job list)
+const (
+	t3270ColS        = 2
+	t3270ColID      = 5
+	t3270ColStatus  = 24
+	t3270ColPriority = 37
+	t3270ColContent = 48
+	t3270WidS       = 2
+	t3270WidID      = 18
+	t3270WidStatus  = 12
+	t3270WidPriority = 10
+	t3270WidContent = 32
+)
+
+func t3270Pad(s string, width int) string {
+	if len(s) >= width {
+		if width <= 3 {
+			return s[:width]
+		}
+		return s[:width-3] + "..."
+	}
+	return s + strings.Repeat(" ", width-len(s))
+}
+
+// taskListTransaction shows the task list in 3270-style tabular layout (aligned columns, header row, COMMAND/SCROLL line).
 func (state *tui3270State) taskListTransaction(conn net.Conn, devInfo go3270.DevInfo, data any) (go3270.Tx, any, error) {
 	ctx := context.Background()
-	// Reload tasks
 	var err error
-	if state.status != "" {
-		state.tasks, err = database.GetTasksByStatus(ctx, state.status)
-	} else {
-		filters := &database.TaskFilters{}
-		state.tasks, err = database.ListTasks(ctx, filters)
-	}
+	state.tasks, err = loadTasksForStatus(ctx, state.status)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to load tasks: %w", err)
 	}
 
-	// Build screen with ISPF-style enhancements
-	title := "TASK LIST"
+	title := "TASK LIST *"
 	if state.status != "" {
-		title = fmt.Sprintf("%s (%s)", title, state.status)
+		title = fmt.Sprintf("TASK LIST (%s) *", state.status)
 	}
 	if state.filter != "" {
-		title = fmt.Sprintf("%s [Filter: %s]", title, state.filter)
+		title = fmt.Sprintf("TASK LIST [%s] *", state.filter)
 	}
 
-	// Calculate scroll indicator
-	scrollIndicator := "CSR"
 	maxVisible := 18
+	totalLines := len(state.tasks)
+	if totalLines == 0 {
+		totalLines = 1
+	}
+	currentLine := state.cursor + 1
+	if currentLine < 1 {
+		currentLine = 1
+	}
+	if currentLine > totalLines {
+		currentLine = totalLines
+	}
+	scrollIndicator := "CS"
 	if state.listOffset > 0 {
 		scrollIndicator = "MORE"
-	}
-	if state.listOffset+maxVisible >= len(state.tasks) && len(state.tasks) > maxVisible {
+	} else if state.listOffset+maxVisible >= len(state.tasks) && len(state.tasks) > maxVisible {
 		scrollIndicator = "BOTTOM"
-	}
-	if state.listOffset == 0 && len(state.tasks) <= maxVisible {
+	} else if len(state.tasks) <= maxVisible {
+		scrollIndicator = "CS"
+	} else {
 		scrollIndicator = "TOP"
 	}
 
+	// Row 1: title left, LINE x OF y, COMMAND ===> with input, SCROLL ===> xx (mainframe-style)
 	screen := go3270.Screen{
 		{Row: 1, Col: 2, Content: title, Intense: true},
-		{Row: 1, Col: 70, Content: fmt.Sprintf("SCROLL: %s", scrollIndicator), Intense: true},
+		{Row: 1, Col: 45, Content: fmt.Sprintf("LINE %d OF %d", currentLine, totalLines), Intense: true},
+		{Row: 1, Col: 55, Content: "COMMAND ===>", Intense: true},
+		{Row: 1, Col: 68, Write: true, Name: "command", Content: state.command},
+		{Row: 1, Col: 72, Content: "SCROLL ===> " + scrollIndicator, Intense: true},
 	}
 
-	// Add task rows with line numbers (ISPF style)
+	// Row 2: blank
+	screen = append(screen, go3270.Field{Row: 2, Col: 2, Content: ""})
+
+	// Row 3: column headers (intense, like yellow headers)
+	screen = append(screen, go3270.Field{Row: 3, Col: t3270ColS, Content: t3270Pad("S", t3270WidS), Intense: true})
+	screen = append(screen, go3270.Field{Row: 3, Col: t3270ColID, Content: t3270Pad("ID", t3270WidID), Intense: true})
+	screen = append(screen, go3270.Field{Row: 3, Col: t3270ColStatus, Content: t3270Pad("STATUS", t3270WidStatus), Intense: true})
+	screen = append(screen, go3270.Field{Row: 3, Col: t3270ColPriority, Content: t3270Pad("PRIORITY", t3270WidPriority), Intense: true})
+	screen = append(screen, go3270.Field{Row: 3, Col: t3270ColContent, Content: t3270Pad("CONTENT", t3270WidContent), Intense: true})
+
 	startIdx := state.listOffset
 	endIdx := startIdx + maxVisible
 	if endIdx > len(state.tasks) {
@@ -412,54 +468,35 @@ func (state *tui3270State) taskListTransaction(conn net.Conn, devInfo go3270.Dev
 		endIdx = startIdx
 	}
 
-	row := 3
-	for i := startIdx; i < endIdx; i++ {
+	for row, i := 4, startIdx; i < endIdx; row, i = row+1, i+1 {
 		task := state.tasks[i]
-		lineNum := i + 1
-		cursor := "  "
+		s := "  "
 		if i == state.cursor {
-			cursor = "> "
+			s = "> "
 		}
-
-		// Format task line with line number: > 1  T-123 [Status] [Priority] Description
-		taskLine := fmt.Sprintf("%s%2d  %s", cursor, lineNum, task.ID)
-		if task.Status != "" {
-			taskLine += fmt.Sprintf(" [%s]", task.Status)
+		screen = append(screen, go3270.Field{Row: row, Col: t3270ColS, Content: t3270Pad(s, t3270WidS)})
+		screen = append(screen, go3270.Field{Row: row, Col: t3270ColID, Content: t3270Pad(task.ID, t3270WidID)})
+		st := task.Status
+		if st == "" {
+			st = "-"
 		}
-		if task.Priority != "" {
-			taskLine += fmt.Sprintf(" [%s]", strings.ToUpper(task.Priority))
+		screen = append(screen, go3270.Field{Row: row, Col: t3270ColStatus, Content: t3270Pad(st, t3270WidStatus)})
+		pri := strings.ToUpper(task.Priority)
+		if pri == "" {
+			pri = "-"
 		}
-
-		// Add description (truncate to fit)
+		screen = append(screen, go3270.Field{Row: row, Col: t3270ColPriority, Content: t3270Pad(pri, t3270WidPriority)})
 		content := task.Content
 		if content == "" {
 			content = task.LongDescription
 		}
-		if len(content) > 50 {
-			content = content[:47] + "..."
+		if content == "" {
+			content = "(no description)"
 		}
-		if content != "" {
-			taskLine += " " + content
-		}
-
-		// Pad to fit screen (accounting for line numbers)
-		maxLen := 72 // 80 - 8 for row/col and line number
-		if len(taskLine) > maxLen {
-			taskLine = taskLine[:maxLen]
-		} else {
-			taskLine += strings.Repeat(" ", maxLen-len(taskLine))
-		}
-
-		screen = append(screen, go3270.Field{
-			Row:     row,
-			Col:     2,
-			Content: taskLine,
-		})
-
-		row++
+		screen = append(screen, go3270.Field{Row: row, Col: t3270ColContent, Content: t3270Pad(content, t3270WidContent)})
 	}
 
-	// Add status line
+	// Row 22: status left, help text
 	statusLine := fmt.Sprintf("Tasks: %d", len(state.tasks))
 	if state.cursor < len(state.tasks) {
 		statusLine += fmt.Sprintf("  Cursor: %d/%d", state.cursor+1, len(state.tasks))
@@ -467,28 +504,9 @@ func (state *tui3270State) taskListTransaction(conn net.Conn, devInfo go3270.Dev
 	if state.filter != "" {
 		statusLine += fmt.Sprintf("  Filter: %s", state.filter)
 	}
-	screen = append(screen, go3270.Field{
-		Row:     22,
-		Col:     2,
-		Content: statusLine,
-	})
+	screen = append(screen, go3270.Field{Row: 22, Col: 2, Content: statusLine})
 
-	// Add command line (ISPF style)
-	screen = append(screen, go3270.Field{
-		Row:     22,
-		Col:     50,
-		Content: "Command ===>",
-		Intense: true,
-	})
-	screen = append(screen, go3270.Field{
-		Row:     22,
-		Col:     63,
-		Write:   true,
-		Name:    "command",
-		Content: state.command,
-	})
-
-	// Add help line
+	// Row 23: PF key line
 	screen = append(screen, go3270.Field{
 		Row:     23,
 		Col:     2,
@@ -947,6 +965,74 @@ func (state *tui3270State) scorecardTransaction(conn net.Conn, devInfo go3270.De
 	return state.scorecardTransaction, state, nil
 }
 
+// handoffTransaction shows session handoff notes (from session tool, handoff list).
+func (state *tui3270State) handoffTransaction(conn net.Conn, devInfo go3270.DevInfo, data any) (go3270.Tx, any, error) {
+	ctx := context.Background()
+	args := map[string]interface{}{"action": "handoff", "sub_action": "list"}
+	argsBytes, err := json.Marshal(args)
+	if err != nil {
+		errScreen := go3270.Screen{
+			{Row: 2, Col: 2, Content: "SESSION HANDOFFS", Intense: true},
+			{Row: 4, Col: 2, Content: "Error: " + err.Error()},
+			{Row: 22, Col: 2, Content: "PF3=Back to menu"},
+		}
+		screenOpts := go3270.ScreenOpts{Codepage: devInfo.Codepage()}
+		if _, showErr := go3270.ShowScreenOpts(errScreen, nil, conn, screenOpts); showErr != nil {
+			return nil, nil, showErr
+		}
+		return state.mainMenuTransaction, state, nil
+	}
+	result, err := state.server.CallTool(ctx, "session", argsBytes)
+	if err != nil {
+		errScreen := go3270.Screen{
+			{Row: 2, Col: 2, Content: "SESSION HANDOFFS", Intense: true},
+			{Row: 4, Col: 2, Content: "Error: " + err.Error()},
+			{Row: 22, Col: 2, Content: "PF3=Back to menu"},
+		}
+		screenOpts := go3270.ScreenOpts{Codepage: devInfo.Codepage()}
+		if _, showErr := go3270.ShowScreenOpts(errScreen, nil, conn, screenOpts); showErr != nil {
+			return nil, nil, showErr
+		}
+		return state.mainMenuTransaction, state, nil
+	}
+	var text strings.Builder
+	for _, c := range result {
+		text.WriteString(c.Text)
+		text.WriteString("\n")
+	}
+	content := strings.TrimSpace(text.String())
+	lines := strings.Split(content, "\n")
+	maxRows := 18
+	if len(lines) > maxRows {
+		lines = lines[:maxRows]
+	}
+	screen := go3270.Screen{
+		{Row: 1, Col: 2, Content: "SESSION HANDOFFS", Intense: true},
+		{Row: 22, Col: 2, Content: "PF3=Back to menu"},
+	}
+	for i, line := range lines {
+		if len(line) > 78 {
+			line = line[:75] + "..."
+		}
+		screen = append(screen, go3270.Field{Row: 2 + i, Col: 2, Content: line})
+	}
+	if len(lines) == 0 {
+		screen = append(screen, go3270.Field{Row: 2, Col: 2, Content: "No handoff notes."})
+	}
+	screenOpts := go3270.ScreenOpts{Codepage: devInfo.Codepage()}
+	response, err := go3270.ShowScreenOpts(screen, nil, conn, screenOpts)
+	if err != nil {
+		return nil, nil, err
+	}
+	if response.AID == go3270.AIDPF1 {
+		return state.helpTransaction, state, nil
+	}
+	if response.AID == go3270.AIDPF3 {
+		return state.mainMenuTransaction, state, nil
+	}
+	return state.handoffTransaction, state, nil
+}
+
 // taskEditorTransaction shows ISPF-like task editor
 func (state *tui3270State) taskEditorTransaction(conn net.Conn, devInfo go3270.DevInfo, data any) (go3270.Tx, any, error) {
 	if state.selectedTask == nil {
@@ -1105,10 +1191,16 @@ func (state *tui3270State) handleCommand(cmd string, currentTx go3270.Tx) (go327
 		return state.scorecardTransaction, state, nil
 	case "4":
 		state.command = ""
+		return state.handoffTransaction, state, nil
+	case "5":
+		state.command = ""
 		return nil, nil, nil // Exit
 	case "SCORECARD", "SC":
 		state.command = ""
 		return state.scorecardTransaction, state, nil
+	case "HANDOFFS", "HO":
+		state.command = ""
+		return state.handoffTransaction, state, nil
 	case "MENU", "M", "MAIN":
 		state.command = ""
 		return state.mainMenuTransaction, state, nil
@@ -1127,11 +1219,9 @@ func (state *tui3270State) handleCommand(cmd string, currentTx go3270.Tx) (go327
 			state.filter = strings.Join(args, " ")
 			state.cursor = 0
 			state.listOffset = 0
-			// Reload tasks with filter
 			ctx := context.Background()
-			filters := &database.TaskFilters{}
 			var err error
-			state.tasks, err = database.ListTasks(ctx, filters)
+			state.tasks, err = loadTasksForStatus(ctx, state.status)
 			if err == nil {
 				// Simple text search filter
 				filtered := []*database.Todo2Task{}
@@ -1146,15 +1236,9 @@ func (state *tui3270State) handleCommand(cmd string, currentTx go3270.Tx) (go327
 			}
 		} else {
 			state.filter = ""
-			// Reload all tasks
 			ctx := context.Background()
 			var err error
-			if state.status != "" {
-				state.tasks, err = database.GetTasksByStatus(ctx, state.status)
-			} else {
-				filters := &database.TaskFilters{}
-				state.tasks, err = database.ListTasks(ctx, filters)
-			}
+			state.tasks, err = loadTasksForStatus(ctx, state.status)
 			if err != nil {
 				logError(nil, "Error reloading tasks", "error", err, "operation", "reloadTasks")
 			}
@@ -1168,12 +1252,7 @@ func (state *tui3270State) handleCommand(cmd string, currentTx go3270.Tx) (go327
 		state.command = ""
 		ctx := context.Background()
 		var err error
-		if state.status != "" {
-			state.tasks, err = database.GetTasksByStatus(ctx, state.status)
-		} else {
-			filters := &database.TaskFilters{}
-			state.tasks, err = database.ListTasks(ctx, filters)
-		}
+		state.tasks, err = loadTasksForStatus(ctx, state.status)
 		if err != nil {
 			logError(nil, "Error reloading tasks", "error", err, "operation", "reloadTasks")
 		}

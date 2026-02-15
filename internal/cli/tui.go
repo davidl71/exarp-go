@@ -2,6 +2,7 @@ package cli
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
@@ -134,7 +135,7 @@ type model struct {
 	height int
 
 	// Config editing mode
-	mode           string // "tasks", "config", or "scorecard"
+	mode           string // "tasks", "config", "scorecard", or "handoffs"
 	configSections []configSection
 	configCursor   int
 	configData     *config.FullConfig
@@ -147,6 +148,11 @@ type model struct {
 	scorecardLoading   bool
 	scorecardErr       error
 	scorecardRunOutput string // last "run recommendation" output or error
+
+	// Handoffs view (session handoff notes)
+	handoffText    string
+	handoffLoading bool
+	handoffErr     error
 
 	// Help overlay
 	showHelp bool
@@ -169,12 +175,22 @@ type scorecardLoadedMsg struct {
 	err             error
 }
 
+type handoffLoadedMsg struct {
+	text string
+	err  error
+}
+
 type runRecommendationResultMsg struct {
 	output string
 	err    error
 }
 
 func initialModel(server framework.MCPServer, status string, projectRoot, projectName string) model {
+	// Ensure config file exists so TUI config view can load and save (initialize if necessary)
+	pbPath := filepath.Join(projectRoot, ".exarp", "config.pb")
+	if _, err := os.Stat(pbPath); os.IsNotExist(err) {
+		_ = config.WriteConfigToProtobufFile(projectRoot, config.GetDefaults())
+	}
 	// Load config
 	cfg, _ := config.LoadConfig(projectRoot)
 
@@ -237,8 +253,17 @@ func loadTasks(status string) tea.Cmd {
 		if status != "" {
 			tasks, err = database.GetTasksByStatus(ctx, status)
 		} else {
-			filters := &database.TaskFilters{}
-			tasks, err = database.ListTasks(ctx, filters)
+			// Default: open tasks only (Todo + In Progress), matching CLI task list
+			todo, errTodo := database.GetTasksByStatus(ctx, "Todo")
+			inProgress, errIP := database.GetTasksByStatus(ctx, "In Progress")
+			if errTodo != nil {
+				err = errTodo
+			} else if errIP != nil {
+				err = errIP
+			} else {
+				tasks = append(tasks, todo...)
+				tasks = append(tasks, inProgress...)
+			}
 		}
 
 		return taskLoadedMsg{tasks: tasks, err: err}
@@ -286,6 +311,31 @@ func loadScorecard(projectRoot string) tea.Cmd {
 		}
 
 		return scorecardLoadedMsg{text: combined.String(), recommendations: recommendations}
+	}
+}
+
+// loadHandoffs fetches session handoff list via the session tool and returns a handoffLoadedMsg.
+func loadHandoffs(server framework.MCPServer) tea.Cmd {
+	return func() tea.Msg {
+		if server == nil {
+			return handoffLoadedMsg{err: fmt.Errorf("no server")}
+		}
+		ctx := context.Background()
+		args := map[string]interface{}{"action": "handoff", "sub_action": "list"}
+		argsBytes, err := json.Marshal(args)
+		if err != nil {
+			return handoffLoadedMsg{err: err}
+		}
+		result, err := server.CallTool(ctx, "session", argsBytes)
+		if err != nil {
+			return handoffLoadedMsg{err: err}
+		}
+		var b strings.Builder
+		for _, c := range result {
+			b.WriteString(c.Text)
+			b.WriteString("\n")
+		}
+		return handoffLoadedMsg{text: strings.TrimSpace(b.String()), err: nil}
 	}
 }
 
@@ -384,6 +434,14 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		return m, nil
 
+	case handoffLoadedMsg:
+		m.handoffLoading = false
+		m.handoffErr = msg.err
+		if msg.err == nil {
+			m.handoffText = msg.text
+		}
+		return m, nil
+
 	case runRecommendationResultMsg:
 		if msg.err != nil {
 			m.scorecardRunOutput = "Error: " + msg.err.Error()
@@ -439,8 +497,24 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.scorecardErr = nil
 				m.scorecardText = ""
 				return m, loadScorecard(m.projectRoot)
+			} else if m.mode == "handoffs" {
+				m.mode = "tasks"
+				m.cursor = 0
 			}
 			return m, nil
+
+		case "H":
+			// Toggle handoffs view (session handoff notes)
+			if m.mode == "handoffs" {
+				m.mode = "tasks"
+				m.cursor = 0
+				return m, nil
+			}
+			m.mode = "handoffs"
+			m.handoffLoading = true
+			m.handoffErr = nil
+			m.handoffText = ""
+			return m, loadHandoffs(m.server)
 
 		case "c":
 			// Toggle between tasks and config view
@@ -448,6 +522,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.mode = "config"
 				m.configCursor = 0
 			} else if m.mode == "config" {
+				m.mode = "tasks"
+				m.cursor = 0
+			} else if m.mode == "handoffs" {
 				m.mode = "tasks"
 				m.cursor = 0
 			}
@@ -529,6 +606,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				// Refresh scorecard
 				m.scorecardLoading = true
 				return m, loadScorecard(m.projectRoot)
+			} else if m.mode == "handoffs" {
+				// Refresh handoffs
+				m.handoffLoading = true
+				return m, loadHandoffs(m.server)
 			} else {
 				// Refresh tasks
 				m.loading = true
@@ -576,6 +657,9 @@ func (m model) View() string {
 	}
 	if m.mode == "scorecard" {
 		return m.viewScorecard()
+	}
+	if m.mode == "handoffs" {
+		return m.viewHandoffs()
 	}
 	return m.viewTasks()
 }
@@ -1057,6 +1141,69 @@ func (m model) viewConfig() string {
 	return b.String()
 }
 
+func (m model) viewHandoffs() string {
+	availableWidth := m.width - 2
+	if availableWidth < 40 {
+		availableWidth = 40
+	}
+	maxTextLines := m.height - 8
+	if maxTextLines < 4 {
+		maxTextLines = 4
+	}
+
+	var b strings.Builder
+	title := "SESSION HANDOFFS"
+	if m.projectName != "" {
+		title = fmt.Sprintf("%s - %s", strings.ToUpper(m.projectName), title)
+	}
+	b.WriteString(headerStyle.Render(title))
+	b.WriteString(" ")
+	b.WriteString(headerLabelStyle.Render("H=back"))
+	b.WriteString(" ")
+	b.WriteString(headerLabelStyle.Render("r=refresh"))
+	b.WriteString("\n")
+	b.WriteString(borderStyle.Render(strings.Repeat("─", availableWidth)))
+	b.WriteString("\n")
+
+	if m.handoffLoading {
+		b.WriteString("\n  Loading handoffs...\n\n")
+		b.WriteString(statusBarStyle.Render("Commands: H back  q quit"))
+		return b.String()
+	}
+	if m.handoffErr != nil {
+		b.WriteString(fmt.Sprintf("\n  Error: %v\n\n", m.handoffErr))
+		b.WriteString(statusBarStyle.Render("Commands: H back  r refresh  q quit"))
+		return b.String()
+	}
+	if m.handoffText == "" {
+		b.WriteString("\n  No handoff notes.\n\n")
+		b.WriteString(statusBarStyle.Render("Commands: H back  r refresh  q quit"))
+		return b.String()
+	}
+
+	lines := strings.Split(m.handoffText, "\n")
+	textLinesShown := 0
+	for _, line := range lines {
+		if textLinesShown >= maxTextLines {
+			b.WriteString(helpStyle.Render("  ... (run 'exarp-go session handoffs' for full output)"))
+			b.WriteString("\n")
+			break
+		}
+		if len(line) > availableWidth {
+			line = line[:availableWidth-3] + "..."
+		}
+		b.WriteString(normalStyle.Render(line))
+		b.WriteString("\n")
+		textLinesShown++
+	}
+
+	b.WriteString("\n")
+	b.WriteString(borderStyle.Render(strings.Repeat("─", availableWidth)))
+	b.WriteString("\n")
+	b.WriteString(statusBarStyle.Render("Commands: H back  r refresh  q quit"))
+	return b.String()
+}
+
 func (m model) viewScorecard() string {
 	// Use full width minus small margin for better window utilization
 	availableWidth := m.width - 2
@@ -1199,7 +1346,9 @@ func (m model) viewHelp() string {
 	b.WriteString(helpStyle.Render("c"))
 	b.WriteString("  Switch to Config\n  ")
 	b.WriteString(helpStyle.Render("p"))
-	b.WriteString("  Switch to Scorecard (project health)\n\n")
+	b.WriteString("  Switch to Scorecard (project health)\n  ")
+	b.WriteString(helpStyle.Render("H"))
+	b.WriteString("  Switch to Session handoffs\n\n")
 	b.WriteString(normalStyle.Render("Actions:"))
 	b.WriteString("\n  ")
 	b.WriteString(helpStyle.Render("r"))
