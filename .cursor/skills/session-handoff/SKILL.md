@@ -52,6 +52,12 @@ exarp-go -tool session -args '{"action":"handoff","sub_action":"end","summary":"
 exarp-go -tool session -args '{"action":"handoff","sub_action":"list"}'
 ```
 
+## TUI (exarp-go interactive)
+
+In the Handoffs view:
+- **i** — Start an **interactive** Cursor agent with the handoff as the initial prompt (agent opens for conversation; handoff is not closed).
+- **e** — Run handoff in child agent (non-interactive) and close the handoff.
+
 ## Storage
 
 Handoffs are stored in `.todo2/handoffs.json` (last 20 kept). Session prime includes handoff alerts when notes exist from another host.

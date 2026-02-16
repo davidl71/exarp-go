@@ -897,6 +897,7 @@ func runShellcheck(ctx context.Context, path string, fix bool) (*LintResult, err
 
 			for _, issue := range jsonOutput {
 				severity := "warning"
+
 				switch issue.Level {
 				case "error":
 					severity = "error"

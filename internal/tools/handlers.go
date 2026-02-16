@@ -314,9 +314,17 @@ func handleReport(ctx context.Context, args json.RawMessage) ([]framework.TextCo
 		}
 
 		return result, nil
+
+	case "update_waves_from_plan":
+		result, err := handleReportUpdateWavesFromPlan(ctx, params)
+		if err != nil {
+			return nil, fmt.Errorf("report update_waves_from_plan: %w", err)
+		}
+
+		return result, nil
 	}
 
-	return nil, fmt.Errorf("report action %q not supported; supported: overview, scorecard, briefing, prd, plan, scorecard_plans, parallel_execution_plan", action)
+	return nil, fmt.Errorf("report action %q not supported; supported: overview, scorecard, briefing, prd, plan, scorecard_plans, parallel_execution_plan, update_waves_from_plan", action)
 }
 
 // handleSecurity handles the security tool.

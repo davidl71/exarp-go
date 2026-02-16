@@ -6,12 +6,23 @@
 package cli
 
 import (
+	"bytes"
 	"context"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
+	"runtime"
 	"strings"
 )
+
+// JobOutputMsg is sent when a non-interactive child agent completes (for background jobs output capture).
+type JobOutputMsg struct {
+	Pid      int
+	Output   string
+	ExitCode int
+	Err      error
+}
 
 // ChildAgentKind is the kind of context to run in the child agent.
 type ChildAgentKind string
@@ -38,33 +49,67 @@ func AgentBinary() string {
 	if err != nil {
 		return ""
 	}
+
 	return path
 }
 
 // RunChildAgent starts the Cursor CLI agent in projectRoot with the given prompt.
-// It starts the process in the background (does not wait) so the TUI can continue.
+// It uses -p (non-interactive); the process runs in the background so the TUI can continue.
 // Returns a result suitable for TUI display (Launched true + message, or Launched false + error message).
 func RunChildAgent(projectRoot, prompt string) (result ChildAgentRunResult) {
+	return runChildAgent(projectRoot, prompt, false)
+}
+
+// RunChildAgentWithOutputCapture starts the non-interactive agent and captures stdout+stderr.
+// Returns the launch result and a channel that receives JobOutputMsg when the process exits.
+func RunChildAgentWithOutputCapture(projectRoot, prompt string) (result ChildAgentRunResult, done <-chan JobOutputMsg) {
+	ch := make(chan JobOutputMsg, 1)
+	result, actualCh := runChildAgentWithCapture(projectRoot, prompt, ch)
+	return result, actualCh
+}
+
+// RunChildAgentInteractive starts the Cursor CLI agent in projectRoot with the given prompt
+// in interactive mode (agent opens with the prompt as initial message; user can continue the conversation).
+// On macOS, runs in a new Terminal window for full interaction; otherwise runs in background.
+func RunChildAgentInteractive(projectRoot, prompt string) (result ChildAgentRunResult) {
+	return runChildAgent(projectRoot, prompt, true)
+}
+
+// runChildAgent starts the Cursor CLI agent; interactive=true runs in new terminal (darwin) or "agent prompt", interactive=false runs "agent -p prompt".
+func runChildAgent(projectRoot, prompt string, interactive bool) (result ChildAgentRunResult) {
 	if prompt == "" {
 		result.Launched = false
 		result.Message = "no prompt"
+
 		return result
 	}
+
 	agentPath := AgentBinary()
 	if agentPath == "" {
 		result.Launched = false
 		result.Message = "agent not on PATH (install Cursor CLI: https://cursor.com/docs/cli/overview)"
-		return result
-	}
-	if projectRoot == "" {
-		result.Launched = false
-		result.Message = "no project root"
+
 		return result
 	}
 
-	// Run agent -p "..." in project root. Use Start() so we don't block.
+	if projectRoot == "" {
+		result.Launched = false
+		result.Message = "no project root"
+
+		return result
+	}
+
+	if interactive && runtime.GOOS == "darwin" {
+		return runInNewTerminal(projectRoot, prompt)
+	}
+
 	ctx := context.Background()
-	cmd := exec.CommandContext(ctx, agentPath, "-p", prompt)
+	var cmd *exec.Cmd
+	if interactive {
+		cmd = exec.CommandContext(ctx, agentPath, prompt)
+	} else {
+		cmd = exec.CommandContext(ctx, agentPath, "-p", prompt)
+	}
 	cmd.Dir = projectRoot
 	cmd.Stdin = nil
 	cmd.Stdout = nil
@@ -74,12 +119,122 @@ func RunChildAgent(projectRoot, prompt string) (result ChildAgentRunResult) {
 	if err := cmd.Start(); err != nil {
 		result.Launched = false
 		result.Message = err.Error()
+
 		return result
 	}
+
 	if cmd.Process != nil {
 		result.Pid = cmd.Process.Pid
 	}
+
 	go func() { _ = cmd.Wait() }()
+
+	result.Launched = true
+	result.Prompt = prompt
+
+	prefix := "Launched: "
+	if interactive {
+		prefix = "Launched (interactive): "
+	}
+	if len(prompt) > 60 {
+		result.Message = prefix + prompt[:57] + "..."
+	} else {
+		result.Message = prefix + prompt
+	}
+
+	return result
+}
+
+// runInNewTerminal opens a new Terminal window and runs the agent interactively (macOS).
+func runInNewTerminal(projectRoot, prompt string) (result ChildAgentRunResult) {
+	// Use osascript to run "cd dir && agent prompt" in a new Terminal window.
+	// Pass projectRoot and prompt as argv so AppleScript can safely quote them.
+	script := `on run argv
+  set projectRoot to item 1 of argv
+  set promptText to item 2 of argv
+  tell application "Terminal" to do script "cd " & quoted form of projectRoot & " && agent " & quoted form of promptText
+  tell application "Terminal" to activate
+end run`
+	cmd := exec.Command("osascript", "-e", script, "--", projectRoot, prompt)
+	cmd.Env = os.Environ()
+	if err := cmd.Run(); err != nil {
+		result.Launched = false
+		result.Message = "failed to open Terminal: " + err.Error()
+
+		return result
+	}
+
+	result.Launched = true
+	result.Prompt = prompt
+	result.Pid = 0 // no direct PID when launched via osascript
+	if len(prompt) > 60 {
+		result.Message = "Launched (interactive): " + prompt[:57] + "..."
+	} else {
+		result.Message = "Launched (interactive): " + prompt
+	}
+
+	return result
+}
+
+// runChildAgentWithCapture starts the non-interactive agent, captures output, and sends JobOutputMsg when done.
+func runChildAgentWithCapture(projectRoot, prompt string, ch chan<- JobOutputMsg) (result ChildAgentRunResult, done <-chan JobOutputMsg) {
+	if prompt == "" {
+		result.Launched = false
+		result.Message = "no prompt"
+		ch <- JobOutputMsg{Err: fmt.Errorf("no prompt")}
+		return result, ch
+	}
+
+	agentPath := AgentBinary()
+	if agentPath == "" {
+		result.Launched = false
+		result.Message = "agent not on PATH (install Cursor CLI: https://cursor.com/docs/cli/overview)"
+		ch <- JobOutputMsg{Err: fmt.Errorf("agent not on PATH")}
+		return result, ch
+	}
+
+	if projectRoot == "" {
+		result.Launched = false
+		result.Message = "no project root"
+		ch <- JobOutputMsg{Err: fmt.Errorf("no project root")}
+		return result, ch
+	}
+
+	ctx := context.Background()
+	cmd := exec.CommandContext(ctx, agentPath, "-p", prompt)
+	cmd.Dir = projectRoot
+	cmd.Stdin = nil
+
+	stdoutPipe, err := cmd.StdoutPipe()
+	if err != nil {
+		result.Launched = false
+		result.Message = err.Error()
+		ch <- JobOutputMsg{Err: err}
+		return result, ch
+	}
+
+	stderrPipe, err := cmd.StderrPipe()
+	if err != nil {
+		result.Launched = false
+		result.Message = err.Error()
+		ch <- JobOutputMsg{Err: err}
+		return result, ch
+	}
+
+	cmd.Env = os.Environ()
+
+	if err := cmd.Start(); err != nil {
+		result.Launched = false
+		result.Message = err.Error()
+		ch <- JobOutputMsg{Err: err}
+		return result, ch
+	}
+
+	pid := 0
+	if cmd.Process != nil {
+		pid = cmd.Process.Pid
+	}
+
 	result.Launched = true
 	result.Prompt = prompt
 	if len(prompt) > 60 {
@@ -87,7 +242,35 @@ func RunChildAgent(projectRoot, prompt string) (result ChildAgentRunResult) {
 	} else {
 		result.Message = "Launched: " + prompt
 	}
-	return result
+
+	go func() {
+		var stdoutBuf, stderrBuf bytes.Buffer
+		pipeDone := make(chan struct{}, 2)
+		go func() { _, _ = io.Copy(&stdoutBuf, stdoutPipe); pipeDone <- struct{}{} }()
+		go func() { _, _ = io.Copy(&stderrBuf, stderrPipe); pipeDone <- struct{}{} }()
+		exitErr := cmd.Wait()
+		<-pipeDone
+		<-pipeDone
+		var combined strings.Builder
+		if stdoutBuf.Len() > 0 {
+			combined.Write(stdoutBuf.Bytes())
+		}
+		if stderrBuf.Len() > 0 {
+			if combined.Len() > 0 {
+				combined.WriteString("\n--- stderr ---\n")
+			}
+			combined.Write(stderrBuf.Bytes())
+		}
+		exitCode := 0
+		if exitErr != nil {
+			if exit, ok := exitErr.(*exec.ExitError); ok {
+				exitCode = exit.ExitCode()
+			}
+		}
+		ch <- JobOutputMsg{Pid: pid, Output: strings.TrimSpace(combined.String()), ExitCode: exitCode, Err: exitErr}
+	}()
+
+	return result, ch
 }
 
 // PromptForTask builds a child-agent prompt for a single task (e.g. "Work on T-123: Task name").
@@ -96,9 +279,11 @@ func PromptForTask(taskID, content string) string {
 	if content == "" {
 		content = "Task " + taskID
 	}
+
 	if len(content) > 200 {
 		content = content[:197] + "..."
 	}
+
 	return fmt.Sprintf("Work on %s: %s", taskID, content)
 }
 
@@ -113,28 +298,35 @@ func PromptForWave(waveIndex int, taskIDs []string) string {
 	if len(taskIDs) == 0 {
 		return fmt.Sprintf("Work on Wave %d (no tasks in wave).", waveIndex)
 	}
+
 	if len(taskIDs) == 1 {
 		return fmt.Sprintf("Work on Wave %d task: %s", waveIndex, taskIDs[0])
 	}
+
 	return fmt.Sprintf("Work on Wave %d tasks: %s", waveIndex, strings.Join(taskIDs, ", "))
 }
 
 // PromptForHandoff builds a child-agent prompt from a handoff entry (summary + next steps).
 func PromptForHandoff(summary string, nextSteps []interface{}) string {
 	prompt := "Resume from handoff."
+
 	if summary != "" {
 		if len(summary) > 300 {
 			summary = summary[:297] + "..."
 		}
+
 		prompt = "Resume from handoff. Summary: " + summary
 	}
+
 	if len(nextSteps) > 0 {
 		var steps []string
+
 		for _, s := range nextSteps {
 			if str, ok := s.(string); ok && str != "" {
 				steps = append(steps, str)
 			}
 		}
+
 		if len(steps) > 0 {
 			prompt += " Next steps: " + strings.Join(steps, "; ")
 			if len(prompt) > 400 {
@@ -142,5 +334,6 @@ func PromptForHandoff(summary string, nextSteps []interface{}) string {
 			}
 		}
 	}
+
 	return prompt
 }

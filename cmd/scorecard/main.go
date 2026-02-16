@@ -21,7 +21,7 @@ func main() {
 	projectRoot := filepath.Clean(wd)
 
 	// Check for --full flag to disable fast mode
-	fastMode := !(len(os.Args) > 1 && os.Args[1] == "--full") // Default to fast mode for CLI
+	fastMode := len(os.Args) <= 1 || os.Args[1] != "--full" // Default to fast mode for CLI
 
 	opts := &tools.ScorecardOptions{FastMode: fastMode}
 
