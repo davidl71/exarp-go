@@ -63,9 +63,7 @@ func RunChildAgent(projectRoot, prompt string) (result ChildAgentRunResult) {
 // RunChildAgentWithOutputCapture starts the non-interactive agent and captures stdout+stderr.
 // Returns the launch result and a channel that receives JobOutputMsg when the process exits.
 func RunChildAgentWithOutputCapture(projectRoot, prompt string) (result ChildAgentRunResult, done <-chan JobOutputMsg) {
-	ch := make(chan JobOutputMsg, 1)
-	result, actualCh := runChildAgentWithCapture(projectRoot, prompt, ch)
-	return result, actualCh
+	return runChildAgentWithCapture(projectRoot, prompt)
 }
 
 // RunChildAgentInteractive starts the Cursor CLI agent in projectRoot with the given prompt
@@ -177,7 +175,8 @@ end run`
 }
 
 // runChildAgentWithCapture starts the non-interactive agent, captures output, and sends JobOutputMsg when done.
-func runChildAgentWithCapture(projectRoot, prompt string, ch chan<- JobOutputMsg) (result ChildAgentRunResult, done <-chan JobOutputMsg) {
+func runChildAgentWithCapture(projectRoot, prompt string) (result ChildAgentRunResult, done <-chan JobOutputMsg) {
+	ch := make(chan JobOutputMsg, 1)
 	if prompt == "" {
 		result.Launched = false
 		result.Message = "no prompt"
