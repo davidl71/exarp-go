@@ -2,29 +2,44 @@ package database
 
 import (
 	"context"
+	"path/filepath"
+	"runtime"
 	"testing"
 
 	"github.com/davidl71/exarp-go/internal/models"
 )
 
-func TestAddComments(t *testing.T) {
-	// Setup
+// initCommentsTestDB sets up a temp DB with migrations from the repo (same pattern as initLockTestDB).
+func initCommentsTestDB(t *testing.T) string {
+	t.Helper()
+	testDBMu.Lock()
+	t.Cleanup(func() { testDBMu.Unlock() })
+	_, self, _, _ := runtime.Caller(0)
+	repoRoot := filepath.Dir(filepath.Dir(filepath.Dir(self)))
+	migrationsDir := filepath.Join(repoRoot, "migrations")
 	tmpDir := t.TempDir()
-
-	err := Init(tmpDir)
+	cfg, err := LoadConfig(tmpDir)
 	if err != nil {
-		t.Fatalf("Init() error = %v", err)
+		t.Fatalf("LoadConfig() error = %v", err)
 	}
+	cfg.Driver = DriverSQLite
+	cfg.DSN = filepath.Join(tmpDir, ".todo2", "todo2.db")
+	cfg.MigrationsDir = migrationsDir
+	cfg.AutoMigrate = true
+	if err = InitWithConfig(cfg); err != nil {
+		t.Fatalf("InitWithConfig() error = %v", err)
+	}
+	t.Cleanup(func() { _ = Close() })
+	return tmpDir
+}
 
-	defer func() {
-		if err := Close(); err != nil {
-			// Ignore cleanup errors in tests
-		}
-	}()
-
-	// Create a task first (required for foreign key)
+func TestAddComments(t *testing.T) {
+	initCommentsTestDB(t)
+	var err error
+	// Create a task first (required for foreign key; use valid ID T-<digits>)
+	taskID := "T-1000001"
 	task := &models.Todo2Task{
-		ID:      "T-COMMENT-1",
+		ID:      taskID,
 		Content: "Test task for comments",
 		Status:  "Todo",
 	}
@@ -42,13 +57,13 @@ func TestAddComments(t *testing.T) {
 		},
 	}
 
-	err = AddComments(context.Background(), "T-COMMENT-1", comments)
+	err = AddComments(context.Background(), taskID, comments)
 	if err != nil {
 		t.Fatalf("AddComments() error = %v", err)
 	}
 
 	// Verify comment was added
-	retrieved, err := GetComments(context.Background(), "T-COMMENT-1")
+	retrieved, err := GetComments(context.Background(), taskID)
 	if err != nil {
 		t.Fatalf("GetComments() error = %v", err)
 	}
@@ -65,8 +80,8 @@ func TestAddComments(t *testing.T) {
 		t.Errorf("Expected content 'This is a test note', got '%s'", retrieved[0].Content)
 	}
 
-	if retrieved[0].TaskID != "T-COMMENT-1" {
-		t.Errorf("Expected taskID T-COMMENT-1, got %s", retrieved[0].TaskID)
+	if retrieved[0].TaskID != taskID {
+		t.Errorf("Expected taskID %s, got %s", taskID, retrieved[0].TaskID)
 	}
 
 	if retrieved[0].ID == "" {
@@ -75,23 +90,12 @@ func TestAddComments(t *testing.T) {
 }
 
 func TestAddCommentsBatch(t *testing.T) {
-	// Setup
-	tmpDir := t.TempDir()
-
-	err := Init(tmpDir)
-	if err != nil {
-		t.Fatalf("Init() error = %v", err)
-	}
-
-	defer func() {
-		if err := Close(); err != nil {
-			// Ignore cleanup errors in tests
-		}
-	}()
-
-	// Create task
+	initCommentsTestDB(t)
+	var err error
+	// Create task (valid ID: T-<digits>)
+	taskID := "T-1000002"
 	task := &models.Todo2Task{
-		ID:      "T-COMMENT-2",
+		ID:      taskID,
 		Content: "Test task",
 		Status:  "Todo",
 	}
@@ -117,13 +121,13 @@ func TestAddCommentsBatch(t *testing.T) {
 		},
 	}
 
-	err = AddComments(context.Background(), "T-COMMENT-2", comments)
+	err = AddComments(context.Background(), taskID, comments)
 	if err != nil {
 		t.Fatalf("AddComments() error = %v", err)
 	}
 
 	// Verify all comments were added
-	retrieved, err := GetComments(context.Background(), "T-COMMENT-2")
+	retrieved, err := GetComments(context.Background(), taskID)
 	if err != nil {
 		t.Fatalf("GetComments() error = %v", err)
 	}
@@ -144,23 +148,12 @@ func TestAddCommentsBatch(t *testing.T) {
 }
 
 func TestGetComments(t *testing.T) {
-	// Setup
-	tmpDir := t.TempDir()
-
-	err := Init(tmpDir)
-	if err != nil {
-		t.Fatalf("Init() error = %v", err)
-	}
-
-	defer func() {
-		if err := Close(); err != nil {
-			// Ignore cleanup errors in tests
-		}
-	}()
-
-	// Create task
+	initCommentsTestDB(t)
+	var err error
+	// Create task (valid ID)
+	taskID := "T-1000003"
 	task := &models.Todo2Task{
-		ID:      "T-COMMENT-3",
+		ID:      taskID,
 		Content: "Test task",
 		Status:  "Todo",
 	}
@@ -182,13 +175,13 @@ func TestGetComments(t *testing.T) {
 		},
 	}
 
-	err = AddComments(context.Background(), "T-COMMENT-3", comments)
+	err = AddComments(context.Background(), taskID, comments)
 	if err != nil {
 		t.Fatalf("AddComments() error = %v", err)
 	}
 
 	// Test GetComments
-	retrieved, err := GetComments(context.Background(), "T-COMMENT-3")
+	retrieved, err := GetComments(context.Background(), taskID)
 	if err != nil {
 		t.Fatalf("GetComments() error = %v", err)
 	}
@@ -209,23 +202,12 @@ func TestGetComments(t *testing.T) {
 }
 
 func TestGetCommentsByType(t *testing.T) {
-	// Setup
-	tmpDir := t.TempDir()
-
-	err := Init(tmpDir)
-	if err != nil {
-		t.Fatalf("Init() error = %v", err)
-	}
-
-	defer func() {
-		if err := Close(); err != nil {
-			// Ignore cleanup errors in tests
-		}
-	}()
-
-	// Create tasks
-	task1 := &models.Todo2Task{ID: "T-COMMENT-4", Content: "Task 1", Status: "Todo"}
-	task2 := &models.Todo2Task{ID: "T-COMMENT-5", Content: "Task 2", Status: "Todo"}
+	initCommentsTestDB(t)
+	var err error
+	// Create tasks (valid IDs)
+	taskID1, taskID2 := "T-1000004", "T-1000005"
+	task1 := &models.Todo2Task{ID: taskID1, Content: "Task 1", Status: "Todo"}
+	task2 := &models.Todo2Task{ID: taskID2, Content: "Task 2", Status: "Todo"}
 
 	err = CreateTask(context.Background(), task1)
 	if err != nil {
@@ -238,7 +220,7 @@ func TestGetCommentsByType(t *testing.T) {
 	}
 
 	// Add mixed comments
-	err = AddComments(context.Background(), "T-COMMENT-4", []Comment{
+	err = AddComments(context.Background(), taskID1, []Comment{
 		{Type: CommentTypeResearch, Content: "Research 1"},
 		{Type: CommentTypeNote, Content: "Note 1"},
 	})
@@ -246,7 +228,7 @@ func TestGetCommentsByType(t *testing.T) {
 		t.Fatalf("AddComments() error = %v", err)
 	}
 
-	err = AddComments(context.Background(), "T-COMMENT-5", []Comment{
+	err = AddComments(context.Background(), taskID2, []Comment{
 		{Type: CommentTypeResearch, Content: "Research 2"},
 		{Type: CommentTypeResult, Content: "Result 1"},
 	})
@@ -272,23 +254,12 @@ func TestGetCommentsByType(t *testing.T) {
 }
 
 func TestGetCommentsWithTypeFilter(t *testing.T) {
-	// Setup
-	tmpDir := t.TempDir()
-
-	err := Init(tmpDir)
-	if err != nil {
-		t.Fatalf("Init() error = %v", err)
-	}
-
-	defer func() {
-		if err := Close(); err != nil {
-			// Ignore cleanup errors in tests
-		}
-	}()
-
-	// Create task
+	initCommentsTestDB(t)
+	var err error
+	// Create task (valid ID)
+	taskID := "T-1000006"
 	task := &models.Todo2Task{
-		ID:      "T-COMMENT-6",
+		ID:      taskID,
 		Content: "Test task",
 		Status:  "Todo",
 	}
@@ -299,7 +270,7 @@ func TestGetCommentsWithTypeFilter(t *testing.T) {
 	}
 
 	// Add mixed comments
-	err = AddComments(context.Background(), "T-COMMENT-6", []Comment{
+	err = AddComments(context.Background(), taskID, []Comment{
 		{Type: CommentTypeResearch, Content: "Research"},
 		{Type: CommentTypeNote, Content: "Note"},
 		{Type: CommentTypeResult, Content: "Result"},
@@ -309,7 +280,7 @@ func TestGetCommentsWithTypeFilter(t *testing.T) {
 	}
 
 	// Test filtering by type
-	notes, err := GetCommentsWithTypeFilter(context.Background(), "T-COMMENT-6", CommentTypeNote)
+	notes, err := GetCommentsWithTypeFilter(context.Background(), taskID, CommentTypeNote)
 	if err != nil {
 		t.Fatalf("GetCommentsWithTypeFilter() error = %v", err)
 	}
@@ -324,23 +295,12 @@ func TestGetCommentsWithTypeFilter(t *testing.T) {
 }
 
 func TestDeleteComment(t *testing.T) {
-	// Setup
-	tmpDir := t.TempDir()
-
-	err := Init(tmpDir)
-	if err != nil {
-		t.Fatalf("Init() error = %v", err)
-	}
-
-	defer func() {
-		if err := Close(); err != nil {
-			// Ignore cleanup errors in tests
-		}
-	}()
-
-	// Create task
+	initCommentsTestDB(t)
+	var err error
+	// Create task (valid ID)
+	taskID := "T-1000007"
 	task := &models.Todo2Task{
-		ID:      "T-COMMENT-7",
+		ID:      taskID,
 		Content: "Test task",
 		Status:  "Todo",
 	}
@@ -351,7 +311,7 @@ func TestDeleteComment(t *testing.T) {
 	}
 
 	// Add comment
-	err = AddComments(context.Background(), "T-COMMENT-7", []Comment{
+	err = AddComments(context.Background(), taskID, []Comment{
 		{Type: CommentTypeNote, Content: "Comment to delete"},
 	})
 	if err != nil {
@@ -359,7 +319,7 @@ func TestDeleteComment(t *testing.T) {
 	}
 
 	// Get comment ID
-	comments, err := GetComments(context.Background(), "T-COMMENT-7")
+	comments, err := GetComments(context.Background(), taskID)
 	if err != nil {
 		t.Fatalf("GetComments() error = %v", err)
 	}
@@ -377,7 +337,7 @@ func TestDeleteComment(t *testing.T) {
 	}
 
 	// Verify comment is deleted
-	remaining, err := GetComments(context.Background(), "T-COMMENT-7")
+	remaining, err := GetComments(context.Background(), taskID)
 	if err != nil {
 		t.Fatalf("GetComments() error = %v", err)
 	}
@@ -394,23 +354,12 @@ func TestDeleteComment(t *testing.T) {
 }
 
 func TestCommentCascadeDelete(t *testing.T) {
-	// Setup
-	tmpDir := t.TempDir()
-
-	err := Init(tmpDir)
-	if err != nil {
-		t.Fatalf("Init() error = %v", err)
-	}
-
-	defer func() {
-		if err := Close(); err != nil {
-			// Ignore cleanup errors in tests
-		}
-	}()
-
-	// Create task
+	initCommentsTestDB(t)
+	var err error
+	// Create task (valid ID)
+	taskID := "T-1000008"
 	task := &models.Todo2Task{
-		ID:      "T-COMMENT-8",
+		ID:      taskID,
 		Content: "Test task",
 		Status:  "Todo",
 	}
@@ -421,7 +370,7 @@ func TestCommentCascadeDelete(t *testing.T) {
 	}
 
 	// Add comments
-	err = AddComments(context.Background(), "T-COMMENT-8", []Comment{
+	err = AddComments(context.Background(), taskID, []Comment{
 		{Type: CommentTypeNote, Content: "Comment 1"},
 		{Type: CommentTypeResult, Content: "Comment 2"},
 	})
@@ -430,7 +379,7 @@ func TestCommentCascadeDelete(t *testing.T) {
 	}
 
 	// Verify comments exist
-	comments, err := GetComments(context.Background(), "T-COMMENT-8")
+	comments, err := GetComments(context.Background(), taskID)
 	if err != nil {
 		t.Fatalf("GetComments() error = %v", err)
 	}
@@ -440,13 +389,13 @@ func TestCommentCascadeDelete(t *testing.T) {
 	}
 
 	// Delete task (should cascade delete comments)
-	err = DeleteTask(context.Background(), "T-COMMENT-8")
+	err = DeleteTask(context.Background(), taskID)
 	if err != nil {
 		t.Fatalf("DeleteTask() error = %v", err)
 	}
 
 	// Verify comments were cascade deleted
-	remaining, err := GetComments(context.Background(), "T-COMMENT-8")
+	remaining, err := GetComments(context.Background(), taskID)
 	if err != nil {
 		t.Fatalf("GetComments() error = %v", err)
 	}
@@ -457,56 +406,31 @@ func TestCommentCascadeDelete(t *testing.T) {
 }
 
 func TestAddCommentsEmptyList(t *testing.T) {
-	// Setup
-	tmpDir := t.TempDir()
-
-	err := Init(tmpDir)
-	if err != nil {
-		t.Fatalf("Init() error = %v", err)
-	}
-
-	defer func() {
-		if err := Close(); err != nil {
-			// Ignore cleanup errors in tests
-		}
-	}()
-
-	// Test adding empty comment list (should not error)
-	err = AddComments(context.Background(), "T-COMMENT-9", []Comment{})
+	initCommentsTestDB(t)
+	// Test adding empty comment list (should not error; task need not exist for empty list)
+	err := AddComments(context.Background(), "T-1000009", []Comment{})
 	if err != nil {
 		t.Fatalf("AddComments(context.Background(), ) with empty list should not error, got %v", err)
 	}
 }
 
 func TestAddCommentsWithProvidedID(t *testing.T) {
-	// Setup
-	tmpDir := t.TempDir()
-
-	err := Init(tmpDir)
-	if err != nil {
-		t.Fatalf("Init() error = %v", err)
-	}
-
-	defer func() {
-		if err := Close(); err != nil {
-			// Ignore cleanup errors in tests
-		}
-	}()
-
-	// Create task
+	initCommentsTestDB(t)
+	// Create task (valid ID)
+	taskID := "T-1000010"
 	task := &models.Todo2Task{
-		ID:      "T-COMMENT-10",
+		ID:      taskID,
 		Content: "Test task",
 		Status:  "Todo",
 	}
 
-	err = CreateTask(context.Background(), task)
+	err := CreateTask(context.Background(), task)
 	if err != nil {
 		t.Fatalf("CreateTask() error = %v", err)
 	}
 
 	// Add comment with provided ID
-	customID := "T-COMMENT-10-C-CUSTOM"
+	customID := taskID + "-C-CUSTOM"
 	comments := []Comment{
 		{
 			ID:      customID,
@@ -515,13 +439,13 @@ func TestAddCommentsWithProvidedID(t *testing.T) {
 		},
 	}
 
-	err = AddComments(context.Background(), "T-COMMENT-10", comments)
+	err = AddComments(context.Background(), taskID, comments)
 	if err != nil {
 		t.Fatalf("AddComments() error = %v", err)
 	}
 
 	// Verify comment has custom ID
-	retrieved, err := GetComments(context.Background(), "T-COMMENT-10")
+	retrieved, err := GetComments(context.Background(), taskID)
 	if err != nil {
 		t.Fatalf("GetComments() error = %v", err)
 	}

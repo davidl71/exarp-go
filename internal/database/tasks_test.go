@@ -11,6 +11,8 @@ import (
 )
 
 func TestCreateTask(t *testing.T) {
+	testDBMu.Lock()
+	defer testDBMu.Unlock()
 	// Setup
 	tmpDir := t.TempDir()
 
@@ -62,6 +64,8 @@ func TestCreateTask(t *testing.T) {
 }
 
 func TestGetTask(t *testing.T) {
+	testDBMu.Lock()
+	defer testDBMu.Unlock()
 	// Setup
 	tmpDir := t.TempDir()
 
@@ -102,6 +106,8 @@ func TestGetTask(t *testing.T) {
 }
 
 func TestUpdateTask(t *testing.T) {
+	testDBMu.Lock()
+	defer testDBMu.Unlock()
 	// Setup
 	tmpDir := t.TempDir()
 
@@ -156,6 +162,8 @@ func TestUpdateTask(t *testing.T) {
 }
 
 func TestDeleteTask(t *testing.T) {
+	testDBMu.Lock()
+	defer testDBMu.Unlock()
 	// Setup
 	tmpDir := t.TempDir()
 
@@ -192,6 +200,8 @@ func TestDeleteTask(t *testing.T) {
 }
 
 func TestListTasks(t *testing.T) {
+	testDBMu.Lock()
+	defer testDBMu.Unlock()
 	// Setup
 	tmpDir := t.TempDir()
 
@@ -245,6 +255,8 @@ func TestListTasks(t *testing.T) {
 }
 
 func TestGetTasksByStatus(t *testing.T) {
+	testDBMu.Lock()
+	defer testDBMu.Unlock()
 	// Setup
 	tmpDir := t.TempDir()
 
@@ -281,6 +293,8 @@ func TestGetTasksByStatus(t *testing.T) {
 }
 
 func TestGetDependencies(t *testing.T) {
+	testDBMu.Lock()
+	defer testDBMu.Unlock()
 	// Setup
 	tmpDir := t.TempDir()
 
@@ -335,6 +349,8 @@ func TestGetDependencies(t *testing.T) {
 }
 
 func TestGetTasksByTag(t *testing.T) {
+	testDBMu.Lock()
+	defer testDBMu.Unlock()
 	// Setup
 	tmpDir := t.TempDir()
 
@@ -371,6 +387,8 @@ func TestGetTasksByTag(t *testing.T) {
 }
 
 func TestTaskWithMetadata(t *testing.T) {
+	testDBMu.Lock()
+	defer testDBMu.Unlock()
 	// Setup
 	tmpDir := t.TempDir()
 
@@ -474,6 +492,8 @@ func TestIsValidTaskID(t *testing.T) {
 }
 
 func TestCreateTaskReplacesInvalidID(t *testing.T) {
+	testDBMu.Lock()
+	defer testDBMu.Unlock()
 	tmpDir := t.TempDir()
 
 	err := Init(tmpDir)
@@ -512,6 +532,8 @@ func TestCreateTaskReplacesInvalidID(t *testing.T) {
 // TestForeignKeysEnabled verifies that foreign key constraints are enabled
 // and properly reject invalid dependency references.
 func TestForeignKeysEnabled(t *testing.T) {
+	testDBMu.Lock()
+	defer testDBMu.Unlock()
 	// Setup
 	tmpDir := t.TempDir()
 
@@ -643,6 +665,8 @@ func TestIsVersionMismatchError(t *testing.T) {
 }
 
 func TestCheckUpdateConflict(t *testing.T) {
+	testDBMu.Lock()
+	defer testDBMu.Unlock()
 	tmpDir := t.TempDir()
 
 	err := Init(tmpDir)
@@ -652,8 +676,9 @@ func TestCheckUpdateConflict(t *testing.T) {
 
 	defer Close()
 
+	taskID := "T-3000001"
 	task := &models.Todo2Task{
-		ID:       "T-CONFLICT",
+		ID:       taskID,
 		Content:  "Task for conflict detection",
 		Status:   "Todo",
 		Priority: "medium",
@@ -668,7 +693,7 @@ func TestCheckUpdateConflict(t *testing.T) {
 	expectedVer := int64(1)
 
 	// No conflict when version matches
-	hasConflict, currentVer, err := CheckUpdateConflict(context.Background(), "T-CONFLICT", expectedVer)
+	hasConflict, currentVer, err := CheckUpdateConflict(context.Background(), taskID, expectedVer)
 	if err != nil {
 		t.Fatalf("CheckUpdateConflict() error = %v", err)
 	}
@@ -682,7 +707,7 @@ func TestCheckUpdateConflict(t *testing.T) {
 	}
 
 	// Conflict when version differs
-	hasConflict, currentVer, err = CheckUpdateConflict(context.Background(), "T-CONFLICT", expectedVer-1)
+	hasConflict, currentVer, err = CheckUpdateConflict(context.Background(), taskID, expectedVer-1)
 	if err != nil {
 		t.Fatalf("CheckUpdateConflict() error = %v", err)
 	}
