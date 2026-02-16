@@ -317,9 +317,13 @@ func scanMarkdown(projectRoot string, docPath string) []map[string]interface{} {
 			if len(match) >= 3 {
 				isDone := strings.ToLower(match[1]) == "x"
 				if !isDone {
+					text := strings.TrimSpace(match[2])
+					if IsDeprecatedDiscoveryText(text) {
+						continue
+					}
 					discoveries = append(discoveries, map[string]interface{}{
 						"type":      "MARKDOWN_TASK",
-						"text":      strings.TrimSpace(match[2]),
+						"text":      text,
 						"file":      strings.TrimPrefix(path, projectRoot+"/"),
 						"completed": isDone,
 						"source":    "markdown",

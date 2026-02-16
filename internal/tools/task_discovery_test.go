@@ -138,3 +138,27 @@ func TestHandleTaskDiscovery(t *testing.T) {
 		})
 	}
 }
+
+func TestIsDeprecatedDiscoveryText(t *testing.T) {
+	tests := []struct {
+		text string
+		want bool
+	}{
+		{"", true},
+		{"   ", true},
+		{"Add middleware", false},
+		{"~~Add middleware (T-274 removed)~~", true},
+		{"Add middleware (removed)", true},
+		{"*(T-274 removed)*", true},
+		{"Future improvement (T-123 removed)", true},
+		{"Future improvement only", false},
+		{"Normal task text", false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.text, func(t *testing.T) {
+			if got := IsDeprecatedDiscoveryText(tt.text); got != tt.want {
+				t.Errorf("IsDeprecatedDiscoveryText(%q) = %v, want %v", tt.text, got, tt.want)
+			}
+		})
+	}
+}

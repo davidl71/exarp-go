@@ -22,6 +22,7 @@ Apply this skill when the workspace uses the exarp-go MCP server and you need to
 | Docs health, CI, or repo status | `health` with appropriate `action` (e.g. docs, git, cicd). |
 | Task branches, merge task changes, task commit history, diff tasks | `git_tools` with `action=commits|branches|tasks|diff|graph|merge|set_branch`. |
 | **Broken references / link check in docs** | `lint` with `path` set to `docs` (or a `.md` file) and `linter=markdownlint` or `auto`. gomarklint link check is enabled in `.gomarklint.json`. See **lint-docs** skill. |
+| **Task discovery (TODO/markdown/orphans)** | `task_discovery` with `action=comments|markdown|planning_links|orphans|all`; optional `create_tasks=true`. Deprecated items (strikethrough, "(removed)") are never created as tasks — see `.cursor/rules/task-discovery.mdc`. |
 | Session context at conversation start | `session` with `action=prime`, `include_hints=true`, `include_tasks=true`. |
 | Test structure or runs | `testing` with `action=validate`, `action=run`, or `action=coverage`. |
 | Tool-specific help | `tool_catalog` with `action=help` and `tool_name`, or stdio://tools resources. |
@@ -38,6 +39,15 @@ Apply this skill when the workspace uses the exarp-go MCP server and you need to
 - **stdio://prompts** — All prompt names and short descriptions; use **/mode/{mode}**, **/persona/{persona}**, **/category/{category}** for filtered lists.
 - **stdio://models** — Model catalog and `backends` (fm_available, apple_fm_tool, ollama_tool, mlx_tool). Check before using LLM tools (see .cursor/rules/llm-tools.mdc).
 - **stdio://tasks**, **stdio://suggested-tasks** — Task list and dependency-ready suggestions.
+
+## Discovering exarp-go usage (do not run --help)
+
+**Do not run `exarp-go --help`, `exarp-go help`, or `./bin/exarp-go` to discover tools or usage.** The binary is either an MCP server (stdio) or shows only flag usage (-tool, -list, -args). For discovery use:
+
+- **Tools and capabilities:** MCP resource **stdio://tools** or **stdio://tools/{category}**, or `tool_catalog` with `action=help` and `tool_name`.
+- **CLI subcommands (task, config, tui):** **make help** in the repo, or read `.cursorrules` / task-workflow skill for task commands.
+
+Using MCP resources avoids unnecessary process spawns and gives full tool/prompt lists.
 
 ## General Rules
 

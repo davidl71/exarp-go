@@ -16,4 +16,6 @@ Skills in this folder extend the AI with exarp-go workflows. **Read the SKILL.md
 | **tractatus-decompose** | Use Tractatus Thinking MCP for logical decomposition of complex concepts (operation=start, add, export). |
 | **use-exarp-tools** | When to use which exarp-go MCP tool; tasks, reports, health, testing, project automation. |
 
+**Cursor rules (task discovery):** `.cursor/rules/task-discovery.mdc` — task_discovery tool behavior and deprecated-item filter (strikethrough / "(removed)" never create Todo2 tasks).
+
 Path format: `.cursor/skills/<name>/SKILL.md`.
