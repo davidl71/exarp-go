@@ -109,6 +109,8 @@ var (
 )
 
 func TestDefaultDBStore_ImplementsTaskStore(t *testing.T) {
+	testDBMu.Lock()
+	defer testDBMu.Unlock()
 	tmpDir := t.TempDir()
 	if err := Init(tmpDir); err != nil {
 		t.Fatalf("Init() error = %v", err)

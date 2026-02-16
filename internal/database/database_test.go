@@ -7,6 +7,8 @@ import (
 )
 
 func TestInit(t *testing.T) {
+	testDBMu.Lock()
+	defer testDBMu.Unlock()
 	// Create temporary directory for test database
 	tmpDir := t.TempDir()
 	projectRoot := tmpDir

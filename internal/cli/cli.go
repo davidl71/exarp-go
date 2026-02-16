@@ -111,11 +111,17 @@ func setupServer() (framework.MCPServer, error) {
 
 // Run starts the CLI interface.
 // Uses mcp-go-core ParseArgs for structured CLI dispatch; subcommands (config, task, tui, tui3270) keep os.Args-based remainder.
+// When -tool or --tool is present, flag-based tool execution is used instead of subcommand (so "exarp-go -tool session -args '{}'" invokes the session tool, not the session subcommand).
 func Run() error {
-	parsed := mcpcli.ParseArgs(os.Args[1:])
+	args := os.Args[1:]
+	parsed := mcpcli.ParseArgs(args)
 
-	// Subcommand dispatch (config, task, tui, tui3270)
-	switch parsed.Command {
+	// Prefer flag-based mode when -tool is explicitly passed (fixes -tool session being treated as session subcommand).
+	useFlagMode := HasToolFlag(args)
+
+	if !useFlagMode {
+		// Subcommand dispatch (config, task, tui, tui3270)
+		switch parsed.Command {
 	case "config":
 		return handleConfigCommand(parsed)
 	case "task":
@@ -185,6 +191,7 @@ func Run() error {
 		}
 
 		return RunTUI3270(server, status, port, daemon, pidFile)
+		}
 	}
 
 	// Flag-based modes (-tool, -list, -test, -i, -completion); use flag package (ParseArgs doesn't handle -flag value skip)

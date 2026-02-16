@@ -68,6 +68,17 @@ func NormalizeToolArgs(args []string) ([]string, bool) {
 	return []string{args[0], "-tool", first, "-args", string(argsJSON)}, true
 }
 
+// HasToolFlag returns true if -tool or --tool appears in args (e.g. os.Args[1:]).
+// Used to prefer tool execution over subcommand when both could apply (e.g. exarp-go -tool session -args '{}').
+func HasToolFlag(args []string) bool {
+	for _, a := range args {
+		if a == "-tool" || a == "--tool" {
+			return true
+		}
+	}
+	return false
+}
+
 // HasCLIFlags returns true if args indicate CLI mode (subcommand or flag).
 func HasCLIFlags(args []string) bool {
 	if len(args) < 2 {
