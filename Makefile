@@ -382,7 +382,7 @@ golangci-lint-check: ## Check code with golangci-lint
 		echo "$(GREEN)✅ golangci-lint passed$(NC)"; \
 	else \
 		echo "$(YELLOW)⚠️  golangci-lint not found$(NC)"; \
-		echo "$(YELLOW)   Install: go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest$(NC)"; \
+		echo "$(YELLOW)   Install: go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.9.0$(NC)"; \
 		exit 1; \
 	fi
 
@@ -393,7 +393,7 @@ golangci-lint-fix: ## Fix code with golangci-lint (auto-fix)
 		echo "$(GREEN)✅ golangci-lint fixes applied$(NC)"; \
 	else \
 		echo "$(YELLOW)⚠️  golangci-lint not found$(NC)"; \
-		echo "$(YELLOW)   Install: go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest$(NC)"; \
+		echo "$(YELLOW)   Install: go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.9.0$(NC)"; \
 		exit 1; \
 	fi
 
@@ -1014,7 +1014,7 @@ install-tools: ## Install Go development tools (golangci-lint, govulncheck, prot
 	@echo "$(BLUE)Installing Go development tools...$(NC)"
 	@if ! command -v golangci-lint >/dev/null 2>&1; then \
 		echo "$(BLUE)Installing golangci-lint...$(NC)"; \
-		$(GO) install github.com/golangci/golangci-lint/cmd/golangci-lint@latest || \
+		$(GO) install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.9.0 || \
 		(echo "$(YELLOW)⚠️  Failed to install golangci-lint$(NC)" && exit 1); \
 		echo "$(GREEN)✅ golangci-lint installed$(NC)"; \
 	else \

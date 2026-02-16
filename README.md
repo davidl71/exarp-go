@@ -148,8 +148,9 @@ For detailed configuration options, see:
 **Development Tools:**
 - **make** - Build automation (recommended for development)
   - Most systems include make by default
-- **golangci-lint** - Advanced Go linting (optional)
-  - Install: `go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest`
+- **golangci-lint** - Advanced Go linting (optional; v2 required for .golangci.yml)
+  - Install: `go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.9.0`  
+  - Or binary: `curl -sSfL https://golangci-lint.run/install.sh | sh -s -- -b $(go env GOPATH)/bin v2.9.0`
   - Used by: `make lint`
 - **govulncheck** - Go vulnerability scanner (optional)
   - Install: `go install golang.org/x/vuln/cmd/govulncheck@latest`

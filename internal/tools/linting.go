@@ -165,8 +165,8 @@ func runGolangciLint(ctx context.Context, path string, fix bool) (*LintResult, e
 	pathInfo, err := os.Stat(absPath)
 	isDir := err == nil && pathInfo.IsDir()
 
-	// Build command
-	args := []string{"run", "--out-format=json"}
+	// Build command (v2 uses --output.json.path instead of --out-format=json)
+	args := []string{"run", "--output.json.path=stdout"}
 	if fix {
 		args = append(args, "--fix")
 	}
@@ -215,43 +215,47 @@ func runGolangciLint(ctx context.Context, path string, fix bool) (*LintResult, e
 		}, nil
 	}
 
-	// Parse JSON output
-	var issues []struct {
+	// Parse JSON output (v2: {"Issues":[...]}, v1: [...])
+	type issuePos struct {
+		Filename string `json:"Filename"`
+		Offset   int    `json:"Offset"`
+		Line     int    `json:"Line"`
+		Column   int    `json:"Column"`
+	}
+	type issueStruct struct {
 		FromLinter  string   `json:"FromLinter"`
 		Text        string   `json:"Text"`
 		SourceLines []string `json:"SourceLines,omitempty"`
-		Pos         struct {
-			Filename string `json:"Filename"`
-			Offset   int    `json:"Offset"`
-			Line     int    `json:"Line"`
-			Column   int    `json:"Column"`
-		} `json:"Pos"`
+		Pos         issuePos `json:"Pos"`
 	}
 
 	var lintErrors []LintError
-	if err := json.Unmarshal(output, &issues); err == nil {
-		// Successfully parsed JSON
-		for _, issue := range issues {
-			lintErrors = append(lintErrors, LintError{
-				File:     issue.Pos.Filename,
-				Line:     issue.Pos.Line,
-				Column:   issue.Pos.Column,
-				Message:  issue.Text,
-				Rule:     issue.FromLinter,
-				Severity: "warning",
-			})
-		}
-	} else {
-		// Fallback: treat output as text
-		if outputStr != "" {
-			lines := strings.Split(strings.TrimSpace(outputStr), "\n")
-			for _, line := range lines {
-				if strings.TrimSpace(line) != "" {
-					lintErrors = append(lintErrors, LintError{
-						Message:  line,
-						Severity: "warning",
-					})
-				}
+	var issues []issueStruct
+	if err := json.Unmarshal(output, &struct {
+		Issues *[]issueStruct `json:"Issues"`
+	}{Issues: &issues}); err != nil || len(issues) == 0 {
+		// Fall back to v1 flat array format
+		_ = json.Unmarshal(output, &issues)
+	}
+	for _, issue := range issues {
+		lintErrors = append(lintErrors, LintError{
+			File:     issue.Pos.Filename,
+			Line:     issue.Pos.Line,
+			Column:   issue.Pos.Column,
+			Message:  issue.Text,
+			Rule:     issue.FromLinter,
+			Severity: "warning",
+		})
+	}
+	// Fallback: treat output as text only if JSON parsing produced nothing and output doesn't look like JSON
+	if len(lintErrors) == 0 && outputStr != "" && !strings.Contains(outputStr, `"Issues"`) && !strings.Contains(outputStr, `"FromLinter"`) {
+		lines := strings.Split(strings.TrimSpace(outputStr), "\n")
+		for _, line := range lines {
+			if strings.TrimSpace(line) != "" {
+				lintErrors = append(lintErrors, LintError{
+					Message:  line,
+					Severity: "warning",
+				})
 			}
 		}
 	}
