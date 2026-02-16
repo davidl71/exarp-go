@@ -304,7 +304,7 @@ func executeTool(server framework.MCPServer, toolName, argsJSON string) error {
 	_, _ = fmt.Printf("Arguments: %s\n\n", argsJSON)
 
 	// Use context-aware logger to include request_id and operation
-	logInfo(ctx, "Executing tool", "tool", toolName)
+	logDebug(ctx, "Executing tool", "tool", toolName)
 
 	// Track performance
 	perf := StartPerformanceLogging(ctx, "tool_execution", DefaultSlowThreshold)
