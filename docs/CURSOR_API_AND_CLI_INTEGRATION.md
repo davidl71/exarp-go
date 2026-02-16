@@ -96,6 +96,25 @@ export CURSOR_API_KEY=...   # or --api-key for CI
 
 ## 3. Suggested Improvements to exarp-go CLI
 
+### 3.0 Session prime response: status_context and status_label (implemented)
+
+The **session** tool with `action=prime` returns explicit status context so UIs and the AI can branch on current state.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| **status_context** | string | Machine-readable context: `dashboard`, `handoff`, or `task`. Use for branching (e.g. show "Review handoff" vs "Suggested task" vs "Project dashboard"). |
+| **status_label** | string | Human-readable label for display (e.g. `"Handoff – review pending"`, `"T-123 – Add feature X"`, `"Project dashboard"`). |
+
+**Allowed values for status_context:**
+
+- **dashboard** — No handoff pending, no suggested task; general project context.
+- **handoff** — A handoff note from another developer is pending review.
+- **task** — First suggested next task is available; `status_label` typically includes task ID and truncated name.
+
+**Consumers:** Cursor or other UI can show `status_label`; the AI can prioritize handoff review when `status_context === "handoff"` or focus on the suggested task when `"task"`; automation can decide what to run. Source: `GetSessionStatus(projectRoot)` in `internal/tools/session.go`.
+
+---
+
 ### 3.1 Cursor CLI wrapper subcommand (high value) — **Task:** T-1771164528145
 
 **Idea:** Add a subcommand that invokes the Cursor CLI `agent` with a prompt derived from exarp-go context (e.g. current task or plan).

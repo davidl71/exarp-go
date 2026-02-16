@@ -118,6 +118,8 @@ For detailed configuration options, see:
 
 **Cursor rules (AI guidance):** If you use Cursor, see `docs/CURSOR_RULES.md` for project rules, including **code and planning tag hints** so generated plans and code stay aligned with Todo2 tags. For **how to use Cursor skills** (task-workflow, locking, git_tools, conflict detection), see [docs/CURSOR_SKILLS_GUIDE.md](docs/CURSOR_SKILLS_GUIDE.md).
 
+**Model-assisted workflow:** For local LLM integration (CodeLlama/MLX/Ollama) for task breakdown, execution, and prompt optimization, see [docs/MODEL_ASSISTED_WORKFLOW.md](docs/MODEL_ASSISTED_WORKFLOW.md). The docs index is in [docs/README.md](docs/README.md).
+
 ## Dependencies
 
 ### Required Dependencies

@@ -293,12 +293,12 @@ func handleSessionPrime(ctx context.Context, params map[string]interface{}) ([]f
 	if handoffAlert != nil {
 		result["handoff_alert"] = handoffAlert
 	}
-	if statusLabel, statusContext := buildStatusContext(result); statusLabel != "" || statusContext != "" {
-		result["status_label"] = statusLabel
-		result["status_context"] = statusContext
-		pb.StatusLabel = statusLabel
-		pb.StatusContext = statusContext
-	}
+	// Explicit status context: machine-readable enum (dashboard|handoff|task) and display label from single source of truth
+	statusLabel, statusContext, _ := GetSessionStatus(projectRoot)
+	result["status_label"] = statusLabel
+	result["status_context"] = statusContext // enum: dashboard, handoff, or task
+	pb.StatusLabel = statusLabel
+	pb.StatusContext = statusContext
 
 	return mcpresponse.FormatResult(result, "")
 }
@@ -987,33 +987,6 @@ func getWorkflowModeDescription(mode string) string {
 		return desc
 	}
 	return "Development mode: Balanced set"
-}
-
-// buildStatusContext derives status_label and status_context from session prime result fields.
-// Enables AI to announce current context (handoff, suggested task, or dashboard) in chat.
-func buildStatusContext(result map[string]interface{}) (label, ctx string) {
-	if handoff, ok := result["handoff_alert"].(map[string]interface{}); ok && handoff != nil {
-		label = "Handoff review"
-		ctx = "Handoff review – 1 item pending"
-		return
-	}
-	if suggested, ok := result["suggested_next"].([]interface{}); ok && len(suggested) > 0 {
-		if first, ok := suggested[0].(map[string]interface{}); ok {
-			id, _ := first["id"].(string)
-			content, _ := first["content"].(string)
-			if id != "" {
-				label = id
-				if content != "" {
-					label = id + " – " + truncateString(content, 40)
-				}
-				ctx = "Suggested: " + label
-				return
-			}
-		}
-	}
-	label = "Project dashboard"
-	ctx = "Project dashboard"
-	return
 }
 
 // getPlanModeContext returns (plan_path, plan_mode_hint) for session prime.
