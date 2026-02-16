@@ -171,9 +171,10 @@ func IsValidTaskID(id string) bool {
 	return true
 }
 
-// GenerateTaskID returns a new task ID in the form T-<epoch_milliseconds>.
+// GenerateTaskID returns a new task ID in the form T-<epoch_nanoseconds>.
+// Nanosecond precision ensures uniqueness when creating multiple tasks in quick succession.
 func GenerateTaskID() string {
-	return fmt.Sprintf("T-%d", time.Now().UnixMilli())
+	return fmt.Sprintf("T-%d", time.Now().UnixNano())
 }
 
 // CreateTask creates a new task in the database

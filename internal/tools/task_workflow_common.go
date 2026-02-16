@@ -2130,12 +2130,11 @@ func handleTaskWorkflowFixInvalidIDs(ctx context.Context, params map[string]inte
 	return response.FormatResult(result, "")
 }
 
-// generateEpochTaskID generates a task ID using epoch milliseconds (T-{epoch_milliseconds})
-// This is O(1) and doesn't require loading all tasks, solving the performance bottleneck
-// Format: T-{epoch_milliseconds} (e.g., T-1768158627000).
+// generateEpochTaskID generates a task ID using epoch nanoseconds (T-{epoch_nanoseconds}).
+// Nanosecond precision avoids UNIQUE constraint failures when creating many tasks in a tight loop
+// (e.g. task_discovery create_tasks). Format remains T-<digits> for IsValidTaskID compatibility.
 func generateEpochTaskID() string {
-	epochMillis := time.Now().UnixMilli()
-	return fmt.Sprintf("T-%d", epochMillis)
+	return fmt.Sprintf("T-%d", time.Now().UnixNano())
 }
 
 // normalizePriority normalizes priority values to canonical lowercase form.
