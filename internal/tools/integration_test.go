@@ -100,8 +100,8 @@ func TestMCPToolInvocation(t *testing.T) {
 				if action == "" {
 					action = "model"
 				}
-				switch action {
 
+				switch action {
 				case "model":
 					result, err = handleRecommendModelNative(ctx, tt.params)
 				case "workflow":
@@ -177,8 +177,8 @@ func TestToolErrorHandling(t *testing.T) {
 				if action == "" {
 					action = "model"
 				}
-				switch action {
 
+				switch action {
 				case "model":
 					_, err = handleRecommendModelNative(ctx, tt.params)
 				case "workflow":

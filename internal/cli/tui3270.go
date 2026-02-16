@@ -365,6 +365,7 @@ func (state *tui3270State) childAgentMenuTransaction(conn net.Conn, devInfo go32
 	}
 
 	opts := go3270.ScreenOpts{Codepage: devInfo.Codepage()}
+
 	response, err := go3270.ShowScreenOpts(screen, nil, conn, opts)
 	if err != nil {
 		return nil, nil, err
@@ -373,6 +374,7 @@ func (state *tui3270State) childAgentMenuTransaction(conn net.Conn, devInfo go32
 	if response.AID == go3270.AIDPF3 {
 		return state.mainMenuTransaction, state, nil
 	}
+
 	if response.AID == go3270.AIDPF1 {
 		return state.helpTransaction, state, nil
 	}
@@ -383,25 +385,31 @@ func (state *tui3270State) childAgentMenuTransaction(conn net.Conn, devInfo go32
 	}
 
 	var prompt string
+
 	var kind ChildAgentKind
+
 	switch opt {
 	case "5":
 		return state.mainMenuTransaction, state, nil
 	case "1":
 		// Task: use current cursor task or first task
 		ctx := context.Background()
+
 		tasks, err := loadTasksForStatus(ctx, state.status)
 		if err != nil || len(tasks) == 0 {
 			msg := "No tasks"
 			if err != nil {
 				msg = err.Error()
 			}
+
 			return state.showChildAgentResultTransaction(msg, state.mainMenuTransaction), state, nil
 		}
+
 		idx := state.cursor
 		if idx >= len(tasks) {
 			idx = 0
 		}
+
 		task := tasks[idx]
 		prompt = PromptForTask(task.ID, task.Content)
 		kind = ChildAgentTask
@@ -410,35 +418,40 @@ func (state *tui3270State) childAgentMenuTransaction(conn net.Conn, devInfo go32
 		kind = ChildAgentPlan
 	case "3":
 		ctx := context.Background()
+
 		tasks, err := loadTasksForStatus(ctx, state.status)
 		if err != nil || len(tasks) == 0 {
 			msg := "No tasks for wave"
 			if err != nil {
 				msg = err.Error()
 			}
+
 			return state.showChildAgentResultTransaction(msg, state.mainMenuTransaction), state, nil
 		}
+
 		taskList := make([]tools.Todo2Task, 0, len(tasks))
+
 		for _, t := range tasks {
 			if t != nil {
 				taskList = append(taskList, *t)
 			}
 		}
-		_, waves, _, err := tools.BacklogExecutionOrder(taskList, nil)
+
+		waves, err := tools.ComputeWavesForTUI(state.projectRoot, taskList)
 		if err != nil || len(waves) == 0 {
 			msg := "No waves"
 			if err != nil {
 				msg = err.Error()
 			}
+
 			return state.showChildAgentResultTransaction(msg, state.mainMenuTransaction), state, nil
 		}
-		if max := config.MaxTasksPerWave(); max > 0 {
-			waves = tools.LimitWavesByMaxTasks(waves, max)
-		}
+
 		levels := make([]int, 0, len(waves))
 		for k := range waves {
 			levels = append(levels, k)
 		}
+
 		sort.Ints(levels)
 		ids := waves[levels[0]]
 		prompt = PromptForWave(levels[0], ids)
@@ -447,26 +460,33 @@ func (state *tui3270State) childAgentMenuTransaction(conn net.Conn, devInfo go32
 		ctx := context.Background()
 		args := map[string]interface{}{"action": "handoff", "sub_action": "list", "limit": float64(5)}
 		argsBytes, _ := json.Marshal(args)
+
 		result, err := state.server.CallTool(ctx, "session", argsBytes)
 		if err != nil {
 			return state.showChildAgentResultTransaction(err.Error(), state.mainMenuTransaction), state, nil
 		}
+
 		var text strings.Builder
 		for _, c := range result {
 			text.WriteString(c.Text)
 		}
+
 		var payload struct {
 			Handoffs []map[string]interface{} `json:"handoffs"`
 		}
+
 		if json.Unmarshal([]byte(text.String()), &payload) != nil || len(payload.Handoffs) == 0 {
 			return state.showChildAgentResultTransaction("No handoffs", state.mainMenuTransaction), state, nil
 		}
+
 		h := payload.Handoffs[0]
 		sum, _ := h["summary"].(string)
+
 		var steps []interface{}
 		if s, ok := h["next_steps"].([]interface{}); ok {
 			steps = s
 		}
+
 		prompt = PromptForHandoff(sum, steps)
 		kind = ChildAgentHandoff
 	default:
@@ -476,9 +496,11 @@ func (state *tui3270State) childAgentMenuTransaction(conn net.Conn, devInfo go32
 	r := RunChildAgent(state.projectRoot, prompt)
 	r.Kind = kind
 	msg := r.Message
+
 	if !r.Launched {
 		msg = "Error: " + msg
 	}
+
 	return state.showChildAgentResultTransaction(msg, state.mainMenuTransaction), state, nil
 }
 
@@ -494,14 +516,18 @@ func (state *tui3270State) showChildAgentResultTransaction(message string, nextT
 			// Wrap
 			screen = append(screen, go3270.Field{Row: 5, Col: 2, Content: message[76:]})
 		}
+
 		opts := go3270.ScreenOpts{Codepage: devInfo.Codepage()}
+
 		response, err := go3270.ShowScreenOpts(screen, nil, conn, opts)
 		if err != nil {
 			return nil, nil, err
 		}
+
 		if response.AID == go3270.AIDPF1 {
 			return state.helpTransaction, state, nil
 		}
+
 		return nextTx, state, nil
 	}
 }
@@ -1656,74 +1682,90 @@ func (state *tui3270State) handleCommand(cmd string, currentTx go3270.Tx) (go327
 	case "RUN":
 		// RUN TASK | PLAN | WAVE | HANDOFF - execute in child agent
 		state.command = ""
+
 		sub := ""
 		if len(args) > 0 {
 			sub = args[0]
 		}
+
 		switch strings.ToUpper(sub) {
 		case "TASK":
 			if state.cursor < len(state.tasks) {
 				task := state.tasks[state.cursor]
 				prompt := PromptForTask(task.ID, task.Content)
 				r := RunChildAgent(state.projectRoot, prompt)
+
 				return state.showChildAgentResultTransaction(r.Message, state.taskListTransaction), state, nil
 			}
+
 			return state.showChildAgentResultTransaction("No task selected", state.taskListTransaction), state, nil
 		case "PLAN":
 			prompt := PromptForPlan(state.projectRoot)
 			r := RunChildAgent(state.projectRoot, prompt)
+
 			return state.showChildAgentResultTransaction(r.Message, state.taskListTransaction), state, nil
 		case "WAVE":
 			if len(state.tasks) == 0 {
 				return state.showChildAgentResultTransaction("No tasks", state.taskListTransaction), state, nil
 			}
+
 			taskList := make([]tools.Todo2Task, 0, len(state.tasks))
+
 			for _, t := range state.tasks {
 				if t != nil {
 					taskList = append(taskList, *t)
 				}
 			}
-			_, waves, _, err := tools.BacklogExecutionOrder(taskList, nil)
+
+			waves, err := tools.ComputeWavesForTUI(state.projectRoot, taskList)
 			if err != nil || len(waves) == 0 {
 				return state.showChildAgentResultTransaction("No waves", state.taskListTransaction), state, nil
 			}
-			if max := config.MaxTasksPerWave(); max > 0 {
-				waves = tools.LimitWavesByMaxTasks(waves, max)
-			}
+
 			levels := make([]int, 0, len(waves))
 			for k := range waves {
 				levels = append(levels, k)
 			}
+
 			sort.Ints(levels)
 			prompt := PromptForWave(levels[0], waves[levels[0]])
 			r := RunChildAgent(state.projectRoot, prompt)
+
 			return state.showChildAgentResultTransaction(r.Message, state.taskListTransaction), state, nil
 		case "HANDOFF":
 			ctx := context.Background()
 			sessionArgs := map[string]interface{}{"action": "handoff", "sub_action": "list", "limit": float64(5)}
 			argsBytes, _ := json.Marshal(sessionArgs)
+
 			result, err := state.server.CallTool(ctx, "session", argsBytes)
 			if err != nil {
 				return state.showChildAgentResultTransaction(err.Error(), state.taskListTransaction), state, nil
 			}
+
 			var text strings.Builder
 			for _, c := range result {
 				text.WriteString(c.Text)
 			}
+
 			var payload struct {
 				Handoffs []map[string]interface{} `json:"handoffs"`
 			}
+
 			if json.Unmarshal([]byte(text.String()), &payload) != nil || len(payload.Handoffs) == 0 {
 				return state.showChildAgentResultTransaction("No handoffs", state.taskListTransaction), state, nil
 			}
+
 			h := payload.Handoffs[0]
 			sum, _ := h["summary"].(string)
+
 			var steps []interface{}
 			if s, ok := h["next_steps"].([]interface{}); ok {
 				steps = s
 			}
+
 			prompt := PromptForHandoff(sum, steps)
 			r := RunChildAgent(state.projectRoot, prompt)
+
 			return state.showChildAgentResultTransaction(r.Message, state.taskListTransaction), state, nil
 		default:
 			return state.showChildAgentResultTransaction("RUN TASK|PLAN|WAVE|HANDOFF", state.taskListTransaction), state, nil
@@ -1732,7 +1774,9 @@ func (state *tui3270State) handleCommand(cmd string, currentTx go3270.Tx) (go327
 	case "AGENT":
 		// Alias for RUN (same args)
 		state.command = ""
+
 		parts := append([]string{"RUN"}, args...)
+
 		return state.handleCommand(strings.Join(parts, " "), currentTx)
 
 	default:

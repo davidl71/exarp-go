@@ -373,13 +373,13 @@ func registerBatch2Tools(server framework.MCPServer) error {
 	// T-30: report
 	if err := server.RegisterTool(
 		"report",
-		"[HINT: Report generation. action=overview|scorecard|briefing|prd|plan|scorecard_plans|parallel_execution_plan. plan generates Cursor-style .plan.md; include_subagents=true also updates parallel-execution-subagents.plan.md. parallel_execution_plan writes subagents plan only.]",
+		"[HINT: Report generation. action=overview|scorecard|briefing|prd|plan|scorecard_plans|parallel_execution_plan|update_waves_from_plan. plan generates .plan.md; update_waves_from_plan syncs Todo2 deps from docs/PARALLEL_EXECUTION_PLAN_RESEARCH.md.]",
 		framework.ToolSchema{
 			Type: "object",
 			Properties: map[string]interface{}{
 				"action": map[string]interface{}{
 					"type":        "string",
-					"enum":        []string{"overview", "scorecard", "briefing", "prd", "plan", "scorecard_plans", "parallel_execution_plan"},
+					"enum":        []string{"overview", "scorecard", "briefing", "prd", "plan", "scorecard_plans", "parallel_execution_plan", "update_waves_from_plan"},
 					"default":     "overview",
 					"description": "plan: write .plan.md; scorecard_plans: improve-<dim>.plan.md; parallel_execution_plan: parallel-execution-subagents.plan.md",
 				},

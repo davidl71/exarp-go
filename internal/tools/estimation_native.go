@@ -278,6 +278,7 @@ func handleEstimationEstimate(ctx context.Context, projectRoot string, params ma
 		combinedConfidence := statisticalResult.Confidence*statisticalWeight + llmResult.Confidence*appleFMWeight
 
 		methodName := "hybrid_apple_fm"
+
 		switch llmMethod {
 		case "ollama":
 			methodName = "hybrid_ollama"

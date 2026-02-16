@@ -382,6 +382,7 @@ func handleSessionHandoff(ctx context.Context, params map[string]interface{}) ([
 		if action == "approve" {
 			status = "approved"
 		}
+
 		return handleSessionHandoffStatus(ctx, params, projectRoot, status)
 	default:
 		return nil, fmt.Errorf("unknown handoff action: %s (use 'end', 'resume', 'latest', 'list', 'sync', 'export', 'close', or 'approve')", action)
@@ -529,6 +530,7 @@ func handleSessionEnd(ctx context.Context, params map[string]interface{}, projec
 	// Add cursor_cli_suggestion for the next suggested task
 	if suggested := GetSuggestedNextTasks(projectRoot, 1); len(suggested) > 0 {
 		t := suggested[0]
+
 		taskMap := map[string]interface{}{"id": t.ID, "content": t.Content}
 		if cli := buildCursorCLISuggestion(taskMap); cli != "" {
 			result["cursor_cli_suggestion"] = cli
@@ -1401,49 +1403,63 @@ func updateHandoffStatus(projectRoot string, handoffIDs []string, status string)
 	if len(handoffIDs) == 0 {
 		return nil
 	}
+
 	handoffFile := filepath.Join(projectRoot, ".todo2", "handoffs.json")
 	if err := os.MkdirAll(filepath.Dir(handoffFile), 0755); err != nil {
 		return err
 	}
+
 	idsSet := make(map[string]struct{})
+
 	for _, id := range handoffIDs {
 		if id != "" {
 			idsSet[id] = struct{}{}
 		}
 	}
+
 	fileCache := cache.GetGlobalFileCache()
+
 	data, _, err := fileCache.ReadFile(handoffFile)
 	if err != nil {
 		return err
 	}
+
 	var handoffData map[string]interface{}
 	if err := json.Unmarshal(data, &handoffData); err != nil {
 		return err
 	}
+
 	handoffs, _ := handoffData["handoffs"].([]interface{})
 	if len(handoffs) == 0 {
 		return nil
 	}
+
 	updated := 0
+
 	for _, v := range handoffs {
 		h, ok := v.(map[string]interface{})
 		if !ok {
 			continue
 		}
+
 		id, _ := h["id"].(string)
 		if _, want := idsSet[id]; want {
 			h["status"] = status
 			updated++
 		}
 	}
+
 	if updated == 0 {
 		return nil
 	}
+
 	handoffData["handoffs"] = handoffs
+
 	out, err := json.MarshalIndent(handoffData, "", "  ")
 	if err != nil {
 		return err
 	}
+
 	return os.WriteFile(handoffFile, out, 0644)
 }
 
@@ -1471,23 +1487,28 @@ func handleSessionHandoffStatus(ctx context.Context, params map[string]interface
 			}
 		}
 	}
+
 	if len(ids) == 0 {
 		return nil, fmt.Errorf("handoff_id or handoff_ids required for close/approve")
 	}
+
 	if err := updateHandoffStatus(projectRoot, ids, status); err != nil {
 		return nil, fmt.Errorf("failed to update handoff status: %w", err)
 	}
+
 	label := "closed"
 	if status == "approved" {
 		label = "approved"
 	}
+
 	result := map[string]interface{}{
-		"success":  true,
-		"method":   "native_go",
-		"updated":  len(ids),
-		"status":   status,
-		"message":  fmt.Sprintf("%d handoff(s) %s", len(ids), label),
+		"success": true,
+		"method":  "native_go",
+		"updated": len(ids),
+		"status":  status,
+		"message": fmt.Sprintf("%d handoff(s) %s", len(ids), label),
 	}
+
 	return mcpresponse.FormatResult(result, "")
 }
 
@@ -1534,6 +1555,7 @@ func getGitStatus(ctx context.Context, projectRoot string) map[string]interface{
 func buildCursorCLISuggestion(task map[string]interface{}) string {
 	id, _ := task["id"].(string)
 	content, _ := task["content"].(string)
+
 	if id == "" {
 		return ""
 	}

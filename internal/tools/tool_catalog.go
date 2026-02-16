@@ -180,7 +180,7 @@ func GetToolCatalog() map[string]ToolCatalogEntry {
 		// Reporting
 		"report": {
 			Tool:             "report",
-			Hint:             "Report generation. action=overview|scorecard|briefing|prd|plan|parallel_execution_plan. plan generates .plan.md; include_subagents=true also updates parallel-execution-subagents.plan.md.",
+			Hint:             "Report generation. action=overview|scorecard|briefing|prd|plan|parallel_execution_plan|update_waves_from_plan. update_waves_from_plan syncs Todo2 deps from docs/PARALLEL_EXECUTION_PLAN_RESEARCH.md.",
 			Category:         "Reporting",
 			Description:      "Generates project reports: overview, scorecard, briefing, PRD, plan (.plan.md)",
 			RecommendedModel: "claude-haiku",

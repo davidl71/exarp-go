@@ -322,6 +322,15 @@ type BackgroundJob struct {
 	Prompt    string
 	StartedAt time.Time
 	Pid       int
+	Output    string // captured stdout+stderr (non-interactive only)
+}
+
+// jobCompletedMsg is sent when a background agent process exits (with captured output).
+type jobCompletedMsg struct {
+	Pid      int
+	Output   string
+	ExitCode int
+	Err      error
 }
 
 type configSection struct {
@@ -1370,6 +1379,19 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			})
 		} else {
 			m.childAgentMsg = "Child agent: " + msg.Result.Message
+		}
+
+		return m, nil
+
+	case jobCompletedMsg:
+		for i := range m.jobs {
+			if m.jobs[i].Pid == msg.Pid {
+				m.jobs[i].Output = msg.Output
+				if msg.Err != nil {
+					m.jobs[i].Output += "\n(exit: " + msg.Err.Error() + ")"
+				}
+				break
+			}
 		}
 
 		return m, nil
@@ -3562,9 +3584,21 @@ func (m model) viewJobDetail(job BackgroundJob, availableWidth, wrapWidth int) s
 		b.WriteString(normalStyle.Render("  "+line) + "\n")
 	}
 
-	b.WriteString("\n  ")
-	b.WriteString(helpStyle.Render("Output: Child agent runs in separate Cursor window; output not captured."))
-	b.WriteString("\n  ")
+	b.WriteString("  ")
+	b.WriteString(headerLabelStyle.Render("Output:"))
+	b.WriteString("\n")
+	if job.Output != "" {
+		for _, line := range strings.Split(wordWrap(job.Output, wrapWidth), "\n") {
+			b.WriteString("  ")
+			b.WriteString(normalStyle.Render(line))
+			b.WriteString("\n")
+		}
+	} else {
+		b.WriteString("  ")
+		b.WriteString(helpStyle.Render("(running or interactive job — no capture)"))
+		b.WriteString("\n")
+	}
+	b.WriteString("  ")
 	b.WriteString(borderStyle.Render(strings.Repeat("─", availableWidth)))
 	b.WriteString("\n")
 	b.WriteString(statusBarStyle.Render("Esc/Enter back  q quit"))
@@ -4136,13 +4170,19 @@ func saveConfig(projectRoot string, cfg *config.FullConfig) tea.Cmd {
 	}
 }
 
-// runChildAgentCmd runs the child agent with the given prompt and returns a childAgentResultMsg.
+// runChildAgentCmd runs the non-interactive child agent, captures output, and returns childAgentResultMsg plus jobCompletedMsg when done.
 func runChildAgentCmd(projectRoot, prompt string, kind ChildAgentKind) tea.Cmd {
 	return func() tea.Msg {
-		r := RunChildAgent(projectRoot, prompt)
+		r, done := RunChildAgentWithOutputCapture(projectRoot, prompt)
 		r.Kind = kind
 
-		return childAgentResultMsg{Result: r}
+		return tea.Batch(
+			func() tea.Msg { return childAgentResultMsg{Result: r} },
+			func() tea.Msg {
+				out := <-done
+				return jobCompletedMsg{Pid: out.Pid, Output: out.Output, ExitCode: out.ExitCode, Err: out.Err}
+			},
+		)
 	}
 }
 

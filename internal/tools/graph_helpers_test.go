@@ -454,10 +454,12 @@ func TestBuildTaskGraphParentID(t *testing.T) {
 func TestLimitWavesByMaxTasks(t *testing.T) {
 	// No limit: returns same map (unchanged)
 	waves := map[int][]string{0: {"T-1", "T-2", "T-3"}, 1: {"T-4"}}
+
 	got := LimitWavesByMaxTasks(waves, 0)
 	if len(got) != 2 || len(got[0]) != 3 || len(got[1]) != 1 {
 		t.Errorf("LimitWavesByMaxTasks(0) should return unchanged waves, got %v", got)
 	}
+
 	got = LimitWavesByMaxTasks(waves, -1)
 	if len(got) != 2 || len(got[0]) != 3 || len(got[1]) != 1 {
 		t.Errorf("LimitWavesByMaxTasks(-1) should return unchanged waves, got %v", got)
@@ -466,9 +468,11 @@ func TestLimitWavesByMaxTasks(t *testing.T) {
 	// Limit 2: wave 0 splits into 2 waves, wave 1 stays
 	got = LimitWavesByMaxTasks(waves, 2)
 	wantLevels := 3 // 0: [T-1,T-2], 1: [T-3], 2: [T-4]
+
 	if len(got) != wantLevels {
 		t.Errorf("LimitWavesByMaxTasks(2) len = %v, want %v", len(got), wantLevels)
 	}
+
 	if len(got[0]) != 2 || len(got[1]) != 1 || len(got[2]) != 1 {
 		t.Errorf("LimitWavesByMaxTasks(2) chunk sizes: got %v", got)
 	}

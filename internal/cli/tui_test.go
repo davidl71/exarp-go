@@ -424,6 +424,7 @@ func TestTUITaskDetailRecordsOutput(t *testing.T) {
 	// Simulate pressing 's' to show task details
 	updated, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'s'}})
 	updatedModel, ok := updated.(model)
+
 	if !ok {
 		t.Fatalf("Update returned %T, want model", updated)
 	}
@@ -431,9 +432,11 @@ func TestTUITaskDetailRecordsOutput(t *testing.T) {
 	if updatedModel.mode != "taskDetail" {
 		t.Errorf("mode = %q, want taskDetail", updatedModel.mode)
 	}
+
 	if updatedModel.taskDetailTask == nil {
 		t.Fatal("taskDetailTask is nil after pressing s")
 	}
+
 	if updatedModel.taskDetailTask.ID != "T-1771245906548" {
 		t.Errorf("taskDetailTask.ID = %q, want T-1771245906548", updatedModel.taskDetailTask.ID)
 	}
@@ -464,12 +467,15 @@ func TestTUITaskDetailRecordsOutput(t *testing.T) {
 	if !strings.Contains(output, "TASK DETAIL") {
 		t.Error("output should contain 'TASK DETAIL'")
 	}
+
 	if !strings.Contains(output, "T-1771245906548") {
 		t.Error("output should contain task ID T-1771245906548")
 	}
+
 	if !strings.Contains(output, "Fix tools health and hooks tests") {
 		t.Error("output should contain task content")
 	}
+
 	if !strings.Contains(output, "Esc/Enter/Space") {
 		t.Error("output should contain close hint")
 	}
@@ -479,5 +485,6 @@ func truncateForLog(s string, max int) string {
 	if len(s) <= max {
 		return s
 	}
+
 	return s[:max] + "..."
 }
