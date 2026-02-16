@@ -54,9 +54,21 @@ Detailed endpoints: [Cloud Agents API](https://cursor.com/docs/cloud-agent/api/e
 
 ---
 
-## 2. Cursor CLI (“agent” commands)
+## 2. Cursor CLI (“agent” command) — Cursor backend
 
-### Install
+The `agent` binary is the **Cursor CLI**. It runs Cursor’s AI (e.g. Claude, Cursor models) with MCP and repo context. Use the commands below for the **Cursor** backend; for other backends, see the table that follows.
+
+### Backend-specific commands
+
+| Backend | Interactive (with prompt) | Non-interactive / scriptable | Notes |
+|---------|---------------------------|------------------------------|--------|
+| **Cursor** (Claude / Cursor models) | `agent "prompt"` or `agent` | `agent -p "prompt"` | Cursor CLI; MCP, plans, full IDE context. Install: [Cursor CLI](https://cursor.com/docs/cli/overview). |
+| **Ollama** (local LLM) | `ollama run <model>` then paste prompt | `ollama run <model> "prompt"` or exarp-go `ollama` tool | No Cursor/MCP context; use for local chat or exarp-go tools (e.g. `text_generate`, `ollama`). |
+| **Other (Cloud Agents API)** | Via API: launch agent with prompt | Same API, non-blocking | Cursor Cloud Agents; use `CURSOR_API_KEY` and REST API. |
+
+The TUI “run in child agent” (e.g. **i** / **e** in handoffs, **E** from tasks) currently invokes the **Cursor** backend only (`agent` / `agent -p`). Other backends would require different integration (see T-1771252286533).
+
+### Install (Cursor CLI)
 
 ```bash
 # macOS, Linux, WSL
@@ -65,7 +77,7 @@ curl https://cursor.com/install -fsS | bash
 agent --version
 ```
 
-### Main commands
+### Main commands (Cursor CLI)
 
 | Command | Purpose |
 |---------|---------|

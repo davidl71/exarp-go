@@ -143,35 +143,85 @@ func runChildAgent(projectRoot, prompt string, interactive bool) (result ChildAg
 	return result
 }
 
-// runInNewTerminal opens a new Terminal window and runs the agent interactively (macOS).
+// runInNewTerminal opens a new Terminal/iTerm tab and runs the agent interactively (macOS).
+// Uses a temp file for the prompt to avoid shell quoting issues. Prefers iTerm tab when running in iTerm.
 func runInNewTerminal(projectRoot, prompt string) (result ChildAgentRunResult) {
-	// Use osascript to run "cd dir && agent prompt" in a new Terminal window.
-	// Pass projectRoot and prompt as argv so AppleScript can safely quote them.
+	tmp, err := os.CreateTemp("", "exarp-agent-prompt-*.txt")
+	if err != nil {
+		result.Launched = false
+		result.Message = "failed to create temp file: " + err.Error()
+		return result
+	}
+	tmpPath := tmp.Name()
+	defer os.Remove(tmpPath)
+
+	if _, err := tmp.WriteString(prompt); err != nil {
+		result.Launched = false
+		result.Message = "failed to write prompt: " + err.Error()
+		return result
+	}
+	if err := tmp.Close(); err != nil {
+		result.Launched = false
+		result.Message = "failed to close temp file: " + err.Error()
+		return result
+	}
+
+	if runIniTermTab(projectRoot, tmpPath) {
+		result.Launched = true
+		result.Prompt = prompt
+		result.Pid = 0
+		if len(prompt) > 60 {
+			result.Message = "Launched (interactive): " + prompt[:57] + "..."
+		} else {
+			result.Message = "Launched (interactive): " + prompt
+		}
+		return result
+	}
+
+	// Fallback to Terminal.app
 	script := `on run argv
   set projectRoot to item 1 of argv
-  set promptText to item 2 of argv
+  set promptPath to item 2 of argv
+  set promptText to read (POSIX file promptPath) as text
   tell application "Terminal" to do script "cd " & quoted form of projectRoot & " && agent " & quoted form of promptText
   tell application "Terminal" to activate
 end run`
-	cmd := exec.Command("osascript", "-e", script, "--", projectRoot, prompt)
+	cmd := exec.Command("osascript", "-e", script, "--", projectRoot, tmpPath)
 	cmd.Env = os.Environ()
 	if err := cmd.Run(); err != nil {
 		result.Launched = false
 		result.Message = "failed to open Terminal: " + err.Error()
-
 		return result
 	}
 
 	result.Launched = true
 	result.Prompt = prompt
-	result.Pid = 0 // no direct PID when launched via osascript
+	result.Pid = 0
 	if len(prompt) > 60 {
 		result.Message = "Launched (interactive): " + prompt[:57] + "..."
 	} else {
 		result.Message = "Launched (interactive): " + prompt
 	}
-
 	return result
+}
+
+// runIniTermTab opens a new iTerm tab and runs the agent. Returns true if iTerm was used.
+func runIniTermTab(projectRoot, promptPath string) bool {
+	if os.Getenv("ITERM_SESSION_ID") == "" && os.Getenv("TERM_PROGRAM") != "iTerm.app" {
+		return false
+	}
+	script := `on run argv
+  set projectRoot to item 1 of argv
+  set promptPath to item 2 of argv
+  tell application "iTerm" to activate
+  tell current window
+    set tb to create tab with default profile
+  end tell
+  tell current session of tb to write text "cd " & quoted form of projectRoot & " && agent \"$(cat " & quoted form of promptPath & ")\""
+end run`
+	cmd := exec.Command("osascript", "-e", script, "--", projectRoot, promptPath)
+	cmd.Env = os.Environ()
+	return cmd.Run() == nil
 }
 
 // runChildAgentWithCapture starts the non-interactive agent, captures output, and sends JobOutputMsg when done.

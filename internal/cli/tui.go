@@ -913,7 +913,12 @@ func loadHandoffs(server framework.MCPServer) tea.Cmd {
 		}
 
 		ctx := context.Background()
-		args := map[string]interface{}{"action": "handoff", "sub_action": "list", "limit": float64(20)}
+		args := map[string]interface{}{
+			"action":         "handoff",
+			"sub_action":     "list",
+			"limit":          float64(20),
+			"include_closed": false,
+		}
 
 		argsBytes, err := json.Marshal(args)
 		if err != nil {
@@ -1018,16 +1023,22 @@ func runReportUpdateWavesFromPlan(server framework.MCPServer, projectRoot string
 	}
 }
 
-// runReportParallelExecutionPlan runs report(action=parallel_execution_plan) to write waves to
-// .cursor/plans/parallel-execution-subagents.plan.md. Returns taskAnalysisApproveDoneMsg.
+// runReportParallelExecutionPlan runs task_analysis(action=execution_plan, output_format=subagents_plan)
+// to write waves to .cursor/plans/parallel-execution-subagents.plan.md using exarp's wave detection.
+// Returns taskAnalysisApproveDoneMsg.
 func runReportParallelExecutionPlan(server framework.MCPServer, projectRoot string) tea.Cmd {
 	return func() tea.Msg {
 		if server == nil {
 			return taskAnalysisApproveDoneMsg{err: fmt.Errorf("no server")}
 		}
 		ctx := context.Background()
-		args, _ := json.Marshal(map[string]interface{}{"action": "parallel_execution_plan"})
-		result, err := server.CallTool(ctx, "report", args)
+		outputPath := filepath.Join(projectRoot, ".cursor", "plans", "parallel-execution-subagents.plan.md")
+		args, _ := json.Marshal(map[string]interface{}{
+			"action":         "execution_plan",
+			"output_format":  "subagents_plan",
+			"output_path":    outputPath,
+		})
+		result, err := server.CallTool(ctx, "task_analysis", args)
 		if err != nil {
 			return taskAnalysisApproveDoneMsg{err: err}
 		}
@@ -1347,9 +1358,17 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if msg.err != nil {
 			m.handoffActionMsg = fmt.Sprintf("%s failed: %v", msg.action, msg.err)
 		} else {
-			m.handoffActionMsg = fmt.Sprintf("%d handoff(s) %sed.", msg.updated, msg.action)
+			verb := msg.action + "d"
+			if msg.action == "delete" {
+				verb = "deleted"
+			} else if msg.action == "close" {
+				verb = "closed"
+			} else if msg.action == "approve" {
+				verb = "approved"
+			}
+			m.handoffActionMsg = fmt.Sprintf("%d handoff(s) %s.", msg.updated, verb)
 			m.handoffSelected = make(map[int]struct{})
-			m.handoffDetailIndex = -1 // return to list after close/approve
+			m.handoffDetailIndex = -1 // return to list after close/approve/delete
 		}
 
 		return m, loadHandoffs(m.server)
@@ -1934,6 +1953,31 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 			return m, nil
 
+		case "d":
+			// Delete handoffs: from detail view (current item) or list view (selected or current)
+			if m.mode == "handoffs" && len(m.handoffEntries) > 0 {
+				var ids []string
+				if m.handoffDetailIndex >= 0 && m.handoffDetailIndex < len(m.handoffEntries) {
+					if id, _ := m.handoffEntries[m.handoffDetailIndex]["id"].(string); id != "" {
+						ids = []string{id}
+					}
+				}
+				if len(ids) == 0 {
+					ids = m.handoffSelectedIDs()
+					if len(ids) == 0 && m.handoffCursor < len(m.handoffEntries) {
+						if id, _ := m.handoffEntries[m.handoffCursor]["id"].(string); id != "" {
+							ids = []string{id}
+						}
+					}
+				}
+
+				if len(ids) > 0 {
+					return m, runHandoffAction(m.server, m.projectRoot, ids, "delete")
+				}
+			}
+
+			return m, nil
+
 		case "o":
 			// Cycle sort order (id → status → priority → updated → hierarchy → id)
 			if m.mode == "tasks" && len(m.tasks) > 0 {
@@ -2022,6 +2066,13 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 			return m, nil
 
+		case "u":
+			// In config view: update (save current config to .exarp/config.pb protobuf)
+			if m.mode == "config" {
+				return m, saveConfig(m.projectRoot, m.configData)
+			}
+			return m, nil
+
 		case "s":
 			if m.mode == "scorecard" {
 				return m, nil
@@ -2044,7 +2095,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 				return m, nil
 			default:
-				// Save config
+				// Save config (writes to .exarp/config.pb protobuf)
 				return m, saveConfig(m.projectRoot, m.configData)
 			}
 
@@ -2864,7 +2915,9 @@ func (m model) viewConfig() string {
 	statusBar.WriteString(helpStyle.Render("↑↓"))
 	statusBar.WriteString(" nav  ")
 	statusBar.WriteString(helpStyle.Render("Enter"))
-	statusBar.WriteString(" edit  ")
+	statusBar.WriteString(" section  ")
+	statusBar.WriteString(helpStyle.Render("u"))
+	statusBar.WriteString(" update (protobuf)  ")
 	statusBar.WriteString(helpStyle.Render("s"))
 	statusBar.WriteString(" save  ")
 	statusBar.WriteString(helpStyle.Render("r"))
@@ -3050,7 +3103,7 @@ func (m model) viewHandoffs() string {
 
 		b.WriteString(borderStyle.Render(strings.Repeat("─", availableWidth)))
 		b.WriteString("\n")
-		b.WriteString(statusBarStyle.Render("Enter detail  Space select  i interactive agent  e run agent & close  x close  a approve  H back  r refresh  q quit"))
+		b.WriteString(statusBarStyle.Render("Enter detail  Space select  i interactive agent  e run agent & close  x close  a approve  d delete  H back  r refresh  q quit"))
 
 		return b.String()
 	}
@@ -3712,7 +3765,7 @@ func (m model) viewHandoffDetail(h map[string]interface{}, availableWidth, wrapW
 	}
 	b.WriteString(borderStyle.Render(strings.Repeat("─", availableWidth)))
 	b.WriteString("\n")
-	b.WriteString(statusBarStyle.Render("i interactive  e run & close  x close  a approve  Esc back  q quit"))
+	b.WriteString(statusBarStyle.Render("i interactive  e run & close  x close  a approve  d delete  Esc back  q quit"))
 
 	return b.String()
 }
@@ -4055,7 +4108,7 @@ func (m model) viewHelp() string {
 	b.WriteString(helpStyle.Render("p"))
 	b.WriteString("  Switch to Scorecard (project health)\n  ")
 	b.WriteString(helpStyle.Render("H"))
-	b.WriteString("  Switch to Session handoffs (i interactive agent  e run & close  x close  a approve)\n  ")
+	b.WriteString("  Switch to Session handoffs (i interactive agent  e run & close  x close  a approve  d delete)\n  ")
 	b.WriteString(helpStyle.Render("w"))
 	b.WriteString("  Switch to Waves (Enter expand wave)\n  ")
 	b.WriteString(helpStyle.Render("A"))
@@ -4083,7 +4136,7 @@ func (m model) viewHelp() string {
 	b.WriteString(helpStyle.Render("a"))
 	b.WriteString("  Toggle auto-refresh (tasks only)\n  ")
 	b.WriteString(helpStyle.Render("s"))
-	b.WriteString("  Show task details (tasks) or Save config (config)\n\n")
+	b.WriteString("  Show task details (tasks); Save/Update config (config): u or s → .exarp/config.pb\n\n")
 	b.WriteString(normalStyle.Render("Other:"))
 	b.WriteString("\n  ")
 	b.WriteString(helpStyle.Render("q"))
@@ -4154,7 +4207,12 @@ func showConfigSection(section configSection, cfg *config.FullConfig) tea.Cmd {
 			details.WriteString(fmt.Sprintf("  Max Path Depth: %d\n", cfg.Thresholds.MaxPathDepth))
 		}
 
-		details.WriteString("\nNote: Config is .exarp/config.pb (protobuf). Use 'exarp-go config export yaml' to edit as YAML, then 'convert yaml protobuf' to save.")
+		details.WriteString("\nUpdate from TUI: press ")
+		details.WriteString("u")
+		details.WriteString(" or ")
+		details.WriteString("s")
+		details.WriteString(" to save to .exarp/config.pb (protobuf).")
+		details.WriteString("\nOr use CLI: 'exarp-go config export yaml' to edit as YAML, then 'convert yaml protobuf' to save.")
 
 		return configSectionDetailMsg{text: details.String()}
 	}

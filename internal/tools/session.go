@@ -384,8 +384,10 @@ func handleSessionHandoff(ctx context.Context, params map[string]interface{}) ([
 		}
 
 		return handleSessionHandoffStatus(ctx, params, projectRoot, status)
+	case "delete":
+		return handleSessionHandoffDelete(ctx, params, projectRoot)
 	default:
-		return nil, fmt.Errorf("unknown handoff action: %s (use 'end', 'resume', 'latest', 'list', 'sync', 'export', 'close', or 'approve')", action)
+		return nil, fmt.Errorf("unknown handoff action: %s (use 'end', 'resume', 'latest', 'list', 'sync', 'export', 'close', 'approve', or 'delete')", action)
 	}
 }
 
@@ -687,6 +689,26 @@ func handleSessionList(ctx context.Context, params map[string]interface{}, proje
 	}
 
 	handoffs, _ := handoffData["handoffs"].([]interface{})
+
+	// Filter closed/approved if include_closed is false (default)
+	includeClosed := true
+	if inc, ok := params["include_closed"].(bool); ok {
+		includeClosed = inc
+	}
+	if !includeClosed {
+		var open []interface{}
+		for _, v := range handoffs {
+			h, ok := v.(map[string]interface{})
+			if !ok {
+				continue
+			}
+			status, _ := h["status"].(string)
+			if status != "closed" && status != "approved" {
+				open = append(open, v)
+			}
+		}
+		handoffs = open
+	}
 
 	// Get last N handoffs
 	start := len(handoffs) - limit
@@ -1510,6 +1532,116 @@ func handleSessionHandoffStatus(ctx context.Context, params map[string]interface
 	}
 
 	return mcpresponse.FormatResult(result, "")
+}
+
+// handleSessionHandoffDelete removes handoffs by id from handoffs.json.
+func handleSessionHandoffDelete(ctx context.Context, params map[string]interface{}, projectRoot string) ([]framework.TextContent, error) {
+	var ids []string
+	if id, ok := params["handoff_id"].(string); ok && id != "" {
+		ids = []string{id}
+	} else if raw, ok := params["handoff_ids"]; ok {
+		switch v := raw.(type) {
+		case []interface{}:
+			for _, i := range v {
+				if s, ok := i.(string); ok && s != "" {
+					ids = append(ids, s)
+				}
+			}
+		case string:
+			if v != "" {
+				var list []string
+				if json.Unmarshal([]byte(v), &list) == nil {
+					ids = list
+				} else {
+					ids = []string{v}
+				}
+			}
+		}
+	}
+
+	if len(ids) == 0 {
+		return nil, fmt.Errorf("handoff_id or handoff_ids required for delete")
+	}
+
+	deleted, err := deleteHandoffs(projectRoot, ids)
+	if err != nil {
+		return nil, fmt.Errorf("failed to delete handoffs: %w", err)
+	}
+
+	result := map[string]interface{}{
+		"success": true,
+		"method":  "native_go",
+		"deleted": deleted,
+		"message": fmt.Sprintf("%d handoff(s) deleted", deleted),
+	}
+
+	return mcpresponse.FormatResult(result, "")
+}
+
+// deleteHandoffs removes handoffs by id from handoffs.json. Returns count deleted.
+func deleteHandoffs(projectRoot string, handoffIDs []string) (int, error) {
+	if len(handoffIDs) == 0 {
+		return 0, nil
+	}
+
+	handoffFile := filepath.Join(projectRoot, ".todo2", "handoffs.json")
+	if err := os.MkdirAll(filepath.Dir(handoffFile), 0755); err != nil {
+		return 0, err
+	}
+
+	idsSet := make(map[string]struct{})
+	for _, id := range handoffIDs {
+		if id != "" {
+			idsSet[id] = struct{}{}
+		}
+	}
+
+	if _, err := os.Stat(handoffFile); os.IsNotExist(err) {
+		return 0, nil
+	}
+
+	data, err := os.ReadFile(handoffFile)
+	if err != nil {
+		return 0, err
+	}
+
+	var handoffData map[string]interface{}
+	if err := json.Unmarshal(data, &handoffData); err != nil {
+		return 0, err
+	}
+
+	handoffs, _ := handoffData["handoffs"].([]interface{})
+	var kept []interface{}
+	deleted := 0
+	for _, v := range handoffs {
+		h, ok := v.(map[string]interface{})
+		if !ok {
+			kept = append(kept, v)
+			continue
+		}
+		id, _ := h["id"].(string)
+		if _, want := idsSet[id]; want {
+			deleted++
+			continue
+		}
+		kept = append(kept, v)
+	}
+
+	if deleted == 0 {
+		return 0, nil
+	}
+
+	handoffData["handoffs"] = kept
+	out, err := json.MarshalIndent(handoffData, "", "  ")
+	if err != nil {
+		return 0, err
+	}
+
+	if err := os.WriteFile(handoffFile, out, 0644); err != nil {
+		return 0, err
+	}
+
+	return deleted, nil
 }
 
 // getGitStatus gets current Git status.
