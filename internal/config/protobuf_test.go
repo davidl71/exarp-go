@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-// TestProtobufRoundTrip tests that conversion is lossless (Go → Protobuf → Go)
+// TestProtobufRoundTrip tests that conversion is lossless (Go → Protobuf → Go).
 func TestProtobufRoundTrip(t *testing.T) {
 	// Test with full defaults
 	original := GetDefaults()
@@ -31,6 +31,7 @@ func TestProtobufRoundTrip(t *testing.T) {
 	if converted.Timeouts.TaskLockLease != original.Timeouts.TaskLockLease {
 		t.Errorf("Timeouts.TaskLockLease: got %v, want %v", converted.Timeouts.TaskLockLease, original.Timeouts.TaskLockLease)
 	}
+
 	if converted.Timeouts.ToolDefault != original.Timeouts.ToolDefault {
 		t.Errorf("Timeouts.ToolDefault: got %v, want %v", converted.Timeouts.ToolDefault, original.Timeouts.ToolDefault)
 	}
@@ -39,6 +40,7 @@ func TestProtobufRoundTrip(t *testing.T) {
 	if converted.Thresholds.SimilarityThreshold != original.Thresholds.SimilarityThreshold {
 		t.Errorf("Thresholds.SimilarityThreshold: got %f, want %f", converted.Thresholds.SimilarityThreshold, original.Thresholds.SimilarityThreshold)
 	}
+
 	if converted.Thresholds.MinCoverage != original.Thresholds.MinCoverage {
 		t.Errorf("Thresholds.MinCoverage: got %d, want %d", converted.Thresholds.MinCoverage, original.Thresholds.MinCoverage)
 	}
@@ -47,6 +49,7 @@ func TestProtobufRoundTrip(t *testing.T) {
 	if converted.Tasks.DefaultStatus != original.Tasks.DefaultStatus {
 		t.Errorf("Tasks.DefaultStatus: got %q, want %q", converted.Tasks.DefaultStatus, original.Tasks.DefaultStatus)
 	}
+
 	if converted.Tasks.DefaultPriority != original.Tasks.DefaultPriority {
 		t.Errorf("Tasks.DefaultPriority: got %q, want %q", converted.Tasks.DefaultPriority, original.Tasks.DefaultPriority)
 	}
@@ -57,7 +60,7 @@ func TestProtobufRoundTrip(t *testing.T) {
 	}
 }
 
-// TestProtobufRoundTripWithCustomValues tests round-trip with custom values
+// TestProtobufRoundTripWithCustomValues tests round-trip with custom values.
 func TestProtobufRoundTripWithCustomValues(t *testing.T) {
 	// Create config with custom values
 	original := &FullConfig{
@@ -103,24 +106,29 @@ func TestProtobufRoundTripWithCustomValues(t *testing.T) {
 	if converted.Version != original.Version {
 		t.Errorf("Version: got %q, want %q", converted.Version, original.Version)
 	}
+
 	if converted.Timeouts.TaskLockLease != original.Timeouts.TaskLockLease {
 		t.Errorf("Timeouts.TaskLockLease: got %v, want %v", converted.Timeouts.TaskLockLease, original.Timeouts.TaskLockLease)
 	}
+
 	if converted.Thresholds.SimilarityThreshold != original.Thresholds.SimilarityThreshold {
 		t.Errorf("Thresholds.SimilarityThreshold: got %f, want %f", converted.Thresholds.SimilarityThreshold, original.Thresholds.SimilarityThreshold)
 	}
+
 	if converted.Tasks.DefaultStatus != original.Tasks.DefaultStatus {
 		t.Errorf("Tasks.DefaultStatus: got %q, want %q", converted.Tasks.DefaultStatus, original.Tasks.DefaultStatus)
 	}
+
 	if !reflect.DeepEqual(converted.Tasks.DefaultTags, original.Tasks.DefaultTags) {
 		t.Errorf("Tasks.DefaultTags: got %v, want %v", converted.Tasks.DefaultTags, original.Tasks.DefaultTags)
 	}
+
 	if !reflect.DeepEqual(converted.Tasks.StatusWorkflow, original.Tasks.StatusWorkflow) {
 		t.Errorf("Tasks.StatusWorkflow: got %v, want %v", converted.Tasks.StatusWorkflow, original.Tasks.StatusWorkflow)
 	}
 }
 
-// TestProtobufRoundTripWithZeroValues tests round-trip with zero/empty values
+// TestProtobufRoundTripWithZeroValues tests round-trip with zero/empty values.
 func TestProtobufRoundTripWithZeroValues(t *testing.T) {
 	// Create minimal config with mostly zero values
 	original := &FullConfig{
@@ -143,12 +151,11 @@ func TestProtobufRoundTripWithZeroValues(t *testing.T) {
 	if converted.Version != original.Version {
 		t.Errorf("Version: got %q, want %q", converted.Version, original.Version)
 	}
-
 	// Zero values should remain zero (or be set to defaults if protobuf sets them)
 	// This test ensures conversion doesn't break with minimal configs
 }
 
-// TestProtobufDurationConversion tests duration conversion accuracy
+// TestProtobufDurationConversion tests duration conversion accuracy.
 func TestProtobufDurationConversion(t *testing.T) {
 	tests := []struct {
 		name     string
@@ -177,7 +184,7 @@ func TestProtobufDurationConversion(t *testing.T) {
 	}
 }
 
-// TestProtobufMapJSONConversion tests JSON conversion for map fields
+// TestProtobufMapJSONConversion tests JSON conversion for map fields.
 func TestProtobufMapJSONConversion(t *testing.T) {
 	// Test StatusWorkflow map
 	statusWorkflow := map[string][]string{
@@ -223,7 +230,7 @@ func TestProtobufMapJSONConversion(t *testing.T) {
 	}
 }
 
-// TestProtobufNilHandling tests handling of nil pointers
+// TestProtobufNilHandling tests handling of nil pointers.
 func TestProtobufNilHandling(t *testing.T) {
 	// Test ToProtobuf with nil
 	_, err := ToProtobuf(nil)
@@ -238,7 +245,7 @@ func TestProtobufNilHandling(t *testing.T) {
 	}
 }
 
-// TestProtobufNestedConfigs tests conversion of nested config structures
+// TestProtobufNestedConfigs tests conversion of nested config structures.
 func TestProtobufNestedConfigs(t *testing.T) {
 	original := GetDefaults()
 
@@ -252,36 +259,45 @@ func TestProtobufNestedConfigs(t *testing.T) {
 	if pb.GetTimeouts() == nil {
 		t.Error("Timeouts should not be nil")
 	}
+
 	if pb.GetThresholds() == nil {
 		t.Error("Thresholds should not be nil")
 	}
+
 	if pb.GetTasks() == nil {
 		t.Error("Tasks should not be nil")
 	}
+
 	if pb.GetDatabase() == nil {
 		t.Error("Database should not be nil")
 	}
+
 	if pb.GetSecurity() == nil {
 		t.Error("Security should not be nil")
 	}
+
 	if pb.GetLogging() == nil {
 		t.Error("Logging should not be nil")
 	}
+
 	if pb.GetTools() == nil {
 		t.Error("Tools should not be nil")
 	}
+
 	if pb.GetWorkflow() == nil {
 		t.Error("Workflow should not be nil")
 	}
+
 	if pb.GetMemory() == nil {
 		t.Error("Memory should not be nil")
 	}
+
 	if pb.GetProject() == nil {
 		t.Error("Project should not be nil")
 	}
 }
 
-// TestProtobufScorecardDefaultScores tests conversion of ScorecardConfig.DefaultScores map
+// TestProtobufScorecardDefaultScores tests conversion of ScorecardConfig.DefaultScores map.
 func TestProtobufScorecardDefaultScores(t *testing.T) {
 	original := GetDefaults()
 	original.Tools.Scorecard.DefaultScores = map[string]float64{
@@ -308,7 +324,7 @@ func TestProtobufScorecardDefaultScores(t *testing.T) {
 	}
 }
 
-// TestProtobufWorkflowModes tests conversion of WorkflowConfig.Modes map
+// TestProtobufWorkflowModes tests conversion of WorkflowConfig.Modes map.
 func TestProtobufWorkflowModes(t *testing.T) {
 	original := GetDefaults()
 	original.Workflow.Modes = map[string]ModeConfig{
@@ -341,7 +357,7 @@ func TestProtobufWorkflowModes(t *testing.T) {
 	}
 }
 
-// TestProtobufEmptyMaps tests conversion with empty maps
+// TestProtobufEmptyMaps tests conversion with empty maps.
 func TestProtobufEmptyMaps(t *testing.T) {
 	original := GetDefaults()
 	original.Tasks.StatusWorkflow = map[string][]string{}         // Empty map
@@ -363,15 +379,17 @@ func TestProtobufEmptyMaps(t *testing.T) {
 	if converted.Tasks.StatusWorkflow != nil && len(converted.Tasks.StatusWorkflow) != 0 {
 		t.Errorf("Empty StatusWorkflow should remain empty, got %v", converted.Tasks.StatusWorkflow)
 	}
+
 	if converted.Tools.Scorecard.DefaultScores != nil && len(converted.Tools.Scorecard.DefaultScores) != 0 {
 		t.Errorf("Empty DefaultScores should remain empty, got %v", converted.Tools.Scorecard.DefaultScores)
 	}
+
 	if converted.Workflow.Modes != nil && len(converted.Workflow.Modes) != 0 {
 		t.Errorf("Empty Modes should remain empty, got %v", converted.Workflow.Modes)
 	}
 }
 
-// TestProtobufAllTimeouts tests conversion of all timeout fields
+// TestProtobufAllTimeouts tests conversion of all timeout fields.
 func TestProtobufAllTimeouts(t *testing.T) {
 	original := &FullConfig{
 		Timeouts: TimeoutsConfig{
@@ -406,25 +424,30 @@ func TestProtobufAllTimeouts(t *testing.T) {
 	if converted.Timeouts.TaskLockLease != original.Timeouts.TaskLockLease {
 		t.Errorf("TaskLockLease: got %v, want %v", converted.Timeouts.TaskLockLease, original.Timeouts.TaskLockLease)
 	}
+
 	if converted.Timeouts.TaskLockRenewal != original.Timeouts.TaskLockRenewal {
 		t.Errorf("TaskLockRenewal: got %v, want %v", converted.Timeouts.TaskLockRenewal, original.Timeouts.TaskLockRenewal)
 	}
+
 	if converted.Timeouts.StaleLockThreshold != original.Timeouts.StaleLockThreshold {
 		t.Errorf("StaleLockThreshold: got %v, want %v", converted.Timeouts.StaleLockThreshold, original.Timeouts.StaleLockThreshold)
 	}
+
 	if converted.Timeouts.ToolDefault != original.Timeouts.ToolDefault {
 		t.Errorf("ToolDefault: got %v, want %v", converted.Timeouts.ToolDefault, original.Timeouts.ToolDefault)
 	}
+
 	if converted.Timeouts.OllamaDownload != original.Timeouts.OllamaDownload {
 		t.Errorf("OllamaDownload: got %v, want %v", converted.Timeouts.OllamaDownload, original.Timeouts.OllamaDownload)
 	}
+
 	if converted.Timeouts.ContextBudget != original.Timeouts.ContextBudget {
 		t.Errorf("ContextBudget: got %v, want %v", converted.Timeouts.ContextBudget, original.Timeouts.ContextBudget)
 	}
 }
 
 // TestProtobufSchemaSync tests that protobuf schema matches Go structs
-// This is a high-level test to catch schema drift
+// This is a high-level test to catch schema drift.
 func TestProtobufSchemaSync(t *testing.T) {
 	// Create a full config with all fields set
 	original := GetDefaults()
@@ -464,7 +487,7 @@ func TestProtobufSchemaSync(t *testing.T) {
 	}
 }
 
-// TestProtobufPartialConfig tests conversion with partial config (some sections missing)
+// TestProtobufPartialConfig tests conversion with partial config (some sections missing).
 func TestProtobufPartialConfig(t *testing.T) {
 	// Create config with only some sections set
 	original := &FullConfig{
@@ -495,6 +518,7 @@ func TestProtobufPartialConfig(t *testing.T) {
 	if converted.Timeouts.TaskLockLease != original.Timeouts.TaskLockLease {
 		t.Errorf("TaskLockLease: got %v, want %v", converted.Timeouts.TaskLockLease, original.Timeouts.TaskLockLease)
 	}
+
 	if converted.Thresholds.SimilarityThreshold != original.Thresholds.SimilarityThreshold {
 		t.Errorf("SimilarityThreshold: got %f, want %f", converted.Thresholds.SimilarityThreshold, original.Thresholds.SimilarityThreshold)
 	}

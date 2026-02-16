@@ -432,6 +432,9 @@ func (state *tui3270State) childAgentMenuTransaction(conn net.Conn, devInfo go32
 			}
 			return state.showChildAgentResultTransaction(msg, state.mainMenuTransaction), state, nil
 		}
+		if max := config.MaxTasksPerWave(); max > 0 {
+			waves = tools.LimitWavesByMaxTasks(waves, max)
+		}
 		levels := make([]int, 0, len(waves))
 		for k := range waves {
 			levels = append(levels, k)
@@ -1683,6 +1686,9 @@ func (state *tui3270State) handleCommand(cmd string, currentTx go3270.Tx) (go327
 			_, waves, _, err := tools.BacklogExecutionOrder(taskList, nil)
 			if err != nil || len(waves) == 0 {
 				return state.showChildAgentResultTransaction("No waves", state.taskListTransaction), state, nil
+			}
+			if max := config.MaxTasksPerWave(); max > 0 {
+				waves = tools.LimitWavesByMaxTasks(waves, max)
 			}
 			levels := make([]int, 0, len(waves))
 			for k := range waves {

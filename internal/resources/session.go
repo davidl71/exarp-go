@@ -36,7 +36,7 @@ func handleSessionStatus(ctx context.Context, uri string) ([]byte, string, error
 
 // handleSessionMode handles the stdio://session/mode resource
 // Returns current inferred session mode (AGENT/ASK/MANUAL) with confidence
-// Uses native Go infer_session_mode implementation
+// Uses native Go infer_session_mode implementation.
 func handleSessionMode(ctx context.Context, uri string) ([]byte, string, error) {
 	// Use the native Go infer_session_mode implementation
 	// We call the native function directly (same logic as the tool handler)
@@ -60,11 +60,12 @@ func handleSessionMode(ctx context.Context, uri string) ([]byte, string, error) 
 }
 
 // inferSessionMode infers the current session mode (AGENT/ASK/MANUAL) with confidence
-// This uses the same logic as the infer_session_mode tool
+// This uses the same logic as the infer_session_mode tool.
 func inferSessionMode(ctx context.Context) (string, float64, error) {
 	// Use the native Go implementation from tools package
 	// Call HandleInferSessionModeNative directly with empty params (no force_recompute)
 	params := map[string]interface{}{}
+
 	result, err := tools.HandleInferSessionModeNative(ctx, params)
 	if err != nil {
 		return "", 0.0, fmt.Errorf("session mode inference failed: %w", err)

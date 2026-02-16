@@ -10,7 +10,7 @@ import (
 )
 
 // registerAppleFoundationModelsTool registers the Apple Foundation Models tool
-// This function is only compiled on supported platforms (darwin && arm64 && cgo)
+// This function is only compiled on supported platforms (darwin && arm64 && cgo).
 func registerAppleFoundationModelsTool(server framework.MCPServer) error {
 	if err := server.RegisterTool(
 		"apple_foundation_models",

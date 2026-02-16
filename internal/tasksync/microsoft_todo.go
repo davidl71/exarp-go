@@ -19,7 +19,7 @@ import (
 // Reference: https://learn.microsoft.com/en-us/graph/api/resources/todo-overview?view=graph-rest-1.0
 
 // MicrosoftTodoSource implements ExternalSource for Microsoft To-Do API
-// TODO: Update implementation once Microsoft Graph SDK is added and API is verified
+// TODO: Update implementation once Microsoft Graph SDK is added and API is verified.
 type MicrosoftTodoSource struct {
 	// client will be *msgraph.GraphServiceClient once SDK is added
 	client     interface{} // Placeholder - will be typed once SDK is verified
@@ -28,7 +28,7 @@ type MicrosoftTodoSource struct {
 	taskListID string
 }
 
-// MicrosoftTodoConfig contains configuration for Microsoft To-Do API
+// MicrosoftTodoConfig contains configuration for Microsoft To-Do API.
 type MicrosoftTodoConfig struct {
 	// TenantID is the Azure AD tenant ID
 	TenantID string
@@ -46,7 +46,7 @@ type MicrosoftTodoConfig struct {
 	TaskListID string
 }
 
-// NewMicrosoftTodoSource creates a new Microsoft To-Do source
+// NewMicrosoftTodoSource creates a new Microsoft To-Do source.
 func NewMicrosoftTodoSource(config *MicrosoftTodoConfig) (*MicrosoftTodoSource, error) {
 	// Create OAuth2 client credentials config
 	oauthConfig := clientcredentials.Config{
@@ -87,17 +87,17 @@ func NewMicrosoftTodoSource(config *MicrosoftTodoConfig) (*MicrosoftTodoSource, 
 	}, nil
 }
 
-// Type returns the source type
+// Type returns the source type.
 func (s *MicrosoftTodoSource) Type() ExternalSourceType {
 	return SourceMicrosoftTodo
 }
 
-// Name returns a human-readable name
+// Name returns a human-readable name.
 func (s *MicrosoftTodoSource) Name() string {
 	return "Microsoft To-Do"
 }
 
-// SyncTasks synchronizes tasks between Todo2 and Microsoft To-Do
+// SyncTasks synchronizes tasks between Todo2 and Microsoft To-Do.
 func (s *MicrosoftTodoSource) SyncTasks(ctx context.Context, todo2Tasks []*models.Todo2Task, options SyncOptions) (*SyncResult, error) {
 	result := &SyncResult{
 		Matches:          []TaskMatch{},
@@ -118,12 +118,14 @@ func (s *MicrosoftTodoSource) SyncTasks(ctx context.Context, todo2Tasks []*model
 
 	// Build mapping for matching
 	todo2Map := make(map[string]*models.Todo2Task)
+
 	for _, task := range todo2Tasks {
 		key := fmt.Sprintf("%s:%s", task.Content, task.ID)
 		todo2Map[key] = task
 	}
 
 	externalMap := make(map[string]*ExternalTask)
+
 	for _, task := range externalTasks {
 		key := fmt.Sprintf("%s:%s", task.Title, task.ExternalID)
 		externalMap[key] = task
@@ -147,33 +149,32 @@ func (s *MicrosoftTodoSource) SyncTasks(ctx context.Context, todo2Tasks []*model
 	return result, nil
 }
 
-// GetTasks retrieves tasks from Microsoft To-Do
+// GetTasks retrieves tasks from Microsoft To-Do.
 func (s *MicrosoftTodoSource) GetTasks(ctx context.Context, options GetTasksOptions) ([]*ExternalTask, error) {
 	// TODO: Implement using actual Microsoft Graph SDK API
 	// This is a placeholder - implementation will be completed once SDK is added
 	return nil, fmt.Errorf("Microsoft To-Do implementation pending SDK integration")
-
 }
 
-// CreateTask creates a task in Microsoft To-Do
+// CreateTask creates a task in Microsoft To-Do.
 func (s *MicrosoftTodoSource) CreateTask(ctx context.Context, task *models.Todo2Task) (*ExternalTask, error) {
 	// TODO: Implement using actual Microsoft Graph SDK API
 	return nil, fmt.Errorf("Microsoft To-Do implementation pending SDK integration")
 }
 
-// UpdateTask updates a task in Microsoft To-Do
+// UpdateTask updates a task in Microsoft To-Do.
 func (s *MicrosoftTodoSource) UpdateTask(ctx context.Context, externalID string, task *models.Todo2Task) (*ExternalTask, error) {
 	// TODO: Implement using actual Microsoft Graph SDK API
 	return nil, fmt.Errorf("Microsoft To-Do implementation pending SDK integration")
 }
 
-// DeleteTask deletes a task from Microsoft To-Do
+// DeleteTask deletes a task from Microsoft To-Do.
 func (s *MicrosoftTodoSource) DeleteTask(ctx context.Context, externalID string) error {
 	// TODO: Implement using actual Microsoft Graph SDK API
 	return fmt.Errorf("Microsoft To-Do implementation pending SDK integration")
 }
 
-// TestConnection tests the connection to Microsoft To-Do
+// TestConnection tests the connection to Microsoft To-Do.
 func (s *MicrosoftTodoSource) TestConnection(ctx context.Context) error {
 	// TODO: Implement using actual Microsoft Graph SDK API
 	return fmt.Errorf("Microsoft To-Do implementation pending SDK integration")
@@ -209,6 +210,7 @@ func (s *MicrosoftTodoSource) externalToTodo2(extTask *ExternalTask) *models.Tod
 		if task.Metadata == nil {
 			task.Metadata = make(map[string]interface{})
 		}
+
 		task.Metadata["due_date"] = extTask.DueDate.Format(time.RFC3339)
 	}
 

@@ -50,6 +50,7 @@ func main() {
 	fmt.Printf("Arguments: %s\n\n", string(argsBytes))
 
 	ctx := context.Background()
+
 	result, err := server.CallTool(ctx, "estimation", argsBytes)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
@@ -57,10 +58,12 @@ func main() {
 	}
 
 	fmt.Println("Result:")
+
 	for i, content := range result {
 		if len(result) > 1 {
 			fmt.Printf("\n[%d] ", i+1)
 		}
+
 		fmt.Println(content.Text)
 	}
 
@@ -69,19 +72,24 @@ func main() {
 	if len(result) > 0 {
 		if err := json.Unmarshal([]byte(result[0].Text), &resultJSON); err == nil {
 			fmt.Println("\n=== Key Metrics ===")
+
 			if method, ok := resultJSON["method"].(string); ok {
 				fmt.Printf("Method: %s\n", method)
 			}
+
 			if hours, ok := resultJSON["estimate_hours"].(float64); ok {
 				fmt.Printf("Estimate: %.1f hours\n", hours)
 			}
+
 			if confidence, ok := resultJSON["confidence"].(float64); ok {
 				fmt.Printf("Confidence: %.1f%%\n", confidence*100)
 			}
+
 			if metadata, ok := resultJSON["metadata"].(map[string]interface{}); ok {
 				if afmEst, ok := metadata["apple_fm_estimate"].(float64); ok {
 					fmt.Printf("Apple FM Estimate: %.1f hours\n", afmEst)
 				}
+
 				if statEst, ok := metadata["statistical_estimate"].(float64); ok {
 					fmt.Printf("Statistical Estimate: %.1f hours\n", statEst)
 				}

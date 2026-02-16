@@ -28,8 +28,10 @@ func TestWithGitLock_Success(t *testing.T) {
 	if runtime.GOOS == "windows" {
 		t.Skip("file locking not implemented on Windows")
 	}
+
 	dir := t.TempDir()
 	ran := false
+
 	err := WithGitLock(dir, 2*time.Second, func() error {
 		ran = true
 		return nil
@@ -37,6 +39,7 @@ func TestWithGitLock_Success(t *testing.T) {
 	if err != nil {
 		t.Fatalf("WithGitLock: %v", err)
 	}
+
 	if !ran {
 		t.Error("fn did not run")
 	}
@@ -46,16 +49,19 @@ func TestWithGitLock_PropagatesFnError(t *testing.T) {
 	if runtime.GOOS == "windows" {
 		t.Skip("file locking not implemented on Windows")
 	}
+
 	dir := t.TempDir()
 	wantErr := errors.New("fn failed")
 	err := WithGitLock(dir, 2*time.Second, func() error {
 		return wantErr
 	})
-	if err != wantErr {
+
+	if !errors.Is(err, wantErr) {
 		t.Errorf("WithGitLock returned %v, want %v", err, wantErr)
 	}
 	// Lock should be released; second call should succeed
 	ran := false
+
 	err = WithGitLock(dir, 2*time.Second, func() error {
 		ran = true
 		return nil
@@ -63,6 +69,7 @@ func TestWithGitLock_PropagatesFnError(t *testing.T) {
 	if err != nil {
 		t.Errorf("second WithGitLock: %v", err)
 	}
+
 	if !ran {
 		t.Error("second fn did not run")
 	}
@@ -75,19 +82,24 @@ func TestWithGitLock_Contention(t *testing.T) {
 	if runtime.GOOS == "windows" {
 		t.Skip("file locking not implemented on Windows")
 	}
+
 	if runtime.GOOS == "darwin" {
 		t.Skip("same-process fcntl lock semantics on Darwin may allow concurrent acquisition; test on Linux for contention")
 	}
+
 	dir := t.TempDir()
 	firstHolding := make(chan struct{})
+
 	go func() {
 		_ = WithGitLock(dir, 5*time.Second, func() error {
 			close(firstHolding)
 			time.Sleep(300 * time.Millisecond)
+
 			return nil
 		})
 	}()
 	<-firstHolding
+
 	err := WithGitLock(dir, 50*time.Millisecond, func() error {
 		return nil
 	})
@@ -100,8 +112,10 @@ func TestWithGitLock_DefaultTimeout(t *testing.T) {
 	if runtime.GOOS == "windows" {
 		t.Skip("file locking not implemented on Windows")
 	}
+
 	dir := t.TempDir()
 	ran := false
+
 	err := WithGitLock(dir, 0, func() error {
 		ran = true
 		return nil
@@ -109,6 +123,7 @@ func TestWithGitLock_DefaultTimeout(t *testing.T) {
 	if err != nil {
 		t.Fatalf("WithGitLock(0): %v", err)
 	}
+
 	if !ran {
 		t.Error("fn did not run")
 	}

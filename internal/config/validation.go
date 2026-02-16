@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-// ValidateConfig validates the configuration and returns an error if invalid
+// ValidateConfig validates the configuration and returns an error if invalid.
 func ValidateConfig(cfg *FullConfig) error {
 	// Validate timeouts
 	if err := validateTimeouts(cfg.Timeouts); err != nil {
@@ -37,7 +37,7 @@ func ValidateConfig(cfg *FullConfig) error {
 	return nil
 }
 
-// validateTimeouts validates timeout configuration
+// validateTimeouts validates timeout configuration.
 func validateTimeouts(timeouts TimeoutsConfig) error {
 	// Check for reasonable timeout values (not too small, not too large)
 	minTimeout := 1 * time.Second
@@ -78,7 +78,7 @@ func validateTimeouts(timeouts TimeoutsConfig) error {
 	return nil
 }
 
-// validateThresholds validates threshold configuration
+// validateThresholds validates threshold configuration.
 func validateThresholds(thresholds ThresholdsConfig) error {
 	// Similarity threshold should be between 0 and 1
 	if thresholds.SimilarityThreshold < 0 || thresholds.SimilarityThreshold > 1 {
@@ -158,7 +158,7 @@ func validateThresholds(thresholds ThresholdsConfig) error {
 	return nil
 }
 
-// validateTasks validates task configuration
+// validateTasks validates task configuration.
 func validateTasks(tasks TasksConfig) error {
 	// Valid statuses
 	validStatuses := map[string]bool{
@@ -188,6 +188,7 @@ func validateTasks(tasks TasksConfig) error {
 		if !validStatuses[status] {
 			return fmt.Errorf("status_workflow contains invalid status: %s", status)
 		}
+
 		for _, nextStatus := range nextStatuses {
 			if !validStatuses[nextStatus] {
 				return fmt.Errorf("status_workflow for %s contains invalid next status: %s", status, nextStatus)
@@ -208,7 +209,7 @@ func validateTasks(tasks TasksConfig) error {
 	return nil
 }
 
-// validateDatabase validates database configuration
+// validateDatabase validates database configuration.
 func validateDatabase(db DatabaseConfig) error {
 	// SQLite path should not be empty if using SQLite
 	if db.SQLitePath == "" {
@@ -224,6 +225,7 @@ func validateDatabase(db DatabaseConfig) error {
 	if db.ConnectionTimeout > 0 && db.ConnectionTimeout < time.Second {
 		return fmt.Errorf("connection_timeout (%v) must be at least 1 second", db.ConnectionTimeout)
 	}
+
 	if db.QueryTimeout > 0 && db.QueryTimeout < time.Second {
 		return fmt.Errorf("query_timeout (%v) must be at least 1 second", db.QueryTimeout)
 	}
@@ -238,13 +240,16 @@ func validateDatabase(db DatabaseConfig) error {
 		if db.RetryInitialDelay <= 0 {
 			return fmt.Errorf("retry_initial_delay must be positive when retry_attempts > 0")
 		}
+
 		if db.RetryMaxDelay <= 0 {
 			return fmt.Errorf("retry_max_delay must be positive when retry_attempts > 0")
 		}
+
 		if db.RetryMaxDelay < db.RetryInitialDelay {
 			return fmt.Errorf("retry_max_delay (%v) must be >= retry_initial_delay (%v)",
 				db.RetryMaxDelay, db.RetryInitialDelay)
 		}
+
 		if db.RetryMultiplier <= 0 {
 			return fmt.Errorf("retry_multiplier (%f) must be positive", db.RetryMultiplier)
 		}
@@ -263,16 +268,18 @@ func validateDatabase(db DatabaseConfig) error {
 	return nil
 }
 
-// validateSecurity validates security configuration
+// validateSecurity validates security configuration.
 func validateSecurity(sec SecurityConfig) error {
 	// Validate rate limit
 	if sec.RateLimit.Enabled {
 		if sec.RateLimit.RequestsPerWindow < 1 {
 			return fmt.Errorf("rate_limit.requests_per_window (%d) must be at least 1", sec.RateLimit.RequestsPerWindow)
 		}
+
 		if sec.RateLimit.WindowDuration <= 0 {
 			return fmt.Errorf("rate_limit.window_duration (%v) must be positive", sec.RateLimit.WindowDuration)
 		}
+
 		if sec.RateLimit.BurstSize < 1 {
 			return fmt.Errorf("rate_limit.burst_size (%d) must be at least 1", sec.RateLimit.BurstSize)
 		}
@@ -289,6 +296,7 @@ func validateSecurity(sec SecurityConfig) error {
 	if sec.FileLimits.MaxFileSize < 0 {
 		return fmt.Errorf("file_limits.max_file_size (%d) must be non-negative", sec.FileLimits.MaxFileSize)
 	}
+
 	if sec.FileLimits.MaxFilesPerOperation < 1 {
 		return fmt.Errorf("file_limits.max_files_per_operation (%d) must be at least 1", sec.FileLimits.MaxFilesPerOperation)
 	}

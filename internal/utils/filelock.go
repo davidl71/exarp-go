@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -45,7 +46,7 @@ func NewFileLock(path string, timeout time.Duration) (*FileLock, error) {
 }
 
 // TryLock attempts to acquire the lock (non-blocking)
-// Returns error if lock is held or failed
+// Returns error if lock is held or failed.
 func (fl *FileLock) TryLock() error {
 	if fl.file == nil {
 		return fmt.Errorf("lock file not open")
@@ -60,9 +61,10 @@ func (fl *FileLock) TryLock() error {
 			Len:    0, // Lock entire file
 		})
 
-		if err == unix.EAGAIN || err == unix.EWOULDBLOCK {
+		if errors.Is(err, unix.EAGAIN) || errors.Is(err, unix.EWOULDBLOCK) {
 			return fmt.Errorf("lock is held by another process")
 		}
+
 		if err != nil {
 			return fmt.Errorf("failed to acquire lock: %w", err)
 		}
@@ -76,7 +78,7 @@ func (fl *FileLock) TryLock() error {
 }
 
 // Lock acquires the lock, blocking until available or timeout
-// Returns error if timeout exceeded or lock failed
+// Returns error if timeout exceeded or lock failed.
 func (fl *FileLock) Lock() error {
 	if fl.timeout == 0 {
 		// Non-blocking
@@ -103,7 +105,7 @@ func (fl *FileLock) Lock() error {
 	}
 }
 
-// Unlock releases the lock
+// Unlock releases the lock.
 func (fl *FileLock) Unlock() error {
 	if fl.file == nil {
 		return nil // Already closed
@@ -116,6 +118,7 @@ func (fl *FileLock) Unlock() error {
 			Start:  0,
 			Len:    0,
 		})
+
 		return err
 	}
 
@@ -123,7 +126,7 @@ func (fl *FileLock) Unlock() error {
 	return fmt.Errorf("file unlocking not implemented for Windows")
 }
 
-// Close closes the lock file and releases the lock
+// Close closes the lock file and releases the lock.
 func (fl *FileLock) Close() error {
 	if fl.file == nil {
 		return nil
@@ -132,19 +135,21 @@ func (fl *FileLock) Close() error {
 	_ = fl.Unlock() // Release lock
 	err := fl.file.Close()
 	fl.file = nil
+
 	return err
 }
 
 // TaskLock creates a file lock for a specific task
-// Returns FileLock instance for managing task-level locks
+// Returns FileLock instance for managing task-level locks.
 func TaskLock(projectRoot string, taskID string, timeout time.Duration) (*FileLock, error) {
 	lockDir := filepath.Join(projectRoot, ".todo2", "locks")
 	lockPath := filepath.Join(lockDir, fmt.Sprintf("task_%s.lock", taskID))
+
 	return NewFileLock(lockPath, timeout)
 }
 
 // StateFileLock creates a file lock for the entire state file
-// Returns FileLock instance for managing state-level locks
+// Returns FileLock instance for managing state-level locks.
 func StateFileLock(projectRoot string, timeout time.Duration) (*FileLock, error) {
 	lockPath := filepath.Join(projectRoot, ".todo2", "state.todo2.json.lock")
 	return NewFileLock(lockPath, timeout)
@@ -166,13 +171,17 @@ func WithGitLock(projectRoot string, timeout time.Duration, fn func() error) err
 	if timeout == 0 {
 		timeout = DefaultGitLockTimeout
 	}
+
 	lock, err := NewFileLock(GitSyncLockPath(projectRoot), timeout)
 	if err != nil {
 		return err
 	}
+
 	defer lock.Close()
+
 	if err := lock.Lock(); err != nil {
 		return err
 	}
+
 	return fn()
 }

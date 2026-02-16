@@ -167,10 +167,12 @@ func TestRequestLimitEnforcement(t *testing.T) {
 	if err == nil {
 		t.Error("Third request should be denied (rate limit enforced), got nil error")
 	}
+
 	var rateErr *RateLimitError
 	if err != nil && !errors.As(err, &rateErr) {
 		t.Errorf("Expected *RateLimitError, got %T: %v", err, err)
 	}
+
 	if rateErr != nil && rateErr.ClientID != clientID {
 		t.Errorf("RateLimitError.ClientID = %s, want %s", rateErr.ClientID, clientID)
 	}
@@ -213,9 +215,11 @@ func TestSlidingWindowAccuracy(t *testing.T) {
 // TestConcurrentRequests verifies rate limiting under concurrent access (T-291).
 func TestConcurrentRequests(t *testing.T) {
 	rl := NewRateLimiter(1*time.Second, 10)
+
 	const goroutines = 20
 
 	allowed := make(chan bool, goroutines)
+
 	for i := 0; i < goroutines; i++ {
 		go func() {
 			allowed <- rl.Allow("concurrent-client")
@@ -223,6 +227,7 @@ func TestConcurrentRequests(t *testing.T) {
 	}
 
 	allowedCount := 0
+
 	for i := 0; i < goroutines; i++ {
 		if <-allowed {
 			allowedCount++
@@ -232,6 +237,7 @@ func TestConcurrentRequests(t *testing.T) {
 	if allowedCount > 10 {
 		t.Errorf("Concurrent: expected at most 10 allowed, got %d", allowedCount)
 	}
+
 	rl.Stop()
 }
 
@@ -243,6 +249,7 @@ func TestLimitResetBehavior(t *testing.T) {
 	if !rl.Allow("reset-client") || !rl.Allow("reset-client") {
 		t.Error("First two requests should be allowed")
 	}
+
 	if rl.Allow("reset-client") {
 		t.Error("Third request should be denied")
 	}
@@ -254,6 +261,7 @@ func TestLimitResetBehavior(t *testing.T) {
 	if !rl.Allow("reset-client") || !rl.Allow("reset-client") {
 		t.Error("After reset: first two requests should be allowed")
 	}
+
 	if rl.Allow("reset-client") {
 		t.Error("After reset: third request should be denied")
 	}

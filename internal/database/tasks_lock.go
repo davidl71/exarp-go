@@ -3,13 +3,14 @@ package database
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"time"
 
 	"github.com/davidl71/exarp-go/internal/models"
 )
 
-// TaskClaimResult represents the result of a task claim operation
+// TaskClaimResult represents the result of a task claim operation.
 type TaskClaimResult struct {
 	Success   bool
 	Task      *models.Todo2Task
@@ -20,9 +21,10 @@ type TaskClaimResult struct {
 
 // ClaimTaskForAgent atomically claims a task for an agent using SELECT FOR UPDATE
 // Uses pessimistic locking to prevent race conditions
-// Returns TaskClaimResult with success status and task details
+// Returns TaskClaimResult with success status and task details.
 func ClaimTaskForAgent(ctx context.Context, taskID string, agentID string, leaseDuration time.Duration) (*TaskClaimResult, error) {
 	ctx = ensureContext(ctx)
+
 	txCtx, cancel := withTransactionTimeout(ctx)
 	defer cancel()
 
@@ -47,6 +49,7 @@ func ClaimTaskForAgent(ctx context.Context, taskID string, agentID string, lease
 			result.Error = fmt.Errorf("failed to begin transaction: %w", err)
 			return result.Error
 		}
+
 		defer func() {
 			if err != nil {
 				_ = tx.Rollback()
@@ -54,8 +57,11 @@ func ClaimTaskForAgent(ctx context.Context, taskID string, agentID string, lease
 		}()
 
 		var taskData models.Todo2Task
+
 		var currentAssignee sql.NullString
+
 		var lockUntil sql.NullInt64
+
 		var version int64
 
 		now := time.Now().Unix()
@@ -81,10 +87,11 @@ func ClaimTaskForAgent(ctx context.Context, taskID string, agentID string, lease
 			&version,
 		)
 
-		if err == sql.ErrNoRows {
+		if errors.Is(err, sql.ErrNoRows) {
 			result.Error = fmt.Errorf("task %s not found or not available (must be Todo or In Progress)", taskID)
 			return result.Error
 		}
+
 		if err != nil {
 			result.Error = fmt.Errorf("failed to query task: %w", err)
 			return result.Error
@@ -98,6 +105,7 @@ func ClaimTaskForAgent(ctx context.Context, taskID string, agentID string, lease
 				result.WasLocked = true
 				result.LockedBy = currentAssignee.String
 				result.Error = fmt.Errorf("task %s already assigned to %s (task: %s, lock expires at %d)", taskID, currentAssignee.String, taskID, lockUntil.Int64)
+
 				return result.Error
 			}
 			// Lease expired - can reassign (checked in WHERE clause)
@@ -156,6 +164,7 @@ func ClaimTaskForAgent(ctx context.Context, taskID string, agentID string, lease
 
 		result.Success = true
 		result.Task = &taskData
+
 		return nil
 	})
 
@@ -172,9 +181,10 @@ func ClaimTaskForAgent(ctx context.Context, taskID string, agentID string, lease
 }
 
 // ReleaseTask releases a task lock (sets assignee to NULL)
-// Only the current assignee can release their own lock
+// Only the current assignee can release their own lock.
 func ReleaseTask(ctx context.Context, taskID string, agentID string) error {
 	ctx = ensureContext(ctx)
+
 	txCtx, cancel := withTransactionTimeout(ctx)
 	defer cancel()
 
@@ -188,6 +198,7 @@ func ReleaseTask(ctx context.Context, taskID string, agentID string) error {
 		if err != nil {
 			return fmt.Errorf("failed to begin transaction: %w", err)
 		}
+
 		defer func() {
 			if err != nil {
 				_ = tx.Rollback()
@@ -202,9 +213,10 @@ func ReleaseTask(ctx context.Context, taskID string, agentID string) error {
 			WHERE id = ?
 		`, taskID).Scan(&currentAssignee)
 
-		if err == sql.ErrNoRows {
+		if errors.Is(err, sql.ErrNoRows) {
 			return fmt.Errorf("task %s not found", taskID)
 		}
+
 		if err != nil {
 			return fmt.Errorf("failed to query task: %w", err)
 		}
@@ -215,6 +227,7 @@ func ReleaseTask(ctx context.Context, taskID string, agentID string) error {
 			if currentAssignee.Valid {
 				currentAssigneeStr = fmt.Sprintf("%s (task: %s)", currentAssignee.String, taskID)
 			}
+
 			return fmt.Errorf("task %s not assigned to %s (task: %s) (current assignee: %s)", taskID, agentID, taskID, currentAssigneeStr)
 		}
 
@@ -247,9 +260,10 @@ func ReleaseTask(ctx context.Context, taskID string, agentID string) error {
 }
 
 // RenewLease extends the lock duration for an already-claimed task
-// Only the current assignee can renew their lease
+// Only the current assignee can renew their lease.
 func RenewLease(ctx context.Context, taskID string, agentID string, leaseDuration time.Duration) error {
 	ctx = ensureContext(ctx)
+
 	txCtx, cancel := withTransactionTimeout(ctx)
 	defer cancel()
 
@@ -263,6 +277,7 @@ func RenewLease(ctx context.Context, taskID string, agentID string, leaseDuratio
 		if err != nil {
 			return fmt.Errorf("failed to begin transaction: %w", err)
 		}
+
 		defer func() {
 			if err != nil {
 				_ = tx.Rollback()
@@ -277,9 +292,10 @@ func RenewLease(ctx context.Context, taskID string, agentID string, leaseDuratio
 			WHERE id = ?
 		`, taskID).Scan(&currentAssignee)
 
-		if err == sql.ErrNoRows {
+		if errors.Is(err, sql.ErrNoRows) {
 			return fmt.Errorf("task %s not found", taskID)
 		}
+
 		if err != nil {
 			return fmt.Errorf("failed to query task: %w", err)
 		}
@@ -290,6 +306,7 @@ func RenewLease(ctx context.Context, taskID string, agentID string, leaseDuratio
 			if currentAssignee.Valid {
 				currentAssigneeStr = fmt.Sprintf("%s (task: %s)", currentAssignee.String, taskID)
 			}
+
 			return fmt.Errorf("task %s not assigned to %s (task: %s) (current assignee: %s)", taskID, agentID, taskID, currentAssigneeStr)
 		}
 
@@ -330,9 +347,11 @@ func RunLeaseRenewal(ctx context.Context, taskID, agentID string, leaseDuration,
 	if renewInterval <= 0 || leaseDuration <= 0 {
 		return
 	}
+
 	go func() {
 		ticker := time.NewTicker(renewInterval)
 		defer ticker.Stop()
+
 		for {
 			select {
 			case <-ctx.Done():
@@ -345,9 +364,10 @@ func RunLeaseRenewal(ctx context.Context, taskID, agentID string, leaseDuration,
 }
 
 // CleanupExpiredLocks releases locks that have expired (for dead agent cleanup)
-// Returns number of locks cleaned up
+// Returns number of locks cleaned up.
 func CleanupExpiredLocks(ctx context.Context) (int, error) {
 	ctx = ensureContext(ctx)
+
 	txCtx, cancel := withTransactionTimeout(ctx)
 	defer cancel()
 
@@ -363,6 +383,7 @@ func CleanupExpiredLocks(ctx context.Context) (int, error) {
 		if err != nil {
 			return fmt.Errorf("failed to begin transaction: %w", err)
 		}
+
 		defer func() {
 			if err != nil {
 				_ = tx.Rollback()
@@ -406,13 +427,15 @@ func CleanupExpiredLocks(ctx context.Context) (int, error) {
 }
 
 // BatchClaimTasks atomically claims multiple tasks (all or nothing)
-// Uses state-level locking to ensure atomic batch assignment
+// Uses state-level locking to ensure atomic batch assignment.
 func BatchClaimTasks(ctx context.Context, taskIDs []string, agentID string, leaseDuration time.Duration) ([]string, []string, error) {
 	ctx = ensureContext(ctx)
+
 	txCtx, cancel := withTransactionTimeout(ctx)
 	defer cancel()
 
 	var claimed []string
+
 	var failed []string
 
 	err := retryWithBackoff(ctx, func() error {
@@ -425,6 +448,7 @@ func BatchClaimTasks(ctx context.Context, taskIDs []string, agentID string, leas
 		if err != nil {
 			return fmt.Errorf("failed to begin transaction: %w", err)
 		}
+
 		defer func() {
 			if err != nil {
 				_ = tx.Rollback()
@@ -437,8 +461,11 @@ func BatchClaimTasks(ctx context.Context, taskIDs []string, agentID string, leas
 		// Check all tasks are available (SELECT FOR UPDATE for each)
 		for _, taskID := range taskIDs {
 			var currentAssignee sql.NullString
+
 			var lockUntil sql.NullInt64
+
 			var version int64
+
 			var status string
 
 			err = tx.QueryRowContext(txCtx, `
@@ -447,10 +474,11 @@ func BatchClaimTasks(ctx context.Context, taskIDs []string, agentID string, leas
 				WHERE id = ?
 			`, taskID).Scan(&currentAssignee, &lockUntil, &version, &status)
 
-			if err == sql.ErrNoRows {
+			if errors.Is(err, sql.ErrNoRows) {
 				failed = append(failed, taskID)
 				continue
 			}
+
 			if err != nil {
 				return fmt.Errorf("failed to query task %s: %w", taskID, err)
 			}
@@ -498,7 +526,7 @@ func BatchClaimTasks(ctx context.Context, taskIDs []string, agentID string, leas
 	return claimed, failed, err
 }
 
-// Helper function to load task with relations (tags, dependencies)
+// Helper function to load task with relations (tags, dependencies).
 func loadTaskWithRelations(ctx context.Context, tx *sql.Tx, taskID string) (*models.Todo2Task, error) {
 	task := &models.Todo2Task{ID: taskID}
 
@@ -507,6 +535,7 @@ func loadTaskWithRelations(ctx context.Context, tx *sql.Tx, taskID string) (*mod
 	if err != nil {
 		return nil, err
 	}
+
 	task.Tags = tags
 
 	// Load dependencies
@@ -514,6 +543,7 @@ func loadTaskWithRelations(ctx context.Context, tx *sql.Tx, taskID string) (*mod
 	if err != nil {
 		return nil, err
 	}
+
 	task.Dependencies = dependencies
 
 	return task, nil

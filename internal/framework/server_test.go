@@ -7,7 +7,7 @@ import (
 )
 
 // Note: We can't test with fixtures here due to import cycle
-// Framework tests should test the interface contracts directly
+// Framework tests should test the interface contracts directly.
 func TestMCPServer_Interface(t *testing.T) {
 	// Verify interface types exist
 	// Actual implementation tests are in gosdk package
@@ -15,7 +15,7 @@ func TestMCPServer_Interface(t *testing.T) {
 }
 
 // Framework interface tests are in fixtures package to avoid import cycles
-// These tests verify the interface contracts
+// These tests verify the interface contracts.
 func TestMCPServer_ToolSchema(t *testing.T) {
 	schema := ToolSchema{
 		Type: "object",
@@ -42,6 +42,7 @@ func TestMCPServer_PromptHandler(t *testing.T) {
 	}
 
 	ctx := context.Background()
+
 	result, err := handler(ctx, map[string]interface{}{"key": "value"})
 	if err != nil {
 		t.Fatalf("handler() error = %v", err)
@@ -59,6 +60,7 @@ func TestMCPServer_ResourceHandler(t *testing.T) {
 	}
 
 	ctx := context.Background()
+
 	data, mimeType, err := handler(ctx, "stdio://test")
 	if err != nil {
 		t.Fatalf("handler() error = %v", err)
@@ -74,7 +76,7 @@ func TestMCPServer_ResourceHandler(t *testing.T) {
 }
 
 // Validation and duplicate registration tests are in fixtures package
-// to avoid import cycles
+// to avoid import cycles.
 func TestMCPServer_InterfaceContracts(t *testing.T) {
 	// Verify interface types
 	var _ ToolHandler = func(ctx context.Context, args json.RawMessage) ([]TextContent, error) {

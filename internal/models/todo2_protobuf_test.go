@@ -62,6 +62,7 @@ func TestTodo2TaskToProto(t *testing.T) {
 				t.Errorf("Todo2TaskToProto() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
+
 			if tt.wantErr {
 				return
 			}
@@ -70,12 +71,15 @@ func TestTodo2TaskToProto(t *testing.T) {
 			if pbTask.Id != tt.task.ID {
 				t.Errorf("Id = %v, want %v", pbTask.Id, tt.task.ID)
 			}
+
 			if pbTask.Content != tt.task.Content {
 				t.Errorf("Content = %v, want %v", pbTask.Content, tt.task.Content)
 			}
+
 			if pbTask.Status != tt.task.Status {
 				t.Errorf("Status = %v, want %v", pbTask.Status, tt.task.Status)
 			}
+
 			if pbTask.Completed != tt.task.Completed {
 				t.Errorf("Completed = %v, want %v", pbTask.Completed, tt.task.Completed)
 			}
@@ -132,6 +136,7 @@ func TestProtoToTodo2Task(t *testing.T) {
 				t.Errorf("ProtoToTodo2Task() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
+
 			if tt.wantErr {
 				return
 			}
@@ -140,12 +145,15 @@ func TestProtoToTodo2Task(t *testing.T) {
 			if task.ID != tt.pbTask.Id {
 				t.Errorf("ID = %v, want %v", task.ID, tt.pbTask.Id)
 			}
+
 			if task.Content != tt.pbTask.Content {
 				t.Errorf("Content = %v, want %v", task.Content, tt.pbTask.Content)
 			}
+
 			if task.Status != tt.pbTask.Status {
 				t.Errorf("Status = %v, want %v", task.Status, tt.pbTask.Status)
 			}
+
 			if task.Completed != tt.pbTask.Completed {
 				t.Errorf("Completed = %v, want %v", task.Completed, tt.pbTask.Completed)
 			}
@@ -183,6 +191,7 @@ func TestSerializeTaskToProtobuf(t *testing.T) {
 	if deserialized.ID != task.ID {
 		t.Errorf("ID = %v, want %v", deserialized.ID, task.ID)
 	}
+
 	if deserialized.Content != task.Content {
 		t.Errorf("Content = %v, want %v", deserialized.Content, task.Content)
 	}
@@ -212,9 +221,11 @@ func TestDeserializeTaskFromProtobuf(t *testing.T) {
 	if deserialized.ID != original.ID {
 		t.Errorf("ID = %v, want %v", deserialized.ID, original.ID)
 	}
+
 	if deserialized.Content != original.Content {
 		t.Errorf("Content = %v, want %v", deserialized.Content, original.Content)
 	}
+
 	if deserialized.Status != original.Status {
 		t.Errorf("Status = %v, want %v", deserialized.Status, original.Status)
 	}
@@ -263,18 +274,23 @@ func TestRoundTripProtobuf(t *testing.T) {
 	if deserialized.ID != original.ID {
 		t.Errorf("ID = %v, want %v", deserialized.ID, original.ID)
 	}
+
 	if deserialized.Content != original.Content {
 		t.Errorf("Content = %v, want %v", deserialized.Content, original.Content)
 	}
+
 	if deserialized.LongDescription != original.LongDescription {
 		t.Errorf("LongDescription = %v, want %v", deserialized.LongDescription, original.LongDescription)
 	}
+
 	if deserialized.Status != original.Status {
 		t.Errorf("Status = %v, want %v", deserialized.Status, original.Status)
 	}
+
 	if deserialized.Priority != original.Priority {
 		t.Errorf("Priority = %v, want %v", deserialized.Priority, original.Priority)
 	}
+
 	if deserialized.Completed != original.Completed {
 		t.Errorf("Completed = %v, want %v", deserialized.Completed, original.Completed)
 	}

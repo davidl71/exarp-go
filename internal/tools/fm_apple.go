@@ -21,5 +21,6 @@ func (p *appleFMProvider) Generate(_ context.Context, prompt string, maxTokens i
 	if !p.Supported() {
 		return "", ErrFMNotSupported
 	}
+
 	return GenerateWithOptions(prompt, maxTokens, temperature)
 }

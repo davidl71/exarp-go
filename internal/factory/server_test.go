@@ -80,10 +80,10 @@ func TestServer_ImplementsInterface(t *testing.T) {
 	}
 
 	// Verify server implements MCPServer interface
-	var _ framework.MCPServer = server
+	var _ = server
 }
 
-// TestNewServer_EmptyName tests server creation with empty name
+// TestNewServer_EmptyName tests server creation with empty name.
 func TestNewServer_EmptyName(t *testing.T) {
 	server, err := NewServer(config.FrameworkGoSDK, "", "1.0.0")
 	if err != nil {
@@ -100,7 +100,7 @@ func TestNewServer_EmptyName(t *testing.T) {
 	}
 }
 
-// TestNewServer_EmptyVersion tests server creation with empty version
+// TestNewServer_EmptyVersion tests server creation with empty version.
 func TestNewServer_EmptyVersion(t *testing.T) {
 	server, err := NewServer(config.FrameworkGoSDK, "test-server", "")
 	if err != nil {
@@ -116,7 +116,7 @@ func TestNewServer_EmptyVersion(t *testing.T) {
 	}
 }
 
-// TestNewServer_SpecialCharactersInName tests server with special characters
+// TestNewServer_SpecialCharactersInName tests server with special characters.
 func TestNewServer_SpecialCharactersInName(t *testing.T) {
 	specialNames := []string{
 		"test-server-123",
@@ -144,7 +144,7 @@ func TestNewServer_SpecialCharactersInName(t *testing.T) {
 	}
 }
 
-// TestNewServer_VersionFormats tests various version formats
+// TestNewServer_VersionFormats tests various version formats.
 func TestNewServer_VersionFormats(t *testing.T) {
 	versions := []string{
 		"1.0.0",
@@ -170,7 +170,7 @@ func TestNewServer_VersionFormats(t *testing.T) {
 	}
 }
 
-// TestNewServerFromConfig_NilConfig tests nil config handling
+// TestNewServerFromConfig_NilConfig tests nil config handling.
 func TestNewServerFromConfig_NilConfig(t *testing.T) {
 	defer func() {
 		if r := recover(); r == nil {
@@ -181,7 +181,7 @@ func TestNewServerFromConfig_NilConfig(t *testing.T) {
 	_, _ = NewServerFromConfig(nil)
 }
 
-// TestNewServerFromConfig_EmptyConfig tests empty config fields
+// TestNewServerFromConfig_EmptyConfig tests empty config fields.
 func TestNewServerFromConfig_EmptyConfig(t *testing.T) {
 	cfg := &config.Config{
 		Framework: config.FrameworkGoSDK,
@@ -199,7 +199,7 @@ func TestNewServerFromConfig_EmptyConfig(t *testing.T) {
 	}
 }
 
-// TestNewServer_CaseInsensitiveFramework tests framework type case handling
+// TestNewServer_CaseInsensitiveFramework tests framework type case handling.
 func TestNewServer_CaseInsensitiveFramework(t *testing.T) {
 	// Test that framework type is case-sensitive (should fail)
 	frameworks := []config.FrameworkType{
@@ -214,6 +214,7 @@ func TestNewServer_CaseInsensitiveFramework(t *testing.T) {
 			if err == nil {
 				t.Errorf("NewServer() expected error for framework %q, got server: %v", fw, server)
 			}
+
 			if server != nil {
 				t.Errorf("NewServer() expected nil server for invalid framework %q", fw)
 			}
@@ -221,7 +222,7 @@ func TestNewServer_CaseInsensitiveFramework(t *testing.T) {
 	}
 }
 
-// TestNewServer_MultipleInstances tests creating multiple server instances
+// TestNewServer_MultipleInstances tests creating multiple server instances.
 func TestNewServer_MultipleInstances(t *testing.T) {
 	servers := make([]framework.MCPServer, 3)
 	names := []string{"server1", "server2", "server3"}
@@ -231,6 +232,7 @@ func TestNewServer_MultipleInstances(t *testing.T) {
 		if err != nil {
 			t.Fatalf("NewServer() error = %v for %s", err, name)
 		}
+
 		servers[i] = server
 	}
 
@@ -240,6 +242,7 @@ func TestNewServer_MultipleInstances(t *testing.T) {
 			t.Errorf("server[%d] is nil", i)
 			continue
 		}
+
 		if server.GetName() != names[i] {
 			t.Errorf("server[%d].GetName() = %v, want %v", i, server.GetName(), names[i])
 		}
@@ -250,6 +253,7 @@ func TestNewServer_MultipleInstances(t *testing.T) {
 // The middleware wraps tool handlers; a wrapped handler should still invoke the inner handler.
 func TestToolLoggingMiddleware(t *testing.T) {
 	logger := createLogger()
+
 	mw := toolLoggingMiddleware(logger)
 	if mw == nil {
 		t.Fatal("toolLoggingMiddleware() returned nil")
@@ -258,6 +262,7 @@ func TestToolLoggingMiddleware(t *testing.T) {
 	next := func(ctx context.Context, req *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		return &mcp.CallToolResult{}, nil
 	}
+
 	wrapped := mw(next)
 	if wrapped == nil {
 		t.Fatal("middleware(next) returned nil handler")
@@ -265,16 +270,18 @@ func TestToolLoggingMiddleware(t *testing.T) {
 	// Call wrapped handler - should succeed (middleware passes through)
 	ctx := context.Background()
 	req := &mcp.CallToolRequest{Params: &mcp.CallToolParamsRaw{Name: "test_tool"}}
+
 	res, err := wrapped(ctx, req)
 	if err != nil {
 		t.Errorf("wrapped handler error = %v", err)
 	}
+
 	if res == nil {
 		t.Error("wrapped handler returned nil result")
 	}
 }
 
-// TestCreateLogger tests logger creation (internal function)
+// TestCreateLogger tests logger creation (internal function).
 func TestCreateLogger(t *testing.T) {
 	logger := createLogger()
 	if logger == nil {
@@ -288,7 +295,7 @@ func TestCreateLogger(t *testing.T) {
 	logger.Warn("test", "warn message")
 }
 
-// TestNewServerFromConfig_WithLoadedConfig tests config loaded from Load()
+// TestNewServerFromConfig_WithLoadedConfig tests config loaded from Load().
 func TestNewServerFromConfig_WithLoadedConfig(t *testing.T) {
 	cfg, err := config.Load()
 	if err != nil {

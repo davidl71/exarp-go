@@ -11,7 +11,7 @@ import (
 )
 
 // setupTestProjectRoot creates a temporary directory with .todo2 marker
-// and sets PROJECT_ROOT environment variable for tests
+// and sets PROJECT_ROOT environment variable for tests.
 func setupTestProjectRoot(t *testing.T) (string, func()) {
 	tmpDir := t.TempDir()
 
@@ -38,7 +38,7 @@ func setupTestProjectRoot(t *testing.T) (string, func()) {
 }
 
 // createTestMemory creates a test memory file in the project root
-// Uses protobuf format (.pb) to match production format
+// Uses protobuf format (.pb) to match production format.
 func createTestMemory(t *testing.T, projectRoot string, memory Memory) {
 	memoriesDir := filepath.Join(projectRoot, ".exarp", "memories")
 	if err := os.MkdirAll(memoriesDir, 0755); err != nil {
@@ -47,6 +47,7 @@ func createTestMemory(t *testing.T, projectRoot string, memory Memory) {
 
 	// Save as protobuf binary (.pb)
 	memoryPath := filepath.Join(memoriesDir, memory.ID+".pb")
+
 	data, err := SerializeMemoryToProtobuf(&memory)
 	if err != nil {
 		t.Fatalf("Failed to serialize memory to protobuf: %v", err)
@@ -57,7 +58,7 @@ func createTestMemory(t *testing.T, projectRoot string, memory Memory) {
 	}
 }
 
-// createTestMemoryWithAge creates a test memory with a specific age in days
+// createTestMemoryWithAge creates a test memory with a specific age in days.
 func createTestMemoryWithAge(t *testing.T, projectRoot string, id, title, category string, ageDays int, linkedTasks []string) {
 	createdAt := time.Now().AddDate(0, 0, -ageDays)
 	memory := Memory{

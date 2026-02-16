@@ -8,6 +8,7 @@ func IsEpochDate(s string) bool {
 	if s == "" {
 		return true
 	}
+
 	s = strings.TrimSpace(s)
 	// Numeric zero (from JSON "created_at": 0 or DB default)
 	if s == "0" || s == "0.0" {
@@ -23,15 +24,17 @@ func (t *Todo2Task) NormalizeEpochDates() {
 	if IsEpochDate(t.CreatedAt) {
 		t.CreatedAt = ""
 	}
+
 	if IsEpochDate(t.LastModified) {
 		t.LastModified = ""
 	}
+
 	if IsEpochDate(t.CompletedAt) {
 		t.CompletedAt = ""
 	}
 }
 
-// Todo2Task represents a Todo2 task
+// Todo2Task represents a Todo2 task.
 type Todo2Task struct {
 	ID              string                 `json:"id"`
 	Content         string                 `json:"content"`
@@ -49,7 +52,7 @@ type Todo2Task struct {
 	CompletedAt  string `json:"completed_at,omitempty"`
 }
 
-// Todo2State represents the Todo2 state file structure
+// Todo2State represents the Todo2 state file structure.
 type Todo2State struct {
 	Todos []Todo2Task `json:"todos"`
 }

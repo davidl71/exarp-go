@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-// generateTestTasks creates test tasks with dependencies
+// generateTestTasks creates test tasks with dependencies.
 func generateTestTasks(count int, depsPerTask int) []Todo2Task {
 	tasks := make([]Todo2Task, count)
 
@@ -29,9 +29,11 @@ func generateTestTasks(count int, depsPerTask int) []Todo2Task {
 			if start < 0 {
 				start = 0
 			}
+
 			for j := start; j < i; j++ {
 				deps = append(deps, tasks[j].ID)
 			}
+
 			tasks[i].Dependencies = deps
 		}
 	}
@@ -39,7 +41,7 @@ func generateTestTasks(count int, depsPerTask int) []Todo2Task {
 	return tasks
 }
 
-// generateCyclicTasks creates tasks with cycles
+// generateCyclicTasks creates tasks with cycles.
 func generateCyclicTasks(count int) []Todo2Task {
 	tasks := make([]Todo2Task, count)
 
@@ -145,6 +147,7 @@ func TestHasCycles(t *testing.T) {
 				t.Errorf("HasCycles() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
+
 			if got != tt.want {
 				t.Errorf("HasCycles() = %v, want %v", got, tt.want)
 			}
@@ -203,12 +206,14 @@ func TestGetDependencyAnalysisFromTasks(t *testing.T) {
 
 			if tt.wantMissingID != "" {
 				found := false
+
 				for _, m := range missing {
 					if tid, _ := m["task_id"].(string); tid == tt.wantMissingID {
 						found = true
 						break
 					}
 				}
+
 				if !found {
 					t.Errorf("GetDependencyAnalysisFromTasks() missing should include task %s, got %v", tt.wantMissingID, missing)
 				}
@@ -297,6 +302,7 @@ func TestTopoSortTasks(t *testing.T) {
 
 func TestGetTaskLevels(t *testing.T) {
 	tasks := generateTestTasks(10, 2)
+
 	tg, err := BuildTaskGraph(tasks)
 	if err != nil {
 		t.Fatalf("BuildTaskGraph() error = %v", err)
@@ -323,16 +329,20 @@ func TestBacklogExecutionOrder(t *testing.T) {
 		{ID: "T-4", Content: "Four", Status: "In Progress", Priority: "medium", Tags: []string{"migration"}, Dependencies: []string{}},
 		{ID: "T-5", Content: "Five", Status: "Done", Priority: "low", Tags: []string{"migration"}, Dependencies: []string{}},
 	}
+
 	orderedIDs, waves, details, err := BacklogExecutionOrder(tasks, nil)
 	if err != nil {
 		t.Fatalf("BacklogExecutionOrder(nil filter) error = %v", err)
 	}
+
 	if len(orderedIDs) != 4 {
 		t.Errorf("BacklogExecutionOrder(nil) len(orderedIDs) = %v, want 4 (Todo + In Progress only)", len(orderedIDs))
 	}
+
 	if len(details) != len(orderedIDs) {
 		t.Errorf("BacklogExecutionOrder(nil) len(details) = %v, want %v", len(details), len(orderedIDs))
 	}
+
 	for i, d := range details {
 		if d.Tags == nil {
 			t.Errorf("BacklogExecutionOrder(nil) details[%d].Tags is nil, want non-nil", i)
@@ -341,36 +351,45 @@ func TestBacklogExecutionOrder(t *testing.T) {
 
 	// Filter by tag "migration": only T-1, T-2, T-4 (backlog with migration tag)
 	backlogFilter := map[string]bool{"T-1": true, "T-2": true, "T-4": true}
+
 	orderedIDs2, _, details2, err := BacklogExecutionOrder(tasks, backlogFilter)
 	if err != nil {
 		t.Fatalf("BacklogExecutionOrder(filter) error = %v", err)
 	}
+
 	if len(orderedIDs2) != 3 {
 		t.Errorf("BacklogExecutionOrder(filter migration) len = %v, want 3", len(orderedIDs2))
 	}
+
 	seen := make(map[string]bool)
 	for _, id := range orderedIDs2 {
 		if seen[id] {
 			t.Errorf("BacklogExecutionOrder(filter) duplicate ID %s", id)
 		}
+
 		seen[id] = true
+
 		if id != "T-1" && id != "T-2" && id != "T-4" {
 			t.Errorf("BacklogExecutionOrder(filter) unexpected ID %s", id)
 		}
 	}
 	// Order should respect dependencies: T-1 before T-2
 	idx1, idx2 := -1, -1
+
 	for i, id := range orderedIDs2 {
 		if id == "T-1" {
 			idx1 = i
 		}
+
 		if id == "T-2" {
 			idx2 = i
 		}
 	}
+
 	if idx1 >= 0 && idx2 >= 0 && idx1 > idx2 {
 		t.Errorf("BacklogExecutionOrder(filter) T-1 should come before T-2 (dependency order)")
 	}
+
 	for _, d := range details2 {
 		if d.Tags == nil {
 			t.Errorf("BacklogExecutionOrder(filter) detail %s has nil Tags", d.ID)
@@ -379,10 +398,12 @@ func TestBacklogExecutionOrder(t *testing.T) {
 
 	// Empty filter map = no backlog tasks returned
 	emptyFilter := map[string]bool{}
+
 	orderedIDs3, _, _, err := BacklogExecutionOrder(tasks, emptyFilter)
 	if err != nil {
 		t.Fatalf("BacklogExecutionOrder(empty filter) error = %v", err)
 	}
+
 	if len(orderedIDs3) != 0 {
 		t.Errorf("BacklogExecutionOrder(empty filter) len = %v, want 0", len(orderedIDs3))
 	}
@@ -393,10 +414,41 @@ func TestBacklogExecutionOrder(t *testing.T) {
 	}
 }
 
-// Benchmark tests
+func TestLimitWavesByMaxTasks(t *testing.T) {
+	// No limit: returns same map (unchanged)
+	waves := map[int][]string{0: {"T-1", "T-2", "T-3"}, 1: {"T-4"}}
+	got := LimitWavesByMaxTasks(waves, 0)
+	if len(got) != 2 || len(got[0]) != 3 || len(got[1]) != 1 {
+		t.Errorf("LimitWavesByMaxTasks(0) should return unchanged waves, got %v", got)
+	}
+	got = LimitWavesByMaxTasks(waves, -1)
+	if len(got) != 2 || len(got[0]) != 3 || len(got[1]) != 1 {
+		t.Errorf("LimitWavesByMaxTasks(-1) should return unchanged waves, got %v", got)
+	}
+
+	// Limit 2: wave 0 splits into 2 waves, wave 1 stays
+	got = LimitWavesByMaxTasks(waves, 2)
+	wantLevels := 3 // 0: [T-1,T-2], 1: [T-3], 2: [T-4]
+	if len(got) != wantLevels {
+		t.Errorf("LimitWavesByMaxTasks(2) len = %v, want %v", len(got), wantLevels)
+	}
+	if len(got[0]) != 2 || len(got[1]) != 1 || len(got[2]) != 1 {
+		t.Errorf("LimitWavesByMaxTasks(2) chunk sizes: got %v", got)
+	}
+
+	// Limit 10: no split
+	got = LimitWavesByMaxTasks(waves, 10)
+	if len(got) != 2 {
+		t.Errorf("LimitWavesByMaxTasks(10) len = %v, want 2", len(got))
+	}
+}
+
+// Benchmark tests.
 func BenchmarkBuildTaskGraph_Small(b *testing.B) {
 	tasks := generateTestTasks(50, 2)
+
 	b.ResetTimer()
+
 	for i := 0; i < b.N; i++ {
 		_, _ = BuildTaskGraph(tasks)
 	}
@@ -404,7 +456,9 @@ func BenchmarkBuildTaskGraph_Small(b *testing.B) {
 
 func BenchmarkBuildTaskGraph_Medium(b *testing.B) {
 	tasks := generateTestTasks(200, 3)
+
 	b.ResetTimer()
+
 	for i := 0; i < b.N; i++ {
 		_, _ = BuildTaskGraph(tasks)
 	}
@@ -412,7 +466,9 @@ func BenchmarkBuildTaskGraph_Medium(b *testing.B) {
 
 func BenchmarkBuildTaskGraph_Large(b *testing.B) {
 	tasks := generateTestTasks(1000, 5)
+
 	b.ResetTimer()
+
 	for i := 0; i < b.N; i++ {
 		_, _ = BuildTaskGraph(tasks)
 	}
@@ -421,7 +477,9 @@ func BenchmarkBuildTaskGraph_Large(b *testing.B) {
 func BenchmarkHasCycles_Acyclic(b *testing.B) {
 	tasks := generateTestTasks(200, 2)
 	tg, _ := BuildTaskGraph(tasks)
+
 	b.ResetTimer()
+
 	for i := 0; i < b.N; i++ {
 		_, _ = HasCycles(tg)
 	}
@@ -430,7 +488,9 @@ func BenchmarkHasCycles_Acyclic(b *testing.B) {
 func BenchmarkHasCycles_Cyclic(b *testing.B) {
 	tasks := generateCyclicTasks(100)
 	tg, _ := BuildTaskGraph(tasks)
+
 	b.ResetTimer()
+
 	for i := 0; i < b.N; i++ {
 		_, _ = HasCycles(tg)
 	}
@@ -439,7 +499,9 @@ func BenchmarkHasCycles_Cyclic(b *testing.B) {
 func BenchmarkDetectCycles_Acyclic(b *testing.B) {
 	tasks := generateTestTasks(100, 2)
 	tg, _ := BuildTaskGraph(tasks)
+
 	b.ResetTimer()
+
 	for i := 0; i < b.N; i++ {
 		_ = DetectCycles(tg)
 	}
@@ -448,7 +510,9 @@ func BenchmarkDetectCycles_Acyclic(b *testing.B) {
 func BenchmarkDetectCycles_Cyclic(b *testing.B) {
 	tasks := generateCyclicTasks(50)
 	tg, _ := BuildTaskGraph(tasks)
+
 	b.ResetTimer()
+
 	for i := 0; i < b.N; i++ {
 		_ = DetectCycles(tg)
 	}
@@ -457,7 +521,9 @@ func BenchmarkDetectCycles_Cyclic(b *testing.B) {
 func BenchmarkTopoSortTasks(b *testing.B) {
 	tasks := generateTestTasks(200, 2)
 	tg, _ := BuildTaskGraph(tasks)
+
 	b.ResetTimer()
+
 	for i := 0; i < b.N; i++ {
 		_, _ = TopoSortTasks(tg)
 	}
@@ -466,7 +532,9 @@ func BenchmarkTopoSortTasks(b *testing.B) {
 func BenchmarkGetTaskLevels(b *testing.B) {
 	tasks := generateTestTasks(200, 3)
 	tg, _ := BuildTaskGraph(tasks)
+
 	b.ResetTimer()
+
 	for i := 0; i < b.N; i++ {
 		_ = GetTaskLevels(tg)
 	}
@@ -475,7 +543,9 @@ func BenchmarkGetTaskLevels(b *testing.B) {
 func BenchmarkFindCriticalPath(b *testing.B) {
 	tasks := generateTestTasks(200, 2)
 	tg, _ := BuildTaskGraph(tasks)
+
 	b.ResetTimer()
+
 	for i := 0; i < b.N; i++ {
 		_, _ = FindCriticalPath(tg)
 	}

@@ -9,7 +9,7 @@ import (
 	"strings"
 )
 
-// AppleFoundationModelsSupport represents the support status for Apple Foundation Models
+// AppleFoundationModelsSupport represents the support status for Apple Foundation Models.
 type AppleFoundationModelsSupport struct {
 	Supported         bool
 	Reason            string
@@ -18,7 +18,7 @@ type AppleFoundationModelsSupport struct {
 	AppleIntelligence bool
 }
 
-// CheckAppleFoundationModelsSupport checks if the current platform supports Apple Foundation Models
+// CheckAppleFoundationModelsSupport checks if the current platform supports Apple Foundation Models.
 func CheckAppleFoundationModelsSupport() AppleFoundationModelsSupport {
 	result := AppleFoundationModelsSupport{
 		Architecture: runtime.GOARCH,
@@ -42,6 +42,7 @@ func CheckAppleFoundationModelsSupport() AppleFoundationModelsSupport {
 		result.Reason = fmt.Sprintf("failed to detect macOS version: %v", err)
 		return result
 	}
+
 	result.OSVersion = osVersion
 
 	// Check if macOS version is 26.0 or later (Tahoe)
@@ -61,19 +62,22 @@ func CheckAppleFoundationModelsSupport() AppleFoundationModelsSupport {
 	return result
 }
 
-// getMacOSVersion gets the macOS version string
+// getMacOSVersion gets the macOS version string.
 func getMacOSVersion() (string, error) {
 	// Use sw_vers command to get macOS version
 	cmd := exec.Command("sw_vers", "-productVersion")
+
 	var out bytes.Buffer
+
 	cmd.Stdout = &out
 	if err := cmd.Run(); err != nil {
 		return "", fmt.Errorf("failed to run sw_vers: %w", err)
 	}
+
 	return strings.TrimSpace(out.String()), nil
 }
 
-// isMacOS26OrLater checks if the macOS version is 26.0 or later
+// isMacOS26OrLater checks if the macOS version is 26.0 or later.
 func isMacOS26OrLater(version string) bool {
 	// Parse version string (e.g., "26.3" or "26.0")
 	parts := strings.Split(version, ".")

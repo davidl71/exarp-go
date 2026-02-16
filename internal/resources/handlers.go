@@ -6,10 +6,9 @@ import (
 	"github.com/davidl71/exarp-go/internal/framework"
 )
 
-// RegisterAllResources registers all resources with the server
+// RegisterAllResources registers all resources with the server.
 func RegisterAllResources(server framework.MCPServer) error {
 	// Register 23 resources (all native Go; no Python bridge)
-
 	// stdio://scorecard
 	if err := server.RegisterResource(
 		"stdio://scorecard",

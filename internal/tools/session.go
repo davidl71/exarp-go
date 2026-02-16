@@ -22,7 +22,7 @@ import (
 	mcpresponse "github.com/davidl71/mcp-go-core/pkg/mcp/response"
 )
 
-// handleSessionNative handles the session tool with native Go implementation
+// handleSessionNative handles the session tool with native Go implementation.
 func handleSessionNative(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	action, _ := params["action"].(string)
 	if action == "" {
@@ -48,6 +48,7 @@ func SessionPrimeResultToMap(pb *proto.SessionPrimeResult) map[string]interface{
 	if pb == nil {
 		return nil
 	}
+
 	out := map[string]interface{}{
 		"auto_primed": pb.AutoPrimed,
 		"method":      pb.Method,
@@ -64,6 +65,7 @@ func SessionPrimeResultToMap(pb *proto.SessionPrimeResult) map[string]interface{
 			"time_of_day":  pb.Detection.TimeOfDay,
 		}
 	}
+
 	if pb.AgentContext != nil {
 		out["agent_context"] = map[string]interface{}{
 			"focus_areas":      pb.AgentContext.FocusAreas,
@@ -71,40 +73,49 @@ func SessionPrimeResultToMap(pb *proto.SessionPrimeResult) map[string]interface{
 			"recommended_mode": pb.AgentContext.RecommendedMode,
 		}
 	}
+
 	if pb.Workflow != nil {
 		out["workflow"] = map[string]interface{}{
 			"mode":        pb.Workflow.Mode,
 			"description": pb.Workflow.Description,
 		}
 	}
+
 	if pb.Elicitation != "" {
 		out["elicitation"] = pb.Elicitation
 	}
+
 	if pb.LockCleanup != nil && pb.LockCleanup.Cleaned > 0 {
 		out["lock_cleanup"] = map[string]interface{}{
 			"cleaned":  int(pb.LockCleanup.Cleaned),
 			"task_ids": pb.LockCleanup.TaskIds,
 		}
 	}
+
 	if pb.PlanPath != "" {
 		out["plan_path"] = pb.PlanPath
 	}
+
 	if pb.ActionRequired != "" {
 		out["action_required"] = pb.ActionRequired
 	}
+
 	if len(pb.ConflictHints) > 0 {
 		out["conflict_hints"] = pb.ConflictHints
 	}
+
 	if pb.StatusLabel != "" {
 		out["status_label"] = pb.StatusLabel
 	}
+
 	if pb.StatusContext != "" {
 		out["status_context"] = pb.StatusContext
 	}
+
 	return out
 }
 
-// handleSessionPrime handles the prime action - auto-prime AI context at session start
+// handleSessionPrime handles the prime action - auto-prime AI context at session start.
 func handleSessionPrime(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	startTime := time.Now()
 
@@ -121,7 +132,9 @@ func handleSessionPrime(ctx context.Context, params map[string]interface{}) ([]f
 	// Optional MCP Elicitation: ask user for prime preferences when ask_preferences is true.
 	// Use a short timeout so prime never blocks indefinitely if the client is slow or doesn't respond.
 	const elicitationTimeout = 5 * time.Second
+
 	var elicitationOutcome string
+
 	if ask, _ := params["ask_preferences"].(bool); ask {
 		if eliciter := mcpframework.EliciterFromContext(ctx); eliciter != nil {
 			schema := map[string]interface{}{
@@ -131,8 +144,10 @@ func handleSessionPrime(ctx context.Context, params map[string]interface{}) ([]f
 					"include_hints": map[string]interface{}{"type": "boolean", "description": "Include tool hints"},
 				},
 			}
+
 			elicitCtx, cancel := context.WithTimeout(ctx, elicitationTimeout)
 			defer cancel()
+
 			action, content, err := eliciter.ElicitForm(elicitCtx, "Session prime: include task summary and tool hints?", schema)
 			if err != nil {
 				if errors.Is(err, context.DeadlineExceeded) || (elicitCtx.Err() != nil && errors.Is(elicitCtx.Err(), context.DeadlineExceeded)) {
@@ -144,9 +159,11 @@ func handleSessionPrime(ctx context.Context, params map[string]interface{}) ([]f
 				if v, ok := content["include_tasks"].(bool); ok {
 					includeTasks = v
 				}
+
 				if v, ok := content["include_hints"].(bool); ok {
 					includeHints = v
 				}
+
 				elicitationOutcome = "ok"
 			} else {
 				elicitationOutcome = "declined"
@@ -163,11 +180,13 @@ func handleSessionPrime(ctx context.Context, params map[string]interface{}) ([]f
 
 	// 0. Dead agent lock cleanup (T-76) - quick cleanup before loading tasks
 	var lockCleanupReport map[string]interface{}
+
 	if db, dbErr := database.GetDB(); dbErr == nil && db != nil {
 		staleThreshold := config.GetGlobalConfig().Timeouts.StaleLockThreshold
 		if staleThreshold <= 0 {
 			staleThreshold = 5 * time.Minute
 		}
+
 		if cleaned, taskIDs, cleanupErr := database.CleanupDeadAgentLocks(ctx, staleThreshold); cleanupErr == nil && cleaned > 0 {
 			lockCleanupReport = map[string]interface{}{
 				"cleaned":  cleaned,
@@ -182,7 +201,9 @@ func handleSessionPrime(ctx context.Context, params map[string]interface{}) ([]f
 
 	// 2. Determine mode
 	var mode string
+
 	var modeSource string
+
 	if overrideMode != "" {
 		mode = overrideMode
 		modeSource = "override"
@@ -202,9 +223,12 @@ func handleSessionPrime(ctx context.Context, params map[string]interface{}) ([]f
 
 	// 3. Load tasks when needed (summary, suggested_next, or plan mode context)
 	var tasks []Todo2Task
+
 	var tasksErr error
+
 	if includeTasks || includeHints {
 		store := NewDefaultTaskStore(projectRoot)
+
 		list, err := store.ListTasks(ctx, nil)
 		if err != nil {
 			tasksErr = err
@@ -215,13 +239,16 @@ func handleSessionPrime(ctx context.Context, params map[string]interface{}) ([]f
 
 	// 4. Hints and plan path (needed for proto hints_count and plan_path)
 	var planPath string
+
 	hints := make(map[string]string)
 	if includeHints {
 		hints = getHintsForMode(mode)
+
 		planPath, planModeHint := getPlanModeContext(projectRoot, tasks)
 		if planPath != "" {
 			// set below in proto
 		}
+
 		if planModeHint != "" {
 			hints["plan_mode"] = planModeHint
 		}
@@ -233,16 +260,19 @@ func handleSessionPrime(ctx context.Context, params map[string]interface{}) ([]f
 	if includeHandoff, ok := params["include_handoff"].(bool); !ok || includeHandoff {
 		handoffAlert = checkHandoffAlert(projectRoot)
 	}
+
 	actionRequired := ""
 	if handoffAlert != nil {
 		actionRequired = "📋 Review handoff from previous developer before starting work"
 	}
 
 	var conflictHints []string
+
 	if taskOverlaps, fileConflicts, err := DetectConflicts(ctx, projectRoot); err == nil {
 		for _, c := range taskOverlaps {
 			conflictHints = append(conflictHints, "Task overlap: "+c.Reason)
 		}
+
 		for _, c := range fileConflicts {
 			conflictHints = append(conflictHints, "File conflict: tasks "+strings.Join(c.TaskIDs, ", ")+" share file(s): "+strings.Join(c.Files, ", "))
 		}
@@ -265,31 +295,40 @@ func handleSessionPrime(ctx context.Context, params map[string]interface{}) ([]f
 	if elicitationOutcome != "" {
 		pb.Elicitation = elicitationOutcome
 	}
+
 	if lockCleanupReport != nil {
 		if cleaned, ok := lockCleanupReport["cleaned"].(int); ok {
 			var taskIDs []string
 			if ids, ok := lockCleanupReport["task_ids"].([]string); ok {
 				taskIDs = ids
 			}
+
 			pb.LockCleanup = &proto.LockCleanupReport{Cleaned: int32(cleaned), TaskIds: taskIDs}
 		}
 	}
 
 	result := SessionPrimeResultToMap(pb)
+
 	if includeTasks {
 		if tasksErr != nil {
 			result["tasks"] = map[string]interface{}{"error": "Failed to load tasks"}
 		} else {
 			result["tasks"] = getTasksSummaryFromTasks(tasks)
 			suggestedNext := getSuggestedNextTasksFromTasks(tasks, 10)
+
 			if len(suggestedNext) > 0 {
 				result["suggested_next"] = suggestedNext
+				if cli := buildCursorCLISuggestion(suggestedNext[0]); cli != "" {
+					result["cursor_cli_suggestion"] = cli
+				}
 			}
 		}
 	}
+
 	if includeHints {
 		result["hints"] = hints
 	}
+
 	if handoffAlert != nil {
 		result["handoff_alert"] = handoffAlert
 	}
@@ -303,7 +342,7 @@ func handleSessionPrime(ctx context.Context, params map[string]interface{}) ([]f
 	return mcpresponse.FormatResult(result, "")
 }
 
-// handleSessionHandoff handles handoff actions (end, resume, latest, list, sync, export)
+// handleSessionHandoff handles handoff actions (end, resume, latest, list, sync, export).
 func handleSessionHandoff(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	action, _ := params["action"].(string)
 	// Note: The action parameter for handoff might be nested - check both
@@ -338,18 +377,25 @@ func handleSessionHandoff(ctx context.Context, params map[string]interface{}) ([
 		return handleSessionSync(ctx, params, projectRoot)
 	case "export":
 		return handleSessionExport(ctx, params, projectRoot)
+	case "close", "approve":
+		status := "closed"
+		if action == "approve" {
+			status = "approved"
+		}
+		return handleSessionHandoffStatus(ctx, params, projectRoot, status)
 	default:
-		return nil, fmt.Errorf("unknown handoff action: %s (use 'end', 'resume', 'latest', 'list', 'sync', or 'export')", action)
+		return nil, fmt.Errorf("unknown handoff action: %s (use 'end', 'resume', 'latest', 'list', 'sync', 'export', 'close', or 'approve')", action)
 	}
 }
 
-// handleSessionEnd ends a session and creates handoff note
+// handleSessionEnd ends a session and creates handoff note.
 func handleSessionEnd(ctx context.Context, params map[string]interface{}, projectRoot string) ([]framework.TextContent, error) {
 	summary, _ := params["summary"].(string)
-	blockersRaw, _ := params["blockers"]
-	nextStepsRaw, _ := params["next_steps"]
+	blockersRaw := params["blockers"]
+	nextStepsRaw := params["next_steps"]
 
 	var blockers []string
+
 	if blockersRaw != nil {
 		switch v := blockersRaw.(type) {
 		case string:
@@ -371,6 +417,7 @@ func handleSessionEnd(ctx context.Context, params map[string]interface{}, projec
 	}
 
 	var nextSteps []string
+
 	if nextStepsRaw != nil {
 		switch v := nextStepsRaw.(type) {
 		case string:
@@ -417,8 +464,10 @@ func handleSessionEnd(ctx context.Context, params map[string]interface{}, projec
 
 	// Get current tasks in progress
 	var tasksInProgress []map[string]interface{}
+
 	if includeTasks, ok := params["include_tasks"].(bool); !ok || includeTasks {
 		store := NewDefaultTaskStore(projectRoot)
+
 		list, err := store.ListTasks(ctx, nil)
 		if err == nil {
 			tasks := tasksFromPtrs(list)
@@ -477,10 +526,19 @@ func handleSessionEnd(ctx context.Context, params map[string]interface{}, projec
 		result["message"] = "Dry run: Would create handoff note"
 	}
 
+	// Add cursor_cli_suggestion for the next suggested task
+	if suggested := GetSuggestedNextTasks(projectRoot, 1); len(suggested) > 0 {
+		t := suggested[0]
+		taskMap := map[string]interface{}{"id": t.ID, "content": t.Content}
+		if cli := buildCursorCLISuggestion(taskMap); cli != "" {
+			result["cursor_cli_suggestion"] = cli
+		}
+	}
+
 	return mcpresponse.FormatResult(result, "")
 }
 
-// handleSessionResume resumes a session by reviewing latest handoff
+// handleSessionResume resumes a session by reviewing latest handoff.
 func handleSessionResume(ctx context.Context, projectRoot string) ([]framework.TextContent, error) {
 	handoffFile := filepath.Join(projectRoot, ".todo2", "handoffs.json")
 
@@ -491,11 +549,13 @@ func handleSessionResume(ctx context.Context, projectRoot string) ([]framework.T
 			"has_handoff": false,
 			"message":     "No handoff notes found. Starting fresh session.",
 		}
+
 		return mcpresponse.FormatResult(result, "")
 	}
 
 	// Load handoff history (using file cache)
 	fileCache := cache.GetGlobalFileCache()
+
 	data, _, err := fileCache.ReadFile(handoffFile)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read handoff file: %w", err)
@@ -514,11 +574,13 @@ func handleSessionResume(ctx context.Context, projectRoot string) ([]framework.T
 			"has_handoff": false,
 			"message":     "No handoff notes found. Starting fresh session.",
 		}
+
 		return mcpresponse.FormatResult(result, "")
 	}
 
 	// Get latest handoff (last in array)
 	latestHandoff := handoffs[len(handoffs)-1]
+
 	handoffMap, ok := latestHandoff.(map[string]interface{})
 	if !ok {
 		return nil, fmt.Errorf("invalid handoff format")
@@ -539,7 +601,7 @@ func handleSessionResume(ctx context.Context, projectRoot string) ([]framework.T
 	return mcpresponse.FormatResult(result, "")
 }
 
-// handleSessionLatest gets the most recent handoff note
+// handleSessionLatest gets the most recent handoff note.
 func handleSessionLatest(projectRoot string) ([]framework.TextContent, error) {
 	handoffFile := filepath.Join(projectRoot, ".todo2", "handoffs.json")
 
@@ -550,10 +612,12 @@ func handleSessionLatest(projectRoot string) ([]framework.TextContent, error) {
 			"has_handoff": false,
 			"message":     "No handoff notes found",
 		}
+
 		return mcpresponse.FormatResult(result, "")
 	}
 
 	fileCache := cache.GetGlobalFileCache()
+
 	data, _, err := fileCache.ReadFile(handoffFile)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read handoff file: %w", err)
@@ -572,6 +636,7 @@ func handleSessionLatest(projectRoot string) ([]framework.TextContent, error) {
 			"has_handoff": false,
 			"message":     "No handoff notes found",
 		}
+
 		return mcpresponse.FormatResult(result, "")
 	}
 
@@ -587,7 +652,7 @@ func handleSessionLatest(projectRoot string) ([]framework.TextContent, error) {
 	return mcpresponse.FormatResult(result, "")
 }
 
-// handleSessionList lists recent handoff notes
+// handleSessionList lists recent handoff notes.
 func handleSessionList(ctx context.Context, params map[string]interface{}, projectRoot string) ([]framework.TextContent, error) {
 	limit := 5
 	if l, ok := params["limit"].(float64); ok {
@@ -603,10 +668,12 @@ func handleSessionList(ctx context.Context, params map[string]interface{}, proje
 			"handoffs": []interface{}{},
 			"count":    0,
 		}
+
 		return mcpresponse.FormatResult(result, "")
 	}
 
 	fileCache := cache.GetGlobalFileCache()
+
 	data, _, err := fileCache.ReadFile(handoffFile)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read handoff file: %w", err)
@@ -624,6 +691,7 @@ func handleSessionList(ctx context.Context, params map[string]interface{}, proje
 	if start < 0 {
 		start = 0
 	}
+
 	recentHandoffs := handoffs[start:]
 
 	result := map[string]interface{}{
@@ -637,7 +705,7 @@ func handleSessionList(ctx context.Context, params map[string]interface{}, proje
 	return mcpresponse.FormatResult(result, "")
 }
 
-// handleSessionSync syncs Todo2 state across agents
+// handleSessionSync syncs Todo2 state across agents.
 func handleSessionSync(ctx context.Context, params map[string]interface{}, projectRoot string) ([]framework.TextContent, error) {
 	direction := "both"
 	if d, ok := params["direction"].(string); ok && d != "" {
@@ -671,6 +739,7 @@ func handleSessionSync(ctx context.Context, params map[string]interface{}, proje
 			if direction == "pull" || direction == "both" {
 				cmd := exec.CommandContext(ctx, "git", "pull", "--no-edit")
 				cmd.Dir = projectRoot
+
 				if err := cmd.Run(); err == nil {
 					result["pulled"] = true
 				}
@@ -680,6 +749,7 @@ func handleSessionSync(ctx context.Context, params map[string]interface{}, proje
 				cmd := exec.CommandContext(ctx, "git", "status", "--porcelain", ".todo2")
 				cmd.Dir = projectRoot
 				output, err := cmd.Output()
+
 				if err == nil && len(output) > 0 {
 					cmd = exec.CommandContext(ctx, "git", "add", ".todo2")
 					cmd.Dir = projectRoot
@@ -694,15 +764,18 @@ func handleSessionSync(ctx context.Context, params map[string]interface{}, proje
 
 				cmd = exec.CommandContext(ctx, "git", "push")
 				cmd.Dir = projectRoot
+
 				if err := cmd.Run(); err == nil {
 					result["pushed"] = true
 				}
 			}
+
 			return nil
 		})
 		if err != nil {
 			result["success"] = false
 			result["error"] = err.Error()
+
 			return mcpresponse.FormatResult(result, "")
 		}
 	}
@@ -710,7 +783,7 @@ func handleSessionSync(ctx context.Context, params map[string]interface{}, proje
 	return mcpresponse.FormatResult(result, "")
 }
 
-// handleSessionExport exports handoff data to a JSON file for sharing between agents
+// handleSessionExport exports handoff data to a JSON file for sharing between agents.
 func handleSessionExport(ctx context.Context, params map[string]interface{}, projectRoot string) ([]framework.TextContent, error) {
 	outputPath, _ := params["output_path"].(string)
 	if outputPath == "" {
@@ -743,6 +816,7 @@ func handleSessionExport(ctx context.Context, params map[string]interface{}, pro
 		}
 	} else {
 		fileCache := cache.GetGlobalFileCache()
+
 		data, _, err := fileCache.ReadFile(handoffFile)
 		if err != nil {
 			return nil, fmt.Errorf("failed to read handoff file: %w", err)
@@ -816,7 +890,7 @@ type TimeSuggestion struct {
 	Confidence float64
 }
 
-// detectAgentType detects the current agent type
+// detectAgentType detects the current agent type.
 func detectAgentType(projectRoot string) AgentInfo {
 	// 1. Environment variable
 	if agent := os.Getenv("EXARP_AGENT"); agent != "" {
@@ -830,6 +904,7 @@ func detectAgentType(projectRoot string) AgentInfo {
 	// 2. cursor-agent.json
 	fileCache := cache.GetGlobalFileCache()
 	agentConfigPath := filepath.Join(projectRoot, "cursor-agent.json")
+
 	if data, _, err := fileCache.ReadFile(agentConfigPath); err == nil {
 		var config map[string]interface{}
 		if err := json.Unmarshal(data, &config); err == nil {
@@ -839,6 +914,7 @@ func detectAgentType(projectRoot string) AgentInfo {
 			} else if agentVal, ok := config["agent"].(string); ok {
 				agent = agentVal
 			}
+
 			if agent != "" {
 				return AgentInfo{
 					Agent:  agent,
@@ -872,7 +948,7 @@ func detectAgentType(projectRoot string) AgentInfo {
 	}
 }
 
-// getAgentContext returns context for an agent type
+// getAgentContext returns context for an agent type.
 func getAgentContext(agent string) AgentContext {
 	agentLower := strings.ToLower(strings.ReplaceAll(agent, "-agent", ""))
 
@@ -926,7 +1002,7 @@ func getAgentContext(agent string) AgentContext {
 	}
 }
 
-// suggestModeByTime suggests workflow mode based on time of day
+// suggestModeByTime suggests workflow mode based on time of day.
 func suggestModeByTime() TimeSuggestion {
 	hour := time.Now().Hour()
 
@@ -970,7 +1046,7 @@ func suggestModeByTime() TimeSuggestion {
 	}
 }
 
-// getWorkflowModeDescription returns description for a workflow mode
+// getWorkflowModeDescription returns description for a workflow mode.
 func getWorkflowModeDescription(mode string) string {
 	descriptions := map[string]string{
 		"daily_checkin":   "Daily check-in mode: Overview + health checks",
@@ -986,6 +1062,7 @@ func getWorkflowModeDescription(mode string) string {
 	if desc, ok := descriptions[mode]; ok {
 		return desc
 	}
+
 	return "Development mode: Balanced set"
 }
 
@@ -994,9 +1071,11 @@ func getWorkflowModeDescription(mode string) string {
 // plan_mode_hint: suggestion to use Cursor Plan Mode when backlog suggests complex/multi-step work.
 func getPlanModeContext(projectRoot string, tasks []Todo2Task) (planPath, planModeHint string) {
 	planPath = getCurrentPlanPath(projectRoot)
+
 	if shouldSuggestPlanMode(tasks) {
 		planModeHint = "Consider Cursor Plan Mode for multi-step work when backlog has many high-priority or dependency-heavy tasks"
 	}
+
 	return planPath, planModeHint
 }
 
@@ -1022,28 +1101,36 @@ func getCurrentPlanPath(projectRoot string) string {
 
 	// 2. Most recently modified .plan.md in .cursor/plans/
 	plansDir := filepath.Join(projectRoot, ".cursor", "plans")
+
 	entries, err := os.ReadDir(plansDir)
 	if err != nil {
 		return ""
 	}
+
 	var bestPath string
+
 	var bestMod time.Time
+
 	for _, e := range entries {
 		if e.IsDir() {
 			continue
 		}
+
 		if !strings.HasSuffix(e.Name(), ".plan.md") {
 			continue
 		}
+
 		info, err := e.Info()
 		if err != nil {
 			continue
 		}
+
 		if info.ModTime().After(bestMod) {
 			bestMod = info.ModTime()
 			bestPath = filepath.Join(".cursor", "plans", e.Name())
 		}
 	}
+
 	return bestPath
 }
 
@@ -1053,30 +1140,39 @@ func shouldSuggestPlanMode(tasks []Todo2Task) bool {
 	if len(tasks) == 0 {
 		return false
 	}
+
 	backlog := 0
 	highPriority := 0
 	withDeps := 0
+
 	for _, t := range tasks {
 		if !IsBacklogStatus(t.Status) {
 			continue
 		}
+
 		backlog++
+
 		if t.Priority == "high" || t.Priority == "critical" {
 			highPriority++
 		}
+
 		if len(t.Dependencies) > 0 {
 			withDeps++
 		}
 	}
+
 	if backlog == 0 {
 		return false
 	}
+
 	total := len(tasks)
 	depsRatio := float64(withDeps) / float64(total)
 
 	// Suggest Plan Mode when: many backlog items, many high-priority, or high dependency ratio
 	const backlogThreshold = 15
+
 	const highPriorityThreshold = 5
+
 	const depsRatioThreshold = 0.4
 
 	return backlog >= backlogThreshold ||
@@ -1084,7 +1180,7 @@ func shouldSuggestPlanMode(tasks []Todo2Task) bool {
 		depsRatio >= depsRatioThreshold
 }
 
-// getHintsForMode returns tool hints for a mode (simplified)
+// getHintsForMode returns tool hints for a mode (simplified).
 func getHintsForMode(mode string) map[string]string {
 	// Simplified hints - can be expanded
 	hints := map[string]string{
@@ -1114,10 +1210,12 @@ func getTasksSummaryFromTasks(tasks []Todo2Task) map[string]interface{} {
 	}
 
 	recentTasks := []map[string]interface{}{}
+
 	for i, task := range tasks {
 		if i >= 10 {
 			break
 		}
+
 		recentTasks = append(recentTasks, map[string]interface{}{
 			"id":       task.ID,
 			"content":  task.Content,
@@ -1138,24 +1236,30 @@ func getSuggestedNextTasksFromTasks(tasks []Todo2Task, limit int) []map[string]i
 	if limit <= 0 {
 		return nil
 	}
+
 	orderedIDs, _, details, err := BacklogExecutionOrder(tasks, nil)
 	if err != nil || len(orderedIDs) == 0 {
 		return nil
 	}
+
 	out := make([]map[string]interface{}, 0, limit)
+
 	detailMap := make(map[string]BacklogTaskDetail)
 	for _, d := range details {
 		detailMap[d.ID] = d
 	}
+
 	for i, id := range orderedIDs {
 		if i >= limit {
 			break
 		}
+
 		d, ok := detailMap[id]
 		if !ok {
 			out = append(out, map[string]interface{}{"id": id, "content": ""})
 			continue
 		}
+
 		out = append(out, map[string]interface{}{
 			"id":       d.ID,
 			"content":  d.Content,
@@ -1163,6 +1267,7 @@ func getSuggestedNextTasksFromTasks(tasks []Todo2Task, limit int) []map[string]i
 			"level":    d.Level,
 		})
 	}
+
 	return out
 }
 
@@ -1171,13 +1276,16 @@ func getSuggestedNextTasksFromTasks(tasks []Todo2Task, limit int) []map[string]i
 // Reuses checkHandoffAlert and GetSuggestedNextTasks to avoid duplication.
 func GetSessionStatus(projectRoot string) (label, contextType string, details map[string]interface{}) {
 	details = make(map[string]interface{})
+
 	if handoff := checkHandoffAlert(projectRoot); handoff != nil {
 		label = "Handoff – review pending"
 		contextType = "handoff"
 		details["handoff"] = handoff
 		details["action"] = "Review handoff from previous developer"
+
 		return
 	}
+
 	suggested := GetSuggestedNextTasks(projectRoot, 1)
 	if len(suggested) > 0 {
 		t := suggested[0]
@@ -1186,14 +1294,17 @@ func GetSessionStatus(projectRoot string) (label, contextType string, details ma
 		details["task_id"] = t.ID
 		details["content"] = t.Content
 		details["priority"] = t.Priority
+
 		return
 	}
+
 	label = "Project dashboard"
 	contextType = "dashboard"
+
 	return
 }
 
-// checkHandoffAlert checks for handoff notes from other developers
+// checkHandoffAlert checks for handoff notes from other developers.
 func checkHandoffAlert(projectRoot string) map[string]interface{} {
 	handoffFile := filepath.Join(projectRoot, ".todo2", "handoffs.json")
 	if _, err := os.Stat(handoffFile); os.IsNotExist(err) {
@@ -1201,6 +1312,7 @@ func checkHandoffAlert(projectRoot string) map[string]interface{} {
 	}
 
 	fileCache := cache.GetGlobalFileCache()
+
 	data, _, err := fileCache.ReadFile(handoffFile)
 	if err != nil {
 		return nil
@@ -1218,6 +1330,7 @@ func checkHandoffAlert(projectRoot string) map[string]interface{} {
 
 	// Get latest handoff
 	latestHandoff := handoffs[len(handoffs)-1]
+
 	handoffMap, ok := latestHandoff.(map[string]interface{})
 	if !ok {
 		return nil
@@ -1240,7 +1353,7 @@ func checkHandoffAlert(projectRoot string) map[string]interface{} {
 	return nil
 }
 
-// saveHandoff saves a handoff note to the handoffs.json file
+// saveHandoff saves a handoff note to the handoffs.json file.
 func saveHandoff(projectRoot string, handoff map[string]interface{}) error {
 	handoffFile := filepath.Join(projectRoot, ".todo2", "handoffs.json")
 
@@ -1252,6 +1365,7 @@ func saveHandoff(projectRoot string, handoff map[string]interface{}) error {
 	// Load existing handoffs
 	fileCache := cache.GetGlobalFileCache()
 	handoffs := []interface{}{}
+
 	if data, _, err := fileCache.ReadFile(handoffFile); err == nil {
 		var handoffData map[string]interface{}
 		if err := json.Unmarshal(data, &handoffData); err == nil {
@@ -1282,13 +1396,109 @@ func saveHandoff(projectRoot string, handoff map[string]interface{}) error {
 	return os.WriteFile(handoffFile, data, 0644)
 }
 
-// getGitStatus gets current Git status
+// updateHandoffStatus sets status on handoffs by id and writes handoffs.json back.
+func updateHandoffStatus(projectRoot string, handoffIDs []string, status string) error {
+	if len(handoffIDs) == 0 {
+		return nil
+	}
+	handoffFile := filepath.Join(projectRoot, ".todo2", "handoffs.json")
+	if err := os.MkdirAll(filepath.Dir(handoffFile), 0755); err != nil {
+		return err
+	}
+	idsSet := make(map[string]struct{})
+	for _, id := range handoffIDs {
+		if id != "" {
+			idsSet[id] = struct{}{}
+		}
+	}
+	fileCache := cache.GetGlobalFileCache()
+	data, _, err := fileCache.ReadFile(handoffFile)
+	if err != nil {
+		return err
+	}
+	var handoffData map[string]interface{}
+	if err := json.Unmarshal(data, &handoffData); err != nil {
+		return err
+	}
+	handoffs, _ := handoffData["handoffs"].([]interface{})
+	if len(handoffs) == 0 {
+		return nil
+	}
+	updated := 0
+	for _, v := range handoffs {
+		h, ok := v.(map[string]interface{})
+		if !ok {
+			continue
+		}
+		id, _ := h["id"].(string)
+		if _, want := idsSet[id]; want {
+			h["status"] = status
+			updated++
+		}
+	}
+	if updated == 0 {
+		return nil
+	}
+	handoffData["handoffs"] = handoffs
+	out, err := json.MarshalIndent(handoffData, "", "  ")
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(handoffFile, out, 0644)
+}
+
+// handleSessionHandoffStatus closes or approves handoffs by id.
+func handleSessionHandoffStatus(ctx context.Context, params map[string]interface{}, projectRoot, status string) ([]framework.TextContent, error) {
+	var ids []string
+	if id, ok := params["handoff_id"].(string); ok && id != "" {
+		ids = []string{id}
+	} else if raw, ok := params["handoff_ids"]; ok {
+		switch v := raw.(type) {
+		case []interface{}:
+			for _, i := range v {
+				if s, ok := i.(string); ok && s != "" {
+					ids = append(ids, s)
+				}
+			}
+		case string:
+			if v != "" {
+				var list []string
+				if json.Unmarshal([]byte(v), &list) == nil {
+					ids = list
+				} else {
+					ids = []string{v}
+				}
+			}
+		}
+	}
+	if len(ids) == 0 {
+		return nil, fmt.Errorf("handoff_id or handoff_ids required for close/approve")
+	}
+	if err := updateHandoffStatus(projectRoot, ids, status); err != nil {
+		return nil, fmt.Errorf("failed to update handoff status: %w", err)
+	}
+	label := "closed"
+	if status == "approved" {
+		label = "approved"
+	}
+	result := map[string]interface{}{
+		"success":  true,
+		"method":   "native_go",
+		"updated":  len(ids),
+		"status":   status,
+		"message":  fmt.Sprintf("%d handoff(s) %s", len(ids), label),
+	}
+	return mcpresponse.FormatResult(result, "")
+}
+
+// getGitStatus gets current Git status.
 func getGitStatus(ctx context.Context, projectRoot string) map[string]interface{} {
 	status := map[string]interface{}{}
 
 	// Get branch
 	cmd := exec.CommandContext(ctx, "git", "rev-parse", "--abbrev-ref", "HEAD")
 	cmd.Dir = projectRoot
+
 	if output, err := cmd.Output(); err == nil {
 		status["branch"] = strings.TrimSpace(string(output))
 	}
@@ -1296,16 +1506,21 @@ func getGitStatus(ctx context.Context, projectRoot string) map[string]interface{
 	// Get status
 	cmd = exec.CommandContext(ctx, "git", "status", "--porcelain")
 	cmd.Dir = projectRoot
+
 	if output, err := cmd.Output(); err == nil {
 		lines := strings.Split(strings.TrimSpace(string(output)), "\n")
+
 		var changedFiles []string
+
 		for _, line := range lines {
 			if line != "" {
 				changedFiles = append(changedFiles, strings.TrimSpace(line))
 			}
 		}
+
 		status["uncommitted_files"] = len(changedFiles)
 		status["changed_files"] = changedFiles
+
 		if len(changedFiles) > 10 {
 			status["changed_files"] = changedFiles[:10]
 		}
@@ -1314,21 +1529,43 @@ func getGitStatus(ctx context.Context, projectRoot string) map[string]interface{
 	return status
 }
 
-// truncateString truncates a string to max length
+// buildCursorCLISuggestion builds a ready-to-run Cursor CLI command from a suggested task map.
+// Expects a map with "id" and "content" keys. Returns empty string if task info is missing.
+func buildCursorCLISuggestion(task map[string]interface{}) string {
+	id, _ := task["id"].(string)
+	content, _ := task["content"].(string)
+	if id == "" {
+		return ""
+	}
+
+	prompt := "Work on " + id
+	if content != "" {
+		prompt += ": " + truncateString(content, 60)
+	}
+
+	// Escape double quotes in prompt for shell safety
+	prompt = strings.ReplaceAll(prompt, `"`, `\"`)
+
+	return fmt.Sprintf(`agent -p "%s" --mode=plan`, prompt)
+}
+
+// truncateString truncates a string to max length.
 func truncateString(s string, maxLen int) string {
 	if len(s) <= maxLen {
 		return s
 	}
+
 	return s[:maxLen-3] + "..."
 }
 
-// handleSessionPrompts handles the prompts action - lists available prompts
+// handleSessionPrompts handles the prompts action - lists available prompts.
 func handleSessionPrompts(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	// Get optional filters
 	mode, _ := params["mode"].(string)
 	persona, _ := params["persona"].(string)
 	category, _ := params["category"].(string)
 	keywords, _ := params["keywords"].(string)
+
 	limit := 50
 	if l, ok := params["limit"].(float64); ok {
 		limit = int(l)
@@ -1363,6 +1600,7 @@ func handleSessionPrompts(ctx context.Context, params map[string]interface{}) ([
 
 	// Filter prompts
 	filtered := []map[string]interface{}{}
+
 	for _, prompt := range allPrompts {
 		// Filter by mode
 		if mode != "" {
@@ -1383,6 +1621,7 @@ func handleSessionPrompts(ctx context.Context, params map[string]interface{}) ([
 			keywordsLower := strings.ToLower(keywords)
 			name, _ := prompt["name"].(string)
 			desc, _ := prompt["description"].(string)
+
 			if !strings.Contains(strings.ToLower(name), keywordsLower) &&
 				!strings.Contains(strings.ToLower(desc), keywordsLower) {
 				continue
@@ -1415,7 +1654,7 @@ func handleSessionPrompts(ctx context.Context, params map[string]interface{}) ([
 	return mcpresponse.FormatResult(result, "")
 }
 
-// handleSessionAssignee handles the assignee action - manages task assignments
+// handleSessionAssignee handles the assignee action - manages task assignments.
 func handleSessionAssignee(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	subAction, _ := params["sub_action"].(string)
 	if subAction == "" {
@@ -1434,7 +1673,7 @@ func handleSessionAssignee(ctx context.Context, params map[string]interface{}) (
 	}
 }
 
-// handleSessionAssigneeList lists tasks with their assignees
+// handleSessionAssigneeList lists tasks with their assignees.
 func handleSessionAssigneeList(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	includeUnassigned := true
 	if unassigned, ok := params["include_unassigned"].(bool); ok {
@@ -1445,6 +1684,7 @@ func handleSessionAssigneeList(ctx context.Context, params map[string]interface{
 
 	// Get tasks from database
 	var tasks []*database.Todo2Task
+
 	var err error
 
 	if statusFilter != "" {
@@ -1467,9 +1707,11 @@ func handleSessionAssigneeList(ctx context.Context, params map[string]interface{
 	}
 
 	assignments := []map[string]interface{}{}
+
 	for _, task := range tasks {
 		// Query assignee from tasks table
 		var assignee sql.NullString
+
 		var assignedAt sql.NullInt64 // assigned_at is INTEGER (Unix timestamp)
 		err := db.QueryRowContext(ctx, `
 			SELECT assignee, assigned_at
@@ -1516,7 +1758,7 @@ func handleSessionAssigneeList(ctx context.Context, params map[string]interface{
 	return mcpresponse.FormatResult(result, "")
 }
 
-// handleSessionAssigneeAssign assigns a task to an agent/human/host
+// handleSessionAssigneeAssign assigns a task to an agent/human/host.
 func handleSessionAssigneeAssign(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	taskID, _ := params["task_id"].(string)
 	if taskID == "" {
@@ -1546,12 +1788,14 @@ func handleSessionAssigneeAssign(ctx context.Context, params map[string]interfac
 			// But for assignment, we might want just the name
 			// For now, use the provided assigneeName
 		}
+
 		_ = agentID // Use if needed
 	}
 
 	// Use database ClaimTaskForAgent for atomic assignment
 	// This handles locking and prevents race conditions
 	leaseDuration := config.TaskLockLease()
+
 	result, err := database.ClaimTaskForAgent(ctx, taskID, assigneeName, leaseDuration)
 	if err != nil {
 		return nil, fmt.Errorf("failed to assign task: %w", err)
@@ -1566,9 +1810,11 @@ func handleSessionAssigneeAssign(ctx context.Context, params map[string]interfac
 				"task_id":   taskID,
 				"locked_by": result.LockedBy,
 			}
+
 			return mcpresponse.FormatResult(response, "")
 		}
-		return nil, fmt.Errorf("task assignment failed: %v", result.Error)
+
+		return nil, fmt.Errorf("task assignment failed: %w", result.Error)
 	}
 
 	response := map[string]interface{}{
@@ -1584,7 +1830,7 @@ func handleSessionAssigneeAssign(ctx context.Context, params map[string]interfac
 	return mcpresponse.FormatResult(response, "")
 }
 
-// handleSessionAssigneeUnassign unassigns a task
+// handleSessionAssigneeUnassign unassigns a task.
 func handleSessionAssigneeUnassign(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	taskID, _ := params["task_id"].(string)
 	if taskID == "" {

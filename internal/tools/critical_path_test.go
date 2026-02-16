@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-// TestCriticalPathOnRealData tests critical path with actual Todo2 tasks
+// TestCriticalPathOnRealData tests critical path with actual Todo2 tasks.
 func TestCriticalPathOnRealData(t *testing.T) {
 	projectRoot, err := FindProjectRoot()
 	if err != nil {
@@ -39,6 +39,7 @@ func TestCriticalPathOnRealData(t *testing.T) {
 		cycles := DetectCycles(tg)
 		t.Logf("Graph has %d cycles, cannot compute critical path", len(cycles))
 		t.Logf("Cycles: %v", cycles)
+
 		return
 	}
 
@@ -66,36 +67,45 @@ func TestCriticalPathOnRealData(t *testing.T) {
 	// Get task levels for context
 	levels := GetTaskLevels(tg)
 	maxLevel := 0
+
 	for _, level := range levels {
 		if level > maxLevel {
 			maxLevel = level
 		}
 	}
+
 	fmt.Printf("Max Dependency Level: %d\n", maxLevel)
 
 	fmt.Println("\nCritical Path Chain (Longest Dependency Path):")
 	fmt.Println(strings.Repeat("-", 62))
+
 	for i, taskID := range criticalPath {
 		// Find task details
 		for _, task := range tasks {
 			if task.ID == taskID {
 				fmt.Printf("\n%d. %s", i+1, taskID)
+
 				if task.Content != "" {
 					fmt.Printf(": %s", task.Content)
 				}
+
 				fmt.Println()
 
 				if task.Priority != "" || task.Status != "" {
 					fmt.Printf("   ")
+
 					if task.Priority != "" {
 						fmt.Printf("Priority: %s", task.Priority)
 					}
+
 					if task.Priority != "" && task.Status != "" {
 						fmt.Printf(" | ")
 					}
+
 					if task.Status != "" {
 						fmt.Printf("Status: %s", task.Status)
 					}
+
 					fmt.Println()
 				}
 
@@ -106,13 +116,16 @@ func TestCriticalPathOnRealData(t *testing.T) {
 				if level, ok := levels[taskID]; ok {
 					fmt.Printf("   Dependency Level: %d\n", level)
 				}
+
 				break
 			}
 		}
+
 		if i < len(criticalPath)-1 {
 			fmt.Println("   ↓")
 		}
 	}
+
 	fmt.Println()
 	fmt.Println(strings.Repeat("-", 62))
 	fmt.Println("\n💡 The critical path shows the longest dependency chain.")

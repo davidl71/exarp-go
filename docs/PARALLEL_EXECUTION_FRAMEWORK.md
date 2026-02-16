@@ -6,9 +6,9 @@
 
 ### 1. Wave-based execution (plan)
 
-- **Source:** `BacklogExecutionOrder()` in `internal/tools/task_analysis_shared.go` computes dependency levels and waves (same wave = no ordering = can run in parallel).
-- **Consumers:** `report` tool with `action=plan` (writes `.cursor/plans/exarp-go.plan.md` with `waves` in frontmatter) and `action=parallel_execution_plan` (writes `.cursor/plans/parallel-execution-subagents.plan.md` with one section per wave and task IDs).
-- **Usage:** Run waves sequentially (Wave 0, then Wave 1, …). Within a wave, run one subagent (e.g. wave-task-runner) per task so they run in parallel. See [.cursor/plans/parallel-execution-subagents.plan.md](../.cursor/plans/parallel-execution-subagents.plan.md).
+- **Source:** `BacklogExecutionOrder()` in `internal/tools/graph_helpers.go` computes dependency levels and waves (same wave = no ordering = can run in parallel). When config `thresholds.max_tasks_per_wave` is set (e.g. in `.exarp/config.yaml` or protobuf), `LimitWavesByMaxTasks()` splits any wave with more than that many tasks into consecutive waves so each wave has at most that many tasks.
+- **Consumers:** `report` tool with `action=plan` (writes `.cursor/plans/exarp-go.plan.md` with `waves` in frontmatter) and `action=parallel_execution_plan` (writes `.cursor/plans/parallel-execution-subagents.plan.md` with one section per wave and task IDs); TUI waves view and run-wave.
+- **Usage:** Run waves sequentially (Wave 0, then Wave 1, …). Within a wave, run one subagent (e.g. wave-task-runner) per task so they run in parallel. To cap tasks per wave, set `thresholds.max_tasks_per_wave` (e.g. `10`). See [.cursor/plans/parallel-execution-subagents.plan.md](../.cursor/plans/parallel-execution-subagents.plan.md).
 
 ### 2. In-process parallel tool runs (automation)
 

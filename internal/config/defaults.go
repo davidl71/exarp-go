@@ -5,7 +5,7 @@ import (
 )
 
 // GetDefaults returns a FullConfig with all default values matching current hard-coded behavior
-// This ensures backward compatibility when no config file is present
+// This ensures backward compatibility when no config file is present.
 func GetDefaults() *FullConfig {
 	return &FullConfig{
 		Version: "1.0",
@@ -49,6 +49,7 @@ func GetDefaults() *FullConfig {
 			// Automation - matches current hard-coded values
 			MaxParallelTasks:        10,
 			MaxTasksPerHost:         5,
+			MaxTasksPerWave:         0, // 0 = no limit; cap tasks per wave when > 0
 			MaxAutomationIterations: 10,
 
 			// Context management - matches current hard-coded values

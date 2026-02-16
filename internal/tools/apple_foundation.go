@@ -13,7 +13,7 @@ import (
 	"github.com/davidl71/exarp-go/internal/platform"
 )
 
-// handleAppleFoundationModels handles the apple_foundation_models tool
+// handleAppleFoundationModels handles the apple_foundation_models tool.
 func handleAppleFoundationModels(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
 	// Check platform support first
 	support := platform.CheckAppleFoundationModelsSupport()
@@ -59,6 +59,7 @@ func handleAppleFoundationModels(ctx context.Context, args json.RawMessage) ([]f
 	defer sess.Release()
 
 	var result string
+
 	var err error
 
 	switch action {
@@ -89,17 +90,19 @@ func handleAppleFoundationModels(ctx context.Context, args json.RawMessage) ([]f
 func GenerateWithOptions(prompt string, maxTokens int, temperature float32) (string, error) {
 	sess := fm.NewSession()
 	defer sess.Release()
+
 	return sess.RespondWithOptions(prompt, maxTokens, temperature), nil
 }
 
-// generateText generates text using Apple Foundation Models
+// generateText generates text using Apple Foundation Models.
 func generateText(sess *fm.Session, prompt string, params map[string]interface{}) (string, error) {
 	maxTokens := getMaxTokens(params)
 	temperature := getTemperature(params)
+
 	return sess.RespondWithOptions(prompt, maxTokens, temperature), nil
 }
 
-// summarizeText summarizes text using Apple Foundation Models
+// summarizeText summarizes text using Apple Foundation Models.
 func summarizeText(sess *fm.Session, text string, params map[string]interface{}) (string, error) {
 	// Create summarization prompt
 	prompt := fmt.Sprintf("Summarize the following text concisely:\n\n%s", text)
@@ -112,10 +115,11 @@ func summarizeText(sess *fm.Session, text string, params map[string]interface{})
 
 	// Generate summary
 	response := sess.RespondWithOptions(prompt, getMaxTokens(params), temp)
+
 	return response, nil
 }
 
-// classifyText classifies text using Apple Foundation Models
+// classifyText classifies text using Apple Foundation Models.
 func classifyText(sess *fm.Session, text string, params map[string]interface{}) (string, error) {
 	// Get categories (optional)
 	categories := "positive, negative, neutral"
@@ -134,10 +138,11 @@ func classifyText(sess *fm.Session, text string, params map[string]interface{}) 
 
 	// Generate classification
 	response := sess.RespondWithOptions(prompt, getMaxTokens(params), temp)
+
 	return response, nil
 }
 
-// buildGenerationOptions builds generation options from parameters (for future use)
+// buildGenerationOptions builds generation options from parameters (for future use).
 func buildGenerationOptions(params map[string]interface{}) *fm.GenerationOptions {
 	options := &fm.GenerationOptions{}
 

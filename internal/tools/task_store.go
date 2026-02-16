@@ -22,15 +22,18 @@ func (s *dbOrFileStore) GetTask(ctx context.Context, id string) (*database.Todo2
 	if db, err := database.GetDB(); err == nil && db != nil {
 		return database.GetTask(ctx, id)
 	}
+
 	tasks, err := LoadTodo2Tasks(s.projectRoot)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load tasks: %w", err)
 	}
+
 	for i := range tasks {
 		if tasks[i].ID == id {
 			return &tasks[i], nil
 		}
 	}
+
 	return nil, fmt.Errorf("task %s not found", id)
 }
 
@@ -38,22 +41,27 @@ func (s *dbOrFileStore) UpdateTask(ctx context.Context, task *database.Todo2Task
 	if task == nil || task.ID == "" {
 		return fmt.Errorf("task and task.ID are required")
 	}
+
 	if db, err := database.GetDB(); err == nil && db != nil {
 		if err := database.UpdateTask(ctx, task); err != nil {
 			return err
 		}
+
 		return SyncTodo2Tasks(s.projectRoot)
 	}
+
 	tasks, err := LoadTodo2Tasks(s.projectRoot)
 	if err != nil {
 		return fmt.Errorf("failed to load tasks: %w", err)
 	}
+
 	for i := range tasks {
 		if tasks[i].ID == task.ID {
 			tasks[i] = *task
 			return SaveTodo2Tasks(s.projectRoot, tasks)
 		}
 	}
+
 	return fmt.Errorf("task %s not found", task.ID)
 }
 
@@ -61,10 +69,12 @@ func (s *dbOrFileStore) ListTasks(ctx context.Context, filters *database.TaskFil
 	if db, err := database.GetDB(); err == nil && db != nil {
 		return database.ListTasks(ctx, filters)
 	}
+
 	tasks, err := LoadTodo2Tasks(s.projectRoot)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load tasks: %w", err)
 	}
+
 	return filterTasksToPtrs(tasks, filters), nil
 }
 
@@ -72,14 +82,18 @@ func (s *dbOrFileStore) CreateTask(ctx context.Context, task *database.Todo2Task
 	if task == nil {
 		return fmt.Errorf("task is required")
 	}
+
 	if db, err := database.GetDB(); err == nil && db != nil {
 		return database.CreateTask(ctx, task)
 	}
+
 	tasks, err := LoadTodo2Tasks(s.projectRoot)
 	if err != nil {
 		return fmt.Errorf("failed to load tasks: %w", err)
 	}
+
 	tasks = append(tasks, *task)
+
 	return SaveTodo2Tasks(s.projectRoot, tasks)
 }
 
@@ -87,19 +101,24 @@ func (s *dbOrFileStore) DeleteTask(ctx context.Context, id string) error {
 	if db, err := database.GetDB(); err == nil && db != nil {
 		return database.DeleteTask(ctx, id)
 	}
+
 	tasks, err := LoadTodo2Tasks(s.projectRoot)
 	if err != nil {
 		return fmt.Errorf("failed to load tasks: %w", err)
 	}
+
 	var kept []Todo2Task
+
 	for _, t := range tasks {
 		if t.ID != id {
 			kept = append(kept, t)
 		}
 	}
+
 	if len(kept) == len(tasks) {
 		return fmt.Errorf("task %s not found", id)
 	}
+
 	return SaveTodo2Tasks(s.projectRoot, kept)
 }
 
@@ -109,12 +128,15 @@ func tasksFromPtrs(pts []*database.Todo2Task) []Todo2Task {
 	if pts == nil {
 		return nil
 	}
+
 	out := make([]Todo2Task, 0, len(pts))
+
 	for _, p := range pts {
 		if p != nil {
 			out = append(out, *p)
 		}
 	}
+
 	return out
 }
 
@@ -125,30 +147,39 @@ func filterTasksToPtrs(tasks []Todo2Task, filters *database.TaskFilters) []*data
 		for i := range tasks {
 			out[i] = &tasks[i]
 		}
+
 		return out
 	}
+
 	var out []*database.Todo2Task
+
 	for i := range tasks {
 		t := &tasks[i]
 		if filters.Status != nil && t.Status != *filters.Status {
 			continue
 		}
+
 		if filters.Priority != nil && t.Priority != *filters.Priority {
 			continue
 		}
+
 		if filters.Tag != nil {
 			found := false
+
 			for _, tag := range t.Tags {
 				if tag == *filters.Tag {
 					found = true
 					break
 				}
 			}
+
 			if !found {
 				continue
 			}
 		}
+
 		out = append(out, t)
 	}
+
 	return out
 }

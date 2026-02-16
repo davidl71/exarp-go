@@ -12,6 +12,7 @@ import (
 func TestHandleAddExternalToolHintsNative(t *testing.T) {
 	tmpDir := t.TempDir()
 	os.Setenv("PROJECT_ROOT", tmpDir)
+
 	defer os.Unsetenv("PROJECT_ROOT")
 
 	tests := []struct {
@@ -62,11 +63,13 @@ func TestHandleAddExternalToolHintsNative(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := context.Background()
+
 			result, err := handleAddExternalToolHintsNative(ctx, tt.params)
 			if (err != nil) != tt.wantError {
 				t.Errorf("handleAddExternalToolHintsNative() error = %v, wantError %v", err, tt.wantError)
 				return
 			}
+
 			if !tt.wantError && tt.validate != nil {
 				tt.validate(t, result)
 			}
@@ -77,6 +80,7 @@ func TestHandleAddExternalToolHintsNative(t *testing.T) {
 func TestHandleAddExternalToolHints(t *testing.T) {
 	tmpDir := t.TempDir()
 	os.Setenv("PROJECT_ROOT", tmpDir)
+
 	defer os.Unsetenv("PROJECT_ROOT")
 
 	tests := []struct {
@@ -97,11 +101,13 @@ func TestHandleAddExternalToolHints(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := context.Background()
 			argsJSON, _ := json.Marshal(tt.params)
+
 			result, err := handleAddExternalToolHints(ctx, argsJSON)
 			if (err != nil) != tt.wantError {
 				t.Errorf("handleAddExternalToolHints() error = %v, wantError %v", err, tt.wantError)
 				return
 			}
+
 			if !tt.wantError && len(result) == 0 {
 				t.Error("expected non-empty result")
 			}

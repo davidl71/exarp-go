@@ -34,6 +34,7 @@ func parseURIVariableByIndex(uri string, index int, expectedFormat string) (stri
 		if expectedFormat != "" {
 			return "", fmt.Errorf("invalid URI format: %s (expected %s)", uri, expectedFormat)
 		}
+
 		return "", fmt.Errorf("invalid URI format: %s (index %d out of range, got %d parts)", uri, index, len(parts))
 	}
 

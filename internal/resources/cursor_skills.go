@@ -36,10 +36,12 @@ func handleCursorSkills(ctx context.Context, uri string) ([]byte, string, error)
 
 	for _, rel := range cursorSkillPaths {
 		full := filepath.Join(projectRoot, rel)
+
 		body, err := os.ReadFile(full)
 		if err != nil {
 			continue // skip missing skills
 		}
+
 		name := filepath.Base(filepath.Dir(rel))
 		parts = append(parts, fmt.Sprintf("## Skill: %s\n\n%s\n", name, strings.TrimSpace(string(body))))
 	}

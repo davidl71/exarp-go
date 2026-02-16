@@ -16,10 +16,10 @@ import (
 // ErrVersionMismatch is returned when an update fails because the task was modified by another agent.
 var ErrVersionMismatch = errors.New("task version mismatch")
 
-// Todo2Task is an alias for models.Todo2Task (for convenience)
+// Todo2Task is an alias for models.Todo2Task (for convenience).
 type Todo2Task = models.Todo2Task
 
-// TaskFilters represents filters for querying tasks
+// TaskFilters represents filters for querying tasks.
 type TaskFilters struct {
 	Status    *string
 	Priority  *string
@@ -34,11 +34,13 @@ func SanitizeTaskMetadata(s string) map[string]interface{} {
 	if s == "" {
 		return nil
 	}
+
 	var out map[string]interface{}
 	if err := json.Unmarshal([]byte(s), &out); err != nil {
 		logging.Warn("database: invalid task metadata JSON, coercing to raw: %v", err)
 		return map[string]interface{}{"raw": s}
 	}
+
 	return out
 }
 
@@ -52,19 +54,24 @@ func unmarshalTaskMetadata(s string) map[string]interface{} {
 func SerializeTaskMetadata(task *Todo2Task) (metadataJSON string, metadataProtobuf []byte, metadataFormat string, err error) {
 	metadataFormat = "protobuf"
 	protobufData, err := models.SerializeTaskToProtobuf(task)
+
 	if err != nil {
 		metadataFormat = "json"
 	} else {
 		metadataProtobuf = protobufData
 	}
+
 	if len(task.Metadata) > 0 {
 		sanitized := SanitizeMetadataForWrite(task.Metadata)
+
 		metadataBytes, jsonErr := json.Marshal(sanitized)
 		if jsonErr != nil {
 			return "", nil, "", fmt.Errorf("failed to marshal metadata: %w", jsonErr)
 		}
+
 		metadataJSON = string(metadataBytes)
 	}
+
 	return metadataJSON, metadataProtobuf, metadataFormat, nil
 }
 
@@ -77,9 +84,11 @@ func DeserializeTaskMetadata(metadataJSON string, metadataProtobuf []byte, metad
 			return deserialized.Metadata
 		}
 	}
+
 	if metadataJSON != "" {
 		return SanitizeTaskMetadata(metadataJSON)
 	}
+
 	return nil
 }
 
@@ -90,10 +99,12 @@ func SanitizeMetadataForWrite(metadata map[string]interface{}) map[string]interf
 	if len(metadata) == 0 {
 		return nil
 	}
+
 	out := make(map[string]interface{}, len(metadata))
 	for k, v := range metadata {
 		out[k] = jsonSafeValue(v)
 	}
+
 	return out
 }
 
@@ -101,6 +112,7 @@ func sqlNullString(s string) sql.NullString {
 	if s == "" {
 		return sql.NullString{Valid: false}
 	}
+
 	return sql.NullString{String: s, Valid: true}
 }
 
@@ -108,6 +120,7 @@ func jsonSafeValue(v interface{}) interface{} {
 	if v == nil {
 		return nil
 	}
+
 	switch x := v.(type) {
 	case string:
 		return x
@@ -124,12 +137,14 @@ func jsonSafeValue(v interface{}) interface{} {
 		for i, e := range x {
 			out[i] = jsonSafeValue(e)
 		}
+
 		return out
 	case map[string]interface{}:
 		out := make(map[string]interface{}, len(x))
 		for k2, val := range x {
 			out[k2] = jsonSafeValue(val)
 		}
+
 		return out
 	default:
 		return fmt.Sprint(x)
@@ -142,14 +157,17 @@ func IsValidTaskID(id string) bool {
 	if id == "" || id == "T-NaN" || id == "T-undefined" {
 		return false
 	}
+
 	if !strings.HasPrefix(id, "T-") || len(id) <= 2 {
 		return false
 	}
+
 	for _, c := range id[2:] {
 		if c < '0' || c > '9' {
 			return false
 		}
 	}
+
 	return true
 }
 
@@ -166,7 +184,9 @@ func CreateTask(ctx context.Context, task *Todo2Task) error {
 	if !IsValidTaskID(task.ID) {
 		task.ID = GenerateTaskID()
 	}
+
 	ctx = ensureContext(ctx)
+
 	txCtx, cancel := withTransactionTimeout(ctx)
 	defer cancel()
 
@@ -180,6 +200,7 @@ func CreateTask(ctx context.Context, task *Todo2Task) error {
 		if err != nil {
 			return fmt.Errorf("failed to begin transaction: %w", err)
 		}
+
 		defer func() {
 			if err != nil {
 				_ = tx.Rollback()
@@ -240,6 +261,7 @@ func CreateTask(ctx context.Context, task *Todo2Task) error {
 				metadataJSON, // JSON only
 			)
 		}
+
 		if err != nil {
 			return fmt.Errorf("failed to insert task: %w", err)
 		}
@@ -248,11 +270,13 @@ func CreateTask(ctx context.Context, task *Todo2Task) error {
 		if len(task.Tags) > 0 {
 			placeholders := make([]string, len(task.Tags))
 			args := make([]interface{}, len(task.Tags)*2)
+
 			for i, tag := range task.Tags {
 				placeholders[i] = "(?, ?)"
 				args[i*2] = task.ID
 				args[i*2+1] = tag
 			}
+
 			_, err = tx.ExecContext(txCtx, `
 				INSERT INTO task_tags (task_id, tag) VALUES `+strings.Join(placeholders, ", "),
 				args...)
@@ -265,11 +289,13 @@ func CreateTask(ctx context.Context, task *Todo2Task) error {
 		if len(task.Dependencies) > 0 {
 			placeholders := make([]string, len(task.Dependencies))
 			args := make([]interface{}, len(task.Dependencies)*2)
+
 			for i, depID := range task.Dependencies {
 				placeholders[i] = "(?, ?)"
 				args[i*2] = task.ID
 				args[i*2+1] = depID
 			}
+
 			_, err = tx.ExecContext(txCtx, `
 				INSERT INTO task_dependencies (task_id, depends_on_id) VALUES `+strings.Join(placeholders, ", "),
 				args...)
@@ -287,13 +313,15 @@ func CreateTask(ctx context.Context, task *Todo2Task) error {
 }
 
 // GetTask retrieves a task by ID with all related data (tags, dependencies)
-// Supports context for timeout and cancellation
+// Supports context for timeout and cancellation.
 func GetTask(ctx context.Context, id string) (*Todo2Task, error) {
 	ctx = ensureContext(ctx)
+
 	queryCtx, cancel := withQueryTimeout(ctx)
 	defer cancel()
 
 	var task *Todo2Task
+
 	err := retryWithBackoff(ctx, func() error {
 		db, err := GetDB()
 		if err != nil {
@@ -302,11 +330,17 @@ func GetTask(ctx context.Context, id string) (*Todo2Task, error) {
 
 		// Query task (include protobuf columns if they exist)
 		var taskData Todo2Task
+
 		var metadataJSON sql.NullString
+
 		var metadataProtobuf []byte // BLOB column
+
 		var metadataFormat sql.NullString
+
 		var completedInt int
+
 		var name sql.NullString
+
 		var created, lastModified, completedAt sql.NullString
 
 		var parentID sql.NullString
@@ -358,9 +392,10 @@ func GetTask(ctx context.Context, id string) (*Todo2Task, error) {
 			)
 		}
 
-		if err == sql.ErrNoRows {
+		if errors.Is(err, sql.ErrNoRows) {
 			return fmt.Errorf("task %s not found", id)
 		}
+
 		if err != nil {
 			return fmt.Errorf("failed to query task: %w", err)
 		}
@@ -369,22 +404,27 @@ func GetTask(ctx context.Context, id string) (*Todo2Task, error) {
 		if created.Valid {
 			taskData.CreatedAt = created.String
 		}
+
 		if lastModified.Valid {
 			taskData.LastModified = lastModified.String
 		}
+
 		if completedAt.Valid {
 			taskData.CompletedAt = completedAt.String
 		}
+
 		taskData.NormalizeEpochDates()
 
 		metadataJSONStr := ""
 		if metadataJSON.Valid {
 			metadataJSONStr = metadataJSON.String
 		}
+
 		metadataFormatStr := ""
 		if metadataFormat.Valid {
 			metadataFormatStr = metadataFormat.String
 		}
+
 		taskData.Metadata = DeserializeTaskMetadata(metadataJSONStr, metadataProtobuf, metadataFormatStr)
 
 		// Load tags
@@ -392,6 +432,7 @@ func GetTask(ctx context.Context, id string) (*Todo2Task, error) {
 		if err != nil {
 			return err
 		}
+
 		taskData.Tags = tags
 
 		// Load dependencies
@@ -399,20 +440,23 @@ func GetTask(ctx context.Context, id string) (*Todo2Task, error) {
 		if err != nil {
 			return err
 		}
+
 		taskData.Dependencies = dependencies
 
 		task = &taskData
+
 		return nil
 	})
 
 	if err != nil {
 		return nil, err
 	}
+
 	return task, nil
 }
 
 // loadTaskTags loads tags for a single task
-// Works with both *sql.DB (via QueryContext) and *sql.Tx (via QueryContext)
+// Works with both *sql.DB (via QueryContext) and *sql.Tx (via QueryContext).
 func loadTaskTags(ctx context.Context, queryCtx context.Context, querier interface {
 	QueryContext(ctx context.Context, query string, args ...interface{}) (*sql.Rows, error)
 }, taskID string) ([]string, error) {
@@ -422,6 +466,7 @@ func loadTaskTags(ctx context.Context, queryCtx context.Context, querier interfa
 	if err != nil {
 		return nil, fmt.Errorf("failed to query tags: %w", err)
 	}
+
 	defer func() {
 		if err := rows.Close(); err != nil {
 			// Log error but don't fail - this is cleanup
@@ -429,11 +474,13 @@ func loadTaskTags(ctx context.Context, queryCtx context.Context, querier interfa
 	}()
 
 	var tags []string
+
 	for rows.Next() {
 		var tag string
 		if err := rows.Scan(&tag); err != nil {
 			return nil, fmt.Errorf("failed to scan tag: %w", err)
 		}
+
 		tags = append(tags, tag)
 	}
 
@@ -445,7 +492,7 @@ func loadTaskTags(ctx context.Context, queryCtx context.Context, querier interfa
 }
 
 // loadTaskDependencies loads dependencies for a single task
-// Works with both *sql.DB (via QueryContext) and *sql.Tx (via QueryContext)
+// Works with both *sql.DB (via QueryContext) and *sql.Tx (via QueryContext).
 func loadTaskDependencies(ctx context.Context, queryCtx context.Context, querier interface {
 	QueryContext(ctx context.Context, query string, args ...interface{}) (*sql.Rows, error)
 }, taskID string) ([]string, error) {
@@ -455,6 +502,7 @@ func loadTaskDependencies(ctx context.Context, queryCtx context.Context, querier
 	if err != nil {
 		return nil, fmt.Errorf("failed to query dependencies: %w", err)
 	}
+
 	defer func() {
 		if err := rows.Close(); err != nil {
 			// Log error but don't fail - this is cleanup
@@ -462,11 +510,13 @@ func loadTaskDependencies(ctx context.Context, queryCtx context.Context, querier
 	}()
 
 	var dependencies []string
+
 	for rows.Next() {
 		var depID string
 		if err := rows.Scan(&depID); err != nil {
 			return nil, fmt.Errorf("failed to scan dependency: %w", err)
 		}
+
 		dependencies = append(dependencies, depID)
 	}
 
@@ -479,9 +529,10 @@ func loadTaskDependencies(ctx context.Context, queryCtx context.Context, querier
 
 // UpdateTask updates an existing task
 // Uses a transaction to atomically update task, tags, and dependencies
-// Supports context for timeout and cancellation
+// Supports context for timeout and cancellation.
 func UpdateTask(ctx context.Context, task *Todo2Task) error {
 	ctx = ensureContext(ctx)
+
 	txCtx, cancel := withTransactionTimeout(ctx)
 	defer cancel()
 
@@ -495,6 +546,7 @@ func UpdateTask(ctx context.Context, task *Todo2Task) error {
 		if err != nil {
 			return fmt.Errorf("failed to begin transaction: %w", err)
 		}
+
 		defer func() {
 			if err != nil {
 				_ = tx.Rollback()
@@ -514,10 +566,12 @@ func UpdateTask(ctx context.Context, task *Todo2Task) error {
 
 		// Get current version for optimistic locking
 		var currentVersion int64
+
 		err = tx.QueryRowContext(txCtx, `SELECT version FROM tasks WHERE id = ?`, task.ID).Scan(&currentVersion)
-		if err == sql.ErrNoRows {
+		if errors.Is(err, sql.ErrNoRows) {
 			return fmt.Errorf("task %s not found", task.ID)
 		}
+
 		if err != nil {
 			return fmt.Errorf("failed to query task version: %w", err)
 		}
@@ -526,9 +580,11 @@ func UpdateTask(ctx context.Context, task *Todo2Task) error {
 		// Include protobuf columns if they exist in schema; set completed_at when status is Done
 		now := time.Now().Format(time.RFC3339)
 		completedAtVal := task.CompletedAt
+
 		if task.Status == "Done" && completedAtVal == "" {
 			completedAtVal = now
 		}
+
 		result, err := tx.ExecContext(txCtx, `
 			UPDATE tasks SET
 				content = ?,
@@ -588,6 +644,7 @@ func UpdateTask(ctx context.Context, task *Todo2Task) error {
 				currentVersion,
 			)
 		}
+
 		if err != nil {
 			return fmt.Errorf("failed to update task: %w", err)
 		}
@@ -596,6 +653,7 @@ func UpdateTask(ctx context.Context, task *Todo2Task) error {
 		if err != nil {
 			return fmt.Errorf("failed to get rows affected: %w", err)
 		}
+
 		if rowsAffected == 0 {
 			return fmt.Errorf("task %s not found or was modified by another agent: %w", task.ID, ErrVersionMismatch)
 		}
@@ -610,11 +668,13 @@ func UpdateTask(ctx context.Context, task *Todo2Task) error {
 		if len(task.Tags) > 0 {
 			placeholders := make([]string, len(task.Tags))
 			args := make([]interface{}, len(task.Tags)*2)
+
 			for i, tag := range task.Tags {
 				placeholders[i] = "(?, ?)"
 				args[i*2] = task.ID
 				args[i*2+1] = tag
 			}
+
 			_, err = tx.ExecContext(txCtx, `
 				INSERT INTO task_tags (task_id, tag) VALUES `+strings.Join(placeholders, ", "),
 				args...)
@@ -633,11 +693,13 @@ func UpdateTask(ctx context.Context, task *Todo2Task) error {
 		if len(task.Dependencies) > 0 {
 			placeholders := make([]string, len(task.Dependencies))
 			args := make([]interface{}, len(task.Dependencies)*2)
+
 			for i, depID := range task.Dependencies {
 				placeholders[i] = "(?, ?)"
 				args[i*2] = task.ID
 				args[i*2+1] = depID
 			}
+
 			_, err = tx.ExecContext(txCtx, `
 				INSERT INTO task_dependencies (task_id, depends_on_id) VALUES `+strings.Join(placeholders, ", "),
 				args...)
@@ -663,6 +725,7 @@ func IsVersionMismatchError(err error) bool {
 // Used to detect conflicts before or after an update attempt. If the task is not found, err is non-nil.
 func CheckUpdateConflict(ctx context.Context, taskID string, expectedVersion int64) (hasConflict bool, currentVersion int64, err error) {
 	ctx = ensureContext(ctx)
+
 	queryCtx, cancel := withQueryTimeout(ctx)
 	defer cancel()
 
@@ -670,20 +733,24 @@ func CheckUpdateConflict(ctx context.Context, taskID string, expectedVersion int
 	if err != nil {
 		return false, 0, fmt.Errorf("failed to get database: %w", err)
 	}
+
 	err = db.QueryRowContext(queryCtx, `SELECT version FROM tasks WHERE id = ?`, taskID).Scan(&currentVersion)
-	if err == sql.ErrNoRows {
+	if errors.Is(err, sql.ErrNoRows) {
 		return false, 0, fmt.Errorf("task %s not found", taskID)
 	}
+
 	if err != nil {
 		return false, 0, fmt.Errorf("failed to get task version: %w", err)
 	}
+
 	return currentVersion != expectedVersion, currentVersion, nil
 }
 
 // DeleteTask deletes a task and all related data (tags, dependencies cascade)
-// Supports context for timeout and cancellation
+// Supports context for timeout and cancellation.
 func DeleteTask(ctx context.Context, id string) error {
 	ctx = ensureContext(ctx)
+
 	queryCtx, cancel := withQueryTimeout(ctx)
 	defer cancel()
 
@@ -702,6 +769,7 @@ func DeleteTask(ctx context.Context, id string) error {
 		if err != nil {
 			return fmt.Errorf("failed to get rows affected: %w", err)
 		}
+
 		if rowsAffected == 0 {
 			return fmt.Errorf("task %s not found", id)
 		}
@@ -712,13 +780,15 @@ func DeleteTask(ctx context.Context, id string) error {
 }
 
 // ListTasks retrieves tasks with optional filtering
-// Supports context for timeout and cancellation
+// Supports context for timeout and cancellation.
 func ListTasks(ctx context.Context, filters *TaskFilters) ([]*Todo2Task, error) {
 	ctx = ensureContext(ctx)
+
 	queryCtx, cancel := withQueryTimeout(ctx)
 	defer cancel()
 
 	var tasks []*Todo2Task
+
 	err := retryWithBackoff(ctx, func() error {
 		db, err := GetDB()
 		if err != nil {
@@ -728,11 +798,14 @@ func ListTasks(ctx context.Context, filters *TaskFilters) ([]*Todo2Task, error) 
 		// Build query with filters (using strings.Builder for better performance)
 		// Include protobuf columns and date columns if they exist (for new schema)
 		var queryBuilder strings.Builder
+
 		queryBuilder.WriteString(`
 			SELECT DISTINCT t.id, t.content, t.long_description, t.status, t.priority, t.completed, t.created, t.last_modified, t.completed_at, t.metadata, t.metadata_protobuf, t.metadata_format, t.parent_id
 			FROM tasks t
 		`)
+
 		var args []interface{}
+
 		var conditions []string
 
 		if filters != nil {
@@ -740,15 +813,19 @@ func ListTasks(ctx context.Context, filters *TaskFilters) ([]*Todo2Task, error) 
 				conditions = append(conditions, "t.status = ?")
 				args = append(args, *filters.Status)
 			}
+
 			if filters.Priority != nil {
 				conditions = append(conditions, "t.priority = ?")
 				args = append(args, *filters.Priority)
 			}
+
 			if filters.Tag != nil {
 				queryBuilder.WriteString(` INNER JOIN task_tags tt ON t.id = tt.task_id `)
+
 				conditions = append(conditions, "tt.tag = ?")
 				args = append(args, *filters.Tag)
 			}
+
 			if filters.ProjectID != nil {
 				conditions = append(conditions, "t.project_id = ?")
 				args = append(args, *filters.ProjectID)
@@ -757,6 +834,7 @@ func ListTasks(ctx context.Context, filters *TaskFilters) ([]*Todo2Task, error) 
 
 		if len(conditions) > 0 {
 			queryBuilder.WriteString(" WHERE " + conditions[0])
+
 			for i := 1; i < len(conditions); i++ {
 				queryBuilder.WriteString(" AND " + conditions[i])
 			}
@@ -768,6 +846,7 @@ func ListTasks(ctx context.Context, filters *TaskFilters) ([]*Todo2Task, error) 
 		// Try to query with protobuf columns first
 		rows, err := db.QueryContext(queryCtx, query, args...)
 		hasProtobufColumns := true
+
 		if err != nil && strings.Contains(err.Error(), "no such column") {
 			// Protobuf or date columns don't exist, use old schema
 			hasProtobufColumns = false
@@ -776,13 +855,17 @@ func ListTasks(ctx context.Context, filters *TaskFilters) ([]*Todo2Task, error) 
 				SELECT DISTINCT t.id, t.content, t.long_description, t.status, t.priority, t.completed, t.created, t.last_modified, t.completed_at, t.metadata
 				FROM tasks t
 			`)
+
 			if len(conditions) > 0 {
 				queryBuilderOld.WriteString(" WHERE " + conditions[0])
+
 				for i := 1; i < len(conditions); i++ {
 					queryBuilderOld.WriteString(" AND " + conditions[i])
 				}
 			}
+
 			queryBuilderOld.WriteString(" ORDER BY t.created_at DESC")
+
 			rows, err = db.QueryContext(queryCtx, queryBuilderOld.String(), args...)
 			if err != nil {
 				return fmt.Errorf("failed to query tasks: %w", err)
@@ -790,19 +873,27 @@ func ListTasks(ctx context.Context, filters *TaskFilters) ([]*Todo2Task, error) 
 		} else if err != nil {
 			return fmt.Errorf("failed to query tasks: %w", err)
 		}
+
 		defer rows.Close()
 
 		var taskList []*Todo2Task
+
 		var taskIDs []string
+
 		taskMap := make(map[string]*Todo2Task)
 
 		// First pass: collect all tasks and their IDs
 		for rows.Next() {
 			var task Todo2Task
+
 			var metadataJSON sql.NullString
+
 			var metadataProtobuf []byte // BLOB column
+
 			var metadataFormat sql.NullString
+
 			var completedInt int
+
 			var created, lastMod, completedAt, parentID sql.NullString
 
 			// Scan based on whether protobuf columns exist
@@ -849,12 +940,15 @@ func ListTasks(ctx context.Context, filters *TaskFilters) ([]*Todo2Task, error) 
 			if created.Valid {
 				task.CreatedAt = created.String
 			}
+
 			if lastMod.Valid {
 				task.LastModified = lastMod.String
 			}
+
 			if completedAt.Valid {
 				task.CompletedAt = completedAt.String
 			}
+
 			task.NormalizeEpochDates()
 
 			// Deserialize metadata: prefer protobuf if available, fall back to JSON
@@ -889,10 +983,12 @@ func ListTasks(ctx context.Context, filters *TaskFilters) ([]*Todo2Task, error) 
 			// Batch load tags
 			placeholders := make([]string, len(taskIDs))
 			tagArgs := make([]interface{}, len(taskIDs))
+
 			for i, id := range taskIDs {
 				placeholders[i] = "?"
 				tagArgs[i] = id
 			}
+
 			tagRows, err := db.QueryContext(queryCtx, `
 				SELECT task_id, tag FROM task_tags 
 				WHERE task_id IN (`+strings.Join(placeholders, ", ")+`) 
@@ -901,6 +997,7 @@ func ListTasks(ctx context.Context, filters *TaskFilters) ([]*Todo2Task, error) 
 			if err != nil {
 				return fmt.Errorf("failed to batch query tags: %w", err)
 			}
+
 			defer tagRows.Close()
 
 			for tagRows.Next() {
@@ -908,10 +1005,12 @@ func ListTasks(ctx context.Context, filters *TaskFilters) ([]*Todo2Task, error) 
 				if err := tagRows.Scan(&taskID, &tag); err != nil {
 					return fmt.Errorf("failed to scan tag: %w", err)
 				}
+
 				if task, ok := taskMap[taskID]; ok {
 					task.Tags = append(task.Tags, tag)
 				}
 			}
+
 			if err = tagRows.Err(); err != nil {
 				return fmt.Errorf("error iterating tag rows: %w", err)
 			}
@@ -932,22 +1031,26 @@ func ListTasks(ctx context.Context, filters *TaskFilters) ([]*Todo2Task, error) 
 				if err := depRows.Scan(&taskID, &depID); err != nil {
 					return fmt.Errorf("failed to scan dependency: %w", err)
 				}
+
 				if task, ok := taskMap[taskID]; ok {
 					task.Dependencies = append(task.Dependencies, depID)
 				}
 			}
+
 			if err = depRows.Err(); err != nil {
 				return fmt.Errorf("error iterating dependency rows: %w", err)
 			}
 		}
 
 		tasks = taskList
+
 		return nil
 	})
 
 	if err != nil {
 		return nil, err
 	}
+
 	return tasks, nil
 }
 
@@ -972,10 +1075,12 @@ type TaskForEstimation struct {
 // Used by estimation tool for DB-first historical loading; falls back to JSON in tools layer.
 func GetDoneTasksForEstimation(ctx context.Context) ([]*TaskForEstimation, error) {
 	ctx = ensureContext(ctx)
+
 	queryCtx, cancel := withQueryTimeout(ctx)
 	defer cancel()
 
 	var result []*TaskForEstimation
+
 	err := retryWithBackoff(ctx, func() error {
 		db, err := GetDB()
 		if err != nil {
@@ -996,12 +1101,16 @@ func GetDoneTasksForEstimation(ctx context.Context) ([]*TaskForEstimation, error
 		defer rows.Close()
 
 		var list []*TaskForEstimation
+
 		var taskIDs []string
+
 		taskMap := make(map[string]*TaskForEstimation)
 
 		for rows.Next() {
 			var t TaskForEstimation
+
 			var created, lastMod, completedAt sql.NullString
+
 			var estHours, actHours sql.NullFloat64
 
 			if err := rows.Scan(
@@ -1018,18 +1127,23 @@ func GetDoneTasksForEstimation(ctx context.Context) ([]*TaskForEstimation, error
 			); err != nil {
 				return fmt.Errorf("failed to scan task: %w", err)
 			}
+
 			if created.Valid {
 				t.Created = created.String
 			}
+
 			if lastMod.Valid {
 				t.LastModified = lastMod.String
 			}
+
 			if completedAt.Valid {
 				t.CompletedAt = completedAt.String
 			}
+
 			if estHours.Valid {
 				t.EstimatedHours = estHours.Float64
 			}
+
 			if actHours.Valid {
 				t.ActualHours = actHours.Float64
 			}
@@ -1038,6 +1152,7 @@ func GetDoneTasksForEstimation(ctx context.Context) ([]*TaskForEstimation, error
 			taskIDs = append(taskIDs, t.ID)
 			taskMap[t.ID] = &t
 		}
+
 		if err = rows.Err(); err != nil {
 			return fmt.Errorf("error iterating rows: %w", err)
 		}
@@ -1046,10 +1161,12 @@ func GetDoneTasksForEstimation(ctx context.Context) ([]*TaskForEstimation, error
 		if len(taskIDs) > 0 {
 			placeholders := make([]string, len(taskIDs))
 			args := make([]interface{}, len(taskIDs))
+
 			for i, id := range taskIDs {
 				placeholders[i] = "?"
 				args[i] = id
 			}
+
 			tagRows, err := db.QueryContext(queryCtx, `
 				SELECT task_id, tag FROM task_tags
 				WHERE task_id IN (`+strings.Join(placeholders, ", ")+`)
@@ -1058,44 +1175,50 @@ func GetDoneTasksForEstimation(ctx context.Context) ([]*TaskForEstimation, error
 			if err != nil {
 				return fmt.Errorf("failed to batch query tags: %w", err)
 			}
+
 			defer tagRows.Close()
+
 			for tagRows.Next() {
 				var taskID, tag string
 				if err := tagRows.Scan(&taskID, &tag); err != nil {
 					return fmt.Errorf("failed to scan tag: %w", err)
 				}
+
 				if t, ok := taskMap[taskID]; ok {
 					t.Tags = append(t.Tags, tag)
 				}
 			}
+
 			if err = tagRows.Err(); err != nil {
 				return fmt.Errorf("error iterating tag rows: %w", err)
 			}
 		}
 
 		result = list
+
 		return nil
 	})
 
 	if err != nil {
 		return nil, err
 	}
+
 	return result, nil
 }
 
-// GetTasksByStatus retrieves all tasks with the specified status
+// GetTasksByStatus retrieves all tasks with the specified status.
 func GetTasksByStatus(ctx context.Context, status string) ([]*Todo2Task, error) {
 	filters := &TaskFilters{Status: &status}
 	return ListTasks(ctx, filters)
 }
 
-// GetTasksByTag retrieves all tasks with the specified tag
+// GetTasksByTag retrieves all tasks with the specified tag.
 func GetTasksByTag(ctx context.Context, tag string) ([]*Todo2Task, error) {
 	filters := &TaskFilters{Tag: &tag}
 	return ListTasks(ctx, filters)
 }
 
-// GetTasksByPriority retrieves all tasks with the specified priority
+// GetTasksByPriority retrieves all tasks with the specified priority.
 func GetTasksByPriority(ctx context.Context, priority string) ([]*Todo2Task, error) {
 	filters := &TaskFilters{Priority: &priority}
 	return ListTasks(ctx, filters)
@@ -1105,10 +1228,12 @@ func GetTasksByPriority(ctx context.Context, priority string) ([]*Todo2Task, err
 // for rows where created or last_modified is empty or 1970-01-01. Returns the number of rows updated.
 func FixTaskDates(ctx context.Context) (int64, error) {
 	ctx = ensureContext(ctx)
+
 	txCtx, cancel := withTransactionTimeout(ctx)
 	defer cancel()
 
 	var rowsAffected int64
+
 	err := retryWithBackoff(ctx, func() error {
 		db, err := GetDB()
 		if err != nil {
@@ -1125,6 +1250,7 @@ func FixTaskDates(ctx context.Context) (int64, error) {
 		if err != nil {
 			return fmt.Errorf("failed to fix task dates: %w", err)
 		}
+
 		rowsAffected, err = res.RowsAffected()
 		if err != nil {
 			return err
@@ -1141,15 +1267,17 @@ func FixTaskDates(ctx context.Context) (int64, error) {
 				return fmt.Errorf("failed to fix completed_at: %w", err)
 			}
 		}
+
 		return nil
 	})
 	if err != nil {
 		return 0, err
 	}
+
 	return rowsAffected, nil
 }
 
-// GetDependencies retrieves all task IDs that the specified task depends on
+// GetDependencies retrieves all task IDs that the specified task depends on.
 func GetDependencies(taskID string) ([]string, error) {
 	db, err := GetDB()
 	if err != nil {
@@ -1157,13 +1285,14 @@ func GetDependencies(taskID string) ([]string, error) {
 	}
 
 	ctx := context.Background()
+
 	queryCtx, cancel := withQueryTimeout(ctx)
 	defer cancel()
 
 	return loadTaskDependencies(ctx, queryCtx, db, taskID)
 }
 
-// GetDependents retrieves all task IDs that depend on the specified task
+// GetDependents retrieves all task IDs that depend on the specified task.
 func GetDependents(taskID string) ([]string, error) {
 	db, err := GetDB()
 	if err != nil {
@@ -1179,18 +1308,20 @@ func GetDependents(taskID string) ([]string, error) {
 	defer rows.Close()
 
 	var dependents []string
+
 	for rows.Next() {
 		var dependentID string
 		if err := rows.Scan(&dependentID); err != nil {
 			return nil, fmt.Errorf("failed to scan dependent: %w", err)
 		}
+
 		dependents = append(dependents, dependentID)
 	}
 
 	return dependents, rows.Err()
 }
 
-// GetTagsForTask is a helper function to retrieve tags for a task
+// GetTagsForTask is a helper function to retrieve tags for a task.
 func GetTagsForTask(taskID string) ([]string, error) {
 	db, err := GetDB()
 	if err != nil {
@@ -1198,6 +1329,7 @@ func GetTagsForTask(taskID string) ([]string, error) {
 	}
 
 	ctx := context.Background()
+
 	queryCtx, cancel := withQueryTimeout(ctx)
 	defer cancel()
 

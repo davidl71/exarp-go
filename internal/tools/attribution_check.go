@@ -15,7 +15,7 @@ import (
 	"github.com/davidl71/mcp-go-core/pkg/mcp/response"
 )
 
-// handleCheckAttributionNative handles the check_attribution tool with native Go implementation
+// handleCheckAttributionNative handles the check_attribution tool with native Go implementation.
 func handleCheckAttributionNative(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	// Get project root
 	projectRoot, err := FindProjectRoot()
@@ -54,6 +54,7 @@ func handleCheckAttributionNative(ctx context.Context, params map[string]interfa
 	// Save report if output path specified
 	if outputPath != "" {
 		report := generateAttributionReport(results, projectRoot)
+
 		reportPath := outputPath
 		if !filepath.IsAbs(reportPath) {
 			reportPath = filepath.Join(projectRoot, reportPath)
@@ -63,6 +64,7 @@ func handleCheckAttributionNative(ctx context.Context, params map[string]interfa
 		if err := os.MkdirAll(filepath.Dir(reportPath), 0755); err == nil {
 			os.WriteFile(reportPath, []byte(report), 0644)
 		}
+
 		results.ReportPath = reportPath
 	}
 
@@ -81,7 +83,7 @@ func handleCheckAttributionNative(ctx context.Context, params map[string]interfa
 	return response.FormatResult(responseData, "")
 }
 
-// AttributionResults represents the results of attribution checking
+// AttributionResults represents the results of attribution checking.
 type AttributionResults struct {
 	AttributionScore   float64
 	CompliantFiles     []string
@@ -91,7 +93,7 @@ type AttributionResults struct {
 	ReportPath         string
 }
 
-// performAttributionCheck performs attribution compliance checking
+// performAttributionCheck performs attribution compliance checking.
 func performAttributionCheck(projectRoot string) AttributionResults {
 	results := AttributionResults{
 		AttributionScore:   100.0,
@@ -129,7 +131,7 @@ func performAttributionCheck(projectRoot string) AttributionResults {
 	return results
 }
 
-// checkDependencyFiles checks dependency files for license information
+// checkDependencyFiles checks dependency files for license information.
 func checkDependencyFiles(projectRoot string, results *AttributionResults) {
 	fileCache := cache.GetGlobalFileCache()
 
@@ -171,7 +173,7 @@ func checkDependencyFiles(projectRoot string, results *AttributionResults) {
 	}
 }
 
-// checkCodeAttribution checks code files for attribution patterns
+// checkCodeAttribution checks code files for attribution patterns.
 func checkCodeAttribution(projectRoot string, results *AttributionResults) {
 	// Common attribution patterns
 	attributionPatterns := []*regexp.Regexp{
@@ -195,7 +197,7 @@ func checkCodeAttribution(projectRoot string, results *AttributionResults) {
 	}
 }
 
-// checkDirectoryForAttribution checks a directory for attribution patterns
+// checkDirectoryForAttribution checks a directory for attribution patterns.
 func checkDirectoryForAttribution(dirPath string, patterns []*regexp.Regexp, results *AttributionResults) {
 	// Limit depth and file types
 	filepath.Walk(dirPath, func(path string, info os.FileInfo, err error) error {
@@ -208,6 +210,7 @@ func checkDirectoryForAttribution(dirPath string, patterns []*regexp.Regexp, res
 			if info.IsDir() {
 				return filepath.SkipDir
 			}
+
 			return nil
 		}
 
@@ -234,10 +237,12 @@ func checkDirectoryForAttribution(dirPath string, patterns []*regexp.Regexp, res
 
 		// Check first 50 lines for attribution
 		lines := strings.Split(contentStr, "\n")
+
 		headerLines := lines
 		if len(headerLines) > 50 {
 			headerLines = headerLines[:50]
 		}
+
 		header := strings.Join(headerLines, "\n")
 
 		for _, pattern := range patterns {
@@ -262,7 +267,7 @@ func checkDirectoryForAttribution(dirPath string, patterns []*regexp.Regexp, res
 	})
 }
 
-// generateAttributionReport generates a markdown report
+// generateAttributionReport generates a markdown report.
 func generateAttributionReport(results AttributionResults, projectRoot string) string {
 	report := fmt.Sprintf(`# Attribution Compliance Report
 
@@ -307,12 +312,13 @@ func generateAttributionReport(results AttributionResults, projectRoot string) s
 	return report
 }
 
-// createAttributionTasks creates Todo2 tasks for attribution compliance issues
+// createAttributionTasks creates Todo2 tasks for attribution compliance issues.
 func createAttributionTasks(ctx context.Context, projectRoot string, results AttributionResults) int {
 	tasksCreated := 0
 
 	// Create task for high-severity issues
 	highSeverityIssues := []map[string]interface{}{}
+
 	for _, issue := range results.Issues {
 		if severity, ok := issue["severity"].(string); ok && severity == "high" {
 			highSeverityIssues = append(highSeverityIssues, issue)
@@ -322,7 +328,9 @@ func createAttributionTasks(ctx context.Context, projectRoot string, results Att
 	if len(highSeverityIssues) > 0 {
 		// Build task description
 		var description strings.Builder
+
 		description.WriteString(fmt.Sprintf("Fix %d high-severity attribution compliance issues:\n\n", len(highSeverityIssues)))
+
 		for _, issue := range highSeverityIssues {
 			file, _ := issue["file"].(string)
 			message, _ := issue["message"].(string)
@@ -358,7 +366,9 @@ func createAttributionTasks(ctx context.Context, projectRoot string, results Att
 	// Create task for missing attribution files
 	if len(results.MissingAttribution) > 0 {
 		var description strings.Builder
+
 		description.WriteString(fmt.Sprintf("Add missing attribution headers to %d files:\n\n", len(results.MissingAttribution)))
+
 		for _, file := range results.MissingAttribution {
 			description.WriteString(fmt.Sprintf("- %s\n", file))
 		}

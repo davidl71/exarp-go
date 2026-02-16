@@ -34,19 +34,24 @@ func GatherEvidence(projectRoot string, scanDepth int, extensions []string) (*Co
 	if scanDepth < 1 {
 		scanDepth = 1
 	}
+
 	if scanDepth > 5 {
 		scanDepth = 5
 	}
+
 	extSet := make(map[string]bool)
+
 	for _, e := range extensions {
 		e = strings.TrimSpace(strings.ToLower(e))
 		if e != "" && !strings.HasPrefix(e, ".") {
 			e = "." + e
 		}
+
 		if e != "" {
 			extSet[e] = true
 		}
 	}
+
 	if len(extSet) == 0 {
 		extSet[".go"] = true
 		extSet[".py"] = true
@@ -73,19 +78,23 @@ func GatherEvidence(projectRoot string, scanDepth int, extensions []string) (*Co
 		if walkErr != nil {
 			return nil
 		}
+
 		if info.IsDir() {
 			base := filepath.Base(path)
 			if skipDirNames[base] {
 				return filepath.SkipDir
 			}
+
 			rel, _ := filepath.Rel(rootAbs, path)
 			if rel == "." {
 				return nil
 			}
+
 			segments := strings.Count(rel, string(filepath.Separator)) + 1
 			if segments >= scanDepth {
 				return filepath.SkipDir
 			}
+
 			return nil
 		}
 
@@ -98,6 +107,7 @@ func GatherEvidence(projectRoot string, scanDepth int, extensions []string) (*Co
 		if err != nil {
 			return nil
 		}
+
 		segments := strings.Count(rel, string(filepath.Separator)) + 1
 		if segments > scanDepth {
 			return nil
@@ -105,14 +115,17 @@ func GatherEvidence(projectRoot string, scanDepth int, extensions []string) (*Co
 
 		evidence.Paths = append(evidence.Paths, rel)
 		snippet := readSnippet(path)
+
 		if snippet != "" {
 			evidence.Snippets[rel] = snippet
 		}
+
 		return nil
 	})
 	if err != nil {
 		return nil, err
 	}
+
 	return evidence, nil
 }
 
@@ -121,19 +134,25 @@ func readSnippet(path string) string {
 	if err != nil {
 		return ""
 	}
+
 	defer f.Close()
+
 	info, err := f.Stat()
 	if err != nil || info.Size() > maxFileBytesForSnippet {
 		return ""
 	}
+
 	buf := make([]byte, info.Size())
+
 	n, _ := f.Read(buf)
 	if n == 0 {
 		return ""
 	}
+
 	lines := strings.Split(string(buf[:n]), "\n")
 	if len(lines) > defaultSnippetLines {
 		lines = lines[:defaultSnippetLines]
 	}
+
 	return strings.TrimSpace(strings.Join(lines, " "))
 }

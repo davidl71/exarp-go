@@ -116,13 +116,16 @@ func TestPlanningLink(t *testing.T) {
 		DocType:     "planning",
 	}
 	SetPlanningLinkMetadata(task, linkMeta)
+
 	retrieved := GetPlanningLinkMetadata(task)
 	if retrieved == nil {
 		t.Fatal("GetPlanningLinkMetadata returned nil after SetPlanningLinkMetadata")
 	}
+
 	if retrieved.PlanningDoc != linkMeta.PlanningDoc {
 		t.Errorf("PlanningDoc = %q, want %q", retrieved.PlanningDoc, linkMeta.PlanningDoc)
 	}
+
 	if retrieved.EpicID != linkMeta.EpicID {
 		t.Errorf("EpicID = %q, want %q", retrieved.EpicID, linkMeta.EpicID)
 	}
@@ -138,6 +141,7 @@ func TestValidatePlanningLink(t *testing.T) {
 	// Test valid path (README.md should exist)
 	validPath := "README.md"
 	fullPath := filepath.Join(projectRoot, validPath)
+
 	if _, err := os.Stat(fullPath); err == nil {
 		err := ValidatePlanningLink(projectRoot, validPath)
 		if err != nil {
@@ -147,6 +151,7 @@ func TestValidatePlanningLink(t *testing.T) {
 
 	// Test invalid path (non-existent file)
 	invalidPath := "docs/NONEXISTENT_FILE_12345.md"
+
 	err = ValidatePlanningLink(projectRoot, invalidPath)
 	if err == nil {
 		t.Error("Expected invalid path to fail validation, but got no error")
@@ -185,6 +190,7 @@ func TestValidateTaskReference(t *testing.T) {
 
 	// Test valid task ID
 	validTaskID := "T-1234567890"
+
 	err := ValidateTaskReference(validTaskID, testTasks)
 	if err != nil {
 		t.Errorf("Expected valid task ID to pass validation, got error: %v", err)
@@ -192,6 +198,7 @@ func TestValidateTaskReference(t *testing.T) {
 
 	// Test invalid task ID (doesn't exist)
 	invalidTaskID := "T-9999999999"
+
 	err = ValidateTaskReference(invalidTaskID, testTasks)
 	if err == nil {
 		t.Error("Expected invalid task ID to fail validation, but got no error")
@@ -199,6 +206,7 @@ func TestValidateTaskReference(t *testing.T) {
 
 	// Test invalid format (missing T- prefix)
 	invalidFormat := "1234567890"
+
 	err = ValidateTaskReference(invalidFormat, testTasks)
 	if err == nil {
 		t.Error("Expected invalid format to fail validation, but got no error")
@@ -269,6 +277,7 @@ func TestPlanningLinkMetadataJSON(t *testing.T) {
 
 	// Deserialize
 	var deserialized PlanningLinkMetadata
+
 	err = json.Unmarshal(jsonData, &deserialized)
 	if err != nil {
 		t.Fatalf("Failed to unmarshal PlanningLinkMetadata: %v", err)

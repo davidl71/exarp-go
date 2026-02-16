@@ -6,7 +6,7 @@ import (
 	"github.com/davidl71/exarp-go/internal/prompts"
 )
 
-// getAllPromptsNative retrieves all prompts from native Go templates
+// getAllPromptsNative retrieves all prompts from native Go templates.
 func getAllPromptsNative() map[string]string {
 	// All 34 prompt names (same order as internal/prompts/registry.go)
 	promptNames := []string{
@@ -20,6 +20,7 @@ func getAllPromptsNative() map[string]string {
 	}
 
 	result := make(map[string]string)
+
 	for _, name := range promptNames {
 		template, err := prompts.GetPromptTemplate(name)
 		if err == nil {
@@ -32,7 +33,7 @@ func getAllPromptsNative() map[string]string {
 	return result
 }
 
-// extractDescription extracts a short description from a prompt template
+// extractDescription extracts a short description from a prompt template.
 func extractDescription(template string) string {
 	lines := strings.Split(template, "\n")
 	if len(lines) > 0 {
@@ -43,17 +44,20 @@ func extractDescription(template string) string {
 				// Remove markdown formatting
 				line = strings.TrimPrefix(line, "**")
 				line = strings.TrimSuffix(line, "**")
+
 				if len(line) > 100 {
 					line = line[:100] + "..."
 				}
+
 				return line
 			}
 		}
 	}
+
 	return "Prompt template"
 }
 
-// categorizePrompt categorizes a prompt based on its name and description
+// categorizePrompt categorizes a prompt based on its name and description.
 func categorizePrompt(name, desc string) string {
 	lowerName := strings.ToLower(name)
 	lowerDesc := strings.ToLower(desc)
@@ -106,7 +110,7 @@ func categorizePrompt(name, desc string) string {
 	return "general"
 }
 
-// getPromptsForMode returns prompts for a specific workflow mode
+// getPromptsForMode returns prompts for a specific workflow mode.
 func getPromptsForMode(mode string) map[string]string {
 	allPrompts := getAllPromptsNative()
 	result := make(map[string]string)
@@ -148,7 +152,7 @@ func getPromptsForMode(mode string) map[string]string {
 	return result
 }
 
-// getPromptsForPersona returns prompts for a specific persona
+// getPromptsForPersona returns prompts for a specific persona.
 func getPromptsForPersona(persona string) map[string]string {
 	allPrompts := getAllPromptsNative()
 	result := make(map[string]string)
@@ -180,7 +184,7 @@ func getPromptsForPersona(persona string) map[string]string {
 	return result
 }
 
-// getPromptsForCategory returns prompts for a specific category
+// getPromptsForCategory returns prompts for a specific category.
 func getPromptsForCategory(category string) map[string]string {
 	allPrompts := getAllPromptsNative()
 	result := make(map[string]string)
@@ -194,7 +198,7 @@ func getPromptsForCategory(category string) map[string]string {
 	return result
 }
 
-// getPromptCategories returns all available prompt categories
+// getPromptCategories returns all available prompt categories.
 func getPromptCategories() []string {
 	return []string{
 		"workflow", "analysis", "configuration", "reporting",
@@ -202,7 +206,7 @@ func getPromptCategories() []string {
 	}
 }
 
-// getAvailableModes returns all available workflow modes
+// getAvailableModes returns all available workflow modes.
 func getAvailableModes() []string {
 	return []string{
 		"daily_checkin", "sprint_start", "sprint_end", "pre_sprint",
@@ -210,7 +214,7 @@ func getAvailableModes() []string {
 	}
 }
 
-// getAvailablePersonas returns all available personas
+// getAvailablePersonas returns all available personas.
 func getAvailablePersonas() []string {
 	return []string{
 		"developer", "pm", "qa", "reviewer", "security",
@@ -218,7 +222,7 @@ func getAvailablePersonas() []string {
 	}
 }
 
-// formatPromptsForResource formats prompts for resource output
+// formatPromptsForResource formats prompts for resource output.
 func formatPromptsForResource(prompts map[string]string) []map[string]interface{} {
 	result := make([]map[string]interface{}, 0, len(prompts))
 	for name, desc := range prompts {
@@ -227,5 +231,6 @@ func formatPromptsForResource(prompts map[string]string) []map[string]interface{
 			"description": desc,
 		})
 	}
+
 	return result
 }

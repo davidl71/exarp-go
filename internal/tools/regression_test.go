@@ -34,7 +34,7 @@ func TestRegressionNativeOnlyTools(t *testing.T) {
 	}
 }
 
-// TestRegressionSessionPrime tests session prime action (native only; no Python fallback)
+// TestRegressionSessionPrime tests session prime action (native only; no Python fallback).
 func TestRegressionSessionPrime(t *testing.T) {
 	ctx := context.Background()
 	params := map[string]interface{}{
@@ -45,6 +45,7 @@ func TestRegressionSessionPrime(t *testing.T) {
 	if err != nil {
 		t.Fatalf("session native implementation failed: %v", err)
 	}
+
 	if len(result) == 0 {
 		t.Error("session result is empty")
 		return
@@ -59,6 +60,7 @@ func TestRegressionSessionPrime(t *testing.T) {
 	if v, ok := data["auto_primed"].(bool); !ok || !v {
 		t.Error("session result missing auto_primed field or not true")
 	}
+
 	for _, field := range []string{"detection", "workflow"} {
 		if _, ok := data[field]; !ok {
 			t.Errorf("session result missing expected field: %s", field)
@@ -68,6 +70,7 @@ func TestRegressionSessionPrime(t *testing.T) {
 	if _, hasLabel := data["status_label"]; !hasLabel {
 		t.Error("session result missing status_label field (T-1770909568528)")
 	}
+
 	if _, hasCtx := data["status_context"]; !hasCtx {
 		t.Error("session result missing status_context field (T-1770909568528)")
 	}
@@ -87,6 +90,7 @@ func TestRegressionRecommendWorkflow(t *testing.T) {
 	if nativeErr != nil {
 		t.Fatalf("native implementation failed: %v", nativeErr)
 	}
+
 	if len(nativeResult) == 0 {
 		t.Error("native result is empty")
 	}
@@ -95,9 +99,11 @@ func TestRegressionRecommendWorkflow(t *testing.T) {
 	if err := json.Unmarshal([]byte(nativeResult[0].Text), &nativeData); err != nil {
 		t.Errorf("native result is not valid JSON: %v", err)
 	}
+
 	if nativeSuccess, ok := nativeData["success"].(bool); !ok || !nativeSuccess {
 		t.Error("native result missing success field or not true")
 	}
+
 	if nativeDataMap, ok := nativeData["data"].(map[string]interface{}); ok {
 		if recommendedMode, ok := nativeDataMap["recommended_mode"].(string); ok {
 			if recommendedMode != "AGENT" && recommendedMode != "ASK" {
@@ -122,6 +128,7 @@ func TestRegressionHealthServer(t *testing.T) {
 	if nativeErr != nil {
 		t.Fatalf("native implementation failed: %v", nativeErr)
 	}
+
 	if len(nativeResult) == 0 {
 		t.Error("native result is empty")
 	}
@@ -210,7 +217,7 @@ func TestRegressionFallbackBehavior(t *testing.T) {
 	}
 }
 
-// TestRegressionResponseFormat verifies that all tools return consistent response formats
+// TestRegressionResponseFormat verifies that all tools return consistent response formats.
 func TestRegressionResponseFormat(t *testing.T) {
 	ctx := context.Background()
 
@@ -246,6 +253,7 @@ func TestRegressionResponseFormat(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			var result []framework.TextContent
+
 			var err error
 
 			switch tt.toolName {
@@ -364,6 +372,7 @@ func TestRegressionErrorHandling(t *testing.T) {
 				if nativeHasError != tt.expectError {
 					t.Errorf("native error behavior mismatch: got error=%v, want error=%v", nativeHasError, tt.expectError)
 				}
+
 				return
 			}
 
@@ -379,7 +388,6 @@ func TestRegressionErrorHandling(t *testing.T) {
 // TestRegressionFeatureParity documents migration status: native-only tools vs hybrid vs bridge-only.
 func TestRegressionFeatureParity(t *testing.T) {
 	// Native-only: no Python bridge; hybrid: native first, bridge fallback; bridge-only: intentional.
-
 	knownDifferences := map[string]string{
 		"session":             "Fully native; no Python bridge. Prime, handoff, prompts, assignee are native-only.",
 		"setup_hooks":         "Fully native; no Python bridge. Git and patterns actions are native-only.",

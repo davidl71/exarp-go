@@ -25,10 +25,11 @@ const (
 
 // ChildAgentRunResult is the result of starting a child agent (for TUI feedback).
 type ChildAgentRunResult struct {
-	Kind    ChildAgentKind
-	Prompt  string
+	Kind     ChildAgentKind
+	Prompt   string
 	Launched bool
-	Message string // "Launched" or error description
+	Message  string // "Launched" or error description
+	Pid      int    // Process ID of launched agent (0 if not available)
 }
 
 // AgentBinary returns the path to the Cursor CLI "agent" binary, or "" if not found.
@@ -74,6 +75,9 @@ func RunChildAgent(projectRoot, prompt string) (result ChildAgentRunResult) {
 		result.Launched = false
 		result.Message = err.Error()
 		return result
+	}
+	if cmd.Process != nil {
+		result.Pid = cmd.Process.Pid
 	}
 	go func() { _ = cmd.Wait() }()
 	result.Launched = true

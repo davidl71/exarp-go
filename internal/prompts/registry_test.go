@@ -40,9 +40,11 @@ func TestRegisterAllPrompts(t *testing.T) {
 			t.Errorf("prompt %q not registered", promptName)
 			continue
 		}
+
 		if prompt.Name != promptName {
 			t.Errorf("prompt.Name = %v, want %v", prompt.Name, promptName)
 		}
+
 		if prompt.Description == "" {
 			t.Errorf("prompt %q description is empty", promptName)
 		}
@@ -76,6 +78,7 @@ func TestRegisterAllPrompts_HandlerCreation(t *testing.T) {
 		if !exists {
 			continue
 		}
+
 		if prompt.Handler == nil {
 			t.Errorf("prompt %q handler is nil", promptName)
 		}

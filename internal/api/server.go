@@ -41,6 +41,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /api/report/scorecard", s.cors(s.handleReportScorecard))
 	mux.HandleFunc("POST /api/tools/{name}", s.cors(s.handlePostTool))
 	mux.HandleFunc("OPTIONS /api/", s.corsOptions)
+
 	return mux
 }
 
@@ -49,10 +50,12 @@ func (s *Server) cors(next http.HandlerFunc) http.HandlerFunc {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
 		w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+
 		if r.Method == http.MethodOptions {
 			w.WriteHeader(http.StatusNoContent)
 			return
 		}
+
 		next(w, r)
 	}
 }
@@ -75,10 +78,12 @@ func (s *Server) writeToolResult(w http.ResponseWriter, contents []framework.Tex
 		s.writeJSON(w, http.StatusInternalServerError, toolResponse{Error: err.Error()})
 		return
 	}
+
 	blocks := make([]contentBlock, len(contents))
 	for i, c := range contents {
 		blocks[i] = contentBlock{Type: c.Type, Text: c.Text}
 	}
+
 	s.writeJSON(w, http.StatusOK, toolResponse{Contents: blocks})
 }
 
@@ -91,12 +96,15 @@ func (s *Server) handleGetTasks(w http.ResponseWriter, r *http.Request) {
 	if v := r.URL.Query().Get("status"); v != "" {
 		args["status_filter"] = v
 	}
+
 	if v := r.URL.Query().Get("priority"); v != "" {
 		args["priority_filter"] = v
 	}
+
 	if v := r.URL.Query().Get("tag"); v != "" {
 		args["filter_tag"] = v
 	}
+
 	argsBytes, _ := json.Marshal(args)
 	ctx := withProjectRoot(r.Context(), s.ProjectRoot)
 	contents, err := s.MCPServer.CallTool(ctx, "task_workflow", argsBytes)
@@ -145,21 +153,26 @@ func (s *Server) handlePostTool(w http.ResponseWriter, r *http.Request) {
 		s.writeJSON(w, http.StatusBadRequest, toolResponse{Error: "missing tool name"})
 		return
 	}
+
 	allowed := make(map[string]bool)
 	for _, t := range s.MCPServer.ListTools() {
 		allowed[t.Name] = true
 	}
+
 	if !allowed[name] {
 		s.writeJSON(w, http.StatusBadRequest, toolResponse{Error: "unknown tool: " + name})
 		return
 	}
+
 	var args map[string]interface{}
 	if r.Body != nil {
 		_ = json.NewDecoder(r.Body).Decode(&args)
 	}
+
 	if args == nil {
 		args = make(map[string]interface{})
 	}
+
 	argsBytes, _ := json.Marshal(args)
 	ctx := withProjectRoot(r.Context(), s.ProjectRoot)
 	contents, err := s.MCPServer.CallTool(ctx, name, argsBytes)
@@ -178,5 +191,6 @@ func GetProjectRoot(ctx context.Context) (string, bool) {
 	if s, ok := v.(string); ok && s != "" {
 		return s, true
 	}
+
 	return "", false
 }

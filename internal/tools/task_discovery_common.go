@@ -10,7 +10,7 @@ import (
 	"github.com/davidl71/exarp-go/internal/database"
 )
 
-// tagPattern matches hashtags in TODO comments (e.g., #refactor, #bug, #performance)
+// tagPattern matches hashtags in TODO comments (e.g., #refactor, #bug, #performance).
 var tagPattern = regexp.MustCompile(`#([a-zA-Z][a-zA-Z0-9_-]*)`)
 
 // IsDeprecatedDiscoveryText returns true if the discovery text looks like a deprecated/removed
@@ -21,6 +21,7 @@ func IsDeprecatedDiscoveryText(text string) bool {
 	if t == "" {
 		return true
 	}
+
 	lower := strings.ToLower(t)
 	// Strikethrough in markdown (~~...~~)
 	if strings.Contains(t, "~~") {
@@ -34,6 +35,7 @@ func IsDeprecatedDiscoveryText(text string) bool {
 	if strings.Contains(lower, "future improvement") && strings.Contains(lower, "t-") {
 		return true
 	}
+
 	return false
 }
 
@@ -68,9 +70,11 @@ func toJSONSafeString(v interface{}) string {
 	if v == nil {
 		return ""
 	}
+
 	if s, ok := v.(string); ok {
 		return s
 	}
+
 	return fmt.Sprint(v)
 }
 
@@ -80,10 +84,12 @@ func createTasksFromDiscoveries(ctx context.Context, projectRoot string, discove
 	createdTasks := []map[string]interface{}{}
 
 	store := NewDefaultTaskStore(projectRoot)
+
 	list, err := store.ListTasks(ctx, nil)
 	if err != nil {
 		return createdTasks
 	}
+
 	existingTasks := tasksFromPtrs(list)
 
 	existingContent := make(map[string]bool)
@@ -107,6 +113,7 @@ func createTasksFromDiscoveries(ctx context.Context, projectRoot string, discove
 		}
 
 		taskID := generateEpochTaskID()
+
 		sourceTag := "discovered"
 		if src, ok := discovery["source"].(string); ok && src != "" {
 			sourceTag = src
@@ -120,12 +127,14 @@ func createTasksFromDiscoveries(ctx context.Context, projectRoot string, discove
 			for _, tag := range discoveredTags {
 				// Avoid duplicates
 				isDuplicate := false
+
 				for _, existing := range taskTags {
 					if existing == tag {
 						isDuplicate = true
 						break
 					}
 				}
+
 				if !isDuplicate {
 					taskTags = append(taskTags, tag)
 				}
@@ -138,6 +147,7 @@ func createTasksFromDiscoveries(ctx context.Context, projectRoot string, discove
 		if f, ok := discovery["file"]; ok {
 			metadata["discovered_from"] = f
 		}
+
 		if line, ok := discovery["line"]; ok {
 			metadata["discovered_line"] = line
 		}
@@ -155,6 +165,7 @@ func createTasksFromDiscoveries(ctx context.Context, projectRoot string, discove
 			fmt.Fprintf(os.Stderr, "Warning: failed to create task %s after discovery: %v\n", taskID, err)
 			continue
 		}
+
 		existingContent[textLower] = true
 
 		// Coerce source to string so tool response JSON is always valid

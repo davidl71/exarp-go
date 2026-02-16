@@ -14,6 +14,7 @@ func TestProcessExists(t *testing.T) {
 	if ProcessExists(0) {
 		t.Error("ProcessExists(0) = true, want false")
 	}
+
 	if ProcessExists(-1) {
 		t.Error("ProcessExists(-1) = true, want false")
 	}

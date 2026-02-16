@@ -7,7 +7,7 @@ import (
 )
 
 // handleServerStatus handles the stdio://server/status resource
-// Returns server operational status, version, and project root information
+// Returns server operational status, version, and project root information.
 func handleServerStatus(ctx context.Context, uri string) ([]byte, string, error) {
 	// Get project root from environment variable
 	projectRoot := os.Getenv("PROJECT_ROOT")

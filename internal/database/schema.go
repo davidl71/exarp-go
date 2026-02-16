@@ -4,7 +4,7 @@ package database
 // Must match the highest migration version (migrations/00N_*.sql).
 const SchemaVersion = 7
 
-// Table names
+// Table names.
 const (
 	TableTasks            = "tasks"
 	TableTaskTags         = "task_tags"
@@ -15,7 +15,7 @@ const (
 	TableSchemaMigrations = "schema_migrations"
 )
 
-// Column names for tasks table
+// Column names for tasks table.
 const (
 	ColTaskID              = "id"
 	ColTaskName            = "name"
@@ -38,7 +38,7 @@ const (
 	ColTaskParentID        = "parent_id"
 )
 
-// Status values
+// Status values.
 const (
 	StatusTodo       = "Todo"
 	StatusInProgress = "In Progress"
@@ -48,7 +48,7 @@ const (
 	StatusBlocked    = "Blocked"
 )
 
-// Priority values
+// Priority values.
 const (
 	PriorityLow      = "low"
 	PriorityMedium   = "medium"
@@ -56,7 +56,7 @@ const (
 	PriorityCritical = "critical"
 )
 
-// Comment types
+// Comment types.
 const (
 	CommentTypeResearch = "research_with_links"
 	CommentTypeResult   = "result"
@@ -64,7 +64,7 @@ const (
 	CommentTypeManual   = "manualsetup"
 )
 
-// Activity types
+// Activity types.
 const (
 	ActivityTypeCreated       = "todo_created"
 	ActivityTypeCommentAdded  = "comment_added"

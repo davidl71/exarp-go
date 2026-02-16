@@ -39,6 +39,7 @@ func TestExtractJSONArrayFromLLMResponse(t *testing.T) {
 			if tt.expect != "" && !strings.Contains(got, tt.expect) {
 				t.Errorf("ExtractJSONArrayFromLLMResponse() = %q, want to contain %q", got, tt.expect)
 			}
+
 			var arr []map[string]interface{}
 			if err := json.Unmarshal([]byte(got), &arr); err != nil {
 				t.Errorf("extracted string not valid JSON: %v; got %q", err, got)
@@ -75,6 +76,7 @@ func TestExtractJSONObjectFromLLMResponse(t *testing.T) {
 			if tt.expect != "" && !strings.Contains(got, tt.expect) {
 				t.Errorf("ExtractJSONObjectFromLLMResponse() = %q, want to contain %q", got, tt.expect)
 			}
+
 			var m map[string]interface{}
 			if err := json.Unmarshal([]byte(got), &m); err != nil {
 				t.Errorf("extracted string not valid JSON: %v; got %q", err, got)

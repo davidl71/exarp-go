@@ -26,26 +26,30 @@ func handleScorecard(ctx context.Context, uri string) ([]byte, string, error) {
 			"timestamp": time.Now().Format(time.RFC3339),
 		}
 		jsonData, _ := json.Marshal(errResult)
+
 		return jsonData, "application/json", nil
 	}
 
 	opts := &tools.ScorecardOptions{FastMode: true}
+
 	scorecard, err := tools.GenerateGoScorecard(ctx, projectRoot, opts)
 	if err != nil {
 		return nil, "", fmt.Errorf("failed to generate Go scorecard: %w", err)
 	}
 
 	result := convertScorecardToResourceFormat(scorecard)
+
 	jsonData, err := json.Marshal(result)
 	if err != nil {
 		return nil, "", fmt.Errorf("failed to marshal scorecard: %w", err)
 	}
+
 	return jsonData, "application/json", nil
 }
 
 // convertScorecardToResourceFormat converts GoScorecardResult to resource JSON format
 // Matches Python generate_project_scorecard() output format
-// Reuses helper functions from internal/tools/scorecard_mlx.go
+// Reuses helper functions from internal/tools/scorecard_mlx.go.
 func convertScorecardToResourceFormat(scorecard *tools.GoScorecardResult) map[string]interface{} {
 	// Use the existing goScorecardToMap function which already calculates component scores
 	scorecardMap := tools.GoScorecardToMap(scorecard)

@@ -28,6 +28,7 @@ func TestInit(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GetDB() error = %v", err)
 	}
+
 	if db == nil {
 		t.Fatal("GetDB() returned nil")
 	}
@@ -37,6 +38,7 @@ func TestInit(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GetCurrentVersion() error = %v", err)
 	}
+
 	if version < 1 {
 		t.Errorf("Expected schema version >= 1, got %d", version)
 	}

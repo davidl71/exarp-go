@@ -8,7 +8,7 @@ import (
 	"github.com/davidl71/exarp-go/internal/database"
 )
 
-// loadTodo2TasksFromDB loads tasks from database
+// loadTodo2TasksFromDB loads tasks from database.
 func loadTodo2TasksFromDB() ([]Todo2Task, error) {
 	if db, err := database.GetDB(); err != nil || db == nil {
 		return nil, fmt.Errorf("database not available")
@@ -24,13 +24,14 @@ func loadTodo2TasksFromDB() ([]Todo2Task, error) {
 	for i, task := range tasks {
 		result[i] = *task
 	}
+
 	return result, nil
 }
 
 // saveTodo2TasksToDB saves tasks to database
 // Matches tasks by ID first, then by content/description if ID doesn't match
 // This handles cases where same task was created with different epoch-based IDs
-// Sorts tasks by dependency order to ensure dependencies are created before dependents
+// Sorts tasks by dependency order to ensure dependencies are created before dependents.
 func saveTodo2TasksToDB(tasks []Todo2Task) error {
 	if db, err := database.GetDB(); err != nil || db == nil {
 		return fmt.Errorf("database not available")
@@ -46,7 +47,9 @@ func saveTodo2TasksToDB(tasks []Todo2Task) error {
 	}
 
 	ctx := context.Background()
+
 	var errors []string
+
 	successCount := 0
 
 	// Track tasks that need dependency updates (created without dependencies due to FK constraints)
@@ -87,6 +90,7 @@ func saveTodo2TasksToDB(tasks []Todo2Task) error {
 					// Some dependencies were filtered out - log warning
 					errors = append(errors, fmt.Sprintf("warning: task %s has invalid dependencies, filtered %d/%d dependencies", task.ID, len(task.Dependencies)-len(validDeps), len(task.Dependencies)))
 				}
+
 				task.Dependencies = validDeps
 
 				if err := database.CreateTask(ctx, &task); err != nil {
@@ -104,7 +108,9 @@ func saveTodo2TasksToDB(tasks []Todo2Task) error {
 							if len(originalDeps) > 0 {
 								tasksNeedingDeps[task.ID] = originalDeps
 							}
+
 							successCount++
+
 							continue
 						}
 					} else {
@@ -124,6 +130,7 @@ func saveTodo2TasksToDB(tasks []Todo2Task) error {
 					// Log warning but still update (ID takes precedence)
 					errors = append(errors, fmt.Sprintf("warning: task %s content mismatch (ID match but content differs)", task.ID))
 				}
+
 				if err := database.UpdateTask(ctx, &task); err != nil {
 					saveErr = fmt.Errorf("failed to update task %s: %w", task.ID, err)
 				} else {
@@ -164,11 +171,13 @@ func saveTodo2TasksToDB(tasks []Todo2Task) error {
 
 	// Remove from DB any tasks not in the input list (replace semantics, e.g. after merge)
 	inputIDs := make(map[string]bool)
+
 	for _, t := range tasks {
 		if !strings.HasPrefix(t.ID, "AUTO-") {
 			inputIDs[t.ID] = true
 		}
 	}
+
 	allDB, err := database.ListTasks(ctx, nil)
 	if err == nil {
 		for _, t := range allDB {
@@ -189,7 +198,7 @@ func saveTodo2TasksToDB(tasks []Todo2Task) error {
 }
 
 // findTaskByContent searches for a task with matching content/description
-// Used to detect duplicate tasks with different IDs (e.g., epoch-based IDs)
+// Used to detect duplicate tasks with different IDs (e.g., epoch-based IDs).
 func findTaskByContent(ctx context.Context, task Todo2Task) *Todo2Task {
 	if db, err := database.GetDB(); err != nil || db == nil {
 		return nil
@@ -211,7 +220,7 @@ func findTaskByContent(ctx context.Context, task Todo2Task) *Todo2Task {
 }
 
 // tasksMatchByContent checks if two tasks have matching content/description
-// Used to detect duplicates with different IDs
+// Used to detect duplicates with different IDs.
 func tasksMatchByContent(task1, task2 Todo2Task) bool {
 	// Compare normalized content
 	content1 := normalizeTaskContent(task1.Content, task1.LongDescription)
@@ -221,7 +230,7 @@ func tasksMatchByContent(task1, task2 Todo2Task) bool {
 }
 
 // normalizeTaskContent normalizes task content for comparison
-// Strips whitespace, converts to lowercase, and combines content + description
+// Strips whitespace, converts to lowercase, and combines content + description.
 func normalizeTaskContent(content, description string) string {
 	combined := content + " " + description
 	// Remove extra whitespace and convert to lowercase
@@ -230,15 +239,17 @@ func normalizeTaskContent(content, description string) string {
 	for strings.Contains(normalized, "  ") {
 		normalized = strings.ReplaceAll(normalized, "  ", " ")
 	}
+
 	return normalized
 }
 
 // filterValidDependencies filters out dependencies that don't exist in the task list or database
 // Also filters out AUTO-* task dependencies (AUTO tasks are not saved to database)
-// This prevents foreign key constraint failures when creating tasks
+// This prevents foreign key constraint failures when creating tasks.
 func filterValidDependencies(ctx context.Context, dependencies []string, allTasks []Todo2Task) []string {
 	// Build set of valid task IDs (from task list, excluding AUTO-* tasks)
 	validTaskIDs := make(map[string]bool)
+
 	for _, task := range allTasks {
 		// Skip AUTO-* tasks - they're not saved to database
 		if !strings.HasPrefix(task.ID, "AUTO-") {
@@ -253,6 +264,7 @@ func filterValidDependencies(ctx context.Context, dependencies []string, allTask
 			if strings.HasPrefix(depID, "AUTO-") {
 				continue
 			}
+
 			if !validTaskIDs[depID] {
 				// Check if dependency exists in database
 				if existing, err := database.GetTask(ctx, depID); err == nil && existing != nil {
@@ -264,11 +276,13 @@ func filterValidDependencies(ctx context.Context, dependencies []string, allTask
 
 	// Filter dependencies to only include valid ones (excluding AUTO-* tasks)
 	validDeps := make([]string, 0, len(dependencies))
+
 	for _, depID := range dependencies {
 		// Skip AUTO-* dependencies - they're not saved to database
 		if strings.HasPrefix(depID, "AUTO-") {
 			continue
 		}
+
 		if validTaskIDs[depID] {
 			validDeps = append(validDeps, depID)
 		}
@@ -279,7 +293,7 @@ func filterValidDependencies(ctx context.Context, dependencies []string, allTask
 
 // sortTasksByDependencies sorts tasks by dependency order using topological sort
 // Tasks with no dependencies come first, then tasks that depend on them, etc.
-// This ensures dependencies are created before dependents, avoiding foreign key constraint failures
+// This ensures dependencies are created before dependents, avoiding foreign key constraint failures.
 func sortTasksByDependencies(tasks []Todo2Task) ([]Todo2Task, error) {
 	if len(tasks) == 0 {
 		return tasks, nil
@@ -296,6 +310,7 @@ func sortTasksByDependencies(tasks []Todo2Task) ([]Todo2Task, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to check for cycles: %w", err)
 	}
+
 	if hasCycles {
 		// Graph has cycles - can't sort, return original order
 		// Missing dependencies will be handled gracefully in save loop
@@ -316,6 +331,7 @@ func sortTasksByDependencies(tasks []Todo2Task) ([]Todo2Task, error) {
 
 	// Reorder tasks according to topological sort
 	sortedTasks := make([]Todo2Task, 0, len(tasks))
+
 	for _, taskID := range sortedIDs {
 		if task, exists := taskMap[taskID]; exists {
 			sortedTasks = append(sortedTasks, task)

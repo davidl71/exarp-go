@@ -50,6 +50,7 @@ func TestHandleEstimationAnalyze(t *testing.T) {
     }
   ]
 }`
+
 	if err := os.WriteFile(stateFile, []byte(stateContent), 0644); err != nil {
 		t.Fatalf("failed to create state file: %v", err)
 	}
@@ -107,6 +108,7 @@ func TestHandleEstimationAnalyze(t *testing.T) {
 				t.Errorf("handleEstimationAnalyze() error = %v, wantError %v", err, tt.wantError)
 				return
 			}
+
 			if !tt.wantError && tt.validate != nil {
 				tt.validate(t, result)
 			}
@@ -234,9 +236,11 @@ func TestBuildEstimationPrompt(t *testing.T) {
 	if p == "" {
 		t.Error("expected non-empty prompt")
 	}
+
 	if !strings.Contains(p, "Add login") || !strings.Contains(p, "OAuth") || !strings.Contains(p, "auth") || !strings.Contains(p, "high") {
 		t.Error("prompt should contain task name, details, tags, priority")
 	}
+
 	if !strings.Contains(p, "estimate_hours") {
 		t.Error("prompt should request JSON with estimate_hours")
 	}
@@ -283,6 +287,7 @@ func TestParseLLMEstimationResponse(t *testing.T) {
 				t.Errorf("ParseLLMEstimationResponse() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
+
 			if !tt.wantErr && tt.check != nil && got != nil {
 				tt.check(t, got)
 			}

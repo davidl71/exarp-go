@@ -18,7 +18,7 @@ import (
 	"github.com/davidl71/mcp-go-core/pkg/mcp/response"
 )
 
-// Memory represents a stored memory
+// Memory represents a stored memory.
 type Memory struct {
 	ID          string                 `json:"id"`
 	Title       string                 `json:"title"`
@@ -57,12 +57,15 @@ func handleMemoryNative(ctx context.Context, args json.RawMessage) ([]framework.
 		if req.Action == "" {
 			params["action"] = "search"
 		}
+
 		if req.Category == "" {
 			params["category"] = "insight"
 		}
+
 		if req.Limit == 0 {
 			params["limit"] = 10
 		}
+
 		if !req.IncludeRelated {
 			params["include_related"] = true // Default is true
 		}
@@ -89,7 +92,7 @@ func handleMemoryNative(ctx context.Context, args json.RawMessage) ([]framework.
 	}
 }
 
-// handleMemorySave handles save action
+// handleMemorySave handles save action.
 func handleMemorySave(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	title, _ := params["title"].(string)
 	content, _ := params["content"].(string)
@@ -105,12 +108,14 @@ func handleMemorySave(ctx context.Context, params map[string]interface{}) ([]fra
 
 	// Validate category
 	validCategory := false
+
 	for _, c := range memoryCategories() {
 		if category == c {
 			validCategory = true
 			break
 		}
 	}
+
 	if !validCategory {
 		return nil, fmt.Errorf("invalid category '%s'. Must be one of: %s", category, strings.Join(memoryCategories(), ", "))
 	}
@@ -171,13 +176,15 @@ func handleMemorySave(ctx context.Context, params map[string]interface{}) ([]fra
 		MemoryId: memory.ID,
 		Message:  fmt.Sprintf("✅ Memory saved: %s", title),
 	}
+
 	if pbMem != nil {
 		resp.Memories = []*proto.Memory{pbMem}
 	}
+
 	return response.FormatResult(MemoryResponseToMap(resp), "")
 }
 
-// handleMemoryRecall handles recall action
+// handleMemoryRecall handles recall action.
 func handleMemoryRecall(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	taskID, _ := params["task_id"].(string)
 	if taskID == "" {
@@ -201,6 +208,7 @@ func handleMemoryRecall(ctx context.Context, params map[string]interface{}) ([]f
 
 	// Filter by task_id
 	related := []Memory{}
+
 	for _, m := range memories {
 		for _, linkedTask := range m.LinkedTasks {
 			if linkedTask == taskID {
@@ -222,15 +230,18 @@ func handleMemoryRecall(ctx context.Context, params map[string]interface{}) ([]f
 						if linkedTask == depID {
 							// Check if already in related list
 							found := false
+
 							for _, existing := range related {
 								if existing.ID == m.ID {
 									found = true
 									break
 								}
 							}
+
 							if !found {
 								related = append(related, m)
 							}
+
 							break
 						}
 					}
@@ -240,12 +251,14 @@ func handleMemoryRecall(ctx context.Context, params map[string]interface{}) ([]f
 	}
 
 	pbMemories := make([]*proto.Memory, 0, len(related))
+
 	for i := range related {
 		pb, err := MemoryToProto(&related[i])
 		if err == nil && pb != nil {
 			pbMemories = append(pbMemories, pb)
 		}
 	}
+
 	resp := &proto.MemoryResponse{
 		Success:        true,
 		Method:         "native_go",
@@ -254,10 +267,11 @@ func handleMemoryRecall(ctx context.Context, params map[string]interface{}) ([]f
 		Count:          int32(len(related)),
 		IncludeRelated: includeRelated,
 	}
+
 	return response.FormatResult(MemoryResponseToMap(resp), "")
 }
 
-// handleMemorySearch handles search action (basic text search in Go)
+// handleMemorySearch handles search action (basic text search in Go).
 func handleMemorySearch(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	query, _ := params["query"].(string)
 	if query == "" {
@@ -338,20 +352,24 @@ func handleMemorySearch(ctx context.Context, params map[string]interface{}) ([]f
 
 	// Take top results
 	results := []Memory{}
+
 	for i, s := range scored {
 		if i >= limit {
 			break
 		}
+
 		results = append(results, s.memory)
 	}
 
 	pbMemories := make([]*proto.Memory, 0, len(results))
+
 	for i := range results {
 		pb, err := MemoryToProto(&results[i])
 		if err == nil && pb != nil {
 			pbMemories = append(pbMemories, pb)
 		}
 	}
+
 	resp := &proto.MemoryResponse{
 		Success:    true,
 		Method:     "native_go",
@@ -360,10 +378,11 @@ func handleMemorySearch(ctx context.Context, params map[string]interface{}) ([]f
 		Count:      int32(len(results)),
 		TotalFound: int32(len(scored)),
 	}
+
 	return response.FormatResult(MemoryResponseToMap(resp), "")
 }
 
-// handleMemoryList handles list action
+// handleMemoryList handles list action.
 func handleMemoryList(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	var category string
 	if cat, ok := params["category"].(string); ok && cat != "" {
@@ -388,11 +407,13 @@ func handleMemoryList(ctx context.Context, params map[string]interface{}) ([]fra
 	// Filter by category if specified
 	if category != "" {
 		filtered := []Memory{}
+
 		for _, m := range memories {
 			if m.Category == category {
 				filtered = append(filtered, m)
 			}
 		}
+
 		memories = filtered
 	}
 
@@ -404,21 +425,25 @@ func handleMemoryList(ctx context.Context, params map[string]interface{}) ([]fra
 	// Calculate statistics
 	categories := make(map[string]int)
 	allMemories, _ := LoadAllMemories(projectRoot)
+
 	for _, m := range allMemories {
 		categories[m.Category]++
 	}
 
 	pbMemories := make([]*proto.Memory, 0, len(memories))
+
 	for i := range memories {
 		pb, err := MemoryToProto(&memories[i])
 		if err == nil && pb != nil {
 			pbMemories = append(pbMemories, pb)
 		}
 	}
+
 	catProto := make(map[string]int32)
 	for k, v := range categories {
 		catProto[k] = int32(v)
 	}
+
 	resp := &proto.MemoryResponse{
 		Success:             true,
 		Method:              "native_go",
@@ -428,6 +453,7 @@ func handleMemoryList(ctx context.Context, params map[string]interface{}) ([]fra
 		Categories:          catProto,
 		AvailableCategories: memoryCategories(),
 	}
+
 	return response.FormatResult(MemoryResponseToMap(resp), "")
 }
 
@@ -435,15 +461,17 @@ func handleMemoryList(ctx context.Context, params map[string]interface{}) ([]fra
 
 func getMemoriesDir(projectRoot string) (string, error) {
 	storagePath := config.MemoryStoragePath()
+
 	memoriesDir := filepath.Join(projectRoot, filepath.FromSlash(storagePath))
 	if err := os.MkdirAll(memoriesDir, 0755); err != nil {
 		return "", err
 	}
+
 	return memoriesDir, nil
 }
 
 // deleteMemoryFile deletes a memory file, trying both .pb and .json formats
-// Returns true if a file was deleted, false otherwise
+// Returns true if a file was deleted, false otherwise.
 func deleteMemoryFile(projectRoot, memoryID string) bool {
 	memoriesDir, err := getMemoriesDir(projectRoot)
 	if err != nil {
@@ -467,7 +495,7 @@ func deleteMemoryFile(projectRoot, memoryID string) bool {
 
 // LoadAllMemories loads all memories from the project root
 // Supports both protobuf (.pb) and JSON (.json) formats for backward compatibility
-// Exported for use by resource handlers
+// Exported for use by resource handlers.
 func LoadAllMemories(projectRoot string) ([]Memory, error) {
 	memoriesDir, err := getMemoriesDir(projectRoot)
 	if err != nil {
@@ -489,6 +517,7 @@ func LoadAllMemories(projectRoot string) ([]Memory, error) {
 		memoryPath := filepath.Join(memoriesDir, entry.Name())
 
 		var memory Memory
+
 		var shouldMigrate bool
 
 		// Try protobuf format first (.pb)
@@ -502,6 +531,7 @@ func LoadAllMemories(projectRoot string) ([]Memory, error) {
 			if err != nil {
 				continue // Skip invalid protobuf
 			}
+
 			memory = *loadedMemory
 		} else if strings.HasSuffix(entry.Name(), ".json") {
 			// Fall back to JSON format (backward compatibility)
@@ -546,7 +576,7 @@ func LoadAllMemories(projectRoot string) ([]Memory, error) {
 }
 
 // saveMemory saves a memory to file using protobuf binary format
-// Also removes any old JSON file with the same ID for cleanup
+// Also removes any old JSON file with the same ID for cleanup.
 func saveMemory(projectRoot string, memory Memory) error {
 	memoriesDir, err := getMemoriesDir(projectRoot)
 	if err != nil {
@@ -555,6 +585,7 @@ func saveMemory(projectRoot string, memory Memory) error {
 
 	// Save as protobuf binary (.pb)
 	memoryPath := filepath.Join(memoriesDir, memory.ID+".pb")
+
 	data, err := SerializeMemoryToProtobuf(&memory)
 	if err != nil {
 		return fmt.Errorf("failed to serialize memory to protobuf: %w", err)
@@ -587,10 +618,11 @@ func formatMemories(memories []Memory) []map[string]interface{} {
 			"session_date": m.SessionDate,
 		}
 	}
+
 	return result
 }
 
-// generateUUID generates a UUID v4 format string
+// generateUUID generates a UUID v4 format string.
 func generateUUID() (string, error) {
 	b := make([]byte, 16)
 	if _, err := rand.Read(b); err != nil {

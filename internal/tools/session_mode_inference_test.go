@@ -81,9 +81,11 @@ func TestHandleInferSessionModeNative(t *testing.T) {
 				if inferenceResult.Mode == "" {
 					t.Error("HandleInferSessionModeNative() returned empty mode")
 				}
+
 				if inferenceResult.Confidence < 0 || inferenceResult.Confidence > 1 {
 					t.Errorf("HandleInferSessionModeNative() returned invalid confidence: %v", inferenceResult.Confidence)
 				}
+
 				if inferenceResult.Timestamp == "" {
 					t.Error("HandleInferSessionModeNative() returned empty timestamp")
 				}
@@ -166,15 +168,19 @@ func TestInferModeFromTasks(t *testing.T) {
 			if result.Mode != tt.wantMode {
 				t.Errorf("inferModeFromTasks() mode = %v, want %v", result.Mode, tt.wantMode)
 			}
+
 			if tt.checkConf && result.Confidence != tt.wantConf {
 				t.Errorf("inferModeFromTasks() confidence = %v, want %v", result.Confidence, tt.wantConf)
 			}
+
 			if result.Confidence < 0 || result.Confidence > 1 {
 				t.Errorf("inferModeFromTasks() returned invalid confidence: %v", result.Confidence)
 			}
+
 			if len(result.Reasoning) == 0 && len(tt.tasks) > 0 {
 				t.Error("inferModeFromTasks() returned empty reasoning for non-empty tasks")
 			}
+
 			if result.Timestamp == "" {
 				t.Error("inferModeFromTasks() returned empty timestamp")
 			}
@@ -195,9 +201,11 @@ func TestAnalyzeTaskPatterns(t *testing.T) {
 	if metrics["status_distribution"] == nil {
 		t.Error("analyzeTaskPatterns() missing status_distribution")
 	}
+
 	if metrics["priority_distribution"] == nil {
 		t.Error("analyzeTaskPatterns() missing priority_distribution")
 	}
+
 	if metrics["tag_counts"] == nil {
 		t.Error("analyzeTaskPatterns() missing tag_counts")
 	}
@@ -210,9 +218,11 @@ func TestAnalyzeTaskPatterns(t *testing.T) {
 		if statusDist["Todo"] != 1 {
 			t.Errorf("analyzeTaskPatterns() status_distribution[Todo] = %v, want 1", statusDist["Todo"])
 		}
+
 		if statusDist["In Progress"] != 1 {
 			t.Errorf("analyzeTaskPatterns() status_distribution[In Progress] = %v, want 1", statusDist["In Progress"])
 		}
+
 		if statusDist["Done"] != 1 {
 			t.Errorf("analyzeTaskPatterns() status_distribution[Done] = %v, want 1", statusDist["Done"])
 		}
@@ -246,6 +256,7 @@ func TestMarshalInferenceResult(t *testing.T) {
 	if parsed.Mode != result.Mode {
 		t.Errorf("marshalInferenceResult() mode = %v, want %v", parsed.Mode, result.Mode)
 	}
+
 	if parsed.Confidence != result.Confidence {
 		t.Errorf("marshalInferenceResult() confidence = %v, want %v", parsed.Confidence, result.Confidence)
 	}

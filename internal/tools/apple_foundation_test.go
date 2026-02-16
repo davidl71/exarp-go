@@ -243,6 +243,7 @@ func TestHandleAppleFoundationModels_TextContentFormat(t *testing.T) {
 		if len(result) == 0 {
 			t.Error("handleAppleFoundationModels() returned empty result")
 		}
+
 		if len(result) > 0 {
 			if result[0].Type != "text" {
 				t.Errorf("handleAppleFoundationModels() result type = %q, want %q", result[0].Type, "text")
@@ -260,5 +261,6 @@ func containsSubstring(s, substr string) bool {
 			return true
 		}
 	}
+
 	return false
 }

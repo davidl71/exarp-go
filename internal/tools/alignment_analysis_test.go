@@ -73,11 +73,13 @@ func TestHandleAlignmentTodo2(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := context.Background()
+
 			result, err := handleAlignmentTodo2(ctx, tt.params)
 			if (err != nil) != tt.wantError {
 				t.Errorf("handleAlignmentTodo2() error = %v, wantError %v", err, tt.wantError)
 				return
 			}
+
 			if !tt.wantError && tt.validate != nil {
 				tt.validate(t, result)
 			}
@@ -87,10 +89,12 @@ func TestHandleAlignmentTodo2(t *testing.T) {
 
 func TestHandleAlignmentPRD(t *testing.T) {
 	tmpDir := t.TempDir()
+
 	prdDir := filepath.Join(tmpDir, "docs")
 	if err := os.MkdirAll(prdDir, 0755); err != nil {
 		t.Fatalf("failed to create docs directory: %v", err)
 	}
+
 	prdFile := filepath.Join(prdDir, "PRD.md")
 	prdContent := `# Product Requirements Document
 
@@ -102,6 +106,7 @@ As a user, I want to authenticate so that I can access my account.
 ### US-2: Data Export
 As a user, I want to export my data so that I can backup my information.
 `
+
 	if err := os.WriteFile(prdFile, []byte(prdContent), 0644); err != nil {
 		t.Fatalf("failed to create PRD file: %v", err)
 	}
@@ -178,11 +183,13 @@ As a user, I want to export my data so that I can backup my information.
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := context.Background()
+
 			result, err := handleAlignmentPRD(ctx, tt.params)
 			if (err != nil) != tt.wantError {
 				t.Errorf("handleAlignmentPRD() error = %v, wantError %v", err, tt.wantError)
 				return
 			}
+
 			if !tt.wantError && tt.validate != nil {
 				tt.validate(t, result)
 			}
@@ -249,11 +256,13 @@ func TestHandleAnalyzeAlignmentNative(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := context.Background()
+
 			result, err := handleAnalyzeAlignmentNative(ctx, tt.params)
 			if (err != nil) != tt.wantError {
 				t.Errorf("handleAnalyzeAlignmentNative() error = %v, wantError %v", err, tt.wantError)
 				return
 			}
+
 			if !tt.wantError && tt.validate != nil {
 				tt.validate(t, result)
 			}

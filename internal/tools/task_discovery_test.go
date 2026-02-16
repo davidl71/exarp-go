@@ -12,6 +12,7 @@ import (
 func TestHandleTaskDiscoveryNative(t *testing.T) {
 	tmpDir := t.TempDir()
 	os.Setenv("PROJECT_ROOT", tmpDir)
+
 	defer os.Unsetenv("PROJECT_ROOT")
 
 	tests := []struct {
@@ -85,11 +86,13 @@ func TestHandleTaskDiscoveryNative(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := context.Background()
+
 			result, err := handleTaskDiscoveryNative(ctx, tt.params)
 			if (err != nil) != tt.wantError {
 				t.Errorf("handleTaskDiscoveryNative() error = %v, wantError %v", err, tt.wantError)
 				return
 			}
+
 			if !tt.wantError && tt.validate != nil {
 				tt.validate(t, result)
 			}
@@ -100,6 +103,7 @@ func TestHandleTaskDiscoveryNative(t *testing.T) {
 func TestHandleTaskDiscovery(t *testing.T) {
 	tmpDir := t.TempDir()
 	os.Setenv("PROJECT_ROOT", tmpDir)
+
 	defer os.Unsetenv("PROJECT_ROOT")
 
 	tests := []struct {
@@ -127,11 +131,13 @@ func TestHandleTaskDiscovery(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := context.Background()
 			argsJSON, _ := json.Marshal(tt.params)
+
 			result, err := handleTaskDiscovery(ctx, argsJSON)
 			if (err != nil) != tt.wantError {
 				t.Errorf("handleTaskDiscovery() error = %v, wantError %v", err, tt.wantError)
 				return
 			}
+
 			if !tt.wantError && (result == nil || len(result) == 0) {
 				t.Error("expected non-empty result")
 			}

@@ -3,6 +3,7 @@ package tools
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -25,12 +26,14 @@ func TaskAnalysisResponseToMap(resp *proto.TaskAnalysisResponse) map[string]inte
 	if resp == nil {
 		return nil
 	}
+
 	out := map[string]interface{}{
 		"action": resp.GetAction(),
 	}
 	if resp.GetOutputPath() != "" {
 		out["output_path"] = resp.GetOutputPath()
 	}
+
 	if resp.GetResultJson() != "" {
 		var payload map[string]interface{}
 		if json.Unmarshal([]byte(resp.GetResultJson()), &payload) == nil {
@@ -39,6 +42,7 @@ func TaskAnalysisResponseToMap(resp *proto.TaskAnalysisResponse) map[string]inte
 			}
 		}
 	}
+
 	return out
 }
 
@@ -49,6 +53,7 @@ func handleTaskAnalysisNative(ctx context.Context, params map[string]interface{}
 	if action == "" {
 		action = "duplicates"
 	}
+
 	switch action {
 	case "hierarchy":
 		return handleTaskAnalysisHierarchy(ctx, params)
@@ -85,53 +90,66 @@ func handleTaskAnalysisConflicts(ctx context.Context, params map[string]interfac
 	if err != nil {
 		return nil, fmt.Errorf("failed to get task store: %w", err)
 	}
+
 	list, err := store.ListTasks(ctx, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load tasks: %w", err)
 	}
+
 	conflicts := DetectTaskOverlapConflicts(list)
 	hasConflict := len(conflicts) > 0
 	overlapping := make([]string, 0)
+
 	if hasConflict {
 		seen := make(map[string]bool)
 		for _, c := range conflicts {
 			if !seen[c.DepTaskID] {
 				seen[c.DepTaskID] = true
+
 				overlapping = append(overlapping, c.DepTaskID)
 			}
+
 			if !seen[c.TaskID] {
 				seen[c.TaskID] = true
+
 				overlapping = append(overlapping, c.TaskID)
 			}
 		}
 	}
+
 	out := map[string]interface{}{
 		"conflict":    hasConflict,
 		"conflicts":   conflicts,
 		"overlapping": overlapping,
 	}
+
 	if hasConflict {
 		reasons := make([]string, len(conflicts))
 		for i, c := range conflicts {
 			reasons[i] = c.Reason
 		}
+
 		out["reasons"] = reasons
 	}
+
 	resultJSON, _ := json.Marshal(out)
 	resp := &proto.TaskAnalysisResponse{Action: "conflicts", ResultJson: string(resultJSON)}
+
 	return response.FormatResult(TaskAnalysisResponseToMap(resp), resp.GetOutputPath())
 }
 
-// handleTaskAnalysisDuplicates handles duplicates detection
+// handleTaskAnalysisDuplicates handles duplicates detection.
 func handleTaskAnalysisDuplicates(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	store, err := getTaskStore(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get task store: %w", err)
 	}
+
 	list, err := store.ListTasks(ctx, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load tasks: %w", err)
 	}
+
 	tasks := tasksFromPtrs(list)
 
 	// Use config default, allow override from params
@@ -188,13 +206,15 @@ func handleTaskAnalysisDuplicates(ctx context.Context, params map[string]interfa
 			return nil, fmt.Errorf("failed to create output dir: %w", err)
 		}
 	}
+
 	resultJSON, _ := json.Marshal(result)
 	resp := &proto.TaskAnalysisResponse{Action: "duplicates", OutputPath: outputPath, ResultJson: string(resultJSON)}
+
 	return response.FormatResult(TaskAnalysisResponseToMap(resp), resp.GetOutputPath())
 }
 
 // CanonicalTagRules returns default tag consolidation rules aligned with scorecard dimensions.
-// Categories: testing, docs, security, build, performance, bug, feature, refactor, migration, config, cli, mcp, llm, database, workflow, planning, linting
+// Categories: testing, docs, security, build, performance, bug, feature, refactor, migration, config, cli, mcp, llm, database, workflow, planning, linting.
 func CanonicalTagRules() map[string]string {
 	return map[string]string{
 		// Scorecard: testing
@@ -322,7 +342,7 @@ func CanonicalTagRules() map[string]string {
 	}
 }
 
-// NoiseTags returns tags that should be removed (status/meta tags with no filtering value)
+// NoiseTags returns tags that should be removed (status/meta tags with no filtering value).
 func NoiseTags() []string {
 	return []string{
 		"complete",
@@ -334,17 +354,20 @@ func NoiseTags() []string {
 	}
 }
 
-// handleTaskAnalysisTags handles tag analysis and consolidation
+// handleTaskAnalysisTags handles tag analysis and consolidation.
 func handleTaskAnalysisTags(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	t0 := time.Now()
+
 	store, err := getTaskStore(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get task store: %w", err)
 	}
+
 	list, err := store.ListTasks(ctx, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load tasks: %w", err)
 	}
+
 	tasks := tasksFromPtrs(list)
 	profileLoadMs := time.Since(t0).Milliseconds()
 
@@ -365,36 +388,45 @@ func handleTaskAnalysisTags(ctx context.Context, params map[string]interface{}) 
 	} else if l, ok := params["limit"].(int); ok && l > 0 {
 		limit = l
 	}
+
 	prioritizeUntagged := false
 	if p, ok := params["prioritize_untagged"].(bool); ok {
 		prioritizeUntagged = p
 	}
+
 	if (limit > 0 || prioritizeUntagged) && len(tagAnalysis.TagSuggestions) > 0 {
 		taskByID := make(map[string]Todo2Task)
 		for _, t := range tasks {
 			taskByID[t.ID] = t
 		}
+
 		var order []string
 		for taskID := range tagAnalysis.TagSuggestions {
 			order = append(order, taskID)
 		}
+
 		if prioritizeUntagged {
 			sort.Slice(order, func(i, j int) bool {
 				untaggedI := len(taskByID[order[i]].Tags) == 0
 				untaggedJ := len(taskByID[order[j]].Tags) == 0
+
 				if untaggedI != untaggedJ {
 					return untaggedI
 				}
+
 				return order[i] < order[j]
 			})
 		}
+
 		if limit > 0 && len(order) > limit {
 			order = order[:limit]
 		}
+
 		batch := make(map[string][]string)
 		for _, taskID := range order {
 			batch[taskID] = tagAnalysis.TagSuggestions[taskID]
 		}
+
 		tagAnalysis.TagSuggestions = batch
 	}
 
@@ -403,6 +435,7 @@ func handleTaskAnalysisTags(ctx context.Context, params map[string]interface{}) 
 	if canonical, ok := params["use_canonical_rules"].(bool); ok {
 		useCanonical = canonical
 	}
+
 	if useCanonical {
 		tagAnalysis = applyTagRules(tasks, CanonicalTagRules(), tagAnalysis)
 		// Also remove noise tags when using canonical rules
@@ -432,17 +465,22 @@ func handleTaskAnalysisTags(ctx context.Context, params map[string]interface{}) 
 	if u, ok := params["use_llm_semantic"].(bool); ok {
 		useLLMSemantic = u
 	}
+
 	matchExistingOnly := false
 	if m, ok := params["match_existing_only"].(bool); ok {
 		matchExistingOnly = m
 	}
+
 	useTinyTagModel := false
 	if u, ok := params["use_tiny_tag_model"].(bool); ok {
 		useTinyTagModel = u
 	}
+
 	llmSemanticMethod := ""
 	llmSemanticProcessed := 0
+
 	var llmProfile llmTagProfile
+
 	if useLLMSemantic {
 		llmBatchSize := 0
 		if b, ok := params["llm_batch_size"].(float64); ok && b > 0 {
@@ -450,13 +488,16 @@ func handleTaskAnalysisTags(ctx context.Context, params map[string]interface{}) 
 		} else if b, ok := params["llm_batch_size"].(int); ok && b > 0 {
 			llmBatchSize = b
 		}
+
 		llmSemanticMethod, llmSemanticProcessed, llmProfile = enrichTaskTagSuggestionsWithLLM(ctx, tasks, &tagAnalysis, llmBatchSize, matchExistingOnly, useTinyTagModel)
 	}
 
 	// Apply changes if not dry run
 	profileApplyMs := int64(0)
+
 	if !dryRun {
 		t2 := time.Now()
+
 		tasks = applyTagChanges(tasks, tagAnalysis)
 		for _, t := range tasks {
 			taskPtr := &t
@@ -466,11 +507,13 @@ func handleTaskAnalysisTags(ctx context.Context, params map[string]interface{}) 
 		}
 		// Update tag cache everywhere: frequency + task-level suggestions (for LLM hints)
 		updateTagFrequencyCache(tasks)
+
 		for i := range tasks {
 			for _, tag := range tasks[i].Tags {
 				_ = database.SaveTaskTagSuggestion(tasks[i].ID, tag, "tags", true)
 			}
 		}
+
 		profileApplyMs = time.Since(t2).Milliseconds()
 	}
 
@@ -482,11 +525,14 @@ func handleTaskAnalysisTags(ctx context.Context, params map[string]interface{}) 
 			if ms < profileMinBatchMs {
 				profileMinBatchMs = ms
 			}
+
 			if ms > profileMaxBatchMs {
 				profileMaxBatchMs = ms
 			}
+
 			profileAvgBatchMs += ms
 		}
+
 		profileAvgBatchMs /= int64(len(llmProfile.PerBatchMs))
 	}
 
@@ -519,15 +565,17 @@ func handleTaskAnalysisTags(ctx context.Context, params map[string]interface{}) 
 		if err := saveAnalysisResult(outputPath, result); err != nil {
 			return nil, fmt.Errorf("failed to save result: %w", err)
 		}
+
 		result["output_path"] = outputPath
 	}
 
 	resultJSON, _ := json.Marshal(result)
 	resp := &proto.TaskAnalysisResponse{Action: "tags", OutputPath: outputPath, ResultJson: string(resultJSON)}
+
 	return response.FormatResult(TaskAnalysisResponseToMap(resp), resp.GetOutputPath())
 }
 
-// handleTaskAnalysisDiscoverTags discovers tags from markdown files and uses LLM for semantic inference
+// handleTaskAnalysisDiscoverTags discovers tags from markdown files and uses LLM for semantic inference.
 func handleTaskAnalysisDiscoverTags(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	startTime := time.Now()
 
@@ -552,10 +600,12 @@ func handleTaskAnalysisDiscoverTags(ctx context.Context, params map[string]inter
 	if err != nil {
 		return nil, fmt.Errorf("failed to get task store: %w", err)
 	}
+
 	list, err := store.ListTasks(ctx, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load tasks: %w", err)
 	}
+
 	tasks := tasksFromPtrs(list)
 
 	dryRun := true
@@ -592,6 +642,7 @@ func handleTaskAnalysisDiscoverTags(ctx context.Context, params map[string]inter
 
 	// Clear cache if requested
 	cacheCleared := false
+
 	if clearCache {
 		if err := database.ClearDiscoveredTagsCache(); err == nil {
 			cacheCleared = true
@@ -614,6 +665,7 @@ func handleTaskAnalysisDiscoverTags(ctx context.Context, params map[string]inter
 
 	// Use LLM for semantic tag inference if available and requested
 	llmMethod := "none"
+
 	if useLLM {
 		fm := DefaultFMProvider()
 		if fm != nil && fm.Supported() {
@@ -633,6 +685,7 @@ func handleTaskAnalysisDiscoverTags(ctx context.Context, params map[string]inter
 		if _, ok := d["llm_suggestions"]; ok {
 			llmProcessed++
 		}
+
 		if timedOut, ok := d["llm_timeout"].(bool); ok && timedOut {
 			llmTimeouts++
 		}
@@ -653,36 +706,45 @@ func handleTaskAnalysisDiscoverTags(ctx context.Context, params map[string]inter
 	} else if l, ok := params["limit"].(int); ok && l > 0 {
 		limit = l
 	}
+
 	prioritizeUntagged := false
 	if p, ok := params["prioritize_untagged"].(bool); ok {
 		prioritizeUntagged = p
 	}
+
 	if (limit > 0 || prioritizeUntagged) && len(tagMatches) > 0 {
 		taskByID := make(map[string]Todo2Task)
 		for _, t := range tasks {
 			taskByID[t.ID] = t
 		}
+
 		var order []string
 		for taskID := range tagMatches {
 			order = append(order, taskID)
 		}
+
 		if prioritizeUntagged {
 			sort.Slice(order, func(i, j int) bool {
 				untaggedI := len(taskByID[order[i]].Tags) == 0
 				untaggedJ := len(taskByID[order[j]].Tags) == 0
+
 				if untaggedI != untaggedJ {
 					return untaggedI // untagged first
 				}
+
 				return order[i] < order[j]
 			})
 		}
+
 		if limit > 0 && len(order) > limit {
 			order = order[:limit]
 		}
+
 		batch := make(map[string][]string)
 		for _, taskID := range order {
 			batch[taskID] = tagMatches[taskID]
 		}
+
 		tagMatches = batch
 	}
 
@@ -691,17 +753,21 @@ func handleTaskAnalysisDiscoverTags(ctx context.Context, params map[string]inter
 	if b, ok := params["backlog_only"].(bool); ok {
 		backlogOnly = b
 	}
+
 	if backlogOnly && len(tagMatches) > 0 {
 		taskByID := make(map[string]Todo2Task)
 		for _, t := range tasks {
 			taskByID[t.ID] = t
 		}
+
 		backlogMatches := make(map[string][]string)
+
 		for taskID, tags := range tagMatches {
 			if t, ok := taskByID[taskID]; ok && IsBacklogStatus(t.Status) {
 				backlogMatches[taskID] = tags
 			}
 		}
+
 		tagMatches = backlogMatches
 	}
 
@@ -712,6 +778,7 @@ func handleTaskAnalysisDiscoverTags(ctx context.Context, params map[string]inter
 
 	// Apply tags if not dry run
 	appliedCount := 0
+
 	if !dryRun && len(tagMatches) > 0 {
 		for taskID, newTags := range tagMatches {
 			for i := range tasks {
@@ -721,16 +788,19 @@ func handleTaskAnalysisDiscoverTags(ctx context.Context, params map[string]inter
 					for _, t := range tasks[i].Tags {
 						existingTags[t] = true
 					}
+
 					for _, newTag := range newTags {
 						if !existingTags[newTag] {
 							tasks[i].Tags = append(tasks[i].Tags, newTag)
 							appliedCount++
 						}
 					}
+
 					break
 				}
 			}
 		}
+
 		if appliedCount > 0 {
 			for _, t := range tasks {
 				taskPtr := &t
@@ -747,6 +817,7 @@ func handleTaskAnalysisDiscoverTags(ctx context.Context, params map[string]inter
 	elapsedMs := time.Since(startTime).Milliseconds()
 	effectiveBatch := effectiveLLMBatchSize(llmBatchSize)
 	suggestion := effectiveBatch
+
 	if useLLM {
 		suggestion = suggestNextLLMBatchSize(effectiveBatch, llmTimeouts, len(discoveries))
 	}
@@ -774,10 +845,11 @@ func handleTaskAnalysisDiscoverTags(ctx context.Context, params map[string]inter
 
 	resultJSON, _ := json.Marshal(result)
 	resp := &proto.TaskAnalysisResponse{Action: "discover_tags", ResultJson: string(resultJSON)}
+
 	return response.FormatResult(TaskAnalysisResponseToMap(resp), resp.GetOutputPath())
 }
 
-// discoverTagsFromMarkdown scans markdown files for tag patterns
+// discoverTagsFromMarkdown scans markdown files for tag patterns.
 func discoverTagsFromMarkdown(projectRoot, docPath string) []map[string]interface{} {
 	discoveries := []map[string]interface{}{}
 
@@ -795,10 +867,12 @@ func discoverTagsFromMarkdown(projectRoot, docPath string) []map[string]interfac
 		if err != nil {
 			return nil
 		}
+
 		if info.IsDir() {
 			if strings.Contains(path, "/archive/") {
 				return filepath.SkipDir
 			}
+
 			return nil
 		}
 
@@ -846,6 +920,7 @@ func discoverTagsFromMarkdown(projectRoot, docPath string) []map[string]interfac
 			"status": true, "state": true, "mode": true, "action": true,
 			"observations": true, "example": true, "examples": true,
 		}
+
 		for _, match := range bracketPattern.FindAllStringSubmatch(fileContent, -1) {
 			if len(match) >= 2 {
 				tag := strings.ToLower(match[1])
@@ -864,6 +939,7 @@ func discoverTagsFromMarkdown(projectRoot, docPath string) []map[string]interfac
 				for _, t := range tagList {
 					tag := strings.ToLower(strings.TrimSpace(t))
 					tag = strings.Trim(tag, "#[]`")
+
 					if len(tag) > 1 {
 						discoveredTags = append(discoveredTags, tag)
 						tagSources = append(tagSources, "explicit")
@@ -875,9 +951,11 @@ func discoverTagsFromMarkdown(projectRoot, docPath string) []map[string]interfac
 		// Dedupe tags
 		seen := make(map[string]bool)
 		uniqueTags := []string{}
+
 		for _, tag := range discoveredTags {
 			if !seen[tag] {
 				seen[tag] = true
+
 				uniqueTags = append(uniqueTags, tag)
 			}
 		}
@@ -897,7 +975,7 @@ func discoverTagsFromMarkdown(projectRoot, docPath string) []map[string]interfac
 	return discoveries
 }
 
-// discoverTagsFromMarkdownWithCache scans markdown files with SQLite caching
+// discoverTagsFromMarkdownWithCache scans markdown files with SQLite caching.
 func discoverTagsFromMarkdownWithCache(projectRoot, docPath string, useCache bool) ([]map[string]interface{}, int, int) {
 	discoveries := []map[string]interface{}{}
 	cacheHits := 0
@@ -931,10 +1009,12 @@ func discoverTagsFromMarkdownWithCache(projectRoot, docPath string, useCache boo
 		if err != nil {
 			return nil
 		}
+
 		if info.IsDir() {
 			if strings.Contains(path, "/archive/") {
 				return filepath.SkipDir
 			}
+
 			return nil
 		}
 
@@ -958,10 +1038,12 @@ func discoverTagsFromMarkdownWithCache(projectRoot, docPath string, useCache boo
 				// Convert cached tags to discovery format
 				tags := []string{}
 				sources := []string{}
+
 				for _, ct := range cachedTags {
 					tags = append(tags, ct.Tag)
 					sources = append(sources, ct.Source)
 				}
+
 				discoveries = append(discoveries, map[string]interface{}{
 					"file":       relPath,
 					"tags":       tags,
@@ -969,6 +1051,7 @@ func discoverTagsFromMarkdownWithCache(projectRoot, docPath string, useCache boo
 					"type":       "markdown_discovery",
 					"from_cache": true,
 				})
+
 				return nil
 			}
 		}
@@ -1011,6 +1094,7 @@ func discoverTagsFromMarkdownWithCache(projectRoot, docPath string, useCache boo
 				for _, t := range tagList {
 					tag := strings.ToLower(strings.TrimSpace(t))
 					tag = strings.Trim(tag, "#[]`")
+
 					if len(tag) > 1 {
 						discoveredTags = append(discoveredTags, tag)
 						tagSources = append(tagSources, "explicit")
@@ -1023,10 +1107,13 @@ func discoverTagsFromMarkdownWithCache(projectRoot, docPath string, useCache boo
 		seen := make(map[string]bool)
 		uniqueTags := []string{}
 		uniqueSources := []string{}
+
 		for i, tag := range discoveredTags {
 			if !seen[tag] {
 				seen[tag] = true
+
 				uniqueTags = append(uniqueTags, tag)
+
 				if i < len(tagSources) {
 					uniqueSources = append(uniqueSources, tagSources[i])
 				}
@@ -1049,7 +1136,7 @@ func discoverTagsFromMarkdownWithCache(projectRoot, docPath string, useCache boo
 	return discoveries, cacheHits, cacheMisses
 }
 
-// saveDiscoveriesToCache saves tag discoveries to SQLite cache
+// saveDiscoveriesToCache saves tag discoveries to SQLite cache.
 func saveDiscoveriesToCache(discoveries []map[string]interface{}) {
 	for _, discovery := range discoveries {
 		filePath, _ := discovery["file"].(string)
@@ -1064,11 +1151,13 @@ func saveDiscoveriesToCache(discoveries []map[string]interface{}) {
 
 		// Build cache entries
 		var cacheEntries []database.DiscoveredTag
+
 		for i, tag := range tags {
 			source := "unknown"
 			if i < len(sources) {
 				source = sources[i]
 			}
+
 			cacheEntries = append(cacheEntries, database.DiscoveredTag{
 				FilePath:     filePath,
 				FileHash:     fileHash,
@@ -1094,13 +1183,15 @@ func saveDiscoveriesToCache(discoveries []map[string]interface{}) {
 	}
 }
 
-// saveFileTaskTagsToCache saves file-task tag matches to cache
+// saveFileTaskTagsToCache saves file-task tag matches to cache.
 func saveFileTaskTagsToCache(tagMatches map[string][]string, discoveries []map[string]interface{}) {
 	// Build file-to-tags map from discoveries
 	fileTags := make(map[string][]string)
+
 	for _, discovery := range discoveries {
 		filePath, _ := discovery["file"].(string)
 		tags, _ := discovery["tags"].([]string)
+
 		if filePath != "" && len(tags) > 0 {
 			fileTags[filePath] = tags
 		}
@@ -1122,11 +1213,12 @@ func saveFileTaskTagsToCache(tagMatches map[string][]string, discoveries []map[s
 	}
 }
 
-// updateTagFrequencyCache updates tag frequency statistics in cache
+// updateTagFrequencyCache updates tag frequency statistics in cache.
 func updateTagFrequencyCache(tasks []Todo2Task) {
 	tagCounts := make(map[string]int)
 	canonicalTags := getCanonicalTagsList()
 	canonicalSet := make(map[string]bool)
+
 	for _, tag := range canonicalTags {
 		canonicalSet[tag] = true
 	}
@@ -1143,9 +1235,10 @@ func updateTagFrequencyCache(tasks []Todo2Task) {
 	}
 }
 
-// collectProjectTags extracts all unique tags from existing tasks
+// collectProjectTags extracts all unique tags from existing tasks.
 func collectProjectTags(tasks []Todo2Task) []string {
 	tagSet := make(map[string]bool)
+
 	for _, task := range tasks {
 		for _, tag := range task.Tags {
 			// Skip auto-discovered tags
@@ -1154,35 +1247,42 @@ func collectProjectTags(tasks []Todo2Task) []string {
 			}
 		}
 	}
+
 	tags := make([]string, 0, len(tagSet))
 	for tag := range tagSet {
 		tags = append(tags, tag)
 	}
+
 	sort.Strings(tags)
+
 	return tags
 }
 
-// projectTagsWithCacheHints merges project tags from tasks with top tag frequencies from cache (for LLM hints everywhere)
+// projectTagsWithCacheHints merges project tags from tasks with top tag frequencies from cache (for LLM hints everywhere).
 func projectTagsWithCacheHints(tasks []Todo2Task, cacheLimit int) []string {
 	tagSet := make(map[string]bool)
 	for _, tag := range collectProjectTags(tasks) {
 		tagSet[tag] = true
 	}
+
 	cacheTags, err := database.GetTopTagFrequencies(cacheLimit)
 	if err == nil {
 		for _, tag := range cacheTags {
 			tagSet[tag] = true
 		}
 	}
+
 	tags := make([]string, 0, len(tagSet))
 	for tag := range tagSet {
 		tags = append(tags, tag)
 	}
+
 	sort.Strings(tags)
+
 	return tags
 }
 
-// getCanonicalTagsList returns the list of canonical tag categories
+// getCanonicalTagsList returns the list of canonical tag categories.
 func getCanonicalTagsList() []string {
 	return []string{
 		"testing", "docs", "security", "build", "performance", "linting",
@@ -1192,7 +1292,7 @@ func getCanonicalTagsList() []string {
 	}
 }
 
-// LLM timeout constants
+// LLM timeout constants.
 const (
 	llmPerFileTimeout  = 10 * time.Second                             // Timeout for each file when not batching
 	llmPerBatchTimeout = 45 * time.Second                             // Timeout per batch when batching (one call per batch)
@@ -1208,6 +1308,7 @@ func effectiveLLMBatchSize(param int) int {
 	if param > 0 {
 		return param
 	}
+
 	return llmTagBatchSize
 }
 
@@ -1215,24 +1316,30 @@ func effectiveLLMBatchSize(param int) int {
 // If there were timeouts, suggest halving; if none, suggest trying a larger batch up to total files or 50.
 func suggestNextLLMBatchSize(batchSizeUsed, llmTimeouts, totalDiscoveries int) int {
 	const maxSuggested = 50
+
 	if llmTimeouts > 0 && batchSizeUsed > llmTagBatchSize {
 		next := batchSizeUsed / 2
 		if next < llmTagBatchSize {
 			return llmTagBatchSize
 		}
+
 		return next
 	}
+
 	if llmTimeouts == 0 && totalDiscoveries > 0 {
 		// No timeouts: suggest trying larger to find ideal size
 		next := batchSizeUsed + 10
 		if next > totalDiscoveries {
 			next = totalDiscoveries
 		}
+
 		if next > maxSuggested {
 			next = maxSuggested
 		}
+
 		return next
 	}
+
 	return llmTagBatchSize
 }
 
@@ -1242,10 +1349,12 @@ func batchTimeout(batchSize int) time.Duration {
 	if batchSize <= llmTagBatchSize {
 		return base
 	}
+
 	extra := time.Duration(batchSize-llmTagBatchSize) * 2 * time.Second
 	if base+extra > 90*time.Second {
 		return 90 * time.Second
 	}
+
 	return base + extra
 }
 
@@ -1254,10 +1363,12 @@ func batchTimeout(batchSize int) time.Duration {
 func enrichTagsWithLLM(ctx context.Context, fm FMProvider, discoveries []map[string]interface{}, tasks []Todo2Task, batchSizeParam int) []map[string]interface{} {
 	batchSize := effectiveLLMBatchSize(batchSizeParam)
 	canonicalTags := getCanonicalTagsList()
+
 	projectTags := projectTagsWithCacheHints(tasks, 30)
 	if len(projectTags) > 40 {
 		projectTags = projectTags[:40]
 	}
+
 	totalCtx, totalCancel := context.WithTimeout(ctx, llmTotalTimeout)
 	defer totalCancel()
 
@@ -1267,70 +1378,88 @@ func enrichTagsWithLLM(ctx context.Context, fm FMProvider, discoveries []map[str
 			return discoveries
 		default:
 		}
+
 		end := start + batchSize
 		if end > len(discoveries) {
 			end = len(discoveries)
 		}
+
 		batch := discoveries[start:end]
 
 		prompt := buildBatchTagPrompt(batch, canonicalTags, projectTags)
 		batchCtx, batchCancel := context.WithTimeout(totalCtx, batchTimeout(len(batch)))
 		response, err := fm.Generate(batchCtx, prompt, 800, 0.2)
+
 		batchCancel()
 
 		if err != nil {
-			if batchCtx.Err() == context.DeadlineExceeded {
+			if errors.Is(batchCtx.Err(), context.DeadlineExceeded) {
 				for i := start; i < end; i++ {
 					discoveries[i]["llm_timeout"] = true
 				}
 			}
+
 			continue
 		}
 
 		suggestionsByFile := parseBatchTagResponse(response)
+
 		for i, discovery := range batch {
 			file, _ := discovery["file"].(string)
 			existingTags, _ := discovery["tags"].([]string)
+
 			suggestedTags := suggestionsByFile[file]
 			if len(suggestedTags) == 0 {
 				continue
 			}
+
 			if discoveries[start+i]["llm_suggestions"] == nil {
 				discoveries[start+i]["llm_suggestions"] = suggestedTags
 			}
+
 			allTags := append(existingTags, suggestedTags...)
 			seen := make(map[string]bool)
 			uniqueTags := []string{}
+
 			for _, tag := range allTags {
 				if !seen[tag] {
 					seen[tag] = true
+
 					uniqueTags = append(uniqueTags, tag)
 				}
 			}
+
 			discoveries[start+i]["tags"] = uniqueTags
 		}
 	}
+
 	return discoveries
 }
 
 // buildBatchTagPrompt builds one concise prompt for a batch of files (smart prompt for speed).
 func buildBatchTagPrompt(batch []map[string]interface{}, canonicalTags, projectTags []string) string {
 	var b strings.Builder
+
 	b.WriteString("Suggest 0-3 tags per file from path/context. Prefer: ")
 	b.WriteString(strings.Join(canonicalTags, ", "))
 	b.WriteString(". Project tags: ")
 	b.WriteString(strings.Join(projectTags, ", "))
 	b.WriteString(".\n\nFiles (path → existing tags):\n")
+
 	for _, d := range batch {
 		file, _ := d["file"].(string)
 		existing, _ := d["tags"].([]string)
+
 		b.WriteString(file)
 		b.WriteString(": ")
+
 		enc, _ := json.Marshal(existing)
 		b.WriteString(string(enc))
 		b.WriteString("\n")
 	}
+
 	b.WriteString("\nReturn ONLY a JSON object: {\"path\": [\"tag1\",\"tag2\"]}. No other text. Use file path as key. Empty array [] if none.")
+
 	return b.String()
 }
 
@@ -1339,13 +1468,17 @@ func buildBatchTagPrompt(batch []map[string]interface{}, canonicalTags, projectT
 // Returns the inner response string, or the original text if not in that format.
 func extractOllamaGenerateResponseText(text string) string {
 	text = strings.TrimSpace(text)
+
 	var raw map[string]interface{}
+
 	if err := json.Unmarshal([]byte(text), &raw); err != nil {
 		return text
 	}
+
 	if r, ok := raw["response"].(string); ok && r != "" {
 		return r
 	}
+
 	return text
 }
 
@@ -1364,17 +1497,24 @@ func parseTagResponseJSON(response string) map[string][]string {
 	response = strings.TrimSpace(response)
 	start := strings.Index(response, "{")
 	end := strings.LastIndex(response, "}")
+
 	if start < 0 || end <= start {
 		return nil
 	}
+
 	response = response[start : end+1]
+
 	var raw map[string]interface{}
+
 	if err := json.Unmarshal([]byte(response), &raw); err != nil {
 		return nil
 	}
+
 	out := make(map[string][]string)
+
 	for id, v := range raw {
 		var tags []string
+
 		switch arr := v.(type) {
 		case []interface{}:
 			for _, x := range arr {
@@ -1382,11 +1522,13 @@ func parseTagResponseJSON(response string) map[string][]string {
 					tags = append(tags, s)
 				}
 			}
+
 			out[id] = tags
 		case []string:
 			out[id] = arr
 		}
 	}
+
 	return out
 }
 
@@ -1403,69 +1545,87 @@ const maxTaskSnippetLen = 400
 // buildTaskBatchTagPrompt builds one prompt for a batch of tasks (title + content snippet + existing tags).
 func buildTaskBatchTagPrompt(batch []taskTagLLMBatchItem, canonicalTags, projectTags []string) string {
 	var b strings.Builder
+
 	b.WriteString("Suggest 0-3 tags per task from title and context. Prefer: ")
 	b.WriteString(strings.Join(canonicalTags, ", "))
 	b.WriteString(". Project tags: ")
 	b.WriteString(strings.Join(projectTags, ", "))
 	b.WriteString(".\n\nTasks (task_id → title, snippet, existing tags):\n")
+
 	for _, item := range batch {
 		b.WriteString(item.TaskID)
 		b.WriteString(": title=")
 		b.WriteString(item.Title)
 		b.WriteString(" snippet=")
+
 		if len(item.Snippet) > maxTaskSnippetLen {
 			b.WriteString(item.Snippet[:maxTaskSnippetLen])
 			b.WriteString("...")
 		} else {
 			b.WriteString(item.Snippet)
 		}
+
 		b.WriteString(" existing=")
+
 		enc, _ := json.Marshal(item.ExistingTags)
 		b.WriteString(string(enc))
 		b.WriteString("\n")
 	}
+
 	b.WriteString("\nReturn ONLY a JSON object: {\"T-123\": [\"tag1\",\"tag2\"]}. Use task_id as key. No other text. Empty array [] if none.")
+
 	return b.String()
 }
 
 // buildTaskBatchTagPromptMatchOnly builds a short prompt for quick FM inference: pick 0-3 tags only from allowed list (no free-form).
 func buildTaskBatchTagPromptMatchOnly(batch []taskTagLLMBatchItem, allowedTags []string) string {
 	var b strings.Builder
+
 	b.WriteString("Pick 0-3 tags per task from this list only: ")
 	b.WriteString(strings.Join(allowedTags, ", "))
 	b.WriteString(".\n\nTasks (task_id, title, snippet):\n")
+
 	for _, item := range batch {
 		b.WriteString(item.TaskID)
 		b.WriteString(": ")
 		b.WriteString(item.Title)
 		b.WriteString(" | ")
+
 		snippet := item.Snippet
 		if len(snippet) > 200 {
 			snippet = snippet[:200] + "..."
 		}
+
 		b.WriteString(snippet)
 		b.WriteString("\n")
 	}
+
 	b.WriteString("\nReturn ONLY JSON: {\"T-123\": [\"tag1\",\"tag2\"]}. Use task_id as key. Only tags from the list. Empty [] if none.")
+
 	return b.String()
 }
 
 // filterSuggestionsToAllowed keeps only tags that are in the allowed set (for match_existing_only).
 func filterSuggestionsToAllowed(suggestionsByTask map[string][]string, allowed map[string]bool) map[string][]string {
 	out := make(map[string][]string)
+
 	for taskID, tags := range suggestionsByTask {
 		filtered := make([]string, 0, len(tags))
+
 		seen := make(map[string]bool)
 		for _, tag := range tags {
 			if allowed[tag] && !seen[tag] {
 				seen[tag] = true
+
 				filtered = append(filtered, tag)
 			}
 		}
+
 		if len(filtered) > 0 {
 			out[taskID] = filtered
 		}
 	}
+
 	return out
 }
 
@@ -1483,44 +1643,56 @@ type llmTagProfile struct {
 func enrichTaskTagSuggestionsWithLLM(ctx context.Context, tasks []Todo2Task, analysis *TagAnalysis, batchSizeParam int, matchExistingOnly bool, useTinyTagModel bool) (method string, processed int, profile llmTagProfile) {
 	batchSize := effectiveLLMBatchSize(batchSizeParam)
 	canonicalTags := getCanonicalTagsList()
+
 	projectTags := projectTagsWithCacheHints(tasks, 30)
 	if len(projectTags) > 40 {
 		projectTags = projectTags[:40]
 	}
+
 	allowedSet := make(map[string]bool)
 	for _, t := range canonicalTags {
 		allowedSet[t] = true
 	}
+
 	for _, t := range projectTags {
 		allowedSet[t] = true
 	}
+
 	const totalTimeout = 120 * time.Second
+
 	totalCtx, cancel := context.WithTimeout(ctx, totalTimeout)
 	defer cancel()
 
 	// Build flat list of task batch items (title, snippet, existing = Tags + TagSuggestions + cached suggestions)
 	items := make([]taskTagLLMBatchItem, 0, len(tasks))
+
 	for _, t := range tasks {
 		existing := make(map[string]bool)
 		for _, tag := range t.Tags {
 			existing[tag] = true
 		}
+
 		for _, tag := range analysis.TagSuggestions[t.ID] {
 			existing[tag] = true
 		}
+
 		cached, _ := database.GetTaskTagSuggestions(t.ID)
 		for _, tag := range cached {
 			existing[tag] = true
 		}
+
 		existingList := make([]string, 0, len(existing))
 		for tag := range existing {
 			existingList = append(existingList, tag)
 		}
+
 		sort.Strings(existingList)
+
 		snippet := strings.TrimSpace(t.LongDescription)
 		if snippet == "" {
 			snippet = t.Content
 		}
+
 		items = append(items, taskTagLLMBatchItem{
 			TaskID:       t.ID,
 			Title:        t.Content,
@@ -1533,18 +1705,23 @@ func enrichTaskTagSuggestionsWithLLM(ctx context.Context, tasks []Todo2Task, ana
 		if matchExistingOnly {
 			suggestionsByTask = filterSuggestionsToAllowed(suggestionsByTask, allowedSet)
 		}
+
 		for taskID, suggested := range suggestionsByTask {
 			if len(suggested) == 0 {
 				continue
 			}
+
 			processed++
+
 			existingSet := make(map[string]bool)
 			for _, tag := range analysis.TagSuggestions[taskID] {
 				existingSet[tag] = true
 			}
+
 			for _, tag := range suggested {
 				if !existingSet[tag] {
 					existingSet[tag] = true
+
 					analysis.TagSuggestions[taskID] = append(analysis.TagSuggestions[taskID], tag)
 				}
 			}
@@ -1558,31 +1735,39 @@ func enrichTaskTagSuggestionsWithLLM(ctx context.Context, tasks []Todo2Task, ana
 		ollama := DefaultOllama()
 		if ollama != nil {
 			tinyProcessed := 0
+
 			for start := 0; start < len(items); start += batchSize {
 				select {
 				case <-totalCtx.Done():
 					profile.TotalMs = time.Since(llmStart).Milliseconds()
 					profile.Batches = len(profile.PerBatchMs)
+
 					return "ollama", processed, profile
 				default:
 				}
+
 				end := start + batchSize
 				if end > len(items) {
 					end = len(items)
 				}
+
 				batch := items[start:end]
 				batchStart := time.Now()
+
 				var prompt string
+
 				if matchExistingOnly {
 					allowedList := make([]string, 0, len(allowedSet))
 					for tag := range allowedSet {
 						allowedList = append(allowedList, tag)
 					}
+
 					sort.Strings(allowedList)
 					prompt = buildTaskBatchTagPromptMatchOnly(batch, allowedList)
 				} else {
 					prompt = buildTaskBatchTagPrompt(batch, canonicalTags, projectTags)
 				}
+
 				batchCtx, batchCancel := context.WithTimeout(totalCtx, batchTimeout(len(batch)))
 				result, err := ollama.Invoke(batchCtx, map[string]interface{}{
 					"action":      "generate",
@@ -1591,52 +1776,68 @@ func enrichTaskTagSuggestionsWithLLM(ctx context.Context, tasks []Todo2Task, ana
 					"max_tokens":  llmTagMaxTokens,
 					"temperature": 0.2,
 				})
+
 				batchCancel()
+
 				profile.PerBatchMs = append(profile.PerBatchMs, time.Since(batchStart).Milliseconds())
+
 				if err != nil || len(result) == 0 {
 					continue
 				}
+
 				response := extractOllamaGenerateResponseText(result[0].Text)
 				mergeSuggestions(parseTaskTagResponse(response))
+
 				tinyProcessed++
 			}
+
 			if tinyProcessed > 0 {
 				profile.TotalMs = time.Since(llmStart).Milliseconds()
 				profile.Batches = len(profile.PerBatchMs)
+
 				return "ollama", processed, profile
 			}
 		}
 		// Try MLX with TinyLlama (reset profile so we only report MLX times)
 		profile = llmTagProfile{}
 		mlxProcessed := 0
+
 		for start := 0; start < len(items); start += batchSize {
 			select {
 			case <-totalCtx.Done():
 				profile.TotalMs = time.Since(llmStart).Milliseconds()
 				profile.Batches = len(profile.PerBatchMs)
+
 				if mlxProcessed > 0 {
 					return "mlx", processed, profile
 				}
+
 				goto fallthroughTiny
 			default:
 			}
+
 			end := start + batchSize
 			if end > len(items) {
 				end = len(items)
 			}
+
 			batch := items[start:end]
 			batchStart := time.Now()
+
 			var prompt string
+
 			if matchExistingOnly {
 				allowedList := make([]string, 0, len(allowedSet))
 				for tag := range allowedSet {
 					allowedList = append(allowedList, tag)
 				}
+
 				sort.Strings(allowedList)
 				prompt = buildTaskBatchTagPromptMatchOnly(batch, allowedList)
 			} else {
 				prompt = buildTaskBatchTagPrompt(batch, canonicalTags, projectTags)
 			}
+
 			batchCtx, batchCancel := context.WithTimeout(totalCtx, batchTimeout(len(batch)))
 			raw, err := InvokeMLXTool(batchCtx, map[string]interface{}{
 				"action":      "generate",
@@ -1645,25 +1846,34 @@ func enrichTaskTagSuggestionsWithLLM(ctx context.Context, tasks []Todo2Task, ana
 				"max_tokens":  llmTagMaxTokens,
 				"temperature": 0.2,
 			})
+
 			batchCancel()
+
 			profile.PerBatchMs = append(profile.PerBatchMs, time.Since(batchStart).Milliseconds())
+
 			if err != nil {
 				continue
 			}
+
 			response, err := parseGeneratedTextFromMLXResponse(raw)
 			if err != nil || response == "" {
 				continue
 			}
+
 			mergeSuggestions(parseTaskTagResponse(response))
+
 			mlxProcessed++
 		}
+
 		if mlxProcessed > 0 {
 			profile.TotalMs = time.Since(llmStart).Milliseconds()
 			profile.Batches = len(profile.PerBatchMs)
+
 			return "mlx", processed, profile
 		}
 	fallthroughTiny:
 		// Tiny path failed; fall through to ModelRouter (FM → Ollama → MLX)
+
 	}
 
 	// Use DefaultModelRouter for tag enrichment: FM chain, then Ollama, then MLX.
@@ -1676,37 +1886,50 @@ func enrichTaskTagSuggestionsWithLLM(ctx context.Context, tasks []Todo2Task, ana
 		case <-totalCtx.Done():
 			profile.TotalMs = time.Since(llmStart).Milliseconds()
 			profile.Batches = len(profile.PerBatchMs)
+
 			return method, processed, profile
 		default:
 		}
+
 		end := start + batchSize
 		if end > len(items) {
 			end = len(items)
 		}
+
 		batch := items[start:end]
 		batchStart := time.Now()
+
 		var prompt string
+
 		if matchExistingOnly {
 			allowedList := make([]string, 0, len(allowedSet))
 			for tag := range allowedSet {
 				allowedList = append(allowedList, tag)
 			}
+
 			sort.Strings(allowedList)
 			prompt = buildTaskBatchTagPromptMatchOnly(batch, allowedList)
 		} else {
 			prompt = buildTaskBatchTagPrompt(batch, canonicalTags, projectTags)
 		}
+
 		batchCtx, batchCancel := context.WithTimeout(totalCtx, batchTimeout(len(batch)))
 		response, err := DefaultModelRouter.Generate(batchCtx, model, prompt, llmTagMaxTokens, 0.2)
+
 		batchCancel()
+
 		profile.PerBatchMs = append(profile.PerBatchMs, time.Since(batchStart).Milliseconds())
+
 		if err != nil {
 			continue
 		}
+
 		mergeSuggestions(parseTaskTagResponse(response))
 	}
+
 	profile.TotalMs = time.Since(llmStart).Milliseconds()
 	profile.Batches = len(profile.PerBatchMs)
+
 	return method, processed, profile
 }
 
@@ -1729,10 +1952,12 @@ func modelTypeToMethodString(m ModelType) string {
 func enrichTagsWithOllama(ctx context.Context, ollama OllamaProvider, discoveries []map[string]interface{}, tasks []Todo2Task, batchSizeParam int) []map[string]interface{} {
 	batchSize := effectiveLLMBatchSize(batchSizeParam)
 	canonicalTags := getCanonicalTagsList()
+
 	projectTags := projectTagsWithCacheHints(tasks, 30)
 	if len(projectTags) > 40 {
 		projectTags = projectTags[:40]
 	}
+
 	totalCtx, totalCancel := context.WithTimeout(ctx, llmTotalTimeout)
 	defer totalCancel()
 
@@ -1742,10 +1967,12 @@ func enrichTagsWithOllama(ctx context.Context, ollama OllamaProvider, discoverie
 			return discoveries
 		default:
 		}
+
 		end := start + batchSize
 		if end > len(discoveries) {
 			end = len(discoveries)
 		}
+
 		batch := discoveries[start:end]
 
 		prompt := buildBatchTagPrompt(batch, canonicalTags, projectTags)
@@ -1756,50 +1983,61 @@ func enrichTagsWithOllama(ctx context.Context, ollama OllamaProvider, discoverie
 			"max_tokens":  800,
 			"temperature": 0.2,
 		})
+
 		batchCancel()
 
 		if err != nil || len(result) == 0 {
-			if batchCtx.Err() == context.DeadlineExceeded {
+			if errors.Is(batchCtx.Err(), context.DeadlineExceeded) {
 				for i := start; i < end; i++ {
 					discoveries[i]["llm_timeout"] = true
 				}
 			}
+
 			continue
 		}
 
 		response := extractOllamaGenerateResponseText(result[0].Text)
 		suggestionsByFile := parseBatchTagResponse(response)
+
 		for i, discovery := range batch {
 			file, _ := discovery["file"].(string)
 			existingTags, _ := discovery["tags"].([]string)
+
 			suggestedTags := suggestionsByFile[file]
 			if len(suggestedTags) == 0 {
 				continue
 			}
+
 			if discoveries[start+i]["llm_suggestions"] == nil {
 				discoveries[start+i]["llm_suggestions"] = suggestedTags
 			}
+
 			allTags := append(existingTags, suggestedTags...)
 			seen := make(map[string]bool)
 			uniqueTags := []string{}
+
 			for _, tag := range allTags {
 				if !seen[tag] {
 					seen[tag] = true
+
 					uniqueTags = append(uniqueTags, tag)
 				}
 			}
+
 			discoveries[start+i]["tags"] = uniqueTags
 		}
 	}
+
 	return discoveries
 }
 
-// matchDiscoveredTagsToTasks matches discovered tags from files to related tasks
+// matchDiscoveredTagsToTasks matches discovered tags from files to related tasks.
 func matchDiscoveredTagsToTasks(discoveries []map[string]interface{}, tasks []Todo2Task) map[string][]string {
 	matches := make(map[string][]string)
 
 	for _, discovery := range discoveries {
 		file, _ := discovery["file"].(string)
+
 		tags, ok := discovery["tags"].([]string)
 		if !ok {
 			continue
@@ -1827,6 +2065,7 @@ func matchDiscoveredTagsToTasks(discoveries []map[string]interface{}, tasks []To
 			if matched {
 				// Apply canonical rules to discovered tags
 				canonicalRules := CanonicalTagRules()
+
 				for _, tag := range tags {
 					finalTag := tag
 					if newTag, exists := canonicalRules[tag]; exists && newTag != "" {
@@ -1834,12 +2073,14 @@ func matchDiscoveredTagsToTasks(discoveries []map[string]interface{}, tasks []To
 					}
 					// Check if task already has this tag
 					hasTag := false
+
 					for _, existingTag := range task.Tags {
 						if existingTag == finalTag {
 							hasTag = true
 							break
 						}
 					}
+
 					if !hasTag {
 						matches[task.ID] = append(matches[task.ID], finalTag)
 					}
@@ -1852,28 +2093,33 @@ func matchDiscoveredTagsToTasks(discoveries []map[string]interface{}, tasks []To
 	for taskID, tags := range matches {
 		seen := make(map[string]bool)
 		unique := []string{}
+
 		for _, tag := range tags {
 			if !seen[tag] {
 				seen[tag] = true
+
 				unique = append(unique, tag)
 			}
 		}
+
 		matches[taskID] = unique
 	}
 
 	return matches
 }
 
-// handleTaskAnalysisDependencies handles dependency analysis
+// handleTaskAnalysisDependencies handles dependency analysis.
 func handleTaskAnalysisDependencies(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	store, err := getTaskStore(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get task store: %w", err)
 	}
+
 	list, err := store.ListTasks(ctx, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load tasks: %w", err)
 	}
+
 	tasks := tasksFromPtrs(list)
 
 	cycles, missing, err := GetDependencyAnalysisFromTasks(tasks)
@@ -1886,11 +2132,14 @@ func handleTaskAnalysisDependencies(ctx context.Context, params map[string]inter
 	if err != nil {
 		return nil, fmt.Errorf("failed to build task graph: %w", err)
 	}
+
 	graph := buildLegacyGraphFormat(tg)
 
 	// Calculate critical path from backlog only (exclude Done by default)
 	var criticalPath []string
+
 	var criticalPathDetails []map[string]interface{}
+
 	maxLevel := 0
 
 	tgBacklog, err := BuildTaskGraphBacklogOnly(tasks)
@@ -1914,6 +2163,7 @@ func handleTaskAnalysisDependencies(ctx context.Context, params map[string]inter
 								"dependencies":       task.Dependencies,
 								"dependencies_count": len(task.Dependencies),
 							})
+
 							break
 						}
 					}
@@ -1963,39 +2213,51 @@ func handleTaskAnalysisDependencies(ctx context.Context, params map[string]inter
 				return nil, fmt.Errorf("failed to create output dir: %w", err)
 			}
 		}
+
 		resultJSON, _ := json.Marshal(result)
 		resp := &proto.TaskAnalysisResponse{Action: "dependencies", OutputPath: outputPath, ResultJson: string(resultJSON)}
+
 		return response.FormatResult(TaskAnalysisResponseToMap(resp), resp.GetOutputPath())
 	}
+
 	output := formatDependencyAnalysisText(result)
+
 	if outputPath != "" {
 		if err := os.MkdirAll(filepath.Dir(outputPath), 0755); err != nil {
 			return nil, fmt.Errorf("failed to create output dir: %w", err)
 		}
+
 		if err := os.WriteFile(outputPath, []byte(output), 0644); err != nil {
 			return nil, fmt.Errorf("failed to save result: %w", err)
 		}
+
 		output += fmt.Sprintf("\n\n[Saved to: %s]", outputPath)
 	}
+
 	return []framework.TextContent{{Type: "text", Text: output}}, nil
 }
 
 // handleTaskAnalysisDependenciesSummary combines dependencies, parallelization, and execution_plan (T-227).
 func handleTaskAnalysisDependenciesSummary(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	var parts []string
+
 	deps, err := handleTaskAnalysisDependencies(ctx, params)
 	if err == nil && len(deps) > 0 {
 		parts = append(parts, "## Dependency Analysis\n"+deps[0].Text)
 	}
+
 	par, err := handleTaskAnalysisParallelization(ctx, params)
 	if err == nil && len(par) > 0 {
 		parts = append(parts, "## Parallelization\n"+par[0].Text)
 	}
+
 	plan, err := handleTaskAnalysisExecutionPlan(ctx, params)
 	if err == nil && len(plan) > 0 {
 		parts = append(parts, "## Execution Plan\n"+plan[0].Text)
 	}
+
 	report := "# Task Dependencies Summary\n\n" + strings.Join(parts, "\n\n")
+
 	return []framework.TextContent{{Type: "text", Text: report}}, nil
 }
 
@@ -2005,24 +2267,29 @@ func handleTaskAnalysisExecutionPlan(ctx context.Context, params map[string]inte
 	if err != nil {
 		return nil, fmt.Errorf("failed to find project root: %w", err)
 	}
+
 	store, err := getTaskStore(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get task store: %w", err)
 	}
+
 	list, err := store.ListTasks(ctx, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load tasks: %w", err)
 	}
+
 	tasks := tasksFromPtrs(list)
 
 	// Optional tag filter: restrict backlog to tasks with filter_tag or any of filter_tags
 	var backlogFilter map[string]bool
 	if ft, ok := params["filter_tag"].(string); ok && ft != "" {
 		backlogFilter = make(map[string]bool)
+
 		for _, t := range tasks {
 			if !IsBacklogStatus(t.Status) {
 				continue
 			}
+
 			for _, tag := range t.Tags {
 				if tag == ft {
 					backlogFilter[t.ID] = true
@@ -2035,11 +2302,14 @@ func handleTaskAnalysisExecutionPlan(ctx context.Context, params map[string]inte
 		for i := range allowed {
 			allowed[i] = strings.TrimSpace(allowed[i])
 		}
+
 		backlogFilter = make(map[string]bool)
+
 		for _, t := range tasks {
 			if !IsBacklogStatus(t.Status) {
 				continue
 			}
+
 			for _, tag := range t.Tags {
 				for _, a := range allowed {
 					if a != "" && tag == a {
@@ -2047,12 +2317,14 @@ func handleTaskAnalysisExecutionPlan(ctx context.Context, params map[string]inte
 						break
 					}
 				}
+
 				if backlogFilter[t.ID] {
 					break
 				}
 			}
 		}
 	}
+
 	orderedIDs, waves, details, err := BacklogExecutionOrder(tasks, backlogFilter)
 	if err != nil {
 		return nil, fmt.Errorf("execution order: %w", err)
@@ -2063,6 +2335,7 @@ func handleTaskAnalysisExecutionPlan(ctx context.Context, params map[string]inte
 	if l, ok := params["limit"].(float64); ok && l > 0 {
 		limit = int(l)
 	}
+
 	if limit > 0 && len(orderedIDs) > limit {
 		orderedIDs = orderedIDs[:limit]
 		// Trim details to match
@@ -2092,19 +2365,25 @@ func handleTaskAnalysisExecutionPlan(ctx context.Context, params map[string]inte
 				return nil, fmt.Errorf("failed to create output dir: %w", err)
 			}
 		}
+
 		resultJSON, _ := json.Marshal(result)
 		resp := &proto.TaskAnalysisResponse{Action: "execution_plan", OutputPath: outputPath, ResultJson: string(resultJSON)}
+
 		return response.FormatResult(TaskAnalysisResponseToMap(resp), resp.GetOutputPath())
 	}
+
 	output := formatExecutionPlanText(result)
+
 	if outputPath != "" {
 		if err := os.MkdirAll(filepath.Dir(outputPath), 0755); err != nil {
 			return nil, fmt.Errorf("failed to create output dir: %w", err)
 		}
+
 		if strings.HasSuffix(strings.ToLower(outputPath), ".md") {
 			if !strings.HasSuffix(strings.ToLower(outputPath), ".plan.md") {
 				outputPath = outputPath[:len(outputPath)-3] + ".plan.md"
 			}
+
 			md := formatExecutionPlanMarkdown(result, projectRoot)
 			if err := os.WriteFile(outputPath, []byte(md), 0644); err != nil {
 				return nil, fmt.Errorf("failed to save markdown: %w", err)
@@ -2114,43 +2393,56 @@ func handleTaskAnalysisExecutionPlan(ctx context.Context, params map[string]inte
 				return nil, fmt.Errorf("failed to save result: %w", err)
 			}
 		}
+
 		output += fmt.Sprintf("\n\n[Saved to: %s]", outputPath)
 	}
+
 	return []framework.TextContent{{Type: "text", Text: output}}, nil
 }
 
 func formatExecutionPlanText(result map[string]interface{}) string {
 	var sb strings.Builder
+
 	sb.WriteString("Backlog execution order\n")
 	sb.WriteString(strings.Repeat("-", 40) + "\n")
+
 	if ids, ok := result["ordered_task_ids"].([]string); ok {
 		for i, id := range ids {
 			sb.WriteString(fmt.Sprintf("%d. %s\n", i+1, id))
 		}
 	}
+
 	return sb.String()
 }
 
 func formatExecutionPlanMarkdown(result map[string]interface{}, projectRoot string) string {
 	var sb strings.Builder
+
 	sb.WriteString("# Backlog Execution Plan\n\n")
 	sb.WriteString(fmt.Sprintf("**Generated:** %s\n\n", fmtTime(time.Now())))
+
 	if count, ok := result["backlog_count"].(int); ok {
 		sb.WriteString(fmt.Sprintf("**Backlog:** %d tasks (Todo + In Progress)\n\n", count))
 	}
+
 	if w, ok := result["waves"].(map[int][]string); ok && len(w) > 0 {
 		sb.WriteString(fmt.Sprintf("**Waves:** %d dependency levels\n\n", len(w)))
+
 		details, _ := result["details"].([]BacklogTaskDetail)
+
 		levelOrder := make([]int, 0, len(w))
 		for k := range w {
 			levelOrder = append(levelOrder, k)
 		}
+
 		sort.Ints(levelOrder)
+
 		for _, level := range levelOrder {
 			ids := w[level]
 			sb.WriteString(fmt.Sprintf("## Wave %d\n\n", level))
 			sb.WriteString("| ID | Content | Priority | Tags |\n")
 			sb.WriteString("|----|--------|----------|------|\n")
+
 			for _, id := range ids {
 				for _, d := range details {
 					if d.ID == id {
@@ -2158,23 +2450,30 @@ func formatExecutionPlanMarkdown(result map[string]interface{}, projectRoot stri
 						if len(content) > 60 {
 							content = content[:57] + "..."
 						}
+
 						tagsStr := strings.Join(d.Tags, ", ")
 						if tagsStr == "" {
 							tagsStr = "-"
 						}
+
 						sb.WriteString(fmt.Sprintf("| %s | %s | %s | %s |\n", d.ID, content, d.Priority, tagsStr))
+
 						break
 					}
 				}
 			}
+
 			sb.WriteString("\n")
 		}
 	}
+
 	sb.WriteString("## Full order\n\n")
+
 	if ids, ok := result["ordered_task_ids"].([]string); ok {
 		sb.WriteString(strings.Join(ids, ", "))
 		sb.WriteString("\n")
 	}
+
 	return sb.String()
 }
 
@@ -2188,6 +2487,7 @@ func handleTaskAnalysisComplexity(ctx context.Context, params map[string]interfa
 	if err != nil {
 		return nil, fmt.Errorf("failed to get task store: %w", err)
 	}
+
 	list, err := store.ListTasks(ctx, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load tasks: %w", err)
@@ -2195,7 +2495,9 @@ func handleTaskAnalysisComplexity(ctx context.Context, params map[string]interfa
 
 	// Optional: filter to backlog only
 	statusFilter := params["status_filter"]
+
 	var tasks []Todo2Task
+
 	if sf, ok := statusFilter.(string); ok && sf != "" {
 		for _, t := range list {
 			if t != nil && t.Status == sf {
@@ -2207,6 +2509,7 @@ func handleTaskAnalysisComplexity(ctx context.Context, params map[string]interfa
 	}
 
 	classifications := make([]map[string]interface{}, 0, len(tasks))
+
 	for _, t := range tasks {
 		taskPtr := &t
 		r := taskanalysis.AnalyzeTask(taskPtr)
@@ -2230,19 +2533,22 @@ func handleTaskAnalysisComplexity(ctx context.Context, params map[string]interfa
 	outputPath, _ := params["output_path"].(string)
 	resultJSON, _ := json.Marshal(result)
 	resp := &proto.TaskAnalysisResponse{Action: "complexity", OutputPath: outputPath, ResultJson: string(resultJSON)}
+
 	return response.FormatResult(TaskAnalysisResponseToMap(resp), resp.GetOutputPath())
 }
 
-// handleTaskAnalysisParallelization handles parallelization analysis
+// handleTaskAnalysisParallelization handles parallelization analysis.
 func handleTaskAnalysisParallelization(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	store, err := getTaskStore(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get task store: %w", err)
 	}
+
 	list, err := store.ListTasks(ctx, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load tasks: %w", err)
 	}
+
 	tasks := tasksFromPtrs(list)
 
 	durationWeight := 0.3
@@ -2277,20 +2583,27 @@ func handleTaskAnalysisParallelization(ctx context.Context, params map[string]in
 				return nil, fmt.Errorf("failed to create output dir: %w", err)
 			}
 		}
+
 		resultJSON, _ := json.Marshal(result)
 		resp := &proto.TaskAnalysisResponse{Action: "parallelization", OutputPath: outputPath, ResultJson: string(resultJSON)}
+
 		return response.FormatResult(TaskAnalysisResponseToMap(resp), resp.GetOutputPath())
 	}
+
 	output := formatParallelizationAnalysisText(result)
+
 	if outputPath != "" {
 		if err := os.MkdirAll(filepath.Dir(outputPath), 0755); err != nil {
 			return nil, fmt.Errorf("failed to create output dir: %w", err)
 		}
+
 		if err := os.WriteFile(outputPath, []byte(output), 0644); err != nil {
 			return nil, fmt.Errorf("failed to save result: %w", err)
 		}
+
 		output += fmt.Sprintf("\n\n[Saved to: %s]", outputPath)
 	}
+
 	return []framework.TextContent{{Type: "text", Text: output}}, nil
 }
 
@@ -2301,10 +2614,12 @@ func handleTaskAnalysisFixMissingDeps(ctx context.Context, params map[string]int
 	if err != nil {
 		return nil, fmt.Errorf("failed to get task store: %w", err)
 	}
+
 	list, err := store.ListTasks(ctx, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load tasks: %w", err)
 	}
+
 	tasks := tasksFromPtrs(list)
 
 	tg, err := BuildTaskGraph(tasks)
@@ -2321,32 +2636,41 @@ func handleTaskAnalysisFixMissingDeps(ctx context.Context, params map[string]int
 		}
 		resultJSON, _ := json.Marshal(out)
 		resp := &proto.TaskAnalysisResponse{Action: "fix_missing_deps", ResultJson: string(resultJSON)}
+
 		return response.FormatResult(TaskAnalysisResponseToMap(resp), resp.GetOutputPath())
 	}
 
 	// Per task, collect missing dep IDs to remove
 	missingDepsByTask := make(map[string]map[string]struct{})
+
 	for _, m := range missing {
 		tid, _ := m["task_id"].(string)
 		dep, _ := m["missing_dep"].(string)
+
 		if tid == "" || dep == "" {
 			continue
 		}
+
 		if missingDepsByTask[tid] == nil {
 			missingDepsByTask[tid] = make(map[string]struct{})
 		}
+
 		missingDepsByTask[tid][dep] = struct{}{}
 	}
 
 	// Remove all invalid deps from each task in one pass
 	fixed := 0
+
 	for i := range tasks {
 		t := &tasks[i]
+
 		toRemove := missingDepsByTask[t.ID]
 		if len(toRemove) == 0 {
 			continue
 		}
+
 		newDeps := make([]string, 0, len(t.Dependencies))
+
 		for _, d := range t.Dependencies {
 			if _, remove := toRemove[d]; remove {
 				fixed++
@@ -2354,6 +2678,7 @@ func handleTaskAnalysisFixMissingDeps(ctx context.Context, params map[string]int
 				newDeps = append(newDeps, d)
 			}
 		}
+
 		t.Dependencies = newDeps
 	}
 
@@ -2375,6 +2700,7 @@ func handleTaskAnalysisFixMissingDeps(ctx context.Context, params map[string]int
 	}
 	resultJSON, _ := json.Marshal(result)
 	resp := &proto.TaskAnalysisResponse{Action: "fix_missing_deps", ResultJson: string(resultJSON)}
+
 	return response.FormatResult(TaskAnalysisResponseToMap(resp), resp.GetOutputPath())
 }
 
@@ -2385,10 +2711,12 @@ func handleTaskAnalysisValidate(ctx context.Context, params map[string]interface
 	if err != nil {
 		return nil, fmt.Errorf("failed to get task store: %w", err)
 	}
+
 	list, err := store.ListTasks(ctx, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load tasks: %w", err)
 	}
+
 	tasks := tasksFromPtrs(list)
 
 	tg, err := BuildTaskGraph(tasks)
@@ -2409,6 +2737,7 @@ func handleTaskAnalysisValidate(ctx context.Context, params map[string]interface
 	if h, ok := params["include_hierarchy"].(bool); ok {
 		includeHierarchy = h
 	}
+
 	if includeHierarchy && FMAvailable() {
 		hierResult, err := handleTaskAnalysisHierarchy(ctx, params)
 		if err == nil && len(hierResult) > 0 {
@@ -2427,6 +2756,7 @@ func handleTaskAnalysisValidate(ctx context.Context, params map[string]interface
 
 	resultJSON, _ := json.Marshal(result)
 	resp := &proto.TaskAnalysisResponse{Action: "validate", ResultJson: string(resultJSON)}
+
 	return response.FormatResult(TaskAnalysisResponseToMap(resp), resp.GetOutputPath())
 }
 
@@ -2443,7 +2773,7 @@ func findDuplicateTasks(tasks []Todo2Task, threshold float64) [][]string {
 }
 
 // findDuplicateTasksSequential is the original sequential implementation
-// Optimized for small datasets where parallel overhead isn't worth it
+// Optimized for small datasets where parallel overhead isn't worth it.
 func findDuplicateTasksSequential(tasks []Todo2Task, threshold float64) [][]string {
 	duplicates := [][]string{}
 	processed := make(map[string]bool)
@@ -2454,6 +2784,7 @@ func findDuplicateTasksSequential(tasks []Todo2Task, threshold float64) [][]stri
 		}
 
 		group := []string{task1.ID}
+
 		for j := i + 1; j < len(tasks); j++ {
 			task2 := tasks[j]
 			if processed[task2.ID] {
@@ -2477,9 +2808,10 @@ func findDuplicateTasksSequential(tasks []Todo2Task, threshold float64) [][]stri
 }
 
 // findDuplicateTasksParallel uses worker pool for parallel duplicate detection
-// Optimized for large datasets (>100 tasks)
+// Optimized for large datasets (>100 tasks).
 func findDuplicateTasksParallel(tasks []Todo2Task, threshold float64) [][]string {
 	const numWorkers = 4 // Adjust based on CPU cores
+
 	if len(tasks) == 0 {
 		return [][]string{}
 	}
@@ -2503,12 +2835,16 @@ func findDuplicateTasksParallel(tasks []Todo2Task, threshold float64) [][]string
 	var wg sync.WaitGroup
 	for w := 0; w < numWorkers; w++ {
 		wg.Add(1)
+
 		go func() {
 			defer wg.Done()
+
 			for pair := range taskPairs {
 				task1 := pair.task1
+
 				for j := pair.i + 1; j < len(tasks); j++ {
 					task2 := tasks[j]
+
 					similarity := calculateSimilarity(task1, task2)
 					if similarity >= threshold {
 						results <- similarityResult{
@@ -2525,6 +2861,7 @@ func findDuplicateTasksParallel(tasks []Todo2Task, threshold float64) [][]string
 	// Send all task pairs to workers
 	go func() {
 		defer close(taskPairs)
+
 		for i, task1 := range tasks {
 			taskPairs <- taskPair{i: i, task1: task1}
 		}
@@ -2545,6 +2882,7 @@ func findDuplicateTasksParallel(tasks []Todo2Task, threshold float64) [][]string
 			if duplicateMap[result.i] == nil {
 				duplicateMap[result.i] = []int{result.i}
 			}
+
 			duplicateMap[result.i] = append(duplicateMap[result.i], result.j)
 			processed[tasks[result.j].ID] = true
 		}
@@ -2552,12 +2890,14 @@ func findDuplicateTasksParallel(tasks []Todo2Task, threshold float64) [][]string
 
 	// Build duplicate groups
 	duplicates := [][]string{}
+
 	for i, group := range duplicateMap {
 		if len(group) > 1 && !processed[tasks[i].ID] {
 			groupIDs := make([]string, len(group))
 			for idx, taskIdx := range group {
 				groupIDs[idx] = tasks[taskIdx].ID
 			}
+
 			duplicates = append(duplicates, groupIDs)
 			processed[tasks[i].ID] = true
 		}
@@ -2577,6 +2917,7 @@ func calculateSimilarity(task1, task2 Todo2Task) float64 {
 	if len(words1) == 0 && len(words2) == 0 {
 		return 1.0
 	}
+
 	if len(words1) == 0 || len(words2) == 0 {
 		return 0.0
 	}
@@ -2588,6 +2929,7 @@ func calculateSimilarity(task1, task2 Todo2Task) float64 {
 	}
 
 	common := 0
+
 	for _, word := range words2 {
 		if wordSet1[word] {
 			common++
@@ -2612,7 +2954,9 @@ func mergeDuplicateTasks(tasks []Todo2Task, duplicates [][]string) []Todo2Task {
 		if len(group) == 0 {
 			continue
 		}
+
 		keepMap[group[0]] = true
+
 		for i := 1; i < len(group); i++ {
 			removeMap[group[i]] = true
 		}
@@ -2628,7 +2972,9 @@ func mergeDuplicateTasks(tasks []Todo2Task, duplicates [][]string) []Todo2Task {
 		if len(group) < 2 {
 			continue
 		}
+
 		primary := taskMap[group[0]]
+
 		for i := 1; i < len(group); i++ {
 			secondary := taskMap[group[i]]
 			// Merge tags
@@ -2636,6 +2982,7 @@ func mergeDuplicateTasks(tasks []Todo2Task, duplicates [][]string) []Todo2Task {
 			for _, tag := range primary.Tags {
 				tagSet[tag] = true
 			}
+
 			for _, tag := range secondary.Tags {
 				if !tagSet[tag] {
 					primary.Tags = append(primary.Tags, tag)
@@ -2646,6 +2993,7 @@ func mergeDuplicateTasks(tasks []Todo2Task, duplicates [][]string) []Todo2Task {
 			for _, dep := range primary.Dependencies {
 				depSet[dep] = true
 			}
+
 			for _, dep := range secondary.Dependencies {
 				if !depSet[dep] {
 					primary.Dependencies = append(primary.Dependencies, dep)
@@ -2656,6 +3004,7 @@ func mergeDuplicateTasks(tasks []Todo2Task, duplicates [][]string) []Todo2Task {
 
 	// Remove duplicate tasks
 	result := []Todo2Task{}
+
 	for _, task := range tasks {
 		if !removeMap[task.ID] {
 			result = append(result, task)
@@ -2684,6 +3033,7 @@ func analyzeTags(tasks []Todo2Task) TagAnalysis {
 	}
 
 	tagSet := make(map[string]bool)
+
 	for _, task := range tasks {
 		for _, tag := range task.Tags {
 			analysis.TagFrequency[tag]++
@@ -2693,11 +3043,13 @@ func analyzeTags(tasks []Todo2Task) TagAnalysis {
 
 	// Suggest tags from semantic analysis of title + content + existing tags (all tasks)
 	existingSet := make(map[string]bool)
+
 	for _, task := range tasks {
 		suggestions := suggestTagsForTask(task)
 		if len(suggestions) > 0 {
 			analysis.TagSuggestions[task.ID] = suggestions
 		}
+
 		_ = existingSet
 	}
 
@@ -2727,15 +3079,19 @@ func suggestTagsForTask(task Todo2Task) []string {
 
 	seen := make(map[string]bool)
 	suggestions := []string{}
+
 	for keyword, tag := range keywords {
 		if existingSet[tag] || seen[tag] {
 			continue
 		}
+
 		if strings.Contains(content, keyword) {
 			seen[tag] = true
+
 			suggestions = append(suggestions, tag)
 		}
 	}
+
 	return suggestions
 }
 
@@ -2752,6 +3108,7 @@ func applyTagRules(tasks []Todo2Task, rules map[string]string, analysis TagAnaly
 			analysis.RenameRules[oldTag] = newTag
 		}
 	}
+
 	return analysis
 }
 
@@ -2761,6 +3118,7 @@ func removeTags(tasks []Todo2Task, tagsToRemove []string, analysis TagAnalysis) 
 	for _, tag := range tagsToRemove {
 		delete(analysis.TagFrequency, tag)
 	}
+
 	return analysis
 }
 
@@ -2779,12 +3137,15 @@ func applyTagChanges(tasks []Todo2Task, analysis TagAnalysis) []Todo2Task {
 			if removeSet[tag] {
 				continue
 			}
+
 			finalTag := tag
 			if newTag, ok := analysis.RenameRules[tag]; ok {
 				finalTag = newTag
 			}
+
 			if !seen[finalTag] {
 				seen[finalTag] = true
+
 				newTags = append(newTags, finalTag)
 			}
 		}
@@ -2794,12 +3155,15 @@ func applyTagChanges(tasks []Todo2Task, analysis TagAnalysis) []Todo2Task {
 			if removeSet[tag] {
 				continue
 			}
+
 			finalTag := tag
 			if newTag, ok := analysis.RenameRules[tag]; ok {
 				finalTag = newTag
 			}
+
 			if !seen[finalTag] {
 				seen[finalTag] = true
+
 				newTags = append(newTags, finalTag)
 			}
 		}
@@ -2830,10 +3194,10 @@ func buildTagRecommendations(analysis TagAnalysis) []map[string]interface{} {
 
 // Helper functions for dependency analysis
 
-// DependencyGraph is the legacy format for backward compatibility
+// DependencyGraph is the legacy format for backward compatibility.
 type DependencyGraph map[string][]string
 
-// buildLegacyGraphFormat converts TaskGraph to legacy map format for backward compatibility
+// buildLegacyGraphFormat converts TaskGraph to legacy map format for backward compatibility.
 func buildLegacyGraphFormat(tg *TaskGraph) DependencyGraph {
 	graph := make(DependencyGraph)
 
@@ -2843,6 +3207,7 @@ func buildLegacyGraphFormat(tg *TaskGraph) DependencyGraph {
 		taskID := tg.NodeIDMap[nodeID]
 
 		deps := []string{}
+
 		fromNodes := tg.Graph.To(nodeID)
 		for fromNodes.Next() {
 			fromNodeID := fromNodes.Node().ID()
@@ -2887,8 +3252,10 @@ func GetDependencyAnalysisFromTasks(tasks []Todo2Task) (cycles [][]string, missi
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to build task graph: %w", err)
 	}
+
 	cycles = DetectCycles(tg)
 	missing = findMissingDependencies(tasks, tg)
+
 	return cycles, missing, nil
 }
 
@@ -2927,6 +3294,7 @@ func formatDependencyAnalysisText(result map[string]interface{}) string {
 	if maxLevel, ok := result["max_dependency_level"].(int); ok {
 		sb.WriteString(fmt.Sprintf("Max Dependency Level: %d\n", maxLevel))
 	}
+
 	sb.WriteString("\n")
 
 	// Critical Path
@@ -2940,18 +3308,22 @@ func formatDependencyAnalysisText(result map[string]interface{}) string {
 				content, _ := detail["content"].(string)
 
 				sb.WriteString(fmt.Sprintf("  %d. %s", i+1, taskID))
+
 				if content != "" {
 					sb.WriteString(fmt.Sprintf(": %s", content))
 				}
+
 				sb.WriteString("\n")
 
 				if deps, ok := detail["dependencies"].([]interface{}); ok && len(deps) > 0 {
 					depStrs := make([]string, len(deps))
+
 					for j, d := range deps {
 						if depStr, ok := d.(string); ok {
 							depStrs[j] = depStr
 						}
 					}
+
 					if len(depStrs) > 0 {
 						sb.WriteString(fmt.Sprintf("     Depends on: %s\n", strings.Join(depStrs, ", ")))
 					}
@@ -2965,19 +3337,23 @@ func formatDependencyAnalysisText(result map[string]interface{}) string {
 			// Fallback to simple path
 			sb.WriteString(fmt.Sprintf("  %s\n", strings.Join(criticalPath, " → ")))
 		}
+
 		sb.WriteString("\n")
 	}
 
 	if cycles, ok := result["circular_dependencies"].([][]string); ok && len(cycles) > 0 {
 		sb.WriteString("Circular Dependencies:\n")
+
 		for i, cycle := range cycles {
 			sb.WriteString(fmt.Sprintf("  %d. %s\n", i+1, strings.Join(cycle, " -> ")))
 		}
+
 		sb.WriteString("\n")
 	}
 
 	if missing, ok := result["missing_dependencies"].([]map[string]interface{}); ok && len(missing) > 0 {
 		sb.WriteString("Missing Dependencies:\n")
+
 		for _, m := range missing {
 			if taskID, ok := m["task_id"].(string); ok {
 				if dep, ok := m["missing_dep"].(string); ok {
@@ -2985,6 +3361,7 @@ func formatDependencyAnalysisText(result map[string]interface{}) string {
 				}
 			}
 		}
+
 		sb.WriteString("\n")
 	}
 
@@ -3016,6 +3393,7 @@ func findParallelizableTasks(tasks []Todo2Task, durationWeight float64) []Parall
 
 	// Filter to pending tasks only
 	pendingTasks := []Todo2Task{}
+
 	for _, task := range tasks {
 		if IsPendingStatus(task.Status) {
 			pendingTasks = append(pendingTasks, task)
@@ -3031,6 +3409,7 @@ func findParallelizableTasks(tasks []Todo2Task, durationWeight float64) []Parall
 
 	// Group tasks by dependency level (tasks at same level can run in parallel)
 	byLevel := make(map[int][]string)
+
 	for _, task := range pendingTasks {
 		level := levels[task.ID]
 		byLevel[level] = append(byLevel[level], task.ID)
@@ -3044,12 +3423,15 @@ func findParallelizableTasks(tasks []Todo2Task, durationWeight float64) []Parall
 
 		// Group by priority within each level
 		byPriority := make(map[string][]string)
+
 		for _, taskID := range taskIDs {
 			task := taskMap[taskID]
+
 			priority := task.Priority
 			if priority == "" {
 				priority = "medium"
 			}
+
 			byPriority[priority] = append(byPriority[priority], taskID)
 		}
 
@@ -3068,12 +3450,15 @@ func findParallelizableTasks(tasks []Todo2Task, durationWeight float64) []Parall
 	// Also include tasks with no dependencies (level 0)
 	if level0Tasks, ok := byLevel[0]; ok && len(level0Tasks) > 0 {
 		byPriority := make(map[string][]string)
+
 		for _, taskID := range level0Tasks {
 			task := taskMap[taskID]
+
 			priority := task.Priority
 			if priority == "" {
 				priority = "medium"
 			}
+
 			byPriority[priority] = append(byPriority[priority], taskID)
 		}
 
@@ -3081,12 +3466,14 @@ func findParallelizableTasks(tasks []Todo2Task, durationWeight float64) []Parall
 			if len(ids) > 1 {
 				// Check if we already added this group
 				exists := false
+
 				for _, g := range groups {
 					if g.Priority == priority && len(g.Tasks) == len(ids) {
 						exists = true
 						break
 					}
 				}
+
 				if !exists {
 					groups = append(groups, ParallelGroup{
 						Tasks:    ids,
@@ -3107,9 +3494,10 @@ func findParallelizableTasks(tasks []Todo2Task, durationWeight float64) []Parall
 	return groups
 }
 
-// findParallelizableTasksSimple is a fallback implementation without graph analysis
+// findParallelizableTasksSimple is a fallback implementation without graph analysis.
 func findParallelizableTasksSimple(tasks []Todo2Task, durationWeight float64) []ParallelGroup {
 	groups := []ParallelGroup{}
+
 	taskMap := make(map[string]*Todo2Task)
 	for i := range tasks {
 		taskMap[tasks[i].ID] = &tasks[i]
@@ -3117,6 +3505,7 @@ func findParallelizableTasksSimple(tasks []Todo2Task, durationWeight float64) []
 
 	// Find tasks with no dependencies (can run in parallel)
 	readyTasks := []string{}
+
 	for _, task := range tasks {
 		if IsPendingStatus(task.Status) && len(task.Dependencies) == 0 {
 			readyTasks = append(readyTasks, task.ID)
@@ -3126,12 +3515,15 @@ func findParallelizableTasksSimple(tasks []Todo2Task, durationWeight float64) []
 	if len(readyTasks) > 0 {
 		// Group by priority
 		byPriority := make(map[string][]string)
+
 		for _, taskID := range readyTasks {
 			task := taskMap[taskID]
+
 			priority := task.Priority
 			if priority == "" {
 				priority = "medium"
 			}
+
 			byPriority[priority] = append(byPriority[priority], taskID)
 		}
 
@@ -3187,13 +3579,16 @@ func formatParallelizationAnalysisText(result map[string]interface{}) string {
 
 	if groups, ok := result["parallel_groups"].([]ParallelGroup); ok && len(groups) > 0 {
 		sb.WriteString("Parallel Execution Groups:\n\n")
+
 		for i, group := range groups {
 			sb.WriteString(fmt.Sprintf("Group %d (%s priority):\n", i+1, group.Priority))
 			sb.WriteString(fmt.Sprintf("  Reason: %s\n", group.Reason))
 			sb.WriteString("  Tasks:\n")
+
 			for _, taskID := range group.Tasks {
 				sb.WriteString(fmt.Sprintf("    - %s\n", taskID))
 			}
+
 			sb.WriteString("\n")
 		}
 	} else {
@@ -3203,7 +3598,7 @@ func formatParallelizationAnalysisText(result map[string]interface{}) string {
 	return sb.String()
 }
 
-// Helper function to save analysis results
+// Helper function to save analysis results.
 func saveAnalysisResult(outputPath string, result map[string]interface{}) error {
 	// Ensure directory exists
 	dir := filepath.Dir(outputPath)
@@ -3230,13 +3625,16 @@ func handleTaskAnalysisHierarchy(ctx context.Context, params map[string]interfac
 	if err != nil {
 		return nil, fmt.Errorf("failed to get task store: %w", err)
 	}
+
 	list, err := store.ListTasks(ctx, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load tasks: %w", err)
 	}
+
 	tasks := tasksFromPtrs(list)
 
 	pendingTasks := []Todo2Task{}
+
 	for _, task := range tasks {
 		if IsPendingStatus(task.Status) {
 			pendingTasks = append(pendingTasks, task)
@@ -3250,14 +3648,17 @@ func handleTaskAnalysisHierarchy(ctx context.Context, params map[string]interfac
 	}
 
 	taskDescriptions := make([]string, 0, len(pendingTasks))
+
 	for i, task := range pendingTasks {
 		if i >= 20 {
 			break
 		}
+
 		desc := task.Content
 		if task.LongDescription != "" {
 			desc += " " + task.LongDescription
 		}
+
 		taskDescriptions = append(taskDescriptions, fmt.Sprintf("Task %s: %s", task.ID, desc))
 	}
 
@@ -3281,6 +3682,7 @@ Return JSON array with format: [{"task_id": "T-1", "level": "component", "compon
 	}
 
 	var classifications []map[string]interface{}
+
 	candidate := result
 	if err := json.Unmarshal([]byte(candidate), &classifications); err != nil {
 		candidate = ExtractJSONArrayFromLLMResponse(result)
@@ -3291,6 +3693,7 @@ Return JSON array with format: [{"task_id": "T-1", "level": "component", "compon
 			if len(snippet) > MaxLLMResponseSnippetLen {
 				snippet = snippet[:MaxLLMResponseSnippetLen] + "..."
 			}
+
 			analysis := map[string]interface{}{
 				"success":           true,
 				"method":            "foundation_model",
@@ -3303,6 +3706,7 @@ Return JSON array with format: [{"task_id": "T-1", "level": "component", "compon
 			}
 			resultJSON, _ := json.Marshal(analysis)
 			resp := &proto.TaskAnalysisResponse{Action: "hierarchy", ResultJson: string(resultJSON)}
+
 			return response.FormatResult(TaskAnalysisResponseToMap(resp), resp.GetOutputPath())
 		}
 	}
@@ -3320,6 +3724,7 @@ Return JSON array with format: [{"task_id": "T-1", "level": "component", "compon
 	if rec, ok := params["include_recommendations"].(bool); ok {
 		includeRecommendations = rec
 	}
+
 	if !includeRecommendations {
 		delete(analysis, "hierarchy_recommendations")
 	}
@@ -3333,20 +3738,24 @@ Return JSON array with format: [{"task_id": "T-1", "level": "component", "compon
 		output := formatHierarchyAnalysisText(analysis)
 		return []framework.TextContent{{Type: "text", Text: output}}, nil
 	}
+
 	resultJSON, _ := json.Marshal(analysis)
 	resp := &proto.TaskAnalysisResponse{Action: "hierarchy", ResultJson: string(resultJSON)}
+
 	return response.FormatResult(TaskAnalysisResponseToMap(resp), resp.GetOutputPath())
 }
 
 func buildHierarchyRecommendations(classifications []map[string]interface{}, tasks []Todo2Task) []map[string]interface{} {
 	recommendations := []map[string]interface{}{}
 	componentGroups := make(map[string][]string)
+
 	for _, cls := range classifications {
 		if comp, ok := cls["component"].(string); ok && comp != "" {
 			taskID, _ := cls["task_id"].(string)
 			componentGroups[comp] = append(componentGroups[comp], taskID)
 		}
 	}
+
 	for comp, taskIDs := range componentGroups {
 		if len(taskIDs) >= 5 {
 			recommendations = append(recommendations, map[string]interface{}{
@@ -3358,33 +3767,43 @@ func buildHierarchyRecommendations(classifications []map[string]interface{}, tas
 			})
 		}
 	}
+
 	return recommendations
 }
 
 func formatHierarchyAnalysisText(analysis map[string]interface{}) string {
 	var sb strings.Builder
+
 	sb.WriteString("Task Hierarchy Analysis\n")
 	sb.WriteString("=======================\n\n")
+
 	if total, ok := analysis["total_tasks"].(int); ok {
 		sb.WriteString(fmt.Sprintf("Total Tasks: %d\n", total))
 	}
+
 	if pending, ok := analysis["pending_tasks"].(int); ok {
 		sb.WriteString(fmt.Sprintf("Pending Tasks: %d\n\n", pending))
 	}
+
 	if recs, ok := analysis["hierarchy_recommendations"].([]map[string]interface{}); ok {
 		sb.WriteString("Recommendations:\n")
+
 		for _, rec := range recs {
 			if comp, ok := rec["component"].(string); ok {
 				sb.WriteString(fmt.Sprintf("- Component: %s\n", comp))
+
 				if count, ok := rec["task_count"].(int); ok {
 					sb.WriteString(fmt.Sprintf("  Tasks: %d\n", count))
 				}
+
 				if prefix, ok := rec["suggested_prefix"].(string); ok {
 					sb.WriteString(fmt.Sprintf("  Suggested Prefix: %s\n", prefix))
 				}
+
 				sb.WriteString("\n")
 			}
 		}
 	}
+
 	return sb.String()
 }

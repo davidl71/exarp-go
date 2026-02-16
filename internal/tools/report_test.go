@@ -14,6 +14,7 @@ import (
 func TestHandleReportOverview(t *testing.T) {
 	tmpDir := t.TempDir()
 	os.Setenv("PROJECT_ROOT", tmpDir)
+
 	defer os.Unsetenv("PROJECT_ROOT")
 
 	tests := []struct {
@@ -68,11 +69,13 @@ func TestHandleReportOverview(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := context.Background()
+
 			result, err := handleReportOverview(ctx, tt.params)
 			if (err != nil) != tt.wantError {
 				t.Errorf("handleReportOverview() error = %v, wantError %v", err, tt.wantError)
 				return
 			}
+
 			if !tt.wantError && tt.validate != nil {
 				tt.validate(t, result)
 			}
@@ -83,6 +86,7 @@ func TestHandleReportOverview(t *testing.T) {
 func TestHandleReportPRD(t *testing.T) {
 	tmpDir := t.TempDir()
 	os.Setenv("PROJECT_ROOT", tmpDir)
+
 	defer os.Unsetenv("PROJECT_ROOT")
 
 	tests := []struct {
@@ -120,11 +124,13 @@ func TestHandleReportPRD(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := context.Background()
+
 			result, err := handleReportPRD(ctx, tt.params)
 			if (err != nil) != tt.wantError {
 				t.Errorf("handleReportPRD() error = %v, wantError %v", err, tt.wantError)
 				return
 			}
+
 			if !tt.wantError && tt.validate != nil {
 				tt.validate(t, result)
 			}
@@ -155,6 +161,7 @@ func TestPlanFilenameFromTitle(t *testing.T) {
 func TestHandleReportPlan(t *testing.T) {
 	tmpDir := t.TempDir()
 	os.Setenv("PROJECT_ROOT", tmpDir)
+
 	defer os.Unsetenv("PROJECT_ROOT")
 
 	planPath := tmpDir + "/test-project.plan.md"
@@ -199,11 +206,13 @@ func TestHandleReportPlan(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := context.Background()
+
 			result, err := handleReportPlan(ctx, tt.params)
 			if (err != nil) != tt.wantError {
 				t.Errorf("handleReportPlan() error = %v, wantError %v", err, tt.wantError)
 				return
 			}
+
 			if !tt.wantError && tt.validate != nil {
 				tt.validate(t, result)
 			}
@@ -214,6 +223,7 @@ func TestHandleReportPlan(t *testing.T) {
 func TestHandleReport(t *testing.T) {
 	tmpDir := t.TempDir()
 	os.Setenv("PROJECT_ROOT", tmpDir)
+
 	defer os.Unsetenv("PROJECT_ROOT")
 
 	tests := []struct {
@@ -266,11 +276,13 @@ func TestHandleReport(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := context.Background()
 			argsJSON, _ := json.Marshal(tt.params)
+
 			result, err := handleReport(ctx, argsJSON)
 			if (err != nil) != tt.wantError {
 				t.Errorf("handleReport() error = %v, wantError %v", err, tt.wantError)
 				return
 			}
+
 			if !tt.wantError && len(result) == 0 {
 				t.Error("expected non-empty result")
 			}
@@ -282,19 +294,24 @@ func TestHandleReport(t *testing.T) {
 func TestAggregateProjectDataProto(t *testing.T) {
 	tmpDir := t.TempDir()
 	os.Setenv("PROJECT_ROOT", tmpDir)
+
 	defer os.Unsetenv("PROJECT_ROOT")
 
 	ctx := context.Background()
+
 	pb, err := aggregateProjectDataProto(ctx, tmpDir, false)
 	if err != nil {
 		t.Fatalf("aggregateProjectDataProto() error = %v", err)
 	}
+
 	if pb == nil {
 		t.Fatal("aggregateProjectDataProto() returned nil")
 	}
+
 	if pb.GeneratedAt == "" {
 		t.Error("expected GeneratedAt to be set")
 	}
+
 	if pb.Project == nil && pb.Tasks == nil && pb.Codebase == nil {
 		t.Error("expected at least one of project, tasks, or codebase to be set")
 	}
@@ -305,15 +322,18 @@ func TestFormatOverviewTextProto(t *testing.T) {
 	if got := formatOverviewTextProto(nil); got != "" {
 		t.Errorf("formatOverviewTextProto(nil) = %q, want \"\"", got)
 	}
+
 	pb := &proto.ProjectOverviewData{
 		GeneratedAt: "2026-01-29T00:00:00Z",
 		Project:     &proto.ProjectInfo{Name: "test-module", Version: "0.1.0", Type: "MCP", Status: "Active"},
 		Tasks:       &proto.TaskMetrics{Total: 10, Pending: 3, Completed: 7, CompletionRate: 70},
 	}
+
 	got := formatOverviewTextProto(pb)
 	if got == "" {
 		t.Error("formatOverviewTextProto(proto) returned empty")
 	}
+
 	if !strings.Contains(got, "test-module") || !strings.Contains(got, "PROJECT OVERVIEW") {
 		t.Errorf("formatOverviewTextProto output missing expected content: %s", got)
 	}
@@ -323,7 +343,9 @@ func TestFormatOverviewMarkdownProto(t *testing.T) {
 	if got := formatOverviewMarkdownProto(nil); got != "" {
 		t.Errorf("formatOverviewMarkdownProto(nil) = %q, want \"\"", got)
 	}
+
 	pb := &proto.ProjectOverviewData{Project: &proto.ProjectInfo{Name: "p"}}
+
 	got := formatOverviewMarkdownProto(pb)
 	if !strings.Contains(got, "# Project Overview") || !strings.Contains(got, "p") {
 		t.Errorf("formatOverviewMarkdownProto output missing expected content: %s", got)
@@ -334,7 +356,9 @@ func TestFormatOverviewHTMLProto(t *testing.T) {
 	if got := formatOverviewHTMLProto(nil); got != "" {
 		t.Errorf("formatOverviewHTMLProto(nil) = %q, want \"\"", got)
 	}
+
 	pb := &proto.ProjectOverviewData{Project: &proto.ProjectInfo{Name: "p"}}
+
 	got := formatOverviewHTMLProto(pb)
 	if !strings.Contains(got, "<h1>Project Overview</h1>") || !strings.Contains(got, "p") {
 		t.Errorf("formatOverviewHTMLProto output missing expected content: %s", got)
@@ -355,10 +379,12 @@ func TestBriefingDataProto(t *testing.T) {
 		Sources: []string{"stoic"},
 		Quotes:  []*proto.BriefingQuote{{Quote: "Test quote", Source: "stoic"}},
 	}
+
 	m = BriefingDataToMap(pb)
 	if m["date"] != "2026-01-29" || m["score"] != 50.0 {
 		t.Errorf("BriefingDataToMap: date=%v score=%v", m["date"], m["score"])
 	}
+
 	quotes, _ := m["quotes"].([]interface{})
 	if len(quotes) != 1 {
 		t.Errorf("BriefingDataToMap: quotes len = %d, want 1", len(quotes))
@@ -373,18 +399,22 @@ func TestGoScorecardResultToProtoAndMap(t *testing.T) {
 		Metrics:         GoProjectMetrics{GoFiles: 10, MCPTools: 24},
 		Health:          GoHealthChecks{GoTestCoverage: 72.5},
 	}
+
 	pb := GoScorecardResultToProto(scorecard)
 	if pb == nil {
 		t.Fatal("GoScorecardResultToProto returned nil")
 	}
+
 	if pb.Score != 65.0 || len(pb.Recommendations) != 1 || pb.TestCoverage != 72.5 {
 		t.Errorf("proto mismatch: score=%.1f recommendations=%d test_coverage=%.1f",
 			pb.Score, len(pb.Recommendations), pb.TestCoverage)
 	}
+
 	m := ProtoToScorecardMap(pb)
 	if m["overall_score"] != 65.0 {
 		t.Errorf("ProtoToScorecardMap overall_score = %v, want 65.0", m["overall_score"])
 	}
+
 	metrics, _ := m["metrics"].(map[string]interface{})
 	if metrics == nil || metrics["test_coverage"] != 72.5 {
 		t.Errorf("ProtoToScorecardMap metrics.test_coverage = %v, want 72.5", metrics)

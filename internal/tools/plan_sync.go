@@ -27,17 +27,20 @@ type PlanFrontmatter struct {
 }
 
 // parsePlanFile parses a .plan.md file and returns frontmatter todos and checkbox state from milestones.
-// Milestone format: - [ ] **Name** (T-ID) or - [x] **Name** (T-ID)
+// Milestone format: - [ ] **Name** (T-ID) or - [x] **Name** (T-ID).
 func parsePlanFile(path string) ([]PlanTodo, map[string]bool, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return nil, nil, fmt.Errorf("read plan file: %w", err)
 	}
+
 	content := string(data)
 
 	// Extract YAML frontmatter
 	var fm PlanFrontmatter
+
 	frontmatterRe := regexp.MustCompile(`(?s)^---\r?\n(.*?)\r?\n---\r?\n`)
+
 	matches := frontmatterRe.FindStringSubmatch(content)
 	if len(matches) >= 2 {
 		if err := yaml.Unmarshal([]byte(matches[1]), &fm); err != nil {
@@ -49,6 +52,7 @@ func parsePlanFile(path string) ([]PlanTodo, map[string]bool, error) {
 	// Also match - [x] Name (T-ID) without bold
 	checkboxRe := regexp.MustCompile(`^\s*-\s*\[\s*([ xX])\s*\]\s*(?:\*\*[^*]+\*\*|.+?)\s*\(\s*([A-Za-z0-9_-]+)\s*\)`)
 	checkboxState := make(map[string]bool)
+
 	lines := strings.Split(content, "\n")
 	for _, line := range lines {
 		subs := checkboxRe.FindStringSubmatch(line)
@@ -97,6 +101,7 @@ func writePlanFileBack(planPath string, todos []PlanTodo, statusByID map[string]
 	if err != nil {
 		return fmt.Errorf("read plan file: %w", err)
 	}
+
 	content := string(data)
 
 	// Parse existing frontmatter as generic map to preserve all fields
@@ -129,6 +134,7 @@ func writePlanFileBack(planPath string, todos []PlanTodo, statusByID map[string]
 			"status":  t.Status,
 		}
 	}
+
 	fmMap["todos"] = todosInterface
 
 	// Marshal with all original fields preserved
@@ -136,23 +142,28 @@ func writePlanFileBack(planPath string, todos []PlanTodo, statusByID map[string]
 	if err != nil {
 		return fmt.Errorf("marshal frontmatter: %w", err)
 	}
+
 	content = frontmatterRe.ReplaceAllString(content, "---\n"+strings.TrimSpace(string(fmYAML))+"\n---\n")
 
 	// Replace checkbox lines: [x] if Done, [ ] otherwise
 	checkboxRe := regexp.MustCompile(`^(\s*-\s*)\[\s*([ xX])\s*\](\s*(?:\*\*[^*]+\*\*|.+?)\s*\(\s*)([A-Za-z0-9_-]+)(\s*\))$`)
 	lines := strings.Split(content, "\n")
+
 	for i, line := range lines {
 		subs := checkboxRe.FindStringSubmatch(line)
 		if len(subs) >= 5 {
 			taskID := strings.TrimSpace(subs[4])
 			checked := statusByID[taskID] == "Done"
 			box := "[ ]"
+
 			if checked {
 				box = "[x]"
 			}
+
 			lines[i] = subs[1] + box + subs[3] + taskID + subs[5]
 		}
 	}
+
 	content = strings.Join(lines, "\n")
 
 	return os.WriteFile(planPath, []byte(content), 0644)
@@ -173,8 +184,10 @@ func handleTaskWorkflowSyncFromPlan(ctx context.Context, params map[string]inter
 	if envRoot := os.Getenv("PROJECT_ROOT"); envRoot != "" && !strings.Contains(envRoot, "{{PROJECT_ROOT}}") {
 		projectRoot = filepath.Clean(envRoot)
 	}
+
 	if projectRoot == "" {
 		var err error
+
 		projectRoot, err = FindProjectRoot()
 		if err != nil {
 			return nil, fmt.Errorf("sync_from_plan: %w", err)
@@ -186,6 +199,7 @@ func handleTaskWorkflowSyncFromPlan(ctx context.Context, params map[string]inter
 	if !filepath.IsAbs(planPath) {
 		planPath = filepath.Join(projectRoot, planPath)
 	}
+
 	if err := ValidatePlanningLink(projectRoot, planningDoc); err != nil {
 		return nil, fmt.Errorf("sync_from_plan: invalid planning_doc: %w", err)
 	}
@@ -198,12 +212,15 @@ func handleTaskWorkflowSyncFromPlan(ctx context.Context, params map[string]inter
 	dryRun, _ := params["dry_run"].(bool)
 
 	store := NewDefaultTaskStore(projectRoot)
+
 	list, err := store.ListTasks(ctx, nil)
 	if err != nil {
 		return nil, fmt.Errorf("sync_from_plan: load tasks: %w", err)
 	}
+
 	tasks := tasksFromPtrs(list)
 	taskByID := make(map[string]*Todo2Task)
+
 	for i := range tasks {
 		taskByID[tasks[i].ID] = &tasks[i]
 	}
@@ -214,6 +231,7 @@ func handleTaskWorkflowSyncFromPlan(ctx context.Context, params map[string]inter
 		if todo.ID == "" {
 			continue
 		}
+
 		todo2Status := cursorStatusToTodo2(todo.Status)
 		// Checkbox in milestones overrides frontmatter status for Done/Todo
 		if checked, ok := checkboxState[todo.ID]; ok {
@@ -229,6 +247,7 @@ func handleTaskWorkflowSyncFromPlan(ctx context.Context, params map[string]inter
 		if !database.IsValidTaskID(todoID) {
 			todoID = database.GenerateTaskID()
 		}
+
 		existing, exists := taskByID[todo.ID]
 		if !exists {
 			if dryRun {
@@ -240,6 +259,7 @@ func handleTaskWorkflowSyncFromPlan(ctx context.Context, params map[string]inter
 			if content == "" {
 				content = todo.ID
 			}
+
 			newTask := &Todo2Task{
 				ID:              todoID,
 				Content:         content,
@@ -250,6 +270,7 @@ func handleTaskWorkflowSyncFromPlan(ctx context.Context, params map[string]inter
 			if err := store.CreateTask(ctx, newTask); err != nil {
 				return nil, fmt.Errorf("sync_from_plan: create task %s: %w", newTask.ID, err)
 			}
+
 			taskByID[newTask.ID] = newTask
 			created = append(created, newTask.ID)
 		} else {
@@ -259,10 +280,12 @@ func handleTaskWorkflowSyncFromPlan(ctx context.Context, params map[string]inter
 					updated = append(updated, fmt.Sprintf("%s (would update %s -> %s)", todo.ID, existing.Status, todo2Status))
 					continue
 				}
+
 				existing.Status = todo2Status
 				if err := store.UpdateTask(ctx, existing); err != nil {
 					return nil, fmt.Errorf("sync_from_plan: update task %s: %w", todo.ID, err)
 				}
+
 				updated = append(updated, todo.ID)
 			}
 		}
@@ -279,12 +302,15 @@ func handleTaskWorkflowSyncFromPlan(ctx context.Context, params map[string]inter
 	if w, ok := params["write_plan"].(bool); ok {
 		writePlan = w
 	}
+
 	if writePlan && !dryRun && len(todos) > 0 {
 		statusByID := make(map[string]string)
+
 		for _, todo := range todos {
 			if todo.ID == "" {
 				continue
 			}
+
 			if t, ok := taskByID[todo.ID]; ok {
 				statusByID[todo.ID] = t.Status
 			}
@@ -295,6 +321,7 @@ func handleTaskWorkflowSyncFromPlan(ctx context.Context, params map[string]inter
 				statusByID[id] = t.Status
 			}
 		}
+
 		if err := writePlanFileBack(planPath, todos, statusByID); err != nil {
 			return nil, fmt.Errorf("sync_from_plan: write plan back: %w", err)
 		}
@@ -310,5 +337,6 @@ func handleTaskWorkflowSyncFromPlan(ctx context.Context, params map[string]inter
 		"updated_count": len(updated),
 		"dry_run":       dryRun,
 	}
+
 	return response.FormatResult(result, "")
 }

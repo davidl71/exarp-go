@@ -15,13 +15,13 @@ import (
 	"github.com/davidl71/exarp-go/internal/projectroot"
 )
 
-// Todo2Task is an alias for models.Todo2Task (for backward compatibility)
+// Todo2Task is an alias for models.Todo2Task (for backward compatibility).
 type Todo2Task = models.Todo2Task
 
-// Todo2State is an alias for models.Todo2State (for backward compatibility)
+// Todo2State is an alias for models.Todo2State (for backward compatibility).
 type Todo2State = models.Todo2State
 
-// LoadTodo2Tasks loads tasks from database (preferred) or .todo2/state.todo2.json (fallback)
+// LoadTodo2Tasks loads tasks from database (preferred) or .todo2/state.todo2.json (fallback).
 func LoadTodo2Tasks(projectRoot string) ([]Todo2Task, error) {
 	// Try database first
 	if tasks, err := loadTodo2TasksFromDB(); err == nil {
@@ -39,11 +39,13 @@ func loadTodo2TasksFromJSON(projectRoot string) ([]Todo2Task, error) {
 
 	// Use file cache for frequently accessed todo2.json file
 	fileCache := cache.GetGlobalFileCache()
+
 	data, _, err := fileCache.ReadFile(todo2Path)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return []Todo2Task{}, nil
 		}
+
 		return nil, fmt.Errorf("failed to read Todo2 file: %w", err)
 	}
 
@@ -60,6 +62,7 @@ func SaveTodo2Tasks(projectRoot string, tasks []Todo2Task) error {
 		if jsonErr := saveTodo2TasksToJSON(projectRoot, tasks); jsonErr != nil {
 			return fmt.Errorf("database saved but JSON write failed: %w", jsonErr)
 		}
+
 		return nil
 	}
 
@@ -67,7 +70,7 @@ func SaveTodo2Tasks(projectRoot string, tasks []Todo2Task) error {
 	return saveTodo2TasksToJSON(projectRoot, tasks)
 }
 
-// saveTodo2TasksToJSON saves tasks to JSON file (fallback method)
+// saveTodo2TasksToJSON saves tasks to JSON file (fallback method).
 func saveTodo2TasksToJSON(projectRoot string, tasks []Todo2Task) error {
 	todo2Path := filepath.Join(projectRoot, ".todo2", "state.todo2.json")
 
@@ -102,7 +105,7 @@ func FindProjectRoot() (string, error) {
 
 // SyncTodo2Tasks synchronizes tasks between database and JSON file
 // It loads from both sources, merges them (database takes precedence for conflicts),
-// and saves to both to ensure consistency
+// and saves to both to ensure consistency.
 func SyncTodo2Tasks(projectRoot string) error {
 	// Load from both sources
 	dbTasksLoaded, dbErr := loadTodo2TasksFromDB()
@@ -131,6 +134,7 @@ func SyncTodo2Tasks(projectRoot string) error {
 	// AUTO-* tasks are automated/system tasks that don't need to be in database
 	dbTasksToSave := make([]Todo2Task, 0, len(mergedTasks))
 	jsonTasksForSave := make([]Todo2Task, 0, len(mergedTasks))
+
 	for _, task := range mergedTasks {
 		if strings.HasPrefix(task.ID, "AUTO-") {
 			// Skip AUTO-* tasks for database, but keep in JSON
@@ -153,6 +157,7 @@ func SyncTodo2Tasks(projectRoot string) error {
 			// Log but don't fail - cleanup is best effort
 			fmt.Fprintf(os.Stderr, "Warning: Failed to cleanup AUTO tasks from database: %v\n", err)
 		}
+
 		dbSaveErr = saveTodo2TasksToDB(dbTasksToSave)
 		if dbSaveErr != nil {
 			// Database save had errors - log but continue
@@ -171,7 +176,7 @@ func SyncTodo2Tasks(projectRoot string) error {
 
 	// Return error if both failed
 	if dbSaveErr != nil && jsonSaveErr != nil {
-		return fmt.Errorf("failed to save to both sources: database=%v, json=%v", dbSaveErr, jsonSaveErr)
+		return fmt.Errorf("failed to save to both sources: database=%w, json=%w", dbSaveErr, jsonSaveErr)
 	}
 
 	// If JSON save failed, report it
@@ -198,7 +203,9 @@ func GetTaskByID(ctx context.Context, projectRoot string, id string) (*Todo2Task
 	if id == "" {
 		return nil, fmt.Errorf("task id is required")
 	}
+
 	store := NewDefaultTaskStore(projectRoot)
+
 	return store.GetTask(ctx, id)
 }
 
@@ -207,19 +214,24 @@ func UpdateTaskStatus(ctx context.Context, projectRoot string, taskID string, ne
 	if taskID == "" || newStatus == "" {
 		return fmt.Errorf("task_id and new_status are required")
 	}
+
 	newStatus = normalizeStatus(newStatus)
 	store := NewDefaultTaskStore(projectRoot)
+
 	task, err := store.GetTask(ctx, taskID)
 	if err != nil {
 		return fmt.Errorf("get task: %w", err)
 	}
+
 	task.Status = newStatus
 	if err := store.UpdateTask(ctx, task); err != nil {
 		return fmt.Errorf("update task: %w", err)
 	}
+
 	if syncErr := SyncTodo2Tasks(projectRoot); syncErr != nil {
 		return fmt.Errorf("sync after update: %w", syncErr)
 	}
+
 	return nil
 }
 
@@ -244,7 +256,7 @@ func IsCompletedStatus(status string) bool {
 }
 
 // cleanupAutoTasksFromDB removes all AUTO-* tasks from the database
-// AUTO-* tasks are automated/system tasks that should only exist in JSON
+// AUTO-* tasks are automated/system tasks that should only exist in JSON.
 func cleanupAutoTasksFromDB() error {
 	if db, err := database.GetDB(); err != nil || db == nil {
 		return fmt.Errorf("database not available")
@@ -260,6 +272,7 @@ func cleanupAutoTasksFromDB() error {
 
 	// Delete each AUTO-* task
 	deletedCount := 0
+
 	for _, task := range allTasks {
 		if strings.HasPrefix(task.ID, "AUTO-") {
 			if err := database.DeleteTask(ctx, task.ID); err != nil {
@@ -284,10 +297,12 @@ func formatTaskDate(s string) string {
 	if s == "" || models.IsEpochDate(s) {
 		return "—"
 	}
+
 	t, err := time.Parse(time.RFC3339, s)
 	if err != nil {
 		return "—"
 	}
+
 	return t.Format("01/02/2006, 03:04 PM")
 }
 
@@ -302,7 +317,9 @@ func getCommentCounts(ctx context.Context, taskID string) commentCounts {
 	if err != nil {
 		return commentCounts{}
 	}
+
 	var c commentCounts
+
 	for _, cmt := range comments {
 		switch cmt.Type {
 		case database.CommentTypeResearch:
@@ -315,6 +332,7 @@ func getCommentCounts(ctx context.Context, taskID string) commentCounts {
 			c.Manual++
 		}
 	}
+
 	return c
 }
 
@@ -324,15 +342,18 @@ func getKeyInsight(ctx context.Context, taskID string, maxLen int) string {
 	if err != nil || len(comments) == 0 {
 		return ""
 	}
+
 	for i := len(comments) - 1; i >= 0; i-- {
 		if comments[i].Type == database.CommentTypeResult || comments[i].Type == database.CommentTypeNote {
 			s := strings.TrimSpace(comments[i].Content)
 			if len(s) > maxLen {
 				s = s[:maxLen-3] + "..."
 			}
+
 			return s
 		}
 	}
+
 	return ""
 }
 
@@ -341,21 +362,28 @@ func getKeyInsight(ctx context.Context, taskID string, maxLen int) string {
 func GetSuggestedNextTasks(projectRoot string, limit int) []BacklogTaskDetail {
 	ctx := context.Background()
 	store := NewDefaultTaskStore(projectRoot)
+
 	list, err := store.ListTasks(ctx, nil)
 	if err != nil || limit <= 0 {
 		return nil
 	}
+
 	tasks := tasksFromPtrs(list)
+
 	orderedIDs, _, details, orderErr := BacklogExecutionOrder(tasks, nil)
 	if orderErr != nil || len(orderedIDs) == 0 {
 		return nil
 	}
+
 	ready := tasksReadyToStart(tasks)
+
 	detailMap := make(map[string]BacklogTaskDetail)
 	for _, d := range details {
 		detailMap[d.ID] = d
 	}
+
 	out := make([]BacklogTaskDetail, 0, limit)
+
 	for _, id := range orderedIDs {
 		if ready[id] {
 			if d, ok := detailMap[id]; ok {
@@ -366,33 +394,41 @@ func GetSuggestedNextTasks(projectRoot string, limit int) []BacklogTaskDetail {
 			}
 		}
 	}
+
 	return out
 }
 
 // tasksReadyToStart returns task IDs whose dependencies are all Done.
 func tasksReadyToStart(tasks []Todo2Task) map[string]bool {
 	done := make(map[string]bool)
+
 	for _, t := range tasks {
 		if strings.EqualFold(t.Status, "done") {
 			done[t.ID] = true
 		}
 	}
+
 	ready := make(map[string]bool)
+
 	for _, t := range tasks {
 		if !IsBacklogStatus(t.Status) {
 			continue
 		}
+
 		allDone := true
+
 		for _, dep := range t.Dependencies {
 			if !done[dep] {
 				allDone = false
 				break
 			}
 		}
+
 		if allDone {
 			ready[t.ID] = true
 		}
 	}
+
 	return ready
 }
 
@@ -401,10 +437,12 @@ func tasksReadyToStart(tasks []Todo2Task) map[string]bool {
 func WriteTodo2Overview(projectRoot string) error {
 	ctx := context.Background()
 	store := NewDefaultTaskStore(projectRoot)
+
 	list, err := store.ListTasks(ctx, nil)
 	if err != nil {
 		return fmt.Errorf("load tasks: %w", err)
 	}
+
 	tasks := tasksFromPtrs(list)
 
 	// Sort by last_modified desc (newest first), then take last 20 for "newest first" display
@@ -413,15 +451,19 @@ func WriteTodo2Overview(projectRoot string) error {
 		if a == "" {
 			a = tasks[i].CreatedAt
 		}
+
 		if b == "" {
 			b = tasks[j].CreatedAt
 		}
+
 		return a > b
 	})
+
 	displayCount := 20
 	if len(tasks) < displayCount {
 		displayCount = len(tasks)
 	}
+
 	displayTasks := tasks
 	if len(tasks) > displayCount {
 		displayTasks = tasks[:displayCount]
@@ -430,7 +472,9 @@ func WriteTodo2Overview(projectRoot string) error {
 	suggestedNext := GetSuggestedNextTasks(projectRoot, 5)
 
 	now := time.Now().Format("01/02/2006, 03:04 PM")
+
 	var b strings.Builder
+
 	b.WriteString("---\n")
 	b.WriteString("description: Todo2 task overview for Cursor AI awareness - provides real-time context of current project tasks, priorities, and progress\n")
 	b.WriteString("alwaysApply: true\n")
@@ -441,9 +485,11 @@ func WriteTodo2Overview(projectRoot string) error {
 
 	if len(suggestedNext) > 0 {
 		b.WriteString("## Suggested Next Tasks (dependency-ready)\n\n")
+
 		for _, d := range suggestedNext {
 			b.WriteString(fmt.Sprintf("- **%s** (%s): %s\n", d.ID, d.Priority, d.Content))
 		}
+
 		b.WriteString("\n")
 	}
 
@@ -454,8 +500,10 @@ func WriteTodo2Overview(projectRoot string) error {
 		if name == "" {
 			name = "undefined"
 		}
+
 		b.WriteString("### " + t.ID + ": " + name + "\n")
 		b.WriteString("- **Status:** " + t.Status + " ")
+
 		switch strings.ToLower(t.Status) {
 		case "done":
 			b.WriteString("✅")
@@ -466,6 +514,7 @@ func WriteTodo2Overview(projectRoot string) error {
 		default:
 			b.WriteString("📋")
 		}
+
 		b.WriteString(" | **Priority:** " + t.Priority + " ")
 		// Priority emoji
 		switch strings.ToLower(t.Priority) {
@@ -476,6 +525,7 @@ func WriteTodo2Overview(projectRoot string) error {
 		default:
 			b.WriteString("🟢")
 		}
+
 		b.WriteString(" | **Created:** " + formatTaskDate(t.CreatedAt) + " | **Updated:** " + formatTaskDate(t.LastModified) + "\n")
 		b.WriteString("- **Tags:** " + strings.Join(t.Tags, ", ") + "\n")
 		b.WriteString("- **Dependencies:** " + strings.Join(t.Dependencies, ", ") + "\n")
@@ -483,17 +533,20 @@ func WriteTodo2Overview(projectRoot string) error {
 		b.WriteString(fmt.Sprintf("- **Comments**: %d research_with_links, %d result, %d notes, %d manualsetup\n",
 			cc.Research, cc.Result, cc.Note, cc.Manual))
 		b.WriteString("- **Status:** " + t.Status + "\n")
+
 		insight := getKeyInsight(ctx, t.ID, 80)
 		if insight == "" {
 			insight = "*[No key insight available]*"
 		} else {
 			insight = "*" + insight + "*"
 		}
+
 		b.WriteString("- **Key Insight:** " + insight + "\n\n")
 	}
 
 	// Task statistics
 	var todo, inProgress, done int
+
 	for _, t := range tasks {
 		switch strings.ToLower(t.Status) {
 		case "todo":
@@ -504,34 +557,43 @@ func WriteTodo2Overview(projectRoot string) error {
 			done++
 		}
 	}
+
 	high := 0
+
 	for _, t := range tasks {
 		if strings.ToLower(t.Priority) == "high" || strings.ToLower(t.Priority) == "critical" {
 			high++
 		}
 	}
+
 	b.WriteString("## Task Statistics\n")
 	b.WriteString(fmt.Sprintf("- **Total Tasks:** %d\n", len(tasks)))
 	b.WriteString(fmt.Sprintf("- **In Progress:** %d tasks\n", inProgress))
 	b.WriteString(fmt.Sprintf("- **Todo:** %d tasks \n", todo))
 	b.WriteString(fmt.Sprintf("- **Done:** %d tasks\n", done))
+
 	critical := 0
+
 	for _, t := range tasks {
 		if strings.ToLower(t.Priority) == "critical" {
 			critical++
 		}
 	}
+
 	b.WriteString(fmt.Sprintf("- **High Priority:** %d tasks\n", high))
 	b.WriteString(fmt.Sprintf("- **Critical Priority:** %d tasks\n", critical))
 	b.WriteString(fmt.Sprintf("- **Tasks with Dependencies:** %d tasks\n\n", countWithDeps(tasks)))
 
 	b.WriteString("## Recent Activity\n")
+
 	for i, t := range displayTasks {
 		if i >= 10 {
 			break
 		}
+
 		b.WriteString(fmt.Sprintf("- %s: %s (%s)\n", t.ID, t.Status, formatTaskDate(t.LastModified)))
 	}
+
 	b.WriteString("\n## Key Project Context\n")
 	b.WriteString("This is an implementation of an automated cursor rules system that will maintain real-time awareness of Todo2 task status for enhanced AI assistance. The system monitors task changes and automatically updates this overview file to provide contextual information to Cursor chat.\n\n")
 	b.WriteString("*This file is automatically maintained by Todo2. Last generation: " + time.Now().Format("01/02/2006, 15:04:05") + "*\n")
@@ -540,18 +602,22 @@ func WriteTodo2Overview(projectRoot string) error {
 	if err := os.MkdirAll(filepath.Dir(outPath), 0755); err != nil {
 		return fmt.Errorf("create .cursor/rules: %w", err)
 	}
+
 	if err := os.WriteFile(outPath, []byte(b.String()), 0644); err != nil {
 		return fmt.Errorf("write overview: %w", err)
 	}
+
 	return nil
 }
 
 func countWithDeps(tasks []Todo2Task) int {
 	n := 0
+
 	for _, t := range tasks {
 		if len(t.Dependencies) > 0 {
 			n++
 		}
 	}
+
 	return n
 }

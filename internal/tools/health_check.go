@@ -18,15 +18,15 @@ import (
 )
 
 // Design limit for MCP tool count (monitored by tool_count_health / health action=tools).
-const designLimitTools = 31
+const designLimitTools = 33
 
 // ExpectedToolCountBase is the base number of tools registered by RegisterAllTools (without conditional Apple FM).
 // With Apple Foundation Models on darwin/arm64/cgo build, count is ExpectedToolCountBase+1.
-const ExpectedToolCountBase = 31 // 30 base + research_aggregator (T-224)
+const ExpectedToolCountBase = 32 // 32 base (33 with Apple FM on darwin/arm64/cgo)
 
 // handleHealthNative handles the health tool with native Go implementation
 // Implements all actions: "server", "git", "docs", "dod", "cicd", "tools"
-// Note: Some actions provide basic functionality; complex features may fall back to Python bridge
+// Note: Some actions provide basic functionality; complex features may fall back to Python bridge.
 func handleHealthNative(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	// Get action (default: "server")
 	action := "server"
@@ -57,10 +57,12 @@ func HealthReportToMap(resp *proto.HealthReport) map[string]interface{} {
 	if resp == nil {
 		return nil
 	}
+
 	out := map[string]interface{}{"action": resp.GetAction()}
 	if resp.GetOutputPath() != "" {
 		out["output_path"] = resp.GetOutputPath()
 	}
+
 	if resp.GetResultJson() != "" {
 		var payload map[string]interface{}
 		if json.Unmarshal([]byte(resp.GetResultJson()), &payload) == nil {
@@ -69,10 +71,11 @@ func HealthReportToMap(resp *proto.HealthReport) map[string]interface{} {
 			}
 		}
 	}
+
 	return out
 }
 
-// handleHealthTools handles the "tools" action - MCP tool count vs design limit (≤31).
+// handleHealthTools handles the "tools" action - MCP tool count vs design limit (≤33).
 // Used by daily automation as tool_count_health.
 func handleHealthTools(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	toolCount := ExpectedToolCountBase
@@ -86,10 +89,11 @@ func handleHealthTools(ctx context.Context, params map[string]interface{}) ([]fr
 	}
 	resultJSON, _ := json.Marshal(result)
 	resp := &proto.HealthReport{Action: "tools", ResultJson: string(resultJSON)}
+
 	return response.FormatResult(HealthReportToMap(resp), resp.GetOutputPath())
 }
 
-// handleHealthServer handles the "server" action for health tool
+// handleHealthServer handles the "server" action for health tool.
 func handleHealthServer(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	// Get project root
 	projectRoot, err := FindProjectRoot()
@@ -109,17 +113,20 @@ func handleHealthServer(ctx context.Context, params map[string]interface{}) ([]f
 	// Check go.mod first (Go project) - using file cache
 	fileCache := cache.GetGlobalFileCache()
 	goModPath := filepath.Join(projectRoot, "go.mod")
+
 	if _, err := os.Stat(goModPath); err == nil {
 		// Read go.mod to find module version or use git tag
 		content, _, err := fileCache.ReadFile(goModPath)
 		if err == nil {
 			// Look for module declaration
 			moduleRegex := regexp.MustCompile(`module\s+([^\s]+)`)
+
 			matches := moduleRegex.FindStringSubmatch(string(content))
 			if len(matches) > 1 {
 				// Try to get version from git
 				gitCmd := exec.CommandContext(ctx, "git", "describe", "--tags", "--always")
 				gitCmd.Dir = projectRoot
+
 				if output, err := gitCmd.Output(); err == nil {
 					version = string(output)
 					// Remove trailing newline
@@ -139,6 +146,7 @@ func handleHealthServer(ctx context.Context, params map[string]interface{}) ([]f
 			if err == nil {
 				// Look for version = "x.y.z"
 				versionRegex := regexp.MustCompile(`version\s*=\s*["']([^"']+)["']`)
+
 				matches := versionRegex.FindStringSubmatch(string(content))
 				if len(matches) > 1 {
 					version = matches[1]
@@ -156,11 +164,12 @@ func handleHealthServer(ctx context.Context, params map[string]interface{}) ([]f
 	}
 	resultJSON, _ := json.Marshal(result)
 	resp := &proto.HealthReport{Action: "server", ResultJson: string(resultJSON)}
+
 	return response.FormatResult(HealthReportToMap(resp), resp.GetOutputPath())
 }
 
 // handleHealthGit handles the "git" action for health tool
-// Checks git working copy health (status, uncommitted changes, remote sync)
+// Checks git working copy health (status, uncommitted changes, remote sync).
 func handleHealthGit(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	// Get project root
 	projectRoot, err := FindProjectRoot()
@@ -175,6 +184,7 @@ func handleHealthGit(ctx context.Context, params map[string]interface{}) ([]fram
 
 	// Get parameters
 	agentName, _ := params["agent_name"].(string)
+
 	checkRemote, _ := params["check_remote"].(bool)
 	if !checkRemote {
 		checkRemote = true // Default to true
@@ -197,6 +207,7 @@ func handleHealthGit(ctx context.Context, params map[string]interface{}) ([]fram
 		}
 		resultJSON, _ := json.Marshal(result)
 		resp := &proto.HealthReport{Action: "git", ResultJson: string(resultJSON)}
+
 		return response.FormatResult(HealthReportToMap(resp), resp.GetOutputPath())
 	}
 
@@ -210,6 +221,7 @@ func handleHealthGit(ctx context.Context, params map[string]interface{}) ([]fram
 	branchCmd := exec.CommandContext(ctx, "git", "branch", "--show-current")
 	branchCmd.Dir = projectRoot
 	branchOutput, _ := branchCmd.Output()
+
 	currentBranch := strings.TrimSpace(string(branchOutput))
 	if currentBranch == "" {
 		currentBranch = "detached"
@@ -218,6 +230,7 @@ func handleHealthGit(ctx context.Context, params map[string]interface{}) ([]fram
 	// Check remote sync (if check_remote is true)
 	remoteStatus := "unknown"
 	remoteSync := false
+
 	if checkRemote {
 		// Check if remote exists
 		remoteCmd := exec.CommandContext(ctx, "git", "remote")
@@ -240,11 +253,14 @@ func handleHealthGit(ctx context.Context, params map[string]interface{}) ([]fram
 				parts := strings.Fields(string(diffOutput))
 				behind := 0
 				ahead := 0
+
 				if len(parts) >= 2 {
 					fmt.Sscanf(parts[0], "%d", &behind)
 					fmt.Sscanf(parts[1], "%d", &ahead)
 				}
+
 				remoteSync = behind == 0 && ahead == 0
+
 				if behind > 0 && ahead > 0 {
 					remoteStatus = fmt.Sprintf("behind %d, ahead %d", behind, ahead)
 				} else if behind > 0 {
@@ -279,13 +295,15 @@ func handleHealthGit(ctx context.Context, params map[string]interface{}) ([]fram
 		lines := strings.Split(strings.TrimSpace(string(statusOutput)), "\n")
 		result["uncommitted_files"] = len(lines)
 	}
+
 	resultJSON, _ := json.Marshal(result)
 	resp := &proto.HealthReport{Action: "git", ResultJson: string(resultJSON)}
+
 	return response.FormatResult(HealthReportToMap(resp), resp.GetOutputPath())
 }
 
 // handleHealthDocs handles the "docs" action for health tool
-// Checks documentation health (basic checks: README exists, docs directory exists)
+// Checks documentation health (basic checks: README exists, docs directory exists).
 func handleHealthDocs(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	// Get project root
 	projectRoot, err := FindProjectRoot()
@@ -317,6 +335,7 @@ func handleHealthDocs(ctx context.Context, params map[string]interface{}) ([]fra
 		if info, err := os.Stat(fullPath); err == nil {
 			checks["readme_exists"] = true
 			checks["readme_size"] = info.Size()
+
 			break
 		}
 	}
@@ -328,11 +347,13 @@ func handleHealthDocs(ctx context.Context, params map[string]interface{}) ([]fra
 		// Count markdown files in docs
 		entries, _ := os.ReadDir(docsDir)
 		mdCount := 0
+
 		for _, entry := range entries {
 			if !entry.IsDir() && (strings.HasSuffix(entry.Name(), ".md") || strings.HasSuffix(entry.Name(), ".rst")) {
 				mdCount++
 			}
 		}
+
 		checks["docs_file_count"] = mdCount
 	}
 
@@ -341,9 +362,11 @@ func handleHealthDocs(ctx context.Context, params map[string]interface{}) ([]fra
 	if checks["readme_exists"].(bool) {
 		score += 50.0
 	}
+
 	if checks["docs_dir_exists"].(bool) {
 		score += 30.0
 	}
+
 	if checks["docs_file_count"].(int) > 0 {
 		score += 20.0
 	}
@@ -369,13 +392,15 @@ func handleHealthDocs(ctx context.Context, params map[string]interface{}) ([]fra
 		// For now, just note that tasks would be created
 		result["tasks_note"] = "Task creation requires Python bridge for full functionality"
 	}
+
 	resultJSON, _ := json.Marshal(result)
 	resp := &proto.HealthReport{Action: "docs", OutputPath: outputPath, ResultJson: string(resultJSON)}
+
 	return response.FormatResult(HealthReportToMap(resp), resp.GetOutputPath())
 }
 
 // handleHealthDOD handles the "dod" action for health tool
-// Checks definition of done for tasks
+// Checks definition of done for tasks.
 func handleHealthDOD(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	// Get parameters
 	taskID, _ := params["task_id"].(string)
@@ -404,6 +429,7 @@ func handleHealthDOD(ctx context.Context, params map[string]interface{}) ([]fram
 		}
 		resultJSON, _ := json.Marshal(result)
 		resp := &proto.HealthReport{Action: "dod", OutputPath: outputPath, ResultJson: string(resultJSON)}
+
 		return response.FormatResult(HealthReportToMap(resp), resp.GetOutputPath())
 	}
 
@@ -414,14 +440,17 @@ func handleHealthDOD(ctx context.Context, params map[string]interface{}) ([]fram
 			// Basic checks on changed files
 			hasTests := false
 			hasDocs := false
+
 			for _, file := range files {
 				if strings.Contains(file, "_test.go") || strings.Contains(file, "test_") {
 					hasTests = true
 				}
+
 				if strings.HasSuffix(file, ".md") || strings.Contains(file, "docs/") {
 					hasDocs = true
 				}
 			}
+
 			checks["tests_exist"] = hasTests
 			checks["docs_exist"] = hasDocs
 		}
@@ -437,13 +466,15 @@ func handleHealthDOD(ctx context.Context, params map[string]interface{}) ([]fram
 	if outputPath != "" {
 		result["output_path"] = outputPath
 	}
+
 	resultJSON, _ := json.Marshal(result)
 	resp := &proto.HealthReport{Action: "dod", OutputPath: outputPath, ResultJson: string(resultJSON)}
+
 	return response.FormatResult(HealthReportToMap(resp), resp.GetOutputPath())
 }
 
 // handleHealthCICD handles the "cicd" action for health tool
-// Validates CI/CD workflows
+// Validates CI/CD workflows.
 func handleHealthCICD(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	// Get parameters
 	workflowPath, _ := params["workflow_path"].(string)
@@ -475,11 +506,13 @@ func handleHealthCICD(ctx context.Context, params map[string]interface{}) ([]fra
 		checks["github_actions_exists"] = true
 		entries, _ := os.ReadDir(githubWorkflows)
 		workflows := []string{}
+
 		for _, entry := range entries {
 			if !entry.IsDir() && (strings.HasSuffix(entry.Name(), ".yml") || strings.HasSuffix(entry.Name(), ".yaml")) {
 				workflows = append(workflows, entry.Name())
 			}
 		}
+
 		checks["workflow_files"] = workflows
 	}
 
@@ -515,7 +548,9 @@ func handleHealthCICD(ctx context.Context, params map[string]interface{}) ([]fra
 	if outputPath != "" {
 		result["output_path"] = outputPath
 	}
+
 	resultJSON, _ := json.Marshal(result)
 	resp := &proto.HealthReport{Action: "cicd", OutputPath: outputPath, ResultJson: string(resultJSON)}
+
 	return response.FormatResult(HealthReportToMap(resp), resp.GetOutputPath())
 }

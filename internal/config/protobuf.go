@@ -8,7 +8,7 @@ import (
 	configpb "github.com/davidl71/exarp-go/proto"
 )
 
-// ToProtobuf converts Go FullConfig to protobuf FullConfig
+// ToProtobuf converts Go FullConfig to protobuf FullConfig.
 func ToProtobuf(cfg *FullConfig) (*configpb.FullConfig, error) {
 	if cfg == nil {
 		return nil, fmt.Errorf("config cannot be nil")
@@ -31,7 +31,7 @@ func ToProtobuf(cfg *FullConfig) (*configpb.FullConfig, error) {
 		cfg.Thresholds.MinTaskConfidence > 0 || cfg.Thresholds.MinCoverage > 0 ||
 		cfg.Thresholds.MinTestConfidence > 0 || cfg.Thresholds.MinEstimationConfidence > 0 ||
 		cfg.Thresholds.MLXWeight > 0 || cfg.Thresholds.MaxParallelTasks > 0 ||
-		cfg.Thresholds.MaxTasksPerHost > 0 || cfg.Thresholds.MaxAutomationIterations > 0 ||
+		cfg.Thresholds.MaxTasksPerHost > 0 || cfg.Thresholds.MaxTasksPerWave > 0 || cfg.Thresholds.MaxAutomationIterations > 0 ||
 		cfg.Thresholds.TokensPerChar > 0 || cfg.Thresholds.DefaultContextBudget > 0 ||
 		cfg.Thresholds.ContextReductionThreshold > 0 || cfg.Thresholds.RateLimitRequests > 0 ||
 		cfg.Thresholds.RateLimitWindow > 0 || cfg.Thresholds.MaxFileSize > 0 ||
@@ -124,7 +124,7 @@ func ToProtobuf(cfg *FullConfig) (*configpb.FullConfig, error) {
 	return pb, nil
 }
 
-// FromProtobuf converts protobuf FullConfig to Go FullConfig
+// FromProtobuf converts protobuf FullConfig to Go FullConfig.
 func FromProtobuf(pb *configpb.FullConfig) (*FullConfig, error) {
 	if pb == nil {
 		return nil, fmt.Errorf("protobuf config cannot be nil")
@@ -145,6 +145,7 @@ func FromProtobuf(pb *configpb.FullConfig) (*FullConfig, error) {
 
 	if pb.GetTasks() != nil {
 		var err error
+
 		cfg.Tasks, err = tasksFromProtobuf(pb.GetTasks())
 		if err != nil {
 			return nil, fmt.Errorf("failed to convert tasks config: %w", err)
@@ -165,6 +166,7 @@ func FromProtobuf(pb *configpb.FullConfig) (*FullConfig, error) {
 
 	if pb.GetTools() != nil {
 		var err error
+
 		cfg.Tools, err = toolsFromProtobuf(pb.GetTools())
 		if err != nil {
 			return nil, fmt.Errorf("failed to convert tools config: %w", err)
@@ -173,6 +175,7 @@ func FromProtobuf(pb *configpb.FullConfig) (*FullConfig, error) {
 
 	if pb.GetWorkflow() != nil {
 		var err error
+
 		cfg.Workflow, err = workflowFromProtobuf(pb.GetWorkflow())
 		if err != nil {
 			return nil, fmt.Errorf("failed to convert workflow config: %w", err)
@@ -195,38 +198,42 @@ func FromProtobuf(pb *configpb.FullConfig) (*FullConfig, error) {
 
 // Helper functions for duration conversion
 
-// durationToSeconds converts Go time.Duration to protobuf int64 (seconds)
+// durationToSeconds converts Go time.Duration to protobuf int64 (seconds).
 func durationToSeconds(d time.Duration) int64 {
 	return int64(d.Seconds())
 }
 
-// secondsToDuration converts protobuf int64 (seconds) to Go time.Duration
+// secondsToDuration converts protobuf int64 (seconds) to Go time.Duration.
 func secondsToDuration(seconds int64) time.Duration {
 	return time.Duration(seconds) * time.Second
 }
 
 // Helper functions for JSON string conversion (for maps)
 
-// mapToJSON converts a map to JSON string
+// mapToJSON converts a map to JSON string.
 func mapToJSON(m interface{}) (string, error) {
 	if m == nil {
 		return "", nil
 	}
+
 	data, err := json.Marshal(m)
 	if err != nil {
 		return "", fmt.Errorf("failed to marshal map to JSON: %w", err)
 	}
+
 	return string(data), nil
 }
 
-// jsonToMap converts JSON string to a map
+// jsonToMap converts JSON string to a map.
 func jsonToMap(jsonStr string, target interface{}) error {
 	if jsonStr == "" {
 		return nil
 	}
+
 	if err := json.Unmarshal([]byte(jsonStr), target); err != nil {
 		return fmt.Errorf("failed to unmarshal JSON to map: %w", err)
 	}
+
 	return nil
 }
 
@@ -236,6 +243,7 @@ func timeoutsToProtobuf(t *TimeoutsConfig) *configpb.TimeoutsConfig {
 	if t == nil {
 		return nil
 	}
+
 	return &configpb.TimeoutsConfig{
 		TaskLockLease:      durationToSeconds(t.TaskLockLease),
 		TaskLockRenewal:    durationToSeconds(t.TaskLockRenewal),
@@ -258,6 +266,7 @@ func timeoutsFromProtobuf(pb *configpb.TimeoutsConfig) TimeoutsConfig {
 	if pb == nil {
 		return TimeoutsConfig{}
 	}
+
 	return TimeoutsConfig{
 		TaskLockLease:      secondsToDuration(pb.GetTaskLockLease()),
 		TaskLockRenewal:    secondsToDuration(pb.GetTaskLockRenewal()),
@@ -280,6 +289,7 @@ func thresholdsToProtobuf(t *ThresholdsConfig) *configpb.ThresholdsConfig {
 	if t == nil {
 		return nil
 	}
+
 	return &configpb.ThresholdsConfig{
 		SimilarityThreshold:       t.SimilarityThreshold,
 		MinDescriptionLength:      int32(t.MinDescriptionLength),
@@ -290,6 +300,7 @@ func thresholdsToProtobuf(t *ThresholdsConfig) *configpb.ThresholdsConfig {
 		MlxWeight:                 t.MLXWeight,
 		MaxParallelTasks:          int32(t.MaxParallelTasks),
 		MaxTasksPerHost:           int32(t.MaxTasksPerHost),
+		MaxTasksPerWave:           int32(t.MaxTasksPerWave),
 		MaxAutomationIterations:   int32(t.MaxAutomationIterations),
 		TokensPerChar:             t.TokensPerChar,
 		DefaultContextBudget:      int32(t.DefaultContextBudget),
@@ -305,6 +316,7 @@ func thresholdsFromProtobuf(pb *configpb.ThresholdsConfig) ThresholdsConfig {
 	if pb == nil {
 		return ThresholdsConfig{}
 	}
+
 	return ThresholdsConfig{
 		SimilarityThreshold:       pb.GetSimilarityThreshold(),
 		MinDescriptionLength:      int(pb.GetMinDescriptionLength()),
@@ -315,6 +327,7 @@ func thresholdsFromProtobuf(pb *configpb.ThresholdsConfig) ThresholdsConfig {
 		MLXWeight:                 pb.GetMlxWeight(),
 		MaxParallelTasks:          int(pb.GetMaxParallelTasks()),
 		MaxTasksPerHost:           int(pb.GetMaxTasksPerHost()),
+		MaxTasksPerWave:           int(pb.GetMaxTasksPerWave()),
 		MaxAutomationIterations:   int(pb.GetMaxAutomationIterations()),
 		TokensPerChar:             pb.GetTokensPerChar(),
 		DefaultContextBudget:      int(pb.GetDefaultContextBudget()),
@@ -383,6 +396,7 @@ func databaseToProtobuf(d *DatabaseConfig) *configpb.DatabaseConfig {
 	if d == nil {
 		return nil
 	}
+
 	return &configpb.DatabaseConfig{
 		SqlitePath:          d.SQLitePath,
 		JsonFallbackPath:    d.JSONFallbackPath,
@@ -405,6 +419,7 @@ func databaseFromProtobuf(pb *configpb.DatabaseConfig) DatabaseConfig {
 	if pb == nil {
 		return DatabaseConfig{}
 	}
+
 	return DatabaseConfig{
 		SQLitePath:          pb.GetSqlitePath(),
 		JSONFallbackPath:    pb.GetJsonFallbackPath(),
@@ -427,6 +442,7 @@ func securityToProtobuf(s *SecurityConfig) *configpb.SecurityConfig {
 	if s == nil {
 		return nil
 	}
+
 	return &configpb.SecurityConfig{
 		RateLimit:      rateLimitToProtobuf(&s.RateLimit),
 		PathValidation: pathValidationToProtobuf(&s.PathValidation),
@@ -439,6 +455,7 @@ func securityFromProtobuf(pb *configpb.SecurityConfig) SecurityConfig {
 	if pb == nil {
 		return SecurityConfig{}
 	}
+
 	return SecurityConfig{
 		RateLimit:      rateLimitFromProtobuf(pb.GetRateLimit()),
 		PathValidation: pathValidationFromProtobuf(pb.GetPathValidation()),
@@ -451,6 +468,7 @@ func rateLimitToProtobuf(r *RateLimitConfig) *configpb.RateLimitConfig {
 	if r == nil {
 		return nil
 	}
+
 	return &configpb.RateLimitConfig{
 		Enabled:           r.Enabled,
 		RequestsPerWindow: int32(r.RequestsPerWindow),
@@ -463,6 +481,7 @@ func rateLimitFromProtobuf(pb *configpb.RateLimitConfig) RateLimitConfig {
 	if pb == nil {
 		return RateLimitConfig{}
 	}
+
 	return RateLimitConfig{
 		Enabled:           pb.GetEnabled(),
 		RequestsPerWindow: int(pb.GetRequestsPerWindow()),
@@ -475,6 +494,7 @@ func pathValidationToProtobuf(p *PathValidationConfig) *configpb.PathValidationC
 	if p == nil {
 		return nil
 	}
+
 	return &configpb.PathValidationConfig{
 		Enabled:            p.Enabled,
 		AllowAbsolutePaths: p.AllowAbsolutePaths,
@@ -487,6 +507,7 @@ func pathValidationFromProtobuf(pb *configpb.PathValidationConfig) PathValidatio
 	if pb == nil {
 		return PathValidationConfig{}
 	}
+
 	return PathValidationConfig{
 		Enabled:            pb.GetEnabled(),
 		AllowAbsolutePaths: pb.GetAllowAbsolutePaths(),
@@ -499,6 +520,7 @@ func fileLimitsToProtobuf(f *FileLimitsConfig) *configpb.FileLimitsConfig {
 	if f == nil {
 		return nil
 	}
+
 	return &configpb.FileLimitsConfig{
 		MaxFileSize:          f.MaxFileSize,
 		MaxFilesPerOperation: int32(f.MaxFilesPerOperation),
@@ -510,6 +532,7 @@ func fileLimitsFromProtobuf(pb *configpb.FileLimitsConfig) FileLimitsConfig {
 	if pb == nil {
 		return FileLimitsConfig{}
 	}
+
 	return FileLimitsConfig{
 		MaxFileSize:          pb.GetMaxFileSize(),
 		MaxFilesPerOperation: int(pb.GetMaxFilesPerOperation()),
@@ -521,6 +544,7 @@ func accessControlToProtobuf(a *AccessControlConfig) *configpb.AccessControlConf
 	if a == nil {
 		return nil
 	}
+
 	return &configpb.AccessControlConfig{
 		Enabled:         a.Enabled,
 		DefaultPolicy:   a.DefaultPolicy,
@@ -532,6 +556,7 @@ func accessControlFromProtobuf(pb *configpb.AccessControlConfig) AccessControlCo
 	if pb == nil {
 		return AccessControlConfig{}
 	}
+
 	return AccessControlConfig{
 		Enabled:         pb.GetEnabled(),
 		DefaultPolicy:   pb.GetDefaultPolicy(),
@@ -543,6 +568,7 @@ func loggingToProtobuf(l *LoggingConfig) *configpb.LoggingConfig {
 	if l == nil {
 		return nil
 	}
+
 	return &configpb.LoggingConfig{
 		Level:             l.Level,
 		ToolLevel:         l.ToolLevel,
@@ -564,6 +590,7 @@ func loggingFromProtobuf(pb *configpb.LoggingConfig) LoggingConfig {
 	if pb == nil {
 		return LoggingConfig{}
 	}
+
 	return LoggingConfig{
 		Level:             pb.GetLevel(),
 		ToolLevel:         pb.GetToolLevel(),
@@ -585,6 +612,7 @@ func logRotationToProtobuf(l *LogRotationConfig) *configpb.LogRotationConfig {
 	if l == nil {
 		return nil
 	}
+
 	return &configpb.LogRotationConfig{
 		Enabled:  l.Enabled,
 		MaxSize:  l.MaxSize,
@@ -597,6 +625,7 @@ func logRotationFromProtobuf(pb *configpb.LogRotationConfig) LogRotationConfig {
 	if pb == nil {
 		return LogRotationConfig{}
 	}
+
 	return LogRotationConfig{
 		Enabled:  pb.GetEnabled(),
 		MaxSize:  pb.GetMaxSize(),
@@ -609,6 +638,7 @@ func toolsToProtobuf(t *ToolsConfig) *configpb.ToolsConfig {
 	if t == nil {
 		return nil
 	}
+
 	return &configpb.ToolsConfig{
 		Scorecard: scorecardToProtobuf(&t.Scorecard),
 		Report:    reportToProtobuf(&t.Report),
@@ -680,6 +710,7 @@ func reportToProtobuf(r *ReportConfig) *configpb.ReportConfig {
 	if r == nil {
 		return nil
 	}
+
 	return &configpb.ReportConfig{
 		DefaultFormat:          r.DefaultFormat,
 		DefaultOutputPath:      r.DefaultOutputPath,
@@ -692,6 +723,7 @@ func reportFromProtobuf(pb *configpb.ReportConfig) ReportConfig {
 	if pb == nil {
 		return ReportConfig{}
 	}
+
 	return ReportConfig{
 		DefaultFormat:          pb.GetDefaultFormat(),
 		DefaultOutputPath:      pb.GetDefaultOutputPath(),
@@ -704,6 +736,7 @@ func lintingToProtobuf(l *LintingConfig) *configpb.LintingConfig {
 	if l == nil {
 		return nil
 	}
+
 	return &configpb.LintingConfig{
 		DefaultLinter: l.DefaultLinter,
 		AutoFix:       l.AutoFix,
@@ -716,6 +749,7 @@ func lintingFromProtobuf(pb *configpb.LintingConfig) LintingConfig {
 	if pb == nil {
 		return LintingConfig{}
 	}
+
 	return LintingConfig{
 		DefaultLinter: pb.GetDefaultLinter(),
 		AutoFix:       pb.GetAutoFix(),
@@ -728,6 +762,7 @@ func testingToProtobuf(t *TestingConfig) *configpb.TestingConfig {
 	if t == nil {
 		return nil
 	}
+
 	return &configpb.TestingConfig{
 		DefaultFramework: t.DefaultFramework,
 		MinCoverage:      int32(t.MinCoverage),
@@ -740,6 +775,7 @@ func testingFromProtobuf(pb *configpb.TestingConfig) TestingConfig {
 	if pb == nil {
 		return TestingConfig{}
 	}
+
 	return TestingConfig{
 		DefaultFramework: pb.GetDefaultFramework(),
 		MinCoverage:      int(pb.GetMinCoverage()),
@@ -752,6 +788,7 @@ func mlxToProtobuf(m *MLXConfig) *configpb.MLXConfig {
 	if m == nil {
 		return nil
 	}
+
 	return &configpb.MLXConfig{
 		DefaultModel:       m.DefaultModel,
 		DefaultMaxTokens:   int32(m.DefaultMaxTokens),
@@ -764,6 +801,7 @@ func mlxFromProtobuf(pb *configpb.MLXConfig) MLXConfig {
 	if pb == nil {
 		return MLXConfig{}
 	}
+
 	return MLXConfig{
 		DefaultModel:       pb.GetDefaultModel(),
 		DefaultMaxTokens:   int(pb.GetDefaultMaxTokens()),
@@ -776,6 +814,7 @@ func ollamaToProtobuf(o *OllamaConfig) *configpb.OllamaConfig {
 	if o == nil {
 		return nil
 	}
+
 	return &configpb.OllamaConfig{
 		DefaultModel:       o.DefaultModel,
 		DefaultHost:        o.DefaultHost,
@@ -789,6 +828,7 @@ func ollamaFromProtobuf(pb *configpb.OllamaConfig) OllamaConfig {
 	if pb == nil {
 		return OllamaConfig{}
 	}
+
 	return OllamaConfig{
 		DefaultModel:       pb.GetDefaultModel(),
 		DefaultHost:        pb.GetDefaultHost(),
@@ -802,6 +842,7 @@ func contextToProtobuf(c *ContextConfig) *configpb.ContextConfig {
 	if c == nil {
 		return nil
 	}
+
 	return &configpb.ContextConfig{
 		DefaultBudget:             int32(c.DefaultBudget),
 		DefaultSummarizationLevel: c.DefaultSummarizationLevel,
@@ -814,6 +855,7 @@ func contextFromProtobuf(pb *configpb.ContextConfig) ContextConfig {
 	if pb == nil {
 		return ContextConfig{}
 	}
+
 	return ContextConfig{
 		DefaultBudget:             int(pb.GetDefaultBudget()),
 		DefaultSummarizationLevel: pb.GetDefaultSummarizationLevel(),
@@ -865,6 +907,7 @@ func modeSuggestionsToProtobuf(m *ModeSuggestionsConfig) *configpb.ModeSuggestio
 	if m == nil {
 		return nil
 	}
+
 	return &configpb.ModeSuggestionsConfig{
 		Morning:   m.Morning,
 		Afternoon: m.Afternoon,
@@ -876,6 +919,7 @@ func modeSuggestionsFromProtobuf(pb *configpb.ModeSuggestionsConfig) ModeSuggest
 	if pb == nil {
 		return ModeSuggestionsConfig{}
 	}
+
 	return ModeSuggestionsConfig{
 		Morning:   pb.GetMorning(),
 		Afternoon: pb.GetAfternoon(),
@@ -887,6 +931,7 @@ func focusToProtobuf(f *FocusConfig) *configpb.FocusConfig {
 	if f == nil {
 		return nil
 	}
+
 	return &configpb.FocusConfig{
 		Enabled:           f.Enabled,
 		ReductionTarget:   int32(f.ReductionTarget),
@@ -898,6 +943,7 @@ func focusFromProtobuf(pb *configpb.FocusConfig) FocusConfig {
 	if pb == nil {
 		return FocusConfig{}
 	}
+
 	return FocusConfig{
 		Enabled:           pb.GetEnabled(),
 		ReductionTarget:   int(pb.GetReductionTarget()),
@@ -909,6 +955,7 @@ func memoryToProtobuf(m *MemoryConfig) *configpb.MemoryConfig {
 	if m == nil {
 		return nil
 	}
+
 	return &configpb.MemoryConfig{
 		Categories:     m.Categories,
 		StoragePath:    m.StoragePath,
@@ -924,6 +971,7 @@ func memoryFromProtobuf(pb *configpb.MemoryConfig) MemoryConfig {
 	if pb == nil {
 		return MemoryConfig{}
 	}
+
 	return MemoryConfig{
 		Categories:     pb.GetCategories(),
 		StoragePath:    pb.GetStoragePath(),
@@ -939,6 +987,7 @@ func consolidationToProtobuf(c *ConsolidationConfig) *configpb.ConsolidationConf
 	if c == nil {
 		return nil
 	}
+
 	return &configpb.ConsolidationConfig{
 		Enabled:             c.Enabled,
 		SimilarityThreshold: c.SimilarityThreshold,
@@ -950,6 +999,7 @@ func consolidationFromProtobuf(pb *configpb.ConsolidationConfig) ConsolidationCo
 	if pb == nil {
 		return ConsolidationConfig{}
 	}
+
 	return ConsolidationConfig{
 		Enabled:             pb.GetEnabled(),
 		SimilarityThreshold: pb.GetSimilarityThreshold(),
@@ -961,6 +1011,7 @@ func projectToProtobuf(p *ProjectConfig) *configpb.ProjectConfig {
 	if p == nil {
 		return nil
 	}
+
 	return &configpb.ProjectConfig{
 		Name:        p.Name,
 		Type:        p.Type,
@@ -978,6 +1029,7 @@ func projectFromProtobuf(pb *configpb.ProjectConfig) ProjectConfig {
 	if pb == nil {
 		return ProjectConfig{}
 	}
+
 	return ProjectConfig{
 		Name:        pb.GetName(),
 		Type:        pb.GetType(),
@@ -995,6 +1047,7 @@ func featuresToProtobuf(f *FeaturesConfig) *configpb.FeaturesConfig {
 	if f == nil {
 		return nil
 	}
+
 	return &configpb.FeaturesConfig{
 		SqliteEnabled: f.SQLiteEnabled,
 		JsonFallback:  f.JSONFallback,
@@ -1007,6 +1060,7 @@ func featuresFromProtobuf(pb *configpb.FeaturesConfig) FeaturesConfig {
 	if pb == nil {
 		return FeaturesConfig{}
 	}
+
 	return FeaturesConfig{
 		SQLiteEnabled: pb.GetSqliteEnabled(),
 		JSONFallback:  pb.GetJsonFallback(),

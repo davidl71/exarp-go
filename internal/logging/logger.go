@@ -37,6 +37,7 @@ func Default() *Logger {
 		defaultLogger = mcplog.NewLogger()
 		defaultLogger.SetLevel(mcplog.LevelWarn)
 	})
+
 	return defaultLogger
 }
 
@@ -50,6 +51,7 @@ func SetSlowThreshold(threshold time.Duration) {
 // Level mapping: debug, info, warn, error (case-insensitive). Format still comes from LOG_FORMAT env.
 func ConfigureFromConfig(cfg config.LoggingConfig) {
 	l := Default()
+
 	level := mcplog.LevelInfo
 	switch strings.ToLower(cfg.Level) {
 	case "debug":
@@ -61,6 +63,7 @@ func ConfigureFromConfig(cfg config.LoggingConfig) {
 	case "error":
 		level = mcplog.LevelError
 	}
+
 	l.SetLevel(level)
 }
 

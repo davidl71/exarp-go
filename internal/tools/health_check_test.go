@@ -76,11 +76,13 @@ func TestHandleHealthDocs(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := context.Background()
+
 			result, err := handleHealthDocs(ctx, tt.params)
 			if (err != nil) != tt.wantError {
 				t.Errorf("handleHealthDocs() error = %v, wantError %v", err, tt.wantError)
 				return
 			}
+
 			if !tt.wantError && tt.validate != nil {
 				tt.validate(t, result)
 			}
@@ -159,11 +161,13 @@ func TestHandleHealthDOD(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := context.Background()
+
 			result, err := handleHealthDOD(ctx, tt.params)
 			if (err != nil) != tt.wantError {
 				t.Errorf("handleHealthDOD() error = %v, wantError %v", err, tt.wantError)
 				return
 			}
+
 			if !tt.wantError && tt.validate != nil {
 				tt.validate(t, result)
 			}
@@ -236,11 +240,13 @@ func TestHandleHealthCICD(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := context.Background()
+
 			result, err := handleHealthCICD(ctx, tt.params)
 			if (err != nil) != tt.wantError {
 				t.Errorf("handleHealthCICD() error = %v, wantError %v", err, tt.wantError)
 				return
 			}
+
 			if !tt.wantError && tt.validate != nil {
 				tt.validate(t, result)
 			}
@@ -301,11 +307,13 @@ func TestHandleHealthNative(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := context.Background()
+
 			result, err := handleHealthNative(ctx, tt.params)
 			if (err != nil) != tt.wantError {
 				t.Errorf("handleHealthNative() error = %v, wantError %v", err, tt.wantError)
 				return
 			}
+
 			if !tt.wantError && (result == nil || len(result) == 0) {
 				t.Error("expected non-empty result")
 			}

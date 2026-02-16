@@ -12,7 +12,7 @@ import (
 	"github.com/davidl71/mcp-go-core/pkg/mcp/response"
 )
 
-// PromptEntry represents a single prompt log entry
+// PromptEntry represents a single prompt log entry.
 type PromptEntry struct {
 	Timestamp    string `json:"timestamp"`
 	Prompt       string `json:"prompt"`
@@ -23,14 +23,14 @@ type PromptEntry struct {
 	PromptLength int    `json:"prompt_length"`
 }
 
-// PromptLog represents the log file structure
+// PromptLog represents the log file structure.
 type PromptLog struct {
 	Created     string        `json:"created"`
 	LastUpdated string        `json:"last_updated"`
 	Entries     []PromptEntry `json:"entries"`
 }
 
-// handlePromptTrackingNative handles the prompt_tracking tool with native Go implementation
+// handlePromptTrackingNative handles the prompt_tracking tool with native Go implementation.
 func handlePromptTrackingNative(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	action, _ := params["action"].(string)
 	if action == "" {
@@ -47,7 +47,7 @@ func handlePromptTrackingNative(ctx context.Context, params map[string]interface
 	}
 }
 
-// handlePromptTrackingLog handles the log action
+// handlePromptTrackingLog handles the log action.
 func handlePromptTrackingLog(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	prompt, _ := params["prompt"].(string)
 	if prompt == "" {
@@ -155,7 +155,7 @@ func handlePromptTrackingLog(ctx context.Context, params map[string]interface{})
 	return response.FormatResult(result, "")
 }
 
-// handlePromptTrackingAnalyze handles the analyze action
+// handlePromptTrackingAnalyze handles the analyze action.
 func handlePromptTrackingAnalyze(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	days := 7
 	if d, ok := params["days"].(float64); ok {
@@ -182,6 +182,7 @@ func handlePromptTrackingAnalyze(ctx context.Context, params map[string]interfac
 			"patterns":        []string{},
 			"recommendations": []string{"No prompt history found. Use log action to track prompts."},
 		}
+
 		return response.FormatResult(result, "")
 	}
 
@@ -195,11 +196,13 @@ func handlePromptTrackingAnalyze(ctx context.Context, params map[string]interfac
 			if entry.IsDir() {
 				continue
 			}
+
 			if filepath.Ext(entry.Name()) != ".json" {
 				continue
 			}
 
 			logFile := filepath.Join(logDir, entry.Name())
+
 			data, err := os.ReadFile(logFile)
 			if err != nil {
 				continue
@@ -256,15 +259,19 @@ func handlePromptTrackingAnalyze(ctx context.Context, params map[string]interfac
 		for _, iter := range taskIterations {
 			sum += iter
 		}
+
 		avg := float64(sum) / float64(len(taskIterations))
 		analysis["avg_iterations"] = fmt.Sprintf("%.2f", avg)
 	}
 
 	// Generate patterns
 	patterns := []string{}
+
 	if avgIter, ok := analysis["avg_iterations"].(string); ok {
 		var avg float64
+
 		fmt.Sscanf(avgIter, "%f", &avg)
+
 		if avg > 3 {
 			patterns = append(patterns, "High iteration count - consider more detailed initial prompts")
 		}
@@ -272,6 +279,7 @@ func handlePromptTrackingAnalyze(ctx context.Context, params map[string]interfac
 
 	agentCount := byMode["AGENT"]
 	askCount := byMode["ASK"]
+
 	if agentCount > askCount*2 {
 		patterns = append(patterns, "Heavy AGENT usage - consider ASK for simpler queries")
 	}
@@ -285,13 +293,17 @@ func handlePromptTrackingAnalyze(ctx context.Context, params map[string]interfac
 
 	// Generate recommendations
 	recommendations := []string{}
+
 	if avgIter, ok := analysis["avg_iterations"].(string); ok {
 		var avg float64
+
 		fmt.Sscanf(avgIter, "%f", &avg)
+
 		if avg > 2 {
 			recommendations = append(recommendations, "Break down complex tasks into smaller, more specific prompts")
 		}
 	}
+
 	if len(byMode) == 0 {
 		recommendations = append(recommendations, "Track workflow mode (AGENT/ASK) to optimize tool selection")
 	}

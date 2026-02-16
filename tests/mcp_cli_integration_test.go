@@ -10,7 +10,7 @@ import (
 )
 
 // TestMCPToolViaCLI tests tools via subprocess (./bin/exarp-go -tool X -args '...')
-// This validates the full MCP CLI path: binary → handler → JSON response
+// This validates the full MCP CLI path: binary → handler → JSON response.
 func TestMCPToolViaCLI(t *testing.T) {
 	// Ensure binary exists
 	binaryPath := filepath.Join("..", "bin", "exarp-go")
@@ -82,6 +82,7 @@ func TestMCPToolViaCLI(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			cmd := exec.Command(binaryPath, "-tool", tt.tool, "-args", tt.args)
+
 			cmd.Env = append(os.Environ(), "PROJECT_ROOT="+filepath.Join("..", ".."))
 
 			output, err := cmd.CombinedOutput()
@@ -90,6 +91,7 @@ func TestMCPToolViaCLI(t *testing.T) {
 				if err == nil {
 					t.Errorf("expected error for %s, got success", tt.tool)
 				}
+
 				return
 			}
 
@@ -101,10 +103,12 @@ func TestMCPToolViaCLI(t *testing.T) {
 			// Extract JSON from output (CLI outputs logs + "Result:\n" + JSON)
 			outputStr := string(output)
 			jsonStart := strings.Index(outputStr, "Result:\n")
+
 			if jsonStart == -1 {
 				t.Errorf("tool %s output missing 'Result:' marker\nOutput: %s", tt.tool, outputStr)
 				return
 			}
+
 			jsonStr := strings.TrimSpace(outputStr[jsonStart+8:]) // Skip "Result:\n"
 
 			// Parse JSON response
@@ -122,7 +126,7 @@ func TestMCPToolViaCLI(t *testing.T) {
 	}
 }
 
-// TestMCPToolErrorHandlingViaCLI tests error cases via CLI
+// TestMCPToolErrorHandlingViaCLI tests error cases via CLI.
 func TestMCPToolErrorHandlingViaCLI(t *testing.T) {
 	binaryPath := filepath.Join("..", "bin", "exarp-go")
 	if _, err := os.Stat(binaryPath); os.IsNotExist(err) {
@@ -158,6 +162,7 @@ func TestMCPToolErrorHandlingViaCLI(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			cmd := exec.Command(binaryPath, "-tool", tt.tool, "-args", tt.args)
+
 			cmd.Env = append(os.Environ(), "PROJECT_ROOT="+filepath.Join("..", ".."))
 
 			output, err := cmd.CombinedOutput()
@@ -165,6 +170,7 @@ func TestMCPToolErrorHandlingViaCLI(t *testing.T) {
 			if tt.wantError && err == nil {
 				t.Errorf("expected error, got success. Output: %s", string(output))
 			}
+
 			if !tt.wantError && err != nil {
 				t.Errorf("unexpected error: %v. Output: %s", err, string(output))
 			}
@@ -172,7 +178,7 @@ func TestMCPToolErrorHandlingViaCLI(t *testing.T) {
 	}
 }
 
-// TestMCPToolJSONResponseFormat validates all tools return valid JSON
+// TestMCPToolJSONResponseFormat validates all tools return valid JSON.
 func TestMCPToolJSONResponseFormat(t *testing.T) {
 	binaryPath := filepath.Join("..", "bin", "exarp-go")
 	if _, err := os.Stat(binaryPath); os.IsNotExist(err) {
@@ -193,6 +199,7 @@ func TestMCPToolJSONResponseFormat(t *testing.T) {
 	for _, tool := range tools {
 		t.Run(tool.name, func(t *testing.T) {
 			cmd := exec.Command(binaryPath, "-tool", tool.name, "-args", tool.args)
+
 			cmd.Env = append(os.Environ(), "PROJECT_ROOT="+filepath.Join("..", ".."))
 
 			output, err := cmd.CombinedOutput()
@@ -205,10 +212,12 @@ func TestMCPToolJSONResponseFormat(t *testing.T) {
 			// Extract JSON from output (CLI outputs logs + "Result:\n" + JSON)
 			outputStr := string(output)
 			jsonStart := strings.Index(outputStr, "Result:\n")
+
 			if jsonStart == -1 {
 				t.Errorf("tool %s output missing 'Result:' marker\nOutput: %s", tool.name, outputStr)
 				return
 			}
+
 			jsonStr := strings.TrimSpace(outputStr[jsonStart+8:])
 
 			// Must be valid JSON

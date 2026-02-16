@@ -31,6 +31,7 @@ func AnalyzeTask(ctx context.Context, taskDescription, acceptanceCriteria, conte
 	if taskDescription == "" {
 		return nil, fmt.Errorf("task description is required for breakdown")
 	}
+
 	if gen == nil || !gen.Supported() {
 		return nil, fmt.Errorf("text generator not available for task breakdown")
 	}
@@ -41,9 +42,9 @@ func AnalyzeTask(ctx context.Context, taskDescription, acceptanceCriteria, conte
 	}
 
 	args := map[string]interface{}{
-		"task_description":     taskDescription,
-		"acceptance_criteria":  acceptanceCriteria,
-		"context":              contextHint,
+		"task_description":    taskDescription,
+		"acceptance_criteria": acceptanceCriteria,
+		"context":             contextHint,
 	}
 	substituted := prompts.SubstituteTemplate(tmpl, args)
 
@@ -58,17 +59,21 @@ func AnalyzeTask(ctx context.Context, taskDescription, acceptanceCriteria, conte
 // parseTaskBreakdown parses LLM output into TaskBreakdownResult. Tries JSON first, then fallback.
 func parseTaskBreakdown(text string) (*TaskBreakdownResult, error) {
 	text = extractJSON(text)
+
 	var result TaskBreakdownResult
+
 	if err := json.Unmarshal([]byte(text), &result); err == nil && len(result.Subtasks) > 0 {
 		return &result, nil
 	}
 	// Fallback: build minimal result from raw text (one "subtask" per line that looks like a task)
 	result = TaskBreakdownResult{}
+
 	for _, line := range strings.Split(text, "\n") {
 		line = strings.TrimSpace(line)
 		if line == "" || strings.HasPrefix(line, "{") || strings.HasPrefix(line, "}") {
 			continue
 		}
+
 		if len(line) > 10 {
 			result.Subtasks = append(result.Subtasks, TaskBreakdownSubtask{
 				Name:        line,
@@ -77,9 +82,11 @@ func parseTaskBreakdown(text string) (*TaskBreakdownResult, error) {
 			})
 		}
 	}
+
 	if len(result.Subtasks) == 0 {
 		return nil, fmt.Errorf("could not parse task breakdown from model output")
 	}
+
 	return &result, nil
 }
 
@@ -89,7 +96,9 @@ func extractJSON(text string) string {
 	if start < 0 {
 		return text
 	}
+
 	depth := 0
+
 	for i := start; i < len(text); i++ {
 		switch text[i] {
 		case '{':
@@ -106,5 +115,6 @@ func extractJSON(text string) string {
 	if m := re.FindString(text); m != "" {
 		return m
 	}
+
 	return text[start:]
 }

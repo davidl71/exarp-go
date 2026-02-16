@@ -21,17 +21,21 @@ var CategoryDeleteAfter = map[string]string{
 // ExpiredCategories returns category names whose Delete After date is on or before asOf.
 func ExpiredCategories(asOf time.Time) []string {
 	asOfDate := asOf.Truncate(24 * time.Hour)
+
 	var out []string
+
 	for category, deleteAfterStr := range CategoryDeleteAfter {
 		t, err := time.Parse("2006-01-02", deleteAfterStr)
 		if err != nil {
 			continue
 		}
+
 		t = t.Truncate(24 * time.Hour)
 		if !asOfDate.Before(t) {
 			out = append(out, category)
 		}
 	}
+
 	return out
 }
 
@@ -47,19 +51,24 @@ func DeleteExpired(projectRoot string, asOf time.Time, dryRun bool) (deleted []s
 	expired := ExpiredCategories(asOf)
 	for _, category := range expired {
 		dir := filepath.Join(archiveRoot, category)
+
 		entries, readErr := os.ReadDir(dir)
 		if readErr != nil {
 			if os.IsNotExist(readErr) {
 				continue
 			}
+
 			return deleted, fmt.Errorf("read dir %s: %w", dir, readErr)
 		}
+
 		for _, e := range entries {
 			if e.IsDir() {
 				continue
 			}
+
 			path := filepath.Join(dir, e.Name())
 			deleted = append(deleted, path)
+
 			if !dryRun {
 				if removeErr := os.Remove(path); removeErr != nil {
 					return deleted, fmt.Errorf("remove %s: %w", path, removeErr)
@@ -67,5 +76,6 @@ func DeleteExpired(projectRoot string, asOf time.Time, dryRun bool) (deleted []s
 			}
 		}
 	}
+
 	return deleted, nil
 }

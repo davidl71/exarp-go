@@ -15,18 +15,22 @@ import (
 // Uses InitWithConfig with MigrationsDir from repo root (relative to this test file).
 func initLockTestDB(t *testing.T) {
 	t.Helper()
+
 	_, self, _, _ := runtime.Caller(0)
 	repoRoot := filepath.Dir(filepath.Dir(filepath.Dir(self)))
 	migrationsDir := filepath.Join(repoRoot, "migrations")
 	tmpDir := t.TempDir()
+
 	cfg, err := LoadConfig(tmpDir)
 	if err != nil {
 		t.Fatalf("LoadConfig() error = %v", err)
 	}
+
 	cfg.Driver = DriverSQLite
 	cfg.DSN = filepath.Join(tmpDir, ".todo2", "todo2.db")
 	cfg.MigrationsDir = migrationsDir
 	cfg.AutoMigrate = true // ensure migrations run regardless of DB_AUTO_MIGRATE
+
 	err = InitWithConfig(cfg)
 	if err != nil {
 		t.Fatalf("InitWithConfig() error = %v (migrationsDir=%s)", err, migrationsDir)
@@ -36,10 +40,12 @@ func initLockTestDB(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GetCurrentVersion() after init: %v", err)
 	}
+
 	if ver < 2 {
 		t.Fatalf("schema not updated to 002: GetCurrentVersion()=%d (migrationsDir=%s, AutoMigrate=%v)",
 			ver, migrationsDir, cfg.AutoMigrate)
 	}
+
 	t.Cleanup(func() { Close() })
 }
 
@@ -54,6 +60,7 @@ func TestClaimTaskForAgent(t *testing.T) {
 		Status:   StatusTodo,
 		Priority: "medium",
 	}
+
 	err := CreateTask(context.Background(), task)
 	if err != nil {
 		t.Fatalf("CreateTask() error = %v", err)
@@ -106,6 +113,7 @@ func TestClaimTaskForAgent_AlreadyLocked(t *testing.T) {
 		Content: "Task already locked",
 		Status:  StatusTodo,
 	}
+
 	err := CreateTask(context.Background(), task)
 	if err != nil {
 		t.Fatalf("CreateTask() error = %v", err)
@@ -113,16 +121,19 @@ func TestClaimTaskForAgent_AlreadyLocked(t *testing.T) {
 
 	// First agent claims task
 	agentID1 := "agent-test-1"
+
 	result1, err := ClaimTaskForAgent(context.Background(), "T-LOCK-2", agentID1, 30*time.Minute)
 	if err != nil {
 		t.Fatalf("First ClaimTaskForAgent() error = %v", err)
 	}
+
 	if !result1.Success {
 		t.Fatalf("First claim should succeed, got error: %v", result1.Error)
 	}
 
 	// Second agent tries to claim same task (should fail)
 	agentID2 := "agent-test-2"
+
 	result2, err := ClaimTaskForAgent(context.Background(), "T-LOCK-2", agentID2, 30*time.Minute)
 	if err == nil {
 		t.Error("Expected error when claiming already locked task, got nil")
@@ -146,16 +157,19 @@ func TestReleaseTask(t *testing.T) {
 		Content: "Task to release",
 		Status:  StatusTodo,
 	}
+
 	err := CreateTask(context.Background(), task)
 	if err != nil {
 		t.Fatalf("CreateTask() error = %v", err)
 	}
 
 	agentID := "agent-test-1"
+
 	result, err := ClaimTaskForAgent(context.Background(), "T-LOCK-3", agentID, 30*time.Minute)
 	if err != nil {
 		t.Fatalf("ClaimTaskForAgent() error = %v", err)
 	}
+
 	if !result.Success {
 		t.Fatalf("Claim should succeed, got error: %v", result.Error)
 	}
@@ -171,6 +185,7 @@ func TestReleaseTask(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Second ClaimTaskForAgent() error = %v", err)
 	}
+
 	if !result2.Success {
 		t.Fatalf("Task should be claimable after release, got error: %v", result2.Error)
 	}
@@ -185,22 +200,26 @@ func TestReleaseTask_WrongAgent(t *testing.T) {
 		Content: "Task locked by agent1",
 		Status:  StatusTodo,
 	}
+
 	err := CreateTask(context.Background(), task)
 	if err != nil {
 		t.Fatalf("CreateTask() error = %v", err)
 	}
 
 	agentID1 := "agent-test-1"
+
 	result, err := ClaimTaskForAgent(context.Background(), "T-LOCK-4", agentID1, 30*time.Minute)
 	if err != nil {
 		t.Fatalf("ClaimTaskForAgent() error = %v", err)
 	}
+
 	if !result.Success {
 		t.Fatalf("Claim should succeed, got error: %v", result.Error)
 	}
 
 	// Wrong agent tries to release
 	agentID2 := "agent-test-2"
+
 	err = ReleaseTask(context.Background(), "T-LOCK-4", agentID2)
 	if err == nil {
 		t.Error("Expected error when wrong agent releases task, got nil")
@@ -216,16 +235,19 @@ func TestRenewLease(t *testing.T) {
 		Content: "Task for lease renewal",
 		Status:  StatusTodo,
 	}
+
 	err := CreateTask(context.Background(), task)
 	if err != nil {
 		t.Fatalf("CreateTask() error = %v", err)
 	}
 
 	agentID := "agent-test-1"
+
 	result, err := ClaimTaskForAgent(context.Background(), "T-LOCK-5", agentID, 10*time.Minute)
 	if err != nil {
 		t.Fatalf("ClaimTaskForAgent() error = %v", err)
 	}
+
 	if !result.Success {
 		t.Fatalf("Claim should succeed, got error: %v", result.Error)
 	}
@@ -245,12 +267,14 @@ func TestRunLeaseRenewal(t *testing.T) {
 		Content: "Task for RunLeaseRenewal",
 		Status:  StatusTodo,
 	}
+
 	err := CreateTask(context.Background(), task)
 	if err != nil {
 		t.Fatalf("CreateTask() error = %v", err)
 	}
 
 	agentID := "agent-renew-1"
+
 	_, err = ClaimTaskForAgent(context.Background(), "T-LOCK-RENEW", agentID, 100*time.Millisecond)
 	if err != nil {
 		t.Fatalf("ClaimTaskForAgent() error = %v", err)
@@ -269,15 +293,20 @@ func TestRunLeaseRenewal(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GetDB() error = %v", err)
 	}
+
 	var assignee sql.NullString
+
 	var lockUntil sql.NullInt64
+
 	err = db.QueryRow(`SELECT assignee, lock_until FROM tasks WHERE id = ?`, "T-LOCK-RENEW").Scan(&assignee, &lockUntil)
 	if err != nil {
 		t.Fatalf("QueryRow() error = %v", err)
 	}
+
 	if !assignee.Valid || assignee.String != agentID {
 		t.Errorf("assignee = %v, want %s", assignee, agentID)
 	}
+
 	now := time.Now().Unix()
 	if !lockUntil.Valid || lockUntil.Int64 <= now {
 		t.Errorf("lock_until = %v (now=%d), expected extended", lockUntil.Int64, now)
@@ -293,6 +322,7 @@ func TestCleanupExpiredLocks(t *testing.T) {
 		Content: "Task with expired lock",
 		Status:  StatusTodo,
 	}
+
 	err := CreateTask(context.Background(), task)
 	if err != nil {
 		t.Fatalf("CreateTask() error = %v", err)
@@ -338,6 +368,7 @@ func TestCleanupExpiredLocks(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ClaimTaskForAgent() after cleanup error = %v", err)
 	}
+
 	if !result.Success {
 		t.Fatalf("Task should be claimable after cleanup, got error: %v", result.Error)
 	}
@@ -348,6 +379,7 @@ func TestDetectStaleLocks(t *testing.T) {
 
 	// Create tasks
 	var err error
+
 	tasks := []*models.Todo2Task{
 		{ID: "T-LOCK-7", Content: "Task 1", Status: StatusTodo},
 		{ID: "T-LOCK-8", Content: "Task 2", Status: StatusTodo},
@@ -415,16 +447,19 @@ func TestGetLockStatus(t *testing.T) {
 		Content: "Task for status check",
 		Status:  StatusTodo,
 	}
+
 	err := CreateTask(context.Background(), task)
 	if err != nil {
 		t.Fatalf("CreateTask() error = %v", err)
 	}
 
 	agentID := "agent-test-1"
+
 	result, err := ClaimTaskForAgent(context.Background(), "T-LOCK-9", agentID, 30*time.Minute)
 	if err != nil {
 		t.Fatalf("ClaimTaskForAgent() error = %v", err)
 	}
+
 	if !result.Success {
 		t.Fatalf("Claim should succeed, got error: %v", result.Error)
 	}
@@ -465,6 +500,7 @@ func TestGetLockStatus_NotLocked(t *testing.T) {
 		Content: "Unlocked task",
 		Status:  StatusTodo,
 	}
+
 	err := CreateTask(context.Background(), task)
 	if err != nil {
 		t.Fatalf("CreateTask() error = %v", err)

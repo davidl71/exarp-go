@@ -30,7 +30,7 @@ type AnalysisResult struct {
 // Decision criteria (from MODEL_ASSISTED_WORKFLOW.md):
 // - Simple: Well-defined, routine, low-risk, <1h estimated
 // - Medium: Needs breakdown, multiple steps, some uncertainty
-// - Complex: High-stakes, experimental, requires human judgment
+// - Complex: High-stakes, experimental, requires human judgment.
 func AnalyzeTask(task *models.Todo2Task) AnalysisResult {
 	if task == nil {
 		return AnalysisResult{
@@ -43,10 +43,12 @@ func AnalyzeTask(task *models.Todo2Task) AnalysisResult {
 
 	text := strings.ToLower(task.Content + " " + task.LongDescription)
 	depCount := len(task.Dependencies)
+
 	tagLower := make([]string, len(task.Tags))
 	for i, t := range task.Tags {
 		tagLower[i] = strings.ToLower(t)
 	}
+
 	textWithTags := text + " " + strings.Join(tagLower, " ")
 
 	// Complex indicators: high-stakes keywords
@@ -68,6 +70,7 @@ func AnalyzeTask(task *models.Todo2Task) AnalysisResult {
 			Reason:         "many dependencies (>=5)",
 		}
 	}
+
 	if depCount >= 3 {
 		return AnalysisResult{
 			Complexity:     ComplexityMedium,
@@ -117,6 +120,7 @@ func hasComplexKeywords(s string) bool {
 			return true
 		}
 	}
+
 	return false
 }
 
@@ -130,5 +134,6 @@ func hasSimpleKeywords(s string) bool {
 			return true
 		}
 	}
+
 	return false
 }

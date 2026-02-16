@@ -11,12 +11,13 @@ import (
 	mcpcli "github.com/davidl71/mcp-go-core/pkg/mcp/cli"
 )
 
-// handleTaskCommand handles task subcommands (list, status, update, create, show) using ParseArgs result
+// handleTaskCommand handles task subcommands (list, status, update, create, show) using ParseArgs result.
 func handleTaskCommand(server framework.MCPServer, parsed *mcpcli.Args) error {
 	subcommand := parsed.Subcommand
 	if subcommand == "" && len(parsed.Positional) > 0 {
 		subcommand = parsed.Positional[0]
 	}
+
 	if subcommand == "" {
 		return showTaskUsage()
 	}
@@ -41,7 +42,7 @@ func handleTaskCommand(server framework.MCPServer, parsed *mcpcli.Args) error {
 	}
 }
 
-// handleTaskListParsed handles "task list" command using ParseArgs result
+// handleTaskListParsed handles "task list" command using ParseArgs result.
 func handleTaskListParsed(server framework.MCPServer, parsed *mcpcli.Args) error {
 	status := parsed.GetFlag("status", "")
 	priority := parsed.GetFlag("priority", "")
@@ -56,15 +57,19 @@ func handleTaskListParsed(server framework.MCPServer, parsed *mcpcli.Args) error
 	if status != "" {
 		toolArgs["status"] = status
 	}
+
 	if priority != "" {
 		toolArgs["priority"] = priority
 	}
+
 	if tag != "" {
 		toolArgs["filter_tag"] = tag
 	}
+
 	if limit > 0 {
 		toolArgs["limit"] = limit
 	}
+
 	if order == "execution" || order == "dependency" {
 		toolArgs["order"] = order
 	}
@@ -72,13 +77,13 @@ func handleTaskListParsed(server framework.MCPServer, parsed *mcpcli.Args) error
 	return executeTaskWorkflow(server, toolArgs)
 }
 
-// handleTaskList handles "task list" command (legacy, used by tests)
+// handleTaskList handles "task list" command (legacy, used by tests).
 func handleTaskList(server framework.MCPServer, args []string) error {
 	parsed := mcpcli.ParseArgs(append([]string{"task", "list"}, args...))
 	return handleTaskListParsed(server, parsed)
 }
 
-// handleTaskStatus handles "task status <task-id>" command
+// handleTaskStatus handles "task status <task-id>" command.
 func handleTaskStatus(server framework.MCPServer, args []string) error {
 	if len(args) == 0 {
 		return fmt.Errorf("task status requires a task ID")
@@ -96,7 +101,7 @@ func handleTaskStatus(server framework.MCPServer, args []string) error {
 	return executeTaskWorkflow(server, toolArgs)
 }
 
-// handleTaskUpdateParsed handles "task update" command using ParseArgs result
+// handleTaskUpdateParsed handles "task update" command using ParseArgs result.
 func handleTaskUpdateParsed(server framework.MCPServer, parsed *mcpcli.Args) error {
 	oldStatus := parsed.GetFlag("status", "")
 	newStatus := parsed.GetFlag("new-status", "")
@@ -123,11 +128,12 @@ func handleTaskUpdateParsed(server framework.MCPServer, parsed *mcpcli.Args) err
 	return handleTaskUpdateWithParams(server, taskIDs, oldStatus, newStatus, newPriority, autoApply)
 }
 
-// handleTaskUpdateWithParams executes the update with parsed params
+// handleTaskUpdateWithParams executes the update with parsed params.
 func handleTaskUpdateWithParams(server framework.MCPServer, taskIDs []string, oldStatus, newStatus, newPriority string, autoApply bool) error {
 	if len(taskIDs) == 0 && oldStatus == "" {
 		return fmt.Errorf("task update requires task ID(s) or --status flag")
 	}
+
 	if newStatus == "" && newPriority == "" {
 		return fmt.Errorf("task update requires --new-status and/or --new-priority")
 	}
@@ -136,6 +142,7 @@ func handleTaskUpdateWithParams(server framework.MCPServer, taskIDs []string, ol
 		if len(taskIDs) == 0 {
 			return fmt.Errorf("task update with --new-priority requires task ID(s) or --ids")
 		}
+
 		toolArgs := map[string]interface{}{
 			"action":   "update",
 			"task_ids": strings.Join(taskIDs, ","),
@@ -144,6 +151,7 @@ func handleTaskUpdateWithParams(server framework.MCPServer, taskIDs []string, ol
 		if newStatus != "" {
 			toolArgs["new_status"] = newStatus
 		}
+
 		return executeTaskWorkflow(server, toolArgs)
 	}
 	// Status update: use action "approve"
@@ -155,29 +163,33 @@ func handleTaskUpdateWithParams(server framework.MCPServer, taskIDs []string, ol
 	if oldStatus != "" {
 		toolArgs["status"] = oldStatus
 	}
+
 	if len(taskIDs) > 0 {
 		toolArgs["task_ids"] = strings.Join(taskIDs, ",")
 	}
+
 	return executeTaskWorkflow(server, toolArgs)
 }
 
-// handleTaskUpdate handles "task update" command (legacy, used by tests)
+// handleTaskUpdate handles "task update" command (legacy, used by tests).
 func handleTaskUpdate(server framework.MCPServer, args []string) error {
 	parsed := mcpcli.ParseArgs(append([]string{"task", "update"}, args...))
 	return handleTaskUpdateParsed(server, parsed)
 }
 
-// handleTaskCreateParsed handles "task create" command using ParseArgs result
+// handleTaskCreateParsed handles "task create" command using ParseArgs result.
 func handleTaskCreateParsed(server framework.MCPServer, parsed *mcpcli.Args) error {
 	name := strings.TrimSpace(strings.Join(parsed.Positional, " "))
 	if name == "" {
 		return fmt.Errorf("task create requires a task name")
 	}
+
 	description := parsed.GetFlag("description", "")
 	priority := parsed.GetFlag("priority", "")
 	tagsStr := parsed.GetFlag("tags", "")
 
 	var tags []string
+
 	if tagsStr != "" {
 		for _, t := range strings.Split(tagsStr, ",") {
 			if trimmed := strings.TrimSpace(t); trimmed != "" {
@@ -194,19 +206,21 @@ func handleTaskCreateParsed(server framework.MCPServer, parsed *mcpcli.Args) err
 	if priority != "" {
 		toolArgs["priority"] = priority
 	}
+
 	if len(tags) > 0 {
 		toolArgs["tags"] = strings.Join(tags, ",")
 	}
+
 	return executeTaskWorkflow(server, toolArgs)
 }
 
-// handleTaskCreate handles "task create" command (legacy, used by tests)
+// handleTaskCreate handles "task create" command (legacy, used by tests).
 func handleTaskCreate(server framework.MCPServer, args []string) error {
 	parsed := mcpcli.ParseArgs(append([]string{"task", "create"}, args...))
 	return handleTaskCreateParsed(server, parsed)
 }
 
-// handleTaskShow handles "task show <task-id>" command
+// handleTaskShow handles "task show <task-id>" command.
 func handleTaskShow(server framework.MCPServer, args []string) error {
 	if len(args) == 0 {
 		return fmt.Errorf("task show requires a task ID")
@@ -225,7 +239,7 @@ func handleTaskShow(server framework.MCPServer, args []string) error {
 	return executeTaskWorkflow(server, toolArgs)
 }
 
-// handleTaskDelete handles "task delete <task-id>" command
+// handleTaskDelete handles "task delete <task-id>" command.
 func handleTaskDelete(server framework.MCPServer, args []string) error {
 	if len(args) == 0 {
 		return fmt.Errorf("task delete requires a task ID")
@@ -241,7 +255,7 @@ func handleTaskDelete(server framework.MCPServer, args []string) error {
 	return executeTaskWorkflow(server, toolArgs)
 }
 
-// executeTaskWorkflow executes the task_workflow tool with given arguments
+// executeTaskWorkflow executes the task_workflow tool with given arguments.
 func executeTaskWorkflow(server framework.MCPServer, toolArgs map[string]interface{}) error {
 	ctx := context.Background()
 
@@ -270,20 +284,22 @@ func executeTaskWorkflow(server framework.MCPServer, toolArgs map[string]interfa
 	return nil
 }
 
-// parseTaskIDs parses a comma-separated list of task IDs
+// parseTaskIDs parses a comma-separated list of task IDs.
 func parseTaskIDs(idsStr string) []string {
 	ids := strings.Split(idsStr, ",")
 	result := make([]string, 0, len(ids))
+
 	for _, id := range ids {
 		id = strings.TrimSpace(id)
 		if id != "" {
 			result = append(result, id)
 		}
 	}
+
 	return result
 }
 
-// showTaskUsage displays usage information for task commands
+// showTaskUsage displays usage information for task commands.
 func showTaskUsage() error {
 	_, _ = fmt.Println("Task Management Commands")
 	_, _ = fmt.Println("========================")
@@ -329,5 +345,6 @@ func showTaskUsage() error {
 	_, _ = fmt.Println("  exarp-go task create \"Fix bug\" --description \"Fix the bug\" --priority \"high\"")
 	_, _ = fmt.Println("  exarp-go task show T-123")
 	_, _ = fmt.Println()
+
 	return nil
 }

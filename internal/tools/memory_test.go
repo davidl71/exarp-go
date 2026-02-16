@@ -13,6 +13,7 @@ import (
 func TestHandleMemoryNative(t *testing.T) {
 	tmpDir := t.TempDir()
 	os.Setenv("PROJECT_ROOT", tmpDir)
+
 	defer os.Unsetenv("PROJECT_ROOT")
 
 	// Create .exarp directory
@@ -113,11 +114,13 @@ func TestHandleMemoryNative(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := context.Background()
 			argsJSON, _ := json.Marshal(tt.params)
+
 			result, err := handleMemoryNative(ctx, argsJSON)
 			if (err != nil) != tt.wantError {
 				t.Errorf("handleMemoryNative() error = %v, wantError %v", err, tt.wantError)
 				return
 			}
+
 			if !tt.wantError && tt.validate != nil {
 				tt.validate(t, result)
 			}
@@ -128,6 +131,7 @@ func TestHandleMemoryNative(t *testing.T) {
 func TestHandleMemorySave(t *testing.T) {
 	tmpDir := t.TempDir()
 	os.Setenv("PROJECT_ROOT", tmpDir)
+
 	defer os.Unsetenv("PROJECT_ROOT")
 
 	// Create .exarp directory
@@ -171,11 +175,13 @@ func TestHandleMemorySave(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := context.Background()
+
 			result, err := handleMemorySave(ctx, tt.params)
 			if (err != nil) != tt.wantError {
 				t.Errorf("handleMemorySave() error = %v, wantError %v", err, tt.wantError)
 				return
 			}
+
 			if !tt.wantError && len(result) == 0 {
 				t.Error("expected non-empty result")
 			}
@@ -186,6 +192,7 @@ func TestHandleMemorySave(t *testing.T) {
 func TestHandleMemoryRecall(t *testing.T) {
 	tmpDir := t.TempDir()
 	os.Setenv("PROJECT_ROOT", tmpDir)
+
 	defer os.Unsetenv("PROJECT_ROOT")
 
 	tests := []struct {
@@ -217,11 +224,13 @@ func TestHandleMemoryRecall(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := context.Background()
+
 			result, err := handleMemoryRecall(ctx, tt.params)
 			if (err != nil) != tt.wantError {
 				t.Errorf("handleMemoryRecall() error = %v, wantError %v", err, tt.wantError)
 				return
 			}
+
 			if !tt.wantError && len(result) == 0 {
 				t.Error("expected non-empty result")
 			}
@@ -244,7 +253,9 @@ var memoryResponseAllowedKeys = map[string]bool{
 func TestMemoryToolResponsesUseMemoryResponseShape(t *testing.T) {
 	tmpDir := t.TempDir()
 	os.Setenv("PROJECT_ROOT", tmpDir)
+
 	defer os.Unsetenv("PROJECT_ROOT")
+
 	exarpDir := filepath.Join(tmpDir, ".exarp")
 	if err := os.MkdirAll(exarpDir, 0755); err != nil {
 		t.Fatalf("failed to create .exarp directory: %v", err)
@@ -264,23 +275,29 @@ func TestMemoryToolResponsesUseMemoryResponseShape(t *testing.T) {
 	for _, a := range actions {
 		t.Run(a.name, func(t *testing.T) {
 			argsJSON, _ := json.Marshal(a.params)
+
 			result, err := handleMemoryNative(ctx, argsJSON)
 			if err != nil {
 				t.Fatalf("handleMemoryNative() error = %v", err)
 			}
+
 			if len(result) == 0 {
 				t.Fatal("expected non-empty result")
 			}
+
 			var data map[string]interface{}
 			if err := json.Unmarshal([]byte(result[0].Text), &data); err != nil {
 				t.Fatalf("invalid JSON: %v", err)
 			}
+
 			if success, _ := data["success"].(bool); !success {
 				t.Error("expected success=true")
 			}
+
 			if _, ok := data["method"]; !ok {
 				t.Error("expected method key (MemoryResponse shape)")
 			}
+
 			for k := range data {
 				if !memoryResponseAllowedKeys[k] {
 					t.Errorf("response key %q is not a MemoryResponse field; keep memory tool aligned to proto", k)

@@ -13,7 +13,7 @@ import (
 )
 
 // handleSetupHooksNative handles the setup_hooks tool with native Go implementation
-// Implements both "git" and "patterns" actions - fully native Go
+// Implements both "git" and "patterns" actions - fully native Go.
 func handleSetupHooksNative(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	// Get action (default: "git")
 	action := "git"
@@ -31,7 +31,7 @@ func handleSetupHooksNative(ctx context.Context, params map[string]interface{}) 
 	}
 }
 
-// handleSetupGitHooks handles the "git" action for setup_hooks
+// handleSetupGitHooks handles the "git" action for setup_hooks.
 func handleSetupGitHooks(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	// Get project root
 	projectRoot, err := FindProjectRoot()
@@ -64,6 +64,7 @@ func handleSetupGitHooks(ctx context.Context, params map[string]interface{}) ([]
 
 	// Get hooks to install
 	var hooksToInstall []string
+
 	if hooksRaw, ok := params["hooks"]; ok && hooksRaw != nil {
 		switch v := hooksRaw.(type) {
 		case []interface{}:
@@ -168,6 +169,7 @@ exarp-go -tool task_workflow -args '{"action":"sync"}' </dev/null || true
 					results["errors"] = append(results["errors"].([]string), fmt.Sprintf("%s: %v", hook, err))
 					continue
 				}
+
 				results["installed"] = append(results["installed"].([]string), hook)
 			} else {
 				// Uninstall: remove hook file
@@ -184,7 +186,7 @@ exarp-go -tool task_workflow -args '{"action":"sync"}' </dev/null || true
 }
 
 // handleSetupPatternHooks handles the "patterns" action for setup_hooks
-// Sets up pattern-based automation triggers
+// Sets up pattern-based automation triggers.
 func handleSetupPatternHooks(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	// Get project root
 	projectRoot, err := FindProjectRoot()
@@ -259,9 +261,11 @@ func handleSetupPatternHooks(ctx context.Context, params map[string]interface{})
 			if configMap, ok := patternConfig.(map[string]interface{}); ok {
 				patternNames := []string{}
 				tools := extractToolsFromPatterns(configMap)
+
 				for patternName := range configMap {
 					patternNames = append(patternNames, patternName)
 				}
+
 				results["patterns_configured"] = append(results["patterns_configured"].([]map[string]interface{}), map[string]interface{}{
 					"category": category,
 					"patterns": patternNames,
@@ -305,7 +309,7 @@ func handleSetupPatternHooks(ctx context.Context, params map[string]interface{})
 	return response.FormatResult(results, "")
 }
 
-// getDefaultPatterns returns default pattern configurations
+// getDefaultPatterns returns default pattern configurations.
 func getDefaultPatterns() map[string]interface{} {
 	return map[string]interface{}{
 		"file_patterns": map[string]interface{}{
@@ -381,7 +385,7 @@ func getDefaultPatterns() map[string]interface{} {
 	}
 }
 
-// extractToolsFromPatterns extracts tool names from pattern configuration
+// extractToolsFromPatterns extracts tool names from pattern configuration.
 func extractToolsFromPatterns(patternConfig map[string]interface{}) []string {
 	tools := []string{}
 	toolSet := make(map[string]bool)
@@ -396,10 +400,12 @@ func extractToolsFromPatterns(patternConfig map[string]interface{}) []string {
 					}
 				}
 			}
+
 			if onChange, ok := configMap["on_change"].(string); ok && !toolSet[onChange] {
 				tools = append(tools, onChange)
 				toolSet[onChange] = true
 			}
+
 			if onCreate, ok := configMap["on_create"].(string); ok && !toolSet[onCreate] {
 				tools = append(tools, onCreate)
 				toolSet[onCreate] = true
@@ -410,7 +416,7 @@ func extractToolsFromPatterns(patternConfig map[string]interface{}) []string {
 	return tools
 }
 
-// setupGitHooksIntegration sets up git hooks integration for pattern triggers
+// setupGitHooksIntegration sets up git hooks integration for pattern triggers.
 func setupGitHooksIntegration(projectRoot string, patterns map[string]interface{}, results map[string]interface{}) {
 	if gitEvents, ok := patterns["git_events"].(map[string]interface{}); ok && len(gitEvents) > 0 {
 		hooksDir := filepath.Join(projectRoot, ".git", "hooks")
@@ -419,6 +425,7 @@ func setupGitHooksIntegration(projectRoot string, patterns map[string]interface{
 				"category": "git_events",
 				"reason":   ".git/hooks directory not found",
 			})
+
 			return
 		}
 
@@ -429,7 +436,7 @@ func setupGitHooksIntegration(projectRoot string, patterns map[string]interface{
 	}
 }
 
-// setupFileWatcherIntegration sets up file watcher integration for pattern triggers
+// setupFileWatcherIntegration sets up file watcher integration for pattern triggers.
 func setupFileWatcherIntegration(projectRoot string, patterns map[string]interface{}, results map[string]interface{}) {
 	if filePatterns, ok := patterns["file_patterns"].(map[string]interface{}); ok && len(filePatterns) > 0 {
 		watcherScript := filepath.Join(projectRoot, ".cursor", "exarp_file_watcher.py")
@@ -441,6 +448,7 @@ func setupFileWatcherIntegration(projectRoot string, patterns map[string]interfa
 				"category": "file_patterns",
 				"reason":   fmt.Sprintf("Failed to create watcher script: %v", err),
 			})
+
 			return
 		}
 
@@ -452,7 +460,7 @@ func setupFileWatcherIntegration(projectRoot string, patterns map[string]interfa
 	}
 }
 
-// setupTaskStatusIntegration sets up task status change integration
+// setupTaskStatusIntegration sets up task status change integration.
 func setupTaskStatusIntegration(projectRoot string, patterns map[string]interface{}, results map[string]interface{}) {
 	if taskStatus, ok := patterns["task_status_changes"].(map[string]interface{}); ok && len(taskStatus) > 0 {
 		results["task_status_integration"] = map[string]interface{}{
@@ -462,7 +470,7 @@ func setupTaskStatusIntegration(projectRoot string, patterns map[string]interfac
 	}
 }
 
-// generateFileWatcherScript generates the file watcher script content
+// generateFileWatcherScript generates the file watcher script content.
 func generateFileWatcherScript() string {
 	return `#!/usr/bin/env python3
 """

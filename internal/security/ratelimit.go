@@ -9,7 +9,7 @@ import (
 	"github.com/davidl71/exarp-go/internal/config"
 )
 
-// RateLimiter implements a sliding window rate limiter
+// RateLimiter implements a sliding window rate limiter.
 type RateLimiter struct {
 	mu          sync.RWMutex
 	requests    map[string][]time.Time // client -> request timestamps
@@ -21,7 +21,7 @@ type RateLimiter struct {
 
 // NewRateLimiter creates a new rate limiter
 // window: time window (e.g., 1 minute)
-// maxRequests: maximum requests allowed in the window
+// maxRequests: maximum requests allowed in the window.
 func NewRateLimiter(window time.Duration, maxRequests int) *RateLimiter {
 	rl := &RateLimiter{
 		requests:    make(map[string][]time.Time),
@@ -38,7 +38,7 @@ func NewRateLimiter(window time.Duration, maxRequests int) *RateLimiter {
 }
 
 // Allow checks if a request from the given client should be allowed
-// Returns true if allowed, false if rate limit exceeded
+// Returns true if allowed, false if rate limit exceeded.
 func (rl *RateLimiter) Allow(clientID string) bool {
 	rl.mu.Lock()
 	defer rl.mu.Unlock()
@@ -54,6 +54,7 @@ func (rl *RateLimiter) Allow(clientID string) bool {
 
 	// Remove requests outside the window
 	validRequests := make([]time.Time, 0, len(requests))
+
 	for _, reqTime := range requests {
 		if reqTime.After(cutoff) {
 			validRequests = append(validRequests, reqTime)
@@ -72,7 +73,7 @@ func (rl *RateLimiter) Allow(clientID string) bool {
 	return true
 }
 
-// Wait blocks until a request can be made (or context expires)
+// Wait blocks until a request can be made (or context expires).
 func (rl *RateLimiter) Wait(ctx context.Context, clientID string) error {
 	for {
 		if rl.Allow(clientID) {
@@ -82,9 +83,12 @@ func (rl *RateLimiter) Wait(ctx context.Context, clientID string) error {
 		// Calculate when the oldest request will expire
 		rl.mu.RLock()
 		requests := rl.requests[clientID]
+
 		var waitTime time.Duration
+
 		if len(requests) > 0 {
 			oldest := requests[0]
+
 			waitTime = rl.window - time.Since(oldest)
 			if waitTime < 0 {
 				waitTime = 0
@@ -102,7 +106,7 @@ func (rl *RateLimiter) Wait(ctx context.Context, clientID string) error {
 	}
 }
 
-// cleanupOldEntries periodically removes old entries to prevent memory leaks
+// cleanupOldEntries periodically removes old entries to prevent memory leaks.
 func (rl *RateLimiter) cleanupOldEntries() {
 	for {
 		select {
@@ -111,13 +115,16 @@ func (rl *RateLimiter) cleanupOldEntries() {
 		case <-rl.cleanup.C:
 			rl.mu.Lock()
 			cutoff := time.Now().Add(-rl.window)
+
 			for clientID, requests := range rl.requests {
 				validRequests := make([]time.Time, 0)
+
 				for _, reqTime := range requests {
 					if reqTime.After(cutoff) {
 						validRequests = append(validRequests, reqTime)
 					}
 				}
+
 				if len(validRequests) == 0 {
 					delete(rl.requests, clientID)
 				} else {
@@ -129,13 +136,13 @@ func (rl *RateLimiter) cleanupOldEntries() {
 	}
 }
 
-// Stop stops the rate limiter and cleans up resources
+// Stop stops the rate limiter and cleans up resources.
 func (rl *RateLimiter) Stop() {
 	rl.cleanup.Stop()
 	close(rl.stopCleanup)
 }
 
-// GetRemaining returns the number of remaining requests for a client
+// GetRemaining returns the number of remaining requests for a client.
 func (rl *RateLimiter) GetRemaining(clientID string) int {
 	rl.mu.RLock()
 	defer rl.mu.RUnlock()
@@ -143,22 +150,24 @@ func (rl *RateLimiter) GetRemaining(clientID string) int {
 	requests := rl.requests[clientID]
 	cutoff := time.Now().Add(-rl.window)
 	count := 0
+
 	for _, reqTime := range requests {
 		if reqTime.After(cutoff) {
 			count++
 		}
 	}
+
 	return rl.maxRequests - count
 }
 
-// DefaultRateLimiter is the default rate limiter instance
+// DefaultRateLimiter is the default rate limiter instance.
 var (
 	defaultRateLimiter *RateLimiter
 	once               sync.Once
 )
 
 // GetDefaultRateLimiter returns the default rate limiter
-// Uses centralized config if available, otherwise defaults to 100 requests per minute
+// Uses centralized config if available, otherwise defaults to 100 requests per minute.
 func GetDefaultRateLimiter() *RateLimiter {
 	once.Do(func() {
 		cfg := config.GetGlobalConfig()
@@ -173,15 +182,16 @@ func GetDefaultRateLimiter() *RateLimiter {
 			defaultRateLimiter = NewRateLimiter(1*time.Minute, 1000000)
 		}
 	})
+
 	return defaultRateLimiter
 }
 
-// AllowRequest checks if a request should be allowed using the default rate limiter
+// AllowRequest checks if a request should be allowed using the default rate limiter.
 func AllowRequest(clientID string) bool {
 	return GetDefaultRateLimiter().Allow(clientID)
 }
 
-// RateLimitError represents a rate limit error
+// RateLimitError represents a rate limit error.
 type RateLimitError struct {
 	ClientID    string
 	RetryAfter  time.Duration
@@ -196,7 +206,7 @@ func (e *RateLimitError) Error() string {
 }
 
 // CheckRateLimit checks rate limit and returns an error if exceeded
-// Uses centralized config to determine if rate limiting is enabled
+// Uses centralized config to determine if rate limiting is enabled.
 func CheckRateLimit(clientID string) error {
 	cfg := config.GetGlobalConfig()
 	if !cfg.Security.RateLimit.Enabled {
@@ -207,6 +217,7 @@ func CheckRateLimit(clientID string) error {
 	rl := GetDefaultRateLimiter()
 	if !rl.Allow(clientID) {
 		remaining := rl.GetRemaining(clientID)
+
 		return &RateLimitError{
 			ClientID:    clientID,
 			Remaining:   remaining,
@@ -214,5 +225,6 @@ func CheckRateLimit(clientID string) error {
 			Window:      rl.window,
 		}
 	}
+
 	return nil
 }

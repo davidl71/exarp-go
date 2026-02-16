@@ -93,12 +93,14 @@ func TestValidatePath(t *testing.T) {
 				t.Errorf("ValidatePath() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
+
 			if !tt.wantErr {
 				// Verify the path is actually within project root
 				relPath, relErr := filepath.Rel(tt.projectRoot, absPath)
 				if relErr != nil {
 					t.Errorf("ValidatePath() returned path outside root: %v", relErr)
 				}
+
 				if filepath.IsAbs(relPath) || filepath.HasPrefix(relPath, "..") {
 					t.Errorf("ValidatePath() returned path outside root: %s", relPath)
 				}
@@ -118,6 +120,7 @@ func TestValidationValidPath(t *testing.T) {
 	if err != nil {
 		t.Errorf("ValidatePath(valid path) error = %v", err)
 	}
+
 	if absPath == "" {
 		t.Error("ValidatePath(valid path) returned empty path")
 	}
@@ -185,6 +188,7 @@ func TestGetProjectRoot(t *testing.T) {
 	if err != nil {
 		t.Errorf("GetProjectRoot() error = %v", err)
 	}
+
 	if root != projectRoot {
 		t.Errorf("GetProjectRoot() = %v, want %v", root, projectRoot)
 	}
@@ -196,6 +200,7 @@ func symlinkSupported(t *testing.T) bool {
 		t.Skip("skipping symlink test on Windows (os.Symlink may require privileges)")
 		return false
 	}
+
 	return true
 }
 
@@ -209,6 +214,7 @@ func TestValidatePathSymlink_WithinProject(t *testing.T) {
 	os.MkdirAll(filepath.Join(projectRoot, "subdir"), 0755)
 	realFile := filepath.Join(projectRoot, "real_file.txt")
 	os.WriteFile(realFile, []byte("data"), 0644)
+
 	linkPath := filepath.Join(projectRoot, "subdir", "link_in")
 	if err := os.Symlink(realFile, linkPath); err != nil {
 		t.Fatalf("os.Symlink: %v", err)
@@ -233,10 +239,12 @@ func TestValidatePathSymlink_OutsideProject(t *testing.T) {
 	tmpDir := t.TempDir()
 	projectRoot := filepath.Join(tmpDir, "project")
 	outsideDir := filepath.Join(tmpDir, "outside")
+
 	os.MkdirAll(projectRoot, 0755)
 	os.MkdirAll(outsideDir, 0755)
 	secret := filepath.Join(outsideDir, "secret")
 	os.WriteFile(secret, []byte("secret"), 0644)
+
 	evilLink := filepath.Join(projectRoot, "evil_link")
 	if err := os.Symlink(secret, evilLink); err != nil {
 		t.Fatalf("os.Symlink: %v", err)
@@ -256,6 +264,7 @@ func TestValidatePathExistsSymlink_Broken(t *testing.T) {
 	tmpDir := t.TempDir()
 	projectRoot := filepath.Join(tmpDir, "project")
 	os.MkdirAll(projectRoot, 0755)
+
 	brokenLink := filepath.Join(projectRoot, "broken_link")
 	if err := os.Symlink("nonexistent_target", brokenLink); err != nil {
 		t.Fatalf("os.Symlink: %v", err)
@@ -265,6 +274,7 @@ func TestValidatePathExistsSymlink_Broken(t *testing.T) {
 	if err != nil {
 		t.Errorf("ValidatePath(broken symlink) error = %v, want nil", err)
 	}
+
 	_, err = ValidatePathExists("broken_link", projectRoot)
 	if err == nil {
 		t.Error("ValidatePathExists(broken symlink) want error (path does not exist), got nil")
@@ -279,10 +289,12 @@ func TestValidatePathSymlink_Nested(t *testing.T) {
 	projectRoot := filepath.Join(tmpDir, "project")
 	dirA := filepath.Join(projectRoot, "a")
 	dirB := filepath.Join(projectRoot, "b")
+
 	os.MkdirAll(dirA, 0755)
 	os.MkdirAll(dirB, 0755)
 	targetFile := filepath.Join(dirB, "file")
 	os.WriteFile(targetFile, []byte("data"), 0644)
+
 	linkPath := filepath.Join(dirA, "link")
 	if err := os.Symlink(targetFile, linkPath); err != nil {
 		t.Fatalf("os.Symlink: %v", err)
@@ -292,6 +304,7 @@ func TestValidatePathSymlink_Nested(t *testing.T) {
 	if err != nil {
 		t.Errorf("ValidatePath(nested symlink) error = %v, want nil", err)
 	}
+
 	_, err = ValidatePathExists("a/link", projectRoot)
 	if err != nil {
 		t.Errorf("ValidatePathExists(nested symlink) error = %v, want nil", err)
@@ -343,11 +356,13 @@ func TestValidatePath_EdgeCases(t *testing.T) {
 				t.Errorf("ValidatePath() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
+
 			if !tt.wantErr {
 				relPath, relErr := filepath.Rel(tt.projectRoot, absPath)
 				if relErr != nil {
 					t.Errorf("ValidatePath() returned path outside root: %v", relErr)
 				}
+
 				if filepath.IsAbs(relPath) || filepath.HasPrefix(relPath, "..") {
 					t.Errorf("ValidatePath() returned path outside root: %s", relPath)
 				}

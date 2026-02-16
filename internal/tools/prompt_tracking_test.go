@@ -13,6 +13,7 @@ import (
 func TestHandlePromptTrackingNative(t *testing.T) {
 	tmpDir := t.TempDir()
 	os.Setenv("PROJECT_ROOT", tmpDir)
+
 	defer os.Unsetenv("PROJECT_ROOT")
 
 	// Create .exarp directory
@@ -87,11 +88,13 @@ func TestHandlePromptTrackingNative(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := context.Background()
+
 			result, err := handlePromptTrackingNative(ctx, tt.params)
 			if (err != nil) != tt.wantError {
 				t.Errorf("handlePromptTrackingNative() error = %v, wantError %v", err, tt.wantError)
 				return
 			}
+
 			if !tt.wantError && tt.validate != nil {
 				tt.validate(t, result)
 			}
@@ -102,6 +105,7 @@ func TestHandlePromptTrackingNative(t *testing.T) {
 func TestHandlePromptTracking(t *testing.T) {
 	tmpDir := t.TempDir()
 	os.Setenv("PROJECT_ROOT", tmpDir)
+
 	defer os.Unsetenv("PROJECT_ROOT")
 
 	tests := []struct {
@@ -130,11 +134,13 @@ func TestHandlePromptTracking(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := context.Background()
 			argsJSON, _ := json.Marshal(tt.params)
+
 			result, err := handlePromptTracking(ctx, argsJSON)
 			if (err != nil) != tt.wantError {
 				t.Errorf("handlePromptTracking() error = %v, wantError %v", err, tt.wantError)
 				return
 			}
+
 			if !tt.wantError && (result == nil || len(result) == 0) {
 				t.Error("expected non-empty result")
 			}

@@ -13,6 +13,7 @@ func TestHandleTestingRun(t *testing.T) {
 	// Use temp dir (no go.mod) so native handler returns "only supported for Go projects"
 	tmpDir := t.TempDir()
 	os.Setenv("PROJECT_ROOT", tmpDir)
+
 	defer os.Unsetenv("PROJECT_ROOT")
 
 	tests := []struct {
@@ -63,11 +64,13 @@ func TestHandleTestingRun(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := context.Background()
+
 			result, err := handleTestingRun(ctx, tt.params)
 			if (err != nil) != tt.wantError {
 				t.Errorf("handleTestingRun() error = %v, wantError %v", err, tt.wantError)
 				return
 			}
+
 			if !tt.wantError && tt.validate != nil {
 				tt.validate(t, result)
 			}
@@ -79,6 +82,7 @@ func TestHandleTestingCoverage(t *testing.T) {
 	// Use temp dir (no go.mod) so native handler returns "only supported for Go projects"
 	tmpDir := t.TempDir()
 	os.Setenv("PROJECT_ROOT", tmpDir)
+
 	defer os.Unsetenv("PROJECT_ROOT")
 
 	tests := []struct {
@@ -116,11 +120,13 @@ func TestHandleTestingCoverage(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := context.Background()
+
 			result, err := handleTestingCoverage(ctx, tt.params)
 			if (err != nil) != tt.wantError {
 				t.Errorf("handleTestingCoverage() error = %v, wantError %v", err, tt.wantError)
 				return
 			}
+
 			if !tt.wantError && tt.validate != nil {
 				tt.validate(t, result)
 			}
@@ -132,6 +138,7 @@ func TestHandleTestingValidate(t *testing.T) {
 	// Use temp dir (no go.mod) so native handler returns "only supported for Go projects"
 	tmpDir := t.TempDir()
 	os.Setenv("PROJECT_ROOT", tmpDir)
+
 	defer os.Unsetenv("PROJECT_ROOT")
 
 	tests := []struct {
@@ -158,11 +165,13 @@ func TestHandleTestingValidate(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := context.Background()
+
 			result, err := handleTestingValidate(ctx, tt.params)
 			if (err != nil) != tt.wantError {
 				t.Errorf("handleTestingValidate() error = %v, wantError %v", err, tt.wantError)
 				return
 			}
+
 			if !tt.wantError && tt.validate != nil {
 				tt.validate(t, result)
 			}
@@ -174,6 +183,7 @@ func TestHandleTesting(t *testing.T) {
 	// Use temp dir (no go.mod) so native handler returns "only supported for Go projects"
 	tmpDir := t.TempDir()
 	os.Setenv("PROJECT_ROOT", tmpDir)
+
 	defer os.Unsetenv("PROJECT_ROOT")
 
 	tests := []struct {
@@ -208,11 +218,13 @@ func TestHandleTesting(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := context.Background()
 			argsJSON, _ := json.Marshal(tt.params)
+
 			result, err := handleTesting(ctx, argsJSON)
 			if (err != nil) != tt.wantError {
 				t.Errorf("handleTesting() error = %v, wantError %v", err, tt.wantError)
 				return
 			}
+
 			if !tt.wantError && (result == nil || len(result) == 0) {
 				t.Error("expected non-empty result")
 			}

@@ -12,7 +12,7 @@ import (
 	"github.com/davidl71/exarp-go/internal/security"
 )
 
-// PlanningLinkMetadata represents planning document link metadata stored in task metadata
+// PlanningLinkMetadata represents planning document link metadata stored in task metadata.
 type PlanningLinkMetadata struct {
 	PlanningDoc string   `json:"planning_doc,omitempty"` // Path to planning document
 	EpicID      string   `json:"epic_id,omitempty"`      // Epic task ID if part of an epic
@@ -23,7 +23,7 @@ type PlanningLinkMetadata struct {
 	LastSynced  string   `json:"last_synced,omitempty"`  // Last sync timestamp
 }
 
-// SetPlanningLinkMetadata stores planning document link metadata in task metadata
+// SetPlanningLinkMetadata stores planning document link metadata in task metadata.
 func SetPlanningLinkMetadata(task *models.Todo2Task, linkMeta *PlanningLinkMetadata) {
 	if task.Metadata == nil {
 		task.Metadata = make(map[string]interface{})
@@ -39,17 +39,19 @@ func SetPlanningLinkMetadata(task *models.Todo2Task, linkMeta *PlanningLinkMetad
 	if linkMeta.PlanningDoc != "" {
 		task.Metadata["planning_doc"] = linkMeta.PlanningDoc
 	}
+
 	if linkMeta.EpicID != "" {
 		task.Metadata["epic_id"] = linkMeta.EpicID
 	} else {
 		delete(task.Metadata, "epic_id")
 	}
+
 	if linkMeta.DocType != "" {
 		task.Metadata["planning_doc_type"] = linkMeta.DocType
 	}
 }
 
-// GetPlanningLinkMetadata retrieves planning document link metadata from task metadata
+// GetPlanningLinkMetadata retrieves planning document link metadata from task metadata.
 func GetPlanningLinkMetadata(task *models.Todo2Task) *PlanningLinkMetadata {
 	if task.Metadata == nil {
 		return nil
@@ -68,9 +70,11 @@ func GetPlanningLinkMetadata(task *models.Todo2Task) *PlanningLinkMetadata {
 	if doc, ok := task.Metadata["planning_doc"].(string); ok {
 		linkMeta.PlanningDoc = doc
 	}
+
 	if epicID, ok := task.Metadata["epic_id"].(string); ok {
 		linkMeta.EpicID = epicID
 	}
+
 	if docType, ok := task.Metadata["planning_doc_type"].(string); ok {
 		linkMeta.DocType = docType
 	}
@@ -109,7 +113,7 @@ func ValidatePlanningLink(projectRoot string, planningDocPath string) error {
 	return nil
 }
 
-// ValidateTaskReference validates that a task ID exists in the task list
+// ValidateTaskReference validates that a task ID exists in the task list.
 func ValidateTaskReference(taskID string, tasks []models.Todo2Task) error {
 	if taskID == "" {
 		return fmt.Errorf("task ID is empty")
@@ -131,7 +135,7 @@ func ValidateTaskReference(taskID string, tasks []models.Todo2Task) error {
 	return fmt.Errorf("task %s not found", taskID)
 }
 
-// ExtractTaskIDsFromPlanningDoc extracts task IDs referenced in a planning document
+// ExtractTaskIDsFromPlanningDoc extracts task IDs referenced in a planning document.
 func ExtractTaskIDsFromPlanningDoc(content string) []string {
 	taskIDs := []string{}
 
@@ -140,6 +144,7 @@ func ExtractTaskIDsFromPlanningDoc(content string) []string {
 	matches := taskRefPattern.FindAllStringSubmatch(content, -1)
 
 	seen := make(map[string]bool)
+
 	for _, match := range matches {
 		if len(match) > 0 {
 			taskID := match[0] // Full match (T-123)
@@ -154,7 +159,7 @@ func ExtractTaskIDsFromPlanningDoc(content string) []string {
 }
 
 // UpdatePlanningDocWithTaskRefs updates a planning document with task references
-// Adds task/epic references in a standardized format if they don't exist
+// Adds task/epic references in a standardized format if they don't exist.
 func UpdatePlanningDocWithTaskRefs(projectRoot string, docPath string, taskIDs []string, epicIDs []string) (bool, error) {
 	fullPath := filepath.Join(projectRoot, docPath)
 
@@ -177,17 +182,21 @@ func UpdatePlanningDocWithTaskRefs(projectRoot string, docPath string, taskIDs [
 
 		if len(epicIDs) > 0 {
 			refsText.WriteString("### Epics\n\n")
+
 			for _, epicID := range epicIDs {
 				refsText.WriteString(fmt.Sprintf("- **Epic ID**: `%s`\n", epicID))
 			}
+
 			refsText.WriteString("\n")
 		}
 
 		if len(taskIDs) > 0 {
 			refsText.WriteString("### Tasks\n\n")
+
 			for _, taskID := range taskIDs {
 				refsText.WriteString(fmt.Sprintf("- **Task ID**: `%s`\n", taskID))
 			}
+
 			refsText.WriteString("\n")
 		}
 	}

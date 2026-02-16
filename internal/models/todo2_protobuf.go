@@ -9,7 +9,7 @@ import (
 	protobuf "google.golang.org/protobuf/proto"
 )
 
-// Todo2TaskToProto converts a models.Todo2Task to protobuf Todo2Task
+// Todo2TaskToProto converts a models.Todo2Task to protobuf Todo2Task.
 func Todo2TaskToProto(task *Todo2Task) (*proto.Todo2Task, error) {
 	if task == nil {
 		return nil, fmt.Errorf("task is nil")
@@ -30,6 +30,7 @@ func Todo2TaskToProto(task *Todo2Task) (*proto.Todo2Task, error) {
 	// Complex values are serialized to JSON strings
 	if task.Metadata != nil && len(task.Metadata) > 0 {
 		pbTask.Metadata = make(map[string]string, len(task.Metadata))
+
 		for k, v := range task.Metadata {
 			switch val := v.(type) {
 			case string:
@@ -42,6 +43,7 @@ func Todo2TaskToProto(task *Todo2Task) (*proto.Todo2Task, error) {
 				if err != nil {
 					return nil, fmt.Errorf("failed to marshal metadata value for key %s: %w", k, err)
 				}
+
 				pbTask.Metadata[k] = string(jsonBytes)
 			}
 		}
@@ -52,6 +54,7 @@ func Todo2TaskToProto(task *Todo2Task) (*proto.Todo2Task, error) {
 	if pbTask.CreatedAt == 0 {
 		pbTask.CreatedAt = now
 	}
+
 	if pbTask.UpdatedAt == 0 {
 		pbTask.UpdatedAt = now
 	}
@@ -59,7 +62,7 @@ func Todo2TaskToProto(task *Todo2Task) (*proto.Todo2Task, error) {
 	return pbTask, nil
 }
 
-// ProtoToTodo2Task converts a protobuf Todo2Task to models.Todo2Task
+// ProtoToTodo2Task converts a protobuf Todo2Task to models.Todo2Task.
 func ProtoToTodo2Task(pbTask *proto.Todo2Task) (*Todo2Task, error) {
 	if pbTask == nil {
 		return nil, fmt.Errorf("protobuf task is nil")
@@ -80,6 +83,7 @@ func ProtoToTodo2Task(pbTask *proto.Todo2Task) (*Todo2Task, error) {
 	// Try to deserialize JSON strings back to their original types
 	if pbTask.Metadata != nil && len(pbTask.Metadata) > 0 {
 		task.Metadata = make(map[string]interface{}, len(pbTask.Metadata))
+
 		for k, v := range pbTask.Metadata {
 			// Try to parse as JSON first
 			var jsonVal interface{}
@@ -96,7 +100,7 @@ func ProtoToTodo2Task(pbTask *proto.Todo2Task) (*Todo2Task, error) {
 	return task, nil
 }
 
-// SerializeTaskToProtobuf serializes a Todo2Task to protobuf binary format
+// SerializeTaskToProtobuf serializes a Todo2Task to protobuf binary format.
 func SerializeTaskToProtobuf(task *Todo2Task) ([]byte, error) {
 	pbTask, err := Todo2TaskToProto(task)
 	if err != nil {
@@ -111,7 +115,7 @@ func SerializeTaskToProtobuf(task *Todo2Task) ([]byte, error) {
 	return data, nil
 }
 
-// DeserializeTaskFromProtobuf deserializes a Todo2Task from protobuf binary format
+// DeserializeTaskFromProtobuf deserializes a Todo2Task from protobuf binary format.
 func DeserializeTaskFromProtobuf(data []byte) (*Todo2Task, error) {
 	pbTask := &proto.Todo2Task{}
 	if err := protobuf.Unmarshal(data, pbTask); err != nil {
@@ -127,7 +131,7 @@ func DeserializeTaskFromProtobuf(data []byte) (*Todo2Task, error) {
 }
 
 // SerializeTaskToProtobufJSON serializes a Todo2Task to protobuf JSON format
-// This is useful for debugging and human-readable storage
+// This is useful for debugging and human-readable storage.
 func SerializeTaskToProtobufJSON(task *Todo2Task) ([]byte, error) {
 	pbTask, err := Todo2TaskToProto(task)
 	if err != nil {
@@ -141,7 +145,7 @@ func SerializeTaskToProtobufJSON(task *Todo2Task) ([]byte, error) {
 	return json.Marshal(pbTask)
 }
 
-// DeserializeTaskFromProtobufJSON deserializes a Todo2Task from protobuf JSON format
+// DeserializeTaskFromProtobufJSON deserializes a Todo2Task from protobuf JSON format.
 func DeserializeTaskFromProtobufJSON(data []byte) (*Todo2Task, error) {
 	pbTask := &proto.Todo2Task{}
 	if err := json.Unmarshal(data, pbTask); err != nil {

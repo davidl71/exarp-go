@@ -53,10 +53,12 @@ func TestGetPromptTemplate(t *testing.T) {
 				t.Errorf("GetPromptTemplate() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
+
 			if !tt.wantErr {
 				if result == "" {
 					t.Errorf("GetPromptTemplate() returned empty string for valid prompt")
 				}
+
 				if !strings.Contains(result, tt.prompt) && tt.prompt != "" {
 					// Most prompts contain their key concept, but not all
 					// Just verify it's not empty
@@ -94,6 +96,7 @@ func TestGetPromptTemplate_AllPrompts(t *testing.T) {
 				t.Errorf("GetPromptTemplate(%q) error = %v", promptName, err)
 				return
 			}
+
 			if result == "" {
 				t.Errorf("GetPromptTemplate(%q) returned empty string", promptName)
 			}
@@ -110,6 +113,7 @@ func TestGetPromptTemplate_PromptOptimizationAnalysis(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GetPromptTemplate(prompt_optimization_analysis) error = %v", err)
 	}
+
 	if template == "" {
 		t.Fatal("GetPromptTemplate returned empty string")
 	}
@@ -117,6 +121,7 @@ func TestGetPromptTemplate_PromptOptimizationAnalysis(t *testing.T) {
 	if !strings.Contains(template, "{prompt}") {
 		t.Error("template missing {prompt} placeholder")
 	}
+
 	if !strings.Contains(template, "clarity") || !strings.Contains(template, "specificity") {
 		t.Error("template missing dimension labels")
 	}
@@ -129,6 +134,7 @@ func TestGetPromptTemplate_PromptOptimizationAnalysis(t *testing.T) {
 	if !strings.Contains(substituted, "Fix the bug") {
 		t.Error("substitution failed: prompt not replaced")
 	}
+
 	if !strings.Contains(substituted, "MCP server") {
 		t.Error("substitution failed: context not replaced")
 	}
@@ -139,17 +145,21 @@ func TestGetPromptTemplate_PromptOptimizationSuggestions(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GetPromptTemplate(prompt_optimization_suggestions) error = %v", err)
 	}
+
 	if template == "" {
 		t.Fatal("GetPromptTemplate returned empty string")
 	}
+
 	for _, ph := range []string{"{prompt}", "{analysis}"} {
 		if !strings.Contains(template, ph) {
 			t.Errorf("template missing %q placeholder", ph)
 		}
 	}
+
 	if !strings.Contains(template, "suggestions") {
 		t.Error("template missing suggestions output format")
 	}
+
 	substituted := substituteTemplate(template, map[string]interface{}{
 		"prompt":    "Do the thing",
 		"analysis":  `{"clarity":0.6,"specificity":0.5}`,
@@ -159,6 +169,7 @@ func TestGetPromptTemplate_PromptOptimizationSuggestions(t *testing.T) {
 	if !strings.Contains(substituted, "Do the thing") {
 		t.Error("substitution failed: prompt not replaced")
 	}
+
 	if !strings.Contains(substituted, `{"clarity":0.6,"specificity":0.5}`) {
 		t.Error("substitution failed: analysis not replaced")
 	}
@@ -172,6 +183,7 @@ func TestGetPromptTemplate_TaskTypeVariants(t *testing.T) {
 			t.Errorf("GetPromptTemplate(%q) error = %v", name, err)
 			continue
 		}
+
 		for _, want := range []string{"code", "docs", "general"} {
 			if !strings.Contains(template, want) {
 				t.Errorf("template %q missing task-type variant %q", name, want)
@@ -185,17 +197,21 @@ func TestGetPromptTemplate_PromptOptimizationRefinement(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GetPromptTemplate(prompt_optimization_refinement) error = %v", err)
 	}
+
 	if template == "" {
 		t.Fatal("GetPromptTemplate returned empty string")
 	}
+
 	for _, ph := range []string{"{prompt}", "{suggestions}"} {
 		if !strings.Contains(template, ph) {
 			t.Errorf("template missing %q placeholder", ph)
 		}
 	}
+
 	if !strings.Contains(template, "Preserve the original intent") {
 		t.Error("template missing refinement instructions")
 	}
+
 	substituted := substituteTemplate(template, map[string]interface{}{
 		"prompt":      "Fix it",
 		"suggestions": `[{"dimension":"specificity","issue":"vague","recommendation":"Be concrete"}]`,
@@ -205,6 +221,7 @@ func TestGetPromptTemplate_PromptOptimizationRefinement(t *testing.T) {
 	if !strings.Contains(substituted, "Fix it") {
 		t.Error("substitution failed: prompt not replaced")
 	}
+
 	if !strings.Contains(substituted, "Be concrete") {
 		t.Error("substitution failed: suggestions not replaced")
 	}

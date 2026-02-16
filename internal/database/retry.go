@@ -10,13 +10,13 @@ import (
 	"github.com/davidl71/exarp-go/internal/config"
 )
 
-// SQLite error codes (from sqlite3.h)
+// SQLite error codes (from sqlite3.h).
 const (
 	SQLITE_BUSY   = 5 // The database file is locked
 	SQLITE_LOCKED = 6 // A table in the database is locked
 )
 
-// isTransientError checks if an error is a transient SQLite error that should be retried
+// isTransientError checks if an error is a transient SQLite error that should be retried.
 func isTransientError(err error) bool {
 	if err == nil {
 		return false
@@ -43,7 +43,7 @@ func isTransientError(err error) bool {
 	return false
 }
 
-// contains is a simple case-insensitive substring check
+// contains is a simple case-insensitive substring check.
 func contains(s, substr string) bool {
 	return len(s) >= len(substr) && (s == substr ||
 		(len(s) > len(substr) &&
@@ -52,21 +52,24 @@ func contains(s, substr string) bool {
 				indexOf(s, substr) >= 0)))
 }
 
-// indexOf finds the first occurrence of substr in s (case-insensitive)
+// indexOf finds the first occurrence of substr in s (case-insensitive).
 func indexOf(s, substr string) int {
 	sLower := toLower(s)
 	substrLower := toLower(substr)
+
 	for i := 0; i <= len(sLower)-len(substrLower); i++ {
 		if sLower[i:i+len(substrLower)] == substrLower {
 			return i
 		}
 	}
+
 	return -1
 }
 
-// toLower converts a string to lowercase (simple implementation)
+// toLower converts a string to lowercase (simple implementation).
 func toLower(s string) string {
 	result := make([]byte, len(s))
+
 	for i := 0; i < len(s); i++ {
 		if s[i] >= 'A' && s[i] <= 'Z' {
 			result[i] = s[i] + 32
@@ -74,6 +77,7 @@ func toLower(s string) string {
 			result[i] = s[i]
 		}
 	}
+
 	return string(result)
 }
 
@@ -81,18 +85,22 @@ func toLower(s string) string {
 // Uses config for retry attempts, initial delay, max delay, and multiplier when available.
 func retryWithBackoff(ctx context.Context, fn func() error) error {
 	cfg := config.GetGlobalConfig()
+
 	maxRetries := cfg.Database.RetryAttempts
 	if maxRetries <= 0 {
 		maxRetries = 3
 	}
+
 	initialDelay := cfg.Database.RetryInitialDelay
 	if initialDelay <= 0 {
 		initialDelay = 100 * time.Millisecond
 	}
+
 	maxDelay := cfg.Database.RetryMaxDelay
 	if maxDelay <= 0 {
 		maxDelay = 5 * time.Second
 	}
+
 	multiplier := cfg.Database.RetryMultiplier
 	if multiplier <= 0 {
 		multiplier = 2.0
@@ -149,10 +157,12 @@ func withQueryTimeout(ctx context.Context) (context.Context, context.CancelFunc)
 	if ctx == nil {
 		ctx = context.Background()
 	}
+
 	timeout := config.DatabaseConnectionTimeout()
 	if timeout <= 0 {
 		timeout = 30 * time.Second
 	}
+
 	return context.WithTimeout(ctx, timeout)
 }
 
@@ -162,17 +172,20 @@ func withTransactionTimeout(ctx context.Context) (context.Context, context.Cance
 	if ctx == nil {
 		ctx = context.Background()
 	}
+
 	timeout := config.DatabaseQueryTimeout()
 	if timeout <= 0 {
 		timeout = 60 * time.Second
 	}
+
 	return context.WithTimeout(ctx, timeout)
 }
 
-// ensureContext ensures we have a valid context (uses Background if nil)
+// ensureContext ensures we have a valid context (uses Background if nil).
 func ensureContext(ctx context.Context) context.Context {
 	if ctx == nil {
 		return context.Background()
 	}
+
 	return ctx
 }

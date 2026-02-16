@@ -40,21 +40,26 @@ func convertTodo2TaskJSONToTask(raw todo2TaskJSON) models.Todo2Task {
 	if createdAt == "" {
 		createdAt = raw.Created
 	}
+
 	lastMod := raw.LastModified
 	if lastMod == "" {
 		lastMod = raw.Updated
 	}
+
 	content := raw.Content
 	if content == "" && raw.Name != "" {
 		content = raw.Name
 	}
+
 	if content == "" && raw.Title != "" {
 		content = raw.Title
 	}
+
 	longDesc := raw.LongDescription
 	if longDesc == "" && raw.Description != "" {
 		longDesc = raw.Description
 	}
+
 	t := models.Todo2Task{
 		ID:              raw.ID,
 		Content:         content,
@@ -72,7 +77,9 @@ func convertTodo2TaskJSONToTask(raw todo2TaskJSON) models.Todo2Task {
 	if len(raw.Metadata) > 0 {
 		t.Metadata = database.DeserializeTaskMetadata(string(raw.Metadata), nil, "")
 	}
+
 	t.NormalizeEpochDates()
+
 	return t
 }
 
@@ -105,16 +112,20 @@ type todo2TaskWrite struct {
 func MarshalTasksToStateJSON(tasks []models.Todo2Task) ([]byte, error) {
 	nowFallback := time.Now().UTC().Format(time.RFC3339)
 	writes := make([]todo2TaskWrite, len(tasks))
+
 	for i := range tasks {
 		t := &tasks[i]
+
 		createdAt := t.CreatedAt
 		if models.IsEpochDate(createdAt) {
 			createdAt = ""
 		}
+
 		lastMod := t.LastModified
 		if models.IsEpochDate(lastMod) {
 			lastMod = ""
 		}
+
 		completedAt := t.CompletedAt
 		if models.IsEpochDate(completedAt) {
 			completedAt = ""
@@ -123,15 +134,19 @@ func MarshalTasksToStateJSON(tasks []models.Todo2Task) ([]byte, error) {
 		if createdAt == "" {
 			createdAt = lastMod
 		}
+
 		if createdAt == "" {
 			createdAt = nowFallback
 		}
+
 		if lastMod == "" {
 			lastMod = createdAt
 		}
+
 		if lastMod == "" {
 			lastMod = nowFallback
 		}
+
 		writes[i] = todo2TaskWrite{
 			ID:              t.ID,
 			Name:            t.Content,
@@ -152,9 +167,11 @@ func MarshalTasksToStateJSON(tasks []models.Todo2Task) ([]byte, error) {
 			CompletedAt:     completedAt,
 		}
 	}
+
 	state := struct {
 		Todos []todo2TaskWrite `json:"todos"`
 	}{Todos: writes}
+
 	return json.MarshalIndent(state, "", "  ")
 }
 
@@ -164,28 +181,33 @@ func ParseTasksFromJSON(data []byte) ([]models.Todo2Task, error) {
 	var state struct {
 		Todos []todo2TaskJSON `json:"todos"`
 	}
+
 	if err := json.Unmarshal(data, &state); err != nil {
 		return nil, fmt.Errorf("failed to parse Todo2 JSON: %w", err)
 	}
+
 	out := make([]models.Todo2Task, 0, len(state.Todos))
 	for _, raw := range state.Todos {
 		out = append(out, convertTodo2TaskJSONToTask(raw))
 	}
+
 	return out, nil
 }
 
 // LoadJSONStateFromFile loads tasks and comments from a JSON file
 // Supports both comment formats:
 // 1. Top-level "comments" array with "todoId" or "todo_id" field
-// 2. Comments nested inside each task object
+// 2. Comments nested inside each task object.
 func LoadJSONStateFromFile(jsonPath string) ([]models.Todo2Task, []database.Comment, error) {
 	data, err := os.ReadFile(jsonPath)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return []models.Todo2Task{}, []database.Comment{}, nil
 		}
+
 		return nil, nil, fmt.Errorf("failed to read JSON file: %w", err)
 	}
+
 	return LoadJSONStateFromContent(data)
 }
 
@@ -202,16 +224,19 @@ func LoadJSONStateFromContent(data []byte) ([]models.Todo2Task, []database.Comme
 
 	// Load tasks with metadata sanitization (invalid JSON -> {"raw": "..."})
 	var tasks []models.Todo2Task
+
 	if todos, ok := state["todos"].([]interface{}); ok {
 		for _, todo := range todos {
 			todoBytes, err := json.Marshal(todo)
 			if err != nil {
 				continue
 			}
+
 			var raw todo2TaskJSON
 			if err := json.Unmarshal(todoBytes, &raw); err != nil {
 				continue
 			}
+
 			tasks = append(tasks, convertTodo2TaskJSONToTask(raw))
 		}
 	}

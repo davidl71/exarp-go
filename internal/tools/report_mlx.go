@@ -12,6 +12,7 @@ import (
 func enhanceReportWithMLX(ctx context.Context, reportData map[string]interface{}, action string) (map[string]interface{}, error) {
 	// Build prompt based on action
 	var prompt string
+
 	var maxTokens int
 
 	switch action {
@@ -57,7 +58,7 @@ func enhanceReportWithMLX(ctx context.Context, reportData map[string]interface{}
 	return enhancedData, nil
 }
 
-// buildScorecardInsightPrompt builds prompt for scorecard insights
+// buildScorecardInsightPrompt builds prompt for scorecard insights.
 func buildScorecardInsightPrompt(data map[string]interface{}) string {
 	// Extract key metrics
 	scores := map[string]interface{}{}
@@ -71,6 +72,7 @@ func buildScorecardInsightPrompt(data map[string]interface{}) string {
 	}
 
 	blockers := []string{}
+
 	if b, ok := data["blockers"].([]interface{}); ok {
 		for _, blocker := range b {
 			if str, ok := blocker.(string); ok {
@@ -104,7 +106,7 @@ Format as clear, actionable insights suitable for stakeholders.`,
 	return prompt
 }
 
-// buildOverviewInsightPrompt builds prompt for overview insights
+// buildOverviewInsightPrompt builds prompt for overview insights.
 func buildOverviewInsightPrompt(data map[string]interface{}) string {
 	// Extract key sections
 	projectInfo := map[string]interface{}{}
@@ -123,6 +125,7 @@ func buildOverviewInsightPrompt(data map[string]interface{}) string {
 	}
 
 	risks := []string{}
+
 	if r, ok := data["risks"].([]interface{}); ok {
 		for _, risk := range r {
 			if str, ok := risk.(string); ok {
@@ -161,21 +164,23 @@ Write in a professional, stakeholder-friendly tone.`,
 	return prompt
 }
 
-// buildPRDInsightPrompt builds prompt for PRD generation
+// buildPRDInsightPrompt builds prompt for PRD generation.
 func buildPRDInsightPrompt(data map[string]interface{}) string {
 	// PRD generation would need project context
 	// For now, return a basic prompt
 	return `Generate a comprehensive Product Requirements Document (PRD) based on the project data provided. Include sections for: Overview, Goals, Features, Technical Requirements, Success Metrics, and Timeline.`
 }
 
-// Helper functions
+// Helper functions.
 func formatScoresForPrompt(scores map[string]interface{}) string {
 	var parts []string
+
 	for key, value := range scores {
 		if score, ok := value.(float64); ok {
 			parts = append(parts, fmt.Sprintf("- %s: %.1f/100", key, score))
 		}
 	}
+
 	return strings.Join(parts, "\n")
 }
 
@@ -184,12 +189,15 @@ func formatTasksForPrompt(tasks map[string]interface{}) string {
 	if total, ok := tasks["total"].(float64); ok {
 		parts = append(parts, fmt.Sprintf("Total: %.0f", total))
 	}
+
 	if pending, ok := tasks["pending"].(float64); ok {
 		parts = append(parts, fmt.Sprintf("Pending: %.0f", pending))
 	}
+
 	if completed, ok := tasks["completed"].(float64); ok {
 		parts = append(parts, fmt.Sprintf("Completed: %.0f", completed))
 	}
+
 	return strings.Join(parts, ", ")
 }
 
@@ -197,6 +205,7 @@ func getString(m map[string]interface{}, key string) string {
 	if val, ok := m[key].(string); ok {
 		return val
 	}
+
 	return "Unknown"
 }
 
@@ -204,5 +213,6 @@ func getFloat(m map[string]interface{}, key string) float64 {
 	if val, ok := m[key].(float64); ok {
 		return val
 	}
+
 	return 0.0
 }

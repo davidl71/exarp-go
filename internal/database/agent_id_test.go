@@ -67,6 +67,7 @@ func TestAgentProcessExists(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GetAgentID() error = %v", err)
 	}
+
 	if !AgentProcessExists(agentID) {
 		t.Errorf("AgentProcessExists(current agent ID) = false, want true")
 	}

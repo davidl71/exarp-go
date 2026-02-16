@@ -18,7 +18,7 @@ import (
 // 2. Cursor agent type (from session detection)
 // 3. Default: "general"
 //
-// The hostname and PID ensure uniqueness across processes/machines
+// The hostname and PID ensure uniqueness across processes/machines.
 func GetAgentID() (string, error) {
 	// 1. Get agent type from environment
 	agentType := os.Getenv("EXARP_AGENT")
@@ -49,7 +49,7 @@ func GetAgentID() (string, error) {
 
 // GetAgentIDSimple generates a simpler agent ID without PID
 // Format: {agent-type}-{hostname}
-// Use this if you want reusable agent IDs across process restarts
+// Use this if you want reusable agent IDs across process restarts.
 func GetAgentIDSimple() (string, error) {
 	agentType := os.Getenv("EXARP_AGENT")
 	if agentType == "" {
@@ -69,7 +69,7 @@ func GetAgentIDSimple() (string, error) {
 
 // GetAgentIDFromSession uses the session detection logic to get agent type
 // This requires access to the project root and session detection functions
-// For now, keeping it simple with environment variable detection
+// For now, keeping it simple with environment variable detection.
 func GetAgentIDFromSession(projectRoot string) (string, error) {
 	// This would call detectAgentType() from session.go
 	// For now, use the simpler version
@@ -83,15 +83,19 @@ func ParsePIDFromAgentID(agentID string) (pid int, ok bool) {
 	if agentID == "" {
 		return 0, false
 	}
+
 	parts := strings.Split(agentID, "-")
 	if len(parts) < 2 {
 		return 0, false
 	}
+
 	last := parts[len(parts)-1]
+
 	p, err := strconv.Atoi(last)
 	if err != nil || p <= 0 {
 		return 0, false
 	}
+
 	return p, true
 }
 
@@ -103,5 +107,6 @@ func AgentProcessExists(agentID string) bool {
 	if !ok {
 		return false
 	}
+
 	return utils.ProcessExists(pid)
 }

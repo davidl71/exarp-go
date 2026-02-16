@@ -18,20 +18,24 @@ func handleSecurityScan(ctx context.Context, params map[string]interface{}) ([]f
 	if err != nil {
 		return nil, fmt.Errorf("failed to find project root: %w", err)
 	}
+
 	if !IsGoProject() {
 		return nil, fmt.Errorf("security scan is only supported for Go projects (go.mod)")
 	}
+
 	vulns, err := scanGoDependencies(ctx, projectRoot)
 	if err != nil {
 		return nil, fmt.Errorf("security scan: %w", err)
 	}
+
 	result := formatSecurityScanResults(vulns, "go")
+
 	return []framework.TextContent{
 		{Type: "text", Text: result},
 	}, nil
 }
 
-// handleSecurityAlerts handles the alerts action for security tool
+// handleSecurityAlerts handles the alerts action for security tool.
 func handleSecurityAlerts(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	repo := "davidl71/exarp-go"
 	if r, ok := params["repo"].(string); ok && r != "" {
@@ -49,12 +53,13 @@ func handleSecurityAlerts(ctx context.Context, params map[string]interface{}) ([
 	}
 
 	result := formatDependabotAlerts(alerts)
+
 	return []framework.TextContent{
 		{Type: "text", Text: result},
 	}, nil
 }
 
-// handleSecurityReport handles the report action for security tool
+// handleSecurityReport handles the report action for security tool.
 func handleSecurityReport(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	// Get scan results
 	scanParams := map[string]interface{}{"action": "scan"}
@@ -70,6 +75,7 @@ func handleSecurityReport(ctx context.Context, params map[string]interface{}) ([
 
 	// Combine results
 	var report strings.Builder
+
 	report.WriteString("======================================================================\n")
 	report.WriteString("  SECURITY REPORT\n")
 	report.WriteString("======================================================================\n\n")
@@ -87,7 +93,7 @@ func handleSecurityReport(ctx context.Context, params map[string]interface{}) ([
 	}
 
 	if scanErr != nil && alertsErr != nil {
-		return nil, fmt.Errorf("security report: scan and alerts both failed (scan: %v; alerts: %v)", scanErr, alertsErr)
+		return nil, fmt.Errorf("security report: scan and alerts both failed (scan: %w; alerts: %w)", scanErr, alertsErr)
 	}
 
 	return []framework.TextContent{
@@ -95,7 +101,7 @@ func handleSecurityReport(ctx context.Context, params map[string]interface{}) ([
 	}, nil
 }
 
-// scanGoDependencies scans Go dependencies for vulnerabilities
+// scanGoDependencies scans Go dependencies for vulnerabilities.
 func scanGoDependencies(ctx context.Context, projectRoot string) ([]Vulnerability, error) {
 	vulns := []Vulnerability{}
 
@@ -105,6 +111,7 @@ func scanGoDependencies(ctx context.Context, projectRoot string) ([]Vulnerabilit
 		// Try govulncheck
 		cmd = exec.CommandContext(ctx, "govulncheck", "./...")
 		cmd.Dir = projectRoot
+
 		output, err := cmd.CombinedOutput()
 		if err == nil {
 			// Parse govulncheck output
@@ -124,7 +131,7 @@ func scanGoDependencies(ctx context.Context, projectRoot string) ([]Vulnerabilit
 	return vulns, nil
 }
 
-// Vulnerability represents a security vulnerability
+// Vulnerability represents a security vulnerability.
 type Vulnerability struct {
 	Package     string `json:"package"`
 	Version     string `json:"version"`
@@ -134,7 +141,7 @@ type Vulnerability struct {
 	FixVersion  string `json:"fix_version,omitempty"`
 }
 
-// parseGovulncheckOutput parses govulncheck output
+// parseGovulncheckOutput parses govulncheck output.
 func parseGovulncheckOutput(output string) []Vulnerability {
 	vulns := []Vulnerability{}
 	// Simplified parsing - govulncheck output format may vary
@@ -148,10 +155,11 @@ func parseGovulncheckOutput(output string) []Vulnerability {
 			})
 		}
 	}
+
 	return vulns
 }
 
-// formatSecurityScanResults formats scan results as text
+// formatSecurityScanResults formats scan results as text.
 func formatSecurityScanResults(vulns []Vulnerability, ecosystem string) string {
 	var sb strings.Builder
 
@@ -165,28 +173,34 @@ func formatSecurityScanResults(vulns []Vulnerability, ecosystem string) string {
 
 	for i, vuln := range vulns {
 		sb.WriteString(fmt.Sprintf("%d. %s\n", i+1, vuln.Package))
+
 		if vuln.Version != "" {
 			sb.WriteString(fmt.Sprintf("   Version: %s\n", vuln.Version))
 		}
+
 		if vuln.VulnID != "" {
 			sb.WriteString(fmt.Sprintf("   CVE: %s\n", vuln.VulnID))
 		}
+
 		if vuln.Severity != "" {
 			sb.WriteString(fmt.Sprintf("   Severity: %s\n", vuln.Severity))
 		}
+
 		if vuln.Description != "" {
 			sb.WriteString(fmt.Sprintf("   Description: %s\n", vuln.Description))
 		}
+
 		if vuln.FixVersion != "" {
 			sb.WriteString(fmt.Sprintf("   Fix: Upgrade to %s\n", vuln.FixVersion))
 		}
+
 		sb.WriteString("\n")
 	}
 
 	return sb.String()
 }
 
-// DependabotAlert represents a Dependabot alert
+// DependabotAlert represents a Dependabot alert.
 type DependabotAlert struct {
 	Package      string `json:"package"`
 	Severity     string `json:"severity"`
@@ -198,12 +212,13 @@ type DependabotAlert struct {
 	FixVersion   string `json:"fixed_version,omitempty"`
 }
 
-// fetchDependabotAlerts fetches Dependabot alerts using gh CLI
+// fetchDependabotAlerts fetches Dependabot alerts using gh CLI.
 func fetchDependabotAlerts(ctx context.Context, repo, state string) ([]DependabotAlert, error) {
 	// Use gh CLI to fetch alerts (same approach as Python)
 	jqQuery := `.[] | {package: .security_vulnerability.package.name, severity: .security_vulnerability.severity, cve: .security_advisory.cve_id, state: .state, ecosystem: .security_vulnerability.package.ecosystem, description: .security_advisory.summary, fix_available: .security_vulnerability.first_patched_version != null, fixed_version: .security_vulnerability.first_patched_version.identifier}`
 
 	cmd := exec.CommandContext(ctx, "gh", "api", fmt.Sprintf("repos/%s/dependabot/alerts", repo), "--jq", jqQuery)
+
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		return nil, fmt.Errorf("gh CLI failed: %w, output: %s", err, output)
@@ -211,11 +226,13 @@ func fetchDependabotAlerts(ctx context.Context, repo, state string) ([]Dependabo
 
 	// Parse JSONL output
 	alerts := []DependabotAlert{}
+
 	lines := strings.Split(strings.TrimSpace(string(output)), "\n")
 	for _, line := range lines {
 		if line == "" {
 			continue
 		}
+
 		var alert DependabotAlert
 		if err := json.Unmarshal([]byte(line), &alert); err == nil {
 			// Filter by state if not "all"
@@ -228,7 +245,7 @@ func fetchDependabotAlerts(ctx context.Context, repo, state string) ([]Dependabo
 	return alerts, nil
 }
 
-// formatDependabotAlerts formats Dependabot alerts as text
+// formatDependabotAlerts formats Dependabot alerts as text.
 func formatDependabotAlerts(alerts []DependabotAlert) string {
 	var sb strings.Builder
 
@@ -256,11 +273,13 @@ func formatDependabotAlerts(alerts []DependabotAlert) string {
 	}
 
 	sb.WriteString("By Severity:\n")
+
 	for sev, count := range bySeverity {
 		if count > 0 {
 			sb.WriteString(fmt.Sprintf("  %s: %d\n", sev, count))
 		}
 	}
+
 	sb.WriteString("\n")
 
 	// List alerts
@@ -269,14 +288,19 @@ func formatDependabotAlerts(alerts []DependabotAlert) string {
 			sb.WriteString(fmt.Sprintf("\n... and %d more alerts\n", len(alerts)-20))
 			break
 		}
+
 		sb.WriteString(fmt.Sprintf("%d. %s (%s)\n", i+1, alert.Package, alert.Ecosystem))
+
 		if alert.CVE != "" {
 			sb.WriteString(fmt.Sprintf("   CVE: %s\n", alert.CVE))
 		}
+
 		sb.WriteString(fmt.Sprintf("   Severity: %s\n", alert.Severity))
+
 		if alert.FixAvailable && alert.FixVersion != "" {
 			sb.WriteString(fmt.Sprintf("   Fix: Upgrade to %s\n", alert.FixVersion))
 		}
+
 		sb.WriteString("\n")
 	}
 

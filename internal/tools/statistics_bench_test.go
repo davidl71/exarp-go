@@ -7,9 +7,10 @@ import (
 	"time"
 )
 
-// generateTestData creates test data arrays of various sizes
+// generateTestData creates test data arrays of various sizes.
 func generateTestData(size int) []float64 {
 	data := make([]float64, size)
+
 	rand.Seed(time.Now().UnixNano())
 
 	for i := 0; i < size; i++ {
@@ -20,14 +21,14 @@ func generateTestData(size int) []float64 {
 	return data
 }
 
-// generateSortedTestData creates sorted test data
+// generateSortedTestData creates sorted test data.
 func generateSortedTestData(size int) []float64 {
 	data := generateTestData(size)
 	// Note: We'll sort in the benchmark to measure sorting overhead
 	return data
 }
 
-// BenchmarkMean benchmarks Mean function with various data sizes
+// BenchmarkMean benchmarks Mean function with various data sizes.
 func BenchmarkMean(b *testing.B) {
 	sizes := []struct {
 		name string
@@ -53,7 +54,7 @@ func BenchmarkMean(b *testing.B) {
 	}
 }
 
-// BenchmarkMedian benchmarks Median function with various data sizes
+// BenchmarkMedian benchmarks Median function with various data sizes.
 func BenchmarkMedian(b *testing.B) {
 	sizes := []struct {
 		name string
@@ -79,7 +80,7 @@ func BenchmarkMedian(b *testing.B) {
 	}
 }
 
-// BenchmarkStdDev benchmarks StdDev function with various data sizes
+// BenchmarkStdDev benchmarks StdDev function with various data sizes.
 func BenchmarkStdDev(b *testing.B) {
 	sizes := []struct {
 		name string
@@ -105,7 +106,7 @@ func BenchmarkStdDev(b *testing.B) {
 	}
 }
 
-// BenchmarkQuantile benchmarks Quantile function with various data sizes and percentiles
+// BenchmarkQuantile benchmarks Quantile function with various data sizes and percentiles.
 func BenchmarkQuantile(b *testing.B) {
 	sizes := []struct {
 		name string
@@ -135,7 +136,7 @@ func BenchmarkQuantile(b *testing.B) {
 	}
 }
 
-// BenchmarkMedianVsMean compares Median (O(n log n)) vs Mean (O(n))
+// BenchmarkMedianVsMean compares Median (O(n log n)) vs Mean (O(n)).
 func BenchmarkMedianVsMean(b *testing.B) {
 	sizes := []struct {
 		name string
@@ -152,6 +153,7 @@ func BenchmarkMedianVsMean(b *testing.B) {
 		b.Run(fmt.Sprintf("%s_Mean", size.name), func(b *testing.B) {
 			b.ResetTimer()
 			b.ReportAllocs()
+
 			for i := 0; i < b.N; i++ {
 				_ = Mean(data)
 			}
@@ -160,6 +162,7 @@ func BenchmarkMedianVsMean(b *testing.B) {
 		b.Run(fmt.Sprintf("%s_Median", size.name), func(b *testing.B) {
 			b.ResetTimer()
 			b.ReportAllocs()
+
 			for i := 0; i < b.N; i++ {
 				_ = Median(data)
 			}

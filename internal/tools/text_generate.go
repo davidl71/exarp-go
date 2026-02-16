@@ -29,6 +29,7 @@ func handleTextGenerate(ctx context.Context, args json.RawMessage) ([]framework.
 
 	taskType, _ := params["task_type"].(string)
 	taskDesc, _ := params["task_description"].(string)
+
 	optimizeFor := "quality"
 	if o, ok := params["optimize_for"].(string); ok && o != "" {
 		optimizeFor = o
@@ -42,14 +43,17 @@ func handleTextGenerate(ctx context.Context, args json.RawMessage) ([]framework.
 
 	if useModelSelection {
 		modelType, _ := ResolveModelForTask(taskDesc, taskType, optimizeFor)
+
 		text, err := DefaultModelRouter.Generate(ctx, modelType, prompt, maxTokens, temperature)
 		if err != nil {
 			return nil, fmt.Errorf("text_generate (model selection) failed: %w", err)
 		}
+
 		return []framework.TextContent{{Type: "text", Text: text}}, nil
 	}
 
 	var gen TextGenerator
+
 	switch provider {
 	case "fm":
 		gen = DefaultFMProvider()

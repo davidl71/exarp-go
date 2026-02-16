@@ -10,7 +10,7 @@ import (
 	"github.com/davidl71/mcp-go-core/pkg/mcp/response"
 )
 
-// defaultResearchTools returns default tool configs for research aggregator
+// defaultResearchTools returns default tool configs for research aggregator.
 func defaultResearchTools() []map[string]interface{} {
 	return []map[string]interface{}{
 		{"tool": "task_analysis", "action": "duplicates"},
@@ -25,8 +25,11 @@ func handleResearchAggregator(ctx context.Context, args json.RawMessage) ([]fram
 	if err := json.Unmarshal(args, &params); err != nil {
 		return nil, fmt.Errorf("failed to parse arguments: %w", err)
 	}
+
 	toolsList, _ := params["tools"].([]interface{})
+
 	var toRun []map[string]interface{}
+
 	if len(toolsList) == 0 {
 		toRun = defaultResearchTools()
 	} else {
@@ -41,9 +44,13 @@ func handleResearchAggregator(ctx context.Context, args json.RawMessage) ([]fram
 			}
 		}
 	}
+
 	var sb strings.Builder
+
 	sb.WriteString("# Research Result Aggregator\n\n")
+
 	results := make([]map[string]interface{}, 0, len(toRun))
+
 	for i, runParams := range toRun {
 		toolName, _ := runParams["tool"].(string)
 		if toolName == "" {
@@ -51,11 +58,13 @@ func handleResearchAggregator(ctx context.Context, args json.RawMessage) ([]fram
 		}
 		// Copy params excluding "tool" for the handler
 		handlerParams := make(map[string]interface{})
+
 		for k, v := range runParams {
 			if k != "tool" {
 				handlerParams[k] = v
 			}
 		}
+
 		res := runDailyTask(ctx, toolName, handlerParams)
 		results = append(results, map[string]interface{}{
 			"tool":    toolName,
@@ -63,19 +72,24 @@ func handleResearchAggregator(ctx context.Context, args json.RawMessage) ([]fram
 			"status":  res["status"],
 			"summary": res["summary"],
 		})
+
 		sb.WriteString(fmt.Sprintf("## %d. %s\n", i+1, toolName))
 		sb.WriteString(fmt.Sprintf("- Status: %v\n", res["status"]))
+
 		if s, ok := res["summary"].(map[string]interface{}); ok {
 			j, _ := json.Marshal(s)
 			sb.WriteString("- Summary: " + string(j) + "\n")
 		}
+
 		sb.WriteString("\n")
 	}
+
 	combined := map[string]interface{}{
 		"tools_run": len(results),
 		"results":   results,
 		"report":    sb.String(),
 	}
+
 	return response.FormatResult(combined, sb.String())
 }
 

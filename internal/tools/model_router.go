@@ -52,6 +52,7 @@ var DefaultModelRouter ModelRouter = &defaultModelRouter{}
 // Availability: FMAvailable(), MLAvailable() (darwin/arm64); MLX preferred for code on Apple Silicon.
 func (r *defaultModelRouter) SelectModel(taskType string, requirements ModelRequirements) ModelType {
 	isCode := taskType == "code" || taskType == "code_analysis" || taskType == "code_generation"
+
 	if FMAvailable() {
 		// FM chain (Apple or Ollama) is available; use it for both code and general.
 		return ModelFM
@@ -60,6 +61,7 @@ func (r *defaultModelRouter) SelectModel(taskType string, requirements ModelRequ
 	if isCode && MLAvailable() {
 		return ModelMLX
 	}
+
 	if isCode {
 		return ModelOllamaCode
 	}
@@ -67,6 +69,7 @@ func (r *defaultModelRouter) SelectModel(taskType string, requirements ModelRequ
 	if MLAvailable() && requirements.PreferCost {
 		return ModelMLX
 	}
+
 	return ModelOllamaLlama
 }
 
@@ -78,6 +81,7 @@ func (r *defaultModelRouter) Generate(ctx context.Context, model ModelType, prom
 		if p == nil || !p.Supported() {
 			return "", ErrFMNotSupported
 		}
+
 		return p.Generate(ctx, prompt, maxTokens, temperature)
 	case ModelOllamaLlama:
 		return r.generateOllama(ctx, "llama3.2", prompt, maxTokens, temperature)
@@ -88,6 +92,7 @@ func (r *defaultModelRouter) Generate(ctx context.Context, model ModelType, prom
 		if mlx == nil || !mlx.Supported() {
 			return "", ErrFMNotSupported
 		}
+
 		return mlx.Generate(ctx, prompt, maxTokens, temperature)
 	default:
 		// Unknown type: try FM chain as fallback.
@@ -95,6 +100,7 @@ func (r *defaultModelRouter) Generate(ctx context.Context, model ModelType, prom
 		if p != nil && p.Supported() {
 			return p.Generate(ctx, prompt, maxTokens, temperature)
 		}
+
 		return "", ErrFMNotSupported
 	}
 }
@@ -108,6 +114,7 @@ func (r *defaultModelRouter) generateOllama(ctx context.Context, modelName, prom
 // task description and type, then maps to our local ModelType. Implements T-207 model selection logic.
 func ResolveModelForTask(taskDescription, taskType, optimizeFor string) (ModelType, ModelRequirements) {
 	recommended := findBestModel(taskDescription, taskType, optimizeFor)
+
 	req := ModelRequirements{}
 	switch optimizeFor {
 	case "speed":

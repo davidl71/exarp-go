@@ -173,12 +173,15 @@ func TestGetToolCatalog(t *testing.T) {
 		if entry.Tool == "" {
 			t.Errorf("catalog entry '%s' has empty Tool field", toolID)
 		}
+
 		if entry.Hint == "" {
 			t.Errorf("catalog entry '%s' has empty Hint field", toolID)
 		}
+
 		if entry.Category == "" {
 			t.Errorf("catalog entry '%s' has empty Category field", toolID)
 		}
+
 		if entry.Description == "" {
 			t.Errorf("catalog entry '%s' has empty Description field", toolID)
 		}

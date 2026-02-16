@@ -29,6 +29,7 @@ func DefaultReportInsight() ReportInsightProvider {
 	if defaultReportInsight == nil {
 		return &compositeReportInsight{}
 	}
+
 	return defaultReportInsight
 }
 
@@ -51,6 +52,7 @@ func (c *compositeReportInsight) Generate(ctx context.Context, prompt string, ma
 	if text, err := tryMLXReportInsight(ctx, prompt, maxTokens, temperature); err == nil && text != "" {
 		return text, nil
 	}
+
 	return "", ErrFMNotSupported
 }
 
@@ -63,10 +65,12 @@ func tryMLXReportInsight(ctx context.Context, prompt string, maxTokens int, temp
 		"max_tokens":  maxTokens,
 		"temperature": float64(temperature),
 	}
+
 	result, err := executeMLXViaBridge(ctx, params)
 	if err != nil {
 		return "", err
 	}
+
 	return parseGeneratedTextFromMLXResponse(result)
 }
 
@@ -89,12 +93,15 @@ func parseGeneratedTextFromMLXResponse(mlxResult string) (string, error) {
 			return text, nil
 		}
 	}
+
 	if text, ok := resp["generated_text"].(string); ok && text != "" {
 		return text, nil
 	}
+
 	if result, ok := resp["result"].(string); ok && result != "" {
 		return result, nil
 	}
+
 	return "", errNoGeneratedText
 }
 

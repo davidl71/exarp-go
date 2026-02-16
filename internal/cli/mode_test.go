@@ -92,12 +92,14 @@ func TestNormalizeToolArgs(t *testing.T) {
 			if gotOK != tt.wantOK {
 				t.Errorf("NormalizeToolArgs() ok = %v, want %v", gotOK, tt.wantOK)
 			}
+
 			if gotOK {
 				for i := 0; i < len(tt.wantPrefix) && i < len(gotArgs); i++ {
 					if gotArgs[i] != tt.wantPrefix[i] {
 						t.Errorf("NormalizeToolArgs() [%d] = %q, want %q", i, gotArgs[i], tt.wantPrefix[i])
 					}
 				}
+
 				if tt.wantJSONKey != "" && len(gotArgs) >= 5 {
 					var m map[string]interface{}
 					if err := json.Unmarshal([]byte(gotArgs[4]), &m); err != nil {
@@ -106,6 +108,7 @@ func TestNormalizeToolArgs(t *testing.T) {
 						t.Errorf("NormalizeToolArgs() args[4][%q] = %v, want %q", tt.wantJSONKey, m[tt.wantJSONKey], tt.wantJSONVal)
 					}
 				}
+
 				if tt.name == "tool with no key=value" && gotArgs[4] != "{}" {
 					t.Errorf("NormalizeToolArgs() args[4] = %q, want {}", gotArgs[4])
 				}
@@ -152,6 +155,7 @@ func TestReservedSubcommands(t *testing.T) {
 	if len(ReservedSubcommands) != 5 {
 		t.Errorf("ReservedSubcommands len = %d, want 5", len(ReservedSubcommands))
 	}
+
 	want := map[string]bool{"task": true, "config": true, "tui": true, "tui3270": true, "lock": true}
 	for _, s := range ReservedSubcommands {
 		if !want[s] {
@@ -166,14 +170,17 @@ func TestCLIFlags(t *testing.T) {
 	}
 	// -tool and -args must be present for normalized invocations
 	hasTool, hasArgs := false, false
+
 	for _, f := range CLIFlags {
 		if f == "-tool" || f == "--tool" {
 			hasTool = true
 		}
+
 		if f == "-args" || f == "--args" {
 			hasArgs = true
 		}
 	}
+
 	if !hasTool || !hasArgs {
 		t.Errorf("CLIFlags missing -tool or -args: hasTool=%v hasArgs=%v", hasTool, hasArgs)
 	}

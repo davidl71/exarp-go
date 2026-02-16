@@ -21,7 +21,7 @@ import (
 // client per call. No Client.Timeout; callers use context.WithTimeout per request.
 var ollamaHTTPClient = &http.Client{}
 
-// OllamaModel represents an Ollama model
+// OllamaModel represents an Ollama model.
 type OllamaModel struct {
 	Name       string `json:"name"`
 	Size       int64  `json:"size"`
@@ -29,7 +29,7 @@ type OllamaModel struct {
 	Digest     string `json:"digest"`
 }
 
-// OllamaGenerateRequest represents the request for text generation
+// OllamaGenerateRequest represents the request for text generation.
 type OllamaGenerateRequest struct {
 	Model    string                 `json:"model"`
 	Prompt   string                 `json:"prompt"`
@@ -40,7 +40,7 @@ type OllamaGenerateRequest struct {
 	Context  []int                  `json:"context,omitempty"`
 }
 
-// OllamaGenerateResponse represents the response from generation
+// OllamaGenerateResponse represents the response from generation.
 type OllamaGenerateResponse struct {
 	Model              string `json:"model"`
 	CreatedAt          string `json:"created_at"`
@@ -60,13 +60,15 @@ func getOllamaModelParam(params map[string]interface{}, defaultVal string) strin
 	if m, ok := params["model"].(string); ok && m != "" {
 		return m
 	}
+
 	if n, ok := params["name"].(string); ok && n != "" {
 		return n
 	}
+
 	return defaultVal
 }
 
-// handleOllamaNative handles the ollama tool with native Go HTTP client
+// handleOllamaNative handles the ollama tool with native Go HTTP client.
 func handleOllamaNative(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	action, _ := params["action"].(string)
 	if action == "" {
@@ -104,16 +106,21 @@ func handleOllamaNative(ctx context.Context, params map[string]interface{}) ([]f
 func ollamaAvailable(ctx context.Context, host string) bool {
 	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()
+
 	url := fmt.Sprintf("%s/api/tags", host)
+
 	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
 		return false
 	}
+
 	resp, err := ollamaHTTPClient.Do(req)
 	if err != nil {
 		return false
 	}
+
 	_ = resp.Body.Close()
+
 	return resp.StatusCode == http.StatusOK
 }
 
@@ -124,8 +131,10 @@ func ollamaGenerateText(ctx context.Context, prompt string, maxTokens int, tempe
 	if timeout <= 0 {
 		timeout = 120 * time.Second
 	}
+
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
+
 	options := map[string]interface{}{
 		"num_predict": maxTokens,
 		"temperature": float64(temperature),
@@ -136,41 +145,53 @@ func ollamaGenerateText(ctx context.Context, prompt string, maxTokens int, tempe
 		Stream:  false,
 		Options: options,
 	}
+
 	jsonData, err := json.Marshal(reqBody)
 	if err != nil {
 		return "", fmt.Errorf("marshal request: %w", err)
 	}
+
 	url := fmt.Sprintf("%s/api/generate", host)
+
 	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(jsonData))
 	if err != nil {
 		return "", fmt.Errorf("create request: %w", err)
 	}
+
 	req.Header.Set("Content-Type", "application/json")
+
 	resp, err := ollamaHTTPClient.Do(req)
 	if err != nil {
 		return "", fmt.Errorf("call Ollama API: %w", err)
 	}
+
 	defer resp.Body.Close()
+
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
 		return "", fmt.Errorf("Ollama API status %d: %s", resp.StatusCode, string(body))
 	}
+
 	var genResp OllamaGenerateResponse
 	if err := json.NewDecoder(resp.Body).Decode(&genResp); err != nil {
 		return "", fmt.Errorf("decode response: %w", err)
 	}
+
 	return genResp.Response, nil
 }
 
-// handleOllamaStatus checks if Ollama server is running
+// handleOllamaStatus checks if Ollama server is running.
 func handleOllamaStatus(ctx context.Context, host string) ([]framework.TextContent, error) {
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
+
 	url := fmt.Sprintf("%s/api/tags", host)
+
 	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
+
 	resp, err := ollamaHTTPClient.Do(req)
 	if err != nil {
 		result := map[string]interface{}{
@@ -178,8 +199,10 @@ func handleOllamaStatus(ctx context.Context, host string) ([]framework.TextConte
 			"host":   host,
 			"error":  "Ollama server not running. Start it with: ollama serve",
 		}
+
 		return response.FormatResult(result, "")
 	}
+
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
@@ -188,6 +211,7 @@ func handleOllamaStatus(ctx context.Context, host string) ([]framework.TextConte
 			"host":   host,
 			"error":  fmt.Sprintf("Ollama server returned status %d", resp.StatusCode),
 		}
+
 		return response.FormatResult(result, "")
 	}
 
@@ -204,6 +228,7 @@ func handleOllamaStatus(ctx context.Context, host string) ([]framework.TextConte
 	}
 
 	modelNames := []string{}
+
 	for i, model := range tagsResp.Models {
 		if i < 10 { // First 10
 			modelNames = append(modelNames, model.Name)
@@ -222,19 +247,23 @@ func handleOllamaStatus(ctx context.Context, host string) ([]framework.TextConte
 	return response.FormatResult(result, "")
 }
 
-// handleOllamaModels lists available models
+// handleOllamaModels lists available models.
 func handleOllamaModels(ctx context.Context, host string) ([]framework.TextContent, error) {
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
+
 	url := fmt.Sprintf("%s/api/tags", host)
+
 	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
+
 	resp, err := ollamaHTTPClient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("Ollama server not running. Start it with: ollama serve: %w", err)
 	}
+
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
@@ -255,6 +284,7 @@ func handleOllamaModels(ctx context.Context, host string) ([]framework.TextConte
 	}
 
 	formattedModels := []OllamaModel{}
+
 	for _, model := range tagsResp.Models {
 		digest := model.Digest
 		if len(digest) > 12 {
@@ -280,7 +310,7 @@ func handleOllamaModels(ctx context.Context, host string) ([]framework.TextConte
 	return response.FormatResult(result, "")
 }
 
-// handleOllamaGenerate generates text using Ollama
+// handleOllamaGenerate generates text using Ollama.
 func handleOllamaGenerate(ctx context.Context, params map[string]interface{}, host string) ([]framework.TextContent, error) {
 	prompt, _ := params["prompt"].(string)
 	if prompt == "" {
@@ -355,18 +385,24 @@ func handleOllamaGenerate(ctx context.Context, params map[string]interface{}, ho
 	if timeout <= 0 {
 		timeout = 120 * time.Second
 	}
+
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
+
 	url := fmt.Sprintf("%s/api/generate", host)
+
 	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(jsonData))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
+
 	req.Header.Set("Content-Type", "application/json")
+
 	resp, err := ollamaHTTPClient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to call Ollama API: %w", err)
 	}
+
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
@@ -378,13 +414,17 @@ func handleOllamaGenerate(ctx context.Context, params map[string]interface{}, ho
 	if stream {
 		// For streaming, read line by line
 		decoder := json.NewDecoder(resp.Body)
+
 		var fullResponse string
+
 		for decoder.More() {
 			var chunk OllamaGenerateResponse
 			if err := decoder.Decode(&chunk); err != nil {
 				break
 			}
+
 			fullResponse += chunk.Response
+
 			if chunk.Done {
 				break
 			}
@@ -397,6 +437,7 @@ func handleOllamaGenerate(ctx context.Context, params map[string]interface{}, ho
 			"model":    model,
 			"streamed": true,
 		}
+
 		return response.FormatResult(result, "")
 	} else {
 		// Non-streaming: read single response
@@ -421,7 +462,7 @@ func handleOllamaGenerate(ctx context.Context, params map[string]interface{}, ho
 	}
 }
 
-// handleOllamaPull pulls/downloads a model
+// handleOllamaPull pulls/downloads a model.
 func handleOllamaPull(ctx context.Context, params map[string]interface{}, host string) ([]framework.TextContent, error) {
 	model := getOllamaModelParam(params, "")
 	if model == "" {
@@ -442,18 +483,24 @@ func handleOllamaPull(ctx context.Context, params map[string]interface{}, host s
 	if timeout <= 0 {
 		timeout = 300 * time.Second
 	}
+
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
+
 	url := fmt.Sprintf("%s/api/pull", host)
+
 	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(jsonData))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
+
 	req.Header.Set("Content-Type", "application/json")
+
 	resp, err := ollamaHTTPClient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to call Ollama API: %w", err)
 	}
+
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
@@ -463,15 +510,19 @@ func handleOllamaPull(ctx context.Context, params map[string]interface{}, host s
 
 	// Read streaming progress (pull returns progress messages)
 	decoder := json.NewDecoder(resp.Body)
+
 	var lastStatus string
+
 	for decoder.More() {
 		var progress map[string]interface{}
 		if err := decoder.Decode(&progress); err != nil {
 			break
 		}
+
 		if status, ok := progress["status"].(string); ok {
 			lastStatus = status
 		}
+
 		if completed, ok := progress["completed_at"].(string); ok && completed != "" {
 			break
 		}
@@ -488,7 +539,7 @@ func handleOllamaPull(ctx context.Context, params map[string]interface{}, host s
 	return response.FormatResult(result, "")
 }
 
-// handleOllamaHardware returns hardware info and recommendations
+// handleOllamaHardware returns hardware info and recommendations.
 func handleOllamaHardware(ctx context.Context) ([]framework.TextContent, error) {
 	// Simple hardware detection (can be enhanced)
 	result := map[string]interface{}{
@@ -501,7 +552,7 @@ func handleOllamaHardware(ctx context.Context) ([]framework.TextContent, error) 
 	return response.FormatResult(result, "")
 }
 
-// handleOllamaDocs generates code documentation using Ollama
+// handleOllamaDocs generates code documentation using Ollama.
 func handleOllamaDocs(ctx context.Context, params map[string]interface{}, host string) ([]framework.TextContent, error) {
 	filePath, _ := params["file_path"].(string)
 	if filePath == "" {
@@ -509,6 +560,7 @@ func handleOllamaDocs(ctx context.Context, params map[string]interface{}, host s
 	}
 
 	outputPath, _ := params["output_path"].(string)
+
 	style, _ := params["style"].(string)
 	if style == "" {
 		style = "google"
@@ -556,6 +608,7 @@ Generate the documented version of this code.`, style, string(code))
 
 	// Extract response text
 	var responseText string
+
 	if len(result) > 0 && result[0].Type == "text" {
 		var generateResult map[string]interface{}
 		if err := json.Unmarshal([]byte(result[0].Text), &generateResult); err == nil {
@@ -587,7 +640,7 @@ Generate the documented version of this code.`, style, string(code))
 	return response.FormatResult(docResult, "")
 }
 
-// handleOllamaQuality analyzes code quality using Ollama
+// handleOllamaQuality analyzes code quality using Ollama.
 func handleOllamaQuality(ctx context.Context, params map[string]interface{}, host string) ([]framework.TextContent, error) {
 	filePath, _ := params["file_path"].(string)
 	if filePath == "" {
@@ -650,6 +703,7 @@ Code:
 
 	// Extract response text
 	var responseText string
+
 	if len(result) > 0 && result[0].Type == "text" {
 		var generateResult map[string]interface{}
 		if err := json.Unmarshal([]byte(result[0].Text), &generateResult); err == nil {
@@ -661,6 +715,7 @@ Code:
 
 	// Try to parse JSON from response
 	var qualityData map[string]interface{}
+
 	if responseText != "" {
 		jsonText := ExtractJSONObjectFromLLMResponse(responseText)
 		if err := json.Unmarshal([]byte(jsonText), &qualityData); err != nil {
@@ -683,9 +738,9 @@ Code:
 	return response.FormatResult(qualityResult, "")
 }
 
-// handleOllamaSummary enhances context summaries using Ollama
+// handleOllamaSummary enhances context summaries using Ollama.
 func handleOllamaSummary(ctx context.Context, params map[string]interface{}, host string) ([]framework.TextContent, error) {
-	dataRaw, _ := params["data"]
+	dataRaw := params["data"]
 	if dataRaw == nil {
 		return nil, fmt.Errorf("data parameter required for summary action")
 	}
@@ -707,6 +762,7 @@ func handleOllamaSummary(ctx context.Context, params map[string]interface{}, hos
 		if err != nil {
 			return nil, fmt.Errorf("failed to marshal data: %w", err)
 		}
+
 		dataStr = string(dataJSON)
 	}
 
@@ -719,6 +775,7 @@ func handleOllamaSummary(ctx context.Context, params map[string]interface{}, hos
 
 	// Build summary prompt based on level
 	var prompt string
+
 	switch level {
 	case "brief":
 		prompt = fmt.Sprintf(`Summarize this data in one brief sentence highlighting key points.
@@ -778,6 +835,7 @@ Provide a structured summary.`, level, dataStr)
 
 	// Extract response text
 	var responseText string
+
 	if len(result) > 0 && result[0].Type == "text" {
 		var generateResult map[string]interface{}
 		if err := json.Unmarshal([]byte(result[0].Text), &generateResult); err == nil {

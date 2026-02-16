@@ -120,11 +120,13 @@ func TestHandleSetupPatternHooks(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := context.Background()
+
 			result, err := handleSetupPatternHooks(ctx, tt.params)
 			if (err != nil) != tt.wantError {
 				t.Errorf("handleSetupPatternHooks() error = %v, wantError %v", err, tt.wantError)
 				return
 			}
+
 			if !tt.wantError && tt.validate != nil {
 				tt.validate(t, result)
 			}
@@ -179,11 +181,13 @@ func TestHandleSetupHooksNative(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := context.Background()
+
 			result, err := handleSetupHooksNative(ctx, tt.params)
 			if (err != nil) != tt.wantError {
 				t.Errorf("handleSetupHooksNative() error = %v, wantError %v", err, tt.wantError)
 				return
 			}
+
 			if !tt.wantError && (result == nil || len(result) == 0) {
 				t.Error("expected non-empty result")
 			}

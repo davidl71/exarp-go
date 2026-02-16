@@ -32,12 +32,15 @@ func TestNormalizeEpochDates(t *testing.T) {
 		CompletedAt:  "2026-01-28T12:00:00Z",
 	}
 	task.NormalizeEpochDates()
+
 	if task.CreatedAt != "" {
 		t.Errorf("CreatedAt should be empty after normalize, got %q", task.CreatedAt)
 	}
+
 	if task.LastModified != "" {
 		t.Errorf("LastModified should be empty after normalize, got %q", task.LastModified)
 	}
+
 	if task.CompletedAt != "2026-01-28T12:00:00Z" {
 		t.Errorf("CompletedAt should be unchanged, got %q", task.CompletedAt)
 	}

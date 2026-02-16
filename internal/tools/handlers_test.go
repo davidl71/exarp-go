@@ -44,6 +44,7 @@ func TestHandler_ArgumentParsing(t *testing.T) {
 			ctx := context.Background()
 
 			var argsJSON json.RawMessage
+
 			var err error
 
 			if tt.args != nil {
@@ -211,6 +212,7 @@ func TestHandleToolCatalog(t *testing.T) {
 				t.Errorf("handleToolCatalog() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
+
 			if !tt.wantErr && tt.check != nil {
 				tt.check(t, result)
 			}
@@ -221,13 +223,14 @@ func TestHandleToolCatalog(t *testing.T) {
 // Note: TestHandleServerStatusNative removed - server_status tool converted to stdio://server/status resource
 // See internal/resources/server.go and internal/resources/handlers_test.go for resource tests
 
-// hasSubstring checks if a string contains a substring (case-sensitive)
+// hasSubstring checks if a string contains a substring (case-sensitive).
 func hasSubstring(s, substr string) bool {
 	for i := 0; i <= len(s)-len(substr); i++ {
 		if s[i:i+len(substr)] == substr {
 			return true
 		}
 	}
+
 	return false
 }
 
@@ -430,6 +433,7 @@ func TestHandleContextBatchNative(t *testing.T) {
 				t.Errorf("handleContextBatchNative() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
+
 			if !tt.wantErr && tt.check != nil {
 				tt.check(t, result)
 			}

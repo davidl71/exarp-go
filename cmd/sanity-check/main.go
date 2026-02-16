@@ -13,16 +13,16 @@ import (
 )
 
 // Expected counts
-// Tools = 30 base (RegisterAllTools in registry.go) + 1 conditional (Apple Foundation Models on darwin/arm64/cgo) = 31 total on Mac Silicon
+// Tools = 32 base (RegisterAllTools in registry.go) + 1 conditional (Apple Foundation Models on darwin/arm64/cgo) = 33 on Mac Silicon
 // Prompts = 36 (19 original + 16 migrated from Python + 1 tractatus_decompose)
-// Resources = 24 (scorecard, memories, prompts, session/mode, session/status, server/status, models, cursor/skills, tools, tasks)
+// Resources = 24 (scorecard, memories, prompts, session/mode, session/status, server/status, models, cursor/skills, tools, tasks).
 const (
-	EXPECTED_TOOLS     = 30 // Base tools (31 with conditional Apple Foundation Models on darwin/arm64/cgo)
+	EXPECTED_TOOLS     = 32 // Base tools (33 with conditional Apple Foundation Models on darwin/arm64/cgo)
 	EXPECTED_PROMPTS   = 36
 	EXPECTED_RESOURCES = 24
 )
 
-// Counting wrapper to track registrations
+// Counting wrapper to track registrations.
 type countingServer struct {
 	framework.MCPServer
 	toolCount     int
@@ -88,6 +88,7 @@ func main() {
 	// Tools (allow +1 for conditional Apple Foundation Models tool)
 	toolCount := server.toolCount
 	toolMatch := toolCount == EXPECTED_TOOLS || toolCount == EXPECTED_TOOLS+1
+
 	if toolMatch {
 		fmt.Printf("✅ Tools: %d/%d (or %d with Apple FM)\n", toolCount, EXPECTED_TOOLS, EXPECTED_TOOLS+1)
 	} else {
@@ -97,6 +98,7 @@ func main() {
 	// Prompts
 	promptCount := server.promptCount
 	promptMatch := promptCount == EXPECTED_PROMPTS
+
 	if promptMatch {
 		fmt.Printf("✅ Prompts: %d/%d\n", promptCount, EXPECTED_PROMPTS)
 	} else {
@@ -106,6 +108,7 @@ func main() {
 	// Resources
 	resourceCount := server.resourceCount
 	resourceMatch := resourceCount == EXPECTED_RESOURCES
+
 	if resourceMatch {
 		fmt.Printf("✅ Resources: %d/%d\n", resourceCount, EXPECTED_RESOURCES)
 	} else {
@@ -114,6 +117,7 @@ func main() {
 
 	// Summary
 	fmt.Println()
+
 	if toolMatch && promptMatch && resourceMatch {
 		fmt.Println("✅ All counts match!")
 		fmt.Println()
@@ -122,18 +126,22 @@ func main() {
 	} else {
 		fmt.Println("❌ Count mismatches detected!")
 		fmt.Println()
+
 		if !toolMatch {
 			fmt.Printf("  Tools: Expected %d, got %d (difference: %d)\n",
 				EXPECTED_TOOLS, toolCount, toolCount-EXPECTED_TOOLS)
 		}
+
 		if !promptMatch {
 			fmt.Printf("  Prompts: Expected %d, got %d (difference: %d)\n",
 				EXPECTED_PROMPTS, promptCount, promptCount-EXPECTED_PROMPTS)
 		}
+
 		if !resourceMatch {
 			fmt.Printf("  Resources: Expected %d, got %d (difference: %d)\n",
 				EXPECTED_RESOURCES, resourceCount, resourceCount-EXPECTED_RESOURCES)
 		}
+
 		os.Exit(1)
 	}
 }

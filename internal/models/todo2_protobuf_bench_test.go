@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-// BenchmarkProtobufSerialization benchmarks protobuf serialization
+// BenchmarkProtobufSerialization benchmarks protobuf serialization.
 func BenchmarkProtobufSerialization(b *testing.B) {
 	task := &Todo2Task{
 		ID:      "T-1",
@@ -19,6 +19,7 @@ func BenchmarkProtobufSerialization(b *testing.B) {
 	}
 
 	b.ResetTimer()
+
 	for i := 0; i < b.N; i++ {
 		_, err := SerializeTaskToProtobuf(task)
 		if err != nil {
@@ -27,7 +28,7 @@ func BenchmarkProtobufSerialization(b *testing.B) {
 	}
 }
 
-// BenchmarkJSONSerialization benchmarks JSON serialization
+// BenchmarkJSONSerialization benchmarks JSON serialization.
 func BenchmarkJSONSerialization(b *testing.B) {
 	task := &Todo2Task{
 		ID:      "T-1",
@@ -41,6 +42,7 @@ func BenchmarkJSONSerialization(b *testing.B) {
 	}
 
 	b.ResetTimer()
+
 	for i := 0; i < b.N; i++ {
 		_, err := json.Marshal(task)
 		if err != nil {
@@ -49,7 +51,7 @@ func BenchmarkJSONSerialization(b *testing.B) {
 	}
 }
 
-// BenchmarkProtobufDeserialization benchmarks protobuf deserialization
+// BenchmarkProtobufDeserialization benchmarks protobuf deserialization.
 func BenchmarkProtobufDeserialization(b *testing.B) {
 	task := &Todo2Task{
 		ID:      "T-1",
@@ -68,6 +70,7 @@ func BenchmarkProtobufDeserialization(b *testing.B) {
 	}
 
 	b.ResetTimer()
+
 	for i := 0; i < b.N; i++ {
 		_, err := DeserializeTaskFromProtobuf(data)
 		if err != nil {
@@ -76,7 +79,7 @@ func BenchmarkProtobufDeserialization(b *testing.B) {
 	}
 }
 
-// BenchmarkJSONDeserialization benchmarks JSON deserialization
+// BenchmarkJSONDeserialization benchmarks JSON deserialization.
 func BenchmarkJSONDeserialization(b *testing.B) {
 	task := &Todo2Task{
 		ID:      "T-1",
@@ -95,8 +98,10 @@ func BenchmarkJSONDeserialization(b *testing.B) {
 	}
 
 	b.ResetTimer()
+
 	for i := 0; i < b.N; i++ {
 		var task Todo2Task
+
 		err := json.Unmarshal(data, &task)
 		if err != nil {
 			b.Fatalf("json.Unmarshal() error = %v", err)
@@ -104,7 +109,7 @@ func BenchmarkJSONDeserialization(b *testing.B) {
 	}
 }
 
-// BenchmarkProtobufRoundTrip benchmarks full round-trip (serialize + deserialize)
+// BenchmarkProtobufRoundTrip benchmarks full round-trip (serialize + deserialize).
 func BenchmarkProtobufRoundTrip(b *testing.B) {
 	task := &Todo2Task{
 		ID:      "T-1",
@@ -118,11 +123,13 @@ func BenchmarkProtobufRoundTrip(b *testing.B) {
 	}
 
 	b.ResetTimer()
+
 	for i := 0; i < b.N; i++ {
 		data, err := SerializeTaskToProtobuf(task)
 		if err != nil {
 			b.Fatalf("SerializeTaskToProtobuf() error = %v", err)
 		}
+
 		_, err = DeserializeTaskFromProtobuf(data)
 		if err != nil {
 			b.Fatalf("DeserializeTaskFromProtobuf() error = %v", err)
@@ -130,7 +137,7 @@ func BenchmarkProtobufRoundTrip(b *testing.B) {
 	}
 }
 
-// BenchmarkJSONRoundTrip benchmarks full round-trip (serialize + deserialize)
+// BenchmarkJSONRoundTrip benchmarks full round-trip (serialize + deserialize).
 func BenchmarkJSONRoundTrip(b *testing.B) {
 	task := &Todo2Task{
 		ID:      "T-1",
@@ -144,12 +151,15 @@ func BenchmarkJSONRoundTrip(b *testing.B) {
 	}
 
 	b.ResetTimer()
+
 	for i := 0; i < b.N; i++ {
 		data, err := json.Marshal(task)
 		if err != nil {
 			b.Fatalf("json.Marshal() error = %v", err)
 		}
+
 		var task Todo2Task
+
 		err = json.Unmarshal(data, &task)
 		if err != nil {
 			b.Fatalf("json.Unmarshal() error = %v", err)
@@ -157,7 +167,7 @@ func BenchmarkJSONRoundTrip(b *testing.B) {
 	}
 }
 
-// BenchmarkProtobufSizeComparison compares payload sizes
+// BenchmarkProtobufSizeComparison compares payload sizes.
 func BenchmarkProtobufSizeComparison(b *testing.B) {
 	task := &Todo2Task{
 		ID:      "T-1",
@@ -180,12 +190,14 @@ func BenchmarkProtobufSizeComparison(b *testing.B) {
 		if err != nil {
 			b.Fatalf("SerializeTaskToProtobuf() error = %v", err)
 		}
+
 		protobufSize = len(protobufData)
 
 		jsonData, err := json.Marshal(task)
 		if err != nil {
 			b.Fatalf("json.Marshal() error = %v", err)
 		}
+
 		jsonSize = len(jsonData)
 	}
 

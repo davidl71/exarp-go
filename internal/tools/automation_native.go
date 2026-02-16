@@ -19,7 +19,9 @@ func AutomationResponseToMap(resp *proto.AutomationResponse) map[string]interfac
 	if resp == nil {
 		return nil
 	}
+
 	out := map[string]interface{}{"action": resp.GetAction()}
+
 	if resp.GetResultJson() != "" {
 		var payload map[string]interface{}
 		if json.Unmarshal([]byte(resp.GetResultJson()), &payload) == nil {
@@ -28,11 +30,12 @@ func AutomationResponseToMap(resp *proto.AutomationResponse) map[string]interfac
 			}
 		}
 	}
+
 	return out
 }
 
 // handleAutomationNative handles the automation tool with native Go implementation
-// Implements all actions: "daily", "nightly", "sprint", and "discover"
+// Implements all actions: "daily", "nightly", "sprint", and "discover".
 func handleAutomationNative(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	action, _ := params["action"].(string)
 	if action == "" {
@@ -53,7 +56,7 @@ func handleAutomationNative(ctx context.Context, params map[string]interface{}) 
 	}
 }
 
-// handleAutomationDaily handles the "daily" action for automation tool
+// handleAutomationDaily handles the "daily" action for automation tool.
 func handleAutomationDaily(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	startTime := time.Now()
 
@@ -90,6 +93,7 @@ func handleAutomationDaily(ctx context.Context, params map[string]interface{}) (
 		"error":     task0Result["error"],
 		"summary":   task0Result["summary"],
 	})
+
 	results["tasks_run"] = tasksRun
 	if task0Result["status"] == "success" {
 		tasksSucceeded, _ := results["tasks_succeeded"].([]string)
@@ -105,12 +109,15 @@ func handleAutomationDaily(ctx context.Context, params map[string]interface{}) (
 		{"task_analysis", map[string]interface{}{"action": "duplicates"}, "Duplicate Task Detection"},
 		{"health", map[string]interface{}{"action": "docs"}, "Documentation Health Check"},
 	}
+
 	maxParallel := 3
 	if mp, ok := params["max_parallel_tasks"].(float64); ok && mp > 0 {
 		maxParallel = int(mp)
 	}
+
 	parallelResults := runParallelTasks(ctx, parallelBatch, maxParallel)
 	taskIDs := []string{"analyze_alignment", "task_analysis", "health"}
+
 	for i, res := range parallelResults {
 		tasksRun, _ := results["tasks_run"].([]map[string]interface{})
 		tasksRun = append(tasksRun, map[string]interface{}{
@@ -121,6 +128,7 @@ func handleAutomationDaily(ctx context.Context, params map[string]interface{}) (
 			"error":     res["error"],
 			"summary":   res["summary"],
 		})
+
 		results["tasks_run"] = tasksRun
 		if res["status"] == "success" {
 			tasksSucceeded, _ := results["tasks_succeeded"].([]string)
@@ -144,6 +152,7 @@ func handleAutomationDaily(ctx context.Context, params map[string]interface{}) (
 		"error":     task4Result["error"],
 		"summary":   task4Result["summary"],
 	})
+
 	results["tasks_run"] = tasksRun
 	if task4Result["status"] == "success" {
 		tasksSucceeded, _ := results["tasks_succeeded"].([]string)
@@ -164,6 +173,7 @@ func handleAutomationDaily(ctx context.Context, params map[string]interface{}) (
 		"error":     task5Result["error"],
 		"summary":   task5Result["summary"],
 	})
+
 	results["tasks_run"] = tasksRun
 	if task5Result["status"] == "success" {
 		tasksSucceeded, _ := results["tasks_succeeded"].([]string)
@@ -187,6 +197,7 @@ func handleAutomationDaily(ctx context.Context, params map[string]interface{}) (
 		"error":     task6Result["error"],
 		"summary":   task6Result["summary"],
 	})
+
 	results["tasks_run"] = tasksRun
 	if task6Result["status"] == "success" {
 		tasksSucceeded, _ := results["tasks_succeeded"].([]string)
@@ -209,6 +220,7 @@ func handleAutomationDaily(ctx context.Context, params map[string]interface{}) (
 		"error":     task7Result["error"],
 		"summary":   task7Result["summary"],
 	})
+
 	results["tasks_run"] = tasksRun
 	if task7Result["status"] == "success" {
 		tasksSucceeded, _ := results["tasks_succeeded"].([]string)
@@ -223,6 +235,7 @@ func handleAutomationDaily(ctx context.Context, params map[string]interface{}) (
 	if staleHours <= 0 {
 		staleHours = 24
 	}
+
 	task8Result := runDailyTask(ctx, "stale_task_cleanup", map[string]interface{}{
 		"action":                "cleanup",
 		"stale_threshold_hours": float64(staleHours),
@@ -236,6 +249,7 @@ func handleAutomationDaily(ctx context.Context, params map[string]interface{}) (
 		"error":     task8Result["error"],
 		"summary":   task8Result["summary"],
 	})
+
 	results["tasks_run"] = tasksRun
 	if task8Result["status"] == "success" {
 		tasksSucceeded, _ := results["tasks_succeeded"].([]string)
@@ -262,6 +276,7 @@ func handleAutomationDaily(ctx context.Context, params map[string]interface{}) (
 	if totalTasks > 0 {
 		summary["success_rate"] = float64(succeededCount) / float64(totalTasks) * 100.0
 	}
+
 	results["summary"] = summary
 	results["duration_seconds"] = time.Since(startTime).Seconds()
 
@@ -272,11 +287,12 @@ func handleAutomationDaily(ctx context.Context, params map[string]interface{}) (
 	}
 	resultJSON, _ := json.Marshal(responseData)
 	resp := &proto.AutomationResponse{Action: "daily", ResultJson: string(resultJSON)}
+
 	return response.FormatResult(AutomationResponseToMap(resp), "")
 }
 
 // handleAutomationNightly handles the "nightly" action for automation tool
-// Runs maintenance and cleanup tasks that are suitable for overnight execution
+// Runs maintenance and cleanup tasks that are suitable for overnight execution.
 func handleAutomationNightly(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	startTime := time.Now()
 
@@ -315,6 +331,7 @@ func handleAutomationNightly(ctx context.Context, params map[string]interface{})
 		"error":     task1Result["error"],
 		"summary":   task1Result["summary"],
 	})
+
 	results["tasks_run"] = tasksRun
 	if task1Result["status"] == "success" {
 		tasksSucceeded, _ := results["tasks_succeeded"].([]string)
@@ -337,6 +354,7 @@ func handleAutomationNightly(ctx context.Context, params map[string]interface{})
 		"error":     task2Result["error"],
 		"summary":   task2Result["summary"],
 	})
+
 	results["tasks_run"] = tasksRun
 	if task2Result["status"] == "success" {
 		tasksSucceeded, _ := results["tasks_succeeded"].([]string)
@@ -359,6 +377,7 @@ func handleAutomationNightly(ctx context.Context, params map[string]interface{})
 		"error":     task3Result["error"],
 		"summary":   task3Result["summary"],
 	})
+
 	results["tasks_run"] = tasksRun
 	if task3Result["status"] == "success" {
 		tasksSucceeded, _ := results["tasks_succeeded"].([]string)
@@ -372,11 +391,14 @@ func handleAutomationNightly(ctx context.Context, params map[string]interface{})
 	staleLockStart := time.Now()
 	staleLockSummary := map[string]interface{}{"skipped": false}
 	staleLockStatus := "success"
+
 	var staleLockErr string
+
 	staleThreshold := config.GetGlobalConfig().Timeouts.StaleLockThreshold
 	if staleThreshold <= 0 {
 		staleThreshold = 5 * time.Minute
 	}
+
 	info, err := database.DetectStaleLocks(ctx, staleThreshold)
 	if err != nil {
 		staleLockStatus = "error"
@@ -389,6 +411,7 @@ func handleAutomationNightly(ctx context.Context, params map[string]interface{})
 		staleLockSummary["stale_count"] = info.StaleCount
 		staleLockSummary["locks_total"] = len(info.Locks)
 	}
+
 	tasksRun, _ = results["tasks_run"].([]map[string]interface{})
 	tasksRun = append(tasksRun, map[string]interface{}{
 		"task_id":   "stale_lock_check",
@@ -398,6 +421,7 @@ func handleAutomationNightly(ctx context.Context, params map[string]interface{})
 		"error":     staleLockErr,
 		"summary":   staleLockSummary,
 	})
+
 	results["tasks_run"] = tasksRun
 	if staleLockStatus == "success" {
 		tasksSucceeded, _ := results["tasks_succeeded"].([]string)
@@ -418,6 +442,7 @@ func handleAutomationNightly(ctx context.Context, params map[string]interface{})
 		"error":     task5Result["error"],
 		"summary":   task5Result["summary"],
 	})
+
 	results["tasks_run"] = tasksRun
 	if task5Result["status"] == "success" {
 		tasksSucceeded, _ := results["tasks_succeeded"].([]string)
@@ -444,6 +469,7 @@ func handleAutomationNightly(ctx context.Context, params map[string]interface{})
 	if totalTasks > 0 {
 		summary["success_rate"] = float64(succeededCount) / float64(totalTasks) * 100.0
 	}
+
 	results["summary"] = summary
 	results["duration_seconds"] = time.Since(startTime).Seconds()
 
@@ -454,11 +480,12 @@ func handleAutomationNightly(ctx context.Context, params map[string]interface{})
 	}
 	resultJSON, _ := json.Marshal(responseData)
 	resp := &proto.AutomationResponse{Action: "nightly", ResultJson: string(resultJSON)}
+
 	return response.FormatResult(AutomationResponseToMap(resp), "")
 }
 
 // handleAutomationSprint handles the "sprint" action for automation tool
-// Runs sprint-specific tasks like alignment analysis and reporting
+// Runs sprint-specific tasks like alignment analysis and reporting.
 func handleAutomationSprint(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	startTime := time.Now()
 
@@ -495,6 +522,7 @@ func handleAutomationSprint(ctx context.Context, params map[string]interface{}) 
 		"error":     task0Result["error"],
 		"summary":   task0Result["summary"],
 	})
+
 	results["tasks_run"] = tasksRun
 	if task0Result["status"] == "success" {
 		tasksSucceeded, _ := results["tasks_succeeded"].([]string)
@@ -517,6 +545,7 @@ func handleAutomationSprint(ctx context.Context, params map[string]interface{}) 
 		"error":     task1Result["error"],
 		"summary":   task1Result["summary"],
 	})
+
 	results["tasks_run"] = tasksRun
 	if task1Result["status"] == "success" {
 		tasksSucceeded, _ := results["tasks_succeeded"].([]string)
@@ -539,6 +568,7 @@ func handleAutomationSprint(ctx context.Context, params map[string]interface{}) 
 		"error":     task2Result["error"],
 		"summary":   task2Result["summary"],
 	})
+
 	results["tasks_run"] = tasksRun
 	if task2Result["status"] == "success" {
 		tasksSucceeded, _ := results["tasks_succeeded"].([]string)
@@ -561,6 +591,7 @@ func handleAutomationSprint(ctx context.Context, params map[string]interface{}) 
 		"error":     task3Result["error"],
 		"summary":   task3Result["summary"],
 	})
+
 	results["tasks_run"] = tasksRun
 	if task3Result["status"] == "success" {
 		tasksSucceeded, _ := results["tasks_succeeded"].([]string)
@@ -587,12 +618,14 @@ func handleAutomationSprint(ctx context.Context, params map[string]interface{}) 
 	if totalTasks > 0 {
 		summary["success_rate"] = float64(succeededCount) / float64(totalTasks) * 100.0
 	}
+
 	results["summary"] = summary
 	results["duration_seconds"] = time.Since(startTime).Seconds()
 
 	// Add recommended backlog order for this sprint (first 15 in dependency order)
 	if projectRoot, err := FindProjectRoot(); err == nil {
 		store := NewDefaultTaskStore(projectRoot)
+
 		list, err := store.ListTasks(context.Background(), nil)
 		if err == nil {
 			tasks := tasksFromPtrs(list)
@@ -601,15 +634,19 @@ func handleAutomationSprint(ctx context.Context, params map[string]interface{}) 
 				if sprintOrderLimit <= 0 {
 					sprintOrderLimit = 15
 				}
+
 				sprintOrder := make([]map[string]interface{}, 0, sprintOrderLimit)
+
 				detailMap := make(map[string]BacklogTaskDetail)
 				for _, d := range details {
 					detailMap[d.ID] = d
 				}
+
 				for i, id := range orderedIDs {
 					if i >= sprintOrderLimit {
 						break
 					}
+
 					d := detailMap[id]
 					sprintOrder = append(sprintOrder, map[string]interface{}{
 						"id":       d.ID,
@@ -618,6 +655,7 @@ func handleAutomationSprint(ctx context.Context, params map[string]interface{}) 
 						"level":    d.Level,
 					})
 				}
+
 				results["sprint_backlog_order"] = sprintOrder
 			}
 		}
@@ -630,10 +668,11 @@ func handleAutomationSprint(ctx context.Context, params map[string]interface{}) 
 	}
 	resultJSON, _ := json.Marshal(responseData)
 	resp := &proto.AutomationResponse{Action: "sprint", ResultJson: string(resultJSON)}
+
 	return response.FormatResult(AutomationResponseToMap(resp), "")
 }
 
-// handleAutomationDiscover handles the "discover" action for automation tool
+// handleAutomationDiscover handles the "discover" action for automation tool.
 func handleAutomationDiscover(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	// Use task_discovery tool (native Go)
 	// Set action to "all" to find tasks from all sources
@@ -647,6 +686,7 @@ func handleAutomationDiscover(ctx context.Context, params map[string]interface{}
 		// For now, just pass it through (might be used for filtering)
 		taskDiscoveryParams["min_value_score"] = minValueScore
 	}
+
 	if outputPath, ok := params["output_path"].(string); ok && outputPath != "" {
 		taskDiscoveryParams["output_path"] = outputPath
 	}
@@ -674,6 +714,7 @@ func runDeadAgentCleanup(ctx context.Context) map[string]interface{} {
 	if _, err := database.GetDB(); err != nil {
 		result["summary"] = map[string]interface{}{"skipped": true, "reason": "database not available"}
 		result["duration"] = time.Since(startTime).Seconds()
+
 		return result
 	}
 
@@ -689,6 +730,7 @@ func runDeadAgentCleanup(ctx context.Context) map[string]interface{} {
 		result["status"] = "error"
 		result["error"] = err.Error()
 		result["summary"] = map[string]interface{}{"error": err.Error()}
+
 		return result
 	}
 
@@ -696,38 +738,46 @@ func runDeadAgentCleanup(ctx context.Context) map[string]interface{} {
 		"cleaned":  cleaned,
 		"task_ids": taskIDs,
 	}
+
 	return result
 }
 
-// parallelTask describes a task for parallel execution (T-228)
+// parallelTask describes a task for parallel execution (T-228).
 type parallelTask struct {
 	toolName string
 	params   map[string]interface{}
 	taskName string
 }
 
-// runParallelTasks runs multiple tasks concurrently with max parallel limit (T-228)
+// runParallelTasks runs multiple tasks concurrently with max parallel limit (T-228).
 func runParallelTasks(ctx context.Context, tasks []parallelTask, maxParallel int) []map[string]interface{} {
 	if maxParallel <= 0 {
 		maxParallel = 3
 	}
+
 	results := make([]map[string]interface{}, len(tasks))
 	sem := make(chan struct{}, maxParallel)
+
 	var wg sync.WaitGroup
 	for i, t := range tasks {
 		wg.Add(1)
+
 		go func(idx int, task parallelTask) {
 			defer wg.Done()
 			sem <- struct{}{}
+
 			defer func() { <-sem }()
+
 			results[idx] = runDailyTask(ctx, task.toolName, task.params)
 		}(i, t)
 	}
+
 	wg.Wait()
+
 	return results
 }
 
-// runDailyTask runs a native Go tool task and returns result
+// runDailyTask runs a native Go tool task and returns result.
 func runDailyTask(ctx context.Context, toolName string, params map[string]interface{}) map[string]interface{} {
 	startTime := time.Now()
 
@@ -740,6 +790,7 @@ func runDailyTask(ctx context.Context, toolName string, params map[string]interf
 
 	// Call appropriate native handler (no Python bridge - per native Go migration plan)
 	var err error
+
 	var toolResult []framework.TextContent
 
 	switch toolName {
@@ -766,14 +817,17 @@ func runDailyTask(ctx context.Context, toolName string, params map[string]interf
 		if marshalErr != nil {
 			result["error"] = marshalErr.Error()
 			result["duration"] = time.Since(startTime).Seconds()
+
 			return result
 		}
+
 		toolResult, err = handleMemoryMaintNative(ctx, argsJSON)
 	case "report":
 		toolResult, err = handleReportOverview(ctx, params)
 	default:
 		result["error"] = fmt.Sprintf("unknown tool: %s", toolName)
 		result["duration"] = time.Since(startTime).Seconds()
+
 		return result
 	}
 
@@ -783,6 +837,7 @@ func runDailyTask(ctx context.Context, toolName string, params map[string]interf
 	if err != nil {
 		result["status"] = "error"
 		result["error"] = err.Error()
+
 		return result
 	}
 

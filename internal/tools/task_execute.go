@@ -19,7 +19,7 @@ import (
 const (
 	defaultMinConfidence = 0.5
 	defaultMaxTokens     = 4096
-	defaultTemperature  = 0.3
+	defaultTemperature   = 0.3
 )
 
 // handleTaskExecute runs the execution flow for a Todo2 task and optionally applies changes.
@@ -38,6 +38,7 @@ func handleTaskExecute(ctx context.Context, args json.RawMessage) ([]framework.T
 	if err != nil {
 		return nil, fmt.Errorf("project root: %w", err)
 	}
+
 	if root, ok := params["project_root"].(string); ok && root != "" {
 		projectRoot = root
 	}
@@ -53,16 +54,17 @@ func handleTaskExecute(ctx context.Context, args json.RawMessage) ([]framework.T
 	}
 
 	result, err := RunTaskExecutionFlow(ctx, RunTaskExecutionFlowParams{
-		TaskID:         taskID,
-		ProjectRoot:    projectRoot,
-		Apply:          apply,
-		MinConfidence:  minConfidence,
+		TaskID:        taskID,
+		ProjectRoot:   projectRoot,
+		Apply:         apply,
+		MinConfidence: minConfidence,
 	})
 	if err != nil {
 		return nil, err
 	}
 
 	out, _ := json.Marshal(result)
+
 	return []framework.TextContent{{Type: "text", Text: string(out)}}, nil
 }
 
@@ -91,6 +93,7 @@ func RunTaskExecutionFlow(ctx context.Context, p RunTaskExecutionFlowParams) (*R
 	result := &RunTaskExecutionFlowResult{TaskID: p.TaskID}
 
 	store := NewDefaultTaskStore(p.ProjectRoot)
+
 	task, err := store.GetTask(ctx, p.TaskID)
 	if err != nil || task == nil {
 		return nil, fmt.Errorf("task %s: %w", p.TaskID, err)
@@ -105,6 +108,7 @@ func RunTaskExecutionFlow(ctx context.Context, p RunTaskExecutionFlowParams) (*R
 	if taskDesc == "" {
 		taskDesc = task.Content
 	}
+
 	args := map[string]interface{}{
 		"task_name":        task.Content,
 		"task_description": taskDesc,
@@ -114,6 +118,7 @@ func RunTaskExecutionFlow(ctx context.Context, p RunTaskExecutionFlowParams) (*R
 	prompt := prompts.SubstituteTemplate(tpl, args)
 
 	modelType := DefaultModelRouter.SelectModel("code_generation", ModelRequirements{})
+
 	text, err := DefaultModelRouter.Generate(ctx, modelType, prompt, defaultMaxTokens, defaultTemperature)
 	if err != nil {
 		return nil, fmt.Errorf("model generate: %w", err)
@@ -124,6 +129,7 @@ func RunTaskExecutionFlow(ctx context.Context, p RunTaskExecutionFlowParams) (*R
 		result.ParseError = err.Error()
 		result.Explanation = "Execution response could not be parsed as JSON."
 		addExecutionResultComment(ctx, p.TaskID, result)
+
 		return result, nil
 	}
 
@@ -140,25 +146,31 @@ func RunTaskExecutionFlow(ctx context.Context, p RunTaskExecutionFlowParams) (*R
 	}
 
 	addExecutionResultComment(ctx, p.TaskID, result)
+
 	return result, nil
 }
 
 func addExecutionResultComment(ctx context.Context, taskID string, result *RunTaskExecutionFlowResult) {
 	var b strings.Builder
+
 	b.WriteString("**Auto-execution result**\n\n")
 	b.WriteString(result.Explanation)
+
 	if len(result.Applied) > 0 {
 		b.WriteString("\n\n**Applied files:**\n")
+
 		for _, f := range result.Applied {
 			b.WriteString("- ")
 			b.WriteString(f)
 			b.WriteString("\n")
 		}
 	}
+
 	if result.ApplyError != "" {
 		b.WriteString("\n**Apply error:** ")
 		b.WriteString(result.ApplyError)
 	}
+
 	if result.ParseError != "" {
 		b.WriteString("\n**Parse error:** ")
 		b.WriteString(result.ParseError)
@@ -172,5 +184,6 @@ func addExecutionResultComment(ctx context.Context, taskID string, result *RunTa
 		// DB may be unavailable (e.g. CLI without init); result is still in tool response
 		return
 	}
+
 	result.CommentAdded = true
 }

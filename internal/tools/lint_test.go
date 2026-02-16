@@ -12,6 +12,7 @@ import (
 func TestHandleLint(t *testing.T) {
 	tmpDir := t.TempDir()
 	os.Setenv("PROJECT_ROOT", tmpDir)
+
 	defer os.Unsetenv("PROJECT_ROOT")
 
 	tests := []struct {
@@ -77,11 +78,13 @@ func TestHandleLint(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := context.Background()
 			argsJSON, _ := json.Marshal(tt.params)
+
 			result, err := handleLint(ctx, argsJSON)
 			if (err != nil) != tt.wantError {
 				t.Errorf("handleLint() error = %v, wantError %v", err, tt.wantError)
 				return
 			}
+
 			if !tt.wantError && tt.validate != nil {
 				tt.validate(t, result)
 			}
@@ -92,6 +95,7 @@ func TestHandleLint(t *testing.T) {
 func TestRunLinter(t *testing.T) {
 	tmpDir := t.TempDir()
 	os.Setenv("PROJECT_ROOT", tmpDir)
+
 	defer os.Unsetenv("PROJECT_ROOT")
 
 	tests := []struct {
@@ -120,11 +124,13 @@ func TestRunLinter(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := context.Background()
+
 			result, err := runLinter(ctx, tt.linter, tt.path, tt.fix)
 			if (err != nil) != tt.wantError {
 				t.Errorf("runLinter() error = %v, wantError %v", err, tt.wantError)
 				return
 			}
+
 			if !tt.wantError && result == nil {
 				t.Error("expected non-nil result")
 			}

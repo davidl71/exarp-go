@@ -9,7 +9,7 @@ import (
 )
 
 // TestMCPToolInvocation tests tool invocation via MCP interface
-// This is a basic integration test to validate tool handlers work correctly
+// This is a basic integration test to validate tool handlers work correctly.
 func TestMCPToolInvocation(t *testing.T) {
 	tests := []struct {
 		name      string
@@ -88,6 +88,7 @@ func TestMCPToolInvocation(t *testing.T) {
 			ctx := context.Background()
 			// Simulate MCP tool invocation
 			var result []framework.TextContent
+
 			var err error
 
 			switch tt.toolName {
@@ -99,11 +100,13 @@ func TestMCPToolInvocation(t *testing.T) {
 				if action == "" {
 					action = "model"
 				}
-				if action == "model" {
+				switch action {
+
+				case "model":
 					result, err = handleRecommendModelNative(ctx, tt.params)
-				} else if action == "workflow" {
+				case "workflow":
 					result, err = handleRecommendWorkflowNative(ctx, tt.params)
-				} else {
+				default:
 					t.Fatalf("unsupported recommend action: %s", action)
 				}
 			case "health":
@@ -116,6 +119,7 @@ func TestMCPToolInvocation(t *testing.T) {
 				t.Errorf("tool invocation error = %v, wantError %v", err, tt.wantError)
 				return
 			}
+
 			if !tt.wantError && tt.validate != nil {
 				tt.validate(t, result)
 			}
@@ -123,7 +127,7 @@ func TestMCPToolInvocation(t *testing.T) {
 	}
 }
 
-// TestToolErrorHandling tests error handling across tools
+// TestToolErrorHandling tests error handling across tools.
 func TestToolErrorHandling(t *testing.T) {
 	tests := []struct {
 		name      string
@@ -161,6 +165,7 @@ func TestToolErrorHandling(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := context.Background()
+
 			var err error
 
 			switch tt.toolName {
@@ -172,11 +177,13 @@ func TestToolErrorHandling(t *testing.T) {
 				if action == "" {
 					action = "model"
 				}
-				if action == "model" {
+				switch action {
+
+				case "model":
 					_, err = handleRecommendModelNative(ctx, tt.params)
-				} else if action == "workflow" {
+				case "workflow":
 					_, err = handleRecommendWorkflowNative(ctx, tt.params)
-				} else {
+				default:
 					t.Fatalf("unsupported recommend action: %s", action)
 				}
 			case "health":
@@ -192,7 +199,7 @@ func TestToolErrorHandling(t *testing.T) {
 	}
 }
 
-// TestToolResponseFormat tests that all tools return valid JSON responses
+// TestToolResponseFormat tests that all tools return valid JSON responses.
 func TestToolResponseFormat(t *testing.T) {
 	tests := []struct {
 		name     string
@@ -219,7 +226,9 @@ func TestToolResponseFormat(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := context.Background()
+
 			var result []framework.TextContent
+
 			var err error
 
 			switch tt.toolName {
@@ -252,6 +261,7 @@ func TestToolResponseFormat(t *testing.T) {
 					t.Errorf("expected text content type, got %s", content.Type)
 					continue
 				}
+
 				var data map[string]interface{}
 				if err := json.Unmarshal([]byte(content.Text), &data); err != nil {
 					t.Errorf("invalid JSON response: %v", err)
