@@ -234,6 +234,9 @@ type model struct {
 
 	// Help overlay
 	showHelp bool
+
+	// Child agent: last result message for status display (cleared on next key or refresh)
+	childAgentMsg string
 }
 
 type configSection struct {
@@ -277,6 +280,11 @@ type configSectionDetailMsg struct {
 type configSaveResultMsg struct {
 	message string
 	success bool
+}
+
+// childAgentResultMsg is sent after starting a child agent (for status display).
+type childAgentResultMsg struct {
+	Result ChildAgentRunResult
 }
 
 // initialModel creates the TUI model. initialWidth and initialHeight are optional;
@@ -334,6 +342,7 @@ func initialModel(server framework.MCPServer, status string, projectRoot, projec
 		searchMode:        false,
 		filteredIndices:   nil,
 		showHelp:          false,
+		childAgentMsg:     "",
 		handoffEntries:    nil,
 		handoffCursor:     0,
 		handoffSelected:   make(map[int]struct{}),
@@ -812,6 +821,14 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		return m, loadScorecard(m.projectRoot, true)
 
+	case childAgentResultMsg:
+		if msg.Result.Launched {
+			m.childAgentMsg = msg.Result.Message
+		} else {
+			m.childAgentMsg = "Child agent: " + msg.Result.Message
+		}
+		return m, nil
+
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "ctrl+c", "q":
@@ -1226,6 +1243,71 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				// Save config
 				return m, saveConfig(m.projectRoot, m.configData)
 			}
+
+		case "E":
+			// Execute current context (task, handoff, wave) in child agent
+			m.childAgentMsg = ""
+			if m.mode == "tasks" {
+				vis := m.visibleIndices()
+				if len(vis) > 0 && m.cursor < len(vis) {
+					task := m.tasks[m.realIndexAt(m.cursor)]
+					if task != nil {
+						prompt := PromptForTask(task.ID, task.Content)
+						return m, runChildAgentCmd(m.projectRoot, prompt, ChildAgentTask)
+					}
+				}
+			} else if m.mode == "taskDetail" && m.taskDetailTask != nil {
+				prompt := PromptForTask(m.taskDetailTask.ID, m.taskDetailTask.Content)
+				return m, runChildAgentCmd(m.projectRoot, prompt, ChildAgentTask)
+			} else if m.mode == "handoffs" {
+				if m.handoffDetailIndex >= 0 && m.handoffDetailIndex < len(m.handoffEntries) {
+					h := m.handoffEntries[m.handoffDetailIndex]
+					sum, _ := h["summary"].(string)
+					var steps []interface{}
+					if s, ok := h["next_steps"].([]interface{}); ok {
+						steps = s
+					}
+					prompt := PromptForHandoff(sum, steps)
+					return m, runChildAgentCmd(m.projectRoot, prompt, ChildAgentHandoff)
+				} else if len(m.handoffEntries) > 0 && m.handoffCursor < len(m.handoffEntries) {
+					h := m.handoffEntries[m.handoffCursor]
+					sum, _ := h["summary"].(string)
+					var steps []interface{}
+					if s, ok := h["next_steps"].([]interface{}); ok {
+						steps = s
+					}
+					prompt := PromptForHandoff(sum, steps)
+					return m, runChildAgentCmd(m.projectRoot, prompt, ChildAgentHandoff)
+				}
+			} else if m.mode == "waves" && len(m.waves) > 0 {
+				// Run with first wave or generic wave prompt
+				levels := make([]int, 0, len(m.waves))
+				for k := range m.waves {
+					levels = append(levels, k)
+				}
+				sort.Ints(levels)
+				if len(levels) > 0 {
+					ids := m.waves[levels[0]]
+					prompt := PromptForWave(levels[0], ids)
+					return m, runChildAgentCmd(m.projectRoot, prompt, ChildAgentWave)
+				}
+			}
+			return m, nil
+
+		case "L":
+			// Launch plan in child agent (tasks or taskDetail)
+			m.childAgentMsg = ""
+			if m.mode == "tasks" || m.mode == "taskDetail" {
+				prompt := PromptForPlan(m.projectRoot)
+				return m, runChildAgentCmd(m.projectRoot, prompt, ChildAgentPlan)
+			}
+			return m, nil
+
+		default:
+			// Clear child-agent status on any other key
+			if m.childAgentMsg != "" {
+				m.childAgentMsg = ""
+			}
 		}
 	}
 
@@ -1370,6 +1452,17 @@ func (m model) viewTasks() string {
 		m.renderNarrowTaskList(&b, availableWidth)
 	}
 
+	// Child agent result (one-line feedback)
+	if m.childAgentMsg != "" {
+		msgLine := m.childAgentMsg
+		if len(msgLine) > availableWidth-2 {
+			msgLine = msgLine[:availableWidth-5] + "..."
+		}
+		b.WriteString("\n")
+		b.WriteString(helpStyle.Render("  " + msgLine))
+		b.WriteString("\n")
+	}
+
 	// Status bar at bottom (htop style)
 	b.WriteString("\n")
 	b.WriteString(borderStyle.Render(strings.Repeat("─", availableWidth)))
@@ -1400,7 +1493,11 @@ func (m model) viewTasks() string {
 	statusBar.WriteString(helpStyle.Render("p"))
 	statusBar.WriteString(" scorecard  ")
 	statusBar.WriteString(helpStyle.Render("w"))
-	statusBar.WriteString(" waves  ")
+	statusBar.WriteString(" w waves  ")
+	statusBar.WriteString(helpStyle.Render("E"))
+	statusBar.WriteString(" child agent  ")
+	statusBar.WriteString(helpStyle.Render("L"))
+	statusBar.WriteString(" plan  ")
 	statusBar.WriteString(helpStyle.Render("?/h"))
 	statusBar.WriteString(" help  ")
 	statusBar.WriteString(helpStyle.Render("q"))
@@ -2617,6 +2714,12 @@ func (m model) viewHelp() string {
 	b.WriteString("  Switch to Session handoffs (Enter detail  Space select  x close  a approve)\n  ")
 	b.WriteString(helpStyle.Render("w"))
 	b.WriteString("  Switch to Waves (dependency-order backlog)\n\n")
+	b.WriteString(normalStyle.Render("Child agent (run Cursor agent in project root):"))
+	b.WriteString("\n  ")
+	b.WriteString(helpStyle.Render("E"))
+	b.WriteString("  Execute current context in child agent (task, handoff, or wave)\n  ")
+	b.WriteString(helpStyle.Render("L"))
+	b.WriteString("  Launch plan in child agent (from tasks view)\n\n")
 	b.WriteString(normalStyle.Render("Actions:"))
 	b.WriteString("\n  ")
 	b.WriteString(helpStyle.Render("r"))
@@ -2708,6 +2811,15 @@ func saveConfig(projectRoot string, cfg *config.FullConfig) tea.Cmd {
 			return configSaveResultMsg{message: "Error writing config: " + err.Error(), success: false}
 		}
 		return configSaveResultMsg{message: "Config saved to " + projectRoot + "/.exarp/config.pb", success: true}
+	}
+}
+
+// runChildAgentCmd runs the child agent with the given prompt and returns a childAgentResultMsg.
+func runChildAgentCmd(projectRoot, prompt string, kind ChildAgentKind) tea.Cmd {
+	return func() tea.Msg {
+		r := RunChildAgent(projectRoot, prompt)
+		r.Kind = kind
+		return childAgentResultMsg{Result: r}
 	}
 }
 
