@@ -55,8 +55,13 @@ exarp-go -tool session -args '{"action":"handoff","sub_action":"list"}'
 ## TUI (exarp-go interactive)
 
 In the Handoffs view:
-- **i** — Start an **interactive** Cursor agent with the handoff as the initial prompt (agent opens for conversation; handoff is not closed).
+- **i** — Start an **interactive** agent with the handoff as the initial prompt (agent opens for conversation; handoff is not closed).
 - **e** — Run handoff in child agent (non-interactive) and close the handoff.
+
+**Backend:** The TUI uses the **Cursor CLI** (`agent` / `agent -p`). For other backends, use the correct command locally:
+- **Cursor (Claude / Cursor models):** `agent "prompt"` or `agent -p "prompt"`
+- **Ollama (local):** `ollama run <model> "prompt"` or exarp-go `ollama` / `text_generate` tools
+- See [CURSOR_API_AND_CLI_INTEGRATION.md](../../docs/CURSOR_API_AND_CLI_INTEGRATION.md) §2 for the full backend table.
 
 ## Storage
 
