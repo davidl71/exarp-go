@@ -1,0 +1,45 @@
+---
+description: Task discovery tool behavior and deprecated-item filter
+globs: "internal/tools/task_discovery*.go,.todo2/**"
+alwaysApply: false
+---
+
+# Task Discovery (task_discovery tool)
+
+The **task_discovery** tool scans the codebase and docs for TODO/FIXME comments, markdown task lists (`- [ ] ...`), planning links, and orphan tasks, and can create Todo2 tasks from discoveries.
+
+## Deprecated / removed items filter
+
+**Discovery text that looks deprecated is never turned into a new Todo2 task.**
+
+The filter (`IsDeprecatedDiscoveryText`) skips:
+
+- **Strikethrough** — Any discovery text containing `~~` (markdown strikethrough) is skipped.
+- **"(removed)" or "…removed)"** — Text containing `(removed)` or `removed)` (case-insensitive), e.g. `*(T-274 removed)*`, is skipped.
+- **"Future improvement" with task ref** — Text containing both "future improvement" and "t-" (e.g. T-xxx removed) is skipped.
+
+This is applied in:
+
+1. **Markdown scanning** — `scanMarkdown` / `scanMarkdownBasic` do not add such lines to discoveries.
+2. **Task creation** — `createTasksFromDiscoveries` skips creating a task when the discovery text is deprecated, so even if a discovery slips in from another source (e.g. comments), no task is created.
+
+### How to mark deprecated items in docs
+
+To avoid deprecated items being discovered as new tasks:
+
+- Use **checked** boxes for deprecated lines: `- [x] ~~Add middleware (T-274 removed)~~` or `- [x] Add middleware (removed)`.
+- Or keep the line but use strikethrough in the text; the filter will skip it if the unchecked line content contains `~~` or `(removed)`.
+
+## When to use task_discovery
+
+- **action=comments** — Scan for TODO/FIXME; optional hashtags become tags.
+- **action=markdown** — Scan `.md` files for `- [ ]` / `- [ ]` style task lists.
+- **action=planning_links** — Discover tasks from plan doc references (no task creation from refs alone).
+- **action=orphans** — Find tasks with invalid deps or structure.
+- **action=all** — Run comments + markdown + planning_links + orphans.
+- **create_tasks=true** — Create Todo2 tasks from discoveries (respects deprecated filter and dedup by content).
+
+## References
+
+- Implementation: `internal/tools/task_discovery_common.go` (IsDeprecatedDiscoveryText, createTasksFromDiscoveries), `task_discovery_native.go` (scanMarkdown), `task_discovery_native_nocgo.go` (scanMarkdownBasic).
+- Tool catalog: **stdio://tools** or `tool_catalog` with `tool_name=task_discovery`.

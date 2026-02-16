@@ -13,6 +13,30 @@ import (
 // tagPattern matches hashtags in TODO comments (e.g., #refactor, #bug, #performance)
 var tagPattern = regexp.MustCompile(`#([a-zA-Z][a-zA-Z0-9_-]*)`)
 
+// IsDeprecatedDiscoveryText returns true if the discovery text looks like a deprecated/removed
+// item (e.g. strikethrough, "(removed)", "*(T-xxx removed)*") and should not be turned into
+// a new Todo2 task. Used by scanMarkdown, scanMarkdownBasic, and createTasksFromDiscoveries.
+func IsDeprecatedDiscoveryText(text string) bool {
+	t := strings.TrimSpace(text)
+	if t == "" {
+		return true
+	}
+	lower := strings.ToLower(t)
+	// Strikethrough in markdown (~~...~~)
+	if strings.Contains(t, "~~") {
+		return true
+	}
+	// Explicit "(removed)" or "*(T-xxx removed)*" style
+	if strings.Contains(lower, "(removed)") || strings.Contains(lower, "removed)") {
+		return true
+	}
+	// "Future improvement" in removed-context (often with T-xxx removed)
+	if strings.Contains(lower, "future improvement") && strings.Contains(lower, "t-") {
+		return true
+	}
+	return false
+}
+
 // extractTagsFromText extracts hashtag-style tags from comment text.
 // Returns a slice of tags (without the # prefix) and the text with tags removed.
 func extractTagsFromText(text string) ([]string, string) {
@@ -70,6 +94,10 @@ func createTasksFromDiscoveries(ctx context.Context, projectRoot string, discove
 	for _, discovery := range discoveries {
 		text, ok := discovery["text"].(string)
 		if !ok || text == "" {
+			continue
+		}
+
+		if IsDeprecatedDiscoveryText(text) {
 			continue
 		}
 
