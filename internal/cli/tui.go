@@ -142,6 +142,16 @@ func wordWrap(s string, width int) string {
 	return strings.TrimSuffix(out.String(), "\n")
 }
 
+// sortedWaveLevels returns sorted wave level keys from waves map.
+func sortedWaveLevels(waves map[int][]string) []int {
+	levels := make([]int, 0, len(waves))
+	for k := range waves {
+		levels = append(levels, k)
+	}
+	sort.Ints(levels)
+	return levels
+}
+
 // effectiveWidth returns width for layout, never below minTermWidth (avoids iTerm2/terminal size quirks).
 func (m model) effectiveWidth() int {
 	if m.width >= minTermWidth {
@@ -190,7 +200,7 @@ type model struct {
 	height int
 
 	// Config editing mode
-	mode              string // "tasks", "config", "scorecard", "handoffs", "waves", or "configSection"
+	mode              string // "tasks", "config", "scorecard", "handoffs", "waves", "jobs", or "configSection"
 	configSections    []configSection
 	configCursor      int
 	configData        *config.FullConfig
@@ -218,7 +228,14 @@ type model struct {
 	handoffActionMsg   string // result of close/approve action
 
 	// Waves view (dependency-order waves from BacklogExecutionOrder)
-	waves map[int][]string // level -> task IDs (computed when entering waves view)
+	waves           map[int][]string // level -> task IDs (computed when entering waves view)
+	waveDetailLevel int              // -1 = wave list (collapsed), >= 0 = viewing tasks for that wave level
+	waveCursor      int              // cursor in wave list (when collapsed)
+
+	// Background jobs view (child agent launches)
+	jobs            []BackgroundJob
+	jobsCursor      int
+	jobsDetailIndex int // -1 = list, >= 0 = showing detail for that job
 
 	// Task detail overlay (pressing 's' on a task)
 	taskDetailTask *database.Todo2Task
@@ -237,6 +254,14 @@ type model struct {
 
 	// Child agent: last result message for status display (cleared on next key or refresh)
 	childAgentMsg string
+}
+
+// BackgroundJob represents a launched child agent (or other background job).
+type BackgroundJob struct {
+	Kind     ChildAgentKind
+	Prompt   string
+	StartedAt time.Time
+	Pid      int
 }
 
 type configSection struct {
@@ -280,6 +305,11 @@ type configSectionDetailMsg struct {
 type configSaveResultMsg struct {
 	message string
 	success bool
+}
+
+// wavesRefreshDoneMsg is sent after running exarp tools to refresh waves (task_workflow sync, task_analysis, etc.).
+type wavesRefreshDoneMsg struct {
+	err error
 }
 
 // childAgentResultMsg is sent after starting a child agent (for status display).
@@ -348,6 +378,11 @@ func initialModel(server framework.MCPServer, status string, projectRoot, projec
 		handoffSelected:   make(map[int]struct{}),
 		handoffDetailIndex: -1,
 		handoffActionMsg:  "",
+		waveDetailLevel:   -1,
+		waveCursor:        0,
+		jobs:              nil,
+		jobsCursor:        0,
+		jobsDetailIndex:   -1,
 	}
 }
 
@@ -596,6 +631,31 @@ func loadHandoffs(server framework.MCPServer) tea.Cmd {
 	}
 }
 
+// runWavesRefreshTools runs exarp tools that refresh wave-related state (task_workflow sync, task_analysis parallelization),
+// then returns wavesRefreshDoneMsg. After handling that message, the caller should run loadTasks to recompute waves.
+func runWavesRefreshTools(server framework.MCPServer) tea.Cmd {
+	return func() tea.Msg {
+		if server == nil {
+			return wavesRefreshDoneMsg{err: fmt.Errorf("no server")}
+		}
+		ctx := context.Background()
+
+		// 1. Sync task store (SQLite ↔ JSON if applicable)
+		syncArgs, _ := json.Marshal(map[string]interface{}{"action": "sync", "sub_action": "list"})
+		if _, err := server.CallTool(ctx, "task_workflow", syncArgs); err != nil {
+			return wavesRefreshDoneMsg{err: fmt.Errorf("task_workflow sync: %w", err)}
+		}
+
+		// 2. Task analysis parallelization (refreshes dependency/wave view data)
+		taArgs, _ := json.Marshal(map[string]interface{}{"action": "parallelization", "output_format": "text"})
+		if _, err := server.CallTool(ctx, "task_analysis", taArgs); err != nil {
+			return wavesRefreshDoneMsg{err: fmt.Errorf("task_analysis parallelization: %w", err)}
+		}
+
+		return wavesRefreshDoneMsg{err: nil}
+	}
+}
+
 // runHandoffAction runs session tool handoff close or approve for the given handoff IDs, then sends handoffActionDoneMsg.
 func runHandoffAction(server framework.MCPServer, projectRoot string, handoffIDs []string, action string) tea.Cmd {
 	return func() tea.Msg {
@@ -715,6 +775,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			_, waves, _, err := tools.BacklogExecutionOrder(taskList, nil)
 			if err == nil {
 				m.waves = waves
+				if max := config.MaxTasksPerWave(); max > 0 {
+					m.waves = tools.LimitWavesByMaxTasks(m.waves, max)
+				}
 			} else {
 				m.waves = nil
 			}
@@ -725,6 +788,16 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 		return m, nil
+
+	case wavesRefreshDoneMsg:
+		m.loading = false
+		if msg.err != nil {
+			m.err = msg.err
+			return m, nil
+		}
+		// Reload tasks so waves recompute from updated backlog
+		m.loading = true
+		return m, loadTasks(m.status)
 
 	case tickMsg:
 		// Auto-refresh tasks periodically (only in tasks mode)
@@ -824,6 +897,12 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case childAgentResultMsg:
 		if msg.Result.Launched {
 			m.childAgentMsg = msg.Result.Message
+			m.jobs = append(m.jobs, BackgroundJob{
+				Kind:      msg.Result.Kind,
+				Prompt:    msg.Result.Prompt,
+				StartedAt: time.Now(),
+				Pid:       msg.Result.Pid,
+			})
 		} else {
 			m.childAgentMsg = "Child agent: " + msg.Result.Message
 		}
@@ -860,8 +939,21 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m, nil
 			}
 			if m.mode == "waves" {
-				m.mode = "tasks"
-				m.cursor = 0
+				if m.waveDetailLevel >= 0 {
+					m.waveDetailLevel = -1
+				} else {
+					m.mode = "tasks"
+					m.cursor = 0
+				}
+				return m, nil
+			}
+			if m.mode == "jobs" {
+				if m.jobsDetailIndex >= 0 {
+					m.jobsDetailIndex = -1
+				} else {
+					m.mode = "tasks"
+					m.cursor = 0
+				}
 				return m, nil
 			}
 			return m, nil
@@ -924,6 +1016,24 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 		}
 
+		// When wave detail is open (viewing tasks for a wave), Esc / Enter / Space close it
+		if m.mode == "waves" && m.waveDetailLevel >= 0 {
+			switch msg.String() {
+			case "esc", "enter", " ":
+				m.waveDetailLevel = -1
+				return m, nil
+			}
+		}
+
+		// When job detail is open, Esc / Enter / Space close it
+		if m.mode == "jobs" && m.jobsDetailIndex >= 0 {
+			switch msg.String() {
+			case "esc", "enter", " ":
+				m.jobsDetailIndex = -1
+				return m, nil
+			}
+		}
+
 		switch msg.String() {
 		case "p":
 			// Toggle between tasks and scorecard (project health)
@@ -965,15 +1075,30 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 			return m, loadHandoffs(m.server)
 
+		case "b":
+			// Toggle background jobs view
+			if m.mode == "jobs" {
+				m.mode = "tasks"
+				m.cursor = 0
+				return m, nil
+			}
+			m.mode = "jobs"
+			m.jobsCursor = 0
+			m.jobsDetailIndex = -1
+			return m, nil
+
 		case "w":
 			// Toggle waves view (dependency-order waves from backlog)
 			if m.mode == "waves" {
 				m.mode = "tasks"
 				m.cursor = 0
+				m.waveDetailLevel = -1
 				return m, nil
 			}
 			if m.mode == "tasks" && len(m.tasks) > 0 {
 				m.mode = "waves"
+				m.waveDetailLevel = -1
+				m.waveCursor = 0
 				// Compute waves from current tasks (Todo + In Progress)
 				taskList := make([]tools.Todo2Task, 0, len(m.tasks))
 				for _, t := range m.tasks {
@@ -986,6 +1111,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.waves = nil
 				} else {
 					m.waves = waves
+					if max := config.MaxTasksPerWave(); max > 0 {
+						m.waves = tools.LimitWavesByMaxTasks(m.waves, max)
+					}
 				}
 			}
 			return m, nil
@@ -1000,6 +1128,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.cursor = 0
 				m.configSaveMessage = ""
 			} else if m.mode == "handoffs" {
+				m.mode = "tasks"
+				m.cursor = 0
+			} else if m.mode == "waves" || m.mode == "jobs" {
 				m.mode = "tasks"
 				m.cursor = 0
 			}
@@ -1026,6 +1157,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 			} else if m.mode == "handoffs" && m.handoffDetailIndex < 0 && len(m.handoffEntries) > 0 && m.handoffCursor > 0 {
 				m.handoffCursor--
+			} else if m.mode == "waves" && m.waveDetailLevel < 0 && len(m.waves) > 0 && m.waveCursor > 0 {
+				m.waveCursor--
+			} else if m.mode == "jobs" && m.jobsDetailIndex < 0 && len(m.jobs) > 0 && m.jobsCursor > 0 {
+				m.jobsCursor--
 			}
 
 			return m, nil
@@ -1050,6 +1185,13 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 			} else if m.mode == "handoffs" && m.handoffDetailIndex < 0 && len(m.handoffEntries) > 0 && m.handoffCursor < len(m.handoffEntries)-1 {
 				m.handoffCursor++
+			} else if m.mode == "waves" && m.waveDetailLevel < 0 && len(m.waves) > 0 {
+				levels := sortedWaveLevels(m.waves)
+				if m.waveCursor < len(levels)-1 {
+					m.waveCursor++
+				}
+			} else if m.mode == "jobs" && m.jobsDetailIndex < 0 && len(m.jobs) > 0 && m.jobsCursor < len(m.jobs)-1 {
+				m.jobsCursor++
 			}
 
 			return m, nil
@@ -1092,6 +1234,13 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					// Enter or e: open detail
 					m.handoffDetailIndex = m.handoffCursor
 				}
+			} else if m.mode == "waves" && m.waveDetailLevel < 0 && len(m.waves) > 0 {
+				levels := sortedWaveLevels(m.waves)
+				if m.waveCursor < len(levels) {
+					m.waveDetailLevel = levels[m.waveCursor]
+				}
+			} else if m.mode == "jobs" && m.jobsDetailIndex < 0 && len(m.jobs) > 0 {
+				m.jobsDetailIndex = m.jobsCursor
 			}
 
 			return m, nil
@@ -1244,6 +1393,15 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m, saveConfig(m.projectRoot, m.configData)
 			}
 
+		case "R":
+			// In waves view: run exarp tools (task_workflow sync, task_analysis parallelization) then refresh waves
+			if m.mode == "waves" {
+				m.loading = true
+				m.err = nil
+				return m, runWavesRefreshTools(m.server)
+			}
+			return m, nil
+
 		case "E":
 			// Execute current context (task, handoff, wave) in child agent
 			m.childAgentMsg = ""
@@ -1280,15 +1438,22 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					return m, runChildAgentCmd(m.projectRoot, prompt, ChildAgentHandoff)
 				}
 			} else if m.mode == "waves" && len(m.waves) > 0 {
-				// Run with first wave or generic wave prompt
-				levels := make([]int, 0, len(m.waves))
-				for k := range m.waves {
-					levels = append(levels, k)
+				levels := sortedWaveLevels(m.waves)
+				waveIdx := 0
+				if m.waveDetailLevel >= 0 {
+					for i, l := range levels {
+						if l == m.waveDetailLevel {
+							waveIdx = i
+							break
+						}
+					}
+				} else if m.waveCursor < len(levels) {
+					waveIdx = m.waveCursor
 				}
-				sort.Ints(levels)
-				if len(levels) > 0 {
-					ids := m.waves[levels[0]]
-					prompt := PromptForWave(levels[0], ids)
+				if waveIdx < len(levels) {
+					level := levels[waveIdx]
+					ids := m.waves[level]
+					prompt := PromptForWave(level, ids)
 					return m, runChildAgentCmd(m.projectRoot, prompt, ChildAgentWave)
 				}
 			}
@@ -1341,6 +1506,10 @@ func (m model) View() string {
 
 	if m.mode == "waves" {
 		return m.viewWaves()
+	}
+
+	if m.mode == "jobs" {
+		return m.viewJobs()
 	}
 
 	return m.viewTasks()
@@ -1494,6 +1663,8 @@ func (m model) viewTasks() string {
 	statusBar.WriteString(" scorecard  ")
 	statusBar.WriteString(helpStyle.Render("w"))
 	statusBar.WriteString(" w waves  ")
+	statusBar.WriteString(helpStyle.Render("b"))
+	statusBar.WriteString(" jobs  ")
 	statusBar.WriteString(helpStyle.Render("E"))
 	statusBar.WriteString(" child agent  ")
 	statusBar.WriteString(helpStyle.Render("L"))
@@ -2234,6 +2405,10 @@ func (m model) viewWaves() string {
 	if availableWidth < 40 {
 		availableWidth = 40
 	}
+	wrapWidth := availableWidth - 2
+	if wrapWidth < 30 {
+		wrapWidth = 30
+	}
 
 	var b strings.Builder
 	title := "WAVES (dependency order)"
@@ -2244,28 +2419,26 @@ func (m model) viewWaves() string {
 	b.WriteString(" ")
 	b.WriteString(headerLabelStyle.Render("H/w=back"))
 	b.WriteString(" ")
-	b.WriteString(headerLabelStyle.Render("r=refresh tasks"))
+	b.WriteString(headerLabelStyle.Render("Enter=expand"))
+	b.WriteString(" ")
+	b.WriteString(headerLabelStyle.Render("r=refresh"))
+	b.WriteString(" ")
+	b.WriteString(headerLabelStyle.Render("R=refresh tools"))
 	b.WriteString("\n")
 	b.WriteString(borderStyle.Render(strings.Repeat("─", availableWidth)))
 	b.WriteString("\n")
 
 	if len(m.waves) == 0 {
 		b.WriteString("\n  ")
-		b.WriteString(helpStyle.Render("No backlog waves (Todo/In Progress with dependencies). Refresh tasks (r) or add tasks."))
+		b.WriteString(helpStyle.Render("No backlog waves (Todo/In Progress with dependencies). Refresh tasks (r) or run tools then refresh (R)."))
 		b.WriteString("\n\n")
 		b.WriteString(borderStyle.Render(strings.Repeat("─", availableWidth)))
 		b.WriteString("\n")
-		b.WriteString(statusBarStyle.Render("Commands: H or w back  q quit"))
+		b.WriteString(statusBarStyle.Render("Commands: H or w back  r refresh  R refresh tools  q quit"))
 		return b.String()
 	}
 
-	// Sort wave levels for display
-	levels := make([]int, 0, len(m.waves))
-	for k := range m.waves {
-		levels = append(levels, k)
-	}
-	sort.Ints(levels)
-
+	levels := sortedWaveLevels(m.waves)
 	taskByID := make(map[string]*database.Todo2Task)
 	for _, t := range m.tasks {
 		if t != nil {
@@ -2273,11 +2446,12 @@ func (m model) viewWaves() string {
 		}
 	}
 
-	for _, level := range levels {
-		ids := m.waves[level]
+	if m.waveDetailLevel >= 0 {
+		// Expanded: show tasks for the selected wave only
+		ids := m.waves[m.waveDetailLevel]
 		b.WriteString("  ")
-		b.WriteString(headerLabelStyle.Render(fmt.Sprintf("Wave %d", level)))
-		b.WriteString(headerValueStyle.Render(fmt.Sprintf(" (%d tasks)", len(ids))))
+		b.WriteString(headerLabelStyle.Render(fmt.Sprintf("Wave %d", m.waveDetailLevel)))
+		b.WriteString(headerValueStyle.Render(fmt.Sprintf(" (%d tasks) — Esc/Enter to collapse", len(ids))))
 		b.WriteString("\n  ")
 		b.WriteString(borderStyle.Render(strings.Repeat("─", availableWidth)))
 		b.WriteString("\n")
@@ -2293,11 +2467,148 @@ func (m model) viewWaves() string {
 			b.WriteString("\n")
 		}
 		b.WriteString("\n")
+		b.WriteString(borderStyle.Render(strings.Repeat("─", availableWidth)))
+		b.WriteString("\n")
+		b.WriteString(statusBarStyle.Render("Esc/Enter collapse  E run wave  R refresh tools  H/w back  q quit"))
+		return b.String()
 	}
 
+	// Collapsed: wave list only
+	b.WriteString(helpStyle.Render("  #   WAVE        TASKS"))
+	b.WriteString("\n")
 	b.WriteString(borderStyle.Render(strings.Repeat("─", availableWidth)))
 	b.WriteString("\n")
-	b.WriteString(statusBarStyle.Render("Commands: H or w back  r refresh tasks  q quit"))
+	for i, level := range levels {
+		ids := m.waves[level]
+		cursor := "   "
+		if m.waveCursor == i {
+			cursor = " → "
+		}
+		line := fmt.Sprintf("%s %-3d  Wave %-3d   %d tasks", cursor, i+1, level, len(ids))
+		if m.waveCursor == i {
+			line = highlightRow(line, availableWidth, true)
+		} else {
+			line = normalStyle.Render(line)
+		}
+		b.WriteString("  ")
+		b.WriteString(line)
+		b.WriteString("\n")
+	}
+	b.WriteString(borderStyle.Render(strings.Repeat("─", availableWidth)))
+	b.WriteString("\n")
+	b.WriteString(statusBarStyle.Render("Enter expand  E run wave  R refresh tools  H/w back  r refresh  q quit"))
+	return b.String()
+}
+
+func (m model) viewJobs() string {
+	availableWidth := m.effectiveWidth() - 2
+	if availableWidth < 40 {
+		availableWidth = 40
+	}
+	wrapWidth := availableWidth - 2
+	if wrapWidth < 30 {
+		wrapWidth = 30
+	}
+
+	var b strings.Builder
+	title := "BACKGROUND JOBS"
+	if m.projectName != "" {
+		title = fmt.Sprintf("%s - %s", strings.ToUpper(m.projectName), title)
+	}
+	b.WriteString(headerStyle.Render(title))
+	b.WriteString(" ")
+	b.WriteString(headerLabelStyle.Render("Esc/b=back"))
+	b.WriteString("\n")
+	b.WriteString(borderStyle.Render(strings.Repeat("─", availableWidth)))
+	b.WriteString("\n")
+
+	if len(m.jobs) == 0 {
+		b.WriteString("\n  ")
+		b.WriteString(helpStyle.Render("No background jobs. Launch a child agent (E from task/handoff/wave) to add jobs."))
+		b.WriteString("\n\n")
+		b.WriteString(borderStyle.Render(strings.Repeat("─", availableWidth)))
+		b.WriteString("\n")
+		b.WriteString(statusBarStyle.Render("Commands: Esc or b back  q quit"))
+		return b.String()
+	}
+
+	// Job detail view
+	if m.jobsDetailIndex >= 0 && m.jobsDetailIndex < len(m.jobs) {
+		return m.viewJobDetail(m.jobs[m.jobsDetailIndex], availableWidth, wrapWidth)
+	}
+
+	// Job list view
+	b.WriteString(helpStyle.Render("  #   KIND      PID    STARTED              PROMPT"))
+	b.WriteString("\n")
+	b.WriteString(borderStyle.Render(strings.Repeat("─", availableWidth)))
+	b.WriteString("\n")
+	for i, job := range m.jobs {
+		cursor := "   "
+		if m.jobsCursor == i {
+			cursor = " → "
+		}
+		pidStr := "—"
+		if job.Pid > 0 {
+			pidStr = fmt.Sprintf("%d", job.Pid)
+		}
+		started := job.StartedAt.Format("2006-01-02 15:04")
+		promptPreview := job.Prompt
+		if len(promptPreview) > availableWidth-45 {
+			promptPreview = promptPreview[:availableWidth-48] + "..."
+		}
+		line := fmt.Sprintf("%s %-3d  %-6s  %-6s  %s  %s", cursor, i+1, string(job.Kind), pidStr, started, promptPreview)
+		if m.jobsCursor == i {
+			line = highlightRow(line, availableWidth, true)
+		} else {
+			line = normalStyle.Render(line)
+		}
+		b.WriteString("  ")
+		b.WriteString(line)
+		b.WriteString("\n")
+	}
+	b.WriteString(borderStyle.Render(strings.Repeat("─", availableWidth)))
+	b.WriteString("\n")
+	b.WriteString(statusBarStyle.Render("Enter view detail  Esc/b back  q quit"))
+	return b.String()
+}
+
+func (m model) viewJobDetail(job BackgroundJob, availableWidth, wrapWidth int) string {
+	var b strings.Builder
+	title := "JOB DETAIL"
+	if m.projectName != "" {
+		title = fmt.Sprintf("%s - %s", strings.ToUpper(m.projectName), title)
+	}
+	b.WriteString(headerStyle.Render(title))
+	b.WriteString(" ")
+	b.WriteString(headerLabelStyle.Render("Esc/Enter back"))
+	b.WriteString("\n")
+	b.WriteString(borderStyle.Render(strings.Repeat("─", availableWidth)))
+	b.WriteString("\n")
+
+	b.WriteString("  ")
+	b.WriteString(headerLabelStyle.Render("Kind:"))
+	b.WriteString(headerValueStyle.Render(" " + string(job.Kind)))
+	b.WriteString("  ")
+	b.WriteString(headerLabelStyle.Render("PID:"))
+	b.WriteString(headerValueStyle.Render(fmt.Sprintf(" %d", job.Pid)))
+	b.WriteString("  ")
+	b.WriteString(headerLabelStyle.Render("Started:"))
+	b.WriteString(headerValueStyle.Render(" " + job.StartedAt.Format("2006-01-02 15:04:05")))
+	b.WriteString("\n  ")
+	b.WriteString(borderStyle.Render(strings.Repeat("─", availableWidth)))
+	b.WriteString("\n")
+	b.WriteString("  ")
+	b.WriteString(headerLabelStyle.Render("Prompt:"))
+	b.WriteString("\n  ")
+	for _, line := range strings.Split(wordWrap(job.Prompt, wrapWidth), "\n") {
+		b.WriteString(normalStyle.Render("  "+line) + "\n")
+	}
+	b.WriteString("\n  ")
+	b.WriteString(helpStyle.Render("Output: Child agent runs in separate Cursor window; output not captured."))
+	b.WriteString("\n  ")
+	b.WriteString(borderStyle.Render(strings.Repeat("─", availableWidth)))
+	b.WriteString("\n")
+	b.WriteString(statusBarStyle.Render("Esc/Enter back  q quit"))
 	return b.String()
 }
 
@@ -2713,7 +3024,9 @@ func (m model) viewHelp() string {
 	b.WriteString(helpStyle.Render("H"))
 	b.WriteString("  Switch to Session handoffs (Enter detail  Space select  x close  a approve)\n  ")
 	b.WriteString(helpStyle.Render("w"))
-	b.WriteString("  Switch to Waves (dependency-order backlog)\n\n")
+	b.WriteString("  Switch to Waves (Enter expand wave)\n  ")
+	b.WriteString(helpStyle.Render("b"))
+	b.WriteString("  Switch to Background jobs (child agent launches)\n\n")
 	b.WriteString(normalStyle.Render("Child agent (run Cursor agent in project root):"))
 	b.WriteString("\n  ")
 	b.WriteString(helpStyle.Render("E"))
@@ -2724,6 +3037,8 @@ func (m model) viewHelp() string {
 	b.WriteString("\n  ")
 	b.WriteString(helpStyle.Render("r"))
 	b.WriteString("  Refresh (tasks, config, or scorecard)\n  ")
+	b.WriteString(helpStyle.Render("R"))
+	b.WriteString("  In waves: run exarp tools (sync, task_analysis) then refresh\n  ")
 	b.WriteString(helpStyle.Render("e"))
 	b.WriteString("  Implement selected recommendation (scorecard)\n  ")
 	b.WriteString(helpStyle.Render("a"))
