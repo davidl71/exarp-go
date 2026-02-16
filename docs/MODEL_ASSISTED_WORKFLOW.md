@@ -22,6 +22,39 @@ This document outlines how to use local LLM models (CodeLlama via MLX, Ollama mo
 2. **Easy Task Execution** - Automating routine/simple tasks using local models
 3. **Prompt Optimization** - Iteratively refining prompts for better AI responses
 
+---
+
+## End-user guide
+
+**When to use local models:** Use local models for routine work (code review, documentation, task breakdown, simple code generation, privacy-sensitive tasks). Use cloud AI for complex reasoning, high-stakes decisions, or when local models fail. See [Benefits & Trade-offs](#benefits--trade-offs) and [When to Use Local Models](#when-to-use-local-models) below.
+
+**task_execute vs prompt optimization:**
+
+- **task_execute** — Runs the full execution flow for a Todo2 task: load task, render prompt, call local model, parse response, apply file changes (with confidence threshold), add result comment. Use when you want the AI to attempt implementing a task end-to-end.
+- **Prompt optimization** — Iteratively refines a prompt via `prompt_analyzer` and `RefinePromptLoop` for clarity, specificity, and structure. Use when improving prompts for reuse or when task_execute produces poor outputs and you want to tune the prompt first.
+
+**Running tests with real models:** Use `make test-real-models` to run integration tests that call real backends (FM/Ollama/MLX). Regular `make test` skips these tests. See [Testing with real models](#testing-with-real-models-make-test-real-models) for backend requirements and skip behavior.
+
+**Preferred backend and local_ai_backend:**
+
+- **Task metadata `preferred_backend`** — Optional key: `fm` (Apple Foundation Models), `mlx`, or `ollama`. When set on a task, tools that use LLMs (estimation, text_generate, report insights) respect it.
+- **Tool param `local_ai_backend`** — Pass to `task_workflow` create/update or `estimation` to override the backend for that call. Stored as `preferred_backend` when creating tasks.
+
+**Examples:**
+
+```bash
+# Create task with preferred backend (CLI, when --recommended-tools / local_ai_backend supported)
+exarp-go -tool task_workflow -args '{"action":"create","name":"Add tests","long_description":"...","local_ai_backend":"ollama"}'
+
+# Estimation with specific backend
+exarp-go -tool estimation -args '{"action":"estimate","name":"Refactor module","local_ai_backend":"mlx"}'
+
+# Set preferred_backend on existing task via task_workflow update (metadata)
+exarp-go -tool task_workflow -args '{"action":"update","task_id":"T-123","metadata":{"preferred_backend":"ollama"}}'
+```
+
+---
+
 **Key Benefits:**
 - ✅ **Privacy** - All processing happens locally (no data sent to external APIs)
 - ✅ **Cost Efficiency** - No API costs for routine operations
@@ -498,7 +531,29 @@ Mark as Done or Request Changes
 - [ ] Unit tests for all components
 - [x] Integration tests with real models — See `internal/tools/real_models_integration_test.go`. Run with `make test-real-models` (requires a local backend; skipped in `go test -short`).
 - [ ] Performance benchmarks
-- [ ] User documentation
+- [x] User documentation — End-user guide (when to use local models, task_execute vs prompt optimization, make test-real-models), backend requirements, and testing section
+
+#### Testing with real models: make test-real-models
+
+Run integration tests that call real LLM backends:
+
+```bash
+make test-real-models
+```
+
+This runs `go test -run RealModels ./internal/tools/... -timeout=120s -count=1` (no `-short`).
+
+**Skip behavior:** Tests in `real_models_integration_test.go` call `t.Skip()` when `testing.Short()` is true. Regular `go test ./...` or `make test` uses `-short` by default, so these tests are skipped. Use `make test-real-models` (or `go test -run RealModels ./internal/tools/...` without `-short`) to run them.
+
+**Backend requirements:** At least one local backend must be available:
+
+| Backend | Platform | Setup |
+|---------|----------|-------|
+| **Apple Foundation Models (FM)** | macOS Apple Silicon, CGO build | Built-in; use `make build-apple-fm` |
+| **Ollama** | Any (GPU/RAM recommended) | Install [Ollama](https://ollama.ai/), run `ollama serve`, pull a model |
+| **MLX** | Apple Silicon | Install [MLX](https://ml-explore.github.io/mlx/) (Python) |
+
+Tests use `DefaultFMProvider()` (FM → Ollama bridge → MLX bridge) and skip with a clear message if no backend is available.
 
 ---
 

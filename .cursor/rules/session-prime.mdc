@@ -42,12 +42,16 @@ The `session(action="prime")` tool provides:
 - **Plan Mode hint** - Suggests Cursor Plan Mode when backlog has many high-priority or dependency-heavy tasks
 - **Handoff notes** - Messages from other developers/machines
 - **Companion MCP status** - Checks for other MCP servers
+- **status_context** - Machine-readable: `dashboard`, `handoff`, or `task`
+- **status_label** - Human-readable label for UI display (e.g. "Project dashboard", "T-123 – Add feature X")
+
+For the full status contract (allowed values, semantics for UI/AI/automation), see [CURSOR_API_AND_CLI_INTEGRATION.md](docs/CURSOR_API_AND_CLI_INTEGRATION.md) §3.0.
 
 ## Implementation
 
 **Example workflow:**
 1. User sends first message
-2. AI immediately calls `session(action="prime")` 
+2. AI immediately calls `session(action="prime")`
 3. AI receives primed context
 4. AI uses primed context to provide informed response
 5. AI mentions key context points from prime (tasks, mode, handoffs)

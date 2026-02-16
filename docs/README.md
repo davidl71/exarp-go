@@ -23,6 +23,7 @@
 - `STREAMLINED_WORKFLOW_SUMMARY.md` - Current workflow summary
 
 ### Current Features
+- `TASK_TOOL_ENRICHMENT_DESIGN.md` - Task tool enrichment (recommended_tools, tag-based enrichment, session prime / task show)
 - `SCORECARD_GO_MODIFICATIONS.md` - Scorecard implementation details
 - `SCORECARD_GO_IMPLEMENTATION.md` - Scorecard feature documentation
 - `MARKDOWN_LINTING_RESEARCH.md` - Markdown linting research
@@ -36,7 +37,7 @@
 
 ### Analysis & Planning
 - `MULTI_AGENT_PLAN.md` - Multi-agent execution plan
-- `MODEL_ASSISTED_WORKFLOW.md` - Model-assisted workflow design
+- `MODEL_ASSISTED_WORKFLOW.md` - Model-assisted workflow design (local LLMs, task breakdown, execution, Phase 6 testing/docs)
 - `MLX_ARCHITECTURE_ANALYSIS.md` - MLX integration analysis
 
 ### Cleanup & Maintenance

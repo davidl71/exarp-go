@@ -21,6 +21,8 @@ The `exarp-go` MCP server is configured in `.cursor/mcp.json`:
 
 **See also:** [MCP Roots and Elicitation](MCP_ROOTS_ELICITATION.md) — how exarp-go uses client roots and elicitation.
 
+**Local AI backends:** For task estimation and model-assisted workflows, you can use `preferred_backend` (task metadata) or `local_ai_backend` (tool param) with values `fm`, `mlx`, or `ollama`. See [MODEL_ASSISTED_WORKFLOW.md](MODEL_ASSISTED_WORKFLOW.md) and [CURSOR_API_AND_CLI_INTEGRATION.md](CURSOR_API_AND_CLI_INTEGRATION.md) §3.6.
+
 ## Server Status
 
 ✅ **Binary Location:** `/Users/davidl/Projects/exarp-go/bin/exarp-go`
@@ -151,6 +153,22 @@ Once loaded, the `exarp-go` server provides:
 - **24 Tools:** lint, health, report, memory, security, testing, etc.
 - **15 Prompts:** align, discover, config, scan, scorecard, etc.
 - **6 Resources:** scorecard, memories (by category/task/session/recent)
+
+## Cursor CLI + exarp-go
+
+Run the Cursor CLI `agent` from your project root so exarp-go MCP tools are available in context:
+
+```bash
+# Install Cursor CLI
+curl https://cursor.com/install -fsS | bash
+export PATH="$HOME/.local/bin:$PATH"
+
+# Run agent from project root (exarp-go MCP applies)
+cd /path/to/your/project
+agent -p "Review the Todo2 backlog and suggest next task"
+```
+
+For non-interactive or CI use, set `CURSOR_API_KEY` (from Cursor Dashboard → Integrations). See [CURSOR_API_AND_CLI_INTEGRATION.md](CURSOR_API_AND_CLI_INTEGRATION.md) for API/CLI summary and improvement roadmap (e.g. future `exarp-go cursor run T-123`).
 
 ## Next Steps
 
