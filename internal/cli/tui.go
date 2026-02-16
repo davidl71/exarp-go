@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"sort"
 	"strings"
 	"time"
 
@@ -16,10 +17,11 @@ import (
 	"github.com/davidl71/exarp-go/internal/database"
 	"github.com/davidl71/exarp-go/internal/framework"
 	"github.com/davidl71/exarp-go/internal/tools"
+	"golang.org/x/term"
 )
 
 var (
-	// Header/Title styles (top/htop-like)
+	// Header/Title styles (top/htop-like).
 	headerStyle = lipgloss.NewStyle().
 			Foreground(lipgloss.Color("#000000")).
 			Background(lipgloss.Color("#00FF00")).
@@ -35,13 +37,13 @@ var (
 				Foreground(lipgloss.Color("#000000")).
 				Background(lipgloss.Color("#00FF00"))
 
-	// Status bar (bottom)
+		// Status bar (bottom).
 	statusBarStyle = lipgloss.NewStyle().
 			Foreground(lipgloss.Color("#FFFFFF")).
 			Background(lipgloss.Color("#000000")).
 			Padding(0, 1)
 
-	// Task/item styles
+		// Task/item styles.
 	statusStyle = lipgloss.NewStyle().
 			Foreground(lipgloss.Color("#FFFFFF")).
 			Background(lipgloss.Color("#008080")).
@@ -62,7 +64,7 @@ var (
 			Foreground(lipgloss.Color("#FF0000")).
 			Bold(true)
 
-	// Priority colors (htop-like)
+		// Priority colors (htop-like).
 	highPriorityStyle = lipgloss.NewStyle().
 				Foreground(lipgloss.Color("#FF0000")).
 				Bold(true)
@@ -73,12 +75,12 @@ var (
 	lowPriorityStyle = lipgloss.NewStyle().
 				Foreground(lipgloss.Color("#00FF00"))
 
-	// Border/separator
+		// Border/separator.
 	borderStyle = lipgloss.NewStyle().
 			Foreground(lipgloss.Color("#808080"))
 )
 
-// Column widths for task list tabulation (header and rows must match)
+// Column widths for task list tabulation (header and rows must match).
 const (
 	colCursor   = 3  // " → " or "   "
 	colIDMedium = 18 // task ID (e.g. T-1769992681538)
@@ -89,6 +91,11 @@ const (
 	colOLD      = 4
 	colDescMed  = 45 // reserved for description in medium; rest is content
 	colDescWide = 50
+
+	// Minimum terminal dimensions for layout. Some terminals (e.g. iTerm2) may
+	// report 0 or stale size; clamping avoids broken task detail ("s") and layout.
+	minTermWidth  = 80
+	minTermHeight = 24
 )
 
 // truncatePad truncates s to max width with "..." or right-pads with spaces.
@@ -96,13 +103,59 @@ func truncatePad(s string, width int) string {
 	if width <= 0 {
 		return s
 	}
+
 	if len(s) > width {
 		if width <= 3 {
 			return s[:width]
 		}
+
 		return s[:width-3] + "..."
 	}
+
 	return s + strings.Repeat(" ", width-len(s))
+}
+
+// wordWrap wraps s to at most width runes per line, breaking at spaces when possible.
+func wordWrap(s string, width int) string {
+	if width <= 0 {
+		return s
+	}
+	var out strings.Builder
+	for _, line := range strings.Split(s, "\n") {
+		line = strings.TrimRight(line, " \t")
+		if line == "" {
+			out.WriteString("\n")
+			continue
+		}
+		for len(line) > width {
+			cut := width
+			if idx := strings.LastIndex(line[:min(len(line), width)], " "); idx > 0 {
+				cut = idx
+			}
+			out.WriteString(line[:cut])
+			out.WriteString("\n")
+			line = strings.TrimLeft(line[cut:], " ")
+		}
+		out.WriteString(line)
+		out.WriteString("\n")
+	}
+	return strings.TrimSuffix(out.String(), "\n")
+}
+
+// effectiveWidth returns width for layout, never below minTermWidth (avoids iTerm2/terminal size quirks).
+func (m model) effectiveWidth() int {
+	if m.width >= minTermWidth {
+		return m.width
+	}
+	return minTermWidth
+}
+
+// effectiveHeight returns height for layout, never below minTermHeight (avoids iTerm2/terminal size quirks).
+func (m model) effectiveHeight() int {
+	if m.height >= minTermHeight {
+		return m.height
+	}
+	return minTermHeight
 }
 
 // highlightRow pads the line to full width and applies selectedStyle so the current row is clearly highlighted.
@@ -110,10 +163,12 @@ func highlightRow(line string, width int, selected bool) string {
 	if !selected {
 		return line
 	}
+
 	visible := lipgloss.Width(line)
 	if visible < width {
 		line += strings.Repeat(" ", width-visible)
 	}
+
 	return selectedStyle.Render(line)
 }
 
@@ -130,16 +185,19 @@ type model struct {
 	projectRoot string
 	projectName string
 
-	// Terminal dimensions
+	// Terminal dimensions (detected at startup and on SIGWINCH via tea.WindowSizeMsg)
 	width  int
 	height int
 
 	// Config editing mode
-	mode           string // "tasks", "config", "scorecard", or "handoffs"
-	configSections []configSection
-	configCursor   int
-	configData     *config.FullConfig
-	configChanged  bool
+	mode              string // "tasks", "config", "scorecard", "handoffs", or "configSection"
+	configSections    []configSection
+	configCursor      int
+	configData        *config.FullConfig
+	configChanged     bool
+	configSectionText string // overlay when Enter on a section
+	configSaveMessage string // after save: success or error line
+	configSaveSuccess bool
 
 	// Scorecard view (project health)
 	scorecardText      string
@@ -153,6 +211,18 @@ type model struct {
 	handoffText    string
 	handoffLoading bool
 	handoffErr     error
+
+	// Task detail overlay (pressing 's' on a task)
+	taskDetailTask *database.Todo2Task
+
+	// Sort: order (id|status|priority|updated), ascending
+	sortOrder string
+	sortAsc   bool
+
+	// Search/filter: / to open, n/N next/prev match
+	searchQuery     string
+	searchMode      bool
+	filteredIndices []int
 
 	// Help overlay
 	showHelp bool
@@ -185,7 +255,19 @@ type runRecommendationResultMsg struct {
 	err    error
 }
 
-func initialModel(server framework.MCPServer, status string, projectRoot, projectName string) model {
+type configSectionDetailMsg struct {
+	text string
+}
+
+type configSaveResultMsg struct {
+	message string
+	success bool
+}
+
+// initialModel creates the TUI model. initialWidth and initialHeight are optional;
+// when > 0 they set the terminal size at startup (e.g. from term.GetSize).
+// Resize (SIGWINCH on Unix) is handled by Bubble Tea and delivered as tea.WindowSizeMsg.
+func initialModel(server framework.MCPServer, status string, projectRoot, projectName string, initialWidth, initialHeight int) model {
 	// Ensure config file exists so TUI config view can load and save (initialize if necessary)
 	pbPath := filepath.Join(projectRoot, ".exarp", "config.pb")
 	if _, err := os.Stat(pbPath); os.IsNotExist(err) {
@@ -203,27 +285,133 @@ func initialModel(server framework.MCPServer, status string, projectRoot, projec
 		{name: "Security", description: "Rate limiting, path validation", keys: []string{"rate_limit.enabled", "max_file_size", "max_path_depth"}},
 	}
 
-	return model{
-		tasks:            []*database.Todo2Task{},
-		cursor:           0,
-		selected:         make(map[int]struct{}),
-		status:           status,
-		server:           server,
-		loading:          true,
-		width:            80,   // Default width
-		height:           24,   // Default height
-		autoRefresh:      true, // Enable auto-refresh by default
-		lastUpdate:       time.Now(),
-		projectRoot:      projectRoot,
-		projectName:      projectName,
-		mode:             "tasks",
-		configSections:   sections,
-		configCursor:     0,
-		configData:       cfg,
-		configChanged:    false,
-		scorecardLoading: false,
-		showHelp:         false,
+	width, height := minTermWidth, minTermHeight
+	if initialWidth > 0 && initialHeight > 0 {
+		width, height = initialWidth, initialHeight
 	}
+
+	return model{
+		tasks:             []*database.Todo2Task{},
+		cursor:            0,
+		selected:          make(map[int]struct{}),
+		status:            status,
+		server:            server,
+		loading:           true,
+		width:             width,
+		height:            height,
+		autoRefresh:       true, // Enable auto-refresh by default
+		lastUpdate:        time.Now(),
+		projectRoot:       projectRoot,
+		projectName:       projectName,
+		mode:              "tasks",
+		configSections:    sections,
+		configCursor:      0,
+		configData:        cfg,
+		configChanged:     false,
+		configSectionText: "",
+		configSaveMessage: "",
+		configSaveSuccess: false,
+		scorecardLoading:  false,
+		taskDetailTask:    nil,
+		sortOrder:         "id",
+		sortAsc:           true,
+		searchQuery:       "",
+		searchMode:        false,
+		filteredIndices:   nil,
+		showHelp:          false,
+	}
+}
+
+// sortTasksBy sorts tasks in place by order (id|status|priority|updated) and direction.
+func sortTasksBy(tasks []*database.Todo2Task, order string, asc bool) {
+	if len(tasks) == 0 {
+		return
+	}
+	less := func(i, j int) bool {
+		a, b := tasks[i], tasks[j]
+		var cmp int
+		switch order {
+		case "status":
+			cmp = strings.Compare(strings.ToLower(a.Status), strings.ToLower(b.Status))
+		case "priority":
+			cmp = strings.Compare(strings.ToLower(a.Priority), strings.ToLower(b.Priority))
+		case "updated":
+			cmp = strings.Compare(a.LastModified, b.LastModified)
+		default:
+			cmp = strings.Compare(a.ID, b.ID)
+		}
+		if cmp == 0 {
+			cmp = strings.Compare(a.ID, b.ID)
+		}
+		if asc {
+			return cmp < 0
+		}
+		return cmp > 0
+	}
+	sort.Slice(tasks, less)
+}
+
+// visibleIndices returns the indices of tasks to display (filtered by search or all).
+func (m model) visibleIndices() []int {
+	if len(m.tasks) == 0 {
+		return nil
+	}
+	if m.filteredIndices != nil {
+		return m.filteredIndices
+	}
+	idx := make([]int, len(m.tasks))
+	for i := range m.tasks {
+		idx[i] = i
+	}
+	return idx
+}
+
+// realIndexAt returns the index into m.tasks for the current cursor position.
+func (m model) realIndexAt(cursorPos int) int {
+	vis := m.visibleIndices()
+	if vis == nil || cursorPos < 0 || cursorPos >= len(vis) {
+		return 0
+	}
+	return vis[cursorPos]
+}
+
+// computeFilteredIndices returns indices of m.tasks that match m.searchQuery (case-insensitive).
+func (m model) computeFilteredIndices() []int {
+	q := strings.TrimSpace(strings.ToLower(m.searchQuery))
+	if q == "" {
+		return nil
+	}
+	var out []int
+	for i, t := range m.tasks {
+		if taskMatchesSearch(t, q) {
+			out = append(out, i)
+		}
+	}
+	return out
+}
+
+func taskMatchesSearch(t *database.Todo2Task, q string) bool {
+	if strings.Contains(strings.ToLower(t.ID), q) {
+		return true
+	}
+	if strings.Contains(strings.ToLower(t.Content), q) {
+		return true
+	}
+	if strings.Contains(strings.ToLower(t.LongDescription), q) {
+		return true
+	}
+	if strings.Contains(strings.ToLower(t.Status), q) {
+		return true
+	}
+	if strings.Contains(strings.ToLower(t.Priority), q) {
+		return true
+	}
+	for _, tag := range t.Tags {
+		if strings.Contains(strings.ToLower(tag), q) {
+			return true
+		}
+	}
+	return false
 }
 
 func (m model) Init() tea.Cmd {
@@ -232,11 +420,12 @@ func (m model) Init() tea.Cmd {
 }
 
 // tick returns a command that sends a tick message at configured interval
-// Uses config for refresh interval, defaults to 5 seconds if not configured
+// Uses config for refresh interval, defaults to 5 seconds if not configured.
 func tick() tea.Cmd {
 	// Use a reasonable default for TUI refresh (5 seconds)
 	// This could be made configurable in the future
 	refreshInterval := 5 * time.Second
+
 	return tea.Tick(refreshInterval, func(t time.Time) tea.Msg {
 		return tickMsg(t)
 	})
@@ -247,7 +436,9 @@ type tickMsg time.Time
 func loadTasks(status string) tea.Cmd {
 	return func() tea.Msg {
 		ctx := context.Background()
+
 		var tasks []*database.Todo2Task
+
 		var err error
 
 		if status != "" {
@@ -256,6 +447,7 @@ func loadTasks(status string) tea.Cmd {
 			// Default: open tasks only (Todo + In Progress), matching CLI task list
 			todo, errTodo := database.GetTasksByStatus(ctx, "Todo")
 			inProgress, errIP := database.GetTasksByStatus(ctx, "In Progress")
+
 			if errTodo != nil {
 				err = errTodo
 			} else if errIP != nil {
@@ -277,17 +469,22 @@ func loadScorecard(projectRoot string, fullMode bool) tea.Cmd {
 		if projectRoot == "" {
 			return scorecardLoadedMsg{err: fmt.Errorf("no project root")}
 		}
+
 		ctx := context.Background()
+
 		var combined strings.Builder
+
 		var recommendations []string
 
 		// Go scorecard (when Go project)
 		if tools.IsGoProject() {
 			opts := &tools.ScorecardOptions{FastMode: !fullMode}
+
 			scorecard, err := tools.GenerateGoScorecard(ctx, projectRoot, opts)
 			if err != nil {
 				return scorecardLoadedMsg{err: err}
 			}
+
 			combined.WriteString("=== Go Scorecard ===\n\n")
 			combined.WriteString(tools.FormatGoScorecard(scorecard))
 			recommendations = scorecard.Recommendations
@@ -308,6 +505,7 @@ func loadScorecard(projectRoot string, fullMode bool) tea.Cmd {
 			if combined.Len() > 0 {
 				combined.WriteString("\n\n")
 			}
+
 			combined.WriteString("=== Project Overview ===\n\n")
 			combined.WriteString(overviewText)
 		}
@@ -322,21 +520,26 @@ func loadHandoffs(server framework.MCPServer) tea.Cmd {
 		if server == nil {
 			return handoffLoadedMsg{err: fmt.Errorf("no server")}
 		}
+
 		ctx := context.Background()
 		args := map[string]interface{}{"action": "handoff", "sub_action": "list"}
+
 		argsBytes, err := json.Marshal(args)
 		if err != nil {
 			return handoffLoadedMsg{err: err}
 		}
+
 		result, err := server.CallTool(ctx, "session", argsBytes)
 		if err != nil {
 			return handoffLoadedMsg{err: err}
 		}
+
 		var b strings.Builder
 		for _, c := range result {
 			b.WriteString(c.Text)
 			b.WriteString("\n")
 		}
+
 		return handoffLoadedMsg{text: strings.TrimSpace(b.String()), err: nil}
 	}
 }
@@ -345,6 +548,7 @@ func loadHandoffs(server framework.MCPServer) tea.Cmd {
 // Prefers Makefile targets (make <target>) when available; ok is false for recommendations with no single command.
 func recommendationToCommand(rec string) (name string, args []string, ok bool) {
 	rec = strings.TrimSpace(rec)
+
 	switch {
 	case strings.Contains(rec, "go mod tidy"):
 		return "make", []string{"go-mod-tidy"}, true
@@ -373,14 +577,18 @@ func runRecommendationCmd(projectRoot, rec string) tea.Cmd {
 		if !ok {
 			return runRecommendationResultMsg{output: "", err: fmt.Errorf("no runnable command for this recommendation")}
 		}
+
 		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
 		defer cancel()
+
 		cmd := exec.CommandContext(ctx, name, args...)
 		cmd.Dir = projectRoot
+
 		out, err := cmd.CombinedOutput()
 		if err != nil {
 			return runRecommendationResultMsg{output: string(out), err: err}
 		}
+
 		return runRecommendationResultMsg{output: string(out), err: nil}
 	}
 }
@@ -388,9 +596,17 @@ func runRecommendationCmd(projectRoot, rec string) tea.Cmd {
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
-		// Update terminal dimensions
+		// Update terminal dimensions (SIGWINCH on Unix triggers this via Bubble Tea).
+		// Clamp to minimums so iTerm2 (or other terminals that report 0/stale size)
+		// don't break window size or task detail ("s") layout.
 		m.width = msg.Width
 		m.height = msg.Height
+		if m.width < minTermWidth {
+			m.width = minTermWidth
+		}
+		if m.height < minTermHeight {
+			m.height = minTermHeight
+		}
 		return m, nil
 
 	case taskLoadedMsg:
@@ -399,12 +615,24 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.err = msg.err
 			return m, nil
 		}
+
 		m.tasks = msg.tasks
+		sortTasksBy(m.tasks, m.sortOrder, m.sortAsc)
+		if m.searchQuery != "" {
+			m.filteredIndices = m.computeFilteredIndices()
+		} else {
+			m.filteredIndices = nil
+		}
+		vis := m.visibleIndices()
+		if len(vis) > 0 && m.cursor >= len(vis) {
+			m.cursor = len(vis) - 1
+		}
 		m.lastUpdate = time.Now()
 		// Continue auto-refresh if enabled
 		if m.autoRefresh {
 			return m, tick()
 		}
+
 		return m, nil
 
 	case tickMsg:
@@ -417,31 +645,50 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if m.mode == "tasks" && m.autoRefresh {
 			return m, tick()
 		}
+
 		return m, nil
 
 	case configSavedMsg:
 		m.configChanged = false
 		return m, nil
 
+	case configSectionDetailMsg:
+		m.mode = "configSection"
+		m.configSectionText = msg.text
+		return m, nil
+
+	case configSaveResultMsg:
+		m.configSaveMessage = msg.message
+		m.configSaveSuccess = msg.success
+		if msg.success {
+			m.configChanged = false
+		}
+		return m, nil
+
 	case scorecardLoadedMsg:
 		m.scorecardLoading = false
 		m.scorecardErr = msg.err
 		m.scorecardRunOutput = ""
+
 		if msg.err == nil {
 			m.scorecardText = msg.text
 			m.scorecardRecs = msg.recommendations
+
 			if len(m.scorecardRecs) > 0 {
 				m.scorecardRecCursor = 0
 			}
 		}
+
 		return m, nil
 
 	case handoffLoadedMsg:
 		m.handoffLoading = false
 		m.handoffErr = msg.err
+
 		if msg.err == nil {
 			m.handoffText = msg.text
 		}
+
 		return m, nil
 
 	case runRecommendationResultMsg:
@@ -455,6 +702,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		// Refresh scorecard with full checks so updated state (e.g. coverage after make test) is shown
 		m.scorecardLoading = true
+
 		return m, loadScorecard(m.projectRoot, true)
 
 	case tea.KeyMsg:
@@ -464,10 +712,12 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.showHelp = false
 				return m, nil
 			}
+
 			if m.mode == "config" && m.configChanged {
 				// Ask for confirmation before quitting with unsaved changes
 				// For now, just quit (could add confirmation dialog later)
 			}
+
 			return m, tea.Quit
 
 		case "?", "h":
@@ -479,12 +729,61 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.showHelp = false
 				return m, nil
 			}
+			if m.searchMode {
+				m.searchMode = false
+				m.searchQuery = ""
+				m.filteredIndices = nil
+				return m, nil
+			}
 			return m, nil
 		}
 
 		// When help is open, ignore all other keys (handled above)
 		if m.showHelp {
 			return m, nil
+		}
+
+		// Search mode: accept input, Enter to apply, Esc already handled above
+		if m.searchMode && m.mode == "tasks" {
+			switch msg.String() {
+			case "enter":
+				m.searchMode = false
+				m.filteredIndices = m.computeFilteredIndices()
+				if len(m.visibleIndices()) > 0 && m.cursor >= len(m.visibleIndices()) {
+					m.cursor = len(m.visibleIndices()) - 1
+				}
+				return m, nil
+			case "backspace":
+				if len(m.searchQuery) > 0 {
+					m.searchQuery = m.searchQuery[:len(m.searchQuery)-1]
+				}
+				return m, nil
+			default:
+				if len(msg.String()) == 1 && msg.Type == tea.KeyRunes {
+					m.searchQuery += msg.String()
+				}
+				return m, nil
+			}
+		}
+
+		// When task detail is open, Esc / Enter / Space close it
+		if m.mode == "taskDetail" {
+			switch msg.String() {
+			case "esc", "enter", " ":
+				m.mode = "tasks"
+				m.taskDetailTask = nil
+				return m, nil
+			}
+		}
+
+		// When config section detail is open, Esc / Enter / Space close it
+		if m.mode == "configSection" {
+			switch msg.String() {
+			case "esc", "enter", " ":
+				m.mode = "config"
+				m.configSectionText = ""
+				return m, nil
+			}
 		}
 
 		switch msg.String() {
@@ -498,11 +797,13 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.scorecardLoading = true
 				m.scorecardErr = nil
 				m.scorecardText = ""
+
 				return m, loadScorecard(m.projectRoot, false)
 			} else if m.mode == "handoffs" {
 				m.mode = "tasks"
 				m.cursor = 0
 			}
+
 			return m, nil
 
 		case "H":
@@ -510,12 +811,15 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.mode == "handoffs" {
 				m.mode = "tasks"
 				m.cursor = 0
+
 				return m, nil
 			}
+
 			m.mode = "handoffs"
 			m.handoffLoading = true
 			m.handoffErr = nil
 			m.handoffText = ""
+
 			return m, loadHandoffs(m.server)
 
 		case "c":
@@ -526,10 +830,12 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			} else if m.mode == "config" {
 				m.mode = "tasks"
 				m.cursor = 0
+				m.configSaveMessage = ""
 			} else if m.mode == "handoffs" {
 				m.mode = "tasks"
 				m.cursor = 0
 			}
+
 			return m, nil
 
 		case "up", "k":
@@ -537,18 +843,21 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				if len(m.scorecardRecs) > 0 && m.scorecardRecCursor > 0 {
 					m.scorecardRecCursor--
 				}
+
 				return m, nil
 			}
+
 			if m.mode == "config" {
 				if m.configCursor > 0 {
 					m.configCursor--
 				}
-			} else {
-				// Task view navigation
-				if len(m.tasks) > 0 && m.cursor > 0 {
+			} else if m.mode == "tasks" {
+				vis := m.visibleIndices()
+				if len(vis) > 0 && m.cursor > 0 {
 					m.cursor--
 				}
 			}
+
 			return m, nil
 
 		case "down", "j":
@@ -556,18 +865,21 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				if len(m.scorecardRecs) > 0 && m.scorecardRecCursor < len(m.scorecardRecs)-1 {
 					m.scorecardRecCursor++
 				}
+
 				return m, nil
 			}
+
 			if m.mode == "config" {
 				if m.configCursor < len(m.configSections)-1 {
 					m.configCursor++
 				}
-			} else {
-				// Task view navigation
-				if len(m.tasks) > 0 && m.cursor < len(m.tasks)-1 {
+			} else if m.mode == "tasks" {
+				vis := m.visibleIndices()
+				if len(vis) > 0 && m.cursor < len(vis)-1 {
 					m.cursor++
 				}
 			}
+
 			return m, nil
 
 		case "enter", " ", "e":
@@ -578,31 +890,38 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 						return m, runRecommendationCmd(m.projectRoot, rec)
 					}
 				}
+
 				return m, nil
 			}
+
 			if m.mode == "config" {
 				// Open config section editor (for now, just show section details)
 				return m, showConfigSection(m.configSections[m.configCursor], m.configData)
-			} else {
-				// Toggle selection (only if we have tasks)
-				if len(m.tasks) > 0 && m.cursor < len(m.tasks) {
-					if _, ok := m.selected[m.cursor]; ok {
-						delete(m.selected, m.cursor)
+			} else if m.mode == "tasks" {
+				// Toggle selection (cursor is index into visible list)
+				vis := m.visibleIndices()
+				if len(vis) > 0 && m.cursor < len(vis) {
+					realIdx := m.realIndexAt(m.cursor)
+					if _, ok := m.selected[realIdx]; ok {
+						delete(m.selected, realIdx)
 					} else {
-						m.selected[m.cursor] = struct{}{}
+						m.selected[realIdx] = struct{}{}
 					}
 				}
 			}
+
 			return m, nil
 
 		case "r":
 			if m.mode == "config" {
 				// Reload config
+				m.configSaveMessage = ""
 				cfg, err := config.LoadConfig(m.projectRoot)
 				if err == nil {
 					m.configData = cfg
 					m.configChanged = false
 				}
+
 				return m, nil
 			} else if m.mode == "scorecard" {
 				// Refresh scorecard (fast mode for manual refresh; use Run then Enter for full refresh)
@@ -622,11 +941,68 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.mode == "scorecard" {
 				return m, nil
 			}
+
 			if m.mode == "tasks" {
 				// Toggle auto-refresh
 				m.autoRefresh = !m.autoRefresh
 				if m.autoRefresh {
 					return m, tick()
+				}
+			}
+
+			return m, nil
+
+		case "o":
+			// Cycle sort order (id → status → priority → updated → id)
+			if m.mode == "tasks" && len(m.tasks) > 0 {
+				switch m.sortOrder {
+				case "id":
+					m.sortOrder = "status"
+				case "status":
+					m.sortOrder = "priority"
+				case "priority":
+					m.sortOrder = "updated"
+				default:
+					m.sortOrder = "id"
+				}
+				sortTasksBy(m.tasks, m.sortOrder, m.sortAsc)
+				if m.cursor >= len(m.visibleIndices()) {
+					m.cursor = len(m.visibleIndices()) - 1
+				}
+			}
+			return m, nil
+
+		case "O":
+			// Toggle sort direction (asc ↔ desc)
+			if m.mode == "tasks" && len(m.tasks) > 0 {
+				m.sortAsc = !m.sortAsc
+				sortTasksBy(m.tasks, m.sortOrder, m.sortAsc)
+			}
+			return m, nil
+
+		case "/":
+			// Start search/filter (vim-style)
+			if m.mode == "tasks" {
+				m.searchMode = true
+				// Keep previous searchQuery so user can extend or backspace
+			}
+			return m, nil
+
+		case "n":
+			// Next search match (vim-style)
+			if m.mode == "tasks" && m.searchQuery != "" {
+				vis := m.visibleIndices()
+				if len(vis) > 0 && m.cursor < len(vis)-1 {
+					m.cursor++
+				}
+			}
+			return m, nil
+
+		case "N":
+			// Previous search match (vim-style)
+			if m.mode == "tasks" && m.searchQuery != "" {
+				if m.cursor > 0 {
+					m.cursor--
 				}
 			}
 			return m, nil
@@ -635,11 +1011,20 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.mode == "scorecard" {
 				return m, nil
 			}
+
 			if m.mode == "tasks" {
-				// Show task details
-				if len(m.tasks) > 0 && m.cursor < len(m.tasks) {
-					return m, showTaskDetails(m.tasks[m.cursor])
+				// Show task details in-TUI (word-wrapped)
+				vis := m.visibleIndices()
+				if len(vis) > 0 && m.cursor < len(vis) {
+					m.mode = "taskDetail"
+					m.taskDetailTask = m.tasks[m.realIndexAt(m.cursor)]
+					return m, nil
 				}
+			} else if m.mode == "taskDetail" {
+				// Close task detail on 's' too (so same key can close)
+				m.mode = "tasks"
+				m.taskDetailTask = nil
+				return m, nil
 			} else {
 				// Save config
 				return m, saveConfig(m.projectRoot, m.configData)
@@ -654,15 +1039,27 @@ func (m model) View() string {
 	if m.showHelp {
 		return m.viewHelp()
 	}
+
+	if m.mode == "taskDetail" && m.taskDetailTask != nil {
+		return m.viewTaskDetail()
+	}
+
+	if m.mode == "configSection" {
+		return m.viewConfigSection()
+	}
+
 	if m.mode == "config" {
 		return m.viewConfig()
 	}
+
 	if m.mode == "scorecard" {
 		return m.viewScorecard()
 	}
+
 	if m.mode == "handoffs" {
 		return m.viewHandoffs()
 	}
+
 	return m.viewTasks()
 }
 
@@ -679,9 +1076,9 @@ func (m model) viewTasks() string {
 		return fmt.Sprintf("\n  No tasks found (status: %s)\n\n  Press q to quit, r to refresh.\n\n", m.status)
 	}
 
-	// Calculate available width (account for padding)
-	// Use full width minus small margin for better window utilization
-	availableWidth := m.width - 2
+	// Calculate available width (account for padding). Use effective dimensions so
+	// iTerm2 and other terminals that report 0 or stale size still get correct layout.
+	availableWidth := m.effectiveWidth() - 2
 	if availableWidth < 40 {
 		availableWidth = 40
 	}
@@ -700,16 +1097,24 @@ func (m model) viewTasks() string {
 	if m.projectName != "" {
 		title = fmt.Sprintf("%s - %s", strings.ToUpper(m.projectName), title)
 	}
+
 	if m.status != "" {
 		title += fmt.Sprintf(" [%s]", strings.ToUpper(m.status))
 	}
+
 	headerLine.WriteString(headerStyle.Render(title))
 	headerLine.WriteString(" ")
 
-	// Task count
-	taskCount := len(m.tasks)
+	// Task count (visible = filtered or all)
+	visCount := len(m.visibleIndices())
+	totalCount := len(m.tasks)
+	taskCountStr := fmt.Sprintf(" %d", visCount)
+	if m.searchQuery != "" && totalCount != visCount {
+		taskCountStr = fmt.Sprintf(" %d/%d", visCount, totalCount)
+	}
+
 	headerLine.WriteString(headerLabelStyle.Render("Tasks:"))
-	headerLine.WriteString(headerValueStyle.Render(fmt.Sprintf(" %d", taskCount)))
+	headerLine.WriteString(headerValueStyle.Render(taskCountStr))
 	headerLine.WriteString(" ")
 
 	// Selected count
@@ -723,6 +1128,7 @@ func (m model) viewTasks() string {
 	// Auto-refresh status
 	if m.autoRefresh {
 		lastUpdateStr := time.Since(m.lastUpdate).Round(time.Second).String()
+
 		headerLine.WriteString(headerLabelStyle.Render("Updated:"))
 		headerLine.WriteString(headerValueStyle.Render(fmt.Sprintf(" %s ago", lastUpdateStr)))
 	} else {
@@ -767,6 +1173,12 @@ func (m model) viewTasks() string {
 	statusBar.WriteString(" ")
 	statusBar.WriteString(helpStyle.Render("↑↓/jk"))
 	statusBar.WriteString(" nav  ")
+	statusBar.WriteString(helpStyle.Render("/"))
+	statusBar.WriteString(" search  ")
+	statusBar.WriteString(helpStyle.Render("n/N"))
+	statusBar.WriteString(" next/prev  ")
+	statusBar.WriteString(helpStyle.Render("o/O"))
+	statusBar.WriteString(" sort  ")
 	statusBar.WriteString(helpStyle.Render("Space"))
 	statusBar.WriteString(" select  ")
 	statusBar.WriteString(helpStyle.Render("s"))
@@ -774,7 +1186,7 @@ func (m model) viewTasks() string {
 	statusBar.WriteString(helpStyle.Render("r"))
 	statusBar.WriteString(" refresh  ")
 	statusBar.WriteString(helpStyle.Render("a"))
-	statusBar.WriteString(" auto-refresh  ")
+	statusBar.WriteString(" auto  ")
 	statusBar.WriteString(helpStyle.Render("c"))
 	statusBar.WriteString(" config  ")
 	statusBar.WriteString(helpStyle.Render("p"))
@@ -796,13 +1208,15 @@ func (m model) viewTasks() string {
 	return b.String()
 }
 
-// renderNarrowTaskList renders tasks in a narrow terminal (< 80 chars)
+// renderNarrowTaskList renders tasks in a narrow terminal (< 80 chars).
 func (m model) renderNarrowTaskList(b *strings.Builder, width int) {
-	for i, task := range m.tasks {
+	vis := m.visibleIndices()
+	for idx, realIdx := range vis {
+		task := m.tasks[realIdx]
 		cursor := " "
-		if m.cursor == i {
+		if m.cursor == idx {
 			cursor = ">"
-			if _, ok := m.selected[i]; ok {
+			if _, ok := m.selected[realIdx]; ok {
 				cursor = "✓"
 			}
 		}
@@ -819,15 +1233,17 @@ func (m model) renderNarrowTaskList(b *strings.Builder, width int) {
 		if content == "" {
 			content = task.LongDescription
 		}
+
 		maxContentWidth := width - len(line) - 10 // Reserve space
 		if maxContentWidth > 0 && len(content) > maxContentWidth {
 			content = content[:maxContentWidth-3] + "..."
 		}
+
 		if content != "" && maxContentWidth > 0 {
 			line += " " + content
 		}
 
-		if m.cursor == i {
+		if m.cursor == idx {
 			line = highlightRow(line, width, true)
 		} else {
 			line = normalStyle.Render(line)
@@ -838,7 +1254,7 @@ func (m model) renderNarrowTaskList(b *strings.Builder, width int) {
 	}
 }
 
-// renderMediumTaskList renders tasks in a medium terminal (80-120 chars)
+// renderMediumTaskList renders tasks in a medium terminal (80-120 chars).
 func (m model) renderMediumTaskList(b *strings.Builder, width int) {
 	// Column headers aligned with column width constants
 	header := fmt.Sprintf("%-*s %-*s %-*s %-*s %-*s %s",
@@ -853,40 +1269,49 @@ func (m model) renderMediumTaskList(b *strings.Builder, width int) {
 		minDescWidth = 10
 	}
 
-	for i, task := range m.tasks {
-		// Cursor indicator (fixed width)
+	vis := m.visibleIndices()
+	for idx, realIdx := range vis {
+		task := m.tasks[realIdx]
 		cursor := "   "
-		if m.cursor == i {
+		if m.cursor == idx {
 			cursor = " → "
-			if _, ok := m.selected[i]; ok {
+			if _, ok := m.selected[realIdx]; ok {
 				cursor = " ✓ "
 			}
 		}
 
 		taskID := truncatePad(task.ID, colIDMedium)
+
 		statusStr := task.Status
 		if statusStr == "" {
 			statusStr = "---"
 		}
+
 		statusStr = truncatePad(statusStr, colStatus)
+
 		priorityFull := strings.ToUpper(task.Priority)
 		if priorityFull == "" {
 			priorityFull = "---"
 		}
+
 		priorityFull = truncatePad(priorityFull, colPriority)
+
 		priorityShort := "-"
 		if task.Priority != "" {
 			priorityShort = strings.ToUpper(task.Priority[:1])
 		}
+
 		priorityShort = truncatePad(priorityShort, colPRI)
 
 		content := task.Content
 		if content == "" {
 			content = task.LongDescription
 		}
+
 		if len(content) > minDescWidth {
 			content = content[:minDescWidth-3] + "..."
 		}
+
 		if content == "" {
 			content = "(no description)"
 		}
@@ -905,7 +1330,7 @@ func (m model) renderMediumTaskList(b *strings.Builder, width int) {
 			}
 		}
 
-		if m.cursor == i {
+		if m.cursor == idx {
 			line = highlightRow(line, width, true)
 		} else {
 			line = normalStyle.Render(line)
@@ -916,83 +1341,122 @@ func (m model) renderMediumTaskList(b *strings.Builder, width int) {
 	}
 }
 
-// renderWideTaskList renders tasks in a wide terminal (>= 120 chars)
+// Wide-layout constants: compact column widths to maximize space for Description.
+// Single space between columns; fixed total = 52 so description gets (width - 53) or more.
+const (
+	wideColCursor   = 3  // " → " or " ✓ "
+	wideColID       = 18 // T-xxxxxxxxxxxxx
+	wideColStatus   = 11 // "In Progress"
+	wideColPriority = 8  // "PRIORITY" / "medium"
+	wideColPRI      = 3  // H/M/L
+	wideColOLD      = 3  // "OLD" or "   "
+	wideColSpaces   = 6  // one space between each of 7 columns
+	wideFixedColsTotal     = wideColCursor + wideColID + wideColStatus + wideColPriority + wideColPRI + wideColOLD + wideColSpaces
+	wideMinDescWidth       = 50
+	wideTagsColMin         = 24
+	wideShowTagsThreshold  = 160
+	wideFixedPlusDescSpace = wideFixedColsTotal + 1
+)
+
+// renderWideTaskList renders tasks in a wide terminal (>= 120 chars). Uses full width:
+// description column grows with terminal width; TAGS column appears when width >= 160.
 func (m model) renderWideTaskList(b *strings.Builder, width int) {
-	// Column headers aligned with column width constants
-	header := fmt.Sprintf("%-*s %-*s %-*s %-*s %-*s %-*s %-*s",
-		colCursor, "", colIDWide, "ID", colStatus, "STATUS", colPriority, "PRIORITY", colPRI, "PRI", colOLD, "OLD", colDescWide, "DESCRIPTION")
-	if width >= 160 {
-		header += " TAGS"
+	// Compute description and optional tags column widths so each row fills width.
+	maxDescWidth := width - wideFixedPlusDescSpace
+	if maxDescWidth < wideMinDescWidth {
+		maxDescWidth = wideMinDescWidth
 	}
+	tagsWidth := 0
+	if width >= wideShowTagsThreshold {
+		// Reserve space for TAGS; description gets the rest.
+		tagsWidth = wideTagsColMin
+		maxDescWidth = width - wideFixedPlusDescSpace - 1 - tagsWidth
+		if maxDescWidth < wideMinDescWidth {
+			maxDescWidth = wideMinDescWidth
+			tagsWidth = width - wideFixedPlusDescSpace - maxDescWidth - 1
+			if tagsWidth < 5 {
+				tagsWidth = 0
+			}
+		}
+	}
+
+	descHeader := truncatePad("DESCRIPTION", maxDescWidth)
+	header := fmt.Sprintf("%-*s %-*s %-*s %-*s %-*s %-*s %s",
+		wideColCursor, "", wideColID, "ID", wideColStatus, "STATUS", wideColPriority, "PRIORITY", wideColPRI, "PRI", wideColOLD, "OLD", descHeader)
+	if tagsWidth > 0 {
+		header += " " + truncatePad("TAGS", tagsWidth)
+	}
+
 	b.WriteString(helpStyle.Render(header))
 	b.WriteString("\n")
 	b.WriteString(borderStyle.Render(strings.Repeat("─", width)))
 	b.WriteString("\n")
 
-	maxDescWidth := colDescWide
-	if width >= 160 {
-		maxDescWidth = 60
-	}
-	tagsWidth := 0
-	if width >= 160 {
-		tagsWidth = width - (colCursor + 1 + colIDWide + 1 + colStatus + 1 + colPriority + 1 + colPRI + 1 + colOLD + 1 + maxDescWidth + 1)
-		if tagsWidth < 5 {
-			tagsWidth = 0
-		}
-	}
-
-	for i, task := range m.tasks {
+	vis := m.visibleIndices()
+	for idx, realIdx := range vis {
+		task := m.tasks[realIdx]
 		cursor := "   "
-		if m.cursor == i {
+		if m.cursor == idx {
 			cursor = " → "
-			if _, ok := m.selected[i]; ok {
+			if _, ok := m.selected[realIdx]; ok {
 				cursor = " ✓ "
 			}
 		}
 
-		taskID := truncatePad(task.ID, colIDWide)
+		taskID := truncatePad(task.ID, wideColID)
+
 		statusStr := task.Status
 		if statusStr == "" {
 			statusStr = "---"
 		}
-		statusStr = truncatePad(statusStr, colStatus)
+
+		statusStr = truncatePad(statusStr, wideColStatus)
+
 		priorityFull := strings.ToUpper(task.Priority)
 		if priorityFull == "" {
 			priorityFull = "---"
 		}
-		priorityFull = truncatePad(priorityFull, colPriority)
+
+		priorityFull = truncatePad(priorityFull, wideColPriority)
+
 		priorityShort := "-"
 		if task.Priority != "" {
 			priorityShort = strings.ToUpper(task.Priority[:1])
 		}
-		priorityShort = truncatePad(priorityShort, colPRI)
+
+		priorityShort = truncatePad(priorityShort, wideColPRI)
 
 		oldStr := "   "
 		if isOldSequentialID(task.ID) {
 			oldStr = "OLD"
 		}
-		oldIndicator := truncatePad(oldStr, colOLD)
+
+		oldIndicator := truncatePad(oldStr, wideColOLD)
 
 		content := task.Content
 		if content == "" {
 			content = task.LongDescription
 		}
+
 		if len(content) > maxDescWidth {
 			content = content[:maxDescWidth-3] + "..."
 		}
+
 		if content == "" {
 			content = "(no description)"
 		}
+
 		content = truncatePad(content, maxDescWidth)
 
 		line := fmt.Sprintf("%-*s %-*s %-*s %-*s %-*s %-*s %s",
-			colCursor, cursor, colIDWide, taskID, colStatus, statusStr, colPriority, priorityFull, colPRI, priorityShort, colOLD, oldIndicator, content)
+			wideColCursor, cursor, wideColID, taskID, wideColStatus, statusStr, wideColPriority, priorityFull, wideColPRI, priorityShort, wideColOLD, oldIndicator, content)
 
 		if tagsWidth > 0 && len(task.Tags) > 0 {
 			tagsStr := strings.Join(task.Tags, ",")
 			if len(tagsStr) > tagsWidth {
 				tagsStr = tagsStr[:tagsWidth-3] + "..."
 			}
+
 			line += " " + helpStyle.Render(tagsStr)
 		}
 
@@ -1006,11 +1470,12 @@ func (m model) renderWideTaskList(b *strings.Builder, width int) {
 				line = strings.Replace(line, priorityShort, lowPriorityStyle.Render(priorityShort), 1)
 			}
 		}
+
 		if isOldSequentialID(task.ID) {
 			line = strings.Replace(line, "OLD", oldIDStyle.Render("OLD"), 1)
 		}
 
-		if m.cursor == i {
+		if m.cursor == idx {
 			line = highlightRow(line, width, true)
 		} else {
 			line = normalStyle.Render(line)
@@ -1023,17 +1488,20 @@ func (m model) renderWideTaskList(b *strings.Builder, width int) {
 
 func (m model) viewConfig() string {
 	var b strings.Builder
-	availableWidth := m.width - 2
+
+	availableWidth := m.effectiveWidth() - 2
 	if availableWidth < 40 {
 		availableWidth = 40
 	}
 
 	// Header bar (top/htop style)
 	headerLine := strings.Builder{}
+
 	title := "CONFIG"
 	if m.projectName != "" {
 		title = fmt.Sprintf("%s - %s", strings.ToUpper(m.projectName), title)
 	}
+
 	headerLine.WriteString(headerStyle.Render(title))
 	headerLine.WriteString(" ")
 
@@ -1043,6 +1511,7 @@ func (m model) viewConfig() string {
 		if len(configPath) > 40 {
 			configPath = "..." + configPath[len(configPath)-37:]
 		}
+
 		headerLine.WriteString(headerLabelStyle.Render("Config:"))
 		headerLine.WriteString(headerValueStyle.Render(fmt.Sprintf(" %s", configPath)))
 		headerLine.WriteString(" ")
@@ -1065,6 +1534,21 @@ func (m model) viewConfig() string {
 	b.WriteString("\n")
 	b.WriteString(borderStyle.Render(strings.Repeat("─", availableWidth)))
 	b.WriteString("\n")
+
+	if m.configSaveMessage != "" {
+		msgLine := m.configSaveMessage
+		if len(msgLine) > availableWidth {
+			msgLine = msgLine[:availableWidth-3] + "..."
+		}
+		if m.configSaveSuccess {
+			b.WriteString(headerValueStyle.Render("  ✅ " + msgLine))
+		} else {
+			b.WriteString(highPriorityStyle.Render("  ❌ " + msgLine))
+		}
+		b.WriteString("\n")
+		b.WriteString(borderStyle.Render(strings.Repeat("─", availableWidth)))
+		b.WriteString("\n")
+	}
 
 	// Column headers
 	header := fmt.Sprintf("%-4s %-20s %s", "PID", "SECTION", "DESCRIPTION")
@@ -1093,6 +1577,7 @@ func (m model) viewConfig() string {
 		// Description
 		description := section.description
 		maxDescWidth := availableWidth - 30
+
 		if maxDescWidth > 0 && len(description) > maxDescWidth {
 			description = description[:maxDescWidth-3] + "..."
 		}
@@ -1144,20 +1629,28 @@ func (m model) viewConfig() string {
 }
 
 func (m model) viewHandoffs() string {
-	availableWidth := m.width - 2
+	availableWidth := m.effectiveWidth() - 2
 	if availableWidth < 40 {
 		availableWidth = 40
 	}
-	maxTextLines := m.height - 8
-	if maxTextLines < 4 {
-		maxTextLines = 4
+
+	maxContentLines := m.effectiveHeight() - 10
+	if maxContentLines < 6 {
+		maxContentLines = 6
+	}
+
+	wrapWidth := availableWidth - 2
+	if wrapWidth < 38 {
+		wrapWidth = 38
 	}
 
 	var b strings.Builder
+
 	title := "SESSION HANDOFFS"
 	if m.projectName != "" {
 		title = fmt.Sprintf("%s - %s", strings.ToUpper(m.projectName), title)
 	}
+
 	b.WriteString(headerStyle.Render(title))
 	b.WriteString(" ")
 	b.WriteString(headerLabelStyle.Render("H=back"))
@@ -1168,37 +1661,173 @@ func (m model) viewHandoffs() string {
 	b.WriteString("\n")
 
 	if m.handoffLoading {
-		b.WriteString("\n  Loading handoffs...\n\n")
+		b.WriteString("\n  ")
+		b.WriteString(helpStyle.Render("Loading handoffs..."))
+		b.WriteString("\n\n")
+		b.WriteString(borderStyle.Render(strings.Repeat("─", availableWidth)))
+		b.WriteString("\n")
 		b.WriteString(statusBarStyle.Render("Commands: H back  q quit"))
 		return b.String()
 	}
+
 	if m.handoffErr != nil {
-		b.WriteString(fmt.Sprintf("\n  Error: %v\n\n", m.handoffErr))
-		b.WriteString(statusBarStyle.Render("Commands: H back  r refresh  q quit"))
-		return b.String()
-	}
-	if m.handoffText == "" {
-		b.WriteString("\n  No handoff notes.\n\n")
+		b.WriteString("\n  ")
+		b.WriteString(normalStyle.Render(fmt.Sprintf("Error: %v", m.handoffErr)))
+		b.WriteString("\n\n")
+		b.WriteString(borderStyle.Render(strings.Repeat("─", availableWidth)))
+		b.WriteString("\n")
 		b.WriteString(statusBarStyle.Render("Commands: H back  r refresh  q quit"))
 		return b.String()
 	}
 
+	if m.handoffText == "" {
+		b.WriteString("\n  ")
+		b.WriteString(helpStyle.Render("No handoff notes."))
+		b.WriteString("\n\n")
+		b.WriteString(borderStyle.Render(strings.Repeat("─", availableWidth)))
+		b.WriteString("\n")
+		b.WriteString(statusBarStyle.Render("Commands: H back  r refresh  q quit"))
+		return b.String()
+	}
+
+	// Try to parse as JSON and render structured handoffs
+	var payload struct {
+		Handoffs []map[string]interface{} `json:"handoffs"`
+		Count    int                      `json:"count"`
+		Total    int                      `json:"total"`
+	}
+	if err := json.Unmarshal([]byte(m.handoffText), &payload); err == nil && len(payload.Handoffs) > 0 {
+		linesUsed := 0
+		for i, h := range payload.Handoffs {
+			if linesUsed >= maxContentLines {
+				b.WriteString("  ")
+				b.WriteString(helpStyle.Render("... (run 'exarp-go session handoffs' for full list)"))
+				b.WriteString("\n")
+				break
+			}
+			// Header: Handoff N · host · timestamp, then separator line
+			host, _ := h["host"].(string)
+			if host == "" {
+				host = "unknown"
+			}
+			ts, _ := h["timestamp"].(string)
+			if ts != "" && len(ts) > 25 {
+				ts = ts[:25]
+			}
+			b.WriteString("  ")
+			b.WriteString(headerLabelStyle.Render(fmt.Sprintf("Handoff %d", i+1)))
+			b.WriteString(headerValueStyle.Render(" · " + host))
+			if ts != "" {
+				b.WriteString(helpStyle.Render(" · " + ts))
+			}
+			b.WriteString("\n  ")
+			b.WriteString(borderStyle.Render(strings.Repeat("─", availableWidth)))
+			b.WriteString("\n")
+			linesUsed += 2
+
+			// Summary
+			if sum, ok := h["summary"].(string); ok && sum != "" {
+				b.WriteString("  ")
+				b.WriteString(headerValueStyle.Render("Summary:"))
+				b.WriteString("\n  ")
+				for _, wl := range strings.Split(wordWrap(sum, wrapWidth), "\n") {
+					if linesUsed >= maxContentLines {
+						b.WriteString(helpStyle.Render("  ..."))
+						b.WriteString("\n")
+						linesUsed++
+						break
+					}
+					b.WriteString(normalStyle.Render("  "+wl) + "\n")
+					linesUsed++
+				}
+			}
+
+			// Blockers
+			if blockers, ok := h["blockers"].([]interface{}); ok && len(blockers) > 0 {
+				b.WriteString("  ")
+				b.WriteString(headerValueStyle.Render("Blockers:"))
+				b.WriteString("\n")
+				linesUsed++
+				for _, bi := range blockers {
+					if linesUsed >= maxContentLines {
+						break
+					}
+					bl := ""
+					switch v := bi.(type) {
+					case string:
+						bl = v
+					default:
+						bl = fmt.Sprintf("%v", v)
+					}
+					for _, wl := range strings.Split(wordWrap(bl, wrapWidth), "\n") {
+						b.WriteString("  ")
+						b.WriteString(normalStyle.Render("  • "+wl) + "\n")
+						linesUsed++
+					}
+				}
+			}
+
+			// Next steps
+			if steps, ok := h["next_steps"].([]interface{}); ok && len(steps) > 0 {
+				b.WriteString("  ")
+				b.WriteString(headerValueStyle.Render("Next steps:"))
+				b.WriteString("\n")
+				linesUsed++
+				for _, si := range steps {
+					if linesUsed >= maxContentLines {
+						break
+					}
+					st := ""
+					switch v := si.(type) {
+					case string:
+						st = v
+					default:
+						st = fmt.Sprintf("%v", v)
+					}
+					for _, wl := range strings.Split(wordWrap(st, wrapWidth), "\n") {
+						b.WriteString("  ")
+						b.WriteString(normalStyle.Render("  • "+wl) + "\n")
+						linesUsed++
+					}
+				}
+			}
+
+			b.WriteString("\n")
+			linesUsed++
+		}
+
+		b.WriteString(borderStyle.Render(strings.Repeat("─", availableWidth)))
+		b.WriteString("\n")
+		b.WriteString(statusBarStyle.Render("Commands: H back  r refresh  q quit"))
+		return b.String()
+	}
+
+	// Fallback: plain text (e.g. non-JSON or parse failure) with word wrap
 	lines := strings.Split(m.handoffText, "\n")
 	textLinesShown := 0
 	for _, line := range lines {
-		if textLinesShown >= maxTextLines {
-			b.WriteString(helpStyle.Render("  ... (run 'exarp-go session handoffs' for full output)"))
+		if textLinesShown >= maxContentLines {
+			b.WriteString("  ")
+			b.WriteString(helpStyle.Render("... (run 'exarp-go session handoffs' for full output)"))
 			b.WriteString("\n")
 			break
 		}
-		if len(line) > availableWidth {
-			line = line[:availableWidth-3] + "..."
+		trimmed := strings.TrimSpace(line)
+		if trimmed == "" {
+			b.WriteString("\n")
+			textLinesShown++
+			continue
 		}
-		b.WriteString(normalStyle.Render(line))
-		b.WriteString("\n")
-		textLinesShown++
+		for _, wl := range strings.Split(wordWrap(trimmed, wrapWidth), "\n") {
+			if textLinesShown >= maxContentLines {
+				break
+			}
+			b.WriteString("  ")
+			b.WriteString(normalStyle.Render(wl))
+			b.WriteString("\n")
+			textLinesShown++
+		}
 	}
-
 	b.WriteString("\n")
 	b.WriteString(borderStyle.Render(strings.Repeat("─", availableWidth)))
 	b.WriteString("\n")
@@ -1206,14 +1835,156 @@ func (m model) viewHandoffs() string {
 	return b.String()
 }
 
-func (m model) viewScorecard() string {
-	// Use full width minus small margin for better window utilization
-	availableWidth := m.width - 2
+func (m model) viewTaskDetail() string {
+	task := m.taskDetailTask
+	if task == nil {
+		return ""
+	}
+	// Use effective dimensions so task detail ("s") behaves consistently in iTerm2 and other terminals.
+	availableWidth := m.effectiveWidth() - 2
 	if availableWidth < 40 {
 		availableWidth = 40
 	}
-	// Reserve vertical space for header, recommendations, last run, status bar
-	maxTextLines := m.height - 14
+	maxContentLines := m.effectiveHeight() - 10
+	if maxContentLines < 8 {
+		maxContentLines = 8
+	}
+
+	var body strings.Builder
+	if task.ID != "" {
+		body.WriteString("Task: ")
+		body.WriteString(task.ID)
+		body.WriteString("\n\n")
+	}
+	if task.Status != "" {
+		body.WriteString("Status: ")
+		body.WriteString(task.Status)
+		body.WriteString("\n\n")
+	}
+	if task.Priority != "" {
+		body.WriteString("Priority: ")
+		body.WriteString(task.Priority)
+		body.WriteString("\n\n")
+	}
+	if task.Content != "" {
+		body.WriteString("Content:\n")
+		body.WriteString(wordWrap(task.Content, availableWidth-2))
+		body.WriteString("\n\n")
+	}
+	if task.LongDescription != "" {
+		body.WriteString("Description:\n")
+		body.WriteString(wordWrap(task.LongDescription, availableWidth-2))
+		body.WriteString("\n\n")
+	}
+	if len(task.Tags) > 0 {
+		body.WriteString("Tags: ")
+		body.WriteString(strings.Join(task.Tags, ", "))
+		body.WriteString("\n\n")
+	}
+	if len(task.Dependencies) > 0 {
+		body.WriteString("Dependencies: ")
+		body.WriteString(strings.Join(task.Dependencies, ", "))
+		body.WriteString("\n")
+	}
+
+	allLines := strings.Split(strings.TrimSuffix(body.String(), "\n"), "\n")
+	var b strings.Builder
+
+	// Header bar (full-width, same as task list)
+	title := "TASK DETAIL"
+	if m.projectName != "" {
+		title = fmt.Sprintf("%s - %s", strings.ToUpper(m.projectName), title)
+	}
+	headerLine := headerStyle.Render(title) + " " + headerLabelStyle.Render("Esc/Enter/Space=close")
+	if lipgloss.Width(headerLine) < availableWidth {
+		padding := strings.Repeat(" ", availableWidth-lipgloss.Width(headerLine))
+		headerLine += headerValueStyle.Render(padding)
+	}
+	b.WriteString(headerLine)
+	b.WriteString("\n")
+	b.WriteString(borderStyle.Render(strings.Repeat("─", availableWidth)))
+	b.WriteString("\n")
+
+	for i, line := range allLines {
+		if i >= maxContentLines {
+			b.WriteString(helpStyle.Render("  ... (truncated)\n"))
+			break
+		}
+		// Constrain line to available width so it never overflows (matches menu behavior)
+		if lipgloss.Width(line) > availableWidth {
+			runes := []rune(line)
+			maxRunes := availableWidth - 3
+			if maxRunes > 0 && len(runes) > maxRunes {
+				line = string(runes[:maxRunes]) + "..."
+			}
+		}
+		b.WriteString(normalStyle.Render(line))
+		b.WriteString("\n")
+	}
+
+	b.WriteString("\n")
+	b.WriteString(borderStyle.Render(strings.Repeat("─", availableWidth)))
+	b.WriteString("\n")
+
+	// Status bar (full-width, same as task list)
+	statusLine := statusBarStyle.Render("Press Esc, Enter, or Space to close  s=close")
+	if lipgloss.Width(statusLine) < availableWidth {
+		padding := strings.Repeat(" ", availableWidth-lipgloss.Width(statusLine))
+		statusLine += statusBarStyle.Render(padding)
+	}
+	b.WriteString(statusLine)
+
+	return b.String()
+}
+
+func (m model) viewConfigSection() string {
+	availableWidth := m.effectiveWidth() - 2
+	if availableWidth < 40 {
+		availableWidth = 40
+	}
+	maxContentLines := m.effectiveHeight() - 8
+	if maxContentLines < 6 {
+		maxContentLines = 6
+	}
+
+	wrapped := wordWrap(m.configSectionText, availableWidth)
+	allLines := strings.Split(wrapped, "\n")
+	var b strings.Builder
+	title := "CONFIG SECTION"
+	if m.projectName != "" {
+		title = fmt.Sprintf("%s - %s", strings.ToUpper(m.projectName), title)
+	}
+	b.WriteString(headerStyle.Render(title))
+	b.WriteString(" ")
+	b.WriteString(headerLabelStyle.Render("Esc/Enter/Space=close"))
+	b.WriteString("\n")
+	b.WriteString(borderStyle.Render(strings.Repeat("─", availableWidth)))
+	b.WriteString("\n")
+
+	for i, line := range allLines {
+		if i >= maxContentLines {
+			b.WriteString(helpStyle.Render("  ... (truncated)\n"))
+			break
+		}
+		b.WriteString(normalStyle.Render(line))
+		b.WriteString("\n")
+	}
+
+	b.WriteString("\n")
+	b.WriteString(borderStyle.Render(strings.Repeat("─", availableWidth)))
+	b.WriteString("\n")
+	b.WriteString(statusBarStyle.Render("Press Esc, Enter, or Space to close"))
+
+	return b.String()
+}
+
+func (m model) viewScorecard() string {
+	// Use effective dimensions for consistent layout in iTerm2 and other terminals.
+	availableWidth := m.effectiveWidth() - 2
+	if availableWidth < 40 {
+		availableWidth = 40
+	}
+	maxTextLines := m.effectiveHeight() - 14
 	if maxTextLines < 4 {
 		maxTextLines = 4
 	}
@@ -1225,6 +1996,7 @@ func (m model) viewScorecard() string {
 	if m.projectName != "" {
 		title = fmt.Sprintf("%s - %s", strings.ToUpper(m.projectName), title)
 	}
+
 	b.WriteString(headerStyle.Render(title))
 	b.WriteString(" ")
 	b.WriteString(headerLabelStyle.Render("p=back"))
@@ -1237,42 +2009,53 @@ func (m model) viewScorecard() string {
 	if m.scorecardLoading {
 		b.WriteString("\n  Loading scorecard...\n\n")
 		b.WriteString(statusBarStyle.Render("Commands: p back  q quit"))
+
 		return b.String()
 	}
+
 	if m.scorecardErr != nil {
 		b.WriteString(fmt.Sprintf("\n  Error: %v\n\n", m.scorecardErr))
 		b.WriteString(statusBarStyle.Render("Commands: p back  r refresh  q quit"))
+
 		return b.String()
 	}
 
 	// Show scorecard text; cap lines so recommendations and status stay visible
 	lines := strings.Split(m.scorecardText, "\n")
 	textLinesShown := 0
+
 	for _, line := range lines {
 		if textLinesShown >= maxTextLines {
 			b.WriteString(helpStyle.Render("  ... (run report/scorecard for full output)"))
 			b.WriteString("\n")
+
 			break
 		}
+
 		if len(line) > availableWidth {
 			for len(line) > 0 && textLinesShown < maxTextLines {
 				end := availableWidth
 				if end > len(line) {
 					end = len(line)
 				}
+
 				b.WriteString(normalStyle.Render(line[:end]))
 				b.WriteString("\n")
+
 				line = line[end:]
 				textLinesShown++
 			}
+
 			if textLinesShown >= maxTextLines {
 				b.WriteString(helpStyle.Render("  ... (run report/scorecard for full output)"))
 				b.WriteString("\n")
+
 				break
 			}
 		} else {
 			b.WriteString(normalStyle.Render(line))
 			b.WriteString("\n")
+
 			textLinesShown++
 		}
 	}
@@ -1284,8 +2067,10 @@ func (m model) viewScorecard() string {
 		b.WriteString("\n")
 		b.WriteString(normalStyle.Render("Run recommendation (↑↓ select, e or Enter run):"))
 		b.WriteString("\n")
+
 		for i, rec := range m.scorecardRecs {
 			prefix := "   "
+
 			if i == m.scorecardRecCursor {
 				_, _, ok := recommendationToCommand(rec)
 				if ok {
@@ -1294,27 +2079,33 @@ func (m model) viewScorecard() string {
 					prefix = " → " // selected but not runnable
 				}
 			}
+
 			line := rec
 			if len(line) > availableWidth-len(prefix)-2 {
 				line = line[:availableWidth-len(prefix)-5] + "..."
 			}
+
 			fullLine := prefix + line
 			if i == m.scorecardRecCursor {
 				b.WriteString(highlightRow(fullLine, availableWidth, true))
 			} else {
 				b.WriteString(normalStyle.Render(fullLine))
 			}
+
 			b.WriteString("\n")
 		}
 	}
+
 	if m.scorecardRunOutput != "" {
 		b.WriteString("\n")
 		b.WriteString(helpStyle.Render("Last run:"))
 		b.WriteString("\n")
+
 		for _, line := range strings.Split(m.scorecardRunOutput, "\n") {
 			if len(line) > availableWidth {
 				line = line[:availableWidth-3] + "..."
 			}
+
 			b.WriteString(normalStyle.Render("  " + line))
 			b.WriteString("\n")
 		}
@@ -1324,15 +2115,18 @@ func (m model) viewScorecard() string {
 	b.WriteString(borderStyle.Render(strings.Repeat("─", availableWidth)))
 	b.WriteString("\n")
 	b.WriteString(statusBarStyle.Render("Commands: p back  r refresh  e implement selected  q quit"))
+
 	return b.String()
 }
 
 func (m model) viewHelp() string {
-	availableWidth := m.width - 2
+	availableWidth := m.effectiveWidth() - 2
 	if availableWidth < 40 {
 		availableWidth = 40
 	}
+
 	var b strings.Builder
+
 	b.WriteString(headerStyle.Render("HELP - Key bindings"))
 	b.WriteString("\n")
 	b.WriteString(borderStyle.Render(strings.Repeat("─", availableWidth)))
@@ -1370,13 +2164,14 @@ func (m model) viewHelp() string {
 	b.WriteString(borderStyle.Render(strings.Repeat("─", availableWidth)))
 	b.WriteString("\n")
 	b.WriteString(statusBarStyle.Render("Press ? or h or Esc to close help"))
+
 	return b.String()
 }
 
 // isOldSequentialID checks if a task ID uses the old sequential format (T-1, T-2, etc.)
 // vs the new epoch format (T-1768158627000)
 // Old format: T- followed by a small number (< 10000, typically 1-999)
-// New format: T- followed by epoch milliseconds (13 digits, typically 1.6+ trillion)
+// New format: T- followed by epoch milliseconds (13 digits, typically 1.6+ trillion).
 func isOldSequentialID(taskID string) bool {
 	if !strings.HasPrefix(taskID, "T-") {
 		return false
@@ -1397,33 +2192,10 @@ func isOldSequentialID(taskID string) bool {
 	return num < 1000000
 }
 
-func showTaskDetails(task *database.Todo2Task) tea.Cmd {
-	return func() tea.Msg {
-		var details strings.Builder
-		details.WriteString(fmt.Sprintf("\nTask: %s\n", task.ID))
-		details.WriteString(fmt.Sprintf("Status: %s\n", task.Status))
-		details.WriteString(fmt.Sprintf("Priority: %s\n", task.Priority))
-		if task.Content != "" {
-			details.WriteString(fmt.Sprintf("Content: %s\n", task.Content))
-		}
-		if task.LongDescription != "" {
-			details.WriteString(fmt.Sprintf("Description: %s\n", task.LongDescription))
-		}
-		if len(task.Tags) > 0 {
-			details.WriteString(fmt.Sprintf("Tags: %s\n", strings.Join(task.Tags, ", ")))
-		}
-		if len(task.Dependencies) > 0 {
-			details.WriteString(fmt.Sprintf("Dependencies: %s\n", strings.Join(task.Dependencies, ", ")))
-		}
-		details.WriteString("\nPress any key to continue...\n")
-		fmt.Print(details.String())
-		return nil
-	}
-}
-
 func showConfigSection(section configSection, cfg *config.FullConfig) tea.Cmd {
 	return func() tea.Msg {
 		var details strings.Builder
+
 		details.WriteString(fmt.Sprintf("\nConfig Section: %s\n", section.name))
 		details.WriteString(fmt.Sprintf("Description: %s\n", section.description))
 		details.WriteString("\nKey values:\n")
@@ -1453,28 +2225,23 @@ func showConfigSection(section configSection, cfg *config.FullConfig) tea.Cmd {
 			details.WriteString(fmt.Sprintf("  Max Path Depth: %d\n", cfg.Thresholds.MaxPathDepth))
 		}
 
-		details.WriteString("\nNote: Config is .exarp/config.pb (protobuf). Use 'exarp-go config export yaml' to edit as YAML, then 'convert yaml protobuf' to save.\n")
-		details.WriteString("Press any key to continue...\n")
-		fmt.Print(details.String())
-		return nil
+		details.WriteString("\nNote: Config is .exarp/config.pb (protobuf). Use 'exarp-go config export yaml' to edit as YAML, then 'convert yaml protobuf' to save.")
+		return configSectionDetailMsg{text: details.String()}
 	}
 }
 
 func saveConfig(projectRoot string, cfg *config.FullConfig) tea.Cmd {
 	return func() tea.Msg {
 		if err := config.WriteConfigToProtobufFile(projectRoot, cfg); err != nil {
-			fmt.Printf("\n❌ Error writing config file: %v\nPress any key to continue...\n", err)
-			return nil
+			return configSaveResultMsg{message: "Error writing config: " + err.Error(), success: false}
 		}
-
-		fmt.Printf("\n✅ Config saved to %s/.exarp/config.pb\nPress any key to continue...\n", projectRoot)
-		return configSavedMsg{}
+		return configSaveResultMsg{message: "Config saved to " + projectRoot + "/.exarp/config.pb", success: true}
 	}
 }
 
 type configSavedMsg struct{}
 
-// getProjectName extracts a readable project name from the project root path
+// getProjectName extracts a readable project name from the project root path.
 func getProjectName(projectRoot string) string {
 	if projectRoot == "" {
 		return ""
@@ -1491,9 +2258,10 @@ func getProjectName(projectRoot string) string {
 	return filepath.Base(projectRoot)
 }
 
-// getModuleName reads the module name from go.mod
+// getModuleName reads the module name from go.mod.
 func getModuleName(projectRoot string) string {
 	goModPath := filepath.Join(projectRoot, "go.mod")
+
 	data, err := os.ReadFile(goModPath)
 	if err != nil {
 		return ""
@@ -1508,19 +2276,24 @@ func getModuleName(projectRoot string) string {
 			return moduleName
 		}
 	}
+
 	return ""
 }
 
-// RunTUI starts the TUI interface
+// RunTUI starts the TUI interface. Terminal size is detected at startup when
+// stdout is a TTY; SIGWINCH (window resize) is handled by Bubble Tea and
+// updates the layout via tea.WindowSizeMsg.
 func RunTUI(server framework.MCPServer, status string) error {
 	// Initialize database if needed (without closing it immediately)
 	projectRoot, err := tools.FindProjectRoot()
 	projectName := ""
+
 	if err != nil {
 		logWarn(nil, "Could not find project root", "error", err, "operation", "RunTUI", "fallback", "JSON")
 	} else {
 		projectName = getProjectName(projectRoot)
 		EnsureConfigAndDatabase(projectRoot)
+
 		if database.DB != nil {
 			defer func() {
 				if err := database.Close(); err != nil {
@@ -1530,9 +2303,20 @@ func RunTUI(server framework.MCPServer, status string) error {
 		}
 	}
 
-	p := tea.NewProgram(initialModel(server, status, projectRoot, projectName))
+	// Detect terminal size at startup so the first frame uses correct dimensions.
+	// Resize (SIGWINCH) is handled by Bubble Tea and sends WindowSizeMsg on change.
+	initialWidth, initialHeight := 0, 0
+
+	if term.IsTerminal(int(os.Stdout.Fd())) {
+		if w, h, err := term.GetSize(int(os.Stdout.Fd())); err == nil {
+			initialWidth, initialHeight = w, h
+		}
+	}
+
+	p := tea.NewProgram(initialModel(server, status, projectRoot, projectName, initialWidth, initialHeight))
 	if _, err := p.Run(); err != nil {
 		return fmt.Errorf("TUI error: %w", err)
 	}
+
 	return nil
 }
