@@ -5,6 +5,7 @@ import (
 	"flag"
 	"net/http"
 	"os"
+	"strings"
 
 	"github.com/davidl71/exarp-go/internal/api"
 	"github.com/davidl71/exarp-go/internal/cli"
@@ -21,13 +22,23 @@ import (
 func main() {
 	logging.Init()
 
-	// -serve :8080 runs HTTP API + embedded PWA UI only
-	serveFs := flag.NewFlagSet("", flag.ContinueOnError)
-	serveAddr := serveFs.String("serve", "", "Listen address for HTTP API and PWA UI (e.g. :8080)")
-	_ = serveFs.Parse(os.Args[1:])
-	if *serveAddr != "" {
-		runServeMode(*serveAddr)
-		return
+	// -serve :8080 runs HTTP API + embedded PWA UI only. Only parse when -serve is present
+	// to avoid "flag provided but not defined: -tool" when running CLI (-tool, task, etc.).
+	hasServe := false
+	for _, arg := range os.Args[1:] {
+		if arg == "-serve" || strings.HasPrefix(arg, "-serve=") {
+			hasServe = true
+			break
+		}
+	}
+	if hasServe {
+		serveFs := flag.NewFlagSet("", flag.ContinueOnError)
+		serveAddr := serveFs.String("serve", "", "Listen address for HTTP API and PWA UI (e.g. :8080)")
+		_ = serveFs.Parse(os.Args[1:])
+		if *serveAddr != "" {
+			runServeMode(*serveAddr)
+			return
+		}
 	}
 
 	// Normalize "exarp-go tool_name key=value ..." (e.g. from git hooks) to -tool and -args
