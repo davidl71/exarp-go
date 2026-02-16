@@ -5,7 +5,7 @@ import (
 	"strings"
 )
 
-// promptTemplates contains all prompt templates as string constants
+// promptTemplates contains all prompt templates as string constants.
 var promptTemplates = map[string]string{
 	"align": `Analyze Todo2 task alignment with project goals.
 
@@ -754,12 +754,13 @@ If all dimensions score >= 0.8, return an empty suggestions array. Otherwise inc
 }`,
 }
 
-// GetPromptTemplate retrieves a prompt template by name
+// GetPromptTemplate retrieves a prompt template by name.
 func GetPromptTemplate(name string) (string, error) {
 	template, ok := promptTemplates[name]
 	if !ok {
 		return "", fmt.Errorf("unknown prompt: %s", name)
 	}
+
 	return template, nil
 }
 
@@ -769,13 +770,14 @@ func SubstituteTemplate(template string, args map[string]interface{}) string {
 	return substituteTemplate(template, args)
 }
 
-// substituteTemplate replaces {variable_name} placeholders with values from args
+// substituteTemplate replaces {variable_name} placeholders with values from args.
 func substituteTemplate(template string, args map[string]interface{}) string {
 	if len(args) == 0 {
 		return template // No substitution needed
 	}
 
 	result := template
+
 	for key, value := range args {
 		placeholder := "{" + key + "}"
 		// Convert value to string safely
@@ -790,7 +792,9 @@ func substituteTemplate(template string, args map[string]interface{}) string {
 		default:
 			valueStr = fmt.Sprintf("%v", v)
 		}
+
 		result = strings.ReplaceAll(result, placeholder, valueStr)
 	}
+
 	return result
 }

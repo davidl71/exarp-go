@@ -17,7 +17,7 @@ import (
 	"github.com/davidl71/mcp-go-core/pkg/mcp/response"
 )
 
-// handleTaskDiscoveryNative handles task_discovery with native Go and Apple FM
+// handleTaskDiscoveryNative handles task_discovery with native Go and Apple FM.
 func handleTaskDiscoveryNative(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	action, _ := params["action"].(string)
 	if action == "" {
@@ -37,16 +37,19 @@ func handleTaskDiscoveryNative(ctx context.Context, params map[string]interface{
 	// Scan comments
 	if action == "comments" || action == "all" {
 		filePatterns := []string{"**/*.go", "**/*.py", "**/*.js", "**/*.ts"}
+
 		if patterns, ok := params["file_patterns"].(string); ok && patterns != "" {
 			var parsed []string
 			if err := json.Unmarshal([]byte(patterns), &parsed); err == nil {
 				filePatterns = parsed
 			}
 		}
+
 		includeFIXME := true
 		if inc, ok := params["include_fixme"].(bool); ok {
 			includeFIXME = inc
 		}
+
 		commentTasks := scanComments(ctx, projectRoot, filePatterns, includeFIXME, useAppleFM)
 		discoveries = append(discoveries, commentTasks...)
 	}
@@ -57,6 +60,7 @@ func handleTaskDiscoveryNative(ctx context.Context, params map[string]interface{
 		if path, ok := params["doc_path"].(string); ok {
 			docPath = path
 		}
+
 		markdownTasks := scanMarkdown(projectRoot, docPath)
 		discoveries = append(discoveries, markdownTasks...)
 	}
@@ -64,9 +68,7 @@ func handleTaskDiscoveryNative(ctx context.Context, params map[string]interface{
 	// Find orphans
 	if action == "orphans" || action == "all" {
 		orphanTasks := findOrphanTasks(ctx, projectRoot)
-		for _, orphan := range orphanTasks {
-			discoveries = append(discoveries, orphan)
-		}
+		discoveries = append(discoveries, orphanTasks...)
 	}
 
 	// Scan git repository for JSON files
@@ -75,6 +77,7 @@ func handleTaskDiscoveryNative(ctx context.Context, params map[string]interface{
 		if pattern, ok := params["json_pattern"].(string); ok && pattern != "" {
 			jsonPattern = pattern
 		}
+
 		gitJSONTasks := scanGitJSON(projectRoot, jsonPattern)
 		discoveries = append(discoveries, gitJSONTasks...)
 	}
@@ -85,6 +88,7 @@ func handleTaskDiscoveryNative(ctx context.Context, params map[string]interface{
 		if path, ok := params["doc_path"].(string); ok {
 			docPath = path
 		}
+
 		planningLinks := scanPlanningDocs(ctx, projectRoot, docPath, useAppleFM)
 		discoveries = append(discoveries, planningLinks...)
 	}
@@ -99,12 +103,14 @@ func handleTaskDiscoveryNative(ctx context.Context, params map[string]interface{
 		if src, ok := d["source"].(string); ok {
 			bySource[src]++
 		}
+
 		if typ, ok := d["type"].(string); ok {
 			byType[typ]++
 		}
 		// Count tags
 		if tags, ok := d["tags"].([]string); ok && len(tags) > 0 {
 			withTags++
+
 			for _, tag := range tags {
 				byTag[tag]++
 			}
@@ -146,6 +152,7 @@ func handleTaskDiscoveryNative(ctx context.Context, params map[string]interface{
 		if !filepath.IsAbs(fullPath) {
 			fullPath = filepath.Join(projectRoot, fullPath)
 		}
+
 		if err := os.MkdirAll(filepath.Dir(fullPath), 0755); err == nil {
 			raw, _ := json.MarshalIndent(result, "", "  ")
 			if err := os.WriteFile(fullPath, raw, 0644); err == nil {
@@ -157,7 +164,7 @@ func handleTaskDiscoveryNative(ctx context.Context, params map[string]interface{
 	return response.FormatResult(result, "")
 }
 
-// scanComments scans code files for TODO/FIXME comments
+// scanComments scans code files for TODO/FIXME comments.
 func scanComments(ctx context.Context, projectRoot string, patterns []string, includeFIXME bool, useAppleFM bool) []map[string]interface{} {
 	discoveries := []map[string]interface{}{}
 
@@ -186,18 +193,21 @@ func scanComments(ctx context.Context, projectRoot string, patterns []string, in
 				strings.Contains(path, "/archive/") {
 				return filepath.SkipDir
 			}
+
 			return nil
 		}
 
 		// Check if file matches patterns (simplified - full glob support would be better)
 		ext := filepath.Ext(path)
 		matched := false
+
 		for _, pattern := range patterns {
 			if strings.Contains(pattern, ext) || pattern == "**/*" {
 				matched = true
 				break
 			}
 		}
+
 		if !matched {
 			return nil
 		}
@@ -215,6 +225,7 @@ func scanComments(ctx context.Context, projectRoot string, patterns []string, in
 			if len(matches) > 0 {
 				taskType := "TODO"
 				taskText := ""
+
 				if includeFIXME && len(matches) > 2 {
 					taskType = strings.ToUpper(matches[1])
 					taskText = strings.TrimSpace(matches[2])
@@ -232,6 +243,7 @@ func scanComments(ctx context.Context, projectRoot string, patterns []string, in
 						if desc, ok := enhanced["description"].(string); ok && desc != "" {
 							taskText = desc
 						}
+
 						if priority, ok := enhanced["priority"].(string); ok {
 							discovery := map[string]interface{}{
 								"type":        taskType,
@@ -247,7 +259,9 @@ func scanComments(ctx context.Context, projectRoot string, patterns []string, in
 								discovery["tags"] = tags
 								discovery["clean_text"] = cleanText
 							}
+
 							discoveries = append(discoveries, discovery)
+
 							continue
 						}
 					}
@@ -265,6 +279,7 @@ func scanComments(ctx context.Context, projectRoot string, patterns []string, in
 					discovery["tags"] = tags
 					discovery["clean_text"] = cleanText
 				}
+
 				discoveries = append(discoveries, discovery)
 			}
 		}
@@ -279,7 +294,7 @@ func scanComments(ctx context.Context, projectRoot string, patterns []string, in
 	return discoveries
 }
 
-// scanMarkdown scans markdown files for task lists
+// scanMarkdown scans markdown files for task lists.
 func scanMarkdown(projectRoot string, docPath string) []map[string]interface{} {
 	discoveries := []map[string]interface{}{}
 
@@ -300,6 +315,7 @@ func scanMarkdown(projectRoot string, docPath string) []map[string]interface{} {
 				strings.Contains(path, "/archive/") {
 				return filepath.SkipDir
 			}
+
 			return nil
 		}
 
@@ -321,6 +337,7 @@ func scanMarkdown(projectRoot string, docPath string) []map[string]interface{} {
 					if IsDeprecatedDiscoveryText(text) {
 						continue
 					}
+
 					discoveries = append(discoveries, map[string]interface{}{
 						"type":      "MARKDOWN_TASK",
 						"text":      text,
@@ -349,10 +366,12 @@ func findOrphanTasks(ctx context.Context, projectRoot string) []map[string]inter
 	orphans := []map[string]interface{}{}
 
 	store := NewDefaultTaskStore(projectRoot)
+
 	list, err := store.ListTasks(ctx, nil)
 	if err != nil {
 		return orphans
 	}
+
 	tasks := tasksFromPtrs(list)
 
 	taskMap := make(map[string]bool)
@@ -367,9 +386,11 @@ func findOrphanTasks(ctx context.Context, projectRoot string) []map[string]inter
 
 	// Build missing_deps by task for efficient lookup
 	missingByTask := make(map[string][]string)
+
 	for _, m := range missing {
 		tid, _ := m["task_id"].(string)
 		dep, _ := m["missing_dep"].(string)
+
 		if tid != "" && dep != "" {
 			missingByTask[tid] = append(missingByTask[tid], dep)
 		}
@@ -389,6 +410,7 @@ func findOrphanTasks(ctx context.Context, projectRoot string) []map[string]inter
 					break
 				}
 			}
+
 			if len(issues) > 0 {
 				break
 			}
@@ -400,6 +422,7 @@ func findOrphanTasks(ctx context.Context, projectRoot string) []map[string]inter
 				parentID = pid
 			}
 		}
+
 		if parentID != "" && !taskMap[parentID] {
 			issues = append(issues, fmt.Sprintf("missing_parent:%s", parentID))
 		}
@@ -423,7 +446,7 @@ func findOrphanTasks(ctx context.Context, projectRoot string) []map[string]inter
 	return orphans
 }
 
-// enhanceTaskWithAppleFM uses the default FM to extract structured task information
+// enhanceTaskWithAppleFM uses the default FM to extract structured task information.
 func enhanceTaskWithAppleFM(ctx context.Context, taskText string) map[string]interface{} {
 	if !FMAvailable() {
 		return nil
@@ -444,6 +467,7 @@ Return JSON with: {"description": "cleaned task description", "priority": "low|m
 	// Try to parse JSON from result
 	jsonStart := strings.Index(result, "{")
 	jsonEnd := strings.LastIndex(result, "}")
+
 	if jsonStart >= 0 && jsonEnd > jsonStart {
 		var enhanced map[string]interface{}
 		if err := json.Unmarshal([]byte(result[jsonStart:jsonEnd+1]), &enhanced); err == nil {
@@ -454,7 +478,7 @@ Return JSON with: {"description": "cleaned task description", "priority": "low|m
 	return nil
 }
 
-// enhancePlanningDocWithAppleFM uses the default FM to extract task/epic references and structure from planning documents
+// enhancePlanningDocWithAppleFM uses the default FM to extract task/epic references and structure from planning documents.
 func enhancePlanningDocWithAppleFM(ctx context.Context, content string, filePath string) map[string]interface{} {
 	if !FMAvailable() {
 		return nil
@@ -465,6 +489,7 @@ func enhancePlanningDocWithAppleFM(ctx context.Context, content string, filePath
 	if contentLimit > 5000 {
 		contentLimit = 5000
 	}
+
 	contentPreview := content[:contentLimit]
 
 	prompt := fmt.Sprintf(`Analyze this planning document and extract structured information:
@@ -499,6 +524,7 @@ Return JSON only (no other text):
 	// Parse JSON from result
 	jsonStart := strings.Index(result, "{")
 	jsonEnd := strings.LastIndex(result, "}")
+
 	if jsonStart >= 0 && jsonEnd > jsonStart {
 		var enhanced map[string]interface{}
 		if err := json.Unmarshal([]byte(result[jsonStart:jsonEnd+1]), &enhanced); err == nil {
@@ -509,7 +535,7 @@ Return JSON only (no other text):
 	return nil
 }
 
-// scanPlanningDocs scans markdown files for planning document structure and task/epic links
+// scanPlanningDocs scans markdown files for planning document structure and task/epic links.
 func scanPlanningDocs(ctx context.Context, projectRoot string, docPath string, useAppleFM bool) []map[string]interface{} {
 	discoveries := []map[string]interface{}{}
 
@@ -532,6 +558,7 @@ func scanPlanningDocs(ctx context.Context, projectRoot string, docPath string, u
 				strings.Contains(path, "build") || strings.Contains(path, "/archive/") {
 				return filepath.SkipDir
 			}
+
 			return nil
 		}
 
@@ -562,6 +589,7 @@ func scanPlanningDocs(ctx context.Context, projectRoot string, docPath string, u
 					"source":        "planning_doc",
 					"ai_enhanced":   true,
 				})
+
 				return nil
 			}
 		}
@@ -569,6 +597,7 @@ func scanPlanningDocs(ctx context.Context, projectRoot string, docPath string, u
 		// Fallback to regex-based extraction
 		taskRefs := taskRefPattern.FindAllStringSubmatch(contentStr, -1)
 		extractedRefs := []string{}
+
 		for _, match := range taskRefs {
 			if len(match) > 1 {
 				extractedRefs = append(extractedRefs, "T-"+match[1])
@@ -595,7 +624,7 @@ func scanPlanningDocs(ctx context.Context, projectRoot string, docPath string, u
 }
 
 // scanGitJSON scans git repository for JSON files containing tasks
-// Finds JSON files committed in git and extracts tasks from them
+// Finds JSON files committed in git and extracts tasks from them.
 func scanGitJSON(projectRoot string, jsonPattern string) []map[string]interface{} {
 	discoveries := []map[string]interface{}{}
 
@@ -609,6 +638,7 @@ func scanGitJSON(projectRoot string, jsonPattern string) []map[string]interface{
 	ctx := context.Background()
 	cmd := exec.CommandContext(ctx, "git", "ls-files", "*.json", "**/*.json")
 	cmd.Dir = projectRoot
+
 	output, err := cmd.Output()
 	if err != nil {
 		// Git not available or not a git repo - return empty
@@ -666,6 +696,7 @@ func scanGitJSON(projectRoot string, jsonPattern string) []map[string]interface{
 		// Use git log to find all versions of this file
 		cmd = exec.CommandContext(ctx, "git", "log", "--all", "--pretty=format:%H", "--", jsonFile)
 		cmd.Dir = projectRoot
+
 		commitOutput, err := cmd.Output()
 		if err != nil {
 			// If git log fails, try reading current file
@@ -684,6 +715,7 @@ func scanGitJSON(projectRoot string, jsonPattern string) []map[string]interface{
 					})
 				}
 			}
+
 			continue
 		}
 
@@ -700,6 +732,7 @@ func scanGitJSON(projectRoot string, jsonPattern string) []map[string]interface{
 			// Get file content from this commit
 			cmd = exec.CommandContext(ctx, "git", "show", commit+":"+jsonFile)
 			cmd.Dir = projectRoot
+
 			fileContent, err := cmd.Output()
 			if err != nil {
 				continue
@@ -718,6 +751,7 @@ func scanGitJSON(projectRoot string, jsonPattern string) []map[string]interface{
 				if processedTasks[uniqueKey] {
 					continue
 				}
+
 				processedTasks[uniqueKey] = true
 
 				discoveries = append(discoveries, map[string]interface{}{

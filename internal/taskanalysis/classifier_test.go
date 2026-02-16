@@ -118,12 +118,15 @@ func TestAnalyzeTask(t *testing.T) {
 			if r.Complexity != tt.wantComplexity {
 				t.Errorf("Complexity = %v, want %v", r.Complexity, tt.wantComplexity)
 			}
+
 			if r.CanAutoExecute != tt.wantAutoExec {
 				t.Errorf("CanAutoExecute = %v, want %v", r.CanAutoExecute, tt.wantAutoExec)
 			}
+
 			if r.NeedsBreakdown != tt.wantBreakdown {
 				t.Errorf("NeedsBreakdown = %v, want %v", r.NeedsBreakdown, tt.wantBreakdown)
 			}
+
 			if r.Reason == "" && tt.task != nil {
 				t.Error("Reason should not be empty for non-nil task")
 			}

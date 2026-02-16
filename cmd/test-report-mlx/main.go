@@ -14,6 +14,7 @@ import (
 
 func main() {
 	cfg, _ := config.Load()
+
 	server, _ := factory.NewServerFromConfig(cfg)
 	if err := tools.RegisterAllTools(server); err != nil {
 		fmt.Printf("Error registering tools: %v\n", err)
@@ -26,6 +27,7 @@ func main() {
 
 	// Test 1: report(action="scorecard") with MLX
 	fmt.Println("=== Test 1: report(action='scorecard') with MLX ===")
+
 	args1 := map[string]interface{}{
 		"action":                  "scorecard",
 		"include_recommendations": true,
@@ -33,11 +35,13 @@ func main() {
 		"use_mlx":                 true, // Enable MLX
 	}
 	argsBytes1, _ := json.Marshal(args1)
+
 	result1, err1 := server.CallTool(ctx, "report", argsBytes1)
 	if err1 != nil {
 		fmt.Printf("❌ Error: %v\n", err1)
 	} else {
 		fmt.Println("✅ report(action='scorecard') with MLX succeeded")
+
 		for _, content := range result1 {
 			// Check if MLX insights are included
 			if strings.Contains(content.Text, "AI-Generated Insights") || strings.Contains(content.Text, "MLX") {
@@ -54,21 +58,25 @@ func main() {
 
 	// Test 2: report(action="overview") with MLX
 	fmt.Println("\n=== Test 2: report(action='overview') with MLX ===")
+
 	args2 := map[string]interface{}{
 		"action":        "overview",
 		"output_format": "text",
 		"use_mlx":       true, // Enable MLX
 	}
 	argsBytes2, _ := json.Marshal(args2)
+
 	result2, err2 := server.CallTool(ctx, "report", argsBytes2)
 	if err2 != nil {
 		fmt.Printf("❌ Error: %v\n", err2)
 	} else {
 		fmt.Println("✅ report(action='overview') with MLX succeeded")
+
 		for _, content := range result2 {
 			if strings.Contains(content.Text, "AI-Generated Insights") || strings.Contains(content.Text, "MLX") {
 				fmt.Println("✅ MLX insights detected in output")
 			}
+
 			if len(content.Text) > 500 {
 				fmt.Printf("Output preview:\n%s...\n", content.Text[:500])
 			} else {

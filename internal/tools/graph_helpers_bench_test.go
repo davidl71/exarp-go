@@ -4,7 +4,7 @@ import (
 	"testing"
 )
 
-// BenchmarkGetTaskLevelsIterative benchmarks getTaskLevelsIterative with various graph sizes
+// BenchmarkGetTaskLevelsIterative benchmarks getTaskLevelsIterative with various graph sizes.
 func BenchmarkGetTaskLevelsIterative(b *testing.B) {
 	sizes := []struct {
 		name        string
@@ -54,7 +54,7 @@ func BenchmarkGetTaskLevelsIterative(b *testing.B) {
 	}
 }
 
-// BenchmarkGetTaskLevelsOptimized benchmarks the optimized GetTaskLevels (uses topo sort for acyclic)
+// BenchmarkGetTaskLevelsOptimized benchmarks the optimized GetTaskLevels (uses topo sort for acyclic).
 func BenchmarkGetTaskLevelsOptimized(b *testing.B) {
 	sizes := []struct {
 		name        string
@@ -96,7 +96,7 @@ func BenchmarkGetTaskLevelsOptimized(b *testing.B) {
 	}
 }
 
-// BenchmarkBuildTaskGraph benchmarks graph construction
+// BenchmarkBuildTaskGraph benchmarks graph construction.
 func BenchmarkBuildTaskGraph(b *testing.B) {
 	sizes := []struct {
 		name        string

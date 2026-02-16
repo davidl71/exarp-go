@@ -30,16 +30,20 @@ type FileConflict struct {
 // Pass tasks from store.ListTasks(ctx, nil); only In Progress tasks are considered.
 func DetectTaskOverlapConflicts(tasks []*database.Todo2Task) []TaskOverlapConflict {
 	inProgressSet := make(map[string]bool)
+
 	for _, t := range tasks {
 		if t != nil && NormalizeStatusToTitleCase(t.Status) == "In Progress" {
 			inProgressSet[t.ID] = true
 		}
 	}
+
 	var out []TaskOverlapConflict
+
 	for _, t := range tasks {
 		if t == nil || NormalizeStatusToTitleCase(t.Status) != "In Progress" {
 			continue
 		}
+
 		for _, depID := range t.Dependencies {
 			if inProgressSet[depID] {
 				out = append(out, TaskOverlapConflict{
@@ -50,6 +54,7 @@ func DetectTaskOverlapConflicts(tasks []*database.Todo2Task) []TaskOverlapConfli
 			}
 		}
 	}
+
 	return out
 }
 
@@ -62,20 +67,26 @@ func filesFromLongDescription(longDesc string) []string {
 	norm := func(p string) string {
 		p = strings.TrimSpace(p)
 		p = filepath.Clean(p)
+
 		return filepath.ToSlash(p)
 	}
 	seen := make(map[string]bool)
+
 	var out []string
+
 	for _, m := range filePathInDescriptionRE.FindAllStringSubmatch(longDesc, -1) {
 		if len(m) < 2 || m[1] == "" {
 			continue
 		}
+
 		p := norm(m[1])
 		if p != "" && !seen[p] {
 			seen[p] = true
+
 			out = append(out, p)
 		}
 	}
+
 	return out
 }
 
@@ -83,16 +94,20 @@ func filesFromLongDescription(longDesc string) []string {
 // File paths are extracted from long_description (Files/Components patterns).
 func DetectFileConflicts(tasks []*database.Todo2Task) []FileConflict {
 	taskFiles := make(map[string][]string)
+
 	for _, t := range tasks {
 		if t == nil || NormalizeStatusToTitleCase(t.Status) != "In Progress" {
 			continue
 		}
+
 		files := filesFromLongDescription(t.LongDescription)
 		if len(files) > 0 {
 			taskFiles[t.ID] = files
 		}
 	}
+
 	fileToTasks := make(map[string][]string)
+
 	for taskID, files := range taskFiles {
 		for _, f := range files {
 			fileToTasks[f] = append(fileToTasks[f], taskID)
@@ -100,19 +115,24 @@ func DetectFileConflicts(tasks []*database.Todo2Task) []FileConflict {
 	}
 	// Group by task set: key = sorted task IDs, value = all shared files
 	setToFiles := make(map[string][]string)
+
 	for file, ids := range fileToTasks {
 		if len(ids) < 2 {
 			continue
 		}
+
 		sortStrings(ids)
 		key := strings.Join(ids, "|")
 		setToFiles[key] = append(setToFiles[key], file)
 	}
+
 	var out []FileConflict
+
 	for key, files := range setToFiles {
 		ids := strings.Split(key, "|")
 		out = append(out, FileConflict{TaskIDs: ids, Files: files})
 	}
+
 	return out
 }
 
@@ -129,11 +149,14 @@ func sortStrings(s []string) {
 // DetectConflicts loads tasks from the store and returns task-overlap and file-level conflicts.
 func DetectConflicts(ctx context.Context, projectRoot string) (taskOverlaps []TaskOverlapConflict, fileConflicts []FileConflict, err error) {
 	store := NewDefaultTaskStore(projectRoot)
+
 	list, err := store.ListTasks(ctx, nil)
 	if err != nil {
 		return nil, nil, err
 	}
+
 	taskOverlaps = DetectTaskOverlapConflicts(list)
 	fileConflicts = DetectFileConflicts(list)
+
 	return taskOverlaps, fileConflicts, nil
 }

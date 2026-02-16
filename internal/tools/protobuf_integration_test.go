@@ -20,6 +20,7 @@ func TestProtobufRoundTripWithRealTasks(t *testing.T) {
 	if err != nil {
 		t.Skipf("LoadTodo2Tasks failed (no .todo2?): %v", err)
 	}
+
 	if len(tasks) == 0 {
 		t.Skip("No tasks in Todo2; skipping protobuf round-trip test")
 	}
@@ -36,6 +37,7 @@ func TestProtobufRoundTripWithRealTasks(t *testing.T) {
 			if err != nil {
 				t.Fatalf("SerializeTaskToProtobuf() error = %v", err)
 			}
+
 			if len(data) == 0 {
 				t.Error("SerializeTaskToProtobuf() returned empty data")
 				return
@@ -49,9 +51,11 @@ func TestProtobufRoundTripWithRealTasks(t *testing.T) {
 			if deserialized.ID != task.ID {
 				t.Errorf("ID = %v, want %v", deserialized.ID, task.ID)
 			}
+
 			if deserialized.Content != task.Content {
 				t.Errorf("Content = %v, want %v", deserialized.Content, task.Content)
 			}
+
 			if deserialized.Status != task.Status {
 				t.Errorf("Status = %v, want %v", deserialized.Status, task.Status)
 			}
@@ -61,6 +65,7 @@ func TestProtobufRoundTripWithRealTasks(t *testing.T) {
 
 func findProjectRootForTest(t *testing.T) string {
 	t.Helper()
+
 	if root := os.Getenv("PROJECT_ROOT"); root != "" {
 		return root
 	}
@@ -72,5 +77,6 @@ func findProjectRootForTest(t *testing.T) string {
 			return p
 		}
 	}
+
 	return ""
 }

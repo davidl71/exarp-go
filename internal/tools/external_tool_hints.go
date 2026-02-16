@@ -12,7 +12,7 @@ import (
 	"github.com/davidl71/mcp-go-core/pkg/mcp/response"
 )
 
-// handleAddExternalToolHintsNative handles the add_external_tool_hints tool with native Go implementation
+// handleAddExternalToolHintsNative handles the add_external_tool_hints tool with native Go implementation.
 func handleAddExternalToolHintsNative(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	// Get project root
 	projectRoot, err := FindProjectRoot()
@@ -33,6 +33,7 @@ func handleAddExternalToolHintsNative(ctx context.Context, params map[string]int
 	}
 
 	minFileSize := 50
+
 	if minFileSizeRaw, ok := params["min_file_size"]; ok {
 		switch v := minFileSizeRaw.(type) {
 		case int:
@@ -55,6 +56,7 @@ func handleAddExternalToolHintsNative(ctx context.Context, params map[string]int
 	// Save report if output path specified
 	if outputPath != "" {
 		report := generateExternalToolHintsReport(results, projectRoot)
+
 		reportPath := outputPath
 		if !filepath.IsAbs(reportPath) {
 			reportPath = filepath.Join(projectRoot, reportPath)
@@ -64,6 +66,7 @@ func handleAddExternalToolHintsNative(ctx context.Context, params map[string]int
 		if err := os.MkdirAll(filepath.Dir(reportPath), 0755); err == nil {
 			os.WriteFile(reportPath, []byte(report), 0644)
 		}
+
 		results.ReportPath = reportPath
 	}
 
@@ -84,7 +87,7 @@ func handleAddExternalToolHintsNative(ctx context.Context, params map[string]int
 	return response.FormatResult(responseData, "")
 }
 
-// ExternalToolHintsResults represents the results of external tool hints processing
+// ExternalToolHintsResults represents the results of external tool hints processing.
 type ExternalToolHintsResults struct {
 	FilesScanned  int
 	FilesModified int
@@ -94,7 +97,7 @@ type ExternalToolHintsResults struct {
 	ReportPath    string
 }
 
-// processExternalToolHints processes markdown files to add external tool hints
+// processExternalToolHints processes markdown files to add external tool hints.
 func processExternalToolHints(projectRoot string, minFileSize int, dryRun bool) ExternalToolHintsResults {
 	results := ExternalToolHintsResults{
 		FilesScanned:  0,
@@ -147,6 +150,7 @@ func processExternalToolHints(projectRoot string, minFileSize int, dryRun bool) 
 				"file":   path,
 				"reason": fmt.Sprintf("Error reading file: %v", err),
 			})
+
 			return nil
 		}
 
@@ -158,6 +162,7 @@ func processExternalToolHints(projectRoot string, minFileSize int, dryRun bool) 
 				"file":   path,
 				"reason": "File too short",
 			})
+
 			return nil
 		}
 
@@ -169,6 +174,7 @@ func processExternalToolHints(projectRoot string, minFileSize int, dryRun bool) 
 				"file":   path,
 				"reason": "Hint already exists",
 			})
+
 			return nil
 		}
 
@@ -180,6 +186,7 @@ func processExternalToolHints(projectRoot string, minFileSize int, dryRun bool) 
 				"file":   path,
 				"reason": "No external libraries detected",
 			})
+
 			return nil
 		}
 
@@ -219,7 +226,7 @@ func processExternalToolHints(projectRoot string, minFileSize int, dryRun bool) 
 	return results
 }
 
-// hasExistingHint checks if file already has a Context7 hint
+// hasExistingHint checks if file already has a Context7 hint.
 func hasExistingHint(content string) bool {
 	hintPatterns := []string{
 		"context7",
@@ -239,7 +246,7 @@ func hasExistingHint(content string) bool {
 	return false
 }
 
-// detectLibraries detects external libraries in content
+// detectLibraries detects external libraries in content.
 func detectLibraries(content string, patterns []*regexp.Regexp) []string {
 	libraries := make(map[string]bool)
 
@@ -261,7 +268,7 @@ func detectLibraries(content string, patterns []*regexp.Regexp) []string {
 	return result
 }
 
-// generateHint generates a Context7 hint for detected libraries
+// generateHint generates a Context7 hint for detected libraries.
 func generateHint(libraries []string) string {
 	if len(libraries) == 0 {
 		return ""
@@ -278,13 +285,14 @@ func generateHint(libraries []string) string {
 	return hint
 }
 
-// insertHint inserts a hint into markdown content
+// insertHint inserts a hint into markdown content.
 func insertHint(content string, hint string) string {
 	// Try to insert after first heading or at the end
 	lines := strings.Split(content, "\n")
 
 	// Find first heading
 	insertIndex := len(lines)
+
 	for i, line := range lines {
 		if strings.HasPrefix(line, "#") && i > 0 {
 			insertIndex = i + 1
@@ -303,7 +311,7 @@ func insertHint(content string, hint string) string {
 	return strings.Join(newLines, "\n")
 }
 
-// generateExternalToolHintsReport generates a markdown report
+// generateExternalToolHintsReport generates a markdown report.
 func generateExternalToolHintsReport(results ExternalToolHintsResults, projectRoot string) string {
 	report := fmt.Sprintf(`# External Tool Hints Report
 
@@ -335,6 +343,7 @@ func generateExternalToolHintsReport(results ExternalToolHintsResults, projectRo
 
 	if len(results.HintsSkipped) > 0 {
 		report += "\n## Hints Skipped\n\n"
+
 		for _, hint := range results.HintsSkipped {
 			if file, ok := hint["file"].(string); ok {
 				if reason, ok := hint["reason"].(string); ok {

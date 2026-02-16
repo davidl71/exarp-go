@@ -14,7 +14,7 @@ import (
 	"github.com/davidl71/exarp-go/internal/security"
 )
 
-// LintResult represents the result of a linting operation
+// LintResult represents the result of a linting operation.
 type LintResult struct {
 	Success bool                   `json:"success"`
 	Output  string                 `json:"output,omitempty"`
@@ -24,7 +24,7 @@ type LintResult struct {
 	Raw     map[string]interface{} `json:"raw,omitempty"`
 }
 
-// LintError represents a single linting error
+// LintError represents a single linting error.
 type LintError struct {
 	File     string `json:"file"`
 	Line     int    `json:"line,omitempty"`
@@ -34,7 +34,7 @@ type LintError struct {
 	Severity string `json:"severity,omitempty"`
 }
 
-// runLinter executes a linter command and returns the result
+// runLinter executes a linter command and returns the result.
 func runLinter(ctx context.Context, linter, path string, fix bool) (*LintResult, error) {
 	// Set timeout from config
 	ctx, cancel := context.WithTimeout(ctx, config.ToolTimeout("linting"))
@@ -45,6 +45,7 @@ func runLinter(ctx context.Context, linter, path string, fix bool) (*LintResult,
 	if projectRoot == "" {
 		// Try to find project root
 		var err error
+
 		projectRoot, err = FindProjectRoot()
 		if err != nil {
 			// Fallback to current directory
@@ -63,6 +64,7 @@ func runLinter(ctx context.Context, linter, path string, fix bool) (*LintResult,
 	if err != nil {
 		return nil, fmt.Errorf("invalid path: %w", err)
 	}
+
 	targetPath = validatedPath
 
 	// Auto-detect linter based on file type if not specified
@@ -94,7 +96,7 @@ func runLinter(ctx context.Context, linter, path string, fix bool) (*LintResult,
 	}
 }
 
-// runGolangciLint runs golangci-lint
+// runGolangciLint runs golangci-lint.
 func runGolangciLint(ctx context.Context, path string, fix bool) (*LintResult, error) {
 	// Check if golangci-lint is available
 	if _, err := exec.LookPath("golangci-lint"); err != nil {
@@ -113,6 +115,7 @@ func runGolangciLint(ctx context.Context, path string, fix bool) (*LintResult, e
 
 	// Find project root - prefer PROJECT_ROOT env var, then look for go.mod
 	var projectRoot string
+
 	var absPath string
 
 	// Try PROJECT_ROOT environment variable first (set by MCP server)
@@ -139,17 +142,20 @@ func runGolangciLint(ctx context.Context, path string, fix bool) (*LintResult, e
 
 		// Walk up from the path to find go.mod
 		currentPath := absPath
+
 		for {
 			if _, err := os.Stat(filepath.Join(currentPath, "go.mod")); err == nil {
 				projectRoot = currentPath
 				break
 			}
+
 			parent := filepath.Dir(currentPath)
 			if parent == currentPath {
 				// Reached filesystem root, use current working directory
 				projectRoot, _ = os.Getwd()
 				break
 			}
+
 			currentPath = parent
 		}
 	} else {
@@ -222,6 +228,7 @@ func runGolangciLint(ctx context.Context, path string, fix bool) (*LintResult, e
 		Line     int    `json:"Line"`
 		Column   int    `json:"Column"`
 	}
+
 	type issueStruct struct {
 		FromLinter  string   `json:"FromLinter"`
 		Text        string   `json:"Text"`
@@ -230,6 +237,7 @@ func runGolangciLint(ctx context.Context, path string, fix bool) (*LintResult, e
 	}
 
 	var lintErrors []LintError
+
 	var issues []issueStruct
 	if err := json.Unmarshal(output, &struct {
 		Issues *[]issueStruct `json:"Issues"`
@@ -237,6 +245,7 @@ func runGolangciLint(ctx context.Context, path string, fix bool) (*LintResult, e
 		// Fall back to v1 flat array format
 		_ = json.Unmarshal(output, &issues)
 	}
+
 	for _, issue := range issues {
 		lintErrors = append(lintErrors, LintError{
 			File:     issue.Pos.Filename,
@@ -261,6 +270,7 @@ func runGolangciLint(ctx context.Context, path string, fix bool) (*LintResult, e
 	}
 
 	success := len(lintErrors) == 0
+
 	return &LintResult{
 		Success: success,
 		Linter:  "golangci-lint",
@@ -270,7 +280,7 @@ func runGolangciLint(ctx context.Context, path string, fix bool) (*LintResult, e
 	}, nil
 }
 
-// runGoVet runs go vet
+// runGoVet runs go vet.
 func runGoVet(ctx context.Context, path string) (*LintResult, error) {
 	// Check if go is available
 	if _, err := exec.LookPath("go"); err != nil {
@@ -292,6 +302,7 @@ func runGoVet(ctx context.Context, path string) (*LintResult, error) {
 	if projectRoot == "" {
 		// Try to find project root
 		var err error
+
 		projectRoot, err = projectroot.FindFrom(path)
 		if err != nil {
 			// Fallback to current directory
@@ -310,6 +321,7 @@ func runGoVet(ctx context.Context, path string) (*LintResult, error) {
 	if err != nil {
 		return nil, fmt.Errorf("invalid path: %w", err)
 	}
+
 	pathInfo, err := os.Stat(absPath)
 	isDir := err == nil && pathInfo != nil && pathInfo.IsDir()
 
@@ -339,6 +351,7 @@ func runGoVet(ctx context.Context, path string) (*LintResult, error) {
 
 	// go vet returns non-zero exit code when issues are found
 	success := err == nil
+
 	var lintErrors []LintError
 
 	if !success && outputStr != "" {
@@ -375,7 +388,7 @@ func runGoVet(ctx context.Context, path string) (*LintResult, error) {
 	}, nil
 }
 
-// runGofmt runs gofmt
+// runGofmt runs gofmt.
 func runGofmt(ctx context.Context, path string, fix bool) (*LintResult, error) {
 	// Check if gofmt is available
 	if _, err := exec.LookPath("gofmt"); err != nil {
@@ -396,6 +409,7 @@ func runGofmt(ctx context.Context, path string, fix bool) (*LintResult, error) {
 	projectRoot := os.Getenv("PROJECT_ROOT")
 	if projectRoot == "" {
 		var err error
+
 		projectRoot, err = projectroot.FindFrom(path)
 		if err != nil {
 			projectRoot, _ = os.Getwd()
@@ -429,6 +443,7 @@ func runGofmt(ctx context.Context, path string, fix bool) (*LintResult, error) {
 
 	// gofmt returns non-zero exit code when formatting issues are found
 	success := err == nil && (outputStr == "" || !strings.Contains(outputStr, "diff"))
+
 	var lintErrors []LintError
 
 	if !success && outputStr != "" {
@@ -472,7 +487,7 @@ func runGofmt(ctx context.Context, path string, fix bool) (*LintResult, error) {
 	}, nil
 }
 
-// runGoimports runs goimports
+// runGoimports runs goimports.
 func runGoimports(ctx context.Context, path string, fix bool) (*LintResult, error) {
 	// Check if goimports is available
 	if _, err := exec.LookPath("goimports"); err != nil {
@@ -493,6 +508,7 @@ func runGoimports(ctx context.Context, path string, fix bool) (*LintResult, erro
 	projectRoot := os.Getenv("PROJECT_ROOT")
 	if projectRoot == "" {
 		var err error
+
 		projectRoot, err = projectroot.FindFrom(path)
 		if err != nil {
 			projectRoot, _ = os.Getwd()
@@ -526,6 +542,7 @@ func runGoimports(ctx context.Context, path string, fix bool) (*LintResult, erro
 
 	// goimports returns non-zero exit code when import issues are found
 	success := err == nil && (outputStr == "" || !strings.Contains(outputStr, "diff"))
+
 	var lintErrors []LintError
 
 	if !success && outputStr != "" {
@@ -567,7 +584,7 @@ func runGoimports(ctx context.Context, path string, fix bool) (*LintResult, erro
 	}, nil
 }
 
-// detectLinter automatically detects the appropriate linter based on file extension
+// detectLinter automatically detects the appropriate linter based on file extension.
 func detectLinter(path string) string {
 	// Check if path is a directory or file
 	info, err := os.Stat(path)
@@ -594,7 +611,7 @@ func detectLinter(path string) string {
 	}
 }
 
-// runMarkdownlint runs gomarklint (native Go markdown linter)
+// runMarkdownlint runs gomarklint (native Go markdown linter).
 func runMarkdownlint(ctx context.Context, path string, fix bool) (*LintResult, error) {
 	// Try gomarklint first (native Go tool)
 	markdownlintCmd := "gomarklint"
@@ -624,6 +641,7 @@ func runMarkdownlint(ctx context.Context, path string, fix bool) (*LintResult, e
 	projectRoot := os.Getenv("PROJECT_ROOT")
 	if projectRoot == "" {
 		var err error
+
 		projectRoot, err = projectroot.FindFrom(path)
 		if err != nil {
 			projectRoot, _ = os.Getwd()
@@ -688,6 +706,7 @@ func runMarkdownlint(ctx context.Context, path string, fix bool) (*LintResult, e
 
 	// All markdown linters return non-zero exit code when issues are found
 	success := err == nil
+
 	var lintErrors []LintError
 
 	if !success && outputStr != "" {
@@ -737,7 +756,7 @@ func runMarkdownlint(ctx context.Context, path string, fix bool) (*LintResult, e
 	}, nil
 }
 
-// parseTextOutput parses text-based markdownlint output
+// parseTextOutput parses text-based markdownlint output.
 func parseTextOutput(outputStr string, lintErrors *[]LintError) {
 	lines := strings.Split(strings.TrimSpace(outputStr), "\n")
 	for _, line := range lines {
@@ -762,6 +781,7 @@ func parseTextOutput(outputStr string, lintErrors *[]LintError) {
 			// Extract rule name if present
 			rule := ""
 			messageParts := strings.Fields(message)
+
 			if len(messageParts) > 0 && strings.Contains(messageParts[0], "/") {
 				rule = messageParts[0]
 				message = strings.Join(messageParts[1:], " ")
@@ -784,7 +804,7 @@ func parseTextOutput(outputStr string, lintErrors *[]LintError) {
 	}
 }
 
-// runShellcheck runs shellcheck (shell script linter)
+// runShellcheck runs shellcheck (shell script linter).
 func runShellcheck(ctx context.Context, path string, fix bool) (*LintResult, error) {
 	// Try shellcheck first (comprehensive linter)
 	shellcheckCmd := "shellcheck"
@@ -812,6 +832,7 @@ func runShellcheck(ctx context.Context, path string, fix bool) (*LintResult, err
 	projectRoot := os.Getenv("PROJECT_ROOT")
 	if projectRoot == "" {
 		var err error
+
 		projectRoot, err = projectroot.FindFrom(path)
 		if err != nil {
 			projectRoot, _ = os.Getwd()
@@ -830,6 +851,7 @@ func runShellcheck(ctx context.Context, path string, fix bool) (*LintResult, err
 
 	// Build command - use JSON output for shellcheck
 	args := []string{"--format=json"}
+
 	if fix {
 		// shellcheck doesn't have --fix, but we can note it
 		// For actual fixing, would need shfmt
@@ -852,6 +874,7 @@ func runShellcheck(ctx context.Context, path string, fix bool) (*LintResult, err
 	// shellcheck returns non-zero exit code when issues are found, but also outputs JSON
 	// So we parse JSON regardless of exit code
 	var lintErrors []LintError
+
 	success := true // Will be set to false if we find errors
 
 	if outputStr != "" {
@@ -871,13 +894,15 @@ func runShellcheck(ctx context.Context, path string, fix bool) (*LintResult, err
 		if err := json.Unmarshal(output, &jsonOutput); err == nil && len(jsonOutput) > 0 {
 			// Successfully parsed JSON
 			success = false // Found issues
+
 			for _, issue := range jsonOutput {
 				severity := "warning"
-				if issue.Level == "error" {
+				switch issue.Level {
+				case "error":
 					severity = "error"
-				} else if issue.Level == "info" {
+				case "info":
 					severity = "info"
-				} else if issue.Level == "style" {
+				case "style":
 					severity = "warning"
 				}
 
@@ -896,6 +921,7 @@ func runShellcheck(ctx context.Context, path string, fix bool) (*LintResult, err
 		} else if err != nil {
 			// JSON parsing failed, try to parse text output
 			parseShellcheckTextOutput(outputStr, &lintErrors)
+
 			if len(lintErrors) > 0 {
 				success = false
 			}
@@ -911,7 +937,7 @@ func runShellcheck(ctx context.Context, path string, fix bool) (*LintResult, err
 	}, nil
 }
 
-// runShfmt runs shfmt (shell formatter, can detect syntax errors)
+// runShfmt runs shfmt (shell formatter, can detect syntax errors).
 func runShfmt(ctx context.Context, path string, fix bool) (*LintResult, error) {
 	// Check if shfmt is available
 	if _, err := exec.LookPath("shfmt"); err != nil {
@@ -930,6 +956,7 @@ func runShfmt(ctx context.Context, path string, fix bool) (*LintResult, error) {
 
 	// Find project root
 	var projectRoot string
+
 	var absPath string
 
 	if filepath.IsAbs(path) {
@@ -946,19 +973,23 @@ func runShfmt(ctx context.Context, path string, fix bool) (*LintResult, error) {
 	// Walk up to find project root
 	currentPath := absPath
 	info, err := os.Stat(absPath)
+
 	if err == nil && !info.IsDir() {
 		currentPath = filepath.Dir(absPath)
 	}
+
 	for {
 		if _, err := os.Stat(filepath.Join(currentPath, "go.mod")); err == nil {
 			projectRoot = currentPath
 			break
 		}
+
 		parent := filepath.Dir(currentPath)
 		if parent == currentPath {
 			projectRoot, _ = os.Getwd()
 			break
 		}
+
 		currentPath = parent
 	}
 
@@ -974,6 +1005,7 @@ func runShfmt(ctx context.Context, path string, fix bool) (*LintResult, error) {
 	} else {
 		args = append(args, "-d") // Diff mode (show what would change)
 	}
+
 	args = append(args, relPath)
 
 	cmd := exec.CommandContext(ctx, "shfmt", args...)
@@ -984,6 +1016,7 @@ func runShfmt(ctx context.Context, path string, fix bool) (*LintResult, error) {
 
 	// shfmt returns non-zero if file needs formatting or has syntax errors
 	success := err == nil
+
 	var lintErrors []LintError
 
 	if !success && outputStr != "" {
@@ -1022,7 +1055,7 @@ func runShfmt(ctx context.Context, path string, fix bool) (*LintResult, error) {
 	}, nil
 }
 
-// parseShellcheckTextOutput parses shellcheck text output
+// parseShellcheckTextOutput parses shellcheck text output.
 func parseShellcheckTextOutput(outputStr string, lintErrors *[]LintError) {
 	lines := strings.Split(strings.TrimSpace(outputStr), "\n")
 	for _, line := range lines {

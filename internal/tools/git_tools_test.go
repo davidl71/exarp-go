@@ -10,6 +10,7 @@ import (
 func TestHandleGitToolsNative(t *testing.T) {
 	tmpDir := t.TempDir()
 	os.Setenv("PROJECT_ROOT", tmpDir)
+
 	defer os.Unsetenv("PROJECT_ROOT")
 
 	tests := []struct {
@@ -124,11 +125,13 @@ func TestHandleGitToolsNative(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := context.Background()
+
 			result, err := HandleGitToolsNative(ctx, tt.params)
 			if (err != nil) != tt.wantError {
 				t.Errorf("HandleGitToolsNative() error = %v, wantError %v", err, tt.wantError)
 				return
 			}
+
 			if !tt.wantError && tt.validate != nil {
 				tt.validate(t, result)
 			}
@@ -139,6 +142,7 @@ func TestHandleGitToolsNative(t *testing.T) {
 func TestHandleGitTools(t *testing.T) {
 	tmpDir := t.TempDir()
 	os.Setenv("PROJECT_ROOT", tmpDir)
+
 	defer os.Unsetenv("PROJECT_ROOT")
 
 	tests := []struct {
@@ -191,11 +195,13 @@ func TestHandleGitTools(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := context.Background()
 			argsJSON, _ := json.Marshal(tt.params)
+
 			result, err := handleGitTools(ctx, argsJSON)
 			if (err != nil) != tt.wantError {
 				t.Errorf("handleGitTools() error = %v, wantError %v", err, tt.wantError)
 				return
 			}
+
 			if !tt.wantError && len(result) == 0 {
 				t.Error("expected non-empty result")
 			}

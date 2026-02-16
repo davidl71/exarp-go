@@ -13,10 +13,12 @@ func Mean(data []float64) float64 {
 	if len(data) == 0 {
 		return 0.0
 	}
+
 	result := stat.Mean(data, nil)
 	if math.IsNaN(result) {
 		return 0.0
 	}
+
 	return result
 }
 
@@ -34,6 +36,7 @@ func Median(data []float64) float64 {
 		sorted := make([]float64, len(data))
 		copy(sorted, data)
 		sort.Float64s(sorted)
+
 		n := len(sorted)
 		if n%2 == 1 {
 			// Odd: return middle element
@@ -48,7 +51,7 @@ func Median(data []float64) float64 {
 	return quickselectMedian(data)
 }
 
-// quickselectMedian finds the median using quickselect algorithm (O(n) average)
+// quickselectMedian finds the median using quickselect algorithm (O(n) average).
 func quickselectMedian(data []float64) float64 {
 	n := len(data)
 	if n%2 == 1 {
@@ -57,6 +60,7 @@ func quickselectMedian(data []float64) float64 {
 		work := make([]float64, len(data))
 		copy(work, data)
 		median := quickselect(work, k)
+
 		return median
 	} else {
 		// Even: return average of two middle elements
@@ -67,20 +71,24 @@ func quickselectMedian(data []float64) float64 {
 		copy(work1, data)
 		work2 := make([]float64, len(data))
 		copy(work2, data)
+
 		median1 := quickselect(work1, k1)
 		median2 := quickselect(work2, k2)
+
 		return (median1 + median2) / 2.0
 	}
 }
 
-// quickselect finds the k-th smallest element (0-indexed) using quickselect algorithm
+// quickselect finds the k-th smallest element (0-indexed) using quickselect algorithm.
 func quickselect(arr []float64, k int) float64 {
 	if len(arr) == 1 {
 		return arr[0]
 	}
+
 	if k < 0 {
 		k = 0
 	}
+
 	if k >= len(arr) {
 		k = len(arr) - 1
 	}
@@ -98,7 +106,7 @@ func quickselect(arr []float64, k int) float64 {
 }
 
 // partition partitions array around a pivot (Lomuto partition scheme)
-// Returns the final index of the pivot
+// Returns the final index of the pivot.
 func partition(arr []float64) int {
 	n := len(arr)
 	if n <= 1 {
@@ -118,6 +126,7 @@ func partition(arr []float64) int {
 
 	// Place pivot in correct position
 	arr[i], arr[n-1] = arr[n-1], arr[i]
+
 	return i
 }
 
@@ -127,10 +136,12 @@ func StdDev(data []float64) float64 {
 	if len(data) <= 1 {
 		return 0.0
 	}
+
 	result := stat.StdDev(data, nil)
 	if math.IsNaN(result) {
 		return 0.0
 	}
+
 	return result
 }
 
@@ -144,6 +155,7 @@ func Quantile(data []float64, p float64) float64 {
 	if len(data) == 0 {
 		return 0.0
 	}
+
 	if p < 0.0 || p > 1.0 {
 		return 0.0 // Invalid quantile
 	}
@@ -156,15 +168,18 @@ func Quantile(data []float64, p float64) float64 {
 	if math.IsNaN(result) {
 		return 0.0
 	}
+
 	return result
 }
 
 // Round rounds a float64 to the specified number of decimal places.
-// Examples: Round(3.14159, 2) = 3.14, Round(2.5, 0) = 3.0
+// Examples: Round(3.14159, 2) = 3.14, Round(2.5, 0) = 3.0.
 func Round(value float64, decimals int) float64 {
 	if decimals < 0 {
 		decimals = 0
 	}
+
 	multiplier := math.Pow(10, float64(decimals))
+
 	return math.Round(value*multiplier) / multiplier
 }

@@ -30,6 +30,7 @@ func AnalyzePrompt(ctx context.Context, prompt, contextHint, taskType string, ge
 	if prompt == "" {
 		return nil, fmt.Errorf("prompt is required for analysis")
 	}
+
 	if gen == nil || !gen.Supported() {
 		return nil, fmt.Errorf("text generator not available for prompt analysis")
 	}
@@ -56,8 +57,8 @@ func AnalyzePrompt(ctx context.Context, prompt, contextHint, taskType string, ge
 
 // SuggestionItem is one improvement suggestion from the suggestions template (T-218).
 type SuggestionItem struct {
-	Dimension     string `json:"dimension"`
-	Issue         string `json:"issue"`
+	Dimension      string `json:"dimension"`
+	Issue          string `json:"issue"`
 	Recommendation string `json:"recommendation"`
 }
 
@@ -72,10 +73,12 @@ func GenerateSuggestions(ctx context.Context, prompt string, analysis *PromptAna
 	if gen == nil || !gen.Supported() {
 		return nil, fmt.Errorf("text generator not available for suggestions")
 	}
+
 	tmpl, err := prompts.GetPromptTemplate("prompt_optimization_suggestions")
 	if err != nil {
 		return nil, fmt.Errorf("get prompt_optimization_suggestions template: %w", err)
 	}
+
 	analysisJSON, _ := json.Marshal(analysis)
 	args := map[string]interface{}{
 		"prompt":    prompt,
@@ -84,10 +87,12 @@ func GenerateSuggestions(ctx context.Context, prompt string, analysis *PromptAna
 		"task_type": taskType,
 	}
 	substituted := prompts.SubstituteTemplate(tmpl, args)
+
 	text, err := gen.Generate(ctx, substituted, 1024, 0.4)
 	if err != nil {
 		return nil, fmt.Errorf("generate suggestions: %w", err)
 	}
+
 	return parseSuggestionsResponse(text)
 }
 
@@ -99,10 +104,12 @@ func parseSuggestionsResponse(text string) (*SuggestionsResponse, error) {
 		text = strings.TrimSuffix(text, "```")
 		text = strings.TrimSpace(text)
 	}
+
 	var out SuggestionsResponse
 	if err := json.Unmarshal([]byte(text), &out); err != nil {
 		return nil, fmt.Errorf("parse suggestions response: %w", err)
 	}
+
 	return &out, nil
 }
 
@@ -112,10 +119,12 @@ func RefinePrompt(ctx context.Context, prompt string, suggestions *SuggestionsRe
 	if gen == nil || !gen.Supported() {
 		return "", fmt.Errorf("text generator not available for refinement")
 	}
+
 	tmpl, err := prompts.GetPromptTemplate("prompt_optimization_refinement")
 	if err != nil {
 		return "", fmt.Errorf("get prompt_optimization_refinement template: %w", err)
 	}
+
 	suggestionsJSON, _ := json.Marshal(suggestions)
 	args := map[string]interface{}{
 		"prompt":      prompt,
@@ -124,16 +133,18 @@ func RefinePrompt(ctx context.Context, prompt string, suggestions *SuggestionsRe
 		"task_type":   taskType,
 	}
 	substituted := prompts.SubstituteTemplate(tmpl, args)
+
 	refined, err := gen.Generate(ctx, substituted, 2048, 0.4)
 	if err != nil {
 		return "", fmt.Errorf("generate refinement: %w", err)
 	}
+
 	return strings.TrimSpace(refined), nil
 }
 
 // RefinePromptLoopOptions configures the iterative refinement loop (T-218).
 type RefinePromptLoopOptions struct {
-	MaxIterations   int     // max analyze→suggest→refine cycles (default 3)
+	MaxIterations     int     // max analyze→suggest→refine cycles (default 3)
 	MinScoreThreshold float64 // stop when all dimensions >= this (default 0.8)
 }
 
@@ -143,15 +154,19 @@ func (p *PromptAnalysis) MinScore() float64 {
 	if p.Specificity < min {
 		min = p.Specificity
 	}
+
 	if p.Completeness < min {
 		min = p.Completeness
 	}
+
 	if p.Structure < min {
 		min = p.Structure
 	}
+
 	if p.Actionability < min {
 		min = p.Actionability
 	}
+
 	return min
 }
 
@@ -161,41 +176,53 @@ func RefinePromptLoop(ctx context.Context, initialPrompt, contextHint, taskType 
 	if initialPrompt == "" {
 		return "", nil, fmt.Errorf("initial prompt is required")
 	}
+
 	if gen == nil || !gen.Supported() {
 		return "", nil, fmt.Errorf("text generator not available for refinement loop")
 	}
+
 	maxIter := 3
 	threshold := 0.8
+
 	if opts != nil {
 		if opts.MaxIterations > 0 {
 			maxIter = opts.MaxIterations
 		}
+
 		if opts.MinScoreThreshold > 0 {
 			threshold = opts.MinScoreThreshold
 		}
 	}
+
 	current := initialPrompt
+
 	var analysis *PromptAnalysis
+
 	for i := 0; i < maxIter; i++ {
 		analysis, err = AnalyzePrompt(ctx, current, contextHint, taskType, gen)
 		if err != nil {
 			return current, analysis, err
 		}
+
 		if analysis.MinScore() >= threshold {
 			return current, analysis, nil
 		}
+
 		suggestions, err := GenerateSuggestions(ctx, current, analysis, contextHint, taskType, gen)
 		if err != nil {
 			return current, analysis, err
 		}
+
 		if len(suggestions.Suggestions) == 0 {
 			return current, analysis, nil
 		}
+
 		current, err = RefinePrompt(ctx, current, suggestions, contextHint, taskType, gen)
 		if err != nil {
 			return current, analysis, err
 		}
 	}
+
 	return current, analysis, nil
 }
 
@@ -209,11 +236,13 @@ func parsePromptAnalysis(text string) (*PromptAnalysis, error) {
 
 	// Fallback: parse line-by-line for "dimension: score" (per PROMPT_OPTIMIZATION_TEMPLATE_SPEC)
 	result = PromptAnalysis{}
+
 	scoreRe := regexp.MustCompile(`(?i)(clarity|specificity|completeness|structure|actionability)\s*[:=]\s*([0-9.]+)`)
 	for _, line := range regexp.MustCompile(`\r?\n`).Split(text, -1) {
 		matches := scoreRe.FindStringSubmatch(line)
 		if len(matches) == 3 {
 			v, _ := strconv.ParseFloat(matches[2], 64)
+
 			switch strings.ToLower(matches[1]) {
 			case "clarity":
 				result.Clarity = v
@@ -228,5 +257,6 @@ func parsePromptAnalysis(text string) (*PromptAnalysis, error) {
 			}
 		}
 	}
+
 	return &result, nil
 }

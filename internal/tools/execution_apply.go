@@ -23,8 +23,8 @@ type FileChange struct {
 // ExecutionResult is the parsed response from a model using the task_execution template.
 type ExecutionResult struct {
 	Changes     []FileChange `json:"changes"`
-	Explanation string      `json:"explanation"`
-	Confidence  float64     `json:"confidence"`
+	Explanation string       `json:"explanation"`
+	Confidence  float64      `json:"confidence"`
 }
 
 // ParseExecutionResponse parses JSON from the task_execution template response.
@@ -37,6 +37,7 @@ func ParseExecutionResponse(body []byte) (*ExecutionResult, error) {
 	} else if strings.HasPrefix(text, "```") {
 		text = strings.TrimPrefix(text, "```")
 	}
+
 	text = strings.TrimSuffix(text, "```")
 	text = strings.TrimSpace(text)
 
@@ -44,6 +45,7 @@ func ParseExecutionResponse(body []byte) (*ExecutionResult, error) {
 	if err := json.Unmarshal([]byte(text), &result); err != nil {
 		return nil, fmt.Errorf("parse execution response: %w", err)
 	}
+
 	return &result, nil
 }
 
@@ -53,19 +55,24 @@ func ApplyChanges(projectRoot string, changes []FileChange) (applied []string, e
 	if projectRoot == "" {
 		return nil, fmt.Errorf("project root is required")
 	}
+
 	applied = make([]string, 0, len(changes))
+
 	for i, c := range changes {
 		if c.File == "" {
 			continue
 		}
+
 		absPath, err := security.ValidatePath(c.File, projectRoot)
 		if err != nil {
 			return applied, fmt.Errorf("change %d: invalid path %q: %w", i+1, c.File, err)
 		}
+
 		content, readErr := os.ReadFile(absPath)
 		if readErr != nil && !os.IsNotExist(readErr) {
 			return applied, fmt.Errorf("change %d: read %q: %w", i+1, c.File, readErr)
 		}
+
 		var newContent string
 		if os.IsNotExist(readErr) {
 			// New file
@@ -77,23 +84,29 @@ func ApplyChanges(projectRoot string, changes []FileChange) (applied []string, e
 				if !strings.Contains(current, c.OldContent) {
 					return applied, fmt.Errorf("change %d: file %q does not contain the specified old_content", i+1, c.File)
 				}
+
 				newContent = strings.Replace(current, c.OldContent, c.NewContent, 1)
 			} else {
 				newContent = c.NewContent
 			}
 		}
+
 		dir := filepath.Dir(absPath)
 		if err := os.MkdirAll(dir, 0755); err != nil {
 			return applied, fmt.Errorf("change %d: mkdir %q: %w", i+1, dir, err)
 		}
+
 		if err := os.WriteFile(absPath, []byte(newContent), 0644); err != nil {
 			return applied, fmt.Errorf("change %d: write %q: %w", i+1, c.File, err)
 		}
+
 		rel, _ := filepath.Rel(projectRoot, absPath)
 		if rel == "" || rel == "." {
 			rel = c.File
 		}
+
 		applied = append(applied, rel)
 	}
+
 	return applied, nil
 }

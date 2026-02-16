@@ -71,17 +71,18 @@ func EnsureConfigAndDatabase(projectRoot string) {
 // initializeDatabase initializes the database if project root is found
 // Note: Database remains open for the duration of CLI execution
 // It will be closed when the process exits or explicitly closed
-// Uses centralized config if available, falls back to legacy config
+// Uses centralized config if available, falls back to legacy config.
 func initializeDatabase() {
 	projectRoot, err := tools.FindProjectRoot()
 	if err != nil {
 		logWarn(nil, "Could not find project root", "error", err, "operation", "initializeDatabase", "fallback", "JSON")
 		return
 	}
+
 	EnsureConfigAndDatabase(projectRoot)
 }
 
-// setupServer creates and configures the MCP server
+// setupServer creates and configures the MCP server.
 func setupServer() (framework.MCPServer, error) {
 	cfg, err := config.Load()
 	if err != nil {
@@ -119,56 +120,70 @@ func Run() error {
 		return handleConfigCommand(parsed)
 	case "task":
 		initializeDatabase()
+
 		server, err := setupServer()
 		if err != nil {
 			return err
 		}
+
 		return handleTaskCommand(server, parsed)
 	case "tui":
 		initializeDatabase()
+
 		server, err := setupServer()
 		if err != nil {
 			return err
 		}
+
 		status := parsed.Subcommand
 		if status == "" && len(parsed.Positional) > 0 {
 			status = parsed.Positional[0]
 		}
+
 		return RunTUI(server, status)
 	case "lock":
 		initializeDatabase()
 		return handleLockCommand(parsed)
 	case "session":
 		initializeDatabase()
+
 		server, err := setupServer()
 		if err != nil {
 			return err
 		}
+
 		return handleSessionCommand(server, parsed)
 	case "tui3270":
 		tuiParsed := mcpcli.ParseArgs(os.Args[2:])
 		daemon := tuiParsed.GetBoolFlag("daemon", false) || tuiParsed.GetBoolFlag("d", false)
+
 		pidFile := tuiParsed.GetFlag("pid-file", "")
 		if pidFile == "" {
 			pidFile = tuiParsed.GetFlag("pidfile", "")
 		}
+
 		status := ""
 		port := 3270
+
 		for _, p := range append([]string{tuiParsed.Subcommand}, tuiParsed.Positional...) {
 			if p == "" {
 				continue
 			}
+
 			if parsedPort, err := strconv.Atoi(p); err == nil && parsedPort > 0 {
 				port = parsedPort
 			} else if status == "" {
 				status = p
 			}
 		}
+
 		initializeDatabase()
+
 		server, err := setupServer()
 		if err != nil {
 			return err
 		}
+
 		return RunTUI3270(server, status, port, daemon, pidFile)
 	}
 
@@ -181,9 +196,11 @@ func Run() error {
 		interactive = flag.Bool("i", false, "Interactive mode")
 		completion  = flag.String("completion", "", "Generate shell completion script (bash|zsh|fish)")
 	)
+
 	_ = flag.CommandLine.Parse(os.Args[1:])
 
 	initializeDatabase()
+
 	defer func() {
 		if err := database.Close(); err != nil {
 			logWarn(nil, "Error closing database", "error", err, "operation", "closeDatabase")
@@ -249,11 +266,13 @@ func colorizeToolName(name string) string {
 	if !ColorEnabled() {
 		return name
 	}
+
 	const green, reset = "\033[32m", "\033[0m"
+
 	return green + name + reset
 }
 
-// listAllTools lists all available tools
+// listAllTools lists all available tools.
 func listAllTools(server framework.MCPServer) error {
 	toolList := server.ListTools()
 	if len(toolList) == 0 {
@@ -264,20 +283,24 @@ func listAllTools(server framework.MCPServer) error {
 	_, _ = fmt.Printf("Available tools (%d total):\n\n", len(toolList))
 	for _, tool := range toolList {
 		_, _ = fmt.Printf("  %s\n", colorizeToolName(tool.Name))
+
 		if tool.Description != "" {
 			// Truncate long descriptions
 			desc := tool.Description
 			if len(desc) > 80 {
 				desc = desc[:77] + "..."
 			}
+
 			_, _ = fmt.Printf("    %s\n", desc)
 		}
+
 		_, _ = fmt.Println()
 	}
+
 	return nil
 }
 
-// executeTool executes a tool with the given arguments
+// executeTool executes a tool with the given arguments.
 func executeTool(server framework.MCPServer, toolName, argsJSON string) error {
 	ctx := context.Background()
 
@@ -314,6 +337,7 @@ func executeTool(server framework.MCPServer, toolName, argsJSON string) error {
 	if err != nil {
 		perf.FinishWithError(err)
 		logError(ctx, "Tool execution failed", "error", err, "tool", toolName)
+
 		return fmt.Errorf("tool execution failed: %w", err)
 	}
 
@@ -324,10 +348,12 @@ func executeTool(server framework.MCPServer, toolName, argsJSON string) error {
 	}
 
 	_, _ = fmt.Println("Result:")
+
 	for i, content := range result {
 		if len(result) > 1 {
 			_, _ = fmt.Printf("\n[%d] ", i+1)
 		}
+
 		_, _ = fmt.Println(content.Text)
 	}
 
@@ -338,21 +364,26 @@ func executeTool(server framework.MCPServer, toolName, argsJSON string) error {
 func runSessionHandoffList(server framework.MCPServer) error {
 	ctx := context.Background()
 	args := map[string]interface{}{"action": "handoff", "sub_action": "list"}
+
 	argsBytes, err := json.Marshal(args)
 	if err != nil {
 		return err
 	}
+
 	result, err := server.CallTool(ctx, "session", argsBytes)
 	if err != nil {
 		return err
 	}
+
 	if len(result) == 0 {
 		_, _ = fmt.Println("No handoff notes.")
 		return nil
 	}
+
 	for _, content := range result {
 		_, _ = fmt.Println(content.Text)
 	}
+
 	return nil
 }
 
@@ -362,22 +393,24 @@ func handleSessionCommand(server framework.MCPServer, parsed *mcpcli.Args) error
 	if sub == "" && len(parsed.Positional) > 0 {
 		sub = strings.ToLower(strings.TrimSpace(parsed.Positional[0]))
 	}
+
 	switch sub {
 	case "handoffs", "list":
 		return runSessionHandoffList(server)
 	default:
 		_, _ = fmt.Println("Session subcommands: handoffs")
 		_, _ = fmt.Println("  exarp-go session handoffs   View session handoff notes")
+
 		return nil
 	}
 }
 
-// generateRequestID generates a simple request ID for logging
+// generateRequestID generates a simple request ID for logging.
 func generateRequestID() string {
 	return fmt.Sprintf("req-%d", time.Now().UnixNano())
 }
 
-// findToolByName finds a tool by name in the server's tool list
+// findToolByName finds a tool by name in the server's tool list.
 func findToolByName(server framework.MCPServer, toolName string) (*framework.ToolInfo, error) {
 	toolList := server.ListTools()
 	for _, t := range toolList {
@@ -385,10 +418,11 @@ func findToolByName(server framework.MCPServer, toolName string) (*framework.Too
 			return &t, nil
 		}
 	}
+
 	return nil, fmt.Errorf("tool %q not found", toolName)
 }
 
-// displayToolInfo displays information about a tool
+// displayToolInfo displays information about a tool.
 func displayToolInfo(toolInfo *framework.ToolInfo) {
 	_, _ = fmt.Printf("\nTool: %s\n", toolInfo.Name)
 	if toolInfo.Description != "" {
@@ -396,7 +430,7 @@ func displayToolInfo(toolInfo *framework.ToolInfo) {
 	}
 }
 
-// displayExampleArgs displays example arguments for a tool
+// displayExampleArgs displays example arguments for a tool.
 func displayExampleArgs(args map[string]interface{}) error {
 	exampleJSON, err := json.MarshalIndent(args, "  ", "  ")
 	if err != nil {
@@ -405,27 +439,31 @@ func displayExampleArgs(args map[string]interface{}) error {
 
 	_, _ = fmt.Println("\nExample Arguments:")
 	_, _ = fmt.Printf("  %s\n", string(exampleJSON))
+
 	return nil
 }
 
-// displayTestResults displays the results of a tool test
+// displayTestResults displays the results of a tool test.
 func displayTestResults(result []framework.TextContent) {
 	_, _ = fmt.Println("✅ Test passed!")
+
 	if len(result) == 0 {
 		return
 	}
 
 	_, _ = fmt.Println("\nOutput:")
+
 	for _, content := range result {
 		output := content.Text
 		if len(output) > 500 {
 			output = output[:497] + "..."
 		}
+
 		_, _ = fmt.Printf("  %s\n", output)
 	}
 }
 
-// testToolExecution tests a tool with example arguments (for feature testing)
+// testToolExecution tests a tool with example arguments (for feature testing).
 func testToolExecution(server framework.MCPServer, toolName string) error {
 	_, _ = fmt.Printf("Feature Testing: %s\n", toolName)
 	_, _ = fmt.Println("=" + strings.Repeat("=", len(toolName)+18))
@@ -457,16 +495,18 @@ func testToolExecution(server framework.MCPServer, toolName string) error {
 	}
 
 	displayTestResults(result)
+
 	return nil
 }
 
-// getExampleValueForType generates an example value for a given property type
+// getExampleValueForType generates an example value for a given property type.
 func getExampleValueForType(propType string, propMap map[string]interface{}) interface{} {
 	switch propType {
 	case "string":
 		if enum, ok := propMap["enum"].([]interface{}); ok && len(enum) > 0 {
 			return enum[0]
 		}
+
 		return "example"
 	case "boolean":
 		return false
@@ -481,7 +521,7 @@ func getExampleValueForType(propType string, propMap map[string]interface{}) int
 	}
 }
 
-// generateExampleArgs generates example arguments from a tool schema
+// generateExampleArgs generates example arguments from a tool schema.
 func generateExampleArgs(schema framework.ToolSchema) map[string]interface{} {
 	args := make(map[string]interface{})
 	if schema.Properties == nil {
@@ -505,7 +545,7 @@ func generateExampleArgs(schema framework.ToolSchema) map[string]interface{} {
 	return args
 }
 
-// handleInteractiveCommand processes a single command in interactive mode
+// handleInteractiveCommand processes a single command in interactive mode.
 func handleInteractiveCommand(server framework.MCPServer, cmd string) bool {
 	switch cmd {
 	case "exit", "quit":
@@ -524,33 +564,39 @@ func handleInteractiveCommand(server framework.MCPServer, cmd string) bool {
 		_, _ = fmt.Printf("Unknown command: %s\n", cmd)
 		_, _ = fmt.Println("Type 'help' for available commands")
 	}
+
 	return true
 }
 
-// readInteractiveInput reads a line of input from the user
+// readInteractiveInput reads a line of input from the user.
 func readInteractiveInput() (string, error) {
 	_, _ = fmt.Print("exarp-go> ")
+
 	var input string
+
 	_, err := fmt.Scanln(&input)
 	if err != nil {
 		return "", err
 	}
+
 	return strings.TrimSpace(input), nil
 }
 
-// parseCommand extracts the command from user input
+// parseCommand extracts the command from user input.
 func parseCommand(input string) string {
 	if input == "" {
 		return ""
 	}
+
 	parts := strings.Fields(input)
 	if len(parts) == 0 {
 		return ""
 	}
+
 	return parts[0]
 }
 
-// runInteractive starts an interactive CLI session
+// runInteractive starts an interactive CLI session.
 func runInteractive(server framework.MCPServer) error {
 	_, _ = fmt.Println("Interactive CLI Mode")
 	_, _ = fmt.Println("===================")
@@ -574,7 +620,7 @@ func runInteractive(server framework.MCPServer) error {
 	}
 }
 
-// showUsage displays usage information
+// showUsage displays usage information.
 func showUsage() {
 	_, _ = fmt.Println("exarp-go - Command Line Interface")
 	_, _ = fmt.Println()
@@ -631,7 +677,7 @@ func showUsage() {
 	_, _ = fmt.Println()
 }
 
-// showHelp displays help information
+// showHelp displays help information.
 func showHelp() {
 	_, _ = fmt.Println("Available commands:")
 	_, _ = fmt.Println("  help              Show this help message")
@@ -641,10 +687,11 @@ func showHelp() {
 	_, _ = fmt.Println()
 }
 
-// generateCompletion generates shell completion scripts
+// generateCompletion generates shell completion scripts.
 func generateCompletion(server framework.MCPServer, shell string) error {
 	toolList := server.ListTools()
 	toolNames := make([]string, 0, len(toolList))
+
 	for _, tool := range toolList {
 		toolNames = append(toolNames, tool.Name)
 	}
@@ -661,7 +708,7 @@ func generateCompletion(server framework.MCPServer, shell string) error {
 	}
 }
 
-// generateBashCompletion generates bash completion script
+// generateBashCompletion generates bash completion script.
 func generateBashCompletion(toolNames []string) error {
 	_, _ = fmt.Println("# exarp-go bash completion")
 	_, _ = fmt.Println("_exarp_go() {")
@@ -692,10 +739,11 @@ func generateBashCompletion(toolNames []string) error {
 	_, _ = fmt.Println("    esac")
 	_, _ = fmt.Println("}")
 	_, _ = fmt.Println("complete -F _exarp_go exarp-go")
+
 	return nil
 }
 
-// generateZshCompletion generates zsh completion script
+// generateZshCompletion generates zsh completion script.
 func generateZshCompletion(toolNames []string) error {
 	_, _ = fmt.Println("#compdef exarp-go")
 	_, _ = fmt.Println()
@@ -726,10 +774,11 @@ func generateZshCompletion(toolNames []string) error {
 	_, _ = fmt.Println("}")
 	_, _ = fmt.Println()
 	_, _ = fmt.Println("_exarp_go \"$@\"")
+
 	return nil
 }
 
-// generateFishCompletion generates fish completion script
+// generateFishCompletion generates fish completion script.
 func generateFishCompletion(toolNames []string) error {
 	_, _ = fmt.Println("# exarp-go fish completion")
 	_, _ = fmt.Println()
@@ -739,5 +788,6 @@ func generateFishCompletion(toolNames []string) error {
 	_, _ = fmt.Printf("complete -c exarp-go -n '__fish_use_subcommand' -l test -d 'Test a tool with example arguments' -xa '%s'\n", strings.Join(toolNames, " "))
 	_, _ = fmt.Println("complete -c exarp-go -n '__fish_use_subcommand' -s i -l interactive -d 'Interactive mode'")
 	_, _ = fmt.Println("complete -c exarp-go -n '__fish_use_subcommand' -l completion -d 'Generate shell completion script' -xa 'bash zsh fish'")
+
 	return nil
 }

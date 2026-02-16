@@ -52,12 +52,15 @@ func TestRegisterAllResources(t *testing.T) {
 			t.Errorf("resource %q not registered", uri)
 			continue
 		}
+
 		if resource.URI != uri {
 			t.Errorf("resource.URI = %v, want %v", resource.URI, uri)
 		}
+
 		if resource.Name == "" {
 			t.Errorf("resource %q name is empty", uri)
 		}
+
 		if resource.MimeType == "" {
 			t.Errorf("resource %q mimeType is empty", uri)
 		}
@@ -245,6 +248,7 @@ func TestRegisterAllResources_HandlerRegistration(t *testing.T) {
 		if !exists {
 			continue
 		}
+
 		if resource.Handler == nil {
 			t.Errorf("resource %q handler is nil", uri)
 		}

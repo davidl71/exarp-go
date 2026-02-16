@@ -13,11 +13,11 @@ import (
 // Uses projectroot.FindGoMod (unified with exarp's projectroot package).
 var GetProjectRoot = projectroot.FindGoMod
 
-// ValidatePath re-exported from mcp-go-core for backward compatibility
+// ValidatePath re-exported from mcp-go-core for backward compatibility.
 var ValidatePath = security.ValidatePath
 
 // ValidatePathExists ensures a path is valid AND exists
-// This is a local extension not in mcp-go-core
+// This is a local extension not in mcp-go-core.
 func ValidatePathExists(path, projectRoot string) (string, error) {
 	absPath, err := ValidatePath(path, projectRoot)
 	if err != nil {
@@ -33,7 +33,7 @@ func ValidatePathExists(path, projectRoot string) (string, error) {
 }
 
 // ValidatePathWithinRoot is a convenience function that validates a path is within root
-// and returns the relative path from root
+// and returns the relative path from root.
 func ValidatePathWithinRoot(path, projectRoot string) (string, string, error) {
 	absPath, err := ValidatePath(path, projectRoot)
 	if err != nil {
@@ -41,6 +41,7 @@ func ValidatePathWithinRoot(path, projectRoot string) (string, string, error) {
 	}
 
 	absProjectRoot, _ := filepath.Abs(projectRoot)
+
 	relPath, err := filepath.Rel(absProjectRoot, absPath)
 	if err != nil {
 		return "", "", fmt.Errorf("failed to get relative path: %w", err)

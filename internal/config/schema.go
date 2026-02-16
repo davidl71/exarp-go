@@ -4,7 +4,7 @@ import (
 	"time"
 )
 
-// FullConfig represents the complete configuration structure (for future use)
+// FullConfig represents the complete configuration structure (for future use).
 type FullConfig struct {
 	Version     string            `yaml:"version"`
 	Timeouts    TimeoutsConfig    `yaml:"timeouts"`
@@ -20,7 +20,7 @@ type FullConfig struct {
 	Automations AutomationsConfig `yaml:"automations"`
 }
 
-// TimeoutsConfig contains all timeout and duration settings
+// TimeoutsConfig contains all timeout and duration settings.
 type TimeoutsConfig struct {
 	// Task management
 	TaskLockLease      time.Duration `yaml:"task_lock_lease"`
@@ -45,7 +45,7 @@ type TimeoutsConfig struct {
 	ContextBudget    time.Duration `yaml:"context_budget"`
 }
 
-// ThresholdsConfig contains all threshold and limit settings
+// ThresholdsConfig contains all threshold and limit settings.
 type ThresholdsConfig struct {
 	// Task analysis
 	SimilarityThreshold  float64 `yaml:"similarity_threshold"`
@@ -63,6 +63,7 @@ type ThresholdsConfig struct {
 	// Automation
 	MaxParallelTasks        int `yaml:"max_parallel_tasks"`
 	MaxTasksPerHost         int `yaml:"max_tasks_per_host"`
+	MaxTasksPerWave         int `yaml:"max_tasks_per_wave"` // 0 = no limit
 	MaxAutomationIterations int `yaml:"max_automation_iterations"`
 
 	// Context management
@@ -77,7 +78,7 @@ type ThresholdsConfig struct {
 	MaxPathDepth      int           `yaml:"max_path_depth"`
 }
 
-// TasksConfig contains task management defaults and settings
+// TasksConfig contains task management defaults and settings.
 type TasksConfig struct {
 	// Defaults
 	DefaultStatus   string   `yaml:"default_status"`
@@ -102,7 +103,7 @@ type TasksConfig struct {
 	AutoClarify          bool `yaml:"auto_clarify"`
 }
 
-// DatabaseConfig contains database settings
+// DatabaseConfig contains database settings.
 type DatabaseConfig struct {
 	SQLitePath          string        `yaml:"sqlite_path"`
 	JSONFallbackPath    string        `yaml:"json_fallback_path"`
@@ -120,7 +121,7 @@ type DatabaseConfig struct {
 	BackupRetentionDays int           `yaml:"backup_retention_days"`
 }
 
-// SecurityConfig contains security settings
+// SecurityConfig contains security settings.
 type SecurityConfig struct {
 	RateLimit      RateLimitConfig      `yaml:"rate_limit"`
 	PathValidation PathValidationConfig `yaml:"path_validation"`
@@ -128,7 +129,7 @@ type SecurityConfig struct {
 	AccessControl  AccessControlConfig  `yaml:"access_control"`
 }
 
-// RateLimitConfig contains rate limiting settings
+// RateLimitConfig contains rate limiting settings.
 type RateLimitConfig struct {
 	Enabled           bool          `yaml:"enabled"`
 	RequestsPerWindow int           `yaml:"requests_per_window"`
@@ -136,7 +137,7 @@ type RateLimitConfig struct {
 	BurstSize         int           `yaml:"burst_size"`
 }
 
-// PathValidationConfig contains path validation settings
+// PathValidationConfig contains path validation settings.
 type PathValidationConfig struct {
 	Enabled            bool     `yaml:"enabled"`
 	AllowAbsolutePaths bool     `yaml:"allow_absolute_paths"`
@@ -144,21 +145,21 @@ type PathValidationConfig struct {
 	BlockedPatterns    []string `yaml:"blocked_patterns"`
 }
 
-// FileLimitsConfig contains file operation limits
+// FileLimitsConfig contains file operation limits.
 type FileLimitsConfig struct {
 	MaxFileSize          int64    `yaml:"max_file_size"`
 	MaxFilesPerOperation int      `yaml:"max_files_per_operation"`
 	AllowedExtensions    []string `yaml:"allowed_extensions"`
 }
 
-// AccessControlConfig contains access control settings
+// AccessControlConfig contains access control settings.
 type AccessControlConfig struct {
 	Enabled         bool     `yaml:"enabled"`
 	DefaultPolicy   string   `yaml:"default_policy"` // "allow" or "deny"
 	RestrictedTools []string `yaml:"restricted_tools"`
 }
 
-// LoggingConfig contains logging settings
+// LoggingConfig contains logging settings.
 type LoggingConfig struct {
 	Level             string            `yaml:"level"`
 	ToolLevel         string            `yaml:"tool_level"`
@@ -175,7 +176,7 @@ type LoggingConfig struct {
 	AutoCleanup       bool              `yaml:"auto_cleanup"`
 }
 
-// LogRotationConfig contains log rotation settings
+// LogRotationConfig contains log rotation settings.
 type LogRotationConfig struct {
 	Enabled  bool  `yaml:"enabled"`
 	MaxSize  int64 `yaml:"max_size"`
@@ -183,7 +184,7 @@ type LogRotationConfig struct {
 	Compress bool  `yaml:"compress"`
 }
 
-// ToolsConfig contains tool-specific settings
+// ToolsConfig contains tool-specific settings.
 type ToolsConfig struct {
 	Scorecard ScorecardConfig `yaml:"scorecard"`
 	Report    ReportConfig    `yaml:"report"`
@@ -194,14 +195,14 @@ type ToolsConfig struct {
 	Context   ContextConfig   `yaml:"context"`
 }
 
-// ScorecardConfig contains scorecard tool settings
+// ScorecardConfig contains scorecard tool settings.
 type ScorecardConfig struct {
 	DefaultScores map[string]float64 `yaml:"default_scores"`
 	IncludeWisdom bool               `yaml:"include_wisdom"`
 	OutputFormat  string             `yaml:"output_format"`
 }
 
-// ReportConfig contains report tool settings
+// ReportConfig contains report tool settings.
 type ReportConfig struct {
 	DefaultFormat          string `yaml:"default_format"`
 	DefaultOutputPath      string `yaml:"default_output_path"`
@@ -209,7 +210,7 @@ type ReportConfig struct {
 	IncludeRecommendations bool   `yaml:"include_recommendations"`
 }
 
-// LintingConfig contains linting tool settings
+// LintingConfig contains linting tool settings.
 type LintingConfig struct {
 	DefaultLinter string        `yaml:"default_linter"`
 	AutoFix       bool          `yaml:"auto_fix"`
@@ -217,7 +218,7 @@ type LintingConfig struct {
 	Timeout       time.Duration `yaml:"timeout"`
 }
 
-// TestingConfig contains testing tool settings
+// TestingConfig contains testing tool settings.
 type TestingConfig struct {
 	DefaultFramework string `yaml:"default_framework"`
 	MinCoverage      int    `yaml:"min_coverage"`
@@ -225,7 +226,7 @@ type TestingConfig struct {
 	Verbose          bool   `yaml:"verbose"`
 }
 
-// MLXConfig contains MLX tool settings
+// MLXConfig contains MLX tool settings.
 type MLXConfig struct {
 	DefaultModel       string  `yaml:"default_model"`
 	DefaultMaxTokens   int     `yaml:"default_max_tokens"`
@@ -233,7 +234,7 @@ type MLXConfig struct {
 	Verbose            bool    `yaml:"verbose"`
 }
 
-// OllamaConfig contains Ollama tool settings
+// OllamaConfig contains Ollama tool settings.
 type OllamaConfig struct {
 	DefaultModel       string `yaml:"default_model"`
 	DefaultHost        string `yaml:"default_host"`
@@ -242,7 +243,7 @@ type OllamaConfig struct {
 	DefaultNumGPU      int    `yaml:"default_num_gpu"`
 }
 
-// ContextConfig contains context tool settings
+// ContextConfig contains context tool settings.
 type ContextConfig struct {
 	DefaultBudget             int     `yaml:"default_budget"`
 	DefaultSummarizationLevel string  `yaml:"default_summarization_level"`
@@ -250,7 +251,7 @@ type ContextConfig struct {
 	IncludeRaw                bool    `yaml:"include_raw"`
 }
 
-// WorkflowConfig contains workflow mode settings
+// WorkflowConfig contains workflow mode settings.
 type WorkflowConfig struct {
 	DefaultMode     string                `yaml:"default_mode"`
 	AutoDetectMode  bool                  `yaml:"auto_detect_mode"`
@@ -259,28 +260,28 @@ type WorkflowConfig struct {
 	Focus           FocusConfig           `yaml:"focus"`
 }
 
-// ModeSuggestionsConfig contains time-based mode suggestions
+// ModeSuggestionsConfig contains time-based mode suggestions.
 type ModeSuggestionsConfig struct {
 	Morning   string `yaml:"morning"`
 	Afternoon string `yaml:"afternoon"`
 	Evening   string `yaml:"evening"`
 }
 
-// ModeConfig contains settings for a specific workflow mode
+// ModeConfig contains settings for a specific workflow mode.
 type ModeConfig struct {
 	EnabledTools  []string `yaml:"enabled_tools"`
 	DisabledTools []string `yaml:"disabled_tools"`
 	ToolLimit     int      `yaml:"tool_limit"`
 }
 
-// FocusConfig contains focus mode settings
+// FocusConfig contains focus mode settings.
 type FocusConfig struct {
 	Enabled           bool `yaml:"enabled"`
 	ReductionTarget   int  `yaml:"reduction_target"`
 	PreserveCoreTools bool `yaml:"preserve_core_tools"`
 }
 
-// MemoryConfig contains memory and session settings
+// MemoryConfig contains memory and session settings.
 type MemoryConfig struct {
 	Categories     []string            `yaml:"categories"`
 	StoragePath    string              `yaml:"storage_path"`
@@ -291,14 +292,14 @@ type MemoryConfig struct {
 	Consolidation  ConsolidationConfig `yaml:"consolidation"`
 }
 
-// ConsolidationConfig contains memory consolidation settings
+// ConsolidationConfig contains memory consolidation settings.
 type ConsolidationConfig struct {
 	Enabled             bool    `yaml:"enabled"`
 	SimilarityThreshold float64 `yaml:"similarity_threshold"`
 	Frequency           string  `yaml:"frequency"`
 }
 
-// SessionConfig contains session settings
+// SessionConfig contains session settings.
 type SessionConfig struct {
 	AutoPrime            bool   `yaml:"auto_prime"`
 	IncludeHints         bool   `yaml:"include_hints"`
@@ -310,7 +311,7 @@ type SessionConfig struct {
 	PromptLogPath        string `yaml:"prompt_log_path"`
 }
 
-// ProjectConfig contains project-specific settings
+// ProjectConfig contains project-specific settings.
 type ProjectConfig struct {
 	Name        string         `yaml:"name"`
 	Type        string         `yaml:"type"`
@@ -323,7 +324,7 @@ type ProjectConfig struct {
 	CustomTools []string       `yaml:"custom_tools"`
 }
 
-// FeaturesConfig contains feature flags
+// FeaturesConfig contains feature flags.
 type FeaturesConfig struct {
 	SQLiteEnabled bool     `yaml:"sqlite_enabled"`
 	JSONFallback  bool     `yaml:"json_fallback"`
@@ -332,7 +333,7 @@ type FeaturesConfig struct {
 }
 
 // AutomationsConfig contains automation workflow configurations
-// This will be expanded in Phase 5
+// This will be expanded in Phase 5.
 type AutomationsConfig struct {
 	// Placeholder for now - will be implemented in Phase 5
 	// See AUTOMATION_CONFIGURATION_ANALYSIS.md for full structure

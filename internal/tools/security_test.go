@@ -12,6 +12,7 @@ import (
 func TestHandleSecurityScan(t *testing.T) {
 	tmpDir := t.TempDir()
 	os.Setenv("PROJECT_ROOT", tmpDir)
+
 	defer os.Unsetenv("PROJECT_ROOT")
 
 	tests := []struct {
@@ -32,11 +33,13 @@ func TestHandleSecurityScan(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := context.Background()
+
 			result, err := handleSecurityScan(ctx, tt.params)
 			if (err != nil) != tt.wantError {
 				t.Errorf("handleSecurityScan() error = %v, wantError %v", err, tt.wantError)
 				return
 			}
+
 			if !tt.wantError && tt.validate != nil {
 				tt.validate(t, result)
 			}
@@ -47,6 +50,7 @@ func TestHandleSecurityScan(t *testing.T) {
 func TestHandleSecurityAlerts(t *testing.T) {
 	tmpDir := t.TempDir()
 	os.Setenv("PROJECT_ROOT", tmpDir)
+
 	defer os.Unsetenv("PROJECT_ROOT")
 
 	tests := []struct {
@@ -75,11 +79,13 @@ func TestHandleSecurityAlerts(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := context.Background()
+
 			result, err := handleSecurityAlerts(ctx, tt.params)
 			if (err != nil) != tt.wantError {
 				t.Errorf("handleSecurityAlerts() error = %v, wantError %v", err, tt.wantError)
 				return
 			}
+
 			if !tt.wantError && tt.validate != nil {
 				tt.validate(t, result)
 			}
@@ -90,6 +96,7 @@ func TestHandleSecurityAlerts(t *testing.T) {
 func TestHandleSecurity(t *testing.T) {
 	tmpDir := t.TempDir()
 	os.Setenv("PROJECT_ROOT", tmpDir)
+
 	defer os.Unsetenv("PROJECT_ROOT")
 
 	tests := []struct {
@@ -124,11 +131,13 @@ func TestHandleSecurity(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := context.Background()
 			argsJSON, _ := json.Marshal(tt.params)
+
 			result, err := handleSecurity(ctx, argsJSON)
 			if (err != nil) != tt.wantError {
 				t.Errorf("handleSecurity() error = %v, wantError %v", err, tt.wantError)
 				return
 			}
+
 			if !tt.wantError && len(result) == 0 {
 				t.Error("expected non-empty result")
 			}

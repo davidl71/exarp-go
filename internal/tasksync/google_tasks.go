@@ -24,7 +24,7 @@ type GoogleTasksSource struct {
 	config  *GoogleTasksConfig
 }
 
-// GoogleTasksConfig contains configuration for Google Tasks API
+// GoogleTasksConfig contains configuration for Google Tasks API.
 type GoogleTasksConfig struct {
 	// CredentialsPath is the path to OAuth2 credentials JSON file
 	CredentialsPath string
@@ -42,12 +42,13 @@ type GoogleTasksConfig struct {
 	RedirectURL  string
 }
 
-// NewGoogleTasksSource creates a new Google Tasks source
+// NewGoogleTasksSource creates a new Google Tasks source.
 func NewGoogleTasksSource(config *GoogleTasksConfig) (*GoogleTasksSource, error) {
 	ctx := context.Background()
 
 	// Load OAuth2 config
 	var oauthConfig *oauth2.Config
+
 	if config.CredentialsPath != "" {
 		// Load from credentials file
 		b, err := os.ReadFile(config.CredentialsPath)
@@ -59,6 +60,7 @@ func NewGoogleTasksSource(config *GoogleTasksConfig) (*GoogleTasksSource, error)
 		if err != nil {
 			return nil, fmt.Errorf("unable to parse credentials: %w", err)
 		}
+
 		oauthConfig = config
 	} else if config.ClientID != "" && config.ClientSecret != "" {
 		// Use provided client credentials
@@ -81,11 +83,13 @@ func NewGoogleTasksSource(config *GoogleTasksConfig) (*GoogleTasksSource, error)
 		if err != nil {
 			return nil, fmt.Errorf("unable to get token: %w", err)
 		}
+
 		saveToken(config.TokenPath, token)
 	}
 
 	// Create service
 	client := oauthConfig.Client(ctx, token)
+
 	service, err := tasks.New(client)
 	if err != nil {
 		return nil, fmt.Errorf("unable to create tasks service: %w", err)
@@ -97,17 +101,17 @@ func NewGoogleTasksSource(config *GoogleTasksConfig) (*GoogleTasksSource, error)
 	}, nil
 }
 
-// Type returns the source type
+// Type returns the source type.
 func (s *GoogleTasksSource) Type() ExternalSourceType {
 	return SourceGoogleTasks
 }
 
-// Name returns a human-readable name
+// Name returns a human-readable name.
 func (s *GoogleTasksSource) Name() string {
 	return "Google Tasks"
 }
 
-// SyncTasks synchronizes tasks between Todo2 and Google Tasks
+// SyncTasks synchronizes tasks between Todo2 and Google Tasks.
 func (s *GoogleTasksSource) SyncTasks(ctx context.Context, todo2Tasks []*models.Todo2Task, options SyncOptions) (*SyncResult, error) {
 	result := &SyncResult{
 		Matches:          []TaskMatch{},
@@ -128,12 +132,14 @@ func (s *GoogleTasksSource) SyncTasks(ctx context.Context, todo2Tasks []*models.
 
 	// Build mapping by title/content for matching
 	todo2Map := make(map[string]*models.Todo2Task)
+
 	for _, task := range todo2Tasks {
 		key := fmt.Sprintf("%s:%s", task.Content, task.ID)
 		todo2Map[key] = task
 	}
 
 	externalMap := make(map[string]*ExternalTask)
+
 	for _, task := range externalTasks {
 		key := fmt.Sprintf("%s:%s", task.Title, task.ExternalID)
 		externalMap[key] = task
@@ -167,8 +173,10 @@ func (s *GoogleTasksSource) SyncTasks(ctx context.Context, todo2Tasks []*models.
 						Operation: "create",
 						Error:     err,
 					})
+
 					continue
 				}
+
 				result.NewExternalTasks = append(result.NewExternalTasks, extTask)
 			}
 		}
@@ -200,7 +208,7 @@ func (s *GoogleTasksSource) SyncTasks(ctx context.Context, todo2Tasks []*models.
 	return result, nil
 }
 
-// GetTasks retrieves tasks from Google Tasks
+// GetTasks retrieves tasks from Google Tasks.
 func (s *GoogleTasksSource) GetTasks(ctx context.Context, options GetTasksOptions) ([]*ExternalTask, error) {
 	taskListID := s.config.TaskListID
 	if taskListID == "" {
@@ -208,12 +216,15 @@ func (s *GoogleTasksSource) GetTasks(ctx context.Context, options GetTasksOption
 	}
 
 	call := s.service.Tasks.List(taskListID)
+
 	if options.Status != "" {
 		// Google Tasks doesn't have status filter, we'll filter after
 	}
+
 	if !options.IncludeCompleted {
 		call = call.ShowCompleted(false)
 	}
+
 	if options.Limit > 0 {
 		call = call.MaxResults(int64(options.Limit))
 	}
@@ -224,6 +235,7 @@ func (s *GoogleTasksSource) GetTasks(ctx context.Context, options GetTasksOption
 	}
 
 	var externalTasks []*ExternalTask
+
 	for _, item := range resp.Items {
 		extTask := s.googleTaskToExternal(item)
 
@@ -231,6 +243,7 @@ func (s *GoogleTasksSource) GetTasks(ctx context.Context, options GetTasksOption
 		if options.Status != "" && extTask.Status != options.Status {
 			continue
 		}
+
 		if options.Since != nil && extTask.LastModified.Before(*options.Since) {
 			continue
 		}
@@ -241,7 +254,7 @@ func (s *GoogleTasksSource) GetTasks(ctx context.Context, options GetTasksOption
 	return externalTasks, nil
 }
 
-// CreateTask creates a task in Google Tasks
+// CreateTask creates a task in Google Tasks.
 func (s *GoogleTasksSource) CreateTask(ctx context.Context, task *models.Todo2Task) (*ExternalTask, error) {
 	taskListID := s.config.TaskListID
 	if taskListID == "" {
@@ -249,6 +262,7 @@ func (s *GoogleTasksSource) CreateTask(ctx context.Context, task *models.Todo2Ta
 	}
 
 	googleTask := s.todo2ToGoogleTask(task)
+
 	created, err := s.service.Tasks.Insert(taskListID, googleTask).Do()
 	if err != nil {
 		return nil, fmt.Errorf("failed to create task: %w", err)
@@ -257,7 +271,7 @@ func (s *GoogleTasksSource) CreateTask(ctx context.Context, task *models.Todo2Ta
 	return s.googleTaskToExternal(created), nil
 }
 
-// UpdateTask updates a task in Google Tasks
+// UpdateTask updates a task in Google Tasks.
 func (s *GoogleTasksSource) UpdateTask(ctx context.Context, externalID string, task *models.Todo2Task) (*ExternalTask, error) {
 	taskListID := s.config.TaskListID
 	if taskListID == "" {
@@ -266,6 +280,7 @@ func (s *GoogleTasksSource) UpdateTask(ctx context.Context, externalID string, t
 
 	googleTask := s.todo2ToGoogleTask(task)
 	googleTask.Id = externalID
+
 	updated, err := s.service.Tasks.Update(taskListID, externalID, googleTask).Do()
 	if err != nil {
 		return nil, fmt.Errorf("failed to update task: %w", err)
@@ -274,7 +289,7 @@ func (s *GoogleTasksSource) UpdateTask(ctx context.Context, externalID string, t
 	return s.googleTaskToExternal(updated), nil
 }
 
-// DeleteTask deletes a task from Google Tasks
+// DeleteTask deletes a task from Google Tasks.
 func (s *GoogleTasksSource) DeleteTask(ctx context.Context, externalID string) error {
 	taskListID := s.config.TaskListID
 	if taskListID == "" {
@@ -284,7 +299,7 @@ func (s *GoogleTasksSource) DeleteTask(ctx context.Context, externalID string) e
 	return s.service.Tasks.Delete(taskListID, externalID).Do()
 }
 
-// TestConnection tests the connection to Google Tasks
+// TestConnection tests the connection to Google Tasks.
 func (s *GoogleTasksSource) TestConnection(ctx context.Context) error {
 	_, err := s.service.Tasklists.List().MaxResults(1).Do()
 	return err
@@ -336,6 +351,7 @@ func (s *GoogleTasksSource) todo2ToGoogleTask(task *models.Todo2Task) *tasks.Tas
 
 	// Map status
 	mapper := NewDefaultStatusMapper()
+
 	externalStatus := mapper.Todo2ToExternal(task.Status)
 	if externalStatus == "completed" || task.Status == "Done" {
 		googleTask.Status = "completed"
@@ -368,6 +384,7 @@ func (s *GoogleTasksSource) externalToTodo2(extTask *ExternalTask) *models.Todo2
 		if task.Metadata == nil {
 			task.Metadata = make(map[string]interface{})
 		}
+
 		task.Metadata["due_date"] = extTask.DueDate.Format(time.RFC3339)
 	}
 
@@ -389,6 +406,7 @@ func getTokenFromFile(filepath string) (*oauth2.Token, error) {
 
 	tok := &oauth2.Token{}
 	err = json.NewDecoder(f).Decode(tok)
+
 	return tok, err
 }
 
@@ -406,6 +424,7 @@ func getTokenFromWeb(config *oauth2.Config) (*oauth2.Token, error) {
 	if err != nil {
 		return nil, fmt.Errorf("unable to retrieve token from web: %w", err)
 	}
+
 	return tok, nil
 }
 
@@ -433,6 +452,7 @@ func getDifferences(todo2Task *models.Todo2Task, extTask *ExternalTask) []string
 	if todo2Task.Content != extTask.Title {
 		diffs = append(diffs, "title")
 	}
+
 	if todo2Task.Status != extTask.Status {
 		diffs = append(diffs, "status")
 	}

@@ -10,24 +10,24 @@ import (
 	_ "modernc.org/sqlite"
 )
 
-// SQLiteDriver implements the Driver interface for SQLite
+// SQLiteDriver implements the Driver interface for SQLite.
 type SQLiteDriver struct {
 	dialect *SQLiteDialect
 }
 
-// NewSQLiteDriver creates a new SQLite driver
+// NewSQLiteDriver creates a new SQLite driver.
 func NewSQLiteDriver() *SQLiteDriver {
 	return &SQLiteDriver{
 		dialect: NewSQLiteDialect(),
 	}
 }
 
-// Type returns the driver type
+// Type returns the driver type.
 func (d *SQLiteDriver) Type() DriverType {
 	return DriverSQLite
 }
 
-// Open opens a SQLite database connection
+// Open opens a SQLite database connection.
 func (d *SQLiteDriver) Open(dsn string) (*sql.DB, error) {
 	// If DSN is a file path, ensure directory exists
 	if !strings.HasPrefix(dsn, "file:") && !strings.Contains(dsn, "?") {
@@ -52,7 +52,7 @@ func (d *SQLiteDriver) Open(dsn string) (*sql.DB, error) {
 	return db, nil
 }
 
-// Configure performs SQLite-specific configuration
+// Configure performs SQLite-specific configuration.
 func (d *SQLiteDriver) Configure(db *sql.DB) error {
 	// Set SQLite PRAGMA settings (must be done outside transactions)
 	pragmas := []string{
@@ -77,20 +77,20 @@ func (d *SQLiteDriver) Configure(db *sql.DB) error {
 	return nil
 }
 
-// Dialect returns the SQLite dialect
+// Dialect returns the SQLite dialect.
 func (d *SQLiteDriver) Dialect() Dialect {
 	return d.dialect
 }
 
-// Close performs cleanup (no-op for SQLite)
+// Close performs cleanup (no-op for SQLite).
 func (d *SQLiteDriver) Close() error {
 	return nil
 }
 
-// SQLiteDialect implements Dialect for SQLite
+// SQLiteDialect implements Dialect for SQLite.
 type SQLiteDialect struct{}
 
-// NewSQLiteDialect creates a new SQLite dialect
+// NewSQLiteDialect creates a new SQLite dialect.
 func NewSQLiteDialect() *SQLiteDialect {
 	return &SQLiteDialect{}
 }

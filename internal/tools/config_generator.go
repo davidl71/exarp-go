@@ -12,7 +12,7 @@ import (
 	"github.com/davidl71/mcp-go-core/pkg/mcp/response"
 )
 
-// handleGenerateConfigNative handles the generate_config tool with native Go implementation
+// handleGenerateConfigNative handles the generate_config tool with native Go implementation.
 func handleGenerateConfigNative(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
 	var params map[string]interface{}
 	if err := json.Unmarshal(args, &params); err != nil {
@@ -26,6 +26,7 @@ func handleGenerateConfigNative(ctx context.Context, args json.RawMessage) ([]fr
 
 	// Get project root - try multiple methods
 	var projectRoot string
+
 	var err error
 
 	// Try FindProjectRoot first
@@ -53,7 +54,7 @@ func handleGenerateConfigNative(ctx context.Context, args json.RawMessage) ([]fr
 	}
 }
 
-// handleGenerateRules handles the "rules" action for generate_config
+// handleGenerateRules handles the "rules" action for generate_config.
 func handleGenerateRules(ctx context.Context, params map[string]interface{}, projectRoot string) ([]framework.TextContent, error) {
 	rulesStr, _ := params["rules"].(string)
 	overwrite, _ := params["overwrite"].(bool)
@@ -69,6 +70,7 @@ func handleGenerateRules(ctx context.Context, params map[string]interface{}, pro
 			"available_rules": getAvailableRuleNames(),
 			"tip":             "Run without analyze_only to generate recommended rules",
 		}
+
 		return response.FormatResult(result, "")
 	}
 
@@ -93,7 +95,7 @@ func handleGenerateRules(ctx context.Context, params map[string]interface{}, pro
 	}, "")
 }
 
-// handleGenerateIgnore handles the "ignore" action for generate_config
+// handleGenerateIgnore handles the "ignore" action for generate_config.
 func handleGenerateIgnore(ctx context.Context, params map[string]interface{}, projectRoot string) ([]framework.TextContent, error) {
 	includeIndexing := true
 	if val, ok := params["include_indexing"].(bool); ok {
@@ -116,13 +118,14 @@ func handleGenerateIgnore(ctx context.Context, params map[string]interface{}, pr
 	}, "")
 }
 
-// handleSimplifyRules handles the "simplify" action for generate_config
+// handleSimplifyRules handles the "simplify" action for generate_config.
 func handleSimplifyRules(ctx context.Context, params map[string]interface{}, projectRoot string) ([]framework.TextContent, error) {
 	ruleFilesStr, _ := params["rule_files"].(string)
 	dryRun, _ := params["dry_run"].(bool)
 	outputDir, _ := params["output_dir"].(string)
 
 	var ruleFiles []string
+
 	if ruleFilesStr != "" {
 		var parsedFiles []interface{}
 		if err := json.Unmarshal([]byte(ruleFilesStr), &parsedFiles); err == nil {
@@ -161,13 +164,13 @@ func handleSimplifyRules(ctx context.Context, params map[string]interface{}, pro
 	}, "")
 }
 
-// CursorRulesGenerator generates Cursor rules files based on project analysis
+// CursorRulesGenerator generates Cursor rules files based on project analysis.
 type CursorRulesGenerator struct {
 	projectRoot string
 	rulesDir    string
 }
 
-// NewCursorRulesGenerator creates a new CursorRulesGenerator
+// NewCursorRulesGenerator creates a new CursorRulesGenerator.
 func NewCursorRulesGenerator(projectRoot string) *CursorRulesGenerator {
 	return &CursorRulesGenerator{
 		projectRoot: projectRoot,
@@ -175,7 +178,7 @@ func NewCursorRulesGenerator(projectRoot string) *CursorRulesGenerator {
 	}
 }
 
-// AnalyzeProject analyzes the project to determine which rules to generate
+// AnalyzeProject analyzes the project to determine which rules to generate.
 func (g *CursorRulesGenerator) AnalyzeProject() map[string]interface{} {
 	analysis := map[string]interface{}{
 		"languages":         []string{},
@@ -204,6 +207,7 @@ func (g *CursorRulesGenerator) AnalyzeProject() map[string]interface{} {
 		if g.hasFilesWithExtension(ext) {
 			if !contains(languages, lang) {
 				languages = append(languages, lang)
+
 				if lang == "python" || lang == "typescript" {
 					recommendedRules = append(recommendedRules, lang)
 				}
@@ -216,11 +220,14 @@ func (g *CursorRulesGenerator) AnalyzeProject() map[string]interface{} {
 		if g.hasDependency("react") {
 			frameworks = append(frameworks, "react")
 		}
+
 		if g.hasDependency("next") {
 			frameworks = append(frameworks, "nextjs")
 		}
+
 		if g.hasDependency("express") {
 			frameworks = append(frameworks, "express")
+
 			if !contains(recommendedRules, "api") {
 				recommendedRules = append(recommendedRules, "api")
 			}
@@ -230,18 +237,23 @@ func (g *CursorRulesGenerator) AnalyzeProject() map[string]interface{} {
 	// Detect frameworks from pyproject.toml
 	if g.hasFile("pyproject.toml") {
 		content := g.readFile("pyproject.toml")
+
 		contentLower := strings.ToLower(content)
 		if strings.Contains(contentLower, "fastapi") {
 			frameworks = append(frameworks, "fastapi")
+
 			if !contains(recommendedRules, "api") {
 				recommendedRules = append(recommendedRules, "api")
 			}
 		}
+
 		if strings.Contains(contentLower, "django") {
 			frameworks = append(frameworks, "django")
 		}
+
 		if strings.Contains(contentLower, "mcp") {
 			frameworks = append(frameworks, "mcp")
+
 			if !contains(recommendedRules, "mcp") {
 				recommendedRules = append(recommendedRules, "mcp")
 			}
@@ -251,6 +263,7 @@ func (g *CursorRulesGenerator) AnalyzeProject() map[string]interface{} {
 	// Detect test files
 	if g.hasFilesWithPattern("test_*.py") || g.hasFilesWithPattern("*.test.ts") {
 		patterns = append(patterns, "testing")
+
 		if !contains(recommendedRules, "testing") {
 			recommendedRules = append(recommendedRules, "testing")
 		}
@@ -261,9 +274,11 @@ func (g *CursorRulesGenerator) AnalyzeProject() map[string]interface{} {
 	for _, dir := range apiDirs {
 		if g.hasDirectory(dir) {
 			patterns = append(patterns, "api")
+
 			if !contains(recommendedRules, "api") {
 				recommendedRules = append(recommendedRules, "api")
 			}
+
 			break
 		}
 	}
@@ -276,7 +291,7 @@ func (g *CursorRulesGenerator) AnalyzeProject() map[string]interface{} {
 	return analysis
 }
 
-// GenerateRules generates Cursor rules files
+// GenerateRules generates Cursor rules files.
 func (g *CursorRulesGenerator) GenerateRules(rules []string, overwrite bool) map[string]interface{} {
 	// Ensure rules directory exists
 	if err := os.MkdirAll(g.rulesDir, 0755); err != nil {
@@ -324,6 +339,7 @@ func (g *CursorRulesGenerator) GenerateRules(rules []string, overwrite bool) map
 				"path":   rulePath,
 				"reason": "exists",
 			})
+
 			continue
 		}
 
@@ -360,21 +376,25 @@ func (g *CursorRulesGenerator) hasFilesWithPattern(pattern string) bool {
 func (g *CursorRulesGenerator) hasFile(filename string) bool {
 	path := filepath.Join(g.projectRoot, filename)
 	_, err := os.Stat(path)
+
 	return err == nil
 }
 
 func (g *CursorRulesGenerator) hasDirectory(dirname string) bool {
 	path := filepath.Join(g.projectRoot, dirname)
 	info, err := os.Stat(path)
+
 	return err == nil && info.IsDir()
 }
 
 func (g *CursorRulesGenerator) readFile(filename string) string {
 	path := filepath.Join(g.projectRoot, filename)
+
 	content, err := os.ReadFile(path)
 	if err != nil {
 		return ""
 	}
+
 	return string(content)
 }
 
@@ -390,11 +410,13 @@ func (g *CursorRulesGenerator) hasDependency(depName string) bool {
 	}
 
 	deps := map[string]bool{}
+
 	if depsMap, ok := pkg["dependencies"].(map[string]interface{}); ok {
 		for k := range depsMap {
 			deps[k] = true
 		}
 	}
+
 	if devDepsMap, ok := pkg["devDependencies"].(map[string]interface{}); ok {
 		for k := range devDepsMap {
 			deps[k] = true
@@ -410,6 +432,7 @@ func contains(slice []string, item string) bool {
 			return true
 		}
 	}
+
 	return false
 }
 
@@ -417,7 +440,7 @@ func getAvailableRuleNames() []string {
 	return []string{"python", "typescript", "javascript", "go", "rust", "api", "testing", "mcp"}
 }
 
-// RuleTemplate represents a rule template
+// RuleTemplate represents a rule template.
 type RuleTemplate struct {
 	Filename string
 	Content  string
@@ -426,22 +449,23 @@ type RuleTemplate struct {
 func getRuleTemplate(ruleName string) (RuleTemplate, bool) {
 	templates := getRuleTemplates()
 	template, exists := templates[ruleName]
+
 	return template, exists
 }
 
-// CursorIgnoreGenerator generates .cursorignore files
+// CursorIgnoreGenerator generates .cursorignore files.
 type CursorIgnoreGenerator struct {
 	projectRoot string
 }
 
-// NewCursorIgnoreGenerator creates a new CursorIgnoreGenerator
+// NewCursorIgnoreGenerator creates a new CursorIgnoreGenerator.
 func NewCursorIgnoreGenerator(projectRoot string) *CursorIgnoreGenerator {
 	return &CursorIgnoreGenerator{
 		projectRoot: projectRoot,
 	}
 }
 
-// GenerateIgnore generates .cursorignore and optionally .cursorindexingignore files
+// GenerateIgnore generates .cursorignore and optionally .cursorindexingignore files.
 func (g *CursorIgnoreGenerator) GenerateIgnore(includeIndexing bool, analyzeProject bool, dryRun bool) map[string]interface{} {
 	results := map[string]interface{}{
 		"generated":         []interface{}{},
@@ -460,9 +484,11 @@ func (g *CursorIgnoreGenerator) GenerateIgnore(includeIndexing bool, analyzeProj
 
 	// Analyze project and add project-specific patterns
 	detectedPatterns := []string{}
+
 	if analyzeProject {
 		additionalPatterns := g.analyzeProjectForIgnorePatterns()
 		detectedPatterns = additionalPatterns
+
 		if len(additionalPatterns) > 0 {
 			cursorignoreContent += "\n# Project-specific patterns\n"
 			cursorignoreContent += strings.Join(additionalPatterns, "\n") + "\n"
@@ -506,7 +532,7 @@ func (g *CursorIgnoreGenerator) GenerateIgnore(includeIndexing bool, analyzeProj
 	return results
 }
 
-// analyzeProjectForIgnorePatterns analyzes project structure to suggest ignore patterns
+// analyzeProjectForIgnorePatterns analyzes project structure to suggest ignore patterns.
 func (g *CursorIgnoreGenerator) analyzeProjectForIgnorePatterns() []string {
 	patterns := []string{}
 
@@ -537,16 +563,19 @@ func (g *CursorIgnoreGenerator) analyzeProjectForIgnorePatterns() []string {
 func (g *CursorIgnoreGenerator) hasDirectory(dirname string) bool {
 	path := filepath.Join(g.projectRoot, dirname)
 	info, err := os.Stat(path)
+
 	return err == nil && info.IsDir()
 }
 
 func (g *CursorIgnoreGenerator) hasFilesWithPattern(pattern string) bool {
 	// Use filepath.Walk for recursive glob matching
 	found := false
+
 	filepath.Walk(g.projectRoot, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return nil // Skip errors
 		}
+
 		if !info.IsDir() {
 			matched, _ := filepath.Match(pattern, filepath.Base(path))
 			if matched {
@@ -554,14 +583,17 @@ func (g *CursorIgnoreGenerator) hasFilesWithPattern(pattern string) bool {
 				return filepath.SkipAll // Stop walking
 			}
 		}
+
 		return nil
 	})
+
 	return found
 }
 
 func (g *CursorIgnoreGenerator) hasFile(filename string) bool {
 	path := filepath.Join(g.projectRoot, filename)
 	_, err := os.Stat(path)
+
 	return err == nil
 }
 
@@ -642,19 +674,19 @@ out/
 `
 }
 
-// RuleSimplifier simplifies rules by replacing manual processes with exarp tool references
+// RuleSimplifier simplifies rules by replacing manual processes with exarp tool references.
 type RuleSimplifier struct {
 	projectRoot string
 }
 
-// NewRuleSimplifier creates a new RuleSimplifier
+// NewRuleSimplifier creates a new RuleSimplifier.
 func NewRuleSimplifier(projectRoot string) *RuleSimplifier {
 	return &RuleSimplifier{
 		projectRoot: projectRoot,
 	}
 }
 
-// SimplifyRules simplifies rule files by replacing manual processes with exarp tool references
+// SimplifyRules simplifies rule files by replacing manual processes with exarp tool references.
 func (s *RuleSimplifier) SimplifyRules(ruleFiles []string, dryRun bool, outputDir string) map[string]interface{} {
 	results := map[string]interface{}{
 		"files_processed": []map[string]interface{}{},
@@ -679,6 +711,7 @@ func (s *RuleSimplifier) SimplifyRules(ruleFiles []string, dryRun bool, outputDi
 				"file":   ruleFilePath,
 				"reason": "File not found",
 			})
+
 			continue
 		}
 
@@ -688,6 +721,7 @@ func (s *RuleSimplifier) SimplifyRules(ruleFiles []string, dryRun bool, outputDi
 				"file":   ruleFilePath,
 				"reason": fmt.Sprintf("Failed to read file: %v", err),
 			})
+
 			continue
 		}
 
@@ -725,6 +759,7 @@ func (s *RuleSimplifier) SimplifyRules(ruleFiles []string, dryRun bool, outputDi
 							"file":   ruleFilePath,
 							"reason": fmt.Sprintf("Failed to create output directory: %v", err),
 						})
+
 						continue
 					}
 				}
@@ -734,6 +769,7 @@ func (s *RuleSimplifier) SimplifyRules(ruleFiles []string, dryRun bool, outputDi
 						"file":   ruleFilePath,
 						"reason": fmt.Sprintf("Failed to write simplified file: %v", err),
 					})
+
 					continue
 				}
 			}

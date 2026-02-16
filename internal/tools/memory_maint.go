@@ -12,7 +12,7 @@ import (
 	"github.com/davidl71/mcp-go-core/pkg/mcp/response"
 )
 
-// handleMemoryMaintNative handles the memory_maint tool with native Go maintenance operations
+// handleMemoryMaintNative handles the memory_maint tool with native Go maintenance operations.
 func handleMemoryMaintNative(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
 	var params map[string]interface{}
 	if err := json.Unmarshal(args, &params); err != nil {
@@ -40,7 +40,7 @@ func handleMemoryMaintNative(ctx context.Context, args json.RawMessage) ([]frame
 	}
 }
 
-// handleMemoryMaintHealth handles health check action
+// handleMemoryMaintHealth handles health check action.
 func handleMemoryMaintHealth(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	projectRoot, err := FindProjectRoot()
 	if err != nil {
@@ -93,11 +93,13 @@ func handleMemoryMaintHealth(ctx context.Context, params map[string]interface{})
 
 	if len(memories) == 0 {
 		healthScore = 0
+
 		issues = append(issues, "No memories found")
 	} else {
 		// Check for very old memories
 		if ageDistribution[">3 months"] > len(memories)/2 {
 			healthScore -= 20
+
 			issues = append(issues, "More than 50% of memories are older than 3 months")
 		}
 
@@ -108,8 +110,10 @@ func handleMemoryMaintHealth(ctx context.Context, params map[string]interface{})
 				maxCategoryCount = count
 			}
 		}
+
 		if maxCategoryCount > len(memories)*3/4 {
 			healthScore -= 10
+
 			issues = append(issues, "One category dominates (>75% of memories)")
 		}
 	}
@@ -118,6 +122,7 @@ func handleMemoryMaintHealth(ctx context.Context, params map[string]interface{})
 	if healthScore < 80 {
 		recommendations = append(recommendations, "Consider running gc to clean up old memories")
 	}
+
 	if len(issues) > 0 {
 		recommendations = append(recommendations, "Review memory categories for better organization")
 	}
@@ -136,7 +141,7 @@ func handleMemoryMaintHealth(ctx context.Context, params map[string]interface{})
 	return response.FormatResult(result, "")
 }
 
-// handleMemoryMaintGC handles garbage collection action
+// handleMemoryMaintGC handles garbage collection action.
 func handleMemoryMaintGC(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	projectRoot, err := FindProjectRoot()
 	if err != nil {
@@ -234,9 +239,11 @@ func handleMemoryMaintGC(ctx context.Context, params map[string]interface{}) ([]
 							continue
 						}
 					}
+
 					if createdAt.Before(otherCreatedAt) {
 						shouldDelete = true
 						deletedCounts["duplicates"]++
+
 						break
 					}
 				}
@@ -274,7 +281,7 @@ func handleMemoryMaintGC(ctx context.Context, params map[string]interface{}) ([]
 	return response.FormatResult(result, "")
 }
 
-// handleMemoryMaintPrune handles prune action
+// handleMemoryMaintPrune handles prune action.
 func handleMemoryMaintPrune(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	projectRoot, err := FindProjectRoot()
 	if err != nil {
@@ -328,7 +335,9 @@ func handleMemoryMaintPrune(ctx context.Context, params map[string]interface{}) 
 				continue
 			}
 		}
+
 		age := now.Sub(createdAt)
+
 		days := int(age.Hours() / 24)
 		if days < 7 {
 			value += 0.2
@@ -360,6 +369,7 @@ func handleMemoryMaintPrune(ctx context.Context, params map[string]interface{}) 
 
 	// Determine which to prune (keep at least keepMinimum)
 	toPrune := []string{}
+
 	for i, s := range scored {
 		if i < len(scored)-keepMinimum && s.value < valueThreshold {
 			toPrune = append(toPrune, s.memory.ID)
@@ -393,7 +403,7 @@ func handleMemoryMaintPrune(ctx context.Context, params map[string]interface{}) 
 	return response.FormatResult(result, "")
 }
 
-// handleMemoryMaintConsolidate handles consolidate action
+// handleMemoryMaintConsolidate handles consolidate action.
 func handleMemoryMaintConsolidate(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	projectRoot, err := FindProjectRoot()
 	if err != nil {
@@ -468,6 +478,7 @@ func handleMemoryMaintConsolidate(ctx context.Context, params map[string]interfa
 
 		// Determine merge target ID
 		var mergeTargetID string
+
 		switch mergeStrategy {
 		case "newest":
 			latest := group[0]
@@ -476,6 +487,7 @@ func handleMemoryMaintConsolidate(ctx context.Context, params map[string]interfa
 					latest = m
 				}
 			}
+
 			mergeTargetID = latest.ID
 		case "oldest":
 			oldest := group[0]
@@ -484,6 +496,7 @@ func handleMemoryMaintConsolidate(ctx context.Context, params map[string]interfa
 					oldest = m
 				}
 			}
+
 			mergeTargetID = oldest.ID
 		case "longest":
 			longest := group[0]
@@ -492,6 +505,7 @@ func handleMemoryMaintConsolidate(ctx context.Context, params map[string]interfa
 					longest = m
 				}
 			}
+
 			mergeTargetID = longest.ID
 		default:
 			mergeTargetID = group[0].ID
@@ -529,10 +543,10 @@ func handleMemoryMaintConsolidate(ctx context.Context, params map[string]interfa
 }
 
 // handleMemoryMaintDream handles the dream action for memory_maint tool
-// Uses devwisdom-go wisdom engine directly (no MCP client needed)
+// Uses devwisdom-go wisdom engine directly (no MCP client needed).
 func handleMemoryMaintDream(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	// Get score (default: 50)
-	var score float64 = 50.0
+	var score = 50.0
 	if sc, ok := params["score"].(float64); ok {
 		score = sc
 	} else if sc, ok := params["score"].(int); ok {
@@ -571,7 +585,7 @@ func handleMemoryMaintDream(ctx context.Context, params map[string]interface{}) 
 }
 
 // similarityRatio calculates similarity ratio between two strings (0.0 - 1.0)
-// Simple implementation using character matching
+// Simple implementation using character matching.
 func similarityRatio(a, b string) float64 {
 	a = strings.ToLower(a)
 	b = strings.ToLower(b)
@@ -591,11 +605,13 @@ func similarityRatio(a, b string) float64 {
 	for _, char := range a {
 		charCountsA[char]++
 	}
+
 	for _, char := range b {
 		charCountsB[char]++
 	}
 
 	matches := 0
+
 	for char, countA := range charCountsA {
 		countB := charCountsB[char]
 		if countA < countB {
@@ -617,7 +633,7 @@ func similarityRatio(a, b string) float64 {
 	return float64(matches) / float64(maxLen)
 }
 
-// findDuplicateGroups finds groups of similar memories based on title similarity
+// findDuplicateGroups finds groups of similar memories based on title similarity.
 func findDuplicateGroups(byCategory map[string][]Memory, threshold float64) [][]Memory {
 	allGroups := [][]Memory{}
 
@@ -655,17 +671,19 @@ func findDuplicateGroups(byCategory map[string][]Memory, threshold float64) [][]
 	return allGroups
 }
 
-// mergeMemories merges multiple similar memories into one
+// mergeMemories merges multiple similar memories into one.
 func mergeMemories(memories []Memory, strategy string) Memory {
 	if len(memories) == 0 {
 		return Memory{}
 	}
+
 	if len(memories) == 1 {
 		return memories[0]
 	}
 
 	// Sort by strategy
 	var base Memory
+
 	switch strategy {
 	case "newest":
 		base = memories[0]
@@ -694,6 +712,7 @@ func mergeMemories(memories []Memory, strategy string) Memory {
 
 	// Combine unique content from all memories
 	allContent := []string{base.Content}
+
 	allTasks := make(map[string]bool)
 	for _, taskID := range base.LinkedTasks {
 		allTasks[taskID] = true
@@ -722,6 +741,7 @@ func mergeMemories(memories []Memory, strategy string) Memory {
 	}
 
 	mergedFrom := []string{}
+
 	for _, m := range memories {
 		if m.ID != base.ID {
 			mergedFrom = append(mergedFrom, m.ID)
@@ -732,6 +752,7 @@ func mergeMemories(memories []Memory, strategy string) Memory {
 	if mergedMetadata == nil {
 		mergedMetadata = make(map[string]interface{})
 	}
+
 	mergedMetadata["merged_from"] = mergedFrom
 	mergedMetadata["merged_at"] = time.Now().Format(time.RFC3339)
 

@@ -17,12 +17,13 @@ import (
 	"github.com/davidl71/mcp-go-core/pkg/mcp/response"
 )
 
-// handleTaskWorkflowNative handles task_workflow with native Go and FM chain (Apple → Ollama → stub)
+// handleTaskWorkflowNative handles task_workflow with native Go and FM chain (Apple → Ollama → stub).
 func handleTaskWorkflowNative(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	projectRoot, err := FindProjectRoot()
 	if err != nil {
 		return nil, fmt.Errorf("task_workflow: %w", err)
 	}
+
 	ctx = context.WithValue(ctx, taskStoreKey, NewDefaultTaskStore(projectRoot))
 
 	action, _ := params["action"].(string)
@@ -74,34 +75,43 @@ func handleTaskWorkflowNative(ctx context.Context, params map[string]interface{}
 // The client can send each to gotoHuman via request-human-review-with-form.
 func handleTaskWorkflowSyncApprovals(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	formID, _ := params["form_id"].(string)
+
 	var tasks []*models.Todo2Task
+
 	if db, err := database.GetDB(); err == nil && db != nil {
 		reviewTasks, err := database.GetTasksByStatus(ctx, "Review")
 		if err == nil {
 			tasks = reviewTasks
 		}
 	}
+
 	if tasks == nil {
 		store, err := getTaskStore(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("sync_approvals: %w", err)
 		}
+
 		reviewStatus := "Review"
+
 		list, err := store.ListTasks(ctx, &database.TaskFilters{Status: &reviewStatus})
 		if err != nil {
 			return nil, fmt.Errorf("sync_approvals: failed to load tasks: %w", err)
 		}
+
 		tasks = list
 	}
+
 	approvalRequests := make([]ApprovalRequest, 0, len(tasks))
 	for _, task := range tasks {
 		approvalRequests = append(approvalRequests, BuildApprovalRequestFromTask(task, formID))
 	}
+
 	result := map[string]interface{}{
 		"review_count":      len(approvalRequests),
 		"approval_requests": approvalRequests,
 		"instructions":      "Call @gotoHuman request-human-review-with-form for each approval_request (form_id, field_data). Set GOTOHUMAN_API_KEY if needed. See docs/GOTOHUMAN_API_REFERENCE.md.",
 	}
+
 	return response.FormatResult(result, "")
 }
 
@@ -112,12 +122,16 @@ func handleTaskWorkflowApplyApprovalResult(ctx context.Context, params map[strin
 	if taskID == "" {
 		return nil, fmt.Errorf("apply_approval_result requires task_id")
 	}
+
 	resultVal, _ := params["result"].(string)
 	resultVal = strings.TrimSpace(strings.ToLower(resultVal))
+
 	if resultVal != "approved" && resultVal != "rejected" {
 		return nil, fmt.Errorf("apply_approval_result requires result=approved or result=rejected")
 	}
+
 	feedback, _ := params["feedback"].(string)
+
 	newStatus := "Done"
 	if resultVal == "rejected" {
 		newStatus = "In Progress"
@@ -127,6 +141,7 @@ func handleTaskWorkflowApplyApprovalResult(ctx context.Context, params map[strin
 		"task_ids":   taskID,
 		"new_status": newStatus,
 	}
+
 	out, err := handleTaskWorkflowUpdate(ctx, updateParams)
 	if err != nil {
 		return nil, fmt.Errorf("apply_approval_result: %w", err)
@@ -142,6 +157,7 @@ func handleTaskWorkflowApplyApprovalResult(ctx context.Context, params map[strin
 				} else {
 					task.LongDescription += "\n\nRejection feedback: " + feedback
 				}
+
 				if err := store.UpdateTask(ctx, task); err != nil {
 					fmt.Fprintf(os.Stderr, "Warning: failed to save rejection feedback: %v\n", err)
 					return nil, fmt.Errorf("failed to save rejection feedback: %w", err)
@@ -149,6 +165,7 @@ func handleTaskWorkflowApplyApprovalResult(ctx context.Context, params map[strin
 			}
 		}
 	}
+
 	return out, nil
 }
 
@@ -159,12 +176,14 @@ func handleTaskWorkflowRequestApproval(ctx context.Context, params map[string]in
 	if taskID == "" {
 		return nil, fmt.Errorf("request_approval requires task_id")
 	}
+
 	formID, _ := params["form_id"].(string)
 
 	projectRoot, err := FindProjectRoot()
 	if err != nil {
 		return nil, fmt.Errorf("request_approval: %w", err)
 	}
+
 	task, err := GetTaskByID(ctx, projectRoot, taskID)
 	if err != nil || task == nil {
 		return nil, fmt.Errorf("request_approval: task %s not found: %w", taskID, err)
@@ -178,6 +197,7 @@ func handleTaskWorkflowRequestApproval(ctx context.Context, params map[string]in
 		"approval_request": req,
 		"instructions":     instructions,
 	}
+
 	return response.FormatResult(result, string(payload))
 }
 
@@ -187,6 +207,7 @@ func handleTaskWorkflowFixDates(ctx context.Context, params map[string]interface
 	if err != nil {
 		return nil, fmt.Errorf("fix_dates: %w", err)
 	}
+
 	projectRoot, err := FindProjectRoot()
 	if err != nil {
 		// Return success with count even if sync fails (DB is fixed)
@@ -197,8 +218,10 @@ func handleTaskWorkflowFixDates(ctx context.Context, params map[string]interface
 			"sync_skipped":  true,
 			"sync_error":    err.Error(),
 		}
+
 		return response.FormatResult(result, "")
 	}
+
 	if err := SyncTodo2Tasks(projectRoot); err != nil {
 		result := map[string]interface{}{
 			"success":       true,
@@ -206,22 +229,25 @@ func handleTaskWorkflowFixDates(ctx context.Context, params map[string]interface
 			"tasks_updated": updated,
 			"sync_error":    err.Error(),
 		}
+
 		return response.FormatResult(result, "")
 	}
 	// Regenerate overview so dates never show 1970
 	if overviewErr := WriteTodo2Overview(projectRoot); overviewErr != nil {
 		fmt.Fprintf(os.Stderr, "Warning: failed to write todo2-overview.mdc: %v\n", overviewErr)
 	}
+
 	result := map[string]interface{}{
 		"success":       true,
 		"method":        "native_go",
 		"tasks_updated": updated,
 		"synced":        true,
 	}
+
 	return response.FormatResult(result, "")
 }
 
-// handleTaskWorkflowClarify handles clarify action with default FM for question generation
+// handleTaskWorkflowClarify handles clarify action with default FM for question generation.
 func handleTaskWorkflowClarify(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	if !FMAvailable() {
 		return nil, ErrFMNotSupported
@@ -244,16 +270,18 @@ func handleTaskWorkflowClarify(ctx context.Context, params map[string]interface{
 	}
 }
 
-// listTasksAwaitingClarification lists tasks that need clarification
+// listTasksAwaitingClarification lists tasks that need clarification.
 func listTasksAwaitingClarification(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	store, err := getTaskStore(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get task store: %w", err)
 	}
+
 	list, err := store.ListTasks(ctx, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load tasks: %w", err)
 	}
+
 	tasks := tasksFromPtrs(list)
 
 	// Find tasks that need clarification (have clarification comments or are unclear)
@@ -298,7 +326,7 @@ func listTasksAwaitingClarification(ctx context.Context, params map[string]inter
 	return response.FormatResult(result, "")
 }
 
-// resolveTaskClarification resolves a single task clarification
+// resolveTaskClarification resolves a single task clarification.
 func resolveTaskClarification(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	taskID, _ := params["task_id"].(string)
 	if taskID == "" {
@@ -330,6 +358,7 @@ func resolveTaskClarification(ctx context.Context, params map[string]interface{}
 			if task.Metadata == nil {
 				task.Metadata = make(map[string]interface{})
 			}
+
 			task.Metadata["clarification_decision"] = decision
 		}
 
@@ -374,6 +403,7 @@ func resolveTaskClarification(ctx context.Context, params map[string]interface{}
 	if err != nil {
 		return nil, fmt.Errorf("failed to get task store: %w", err)
 	}
+
 	task, err := store.GetTask(ctx, taskID)
 	if err != nil || task == nil {
 		return nil, fmt.Errorf("task %s not found", taskID)
@@ -381,6 +411,7 @@ func resolveTaskClarification(ctx context.Context, params map[string]interface{}
 
 	clarificationText, _ := params["clarification_text"].(string)
 	decision, _ := params["decision"].(string)
+
 	moveToTodo := true
 	if move, ok := params["move_to_todo"].(bool); ok {
 		moveToTodo = move
@@ -393,12 +424,15 @@ func resolveTaskClarification(ctx context.Context, params map[string]interface{}
 			task.LongDescription += fmt.Sprintf("\n\nClarification: %s", clarificationText)
 		}
 	}
+
 	if decision != "" {
 		if task.Metadata == nil {
 			task.Metadata = make(map[string]interface{})
 		}
+
 		task.Metadata["clarification_decision"] = decision
 	}
+
 	if moveToTodo {
 		task.Status = "Todo"
 	}
@@ -417,7 +451,7 @@ func resolveTaskClarification(ctx context.Context, params map[string]interface{}
 	return response.FormatResult(result, "")
 }
 
-// resolveBatchClarifications resolves multiple clarifications
+// resolveBatchClarifications resolves multiple clarifications.
 func resolveBatchClarifications(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	decisionsJSON, _ := params["decisions_json"].(string)
 	if decisionsJSON == "" {
@@ -432,6 +466,7 @@ func resolveBatchClarifications(ctx context.Context, params map[string]interface
 	// Try database first for efficient batch updates
 	if db, err := database.GetDB(); err == nil && db != nil {
 		resolved := 0
+
 		for _, decision := range decisions {
 			taskID, _ := decision["task_id"].(string)
 			if taskID == "" {
@@ -459,6 +494,7 @@ func resolveBatchClarifications(ctx context.Context, params map[string]interface
 				if task.Metadata == nil {
 					task.Metadata = make(map[string]interface{})
 				}
+
 				task.Metadata["clarification_decision"] = decisionText
 			}
 
@@ -479,6 +515,7 @@ func resolveBatchClarifications(ctx context.Context, params map[string]interface
 
 		// Sync DB to JSON (shared workflow)
 		var syncErr error
+
 		if resolved > 0 {
 			if projectRoot, findErr := FindProjectRoot(); findErr == nil {
 				syncErr = SyncTodo2Tasks(projectRoot)
@@ -509,11 +546,13 @@ func resolveBatchClarifications(ctx context.Context, params map[string]interface
 	}
 
 	resolved := 0
+
 	for _, decision := range decisions {
 		taskID, _ := decision["task_id"].(string)
 		if taskID == "" {
 			continue
 		}
+
 		task, err := store.GetTask(ctx, taskID)
 		if err != nil || task == nil {
 			continue
@@ -521,6 +560,7 @@ func resolveBatchClarifications(ctx context.Context, params map[string]interface
 
 		clarificationText, _ := decision["clarification_text"].(string)
 		decisionText, _ := decision["decision"].(string)
+
 		moveToTodo := true
 		if move, ok := decision["move_to_todo"].(bool); ok {
 			moveToTodo = move
@@ -533,12 +573,15 @@ func resolveBatchClarifications(ctx context.Context, params map[string]interface
 				task.LongDescription += fmt.Sprintf("\n\nClarification: %s", clarificationText)
 			}
 		}
+
 		if decisionText != "" {
 			if task.Metadata == nil {
 				task.Metadata = make(map[string]interface{})
 			}
+
 			task.Metadata["clarification_decision"] = decisionText
 		}
+
 		if moveToTodo {
 			task.Status = "Todo"
 		}
@@ -546,6 +589,7 @@ func resolveBatchClarifications(ctx context.Context, params map[string]interface
 		if err := store.UpdateTask(ctx, task); err != nil {
 			continue
 		}
+
 		resolved++
 	}
 
@@ -565,6 +609,7 @@ func handleTaskWorkflowDelete(ctx context.Context, params map[string]interface{}
 	// Optional MCP Elicitation: confirm delete when confirm_via_elicitation is true.
 	// Use a timeout so elicitation never blocks indefinitely.
 	const elicitationTimeout = 15 * time.Second
+
 	if confirm, _ := params["confirm_via_elicitation"].(bool); confirm {
 		if eliciter := mcpframework.EliciterFromContext(ctx); eliciter != nil {
 			schema := map[string]interface{}{
@@ -573,17 +618,22 @@ func handleTaskWorkflowDelete(ctx context.Context, params map[string]interface{}
 					"proceed": map[string]interface{}{"type": "boolean", "description": "Proceed with delete?"},
 				},
 			}
+
 			elicitCtx, cancel := context.WithTimeout(ctx, elicitationTimeout)
 			defer cancel()
+
 			action, content, err := eliciter.ElicitForm(elicitCtx, "Proceed with deleting the specified task(s)?", schema)
 			if err != nil || action != "accept" {
 				msg := "Delete cancelled by user or elicitation unavailable"
 				if err != nil && (errors.Is(err, context.DeadlineExceeded) || (elicitCtx.Err() != nil && errors.Is(elicitCtx.Err(), context.DeadlineExceeded))) {
 					msg = "Delete cancelled: elicitation timed out"
 				}
+
 				result := map[string]interface{}{"cancelled": true, "message": msg}
+
 				return response.FormatResult(result, "")
 			}
+
 			if content != nil {
 				if proceed, ok := content["proceed"].(bool); ok && !proceed {
 					result := map[string]interface{}{"cancelled": true, "message": "Delete cancelled by user"}
@@ -597,31 +647,39 @@ func handleTaskWorkflowDelete(ctx context.Context, params map[string]interface{}
 	if len(ids) == 0 {
 		return nil, fmt.Errorf("task_id or task_ids is required for delete action")
 	}
+
 	var deleted, failed []string
+
 	for _, id := range ids {
 		if id == "" {
 			continue
 		}
+
 		if err := database.DeleteTask(ctx, id); err != nil {
 			failed = append(failed, id+": "+err.Error())
 			continue
 		}
+
 		deleted = append(deleted, id)
 	}
+
 	projectRoot, err := FindProjectRoot()
 	if err != nil {
 		result := map[string]interface{}{"success": len(failed) == 0, "method": "database", "deleted": deleted, "failed": failed, "sync_skipped": true}
 		return response.FormatResult(result, "")
 	}
+
 	if err := SyncTodo2Tasks(projectRoot); err != nil {
 		result := map[string]interface{}{"success": len(failed) == 0, "method": "database", "deleted": deleted, "failed": failed, "sync_error": err.Error()}
 		return response.FormatResult(result, "")
 	}
+
 	result := map[string]interface{}{"success": len(failed) == 0, "method": "database", "deleted": deleted, "failed": failed, "synced": true}
+
 	return response.FormatResult(result, "")
 }
 
-// generateClarificationQuestion uses the default FM to generate clarification questions
+// generateClarificationQuestion uses the default FM to generate clarification questions.
 func generateClarificationQuestion(ctx context.Context, task Todo2Task, reason string) string {
 	if !FMAvailable() {
 		return fmt.Sprintf("Task needs clarification: %s", reason)
@@ -641,5 +699,6 @@ Generate a single, specific question that would help clarify what needs to be do
 	if err != nil {
 		return fmt.Sprintf("Task needs clarification: %s", reason)
 	}
+
 	return strings.TrimSpace(result)
 }

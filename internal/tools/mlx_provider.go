@@ -32,9 +32,11 @@ func (m *mlxProvider) Generate(ctx context.Context, prompt string, maxTokens int
 		"max_tokens":  maxTokens,
 		"temperature": float64(temperature),
 	}
+
 	result, err := InvokeMLXTool(ctx, params)
 	if err != nil {
 		return "", err
 	}
+
 	return parseGeneratedTextFromMLXResponse(result)
 }

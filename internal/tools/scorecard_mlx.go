@@ -6,7 +6,7 @@ import (
 )
 
 // GoScorecardToMap converts GoScorecardResult to map for MLX processing
-// Exported for use by resource handlers
+// Exported for use by resource handlers.
 func GoScorecardToMap(scorecard *GoScorecardResult) map[string]interface{} {
 	result := make(map[string]interface{})
 
@@ -35,7 +35,7 @@ func GoScorecardToMap(scorecard *GoScorecardResult) map[string]interface{} {
 	return result
 }
 
-// FormatGoScorecardWithMLX formats scorecard with MLX insights
+// FormatGoScorecardWithMLX formats scorecard with MLX insights.
 func FormatGoScorecardWithMLX(scorecard *GoScorecardResult, insights map[string]interface{}) string {
 	var sb strings.Builder
 
@@ -52,6 +52,7 @@ func FormatGoScorecardWithMLX(scorecard *GoScorecardResult, insights map[string]
 		if model, ok := insights["model"].(string); ok {
 			sb.WriteString(fmt.Sprintf("Model: %s\n\n", model))
 		}
+
 		if generatedBy, ok := insights["generated_by"].(string); ok {
 			sb.WriteString(fmt.Sprintf("Source: %s\n\n", generatedBy))
 		}
@@ -63,7 +64,7 @@ func FormatGoScorecardWithMLX(scorecard *GoScorecardResult, insights map[string]
 	return sb.String()
 }
 
-// Helper functions to calculate component scores
+// Helper functions to calculate component scores.
 func calculateTestingScore(scorecard *GoScorecardResult) float64 {
 	score := 0.0
 	checks := 0
@@ -72,6 +73,7 @@ func calculateTestingScore(scorecard *GoScorecardResult) float64 {
 		score += 30
 		checks++
 	}
+
 	if scorecard.Health.GoTestCoverage >= 80 {
 		score += 40
 		checks++
@@ -79,6 +81,7 @@ func calculateTestingScore(scorecard *GoScorecardResult) float64 {
 		score += 20
 		checks++
 	}
+
 	if scorecard.Metrics.GoTestFiles > 0 {
 		score += 30
 		checks++
@@ -87,6 +90,7 @@ func calculateTestingScore(scorecard *GoScorecardResult) float64 {
 	if checks > 0 {
 		return score / float64(checks) * 100
 	}
+
 	return 0
 }
 
@@ -98,14 +102,17 @@ func calculateSecurityScore(scorecard *GoScorecardResult) float64 {
 		score += 40
 		checks++
 	}
+
 	if scorecard.Health.PathBoundaryEnforcement {
 		score += 30
 		checks++
 	}
+
 	if scorecard.Health.RateLimiting {
 		score += 15
 		checks++
 	}
+
 	if scorecard.Health.AccessControl {
 		score += 15
 		checks++
@@ -114,31 +121,38 @@ func calculateSecurityScore(scorecard *GoScorecardResult) float64 {
 	if checks > 0 {
 		return score / float64(checks) * 100
 	}
+
 	return 50 // Default if no checks
 }
 
 func calculateDocumentationScore(scorecard *GoScorecardResult) float64 {
 	score := 0.0
 	checks := 0
+
 	if scorecard.Health.ReadmeExists {
 		score += 40
 		checks++
 	}
+
 	if scorecard.Health.DocsDirExists {
 		score += 30
 		checks++
 	}
+
 	if scorecard.Health.DocsFileCount > 0 {
 		score += 15
 		checks++
 	}
+
 	if scorecard.Health.CursorDocsExist {
 		score += 15
 		checks++
 	}
+
 	if checks > 0 {
 		return score
 	}
+
 	return 0
 }
 
@@ -156,14 +170,17 @@ func calculateCICDScore(scorecard *GoScorecardResult) float64 {
 		score += 25
 		checks++
 	}
+
 	if scorecard.Health.GoTestPasses {
 		score += 25
 		checks++
 	}
+
 	if scorecard.Health.GoLintPasses {
 		score += 25
 		checks++
 	}
+
 	if scorecard.Health.GoVetPasses {
 		score += 25
 		checks++
@@ -172,26 +189,31 @@ func calculateCICDScore(scorecard *GoScorecardResult) float64 {
 	if checks > 0 {
 		return score / float64(checks) * 100
 	}
+
 	return 0
 }
 
 // ExtractBlockers extracts blockers from scorecard
-// Exported for use by resource handlers
+// Exported for use by resource handlers.
 func ExtractBlockers(scorecard *GoScorecardResult) []string {
 	blockers := []string{}
 
 	if !scorecard.Health.GoModExists {
 		blockers = append(blockers, "Missing go.mod file")
 	}
+
 	if !scorecard.Health.GoBuildPasses {
 		blockers = append(blockers, "Go build fails")
 	}
+
 	if !scorecard.Health.GoTestPasses {
 		blockers = append(blockers, "Go tests fail")
 	}
+
 	if scorecard.Health.GoTestCoverage < 50 && scorecard.Metrics.GoTestFiles > 0 {
 		blockers = append(blockers, fmt.Sprintf("Low test coverage: %.1f%%", scorecard.Health.GoTestCoverage))
 	}
+
 	if !scorecard.Health.GoVulnCheckPasses {
 		blockers = append(blockers, "Security vulnerabilities detected")
 	}

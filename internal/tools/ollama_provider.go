@@ -26,6 +26,7 @@ func DefaultOllama() OllamaProvider {
 	if defaultOllama == nil {
 		return &nativeOnlyOllama{}
 	}
+
 	return defaultOllama
 }
 

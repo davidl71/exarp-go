@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-// cachedFile represents a cached file with its content and metadata
+// cachedFile represents a cached file with its content and metadata.
 type cachedFile struct {
 	content  []byte
 	mtime    time.Time
@@ -14,19 +14,19 @@ type cachedFile struct {
 	ttl      time.Duration
 }
 
-// FileCache provides thread-safe file caching with mtime-based invalidation
+// FileCache provides thread-safe file caching with mtime-based invalidation.
 type FileCache struct {
 	cache sync.Map // map[string]*cachedFile
 	mu    sync.RWMutex
 }
 
-// NewFileCache creates a new file cache instance
+// NewFileCache creates a new file cache instance.
 func NewFileCache() *FileCache {
 	return &FileCache{}
 }
 
 // ReadFile reads a file, using cache if available and valid
-// Returns the file content and a boolean indicating if it was a cache hit
+// Returns the file content and a boolean indicating if it was a cache hit.
 func (fc *FileCache) ReadFile(path string) ([]byte, bool, error) {
 	// Check cache first
 	if cached, ok := fc.cache.Load(path); ok {
@@ -70,6 +70,7 @@ func (fc *FileCache) ReadFile(path string) ([]byte, bool, error) {
 			content:  content,
 			cachedAt: time.Now(),
 		})
+
 		return content, false, nil
 	}
 
@@ -85,7 +86,7 @@ func (fc *FileCache) ReadFile(path string) ([]byte, bool, error) {
 }
 
 // ReadFileWithTTL reads a file with a TTL (Time-To-Live) for cache expiration
-// The cache entry will expire after the specified TTL, regardless of mtime
+// The cache entry will expire after the specified TTL, regardless of mtime.
 func (fc *FileCache) ReadFileWithTTL(path string, ttl time.Duration) ([]byte, bool, error) {
 	// Check cache first
 	if cached, ok := fc.cache.Load(path); ok {
@@ -129,6 +130,7 @@ func (fc *FileCache) ReadFileWithTTL(path string, ttl time.Duration) ([]byte, bo
 			cachedAt: time.Now(),
 			ttl:      ttl,
 		})
+
 		return content, false, nil
 	}
 
@@ -143,12 +145,12 @@ func (fc *FileCache) ReadFileWithTTL(path string, ttl time.Duration) ([]byte, bo
 	return content, false, nil
 }
 
-// Invalidate removes a file from the cache
+// Invalidate removes a file from the cache.
 func (fc *FileCache) Invalidate(path string) {
 	fc.cache.Delete(path)
 }
 
-// Clear removes all entries from the cache
+// Clear removes all entries from the cache.
 func (fc *FileCache) Clear() {
 	fc.cache.Range(func(key, value interface{}) bool {
 		fc.cache.Delete(key)
@@ -156,15 +158,17 @@ func (fc *FileCache) Clear() {
 	})
 }
 
-// GetStats returns cache statistics
+// GetStats returns cache statistics.
 func (fc *FileCache) GetStats() map[string]interface{} {
 	var count int
+
 	var totalSize int64
 
 	fc.cache.Range(func(key, value interface{}) bool {
 		count++
 		cf := value.(*cachedFile)
 		totalSize += int64(len(cf.content))
+
 		return true
 	})
 
@@ -174,14 +178,15 @@ func (fc *FileCache) GetStats() map[string]interface{} {
 	}
 }
 
-// Global file cache instance (optional - can be used as singleton)
+// Global file cache instance (optional - can be used as singleton).
 var globalFileCache *FileCache
 var globalFileCacheOnce sync.Once
 
-// GetGlobalFileCache returns the global file cache instance (singleton)
+// GetGlobalFileCache returns the global file cache instance (singleton).
 func GetGlobalFileCache() *FileCache {
 	globalFileCacheOnce.Do(func() {
 		globalFileCache = NewFileCache()
 	})
+
 	return globalFileCache
 }

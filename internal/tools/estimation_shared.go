@@ -23,8 +23,10 @@ func GetPreferredBackend(metadata map[string]interface{}) string {
 	if metadata == nil {
 		return ""
 	}
+
 	s, _ := metadata[MetadataKeyPreferredBackend].(string)
 	s = strings.TrimSpace(strings.ToLower(s))
+
 	switch s {
 	case "fm", "mlx", "ollama":
 		return s
@@ -33,7 +35,7 @@ func GetPreferredBackend(metadata map[string]interface{}) string {
 	}
 }
 
-// HistoricalTask represents a completed task for historical analysis
+// HistoricalTask represents a completed task for historical analysis.
 type HistoricalTask struct {
 	Name           string
 	Details        string
@@ -45,7 +47,7 @@ type HistoricalTask struct {
 	CompletedAt    string
 }
 
-// EstimationResult represents the result of task duration estimation
+// EstimationResult represents the result of task duration estimation.
 type EstimationResult struct {
 	EstimateHours float64                `json:"estimate_hours"`
 	Confidence    float64                `json:"confidence"`
@@ -55,11 +57,12 @@ type EstimationResult struct {
 	Metadata      map[string]interface{} `json:"metadata"`
 }
 
-// estimateStatistically estimates task duration using statistical methods
+// estimateStatistically estimates task duration using statistical methods.
 func estimateStatistically(projectRoot, name, details string, tags []string, priority string, useHistorical bool) (*EstimationResult, error) {
 	text := strings.ToLower(name + " " + details)
 
 	var historicalEstimate *float64
+
 	var historicalConfidence float64
 
 	// Strategy 1: Historical data matching
@@ -83,7 +86,9 @@ func estimateStatistically(projectRoot, name, details string, tags []string, pri
 
 	// Combine estimates
 	var baseEstimate float64
+
 	var confidence float64
+
 	var method string
 
 	if historicalEstimate != nil && historicalConfidence > 0.2 {
@@ -129,7 +134,7 @@ func estimateStatistically(projectRoot, name, details string, tags []string, pri
 }
 
 // handleEstimationAnalyze handles the analyze action
-// Analyzes estimation accuracy by comparing estimated vs actual hours from historical tasks
+// Analyzes estimation accuracy by comparing estimated vs actual hours from historical tasks.
 func handleEstimationAnalyze(projectRoot string, params map[string]interface{}) (string, error) {
 	historical, err := loadHistoricalTasks(projectRoot)
 	if err != nil {
@@ -184,6 +189,7 @@ func handleEstimationAnalyze(projectRoot string, params map[string]interface{}) 
 	errors := make([]float64, len(completedTasks))
 	errorPcts := make([]float64, len(completedTasks))
 	absErrorPcts := make([]float64, len(completedTasks))
+
 	for i, task := range completedTasks {
 		errors[i] = task.error
 		errorPcts[i] = task.errorPct
@@ -195,12 +201,14 @@ func handleEstimationAnalyze(projectRoot string, params map[string]interface{}) 
 	for _, e := range errors {
 		meanError += e
 	}
+
 	meanError /= float64(len(errors))
 
 	// Median error
 	sortedErrors := make([]float64, len(errors))
 	copy(sortedErrors, errors)
 	sort.Float64s(sortedErrors)
+
 	medianError := sortedErrors[len(sortedErrors)/2]
 	if len(sortedErrors)%2 == 0 {
 		medianError = (sortedErrors[len(sortedErrors)/2-1] + sortedErrors[len(sortedErrors)/2]) / 2
@@ -211,6 +219,7 @@ func handleEstimationAnalyze(projectRoot string, params map[string]interface{}) 
 	for _, e := range errors {
 		meanAbsoluteError += math.Abs(e)
 	}
+
 	meanAbsoluteError /= float64(len(errors))
 
 	// Mean error percentage
@@ -218,6 +227,7 @@ func handleEstimationAnalyze(projectRoot string, params map[string]interface{}) 
 	for _, e := range errorPcts {
 		meanErrorPct += e
 	}
+
 	meanErrorPct /= float64(len(errorPcts))
 
 	// Mean absolute error percentage
@@ -225,18 +235,21 @@ func handleEstimationAnalyze(projectRoot string, params map[string]interface{}) 
 	for _, e := range absErrorPcts {
 		meanAbsErrorPct += e
 	}
+
 	meanAbsErrorPct /= float64(len(absErrorPcts))
 
 	// Count over/under estimations
 	overEstimatedCount := 0
 	underEstimatedCount := 0
 	accurateCount := 0
+
 	for _, task := range completedTasks {
 		if task.error < 0 {
 			overEstimatedCount++
 		} else if task.error > 0 {
 			underEstimatedCount++
 		}
+
 		if task.absErrorPct < 20 {
 			accurateCount++
 		}
@@ -279,7 +292,7 @@ func handleEstimationAnalyze(projectRoot string, params map[string]interface{}) 
 	return string(resultJSON), nil
 }
 
-// analyzeByTag analyzes estimation accuracy by tag
+// analyzeByTag analyzes estimation accuracy by tag.
 func analyzeByTag(completedTasks []struct {
 	name           string
 	tags           []string
@@ -307,12 +320,14 @@ func analyzeByTag(completedTasks []struct {
 			tagTasks["untagged"] = append(tagTasks["untagged"], task)
 			continue
 		}
+
 		for _, tag := range task.tags {
 			tagTasks[tag] = append(tagTasks[tag], task)
 		}
 	}
 
 	tagStats := make(map[string]interface{})
+
 	for tag, tasks := range tagTasks {
 		if len(tasks) == 0 {
 			continue
@@ -320,10 +335,12 @@ func analyzeByTag(completedTasks []struct {
 
 		meanError := 0.0
 		meanAbsErrorPct := 0.0
+
 		for _, task := range tasks {
 			meanError += task.error
 			meanAbsErrorPct += task.absErrorPct
 		}
+
 		meanError /= float64(len(tasks))
 		meanAbsErrorPct /= float64(len(tasks))
 
@@ -337,7 +354,7 @@ func analyzeByTag(completedTasks []struct {
 	return tagStats
 }
 
-// analyzeByPriority analyzes estimation accuracy by priority
+// analyzeByPriority analyzes estimation accuracy by priority.
 func analyzeByPriority(completedTasks []struct {
 	name           string
 	tags           []string
@@ -365,10 +382,12 @@ func analyzeByPriority(completedTasks []struct {
 		if priority == "" {
 			priority = "medium"
 		}
+
 		priorityTasks[priority] = append(priorityTasks[priority], task)
 	}
 
 	priorityStats := make(map[string]interface{})
+
 	for priority, tasks := range priorityTasks {
 		if len(tasks) == 0 {
 			continue
@@ -376,10 +395,12 @@ func analyzeByPriority(completedTasks []struct {
 
 		meanError := 0.0
 		meanAbsErrorPct := 0.0
+
 		for _, task := range tasks {
 			meanError += task.error
 			meanAbsErrorPct += task.absErrorPct
 		}
+
 		meanError /= float64(len(tasks))
 		meanAbsErrorPct /= float64(len(tasks))
 
@@ -393,7 +414,7 @@ func analyzeByPriority(completedTasks []struct {
 	return priorityStats
 }
 
-// handleEstimationStats handles the stats action
+// handleEstimationStats handles the stats action.
 func handleEstimationStats(projectRoot string, params map[string]interface{}) (string, error) {
 	historical, err := loadHistoricalTasks(projectRoot)
 	if err != nil {
@@ -414,6 +435,7 @@ func handleEstimationStats(projectRoot string, params map[string]interface{}) (s
 	for _, h := range actualHours {
 		sum += h
 	}
+
 	mean := sum / float64(len(actualHours))
 
 	// Sort for median
@@ -434,6 +456,7 @@ func handleEstimationStats(projectRoot string, params map[string]interface{}) (s
 	for _, h := range actualHours {
 		variance += (h - mean) * (h - mean)
 	}
+
 	stdDev := math.Sqrt(variance / float64(len(actualHours)))
 
 	stats := map[string]interface{}{
@@ -459,16 +482,20 @@ const estimateBatchMaxTasks = 50
 // Params: task_ids (array or comma-separated string), or status_filter (e.g. "Todo") to estimate all matching tasks.
 func handleEstimationBatch(projectRoot string, params map[string]interface{}) (string, error) {
 	store := NewDefaultTaskStore(projectRoot)
+
 	list, err := store.ListTasks(context.Background(), nil)
 	if err != nil {
 		return "", fmt.Errorf("failed to load tasks: %w", err)
 	}
+
 	tasks := tasksFromPtrs(list)
 
 	// Resolve task set: by IDs or by status filter
 	var target []Todo2Task
+
 	if idsRaw, ok := params["task_ids"]; ok && idsRaw != nil {
 		var ids []string
+
 		switch v := idsRaw.(type) {
 		case []interface{}:
 			for _, x := range v {
@@ -486,10 +513,12 @@ func handleEstimationBatch(projectRoot string, params map[string]interface{}) (s
 				}
 			}
 		}
+
 		idSet := make(map[string]bool)
 		for _, id := range ids {
 			idSet[id] = true
 		}
+
 		for _, t := range tasks {
 			if idSet[t.ID] {
 				target = append(target, t)
@@ -532,10 +561,12 @@ func handleEstimationBatch(projectRoot string, params map[string]interface{}) (s
 		if details == "" {
 			details = task.Content
 		}
+
 		priority := task.Priority
 		if priority == "" {
 			priority = "medium"
 		}
+
 		res, err := estimateStatistically(projectRoot, task.Content, details, task.Tags, priority, useHistorical)
 		if err != nil {
 			estimates = append(estimates, map[string]interface{}{
@@ -545,8 +576,10 @@ func handleEstimationBatch(projectRoot string, params map[string]interface{}) (s
 				"method":         "error",
 				"error":          err.Error(),
 			})
+
 			continue
 		}
+
 		totalHours += res.EstimateHours
 		byPriority[priority] = byPriority[priority] + res.EstimateHours
 		estimates = append(estimates, map[string]interface{}{
@@ -569,6 +602,7 @@ func handleEstimationBatch(projectRoot string, params map[string]interface{}) (s
 	if err != nil {
 		return "", fmt.Errorf("failed to marshal batch result: %w", err)
 	}
+
 	return string(resultJSON), nil
 }
 
@@ -580,6 +614,7 @@ func loadHistoricalTasks(projectRoot string) ([]HistoricalTask, error) {
 	// Try database first (same pattern as LoadTodo2Tasks)
 	if list, err := database.GetDoneTasksForEstimation(context.Background()); err == nil && len(list) > 0 {
 		historical := make([]HistoricalTask, 0, len(list))
+
 		for _, task := range list {
 			actualHours := task.ActualHours
 			if actualHours == 0 {
@@ -587,6 +622,7 @@ func loadHistoricalTasks(projectRoot string) ([]HistoricalTask, error) {
 				if completedAt == "" {
 					completedAt = task.LastModified
 				}
+
 				if task.Created != "" && completedAt != "" {
 					if createdTime, err := time.Parse(time.RFC3339, task.Created); err == nil {
 						if completedTime, err := time.Parse(time.RFC3339, completedAt); err == nil {
@@ -600,11 +636,13 @@ func loadHistoricalTasks(projectRoot string) ([]HistoricalTask, error) {
 					}
 				}
 			}
+
 			if actualHours > 0 {
 				name := task.Content
 				if name == "" {
 					name = task.ID
 				}
+
 				historical = append(historical, HistoricalTask{
 					Name:           name,
 					Details:        task.LongDescription,
@@ -617,6 +655,7 @@ func loadHistoricalTasks(projectRoot string) ([]HistoricalTask, error) {
 				})
 			}
 		}
+
 		if len(historical) > 0 {
 			return historical, nil
 		}
@@ -636,17 +675,20 @@ func loadHistoricalTasksFromJSON(projectRoot string) ([]HistoricalTask, error) {
 		if os.IsNotExist(err) {
 			return []HistoricalTask{}, nil
 		}
+
 		return nil, fmt.Errorf("failed to read Todo2 file: %w", err)
 	}
 
 	var state struct {
 		Todos []HistoricalTaskData `json:"todos"`
 	}
+
 	if err := json.Unmarshal(data, &state); err != nil {
 		return nil, fmt.Errorf("failed to parse Todo2 JSON: %w", err)
 	}
 
 	historical := make([]HistoricalTask, 0)
+
 	for _, task := range state.Todos {
 		status := normalizeStatus(task.Status)
 		if status != "Done" {
@@ -659,6 +701,7 @@ func loadHistoricalTasksFromJSON(projectRoot string) ([]HistoricalTask, error) {
 			if completedAt == "" {
 				completedAt = task.LastModified
 			}
+
 			if task.Created != "" && completedAt != "" {
 				if createdTime, err := time.Parse(time.RFC3339, task.Created); err == nil {
 					if completedTime, err := time.Parse(time.RFC3339, completedAt); err == nil {
@@ -678,10 +721,12 @@ func loadHistoricalTasksFromJSON(projectRoot string) ([]HistoricalTask, error) {
 			if name == "" {
 				name = task.Content
 			}
+
 			details := task.LongDescription
 			if details == "" {
 				details = task.Details
 			}
+
 			historical = append(historical, HistoricalTask{
 				Name:           name,
 				Details:        details,
@@ -698,7 +743,7 @@ func loadHistoricalTasksFromJSON(projectRoot string) ([]HistoricalTask, error) {
 	return historical, nil
 }
 
-// estimateFromHistory estimates using historical data matching
+// estimateFromHistory estimates using historical data matching.
 func estimateFromHistory(text string, tags []string, priority string, historical []HistoricalTask) (*float64, float64) {
 	type match struct {
 		actualHours float64
@@ -706,6 +751,7 @@ func estimateFromHistory(text string, tags []string, priority string, historical
 	}
 
 	matches := make([]match, 0)
+
 	textWords := make(map[string]bool)
 	for _, word := range strings.Fields(text) {
 		textWords[word] = true
@@ -715,6 +761,7 @@ func estimateFromHistory(text string, tags []string, priority string, historical
 		score := 0.0
 		recordText := strings.ToLower(record.Name + " " + record.Details)
 		recordWords := make(map[string]bool)
+
 		for _, word := range strings.Fields(recordText) {
 			recordWords[word] = true
 		}
@@ -723,6 +770,7 @@ func estimateFromHistory(text string, tags []string, priority string, historical
 		if len(textWords) > 0 && len(recordWords) > 0 {
 			intersection := 0
 			union := len(textWords)
+
 			for word := range recordWords {
 				if textWords[word] {
 					intersection++
@@ -730,6 +778,7 @@ func estimateFromHistory(text string, tags []string, priority string, historical
 					union++
 				}
 			}
+
 			if union > 0 {
 				wordOverlap := float64(intersection) / float64(union)
 				score += wordOverlap * 0.5
@@ -739,15 +788,18 @@ func estimateFromHistory(text string, tags []string, priority string, historical
 		// Tag matching
 		if len(tags) > 0 && len(record.Tags) > 0 {
 			tagOverlap := 0
+
 			tagSet := make(map[string]bool)
 			for _, tag := range tags {
 				tagSet[strings.ToLower(tag)] = true
 			}
+
 			for _, tag := range record.Tags {
 				if tagSet[strings.ToLower(tag)] {
 					tagOverlap++
 				}
 			}
+
 			if len(record.Tags) > 0 {
 				score += float64(tagOverlap) / float64(len(record.Tags)) * 0.3
 			}
@@ -779,11 +831,13 @@ func estimateFromHistory(text string, tags []string, priority string, historical
 	if len(matches) < topN {
 		topN = len(matches)
 	}
+
 	topMatches := matches[:topN]
 
 	// Weighted average
 	totalWeight := 0.0
 	weightedSum := 0.0
+
 	for _, m := range topMatches {
 		totalWeight += m.score
 		weightedSum += m.actualHours * m.score
@@ -803,7 +857,7 @@ func estimateFromHistory(text string, tags []string, priority string, historical
 }
 
 // estimateFromKeywords estimates using keyword heuristics
-// These are conservative estimates based on typical task durations
+// These are conservative estimates based on typical task durations.
 func estimateFromKeywords(text string) float64 {
 	// Very quick tasks (typos, version bumps, simple configs)
 	quickKeywords := []string{"quick", "simple", "minor", "small", "fix typo", "typo", "update version", "bump", "version", "config", "spelling"}
@@ -842,7 +896,7 @@ func estimateFromKeywords(text string) float64 {
 	return 1.0
 }
 
-// getPriorityMultiplier returns time multiplier based on priority
+// getPriorityMultiplier returns time multiplier based on priority.
 func getPriorityMultiplier(priority string) float64 {
 	priority = strings.ToLower(priority)
 	multipliers := map[string]float64{
@@ -851,13 +905,15 @@ func getPriorityMultiplier(priority string) float64 {
 		"high":     1.2,
 		"critical": 1.5,
 	}
+
 	if mult, ok := multipliers[priority]; ok {
 		return mult
 	}
+
 	return 1.0
 }
 
-// HistoricalTaskData represents task data from Todo2 for historical analysis
+// HistoricalTaskData represents task data from Todo2 for historical analysis.
 type HistoricalTaskData struct {
 	ID              string   `json:"id,omitempty"`
 	Name            string   `json:"name,omitempty"`
@@ -880,6 +936,7 @@ func BuildEstimationPrompt(name, details string, tags []string, priority string)
 	if len(tags) > 0 {
 		tagsStr = strings.Join(tags, ", ")
 	}
+
 	return fmt.Sprintf(`You are an expert software development task estimator. Respond ONLY with valid JSON.
 
 Estimate the time required to complete this software development task.
@@ -905,24 +962,30 @@ func ParseLLMEstimationResponse(text string) (*EstimationResult, error) {
 	if jsonStr == "" {
 		return nil, fmt.Errorf("no JSON object found in response")
 	}
+
 	var parsed struct {
 		EstimateHours float64 `json:"estimate_hours"`
 		Confidence    float64 `json:"confidence"`
 		Complexity    float64 `json:"complexity"`
 		Reasoning     string  `json:"reasoning"`
 	}
+
 	if err := json.Unmarshal([]byte(jsonStr), &parsed); err != nil {
 		return nil, fmt.Errorf("failed to parse JSON: %w", err)
 	}
+
 	if parsed.EstimateHours < 0.5 || parsed.EstimateHours > 20 {
 		parsed.EstimateHours = math.Max(0.5, math.Min(20, parsed.EstimateHours))
 	}
+
 	if parsed.Confidence < 0 || parsed.Confidence > 1 {
 		parsed.Confidence = math.Max(0, math.Min(1, parsed.Confidence))
 	}
+
 	stdDev := parsed.EstimateHours * 0.3
 	lowerBound := math.Max(0.5, parsed.EstimateHours-1.96*stdDev)
 	upperBound := parsed.EstimateHours + 1.96*stdDev
+
 	return &EstimationResult{
 		EstimateHours: math.Round(parsed.EstimateHours*10) / 10,
 		Confidence:    math.Min(0.95, parsed.Confidence),
@@ -940,20 +1003,25 @@ func ParseLLMEstimationResponse(text string) (*EstimationResult, error) {
 // Model defaults to llama3.2; pass empty to use default.
 func EstimateWithOllama(ctx context.Context, name, details string, tags []string, priority, model string) (*EstimationResult, error) {
 	prompt := BuildEstimationPrompt(name, details, tags, priority)
+
 	if model == "" {
 		model = "llama3.2"
 	}
+
 	params := map[string]interface{}{
-		"action":   "generate",
-		"prompt":   prompt,
-		"model":    model,
-		"stream":   false,
+		"action": "generate",
+		"prompt": prompt,
+		"model":  model,
+		"stream": false,
 	}
+
 	tc, err := DefaultOllama().Invoke(ctx, params)
 	if err != nil {
 		return nil, fmt.Errorf("ollama invoke: %w", err)
 	}
+
 	var responseText string
+
 	if len(tc) > 0 && tc[0].Text != "" {
 		var genResp map[string]interface{}
 		if err := json.Unmarshal([]byte(tc[0].Text), &genResp); err == nil {
@@ -961,12 +1029,15 @@ func EstimateWithOllama(ctx context.Context, name, details string, tags []string
 				responseText = resp
 			}
 		}
+
 		if responseText == "" {
 			responseText = tc[0].Text
 		}
 	}
+
 	if responseText == "" {
 		return nil, fmt.Errorf("ollama returned empty response")
 	}
+
 	return ParseLLMEstimationResponse(responseText)
 }

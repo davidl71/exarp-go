@@ -108,11 +108,13 @@ func TestHandleRecommendWorkflowNative(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := context.Background()
+
 			result, err := handleRecommendWorkflowNative(ctx, tt.params)
 			if (err != nil) != tt.wantError {
 				t.Errorf("handleRecommendWorkflowNative() error = %v, wantError %v", err, tt.wantError)
 				return
 			}
+
 			if !tt.wantError && tt.validate != nil {
 				tt.validate(t, result)
 			}

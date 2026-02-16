@@ -25,16 +25,19 @@ func main() {
 	// -serve :8080 runs HTTP API + embedded PWA UI only. Only parse when -serve is present
 	// to avoid "flag provided but not defined: -tool" when running CLI (-tool, task, etc.).
 	hasServe := false
+
 	for _, arg := range os.Args[1:] {
 		if arg == "-serve" || strings.HasPrefix(arg, "-serve=") {
 			hasServe = true
 			break
 		}
 	}
+
 	if hasServe {
 		serveFs := flag.NewFlagSet("", flag.ContinueOnError)
 		serveAddr := serveFs.String("serve", "", "Listen address for HTTP API and PWA UI (e.g. :8080)")
 		_ = serveFs.Parse(os.Args[1:])
+
 		if *serveAddr != "" {
 			runServeMode(*serveAddr)
 			return
@@ -61,6 +64,7 @@ func main() {
 		if err := cli.Run(); err != nil {
 			logging.Fatal("CLI error: %v", err)
 		}
+
 		return
 	}
 
@@ -73,6 +77,7 @@ func main() {
 		logging.Warn("Could not find project root: %v (database unavailable, will use JSON fallback)", err)
 	} else {
 		cli.EnsureConfigAndDatabase(projectRoot)
+
 		if database.DB != nil {
 			defer func() {
 				if err := database.Close(); err != nil {
@@ -115,10 +120,12 @@ func runServeMode(addr string) {
 	projectRoot, err := tools.FindProjectRoot()
 	if err != nil {
 		logging.Warn("Could not find project root: %v (database unavailable)", err)
+
 		projectRoot = "."
 	} else {
 		os.Setenv("PROJECT_ROOT", projectRoot)
 		cli.EnsureConfigAndDatabase(projectRoot)
+
 		if database.DB != nil {
 			defer func() {
 				if err := database.Close(); err != nil {
@@ -141,16 +148,20 @@ func runServeMode(addr string) {
 	if err := tools.RegisterAllTools(server); err != nil {
 		logging.Fatal("Failed to register tools: %v", err)
 	}
+
 	if err := prompts.RegisterAllPrompts(server); err != nil {
 		logging.Fatal("Failed to register prompts: %v", err)
 	}
+
 	if err := resources.RegisterAllResources(server); err != nil {
 		logging.Fatal("Failed to register resources: %v", err)
 	}
 
 	apiServer := api.NewServer(server, projectRoot)
 	handler := web.SPAHandler(apiServer.Handler())
+
 	logging.Warn("HTTP API and PWA UI listening on %s", addr)
+
 	if err := http.ListenAndServe(addr, handler); err != nil {
 		logging.Fatal("Serve error: %v", err)
 	}

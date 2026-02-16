@@ -7,7 +7,7 @@ import (
 	"github.com/davidl71/exarp-go/internal/framework"
 )
 
-// RegisterAllPrompts registers all prompts with the server
+// RegisterAllPrompts registers all prompts with the server.
 func RegisterAllPrompts(server framework.MCPServer) error {
 	// Register 36 prompts (19 original + 16 migrated from Python + 1 tractatus_decompose)
 	prompts := []struct {
@@ -70,7 +70,7 @@ func RegisterAllPrompts(server framework.MCPServer) error {
 	return nil
 }
 
-// createPromptHandler creates a prompt handler that uses Go templates
+// createPromptHandler creates a prompt handler that uses Go templates.
 func createPromptHandler(promptName string) framework.PromptHandler {
 	return func(ctx context.Context, args map[string]interface{}) (string, error) {
 		// Retrieve prompt template from Go map

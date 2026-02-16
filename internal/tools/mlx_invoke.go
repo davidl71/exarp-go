@@ -13,6 +13,7 @@ func InvokeMLXTool(ctx context.Context, params map[string]interface{}) (string, 
 	if params == nil {
 		params = make(map[string]interface{})
 	}
+
 	if _, ok := params["model"]; !ok {
 		params["model"] = "mlx-community/Phi-3.5-mini-instruct-4bit"
 	}
@@ -21,8 +22,10 @@ func InvokeMLXTool(ctx context.Context, params map[string]interface{}) (string, 
 	if err != nil {
 		return "", err
 	}
+
 	if len(tc) > 0 && tc[0].Text != "" {
 		return tc[0].Text, nil
 	}
+
 	return "", nil
 }

@@ -14,6 +14,7 @@ import (
 func TestHandleTaskAnalysisNative(t *testing.T) {
 	tmpDir := t.TempDir()
 	os.Setenv("PROJECT_ROOT", tmpDir)
+
 	defer os.Unsetenv("PROJECT_ROOT")
 
 	tests := []struct {
@@ -175,11 +176,13 @@ func TestHandleTaskAnalysisNative(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := context.Background()
+
 			result, err := handleTaskAnalysisNative(ctx, tt.params)
 			if (err != nil) != tt.wantError {
 				t.Errorf("handleTaskAnalysisNative() error = %v, wantError %v", err, tt.wantError)
 				return
 			}
+
 			if !tt.wantError && tt.validate != nil {
 				tt.validate(t, result)
 			}
@@ -190,6 +193,7 @@ func TestHandleTaskAnalysisNative(t *testing.T) {
 func TestHandleTaskAnalysis(t *testing.T) {
 	tmpDir := t.TempDir()
 	os.Setenv("PROJECT_ROOT", tmpDir)
+
 	defer os.Unsetenv("PROJECT_ROOT")
 
 	tests := []struct {
@@ -217,11 +221,13 @@ func TestHandleTaskAnalysis(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := context.Background()
 			argsJSON, _ := json.Marshal(tt.params)
+
 			result, err := handleTaskAnalysis(ctx, argsJSON)
 			if (err != nil) != tt.wantError {
 				t.Errorf("handleTaskAnalysis() error = %v, wantError %v", err, tt.wantError)
 				return
 			}
+
 			if !tt.wantError && (result == nil || len(result) == 0) {
 				t.Error("expected non-empty result")
 			}
@@ -236,19 +242,24 @@ func TestBuildBatchTagPrompt(t *testing.T) {
 		{"file": "docs/A.md", "tags": []string{"a"}},
 		{"file": "docs/B.md", "tags": []string{}},
 	}
+
 	prompt := buildBatchTagPrompt(batch, canonical, project)
 	if prompt == "" {
 		t.Fatal("expected non-empty prompt")
 	}
+
 	if !strings.Contains(prompt, "testing") || !strings.Contains(prompt, "docs") {
 		t.Error("prompt should include canonical tags")
 	}
+
 	if !strings.Contains(prompt, "docs/A.md") || !strings.Contains(prompt, "docs/B.md") {
 		t.Error("prompt should include file paths")
 	}
+
 	if !strings.Contains(prompt, "[\"a\"]") {
 		t.Error("prompt should include existing tags as JSON")
 	}
+
 	if !strings.Contains(prompt, "{\"path\"") {
 		t.Error("prompt should ask for JSON object")
 	}
@@ -312,16 +323,20 @@ func TestParseBatchTagResponse(t *testing.T) {
 				if got != nil {
 					t.Errorf("parseBatchTagResponse() = %v, want nil", got)
 				}
+
 				return
 			}
+
 			if len(got) != len(tt.want) {
 				t.Errorf("parseBatchTagResponse() keys count = %d, want %d", len(got), len(tt.want))
 			}
+
 			for path, wantTags := range tt.want {
 				gotTags := got[path]
 				if len(gotTags) != len(wantTags) {
 					t.Errorf("path %q: got %v, want %v", path, gotTags, wantTags)
 				}
+
 				for i, w := range wantTags {
 					if i >= len(gotTags) || gotTags[i] != w {
 						t.Errorf("path %q: got %v, want %v", path, gotTags, wantTags)
@@ -340,22 +355,28 @@ func TestBuildTaskBatchTagPrompt(t *testing.T) {
 		{TaskID: "T-1", Title: "Add tests", Snippet: "Implement unit tests for handler.", ExistingTags: []string{"testing"}},
 		{TaskID: "T-2", Title: "Fix bug", Snippet: "Error when parsing JSON.", ExistingTags: []string{}},
 	}
+
 	prompt := buildTaskBatchTagPrompt(batch, canonical, project)
 	if prompt == "" {
 		t.Fatal("expected non-empty prompt")
 	}
+
 	if !strings.Contains(prompt, "testing") || !strings.Contains(prompt, "docs") {
 		t.Error("prompt should include canonical tags")
 	}
+
 	if !strings.Contains(prompt, "T-1") || !strings.Contains(prompt, "T-2") {
 		t.Error("prompt should include task IDs")
 	}
+
 	if !strings.Contains(prompt, "Add tests") || !strings.Contains(prompt, "Fix bug") {
 		t.Error("prompt should include task titles")
 	}
+
 	if !strings.Contains(prompt, "[\"testing\"]") {
 		t.Error("prompt should include existing tags as JSON")
 	}
+
 	if !strings.Contains(prompt, "{\"T-123\"") {
 		t.Error("prompt should ask for JSON object with task_id keys")
 	}
@@ -421,11 +442,13 @@ func TestParseTaskTagResponse(t *testing.T) {
 			if len(got) != len(tt.want) {
 				t.Errorf("parseTaskTagResponse() keys count = %d, want %d", len(got), len(tt.want))
 			}
+
 			for taskID, wantTags := range tt.want {
 				gotTags := got[taskID]
 				if len(gotTags) != len(wantTags) {
 					t.Errorf("task %q: got %v, want %v", taskID, gotTags, wantTags)
 				}
+
 				for i, w := range wantTags {
 					if i >= len(gotTags) || gotTags[i] != w {
 						t.Errorf("task %q: got %v, want %v", taskID, gotTags, wantTags)
@@ -442,16 +465,20 @@ func TestBuildTaskBatchTagPromptMatchOnly(t *testing.T) {
 	batch := []taskTagLLMBatchItem{
 		{TaskID: "T-1", Title: "Add tests", Snippet: "Unit tests for handler.", ExistingTags: nil},
 	}
+
 	prompt := buildTaskBatchTagPromptMatchOnly(batch, allowed)
 	if prompt == "" {
 		t.Fatal("expected non-empty prompt")
 	}
+
 	if !strings.Contains(prompt, "testing") || !strings.Contains(prompt, "docs") {
 		t.Error("prompt should list allowed tags")
 	}
+
 	if !strings.Contains(prompt, "T-1") || !strings.Contains(prompt, "Add tests") {
 		t.Error("prompt should include task ID and title")
 	}
+
 	if !strings.Contains(prompt, "Only tags from the list") {
 		t.Error("prompt should constrain to allowed list")
 	}
@@ -461,6 +488,7 @@ func TestDetectTaskOverlapConflicts(t *testing.T) {
 	ptr := func(id, content, status string, deps []string) *database.Todo2Task {
 		return &database.Todo2Task{ID: id, Content: content, Status: status, Dependencies: deps}
 	}
+
 	tests := []struct {
 		name      string
 		tasks     []*database.Todo2Task
@@ -526,6 +554,7 @@ func TestDetectTaskOverlapConflicts(t *testing.T) {
 			if len(got) != tt.wantCount {
 				t.Errorf("DetectTaskOverlapConflicts() conflict count = %d, want %d", len(got), tt.wantCount)
 			}
+
 			for i, c := range got {
 				if tt.wantPairs != nil && i < len(tt.wantPairs) {
 					if c.DepTaskID != tt.wantPairs[i][0] || c.TaskID != tt.wantPairs[i][1] {
@@ -533,6 +562,7 @@ func TestDetectTaskOverlapConflicts(t *testing.T) {
 							i, c.DepTaskID, c.TaskID, tt.wantPairs[i][0], tt.wantPairs[i][1])
 					}
 				}
+
 				if c.Reason == "" {
 					t.Error("conflict reason should be non-empty")
 				}
@@ -543,6 +573,7 @@ func TestDetectTaskOverlapConflicts(t *testing.T) {
 
 func TestFilterSuggestionsToAllowed(t *testing.T) {
 	allowed := map[string]bool{"testing": true, "docs": true, "bug": true}
+
 	got := filterSuggestionsToAllowed(
 		map[string][]string{
 			"T-1": {"testing", "unknown", "docs"},
@@ -554,9 +585,11 @@ func TestFilterSuggestionsToAllowed(t *testing.T) {
 	if len(got["T-1"]) != 2 || (got["T-1"][0] != "testing" && got["T-1"][1] != "testing") {
 		t.Errorf("T-1: want [testing, docs], got %v", got["T-1"])
 	}
+
 	if len(got["T-2"]) != 1 || got["T-2"][0] != "bug" {
 		t.Errorf("T-2: want [bug], got %v", got["T-2"])
 	}
+
 	if _, ok := got["T-3"]; ok {
 		t.Error("T-3 should be omitted when all tags filtered out")
 	}

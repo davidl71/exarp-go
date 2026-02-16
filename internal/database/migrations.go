@@ -2,6 +2,7 @@ package database
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -30,12 +31,14 @@ func RunMigrationsFromDir(migrationsDir string) error {
 
 	// Get list of migration files
 	var migrations []Migration
+
 	var err error
 	if migrationsDir != "" {
 		migrations, err = getMigrationFilesFromDir(migrationsDir)
 	} else {
 		migrations, err = getMigrationFiles()
 	}
+
 	if err != nil {
 		return fmt.Errorf("failed to get migration files: %w", err)
 	}
@@ -60,7 +63,7 @@ func RunMigrationsFromDir(migrationsDir string) error {
 	return nil
 }
 
-// Migration represents a migration file
+// Migration represents a migration file.
 type Migration struct {
 	Version     int
 	Filename    string
@@ -68,7 +71,7 @@ type Migration struct {
 	Description string
 }
 
-// getMigrationFiles reads all migration files from the migrations directory
+// getMigrationFiles reads all migration files from the migrations directory.
 func getMigrationFiles() ([]Migration, error) {
 	var migrations []Migration
 
@@ -92,6 +95,7 @@ func getMigrationFiles() ([]Migration, error) {
 		}
 
 		filename := entry.Name()
+
 		parts := strings.SplitN(filename, "_", 2)
 		if len(parts) < 1 {
 			continue
@@ -105,6 +109,7 @@ func getMigrationFiles() ([]Migration, error) {
 		// Read migration SQL
 		migrationPath := filepath.Join(migrationsDir, filename)
 		sql, err := os.ReadFile(migrationPath)
+
 		if err != nil {
 			return nil, fmt.Errorf("failed to read migration file %s: %w", migrationPath, err)
 		}
@@ -136,25 +141,33 @@ func getMigrationFilesFromDir(dir string) ([]Migration, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to read migrations directory %s: %w", dir, err)
 	}
+
 	var migrations []Migration
+
 	for _, entry := range entries {
 		if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".sql") {
 			continue
 		}
+
 		filename := entry.Name()
+
 		parts := strings.SplitN(filename, "_", 2)
 		if len(parts) < 1 {
 			continue
 		}
+
 		version, err := strconv.Atoi(parts[0])
 		if err != nil {
 			continue
 		}
+
 		migrationPath := filepath.Join(dir, filename)
 		sql, err := os.ReadFile(migrationPath)
+
 		if err != nil {
 			return nil, fmt.Errorf("failed to read migration file %s: %w", migrationPath, err)
 		}
+
 		description := strings.TrimSuffix(parts[1], ".sql")
 		description = strings.ReplaceAll(description, "_", " ")
 		migrations = append(migrations, Migration{
@@ -164,13 +177,15 @@ func getMigrationFilesFromDir(dir string) ([]Migration, error) {
 			Description: description,
 		})
 	}
+
 	sort.Slice(migrations, func(i, j int) bool {
 		return migrations[i].Version < migrations[j].Version
 	})
+
 	return migrations, nil
 }
 
-// findProjectRoot finds the project root by looking for .todo2 directory
+// findProjectRoot finds the project root by looking for .todo2 directory.
 func findProjectRoot() (string, error) {
 	dir, err := os.Getwd()
 	if err != nil {
@@ -188,13 +203,14 @@ func findProjectRoot() (string, error) {
 			// Reached root
 			break
 		}
+
 		dir = parent
 	}
 
 	return "", fmt.Errorf("project root not found (no .todo2 directory)")
 }
 
-// getAppliedMigrations returns a map of applied migration versions
+// getAppliedMigrations returns a map of applied migration versions.
 func getAppliedMigrations() (map[int]bool, error) {
 	applied := make(map[int]bool)
 
@@ -210,6 +226,7 @@ func getAppliedMigrations() (map[int]bool, error) {
 		if err := rows.Scan(&version); err != nil {
 			return nil, fmt.Errorf("failed to scan migration version: %w", err)
 		}
+
 		applied[version] = true
 	}
 
@@ -228,6 +245,7 @@ func applyMigration(migration Migration) error {
 			_, err := DB.Exec(stmt)
 			if err != nil {
 				errStr := strings.ToLower(err.Error())
+
 				isDuplicateColumn := strings.Contains(errStr, "duplicate column") ||
 					strings.Contains(errStr, "duplicate column name") ||
 					strings.Contains(errStr, "already exists") ||
@@ -247,6 +265,7 @@ func applyMigration(migration Migration) error {
 		if err != nil {
 			return fmt.Errorf("failed to record migration: %w", err)
 		}
+
 		return nil
 	}
 
@@ -254,6 +273,7 @@ func applyMigration(migration Migration) error {
 	if err != nil {
 		return fmt.Errorf("failed to begin transaction: %w", err)
 	}
+
 	defer func() {
 		_ = tx.Rollback()
 	}()
@@ -277,6 +297,7 @@ func applyMigration(migration Migration) error {
 // splitMigrationSQL splits SQL into single statements, trims and skips empty/comment-only.
 func splitMigrationSQL(sql string) []string {
 	var out []string
+
 	for _, s := range strings.Split(sql, ";") {
 		s = strings.TrimSpace(s)
 		if s == "" {
@@ -284,7 +305,9 @@ func splitMigrationSQL(sql string) []string {
 		}
 		// Skip blocks that are only comments and whitespace
 		lines := strings.Split(s, "\n")
+
 		var hasContent bool
+
 		for _, line := range lines {
 			trimmed := strings.TrimSpace(line)
 			if trimmed != "" && !strings.HasPrefix(trimmed, "--") {
@@ -292,14 +315,16 @@ func splitMigrationSQL(sql string) []string {
 				break
 			}
 		}
+
 		if hasContent {
 			out = append(out, s)
 		}
 	}
+
 	return out
 }
 
-// createMigrationsTable creates the schema_migrations table if it doesn't exist
+// createMigrationsTable creates the schema_migrations table if it doesn't exist.
 func createMigrationsTable() error {
 	_, err := DB.Exec(`
 		CREATE TABLE IF NOT EXISTS schema_migrations (
@@ -308,15 +333,18 @@ func createMigrationsTable() error {
 			description TEXT
 		)
 	`)
+
 	return err
 }
 
-// GetCurrentVersion returns the current schema version
+// GetCurrentVersion returns the current schema version.
 func GetCurrentVersion() (int, error) {
 	var version int
+
 	err := DB.QueryRow("SELECT MAX(version) FROM schema_migrations").Scan(&version)
-	if err == sql.ErrNoRows {
+	if errors.Is(err, sql.ErrNoRows) {
 		return 0, nil // No migrations applied yet
 	}
+
 	return version, err
 }

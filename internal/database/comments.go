@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-// Comment represents a task comment
+// Comment represents a task comment.
 type Comment struct {
 	ID           string
 	TaskID       string
@@ -19,13 +19,14 @@ type Comment struct {
 
 // AddComments adds one or more comments to a task
 // Uses a transaction to atomically insert all comments
-// Supports context for timeout and cancellation
+// Supports context for timeout and cancellation.
 func AddComments(ctx context.Context, taskID string, comments []Comment) error {
 	if len(comments) == 0 {
 		return nil // Nothing to do
 	}
 
 	ctx = ensureContext(ctx)
+
 	txCtx, cancel := withTransactionTimeout(ctx)
 	defer cancel()
 
@@ -39,6 +40,7 @@ func AddComments(ctx context.Context, taskID string, comments []Comment) error {
 		if err != nil {
 			return fmt.Errorf("failed to begin transaction: %w", err)
 		}
+
 		defer func() {
 			if err != nil {
 				_ = tx.Rollback()
@@ -65,6 +67,7 @@ func AddComments(ctx context.Context, taskID string, comments []Comment) error {
 			if comment.Created == "" {
 				comment.Created = now
 			}
+
 			if comment.LastModified == "" {
 				comment.LastModified = now
 			}
@@ -96,13 +99,15 @@ func AddComments(ctx context.Context, taskID string, comments []Comment) error {
 }
 
 // queryComments is a helper function that executes a comment query and scans results
-// This reduces code duplication across GetComments, GetCommentsByType, and GetCommentsWithTypeFilter
+// This reduces code duplication across GetComments, GetCommentsByType, and GetCommentsWithTypeFilter.
 func queryComments(ctx context.Context, whereClause string, args ...interface{}) ([]Comment, error) {
 	ctx = ensureContext(ctx)
+
 	queryCtx, cancel := withQueryTimeout(ctx)
 	defer cancel()
 
 	var comments []Comment
+
 	err := retryWithBackoff(ctx, func() error {
 		db, err := GetDB()
 		if err != nil {
@@ -120,6 +125,7 @@ func queryComments(ctx context.Context, whereClause string, args ...interface{})
 		if err != nil {
 			return fmt.Errorf("failed to query comments: %w", err)
 		}
+
 		defer func() {
 			if err := rows.Close(); err != nil {
 				// Log error but don't fail - this is cleanup
@@ -127,8 +133,10 @@ func queryComments(ctx context.Context, whereClause string, args ...interface{})
 		}()
 
 		var commentList []Comment
+
 		for rows.Next() {
 			var comment Comment
+
 			var lastModified sql.NullString
 
 			if err := rows.Scan(
@@ -154,6 +162,7 @@ func queryComments(ctx context.Context, whereClause string, args ...interface{})
 		}
 
 		comments = commentList
+
 		return nil
 	})
 
@@ -161,21 +170,22 @@ func queryComments(ctx context.Context, whereClause string, args ...interface{})
 }
 
 // GetComments retrieves all comments for a task
-// Supports context for timeout and cancellation
+// Supports context for timeout and cancellation.
 func GetComments(ctx context.Context, taskID string) ([]Comment, error) {
 	return queryComments(ctx, "WHERE task_id = ?", taskID)
 }
 
 // GetCommentsByType retrieves all comments of a specific type across all tasks
-// Supports context for timeout and cancellation
+// Supports context for timeout and cancellation.
 func GetCommentsByType(ctx context.Context, commentType string) ([]Comment, error) {
 	return queryComments(ctx, "WHERE comment_type = ?", commentType)
 }
 
 // DeleteComment deletes a comment by ID
-// Supports context for timeout and cancellation
+// Supports context for timeout and cancellation.
 func DeleteComment(ctx context.Context, commentID string) error {
 	ctx = ensureContext(ctx)
+
 	queryCtx, cancel := withQueryTimeout(ctx)
 	defer cancel()
 
@@ -194,6 +204,7 @@ func DeleteComment(ctx context.Context, commentID string) error {
 		if err != nil {
 			return fmt.Errorf("failed to get rows affected: %w", err)
 		}
+
 		if rowsAffected == 0 {
 			return fmt.Errorf("comment %s not found", commentID)
 		}
@@ -203,7 +214,7 @@ func DeleteComment(ctx context.Context, commentID string) error {
 }
 
 // GetCommentsWithTypeFilter retrieves comments for a task with optional type filter
-// Supports context for timeout and cancellation
+// Supports context for timeout and cancellation.
 func GetCommentsWithTypeFilter(ctx context.Context, taskID string, commentType string) ([]Comment, error) {
 	return queryComments(ctx, "WHERE task_id = ? AND comment_type = ?", taskID, commentType)
 }

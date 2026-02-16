@@ -13,7 +13,7 @@ import (
 )
 
 // handleAllTasks handles the stdio://tasks resource
-// Returns all tasks with pagination (limit 50)
+// Returns all tasks with pagination (limit 50).
 func handleAllTasks(ctx context.Context, uri string) ([]byte, string, error) {
 	projectRoot, err := tools.FindProjectRoot()
 	if err != nil {
@@ -21,6 +21,7 @@ func handleAllTasks(ctx context.Context, uri string) ([]byte, string, error) {
 	}
 
 	store := tools.NewDefaultTaskStore(projectRoot)
+
 	allTasks, err := store.ListTasks(ctx, nil)
 	if err != nil {
 		return nil, "", fmt.Errorf("failed to load tasks: %w", err)
@@ -29,6 +30,7 @@ func handleAllTasks(ctx context.Context, uri string) ([]byte, string, error) {
 	// Apply limit (50 tasks max)
 	limit := 50
 	tasksToReturn := allTasks
+
 	if len(allTasks) > limit {
 		tasksToReturn = allTasks[:limit]
 	}
@@ -49,7 +51,7 @@ func handleAllTasks(ctx context.Context, uri string) ([]byte, string, error) {
 }
 
 // handleTaskByID handles the stdio://tasks/{task_id} resource
-// Returns a single task by ID
+// Returns a single task by ID.
 func handleTaskByID(ctx context.Context, uri string) ([]byte, string, error) {
 	// Parse task_id from URI: stdio://tasks/{task_id}
 	taskID, err := parseURIVariableByIndexWithValidation(uri, 3, "task ID", "stdio://tasks/{task_id}")
@@ -63,6 +65,7 @@ func handleTaskByID(ctx context.Context, uri string) ([]byte, string, error) {
 	}
 
 	store := tools.NewDefaultTaskStore(projectRoot)
+
 	task, err := store.GetTask(ctx, taskID)
 	if err != nil || task == nil {
 		return nil, "", fmt.Errorf("task %s not found", taskID)
@@ -81,17 +84,18 @@ func handleTaskByID(ctx context.Context, uri string) ([]byte, string, error) {
 	return jsonData, "application/json", nil
 }
 
-// formatTasksForResource formats a slice of tasks for resource output
+// formatTasksForResource formats a slice of tasks for resource output.
 func formatTasksForResource(tasks []*database.Todo2Task) []map[string]interface{} {
 	result := make([]map[string]interface{}, len(tasks))
 	for i, t := range tasks {
 		result[i] = formatTaskForResource(t)
 	}
+
 	return result
 }
 
 // handleTasksByStatus handles the stdio://tasks/status/{status} resource
-// Returns tasks filtered by status (Todo, In Progress, Done)
+// Returns tasks filtered by status (Todo, In Progress, Done).
 func handleTasksByStatus(ctx context.Context, uri string) ([]byte, string, error) {
 	// Parse status from URI: stdio://tasks/status/{status}
 	status, err := parseURIVariableByIndexWithValidation(uri, 3, "status", "stdio://tasks/status/{status}")
@@ -109,6 +113,7 @@ func handleTasksByStatus(ctx context.Context, uri string) ([]byte, string, error
 
 	store := tools.NewDefaultTaskStore(projectRoot)
 	filters := &database.TaskFilters{Status: &status}
+
 	tasks, err := store.ListTasks(ctx, filters)
 	if err != nil {
 		return nil, "", fmt.Errorf("failed to load tasks: %w", err)
@@ -135,7 +140,7 @@ func handleTasksByStatus(ctx context.Context, uri string) ([]byte, string, error
 }
 
 // handleTasksByPriority handles the stdio://tasks/priority/{priority} resource
-// Returns tasks filtered by priority (low, medium, high, critical)
+// Returns tasks filtered by priority (low, medium, high, critical).
 func handleTasksByPriority(ctx context.Context, uri string) ([]byte, string, error) {
 	// Parse priority from URI: stdio://tasks/priority/{priority}
 	priority, err := parseURIVariableByIndexWithValidation(uri, 3, "priority", "stdio://tasks/priority/{priority}")
@@ -153,6 +158,7 @@ func handleTasksByPriority(ctx context.Context, uri string) ([]byte, string, err
 
 	store := tools.NewDefaultTaskStore(projectRoot)
 	filters := &database.TaskFilters{Priority: &priority}
+
 	tasks, err := store.ListTasks(ctx, filters)
 	if err != nil {
 		return nil, "", fmt.Errorf("failed to load tasks: %w", err)
@@ -179,7 +185,7 @@ func handleTasksByPriority(ctx context.Context, uri string) ([]byte, string, err
 }
 
 // handleTasksByTag handles the stdio://tasks/tag/{tag} resource
-// Returns tasks filtered by tag (any tag value)
+// Returns tasks filtered by tag (any tag value).
 func handleTasksByTag(ctx context.Context, uri string) ([]byte, string, error) {
 	// Parse tag from URI: stdio://tasks/tag/{tag}
 	tag, err := parseURIVariableByIndexWithValidation(uri, 3, "tag", "stdio://tasks/tag/{tag}")
@@ -194,6 +200,7 @@ func handleTasksByTag(ctx context.Context, uri string) ([]byte, string, error) {
 
 	store := tools.NewDefaultTaskStore(projectRoot)
 	filters := &database.TaskFilters{Tag: &tag}
+
 	tasks, err := store.ListTasks(ctx, filters)
 	if err != nil {
 		return nil, "", fmt.Errorf("failed to load tasks: %w", err)
@@ -220,7 +227,7 @@ func handleTasksByTag(ctx context.Context, uri string) ([]byte, string, error) {
 }
 
 // handleTasksSummary handles the stdio://tasks/summary resource
-// Returns task statistics and overview
+// Returns task statistics and overview.
 func handleTasksSummary(ctx context.Context, uri string) ([]byte, string, error) {
 	projectRoot, err := tools.FindProjectRoot()
 	if err != nil {
@@ -228,6 +235,7 @@ func handleTasksSummary(ctx context.Context, uri string) ([]byte, string, error)
 	}
 
 	store := tools.NewDefaultTaskStore(projectRoot)
+
 	allTasks, err := store.ListTasks(ctx, nil)
 	if err != nil {
 		return nil, "", fmt.Errorf("failed to load tasks: %w", err)
@@ -249,6 +257,7 @@ func handleTasksSummary(ctx context.Context, uri string) ([]byte, string, error)
 		if priority == "" {
 			priority = "none" // Tasks without priority
 		}
+
 		byPriority[priority]++
 
 		// Count tags
@@ -285,6 +294,7 @@ func handleSuggestedTasks(ctx context.Context, uri string) ([]byte, string, erro
 
 	suggested := tools.GetSuggestedNextTasks(projectRoot, 10)
 	taskMaps := make([]map[string]interface{}, len(suggested))
+
 	for i, d := range suggested {
 		taskMaps[i] = map[string]interface{}{
 			"id":       d.ID,
@@ -317,7 +327,7 @@ func normalizeStatus(status string) string {
 }
 
 // formatTaskForResource formats a single task for resource output
-// Includes assignee information with task ID context when available
+// Includes assignee information with task ID context when available.
 func formatTaskForResource(task *database.Todo2Task) map[string]interface{} {
 	if task == nil {
 		return nil
@@ -337,9 +347,11 @@ func formatTaskForResource(task *database.Todo2Task) map[string]interface{} {
 
 	// Query assignee from database if available
 	ctx := context.Background()
+
 	db, err := database.GetDB()
 	if err == nil {
 		var assignee sql.NullString
+
 		err := db.QueryRowContext(ctx, `
 			SELECT assignee FROM tasks WHERE id = ?
 		`, task.ID).Scan(&assignee)

@@ -3,6 +3,7 @@ package tools
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -15,7 +16,7 @@ import (
 	"github.com/davidl71/mcp-go-core/pkg/mcp/response"
 )
 
-// handleTestingRun handles the run action for testing tool
+// handleTestingRun handles the run action for testing tool.
 func handleTestingRun(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	projectRoot, err := FindProjectRoot()
 	if err != nil {
@@ -40,15 +41,18 @@ func handleTestingRun(ctx context.Context, params map[string]interface{}) ([]fra
 	if !IsGoProject() {
 		return nil, fmt.Errorf("testing run is only supported for Go projects (go.mod)")
 	}
+
 	result, err := runGoTests(ctx, projectRoot, testPath, verbose, coverage)
 	if err != nil {
 		return nil, fmt.Errorf("testing run: %w", err)
 	}
+
 	resp := &proto.TestingResponse{Success: true, Action: "run", ResultJson: result}
+
 	return response.FormatResult(TestingResponseToMap(resp), "")
 }
 
-// handleTestingCoverage handles the coverage action for testing tool
+// handleTestingCoverage handles the coverage action for testing tool.
 func handleTestingCoverage(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	projectRoot, err := FindProjectRoot()
 	if err != nil {
@@ -74,15 +78,18 @@ func handleTestingCoverage(ctx context.Context, params map[string]interface{}) (
 	if !IsGoProject() {
 		return nil, fmt.Errorf("testing coverage is only supported for Go projects (go.mod)")
 	}
+
 	result, err := analyzeGoCoverage(ctx, projectRoot, coverageFile, minCoverage, format)
 	if err != nil {
 		return nil, fmt.Errorf("testing coverage: %w", err)
 	}
+
 	resp := &proto.TestingResponse{Success: true, Action: "coverage", ResultJson: result}
+
 	return response.FormatResult(TestingResponseToMap(resp), "")
 }
 
-// handleTestingValidate handles the validate action for testing tool
+// handleTestingValidate handles the validate action for testing tool.
 func handleTestingValidate(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	projectRoot, err := FindProjectRoot()
 	if err != nil {
@@ -102,23 +109,28 @@ func handleTestingValidate(ctx context.Context, params map[string]interface{}) (
 	if !IsGoProject() && testFramework != "go" {
 		return nil, fmt.Errorf("testing validate is only supported for Go projects (go.mod) or framework=go")
 	}
+
 	result, err := validateGoTests(projectRoot, testPath)
 	if err != nil {
 		return nil, fmt.Errorf("testing validate: %w", err)
 	}
+
 	resp := &proto.TestingResponse{Success: true, Action: "validate", ResultJson: result}
+
 	return response.FormatResult(TestingResponseToMap(resp), "")
 }
 
-// runGoTests runs Go tests and returns formatted results
+// runGoTests runs Go tests and returns formatted results.
 func runGoTests(ctx context.Context, projectRoot, testPath string, verbose, coverage bool) (string, error) {
 	args := []string{"test"}
 	if verbose {
 		args = append(args, "-v")
 	}
+
 	if coverage {
 		args = append(args, "-cover")
 	}
+
 	args = append(args, testPath)
 
 	cmd := exec.CommandContext(ctx, "go", args...)
@@ -136,7 +148,8 @@ func runGoTests(ctx context.Context, projectRoot, testPath string, verbose, cove
 	}
 
 	if err != nil {
-		if exitErr, ok := err.(*exec.ExitError); ok {
+		exitErr := &exec.ExitError{}
+		if errors.As(err, &exitErr) {
 			result["returncode"] = exitErr.ExitCode()
 		}
 		// Parse output for test results
@@ -144,9 +157,11 @@ func runGoTests(ctx context.Context, projectRoot, testPath string, verbose, cove
 		if strings.Contains(outputStr, "PASS") {
 			result["tests_passed"] = strings.Count(outputStr, "PASS")
 		}
+
 		if strings.Contains(outputStr, "FAIL") {
 			result["tests_failed"] = strings.Count(outputStr, "FAIL")
 		}
+
 		result["tests_run"] = result["tests_passed"].(int) + result["tests_failed"].(int)
 	} else {
 		// Parse successful output
@@ -154,14 +169,16 @@ func runGoTests(ctx context.Context, projectRoot, testPath string, verbose, cove
 		if strings.Contains(outputStr, "PASS") {
 			result["tests_passed"] = strings.Count(outputStr, "PASS")
 		}
+
 		result["tests_run"] = result["tests_passed"].(int)
 	}
 
 	jsonResult, _ := json.MarshalIndent(result, "", "  ")
+
 	return string(jsonResult), nil
 }
 
-// analyzeGoCoverage analyzes Go test coverage
+// analyzeGoCoverage analyzes Go test coverage.
 func analyzeGoCoverage(ctx context.Context, projectRoot, coverageFile string, minCoverage int, format string) (string, error) {
 	// Generate coverage profile
 	coverProfile := "coverage.out"
@@ -171,6 +188,7 @@ func analyzeGoCoverage(ctx context.Context, projectRoot, coverageFile string, mi
 
 	cmd := exec.CommandContext(ctx, "go", "test", "./...", "-coverprofile", coverProfile)
 	cmd.Dir = projectRoot
+
 	if err := cmd.Run(); err != nil {
 		return "", fmt.Errorf("failed to generate coverage: %w", err)
 	}
@@ -178,6 +196,7 @@ func analyzeGoCoverage(ctx context.Context, projectRoot, coverageFile string, mi
 	// Get coverage percentage
 	cmd = exec.CommandContext(ctx, "go", "tool", "cover", "-func", coverProfile)
 	cmd.Dir = projectRoot
+
 	output, err := cmd.Output()
 	if err != nil {
 		return "", fmt.Errorf("failed to analyze coverage: %w", err)
@@ -185,6 +204,7 @@ func analyzeGoCoverage(ctx context.Context, projectRoot, coverageFile string, mi
 
 	// Parse coverage percentage from output
 	coveragePercent := 0.0
+
 	lines := strings.Split(string(output), "\n")
 	for _, line := range lines {
 		if strings.Contains(line, "total:") {
@@ -215,16 +235,18 @@ func analyzeGoCoverage(ctx context.Context, projectRoot, coverageFile string, mi
 		htmlFile := "coverage.html"
 		cmd = exec.CommandContext(ctx, "go", "tool", "cover", "-html", coverProfile, "-o", htmlFile)
 		cmd.Dir = projectRoot
+
 		if err := cmd.Run(); err == nil {
 			result["html_file"] = htmlFile
 		}
 	}
 
 	jsonResult, _ := json.MarshalIndent(result, "", "  ")
+
 	return string(jsonResult), nil
 }
 
-// validateGoTests validates Go test structure
+// validateGoTests validates Go test structure.
 func validateGoTests(projectRoot, testPath string) (string, error) {
 	issues := []string{}
 
@@ -234,9 +256,11 @@ func validateGoTests(projectRoot, testPath string) (string, error) {
 		if err != nil {
 			return nil
 		}
+
 		if !info.IsDir() && strings.HasSuffix(path, "_test.go") {
 			testFiles = append(testFiles, path)
 		}
+
 		return nil
 	})
 
@@ -254,6 +278,7 @@ func validateGoTests(projectRoot, testPath string) (string, error) {
 		if err != nil {
 			continue
 		}
+
 		content := string(data)
 		if !strings.Contains(content, "func Test") {
 			issues = append(issues, fmt.Sprintf("No test functions in %s", testFile))
@@ -268,12 +293,14 @@ func validateGoTests(projectRoot, testPath string) (string, error) {
 	}
 
 	jsonResult, _ := json.MarshalIndent(result, "", "  ")
+
 	return string(jsonResult), nil
 }
 
-// parseFloat is a simple float parser helper
+// parseFloat is a simple float parser helper.
 func parseFloat(s string) (float64, error) {
 	var f float64
 	_, err := fmt.Sscanf(s, "%f", &f)
+
 	return f, err
 }

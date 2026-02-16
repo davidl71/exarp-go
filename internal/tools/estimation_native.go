@@ -13,7 +13,7 @@ import (
 
 // HistoricalTask and EstimationResult types are defined in estimation_shared.go
 
-// estimateWithAppleFM estimates task duration using the default FM provider for semantic analysis
+// estimateWithAppleFM estimates task duration using the default FM provider for semantic analysis.
 func estimateWithAppleFM(ctx context.Context, name, details string, tags []string, priority string) (*EstimationResult, error) {
 	if !FMAvailable() {
 		return nil, ErrFMNotSupported
@@ -87,7 +87,7 @@ Respond ONLY with valid JSON in the exact format requested.
 	return result, nil
 }
 
-// parseAppleFMResponse extracts JSON from Apple FM response
+// parseAppleFMResponse extracts JSON from Apple FM response.
 func parseAppleFMResponse(text string) (*EstimationResult, error) {
 	// Try to extract JSON object from response
 	// Look for JSON object pattern
@@ -116,6 +116,7 @@ func parseAppleFMResponse(text string) (*EstimationResult, error) {
 	if parsed.EstimateHours < 0.5 || parsed.EstimateHours > 20 {
 		parsed.EstimateHours = math.Max(0.5, math.Min(20, parsed.EstimateHours))
 	}
+
 	if parsed.Confidence < 0 || parsed.Confidence > 1 {
 		parsed.Confidence = math.Max(0, math.Min(1, parsed.Confidence))
 	}
@@ -143,7 +144,7 @@ func parseAppleFMResponse(text string) (*EstimationResult, error) {
 // estimateFromKeywords, getPriorityMultiplier, handleEstimationAnalyze, handleEstimationStats)
 // are now in estimation_shared.go to support both CGO and non-CGO builds
 
-// handleEstimationNative handles estimation using native Go with Apple Foundation Models
+// handleEstimationNative handles estimation using native Go with Apple Foundation Models.
 func handleEstimationNative(ctx context.Context, projectRoot string, params map[string]interface{}) (string, error) {
 	action := "estimate"
 	if actionStr, ok := params["action"].(string); ok && actionStr != "" {
@@ -164,12 +165,13 @@ func handleEstimationNative(ctx context.Context, projectRoot string, params map[
 	}
 }
 
-// handleEstimationEstimate handles the estimate action
+// handleEstimationEstimate handles the estimate action.
 func handleEstimationEstimate(ctx context.Context, projectRoot string, params map[string]interface{}) (string, error) {
 	name, _ := params["name"].(string)
 	details, _ := params["details"].(string)
-	tagsRaw, _ := params["tags"]
-	tagListRaw, _ := params["tag_list"]
+	tagsRaw := params["tags"]
+	tagListRaw := params["tag_list"]
+
 	priority, _ := params["priority"].(string)
 	if priority == "" {
 		priority = "medium"
@@ -196,6 +198,7 @@ func handleEstimationEstimate(ctx context.Context, projectRoot string, params ma
 
 	// Parse tags
 	var tags []string
+
 	if tagList, ok := tagListRaw.([]interface{}); ok {
 		for _, tag := range tagList {
 			if tagStr, ok := tag.(string); ok {
@@ -219,7 +222,9 @@ func handleEstimationEstimate(ctx context.Context, projectRoot string, params ma
 
 	// LLM estimate: prefer local_ai_backend (ollama/mlx), else Apple FM when enabled
 	var llmResult *EstimationResult
+
 	llmMethod := ""
+
 	switch backend {
 	case "ollama":
 		res, err := EstimateWithOllama(ctx, name, details, tags, priority, "")
@@ -230,10 +235,12 @@ func handleEstimationEstimate(ctx context.Context, projectRoot string, params ma
 			if statisticalResult.Metadata == nil {
 				statisticalResult.Metadata = make(map[string]interface{})
 			}
+
 			statisticalResult.Metadata["ollama_error"] = err.Error()
 		}
 	case "mlx":
 		prompt := BuildEstimationPrompt(name, details, tags, priority)
+
 		raw, err := InvokeMLXTool(ctx, map[string]interface{}{"action": "generate", "prompt": prompt})
 		if err == nil && raw != "" {
 			res, err := ParseLLMEstimationResponse(raw)
@@ -242,6 +249,7 @@ func handleEstimationEstimate(ctx context.Context, projectRoot string, params ma
 				llmMethod = "mlx"
 			}
 		}
+
 		if llmResult == nil && statisticalResult.Metadata != nil {
 			statisticalResult.Metadata["mlx_skipped"] = "mlx generate unavailable or failed"
 		}
@@ -255,6 +263,7 @@ func handleEstimationEstimate(ctx context.Context, projectRoot string, params ma
 				if statisticalResult.Metadata == nil {
 					statisticalResult.Metadata = make(map[string]interface{})
 				}
+
 				statisticalResult.Metadata["apple_fm_error"] = err.Error()
 			}
 		}
@@ -262,16 +271,20 @@ func handleEstimationEstimate(ctx context.Context, projectRoot string, params ma
 
 	// Combine estimates (statistical + optional LLM)
 	var finalResult *EstimationResult
+
 	if llmResult != nil && appleFMWeight > 0 {
 		statisticalWeight := 1.0 - appleFMWeight
 		combinedEstimate := statisticalResult.EstimateHours*statisticalWeight + llmResult.EstimateHours*appleFMWeight
 		combinedConfidence := statisticalResult.Confidence*statisticalWeight + llmResult.Confidence*appleFMWeight
+
 		methodName := "hybrid_apple_fm"
-		if llmMethod == "ollama" {
+		switch llmMethod {
+		case "ollama":
 			methodName = "hybrid_ollama"
-		} else if llmMethod == "mlx" {
+		case "mlx":
 			methodName = "hybrid_mlx"
 		}
+
 		finalResult = &EstimationResult{
 			EstimateHours: math.Round(combinedEstimate*10) / 10,
 			Confidence:    math.Min(0.95, combinedConfidence),

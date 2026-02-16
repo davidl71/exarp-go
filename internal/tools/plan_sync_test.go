@@ -24,6 +24,7 @@ todos:
 - [x] **Second** (T-2)
 `
 	tmpDir := t.TempDir()
+
 	planPath := filepath.Join(tmpDir, "test.plan.md")
 	if err := os.WriteFile(planPath, []byte(planContent), 0644); err != nil {
 		t.Fatal(err)
@@ -33,18 +34,23 @@ todos:
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	if len(todos) != 2 {
 		t.Errorf("expected 2 todos, got %d", len(todos))
 	}
+
 	if todos[0].ID != "T-1" || todos[0].Status != "pending" {
 		t.Errorf("todos[0]: id=%s status=%s", todos[0].ID, todos[0].Status)
 	}
+
 	if todos[1].ID != "T-2" || todos[1].Status != "done" {
 		t.Errorf("todos[1]: id=%s status=%s", todos[1].ID, todos[1].Status)
 	}
+
 	if !checkboxState["T-2"] {
 		t.Error("T-2 should be checked")
 	}
+
 	if checkboxState["T-1"] {
 		t.Error("T-1 should be unchecked")
 	}
@@ -68,6 +74,7 @@ todos:
 	tmpDir := t.TempDir()
 	prevRoot := os.Getenv("PROJECT_ROOT")
 	os.Setenv("PROJECT_ROOT", tmpDir)
+
 	defer func() { os.Setenv("PROJECT_ROOT", prevRoot) }()
 	// Ensure FindProjectRoot resolves so ValidatePlanningLink can use project root
 	if _, err := FindProjectRoot(); err != nil {
@@ -92,23 +99,29 @@ todos:
 		"dry_run":      true,
 		"write_plan":   false,
 	}
+
 	result, err := handleTaskWorkflowSyncFromPlan(ctx, params)
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	if len(result) == 0 {
 		t.Fatal("expected non-empty result")
 	}
+
 	var data map[string]interface{}
 	if err := json.Unmarshal([]byte(result[0].Text), &data); err != nil {
 		t.Fatal(err)
 	}
+
 	if data["success"] != true {
 		t.Errorf("success: %v", data["success"])
 	}
+
 	if data["action"] != "sync_from_plan" {
 		t.Errorf("action: %v", data["action"])
 	}
+
 	if data["dry_run"] != true {
 		t.Errorf("dry_run: %v", data["dry_run"])
 	}

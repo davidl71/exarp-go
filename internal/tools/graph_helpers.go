@@ -9,7 +9,7 @@ import (
 	"gonum.org/v1/gonum/graph/topo"
 )
 
-// TaskNode represents a task as a graph node with metadata
+// TaskNode represents a task as a graph node with metadata.
 type TaskNode struct {
 	NodeID   int64  // Internal node ID for graph
 	TaskID   string // Task ID from Todo2
@@ -18,12 +18,12 @@ type TaskNode struct {
 	Status   string
 }
 
-// ID returns the node ID (required for graph.Node interface)
+// ID returns the node ID (required for graph.Node interface).
 func (n *TaskNode) ID() int64 {
 	return n.NodeID
 }
 
-// TaskGraph wraps a gonum DirectedGraph with task ID mapping
+// TaskGraph wraps a gonum DirectedGraph with task ID mapping.
 type TaskGraph struct {
 	Graph     *simple.DirectedGraph
 	TaskIDMap map[string]int64    // task ID -> node ID
@@ -32,7 +32,7 @@ type TaskGraph struct {
 	nodeIDSeq int64
 }
 
-// NewTaskGraph creates a new task graph
+// NewTaskGraph creates a new task graph.
 func NewTaskGraph() *TaskGraph {
 	return &TaskGraph{
 		Graph:     simple.NewDirectedGraph(),
@@ -43,7 +43,7 @@ func NewTaskGraph() *TaskGraph {
 	}
 }
 
-// AddTask adds a task to the graph and returns its node ID
+// AddTask adds a task to the graph and returns its node ID.
 func (tg *TaskGraph) AddTask(task Todo2Task) int64 {
 	// Check if task already exists
 	if nodeID, exists := tg.TaskIDMap[task.ID]; exists {
@@ -70,7 +70,7 @@ func (tg *TaskGraph) AddTask(task Todo2Task) int64 {
 	return nodeID
 }
 
-// AddDependency adds a dependency edge from depTaskID to taskID
+// AddDependency adds a dependency edge from depTaskID to taskID.
 func (tg *TaskGraph) AddDependency(depTaskID, taskID string) error {
 	depNodeID, depExists := tg.TaskIDMap[depTaskID]
 	taskNodeID, taskExists := tg.TaskIDMap[taskID]
@@ -92,7 +92,7 @@ func (tg *TaskGraph) AddDependency(depTaskID, taskID string) error {
 	return nil
 }
 
-// BuildTaskGraph builds a gonum DirectedGraph from tasks
+// BuildTaskGraph builds a gonum DirectedGraph from tasks.
 func BuildTaskGraph(tasks []Todo2Task) (*TaskGraph, error) {
 	tg := NewTaskGraph()
 
@@ -100,6 +100,7 @@ func BuildTaskGraph(tasks []Todo2Task) (*TaskGraph, error) {
 	taskMap := make(map[string]bool)
 	for _, task := range tasks {
 		taskMap[task.ID] = true
+
 		tg.AddTask(task)
 	}
 
@@ -122,26 +123,29 @@ func BuildTaskGraph(tasks []Todo2Task) (*TaskGraph, error) {
 // Done tasks are excluded by default so critical path focuses on remaining work.
 func BuildTaskGraphBacklogOnly(tasks []Todo2Task) (*TaskGraph, error) {
 	var backlog []Todo2Task
+
 	for _, t := range tasks {
 		if IsBacklogStatus(t.Status) {
 			backlog = append(backlog, t)
 		}
 	}
+
 	return BuildTaskGraph(backlog)
 }
 
-// HasCycles checks if the graph has cycles using topological sort
+// HasCycles checks if the graph has cycles using topological sort.
 func HasCycles(tg *TaskGraph) (bool, error) {
 	_, err := topo.Sort(tg.Graph)
 	if err != nil {
 		// If topological sort fails, graph has cycles
 		return true, nil
 	}
+
 	return false, nil
 }
 
 // DetectCycles enumerates all cycles in the graph
-// Gonum doesn't have simple_cycles, so we implement it using DFS
+// Gonum doesn't have simple_cycles, so we implement it using DFS.
 func DetectCycles(tg *TaskGraph) [][]string {
 	cycles := [][]string{}
 	visited := make(map[int64]bool)
@@ -151,6 +155,7 @@ func DetectCycles(tg *TaskGraph) [][]string {
 	dfs = func(nodeID int64, path []int64) {
 		visited[nodeID] = true
 		recStack[nodeID] = true
+
 		path = append(path, nodeID)
 
 		// Check all outgoing edges
@@ -163,15 +168,18 @@ func DetectCycles(tg *TaskGraph) [][]string {
 			} else if recStack[neighborID] {
 				// Found cycle - find the start of the cycle in path
 				cycleStart := -1
+
 				for i, n := range path {
 					if n == neighborID {
 						cycleStart = i
 						break
 					}
 				}
+
 				if cycleStart >= 0 {
 					// Build cycle with task IDs
 					cycle := []string{}
+
 					for _, n := range path[cycleStart:] {
 						if taskID, ok := tg.NodeIDMap[n]; ok {
 							cycle = append(cycle, taskID)
@@ -181,6 +189,7 @@ func DetectCycles(tg *TaskGraph) [][]string {
 					if taskID, ok := tg.NodeIDMap[neighborID]; ok {
 						cycle = append(cycle, taskID)
 					}
+
 					if len(cycle) > 1 {
 						cycles = append(cycles, cycle)
 					}
@@ -204,7 +213,7 @@ func DetectCycles(tg *TaskGraph) [][]string {
 	return deduplicateCycles(cycles)
 }
 
-// deduplicateCycles removes duplicate cycles (same cycle, different starting point)
+// deduplicateCycles removes duplicate cycles (same cycle, different starting point).
 func deduplicateCycles(cycles [][]string) [][]string {
 	seen := make(map[string]bool)
 	result := [][]string{}
@@ -220,6 +229,7 @@ func deduplicateCycles(cycles [][]string) [][]string {
 
 		if !seen[key] {
 			seen[key] = true
+
 			result = append(result, normalized)
 		}
 	}
@@ -227,7 +237,7 @@ func deduplicateCycles(cycles [][]string) [][]string {
 	return result
 }
 
-// normalizeCycle rotates cycle to start with smallest task ID
+// normalizeCycle rotates cycle to start with smallest task ID.
 func normalizeCycle(cycle []string) []string {
 	if len(cycle) <= 1 {
 		return cycle
@@ -235,6 +245,7 @@ func normalizeCycle(cycle []string) []string {
 
 	// Find smallest task ID
 	minIdx := 0
+
 	minID := cycle[0]
 	for i, id := range cycle {
 		if id < minID {
@@ -251,12 +262,12 @@ func normalizeCycle(cycle []string) []string {
 	return result
 }
 
-// cycleKey creates a unique key for a cycle
+// cycleKey creates a unique key for a cycle.
 func cycleKey(cycle []string) string {
 	return fmt.Sprintf("%v", cycle)
 }
 
-// TopoSortTasks returns tasks in topological order (dependency order)
+// TopoSortTasks returns tasks in topological order (dependency order).
 func TopoSortTasks(tg *TaskGraph) ([]string, error) {
 	sortedNodes, err := topo.Sort(tg.Graph)
 	if err != nil {
@@ -264,6 +275,7 @@ func TopoSortTasks(tg *TaskGraph) ([]string, error) {
 	}
 
 	result := make([]string, len(sortedNodes))
+
 	for i, node := range sortedNodes {
 		if taskID, ok := tg.NodeIDMap[node.ID()]; ok {
 			result[i] = taskID
@@ -274,13 +286,14 @@ func TopoSortTasks(tg *TaskGraph) ([]string, error) {
 }
 
 // FindCriticalPath finds the longest path in the DAG (critical path)
-// Assumes graph is a DAG (no cycles)
+// Assumes graph is a DAG (no cycles).
 func FindCriticalPath(tg *TaskGraph) ([]string, error) {
 	// First check if it's a DAG
 	hasCycles, err := HasCycles(tg)
 	if err != nil {
 		return nil, fmt.Errorf("failed to check for cycles: %w", err)
 	}
+
 	if hasCycles {
 		return nil, fmt.Errorf("cannot find critical path in graph with cycles")
 	}
@@ -331,6 +344,7 @@ func FindCriticalPath(tg *TaskGraph) ([]string, error) {
 	// Reconstruct path from end to start
 	path := []string{}
 	current := endNode
+
 	for current != "" {
 		path = append([]string{current}, path...)
 		current = prev[current]
@@ -340,7 +354,7 @@ func FindCriticalPath(tg *TaskGraph) ([]string, error) {
 }
 
 // GetTaskLevel calculates the dependency level of each task (0 = no dependencies)
-// Optimized version using topological sort for O(V + E) performance
+// Optimized version using topological sort for O(V + E) performance.
 func GetTaskLevels(tg *TaskGraph) map[string]int {
 	levels := make(map[string]int)
 
@@ -366,6 +380,7 @@ func GetTaskLevels(tg *TaskGraph) map[string]int {
 
 		// Check all incoming edges (dependencies)
 		maxDepLevel := -1
+
 		fromNodes := tg.Graph.To(nodeID)
 		for fromNodes.Next() {
 			fromNodeID := fromNodes.Node().ID()
@@ -384,19 +399,22 @@ func GetTaskLevels(tg *TaskGraph) map[string]int {
 }
 
 // getTaskLevelsIterative is the fallback iterative approach for cyclic graphs
-// Optimized with iteration limit and tracking of changed nodes only
+// Optimized with iteration limit and tracking of changed nodes only.
 func getTaskLevelsIterative(tg *TaskGraph) map[string]int {
 	levels := make(map[string]int)
+
 	const maxIterations = 1000 // Safety limit to prevent infinite loops
 
 	// Initialize all tasks to level 0
 	nodes := tg.Graph.Nodes()
 	allTaskIDs := make([]string, 0)
 	taskIDSet := make(map[string]bool)
+
 	for nodes.Next() {
 		nodeID := nodes.Node().ID()
 		if taskID, ok := tg.NodeIDMap[nodeID]; ok {
 			levels[taskID] = 0
+
 			allTaskIDs = append(allTaskIDs, taskID)
 			taskIDSet[taskID] = true
 		}
@@ -424,6 +442,7 @@ func getTaskLevelsIterative(tg *TaskGraph) map[string]int {
 			// Check all incoming edges
 			fromNodes := tg.Graph.To(nodeID)
 			maxDepLevel := -1
+
 			for fromNodes.Next() {
 				fromNodeID := fromNodes.Node().ID()
 				fromTaskID := tg.NodeIDMap[fromNodeID]
@@ -454,13 +473,15 @@ func getTaskLevelsIterative(tg *TaskGraph) map[string]int {
 	return levels
 }
 
-// AnalyzeCriticalPath analyzes and returns critical path information for tasks
+// AnalyzeCriticalPath analyzes and returns critical path information for tasks.
 func AnalyzeCriticalPath(projectRoot string) (map[string]interface{}, error) {
 	store := NewDefaultTaskStore(projectRoot)
+
 	list, err := store.ListTasks(context.Background(), nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load tasks: %w", err)
 	}
+
 	tasks := tasksFromPtrs(list)
 
 	result := map[string]interface{}{
@@ -496,6 +517,7 @@ func AnalyzeCriticalPath(projectRoot string) (map[string]interface{}, error) {
 		result["cycle_count"] = len(cycles)
 		result["cycles"] = cycles
 		result["message"] = "Cannot compute critical path: graph has cycles"
+
 		return result, nil
 	}
 
@@ -507,6 +529,7 @@ func AnalyzeCriticalPath(projectRoot string) (map[string]interface{}, error) {
 
 	// Build detailed path information
 	pathDetails := []map[string]interface{}{}
+
 	for _, taskID := range criticalPath {
 		for _, task := range tasks {
 			if task.ID == taskID {
@@ -518,6 +541,7 @@ func AnalyzeCriticalPath(projectRoot string) (map[string]interface{}, error) {
 					"dependencies":       task.Dependencies,
 					"dependencies_count": len(task.Dependencies),
 				})
+
 				break
 			}
 		}
@@ -539,6 +563,7 @@ func AnalyzeCriticalPath(projectRoot string) (map[string]interface{}, error) {
 			maxLevel = level
 		}
 	}
+
 	result["max_dependency_level"] = maxLevel
 
 	return result, nil
@@ -587,17 +612,22 @@ func BacklogExecutionOrder(tasks []Todo2Task, backlogFilter map[string]bool) (or
 	details = []BacklogTaskDetail{}
 
 	backlog := make([]Todo2Task, 0)
+
 	taskMap := make(map[string]Todo2Task)
 	for _, t := range tasks {
 		taskMap[t.ID] = t
+
 		if !IsBacklogStatus(t.Status) {
 			continue
 		}
+
 		if backlogFilter != nil && !backlogFilter[t.ID] {
 			continue
 		}
+
 		backlog = append(backlog, t)
 	}
+
 	if len(backlog) == 0 {
 		return orderedIDs, waves, details, nil
 	}
@@ -606,6 +636,7 @@ func BacklogExecutionOrder(tasks []Todo2Task, backlogFilter map[string]bool) (or
 	if err != nil {
 		return nil, nil, nil, fmt.Errorf("build task graph: %w", err)
 	}
+
 	levels := GetTaskLevels(tg)
 
 	// Sort backlog by level asc, then priority (critical first), then ID
@@ -614,11 +645,14 @@ func BacklogExecutionOrder(tasks []Todo2Task, backlogFilter map[string]bool) (or
 		if li != lj {
 			return li < lj
 		}
+
 		pi := priorityOrderForSort(backlog[i].Priority)
 		pj := priorityOrderForSort(backlog[j].Priority)
+
 		if pi != pj {
 			return pi < pj
 		}
+
 		return backlog[i].ID < backlog[j].ID
 	})
 
@@ -626,10 +660,12 @@ func BacklogExecutionOrder(tasks []Todo2Task, backlogFilter map[string]bool) (or
 		orderedIDs = append(orderedIDs, t.ID)
 		level := levels[t.ID]
 		waves[level] = append(waves[level], t.ID)
+
 		tags := t.Tags
 		if tags == nil {
 			tags = []string{}
 		}
+
 		details = append(details, BacklogTaskDetail{
 			ID:       t.ID,
 			Content:  t.Content,
@@ -639,5 +675,34 @@ func BacklogExecutionOrder(tasks []Todo2Task, backlogFilter map[string]bool) (or
 			Tags:     tags,
 		})
 	}
+
 	return orderedIDs, waves, details, nil
+}
+
+// LimitWavesByMaxTasks splits waves so each has at most maxPerWave task IDs.
+// Levels are preserved in order; waves with more than maxPerWave tasks are split into
+// consecutive waves (sequential indices 0, 1, 2, ...). If maxPerWave <= 0, returns waves unchanged.
+func LimitWavesByMaxTasks(waves map[int][]string, maxPerWave int) map[int][]string {
+	if maxPerWave <= 0 || len(waves) == 0 {
+		return waves
+	}
+	levels := make([]int, 0, len(waves))
+	for k := range waves {
+		levels = append(levels, k)
+	}
+	sort.Ints(levels)
+	out := make(map[int][]string)
+	idx := 0
+	for _, level := range levels {
+		ids := waves[level]
+		for start := 0; start < len(ids); start += maxPerWave {
+			end := start + maxPerWave
+			if end > len(ids) {
+				end = len(ids)
+			}
+			out[idx] = append([]string(nil), ids[start:end]...)
+			idx++
+		}
+	}
+	return out
 }

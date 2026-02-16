@@ -10,7 +10,7 @@ import (
 )
 
 // handleMemories handles the stdio://memories resource
-// Returns all memories with statistics
+// Returns all memories with statistics.
 func handleMemories(ctx context.Context, uri string) ([]byte, string, error) {
 	projectRoot, err := tools.FindProjectRoot()
 	if err != nil {
@@ -31,6 +31,7 @@ func handleMemories(ctx context.Context, uri string) ([]byte, string, error) {
 	// Calculate statistics
 	categories := make(map[string]int)
 	allMemories, _ := tools.LoadAllMemories(projectRoot)
+
 	for _, m := range allMemories {
 		categories[m.Category]++
 	}
@@ -52,7 +53,7 @@ func handleMemories(ctx context.Context, uri string) ([]byte, string, error) {
 	return jsonData, "application/json", nil
 }
 
-// handleMemoriesByCategory handles the stdio://memories/category/{category} resource
+// handleMemoriesByCategory handles the stdio://memories/category/{category} resource.
 func handleMemoriesByCategory(ctx context.Context, uri string) ([]byte, string, error) {
 	// Parse category from URI: stdio://memories/category/{category}
 	category, err := parseURIVariableByIndexWithValidation(uri, 3, "category", "stdio://memories/category/{category}")
@@ -73,6 +74,7 @@ func handleMemoriesByCategory(ctx context.Context, uri string) ([]byte, string, 
 
 	// Filter by category
 	filtered := []tools.Memory{}
+
 	for _, m := range memories {
 		if m.Category == category {
 			filtered = append(filtered, m)
@@ -99,7 +101,7 @@ func handleMemoriesByCategory(ctx context.Context, uri string) ([]byte, string, 
 	return jsonData, "application/json", nil
 }
 
-// handleMemoriesByTask handles the stdio://memories/task/{task_id} resource
+// handleMemoriesByTask handles the stdio://memories/task/{task_id} resource.
 func handleMemoriesByTask(ctx context.Context, uri string) ([]byte, string, error) {
 	// Parse task_id from URI: stdio://memories/task/{task_id}
 	taskID, err := parseURIVariableByIndexWithValidation(uri, 3, "task ID", "stdio://memories/task/{task_id}")
@@ -120,6 +122,7 @@ func handleMemoriesByTask(ctx context.Context, uri string) ([]byte, string, erro
 
 	// Filter by task_id
 	filtered := []tools.Memory{}
+
 	for _, m := range memories {
 		for _, linkedTask := range m.LinkedTasks {
 			if linkedTask == taskID {
@@ -144,7 +147,7 @@ func handleMemoriesByTask(ctx context.Context, uri string) ([]byte, string, erro
 	return jsonData, "application/json", nil
 }
 
-// handleRecentMemories handles the stdio://memories/recent resource
+// handleRecentMemories handles the stdio://memories/recent resource.
 func handleRecentMemories(ctx context.Context, uri string) ([]byte, string, error) {
 	projectRoot, err := tools.FindProjectRoot()
 	if err != nil {
@@ -160,6 +163,7 @@ func handleRecentMemories(ctx context.Context, uri string) ([]byte, string, erro
 	// Filter to last 24 hours
 	cutoff := time.Now().Add(-24 * time.Hour)
 	recent := []tools.Memory{}
+
 	for _, m := range memories {
 		createdAt, err := time.Parse(time.RFC3339, m.CreatedAt)
 		if err != nil {
@@ -169,6 +173,7 @@ func handleRecentMemories(ctx context.Context, uri string) ([]byte, string, erro
 				continue
 			}
 		}
+
 		if createdAt.After(cutoff) {
 			recent = append(recent, m)
 		}
@@ -189,7 +194,7 @@ func handleRecentMemories(ctx context.Context, uri string) ([]byte, string, erro
 	return jsonData, "application/json", nil
 }
 
-// handleSessionMemories handles the stdio://memories/session/{date} resource
+// handleSessionMemories handles the stdio://memories/session/{date} resource.
 func handleSessionMemories(ctx context.Context, uri string) ([]byte, string, error) {
 	// Parse date from URI: stdio://memories/session/{date}
 	date, err := parseURIVariableByIndexWithValidation(uri, 3, "date", "stdio://memories/session/{date}")
@@ -215,6 +220,7 @@ func handleSessionMemories(ctx context.Context, uri string) ([]byte, string, err
 
 	// Filter by session date
 	filtered := []tools.Memory{}
+
 	for _, m := range memories {
 		if m.SessionDate == date {
 			filtered = append(filtered, m)
@@ -238,7 +244,7 @@ func handleSessionMemories(ctx context.Context, uri string) ([]byte, string, err
 
 // Helper functions - all use exported functions from tools package
 
-// formatMemoriesForResource formats memories for resource output
+// formatMemoriesForResource formats memories for resource output.
 func formatMemoriesForResource(memories []tools.Memory) []map[string]interface{} {
 	result := make([]map[string]interface{}, len(memories))
 	for i, m := range memories {
@@ -253,5 +259,6 @@ func formatMemoriesForResource(memories []tools.Memory) []map[string]interface{}
 			"session_date": m.SessionDate,
 		}
 	}
+
 	return result
 }

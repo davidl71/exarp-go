@@ -9,7 +9,7 @@ import (
 	mcpresponse "github.com/davidl71/mcp-go-core/pkg/mcp/response"
 )
 
-// ToolCatalogEntry represents a tool in the catalog
+// ToolCatalogEntry represents a tool in the catalog.
 type ToolCatalogEntry struct {
 	Tool             string   `json:"tool"`
 	Hint             string   `json:"hint"`
@@ -19,7 +19,7 @@ type ToolCatalogEntry struct {
 	Examples         []string `json:"examples,omitempty"`
 }
 
-// ToolCatalogResponse represents the catalog response
+// ToolCatalogResponse represents the catalog response.
 type ToolCatalogResponse struct {
 	Tools               []ToolCatalogEntry     `json:"tools"`
 	Count               int                    `json:"count"`
@@ -29,7 +29,7 @@ type ToolCatalogResponse struct {
 }
 
 // GetToolCatalog returns the static tool catalog
-// This is a simplified version that can be enhanced to read from registry dynamically
+// This is a simplified version that can be enhanced to read from registry dynamically.
 func GetToolCatalog() map[string]ToolCatalogEntry {
 	return map[string]ToolCatalogEntry{
 		// Project Health
@@ -294,7 +294,7 @@ func GetToolCatalog() map[string]ToolCatalogEntry {
 
 // handleToolCatalogNative handles the tool_catalog tool with native Go implementation
 // Note: "list" action converted to stdio://tools and stdio://tools/{category} resources
-// This tool now only handles the "help" action
+// This tool now only handles the "help" action.
 func handleToolCatalogNative(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	action, _ := params["action"].(string)
 	if action == "" {
@@ -309,13 +309,14 @@ func handleToolCatalogNative(ctx context.Context, params map[string]interface{})
 	}
 }
 
-// handleToolCatalogList handles the list action
+// handleToolCatalogList handles the list action.
 func handleToolCatalogList(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	catalog := GetToolCatalog()
 
 	// Get filters
 	category, _ := params["category"].(string)
 	persona, _ := params["persona"].(string)
+
 	includeExamples := true
 	if inc, ok := params["include_examples"].(bool); ok {
 		includeExamples = inc
@@ -323,6 +324,7 @@ func handleToolCatalogList(ctx context.Context, params map[string]interface{}) (
 
 	// Filter tools
 	var filtered []ToolCatalogEntry
+
 	categories := make(map[string]bool)
 
 	for toolID, tool := range catalog {
@@ -377,10 +379,11 @@ func handleToolCatalogList(ctx context.Context, params map[string]interface{}) (
 	if err != nil {
 		return nil, fmt.Errorf("failed to convert catalog response: %w", err)
 	}
+
 	return mcpresponse.FormatResult(m, "")
 }
 
-// handleToolCatalogHelp handles the help action
+// handleToolCatalogHelp handles the help action.
 func handleToolCatalogHelp(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	toolName, _ := params["tool_name"].(string)
 	if toolName == "" {
@@ -388,16 +391,19 @@ func handleToolCatalogHelp(ctx context.Context, params map[string]interface{}) (
 			"status": "error",
 			"error":  "tool_name parameter required for help action",
 		}
+
 		return mcpresponse.FormatResult(errorResponse, "")
 	}
 
 	catalog := GetToolCatalog()
+
 	tool, exists := catalog[toolName]
 	if !exists {
 		errorResponse := map[string]interface{}{
 			"status": "error",
 			"error":  fmt.Sprintf("Tool '%s' not found in catalog", toolName),
 		}
+
 		return mcpresponse.FormatResult(errorResponse, "")
 	}
 

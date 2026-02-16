@@ -20,6 +20,7 @@ func handleLockCommand(parsed *mcpcli.Args) error {
 	if subcommand == "" && len(parsed.Positional) > 0 {
 		subcommand = parsed.Positional[0]
 	}
+
 	if subcommand == "" {
 		return showLockUsage()
 	}
@@ -59,7 +60,9 @@ func handleLockStatus(parsed *mcpcli.Args) error {
 	if useJSON {
 		return printLockStatusJSON(info, gitLockPath, gitHeld)
 	}
+
 	printLockStatusText(info, gitLockPath, gitHeld, nearExpiry)
+
 	return nil
 }
 
@@ -68,12 +71,15 @@ func isGitLockHeld(path string) bool {
 	if err != nil {
 		return false // e.g. dir missing
 	}
+
 	defer fl.Close()
+
 	err = fl.TryLock()
 	if err != nil {
 		return true // lock is held by another process
 	}
 	_ = fl.Unlock()
+
 	return false
 }
 
@@ -83,8 +89,10 @@ func printLockStatusText(info *database.StaleLockInfo, gitLockPath string, gitHe
 	fmt.Printf("  Expired:         %d\n", info.ExpiredCount)
 	fmt.Printf("  Near expiry:     %d\n", info.NearExpiryCount)
 	fmt.Printf("  Stale (>5m):     %d\n", info.StaleCount)
+
 	if len(info.Locks) > 0 {
 		fmt.Println()
+
 		for _, l := range info.Locks {
 			state := "active"
 			if l.IsStale {
@@ -94,6 +102,7 @@ func printLockStatusText(info *database.StaleLockInfo, gitLockPath string, gitHe
 			} else if l.TimeRemaining < nearExpiry {
 				state = "near expiry"
 			}
+
 			fmt.Printf("  %s  %s  until %s  (%s)\n", l.TaskID, l.Assignee, l.LockUntil.Format(time.RFC3339), state)
 		}
 	}
@@ -101,6 +110,7 @@ func printLockStatusText(info *database.StaleLockInfo, gitLockPath string, gitHe
 	fmt.Println()
 	fmt.Println("## Git sync lock (file)")
 	fmt.Printf("  Path: %s\n", gitLockPath)
+
 	if _, err := os.Stat(gitLockPath); err != nil {
 		fmt.Println("  Status: no lock file")
 	} else if gitHeld {
@@ -120,7 +130,9 @@ func printLockStatusJSON(info *database.StaleLockInfo, gitLockPath string, gitHe
 		TimeRemaining string `json:"time_remaining,omitempty"`
 		TimeExpired   string `json:"time_expired,omitempty"`
 	}
+
 	locks := make([]taskLock, 0, len(info.Locks))
+
 	for _, l := range info.Locks {
 		ent := taskLock{
 			TaskID:    l.TaskID,
@@ -132,9 +144,11 @@ func printLockStatusJSON(info *database.StaleLockInfo, gitLockPath string, gitHe
 		if l.TimeRemaining > 0 {
 			ent.TimeRemaining = l.TimeRemaining.Round(time.Second).String()
 		}
+
 		if l.TimeExpired > 0 {
 			ent.TimeExpired = l.TimeExpired.Round(time.Second).String()
 		}
+
 		locks = append(locks, ent)
 	}
 
@@ -168,7 +182,9 @@ func printLockStatusJSON(info *database.StaleLockInfo, gitLockPath string, gitHe
 	if err != nil {
 		return err
 	}
+
 	fmt.Println(string(data))
+
 	return nil
 }
 
@@ -185,5 +201,6 @@ Options for status:
 Examples:
   exarp-go lock status
   exarp-go lock status -json`)
+
 	return nil
 }

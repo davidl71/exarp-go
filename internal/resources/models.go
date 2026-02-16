@@ -9,7 +9,7 @@ import (
 )
 
 // handleModels handles the stdio://models resource
-// Returns all available AI models with capabilities
+// Returns all available AI models with capabilities.
 func handleModels(ctx context.Context, uri string) ([]byte, string, error) {
 	// Build result (matching tool format); include LLM backends for discovery
 	result := map[string]interface{}{

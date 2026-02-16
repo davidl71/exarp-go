@@ -66,9 +66,11 @@ func TestRegisterAllTools(t *testing.T) {
 			t.Errorf("tool %q not registered", toolName)
 			continue
 		}
+
 		if tool.Name != toolName {
 			t.Errorf("tool.Name = %v, want %v", tool.Name, toolName)
 		}
+
 		if tool.Schema.Type != "object" {
 			t.Errorf("tool %q schema.Type = %v, want object", toolName, tool.Schema.Type)
 		}
@@ -157,9 +159,11 @@ func TestRegisterAllTools_SchemaValidation(t *testing.T) {
 		if tool.Schema.Type == "" {
 			t.Errorf("tool %q schema.Type is empty", toolName)
 		}
+
 		if tool.Schema.Type != "object" {
 			t.Errorf("tool %q schema.Type = %v, want object", toolName, tool.Schema.Type)
 		}
+
 		if tool.Schema.Properties == nil {
 			t.Errorf("tool %q schema.Properties is nil", toolName)
 		}

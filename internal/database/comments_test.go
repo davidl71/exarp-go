@@ -10,10 +10,12 @@ import (
 func TestAddComments(t *testing.T) {
 	// Setup
 	tmpDir := t.TempDir()
+
 	err := Init(tmpDir)
 	if err != nil {
 		t.Fatalf("Init() error = %v", err)
 	}
+
 	defer func() {
 		if err := Close(); err != nil {
 			// Ignore cleanup errors in tests
@@ -26,6 +28,7 @@ func TestAddComments(t *testing.T) {
 		Content: "Test task for comments",
 		Status:  "Todo",
 	}
+
 	err = CreateTask(context.Background(), task)
 	if err != nil {
 		t.Fatalf("CreateTask() error = %v", err)
@@ -53,15 +56,19 @@ func TestAddComments(t *testing.T) {
 	if len(retrieved) != 1 {
 		t.Fatalf("Expected 1 comment, got %d", len(retrieved))
 	}
+
 	if retrieved[0].Type != CommentTypeNote {
 		t.Errorf("Expected type %s, got %s", CommentTypeNote, retrieved[0].Type)
 	}
+
 	if retrieved[0].Content != "This is a test note" {
 		t.Errorf("Expected content 'This is a test note', got '%s'", retrieved[0].Content)
 	}
+
 	if retrieved[0].TaskID != "T-COMMENT-1" {
 		t.Errorf("Expected taskID T-COMMENT-1, got %s", retrieved[0].TaskID)
 	}
+
 	if retrieved[0].ID == "" {
 		t.Error("Expected comment ID to be generated, got empty string")
 	}
@@ -70,10 +77,12 @@ func TestAddComments(t *testing.T) {
 func TestAddCommentsBatch(t *testing.T) {
 	// Setup
 	tmpDir := t.TempDir()
+
 	err := Init(tmpDir)
 	if err != nil {
 		t.Fatalf("Init() error = %v", err)
 	}
+
 	defer func() {
 		if err := Close(); err != nil {
 			// Ignore cleanup errors in tests
@@ -86,6 +95,7 @@ func TestAddCommentsBatch(t *testing.T) {
 		Content: "Test task",
 		Status:  "Todo",
 	}
+
 	err = CreateTask(context.Background(), task)
 	if err != nil {
 		t.Fatalf("CreateTask() error = %v", err)
@@ -136,10 +146,12 @@ func TestAddCommentsBatch(t *testing.T) {
 func TestGetComments(t *testing.T) {
 	// Setup
 	tmpDir := t.TempDir()
+
 	err := Init(tmpDir)
 	if err != nil {
 		t.Fatalf("Init() error = %v", err)
 	}
+
 	defer func() {
 		if err := Close(); err != nil {
 			// Ignore cleanup errors in tests
@@ -152,6 +164,7 @@ func TestGetComments(t *testing.T) {
 		Content: "Test task",
 		Status:  "Todo",
 	}
+
 	err = CreateTask(context.Background(), task)
 	if err != nil {
 		t.Fatalf("CreateTask() error = %v", err)
@@ -168,6 +181,7 @@ func TestGetComments(t *testing.T) {
 			Content: "Second comment",
 		},
 	}
+
 	err = AddComments(context.Background(), "T-COMMENT-3", comments)
 	if err != nil {
 		t.Fatalf("AddComments() error = %v", err)
@@ -188,6 +202,7 @@ func TestGetComments(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GetComments() error = %v", err)
 	}
+
 	if len(empty) != 0 {
 		t.Errorf("Expected 0 comments for non-existent task, got %d", len(empty))
 	}
@@ -196,10 +211,12 @@ func TestGetComments(t *testing.T) {
 func TestGetCommentsByType(t *testing.T) {
 	// Setup
 	tmpDir := t.TempDir()
+
 	err := Init(tmpDir)
 	if err != nil {
 		t.Fatalf("Init() error = %v", err)
 	}
+
 	defer func() {
 		if err := Close(); err != nil {
 			// Ignore cleanup errors in tests
@@ -214,6 +231,7 @@ func TestGetCommentsByType(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CreateTask() error = %v", err)
 	}
+
 	err = CreateTask(context.Background(), task2)
 	if err != nil {
 		t.Fatalf("CreateTask() error = %v", err)
@@ -256,10 +274,12 @@ func TestGetCommentsByType(t *testing.T) {
 func TestGetCommentsWithTypeFilter(t *testing.T) {
 	// Setup
 	tmpDir := t.TempDir()
+
 	err := Init(tmpDir)
 	if err != nil {
 		t.Fatalf("Init() error = %v", err)
 	}
+
 	defer func() {
 		if err := Close(); err != nil {
 			// Ignore cleanup errors in tests
@@ -272,6 +292,7 @@ func TestGetCommentsWithTypeFilter(t *testing.T) {
 		Content: "Test task",
 		Status:  "Todo",
 	}
+
 	err = CreateTask(context.Background(), task)
 	if err != nil {
 		t.Fatalf("CreateTask() error = %v", err)
@@ -296,6 +317,7 @@ func TestGetCommentsWithTypeFilter(t *testing.T) {
 	if len(notes) != 1 {
 		t.Fatalf("Expected 1 note, got %d", len(notes))
 	}
+
 	if notes[0].Type != CommentTypeNote {
 		t.Errorf("Expected type %s, got %s", CommentTypeNote, notes[0].Type)
 	}
@@ -304,10 +326,12 @@ func TestGetCommentsWithTypeFilter(t *testing.T) {
 func TestDeleteComment(t *testing.T) {
 	// Setup
 	tmpDir := t.TempDir()
+
 	err := Init(tmpDir)
 	if err != nil {
 		t.Fatalf("Init() error = %v", err)
 	}
+
 	defer func() {
 		if err := Close(); err != nil {
 			// Ignore cleanup errors in tests
@@ -320,6 +344,7 @@ func TestDeleteComment(t *testing.T) {
 		Content: "Test task",
 		Status:  "Todo",
 	}
+
 	err = CreateTask(context.Background(), task)
 	if err != nil {
 		t.Fatalf("CreateTask() error = %v", err)
@@ -338,9 +363,11 @@ func TestDeleteComment(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GetComments() error = %v", err)
 	}
+
 	if len(comments) != 1 {
 		t.Fatalf("Expected 1 comment, got %d", len(comments))
 	}
+
 	commentID := comments[0].ID
 
 	// Delete comment
@@ -354,6 +381,7 @@ func TestDeleteComment(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GetComments() error = %v", err)
 	}
+
 	if len(remaining) != 0 {
 		t.Errorf("Expected 0 comments after deletion, got %d", len(remaining))
 	}
@@ -368,10 +396,12 @@ func TestDeleteComment(t *testing.T) {
 func TestCommentCascadeDelete(t *testing.T) {
 	// Setup
 	tmpDir := t.TempDir()
+
 	err := Init(tmpDir)
 	if err != nil {
 		t.Fatalf("Init() error = %v", err)
 	}
+
 	defer func() {
 		if err := Close(); err != nil {
 			// Ignore cleanup errors in tests
@@ -384,6 +414,7 @@ func TestCommentCascadeDelete(t *testing.T) {
 		Content: "Test task",
 		Status:  "Todo",
 	}
+
 	err = CreateTask(context.Background(), task)
 	if err != nil {
 		t.Fatalf("CreateTask() error = %v", err)
@@ -403,6 +434,7 @@ func TestCommentCascadeDelete(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GetComments() error = %v", err)
 	}
+
 	if len(comments) != 2 {
 		t.Fatalf("Expected 2 comments, got %d", len(comments))
 	}
@@ -418,6 +450,7 @@ func TestCommentCascadeDelete(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GetComments() error = %v", err)
 	}
+
 	if len(remaining) != 0 {
 		t.Errorf("Expected 0 comments after task deletion (cascade), got %d", len(remaining))
 	}
@@ -426,10 +459,12 @@ func TestCommentCascadeDelete(t *testing.T) {
 func TestAddCommentsEmptyList(t *testing.T) {
 	// Setup
 	tmpDir := t.TempDir()
+
 	err := Init(tmpDir)
 	if err != nil {
 		t.Fatalf("Init() error = %v", err)
 	}
+
 	defer func() {
 		if err := Close(); err != nil {
 			// Ignore cleanup errors in tests
@@ -446,10 +481,12 @@ func TestAddCommentsEmptyList(t *testing.T) {
 func TestAddCommentsWithProvidedID(t *testing.T) {
 	// Setup
 	tmpDir := t.TempDir()
+
 	err := Init(tmpDir)
 	if err != nil {
 		t.Fatalf("Init() error = %v", err)
 	}
+
 	defer func() {
 		if err := Close(); err != nil {
 			// Ignore cleanup errors in tests
@@ -462,6 +499,7 @@ func TestAddCommentsWithProvidedID(t *testing.T) {
 		Content: "Test task",
 		Status:  "Todo",
 	}
+
 	err = CreateTask(context.Background(), task)
 	if err != nil {
 		t.Fatalf("CreateTask() error = %v", err)
@@ -487,9 +525,11 @@ func TestAddCommentsWithProvidedID(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GetComments() error = %v", err)
 	}
+
 	if len(retrieved) != 1 {
 		t.Fatalf("Expected 1 comment, got %d", len(retrieved))
 	}
+
 	if retrieved[0].ID != customID {
 		t.Errorf("Expected ID %s, got %s", customID, retrieved[0].ID)
 	}

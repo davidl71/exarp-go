@@ -27,6 +27,7 @@ func mlxModelsResponse() map[string]interface{} {
 	for _, list := range mlxRecommendedModels {
 		total += len(list)
 	}
+
 	return map[string]interface{}{
 		"success":     true,
 		"method":      "native_go",

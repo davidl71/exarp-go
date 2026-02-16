@@ -14,12 +14,13 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-// handleConfigCommand handles the config subcommand using ParseArgs result
+// handleConfigCommand handles the config subcommand using ParseArgs result.
 func handleConfigCommand(parsed *mcpcli.Args) error {
 	subcommand := parsed.Subcommand
 	if subcommand == "" && len(parsed.Positional) > 0 {
 		subcommand = parsed.Positional[0]
 	}
+
 	if subcommand == "" {
 		return printConfigHelp()
 	}
@@ -35,6 +36,7 @@ func handleConfigCommand(parsed *mcpcli.Args) error {
 		if format := parsed.GetFlag("format", ""); format != "" {
 			formatArgs = []string{format}
 		}
+
 		return handleConfigShow(formatArgs)
 	case "set":
 		return handleConfigSet(parsed.Positional)
@@ -43,6 +45,7 @@ func handleConfigCommand(parsed *mcpcli.Args) error {
 		if format := parsed.GetFlag("format", ""); format != "" {
 			formatArgs = []string{format}
 		}
+
 		return handleConfigExport(formatArgs)
 	case "convert":
 		return handleConfigConvert(parsed.Positional)
@@ -53,7 +56,7 @@ func handleConfigCommand(parsed *mcpcli.Args) error {
 	}
 }
 
-// handleConfigInit generates a default config file in protobuf format (.exarp/config.pb)
+// handleConfigInit generates a default config file in protobuf format (.exarp/config.pb).
 func handleConfigInit(args []string) error {
 	projectRoot, err := config.FindProjectRoot()
 	if err != nil {
@@ -67,6 +70,7 @@ func handleConfigInit(args []string) error {
 		fmt.Printf("⚠️  Config file already exists: %s\n", configPath)
 		fmt.Printf("   Use 'exarp-go config show' to view current config\n")
 		fmt.Printf("   Or delete the file and run 'init' again\n")
+
 		return nil
 	}
 
@@ -77,10 +81,11 @@ func handleConfigInit(args []string) error {
 
 	fmt.Printf("✅ Created default config file: %s\n", configPath)
 	fmt.Printf("   Use 'exarp-go config export yaml' to edit as YAML, then 'exarp-go config convert yaml protobuf' to save\n")
+
 	return nil
 }
 
-// handleConfigValidate validates the config file
+// handleConfigValidate validates the config file.
 func handleConfigValidate(args []string) error {
 	projectRoot, err := config.FindProjectRoot()
 	if err != nil {
@@ -91,6 +96,7 @@ func handleConfigValidate(args []string) error {
 	if err != nil {
 		fmt.Printf("❌ Config validation failed:\n")
 		fmt.Printf("   %v\n", err)
+
 		return err
 	}
 
@@ -103,15 +109,17 @@ func handleConfigValidate(args []string) error {
 	fmt.Printf("✅ Config file is valid\n")
 	fmt.Printf("   Version: %s\n", cfg.Version)
 	fmt.Printf("   Config format: %s\n", format)
+
 	if format == "protobuf" {
 		fmt.Printf("   Config loaded from: %s/.exarp/config.pb\n", projectRoot)
 	} else {
 		fmt.Printf("   Config: defaults (no .exarp/config.pb)\n")
 	}
+
 	return nil
 }
 
-// handleConfigShow displays the current configuration
+// handleConfigShow displays the current configuration.
 func handleConfigShow(args []string) error {
 	projectRoot, err := config.FindProjectRoot()
 	if err != nil {
@@ -135,12 +143,14 @@ func handleConfigShow(args []string) error {
 		if err != nil {
 			return fmt.Errorf("failed to marshal config: %w", err)
 		}
+
 		fmt.Println(string(data))
 	case "yaml":
 		data, err := yaml.Marshal(cfg)
 		if err != nil {
 			return fmt.Errorf("failed to marshal config: %w", err)
 		}
+
 		fmt.Print(string(data))
 	default:
 		return fmt.Errorf("unknown format: %s (use: yaml, json)", format)
@@ -149,7 +159,7 @@ func handleConfigShow(args []string) error {
 	return nil
 }
 
-// handleConfigSet sets a config value (simple key=value format)
+// handleConfigSet sets a config value (simple key=value format).
 func handleConfigSet(args []string) error {
 	if len(args) < 1 {
 		return fmt.Errorf("usage: exarp-go config set <key>=<value>")
@@ -185,13 +195,15 @@ func handleConfigSet(args []string) error {
 	}
 
 	configPath := filepath.Join(projectRoot, ".exarp", "config.pb")
+
 	fmt.Printf("✅ Set %s = %s\n", key, value)
 	fmt.Printf("   Config saved to: %s\n", configPath)
 	fmt.Printf("   Run 'exarp-go config validate' to verify\n")
+
 	return nil
 }
 
-// setConfigValue sets a config value by key path (e.g., "timeouts.task_lock_lease")
+// setConfigValue sets a config value by key path (e.g., "timeouts.task_lock_lease").
 func setConfigValue(cfg *config.FullConfig, keyPath, value string) error {
 	keys := strings.Split(keyPath, ".")
 	if len(keys) == 0 {
@@ -204,7 +216,9 @@ func setConfigValue(cfg *config.FullConfig, keyPath, value string) error {
 		if len(keys) != 1 {
 			return fmt.Errorf("version is a top-level key")
 		}
+
 		cfg.Version = value
+
 		return nil
 	case "timeouts":
 		return setTimeoutsValue(&cfg.Timeouts, keys[1:], value)
@@ -217,7 +231,7 @@ func setConfigValue(cfg *config.FullConfig, keyPath, value string) error {
 	}
 }
 
-// setTimeoutsValue sets a timeout value
+// setTimeoutsValue sets a timeout value.
 func setTimeoutsValue(timeouts *config.TimeoutsConfig, keys []string, value string) error {
 	if len(keys) != 1 {
 		return fmt.Errorf("timeout keys must be one level deep (e.g., timeouts.task_lock_lease)")
@@ -265,7 +279,7 @@ func setTimeoutsValue(timeouts *config.TimeoutsConfig, keys []string, value stri
 	return nil
 }
 
-// setThresholdsValue sets a threshold value
+// setThresholdsValue sets a threshold value.
 func setThresholdsValue(thresholds *config.ThresholdsConfig, keys []string, value string) error {
 	if len(keys) != 1 {
 		return fmt.Errorf("threshold keys must be one level deep (e.g., thresholds.similarity_threshold)")
@@ -295,7 +309,7 @@ func setThresholdsValue(thresholds *config.ThresholdsConfig, keys []string, valu
 	return nil
 }
 
-// setTasksValue sets a task config value
+// setTasksValue sets a task config value.
 func setTasksValue(tasks *config.TasksConfig, keys []string, value string) error {
 	if len(keys) != 1 {
 		return fmt.Errorf("task keys must be one level deep (e.g., tasks.default_status)")
@@ -313,19 +327,20 @@ func setTasksValue(tasks *config.TasksConfig, keys []string, value string) error
 	return nil
 }
 
-// parseDuration parses a duration string (e.g., "30m", "1h", "45s")
+// parseDuration parses a duration string (e.g., "30m", "1h", "45s").
 func parseDuration(s string) (time.Duration, error) {
 	return time.ParseDuration(s)
 }
 
-// parseFloat parses a float string
+// parseFloat parses a float string.
 func parseFloat(s string) (float64, error) {
 	var f float64
 	_, err := fmt.Sscanf(s, "%f", &f)
+
 	return f, err
 }
 
-// handleConfigExport exports config to different formats
+// handleConfigExport exports config to different formats.
 func handleConfigExport(args []string) error {
 	// Parse format argument (yaml, json, protobuf)
 	format := "yaml"
@@ -356,7 +371,7 @@ func handleConfigExport(args []string) error {
 	}
 }
 
-// handleConfigConvert converts between config formats
+// handleConfigConvert converts between config formats.
 func handleConfigConvert(args []string) error {
 	if len(args) < 2 {
 		return fmt.Errorf("usage: exarp-go config convert <from> <to>")
@@ -372,6 +387,7 @@ func handleConfigConvert(args []string) error {
 
 	// Load from source format
 	var cfg *config.FullConfig
+
 	switch fromFormat {
 	case "yaml", "yml":
 		cfg, err = config.LoadConfig(projectRoot) // Loads YAML (or protobuf if exists)
@@ -398,7 +414,7 @@ func handleConfigConvert(args []string) error {
 	}
 }
 
-// exportProtobuf exports config as protobuf binary
+// exportProtobuf exports config as protobuf binary.
 func exportProtobuf(cfg *config.FullConfig, projectRoot string) error {
 	// Convert to protobuf
 	pbConfig, err := config.ToProtobuf(cfg)
@@ -423,15 +439,16 @@ func exportProtobuf(cfg *config.FullConfig, projectRoot string) error {
 	}
 
 	fmt.Printf("✅ Exported config to protobuf format: %s\n", outputPath)
+
 	return nil
 }
 
-// saveProtobuf saves config as protobuf binary (alias for exportProtobuf)
+// saveProtobuf saves config as protobuf binary (alias for exportProtobuf).
 func saveProtobuf(cfg *config.FullConfig, projectRoot string) error {
 	return exportProtobuf(cfg, projectRoot)
 }
 
-// exportYAML exports config as YAML
+// exportYAML exports config as YAML.
 func exportYAML(cfg *config.FullConfig, projectRoot string) error {
 	// Marshal to YAML
 	data, err := yaml.Marshal(cfg)
@@ -450,15 +467,16 @@ func exportYAML(cfg *config.FullConfig, projectRoot string) error {
 	}
 
 	fmt.Printf("✅ Exported config to YAML format: %s\n", outputPath)
+
 	return nil
 }
 
-// saveYAML saves config as YAML (alias for exportYAML)
+// saveYAML saves config as YAML (alias for exportYAML).
 func saveYAML(cfg *config.FullConfig, projectRoot string) error {
 	return exportYAML(cfg, projectRoot)
 }
 
-// exportJSON exports config as JSON
+// exportJSON exports config as JSON.
 func exportJSON(cfg *config.FullConfig, projectRoot string) error {
 	// Marshal to JSON
 	data, err := json.MarshalIndent(cfg, "", "  ")
@@ -477,10 +495,11 @@ func exportJSON(cfg *config.FullConfig, projectRoot string) error {
 	}
 
 	fmt.Printf("✅ Exported config to JSON format: %s\n", outputPath)
+
 	return nil
 }
 
-// printConfigHelp prints help for config command
+// printConfigHelp prints help for config command.
 func printConfigHelp() error {
 	help := `Configuration Management Commands
 
@@ -515,5 +534,6 @@ For more information, see:
   docs/CONFIGURABLE_PARAMETERS_RECOMMENDATIONS.md
 `
 	fmt.Print(help)
+
 	return nil
 }

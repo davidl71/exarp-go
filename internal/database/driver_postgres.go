@@ -8,24 +8,24 @@ import (
 	_ "github.com/lib/pq"
 )
 
-// PostgresDriver implements the Driver interface for PostgreSQL
+// PostgresDriver implements the Driver interface for PostgreSQL.
 type PostgresDriver struct {
 	dialect *PostgresDialect
 }
 
-// NewPostgresDriver creates a new PostgreSQL driver
+// NewPostgresDriver creates a new PostgreSQL driver.
 func NewPostgresDriver() *PostgresDriver {
 	return &PostgresDriver{
 		dialect: NewPostgresDialect(),
 	}
 }
 
-// Type returns the driver type
+// Type returns the driver type.
 func (d *PostgresDriver) Type() DriverType {
 	return DriverPostgres
 }
 
-// Open opens a PostgreSQL database connection
+// Open opens a PostgreSQL database connection.
 func (d *PostgresDriver) Open(dsn string) (*sql.DB, error) {
 	// PostgreSQL DSN format: postgres://user:password@host:port/dbname?params
 	// or: host=host port=port user=user password=password dbname=dbname sslmode=disable
@@ -42,7 +42,7 @@ func (d *PostgresDriver) Open(dsn string) (*sql.DB, error) {
 	return db, nil
 }
 
-// Configure performs PostgreSQL-specific configuration
+// Configure performs PostgreSQL-specific configuration.
 func (d *PostgresDriver) Configure(db *sql.DB) error {
 	// Set PostgreSQL connection settings
 	configs := []string{
@@ -63,20 +63,20 @@ func (d *PostgresDriver) Configure(db *sql.DB) error {
 	return nil
 }
 
-// Dialect returns the PostgreSQL dialect
+// Dialect returns the PostgreSQL dialect.
 func (d *PostgresDriver) Dialect() Dialect {
 	return d.dialect
 }
 
-// Close performs cleanup (no-op for PostgreSQL)
+// Close performs cleanup (no-op for PostgreSQL).
 func (d *PostgresDriver) Close() error {
 	return nil
 }
 
-// PostgresDialect implements Dialect for PostgreSQL
+// PostgresDialect implements Dialect for PostgreSQL.
 type PostgresDialect struct{}
 
-// NewPostgresDialect creates a new PostgreSQL dialect
+// NewPostgresDialect creates a new PostgreSQL dialect.
 func NewPostgresDialect() *PostgresDialect {
 	return &PostgresDialect{}
 }
@@ -98,6 +98,7 @@ func (d *PostgresDialect) AutoIncrement(columnType string) string {
 	if strings.Contains(strings.ToUpper(columnType), "BIG") {
 		return "BIGSERIAL PRIMARY KEY"
 	}
+
 	return "SERIAL PRIMARY KEY"
 }
 

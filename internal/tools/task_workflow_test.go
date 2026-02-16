@@ -14,6 +14,7 @@ import (
 func TestHandleTaskWorkflowNative(t *testing.T) {
 	tmpDir := t.TempDir()
 	os.Setenv("PROJECT_ROOT", tmpDir)
+
 	defer os.Unsetenv("PROJECT_ROOT")
 
 	tests := []struct {
@@ -219,10 +220,12 @@ func TestHandleTaskWorkflowNative(t *testing.T) {
 		if err := os.MkdirAll(planDir, 0755); err != nil {
 			t.Fatalf("mkdir plans: %v", err)
 		}
+
 		planPath := filepath.Join(planDir, "test.plan.md")
 		if err := os.WriteFile(planPath, []byte("# Test Plan\n"), 0644); err != nil {
 			t.Fatalf("write plan: %v", err)
 		}
+
 		planDoc := ".cursor/plans/test.plan.md"
 
 		ctx := context.Background()
@@ -235,14 +238,18 @@ func TestHandleTaskWorkflowNative(t *testing.T) {
 		if err != nil {
 			t.Fatalf("create task: %v", err)
 		}
+
 		if len(createResult) == 0 {
 			t.Fatal("create returned no result")
 		}
+
 		var createData map[string]interface{}
 		if err := json.Unmarshal([]byte(createResult[0].Text), &createData); err != nil {
 			t.Fatalf("create result JSON: %v", err)
 		}
+
 		taskObj, _ := createData["task"].(map[string]interface{})
+
 		taskID, _ := taskObj["id"].(string)
 		if taskID == "" {
 			t.Fatal("create did not return task id")
@@ -257,15 +264,18 @@ func TestHandleTaskWorkflowNative(t *testing.T) {
 		if err != nil {
 			t.Fatalf("link_planning: %v", err)
 		}
+
 		if len(linkResult) == 0 {
 			t.Error("link_planning returned no result")
 			return
 		}
+
 		var linkData map[string]interface{}
 		if err := json.Unmarshal([]byte(linkResult[0].Text), &linkData); err != nil {
 			t.Errorf("link_planning result JSON: %v", err)
 			return
 		}
+
 		if updated, _ := linkData["updated_ids"].([]interface{}); len(updated) != 1 {
 			t.Errorf("link_planning updated_ids = %v, want 1 item", updated)
 		}
@@ -274,11 +284,13 @@ func TestHandleTaskWorkflowNative(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := context.Background()
+
 			result, err := handleTaskWorkflowNative(ctx, tt.params)
 			if (err != nil) != tt.wantError {
 				t.Errorf("handleTaskWorkflowNative() error = %v, wantError %v", err, tt.wantError)
 				return
 			}
+
 			if !tt.wantError && tt.validate != nil {
 				tt.validate(t, result)
 			}
@@ -289,22 +301,27 @@ func TestHandleTaskWorkflowNative(t *testing.T) {
 func TestHandleTaskWorkflowApproveConfirmViaElicitation(t *testing.T) {
 	tmpDir := t.TempDir()
 	os.Setenv("PROJECT_ROOT", tmpDir)
+
 	defer os.Unsetenv("PROJECT_ROOT")
 
 	t.Run("confirm_via_elicitation with mock decline returns cancelled", func(t *testing.T) {
 		ctx := mcpframework.ContextWithEliciter(context.Background(), &mockEliciter{Action: "decline"})
 		params := map[string]interface{}{"action": "approve", "confirm_via_elicitation": true}
+
 		result, err := handleTaskWorkflowApprove(ctx, params)
 		if err != nil {
 			t.Fatalf("handleTaskWorkflowApprove() err = %v", err)
 		}
+
 		if len(result) == 0 {
 			t.Fatal("expected non-empty result")
 		}
+
 		var data map[string]interface{}
 		if err := json.Unmarshal([]byte(result[0].Text), &data); err != nil {
 			t.Fatalf("invalid JSON: %v", err)
 		}
+
 		if cancelled, _ := data["cancelled"].(bool); !cancelled {
 			t.Errorf("expected cancelled=true when user declines, got %v", data)
 		}
@@ -313,17 +330,21 @@ func TestHandleTaskWorkflowApproveConfirmViaElicitation(t *testing.T) {
 	t.Run("confirm_via_elicitation with no eliciter proceeds", func(t *testing.T) {
 		ctx := context.Background()
 		params := map[string]interface{}{"action": "approve", "confirm_via_elicitation": true}
+
 		result, err := handleTaskWorkflowApprove(ctx, params)
 		if err != nil {
 			t.Fatalf("handleTaskWorkflowApprove() err = %v", err)
 		}
+
 		if len(result) == 0 {
 			t.Fatal("expected non-empty result")
 		}
+
 		var data map[string]interface{}
 		if err := json.Unmarshal([]byte(result[0].Text), &data); err != nil {
 			t.Fatalf("invalid JSON: %v", err)
 		}
+
 		if cancelled, _ := data["cancelled"].(bool); cancelled {
 			t.Errorf("expected no cancellation when eliciter is nil, got cancelled=true")
 		}
@@ -333,14 +354,17 @@ func TestHandleTaskWorkflowApproveConfirmViaElicitation(t *testing.T) {
 func TestApprovalWorkflowActions(t *testing.T) {
 	tmpDir := t.TempDir()
 	os.Setenv("PROJECT_ROOT", tmpDir)
+
 	defer os.Unsetenv("PROJECT_ROOT")
 
 	todo2Dir := filepath.Join(tmpDir, ".todo2")
 	if err := os.MkdirAll(todo2Dir, 0755); err != nil {
 		t.Fatalf("mkdir .todo2: %v", err)
 	}
+
 	statePath := filepath.Join(todo2Dir, "state.todo2.json")
 	stateJSON := []byte(`{"todos":[{"id":"T-test-approval","content":"Test Approval Task","long_description":"For approval flow test","status":"Review","priority":"medium"}]}`)
+
 	if err := os.WriteFile(statePath, stateJSON, 0644); err != nil {
 		t.Fatalf("write state: %v", err)
 	}
@@ -349,17 +373,21 @@ func TestApprovalWorkflowActions(t *testing.T) {
 
 	t.Run("sync_approvals returns list", func(t *testing.T) {
 		params := map[string]interface{}{"action": "sync_approvals"}
+
 		result, err := handleTaskWorkflowNative(ctx, params)
 		if err != nil {
 			t.Fatalf("sync_approvals: %v", err)
 		}
+
 		if len(result) == 0 {
 			t.Fatal("expected non-empty result")
 		}
+
 		var data map[string]interface{}
 		if err := json.Unmarshal([]byte(result[0].Text), &data); err != nil {
 			t.Fatalf("invalid JSON: %v", err)
 		}
+
 		if _, ok := data["approval_requests"]; !ok {
 			t.Errorf("expected approval_requests in result")
 		}
@@ -367,17 +395,21 @@ func TestApprovalWorkflowActions(t *testing.T) {
 
 	t.Run("request_approval returns payload for task", func(t *testing.T) {
 		params := map[string]interface{}{"action": "request_approval", "task_id": "T-test-approval"}
+
 		result, err := handleTaskWorkflowNative(ctx, params)
 		if err != nil {
 			t.Fatalf("request_approval: %v", err)
 		}
+
 		if len(result) == 0 {
 			t.Fatal("expected non-empty result")
 		}
+
 		var data map[string]interface{}
 		if err := json.Unmarshal([]byte(result[0].Text), &data); err != nil {
 			t.Fatalf("invalid JSON: %v", err)
 		}
+
 		if _, ok := data["approval_request"]; !ok {
 			t.Errorf("expected approval_request in result")
 		}
@@ -385,19 +417,23 @@ func TestApprovalWorkflowActions(t *testing.T) {
 
 	t.Run("apply_approval_result updates task", func(t *testing.T) {
 		params := map[string]interface{}{"action": "apply_approval_result", "task_id": "T-test-approval", "result": "approved"}
+
 		_, err := handleTaskWorkflowNative(ctx, params)
 		if err != nil {
 			t.Fatalf("apply_approval_result: %v", err)
 		}
+
 		tasks, _ := LoadTodo2Tasks(tmpDir)
 		for _, tsk := range tasks {
 			if tsk.ID == "T-test-approval" {
 				if tsk.Status != "Done" {
 					t.Errorf("expected task status Done after approve, got %s", tsk.Status)
 				}
+
 				return
 			}
 		}
+
 		t.Error("task T-test-approval not found after apply_approval_result")
 	})
 }
@@ -405,6 +441,7 @@ func TestApprovalWorkflowActions(t *testing.T) {
 func TestHandleTaskWorkflow(t *testing.T) {
 	tmpDir := t.TempDir()
 	os.Setenv("PROJECT_ROOT", tmpDir)
+
 	defer os.Unsetenv("PROJECT_ROOT")
 
 	tests := []struct {
@@ -432,11 +469,13 @@ func TestHandleTaskWorkflow(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := context.Background()
 			argsJSON, _ := json.Marshal(tt.params)
+
 			result, err := handleTaskWorkflow(ctx, argsJSON)
 			if (err != nil) != tt.wantError {
 				t.Errorf("handleTaskWorkflow() error = %v, wantError %v", err, tt.wantError)
 				return
 			}
+
 			if !tt.wantError && len(result) == 0 {
 				t.Error("expected non-empty result")
 			}
@@ -465,6 +504,7 @@ func TestParseTaskIDsFromParams(t *testing.T) {
 				t.Errorf("ParseTaskIDsFromParams() len = %v, want %v", got, tt.want)
 				return
 			}
+
 			for i := range got {
 				if got[i] != tt.want[i] {
 					t.Errorf("ParseTaskIDsFromParams()[%d] = %q, want %q", i, got[i], tt.want[i])

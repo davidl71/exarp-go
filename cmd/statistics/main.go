@@ -48,16 +48,19 @@ func main() {
 			respondError("quantile requires 'p' parameter")
 			os.Exit(1)
 		}
+
 		result = tools.Quantile(req.Data, *req.P)
 	case "round":
 		if req.Value == nil {
 			respondError("round requires 'value' parameter")
 			os.Exit(1)
 		}
+
 		decimals := 2
 		if req.Decimals != nil {
 			decimals = *req.Decimals
 		}
+
 		result = tools.Round(*req.Value, decimals)
 	default:
 		respondError(fmt.Sprintf("Unknown function: %s", req.Function))

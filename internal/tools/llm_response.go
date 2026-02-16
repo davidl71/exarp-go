@@ -14,12 +14,14 @@ func stripMarkdownCodeBlocks(s string) string {
 			return strings.TrimSpace(s[start : start+end])
 		}
 	}
+
 	if idx := strings.Index(s, "```"); idx >= 0 {
 		start := idx + 3
 		if end := strings.Index(s[start:], "```"); end >= 0 {
 			return strings.TrimSpace(s[start : start+end])
 		}
 	}
+
 	return s
 }
 
@@ -33,6 +35,7 @@ func ExtractJSONArrayFromLLMResponse(result string) string {
 			return s[jsonStart : jsonEnd+1]
 		}
 	}
+
 	return s
 }
 
@@ -46,5 +49,6 @@ func ExtractJSONObjectFromLLMResponse(result string) string {
 			return s[jsonStart : jsonEnd+1]
 		}
 	}
+
 	return s
 }

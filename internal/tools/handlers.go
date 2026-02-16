@@ -12,7 +12,7 @@ import (
 )
 
 // handleAnalyzeAlignment handles the analyze_alignment tool
-// Fully native Go for both "todo2" and "prd" actions; no Python bridge
+// Fully native Go for both "todo2" and "prd" actions; no Python bridge.
 func handleAnalyzeAlignment(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
 	// Try protobuf first, fall back to JSON for backward compatibility
 	req, params, err := ParseAnalyzeAlignmentRequest(args)
@@ -32,11 +32,12 @@ func handleAnalyzeAlignment(ctx context.Context, args json.RawMessage) ([]framew
 	if err != nil {
 		return nil, fmt.Errorf("analyze_alignment failed: %w", err)
 	}
+
 	return result, nil
 }
 
 // handleGenerateConfig handles the generate_config tool
-// Uses native Go implementation for all actions (rules, ignore, simplify) - fully native Go
+// Uses native Go implementation for all actions (rules, ignore, simplify) - fully native Go.
 func handleGenerateConfig(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
 	// Try protobuf first, fall back to JSON for backward compatibility
 	req, params, err := ParseGenerateConfigRequest(args)
@@ -57,11 +58,12 @@ func handleGenerateConfig(ctx context.Context, args json.RawMessage) ([]framewor
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal params: %w", err)
 	}
+
 	return handleGenerateConfigNative(ctx, argsJSON)
 }
 
 // handleHealth handles the health tool
-// Uses native Go implementation for all actions (server, git, docs, dod, cicd) - fully native Go with no fallback
+// Uses native Go implementation for all actions (server, git, docs, dod, cicd) - fully native Go with no fallback.
 func handleHealth(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
 	// Try protobuf first, fall back to JSON for backward compatibility
 	req, params, err := ParseHealthRequest(args)
@@ -82,7 +84,7 @@ func handleHealth(ctx context.Context, args json.RawMessage) ([]framework.TextCo
 }
 
 // handleSetupHooks handles the setup_hooks tool
-// Uses native Go implementation for both "git" and "patterns" actions - fully native Go
+// Uses native Go implementation for both "git" and "patterns" actions - fully native Go.
 func handleSetupHooks(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
 	// Try protobuf first, fall back to JSON for backward compatibility
 	req, params, err := ParseSetupHooksRequest(args)
@@ -103,7 +105,7 @@ func handleSetupHooks(ctx context.Context, args json.RawMessage) ([]framework.Te
 }
 
 // handleCheckAttribution handles the check_attribution tool
-// Uses native Go implementation only - fully native Go, no Python fallback
+// Uses native Go implementation only - fully native Go, no Python fallback.
 func handleCheckAttribution(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
 	// Try protobuf first, fall back to JSON for backward compatibility
 	req, params, err := ParseCheckAttributionRequest(args)
@@ -121,7 +123,7 @@ func handleCheckAttribution(ctx context.Context, args json.RawMessage) ([]framew
 }
 
 // handleAddExternalToolHints handles the add_external_tool_hints tool
-// Uses native Go implementation - fully native Go, no Python bridge needed
+// Uses native Go implementation - fully native Go, no Python bridge needed.
 func handleAddExternalToolHints(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
 	// Try protobuf first, fall back to JSON for backward compatibility
 	req, params, err := ParseAddExternalToolHintsRequest(args)
@@ -145,18 +147,19 @@ func handleAddExternalToolHints(ctx context.Context, args json.RawMessage) ([]fr
 
 // handleMemory handles the memory tool
 // Uses native Go for all actions (save, recall, search, list) - fully native Go, no Python bridge
-// Note: Basic text search is native; semantic search enhancement can be added later in Go if needed
+// Note: Basic text search is native; semantic search enhancement can be added later in Go if needed.
 func handleMemory(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
 	// Note: handleMemoryNative already handles protobuf parsing, so we just pass args through
 	result, err := handleMemoryNative(ctx, args)
 	if err != nil {
 		return nil, fmt.Errorf("memory failed: %w", err)
 	}
+
 	return result, nil
 }
 
 // handleMemoryMaint handles the memory_maint tool
-// Uses native Go implementation only (health, gc, prune, consolidate, dream) - fully native Go, no Python fallback
+// Uses native Go implementation only (health, gc, prune, consolidate, dream) - fully native Go, no Python fallback.
 func handleMemoryMaint(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
 	// Try protobuf first, fall back to JSON for backward compatibility
 	req, params, err := ParseMemoryMaintRequest(args)
@@ -208,15 +211,19 @@ func handleReport(ctx context.Context, args json.RawMessage) ([]framework.TextCo
 		if !IsGoProject() {
 			return nil, fmt.Errorf("scorecard action is only supported for Go projects (go.mod); use action=overview for other project types")
 		}
+
 		projectRoot, err := FindProjectRoot()
 		if err != nil {
 			return nil, fmt.Errorf("report scorecard: %w", err)
 		}
+
 		fastMode := true
 		if v, ok := params["fast_mode"].(bool); ok {
 			fastMode = v
 		}
+
 		opts := &ScorecardOptions{FastMode: fastMode}
+
 		scorecard, err := GenerateGoScorecard(ctx, projectRoot, opts)
 		if err != nil {
 			return nil, fmt.Errorf("report scorecard: %w", err)
@@ -224,6 +231,7 @@ func handleReport(ctx context.Context, args json.RawMessage) ([]framework.TextCo
 		// Use proto for type-safe scorecard data (report/MLX path)
 		scorecardProto := GoScorecardResultToProto(scorecard)
 		scorecardMap := ProtoToScorecardMap(scorecardProto)
+
 		outputFormat, _ := params["output_format"].(string)
 		if outputFormat == "json" {
 			// Return JSON for Python/script consumers (e.g. project_overview, consolidated_reporting)
@@ -237,6 +245,7 @@ func handleReport(ctx context.Context, args json.RawMessage) ([]framework.TextCo
 				"recommendations":  scorecardProto.GetRecommendations(),
 				"metrics":          scorecardMap["metrics"],
 			}
+
 			return response.FormatResult(out, "")
 		}
 		// Use proto-derived map for MLX enhancement
@@ -245,12 +254,15 @@ func handleReport(ctx context.Context, args json.RawMessage) ([]framework.TextCo
 			if insights, ok := enhanced["ai_insights"].(map[string]interface{}); ok {
 				result := FormatGoScorecardWithMLX(scorecard, insights)
 				wisdomResult := addWisdomToScorecard(result, scorecard)
+
 				return []framework.TextContent{
 					{Type: "text", Text: wisdomResult},
 				}, nil
 			}
 		}
+
 		result := FormatGoScorecardWithWisdom(scorecard)
+
 		return []framework.TextContent{
 			{Type: "text", Text: result},
 		}, nil
@@ -260,6 +272,7 @@ func handleReport(ctx context.Context, args json.RawMessage) ([]framework.TextCo
 		if err != nil {
 			return nil, fmt.Errorf("report overview: %w", err)
 		}
+
 		return result, nil
 
 	case "briefing":
@@ -267,6 +280,7 @@ func handleReport(ctx context.Context, args json.RawMessage) ([]framework.TextCo
 		if err != nil {
 			return nil, fmt.Errorf("report briefing: %w", err)
 		}
+
 		return result, nil
 
 	case "prd":
@@ -274,6 +288,7 @@ func handleReport(ctx context.Context, args json.RawMessage) ([]framework.TextCo
 		if err != nil {
 			return nil, fmt.Errorf("report prd: %w", err)
 		}
+
 		return result, nil
 
 	case "plan":
@@ -281,6 +296,7 @@ func handleReport(ctx context.Context, args json.RawMessage) ([]framework.TextCo
 		if err != nil {
 			return nil, fmt.Errorf("report plan: %w", err)
 		}
+
 		return result, nil
 
 	case "scorecard_plans":
@@ -288,6 +304,7 @@ func handleReport(ctx context.Context, args json.RawMessage) ([]framework.TextCo
 		if err != nil {
 			return nil, fmt.Errorf("report scorecard_plans: %w", err)
 		}
+
 		return result, nil
 
 	case "parallel_execution_plan":
@@ -295,13 +312,14 @@ func handleReport(ctx context.Context, args json.RawMessage) ([]framework.TextCo
 		if err != nil {
 			return nil, fmt.Errorf("report parallel_execution_plan: %w", err)
 		}
+
 		return result, nil
 	}
 
 	return nil, fmt.Errorf("report action %q not supported; supported: overview, scorecard, briefing, prd, plan, scorecard_plans, parallel_execution_plan", action)
 }
 
-// handleSecurity handles the security tool
+// handleSecurity handles the security tool.
 func handleSecurity(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
 	// Try protobuf first, fall back to JSON for backward compatibility
 	req, params, err := ParseSecurityRequest(args)
@@ -331,20 +349,24 @@ func handleSecurity(ctx context.Context, args json.RawMessage) ([]framework.Text
 		if err != nil {
 			return nil, fmt.Errorf("security scan: %w", err)
 		}
+
 		return result, nil
 	case "alerts":
 		result, err := handleSecurityAlerts(ctx, params)
 		if err != nil {
 			return nil, fmt.Errorf("security alerts: %w", err)
 		}
+
 		return result, nil
 	case "report":
 		result, err := handleSecurityReport(ctx, params)
 		if err != nil {
 			return nil, fmt.Errorf("security report: %w", err)
 		}
+
 		return result, nil
 	}
+
 	return nil, fmt.Errorf("security action %q not supported; supported: scan, alerts, report", action)
 }
 
@@ -368,7 +390,7 @@ func handleTaskAnalysis(ctx context.Context, args json.RawMessage) ([]framework.
 }
 
 // handleTaskDiscovery handles the task_discovery tool
-// Uses native Go implementation only (comments, markdown, orphans, create_tasks); no Python bridge
+// Uses native Go implementation only (comments, markdown, orphans, create_tasks); no Python bridge.
 func handleTaskDiscovery(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
 	// Try protobuf first, fall back to JSON for backward compatibility
 	req, params, err := ParseTaskDiscoveryRequest(args)
@@ -389,6 +411,7 @@ func handleTaskDiscovery(ctx context.Context, args json.RawMessage) ([]framework
 	if err != nil {
 		return nil, fmt.Errorf("task_discovery failed: %w", err)
 	}
+
 	return result, nil
 }
 
@@ -399,9 +422,11 @@ func handleInferTaskProgress(ctx context.Context, args json.RawMessage) ([]frame
 	if err := json.Unmarshal(args, &params); err != nil {
 		return nil, fmt.Errorf("failed to parse arguments: %w", err)
 	}
+
 	if params == nil {
 		params = make(map[string]interface{})
 	}
+
 	return handleInferTaskProgressNative(ctx, params)
 }
 
@@ -430,10 +455,11 @@ func handleTaskWorkflow(ctx context.Context, args json.RawMessage) ([]framework.
 	if err != nil {
 		return nil, err
 	}
+
 	return result, nil
 }
 
-// handleTesting handles the testing tool
+// handleTesting handles the testing tool.
 func handleTesting(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
 	// Try protobuf first, fall back to JSON for backward compatibility
 	req, params, err := ParseTestingRequest(args)
@@ -463,27 +489,31 @@ func handleTesting(ctx context.Context, args json.RawMessage) ([]framework.TextC
 		if err != nil {
 			return nil, fmt.Errorf("testing run: %w", err)
 		}
+
 		return result, nil
 	case "coverage":
 		result, err := handleTestingCoverage(ctx, params)
 		if err != nil {
 			return nil, fmt.Errorf("testing coverage: %w", err)
 		}
+
 		return result, nil
 	case "validate":
 		result, err := handleTestingValidate(ctx, params)
 		if err != nil {
 			return nil, fmt.Errorf("testing validate: %w", err)
 		}
+
 		return result, nil
 	}
+
 	return nil, fmt.Errorf("testing action %q not supported; supported: run, coverage, validate", action)
 }
 
 // Batch 3 Tool Handlers (T-37 through T-44)
 
 // handleAutomation handles the automation tool
-// Uses native Go implementation for all actions (daily, nightly, sprint, discover) - fully native Go with no fallback
+// Uses native Go implementation for all actions (daily, nightly, sprint, discover) - fully native Go with no fallback.
 func handleAutomation(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
 	// Try protobuf first, fall back to JSON for backward compatibility
 	req, params, err := ParseAutomationRequest(args)
@@ -504,7 +534,7 @@ func handleAutomation(ctx context.Context, args json.RawMessage) ([]framework.Te
 }
 
 // handleToolCatalog handles the tool_catalog tool
-// Uses native Go implementation (migrated from Python bridge)
+// Uses native Go implementation (migrated from Python bridge).
 func handleToolCatalog(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
 	// Try protobuf first, fall back to JSON for backward compatibility
 	req, params, err := ParseToolCatalogRequest(args)
@@ -525,7 +555,7 @@ func handleToolCatalog(ctx context.Context, args json.RawMessage) ([]framework.T
 }
 
 // handleWorkflowMode handles the workflow_mode tool
-// Uses native Go implementation (migrated from Python bridge)
+// Uses native Go implementation (migrated from Python bridge).
 func handleWorkflowMode(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
 	// Try protobuf first, fall back to JSON for backward compatibility
 	req, params, err := ParseWorkflowModeRequest(args)
@@ -545,7 +575,7 @@ func handleWorkflowMode(ctx context.Context, args json.RawMessage) ([]framework.
 	return handleWorkflowModeNative(ctx, params)
 }
 
-// handleLint handles the lint tool
+// handleLint handles the lint tool.
 func handleLint(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
 	// Try protobuf first, fall back to JSON for backward compatibility
 	req, params, err := ParseLintRequest(args)
@@ -608,6 +638,7 @@ func handleLint(ctx context.Context, args json.RawMessage) ([]framework.TextCont
 		if err != nil {
 			return nil, fmt.Errorf("failed to convert lint result: %w", err)
 		}
+
 		return response.FormatResult(m, "")
 	}
 
@@ -621,7 +652,9 @@ func EstimationResultToMap(resp *proto.EstimationResult) map[string]interface{} 
 	if resp == nil {
 		return nil
 	}
+
 	out := map[string]interface{}{"action": resp.GetAction()}
+
 	if resp.GetResultJson() != "" {
 		var payload map[string]interface{}
 		if json.Unmarshal([]byte(resp.GetResultJson()), &payload) == nil {
@@ -630,10 +663,11 @@ func EstimationResultToMap(resp *proto.EstimationResult) map[string]interface{} 
 			}
 		}
 	}
+
 	return out
 }
 
-// Native Go only (stats, estimate, analyze when Apple FM available); no Python fallback
+// Native Go only (stats, estimate, analyze when Apple FM available); no Python fallback.
 func handleEstimation(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
 	projectRoot, err := FindProjectRoot()
 	if err != nil {
@@ -659,15 +693,18 @@ func handleEstimation(ctx context.Context, args json.RawMessage) ([]framework.Te
 	if err != nil {
 		return nil, err
 	}
+
 	action := "estimate"
 	if a, ok := params["action"].(string); ok && a != "" {
 		action = a
 	}
+
 	resp := &proto.EstimationResult{Action: action, ResultJson: result}
+
 	return response.FormatResult(EstimationResultToMap(resp), "")
 }
 
-// handleGitTools handles the git_tools tool using native Go implementation
+// handleGitTools handles the git_tools tool using native Go implementation.
 func handleGitTools(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
 	// Try protobuf first, fall back to JSON for backward compatibility
 	req, paramsMap, err := ParseGitToolsRequest(args)
@@ -701,9 +738,11 @@ func handleGitTools(ctx context.Context, args json.RawMessage) ([]framework.Text
 		if params.Format == "" {
 			params.Format = "text"
 		}
+
 		if params.ConflictStrategy == "" {
 			params.ConflictStrategy = "newer"
 		}
+
 		if params.Author == "" {
 			params.Author = "system"
 		}
@@ -720,16 +759,19 @@ func handleGitTools(ctx context.Context, args json.RawMessage) ([]framework.Text
 	if err != nil {
 		return nil, fmt.Errorf("git_tools failed: %w", err)
 	}
+
 	action := params.Action
 	if action == "" {
 		action = "commits"
 	}
+
 	resp := &proto.GitToolsResponse{Success: true, Action: action, ResultJson: result}
+
 	return response.FormatResult(GitToolsResponseToMap(resp), "")
 }
 
 // handleSession handles the session tool
-// Uses native Go implementation for all actions (prime, handoff, prompts, assignee) - fully native Go
+// Uses native Go implementation for all actions (prime, handoff, prompts, assignee) - fully native Go.
 func handleSession(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
 	// Try protobuf first, fall back to JSON for backward compatibility
 	req, params, err := ParseSessionRequest(args)
@@ -751,7 +793,7 @@ func handleSession(ctx context.Context, args json.RawMessage) ([]framework.TextC
 }
 
 // handleInferSessionMode handles the infer_session_mode tool
-// Uses native Go implementation (migrated from Python bridge)
+// Uses native Go implementation (migrated from Python bridge).
 func handleInferSessionMode(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
 	// Try protobuf first, fall back to JSON for backward compatibility
 	req, params, err := ParseInferSessionModeRequest(args)
@@ -774,16 +816,19 @@ func handleOllama(ctx context.Context, args json.RawMessage) ([]framework.TextCo
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse arguments: %w", err)
 	}
+
 	if req != nil {
 		params = OllamaRequestToParams(req)
 		request.ApplyDefaults(params, map[string]interface{}{
 			"model": "llama3.2",
 		})
 	}
+
 	result, err := DefaultOllama().Invoke(ctx, params)
 	if err != nil {
 		return nil, fmt.Errorf("ollama failed: %w", err)
 	}
+
 	return result, nil
 }
 
@@ -812,7 +857,7 @@ func handleMlx(ctx context.Context, args json.RawMessage) ([]framework.TextConte
 // unified handlers below that use action parameters.
 
 // handleContext handles the context tool (unified wrapper)
-// Uses native Go with Apple Foundation Models for summarization when available
+// Uses native Go with Apple Foundation Models for summarization when available.
 func handleContext(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
 	// Try protobuf first, fall back to JSON for backward compatibility
 	req, params, err := ParseContextRequest(args)
@@ -829,6 +874,7 @@ func handleContext(ctx context.Context, args json.RawMessage) ([]framework.TextC
 			"level":      "brief",
 			"max_tokens": 512,
 		})
+
 		if !req.Combine {
 			params["combine"] = true // Default is true
 		}
@@ -847,10 +893,12 @@ func handleContext(ctx context.Context, args json.RawMessage) ([]framework.TextC
 		if !FMAvailable() {
 			return nil, fmt.Errorf("context summarize requires Apple Foundation Models (darwin/arm64 with CGO); use action=budget or action=batch for other operations")
 		}
+
 		result, err := handleContextSummarizeNative(ctx, params)
 		if err != nil {
 			return nil, fmt.Errorf("context summarize: %w", err)
 		}
+
 		return result, nil
 
 	case "budget":
@@ -858,10 +906,12 @@ func handleContext(ctx context.Context, args json.RawMessage) ([]framework.TextC
 		if err != nil {
 			return nil, fmt.Errorf("failed to marshal budget arguments: %w", err)
 		}
+
 		result, err := handleContextBudget(ctx, budgetArgs)
 		if err != nil {
 			return nil, fmt.Errorf("context budget: %w", err)
 		}
+
 		return result, nil
 
 	case "batch":
@@ -869,6 +919,7 @@ func handleContext(ctx context.Context, args json.RawMessage) ([]framework.TextC
 		if err != nil {
 			return nil, fmt.Errorf("context batch: %w", err)
 		}
+
 		return result, nil
 
 	default:
@@ -877,7 +928,7 @@ func handleContext(ctx context.Context, args json.RawMessage) ([]framework.TextC
 }
 
 // handlePromptTracking handles the prompt_tracking tool (unified wrapper)
-// Uses native Go implementation
+// Uses native Go implementation.
 func handlePromptTracking(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
 	// Try protobuf first, fall back to JSON for backward compatibility
 	req, params, err := ParsePromptTrackingRequest(args)
@@ -930,18 +981,21 @@ func handleRecommend(ctx context.Context, args json.RawMessage) ([]framework.Tex
 		if err != nil {
 			return nil, fmt.Errorf("recommend model: %w", err)
 		}
+
 		return result, nil
 	case "workflow":
 		result, err := handleRecommendWorkflowNative(ctx, params)
 		if err != nil {
 			return nil, fmt.Errorf("recommend workflow: %w", err)
 		}
+
 		return result, nil
 	case "advisor":
 		result, err := handleRecommendAdvisorNative(ctx, params)
 		if err != nil {
 			return nil, fmt.Errorf("recommend advisor: %w", err)
 		}
+
 		return result, nil
 	}
 

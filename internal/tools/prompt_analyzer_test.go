@@ -10,6 +10,7 @@ func TestPromptAnalysis_MinScore(t *testing.T) {
 	if got := p.MinScore(); got != 0.6 {
 		t.Errorf("MinScore() = %v, want 0.6", got)
 	}
+
 	p2 := &PromptAnalysis{Clarity: 0.8, Specificity: 0.8, Completeness: 0.8, Structure: 0.8, Actionability: 0.8}
 	if got := p2.MinScore(); got != 0.8 {
 		t.Errorf("MinScore() = %v, want 0.8", got)
@@ -18,19 +19,23 @@ func TestPromptAnalysis_MinScore(t *testing.T) {
 
 func TestParseSuggestionsResponse(t *testing.T) {
 	body := `{"suggestions":[{"dimension":"specificity","issue":"vague","recommendation":"add file paths"}]}`
+
 	resp, err := parseSuggestionsResponse(body)
 	if err != nil {
 		t.Fatalf("parseSuggestionsResponse: %v", err)
 	}
+
 	if len(resp.Suggestions) != 1 || resp.Suggestions[0].Dimension != "specificity" {
 		t.Errorf("got %+v", resp)
 	}
 	// with markdown fence
 	body2 := "```json\n" + body + "\n```"
+
 	resp2, err := parseSuggestionsResponse(body2)
 	if err != nil {
 		t.Fatalf("parseSuggestionsResponse(markdown): %v", err)
 	}
+
 	if len(resp2.Suggestions) != 1 {
 		t.Errorf("got %+v", resp2)
 	}
@@ -38,10 +43,12 @@ func TestParseSuggestionsResponse(t *testing.T) {
 
 func TestRefinePromptLoop_InvalidInput(t *testing.T) {
 	ctx := context.Background()
+
 	_, _, err := RefinePromptLoop(ctx, "", "ctx", "code", nil, nil)
 	if err == nil {
 		t.Error("expected error for empty prompt")
 	}
+
 	_, _, err = RefinePromptLoop(ctx, "hello", "ctx", "code", nil, nil)
 	if err == nil {
 		t.Error("expected error for nil generator")
@@ -87,6 +94,7 @@ func TestParsePromptAnalysis(t *testing.T) {
 				t.Errorf("parsePromptAnalysis() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
+
 			if got != nil && tt.check != nil {
 				tt.check(t, got)
 			}

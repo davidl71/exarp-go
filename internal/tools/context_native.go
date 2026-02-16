@@ -21,6 +21,7 @@ func summarizeWithAppleFM(ctx context.Context, data string, level string, maxTok
 
 	// Build prompt based on level
 	var prompt string
+
 	switch level {
 	case "brief":
 		prompt = fmt.Sprintf("Summarize the following text in one concise sentence with key metrics:\n\n%s", data)
@@ -49,7 +50,7 @@ func summarizeWithAppleFM(ctx context.Context, data string, level string, maxTok
 }
 
 // handleContextSummarizeNative handles context summarization using native Go with Apple FM
-// Uses protobuf ContextRequest for type-safe parameter handling
+// Uses protobuf ContextRequest for type-safe parameter handling.
 func handleContextSummarizeNative(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	startTime := time.Now()
 
@@ -70,6 +71,7 @@ func handleContextSummarizeNative(ctx context.Context, params map[string]interfa
 		if err != nil {
 			return nil, fmt.Errorf("failed to marshal data: %w", err)
 		}
+
 		dataStr = string(bytes)
 	default:
 		dataStr = fmt.Sprintf("%v", v)
@@ -82,6 +84,7 @@ func handleContextSummarizeNative(ctx context.Context, params map[string]interfa
 	}
 
 	maxTokens := 0
+
 	if maxTokensRaw, ok := params["max_tokens"]; ok {
 		switch v := maxTokensRaw.(type) {
 		case int:
@@ -112,6 +115,7 @@ func handleContextSummarizeNative(ctx context.Context, params map[string]interfa
 	originalTokens := estimateTokens(dataStr, 0.25)
 	summaryTokens := estimateTokens(summary, 0.25)
 	reduction := 0.0
+
 	if originalTokens > 0 {
 		reduction = (1.0 - float64(summaryTokens)/float64(originalTokens)) * 100.0
 	}
@@ -139,6 +143,7 @@ func handleContextSummarizeNative(ctx context.Context, params map[string]interfa
 		if err := json.Unmarshal([]byte(dataStr), &rawData); err != nil {
 			rawData = dataStr
 		}
+
 		result["raw_data"] = rawData
 	}
 

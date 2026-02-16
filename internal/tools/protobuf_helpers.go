@@ -10,7 +10,7 @@ import (
 )
 
 // ParseMemoryRequest parses a memory tool request (protobuf or JSON)
-// Returns protobuf request if protobuf format, or nil with JSON params map
+// Returns protobuf request if protobuf format, or nil with JSON params map.
 func ParseMemoryRequest(args json.RawMessage) (*proto.MemoryRequest, map[string]interface{}, error) {
 	req, params, err := request.ParseRequest(args, func() *proto.MemoryRequest {
 		return &proto.MemoryRequest{}
@@ -18,9 +18,11 @@ func ParseMemoryRequest(args json.RawMessage) (*proto.MemoryRequest, map[string]
 	if err != nil {
 		return nil, nil, err
 	}
+
 	if req != nil {
 		return req, nil, nil
 	}
+
 	return nil, params, nil
 }
 
@@ -44,7 +46,7 @@ func MemoryRequestToParams(req *proto.MemoryRequest) map[string]interface{} {
 	return params
 }
 
-// MemoryToProto converts a Memory to protobuf Memory
+// MemoryToProto converts a Memory to protobuf Memory.
 func MemoryToProto(memory *Memory) (*proto.Memory, error) {
 	if memory == nil {
 		return nil, fmt.Errorf("memory is nil")
@@ -64,6 +66,7 @@ func MemoryToProto(memory *Memory) (*proto.Memory, error) {
 	// Complex values are serialized to JSON strings
 	if memory.Metadata != nil && len(memory.Metadata) > 0 {
 		pbMemory.Metadata = make(map[string]string)
+
 		for k, v := range memory.Metadata {
 			switch val := v.(type) {
 			case string:
@@ -76,6 +79,7 @@ func MemoryToProto(memory *Memory) (*proto.Memory, error) {
 				if err != nil {
 					return nil, fmt.Errorf("failed to marshal metadata value for key %s: %w", k, err)
 				}
+
 				pbMemory.Metadata[k] = string(jsonBytes)
 			}
 		}
@@ -84,7 +88,7 @@ func MemoryToProto(memory *Memory) (*proto.Memory, error) {
 	return pbMemory, nil
 }
 
-// ProtoToMemory converts a protobuf Memory to Memory
+// ProtoToMemory converts a protobuf Memory to Memory.
 func ProtoToMemory(pbMemory *proto.Memory) (*Memory, error) {
 	if pbMemory == nil {
 		return nil, fmt.Errorf("protobuf memory is nil")
@@ -103,6 +107,7 @@ func ProtoToMemory(pbMemory *proto.Memory) (*Memory, error) {
 	// Convert metadata from map[string]string back to map[string]interface{}
 	if pbMemory.Metadata != nil && len(pbMemory.Metadata) > 0 {
 		memory.Metadata = make(map[string]interface{})
+
 		for k, v := range pbMemory.Metadata {
 			// Attempt to unmarshal if it looks like a JSON string, otherwise keep as string
 			var unmarshaled interface{}
@@ -117,21 +122,23 @@ func ProtoToMemory(pbMemory *proto.Memory) (*Memory, error) {
 	return memory, nil
 }
 
-// SerializeMemoryToProtobuf marshals a Memory to its protobuf binary representation
+// SerializeMemoryToProtobuf marshals a Memory to its protobuf binary representation.
 func SerializeMemoryToProtobuf(memory *Memory) ([]byte, error) {
 	pbMemory, err := MemoryToProto(memory)
 	if err != nil {
 		return nil, err
 	}
+
 	return protobuf.Marshal(pbMemory)
 }
 
-// DeserializeMemoryFromProtobuf unmarshals protobuf binary data into a Memory
+// DeserializeMemoryFromProtobuf unmarshals protobuf binary data into a Memory.
 func DeserializeMemoryFromProtobuf(data []byte) (*Memory, error) {
 	pbMemory := &proto.Memory{}
 	if err := protobuf.Unmarshal(data, pbMemory); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal protobuf data: %w", err)
 	}
+
 	return ProtoToMemory(pbMemory)
 }
 
@@ -140,6 +147,7 @@ func MemoryResponseToMap(resp *proto.MemoryResponse) map[string]interface{} {
 	if resp == nil {
 		return nil
 	}
+
 	out := map[string]interface{}{
 		"success": resp.GetSuccess(),
 		"method":  resp.GetMethod(),
@@ -148,51 +156,65 @@ func MemoryResponseToMap(resp *proto.MemoryResponse) map[string]interface{} {
 	if resp.MemoryId != "" {
 		out["memory_id"] = resp.MemoryId
 	}
+
 	if resp.Message != "" {
 		out["message"] = resp.Message
 	}
+
 	if len(resp.Memories) > 0 {
 		memories := make([]Memory, 0, len(resp.Memories))
+
 		for _, pm := range resp.Memories {
 			if m, err := ProtoToMemory(pm); err == nil {
 				memories = append(memories, *m)
 			}
 		}
+
 		out["memories"] = formatMemories(memories)
 	}
+
 	if len(resp.Categories) > 0 {
 		cat := make(map[string]int)
 		for k, v := range resp.Categories {
 			cat[k] = int(v)
 		}
+
 		out["categories"] = cat
 	}
+
 	if len(resp.AvailableCategories) > 0 {
 		out["available_categories"] = resp.AvailableCategories
 	}
+
 	if resp.TotalFound != 0 {
 		out["total_found"] = resp.TotalFound
 	}
+
 	if resp.TaskId != "" {
 		out["task_id"] = resp.TaskId
 	}
+
 	if resp.IncludeRelated {
 		out["include_related"] = true
 	}
+
 	if resp.Query != "" {
 		out["query"] = resp.Query
 	}
+
 	if resp.Total != 0 {
 		out["total"] = resp.Total
 	}
+
 	if resp.Returned != 0 {
 		out["returned"] = resp.Returned
 	}
+
 	return out
 }
 
 // ParseContextRequest parses a context tool request (protobuf or JSON)
-// Returns protobuf request if protobuf format, or nil with JSON params map
+// Returns protobuf request if protobuf format, or nil with JSON params map.
 func ParseContextRequest(args json.RawMessage) (*proto.ContextRequest, map[string]interface{}, error) {
 	req, params, err := request.ParseRequest(args, func() *proto.ContextRequest {
 		return &proto.ContextRequest{}
@@ -200,9 +222,11 @@ func ParseContextRequest(args json.RawMessage) (*proto.ContextRequest, map[strin
 	if err != nil {
 		return nil, nil, err
 	}
+
 	if req != nil {
 		return req, nil, nil
 	}
+
 	return nil, params, nil
 }
 
@@ -227,7 +251,7 @@ func ContextRequestToParams(req *proto.ContextRequest) map[string]interface{} {
 }
 
 // ParseContextItems parses items from protobuf request or JSON string
-// Returns array of ContextItem-like structures for easier processing
+// Returns array of ContextItem-like structures for easier processing.
 func ParseContextItems(itemsRaw interface{}) ([]*proto.ContextItem, error) {
 	var itemsJSON string
 
@@ -241,6 +265,7 @@ func ParseContextItems(itemsRaw interface{}) ([]*proto.ContextItem, error) {
 		if err != nil {
 			return nil, fmt.Errorf("failed to marshal items array: %w", err)
 		}
+
 		itemsJSON = string(bytes)
 	default:
 		return nil, fmt.Errorf("items must be a JSON string or array")
@@ -254,6 +279,7 @@ func ParseContextItems(itemsRaw interface{}) ([]*proto.ContextItem, error) {
 
 	// Convert to ContextItem messages
 	contextItems := make([]*proto.ContextItem, 0, len(itemsArray))
+
 	for _, itemRaw := range itemsArray {
 		item := &proto.ContextItem{}
 
@@ -278,6 +304,7 @@ func ParseContextItems(itemsRaw interface{}) ([]*proto.ContextItem, error) {
 					item.Data = fmt.Sprintf("%v", v)
 				}
 			}
+
 			if toolType, ok := v["tool_type"].(string); ok {
 				item.ToolType = toolType
 			}
@@ -301,12 +328,12 @@ func ParseContextItems(itemsRaw interface{}) ([]*proto.ContextItem, error) {
 }
 
 // ContextItemToDataString extracts data string from ContextItem
-// Helper function to simplify data extraction
+// Helper function to simplify data extraction.
 func ContextItemToDataString(item *proto.ContextItem) string {
 	return item.Data
 }
 
-// ParseReportRequest parses a report tool request (protobuf or JSON)
+// ParseReportRequest parses a report tool request (protobuf or JSON).
 func ParseReportRequest(args json.RawMessage) (*proto.ReportRequest, map[string]interface{}, error) {
 	req, params, err := request.ParseRequest(args, func() *proto.ReportRequest {
 		return &proto.ReportRequest{}
@@ -314,9 +341,11 @@ func ParseReportRequest(args json.RawMessage) (*proto.ReportRequest, map[string]
 	if err != nil {
 		return nil, nil, err
 	}
+
 	if req != nil {
 		return req, nil, nil
 	}
+
 	return nil, params, nil
 }
 
@@ -340,28 +369,33 @@ func ReportRequestToParams(req *proto.ReportRequest) map[string]interface{} {
 	return params
 }
 
-// ProjectInfoToProto converts map[string]interface{} to proto.ProjectInfo
+// ProjectInfoToProto converts map[string]interface{} to proto.ProjectInfo.
 func ProjectInfoToProto(info map[string]interface{}) *proto.ProjectInfo {
 	pb := &proto.ProjectInfo{}
 	if name, ok := info["name"].(string); ok {
 		pb.Name = name
 	}
+
 	if version, ok := info["version"].(string); ok {
 		pb.Version = version
 	}
+
 	if desc, ok := info["description"].(string); ok {
 		pb.Description = desc
 	}
+
 	if typ, ok := info["type"].(string); ok {
 		pb.Type = typ
 	}
+
 	if status, ok := info["status"].(string); ok {
 		pb.Status = status
 	}
+
 	return pb
 }
 
-// ProtoToProjectInfo converts proto.ProjectInfo to map[string]interface{}
+// ProtoToProjectInfo converts proto.ProjectInfo to map[string]interface{}.
 func ProtoToProjectInfo(pb *proto.ProjectInfo) map[string]interface{} {
 	return map[string]interface{}{
 		"name":        pb.Name,
@@ -372,43 +406,50 @@ func ProtoToProjectInfo(pb *proto.ProjectInfo) map[string]interface{} {
 	}
 }
 
-// HealthDataToProto converts map[string]interface{} to proto.HealthData
+// HealthDataToProto converts map[string]interface{} to proto.HealthData.
 func HealthDataToProto(health map[string]interface{}) *proto.HealthData {
 	pb := &proto.HealthData{}
 	if score, ok := health["overall_score"].(float64); ok {
 		pb.OverallScore = score
 	}
+
 	if ready, ok := health["production_ready"].(bool); ok {
 		pb.ProductionReady = ready
 	}
+
 	if scores, ok := health["scores"].(map[string]interface{}); ok {
 		pb.Scores = make(map[string]float64)
+
 		for k, v := range scores {
 			if score, ok := v.(float64); ok {
 				pb.Scores[k] = score
 			}
 		}
 	}
+
 	return pb
 }
 
-// ProtoToHealthData converts proto.HealthData to map[string]interface{}
+// ProtoToHealthData converts proto.HealthData to map[string]interface{}.
 func ProtoToHealthData(pb *proto.HealthData) map[string]interface{} {
 	result := map[string]interface{}{
 		"overall_score":    pb.OverallScore,
 		"production_ready": pb.ProductionReady,
 	}
+
 	if len(pb.Scores) > 0 {
 		scores := make(map[string]interface{})
 		for k, v := range pb.Scores {
 			scores[k] = v
 		}
+
 		result["scores"] = scores
 	}
+
 	return result
 }
 
-// CodebaseMetricsToProto converts map[string]interface{} to proto.CodebaseMetrics
+// CodebaseMetricsToProto converts map[string]interface{} to proto.CodebaseMetrics.
 func CodebaseMetricsToProto(metrics map[string]interface{}) *proto.CodebaseMetrics {
 	pb := &proto.CodebaseMetrics{}
 	if v, ok := metrics["go_files"].(int); ok {
@@ -416,50 +457,59 @@ func CodebaseMetricsToProto(metrics map[string]interface{}) *proto.CodebaseMetri
 	} else if v, ok := metrics["go_files"].(float64); ok {
 		pb.GoFiles = int32(v)
 	}
+
 	if v, ok := metrics["go_lines"].(int); ok {
 		pb.GoLines = int32(v)
 	} else if v, ok := metrics["go_lines"].(float64); ok {
 		pb.GoLines = int32(v)
 	}
+
 	if v, ok := metrics["python_files"].(int); ok {
 		pb.PythonFiles = int32(v)
 	} else if v, ok := metrics["python_files"].(float64); ok {
 		pb.PythonFiles = int32(v)
 	}
+
 	if v, ok := metrics["python_lines"].(int); ok {
 		pb.PythonLines = int32(v)
 	} else if v, ok := metrics["python_lines"].(float64); ok {
 		pb.PythonLines = int32(v)
 	}
+
 	if v, ok := metrics["total_files"].(int); ok {
 		pb.TotalFiles = int32(v)
 	} else if v, ok := metrics["total_files"].(float64); ok {
 		pb.TotalFiles = int32(v)
 	}
+
 	if v, ok := metrics["total_lines"].(int); ok {
 		pb.TotalLines = int32(v)
 	} else if v, ok := metrics["total_lines"].(float64); ok {
 		pb.TotalLines = int32(v)
 	}
+
 	if v, ok := metrics["tools"].(int); ok {
 		pb.Tools = int32(v)
 	} else if v, ok := metrics["tools"].(float64); ok {
 		pb.Tools = int32(v)
 	}
+
 	if v, ok := metrics["prompts"].(int); ok {
 		pb.Prompts = int32(v)
 	} else if v, ok := metrics["prompts"].(float64); ok {
 		pb.Prompts = int32(v)
 	}
+
 	if v, ok := metrics["resources"].(int); ok {
 		pb.Resources = int32(v)
 	} else if v, ok := metrics["resources"].(float64); ok {
 		pb.Resources = int32(v)
 	}
+
 	return pb
 }
 
-// ProtoToCodebaseMetrics converts proto.CodebaseMetrics to map[string]interface{}
+// ProtoToCodebaseMetrics converts proto.CodebaseMetrics to map[string]interface{}.
 func ProtoToCodebaseMetrics(pb *proto.CodebaseMetrics) map[string]interface{} {
 	return map[string]interface{}{
 		"go_files":     int(pb.GoFiles),
@@ -474,7 +524,7 @@ func ProtoToCodebaseMetrics(pb *proto.CodebaseMetrics) map[string]interface{} {
 	}
 }
 
-// TaskMetricsToProto converts map[string]interface{} to proto.TaskMetrics
+// TaskMetricsToProto converts map[string]interface{} to proto.TaskMetrics.
 func TaskMetricsToProto(metrics map[string]interface{}) *proto.TaskMetrics {
 	pb := &proto.TaskMetrics{}
 	if v, ok := metrics["total"].(int); ok {
@@ -482,26 +532,31 @@ func TaskMetricsToProto(metrics map[string]interface{}) *proto.TaskMetrics {
 	} else if v, ok := metrics["total"].(float64); ok {
 		pb.Total = int32(v)
 	}
+
 	if v, ok := metrics["pending"].(int); ok {
 		pb.Pending = int32(v)
 	} else if v, ok := metrics["pending"].(float64); ok {
 		pb.Pending = int32(v)
 	}
+
 	if v, ok := metrics["completed"].(int); ok {
 		pb.Completed = int32(v)
 	} else if v, ok := metrics["completed"].(float64); ok {
 		pb.Completed = int32(v)
 	}
+
 	if v, ok := metrics["completion_rate"].(float64); ok {
 		pb.CompletionRate = v
 	}
+
 	if v, ok := metrics["remaining_hours"].(float64); ok {
 		pb.RemainingHours = v
 	}
+
 	return pb
 }
 
-// ProtoToTaskMetrics converts proto.TaskMetrics to map[string]interface{}
+// ProtoToTaskMetrics converts proto.TaskMetrics to map[string]interface{}.
 func ProtoToTaskMetrics(pb *proto.TaskMetrics) map[string]interface{} {
 	return map[string]interface{}{
 		"total":           int(pb.Total),
@@ -517,6 +572,7 @@ func GoScorecardResultToProto(scorecard *GoScorecardResult) *proto.ScorecardData
 	if scorecard == nil {
 		return nil
 	}
+
 	pb := &proto.ScorecardData{
 		Score:           scorecard.Score,
 		Recommendations: scorecard.Recommendations,
@@ -539,6 +595,7 @@ func GoScorecardResultToProto(scorecard *GoScorecardResult) *proto.ScorecardData
 			"mcp_resources": int32(scorecard.Metrics.MCPResources),
 		},
 	}
+
 	return pb
 }
 
@@ -547,11 +604,14 @@ func BriefingDataToMap(pb *proto.BriefingData) map[string]interface{} {
 	if pb == nil {
 		return make(map[string]interface{})
 	}
+
 	quotes := make([]interface{}, 0, len(pb.Quotes))
+
 	for _, q := range pb.Quotes {
 		if q == nil {
 			continue
 		}
+
 		quotes = append(quotes, map[string]interface{}{
 			"quote":         q.Quote,
 			"source":        q.Source,
@@ -560,6 +620,7 @@ func BriefingDataToMap(pb *proto.BriefingData) map[string]interface{} {
 			"wisdom_icon":   q.WisdomIcon,
 		})
 	}
+
 	return map[string]interface{}{
 		"date":    pb.Date,
 		"score":   pb.Score,
@@ -573,15 +634,19 @@ func ProtoToScorecardMap(pb *proto.ScorecardData) map[string]interface{} {
 	if pb == nil {
 		return make(map[string]interface{})
 	}
+
 	scores := make(map[string]interface{})
 	for k, v := range pb.ComponentScores {
 		scores[k] = v
 	}
+
 	metrics := make(map[string]interface{})
 	for k, v := range pb.MetricsCounts {
 		metrics[k] = int(v)
 	}
+
 	metrics["test_coverage"] = pb.TestCoverage
+
 	return map[string]interface{}{
 		"overall_score":   pb.Score,
 		"scores":          scores,
@@ -592,22 +657,26 @@ func ProtoToScorecardMap(pb *proto.ScorecardData) map[string]interface{} {
 }
 
 // ProjectOverviewDataToProto converts map[string]interface{} to proto.ProjectOverviewData
-// NOTE: Currently unused - kept for potential future protobuf-based report processing
+// NOTE: Currently unused - kept for potential future protobuf-based report processing.
 func ProjectOverviewDataToProto(data map[string]interface{}) *proto.ProjectOverviewData {
 	pb := &proto.ProjectOverviewData{}
 
 	if project, ok := data["project"].(map[string]interface{}); ok {
 		pb.Project = ProjectInfoToProto(project)
 	}
+
 	if health, ok := data["health"].(map[string]interface{}); ok {
 		pb.Health = HealthDataToProto(health)
 	}
+
 	if codebase, ok := data["codebase"].(map[string]interface{}); ok {
 		pb.Codebase = CodebaseMetricsToProto(codebase)
 	}
+
 	if tasks, ok := data["tasks"].(map[string]interface{}); ok {
 		pb.Tasks = TaskMetricsToProto(tasks)
 	}
+
 	if phases, ok := data["phases"].(map[string]interface{}); ok {
 		// Convert phases map to repeated ProjectPhase
 		for key, phaseRaw := range phases {
@@ -618,15 +687,18 @@ func ProjectOverviewDataToProto(data map[string]interface{}) *proto.ProjectOverv
 				if status, ok := phase["status"].(string); ok {
 					pbPhase.Status = status
 				}
+
 				if progress, ok := phase["progress"].(int); ok {
 					pbPhase.Progress = int32(progress)
 				} else if progress, ok := phase["progress"].(float64); ok {
 					pbPhase.Progress = int32(progress)
 				}
+
 				pb.Phases = append(pb.Phases, pbPhase)
 			}
 		}
 	}
+
 	if risks, ok := data["risks"].([]interface{}); ok {
 		for _, riskRaw := range risks {
 			if risk, ok := riskRaw.(map[string]interface{}); ok {
@@ -634,19 +706,24 @@ func ProjectOverviewDataToProto(data map[string]interface{}) *proto.ProjectOverv
 				if typ, ok := risk["type"].(string); ok {
 					pbRisk.Type = typ
 				}
+
 				if desc, ok := risk["description"].(string); ok {
 					pbRisk.Description = desc
 				}
+
 				if taskID, ok := risk["task_id"].(string); ok {
 					pbRisk.TaskId = taskID
 				}
+
 				if priority, ok := risk["priority"].(string); ok {
 					pbRisk.Priority = priority
 				}
+
 				pb.Risks = append(pb.Risks, pbRisk)
 			}
 		}
 	}
+
 	if actions, ok := data["next_actions"].([]interface{}); ok {
 		for _, actionRaw := range actions {
 			if action, ok := actionRaw.(map[string]interface{}); ok {
@@ -654,42 +731,52 @@ func ProjectOverviewDataToProto(data map[string]interface{}) *proto.ProjectOverv
 				if taskID, ok := action["task_id"].(string); ok {
 					pbAction.TaskId = taskID
 				}
+
 				if name, ok := action["name"].(string); ok {
 					pbAction.Name = name
 				}
+
 				if priority, ok := action["priority"].(string); ok {
 					pbAction.Priority = priority
 				}
+
 				if hours, ok := action["estimated_hours"].(float64); ok {
 					pbAction.EstimatedHours = hours
 				}
+
 				pb.NextActions = append(pb.NextActions, pbAction)
 			}
 		}
 	}
+
 	if generatedAt, ok := data["generated_at"].(string); ok {
 		pb.GeneratedAt = generatedAt
 	}
+
 	return pb
 }
 
 // ProtoToProjectOverviewData converts proto.ProjectOverviewData to map[string]interface{}
-// NOTE: Currently unused - kept for potential future protobuf-based report processing
+// NOTE: Currently unused - kept for potential future protobuf-based report processing.
 func ProtoToProjectOverviewData(pb *proto.ProjectOverviewData) map[string]interface{} {
 	data := make(map[string]interface{})
 
 	if pb.Project != nil {
 		data["project"] = ProtoToProjectInfo(pb.Project)
 	}
+
 	if pb.Health != nil {
 		data["health"] = ProtoToHealthData(pb.Health)
 	}
+
 	if pb.Codebase != nil {
 		data["codebase"] = ProtoToCodebaseMetrics(pb.Codebase)
 	}
+
 	if pb.Tasks != nil {
 		data["tasks"] = ProtoToTaskMetrics(pb.Tasks)
 	}
+
 	if len(pb.Phases) > 0 {
 		phases := make(map[string]interface{})
 		for _, phase := range pb.Phases {
@@ -699,8 +786,10 @@ func ProtoToProjectOverviewData(pb *proto.ProjectOverviewData) map[string]interf
 				"progress": int(phase.Progress),
 			}
 		}
+
 		data["phases"] = phases
 	}
+
 	if len(pb.Risks) > 0 {
 		risks := make([]interface{}, 0, len(pb.Risks))
 		for _, risk := range pb.Risks {
@@ -711,8 +800,10 @@ func ProtoToProjectOverviewData(pb *proto.ProjectOverviewData) map[string]interf
 				"priority":    risk.Priority,
 			})
 		}
+
 		data["risks"] = risks
 	}
+
 	if len(pb.NextActions) > 0 {
 		actions := make([]interface{}, 0, len(pb.NextActions))
 		for _, action := range pb.NextActions {
@@ -723,15 +814,18 @@ func ProtoToProjectOverviewData(pb *proto.ProjectOverviewData) map[string]interf
 				"estimated_hours": action.EstimatedHours,
 			})
 		}
+
 		data["next_actions"] = actions
 	}
+
 	if pb.GeneratedAt != "" {
 		data["generated_at"] = pb.GeneratedAt
 	}
+
 	return data
 }
 
-// ParseTaskWorkflowRequest parses a task_workflow tool request (protobuf or JSON)
+// ParseTaskWorkflowRequest parses a task_workflow tool request (protobuf or JSON).
 func ParseTaskWorkflowRequest(args json.RawMessage) (*proto.TaskWorkflowRequest, map[string]interface{}, error) {
 	req, params, err := request.ParseRequest(args, func() *proto.TaskWorkflowRequest {
 		return &proto.TaskWorkflowRequest{}
@@ -739,9 +833,11 @@ func ParseTaskWorkflowRequest(args json.RawMessage) (*proto.TaskWorkflowRequest,
 	if err != nil {
 		return nil, nil, err
 	}
+
 	if req != nil {
 		return req, nil, nil
 	}
+
 	return nil, params, nil
 }
 
@@ -768,7 +864,7 @@ func TaskWorkflowRequestToParams(req *proto.TaskWorkflowRequest) map[string]inte
 	return params
 }
 
-// ParseHealthRequest parses a health tool request (protobuf or JSON)
+// ParseHealthRequest parses a health tool request (protobuf or JSON).
 func ParseHealthRequest(args json.RawMessage) (*proto.HealthRequest, map[string]interface{}, error) {
 	req, params, err := request.ParseRequest(args, func() *proto.HealthRequest {
 		return &proto.HealthRequest{}
@@ -776,9 +872,11 @@ func ParseHealthRequest(args json.RawMessage) (*proto.HealthRequest, map[string]
 	if err != nil {
 		return nil, nil, err
 	}
+
 	if req != nil {
 		return req, nil, nil
 	}
+
 	return nil, params, nil
 }
 
@@ -800,7 +898,7 @@ func HealthRequestToParams(req *proto.HealthRequest) map[string]interface{} {
 	return params
 }
 
-// ParseSecurityRequest parses a security tool request (protobuf or JSON)
+// ParseSecurityRequest parses a security tool request (protobuf or JSON).
 func ParseSecurityRequest(args json.RawMessage) (*proto.SecurityRequest, map[string]interface{}, error) {
 	req, params, err := request.ParseRequest(args, func() *proto.SecurityRequest {
 		return &proto.SecurityRequest{}
@@ -808,9 +906,11 @@ func ParseSecurityRequest(args json.RawMessage) (*proto.SecurityRequest, map[str
 	if err != nil {
 		return nil, nil, err
 	}
+
 	if req != nil {
 		return req, nil, nil
 	}
+
 	return nil, params, nil
 }
 
@@ -832,7 +932,7 @@ func SecurityRequestToParams(req *proto.SecurityRequest) map[string]interface{} 
 	return params
 }
 
-// ParseInferSessionModeRequest parses an infer_session_mode request (protobuf or JSON)
+// ParseInferSessionModeRequest parses an infer_session_mode request (protobuf or JSON).
 func ParseInferSessionModeRequest(args json.RawMessage) (*proto.InferSessionModeRequest, map[string]interface{}, error) {
 	req, params, err := request.ParseRequest(args, func() *proto.InferSessionModeRequest {
 		return &proto.InferSessionModeRequest{}
@@ -840,9 +940,11 @@ func ParseInferSessionModeRequest(args json.RawMessage) (*proto.InferSessionMode
 	if err != nil {
 		return nil, nil, err
 	}
+
 	if req != nil {
 		return req, nil, nil
 	}
+
 	return nil, params, nil
 }
 
@@ -864,7 +966,7 @@ func InferSessionModeRequestToParams(req *proto.InferSessionModeRequest) map[str
 	return params
 }
 
-// ParseToolCatalogRequest parses a tool_catalog request (protobuf or JSON)
+// ParseToolCatalogRequest parses a tool_catalog request (protobuf or JSON).
 func ParseToolCatalogRequest(args json.RawMessage) (*proto.ToolCatalogRequest, map[string]interface{}, error) {
 	req, params, err := request.ParseRequest(args, func() *proto.ToolCatalogRequest {
 		return &proto.ToolCatalogRequest{}
@@ -872,9 +974,11 @@ func ParseToolCatalogRequest(args json.RawMessage) (*proto.ToolCatalogRequest, m
 	if err != nil {
 		return nil, nil, err
 	}
+
 	if req != nil {
 		return req, nil, nil
 	}
+
 	return nil, params, nil
 }
 
@@ -896,7 +1000,7 @@ func ToolCatalogRequestToParams(req *proto.ToolCatalogRequest) map[string]interf
 	return params
 }
 
-// ParseWorkflowModeRequest parses a workflow_mode request (protobuf or JSON)
+// ParseWorkflowModeRequest parses a workflow_mode request (protobuf or JSON).
 func ParseWorkflowModeRequest(args json.RawMessage) (*proto.WorkflowModeRequest, map[string]interface{}, error) {
 	req, params, err := request.ParseRequest(args, func() *proto.WorkflowModeRequest {
 		return &proto.WorkflowModeRequest{}
@@ -904,9 +1008,11 @@ func ParseWorkflowModeRequest(args json.RawMessage) (*proto.WorkflowModeRequest,
 	if err != nil {
 		return nil, nil, err
 	}
+
 	if req != nil {
 		return req, nil, nil
 	}
+
 	return nil, params, nil
 }
 
@@ -928,7 +1034,7 @@ func WorkflowModeRequestToParams(req *proto.WorkflowModeRequest) map[string]inte
 	return params
 }
 
-// ParseEstimationRequest parses an estimation request (protobuf or JSON)
+// ParseEstimationRequest parses an estimation request (protobuf or JSON).
 func ParseEstimationRequest(args json.RawMessage) (*proto.EstimationRequest, map[string]interface{}, error) {
 	req, params, err := request.ParseRequest(args, func() *proto.EstimationRequest {
 		return &proto.EstimationRequest{}
@@ -936,9 +1042,11 @@ func ParseEstimationRequest(args json.RawMessage) (*proto.EstimationRequest, map
 	if err != nil {
 		return nil, nil, err
 	}
+
 	if req != nil {
 		return req, nil, nil
 	}
+
 	return nil, params, nil
 }
 
@@ -961,7 +1069,7 @@ func EstimationRequestToParams(req *proto.EstimationRequest) map[string]interfac
 	return params
 }
 
-// ParseSessionRequest parses a session request (protobuf or JSON)
+// ParseSessionRequest parses a session request (protobuf or JSON).
 func ParseSessionRequest(args json.RawMessage) (*proto.SessionRequest, map[string]interface{}, error) {
 	req, params, err := request.ParseRequest(args, func() *proto.SessionRequest {
 		return &proto.SessionRequest{}
@@ -969,9 +1077,11 @@ func ParseSessionRequest(args json.RawMessage) (*proto.SessionRequest, map[strin
 	if err != nil {
 		return nil, nil, err
 	}
+
 	if req != nil {
 		return req, nil, nil
 	}
+
 	return nil, params, nil
 }
 
@@ -995,7 +1105,7 @@ func SessionRequestToParams(req *proto.SessionRequest) map[string]interface{} {
 	return params
 }
 
-// ParseGitToolsRequest parses a git_tools request (protobuf or JSON)
+// ParseGitToolsRequest parses a git_tools request (protobuf or JSON).
 func ParseGitToolsRequest(args json.RawMessage) (*proto.GitToolsRequest, map[string]interface{}, error) {
 	req, params, err := request.ParseRequest(args, func() *proto.GitToolsRequest {
 		return &proto.GitToolsRequest{}
@@ -1003,9 +1113,11 @@ func ParseGitToolsRequest(args json.RawMessage) (*proto.GitToolsRequest, map[str
 	if err != nil {
 		return nil, nil, err
 	}
+
 	if req != nil {
 		return req, nil, nil
 	}
+
 	return nil, params, nil
 }
 
@@ -1034,10 +1146,12 @@ func GitToolsResponseToMap(resp *proto.GitToolsResponse) map[string]interface{} 
 	if resp == nil {
 		return nil
 	}
+
 	out := map[string]interface{}{
 		"success": resp.GetSuccess(),
 		"action":  resp.GetAction(),
 	}
+
 	if resp.GetResultJson() != "" {
 		var payload map[string]interface{}
 		if json.Unmarshal([]byte(resp.GetResultJson()), &payload) == nil {
@@ -1046,6 +1160,7 @@ func GitToolsResponseToMap(resp *proto.GitToolsResponse) map[string]interface{} 
 			}
 		}
 	}
+
 	return out
 }
 
@@ -1054,10 +1169,12 @@ func TestingResponseToMap(resp *proto.TestingResponse) map[string]interface{} {
 	if resp == nil {
 		return nil
 	}
+
 	out := map[string]interface{}{
 		"success": resp.GetSuccess(),
 		"action":  resp.GetAction(),
 	}
+
 	if resp.GetResultJson() != "" {
 		var payload map[string]interface{}
 		if json.Unmarshal([]byte(resp.GetResultJson()), &payload) == nil {
@@ -1066,10 +1183,11 @@ func TestingResponseToMap(resp *proto.TestingResponse) map[string]interface{} {
 			}
 		}
 	}
+
 	return out
 }
 
-// ParseMemoryMaintRequest parses a memory_maint request (protobuf or JSON)
+// ParseMemoryMaintRequest parses a memory_maint request (protobuf or JSON).
 func ParseMemoryMaintRequest(args json.RawMessage) (*proto.MemoryMaintRequest, map[string]interface{}, error) {
 	req, params, err := request.ParseRequest(args, func() *proto.MemoryMaintRequest {
 		return &proto.MemoryMaintRequest{}
@@ -1077,9 +1195,11 @@ func ParseMemoryMaintRequest(args json.RawMessage) (*proto.MemoryMaintRequest, m
 	if err != nil {
 		return nil, nil, err
 	}
+
 	if req != nil {
 		return req, nil, nil
 	}
+
 	return nil, params, nil
 }
 
@@ -1104,7 +1224,7 @@ func MemoryMaintRequestToParams(req *proto.MemoryMaintRequest) map[string]interf
 	return params
 }
 
-// ParseTaskAnalysisRequest parses a task_analysis request (protobuf or JSON)
+// ParseTaskAnalysisRequest parses a task_analysis request (protobuf or JSON).
 func ParseTaskAnalysisRequest(args json.RawMessage) (*proto.TaskAnalysisRequest, map[string]interface{}, error) {
 	req, params, err := request.ParseRequest(args, func() *proto.TaskAnalysisRequest {
 		return &proto.TaskAnalysisRequest{}
@@ -1112,9 +1232,11 @@ func ParseTaskAnalysisRequest(args json.RawMessage) (*proto.TaskAnalysisRequest,
 	if err != nil {
 		return nil, nil, err
 	}
+
 	if req != nil {
 		return req, nil, nil
 	}
+
 	return nil, params, nil
 }
 
@@ -1137,7 +1259,7 @@ func TaskAnalysisRequestToParams(req *proto.TaskAnalysisRequest) map[string]inte
 	return params
 }
 
-// ParseTaskDiscoveryRequest parses a task_discovery request (protobuf or JSON)
+// ParseTaskDiscoveryRequest parses a task_discovery request (protobuf or JSON).
 func ParseTaskDiscoveryRequest(args json.RawMessage) (*proto.TaskDiscoveryRequest, map[string]interface{}, error) {
 	req, params, err := request.ParseRequest(args, func() *proto.TaskDiscoveryRequest {
 		return &proto.TaskDiscoveryRequest{}
@@ -1145,9 +1267,11 @@ func ParseTaskDiscoveryRequest(args json.RawMessage) (*proto.TaskDiscoveryReques
 	if err != nil {
 		return nil, nil, err
 	}
+
 	if req != nil {
 		return req, nil, nil
 	}
+
 	return nil, params, nil
 }
 
@@ -1169,7 +1293,7 @@ func TaskDiscoveryRequestToParams(req *proto.TaskDiscoveryRequest) map[string]in
 	return params
 }
 
-// ParseOllamaRequest parses an ollama request (protobuf or JSON)
+// ParseOllamaRequest parses an ollama request (protobuf or JSON).
 func ParseOllamaRequest(args json.RawMessage) (*proto.OllamaRequest, map[string]interface{}, error) {
 	req, params, err := request.ParseRequest(args, func() *proto.OllamaRequest {
 		return &proto.OllamaRequest{}
@@ -1177,9 +1301,11 @@ func ParseOllamaRequest(args json.RawMessage) (*proto.OllamaRequest, map[string]
 	if err != nil {
 		return nil, nil, err
 	}
+
 	if req != nil {
 		return req, nil, nil
 	}
+
 	return nil, params, nil
 }
 
@@ -1203,7 +1329,7 @@ func OllamaRequestToParams(req *proto.OllamaRequest) map[string]interface{} {
 	return params
 }
 
-// ParseMlxRequest parses an mlx request (protobuf or JSON)
+// ParseMlxRequest parses an mlx request (protobuf or JSON).
 func ParseMlxRequest(args json.RawMessage) (*proto.MLXRequest, map[string]interface{}, error) {
 	req, params, err := request.ParseRequest(args, func() *proto.MLXRequest {
 		return &proto.MLXRequest{}
@@ -1211,9 +1337,11 @@ func ParseMlxRequest(args json.RawMessage) (*proto.MLXRequest, map[string]interf
 	if err != nil {
 		return nil, nil, err
 	}
+
 	if req != nil {
 		return req, nil, nil
 	}
+
 	return nil, params, nil
 }
 
@@ -1238,7 +1366,7 @@ func MlxRequestToParams(req *proto.MLXRequest) map[string]interface{} {
 	return params
 }
 
-// ParsePromptTrackingRequest parses a prompt_tracking request (protobuf or JSON)
+// ParsePromptTrackingRequest parses a prompt_tracking request (protobuf or JSON).
 func ParsePromptTrackingRequest(args json.RawMessage) (*proto.PromptTrackingRequest, map[string]interface{}, error) {
 	req, params, err := request.ParseRequest(args, func() *proto.PromptTrackingRequest {
 		return &proto.PromptTrackingRequest{}
@@ -1246,9 +1374,11 @@ func ParsePromptTrackingRequest(args json.RawMessage) (*proto.PromptTrackingRequ
 	if err != nil {
 		return nil, nil, err
 	}
+
 	if req != nil {
 		return req, nil, nil
 	}
+
 	return nil, params, nil
 }
 
@@ -1272,7 +1402,7 @@ func PromptTrackingRequestToParams(req *proto.PromptTrackingRequest) map[string]
 	return params
 }
 
-// ParseRecommendRequest parses a recommend request (protobuf or JSON)
+// ParseRecommendRequest parses a recommend request (protobuf or JSON).
 func ParseRecommendRequest(args json.RawMessage) (*proto.RecommendRequest, map[string]interface{}, error) {
 	req, params, err := request.ParseRequest(args, func() *proto.RecommendRequest {
 		return &proto.RecommendRequest{}
@@ -1280,9 +1410,11 @@ func ParseRecommendRequest(args json.RawMessage) (*proto.RecommendRequest, map[s
 	if err != nil {
 		return nil, nil, err
 	}
+
 	if req != nil {
 		return req, nil, nil
 	}
+
 	return nil, params, nil
 }
 
@@ -1304,7 +1436,7 @@ func RecommendRequestToParams(req *proto.RecommendRequest) map[string]interface{
 	return params
 }
 
-// ParseAnalyzeAlignmentRequest parses an analyze_alignment request (protobuf or JSON)
+// ParseAnalyzeAlignmentRequest parses an analyze_alignment request (protobuf or JSON).
 func ParseAnalyzeAlignmentRequest(args json.RawMessage) (*proto.AnalyzeAlignmentRequest, map[string]interface{}, error) {
 	req, params, err := request.ParseRequest(args, func() *proto.AnalyzeAlignmentRequest {
 		return &proto.AnalyzeAlignmentRequest{}
@@ -1312,9 +1444,11 @@ func ParseAnalyzeAlignmentRequest(args json.RawMessage) (*proto.AnalyzeAlignment
 	if err != nil {
 		return nil, nil, err
 	}
+
 	if req != nil {
 		return req, nil, nil
 	}
+
 	return nil, params, nil
 }
 
@@ -1336,7 +1470,7 @@ func AnalyzeAlignmentRequestToParams(req *proto.AnalyzeAlignmentRequest) map[str
 	return params
 }
 
-// ParseGenerateConfigRequest parses a generate_config request (protobuf or JSON)
+// ParseGenerateConfigRequest parses a generate_config request (protobuf or JSON).
 func ParseGenerateConfigRequest(args json.RawMessage) (*proto.GenerateConfigRequest, map[string]interface{}, error) {
 	req, params, err := request.ParseRequest(args, func() *proto.GenerateConfigRequest {
 		return &proto.GenerateConfigRequest{}
@@ -1344,9 +1478,11 @@ func ParseGenerateConfigRequest(args json.RawMessage) (*proto.GenerateConfigRequ
 	if err != nil {
 		return nil, nil, err
 	}
+
 	if req != nil {
 		return req, nil, nil
 	}
+
 	return nil, params, nil
 }
 
@@ -1368,7 +1504,7 @@ func GenerateConfigRequestToParams(req *proto.GenerateConfigRequest) map[string]
 	return params
 }
 
-// ParseSetupHooksRequest parses a setup_hooks request (protobuf or JSON)
+// ParseSetupHooksRequest parses a setup_hooks request (protobuf or JSON).
 func ParseSetupHooksRequest(args json.RawMessage) (*proto.SetupHooksRequest, map[string]interface{}, error) {
 	req, params, err := request.ParseRequest(args, func() *proto.SetupHooksRequest {
 		return &proto.SetupHooksRequest{}
@@ -1376,9 +1512,11 @@ func ParseSetupHooksRequest(args json.RawMessage) (*proto.SetupHooksRequest, map
 	if err != nil {
 		return nil, nil, err
 	}
+
 	if req != nil {
 		return req, nil, nil
 	}
+
 	return nil, params, nil
 }
 
@@ -1400,7 +1538,7 @@ func SetupHooksRequestToParams(req *proto.SetupHooksRequest) map[string]interfac
 	return params
 }
 
-// ParseCheckAttributionRequest parses a check_attribution request (protobuf or JSON)
+// ParseCheckAttributionRequest parses a check_attribution request (protobuf or JSON).
 func ParseCheckAttributionRequest(args json.RawMessage) (*proto.CheckAttributionRequest, map[string]interface{}, error) {
 	req, params, err := request.ParseRequest(args, func() *proto.CheckAttributionRequest {
 		return &proto.CheckAttributionRequest{}
@@ -1408,9 +1546,11 @@ func ParseCheckAttributionRequest(args json.RawMessage) (*proto.CheckAttribution
 	if err != nil {
 		return nil, nil, err
 	}
+
 	if req != nil {
 		return req, nil, nil
 	}
+
 	return nil, params, nil
 }
 
@@ -1432,7 +1572,7 @@ func CheckAttributionRequestToParams(req *proto.CheckAttributionRequest) map[str
 	return params
 }
 
-// ParseAddExternalToolHintsRequest parses an add_external_tool_hints request (protobuf or JSON)
+// ParseAddExternalToolHintsRequest parses an add_external_tool_hints request (protobuf or JSON).
 func ParseAddExternalToolHintsRequest(args json.RawMessage) (*proto.AddExternalToolHintsRequest, map[string]interface{}, error) {
 	req, params, err := request.ParseRequest(args, func() *proto.AddExternalToolHintsRequest {
 		return &proto.AddExternalToolHintsRequest{}
@@ -1440,9 +1580,11 @@ func ParseAddExternalToolHintsRequest(args json.RawMessage) (*proto.AddExternalT
 	if err != nil {
 		return nil, nil, err
 	}
+
 	if req != nil {
 		return req, nil, nil
 	}
+
 	return nil, params, nil
 }
 
@@ -1466,7 +1608,7 @@ func AddExternalToolHintsRequestToParams(req *proto.AddExternalToolHintsRequest)
 	return params
 }
 
-// ParseTestingRequest parses a testing tool request (protobuf or JSON)
+// ParseTestingRequest parses a testing tool request (protobuf or JSON).
 func ParseTestingRequest(args json.RawMessage) (*proto.TestingRequest, map[string]interface{}, error) {
 	req, params, err := request.ParseRequest(args, func() *proto.TestingRequest {
 		return &proto.TestingRequest{}
@@ -1474,9 +1616,11 @@ func ParseTestingRequest(args json.RawMessage) (*proto.TestingRequest, map[strin
 	if err != nil {
 		return nil, nil, err
 	}
+
 	if req != nil {
 		return req, nil, nil
 	}
+
 	return nil, params, nil
 }
 
@@ -1501,7 +1645,7 @@ func TestingRequestToParams(req *proto.TestingRequest) map[string]interface{} {
 	return params
 }
 
-// ParseAutomationRequest parses an automation tool request (protobuf or JSON)
+// ParseAutomationRequest parses an automation tool request (protobuf or JSON).
 func ParseAutomationRequest(args json.RawMessage) (*proto.AutomationRequest, map[string]interface{}, error) {
 	req, params, err := request.ParseRequest(args, func() *proto.AutomationRequest {
 		return &proto.AutomationRequest{}
@@ -1509,9 +1653,11 @@ func ParseAutomationRequest(args json.RawMessage) (*proto.AutomationRequest, map
 	if err != nil {
 		return nil, nil, err
 	}
+
 	if req != nil {
 		return req, nil, nil
 	}
+
 	return nil, params, nil
 }
 
@@ -1536,7 +1682,7 @@ func AutomationRequestToParams(req *proto.AutomationRequest) map[string]interfac
 	return params
 }
 
-// ParseLintRequest parses a lint tool request (protobuf or JSON)
+// ParseLintRequest parses a lint tool request (protobuf or JSON).
 func ParseLintRequest(args json.RawMessage) (*proto.LintRequest, map[string]interface{}, error) {
 	req, params, err := request.ParseRequest(args, func() *proto.LintRequest {
 		return &proto.LintRequest{}
@@ -1544,9 +1690,11 @@ func ParseLintRequest(args json.RawMessage) (*proto.LintRequest, map[string]inte
 	if err != nil {
 		return nil, nil, err
 	}
+
 	if req != nil {
 		return req, nil, nil
 	}
+
 	return nil, params, nil
 }
 

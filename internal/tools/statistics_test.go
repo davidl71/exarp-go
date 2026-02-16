@@ -290,7 +290,7 @@ func TestRound(t *testing.T) {
 }
 
 // TestMeanStdDevCombined tests that Mean and StdDev can be used together
-// (simulating the Python pattern of calculating both)
+// (simulating the Python pattern of calculating both).
 func TestMeanStdDevCombined(t *testing.T) {
 	data := []float64{2.5, 3.0, 4.5, 2.0, 3.5}
 	mean := Mean(data)
@@ -305,6 +305,7 @@ func TestMeanStdDevCombined(t *testing.T) {
 	if mean < 0 || mean > 10 {
 		t.Errorf("Mean out of expected range: %v", mean)
 	}
+
 	if stddev < 0 || stddev > 10 {
 		t.Errorf("StdDev out of expected range: %v", stddev)
 	}

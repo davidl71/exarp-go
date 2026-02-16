@@ -18,6 +18,7 @@ func add(a, b int) int {
 	return a + b
 }
 `
+
 	if err := os.WriteFile(testFile, []byte(testCode), 0644); err != nil {
 		t.Fatalf("failed to create test file: %v", err)
 	}
@@ -59,6 +60,7 @@ func add(a, b int) int {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := context.Background()
+
 			host := "http://localhost:11434"
 			if envHost := os.Getenv("OLLAMA_HOST"); envHost != "" {
 				host = envHost
@@ -69,6 +71,7 @@ func add(a, b int) int {
 				t.Errorf("handleOllamaDocs() error = %v, wantError %v", err, tt.wantError)
 				return
 			}
+
 			if !tt.wantError && result != nil && len(result) > 0 {
 				// Validate JSON format
 				var data map[string]interface{}
@@ -90,6 +93,7 @@ func add(a, b int) int {
 	return a + b
 }
 `
+
 	if err := os.WriteFile(testFile, []byte(testCode), 0644); err != nil {
 		t.Fatalf("failed to create test file: %v", err)
 	}
@@ -131,6 +135,7 @@ func add(a, b int) int {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := context.Background()
+
 			host := "http://localhost:11434"
 			if envHost := os.Getenv("OLLAMA_HOST"); envHost != "" {
 				host = envHost
@@ -141,6 +146,7 @@ func add(a, b int) int {
 				t.Errorf("handleOllamaQuality() error = %v, wantError %v", err, tt.wantError)
 				return
 			}
+
 			if !tt.wantError && result != nil && len(result) > 0 {
 				// Validate JSON format
 				var data map[string]interface{}
@@ -201,6 +207,7 @@ func TestHandleOllamaSummary(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := context.Background()
+
 			host := "http://localhost:11434"
 			if envHost := os.Getenv("OLLAMA_HOST"); envHost != "" {
 				host = envHost
@@ -211,6 +218,7 @@ func TestHandleOllamaSummary(t *testing.T) {
 				t.Errorf("handleOllamaSummary() error = %v, wantError %v", err, tt.wantError)
 				return
 			}
+
 			if !tt.wantError && result != nil && len(result) > 0 {
 				// Validate JSON format
 				var data map[string]interface{}
@@ -280,11 +288,13 @@ func TestHandleOllamaNative(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := context.Background()
+
 			result, err := handleOllamaNative(ctx, tt.params)
 			if (err != nil) != tt.wantError {
 				t.Errorf("handleOllamaNative() error = %v, wantError %v", err, tt.wantError)
 				return
 			}
+
 			if !tt.wantError && result != nil && len(result) > 0 {
 				// Validate JSON format
 				var data map[string]interface{}

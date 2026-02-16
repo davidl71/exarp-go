@@ -36,7 +36,7 @@ var prdPersonas = map[string]prdPersona{
 }
 
 // handleAnalyzeAlignmentNative handles the analyze_alignment tool with native Go implementation
-// Implements both "todo2" and "prd" actions natively
+// Implements both "todo2" and "prd" actions natively.
 func handleAnalyzeAlignmentNative(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	// Get action (default: "todo2")
 	action := "todo2"
@@ -54,7 +54,7 @@ func handleAnalyzeAlignmentNative(ctx context.Context, params map[string]interfa
 	}
 }
 
-// handleAlignmentTodo2 handles the "todo2" action for analyze_alignment
+// handleAlignmentTodo2 handles the "todo2" action for analyze_alignment.
 func handleAlignmentTodo2(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	// Get project root
 	projectRoot, err := FindProjectRoot()
@@ -70,15 +70,18 @@ func handleAlignmentTodo2(ctx context.Context, params map[string]interface{}) ([
 
 	// Load tasks via TaskStore
 	store := NewDefaultTaskStore(projectRoot)
+
 	list, err := store.ListTasks(ctx, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load Todo2 tasks: %w", err)
 	}
+
 	tasks := tasksFromPtrs(list)
 
 	// Load project goals if available
 	goalsPath := filepath.Join(projectRoot, "PROJECT_GOALS.md")
 	goalsContent := ""
+
 	if content, err := os.ReadFile(goalsPath); err == nil {
 		goalsContent = string(content)
 	}
@@ -108,6 +111,7 @@ func handleAlignmentTodo2(ctx context.Context, params map[string]interface{}) ([
 	// Save report if output path specified
 	if outputPath != "" {
 		report := generateAlignmentReport(analysis, projectRoot)
+
 		reportPath := outputPath
 		if !filepath.IsAbs(reportPath) {
 			reportPath = filepath.Join(projectRoot, reportPath)
@@ -117,6 +121,7 @@ func handleAlignmentTodo2(ctx context.Context, params map[string]interface{}) ([
 		if err := os.MkdirAll(filepath.Dir(reportPath), 0755); err == nil {
 			os.WriteFile(reportPath, []byte(report), 0644)
 		}
+
 		analysis.ReportPath = reportPath
 	}
 
@@ -137,7 +142,7 @@ func handleAlignmentTodo2(ctx context.Context, params map[string]interface{}) ([
 	return response.FormatResult(responseData, "")
 }
 
-// handleAlignmentPRD handles the "prd" action: task-to-persona alignment using PRD.md and persona keywords
+// handleAlignmentPRD handles the "prd" action: task-to-persona alignment using PRD.md and persona keywords.
 func handleAlignmentPRD(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	projectRoot, err := FindProjectRoot()
 	if err != nil {
@@ -150,14 +155,17 @@ func handleAlignmentPRD(ctx context.Context, params map[string]interface{}) ([]f
 	}
 
 	store := NewDefaultTaskStore(projectRoot)
+
 	list, err := store.ListTasks(ctx, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load Todo2 tasks: %w", err)
 	}
+
 	tasks := tasksFromPtrs(list)
 
 	prdPath := filepath.Join(projectRoot, "docs", "PRD.md")
 	prdExists := false
+
 	if _, err := os.Stat(prdPath); err == nil {
 		prdExists = true
 	}
@@ -173,6 +181,7 @@ func handleAlignmentPRD(ctx context.Context, params map[string]interface{}) ([]f
 	}
 
 	var aligned []map[string]interface{}
+
 	var unaligned []map[string]interface{}
 
 	for _, task := range tasks {
@@ -198,6 +207,7 @@ func handleAlignmentPRD(ctx context.Context, params map[string]interface{}) ([]f
 	recommendations := prdRecommendations(personaCounts, unaligned)
 
 	alignmentByPersona := make(map[string]interface{})
+
 	for id, count := range personaCounts {
 		if count > 0 {
 			p := prdPersonas[id]
@@ -233,6 +243,7 @@ func handleAlignmentPRD(ctx context.Context, params map[string]interface{}) ([]f
 		if !filepath.IsAbs(fullPath) {
 			fullPath = filepath.Join(projectRoot, fullPath)
 		}
+
 		if err := os.MkdirAll(filepath.Dir(fullPath), 0755); err == nil {
 			raw, _ := json.MarshalIndent(data, "", "  ")
 			_ = os.WriteFile(fullPath, raw, 0644)
@@ -245,6 +256,7 @@ func handleAlignmentPRD(ctx context.Context, params map[string]interface{}) ([]f
 		"data":      data,
 		"timestamp": time.Now().Unix(),
 	}
+
 	return response.FormatResult(envelope, "")
 }
 
@@ -258,10 +270,11 @@ func roundFloat(v float64, decimals int) float64 {
 	for i := 0; i < decimals; i++ {
 		mult *= 10
 	}
+
 	return float64(int(v*mult+0.5)) / mult
 }
 
-// parsePRDUserStoriesCount returns the number of user stories in PRD.md (## N. User Stories / ### US-N: title)
+// parsePRDUserStoriesCount returns the number of user stories in PRD.md (## N. User Stories / ### US-N: title).
 func parsePRDUserStoriesCount(prdPath string) int {
 	content, err := os.ReadFile(prdPath)
 	if err != nil {
@@ -270,24 +283,29 @@ func parsePRDUserStoriesCount(prdPath string) int {
 	// Match ### US-<num>: <title>
 	re := regexp.MustCompile(`### US-\d+:\s*.+`)
 	matches := re.FindAll(content, -1)
+
 	return len(matches)
 }
 
-// prdScoreTask scores a task against personas; returns best persona id, score, advisor, and reason if unaligned
+// prdScoreTask scores a task against personas; returns best persona id, score, advisor, and reason if unaligned.
 func prdScoreTask(task Todo2Task) (personaID string, score int, advisor, reason string) {
 	content := strings.ToLower(task.Content + " " + task.LongDescription)
+
 	tags := make([]string, 0, len(task.Tags))
 	for _, t := range task.Tags {
 		tags = append(tags, strings.ToLower(t))
 	}
 
 	bestScore := 0
+
 	for id, p := range prdPersonas {
 		s := 0
+
 		for _, kw := range p.Keywords {
 			if strings.Contains(content, kw) {
 				s += 2
 			}
+
 			for _, tag := range tags {
 				if strings.Contains(tag, kw) {
 					s += 3
@@ -295,20 +313,24 @@ func prdScoreTask(task Todo2Task) (personaID string, score int, advisor, reason 
 				}
 			}
 		}
+
 		if s > bestScore {
 			bestScore = s
 			personaID = id
 			advisor = p.Advisor
 		}
 	}
+
 	if bestScore >= 2 {
 		return personaID, bestScore, advisor, ""
 	}
+
 	return "", 0, "", "No strong persona match found"
 }
 
 func prdRecommendations(personaCounts map[string]int, unaligned []map[string]interface{}) []string {
 	var recs []string
+
 	for id, count := range personaCounts {
 		if count == 0 {
 			if p, ok := prdPersonas[id]; ok {
@@ -316,10 +338,12 @@ func prdRecommendations(personaCounts map[string]int, unaligned []map[string]int
 			}
 		}
 	}
+
 	total := 0
 	for _, c := range personaCounts {
 		total += c
 	}
+
 	total += len(unaligned)
 	if total > 0 {
 		ratio := float64(len(unaligned)) / float64(total)
@@ -327,23 +351,28 @@ func prdRecommendations(personaCounts map[string]int, unaligned []map[string]int
 			recs = append(recs, fmt.Sprintf("%d tasks (%.0f%%) lack persona alignment - add relevant tags", len(unaligned), ratio*100))
 		}
 	}
+
 	maxCount := 0
 	minCount := -1
+
 	for _, c := range personaCounts {
 		if c > maxCount {
 			maxCount = c
 		}
+
 		if minCount < 0 || c < minCount {
 			minCount = c
 		}
 	}
+
 	if maxCount > 0 && minCount == 0 {
 		recs = append(recs, "Task distribution is unbalanced across personas")
 	}
+
 	return recs
 }
 
-// AlignmentAnalysis represents the results of alignment analysis
+// AlignmentAnalysis represents the results of alignment analysis.
 type AlignmentAnalysis struct {
 	TotalTasks          int
 	MisalignedTasks     []Todo2Task
@@ -355,7 +384,7 @@ type AlignmentAnalysis struct {
 	ReportPath          string
 }
 
-// analyzeTaskAlignment analyzes task alignment with project goals
+// analyzeTaskAlignment analyzes task alignment with project goals.
 func analyzeTaskAlignment(tasks []Todo2Task, goalsContent string) AlignmentAnalysis {
 	analysis := AlignmentAnalysis{
 		TotalTasks:          len(tasks),
@@ -371,12 +400,14 @@ func analyzeTaskAlignment(tasks []Todo2Task, goalsContent string) AlignmentAnaly
 
 	// Analyze each task
 	alignedCount := 0
+
 	for _, task := range tasks {
 		// Count by priority and status
 		priority := task.Priority
 		if priority == "" {
 			priority = "medium"
 		}
+
 		analysis.ByPriority[priority]++
 
 		status := normalizeStatus(task.Status)
@@ -406,7 +437,7 @@ func analyzeTaskAlignment(tasks []Todo2Task, goalsContent string) AlignmentAnaly
 	return analysis
 }
 
-// extractGoalTerms extracts key terms from project goals
+// extractGoalTerms extracts key terms from project goals.
 func extractGoalTerms(goalsContent string) []string {
 	if goalsContent == "" {
 		return []string{}
@@ -431,7 +462,7 @@ func extractGoalTerms(goalsContent string) []string {
 	return terms
 }
 
-// checkTaskAlignment checks if a task aligns with project goals
+// checkTaskAlignment checks if a task aligns with project goals.
 func checkTaskAlignment(task Todo2Task, goalTerms []string) bool {
 	if len(goalTerms) == 0 {
 		// No goals available, consider all tasks aligned
@@ -461,7 +492,7 @@ func checkTaskAlignment(task Todo2Task, goalTerms []string) bool {
 	return false
 }
 
-// isInfrastructureTask checks if a task is infrastructure-related
+// isInfrastructureTask checks if a task is infrastructure-related.
 func isInfrastructureTask(task Todo2Task) bool {
 	infraKeywords := []string{"infrastructure", "ci/cd", "cicd", "deployment", "docker", "kubernetes", "setup", "config"}
 	taskText := strings.ToLower(task.Content + " " + task.LongDescription)
@@ -475,7 +506,7 @@ func isInfrastructureTask(task Todo2Task) bool {
 	return false
 }
 
-// isStaleTask checks if a task is stale (old and not updated)
+// isStaleTask checks if a task is stale (old and not updated).
 func isStaleTask(task Todo2Task) bool {
 	// For now, consider tasks with "stale" tag or very old tasks as stale
 	// This is a simplified check - full implementation would check dates
@@ -488,7 +519,7 @@ func isStaleTask(task Todo2Task) bool {
 	return false
 }
 
-// generateAlignmentReport generates a markdown report
+// generateAlignmentReport generates a markdown report.
 func generateAlignmentReport(analysis AlignmentAnalysis, projectRoot string) string {
 	report := fmt.Sprintf(`# Todo2 Alignment Analysis Report
 
@@ -532,14 +563,16 @@ func generateAlignmentReport(analysis AlignmentAnalysis, projectRoot string) str
 	return report
 }
 
-// createAlignmentFollowupTasks creates Todo2 tasks for alignment issues
+// createAlignmentFollowupTasks creates Todo2 tasks for alignment issues.
 func createAlignmentFollowupTasks(ctx context.Context, analysis AlignmentAnalysis) int {
 	tasksCreated := 0
 
 	// Create task for misaligned tasks
 	if len(analysis.MisalignedTasks) > 0 {
 		var description strings.Builder
+
 		description.WriteString(fmt.Sprintf("Review and align %d misaligned tasks with project goals:\n\n", len(analysis.MisalignedTasks)))
+
 		for _, task := range analysis.MisalignedTasks {
 			description.WriteString(fmt.Sprintf("- %s (%s): %s\n", task.ID, task.Status, task.Content))
 		}
@@ -571,7 +604,9 @@ func createAlignmentFollowupTasks(ctx context.Context, analysis AlignmentAnalysi
 	// Create task for stale tasks
 	if len(analysis.StaleTasks) > 0 {
 		var description strings.Builder
+
 		description.WriteString(fmt.Sprintf("Review %d stale tasks that may need updating or removal:\n\n", len(analysis.StaleTasks)))
+
 		for _, task := range analysis.StaleTasks {
 			description.WriteString(fmt.Sprintf("- %s (%s): %s\n", task.ID, task.Status, task.Content))
 		}

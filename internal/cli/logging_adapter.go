@@ -32,7 +32,7 @@ func logDebug(ctx context.Context, msg string, args ...interface{}) {
 	logging.Default().WithContext(ctx).Debug(msg, args...)
 }
 
-// PerformanceLogger tracks operation duration and logs slow operations
+// PerformanceLogger tracks operation duration and logs slow operations.
 type PerformanceLogger struct {
 	operation string
 	start     time.Time
@@ -40,9 +40,10 @@ type PerformanceLogger struct {
 	threshold time.Duration
 }
 
-// StartPerformanceLogging starts tracking performance for an operation
+// StartPerformanceLogging starts tracking performance for an operation.
 func StartPerformanceLogging(ctx context.Context, operation string, threshold time.Duration) *PerformanceLogger {
 	logging.SetSlowThreshold(threshold)
+
 	return &PerformanceLogger{
 		operation: operation,
 		start:     time.Now(),
@@ -51,18 +52,21 @@ func StartPerformanceLogging(ctx context.Context, operation string, threshold ti
 	}
 }
 
-// Finish logs the operation duration and warns if it exceeded the threshold
+// Finish logs the operation duration and warns if it exceeded the threshold.
 func (pl *PerformanceLogger) Finish() {
 	duration := time.Since(pl.start)
 	log := logging.Default()
 
 	// Build context string for LogPerformance
 	contextStr := ""
+
 	if pl.ctx != nil {
 		type requestIDKey struct{}
+
 		if reqID, ok := pl.ctx.Value(requestIDKey{}).(string); ok {
 			contextStr = "req:" + reqID
 		}
+
 		if op, ok := pl.ctx.Value("operation").(string); ok {
 			if contextStr != "" {
 				contextStr = contextStr + " operation:" + op
@@ -87,7 +91,7 @@ func (pl *PerformanceLogger) Finish() {
 	}
 }
 
-// FinishWithError logs the operation duration and error
+// FinishWithError logs the operation duration and error.
 func (pl *PerformanceLogger) FinishWithError(err error) {
 	duration := time.Since(pl.start)
 	logError(pl.ctx, "Operation failed",

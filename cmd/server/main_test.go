@@ -14,6 +14,7 @@ func TestMain_ConfigLoading(t *testing.T) {
 	originalFramework := os.Getenv("MCP_FRAMEWORK")
 	originalName := os.Getenv("MCP_SERVER_NAME")
 	originalVersion := os.Getenv("MCP_VERSION")
+
 	defer func() {
 		os.Setenv("MCP_FRAMEWORK", originalFramework)
 		os.Setenv("MCP_SERVER_NAME", originalName)
@@ -21,9 +22,9 @@ func TestMain_ConfigLoading(t *testing.T) {
 	}()
 
 	// Clear env vars
-	_ = os.Unsetenv("MCP_FRAMEWORK")   //nolint:errcheck // Test setup
-	_ = os.Unsetenv("MCP_SERVER_NAME") //nolint:errcheck // Test setup
-	_ = os.Unsetenv("MCP_VERSION")     //nolint:errcheck // Test setup
+	_ = os.Unsetenv("MCP_FRAMEWORK")
+	_ = os.Unsetenv("MCP_SERVER_NAME")
+	_ = os.Unsetenv("MCP_VERSION")
 
 	cfg, err := config.Load()
 	if err != nil {
@@ -51,6 +52,7 @@ func TestMain_ServerCreation(t *testing.T) {
 	if cfg.Name == "" {
 		t.Error("cfg.Name is empty")
 	}
+
 	if cfg.Version == "" {
 		t.Error("cfg.Version is empty")
 	}

@@ -17,11 +17,14 @@ func main() {
 		dryRun      = flag.Bool("dry-run", false, "Dry run: show what would be migrated without actually migrating")
 		backup      = flag.Bool("backup", true, "Create backup of JSON file before migration")
 	)
+
 	flag.Parse()
 
 	// Find project root
 	var root string
+
 	var err error
+
 	if *projectRoot != "" {
 		root = *projectRoot
 	} else {
@@ -54,10 +57,12 @@ func main() {
 
 	// Initialize database
 	fmt.Printf("Initializing database...\n")
+
 	if err := database.Init(root); err != nil {
 		fmt.Fprintf(os.Stderr, "Error initializing database: %v\n", err)
 		os.Exit(1)
 	}
+
 	defer func() {
 		if err := database.Close(); err != nil {
 			fmt.Fprintf(os.Stderr, "Warning: Error closing database: %v\n", err)
@@ -69,11 +74,13 @@ func main() {
 	if err == nil && len(existingTasks) > 0 {
 		fmt.Printf("Warning: Database already contains %d tasks\n", len(existingTasks))
 		fmt.Print("Continue anyway? (y/N): ")
+
 		var response string
 		if _, err := fmt.Scanln(&response); err != nil {
 			fmt.Fprintf(os.Stderr, "Error reading input: %v\n", err)
 			os.Exit(1)
 		}
+
 		if response != "y" && response != "Y" {
 			fmt.Println("Migration cancelled")
 			os.Exit(0)
@@ -87,6 +94,7 @@ func main() {
 		// Check which tasks would be created vs updated
 		createCount := 0
 		updateCount := 0
+
 		for _, task := range tasks {
 			existing, err := database.GetTask(context.Background(), task.ID)
 			if err == nil && existing != nil {
@@ -100,6 +108,7 @@ func main() {
 		fmt.Printf("  - %d tasks (would create: %d, would update: %d)\n", len(tasks), createCount, updateCount)
 		fmt.Printf("  - %d comments\n", len(comments))
 		fmt.Println("\nUse without --dry-run to perform actual migration")
+
 		return
 	}
 
@@ -107,6 +116,7 @@ func main() {
 	if *backup {
 		backupPath := jsonPath + ".backup"
 		fmt.Printf("Creating backup: %s\n", backupPath)
+
 		data, err := os.ReadFile(jsonPath)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Warning: Could not create backup: %v\n", err)
@@ -121,6 +131,7 @@ func main() {
 
 	// Migrate tasks
 	fmt.Printf("\nMigrating tasks to database...\n")
+
 	taskCount := 0
 	updateCount := 0
 	skipCount := 0
@@ -134,24 +145,33 @@ func main() {
 			// Task exists - update it instead of skipping
 			if err := database.UpdateTask(context.Background(), &task); err != nil {
 				fmt.Fprintf(os.Stderr, "  Error updating task %s: %v\n", task.ID, err)
+
 				skipCount++
+
 				continue
 			}
+
 			updateCount++
+
 			fmt.Printf("  Updated existing task: %s (%s)\n", task.ID, task.Content)
 		} else {
 			// Task doesn't exist - create it
 			if err := database.CreateTask(context.Background(), &task); err != nil {
 				fmt.Fprintf(os.Stderr, "  Error creating task %s: %v\n", task.ID, err)
+
 				skipCount++
+
 				continue
 			}
+
 			taskCount++
+
 			fmt.Printf("  Created new task: %s (%s)\n", task.ID, task.Content)
 		}
 
 		// Migrate comments for this task
 		taskComments := []database.Comment{}
+
 		for _, comment := range comments {
 			if comment.TaskID == task.ID {
 				taskComments = append(taskComments, comment)
@@ -167,6 +187,7 @@ func main() {
 
 			// Build a map of existing comments by content+type to detect duplicates
 			existingCommentMap := make(map[string]bool)
+
 			for _, ec := range existingComments {
 				key := fmt.Sprintf("%s:%s", ec.Type, ec.Content)
 				existingCommentMap[key] = true
@@ -175,12 +196,14 @@ func main() {
 			// Filter out comments that already exist
 			newComments := []database.Comment{}
 			taskCommentSkipCount := 0
+
 			for _, comment := range taskComments {
 				key := fmt.Sprintf("%s:%s", comment.Type, comment.Content)
 				if existingCommentMap[key] {
 					taskCommentSkipCount++
 					continue
 				}
+
 				newComments = append(newComments, comment)
 			}
 
@@ -190,14 +213,18 @@ func main() {
 				} else {
 					commentCount += len(newComments)
 					commentSkipCount += taskCommentSkipCount
+
 					fmt.Printf("    Added %d new comment(s)", len(newComments))
+
 					if taskCommentSkipCount > 0 {
 						fmt.Printf(" (skipped %d duplicate(s))", taskCommentSkipCount)
 					}
+
 					fmt.Println()
 				}
 			} else if len(taskComments) > 0 {
 				commentSkipCount += taskCommentSkipCount
+
 				fmt.Printf("    All %d comment(s) already exist, skipped\n", len(taskComments))
 			}
 		}
@@ -206,19 +233,23 @@ func main() {
 	fmt.Printf("\n=== Migration Complete ===\n")
 	fmt.Printf("Tasks created: %d\n", taskCount)
 	fmt.Printf("Tasks updated: %d\n", updateCount)
+
 	if skipCount > 0 {
 		fmt.Printf("Tasks skipped (errors): %d\n", skipCount)
 	}
+
 	fmt.Printf("Comments added: %d\n", commentCount)
+
 	if commentSkipCount > 0 {
 		fmt.Printf("Comments skipped (duplicates): %d\n", commentSkipCount)
 	}
+
 	fmt.Printf("Database location: %s\n", filepath.Join(root, ".todo2", "todo2.db"))
 }
 
 // loadJSONState is now tools.LoadJSONStateFromFile (moved to shared location)
 
-// findProjectRoot finds the project root by looking for .todo2 directory
+// findProjectRoot finds the project root by looking for .todo2 directory.
 func findProjectRoot() (string, error) {
 	dir, err := os.Getwd()
 	if err != nil {
@@ -236,6 +267,7 @@ func findProjectRoot() (string, error) {
 			// Reached root
 			break
 		}
+
 		dir = parent
 	}
 

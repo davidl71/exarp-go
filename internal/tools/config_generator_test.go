@@ -437,12 +437,14 @@ func TestGetAvailableRuleNames(t *testing.T) {
 	expectedRules := []string{"go", "python", "typescript"}
 	for _, expected := range expectedRules {
 		found := false
+
 		for _, rule := range rules {
 			if rule == expected {
 				found = true
 				break
 			}
 		}
+
 		if !found {
 			t.Logf("Note: Expected rule '%s' not found in available rules", expected)
 		}
@@ -479,6 +481,7 @@ func TestGetRuleTemplate(t *testing.T) {
 				if template.Filename == "" {
 					t.Error("expected non-empty filename")
 				}
+
 				if template.Content == "" {
 					t.Error("expected non-empty content")
 				}

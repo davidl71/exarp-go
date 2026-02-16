@@ -11,14 +11,15 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
-// createLogger creates a logger with WARN as minimum level (INFO suppressed on stderr/stdout)
+// createLogger creates a logger with WARN as minimum level (INFO suppressed on stderr/stdout).
 func createLogger() *logging.Logger {
 	logger := logging.NewLogger()
 	logger.SetLevel(logging.LevelWarn)
+
 	return logger
 }
 
-// toolLoggingMiddleware returns a tool middleware that logs calls at debug level (T-274)
+// toolLoggingMiddleware returns a tool middleware that logs calls at debug level (T-274).
 func toolLoggingMiddleware(logger *logging.Logger) func(gosdk.ToolHandlerFunc) gosdk.ToolHandlerFunc {
 	return func(next gosdk.ToolHandlerFunc) gosdk.ToolHandlerFunc {
 		return func(ctx context.Context, req *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -26,13 +27,15 @@ func toolLoggingMiddleware(logger *logging.Logger) func(gosdk.ToolHandlerFunc) g
 			if req != nil && req.Params != nil {
 				name = req.Params.Name
 			}
+
 			logger.Debug("", "Tool call: %s", name)
+
 			return next(ctx, req)
 		}
 	}
 }
 
-// NewServer creates a new MCP server using the specified framework
+// NewServer creates a new MCP server using the specified framework.
 func NewServer(frameworkType config.FrameworkType, name, version string) (framework.MCPServer, error) {
 	switch frameworkType {
 	case config.FrameworkGoSDK:
@@ -47,7 +50,7 @@ func NewServer(frameworkType config.FrameworkType, name, version string) (framew
 	}
 }
 
-// NewServerFromConfig creates server from configuration
+// NewServerFromConfig creates server from configuration.
 func NewServerFromConfig(cfg *config.Config) (framework.MCPServer, error) {
 	return NewServer(cfg.Framework, cfg.Name, cfg.Version)
 }

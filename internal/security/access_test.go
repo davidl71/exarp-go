@@ -14,12 +14,14 @@ func TestAccessControl_AllowDeny(t *testing.T) {
 
 	// Explicitly deny
 	ac.DenyTool("test-tool")
+
 	if err := ac.CheckTool("test-tool"); err == nil {
 		t.Error("Denied tool should return error")
 	}
 
 	// Explicitly allow
 	ac.AllowTool("test-tool")
+
 	if err := ac.CheckTool("test-tool"); err != nil {
 		t.Errorf("Allowed tool should not return error: %v", err)
 	}
@@ -35,6 +37,7 @@ func TestAccessControl_DefaultDeny(t *testing.T) {
 
 	// Explicitly allow
 	ac.AllowTool("test-tool")
+
 	if err := ac.CheckTool("test-tool"); err != nil {
 		t.Errorf("Allowed tool should not return error: %v", err)
 	}
@@ -50,12 +53,14 @@ func TestAccessControl_Resource(t *testing.T) {
 
 	// Explicitly deny
 	ac.DenyResource("stdio://test")
+
 	if err := ac.CheckResource("stdio://test"); err == nil {
 		t.Error("Denied resource should return error")
 	}
 
 	// Explicitly allow
 	ac.AllowResource("stdio://test")
+
 	if err := ac.CheckResource("stdio://test"); err != nil {
 		t.Errorf("Allowed resource should not return error: %v", err)
 	}
@@ -106,6 +111,7 @@ func TestCheckToolAccess(t *testing.T) {
 
 	// Deny and check
 	defaultAccessControl.DenyTool("test-tool")
+
 	if err := CheckToolAccess("test-tool"); err == nil {
 		t.Error("Should deny after explicit denial")
 	}
@@ -122,6 +128,7 @@ func TestCheckResourceAccess(t *testing.T) {
 
 	// Deny and check
 	defaultAccessControl.DenyResource("stdio://test")
+
 	if err := CheckResourceAccess("stdio://test"); err == nil {
 		t.Error("Should deny after explicit denial")
 	}

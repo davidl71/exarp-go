@@ -14,7 +14,7 @@ import (
 	"github.com/davidl71/exarp-go/internal/security"
 )
 
-// GoProjectMetrics represents Go-specific project metrics
+// GoProjectMetrics represents Go-specific project metrics.
 type GoProjectMetrics struct {
 	GoFiles        int    `json:"go_files"`
 	GoLines        int    `json:"go_lines"`
@@ -30,7 +30,7 @@ type GoProjectMetrics struct {
 	MCPResources   int    `json:"mcp_resources"`
 }
 
-// GoHealthChecks represents Go-specific health check results
+// GoHealthChecks represents Go-specific health check results.
 type GoHealthChecks struct {
 	GoModExists       bool    `json:"go_mod_exists"`
 	GoSumExists       bool    `json:"go_sum_exists"`
@@ -56,7 +56,7 @@ type GoHealthChecks struct {
 	CursorDocsExist bool `json:"cursor_docs_exist"` // .cursor/skills or .cursor/rules
 }
 
-// GoScorecardResult represents the complete Go scorecard
+// GoScorecardResult represents the complete Go scorecard.
 type GoScorecardResult struct {
 	Metrics         GoProjectMetrics `json:"metrics"`
 	Health          GoHealthChecks   `json:"health"`
@@ -66,12 +66,12 @@ type GoScorecardResult struct {
 	FastModeUsed bool `json:"fast_mode_used,omitempty"`
 }
 
-// ScorecardOptions configures scorecard generation behavior
+// ScorecardOptions configures scorecard generation behavior.
 type ScorecardOptions struct {
 	FastMode bool // Skip expensive operations (go test, go build, go mod tidy)
 }
 
-// collectGoMetrics collects Go-specific project metrics
+// collectGoMetrics collects Go-specific project metrics.
 func collectGoMetrics(ctx context.Context, projectRoot string) (*GoProjectMetrics, error) {
 	metrics := &GoProjectMetrics{}
 
@@ -80,6 +80,7 @@ func collectGoMetrics(ctx context.Context, projectRoot string) (*GoProjectMetric
 	if err != nil {
 		return nil, fmt.Errorf("failed to count Go files: %w", err)
 	}
+
 	metrics.GoFiles = goFiles
 	metrics.GoLines = goLines
 
@@ -88,6 +89,7 @@ func collectGoMetrics(ctx context.Context, projectRoot string) (*GoProjectMetric
 	if err != nil {
 		return nil, fmt.Errorf("failed to count Go test files: %w", err)
 	}
+
 	metrics.GoTestFiles = testFiles
 	metrics.GoTestLines = testLines
 
@@ -96,6 +98,7 @@ func collectGoMetrics(ctx context.Context, projectRoot string) (*GoProjectMetric
 	if err != nil {
 		return nil, fmt.Errorf("failed to count Python files: %w", err)
 	}
+
 	metrics.PythonFiles = pythonFiles
 	metrics.PythonLines = pythonLines
 
@@ -118,7 +121,7 @@ func collectGoMetrics(ctx context.Context, projectRoot string) (*GoProjectMetric
 	return metrics, nil
 }
 
-// performGoHealthChecks performs Go-specific health checks
+// performGoHealthChecks performs Go-specific health checks.
 func performGoHealthChecks(ctx context.Context, projectRoot string, opts *ScorecardOptions) (*GoHealthChecks, error) {
 	health := &GoHealthChecks{}
 
@@ -186,9 +189,11 @@ func performGoHealthChecks(ctx context.Context, projectRoot string, opts *Scorec
 			break
 		}
 	}
+
 	docsDir := filepath.Join(projectRoot, "docs")
 	if info, err := os.Stat(docsDir); err == nil && info.IsDir() {
 		health.DocsDirExists = true
+
 		entries, _ := os.ReadDir(docsDir)
 		for _, e := range entries {
 			if !e.IsDir() && (strings.HasSuffix(e.Name(), ".md") || strings.HasSuffix(e.Name(), ".rst")) {
@@ -196,11 +201,14 @@ func performGoHealthChecks(ctx context.Context, projectRoot string, opts *Scorec
 			}
 		}
 	}
+
 	cursorSkills := filepath.Join(projectRoot, ".cursor", "skills")
 	cursorRules := filepath.Join(projectRoot, ".cursor", "rules")
+
 	if info, _ := os.Stat(cursorSkills); info != nil && info.IsDir() {
 		health.CursorDocsExist = true
 	}
+
 	if info, _ := os.Stat(cursorRules); info != nil && info.IsDir() {
 		health.CursorDocsExist = true
 	}
@@ -208,20 +216,24 @@ func performGoHealthChecks(ctx context.Context, projectRoot string, opts *Scorec
 	return health, nil
 }
 
-// countGoFiles counts Go source files and lines
+// countGoFiles counts Go source files and lines.
 func countGoFiles(root string) (int, int, error) {
 	var count, lines int
+
 	err := filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
+
 		if info.IsDir() {
 			// Skip .venv, vendor, .git directories
 			if info.Name() == ".venv" || info.Name() == "vendor" || info.Name() == ".git" {
 				return filepath.SkipDir
 			}
+
 			return nil
 		}
+
 		if strings.HasSuffix(path, ".go") && !strings.HasSuffix(path, "_test.go") {
 			count++
 			// Count lines
@@ -230,65 +242,81 @@ func countGoFiles(root string) (int, int, error) {
 				lines += len(strings.Split(string(data), "\n"))
 			}
 		}
+
 		return nil
 	})
+
 	return count, lines, err
 }
 
-// countGoTestFiles counts Go test files and lines
+// countGoTestFiles counts Go test files and lines.
 func countGoTestFiles(root string) (int, int, error) {
 	var count, lines int
+
 	err := filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
+
 		if info.IsDir() {
 			if info.Name() == ".venv" || info.Name() == "vendor" || info.Name() == ".git" {
 				return filepath.SkipDir
 			}
+
 			return nil
 		}
+
 		if strings.HasSuffix(path, "_test.go") {
 			count++
+
 			data, err := os.ReadFile(path)
 			if err == nil {
 				lines += len(strings.Split(string(data), "\n"))
 			}
 		}
+
 		return nil
 	})
+
 	return count, lines, err
 }
 
-// countPythonFiles counts Python files and lines (bridge scripts only)
+// countPythonFiles counts Python files and lines (bridge scripts only).
 func countPythonFiles(root string) (int, int, error) {
 	var count, lines int
+
 	err := filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
+
 		if info.IsDir() {
 			if info.Name() == ".venv" || info.Name() == "__pycache__" || info.Name() == ".git" {
 				return filepath.SkipDir
 			}
+
 			return nil
 		}
+
 		if strings.HasSuffix(path, ".py") {
 			// Only count bridge scripts and tests
 			if strings.Contains(path, "bridge/") || strings.Contains(path, "tests/") {
 				count++
+
 				data, err := os.ReadFile(path)
 				if err == nil {
 					lines += len(strings.Split(string(data), "\n"))
 				}
 			}
 		}
+
 		return nil
 	})
+
 	return count, lines, err
 }
 
-// getGoModuleInfo gets Go module dependency count and version
+// getGoModuleInfo gets Go module dependency count and version.
 func getGoModuleInfo(ctx context.Context, root string) (int, string, error) {
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
@@ -296,6 +324,7 @@ func getGoModuleInfo(ctx context.Context, root string) (int, string, error) {
 	// Get module path and version
 	cmd := exec.CommandContext(ctx, "go", "list", "-m", "-f", "{{.Path}} {{.Version}}")
 	cmd.Dir = root
+
 	output, err := cmd.Output()
 	if err != nil {
 		return 0, "", err
@@ -303,6 +332,7 @@ func getGoModuleInfo(ctx context.Context, root string) (int, string, error) {
 
 	parts := strings.Fields(string(output))
 	version := "unknown"
+
 	if len(parts) >= 2 {
 		version = parts[1]
 	}
@@ -310,6 +340,7 @@ func getGoModuleInfo(ctx context.Context, root string) (int, string, error) {
 	// Count dependencies
 	cmd = exec.CommandContext(ctx, "go", "list", "-m", "all")
 	cmd.Dir = root
+
 	output, err = cmd.Output()
 	if err != nil {
 		return 0, version, nil // Non-fatal
@@ -321,22 +352,24 @@ func getGoModuleInfo(ctx context.Context, root string) (int, string, error) {
 	return deps, version, nil
 }
 
-// getGoVersion gets the Go version
+// getGoVersion gets the Go version.
 func getGoVersion(ctx context.Context) (string, bool) {
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
 	cmd := exec.CommandContext(ctx, "go", "version")
+
 	output, err := cmd.Output()
 	if err != nil {
 		return "unknown", false
 	}
 
 	version := strings.TrimSpace(string(output))
+
 	return version, true
 }
 
-// checkGoModTidy checks if go mod tidy passes
+// checkGoModTidy checks if go mod tidy passes.
 func checkGoModTidy(ctx context.Context, root string) bool {
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
@@ -344,10 +377,11 @@ func checkGoModTidy(ctx context.Context, root string) bool {
 	cmd := exec.CommandContext(ctx, "go", "mod", "tidy")
 	cmd.Dir = root
 	err := cmd.Run()
+
 	return err == nil
 }
 
-// checkGoBuild checks if go build succeeds
+// checkGoBuild checks if go build succeeds.
 func checkGoBuild(ctx context.Context, root string) bool {
 	ctx, cancel := context.WithTimeout(ctx, config.ToolTimeout("scorecard"))
 	defer cancel()
@@ -355,10 +389,11 @@ func checkGoBuild(ctx context.Context, root string) bool {
 	cmd := exec.CommandContext(ctx, "go", "build", "./...")
 	cmd.Dir = root
 	err := cmd.Run()
+
 	return err == nil
 }
 
-// checkGoVet checks if go vet passes
+// checkGoVet checks if go vet passes.
 func checkGoVet(ctx context.Context, root string) bool {
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
@@ -366,16 +401,18 @@ func checkGoVet(ctx context.Context, root string) bool {
 	cmd := exec.CommandContext(ctx, "go", "vet", "./...")
 	cmd.Dir = root
 	err := cmd.Run()
+
 	return err == nil
 }
 
-// checkGoFmt checks if code is gofmt compliant
+// checkGoFmt checks if code is gofmt compliant.
 func checkGoFmt(ctx context.Context, root string) bool {
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 
 	cmd := exec.CommandContext(ctx, "gofmt", "-l", ".")
 	cmd.Dir = root
+
 	output, err := cmd.Output()
 	if err != nil {
 		return false
@@ -385,19 +422,21 @@ func checkGoFmt(ctx context.Context, root string) bool {
 	return len(strings.TrimSpace(string(output))) == 0
 }
 
-// checkGolangciLintConfigured checks if golangci-lint is configured
+// checkGolangciLintConfigured checks if golangci-lint is configured.
 func checkGolangciLintConfigured(root string) bool {
 	// Check for .golangci.yml or .golangci.yaml
 	if _, err := os.Stat(filepath.Join(root, ".golangci.yml")); err == nil {
 		return true
 	}
+
 	if _, err := os.Stat(filepath.Join(root, ".golangci.yaml")); err == nil {
 		return true
 	}
+
 	return false
 }
 
-// checkGolangciLint checks if golangci-lint passes
+// checkGolangciLint checks if golangci-lint passes.
 func checkGolangciLint(ctx context.Context, root string) bool {
 	ctx, cancel := context.WithTimeout(ctx, config.ToolTimeout("scorecard"))
 	defer cancel()
@@ -410,10 +449,11 @@ func checkGolangciLint(ctx context.Context, root string) bool {
 	cmd := exec.CommandContext(ctx, "golangci-lint", "run", "--timeout", "30s")
 	cmd.Dir = root
 	err := cmd.Run()
+
 	return err == nil
 }
 
-// checkGoTest checks if go test passes and gets coverage
+// checkGoTest checks if go test passes and gets coverage.
 func checkGoTest(ctx context.Context, root string) (bool, float64) {
 	ctx, cancel := context.WithTimeout(ctx, config.ToolTimeout("testing"))
 	defer cancel()
@@ -426,9 +466,11 @@ func checkGoTest(ctx context.Context, root string) (bool, float64) {
 
 	// Get coverage percentage
 	coverage := 0.0
+
 	if passes {
 		cmd = exec.CommandContext(ctx, "go", "tool", "cover", "-func=coverage.out")
 		cmd.Dir = root
+
 		output, err := cmd.Output()
 		if err == nil {
 			// Parse coverage from last line (total)
@@ -436,8 +478,10 @@ func checkGoTest(ctx context.Context, root string) (bool, float64) {
 			for i := len(lines) - 1; i >= 0; i-- {
 				if strings.Contains(lines[i], "total:") {
 					var percent float64
+
 					fmt.Sscanf(lines[i], "%*s\t%*s\t%f%%", &percent)
 					coverage = percent
+
 					break
 				}
 			}
@@ -449,7 +493,7 @@ func checkGoTest(ctx context.Context, root string) (bool, float64) {
 	return passes, coverage
 }
 
-// checkGoVulncheck checks if govulncheck passes
+// checkGoVulncheck checks if govulncheck passes.
 func checkGoVulncheck(ctx context.Context, root string) bool {
 	ctx, cancel := context.WithTimeout(ctx, config.ToolTimeout("scorecard"))
 	defer cancel()
@@ -462,10 +506,11 @@ func checkGoVulncheck(ctx context.Context, root string) bool {
 	cmd := exec.CommandContext(ctx, "govulncheck", "./...")
 	cmd.Dir = root
 	err := cmd.Run()
+
 	return err == nil
 }
 
-// checkPathBoundaryEnforcement checks if path boundary enforcement is implemented
+// checkPathBoundaryEnforcement checks if path boundary enforcement is implemented.
 func checkPathBoundaryEnforcement(projectRoot string) bool {
 	// Check if security/path.go exists and has ValidatePath function
 	pathFile := filepath.Join(projectRoot, "internal", "security", "path.go")
@@ -477,11 +522,13 @@ func checkPathBoundaryEnforcement(projectRoot string) bool {
 	if err != nil {
 		return false
 	}
+
 	content := string(data)
+
 	return strings.Contains(content, "func ValidatePath") && strings.Contains(content, "ValidatePathWithinRoot")
 }
 
-// checkRateLimiting checks if rate limiting is implemented
+// checkRateLimiting checks if rate limiting is implemented.
 func checkRateLimiting(projectRoot string) bool {
 	// Check if security/ratelimit.go exists
 	ratelimitFile := filepath.Join(projectRoot, "internal", "security", "ratelimit.go")
@@ -493,11 +540,13 @@ func checkRateLimiting(projectRoot string) bool {
 	if err != nil {
 		return false
 	}
+
 	content := string(data)
+
 	return strings.Contains(content, "type RateLimiter") && strings.Contains(content, "func Allow")
 }
 
-// checkAccessControl checks if access control is implemented
+// checkAccessControl checks if access control is implemented.
 func checkAccessControl(projectRoot string) bool {
 	// Check if security/access.go exists
 	accessFile := filepath.Join(projectRoot, "internal", "security", "access.go")
@@ -509,45 +558,57 @@ func checkAccessControl(projectRoot string) bool {
 	if err != nil {
 		return false
 	}
+
 	content := string(data)
+
 	return strings.Contains(content, "type AccessControl") && strings.Contains(content, "func CheckToolAccess")
 }
 
-// generateGoRecommendations generates recommendations based on health checks
+// generateGoRecommendations generates recommendations based on health checks.
 func generateGoRecommendations(health *GoHealthChecks, metrics *GoProjectMetrics) []string {
 	var recommendations []string
 
 	if !health.GoModExists {
 		recommendations = append(recommendations, "Create go.mod file")
 	}
+
 	if !health.GoSumExists {
 		recommendations = append(recommendations, "Run 'go mod tidy' to generate go.sum")
 	}
+
 	if !health.GoModTidyPasses {
 		recommendations = append(recommendations, "Run 'go mod tidy' to clean up dependencies")
 	}
+
 	if !health.GoBuildPasses {
 		recommendations = append(recommendations, "Fix Go build errors")
 	}
+
 	if !health.GoVetPasses {
 		recommendations = append(recommendations, "Fix 'go vet' issues")
 	}
+
 	if !health.GoFmtCompliant {
 		recommendations = append(recommendations, "Run 'go fmt ./...' to format code")
 	}
+
 	if !health.GoLintConfigured {
 		recommendations = append(recommendations, "Configure golangci-lint (.golangci.yml)")
 	}
+
 	if health.GoLintConfigured && !health.GoLintPasses {
 		recommendations = append(recommendations, "Fix golangci-lint issues")
 	}
+
 	if !health.GoTestPasses {
 		recommendations = append(recommendations, "Fix failing Go tests")
 	}
+
 	minCoverage := float64(config.MinCoverage())
 	if health.GoTestCoverage < minCoverage {
 		recommendations = append(recommendations, fmt.Sprintf("Increase test coverage (currently %.1f%%, target: %.0f%%)", health.GoTestCoverage, minCoverage))
 	}
+
 	if !health.GoVulnCheckPasses {
 		recommendations = append(recommendations, "Install and run 'govulncheck ./...' for security scanning")
 	}
@@ -555,49 +616,60 @@ func generateGoRecommendations(health *GoHealthChecks, metrics *GoProjectMetrics
 	return recommendations
 }
 
-// calculateGoScore calculates overall Go project score
+// calculateGoScore calculates overall Go project score.
 func calculateGoScore(health *GoHealthChecks, metrics *GoProjectMetrics) float64 {
 	score := 0.0
 	maxScore := 0.0
 
 	// Module health (20%)
 	maxScore += 20
+
 	if health.GoModExists {
 		score += 5
 	}
+
 	if health.GoSumExists {
 		score += 5
 	}
+
 	if health.GoModTidyPasses {
 		score += 5
 	}
+
 	if health.GoVersionValid {
 		score += 5
 	}
 
 	// Build & Quality (30%)
 	maxScore += 30
+
 	if health.GoBuildPasses {
 		score += 10
 	}
+
 	if health.GoVetPasses {
 		score += 5
 	}
+
 	if health.GoFmtCompliant {
 		score += 5
 	}
+
 	if health.GoLintConfigured {
 		score += 5
 	}
+
 	if health.GoLintPasses {
 		score += 5
 	}
 
 	// Testing (30%)
 	maxScore += 30
+
 	if health.GoTestPasses {
 		score += 15
 	}
+
 	if health.GoTestCoverage >= float64(config.MinCoverage()) {
 		score += 15
 	} else if health.GoTestCoverage >= 50.0 {
@@ -608,6 +680,7 @@ func calculateGoScore(health *GoHealthChecks, metrics *GoProjectMetrics) float64
 
 	// Security (20%)
 	maxScore += 20
+
 	if health.GoVulnCheckPasses {
 		score += 20
 	} else {
@@ -620,30 +693,34 @@ func calculateGoScore(health *GoHealthChecks, metrics *GoProjectMetrics) float64
 	if maxScore == 0 {
 		return 0
 	}
+
 	return (score / maxScore) * 100
 }
 
 // IsGoProject checks if the current directory is a Go project
-// Exported for use by resource handlers
+// Exported for use by resource handlers.
 func IsGoProject() bool {
 	wd, err := os.Getwd()
 	if err != nil {
 		return false
 	}
+
 	_, err = os.Stat(filepath.Join(wd, "go.mod"))
+
 	return err == nil
 }
 
-// getProjectRoot gets the project root directory
+// getProjectRoot gets the project root directory.
 func getProjectRoot() string {
 	wd, err := os.Getwd()
 	if err != nil {
 		return "."
 	}
+
 	return wd
 }
 
-// FormatGoScorecard formats the Go scorecard as text output
+// FormatGoScorecard formats the Go scorecard as text output.
 func FormatGoScorecard(scorecard *GoScorecardResult) string {
 	var sb strings.Builder
 
@@ -662,6 +739,7 @@ func FormatGoScorecard(scorecard *GoScorecardResult) string {
 	} else {
 		sb.WriteString("  Production Ready: NO ❌\n")
 	}
+
 	sb.WriteString("\n")
 
 	// Metrics
@@ -692,11 +770,13 @@ func FormatGoScorecard(scorecard *GoScorecardResult) string {
 	sb.WriteString(fmt.Sprintf("    golangci-lint config: %s\n", checkMark(scorecard.Health.GoLintConfigured)))
 	sb.WriteString(fmt.Sprintf("    golangci-lint:        %s\n", checkMark(scorecard.Health.GoLintPasses)))
 	sb.WriteString(fmt.Sprintf("    go test:              %s\n", checkMark(scorecard.Health.GoTestPasses)))
+
 	if scorecard.Health.GoTestCoverage == 0 && scorecard.FastModeUsed {
 		sb.WriteString("    Test coverage:        — (fast mode; refresh scorecard after fixes to see %)\n")
 	} else {
 		sb.WriteString(fmt.Sprintf("    Test coverage:        %.1f%%\n", scorecard.Health.GoTestCoverage))
 	}
+
 	sb.WriteString(fmt.Sprintf("    govulncheck:          %s\n", checkMark(scorecard.Health.GoVulnCheckPasses)))
 	sb.WriteString("\n")
 
@@ -710,9 +790,11 @@ func FormatGoScorecard(scorecard *GoScorecardResult) string {
 	// Recommendations
 	if len(scorecard.Recommendations) > 0 {
 		sb.WriteString("  Recommendations:\n")
+
 		for _, rec := range scorecard.Recommendations {
 			sb.WriteString(fmt.Sprintf("    • %s\n", rec))
 		}
+
 		sb.WriteString("\n")
 	}
 
@@ -720,7 +802,7 @@ func FormatGoScorecard(scorecard *GoScorecardResult) string {
 }
 
 // FormatGoScorecardWithWisdom formats the Go scorecard with wisdom section
-// Gracefully degrades to base scorecard if wisdom engine fails
+// Gracefully degrades to base scorecard if wisdom engine fails.
 func FormatGoScorecardWithWisdom(scorecard *GoScorecardResult) string {
 	// Get base scorecard
 	base := FormatGoScorecard(scorecard)
@@ -728,7 +810,7 @@ func FormatGoScorecardWithWisdom(scorecard *GoScorecardResult) string {
 }
 
 // addWisdomToScorecard adds wisdom section to a formatted scorecard string
-// Gracefully degrades to original string if wisdom engine fails
+// Gracefully degrades to original string if wisdom engine fails.
 func addWisdomToScorecard(formattedScorecard string, scorecard *GoScorecardResult) string {
 	// Try to get wisdom engine
 	engine, err := getWisdomEngine()
@@ -746,12 +828,14 @@ func addWisdomToScorecard(formattedScorecard string, scorecard *GoScorecardResul
 
 	// Append wisdom section
 	var sb strings.Builder
+
 	sb.WriteString(formattedScorecard)
 	sb.WriteString("  ──────────────────────────────────────────────────────────────────\n")
 	sb.WriteString("  🧘 Wisdom for Your Journey\n")
 	sb.WriteString("  ──────────────────────────────────────────────────────────────────\n\n")
 	sb.WriteString(fmt.Sprintf("  > \"%s\"\n", quote.Quote))
 	sb.WriteString(fmt.Sprintf("  > — %s\n\n", quote.Source))
+
 	if quote.Encouragement != "" {
 		sb.WriteString(fmt.Sprintf("  Encouragement: %s\n", quote.Encouragement))
 	}
@@ -759,20 +843,22 @@ func addWisdomToScorecard(formattedScorecard string, scorecard *GoScorecardResul
 	return sb.String()
 }
 
-// checkMark returns a checkmark or X based on boolean
+// checkMark returns a checkmark or X based on boolean.
 func checkMark(b bool) string {
 	if b {
 		return "✅"
 	}
+
 	return "❌"
 }
 
 // GenerateGoScorecard generates a Go-specific scorecard
-// If opts is nil, uses default options (full checks)
+// If opts is nil, uses default options (full checks).
 func GenerateGoScorecard(ctx context.Context, projectRoot string, opts *ScorecardOptions) (*GoScorecardResult, error) {
 	// Get current working directory if projectRoot is empty
 	if projectRoot == "" {
 		var err error
+
 		projectRoot, err = os.Getwd()
 		if err != nil {
 			return nil, fmt.Errorf("failed to get working directory: %w", err)
@@ -788,6 +874,7 @@ func GenerateGoScorecard(ctx context.Context, projectRoot string, opts *Scorecar
 			return nil, fmt.Errorf("invalid project root: %w", err)
 		}
 	}
+
 	projectRoot = validatedRoot
 
 	// Collect metrics
@@ -809,6 +896,7 @@ func GenerateGoScorecard(ctx context.Context, projectRoot string, opts *Scorecar
 	score := calculateGoScore(health, metrics)
 
 	fastMode := opts != nil && opts.FastMode
+
 	return &GoScorecardResult{
 		Metrics:         *metrics,
 		Health:          *health,

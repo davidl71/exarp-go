@@ -28,12 +28,14 @@ func TestDefaultModelRouter_SelectModel(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			got := r.SelectModel(tt.taskType, tt.requirements)
 			found := false
+
 			for _, w := range tt.wantOneOf {
 				if got == w {
 					found = true
 					break
 				}
 			}
+
 			if !found {
 				t.Errorf("SelectModel() = %v, want one of %v", got, tt.wantOneOf)
 			}

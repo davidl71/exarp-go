@@ -23,17 +23,21 @@ import (
 // IDs in order of first occurrence. Empty slice when none specified.
 func ParseTaskIDsFromParams(params map[string]interface{}) []string {
 	seen := make(map[string]bool)
+
 	var out []string
+
 	add := func(id string) {
 		id = strings.TrimSpace(id)
 		if id != "" && !seen[id] {
 			seen[id] = true
+
 			out = append(out, id)
 		}
 	}
 	if tid, ok := params["task_id"].(string); ok && tid != "" {
 		add(tid)
 	}
+
 	if ids, ok := params["task_ids"].(string); ok && ids != "" {
 		var parsed []string
 		if json.Unmarshal([]byte(ids), &parsed) == nil {
@@ -52,6 +56,7 @@ func ParseTaskIDsFromParams(params map[string]interface{}) []string {
 			}
 		}
 	}
+
 	return out
 }
 
@@ -66,10 +71,12 @@ func getTaskStore(ctx context.Context) (database.TaskStore, error) {
 	if s, ok := ctx.Value(taskStoreKey).(database.TaskStore); ok && s != nil {
 		return s, nil
 	}
+
 	projectRoot, err := FindProjectRoot()
 	if err != nil {
 		return nil, err
 	}
+
 	return NewDefaultTaskStore(projectRoot), nil
 }
 
@@ -78,6 +85,7 @@ func TaskWorkflowResponseToMap(resp *proto.TaskWorkflowResponse) map[string]inte
 	if resp == nil {
 		return nil
 	}
+
 	out := map[string]interface{}{
 		"success": resp.Success,
 		"method":  resp.Method,
@@ -85,38 +93,50 @@ func TaskWorkflowResponseToMap(resp *proto.TaskWorkflowResponse) map[string]inte
 	if resp.Message != "" {
 		out["message"] = resp.Message
 	}
+
 	if len(resp.TaskIds) > 0 {
 		out["task_ids"] = resp.TaskIds
 	}
+
 	if resp.ApprovedCount != 0 {
 		out["approved_count"] = int(resp.ApprovedCount)
 	}
+
 	if resp.DryRun {
 		out["dry_run"] = true
 	}
+
 	if resp.Cancelled {
 		out["cancelled"] = true
 	}
+
 	if len(resp.Tasks) > 0 {
 		tasks := make([]map[string]interface{}, len(resp.Tasks))
+
 		for i, t := range resp.Tasks {
 			m := map[string]interface{}{"id": t.Id, "content": t.Content, "status": t.Status}
 			if t.Priority != "" {
 				m["priority"] = t.Priority
 			}
+
 			if len(t.Tags) > 0 {
 				m["tags"] = t.Tags
 			}
+
 			if t.LongDescription != "" {
 				m["long_description"] = t.LongDescription
 			}
+
 			if len(t.Dependencies) > 0 {
 				m["dependencies"] = t.Dependencies
 			}
+
 			tasks[i] = m
 		}
+
 		out["tasks"] = tasks
 	}
+
 	if resp.SyncResults != nil {
 		sr := resp.SyncResults
 		out["sync_results"] = map[string]interface{}{
@@ -126,6 +146,7 @@ func TaskWorkflowResponseToMap(resp *proto.TaskWorkflowResponse) map[string]inte
 			"synced":          sr.Synced,
 		}
 	}
+
 	return out
 }
 
@@ -134,6 +155,7 @@ func taskToTaskSummary(t *models.Todo2Task) *proto.TaskSummary {
 	if t == nil {
 		return nil
 	}
+
 	return &proto.TaskSummary{
 		Id:              t.ID,
 		Content:         t.Content,
@@ -147,7 +169,7 @@ func taskToTaskSummary(t *models.Todo2Task) *proto.TaskSummary {
 
 // handleTaskWorkflowApprove handles approve action for batch approving tasks
 // Uses database for efficient updates, falls back to file-based approach if needed
-// This is platform-agnostic (doesn't require Apple FM)
+// This is platform-agnostic (doesn't require Apple FM).
 func handleTaskWorkflowApprove(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	// Extract parameters
 	status := "Review"
@@ -181,6 +203,7 @@ func handleTaskWorkflowApprove(ctx context.Context, params map[string]interface{
 	// Optional MCP Elicitation: confirm batch approve when confirm_via_elicitation is true.
 	// Use a timeout so elicitation never blocks indefinitely.
 	const elicitationTimeout = 15 * time.Second
+
 	if confirm, _ := params["confirm_via_elicitation"].(bool); confirm {
 		if eliciter := mcpframework.EliciterFromContext(ctx); eliciter != nil {
 			schema := map[string]interface{}{
@@ -190,20 +213,25 @@ func handleTaskWorkflowApprove(ctx context.Context, params map[string]interface{
 					"dry_run": map[string]interface{}{"type": "boolean", "description": "Preview only (no updates)"},
 				},
 			}
+
 			elicitCtx, cancel := context.WithTimeout(ctx, elicitationTimeout)
 			defer cancel()
+
 			action, content, err := eliciter.ElicitForm(elicitCtx, "Proceed with batch approve? You can choose dry run to preview only.", schema)
 			if err != nil || action != "accept" {
 				msg := "Batch approve cancelled by user or elicitation unavailable"
 				if err != nil && (errors.Is(err, context.DeadlineExceeded) || (elicitCtx.Err() != nil && errors.Is(elicitCtx.Err(), context.DeadlineExceeded))) {
 					msg = "Batch approve cancelled: elicitation timed out"
 				}
+
 				return response.FormatResult(TaskWorkflowResponseToMap(&proto.TaskWorkflowResponse{Success: false, Cancelled: true, Message: msg}), "")
 			}
+
 			if content != nil {
 				if proceed, ok := content["proceed"].(bool); ok && !proceed {
 					return response.FormatResult(TaskWorkflowResponseToMap(&proto.TaskWorkflowResponse{Success: false, Cancelled: true, Message: "Batch approve cancelled by user"}), "")
 				}
+
 				if dr, ok := content["dry_run"].(bool); ok && dr {
 					dryRun = true
 				}
@@ -216,10 +244,12 @@ func handleTaskWorkflowApprove(ctx context.Context, params map[string]interface{
 	if err != nil {
 		return handleTaskWorkflowApproveMCP(ctx, params)
 	}
+
 	filters := &database.TaskFilters{Status: &status}
 	if filterTag != "" {
 		filters.Tag = &filterTag
 	}
+
 	allTasks, err := store.ListTasks(ctx, filters)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load tasks: %w", err)
@@ -227,36 +257,44 @@ func handleTaskWorkflowApprove(ctx context.Context, params map[string]interface{
 
 	// Filter candidates
 	candidates := []*models.Todo2Task{}
+
 	for _, task := range allTasks {
 		if len(taskIDs) > 0 {
 			found := false
+
 			for _, id := range taskIDs {
 				if task.ID == id {
 					found = true
 					break
 				}
 			}
+
 			if !found {
 				continue
 			}
 		}
+
 		if clarificationNone {
 			minDescLen := config.TaskMinDescriptionLength()
+
 			needsClarification := task.LongDescription == "" || len(task.LongDescription) < minDescLen
 			if needsClarification {
 				continue
 			}
 		}
+
 		candidates = append(candidates, task)
 	}
 
 	if dryRun {
 		summaries := make([]*proto.TaskSummary, len(candidates))
 		taskIDList := make([]string, len(candidates))
+
 		for i, task := range candidates {
 			summaries[i] = taskToTaskSummary(task)
 			taskIDList[i] = task.ID
 		}
+
 		resp := &proto.TaskWorkflowResponse{
 			Success:       true,
 			Method:        "store",
@@ -265,12 +303,14 @@ func handleTaskWorkflowApprove(ctx context.Context, params map[string]interface{
 			TaskIds:       taskIDList,
 			Tasks:         summaries,
 		}
+
 		return response.FormatResult(TaskWorkflowResponseToMap(resp), "")
 	}
 
 	// Update tasks via store (handles DB and file; sync is internal)
 	approvedIDs := []string{}
 	updatedCount := 0
+
 	for _, task := range candidates {
 		task.Status = newStatus
 		if err := store.UpdateTask(ctx, task); err == nil {
@@ -285,12 +325,14 @@ func handleTaskWorkflowApprove(ctx context.Context, params map[string]interface{
 		ApprovedCount: int32(updatedCount),
 		TaskIds:       approvedIDs,
 	}
+
 	return response.FormatResult(TaskWorkflowResponseToMap(resp), "")
 }
 
 // parseTagsFromParams extracts tags from params (comma-separated string or array). Used by create and update.
 func parseTagsFromParams(params map[string]interface{}) []string {
 	var tags []string
+
 	if t, ok := params["tags"].([]interface{}); ok {
 		for _, tag := range t {
 			if tagStr, ok := tag.(string); ok && tagStr != "" {
@@ -304,12 +346,14 @@ func parseTagsFromParams(params map[string]interface{}) []string {
 			}
 		}
 	}
+
 	return tags
 }
 
 // parseRemoveTagsFromParams extracts remove_tags from params (comma-separated string or array). Used by update.
 func parseRemoveTagsFromParams(params map[string]interface{}) []string {
 	var tags []string
+
 	if t, ok := params["remove_tags"].([]interface{}); ok {
 		for _, tag := range t {
 			if tagStr, ok := tag.(string); ok && tagStr != "" {
@@ -323,6 +367,7 @@ func parseRemoveTagsFromParams(params map[string]interface{}) []string {
 			}
 		}
 	}
+
 	return tags
 }
 
@@ -330,22 +375,28 @@ func parseRemoveTagsFromParams(params map[string]interface{}) []string {
 func parseDependenciesFromParams(params map[string]interface{}) []string {
 	if d, ok := params["dependencies"].([]interface{}); ok {
 		var deps []string
+
 		for _, dep := range d {
 			if depStr, ok := dep.(string); ok && depStr != "" {
 				deps = append(deps, strings.TrimSpace(depStr))
 			}
 		}
+
 		return deps
 	}
+
 	if dStr, ok := params["dependencies"].(string); ok && dStr != "" {
 		var deps []string
+
 		for _, dep := range strings.Split(dStr, ",") {
 			if trimmed := strings.TrimSpace(dep); trimmed != "" {
 				deps = append(deps, trimmed)
 			}
 		}
+
 		return deps
 	}
+
 	return nil
 }
 
@@ -367,22 +418,27 @@ func handleTaskWorkflowUpdate(ctx context.Context, params map[string]interface{}
 	if newStatus != "" {
 		newStatus = normalizeStatus(newStatus)
 	}
+
 	priority, _ := params["priority"].(string)
 	if priority != "" {
 		priority = normalizePriority(priority)
 	}
+
 	addTags := parseTagsFromParams(params)
 	removeTags := parseRemoveTagsFromParams(params)
 	name, _ := params["name"].(string)
 	longDescription, _ := params["long_description"].(string)
 	parentID, _ := params["parent_id"].(string)
 	dependencies := parseDependenciesFromParams(params)
+
 	if newStatus == "" && priority == "" && len(addTags) == 0 && len(removeTags) == 0 && name == "" && longDescription == "" && parentID == "" && dependencies == nil {
 		return nil, fmt.Errorf("update action requires at least one of new_status, priority, tags, remove_tags, name, long_description, parent_id, or dependencies")
 	}
 
 	useClaim := newStatus == "In Progress"
+
 	var agentID string
+
 	if useClaim {
 		if id, err := database.GetAgentID(); err == nil {
 			agentID = id
@@ -393,29 +449,37 @@ func handleTaskWorkflowUpdate(ctx context.Context, params map[string]interface{}
 
 	updatedIDs := []string{}
 	updatedCount := 0
+
 	var skippedLocked []string
 
 	for _, id := range taskIDs {
 		var task *models.Todo2Task
+
 		if useClaim && agentID != "" {
 			leaseDuration := config.TaskLockLease()
+
 			claimResult, err := database.ClaimTaskForAgent(ctx, id, agentID, leaseDuration)
 			if err != nil {
 				continue
 			}
+
 			if !claimResult.Success {
 				if claimResult.WasLocked {
 					skippedLocked = append(skippedLocked, id)
 				}
+
 				continue
 			}
+
 			task = claimResult.Task
 		} else {
 			var err error
+
 			task, err = store.GetTask(ctx, id)
 			if err != nil {
 				continue
 			}
+
 			if newStatus != "" {
 				task.Status = newStatus
 			}
@@ -424,24 +488,30 @@ func handleTaskWorkflowUpdate(ctx context.Context, params map[string]interface{}
 		if priority != "" {
 			task.Priority = priority
 		}
+
 		if len(removeTags) > 0 {
 			removeSet := make(map[string]bool)
 			for _, t := range removeTags {
 				removeSet[t] = true
 			}
+
 			filtered := task.Tags[:0]
+
 			for _, t := range task.Tags {
 				if !removeSet[t] {
 					filtered = append(filtered, t)
 				}
 			}
+
 			task.Tags = filtered
 		}
+
 		if len(addTags) > 0 {
 			existing := make(map[string]bool)
 			for _, t := range task.Tags {
 				existing[t] = true
 			}
+
 			for _, t := range addTags {
 				if !existing[t] {
 					task.Tags = append(task.Tags, t)
@@ -449,24 +519,31 @@ func handleTaskWorkflowUpdate(ctx context.Context, params map[string]interface{}
 				}
 			}
 		}
+
 		if name != "" {
 			task.Content = name
 		}
+
 		if longDescription != "" {
 			task.LongDescription = longDescription
 		}
+
 		if !useClaim && newStatus != "" {
 			task.Status = newStatus
 		}
+
 		if parentID != "" {
 			task.ParentID = parentID
 		}
+
 		if dependencies != nil {
 			task.Dependencies = dependencies
 		}
+
 		if err := store.UpdateTask(ctx, task); err != nil {
 			continue
 		}
+
 		updatedIDs = append(updatedIDs, id)
 		updatedCount++
 	}
@@ -480,20 +557,25 @@ func handleTaskWorkflowUpdate(ctx context.Context, params map[string]interface{}
 	if len(skippedLocked) > 0 {
 		result["skipped_locked"] = skippedLocked
 	}
+
 	if newStatus == "Review" && updatedCount > 0 {
 		approvalRequests := make([]ApprovalRequest, 0, len(updatedIDs))
+
 		for _, id := range updatedIDs {
 			task, err := store.GetTask(ctx, id)
 			if err != nil || task == nil {
 				continue
 			}
+
 			approvalRequests = append(approvalRequests, BuildApprovalRequestFromTask(task, ""))
 		}
+
 		if len(approvalRequests) > 0 {
 			result["approval_requests"] = approvalRequests
 			result["goto_human_instructions"] = "Call @gotoHuman request-human-review-with-form with each approval_request (form_id, field_data). Set GOTOHUMAN_API_KEY if needed. See docs/GOTOHUMAN_API_REFERENCE.md."
 		}
 	}
+
 	return response.FormatResult(result, "")
 }
 
@@ -503,6 +585,7 @@ func extractTaskIDs(candidates []*models.Todo2Task) []string {
 	for i, t := range candidates {
 		ids[i] = t.ID
 	}
+
 	return ids
 }
 
@@ -512,11 +595,14 @@ func handleTaskWorkflowListPlaceholder(ctx context.Context, params map[string]in
 	if err != nil {
 		return nil, err
 	}
+
 	_, err = store.ListTasks(ctx, nil)
 	if err != nil {
 		return nil, err
 	}
+
 	_ = params
+
 	return nil, nil
 }
 
@@ -527,16 +613,18 @@ func handleTaskWorkflowApproveMCP(ctx context.Context, params map[string]interfa
 	return nil, fmt.Errorf("approve action: project root or task load failed; cannot approve tasks")
 }
 
-// handleTaskWorkflowList handles list sub-action for displaying tasks
+// handleTaskWorkflowList handles list sub-action for displaying tasks.
 func handleTaskWorkflowList(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	store, err := getTaskStore(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get task store: %w", err)
 	}
+
 	list, err := store.ListTasks(ctx, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load tasks: %w", err)
 	}
+
 	tasks := make([]Todo2Task, len(list))
 	for i, t := range list {
 		tasks[i] = *t
@@ -544,20 +632,25 @@ func handleTaskWorkflowList(ctx context.Context, params map[string]interface{}) 
 
 	// Apply filters
 	var status, priority, filterTag, taskID string
+
 	var limit int
 
 	if s, ok := params["status"].(string); ok {
 		status = s
 	}
+
 	if p, ok := params["priority"].(string); ok {
 		priority = p
 	}
+
 	if tag, ok := params["filter_tag"].(string); ok {
 		filterTag = tag
 	}
+
 	if tid, ok := params["task_id"].(string); ok {
 		taskID = tid
 	}
+
 	if l, ok := params["limit"].(float64); ok {
 		limit = int(l)
 	} else if l, ok := params["limit"].(int); ok {
@@ -569,35 +662,44 @@ func handleTaskWorkflowList(ctx context.Context, params map[string]interface{}) 
 	if openOnly {
 		status = "" // keep empty so we filter by open set below
 	}
+
 	showAll := strings.EqualFold(status, "all")
 
 	// Filter tasks
 	filtered := []Todo2Task{}
+
 	for _, task := range tasks {
 		if taskID != "" && task.ID != taskID {
 			continue
 		}
+
 		if status != "" && !showAll && task.Status != status {
 			continue
 		}
+
 		if openOnly && task.Status != "Todo" && task.Status != "In Progress" {
 			continue
 		}
+
 		if priority != "" && task.Priority != priority {
 			continue
 		}
+
 		if filterTag != "" {
 			found := false
+
 			for _, tag := range task.Tags {
 				if tag == filterTag {
 					found = true
 					break
 				}
 			}
+
 			if !found {
 				continue
 			}
 		}
+
 		filtered = append(filtered, task)
 	}
 
@@ -609,21 +711,26 @@ func handleTaskWorkflowList(ctx context.Context, params map[string]interface{}) 
 			for _, t := range filtered {
 				filteredMap[t.ID] = t
 			}
+
 			orderedSet := make(map[string]bool)
 			for _, id := range orderedIDs {
 				orderedSet[id] = true
 			}
+
 			orderedFiltered := make([]Todo2Task, 0, len(filtered))
+
 			for _, id := range orderedIDs {
 				if t, ok := filteredMap[id]; ok {
 					orderedFiltered = append(orderedFiltered, t)
 				}
 			}
+
 			for _, t := range filtered {
 				if !orderedSet[t.ID] {
 					orderedFiltered = append(orderedFiltered, t)
 				}
 			}
+
 			filtered = orderedFiltered
 		}
 	}
@@ -643,51 +750,69 @@ func handleTaskWorkflowList(ctx context.Context, params map[string]interface{}) 
 		for i := range filtered {
 			summaries[i] = taskToTaskSummary(&filtered[i])
 		}
+
 		resp := &proto.TaskWorkflowResponse{Success: true, Method: "list", Tasks: summaries}
+
 		return response.FormatResult(TaskWorkflowResponseToMap(resp), "")
 	}
 	// Text format: column widths aligned with TUI (internal/cli/tui.go colIDMedium, colStatus, colPriority)
 	const colID = 18
+
 	const colStatus = 12
+
 	const colPriority = 10
+
 	const colContent = 50
+
 	truncate := func(s string, w int) string {
 		if len(s) <= w {
 			return s
 		}
+
 		if w <= 3 {
 			return s[:w]
 		}
+
 		return s[:w-3] + "..."
 	}
 	pad := func(s string, w int) string {
 		if len(s) >= w {
 			return truncate(s, w)
 		}
+
 		return s + strings.Repeat(" ", w-len(s))
 	}
+
 	var sb strings.Builder
+
 	sb.WriteString(fmt.Sprintf("Tasks (%d total, %d shown)\n", len(tasks), len(filtered)))
+
 	sepLen := colID + colStatus + colPriority + colContent + 3*3 // 3 " | " separators
 	if sepLen < 80 {
 		sepLen = 80
 	}
+
 	sb.WriteString(strings.Repeat("=", sepLen) + "\n")
 	sb.WriteString(fmt.Sprintf("%-*s | %-*s | %-*s | %s\n", colID, "ID", colStatus, "Status", colPriority, "Priority", "Content"))
 	sb.WriteString(strings.Repeat("-", sepLen) + "\n")
+
 	for _, task := range filtered {
 		id := pad(truncate(task.ID, colID), colID)
 		status := pad(truncate(task.Status, colStatus), colStatus)
 		priority := pad(truncate(task.Priority, colPriority), colPriority)
+
 		content := truncate(task.Content, colContent)
 		if content == "" {
 			content = truncate(task.LongDescription, colContent)
 		}
+
 		if content == "" {
 			content = "(no description)"
 		}
+
 		sb.WriteString(fmt.Sprintf("%-*s | %-*s | %-*s | %s\n", colID, id, colStatus, status, colPriority, priority, content))
 	}
+
 	return []framework.TextContent{
 		{Type: "text", Text: sb.String()},
 	}, nil
@@ -730,14 +855,17 @@ func handleTaskWorkflowSync(ctx context.Context, params map[string]interface{}) 
 	if err != nil {
 		return nil, fmt.Errorf("failed to get task store: %w", err)
 	}
+
 	list, err := store.ListTasks(ctx, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load tasks after sync: %w", err)
 	}
+
 	tasks := tasksFromPtrs(list)
 
 	// Validate task consistency
 	issues := []string{}
+
 	taskMap := make(map[string]bool)
 	for _, task := range tasks {
 		taskMap[task.ID] = true
@@ -762,6 +890,7 @@ func handleTaskWorkflowSync(ctx context.Context, params map[string]interface{}) 
 					issues = append(issues, fmt.Sprintf("Task %s has invalid planning doc link: %v", task.ID, err))
 				}
 			}
+
 			if linkMeta.EpicID != "" {
 				if err := ValidateTaskReference(linkMeta.EpicID, tasks); err != nil {
 					issues = append(issues, fmt.Sprintf("Task %s has invalid epic ID: %v", task.ID, err))
@@ -781,6 +910,7 @@ func handleTaskWorkflowSync(ctx context.Context, params map[string]interface{}) 
 				fmt.Fprintf(os.Stderr, "Warning: failed to clear orphaned epic_id on task %s: %v\n", t.ID, err)
 			}
 		}
+
 		if len(tasksWithOrphanedEpicFixed) > 0 {
 			if syncErr := SyncTodo2Tasks(projectRoot); syncErr != nil {
 				fmt.Fprintf(os.Stderr, "Warning: sync after clearing orphaned epic_id failed: %v\n", syncErr)
@@ -800,6 +930,7 @@ func handleTaskWorkflowSync(ctx context.Context, params map[string]interface{}) 
 		DryRun:      dryRun,
 		SyncResults: syncResults,
 	}
+
 	result := TaskWorkflowResponseToMap(resp)
 	if external, _ := params["external"].(bool); external {
 		if result["sync_results"] != nil {
@@ -808,7 +939,9 @@ func handleTaskWorkflowSync(ctx context.Context, params map[string]interface{}) 
 			}
 		}
 	}
+
 	outputPath, _ := params["output_path"].(string)
+
 	return response.FormatResult(result, outputPath)
 }
 
@@ -825,10 +958,12 @@ func handleTaskWorkflowSanityCheck(ctx context.Context, params map[string]interf
 	if err != nil {
 		return nil, fmt.Errorf("failed to get task store: %w", err)
 	}
+
 	list, err := store.ListTasks(ctx, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load tasks: %w", err)
 	}
+
 	tasks := tasksFromPtrs(list)
 
 	issues := []string{}
@@ -844,15 +979,18 @@ func handleTaskWorkflowSanityCheck(ctx context.Context, params map[string]interf
 		if taskMap[task.ID] {
 			issues = append(issues, fmt.Sprintf("Duplicate task ID: %s", task.ID))
 		}
+
 		taskMap[task.ID] = true
 
 		// Epoch or invalid dates (1970, 0) for created/last_modified; completed_at only for Done tasks
 		if models.IsEpochDate(task.CreatedAt) {
 			issues = append(issues, fmt.Sprintf("Task %s has epoch/invalid created_at", task.ID))
 		}
+
 		if models.IsEpochDate(task.LastModified) {
 			issues = append(issues, fmt.Sprintf("Task %s has epoch/invalid last_modified", task.ID))
 		}
+
 		if strings.TrimSpace(strings.ToLower(task.Status)) == "done" && models.IsEpochDate(task.CompletedAt) {
 			issues = append(issues, fmt.Sprintf("Task %s (Done) has epoch/invalid completed_at", task.ID))
 		}
@@ -880,13 +1018,16 @@ func handleTaskWorkflowSanityCheck(ctx context.Context, params map[string]interf
 
 	// Duplicate content (same name/description, different IDs)
 	contentToIDs := make(map[string][]string)
+
 	for _, task := range tasks {
 		key := normalizeTaskContent(task.Content, task.LongDescription)
 		if key == "" {
 			continue
 		}
+
 		contentToIDs[key] = append(contentToIDs[key], task.ID)
 	}
+
 	for contentKey, ids := range contentToIDs {
 		if len(ids) > 1 {
 			// Truncate content for display
@@ -894,6 +1035,7 @@ func handleTaskWorkflowSanityCheck(ctx context.Context, params map[string]interf
 			if len(preview) > 60 {
 				preview = preview[:57] + "..."
 			}
+
 			issues = append(issues, fmt.Sprintf("Duplicate content (%q): tasks %v", preview, ids))
 		}
 	}
@@ -910,19 +1052,22 @@ func handleTaskWorkflowSanityCheck(ctx context.Context, params map[string]interf
 	}
 
 	outputPath, _ := params["output_path"].(string)
+
 	return response.FormatResult(result, outputPath)
 }
 
-// handleTaskWorkflowClarity handles clarity action for improving task clarity
+// handleTaskWorkflowClarity handles clarity action for improving task clarity.
 func handleTaskWorkflowClarity(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	store, err := getTaskStore(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get task store: %w", err)
 	}
+
 	list, err := store.ListTasks(ctx, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load tasks: %w", err)
 	}
+
 	tasks := tasksFromPtrs(list)
 
 	autoApply := false
@@ -1028,18 +1173,22 @@ func isValidTaskID(taskID string) bool {
 	if !strings.HasPrefix(taskID, "T-") {
 		return true
 	}
+
 	numStr := strings.TrimPrefix(taskID, "T-")
+
 	var num int64
+
 	if _, err := fmt.Sscanf(numStr, "%d", &num); err != nil {
 		return false
 	}
+
 	return num > 0
 }
 
 // isOldSequentialID checks if a task ID uses the old sequential format (T-1, T-2, etc.)
 // vs the new epoch format (T-1768158627000)
 // Old format: T- followed by a small number (< 10000, typically 1-999)
-// New format: T- followed by epoch milliseconds (13 digits, typically 1.6+ trillion)
+// New format: T- followed by epoch milliseconds (13 digits, typically 1.6+ trillion).
 func isOldSequentialID(taskID string) bool {
 	if !strings.HasPrefix(taskID, "T-") {
 		return false
@@ -1060,7 +1209,7 @@ func isOldSequentialID(taskID string) bool {
 	return num < 1000000
 }
 
-// handleTaskWorkflowCleanup handles cleanup action for removing stale tasks and legacy tasks
+// handleTaskWorkflowCleanup handles cleanup action for removing stale tasks and legacy tasks.
 func handleTaskWorkflowCleanup(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	staleThresholdHours := 2.0
 	if threshold, ok := params["stale_threshold_hours"].(float64); ok {
@@ -1082,6 +1231,7 @@ func handleTaskWorkflowCleanup(ctx context.Context, params map[string]interface{
 		// Get all pending tasks
 		pendingStatus := "Todo"
 		filters := &database.TaskFilters{Status: &pendingStatus}
+
 		tasks, err := database.ListTasks(context.Background(), filters)
 		if err != nil {
 			return nil, fmt.Errorf("failed to load tasks: %w", err)
@@ -1109,6 +1259,7 @@ func handleTaskWorkflowCleanup(ctx context.Context, params map[string]interface{
 		// Identify stale and legacy tasks
 		staleTasks := []*models.Todo2Task{}
 		legacyTasks := []*models.Todo2Task{}
+
 		for _, task := range tasks {
 			// Check for legacy task ID (old sequential format)
 			if includeLegacy && isOldSequentialID(task.ID) {
@@ -1122,6 +1273,7 @@ func handleTaskWorkflowCleanup(ctx context.Context, params map[string]interface{
 
 			// Check for stale tag
 			isStale := false
+
 			for _, tag := range task.Tags {
 				if strings.ToLower(tag) == "stale" {
 					isStale = true
@@ -1165,6 +1317,7 @@ func handleTaskWorkflowCleanup(ctx context.Context, params map[string]interface{
 
 		// Delete stale and legacy tasks from database
 		removedIDs := []string{}
+
 		for _, task := range tasksToRemove {
 			if err := database.DeleteTask(context.Background(), task.ID); err == nil {
 				removedIDs = append(removedIDs, task.ID)
@@ -1173,6 +1326,7 @@ func handleTaskWorkflowCleanup(ctx context.Context, params map[string]interface{
 
 		// Sync DB to JSON (shared workflow)
 		var syncErr error
+
 		if len(removedIDs) > 0 {
 			if projectRoot, findErr := FindProjectRoot(); findErr == nil {
 				syncErr = SyncTodo2Tasks(projectRoot)
@@ -1201,6 +1355,7 @@ func handleTaskWorkflowCleanup(ctx context.Context, params map[string]interface{
 		}
 
 		outputPath, _ := params["output_path"].(string)
+
 		return response.FormatResult(result, outputPath)
 	}
 
@@ -1209,15 +1364,18 @@ func handleTaskWorkflowCleanup(ctx context.Context, params map[string]interface{
 	if err != nil {
 		return nil, fmt.Errorf("failed to get task store: %w", err)
 	}
+
 	list, err := store.ListTasks(ctx, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load tasks: %w", err)
 	}
+
 	tasks := tasksFromPtrs(list)
 
 	// Identify stale and legacy tasks
 	staleTasks := []Todo2Task{}
 	legacyTasks := []Todo2Task{}
+
 	for _, task := range tasks {
 		// Check for legacy task ID (old sequential format)
 		if includeLegacy && isOldSequentialID(task.ID) {
@@ -1228,6 +1386,7 @@ func handleTaskWorkflowCleanup(ctx context.Context, params map[string]interface{
 		if IsPendingStatus(task.Status) {
 			// Check for stale tag
 			isStale := false
+
 			for _, tag := range task.Tags {
 				if strings.ToLower(tag) == "stale" {
 					isStale = true
@@ -1272,12 +1431,14 @@ func handleTaskWorkflowCleanup(ctx context.Context, params map[string]interface{
 
 	// Remove stale and legacy tasks
 	remainingTasks := []Todo2Task{}
+
 	removeMap := make(map[string]bool)
 	for _, taskToRemove := range tasksToRemove {
 		removeMap[taskToRemove.ID] = true
 	}
 
 	removedIDs := []string{}
+
 	for _, task := range tasks {
 		if removeMap[task.ID] {
 			removedIDs = append(removedIDs, task.ID)
@@ -1306,6 +1467,7 @@ func handleTaskWorkflowCleanup(ctx context.Context, params map[string]interface{
 	}
 
 	outputPath, _ := params["output_path"].(string)
+
 	return response.FormatResult(result, outputPath)
 }
 
@@ -1323,6 +1485,7 @@ func handleTaskWorkflowFixEmptyDescriptions(ctx context.Context, params map[stri
 		}
 
 		var toUpdate []*models.Todo2Task
+
 		for _, task := range tasks {
 			if strings.TrimSpace(task.LongDescription) == "" && task.Content != "" {
 				t := *task
@@ -1336,6 +1499,7 @@ func handleTaskWorkflowFixEmptyDescriptions(ctx context.Context, params map[stri
 			for i, t := range toUpdate {
 				ids[i] = t.ID
 			}
+
 			result := map[string]interface{}{
 				"success":       true,
 				"method":        "database",
@@ -1343,10 +1507,12 @@ func handleTaskWorkflowFixEmptyDescriptions(ctx context.Context, params map[stri
 				"tasks_updated": len(toUpdate),
 				"task_ids":      ids,
 			}
+
 			return response.FormatResult(result, "")
 		}
 
 		updatedIDs := []string{}
+
 		for _, task := range toUpdate {
 			if err := database.UpdateTask(ctx, task); err == nil {
 				updatedIDs = append(updatedIDs, task.ID)
@@ -1354,6 +1520,7 @@ func handleTaskWorkflowFixEmptyDescriptions(ctx context.Context, params map[stri
 		}
 
 		var syncErr error
+
 		if len(updatedIDs) > 0 {
 			if projectRoot, findErr := FindProjectRoot(); findErr == nil {
 				syncErr = SyncTodo2Tasks(projectRoot)
@@ -1372,7 +1539,9 @@ func handleTaskWorkflowFixEmptyDescriptions(ctx context.Context, params map[stri
 		if syncErr != nil {
 			result["sync_error"] = syncErr.Error()
 		}
+
 		outputPath, _ := params["output_path"].(string)
+
 		return response.FormatResult(result, outputPath)
 	}
 
@@ -1380,6 +1549,7 @@ func handleTaskWorkflowFixEmptyDescriptions(ctx context.Context, params map[stri
 	if err != nil {
 		return nil, fmt.Errorf("failed to get task store: %w", err)
 	}
+
 	list, err := store.ListTasks(ctx, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load tasks: %w", err)
@@ -1387,11 +1557,13 @@ func handleTaskWorkflowFixEmptyDescriptions(ctx context.Context, params map[stri
 
 	if dryRun {
 		var ids []string
+
 		for _, t := range list {
 			if t != nil && strings.TrimSpace(t.LongDescription) == "" && t.Content != "" {
 				ids = append(ids, t.ID)
 			}
 		}
+
 		result := map[string]interface{}{
 			"success":       true,
 			"method":        "file",
@@ -1399,20 +1571,24 @@ func handleTaskWorkflowFixEmptyDescriptions(ctx context.Context, params map[stri
 			"tasks_updated": len(ids),
 			"task_ids":      ids,
 		}
+
 		return response.FormatResult(result, "")
 	}
 
 	var updated int
+
 	for _, task := range list {
 		if task == nil {
 			continue
 		}
+
 		if strings.TrimSpace(task.LongDescription) == "" && task.Content != "" {
 			task.LongDescription = task.Content
 			if err := store.UpdateTask(ctx, task); err != nil {
 				fmt.Fprintf(os.Stderr, "Warning: failed to update task %s: %v\n", task.ID, err)
 				continue
 			}
+
 			updated++
 		}
 	}
@@ -1423,6 +1599,7 @@ func handleTaskWorkflowFixEmptyDescriptions(ctx context.Context, params map[stri
 		"tasks_updated": updated,
 	}
 	outputPath, _ := params["output_path"].(string)
+
 	return response.FormatResult(result, outputPath)
 }
 
@@ -1451,27 +1628,34 @@ func formatClarityAnalysisText(result map[string]interface{}) string {
 	if total, ok := result["total_tasks"].(int); ok {
 		sb.WriteString(fmt.Sprintf("Total Tasks: %d\n", total))
 	}
+
 	if analyzed, ok := result["tasks_analyzed"].(int); ok {
 		sb.WriteString(fmt.Sprintf("Tasks Needing Improvement: %d\n\n", analyzed))
 	}
 
 	if issues, ok := result["clarity_issues"].([]map[string]interface{}); ok && len(issues) > 0 {
 		sb.WriteString("Clarity Issues:\n\n")
+
 		for i, issue := range issues {
 			if taskID, ok := issue["task_id"].(string); ok {
 				sb.WriteString(fmt.Sprintf("%d. Task %s\n", i+1, taskID))
+
 				if content, ok := issue["content"].(string); ok {
 					sb.WriteString(fmt.Sprintf("   Content: %s\n", content))
 				}
+
 				if issuesList, ok := issue["issues"].([]string); ok {
 					sb.WriteString(fmt.Sprintf("   Issues: %s\n", strings.Join(issuesList, ", ")))
 				}
+
 				if suggestions, ok := issue["suggestions"].([]string); ok {
 					sb.WriteString("   Suggestions:\n")
+
 					for _, sug := range suggestions {
 						sb.WriteString(fmt.Sprintf("     - %s\n", sug))
 					}
 				}
+
 				sb.WriteString("\n")
 			}
 		}
@@ -1491,6 +1675,7 @@ func formatStaleTasks(tasks []Todo2Task) []map[string]interface{} {
 			"status":  task.Status,
 		}
 	}
+
 	return result
 }
 
@@ -1503,6 +1688,7 @@ func formatStaleTasksFromPtrs(tasks []*models.Todo2Task) []map[string]interface{
 			"status":  task.Status,
 		}
 	}
+
 	return result
 }
 
@@ -1522,6 +1708,7 @@ func handleTaskWorkflowLinkPlanning(ctx context.Context, params map[string]inter
 
 	planningDoc, _ := params["planning_doc"].(string)
 	epicID, _ := params["epic_id"].(string)
+
 	if planningDoc == "" && epicID == "" {
 		return nil, fmt.Errorf("at least one of planning_doc or epic_id is required for link_planning")
 	}
@@ -1542,12 +1729,15 @@ func handleTaskWorkflowLinkPlanning(ctx context.Context, params map[string]inter
 	if err != nil {
 		return nil, fmt.Errorf("failed to get task store: %w", err)
 	}
+
 	list, err := store.ListTasks(ctx, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load tasks: %w", err)
 	}
+
 	tasks := tasksFromPtrs(list)
 	taskMap := make(map[string]Todo2Task)
+
 	for _, t := range tasks {
 		taskMap[t.ID] = t
 	}
@@ -1559,6 +1749,7 @@ func handleTaskWorkflowLinkPlanning(ctx context.Context, params map[string]inter
 	}
 
 	updatedIDs := make([]string, 0)
+
 	var skippedStatus []string
 
 	for _, id := range uniqueIDs {
@@ -1567,6 +1758,7 @@ func handleTaskWorkflowLinkPlanning(ctx context.Context, params map[string]inter
 			skippedStatus = append(skippedStatus, id+": not found")
 			continue
 		}
+
 		norm := normalizeStatus(strings.TrimSpace(task.Status))
 		if !allowedStatusForLinkPlanning[norm] {
 			skippedStatus = append(skippedStatus, id+": status is "+norm+", only Todo or In Progress allowed")
@@ -1577,13 +1769,16 @@ func handleTaskWorkflowLinkPlanning(ctx context.Context, params map[string]inter
 		if linkMeta == nil {
 			linkMeta = &PlanningLinkMetadata{}
 		}
+
 		if planningDoc != "" {
 			linkMeta.PlanningDoc = planningDoc
 		}
+
 		if epicID != "" {
 			linkMeta.EpicID = epicID
 			task.ParentID = epicID
 		}
+
 		SetPlanningLinkMetadata(&task, linkMeta)
 
 		taskPtr := &task
@@ -1591,10 +1786,12 @@ func handleTaskWorkflowLinkPlanning(ctx context.Context, params map[string]inter
 			skippedStatus = append(skippedStatus, id+": update failed: "+err.Error())
 			continue
 		}
+
 		updatedIDs = append(updatedIDs, id)
 	}
 
 	var linkSyncErr error
+
 	if len(updatedIDs) > 0 {
 		if projectRoot, findErr := FindProjectRoot(); findErr == nil {
 			linkSyncErr = SyncTodo2Tasks(projectRoot)
@@ -1615,17 +1812,19 @@ func handleTaskWorkflowLinkPlanning(ctx context.Context, params map[string]inter
 	if linkSyncErr != nil {
 		result["sync_error"] = linkSyncErr.Error()
 	}
+
 	return response.FormatResult(result, "")
 }
 
 // handleTaskWorkflowCreate handles create action for creating new tasks
 // Uses database for efficient creation, falls back to file-based approach if needed
-// This is platform-agnostic (doesn't require Apple FM)
+// This is platform-agnostic (doesn't require Apple FM).
 func handleTaskWorkflowCreate(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	store, err := getTaskStore(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get task store: %w", err)
 	}
+
 	projectRoot, err := FindProjectRoot()
 	if err != nil {
 		return nil, fmt.Errorf("failed to find project root: %w", err)
@@ -1658,6 +1857,7 @@ func handleTaskWorkflowCreate(ctx context.Context, params map[string]interface{}
 	if len(tags) == 0 {
 		tags = []string{} // Ensure it's a slice, not nil
 	}
+
 	if t, ok := params["tags"].([]interface{}); ok {
 		for _, tag := range t {
 			if tagStr, ok := tag.(string); ok {
@@ -1676,6 +1876,7 @@ func handleTaskWorkflowCreate(ctx context.Context, params map[string]interface{}
 	}
 
 	dependencies := []string{}
+
 	if d, ok := params["dependencies"].([]interface{}); ok {
 		for _, dep := range d {
 			if depStr, ok := dep.(string); ok {
@@ -1698,6 +1899,7 @@ func handleTaskWorkflowCreate(ctx context.Context, params map[string]interface{}
 	if err != nil {
 		return nil, fmt.Errorf("failed to load tasks: %w", err)
 	}
+
 	tasks := make([]Todo2Task, len(list))
 	for i, t := range list {
 		tasks[i] = *t
@@ -1711,6 +1913,7 @@ func handleTaskWorkflowCreate(ctx context.Context, params map[string]interface{}
 	for _, task := range tasks {
 		taskMap[task.ID] = true
 	}
+
 	for _, dep := range dependencies {
 		if !taskMap[dep] {
 			return nil, fmt.Errorf("dependency %s does not exist", dep)
@@ -1798,6 +2001,7 @@ func handleTaskWorkflowCreate(ctx context.Context, params map[string]interface{}
 	if ae, ok := params["auto_estimate"].(bool); ok {
 		autoEstimate = ae
 	}
+
 	if autoEstimate {
 		if err := addEstimateComment(ctx, projectRoot, task, name, longDescription, tags, priority); err != nil {
 			if metadata, ok := result["metadata"].(map[string]interface{}); ok {
@@ -1820,6 +2024,7 @@ func handleTaskWorkflowCreate(ctx context.Context, params map[string]interface{}
 	}
 
 	outputPath, _ := params["output_path"].(string)
+
 	return response.FormatResult(result, outputPath)
 }
 
@@ -1834,6 +2039,7 @@ func handleTaskWorkflowFixInvalidIDs(ctx context.Context, params map[string]inte
 
 	// Load from both DB and JSON: DB-first, then add JSON-only tasks (e.g. T-NaN from Todo2 extension)
 	taskMap := make(map[string]Todo2Task)
+
 	if dbList, err := database.ListTasks(ctx, nil); err == nil {
 		for _, t := range dbList {
 			if t != nil {
@@ -1841,6 +2047,7 @@ func handleTaskWorkflowFixInvalidIDs(ctx context.Context, params map[string]inte
 			}
 		}
 	}
+
 	if jsonTasks, err := loadTodo2TasksFromJSON(projectRoot); err == nil {
 		for _, t := range jsonTasks {
 			if _, ok := taskMap[t.ID]; !ok {
@@ -1848,15 +2055,19 @@ func handleTaskWorkflowFixInvalidIDs(ctx context.Context, params map[string]inte
 			}
 		}
 	}
+
 	tasks := make([]Todo2Task, 0, len(taskMap))
 	for _, t := range taskMap {
 		tasks = append(tasks, t)
 	}
 
 	type fix struct{ oldID, newID string }
+
 	var fixes []fix
+
 	baseEpoch := time.Now().UnixMilli()
 	counter := int64(0)
+
 	for i := range tasks {
 		if !isValidTaskID(tasks[i].ID) {
 			oldID := tasks[i].ID
@@ -1873,16 +2084,19 @@ func handleTaskWorkflowFixInvalidIDs(ctx context.Context, params map[string]inte
 			"fixed_count": 0,
 			"message":     "no invalid task IDs found",
 		}
+
 		return response.FormatResult(result, "")
 	}
 
 	// Update dependencies: any task referencing an old ID should reference the new ID
 	oldToNew := make(map[string]string)
 	fixedNewIDs := make(map[string]bool)
+
 	for _, f := range fixes {
 		oldToNew[f.oldID] = f.newID
 		fixedNewIDs[f.newID] = true
 	}
+
 	for i := range tasks {
 		for j, dep := range tasks[i].Dependencies {
 			if newID, ok := oldToNew[dep]; ok {
@@ -1905,18 +2119,20 @@ func handleTaskWorkflowFixInvalidIDs(ctx context.Context, params map[string]inte
 	for _, f := range fixes {
 		mapping[f.oldID] = f.newID
 	}
+
 	result := map[string]interface{}{
 		"success":     true,
 		"method":      "native_go",
 		"fixed_count": len(fixes),
 		"id_mapping":  mapping,
 	}
+
 	return response.FormatResult(result, "")
 }
 
 // generateEpochTaskID generates a task ID using epoch milliseconds (T-{epoch_milliseconds})
 // This is O(1) and doesn't require loading all tasks, solving the performance bottleneck
-// Format: T-{epoch_milliseconds} (e.g., T-1768158627000)
+// Format: T-{epoch_milliseconds} (e.g., T-1768158627000).
 func generateEpochTaskID() string {
 	epochMillis := time.Now().UnixMilli()
 	return fmt.Sprintf("T-%d", epochMillis)
@@ -1977,9 +2193,10 @@ func addEstimateComment(ctx context.Context, projectRoot string, task *models.To
 	return nil
 }
 
-// formatEstimateComment formats estimation result as a markdown comment
+// formatEstimateComment formats estimation result as a markdown comment.
 func formatEstimateComment(estimate EstimationResult) string {
 	var builder strings.Builder
+
 	builder.WriteString("## Task Duration Estimate\n\n")
 	builder.WriteString(fmt.Sprintf("**Estimated Duration:** %.1f hours\n\n", estimate.EstimateHours))
 	builder.WriteString(fmt.Sprintf("**Confidence:** %.0f%%\n\n", estimate.Confidence*100))
@@ -1993,6 +2210,7 @@ func formatEstimateComment(estimate EstimationResult) string {
 		if statisticalEst, ok := estimate.Metadata["statistical_estimate"].(float64); ok {
 			builder.WriteString(fmt.Sprintf("\n**Statistical Estimate:** %.1f hours\n", statisticalEst))
 		}
+
 		if llmEst, ok := estimate.Metadata["llm_estimate"].(float64); ok {
 			builder.WriteString(fmt.Sprintf("**AI Estimate:** %.1f hours\n", llmEst))
 		} else if appleFMEst, ok := estimate.Metadata["apple_fm_estimate"].(float64); ok {

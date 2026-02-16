@@ -16,7 +16,7 @@ import (
 	"github.com/davidl71/mcp-go-core/pkg/mcp/response"
 )
 
-// handleReportOverview handles the overview action for report tool
+// handleReportOverview handles the overview action for report tool.
 func handleReportOverview(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	projectRoot, err := FindProjectRoot()
 	if err != nil {
@@ -39,13 +39,16 @@ func handleReportOverview(ctx context.Context, params map[string]interface{}) ([
 
 	// Format output based on requested format (use proto for type-safe formatting)
 	var formattedOutput string
+
 	switch outputFormat {
 	case "json":
 		overviewMap := ProtoToProjectOverviewData(overviewProto)
+
 		contents, err := response.FormatResult(overviewMap, outputPath)
 		if err != nil {
 			return nil, fmt.Errorf("failed to format JSON: %w", err)
 		}
+
 		return contents, nil
 	case "markdown":
 		formattedOutput = formatOverviewMarkdownProto(overviewProto)
@@ -60,6 +63,7 @@ func handleReportOverview(ctx context.Context, params map[string]interface{}) ([
 		if err := os.WriteFile(outputPath, []byte(formattedOutput), 0644); err != nil {
 			return nil, fmt.Errorf("failed to write output file: %w", err)
 		}
+
 		formattedOutput += fmt.Sprintf("\n\n[Report saved to: %s]", outputPath)
 	}
 
@@ -99,7 +103,7 @@ func handleReportBriefing(ctx context.Context, params map[string]interface{}) ([
 	return response.FormatResult(briefingMap, "")
 }
 
-// handleReportPRD handles the prd action for report tool
+// handleReportPRD handles the prd action for report tool.
 func handleReportPRD(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	projectRoot, err := FindProjectRoot()
 	if err != nil {
@@ -140,6 +144,7 @@ func handleReportPRD(ctx context.Context, params map[string]interface{}) ([]fram
 		if err := os.WriteFile(outputPath, []byte(prd), 0644); err != nil {
 			return nil, fmt.Errorf("failed to write PRD file: %w", err)
 		}
+
 		prd += fmt.Sprintf("\n\n[PRD saved to: %s]", outputPath)
 	}
 
@@ -163,6 +168,7 @@ func handleReportPlan(ctx context.Context, params map[string]interface{}) ([]fra
 				planTitle = name
 			}
 		}
+
 		if planTitle == "" {
 			planTitle = filepath.Base(projectRoot)
 		}
@@ -186,6 +192,7 @@ func handleReportPlan(ctx context.Context, params map[string]interface{}) ([]fra
 			return nil, fmt.Errorf("failed to create plan directory: %w", err)
 		}
 	}
+
 	if err := os.WriteFile(outputPath, []byte(planMD), 0644); err != nil {
 		return nil, fmt.Errorf("failed to write plan file: %w", err)
 	}
@@ -201,6 +208,7 @@ func handleReportPlan(ctx context.Context, params map[string]interface{}) ([]fra
 			if dir := filepath.Dir(subagentsPath); dir != "." {
 				_ = os.MkdirAll(dir, 0755)
 			}
+
 			if err := os.WriteFile(subagentsPath, []byte(subagentsMD), 0644); err == nil {
 				planMD += fmt.Sprintf("\n\n[Subagents plan updated: %s]", subagentsPath)
 			} else {
@@ -210,6 +218,7 @@ func handleReportPlan(ctx context.Context, params map[string]interface{}) ([]fra
 	}
 
 	planMD += fmt.Sprintf("\n\n[Plan saved to: %s]", outputPath)
+
 	return []framework.TextContent{
 		{Type: "text", Text: planMD},
 	}, nil
@@ -219,14 +228,20 @@ func handleReportPlan(ctx context.Context, params map[string]interface{}) ([]fra
 // from current Todo2 backlog and dependency waves. Uses BacklogExecutionOrder for wave assignment.
 func generateParallelExecutionSubagentsMarkdown(ctx context.Context, projectRoot, planTitle string) (string, error) {
 	store := NewDefaultTaskStore(projectRoot)
+
 	list, err := store.ListTasks(ctx, nil)
 	if err != nil {
 		return "", fmt.Errorf("list tasks: %w", err)
 	}
+
 	tasks := tasksFromPtrs(list)
+
 	_, waves, _, err := BacklogExecutionOrder(tasks, nil)
 	if err != nil {
 		return "", fmt.Errorf("backlog execution order: %w", err)
+	}
+	if max := config.MaxTasksPerWave(); max > 0 {
+		waves = LimitWavesByMaxTasks(waves, max)
 	}
 	if len(waves) == 0 {
 		return "", fmt.Errorf("no waves (empty backlog or no Todo/In Progress tasks)")
@@ -239,11 +254,14 @@ func generateParallelExecutionSubagentsMarkdown(ctx context.Context, projectRoot
 	for k := range waves {
 		levelOrder = append(levelOrder, k)
 	}
+
 	sort.Ints(levelOrder)
 
 	var sb strings.Builder
+
 	waveCount := len(levelOrder)
 	waveLabel := fmt.Sprintf("Waves 0–%d", waveCount-1)
+
 	if waveCount == 1 {
 		waveLabel = "Wave 0"
 	}
@@ -258,9 +276,11 @@ func generateParallelExecutionSubagentsMarkdown(ctx context.Context, projectRoot
 	sb.WriteString(fmt.Sprintf("**Source plan:** [.cursor/plans/%s](.cursor/plans/%s)\n\n", mainPlanFile, mainPlanFile))
 	sb.WriteString("**Strategy:** Execute waves sequentially (Wave 0, then Wave 1, …). Within each wave, launch **one subagent per task** in a single message so they run in parallel. Use the `wave-task-runner` subagent; optionally run `wave-verifier` after each wave.\n\n")
 	sb.WriteString("---\n\n## Execution order\n\n")
+
 	for i, level := range levelOrder {
 		sb.WriteString(fmt.Sprintf("%d. **Wave %d** — Run all Wave %d tasks in parallel. Optionally run `wave-verifier` when complete.\n", i+1, level, level))
 	}
+
 	sb.WriteString("\n---\n\n")
 
 	// One section per wave
@@ -269,12 +289,15 @@ func generateParallelExecutionSubagentsMarkdown(ctx context.Context, projectRoot
 		if len(ids) == 0 {
 			continue
 		}
+
 		sb.WriteString(fmt.Sprintf("## Wave %d (parallel)\n\n", level))
 		sb.WriteString("Launch one `/wave-task-runner` per task in **one** message so Cursor runs them in parallel.\n\n")
+
 		countLabel := "tasks"
 		if len(ids) == 1 {
 			countLabel = "task"
 		}
+
 		sb.WriteString(fmt.Sprintf("**Task IDs (%d %s):**\n\n", len(ids), countLabel))
 		sb.WriteString(strings.Join(ids, ", "))
 		sb.WriteString("\n\n**Prompt (Wave ")
@@ -288,9 +311,11 @@ func generateParallelExecutionSubagentsMarkdown(ctx context.Context, projectRoot
 		sb.WriteString("`. Wait for all to complete, then summarize. Optionally run **wave-verifier** for Wave ")
 		sb.WriteString(fmt.Sprint(level))
 		sb.WriteString(".\n\n")
+
 		if len(ids) > 20 {
 			sb.WriteString("**Practical note:** Consider batching (e.g. first 10–15 tasks) to avoid UI or token limits.\n\n")
 		}
+
 		sb.WriteString("---\n\n")
 	}
 
@@ -303,13 +328,16 @@ func generateParallelExecutionSubagentsMarkdown(ctx context.Context, projectRoot
 	sb.WriteString("---\n\n## Quick reference\n\n")
 	sb.WriteString("| Wave | Task count | Run |\n")
 	sb.WriteString("|------|------------|-----|\n")
+
 	for _, level := range levelOrder {
 		ids := waves[level]
 		if len(ids) == 0 {
 			continue
 		}
+
 		sb.WriteString(fmt.Sprintf("| Wave %d | %d | One subagent per task in one message (or batches of ~10–15 if large). |\n", level, len(ids)))
 	}
+
 	sb.WriteString("\n**Order:** Execute waves sequentially (do not start Wave N+1 until Wave N is complete).\n\n")
 	sb.WriteString("*Generated by exarp-go report(action=plan, include_subagents=true) or report(action=parallel_execution_plan).*\n")
 
@@ -330,6 +358,7 @@ func handleReportParallelExecutionPlan(ctx context.Context, params map[string]in
 				planTitle = name
 			}
 		}
+
 		if planTitle == "" {
 			planTitle = filepath.Base(projectRoot)
 		}
@@ -350,11 +379,13 @@ func handleReportParallelExecutionPlan(ctx context.Context, params map[string]in
 			return nil, fmt.Errorf("create plan directory: %w", err)
 		}
 	}
+
 	if err := os.WriteFile(outputPath, []byte(subagentsMD), 0644); err != nil {
 		return nil, fmt.Errorf("write subagents plan: %w", err)
 	}
 
 	msg := fmt.Sprintf("Parallel execution subagents plan saved to: %s", outputPath)
+
 	return []framework.TextContent{
 		{Type: "text", Text: msg},
 	}, nil
@@ -379,9 +410,11 @@ func recommendationsByDimension(recs []string) map[string][]string {
 		"documentation": nil,
 		"completion":    nil,
 	}
+
 	lower := func(s string) string { return strings.ToLower(s) }
 	for _, r := range recs {
 		l := lower(r)
+
 		switch {
 		case strings.Contains(l, "test") || strings.Contains(l, "coverage"):
 			out["testing"] = append(out["testing"], r)
@@ -394,6 +427,7 @@ func recommendationsByDimension(recs []string) map[string][]string {
 			out["completion"] = append(out["completion"], r)
 		}
 	}
+
 	return out
 }
 
@@ -404,6 +438,7 @@ func handleReportScorecardPlans(ctx context.Context, params map[string]interface
 	if err != nil {
 		return nil, fmt.Errorf("failed to find project root: %w", err)
 	}
+
 	if !IsGoProject() {
 		return nil, fmt.Errorf("scorecard_plans is only supported for Go projects (go.mod)")
 	}
@@ -412,7 +447,9 @@ func handleReportScorecardPlans(ctx context.Context, params map[string]interface
 	if v, ok := params["fast_mode"].(bool); ok {
 		fastMode = v
 	}
+
 	opts := &ScorecardOptions{FastMode: fastMode}
+
 	scorecard, err := GenerateGoScorecard(ctx, projectRoot, opts)
 	if err != nil {
 		return nil, fmt.Errorf("scorecard for plans: %w", err)
@@ -437,25 +474,32 @@ func handleReportScorecardPlans(ctx context.Context, params map[string]interface
 	}
 
 	var created []string
+
 	for _, dim := range []string{"testing", "security", "documentation", "completion"} {
 		cfg := scorecardDimensionConfig[dim]
 		if scores[dim] >= cfg.threshold {
 			continue
 		}
+
 		recs := byDim[dim]
 		if len(recs) == 0 && dim != "documentation" {
 			recs = []string{fmt.Sprintf("Review and improve %s (score: %.0f%%)", cfg.displayName, scores[dim])}
 		}
+
 		planPath := filepath.Join(plansDir, "improve-"+dim+".plan.md")
 		planMD := generateScorecardDimensionPlan(cfg.displayName, dim, scores[dim], cfg.threshold, recs)
+
 		if err := os.WriteFile(planPath, []byte(planMD), 0644); err != nil {
 			return nil, fmt.Errorf("write %s: %w", planPath, err)
 		}
+
 		created = append(created, planPath)
 	}
 
 	var sb strings.Builder
+
 	sb.WriteString("Scorecard improvement plans created:\n")
+
 	if len(created) == 0 {
 		sb.WriteString("  (none — all dimensions at or above threshold)\n")
 	} else {
@@ -463,28 +507,35 @@ func handleReportScorecardPlans(ctx context.Context, params map[string]interface
 			sb.WriteString("  - " + p + "\n")
 		}
 	}
+
 	return []framework.TextContent{{Type: "text", Text: sb.String()}}, nil
 }
 
 // generateScorecardDimensionPlan returns markdown for a single dimension improvement plan (Cursor-buildable).
 func generateScorecardDimensionPlan(displayName, dimension string, currentScore, targetScore float64, recommendations []string) string {
 	var sb strings.Builder
+
 	scorecardDate := time.Now().Format("2006-01-02")
 	tagHints := dimension + ", planning"
+
 	sb.WriteString("---\n")
 	sb.WriteString(fmt.Sprintf("name: Improve %s\n", displayName))
 	sb.WriteString(fmt.Sprintf("overview: \"Current %s score: %.0f%%. Target: %.0f%%. Address the items below to improve this metric.\"\n", displayName, currentScore, targetScore))
 	sb.WriteString("todos:\n")
+
 	for i, r := range recommendations {
 		id := fmt.Sprintf("rec-%s-%d", dimension, i+1)
+
 		content := r
 		if len(content) > 120 {
 			content = content[:117] + "..."
 		}
+
 		sb.WriteString(fmt.Sprintf("  - id: %s\n", id))
 		sb.WriteString(fmt.Sprintf("    content: %q\n", escapeYAMLString(content)))
 		sb.WriteString("    status: pending\n")
 	}
+
 	sb.WriteString("isProject: false\n")
 	sb.WriteString("status: draft\n")
 	sb.WriteString(fmt.Sprintf("last_updated: %q\n", scorecardDate))
@@ -507,9 +558,11 @@ func generateScorecardDimensionPlan(displayName, dimension string, currentScore,
 	sb.WriteString("- Score reaches or exceeds target\n")
 	sb.WriteString("- All checklist items addressed or explicitly deferred\n\n")
 	sb.WriteString("## Checklist\n\n")
+
 	for _, r := range recommendations {
 		sb.WriteString(fmt.Sprintf("- [ ] %s\n", r))
 	}
+
 	sb.WriteString("\n---\n\n")
 	sb.WriteString("## Open Questions\n\n")
 	sb.WriteString("- *(Add open questions or decisions needed.)*\n\n")
@@ -517,6 +570,7 @@ func generateScorecardDimensionPlan(displayName, dimension string, currentScore,
 	sb.WriteString("## References\n\n")
 	sb.WriteString("- *(See main plan or scorecard output; add links as needed.)*\n\n")
 	sb.WriteString("---\n\n*Generated from scorecard by exarp-go report(action=scorecard_plans).*\n")
+
 	return sb.String()
 }
 
@@ -524,6 +578,7 @@ func generateScorecardDimensionPlan(displayName, dimension string, currentScore,
 func generatePlanMarkdown(ctx context.Context, projectRoot, planTitle string) (string, error) {
 	displayName := planDisplayName(planTitle)
 	info, _ := getProjectInfo(projectRoot)
+
 	overview := getStr(info, "description")
 	if overview == "" {
 		overview = fmt.Sprintf("Deliver and maintain %s with clear milestones and quality gates.", displayName)
@@ -533,6 +588,7 @@ func generatePlanMarkdown(ctx context.Context, projectRoot, planTitle string) (s
 	list, _ := store.ListTasks(ctx, nil)
 	tasks := tasksFromPtrs(list)
 	taskByID := make(map[string]Todo2Task)
+
 	for _, t := range tasks {
 		taskByID[t.ID] = t
 	}
@@ -543,31 +599,41 @@ func generatePlanMarkdown(ctx context.Context, projectRoot, planTitle string) (s
 
 	// Todos for frontmatter (Cursor-buildable: id, content, status so Cursor displays them as Todos)
 	todoEntries := make([]struct{ id, content, status string }, 0, len(actions))
+
 	for _, a := range actions {
 		id := getStr(a, "task_id")
 		if id == "" {
 			continue
 		}
+
 		content := getStr(a, "name")
 		status := "pending"
+
 		if t, ok := taskByID[id]; ok {
 			if content == "" {
 				content = t.Content
 			}
+
 			status = todo2StatusToCursorStatus(t.Status)
 		}
+
 		if content == "" {
 			content = id
 		}
+
 		content = strings.TrimSpace(content)
 		if len(content) > 120 {
 			content = content[:117] + "..."
 		}
+
 		todoEntries = append(todoEntries, struct{ id, content, status string }{id, content, status})
 	}
 
 	// Execution order and waves (same wave = can run in parallel); computed once for frontmatter and section 4
 	orderedIDs, waves, _, _ := BacklogExecutionOrder(tasks, nil)
+	if max := config.MaxTasksPerWave(); max > 0 {
+		waves = LimitWavesByMaxTasks(waves, max)
+	}
 
 	var sb strings.Builder
 
@@ -575,8 +641,10 @@ func generatePlanMarkdown(ctx context.Context, projectRoot, planTitle string) (s
 	sb.WriteString("---\n")
 	sb.WriteString(fmt.Sprintf("name: %s Plan\n", displayName))
 	sb.WriteString(fmt.Sprintf("overview: %q\n", escapeYAMLString(overview)))
+
 	if len(todoEntries) > 0 {
 		sb.WriteString("todos:\n")
+
 		for _, e := range todoEntries {
 			sb.WriteString(fmt.Sprintf("  - id: %s\n", e.id))
 			sb.WriteString(fmt.Sprintf("    content: %q\n", escapeYAMLString(e.content)))
@@ -585,26 +653,33 @@ func generatePlanMarkdown(ctx context.Context, projectRoot, planTitle string) (s
 	} else {
 		sb.WriteString("todos: []\n")
 	}
+
 	if len(waves) > 0 {
 		levelOrder := make([]int, 0, len(waves))
 		for k := range waves {
 			levelOrder = append(levelOrder, k)
 		}
+
 		sort.Ints(levelOrder)
 		sb.WriteString("waves:\n")
+
 		for _, level := range levelOrder {
 			ids := waves[level]
 			if len(ids) == 0 {
 				continue
 			}
+
 			quoted := make([]string, len(ids))
 			for i, id := range ids {
 				quoted[i] = fmt.Sprintf("%q", id)
 			}
+
 			sb.WriteString("  - [" + strings.Join(quoted, ", ") + "]\n")
 		}
 	}
+
 	planDate := time.Now().Format("2006-01-02")
+
 	sb.WriteString("isProject: true\n")
 	sb.WriteString("status: draft\n")
 	sb.WriteString(fmt.Sprintf("last_updated: %q\n", planDate))
@@ -630,30 +705,36 @@ func generatePlanMarkdown(ctx context.Context, projectRoot, planTitle string) (s
 
 	// 1. Technical Foundation
 	sb.WriteString("## 1. Technical Foundation\n\n")
+
 	metrics, err := getCodebaseMetrics(projectRoot)
 	if err == nil {
 		sb.WriteString(fmt.Sprintf("- **Project type:** %s\n", getStr(info, "type")))
 		sb.WriteString(fmt.Sprintf("- **Tools:** %v | **Prompts:** %v | **Resources:** %v\n", metrics["tools"], metrics["prompts"], metrics["resources"]))
 		sb.WriteString(fmt.Sprintf("- **Codebase:** %v files (Go: %v)\n", metrics["total_files"], metrics["go_files"]))
 	}
+
 	sb.WriteString("- **Storage:** Todo2 (SQLite primary, JSON fallback)\n")
 	sb.WriteString("- **Invariants:** Use Makefile targets; prefer report/task_workflow over direct file edits\n\n")
+
 	if path, ok := snippet["critical_path"].([]string); ok && len(path) > 0 {
 		sb.WriteString("**Critical path (longest dependency chain):** ")
 		sb.WriteString(strings.Join(path, " → "))
 		sb.WriteString("\n\n")
 	}
+
 	sb.WriteString("---\n\n")
 
 	// 2. Backlog Tasks (table: Task | Priority | Description)
 	sb.WriteString("## 2. Backlog Tasks\n\n")
 	sb.WriteString("| Task | Priority | Description |\n")
 	sb.WriteString("|------|----------|-------------|\n")
+
 	if len(actions) > 0 {
 		for _, a := range actions {
 			taskID := getStr(a, "task_id")
 			priority := getStr(a, "priority")
 			name := getStr(a, "name")
+
 			desc := name
 			if t, ok := taskByID[taskID]; ok && t.LongDescription != "" {
 				desc = tableCellSafe(t.LongDescription)
@@ -662,6 +743,7 @@ func generatePlanMarkdown(ctx context.Context, projectRoot, planTitle string) (s
 			} else {
 				desc = taskID
 			}
+
 			sb.WriteString(fmt.Sprintf("| **%s** | %s | %s |\n", taskID, priority, desc))
 		}
 	} else {
@@ -669,69 +751,85 @@ func generatePlanMarkdown(ctx context.Context, projectRoot, planTitle string) (s
 			for _, id := range ids {
 				t := taskByID[id]
 				desc := t.Content
+
 				if t.LongDescription != "" {
 					desc = tableCellSafe(t.LongDescription)
 				} else {
 					desc = tableCellSafe(t.Content)
 				}
+
 				sb.WriteString(fmt.Sprintf("| **%s** | %s | %s |\n", id, t.Priority, desc))
 			}
 		} else {
 			sb.WriteString("| — | — | *(Add Todo2 tasks; run report with include_planning to populate.)* |\n")
 		}
 	}
+
 	sb.WriteString("\n---\n\n")
 
 	// 3. Iterative Milestones (checkboxes — Cursor buildable)
 	sb.WriteString("## 3. Iterative Milestones\n\n")
 	sb.WriteString("Each milestone is independently valuable. Check off as done.\n\n")
+
 	if len(actions) > 0 {
 		for _, a := range actions {
 			name := getStr(a, "name")
 			taskID := getStr(a, "task_id")
+
 			if name == "" {
 				name = taskID
 			}
+
 			line := fmt.Sprintf("- [ ] **%s** (%s)", name, taskID)
+
 			if t, ok := taskByID[taskID]; ok {
 				if refs := getTaskFileRefs(&t); len(refs) > 0 {
 					line += " — " + strings.Join(refs, ", ")
 				}
 			}
+
 			sb.WriteString(line + "\n")
 		}
 	} else {
 		if ids, ok := snippet["suggested_backlog_order"].([]string); ok && len(ids) > 0 {
 			for _, id := range ids {
 				line := fmt.Sprintf("- [ ] %s", id)
+
 				if t, ok := taskByID[id]; ok {
 					if refs := getTaskFileRefs(&t); len(refs) > 0 {
 						line += " — " + strings.Join(refs, ", ")
 					}
 				}
+
 				sb.WriteString(line + "\n")
 			}
 		} else {
 			sb.WriteString("- [ ] *(Add Todo2 tasks to populate milestones)*\n")
 		}
 	}
+
 	sb.WriteString("\n---\n\n")
 
 	// 4. Recommended Execution Order (critical path + waves/parallelizable + optional mermaid)
 	cp, _ := snippet["critical_path"].([]string)
 
 	sb.WriteString("## 4. Recommended Execution Order\n\n")
+
 	if len(cp) > 0 {
 		sb.WriteString("```mermaid\nflowchart TD\n")
+
 		for i := 0; i < len(cp); i++ {
 			node := fmt.Sprintf("CP%d", i+1)
 			label := cp[i]
 			sb.WriteString(fmt.Sprintf("    %s[%s]\n", node, label))
 		}
+
 		for i := 1; i < len(cp); i++ {
 			sb.WriteString(fmt.Sprintf("    CP%d --> CP%d\n", i, i+1))
 		}
+
 		sb.WriteString("```\n\n")
+
 		for i, taskID := range cp {
 			sb.WriteString(fmt.Sprintf("%d. **%s**\n", i+1, taskID))
 		}
@@ -740,18 +838,22 @@ func generatePlanMarkdown(ctx context.Context, projectRoot, planTitle string) (s
 		for _, id := range cp {
 			cpSet[id] = true
 		}
+
 		var parallel []string
+
 		for _, a := range actions {
 			id := getStr(a, "task_id")
 			if !cpSet[id] {
 				parallel = append(parallel, id)
 			}
 		}
+
 		if len(parallel) > 0 {
 			sb.WriteString("\n**Parallel:** " + strings.Join(parallel, ", ") + "\n")
 		}
 	} else {
 		sb.WriteString("1. Complete backlog in dependency order (see Milestones).\n")
+
 		if len(actions) > 0 {
 			for i, a := range actions {
 				sb.WriteString(fmt.Sprintf("%d. **%s** (%s)\n", i+1, getStr(a, "name"), getStr(a, "task_id")))
@@ -762,57 +864,71 @@ func generatePlanMarkdown(ctx context.Context, projectRoot, planTitle string) (s
 	// Waves: same wave = can run in parallel (from BacklogExecutionOrder dependency levels)
 	if len(waves) > 0 {
 		sb.WriteString("\n### Waves (same wave = can run in parallel)\n\n")
+
 		levelOrder := make([]int, 0, len(waves))
 		for k := range waves {
 			levelOrder = append(levelOrder, k)
 		}
+
 		sort.Ints(levelOrder)
+
 		for _, level := range levelOrder {
 			ids := waves[level]
 			if len(ids) == 0 {
 				continue
 			}
+
 			if len(ids) >= 2 {
 				sb.WriteString(fmt.Sprintf("- **Wave %d** (parallel): %s\n", level, strings.Join(ids, ", ")))
 			} else {
 				sb.WriteString(fmt.Sprintf("- **Wave %d:** %s\n", level, ids[0]))
 			}
 		}
+
 		sb.WriteString("\n")
+
 		if len(orderedIDs) > 0 {
 			sb.WriteString("**Full order:** " + strings.Join(orderedIDs, ", ") + "\n")
 		}
 	}
+
 	sb.WriteString("\n---\n\n")
 
 	// 5. Open Questions
 	sb.WriteString("## 5. Open Questions\n\n")
+
 	if len(risks) > 0 {
 		for _, r := range risks {
 			sb.WriteString(fmt.Sprintf("- %s", getStr(r, "description")))
+
 			if id := getStr(r, "task_id"); id != "" {
 				sb.WriteString(fmt.Sprintf(" (%s)", id))
 			}
+
 			sb.WriteString("\n")
 		}
 	} else {
 		sb.WriteString("- *(Add open questions or decisions needed during implementation.)*\n")
 	}
+
 	sb.WriteString("\n---\n\n")
 
 	// 6. Out-of-Scope / Deferred
 	sb.WriteString("## 6. Out-of-Scope / Deferred\n\n")
 	// Low-priority backlog tasks not in next actions, or placeholder
 	var deferred []string
+
 	actionIDs := make(map[string]bool)
 	for _, a := range actions {
 		actionIDs[getStr(a, "task_id")] = true
 	}
+
 	for _, t := range tasks {
 		if IsPendingStatus(t.Status) && t.Priority == "low" && !actionIDs[t.ID] {
 			deferred = append(deferred, fmt.Sprintf("**%s** (%s) — low priority", t.ID, t.Content))
 		}
 	}
+
 	if len(deferred) > 0 {
 		for _, line := range deferred {
 			sb.WriteString("- " + line + "\n")
@@ -820,6 +936,7 @@ func generatePlanMarkdown(ctx context.Context, projectRoot, planTitle string) (s
 	} else {
 		sb.WriteString("- *(Add deferred or out-of-scope items as needed.)*\n")
 	}
+
 	sb.WriteString("\n---\n\n")
 
 	// 7. Key Files / Implementation Notes
@@ -839,30 +956,37 @@ func generatePlanMarkdown(ctx context.Context, projectRoot, planTitle string) (s
 // Returns paths from discovered_from, planning_doc, and planning_links.RelatedDocs.
 func getTaskFileRefs(task *Todo2Task) []string {
 	var refs []string
+
 	seen := make(map[string]bool)
 	add := func(s string) {
 		s = strings.TrimSpace(s)
 		if s != "" && !seen[s] {
 			seen[s] = true
+
 			refs = append(refs, s)
 		}
 	}
+
 	if task.Metadata != nil {
 		if f, ok := task.Metadata["discovered_from"].(string); ok {
 			add(f)
 		}
+
 		if pd, ok := task.Metadata["planning_doc"].(string); ok {
 			add(pd)
 		}
+
 		if linkMeta := GetPlanningLinkMetadata(task); linkMeta != nil {
 			if linkMeta.PlanningDoc != "" {
 				add(linkMeta.PlanningDoc)
 			}
+
 			for _, r := range linkMeta.RelatedDocs {
 				add(r)
 			}
 		}
 	}
+
 	return refs
 }
 
@@ -871,9 +995,11 @@ func planDisplayName(title string) string {
 	if title == "" {
 		return "Project"
 	}
+
 	if strings.Contains(title, "/") {
 		return filepath.Base(title)
 	}
+
 	return title
 }
 
@@ -882,6 +1008,7 @@ func escapeYAMLString(s string) string {
 	s = strings.ReplaceAll(s, "\\", "\\\\")
 	s = strings.ReplaceAll(s, "\"", "\\\"")
 	s = strings.ReplaceAll(s, "\n", " ")
+
 	return strings.TrimSpace(s)
 }
 
@@ -904,13 +1031,15 @@ func tableCellSafe(s string) string {
 	s = strings.ReplaceAll(s, "|", "-")
 	s = strings.ReplaceAll(s, "\n", " ")
 	s = strings.TrimSpace(s)
+
 	if len(s) > 200 {
 		s = s[:197] + "..."
 	}
+
 	return s
 }
 
-// aggregateProjectData aggregates all project data for overview
+// aggregateProjectData aggregates all project data for overview.
 func aggregateProjectData(ctx context.Context, projectRoot string, includePlanning bool) (map[string]interface{}, error) {
 	data := make(map[string]interface{})
 
@@ -923,6 +1052,7 @@ func aggregateProjectData(ctx context.Context, projectRoot string, includePlanni
 	// Health metrics (try Go scorecard first, fallback to Python)
 	if IsGoProject() {
 		opts := &ScorecardOptions{FastMode: true}
+
 		scorecard, err := GenerateGoScorecard(ctx, projectRoot, opts)
 		if err == nil {
 			// Calculate component scores using helper functions
@@ -993,6 +1123,7 @@ func aggregateProjectDataProto(ctx context.Context, projectRoot string, includeP
 
 	if IsGoProject() {
 		opts := &ScorecardOptions{FastMode: true}
+
 		scorecard, err := GenerateGoScorecard(ctx, projectRoot, opts)
 		if err == nil {
 			scores := map[string]float64{
@@ -1025,14 +1156,17 @@ func aggregateProjectDataProto(ctx context.Context, projectRoot string, includeP
 			if name, ok := phase["name"].(string); ok {
 				pbPhase.Name = name
 			}
+
 			if status, ok := phase["status"].(string); ok {
 				pbPhase.Status = status
 			}
+
 			if progress, ok := phase["progress"].(int); ok {
 				pbPhase.Progress = int32(progress)
 			} else if progress, ok := phase["progress"].(float64); ok {
 				pbPhase.Progress = int32(progress)
 			}
+
 			pb.Phases = append(pb.Phases, pbPhase)
 		}
 	}
@@ -1054,6 +1188,7 @@ func aggregateProjectDataProto(ctx context.Context, projectRoot string, includeP
 			if h, ok := a["estimated_hours"].(float64); ok {
 				hours = h
 			}
+
 			pb.NextActions = append(pb.NextActions, &proto.NextAction{
 				TaskId:         getStr(a, "task_id"),
 				Name:           getStr(a, "name"),
@@ -1072,6 +1207,7 @@ func aggregateProjectDataProto(ctx context.Context, projectRoot string, includeP
 			if s, ok := planning["critical_path_summary"].(string); ok {
 				pb.Planning.CriticalPathSummary = s
 			}
+
 			if s, ok := planning["suggested_backlog_summary"].(string); ok {
 				pb.Planning.SuggestedBacklogSummary = s
 			}
@@ -1085,6 +1221,7 @@ func getStr(m map[string]interface{}, key string) string {
 	if s, ok := m[key].(string); ok {
 		return s
 	}
+
 	return ""
 }
 
@@ -1093,12 +1230,15 @@ func planFilenameFromTitle(title string) string {
 	if title == "" {
 		return "plan"
 	}
+
 	stem := title
 	if strings.Contains(title, "/") {
 		stem = filepath.Base(title)
 	}
+
 	stem = strings.ReplaceAll(stem, " ", "-")
 	stem = strings.ReplaceAll(stem, ":", "-")
+
 	return strings.TrimSpace(stem)
 }
 
@@ -1107,14 +1247,18 @@ func ensurePlanMdSuffix(path string) string {
 	if path == "" {
 		return path
 	}
+
 	path = filepath.Clean(path)
 	base := filepath.Base(path)
+
 	if strings.HasSuffix(strings.ToLower(base), ".plan.md") {
 		return path
 	}
+
 	if strings.HasSuffix(strings.ToLower(base), ".md") {
 		return filepath.Join(filepath.Dir(path), base[:len(base)-3]+".plan.md")
 	}
+
 	return filepath.Join(filepath.Dir(path), base+".plan.md")
 }
 
@@ -1134,26 +1278,31 @@ func getPlanningSnippet(projectRoot string) map[string]interface{} {
 
 	// First 10 in backlog execution order
 	store := NewDefaultTaskStore(projectRoot)
+
 	list, err := store.ListTasks(context.Background(), nil)
 	if err != nil {
 		return out
 	}
+
 	tasks := tasksFromPtrs(list)
+
 	orderedIDs, _, _, err := BacklogExecutionOrder(tasks, nil)
 	if err != nil || len(orderedIDs) == 0 {
 		return out
 	}
+
 	const n = 10
 	if len(orderedIDs) > n {
 		orderedIDs = orderedIDs[:n]
 	}
+
 	out["suggested_backlog_order"] = orderedIDs
 	out["suggested_backlog_summary"] = fmt.Sprintf("First %d: %s", len(orderedIDs), strings.Join(orderedIDs, ", "))
 
 	return out
 }
 
-// getProjectInfo extracts project metadata
+// getProjectInfo extracts project metadata.
 func getProjectInfo(projectRoot string) (map[string]interface{}, error) {
 	info := map[string]interface{}{
 		"name":        filepath.Base(projectRoot),
@@ -1166,6 +1315,7 @@ func getProjectInfo(projectRoot string) (map[string]interface{}, error) {
 	// Try to get from go.mod (using file cache)
 	goModPath := filepath.Join(projectRoot, "go.mod")
 	cache := cache.GetGlobalFileCache()
+
 	if data, _, err := cache.ReadFile(goModPath); err == nil {
 		content := string(data)
 		if strings.Contains(content, "module ") {
@@ -1174,6 +1324,7 @@ func getProjectInfo(projectRoot string) (map[string]interface{}, error) {
 				if strings.HasPrefix(line, "module ") {
 					moduleName := strings.TrimSpace(strings.TrimPrefix(line, "module "))
 					info["name"] = moduleName
+
 					break
 				}
 			}
@@ -1183,7 +1334,7 @@ func getProjectInfo(projectRoot string) (map[string]interface{}, error) {
 	return info, nil
 }
 
-// getCodebaseMetrics collects codebase statistics
+// getCodebaseMetrics collects codebase statistics.
 func getCodebaseMetrics(projectRoot string) (map[string]interface{}, error) {
 	var goFiles, pythonFiles, totalFiles int
 
@@ -1192,11 +1343,13 @@ func getCodebaseMetrics(projectRoot string) (map[string]interface{}, error) {
 		if err != nil {
 			return nil // Skip errors
 		}
+
 		if info.IsDir() {
 			// Skip hidden and vendor directories
 			if strings.HasPrefix(info.Name(), ".") || info.Name() == "vendor" {
 				return filepath.SkipDir
 			}
+
 			return nil
 		}
 
@@ -1207,7 +1360,9 @@ func getCodebaseMetrics(projectRoot string) (map[string]interface{}, error) {
 		case ".py":
 			pythonFiles++
 		}
+
 		totalFiles++
+
 		return nil
 	})
 
@@ -1233,13 +1388,15 @@ func getCodebaseMetrics(projectRoot string) (map[string]interface{}, error) {
 	return metrics, err
 }
 
-// getTaskMetrics collects task statistics
+// getTaskMetrics collects task statistics.
 func getTaskMetrics(projectRoot string) (map[string]interface{}, error) {
 	store := NewDefaultTaskStore(projectRoot)
+
 	list, err := store.ListTasks(context.Background(), nil)
 	if err != nil {
 		return nil, err
 	}
+
 	tasks := tasksFromPtrs(list)
 
 	pending := 0
@@ -1274,7 +1431,7 @@ func getTaskMetrics(projectRoot string) (map[string]interface{}, error) {
 	}, nil
 }
 
-// getProjectPhases returns current phase status
+// getProjectPhases returns current phase status.
 func getProjectPhases() map[string]interface{} {
 	return map[string]interface{}{
 		"phase_1": map[string]interface{}{
@@ -1305,12 +1462,13 @@ func getProjectPhases() map[string]interface{} {
 	}
 }
 
-// getRisksAndBlockers identifies project risks
+// getRisksAndBlockers identifies project risks.
 func getRisksAndBlockers(projectRoot string) ([]map[string]interface{}, error) {
 	risks := []map[string]interface{}{}
 
 	// Check for incomplete tasks with high priority
 	store := NewDefaultTaskStore(projectRoot)
+
 	list, err := store.ListTasks(context.Background(), nil)
 	if err == nil {
 		tasks := tasksFromPtrs(list)
@@ -1336,6 +1494,7 @@ func isTaskReady(task Todo2Task, taskMap map[string]Todo2Task) bool {
 			return false
 		}
 	}
+
 	return true
 }
 
@@ -1344,10 +1503,12 @@ func getNextActions(projectRoot string) ([]map[string]interface{}, error) {
 	actions := []map[string]interface{}{}
 
 	store := NewDefaultTaskStore(projectRoot)
+
 	list, err := store.ListTasks(context.Background(), nil)
 	if err != nil {
 		return actions, nil
 	}
+
 	tasks := tasksFromPtrs(list)
 
 	orderedIDs, _, _, err := BacklogExecutionOrder(tasks, nil)
@@ -1356,11 +1517,13 @@ func getNextActions(projectRoot string) ([]map[string]interface{}, error) {
 		for _, task := range tasks {
 			if IsPendingStatus(task.Status) && (task.Priority == "high" || task.Priority == "critical") {
 				estimatedHours := 0.0
+
 				if task.Metadata != nil {
 					if hours, ok := task.Metadata["estimatedHours"].(float64); ok {
 						estimatedHours = hours
 					}
 				}
+
 				actions = append(actions, map[string]interface{}{
 					"task_id":         task.ID,
 					"name":            task.Content,
@@ -1372,6 +1535,7 @@ func getNextActions(projectRoot string) ([]map[string]interface{}, error) {
 				}
 			}
 		}
+
 		return actions, nil
 	}
 
@@ -1385,19 +1549,24 @@ func getNextActions(projectRoot string) ([]map[string]interface{}, error) {
 		if len(actions) >= maxNext {
 			break
 		}
+
 		task, ok := taskMap[taskID]
 		if !ok || !IsBacklogStatus(task.Status) {
 			continue
 		}
+
 		if !isTaskReady(task, taskMap) {
 			continue
 		}
+
 		estimatedHours := 0.0
+
 		if task.Metadata != nil {
 			if hours, ok := task.Metadata["estimatedHours"].(float64); ok {
 				estimatedHours = hours
 			}
 		}
+
 		actions = append(actions, map[string]interface{}{
 			"task_id":         task.ID,
 			"name":            task.Content,
@@ -1405,10 +1574,11 @@ func getNextActions(projectRoot string) ([]map[string]interface{}, error) {
 			"estimated_hours": estimatedHours,
 		})
 	}
+
 	return actions, nil
 }
 
-// generatePRD generates a Product Requirements Document
+// generatePRD generates a Product Requirements Document.
 func generatePRD(ctx context.Context, projectRoot, projectName string, includeArchitecture, includeMetrics, includeTasks bool) (string, error) {
 	var sb strings.Builder
 
@@ -1423,7 +1593,9 @@ func generatePRD(ctx context.Context, projectRoot, projectName string, includeAr
 	// Requirements from Tasks
 	if includeTasks {
 		sb.WriteString("## Requirements\n\n")
+
 		store := NewDefaultTaskStore(projectRoot)
+
 		list, err := store.ListTasks(ctx, nil)
 		if err == nil {
 			tasks := tasksFromPtrs(list)
@@ -1447,17 +1619,21 @@ func generatePRD(ctx context.Context, projectRoot, projectName string, includeAr
 
 			if len(criticalTasks) > 0 {
 				sb.WriteString("### Critical Priority\n\n")
+
 				for _, task := range criticalTasks {
 					sb.WriteString(fmt.Sprintf("- **%s** (%s): %s\n", task.Content, task.ID, task.LongDescription))
 				}
+
 				sb.WriteString("\n")
 			}
 
 			if len(highTasks) > 0 {
 				sb.WriteString("### High Priority\n\n")
+
 				for _, task := range highTasks {
 					sb.WriteString(fmt.Sprintf("- **%s** (%s): %s\n", task.Content, task.ID, task.LongDescription))
 				}
+
 				sb.WriteString("\n")
 			}
 		}
@@ -1477,6 +1653,7 @@ func generatePRD(ctx context.Context, projectRoot, projectName string, includeAr
 	// Metrics
 	if includeMetrics {
 		sb.WriteString("## Metrics\n\n")
+
 		metrics, err := getCodebaseMetrics(projectRoot)
 		if err == nil {
 			sb.WriteString(fmt.Sprintf("- **Total Files**: %d\n", metrics["total_files"]))
@@ -1485,13 +1662,14 @@ func generatePRD(ctx context.Context, projectRoot, projectName string, includeAr
 			sb.WriteString(fmt.Sprintf("- **Prompts**: %d\n", metrics["prompts"]))
 			sb.WriteString(fmt.Sprintf("- **Resources**: %d\n", metrics["resources"]))
 		}
+
 		sb.WriteString("\n")
 	}
 
 	return sb.String(), nil
 }
 
-// formatOverviewText formats overview as plain text
+// formatOverviewText formats overview as plain text.
 func formatOverviewText(data map[string]interface{}) string {
 	var sb strings.Builder
 
@@ -1512,9 +1690,11 @@ func formatOverviewText(data map[string]interface{}) string {
 	// Health Score
 	if health, ok := data["health"].(map[string]interface{}); ok {
 		sb.WriteString("Health Scorecard:\n")
+
 		if score, ok := health["overall_score"].(float64); ok {
 			sb.WriteString(fmt.Sprintf("  Overall Score: %.1f%%\n", score))
 		}
+
 		if ready, ok := health["production_ready"].(bool); ok {
 			if ready {
 				sb.WriteString("  Production Ready: YES ✅\n")
@@ -1522,6 +1702,7 @@ func formatOverviewText(data map[string]interface{}) string {
 				sb.WriteString("  Production Ready: NO ❌\n")
 			}
 		}
+
 		sb.WriteString("\n")
 	}
 
@@ -1531,24 +1712,30 @@ func formatOverviewText(data map[string]interface{}) string {
 		sb.WriteString(fmt.Sprintf("  Total:           %d\n", tasks["total"]))
 		sb.WriteString(fmt.Sprintf("  Pending:        %d\n", tasks["pending"]))
 		sb.WriteString(fmt.Sprintf("  Completed:      %d\n", tasks["completed"]))
+
 		if rate, ok := tasks["completion_rate"].(float64); ok {
 			sb.WriteString(fmt.Sprintf("  Completion:     %.1f%%\n", rate))
 		}
+
 		if hours, ok := tasks["remaining_hours"].(float64); ok {
 			sb.WriteString(fmt.Sprintf("  Remaining Hours: %.1f\n", hours))
 		}
+
 		sb.WriteString("\n")
 	}
 
 	// Next Actions
 	if actions, ok := data["next_actions"].([]map[string]interface{}); ok && len(actions) > 0 {
 		sb.WriteString("Next Actions:\n")
+
 		for i, action := range actions {
 			if i >= 5 {
 				break
 			}
+
 			sb.WriteString(fmt.Sprintf("  %d. %s (Priority: %s)\n", i+1, action["name"], action["priority"]))
 		}
+
 		sb.WriteString("\n")
 	}
 
@@ -1557,6 +1744,7 @@ func formatOverviewText(data map[string]interface{}) string {
 		if summary, ok := planning["critical_path_summary"].(string); ok && summary != "" {
 			sb.WriteString("Critical Path: " + summary + "\n\n")
 		}
+
 		if summary, ok := planning["suggested_backlog_summary"].(string); ok && summary != "" {
 			sb.WriteString("Suggested Backlog Order: " + summary + "\n\n")
 		}
@@ -1565,7 +1753,7 @@ func formatOverviewText(data map[string]interface{}) string {
 	return sb.String()
 }
 
-// formatOverviewMarkdown formats overview as markdown
+// formatOverviewMarkdown formats overview as markdown.
 func formatOverviewMarkdown(data map[string]interface{}) string {
 	var sb strings.Builder
 
@@ -1583,6 +1771,7 @@ func formatOverviewMarkdown(data map[string]interface{}) string {
 	// Health Score
 	if health, ok := data["health"].(map[string]interface{}); ok {
 		sb.WriteString("## Health Scorecard\n\n")
+
 		if score, ok := health["overall_score"].(float64); ok {
 			sb.WriteString(fmt.Sprintf("**Overall Score**: %.1f%%\n\n", score))
 		}
@@ -1594,6 +1783,7 @@ func formatOverviewMarkdown(data map[string]interface{}) string {
 		sb.WriteString(fmt.Sprintf("- **Total**: %d\n", tasks["total"]))
 		sb.WriteString(fmt.Sprintf("- **Pending**: %d\n", tasks["pending"]))
 		sb.WriteString(fmt.Sprintf("- **Completed**: %d\n", tasks["completed"]))
+
 		if rate, ok := tasks["completion_rate"].(float64); ok {
 			sb.WriteString(fmt.Sprintf("- **Completion Rate**: %.1f%%\n\n", rate))
 		}
@@ -1605,6 +1795,7 @@ func formatOverviewMarkdown(data map[string]interface{}) string {
 			sb.WriteString("## Planning\n\n")
 			sb.WriteString("- **Critical Path**: " + summary + "\n\n")
 		}
+
 		if summary, ok := planning["suggested_backlog_summary"].(string); ok && summary != "" {
 			sb.WriteString("- **Suggested Backlog Order**: " + summary + "\n\n")
 		}
@@ -1613,7 +1804,7 @@ func formatOverviewMarkdown(data map[string]interface{}) string {
 	return sb.String()
 }
 
-// formatOverviewHTML formats overview as HTML
+// formatOverviewHTML formats overview as HTML.
 func formatOverviewHTML(data map[string]interface{}) string {
 	var sb strings.Builder
 
@@ -1635,6 +1826,7 @@ func formatOverviewHTML(data map[string]interface{}) string {
 	// Health Score
 	if health, ok := data["health"].(map[string]interface{}); ok {
 		sb.WriteString("<h2>Health Scorecard</h2>\n")
+
 		if score, ok := health["overall_score"].(float64); ok {
 			sb.WriteString(fmt.Sprintf("<p><strong>Overall Score</strong>: %.1f%%</p>\n", score))
 		}
@@ -1650,6 +1842,7 @@ func formatOverviewTextProto(pb *proto.ProjectOverviewData) string {
 	if pb == nil {
 		return ""
 	}
+
 	var sb strings.Builder
 
 	sb.WriteString("======================================================================\n")
@@ -1668,11 +1861,13 @@ func formatOverviewTextProto(pb *proto.ProjectOverviewData) string {
 	if pb.Health != nil {
 		sb.WriteString("Health Scorecard:\n")
 		sb.WriteString(fmt.Sprintf("  Overall Score: %.1f%%\n", pb.Health.OverallScore))
+
 		if pb.Health.ProductionReady {
 			sb.WriteString("  Production Ready: YES ✅\n")
 		} else {
 			sb.WriteString("  Production Ready: NO ❌\n")
 		}
+
 		sb.WriteString("\n")
 	}
 
@@ -1688,12 +1883,15 @@ func formatOverviewTextProto(pb *proto.ProjectOverviewData) string {
 
 	if len(pb.NextActions) > 0 {
 		sb.WriteString("Next Actions:\n")
+
 		for i, action := range pb.NextActions {
 			if i >= 5 {
 				break
 			}
+
 			sb.WriteString(fmt.Sprintf("  %d. %s (Priority: %s)\n", i+1, action.Name, action.Priority))
 		}
+
 		sb.WriteString("\n")
 	}
 
@@ -1701,6 +1899,7 @@ func formatOverviewTextProto(pb *proto.ProjectOverviewData) string {
 		if pb.Planning.CriticalPathSummary != "" {
 			sb.WriteString("Critical Path: " + pb.Planning.CriticalPathSummary + "\n\n")
 		}
+
 		if pb.Planning.SuggestedBacklogSummary != "" {
 			sb.WriteString("Suggested Backlog Order: " + pb.Planning.SuggestedBacklogSummary + "\n\n")
 		}
@@ -1716,6 +1915,7 @@ func GetOverviewText(ctx context.Context, projectRoot string) (string, error) {
 	if err != nil {
 		return "", err
 	}
+
 	return formatOverviewTextProto(pb), nil
 }
 
@@ -1724,6 +1924,7 @@ func formatOverviewMarkdownProto(pb *proto.ProjectOverviewData) string {
 	if pb == nil {
 		return ""
 	}
+
 	var sb strings.Builder
 
 	sb.WriteString("# Project Overview\n\n")
@@ -1754,6 +1955,7 @@ func formatOverviewMarkdownProto(pb *proto.ProjectOverviewData) string {
 			sb.WriteString("## Planning\n\n")
 			sb.WriteString("- **Critical Path**: " + pb.Planning.CriticalPathSummary + "\n\n")
 		}
+
 		if pb.Planning.SuggestedBacklogSummary != "" {
 			sb.WriteString("- **Suggested Backlog Order**: " + pb.Planning.SuggestedBacklogSummary + "\n\n")
 		}
@@ -1767,6 +1969,7 @@ func formatOverviewHTMLProto(pb *proto.ProjectOverviewData) string {
 	if pb == nil {
 		return ""
 	}
+
 	var sb strings.Builder
 
 	sb.WriteString("<!DOCTYPE html>\n<html>\n<head>\n")
@@ -1793,10 +1996,11 @@ func formatOverviewHTMLProto(pb *proto.ProjectOverviewData) string {
 	return sb.String()
 }
 
-// getFloatParam safely extracts float64 from params
+// getFloatParam safely extracts float64 from params.
 func getFloatParam(params map[string]interface{}, key string, defaultValue float64) float64 {
 	if val, ok := params[key].(float64); ok {
 		return val
 	}
+
 	return defaultValue
 }

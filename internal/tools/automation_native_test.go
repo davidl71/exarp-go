@@ -16,7 +16,9 @@ const automationTestTimeout = 25 * time.Second
 // Use for subtests that may block on I/O or Apple FM so they fail fast instead of waiting for package timeout.
 func runWithTimeout(t *testing.T, d time.Duration, fn func()) {
 	t.Helper()
+
 	done := make(chan struct{}, 1)
+
 	go func() {
 		defer func() { done <- struct{}{} }()
 		fn()
@@ -82,13 +84,16 @@ func TestHandleAutomationNative(t *testing.T) {
 			if tt.longRun && testing.Short() {
 				t.Skip("skipping long-running discover in short mode")
 			}
+
 			runWithTimeout(t, automationTestTimeout, func() {
 				ctx := context.Background()
+
 				result, err := handleAutomationNative(ctx, tt.params)
 				if (err != nil) != tt.wantError {
 					t.Errorf("handleAutomationNative() error = %v, wantError %v", err, tt.wantError)
 					return
 				}
+
 				if !tt.wantError {
 					if result == nil || len(result) == 0 {
 						t.Error("handleAutomationNative() returned empty result")
@@ -126,11 +131,13 @@ func TestHandleAutomationDaily(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := context.Background()
+
 			result, err := handleAutomationDaily(ctx, tt.params)
 			if (err != nil) != tt.wantError {
 				t.Errorf("handleAutomationDaily() error = %v, wantError %v", err, tt.wantError)
 				return
 			}
+
 			if !tt.wantError && (result == nil || len(result) == 0) {
 				t.Error("handleAutomationDaily() returned empty result")
 			}
@@ -173,11 +180,13 @@ func TestHandleAutomationNightly(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := context.Background()
+
 			result, err := handleAutomationNightly(ctx, tt.params)
 			if (err != nil) != tt.wantError {
 				t.Errorf("handleAutomationNightly() error = %v, wantError %v", err, tt.wantError)
 				return
 			}
+
 			if !tt.wantError && (result == nil || len(result) == 0) {
 				t.Error("handleAutomationNightly() returned empty result")
 			}
@@ -227,15 +236,18 @@ func TestHandleAutomationSprint(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := context.Background()
+
 			result, err := handleAutomationSprint(ctx, tt.params)
 			if (err != nil) != tt.wantError {
 				t.Errorf("handleAutomationSprint() error = %v, wantError %v", err, tt.wantError)
 				return
 			}
+
 			if !tt.wantError && (result == nil || len(result) == 0) {
 				t.Error("handleAutomationSprint() returned empty result")
 				return
 			}
+
 			if !tt.wantError {
 				// Verify result contains expected fields (action is under results)
 				var resultData map[string]interface{}
@@ -257,6 +269,7 @@ func TestHandleAutomationDiscover(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping discover test in short mode (can block on Apple FM when CGO=1)")
 	}
+
 	tests := []struct {
 		name      string
 		params    map[string]interface{}
@@ -278,11 +291,13 @@ func TestHandleAutomationDiscover(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			runWithTimeout(t, automationTestTimeout, func() {
 				ctx := context.Background()
+
 				result, err := handleAutomationDiscover(ctx, tt.params)
 				if (err != nil) != tt.wantError {
 					t.Errorf("handleAutomationDiscover() error = %v, wantError %v", err, tt.wantError)
 					return
 				}
+
 				if !tt.wantError && (result == nil || len(result) == 0) {
 					t.Error("handleAutomationDiscover() returned empty result")
 				}

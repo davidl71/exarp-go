@@ -20,6 +20,7 @@ func MustFS() fs.FS {
 	if err != nil {
 		panic(err)
 	}
+
 	return sub
 }
 
@@ -27,6 +28,7 @@ func MustFS() fs.FS {
 func SPAHandler(apiHandler http.Handler) http.Handler {
 	fsys := MustFS()
 	fileServer := http.FileServer(http.FS(fsys))
+
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if len(r.URL.Path) >= 5 && r.URL.Path[:5] == "/api/" {
 			apiHandler.ServeHTTP(w, r)
@@ -35,8 +37,10 @@ func SPAHandler(apiHandler http.Handler) http.Handler {
 		// Root: serve index.html
 		if r.URL.Path == "" || r.URL.Path == "/" {
 			idx, _ := fs.ReadFile(fsys, "index.html")
+
 			w.Header().Set("Content-Type", "text/html; charset=utf-8")
 			w.Write(idx)
+
 			return
 		}
 		// Try to serve a static file (e.g. /manifest.webmanifest)
@@ -46,11 +50,13 @@ func SPAHandler(apiHandler http.Handler) http.Handler {
 			if err == nil {
 				f.Close()
 				fileServer.ServeHTTP(w, r)
+
 				return
 			}
 		}
 		// SPA fallback: /tasks, /report, etc.
 		idx, _ := fs.ReadFile(fsys, "index.html")
+
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		w.Write(idx)
 	})

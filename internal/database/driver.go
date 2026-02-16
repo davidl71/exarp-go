@@ -5,7 +5,7 @@ import (
 	"fmt"
 )
 
-// DriverType represents the database driver type
+// DriverType represents the database driver type.
 type DriverType string
 
 const (
@@ -15,7 +15,7 @@ const (
 )
 
 // Driver defines the interface for database drivers
-// Each driver must implement database-specific functionality
+// Each driver must implement database-specific functionality.
 type Driver interface {
 	// Type returns the driver type
 	Type() DriverType
@@ -33,7 +33,7 @@ type Driver interface {
 	Close() error
 }
 
-// Dialect provides database-specific SQL functions and syntax
+// Dialect provides database-specific SQL functions and syntax.
 type Dialect interface {
 	// CurrentTimestamp returns the SQL function for current timestamp
 	// SQLite: strftime('%s', 'now')
@@ -105,45 +105,47 @@ type Dialect interface {
 	EscapeIdentifier(name string) string
 }
 
-// DriverRegistry manages available database drivers
+// DriverRegistry manages available database drivers.
 type DriverRegistry struct {
 	drivers map[DriverType]Driver
 }
 
-// NewDriverRegistry creates a new driver registry
+// NewDriverRegistry creates a new driver registry.
 func NewDriverRegistry() *DriverRegistry {
 	return &DriverRegistry{
 		drivers: make(map[DriverType]Driver),
 	}
 }
 
-// Register registers a database driver
+// Register registers a database driver.
 func (r *DriverRegistry) Register(driver Driver) {
 	r.drivers[driver.Type()] = driver
 }
 
-// Get retrieves a driver by type
+// Get retrieves a driver by type.
 func (r *DriverRegistry) Get(driverType DriverType) (Driver, error) {
 	driver, ok := r.drivers[driverType]
 	if !ok {
 		return nil, fmt.Errorf("driver %s not registered", driverType)
 	}
+
 	return driver, nil
 }
 
-// List returns all registered driver types
+// List returns all registered driver types.
 func (r *DriverRegistry) List() []DriverType {
 	types := make([]DriverType, 0, len(r.drivers))
 	for t := range r.drivers {
 		types = append(types, t)
 	}
+
 	return types
 }
 
-// Global driver registry
+// Global driver registry.
 var globalRegistry *DriverRegistry
 
-// init initializes the global registry with default drivers
+// init initializes the global registry with default drivers.
 func init() {
 	globalRegistry = NewDriverRegistry()
 
@@ -153,17 +155,17 @@ func init() {
 	// to avoid requiring their dependencies for SQLite-only deployments
 }
 
-// RegisterDriver registers a driver in the global registry
+// RegisterDriver registers a driver in the global registry.
 func RegisterDriver(driver Driver) {
 	globalRegistry.Register(driver)
 }
 
-// GetDriver retrieves a driver from the global registry
+// GetDriver retrieves a driver from the global registry.
 func GetDriver(driverType DriverType) (Driver, error) {
 	return globalRegistry.Get(driverType)
 }
 
-// ListDrivers returns all registered driver types
+// ListDrivers returns all registered driver types.
 func ListDrivers() []DriverType {
 	return globalRegistry.List()
 }

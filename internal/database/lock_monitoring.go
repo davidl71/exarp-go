@@ -3,11 +3,12 @@ package database
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"time"
 )
 
-// LockStatus represents the status of a task lock
+// LockStatus represents the status of a task lock.
 type LockStatus struct {
 	TaskID        string
 	Assignee      string
@@ -19,7 +20,7 @@ type LockStatus struct {
 	TimeExpired   time.Duration
 }
 
-// StaleLockInfo provides detailed information about stale locks
+// StaleLockInfo provides detailed information about stale locks.
 type StaleLockInfo struct {
 	ExpiredCount    int
 	NearExpiryCount int // Within 5 minutes of expiry
@@ -28,9 +29,10 @@ type StaleLockInfo struct {
 }
 
 // DetectStaleLocks finds all locks that are expired or near expiration
-// Returns detailed information about lock status
+// Returns detailed information about lock status.
 func DetectStaleLocks(ctx context.Context, nearExpiryThreshold time.Duration) (*StaleLockInfo, error) {
 	ctx = ensureContext(ctx)
+
 	queryCtx, cancel := withQueryTimeout(ctx)
 	defer cancel()
 
@@ -66,6 +68,7 @@ func DetectStaleLocks(ctx context.Context, nearExpiryThreshold time.Duration) (*
 
 		for rows.Next() {
 			var taskID, assignee string
+
 			var assignedAt, lockUntil sql.NullInt64
 
 			if err := rows.Scan(&taskID, &assignee, &assignedAt, &lockUntil); err != nil {
@@ -117,9 +120,10 @@ func DetectStaleLocks(ctx context.Context, nearExpiryThreshold time.Duration) (*
 	return info, err
 }
 
-// GetLockStatus returns the current lock status for a specific task
+// GetLockStatus returns the current lock status for a specific task.
 func GetLockStatus(ctx context.Context, taskID string) (*LockStatus, error) {
 	ctx = ensureContext(ctx)
+
 	queryCtx, cancel := withQueryTimeout(ctx)
 	defer cancel()
 
@@ -132,6 +136,7 @@ func GetLockStatus(ctx context.Context, taskID string) (*LockStatus, error) {
 		}
 
 		var assignee sql.NullString
+
 		var assignedAt, lockUntil sql.NullInt64
 
 		err = db.QueryRowContext(queryCtx, `
@@ -140,9 +145,10 @@ func GetLockStatus(ctx context.Context, taskID string) (*LockStatus, error) {
 			WHERE id = ?
 		`, taskID).Scan(&assignee, &assignedAt, &lockUntil)
 
-		if err == sql.ErrNoRows {
+		if errors.Is(err, sql.ErrNoRows) {
 			return fmt.Errorf("task %s not found", taskID)
 		}
+
 		if err != nil {
 			return fmt.Errorf("failed to query lock status: %w", err)
 		}
@@ -182,13 +188,15 @@ func GetLockStatus(ctx context.Context, taskID string) (*LockStatus, error) {
 }
 
 // CleanupExpiredLocksWithReport releases locks that have expired and returns detailed report
-// Returns number of locks cleaned up and list of cleaned task IDs
+// Returns number of locks cleaned up and list of cleaned task IDs.
 func CleanupExpiredLocksWithReport(ctx context.Context, maxAge time.Duration) (int, []string, error) {
 	ctx = ensureContext(ctx)
+
 	txCtx, cancel := withTransactionTimeout(ctx)
 	defer cancel()
 
 	var cleaned int
+
 	var cleanedTaskIDs []string
 
 	err := retryWithBackoff(ctx, func() error {
@@ -201,6 +209,7 @@ func CleanupExpiredLocksWithReport(ctx context.Context, maxAge time.Duration) (i
 		if err != nil {
 			return fmt.Errorf("failed to begin transaction: %w", err)
 		}
+
 		defer func() {
 			if err != nil {
 				_ = tx.Rollback()
@@ -225,8 +234,10 @@ func CleanupExpiredLocksWithReport(ctx context.Context, maxAge time.Duration) (i
 		defer rows.Close()
 
 		var taskIDsToClean []string
+
 		for rows.Next() {
 			var taskID, assignee string
+
 			var lockUntil sql.NullInt64
 
 			if err := rows.Scan(&taskID, &assignee, &lockUntil); err != nil {
@@ -267,6 +278,7 @@ func CleanupExpiredLocksWithReport(ctx context.Context, maxAge time.Duration) (i
 
 				if rowsAffected > 0 {
 					cleaned++
+
 					cleanedTaskIDs = append(cleanedTaskIDs, taskID)
 				}
 			}
@@ -289,6 +301,7 @@ func CleanupDeadAgentLocks(ctx context.Context, staleThreshold time.Duration) (i
 
 	// Collect expired locks where agent process does not exist
 	var taskIDsToClean []string
+
 	for _, lock := range info.Locks {
 		if !lock.IsExpired {
 			continue
@@ -297,6 +310,7 @@ func CleanupDeadAgentLocks(ctx context.Context, staleThreshold time.Duration) (i
 		if AgentProcessExists(lock.Assignee) {
 			continue
 		}
+
 		taskIDsToClean = append(taskIDsToClean, lock.TaskID)
 	}
 
@@ -311,10 +325,12 @@ func CleanupDeadAgentLocks(ctx context.Context, staleThreshold time.Duration) (i
 // (used by CleanupDeadAgentLocks). Returns cleaned count and cleaned task IDs.
 func releaseLocksForTaskIDs(ctx context.Context, taskIDs []string) (int, []string, error) {
 	ctx = ensureContext(ctx)
+
 	txCtx, cancel := withTransactionTimeout(ctx)
 	defer cancel()
 
 	var cleaned int
+
 	var cleanedTaskIDs []string
 
 	err := retryWithBackoff(ctx, func() error {
@@ -327,6 +343,7 @@ func releaseLocksForTaskIDs(ctx context.Context, taskIDs []string) (int, []strin
 		if err != nil {
 			return fmt.Errorf("failed to begin transaction: %w", err)
 		}
+
 		defer func() {
 			if err != nil {
 				_ = tx.Rollback()
@@ -358,6 +375,7 @@ func releaseLocksForTaskIDs(ctx context.Context, taskIDs []string) (int, []strin
 
 			if rowsAffected > 0 {
 				cleaned++
+
 				cleanedTaskIDs = append(cleanedTaskIDs, taskID)
 			}
 		}

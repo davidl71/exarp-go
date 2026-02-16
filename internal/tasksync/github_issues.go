@@ -15,13 +15,13 @@ import (
 // Install with: go get github.com/google/go-github/v60/github
 // Reference: https://docs.github.com/en/rest/issues/issues?apiVersion=2022-11-28
 
-// GitHubIssuesSource implements ExternalSource for GitHub Issues API
+// GitHubIssuesSource implements ExternalSource for GitHub Issues API.
 type GitHubIssuesSource struct {
 	client *github.Client
 	config *GitHubIssuesConfig
 }
 
-// GitHubIssuesConfig contains configuration for GitHub Issues API
+// GitHubIssuesConfig contains configuration for GitHub Issues API.
 type GitHubIssuesConfig struct {
 	// Token is the GitHub personal access token
 	Token string
@@ -36,7 +36,7 @@ type GitHubIssuesConfig struct {
 	BaseURL string
 }
 
-// NewGitHubIssuesSource creates a new GitHub Issues source
+// NewGitHubIssuesSource creates a new GitHub Issues source.
 func NewGitHubIssuesSource(config *GitHubIssuesConfig) (*GitHubIssuesSource, error) {
 	ctx := context.Background()
 	ts := oauth2.StaticTokenSource(
@@ -61,17 +61,17 @@ func NewGitHubIssuesSource(config *GitHubIssuesConfig) (*GitHubIssuesSource, err
 	}, nil
 }
 
-// Type returns the source type
+// Type returns the source type.
 func (s *GitHubIssuesSource) Type() ExternalSourceType {
 	return SourceGitHubIssues
 }
 
-// Name returns a human-readable name
+// Name returns a human-readable name.
 func (s *GitHubIssuesSource) Name() string {
 	return fmt.Sprintf("GitHub Issues (%s/%s)", s.config.Owner, s.config.Repository)
 }
 
-// SyncTasks synchronizes tasks between Todo2 and GitHub Issues
+// SyncTasks synchronizes tasks between Todo2 and GitHub Issues.
 func (s *GitHubIssuesSource) SyncTasks(ctx context.Context, todo2Tasks []*models.Todo2Task, options SyncOptions) (*SyncResult, error) {
 	result := &SyncResult{
 		Matches:          []TaskMatch{},
@@ -92,12 +92,14 @@ func (s *GitHubIssuesSource) SyncTasks(ctx context.Context, todo2Tasks []*models
 
 	// Build mapping for matching
 	todo2Map := make(map[string]*models.Todo2Task)
+
 	for _, task := range todo2Tasks {
 		key := fmt.Sprintf("%s:%s", task.Content, task.ID)
 		todo2Map[key] = task
 	}
 
 	externalMap := make(map[string]*ExternalTask)
+
 	for _, task := range externalTasks {
 		key := fmt.Sprintf("%s:%s", task.Title, task.ExternalID)
 		externalMap[key] = task
@@ -121,7 +123,7 @@ func (s *GitHubIssuesSource) SyncTasks(ctx context.Context, todo2Tasks []*models
 	return result, nil
 }
 
-// GetTasks retrieves issues from GitHub
+// GetTasks retrieves issues from GitHub.
 func (s *GitHubIssuesSource) GetTasks(ctx context.Context, options GetTasksOptions) ([]*ExternalTask, error) {
 	opts := &github.IssueListByRepoOptions{
 		State: "all", // Get both open and closed issues
@@ -141,6 +143,7 @@ func (s *GitHubIssuesSource) GetTasks(ctx context.Context, options GetTasksOptio
 	}
 
 	var allIssues []*github.Issue
+
 	for {
 		issues, resp, err := s.client.Issues.ListByRepo(ctx, s.config.Owner, s.config.Repository, opts)
 		if err != nil {
@@ -152,10 +155,12 @@ func (s *GitHubIssuesSource) GetTasks(ctx context.Context, options GetTasksOptio
 		if resp.NextPage == 0 {
 			break
 		}
+
 		opts.Page = resp.NextPage
 	}
 
 	var externalTasks []*ExternalTask
+
 	for _, issue := range allIssues {
 		// Skip pull requests (they have PullRequestLinks)
 		if issue.PullRequestLinks != nil {
@@ -168,9 +173,11 @@ func (s *GitHubIssuesSource) GetTasks(ctx context.Context, options GetTasksOptio
 		if !options.IncludeCompleted && extTask.Completed {
 			continue
 		}
+
 		if options.Since != nil && extTask.LastModified.Before(*options.Since) {
 			continue
 		}
+
 		if options.Limit > 0 && len(externalTasks) >= options.Limit {
 			break
 		}
@@ -181,7 +188,7 @@ func (s *GitHubIssuesSource) GetTasks(ctx context.Context, options GetTasksOptio
 	return externalTasks, nil
 }
 
-// CreateTask creates an issue in GitHub
+// CreateTask creates an issue in GitHub.
 func (s *GitHubIssuesSource) CreateTask(ctx context.Context, task *models.Todo2Task) (*ExternalTask, error) {
 	req := &github.IssueRequest{
 		Title: &task.Content,
@@ -204,7 +211,7 @@ func (s *GitHubIssuesSource) CreateTask(ctx context.Context, task *models.Todo2T
 	return s.githubIssueToExternal(issue), nil
 }
 
-// UpdateTask updates an issue in GitHub
+// UpdateTask updates an issue in GitHub.
 func (s *GitHubIssuesSource) UpdateTask(ctx context.Context, externalID string, task *models.Todo2Task) (*ExternalTask, error) {
 	req := &github.IssueRequest{
 		Title: &task.Content,
@@ -218,9 +225,11 @@ func (s *GitHubIssuesSource) UpdateTask(ctx context.Context, externalID string, 
 	mapper := NewDefaultStatusMapper()
 	externalStatus := mapper.Todo2ToExternal(task.Status)
 	state := "open"
+
 	if externalStatus == "completed" || task.Status == "Done" {
 		state = "closed"
 	}
+
 	req.State = &state
 
 	// Map tags to labels
@@ -242,7 +251,7 @@ func (s *GitHubIssuesSource) UpdateTask(ctx context.Context, externalID string, 
 	return s.githubIssueToExternal(issue), nil
 }
 
-// DeleteTask closes an issue in GitHub (GitHub doesn't allow deleting issues)
+// DeleteTask closes an issue in GitHub (GitHub doesn't allow deleting issues).
 func (s *GitHubIssuesSource) DeleteTask(ctx context.Context, externalID string) error {
 	// Convert externalID (string) to int for GitHub API
 	issueNumber, err := strconv.Atoi(externalID)
@@ -255,10 +264,11 @@ func (s *GitHubIssuesSource) DeleteTask(ctx context.Context, externalID string) 
 		State: &state,
 	}
 	_, _, err = s.client.Issues.Edit(context.Background(), s.config.Owner, s.config.Repository, issueNumber, req)
+
 	return err
 }
 
-// TestConnection tests the connection to GitHub
+// TestConnection tests the connection to GitHub.
 func (s *GitHubIssuesSource) TestConnection(ctx context.Context) error {
 	_, _, err := s.client.Repositories.Get(ctx, s.config.Owner, s.config.Repository)
 	return err
@@ -278,6 +288,7 @@ func (s *GitHubIssuesSource) githubIssueToExternal(issue *github.Issue) *Externa
 	// Status mapping
 	mapper := NewDefaultStatusMapper()
 	state := issue.GetState()
+
 	if state == "closed" {
 		extTask.Status = mapper.ExternalToTodo2("completed")
 		extTask.Completed = true
@@ -298,6 +309,7 @@ func (s *GitHubIssuesSource) githubIssueToExternal(issue *github.Issue) *Externa
 		for _, assignee := range assignees {
 			assigneeNames = append(assigneeNames, assignee.GetLogin())
 		}
+
 		extTask.Metadata["assignees"] = assigneeNames
 	}
 
@@ -335,9 +347,11 @@ func (s *GitHubIssuesSource) todo2ToGitHubIssue(task *models.Todo2Task) *github.
 	mapper := NewDefaultStatusMapper()
 	externalStatus := mapper.Todo2ToExternal(task.Status)
 	state := "open"
+
 	if externalStatus == "completed" || task.Status == "Done" {
 		state = "closed"
 	}
+
 	req.State = &state
 
 	// Map tags to labels

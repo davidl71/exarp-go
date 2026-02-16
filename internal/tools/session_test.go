@@ -108,11 +108,13 @@ func TestHandleSessionPrompts(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := context.Background()
+
 			result, err := handleSessionPrompts(ctx, tt.params)
 			if (err != nil) != tt.wantError {
 				t.Errorf("handleSessionPrompts() error = %v, wantError %v", err, tt.wantError)
 				return
 			}
+
 			if !tt.wantError && tt.validate != nil {
 				tt.validate(t, result)
 			}
@@ -214,11 +216,13 @@ func TestHandleSessionAssignee(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := context.Background()
+
 			result, err := handleSessionAssignee(ctx, tt.params)
 			if (err != nil) != tt.wantError {
 				t.Errorf("handleSessionAssignee() error = %v, wantError %v", err, tt.wantError)
 				return
 			}
+
 			if !tt.wantError && tt.validate != nil {
 				tt.validate(t, result)
 			}
@@ -283,20 +287,25 @@ func TestHandleSessionPrimeElicitation(t *testing.T) {
 				t.Errorf("handleSessionPrime() error = %v, wantError %v", err, tt.wantError)
 				return
 			}
+
 			if tt.wantError {
 				return
 			}
+
 			if result == nil || len(result) == 0 {
 				t.Fatal("expected non-empty result")
 			}
+
 			var data map[string]interface{}
 			if err := json.Unmarshal([]byte(result[0].Text), &data); err != nil {
 				t.Fatalf("invalid JSON: %v", err)
 			}
+
 			_, hasTasks := data["tasks"]
 			if hasTasks != tt.wantTasks {
 				t.Errorf("result has tasks = %v, want %v", hasTasks, tt.wantTasks)
 			}
+
 			_, hasHints := data["hints"]
 			if hasHints != tt.wantHints {
 				t.Errorf("result has hints = %v, want %v", hasHints, tt.wantHints)
@@ -351,13 +360,57 @@ func TestHandleSessionNative(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := context.Background()
+
 			result, err := handleSessionNative(ctx, tt.params)
 			if (err != nil) != tt.wantError {
 				t.Errorf("handleSessionNative() error = %v, wantError %v", err, tt.wantError)
 				return
 			}
+
 			if !tt.wantError && (result == nil || len(result) == 0) {
 				t.Error("expected non-empty result")
+			}
+		})
+	}
+}
+
+func TestBuildCursorCLISuggestion(t *testing.T) {
+	tests := []struct {
+		name string
+		task map[string]interface{}
+		want string
+	}{
+		{
+			name: "full task",
+			task: map[string]interface{}{"id": "T-123", "content": "Proto Task workflow response types"},
+			want: `agent -p "Work on T-123: Proto Task workflow response types" --mode=plan`,
+		},
+		{
+			name: "id only",
+			task: map[string]interface{}{"id": "T-456"},
+			want: `agent -p "Work on T-456" --mode=plan`,
+		},
+		{
+			name: "empty id",
+			task: map[string]interface{}{"content": "something"},
+			want: "",
+		},
+		{
+			name: "long content truncated",
+			task: map[string]interface{}{"id": "T-789", "content": "This is a very long task name that definitely exceeds sixty characters and should be truncated"},
+			want: `agent -p "Work on T-789: This is a very long task name that definitely exceeds six..." --mode=plan`,
+		},
+		{
+			name: "content with quotes",
+			task: map[string]interface{}{"id": "T-42", "content": `Fix "broken" thing`},
+			want: `agent -p "Work on T-42: Fix \"broken\" thing" --mode=plan`,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := buildCursorCLISuggestion(tt.task)
+			if got != tt.want {
+				t.Errorf("buildCursorCLISuggestion() = %q, want %q", got, tt.want)
 			}
 		})
 	}
@@ -408,42 +461,52 @@ func TestShouldSuggestPlanMode(t *testing.T) {
 
 func makeBacklogTasks(n, highPriority, withDeps int) []Todo2Task {
 	out := make([]Todo2Task, n)
+
 	for i := 0; i < n; i++ {
 		priority := "medium"
 		if i < highPriority {
 			priority = "high"
 		}
+
 		deps := []string{}
 		if i < withDeps {
 			deps = []string{"T-0"}
 		}
+
 		out[i] = Todo2Task{ID: "T-" + strconv.Itoa(i), Status: "Todo", Priority: priority, Dependencies: deps}
 	}
+
 	return out
 }
 
 func makeBacklogTasksWithPriority(total, highCount int) []Todo2Task {
 	out := make([]Todo2Task, total)
+
 	for i := 0; i < total; i++ {
 		priority := "medium"
 		if i < highCount {
 			priority = "high"
 		}
+
 		out[i] = Todo2Task{ID: "T-" + strconv.Itoa(i), Status: "Todo", Priority: priority}
 	}
+
 	return out
 }
 
 func TestGetCurrentPlanPath(t *testing.T) {
 	tmpDir := t.TempDir()
+
 	projDir := filepath.Join(tmpDir, "myproj")
 	if err := os.MkdirAll(projDir, 0755); err != nil {
 		t.Fatalf("mkdir proj: %v", err)
 	}
+
 	plansDir := filepath.Join(projDir, ".cursor", "plans")
 	if err := os.MkdirAll(plansDir, 0755); err != nil {
 		t.Fatalf("mkdir plans: %v", err)
 	}
+
 	planFile := filepath.Join(plansDir, "myproj.plan.md")
 	if err := os.WriteFile(planFile, []byte("# Plan\n"), 0644); err != nil {
 		t.Fatalf("write plan: %v", err)
@@ -451,6 +514,7 @@ func TestGetCurrentPlanPath(t *testing.T) {
 
 	got := getCurrentPlanPath(projDir)
 	want := filepath.Join(".cursor", "plans", "myproj.plan.md")
+
 	if got != want {
 		t.Errorf("getCurrentPlanPath() = %q, want %q", got, want)
 	}

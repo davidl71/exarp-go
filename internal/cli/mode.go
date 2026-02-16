@@ -28,6 +28,7 @@ func isReservedSubcommand(s string) bool {
 			return true
 		}
 	}
+
 	return false
 }
 
@@ -40,24 +41,30 @@ func NormalizeToolArgs(args []string) ([]string, bool) {
 	if len(args) < 2 || len(args[1]) == 0 || args[1][0] == '-' {
 		return args, false
 	}
+
 	first := args[1]
 	if isReservedSubcommand(first) || strings.Contains(first, "/") {
 		return args, false
 	}
+
 	argsMap := make(map[string]interface{})
+
 	for _, arg := range args[2:] {
 		if idx := strings.IndexByte(arg, '='); idx >= 0 {
 			key := strings.TrimSpace(arg[:idx])
 			val := strings.TrimSpace(arg[idx+1:])
+
 			if key != "" {
 				argsMap[key] = val
 			}
 		}
 	}
+
 	argsJSON, err := json.Marshal(argsMap)
 	if err != nil {
 		return args, false
 	}
+
 	return []string{args[0], "-tool", first, "-args", string(argsJSON)}, true
 }
 
@@ -66,9 +73,11 @@ func HasCLIFlags(args []string) bool {
 	if len(args) < 2 {
 		return false
 	}
+
 	if isReservedSubcommand(args[1]) {
 		return true
 	}
+
 	for i := 1; i < len(args); i++ {
 		arg := args[i]
 		for _, f := range CLIFlags {
@@ -76,9 +85,11 @@ func HasCLIFlags(args []string) bool {
 				return true
 			}
 		}
+
 		if len(arg) > 0 && arg[0] != '-' {
 			break
 		}
 	}
+
 	return false
 }

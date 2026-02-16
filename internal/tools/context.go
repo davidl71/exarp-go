@@ -10,10 +10,10 @@ import (
 	"github.com/davidl71/mcp-go-core/pkg/mcp/response"
 )
 
-// TOKENS_PER_CHAR is the estimated tokens per character (rough approximation)
+// TOKENS_PER_CHAR is the estimated tokens per character (rough approximation).
 const TOKENS_PER_CHAR = 0.25
 
-// ItemAnalysis represents analysis of a single item in context budget
+// ItemAnalysis represents analysis of a single item in context budget.
 type ItemAnalysis struct {
 	Index           int     `json:"index"`
 	Tokens          int     `json:"tokens"`
@@ -23,7 +23,7 @@ type ItemAnalysis struct {
 
 // handleContextBudget handles the context_budget tool
 // Estimates token usage and suggests context reduction strategy
-// Uses protobuf parsing for type-safe argument handling
+// Uses protobuf parsing for type-safe argument handling.
 func handleContextBudget(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
 	// Try protobuf first, fall back to JSON for backward compatibility
 	req, params, err := ParseContextRequest(args)
@@ -53,6 +53,7 @@ func handleContextBudget(ctx context.Context, args json.RawMessage) ([]framework
 
 	// Get budget_tokens (optional, use config default)
 	budgetTokens := config.DefaultContextBudget()
+
 	if budgetRaw, ok := params["budget_tokens"]; ok {
 		if budgetFloat, ok := budgetRaw.(float64); ok {
 			budgetTokens = int(budgetFloat)
@@ -99,6 +100,7 @@ func handleContextBudget(ctx context.Context, args json.RawMessage) ([]framework
 	// Build result
 	overBudget := totalTokens > budgetTokens
 	reductionNeeded := 0
+
 	if overBudget {
 		reductionNeeded = totalTokens - budgetTokens
 	}
@@ -117,12 +119,12 @@ func handleContextBudget(ctx context.Context, args json.RawMessage) ([]framework
 	return response.FormatResult(result, "")
 }
 
-// estimateTokens estimates token count for text using provided ratio
+// estimateTokens estimates token count for text using provided ratio.
 func estimateTokens(text string, tokensPerChar float64) int {
 	return int(float64(len(text)) * tokensPerChar)
 }
 
-// getBudgetRecommendation gets recommendation for a single item
+// getBudgetRecommendation gets recommendation for a single item.
 func getBudgetRecommendation(tokens, budget int) string {
 	ratio := float64(tokens) / float64(budget)
 	if ratio > 0.5 {
@@ -132,10 +134,11 @@ func getBudgetRecommendation(tokens, budget int) string {
 	} else if ratio > 0.1 {
 		return "keep_detailed"
 	}
+
 	return "keep_full"
 }
 
-// suggestReductionStrategy suggests overall reduction strategy
+// suggestReductionStrategy suggests overall reduction strategy.
 func suggestReductionStrategy(analysis []ItemAnalysis, total, budget int) string {
 	if total <= budget {
 		return "Within budget - no reduction needed"
@@ -161,7 +164,7 @@ func suggestReductionStrategy(analysis []ItemAnalysis, total, budget int) string
 
 // handleContextBatchNative handles the context batch action using native Go
 // Summarizes multiple items and optionally combines them
-// Uses protobuf ContextItem for type-safe item processing
+// Uses protobuf ContextItem for type-safe item processing.
 func handleContextBatchNative(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	// Get items (required)
 	itemsRaw, ok := params["items"]
@@ -235,6 +238,7 @@ func handleContextBatchNative(ctx context.Context, params map[string]interface{}
 			} else if orig, ok := tokenEst["original"].(int); ok {
 				totalOriginal += orig
 			}
+
 			if summ, ok := tokenEst["summarized"].(float64); ok {
 				totalSummarized += int(summ)
 			} else if summ, ok := tokenEst["summarized"].(int); ok {
@@ -245,9 +249,11 @@ func handleContextBatchNative(ctx context.Context, params map[string]interface{}
 
 	// Build result
 	var result map[string]interface{}
+
 	if combine {
 		// Extract summaries for combined view
 		combinedSummaries := make([]interface{}, 0, len(summaries))
+
 		for _, s := range summaries {
 			if summary, ok := s["summary"]; ok {
 				combinedSummaries = append(combinedSummaries, summary)
@@ -278,12 +284,13 @@ func handleContextBatchNative(ctx context.Context, params map[string]interface{}
 }
 
 // createSimpleSummary creates a simple summary without Apple FM
-// This is a fallback when Apple FM is not available
+// This is a fallback when Apple FM is not available.
 func createSimpleSummary(dataStr string, level string, toolType string) map[string]interface{} {
 	originalTokens := estimateTokens(dataStr, config.TokensPerChar())
 
 	// Create a simple summary based on level
 	var summary interface{}
+
 	switch level {
 	case "brief":
 		// Extract first 200 chars as brief summary
@@ -310,9 +317,11 @@ func createSimpleSummary(dataStr string, level string, toolType string) map[stri
 			if recs, ok := data["recommendations"].([]interface{}); ok {
 				actions["recommendations"] = recs
 			}
+
 			if tasks, ok := data["tasks"].([]interface{}); ok {
 				actions["tasks"] = tasks
 			}
+
 			summary = actions
 		} else {
 			summary = "Actionable items extraction failed"
@@ -336,6 +345,7 @@ func createSimpleSummary(dataStr string, level string, toolType string) map[stri
 
 	summaryTokens := estimateTokens(summaryStr, config.TokensPerChar())
 	reduction := 0.0
+
 	if originalTokens > 0 {
 		reduction = (1.0 - float64(summaryTokens)/float64(originalTokens)) * 100.0
 	}
@@ -352,7 +362,7 @@ func createSimpleSummary(dataStr string, level string, toolType string) map[stri
 	}
 }
 
-// extractNumbers recursively extracts numeric values from a map
+// extractNumbers recursively extracts numeric values from a map.
 func extractNumbers(data interface{}, result map[string]interface{}) {
 	switch v := data.(type) {
 	case map[string]interface{}:

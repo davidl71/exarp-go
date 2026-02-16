@@ -11,7 +11,7 @@ import (
 )
 
 // handleAllPrompts handles the stdio://prompts resource
-// Returns all prompts in compact format (name + description only)
+// Returns all prompts in compact format (name + description only).
 func handleAllPrompts(ctx context.Context, uri string) ([]byte, string, error) {
 	// All prompt names in registry order (35 prompts; see internal/prompts/registry.go)
 	promptNames := []string{
@@ -34,6 +34,7 @@ func handleAllPrompts(ctx context.Context, uri string) ([]byte, string, error) {
 
 	// Build compact format (name + description only)
 	promptList := make([]map[string]interface{}, 0, len(promptNames))
+
 	for _, name := range promptNames {
 		template, err := prompts.GetPromptTemplate(name)
 		if err != nil {
@@ -65,13 +66,14 @@ func handleAllPrompts(ctx context.Context, uri string) ([]byte, string, error) {
 }
 
 // handlePromptsByMode handles the stdio://prompts/mode/{mode} resource
-// Returns prompts filtered by workflow mode
+// Returns prompts filtered by workflow mode.
 func handlePromptsByMode(ctx context.Context, uri string) ([]byte, string, error) {
 	// Parse mode from URI: stdio://prompts/mode/{mode}
 	parts := strings.Split(uri, "/")
 	if len(parts) < 4 {
 		return nil, "", fmt.Errorf("invalid URI format: %s (expected stdio://prompts/mode/{mode})", uri)
 	}
+
 	mode := parts[3]
 
 	// Get mode mapping
@@ -79,6 +81,7 @@ func handlePromptsByMode(ctx context.Context, uri string) ([]byte, string, error
 
 	// Find prompts matching this mode
 	matchingPrompts := []string{}
+
 	for promptName, promptMode := range modeMap {
 		if promptMode == mode {
 			matchingPrompts = append(matchingPrompts, promptName)
@@ -87,6 +90,7 @@ func handlePromptsByMode(ctx context.Context, uri string) ([]byte, string, error
 
 	// Build response
 	promptList := make([]map[string]interface{}, 0, len(matchingPrompts))
+
 	for _, name := range matchingPrompts {
 		template, err := prompts.GetPromptTemplate(name)
 		if err != nil {
@@ -118,13 +122,14 @@ func handlePromptsByMode(ctx context.Context, uri string) ([]byte, string, error
 }
 
 // handlePromptsByPersona handles the stdio://prompts/persona/{persona} resource
-// Returns prompts filtered by persona
+// Returns prompts filtered by persona.
 func handlePromptsByPersona(ctx context.Context, uri string) ([]byte, string, error) {
 	// Parse persona from URI: stdio://prompts/persona/{persona}
 	parts := strings.Split(uri, "/")
 	if len(parts) < 4 {
 		return nil, "", fmt.Errorf("invalid URI format: %s (expected stdio://prompts/persona/{persona})", uri)
 	}
+
 	persona := parts[3]
 
 	// Get persona mapping
@@ -132,6 +137,7 @@ func handlePromptsByPersona(ctx context.Context, uri string) ([]byte, string, er
 
 	// Find prompts matching this persona
 	matchingPrompts := []string{}
+
 	for promptName, promptPersona := range personaMap {
 		if promptPersona == persona {
 			matchingPrompts = append(matchingPrompts, promptName)
@@ -140,6 +146,7 @@ func handlePromptsByPersona(ctx context.Context, uri string) ([]byte, string, er
 
 	// Build response
 	promptList := make([]map[string]interface{}, 0, len(matchingPrompts))
+
 	for _, name := range matchingPrompts {
 		template, err := prompts.GetPromptTemplate(name)
 		if err != nil {
@@ -171,13 +178,14 @@ func handlePromptsByPersona(ctx context.Context, uri string) ([]byte, string, er
 }
 
 // handlePromptsByCategory handles the stdio://prompts/category/{category} resource
-// Returns prompts filtered by category
+// Returns prompts filtered by category.
 func handlePromptsByCategory(ctx context.Context, uri string) ([]byte, string, error) {
 	// Parse category from URI: stdio://prompts/category/{category}
 	parts := strings.Split(uri, "/")
 	if len(parts) < 4 {
 		return nil, "", fmt.Errorf("invalid URI format: %s (expected stdio://prompts/category/{category})", uri)
 	}
+
 	category := parts[3]
 
 	// Get category mapping
@@ -185,6 +193,7 @@ func handlePromptsByCategory(ctx context.Context, uri string) ([]byte, string, e
 
 	// Find prompts matching this category
 	matchingPrompts := []string{}
+
 	for promptName, promptCategory := range categoryMap {
 		if promptCategory == category {
 			matchingPrompts = append(matchingPrompts, promptName)
@@ -193,6 +202,7 @@ func handlePromptsByCategory(ctx context.Context, uri string) ([]byte, string, e
 
 	// Build response
 	promptList := make([]map[string]interface{}, 0, len(matchingPrompts))
+
 	for _, name := range matchingPrompts {
 		template, err := prompts.GetPromptTemplate(name)
 		if err != nil {
@@ -226,7 +236,7 @@ func handlePromptsByCategory(ctx context.Context, uri string) ([]byte, string, e
 // Helper functions
 
 // extractPromptDescription extracts a short description from a prompt template
-// Returns the first line (before first newline) or first sentence (before first period)
+// Returns the first line (before first newline) or first sentence (before first period).
 func extractPromptDescription(template string) string {
 	// Remove leading/trailing whitespace
 	template = strings.TrimSpace(template)
@@ -251,7 +261,7 @@ func extractPromptDescription(template string) string {
 	return firstLine
 }
 
-// getPromptModeMapping returns a map of prompt names to their workflow modes
+// getPromptModeMapping returns a map of prompt names to their workflow modes.
 func getPromptModeMapping() map[string]string {
 	return map[string]string{
 		// Workflow prompts
@@ -301,7 +311,7 @@ func getPromptModeMapping() map[string]string {
 	}
 }
 
-// getPromptPersonaMapping returns a map of prompt names to their personas
+// getPromptPersonaMapping returns a map of prompt names to their personas.
 func getPromptPersonaMapping() map[string]string {
 	return map[string]string{
 		// PM/Management prompts
@@ -346,7 +356,7 @@ func getPromptPersonaMapping() map[string]string {
 	}
 }
 
-// getPromptCategoryMapping returns a map of prompt names to their categories
+// getPromptCategoryMapping returns a map of prompt names to their categories.
 func getPromptCategoryMapping() map[string]string {
 	return map[string]string{
 		// Task management

@@ -8,24 +8,24 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 )
 
-// MySQLDriver implements the Driver interface for MySQL
+// MySQLDriver implements the Driver interface for MySQL.
 type MySQLDriver struct {
 	dialect *MySQLDialect
 }
 
-// NewMySQLDriver creates a new MySQL driver
+// NewMySQLDriver creates a new MySQL driver.
 func NewMySQLDriver() *MySQLDriver {
 	return &MySQLDriver{
 		dialect: NewMySQLDialect(),
 	}
 }
 
-// Type returns the driver type
+// Type returns the driver type.
 func (d *MySQLDriver) Type() DriverType {
 	return DriverMySQL
 }
 
-// Open opens a MySQL database connection
+// Open opens a MySQL database connection.
 func (d *MySQLDriver) Open(dsn string) (*sql.DB, error) {
 	// MySQL DSN format: user:password@tcp(host:port)/dbname?params
 	db, err := sql.Open("mysql", dsn)
@@ -41,7 +41,7 @@ func (d *MySQLDriver) Open(dsn string) (*sql.DB, error) {
 	return db, nil
 }
 
-// Configure performs MySQL-specific configuration
+// Configure performs MySQL-specific configuration.
 func (d *MySQLDriver) Configure(db *sql.DB) error {
 	// Set MySQL connection settings
 	configs := []string{
@@ -64,20 +64,20 @@ func (d *MySQLDriver) Configure(db *sql.DB) error {
 	return nil
 }
 
-// Dialect returns the MySQL dialect
+// Dialect returns the MySQL dialect.
 func (d *MySQLDriver) Dialect() Dialect {
 	return d.dialect
 }
 
-// Close performs cleanup (no-op for MySQL)
+// Close performs cleanup (no-op for MySQL).
 func (d *MySQLDriver) Close() error {
 	return nil
 }
 
-// MySQLDialect implements Dialect for MySQL
+// MySQLDialect implements Dialect for MySQL.
 type MySQLDialect struct{}
 
-// NewMySQLDialect creates a new MySQL dialect
+// NewMySQLDialect creates a new MySQL dialect.
 func NewMySQLDialect() *MySQLDialect {
 	return &MySQLDialect{}
 }

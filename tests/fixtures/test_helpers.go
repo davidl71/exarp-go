@@ -6,12 +6,12 @@ import (
 	"time"
 )
 
-// TestContext creates a context with timeout for testing
+// TestContext creates a context with timeout for testing.
 func TestContext(timeout time.Duration) (context.Context, context.CancelFunc) {
 	return context.WithTimeout(context.Background(), timeout)
 }
 
-// JSONRPCRequest builds a JSON-RPC 2.0 request
+// JSONRPCRequest builds a JSON-RPC 2.0 request.
 func JSONRPCRequest(method string, params interface{}) map[string]interface{} {
 	return map[string]interface{}{
 		"jsonrpc": "2.0",
@@ -21,7 +21,7 @@ func JSONRPCRequest(method string, params interface{}) map[string]interface{} {
 	}
 }
 
-// JSONRPCResponse builds a JSON-RPC 2.0 response
+// JSONRPCResponse builds a JSON-RPC 2.0 response.
 func JSONRPCResponse(id interface{}, result interface{}) map[string]interface{} {
 	return map[string]interface{}{
 		"jsonrpc": "2.0",
@@ -30,7 +30,7 @@ func JSONRPCResponse(id interface{}, result interface{}) map[string]interface{} 
 	}
 }
 
-// JSONRPCError builds a JSON-RPC 2.0 error response
+// JSONRPCError builds a JSON-RPC 2.0 error response.
 func JSONRPCError(id interface{}, code int, message string) map[string]interface{} {
 	return map[string]interface{}{
 		"jsonrpc": "2.0",
@@ -42,20 +42,22 @@ func JSONRPCError(id interface{}, code int, message string) map[string]interface
 	}
 }
 
-// ToJSONRawMessage converts a value to json.RawMessage
+// ToJSONRawMessage converts a value to json.RawMessage.
 func ToJSONRawMessage(v interface{}) (json.RawMessage, error) {
 	data, err := json.Marshal(v)
 	if err != nil {
 		return nil, err
 	}
+
 	return json.RawMessage(data), nil
 }
 
-// MustToJSONRawMessage converts a value to json.RawMessage, panics on error
+// MustToJSONRawMessage converts a value to json.RawMessage, panics on error.
 func MustToJSONRawMessage(v interface{}) json.RawMessage {
 	data, err := ToJSONRawMessage(v)
 	if err != nil {
 		panic(err)
 	}
+
 	return data
 }

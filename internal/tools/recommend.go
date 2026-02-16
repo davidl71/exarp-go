@@ -12,7 +12,7 @@ import (
 	mcpresponse "github.com/davidl71/mcp-go-core/pkg/mcp/response"
 )
 
-// ModelInfo represents information about an AI model
+// ModelInfo represents information about an AI model.
 type ModelInfo struct {
 	ModelID   string   `json:"model_id"`
 	Name      string   `json:"name"`
@@ -22,7 +22,7 @@ type ModelInfo struct {
 	Speed     string   `json:"speed"`
 }
 
-// MODEL_CATALOG contains the static catalog of available AI models
+// MODEL_CATALOG contains the static catalog of available AI models.
 var MODEL_CATALOG = []ModelInfo{
 	{
 		ModelID:   "claude-sonnet",
@@ -98,7 +98,7 @@ var MODEL_CATALOG = []ModelInfo{
 	},
 }
 
-// handleRecommendModelNative handles the "model" action for recommend tool
+// handleRecommendModelNative handles the "model" action for recommend tool.
 func handleRecommendModelNative(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	// Get task description
 	taskDescription := ""
@@ -149,7 +149,7 @@ func handleRecommendModelNative(ctx context.Context, params map[string]interface
 	return mcpresponse.FormatResult(response, "")
 }
 
-// findBestModel finds the best model for a given task
+// findBestModel finds the best model for a given task.
 func findBestModel(taskDescription, taskType, optimizeFor string) ModelInfo {
 	taskLower := strings.ToLower(taskDescription + " " + taskType)
 
@@ -181,17 +181,19 @@ func findBestModel(taskDescription, taskType, optimizeFor string) ModelInfo {
 		// Apply optimization preference
 		switch optimizeFor {
 		case "speed":
-			if model.Speed == "fast" {
+			switch model.Speed {
+			case "fast":
 				score += 20.0
-			} else if model.Speed == "moderate" {
+			case "moderate":
 				score += 10.0
 			}
 		case "cost":
-			if model.Cost == "free" {
+			switch model.Cost {
+			case "free":
 				score += 20.0
-			} else if model.Cost == "low" {
+			case "low":
 				score += 15.0
-			} else if model.Cost == "moderate" {
+			case "moderate":
 				score += 10.0
 			}
 		case "quality":
@@ -207,7 +209,7 @@ func findBestModel(taskDescription, taskType, optimizeFor string) ModelInfo {
 	return bestModel
 }
 
-// findAlternativeModels finds alternative models
+// findAlternativeModels finds alternative models.
 func findAlternativeModels(recommended ModelInfo, optimizeFor string) []ModelInfo {
 	alternatives := []ModelInfo{}
 
@@ -229,7 +231,7 @@ func findAlternativeModels(recommended ModelInfo, optimizeFor string) []ModelInf
 	return alternatives
 }
 
-// handleRecommendWorkflowNative handles the "workflow" action for recommend tool
+// handleRecommendWorkflowNative handles the "workflow" action for recommend tool.
 func handleRecommendWorkflowNative(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	// Get task description
 	taskDescription := ""
@@ -287,7 +289,7 @@ func handleRecommendWorkflowNative(ctx context.Context, params map[string]interf
 	return mcpresponse.FormatResult(response, "")
 }
 
-// WorkflowRecommendation represents a workflow mode recommendation
+// WorkflowRecommendation represents a workflow mode recommendation.
 type WorkflowRecommendation struct {
 	Mode        string
 	Confidence  float64
@@ -298,7 +300,7 @@ type WorkflowRecommendation struct {
 	Suggestion  map[string]interface{}
 }
 
-// analyzeWorkflowMode analyzes a task and recommends AGENT or ASK mode
+// analyzeWorkflowMode analyzes a task and recommends AGENT or ASK mode.
 func analyzeWorkflowMode(taskDescription string, includeRationale bool) WorkflowRecommendation {
 	taskLower := strings.ToLower(taskDescription)
 
@@ -333,6 +335,7 @@ func analyzeWorkflowMode(taskDescription string, includeRationale bool) Workflow
 	for _, kw := range agentKeywords {
 		if strings.Contains(taskLower, kw) {
 			agentScore += 2
+
 			agentReasons = append(agentReasons, fmt.Sprintf("Keyword: '%s'", kw))
 		}
 	}
@@ -341,6 +344,7 @@ func analyzeWorkflowMode(taskDescription string, includeRationale bool) Workflow
 	for _, pattern := range agentPatterns {
 		if strings.Contains(taskLower, strings.TrimPrefix(pattern, `\b(`)) {
 			agentScore += 3
+
 			agentReasons = append(agentReasons, fmt.Sprintf("Pattern: '%s'", pattern))
 		}
 	}
@@ -352,6 +356,7 @@ func analyzeWorkflowMode(taskDescription string, includeRationale bool) Workflow
 	for _, kw := range askKeywords {
 		if strings.Contains(taskLower, kw) {
 			askScore += 2
+
 			askReasons = append(askReasons, fmt.Sprintf("Keyword: '%s'", kw))
 		}
 	}
@@ -360,40 +365,50 @@ func analyzeWorkflowMode(taskDescription string, includeRationale bool) Workflow
 	for _, pattern := range askPatterns {
 		if strings.Contains(taskLower, strings.TrimPrefix(pattern, `\b(`)) {
 			askScore += 3
+
 			askReasons = append(askReasons, fmt.Sprintf("Pattern: '%s'", pattern))
 		}
 	}
 
 	// Determine recommendation
 	var mode string
+
 	var confidence float64
+
 	var description string
+
 	var reasons []string
 
 	if agentScore > askScore {
 		mode = "AGENT"
+
 		totalScore := agentScore + askScore
 		if totalScore > 0 {
 			confidence = float64(agentScore) / float64(totalScore) * 100
 		} else {
 			confidence = 50
 		}
+
 		if confidence > 95 {
 			confidence = 95
 		}
+
 		description = "Use AGENT mode for autonomous multi-step implementation"
 		reasons = agentReasons
 	} else if askScore > agentScore {
 		mode = "ASK"
+
 		totalScore := agentScore + askScore
 		if totalScore > 0 {
 			confidence = float64(askScore) / float64(totalScore) * 100
 		} else {
 			confidence = 50
 		}
+
 		if confidence > 95 {
 			confidence = 95
 		}
+
 		description = "Use ASK mode for focused questions and single edits"
 		reasons = askReasons
 	} else {
@@ -432,24 +447,29 @@ func analyzeWorkflowMode(taskDescription string, includeRationale bool) Workflow
 }
 
 // handleRecommendAdvisorNative handles the "advisor" action for recommend tool
-// Uses devwisdom-go wisdom engine directly (no MCP client needed)
+// Uses devwisdom-go wisdom engine directly (no MCP client needed).
 func handleRecommendAdvisorNative(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	// Extract parameters
 	var metric, tool, stage, context string
+
 	var score float64
 
 	if m, ok := params["metric"].(string); ok {
 		metric = m
 	}
+
 	if t, ok := params["tool"].(string); ok {
 		tool = t
 	}
+
 	if st, ok := params["stage"].(string); ok {
 		stage = st
 	}
+
 	if c, ok := params["context"].(string); ok {
 		context = c
 	}
+
 	if sc, ok := params["score"].(float64); ok {
 		score = sc
 	} else if sc, ok := params["score"].(int); ok {
@@ -532,13 +552,15 @@ func handleRecommendAdvisorNative(ctx context.Context, params map[string]interfa
 	if err != nil {
 		return nil, fmt.Errorf("failed to convert consultation: %w", err)
 	}
+
 	return mcpresponse.FormatResult(consultationMap, "")
 }
 
-// minInt returns the minimum of two integers
+// minInt returns the minimum of two integers.
 func minInt(a, b int) int {
 	if a < b {
 		return a
 	}
+
 	return b
 }

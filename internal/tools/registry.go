@@ -6,7 +6,7 @@ import (
 	"github.com/davidl71/exarp-go/internal/framework"
 )
 
-// RegisterAllTools registers all tools with the server
+// RegisterAllTools registers all tools with the server.
 func RegisterAllTools(server framework.MCPServer) error {
 	// Batch 1: Simple tools (T-22 through T-27)
 	if err := registerBatch1Tools(server); err != nil {
@@ -36,7 +36,7 @@ func RegisterAllTools(server framework.MCPServer) error {
 	return nil
 }
 
-// registerBatch1Tools registers Batch 1 tools (6 simple tools)
+// registerBatch1Tools registers Batch 1 tools (6 simple tools).
 func registerBatch1Tools(server framework.MCPServer) error {
 	// T-22: analyze_alignment
 	if err := server.RegisterTool(
@@ -248,7 +248,7 @@ func registerBatch1Tools(server framework.MCPServer) error {
 	return nil
 }
 
-// registerBatch2Tools registers Batch 2 tools (8 medium tools)
+// registerBatch2Tools registers Batch 2 tools (8 medium tools).
 func registerBatch2Tools(server framework.MCPServer) error {
 	// T-28: memory
 	if err := server.RegisterTool(
@@ -923,7 +923,7 @@ func registerBatch2Tools(server framework.MCPServer) error {
 	return nil
 }
 
-// registerBatch3Tools registers Batch 3 tools (8 advanced tools)
+// registerBatch3Tools registers Batch 3 tools (8 advanced tools).
 func registerBatch3Tools(server framework.MCPServer) error {
 	// T-37: automation
 	if err := server.RegisterTool(
@@ -1501,10 +1501,9 @@ func registerBatch3Tools(server framework.MCPServer) error {
 // recommend_model, recommend_workflow) were removed in favor of unified tools in Batch 5:
 // - context(action=summarize|budget|batch)
 // - prompt_tracking(action=log|analyze)
-// - recommend(action=model|workflow|advisor)
+// - recommend(action=model|workflow|advisor).
 func registerBatch4Tools(server framework.MCPServer) error {
 	// Native Go tools (2)
-
 	// context_budget
 	if err := server.RegisterTool(
 		"context_budget",
@@ -1536,7 +1535,7 @@ func registerBatch4Tools(server framework.MCPServer) error {
 }
 
 // registerBatch5Tools registers Batch 5 tools (Phase 3 migration - 4 unified tools)
-// Note: demonstrate_elicit and interactive_task_create were removed (required FastMCP Context)
+// Note: demonstrate_elicit and interactive_task_create were removed (required FastMCP Context).
 func registerBatch5Tools(server framework.MCPServer) error {
 	// context - Unified context management (summarize/budget/batch actions)
 	if err := server.RegisterTool(

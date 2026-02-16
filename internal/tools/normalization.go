@@ -120,6 +120,7 @@ func NormalizeStatusToTitleCase(status string) string {
 			words[i] = strings.ToUpper(word[:1]) + strings.ToLower(word[1:])
 		}
 	}
+
 	return strings.Join(words, " ")
 }
 

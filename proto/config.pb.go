@@ -317,6 +317,7 @@ type ThresholdsConfig struct {
 	MaxParallelTasks        int32 `protobuf:"varint,8,opt,name=max_parallel_tasks,json=maxParallelTasks,proto3" json:"max_parallel_tasks,omitempty"`
 	MaxTasksPerHost         int32 `protobuf:"varint,9,opt,name=max_tasks_per_host,json=maxTasksPerHost,proto3" json:"max_tasks_per_host,omitempty"`
 	MaxAutomationIterations int32 `protobuf:"varint,10,opt,name=max_automation_iterations,json=maxAutomationIterations,proto3" json:"max_automation_iterations,omitempty"`
+	MaxTasksPerWave         int32 `protobuf:"varint,18,opt,name=max_tasks_per_wave,json=maxTasksPerWave,proto3" json:"max_tasks_per_wave,omitempty"` // 0 = no limit; split waves so each has at most this many tasks
 	// Context management thresholds
 	TokensPerChar             float64 `protobuf:"fixed64,11,opt,name=tokens_per_char,json=tokensPerChar,proto3" json:"tokens_per_char,omitempty"`
 	DefaultContextBudget      int32   `protobuf:"varint,12,opt,name=default_context_budget,json=defaultContextBudget,proto3" json:"default_context_budget,omitempty"`
@@ -426,6 +427,13 @@ func (x *ThresholdsConfig) GetMaxTasksPerHost() int32 {
 func (x *ThresholdsConfig) GetMaxAutomationIterations() int32 {
 	if x != nil {
 		return x.MaxAutomationIterations
+	}
+	return 0
+}
+
+func (x *ThresholdsConfig) GetMaxTasksPerWave() int32 {
+	if x != nil {
+		return x.MaxTasksPerWave
 	}
 	return 0
 }
@@ -2453,7 +2461,7 @@ const file_proto_config_proto_rawDesc = "" +
 	"httpClient\x12%\n" +
 	"\x0edatabase_retry\x18\f \x01(\x03R\rdatabaseRetry\x12+\n" +
 	"\x11context_summarize\x18\r \x01(\x03R\x10contextSummarize\x12%\n" +
-	"\x0econtext_budget\x18\x0e \x01(\x03R\rcontextBudget\"\xb4\x06\n" +
+	"\x0econtext_budget\x18\x0e \x01(\x03R\rcontextBudget\"\xe1\x06\n" +
 	"\x10ThresholdsConfig\x121\n" +
 	"\x14similarity_threshold\x18\x01 \x01(\x01R\x13similarityThreshold\x124\n" +
 	"\x16min_description_length\x18\x02 \x01(\x05R\x14minDescriptionLength\x12.\n" +
@@ -2466,7 +2474,8 @@ const file_proto_config_proto_rawDesc = "" +
 	"\x12max_parallel_tasks\x18\b \x01(\x05R\x10maxParallelTasks\x12+\n" +
 	"\x12max_tasks_per_host\x18\t \x01(\x05R\x0fmaxTasksPerHost\x12:\n" +
 	"\x19max_automation_iterations\x18\n" +
-	" \x01(\x05R\x17maxAutomationIterations\x12&\n" +
+	" \x01(\x05R\x17maxAutomationIterations\x12+\n" +
+	"\x12max_tasks_per_wave\x18\x12 \x01(\x05R\x0fmaxTasksPerWave\x12&\n" +
 	"\x0ftokens_per_char\x18\v \x01(\x01R\rtokensPerChar\x124\n" +
 	"\x16default_context_budget\x18\f \x01(\x05R\x14defaultContextBudget\x12>\n" +
 	"\x1bcontext_reduction_threshold\x18\r \x01(\x01R\x19contextReductionThreshold\x12.\n" +

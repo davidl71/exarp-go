@@ -26,10 +26,12 @@ func BuildApprovalRequestFromTask(task *models.Todo2Task, formID string) Approva
 	if len(task.Tags) > 0 {
 		fieldData["tags"] = task.Tags
 	}
+
 	metadata := map[string]interface{}{
 		"source":  "exarp-go",
 		"task_id": task.ID,
 	}
+
 	return ApprovalRequest{
 		FormID:    formID,
 		FieldData: fieldData,

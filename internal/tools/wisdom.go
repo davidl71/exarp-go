@@ -9,7 +9,7 @@ import (
 )
 
 var (
-	// wisdomEngine is a shared singleton instance of the wisdom engine
+	// wisdomEngine is a shared singleton instance of the wisdom engine.
 	wisdomEngine *wisdom.Engine
 	wisdomOnce   sync.Once
 )
@@ -33,12 +33,14 @@ func BuildBriefingDataProto(engine *wisdom.Engine, score float64) *proto.Briefin
 	if engine == nil {
 		return nil
 	}
+
 	pb := &proto.BriefingData{
 		Date:  time.Now().Format("2006-01-02"),
 		Score: score,
 	}
 	sources := engine.ListSources()
 	pb.Sources = sources
+
 	selectedSources := []string{"pistis_sophia", "stoic", "tao"}
 	if len(sources) > 0 {
 		selectedSources = sources
@@ -46,6 +48,7 @@ func BuildBriefingDataProto(engine *wisdom.Engine, score float64) *proto.Briefin
 			selectedSources = selectedSources[:3]
 		}
 	}
+
 	for _, src := range selectedSources {
 		quote, err := engine.GetWisdom(score, src)
 		if err == nil && quote != nil {
@@ -58,5 +61,6 @@ func BuildBriefingDataProto(engine *wisdom.Engine, score float64) *proto.Briefin
 			})
 		}
 	}
+
 	return pb
 }

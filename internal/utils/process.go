@@ -17,10 +17,13 @@ func ProcessExists(pid int) bool {
 	if pid <= 0 {
 		return false
 	}
+
 	if runtime.GOOS == "windows" {
 		// Windows: no simple signal-0 check; assume process exists to avoid premature cleanup.
 		return true
 	}
+
 	err := unix.Kill(pid, 0)
+
 	return err == nil
 }

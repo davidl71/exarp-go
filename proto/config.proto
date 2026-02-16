@@ -64,6 +64,7 @@ message ThresholdsConfig {
   int32 max_parallel_tasks = 8;
   int32 max_tasks_per_host = 9;
   int32 max_automation_iterations = 10;
+  int32 max_tasks_per_wave = 18;  // 0 = no limit; split waves so each has at most this many tasks
   
   // Context management thresholds
   double tokens_per_char = 11;

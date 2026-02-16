@@ -7,9 +7,10 @@ import (
 	"time"
 )
 
-// generateDuplicateTestTasks creates tasks with varying similarity for duplicate detection testing
+// generateDuplicateTestTasks creates tasks with varying similarity for duplicate detection testing.
 func generateDuplicateTestTasks(count int, duplicateRatio float64) []Todo2Task {
 	tasks := make([]Todo2Task, count)
+
 	rand.Seed(time.Now().UnixNano())
 
 	// Create base tasks
@@ -71,7 +72,7 @@ func generateDuplicateTestTasks(count int, duplicateRatio float64) []Todo2Task {
 	return tasks
 }
 
-// BenchmarkFindDuplicateTasks benchmarks findDuplicateTasks with various task counts
+// BenchmarkFindDuplicateTasks benchmarks findDuplicateTasks with various task counts.
 func BenchmarkFindDuplicateTasks(b *testing.B) {
 	sizes := []struct {
 		name           string
@@ -103,7 +104,7 @@ func BenchmarkFindDuplicateTasks(b *testing.B) {
 	}
 }
 
-// BenchmarkCalculateSimilarity benchmarks the similarity calculation function
+// BenchmarkCalculateSimilarity benchmarks the similarity calculation function.
 func BenchmarkCalculateSimilarity(b *testing.B) {
 	task1 := Todo2Task{
 		ID:              "T-1",
@@ -129,7 +130,7 @@ func BenchmarkCalculateSimilarity(b *testing.B) {
 	}
 }
 
-// BenchmarkAnalyzeTags benchmarks tag analysis
+// BenchmarkAnalyzeTags benchmarks tag analysis.
 func BenchmarkAnalyzeTags(b *testing.B) {
 	sizes := []struct {
 		name        string
@@ -156,13 +157,14 @@ func BenchmarkAnalyzeTags(b *testing.B) {
 	}
 }
 
-// generateTaggedTestTasks creates tasks with tags for testing
+// generateTaggedTestTasks creates tasks with tags for testing.
 func generateTaggedTestTasks(count int, tagsPerTask int) []Todo2Task {
 	tasks := make([]Todo2Task, count)
 	tags := []string{"bug", "feature", "refactor", "testing", "documentation", "migration", "performance", "security"}
 
 	for i := 0; i < count; i++ {
 		taskTags := make([]string, 0, tagsPerTask)
+
 		for j := 0; j < tagsPerTask; j++ {
 			tagIdx := (i + j) % len(tags)
 			taskTags = append(taskTags, tags[tagIdx])

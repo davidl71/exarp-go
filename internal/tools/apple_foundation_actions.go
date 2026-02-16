@@ -10,7 +10,7 @@ import (
 	"github.com/davidl71/mcp-go-core/pkg/mcp/response"
 )
 
-// handleStatusAction handles the "status" action (no prompt required)
+// handleStatusAction handles the "status" action (no prompt required).
 func handleStatusAction() ([]framework.TextContent, error) {
 	support := platform.CheckAppleFoundationModelsSupport()
 
@@ -30,7 +30,7 @@ func handleStatusAction() ([]framework.TextContent, error) {
 	return response.FormatResult(status, "")
 }
 
-// handleHardwareAction handles the "hardware" action (no prompt required)
+// handleHardwareAction handles the "hardware" action (no prompt required).
 func handleHardwareAction() ([]framework.TextContent, error) {
 	support := platform.CheckAppleFoundationModelsSupport()
 
@@ -49,7 +49,7 @@ func handleHardwareAction() ([]framework.TextContent, error) {
 	return response.FormatResult(hardware, "")
 }
 
-// handleModelsAction handles the "models" action (no prompt required)
+// handleModelsAction handles the "models" action (no prompt required).
 func handleModelsAction() ([]framework.TextContent, error) {
 	support := platform.CheckAppleFoundationModelsSupport()
 

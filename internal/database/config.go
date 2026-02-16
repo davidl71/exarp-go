@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 )
 
-// Config holds database configuration
+// Config holds database configuration.
 type Config struct {
 	// Driver is the database driver type (sqlite, mysql, postgres)
 	Driver DriverType
@@ -27,7 +27,7 @@ type Config struct {
 }
 
 // LoadConfig loads database configuration from environment variables
-// with sensible defaults
+// with sensible defaults.
 func LoadConfig(projectRoot string) (*Config, error) {
 	cfg := &Config{
 		Driver:      DriverSQLite, // Default to SQLite
@@ -68,7 +68,7 @@ func LoadConfig(projectRoot string) (*Config, error) {
 	return cfg, nil
 }
 
-// GetDefaultDSN returns the default DSN for a driver type
+// GetDefaultDSN returns the default DSN for a driver type.
 func GetDefaultDSN(driver DriverType, projectRoot string) string {
 	switch driver {
 	case DriverSQLite:
@@ -83,7 +83,7 @@ func GetDefaultDSN(driver DriverType, projectRoot string) string {
 }
 
 // DatabaseConfigFields holds the database configuration fields from centralized config
-// This struct is used to break the import cycle between database and config packages
+// This struct is used to break the import cycle between database and config packages.
 type DatabaseConfigFields struct {
 	SQLitePath          string
 	JSONFallbackPath    string
@@ -103,7 +103,7 @@ type DatabaseConfigFields struct {
 
 // LoadConfigFromCentralizedFields loads database configuration from centralized config fields
 // This allows database to use the centralized .exarp/config.yaml configuration
-// without creating an import cycle (config package doesn't need to import database)
+// without creating an import cycle (config package doesn't need to import database).
 func LoadConfigFromCentralizedFields(projectRoot string, dbCfg DatabaseConfigFields) (*Config, error) {
 	// Convert centralized DatabaseConfigFields to database.Config
 	// Note: database.Config is simpler (Driver, DSN, AutoMigrate)

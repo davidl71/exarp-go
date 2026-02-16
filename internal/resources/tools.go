@@ -10,12 +10,13 @@ import (
 )
 
 // handleAllTools handles the stdio://tools resource
-// Returns all tools in the catalog
+// Returns all tools in the catalog.
 func handleAllTools(ctx context.Context, uri string) ([]byte, string, error) {
 	catalog := tools.GetToolCatalog()
 
 	// Convert catalog map to slice (matching tool format)
 	var toolList []tools.ToolCatalogEntry
+
 	categories := make(map[string]bool)
 
 	for toolID, tool := range catalog {
@@ -62,7 +63,7 @@ func handleAllTools(ctx context.Context, uri string) ([]byte, string, error) {
 }
 
 // handleToolsByCategory handles the stdio://tools/{category} resource
-// Returns tools filtered by category
+// Returns tools filtered by category.
 func handleToolsByCategory(ctx context.Context, uri string) ([]byte, string, error) {
 	// Parse category from URI: stdio://tools/{category}
 	category, err := parseURIVariableByIndexWithValidation(uri, 3, "category", "stdio://tools/{category}")
@@ -74,6 +75,7 @@ func handleToolsByCategory(ctx context.Context, uri string) ([]byte, string, err
 
 	// Filter tools by category (case-insensitive)
 	var filtered []tools.ToolCatalogEntry
+
 	categories := make(map[string]bool)
 
 	for toolID, tool := range catalog {

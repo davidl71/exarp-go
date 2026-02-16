@@ -15,13 +15,13 @@ import (
 	"github.com/davidl71/exarp-go/internal/database"
 )
 
-// Branch tag prefix
+// Branch tag prefix.
 const (
 	branchTagPrefix = "branch:"
 	mainBranch      = "main"
 )
 
-// GitToolsParams represents parameters for git_tools
+// GitToolsParams represents parameters for git_tools.
 type GitToolsParams struct {
 	Action           string `json:"action"`
 	TaskID           string `json:"task_id,omitempty"`
@@ -41,7 +41,7 @@ type GitToolsParams struct {
 	DryRun           bool   `json:"dry_run,omitempty"`
 }
 
-// TaskCommit represents a commit (change) to a task
+// TaskCommit represents a commit (change) to a task.
 type TaskCommit struct {
 	ID        string                 `json:"id"`
 	TaskID    string                 `json:"task_id,omitempty"`
@@ -55,7 +55,7 @@ type TaskCommit struct {
 
 // Branch utilities
 
-// extractBranchFromTags extracts branch name from task tags
+// extractBranchFromTags extracts branch name from task tags.
 func extractBranchFromTags(tags []string) string {
 	if tags == nil {
 		return mainBranch
@@ -73,19 +73,21 @@ func extractBranchFromTags(tags []string) string {
 	return mainBranch
 }
 
-// getTaskBranch gets branch for a task from its tags
+// getTaskBranch gets branch for a task from its tags.
 func getTaskBranch(task Todo2Task) string {
 	branch := extractBranchFromTags(task.Tags)
 	if branch == "" {
 		return mainBranch
 	}
+
 	return branch
 }
 
-// setTaskBranch sets branch for a task by updating its tags
+// setTaskBranch sets branch for a task by updating its tags.
 func setTaskBranch(task *Todo2Task, branch string) {
 	// Remove existing branch tags
 	newTags := make([]string, 0, len(task.Tags))
+
 	for _, tag := range task.Tags {
 		if !strings.HasPrefix(tag, branchTagPrefix) {
 			newTags = append(newTags, tag)
@@ -100,7 +102,7 @@ func setTaskBranch(task *Todo2Task, branch string) {
 	task.Tags = newTags
 }
 
-// getAllBranches extracts all unique branches from tasks
+// getAllBranches extracts all unique branches from tasks.
 func getAllBranches(tasks []Todo2Task) []string {
 	branches := make(map[string]bool)
 	branches[mainBranch] = true
@@ -114,22 +116,26 @@ func getAllBranches(tasks []Todo2Task) []string {
 	for branch := range branches {
 		result = append(result, branch)
 	}
+
 	sort.Strings(result)
+
 	return result
 }
 
-// filterTasksByBranch filters tasks to only those in a specific branch
+// filterTasksByBranch filters tasks to only those in a specific branch.
 func filterTasksByBranch(tasks []Todo2Task, branch string) []Todo2Task {
 	result := make([]Todo2Task, 0)
+
 	for _, task := range tasks {
 		if getTaskBranch(task) == branch {
 			result = append(result, task)
 		}
 	}
+
 	return result
 }
 
-// BranchStatistics represents statistics for a branch
+// BranchStatistics represents statistics for a branch.
 type BranchStatistics struct {
 	Branch         string         `json:"branch"`
 	TaskCount      int            `json:"task_count"`
@@ -138,7 +144,7 @@ type BranchStatistics struct {
 	CompletionRate float64        `json:"completion_rate"`
 }
 
-// getBranchStatistics gets statistics for a specific branch
+// getBranchStatistics gets statistics for a specific branch.
 func getBranchStatistics(tasks []Todo2Task, branch string) BranchStatistics {
 	branchTasks := filterTasksByBranch(tasks, branch)
 
@@ -156,6 +162,7 @@ func getBranchStatistics(tasks []Todo2Task, branch string) BranchStatistics {
 
 	total := len(branchTasks)
 	completionRate := 0.0
+
 	if total > 0 {
 		completionRate = float64(completedCount) / float64(total) * 100
 	}
@@ -169,7 +176,7 @@ func getBranchStatistics(tasks []Todo2Task, branch string) BranchStatistics {
 	}
 }
 
-// getAllBranchStatistics gets statistics for all branches
+// getAllBranchStatistics gets statistics for all branches.
 func getAllBranchStatistics(tasks []Todo2Task) map[string]BranchStatistics {
 	branches := getAllBranches(tasks)
 	result := make(map[string]BranchStatistics)
@@ -183,7 +190,7 @@ func getAllBranchStatistics(tasks []Todo2Task) map[string]BranchStatistics {
 
 // Commit tracking utilities
 
-// loadCommits loads commits from .todo2/commits.json
+// loadCommits loads commits from .todo2/commits.json.
 func loadCommits(projectRoot string) ([]TaskCommit, error) {
 	commitsPath := filepath.Join(projectRoot, ".todo2", "commits.json")
 
@@ -192,6 +199,7 @@ func loadCommits(projectRoot string) ([]TaskCommit, error) {
 		if os.IsNotExist(err) {
 			return []TaskCommit{}, nil
 		}
+
 		return nil, fmt.Errorf("failed to read commits file: %w", err)
 	}
 
@@ -207,7 +215,7 @@ func loadCommits(projectRoot string) ([]TaskCommit, error) {
 	return commitsData.Commits, nil
 }
 
-// saveCommits saves commits to .todo2/commits.json
+// saveCommits saves commits to .todo2/commits.json.
 func saveCommits(projectRoot string, commits []TaskCommit) error {
 	commitsPath := filepath.Join(projectRoot, ".todo2", "commits.json")
 
@@ -237,7 +245,7 @@ func saveCommits(projectRoot string, commits []TaskCommit) error {
 	return nil
 }
 
-// HandleGitToolsNative handles git_tools using native Go implementation
+// HandleGitToolsNative handles git_tools using native Go implementation.
 func HandleGitToolsNative(ctx context.Context, params GitToolsParams) (string, error) {
 	projectRoot, err := FindProjectRoot()
 	if err != nil {
@@ -271,7 +279,7 @@ func HandleGitToolsNative(ctx context.Context, params GitToolsParams) (string, e
 	}
 }
 
-// GitLocalCommit represents a Git repo commit (not a task commit)
+// GitLocalCommit represents a Git repo commit (not a task commit).
 type GitLocalCommit struct {
 	Hash     string `json:"hash"`
 	Subject  string `json:"subject"`
@@ -279,27 +287,33 @@ type GitLocalCommit struct {
 	Relevant bool   `json:"relevant"`
 }
 
-// categorizeCommit assigns category from conventional commit patterns
+// categorizeCommit assigns category from conventional commit patterns.
 func categorizeCommit(subject string) string {
 	lower := strings.ToLower(subject)
 	if strings.HasPrefix(lower, "feat") || strings.HasPrefix(lower, "feature") {
 		return "feature"
 	}
+
 	if strings.HasPrefix(lower, "fix") || strings.HasPrefix(lower, "bugfix") {
 		return "fix"
 	}
+
 	if strings.HasPrefix(lower, "docs") || strings.HasPrefix(lower, "doc") {
 		return "docs"
 	}
+
 	if strings.HasPrefix(lower, "refactor") {
 		return "refactor"
 	}
+
 	if strings.HasPrefix(lower, "test") {
 		return "testing"
 	}
+
 	if strings.HasPrefix(lower, "chore") || strings.HasPrefix(lower, "ci") || strings.HasPrefix(lower, "build") {
 		return "cleanup"
 	}
+
 	return "other"
 }
 
@@ -309,9 +323,12 @@ func handleLocalCommitsAction(ctx context.Context, projectRoot string, params Gi
 	if params.TargetBranch != "" {
 		upstream = params.TargetBranch
 	}
+
 	cmd := exec.CommandContext(ctx, "git", "log", upstream+"..HEAD", "--format=%h %s")
 	cmd.Dir = projectRoot
+
 	cmd.Env = append(os.Environ(), "LANG=C")
+
 	output, err := cmd.Output()
 	if err != nil {
 		if strings.Contains(err.Error(), "executable file not found") ||
@@ -325,30 +342,39 @@ func handleLocalCommitsAction(ctx context.Context, projectRoot string, params Gi
 				"summary":     "no local commits or not a git repository",
 			}
 			data, _ := json.MarshalIndent(result, "", "  ")
+
 			return string(data), nil
 		}
+
 		return "", fmt.Errorf("git log failed: %w", err)
 	}
+
 	lines := strings.Split(strings.TrimSpace(string(output)), "\n")
 	commits := make([]GitLocalCommit, 0, len(lines))
 	byCategory := make(map[string]int)
 	hashRe := regexp.MustCompile(`^([a-f0-9]+)\s+(.*)$`)
+
 	limit := params.Limit
 	if limit <= 0 {
 		limit = 50
 	}
+
 	for i, line := range lines {
 		if i >= limit {
 			break
 		}
+
 		if line == "" {
 			continue
 		}
+
 		matches := hashRe.FindStringSubmatch(line)
 		hash, subject := "", line
+
 		if len(matches) >= 3 {
 			hash, subject = matches[1], matches[2]
 		}
+
 		category := categorizeCommit(subject)
 		commits = append(commits, GitLocalCommit{
 			Hash:     hash,
@@ -358,6 +384,7 @@ func handleLocalCommitsAction(ctx context.Context, projectRoot string, params Gi
 		})
 		byCategory[category]++
 	}
+
 	relevant := byCategory["feature"] + byCategory["fix"] + byCategory["docs"] + byCategory["refactor"] + byCategory["testing"]
 	result := map[string]interface{}{
 		"action":      "local_commits",
@@ -367,14 +394,16 @@ func handleLocalCommitsAction(ctx context.Context, projectRoot string, params Gi
 		"by_category": byCategory,
 		"summary":     fmt.Sprintf("%d commit(s) ahead of %s; %d likely relevant", len(commits), upstream, relevant),
 	}
+
 	data, err := json.MarshalIndent(result, "", "  ")
 	if err != nil {
 		return "", fmt.Errorf("failed to marshal result: %w", err)
 	}
+
 	return string(data), nil
 }
 
-// handleCommitsAction handles the commits action
+// handleCommitsAction handles the commits action.
 func handleCommitsAction(ctx context.Context, projectRoot string, params GitToolsParams) (string, error) {
 	commits, err := loadCommits(projectRoot)
 	if err != nil {
@@ -433,13 +462,15 @@ func handleCommitsAction(ctx context.Context, projectRoot string, params GitTool
 	return string(data), nil
 }
 
-// handleBranchesAction handles the branches action
+// handleBranchesAction handles the branches action.
 func handleBranchesAction(ctx context.Context, projectRoot string, params GitToolsParams) (string, error) {
 	store := NewDefaultTaskStore(projectRoot)
+
 	list, err := store.ListTasks(ctx, nil)
 	if err != nil {
 		return "", err
 	}
+
 	tasks := tasksFromPtrs(list)
 
 	branches := getAllBranches(tasks)
@@ -458,23 +489,26 @@ func handleBranchesAction(ctx context.Context, projectRoot string, params GitToo
 	return string(data), nil
 }
 
-// handleTasksAction handles the tasks action
+// handleTasksAction handles the tasks action.
 func handleTasksAction(ctx context.Context, projectRoot string, params GitToolsParams) (string, error) {
 	if params.Branch == "" {
 		return "", fmt.Errorf("branch parameter required for tasks action")
 	}
 
 	store := NewDefaultTaskStore(projectRoot)
+
 	list, err := store.ListTasks(ctx, nil)
 	if err != nil {
 		return "", err
 	}
+
 	tasks := tasksFromPtrs(list)
 
 	branchTasks := filterTasksByBranch(tasks, params.Branch)
 
 	// Convert to JSON-compatible format
 	taskList := make([]map[string]interface{}, len(branchTasks))
+
 	for i, task := range branchTasks {
 		taskMap := map[string]interface{}{
 			"id":               task.ID,
@@ -521,6 +555,7 @@ func handleDiffAction(ctx context.Context, projectRoot string, params GitToolsPa
 	}
 
 	var filtered []TaskCommit
+
 	for _, commit := range commits {
 		if commit.TaskID == params.TaskID {
 			if params.Branch == "" || commit.Branch == params.Branch {
@@ -532,6 +567,7 @@ func handleDiffAction(ctx context.Context, projectRoot string, params GitToolsPa
 	sort.Slice(filtered, func(i, j int) bool {
 		return filtered[i].Timestamp.After(filtered[j].Timestamp)
 	})
+
 	if len(filtered) > limit {
 		filtered = filtered[:limit]
 	}
@@ -554,10 +590,12 @@ func handleDiffAction(ctx context.Context, projectRoot string, params GitToolsPa
 // handleGraphAction returns a minimal branch/task graph: branches with task counts and task IDs per branch.
 func handleGraphAction(ctx context.Context, projectRoot string, params GitToolsParams) (string, error) {
 	store := NewDefaultTaskStore(projectRoot)
+
 	list, err := store.ListTasks(ctx, nil)
 	if err != nil {
 		return "", err
 	}
+
 	tasks := tasksFromPtrs(list)
 
 	branches := getAllBranches(tasks)
@@ -576,12 +614,15 @@ func handleGraphAction(ctx context.Context, projectRoot string, params GitToolsP
 
 	// Build graph nodes: branch -> task IDs (and stats)
 	nodes := make([]map[string]interface{}, 0, len(branches))
+
 	for _, branch := range branches {
 		branchTasks := filterTasksByBranch(tasks, branch)
 		taskIDs := make([]string, 0, len(branchTasks))
+
 		for _, t := range branchTasks {
 			taskIDs = append(taskIDs, t.ID)
 		}
+
 		stats := statistics[branch]
 		nodes = append(nodes, map[string]interface{}{
 			"branch":          branch,
@@ -607,17 +648,19 @@ func handleGraphAction(ctx context.Context, projectRoot string, params GitToolsP
 	return string(data), nil
 }
 
-// handleMergeAction handles the merge action
+// handleMergeAction handles the merge action.
 func handleMergeAction(ctx context.Context, projectRoot string, params GitToolsParams) (string, error) {
 	if params.SourceBranch == "" || params.TargetBranch == "" {
 		return "", fmt.Errorf("source_branch and target_branch required for merge action")
 	}
 
 	store := NewDefaultTaskStore(projectRoot)
+
 	list, err := store.ListTasks(ctx, nil)
 	if err != nil {
 		return "", err
 	}
+
 	tasks := tasksFromPtrs(list)
 
 	conflictStrategy := params.ConflictStrategy
@@ -632,26 +675,31 @@ func handleMergeAction(ctx context.Context, projectRoot string, params GitToolsP
 	return mergeBranches(ctx, store, tasks, params.SourceBranch, params.TargetBranch, conflictStrategy, params.Author)
 }
 
-// handleSetBranchAction handles the set_branch action
+// handleSetBranchAction handles the set_branch action.
 func handleSetBranchAction(ctx context.Context, projectRoot string, params GitToolsParams) (string, error) {
 	if params.TaskID == "" || params.Branch == "" {
 		return "", fmt.Errorf("task_id and branch required for set_branch action")
 	}
 
 	store := NewDefaultTaskStore(projectRoot)
+
 	list, err := store.ListTasks(ctx, nil)
 	if err != nil {
 		return "", err
 	}
+
 	tasks := tasksFromPtrs(list)
 
 	// Find task
 	taskIndex := -1
+
 	var oldTask Todo2Task
+
 	for i, task := range tasks {
 		if task.ID == params.TaskID {
 			taskIndex = i
 			oldTask = task
+
 			break
 		}
 	}
@@ -691,9 +739,10 @@ func handleSetBranchAction(ctx context.Context, projectRoot string, params GitTo
 	return string(data), nil
 }
 
-// previewMerge previews what would happen if merging branches
+// previewMerge previews what would happen if merging branches.
 func previewMerge(tasks []Todo2Task, sourceBranch, targetBranch string) (string, error) {
 	sourceTasks := filterTasksByBranch(tasks, sourceBranch)
+
 	targetTaskMap := make(map[string]Todo2Task)
 	for _, task := range filterTasksByBranch(tasks, targetBranch) {
 		targetTaskMap[task.ID] = task
@@ -737,9 +786,10 @@ func previewMerge(tasks []Todo2Task, sourceBranch, targetBranch string) (string,
 	return string(data), nil
 }
 
-// mergeBranches merges tasks from source branch to target branch
+// mergeBranches merges tasks from source branch to target branch.
 func mergeBranches(ctx context.Context, store database.TaskStore, tasks []Todo2Task, sourceBranch, targetBranch, conflictStrategy, author string) (string, error) {
 	targetTaskMap := make(map[string]int)
+
 	for i, task := range tasks {
 		if getTaskBranch(task) == targetBranch {
 			targetTaskMap[task.ID] = i
@@ -749,6 +799,7 @@ func mergeBranches(ctx context.Context, store database.TaskStore, tasks []Todo2T
 	mergedCount := 0
 	conflictCount := 0
 	newCount := 0
+
 	var modified []*Todo2Task
 
 	// Update tasks in place
@@ -761,17 +812,19 @@ func mergeBranches(ctx context.Context, store database.TaskStore, tasks []Todo2T
 			if targetIndex, exists := targetTaskMap[task.ID]; exists {
 				// Conflict - apply strategy
 				_ = tasks[targetIndex] // Reference target task for conflict resolution
-				if conflictStrategy == "newer" {
+				switch conflictStrategy {
+
+				case "newer":
 					// Use task with newer updated_at timestamp (if available)
 					// For now, prefer source
 					setTaskBranch(task, targetBranch)
 					modified = append(modified, task)
 					mergedCount++
-				} else if conflictStrategy == "source" {
+				case "source":
 					setTaskBranch(task, targetBranch)
 					modified = append(modified, task)
 					mergedCount++
-				} else if conflictStrategy == "target" {
+				case "target":
 					conflictCount++ // Keep target version
 				}
 			} else {
@@ -827,11 +880,13 @@ func stringsEqual(a, b []string) bool {
 	if len(a) != len(b) {
 		return false
 	}
+
 	for i := range a {
 		if a[i] != b[i] {
 			return false
 		}
 	}
+
 	return true
 }
 
@@ -849,7 +904,7 @@ func taskToMap(task Todo2Task) map[string]interface{} {
 	}
 }
 
-// trackTaskUpdate tracks a task update as a commit
+// trackTaskUpdate tracks a task update as a commit.
 func trackTaskUpdate(projectRoot string, taskID string, oldTask, newTask Todo2Task, author, branch string) error {
 	commits, err := loadCommits(projectRoot)
 	if err != nil {

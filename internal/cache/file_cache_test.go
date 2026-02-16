@@ -25,9 +25,11 @@ func TestFileCache_ReadFile(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ReadFile failed: %v", err)
 	}
+
 	if hit {
 		t.Error("Expected cache miss on first read")
 	}
+
 	if string(content) != string(testContent) {
 		t.Errorf("Content mismatch: got %q, want %q", string(content), string(testContent))
 	}
@@ -37,9 +39,11 @@ func TestFileCache_ReadFile(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ReadFile failed: %v", err)
 	}
+
 	if !hit2 {
 		t.Error("Expected cache hit on second read")
 	}
+
 	if string(content2) != string(testContent) {
 		t.Errorf("Content mismatch: got %q, want %q", string(content2), string(testContent))
 	}
@@ -72,6 +76,7 @@ func TestFileCache_InvalidationOnModification(t *testing.T) {
 
 	// Modify file
 	newContent := []byte("modified content")
+
 	err = os.WriteFile(testFile, newContent, 0644)
 	if err != nil {
 		t.Fatalf("Failed to modify test file: %v", err)
@@ -85,9 +90,11 @@ func TestFileCache_InvalidationOnModification(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ReadFile failed: %v", err)
 	}
+
 	if hit3 {
 		t.Error("Expected cache miss after file modification")
 	}
+
 	if string(content3) != string(newContent) {
 		t.Errorf("Content mismatch: got %q, want %q", string(content3), string(newContent))
 	}
