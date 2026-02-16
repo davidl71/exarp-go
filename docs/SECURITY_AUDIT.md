@@ -112,7 +112,7 @@ absPath = filepath.Join(projectRoot, path)
 ### Phase 2: Rate Limiting (Next)
 - [ ] Create `internal/security/ratelimit.go`
 - [ ] Implement sliding window rate limiter
-- [ ] ~~Add middleware to framework~~ — **Future improvement** *(T-274 removed)*: integrate middleware (e.g. rate limiting, logging) into exarp-go framework. mcp-go-core has middleware support; defer until HTTP/SSE or multi-transport deployment. See `docs/RATE_LIMITING_TASKS.md`.
+- [x] ~~Add middleware to framework~~ — **Future improvement** *(T-274 removed)*: integrate middleware (e.g. rate limiting, logging) into exarp-go framework. mcp-go-core has middleware support; defer until HTTP/SSE or multi-transport deployment. See `docs/RATE_LIMITING_TASKS.md`.
 - [ ] Configure default limits
 - [ ] Add per-tool limits
 - [ ] Add tests for rate limiting
