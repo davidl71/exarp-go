@@ -112,6 +112,10 @@ func SessionPrimeResultToMap(pb *proto.SessionPrimeResult) map[string]interface{
 		out["status_context"] = pb.StatusContext
 	}
 
+	if pb.CursorCliSuggestion != "" {
+		out["cursor_cli_suggestion"] = pb.CursorCliSuggestion
+	}
+
 	return out
 }
 
@@ -307,6 +311,16 @@ func handleSessionPrime(ctx context.Context, params map[string]interface{}) ([]f
 		}
 	}
 
+	var suggestedNext []map[string]interface{}
+	if includeTasks && tasksErr == nil {
+		suggestedNext = getSuggestedNextTasksFromTasks(tasks, 10)
+		if len(suggestedNext) > 0 {
+			if cli := buildCursorCLISuggestion(suggestedNext[0]); cli != "" {
+				pb.CursorCliSuggestion = cli
+			}
+		}
+	}
+
 	result := SessionPrimeResultToMap(pb)
 
 	if includeTasks {
@@ -314,13 +328,8 @@ func handleSessionPrime(ctx context.Context, params map[string]interface{}) ([]f
 			result["tasks"] = map[string]interface{}{"error": "Failed to load tasks"}
 		} else {
 			result["tasks"] = getTasksSummaryFromTasks(tasks)
-			suggestedNext := getSuggestedNextTasksFromTasks(tasks, 10)
-
 			if len(suggestedNext) > 0 {
 				result["suggested_next"] = suggestedNext
-				if cli := buildCursorCLISuggestion(suggestedNext[0]); cli != "" {
-					result["cursor_cli_suggestion"] = cli
-				}
 			}
 		}
 	}
@@ -600,6 +609,15 @@ func handleSessionResume(ctx context.Context, projectRoot string) ([]framework.T
 		"handoff":        handoffMap,
 		"from_same_host": handoffHost == hostname,
 		"message":        fmt.Sprintf("Resuming session. Latest handoff from %s", handoffHost),
+	}
+
+	// Add cursor_cli_suggestion for first suggested task (same as prime)
+	if suggested := GetSuggestedNextTasks(projectRoot, 1); len(suggested) > 0 {
+		t := suggested[0]
+		taskMap := map[string]interface{}{"id": t.ID, "content": t.Content}
+		if cli := buildCursorCLISuggestion(taskMap); cli != "" {
+			result["cursor_cli_suggestion"] = cli
+		}
 	}
 
 	return mcpresponse.FormatResult(result, "")
