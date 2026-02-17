@@ -673,13 +673,13 @@ func registerBatch2Tools(server framework.MCPServer) error {
 	// T-34: task_workflow
 	if err := server.RegisterTool(
 		"task_workflow",
-		"[HINT: Task workflow. action=sync|approve|clarify|clarity|cleanup|create|fix_dates|fix_empty_descriptions|fix_invalid_ids|link_planning|request_approval|sync_approvals|apply_approval_result|sanity_check|sync_from_plan|sync_plan_status. Manage task lifecycle. ⚠️ CRITICAL: PREFER convenience commands (exarp-go task ...) for common operations. FALLBACK to this tool for advanced operations (clarity, cleanup, complex filters). NEVER edit .todo2/state.todo2.json directly. Use action=approve with task_ids for batch updates. Use action=create to create new tasks. Use action=link_planning with task_id/task_ids and planning_doc/epic_id to set planning hints on Todo or In Progress tasks only. Sync is SQLite↔JSON only; external sync is a future nice-to-have (ignored if passed).]",
+		"[HINT: Task workflow. action=sync|approve|clarify|clarity|cleanup|create|fix_dates|fix_empty_descriptions|fix_invalid_ids|link_planning|request_approval|sync_approvals|apply_approval_result|sanity_check|sync_from_plan|sync_plan_status|summarize|run_with_ai. Manage task lifecycle. ⚠️ CRITICAL: PREFER convenience commands (exarp-go task ...) for common operations. FALLBACK to this tool for advanced operations (clarity, cleanup, complex filters, summarize, run_with_ai). NEVER edit .todo2/state.todo2.json directly. Use action=approve with task_ids for batch updates. Use action=create to create new tasks. Use action=link_planning with task_id/task_ids and planning_doc/epic_id to set planning hints on Todo or In Progress tasks only. Use action=summarize with task_id (and optional local_ai_backend) to generate an AI summary and save as comment. Use action=run_with_ai with task_id (and optional local_ai_backend, instruction) to run a task through a local LLM and get implementation guidance. Sync is SQLite↔JSON only; external sync is a future nice-to-have (ignored if passed).]",
 		framework.ToolSchema{
 			Type: "object",
 			Properties: map[string]interface{}{
 				"action": map[string]interface{}{
 					"type":    "string",
-					"enum":    []string{"sync", "approve", "clarify", "clarity", "cleanup", "create", "delete", "fix_dates", "fix_empty_descriptions", "fix_invalid_ids", "link_planning", "request_approval", "sync_approvals", "apply_approval_result", "sanity_check", "sync_from_plan", "sync_plan_status", "update"},
+					"enum":    []string{"sync", "approve", "clarify", "clarity", "cleanup", "create", "delete", "fix_dates", "fix_empty_descriptions", "fix_invalid_ids", "link_planning", "request_approval", "sync_approvals", "apply_approval_result", "sanity_check", "sync_from_plan", "sync_plan_status", "update", "summarize", "run_with_ai"},
 					"default": "sync",
 				},
 				"dry_run": map[string]interface{}{
@@ -797,8 +797,17 @@ func registerBatch2Tools(server framework.MCPServer) error {
 				},
 				"local_ai_backend": map[string]interface{}{
 					"type":        "string",
-					"description": "For create: preferred local LLM for estimation (fm|mlx|ollama). Stored in task metadata as preferred_backend.",
+					"description": "For create/update: preferred local LLM for estimation (fm|mlx|ollama). Stored in task metadata as preferred_backend. For summarize/run_with_ai: overrides task metadata to select backend.",
 					"enum":        []string{"", "fm", "mlx", "ollama"},
+				},
+				"instruction": map[string]interface{}{
+					"type":        "string",
+					"description": "For run_with_ai: custom instruction/question for the LLM about the task. Defaults to implementation plan + risks + next steps.",
+				},
+				"save_comment": map[string]interface{}{
+					"type":        "boolean",
+					"default":     true,
+					"description": "For summarize: when true (default), save generated summary as a task comment.",
 				},
 				"planning_doc": map[string]interface{}{
 					"type":        "string",
