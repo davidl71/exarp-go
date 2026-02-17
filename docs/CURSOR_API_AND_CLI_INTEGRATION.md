@@ -179,7 +179,7 @@ exarp-go cursor run -p "Review Todo2 backlog and suggest next task" --no-interac
 
 ---
 
-### 3.3 Automation tool: optional “cursor agent” step (medium value) — **Task:** T-1771164549862
+### 3.3 Automation tool: optional “cursor agent” step (medium value) — **Task:** T-1771164549862 ✅ Implemented
 
 **Idea:** Allow automation (e.g. daily/sprint) to optionally delegate one step to the Cursor CLI agent with a generated prompt (e.g. “Review and suggest next actions for these tasks”).
 
