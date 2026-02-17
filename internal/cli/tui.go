@@ -548,21 +548,75 @@ func (m model) taskParentMap() map[string]string {
 	return out
 }
 
-// isDescendantOfCollapsed returns true if taskID has an ancestor in m.collapsedTaskIDs.
-func (m model) isDescendantOfCollapsed(taskID string, parentOf map[string]string) bool {
-	for id := parentOf[taskID]; id != ""; id = parentOf[id] {
-		if _, ok := m.collapsedTaskIDs[id]; ok {
-			return true
+// taskAncestorIDs returns for each task ID the set of ancestor IDs (parent + dependencies).
+// Used to hide both parent_id descendants and dependency dependents when a node is collapsed.
+func (m model) taskAncestorIDs() map[string][]string {
+	out := make(map[string][]string, len(m.tasks))
+	taskIDs := make(map[string]struct{}, len(m.tasks))
+	for _, t := range m.tasks {
+		if t == nil {
+			continue
+		}
+		taskIDs[t.ID] = struct{}{}
+	}
+	for _, t := range m.tasks {
+		if t == nil {
+			continue
+		}
+		var ancestors []string
+		if t.ParentID != "" {
+			if _, ok := taskIDs[t.ParentID]; ok {
+				ancestors = append(ancestors, t.ParentID)
+			}
+		}
+		for _, depID := range t.Dependencies {
+			if _, ok := taskIDs[depID]; ok {
+				ancestors = append(ancestors, depID)
+			}
+		}
+		if len(ancestors) > 0 {
+			out[t.ID] = ancestors
+		}
+	}
+	return out
+}
+
+// isDescendantOfCollapsed returns true if taskID has an ancestor in m.collapsedTaskIDs,
+// following both parent_id and dependency links (so collapsing hides parent children and dependents).
+func (m model) isDescendantOfCollapsed(taskID string, ancestorIDs map[string][]string) bool {
+	seen := make(map[string]struct{})
+	var queue []string
+	queue = append(queue, taskID)
+	for len(queue) > 0 {
+		id := queue[0]
+		queue = queue[1:]
+		if _, ok := seen[id]; ok {
+			continue
+		}
+		seen[id] = struct{}{}
+		for _, anc := range ancestorIDs[id] {
+			if _, collapsed := m.collapsedTaskIDs[anc]; collapsed {
+				return true
+			}
+			queue = append(queue, anc)
 		}
 	}
 	return false
 }
 
-// taskHasChildren returns true if at least one task has ParentID == taskID.
+// taskHasChildren returns true if at least one task has ParentID == taskID or taskID in Dependencies.
 func (m model) taskHasChildren(taskID string) bool {
 	for _, t := range m.tasks {
+		if t == nil {
+			continue
+		}
 		if t.ParentID == taskID {
 			return true
+		}
+		for _, depID := range t.Dependencies {
+			if depID == taskID {
+				return true
+			}
 		}
 	}
 	return false
@@ -595,14 +649,17 @@ func (m model) visibleIndices() []int {
 		}
 		base = out
 	}
-	// Hide descendants of collapsed tasks
+	// Hide descendants of collapsed tasks (parent_id children and dependency dependents)
 	if len(m.collapsedTaskIDs) == 0 {
 		return base
 	}
-	parentOf := m.taskParentMap()
+	ancestorIDs := m.taskAncestorIDs()
 	var final []int
 	for _, i := range base {
-		if !m.isDescendantOfCollapsed(m.tasks[i].ID, parentOf) {
+		if m.tasks[i] == nil {
+			continue
+		}
+		if !m.isDescendantOfCollapsed(m.tasks[i].ID, ancestorIDs) {
 			final = append(final, i)
 		}
 	}
