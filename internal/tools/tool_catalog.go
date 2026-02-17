@@ -256,9 +256,9 @@ func GetToolCatalog() map[string]ToolCatalogEntry {
 		},
 		"session": {
 			Tool:             "session",
-			Hint:             "Session. action=prime|handoff|prompts|assignee. Prime/handoff return cursor_cli_suggestion for run-in-Cursor or scripts.",
+			Hint:             "Session. action=prime|handoff|prompts|assignee. Prime/handoff return suggested_next_action (next task hint) and suggested_next (ordered task list).",
 			Category:         "Utilities",
-			Description:      "Session management: prime, handoff, prompts, assignee. Prime and handoff (end) include cursor_cli_suggestion—ready-to-run Cursor CLI command for the first suggested task—for one-click or script integration.",
+			Description:      "Session management: prime, handoff, prompts, assignee. Prime and handoff include suggested_next_action—a hint for the first suggested task—and the full suggested_next list in dependency order.",
 			RecommendedModel: "claude-haiku",
 		},
 		"infer_session_mode": {
