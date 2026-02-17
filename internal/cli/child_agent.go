@@ -16,6 +16,10 @@ import (
 	"strings"
 )
 
+// DefaultAgentCommand is the default command used to run the Cursor agent (exec subcommand).
+// Override with EXARP_AGENT_CMD (e.g. "cursor agent" or "agent").
+const DefaultAgentCommand = "cursor agent"
+
 // JobOutputMsg is sent when a non-interactive child agent completes (for background jobs output capture).
 type JobOutputMsg struct {
 	Pid      int
@@ -43,14 +47,74 @@ type ChildAgentRunResult struct {
 	Pid      int    // Process ID of launched agent (0 if not available)
 }
 
-// AgentBinary returns the path to the Cursor CLI "agent" binary, or "" if not found.
-func AgentBinary() string {
-	path, err := exec.LookPath("agent")
-	if err != nil {
-		return ""
+// agentCommand returns the executable path and base args for the agent command (e.g. "agent" or "cursor" + ["agent"]).
+// Uses EXARP_AGENT_CMD if set. Otherwise tries "agent" on PATH (standalone Cursor CLI), then "cursor agent".
+// Returns ("", nil) if not found.
+func agentCommand() (execPath string, baseArgs []string) {
+	raw := os.Getenv("EXARP_AGENT_CMD")
+	if raw != "" {
+		parts := strings.Fields(strings.TrimSpace(raw))
+		if len(parts) == 0 {
+			return "", nil
+		}
+		path, err := exec.LookPath(parts[0])
+		if err != nil {
+			return "", nil
+		}
+		if len(parts) > 1 {
+			return path, parts[1:]
+		}
+		return path, nil
 	}
+	// Default: try standalone Cursor CLI binary "agent" first, then "cursor agent"
+	if path, err := exec.LookPath("agent"); err == nil {
+		return path, nil
+	}
+	parts := strings.Fields(strings.TrimSpace(DefaultAgentCommand))
+	if len(parts) == 0 {
+		return "", nil
+	}
+	path, err := exec.LookPath(parts[0])
+	if err != nil {
+		return "", nil
+	}
+	if len(parts) > 1 {
+		return path, parts[1:]
+	}
+	return path, nil
+}
 
+// AgentBinary returns the path to the agent executable, or "" if not found.
+// Prefer agentCommand() when building the full command (cursor agent vs agent).
+func AgentBinary() string {
+	path, _ := agentCommand()
 	return path
+}
+
+// agentShellCommand returns the agent command as a single string for shell use (e.g. "cursor agent" or "cursor agent --approve-mcps").
+func agentShellCommand() string {
+	raw := os.Getenv("EXARP_AGENT_CMD")
+	if raw == "" {
+		raw = DefaultAgentCommand
+	}
+	s := strings.TrimSpace(raw)
+	extra := agentExtraArgs()
+	if len(extra) > 0 {
+		s = s + " " + strings.Join(extra, " ")
+	}
+	return s
+}
+
+// agentExtraArgs returns extra flags to pass to the agent (e.g. --approve-mcps).
+// Set EXARP_AGENT_APPROVE_MCPS=1 to add --approve-mcps, or EXARP_AGENT_EXTRA_ARGS="--flag1 --flag2" for custom flags.
+func agentExtraArgs() []string {
+	if os.Getenv("EXARP_AGENT_APPROVE_MCPS") != "" && os.Getenv("EXARP_AGENT_APPROVE_MCPS") != "0" {
+		return []string{"--approve-mcps"}
+	}
+	if raw := os.Getenv("EXARP_AGENT_EXTRA_ARGS"); raw != "" {
+		return strings.Fields(strings.TrimSpace(raw))
+	}
+	return nil
 }
 
 // RunChildAgent starts the Cursor CLI agent in projectRoot with the given prompt.
@@ -82,10 +146,10 @@ func runChildAgent(projectRoot, prompt string, interactive bool) (result ChildAg
 		return result
 	}
 
-	agentPath := AgentBinary()
-	if agentPath == "" {
+	execPath, baseArgs := agentCommand()
+	if execPath == "" {
 		result.Launched = false
-		result.Message = "agent not on PATH (install Cursor CLI: https://cursor.com/docs/cli/overview)"
+		result.Message = "agent command not on PATH (default: cursor agent; set EXARP_AGENT_CMD or install Cursor CLI: https://cursor.com/docs/cli/overview)"
 
 		return result
 	}
@@ -102,12 +166,15 @@ func runChildAgent(projectRoot, prompt string, interactive bool) (result ChildAg
 	}
 
 	ctx := context.Background()
-	var cmd *exec.Cmd
+	extra := agentExtraArgs()
+	var args []string
+	args = append(append(args, baseArgs...), extra...)
 	if interactive {
-		cmd = exec.CommandContext(ctx, agentPath, prompt)
+		args = append(args, prompt)
 	} else {
-		cmd = exec.CommandContext(ctx, agentPath, "-p", prompt)
+		args = append(args, "-p", prompt)
 	}
+	cmd := exec.CommandContext(ctx, execPath, args...)
 	cmd.Dir = projectRoot
 	cmd.Stdin = nil
 	cmd.Stdout = nil
@@ -144,7 +211,7 @@ func runChildAgent(projectRoot, prompt string, interactive bool) (result ChildAg
 }
 
 // runInNewTerminal opens a new Terminal/iTerm tab and runs the agent interactively (macOS).
-// Uses a temp file for the prompt to avoid shell quoting issues. Prefers iTerm tab when running in iTerm.
+// Uses a temp file for the prompt to avoid shell quoting issues. Tries iTerm first (new tab or window); falls back to Terminal.app if iTerm fails or is not available.
 func runInNewTerminal(projectRoot, prompt string) (result ChildAgentRunResult) {
 	tmp, err := os.CreateTemp("", "exarp-agent-prompt-*.txt")
 	if err != nil {
@@ -179,14 +246,16 @@ func runInNewTerminal(projectRoot, prompt string) (result ChildAgentRunResult) {
 	}
 
 	// Fallback to Terminal.app
+	agentCmd := agentShellCommand()
 	script := `on run argv
   set projectRoot to item 1 of argv
   set promptPath to item 2 of argv
+  set agentCmd to item 3 of argv
   set promptText to read (POSIX file promptPath) as text
-  tell application "Terminal" to do script "cd " & quoted form of projectRoot & " && agent " & quoted form of promptText
+  tell application "Terminal" to do script "cd " & quoted form of projectRoot & " && " & agentCmd & " " & quoted form of promptText
   tell application "Terminal" to activate
 end run`
-	cmd := exec.Command("osascript", "-e", script, "--", projectRoot, tmpPath)
+	cmd := exec.Command("osascript", "-e", script, "--", projectRoot, tmpPath, agentCmd)
 	cmd.Env = os.Environ()
 	if err := cmd.Run(); err != nil {
 		result.Launched = false
@@ -205,21 +274,24 @@ end run`
 	return result
 }
 
-// runIniTermTab opens a new iTerm tab and runs the agent. Returns true if iTerm was used.
+// runIniTermTab opens a new iTerm tab (or window if iTerm had no windows) and runs the agent. Returns true if iTerm was used.
+// Always attempts iTerm so that launching from Cursor Terminal or other non-iTerm terminals still opens iTerm when available.
 func runIniTermTab(projectRoot, promptPath string) bool {
-	if os.Getenv("ITERM_SESSION_ID") == "" && os.Getenv("TERM_PROGRAM") != "iTerm.app" {
-		return false
-	}
+	agentCmd := agentShellCommand()
 	script := `on run argv
   set projectRoot to item 1 of argv
   set promptPath to item 2 of argv
+  set agentCmd to item 3 of argv
   tell application "iTerm" to activate
-  tell current window
-    set tb to create tab with default profile
-  end tell
-  tell current session of tb to write text "cd " & quoted form of projectRoot & " && agent \"$(cat " & quoted form of promptPath & ")\""
+  if (count of windows) is 0 then
+    set w to (create window with default profile)
+  else
+    set w to current window
+  end if
+  tell w to set tb to (create tab with default profile)
+  tell current session of tb to write text "cd " & quoted form of projectRoot & " && " & agentCmd & " \"$(cat " & quoted form of promptPath & ")\""
 end run`
-	cmd := exec.Command("osascript", "-e", script, "--", projectRoot, promptPath)
+	cmd := exec.Command("osascript", "-e", script, "--", projectRoot, promptPath, agentCmd)
 	cmd.Env = os.Environ()
 	return cmd.Run() == nil
 }
@@ -234,11 +306,11 @@ func runChildAgentWithCapture(projectRoot, prompt string) (result ChildAgentRunR
 		return result, ch
 	}
 
-	agentPath := AgentBinary()
-	if agentPath == "" {
+	execPath, baseArgs := agentCommand()
+	if execPath == "" {
 		result.Launched = false
-		result.Message = "agent not on PATH (install Cursor CLI: https://cursor.com/docs/cli/overview)"
-		ch <- JobOutputMsg{Err: fmt.Errorf("agent not on PATH")}
+		result.Message = "agent command not on PATH (default: cursor agent; set EXARP_AGENT_CMD or install Cursor CLI)"
+		ch <- JobOutputMsg{Err: fmt.Errorf("agent command not on PATH")}
 		return result, ch
 	}
 
@@ -250,7 +322,9 @@ func runChildAgentWithCapture(projectRoot, prompt string) (result ChildAgentRunR
 	}
 
 	ctx := context.Background()
-	cmd := exec.CommandContext(ctx, agentPath, "-p", prompt)
+	extra := agentExtraArgs()
+	args := append(append(append([]string{}, baseArgs...), extra...), "-p", prompt)
+	cmd := exec.CommandContext(ctx, execPath, args...)
 	cmd.Dir = projectRoot
 	cmd.Stdin = nil
 

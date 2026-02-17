@@ -1255,7 +1255,7 @@ func registerBatch3Tools(server framework.MCPServer) error {
 	// T-43: session
 	if err := server.RegisterTool(
 		"session",
-		"[HINT: Session. action=prime|handoff|prompts|assignee. Use ask_preferences=true for MCP elicitation at prime. Unified session management tools.]",
+		"[HINT: Session. action=prime|handoff|prompts|assignee. Use ask_preferences=true for MCP elicitation at prime. Prime and handoff return cursor_cli_suggestion (ready-to-run Cursor CLI command for first suggested task) for run-in-Cursor or script integration. Unified session management tools.]",
 		framework.ToolSchema{
 			Type: "object",
 			Properties: map[string]interface{}{
