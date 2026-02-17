@@ -275,10 +275,31 @@ end run`
 }
 
 // runIniTermTab opens a new iTerm tab (or window if iTerm had no windows) and runs the agent. Returns true if iTerm was used.
-// Always attempts iTerm so that launching from Cursor Terminal or other non-iTerm terminals still opens iTerm when available.
+// If ITERM_SESSION_ID is set (we are already inside an iTerm session), uses current window directly to avoid focus-stealing
+// and new-window creation. Otherwise activates iTerm normally (e.g. launching from Cursor Terminal).
 func runIniTermTab(projectRoot, promptPath string) bool {
 	agentCmd := agentShellCommand()
-	script := `on run argv
+
+	var script string
+	if os.Getenv("ITERM_SESSION_ID") != "" {
+		// Already inside iTerm — use current window, no activate needed.
+		script = `on run argv
+  set projectRoot to item 1 of argv
+  set promptPath to item 2 of argv
+  set agentCmd to item 3 of argv
+  tell application "iTerm"
+    if (count of windows) is 0 then
+      set w to (create window with default profile)
+    else
+      set w to current window
+    end if
+    tell w to set tb to (create tab with default profile)
+    tell current session of tb to write text "cd " & quoted form of projectRoot & " && " & agentCmd & " \"$(cat " & quoted form of promptPath & ")\""
+  end tell
+end run`
+	} else {
+		// Not inside iTerm — activate it (may open a new window if iTerm wasn't running).
+		script = `on run argv
   set projectRoot to item 1 of argv
   set promptPath to item 2 of argv
   set agentCmd to item 3 of argv
@@ -291,6 +312,8 @@ func runIniTermTab(projectRoot, promptPath string) bool {
   tell w to set tb to (create tab with default profile)
   tell current session of tb to write text "cd " & quoted form of projectRoot & " && " & agentCmd & " \"$(cat " & quoted form of promptPath & ")\""
 end run`
+	}
+
 	cmd := exec.Command("osascript", "-e", script, "--", projectRoot, promptPath, agentCmd)
 	cmd.Env = os.Environ()
 	return cmd.Run() == nil
