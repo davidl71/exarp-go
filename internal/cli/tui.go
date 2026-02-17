@@ -115,6 +115,38 @@ func truncatePad(s string, width int) string {
 	return s + strings.Repeat(" ", width-len(s))
 }
 
+// indentForTask returns the indent string for hierarchical display (by parent/dependency depth).
+// Uses hierarchyDepthByID so indent stays correct after any sort order.
+func (m model) indentForTask(realIdx int) string {
+	if m.hierarchyDepthByID == nil || realIdx < 0 || realIdx >= len(m.tasks) {
+		return ""
+	}
+	task := m.tasks[realIdx]
+	if task == nil {
+		return ""
+	}
+	d := m.hierarchyDepthByID[task.ID]
+	if d <= 0 {
+		return ""
+	}
+	return strings.Repeat("  ", d)
+}
+
+// treeMarkerForTask returns a prefix for tasks that have children: "▶ " when collapsed, "▼ " when expanded, "" otherwise.
+func (m model) treeMarkerForTask(realIdx int) string {
+	if realIdx < 0 || realIdx >= len(m.tasks) {
+		return ""
+	}
+	task := m.tasks[realIdx]
+	if task == nil || !m.taskHasChildren(task.ID) {
+		return ""
+	}
+	if _, ok := m.collapsedTaskIDs[task.ID]; ok {
+		return "▶ "
+	}
+	return "▼ "
+}
+
 // wordWrap wraps s to at most width runes per line, breaking at spaces when possible.
 func wordWrap(s string, width int) string {
 	if width <= 0 {
@@ -240,9 +272,13 @@ type model struct {
 	// Task detail overlay (pressing 's' on a task)
 	taskDetailTask *database.Todo2Task
 
-	// Sort: order (id|status|priority|updated), ascending
-	sortOrder string
-	sortAsc   bool
+	// Sort: order (id|status|priority|updated|hierarchy), ascending
+	sortOrder       string
+	sortAsc         bool
+	hierarchyOrder    []int            // display order when sortOrder==hierarchy
+	hierarchyDepth    map[int]int      // task index -> indent level (0=root), used for hierarchy order
+	hierarchyDepthByID map[string]int // task ID -> indent level, for indent regardless of sort
+	collapsedTaskIDs  map[string]struct{} // task IDs that are collapsed (their descendants hidden in tree)
 
 	// Search/filter: / to open, n/N next/prev match
 	searchQuery     string
@@ -366,7 +402,7 @@ func initialModel(server framework.MCPServer, status string, projectRoot, projec
 		configSaveSuccess: false,
 		scorecardLoading:  false,
 		taskDetailTask:    nil,
-		sortOrder:         "id",
+		sortOrder:         "hierarchy",
 		sortAsc:           true,
 		searchQuery:       "",
 		searchMode:        false,
@@ -377,12 +413,13 @@ func initialModel(server framework.MCPServer, status string, projectRoot, projec
 		handoffCursor:     0,
 		handoffSelected:   make(map[int]struct{}),
 		handoffDetailIndex: -1,
-		handoffActionMsg:  "",
-		waveDetailLevel:   -1,
-		waveCursor:        0,
-		jobs:              nil,
-		jobsCursor:        0,
-		jobsDetailIndex:   -1,
+		handoffActionMsg:   "",
+		waveDetailLevel:    -1,
+		waveCursor:         0,
+		jobs:               nil,
+		jobsCursor:         0,
+		jobsDetailIndex:    -1,
+		collapsedTaskIDs:   make(map[string]struct{}),
 	}
 }
 
@@ -415,19 +452,161 @@ func sortTasksBy(tasks []*database.Todo2Task, order string, asc bool) {
 	sort.Slice(tasks, less)
 }
 
-// visibleIndices returns the indices of tasks to display (filtered by search or all).
+// priorityOrderForSort returns sort key for priority (lower = higher priority).
+func priorityOrderForSort(p string) int {
+	switch strings.ToLower(p) {
+	case "critical":
+		return 0
+	case "high":
+		return 1
+	case "medium":
+		return 2
+	case "low":
+		return 3
+	default:
+		return 4
+	}
+}
+
+// computeHierarchyOrder builds hierarchyOrder and hierarchyDepth from task graph (dependencies + parent_id).
+func (m *model) computeHierarchyOrder() {
+	if len(m.tasks) == 0 {
+		m.hierarchyOrder = nil
+		m.hierarchyDepth = nil
+		m.hierarchyDepthByID = nil
+		return
+	}
+	taskList := make([]tools.Todo2Task, 0, len(m.tasks))
+	for _, p := range m.tasks {
+		if p != nil {
+			taskList = append(taskList, *p)
+		}
+	}
+	tg, err := tools.BuildTaskGraph(taskList)
+	if err != nil {
+		m.hierarchyOrder = nil
+		m.hierarchyDepth = nil
+		m.hierarchyDepthByID = nil
+		return
+	}
+	levels := tools.GetTaskLevels(tg)
+	m.hierarchyDepthByID = make(map[string]int)
+	for id, level := range levels {
+		m.hierarchyDepthByID[id] = level
+	}
+	type item struct {
+		idx      int
+		level    int
+		priority string
+		id       string
+	}
+	var items []item
+	for i, p := range m.tasks {
+		if p == nil {
+			continue
+		}
+		level := levels[p.ID]
+		items = append(items, item{i, level, p.Priority, p.ID})
+	}
+	asc := m.sortAsc
+	sort.Slice(items, func(i, j int) bool {
+		if items[i].level != items[j].level {
+			if asc {
+				return items[i].level < items[j].level
+			}
+			return items[i].level > items[j].level
+		}
+		pi := priorityOrderForSort(items[i].priority)
+		pj := priorityOrderForSort(items[j].priority)
+		if pi != pj {
+			if asc {
+				return pi < pj
+			}
+			return pi > pj
+		}
+		if asc {
+			return items[i].id < items[j].id
+		}
+		return items[i].id > items[j].id
+	})
+	m.hierarchyOrder = make([]int, len(items))
+	m.hierarchyDepth = make(map[int]int)
+	for i, it := range items {
+		m.hierarchyOrder[i] = it.idx
+		m.hierarchyDepth[it.idx] = it.level
+	}
+}
+
+// taskParentMap returns task ID -> parent task ID for all tasks that have a parent.
+func (m model) taskParentMap() map[string]string {
+	out := make(map[string]string, len(m.tasks))
+	for _, t := range m.tasks {
+		if t.ParentID != "" {
+			out[t.ID] = t.ParentID
+		}
+	}
+	return out
+}
+
+// isDescendantOfCollapsed returns true if taskID has an ancestor in m.collapsedTaskIDs.
+func (m model) isDescendantOfCollapsed(taskID string, parentOf map[string]string) bool {
+	for id := parentOf[taskID]; id != ""; id = parentOf[id] {
+		if _, ok := m.collapsedTaskIDs[id]; ok {
+			return true
+		}
+	}
+	return false
+}
+
+// taskHasChildren returns true if at least one task has ParentID == taskID.
+func (m model) taskHasChildren(taskID string) bool {
+	for _, t := range m.tasks {
+		if t.ParentID == taskID {
+			return true
+		}
+	}
+	return false
+}
+
+// visibleIndices returns the indices of tasks to display (filtered by search, collapse, or all).
 func (m model) visibleIndices() []int {
 	if len(m.tasks) == 0 {
 		return nil
 	}
+	var base []int
+	if m.sortOrder == "hierarchy" && len(m.hierarchyOrder) > 0 {
+		base = m.hierarchyOrder
+	} else {
+		base = make([]int, len(m.tasks))
+		for i := range m.tasks {
+			base[i] = i
+		}
+	}
 	if m.filteredIndices != nil {
-		return m.filteredIndices
+		filterSet := make(map[int]struct{})
+		for _, i := range m.filteredIndices {
+			filterSet[i] = struct{}{}
+		}
+		var out []int
+		for _, i := range base {
+			if _, ok := filterSet[i]; ok {
+				out = append(out, i)
+			}
+		}
+		base = out
 	}
-	idx := make([]int, len(m.tasks))
-	for i := range m.tasks {
-		idx[i] = i
+	// Hide descendants of collapsed tasks
+	if len(m.collapsedTaskIDs) == 0 {
+		return base
 	}
-	return idx
+	parentOf := m.taskParentMap()
+	var final []int
+	for _, i := range base {
+		if !m.isDescendantOfCollapsed(m.tasks[i].ID, parentOf) {
+			final = append(final, i)
+		}
+	}
+	return final
 }
 
 // realIndexAt returns the index into m.tasks for the current cursor position.
@@ -753,7 +932,12 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 		m.tasks = msg.tasks
-		sortTasksBy(m.tasks, m.sortOrder, m.sortAsc)
+		m.computeHierarchyOrder() // always compute so hierarchy depth/order available
+		if m.sortOrder == "hierarchy" && len(m.hierarchyOrder) > 0 {
+			// use hierarchy order (parent then children, with depth)
+		} else {
+			sortTasksBy(m.tasks, m.sortOrder, m.sortAsc)
+		}
 		if m.searchQuery != "" {
 			m.filteredIndices = m.computeFilteredIndices()
 		} else {
@@ -1316,7 +1500,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, nil
 
 		case "o":
-			// Cycle sort order (id → status → priority → updated → id)
+			// Cycle sort order (id → status → priority → updated → hierarchy → id)
 			if m.mode == "tasks" && len(m.tasks) > 0 {
 				switch m.sortOrder {
 				case "id":
@@ -1325,10 +1509,16 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.sortOrder = "priority"
 				case "priority":
 					m.sortOrder = "updated"
+				case "updated":
+					m.sortOrder = "hierarchy"
 				default:
 					m.sortOrder = "id"
 				}
-				sortTasksBy(m.tasks, m.sortOrder, m.sortAsc)
+				if m.sortOrder == "hierarchy" {
+					m.computeHierarchyOrder()
+				} else {
+					sortTasksBy(m.tasks, m.sortOrder, m.sortAsc)
+				}
 				if m.cursor >= len(m.visibleIndices()) {
 					m.cursor = len(m.visibleIndices()) - 1
 				}
@@ -1339,7 +1529,11 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			// Toggle sort direction (asc ↔ desc)
 			if m.mode == "tasks" && len(m.tasks) > 0 {
 				m.sortAsc = !m.sortAsc
-				sortTasksBy(m.tasks, m.sortOrder, m.sortAsc)
+				if m.sortOrder == "hierarchy" {
+					m.computeHierarchyOrder()
+				} else {
+					sortTasksBy(m.tasks, m.sortOrder, m.sortAsc)
+				}
 			}
 			return m, nil
 
@@ -1366,6 +1560,24 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.mode == "tasks" && m.searchQuery != "" {
 				if m.cursor > 0 {
 					m.cursor--
+				}
+			}
+			return m, nil
+
+		case "tab", "\t":
+			// In tasks mode: collapse/expand tree node under cursor (if it has children)
+			if m.mode == "tasks" {
+				vis := m.visibleIndices()
+				if len(vis) > 0 && m.cursor < len(vis) {
+					realIdx := m.realIndexAt(m.cursor)
+					task := m.tasks[realIdx]
+					if task != nil && m.taskHasChildren(task.ID) {
+						if _, ok := m.collapsedTaskIDs[task.ID]; ok {
+							delete(m.collapsedTaskIDs, task.ID)
+						} else {
+							m.collapsedTaskIDs[task.ID] = struct{}{}
+						}
+					}
 				}
 			}
 			return m, nil
@@ -1651,6 +1863,8 @@ func (m model) viewTasks() string {
 	statusBar.WriteString(" sort  ")
 	statusBar.WriteString(helpStyle.Render("Space"))
 	statusBar.WriteString(" select  ")
+	statusBar.WriteString(helpStyle.Render("Tab"))
+	statusBar.WriteString(" collapse  ")
 	statusBar.WriteString(helpStyle.Render("s"))
 	statusBar.WriteString(" details  ")
 	statusBar.WriteString(helpStyle.Render("r"))
@@ -1691,6 +1905,8 @@ func (m model) renderNarrowTaskList(b *strings.Builder, width int) {
 	vis := m.visibleIndices()
 	for idx, realIdx := range vis {
 		task := m.tasks[realIdx]
+		indent := m.indentForTask(realIdx)
+		marker := m.treeMarkerForTask(realIdx)
 		cursor := " "
 		if m.cursor == idx {
 			cursor = ">"
@@ -1699,8 +1915,8 @@ func (m model) renderNarrowTaskList(b *strings.Builder, width int) {
 			}
 		}
 
-		// Minimal info: ID, status, truncated content
-		line := fmt.Sprintf("%s %s", cursor, task.ID)
+		// Minimal info: indent + tree marker + cursor + ID, status, truncated content
+		line := fmt.Sprintf("%s%s%s %s", indent, marker, cursor, task.ID)
 
 		if task.Status != "" {
 			line += " " + statusStyle.Render(task.Status)
@@ -1750,6 +1966,8 @@ func (m model) renderMediumTaskList(b *strings.Builder, width int) {
 	vis := m.visibleIndices()
 	for idx, realIdx := range vis {
 		task := m.tasks[realIdx]
+		indent := m.indentForTask(realIdx)
+		marker := m.treeMarkerForTask(realIdx)
 		cursor := "   "
 		if m.cursor == idx {
 			cursor = " → "
@@ -1808,6 +2026,7 @@ func (m model) renderMediumTaskList(b *strings.Builder, width int) {
 			}
 		}
 
+		line = indent + marker + line
 		if m.cursor == idx {
 			line = highlightRow(line, width, true)
 		} else {
@@ -1873,6 +2092,8 @@ func (m model) renderWideTaskList(b *strings.Builder, width int) {
 	vis := m.visibleIndices()
 	for idx, realIdx := range vis {
 		task := m.tasks[realIdx]
+		indent := m.indentForTask(realIdx)
+		marker := m.treeMarkerForTask(realIdx)
 		cursor := "   "
 		if m.cursor == idx {
 			cursor = " → "
@@ -1953,6 +2174,7 @@ func (m model) renderWideTaskList(b *strings.Builder, width int) {
 			line = strings.Replace(line, "OLD", oldIDStyle.Render("OLD"), 1)
 		}
 
+		line = indent + marker + line
 		if m.cursor == idx {
 			line = highlightRow(line, width, true)
 		} else {
@@ -3012,7 +3234,7 @@ func (m model) viewHelp() string {
 	b.WriteString(helpStyle.Render("n / N"))
 	b.WriteString("  Next/previous match\n  ")
 	b.WriteString(helpStyle.Render("o"))
-	b.WriteString("  Cycle sort order (id → status → priority → updated)\n  ")
+	b.WriteString("  Cycle sort order (id → status → priority → updated → hierarchy)\n  ")
 	b.WriteString(helpStyle.Render("O"))
 	b.WriteString("  Toggle sort direction (asc/desc)\n\n")
 	b.WriteString(normalStyle.Render("Views:"))
