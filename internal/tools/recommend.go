@@ -426,8 +426,8 @@ func analyzeWorkflowMode(taskDescription string, includeRationale bool) Workflow
 			"ASK":   "Stay in ASK mode for guided assistance",
 		}[mode],
 		"instruction": map[string]string{
-			"AGENT": "Enable AGENT mode in Cursor settings",
-			"ASK":   "Continue with ASK mode for this task",
+			"AGENT": "This task benefits from autonomous multi-step execution (Claude Code runs agentic by default; in Cursor, enable AGENT mode)",
+			"ASK":   "This task suits focused single-turn assistance",
 		}[mode],
 		"benefits": map[string][]string{
 			"AGENT": {"Autonomous multi-step execution", "Handles complex refactoring", "Manages multiple files"},

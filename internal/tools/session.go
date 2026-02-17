@@ -113,7 +113,7 @@ func SessionPrimeResultToMap(pb *proto.SessionPrimeResult) map[string]interface{
 	}
 
 	if pb.CursorCliSuggestion != "" {
-		out["cursor_cli_suggestion"] = pb.CursorCliSuggestion
+		out["suggested_next_action"] = pb.CursorCliSuggestion
 	}
 
 	return out
@@ -315,8 +315,8 @@ func handleSessionPrime(ctx context.Context, params map[string]interface{}) ([]f
 	if includeTasks && tasksErr == nil {
 		suggestedNext = getSuggestedNextTasksFromTasks(tasks, 10)
 		if len(suggestedNext) > 0 {
-			if cli := buildCursorCLISuggestion(suggestedNext[0]); cli != "" {
-				pb.CursorCliSuggestion = cli
+			if hint := buildSuggestedNextAction(suggestedNext[0]); hint != "" {
+				pb.CursorCliSuggestion = hint
 			}
 		}
 	}
@@ -538,13 +538,13 @@ func handleSessionEnd(ctx context.Context, params map[string]interface{}, projec
 		result["message"] = "Dry run: Would create handoff note"
 	}
 
-	// Add cursor_cli_suggestion for the next suggested task
+	// Add suggested_next_action for the next suggested task
 	if suggested := GetSuggestedNextTasks(projectRoot, 1); len(suggested) > 0 {
 		t := suggested[0]
 
 		taskMap := map[string]interface{}{"id": t.ID, "content": t.Content}
-		if cli := buildCursorCLISuggestion(taskMap); cli != "" {
-			result["cursor_cli_suggestion"] = cli
+		if hint := buildSuggestedNextAction(taskMap); hint != "" {
+			result["suggested_next_action"] = hint
 		}
 	}
 
@@ -611,12 +611,12 @@ func handleSessionResume(ctx context.Context, projectRoot string) ([]framework.T
 		"message":        fmt.Sprintf("Resuming session. Latest handoff from %s", handoffHost),
 	}
 
-	// Add cursor_cli_suggestion for first suggested task (same as prime)
+	// Add suggested_next_action for first suggested task (same as prime)
 	if suggested := GetSuggestedNextTasks(projectRoot, 1); len(suggested) > 0 {
 		t := suggested[0]
 		taskMap := map[string]interface{}{"id": t.ID, "content": t.Content}
-		if cli := buildCursorCLISuggestion(taskMap); cli != "" {
-			result["cursor_cli_suggestion"] = cli
+		if hint := buildSuggestedNextAction(taskMap); hint != "" {
+			result["suggested_next_action"] = hint
 		}
 	}
 
@@ -934,6 +934,15 @@ type TimeSuggestion struct {
 
 // detectAgentType detects the current agent type.
 func detectAgentType(projectRoot string) AgentInfo {
+	// 0. Claude Code detection (check before EXARP_AGENT so it's always recognized)
+	if os.Getenv("CLAUDE_CODE") != "" || os.Getenv("ANTHROPIC_CLI") != "" || os.Getenv("CLAUDE_CODE_VERSION") != "" {
+		return AgentInfo{
+			Agent:  "claude-code",
+			Source: "environment",
+			Config: map[string]interface{}{"client": "claude-code"},
+		}
+	}
+
 	// 1. Environment variable
 	if agent := os.Getenv("EXARP_AGENT"); agent != "" {
 		return AgentInfo{
@@ -1021,7 +1030,7 @@ func getAgentContext(agent string) AgentContext {
 			Agent:           agent,
 			RecommendedMode: "development",
 			FocusAreas:      []string{"Frontend", "React", "TypeScript"},
-			RelevantTools:   []string{"run_tests", "generate_cursorignore"},
+			RelevantTools:   []string{"run_tests", "generate_config"},
 		},
 		"security": {
 			Agent:           agent,
@@ -1110,12 +1119,12 @@ func getWorkflowModeDescription(mode string) string {
 
 // getPlanModeContext returns (plan_path, plan_mode_hint) for session prime.
 // plan_path: relative path to current .plan.md if found.
-// plan_mode_hint: suggestion to use Cursor Plan Mode when backlog suggests complex/multi-step work.
+// plan_mode_hint: suggestion to use structured planning when backlog is complex.
 func getPlanModeContext(projectRoot string, tasks []Todo2Task) (planPath, planModeHint string) {
 	planPath = getCurrentPlanPath(projectRoot)
 
 	if shouldSuggestPlanMode(tasks) {
-		planModeHint = "Consider Cursor Plan Mode for multi-step work when backlog has many high-priority or dependency-heavy tasks"
+		planModeHint = "Complex backlog detected: consider structured planning — generate a .plan.md (report action=plan) and work through tasks in dependency order"
 	}
 
 	return planPath, planModeHint
@@ -1700,9 +1709,10 @@ func getGitStatus(ctx context.Context, projectRoot string) map[string]interface{
 	return status
 }
 
-// buildCursorCLISuggestion builds a ready-to-run Cursor CLI command from a suggested task map.
+// buildSuggestedNextAction builds a client-agnostic next-action hint from a suggested task map.
 // Expects a map with "id" and "content" keys. Returns empty string if task info is missing.
-func buildCursorCLISuggestion(task map[string]interface{}) string {
+// For Cursor: can be used as argument to `agent -p`. For Claude Code: descriptive action hint.
+func buildSuggestedNextAction(task map[string]interface{}) string {
 	id, _ := task["id"].(string)
 	content, _ := task["content"].(string)
 
@@ -1710,15 +1720,11 @@ func buildCursorCLISuggestion(task map[string]interface{}) string {
 		return ""
 	}
 
-	prompt := "Work on " + id
 	if content != "" {
-		prompt += ": " + truncateString(content, 60)
+		return fmt.Sprintf("Work on %s: %s", id, truncateString(content, 80))
 	}
 
-	// Escape double quotes in prompt for shell safety
-	prompt = strings.ReplaceAll(prompt, `"`, `\"`)
-
-	return fmt.Sprintf(`agent -p "%s" --mode=plan`, prompt)
+	return fmt.Sprintf("Work on %s", id)
 }
 
 // truncateString truncates a string to max length.

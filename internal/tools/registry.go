@@ -67,7 +67,7 @@ func registerBatch1Tools(server framework.MCPServer) error {
 	// T-23: generate_config
 	if err := server.RegisterTool(
 		"generate_config",
-		"[HINT: Config generation. action=rules|ignore|simplify. Creates IDE config files.]",
+		"[HINT: Cursor config generation. action=rules|ignore|simplify. Creates Cursor-specific config files (.cursor/rules/*.mdc, .cursorignore). Not applicable to Claude Code.]",
 		framework.ToolSchema{
 			Type: "object",
 			Properties: map[string]interface{}{
@@ -389,7 +389,7 @@ func registerBatch2Tools(server framework.MCPServer) error {
 				},
 				"output_path": map[string]interface{}{
 					"type":        "string",
-					"description": "For action=plan: path for plan file (default: .cursor/plans/<project-slug>.plan.md so Cursor shows Build)",
+					"description": "For action=plan: path for plan file (default: .cursor/plans/<project-slug>.plan.md)",
 				},
 				"plan_title": map[string]interface{}{
 					"type":        "string",
@@ -1264,7 +1264,7 @@ func registerBatch3Tools(server framework.MCPServer) error {
 	// T-43: session
 	if err := server.RegisterTool(
 		"session",
-		"[HINT: Session. action=prime|handoff|prompts|assignee. Use ask_preferences=true for MCP elicitation at prime. Prime and handoff return cursor_cli_suggestion (ready-to-run Cursor CLI command for first suggested task) for run-in-Cursor or script integration. Unified session management tools.]",
+		"[HINT: Session. action=prime|handoff|prompts|assignee. Use ask_preferences=true for MCP elicitation at prime. Prime and handoff return suggested_next_action (next task hint) and suggested_next (ordered task list). Unified session management tools.]",
 		framework.ToolSchema{
 			Type: "object",
 			Properties: map[string]interface{}{

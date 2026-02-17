@@ -50,10 +50,10 @@ type GoHealthChecks struct {
 	RateLimiting            bool `json:"rate_limiting"`
 	AccessControl           bool `json:"access_control"`
 	// Documentation (for documentation score dimension)
-	ReadmeExists    bool `json:"readme_exists"`
-	DocsDirExists   bool `json:"docs_dir_exists"`
-	DocsFileCount   int  `json:"docs_file_count"`
-	CursorDocsExist bool `json:"cursor_docs_exist"` // .cursor/skills or .cursor/rules
+	ReadmeExists      bool `json:"readme_exists"`
+	DocsDirExists     bool `json:"docs_dir_exists"`
+	DocsFileCount     int  `json:"docs_file_count"`
+	AIAssistDocsExist bool `json:"ai_assist_docs_exist"` // .cursor/skills, .cursor/rules, CLAUDE.md, or .claude/commands/
 }
 
 // GoScorecardResult represents the complete Go scorecard.
@@ -204,13 +204,23 @@ func performGoHealthChecks(ctx context.Context, projectRoot string, opts *Scorec
 
 	cursorSkills := filepath.Join(projectRoot, ".cursor", "skills")
 	cursorRules := filepath.Join(projectRoot, ".cursor", "rules")
+	claudeMD := filepath.Join(projectRoot, "CLAUDE.md")
+	claudeCommands := filepath.Join(projectRoot, ".claude", "commands")
 
 	if info, _ := os.Stat(cursorSkills); info != nil && info.IsDir() {
-		health.CursorDocsExist = true
+		health.AIAssistDocsExist = true
 	}
 
 	if info, _ := os.Stat(cursorRules); info != nil && info.IsDir() {
-		health.CursorDocsExist = true
+		health.AIAssistDocsExist = true
+	}
+
+	if _, err := os.Stat(claudeMD); err == nil {
+		health.AIAssistDocsExist = true
+	}
+
+	if info, _ := os.Stat(claudeCommands); info != nil && info.IsDir() {
+		health.AIAssistDocsExist = true
 	}
 
 	return health, nil

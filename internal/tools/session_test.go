@@ -374,7 +374,7 @@ func TestHandleSessionNative(t *testing.T) {
 	}
 }
 
-func TestBuildCursorCLISuggestion(t *testing.T) {
+func TestBuildSuggestedNextAction(t *testing.T) {
 	tests := []struct {
 		name string
 		task map[string]interface{}
@@ -383,12 +383,12 @@ func TestBuildCursorCLISuggestion(t *testing.T) {
 		{
 			name: "full task",
 			task: map[string]interface{}{"id": "T-123", "content": "Proto Task workflow response types"},
-			want: `agent -p "Work on T-123: Proto Task workflow response types" --mode=plan`,
+			want: "Work on T-123: Proto Task workflow response types",
 		},
 		{
 			name: "id only",
 			task: map[string]interface{}{"id": "T-456"},
-			want: `agent -p "Work on T-456" --mode=plan`,
+			want: "Work on T-456",
 		},
 		{
 			name: "empty id",
@@ -397,20 +397,15 @@ func TestBuildCursorCLISuggestion(t *testing.T) {
 		},
 		{
 			name: "long content truncated",
-			task: map[string]interface{}{"id": "T-789", "content": "This is a very long task name that definitely exceeds sixty characters and should be truncated"},
-			want: `agent -p "Work on T-789: This is a very long task name that definitely exceeds six..." --mode=plan`,
-		},
-		{
-			name: "content with quotes",
-			task: map[string]interface{}{"id": "T-42", "content": `Fix "broken" thing`},
-			want: `agent -p "Work on T-42: Fix \"broken\" thing" --mode=plan`,
+			task: map[string]interface{}{"id": "T-789", "content": "This is a very long task name that definitely exceeds eighty characters in total length and should be truncated"},
+			want: "Work on T-789: This is a very long task name that definitely exceeds eighty characters in to...",
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := buildCursorCLISuggestion(tt.task)
+			got := buildSuggestedNextAction(tt.task)
 			if got != tt.want {
-				t.Errorf("buildCursorCLISuggestion() = %q, want %q", got, tt.want)
+				t.Errorf("buildSuggestedNextAction() = %q, want %q", got, tt.want)
 			}
 		})
 	}
