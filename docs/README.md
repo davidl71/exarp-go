@@ -14,6 +14,7 @@
 
 ### Cursor & AI
 - `CURSOR_RULES.md` - Cursor rules index and **code/planning tag hints** for Todo2 alignment
+- `OPENCODE_INTEGRATION.md` - Use exarp-go with OpenCode (MCP, CLI, HTTP API)
 
 ### Active Workflows
 - `DEV_TEST_AUTOMATION.md` - Development and testing automation

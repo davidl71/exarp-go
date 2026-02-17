@@ -40,7 +40,7 @@ For **complex research or task decomposition**, call the **tractatus_thinking** 
 - **Use:** `operation="start"` with `concept="What is X?"` (or your question). Then `add` propositions, and `export` (e.g. `format="markdown"`) for the result.
 - **When:** Fuzzy or bundled concepts, design/research phases, or when you need to see what must *all* be true (multiplicative structure). See `.cursor/skills/tractatus-decompose/SKILL.md` for the full workflow.
 
-To install or replace: from devwisdom-go run `make install-mcp-config` (or `REPLACE=1` for template only).
+To install or replace: from devwisdom-go run `make install-mcp-config` (or `REPLACE=1` for template only). For **OpenCode** (TUI/IDE agent), see `docs/OPENCODE_INTEGRATION.md`.
 
 ## Configuration Guidelines
 
