@@ -500,13 +500,13 @@ func registerBatch2Tools(server framework.MCPServer) error {
 	// T-32: task_analysis
 	if err := server.RegisterTool(
 		"task_analysis",
-		"[HINT: Task analysis. action=duplicates|tags|discover_tags|hierarchy|dependencies|dependencies_summary|parallelization|validate|execution_plan|complexity|conflicts. Task quality and structure. conflicts detects task-overlap (In Progress tasks with dependent also In Progress). complexity classifies tasks (simple/medium/complex) per Model-Assisted Workflow. discover_tags scans MD files for tag hints and uses LLM (Apple FM/Ollama) for semantic inference.]",
+		"[HINT: Task analysis. action=duplicates|tags|discover_tags|hierarchy|dependencies|dependencies_summary|suggest_dependencies|parallelization|validate|execution_plan|complexity|conflicts. Task quality and structure. conflicts detects task-overlap (In Progress tasks with dependent also In Progress). complexity classifies tasks (simple/medium/complex) per Model-Assisted Workflow. discover_tags scans MD files for tag hints and uses LLM (Apple FM/Ollama) for semantic inference.]",
 		framework.ToolSchema{
 			Type: "object",
 			Properties: map[string]interface{}{
 				"action": map[string]interface{}{
 					"type":    "string",
-					"enum":    []string{"duplicates", "tags", "discover_tags", "hierarchy", "dependencies", "dependencies_summary", "parallelization", "fix_missing_deps", "validate", "execution_plan", "complexity", "conflicts"},
+					"enum":    []string{"duplicates", "tags", "discover_tags", "hierarchy", "dependencies", "dependencies_summary", "suggest_dependencies", "parallelization", "fix_missing_deps", "validate", "execution_plan", "complexity", "conflicts"},
 					"default": "duplicates",
 				},
 				"similarity_threshold": map[string]interface{}{
@@ -617,6 +617,11 @@ func registerBatch2Tools(server framework.MCPServer) error {
 				"filter_tags": map[string]interface{}{
 					"type":        "string",
 					"description": "For action=execution_plan: restrict backlog to tasks with any of these tags (comma-separated).",
+				},
+				"include_planning_docs": map[string]interface{}{
+					"type":        "boolean",
+					"default":     false,
+					"description": "For action=suggest_dependencies: when true, also extract dependency hints from .cursor/plans and docs/*plan*.md (Depends on: T-XXX, milestone order).",
 				},
 			},
 		},

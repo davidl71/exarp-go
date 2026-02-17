@@ -150,6 +150,15 @@ func Run() error {
 	case "lock":
 		initializeDatabase()
 		return handleLockCommand(parsed)
+	case "cursor":
+		initializeDatabase()
+
+		server, err := setupServer()
+		if err != nil {
+			return err
+		}
+
+		return handleCursorCommand(server, parsed)
 	case "session":
 		initializeDatabase()
 
@@ -634,6 +643,7 @@ func showUsage() {
 	_, _ = fmt.Println("Usage:")
 	_, _ = fmt.Println("  exarp-go [flags]")
 	_, _ = fmt.Println("  exarp-go task <command> [options]")
+	_, _ = fmt.Println("  exarp-go cursor run <task-id | -p prompt> [--mode plan|ask|agent] [--no-interactive]")
 	_, _ = fmt.Println("  exarp-go tui [status]")
 	_, _ = fmt.Println("  exarp-go tui3270 [status] [port]")
 	_, _ = fmt.Println("  exarp-go session handoffs")
@@ -664,8 +674,13 @@ func showUsage() {
 	_, _ = fmt.Println("Session:")
 	_, _ = fmt.Println("  session handoffs       View session handoff notes (from previous sessions)")
 	_, _ = fmt.Println()
-	_, _ = fmt.Println("Cursor integration:")
-	_, _ = fmt.Println("  Run Cursor agent from project root so exarp-go MCP tools are available.")
+	_, _ = fmt.Println("Cursor Integration:")
+	_, _ = fmt.Println("  cursor run <task-id>                Run Cursor agent with task prompt")
+	_, _ = fmt.Println("  cursor run -p \"prompt\"              Run with custom prompt")
+	_, _ = fmt.Println("  cursor run <task-id> --mode plan    Run in plan mode")
+	_, _ = fmt.Println("  cursor run -p \"...\" --no-interactive  Non-interactive mode")
+	_, _ = fmt.Println("  cursor help                         Show cursor help")
+	_, _ = fmt.Println()
 	_, _ = fmt.Println("  Install Cursor CLI: curl https://cursor.com/install -fsS | bash")
 	_, _ = fmt.Println("  Set CURSOR_API_KEY for non-interactive/CI use. See docs/CURSOR_API_AND_CLI_INTEGRATION.md")
 	_, _ = fmt.Println()
@@ -680,6 +695,9 @@ func showUsage() {
 	_, _ = fmt.Println("  exarp-go task update T-1 --new-status \"Done\"")
 	_, _ = fmt.Println("  exarp-go task update T-1 --new-priority high")
 	_, _ = fmt.Println("  exarp-go session handoffs")
+	_, _ = fmt.Println("  exarp-go cursor run T-123")
+	_, _ = fmt.Println("  exarp-go cursor run T-123 --mode plan")
+	_, _ = fmt.Println("  exarp-go cursor run -p \"Review the backlog\"")
 	_, _ = fmt.Println("  exarp-go -completion bash > /usr/local/etc/bash_completion.d/exarp-go")
 	_, _ = fmt.Println()
 }

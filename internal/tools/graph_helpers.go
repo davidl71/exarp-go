@@ -104,14 +104,20 @@ func BuildTaskGraph(tasks []Todo2Task) (*TaskGraph, error) {
 		tg.AddTask(task)
 	}
 
-	// Second pass: add dependency edges
+	// Second pass: add dependency edges (Dependencies + parent_id for wave ordering)
 	for _, task := range tasks {
+		// Explicit blocking dependencies
 		for _, depID := range task.Dependencies {
-			// Only add edge if dependency task exists
 			if taskMap[depID] {
 				if err := tg.AddDependency(depID, task.ID); err != nil {
 					return nil, fmt.Errorf("failed to add dependency %s -> %s: %w", depID, task.ID, err)
 				}
+			}
+		}
+		// parent_id: treat as dependency for wave ordering (parent before child)
+		if task.ParentID != "" && taskMap[task.ParentID] {
+			if err := tg.AddDependency(task.ParentID, task.ID); err != nil {
+				return nil, fmt.Errorf("failed to add parent dependency %s -> %s: %w", task.ParentID, task.ID, err)
 			}
 		}
 	}
