@@ -113,7 +113,7 @@ func SessionPrimeResultToMap(pb *proto.SessionPrimeResult) map[string]interface{
 	}
 
 	if pb.CursorCliSuggestion != "" {
-		out["suggested_next_action"] = pb.CursorCliSuggestion
+		out["cursor_cli_suggestion"] = pb.CursorCliSuggestion
 	}
 
 	return out
@@ -315,8 +315,8 @@ func handleSessionPrime(ctx context.Context, params map[string]interface{}) ([]f
 	if includeTasks && tasksErr == nil {
 		suggestedNext = getSuggestedNextTasksFromTasks(tasks, 10)
 		if len(suggestedNext) > 0 {
-			if hint := buildSuggestedNextAction(suggestedNext[0]); hint != "" {
-				pb.CursorCliSuggestion = hint
+			if cmd := buildCursorCliSuggestion(suggestedNext[0]); cmd != "" {
+				pb.CursorCliSuggestion = cmd
 			}
 		}
 	}
@@ -330,6 +330,9 @@ func handleSessionPrime(ctx context.Context, params map[string]interface{}) ([]f
 			result["tasks"] = getTasksSummaryFromTasks(tasks)
 			if len(suggestedNext) > 0 {
 				result["suggested_next"] = suggestedNext
+				if hint := buildSuggestedNextAction(suggestedNext[0]); hint != "" {
+					result["suggested_next_action"] = hint
+				}
 			}
 		}
 	}
@@ -538,13 +541,15 @@ func handleSessionEnd(ctx context.Context, params map[string]interface{}, projec
 		result["message"] = "Dry run: Would create handoff note"
 	}
 
-	// Add suggested_next_action for the next suggested task
+	// Add suggested_next_action and cursor_cli_suggestion for the next suggested task
 	if suggested := GetSuggestedNextTasks(projectRoot, 1); len(suggested) > 0 {
 		t := suggested[0]
-
 		taskMap := map[string]interface{}{"id": t.ID, "content": t.Content}
 		if hint := buildSuggestedNextAction(taskMap); hint != "" {
 			result["suggested_next_action"] = hint
+		}
+		if cmd := buildCursorCliSuggestion(taskMap); cmd != "" {
+			result["cursor_cli_suggestion"] = cmd
 		}
 	}
 
@@ -611,12 +616,15 @@ func handleSessionResume(ctx context.Context, projectRoot string) ([]framework.T
 		"message":        fmt.Sprintf("Resuming session. Latest handoff from %s", handoffHost),
 	}
 
-	// Add suggested_next_action for first suggested task (same as prime)
+	// Add suggested_next_action and cursor_cli_suggestion for first suggested task (same as prime)
 	if suggested := GetSuggestedNextTasks(projectRoot, 1); len(suggested) > 0 {
 		t := suggested[0]
 		taskMap := map[string]interface{}{"id": t.ID, "content": t.Content}
 		if hint := buildSuggestedNextAction(taskMap); hint != "" {
 			result["suggested_next_action"] = hint
+		}
+		if cmd := buildCursorCliSuggestion(taskMap); cmd != "" {
+			result["cursor_cli_suggestion"] = cmd
 		}
 	}
 
@@ -1725,6 +1733,17 @@ func buildSuggestedNextAction(task map[string]interface{}) string {
 	}
 
 	return fmt.Sprintf("Work on %s", id)
+}
+
+// buildCursorCliSuggestion builds a ready-to-run Cursor CLI command from the first suggested task.
+// Returns e.g. `agent -p "Work on T-123: Task name" --mode=plan` for session prime/handoff JSON.
+// See docs/CURSOR_API_AND_CLI_INTEGRATION.md §3.2.
+func buildCursorCliSuggestion(task map[string]interface{}) string {
+	action := buildSuggestedNextAction(task)
+	if action == "" {
+		return ""
+	}
+	return fmt.Sprintf("agent -p %q --mode=plan", action)
 }
 
 // truncateString truncates a string to max length.

@@ -411,6 +411,38 @@ func TestBuildSuggestedNextAction(t *testing.T) {
 	}
 }
 
+func TestBuildCursorCliSuggestion(t *testing.T) {
+	tests := []struct {
+		name string
+		task map[string]interface{}
+		want string
+	}{
+		{
+			name: "full task",
+			task: map[string]interface{}{"id": "T-123", "content": "Proto Task workflow response types"},
+			want: `agent -p "Work on T-123: Proto Task workflow response types" --mode=plan`,
+		},
+		{
+			name: "id only",
+			task: map[string]interface{}{"id": "T-456"},
+			want: `agent -p "Work on T-456" --mode=plan`,
+		},
+		{
+			name: "empty id",
+			task: map[string]interface{}{"content": "something"},
+			want: "",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := buildCursorCliSuggestion(tt.task)
+			if got != tt.want {
+				t.Errorf("buildCursorCliSuggestion() = %q, want %q", got, tt.want)
+			}
+		})
+	}
+}
+
 func TestShouldSuggestPlanMode(t *testing.T) {
 	tests := []struct {
 		name  string

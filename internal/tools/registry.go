@@ -1005,6 +1005,15 @@ func registerBatch3Tools(server framework.MCPServer) error {
 				"output_path": map[string]interface{}{
 					"type": "string",
 				},
+				"use_cursor_agent": map[string]interface{}{
+					"type":    "boolean",
+					"default": false,
+					"description": "When true, run Cursor CLI agent -p in project root and attach output to result (daily/nightly/sprint). Requires agent on PATH.",
+				},
+				"cursor_agent_prompt": map[string]interface{}{
+					"type":        "string",
+					"description": "Prompt for Cursor agent step when use_cursor_agent is true. Default: \"Review the backlog and suggest which task to do next\".",
+				},
 			},
 		},
 		handleAutomation,
