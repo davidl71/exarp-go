@@ -23,6 +23,13 @@ RED := \033[0;31m
 BLUE := \033[0;34m
 NC := \033[0m # No Color
 
+# Quiet mode for git hooks (suppresses output)
+ifdef QUIET
+  Q = @
+else
+  Q =
+endif
+
 # Default target
 .DEFAULT_GOAL := all
 
@@ -150,7 +157,7 @@ help: ## Show this help message
 	@echo "  $(GREEN)make pre-push$(NC)   - Run before git push"
 
 build: ## Build the Go server (CGO enabled on Mac Silicon by default, disabled elsewhere)
-	@echo "$(BLUE)Building $(PROJECT_NAME) v$(VERSION)...$(NC)"
+	$(Q)echo "$(BLUE)Building $(PROJECT_NAME) v$(VERSION)...$(NC)"
 	@if ! command -v $(GO) >/dev/null 2>&1 && [ ! -x "$(GO)" ]; then \
 		echo "$(RED)❌ Go not found. Install Go or set PATH to include Go bin directory$(NC)"; \
 		exit 1; \
