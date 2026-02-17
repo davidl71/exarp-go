@@ -35,76 +35,76 @@ func GetToolCatalog() map[string]ToolCatalogEntry {
 		// Project Health
 		"project_scorecard": {
 			Tool:             "project_scorecard",
-			Hint:             "Scorecard. Overall score, component scores, production readiness.",
+			Hint:             "TRIGGER: 'how is the project', 'scorecard', 'health check', 'status report', 'production ready'. Provides overall health score and metrics.",
 			Category:         "Project Health",
-			Description:      "Comprehensive project health assessment with scores across multiple dimensions",
+			Description:      "Comprehensive project health assessment with scores across multiple dimensions. Use when user asks about project status, health, or readiness.",
 			RecommendedModel: "claude-haiku",
 		},
 		"project_overview": {
 			Tool:             "project_overview",
-			Hint:             "Overview. One-page summary with scores, metrics, tasks, risks.",
+			Hint:             "TRIGGER: 'overview', 'summary', 'brief', 'what is this project', 'executive summary'. Quick high-level status.",
 			Category:         "Project Health",
-			Description:      "Executive summary of project status for stakeholders",
+			Description:      "Executive summary of project status for stakeholders. Use when user wants a quick overview without detailed metrics.",
 			RecommendedModel: "claude-haiku",
 		},
 
 		// Task Management
 		"analyze_alignment": {
 			Tool:             "analyze_alignment",
-			Hint:             "Alignment analysis. action=todo2|prd. Unified alignment analysis tool.",
+			Hint:             "TRIGGER: 'alignment', 'PRD', 'requirements', 'does this match'. Checks if tasks align with project requirements.",
 			Category:         "Task Management",
-			Description:      "Analyzes task-project alignment and generates alignment reports",
+			Description:      "Analyzes task-project alignment and generates alignment reports. Use when user asks about PRD alignment or requirements compliance.",
 			RecommendedModel: "claude-haiku",
 		},
 		"task_analysis": {
 			Tool:             "task_analysis",
-			Hint:             "Task analysis. action=duplicates|tags|hierarchy|dependencies|parallelization|execution_plan|conflicts. execution_plan with output_format=subagents_plan writes parallel-execution-subagents.plan.md (wave detection).",
+			Hint:             "TRIGGER: 'analyze tasks', 'dependencies', 'duplicates', 'conflicts', 'parallel', 'execution plan'. Advanced task analysis.",
 			Category:         "Task Management",
-			Description:      "Analyzes tasks for duplicates, tags, hierarchy, dependencies, and parallelization opportunities",
+			Description:      "Analyzes tasks for duplicates, tags, hierarchy, dependencies, and parallelization opportunities. Use when user wants to understand task relationships or find conflicts.",
 			RecommendedModel: "claude-haiku",
 		},
 		"task_discovery": {
 			Tool:             "task_discovery",
-			Hint:             "Task discovery. action=comments|markdown|orphans|all. Find tasks from various sources.",
+			Hint:             "TRIGGER: 'find tasks', 'discover', 'missing tasks', 'scan for todos'. Searches code and docs for tasks.",
 			Category:         "Task Management",
-			Description:      "Discovers tasks from code comments, markdown files, and other sources",
+			Description:      "Discovers tasks from code comments, markdown files, and other sources. Use when user wants to find tasks that aren't in the task list yet.",
 			RecommendedModel: "claude-haiku",
 		},
 		"task_workflow": {
 			Tool:             "task_workflow",
-			Hint:             "Task workflow. action=sync|approve|clarify|clarity|cleanup|create|request_approval|sync_approvals|apply_approval_result. Manage task lifecycle. ⚠️ CRITICAL: PREFER convenience commands (exarp-go task ...) for common operations. FALLBACK to this tool for advanced operations (clarity, cleanup, complex filters). NEVER edit .todo2/state.todo2.json directly.",
+			Hint:             "TRIGGER: 'task workflow', 'create task', 'update task', 'list tasks', 'T-xxx', 'todo', 'triaging'. PREFER: exarp-go task commands for simple operations. Use this tool for advanced actions: clarify, cleanup, sync_approvals.",
 			Category:         "Task Management",
-			Description:      "Manages task workflow: sync, approve, clarify, cleanup, create, and request_approval (gotoHuman). PREFER convenience commands (exarp-go task list/update/create/show) for common operations. Use this tool directly for advanced operations (clarity, cleanup) or complex filtering. Automatically calculates actualHours, normalizes status, and tracks history.",
+			Description:      "Manages task workflow: sync, approve, clarify, cleanup, create, and request_approval. PREFER CLI commands (exarp-go task list/update/create/show) for simple operations. Use this tool for advanced operations (clarity, cleanup). Never edit .todo2/state.todo2.json directly.",
 			RecommendedModel: "claude-haiku",
 			Examples: []string{
-				"PREFERRED: Use convenience commands: exarp-go task update T-123 --new-status Done",
-				"FALLBACK: Advanced operations: task_workflow(action=\"clarity\", task_id=\"T-123\")",
-				"Never edit .todo2/state.todo2.json directly - use convenience commands or this tool",
+				"Simple: exarp-go task list, exarp-go task update T-123 --new-status Done",
+				"Advanced: task_workflow(action='clarity', task_id='T-123')",
+				"Never edit .todo2/state.todo2.json directly",
 			},
 		},
 
 		// Code Quality
 		"lint": {
 			Tool:             "lint",
-			Hint:             "Linting tool. action=run|analyze. Run linter or analyze problems. For markdown (path=docs or .md), includes broken link/reference check via gomarklint.",
+			Hint:             "TRIGGER: 'lint', 'format', 'gofmt', 'style', 'analyze code'. Code linting and formatting.",
 			Category:         "Code Quality",
-			Description:      "Runs linters and analyzes code quality issues; markdown lint includes broken reference/link check (gomarklint)",
+			Description:      "Runs linters and analyzes code quality issues. Use when user asks to lint, format, or check code style.",
 			RecommendedModel: "claude-haiku",
 		},
 		"testing": {
 			Tool:             "testing",
-			Hint:             "Testing tool. action=run|coverage|suggest|validate. Execute tests, analyze coverage, suggest test cases, or validate test structure.",
+			Hint:             "TRIGGER: 'test', 'coverage', 'run tests', 'test failure', 'validate'. Test execution and analysis.",
 			Category:         "Code Quality",
-			Description:      "Unified testing: run tests, coverage analysis, test suggestions, validation",
+			Description:      "Unified testing: run tests, coverage analysis, test suggestions, validation. Use when user mentions tests, coverage, or test failures.",
 			RecommendedModel: "claude-haiku",
 		},
 
 		// Security
 		"security": {
 			Tool:             "security",
-			Hint:             "Security. action=scan|alerts|report. Vulnerabilities, remediation.",
+			Hint:             "TRIGGER: 'security', 'vulnerabilities', 'scan', 'safe', 'security check', 'govulncheck'. Security scanning.",
 			Category:         "Security",
-			Description:      "Security scanning and vulnerability assessment",
+			Description:      "Security scanning and vulnerability assessment. Use when user asks about security, vulnerabilities, or wants to check for issues.",
 			RecommendedModel: "claude-haiku",
 		},
 		"check_attribution": {
@@ -118,9 +118,9 @@ func GetToolCatalog() map[string]ToolCatalogEntry {
 		// Workflow
 		"context": {
 			Tool:             "context",
-			Hint:             "Context management. action=summarize|budget|batch. Unified context operations.",
+			Hint:             "TRIGGER: 'context', 'too much context', 'compact', 'summarize', 'context budget'. Manages conversation context size.",
 			Category:         "Workflow",
-			Description:      "Manages context: summarize, estimate budget, batch operations",
+			Description:      "Manages context: summarize, estimate budget, batch operations. Use when context is getting large or user asks about context limits.",
 			RecommendedModel: "claude-haiku",
 		},
 		"tool_catalog": {
@@ -164,9 +164,9 @@ func GetToolCatalog() map[string]ToolCatalogEntry {
 		// Memory & Learning
 		"memory": {
 			Tool:             "memory",
-			Hint:             "Memory tool. action=save|recall|search. Persist and retrieve AI discoveries.",
+			Hint:             "TRIGGER: 'remember', 'recall', 'memory', 'what did we decide', 'save this', 'look up'. AI memory storage.",
 			Category:         "Memory & Learning",
-			Description:      "Manages AI memory: save, recall, and search discoveries",
+			Description:      "Manages AI memory: save, recall, and search discoveries. Use when user wants to remember something or recall past decisions.",
 			RecommendedModel: "claude-haiku",
 		},
 		"memory_maint": {
@@ -180,9 +180,9 @@ func GetToolCatalog() map[string]ToolCatalogEntry {
 		// Reporting
 		"report": {
 			Tool:             "report",
-			Hint:             "Report generation. action=overview|scorecard|briefing|prd|plan|parallel_execution_plan|update_waves_from_plan. update_waves_from_plan syncs Todo2 deps from docs/PARALLEL_EXECUTION_PLAN_RESEARCH.md.",
+			Hint:             "TRIGGER: 'report', 'briefing', 'plan', 'PRD', 'parallel plan', 'generate report'. Creates project reports.",
 			Category:         "Reporting",
-			Description:      "Generates project reports: overview, scorecard, briefing, PRD, plan (.plan.md)",
+			Description:      "Generates project reports: overview, scorecard, briefing, PRD, plan (.plan.md). Use when user wants a report or plan generated.",
 			RecommendedModel: "claude-haiku",
 		},
 
@@ -242,9 +242,9 @@ func GetToolCatalog() map[string]ToolCatalogEntry {
 		// Utilities
 		"health": {
 			Tool:             "health",
-			Hint:             "Health check. action=server|git|docs|dod|cicd. Status and health metrics.",
+			Hint:             "TRIGGER: 'health check', 'server status', 'is it working', 'git status', 'docs status'. Checks project health.",
 			Category:         "Utilities",
-			Description:      "Health checks for server, git, docs, definition of done, CI/CD",
+			Description:      "Health checks for server, git, docs, definition of done, CI/CD. Use when user asks about project health or specific component status.",
 			RecommendedModel: "claude-haiku",
 		},
 		"git_tools": {
@@ -256,9 +256,9 @@ func GetToolCatalog() map[string]ToolCatalogEntry {
 		},
 		"session": {
 			Tool:             "session",
-			Hint:             "Session. action=prime|handoff|prompts|assignee. Prime/handoff return suggested_next_action (next task hint) and suggested_next (ordered task list).",
+			Hint:             "TRIGGER: 'session start', 'handoff', 'context', 'resume', 'what should I do next', 'prime'. Session context and handoffs.",
 			Category:         "Utilities",
-			Description:      "Session management: prime, handoff, prompts, assignee. Prime and handoff include suggested_next_action—a hint for the first suggested task—and the full suggested_next list in dependency order.",
+			Description:      "Session management: prime, handoff, prompts, assignee. Prime and handoff include suggested_next_action—a hint for the first suggested task. Use at session start for context.",
 			RecommendedModel: "claude-haiku",
 		},
 		"infer_session_mode": {
@@ -270,9 +270,9 @@ func GetToolCatalog() map[string]ToolCatalogEntry {
 		},
 		"estimation": {
 			Tool:             "estimation",
-			Hint:             "Estimation. action=estimate|analyze|stats. Unified task duration estimation tool.",
+			Hint:             "TRIGGER: 'estimate', 'how long', 'duration', 'time estimate', 'effort'. Task duration estimation.",
 			Category:         "Utilities",
-			Description:      "Estimates task duration using historical data and ML models",
+			Description:      "Estimates task duration using historical data and ML models. Use when user asks how long a task will take.",
 			RecommendedModel: "claude-haiku",
 		},
 		"prompt_tracking": {
