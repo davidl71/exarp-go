@@ -79,6 +79,8 @@ func handleTaskAnalysisNative(ctx context.Context, params map[string]interface{}
 		return handleTaskAnalysisConflicts(ctx, params)
 	case "dependencies_summary":
 		return handleTaskAnalysisDependenciesSummary(ctx, params)
+	case "suggest_dependencies":
+		return handleTaskAnalysisSuggestDependencies(ctx, params)
 	default:
 		return nil, fmt.Errorf("unknown action: %s", action)
 	}

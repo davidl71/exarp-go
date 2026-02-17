@@ -414,6 +414,43 @@ func TestBacklogExecutionOrder(t *testing.T) {
 	}
 }
 
+func TestBuildTaskGraphParentID(t *testing.T) {
+	// parent_id creates dependency edges for wave ordering (parent before child)
+	tasks := []Todo2Task{
+		{ID: "T-P", Content: "Parent", Status: "Todo", Dependencies: []string{}},
+		{ID: "T-C1", Content: "Child1", Status: "Todo", Dependencies: []string{}, ParentID: "T-P"},
+		{ID: "T-C2", Content: "Child2", Status: "Todo", Dependencies: []string{}, ParentID: "T-P"},
+	}
+	tg, err := BuildTaskGraph(tasks)
+	if err != nil {
+		t.Fatalf("BuildTaskGraph(parent_id) error = %v", err)
+	}
+	levels := GetTaskLevels(tg)
+	if levels["T-P"] != 0 {
+		t.Errorf("parent level = %v, want 0", levels["T-P"])
+	}
+	if levels["T-C1"] != 1 {
+		t.Errorf("child1 level = %v, want 1", levels["T-C1"])
+	}
+	if levels["T-C2"] != 1 {
+		t.Errorf("child2 level = %v, want 1", levels["T-C2"])
+	}
+	// BacklogExecutionOrder: Wave 0 = parent, Wave 1 = children
+	ordered, waves, _, err := BacklogExecutionOrder(tasks, nil)
+	if err != nil {
+		t.Fatalf("BacklogExecutionOrder error = %v", err)
+	}
+	if len(waves) != 2 {
+		t.Errorf("waves count = %v, want 2", len(waves))
+	}
+	if len(ordered) != 3 {
+		t.Errorf("ordered count = %v, want 3", len(ordered))
+	}
+	if ordered[0] != "T-P" {
+		t.Errorf("first = %v, want T-P", ordered[0])
+	}
+}
+
 func TestLimitWavesByMaxTasks(t *testing.T) {
 	// No limit: returns same map (unchanged)
 	waves := map[int][]string{0: {"T-1", "T-2", "T-3"}, 1: {"T-4"}}

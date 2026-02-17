@@ -135,6 +135,147 @@ func ValidateTaskReference(taskID string, tasks []models.Todo2Task) error {
 	return fmt.Errorf("task %s not found", taskID)
 }
 
+// PlanningDependencyHint is a dependency hint extracted from a planning document (e.g. "Depends on T-XXX" or order).
+type PlanningDependencyHint struct {
+	TaskID     string `json:"task_id"`
+	DependsOnID string `json:"depends_on_id"`
+	Reason     string `json:"reason"`
+}
+
+// ExtractDependencyHintsFromPlan reads a single plan file and returns dependency hints.
+// Looks for: "Depends on: T-XXX", "dependencies: [T-XXX]", "After: T-XXX", and milestone order (earlier (T-ID) suggests dep for later).
+func ExtractDependencyHintsFromPlan(planPath string) ([]PlanningDependencyHint, error) {
+	data, err := os.ReadFile(planPath)
+	if err != nil {
+		return nil, err
+	}
+	content := string(data)
+	var hints []PlanningDependencyHint
+
+	// Explicit patterns (case-insensitive)
+	depOnRe := regexp.MustCompile(`(?i)(?:depends?\s+on|after|requires?)\s*:\s*(T-\d+(?:-\d+)?|T-\d+)`)
+	depListRe := regexp.MustCompile(`(?i)dependencies?\s*:\s*\[([^\]]+)\]`)
+	taskIDRe := regexp.MustCompile(`T-\d+(?:-\d+)?|T-\d+`)
+
+	lines := strings.Split(content, "\n")
+	for i, line := range lines {
+		// In same line: "Task X (T-123). Depends on: T-456" or "Depends on: T-456"
+		if depOnRe.MatchString(line) {
+			ids := taskIDRe.FindAllString(line, -1)
+			if len(ids) >= 2 {
+				// Last ID is the dependency; one before can be the task (if we have context)
+				depID := ids[len(ids)-1]
+				for j := 0; j < len(ids)-1; j++ {
+					if ids[j] != depID {
+						hints = append(hints, PlanningDependencyHint{
+							TaskID:      ids[j],
+							DependsOnID: depID,
+							Reason:      fmt.Sprintf("plan line %d: depends on", i+1),
+						})
+					}
+				}
+			}
+			if len(ids) == 1 {
+				// "Depends on: T-456" without task context - try previous line for (T-XXX)
+				if i > 0 {
+					prevIDs := taskIDRe.FindAllString(lines[i-1], -1)
+					if len(prevIDs) > 0 {
+						hints = append(hints, PlanningDependencyHint{
+							TaskID:      prevIDs[len(prevIDs)-1],
+							DependsOnID: ids[0],
+							Reason:      fmt.Sprintf("plan line %d: depends on (from previous line)", i+1),
+						})
+					}
+				}
+			}
+		}
+		if depListRe.MatchString(line) {
+			subs := depListRe.FindStringSubmatch(line)
+			if len(subs) >= 2 {
+				depIDs := taskIDRe.FindAllString(subs[1], -1)
+				if i > 0 {
+					prevIDs := taskIDRe.FindAllString(lines[i-1], -1)
+					if len(prevIDs) > 0 {
+						taskID := prevIDs[len(prevIDs)-1]
+						for _, depID := range depIDs {
+							if depID != taskID {
+								hints = append(hints, PlanningDependencyHint{
+									TaskID:      taskID,
+									DependsOnID: depID,
+									Reason:      fmt.Sprintf("plan line %d: dependencies list", i+1),
+								})
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
+	// Milestone order: only from checkbox lines (- [ ] **Name** (T-ID)) so order reflects sequence
+	checkboxRe := regexp.MustCompile(`^\s*-\s*\[\s*[ xX]\s*\]\s*(?:\*\*[^*]+\*\*|.+?)\s*\(\s*([A-Za-z0-9_-]+)\s*\)`)
+	var orderedIDs []string
+	for _, line := range lines {
+		if subs := checkboxRe.FindStringSubmatch(line); len(subs) >= 2 {
+			orderedIDs = append(orderedIDs, strings.TrimSpace(subs[1]))
+		}
+	}
+	for k := 1; k < len(orderedIDs); k++ {
+		curr, prev := orderedIDs[k], orderedIDs[k-1]
+		if curr != prev {
+			hints = append(hints, PlanningDependencyHint{
+				TaskID:      curr,
+				DependsOnID: prev,
+				Reason:      "plan milestone order (earlier checkbox in doc)",
+			})
+		}
+	}
+
+	return hints, nil
+}
+
+// ExtractDependencyHintsFromPlanDir scans .cursor/plans and docs for *.plan.md / *_PLAN*.md and returns merged hints.
+func ExtractDependencyHintsFromPlanDir(projectRoot string) []PlanningDependencyHint {
+	var all []PlanningDependencyHint
+	seen := make(map[string]struct{})
+
+	dirs := []string{
+		filepath.Join(projectRoot, ".cursor", "plans"),
+		filepath.Join(projectRoot, "docs"),
+	}
+	for _, dir := range dirs {
+		entries, err := os.ReadDir(dir)
+		if err != nil {
+			continue
+		}
+		for _, e := range entries {
+			if e.IsDir() {
+				continue
+			}
+			name := e.Name()
+			if !strings.HasSuffix(name, ".md") {
+				continue
+			}
+			if !strings.Contains(strings.ToLower(name), "plan") {
+				continue
+			}
+			full := filepath.Join(dir, name)
+			hints, err := ExtractDependencyHintsFromPlan(full)
+			if err != nil {
+				continue
+			}
+			for _, h := range hints {
+				key := h.TaskID + "|" + h.DependsOnID
+				if _, ok := seen[key]; !ok {
+					seen[key] = struct{}{}
+					all = append(all, h)
+				}
+			}
+		}
+	}
+	return all
+}
+
 // ExtractTaskIDsFromPlanningDoc extracts task IDs referenced in a planning document.
 func ExtractTaskIDsFromPlanningDoc(content string) []string {
 	taskIDs := []string{}
