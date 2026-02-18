@@ -1,0 +1,69 @@
+flowchart BT
+    %% === PROJECT GOALS ===
+    %% Ultimate Goal: exarp-go as the primary MCP server for project automation, task management, and AI-assisted workflow (Todo2, reports, session, health, CI).
+    %% Current Goal: Maintain trajectory visibility (vizvibe), ship rqlite option and stabilize tests.
+
+    %% === START ===
+    %% @project_start [start, closed, 2026-02-17, user]
+    project_start("exarp-go MCP server<br/><sub>Go MCP server for project automation:<br/>Todo2 tasks, reports, session handoff,<br/>health, security, task_analysis, automation.<br/>Replaces Python exarp; Cursor/CLI/TUI integration.</sub>")
+
+    %% === COMPLETED WORK ===
+    %% @native_go_migration [ai-task, closed, 2026-02-17, user]
+    native_go("Native Go migration<br/><sub>Core tools and CLI in Go. SQLite as<br/>primary Todo2 store; JSON fallback.<br/>Task workflow, task_analysis, session,<br/>report, security, automation — all native.</sub>")
+
+    %% @tui_waves_tree [ai-task, closed, 2026-02-17, user]
+    tui_waves("TUI waves and tree collapse<br/><sub>Waves view for backlog; tree collapse/<br/>expand for task hierarchy. R key runs<br/>exarp tools then refreshes waves.<br/>Vim-style search, filter, sort.</sub>")
+
+    %% @cli_task_commands [ai-task, closed, 2026-02-17, user]
+    cli_tasks("CLI task convenience commands<br/><sub>exarp-go task list, update, create,<br/>show, delete, status. Added task sync<br/>to run SQLite ↔ JSON sync from CLI.<br/>Prefer CLI over direct task_workflow tool.</sub>")
+
+    %% @docs_and_plans [ai-task, closed, 2026-02-17, user]
+    docs_plans("Docs and plans<br/><sub>Dependency analysis doc, rqlite<br/>backend plan, CI alternatives, harness,<br/>task dependencies and parents.<br/>Pre-push hook fixed to use repo bin/exarp-go.</sub>")
+
+    %% @vizvibe_setup [ai-task, closed, 2026-02-17, user]
+    vizvibe_setup("Vizvibe trajectory setup<br/><sub>Initial vizvibe.mmd created for exarp-go.<br/>Trajectory in user language (English).<br/>Project goals, completed work, and<br/>next steps captured in Mermaid graph.</sub>")
+
+    %% === FUTURE WORK (OPEN) ===
+    %% @rqlite_backend [ai-task, opened, 2026-02-17, user]
+    rqlite_backend("rqlite backend (optional)<br/><sub>Add gorqlite driver so multiple<br/>machines share one Todo2 DB. Phases:<br/>driver, config/env, docs, tests.<br/>Plan and Todo2 tasks already created.</sub>")
+
+    %% @fix_tools_tests [ai-task, opened, 2026-02-17, user]
+    fix_tools_tests("Fix internal/tools tests<br/><sub>Skip or mock when Ollama not running,<br/>gh not in PATH. Init DB in session_test.<br/>Align health/hooks/infer/memory report<br/>sections. Unblocks CI and local runs.</sub>")
+
+    %% @iterative_ci [ai-task, opened, 2026-02-17, user]
+    iterative_ci("Iterative CI scripts<br/><sub>Alternatives documented in<br/>ALTERNATIVES_ITERATIVE_CI_SCRIPTS.md.<br/>Choose and implement one option<br/>for incremental CI validation.</sub>")
+
+    %% @ultimate_goal [end, opened, 2026-02-17, user]
+    ultimate_goal("Project goal<br/><sub>exarp-go as the main MCP server for<br/>task lifecycle, reporting, session, and<br/>automation; stable tests and clear<br/>trajectory for human-AI collaboration.</sub>")
+
+    %% === CONNECTIONS ===
+    project_start --> native_go
+    native_go --> tui_waves
+    native_go --> cli_tasks
+    tui_waves --> docs_plans
+    cli_tasks --> docs_plans
+    docs_plans --> vizvibe_setup
+    vizvibe_setup --> rqlite_backend
+    vizvibe_setup --> fix_tools_tests
+    vizvibe_setup --> iterative_ci
+    rqlite_backend -.-> ultimate_goal
+    fix_tools_tests -.-> ultimate_goal
+    iterative_ci -.-> ultimate_goal
+
+    %% === RECENT ===
+    subgraph recent [RECENT]
+        vizvibe_setup
+    end
+
+    %% === STYLES ===
+    style project_start fill:#1a1a2e,stroke:#a78bfa,color:#c4b5fd,stroke-width:1px
+    style native_go fill:#1a1a2e,stroke:#a78bfa,color:#c4b5fd,stroke-width:1px
+    style tui_waves fill:#1a1a2e,stroke:#a78bfa,color:#c4b5fd,stroke-width:1px
+    style cli_tasks fill:#1a1a2e,stroke:#a78bfa,color:#c4b5fd,stroke-width:1px
+    style docs_plans fill:#1a1a2e,stroke:#a78bfa,color:#c4b5fd,stroke-width:1px
+    style vizvibe_setup fill:#2d1f4e,stroke:#c084fc,color:#e9d5ff,stroke-width:2px
+    style recent fill:transparent,stroke:#c084fc,color:#c084fc,stroke-width:2px,stroke-dasharray:5 5
+    style rqlite_backend fill:#1a1a2e,stroke:#4ade80,color:#86efac,stroke-width:1px
+    style fix_tools_tests fill:#1a1a2e,stroke:#4ade80,color:#86efac,stroke-width:1px
+    style iterative_ci fill:#1a1a2e,stroke:#4ade80,color:#86efac,stroke-width:1px
+    style ultimate_goal fill:#1a1a2e,stroke:#4ade80,color:#86efac,stroke-width:1px

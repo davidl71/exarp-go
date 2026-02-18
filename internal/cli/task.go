@@ -35,10 +35,12 @@ func handleTaskCommand(server framework.MCPServer, parsed *mcpcli.Args) error {
 		return handleTaskShow(server, parsed.Positional)
 	case "delete":
 		return handleTaskDelete(server, parsed.Positional)
+	case "sync":
+		return handleTaskSync(server)
 	case "help":
 		return showTaskUsage()
 	default:
-		return fmt.Errorf("unknown task command: %s (use: list, status, update, create, show, delete, help)", subcommand)
+		return fmt.Errorf("unknown task command: %s (use: list, status, update, create, show, delete, sync, help)", subcommand)
 	}
 }
 
@@ -255,6 +257,11 @@ func handleTaskDelete(server framework.MCPServer, args []string) error {
 	return executeTaskWorkflow(server, toolArgs)
 }
 
+// handleTaskSync runs task_workflow action=sync (SQLite ↔ JSON).
+func handleTaskSync(server framework.MCPServer) error {
+	return executeTaskWorkflow(server, map[string]interface{}{"action": "sync"})
+}
+
 // executeTaskWorkflow executes the task_workflow tool with given arguments.
 func executeTaskWorkflow(server framework.MCPServer, toolArgs map[string]interface{}) error {
 	ctx := context.Background()
@@ -314,6 +321,7 @@ func showTaskUsage() error {
 	_, _ = fmt.Println("  create <name> [options]  Create new task")
 	_, _ = fmt.Println("  show <task-id>          Show full task details")
 	_, _ = fmt.Println("  delete <task-id>        Delete a task (e.g. wrong project)")
+	_, _ = fmt.Println("  sync                    Sync Todo2 (SQLite ↔ JSON)")
 	_, _ = fmt.Println("  help                    Show this help")
 	_, _ = fmt.Println()
 	_, _ = fmt.Println("List Options:")
@@ -344,6 +352,7 @@ func showTaskUsage() error {
 	_, _ = fmt.Println("  exarp-go task update --status \"Todo\" --new-status \"Done\" --ids \"T-1,T-2\"")
 	_, _ = fmt.Println("  exarp-go task create \"Fix bug\" --description \"Fix the bug\" --priority \"high\"")
 	_, _ = fmt.Println("  exarp-go task show T-123")
+	_, _ = fmt.Println("  exarp-go task sync")
 	_, _ = fmt.Println()
 
 	return nil
