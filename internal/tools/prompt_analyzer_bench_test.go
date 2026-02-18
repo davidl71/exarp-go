@@ -6,9 +6,9 @@ import (
 )
 
 type benchmarkAnalysisGenerator struct {
-	analysisResp    string
-	suggestionResp  string
-	callCount       int
+	analysisResp   string
+	suggestionResp string
+	callCount      int
 }
 
 func (m *benchmarkAnalysisGenerator) Supported() bool { return true }

@@ -86,9 +86,9 @@ func findProjectRootForTest(t *testing.T) string {
 // is included in the params map when set (A2: proto field 11).
 func TestEstimationRequestToParamsLocalAIBackend(t *testing.T) {
 	req := &proto.EstimationRequest{
-		Action:          "estimate",
-		Name:            "Test task",
-		LocalAiBackend:  "ollama",
+		Action:         "estimate",
+		Name:           "Test task",
+		LocalAiBackend: "ollama",
 	}
 	params := EstimationRequestToParams(req)
 	if got, ok := params["local_ai_backend"].(string); !ok || got != "ollama" {

@@ -313,8 +313,8 @@ func TestHandleTaskWorkflowNative(t *testing.T) {
 		}
 
 		_, err = handleTaskWorkflowNative(ctx, map[string]interface{}{
-			"action":            "update",
-			"task_id":           taskID,
+			"action":           "update",
+			"task_id":          taskID,
 			"local_ai_backend": "ollama",
 		})
 		if err != nil {
@@ -348,9 +348,9 @@ func TestHandleTaskWorkflowNative(t *testing.T) {
 	t.Run("create with local_ai_backend sets preferred_backend", func(t *testing.T) {
 		ctx := context.Background()
 		createResult, err := handleTaskWorkflowNative(ctx, map[string]interface{}{
-			"action":            "create",
-			"name":              "Create with local AI backend test",
-			"long_description":  "B1: verify preferred_backend on create",
+			"action":           "create",
+			"name":             "Create with local AI backend test",
+			"long_description": "B1: verify preferred_backend on create",
 			"local_ai_backend": "mlx",
 		})
 		if err != nil {

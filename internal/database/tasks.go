@@ -22,13 +22,13 @@ type Todo2Task = models.Todo2Task
 
 // TaskFilters represents filters for querying tasks.
 type TaskFilters struct {
-	Status      *string
-	Priority    *string
-	Tag         *string
-	ProjectID   *string
-	AssignedTo  *string
-	Host        *string
-	Agent       *string
+	Status     *string
+	Priority   *string
+	Tag        *string
+	ProjectID  *string
+	AssignedTo *string
+	Host       *string
+	Agent      *string
 }
 
 // SanitizeTaskMetadata parses JSON metadata; on failure returns a map with "raw" key and logs.

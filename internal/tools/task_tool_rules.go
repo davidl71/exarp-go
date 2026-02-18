@@ -15,11 +15,11 @@ const TaskToolRulesFile = ".cursor/task_tool_rules.yaml"
 // Tag keys are lowercase (e.g. "research"); tags may include or omit "#" when looking up.
 func DefaultTagToolMap() map[string][]string {
 	return map[string][]string{
-		"research":       {"tractatus_thinking"},
-		"design":        {"tractatus_thinking"},
-		"planning":      {"tractatus_thinking"},
-		"docs":          {"context7"},
-		"task_workflow": {"task_workflow", "task_analysis"},
+		"research":        {"tractatus_thinking"},
+		"design":          {"tractatus_thinking"},
+		"planning":        {"tractatus_thinking"},
+		"docs":            {"context7"},
+		"task_workflow":   {"task_workflow", "task_analysis"},
 		"task_management": {"task_workflow", "task_analysis"},
 	}
 }

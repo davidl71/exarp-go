@@ -341,8 +341,8 @@ func handleTaskSummarizeParsed(server framework.MCPServer, parsed *mcpcli.Args) 
 		return fmt.Errorf("task summarize requires a task ID")
 	}
 	toolArgs := map[string]interface{}{
-		"action":   "summarize",
-		"task_id":  taskID,
+		"action":  "summarize",
+		"task_id": taskID,
 	}
 	if b := parsed.GetFlag("local-ai-backend", ""); b != "" {
 		toolArgs["local_ai_backend"] = b

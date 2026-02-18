@@ -18,8 +18,8 @@ const (
 
 // Config holds queue/Redis settings from environment.
 type Config struct {
-	RedisAddr string
-	QueueName string
+	RedisAddr   string
+	QueueName   string
 	Concurrency int
 }
 

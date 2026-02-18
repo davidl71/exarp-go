@@ -389,7 +389,7 @@ func registerBatch2Tools(server framework.MCPServer) error {
 				},
 				"compact": map[string]interface{}{
 					"type":        "boolean",
-					"default":    false,
+					"default":     false,
 					"description": "When true and output_format=json, return compact JSON to reduce context size (overview, scorecard, briefing)",
 				},
 				"output_path": map[string]interface{}{
@@ -425,7 +425,7 @@ func registerBatch2Tools(server framework.MCPServer) error {
 				},
 				"skip_scorecard_cache": map[string]interface{}{
 					"type":        "boolean",
-					"default":    false,
+					"default":     false,
 					"description": "For action=scorecard: when true, bypass 5-minute result cache and regenerate",
 				},
 				"include_recommendations": map[string]interface{}{
@@ -779,7 +779,7 @@ func registerBatch2Tools(server framework.MCPServer) error {
 				},
 				"compact": map[string]interface{}{
 					"type":        "boolean",
-					"default":    false,
+					"default":     false,
 					"description": "When true and output_format=json, return compact JSON (no indentation) to reduce context size",
 				},
 				"stale_threshold_hours": map[string]interface{}{
@@ -1322,7 +1322,7 @@ func registerBatch3Tools(server framework.MCPServer) error {
 				},
 				"compact": map[string]interface{}{
 					"type":        "boolean",
-					"default":    false,
+					"default":     false,
 					"description": "When true (e.g. for prime), return compact JSON to reduce context size",
 				},
 				"ask_preferences": map[string]interface{}{
@@ -1876,7 +1876,7 @@ func registerBatch5Tools(server framework.MCPServer) error {
 			Properties: map[string]interface{}{
 				"action": map[string]interface{}{
 					"type":    "string",
-					"enum":   []string{"launch", "status", "list", "follow_up", "delete"},
+					"enum":    []string{"launch", "status", "list", "follow_up", "delete"},
 					"default": "list",
 				},
 				"agent_id": map[string]interface{}{

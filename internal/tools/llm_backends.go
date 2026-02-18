@@ -14,14 +14,14 @@ import (
 // (FM, Ollama, MLX, LocalAI) without calling each tool.
 func LLMBackendStatus() map[string]interface{} {
 	return map[string]interface{}{
-		"fm_available":     FMAvailable(),
-		"mlx_available":    MLAvailable(),
+		"fm_available":      FMAvailable(),
+		"mlx_available":     MLAvailable(),
 		"localai_available": LocalAIAvailable(),
-		"ollama_tool":      "ollama",
-		"mlx_tool":         "mlx",
-		"apple_fm_tool":    "apple_foundation_models",
-		"localai_tool":     "text_generate",
-		"hint":             "text_generate is the unified generate-text dispatcher (provider=fm|ollama|mlx|localai|insight|auto). Use provider=auto for model selection. Separate tools (apple_foundation_models, ollama, mlx) offer rich actions (status, models, pull, hardware, docs, quality) beyond generation.",
+		"ollama_tool":       "ollama",
+		"mlx_tool":          "mlx",
+		"apple_fm_tool":     "apple_foundation_models",
+		"localai_tool":      "text_generate",
+		"hint":              "text_generate is the unified generate-text dispatcher (provider=fm|ollama|mlx|localai|insight|auto). Use provider=auto for model selection. Separate tools (apple_foundation_models, ollama, mlx) offer rich actions (status, models, pull, hardware, docs, quality) beyond generation.",
 	}
 }
 

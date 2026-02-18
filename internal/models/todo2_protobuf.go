@@ -6,8 +6,8 @@ import (
 	"time"
 
 	"github.com/davidl71/exarp-go/proto"
-	protobuf "google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/encoding/protojson"
+	protobuf "google.golang.org/protobuf/proto"
 )
 
 // Todo2TaskToProto converts a models.Todo2Task to protobuf Todo2Task.
