@@ -13,22 +13,38 @@ import (
 var DefaultSlowThreshold = 2 * time.Second
 
 // logInfo logs an info message with structured fields using the shared logger.
+// When CLIOutputOpts.Quiet is true, no log output is written (script/JSON-friendly).
 func logInfo(ctx context.Context, msg string, args ...interface{}) {
+	if CLIOutputOpts.Quiet {
+		return
+	}
 	logging.Default().WithContext(ctx).Info(msg, args...)
 }
 
 // logWarn logs a warning message with structured fields using the shared logger.
+// When CLIOutputOpts.Quiet is true, no log output is written (script/JSON-friendly).
 func logWarn(ctx context.Context, msg string, args ...interface{}) {
+	if CLIOutputOpts.Quiet {
+		return
+	}
 	logging.Default().WithContext(ctx).Warn(msg, args...)
 }
 
 // logError logs an error message with structured fields using the shared logger.
+// When CLIOutputOpts.Quiet is true, no log output is written (script/JSON-friendly).
 func logError(ctx context.Context, msg string, args ...interface{}) {
+	if CLIOutputOpts.Quiet {
+		return
+	}
 	logging.Default().WithContext(ctx).Error(msg, args...)
 }
 
 // logDebug logs a debug message with structured fields using the shared logger.
+// When CLIOutputOpts.Quiet is true, no log output is written (script/JSON-friendly).
 func logDebug(ctx context.Context, msg string, args ...interface{}) {
+	if CLIOutputOpts.Quiet {
+		return
+	}
 	logging.Default().WithContext(ctx).Debug(msg, args...)
 }
 
