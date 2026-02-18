@@ -115,7 +115,7 @@ Suggested defaults (config or code):
 | `#docs` | `context7` |
 | `#task_workflow`, `#task_management` | `task_workflow`, `task_analysis` |
 
-Config file (e.g. in centralized config or `.cursor/task_tool_rules.yaml`) can override or extend.
+**Config file:** Optional `.cursor/task_tool_rules.yaml` in the project root overrides or extends the built-in map. Format: top-level `tag_tools` with tag names (with or without `#`) as keys and arrays of MCP tool IDs as values. Example: [docs/task_tool_rules.example.yaml](task_tool_rules.example.yaml). Use `task_workflow` with `action=enrich_tool_hints` to apply rules to Todo and In Progress tasks (idempotent; merges with existing `recommended_tools`).
 
 ### 6. Files / components
 

@@ -405,6 +405,15 @@ func registerBatch2Tools(server framework.MCPServer) error {
 					"default":     false,
 					"description": "For action=plan: when true, also update .cursor/plans/parallel-execution-subagents.plan.md from waves",
 				},
+				"repair": map[string]interface{}{
+					"type":        "boolean",
+					"default":     false,
+					"description": "For action=plan: when true, repair existing plan file (restore frontmatter and ## 3. Iterative Milestones) without overwriting rest of body",
+				},
+				"plan_path": map[string]interface{}{
+					"type":        "string",
+					"description": "For action=plan with repair=true: path to plan file to repair (default: same as output_path)",
+				},
 				"include_planning": map[string]interface{}{
 					"type":        "boolean",
 					"default":     false,
@@ -683,13 +692,13 @@ func registerBatch2Tools(server framework.MCPServer) error {
 	// T-34: task_workflow
 	if err := server.RegisterTool(
 		"task_workflow",
-		"[HINT: OpenCode/agent: use for task list/update/create (action=sync sub_action=list, or approve). Task workflow. action=sync|approve|clarify|clarity|cleanup|create|fix_dates|fix_empty_descriptions|fix_invalid_ids|link_planning|request_approval|sync_approvals|apply_approval_result|sanity_check|sync_from_plan|sync_plan_status|summarize|run_with_ai. Manage task lifecycle. ⚠️ CRITICAL: PREFER convenience commands (exarp-go task ...) for common operations. FALLBACK to this tool for advanced operations (clarity, cleanup, complex filters, summarize, run_with_ai). NEVER edit .todo2/state.todo2.json directly. Use action=approve with task_ids for batch updates. Use action=create to create new tasks. Use action=link_planning with task_id/task_ids and planning_doc/epic_id to set planning hints on Todo or In Progress tasks only. Use action=summarize with task_id (and optional local_ai_backend) to generate an AI summary and save as comment. Use action=run_with_ai with task_id (and optional local_ai_backend, instruction) to run a task through a local LLM and get implementation guidance. Sync is SQLite↔JSON only; external sync is a future nice-to-have (ignored if passed).]",
+		"[HINT: OpenCode/agent: use for task list/update/create (action=sync sub_action=list, or approve). Task workflow. action=sync|approve|clarify|clarity|cleanup|create|enrich_tool_hints|fix_dates|fix_empty_descriptions|fix_invalid_ids|link_planning|request_approval|sync_approvals|apply_approval_result|sanity_check|sync_from_plan|sync_plan_status|summarize|run_with_ai. Manage task lifecycle. ⚠️ CRITICAL: PREFER convenience commands (exarp-go task ...) for common operations. FALLBACK to this tool for advanced operations (clarity, cleanup, complex filters, summarize, run_with_ai). NEVER edit .todo2/state.todo2.json directly. Use action=approve with task_ids for batch updates. Use action=create to create new tasks. Use action=link_planning with task_id/task_ids and planning_doc/epic_id to set planning hints on Todo or In Progress tasks only. Use action=summarize with task_id (and optional local_ai_backend) to generate an AI summary and save as comment. Use action=run_with_ai with task_id (and optional local_ai_backend, instruction) to run a task through a local LLM and get implementation guidance. Sync is SQLite↔JSON only; external sync is a future nice-to-have (ignored if passed).]",
 		framework.ToolSchema{
 			Type: "object",
 			Properties: map[string]interface{}{
 				"action": map[string]interface{}{
 					"type":    "string",
-					"enum":    []string{"sync", "approve", "clarify", "clarity", "cleanup", "create", "delete", "fix_dates", "fix_empty_descriptions", "fix_invalid_ids", "link_planning", "request_approval", "sync_approvals", "apply_approval_result", "sanity_check", "sync_from_plan", "sync_plan_status", "update", "summarize", "run_with_ai"},
+					"enum":    []string{"sync", "approve", "clarify", "clarity", "cleanup", "create", "delete", "enrich_tool_hints", "fix_dates", "fix_empty_descriptions", "fix_invalid_ids", "link_planning", "request_approval", "sync_approvals", "apply_approval_result", "sanity_check", "sync_from_plan", "sync_plan_status", "update", "summarize", "run_with_ai"},
 					"default": "sync",
 				},
 				"dry_run": map[string]interface{}{

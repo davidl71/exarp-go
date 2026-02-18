@@ -15,6 +15,8 @@
 ### Cursor & AI
 - `CURSOR_RULES.md` - Cursor rules index and **code/planning tag hints** for Todo2 alignment
 - `OPENCODE_INTEGRATION.md` - Use exarp-go with OpenCode (MCP, CLI, HTTP API)
+- `GO_AI_ECOSYSTEM.md` - AI/LLM backend stack (FM, Ollama, MLX, LocalAI)
+- `LLM_NATIVE_ABSTRACTION_PATTERNS.md` - LLM abstraction patterns and discovery
 
 ### Active Workflows
 - `DEV_TEST_AUTOMATION.md` - Development and testing automation
@@ -31,6 +33,8 @@
 - `MARKDOWN_LINTING_TEST_RESULTS.md` - Markdown linting test results
 
 ### Reference Documentation
+- `PROTOBUF_USAGE.md` - Protobuf usage and build tooling (make proto, make proto-buf)
+- `PROTOBUF_IMPLEMENTATION_STATUS.md` - Protobuf implementation status
 - `GO_SDK_MIGRATION_QUICK_START.md` - Quick start guide (may be outdated)
 - `MCP_FRAMEWORKS_COMPARISON.md` - MCP framework comparison
 - `MCP_GO_FRAMEWORK_COMPARISON.md` - Go framework comparison details
