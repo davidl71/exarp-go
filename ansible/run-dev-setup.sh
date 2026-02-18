@@ -63,4 +63,5 @@ echo "  python3 --version"
 echo "  uv --version"
 echo "  gh --version 2>/dev/null || echo 'gh not in PATH (set install_gh: true to install)'"
 echo "  golangci-lint --version 2>/dev/null || echo 'golangci-lint not installed (may have been skipped gracefully)'"
+echo "  redis-cli ping 2>/dev/null && echo 'Redis OK (REDIS_ADDR=127.0.0.1:6379 for make queue-enqueue-wave / queue-worker)' || echo 'Redis not installed (set install_redis: true to install)'"
 

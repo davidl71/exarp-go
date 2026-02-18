@@ -1,4 +1,4 @@
-.PHONY: help build build-debug silent build-race build-no-cgo run test test-watch tag-build-ok test-coverage test-html clean install fmt lint lint-all lint-all-fix dev dev-watch dev-test dev-full dev-cycle pre-push bench docs sanity-check sanity-check-cached test-cli test-cli-list test-cli-tool test-cli-test config clean-config sprint-start sprint-end pre-sprint sprint check-tasks update-completed-tasks task-sanity-check go-fmt go-vet golangci-lint-check golangci-lint-fix govulncheck check check-fix check-all build-migrate migrate migrate-dry-run install-tools go-mod-tidy go-mod-verify pre-commit ci validate check-deps test-go test-go-fast test-go-verbose test-go-parallel test-go-tools-short test-real-models version scorecard scorecard-full scorecard-plans report-plan demo-tui task-list task-list-todo task-list-in-progress task-list-done task-prune-done task-update task-create queue-enqueue-wave queue-worker proto delete-expired-archive analyze-critical-path proto-check proto-clean exarp-list exarp-report-scorecard exarp-report-overview exarp-health-server exarp-health-docs exarp-context-budget exarp-test
+.PHONY: help b build build-debug silent build-race build-no-cgo run test test-watch tag-build-ok test-coverage test-html clean install fmt lint lint-all lint-all-fix dev dev-watch dev-test dev-full dev-cycle pre-push bench docs sanity-check sanity-check-cached test-cli test-cli-list test-cli-tool test-cli-test config clean-config sprint-start sprint-end pre-sprint sprint check-tasks update-completed-tasks task-sanity-check go-fmt go-vet golangci-lint-check golangci-lint-fix govulncheck check check-fix check-all build-migrate migrate migrate-dry-run install-tools go-mod-tidy go-mod-verify pre-commit ci validate check-deps test-go test-go-fast test-go-verbose test-go-parallel test-go-tools-short test-real-models version scorecard scorecard-full scorecard-plans report-plan demo-tui task-list task-list-todo task-list-in-progress task-list-done task-prune-done task-update task-create queue-enqueue-wave queue-worker proto delete-expired-archive analyze-critical-path proto-check proto-clean exarp-list exarp-report-scorecard exarp-report-overview exarp-health-server exarp-health-docs exarp-context-budget exarp-test
 
 # Project configuration
 PROJECT_NAME := exarp-go
@@ -163,6 +163,7 @@ help: ## Show this help message
 	@echo "  $(GREEN)make dev-cycle$(NC)  - Format, test, ready for commit"
 	@echo "  $(GREEN)make pre-push$(NC)   - Run before git push"
 
+b: build ## Short alias: make b = make build (single Go binary)
 build: ## Build the Go server (CGO enabled on Mac Silicon by default, disabled elsewhere)
 	$(Q)echo "$(BLUE)Building $(PROJECT_NAME) v$(VERSION)...$(NC)"
 	@if ! command -v $(GO) >/dev/null 2>&1 && [ ! -x "$(GO)" ]; then \
