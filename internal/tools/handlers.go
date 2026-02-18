@@ -4,7 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strconv"
+	"time"
 
+	"github.com/davidl71/exarp-go/internal/cache"
 	"github.com/davidl71/exarp-go/internal/framework"
 	"github.com/davidl71/exarp-go/proto"
 	"github.com/davidl71/mcp-go-core/pkg/mcp/request"
@@ -222,11 +225,30 @@ func handleReport(ctx context.Context, args json.RawMessage) ([]framework.TextCo
 			fastMode = v
 		}
 
-		opts := &ScorecardOptions{FastMode: fastMode}
+		skipCache, _ := params["skip_scorecard_cache"].(bool)
+		cacheKey := "scorecard:" + projectRoot + "|" + strconv.FormatBool(fastMode)
 
-		scorecard, err := GenerateGoScorecard(ctx, projectRoot, opts)
-		if err != nil {
-			return nil, fmt.Errorf("report scorecard: %w", err)
+		var scorecard *GoScorecardResult
+		if !skipCache {
+			if cached, ok := cache.GetScorecardCache().Get(cacheKey); ok {
+				var decoded GoScorecardResult
+				if err := json.Unmarshal(cached, &decoded); err == nil {
+					scorecard = &decoded
+				}
+			}
+		}
+		if scorecard == nil {
+			opts := &ScorecardOptions{FastMode: fastMode}
+			var err error
+			scorecard, err = GenerateGoScorecard(ctx, projectRoot, opts)
+			if err != nil {
+				return nil, fmt.Errorf("report scorecard: %w", err)
+			}
+			if !skipCache {
+				if data, err := json.Marshal(scorecard); err == nil {
+					cache.GetScorecardCache().Set(cacheKey, data, 5*time.Minute)
+				}
+			}
 		}
 		// Use proto for type-safe scorecard data (report/MLX path)
 		scorecardProto := GoScorecardResultToProto(scorecard)
