@@ -167,9 +167,10 @@ func performGoHealthChecks(ctx context.Context, projectRoot string, opts *Scorec
 	if opts == nil || !opts.FastMode {
 		health.GoTestPasses, health.GoTestCoverage = checkGoTest(ctx, projectRoot)
 	} else {
-		// In fast mode, just check if test files exist
+		// Fast mode: don't run go test, but read coverage from existing coverage.out if present
+		// (e.g. from prior "make test-coverage" or full scorecard)
 		health.GoTestPasses = true // Assume tests exist if we have test files
-		health.GoTestCoverage = 0.0
+		health.GoTestCoverage = readCoverageFromFile(ctx, projectRoot, "coverage.out")
 	}
 
 	// Check govulncheck (skip in fast mode)
@@ -504,48 +505,50 @@ func checkGolangciLint(ctx context.Context, root string) bool {
 	return err == nil
 }
 
+// readCoverageFromFile parses coverage percentage from a coverage profile file.
+// Returns 0.0 if the file does not exist or cannot be parsed. Used by both
+// full mode (after go test) and fast mode (from prior coverage.out if present).
+func readCoverageFromFile(ctx context.Context, root, filename string) float64 {
+	coverPath := filepath.Join(root, filename)
+	if _, err := os.Stat(coverPath); err != nil {
+		return 0.0
+	}
+	coverCmd := exec.CommandContext(ctx, "go", "tool", "cover", "-func="+filename)
+	coverCmd.Dir = root
+	output, err := coverCmd.Output()
+	if err != nil {
+		return 0.0
+	}
+	lines := strings.Split(string(output), "\n")
+	for i := len(lines) - 1; i >= 0; i-- {
+		if strings.Contains(lines[i], "total:") {
+			fields := strings.Fields(lines[i])
+			if len(fields) > 0 {
+				percentText := strings.TrimSuffix(fields[len(fields)-1], "%")
+				if percent, parseErr := strconv.ParseFloat(percentText, 64); parseErr == nil {
+					return percent
+				}
+			}
+			break
+		}
+	}
+	return 0.0
+}
+
 // checkGoTest checks if go test passes and gets coverage.
+// Coverage is read from coverage.out even when tests fail, since go test may still
+// write partial coverage for packages that ran before a failure.
 func checkGoTest(ctx context.Context, root string) (bool, float64) {
 	ctx, cancel := context.WithTimeout(ctx, config.ToolTimeout("testing"))
 	defer cancel()
 
-	// Run tests with coverage
 	cmd := exec.CommandContext(ctx, "go", "test", "./...", "-coverprofile=coverage.out", "-covermode=atomic")
 	cmd.Dir = root
 	err := cmd.Run()
 	passes := err == nil
 
-	// Get coverage percentage
-	coverage := 0.0
-
-	if passes {
-		cmd = exec.CommandContext(ctx, "go", "tool", "cover", "-func=coverage.out")
-		cmd.Dir = root
-
-		output, err := cmd.Output()
-		if err == nil {
-			// Parse coverage from last line (total)
-			lines := strings.Split(string(output), "\n")
-			for i := len(lines) - 1; i >= 0; i-- {
-				if strings.Contains(lines[i], "total:") {
-					fields := strings.Fields(lines[i])
-					if len(fields) > 0 {
-						percentText := strings.TrimSuffix(fields[len(fields)-1], "%")
-						if percent, parseErr := strconv.ParseFloat(percentText, 64); parseErr == nil {
-							coverage = percent
-						}
-					}
-
-					break
-				}
-			}
-		}
-		// Clean up
-		if err := os.Remove(filepath.Join(root, "coverage.out")); err != nil && !os.IsNotExist(err) {
-			// best effort cleanup
-		}
-	}
-
+	coverage := readCoverageFromFile(ctx, root, "coverage.out")
+	_ = os.Remove(filepath.Join(root, "coverage.out"))
 	return passes, coverage
 }
 
@@ -833,7 +836,7 @@ func FormatGoScorecard(scorecard *GoScorecardResult) string {
 	sb.WriteString(fmt.Sprintf("    go test:              %s\n", checkMarkOrSkipped(scorecard.Health.GoTestPasses, scorecard.FastModeUsed)))
 
 	if scorecard.Health.GoTestCoverage == 0 && scorecard.FastModeUsed {
-		sb.WriteString("    Test coverage:        — (fast mode; refresh scorecard after fixes to see %)\n")
+		sb.WriteString("    Test coverage:        — (fast mode; run full scorecard or make test-coverage to see %)\n")
 	} else {
 		sb.WriteString(fmt.Sprintf("    Test coverage:        %.1f%%\n", scorecard.Health.GoTestCoverage))
 	}

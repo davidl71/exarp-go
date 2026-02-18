@@ -94,9 +94,9 @@ func handleSetupGitHooks(ctx context.Context, params map[string]interface{}) ([]
 export GIT_HOOK=1
 
 # Redirect stdin so exarp-go never sees git refs (avoids JSON parse error if it ran in MCP mode)
-# In exarp-go repo, block commit if build fails
+# In exarp-go repo, block commit if build fails (use make silent for minimal output)
 if [ -f Makefile ] && [ -f go.mod ] && grep -q 'exarp-go' go.mod 2>/dev/null; then
-  make QUIET=1 build >/dev/null 2>&1 || { echo "Build failed"; exit 1; }
+  make silent >/dev/null 2>&1 || { echo "Build failed"; exit 1; }
   ./bin/exarp-go -tool health -args '{"action":"docs"}' </dev/null || exit 1
   ./bin/exarp-go -tool security -args '{"action":"scan"}' </dev/null || exit 1
 else

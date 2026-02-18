@@ -45,7 +45,7 @@ func handleCursorCommand(parsed *mcpcli.Args) error {
 }
 
 // runCursorRun runs the Cursor agent with a prompt from task-id or -p.
-// Options: --mode plan|ask|agent, -p "prompt", --no-interactive.
+// Options: --mode plan|ask|agent, -p "prompt", --interactive (default: batch mode).
 func runCursorRun(parsed *mcpcli.Args) error {
 	if parsed.HasFlag("help") || parsed.HasFlag("h") {
 		printCursorRunHelp()
@@ -107,7 +107,8 @@ func runCursorRun(parsed *mcpcli.Args) error {
 		mode = "plan"
 	}
 
-	noInteractive := parsed.GetBoolFlag("no-interactive", false)
+	// Default to non-interactive (batch mode); use --interactive to open new terminal on macOS
+	noInteractive := !parsed.GetBoolFlag("interactive", false)
 
 	execPath, baseArgs := agentCommand()
 	if execPath == "" {
@@ -175,13 +176,14 @@ func printCursorRunHelp() {
 	fmt.Println("  -p, --prompt <text>     Custom prompt (alternative to task-id)")
 	fmt.Println("  --task <task-id>        Task ID (e.g. T-123); or pass as positional after run")
 	fmt.Println("  --mode plan|ask|agent   Cursor agent mode (default: plan)")
-	fmt.Println("  --no-interactive        Use agent -p (non-interactive); for scripts/CI")
+	fmt.Println("  --interactive           Open new terminal (default: run in batch, exit when done)")
 	fmt.Println("  -h, --help              Show this help")
 	fmt.Println()
 	fmt.Println("Examples:")
 	fmt.Println("  exarp-go cursor run T-123")
-	fmt.Println("  exarp-go cursor run -p \"Implement the refactor\" --no-interactive")
+	fmt.Println("  exarp-go cursor run -p \"Implement the refactor\"   # batch mode (default)")
 	fmt.Println("  exarp-go cursor run --task T-123 --mode agent")
+	fmt.Println("  exarp-go cursor run -p \"hello\" --interactive   # open new terminal")
 	fmt.Println()
 	fmt.Println("Install Cursor CLI: curl https://cursor.com/install -fsS | bash")
 	fmt.Println("See: docs/CURSOR_API_AND_CLI_INTEGRATION.md")

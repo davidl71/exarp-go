@@ -664,7 +664,7 @@ func showUsage() {
 	_, _ = fmt.Println("Cursor integration:")
 	_, _ = fmt.Println("  cursor run [task-id]       Run Cursor agent with task context (e.g. cursor run T-123)")
 	_, _ = fmt.Println("  cursor run -p \"prompt\"     Run Cursor agent with custom prompt")
-	_, _ = fmt.Println("  cursor run --no-interactive  Non-interactive (agent -p); use with -p or task-id")
+	_, _ = fmt.Println("  cursor run --interactive  Open new terminal (default: batch mode)")
 	_, _ = fmt.Println("  cursor run --mode plan|ask|agent  Cursor agent mode (default: plan)")
 	_, _ = fmt.Println("  Run from project root so exarp-go MCP tools are available.")
 	_, _ = fmt.Println("  Install Cursor CLI: curl https://cursor.com/install -fsS | bash")
@@ -682,7 +682,7 @@ func showUsage() {
 	_, _ = fmt.Println("  exarp-go task update T-1 --new-priority high")
 	_, _ = fmt.Println("  exarp-go session handoffs")
 	_, _ = fmt.Println("  exarp-go cursor run T-123")
-	_, _ = fmt.Println("  exarp-go cursor run -p \"Implement feature X\" --no-interactive")
+	_, _ = fmt.Println("  exarp-go cursor run -p \"Implement feature X\"   # batch mode (default)")
 	_, _ = fmt.Println("  exarp-go -completion bash > /usr/local/etc/bash_completion.d/exarp-go")
 	_, _ = fmt.Println()
 }
