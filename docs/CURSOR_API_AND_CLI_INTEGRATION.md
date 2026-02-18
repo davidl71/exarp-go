@@ -125,6 +125,18 @@ The **session** tool with `action=prime` returns explicit status context so UIs 
 
 **Consumers:** Cursor or other UI can show `status_label`; the AI can prioritize handoff review when `status_context === "handoff"` or focus on the suggested task when `"task"`; automation can decide what to run. Source: `GetSessionStatus(projectRoot)` in `internal/tools/session.go`.
 
+#### 3.0.1 Hints to help Cursor determine "Todo"s
+
+Cursor does not define a formal API for "suggested todos" in its [documentation](https://cursor.com/docs). Context is provided by **Rules** (e.g. `.cursor/rules/*.mdc`) and **MCP tool/resource results**. exarp-go supplies Todo hints in these ways:
+
+| Source | What we provide | How Cursor can use it |
+|--------|-----------------|------------------------|
+| **session(action=prime)** | `status_context`, `status_label`, `suggested_next` (array of `{id, content, priority, ...}`), `suggested_next_action`, `cursor_cli_suggestion` | When `status_context === "task"`, treat `suggested_next` as the **preferred Todo list**; prioritize the first item unless the user asks for something else. Use `suggested_next_action` or `cursor_cli_suggestion` for one-click/CLI. |
+| **stdio://suggested-tasks** (resource) | Same dependency-ready list (up to 10 tasks) as JSON; no tool call required | Cursor can read this resource to get "Todo"s in context without calling session prime. |
+| **.cursor/rules/todo2-overview.mdc** | Auto-generated task overview (Todo count, recent tasks) | In-context snapshot of backlog; session prime gives the *ordered* suggested list. |
+
+**Recommendation for the AI:** After calling `session(action="prime", include_tasks=true)`, if `status_context` is `"task"` and `suggested_next` is non-empty, use that list as the current "Todo"s and suggest working on the first item (e.g. via `suggested_next_action` or `cursor_cli_suggestion`). See `.cursor/rules/session-prime.mdc` for the mandatory prime-at-start rule.
+
 ---
 
 ### 3.1 Cursor CLI wrapper subcommand (high value) — **Task:** T-1771164528145
