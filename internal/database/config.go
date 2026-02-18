@@ -38,7 +38,7 @@ func LoadConfig(projectRoot string) (*Config, error) {
 	if driverStr := os.Getenv("DB_DRIVER"); driverStr != "" {
 		driver := DriverType(driverStr)
 		switch driver {
-		case DriverSQLite, DriverMySQL, DriverPostgres:
+		case DriverSQLite, DriverMySQL, DriverPostgres, DriverRqlite:
 			cfg.Driver = driver
 		default:
 			return nil, fmt.Errorf("unsupported database driver: %s", driverStr)
@@ -57,6 +57,8 @@ func LoadConfig(projectRoot string) (*Config, error) {
 			cfg.DSN = "root:password@tcp(localhost:3306)/todo2?charset=utf8mb4&parseTime=True&loc=UTC"
 		case DriverPostgres:
 			cfg.DSN = "postgres://postgres:password@localhost:5432/todo2?sslmode=disable"
+		case DriverRqlite:
+			cfg.DSN = "http://localhost:4001"
 		}
 	}
 
@@ -77,6 +79,8 @@ func GetDefaultDSN(driver DriverType, projectRoot string) string {
 		return "root:password@tcp(localhost:3306)/todo2?charset=utf8mb4&parseTime=True&loc=UTC"
 	case DriverPostgres:
 		return "postgres://postgres:password@localhost:5432/todo2?sslmode=disable"
+	case DriverRqlite:
+		return "http://localhost:4001"
 	default:
 		return ""
 	}
@@ -118,7 +122,7 @@ func LoadConfigFromCentralizedFields(projectRoot string, dbCfg DatabaseConfigFie
 	if driverStr := os.Getenv("DB_DRIVER"); driverStr != "" {
 		driver := DriverType(driverStr)
 		switch driver {
-		case DriverSQLite, DriverMySQL, DriverPostgres:
+		case DriverSQLite, DriverMySQL, DriverPostgres, DriverRqlite:
 			dbConfig.Driver = driver
 		default:
 			return nil, fmt.Errorf("unsupported database driver: %s", driverStr)
@@ -135,6 +139,8 @@ func LoadConfigFromCentralizedFields(projectRoot string, dbCfg DatabaseConfigFie
 			// Fallback to default
 			dbConfig.DSN = filepath.Join(projectRoot, ".todo2", "todo2.db")
 		}
+	} else if dbConfig.Driver == DriverRqlite {
+		dbConfig.DSN = "http://localhost:4001"
 	}
 
 	if autoMigrate := os.Getenv("DB_AUTO_MIGRATE"); autoMigrate == "false" {

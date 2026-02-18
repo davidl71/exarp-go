@@ -34,30 +34,30 @@
 
 ### Phase 1: Add rqlite driver
 
-- [ ] Add dependency: `github.com/rqlite/gorqlite` (or `gorqlite/stdlib` for `database/sql` driver).
-- [ ] Add `DriverRqlite` constant in `internal/database/driver.go`.
-- [ ] Implement `internal/database/driver_rqlite.go`: `RqliteDriver` (Type, Open, Configure, Dialect, Close) and `RqliteDialect` (SQLite-compatible: `?` placeholders, same types). Use `sql.Open("rqlite", dsn)` after blank-importing gorqlite stdlib.
-- [ ] Register rqlite in `init()` or on first use (consistent with MySQL/Postgres lazy registration if desired).
+- [x] Add dependency: `github.com/rqlite/gorqlite` (stdlib for `database/sql`).
+- [x] Add `DriverRqlite` constant in `internal/database/driver.go`.
+- [x] Implement `internal/database/driver_rqlite.go`: `RqliteDriver` and `RqliteDialect` (SQLite-compatible). Use `sql.Open("rqlite", dsn)` with `_ "github.com/rqlite/gorqlite/stdlib"`.
+- [x] Register rqlite on first use in `InitWithConfig` (same pattern as MySQL/Postgres).
 
 ### Phase 2: Config and env wiring
 
 **Tag hints:** `#config` `#database`
 
-- [ ] In `internal/database/config.go`: accept `DriverRqlite` in `LoadConfig` switch; add default DSN for rqlite (e.g. `http://localhost:4001`). Update `GetDefaultDSN` for rqlite.
-- [ ] In `LoadConfigFromCentralizedFields`: when driver is rqlite, set DSN from env or default (no filepath join).
-- [ ] In `internal/database/sqlite.go` `InitWithConfig`: add case for `DriverRqlite` to register and get rqlite driver (same pattern as MySQL/Postgres).
+- [x] In `internal/database/config.go`: accept `DriverRqlite` in `LoadConfig`; default DSN `http://localhost:4001`. `GetDefaultDSN` for rqlite.
+- [x] In `LoadConfigFromCentralizedFields`: when driver is rqlite, set DSN from env or default.
+- [x] In `internal/database/sqlite.go` `InitWithConfig`: case for `DriverRqlite` to register and get rqlite driver.
 
 ### Phase 3: Documentation
 
 **Tag hints:** `#docs`
 
-- [ ] Add `docs/RQLITE_SETUP.md` (or section in existing docs): how to install and run rqlite (single node), set `DB_DRIVER=rqlite` and `DB_DSN`, run exarp-go on multiple machines. Note macOS/Linux/FreeBSD and self-host only.
+- [x] Add `docs/RQLITE_SETUP.md`: install/run rqlite, set `DB_DRIVER=rqlite` and `DB_DSN`, multi-machine. macOS/Linux/FreeBSD, self-host only.
 
 ### Phase 4: Tests and sanity
 
 **Tag hints:** `#testing`
 
-- [ ] Unit test for rqlite driver: either use a test that mocks/skips when no rqlite server (e.g. integration tag) or document that rqlite tests require a local node. Ensure existing SQLite tests still pass.
+- [x] Tests in `internal/database/driver_rqlite_test.go`: Type, Dialect, GetDefaultDSN, LoadConfig (rqlite), Open (skip when no server). SQLite tests unchanged.
 
 ---
 

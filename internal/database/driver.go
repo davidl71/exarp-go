@@ -12,6 +12,7 @@ const (
 	DriverSQLite   DriverType = "sqlite"
 	DriverMySQL    DriverType = "mysql"
 	DriverPostgres DriverType = "postgres"
+	DriverRqlite   DriverType = "rqlite"
 )
 
 // Driver defines the interface for database drivers
