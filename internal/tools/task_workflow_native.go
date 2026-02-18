@@ -673,6 +673,27 @@ func handleTaskWorkflowDelete(ctx context.Context, params map[string]interface{}
 		return response.FormatResult(result, "")
 	}
 
+	// Update JSON to remove deleted tasks so sync never reintroduces them.
+	// Delete updates both stores; otherwise sync merge would resurrect tasks from stale JSON.
+	if len(deleted) > 0 {
+		jsonTasks, jsonErr := loadTodo2TasksFromJSON(projectRoot)
+		if jsonErr == nil {
+			deletedSet := make(map[string]bool)
+			for _, id := range deleted {
+				deletedSet[id] = true
+			}
+			filtered := make([]Todo2Task, 0, len(jsonTasks))
+			for _, t := range jsonTasks {
+				if !deletedSet[t.ID] {
+					filtered = append(filtered, t)
+				}
+			}
+			if saveErr := saveTodo2TasksToJSON(projectRoot, filtered); saveErr != nil {
+				fmt.Fprintf(os.Stderr, "Warning: failed to remove deleted tasks from JSON: %v\n", saveErr)
+			}
+		}
+	}
+
 	if err := SyncTodo2Tasks(projectRoot); err != nil {
 		result := map[string]interface{}{"success": len(failed) == 0, "method": "database", "deleted": deleted, "failed": failed, "sync_error": err.Error()}
 		return response.FormatResult(result, "")
