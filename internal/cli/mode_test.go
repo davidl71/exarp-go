@@ -152,11 +152,11 @@ func TestHasCLIFlags(t *testing.T) {
 }
 
 func TestReservedSubcommands(t *testing.T) {
-	if len(ReservedSubcommands) != 7 {
-		t.Errorf("ReservedSubcommands len = %d, want 7", len(ReservedSubcommands))
+	if len(ReservedSubcommands) != 9 {
+		t.Errorf("ReservedSubcommands len = %d, want 9", len(ReservedSubcommands))
 	}
 
-	want := map[string]bool{"task": true, "config": true, "tui": true, "tui3270": true, "lock": true, "session": true, "cursor": true}
+	want := map[string]bool{"task": true, "config": true, "tui": true, "tui3270": true, "lock": true, "session": true, "cursor": true, "queue": true, "worker": true}
 	for _, s := range ReservedSubcommands {
 		if !want[s] {
 			t.Errorf("ReservedSubcommands contains unexpected %q", s)
