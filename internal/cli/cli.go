@@ -206,6 +206,12 @@ func Run() error {
 		}
 
 		return RunTUI3270(server, status, port, daemon, pidFile)
+	case "queue":
+		initializeDatabase()
+		return handleQueueCommand(parsed)
+	case "worker":
+		initializeDatabase()
+		return handleWorkerCommand(parsed)
 	}
 
 	// Flag-based modes (-tool, -list, -test, -i, -completion)

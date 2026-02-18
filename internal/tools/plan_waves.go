@@ -2,6 +2,7 @@ package tools
 
 import (
 	"bufio"
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -177,5 +178,25 @@ func ComputeWavesForTUI(projectRoot string, taskList []Todo2Task) (map[int][]str
 		waves = LimitWavesByMaxTasks(waves, max)
 	}
 
+	return waves, nil
+}
+
+// GetExecutionWaves returns waves (level -> task IDs) for the project at projectRoot,
+// using BacklogExecutionOrder and optional LimitWavesByMaxTasks. Used by queue producer
+// to enqueue a wave. Only Todo and In Progress tasks are included.
+func GetExecutionWaves(ctx context.Context, projectRoot string) (map[int][]string, error) {
+	store := NewDefaultTaskStore(projectRoot)
+	list, err := store.ListTasks(ctx, nil)
+	if err != nil {
+		return nil, fmt.Errorf("list tasks: %w", err)
+	}
+	tasks := tasksFromPtrs(list)
+	_, waves, _, err := BacklogExecutionOrder(tasks, nil)
+	if err != nil {
+		return nil, err
+	}
+	if max := config.MaxTasksPerWave(); max > 0 {
+		waves = LimitWavesByMaxTasks(waves, max)
+	}
 	return waves, nil
 }

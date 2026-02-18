@@ -1,4 +1,4 @@
-.PHONY: help build build-debug silent build-race build-no-cgo run test test-watch test-coverage test-html clean install fmt lint lint-all lint-all-fix dev dev-watch dev-test dev-full dev-cycle pre-push bench docs sanity-check sanity-check-cached test-cli test-cli-list test-cli-tool test-cli-test config clean-config sprint-start sprint-end pre-sprint sprint check-tasks update-completed-tasks task-sanity-check go-fmt go-vet golangci-lint-check golangci-lint-fix govulncheck check check-fix check-all build-migrate migrate migrate-dry-run install-tools go-mod-tidy go-mod-verify pre-commit ci validate check-deps test-go test-go-fast test-go-verbose test-go-parallel test-go-tools-short test-real-models version scorecard scorecard-full scorecard-plans report-plan demo-tui task-list task-list-todo task-list-in-progress task-list-done task-prune-done task-update proto delete-expired-archive analyze-critical-path proto-check proto-clean exarp-list exarp-report-scorecard exarp-report-overview exarp-health-server exarp-health-docs exarp-context-budget exarp-test
+.PHONY: help build build-debug silent build-race build-no-cgo run test test-watch test-coverage test-html clean install fmt lint lint-all lint-all-fix dev dev-watch dev-test dev-full dev-cycle pre-push bench docs sanity-check sanity-check-cached test-cli test-cli-list test-cli-tool test-cli-test config clean-config sprint-start sprint-end pre-sprint sprint check-tasks update-completed-tasks task-sanity-check go-fmt go-vet golangci-lint-check golangci-lint-fix govulncheck check check-fix check-all build-migrate migrate migrate-dry-run install-tools go-mod-tidy go-mod-verify pre-commit ci validate check-deps test-go test-go-fast test-go-verbose test-go-parallel test-go-tools-short test-real-models version scorecard scorecard-full scorecard-plans report-plan demo-tui task-list task-list-todo task-list-in-progress task-list-done task-prune-done task-update task-create queue-enqueue-wave queue-worker proto delete-expired-archive analyze-critical-path proto-check proto-clean exarp-list exarp-report-scorecard exarp-report-overview exarp-health-server exarp-health-docs exarp-context-budget exarp-test
 
 # Project configuration
 PROJECT_NAME := exarp-go
@@ -890,6 +890,31 @@ task-update: ## Update task status (use TASK_ID=id NEW_STATUS=status)
 		exit 1; \
 	fi
 
+task-create: ## Create a task (TASK_NAME="Title" TASK_DESC="Description" TASK_PRIORITY=medium)
+	@if [ -f $(BINARY_PATH) ]; then \
+		if [ -z "$(TASK_NAME)" ]; then \
+			echo "$(RED)❌ Usage: make task-create TASK_NAME=\"My task\" [TASK_DESC=\"...\"] [TASK_PRIORITY=medium]$(NC)"; \
+			exit 1; \
+		fi; \
+		$(BINARY_PATH) task create "$(TASK_NAME)" --description "$${TASK_DESC:-}" --priority "$${TASK_PRIORITY:-medium}" 2>&1 | grep -v "INFO\|Warning\|Database" || true; \
+	else \
+		echo "$(RED)❌ exarp-go binary not found - run 'make build' first$(NC)"; exit 1; \
+	fi
+
+queue-enqueue-wave: build ## Enqueue wave to Redis+Asynq (WAVE=0, requires REDIS_ADDR)
+	@if [ -z "$$REDIS_ADDR" ]; then \
+		echo "$(YELLOW)⚠️  Set REDIS_ADDR (e.g. export REDIS_ADDR=127.0.0.1:6379)$(NC)"; \
+		exit 1; \
+	fi
+	@$(BINARY_PATH) queue enqueue-wave $${WAVE:-0}
+
+queue-worker: build ## Run Asynq worker (requires REDIS_ADDR)
+	@if [ -z "$$REDIS_ADDR" ]; then \
+		echo "$(YELLOW)⚠️  Set REDIS_ADDR (e.g. export REDIS_ADDR=127.0.0.1:6379)$(NC)"; \
+		exit 1; \
+	fi
+	@$(BINARY_PATH) worker
+
 ##@ exarp-go tools (CLI)
 
 define exarp_run
@@ -901,8 +926,9 @@ else \
 fi
 endef
 
-_exarp_report_scorecard_args := '{"action":"scorecard","include_metrics":true}'
-_exarp_report_overview_args   := '{"action":"overview","include_metrics":true}'
+# Use compact JSON when supported (session prime, task list, and future report) to reduce context size
+_exarp_report_scorecard_args := '{"action":"scorecard","include_metrics":true,"output_format":"json","compact":true}'
+_exarp_report_overview_args   := '{"action":"overview","include_metrics":true,"output_format":"json","compact":true}'
 
 exarp-list: ## List exarp-go tools (CLI)
 	$(call exarp_run,-list)
