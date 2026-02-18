@@ -14,6 +14,7 @@ Skills in this folder extend the AI with exarp-go workflows. **Read the SKILL.md
 | **task-cleanup** | Bulk remove one-off or performance tasks; when those tasks "reappeared." Use batch delete (`task_ids`) for speed. |
 | **lint-docs** | Check broken references, validate doc links, lint markdown; gomarklint link check is built-in via lint tool. |
 | **text-generate** | Quick local LLM text generation; use for fast on-device generation, classification, summarization, or when other AI backends unavailable. |
+| **thinking-workflow** | Chain tractatus (structure) + sequential (process) + exarp-go MCP (execute) for backlog enrichment, sprint planning, dependency analysis. |
 | **tractatus-decompose** | Use Tractatus Thinking MCP for logical decomposition of complex concepts (operation=start, add, export). |
 | **use-exarp-tools** | When to use which exarp-go MCP tool; tasks, reports, health, testing, project automation. |
 
