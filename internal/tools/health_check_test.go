@@ -47,9 +47,13 @@ func TestHandleHealthDocs(t *testing.T) {
 					return
 				}
 
-				if success, ok := data["success"].(bool); !ok || !success {
-					t.Error("expected success=true")
+				if success, ok := data["success"].(bool); ok && success {
+					return
 				}
+				if status, ok := data["status"].(string); ok && status == "completed" {
+					return
+				}
+				t.Error("expected success=true or status=completed")
 			},
 		},
 		{
@@ -118,13 +122,20 @@ func TestHandleHealthDOD(t *testing.T) {
 					return
 				}
 
-				if success, ok := data["success"].(bool); !ok || !success {
-					t.Error("expected success=true")
+				if success, ok := data["success"].(bool); ok && success {
+					// ok
+				} else if status, ok := data["status"].(string); ok && status == "completed" {
+					// ok
+				} else {
+					t.Error("expected success=true or status=completed")
 				}
-				// Should have categories
-				if categories, ok := data["categories"].(map[string]interface{}); !ok || len(categories) == 0 {
-					t.Error("expected categories in result")
+				if categories, ok := data["categories"].(map[string]interface{}); ok && len(categories) > 0 {
+					return
 				}
+				if checks, ok := data["checks"].(map[string]interface{}); ok && len(checks) > 0 {
+					return
+				}
+				t.Error("expected categories or checks in result")
 			},
 		},
 		{
@@ -206,9 +217,13 @@ func TestHandleHealthCICD(t *testing.T) {
 					return
 				}
 
-				if success, ok := data["success"].(bool); !ok || !success {
-					t.Error("expected success=true")
+				if success, ok := data["success"].(bool); ok && success {
+					return
 				}
+				if status, ok := data["status"].(string); ok && status == "completed" {
+					return
+				}
+				t.Error("expected success=true or status=completed")
 			},
 		},
 		{

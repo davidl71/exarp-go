@@ -3849,19 +3849,20 @@ func (x *LintRequest) GetOutputPath() string {
 
 // EstimationRequest represents a request to the estimation tool
 type EstimationRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Action        string                 `protobuf:"bytes,1,opt,name=action,proto3" json:"action,omitempty"` // "estimate", "analyze", "stats"
-	Name          string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
-	Details       string                 `protobuf:"bytes,3,opt,name=details,proto3" json:"details,omitempty"` // default: ""
-	Tags          string                 `protobuf:"bytes,4,opt,name=tags,proto3" json:"tags,omitempty"`
-	TagList       []string               `protobuf:"bytes,5,rep,name=tag_list,json=tagList,proto3" json:"tag_list,omitempty"`
-	Priority      string                 `protobuf:"bytes,6,opt,name=priority,proto3" json:"priority,omitempty"`                                 // default: "medium"
-	UseHistorical bool                   `protobuf:"varint,7,opt,name=use_historical,json=useHistorical,proto3" json:"use_historical,omitempty"` // default: true
-	Detailed      bool                   `protobuf:"varint,8,opt,name=detailed,proto3" json:"detailed,omitempty"`                                // default: false
-	UseMlx        bool                   `protobuf:"varint,9,opt,name=use_mlx,json=useMlx,proto3" json:"use_mlx,omitempty"`                      // default: true
-	MlxWeight     float64                `protobuf:"fixed64,10,opt,name=mlx_weight,json=mlxWeight,proto3" json:"mlx_weight,omitempty"`           // default: 0.3
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	Action         string                 `protobuf:"bytes,1,opt,name=action,proto3" json:"action,omitempty"` // "estimate", "analyze", "stats"
+	Name           string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	Details        string                 `protobuf:"bytes,3,opt,name=details,proto3" json:"details,omitempty"` // default: ""
+	Tags           string                 `protobuf:"bytes,4,opt,name=tags,proto3" json:"tags,omitempty"`
+	TagList        []string               `protobuf:"bytes,5,rep,name=tag_list,json=tagList,proto3" json:"tag_list,omitempty"`
+	Priority       string                 `protobuf:"bytes,6,opt,name=priority,proto3" json:"priority,omitempty"`                                      // default: "medium"
+	UseHistorical  bool                   `protobuf:"varint,7,opt,name=use_historical,json=useHistorical,proto3" json:"use_historical,omitempty"`      // default: true
+	Detailed       bool                   `protobuf:"varint,8,opt,name=detailed,proto3" json:"detailed,omitempty"`                                     // default: false
+	UseMlx         bool                   `protobuf:"varint,9,opt,name=use_mlx,json=useMlx,proto3" json:"use_mlx,omitempty"`                           // default: true
+	MlxWeight      float64                `protobuf:"fixed64,10,opt,name=mlx_weight,json=mlxWeight,proto3" json:"mlx_weight,omitempty"`                // default: 0.3
+	LocalAiBackend string                 `protobuf:"bytes,11,opt,name=local_ai_backend,json=localAiBackend,proto3" json:"local_ai_backend,omitempty"` // optional: fm|mlx|ollama — preferred local LLM for estimate
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *EstimationRequest) Reset() {
@@ -3962,6 +3963,13 @@ func (x *EstimationRequest) GetMlxWeight() float64 {
 		return x.MlxWeight
 	}
 	return 0
+}
+
+func (x *EstimationRequest) GetLocalAiBackend() string {
+	if x != nil {
+		return x.LocalAiBackend
+	}
+	return ""
 }
 
 // GitToolsRequest represents a request to the git tools
@@ -6400,7 +6408,7 @@ const file_proto_tools_proto_rawDesc = "" +
 	"\rinclude_hints\x18\t \x01(\bR\fincludeHints\x12\x1f\n" +
 	"\voutput_path\x18\n" +
 	" \x01(\tR\n" +
-	"outputPath\"\x9f\x02\n" +
+	"outputPath\"\xc9\x02\n" +
 	"\x11EstimationRequest\x12\x16\n" +
 	"\x06action\x18\x01 \x01(\tR\x06action\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x18\n" +
@@ -6413,7 +6421,8 @@ const file_proto_tools_proto_rawDesc = "" +
 	"\ause_mlx\x18\t \x01(\bR\x06useMlx\x12\x1d\n" +
 	"\n" +
 	"mlx_weight\x18\n" +
-	" \x01(\x01R\tmlxWeight\"\xd2\x03\n" +
+	" \x01(\x01R\tmlxWeight\x12(\n" +
+	"\x10local_ai_backend\x18\v \x01(\tR\x0elocalAiBackend\"\xd2\x03\n" +
 	"\x0fGitToolsRequest\x12\x16\n" +
 	"\x06action\x18\x01 \x01(\tR\x06action\x12\x17\n" +
 	"\atask_id\x18\x02 \x01(\tR\x06taskId\x12\x16\n" +

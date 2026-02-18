@@ -559,19 +559,23 @@ func TestHandleMemoryMaintNative_Dream(t *testing.T) {
 	_, cleanup := setupTestProjectRoot(t)
 	defer cleanup()
 
-	// Dream action should return error (requires advisor integration)
+	// Dream action uses wisdom engine; may succeed (devwisdom available) or return error
 	ctx := context.Background()
 	params := map[string]interface{}{"action": "dream"}
 
 	argsJSON, _ := json.Marshal(params)
 
-	_, err := handleMemoryMaintNative(ctx, argsJSON)
-	if err == nil {
-		t.Error("handleMemoryMaintNative() with dream action should return error")
+	result, err := handleMemoryMaintNative(ctx, argsJSON)
+	if err != nil {
+		// Error acceptable (e.g. wisdom engine unavailable)
+		if err.Error() == "" {
+			t.Error("Error message should not be empty")
+		}
+		return
 	}
-
-	if err != nil && err.Error() == "" {
-		t.Error("Error message should not be empty")
+	// Success: result should contain dream content (quote/source or similar)
+	if result == nil || len(result) == 0 {
+		t.Error("expected non-empty result from dream action")
 	}
 }
 

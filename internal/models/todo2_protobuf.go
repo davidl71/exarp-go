@@ -24,6 +24,10 @@ func Todo2TaskToProto(task *Todo2Task) (*proto.Todo2Task, error) {
 		Tags:            task.Tags,
 		Dependencies:    task.Dependencies,
 		Completed:       task.Completed,
+		ProjectId:       task.ProjectID,
+		AssignedTo:      task.AssignedTo,
+		Host:            task.Host,
+		Agent:           task.Agent,
 	}
 
 	// Convert metadata from map[string]interface{} to map[string]string
@@ -77,6 +81,10 @@ func ProtoToTodo2Task(pbTask *proto.Todo2Task) (*Todo2Task, error) {
 		Tags:            pbTask.Tags,
 		Dependencies:    pbTask.Dependencies,
 		Completed:       pbTask.Completed,
+		ProjectID:       pbTask.ProjectId,
+		AssignedTo:      pbTask.AssignedTo,
+		Host:            pbTask.Host,
+		Agent:           pbTask.Agent,
 	}
 
 	// Convert metadata from map[string]string to map[string]interface{}

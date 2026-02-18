@@ -6,6 +6,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -109,9 +110,24 @@ func setupServer() (framework.MCPServer, error) {
 	return server, nil
 }
 
+// hasToolFlag reports whether -tool or --tool appears in args (so we run executeTool instead of subcommand).
+func hasToolFlag(args []string) bool {
+	for _, a := range args {
+		if a == "-tool" || a == "--tool" {
+			return true
+		}
+	}
+	return false
+}
+
 // Run starts the CLI interface.
 // Uses mcp-go-core ParseArgs for structured CLI dispatch; subcommands (config, task, tui, tui3270) keep os.Args-based remainder.
+// When -tool is present we prefer flag-based tool execution so "exarp-go -tool session -args ..." invokes the tool, not the session subcommand.
 func Run() error {
+	if hasToolFlag(os.Args) {
+		return runFlagBasedMode()
+	}
+
 	parsed := mcpcli.ParseArgs(os.Args[1:])
 
 	// Subcommand dispatch (config, task, tui, tui3270)
@@ -120,6 +136,7 @@ func Run() error {
 		return handleConfigCommand(parsed)
 	case "task":
 		initializeDatabase()
+		setCLIOutputFromParsed(parsed)
 
 		server, err := setupServer()
 		if err != nil {
@@ -146,6 +163,7 @@ func Run() error {
 		return handleLockCommand(parsed)
 	case "session":
 		initializeDatabase()
+		setCLIOutputFromParsed(parsed)
 
 		server, err := setupServer()
 		if err != nil {
@@ -190,7 +208,13 @@ func Run() error {
 		return RunTUI3270(server, status, port, daemon, pidFile)
 	}
 
-	// Flag-based modes (-tool, -list, -test, -i, -completion); use flag package (ParseArgs doesn't handle -flag value skip)
+	// Flag-based modes (-tool, -list, -test, -i, -completion)
+	return runFlagBasedMode()
+}
+
+// runFlagBasedMode parses -tool/-list/-test flags and runs the corresponding action.
+// Used when -tool is in os.Args so "exarp-go -tool session -args ..." invokes executeTool instead of session subcommand.
+func runFlagBasedMode() error {
 	var (
 		toolName    = flag.String("tool", "", "Tool name to execute")
 		argsJSON    = flag.String("args", "{}", "Tool arguments as JSON")
@@ -198,9 +222,16 @@ func Run() error {
 		testTool    = flag.String("test", "", "Test a tool with example arguments")
 		interactive = flag.Bool("i", false, "Interactive mode")
 		completion  = flag.String("completion", "", "Generate shell completion script (bash|zsh|fish)")
+		quiet       = flag.Bool("quiet", false, "Suppress verbose CLI output (OpenCode/script-friendly)")
+		jsonOut     = flag.Bool("json", false, "Machine-readable JSON output")
+		concise     = flag.Bool("concise", false, "Strip emojis and decorative lines from output")
 	)
 
 	_ = flag.CommandLine.Parse(os.Args[1:])
+
+	CLIOutputOpts.Quiet = *quiet
+	CLIOutputOpts.JSON = *jsonOut
+	CLIOutputOpts.Concise = *concise
 
 	initializeDatabase()
 
@@ -259,10 +290,51 @@ const (
 	ModeMCP ExecutionMode = mcpcli.ModeMCP
 )
 
+// CLIOutputOpts holds output options for OpenCode/script-friendly CLI (--quiet, --json, --concise).
+var CLIOutputOpts = struct {
+	Quiet   bool
+	JSON    bool
+	Concise bool
+}{}
+
 // DetectMode detects execution mode from TTY: ModeCLI if stdin is a terminal, else ModeMCP.
 // Uses mcp-go-core DetectMode. Prefer HasCLIFlags for explicit CLI args (e.g. -tool, task).
 func DetectMode() ExecutionMode {
 	return mcpcli.DetectMode()
+}
+
+// setCLIOutputFromParsed sets CLIOutputOpts from ParseArgs result (for task/session subcommands).
+func setCLIOutputFromParsed(parsed *mcpcli.Args) {
+	CLIOutputOpts.Quiet = parsed.GetBoolFlag("quiet", false)
+	CLIOutputOpts.JSON = parsed.GetBoolFlag("json", false) || parsed.GetBoolFlag("j", false)
+	CLIOutputOpts.Concise = parsed.GetBoolFlag("concise", false)
+}
+
+// compactJSONIfValid compacts s when it is valid JSON; otherwise returns s unchanged.
+// Used so --json output is compact (one line) for piping and scripting.
+func compactJSONIfValid(s string) string {
+	var v interface{}
+	if err := json.Unmarshal([]byte(s), &v); err != nil {
+		return s
+	}
+	b, err := json.Marshal(v)
+	if err != nil {
+		return s
+	}
+	return string(b)
+}
+
+// conciseOutput strips emojis and decorative lines (only = or -) for OpenCode/script-friendly output.
+var conciseDecorLine = regexp.MustCompile(`(?m)^[=\-\s]+$`)
+
+// ConciseOutput strips emojis and decorative lines for OpenCode/script-friendly output (used by task.go).
+func ConciseOutput(s string) string {
+	s = conciseDecorLine.ReplaceAllString(s, "")
+	// Strip common decorative/emoji runes
+	for _, r := range []rune("✅❌📋🔒🎯⚠️") {
+		s = strings.ReplaceAll(s, string(r), "")
+	}
+	return strings.TrimSpace(s)
 }
 
 func colorizeToolName(name string) string {
@@ -279,24 +351,34 @@ func colorizeToolName(name string) string {
 func listAllTools(server framework.MCPServer) error {
 	toolList := server.ListTools()
 	if len(toolList) == 0 {
-		_, _ = fmt.Println("No tools registered")
+		if !CLIOutputOpts.Quiet {
+			_, _ = fmt.Println("No tools registered")
+		}
 		return nil
 	}
 
-	_, _ = fmt.Printf("Available tools (%d total):\n\n", len(toolList))
-	for _, tool := range toolList {
-		_, _ = fmt.Printf("  %s\n", colorizeToolName(tool.Name))
+	if CLIOutputOpts.JSON {
+		raw, _ := json.Marshal(toolList)
+		_, _ = fmt.Println(string(raw))
+		return nil
+	}
 
+	if !CLIOutputOpts.Quiet {
+		_, _ = fmt.Printf("Available tools (%d total):\n\n", len(toolList))
+	}
+	for _, tool := range toolList {
+		if CLIOutputOpts.Quiet {
+			_, _ = fmt.Println(tool.Name)
+			continue
+		}
+		_, _ = fmt.Printf("  %s\n", colorizeToolName(tool.Name))
 		if tool.Description != "" {
-			// Truncate long descriptions
 			desc := tool.Description
 			if len(desc) > 80 {
 				desc = desc[:77] + "..."
 			}
-
 			_, _ = fmt.Printf("    %s\n", desc)
 		}
-
 		_, _ = fmt.Println()
 	}
 
@@ -325,12 +407,13 @@ func executeTool(server framework.MCPServer, toolName, argsJSON string) error {
 		return fmt.Errorf("failed to marshal arguments: %w", err)
 	}
 
-	// Execute tool via server
-	_, _ = fmt.Printf("Executing tool: %s\n", toolName)
-	_, _ = fmt.Printf("Arguments: %s\n\n", argsJSON)
-
 	// Use context-aware logger to include request_id and operation
 	logDebug(ctx, "Executing tool", "tool", toolName)
+
+	if !CLIOutputOpts.Quiet {
+		_, _ = fmt.Printf("Executing tool: %s\n", toolName)
+		_, _ = fmt.Printf("Arguments: %s\n\n", argsJSON)
+	}
 
 	// Track performance
 	perf := StartPerformanceLogging(ctx, "tool_execution", DefaultSlowThreshold)
@@ -346,18 +429,40 @@ func executeTool(server framework.MCPServer, toolName, argsJSON string) error {
 
 	// Display results
 	if len(result) == 0 {
-		_, _ = fmt.Println("Tool executed successfully (no output)")
+		if !CLIOutputOpts.Quiet {
+			_, _ = fmt.Println("Tool executed successfully (no output)")
+		}
 		return nil
 	}
 
-	_, _ = fmt.Println("Result:")
+	if CLIOutputOpts.JSON {
+		// Compact any JSON inside content parts so output is one line (script-friendly)
+		out := make([]framework.TextContent, len(result))
+		for i := range result {
+			out[i] = result[i]
+			out[i].Text = compactJSONIfValid(result[i].Text)
+		}
+		raw, _ := json.Marshal(out)
+		_, _ = fmt.Println(string(raw))
+		return nil
+	}
+
+	if !CLIOutputOpts.Quiet {
+		_, _ = fmt.Println("Result:")
+	}
 
 	for i, content := range result {
-		if len(result) > 1 {
+		text := content.Text
+		if CLIOutputOpts.Concise {
+			text = ConciseOutput(text)
+		}
+		if text == "" {
+			continue
+		}
+		if !CLIOutputOpts.Quiet && len(result) > 1 {
 			_, _ = fmt.Printf("\n[%d] ", i+1)
 		}
-
-		_, _ = fmt.Println(content.Text)
+		_, _ = fmt.Println(text)
 	}
 
 	return nil
@@ -641,6 +746,9 @@ func showUsage() {
 	_, _ = fmt.Println("  -test <name>        Test a tool with example arguments")
 	_, _ = fmt.Println("  -i                  Interactive mode")
 	_, _ = fmt.Println("  -completion <shell> Generate shell completion script (bash|zsh|fish)")
+	_, _ = fmt.Println("  -quiet              Suppress verbose output (OpenCode/script-friendly)")
+	_, _ = fmt.Println("  -json               Machine-readable JSON output")
+	_, _ = fmt.Println("  -concise            Strip emojis and decorative lines from output")
 	_, _ = fmt.Println()
 	_, _ = fmt.Println("Task Commands:")
 	_, _ = fmt.Println("  task list [--status <status>] [--priority <priority>] [--tag <tag>]")

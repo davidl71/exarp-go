@@ -239,7 +239,7 @@ func getAppliedMigrations() (map[int]bool, error) {
 // ALTERs (assignee, lock_until) from running. SQLite stops at the first error when
 // Exec runs multiple statements, and a failed Exec can leave the tx unusable.
 func applyMigration(migration Migration) error {
-	runPerStatement := migration.Version == 2 || migration.Version == 3 || migration.Version == 6
+	runPerStatement := migration.Version == 2 || migration.Version == 3 || migration.Version == 6 || migration.Version == 8
 	if runPerStatement {
 		for _, stmt := range splitMigrationSQL(migration.SQL) {
 			_, err := DB.Exec(stmt)

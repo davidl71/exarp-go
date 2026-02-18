@@ -115,7 +115,7 @@ func registerBatch1Tools(server framework.MCPServer) error {
 	// T-24: health
 	if err := server.RegisterTool(
 		"health",
-		"[HINT: Health check. action=server|git|docs|dod|cicd|tools. Status and health metrics; tools=Tool count vs design limit.]",
+		"[HINT: OpenCode/agent: use for component status (action=docs|git|cicd|tools). Health check. action=server|git|docs|dod|cicd|tools. Status and health metrics.]",
 		framework.ToolSchema{
 			Type: "object",
 			Properties: map[string]interface{}{
@@ -373,7 +373,7 @@ func registerBatch2Tools(server framework.MCPServer) error {
 	// T-30: report
 	if err := server.RegisterTool(
 		"report",
-		"[HINT: Report generation. action=overview|scorecard|briefing|prd|plan|scorecard_plans|parallel_execution_plan|update_waves_from_plan. plan generates .plan.md; update_waves_from_plan syncs Todo2 deps from docs/PARALLEL_EXECUTION_PLAN_RESEARCH.md.]",
+		"[HINT: OpenCode/agent: use action=overview|scorecard|briefing for project status. Report generation. action=overview|scorecard|briefing|prd|plan|scorecard_plans|parallel_execution_plan|update_waves_from_plan. plan generates .plan.md; update_waves_from_plan syncs Todo2 deps from docs/PARALLEL_EXECUTION_PLAN_RESEARCH.md.]",
 		framework.ToolSchema{
 			Type: "object",
 			Properties: map[string]interface{}{
@@ -673,7 +673,7 @@ func registerBatch2Tools(server framework.MCPServer) error {
 	// T-34: task_workflow
 	if err := server.RegisterTool(
 		"task_workflow",
-		"[HINT: Task workflow. action=sync|approve|clarify|clarity|cleanup|create|fix_dates|fix_empty_descriptions|fix_invalid_ids|link_planning|request_approval|sync_approvals|apply_approval_result|sanity_check|sync_from_plan|sync_plan_status|summarize|run_with_ai. Manage task lifecycle. ⚠️ CRITICAL: PREFER convenience commands (exarp-go task ...) for common operations. FALLBACK to this tool for advanced operations (clarity, cleanup, complex filters, summarize, run_with_ai). NEVER edit .todo2/state.todo2.json directly. Use action=approve with task_ids for batch updates. Use action=create to create new tasks. Use action=link_planning with task_id/task_ids and planning_doc/epic_id to set planning hints on Todo or In Progress tasks only. Use action=summarize with task_id (and optional local_ai_backend) to generate an AI summary and save as comment. Use action=run_with_ai with task_id (and optional local_ai_backend, instruction) to run a task through a local LLM and get implementation guidance. Sync is SQLite↔JSON only; external sync is a future nice-to-have (ignored if passed).]",
+		"[HINT: OpenCode/agent: use for task list/update/create (action=sync sub_action=list, or approve). Task workflow. action=sync|approve|clarify|clarity|cleanup|create|fix_dates|fix_empty_descriptions|fix_invalid_ids|link_planning|request_approval|sync_approvals|apply_approval_result|sanity_check|sync_from_plan|sync_plan_status|summarize|run_with_ai. Manage task lifecycle. ⚠️ CRITICAL: PREFER convenience commands (exarp-go task ...) for common operations. FALLBACK to this tool for advanced operations (clarity, cleanup, complex filters, summarize, run_with_ai). NEVER edit .todo2/state.todo2.json directly. Use action=approve with task_ids for batch updates. Use action=create to create new tasks. Use action=link_planning with task_id/task_ids and planning_doc/epic_id to set planning hints on Todo or In Progress tasks only. Use action=summarize with task_id (and optional local_ai_backend) to generate an AI summary and save as comment. Use action=run_with_ai with task_id (and optional local_ai_backend, instruction) to run a task through a local LLM and get implementation guidance. Sync is SQLite↔JSON only; external sync is a future nice-to-have (ignored if passed).]",
 		framework.ToolSchema{
 			Type: "object",
 			Properties: map[string]interface{}{
@@ -1275,7 +1275,7 @@ func registerBatch3Tools(server framework.MCPServer) error {
 	// T-43: session
 	if err := server.RegisterTool(
 		"session",
-		"[HINT: Session. action=prime|handoff|prompts|assignee. Use ask_preferences=true for MCP elicitation at prime. Prime and handoff return suggested_next_action (next task hint) and suggested_next (ordered task list). Unified session management tools.]",
+		"[HINT: OpenCode/agent: call action=prime at session start (include_tasks, include_hints); handoff for leave/resume. Session. action=prime|handoff|prompts|assignee. Prime and handoff return suggested_next_action and suggested_next. Unified session management.]",
 		framework.ToolSchema{
 			Type: "object",
 			Properties: map[string]interface{}{

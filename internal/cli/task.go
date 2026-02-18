@@ -81,6 +81,9 @@ func handleTaskListParsed(server framework.MCPServer, parsed *mcpcli.Args) error
 	if order == "execution" || order == "dependency" {
 		toolArgs["order"] = order
 	}
+	if CLIOutputOpts.JSON {
+		toolArgs["output_format"] = "json"
+	}
 
 	return executeTaskWorkflow(server, toolArgs)
 }
@@ -382,12 +385,23 @@ func executeTaskWorkflow(server framework.MCPServer, toolArgs map[string]interfa
 
 	// Display results
 	if len(result) == 0 {
-		_, _ = fmt.Println("Task operation completed successfully (no output)")
+		if !CLIOutputOpts.Quiet {
+			_, _ = fmt.Println("Task operation completed successfully (no output)")
+		}
 		return nil
 	}
 
 	for _, content := range result {
-		_, _ = fmt.Println(content.Text)
+		text := content.Text
+		if CLIOutputOpts.Concise {
+			text = ConciseOutput(text)
+		}
+		if CLIOutputOpts.JSON {
+			text = compactJSONIfValid(text)
+		}
+		if text != "" {
+			_, _ = fmt.Println(text)
+		}
 	}
 
 	return nil
@@ -434,6 +448,9 @@ func showTaskUsage() error {
 	_, _ = fmt.Println("  --priority <priority>   Filter by priority (low, medium, high)")
 	_, _ = fmt.Println("  --tag <tag>             Filter by tag")
 	_, _ = fmt.Println("  --limit <number>        Limit number of results")
+	_, _ = fmt.Println("  --quiet                 Suppress verbose output (OpenCode/script-friendly)")
+	_, _ = fmt.Println("  --json, -j              Machine-readable JSON output")
+	_, _ = fmt.Println("  --concise               Strip emojis and decorative lines")
 	_, _ = fmt.Println()
 	_, _ = fmt.Println("Update Options:")
 	_, _ = fmt.Println("  <task-id>               Task ID(s) to update (e.g., T-1 or T-1,T-2)")

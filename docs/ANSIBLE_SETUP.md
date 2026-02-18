@@ -46,6 +46,7 @@ ansible/
 
 **Always Installed:**
 - Go 1.24.0
+- Protocol Buffers (protoc + protoc-gen-go) — in **common** and **golang** roles; use `make proto` after setup
 - Python 3.10+
 - pip, uv (Python package manager)
 - Node.js & npm

@@ -5,6 +5,53 @@ import (
 	"testing"
 )
 
+// mockAnalysisGenerator returns fixed JSON so AnalyzePrompt can be tested without a real LLM.
+type mockAnalysisGenerator struct {
+	response string
+}
+
+func (m *mockAnalysisGenerator) Supported() bool { return true }
+
+func (m *mockAnalysisGenerator) Generate(_ context.Context, _ string, _ int, _ float32) (string, error) {
+	return m.response, nil
+}
+
+func TestAnalyzePrompt_WithMockGenerator(t *testing.T) {
+	ctx := context.Background()
+
+	jsonResp := `{"clarity":0.9,"specificity":0.75,"completeness":0.8,"structure":0.85,"actionability":0.7,"summary":"Good prompt","notes":[]}`
+	gen := &mockAnalysisGenerator{response: jsonResp}
+
+	result, err := AnalyzePrompt(ctx, "Add tests for module X.", "", "code", gen)
+	if err != nil {
+		t.Fatalf("AnalyzePrompt with mock: %v", err)
+	}
+
+	if result == nil {
+		t.Fatal("expected non-nil PromptAnalysis")
+	}
+	if result.Clarity != 0.9 || result.Specificity != 0.75 {
+		t.Errorf("Clarity=%f Specificity=%f", result.Clarity, result.Specificity)
+	}
+	if result.Summary != "Good prompt" {
+		t.Errorf("Summary = %q", result.Summary)
+	}
+}
+
+func TestAnalyzePrompt_EmptyPromptOrNilGenerator(t *testing.T) {
+	ctx := context.Background()
+
+	_, err := AnalyzePrompt(ctx, "", "", "", &mockAnalysisGenerator{response: "{}"})
+	if err == nil {
+		t.Error("expected error for empty prompt")
+	}
+
+	_, err = AnalyzePrompt(ctx, "ok", "", "", nil)
+	if err == nil {
+		t.Error("expected error for nil generator")
+	}
+}
+
 func TestPromptAnalysis_MinScore(t *testing.T) {
 	p := &PromptAnalysis{Clarity: 0.9, Specificity: 0.7, Completeness: 0.8, Structure: 0.85, Actionability: 0.6}
 	if got := p.MinScore(); got != 0.6 {

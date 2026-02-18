@@ -3,20 +3,32 @@
 
 package tools
 
-import "runtime"
+import (
+	"os"
+	"runtime"
+	"strings"
+)
 
 // LLMBackendStatus returns a map describing available LLM backends for discovery.
 // Used by stdio://models and by clients that need to know what is available
-// (FM, Ollama, MLX) without calling each tool.
+// (FM, Ollama, MLX, LocalAI) without calling each tool.
 func LLMBackendStatus() map[string]interface{} {
 	return map[string]interface{}{
-		"fm_available":  FMAvailable(),
-		"mlx_available": MLAvailable(),
-		"ollama_tool":   "ollama",
-		"mlx_tool":      "mlx",
-		"apple_fm_tool": "apple_foundation_models",
-		"hint":          "Use apple_foundation_models for on-device FM; ollama for Ollama (native then bridge); mlx for MLX; text_generate for unified generate-text (provider=fm|insight|mlx). FM chain (Apple → Ollama → stub). ReportInsight: FM then MLX (via shared path).",
+		"fm_available":     FMAvailable(),
+		"mlx_available":    MLAvailable(),
+		"localai_available": LocalAIAvailable(),
+		"ollama_tool":      "ollama",
+		"mlx_tool":         "mlx",
+		"apple_fm_tool":    "apple_foundation_models",
+		"localai_tool":     "text_generate",
+		"hint":             "Use apple_foundation_models for on-device FM; ollama for Ollama (native then bridge); mlx for MLX; text_generate provider=localai for LocalAI (OpenAI-compatible). text_generate for unified generate-text (provider=fm|insight|mlx|localai). FM chain (Apple → Ollama → stub). ReportInsight: FM then MLX (via shared path).",
 	}
+}
+
+// LocalAIAvailable reports whether LocalAI is configured (LOCALAI_BASE_URL set).
+// Does not verify the server is reachable—Generate may still fail.
+func LocalAIAvailable() bool {
+	return strings.TrimSpace(os.Getenv("LOCALAI_BASE_URL")) != ""
 }
 
 // MLAvailable reports whether MLX is potentially available.

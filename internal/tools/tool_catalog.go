@@ -72,9 +72,9 @@ func GetToolCatalog() map[string]ToolCatalogEntry {
 		},
 		"task_workflow": {
 			Tool:             "task_workflow",
-			Hint:             "TRIGGER: 'task workflow', 'create task', 'update task', 'list tasks', 'T-xxx', 'todo', 'triaging'. PREFER: exarp-go task commands for simple operations. Use this tool for advanced actions: clarify, cleanup, sync_approvals.",
+			Hint:             "TRIGGER: 'task workflow', 'create task', 'update task', 'list tasks', 'T-xxx', 'todo', 'triaging'. OpenCode/agent: use for list/update/create when user asks for backlog or task status; use action=sync, sub_action=list with status/filter_tag. PREFER exarp-go task CLI for simple ops; use this tool for clarify, cleanup, sync_approvals.",
 			Category:         "Task Management",
-			Description:      "Manages task workflow: sync, approve, clarify, cleanup, create, and request_approval. PREFER CLI commands (exarp-go task list/update/create/show) for simple operations. Use this tool for advanced operations (clarity, cleanup). Never edit .todo2/state.todo2.json directly.",
+			Description:      "Manages task workflow: sync, approve, clarify, cleanup, create. OpenCode/agent: use for listing/updating tasks (action=sync, sub_action=list). PREFER CLI (exarp-go task list/update/create) for simple ops. Never edit .todo2/state.todo2.json directly.",
 			RecommendedModel: "claude-haiku",
 			Examples: []string{
 				"Simple: exarp-go task list, exarp-go task update T-123 --new-status Done",
@@ -180,9 +180,9 @@ func GetToolCatalog() map[string]ToolCatalogEntry {
 		// Reporting
 		"report": {
 			Tool:             "report",
-			Hint:             "TRIGGER: 'report', 'briefing', 'plan', 'PRD', 'parallel plan', 'generate report'. Creates project reports.",
+			Hint:             "TRIGGER: 'report', 'briefing', 'plan', 'PRD', 'scorecard', 'overview'. OpenCode/agent: use action=overview for quick status, action=scorecard for health, action=briefing for standup. Creates project reports.",
 			Category:         "Reporting",
-			Description:      "Generates project reports: overview, scorecard, briefing, PRD, plan (.plan.md). Use when user wants a report or plan generated.",
+			Description:      "Generates project reports: overview, scorecard, briefing, PRD, plan (.plan.md). OpenCode/agent: use overview/scorecard/briefing for project status.",
 			RecommendedModel: "claude-haiku",
 		},
 
@@ -242,9 +242,9 @@ func GetToolCatalog() map[string]ToolCatalogEntry {
 		// Utilities
 		"health": {
 			Tool:             "health",
-			Hint:             "TRIGGER: 'health check', 'server status', 'is it working', 'git status', 'docs status'. Checks project health.",
+			Hint:             "TRIGGER: 'health check', 'server status', 'git status', 'docs status'. OpenCode/agent: use action=docs|git|cicd|tools for component status. Checks project health.",
 			Category:         "Utilities",
-			Description:      "Health checks for server, git, docs, definition of done, CI/CD. Use when user asks about project health or specific component status.",
+			Description:      "Health checks for server, git, docs, definition of done, CI/CD. OpenCode/agent: use for component status (docs, git, cicd, tools).",
 			RecommendedModel: "claude-haiku",
 		},
 		"git_tools": {
@@ -256,9 +256,9 @@ func GetToolCatalog() map[string]ToolCatalogEntry {
 		},
 		"session": {
 			Tool:             "session",
-			Hint:             "TRIGGER: 'session start', 'handoff', 'context', 'resume', 'what should I do next', 'prime'. Session context and handoffs.",
+			Hint:             "TRIGGER: 'session start', 'handoff', 'context', 'resume', 'what should I do next', 'prime'. OpenCode/agent: call action=prime at session start (include_tasks, include_hints); use handoff to leave/resume notes.",
 			Category:         "Utilities",
-			Description:      "Session management: prime, handoff, prompts, assignee. Prime and handoff include suggested_next_action—a hint for the first suggested task. Use at session start for context.",
+			Description:      "Session management: prime, handoff, prompts, assignee. OpenCode/agent: prime at start for task/hint context; handoff for leave/resume notes.",
 			RecommendedModel: "claude-haiku",
 		},
 		"infer_session_mode": {
