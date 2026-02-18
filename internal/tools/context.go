@@ -111,14 +111,14 @@ func handleContextBudget(ctx context.Context, args json.RawMessage) ([]framework
 	safeToSummarize, agentHint := buildSafeToRemoveHints(analysis, totalTokens, budgetTokens)
 
 	result := map[string]interface{}{
-		"total_tokens":       totalTokens,
-		"budget_tokens":      budgetTokens,
-		"over_budget":        overBudget,
-		"reduction_needed":   reductionNeeded,
-		"items":              analysis,
-		"strategy":           strategy,
-		"safe_to_summarize":  safeToSummarize,
-		"agent_hint":         agentHint,
+		"total_tokens":      totalTokens,
+		"budget_tokens":     budgetTokens,
+		"over_budget":       overBudget,
+		"reduction_needed":  reductionNeeded,
+		"items":             analysis,
+		"strategy":          strategy,
+		"safe_to_summarize": safeToSummarize,
+		"agent_hint":        agentHint,
 	}
 
 	return response.FormatResult(result, "")

@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/hibiken/asynq"
 	"github.com/davidl71/exarp-go/internal/config"
 	"github.com/davidl71/exarp-go/internal/database"
 	"github.com/davidl71/exarp-go/internal/tools"
+	"github.com/hibiken/asynq"
 )
 
 // RunWorker starts the Asynq worker: connects to Redis, registers the task_execute handler,

@@ -81,17 +81,17 @@ func (d *RqliteDialect) CreateTableIfNotExists() string { return "CREATE TABLE I
 func (d *RqliteDialect) AutoIncrement(columnType string) string {
 	return fmt.Sprintf("%s PRIMARY KEY AUTOINCREMENT", columnType)
 }
-func (d *RqliteDialect) IntegerType() string  { return "INTEGER" }
-func (d *RqliteDialect) TextType() string     { return "TEXT" }
-func (d *RqliteDialect) BooleanType() string  { return "INTEGER" }
-func (d *RqliteDialect) JSONType() string     { return "TEXT" }
+func (d *RqliteDialect) IntegerType() string          { return "INTEGER" }
+func (d *RqliteDialect) TextType() string             { return "TEXT" }
+func (d *RqliteDialect) BooleanType() string          { return "INTEGER" }
+func (d *RqliteDialect) JSONType() string             { return "TEXT" }
 func (d *RqliteDialect) Placeholder(index int) string { return "?" }
 func (d *RqliteDialect) LimitOffset(limit, offset int) string {
 	return fmt.Sprintf("LIMIT %d OFFSET %d", limit, offset)
 }
 func (d *RqliteDialect) TransactionIsolation(level string) string { return "" }
-func (d *RqliteDialect) SupportsTransactions() bool                { return true }
-func (d *RqliteDialect) SupportsRowLevelLocking() bool              { return false }
+func (d *RqliteDialect) SupportsTransactions() bool               { return true }
+func (d *RqliteDialect) SupportsRowLevelLocking() bool            { return false }
 func (d *RqliteDialect) EscapeIdentifier(name string) string {
 	return fmt.Sprintf(`"%s"`, strings.ReplaceAll(name, `"`, `""`))
 }

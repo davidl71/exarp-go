@@ -51,10 +51,10 @@ type Todo2Task struct {
 	LastModified string `json:"last_modified,omitempty"`
 	CompletedAt  string `json:"completed_at,omitempty"`
 	// Distributed tracking (for aggregation across projects/hosts/agents)
-	ProjectID   string `json:"project_id,omitempty"`   // Logical project identifier (e.g. "exarp-go")
-	AssignedTo  string `json:"assigned_to,omitempty"`  // Persistent assignee (owner); distinct from lock assignee
-	Host        string `json:"host,omitempty"`        // Hostname where task was created or last modified
-	Agent       string `json:"agent,omitempty"`       // Agent ID that created or last modified (e.g. general-host-pid)
+	ProjectID  string `json:"project_id,omitempty"`  // Logical project identifier (e.g. "exarp-go")
+	AssignedTo string `json:"assigned_to,omitempty"` // Persistent assignee (owner); distinct from lock assignee
+	Host       string `json:"host,omitempty"`        // Hostname where task was created or last modified
+	Agent      string `json:"agent,omitempty"`       // Agent ID that created or last modified (e.g. general-host-pid)
 }
 
 // Todo2State represents the Todo2 state file structure.

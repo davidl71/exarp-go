@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/hibiken/asynq"
 	"github.com/davidl71/exarp-go/internal/tools"
+	"github.com/hibiken/asynq"
 )
 
 // Producer enqueues task_execute jobs. When config is not enabled, Enqueue methods return nil without error.
