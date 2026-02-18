@@ -24,8 +24,7 @@ func registerAppleFoundationModelsTool(server framework.MCPServer) error {
 					"default": "generate",
 				},
 				"prompt": map[string]interface{}{
-					"type":     "string",
-					"required": false,
+					"type": "string",
 				},
 				"mode": map[string]interface{}{
 					"type":    "string",

@@ -72,12 +72,17 @@ func isGitLockHeld(path string) bool {
 		return false // e.g. dir missing
 	}
 
-	defer fl.Close()
+	defer func() {
+		if closeErr := fl.Close(); closeErr != nil {
+			logDebug(context.Background(), "Failed to close git lock file", "error", closeErr, "operation", "isGitLockHeld")
+		}
+	}()
 
 	err = fl.TryLock()
 	if err != nil {
 		return true // lock is held by another process
 	}
+
 	_ = fl.Unlock()
 
 	return false

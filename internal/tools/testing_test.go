@@ -3,7 +3,6 @@ package tools
 import (
 	"context"
 	"encoding/json"
-	"os"
 	"testing"
 
 	"github.com/davidl71/exarp-go/internal/framework"
@@ -12,9 +11,7 @@ import (
 func TestHandleTestingRun(t *testing.T) {
 	// Use temp dir (no go.mod) so native handler returns "only supported for Go projects"
 	tmpDir := t.TempDir()
-	os.Setenv("PROJECT_ROOT", tmpDir)
-
-	defer os.Unsetenv("PROJECT_ROOT")
+	t.Setenv("PROJECT_ROOT", tmpDir)
 
 	tests := []struct {
 		name      string
@@ -81,9 +78,7 @@ func TestHandleTestingRun(t *testing.T) {
 func TestHandleTestingCoverage(t *testing.T) {
 	// Use temp dir (no go.mod) so native handler returns "only supported for Go projects"
 	tmpDir := t.TempDir()
-	os.Setenv("PROJECT_ROOT", tmpDir)
-
-	defer os.Unsetenv("PROJECT_ROOT")
+	t.Setenv("PROJECT_ROOT", tmpDir)
 
 	tests := []struct {
 		name      string
@@ -137,9 +132,7 @@ func TestHandleTestingCoverage(t *testing.T) {
 func TestHandleTestingValidate(t *testing.T) {
 	// Use temp dir (no go.mod) so native handler returns "only supported for Go projects"
 	tmpDir := t.TempDir()
-	os.Setenv("PROJECT_ROOT", tmpDir)
-
-	defer os.Unsetenv("PROJECT_ROOT")
+	t.Setenv("PROJECT_ROOT", tmpDir)
 
 	tests := []struct {
 		name      string
@@ -182,9 +175,7 @@ func TestHandleTestingValidate(t *testing.T) {
 func TestHandleTesting(t *testing.T) {
 	// Use temp dir (no go.mod) so native handler returns "only supported for Go projects"
 	tmpDir := t.TempDir()
-	os.Setenv("PROJECT_ROOT", tmpDir)
-
-	defer os.Unsetenv("PROJECT_ROOT")
+	t.Setenv("PROJECT_ROOT", tmpDir)
 
 	tests := []struct {
 		name      string

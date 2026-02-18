@@ -494,6 +494,7 @@ func TestIsValidTaskID(t *testing.T) {
 func TestCreateTaskReplacesInvalidID(t *testing.T) {
 	testDBMu.Lock()
 	defer testDBMu.Unlock()
+
 	tmpDir := t.TempDir()
 
 	err := Init(tmpDir)
@@ -667,6 +668,7 @@ func TestIsVersionMismatchError(t *testing.T) {
 func TestCheckUpdateConflict(t *testing.T) {
 	testDBMu.Lock()
 	defer testDBMu.Unlock()
+
 	tmpDir := t.TempDir()
 
 	err := Init(tmpDir)

@@ -66,6 +66,10 @@ func handleTaskWorkflowNative(ctx context.Context, params map[string]interface{}
 		return handleTaskWorkflowApplyApprovalResult(ctx, params)
 	case "sync_from_plan", "sync_plan_status":
 		return handleTaskWorkflowSyncFromPlan(ctx, params)
+	case "summarize":
+		return handleTaskWorkflowSummarize(ctx, params)
+	case "run_with_ai":
+		return handleTaskWorkflowRunWithAI(ctx, params)
 	default:
 		return nil, fmt.Errorf("unknown action: %s", action)
 	}

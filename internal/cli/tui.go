@@ -121,14 +121,17 @@ func (m model) indentForTask(realIdx int) string {
 	if m.hierarchyDepthByID == nil || realIdx < 0 || realIdx >= len(m.tasks) {
 		return ""
 	}
+
 	task := m.tasks[realIdx]
 	if task == nil {
 		return ""
 	}
+
 	d := m.hierarchyDepthByID[task.ID]
 	if d <= 0 {
 		return ""
 	}
+
 	return strings.Repeat("  ", d)
 }
 
@@ -137,13 +140,16 @@ func (m model) treeMarkerForTask(realIdx int) string {
 	if realIdx < 0 || realIdx >= len(m.tasks) {
 		return ""
 	}
+
 	task := m.tasks[realIdx]
 	if task == nil || !m.taskHasChildren(task.ID) {
 		return ""
 	}
+
 	if _, ok := m.collapsedTaskIDs[task.ID]; ok {
 		return "▶ "
 	}
+
 	return "▼ "
 }
 
@@ -152,25 +158,32 @@ func wordWrap(s string, width int) string {
 	if width <= 0 {
 		return s
 	}
+
 	var out strings.Builder
+
 	for _, line := range strings.Split(s, "\n") {
 		line = strings.TrimRight(line, " \t")
 		if line == "" {
 			out.WriteString("\n")
 			continue
 		}
+
 		for len(line) > width {
 			cut := width
 			if idx := strings.LastIndex(line[:min(len(line), width)], " "); idx > 0 {
 				cut = idx
 			}
+
 			out.WriteString(line[:cut])
 			out.WriteString("\n")
+
 			line = strings.TrimLeft(line[cut:], " ")
 		}
+
 		out.WriteString(line)
 		out.WriteString("\n")
 	}
+
 	return strings.TrimSuffix(out.String(), "\n")
 }
 
@@ -180,7 +193,9 @@ func sortedWaveLevels(waves map[int][]string) []int {
 	for k := range waves {
 		levels = append(levels, k)
 	}
+
 	sort.Ints(levels)
+
 	return levels
 }
 
@@ -189,6 +204,7 @@ func (m model) effectiveWidth() int {
 	if m.width >= minTermWidth {
 		return m.width
 	}
+
 	return minTermWidth
 }
 
@@ -197,6 +213,7 @@ func (m model) effectiveHeight() int {
 	if m.height >= minTermHeight {
 		return m.height
 	}
+
 	return minTermHeight
 }
 
@@ -256,13 +273,26 @@ type model struct {
 	handoffEntries     []map[string]interface{} // parsed list for list/detail view
 	handoffCursor      int
 	handoffSelected    map[int]struct{}
-	handoffDetailIndex int // -1 = list, >= 0 = showing detail for that index
+	handoffDetailIndex int    // -1 = list, >= 0 = showing detail for that index
 	handoffActionMsg   string // result of close/approve action
 
 	// Waves view (dependency-order waves from BacklogExecutionOrder)
 	waves           map[int][]string // level -> task IDs (computed when entering waves view)
 	waveDetailLevel int              // -1 = wave list (collapsed), >= 0 = viewing tasks for that wave level
 	waveCursor      int              // cursor in wave list (when collapsed)
+	waveTaskCursor  int              // cursor within expanded wave's task list (when waveDetailLevel >= 0)
+	waveMoveTaskID  string           // when set, showing "move task to wave" prompt; Esc clears
+	waveMoveMsg     string           // result message after move (success or error)
+	waveUpdateMsg   string           // result message after update waves from plan (success or error)
+
+	// Task analysis view (run task_analysis tool and show result)
+	taskAnalysisText           string // result text
+	taskAnalysisLoading        bool
+	taskAnalysisErr            error
+	taskAnalysisAction         string // e.g. "parallelization", "dependencies"
+	taskAnalysisReturnMode     string // "tasks" or "waves" when leaving view
+	taskAnalysisApproveLoading bool
+	taskAnalysisApproveMsg     string // "Saved to ..." or error after y=write waves
 
 	// Background jobs view (child agent launches)
 	jobs            []BackgroundJob
@@ -273,12 +303,12 @@ type model struct {
 	taskDetailTask *database.Todo2Task
 
 	// Sort: order (id|status|priority|updated|hierarchy), ascending
-	sortOrder       string
-	sortAsc         bool
-	hierarchyOrder    []int            // display order when sortOrder==hierarchy
-	hierarchyDepth    map[int]int      // task index -> indent level (0=root), used for hierarchy order
-	hierarchyDepthByID map[string]int // task ID -> indent level, for indent regardless of sort
-	collapsedTaskIDs  map[string]struct{} // task IDs that are collapsed (their descendants hidden in tree)
+	sortOrder          string
+	sortAsc            bool
+	hierarchyOrder     []int               // display order when sortOrder==hierarchy
+	hierarchyDepth     map[int]int         // task index -> indent level (0=root), used for hierarchy order
+	hierarchyDepthByID map[string]int      // task ID -> indent level, for indent regardless of sort
+	collapsedTaskIDs   map[string]struct{} // task IDs that are collapsed (their descendants hidden in tree)
 
 	// Search/filter: / to open, n/N next/prev match
 	searchQuery     string
@@ -294,10 +324,19 @@ type model struct {
 
 // BackgroundJob represents a launched child agent (or other background job).
 type BackgroundJob struct {
-	Kind     ChildAgentKind
-	Prompt   string
+	Kind      ChildAgentKind
+	Prompt    string
 	StartedAt time.Time
+	Pid       int
+	Output    string // captured stdout+stderr (non-interactive only)
+}
+
+// jobCompletedMsg is sent when a background agent process exits (with captured output).
+type jobCompletedMsg struct {
 	Pid      int
+	Output   string
+	ExitCode int
+	Err      error
 }
 
 type configSection struct {
@@ -348,6 +387,31 @@ type wavesRefreshDoneMsg struct {
 	err error
 }
 
+// taskAnalysisLoadedMsg is sent after running the task_analysis tool.
+type taskAnalysisLoadedMsg struct {
+	text   string
+	action string
+	err    error
+}
+
+// taskAnalysisApproveDoneMsg is sent after writing the waves plan (report parallel_execution_plan).
+type taskAnalysisApproveDoneMsg struct {
+	message string
+	err     error
+}
+
+// moveTaskToWaveDoneMsg is sent after updating a task's dependencies to move it to another wave.
+type moveTaskToWaveDoneMsg struct {
+	taskID string
+	err    error
+}
+
+// updateWavesFromPlanDoneMsg is sent after report(update_waves_from_plan) completes.
+type updateWavesFromPlanDoneMsg struct {
+	message string
+	err     error
+}
+
 // childAgentResultMsg is sent after starting a child agent (for status display).
 type childAgentResultMsg struct {
 	Result ChildAgentRunResult
@@ -380,38 +444,38 @@ func initialModel(server framework.MCPServer, status string, projectRoot, projec
 	}
 
 	return model{
-		tasks:             []*database.Todo2Task{},
-		cursor:            0,
-		selected:          make(map[int]struct{}),
-		status:            status,
-		server:            server,
-		loading:           true,
-		width:             width,
-		height:            height,
-		autoRefresh:       true, // Enable auto-refresh by default
-		lastUpdate:        time.Now(),
-		projectRoot:       projectRoot,
-		projectName:       projectName,
-		mode:              "tasks",
-		configSections:    sections,
-		configCursor:      0,
-		configData:        cfg,
-		configChanged:     false,
-		configSectionText: "",
-		configSaveMessage: "",
-		configSaveSuccess: false,
-		scorecardLoading:  false,
-		taskDetailTask:    nil,
-		sortOrder:         "hierarchy",
-		sortAsc:           true,
-		searchQuery:       "",
-		searchMode:        false,
-		filteredIndices:   nil,
-		showHelp:          false,
-		childAgentMsg:     "",
-		handoffEntries:    nil,
-		handoffCursor:     0,
-		handoffSelected:   make(map[int]struct{}),
+		tasks:              []*database.Todo2Task{},
+		cursor:             0,
+		selected:           make(map[int]struct{}),
+		status:             status,
+		server:             server,
+		loading:            true,
+		width:              width,
+		height:             height,
+		autoRefresh:        true, // Enable auto-refresh by default
+		lastUpdate:         time.Now(),
+		projectRoot:        projectRoot,
+		projectName:        projectName,
+		mode:               "tasks",
+		configSections:     sections,
+		configCursor:       0,
+		configData:         cfg,
+		configChanged:      false,
+		configSectionText:  "",
+		configSaveMessage:  "",
+		configSaveSuccess:  false,
+		scorecardLoading:   false,
+		taskDetailTask:     nil,
+		sortOrder:          "hierarchy",
+		sortAsc:            true,
+		searchQuery:        "",
+		searchMode:         false,
+		filteredIndices:    nil,
+		showHelp:           false,
+		childAgentMsg:      "",
+		handoffEntries:     nil,
+		handoffCursor:      0,
+		handoffSelected:    make(map[int]struct{}),
 		handoffDetailIndex: -1,
 		handoffActionMsg:   "",
 		waveDetailLevel:    -1,
@@ -428,9 +492,12 @@ func sortTasksBy(tasks []*database.Todo2Task, order string, asc bool) {
 	if len(tasks) == 0 {
 		return
 	}
+
 	less := func(i, j int) bool {
 		a, b := tasks[i], tasks[j]
+
 		var cmp int
+
 		switch order {
 		case "status":
 			cmp = strings.Compare(strings.ToLower(a.Status), strings.ToLower(b.Status))
@@ -441,12 +508,15 @@ func sortTasksBy(tasks []*database.Todo2Task, order string, asc bool) {
 		default:
 			cmp = strings.Compare(a.ID, b.ID)
 		}
+
 		if cmp == 0 {
 			cmp = strings.Compare(a.ID, b.ID)
 		}
+
 		if asc {
 			return cmp < 0
 		}
+
 		return cmp > 0
 	}
 	sort.Slice(tasks, less)
@@ -474,63 +544,84 @@ func (m *model) computeHierarchyOrder() {
 		m.hierarchyOrder = nil
 		m.hierarchyDepth = nil
 		m.hierarchyDepthByID = nil
+
 		return
 	}
+
 	taskList := make([]tools.Todo2Task, 0, len(m.tasks))
+
 	for _, p := range m.tasks {
 		if p != nil {
 			taskList = append(taskList, *p)
 		}
 	}
+
 	tg, err := tools.BuildTaskGraph(taskList)
 	if err != nil {
 		m.hierarchyOrder = nil
 		m.hierarchyDepth = nil
 		m.hierarchyDepthByID = nil
+
 		return
 	}
+
 	levels := tools.GetTaskLevels(tg)
 	m.hierarchyDepthByID = make(map[string]int)
+
 	for id, level := range levels {
 		m.hierarchyDepthByID[id] = level
 	}
+
 	type item struct {
 		idx      int
 		level    int
 		priority string
 		id       string
 	}
+
 	var items []item
+
 	for i, p := range m.tasks {
 		if p == nil {
 			continue
 		}
+
 		level := levels[p.ID]
 		items = append(items, item{i, level, p.Priority, p.ID})
 	}
+
 	asc := m.sortAsc
+
 	sort.Slice(items, func(i, j int) bool {
 		if items[i].level != items[j].level {
 			if asc {
 				return items[i].level < items[j].level
 			}
+
 			return items[i].level > items[j].level
 		}
+
 		pi := priorityOrderForSort(items[i].priority)
 		pj := priorityOrderForSort(items[j].priority)
+
 		if pi != pj {
 			if asc {
 				return pi < pj
 			}
+
 			return pi > pj
 		}
+
 		if asc {
 			return items[i].id < items[j].id
 		}
+
 		return items[i].id > items[j].id
 	})
+
 	m.hierarchyOrder = make([]int, len(items))
 	m.hierarchyDepth = make(map[int]int)
+
 	for i, it := range items {
 		m.hierarchyOrder[i] = it.idx
 		m.hierarchyDepth[it.idx] = it.level
@@ -540,11 +631,13 @@ func (m *model) computeHierarchyOrder() {
 // taskParentMap returns task ID -> parent task ID for all tasks that have a parent.
 func (m model) taskParentMap() map[string]string {
 	out := make(map[string]string, len(m.tasks))
+
 	for _, t := range m.tasks {
 		if t.ParentID != "" {
 			out[t.ID] = t.ParentID
 		}
 	}
+
 	return out
 }
 
@@ -553,31 +646,39 @@ func (m model) taskParentMap() map[string]string {
 func (m model) taskAncestorIDs() map[string][]string {
 	out := make(map[string][]string, len(m.tasks))
 	taskIDs := make(map[string]struct{}, len(m.tasks))
+
 	for _, t := range m.tasks {
 		if t == nil {
 			continue
 		}
+
 		taskIDs[t.ID] = struct{}{}
 	}
+
 	for _, t := range m.tasks {
 		if t == nil {
 			continue
 		}
+
 		var ancestors []string
+
 		if t.ParentID != "" {
 			if _, ok := taskIDs[t.ParentID]; ok {
 				ancestors = append(ancestors, t.ParentID)
 			}
 		}
+
 		for _, depID := range t.Dependencies {
 			if _, ok := taskIDs[depID]; ok {
 				ancestors = append(ancestors, depID)
 			}
 		}
+
 		if len(ancestors) > 0 {
 			out[t.ID] = ancestors
 		}
 	}
+
 	return out
 }
 
@@ -585,22 +686,29 @@ func (m model) taskAncestorIDs() map[string][]string {
 // following both parent_id and dependency links (so collapsing hides parent children and dependents).
 func (m model) isDescendantOfCollapsed(taskID string, ancestorIDs map[string][]string) bool {
 	seen := make(map[string]struct{})
+
 	var queue []string
+
 	queue = append(queue, taskID)
 	for len(queue) > 0 {
 		id := queue[0]
 		queue = queue[1:]
+
 		if _, ok := seen[id]; ok {
 			continue
 		}
+
 		seen[id] = struct{}{}
+
 		for _, anc := range ancestorIDs[id] {
 			if _, collapsed := m.collapsedTaskIDs[anc]; collapsed {
 				return true
 			}
+
 			queue = append(queue, anc)
 		}
 	}
+
 	return false
 }
 
@@ -610,15 +718,18 @@ func (m model) taskHasChildren(taskID string) bool {
 		if t == nil {
 			continue
 		}
+
 		if t.ParentID == taskID {
 			return true
 		}
+
 		for _, depID := range t.Dependencies {
 			if depID == taskID {
 				return true
 			}
 		}
 	}
+
 	return false
 }
 
@@ -627,6 +738,7 @@ func (m model) visibleIndices() []int {
 	if len(m.tasks) == 0 {
 		return nil
 	}
+
 	var base []int
 	if m.sortOrder == "hierarchy" && len(m.hierarchyOrder) > 0 {
 		base = m.hierarchyOrder
@@ -636,33 +748,42 @@ func (m model) visibleIndices() []int {
 			base[i] = i
 		}
 	}
+
 	if m.filteredIndices != nil {
 		filterSet := make(map[int]struct{})
 		for _, i := range m.filteredIndices {
 			filterSet[i] = struct{}{}
 		}
+
 		var out []int
+
 		for _, i := range base {
 			if _, ok := filterSet[i]; ok {
 				out = append(out, i)
 			}
 		}
+
 		base = out
 	}
 	// Hide descendants of collapsed tasks (parent_id children and dependency dependents)
 	if len(m.collapsedTaskIDs) == 0 {
 		return base
 	}
+
 	ancestorIDs := m.taskAncestorIDs()
+
 	var final []int
+
 	for _, i := range base {
 		if m.tasks[i] == nil {
 			continue
 		}
+
 		if !m.isDescendantOfCollapsed(m.tasks[i].ID, ancestorIDs) {
 			final = append(final, i)
 		}
 	}
+
 	return final
 }
 
@@ -672,20 +793,24 @@ func (m model) realIndexAt(cursorPos int) int {
 	if vis == nil || cursorPos < 0 || cursorPos >= len(vis) {
 		return 0
 	}
+
 	return vis[cursorPos]
 }
 
 // handoffSelectedIDs returns handoff id strings for currently selected handoff indices.
 func (m model) handoffSelectedIDs() []string {
 	var ids []string
+
 	for i := range m.handoffSelected {
 		if i < 0 || i >= len(m.handoffEntries) {
 			continue
 		}
+
 		if id, ok := m.handoffEntries[i]["id"].(string); ok && id != "" {
 			ids = append(ids, id)
 		}
 	}
+
 	return ids
 }
 
@@ -695,12 +820,15 @@ func (m model) computeFilteredIndices() []int {
 	if q == "" {
 		return nil
 	}
+
 	var out []int
+
 	for i, t := range m.tasks {
 		if taskMatchesSearch(t, q) {
 			out = append(out, i)
 		}
 	}
+
 	return out
 }
 
@@ -708,23 +836,29 @@ func taskMatchesSearch(t *database.Todo2Task, q string) bool {
 	if strings.Contains(strings.ToLower(t.ID), q) {
 		return true
 	}
+
 	if strings.Contains(strings.ToLower(t.Content), q) {
 		return true
 	}
+
 	if strings.Contains(strings.ToLower(t.LongDescription), q) {
 		return true
 	}
+
 	if strings.Contains(strings.ToLower(t.Status), q) {
 		return true
 	}
+
 	if strings.Contains(strings.ToLower(t.Priority), q) {
 		return true
 	}
+
 	for _, tag := range t.Tags {
 		if strings.Contains(strings.ToLower(tag), q) {
 			return true
 		}
 	}
+
 	return false
 }
 
@@ -836,7 +970,12 @@ func loadHandoffs(server framework.MCPServer) tea.Cmd {
 		}
 
 		ctx := context.Background()
-		args := map[string]interface{}{"action": "handoff", "sub_action": "list", "limit": float64(20)}
+		args := map[string]interface{}{
+			"action":         "handoff",
+			"sub_action":     "list",
+			"limit":          float64(20),
+			"include_closed": false,
+		}
 
 		argsBytes, err := json.Marshal(args)
 		if err != nil {
@@ -853,12 +992,15 @@ func loadHandoffs(server framework.MCPServer) tea.Cmd {
 			b.WriteString(c.Text)
 			b.WriteString("\n")
 		}
+
 		text := strings.TrimSpace(b.String())
 
 		var entries []map[string]interface{}
+
 		var payload struct {
 			Handoffs []map[string]interface{} `json:"handoffs"`
 		}
+
 		if err := json.Unmarshal([]byte(text), &payload); err == nil && len(payload.Handoffs) > 0 {
 			entries = payload.Handoffs
 		}
@@ -874,6 +1016,7 @@ func runWavesRefreshTools(server framework.MCPServer) tea.Cmd {
 		if server == nil {
 			return wavesRefreshDoneMsg{err: fmt.Errorf("no server")}
 		}
+
 		ctx := context.Background()
 
 		// 1. Sync task store (SQLite ↔ JSON if applicable)
@@ -892,26 +1035,140 @@ func runWavesRefreshTools(server framework.MCPServer) tea.Cmd {
 	}
 }
 
+// runTaskAnalysis runs the task_analysis tool with the given action (e.g. "parallelization", "dependencies", "execution_plan")
+// and returns taskAnalysisLoadedMsg. Used from tasks and waves views.
+func runTaskAnalysis(server framework.MCPServer, action string) tea.Cmd {
+	return func() tea.Msg {
+		if server == nil {
+			return taskAnalysisLoadedMsg{action: action, err: fmt.Errorf("no server")}
+		}
+
+		ctx := context.Background()
+		args, _ := json.Marshal(map[string]interface{}{"action": action, "output_format": "text"})
+
+		result, err := server.CallTool(ctx, "task_analysis", args)
+		if err != nil {
+			return taskAnalysisLoadedMsg{action: action, err: err}
+		}
+
+		var b strings.Builder
+		for _, c := range result {
+			b.WriteString(c.Text)
+			b.WriteString("\n")
+		}
+
+		return taskAnalysisLoadedMsg{text: strings.TrimSpace(b.String()), action: action, err: nil}
+	}
+}
+
+// runReportUpdateWavesFromPlan runs report(action=update_waves_from_plan) to sync Todo2 task dependencies
+// from docs/PARALLEL_EXECUTION_PLAN_RESEARCH.md. Returns updateWavesFromPlanDoneMsg.
+func runReportUpdateWavesFromPlan(server framework.MCPServer, projectRoot string) tea.Cmd {
+	return func() tea.Msg {
+		if server == nil {
+			return updateWavesFromPlanDoneMsg{message: "", err: fmt.Errorf("no server")}
+		}
+
+		ctx := context.Background()
+		args, _ := json.Marshal(map[string]interface{}{
+			"action": "update_waves_from_plan",
+		})
+
+		result, err := server.CallTool(ctx, "report", args)
+		if err != nil {
+			return updateWavesFromPlanDoneMsg{message: "", err: err}
+		}
+
+		var msg string
+		for _, c := range result {
+			msg += c.Text
+		}
+
+		return updateWavesFromPlanDoneMsg{message: strings.TrimSpace(msg), err: nil}
+	}
+}
+
+// runReportParallelExecutionPlan runs task_analysis(action=execution_plan, output_format=subagents_plan)
+// to write waves to .cursor/plans/parallel-execution-subagents.plan.md using exarp's wave detection.
+// Returns taskAnalysisApproveDoneMsg.
+func runReportParallelExecutionPlan(server framework.MCPServer, projectRoot string) tea.Cmd {
+	return func() tea.Msg {
+		if server == nil {
+			return taskAnalysisApproveDoneMsg{err: fmt.Errorf("no server")}
+		}
+
+		ctx := context.Background()
+		outputPath := filepath.Join(projectRoot, ".cursor", "plans", "parallel-execution-subagents.plan.md")
+		args, _ := json.Marshal(map[string]interface{}{
+			"action":        "execution_plan",
+			"output_format": "subagents_plan",
+			"output_path":   outputPath,
+		})
+
+		result, err := server.CallTool(ctx, "task_analysis", args)
+		if err != nil {
+			return taskAnalysisApproveDoneMsg{err: err}
+		}
+
+		var msg string
+		for _, c := range result {
+			msg += c.Text
+		}
+
+		msg = strings.TrimSpace(msg)
+		if msg == "" {
+			msg = "Waves plan written to .cursor/plans/parallel-execution-subagents.plan.md"
+		}
+
+		return taskAnalysisApproveDoneMsg{message: msg, err: nil}
+	}
+}
+
+// moveTaskToWaveCmd updates a task's dependencies so it lands in the given wave (0 = no deps, K = depend on one task from wave K-1), then sends moveTaskToWaveDoneMsg.
+func moveTaskToWaveCmd(task *database.Todo2Task, newDeps []string) tea.Cmd {
+	return func() tea.Msg {
+		if task == nil {
+			return moveTaskToWaveDoneMsg{taskID: "", err: fmt.Errorf("no task")}
+		}
+
+		ctx := context.Background()
+		// Copy so we don't mutate the shared task
+		updated := *task
+		updated.Dependencies = make([]string, len(newDeps))
+		copy(updated.Dependencies, newDeps)
+
+		if err := database.UpdateTask(ctx, &updated); err != nil {
+			return moveTaskToWaveDoneMsg{taskID: task.ID, err: err}
+		}
+
+		return moveTaskToWaveDoneMsg{taskID: task.ID, err: nil}
+	}
+}
+
 // runHandoffAction runs session tool handoff close or approve for the given handoff IDs, then sends handoffActionDoneMsg.
 func runHandoffAction(server framework.MCPServer, projectRoot string, handoffIDs []string, action string) tea.Cmd {
 	return func() tea.Msg {
 		if server == nil || len(handoffIDs) == 0 {
 			return handoffActionDoneMsg{action: action, err: fmt.Errorf("no server or no handoff IDs")}
 		}
+
 		ctx := context.Background()
 		args := map[string]interface{}{
-			"action":     "handoff",
-			"sub_action": action,
+			"action":      "handoff",
+			"sub_action":  action,
 			"handoff_ids": handoffIDs,
 		}
+
 		argsBytes, err := json.Marshal(args)
 		if err != nil {
 			return handoffActionDoneMsg{action: action, err: err}
 		}
+
 		_, err = server.CallTool(ctx, "session", argsBytes)
 		if err != nil {
 			return handoffActionDoneMsg{action: action, err: err}
 		}
+
 		return handoffActionDoneMsg{action: action, updated: len(handoffIDs)}
 	}
 }
@@ -973,12 +1230,15 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// don't break window size or task detail ("s") layout.
 		m.width = msg.Width
 		m.height = msg.Height
+
 		if m.width < minTermWidth {
 			m.width = minTermWidth
 		}
+
 		if m.height < minTermHeight {
 			m.height = minTermHeight
 		}
+
 		return m, nil
 
 	case taskLoadedMsg:
@@ -990,34 +1250,46 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		m.tasks = msg.tasks
 		m.computeHierarchyOrder() // always compute so hierarchy depth/order available
+
 		if m.sortOrder == "hierarchy" && len(m.hierarchyOrder) > 0 {
 			// use hierarchy order (parent then children, with depth)
 		} else {
 			sortTasksBy(m.tasks, m.sortOrder, m.sortAsc)
 		}
+
 		if m.searchQuery != "" {
 			m.filteredIndices = m.computeFilteredIndices()
 		} else {
 			m.filteredIndices = nil
 		}
+
 		vis := m.visibleIndices()
 		if len(vis) > 0 && m.cursor >= len(vis) {
 			m.cursor = len(vis) - 1
 		}
+
 		m.lastUpdate = time.Now()
-		// If in waves view, recompute waves from updated tasks
+		// If in waves view, recompute waves (prefer docs/PARALLEL_EXECUTION_PLAN_RESEARCH.md)
 		if m.mode == "waves" && len(m.tasks) > 0 {
 			taskList := make([]tools.Todo2Task, 0, len(m.tasks))
+
 			for _, t := range m.tasks {
 				if t != nil {
 					taskList = append(taskList, *t)
 				}
 			}
-			_, waves, _, err := tools.BacklogExecutionOrder(taskList, nil)
+
+			waves, err := tools.ComputeWavesForTUI(m.projectRoot, taskList)
 			if err == nil {
 				m.waves = waves
-				if max := config.MaxTasksPerWave(); max > 0 {
-					m.waves = tools.LimitWavesByMaxTasks(m.waves, max)
+				if m.waveDetailLevel >= 0 {
+					if ids := m.waves[m.waveDetailLevel]; len(ids) > 0 {
+						if m.waveTaskCursor >= len(ids) {
+							m.waveTaskCursor = len(ids) - 1
+						}
+					} else {
+						m.waveTaskCursor = 0
+					}
 				}
 			} else {
 				m.waves = nil
@@ -1038,6 +1310,52 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		// Reload tasks so waves recompute from updated backlog
 		m.loading = true
+
+		return m, loadTasks(m.status)
+
+	case taskAnalysisLoadedMsg:
+		m.taskAnalysisLoading = false
+		m.taskAnalysisErr = msg.err
+		m.taskAnalysisAction = msg.action
+
+		if msg.err == nil {
+			m.taskAnalysisText = msg.text
+		} else {
+			m.taskAnalysisText = ""
+		}
+
+		return m, nil
+
+	case taskAnalysisApproveDoneMsg:
+		m.taskAnalysisApproveLoading = false
+		if msg.err != nil {
+			m.taskAnalysisApproveMsg = "Error: " + msg.err.Error()
+		} else {
+			m.taskAnalysisApproveMsg = msg.message
+		}
+
+		return m, nil
+
+	case moveTaskToWaveDoneMsg:
+		m.waveMoveTaskID = ""
+		if msg.err != nil {
+			m.waveMoveMsg = "Error: " + msg.err.Error()
+		} else {
+			m.waveMoveMsg = "Moved " + msg.taskID + " to wave"
+		}
+
+		return m, loadTasks(m.status)
+
+	case updateWavesFromPlanDoneMsg:
+		m.loading = false
+		m.waveUpdateMsg = ""
+
+		if msg.err != nil {
+			m.waveUpdateMsg = "Error: " + msg.err.Error()
+		} else if msg.message != "" {
+			m.waveUpdateMsg = msg.message
+		}
+
 		return m, loadTasks(m.status)
 
 	case tickMsg:
@@ -1060,14 +1378,17 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case configSectionDetailMsg:
 		m.mode = "configSection"
 		m.configSectionText = msg.text
+
 		return m, nil
 
 	case configSaveResultMsg:
 		m.configSaveMessage = msg.message
 		m.configSaveSuccess = msg.success
+
 		if msg.success {
 			m.configChanged = false
 		}
+
 		return m, nil
 
 	case scorecardLoadedMsg:
@@ -1093,6 +1414,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if msg.err == nil {
 			m.handoffText = msg.text
 			m.handoffEntries = msg.entries
+
 			if len(m.handoffEntries) > 0 {
 				if m.handoffCursor >= len(m.handoffEntries) {
 					m.handoffCursor = len(m.handoffEntries) - 1
@@ -1102,11 +1424,13 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 			// Keep selection only for indices that still exist
 			newSel := make(map[int]struct{})
+
 			for i := range m.handoffSelected {
 				if i >= 0 && i < len(m.handoffEntries) {
 					newSel[i] = struct{}{}
 				}
 			}
+
 			m.handoffSelected = newSel
 		}
 
@@ -1116,9 +1440,21 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if msg.err != nil {
 			m.handoffActionMsg = fmt.Sprintf("%s failed: %v", msg.action, msg.err)
 		} else {
-			m.handoffActionMsg = fmt.Sprintf("%d handoff(s) %sed.", msg.updated, msg.action)
+			verb := msg.action + "d"
+			switch msg.action {
+			case "delete":
+				verb = "deleted"
+			case "close":
+				verb = "closed"
+			case "approve":
+				verb = "approved"
+			}
+
+			m.handoffActionMsg = fmt.Sprintf("%d handoff(s) %s.", msg.updated, verb)
 			m.handoffSelected = make(map[int]struct{})
+			m.handoffDetailIndex = -1 // return to list after close/approve/delete
 		}
+
 		return m, loadHandoffs(m.server)
 
 	case runRecommendationResultMsg:
@@ -1147,6 +1483,21 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		} else {
 			m.childAgentMsg = "Child agent: " + msg.Result.Message
 		}
+
+		return m, nil
+
+	case jobCompletedMsg:
+		for i := range m.jobs {
+			if m.jobs[i].Pid == msg.Pid {
+				m.jobs[i].Output = msg.Output
+				if msg.Err != nil {
+					m.jobs[i].Output += "\n(exit: " + msg.Err.Error() + ")"
+				}
+
+				break
+			}
+		}
+
 		return m, nil
 
 	case tea.KeyMsg:
@@ -1173,12 +1524,24 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.showHelp = false
 				return m, nil
 			}
+
 			if m.searchMode {
 				m.searchMode = false
 				m.searchQuery = ""
 				m.filteredIndices = nil
+
 				return m, nil
 			}
+
+			if m.mode == "taskAnalysis" {
+				m.mode = m.taskAnalysisReturnMode
+				if m.taskAnalysisReturnMode == "" {
+					m.mode = "tasks"
+				}
+
+				return m, nil
+			}
+
 			if m.mode == "waves" {
 				if m.waveDetailLevel >= 0 {
 					m.waveDetailLevel = -1
@@ -1186,8 +1549,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.mode = "tasks"
 					m.cursor = 0
 				}
+
 				return m, nil
 			}
+
 			if m.mode == "jobs" {
 				if m.jobsDetailIndex >= 0 {
 					m.jobsDetailIndex = -1
@@ -1195,8 +1560,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.mode = "tasks"
 					m.cursor = 0
 				}
+
 				return m, nil
 			}
+
 			return m, nil
 		}
 
@@ -1211,19 +1578,23 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			case "enter":
 				m.searchMode = false
 				m.filteredIndices = m.computeFilteredIndices()
+
 				if len(m.visibleIndices()) > 0 && m.cursor >= len(m.visibleIndices()) {
 					m.cursor = len(m.visibleIndices()) - 1
 				}
+
 				return m, nil
 			case "backspace":
 				if len(m.searchQuery) > 0 {
 					m.searchQuery = m.searchQuery[:len(m.searchQuery)-1]
 				}
+
 				return m, nil
 			default:
 				if len(msg.String()) == 1 && msg.Type == tea.KeyRunes {
 					m.searchQuery += msg.String()
 				}
+
 				return m, nil
 			}
 		}
@@ -1234,6 +1605,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			case "esc", "enter", " ":
 				m.mode = "tasks"
 				m.taskDetailTask = nil
+
 				return m, nil
 			}
 		}
@@ -1244,6 +1616,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			case "esc", "enter", " ":
 				m.mode = "config"
 				m.configSectionText = ""
+
 				return m, nil
 			}
 		}
@@ -1257,11 +1630,20 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 		}
 
-		// When wave detail is open (viewing tasks for a wave), Esc / Enter / Space close it
+		// When wave detail is open (viewing tasks for a wave), Esc / Enter / Space close it (or cancel move)
 		if m.mode == "waves" && m.waveDetailLevel >= 0 {
 			switch msg.String() {
 			case "esc", "enter", " ":
+				if m.waveMoveTaskID != "" {
+					m.waveMoveTaskID = ""
+					m.waveMoveMsg = ""
+
+					return m, nil
+				}
+
+				m.waveUpdateMsg = ""
 				m.waveDetailLevel = -1
+
 				return m, nil
 			}
 		}
@@ -1277,18 +1659,24 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		switch msg.String() {
 		case "p":
-			// Toggle between tasks and scorecard (project health)
-			if m.mode == "scorecard" {
+			// Back from scorecard or task analysis to previous view
+			switch m.mode {
+			case "scorecard":
 				m.mode = "tasks"
 				m.cursor = 0
-			} else if m.mode == "tasks" {
+			case "taskAnalysis":
+				m.mode = m.taskAnalysisReturnMode
+				if m.taskAnalysisReturnMode == "" {
+					m.mode = "tasks"
+				}
+			case "tasks":
 				m.mode = "scorecard"
 				m.scorecardLoading = true
 				m.scorecardErr = nil
 				m.scorecardText = ""
 
 				return m, loadScorecard(m.projectRoot, false)
-			} else if m.mode == "handoffs" {
+			case "handoffs":
 				m.mode = "tasks"
 				m.cursor = 0
 			}
@@ -1321,11 +1709,14 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.mode == "jobs" {
 				m.mode = "tasks"
 				m.cursor = 0
+
 				return m, nil
 			}
+
 			m.mode = "jobs"
 			m.jobsCursor = 0
 			m.jobsDetailIndex = -1
+
 			return m, nil
 
 		case "w":
@@ -1334,44 +1725,47 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.mode = "tasks"
 				m.cursor = 0
 				m.waveDetailLevel = -1
+
 				return m, nil
 			}
+
 			if m.mode == "tasks" && len(m.tasks) > 0 {
 				m.mode = "waves"
 				m.waveDetailLevel = -1
 				m.waveCursor = 0
-				// Compute waves from current tasks (Todo + In Progress)
+				// Compute waves (prefer docs/PARALLEL_EXECUTION_PLAN_RESEARCH.md)
 				taskList := make([]tools.Todo2Task, 0, len(m.tasks))
+
 				for _, t := range m.tasks {
 					if t != nil {
 						taskList = append(taskList, *t)
 					}
 				}
-				_, waves, _, err := tools.BacklogExecutionOrder(taskList, nil)
+
+				waves, err := tools.ComputeWavesForTUI(m.projectRoot, taskList)
 				if err != nil {
 					m.waves = nil
 				} else {
 					m.waves = waves
-					if max := config.MaxTasksPerWave(); max > 0 {
-						m.waves = tools.LimitWavesByMaxTasks(m.waves, max)
-					}
 				}
 			}
+
 			return m, nil
 
 		case "c":
 			// Toggle between tasks and config view
-			if m.mode == "tasks" {
+			switch m.mode {
+			case "tasks":
 				m.mode = "config"
 				m.configCursor = 0
-			} else if m.mode == "config" {
+			case "config":
 				m.mode = "tasks"
 				m.cursor = 0
 				m.configSaveMessage = ""
-			} else if m.mode == "handoffs" {
+			case "handoffs":
 				m.mode = "tasks"
 				m.cursor = 0
-			} else if m.mode == "waves" || m.mode == "jobs" {
+			case "waves", "jobs":
 				m.mode = "tasks"
 				m.cursor = 0
 			}
@@ -1398,6 +1792,11 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 			} else if m.mode == "handoffs" && m.handoffDetailIndex < 0 && len(m.handoffEntries) > 0 && m.handoffCursor > 0 {
 				m.handoffCursor--
+			} else if m.mode == "waves" && m.waveDetailLevel >= 0 && m.waveMoveTaskID == "" {
+				ids := m.waves[m.waveDetailLevel]
+				if len(ids) > 0 && m.waveTaskCursor > 0 {
+					m.waveTaskCursor--
+				}
 			} else if m.mode == "waves" && m.waveDetailLevel < 0 && len(m.waves) > 0 && m.waveCursor > 0 {
 				m.waveCursor--
 			} else if m.mode == "jobs" && m.jobsDetailIndex < 0 && len(m.jobs) > 0 && m.jobsCursor > 0 {
@@ -1426,6 +1825,11 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 			} else if m.mode == "handoffs" && m.handoffDetailIndex < 0 && len(m.handoffEntries) > 0 && m.handoffCursor < len(m.handoffEntries)-1 {
 				m.handoffCursor++
+			} else if m.mode == "waves" && m.waveDetailLevel >= 0 && m.waveMoveTaskID == "" {
+				ids := m.waves[m.waveDetailLevel]
+				if len(ids) > 0 && m.waveTaskCursor < len(ids)-1 {
+					m.waveTaskCursor++
+				}
 			} else if m.mode == "waves" && m.waveDetailLevel < 0 && len(m.waves) > 0 {
 				levels := sortedWaveLevels(m.waves)
 				if m.waveCursor < len(levels)-1 {
@@ -1437,7 +1841,67 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 			return m, nil
 
-		case "enter", " ", "e":
+		case "enter", " ", "e", "i":
+			// In handoffs: "i" = start interactive agent with handoff (do not close)
+			if m.mode == "handoffs" && msg.String() == "i" && len(m.handoffEntries) > 0 {
+				var h map[string]interface{}
+				if m.handoffDetailIndex >= 0 && m.handoffDetailIndex < len(m.handoffEntries) {
+					h = m.handoffEntries[m.handoffDetailIndex]
+				} else if m.handoffCursor < len(m.handoffEntries) {
+					h = m.handoffEntries[m.handoffCursor]
+				}
+
+				if h != nil {
+					m.childAgentMsg = ""
+					sum, _ := h["summary"].(string)
+
+					var steps []interface{}
+					if s, ok := h["next_steps"].([]interface{}); ok {
+						steps = s
+					}
+
+					prompt := PromptForHandoff(sum, steps)
+
+					return m, runChildAgentCmdInteractive(m.projectRoot, prompt, ChildAgentHandoff)
+				}
+
+				return m, nil
+			}
+
+			// In handoffs: "e" = execute current handoff in agent and close it
+			if m.mode == "handoffs" && msg.String() == "e" && len(m.handoffEntries) > 0 {
+				var h map[string]interface{}
+
+				var id string
+
+				if m.handoffDetailIndex >= 0 && m.handoffDetailIndex < len(m.handoffEntries) {
+					h = m.handoffEntries[m.handoffDetailIndex]
+					id, _ = h["id"].(string)
+				} else if m.handoffCursor < len(m.handoffEntries) {
+					h = m.handoffEntries[m.handoffCursor]
+					id, _ = h["id"].(string)
+				}
+
+				if id != "" && h != nil {
+					m.childAgentMsg = ""
+					sum, _ := h["summary"].(string)
+
+					var steps []interface{}
+					if s, ok := h["next_steps"].([]interface{}); ok {
+						steps = s
+					}
+
+					prompt := PromptForHandoff(sum, steps)
+
+					return m, tea.Batch(
+						runChildAgentCmd(m.projectRoot, prompt, ChildAgentHandoff),
+						runHandoffAction(m.server, m.projectRoot, []string{id}, "close"),
+					)
+				}
+
+				return m, nil
+			}
+
 			if m.mode == "scorecard" {
 				if len(m.scorecardRecs) > 0 && m.scorecardRecCursor < len(m.scorecardRecs) {
 					rec := m.scorecardRecs[m.scorecardRecCursor]
@@ -1479,6 +1943,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				levels := sortedWaveLevels(m.waves)
 				if m.waveCursor < len(levels) {
 					m.waveDetailLevel = levels[m.waveCursor]
+					m.waveTaskCursor = 0
 				}
 			} else if m.mode == "jobs" && m.jobsDetailIndex < 0 && len(m.jobs) > 0 {
 				m.jobsDetailIndex = m.jobsCursor
@@ -1487,9 +1952,11 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, nil
 
 		case "r":
-			if m.mode == "config" {
+			switch m.mode {
+			case "config":
 				// Reload config
 				m.configSaveMessage = ""
+
 				cfg, err := config.LoadConfig(m.projectRoot)
 				if err == nil {
 					m.configData = cfg
@@ -1497,60 +1964,125 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 
 				return m, nil
-			} else if m.mode == "scorecard" {
+			case "scorecard":
 				// Refresh scorecard (fast mode for manual refresh; use Run then Enter for full refresh)
 				m.scorecardLoading = true
 				return m, loadScorecard(m.projectRoot, false)
-			} else if m.mode == "handoffs" {
+			case "handoffs":
 				// Refresh handoffs
 				m.handoffLoading = true
 				return m, loadHandoffs(m.server)
-			} else if m.mode == "waves" {
+			case "waves":
 				// Refresh tasks (waves recompute on taskLoadedMsg)
 				m.loading = true
 				return m, loadTasks(m.status)
-			} else {
+			case "taskAnalysis":
+				if !m.taskAnalysisLoading {
+					m.taskAnalysisLoading = true
+
+					action := m.taskAnalysisAction
+					if action == "" {
+						action = "parallelization"
+					}
+
+					return m, runTaskAnalysis(m.server, action)
+				}
+
+				return m, nil
+			default:
 				// Refresh tasks
 				m.loading = true
 				return m, loadTasks(m.status)
 			}
 
 		case "x":
-			// Close/dismiss selected handoffs (or current if none selected)
-			if m.mode == "handoffs" && m.handoffDetailIndex < 0 && len(m.handoffEntries) > 0 {
-				ids := m.handoffSelectedIDs()
-				if len(ids) == 0 && m.handoffCursor < len(m.handoffEntries) {
-					if id, _ := m.handoffEntries[m.handoffCursor]["id"].(string); id != "" {
+			// Close/dismiss handoffs: from detail view (current item) or list view (selected or current)
+			if m.mode == "handoffs" && len(m.handoffEntries) > 0 {
+				var ids []string
+
+				if m.handoffDetailIndex >= 0 && m.handoffDetailIndex < len(m.handoffEntries) {
+					if id, _ := m.handoffEntries[m.handoffDetailIndex]["id"].(string); id != "" {
 						ids = []string{id}
 					}
 				}
+
+				if len(ids) == 0 {
+					ids = m.handoffSelectedIDs()
+					if len(ids) == 0 && m.handoffCursor < len(m.handoffEntries) {
+						if id, _ := m.handoffEntries[m.handoffCursor]["id"].(string); id != "" {
+							ids = []string{id}
+						}
+					}
+				}
+
 				if len(ids) > 0 {
 					return m, runHandoffAction(m.server, m.projectRoot, ids, "close")
 				}
 			}
+
 			return m, nil
 
 		case "a":
 			if m.mode == "scorecard" {
 				return m, nil
 			}
-			if m.mode == "handoffs" && m.handoffDetailIndex < 0 && len(m.handoffEntries) > 0 {
-				// Approve selected handoffs (or current if none selected)
-				ids := m.handoffSelectedIDs()
-				if len(ids) == 0 && m.handoffCursor < len(m.handoffEntries) {
-					if id, _ := m.handoffEntries[m.handoffCursor]["id"].(string); id != "" {
+
+			if m.mode == "handoffs" && len(m.handoffEntries) > 0 {
+				// Approve: from detail view (current item) or list view (selected or current)
+				var ids []string
+
+				if m.handoffDetailIndex >= 0 && m.handoffDetailIndex < len(m.handoffEntries) {
+					if id, _ := m.handoffEntries[m.handoffDetailIndex]["id"].(string); id != "" {
 						ids = []string{id}
 					}
 				}
+
+				if len(ids) == 0 {
+					ids = m.handoffSelectedIDs()
+					if len(ids) == 0 && m.handoffCursor < len(m.handoffEntries) {
+						if id, _ := m.handoffEntries[m.handoffCursor]["id"].(string); id != "" {
+							ids = []string{id}
+						}
+					}
+				}
+
 				if len(ids) > 0 {
 					return m, runHandoffAction(m.server, m.projectRoot, ids, "approve")
 				}
 			}
+
 			if m.mode == "tasks" {
 				// Toggle auto-refresh
 				m.autoRefresh = !m.autoRefresh
 				if m.autoRefresh {
 					return m, tick()
+				}
+			}
+
+			return m, nil
+
+		case "d":
+			// Delete handoffs: from detail view (current item) or list view (selected or current)
+			if m.mode == "handoffs" && len(m.handoffEntries) > 0 {
+				var ids []string
+
+				if m.handoffDetailIndex >= 0 && m.handoffDetailIndex < len(m.handoffEntries) {
+					if id, _ := m.handoffEntries[m.handoffDetailIndex]["id"].(string); id != "" {
+						ids = []string{id}
+					}
+				}
+
+				if len(ids) == 0 {
+					ids = m.handoffSelectedIDs()
+					if len(ids) == 0 && m.handoffCursor < len(m.handoffEntries) {
+						if id, _ := m.handoffEntries[m.handoffCursor]["id"].(string); id != "" {
+							ids = []string{id}
+						}
+					}
+				}
+
+				if len(ids) > 0 {
+					return m, runHandoffAction(m.server, m.projectRoot, ids, "delete")
 				}
 			}
 
@@ -1571,15 +2103,18 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				default:
 					m.sortOrder = "id"
 				}
+
 				if m.sortOrder == "hierarchy" {
 					m.computeHierarchyOrder()
 				} else {
 					sortTasksBy(m.tasks, m.sortOrder, m.sortAsc)
 				}
+
 				if m.cursor >= len(m.visibleIndices()) {
 					m.cursor = len(m.visibleIndices()) - 1
 				}
 			}
+
 			return m, nil
 
 		case "O":
@@ -1592,6 +2127,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					sortTasksBy(m.tasks, m.sortOrder, m.sortAsc)
 				}
 			}
+
 			return m, nil
 
 		case "/":
@@ -1600,6 +2136,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.searchMode = true
 				// Keep previous searchQuery so user can extend or backspace
 			}
+
 			return m, nil
 
 		case "n":
@@ -1610,6 +2147,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.cursor++
 				}
 			}
+
 			return m, nil
 
 		case "N":
@@ -1619,6 +2157,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.cursor--
 				}
 			}
+
 			return m, nil
 
 		case "tab", "\t":
@@ -1627,6 +2166,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				vis := m.visibleIndices()
 				if len(vis) > 0 && m.cursor < len(vis) {
 					realIdx := m.realIndexAt(m.cursor)
+
 					task := m.tasks[realIdx]
 					if task != nil && m.taskHasChildren(task.ID) {
 						if _, ok := m.collapsedTaskIDs[task.ID]; ok {
@@ -1637,6 +2177,15 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					}
 				}
 			}
+
+			return m, nil
+
+		case "u":
+			// In config view: update (save current config to .exarp/config.pb protobuf)
+			if m.mode == "config" {
+				return m, saveConfig(m.projectRoot, m.configData)
+			}
+
 			return m, nil
 
 		case "s":
@@ -1644,21 +2193,24 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m, nil
 			}
 
-			if m.mode == "tasks" {
+			switch m.mode {
+			case "tasks":
 				// Show task details in-TUI (word-wrapped)
 				vis := m.visibleIndices()
 				if len(vis) > 0 && m.cursor < len(vis) {
 					m.mode = "taskDetail"
 					m.taskDetailTask = m.tasks[m.realIndexAt(m.cursor)]
+
 					return m, nil
 				}
-			} else if m.mode == "taskDetail" {
+			case "taskDetail":
 				// Close task detail on 's' too (so same key can close)
 				m.mode = "tasks"
 				m.taskDetailTask = nil
+
 				return m, nil
-			} else {
-				// Save config
+			default:
+				// Save config (writes to .exarp/config.pb protobuf)
 				return m, saveConfig(m.projectRoot, m.configData)
 			}
 
@@ -1667,8 +2219,116 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.mode == "waves" {
 				m.loading = true
 				m.err = nil
+
 				return m, runWavesRefreshTools(m.server)
 			}
+
+			return m, nil
+
+		case "U":
+			// In waves view: update Todo2 task dependencies from docs/PARALLEL_EXECUTION_PLAN_RESEARCH.md
+			if m.mode == "waves" {
+				m.loading = true
+				m.waveUpdateMsg = ""
+
+				return m, runReportUpdateWavesFromPlan(m.server, m.projectRoot)
+			}
+
+			return m, nil
+
+		case "A":
+			// In tasks or waves: run task_analysis and show result in dedicated view
+			if m.mode == "tasks" || m.mode == "waves" {
+				m.taskAnalysisReturnMode = m.mode
+				m.mode = "taskAnalysis"
+				m.taskAnalysisLoading = true
+				m.taskAnalysisErr = nil
+				m.taskAnalysisText = ""
+				m.taskAnalysisAction = "parallelization"
+				m.taskAnalysisApproveMsg = ""
+				m.taskAnalysisApproveLoading = false
+
+				return m, runTaskAnalysis(m.server, "parallelization")
+			}
+
+			if m.mode == "taskAnalysis" && !m.taskAnalysisLoading {
+				// Rerun same action
+				m.taskAnalysisLoading = true
+				m.taskAnalysisApproveMsg = ""
+
+				return m, runTaskAnalysis(m.server, m.taskAnalysisAction)
+			}
+
+			return m, nil
+
+		case "y":
+			// In task analysis view: approve = write waves plan to .cursor/plans/parallel-execution-subagents.plan.md
+			if m.mode == "taskAnalysis" && !m.taskAnalysisLoading && !m.taskAnalysisApproveLoading {
+				m.taskAnalysisApproveLoading = true
+				m.taskAnalysisApproveMsg = ""
+
+				return m, runReportParallelExecutionPlan(m.server, m.projectRoot)
+			}
+
+			return m, nil
+
+		case "m":
+			// In waves expanded view: start "move task to wave" (then press 0-9 to pick target wave)
+			if m.mode == "waves" && m.waveDetailLevel >= 0 && m.waveMoveTaskID == "" {
+				ids := m.waves[m.waveDetailLevel]
+				if len(ids) > 0 && m.waveTaskCursor < len(ids) {
+					m.waveMoveTaskID = ids[m.waveTaskCursor]
+					m.waveMoveMsg = ""
+				}
+			}
+
+			return m, nil
+
+		case "0", "1", "2", "3", "4", "5", "6", "7", "8", "9":
+			if m.mode == "waves" && m.waveMoveTaskID != "" {
+				targetLevel := int(msg.String()[0] - '0')
+				levels := sortedWaveLevels(m.waves)
+
+				if targetLevel < 0 || targetLevel >= len(levels) {
+					m.waveMoveMsg = "Invalid wave number"
+					return m, nil
+				}
+
+				level := levels[targetLevel]
+
+				var newDeps []string
+
+				if level == 0 {
+					newDeps = nil
+				} else {
+					prevLevel := levels[targetLevel-1]
+
+					prevIDs := m.waves[prevLevel]
+					if len(prevIDs) == 0 {
+						m.waveMoveMsg = "No tasks in previous wave"
+						return m, nil
+					}
+
+					newDeps = []string{prevIDs[0]}
+				}
+
+				taskByID := make(map[string]*database.Todo2Task)
+
+				for _, t := range m.tasks {
+					if t != nil {
+						taskByID[t.ID] = t
+					}
+				}
+
+				task := taskByID[m.waveMoveTaskID]
+				if task == nil {
+					m.waveMoveMsg = "Task not found"
+					return m, nil
+				}
+
+				return m, moveTaskToWaveCmd(task, newDeps)
+			}
+
 			return m, nil
 
 		case "E":
@@ -1690,25 +2350,32 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				if m.handoffDetailIndex >= 0 && m.handoffDetailIndex < len(m.handoffEntries) {
 					h := m.handoffEntries[m.handoffDetailIndex]
 					sum, _ := h["summary"].(string)
+
 					var steps []interface{}
 					if s, ok := h["next_steps"].([]interface{}); ok {
 						steps = s
 					}
+
 					prompt := PromptForHandoff(sum, steps)
+
 					return m, runChildAgentCmd(m.projectRoot, prompt, ChildAgentHandoff)
 				} else if len(m.handoffEntries) > 0 && m.handoffCursor < len(m.handoffEntries) {
 					h := m.handoffEntries[m.handoffCursor]
 					sum, _ := h["summary"].(string)
+
 					var steps []interface{}
 					if s, ok := h["next_steps"].([]interface{}); ok {
 						steps = s
 					}
+
 					prompt := PromptForHandoff(sum, steps)
+
 					return m, runChildAgentCmd(m.projectRoot, prompt, ChildAgentHandoff)
 				}
 			} else if m.mode == "waves" && len(m.waves) > 0 {
 				levels := sortedWaveLevels(m.waves)
 				waveIdx := 0
+
 				if m.waveDetailLevel >= 0 {
 					for i, l := range levels {
 						if l == m.waveDetailLevel {
@@ -1719,13 +2386,16 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				} else if m.waveCursor < len(levels) {
 					waveIdx = m.waveCursor
 				}
+
 				if waveIdx < len(levels) {
 					level := levels[waveIdx]
 					ids := m.waves[level]
 					prompt := PromptForWave(level, ids)
+
 					return m, runChildAgentCmd(m.projectRoot, prompt, ChildAgentWave)
 				}
 			}
+
 			return m, nil
 
 		case "L":
@@ -1735,6 +2405,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				prompt := PromptForPlan(m.projectRoot)
 				return m, runChildAgentCmd(m.projectRoot, prompt, ChildAgentPlan)
 			}
+
 			return m, nil
 
 		default:
@@ -1775,6 +2446,10 @@ func (m model) View() string {
 
 	if m.mode == "waves" {
 		return m.viewWaves()
+	}
+
+	if m.mode == "taskAnalysis" {
+		return m.viewTaskAnalysis()
 	}
 
 	if m.mode == "jobs" {
@@ -1830,6 +2505,7 @@ func (m model) viewTasks() string {
 	visCount := len(m.visibleIndices())
 	totalCount := len(m.tasks)
 	taskCountStr := fmt.Sprintf(" %d", visCount)
+
 	if m.searchQuery != "" && totalCount != visCount {
 		taskCountStr = fmt.Sprintf(" %d/%d", visCount, totalCount)
 	}
@@ -1896,6 +2572,7 @@ func (m model) viewTasks() string {
 		if len(msgLine) > availableWidth-2 {
 			msgLine = msgLine[:availableWidth-5] + "..."
 		}
+
 		b.WriteString("\n")
 		b.WriteString(helpStyle.Render("  " + msgLine))
 		b.WriteString("\n")
@@ -1934,6 +2611,8 @@ func (m model) viewTasks() string {
 	statusBar.WriteString(" scorecard  ")
 	statusBar.WriteString(helpStyle.Render("w"))
 	statusBar.WriteString(" w waves  ")
+	statusBar.WriteString(helpStyle.Render("A"))
+	statusBar.WriteString(" analysis  ")
 	statusBar.WriteString(helpStyle.Render("b"))
 	statusBar.WriteString(" jobs  ")
 	statusBar.WriteString(helpStyle.Render("E"))
@@ -1964,6 +2643,7 @@ func (m model) renderNarrowTaskList(b *strings.Builder, width int) {
 		task := m.tasks[realIdx]
 		indent := m.indentForTask(realIdx)
 		marker := m.treeMarkerForTask(realIdx)
+
 		cursor := " "
 		if m.cursor == idx {
 			cursor = ">"
@@ -2025,6 +2705,7 @@ func (m model) renderMediumTaskList(b *strings.Builder, width int) {
 		task := m.tasks[realIdx]
 		indent := m.indentForTask(realIdx)
 		marker := m.treeMarkerForTask(realIdx)
+
 		cursor := "   "
 		if m.cursor == idx {
 			cursor = " → "
@@ -2098,13 +2779,13 @@ func (m model) renderMediumTaskList(b *strings.Builder, width int) {
 // Wide-layout constants: compact column widths to maximize space for Description.
 // Single space between columns; fixed total = 52 so description gets (width - 53) or more.
 const (
-	wideColCursor   = 3  // " → " or " ✓ "
-	wideColID       = 18 // T-xxxxxxxxxxxxx
-	wideColStatus   = 11 // "In Progress"
-	wideColPriority = 8  // "PRIORITY" / "medium"
-	wideColPRI      = 3  // H/M/L
-	wideColOLD      = 3  // "OLD" or "   "
-	wideColSpaces   = 6  // one space between each of 7 columns
+	wideColCursor          = 3  // " → " or " ✓ "
+	wideColID              = 18 // T-xxxxxxxxxxxxx
+	wideColStatus          = 11 // "In Progress"
+	wideColPriority        = 8  // "PRIORITY" / "medium"
+	wideColPRI             = 3  // H/M/L
+	wideColOLD             = 3  // "OLD" or "   "
+	wideColSpaces          = 6  // one space between each of 7 columns
 	wideFixedColsTotal     = wideColCursor + wideColID + wideColStatus + wideColPriority + wideColPRI + wideColOLD + wideColSpaces
 	wideMinDescWidth       = 50
 	wideTagsColMin         = 24
@@ -2120,13 +2801,16 @@ func (m model) renderWideTaskList(b *strings.Builder, width int) {
 	if maxDescWidth < wideMinDescWidth {
 		maxDescWidth = wideMinDescWidth
 	}
+
 	tagsWidth := 0
 	if width >= wideShowTagsThreshold {
 		// Reserve space for TAGS; description gets the rest.
 		tagsWidth = wideTagsColMin
+
 		maxDescWidth = width - wideFixedPlusDescSpace - 1 - tagsWidth
 		if maxDescWidth < wideMinDescWidth {
 			maxDescWidth = wideMinDescWidth
+
 			tagsWidth = width - wideFixedPlusDescSpace - maxDescWidth - 1
 			if tagsWidth < 5 {
 				tagsWidth = 0
@@ -2135,6 +2819,7 @@ func (m model) renderWideTaskList(b *strings.Builder, width int) {
 	}
 
 	descHeader := truncatePad("DESCRIPTION", maxDescWidth)
+
 	header := fmt.Sprintf("%-*s %-*s %-*s %-*s %-*s %-*s %s",
 		wideColCursor, "", wideColID, "ID", wideColStatus, "STATUS", wideColPriority, "PRIORITY", wideColPRI, "PRI", wideColOLD, "OLD", descHeader)
 	if tagsWidth > 0 {
@@ -2151,6 +2836,7 @@ func (m model) renderWideTaskList(b *strings.Builder, width int) {
 		task := m.tasks[realIdx]
 		indent := m.indentForTask(realIdx)
 		marker := m.treeMarkerForTask(realIdx)
+
 		cursor := "   "
 		if m.cursor == idx {
 			cursor = " → "
@@ -2297,11 +2983,13 @@ func (m model) viewConfig() string {
 		if len(msgLine) > availableWidth {
 			msgLine = msgLine[:availableWidth-3] + "..."
 		}
+
 		if m.configSaveSuccess {
 			b.WriteString(headerValueStyle.Render("  ✅ " + msgLine))
 		} else {
 			b.WriteString(highPriorityStyle.Render("  ❌ " + msgLine))
 		}
+
 		b.WriteString("\n")
 		b.WriteString(borderStyle.Render(strings.Repeat("─", availableWidth)))
 		b.WriteString("\n")
@@ -2364,7 +3052,9 @@ func (m model) viewConfig() string {
 	statusBar.WriteString(helpStyle.Render("↑↓"))
 	statusBar.WriteString(" nav  ")
 	statusBar.WriteString(helpStyle.Render("Enter"))
-	statusBar.WriteString(" edit  ")
+	statusBar.WriteString(" section  ")
+	statusBar.WriteString(helpStyle.Render("u"))
+	statusBar.WriteString(" update (protobuf)  ")
 	statusBar.WriteString(helpStyle.Render("s"))
 	statusBar.WriteString(" save  ")
 	statusBar.WriteString(helpStyle.Render("r"))
@@ -2424,6 +3114,7 @@ func (m model) viewHandoffs() string {
 		b.WriteString(borderStyle.Render(strings.Repeat("─", availableWidth)))
 		b.WriteString("\n")
 		b.WriteString(statusBarStyle.Render("Commands: H back  q quit"))
+
 		return b.String()
 	}
 
@@ -2434,6 +3125,7 @@ func (m model) viewHandoffs() string {
 		b.WriteString(borderStyle.Render(strings.Repeat("─", availableWidth)))
 		b.WriteString("\n")
 		b.WriteString(statusBarStyle.Render("Commands: H back  r refresh  q quit"))
+
 		return b.String()
 	}
 
@@ -2444,6 +3136,7 @@ func (m model) viewHandoffs() string {
 		b.WriteString(borderStyle.Render(strings.Repeat("─", availableWidth)))
 		b.WriteString("\n")
 		b.WriteString(statusBarStyle.Render("Commands: H back  r refresh  q quit"))
+
 		return b.String()
 	}
 
@@ -2457,11 +3150,13 @@ func (m model) viewHandoffs() string {
 		// Header with count and selection
 		b.WriteString(headerLabelStyle.Render("Handoffs:"))
 		b.WriteString(headerValueStyle.Render(fmt.Sprintf(" %d", len(m.handoffEntries))))
+
 		if len(m.handoffSelected) > 0 {
 			b.WriteString(" ")
 			b.WriteString(headerLabelStyle.Render("Selected:"))
 			b.WriteString(headerValueStyle.Render(fmt.Sprintf(" %d", len(m.handoffSelected))))
 		}
+
 		b.WriteString("\n")
 		b.WriteString(borderStyle.Render(strings.Repeat("─", availableWidth)))
 		b.WriteString("\n")
@@ -2470,10 +3165,12 @@ func (m model) viewHandoffs() string {
 		colNum := 5
 		colHost := 18
 		colTime := 22
+
 		colSummary := availableWidth - colCursor - colNum - colHost - colTime - 4
 		if colSummary < 15 {
 			colSummary = 15
 		}
+
 		b.WriteString(helpStyle.Render(fmt.Sprintf("%-*s %-*s %-*s %-*s %s", colCursor, "", colNum, "#", colHost, "HOST", colTime, "TIME", "SUMMARY")))
 		b.WriteString("\n")
 		b.WriteString(borderStyle.Render(strings.Repeat("─", availableWidth)))
@@ -2494,20 +3191,25 @@ func (m model) viewHandoffs() string {
 			if host == "" {
 				host = "—"
 			}
+
 			if len(host) > colHost {
 				host = host[:colHost-3] + "..."
 			}
+
 			ts, _ := h["timestamp"].(string)
 			if ts != "" && len(ts) > colTime {
 				ts = ts[:colTime-3] + "..."
 			}
+
 			if ts == "" {
 				ts = "—"
 			}
+
 			sum, _ := h["summary"].(string)
 			if len(sum) > colSummary {
 				sum = sum[:colSummary-3] + "..."
 			}
+
 			if sum == "" {
 				sum = "(no summary)"
 			}
@@ -2518,6 +3220,7 @@ func (m model) viewHandoffs() string {
 			} else {
 				line = normalStyle.Render(line)
 			}
+
 			b.WriteString(line)
 			b.WriteString("\n")
 		}
@@ -2528,9 +3231,18 @@ func (m model) viewHandoffs() string {
 			b.WriteString(helpStyle.Render(m.handoffActionMsg))
 			b.WriteString("\n")
 		}
+
+		if m.childAgentMsg != "" {
+			b.WriteString(borderStyle.Render(strings.Repeat("─", availableWidth)))
+			b.WriteString("\n  ")
+			b.WriteString(helpStyle.Render(m.childAgentMsg))
+			b.WriteString("\n")
+		}
+
 		b.WriteString(borderStyle.Render(strings.Repeat("─", availableWidth)))
 		b.WriteString("\n")
-		b.WriteString(statusBarStyle.Render("Enter detail  Space select  x close  a approve  H back  r refresh  q quit"))
+		b.WriteString(statusBarStyle.Render("Enter detail  Space select  i interactive agent  e run agent & close  x close  a approve  d delete  H back  r refresh  q quit"))
+
 		return b.String()
 	}
 
@@ -2540,6 +3252,7 @@ func (m model) viewHandoffs() string {
 		Count    int                      `json:"count"`
 		Total    int                      `json:"total"`
 	}
+
 	if err := json.Unmarshal([]byte(m.handoffText), &payload); err == nil && len(payload.Handoffs) > 0 {
 		linesUsed := 0
 		for i, h := range payload.Handoffs {
@@ -2547,6 +3260,7 @@ func (m model) viewHandoffs() string {
 				b.WriteString("  ")
 				b.WriteString(helpStyle.Render("... (run 'exarp-go session handoffs' for full list)"))
 				b.WriteString("\n")
+
 				break
 			}
 			// Header: Handoff N · host · timestamp, then separator line
@@ -2554,19 +3268,24 @@ func (m model) viewHandoffs() string {
 			if host == "" {
 				host = "unknown"
 			}
+
 			ts, _ := h["timestamp"].(string)
 			if ts != "" && len(ts) > 25 {
 				ts = ts[:25]
 			}
+
 			b.WriteString("  ")
 			b.WriteString(headerLabelStyle.Render(fmt.Sprintf("Handoff %d", i+1)))
 			b.WriteString(headerValueStyle.Render(" · " + host))
+
 			if ts != "" {
 				b.WriteString(helpStyle.Render(" · " + ts))
 			}
+
 			b.WriteString("\n  ")
 			b.WriteString(borderStyle.Render(strings.Repeat("─", availableWidth)))
 			b.WriteString("\n")
+
 			linesUsed += 2
 
 			// Summary
@@ -2574,14 +3293,19 @@ func (m model) viewHandoffs() string {
 				b.WriteString("  ")
 				b.WriteString(headerValueStyle.Render("Summary:"))
 				b.WriteString("\n  ")
+
 				for _, wl := range strings.Split(wordWrap(sum, wrapWidth), "\n") {
 					if linesUsed >= maxContentLines {
 						b.WriteString(helpStyle.Render("  ..."))
 						b.WriteString("\n")
+
 						linesUsed++
+
 						break
 					}
+
 					b.WriteString(normalStyle.Render("  "+wl) + "\n")
+
 					linesUsed++
 				}
 			}
@@ -2591,21 +3315,26 @@ func (m model) viewHandoffs() string {
 				b.WriteString("  ")
 				b.WriteString(headerValueStyle.Render("Blockers:"))
 				b.WriteString("\n")
+
 				linesUsed++
 				for _, bi := range blockers {
 					if linesUsed >= maxContentLines {
 						break
 					}
+
 					bl := ""
+
 					switch v := bi.(type) {
 					case string:
 						bl = v
 					default:
 						bl = fmt.Sprintf("%v", v)
 					}
+
 					for _, wl := range strings.Split(wordWrap(bl, wrapWidth), "\n") {
 						b.WriteString("  ")
 						b.WriteString(normalStyle.Render("  • "+wl) + "\n")
+
 						linesUsed++
 					}
 				}
@@ -2616,66 +3345,83 @@ func (m model) viewHandoffs() string {
 				b.WriteString("  ")
 				b.WriteString(headerValueStyle.Render("Next steps:"))
 				b.WriteString("\n")
+
 				linesUsed++
 				for _, si := range steps {
 					if linesUsed >= maxContentLines {
 						break
 					}
+
 					st := ""
+
 					switch v := si.(type) {
 					case string:
 						st = v
 					default:
 						st = fmt.Sprintf("%v", v)
 					}
+
 					for _, wl := range strings.Split(wordWrap(st, wrapWidth), "\n") {
 						b.WriteString("  ")
 						b.WriteString(normalStyle.Render("  • "+wl) + "\n")
+
 						linesUsed++
 					}
 				}
 			}
 
 			b.WriteString("\n")
+
 			linesUsed++
 		}
 
 		b.WriteString(borderStyle.Render(strings.Repeat("─", availableWidth)))
 		b.WriteString("\n")
-		b.WriteString(statusBarStyle.Render("Commands: H back  r refresh  q quit"))
+		b.WriteString(statusBarStyle.Render("Commands: e run agent & close  E run agent  H back  r refresh  q quit"))
+
 		return b.String()
 	}
 
 	// Fallback: plain text (e.g. non-JSON or parse failure) with word wrap
 	lines := strings.Split(m.handoffText, "\n")
 	textLinesShown := 0
+
 	for _, line := range lines {
 		if textLinesShown >= maxContentLines {
 			b.WriteString("  ")
 			b.WriteString(helpStyle.Render("... (run 'exarp-go session handoffs' for full output)"))
 			b.WriteString("\n")
+
 			break
 		}
+
 		trimmed := strings.TrimSpace(line)
 		if trimmed == "" {
 			b.WriteString("\n")
+
 			textLinesShown++
+
 			continue
 		}
+
 		for _, wl := range strings.Split(wordWrap(trimmed, wrapWidth), "\n") {
 			if textLinesShown >= maxContentLines {
 				break
 			}
+
 			b.WriteString("  ")
 			b.WriteString(normalStyle.Render(wl))
 			b.WriteString("\n")
+
 			textLinesShown++
 		}
 	}
+
 	b.WriteString("\n")
 	b.WriteString(borderStyle.Render(strings.Repeat("─", availableWidth)))
 	b.WriteString("\n")
 	b.WriteString(statusBarStyle.Render("Commands: H back  r refresh  q quit"))
+
 	return b.String()
 }
 
@@ -2684,16 +3430,19 @@ func (m model) viewWaves() string {
 	if availableWidth < 40 {
 		availableWidth = 40
 	}
+
 	wrapWidth := availableWidth - 2
 	if wrapWidth < 30 {
 		wrapWidth = 30
 	}
 
 	var b strings.Builder
+
 	title := "WAVES (dependency order)"
 	if m.projectName != "" {
 		title = fmt.Sprintf("%s - %s", strings.ToUpper(m.projectName), title)
 	}
+
 	b.WriteString(headerStyle.Render(title))
 	b.WriteString(" ")
 	b.WriteString(headerLabelStyle.Render("H/w=back"))
@@ -2703,6 +3452,10 @@ func (m model) viewWaves() string {
 	b.WriteString(headerLabelStyle.Render("r=refresh"))
 	b.WriteString(" ")
 	b.WriteString(headerLabelStyle.Render("R=refresh tools"))
+	b.WriteString(" ")
+	b.WriteString(headerLabelStyle.Render("U=update from plan"))
+	b.WriteString(" ")
+	b.WriteString(headerLabelStyle.Render("A=analysis"))
 	b.WriteString("\n")
 	b.WriteString(borderStyle.Render(strings.Repeat("─", availableWidth)))
 	b.WriteString("\n")
@@ -2714,11 +3467,13 @@ func (m model) viewWaves() string {
 		b.WriteString(borderStyle.Render(strings.Repeat("─", availableWidth)))
 		b.WriteString("\n")
 		b.WriteString(statusBarStyle.Render("Commands: H or w back  r refresh  R refresh tools  q quit"))
+
 		return b.String()
 	}
 
 	levels := sortedWaveLevels(m.waves)
 	taskByID := make(map[string]*database.Todo2Task)
+
 	for _, t := range m.tasks {
 		if t != nil {
 			taskByID[t.ID] = t
@@ -2728,27 +3483,64 @@ func (m model) viewWaves() string {
 	if m.waveDetailLevel >= 0 {
 		// Expanded: show tasks for the selected wave only
 		ids := m.waves[m.waveDetailLevel]
+		levels := sortedWaveLevels(m.waves)
+
+		maxWaveIdx := len(levels) - 1
+		if maxWaveIdx < 0 {
+			maxWaveIdx = 0
+		}
+
 		b.WriteString("  ")
 		b.WriteString(headerLabelStyle.Render(fmt.Sprintf("Wave %d", m.waveDetailLevel)))
 		b.WriteString(headerValueStyle.Render(fmt.Sprintf(" (%d tasks) — Esc/Enter to collapse", len(ids))))
 		b.WriteString("\n  ")
 		b.WriteString(borderStyle.Render(strings.Repeat("─", availableWidth)))
 		b.WriteString("\n")
-		for _, id := range ids {
+
+		for i, id := range ids {
 			content := id
 			if t := taskByID[id]; t != nil && t.Content != "" {
 				content = truncatePad(t.Content, availableWidth-6)
 			}
-			b.WriteString("  • ")
-			b.WriteString(helpStyle.Render(id))
-			b.WriteString("  ")
-			b.WriteString(normalStyle.Render(content))
+
+			line := "  • " + helpStyle.Render(id) + "  " + normalStyle.Render(content)
+			if i == m.waveTaskCursor {
+				line = highlightRow(line, availableWidth, true)
+			}
+
+			b.WriteString(line)
 			b.WriteString("\n")
 		}
+
+		if m.waveMoveTaskID != "" {
+			b.WriteString("\n  ")
+			b.WriteString(helpStyle.Render(fmt.Sprintf("Move %s to wave (0-%d): press 0-%d  Esc cancel", m.waveMoveTaskID, maxWaveIdx, maxWaveIdx)))
+			b.WriteString("\n")
+		}
+
+		if m.waveMoveMsg != "" {
+			b.WriteString("  ")
+			b.WriteString(statusBarStyle.Render(m.waveMoveMsg))
+			b.WriteString("\n")
+		}
+
+		if m.waveUpdateMsg != "" {
+			b.WriteString("  ")
+			b.WriteString(statusBarStyle.Render(m.waveUpdateMsg))
+			b.WriteString("\n")
+		}
+
 		b.WriteString("\n")
 		b.WriteString(borderStyle.Render(strings.Repeat("─", availableWidth)))
 		b.WriteString("\n")
-		b.WriteString(statusBarStyle.Render("Esc/Enter collapse  E run wave  R refresh tools  H/w back  q quit"))
+
+		statusLine := "↑↓ move  m move task  U update from plan  Esc/Enter collapse  E run wave  R refresh  H/w back  q quit"
+		if m.waveMoveTaskID != "" {
+			statusLine = "0-9 pick wave  Esc cancel  " + statusLine
+		}
+
+		b.WriteString(statusBarStyle.Render(statusLine))
+
 		return b.String()
 	}
 
@@ -2757,25 +3549,134 @@ func (m model) viewWaves() string {
 	b.WriteString("\n")
 	b.WriteString(borderStyle.Render(strings.Repeat("─", availableWidth)))
 	b.WriteString("\n")
+
 	for i, level := range levels {
 		ids := m.waves[level]
+
 		cursor := "   "
 		if m.waveCursor == i {
 			cursor = " → "
 		}
+
 		line := fmt.Sprintf("%s %-3d  Wave %-3d   %d tasks", cursor, i+1, level, len(ids))
 		if m.waveCursor == i {
 			line = highlightRow(line, availableWidth, true)
 		} else {
 			line = normalStyle.Render(line)
 		}
+
 		b.WriteString("  ")
 		b.WriteString(line)
 		b.WriteString("\n")
 	}
+
+	if m.waveUpdateMsg != "" {
+		b.WriteString("  ")
+		b.WriteString(statusBarStyle.Render(m.waveUpdateMsg))
+		b.WriteString("\n")
+	}
+
 	b.WriteString(borderStyle.Render(strings.Repeat("─", availableWidth)))
 	b.WriteString("\n")
-	b.WriteString(statusBarStyle.Render("Enter expand  E run wave  R refresh tools  H/w back  r refresh  q quit"))
+	b.WriteString(statusBarStyle.Render("Enter expand  E run wave  R refresh tools  U update from plan  A analysis  H/w back  r refresh  q quit"))
+
+	return b.String()
+}
+
+func (m model) viewTaskAnalysis() string {
+	availableWidth := m.effectiveWidth() - 2
+	if availableWidth < 40 {
+		availableWidth = 40
+	}
+
+	maxTextLines := m.effectiveHeight() - 10
+	if maxTextLines < 4 {
+		maxTextLines = 4
+	}
+
+	var b strings.Builder
+
+	title := "TASK ANALYSIS"
+	if m.projectName != "" {
+		title = fmt.Sprintf("%s - %s", strings.ToUpper(m.projectName), title)
+	}
+
+	b.WriteString(headerStyle.Render(title))
+	b.WriteString(" ")
+	b.WriteString(headerLabelStyle.Render("action=" + m.taskAnalysisAction))
+	b.WriteString(" ")
+	b.WriteString(headerLabelStyle.Render("p=back"))
+	b.WriteString(" ")
+	b.WriteString(headerLabelStyle.Render("r=rerun"))
+	b.WriteString(" ")
+	b.WriteString(headerLabelStyle.Render("y=write waves"))
+	b.WriteString("\n")
+	b.WriteString(borderStyle.Render(strings.Repeat("─", availableWidth)))
+	b.WriteString("\n")
+
+	if m.taskAnalysisLoading {
+		b.WriteString("\n  Running task_analysis (" + m.taskAnalysisAction + ")...\n\n")
+		b.WriteString(statusBarStyle.Render("Commands: p back  q quit"))
+
+		return b.String()
+	}
+
+	if m.taskAnalysisApproveLoading {
+		b.WriteString("\n  Writing waves plan to .cursor/plans/parallel-execution-subagents.plan.md ...\n\n")
+		b.WriteString(statusBarStyle.Render("Commands: p back  q quit"))
+
+		return b.String()
+	}
+
+	if m.taskAnalysisErr != nil {
+		b.WriteString(fmt.Sprintf("\n  Error: %v\n\n", m.taskAnalysisErr))
+		b.WriteString(statusBarStyle.Render("Commands: p back  r rerun  y write waves  q quit"))
+
+		return b.String()
+	}
+
+	lines := strings.Split(m.taskAnalysisText, "\n")
+	shown := 0
+
+	for _, line := range lines {
+		if shown >= maxTextLines {
+			b.WriteString(helpStyle.Render("  ... (run exarp-go -tool task_analysis for full output)"))
+			b.WriteString("\n")
+
+			break
+		}
+
+		if len(line) > availableWidth {
+			for len(line) > 0 && shown < maxTextLines {
+				end := availableWidth
+				if end > len(line) {
+					end = len(line)
+				}
+
+				b.WriteString(normalStyle.Render(line[:end]))
+				b.WriteString("\n")
+
+				line = line[end:]
+				shown++
+			}
+		} else {
+			b.WriteString(normalStyle.Render(line))
+			b.WriteString("\n")
+
+			shown++
+		}
+	}
+
+	if m.taskAnalysisApproveMsg != "" {
+		b.WriteString("\n")
+		b.WriteString(helpStyle.Render("  " + m.taskAnalysisApproveMsg))
+		b.WriteString("\n")
+	}
+
+	b.WriteString(borderStyle.Render(strings.Repeat("─", availableWidth)))
+	b.WriteString("\n")
+	b.WriteString(statusBarStyle.Render("Commands: p back  r rerun  y write waves  q quit"))
+
 	return b.String()
 }
 
@@ -2784,16 +3685,19 @@ func (m model) viewJobs() string {
 	if availableWidth < 40 {
 		availableWidth = 40
 	}
+
 	wrapWidth := availableWidth - 2
 	if wrapWidth < 30 {
 		wrapWidth = 30
 	}
 
 	var b strings.Builder
+
 	title := "BACKGROUND JOBS"
 	if m.projectName != "" {
 		title = fmt.Sprintf("%s - %s", strings.ToUpper(m.projectName), title)
 	}
+
 	b.WriteString(headerStyle.Render(title))
 	b.WriteString(" ")
 	b.WriteString(headerLabelStyle.Render("Esc/b=back"))
@@ -2808,6 +3712,7 @@ func (m model) viewJobs() string {
 		b.WriteString(borderStyle.Render(strings.Repeat("─", availableWidth)))
 		b.WriteString("\n")
 		b.WriteString(statusBarStyle.Render("Commands: Esc or b back  q quit"))
+
 		return b.String()
 	}
 
@@ -2821,42 +3726,52 @@ func (m model) viewJobs() string {
 	b.WriteString("\n")
 	b.WriteString(borderStyle.Render(strings.Repeat("─", availableWidth)))
 	b.WriteString("\n")
+
 	for i, job := range m.jobs {
 		cursor := "   "
 		if m.jobsCursor == i {
 			cursor = " → "
 		}
+
 		pidStr := "—"
 		if job.Pid > 0 {
 			pidStr = fmt.Sprintf("%d", job.Pid)
 		}
+
 		started := job.StartedAt.Format("2006-01-02 15:04")
+
 		promptPreview := job.Prompt
 		if len(promptPreview) > availableWidth-45 {
 			promptPreview = promptPreview[:availableWidth-48] + "..."
 		}
+
 		line := fmt.Sprintf("%s %-3d  %-6s  %-6s  %s  %s", cursor, i+1, string(job.Kind), pidStr, started, promptPreview)
 		if m.jobsCursor == i {
 			line = highlightRow(line, availableWidth, true)
 		} else {
 			line = normalStyle.Render(line)
 		}
+
 		b.WriteString("  ")
 		b.WriteString(line)
 		b.WriteString("\n")
 	}
+
 	b.WriteString(borderStyle.Render(strings.Repeat("─", availableWidth)))
 	b.WriteString("\n")
 	b.WriteString(statusBarStyle.Render("Enter view detail  Esc/b back  q quit"))
+
 	return b.String()
 }
 
 func (m model) viewJobDetail(job BackgroundJob, availableWidth, wrapWidth int) string {
 	var b strings.Builder
+
 	title := "JOB DETAIL"
 	if m.projectName != "" {
 		title = fmt.Sprintf("%s - %s", strings.ToUpper(m.projectName), title)
 	}
+
 	b.WriteString(headerStyle.Render(title))
 	b.WriteString(" ")
 	b.WriteString(headerLabelStyle.Render("Esc/Enter back"))
@@ -2879,15 +3794,32 @@ func (m model) viewJobDetail(job BackgroundJob, availableWidth, wrapWidth int) s
 	b.WriteString("  ")
 	b.WriteString(headerLabelStyle.Render("Prompt:"))
 	b.WriteString("\n  ")
+
 	for _, line := range strings.Split(wordWrap(job.Prompt, wrapWidth), "\n") {
 		b.WriteString(normalStyle.Render("  "+line) + "\n")
 	}
-	b.WriteString("\n  ")
-	b.WriteString(helpStyle.Render("Output: Child agent runs in separate Cursor window; output not captured."))
-	b.WriteString("\n  ")
+
+	b.WriteString("  ")
+	b.WriteString(headerLabelStyle.Render("Output:"))
+	b.WriteString("\n")
+
+	if job.Output != "" {
+		for _, line := range strings.Split(wordWrap(job.Output, wrapWidth), "\n") {
+			b.WriteString("  ")
+			b.WriteString(normalStyle.Render(line))
+			b.WriteString("\n")
+		}
+	} else {
+		b.WriteString("  ")
+		b.WriteString(helpStyle.Render("(running or interactive job — no capture)"))
+		b.WriteString("\n")
+	}
+
+	b.WriteString("  ")
 	b.WriteString(borderStyle.Render(strings.Repeat("─", availableWidth)))
 	b.WriteString("\n")
 	b.WriteString(statusBarStyle.Render("Esc/Enter back  q quit"))
+
 	return b.String()
 }
 
@@ -2899,6 +3831,7 @@ func (m model) viewHandoffDetail(h map[string]interface{}, availableWidth, wrapW
 	if m.projectName != "" {
 		title = fmt.Sprintf("%s - %s", strings.ToUpper(m.projectName), title)
 	}
+
 	b.WriteString(headerStyle.Render(title))
 	b.WriteString(" ")
 	b.WriteString(headerLabelStyle.Render("Esc back"))
@@ -2910,18 +3843,22 @@ func (m model) viewHandoffDetail(h map[string]interface{}, availableWidth, wrapW
 	if host == "" {
 		host = "unknown"
 	}
+
 	ts, _ := h["timestamp"].(string)
 	id, _ := h["id"].(string)
+
 	b.WriteString("  ")
 	b.WriteString(headerLabelStyle.Render("Host:"))
 	b.WriteString(headerValueStyle.Render(" " + host))
 	b.WriteString("  ")
 	b.WriteString(headerLabelStyle.Render("Time:"))
 	b.WriteString(headerValueStyle.Render(" " + ts))
+
 	if id != "" {
 		b.WriteString("  ")
-		b.WriteString(helpStyle.Render("ID: "+id))
+		b.WriteString(helpStyle.Render("ID: " + id))
 	}
+
 	b.WriteString("\n  ")
 	b.WriteString(borderStyle.Render(strings.Repeat("─", availableWidth)))
 	b.WriteString("\n")
@@ -2930,9 +3867,11 @@ func (m model) viewHandoffDetail(h map[string]interface{}, availableWidth, wrapW
 		b.WriteString("  ")
 		b.WriteString(headerValueStyle.Render("Summary:"))
 		b.WriteString("\n  ")
+
 		for _, wl := range strings.Split(wordWrap(sum, wrapWidth), "\n") {
 			b.WriteString(normalStyle.Render("  "+wl) + "\n")
 		}
+
 		b.WriteString("\n")
 	}
 
@@ -2940,19 +3879,23 @@ func (m model) viewHandoffDetail(h map[string]interface{}, availableWidth, wrapW
 		b.WriteString("  ")
 		b.WriteString(headerValueStyle.Render("Blockers:"))
 		b.WriteString("\n")
+
 		for _, bi := range blockers {
 			bl := ""
+
 			switch v := bi.(type) {
 			case string:
 				bl = v
 			default:
 				bl = fmt.Sprintf("%v", v)
 			}
+
 			for _, wl := range strings.Split(wordWrap(bl, wrapWidth), "\n") {
 				b.WriteString("  ")
 				b.WriteString(normalStyle.Render("  • "+wl) + "\n")
 			}
 		}
+
 		b.WriteString("\n")
 	}
 
@@ -2960,25 +3903,37 @@ func (m model) viewHandoffDetail(h map[string]interface{}, availableWidth, wrapW
 		b.WriteString("  ")
 		b.WriteString(headerValueStyle.Render("Next steps:"))
 		b.WriteString("\n")
+
 		for _, si := range steps {
 			st := ""
+
 			switch v := si.(type) {
 			case string:
 				st = v
 			default:
 				st = fmt.Sprintf("%v", v)
 			}
+
 			for _, wl := range strings.Split(wordWrap(st, wrapWidth), "\n") {
 				b.WriteString("  ")
 				b.WriteString(normalStyle.Render("  • "+wl) + "\n")
 			}
 		}
+
+		b.WriteString("\n")
+	}
+
+	if m.childAgentMsg != "" {
+		b.WriteString(borderStyle.Render(strings.Repeat("─", availableWidth)))
+		b.WriteString("\n  ")
+		b.WriteString(helpStyle.Render(m.childAgentMsg))
 		b.WriteString("\n")
 	}
 
 	b.WriteString(borderStyle.Render(strings.Repeat("─", availableWidth)))
 	b.WriteString("\n")
-	b.WriteString(statusBarStyle.Render("Esc / Enter back to list  q quit"))
+	b.WriteString(statusBarStyle.Render("i interactive  e run & close  x close  a approve  d delete  Esc back  q quit"))
+
 	return b.String()
 }
 
@@ -2992,6 +3947,7 @@ func (m model) viewTaskDetail() string {
 	if availableWidth < 40 {
 		availableWidth = 40
 	}
+
 	maxContentLines := m.effectiveHeight() - 10
 	if maxContentLines < 8 {
 		maxContentLines = 8
@@ -3003,31 +3959,37 @@ func (m model) viewTaskDetail() string {
 		body.WriteString(task.ID)
 		body.WriteString("\n\n")
 	}
+
 	if task.Status != "" {
 		body.WriteString("Status: ")
 		body.WriteString(task.Status)
 		body.WriteString("\n\n")
 	}
+
 	if task.Priority != "" {
 		body.WriteString("Priority: ")
 		body.WriteString(task.Priority)
 		body.WriteString("\n\n")
 	}
+
 	if task.Content != "" {
 		body.WriteString("Content:\n")
 		body.WriteString(wordWrap(task.Content, availableWidth-2))
 		body.WriteString("\n\n")
 	}
+
 	if task.LongDescription != "" {
 		body.WriteString("Description:\n")
 		body.WriteString(wordWrap(task.LongDescription, availableWidth-2))
 		body.WriteString("\n\n")
 	}
+
 	if len(task.Tags) > 0 {
 		body.WriteString("Tags: ")
 		body.WriteString(strings.Join(task.Tags, ", "))
 		body.WriteString("\n\n")
 	}
+
 	if len(task.Dependencies) > 0 {
 		body.WriteString("Dependencies: ")
 		body.WriteString(strings.Join(task.Dependencies, ", "))
@@ -3035,6 +3997,7 @@ func (m model) viewTaskDetail() string {
 	}
 
 	allLines := strings.Split(strings.TrimSuffix(body.String(), "\n"), "\n")
+
 	var b strings.Builder
 
 	// Header bar (full-width, same as task list)
@@ -3042,11 +4005,13 @@ func (m model) viewTaskDetail() string {
 	if m.projectName != "" {
 		title = fmt.Sprintf("%s - %s", strings.ToUpper(m.projectName), title)
 	}
+
 	headerLine := headerStyle.Render(title) + " " + headerLabelStyle.Render("Esc/Enter/Space=close")
 	if lipgloss.Width(headerLine) < availableWidth {
 		padding := strings.Repeat(" ", availableWidth-lipgloss.Width(headerLine))
 		headerLine += headerValueStyle.Render(padding)
 	}
+
 	b.WriteString(headerLine)
 	b.WriteString("\n")
 	b.WriteString(borderStyle.Render(strings.Repeat("─", availableWidth)))
@@ -3061,10 +4026,12 @@ func (m model) viewTaskDetail() string {
 		if lipgloss.Width(line) > availableWidth {
 			runes := []rune(line)
 			maxRunes := availableWidth - 3
+
 			if maxRunes > 0 && len(runes) > maxRunes {
 				line = string(runes[:maxRunes]) + "..."
 			}
 		}
+
 		b.WriteString(normalStyle.Render(line))
 		b.WriteString("\n")
 	}
@@ -3079,6 +4046,7 @@ func (m model) viewTaskDetail() string {
 		padding := strings.Repeat(" ", availableWidth-lipgloss.Width(statusLine))
 		statusLine += statusBarStyle.Render(padding)
 	}
+
 	b.WriteString(statusLine)
 
 	return b.String()
@@ -3089,6 +4057,7 @@ func (m model) viewConfigSection() string {
 	if availableWidth < 40 {
 		availableWidth = 40
 	}
+
 	maxContentLines := m.effectiveHeight() - 8
 	if maxContentLines < 6 {
 		maxContentLines = 6
@@ -3096,11 +4065,14 @@ func (m model) viewConfigSection() string {
 
 	wrapped := wordWrap(m.configSectionText, availableWidth)
 	allLines := strings.Split(wrapped, "\n")
+
 	var b strings.Builder
+
 	title := "CONFIG SECTION"
 	if m.projectName != "" {
 		title = fmt.Sprintf("%s - %s", strings.ToUpper(m.projectName), title)
 	}
+
 	b.WriteString(headerStyle.Render(title))
 	b.WriteString(" ")
 	b.WriteString(headerLabelStyle.Render("Esc/Enter/Space=close"))
@@ -3113,6 +4085,7 @@ func (m model) viewConfigSection() string {
 			b.WriteString(helpStyle.Render("  ... (truncated)\n"))
 			break
 		}
+
 		b.WriteString(normalStyle.Render(line))
 		b.WriteString("\n")
 	}
@@ -3131,6 +4104,7 @@ func (m model) viewScorecard() string {
 	if availableWidth < 40 {
 		availableWidth = 40
 	}
+
 	maxTextLines := m.effectiveHeight() - 14
 	if maxTextLines < 4 {
 		maxTextLines = 4
@@ -3301,15 +4275,19 @@ func (m model) viewHelp() string {
 	b.WriteString(helpStyle.Render("p"))
 	b.WriteString("  Switch to Scorecard (project health)\n  ")
 	b.WriteString(helpStyle.Render("H"))
-	b.WriteString("  Switch to Session handoffs (Enter detail  Space select  x close  a approve)\n  ")
+	b.WriteString("  Switch to Session handoffs (i interactive agent  e run & close  x close  a approve  d delete)\n  ")
 	b.WriteString(helpStyle.Render("w"))
 	b.WriteString("  Switch to Waves (Enter expand wave)\n  ")
+	b.WriteString(helpStyle.Render("A"))
+	b.WriteString("  Task analysis (tasks/waves: run parallelization, show result)\n  ")
 	b.WriteString(helpStyle.Render("b"))
 	b.WriteString("  Switch to Background jobs (child agent launches)\n\n")
 	b.WriteString(normalStyle.Render("Child agent (run Cursor agent in project root):"))
 	b.WriteString("\n  ")
 	b.WriteString(helpStyle.Render("E"))
 	b.WriteString("  Execute current context in child agent (task, handoff, or wave)\n  ")
+	b.WriteString(helpStyle.Render("i"))
+	b.WriteString("  In handoffs: start interactive agent (don't close handoff)\n  ")
 	b.WriteString(helpStyle.Render("L"))
 	b.WriteString("  Launch plan in child agent (from tasks view)\n\n")
 	b.WriteString(normalStyle.Render("Actions:"))
@@ -3318,12 +4296,14 @@ func (m model) viewHelp() string {
 	b.WriteString("  Refresh (tasks, config, or scorecard)\n  ")
 	b.WriteString(helpStyle.Render("R"))
 	b.WriteString("  In waves: run exarp tools (sync, task_analysis) then refresh\n  ")
+	b.WriteString(helpStyle.Render("y"))
+	b.WriteString("  In task analysis: write waves plan (parallel-execution-subagents.plan.md)\n  ")
 	b.WriteString(helpStyle.Render("e"))
 	b.WriteString("  Implement selected recommendation (scorecard)\n  ")
 	b.WriteString(helpStyle.Render("a"))
 	b.WriteString("  Toggle auto-refresh (tasks only)\n  ")
 	b.WriteString(helpStyle.Render("s"))
-	b.WriteString("  Show task details (tasks) or Save config (config)\n\n")
+	b.WriteString("  Show task details (tasks); Save/Update config (config): u or s → .exarp/config.pb\n\n")
 	b.WriteString(normalStyle.Render("Other:"))
 	b.WriteString("\n  ")
 	b.WriteString(helpStyle.Render("q"))
@@ -3394,7 +4374,13 @@ func showConfigSection(section configSection, cfg *config.FullConfig) tea.Cmd {
 			details.WriteString(fmt.Sprintf("  Max Path Depth: %d\n", cfg.Thresholds.MaxPathDepth))
 		}
 
-		details.WriteString("\nNote: Config is .exarp/config.pb (protobuf). Use 'exarp-go config export yaml' to edit as YAML, then 'convert yaml protobuf' to save.")
+		details.WriteString("\nUpdate from TUI: press ")
+		details.WriteString("u")
+		details.WriteString(" or ")
+		details.WriteString("s")
+		details.WriteString(" to save to .exarp/config.pb (protobuf).")
+		details.WriteString("\nOr use CLI: 'exarp-go config export yaml' to edit as YAML, then 'convert yaml protobuf' to save.")
+
 		return configSectionDetailMsg{text: details.String()}
 	}
 }
@@ -3404,15 +4390,33 @@ func saveConfig(projectRoot string, cfg *config.FullConfig) tea.Cmd {
 		if err := config.WriteConfigToProtobufFile(projectRoot, cfg); err != nil {
 			return configSaveResultMsg{message: "Error writing config: " + err.Error(), success: false}
 		}
+
 		return configSaveResultMsg{message: "Config saved to " + projectRoot + "/.exarp/config.pb", success: true}
 	}
 }
 
-// runChildAgentCmd runs the child agent with the given prompt and returns a childAgentResultMsg.
+// runChildAgentCmd runs the non-interactive child agent, captures output, and returns childAgentResultMsg plus jobCompletedMsg when done.
 func runChildAgentCmd(projectRoot, prompt string, kind ChildAgentKind) tea.Cmd {
 	return func() tea.Msg {
-		r := RunChildAgent(projectRoot, prompt)
+		r, done := RunChildAgentWithOutputCapture(projectRoot, prompt)
 		r.Kind = kind
+
+		return tea.Batch(
+			func() tea.Msg { return childAgentResultMsg{Result: r} },
+			func() tea.Msg {
+				out := <-done
+				return jobCompletedMsg(out)
+			},
+		)
+	}
+}
+
+// runChildAgentCmdInteractive runs the child agent in interactive mode (Cursor agent with initial prompt, no -p).
+func runChildAgentCmdInteractive(projectRoot, prompt string, kind ChildAgentKind) tea.Cmd {
+	return func() tea.Msg {
+		r := RunChildAgentInteractive(projectRoot, prompt)
+		r.Kind = kind
+
 		return childAgentResultMsg{Result: r}
 	}
 }

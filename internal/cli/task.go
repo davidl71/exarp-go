@@ -189,6 +189,7 @@ func handleTaskCreateParsed(server framework.MCPServer, parsed *mcpcli.Args) err
 	description := parsed.GetFlag("description", "")
 	priority := parsed.GetFlag("priority", "")
 	tagsStr := parsed.GetFlag("tags", "")
+	localAIBackend := parsed.GetFlag("local-ai-backend", "")
 
 	var tags []string
 
@@ -211,6 +212,10 @@ func handleTaskCreateParsed(server framework.MCPServer, parsed *mcpcli.Args) err
 
 	if len(tags) > 0 {
 		toolArgs["tags"] = strings.Join(tags, ",")
+	}
+
+	if localAIBackend != "" {
+		toolArgs["local_ai_backend"] = localAIBackend
 	}
 
 	return executeTaskWorkflow(server, toolArgs)
@@ -339,9 +344,10 @@ func showTaskUsage() error {
 	_, _ = fmt.Println("  --auto-apply            Auto-apply changes without confirmation")
 	_, _ = fmt.Println()
 	_, _ = fmt.Println("Create Options:")
-	_, _ = fmt.Println("  --description <text>    Task description")
-	_, _ = fmt.Println("  --priority <priority>   Task priority (low, medium, high)")
-	_, _ = fmt.Println("  --tags <tags>          Comma-separated tags")
+	_, _ = fmt.Println("  --description <text>           Task description")
+	_, _ = fmt.Println("  --priority <priority>          Task priority (low, medium, high)")
+	_, _ = fmt.Println("  --tags <tags>                 Comma-separated tags")
+	_, _ = fmt.Println("  --local-ai-backend <backend>  Preferred local AI for estimation (fm|mlx|ollama)")
 	_, _ = fmt.Println()
 	_, _ = fmt.Println("Examples:")
 	_, _ = fmt.Println("  exarp-go task list")
@@ -351,6 +357,7 @@ func showTaskUsage() error {
 	_, _ = fmt.Println("  exarp-go task update T-1 --new-priority high")
 	_, _ = fmt.Println("  exarp-go task update --status \"Todo\" --new-status \"Done\" --ids \"T-1,T-2\"")
 	_, _ = fmt.Println("  exarp-go task create \"Fix bug\" --description \"Fix the bug\" --priority \"high\"")
+	_, _ = fmt.Println("  exarp-go task create \"AI task\" --local-ai-backend ollama")
 	_, _ = fmt.Println("  exarp-go task show T-123")
 	_, _ = fmt.Println("  exarp-go task sync")
 	_, _ = fmt.Println()

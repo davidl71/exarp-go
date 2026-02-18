@@ -127,7 +127,6 @@ func ClaimTaskForAgent(ctx context.Context, taskID string, agentID string, lease
 			  AND version = ?
 			  AND (assignee IS NULL OR lock_until IS NULL OR lock_until < ?)
 		`, agentID, now, leaseUntil, StatusInProgress, taskID, version, now)
-
 		if err != nil {
 			result.Error = fmt.Errorf("failed to update task: %w", err)
 			return result.Error
@@ -207,6 +206,7 @@ func ReleaseTask(ctx context.Context, taskID string, agentID string) error {
 
 		// Query current assignee (transaction provides atomicity)
 		var currentAssignee sql.NullString
+
 		err = tx.QueryRowContext(txCtx, `
 			SELECT assignee
 			FROM tasks
@@ -241,7 +241,6 @@ func ReleaseTask(ctx context.Context, taskID string, agentID string) error {
 				updated_at = strftime('%s', 'now')
 			WHERE id = ? AND assignee = ?
 		`, taskID, agentID)
-
 		if err != nil {
 			return fmt.Errorf("failed to release lock: %w", err)
 		}
@@ -286,6 +285,7 @@ func RenewLease(ctx context.Context, taskID string, agentID string, leaseDuratio
 
 		// Query current assignee (transaction provides atomicity)
 		var currentAssignee sql.NullString
+
 		err = tx.QueryRowContext(txCtx, `
 			SELECT assignee
 			FROM tasks
@@ -321,7 +321,6 @@ func RenewLease(ctx context.Context, taskID string, agentID string, leaseDuratio
 				updated_at = strftime('%s', 'now')
 			WHERE id = ? AND assignee = ?
 		`, leaseUntil, taskID, agentID)
-
 		if err != nil {
 			return fmt.Errorf("failed to renew lease: %w", err)
 		}
@@ -408,7 +407,6 @@ func CleanupExpiredLocks(ctx context.Context) (int, error) {
 			  AND lock_until IS NOT NULL
 			  AND lock_until < ?
 		`, now)
-
 		if err != nil {
 			return fmt.Errorf("failed to cleanup expired locks: %w", err)
 		}
@@ -507,7 +505,6 @@ func BatchClaimTasks(ctx context.Context, taskIDs []string, agentID string, leas
 					updated_at = strftime('%s', 'now')
 				WHERE id = ? AND version = ?
 			`, agentID, now, leaseUntil, StatusInProgress, taskID, version)
-
 			if err != nil {
 				return fmt.Errorf("failed to claim task %s: %w", taskID, err)
 			}

@@ -71,9 +71,11 @@ func TestHandleEstimationAnalyze(t *testing.T) {
 					t.Errorf("invalid JSON: %v", err)
 					return
 				}
+
 				if success, ok := data["success"].(bool); !ok || !success {
 					t.Error("expected success=true")
 				}
+
 				if metrics, ok := data["accuracy_metrics"].(map[string]interface{}); ok {
 					if totalTasks, ok := metrics["total_tasks"].(float64); !ok || totalTasks != 3 {
 						t.Errorf("expected total_tasks=3, got %v", totalTasks)

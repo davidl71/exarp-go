@@ -116,6 +116,7 @@ func ResolveModelForTask(taskDescription, taskType, optimizeFor string) (ModelTy
 	recommended := findBestModel(taskDescription, taskType, optimizeFor)
 
 	req := ModelRequirements{}
+
 	switch optimizeFor {
 	case "speed":
 		req.PreferSpeed = true

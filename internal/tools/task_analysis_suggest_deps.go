@@ -35,6 +35,7 @@ func SuggestDependenciesFromContent(tasks []Todo2Task) []SuggestedDependency {
 	for i := range tasks {
 		t := &tasks[i]
 		idToTask[t.ID] = t
+
 		content := strings.ToLower(t.Content + " " + t.LongDescription)
 		if ms := phaseRe.FindStringSubmatch(content); len(ms) >= 3 {
 			key := "phase " + ms[1] + "." + ms[2]
@@ -42,6 +43,7 @@ func SuggestDependenciesFromContent(tasks []Todo2Task) []SuggestedDependency {
 				phaseOrT15ToID[key] = t.ID
 			}
 		}
+
 		if ms := t15Re.FindStringSubmatch(content); len(ms) >= 2 {
 			key := "t1.5." + ms[1]
 			if phaseOrT15ToID[key] == "" {
@@ -55,11 +57,13 @@ func SuggestDependenciesFromContent(tasks []Todo2Task) []SuggestedDependency {
 		if t == nil {
 			return false
 		}
+
 		for _, d := range t.Dependencies {
 			if d == depID {
 				return true
 			}
 		}
+
 		return false
 	}
 
@@ -73,8 +77,10 @@ func SuggestDependenciesFromContent(tasks []Todo2Task) []SuggestedDependency {
 			if m == "1" {
 				continue
 			}
+
 			prevKey := "phase " + n + "." + prevNum(m)
 			candID := phaseOrT15ToID[prevKey]
+
 			if candID != "" && candID != t.ID && !hasDep(t.ID, candID) {
 				out = append(out, SuggestedDependency{
 					TaskID:         t.ID,
@@ -94,8 +100,10 @@ func SuggestDependenciesFromContent(tasks []Todo2Task) []SuggestedDependency {
 			if m == "1" {
 				continue
 			}
+
 			prevKey := "t1.5." + prevNum(m)
 			candID := phaseOrT15ToID[prevKey]
+
 			if candID != "" && candID != t.ID && !hasDep(t.ID, candID) {
 				out = append(out, SuggestedDependency{
 					TaskID:         t.ID,
@@ -109,6 +117,7 @@ func SuggestDependenciesFromContent(tasks []Todo2Task) []SuggestedDependency {
 
 	// "Verify Wave N gosdk" / "Wave N verification" → find "Fix gosdk" / "Verify Wave N gosdk"
 	verifyWaveRe := regexp.MustCompile(`(?i)(?:verify\s+)?wave\s+(\d+)\s+(?:verification|gosdk)`)
+
 	for _, t := range tasks {
 		content := strings.ToLower(t.Content + " " + t.LongDescription)
 		if verifyWaveRe.MatchString(content) {
@@ -123,6 +132,7 @@ func SuggestDependenciesFromContent(tasks []Todo2Task) []SuggestedDependency {
 							Reason:         "Wave 2 verification typically follows Verify Wave 2 gosdk",
 							Source:         "content",
 						})
+
 						break
 					}
 				}
@@ -138,6 +148,7 @@ func SuggestDependenciesFromContent(tasks []Todo2Task) []SuggestedDependency {
 							Reason:         "Verify Wave 2 gosdk typically follows mcp-go-core gosdk fix",
 							Source:         "content",
 						})
+
 						break
 					}
 				}
@@ -147,17 +158,20 @@ func SuggestDependenciesFromContent(tasks []Todo2Task) []SuggestedDependency {
 
 	// "Fix tools tests" / "Fix internal/tools" / "Fix CLI integration" → "Fix database package tests"
 	fixDatabaseID := ""
+
 	for _, t := range tasks {
 		if strings.Contains(strings.ToLower(t.Content), "fix database package tests") {
 			fixDatabaseID = t.ID
 			break
 		}
 	}
+
 	if fixDatabaseID != "" {
 		for _, t := range tasks {
 			if t.ID == fixDatabaseID {
 				continue
 			}
+
 			cc := strings.ToLower(t.Content)
 			if (strings.Contains(cc, "fix tools tests") || strings.Contains(cc, "fix internal/tools tests") || strings.Contains(cc, "fix cli integration")) && !hasDep(t.ID, fixDatabaseID) {
 				out = append(out, SuggestedDependency{
@@ -228,9 +242,11 @@ func handleTaskAnalysisSuggestDependencies(ctx context.Context, params map[strin
 				existsTask := false
 				existsDep := false
 				alreadyDep := false
+
 				for _, t := range tasks {
 					if t.ID == h.TaskID {
 						existsTask = true
+
 						for _, d := range t.Dependencies {
 							if d == h.DependsOnID {
 								alreadyDep = true
@@ -238,10 +254,12 @@ func handleTaskAnalysisSuggestDependencies(ctx context.Context, params map[strin
 							}
 						}
 					}
+
 					if t.ID == h.DependsOnID {
 						existsDep = true
 					}
 				}
+
 				if existsTask && existsDep && !alreadyDep {
 					suggestions = append(suggestions, SuggestedDependency{
 						TaskID:         h.TaskID,
@@ -257,6 +275,7 @@ func handleTaskAnalysisSuggestDependencies(ctx context.Context, params map[strin
 	if suggestions == nil {
 		suggestions = []SuggestedDependency{}
 	}
+
 	result := map[string]interface{}{
 		"success":     true,
 		"suggestions": suggestions,
@@ -265,6 +284,7 @@ func handleTaskAnalysisSuggestDependencies(ctx context.Context, params map[strin
 	}
 
 	resultJSON, _ := json.Marshal(result)
+
 	outputPath, _ := params["output_path"].(string)
 	if outputPath != "" {
 		if err := os.MkdirAll(filepath.Dir(outputPath), 0755); err == nil {
@@ -273,9 +293,10 @@ func handleTaskAnalysisSuggestDependencies(ctx context.Context, params map[strin
 	}
 
 	resp := &proto.TaskAnalysisResponse{
-		Action:    "suggest_dependencies",
+		Action:     "suggest_dependencies",
 		OutputPath: outputPath,
 		ResultJson: string(resultJSON),
 	}
+
 	return response.FormatResult(TaskAnalysisResponseToMap(resp), resp.GetOutputPath())
 }

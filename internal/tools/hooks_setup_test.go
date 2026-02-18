@@ -30,14 +30,17 @@ func TestHandleSetupPatternHooks(t *testing.T) {
 					t.Error("expected non-empty result")
 					return
 				}
+
 				var data map[string]interface{}
 				if err := json.Unmarshal([]byte(result[0].Text), &data); err != nil {
 					t.Errorf("invalid JSON: %v", err)
 					return
 				}
+
 				if dryRun, ok := data["dry_run"].(bool); !ok || !dryRun {
 					t.Error("expected dry_run=true")
 				}
+
 				if configured, ok := data["patterns_configured"].([]interface{}); !ok || len(configured) == 0 {
 					t.Error("expected patterns_configured in result")
 				}
@@ -57,6 +60,7 @@ func TestHandleSetupPatternHooks(t *testing.T) {
 					t.Errorf("invalid JSON: %v", err)
 					return
 				}
+
 				if status, ok := data["status"].(string); !ok || status != "success" {
 					t.Errorf("expected status=success, got %v", data["status"])
 				}
@@ -105,6 +109,7 @@ func TestHandleSetupPatternHooks(t *testing.T) {
 					t.Errorf("invalid JSON: %v", err)
 					return
 				}
+
 				if status, ok := data["status"].(string); !ok || status != "uninstalled" {
 					t.Errorf("expected status=uninstalled, got %v", data["status"])
 				}
@@ -114,6 +119,7 @@ func TestHandleSetupPatternHooks(t *testing.T) {
 
 	// Set PROJECT_ROOT for tests
 	oldRoot := os.Getenv("PROJECT_ROOT")
+
 	os.Setenv("PROJECT_ROOT", tmpDir)
 	defer os.Setenv("PROJECT_ROOT", oldRoot)
 

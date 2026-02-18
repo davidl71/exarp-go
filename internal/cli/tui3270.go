@@ -3,6 +3,7 @@ package cli
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net"
 	"os"
@@ -80,7 +81,7 @@ func runTUI3270Server(server framework.MCPServer, status string, port int) error
 	projectName := ""
 
 	if err != nil {
-		logWarn(nil, "Could not find project root", "error", err, "operation", "runTUI3270Server")
+		logWarn(context.Background(), "Could not find project root", "error", err, "operation", "runTUI3270Server")
 	} else {
 		projectName = getProjectName(projectRoot)
 		EnsureConfigAndDatabase(projectRoot)
@@ -88,7 +89,7 @@ func runTUI3270Server(server framework.MCPServer, status string, port int) error
 		if database.DB != nil {
 			defer func() {
 				if err := database.Close(); err != nil {
-					logWarn(nil, "Error closing database", "error", err, "operation", "closeDatabase")
+					logWarn(context.Background(), "Error closing database", "error", err, "operation", "closeDatabase")
 				}
 			}()
 		}
@@ -99,10 +100,15 @@ func runTUI3270Server(server framework.MCPServer, status string, port int) error
 	if err != nil {
 		return fmt.Errorf("failed to listen on port %d: %w", port, err)
 	}
-	defer listener.Close()
 
-	logInfo(nil, "3270 TUI server listening", "port", port, "operation", "runTUI3270Server")
-	logInfo(nil, "Connect with x3270", "host", "localhost", "port", port, "operation", "runTUI3270Server")
+	defer func() {
+		if closeErr := listener.Close(); closeErr != nil && !errors.Is(closeErr, net.ErrClosed) {
+			logWarn(context.Background(), "Error closing listener", "error", closeErr, "operation", "runTUI3270Server")
+		}
+	}()
+
+	logInfo(context.Background(), "3270 TUI server listening", "port", port, "operation", "runTUI3270Server")
+	logInfo(context.Background(), "Connect with x3270", "host", "localhost", "port", port, "operation", "runTUI3270Server")
 
 	// Set up signal handling for graceful shutdown
 	sigChan := make(chan os.Signal, 1)
@@ -120,7 +126,7 @@ func runTUI3270Server(server framework.MCPServer, status string, port int) error
 					return
 				}
 
-				logError(nil, "Error accepting connection", "error", err, "operation", "acceptConnection")
+				logError(context.Background(), "Error accepting connection", "error", err, "operation", "acceptConnection")
 
 				continue
 			}
@@ -133,8 +139,11 @@ func runTUI3270Server(server framework.MCPServer, status string, port int) error
 	// Wait for signal or error
 	select {
 	case sig := <-sigChan:
-		logInfo(nil, "Received signal, shutting down gracefully", "signal", sig.String(), "operation", "shutdown")
-		listener.Close()
+		logInfo(context.Background(), "Received signal, shutting down gracefully", "signal", sig.String(), "operation", "shutdown")
+
+		if closeErr := listener.Close(); closeErr != nil && !errors.Is(closeErr, net.ErrClosed) {
+			logWarn(context.Background(), "Error closing listener", "error", closeErr, "operation", "shutdown")
+		}
 
 		return nil
 	case err := <-errChan:
@@ -161,7 +170,9 @@ func daemonize(pidFile string, serverFunc func() error) error {
 			return fmt.Errorf("server already running (PID: %d)", existingPID)
 		}
 		// PID file exists but process is dead, remove it
-		os.Remove(pidFile)
+		if rmErr := os.Remove(pidFile); rmErr != nil {
+			logWarn(context.Background(), "Failed to remove stale PID file", "error", rmErr, "operation", "daemonize", "pid_file", pidFile)
+		}
 	}
 
 	// Write PID file with current process PID
@@ -172,7 +183,9 @@ func daemonize(pidFile string, serverFunc func() error) error {
 
 	// Set up cleanup on exit
 	defer func() {
-		os.Remove(pidFile)
+		if rmErr := os.Remove(pidFile); rmErr != nil {
+			logWarn(context.Background(), "Failed to remove PID file", "error", rmErr, "operation", "daemonize", "pid_file", pidFile)
+		}
 	}()
 
 	// Redirect logs to file when daemonized
@@ -208,12 +221,16 @@ func readPIDFile(pidFile string) (int, error) {
 
 // handle3270Connection handles a single 3270 connection.
 func handle3270Connection(conn net.Conn, server framework.MCPServer, status, projectRoot, projectName string) {
-	defer conn.Close()
+	defer func() {
+		if closeErr := conn.Close(); closeErr != nil {
+			logWarn(context.Background(), "Error closing connection", "error", closeErr, "operation", "handle3270Connection")
+		}
+	}()
 
 	// Negotiate telnet options
 	devInfo, err := go3270.NegotiateTelnet(conn)
 	if err != nil {
-		logError(nil, "Telnet negotiation failed", "error", err, "operation", "negotiateTelnet")
+		logError(context.Background(), "Telnet negotiation failed", "error", err, "operation", "negotiateTelnet")
 		return
 	}
 
@@ -237,13 +254,13 @@ func handle3270Connection(conn net.Conn, server framework.MCPServer, status, pro
 
 	state.tasks, err = loadTasksForStatus(ctx, state.status)
 	if err != nil {
-		logError(nil, "Error loading tasks", "error", err, "operation", "loadTasks")
+		logError(context.Background(), "Error loading tasks", "error", err, "operation", "loadTasks")
 	}
 
 	// Run transactions (main application loop)
 	// Start with main menu transaction
 	if err := go3270.RunTransactions(conn, devInfo, state.mainMenuTransaction, state); err != nil {
-		logError(nil, "Transaction error", "error", err, "operation", "runTransactions")
+		logError(context.Background(), "Transaction error", "error", err, "operation", "runTransactions")
 	}
 }
 
@@ -365,6 +382,7 @@ func (state *tui3270State) childAgentMenuTransaction(conn net.Conn, devInfo go32
 	}
 
 	opts := go3270.ScreenOpts{Codepage: devInfo.Codepage()}
+
 	response, err := go3270.ShowScreenOpts(screen, nil, conn, opts)
 	if err != nil {
 		return nil, nil, err
@@ -373,6 +391,7 @@ func (state *tui3270State) childAgentMenuTransaction(conn net.Conn, devInfo go32
 	if response.AID == go3270.AIDPF3 {
 		return state.mainMenuTransaction, state, nil
 	}
+
 	if response.AID == go3270.AIDPF1 {
 		return state.helpTransaction, state, nil
 	}
@@ -383,25 +402,31 @@ func (state *tui3270State) childAgentMenuTransaction(conn net.Conn, devInfo go32
 	}
 
 	var prompt string
+
 	var kind ChildAgentKind
+
 	switch opt {
 	case "5":
 		return state.mainMenuTransaction, state, nil
 	case "1":
 		// Task: use current cursor task or first task
 		ctx := context.Background()
+
 		tasks, err := loadTasksForStatus(ctx, state.status)
 		if err != nil || len(tasks) == 0 {
 			msg := "No tasks"
 			if err != nil {
 				msg = err.Error()
 			}
+
 			return state.showChildAgentResultTransaction(msg, state.mainMenuTransaction), state, nil
 		}
+
 		idx := state.cursor
 		if idx >= len(tasks) {
 			idx = 0
 		}
+
 		task := tasks[idx]
 		prompt = PromptForTask(task.ID, task.Content)
 		kind = ChildAgentTask
@@ -410,35 +435,40 @@ func (state *tui3270State) childAgentMenuTransaction(conn net.Conn, devInfo go32
 		kind = ChildAgentPlan
 	case "3":
 		ctx := context.Background()
+
 		tasks, err := loadTasksForStatus(ctx, state.status)
 		if err != nil || len(tasks) == 0 {
 			msg := "No tasks for wave"
 			if err != nil {
 				msg = err.Error()
 			}
+
 			return state.showChildAgentResultTransaction(msg, state.mainMenuTransaction), state, nil
 		}
+
 		taskList := make([]tools.Todo2Task, 0, len(tasks))
+
 		for _, t := range tasks {
 			if t != nil {
 				taskList = append(taskList, *t)
 			}
 		}
-		_, waves, _, err := tools.BacklogExecutionOrder(taskList, nil)
+
+		waves, err := tools.ComputeWavesForTUI(state.projectRoot, taskList)
 		if err != nil || len(waves) == 0 {
 			msg := "No waves"
 			if err != nil {
 				msg = err.Error()
 			}
+
 			return state.showChildAgentResultTransaction(msg, state.mainMenuTransaction), state, nil
 		}
-		if max := config.MaxTasksPerWave(); max > 0 {
-			waves = tools.LimitWavesByMaxTasks(waves, max)
-		}
+
 		levels := make([]int, 0, len(waves))
 		for k := range waves {
 			levels = append(levels, k)
 		}
+
 		sort.Ints(levels)
 		ids := waves[levels[0]]
 		prompt = PromptForWave(levels[0], ids)
@@ -447,26 +477,33 @@ func (state *tui3270State) childAgentMenuTransaction(conn net.Conn, devInfo go32
 		ctx := context.Background()
 		args := map[string]interface{}{"action": "handoff", "sub_action": "list", "limit": float64(5)}
 		argsBytes, _ := json.Marshal(args)
+
 		result, err := state.server.CallTool(ctx, "session", argsBytes)
 		if err != nil {
 			return state.showChildAgentResultTransaction(err.Error(), state.mainMenuTransaction), state, nil
 		}
+
 		var text strings.Builder
 		for _, c := range result {
 			text.WriteString(c.Text)
 		}
+
 		var payload struct {
 			Handoffs []map[string]interface{} `json:"handoffs"`
 		}
+
 		if json.Unmarshal([]byte(text.String()), &payload) != nil || len(payload.Handoffs) == 0 {
 			return state.showChildAgentResultTransaction("No handoffs", state.mainMenuTransaction), state, nil
 		}
+
 		h := payload.Handoffs[0]
 		sum, _ := h["summary"].(string)
+
 		var steps []interface{}
 		if s, ok := h["next_steps"].([]interface{}); ok {
 			steps = s
 		}
+
 		prompt = PromptForHandoff(sum, steps)
 		kind = ChildAgentHandoff
 	default:
@@ -476,9 +513,11 @@ func (state *tui3270State) childAgentMenuTransaction(conn net.Conn, devInfo go32
 	r := RunChildAgent(state.projectRoot, prompt)
 	r.Kind = kind
 	msg := r.Message
+
 	if !r.Launched {
 		msg = "Error: " + msg
 	}
+
 	return state.showChildAgentResultTransaction(msg, state.mainMenuTransaction), state, nil
 }
 
@@ -494,14 +533,18 @@ func (state *tui3270State) showChildAgentResultTransaction(message string, nextT
 			// Wrap
 			screen = append(screen, go3270.Field{Row: 5, Col: 2, Content: message[76:]})
 		}
+
 		opts := go3270.ScreenOpts{Codepage: devInfo.Codepage()}
+
 		response, err := go3270.ShowScreenOpts(screen, nil, conn, opts)
 		if err != nil {
 			return nil, nil, err
 		}
+
 		if response.AID == go3270.AIDPF1 {
 			return state.helpTransaction, state, nil
 		}
+
 		return nextTx, state, nil
 	}
 }
@@ -1434,7 +1477,7 @@ func (state *tui3270State) taskEditorTransaction(conn net.Conn, devInfo go3270.D
 
 		// Update task in database
 		if err := database.UpdateTask(ctx, task); err != nil {
-			logError(nil, "Error updating task", "error", err, "operation", "updateTask", "task_id", task.ID)
+			logError(context.Background(), "Error updating task", "error", err, "operation", "updateTask", "task_id", task.ID)
 			// Show error message (could enhance with error field)
 		} else {
 			state.command = ""
@@ -1542,7 +1585,7 @@ func (state *tui3270State) handleCommand(cmd string, currentTx go3270.Tx) (go327
 
 			state.tasks, err = loadTasksForStatus(ctx, state.status)
 			if err != nil {
-				logError(nil, "Error reloading tasks", "error", err, "operation", "reloadTasks")
+				logError(context.Background(), "Error reloading tasks", "error", err, "operation", "reloadTasks")
 			}
 		}
 
@@ -1560,7 +1603,7 @@ func (state *tui3270State) handleCommand(cmd string, currentTx go3270.Tx) (go327
 
 		state.tasks, err = loadTasksForStatus(ctx, state.status)
 		if err != nil {
-			logError(nil, "Error reloading tasks", "error", err, "operation", "reloadTasks")
+			logError(context.Background(), "Error reloading tasks", "error", err, "operation", "reloadTasks")
 		}
 
 		return state.taskListTransaction, state, nil
@@ -1656,74 +1699,90 @@ func (state *tui3270State) handleCommand(cmd string, currentTx go3270.Tx) (go327
 	case "RUN":
 		// RUN TASK | PLAN | WAVE | HANDOFF - execute in child agent
 		state.command = ""
+
 		sub := ""
 		if len(args) > 0 {
 			sub = args[0]
 		}
+
 		switch strings.ToUpper(sub) {
 		case "TASK":
 			if state.cursor < len(state.tasks) {
 				task := state.tasks[state.cursor]
 				prompt := PromptForTask(task.ID, task.Content)
 				r := RunChildAgent(state.projectRoot, prompt)
+
 				return state.showChildAgentResultTransaction(r.Message, state.taskListTransaction), state, nil
 			}
+
 			return state.showChildAgentResultTransaction("No task selected", state.taskListTransaction), state, nil
 		case "PLAN":
 			prompt := PromptForPlan(state.projectRoot)
 			r := RunChildAgent(state.projectRoot, prompt)
+
 			return state.showChildAgentResultTransaction(r.Message, state.taskListTransaction), state, nil
 		case "WAVE":
 			if len(state.tasks) == 0 {
 				return state.showChildAgentResultTransaction("No tasks", state.taskListTransaction), state, nil
 			}
+
 			taskList := make([]tools.Todo2Task, 0, len(state.tasks))
+
 			for _, t := range state.tasks {
 				if t != nil {
 					taskList = append(taskList, *t)
 				}
 			}
-			_, waves, _, err := tools.BacklogExecutionOrder(taskList, nil)
+
+			waves, err := tools.ComputeWavesForTUI(state.projectRoot, taskList)
 			if err != nil || len(waves) == 0 {
 				return state.showChildAgentResultTransaction("No waves", state.taskListTransaction), state, nil
 			}
-			if max := config.MaxTasksPerWave(); max > 0 {
-				waves = tools.LimitWavesByMaxTasks(waves, max)
-			}
+
 			levels := make([]int, 0, len(waves))
 			for k := range waves {
 				levels = append(levels, k)
 			}
+
 			sort.Ints(levels)
 			prompt := PromptForWave(levels[0], waves[levels[0]])
 			r := RunChildAgent(state.projectRoot, prompt)
+
 			return state.showChildAgentResultTransaction(r.Message, state.taskListTransaction), state, nil
 		case "HANDOFF":
 			ctx := context.Background()
 			sessionArgs := map[string]interface{}{"action": "handoff", "sub_action": "list", "limit": float64(5)}
 			argsBytes, _ := json.Marshal(sessionArgs)
+
 			result, err := state.server.CallTool(ctx, "session", argsBytes)
 			if err != nil {
 				return state.showChildAgentResultTransaction(err.Error(), state.taskListTransaction), state, nil
 			}
+
 			var text strings.Builder
 			for _, c := range result {
 				text.WriteString(c.Text)
 			}
+
 			var payload struct {
 				Handoffs []map[string]interface{} `json:"handoffs"`
 			}
+
 			if json.Unmarshal([]byte(text.String()), &payload) != nil || len(payload.Handoffs) == 0 {
 				return state.showChildAgentResultTransaction("No handoffs", state.taskListTransaction), state, nil
 			}
+
 			h := payload.Handoffs[0]
 			sum, _ := h["summary"].(string)
+
 			var steps []interface{}
 			if s, ok := h["next_steps"].([]interface{}); ok {
 				steps = s
 			}
+
 			prompt := PromptForHandoff(sum, steps)
 			r := RunChildAgent(state.projectRoot, prompt)
+
 			return state.showChildAgentResultTransaction(r.Message, state.taskListTransaction), state, nil
 		default:
 			return state.showChildAgentResultTransaction("RUN TASK|PLAN|WAVE|HANDOFF", state.taskListTransaction), state, nil
@@ -1732,7 +1791,9 @@ func (state *tui3270State) handleCommand(cmd string, currentTx go3270.Tx) (go327
 	case "AGENT":
 		// Alias for RUN (same args)
 		state.command = ""
+
 		parts := append([]string{"RUN"}, args...)
+
 		return state.handleCommand(strings.Join(parts, " "), currentTx)
 
 	default:

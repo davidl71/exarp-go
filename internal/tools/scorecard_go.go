@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
@@ -50,10 +51,10 @@ type GoHealthChecks struct {
 	RateLimiting            bool `json:"rate_limiting"`
 	AccessControl           bool `json:"access_control"`
 	// Documentation (for documentation score dimension)
-	ReadmeExists    bool `json:"readme_exists"`
-	DocsDirExists   bool `json:"docs_dir_exists"`
-	DocsFileCount   int  `json:"docs_file_count"`
-	CursorDocsExist bool `json:"cursor_docs_exist"` // .cursor/skills or .cursor/rules
+	ReadmeExists      bool `json:"readme_exists"`
+	DocsDirExists     bool `json:"docs_dir_exists"`
+	DocsFileCount     int  `json:"docs_file_count"`
+	AIAssistDocsExist bool `json:"ai_assist_docs_exist"` // .cursor/skills, .cursor/rules, CLAUDE.md, or .claude/commands/
 }
 
 // GoScorecardResult represents the complete Go scorecard.
@@ -204,13 +205,23 @@ func performGoHealthChecks(ctx context.Context, projectRoot string, opts *Scorec
 
 	cursorSkills := filepath.Join(projectRoot, ".cursor", "skills")
 	cursorRules := filepath.Join(projectRoot, ".cursor", "rules")
+	claudeMD := filepath.Join(projectRoot, "CLAUDE.md")
+	claudeCommands := filepath.Join(projectRoot, ".claude", "commands")
 
 	if info, _ := os.Stat(cursorSkills); info != nil && info.IsDir() {
-		health.CursorDocsExist = true
+		health.AIAssistDocsExist = true
 	}
 
 	if info, _ := os.Stat(cursorRules); info != nil && info.IsDir() {
-		health.CursorDocsExist = true
+		health.AIAssistDocsExist = true
+	}
+
+	if _, err := os.Stat(claudeMD); err == nil {
+		health.AIAssistDocsExist = true
+	}
+
+	if info, _ := os.Stat(claudeCommands); info != nil && info.IsDir() {
+		health.AIAssistDocsExist = true
 	}
 
 	return health, nil
@@ -410,16 +421,56 @@ func checkGoFmt(ctx context.Context, root string) bool {
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 
-	cmd := exec.CommandContext(ctx, "gofmt", "-l", ".")
-	cmd.Dir = root
+	var goFiles []string
 
-	output, err := cmd.Output()
+	err := filepath.Walk(root, func(path string, info os.FileInfo, walkErr error) error {
+		if walkErr != nil {
+			return walkErr
+		}
+
+		if info.IsDir() {
+			if info.Name() == ".git" || info.Name() == "vendor" || info.Name() == ".venv" {
+				return filepath.SkipDir
+			}
+
+			return nil
+		}
+
+		if strings.HasSuffix(path, ".go") {
+			goFiles = append(goFiles, path)
+		}
+
+		return nil
+	})
 	if err != nil {
 		return false
 	}
 
-	// If output is empty, all files are formatted
-	return len(strings.TrimSpace(string(output))) == 0
+	if len(goFiles) == 0 {
+		return true
+	}
+
+	const batchSize = 200
+	for i := 0; i < len(goFiles); i += batchSize {
+		end := i + batchSize
+		if end > len(goFiles) {
+			end = len(goFiles)
+		}
+
+		args := append([]string{"-l"}, goFiles[i:end]...)
+		cmd := exec.CommandContext(ctx, "gofmt", args...)
+
+		output, err := cmd.Output()
+		if err != nil {
+			return false
+		}
+
+		if strings.TrimSpace(string(output)) != "" {
+			return false
+		}
+	}
+
+	return true
 }
 
 // checkGolangciLintConfigured checks if golangci-lint is configured.
@@ -477,17 +528,22 @@ func checkGoTest(ctx context.Context, root string) (bool, float64) {
 			lines := strings.Split(string(output), "\n")
 			for i := len(lines) - 1; i >= 0; i-- {
 				if strings.Contains(lines[i], "total:") {
-					var percent float64
-
-					fmt.Sscanf(lines[i], "%*s\t%*s\t%f%%", &percent)
-					coverage = percent
+					fields := strings.Fields(lines[i])
+					if len(fields) > 0 {
+						percentText := strings.TrimSuffix(fields[len(fields)-1], "%")
+						if percent, parseErr := strconv.ParseFloat(percentText, 64); parseErr == nil {
+							coverage = percent
+						}
+					}
 
 					break
 				}
 			}
 		}
 		// Clean up
-		os.Remove(filepath.Join(root, "coverage.out"))
+		if err := os.Remove(filepath.Join(root, "coverage.out")); err != nil && !os.IsNotExist(err) {
+			// best effort cleanup
+		}
 	}
 
 	return passes, coverage
@@ -565,7 +621,8 @@ func checkAccessControl(projectRoot string) bool {
 }
 
 // generateGoRecommendations generates recommendations based on health checks.
-func generateGoRecommendations(health *GoHealthChecks, metrics *GoProjectMetrics) []string {
+// When fastModeUsed is true, recommendations for skipped checks (go mod tidy, go build, etc.) are not added.
+func generateGoRecommendations(health *GoHealthChecks, metrics *GoProjectMetrics, fastModeUsed bool) []string {
 	var recommendations []string
 
 	if !health.GoModExists {
@@ -576,11 +633,11 @@ func generateGoRecommendations(health *GoHealthChecks, metrics *GoProjectMetrics
 		recommendations = append(recommendations, "Run 'go mod tidy' to generate go.sum")
 	}
 
-	if !health.GoModTidyPasses {
+	if !fastModeUsed && !health.GoModTidyPasses {
 		recommendations = append(recommendations, "Run 'go mod tidy' to clean up dependencies")
 	}
 
-	if !health.GoBuildPasses {
+	if !fastModeUsed && !health.GoBuildPasses {
 		recommendations = append(recommendations, "Fix Go build errors")
 	}
 
@@ -596,20 +653,20 @@ func generateGoRecommendations(health *GoHealthChecks, metrics *GoProjectMetrics
 		recommendations = append(recommendations, "Configure golangci-lint (.golangci.yml)")
 	}
 
-	if health.GoLintConfigured && !health.GoLintPasses {
+	if !fastModeUsed && health.GoLintConfigured && !health.GoLintPasses {
 		recommendations = append(recommendations, "Fix golangci-lint issues")
 	}
 
-	if !health.GoTestPasses {
+	if !fastModeUsed && !health.GoTestPasses {
 		recommendations = append(recommendations, "Fix failing Go tests")
 	}
 
 	minCoverage := float64(config.MinCoverage())
-	if health.GoTestCoverage < minCoverage {
+	if !fastModeUsed && health.GoTestCoverage < minCoverage {
 		recommendations = append(recommendations, fmt.Sprintf("Increase test coverage (currently %.1f%%, target: %.0f%%)", health.GoTestCoverage, minCoverage))
 	}
 
-	if !health.GoVulnCheckPasses {
+	if !fastModeUsed && !health.GoVulnCheckPasses {
 		recommendations = append(recommendations, "Install and run 'govulncheck ./...' for security scanning")
 	}
 
@@ -740,6 +797,10 @@ func FormatGoScorecard(scorecard *GoScorecardResult) string {
 		sb.WriteString("  Production Ready: NO ❌\n")
 	}
 
+	if scorecard.FastModeUsed {
+		sb.WriteString("  Excluded in fast mode: go mod tidy, go build, go test, golangci-lint, govulncheck (run with fast_mode=false for full results)\n")
+	}
+
 	sb.WriteString("\n")
 
 	// Metrics
@@ -762,14 +823,14 @@ func FormatGoScorecard(scorecard *GoScorecardResult) string {
 	sb.WriteString("  Go Health Checks:\n")
 	sb.WriteString(fmt.Sprintf("    go.mod exists:        %s\n", checkMark(scorecard.Health.GoModExists)))
 	sb.WriteString(fmt.Sprintf("    go.sum exists:        %s\n", checkMark(scorecard.Health.GoSumExists)))
-	sb.WriteString(fmt.Sprintf("    go mod tidy:          %s\n", checkMark(scorecard.Health.GoModTidyPasses)))
+	sb.WriteString(fmt.Sprintf("    go mod tidy:          %s\n", checkMarkOrSkipped(scorecard.Health.GoModTidyPasses, scorecard.FastModeUsed)))
 	sb.WriteString(fmt.Sprintf("    Go version valid:     %s (%s)\n", checkMark(scorecard.Health.GoVersionValid), scorecard.Health.GoVersion))
-	sb.WriteString(fmt.Sprintf("    go build:             %s\n", checkMark(scorecard.Health.GoBuildPasses)))
+	sb.WriteString(fmt.Sprintf("    go build:             %s\n", checkMarkOrSkipped(scorecard.Health.GoBuildPasses, scorecard.FastModeUsed)))
 	sb.WriteString(fmt.Sprintf("    go vet:               %s\n", checkMark(scorecard.Health.GoVetPasses)))
 	sb.WriteString(fmt.Sprintf("    go fmt:               %s\n", checkMark(scorecard.Health.GoFmtCompliant)))
 	sb.WriteString(fmt.Sprintf("    golangci-lint config: %s\n", checkMark(scorecard.Health.GoLintConfigured)))
-	sb.WriteString(fmt.Sprintf("    golangci-lint:        %s\n", checkMark(scorecard.Health.GoLintPasses)))
-	sb.WriteString(fmt.Sprintf("    go test:              %s\n", checkMark(scorecard.Health.GoTestPasses)))
+	sb.WriteString(fmt.Sprintf("    golangci-lint:        %s\n", checkMarkOrSkipped(scorecard.Health.GoLintPasses, scorecard.FastModeUsed)))
+	sb.WriteString(fmt.Sprintf("    go test:              %s\n", checkMarkOrSkipped(scorecard.Health.GoTestPasses, scorecard.FastModeUsed)))
 
 	if scorecard.Health.GoTestCoverage == 0 && scorecard.FastModeUsed {
 		sb.WriteString("    Test coverage:        — (fast mode; refresh scorecard after fixes to see %)\n")
@@ -777,7 +838,7 @@ func FormatGoScorecard(scorecard *GoScorecardResult) string {
 		sb.WriteString(fmt.Sprintf("    Test coverage:        %.1f%%\n", scorecard.Health.GoTestCoverage))
 	}
 
-	sb.WriteString(fmt.Sprintf("    govulncheck:          %s\n", checkMark(scorecard.Health.GoVulnCheckPasses)))
+	sb.WriteString(fmt.Sprintf("    govulncheck:          %s\n", checkMarkOrSkipped(scorecard.Health.GoVulnCheckPasses, scorecard.FastModeUsed)))
 	sb.WriteString("\n")
 
 	// Security Features
@@ -852,6 +913,20 @@ func checkMark(b bool) string {
 	return "❌"
 }
 
+// checkMarkOrSkipped returns ✅ if value is true, "— (skipped)" if skipped (e.g. fast mode), else ❌.
+// Use for health checks that are not run in fast mode so the scorecard doesn't show ❌ for "not run".
+func checkMarkOrSkipped(value, skipped bool) string {
+	if value {
+		return "✅"
+	}
+
+	if skipped {
+		return "— (skipped)"
+	}
+
+	return "❌"
+}
+
 // GenerateGoScorecard generates a Go-specific scorecard
 // If opts is nil, uses default options (full checks).
 func GenerateGoScorecard(ctx context.Context, projectRoot string, opts *ScorecardOptions) (*GoScorecardResult, error) {
@@ -889,13 +964,13 @@ func GenerateGoScorecard(ctx context.Context, projectRoot string, opts *Scorecar
 		return nil, fmt.Errorf("failed to perform health checks: %w", err)
 	}
 
+	fastMode := opts != nil && opts.FastMode
+
 	// Generate recommendations
-	recommendations := generateGoRecommendations(health, metrics)
+	recommendations := generateGoRecommendations(health, metrics, fastMode)
 
 	// Calculate score
 	score := calculateGoScore(health, metrics)
-
-	fastMode := opts != nil && opts.FastMode
 
 	return &GoScorecardResult{
 		Metrics:         *metrics,

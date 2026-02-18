@@ -38,6 +38,7 @@ func (m *MockTaskStore) UpdateTask(ctx context.Context, task *Todo2Task) error {
 
 	m.mu.Lock()
 	defer m.mu.Unlock()
+
 	m.tasks[task.ID] = task
 
 	return nil
@@ -89,6 +90,7 @@ func (m *MockTaskStore) CreateTask(ctx context.Context, task *Todo2Task) error {
 
 	m.mu.Lock()
 	defer m.mu.Unlock()
+
 	m.tasks[task.ID] = task
 
 	return nil
@@ -97,6 +99,7 @@ func (m *MockTaskStore) CreateTask(ctx context.Context, task *Todo2Task) error {
 func (m *MockTaskStore) DeleteTask(ctx context.Context, id string) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
+
 	delete(m.tasks, id)
 
 	return nil
@@ -111,6 +114,7 @@ var (
 func TestDefaultDBStore_ImplementsTaskStore(t *testing.T) {
 	testDBMu.Lock()
 	defer testDBMu.Unlock()
+
 	tmpDir := t.TempDir()
 	if err := Init(tmpDir); err != nil {
 		t.Fatalf("Init() error = %v", err)

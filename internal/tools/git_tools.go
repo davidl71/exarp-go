@@ -812,8 +812,8 @@ func mergeBranches(ctx context.Context, store database.TaskStore, tasks []Todo2T
 			if targetIndex, exists := targetTaskMap[task.ID]; exists {
 				// Conflict - apply strategy
 				_ = tasks[targetIndex] // Reference target task for conflict resolution
-				switch conflictStrategy {
 
+				switch conflictStrategy {
 				case "newer":
 					// Use task with newer updated_at timestamp (if available)
 					// For now, prefer source

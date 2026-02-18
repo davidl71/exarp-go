@@ -147,6 +147,7 @@ func (m *MockServer) GetName() string {
 func (m *MockServer) GetTool(name string) (*mockTool, bool) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
+
 	tool, exists := m.tools[name]
 
 	return tool, exists
@@ -156,6 +157,7 @@ func (m *MockServer) GetTool(name string) (*mockTool, bool) {
 func (m *MockServer) GetPrompt(name string) (*mockPrompt, bool) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
+
 	prompt, exists := m.prompts[name]
 
 	return prompt, exists
@@ -165,6 +167,7 @@ func (m *MockServer) GetPrompt(name string) (*mockPrompt, bool) {
 func (m *MockServer) GetResource(uri string) (*mockResource, bool) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
+
 	resource, exists := m.resources[uri]
 
 	return resource, exists

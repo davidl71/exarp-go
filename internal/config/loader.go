@@ -44,8 +44,8 @@ func LoadConfig(projectRoot string) (*FullConfig, error) {
 func LoadConfigYAML(projectRoot string) (*FullConfig, error) {
 	cfg := GetDefaults()
 	yamlPath := filepath.Join(projectRoot, ".exarp", "config.yaml")
-	data, err := os.ReadFile(yamlPath)
 
+	data, err := os.ReadFile(yamlPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read config file %s: %w", yamlPath, err)
 	}
@@ -96,8 +96,8 @@ func LoadConfigProtobuf(projectRoot string) (*FullConfig, error) {
 
 	// Load protobuf config file
 	configPath := filepath.Join(projectRoot, ".exarp", "config.pb")
-	data, err := os.ReadFile(configPath)
 
+	data, err := os.ReadFile(configPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read protobuf config file %s: %w", configPath, err)
 	}

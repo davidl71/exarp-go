@@ -3,7 +3,6 @@ package tools
 import (
 	"context"
 	"encoding/json"
-	"os"
 	"strings"
 	"testing"
 
@@ -13,9 +12,7 @@ import (
 
 func TestHandleReportOverview(t *testing.T) {
 	tmpDir := t.TempDir()
-	os.Setenv("PROJECT_ROOT", tmpDir)
-
-	defer os.Unsetenv("PROJECT_ROOT")
+	t.Setenv("PROJECT_ROOT", tmpDir)
 
 	tests := []struct {
 		name      string
@@ -85,9 +82,7 @@ func TestHandleReportOverview(t *testing.T) {
 
 func TestHandleReportPRD(t *testing.T) {
 	tmpDir := t.TempDir()
-	os.Setenv("PROJECT_ROOT", tmpDir)
-
-	defer os.Unsetenv("PROJECT_ROOT")
+	t.Setenv("PROJECT_ROOT", tmpDir)
 
 	tests := []struct {
 		name      string
@@ -160,9 +155,7 @@ func TestPlanFilenameFromTitle(t *testing.T) {
 
 func TestHandleReportPlan(t *testing.T) {
 	tmpDir := t.TempDir()
-	os.Setenv("PROJECT_ROOT", tmpDir)
-
-	defer os.Unsetenv("PROJECT_ROOT")
+	t.Setenv("PROJECT_ROOT", tmpDir)
 
 	planPath := tmpDir + "/test-project.plan.md"
 	tests := []struct {
@@ -184,18 +177,22 @@ func TestHandleReportPlan(t *testing.T) {
 					t.Error("expected non-empty result")
 					return
 				}
+
 				text := result[0].Text
 				for _, s := range []string{"## Scope", "## 1. Technical Foundation", "## 2. Backlog Tasks", "## 3. Iterative Milestones", "## 4. Recommended Execution Order", "## 5. Open Questions", "## 6. Out-of-Scope"} {
 					if !strings.Contains(text, s) {
 						t.Errorf("plan output missing section %q", s)
 					}
 				}
+
 				if !strings.Contains(text, "name:") || !strings.Contains(text, "overview:") {
 					t.Error("plan output missing YAML frontmatter")
 				}
+
 				if !strings.Contains(text, "status: draft") {
 					t.Error("plan output missing status: draft (Cursor Build/Built)")
 				}
+
 				if !strings.Contains(text, "Test Project") {
 					t.Error("plan output missing plan title")
 				}
@@ -222,9 +219,7 @@ func TestHandleReportPlan(t *testing.T) {
 
 func TestHandleReport(t *testing.T) {
 	tmpDir := t.TempDir()
-	os.Setenv("PROJECT_ROOT", tmpDir)
-
-	defer os.Unsetenv("PROJECT_ROOT")
+	t.Setenv("PROJECT_ROOT", tmpDir)
 
 	tests := []struct {
 		name      string
@@ -293,9 +288,7 @@ func TestHandleReport(t *testing.T) {
 // TestAggregateProjectDataProto verifies proto-based overview aggregation (step 1).
 func TestAggregateProjectDataProto(t *testing.T) {
 	tmpDir := t.TempDir()
-	os.Setenv("PROJECT_ROOT", tmpDir)
-
-	defer os.Unsetenv("PROJECT_ROOT")
+	t.Setenv("PROJECT_ROOT", tmpDir)
 
 	ctx := context.Background()
 
