@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"os"
 	"strings"
 	"time"
 
@@ -21,10 +22,13 @@ type Todo2Task = models.Todo2Task
 
 // TaskFilters represents filters for querying tasks.
 type TaskFilters struct {
-	Status    *string
-	Priority  *string
-	Tag       *string
-	ProjectID *string
+	Status      *string
+	Priority    *string
+	Tag         *string
+	ProjectID   *string
+	AssignedTo  *string
+	Host        *string
+	Agent       *string
 }
 
 // SanitizeTaskMetadata parses JSON metadata; on failure returns a map with "raw" key and logs.
@@ -219,14 +223,32 @@ func CreateTask(ctx context.Context, task *Todo2Task) error {
 			return err
 		}
 
+		// Auto-populate distributed tracking fields if not set
+		if task.Host == "" {
+			if h, e := os.Hostname(); e == nil {
+				task.Host = h
+			} else {
+				task.Host = "unknown"
+			}
+		}
+		if task.Agent == "" {
+			if a, e := GetAgentID(); e == nil {
+				task.Agent = a
+			}
+		}
+
 		// Insert task with protobuf data (if available) and JSON (for compatibility)
 		now := time.Now().Format(time.RFC3339)
 		parentID := sqlNullString(task.ParentID)
+		projectID := sqlNullString(task.ProjectID)
+		assignedTo := sqlNullString(task.AssignedTo)
+		host := sqlNullString(task.Host)
+		agent := sqlNullString(task.Agent)
 		_, err = tx.ExecContext(txCtx, `
 			INSERT INTO tasks (
 				id, name, content, long_description, status, priority, completed,
-				created, last_modified, metadata, metadata_protobuf, metadata_format, parent_id, version, created_at, updated_at
-			) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, strftime('%s', 'now'), strftime('%s', 'now'))
+				created, last_modified, metadata, metadata_protobuf, metadata_format, parent_id, project_id, assigned_to, host, agent, version, created_at, updated_at
+			) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, strftime('%s', 'now'), strftime('%s', 'now'))
 		`,
 			task.ID,
 			"", // name - TODO: add to Todo2Task struct if needed
@@ -241,8 +263,35 @@ func CreateTask(ctx context.Context, task *Todo2Task) error {
 			metadataProtobuf, // Protobuf binary data (nil if serialization failed)
 			metadataFormat,   // Format indicator
 			parentID,
+			projectID,
+			assignedTo,
+			host,
+			agent,
 		)
-		// If protobuf or parent_id columns don't exist, fall back to old schema
+		// If distributed tracking columns don't exist, try without them
+		if err != nil && strings.Contains(err.Error(), "no such column") {
+			_, err = tx.ExecContext(txCtx, `
+				INSERT INTO tasks (
+					id, name, content, long_description, status, priority, completed,
+					created, last_modified, metadata, metadata_protobuf, metadata_format, parent_id, version, created_at, updated_at
+				) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, strftime('%s', 'now'), strftime('%s', 'now'))
+			`,
+				task.ID,
+				"",
+				task.Content,
+				task.LongDescription,
+				task.Status,
+				task.Priority,
+				completedInt,
+				now,
+				now,
+				metadataJSON,
+				metadataProtobuf,
+				metadataFormat,
+				parentID,
+			)
+		}
+		// If protobuf or parent_id columns don't exist, fall back to minimal schema
 		if err != nil && strings.Contains(err.Error(), "no such column") {
 			_, err = tx.ExecContext(txCtx, `
 				INSERT INTO tasks (
@@ -251,15 +300,15 @@ func CreateTask(ctx context.Context, task *Todo2Task) error {
 				) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, strftime('%s', 'now'), strftime('%s', 'now'))
 			`,
 				task.ID,
-				"", // name - TODO: add to Todo2Task struct if needed
+				"",
 				task.Content,
 				task.LongDescription,
 				task.Status,
 				task.Priority,
 				completedInt,
-				now,          // created
-				now,          // last_modified
-				metadataJSON, // JSON only
+				now,
+				now,
+				metadataJSON,
 			)
 		}
 
@@ -344,12 +393,13 @@ func GetTask(ctx context.Context, id string) (*Todo2Task, error) {
 
 		var created, lastModified, completedAt sql.NullString
 
-		var parentID sql.NullString
+		var parentID, projectID, assignedTo, host, agent sql.NullString
 
-		// Try to query with protobuf columns and parent_id first (new schema)
+		// Try to query with full schema (protobuf + distributed tracking)
 		err = db.QueryRowContext(queryCtx, `
 			SELECT id, name, content, long_description, status, priority, completed,
-			       created, last_modified, completed_at, metadata, metadata_protobuf, metadata_format, parent_id
+			       created, last_modified, completed_at, metadata, metadata_protobuf, metadata_format, parent_id,
+			       project_id, assigned_to, host, agent
 			FROM tasks
 			WHERE id = ?
 		`, id).Scan(
@@ -367,12 +417,59 @@ func GetTask(ctx context.Context, id string) (*Todo2Task, error) {
 			&metadataProtobuf,
 			&metadataFormat,
 			&parentID,
+			&projectID,
+			&assignedTo,
+			&host,
+			&agent,
 		)
-		if err == nil && parentID.Valid {
-			taskData.ParentID = parentID.String
+		if err == nil {
+			if parentID.Valid {
+				taskData.ParentID = parentID.String
+			}
+			if projectID.Valid {
+				taskData.ProjectID = projectID.String
+			}
+			if assignedTo.Valid {
+				taskData.AssignedTo = assignedTo.String
+			}
+			if host.Valid {
+				taskData.Host = host.String
+			}
+			if agent.Valid {
+				taskData.Agent = agent.String
+			}
 		}
 
-		// If protobuf, completed_at, or parent_id column don't exist, fall back to old schema
+		// If distributed tracking columns don't exist, try without them
+		if err != nil && strings.Contains(err.Error(), "no such column") {
+			projectID, assignedTo, host, agent = sql.NullString{}, sql.NullString{}, sql.NullString{}, sql.NullString{}
+			err = db.QueryRowContext(queryCtx, `
+				SELECT id, name, content, long_description, status, priority, completed,
+				       created, last_modified, completed_at, metadata, metadata_protobuf, metadata_format, parent_id
+				FROM tasks
+				WHERE id = ?
+			`, id).Scan(
+				&taskData.ID,
+				&name,
+				&taskData.Content,
+				&taskData.LongDescription,
+				&taskData.Status,
+				&taskData.Priority,
+				&completedInt,
+				&created,
+				&lastModified,
+				&completedAt,
+				&metadataJSON,
+				&metadataProtobuf,
+				&metadataFormat,
+				&parentID,
+			)
+			if err == nil && parentID.Valid {
+				taskData.ParentID = parentID.String
+			}
+		}
+
+		// If protobuf, completed_at, or parent_id column don't exist, fall back to minimal schema
 		if err != nil && strings.Contains(err.Error(), "no such column") {
 			err = db.QueryRowContext(queryCtx, `
 				SELECT id, name, content, long_description, status, priority, completed,
@@ -585,6 +682,20 @@ func UpdateTask(ctx context.Context, task *Todo2Task) error {
 			completedAtVal = now
 		}
 
+		// Update host/agent to current on modification (for distributed tracking)
+		updateHost := task.Host
+		if updateHost == "" {
+			if h, e := os.Hostname(); e == nil {
+				updateHost = h
+			}
+		}
+		updateAgent := task.Agent
+		if updateAgent == "" {
+			if a, e := GetAgentID(); e == nil {
+				updateAgent = a
+			}
+		}
+
 		result, err := tx.ExecContext(txCtx, `
 			UPDATE tasks SET
 				content = ?,
@@ -598,6 +709,10 @@ func UpdateTask(ctx context.Context, task *Todo2Task) error {
 				metadata_protobuf = ?,
 				metadata_format = ?,
 				parent_id = ?,
+				project_id = ?,
+				assigned_to = ?,
+				host = ?,
+				agent = ?,
 				version = version + 1,
 				updated_at = strftime('%s', 'now')
 			WHERE id = ? AND version = ?
@@ -609,14 +724,52 @@ func UpdateTask(ctx context.Context, task *Todo2Task) error {
 			completedInt,
 			now,
 			completedAtVal,
-			metadataJSON,     // JSON for backward compatibility
-			metadataProtobuf, // Protobuf binary data
-			metadataFormat,   // Format indicator
+			metadataJSON,
+			metadataProtobuf,
+			metadataFormat,
 			sqlNullString(task.ParentID),
+			sqlNullString(task.ProjectID),
+			sqlNullString(task.AssignedTo),
+			sqlNullString(updateHost),
+			sqlNullString(updateAgent),
 			task.ID,
 			currentVersion,
 		)
-		// If protobuf, completed_at, or parent_id columns don't exist, fall back to old schema
+		// If distributed tracking columns don't exist, try without them
+		if err != nil && strings.Contains(err.Error(), "no such column") {
+			result, err = tx.ExecContext(txCtx, `
+				UPDATE tasks SET
+					content = ?,
+					long_description = ?,
+					status = ?,
+					priority = ?,
+					completed = ?,
+					last_modified = ?,
+					completed_at = ?,
+					metadata = ?,
+					metadata_protobuf = ?,
+					metadata_format = ?,
+					parent_id = ?,
+					version = version + 1,
+					updated_at = strftime('%s', 'now')
+				WHERE id = ? AND version = ?
+			`,
+				task.Content,
+				task.LongDescription,
+				task.Status,
+				task.Priority,
+				completedInt,
+				now,
+				completedAtVal,
+				metadataJSON,
+				metadataProtobuf,
+				metadataFormat,
+				sqlNullString(task.ParentID),
+				task.ID,
+				currentVersion,
+			)
+		}
+		// If protobuf or parent_id columns don't exist, fall back to minimal schema
 		if err != nil && strings.Contains(err.Error(), "no such column") {
 			result, err = tx.ExecContext(txCtx, `
 				UPDATE tasks SET
@@ -800,7 +953,7 @@ func ListTasks(ctx context.Context, filters *TaskFilters) ([]*Todo2Task, error) 
 		var queryBuilder strings.Builder
 
 		queryBuilder.WriteString(`
-			SELECT DISTINCT t.id, t.content, t.long_description, t.status, t.priority, t.completed, t.created, t.last_modified, t.completed_at, t.metadata, t.metadata_protobuf, t.metadata_format, t.parent_id
+			SELECT DISTINCT t.id, t.content, t.long_description, t.status, t.priority, t.completed, t.created, t.last_modified, t.completed_at, t.metadata, t.metadata_protobuf, t.metadata_format, t.parent_id, t.project_id, t.assigned_to, t.host, t.agent
 			FROM tasks t
 		`)
 
@@ -830,6 +983,18 @@ func ListTasks(ctx context.Context, filters *TaskFilters) ([]*Todo2Task, error) 
 				conditions = append(conditions, "t.project_id = ?")
 				args = append(args, *filters.ProjectID)
 			}
+			if filters.AssignedTo != nil {
+				conditions = append(conditions, "t.assigned_to = ?")
+				args = append(args, *filters.AssignedTo)
+			}
+			if filters.Host != nil {
+				conditions = append(conditions, "t.host = ?")
+				args = append(args, *filters.Host)
+			}
+			if filters.Agent != nil {
+				conditions = append(conditions, "t.agent = ?")
+				args = append(args, *filters.Agent)
+			}
 		}
 
 		if len(conditions) > 0 {
@@ -843,13 +1008,32 @@ func ListTasks(ctx context.Context, filters *TaskFilters) ([]*Todo2Task, error) 
 		queryBuilder.WriteString(" ORDER BY t.created_at DESC")
 		query := queryBuilder.String()
 
-		// Try to query with protobuf columns first
+		// Try to query with full schema (protobuf + distributed tracking) first
 		rows, err := db.QueryContext(queryCtx, query, args...)
 		hasProtobufColumns := true
+		hasDistributedColumns := true
 
 		if err != nil && strings.Contains(err.Error(), "no such column") {
-			// Protobuf or date columns don't exist, use old schema
+			hasDistributedColumns = false
+			// Distributed tracking columns don't exist, try without them
+			queryBuilderMid := strings.Builder{}
+			queryBuilderMid.WriteString(`
+				SELECT DISTINCT t.id, t.content, t.long_description, t.status, t.priority, t.completed, t.created, t.last_modified, t.completed_at, t.metadata, t.metadata_protobuf, t.metadata_format, t.parent_id
+				FROM tasks t
+			`)
+			if len(conditions) > 0 {
+				queryBuilderMid.WriteString(" WHERE " + conditions[0])
+				for i := 1; i < len(conditions); i++ {
+					queryBuilderMid.WriteString(" AND " + conditions[i])
+				}
+			}
+			queryBuilderMid.WriteString(" ORDER BY t.created_at DESC")
+			rows, err = db.QueryContext(queryCtx, queryBuilderMid.String(), args...)
+		}
+		if err != nil && strings.Contains(err.Error(), "no such column") {
+			// Protobuf or date columns don't exist, use minimal schema
 			hasProtobufColumns = false
+			hasDistributedColumns = false
 			queryBuilderOld := strings.Builder{}
 			queryBuilderOld.WriteString(`
 				SELECT DISTINCT t.id, t.content, t.long_description, t.status, t.priority, t.completed, t.created, t.last_modified, t.completed_at, t.metadata
@@ -894,11 +1078,48 @@ func ListTasks(ctx context.Context, filters *TaskFilters) ([]*Todo2Task, error) 
 
 			var completedInt int
 
-			var created, lastMod, completedAt, parentID sql.NullString
+			var created, lastMod, completedAt, parentID, projectID, assignedTo, host, agent sql.NullString
 
-			// Scan based on whether protobuf columns exist
+			// Scan based on schema level (full, protobuf-only, or minimal)
 			var scanErr error
-			if hasProtobufColumns {
+			if hasDistributedColumns {
+				scanErr = rows.Scan(
+					&task.ID,
+					&task.Content,
+					&task.LongDescription,
+					&task.Status,
+					&task.Priority,
+					&completedInt,
+					&created,
+					&lastMod,
+					&completedAt,
+					&metadataJSON,
+					&metadataProtobuf,
+					&metadataFormat,
+					&parentID,
+					&projectID,
+					&assignedTo,
+					&host,
+					&agent,
+				)
+				if scanErr == nil {
+					if parentID.Valid {
+						task.ParentID = parentID.String
+					}
+					if projectID.Valid {
+						task.ProjectID = projectID.String
+					}
+					if assignedTo.Valid {
+						task.AssignedTo = assignedTo.String
+					}
+					if host.Valid {
+						task.Host = host.String
+					}
+					if agent.Valid {
+						task.Agent = agent.String
+					}
+				}
+			} else if hasProtobufColumns {
 				scanErr = rows.Scan(
 					&task.ID,
 					&task.Content,

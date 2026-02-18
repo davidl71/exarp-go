@@ -39,6 +39,12 @@ message Todo2Task {
   
   // Last modification timestamp (Unix timestamp in seconds)
   int64 updated_at = 11;
+
+  // Distributed tracking (for aggregation across projects/hosts/agents)
+  string project_id = 12;   // Logical project identifier (e.g. "exarp-go")
+  string assigned_to = 13;  // Persistent assignee (owner); distinct from lock assignee
+  string host = 14;         // Hostname where task was created or last modified
+  string agent = 15;        // Agent ID that created or last modified (e.g. general-host-pid)
 }
 
 // Todo2State represents the complete Todo2 state file structure

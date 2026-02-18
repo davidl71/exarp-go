@@ -46,7 +46,12 @@ type Todo2Task struct {
 	// Creation timestamp (Unix timestamp in seconds)
 	CreatedAt int64 `protobuf:"varint,10,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
 	// Last modification timestamp (Unix timestamp in seconds)
-	UpdatedAt     int64 `protobuf:"varint,11,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	UpdatedAt int64 `protobuf:"varint,11,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	// Distributed tracking (for aggregation across projects/hosts/agents)
+	ProjectId     string `protobuf:"bytes,12,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`    // Logical project identifier (e.g. "exarp-go")
+	AssignedTo    string `protobuf:"bytes,13,opt,name=assigned_to,json=assignedTo,proto3" json:"assigned_to,omitempty"` // Persistent assignee (owner); distinct from lock assignee
+	Host          string `protobuf:"bytes,14,opt,name=host,proto3" json:"host,omitempty"`                               // Hostname where task was created or last modified
+	Agent         string `protobuf:"bytes,15,opt,name=agent,proto3" json:"agent,omitempty"`                             // Agent ID that created or last modified (e.g. general-host-pid)
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -158,6 +163,34 @@ func (x *Todo2Task) GetUpdatedAt() int64 {
 	return 0
 }
 
+func (x *Todo2Task) GetProjectId() string {
+	if x != nil {
+		return x.ProjectId
+	}
+	return ""
+}
+
+func (x *Todo2Task) GetAssignedTo() string {
+	if x != nil {
+		return x.AssignedTo
+	}
+	return ""
+}
+
+func (x *Todo2Task) GetHost() string {
+	if x != nil {
+		return x.Host
+	}
+	return ""
+}
+
+func (x *Todo2Task) GetAgent() string {
+	if x != nil {
+		return x.Agent
+	}
+	return ""
+}
+
 // Todo2State represents the complete Todo2 state file structure
 type Todo2State struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
@@ -226,7 +259,7 @@ var File_proto_todo2_proto protoreflect.FileDescriptor
 
 const file_proto_todo2_proto_rawDesc = "" +
 	"\n" +
-	"\x11proto/todo2.proto\x12\vexarp.todo2\"\xa7\x03\n" +
+	"\x11proto/todo2.proto\x12\vexarp.todo2\"\x91\x04\n" +
 	"\tTodo2Task\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x18\n" +
 	"\acontent\x18\x02 \x01(\tR\acontent\x12)\n" +
@@ -241,7 +274,13 @@ const file_proto_todo2_proto_rawDesc = "" +
 	"created_at\x18\n" +
 	" \x01(\x03R\tcreatedAt\x12\x1d\n" +
 	"\n" +
-	"updated_at\x18\v \x01(\x03R\tupdatedAt\x1a;\n" +
+	"updated_at\x18\v \x01(\x03R\tupdatedAt\x12\x1d\n" +
+	"\n" +
+	"project_id\x18\f \x01(\tR\tprojectId\x12\x1f\n" +
+	"\vassigned_to\x18\r \x01(\tR\n" +
+	"assignedTo\x12\x12\n" +
+	"\x04host\x18\x0e \x01(\tR\x04host\x12\x14\n" +
+	"\x05agent\x18\x0f \x01(\tR\x05agent\x1a;\n" +
 	"\rMetadataEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"s\n" +

@@ -135,6 +135,7 @@ install_dev_tools: false
 ### Always Installed (Both Environments)
 
 - **Go 1.24.0** - Go programming language
+- **Protocol Buffers (protoc)** - Installed by both **common** (base packages) and **golang** (protoc + protoc-gen-go). Required for `make proto` to regenerate Go from `.proto` files.
 - **Python 3.10+** - Python runtime
 - **pip** - Python package manager
 - **uv** - Fast Python package manager

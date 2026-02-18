@@ -61,8 +61,10 @@ func handleTextGenerate(ctx context.Context, args json.RawMessage) ([]framework.
 		gen = DefaultReportInsight()
 	case "mlx":
 		gen = DefaultMLXProvider()
+	case "localai":
+		gen = DefaultLocalAIProvider()
 	default:
-		return nil, fmt.Errorf("unknown provider: %q (use \"fm\", \"insight\", \"mlx\", or \"auto\")", provider)
+		return nil, fmt.Errorf("unknown provider: %q (use \"fm\", \"insight\", \"mlx\", \"localai\", or \"auto\")", provider)
 	}
 
 	if gen == nil || !gen.Supported() {

@@ -69,11 +69,13 @@ func handleTaskExecute(ctx context.Context, args json.RawMessage) ([]framework.T
 }
 
 // RunTaskExecutionFlowParams holds parameters for RunTaskExecutionFlow.
+// ModelRouter is optional; when non-nil it is used instead of DefaultModelRouter (for testing).
 type RunTaskExecutionFlowParams struct {
 	TaskID        string
 	ProjectRoot   string
 	Apply         bool
 	MinConfidence float64
+	ModelRouter   ModelRouter // optional; nil means use DefaultModelRouter
 }
 
 // RunTaskExecutionFlowResult is the result of running the execution flow.
@@ -117,9 +119,13 @@ func RunTaskExecutionFlow(ctx context.Context, p RunTaskExecutionFlowParams) (*R
 	}
 	prompt := prompts.SubstituteTemplate(tpl, args)
 
-	modelType := DefaultModelRouter.SelectModel("code_generation", ModelRequirements{})
+	router := p.ModelRouter
+	if router == nil {
+		router = DefaultModelRouter
+	}
+	modelType := router.SelectModel("code_generation", ModelRequirements{})
 
-	text, err := DefaultModelRouter.Generate(ctx, modelType, prompt, defaultMaxTokens, defaultTemperature)
+	text, err := router.Generate(ctx, modelType, prompt, defaultMaxTokens, defaultTemperature)
 	if err != nil {
 		return nil, fmt.Errorf("model generate: %w", err)
 	}

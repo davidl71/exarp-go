@@ -26,6 +26,10 @@ type todo2TaskJSON struct {
 	Tags            []string        `json:"tags,omitempty"`
 	Dependencies    []string        `json:"dependencies,omitempty"`
 	ParentID        string          `json:"parent_id,omitempty"`
+	ProjectID       string          `json:"project_id,omitempty"`
+	AssignedTo      string          `json:"assigned_to,omitempty"`
+	Host            string          `json:"host,omitempty"`
+	Agent           string          `json:"agent,omitempty"`
 	Completed       bool            `json:"completed,omitempty"`
 	Metadata        json.RawMessage `json:"metadata,omitempty"`
 	Created         string          `json:"created,omitempty"`
@@ -69,6 +73,10 @@ func convertTodo2TaskJSONToTask(raw todo2TaskJSON) models.Todo2Task {
 		Tags:            raw.Tags,
 		Dependencies:    raw.Dependencies,
 		ParentID:        raw.ParentID,
+		ProjectID:       raw.ProjectID,
+		AssignedTo:      raw.AssignedTo,
+		Host:            raw.Host,
+		Agent:           raw.Agent,
 		Completed:       raw.Completed,
 		CreatedAt:       createdAt,
 		LastModified:    lastMod,
@@ -97,6 +105,10 @@ type todo2TaskWrite struct {
 	Tags            []string               `json:"tags,omitempty"`
 	Dependencies    []string               `json:"dependencies,omitempty"`
 	ParentID        string                 `json:"parent_id,omitempty"`
+	ProjectID       string                 `json:"project_id,omitempty"`
+	AssignedTo      string                 `json:"assigned_to,omitempty"`
+	Host            string                 `json:"host,omitempty"`
+	Agent           string                 `json:"agent,omitempty"`
 	Completed       bool                   `json:"completed,omitempty"`
 	Metadata        map[string]interface{} `json:"metadata,omitempty"`
 	Created         string                 `json:"created,omitempty"`
@@ -158,6 +170,10 @@ func MarshalTasksToStateJSON(tasks []models.Todo2Task) ([]byte, error) {
 			Tags:            t.Tags,
 			Dependencies:    t.Dependencies,
 			ParentID:        t.ParentID,
+			ProjectID:       t.ProjectID,
+			AssignedTo:      t.AssignedTo,
+			Host:            t.Host,
+			Agent:           t.Agent,
 			Completed:       t.Completed,
 			Metadata:        database.SanitizeMetadataForWrite(t.Metadata),
 			Created:         createdAt,

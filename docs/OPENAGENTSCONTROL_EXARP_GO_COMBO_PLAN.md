@@ -76,6 +76,16 @@
 
 Same `.todo2` and `PROJECT_ROOT` = shared backlog; exarp-go holds tasks and reports, OAC/OpenCode drives the agent workflow.
 
+### OpenCode backlog order
+
+Prioritized Todo2 tasks tagged `#opencode` (recommended execution order):
+
+1. **Validation:** T-1771355092457125000 — Validate exarp-go with OpenCode MCP (Phase 2 verify).
+2. **CLI flags:** T-1771360895822062000 — exarp-opencode: add --quiet flag. T-1771360896308433000 — add --json flag. T-1771360897057583000 — add --concise flag.
+3. **Tool hints:** T-1771361056782987000 — Add opencode-friendly hints to tool descriptions. T-1771360897632102000 — Optimize tool descriptions/hints for MCP clients.
+4. **Documentation:** T-1771362279364774000 — Document MLX + OpenCode integration. T-1771355098499809000 — OpenCode mention in README or docs index. T-1771360821141115000 — Document MCP sufficient for opencode (skip LSP).
+5. **Batch tag apply:** T-1771407017868157000 — Batch apply task_analysis tags run 1 (limit 50, untagged first). T-1771407020761949000 — Run 2+ remaining batches (depends on run 1). T-1771407024387277000 — Document or add Makefile target for batch tag apply.
+
 ---
 
 ## 5. Open Questions

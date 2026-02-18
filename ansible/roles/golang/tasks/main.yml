@@ -105,7 +105,7 @@
   debug:
     msg: "Go installed: {{ go_verify.stdout }}"
 
-# Install protoc (Protocol Buffers compiler)
+# Install protoc (Protocol Buffers compiler) — required for make proto (exarp-go .proto codegen)
 - name: Install protoc (Debian/Ubuntu)
   apt:
     name: protobuf-compiler

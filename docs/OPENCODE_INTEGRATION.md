@@ -52,6 +52,18 @@ In your OpenCode config file, add:
 - exarp-go detects non-TTY stdin and runs in **MCP server mode** (JSON-RPC 2.0 on stdin/stdout).
 - OpenCode then discovers and invokes exarp-go tools (e.g. `task_workflow`, `report`, `session`, `health`, `testing`).
 
+### Verification (Phase 2 checklist)
+
+To confirm exarp-go works with OpenCode MCP:
+
+1. **Config:** Add exarp-go to `mcp` in `~/.config/opencode/opencode.json` or project `opencode.json` with `command` and `environment.PROJECT_ROOT` (see [docs/opencode-exarp-go.example.json](opencode-exarp-go.example.json)).
+2. **Run OpenCode:** Start OpenCode (e.g. `opencode` or `opencode --agent OpenAgent`) in a repo that has a `.todo2` (or run once so exarp-go can create it).
+3. **List tools:** In the agent session, ask to list MCP tools or run a command that uses exarp-go; confirm `task_workflow`, `report`, `session`, `health`, etc. appear.
+4. **Call a tool:** Ask the agent to run a task list or report (e.g. “list my Todo2 tasks” or “give me a project overview”). Confirm the agent can invoke the tool and you see task or report output.
+5. **Optional CLI from terminal:** In OpenCode’s terminal run `exarp-go task list --status Todo` (with `PROJECT_ROOT` set or from project root). Use `--quiet` or `--json` for script-friendly output.
+
+If any step fails, check binary path, `PROJECT_ROOT`, and OpenCode MCP logs.
+
 ### CLI management (if available)
 
 If your OpenCode version supports it, you can use:

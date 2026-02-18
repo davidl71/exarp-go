@@ -100,6 +100,32 @@ Or use the **task-cleanup** skill (one MCP call with the same `task_ids`).
 | T-200 | Performance benchmarks meet targets |
 | T-1768317407961 | Measure performance improvements for protobuf serialization |
 
+### 3.6 Done task pruning
+
+To clean the backlog by removing **Done** tasks:
+
+```bash
+# Preview (dry run) – legacy IDs only (T-XX where XX < 1000000)
+make task-prune-done DRY_RUN=1
+
+# Prune legacy Done tasks
+make task-prune-done
+
+# Prune all Done tasks
+make task-prune-done PRUNE_WAVE=all
+
+# Prune by tag (tag tasks first, then delete)
+make task-prune-done PRUNE_TAG=prune DRY_RUN=1
+make task-prune-done PRUNE_TAG=prune
+```
+
+**Prune waves:**
+- `PRUNE_WAVE=legacy` (default): Remove Done tasks with legacy sequential IDs (T-1 … T-999999).
+- `PRUNE_WAVE=all`: Remove all Done tasks.
+
+**Prune by tag:**
+- `PRUNE_TAG=<tag>`: Remove tasks with the given tag. Tag tasks (e.g. via `exarp-go task update T-123` or TUI), then prune by tag. Overrides `PRUNE_WAVE`.
+
 ---
 
 ## 4. How to use this

@@ -11,7 +11,8 @@ alwaysApply: true
 
 - **Resource `stdio://models`** — Returns `data.models` (recommend catalog) and **`data.backends`** (LLM backend discovery):
   - `fm_available` (bool) — Apple Foundation Models (on-device) available on this machine
-  - `apple_fm_tool`, `ollama_tool`, `mlx_tool` — Tool names to call
+  - `localai_available` (bool) — LocalAI configured when `LOCALAI_BASE_URL` is set
+  - `apple_fm_tool`, `ollama_tool`, `mlx_tool` — Tool names to call; `localai_tool` is `text_generate` (use provider=localai)
   - `hint` — Short guidance on when to use which
 - Prefer reading `stdio://models` (or the tool_catalog) when you need to decide which LLM tool to use, so you can respect `fm_available` and avoid calling unsupported tools.
 
@@ -29,10 +30,11 @@ alwaysApply: true
 - **apple_foundation_models** — `action`: status, hardware, models, generate, respond, summarize, classify; `prompt`, `mode`, `temperature`, `max_tokens`, `categories`.
 - **ollama** — `action`: status, models, generate, pull, hardware, docs, quality, summary; `host`, `prompt`, `model`, `stream`, etc.
 - **mlx** — `action`: status, hardware, models, generate; `prompt`, `model`, `max_tokens`, `temperature`, `verbose`.
+- **text_generate (provider=localai)** — When `LOCALAI_BASE_URL` is set; `prompt`, `max_tokens`, `temperature`. Use for self-hosted OpenAI-compatible API.
 
 ## Cursor AI guidance
 
-- When the user asks for **local inference**, **on-device AI**, or **generate/summarize with a local model**: consider `apple_foundation_models` first if the project is built with Apple FM support; otherwise suggest `ollama` or `mlx` and mention checking `stdio://models` for `backends.fm_available`.
+- When the user asks for **local inference**, **on-device AI**, or **generate/summarize with a local model**: consider `apple_foundation_models` first if the project is built with Apple FM support; otherwise suggest `ollama`, `mlx`, or `text_generate` provider=localai and mention checking `stdio://models` for `backends.fm_available` and `localai_available`.
 - When the user asks **which models/backends are available**: suggest reading the **`stdio://models`** resource and using `data.backends` (and optionally `data.models` for the recommend catalog).
 - Do not call `apple_foundation_models` when `fm_available` is false (e.g. non-Mac or no CGO build); use `ollama` or `mlx` instead.
 - Report/scorecard **AI insights** are handled inside the **report** tool via DefaultReportInsight() (MLX then FM); the user does not need to call `mlx` or `apple_foundation_models` for that.

@@ -58,8 +58,9 @@ exarp-go uses a **custom LLM abstraction** (no langchaingo, Genkit, or Go AI SDK
 | **Apple Foundation Models (FM)** | On-device generation (darwin/arm64, CGO). Used by task_analysis, context, estimation, task_workflow, task_discovery, report fallback. | `internal/tools/fm_apple.go`, `fm_provider.go`; `DefaultFMProvider()`. |
 | **Ollama** | Local LLM server (status, models, generate, pull, etc.). | Native Go HTTP client first; Python bridge fallback. `internal/tools/ollama_native.go`, `ollama_provider.go`; `DefaultOllama()`. |
 | **MLX** | Report/scorecard insights (long-form text). | Python bridge; `DefaultReportInsight()` tries MLX then FM. `internal/tools/mlx_invoke.go`, `insight_provider.go`. |
+| **LocalAI** | Self-hosted OpenAI-compatible API (optional). | Env: `LOCALAI_BASE_URL` (required), `LOCALAI_MODEL` (optional). `internal/tools/localai_provider.go`; `text_generate` with `provider=localai`. |
 
-- **Unified entry:** `text_generate` tool with `provider: fm | insight | mlx`.
+- **Unified entry:** `text_generate` tool with `provider: fm | insight | mlx | localai`.
 - **Discovery:** `stdio://models` exposes `backends` (e.g. `fm_available`, tool names). See [LLM_EXPOSURE_OPPORTUNITIES.md](LLM_EXPOSURE_OPPORTUNITIES.md).
 
 ### 4.2 Numerical / graph
@@ -86,11 +87,13 @@ Concrete ways exarp-go could improve by leveraging or aligning with the Go AI ec
 
 ### 5.2 Cloud and self-hosted backends
 
-- **Current:** Local-only (Apple FM, Ollama, MLX). No direct use of Google, OpenAI, or Anthropic SDKs.
+- **Current:** Local-only (Apple FM, Ollama, MLX) plus optional **LocalAI** (OpenAI-compatible). No direct use of Google, OpenAI, or Anthropic SDKs.
 - **Opportunity:**
   - **LocalAI:** Add an optional backend that talks to a LocalAI server (OpenAI-compatible API). Gives users a self-hosted “OpenAI-style” option alongside Ollama.
   - **Provider SDKs (optional):** For future “cloud fallback” or optional features, consider **Go OpenAI**, **Google Generative AI Go SDK**, or **Go Anthropic** behind the same provider interface. Not required for current scope.
-- **Recommendation:** Document LocalAI as a possible future backend; defer cloud SDKs until there is a concrete need.
+- **LocalAI (implemented):** Optional backend via `LOCALAI_BASE_URL` and optional `LOCALAI_MODEL`; use `text_generate` with `provider=localai`. Discovery: `stdio://models` includes `localai_available` and `localai_tool`.
+- **Opportunity:** Provider SDKs (optional) for future cloud fallback: **Go OpenAI**, **Google Generative AI Go SDK**, or **Go Anthropic** behind the same provider interface. Not required for current scope.
+- **Recommendation:** Defer cloud SDKs until there is a concrete need.
 
 ### 5.3 LLM abstraction and discovery
 
@@ -111,7 +114,7 @@ Concrete ways exarp-go could improve by leveraging or aligning with the Go AI ec
 | Area | Current | Improvement |
 |------|---------|-------------|
 | Orchestration | Custom tools + providers | Consider langchaingo or Go AI SDK only if adding agentic workflows. |
-| Cloud / self-hosted | Local only (FM, Ollama, MLX) | Optional LocalAI backend; optional cloud SDKs later. |
+| Cloud / self-hosted | Local (FM, Ollama, MLX) + optional LocalAI | Optional cloud SDKs later. |
 | Discovery / docs | stdio://models, tool hints | Link this doc and LLM patterns from main docs; optional stdio://llm/status. |
 | Numerics / ML | Gonum (graph + stat) | Keep; add GoLearn/Gonum only if new ML features are needed. |
 

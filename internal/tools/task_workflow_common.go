@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -400,9 +401,9 @@ func parseDependenciesFromParams(params map[string]interface{}) []string {
 	return nil
 }
 
-// handleTaskWorkflowUpdate updates task(s) by ID with optional new_status, priority, tags (merge), remove_tags, name, long_description, or dependencies.
+// handleTaskWorkflowUpdate updates task(s) by ID with optional new_status, priority, tags (merge), remove_tags, name, long_description, dependencies, or local_ai_backend.
 // Uses TaskStore (DB or file); when moving to In Progress uses database.ClaimTaskForAgent for locking.
-// Params: task_ids (required), new_status (optional), priority (optional), tags (optional; merged), remove_tags (optional), name (optional), long_description (optional), dependencies (optional; replaces).
+// Params: task_ids (required), new_status (optional), priority (optional), tags (optional; merged), remove_tags (optional), name (optional), long_description (optional), dependencies (optional; replaces), local_ai_backend (optional; sets task.Metadata preferred_backend: fm|mlx|ollama).
 func handleTaskWorkflowUpdate(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	taskIDs := ParseTaskIDsFromParams(params)
 	if len(taskIDs) == 0 {
@@ -430,9 +431,11 @@ func handleTaskWorkflowUpdate(ctx context.Context, params map[string]interface{}
 	longDescription, _ := params["long_description"].(string)
 	parentID, _ := params["parent_id"].(string)
 	dependencies := parseDependenciesFromParams(params)
+	localAIBackend, _ := params["local_ai_backend"].(string)
+	hasLocalAIBackend := strings.TrimSpace(localAIBackend) != ""
 
-	if newStatus == "" && priority == "" && len(addTags) == 0 && len(removeTags) == 0 && name == "" && longDescription == "" && parentID == "" && dependencies == nil {
-		return nil, fmt.Errorf("update action requires at least one of new_status, priority, tags, remove_tags, name, long_description, parent_id, or dependencies")
+	if newStatus == "" && priority == "" && len(addTags) == 0 && len(removeTags) == 0 && name == "" && longDescription == "" && parentID == "" && dependencies == nil && !hasLocalAIBackend {
+		return nil, fmt.Errorf("update action requires at least one of new_status, priority, tags, remove_tags, name, long_description, parent_id, dependencies, or local_ai_backend")
 	}
 
 	useClaim := newStatus == "In Progress"
@@ -1969,6 +1972,11 @@ func handleTaskWorkflowCreate(ctx context.Context, params map[string]interface{}
 		Dependencies:    dependencies,
 		Completed:       false,
 		Metadata:        make(map[string]interface{}),
+	}
+
+	// Set project for distributed tracking (default: basename of project root)
+	if task.ProjectID == "" && projectRoot != "" {
+		task.ProjectID = filepath.Base(projectRoot)
 	}
 
 	// Set parent (hierarchy): parent_id explicit param overrides epic_id
