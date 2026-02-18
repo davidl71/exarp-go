@@ -2799,16 +2799,17 @@ func (x *TaskWorkflowRequest) GetConfirmViaElicitation() bool {
 
 // TaskSummary is a single task entry for list/approve/sync results (type-safe response).
 type TaskSummary struct {
-	state           protoimpl.MessageState `protogen:"open.v1"`
-	Id              string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	Content         string                 `protobuf:"bytes,2,opt,name=content,proto3" json:"content,omitempty"` // short name/title
-	Status          string                 `protobuf:"bytes,3,opt,name=status,proto3" json:"status,omitempty"`
-	Priority        string                 `protobuf:"bytes,4,opt,name=priority,proto3" json:"priority,omitempty"`
-	Tags            []string               `protobuf:"bytes,5,rep,name=tags,proto3" json:"tags,omitempty"`
-	LongDescription string                 `protobuf:"bytes,6,opt,name=long_description,json=longDescription,proto3" json:"long_description,omitempty"`
-	Dependencies    []string               `protobuf:"bytes,7,rep,name=dependencies,proto3" json:"dependencies,omitempty"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
+	state            protoimpl.MessageState `protogen:"open.v1"`
+	Id               string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Content          string                 `protobuf:"bytes,2,opt,name=content,proto3" json:"content,omitempty"` // short name/title
+	Status           string                 `protobuf:"bytes,3,opt,name=status,proto3" json:"status,omitempty"`
+	Priority         string                 `protobuf:"bytes,4,opt,name=priority,proto3" json:"priority,omitempty"`
+	Tags             []string               `protobuf:"bytes,5,rep,name=tags,proto3" json:"tags,omitempty"`
+	LongDescription  string                 `protobuf:"bytes,6,opt,name=long_description,json=longDescription,proto3" json:"long_description,omitempty"`
+	Dependencies     []string               `protobuf:"bytes,7,rep,name=dependencies,proto3" json:"dependencies,omitempty"`
+	RecommendedTools []string               `protobuf:"bytes,8,rep,name=recommended_tools,json=recommendedTools,proto3" json:"recommended_tools,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
 func (x *TaskSummary) Reset() {
@@ -2886,6 +2887,13 @@ func (x *TaskSummary) GetLongDescription() string {
 func (x *TaskSummary) GetDependencies() []string {
 	if x != nil {
 		return x.Dependencies
+	}
+	return nil
+}
+
+func (x *TaskSummary) GetRecommendedTools() []string {
+	if x != nil {
+		return x.RecommendedTools
 	}
 	return nil
 }
@@ -6297,7 +6305,7 @@ const file_proto_tools_proto_rawDesc = "" +
 	"\x04tags\x18\x16 \x03(\tR\x04tags\x12\"\n" +
 	"\fdependencies\x18\x17 \x03(\tR\fdependencies\x12#\n" +
 	"\rauto_estimate\x18\x18 \x01(\bR\fautoEstimate\x126\n" +
-	"\x17confirm_via_elicitation\x18\x19 \x01(\bR\x15confirmViaElicitation\"\xce\x01\n" +
+	"\x17confirm_via_elicitation\x18\x19 \x01(\bR\x15confirmViaElicitation\"\xfb\x01\n" +
 	"\vTaskSummary\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x18\n" +
 	"\acontent\x18\x02 \x01(\tR\acontent\x12\x16\n" +
@@ -6305,7 +6313,8 @@ const file_proto_tools_proto_rawDesc = "" +
 	"\bpriority\x18\x04 \x01(\tR\bpriority\x12\x12\n" +
 	"\x04tags\x18\x05 \x03(\tR\x04tags\x12)\n" +
 	"\x10long_description\x18\x06 \x01(\tR\x0flongDescription\x12\"\n" +
-	"\fdependencies\x18\a \x03(\tR\fdependencies\"\x89\x01\n" +
+	"\fdependencies\x18\a \x03(\tR\fdependencies\x12+\n" +
+	"\x11recommended_tools\x18\b \x03(\tR\x10recommendedTools\"\x89\x01\n" +
 	"\vSyncResults\x12'\n" +
 	"\x0fvalidated_tasks\x18\x01 \x01(\x05R\x0evalidatedTasks\x12!\n" +
 	"\fissues_found\x18\x02 \x01(\x05R\vissuesFound\x12\x16\n" +

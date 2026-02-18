@@ -180,6 +180,70 @@ Other useful validations:
 - `action=suggest_dependencies` — auto-infer missed dependencies
 - `action=complexity` — assess task complexity scores
 
+## Stage 4: Validate (Mandatory)
+
+After applying enrichments, **ALWAYS** validate with `task_analysis` to catch issues introduced during enrichment.
+
+### 1. Check dependencies — verify no circular deps
+
+```
+CallMcpTool(
+  server="project-0-exarp-go-exarp-go",
+  toolName="task_analysis",
+  arguments={
+    "action": "dependencies",
+    "output_format": "json"
+  }
+)
+```
+
+Review the output for `circular_dependencies` — any cycles must be resolved before proceeding.
+
+### 2. Check duplicates — verify no accidental duplicates from enrichment
+
+```
+CallMcpTool(
+  server="project-0-exarp-go-exarp-go",
+  toolName="task_analysis",
+  arguments={
+    "action": "duplicates",
+    "output_format": "json"
+  }
+)
+```
+
+Enrichment can create near-duplicate tasks when descriptions overlap. Merge or delete duplicates found.
+
+### 3. Generate execution plan — verify waves are well-formed
+
+```
+CallMcpTool(
+  server="project-0-exarp-go-exarp-go",
+  toolName="task_analysis",
+  arguments={
+    "action": "execution_plan",
+    "output_format": "json"
+  }
+)
+```
+
+Confirm wave structure: wave 0 should contain only tasks with no unmet dependencies, and each subsequent wave should depend only on earlier waves.
+
+### 4. (Optional) Suggest missing dependencies
+
+```
+CallMcpTool(
+  server="project-0-exarp-go-exarp-go",
+  toolName="task_analysis",
+  arguments={
+    "action": "suggest_dependencies",
+    "output_format": "json"
+  }
+)
+```
+
+Review suggestions and apply any missed dependency links that make sense.
+
 ## Mapping: Tractatus → Task Fields
 
 | Tractatus concept | exarp-go field | Example |
@@ -210,7 +274,8 @@ Other useful validations:
 6. **Sequential thought 1..N** → map each cluster to task IDs and field changes
 7. **Sequential final thought** → summary of all changes
 8. **Execute** → `CallMcpTool` task_workflow updates per task
-9. **Validate** → `task_analysis(action=dependencies)` + `task_analysis(action=execution_plan)`
+9. **Validate (mandatory)** → `task_analysis(action=dependencies)` + `task_analysis(action=duplicates)` + `task_analysis(action=execution_plan)`
+10. **(Optional)** → `task_analysis(action=suggest_dependencies)` for missed links
 
 ## Decision Flow
 

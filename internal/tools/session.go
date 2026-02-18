@@ -20,11 +20,12 @@ import (
 	"github.com/davidl71/exarp-go/proto"
 	mcpframework "github.com/davidl71/mcp-go-core/pkg/mcp/framework"
 	mcpresponse "github.com/davidl71/mcp-go-core/pkg/mcp/response"
+	"github.com/spf13/cast"
 )
 
 // handleSessionNative handles the session tool with native Go implementation.
 func handleSessionNative(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
-	action, _ := params["action"].(string)
+	action := strings.TrimSpace(cast.ToString(params["action"]))
 	if action == "" {
 		action = "prime"
 	}
@@ -124,13 +125,13 @@ func handleSessionPrime(ctx context.Context, params map[string]interface{}) ([]f
 	startTime := time.Now()
 
 	includeHints := true
-	if hints, ok := params["include_hints"].(bool); ok {
-		includeHints = hints
+	if _, ok := params["include_hints"]; ok {
+		includeHints = cast.ToBool(params["include_hints"])
 	}
 
 	includeTasks := true
-	if tasks, ok := params["include_tasks"].(bool); ok {
-		includeTasks = tasks
+	if _, ok := params["include_tasks"]; ok {
+		includeTasks = cast.ToBool(params["include_tasks"])
 	}
 
 	// Optional MCP Elicitation: ask user for prime preferences when ask_preferences is true.
@@ -139,7 +140,7 @@ func handleSessionPrime(ctx context.Context, params map[string]interface{}) ([]f
 
 	var elicitationOutcome string
 
-	if ask, _ := params["ask_preferences"].(bool); ask {
+	if cast.ToBool(params["ask_preferences"]) {
 		if eliciter := mcpframework.EliciterFromContext(ctx); eliciter != nil {
 			schema := map[string]interface{}{
 				"type": "object",
@@ -175,7 +176,7 @@ func handleSessionPrime(ctx context.Context, params map[string]interface{}) ([]f
 		}
 	}
 
-	overrideMode, _ := params["override_mode"].(string)
+	overrideMode := cast.ToString(params["override_mode"])
 
 	projectRoot, err := FindProjectRoot()
 	if err != nil {
@@ -256,12 +257,22 @@ func handleSessionPrime(ctx context.Context, params map[string]interface{}) ([]f
 		if planModeHint != "" {
 			hints["plan_mode"] = planModeHint
 		}
+
+		todoCount := 0
+		for _, t := range tasks {
+			if t.Status == "Todo" {
+				todoCount++
+			}
+		}
+		if todoCount > 10 {
+			hints["thinking_workflow"] = "For complex backlog analysis, sprint planning, or dependency enrichment: use the thinking-workflow skill (.cursor/skills/thinking-workflow/SKILL.md) — chain tractatus (structure) + sequential (process) + exarp-go MCP (execute)"
+		}
 	} else if includeTasks {
 		planPath, _ = getPlanModeContext(projectRoot, tasks)
 	}
 
 	handoffAlert := (map[string]interface{})(nil)
-	if includeHandoff, ok := params["include_handoff"].(bool); !ok || includeHandoff {
+	if _, has := params["include_handoff"]; !has || cast.ToBool(params["include_handoff"]) {
 		handoffAlert = checkHandoffAlert(projectRoot)
 	}
 
@@ -351,20 +362,20 @@ func handleSessionPrime(ctx context.Context, params map[string]interface{}) ([]f
 	pb.StatusLabel = statusLabel
 	pb.StatusContext = statusContext
 
-	compact, _ := params["compact"].(bool)
+	compact := cast.ToBool(params["compact"])
 	return FormatResultOptionalCompact(result, "", compact)
 }
 
 // handleSessionHandoff handles handoff actions (end, resume, latest, list, sync, export).
 func handleSessionHandoff(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
-	action, _ := params["action"].(string)
+	action := cast.ToString(params["action"])
 	// Note: The action parameter for handoff might be nested - check both
 	// Also check for sub_action parameter (for nested actions like export)
 	if action == "" || action == "handoff" {
 		// Check for sub_action first (for explicit sub-actions)
-		if subAction, ok := params["sub_action"].(string); ok && subAction != "" {
+		if subAction := strings.TrimSpace(cast.ToString(params["sub_action"])); subAction != "" {
 			action = subAction
-		} else if summary, ok := params["summary"].(string); ok && summary != "" {
+		} else if summary := strings.TrimSpace(cast.ToString(params["summary"])); summary != "" {
 			// Check if this is called from session tool with action="handoff"
 			action = "end"
 		} else {
@@ -406,7 +417,7 @@ func handleSessionHandoff(ctx context.Context, params map[string]interface{}) ([
 
 // handleSessionEnd ends a session and creates handoff note.
 func handleSessionEnd(ctx context.Context, params map[string]interface{}, projectRoot string) ([]framework.TextContent, error) {
-	summary, _ := params["summary"].(string)
+	summary := cast.ToString(params["summary"])
 	blockersRaw := params["blockers"]
 	nextStepsRaw := params["next_steps"]
 
@@ -455,18 +466,18 @@ func handleSessionEnd(ctx context.Context, params map[string]interface{}, projec
 	}
 
 	unassignMyTasks := true
-	if unassign, ok := params["unassign_my_tasks"].(bool); ok {
-		unassignMyTasks = unassign
+	if _, ok := params["unassign_my_tasks"]; ok {
+		unassignMyTasks = cast.ToBool(params["unassign_my_tasks"])
 	}
 
 	includeGitStatus := true
-	if gitStatus, ok := params["include_git_status"].(bool); ok {
-		includeGitStatus = gitStatus
+	if _, ok := params["include_git_status"]; ok {
+		includeGitStatus = cast.ToBool(params["include_git_status"])
 	}
 
 	dryRun := false
-	if dr, ok := params["dry_run"].(bool); ok {
-		dryRun = dr
+	if _, ok := params["dry_run"]; ok {
+		dryRun = cast.ToBool(params["dry_run"])
 	}
 
 	// Get hostname
@@ -481,7 +492,7 @@ func handleSessionEnd(ctx context.Context, params map[string]interface{}, projec
 	// Get current tasks in progress
 	var tasksInProgress []map[string]interface{}
 
-	if includeTasks, ok := params["include_tasks"].(bool); !ok || includeTasks {
+	if _, has := params["include_tasks"]; !has || cast.ToBool(params["include_tasks"]) {
 		store := NewDefaultTaskStore(projectRoot)
 
 		list, err := store.ListTasks(ctx, nil)
@@ -690,7 +701,7 @@ func handleSessionLatest(projectRoot string) ([]framework.TextContent, error) {
 // handleSessionList lists recent handoff notes.
 func handleSessionList(ctx context.Context, params map[string]interface{}, projectRoot string) ([]framework.TextContent, error) {
 	limit := 5
-	if l, ok := params["limit"].(float64); ok {
+	if l := cast.ToFloat64(params["limit"]); l > 0 {
 		limit = int(l)
 	}
 
@@ -723,8 +734,8 @@ func handleSessionList(ctx context.Context, params map[string]interface{}, proje
 
 	// Filter closed/approved if include_closed is false (default)
 	includeClosed := true
-	if inc, ok := params["include_closed"].(bool); ok {
-		includeClosed = inc
+	if _, ok := params["include_closed"]; ok {
+		includeClosed = cast.ToBool(params["include_closed"])
 	}
 
 	if !includeClosed {
@@ -767,18 +778,18 @@ func handleSessionList(ctx context.Context, params map[string]interface{}, proje
 // handleSessionSync syncs Todo2 state across agents.
 func handleSessionSync(ctx context.Context, params map[string]interface{}, projectRoot string) ([]framework.TextContent, error) {
 	direction := "both"
-	if d, ok := params["direction"].(string); ok && d != "" {
+	if d := strings.TrimSpace(cast.ToString(params["direction"])); d != "" {
 		direction = d
 	}
 
 	autoCommit := true
-	if ac, ok := params["auto_commit"].(bool); ok {
-		autoCommit = ac
+	if _, ok := params["auto_commit"]; ok {
+		autoCommit = cast.ToBool(params["auto_commit"])
 	}
 
 	dryRun := false
-	if dr, ok := params["dry_run"].(bool); ok {
-		dryRun = dr
+	if _, ok := params["dry_run"]; ok {
+		dryRun = cast.ToBool(params["dry_run"])
 	}
 
 	// For sync, we'll use Git operations to pull/push Todo2 state
@@ -850,7 +861,7 @@ func handleSessionSync(ctx context.Context, params map[string]interface{}, proje
 
 // handleSessionExport exports handoff data to a JSON file for sharing between agents.
 func handleSessionExport(ctx context.Context, params map[string]interface{}, projectRoot string) ([]framework.TextContent, error) {
-	outputPath, _ := params["output_path"].(string)
+	outputPath := cast.ToString(params["output_path"])
 	if outputPath == "" {
 		// Default to handoff-export-{timestamp}.json in project root
 		outputPath = filepath.Join(projectRoot, fmt.Sprintf("handoff-export-%d.json", time.Now().Unix()))
@@ -863,8 +874,8 @@ func handleSessionExport(ctx context.Context, params map[string]interface{}, pro
 
 	// Get which handoffs to export (latest or all)
 	exportLatest := true
-	if latest, ok := params["export_latest"].(bool); ok {
-		exportLatest = latest
+	if _, ok := params["export_latest"]; ok {
+		exportLatest = cast.ToBool(params["export_latest"])
 	}
 
 	handoffFile := filepath.Join(projectRoot, ".todo2", "handoffs.json")
@@ -1556,7 +1567,7 @@ func updateHandoffStatus(projectRoot string, handoffIDs []string, status string)
 // handleSessionHandoffStatus closes or approves handoffs by id.
 func handleSessionHandoffStatus(ctx context.Context, params map[string]interface{}, projectRoot, status string) ([]framework.TextContent, error) {
 	var ids []string
-	if id, ok := params["handoff_id"].(string); ok && id != "" {
+	if id := strings.TrimSpace(cast.ToString(params["handoff_id"])); id != "" {
 		ids = []string{id}
 	} else if raw, ok := params["handoff_ids"]; ok {
 		switch v := raw.(type) {
@@ -1605,7 +1616,7 @@ func handleSessionHandoffStatus(ctx context.Context, params map[string]interface
 // handleSessionHandoffDelete removes handoffs by id from handoffs.json.
 func handleSessionHandoffDelete(ctx context.Context, params map[string]interface{}, projectRoot string) ([]framework.TextContent, error) {
 	var ids []string
-	if id, ok := params["handoff_id"].(string); ok && id != "" {
+	if id := strings.TrimSpace(cast.ToString(params["handoff_id"])); id != "" {
 		ids = []string{id}
 	} else if raw, ok := params["handoff_ids"]; ok {
 		switch v := raw.(type) {
@@ -1799,13 +1810,13 @@ func truncateString(s string, maxLen int) string {
 // handleSessionPrompts handles the prompts action - lists available prompts.
 func handleSessionPrompts(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	// Get optional filters
-	mode, _ := params["mode"].(string)
-	persona, _ := params["persona"].(string)
-	category, _ := params["category"].(string)
-	keywords, _ := params["keywords"].(string)
+	mode := cast.ToString(params["mode"])
+	persona := cast.ToString(params["persona"])
+	category := cast.ToString(params["category"])
+	keywords := cast.ToString(params["keywords"])
 
 	limit := 50
-	if l, ok := params["limit"].(float64); ok {
+	if l := cast.ToFloat64(params["limit"]); l > 0 {
 		limit = int(l)
 	}
 
@@ -1894,7 +1905,7 @@ func handleSessionPrompts(ctx context.Context, params map[string]interface{}) ([
 
 // handleSessionAssignee handles the assignee action - manages task assignments.
 func handleSessionAssignee(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
-	subAction, _ := params["sub_action"].(string)
+	subAction := cast.ToString(params["sub_action"])
 	if subAction == "" {
 		subAction = "list"
 	}
@@ -1914,11 +1925,11 @@ func handleSessionAssignee(ctx context.Context, params map[string]interface{}) (
 // handleSessionAssigneeList lists tasks with their assignees.
 func handleSessionAssigneeList(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	includeUnassigned := true
-	if unassigned, ok := params["include_unassigned"].(bool); ok {
-		includeUnassigned = unassigned
+	if _, ok := params["include_unassigned"]; ok {
+		includeUnassigned = cast.ToBool(params["include_unassigned"])
 	}
 
-	statusFilter, _ := params["status_filter"].(string)
+	statusFilter := cast.ToString(params["status_filter"])
 
 	// Get tasks from database
 	var tasks []*database.Todo2Task
@@ -1999,24 +2010,24 @@ func handleSessionAssigneeList(ctx context.Context, params map[string]interface{
 
 // handleSessionAssigneeAssign assigns a task to an agent/human/host.
 func handleSessionAssigneeAssign(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
-	taskID, _ := params["task_id"].(string)
+	taskID := cast.ToString(params["task_id"])
 	if taskID == "" {
 		return nil, fmt.Errorf("task_id parameter is required")
 	}
 
-	assigneeName, _ := params["assignee_name"].(string)
+	assigneeName := cast.ToString(params["assignee_name"])
 	if assigneeName == "" {
 		return nil, fmt.Errorf("assignee_name parameter is required")
 	}
 
 	assigneeType := "agent"
-	if t, ok := params["assignee_type"].(string); ok && t != "" {
+	if t := strings.TrimSpace(cast.ToString(params["assignee_type"])); t != "" {
 		assigneeType = t
 	}
 
 	dryRun := false
-	if dr, ok := params["dry_run"].(bool); ok {
-		dryRun = dr
+	if _, ok := params["dry_run"]; ok {
+		dryRun = cast.ToBool(params["dry_run"])
 	}
 
 	// Get agent ID (for agent type)
@@ -2071,7 +2082,7 @@ func handleSessionAssigneeAssign(ctx context.Context, params map[string]interfac
 
 // handleSessionAssigneeUnassign unassigns a task.
 func handleSessionAssigneeUnassign(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
-	taskID, _ := params["task_id"].(string)
+	taskID := cast.ToString(params["task_id"])
 	if taskID == "" {
 		return nil, fmt.Errorf("task_id parameter is required")
 	}
