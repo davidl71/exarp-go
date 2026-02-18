@@ -17,6 +17,34 @@ import (
 // MetadataKeyPreferredBackend is the task metadata key for local AI backend preference (fm, mlx, ollama).
 const MetadataKeyPreferredBackend = "preferred_backend"
 
+// MetadataKeyRecommendedTools is the task metadata key for recommended MCP tools (e.g. tractatus_thinking, context7).
+const MetadataKeyRecommendedTools = "recommended_tools"
+
+// GetRecommendedTools returns the recommended tool IDs from task metadata, or nil if unset.
+func GetRecommendedTools(metadata map[string]interface{}) []string {
+	if metadata == nil {
+		return nil
+	}
+	raw, ok := metadata[MetadataKeyRecommendedTools]
+	if !ok || raw == nil {
+		return nil
+	}
+	switch v := raw.(type) {
+	case []string:
+		return v
+	case []interface{}:
+		out := make([]string, 0, len(v))
+		for _, e := range v {
+			if s, ok := e.(string); ok && s != "" {
+				out = append(out, s)
+			}
+		}
+		return out
+	default:
+		return nil
+	}
+}
+
 // GetPreferredBackend returns the preferred local AI backend from task metadata, or "" if unset.
 // Valid values: "fm", "mlx", "ollama".
 func GetPreferredBackend(metadata map[string]interface{}) string {

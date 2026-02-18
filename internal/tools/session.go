@@ -1317,6 +1317,11 @@ func getSuggestedNextTasksFromTasks(tasks []Todo2Task, limit int) []map[string]i
 		return nil
 	}
 
+	taskByID := make(map[string]Todo2Task)
+	for _, t := range tasks {
+		taskByID[t.ID] = t
+	}
+
 	out := make([]map[string]interface{}, 0, limit)
 
 	detailMap := make(map[string]BacklogTaskDetail)
@@ -1331,16 +1336,28 @@ func getSuggestedNextTasksFromTasks(tasks []Todo2Task, limit int) []map[string]i
 
 		d, ok := detailMap[id]
 		if !ok {
-			out = append(out, map[string]interface{}{"id": id, "content": ""})
+			m := map[string]interface{}{"id": id, "content": ""}
+			if t, has := taskByID[id]; has {
+				if rt := GetRecommendedTools(t.Metadata); len(rt) > 0 {
+					m["recommended_tools"] = rt
+				}
+			}
+			out = append(out, m)
 			continue
 		}
 
-		out = append(out, map[string]interface{}{
+		m := map[string]interface{}{
 			"id":       d.ID,
 			"content":  d.Content,
 			"priority": d.Priority,
 			"level":    d.Level,
-		})
+		}
+		if t, has := taskByID[id]; has {
+			if rt := GetRecommendedTools(t.Metadata); len(rt) > 0 {
+				m["recommended_tools"] = rt
+			}
+		}
+		out = append(out, m)
 	}
 
 	return out

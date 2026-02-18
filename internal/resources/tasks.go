@@ -344,6 +344,9 @@ func formatTaskForResource(task *database.Todo2Task) map[string]interface{} {
 		"completed":        task.Completed,
 		"metadata":         task.Metadata,
 	}
+	if rt := tools.GetRecommendedTools(task.Metadata); len(rt) > 0 {
+		result["recommended_tools"] = rt
+	}
 
 	// Query assignee from database if available
 	ctx := context.Background()

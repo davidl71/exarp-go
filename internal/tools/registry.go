@@ -815,6 +815,10 @@ func registerBatch2Tools(server framework.MCPServer) error {
 					"description": "For create/update: preferred local LLM for estimation (fm|mlx|ollama). Stored in task metadata as preferred_backend. For summarize/run_with_ai: overrides task metadata to select backend.",
 					"enum":        []string{"", "fm", "mlx", "ollama"},
 				},
+				"recommended_tools": map[string]interface{}{
+					"type":        "string",
+					"description": "For create/update: comma-separated MCP tool IDs to suggest for this task (e.g. report, task_workflow). Stored in task metadata as recommended_tools; exposed in task show and session prime suggested_next.",
+				},
 				"instruction": map[string]interface{}{
 					"type":        "string",
 					"description": "For run_with_ai: custom instruction/question for the LLM about the task. Defaults to implementation plan + risks + next steps.",

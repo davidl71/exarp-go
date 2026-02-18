@@ -117,6 +117,7 @@ func handleTaskUpdateParsed(server framework.MCPServer, parsed *mcpcli.Args) err
 	oldStatus := parsed.GetFlag("status", "")
 	newStatus := parsed.GetFlag("new-status", "")
 	newPriority := parsed.GetFlag("new-priority", "")
+	recommendedTools := parsed.GetFlag("recommended-tools", "")
 	autoApply := parsed.GetBoolFlag("auto-apply", false)
 	idsStr := parsed.GetFlag("ids", "")
 
@@ -136,36 +137,36 @@ func handleTaskUpdateParsed(server framework.MCPServer, parsed *mcpcli.Args) err
 		return fmt.Errorf("task update requires task ID(s) or --status flag")
 	}
 
-	return handleTaskUpdateWithParams(server, taskIDs, oldStatus, newStatus, newPriority, autoApply)
+	return handleTaskUpdateWithParams(server, taskIDs, oldStatus, newStatus, newPriority, recommendedTools, autoApply)
 }
 
 // handleTaskUpdateWithParams executes the update with parsed params.
-func handleTaskUpdateWithParams(server framework.MCPServer, taskIDs []string, oldStatus, newStatus, newPriority string, autoApply bool) error {
+func handleTaskUpdateWithParams(server framework.MCPServer, taskIDs []string, oldStatus, newStatus, newPriority, recommendedTools string, autoApply bool) error {
 	if len(taskIDs) == 0 && oldStatus == "" {
 		return fmt.Errorf("task update requires task ID(s) or --status flag")
 	}
 
-	if newStatus == "" && newPriority == "" {
-		return fmt.Errorf("task update requires --new-status and/or --new-priority")
+	if newStatus == "" && newPriority == "" && recommendedTools == "" {
+		return fmt.Errorf("task update requires --new-status, --new-priority, and/or --recommended-tools")
 	}
-	// Priority update: use action "update" with task_ids and priority
-	if newPriority != "" {
-		if len(taskIDs) == 0 {
-			return fmt.Errorf("task update with --new-priority requires task ID(s) or --ids")
-		}
-
+	// Use action "update" when we have task IDs and any of new_status, new_priority, or recommended_tools
+	if len(taskIDs) > 0 && (newPriority != "" || newStatus != "" || recommendedTools != "") {
 		toolArgs := map[string]interface{}{
 			"action":   "update",
 			"task_ids": strings.Join(taskIDs, ","),
-			"priority": newPriority,
 		}
 		if newStatus != "" {
 			toolArgs["new_status"] = newStatus
 		}
-
+		if newPriority != "" {
+			toolArgs["priority"] = newPriority
+		}
+		if recommendedTools != "" {
+			toolArgs["recommended_tools"] = strings.TrimSpace(recommendedTools)
+		}
 		return executeTaskWorkflow(server, toolArgs)
 	}
-	// Status update: use action "approve"
+	// Status-only batch: use action "approve" (filter by old status, no task_ids required)
 	toolArgs := map[string]interface{}{
 		"action":     "approve",
 		"new_status": newStatus,
@@ -174,7 +175,6 @@ func handleTaskUpdateWithParams(server framework.MCPServer, taskIDs []string, ol
 	if oldStatus != "" {
 		toolArgs["status"] = oldStatus
 	}
-
 	if len(taskIDs) > 0 {
 		toolArgs["task_ids"] = strings.Join(taskIDs, ",")
 	}
@@ -199,6 +199,7 @@ func handleTaskCreateParsed(server framework.MCPServer, parsed *mcpcli.Args) err
 	priority := parsed.GetFlag("priority", "")
 	tagsStr := parsed.GetFlag("tags", "")
 	localAIBackend := parsed.GetFlag("local-ai-backend", "")
+	recommendedTools := parsed.GetFlag("recommended-tools", "")
 
 	var tags []string
 
@@ -225,6 +226,10 @@ func handleTaskCreateParsed(server framework.MCPServer, parsed *mcpcli.Args) err
 
 	if localAIBackend != "" {
 		toolArgs["local_ai_backend"] = localAIBackend
+	}
+
+	if recommendedTools != "" {
+		toolArgs["recommended_tools"] = strings.TrimSpace(recommendedTools)
 	}
 
 	return executeTaskWorkflow(server, toolArgs)
@@ -457,6 +462,7 @@ func showTaskUsage() error {
 	_, _ = fmt.Println("  --status <status>       Current status (for batch updates)")
 	_, _ = fmt.Println("  --new-status <status>   New status")
 	_, _ = fmt.Println("  --new-priority <pri>    New priority (low, medium, high); requires task ID(s)")
+	_, _ = fmt.Println("  --recommended-tools <list>  Comma-separated MCP tool IDs; requires task ID(s)")
 	_, _ = fmt.Println("  --ids <ids>             Comma-separated task IDs")
 	_, _ = fmt.Println("  --auto-apply            Auto-apply changes without confirmation")
 	_, _ = fmt.Println()
@@ -465,6 +471,7 @@ func showTaskUsage() error {
 	_, _ = fmt.Println("  --priority <priority>          Task priority (low, medium, high)")
 	_, _ = fmt.Println("  --tags <tags>                  Comma-separated tags")
 	_, _ = fmt.Println("  --local-ai-backend <backend>   Preferred local AI (fm|mlx|ollama)")
+	_, _ = fmt.Println("  --recommended-tools <list>     Comma-separated MCP tool IDs (e.g. report,task_workflow)")
 	_, _ = fmt.Println()
 	_, _ = fmt.Println("Estimate Options:")
 	_, _ = fmt.Println("  --local-ai-backend <backend>   Backend for estimation (fm|mlx|ollama)")
@@ -487,7 +494,7 @@ func showTaskUsage() error {
 	_, _ = fmt.Println("  exarp-go task update T-1 --new-priority high")
 	_, _ = fmt.Println("  exarp-go task update --status \"Todo\" --new-status \"Done\" --ids \"T-1,T-2\"")
 	_, _ = fmt.Println("  exarp-go task create \"Fix bug\" --description \"Fix the bug\" --priority \"high\"")
-	_, _ = fmt.Println("  exarp-go task create \"AI task\" --local-ai-backend ollama")
+	_, _ = fmt.Println("  exarp-go task create \"AI task\" --local-ai-backend ollama --recommended-tools report")
 	_, _ = fmt.Println("  exarp-go task estimate \"Add tests\" --local-ai-backend fm")
 	_, _ = fmt.Println("  exarp-go task summarize T-123")
 	_, _ = fmt.Println("  exarp-go task run-with-ai T-123 --backend ollama")

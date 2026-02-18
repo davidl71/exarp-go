@@ -372,6 +372,25 @@ func parseRemoveTagsFromParams(params map[string]interface{}) []string {
 	return tags
 }
 
+// parseRecommendedToolsFromParams extracts recommended_tools from params (comma-separated string or array of tool IDs). Returns nil if not provided.
+func parseRecommendedToolsFromParams(params map[string]interface{}) []string {
+	var tools []string
+	if t, ok := params["recommended_tools"].([]interface{}); ok {
+		for _, v := range t {
+			if s, ok := v.(string); ok && s != "" {
+				tools = append(tools, strings.TrimSpace(s))
+			}
+		}
+	} else if tStr, ok := params["recommended_tools"].(string); ok && tStr != "" {
+		for _, s := range strings.Split(tStr, ",") {
+			if trimmed := strings.TrimSpace(s); trimmed != "" {
+				tools = append(tools, trimmed)
+			}
+		}
+	}
+	return tools
+}
+
 // parseDependenciesFromParams extracts dependencies from params (comma-separated string or array). Returns nil if not provided.
 func parseDependenciesFromParams(params map[string]interface{}) []string {
 	if d, ok := params["dependencies"].([]interface{}); ok {
@@ -403,7 +422,7 @@ func parseDependenciesFromParams(params map[string]interface{}) []string {
 
 // handleTaskWorkflowUpdate updates task(s) by ID with optional new_status, priority, tags (merge), remove_tags, name, long_description, dependencies, or local_ai_backend.
 // Uses TaskStore (DB or file); when moving to In Progress uses database.ClaimTaskForAgent for locking.
-// Params: task_ids (required), new_status (optional), priority (optional), tags (optional; merged), remove_tags (optional), name (optional), long_description (optional), dependencies (optional; replaces), local_ai_backend (optional; sets task.Metadata preferred_backend: fm|mlx|ollama).
+// Params: task_ids (required), new_status (optional), priority (optional), tags (optional; merged), remove_tags (optional), name (optional), long_description (optional), dependencies (optional; replaces), local_ai_backend (optional), recommended_tools (optional; MCP tool IDs).
 func handleTaskWorkflowUpdate(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	taskIDs := ParseTaskIDsFromParams(params)
 	if len(taskIDs) == 0 {
@@ -433,9 +452,11 @@ func handleTaskWorkflowUpdate(ctx context.Context, params map[string]interface{}
 	dependencies := parseDependenciesFromParams(params)
 	localAIBackend, _ := params["local_ai_backend"].(string)
 	hasLocalAIBackend := strings.TrimSpace(localAIBackend) != ""
+	recommendedTools := parseRecommendedToolsFromParams(params)
+	hasRecommendedTools := len(recommendedTools) > 0
 
-	if newStatus == "" && priority == "" && len(addTags) == 0 && len(removeTags) == 0 && name == "" && longDescription == "" && parentID == "" && dependencies == nil && !hasLocalAIBackend {
-		return nil, fmt.Errorf("update action requires at least one of new_status, priority, tags, remove_tags, name, long_description, parent_id, dependencies, or local_ai_backend")
+	if newStatus == "" && priority == "" && len(addTags) == 0 && len(removeTags) == 0 && name == "" && longDescription == "" && parentID == "" && dependencies == nil && !hasLocalAIBackend && !hasRecommendedTools {
+		return nil, fmt.Errorf("update action requires at least one of new_status, priority, tags, remove_tags, name, long_description, parent_id, dependencies, local_ai_backend, or recommended_tools")
 	}
 
 	useClaim := newStatus == "In Progress"
@@ -553,6 +574,18 @@ func handleTaskWorkflowUpdate(ctx context.Context, params map[string]interface{}
 
 				task.Metadata[MetadataKeyPreferredBackend] = backend
 			}
+		}
+
+		// Update recommended_tools if provided
+		if hasRecommendedTools {
+			if task.Metadata == nil {
+				task.Metadata = make(map[string]interface{})
+			}
+			slice := make([]interface{}, len(recommendedTools))
+			for i, t := range recommendedTools {
+				slice[i] = t
+			}
+			task.Metadata[MetadataKeyRecommendedTools] = slice
 		}
 
 		if err := store.UpdateTask(ctx, task); err != nil {
@@ -761,14 +794,31 @@ func handleTaskWorkflowList(ctx context.Context, params map[string]interface{}) 
 	}
 
 	if outputFormat == "json" {
-		summaries := make([]*proto.TaskSummary, len(filtered))
+		// Build task list with recommended_tools from metadata (not in proto TaskSummary)
+		taskMaps := make([]map[string]interface{}, len(filtered))
 		for i := range filtered {
-			summaries[i] = taskToTaskSummary(&filtered[i])
+			t := &filtered[i]
+			m := map[string]interface{}{"id": t.ID, "content": t.Content, "status": t.Status}
+			if t.Priority != "" {
+				m["priority"] = t.Priority
+			}
+			if len(t.Tags) > 0 {
+				m["tags"] = t.Tags
+			}
+			if t.LongDescription != "" {
+				m["long_description"] = t.LongDescription
+			}
+			if len(t.Dependencies) > 0 {
+				m["dependencies"] = t.Dependencies
+			}
+			if rt := GetRecommendedTools(t.Metadata); len(rt) > 0 {
+				m["recommended_tools"] = rt
+			}
+			taskMaps[i] = m
 		}
-
-		resp := &proto.TaskWorkflowResponse{Success: true, Method: "list", Tasks: summaries}
+		out := map[string]interface{}{"success": true, "method": "list", "tasks": taskMaps}
 		compact, _ := params["compact"].(bool)
-		return FormatResultOptionalCompact(TaskWorkflowResponseToMap(resp), "", compact)
+		return FormatResultOptionalCompact(out, "", compact)
 	}
 	// Text format: column widths aligned with TUI (internal/cli/tui.go colIDMedium, colStatus, colPriority)
 	const colID = 18
@@ -826,6 +876,13 @@ func handleTaskWorkflowList(ctx context.Context, params map[string]interface{}) 
 		}
 
 		sb.WriteString(fmt.Sprintf("%-*s | %-*s | %-*s | %s\n", colID, id, colStatus, status, colPriority, priority, content))
+	}
+
+	// When showing a single task (e.g. task show), append recommended_tools line
+	if len(filtered) == 1 {
+		if rt := GetRecommendedTools(filtered[0].Metadata); len(rt) > 0 {
+			sb.WriteString("\nRecommended tools: " + strings.Join(rt, ", ") + "\n")
+		}
 	}
 
 	return []framework.TextContent{
@@ -2001,6 +2058,15 @@ func handleTaskWorkflowCreate(ctx context.Context, params map[string]interface{}
 		if backend == "fm" || backend == "mlx" || backend == "ollama" {
 			task.Metadata[MetadataKeyPreferredBackend] = backend
 		}
+	}
+
+	// Store recommended_tools if provided (MCP tool IDs for per-task hints)
+	if recommendedTools := parseRecommendedToolsFromParams(params); len(recommendedTools) > 0 {
+		slice := make([]interface{}, len(recommendedTools))
+		for i, t := range recommendedTools {
+			slice[i] = t
+		}
+		task.Metadata[MetadataKeyRecommendedTools] = slice
 	}
 
 	// Create via store (DB or file; sync is internal)
