@@ -71,6 +71,38 @@ func TestHandleTaskWorkflowNative(t *testing.T) {
 			},
 		},
 		{
+			name: "batch create action",
+			params: map[string]interface{}{
+				"action":        "create",
+				"auto_estimate": false,
+				"tasks":         `[{"name":"Batch Task A","priority":"high","tags":"test,batch"},{"name":"Batch Task B","priority":"low"}]`,
+			},
+			wantError: false,
+			validate: func(t *testing.T, result []framework.TextContent) {
+				var data map[string]interface{}
+				if err := json.Unmarshal([]byte(result[0].Text), &data); err != nil {
+					t.Errorf("invalid JSON: %v", err)
+					return
+				}
+				count, _ := data["created_count"].(float64)
+				if count != 2 {
+					t.Errorf("batch create created_count = %v, want 2", count)
+				}
+				ids, _ := data["task_ids"].([]interface{})
+				if len(ids) != 2 {
+					t.Errorf("batch create task_ids length = %d, want 2", len(ids))
+				}
+			},
+		},
+		{
+			name: "batch create empty array fails",
+			params: map[string]interface{}{
+				"action": "create",
+				"tasks":  `[]`,
+			},
+			wantError: true,
+		},
+		{
 			name: "sync_from_plan action requires planning_doc",
 			params: map[string]interface{}{
 				"action": "sync_from_plan",

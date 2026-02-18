@@ -1894,10 +1894,107 @@ func handleTaskWorkflowLinkPlanning(ctx context.Context, params map[string]inter
 	return response.FormatResult(result, "")
 }
 
-// handleTaskWorkflowCreate handles create action for creating new tasks
-// Uses database for efficient creation, falls back to file-based approach if needed
-// This is platform-agnostic (doesn't require Apple FM).
+// handleTaskWorkflowCreate handles create action for creating new tasks.
+// Supports single task (name param) or batch create (tasks JSON array param).
+// Uses database for efficient creation, falls back to file-based approach if needed.
 func handleTaskWorkflowCreate(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
+	// Check for batch mode: tasks param is a JSON array string or []interface{}
+	if tasksParam, hasTasks := params["tasks"]; hasTasks {
+		return handleTaskWorkflowCreateBatch(ctx, params, tasksParam)
+	}
+
+	return handleTaskWorkflowCreateSingle(ctx, params)
+}
+
+// handleTaskWorkflowCreateBatch creates multiple tasks from a tasks JSON array.
+func handleTaskWorkflowCreateBatch(ctx context.Context, params map[string]interface{}, tasksParam interface{}) ([]framework.TextContent, error) {
+	var taskDefs []map[string]interface{}
+
+	switch v := tasksParam.(type) {
+	case string:
+		if err := json.Unmarshal([]byte(v), &taskDefs); err != nil {
+			return nil, fmt.Errorf("tasks param must be a valid JSON array: %w", err)
+		}
+	case []interface{}:
+		for _, item := range v {
+			if m, ok := item.(map[string]interface{}); ok {
+				taskDefs = append(taskDefs, m)
+			}
+		}
+	default:
+		return nil, fmt.Errorf("tasks param must be a JSON array string or array of objects")
+	}
+
+	if len(taskDefs) == 0 {
+		return nil, fmt.Errorf("tasks array is empty")
+	}
+
+	// Shared params inherited by all tasks unless overridden per-task
+	sharedPlanningDoc, _ := params["planning_doc"].(string)
+	sharedEpicID, _ := params["epic_id"].(string)
+	sharedParentID, _ := params["parent_id"].(string)
+	autoEstimate := true
+	if ae, ok := params["auto_estimate"].(bool); ok {
+		autoEstimate = ae
+	}
+
+	var createdTasks []map[string]interface{}
+	var createdIDs []string
+	var errors []string
+
+	for i, def := range taskDefs {
+		merged := make(map[string]interface{})
+		merged["auto_estimate"] = autoEstimate
+		if sharedPlanningDoc != "" {
+			merged["planning_doc"] = sharedPlanningDoc
+		}
+		if sharedEpicID != "" {
+			merged["epic_id"] = sharedEpicID
+		}
+		if sharedParentID != "" {
+			merged["parent_id"] = sharedParentID
+		}
+		for k, v := range def {
+			merged[k] = v
+		}
+
+		result, err := handleTaskWorkflowCreateSingle(ctx, merged)
+		if err != nil {
+			errors = append(errors, fmt.Sprintf("task[%d] %q: %v", i, cast.ToString(def["name"]), err))
+			continue
+		}
+
+		if len(result) > 0 {
+			var data map[string]interface{}
+			if json.Unmarshal([]byte(result[0].Text), &data) == nil {
+				if taskData, ok := data["task"].(map[string]interface{}); ok {
+					createdTasks = append(createdTasks, taskData)
+					if id, ok := taskData["id"].(string); ok {
+						createdIDs = append(createdIDs, id)
+					}
+				}
+			}
+		}
+	}
+
+	batchResult := map[string]interface{}{
+		"success":       len(errors) == 0,
+		"method":        "store",
+		"created_count": len(createdTasks),
+		"task_ids":      createdIDs,
+		"tasks":         createdTasks,
+	}
+	if len(errors) > 0 {
+		batchResult["errors"] = errors
+		batchResult["success"] = len(createdTasks) > 0
+	}
+
+	outputPath := cast.ToString(params["output_path"])
+	return response.FormatResult(batchResult, outputPath)
+}
+
+// handleTaskWorkflowCreateSingle creates a single task from flat params.
+func handleTaskWorkflowCreateSingle(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	store, err := getTaskStore(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get task store: %w", err)
@@ -1908,7 +2005,6 @@ func handleTaskWorkflowCreate(ctx context.Context, params map[string]interface{}
 		return nil, fmt.Errorf("failed to find project root: %w", err)
 	}
 
-	// Extract required parameters
 	name, _ := params["name"].(string)
 	if name == "" {
 		return nil, fmt.Errorf("name is required for task creation")
@@ -1916,10 +2012,9 @@ func handleTaskWorkflowCreate(ctx context.Context, params map[string]interface{}
 
 	longDescription, _ := params["long_description"].(string)
 	if longDescription == "" {
-		longDescription = name // Use name as fallback
+		longDescription = name
 	}
 
-	// Extract optional parameters - use config defaults
 	status := config.DefaultTaskStatus()
 	if s, ok := params["status"].(string); ok && s != "" {
 		status = normalizeStatus(s)
@@ -1930,10 +2025,9 @@ func handleTaskWorkflowCreate(ctx context.Context, params map[string]interface{}
 		priority = normalizePriority(p)
 	}
 
-	// Use config default tags, allow override from params
 	tags := config.DefaultTaskTags()
 	if len(tags) == 0 {
-		tags = []string{} // Ensure it's a slice, not nil
+		tags = []string{}
 	}
 
 	if t, ok := params["tags"].([]interface{}); ok {
@@ -1943,7 +2037,6 @@ func handleTaskWorkflowCreate(ctx context.Context, params map[string]interface{}
 			}
 		}
 	} else if tStr, ok := params["tags"].(string); ok && tStr != "" {
-		// Support comma-separated tags string
 		tagList := strings.Split(tStr, ",")
 		for _, tag := range tagList {
 			tag = strings.TrimSpace(tag)
@@ -1962,7 +2055,6 @@ func handleTaskWorkflowCreate(ctx context.Context, params map[string]interface{}
 			}
 		}
 	} else if dStr, ok := params["dependencies"].(string); ok && dStr != "" {
-		// Support comma-separated dependencies string
 		depList := strings.Split(dStr, ",")
 		for _, dep := range depList {
 			dep = strings.TrimSpace(dep)
@@ -1972,7 +2064,6 @@ func handleTaskWorkflowCreate(ctx context.Context, params map[string]interface{}
 		}
 	}
 
-	// Load existing tasks for dependency validation only (ID generation is now O(1))
 	list, err := store.ListTasks(ctx, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load tasks: %w", err)
@@ -1983,10 +2074,8 @@ func handleTaskWorkflowCreate(ctx context.Context, params map[string]interface{}
 		tasks[i] = *t
 	}
 
-	// Generate next task ID using epoch milliseconds (O(1) - no need to load all tasks)
 	nextID := generateEpochTaskID()
 
-	// Validate dependencies exist
 	taskMap := make(map[string]bool)
 	for _, task := range tasks {
 		taskMap[task.ID] = true
@@ -1998,11 +2087,9 @@ func handleTaskWorkflowCreate(ctx context.Context, params map[string]interface{}
 		}
 	}
 
-	// Extract planning document link (optional)
 	var planningDoc string
 	if pd, ok := params["planning_doc"].(string); ok && pd != "" {
 		planningDoc = pd
-		// Validate planning document link
 		if err := ValidatePlanningLink(projectRoot, planningDoc); err != nil {
 			return nil, fmt.Errorf("invalid planning document link: %w", err)
 		}
@@ -2011,7 +2098,6 @@ func handleTaskWorkflowCreate(ctx context.Context, params map[string]interface{}
 	var epicID string
 	if eid, ok := params["epic_id"].(string); ok && eid != "" {
 		epicID = eid
-		// Validate epic ID exists
 		if err := ValidateTaskReference(epicID, tasks); err != nil {
 			return nil, fmt.Errorf("invalid epic ID: %w", err)
 		}
@@ -2024,7 +2110,6 @@ func handleTaskWorkflowCreate(ctx context.Context, params map[string]interface{}
 		}
 	}
 
-	// Create task
 	task := &models.Todo2Task{
 		ID:              nextID,
 		Content:         name,
@@ -2037,19 +2122,16 @@ func handleTaskWorkflowCreate(ctx context.Context, params map[string]interface{}
 		Metadata:        make(map[string]interface{}),
 	}
 
-	// Set project for distributed tracking (default: basename of project root)
 	if task.ProjectID == "" && projectRoot != "" {
 		task.ProjectID = filepath.Base(projectRoot)
 	}
 
-	// Set parent (hierarchy): parent_id explicit param overrides epic_id
 	if parentID != "" {
 		task.ParentID = parentID
 	} else if epicID != "" {
 		task.ParentID = epicID
 	}
 
-	// Store planning document link in metadata if provided
 	if planningDoc != "" || epicID != "" {
 		linkMeta := &PlanningLinkMetadata{
 			PlanningDoc: planningDoc,
@@ -2058,7 +2140,6 @@ func handleTaskWorkflowCreate(ctx context.Context, params map[string]interface{}
 		SetPlanningLinkMetadata(task, linkMeta)
 	}
 
-	// Store preferred local AI backend for estimation (fm|mlx|ollama)
 	if backend, ok := params["local_ai_backend"].(string); ok && backend != "" {
 		backend = strings.TrimSpace(strings.ToLower(backend))
 		if backend == "fm" || backend == "mlx" || backend == "ollama" {
@@ -2066,7 +2147,6 @@ func handleTaskWorkflowCreate(ctx context.Context, params map[string]interface{}
 		}
 	}
 
-	// Store recommended_tools if provided (MCP tool IDs for per-task hints)
 	if recommendedTools := parseRecommendedToolsFromParams(params); len(recommendedTools) > 0 {
 		slice := make([]interface{}, len(recommendedTools))
 		for i, t := range recommendedTools {
@@ -2075,7 +2155,6 @@ func handleTaskWorkflowCreate(ctx context.Context, params map[string]interface{}
 		task.Metadata[MetadataKeyRecommendedTools] = slice
 	}
 
-	// Create via store (DB or file; sync is internal)
 	if err := store.CreateTask(ctx, task); err != nil {
 		return nil, fmt.Errorf("failed to create task: %w", err)
 	}
@@ -2088,7 +2167,6 @@ func handleTaskWorkflowCreate(ctx context.Context, params map[string]interface{}
 		},
 	}
 
-	// Auto-estimate task if enabled (default: true)
 	autoEstimate := true
 	if ae, ok := params["auto_estimate"].(bool); ok {
 		autoEstimate = ae
@@ -2104,7 +2182,6 @@ func handleTaskWorkflowCreate(ctx context.Context, params map[string]interface{}
 				}
 			}
 		} else {
-			// Add estimation success indicator
 			if metadata, ok := result["metadata"].(map[string]interface{}); ok {
 				metadata["estimation_added"] = true
 			} else {
