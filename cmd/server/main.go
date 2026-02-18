@@ -7,6 +7,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/davidl71/exarp-go/internal/acp"
 	"github.com/davidl71/exarp-go/internal/api"
 	"github.com/davidl71/exarp-go/internal/cli"
 	"github.com/davidl71/exarp-go/internal/config"
@@ -24,13 +25,21 @@ func main() {
 
 	// -serve :8080 runs HTTP API + embedded PWA UI only. Only parse when -serve is present
 	// to avoid "flag provided but not defined: -tool" when running CLI (-tool, task, etc.).
+	// -acp runs Agent Client Protocol server (for Zed, JetBrains, OpenCode).
 	hasServe := false
-
+	hasACP := false
 	for _, arg := range os.Args[1:] {
 		if arg == "-serve" || strings.HasPrefix(arg, "-serve=") {
 			hasServe = true
-			break
 		}
+		if arg == "-acp" {
+			hasACP = true
+		}
+	}
+
+	if hasACP {
+		runACPMode()
+		return
 	}
 
 	if hasServe {
@@ -164,5 +173,51 @@ func runServeMode(addr string) {
 
 	if err := http.ListenAndServe(addr, handler); err != nil {
 		logging.Fatal("Serve error: %v", err)
+	}
+}
+
+func runACPMode() {
+	projectRoot, err := tools.FindProjectRoot()
+	if err != nil {
+		logging.Warn("Could not find project root: %v (database unavailable)", err)
+		projectRoot = "."
+	} else {
+		os.Setenv("PROJECT_ROOT", projectRoot)
+		cli.EnsureConfigAndDatabase(projectRoot)
+		if database.DB != nil {
+			defer func() {
+				if err := database.Close(); err != nil {
+					logging.Warn("Error closing database: %v", err)
+				}
+			}()
+		}
+	}
+
+	cfg, err := config.Load()
+	if err != nil {
+		logging.Fatal("Failed to load config: %v", err)
+	}
+
+	mcpServer, err := factory.NewServerFromConfig(cfg)
+	if err != nil {
+		logging.Fatal("Failed to create MCP server: %v", err)
+	}
+
+	if err := tools.RegisterAllTools(mcpServer); err != nil {
+		logging.Fatal("Failed to register tools: %v", err)
+	}
+
+	if err := prompts.RegisterAllPrompts(mcpServer); err != nil {
+		logging.Fatal("Failed to register prompts: %v", err)
+	}
+
+	if err := resources.RegisterAllResources(mcpServer); err != nil {
+		logging.Fatal("Failed to register resources: %v", err)
+	}
+
+	acpServer := acp.NewServer(mcpServer)
+	ctx := context.Background()
+	if err := acpServer.Run(ctx); err != nil {
+		logging.Fatal("ACP server error: %v", err)
 	}
 }

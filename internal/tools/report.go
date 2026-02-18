@@ -14,7 +14,6 @@ import (
 	"github.com/davidl71/exarp-go/internal/database"
 	"github.com/davidl71/exarp-go/internal/framework"
 	"github.com/davidl71/exarp-go/proto"
-	"github.com/davidl71/mcp-go-core/pkg/mcp/response"
 )
 
 // handleReportOverview handles the overview action for report tool.
@@ -44,8 +43,8 @@ func handleReportOverview(ctx context.Context, params map[string]interface{}) ([
 	switch outputFormat {
 	case "json":
 		overviewMap := ProtoToProjectOverviewData(overviewProto)
-
-		contents, err := response.FormatResult(overviewMap, outputPath)
+		compact, _ := params["compact"].(bool)
+		contents, err := FormatResultOptionalCompact(overviewMap, outputPath, compact)
 		if err != nil {
 			return nil, fmt.Errorf("failed to format JSON: %w", err)
 		}
@@ -100,8 +99,8 @@ func handleReportBriefing(ctx context.Context, params map[string]interface{}) ([
 	// Build briefing from proto (type-safe)
 	briefingProto := BuildBriefingDataProto(engine, score)
 	briefingMap := BriefingDataToMap(briefingProto)
-
-	return response.FormatResult(briefingMap, "")
+	compact, _ := params["compact"].(bool)
+	return FormatResultOptionalCompact(briefingMap, "", compact)
 }
 
 // handleReportPRD handles the prd action for report tool.

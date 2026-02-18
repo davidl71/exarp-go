@@ -387,6 +387,11 @@ func registerBatch2Tools(server framework.MCPServer) error {
 					"type":    "string",
 					"default": "text",
 				},
+				"compact": map[string]interface{}{
+					"type":        "boolean",
+					"default":    false,
+					"description": "When true and output_format=json, return compact JSON to reduce context size (overview, scorecard, briefing)",
+				},
 				"output_path": map[string]interface{}{
 					"type":        "string",
 					"description": "For action=plan: path for plan file (default: .cursor/plans/<project-slug>.plan.md)",
@@ -757,6 +762,11 @@ func registerBatch2Tools(server framework.MCPServer) error {
 				"output_format": map[string]interface{}{
 					"type":    "string",
 					"default": "text",
+				},
+				"compact": map[string]interface{}{
+					"type":        "boolean",
+					"default":    false,
+					"description": "When true and output_format=json, return compact JSON (no indentation) to reduce context size",
 				},
 				"stale_threshold_hours": map[string]interface{}{
 					"type":    "number",
@@ -1291,6 +1301,11 @@ func registerBatch3Tools(server framework.MCPServer) error {
 				"include_tasks": map[string]interface{}{
 					"type":    "boolean",
 					"default": true,
+				},
+				"compact": map[string]interface{}{
+					"type":        "boolean",
+					"default":    false,
+					"description": "When true (e.g. for prime), return compact JSON to reduce context size",
 				},
 				"ask_preferences": map[string]interface{}{
 					"type":        "boolean",
