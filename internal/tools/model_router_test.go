@@ -46,10 +46,10 @@ func TestDefaultModelRouter_SelectModel(t *testing.T) {
 func TestDefaultModelRouter_Generate_UnknownType(t *testing.T) {
 	r := &defaultModelRouter{}
 	ctx := context.Background()
-	// Unknown model type falls back to FM chain; may succeed if FM/Ollama available or return ErrFMNotSupported.
+	// Unknown model type falls back to FM chain; may succeed if FM/Ollama available, return ErrFMNotSupported, or connection refused when Ollama is down.
 	_, err := r.Generate(ctx, ModelType("invalid-backend"), "hello", 10, 0.2)
-	if err != nil && !errors.Is(err, ErrFMNotSupported) {
-		t.Errorf("Generate with unknown type should return nil or ErrFMNotSupported, got %v", err)
+	if err != nil && !errors.Is(err, ErrFMNotSupported) && !isConnectionRefused(err) {
+		t.Errorf("Generate with unknown type should return nil, ErrFMNotSupported, or connection refused, got %v", err)
 	}
 }
 

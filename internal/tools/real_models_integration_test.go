@@ -5,12 +5,31 @@ package tools
 
 import (
 	"context"
+	"errors"
+	"net"
 	"os"
 	"path/filepath"
+	"strings"
+	"syscall"
 	"testing"
 
 	"github.com/davidl71/exarp-go/internal/database"
 )
+
+// isConnectionRefused reports whether err indicates a connection refused (e.g. Ollama not running).
+func isConnectionRefused(err error) bool {
+	if err == nil {
+		return false
+	}
+	var opErr *net.OpError
+	if errors.As(err, &opErr) && opErr.Err != nil {
+		var sysErr *syscall.Errno
+		if errors.As(opErr.Err, &sysErr) && *sysErr == syscall.ECONNREFUSED {
+			return true
+		}
+	}
+	return strings.Contains(err.Error(), "connection refused")
+}
 
 const realModelsTimeoutSeconds = 60
 
@@ -28,6 +47,9 @@ func TestRealModels_TextGenerate(t *testing.T) {
 
 	text, err := gen.Generate(ctx, "Reply with exactly the word OK and nothing else.", 10, 0)
 	if err != nil {
+		if isConnectionRefused(err) {
+			t.Skip("Ollama not running:", err)
+		}
 		t.Fatalf("Generate with real model: %v", err)
 	}
 
@@ -50,6 +72,9 @@ func TestRealModels_AnalyzePrompt(t *testing.T) {
 
 	result, err := AnalyzePrompt(ctx, "List three colors.", "", "test", gen)
 	if err != nil {
+		if isConnectionRefused(err) {
+			t.Skip("Ollama not running:", err)
+		}
 		t.Fatalf("AnalyzePrompt with real model: %v", err)
 	}
 
@@ -78,6 +103,9 @@ func TestRealModels_AnalyzeTask(t *testing.T) {
 
 	result, err := AnalyzeTask(ctx, "Add a unit test for function Foo.", "", "", gen)
 	if err != nil {
+		if isConnectionRefused(err) {
+			t.Skip("Ollama not running:", err)
+		}
 		t.Fatalf("AnalyzeTask with real model: %v", err)
 	}
 
@@ -128,6 +156,9 @@ func TestRealModels_TaskExecutionFlow(t *testing.T) {
 		Apply:       false,
 	})
 	if err != nil {
+		if isConnectionRefused(err) {
+			t.Skip("Ollama not running:", err)
+		}
 		t.Fatalf("RunTaskExecutionFlow with real model: %v", err)
 	}
 
@@ -155,6 +186,9 @@ func TestRealModels_RefinePromptLoop(t *testing.T) {
 
 	finalPrompt, lastAnalysis, err := RefinePromptLoop(ctx, "List three colors.", "", "test", gen, &RefinePromptLoopOptions{MaxIterations: 1})
 	if err != nil {
+		if isConnectionRefused(err) {
+			t.Skip("Ollama not running:", err)
+		}
 		t.Fatalf("RefinePromptLoop with real model: %v", err)
 	}
 
