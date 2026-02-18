@@ -143,6 +143,12 @@ func jsonSafeValue(v interface{}) interface{} {
 		}
 
 		return out
+	case []string:
+		out := make([]interface{}, len(x))
+		for i, s := range x {
+			out[i] = s
+		}
+		return out
 	case map[string]interface{}:
 		out := make(map[string]interface{}, len(x))
 		for k2, val := range x {
