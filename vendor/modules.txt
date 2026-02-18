@@ -60,13 +60,13 @@ github.com/clipperhouse/displaywidth
 # github.com/clipperhouse/uax29/v2 v2.6.0
 ## explicit; go 1.18
 github.com/clipperhouse/uax29/v2/graphemes
-# github.com/davidl71/devwisdom-go v0.1.2 => /Users/davidl/Projects/devwisdom-go
+# github.com/davidl71/devwisdom-go v0.1.2
 ## explicit; go 1.25.5
 github.com/davidl71/devwisdom-go/internal/config
 github.com/davidl71/devwisdom-go/internal/wisdom
 github.com/davidl71/devwisdom-go/internal/wisdom/sefaria
 github.com/davidl71/devwisdom-go/pkg/wisdom
-# github.com/davidl71/mcp-go-core v0.3.1 => /Users/davidl/Projects/mcp-go-core
+# github.com/davidl71/mcp-go-core v0.3.1
 ## explicit; go 1.24.0
 github.com/davidl71/mcp-go-core/pkg/mcp/cli
 github.com/davidl71/mcp-go-core/pkg/mcp/framework
@@ -196,6 +196,10 @@ github.com/remyoudompheng/bigfft
 # github.com/rivo/uniseg v0.4.7
 ## explicit; go 1.18
 github.com/rivo/uniseg
+# github.com/rqlite/gorqlite v0.0.0-20250609141355-ac86a4a1c9a8
+## explicit
+github.com/rqlite/gorqlite
+github.com/rqlite/gorqlite/stdlib
 # github.com/xo/terminfo v0.0.0-20220910002029-abceb7e1c41e
 ## explicit; go 1.19
 github.com/xo/terminfo
@@ -474,5 +478,3 @@ modernc.org/memory
 modernc.org/sqlite
 modernc.org/sqlite/lib
 modernc.org/sqlite/vtab
-# github.com/davidl71/devwisdom-go => /Users/davidl/Projects/devwisdom-go
-# github.com/davidl71/mcp-go-core => /Users/davidl/Projects/mcp-go-core

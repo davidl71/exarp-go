@@ -16,6 +16,11 @@ GIT_COMMIT := $(shell git rev-parse --short HEAD 2>/dev/null || echo "unknown")
 # Detect Go binary (check PATH first, then common locations)
 GO := $(shell if command -v go >/dev/null 2>&1; then echo go; elif [ -x /usr/local/go/bin/go ]; then echo /usr/local/go/bin/go; elif [ -x $$HOME/.local/go/bin/go ]; then echo $$HOME/.local/go/bin/go; else echo go; fi)
 
+# Use vendor when present so build works without local replace paths (devwisdom-go, mcp-go-core)
+ifneq ($(wildcard vendor/modules.txt),)
+  export GOFLAGS := -mod=vendor
+endif
+
 # Colors for output
 GREEN := \033[0;32m
 YELLOW := \033[1;33m
