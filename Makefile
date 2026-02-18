@@ -1,4 +1,4 @@
-.PHONY: help b build build-debug silent build-race build-no-cgo run test test-watch tag-build-ok pre-release r root push pull p pl test-coverage test-html clean install fmt lint lint-all lint-all-fix dev dev-watch dev-test dev-full dev-cycle pre-push bench docs sanity-check sanity-check-cached test-cli test-cli-list test-cli-tool test-cli-test config clean-config sprint-start sprint-end pre-sprint sprint check-tasks update-completed-tasks task-sanity-check go-fmt go-vet golangci-lint-check golangci-lint-fix govulncheck check check-fix check-all build-migrate migrate migrate-dry-run install-tools go-mod-tidy go-mod-verify pre-commit ci validate check-deps test-go test-go-fast test-go-verbose test-go-parallel test-go-tools-short test-real-models version scorecard scorecard-full scorecard-plans report-plan demo-tui task-list task-list-todo task-list-in-progress task-list-done task-prune-done task-update task-create queue-enqueue-wave queue-worker proto delete-expired-archive analyze-critical-path proto-check proto-clean exarp-list exarp-report-scorecard exarp-report-overview exarp-health-server exarp-health-docs exarp-context-budget exarp-test
+.PHONY: help b build build-debug silent build-race build-no-cgo run test test-watch tag-build-ok pre-release r root push pull p pl test-coverage test-html clean install fmt lint lint-all lint-all-fix dev dev-watch dev-test dev-full dev-cycle pre-push bench docs sanity-check sanity-check-cached test-cli test-cli-list test-cli-tool test-cli-test config clean-config sprint-start sprint-end pre-sprint sprint check-tasks update-completed-tasks task-sanity-check go-fmt go-vet golangci-lint-check golangci-lint-fix govulncheck check check-fix check-all build-migrate migrate migrate-dry-run install-tools go-mod-tidy go-mod-verify pre-commit ci validate check-deps test-go test-go-fast test-go-verbose test-go-parallel test-go-tools-short test-real-models version scorecard scorecard-full scorecard-plans report-plan demo-tui task-list task-list-todo task-list-in-progress task-list-done task-prune-done task-update task-create queue-enqueue-wave queue-worker proto delete-expired-archive analyze-critical-path proto-check proto-clean vendor-licenses exarp-list exarp-report-scorecard exarp-report-overview exarp-health-server exarp-health-docs exarp-context-budget exarp-test test-mcp-stdio validate-opencode-config validate-plugin
 
 # Project configuration
 PROJECT_NAME := exarp-go
@@ -338,6 +338,23 @@ test-mcp: ## Test MCP server via stdio (requires manual input)
 	@echo "$(YELLOW)Note: This requires manual JSON-RPC input$(NC)"
 	@$(BINARY_PATH) < /dev/stdin
 
+test-mcp-stdio: build ## MCP stdio smoke test (initialize + tools/list) — validates MCP without OpenCode
+	@echo "$(BLUE)Running MCP stdio smoke test...$(NC)"
+	@PROJECT_ROOT="$(REPO_ROOT)" bash scripts/test-mcp-stdio.sh $(BINARY_PATH) && \
+	 echo "$(GREEN)✅ MCP stdio smoke test passed$(NC)" || \
+	 (echo "$(RED)❌ MCP stdio smoke test failed$(NC)" && exit 1)
+
+validate-opencode-config: ## Validate OpenCode config (exarp-go MCP entry, paths)
+	@bash scripts/validate-opencode-config.sh && \
+	 echo "$(GREEN)✅ OpenCode config valid$(NC)" || exit 1
+
+##@ Cursor Plugin
+
+validate-plugin: ## Validate Cursor plugin (manifest + mcp.json). See docs/CURSOR_PLUGIN_SUBMISSION.md
+	@echo "$(BLUE)Validating Cursor plugin structure...$(NC)"
+	@bash scripts/validate-cursor-plugin.sh && \
+	 echo "$(GREEN)✅ Cursor plugin validation passed$(NC)" || exit 1
+
 ##@ CLI Testing
 
 test-cli: build test-cli-list test-cli-tool test-cli-test ## Run all CLI functionality tests
@@ -563,6 +580,11 @@ delete-expired-archive: ## Delete expired docs/archive files per ARCHIVE_RETENTI
 
 analyze-critical-path: ## Run critical path analysis (Todo2 dependency DAG, longest chain)
 	@$(GO) run ./cmd/analyze_critical_path
+
+vendor-licenses: ## Update docs/VENDOR_LICENSES.md from vendor/ (credits and licenses)
+	@echo "$(BLUE)Updating vendor credits and licenses...$(NC)"
+	@REPO_ROOT="$(CURDIR)" ./scripts/vendor_licenses.sh
+	@echo "$(GREEN)✅ docs/VENDOR_LICENSES.md updated$(NC)"
 
 ##@ Cleanup
 

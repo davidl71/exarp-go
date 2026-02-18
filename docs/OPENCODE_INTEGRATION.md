@@ -146,7 +146,70 @@ For tight integration (agent calling tasks, reports, session prime), configure e
 
 ---
 
-## 4. OpenCode and Cursor (ACP)
+## 4. MLX + OpenCode (Local Models)
+
+Use local MLX models with OpenCode for on-device inference. Combined with exarp-go MCP, you get tasks, reports, and session prime alongside local LLM planning.
+
+### Setup
+
+1. **Install [OpenCode](https://opencode.ai/):**
+   ```bash
+   curl -fsSL https://opencode.ai/install | bash
+   ```
+
+2. **Install [mlx-lm](https://github.com/ml-explore/mlx-lm):**
+   ```bash
+   pip install mlx-lm
+   ```
+
+3. **Configure OpenCode** — Add the MLX provider and exarp-go MCP to `~/.config/opencode/opencode.json`:
+   ```json
+   {
+     "$schema": "https://opencode.ai/config.json",
+     "provider": {
+       "mlx": {
+         "npm": "@ai-sdk/openai-compatible",
+         "name": "MLX (local)",
+         "options": { "baseURL": "http://127.0.0.1:8080/v1" },
+         "models": {
+           "mlx-community/Qwen2.5-Coder-7B-Instruct-8bit": { "name": "Qwen 2.5 Coder" }
+         }
+       }
+     },
+     "mcp": {
+       "exarp-go": {
+         "type": "local",
+         "command": ["/path/to/bin/exarp-go"],
+         "enabled": true,
+         "environment": { "PROJECT_ROOT": "/path/to/your/project" },
+         "timeout": 10000
+       }
+     }
+   }
+   ```
+
+4. **Start the MLX server:**
+   ```bash
+   mlx_lm.server
+   ```
+
+5. **Connect in OpenCode TUI:** Run `opencode`, then `/connect` → select MLX → API key `none` → choose model.
+
+### Known limitations
+
+- **Tool calling:** Until [mlx-lm#711](https://github.com/ml-explore/mlx-lm/pull/711) lands, tool calling in `mlx_lm.server` is limited or broken.
+- **Model support:** Tool-calling support varies by model. Check mlx-lm issues for your model.
+- **exarp-go tools:** exarp-go MCP works independently of the LLM provider; tasks, report, and session tools are available regardless of MLX status.
+
+Reference: [OpenCode with MLX gist](https://gist.github.com/awni/93a973a0cf5fb539b2ce1f37ec4a9989).
+
+### Skip LSP: MCP is sufficient
+
+For OpenCode and code intelligence, **MCP (exarp-go) is sufficient** — you do not need a separate LSP (Language Server Protocol) setup. exarp-go provides tools, prompts, and resources; OpenCode’s built-in language support plus exarp-go’s `task_workflow`, `report`, `session`, and `health` tools cover task management and project context. Add LSP only if you need editor-specific diagnostics or completions beyond what OpenCode already offers.
+
+---
+
+## 5. OpenCode and Cursor (ACP)
 
 OpenCode [supports the Agent Client Protocol (ACP)](https://opencode.ai/docs/acp/): you run `opencode acp` and your editor talks to OpenCode over JSON-RPC via stdio. Editors that support ACP (Zed, JetBrains, Avante.nvim, CodeCompanion.nvim) can add OpenCode as an agent server; see [OpenCode ACP docs](https://opencode.ai/docs/acp/) for their config snippets.
 
