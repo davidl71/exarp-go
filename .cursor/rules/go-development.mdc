@@ -676,6 +676,15 @@ err := database.AddComments(taskID, comments)
 - `make pre-sprint` - Run pre-sprint cleanup (duplicates, alignment, docs)
 - `make sprint` - Run full sprint automation (process all background tasks)
 
+**Task and queue (Todo2 / Redis+Asynq):**
+- `make task-list` - List tasks (use `TASK_FLAGS="--status Todo"` to filter)
+- `make task-list-todo` - List Todo tasks
+- `make task-update` - Update status: `make task-update TASK_ID=T-123 NEW_STATUS=Done`
+- `make task-create` - Create task: `make task-create TASK_NAME="Title" TASK_DESC="..." TASK_PRIORITY=medium`
+- `make queue-enqueue-wave` - Enqueue wave to Redis+Asynq (set `WAVE=0` or `WAVE=1`; requires `REDIS_ADDR`)
+- `make queue-worker` - Run Asynq worker (requires `REDIS_ADDR`)
+- **Env (optional):** `REDIS_ADDR=127.0.0.1:6379` for queue/worker; see `docs/EXARP_CLI_SHORTCUTS.md` for aliases and all targets.
+
 **Task Completion Detection (native Go infer_task_progress):**
 - `make check-tasks` - Batch check In Progress tasks to find completed ones (dry run, no updates). Uses `exarp-go -tool infer_task_progress`; report written to docs/TASK_COMPLETION_CHECK.md.
 - `make update-completed-tasks` - Batch check and auto-update completed tasks (updates task status based on codebase analysis). Same tool with auto_update_tasks=true; report to docs/TASK_COMPLETION_UPDATE.md.

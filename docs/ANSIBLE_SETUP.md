@@ -36,7 +36,11 @@ ansible/
     │   └── tasks/main.yml
     ├── python/                    # Python & package managers
     │   └── tasks/main.yml
-    └── linters/                   # Optional linters
+    ├── linters/                   # Optional linters
+    │   └── tasks/main.yml
+    ├── ollama/                    # Optional Ollama
+    │   └── tasks/main.yml
+    └── redis/                     # Optional Redis (queue/worker)
         └── tasks/main.yml
 ```
 
@@ -60,6 +64,7 @@ ansible/
 - markdownlint-cli - Markdown linter
 - cspell - Code spell checker
 - fswatch (macOS) / inotify-tools (Linux) - File watchers
+- **Redis** - For exarp-go queue/worker (Asynq). Set `install_redis: true` in group_vars; then use `REDIS_ADDR=127.0.0.1:6379` with `make queue-enqueue-wave` and `make queue-worker`. See `docs/EXARP_CLI_SHORTCUTS.md`.
 
 ### Production Environment
 
@@ -115,6 +120,8 @@ Edit `inventories/development/group_vars/all.yml`:
 install_linters: true      # Install linters
 install_dev_tools: true    # Install dev tools
 install_file_watchers: true # Install file watchers
+install_ollama: true       # Ollama (ollama serve + models)
+install_redis: false       # Redis for queue/worker (REDIS_ADDR=127.0.0.1:6379)
 ```
 
 ### Select Specific Linters

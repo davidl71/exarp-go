@@ -19,7 +19,8 @@ ansible/
 │   ├── golang/             # Go installation
 │   ├── python/             # Python and package managers
 │   ├── linters/            # Optional linters
-│   └── ollama/             # Optional Ollama (fixes ollama tool / native tests)
+│   ├── ollama/             # Optional Ollama (fixes ollama tool / native tests)
+│   └── redis/              # Optional Redis (queue/worker: make queue-enqueue-wave, queue-worker)
 ├── playbooks/
 │   ├── development.yml     # Development setup
 │   └── production.yml      # Production setup
@@ -80,6 +81,9 @@ ansible-playbook playbooks/development.yml --tags golang
 # Only install linters
 ansible-playbook playbooks/development.yml --tags linters
 
+# Only install Redis (queue/worker)
+ansible-playbook playbooks/development.yml --tags redis
+
 # Skip optional tools
 ansible-playbook playbooks/development.yml --skip-tags optional
 ```
@@ -112,6 +116,8 @@ Edit `inventories/development/group_vars/all.yml`:
 install_linters: true
 install_dev_tools: true
 install_file_watchers: true
+install_ollama: true   # Ollama (ollama serve + models)
+install_redis: false  # Redis for queue/worker; set REDIS_ADDR=127.0.0.1:6379 (see docs/EXARP_CLI_SHORTCUTS.md)
 
 # Select specific linters
 linters:

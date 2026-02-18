@@ -35,6 +35,12 @@
         - ollama
         - optional
 
+    - role: redis
+      when: install_redis | default(false)
+      tags:
+        - redis
+        - optional
+
   tasks:
     - name: Create project directory
       ansible.builtin.file:
@@ -80,5 +86,6 @@
           - "Dev tools installed: {{ install_dev_tools | default(false) }}"
           - "GitHub CLI (gh) installed: {{ install_gh | default(false) }}"
           - "Ollama installed: {{ install_ollama | default(false) }} (start with: ollama serve)"
+          - "Redis installed: {{ install_redis | default(false) }} (for queue/worker: set REDIS_ADDR=127.0.0.1:6379)"
       tags:
         - always
