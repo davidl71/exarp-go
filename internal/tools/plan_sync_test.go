@@ -73,6 +73,7 @@ todos:
 `
 	tmpDir := t.TempDir()
 	prevRoot := os.Getenv("PROJECT_ROOT")
+
 	os.Setenv("PROJECT_ROOT", tmpDir)
 
 	defer func() { os.Setenv("PROJECT_ROOT", prevRoot) }()

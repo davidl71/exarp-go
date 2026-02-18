@@ -31,6 +31,7 @@ func handleCursorSkills(ctx context.Context, uri string) ([]byte, string, error)
 	}
 
 	var parts []string
+
 	parts = append(parts, "# exarp-go workflow guide\n\nApply when using exarp-go MCP tools. Works with Cursor (skills) and Claude Code (CLAUDE.md + commands).\n")
 
 	for _, rel := range cursorSkillPaths {

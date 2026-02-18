@@ -571,21 +571,27 @@ func (g *CursorIgnoreGenerator) hasFilesWithPattern(pattern string) bool {
 	// Use filepath.Walk for recursive glob matching
 	found := false
 
-	filepath.Walk(g.projectRoot, func(path string, info os.FileInfo, err error) error {
+	if err := filepath.Walk(g.projectRoot, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return nil // Skip errors
 		}
 
-		if !info.IsDir() {
-			matched, _ := filepath.Match(pattern, filepath.Base(path))
+		if !info.IsDir() && !found {
+			matched, matchErr := filepath.Match(pattern, filepath.Base(path))
+			if matchErr != nil {
+				return nil
+			}
+
 			if matched {
 				found = true
-				return filepath.SkipAll // Stop walking
+				return nil
 			}
 		}
 
 		return nil
-	})
+	}); err != nil {
+		return false
+	}
 
 	return found
 }

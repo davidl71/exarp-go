@@ -158,6 +158,7 @@ func DetectCycles(tg *TaskGraph) [][]string {
 	recStack := make(map[int64]bool)
 
 	var dfs func(nodeID int64, path []int64)
+
 	dfs = func(nodeID int64, path []int64) {
 		visited[nodeID] = true
 		recStack[nodeID] = true

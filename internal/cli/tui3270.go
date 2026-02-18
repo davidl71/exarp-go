@@ -3,6 +3,7 @@ package cli
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net"
 	"os"
@@ -80,7 +81,7 @@ func runTUI3270Server(server framework.MCPServer, status string, port int) error
 	projectName := ""
 
 	if err != nil {
-		logWarn(nil, "Could not find project root", "error", err, "operation", "runTUI3270Server")
+		logWarn(context.Background(), "Could not find project root", "error", err, "operation", "runTUI3270Server")
 	} else {
 		projectName = getProjectName(projectRoot)
 		EnsureConfigAndDatabase(projectRoot)
@@ -88,7 +89,7 @@ func runTUI3270Server(server framework.MCPServer, status string, port int) error
 		if database.DB != nil {
 			defer func() {
 				if err := database.Close(); err != nil {
-					logWarn(nil, "Error closing database", "error", err, "operation", "closeDatabase")
+					logWarn(context.Background(), "Error closing database", "error", err, "operation", "closeDatabase")
 				}
 			}()
 		}
@@ -99,10 +100,15 @@ func runTUI3270Server(server framework.MCPServer, status string, port int) error
 	if err != nil {
 		return fmt.Errorf("failed to listen on port %d: %w", port, err)
 	}
-	defer listener.Close()
 
-	logInfo(nil, "3270 TUI server listening", "port", port, "operation", "runTUI3270Server")
-	logInfo(nil, "Connect with x3270", "host", "localhost", "port", port, "operation", "runTUI3270Server")
+	defer func() {
+		if closeErr := listener.Close(); closeErr != nil && !errors.Is(closeErr, net.ErrClosed) {
+			logWarn(context.Background(), "Error closing listener", "error", closeErr, "operation", "runTUI3270Server")
+		}
+	}()
+
+	logInfo(context.Background(), "3270 TUI server listening", "port", port, "operation", "runTUI3270Server")
+	logInfo(context.Background(), "Connect with x3270", "host", "localhost", "port", port, "operation", "runTUI3270Server")
 
 	// Set up signal handling for graceful shutdown
 	sigChan := make(chan os.Signal, 1)
@@ -120,7 +126,7 @@ func runTUI3270Server(server framework.MCPServer, status string, port int) error
 					return
 				}
 
-				logError(nil, "Error accepting connection", "error", err, "operation", "acceptConnection")
+				logError(context.Background(), "Error accepting connection", "error", err, "operation", "acceptConnection")
 
 				continue
 			}
@@ -133,8 +139,11 @@ func runTUI3270Server(server framework.MCPServer, status string, port int) error
 	// Wait for signal or error
 	select {
 	case sig := <-sigChan:
-		logInfo(nil, "Received signal, shutting down gracefully", "signal", sig.String(), "operation", "shutdown")
-		listener.Close()
+		logInfo(context.Background(), "Received signal, shutting down gracefully", "signal", sig.String(), "operation", "shutdown")
+
+		if closeErr := listener.Close(); closeErr != nil && !errors.Is(closeErr, net.ErrClosed) {
+			logWarn(context.Background(), "Error closing listener", "error", closeErr, "operation", "shutdown")
+		}
 
 		return nil
 	case err := <-errChan:
@@ -161,7 +170,9 @@ func daemonize(pidFile string, serverFunc func() error) error {
 			return fmt.Errorf("server already running (PID: %d)", existingPID)
 		}
 		// PID file exists but process is dead, remove it
-		os.Remove(pidFile)
+		if rmErr := os.Remove(pidFile); rmErr != nil {
+			logWarn(context.Background(), "Failed to remove stale PID file", "error", rmErr, "operation", "daemonize", "pid_file", pidFile)
+		}
 	}
 
 	// Write PID file with current process PID
@@ -172,7 +183,9 @@ func daemonize(pidFile string, serverFunc func() error) error {
 
 	// Set up cleanup on exit
 	defer func() {
-		os.Remove(pidFile)
+		if rmErr := os.Remove(pidFile); rmErr != nil {
+			logWarn(context.Background(), "Failed to remove PID file", "error", rmErr, "operation", "daemonize", "pid_file", pidFile)
+		}
 	}()
 
 	// Redirect logs to file when daemonized
@@ -208,12 +221,16 @@ func readPIDFile(pidFile string) (int, error) {
 
 // handle3270Connection handles a single 3270 connection.
 func handle3270Connection(conn net.Conn, server framework.MCPServer, status, projectRoot, projectName string) {
-	defer conn.Close()
+	defer func() {
+		if closeErr := conn.Close(); closeErr != nil {
+			logWarn(context.Background(), "Error closing connection", "error", closeErr, "operation", "handle3270Connection")
+		}
+	}()
 
 	// Negotiate telnet options
 	devInfo, err := go3270.NegotiateTelnet(conn)
 	if err != nil {
-		logError(nil, "Telnet negotiation failed", "error", err, "operation", "negotiateTelnet")
+		logError(context.Background(), "Telnet negotiation failed", "error", err, "operation", "negotiateTelnet")
 		return
 	}
 
@@ -237,13 +254,13 @@ func handle3270Connection(conn net.Conn, server framework.MCPServer, status, pro
 
 	state.tasks, err = loadTasksForStatus(ctx, state.status)
 	if err != nil {
-		logError(nil, "Error loading tasks", "error", err, "operation", "loadTasks")
+		logError(context.Background(), "Error loading tasks", "error", err, "operation", "loadTasks")
 	}
 
 	// Run transactions (main application loop)
 	// Start with main menu transaction
 	if err := go3270.RunTransactions(conn, devInfo, state.mainMenuTransaction, state); err != nil {
-		logError(nil, "Transaction error", "error", err, "operation", "runTransactions")
+		logError(context.Background(), "Transaction error", "error", err, "operation", "runTransactions")
 	}
 }
 
@@ -1460,7 +1477,7 @@ func (state *tui3270State) taskEditorTransaction(conn net.Conn, devInfo go3270.D
 
 		// Update task in database
 		if err := database.UpdateTask(ctx, task); err != nil {
-			logError(nil, "Error updating task", "error", err, "operation", "updateTask", "task_id", task.ID)
+			logError(context.Background(), "Error updating task", "error", err, "operation", "updateTask", "task_id", task.ID)
 			// Show error message (could enhance with error field)
 		} else {
 			state.command = ""
@@ -1568,7 +1585,7 @@ func (state *tui3270State) handleCommand(cmd string, currentTx go3270.Tx) (go327
 
 			state.tasks, err = loadTasksForStatus(ctx, state.status)
 			if err != nil {
-				logError(nil, "Error reloading tasks", "error", err, "operation", "reloadTasks")
+				logError(context.Background(), "Error reloading tasks", "error", err, "operation", "reloadTasks")
 			}
 		}
 
@@ -1586,7 +1603,7 @@ func (state *tui3270State) handleCommand(cmd string, currentTx go3270.Tx) (go327
 
 		state.tasks, err = loadTasksForStatus(ctx, state.status)
 		if err != nil {
-			logError(nil, "Error reloading tasks", "error", err, "operation", "reloadTasks")
+			logError(context.Background(), "Error reloading tasks", "error", err, "operation", "reloadTasks")
 		}
 
 		return state.taskListTransaction, state, nil

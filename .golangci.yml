@@ -93,7 +93,7 @@ linters:
     - varnamelen        # Variable name length
     - whitespace        # Whitespace checking
     - wrapcheck         # Error wrapping
-    - wsl               # Whitespace lines
+    - wsl_v5            # Whitespace lines
 
 # Linters settings
 linters-settings:
@@ -228,3 +228,8 @@ linters-settings:
         severity: warning
       - name: unreachable-code
         severity: warning
+
+  wsl_v5:
+    allow-first-in-block: true
+    allow-whole-block: false
+    branch-max-lines: 2

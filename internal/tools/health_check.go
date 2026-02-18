@@ -8,6 +8,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -255,8 +256,13 @@ func handleHealthGit(ctx context.Context, params map[string]interface{}) ([]fram
 				ahead := 0
 
 				if len(parts) >= 2 {
-					fmt.Sscanf(parts[0], "%d", &behind)
-					fmt.Sscanf(parts[1], "%d", &ahead)
+					if parsedBehind, parseErr := strconv.Atoi(parts[0]); parseErr == nil {
+						behind = parsedBehind
+					}
+
+					if parsedAhead, parseErr := strconv.Atoi(parts[1]); parseErr == nil {
+						ahead = parsedAhead
+					}
 				}
 
 				remoteSync = behind == 0 && ahead == 0

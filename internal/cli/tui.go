@@ -121,14 +121,17 @@ func (m model) indentForTask(realIdx int) string {
 	if m.hierarchyDepthByID == nil || realIdx < 0 || realIdx >= len(m.tasks) {
 		return ""
 	}
+
 	task := m.tasks[realIdx]
 	if task == nil {
 		return ""
 	}
+
 	d := m.hierarchyDepthByID[task.ID]
 	if d <= 0 {
 		return ""
 	}
+
 	return strings.Repeat("  ", d)
 }
 
@@ -137,13 +140,16 @@ func (m model) treeMarkerForTask(realIdx int) string {
 	if realIdx < 0 || realIdx >= len(m.tasks) {
 		return ""
 	}
+
 	task := m.tasks[realIdx]
 	if task == nil || !m.taskHasChildren(task.ID) {
 		return ""
 	}
+
 	if _, ok := m.collapsedTaskIDs[task.ID]; ok {
 		return "▶ "
 	}
+
 	return "▼ "
 }
 
@@ -271,22 +277,22 @@ type model struct {
 	handoffActionMsg   string // result of close/approve action
 
 	// Waves view (dependency-order waves from BacklogExecutionOrder)
-	waves            map[int][]string // level -> task IDs (computed when entering waves view)
-	waveDetailLevel  int              // -1 = wave list (collapsed), >= 0 = viewing tasks for that wave level
-	waveCursor       int              // cursor in wave list (when collapsed)
-	waveTaskCursor   int              // cursor within expanded wave's task list (when waveDetailLevel >= 0)
-	waveMoveTaskID   string           // when set, showing "move task to wave" prompt; Esc clears
-	waveMoveMsg      string           // result message after move (success or error)
-	waveUpdateMsg    string           // result message after update waves from plan (success or error)
+	waves           map[int][]string // level -> task IDs (computed when entering waves view)
+	waveDetailLevel int              // -1 = wave list (collapsed), >= 0 = viewing tasks for that wave level
+	waveCursor      int              // cursor in wave list (when collapsed)
+	waveTaskCursor  int              // cursor within expanded wave's task list (when waveDetailLevel >= 0)
+	waveMoveTaskID  string           // when set, showing "move task to wave" prompt; Esc clears
+	waveMoveMsg     string           // result message after move (success or error)
+	waveUpdateMsg   string           // result message after update waves from plan (success or error)
 
 	// Task analysis view (run task_analysis tool and show result)
-	taskAnalysisText     string // result text
-	taskAnalysisLoading  bool
-	taskAnalysisErr      error
-	taskAnalysisAction    string // e.g. "parallelization", "dependencies"
-	taskAnalysisReturnMode string // "tasks" or "waves" when leaving view
+	taskAnalysisText           string // result text
+	taskAnalysisLoading        bool
+	taskAnalysisErr            error
+	taskAnalysisAction         string // e.g. "parallelization", "dependencies"
+	taskAnalysisReturnMode     string // "tasks" or "waves" when leaving view
 	taskAnalysisApproveLoading bool
-	taskAnalysisApproveMsg    string // "Saved to ..." or error after y=write waves
+	taskAnalysisApproveMsg     string // "Saved to ..." or error after y=write waves
 
 	// Background jobs view (child agent launches)
 	jobs            []BackgroundJob
@@ -297,12 +303,12 @@ type model struct {
 	taskDetailTask *database.Todo2Task
 
 	// Sort: order (id|status|priority|updated|hierarchy), ascending
-	sortOrder       string
-	sortAsc         bool
-	hierarchyOrder    []int            // display order when sortOrder==hierarchy
-	hierarchyDepth    map[int]int      // task index -> indent level (0=root), used for hierarchy order
-	hierarchyDepthByID map[string]int // task ID -> indent level, for indent regardless of sort
-	collapsedTaskIDs  map[string]struct{} // task IDs that are collapsed (their descendants hidden in tree)
+	sortOrder          string
+	sortAsc            bool
+	hierarchyOrder     []int               // display order when sortOrder==hierarchy
+	hierarchyDepth     map[int]int         // task index -> indent level (0=root), used for hierarchy order
+	hierarchyDepthByID map[string]int      // task ID -> indent level, for indent regardless of sort
+	collapsedTaskIDs   map[string]struct{} // task IDs that are collapsed (their descendants hidden in tree)
 
 	// Search/filter: / to open, n/N next/prev match
 	searchQuery     string
@@ -438,38 +444,38 @@ func initialModel(server framework.MCPServer, status string, projectRoot, projec
 	}
 
 	return model{
-		tasks:             []*database.Todo2Task{},
-		cursor:            0,
-		selected:          make(map[int]struct{}),
-		status:            status,
-		server:            server,
-		loading:           true,
-		width:             width,
-		height:            height,
-		autoRefresh:       true, // Enable auto-refresh by default
-		lastUpdate:        time.Now(),
-		projectRoot:       projectRoot,
-		projectName:       projectName,
-		mode:              "tasks",
-		configSections:    sections,
-		configCursor:      0,
-		configData:        cfg,
-		configChanged:     false,
-		configSectionText: "",
-		configSaveMessage: "",
-		configSaveSuccess: false,
-		scorecardLoading:  false,
-		taskDetailTask:    nil,
-		sortOrder:         "hierarchy",
-		sortAsc:           true,
-		searchQuery:       "",
-		searchMode:        false,
-		filteredIndices:   nil,
-		showHelp:          false,
-		childAgentMsg:     "",
-		handoffEntries:    nil,
-		handoffCursor:     0,
-		handoffSelected:   make(map[int]struct{}),
+		tasks:              []*database.Todo2Task{},
+		cursor:             0,
+		selected:           make(map[int]struct{}),
+		status:             status,
+		server:             server,
+		loading:            true,
+		width:              width,
+		height:             height,
+		autoRefresh:        true, // Enable auto-refresh by default
+		lastUpdate:         time.Now(),
+		projectRoot:        projectRoot,
+		projectName:        projectName,
+		mode:               "tasks",
+		configSections:     sections,
+		configCursor:       0,
+		configData:         cfg,
+		configChanged:      false,
+		configSectionText:  "",
+		configSaveMessage:  "",
+		configSaveSuccess:  false,
+		scorecardLoading:   false,
+		taskDetailTask:     nil,
+		sortOrder:          "hierarchy",
+		sortAsc:            true,
+		searchQuery:        "",
+		searchMode:         false,
+		filteredIndices:    nil,
+		showHelp:           false,
+		childAgentMsg:      "",
+		handoffEntries:     nil,
+		handoffCursor:      0,
+		handoffSelected:    make(map[int]struct{}),
 		handoffDetailIndex: -1,
 		handoffActionMsg:   "",
 		waveDetailLevel:    -1,
@@ -538,63 +544,84 @@ func (m *model) computeHierarchyOrder() {
 		m.hierarchyOrder = nil
 		m.hierarchyDepth = nil
 		m.hierarchyDepthByID = nil
+
 		return
 	}
+
 	taskList := make([]tools.Todo2Task, 0, len(m.tasks))
+
 	for _, p := range m.tasks {
 		if p != nil {
 			taskList = append(taskList, *p)
 		}
 	}
+
 	tg, err := tools.BuildTaskGraph(taskList)
 	if err != nil {
 		m.hierarchyOrder = nil
 		m.hierarchyDepth = nil
 		m.hierarchyDepthByID = nil
+
 		return
 	}
+
 	levels := tools.GetTaskLevels(tg)
 	m.hierarchyDepthByID = make(map[string]int)
+
 	for id, level := range levels {
 		m.hierarchyDepthByID[id] = level
 	}
+
 	type item struct {
 		idx      int
 		level    int
 		priority string
 		id       string
 	}
+
 	var items []item
+
 	for i, p := range m.tasks {
 		if p == nil {
 			continue
 		}
+
 		level := levels[p.ID]
 		items = append(items, item{i, level, p.Priority, p.ID})
 	}
+
 	asc := m.sortAsc
+
 	sort.Slice(items, func(i, j int) bool {
 		if items[i].level != items[j].level {
 			if asc {
 				return items[i].level < items[j].level
 			}
+
 			return items[i].level > items[j].level
 		}
+
 		pi := priorityOrderForSort(items[i].priority)
 		pj := priorityOrderForSort(items[j].priority)
+
 		if pi != pj {
 			if asc {
 				return pi < pj
 			}
+
 			return pi > pj
 		}
+
 		if asc {
 			return items[i].id < items[j].id
 		}
+
 		return items[i].id > items[j].id
 	})
+
 	m.hierarchyOrder = make([]int, len(items))
 	m.hierarchyDepth = make(map[int]int)
+
 	for i, it := range items {
 		m.hierarchyOrder[i] = it.idx
 		m.hierarchyDepth[it.idx] = it.level
@@ -604,11 +631,13 @@ func (m *model) computeHierarchyOrder() {
 // taskParentMap returns task ID -> parent task ID for all tasks that have a parent.
 func (m model) taskParentMap() map[string]string {
 	out := make(map[string]string, len(m.tasks))
+
 	for _, t := range m.tasks {
 		if t.ParentID != "" {
 			out[t.ID] = t.ParentID
 		}
 	}
+
 	return out
 }
 
@@ -617,31 +646,39 @@ func (m model) taskParentMap() map[string]string {
 func (m model) taskAncestorIDs() map[string][]string {
 	out := make(map[string][]string, len(m.tasks))
 	taskIDs := make(map[string]struct{}, len(m.tasks))
+
 	for _, t := range m.tasks {
 		if t == nil {
 			continue
 		}
+
 		taskIDs[t.ID] = struct{}{}
 	}
+
 	for _, t := range m.tasks {
 		if t == nil {
 			continue
 		}
+
 		var ancestors []string
+
 		if t.ParentID != "" {
 			if _, ok := taskIDs[t.ParentID]; ok {
 				ancestors = append(ancestors, t.ParentID)
 			}
 		}
+
 		for _, depID := range t.Dependencies {
 			if _, ok := taskIDs[depID]; ok {
 				ancestors = append(ancestors, depID)
 			}
 		}
+
 		if len(ancestors) > 0 {
 			out[t.ID] = ancestors
 		}
 	}
+
 	return out
 }
 
@@ -649,22 +686,29 @@ func (m model) taskAncestorIDs() map[string][]string {
 // following both parent_id and dependency links (so collapsing hides parent children and dependents).
 func (m model) isDescendantOfCollapsed(taskID string, ancestorIDs map[string][]string) bool {
 	seen := make(map[string]struct{})
+
 	var queue []string
+
 	queue = append(queue, taskID)
 	for len(queue) > 0 {
 		id := queue[0]
 		queue = queue[1:]
+
 		if _, ok := seen[id]; ok {
 			continue
 		}
+
 		seen[id] = struct{}{}
+
 		for _, anc := range ancestorIDs[id] {
 			if _, collapsed := m.collapsedTaskIDs[anc]; collapsed {
 				return true
 			}
+
 			queue = append(queue, anc)
 		}
 	}
+
 	return false
 }
 
@@ -674,15 +718,18 @@ func (m model) taskHasChildren(taskID string) bool {
 		if t == nil {
 			continue
 		}
+
 		if t.ParentID == taskID {
 			return true
 		}
+
 		for _, depID := range t.Dependencies {
 			if depID == taskID {
 				return true
 			}
 		}
 	}
+
 	return false
 }
 
@@ -691,6 +738,7 @@ func (m model) visibleIndices() []int {
 	if len(m.tasks) == 0 {
 		return nil
 	}
+
 	var base []int
 	if m.sortOrder == "hierarchy" && len(m.hierarchyOrder) > 0 {
 		base = m.hierarchyOrder
@@ -700,33 +748,42 @@ func (m model) visibleIndices() []int {
 			base[i] = i
 		}
 	}
+
 	if m.filteredIndices != nil {
 		filterSet := make(map[int]struct{})
 		for _, i := range m.filteredIndices {
 			filterSet[i] = struct{}{}
 		}
+
 		var out []int
+
 		for _, i := range base {
 			if _, ok := filterSet[i]; ok {
 				out = append(out, i)
 			}
 		}
+
 		base = out
 	}
 	// Hide descendants of collapsed tasks (parent_id children and dependency dependents)
 	if len(m.collapsedTaskIDs) == 0 {
 		return base
 	}
+
 	ancestorIDs := m.taskAncestorIDs()
+
 	var final []int
+
 	for _, i := range base {
 		if m.tasks[i] == nil {
 			continue
 		}
+
 		if !m.isDescendantOfCollapsed(m.tasks[i].ID, ancestorIDs) {
 			final = append(final, i)
 		}
 	}
+
 	return final
 }
 
@@ -985,17 +1042,21 @@ func runTaskAnalysis(server framework.MCPServer, action string) tea.Cmd {
 		if server == nil {
 			return taskAnalysisLoadedMsg{action: action, err: fmt.Errorf("no server")}
 		}
+
 		ctx := context.Background()
 		args, _ := json.Marshal(map[string]interface{}{"action": action, "output_format": "text"})
+
 		result, err := server.CallTool(ctx, "task_analysis", args)
 		if err != nil {
 			return taskAnalysisLoadedMsg{action: action, err: err}
 		}
+
 		var b strings.Builder
 		for _, c := range result {
 			b.WriteString(c.Text)
 			b.WriteString("\n")
 		}
+
 		return taskAnalysisLoadedMsg{text: strings.TrimSpace(b.String()), action: action, err: nil}
 	}
 }
@@ -1007,18 +1068,22 @@ func runReportUpdateWavesFromPlan(server framework.MCPServer, projectRoot string
 		if server == nil {
 			return updateWavesFromPlanDoneMsg{message: "", err: fmt.Errorf("no server")}
 		}
+
 		ctx := context.Background()
 		args, _ := json.Marshal(map[string]interface{}{
 			"action": "update_waves_from_plan",
 		})
+
 		result, err := server.CallTool(ctx, "report", args)
 		if err != nil {
 			return updateWavesFromPlanDoneMsg{message: "", err: err}
 		}
+
 		var msg string
 		for _, c := range result {
 			msg += c.Text
 		}
+
 		return updateWavesFromPlanDoneMsg{message: strings.TrimSpace(msg), err: nil}
 	}
 }
@@ -1031,25 +1096,30 @@ func runReportParallelExecutionPlan(server framework.MCPServer, projectRoot stri
 		if server == nil {
 			return taskAnalysisApproveDoneMsg{err: fmt.Errorf("no server")}
 		}
+
 		ctx := context.Background()
 		outputPath := filepath.Join(projectRoot, ".cursor", "plans", "parallel-execution-subagents.plan.md")
 		args, _ := json.Marshal(map[string]interface{}{
-			"action":         "execution_plan",
-			"output_format":  "subagents_plan",
-			"output_path":    outputPath,
+			"action":        "execution_plan",
+			"output_format": "subagents_plan",
+			"output_path":   outputPath,
 		})
+
 		result, err := server.CallTool(ctx, "task_analysis", args)
 		if err != nil {
 			return taskAnalysisApproveDoneMsg{err: err}
 		}
+
 		var msg string
 		for _, c := range result {
 			msg += c.Text
 		}
+
 		msg = strings.TrimSpace(msg)
 		if msg == "" {
 			msg = "Waves plan written to .cursor/plans/parallel-execution-subagents.plan.md"
 		}
+
 		return taskAnalysisApproveDoneMsg{message: msg, err: nil}
 	}
 }
@@ -1060,14 +1130,17 @@ func moveTaskToWaveCmd(task *database.Todo2Task, newDeps []string) tea.Cmd {
 		if task == nil {
 			return moveTaskToWaveDoneMsg{taskID: "", err: fmt.Errorf("no task")}
 		}
+
 		ctx := context.Background()
 		// Copy so we don't mutate the shared task
 		updated := *task
 		updated.Dependencies = make([]string, len(newDeps))
 		copy(updated.Dependencies, newDeps)
+
 		if err := database.UpdateTask(ctx, &updated); err != nil {
 			return moveTaskToWaveDoneMsg{taskID: task.ID, err: err}
 		}
+
 		return moveTaskToWaveDoneMsg{taskID: task.ID, err: nil}
 	}
 }
@@ -1177,11 +1250,13 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		m.tasks = msg.tasks
 		m.computeHierarchyOrder() // always compute so hierarchy depth/order available
+
 		if m.sortOrder == "hierarchy" && len(m.hierarchyOrder) > 0 {
 			// use hierarchy order (parent then children, with depth)
 		} else {
 			sortTasksBy(m.tasks, m.sortOrder, m.sortAsc)
 		}
+
 		if m.searchQuery != "" {
 			m.filteredIndices = m.computeFilteredIndices()
 		} else {
@@ -1235,17 +1310,20 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		// Reload tasks so waves recompute from updated backlog
 		m.loading = true
+
 		return m, loadTasks(m.status)
 
 	case taskAnalysisLoadedMsg:
 		m.taskAnalysisLoading = false
 		m.taskAnalysisErr = msg.err
 		m.taskAnalysisAction = msg.action
+
 		if msg.err == nil {
 			m.taskAnalysisText = msg.text
 		} else {
 			m.taskAnalysisText = ""
 		}
+
 		return m, nil
 
 	case taskAnalysisApproveDoneMsg:
@@ -1255,6 +1333,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		} else {
 			m.taskAnalysisApproveMsg = msg.message
 		}
+
 		return m, nil
 
 	case moveTaskToWaveDoneMsg:
@@ -1264,16 +1343,19 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		} else {
 			m.waveMoveMsg = "Moved " + msg.taskID + " to wave"
 		}
+
 		return m, loadTasks(m.status)
 
 	case updateWavesFromPlanDoneMsg:
 		m.loading = false
 		m.waveUpdateMsg = ""
+
 		if msg.err != nil {
 			m.waveUpdateMsg = "Error: " + msg.err.Error()
 		} else if msg.message != "" {
 			m.waveUpdateMsg = msg.message
 		}
+
 		return m, loadTasks(m.status)
 
 	case tickMsg:
@@ -1359,13 +1441,15 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.handoffActionMsg = fmt.Sprintf("%s failed: %v", msg.action, msg.err)
 		} else {
 			verb := msg.action + "d"
-			if msg.action == "delete" {
+			switch msg.action {
+			case "delete":
 				verb = "deleted"
-			} else if msg.action == "close" {
+			case "close":
 				verb = "closed"
-			} else if msg.action == "approve" {
+			case "approve":
 				verb = "approved"
 			}
+
 			m.handoffActionMsg = fmt.Sprintf("%d handoff(s) %s.", msg.updated, verb)
 			m.handoffSelected = make(map[int]struct{})
 			m.handoffDetailIndex = -1 // return to list after close/approve/delete
@@ -1409,6 +1493,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				if msg.Err != nil {
 					m.jobs[i].Output += "\n(exit: " + msg.Err.Error() + ")"
 				}
+
 				break
 			}
 		}
@@ -1453,6 +1538,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				if m.taskAnalysisReturnMode == "" {
 					m.mode = "tasks"
 				}
+
 				return m, nil
 			}
 
@@ -1551,10 +1637,13 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				if m.waveMoveTaskID != "" {
 					m.waveMoveTaskID = ""
 					m.waveMoveMsg = ""
+
 					return m, nil
 				}
+
 				m.waveUpdateMsg = ""
 				m.waveDetailLevel = -1
+
 				return m, nil
 			}
 		}
@@ -1761,23 +1850,30 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				} else if m.handoffCursor < len(m.handoffEntries) {
 					h = m.handoffEntries[m.handoffCursor]
 				}
+
 				if h != nil {
 					m.childAgentMsg = ""
 					sum, _ := h["summary"].(string)
+
 					var steps []interface{}
 					if s, ok := h["next_steps"].([]interface{}); ok {
 						steps = s
 					}
+
 					prompt := PromptForHandoff(sum, steps)
+
 					return m, runChildAgentCmdInteractive(m.projectRoot, prompt, ChildAgentHandoff)
 				}
+
 				return m, nil
 			}
 
 			// In handoffs: "e" = execute current handoff in agent and close it
 			if m.mode == "handoffs" && msg.String() == "e" && len(m.handoffEntries) > 0 {
 				var h map[string]interface{}
+
 				var id string
+
 				if m.handoffDetailIndex >= 0 && m.handoffDetailIndex < len(m.handoffEntries) {
 					h = m.handoffEntries[m.handoffDetailIndex]
 					id, _ = h["id"].(string)
@@ -1785,19 +1881,24 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					h = m.handoffEntries[m.handoffCursor]
 					id, _ = h["id"].(string)
 				}
+
 				if id != "" && h != nil {
 					m.childAgentMsg = ""
 					sum, _ := h["summary"].(string)
+
 					var steps []interface{}
 					if s, ok := h["next_steps"].([]interface{}); ok {
 						steps = s
 					}
+
 					prompt := PromptForHandoff(sum, steps)
+
 					return m, tea.Batch(
 						runChildAgentCmd(m.projectRoot, prompt, ChildAgentHandoff),
 						runHandoffAction(m.server, m.projectRoot, []string{id}, "close"),
 					)
 				}
+
 				return m, nil
 			}
 
@@ -1855,8 +1956,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			case "config":
 				// Reload config
 				m.configSaveMessage = ""
-				cfg, err := config.LoadConfig(m.projectRoot)
 
+				cfg, err := config.LoadConfig(m.projectRoot)
 				if err == nil {
 					m.configData = cfg
 					m.configChanged = false
@@ -1878,12 +1979,15 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			case "taskAnalysis":
 				if !m.taskAnalysisLoading {
 					m.taskAnalysisLoading = true
+
 					action := m.taskAnalysisAction
 					if action == "" {
 						action = "parallelization"
 					}
+
 					return m, runTaskAnalysis(m.server, action)
 				}
+
 				return m, nil
 			default:
 				// Refresh tasks
@@ -1895,11 +1999,13 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			// Close/dismiss handoffs: from detail view (current item) or list view (selected or current)
 			if m.mode == "handoffs" && len(m.handoffEntries) > 0 {
 				var ids []string
+
 				if m.handoffDetailIndex >= 0 && m.handoffDetailIndex < len(m.handoffEntries) {
 					if id, _ := m.handoffEntries[m.handoffDetailIndex]["id"].(string); id != "" {
 						ids = []string{id}
 					}
 				}
+
 				if len(ids) == 0 {
 					ids = m.handoffSelectedIDs()
 					if len(ids) == 0 && m.handoffCursor < len(m.handoffEntries) {
@@ -1924,11 +2030,13 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.mode == "handoffs" && len(m.handoffEntries) > 0 {
 				// Approve: from detail view (current item) or list view (selected or current)
 				var ids []string
+
 				if m.handoffDetailIndex >= 0 && m.handoffDetailIndex < len(m.handoffEntries) {
 					if id, _ := m.handoffEntries[m.handoffDetailIndex]["id"].(string); id != "" {
 						ids = []string{id}
 					}
 				}
+
 				if len(ids) == 0 {
 					ids = m.handoffSelectedIDs()
 					if len(ids) == 0 && m.handoffCursor < len(m.handoffEntries) {
@@ -1957,11 +2065,13 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			// Delete handoffs: from detail view (current item) or list view (selected or current)
 			if m.mode == "handoffs" && len(m.handoffEntries) > 0 {
 				var ids []string
+
 				if m.handoffDetailIndex >= 0 && m.handoffDetailIndex < len(m.handoffEntries) {
 					if id, _ := m.handoffEntries[m.handoffDetailIndex]["id"].(string); id != "" {
 						ids = []string{id}
 					}
 				}
+
 				if len(ids) == 0 {
 					ids = m.handoffSelectedIDs()
 					if len(ids) == 0 && m.handoffCursor < len(m.handoffEntries) {
@@ -1993,11 +2103,13 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				default:
 					m.sortOrder = "id"
 				}
+
 				if m.sortOrder == "hierarchy" {
 					m.computeHierarchyOrder()
 				} else {
 					sortTasksBy(m.tasks, m.sortOrder, m.sortAsc)
 				}
+
 				if m.cursor >= len(m.visibleIndices()) {
 					m.cursor = len(m.visibleIndices()) - 1
 				}
@@ -2054,6 +2166,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				vis := m.visibleIndices()
 				if len(vis) > 0 && m.cursor < len(vis) {
 					realIdx := m.realIndexAt(m.cursor)
+
 					task := m.tasks[realIdx]
 					if task != nil && m.taskHasChildren(task.ID) {
 						if _, ok := m.collapsedTaskIDs[task.ID]; ok {
@@ -2064,6 +2177,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					}
 				}
 			}
+
 			return m, nil
 
 		case "u":
@@ -2071,6 +2185,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.mode == "config" {
 				return m, saveConfig(m.projectRoot, m.configData)
 			}
+
 			return m, nil
 
 		case "s":
@@ -2115,6 +2230,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.mode == "waves" {
 				m.loading = true
 				m.waveUpdateMsg = ""
+
 				return m, runReportUpdateWavesFromPlan(m.server, m.projectRoot)
 			}
 
@@ -2131,14 +2247,18 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.taskAnalysisAction = "parallelization"
 				m.taskAnalysisApproveMsg = ""
 				m.taskAnalysisApproveLoading = false
+
 				return m, runTaskAnalysis(m.server, "parallelization")
 			}
+
 			if m.mode == "taskAnalysis" && !m.taskAnalysisLoading {
 				// Rerun same action
 				m.taskAnalysisLoading = true
 				m.taskAnalysisApproveMsg = ""
+
 				return m, runTaskAnalysis(m.server, m.taskAnalysisAction)
 			}
+
 			return m, nil
 
 		case "y":
@@ -2146,8 +2266,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.mode == "taskAnalysis" && !m.taskAnalysisLoading && !m.taskAnalysisApproveLoading {
 				m.taskAnalysisApproveLoading = true
 				m.taskAnalysisApproveMsg = ""
+
 				return m, runReportParallelExecutionPlan(m.server, m.projectRoot)
 			}
+
 			return m, nil
 
 		case "m":
@@ -2159,42 +2281,54 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.waveMoveMsg = ""
 				}
 			}
+
 			return m, nil
 
 		case "0", "1", "2", "3", "4", "5", "6", "7", "8", "9":
 			if m.mode == "waves" && m.waveMoveTaskID != "" {
 				targetLevel := int(msg.String()[0] - '0')
 				levels := sortedWaveLevels(m.waves)
+
 				if targetLevel < 0 || targetLevel >= len(levels) {
 					m.waveMoveMsg = "Invalid wave number"
 					return m, nil
 				}
+
 				level := levels[targetLevel]
+
 				var newDeps []string
+
 				if level == 0 {
 					newDeps = nil
 				} else {
 					prevLevel := levels[targetLevel-1]
+
 					prevIDs := m.waves[prevLevel]
 					if len(prevIDs) == 0 {
 						m.waveMoveMsg = "No tasks in previous wave"
 						return m, nil
 					}
+
 					newDeps = []string{prevIDs[0]}
 				}
+
 				taskByID := make(map[string]*database.Todo2Task)
+
 				for _, t := range m.tasks {
 					if t != nil {
 						taskByID[t.ID] = t
 					}
 				}
+
 				task := taskByID[m.waveMoveTaskID]
 				if task == nil {
 					m.waveMoveMsg = "Task not found"
 					return m, nil
 				}
+
 				return m, moveTaskToWaveCmd(task, newDeps)
 			}
+
 			return m, nil
 
 		case "E":
@@ -2509,6 +2643,7 @@ func (m model) renderNarrowTaskList(b *strings.Builder, width int) {
 		task := m.tasks[realIdx]
 		indent := m.indentForTask(realIdx)
 		marker := m.treeMarkerForTask(realIdx)
+
 		cursor := " "
 		if m.cursor == idx {
 			cursor = ">"
@@ -2570,6 +2705,7 @@ func (m model) renderMediumTaskList(b *strings.Builder, width int) {
 		task := m.tasks[realIdx]
 		indent := m.indentForTask(realIdx)
 		marker := m.treeMarkerForTask(realIdx)
+
 		cursor := "   "
 		if m.cursor == idx {
 			cursor = " → "
@@ -2700,6 +2836,7 @@ func (m model) renderWideTaskList(b *strings.Builder, width int) {
 		task := m.tasks[realIdx]
 		indent := m.indentForTask(realIdx)
 		marker := m.treeMarkerForTask(realIdx)
+
 		cursor := "   "
 		if m.cursor == idx {
 			cursor = " → "
@@ -3094,6 +3231,7 @@ func (m model) viewHandoffs() string {
 			b.WriteString(helpStyle.Render(m.handoffActionMsg))
 			b.WriteString("\n")
 		}
+
 		if m.childAgentMsg != "" {
 			b.WriteString(borderStyle.Render(strings.Repeat("─", availableWidth)))
 			b.WriteString("\n  ")
@@ -3185,6 +3323,7 @@ func (m model) viewHandoffs() string {
 					}
 
 					bl := ""
+
 					switch v := bi.(type) {
 					case string:
 						bl = v
@@ -3214,6 +3353,7 @@ func (m model) viewHandoffs() string {
 					}
 
 					st := ""
+
 					switch v := si.(type) {
 					case string:
 						st = v
@@ -3344,6 +3484,7 @@ func (m model) viewWaves() string {
 		// Expanded: show tasks for the selected wave only
 		ids := m.waves[m.waveDetailLevel]
 		levels := sortedWaveLevels(m.waves)
+
 		maxWaveIdx := len(levels) - 1
 		if maxWaveIdx < 0 {
 			maxWaveIdx = 0
@@ -3361,10 +3502,12 @@ func (m model) viewWaves() string {
 			if t := taskByID[id]; t != nil && t.Content != "" {
 				content = truncatePad(t.Content, availableWidth-6)
 			}
+
 			line := "  • " + helpStyle.Render(id) + "  " + normalStyle.Render(content)
 			if i == m.waveTaskCursor {
 				line = highlightRow(line, availableWidth, true)
 			}
+
 			b.WriteString(line)
 			b.WriteString("\n")
 		}
@@ -3374,23 +3517,28 @@ func (m model) viewWaves() string {
 			b.WriteString(helpStyle.Render(fmt.Sprintf("Move %s to wave (0-%d): press 0-%d  Esc cancel", m.waveMoveTaskID, maxWaveIdx, maxWaveIdx)))
 			b.WriteString("\n")
 		}
+
 		if m.waveMoveMsg != "" {
 			b.WriteString("  ")
 			b.WriteString(statusBarStyle.Render(m.waveMoveMsg))
 			b.WriteString("\n")
 		}
+
 		if m.waveUpdateMsg != "" {
 			b.WriteString("  ")
 			b.WriteString(statusBarStyle.Render(m.waveUpdateMsg))
 			b.WriteString("\n")
 		}
+
 		b.WriteString("\n")
 		b.WriteString(borderStyle.Render(strings.Repeat("─", availableWidth)))
 		b.WriteString("\n")
+
 		statusLine := "↑↓ move  m move task  U update from plan  Esc/Enter collapse  E run wave  R refresh  H/w back  q quit"
 		if m.waveMoveTaskID != "" {
 			statusLine = "0-9 pick wave  Esc cancel  " + statusLine
 		}
+
 		b.WriteString(statusBarStyle.Render(statusLine))
 
 		return b.String()
@@ -3427,6 +3575,7 @@ func (m model) viewWaves() string {
 		b.WriteString(statusBarStyle.Render(m.waveUpdateMsg))
 		b.WriteString("\n")
 	}
+
 	b.WriteString(borderStyle.Render(strings.Repeat("─", availableWidth)))
 	b.WriteString("\n")
 	b.WriteString(statusBarStyle.Render("Enter expand  E run wave  R refresh tools  U update from plan  A analysis  H/w back  r refresh  q quit"))
@@ -3439,16 +3588,19 @@ func (m model) viewTaskAnalysis() string {
 	if availableWidth < 40 {
 		availableWidth = 40
 	}
+
 	maxTextLines := m.effectiveHeight() - 10
 	if maxTextLines < 4 {
 		maxTextLines = 4
 	}
 
 	var b strings.Builder
+
 	title := "TASK ANALYSIS"
 	if m.projectName != "" {
 		title = fmt.Sprintf("%s - %s", strings.ToUpper(m.projectName), title)
 	}
+
 	b.WriteString(headerStyle.Render(title))
 	b.WriteString(" ")
 	b.WriteString(headerLabelStyle.Render("action=" + m.taskAnalysisAction))
@@ -3465,43 +3617,52 @@ func (m model) viewTaskAnalysis() string {
 	if m.taskAnalysisLoading {
 		b.WriteString("\n  Running task_analysis (" + m.taskAnalysisAction + ")...\n\n")
 		b.WriteString(statusBarStyle.Render("Commands: p back  q quit"))
+
 		return b.String()
 	}
 
 	if m.taskAnalysisApproveLoading {
 		b.WriteString("\n  Writing waves plan to .cursor/plans/parallel-execution-subagents.plan.md ...\n\n")
 		b.WriteString(statusBarStyle.Render("Commands: p back  q quit"))
+
 		return b.String()
 	}
 
 	if m.taskAnalysisErr != nil {
 		b.WriteString(fmt.Sprintf("\n  Error: %v\n\n", m.taskAnalysisErr))
 		b.WriteString(statusBarStyle.Render("Commands: p back  r rerun  y write waves  q quit"))
+
 		return b.String()
 	}
 
 	lines := strings.Split(m.taskAnalysisText, "\n")
 	shown := 0
+
 	for _, line := range lines {
 		if shown >= maxTextLines {
 			b.WriteString(helpStyle.Render("  ... (run exarp-go -tool task_analysis for full output)"))
 			b.WriteString("\n")
+
 			break
 		}
+
 		if len(line) > availableWidth {
 			for len(line) > 0 && shown < maxTextLines {
 				end := availableWidth
 				if end > len(line) {
 					end = len(line)
 				}
+
 				b.WriteString(normalStyle.Render(line[:end]))
 				b.WriteString("\n")
+
 				line = line[end:]
 				shown++
 			}
 		} else {
 			b.WriteString(normalStyle.Render(line))
 			b.WriteString("\n")
+
 			shown++
 		}
 	}
@@ -3515,6 +3676,7 @@ func (m model) viewTaskAnalysis() string {
 	b.WriteString(borderStyle.Render(strings.Repeat("─", availableWidth)))
 	b.WriteString("\n")
 	b.WriteString(statusBarStyle.Render("Commands: p back  r rerun  y write waves  q quit"))
+
 	return b.String()
 }
 
@@ -3640,6 +3802,7 @@ func (m model) viewJobDetail(job BackgroundJob, availableWidth, wrapWidth int) s
 	b.WriteString("  ")
 	b.WriteString(headerLabelStyle.Render("Output:"))
 	b.WriteString("\n")
+
 	if job.Output != "" {
 		for _, line := range strings.Split(wordWrap(job.Output, wrapWidth), "\n") {
 			b.WriteString("  ")
@@ -3651,6 +3814,7 @@ func (m model) viewJobDetail(job BackgroundJob, availableWidth, wrapWidth int) s
 		b.WriteString(helpStyle.Render("(running or interactive job — no capture)"))
 		b.WriteString("\n")
 	}
+
 	b.WriteString("  ")
 	b.WriteString(borderStyle.Render(strings.Repeat("─", availableWidth)))
 	b.WriteString("\n")
@@ -3718,6 +3882,7 @@ func (m model) viewHandoffDetail(h map[string]interface{}, availableWidth, wrapW
 
 		for _, bi := range blockers {
 			bl := ""
+
 			switch v := bi.(type) {
 			case string:
 				bl = v
@@ -3741,6 +3906,7 @@ func (m model) viewHandoffDetail(h map[string]interface{}, availableWidth, wrapW
 
 		for _, si := range steps {
 			st := ""
+
 			switch v := si.(type) {
 			case string:
 				st = v
@@ -3763,6 +3929,7 @@ func (m model) viewHandoffDetail(h map[string]interface{}, availableWidth, wrapW
 		b.WriteString(helpStyle.Render(m.childAgentMsg))
 		b.WriteString("\n")
 	}
+
 	b.WriteString(borderStyle.Render(strings.Repeat("─", availableWidth)))
 	b.WriteString("\n")
 	b.WriteString(statusBarStyle.Render("i interactive  e run & close  x close  a approve  d delete  Esc back  q quit"))
@@ -4238,7 +4405,7 @@ func runChildAgentCmd(projectRoot, prompt string, kind ChildAgentKind) tea.Cmd {
 			func() tea.Msg { return childAgentResultMsg{Result: r} },
 			func() tea.Msg {
 				out := <-done
-				return jobCompletedMsg{Pid: out.Pid, Output: out.Output, ExitCode: out.ExitCode, Err: out.Err}
+				return jobCompletedMsg(out)
 			},
 		)
 	}

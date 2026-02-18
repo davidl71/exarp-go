@@ -125,7 +125,7 @@ func processExternalToolHints(projectRoot string, minFileSize int, dryRun bool) 
 	}
 
 	// Walk docs directory
-	filepath.Walk(docsPath, func(path string, info os.FileInfo, err error) error {
+	if err := filepath.Walk(docsPath, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return nil
 		}
@@ -221,7 +221,12 @@ func processExternalToolHints(projectRoot string, minFileSize int, dryRun bool) 
 		}
 
 		return nil
-	})
+	}); err != nil {
+		results.HintsSkipped = append(results.HintsSkipped, map[string]interface{}{
+			"file":   docsPath,
+			"reason": fmt.Sprintf("Error walking docs directory: %v", err),
+		})
+	}
 
 	return results
 }
@@ -237,7 +242,11 @@ func hasExistingHint(content string) bool {
 
 	contentLower := strings.ToLower(content)
 	for _, pattern := range hintPatterns {
-		matched, _ := regexp.MatchString(pattern, contentLower)
+		matched, err := regexp.MatchString(pattern, contentLower)
+		if err != nil {
+			continue
+		}
+
 		if matched {
 			return true
 		}

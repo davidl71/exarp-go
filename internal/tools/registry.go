@@ -779,16 +779,16 @@ func registerBatch2Tools(server framework.MCPServer) error {
 					"description": "Task description (required for create action)",
 				},
 				"tags": map[string]interface{}{
-					"type":        []interface{}{"array", "string"},
-					"description": "Task tags (array of strings or comma-separated string)",
+					"type":        "string",
+					"description": "Task tags as comma-separated values (e.g. 'backend,urgent') or JSON array encoded as string (e.g. '[\"backend\",\"urgent\"]')",
 				},
 				"remove_tags": map[string]interface{}{
-					"type":        []interface{}{"array", "string"},
-					"description": "Tags to remove from task(s). For action=update: array or comma-separated string.",
+					"type":        "string",
+					"description": "Tags to remove from task(s). For action=update: comma-separated values or JSON array encoded as string.",
 				},
 				"dependencies": map[string]interface{}{
-					"type":        []interface{}{"array", "string"},
-					"description": "Task dependencies (array of task IDs or comma-separated string)",
+					"type":        "string",
+					"description": "Task dependencies as comma-separated task IDs or JSON array encoded as string (e.g. '[\"T-1\",\"T-2\"]')",
 				},
 				"auto_estimate": map[string]interface{}{
 					"type":        "boolean",
@@ -848,7 +848,8 @@ func registerBatch2Tools(server framework.MCPServer) error {
 					"default": 3,
 				},
 				"file_extensions": map[string]interface{}{
-					"type": "array",
+					"type":  "array",
+					"items": map[string]interface{}{"type": "string"},
 				},
 				"confidence_threshold": map[string]interface{}{
 					"type":    "number",
@@ -1006,8 +1007,8 @@ func registerBatch3Tools(server framework.MCPServer) error {
 					"type": "string",
 				},
 				"use_cursor_agent": map[string]interface{}{
-					"type":    "boolean",
-					"default": false,
+					"type":        "boolean",
+					"default":     false,
 					"description": "When true, run Cursor CLI agent -p in project root and attach output to result (daily/nightly/sprint). Requires agent on PATH.",
 				},
 				"cursor_agent_prompt": map[string]interface{}{
@@ -1148,6 +1149,7 @@ func registerBatch3Tools(server framework.MCPServer) error {
 				},
 				"task_ids": map[string]interface{}{
 					"type":        "array",
+					"items":       map[string]interface{}{"type": "string"},
 					"description": "For estimate_batch: list of task IDs to estimate (or omit with status_filter for all matching)",
 				},
 				"status_filter": map[string]interface{}{
@@ -1802,7 +1804,20 @@ func registerBatch5Tools(server framework.MCPServer) error {
 			Type: "object",
 			Properties: map[string]interface{}{
 				"tools": map[string]interface{}{
-					"type":        "array",
+					"type": "array",
+					"items": map[string]interface{}{
+						"oneOf": []interface{}{
+							map[string]interface{}{"type": "string"},
+							map[string]interface{}{
+								"type": "object",
+								"properties": map[string]interface{}{
+									"tool":   map[string]interface{}{"type": "string"},
+									"action": map[string]interface{}{"type": "string"},
+								},
+								"required": []string{"tool"},
+							},
+						},
+					},
 					"description": "Tool configs: [{tool, action}] or tool names. Default: duplicates, dependencies, todo2.",
 				},
 			},

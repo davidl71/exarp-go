@@ -252,6 +252,7 @@ func validateGoTests(projectRoot, testPath string) (string, error) {
 
 	// Check for test files
 	testFiles := []string{}
+
 	err := filepath.Walk(filepath.Join(projectRoot, testPath), func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return nil
@@ -263,7 +264,6 @@ func validateGoTests(projectRoot, testPath string) (string, error) {
 
 		return nil
 	})
-
 	if err != nil {
 		return "", fmt.Errorf("failed to walk test path: %w", err)
 	}
@@ -300,6 +300,7 @@ func validateGoTests(projectRoot, testPath string) (string, error) {
 // parseFloat is a simple float parser helper.
 func parseFloat(s string) (float64, error) {
 	var f float64
+
 	_, err := fmt.Sscanf(s, "%f", &f)
 
 	return f, err

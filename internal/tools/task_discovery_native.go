@@ -24,8 +24,11 @@ func handleTaskDiscoveryNative(ctx context.Context, params map[string]interface{
 		action = "all"
 	}
 
-	// Use default FM for semantic extraction when available
+	// Use default FM for semantic extraction when available (can be explicitly disabled via params["use_llm"]).
 	useAppleFM := FMAvailable()
+	if useLLM, ok := params["use_llm"].(bool); ok {
+		useAppleFM = useAppleFM && useLLM
+	}
 
 	projectRoot, err := FindProjectRoot()
 	if err != nil {
@@ -286,7 +289,6 @@ func scanComments(ctx context.Context, projectRoot string, patterns []string, in
 
 		return nil
 	})
-
 	if err != nil {
 		// Log error but continue
 	}
@@ -351,7 +353,6 @@ func scanMarkdown(projectRoot string, docPath string) []map[string]interface{} {
 
 		return nil
 	})
-
 	if err != nil {
 		// Log error but continue
 	}
@@ -615,7 +616,6 @@ func scanPlanningDocs(ctx context.Context, projectRoot string, docPath string, u
 
 		return nil
 	})
-
 	if err != nil {
 		// Log error but continue
 	}

@@ -547,6 +547,7 @@ func handleTaskWorkflowUpdate(ctx context.Context, params map[string]interface{}
 				if task.Metadata == nil {
 					task.Metadata = make(map[string]interface{})
 				}
+
 				task.Metadata[MetadataKeyPreferredBackend] = backend
 			}
 		}
@@ -2252,15 +2253,18 @@ func handleTaskWorkflowSummarize(ctx context.Context, params map[string]interfac
 
 	// Determine backend: param overrides task metadata
 	backend := ""
+
 	if b, ok := params["local_ai_backend"].(string); ok && b != "" {
 		b = strings.TrimSpace(strings.ToLower(b))
 		if b == "fm" || b == "mlx" || b == "ollama" {
 			backend = b
 		}
 	}
+
 	if backend == "" {
 		backend = GetPreferredBackend(task.Metadata)
 	}
+
 	if backend == "" {
 		backend = "fm" // default to FM chain (Apple → Ollama → stub)
 	}
@@ -2270,6 +2274,7 @@ func handleTaskWorkflowSummarize(ctx context.Context, params map[string]interfac
 	if len(task.Tags) > 0 {
 		tagsStr = strings.Join(task.Tags, ", ")
 	}
+
 	prompt := fmt.Sprintf(`You are a technical project assistant. Summarize the following software task in 2-3 sentences, highlighting the goal, key steps, and expected outcome.
 
 TASK:
@@ -2283,6 +2288,7 @@ Respond with a concise, plain-text summary only. No JSON, no bullet points.`,
 
 	// Generate summary using selected backend
 	var summaryText string
+
 	switch backend {
 	case "ollama":
 		summaryText, err = func() (string, error) {
@@ -2292,16 +2298,19 @@ Respond with a concise, plain-text summary only. No JSON, no bullet points.`,
 				"model":  "llama3.2",
 				"stream": false,
 			}
+
 			tc, e := DefaultOllama().Invoke(ctx, p)
 			if e != nil || len(tc) == 0 {
 				return "", fmt.Errorf("ollama generate failed: %w", e)
 			}
+
 			var genResp map[string]interface{}
 			if e2 := json.Unmarshal([]byte(tc[0].Text), &genResp); e2 == nil {
 				if resp, ok := genResp["response"].(string); ok {
 					return strings.TrimSpace(resp), nil
 				}
 			}
+
 			return strings.TrimSpace(tc[0].Text), nil
 		}()
 	case "mlx":
@@ -2309,6 +2318,7 @@ Respond with a concise, plain-text summary only. No JSON, no bullet points.`,
 		if gen == nil || !gen.Supported() {
 			return nil, fmt.Errorf("summarize: MLX provider not available")
 		}
+
 		summaryText, err = gen.Generate(ctx, prompt, 256, 0.3)
 	default: // "fm"
 		gen := DefaultFMProvider()
@@ -2320,16 +2330,19 @@ Respond with a concise, plain-text summary only. No JSON, no bullet points.`,
 				"model":  "llama3.2",
 				"stream": false,
 			}
+
 			tc, e := DefaultOllama().Invoke(ctx, p)
 			if e != nil || len(tc) == 0 {
 				return nil, fmt.Errorf("summarize: FM and Ollama both unavailable")
 			}
+
 			var genResp map[string]interface{}
 			if e2 := json.Unmarshal([]byte(tc[0].Text), &genResp); e2 == nil {
 				if resp, ok := genResp["response"].(string); ok {
 					summaryText = strings.TrimSpace(resp)
 				}
 			}
+
 			if summaryText == "" {
 				summaryText = strings.TrimSpace(tc[0].Text)
 			}
@@ -2356,6 +2369,7 @@ Respond with a concise, plain-text summary only. No JSON, no bullet points.`,
 
 	if saveComment {
 		commentContent := fmt.Sprintf("## AI Summary (%s)\n\n%s", backend, summaryText)
+
 		comment := database.Comment{
 			TaskID:  task.ID,
 			Type:    "note",
@@ -2370,6 +2384,7 @@ Respond with a concise, plain-text summary only. No JSON, no bullet points.`,
 				"summary": summaryText,
 				"warning": fmt.Sprintf("summary generated but comment not saved: %v", err2),
 			}
+
 			return response.FormatResult(result, "")
 		}
 	}
@@ -2381,6 +2396,7 @@ Respond with a concise, plain-text summary only. No JSON, no bullet points.`,
 		"summary":       summaryText,
 		"comment_saved": saveComment,
 	}
+
 	return response.FormatResult(result, "")
 }
 
@@ -2405,15 +2421,18 @@ func handleTaskWorkflowRunWithAI(ctx context.Context, params map[string]interfac
 
 	// Determine backend
 	backend := ""
+
 	if b, ok := params["local_ai_backend"].(string); ok && b != "" {
 		b = strings.TrimSpace(strings.ToLower(b))
 		if b == "fm" || b == "mlx" || b == "ollama" {
 			backend = b
 		}
 	}
+
 	if backend == "" {
 		backend = GetPreferredBackend(task.Metadata)
 	}
+
 	if backend == "" {
 		backend = "fm"
 	}
@@ -2445,6 +2464,7 @@ INSTRUCTION:
 
 	// Generate using selected backend
 	var outputText string
+
 	switch backend {
 	case "ollama":
 		outputText, err = func() (string, error) {
@@ -2454,16 +2474,19 @@ INSTRUCTION:
 				"model":  "llama3.2",
 				"stream": false,
 			}
+
 			tc, e := DefaultOllama().Invoke(ctx, p)
 			if e != nil || len(tc) == 0 {
 				return "", fmt.Errorf("ollama generate failed: %w", e)
 			}
+
 			var genResp map[string]interface{}
 			if e2 := json.Unmarshal([]byte(tc[0].Text), &genResp); e2 == nil {
 				if resp, ok := genResp["response"].(string); ok {
 					return strings.TrimSpace(resp), nil
 				}
 			}
+
 			return strings.TrimSpace(tc[0].Text), nil
 		}()
 	case "mlx":
@@ -2471,6 +2494,7 @@ INSTRUCTION:
 		if gen == nil || !gen.Supported() {
 			return nil, fmt.Errorf("run_with_ai: MLX provider not available")
 		}
+
 		outputText, err = gen.Generate(ctx, prompt, 512, 0.5)
 	default: // "fm"
 		gen := DefaultFMProvider()
@@ -2481,16 +2505,19 @@ INSTRUCTION:
 				"model":  "llama3.2",
 				"stream": false,
 			}
+
 			tc, e := DefaultOllama().Invoke(ctx, p)
 			if e != nil || len(tc) == 0 {
 				return nil, fmt.Errorf("run_with_ai: FM and Ollama both unavailable")
 			}
+
 			var genResp map[string]interface{}
 			if e2 := json.Unmarshal([]byte(tc[0].Text), &genResp); e2 == nil {
 				if resp, ok := genResp["response"].(string); ok {
 					outputText = strings.TrimSpace(resp)
 				}
 			}
+
 			if outputText == "" {
 				outputText = strings.TrimSpace(tc[0].Text)
 			}
@@ -2516,5 +2543,6 @@ INSTRUCTION:
 		"instruction": instruction,
 		"output":      outputText,
 	}
+
 	return response.FormatResult(result, "")
 }

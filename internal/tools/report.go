@@ -418,6 +418,7 @@ func handleReportUpdateWavesFromPlan(ctx context.Context, params map[string]inte
 	if err != nil {
 		return nil, fmt.Errorf("parse plan: %w", err)
 	}
+
 	if len(waves) == 0 {
 		return nil, fmt.Errorf("no waves in plan %s (empty or file not found)", planPath)
 	}
@@ -426,17 +427,22 @@ func handleReportUpdateWavesFromPlan(ctx context.Context, params map[string]inte
 	for k := range waves {
 		levels = append(levels, k)
 	}
+
 	sort.Ints(levels)
 
 	updated := 0
+
 	for _, level := range levels {
 		ids := waves[level]
+
 		var deps []string
+
 		if level > 0 {
 			prevIDs := waves[levels[level-1]]
 			if len(prevIDs) == 0 {
 				return nil, fmt.Errorf("wave %d has no predecessor wave", level)
 			}
+
 			deps = []string{prevIDs[0]}
 		}
 
@@ -450,10 +456,12 @@ func handleReportUpdateWavesFromPlan(ctx context.Context, params map[string]inte
 			if same && len(deps) > 0 {
 				same = task.Dependencies[0] == deps[0]
 			}
+
 			if !same {
 				updated++
 				task.Dependencies = make([]string, len(deps))
 				copy(task.Dependencies, deps)
+
 				if err := database.UpdateTask(ctx, task); err != nil {
 					return nil, fmt.Errorf("update task %s: %w", taskID, err)
 				}
@@ -462,6 +470,7 @@ func handleReportUpdateWavesFromPlan(ctx context.Context, params map[string]inte
 	}
 
 	msg := fmt.Sprintf("Updated %d task dependencies from %s (%d waves)", updated, planPath, len(levels))
+
 	return []framework.TextContent{
 		{Type: "text", Text: msg},
 	}, nil

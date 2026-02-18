@@ -53,8 +53,8 @@ func unmarshalTaskMetadata(s string) map[string]interface{} {
 // Returns (metadataJSON, metadataProtobuf, metadataFormat, nil) or error if JSON marshal fails.
 func SerializeTaskMetadata(task *Todo2Task) (metadataJSON string, metadataProtobuf []byte, metadataFormat string, err error) {
 	metadataFormat = "protobuf"
-	protobufData, err := models.SerializeTaskToProtobuf(task)
 
+	protobufData, err := models.SerializeTaskToProtobuf(task)
 	if err != nil {
 		metadataFormat = "json"
 	} else {
@@ -448,7 +448,6 @@ func GetTask(ctx context.Context, id string) (*Todo2Task, error) {
 
 		return nil
 	})
-
 	if err != nil {
 		return nil, err
 	}
@@ -1047,7 +1046,6 @@ func ListTasks(ctx context.Context, filters *TaskFilters) ([]*Todo2Task, error) 
 
 		return nil
 	})
-
 	if err != nil {
 		return nil, err
 	}
@@ -1199,7 +1197,6 @@ func GetDoneTasksForEstimation(ctx context.Context) ([]*TaskForEstimation, error
 
 		return nil
 	})
-
 	if err != nil {
 		return nil, err
 	}

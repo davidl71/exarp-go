@@ -21,8 +21,10 @@ func runWithTimeout(t *testing.T, d time.Duration, fn func()) {
 
 	go func() {
 		defer func() { done <- struct{}{} }()
+
 		fn()
 	}()
+
 	select {
 	case <-done:
 		return
@@ -48,7 +50,7 @@ func TestHandleAutomationNative(t *testing.T) {
 		{
 			name:      "discover action",
 			action:    "discover",
-			params:    map[string]interface{}{"action": "discover"},
+			params:    map[string]interface{}{"action": "discover", "use_llm": false},
 			wantError: false,
 			longRun:   true, // discover can block on Apple FM when CGO=1
 		},
@@ -277,12 +279,12 @@ func TestHandleAutomationDiscover(t *testing.T) {
 	}{
 		{
 			name:      "valid discover action",
-			params:    map[string]interface{}{"action": "discover"},
+			params:    map[string]interface{}{"action": "discover", "use_llm": false},
 			wantError: false,
 		},
 		{
 			name:      "empty params",
-			params:    map[string]interface{}{},
+			params:    map[string]interface{}{"use_llm": false},
 			wantError: false,
 		},
 	}

@@ -3,15 +3,12 @@ package tools
 import (
 	"context"
 	"encoding/json"
-	"os"
 	"testing"
 )
 
 func TestHandleGitToolsNative(t *testing.T) {
 	tmpDir := t.TempDir()
-	os.Setenv("PROJECT_ROOT", tmpDir)
-
-	defer os.Unsetenv("PROJECT_ROOT")
+	t.Setenv("PROJECT_ROOT", tmpDir)
 
 	tests := []struct {
 		name      string
@@ -70,9 +67,11 @@ func TestHandleGitToolsNative(t *testing.T) {
 					t.Errorf("diff result not valid JSON: %v", err)
 					return
 				}
+
 				if _, ok := data["total_changes"]; !ok {
 					t.Error("diff result missing total_changes")
 				}
+
 				if _, ok := data["changes"]; !ok {
 					t.Error("diff result missing changes")
 				}
@@ -105,9 +104,11 @@ func TestHandleGitToolsNative(t *testing.T) {
 					t.Errorf("graph result not valid JSON: %v", err)
 					return
 				}
+
 				if _, ok := data["branches"]; !ok {
 					t.Error("graph result missing branches")
 				}
+
 				if _, ok := data["nodes"]; !ok {
 					t.Error("graph result missing nodes")
 				}
@@ -141,9 +142,7 @@ func TestHandleGitToolsNative(t *testing.T) {
 
 func TestHandleGitTools(t *testing.T) {
 	tmpDir := t.TempDir()
-	os.Setenv("PROJECT_ROOT", tmpDir)
-
-	defer os.Unsetenv("PROJECT_ROOT")
+	t.Setenv("PROJECT_ROOT", tmpDir)
 
 	tests := []struct {
 		name      string

@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
@@ -420,16 +421,56 @@ func checkGoFmt(ctx context.Context, root string) bool {
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 
-	cmd := exec.CommandContext(ctx, "gofmt", "-l", ".")
-	cmd.Dir = root
+	var goFiles []string
 
-	output, err := cmd.Output()
+	err := filepath.Walk(root, func(path string, info os.FileInfo, walkErr error) error {
+		if walkErr != nil {
+			return walkErr
+		}
+
+		if info.IsDir() {
+			if info.Name() == ".git" || info.Name() == "vendor" || info.Name() == ".venv" {
+				return filepath.SkipDir
+			}
+
+			return nil
+		}
+
+		if strings.HasSuffix(path, ".go") {
+			goFiles = append(goFiles, path)
+		}
+
+		return nil
+	})
 	if err != nil {
 		return false
 	}
 
-	// If output is empty, all files are formatted
-	return len(strings.TrimSpace(string(output))) == 0
+	if len(goFiles) == 0 {
+		return true
+	}
+
+	const batchSize = 200
+	for i := 0; i < len(goFiles); i += batchSize {
+		end := i + batchSize
+		if end > len(goFiles) {
+			end = len(goFiles)
+		}
+
+		args := append([]string{"-l"}, goFiles[i:end]...)
+		cmd := exec.CommandContext(ctx, "gofmt", args...)
+
+		output, err := cmd.Output()
+		if err != nil {
+			return false
+		}
+
+		if strings.TrimSpace(string(output)) != "" {
+			return false
+		}
+	}
+
+	return true
 }
 
 // checkGolangciLintConfigured checks if golangci-lint is configured.
@@ -487,17 +528,22 @@ func checkGoTest(ctx context.Context, root string) (bool, float64) {
 			lines := strings.Split(string(output), "\n")
 			for i := len(lines) - 1; i >= 0; i-- {
 				if strings.Contains(lines[i], "total:") {
-					var percent float64
-
-					fmt.Sscanf(lines[i], "%*s\t%*s\t%f%%", &percent)
-					coverage = percent
+					fields := strings.Fields(lines[i])
+					if len(fields) > 0 {
+						percentText := strings.TrimSuffix(fields[len(fields)-1], "%")
+						if percent, parseErr := strconv.ParseFloat(percentText, 64); parseErr == nil {
+							coverage = percent
+						}
+					}
 
 					break
 				}
 			}
 		}
 		// Clean up
-		os.Remove(filepath.Join(root, "coverage.out"))
+		if err := os.Remove(filepath.Join(root, "coverage.out")); err != nil && !os.IsNotExist(err) {
+			// best effort cleanup
+		}
 	}
 
 	return passes, coverage
@@ -873,9 +919,11 @@ func checkMarkOrSkipped(value, skipped bool) string {
 	if value {
 		return "✅"
 	}
+
 	if skipped {
 		return "— (skipped)"
 	}
+
 	return "❌"
 }
 
