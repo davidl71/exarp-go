@@ -414,6 +414,11 @@ func registerBatch2Tools(server framework.MCPServer) error {
 					"type":    "boolean",
 					"default": true,
 				},
+				"skip_scorecard_cache": map[string]interface{}{
+					"type":        "boolean",
+					"default":    false,
+					"description": "For action=scorecard: when true, bypass 5-minute result cache and regenerate",
+				},
 				"include_recommendations": map[string]interface{}{
 					"type":    "boolean",
 					"default": true,
