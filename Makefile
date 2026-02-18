@@ -1052,9 +1052,13 @@ migrate-dry-run: build-migrate ## Preview migration without actually migrating
 
 ##@ Go Module Management
 
-go-mod-tidy: ## Run go mod tidy to clean up dependencies
+go-mod-tidy: ## Run go mod tidy + vendor sync to clean up dependencies
 	@echo "$(BLUE)Running go mod tidy...$(NC)"
 	@$(GO) mod tidy || (echo "$(RED)❌ go mod tidy failed$(NC)" && exit 1)
+	@if [ -d vendor ]; then \
+		echo "$(BLUE)Syncing vendor directory...$(NC)"; \
+		$(GO) mod vendor || (echo "$(RED)❌ go mod vendor failed$(NC)" && exit 1); \
+	fi
 	@echo "$(GREEN)✅ Dependencies cleaned$(NC)"
 
 go-mod-verify: ## Verify go.mod and go.sum are in sync
