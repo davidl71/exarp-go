@@ -76,6 +76,6 @@ require (
 	modernc.org/memory v1.11.0 // indirect
 )
 
-replace github.com/davidl71/devwisdom-go => /Users/davidl/Projects/devwisdom-go
-
-replace github.com/davidl71/mcp-go-core => /Users/davidl/Projects/mcp-go-core
+// Optional: use local clones for development. Uncomment and set paths.
+// replace github.com/davidl71/devwisdom-go => /path/to/devwisdom-go
+// replace github.com/davidl71/mcp-go-core => /path/to/mcp-go-core
