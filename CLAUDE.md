@@ -92,4 +92,4 @@ session  action=prime|handoff
 
 ## Pre-commit hook
 
-Runs `make build` + health check + security scan automatically. Fix build errors before committing.
+Runs `make build` + health check (no vulnerability scan). Run `make pre-release` before release for build + govulncheck + security scan.

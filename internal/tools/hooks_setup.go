@@ -83,38 +83,51 @@ func handleSetupGitHooks(ctx context.Context, params map[string]interface{}) ([]
 		hooksToInstall = []string{"pre-commit", "pre-push", "post-commit", "post-merge"}
 	}
 
+	// Preamble: resolve exarp-go (repo bin or PATH); skip hook gracefully if not found
+	const exarpGoPreamble = `
+# Resolve exarp-go (repo bin or PATH); skip hook gracefully if not found
+EXARP_GO=""
+ROOT="$(git rev-parse --show-toplevel 2>/dev/null)"
+[ -n "$ROOT" ] && [ -x "$ROOT/bin/exarp-go" ] && EXARP_GO="$ROOT/bin/exarp-go"
+[ -z "$EXARP_GO" ] && command -v exarp-go >/dev/null 2>&1 && EXARP_GO="exarp-go"
+if [ -z "$EXARP_GO" ]; then
+  echo "exarp-go not found, skipping hook" >&2
+  exit 0
+fi
+`
+
 	// Hook configurations
 	hookConfigs := map[string]string{
 		"pre-commit": `#!/bin/sh
 # Exarp pre-commit hook
-# In exarp-go repo: run build, then docs health and security scan
-# In other repos: run docs health and security scan (exarp-go from PATH)
+# In exarp-go repo: run build and docs health (no vulnerability scan; run make pre-release before release)
+# In other repos: run docs health (exarp-go from PATH). Gracefully skips if exarp-go not found.
 
 # Suppress INFO logs in git hook context (reduces token usage)
 export GIT_HOOK=1
-
+` + exarpGoPreamble + `
 # Redirect stdin so exarp-go never sees git refs (avoids JSON parse error if it ran in MCP mode)
 # In exarp-go repo, block commit if build fails (use make silent for minimal output)
 if [ -f Makefile ] && [ -f go.mod ] && grep -q 'exarp-go' go.mod 2>/dev/null; then
   make silent >/dev/null 2>&1 || { echo "Build failed"; exit 1; }
-  ./bin/exarp-go -tool health -args '{"action":"docs"}' </dev/null || exit 1
-  ./bin/exarp-go -tool security -args '{"action":"scan"}' </dev/null || exit 1
+  "$EXARP_GO" -tool health -args '{"action":"docs"}' </dev/null || exit 1
+  "$EXARP_GO" -tool security -args '{"action":"scan"}' </dev/null || exit 1
 else
-  exarp-go -tool health -args '{"action":"docs"}' </dev/null || exit 1
-  exarp-go -tool security -args '{"action":"scan"}' </dev/null || exit 1
+  "$EXARP_GO" -tool health -args '{"action":"docs"}' </dev/null || exit 1
+  "$EXARP_GO" -tool security -args '{"action":"scan"}' </dev/null || exit 1
 fi
 `,
 		"pre-push": `#!/bin/sh
 # Exarp pre-push hook
-# Run task alignment and comprehensive security check
+# Run task alignment and security scan. Gracefully skips if exarp-go not found.
 
 # Suppress INFO logs in git hook context (reduces token usage)
 export GIT_HOOK=1
-
+` + exarpGoPreamble + `
 # Redirect stdin so exarp-go never sees git refs (avoids JSON parse error if it ran in MCP mode)
 # Use explicit JSON args to avoid key=value parsing issues in hooks
-exarp-go -tool analyze_alignment -args '{"action":"todo2"}' </dev/null || exit 1
-exarp-go -tool security -args '{"action":"scan"}' </dev/null || exit 1
+"$EXARP_GO" -tool analyze_alignment -args '{"action":"todo2"}' </dev/null || exit 1
+"$EXARP_GO" -tool security -args '{"action":"scan"}' </dev/null || exit 1
 `,
 		"post-commit": `#!/bin/sh
 # Exarp post-commit hook (no-op; run 'exarp-go -tool automation -args '"'"'{"action":"discover"}'"'"' manually if needed)
@@ -123,13 +136,13 @@ export GIT_HOOK=1
 `,
 		"post-merge": `#!/bin/sh
 # Exarp post-merge hook
-# Run duplicate detection and task sync (non-blocking)
+# Run duplicate detection and task sync (non-blocking). Gracefully skips if exarp-go not found.
 
 # Suppress INFO logs in git hook context (reduces token usage)
 export GIT_HOOK=1
-
-exarp-go -tool task_analysis -args '{"action":"duplicates"}' </dev/null || true
-exarp-go -tool task_workflow -args '{"action":"sync"}' </dev/null || true
+` + exarpGoPreamble + `
+"$EXARP_GO" -tool task_analysis -args '{"action":"duplicates"}' </dev/null || true
+"$EXARP_GO" -tool task_workflow -args '{"action":"sync"}' </dev/null || true
 `,
 	}
 

@@ -156,7 +156,7 @@ For detailed configuration options, see:
   - Used by: `make lint`
 - **govulncheck** - Go vulnerability scanner (optional)
   - Install: `go install golang.org/x/vuln/cmd/govulncheck@latest`
-  - Used by: Health check scripts
+  - Used by: `make pre-release` (before release); not run on pre-commit/pre-push. See [docs/VULNERABILITY_CHECK_POLICY.md](docs/VULNERABILITY_CHECK_POLICY.md).
 
 **File Watching Tools (for hot reload):**
 - **fswatch** (macOS) - Recommended for file watching
@@ -309,6 +309,12 @@ make fmt          # Format code
 make lint         # Lint code
 make lint-fix     # Lint and auto-fix
 ```
+
+### Git hooks and release
+
+- **Pre-commit** runs build + health docs (no vulnerability scan). **Pre-push** runs alignment only.
+- **Before release:** run `make pre-release` for build + govulncheck + security scan.
+- See [docs/VULNERABILITY_CHECK_POLICY.md](docs/VULNERABILITY_CHECK_POLICY.md) for the full policy.
 
 ## Automation (daily / sprint)
 
