@@ -54,6 +54,8 @@ In your OpenCode config file, add:
 
 ### Verification (Phase 2 checklist)
 
+**Validation:** Consider the integration validated when the steps below are done. No separate “validation” build is required; the checklist is the acceptance criteria.
+
 To confirm exarp-go works with OpenCode MCP:
 
 1. **Config:** Add exarp-go to `mcp` in `~/.config/opencode/opencode.json` or project `opencode.json` with `command` and `environment.PROJECT_ROOT` (see [docs/opencode-exarp-go.example.json](opencode-exarp-go.example.json)).

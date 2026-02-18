@@ -2114,6 +2114,75 @@ func handleTaskWorkflowCreate(ctx context.Context, params map[string]interface{}
 	return response.FormatResult(result, outputPath)
 }
 
+// handleTaskWorkflowEnrichToolHints applies tag→tool rules to Todo and In Progress tasks:
+// merges recommended_tools from tags into task metadata. Uses default rules and optional
+// .cursor/task_tool_rules.yaml. Idempotent; run on demand or after sync.
+func handleTaskWorkflowEnrichToolHints(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
+	projectRoot, err := FindProjectRoot()
+	if err != nil {
+		return nil, fmt.Errorf("enrich_tool_hints: %w", err)
+	}
+
+	store, err := getTaskStore(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("enrich_tool_hints: %w", err)
+	}
+
+	tagToTools := LoadTaskToolRules(projectRoot)
+
+	list, err := store.ListTasks(ctx, nil)
+	if err != nil {
+		return nil, fmt.Errorf("enrich_tool_hints: failed to load tasks: %w", err)
+	}
+
+	var updatedIDs []string
+	for _, t := range list {
+		if t == nil {
+			continue
+		}
+		status := strings.TrimSpace(strings.ToLower(t.Status))
+		if status != "todo" && status != "in progress" {
+			continue
+		}
+
+		toolsFromTags := ToolsForTags(tagToTools, t.Tags)
+		if len(toolsFromTags) == 0 {
+			continue
+		}
+
+		existing := GetRecommendedTools(t.Metadata)
+		merged := MergeRecommendedTools(existing, toolsFromTags)
+		if t.Metadata == nil {
+			t.Metadata = make(map[string]interface{})
+		}
+		slice := make([]interface{}, len(merged))
+		for i, s := range merged {
+			slice[i] = s
+		}
+		t.Metadata[MetadataKeyRecommendedTools] = slice
+
+		if err := store.UpdateTask(ctx, t); err != nil {
+			continue
+		}
+		updatedIDs = append(updatedIDs, t.ID)
+	}
+
+	if len(updatedIDs) > 0 {
+		if syncErr := SyncTodo2Tasks(projectRoot); syncErr != nil {
+			fmt.Fprintf(os.Stderr, "Warning: sync after enrich_tool_hints failed: %v\n", syncErr)
+		}
+	}
+
+	result := map[string]interface{}{
+		"success":       true,
+		"method":        "enrich_tool_hints",
+		"updated_count": len(updatedIDs),
+		"task_ids":      updatedIDs,
+	}
+	outputPath, _ := params["output_path"].(string)
+	return response.FormatResult(result, outputPath)
+}
+
 // handleTaskWorkflowFixInvalidIDs finds tasks with invalid IDs (e.g. T-NaN from JS), assigns new epoch IDs,
 // updates dependencies, removes old DB rows, and saves. Use after sanity_check reports invalid_task_id.
 // Loads from both DB and JSON so tasks that exist only in JSON (e.g. created by Todo2 extension) are found.

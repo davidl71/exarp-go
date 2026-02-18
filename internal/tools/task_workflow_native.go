@@ -70,6 +70,8 @@ func handleTaskWorkflowNative(ctx context.Context, params map[string]interface{}
 		return handleTaskWorkflowSummarize(ctx, params)
 	case "run_with_ai":
 		return handleTaskWorkflowRunWithAI(ctx, params)
+	case "enrich_tool_hints":
+		return handleTaskWorkflowEnrichToolHints(ctx, params)
 	default:
 		return nil, fmt.Errorf("unknown action: %s", action)
 	}
