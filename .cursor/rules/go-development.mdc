@@ -613,8 +613,11 @@ err := database.AddComments(taskID, comments)
 
 ### Available Makefile Targets
 
+**Shortcuts (prefer when suggesting commands):** `make b` = build, `make r` / `make root` = print repo root. See `.cursor/rules/make-shortcuts.mdc`.
+
 **Build Operations:**
 - `make build` - Build the Go server (without CGO by default)
+- `make b` - Short alias for build
 - `make silent` - Run default build (all) with minimal output; prefer when terminal noise should be reduced
 - `make go-build` - Build Go binary
 - `make build-apple-fm` - Build with Apple Foundation Models support (CGO_ENABLED=1)
