@@ -34,13 +34,17 @@ Use the exarp-go `report` tool with one of:
 
 When scorecard flags a failing check, use the corresponding Makefile target — **never run tools directly**:
 
-| Scorecard check | Fix with |
-|-----------------|----------|
-| go fmt ❌ | `make fmt` |
-| go vet ❌ | `go vet ./...` (no make target) |
-| go test ❌ | `make test` |
-| golangci-lint ❌ | `make lint-fix` |
-| go build ❌ | `make b` |
+| Scorecard check | Fix with | Auto-fixable? |
+|-----------------|----------|---------------|
+| go mod tidy ❌ | `make tidy` | ✅ |
+| go fmt ❌ | `make fmt` | ✅ |
+| golangci-lint ❌ | `make lint-fix` | ✅ |
+| go build ❌ | `make b` | ❌ investigate |
+| go vet ❌ | `go vet ./...` | ❌ investigate |
+| go test ❌ | `make test` | ❌ investigate |
+| govulncheck ❌ | `make govulncheck` | ❌ scan only |
+
+**Quick fix all auto-fixable issues:** `make scorecard-fix` (runs tidy + fmt + lint-fix).
 
 **Important:** Pass `skip_scorecard_cache=true` after fixing to get a fresh result (scorecard caches for 5 minutes).
 
