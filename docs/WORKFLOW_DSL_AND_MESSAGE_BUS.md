@@ -117,3 +117,36 @@ Align workflow and message-bus work with existing protobuf usage and the context
 - [internal/tools/automation_native.go](../internal/tools/automation_native.go) — `runDailyTask`, `runParallelTasks`, current step dispatch.
 - [docs/CONTEXT_REDUCTION_OPTIONS.md](CONTEXT_REDUCTION_OPTIONS.md) — Compact JSON, content hash, gzip+base64, DB compression.
 - [docs/CONTEXT_REDUCTION_FOLLOWUP_TASKS.md](CONTEXT_REDUCTION_FOLLOWUP_TASKS.md) — Follow-up tasks for hashing, compression, compact wiring.
+
+---
+
+## 8. Follow-up tasks (Todo2)
+
+Create these with `exarp-go task create` (or MCP `task_workflow` action=create) when Todo2/DB is ready. Existing Redis+Asynq plan tasks (producer, worker, config, TUI) remain in [.cursor/plans/redis-asynq-and-tui.plan.md](../.cursor/plans/redis-asynq-and-tui.plan.md).
+
+| # | Task name | Priority | Tags |
+|---|-----------|----------|------|
+| 1 | Workflow DSL: YAML schema and in-process Go runner | medium | workflow, dsl, feature |
+| 2 | Project workflows in git: .exarp/workflows/*.yaml | medium | workflow, docs, feature |
+| 3 | Workflow: protobuf and hashing (job payloads, content_hash) | low | workflow, protobuf, performance |
+| 4 | Workflow run result: compact and compress wiring | low | workflow, context, performance |
+
+**CLI commands (run from project root after `make build` or with `go run ./cmd/server`):**
+
+```bash
+exarp-go task create "Workflow DSL: YAML schema and in-process Go runner" \
+  --description "Define minimal YAML schema (steps: tool, action, params; parallel groups). Implement runner that loads YAML and dispatches to existing tool handlers (runDailyTask pattern). See docs/WORKFLOW_DSL_AND_MESSAGE_BUS.md §5." \
+  --priority medium --tags "workflow,dsl,feature"
+
+exarp-go task create "Project workflows in git: .exarp/workflows/*.yaml" \
+  --description "If .exarp/workflows/daily.yaml exists, automation uses it; else built-in daily. Document in README/docs. See docs/WORKFLOW_DSL_AND_MESSAGE_BUS.md §3, §5." \
+  --priority medium --tags "workflow,docs,feature"
+
+exarp-go task create "Workflow: protobuf and hashing (job payloads, content_hash)" \
+  --description "Optional: WorkflowJobPayload/WorkflowRunResult in proto/tools.proto; workflow-definition hash (xxhash) for cache/dedup. See doc §6.1, §6.2." \
+  --priority low --tags "workflow,protobuf,performance"
+
+exarp-go task create "Workflow run result: compact and compress wiring" \
+  --description "Wire compact=true (and compress=true when implemented) for workflow/automation run results. See doc §6.3, CONTEXT_REDUCTION_OPTIONS.md." \
+  --priority low --tags "workflow,context,performance"
+```
