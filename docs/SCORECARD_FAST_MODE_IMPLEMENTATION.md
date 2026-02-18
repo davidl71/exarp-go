@@ -31,7 +31,7 @@
    - Skips `go mod tidy` in fast mode
    - Skips `go build ./...` in fast mode
    - Skips `golangci-lint run` in fast mode
-   - Skips `go test ./...` in fast mode (sets coverage to 0.0)
+   - Skips `go test ./...` in fast mode; reads coverage from existing `coverage.out` if present
    - Skips `govulncheck` in fast mode
    - Still runs: `go vet`, `gofmt`, file system checks, security checks
 
@@ -96,9 +96,18 @@ scorecard, err := tools.GenerateGoScorecard(ctx, projectRoot, nil)
 
 ## Trade-offs
 
+### Coverage Logic (Full and Fast Mode)
+
+| Mode | go test run? | Coverage source |
+|------|--------------|-----------------|
+| **Full** | Yes | `go test -coverprofile=coverage.out`; coverage read from `coverage.out` **even when tests fail** (go test may write partial coverage for packages run before a failure) |
+| **Fast** | No | If `coverage.out` exists in project root (e.g. from prior `make test-coverage` or full scorecard), read and report it; otherwise 0% |
+
+This ensures the scorecard reports coverage accurately: full mode reads coverage regardless of test pass/fail; fast mode reuses prior coverage when available.
+
 ### What's Lost in Fast Mode
-- ❌ Test execution status
-- ❌ Test coverage percentage
+- ❌ Test execution status (unless coverage.out exists from prior run)
+- ❌ Fresh coverage (unless coverage.out exists)
 - ❌ Build verification
 - ❌ Lint results
 - ❌ Vulnerability scan results
