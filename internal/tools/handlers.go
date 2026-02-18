@@ -245,8 +245,8 @@ func handleReport(ctx context.Context, args json.RawMessage) ([]framework.TextCo
 				"recommendations":  scorecardProto.GetRecommendations(),
 				"metrics":          scorecardMap["metrics"],
 			}
-
-			return response.FormatResult(out, "")
+			compact, _ := params["compact"].(bool)
+			return FormatResultOptionalCompact(out, "", compact)
 		}
 		// Use proto-derived map for MLX enhancement
 		enhanced, err := enhanceReportWithMLX(ctx, scorecardMap, action)

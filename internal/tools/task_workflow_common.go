@@ -767,8 +767,8 @@ func handleTaskWorkflowList(ctx context.Context, params map[string]interface{}) 
 		}
 
 		resp := &proto.TaskWorkflowResponse{Success: true, Method: "list", Tasks: summaries}
-
-		return response.FormatResult(TaskWorkflowResponseToMap(resp), "")
+		compact, _ := params["compact"].(bool)
+		return FormatResultOptionalCompact(TaskWorkflowResponseToMap(resp), "", compact)
 	}
 	// Text format: column widths aligned with TUI (internal/cli/tui.go colIDMedium, colStatus, colPriority)
 	const colID = 18

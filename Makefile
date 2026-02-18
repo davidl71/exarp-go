@@ -1,4 +1,4 @@
-.PHONY: help build build-debug silent build-race build-no-cgo run test test-watch test-coverage test-html clean install fmt lint lint-all lint-all-fix dev dev-watch dev-test dev-full dev-cycle pre-push bench docs sanity-check sanity-check-cached test-cli test-cli-list test-cli-tool test-cli-test config clean-config sprint-start sprint-end pre-sprint sprint check-tasks update-completed-tasks task-sanity-check go-fmt go-vet golangci-lint-check golangci-lint-fix govulncheck check check-fix check-all build-migrate migrate migrate-dry-run install-tools go-mod-tidy go-mod-verify pre-commit ci validate check-deps test-go test-go-fast test-go-verbose test-go-parallel test-go-tools-short test-real-models version scorecard scorecard-full scorecard-plans report-plan demo-tui task-list task-list-todo task-list-in-progress task-list-done task-prune-done task-update task-create queue-enqueue-wave queue-worker proto delete-expired-archive analyze-critical-path proto-check proto-clean exarp-list exarp-report-scorecard exarp-report-overview exarp-health-server exarp-health-docs exarp-context-budget exarp-test
+.PHONY: help build build-debug silent build-race build-no-cgo run test test-watch tag-build-ok test-coverage test-html clean install fmt lint lint-all lint-all-fix dev dev-watch dev-test dev-full dev-cycle pre-push bench docs sanity-check sanity-check-cached test-cli test-cli-list test-cli-tool test-cli-test config clean-config sprint-start sprint-end pre-sprint sprint check-tasks update-completed-tasks task-sanity-check go-fmt go-vet golangci-lint-check golangci-lint-fix govulncheck check check-fix check-all build-migrate migrate migrate-dry-run install-tools go-mod-tidy go-mod-verify pre-commit ci validate check-deps test-go test-go-fast test-go-verbose test-go-parallel test-go-tools-short test-real-models version scorecard scorecard-full scorecard-plans report-plan demo-tui task-list task-list-todo task-list-in-progress task-list-done task-prune-done task-update task-create queue-enqueue-wave queue-worker proto delete-expired-archive analyze-critical-path proto-check proto-clean exarp-list exarp-report-scorecard exarp-report-overview exarp-health-server exarp-health-docs exarp-context-budget exarp-test
 
 # Project configuration
 PROJECT_NAME := exarp-go
@@ -1132,6 +1132,9 @@ version: ## Show version information
 	@echo "  Build Time:  $(BUILD_TIME)"
 	@echo "  Git Commit:  $(GIT_COMMIT)"
 	@echo "  Go Version:  $$($(GO) version 2>/dev/null || echo 'unknown')"
+
+tag-build-ok: build ## Tag current commit as last known-good build (overwrites build-ok); use: git diff build-ok, git log build-ok..HEAD
+	@git tag -f build-ok && echo "$(GREEN)✅ Tagged current commit as build-ok$(NC)" && echo "  Compare: git diff build-ok  |  See breakage: git log build-ok..HEAD --oneline"
 
 ##@ Quick Commands
 
