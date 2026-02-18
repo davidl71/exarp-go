@@ -277,7 +277,40 @@ exarp-go -tool automation -args '{"action":"daily","use_cursor_agent":true,"curs
 
 ---
 
-## 5. References
+## 5. Cursor Hooks (Agent lifecycle)
+
+Cursor supports [Agent hooks](https://cursor.com/docs/agent/hooks): scripts that run at lifecycle events (e.g. session start, before/after tool use, session end). exarp-go can plug into these so the AI gets task and handoff context automatically.
+
+### 5.1 Session start: auto session prime
+
+**Use case:** Inject exarp-go session prime (suggested tasks, handoffs, status) into every new chat so the AI doesn’t need to call the session tool first.
+
+**Setup:**
+
+1. Copy the example config and script:
+   - `.cursor/hooks.json.example` → `.cursor/hooks.json`
+   - Ensure `.cursor/hooks/session-prime.sh` exists and is executable: `chmod +x .cursor/hooks/session-prime.sh`
+2. Optional: set `EXARP_GO` to the exarp-go binary path (default: `./bin/exarp-go` or `exarp-go` on PATH).
+3. Restart Cursor. New composer sessions will run the hook; Cursor adds the script’s `additional_context` to the conversation.
+
+**How it works:** The `sessionStart` hook runs `.cursor/hooks/session-prime.sh`. The script calls `exarp-go -tool session -args '{"action":"prime",...}' -json -quiet`, parses the result, and prints JSON with `additional_context` (status, suggested next task, handoff reminder, CLI suggestion). Cursor merges that into the initial system context.
+
+**Requirements:** `jq` on PATH for best behavior (script falls back to minimal JSON without jq). exarp-go must be on PATH or at `./bin/exarp-go`.
+
+### 5.2 Other hooks you can add
+
+| Hook | exarp-go use |
+|------|----------------|
+| **sessionEnd** | Call session handoff end (e.g. `exarp-go -tool session -args '{"action":"handoff","sub_action":"end",...}'`) to create a handoff note when the user closes the chat. |
+| **afterFileEdit** | Run `exarp-go -tool infer_task_progress` or update vizvibe after edits (similar to Claude Code hooks). |
+| **beforeShellExecution** | Block dangerous commands or ensure exarp-go/agent runs from project root. |
+| **beforeMCPExecution** | Audit which MCP tools run; ensure exarp-go tools get correct `PROJECT_ROOT`. |
+
+See [Cursor Hooks docs](https://cursor.com/docs/agent/hooks) for the full schema (input/output per hook, exit code 2 to block, matchers).
+
+---
+
+## 6. References
 
 - [Cursor APIs Overview](https://cursor.com/docs/api)
 - [Cursor CLI Overview](https://cursor.com/docs/cli/overview)
