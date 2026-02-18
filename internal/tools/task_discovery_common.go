@@ -39,6 +39,25 @@ func IsDeprecatedDiscoveryText(text string) bool {
 	return false
 }
 
+// isThirdPartyOrBinaryPath returns true if path indicates bin/ or third-party code (vendor, node_modules, etc.).
+// Used to skip creating tasks from discoveries in those locations.
+func isThirdPartyOrBinaryPath(path string) bool {
+	pathLower := strings.ToLower(path)
+	// Normalize separators for consistent matching
+	pathNorm := strings.ReplaceAll(pathLower, "\\", "/")
+	segments := []string{"/bin/", "/vendor/", "/node_modules/", "/__pycache__/", "/.venv/", "/dist/", "/build/", "/target/"}
+	for _, seg := range segments {
+		if strings.Contains(pathNorm, seg) {
+			return true
+		}
+	}
+	// Top-level bin or vendor
+	if strings.HasPrefix(pathNorm, "bin/") || strings.HasPrefix(pathNorm, "vendor/") {
+		return true
+	}
+	return false
+}
+
 // extractTagsFromText extracts hashtag-style tags from comment text.
 // Returns a slice of tags (without the # prefix) and the text with tags removed.
 func extractTagsFromText(text string) ([]string, string) {
@@ -104,6 +123,11 @@ func createTasksFromDiscoveries(ctx context.Context, projectRoot string, discove
 		}
 
 		if IsDeprecatedDiscoveryText(text) {
+			continue
+		}
+
+		// Skip discoveries from bin/ or third-party paths (vendor, node_modules, etc.)
+		if file, _ := discovery["file"].(string); file != "" && isThirdPartyOrBinaryPath(file) {
 			continue
 		}
 

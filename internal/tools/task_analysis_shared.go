@@ -81,6 +81,8 @@ func handleTaskAnalysisNative(ctx context.Context, params map[string]interface{}
 		return handleTaskAnalysisDependenciesSummary(ctx, params)
 	case "suggest_dependencies":
 		return handleTaskAnalysisSuggestDependencies(ctx, params)
+	case "noise":
+		return handleTaskAnalysisNoise(ctx, params)
 	default:
 		return nil, fmt.Errorf("unknown action: %s", action)
 	}
@@ -2814,6 +2816,128 @@ func handleTaskAnalysisValidate(ctx context.Context, params map[string]interface
 	resp := &proto.TaskAnalysisResponse{Action: "validate", ResultJson: string(resultJSON)}
 
 	return response.FormatResult(TaskAnalysisResponseToMap(resp), resp.GetOutputPath())
+}
+
+// handleTaskAnalysisNoise identifies likely noise tasks (sentence fragments, junk) using heuristics.
+// By default filters to tasks tagged #discovered; pass filter_tag="" to scan all tasks.
+func handleTaskAnalysisNoise(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
+	store, err := getTaskStore(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get task store: %w", err)
+	}
+
+	list, err := store.ListTasks(ctx, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load tasks: %w", err)
+	}
+
+	tasks := tasksFromPtrs(list)
+
+	// Default filter_tag to "discovered" for noise action
+	filterTag, _ := params["filter_tag"].(string)
+	if filterTag == "" {
+		filterTag = "discovered"
+	}
+
+	// Filter to tasks with the tag
+	if filterTag != "" {
+		filtered := make([]Todo2Task, 0, len(tasks))
+		tagLower := strings.ToLower(filterTag)
+		for _, t := range tasks {
+			for _, tag := range t.Tags {
+				if strings.ToLower(tag) == tagLower {
+					filtered = append(filtered, t)
+					break
+				}
+			}
+		}
+		tasks = filtered
+	}
+
+	noiseCandidates := findNoiseTasks(tasks)
+	result := map[string]interface{}{
+		"success":          true,
+		"method":           "native_go",
+		"filter_tag":       filterTag,
+		"tasks_scanned":    len(tasks),
+		"noise_count":      len(noiseCandidates),
+		"noise_candidates": noiseCandidates,
+	}
+
+	outputPath, _ := params["output_path"].(string)
+	resultJSON, _ := json.Marshal(result)
+	resp := &proto.TaskAnalysisResponse{Action: "noise", OutputPath: outputPath, ResultJson: string(resultJSON)}
+
+	return response.FormatResult(TaskAnalysisResponseToMap(resp), resp.GetOutputPath())
+}
+
+// findNoiseTasks applies heuristics to detect sentence fragments and junk tasks.
+func findNoiseTasks(tasks []Todo2Task) []map[string]interface{} {
+	// Fragment starters: mid-sentence phrases, not actionable
+	fragmentStarters := []string{
+		"that ", "and ", "which ", "the ", "this ", "it ", "these ", "those ",
+		"of ", "in ", "for ", "to ", "by ", "is ", "are ", "was ", "were ",
+	}
+	// Action verbs that suggest real tasks
+	actionVerbs := []string{
+		"add", "fix", "implement", "create", "update", "migrate", "document",
+		"test", "refactor", "remove", "replace", "extract", "integrate",
+		"verify", "validate", "support", "handle", "allow", "enable",
+		"ensure", "improve", "optimize", "complete", "run", "build",
+	}
+
+	var candidates []map[string]interface{}
+	for _, t := range tasks {
+		content := strings.TrimSpace(t.Content + " " + t.LongDescription)
+		contentLower := strings.ToLower(content)
+		var reason string
+
+		if len(content) < 20 {
+			reason = "very short content"
+		} else if strings.Contains(content, "...") && len(content) < 80 {
+			reason = "truncated/ellipsis"
+		} else {
+			firstWord := strings.Fields(contentLower)
+			if len(firstWord) > 0 {
+				first := firstWord[0]
+				for _, starter := range fragmentStarters {
+					if strings.HasPrefix(contentLower, starter) {
+						reason = "sentence fragment (starts with \"" + starter + "\")"
+						break
+					}
+				}
+				if reason == "" {
+					hasAction := false
+					for _, verb := range actionVerbs {
+						if strings.HasPrefix(first, verb) || strings.Contains(contentLower, " "+verb+" ") {
+							hasAction = true
+							break
+						}
+					}
+					if !hasAction && len(content) < 60 {
+						reason = "no action verb, short content"
+					}
+				}
+			}
+		}
+
+		if reason != "" {
+			candidates = append(candidates, map[string]interface{}{
+				"id":      t.ID,
+				"content": truncateStr(t.Content, 80),
+				"reason":  reason,
+			})
+		}
+	}
+	return candidates
+}
+
+func truncateStr(s string, max int) string {
+	s = strings.TrimSpace(s)
+	if len(s) <= max {
+		return s
+	}
+	return s[:max] + "..."
 }
 
 // Helper functions for duplicates detection

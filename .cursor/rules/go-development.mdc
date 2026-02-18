@@ -615,6 +615,7 @@ err := database.AddComments(taskID, comments)
 
 **Build Operations:**
 - `make build` - Build the Go server (without CGO by default)
+- `make silent` - Run default build (all) with minimal output; prefer when terminal noise should be reduced
 - `make go-build` - Build Go binary
 - `make build-apple-fm` - Build with Apple Foundation Models support (CGO_ENABLED=1)
 - `make build-swift-bridge` - Build Swift bridge for go-foundationmodels
@@ -698,8 +699,9 @@ err := database.AddComments(taskID, comments)
 6. **NEVER generate wrapper scripts** - Use `make dev`, `make go-dev`, or other dev targets
 7. **ALWAYS check Makefile first** - Before suggesting any command, verify if a Makefile target exists
 8. **PREFER Makefile targets** - When multiple options exist, choose the Makefile target
-9. **Use `make config` first** - If tools are not detected, run `make config` to configure the build system
-10. **PREFER `uv` for Python operations** - Use `uv run python` or `uvx` instead of direct `python3` commands when possible
+9. **PREFER `make silent`** - For routine builds (e.g. before commit, verification), use `make silent` to reduce terminal output
+10. **Use `make config` first** - If tools are not detected, run `make config` to configure the build system
+11. **PREFER `uv` for Python operations** - Use `uv run python` or `uvx` instead of direct `python3` commands when possible
 
 ### Examples
 

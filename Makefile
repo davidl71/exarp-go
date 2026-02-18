@@ -1,4 +1,4 @@
-.PHONY: help build build-debug build-race build-no-cgo run test test-watch test-coverage test-html clean install fmt lint lint-all lint-all-fix dev dev-watch dev-test dev-full dev-cycle pre-push bench docs sanity-check sanity-check-cached test-cli test-cli-list test-cli-tool test-cli-test config clean-config sprint-start sprint-end pre-sprint sprint check-tasks update-completed-tasks task-sanity-check go-fmt go-vet golangci-lint-check golangci-lint-fix govulncheck check check-fix check-all build-migrate migrate migrate-dry-run install-tools go-mod-tidy go-mod-verify pre-commit ci validate check-deps test-go test-go-fast test-go-verbose test-go-parallel test-go-tools-short test-real-models version scorecard scorecard-full scorecard-plans report-plan demo-tui task-list task-list-todo task-list-in-progress task-list-done task-update proto delete-expired-archive analyze-critical-path proto-check proto-clean exarp-list exarp-report-scorecard exarp-report-overview exarp-health-server exarp-health-docs exarp-context-budget exarp-test
+.PHONY: help build build-debug silent build-race build-no-cgo run test test-watch test-coverage test-html clean install fmt lint lint-all lint-all-fix dev dev-watch dev-test dev-full dev-cycle pre-push bench docs sanity-check sanity-check-cached test-cli test-cli-list test-cli-tool test-cli-test config clean-config sprint-start sprint-end pre-sprint sprint check-tasks update-completed-tasks task-sanity-check go-fmt go-vet golangci-lint-check golangci-lint-fix govulncheck check check-fix check-all build-migrate migrate migrate-dry-run install-tools go-mod-tidy go-mod-verify pre-commit ci validate check-deps test-go test-go-fast test-go-verbose test-go-parallel test-go-tools-short test-real-models version scorecard scorecard-full scorecard-plans report-plan demo-tui task-list task-list-todo task-list-in-progress task-list-done task-prune-done task-update proto delete-expired-archive analyze-critical-path proto-check proto-clean exarp-list exarp-report-scorecard exarp-report-overview exarp-health-server exarp-health-docs exarp-context-budget exarp-test
 
 # Project configuration
 PROJECT_NAME := exarp-go
@@ -37,6 +37,8 @@ endif
 
 all: build sanity-check test-tools ## Build essential components and run sanity tests
 	@echo "$(GREEN)✅ All essential builds and sanity checks completed successfully$(NC)"
+
+silent: QUIET=1 all ## Run default build with minimal output (alias: make QUIET=1 all)
 
 ##@ Configuration
 
@@ -846,6 +848,30 @@ task-list-in-progress: ## List all In Progress tasks
 
 task-list-done: ## List all Done tasks
 	@$(MAKE) task-list TASK_FLAGS="--status Done"
+
+task-prune-done: build ## Prune Done tasks (DRY_RUN=1 preview; PRUNE_WAVE=legacy|all; PRUNE_TAG=tag to delete by tag)
+	@if [ -f $(BINARY_PATH) ]; then \
+		if [ -n "$(PRUNE_TAG)" ]; then \
+			ids=$$($(BINARY_PATH) task list --tag "$(PRUNE_TAG)" 2>/dev/null | grep -oE 'T-[0-9]+' | sort -u | tr '\n' ',' | sed 's/,$$//'); \
+		else \
+			ids=$$($(BINARY_PATH) task list --status Done 2>/dev/null | grep -oE 'T-[0-9]+' | \
+				awk -F'-' '{n=$$2+0; if("$(PRUNE_WAVE)"=="all" || n<1000000) print}' | \
+				sort -t'-' -k2 -n | tr '\n' ',' | sed 's/,$$//'); \
+		fi; \
+		if [ -z "$$ids" ]; then \
+			echo "$(YELLOW)No Done tasks to prune$(NC)"; exit 0; \
+		fi; \
+		count=$$(echo "$$ids" | tr ',' '\n' | wc -l | tr -d ' '); \
+		echo "$(BLUE)Prune candidates ($$count): $$ids$(NC)"; \
+		if [ "$(DRY_RUN)" = "1" ]; then \
+			echo "$(YELLOW)DRY_RUN: run 'make task-prune-done' without DRY_RUN=1 to delete$(NC)"; exit 0; \
+		fi; \
+		echo "$(YELLOW)Deleting...$(NC)"; \
+		$(BINARY_PATH) -tool task_workflow -args '{"action":"delete","task_ids":"'$$ids'"}' 2>&1 | grep -v "INFO\|Warning\|Database" || true; \
+		echo "$(GREEN)Prune complete$(NC)"; \
+	else \
+		echo "$(RED)❌ exarp-go binary not found$(NC)"; exit 1; \
+	fi
 
 task-update: ## Update task status (use TASK_ID=id NEW_STATUS=status)
 	@if [ -f $(BINARY_PATH) ]; then \
