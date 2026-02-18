@@ -1066,6 +1066,10 @@ func EstimationRequestToParams(req *proto.EstimationRequest) map[string]interfac
 		return make(map[string]interface{})
 	}
 
+	// Ensure local_ai_backend is in params when set (proto field 11)
+	if b := req.GetLocalAiBackend(); b != "" {
+		params["local_ai_backend"] = b
+	}
 	return params
 }
 

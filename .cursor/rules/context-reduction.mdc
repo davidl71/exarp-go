@@ -1,0 +1,19 @@
+---
+description: Use compact and hashing to reduce exarp-go context size
+alwaysApply: false
+---
+
+# Context reduction when calling exarp-go
+
+When invoking exarp-go MCP tools or CLI for **session**, **task_workflow** (list), or **report** with JSON output:
+
+1. **Use `compact: true`** in tool args to get compact JSON (no indentation). Reduces payload size and parse time.
+   - Session prime: `session(action="prime", include_tasks=true, include_hints=true, compact=true)`
+   - Task list: `task_workflow(action="sync", sub_action="list", output_format="json", compact=true)`
+   - Report (overview, scorecard, briefing with output_format=json): add `compact: true`.
+
+2. **Prefer `output_format: "json"`** when you need to parse or chain results (e.g. extract task IDs); combine with `compact: true` when available.
+
+3. **When `content_hash` is available** (future): use it to avoid re-fetching or re-sending unchanged task/report payloads (client-side cache key).
+
+See **docs/CONTEXT_REDUCTION_OPTIONS.md** and **docs/CONTEXT_REDUCTION_FOLLOWUP_TASKS.md** for implementation status and follow-up work.

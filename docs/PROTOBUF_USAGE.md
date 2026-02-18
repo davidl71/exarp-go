@@ -25,13 +25,12 @@ Uses [buf](https://buf.build/) if available; otherwise falls back to `make proto
 
 **Generated files:** `proto/tools.pb.go`, `proto/todo2.pb.go`, `proto/config.pb.go`, `proto/bridge.pb.go`. Do not edit these by hand; change the `.proto` sources and re-run `make proto`.
 
-## Validation
+## Validation and cleanup
 
 ```bash
-make proto-check
+make proto-check   # Validate .proto syntax without generating code
+make proto-clean   # Remove generated .pb.go files (use before regenerating if needed)
 ```
-
-Validates `.proto` syntax without generating code.
 
 ## References
 

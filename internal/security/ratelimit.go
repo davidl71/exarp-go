@@ -1,3 +1,8 @@
+// Package security provides rate limiting and access checks.
+//
+// Rate limiter: This package implements a per-client sliding-window rate limiter.
+// For a single-resource or global token-bucket limit (no per-client map), consider
+// golang.org/x/time/rate instead (rate.Limiter). See docs/VENDOR_USAGE_AND_IMPROVEMENTS.md.
 package security
 
 import (
@@ -9,7 +14,7 @@ import (
 	"github.com/davidl71/exarp-go/internal/config"
 )
 
-// RateLimiter implements a sliding window rate limiter.
+// RateLimiter implements a per-client sliding window rate limiter.
 type RateLimiter struct {
 	mu          sync.RWMutex
 	requests    map[string][]time.Time // client -> request timestamps

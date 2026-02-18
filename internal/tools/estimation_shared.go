@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/davidl71/exarp-go/internal/database"
+	"github.com/spf13/cast"
 )
 
 // MetadataKeyPreferredBackend is the task metadata key for local AI backend preference (fm, mlx, ollama).
@@ -29,20 +30,20 @@ func GetRecommendedTools(metadata map[string]interface{}) []string {
 	if !ok || raw == nil {
 		return nil
 	}
-	switch v := raw.(type) {
-	case []string:
-		return v
-	case []interface{}:
-		out := make([]string, 0, len(v))
-		for _, e := range v {
-			if s, ok := e.(string); ok && s != "" {
-				out = append(out, s)
-			}
-		}
-		return out
-	default:
+	slice := cast.ToStringSlice(raw)
+	if len(slice) == 0 {
 		return nil
 	}
+	out := make([]string, 0, len(slice))
+	for _, s := range slice {
+		if s = strings.TrimSpace(s); s != "" {
+			out = append(out, s)
+		}
+	}
+	if len(out) == 0 {
+		return nil
+	}
+	return out
 }
 
 // GetPreferredBackend returns the preferred local AI backend from task metadata, or "" if unset.
@@ -51,10 +52,7 @@ func GetPreferredBackend(metadata map[string]interface{}) string {
 	if metadata == nil {
 		return ""
 	}
-
-	s, _ := metadata[MetadataKeyPreferredBackend].(string)
-	s = strings.TrimSpace(strings.ToLower(s))
-
+	s := strings.TrimSpace(strings.ToLower(cast.ToString(metadata[MetadataKeyPreferredBackend])))
 	switch s {
 	case "fm", "mlx", "ollama":
 		return s
@@ -552,7 +550,7 @@ func handleEstimationBatch(projectRoot string, params map[string]interface{}) (s
 				target = append(target, t)
 			}
 		}
-	} else if statusFilter, ok := params["status_filter"].(string); ok && statusFilter != "" {
+	} else if statusFilter := strings.TrimSpace(cast.ToString(params["status_filter"])); statusFilter != "" {
 		for _, t := range tasks {
 			if t.Status == statusFilter {
 				target = append(target, t)
@@ -576,8 +574,8 @@ func handleEstimationBatch(projectRoot string, params map[string]interface{}) (s
 	}
 
 	useHistorical := true
-	if useHist, ok := params["use_historical"].(bool); ok {
-		useHistorical = useHist
+	if _, ok := params["use_historical"]; ok {
+		useHistorical = cast.ToBool(params["use_historical"])
 	}
 
 	totalHours := 0.0

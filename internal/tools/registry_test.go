@@ -58,6 +58,7 @@ func TestRegisterAllTools(t *testing.T) {
 		"prompt_tracking",
 		"recommend",
 		"research_aggregator",
+		"cursor_cloud_agent",
 	}
 
 	for _, toolName := range expectedTools {
@@ -99,8 +100,8 @@ func TestRegisterAllTools_RegistrationError(t *testing.T) {
 		{"memory", "memory_maint", "report", "security", "task_analysis", "task_discovery", "task_workflow", "infer_task_progress", "testing"},
 		// Batch 3: 10 advanced tools
 		{"automation", "tool_catalog", "workflow_mode", "lint", "estimation", "git_tools", "session", "infer_session_mode", "ollama", "mlx"},
-		// Batch 4 + 5: context_budget, context, text_generate, task_execute, prompt_tracking, recommend, research_aggregator
-		{"context_budget", "context", "text_generate", "task_execute", "prompt_tracking", "recommend", "research_aggregator"},
+		// Batch 4 + 5: context_budget, context, text_generate, task_execute, prompt_tracking, recommend, research_aggregator, cursor_cloud_agent
+		{"context_budget", "context", "text_generate", "task_execute", "prompt_tracking", "recommend", "research_aggregator", "cursor_cloud_agent"},
 	}
 
 	for _, batch := range expectedBatches {

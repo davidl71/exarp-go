@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/davidl71/exarp-go/internal/models"
+	"github.com/davidl71/exarp-go/proto"
 )
 
 // TestProtobufRoundTripWithRealTasks verifies protobuf serialization with real Todo2 tasks (T-1768317405631).
@@ -79,4 +80,18 @@ func findProjectRootForTest(t *testing.T) string {
 	}
 
 	return ""
+}
+
+// TestEstimationRequestToParamsLocalAIBackend verifies that EstimationRequest.local_ai_backend
+// is included in the params map when set (A2: proto field 11).
+func TestEstimationRequestToParamsLocalAIBackend(t *testing.T) {
+	req := &proto.EstimationRequest{
+		Action:          "estimate",
+		Name:            "Test task",
+		LocalAiBackend:  "ollama",
+	}
+	params := EstimationRequestToParams(req)
+	if got, ok := params["local_ai_backend"].(string); !ok || got != "ollama" {
+		t.Errorf("EstimationRequestToParams() local_ai_backend = %v (ok=%v), want ollama", params["local_ai_backend"], ok)
+	}
 }

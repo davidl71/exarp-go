@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/davidl71/exarp-go/internal/cache"
@@ -12,6 +13,7 @@ import (
 	"github.com/davidl71/exarp-go/proto"
 	"github.com/davidl71/mcp-go-core/pkg/mcp/request"
 	"github.com/davidl71/mcp-go-core/pkg/mcp/response"
+	"github.com/spf13/cast"
 )
 
 // handleAnalyzeAlignment handles the analyze_alignment tool
@@ -203,7 +205,7 @@ func handleReport(ctx context.Context, args json.RawMessage) ([]framework.TextCo
 		})
 	}
 
-	action, _ := params["action"].(string)
+	action := cast.ToString(params["action"])
 	if action == "" {
 		action = "overview"
 	}
@@ -221,11 +223,11 @@ func handleReport(ctx context.Context, args json.RawMessage) ([]framework.TextCo
 		}
 
 		fastMode := true
-		if v, ok := params["fast_mode"].(bool); ok {
-			fastMode = v
+		if _, ok := params["fast_mode"]; ok {
+			fastMode = cast.ToBool(params["fast_mode"])
 		}
 
-		skipCache, _ := params["skip_scorecard_cache"].(bool)
+		skipCache := cast.ToBool(params["skip_scorecard_cache"])
 		cacheKey := "scorecard:" + projectRoot + "|" + strconv.FormatBool(fastMode)
 
 		var scorecard *GoScorecardResult
@@ -254,7 +256,7 @@ func handleReport(ctx context.Context, args json.RawMessage) ([]framework.TextCo
 		scorecardProto := GoScorecardResultToProto(scorecard)
 		scorecardMap := ProtoToScorecardMap(scorecardProto)
 
-		outputFormat, _ := params["output_format"].(string)
+		outputFormat := cast.ToString(params["output_format"])
 		if outputFormat == "json" {
 			// Return JSON for Python/script consumers (e.g. project_overview, consolidated_reporting)
 			blockers := scorecardProto.GetBlockers()
@@ -267,7 +269,7 @@ func handleReport(ctx context.Context, args json.RawMessage) ([]framework.TextCo
 				"recommendations":  scorecardProto.GetRecommendations(),
 				"metrics":          scorecardMap["metrics"],
 			}
-			compact, _ := params["compact"].(bool)
+			compact := cast.ToBool(params["compact"])
 			return FormatResultOptionalCompact(out, "", compact)
 		}
 		// Use proto-derived map for MLX enhancement
@@ -367,7 +369,7 @@ func handleSecurity(ctx context.Context, args json.RawMessage) ([]framework.Text
 		})
 	}
 
-	action, _ := params["action"].(string)
+	action := cast.ToString(params["action"])
 	if action == "" {
 		action = "report"
 	}
@@ -507,7 +509,7 @@ func handleTesting(ctx context.Context, args json.RawMessage) ([]framework.TextC
 		})
 	}
 
-	action, _ := params["action"].(string)
+	action := cast.ToString(params["action"])
 	if action == "" {
 		action = "run"
 	}
@@ -538,6 +540,22 @@ func handleTesting(ctx context.Context, args json.RawMessage) ([]framework.TextC
 	}
 
 	return nil, fmt.Errorf("testing action %q not supported; supported: run, coverage, validate", action)
+}
+
+// handleCursorCloudAgent handles the cursor_cloud_agent tool (Cursor Cloud Agents API).
+// JSON-only args; no protobuf. See docs/CURSOR_API_AND_CLI_INTEGRATION.md §3.4.
+func handleCursorCloudAgent(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
+	var params map[string]interface{}
+	if len(args) > 0 {
+		if err := json.Unmarshal(args, &params); err != nil {
+			return nil, fmt.Errorf("cursor_cloud_agent: invalid JSON: %w", err)
+		}
+	}
+	if params == nil {
+		params = make(map[string]interface{})
+	}
+	request.ApplyDefaults(params, map[string]interface{}{"action": "list"})
+	return handleCursorCloudAgentNative(ctx, params)
 }
 
 // Batch 3 Tool Handlers (T-37 through T-44)
@@ -624,19 +642,16 @@ func handleLint(ctx context.Context, args json.RawMessage) ([]framework.TextCont
 
 	// Extract parameters
 	linter := "golangci-lint" // Default to golangci-lint for Go projects
-	if l, ok := params["linter"].(string); ok && l != "" {
+	if l := strings.TrimSpace(cast.ToString(params["linter"])); l != "" {
 		linter = l
 	}
 
 	path := ""
-	if p, ok := params["path"].(string); ok {
+	if p := cast.ToString(params["path"]); p != "" {
 		path = p
 	}
 
-	fix := false
-	if f, ok := params["fix"].(bool); ok {
-		fix = f
-	}
+	fix := cast.ToBool(params["fix"])
 
 	// Check if this is a native linter - use native Go implementation
 	nativeLinters := map[string]bool{
@@ -725,7 +740,7 @@ func handleEstimation(ctx context.Context, args json.RawMessage) ([]framework.Te
 	}
 
 	action := "estimate"
-	if a, ok := params["action"].(string); ok && a != "" {
+	if a := strings.TrimSpace(cast.ToString(params["action"])); a != "" {
 		action = a
 	}
 

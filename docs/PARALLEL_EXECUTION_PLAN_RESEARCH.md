@@ -3,6 +3,8 @@
 **Created:** 2026-01-10T18:24:21.963315
 **Strategy:** Research-first parallel execution
 
+**Syncing Todo2 from this plan:** Use `exarp-go -tool report -args '{"action":"update_waves_from_plan"}'` (or pass `plan_path` to a different markdown file). The action parses this document for wave sections and updates Todo2 task dependencies so wave 0 = no deps, wave N = depend on one task from wave N−1.
+
 ## Phase 1: Research Tasks (In Progress)
 
 - **Status:** In Progress
@@ -36,6 +38,25 @@
 
 8. **T-18** - T-18
    - Priority: high | Est: 2.9h
+
+## Review of local commits (Wave 5 relevance)
+
+**Reviewed:** 2026-02-18. Recent commits relevant to Wave 5 / docs: Wave 2 task tool enrichment (recommended_tools), Wave 3–4 and human task breakdown docs, generated plan with todos and Agents schema, Cursor hooks for auto session prime, Redis+Asynq queue (M1/M2), CLI compact JSON and --quiet, scorecard cache and CI Go module cache. No blocking changes; Wave 5 test fixes and doc tasks remain in Todo2.
+
+---
+
+## Wave 2 verification (Wave 5 plan)
+
+**Verified:** 2026-02-18. Task tool enrichment (recommended_tools) is implemented and wired:
+
+- **Metadata and task_workflow:** `task_workflow` create/update accepts `recommended_tools`; stored in task metadata (see [TASK_TOOL_ENRICHMENT_DESIGN.md](TASK_TOOL_ENRICHMENT_DESIGN.md)).
+- **Task show:** Task detail includes `recommended_tools` from metadata (internal/tools/task_workflow_common.go, resources/tasks.go).
+- **Session prime:** `suggested_next` items include `recommended_tools` (internal/tools/session.go).
+- **CLI:** `exarp-go task update` and create support `--recommended-tools` (internal/cli/task.go).
+
+Wave 2 plan tasks (T-1771172717418 and dependents) can be tracked in Todo2; implementation satisfies the design.
+
+---
 
 ## Summary
 

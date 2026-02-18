@@ -105,6 +105,96 @@ These are **Go-native** options for scheduling or task queues; they fit exarp-go
 
 ---
 
+## Redis + Asynq integration (exarp-go built-in)
+
+exarp-go includes a built-in **Redis + Asynq** producer/worker for distributed task execution. The queue is **opt-in**: when `REDIS_ADDR` is not set, all producer and worker calls are no-ops.
+
+### Environment variables
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `REDIS_ADDR` | *(empty — disabled)* | Redis server address (e.g. `127.0.0.1:6379`). Also reads `REDIS_URL`. When unset, queue is disabled and all enqueue/worker calls return immediately. |
+| `ASYNQ_QUEUE` | `default` | Asynq queue name. Use separate names to isolate workloads (e.g. `exarp-prod`, `exarp-dev`). |
+| `ASYNQ_CONCURRENCY` | `5` | Number of concurrent workers processing jobs. Increase for more parallelism on hosts with spare capacity. |
+
+### Architecture
+
+The producer enqueues `TaskExecutePayload` jobs (containing `task_id` and `project_root`) into a Redis-backed Asynq queue. Workers pull jobs, claim the task in Todo2 via `ClaimTaskForAgent`, run `RunTaskExecutionFlow`, and release the lock via `ReleaseTask`.
+
+### Producer usage (enqueue tasks)
+
+**CLI:**
+
+```bash
+# Enqueue all tasks from wave 0 (default)
+REDIS_ADDR=127.0.0.1:6379 exarp-go queue enqueue-wave
+
+# Enqueue wave 1
+REDIS_ADDR=127.0.0.1:6379 exarp-go queue enqueue-wave 1
+
+# Via Makefile
+make queue-enqueue-wave                  # wave 0
+make queue-enqueue-wave WAVE=1           # wave 1
+```
+
+**Go API (`internal/queue`):**
+
+```go
+cfg := queue.ConfigFromEnv()
+producer, _ := queue.NewProducer(cfg)
+defer producer.Close()
+
+// Enqueue one task
+enqueued, _ := producer.EnqueueTask(ctx, "T-123", projectRoot)
+
+// Enqueue all tasks in wave 0
+enqueued, _ := producer.EnqueueWave(ctx, projectRoot, 0)
+```
+
+### Worker usage (process jobs)
+
+```bash
+# Start worker (blocks until cancelled)
+REDIS_ADDR=127.0.0.1:6379 exarp-go worker
+
+# Via Makefile
+make queue-worker
+```
+
+The worker handler (`handleTaskExecuteJob`) follows this lock flow for each job:
+
+1. **Deserialize** payload (`task_id`, `project_root`)
+2. **Init DB** for the project (`database.Init`)
+3. **Claim task** via `database.ClaimTaskForAgent(ctx, taskID, agentID, leaseDuration)` — prevents double execution
+4. **Run** `tools.RunTaskExecutionFlow` (load task, prompt LLM, parse, optionally apply changes)
+5. **Release task** via `database.ReleaseTask(ctx, taskID, agentID)` in `defer`
+
+If the task is already locked by another agent, the job returns an error and Asynq retries it later.
+
+### Payload format
+
+Each job carries a `TaskExecutePayload` (JSON):
+
+```json
+{"task_id": "T-1234567890", "project_root": "/path/to/project"}
+```
+
+The queue holds only **work references** (task IDs), not task content. Task body, dependencies, and status remain in Todo2 (SQLite).
+
+### Multi-host setup
+
+1. **Shared Todo2 DB** — All workers must access the same `.todo2/todo2.db` (via NFS, PVC, or API). Task locking prevents double execution.
+2. **One Redis** — All producers and workers connect to the same Redis instance.
+3. **Scale by adding workers** — Run `exarp-go worker` on additional hosts pointing to the same Redis. Asynq distributes jobs across workers.
+
+### Related docs
+
+- [ASYNQ_FOLLOWUP_TASKS.md](ASYNQ_FOLLOWUP_TASKS.md) — follow-up tasks (M3–M5)
+- [AGENT_LOCKING_STRATEGY.md](AGENT_LOCKING_STRATEGY.md) — task locking design
+- Source: `internal/queue/` (config, producer, worker, payload)
+
+---
+
 ## Message queue integration
 
 **Yes — a message queue can help** when you want decoupling, buffering, scaling, or async triggers without tying exarp-go to a specific orchestrator. Many of the options above already use one under the hood (Redis for Asynq/Celery/Bull, RabbitMQ for Machinery/Celery, etc.). You can also integrate a queue directly.

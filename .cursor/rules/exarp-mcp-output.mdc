@@ -1,0 +1,56 @@
+---
+description: exarp-go MCP tool output format and metadata for Cursor AI
+alwaysApply: true
+---
+
+# exarp-go MCP Output and Metadata
+
+**Use JSON output and understand metadata fields when invoking exarp-go tools from Cursor.**
+
+## Output format
+
+When calling exarp-go MCP tools, **always include `"output_format": "json"`** in the arguments. JSON responses are easier for the AI to parse, filter, and chain (e.g. extract task IDs for batch updates).
+
+**To reduce context size and speed:** add **`"compact": true`** when you need JSON (not pretty-printed). Supported for `session` (action=prime), `task_workflow` (sync/list with output_format=json), and will be added for report/task_analysis. When `content_hash` is available (future), use it to avoid re-fetching unchanged data.
+
+| Tool | Pass in args |
+|------|--------------|
+| `task_workflow` | `"output_format": "json"`, optional `"compact": true` |
+| `report` | `"output_format": "json"` (or `"markdown"` for docs) |
+| `task_analysis` | `"output_format": "json"` |
+| `session` (prime) | optional `"compact": true` for smaller prime payload |
+
+**Example:**
+```json
+{
+  "action": "sync",
+  "sub_action": "list",
+  "status": "Todo",
+  "output_format": "json",
+  "compact": true
+}
+```
+
+## Task metadata fields (distributed tracking)
+
+Tasks include these fields for aggregation and filtering across projects, hosts, and agents:
+
+| Field | JSON key | Description |
+|-------|----------|-------------|
+| **Project** | `project_id` | Logical project identifier (e.g. "exarp-go") |
+| **Assignee** | `assigned_to` | Persistent assignee (owner); distinct from lock assignee |
+| **Host** | `host` | Hostname where task was created or last modified |
+| **Agent** | `agent` | Agent ID that created or last modified (e.g. general-host-pid) |
+
+Use these when filtering or aggregating tasks across machines or agents. They are auto-populated on create/update.
+
+## Other metadata in tool responses
+
+- **task_workflow** (list): `tasks[]` with `id`, `content`, `status`, `priority`, `tags`, `dependencies`, `project_id`, `assigned_to`, `host`, `agent`, `created_at`, `last_modified`, `completed_at`, `metadata`
+- **report**: `action`-specific structure; overview/scorecard include `metrics`, `health`, `tasks`
+- **session** (prime): `suggested_next`, `status_context`, `status_label`, `handoffs`, `agent_context`
+- **task_analysis**: Action-specific; `execution_plan` returns waves/tasks, `duplicates` returns groups, etc.
+
+## MCP protocol
+
+exarp-go uses JSON-RPC 2.0 over stdio. Tool results are returned as `content[]` (text) or structured JSON when `output_format=json`. Response metadata (e.g. tool name, invocation id) follows MCP conventions.
