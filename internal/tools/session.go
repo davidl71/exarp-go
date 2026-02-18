@@ -351,7 +351,8 @@ func handleSessionPrime(ctx context.Context, params map[string]interface{}) ([]f
 	pb.StatusLabel = statusLabel
 	pb.StatusContext = statusContext
 
-	return mcpresponse.FormatResult(result, "")
+	compact, _ := params["compact"].(bool)
+	return FormatResultOptionalCompact(result, "", compact)
 }
 
 // handleSessionHandoff handles handoff actions (end, resume, latest, list, sync, export).
@@ -1257,9 +1258,10 @@ func shouldSuggestPlanMode(tasks []Todo2Task) bool {
 func getHintsForMode(mode string) map[string]string {
 	// Simplified hints - can be expanded
 	hints := map[string]string{
-		"session":   "Use session tool for context priming and handoffs",
-		"tasks":     "Use task_workflow tool for task management",
-		"tractatus": "Consider tractatus_thinking for logical decomposition of complex concepts (use operation=start)",
+		"session":           "Use session tool for context priming and handoffs",
+		"tasks":             "Use task_workflow tool for task management",
+		"tractatus":         "Consider tractatus_thinking for logical decomposition of complex concepts (use operation=start)",
+		"context_reduction": "When context is large: use compact=true on prime/task_workflow/report; call context(action=budget, items=[...], budget_tokens=N) for safe_to_summarize and agent_hint.",
 	}
 
 	switch mode {

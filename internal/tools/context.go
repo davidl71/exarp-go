@@ -107,13 +107,18 @@ func handleContextBudget(ctx context.Context, args json.RawMessage) ([]framework
 
 	strategy := suggestReductionStrategy(analysis, totalTokens, budgetTokens)
 
+	// Agent-facing hints: what is safe to summarize (or drop) to fit budget.
+	safeToSummarize, agentHint := buildSafeToRemoveHints(analysis, totalTokens, budgetTokens)
+
 	result := map[string]interface{}{
-		"total_tokens":     totalTokens,
-		"budget_tokens":    budgetTokens,
-		"over_budget":      overBudget,
-		"reduction_needed": reductionNeeded,
-		"items":            analysis,
-		"strategy":         strategy,
+		"total_tokens":       totalTokens,
+		"budget_tokens":      budgetTokens,
+		"over_budget":        overBudget,
+		"reduction_needed":   reductionNeeded,
+		"items":              analysis,
+		"strategy":           strategy,
+		"safe_to_summarize":  safeToSummarize,
+		"agent_hint":         agentHint,
 	}
 
 	return response.FormatResult(result, "")
@@ -160,6 +165,27 @@ func suggestReductionStrategy(analysis []ItemAnalysis, total, budget int) string
 	}
 
 	return fmt.Sprintf("Summarize %d items using 'brief' level. Estimated savings: %d tokens.", toSummarize, estimatedSavings)
+}
+
+// buildSafeToRemoveHints returns agent-facing hints for context reduction.
+// safe_to_summarize: indices of items safe to replace with a summary (summarize_brief or summarize_key_metrics).
+// agent_hint: one-line instruction for Cursor/Claude/Codex/OpenCode/Ollama.
+func buildSafeToRemoveHints(analysis []ItemAnalysis, total, budget int) (safeToSummarize []int, agentHint string) {
+	for _, a := range analysis {
+		if a.Recommendation == "summarize_brief" || a.Recommendation == "summarize_key_metrics" {
+			safeToSummarize = append(safeToSummarize, a.Index)
+		}
+	}
+	if total <= budget {
+		agentHint = "Within budget; no need to remove or summarize context."
+		return safeToSummarize, agentHint
+	}
+	if len(safeToSummarize) == 0 {
+		agentHint = fmt.Sprintf("Over budget by %d tokens. Reduce or drop largest items (see items[].recommendation).", total-budget)
+		return safeToSummarize, agentHint
+	}
+	agentHint = fmt.Sprintf("Safe to summarize items %v (use context action=summarize or batch with level=brief) to fit budget.", safeToSummarize)
+	return safeToSummarize, agentHint
 }
 
 // handleContextBatchNative handles the context batch action using native Go
