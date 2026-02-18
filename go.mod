@@ -21,6 +21,7 @@ require (
 	google.golang.org/protobuf v1.36.11
 	gopkg.in/yaml.v3 v3.0.1
 	modernc.org/sqlite v1.45.0
+	github.com/rqlite/gorqlite v0.0.0-20250609141355-ac86a4a1c9a8
 )
 
 require (

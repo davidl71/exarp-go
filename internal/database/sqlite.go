@@ -64,16 +64,17 @@ func InitWithConfig(cfg *Config) error {
 	// Get driver for the configured type
 	driver, err := GetDriver(cfg.Driver)
 	if err != nil {
-		// Try to register missing drivers
+		// Try to register missing drivers (lazy registration to avoid pulling deps when unused)
 		switch cfg.Driver {
 		case DriverMySQL:
 			RegisterDriver(NewMySQLDriver())
-
 			driver, err = GetDriver(DriverMySQL)
 		case DriverPostgres:
 			RegisterDriver(NewPostgresDriver())
-
 			driver, err = GetDriver(DriverPostgres)
+		case DriverRqlite:
+			RegisterDriver(NewRqliteDriver())
+			driver, err = GetDriver(DriverRqlite)
 		}
 
 		if err != nil {
