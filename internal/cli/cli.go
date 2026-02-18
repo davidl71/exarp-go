@@ -662,6 +662,7 @@ func showUsage() {
 	_, _ = fmt.Println("  task update <task-id> [--new-status <status>] [--new-priority <priority>]")
 	_, _ = fmt.Println("  task create <name> [--description <text>] [--priority <priority>]")
 	_, _ = fmt.Println("  task show <task-id>")
+	_, _ = fmt.Println("  task sync")
 	_, _ = fmt.Println("  task help")
 	_, _ = fmt.Println()
 	_, _ = fmt.Println("TUI Commands:")
