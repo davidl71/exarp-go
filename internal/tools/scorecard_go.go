@@ -633,23 +633,23 @@ func generateGoRecommendations(health *GoHealthChecks, metrics *GoProjectMetrics
 	}
 
 	if !health.GoSumExists {
-		recommendations = append(recommendations, "Run 'go mod tidy' to generate go.sum")
+		recommendations = append(recommendations, "Run 'make tidy' to generate go.sum (auto-fix)")
 	}
 
 	if !fastModeUsed && !health.GoModTidyPasses {
-		recommendations = append(recommendations, "Run 'go mod tidy' to clean up dependencies")
+		recommendations = append(recommendations, "Run 'make tidy' to clean up dependencies (auto-fix)")
 	}
 
 	if !fastModeUsed && !health.GoBuildPasses {
-		recommendations = append(recommendations, "Fix Go build errors")
+		recommendations = append(recommendations, "Fix Go build errors: make b")
 	}
 
 	if !health.GoVetPasses {
-		recommendations = append(recommendations, "Fix 'go vet' issues")
+		recommendations = append(recommendations, "Fix 'go vet' issues (investigate manually)")
 	}
 
 	if !health.GoFmtCompliant {
-		recommendations = append(recommendations, "Run 'go fmt ./...' to format code")
+		recommendations = append(recommendations, "Run 'make fmt' to format code (auto-fix)")
 	}
 
 	if !health.GoLintConfigured {
@@ -657,20 +657,25 @@ func generateGoRecommendations(health *GoHealthChecks, metrics *GoProjectMetrics
 	}
 
 	if !fastModeUsed && health.GoLintConfigured && !health.GoLintPasses {
-		recommendations = append(recommendations, "Fix golangci-lint issues")
+		recommendations = append(recommendations, "Run 'make lint-fix' to auto-fix lint issues (auto-fix)")
 	}
 
 	if !fastModeUsed && !health.GoTestPasses {
-		recommendations = append(recommendations, "Fix failing Go tests")
+		recommendations = append(recommendations, "Fix failing Go tests: make test")
 	}
 
 	minCoverage := float64(config.MinCoverage())
 	if !fastModeUsed && health.GoTestCoverage < minCoverage {
-		recommendations = append(recommendations, fmt.Sprintf("Increase test coverage (currently %.1f%%, target: %.0f%%)", health.GoTestCoverage, minCoverage))
+		recommendations = append(recommendations, fmt.Sprintf("Increase test coverage (currently %.1f%%, target: %.0f%%): make test-coverage", health.GoTestCoverage, minCoverage))
 	}
 
 	if !fastModeUsed && !health.GoVulnCheckPasses {
-		recommendations = append(recommendations, "Install and run 'govulncheck ./...' for security scanning")
+		recommendations = append(recommendations, "Run 'make govulncheck' for security scanning")
+	}
+
+	autoFixable := !health.GoFmtCompliant || (!fastModeUsed && !health.GoModTidyPasses) || (!fastModeUsed && health.GoLintConfigured && !health.GoLintPasses)
+	if autoFixable {
+		recommendations = append(recommendations, "💡 Auto-fix all: make scorecard-fix")
 	}
 
 	return recommendations
