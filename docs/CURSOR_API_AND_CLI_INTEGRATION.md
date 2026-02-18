@@ -248,6 +248,8 @@ exarp-go -tool automation -args '{"action":"daily","use_cursor_agent":true,"curs
 
 **Backends:** Reuse existing tools: `text_generate` (provider `fm`|`mlx`|`auto`), `ollama`, `mlx`, `apple_foundation_models` per [LLM tools rule](.cursor/rules/llm-tools.mdc). No new LLM integrations required—only wiring task context and backend preference into existing tools.
 
+**CLI commands:** `exarp-go task create --local-ai-backend <fm|mlx|ollama>`; `exarp-go task estimate "Name" --local-ai-backend <backend>`; `exarp-go task summarize <task-id> [--local-ai-backend <backend>]`; `exarp-go task run-with-ai <task-id> [--backend <fm|ollama|mlx>] [--instruction "..."]`. See [MODEL_ASSISTED_WORKFLOW.md](MODEL_ASSISTED_WORKFLOW.md).
+
 ---
 
 ## 4. Priority summary

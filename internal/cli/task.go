@@ -37,10 +37,16 @@ func handleTaskCommand(server framework.MCPServer, parsed *mcpcli.Args) error {
 		return handleTaskDelete(server, parsed.Positional)
 	case "sync":
 		return handleTaskSync(server)
+	case "estimate":
+		return handleTaskEstimateParsed(server, parsed)
+	case "summarize":
+		return handleTaskSummarizeParsed(server, parsed)
+	case "run-with-ai", "run_with_ai":
+		return handleTaskRunWithAIParsed(server, parsed)
 	case "help":
 		return showTaskUsage()
 	default:
-		return fmt.Errorf("unknown task command: %s (use: list, status, update, create, show, delete, sync, help)", subcommand)
+		return fmt.Errorf("unknown task command: %s (use: list, status, update, create, show, delete, sync, estimate, summarize, run-with-ai, help)", subcommand)
 	}
 }
 
@@ -267,6 +273,97 @@ func handleTaskSync(server framework.MCPServer) error {
 	return executeTaskWorkflow(server, map[string]interface{}{"action": "sync"})
 }
 
+// handleTaskEstimateParsed handles "task estimate <name>" using the estimation tool.
+func handleTaskEstimateParsed(server framework.MCPServer, parsed *mcpcli.Args) error {
+	name := strings.TrimSpace(strings.Join(parsed.Positional, " "))
+	if name == "" {
+		return fmt.Errorf("task estimate requires a task name")
+	}
+	toolArgs := map[string]interface{}{
+		"action": "estimate",
+		"name":   name,
+	}
+	if b := parsed.GetFlag("local-ai-backend", ""); b != "" {
+		toolArgs["local_ai_backend"] = b
+	}
+	if d := parsed.GetFlag("details", ""); d != "" {
+		toolArgs["details"] = d
+	}
+	if p := parsed.GetFlag("priority", ""); p != "" {
+		toolArgs["priority"] = p
+	}
+	if t := parsed.GetFlag("tags", ""); t != "" {
+		toolArgs["tags"] = t
+	}
+	return executeEstimation(server, toolArgs)
+}
+
+// executeEstimation calls the estimation tool and prints the result.
+func executeEstimation(server framework.MCPServer, toolArgs map[string]interface{}) error {
+	ctx := context.Background()
+	argsBytes, err := json.Marshal(toolArgs)
+	if err != nil {
+		return fmt.Errorf("failed to marshal arguments: %w", err)
+	}
+	result, err := server.CallTool(ctx, "estimation", argsBytes)
+	if err != nil {
+		return fmt.Errorf("estimation failed: %w", err)
+	}
+	if len(result) == 0 {
+		_, _ = fmt.Println("Estimation completed (no output)")
+		return nil
+	}
+	for _, content := range result {
+		_, _ = fmt.Println(content.Text)
+	}
+	return nil
+}
+
+// handleTaskSummarizeParsed handles "task summarize <task-id> [--local-ai-backend]".
+func handleTaskSummarizeParsed(server framework.MCPServer, parsed *mcpcli.Args) error {
+	taskID := ""
+	if len(parsed.Positional) > 0 {
+		taskID = strings.TrimSpace(parsed.Positional[0])
+	}
+	if taskID == "" {
+		return fmt.Errorf("task summarize requires a task ID")
+	}
+	toolArgs := map[string]interface{}{
+		"action":   "summarize",
+		"task_id":  taskID,
+	}
+	if b := parsed.GetFlag("local-ai-backend", ""); b != "" {
+		toolArgs["local_ai_backend"] = b
+	}
+	return executeTaskWorkflow(server, toolArgs)
+}
+
+// handleTaskRunWithAIParsed handles "task run-with-ai <task-id> [--backend] [--instruction]".
+func handleTaskRunWithAIParsed(server framework.MCPServer, parsed *mcpcli.Args) error {
+	taskID := ""
+	if len(parsed.Positional) > 0 {
+		taskID = strings.TrimSpace(parsed.Positional[0])
+	}
+	if taskID == "" {
+		return fmt.Errorf("task run-with-ai requires a task ID")
+	}
+	toolArgs := map[string]interface{}{
+		"action":  "run_with_ai",
+		"task_id": taskID,
+	}
+	backend := parsed.GetFlag("backend", "")
+	if backend == "" {
+		backend = parsed.GetFlag("local-ai-backend", "")
+	}
+	if backend != "" {
+		toolArgs["local_ai_backend"] = backend
+	}
+	if inst := parsed.GetFlag("instruction", ""); inst != "" {
+		toolArgs["instruction"] = inst
+	}
+	return executeTaskWorkflow(server, toolArgs)
+}
+
 // executeTaskWorkflow executes the task_workflow tool with given arguments.
 func executeTaskWorkflow(server framework.MCPServer, toolArgs map[string]interface{}) error {
 	ctx := context.Background()
@@ -322,11 +419,14 @@ func showTaskUsage() error {
 	_, _ = fmt.Println("Commands:")
 	_, _ = fmt.Println("  list                    List tasks")
 	_, _ = fmt.Println("  status <task-id>        Show task status")
-	_, _ = fmt.Println("  update [options]         Update task status")
+	_, _ = fmt.Println("  update [options]        Update task status")
 	_, _ = fmt.Println("  create <name> [options]  Create new task")
 	_, _ = fmt.Println("  show <task-id>          Show full task details")
 	_, _ = fmt.Println("  delete <task-id>        Delete a task (e.g. wrong project)")
 	_, _ = fmt.Println("  sync                    Sync Todo2 (SQLite ↔ JSON)")
+	_, _ = fmt.Println("  estimate <name>         Estimate task duration (local AI)")
+	_, _ = fmt.Println("  summarize <task-id>     Generate AI summary for task")
+	_, _ = fmt.Println("  run-with-ai <task-id>   Run task through local LLM (implementation guidance)")
 	_, _ = fmt.Println("  help                    Show this help")
 	_, _ = fmt.Println()
 	_, _ = fmt.Println("List Options:")
@@ -346,8 +446,21 @@ func showTaskUsage() error {
 	_, _ = fmt.Println("Create Options:")
 	_, _ = fmt.Println("  --description <text>           Task description")
 	_, _ = fmt.Println("  --priority <priority>          Task priority (low, medium, high)")
-	_, _ = fmt.Println("  --tags <tags>                 Comma-separated tags")
-	_, _ = fmt.Println("  --local-ai-backend <backend>  Preferred local AI for estimation (fm|mlx|ollama)")
+	_, _ = fmt.Println("  --tags <tags>                  Comma-separated tags")
+	_, _ = fmt.Println("  --local-ai-backend <backend>   Preferred local AI (fm|mlx|ollama)")
+	_, _ = fmt.Println()
+	_, _ = fmt.Println("Estimate Options:")
+	_, _ = fmt.Println("  --local-ai-backend <backend>   Backend for estimation (fm|mlx|ollama)")
+	_, _ = fmt.Println("  --details <text>               Optional task details")
+	_, _ = fmt.Println("  --priority <priority>          Priority (low, medium, high)")
+	_, _ = fmt.Println("  --tags <tags>                  Comma-separated tags")
+	_, _ = fmt.Println()
+	_, _ = fmt.Println("Summarize Options:")
+	_, _ = fmt.Println("  --local-ai-backend <backend>   Override task preferred backend (fm|mlx|ollama)")
+	_, _ = fmt.Println()
+	_, _ = fmt.Println("Run-with-AI Options:")
+	_, _ = fmt.Println("  --backend <backend>            Local AI backend (fm|mlx|ollama); alias: --local-ai-backend")
+	_, _ = fmt.Println("  --instruction <text>           Extra instruction for the model")
 	_, _ = fmt.Println()
 	_, _ = fmt.Println("Examples:")
 	_, _ = fmt.Println("  exarp-go task list")
@@ -358,6 +471,9 @@ func showTaskUsage() error {
 	_, _ = fmt.Println("  exarp-go task update --status \"Todo\" --new-status \"Done\" --ids \"T-1,T-2\"")
 	_, _ = fmt.Println("  exarp-go task create \"Fix bug\" --description \"Fix the bug\" --priority \"high\"")
 	_, _ = fmt.Println("  exarp-go task create \"AI task\" --local-ai-backend ollama")
+	_, _ = fmt.Println("  exarp-go task estimate \"Add tests\" --local-ai-backend fm")
+	_, _ = fmt.Println("  exarp-go task summarize T-123")
+	_, _ = fmt.Println("  exarp-go task run-with-ai T-123 --backend ollama")
 	_, _ = fmt.Println("  exarp-go task show T-123")
 	_, _ = fmt.Println("  exarp-go task sync")
 	_, _ = fmt.Println()

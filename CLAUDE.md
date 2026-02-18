@@ -30,6 +30,9 @@ go run ./cmd/server task list --status Todo
 go run ./cmd/server task create "Name" --priority high --local-ai-backend fm
 go run ./cmd/server task update T-xxx --new-status Done
 go run ./cmd/server task show T-xxx
+go run ./cmd/server task estimate "Task name" --local-ai-backend ollama
+go run ./cmd/server task summarize T-xxx [--local-ai-backend fm]
+go run ./cmd/server task run-with-ai T-xxx [--backend ollama] [--instruction "..."]
 ```
 
 Task statuses: `Todo` → `In Progress` → `Review` → `Done`
