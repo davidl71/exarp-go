@@ -1,5 +1,17 @@
 ---
 # Common role - Base system setup
+# OS-specific variables loaded from vars/{{ ansible_os_family }}.yml
+
+- name: Load OS-specific variables
+  ansible.builtin.include_vars: "{{ item }}"
+  with_first_found:
+    - "{{ ansible_os_family }}.yml"
+    - "Darwin.yml"
+  vars:
+    ansible_search_path:
+      - "{{ role_path }}/vars"
+
+# --- Package cache (Linux only) ---
 
 - name: Update package cache (Debian/Ubuntu)
   ansible.builtin.apt:
@@ -13,7 +25,7 @@
 
 - name: Warn if apt update had issues
   ansible.builtin.debug:
-    msg: "⚠️  Apt cache update had some issues (broken repositories detected). Continuing with available packages..."
+    msg: "⚠️  Apt cache update had some issues. Continuing with available packages..."
   when:
     - ansible_os_family == "Debian"
     - apt_update_result is defined
@@ -24,52 +36,61 @@
     update_cache: true
   when: ansible_os_family == "RedHat"
 
+# --- CA certificates (Linux only; macOS uses system keychain) ---
+
+- name: Install Mozilla CA certificates (Debian/Ubuntu)
+  ansible.builtin.apt:
+    name: ca-certificates
+    state: present
+  when: ansible_os_family == "Debian"
+
+- name: Install Mozilla CA certificates (RedHat/CentOS)
+  ansible.builtin.yum:
+    name: ca-certificates
+    state: present
+  when: ansible_os_family == "RedHat"
+
+- name: Update CA trust store (Debian/Ubuntu)
+  ansible.builtin.command: update-ca-certificates
+  register: ca_update_debian
+  changed_when: "'0 added' not in (ca_update_debian.stdout | default(''))"
+  when: ansible_os_family == "Debian"
+
+- name: Update CA trust store (RedHat/CentOS)
+  ansible.builtin.command: update-ca-trust extract
+  changed_when: false
+  when: ansible_os_family == "RedHat"
+
+- name: Verify CA certificate bundle exists
+  ansible.builtin.stat:
+    path: "{{ _ca_bundle_path }}"
+  register: ca_bundle
+  when: ansible_system == "Linux"
+
+- name: Display CA certificate status
+  ansible.builtin.debug:
+    msg: "Mozilla CA certificates: {{ '✅ Installed' if ca_bundle.stat.exists | default(false) else '❌ Not found' }} ({{ _ca_bundle_path }})"
+  when: ansible_system == "Linux"
+
+# --- Base packages (uses OS-specific _base_packages list) ---
+
 - name: Install base packages (Debian/Ubuntu)
   ansible.builtin.apt:
-    name:
-      - curl
-      - wget
-      - git
-      - build-essential
-      - gcc
-      - g++
-      - make
-      - pkg-config
-      - libc6-dev
-      - protobuf-compiler
-      - libprotobuf-dev
+    name: "{{ _base_packages }}"
     state: present
   when: ansible_os_family == "Debian"
 
 - name: Install base packages (RedHat/CentOS)
   ansible.builtin.yum:
-    name:
-      - curl
-      - wget
-      - git
-      - gcc
-      - gcc-c++
-      - make
-      - pkgconfig
-      - glibc-devel
-      - protobuf-compiler
-      - protobuf-devel
+    name: "{{ _base_packages }}"
     state: present
   when: ansible_os_family == "RedHat"
 
 - name: Install base packages (macOS)
   community.general.homebrew:
-    name: "{{ item }}"
+    name: "{{ _base_packages }}"
     state: present
-  loop:
-    - curl
-    - wget
-    - git
-    - make
-    - protobuf
   when: ansible_system == "Darwin"
-  loop_control:
-    label: "{{ item }}"
 
 - name: Install Xcode Command Line Tools (macOS)
   ansible.builtin.command: xcode-select --install
@@ -232,21 +253,11 @@
 
 # Runtime dependencies
 
-- name: Install SQLite runtime (Debian/Ubuntu)
-  ansible.builtin.apt:
-    name:
-      - sqlite3
-      - libsqlite3-dev
+- name: Install SQLite runtime (Linux)
+  ansible.builtin.package:
+    name: "{{ _sqlite_packages }}"
     state: present
-  when: ansible_os_family == "Debian"
-
-- name: Install SQLite runtime (RedHat/CentOS)
-  ansible.builtin.yum:
-    name:
-      - sqlite
-      - sqlite-devel
-    state: present
-  when: ansible_os_family == "RedHat"
+  when: ansible_system == "Linux" and _sqlite_packages | length > 0
 
 - name: Verify SQLite installation
   ansible.builtin.command: sqlite3 --version

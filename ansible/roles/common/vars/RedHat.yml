@@ -1,0 +1,20 @@
+---
+# RedHat/CentOS-specific variables
+_pkg_manager: yum
+_root_group: root
+_shell_rc_name: .bashrc
+_ca_bundle_path: /etc/pki/tls/certs/ca-bundle.crt
+_base_packages:
+  - curl
+  - wget
+  - git
+  - gcc
+  - gcc-c++
+  - make
+  - pkgconfig
+  - glibc-devel
+  - protobuf-compiler
+  - protobuf-devel
+_sqlite_packages:
+  - sqlite
+  - sqlite-devel
