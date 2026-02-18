@@ -66,7 +66,7 @@ For a short path, see **[QUICKSTART.md](QUICKSTART.md)** or run `./run-dev-setup
 
 ### Development Environment
 
-Setup local development environment with all optional tools:
+Setup local development environment with all optional tools. The **common** role also configures git for less verbose output (advice hints off) for the dev user when `configure_git_quiet: true` (default); see [docs/DEV_ENV_GIT_CONFIG.md](../docs/DEV_ENV_GIT_CONFIG.md).
 
 ```bash
 cd ansible

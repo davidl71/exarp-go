@@ -274,3 +274,16 @@
     msg:
       - "Runtime Dependencies Status:"
       - "  SQLite: {{ sqlite_version.stdout if sqlite_version.rc == 0 else '⚠️  Not found (modernc.org/sqlite is pure Go, but system SQLite is recommended)' }}"
+
+# Git: less verbose output (dev preference; see docs/DEV_ENV_GIT_CONFIG.md)
+- name: Set git advice for less verbose output (development user)
+  ansible.builtin.shell: |
+    for key in statusHints statusUoption addEmptyPathspec addEmbeddedRepo checkoutAmbiguousRemoteBranchName commitBeforeMerge detachedHead diverging implicitIdentity mergeConflict nestedTag pushNonFFCurrent pushNonFFMatching pushUpdateRejected pushRefNeedsUpdate rebaseInProgress resetQuiet rmHints updateRefs waitingForEditor ignoredHook resolveConflict forceDeleteBranch skippedCherryPicks amWorkDir; do
+      git config --global advice.$key false 2>/dev/null || true
+    done
+  become_user: "{{ project_user }}"
+  changed_when: true
+  when: configure_git_quiet | default(true)
+  tags:
+    - common
+    - always

@@ -16,6 +16,9 @@ alwaysApply: true
 | (none)               | `make root` | Same as `make r` |
 | long path            | `cd $(make r)` | Change to project root from anywhere in repo |
 | (none)               | `make tag-build-ok` | Tag current commit as last known-good build |
+| `git push`           | `make push` or `make p` | Push from repo root (works from any subdir) |
+| `git pull`           | `make pull` or `make pl` | Pull from repo root (works from any subdir) |
+| `git status`         | `make status` or `make st` | Status from repo root (works from any subdir) |
 
 **Rules:**
 - Prefer **`make b`** over `make build` in suggested commands and snippets.
@@ -30,10 +33,16 @@ alias r='cd $(git rev-parse --show-toplevel 2>/dev/null)'
 ```
 
 - **Interactive use:** You can suggest **`r`** to cd to repo root from any subdir (any git repo).
+- **Cd then make:** Use **`r`** then run make (e.g. `r && make b`), or **`cd $(make r)`** in scripts. For git push/pull/status, use **`make p`** / **`make pl`** / **`make st`** from any subdir—no cd needed.
+
+**Git push/pull/status:** From repo root use **`make p`** / **`make pl`** / **`make st`**. From a subdir, use **`r && make st`** (or `make -C $(git rev-parse --show-toplevel) st`) so make runs with the root Makefile.
+
 - **Scripts / non-interactive:** Prefer **`cd $(make r)`** so it works without relying on the alias.
 
 ## Checklist when suggesting commands
 
 - [ ] Build → use `make b` (not `make build`).
-- [ ] Need to be in project root → suggest `cd $(make r)` or `r` (interactive).
+- [ ] Need to be in project root → suggest **`r`** (interactive) or **`cd $(make r)`** (scripts).
+- [ ] Cd then make → use **`r && make <target>`** or **`cd $(make r) && make <target>`**; or use **`make p`** / **`make pl`** / **`make st`** (no cd needed).
 - [ ] Tag last good build → suggest `make tag-build-ok`.
+- [ ] Push/pull/status → from root: `make p` / `make pl` / `make st`; from subdir: `r && make st` or `make -C $(git rev-parse --show-toplevel) st`.
