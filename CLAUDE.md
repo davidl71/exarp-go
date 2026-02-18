@@ -2,7 +2,7 @@
 
 ## Project
 
-Go-based MCP server. 24 tools, 15 prompts, 6 resources. Primary language: Go. SQLite-backed task system (Todo2). Apple Foundation Models + Ollama + MLX for local AI.
+Go-based MCP server. 24 tools, 15 prompts, 17 resources. Primary language: Go. SQLite-backed task system (Todo2). Apple Foundation Models + Ollama + MLX for local AI.
 
 ## MCP servers available in this session
 
@@ -42,16 +42,21 @@ Local AI task subcommands: `task estimate`, `task summarize`, `task run-with-ai`
 ## Build
 
 ```bash
-make build          # standard build (no CGO)
+make b              # build (short alias)
 make build-apple-fm # with Apple Foundation Models (CGO, darwin/arm64)
 make test           # all tests
 make test-go        # Go tests only
 make lint           # lint
+make fmt            # format (NEVER run gofmt directly)
+make tidy           # go mod tidy
+make scorecard-fix  # auto-fix all fixable scorecard issues (tidy + fmt + lint-fix)
 make sanity-check   # verify tool/prompt/resource counts
 ```
 
 Binary: `bin/exarp-go` (project) — NOT `/Users/davidl/go/bin/exarp-go` (stale system install).
 Use `go run ./cmd/server ...` for CLI ops during development.
+
+**NEVER run go build, go test, go fmt, gofmt, or golangci-lint directly — always use make targets.**
 
 ## Key patterns
 
@@ -82,7 +87,7 @@ session  action=prime|handoff
 
 ## Skills available
 
-`use-exarp-tools`, `task-workflow`, `report-scorecard`, `session-handoff`, `task-cleanup`, `lint-docs`, `tractatus-decompose`
+`use-exarp-tools`, `task-workflow`, `report-scorecard`, `session-handoff`, `task-cleanup`, `lint-docs`, `tractatus-decompose`, `thinking-workflow`
 
 ## Go conventions
 
@@ -92,6 +97,20 @@ session  action=prime|handoff
 - `internal/` packages for all implementation; `cmd/` for entry points
 - SQLite primary storage; JSON fallback only
 
+## Scorecard
+
+```bash
+make scorecard      # fast mode (skips build/test/vulncheck)
+make scorecard-full # full mode (all checks)
+make scorecard-fix  # auto-fix tidy + fmt + lint issues
+```
+
+Via MCP: `report` with `action=scorecard`, `skip_scorecard_cache=true` after fixes (5-min cache).
+
 ## Pre-commit hook
 
 Runs `make build` + health check (no vulnerability scan). Run `make pre-release` before release for build + govulncheck + security scan.
+
+## Make shortcuts
+
+`make b` (build), `make tidy`, `make fmt`, `make test`, `make lint`, `make p` (push), `make pl` (pull), `make st` (status). Shell alias `r` = cd to repo root.
