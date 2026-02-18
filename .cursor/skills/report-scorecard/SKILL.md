@@ -30,6 +30,20 @@ Use the exarp-go `report` tool with one of:
 - **Scorecards:** `report` with `action=scorecard`; for Go, `fast_mode=true` is often enough.
 - **Briefings:** `report` with `action=briefing`.
 
+## Fixing Scorecard Issues
+
+When scorecard flags a failing check, use the corresponding Makefile target — **never run tools directly**:
+
+| Scorecard check | Fix with |
+|-----------------|----------|
+| go fmt ❌ | `make fmt` |
+| go vet ❌ | `go vet ./...` (no make target) |
+| go test ❌ | `make test` |
+| golangci-lint ❌ | `make lint-fix` |
+| go build ❌ | `make b` |
+
+**Important:** Pass `skip_scorecard_cache=true` after fixing to get a fresh result (scorecard caches for 5 minutes).
+
 ## Integration with Other exarp-go Tools
 
 - **health** – Use for docs/CI/git checks; use **report** when you need narrative overview, scorecard, or briefing.
