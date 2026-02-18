@@ -1,5 +1,11 @@
 ---
-# Python role - Install Python and package managers
+# Python role - Install Python, uv, Node.js
+# Unified local/remote handling via _user_home fact
+
+- name: Set user home directory
+  set_fact:
+    _user_home: "{{ ansible_env.HOME if ansible_connection == 'local' else '/home/' + project_user }}"
+    _shell_rc: "{{ ansible_env.HOME if ansible_connection == 'local' else '/home/' + project_user }}/.{{ 'zshrc' if ansible_system == 'Darwin' else 'bashrc' }}"
 
 - name: Check Python version
   command: python3 --version
@@ -9,24 +15,19 @@
 
 - name: Install Python (Debian/Ubuntu)
   apt:
-    name:
-      - python3
-      - python3-pip
-      - python3-venv
+    name: [python3, python3-pip, python3-venv]
     state: present
   when: ansible_os_family == "Debian"
 
 - name: Install Python (RedHat/CentOS)
   yum:
-    name:
-      - python3
-      - python3-pip
+    name: [python3, python3-pip]
     state: present
   when: ansible_os_family == "RedHat"
 
 - name: Install Python (macOS)
   homebrew:
-    name: python@{{ python_version }}
+    name: "python@{{ python_version }}"
     state: present
   when: ansible_system == "Darwin"
 
@@ -36,79 +37,63 @@
     state: latest
     executable: pip3
 
-- name: Install uv (Python package manager)
-  shell: |
-    curl -LsSf https://astral.sh/uv/install.sh | sh
-  args:
-    creates: /home/{{ project_user }}/.local/bin/uv
-  when: ansible_connection != "local"
+# --- Parallel installs: uv + Node.js ---
 
-- name: Install uv (local)
-  shell: |
-    curl -LsSf https://astral.sh/uv/install.sh | sh
+- name: Install uv (async)
+  shell: curl -LsSf https://astral.sh/uv/install.sh | sh
   args:
-    creates: "{{ ansible_env.HOME }}/.local/bin/uv"
-  when: ansible_connection == "local"
+    creates: "{{ _user_home }}/.local/bin/uv"
+  async: 120
+  poll: 0
+  register: uv_job
+
+- name: Install Node.js (Debian/Ubuntu)
+  apt:
+    name: nodejs
+    state: present
+  when: ansible_os_family == "Debian"
+
+- name: Install Node.js (RedHat/CentOS)
+  yum:
+    name: nodejs
+    state: present
+  when: ansible_os_family == "RedHat"
+
+- name: Install Node.js (macOS)
+  homebrew:
+    name: node
+    state: present
+  when: ansible_system == "Darwin"
+
+- name: Wait for uv install
+  async_status:
+    jid: "{{ uv_job.ansible_job_id }}"
+  register: uv_result
+  until: uv_result.finished
+  retries: 12
+  delay: 10
+  when: uv_job.ansible_job_id is defined
+
+# --- PATH setup (unified, no local/remote duplication) ---
 
 - name: Add uv to PATH
   lineinfile:
-    path: "/home/{{ project_user }}/.bashrc"
+    path: "{{ _shell_rc }}"
     line: 'export PATH="$HOME/.local/bin:$PATH"'
     regexp: '^export PATH=.*\.local/bin'
     state: present
-  when: ansible_connection != "local"
-
-- name: Add uv to PATH (local)
-  lineinfile:
-    path: "{{ ansible_env.HOME }}/.bashrc"
-    line: 'export PATH="$HOME/.local/bin:$PATH"'
-    regexp: '^export PATH=.*\.local/bin'
-    state: present
-  when: ansible_connection == "local"
+    create: yes
 
 - name: Add npm global bin to PATH
   blockinfile:
-    path: "/home/{{ project_user }}/.bashrc"
+    path: "{{ _shell_rc }}"
     block: |
-      # Add npm global bin to PATH
       export PATH="$HOME/.npm-global/bin:$PATH"
-      # Add nvm node bin to PATH (if using nvm)
       [ -s "$HOME/.nvm/nvm.sh" ] && export PATH="$HOME/.nvm/versions/node/$(nvm version)/bin:$PATH"
     marker: "# {mark} ANSIBLE MANAGED BLOCK - npm PATH"
     create: yes
-  when: ansible_connection != "local"
 
-- name: Add npm global bin to PATH (local)
-  blockinfile:
-    path: "{{ ansible_env.HOME }}/.bashrc"
-    block: |
-      # Add npm global bin to PATH
-      export PATH="$HOME/.npm-global/bin:$PATH"
-      # Add nvm node bin to PATH (if using nvm)
-      [ -s "$HOME/.nvm/nvm.sh" ] && export PATH="$HOME/.nvm/versions/node/$(nvm version)/bin:$PATH"
-    marker: "# {mark} ANSIBLE MANAGED BLOCK - npm PATH"
-    create: yes
-  when: ansible_connection == "local"
-
-- name: Install Node.js and npm (for MCP servers)
-  block:
-    - name: Install Node.js (Debian/Ubuntu)
-      apt:
-        name: nodejs
-        state: present
-      when: ansible_os_family == "Debian"
-
-    - name: Install Node.js (RedHat/CentOS)
-      yum:
-        name: nodejs
-        state: present
-      when: ansible_os_family == "RedHat"
-
-    - name: Install Node.js (macOS)
-      homebrew:
-        name: node
-        state: present
-      when: ansible_system == "Darwin"
+# --- Verify ---
 
 - name: Verify Python installation
   command: python3 --version
@@ -125,4 +110,5 @@
     msg:
       - "Python: {{ python_verify.stdout }}"
       - "pip: {{ pip_verify.stdout }}"
+      - "Shell RC: {{ _shell_rc }}"
 

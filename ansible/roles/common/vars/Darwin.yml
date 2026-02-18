@@ -1,0 +1,13 @@
+---
+# macOS-specific variables
+_pkg_manager: homebrew
+_root_group: wheel
+_shell_rc_name: .zshrc
+_ca_bundle_path: /etc/ssl/cert.pem
+_base_packages:
+  - curl
+  - wget
+  - git
+  - make
+  - protobuf
+_sqlite_packages: []  # macOS ships with SQLite

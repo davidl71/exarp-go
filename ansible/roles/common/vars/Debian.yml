@@ -1,0 +1,21 @@
+---
+# Debian/Ubuntu-specific variables
+_pkg_manager: apt
+_root_group: root
+_shell_rc_name: .bashrc
+_ca_bundle_path: /etc/ssl/certs/ca-certificates.crt
+_base_packages:
+  - curl
+  - wget
+  - git
+  - build-essential
+  - gcc
+  - g++
+  - make
+  - pkg-config
+  - libc6-dev
+  - protobuf-compiler
+  - libprotobuf-dev
+_sqlite_packages:
+  - sqlite3
+  - libsqlite3-dev

@@ -1,15 +1,13 @@
 ---
 # Ollama role - Install Ollama and pull models for exarp-go ollama tool / tests
-# Fixes environment so ollama native tests pass (server + models available).
+# Uses async to pull models in parallel (each model ~2-4GB download).
 
 - name: Install Ollama (macOS)
   community.general.homebrew:
     name: ollama
     state: present
   when: ansible_system == "Darwin"
-  tags:
-    - ollama
-    - optional
+  tags: [ollama, optional]
 
 - name: Install Ollama (Linux) via official install script
   ansible.builtin.shell: |
@@ -17,36 +15,43 @@
   args:
     creates: /usr/local/bin/ollama
   when: ansible_system == "Linux"
-  tags:
-    - ollama
-    - optional
+  tags: [ollama, optional]
 
-- name: Ensure Ollama binary is in PATH (Linux)
+- name: Verify Ollama binary is available
   ansible.builtin.command: which ollama
   register: ollama_which
   changed_when: false
   failed_when: false
-  when: ansible_system == "Linux"
-  tags:
-    - ollama
-    - optional
+  tags: [ollama, optional]
 
-- name: Pull Ollama models for exarp-go (ollama tool / tests)
+# Pull models in parallel (each is independent)
+- name: Pull Ollama models (async — parallel downloads)
   ansible.builtin.command: "ollama pull {{ item }}"
   loop: "{{ ollama_models }}"
-  register: ollama_pull
-  changed_when: ollama_pull.rc == 0
+  async: 600
+  poll: 0
+  register: ollama_pull_jobs
   failed_when: false
-  when: ollama_models | length > 0
-  tags:
-    - ollama
-    - optional
+  when: ollama_models | length > 0 and ollama_which.rc == 0
+  tags: [ollama, optional]
+
+- name: Wait for all model pulls to complete
+  async_status:
+    jid: "{{ item.ansible_job_id }}"
+  loop: "{{ ollama_pull_jobs.results | default([]) }}"
+  register: ollama_pull_results
+  until: ollama_pull_results.finished | default(true)
+  retries: 60
+  delay: 10
+  when: item.ansible_job_id is defined
+  loop_control:
+    label: "{{ item.item | default('unknown') }}"
+  tags: [ollama, optional]
 
 - name: Display Ollama installation status
   ansible.builtin.debug:
     msg:
-      - "Ollama: installed. Models pulled: {{ ollama_models | default([]) | join(', ') }}"
+      - "Ollama: {{ '✅ installed' if ollama_which.rc == 0 else '❌ not found' }}"
+      - "Models pulled: {{ ollama_models | default([]) | join(', ') }}"
       - "Start server with: ollama serve (or run Ollama app)"
-  tags:
-    - ollama
-    - optional
+  tags: [ollama, optional]
