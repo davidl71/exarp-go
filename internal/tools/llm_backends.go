@@ -21,7 +21,7 @@ func LLMBackendStatus() map[string]interface{} {
 		"mlx_tool":         "mlx",
 		"apple_fm_tool":    "apple_foundation_models",
 		"localai_tool":     "text_generate",
-		"hint":             "Use apple_foundation_models for on-device FM; ollama for Ollama (native then bridge); mlx for MLX; text_generate provider=localai for LocalAI (OpenAI-compatible). text_generate for unified generate-text (provider=fm|insight|mlx|localai). FM chain (Apple → Ollama → stub). ReportInsight: FM then MLX (via shared path).",
+		"hint":             "text_generate is the unified generate-text dispatcher (provider=fm|ollama|mlx|localai|insight|auto). Use provider=auto for model selection. Separate tools (apple_foundation_models, ollama, mlx) offer rich actions (status, models, pull, hardware, docs, quality) beyond generation.",
 	}
 }
 

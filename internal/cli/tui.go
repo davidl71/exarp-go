@@ -16,7 +16,9 @@ import (
 	"github.com/davidl71/exarp-go/internal/config"
 	"github.com/davidl71/exarp-go/internal/database"
 	"github.com/davidl71/exarp-go/internal/framework"
+	"github.com/davidl71/exarp-go/internal/queue"
 	"github.com/davidl71/exarp-go/internal/tools"
+	humanize "github.com/dustin/go-humanize"
 	"golang.org/x/term"
 )
 
@@ -284,6 +286,8 @@ type model struct {
 	waveMoveTaskID  string           // when set, showing "move task to wave" prompt; Esc clears
 	waveMoveMsg     string           // result message after move (success or error)
 	waveUpdateMsg   string           // result message after update waves from plan (success or error)
+	queueEnabled    bool             // true when REDIS_ADDR is set (queue available)
+	queueEnqueueMsg string           // result message after enqueue wave (success or error)
 
 	// Task analysis view (run task_analysis tool and show result)
 	taskAnalysisText           string // result text
@@ -412,6 +416,13 @@ type updateWavesFromPlanDoneMsg struct {
 	err     error
 }
 
+// enqueueWaveDoneMsg is sent after enqueueing a wave to Redis+Asynq.
+type enqueueWaveDoneMsg struct {
+	waveLevel int
+	enqueued  int
+	err       error
+}
+
 // childAgentResultMsg is sent after starting a child agent (for status display).
 type childAgentResultMsg struct {
 	Result ChildAgentRunResult
@@ -480,6 +491,7 @@ func initialModel(server framework.MCPServer, status string, projectRoot, projec
 		handoffActionMsg:   "",
 		waveDetailLevel:    -1,
 		waveCursor:         0,
+		queueEnabled:       queue.ConfigFromEnv().Enabled(),
 		jobs:               nil,
 		jobsCursor:         0,
 		jobsDetailIndex:    -1,
@@ -1088,6 +1100,24 @@ func runReportUpdateWavesFromPlan(server framework.MCPServer, projectRoot string
 	}
 }
 
+// runEnqueueWave enqueues all tasks from the given wave level to Redis+Asynq.
+func runEnqueueWave(projectRoot string, waveLevel int) tea.Cmd {
+	return func() tea.Msg {
+		cfg := queue.ConfigFromEnv()
+		if !cfg.Enabled() {
+			return enqueueWaveDoneMsg{waveLevel: waveLevel, err: fmt.Errorf("REDIS_ADDR not set")}
+		}
+		producer, err := queue.NewProducer(cfg)
+		if err != nil {
+			return enqueueWaveDoneMsg{waveLevel: waveLevel, err: err}
+		}
+		defer producer.Close()
+
+		enqueued, err := producer.EnqueueWave(context.Background(), projectRoot, waveLevel)
+		return enqueueWaveDoneMsg{waveLevel: waveLevel, enqueued: enqueued, err: err}
+	}
+}
+
 // runReportParallelExecutionPlan runs task_analysis(action=execution_plan, output_format=subagents_plan)
 // to write waves to .cursor/plans/parallel-execution-subagents.plan.md using exarp's wave detection.
 // Returns taskAnalysisApproveDoneMsg.
@@ -1357,6 +1387,15 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 		return m, loadTasks(m.status)
+
+	case enqueueWaveDoneMsg:
+		m.loading = false
+		if msg.err != nil {
+			m.queueEnqueueMsg = "Enqueue error: " + msg.err.Error()
+		} else {
+			m.queueEnqueueMsg = fmt.Sprintf("Enqueued %d tasks from wave %d to Redis", msg.enqueued, msg.waveLevel)
+		}
+		return m, nil
 
 	case tickMsg:
 		// Auto-refresh tasks periodically (only in tasks mode)
@@ -2236,6 +2275,30 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 			return m, nil
 
+		case "Q":
+			if m.mode == "waves" && m.queueEnabled && len(m.waves) > 0 {
+				levels := sortedWaveLevels(m.waves)
+				waveIdx := 0
+				if m.waveDetailLevel >= 0 {
+					for i, l := range levels {
+						if l == m.waveDetailLevel {
+							waveIdx = i
+							break
+						}
+					}
+				} else if m.waveCursor < len(levels) {
+					waveIdx = m.waveCursor
+				}
+				if waveIdx < len(levels) {
+					level := levels[waveIdx]
+					m.loading = true
+					m.queueEnqueueMsg = ""
+					return m, runEnqueueWave(m.projectRoot, level)
+				}
+			}
+
+			return m, nil
+
 		case "A":
 			// In tasks or waves: run task_analysis and show result in dedicated view
 			if m.mode == "tasks" || m.mode == "waves" {
@@ -2504,10 +2567,10 @@ func (m model) viewTasks() string {
 	// Task count (visible = filtered or all)
 	visCount := len(m.visibleIndices())
 	totalCount := len(m.tasks)
-	taskCountStr := fmt.Sprintf(" %d", visCount)
+	taskCountStr := " " + humanize.Comma(int64(visCount))
 
 	if m.searchQuery != "" && totalCount != visCount {
-		taskCountStr = fmt.Sprintf(" %d/%d", visCount, totalCount)
+		taskCountStr = fmt.Sprintf(" %s/%s", humanize.Comma(int64(visCount)), humanize.Comma(int64(totalCount)))
 	}
 
 	headerLine.WriteString(headerLabelStyle.Render("Tasks:"))
@@ -2524,10 +2587,8 @@ func (m model) viewTasks() string {
 
 	// Auto-refresh status
 	if m.autoRefresh {
-		lastUpdateStr := time.Since(m.lastUpdate).Round(time.Second).String()
-
 		headerLine.WriteString(headerLabelStyle.Render("Updated:"))
-		headerLine.WriteString(headerValueStyle.Render(fmt.Sprintf(" %s ago", lastUpdateStr)))
+		headerLine.WriteString(headerValueStyle.Render(" " + humanize.Time(m.lastUpdate)))
 	} else {
 		headerLine.WriteString(headerLabelStyle.Render("Auto-refresh:"))
 		headerLine.WriteString(headerValueStyle.Render(" OFF"))
@@ -3529,12 +3590,20 @@ func (m model) viewWaves() string {
 			b.WriteString(statusBarStyle.Render(m.waveUpdateMsg))
 			b.WriteString("\n")
 		}
+		if m.queueEnqueueMsg != "" {
+			b.WriteString("  ")
+			b.WriteString(statusBarStyle.Render(m.queueEnqueueMsg))
+			b.WriteString("\n")
+		}
 
 		b.WriteString("\n")
 		b.WriteString(borderStyle.Render(strings.Repeat("─", availableWidth)))
 		b.WriteString("\n")
 
 		statusLine := "↑↓ move  m move task  U update from plan  Esc/Enter collapse  E run wave  R refresh  H/w back  q quit"
+		if m.queueEnabled {
+			statusLine += "  Q enqueue"
+		}
 		if m.waveMoveTaskID != "" {
 			statusLine = "0-9 pick wave  Esc cancel  " + statusLine
 		}
@@ -3575,10 +3644,19 @@ func (m model) viewWaves() string {
 		b.WriteString(statusBarStyle.Render(m.waveUpdateMsg))
 		b.WriteString("\n")
 	}
+	if m.queueEnqueueMsg != "" {
+		b.WriteString("  ")
+		b.WriteString(statusBarStyle.Render(m.queueEnqueueMsg))
+		b.WriteString("\n")
+	}
 
 	b.WriteString(borderStyle.Render(strings.Repeat("─", availableWidth)))
 	b.WriteString("\n")
-	b.WriteString(statusBarStyle.Render("Enter expand  E run wave  R refresh tools  U update from plan  A analysis  H/w back  r refresh  q quit"))
+	statusLine := "Enter expand  E run wave  R refresh tools  U update from plan  A analysis  H/w back  r refresh  q quit"
+	if m.queueEnabled {
+		statusLine = "[Queue] " + statusLine + "  Q enqueue wave"
+	}
+	b.WriteString(statusBarStyle.Render(statusLine))
 
 	return b.String()
 }

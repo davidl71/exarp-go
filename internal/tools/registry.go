@@ -41,7 +41,7 @@ func registerBatch1Tools(server framework.MCPServer) error {
 	// T-22: analyze_alignment
 	if err := server.RegisterTool(
 		"analyze_alignment",
-		"[HINT: Alignment analysis. action=todo2|prd. Unified alignment analysis tool.]",
+		"[HINT: action=todo2|prd. Check task/PRD alignment. Use when validating backlog against requirements. Related: task_analysis.]",
 		framework.ToolSchema{
 			Type: "object",
 			Properties: map[string]interface{}{
@@ -67,7 +67,7 @@ func registerBatch1Tools(server framework.MCPServer) error {
 	// T-23: generate_config
 	if err := server.RegisterTool(
 		"generate_config",
-		"[HINT: Cursor config generation. action=rules|ignore|simplify. Creates Cursor-specific config files (.cursor/rules/*.mdc, .cursorignore). Not applicable to Claude Code.]",
+		"[HINT: action=rules|ignore|simplify. Generate Cursor config files (.cursor/rules/*.mdc, .cursorignore). Use when setting up Cursor IDE. Not for Claude Code.]",
 		framework.ToolSchema{
 			Type: "object",
 			Properties: map[string]interface{}{
@@ -115,7 +115,7 @@ func registerBatch1Tools(server framework.MCPServer) error {
 	// T-24: health
 	if err := server.RegisterTool(
 		"health",
-		"[HINT: OpenCode/agent: use for component status (action=docs|git|cicd|tools). Health check. action=server|git|docs|dod|cicd|tools. Status and health metrics.]",
+		"[HINT: action=server|git|docs|dod|cicd|tools. Check project health and component status. Use when diagnosing issues or before releases.]",
 		framework.ToolSchema{
 			Type: "object",
 			Properties: map[string]interface{}{
@@ -165,7 +165,7 @@ func registerBatch1Tools(server framework.MCPServer) error {
 	// T-25: setup_hooks
 	if err := server.RegisterTool(
 		"setup_hooks",
-		"[HINT: Hooks setup. action=git|patterns. Install automation hooks.]",
+		"[HINT: action=git|patterns. Install git hooks and automation patterns. Use when setting up dev environment or CI hooks.]",
 		framework.ToolSchema{
 			Type: "object",
 			Properties: map[string]interface{}{
@@ -202,7 +202,7 @@ func registerBatch1Tools(server framework.MCPServer) error {
 	// T-26: check_attribution
 	if err := server.RegisterTool(
 		"check_attribution",
-		"[HINT: Attribution compliance check. Verify proper attribution for all third-party components.]",
+		"[HINT: Verify third-party attribution compliance. Use when auditing licenses or before releases.]",
 		framework.ToolSchema{
 			Type: "object",
 			Properties: map[string]interface{}{
@@ -223,7 +223,7 @@ func registerBatch1Tools(server framework.MCPServer) error {
 	// T-27: add_external_tool_hints
 	if err := server.RegisterTool(
 		"add_external_tool_hints",
-		"[HINT: Tool hints. Files scanned, modified, hints added.]",
+		"[HINT: Scan source files and add tool-usage hints. Use when onboarding or enriching tool documentation in code.]",
 		framework.ToolSchema{
 			Type: "object",
 			Properties: map[string]interface{}{
@@ -253,7 +253,7 @@ func registerBatch2Tools(server framework.MCPServer) error {
 	// T-28: memory
 	if err := server.RegisterTool(
 		"memory",
-		"[HINT: Memory tool. action=save|recall|search. Persist and retrieve AI discoveries.]",
+		"[HINT: action=save|recall|search. Persist and retrieve AI discoveries. Use when saving learnings or searching past context.]",
 		framework.ToolSchema{
 			Type: "object",
 			Properties: map[string]interface{}{
@@ -299,7 +299,7 @@ func registerBatch2Tools(server framework.MCPServer) error {
 	// T-29: memory_maint
 	if err := server.RegisterTool(
 		"memory_maint",
-		"[HINT: Memory maintenance. action=health|gc|prune|consolidate|dream. Lifecycle management.]",
+		"[HINT: action=health|gc|prune|consolidate|dream. Memory lifecycle management. Use when cleaning up old memories or consolidating insights.]",
 		framework.ToolSchema{
 			Type: "object",
 			Properties: map[string]interface{}{
@@ -373,7 +373,7 @@ func registerBatch2Tools(server framework.MCPServer) error {
 	// T-30: report
 	if err := server.RegisterTool(
 		"report",
-		"[HINT: OpenCode/agent: use action=overview|scorecard|briefing for project status. Report generation. action=overview|scorecard|briefing|prd|plan|scorecard_plans|parallel_execution_plan|update_waves_from_plan. plan generates .plan.md; update_waves_from_plan syncs Todo2 deps from docs/PARALLEL_EXECUTION_PLAN_RESEARCH.md.]",
+		"[HINT: action=overview|scorecard|briefing|prd|plan. Project reports and plans. Use for project status, scorecard, or generating .plan.md files. Related: task_analysis.]",
 		framework.ToolSchema{
 			Type: "object",
 			Properties: map[string]interface{}{
@@ -481,7 +481,7 @@ func registerBatch2Tools(server framework.MCPServer) error {
 	// T-31: security
 	if err := server.RegisterTool(
 		"security",
-		"[HINT: Security. action=scan|alerts|report. Vulnerabilities, remediation.]",
+		"[HINT: action=scan|alerts|report. Security scanning and vulnerability reports. Use when checking for vulnerabilities or reviewing alerts.]",
 		framework.ToolSchema{
 			Type: "object",
 			Properties: map[string]interface{}{
@@ -519,7 +519,7 @@ func registerBatch2Tools(server framework.MCPServer) error {
 	// T-32: task_analysis
 	if err := server.RegisterTool(
 		"task_analysis",
-		"[HINT: Task analysis. action=duplicates|tags|discover_tags|hierarchy|dependencies|dependencies_summary|suggest_dependencies|parallelization|validate|execution_plan|complexity|conflicts|noise. execution_plan with output_format=subagents_plan writes parallel-execution-subagents.plan.md using wave detection. conflicts detects task-overlap (In Progress with dependent also In Progress). complexity classifies tasks (simple/medium/complex) per Model-Assisted Workflow. discover_tags scans MD files for tag hints and uses LLM (Apple FM/Ollama) for semantic inference. noise detects sentence-fragment/junk tasks; filters #discovered by default.]",
+		"[HINT: action=duplicates|tags|discover_tags|dependencies|execution_plan|complexity|conflicts|noise. Analyze task backlog. Use when planning sprints, detecting duplicates, or generating execution waves. Related: task_workflow.]",
 		framework.ToolSchema{
 			Type: "object",
 			Properties: map[string]interface{}{
@@ -652,7 +652,7 @@ func registerBatch2Tools(server framework.MCPServer) error {
 	// T-33: task_discovery
 	if err := server.RegisterTool(
 		"task_discovery",
-		"[HINT: Task discovery. action=comments|markdown|orphans|git_json|planning_links|all. Scans for TODO/FIXME comments, extracts hashtags as tags (e.g., #refactor, #bug). Returns discoveries with tags array. Use create_tasks=true to create Todo2 tasks with extracted tags.]",
+		"[HINT: action=comments|markdown|orphans|git_json|planning_links|all. Discover tasks from code TODOs and docs. Use when scanning for undocumented work. create_tasks=true to auto-create.]",
 		framework.ToolSchema{
 			Type: "object",
 			Properties: map[string]interface{}{
@@ -692,7 +692,7 @@ func registerBatch2Tools(server framework.MCPServer) error {
 	// T-34: task_workflow
 	if err := server.RegisterTool(
 		"task_workflow",
-		"[HINT: OpenCode/agent: use for task list/update/create (action=sync sub_action=list, or approve). Task workflow. action=sync|approve|clarify|clarity|cleanup|create|enrich_tool_hints|fix_dates|fix_empty_descriptions|fix_invalid_ids|link_planning|request_approval|sync_approvals|apply_approval_result|sanity_check|sync_from_plan|sync_plan_status|summarize|run_with_ai. Manage task lifecycle. ⚠️ CRITICAL: PREFER convenience commands (exarp-go task ...) for common operations. FALLBACK to this tool for advanced operations (clarity, cleanup, complex filters, summarize, run_with_ai). NEVER edit .todo2/state.todo2.json directly. Use action=approve with task_ids for batch updates. Use action=create to create new tasks. Use action=link_planning with task_id/task_ids and planning_doc/epic_id to set planning hints on Todo or In Progress tasks only. Use action=summarize with task_id (and optional local_ai_backend) to generate an AI summary and save as comment. Use action=run_with_ai with task_id (and optional local_ai_backend, instruction) to run a task through a local LLM and get implementation guidance. Sync is SQLite↔JSON only; external sync is a future nice-to-have (ignored if passed).]",
+		"[HINT: action=sync|approve|create|update|delete|clarify|cleanup|summarize|run_with_ai|link_planning. Task lifecycle management. Use for CRUD, batch status updates (approve+task_ids), AI summaries. Prefer exarp-go task CLI for simple ops. Related: task_analysis, session.]",
 		framework.ToolSchema{
 			Type: "object",
 			Properties: map[string]interface{}{
@@ -864,7 +864,7 @@ func registerBatch2Tools(server framework.MCPServer) error {
 	// T-34b: infer_task_progress
 	if err := server.RegisterTool(
 		"infer_task_progress",
-		"[HINT: Task completion inference. Analyzes In Progress tasks against codebase; returns inferred completions. dry_run, auto_update_tasks, output_path.]",
+		"[HINT: Analyze In Progress tasks against codebase to infer completions. Use when checking if tasks are already done. dry_run, auto_update_tasks.]",
 		framework.ToolSchema{
 			Type: "object",
 			Properties: map[string]interface{}{
@@ -908,7 +908,7 @@ func registerBatch2Tools(server framework.MCPServer) error {
 	// T-35: testing
 	if err := server.RegisterTool(
 		"testing",
-		"[HINT: Testing tool. action=run|coverage|suggest|validate. Execute tests, analyze coverage, suggest test cases, or validate test structure.]",
+		"[HINT: action=run|coverage|suggest|validate. Execute tests, analyze coverage, suggest tests. Use when running tests or checking coverage.]",
 		framework.ToolSchema{
 			Type: "object",
 			Properties: map[string]interface{}{
@@ -971,7 +971,7 @@ func registerBatch3Tools(server framework.MCPServer) error {
 	// T-37: automation
 	if err := server.RegisterTool(
 		"automation",
-		"[HINT: Automation. action=daily|nightly|sprint|discover. Unified automation tool.]",
+		"[HINT: action=daily|nightly|sprint|discover. Scheduled automation workflows. Use for routine maintenance, sprint automation, or discovering actionable tasks.]",
 		framework.ToolSchema{
 			Type: "object",
 			Properties: map[string]interface{}{
@@ -1053,7 +1053,7 @@ func registerBatch3Tools(server framework.MCPServer) error {
 	// T-38: tool_catalog (help action only - list action converted to stdio://tools resources)
 	if err := server.RegisterTool(
 		"tool_catalog",
-		"[HINT: Tool catalog. action=help. Get help for a specific tool. Use stdio://tools resources for listing tools.]",
+		"[HINT: action=help. Get detailed help for a specific tool by name. Use stdio://tools resource for listing all available tools.]",
 		framework.ToolSchema{
 			Type: "object",
 			Properties: map[string]interface{}{
@@ -1077,7 +1077,7 @@ func registerBatch3Tools(server framework.MCPServer) error {
 	// T-39: workflow_mode
 	if err := server.RegisterTool(
 		"workflow_mode",
-		"[HINT: Workflow mode management. action=focus|suggest|stats. Unified workflow operations.]",
+		"[HINT: action=focus|suggest|stats. Manage workflow modes and focus. Use when switching between dev/review/planning modes.]",
 		framework.ToolSchema{
 			Type: "object",
 			Properties: map[string]interface{}{
@@ -1116,7 +1116,7 @@ func registerBatch3Tools(server framework.MCPServer) error {
 	// T-40: lint
 	if err := server.RegisterTool(
 		"lint",
-		"[HINT: Linting tool. action=run|analyze. Run linter or analyze problems. For markdown/docs, includes broken link check via gomarklint (enableLinkCheck in .gomarklint.json).]",
+		"[HINT: action=run|analyze. Run linters or analyze results. Supports golangci-lint, gofmt, gomarklint (with link check). Use when checking code quality.]",
 		framework.ToolSchema{
 			Type: "object",
 			Properties: map[string]interface{}{
@@ -1166,7 +1166,7 @@ func registerBatch3Tools(server framework.MCPServer) error {
 	// T-41: estimation
 	if err := server.RegisterTool(
 		"estimation",
-		"[HINT: Estimation. action=estimate|analyze|stats|estimate_batch. Unified task duration estimation tool.]",
+		"[HINT: action=estimate|analyze|stats|estimate_batch. Task duration estimation. Use when planning work or estimating backlog. Supports FM/MLX/Ollama backends.]",
 		framework.ToolSchema{
 			Type: "object",
 			Properties: map[string]interface{}{
@@ -1233,7 +1233,7 @@ func registerBatch3Tools(server framework.MCPServer) error {
 	// T-42: git_tools
 	if err := server.RegisterTool(
 		"git_tools",
-		"[HINT: Git tools. action=commits|local_commits|branches|tasks|diff|graph|merge|set_branch. Unified git-inspired tools.]",
+		"[HINT: action=commits|local_commits|branches|tasks|diff|graph|merge|set_branch. Git operations and task-commit linking. Use when reviewing changes or linking commits to tasks.]",
 		framework.ToolSchema{
 			Type: "object",
 			Properties: map[string]interface{}{
@@ -1303,7 +1303,7 @@ func registerBatch3Tools(server framework.MCPServer) error {
 	// T-43: session
 	if err := server.RegisterTool(
 		"session",
-		"[HINT: OpenCode/agent: call action=prime at session start (include_tasks, include_hints); handoff for leave/resume. Session. action=prime|handoff|prompts|assignee. Prime and handoff return suggested_next_action and suggested_next. Unified session management.]",
+		"[HINT: action=prime|handoff|prompts|assignee. Session management. Call prime at start; handoff to save/resume context across sessions. Returns suggested_next tasks.]",
 		framework.ToolSchema{
 			Type: "object",
 			Properties: map[string]interface{}{
@@ -1426,7 +1426,7 @@ func registerBatch3Tools(server framework.MCPServer) error {
 	// T-44: infer_session_mode
 	if err := server.RegisterTool(
 		"infer_session_mode",
-		"[HINT: Session mode inference. Returns AGENT/ASK/MANUAL with confidence.]",
+		"[HINT: Infer session mode (AGENT/ASK/MANUAL) with confidence. Use when auto-detecting optimal interaction mode.]",
 		framework.ToolSchema{
 			Type: "object",
 			Properties: map[string]interface{}{
@@ -1445,7 +1445,7 @@ func registerBatch3Tools(server framework.MCPServer) error {
 	// ollama
 	if err := server.RegisterTool(
 		"ollama",
-		"[HINT: LLM abstraction. ollama. action=status|models|generate|pull|hardware|docs|quality|summary. Native then bridge (DefaultOllama()).]",
+		"[HINT: action=status|models|generate|pull|hardware|docs|quality|summary. Ollama LLM backend. Use for local text generation via Ollama server. Related: mlx, text_generate.]",
 		framework.ToolSchema{
 			Type: "object",
 			Properties: map[string]interface{}{
@@ -1511,7 +1511,7 @@ func registerBatch3Tools(server framework.MCPServer) error {
 	// mlx
 	if err := server.RegisterTool(
 		"mlx",
-		"[HINT: LLM abstraction (MLX). action=status|hardware|models|generate. Native status/hardware/models; generate via shared path. text_generate provider=mlx uses DefaultMLXProvider(); report insights use DefaultReportInsight() (FM then MLX).]",
+		"[HINT: action=status|hardware|models|generate. MLX LLM backend for Apple Silicon. Use for on-device generation via MLX. Related: ollama, text_generate.]",
 		framework.ToolSchema{
 			Type: "object",
 			Properties: map[string]interface{}{
@@ -1565,7 +1565,7 @@ func registerBatch4Tools(server framework.MCPServer) error {
 	// context_budget
 	if err := server.RegisterTool(
 		"context_budget",
-		"[HINT: Context budget. Estimate token usage and suggest context reduction strategy.]",
+		"[HINT: Estimate token usage and suggest context reduction. Use when managing context window limits. Related: context.]",
 		framework.ToolSchema{
 			Type: "object",
 			Properties: map[string]interface{}{
@@ -1598,7 +1598,7 @@ func registerBatch5Tools(server framework.MCPServer) error {
 	// context - Unified context management (summarize/budget/batch actions)
 	if err := server.RegisterTool(
 		"context",
-		"[HINT: Context management. action=summarize|budget|batch. Unified context operations.]",
+		"[HINT: action=summarize|budget|batch. Context management and summarization. Use when reducing context size or summarizing tool outputs.]",
 		framework.ToolSchema{
 			Type: "object",
 			Properties: map[string]interface{}{
@@ -1652,19 +1652,19 @@ func registerBatch5Tools(server framework.MCPServer) error {
 		return fmt.Errorf("failed to register context: %w", err)
 	}
 
-	// text_generate - Unified generate-text via FM, ReportInsight, or MLX (LLM abstraction)
+	// text_generate - Unified generate-text dispatcher for all LLM backends (FM, Ollama, MLX, LocalAI, ReportInsight)
 	// When task_type or task_description is provided, uses ResolveModelForTask (recommend + router) for model selection (T-207).
 	if err := server.RegisterTool(
 		"text_generate",
-		"[HINT: Unified generate-text. provider=fm|insight|mlx|auto (default fm). task_type/task_description enable model selection (recommend+router).]",
+		"[HINT: provider=fm|ollama|insight|mlx|localai|auto. Unified text generation across all LLM backends. Single entry point for generate-text. task_type enables auto model selection.]",
 		framework.ToolSchema{
 			Type: "object",
 			Properties: map[string]interface{}{
 				"provider": map[string]interface{}{
 					"type":        "string",
-					"enum":        []string{"fm", "insight", "mlx", "auto"},
+					"enum":        []string{"fm", "ollama", "insight", "mlx", "localai", "auto"},
 					"default":     "fm",
-					"description": "Backend: fm|insight|mlx (explicit), or auto (model selection from task_type/task_description)",
+					"description": "Backend: fm (Apple/chain), ollama (native Ollama), insight (report), mlx (Apple Silicon), localai (OpenAI-compatible), or auto (model selection from task_type/task_description)",
 				},
 				"prompt": map[string]interface{}{
 					"type":        "string",
@@ -1705,7 +1705,7 @@ func registerBatch5Tools(server framework.MCPServer) error {
 	// task_execute - Run model-assisted execution flow for a Todo2 task (T-215; MODEL_ASSISTED_WORKFLOW Phase 4)
 	if err := server.RegisterTool(
 		"task_execute",
-		"[HINT: Run execution flow for a Todo2 task. Loads task, runs task_execution template, parses response, optionally applies file changes, adds result comment.]",
+		"[HINT: Model-assisted task execution. Loads Todo2 task, generates plan via LLM, optionally applies file changes. Use when auto-executing tasks.]",
 		framework.ToolSchema{
 			Type: "object",
 			Properties: map[string]interface{}{
@@ -1738,7 +1738,7 @@ func registerBatch5Tools(server framework.MCPServer) error {
 	// prompt_tracking - Unified prompt tracking (log/analyze actions)
 	if err := server.RegisterTool(
 		"prompt_tracking",
-		"[HINT: Prompt tracking. action=log|analyze. Track and analyze prompts.]",
+		"[HINT: action=log|analyze. Track and analyze prompt usage patterns. Use when optimizing prompt strategies over time.]",
 		framework.ToolSchema{
 			Type: "object",
 			Properties: map[string]interface{}{
@@ -1784,7 +1784,7 @@ func registerBatch5Tools(server framework.MCPServer) error {
 	// recommend - Unified recommendation tool (model/workflow/advisor actions)
 	if err := server.RegisterTool(
 		"recommend",
-		"[HINT: Recommend. action=model|workflow|advisor. Unified recommendation tool.]",
+		"[HINT: action=model|workflow|advisor. Get recommendations for models, workflows, or advisors. Use when choosing the right approach for a task.]",
 		framework.ToolSchema{
 			Type: "object",
 			Properties: map[string]interface{}{
@@ -1832,7 +1832,7 @@ func registerBatch5Tools(server framework.MCPServer) error {
 	// T-224: research_aggregator - runs multiple research tools and combines outputs
 	if err := server.RegisterTool(
 		"research_aggregator",
-		"[HINT: Research result aggregator. Runs task_analysis, analyze_alignment, etc. and combines outputs.]",
+		"[HINT: Run multiple analysis tools and combine outputs. Use when you need a comprehensive research overview. Related: task_analysis, analyze_alignment.]",
 		framework.ToolSchema{
 			Type: "object",
 			Properties: map[string]interface{}{
@@ -1866,6 +1866,45 @@ func registerBatch5Tools(server framework.MCPServer) error {
 	// Note: demonstrate_elicit and interactive_task_create removed
 	// These tools require FastMCP Context (not available in stdio mode)
 	// They were demonstration tools that don't work in exarp-go's primary stdio mode
+
+	// cursor_cloud_agent — Cursor Cloud Agents API (Beta). T-1771164550717
+	if err := server.RegisterTool(
+		"cursor_cloud_agent",
+		"[HINT: action=launch|status|list|follow_up|delete. Cursor Cloud Agents API (Beta). Requires CURSOR_API_KEY. Use when running remote Cursor agents.]",
+		framework.ToolSchema{
+			Type: "object",
+			Properties: map[string]interface{}{
+				"action": map[string]interface{}{
+					"type":    "string",
+					"enum":   []string{"launch", "status", "list", "follow_up", "delete"},
+					"default": "list",
+				},
+				"agent_id": map[string]interface{}{
+					"type":        "string",
+					"description": "Required for status, follow_up, delete.",
+				},
+				"prompt": map[string]interface{}{
+					"type":        "string",
+					"description": "Required for launch and follow_up.",
+				},
+				"repo": map[string]interface{}{
+					"type":        "string",
+					"description": "Optional for launch.",
+				},
+				"model": map[string]interface{}{
+					"type":        "string",
+					"description": "Optional for launch.",
+				},
+				"compact": map[string]interface{}{
+					"type":    "boolean",
+					"default": false,
+				},
+			},
+		},
+		handleCursorCloudAgent,
+	); err != nil {
+		return fmt.Errorf("failed to register cursor_cloud_agent: %w", err)
+	}
 
 	return nil
 }

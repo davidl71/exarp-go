@@ -16,6 +16,7 @@ Project skills in `.cursor/skills/` — read the SKILL.md when the user's reques
 | **task-cleanup** | `.cursor/skills/task-cleanup/SKILL.md` | Bulk remove one-off or performance tasks; tasks "reappeared." Use batch delete (`task_ids`). |
 | **lint-docs** | `.cursor/skills/lint-docs/SKILL.md` | Check broken references, validate doc links, lint markdown (gomarklint link check built-in). |
 | use-exarp-tools | `.cursor/skills/use-exarp-tools/SKILL.md` | Which exarp-go tool to use; tasks, reports, health, automation. Discover usage via MCP (stdio://tools, tool_catalog) or make help — do not run exarp-go --help. |
+| thinking-workflow | `.cursor/skills/thinking-workflow/SKILL.md` | Chain tractatus (structure) + sequential (process) + exarp-go MCP (execute) for backlog enrichment, sprint planning, dependency analysis. |
 
 Full index: `.cursor/skills/README.md`.
 

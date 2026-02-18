@@ -7,6 +7,7 @@ import (
 
 	"github.com/davidl71/exarp-go/proto"
 	protobuf "google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/encoding/protojson"
 )
 
 // Todo2TaskToProto converts a models.Todo2Task to protobuf Todo2Task.
@@ -138,25 +139,28 @@ func DeserializeTaskFromProtobuf(data []byte) (*Todo2Task, error) {
 	return task, nil
 }
 
-// SerializeTaskToProtobufJSON serializes a Todo2Task to protobuf JSON format
-// This is useful for debugging and human-readable storage.
+// SerializeTaskToProtobufJSON serializes a Todo2Task to protobuf JSON format using protojson.
+// Produces canonical proto3 JSON (camelCase field names, proper enum/timestamp handling).
 func SerializeTaskToProtobufJSON(task *Todo2Task) ([]byte, error) {
 	pbTask, err := Todo2TaskToProto(task)
 	if err != nil {
 		return nil, fmt.Errorf("failed to convert task to protobuf: %w", err)
 	}
 
-	// Use protojson for JSON serialization
-	// Note: This requires importing encoding/protojson
-	// For now, we'll use standard JSON as fallback
-	// TODO: Use protojson.Marshal for proper protobuf JSON format
-	return json.Marshal(pbTask)
+	opts := protojson.MarshalOptions{
+		EmitUnpopulated: false,
+	}
+	return opts.Marshal(pbTask)
 }
 
-// DeserializeTaskFromProtobufJSON deserializes a Todo2Task from protobuf JSON format.
+// DeserializeTaskFromProtobufJSON deserializes a Todo2Task from protobuf JSON format using protojson.
+// Accepts canonical proto3 JSON (camelCase) and the original proto field names.
 func DeserializeTaskFromProtobufJSON(data []byte) (*Todo2Task, error) {
 	pbTask := &proto.Todo2Task{}
-	if err := json.Unmarshal(data, pbTask); err != nil {
+	opts := protojson.UnmarshalOptions{
+		DiscardUnknown: true,
+	}
+	if err := opts.Unmarshal(data, pbTask); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal protobuf JSON: %w", err)
 	}
 

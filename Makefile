@@ -1,4 +1,4 @@
-.PHONY: help b build build-debug silent build-race build-no-cgo run test test-watch tag-build-ok pre-release r root push pull p pl test-coverage test-html clean install fmt lint lint-all lint-all-fix dev dev-watch dev-test dev-full dev-cycle pre-push bench docs sanity-check sanity-check-cached test-cli test-cli-list test-cli-tool test-cli-test config clean-config sprint-start sprint-end pre-sprint sprint check-tasks update-completed-tasks task-sanity-check go-fmt go-vet golangci-lint-check golangci-lint-fix govulncheck check check-fix check-all build-migrate migrate migrate-dry-run install-tools go-mod-tidy go-mod-verify pre-commit ci validate check-deps test-go test-go-fast test-go-verbose test-go-parallel test-go-tools-short test-real-models version scorecard scorecard-full scorecard-plans report-plan demo-tui task-list task-list-todo task-list-in-progress task-list-done task-prune-done task-update task-create queue-enqueue-wave queue-worker proto delete-expired-archive analyze-critical-path proto-check proto-clean vendor-licenses exarp-list exarp-report-scorecard exarp-report-overview exarp-health-server exarp-health-docs exarp-context-budget exarp-test test-mcp-stdio validate-opencode-config validate-plugin
+.PHONY: help b build build-debug silent build-race build-no-cgo run test test-watch tag-build-ok pre-release r root push pull p pl test-coverage test-html clean install fmt lint lint-all lint-all-fix dev dev-watch dev-test dev-full dev-cycle pre-push bench docs sanity-check sanity-check-cached test-cli test-cli-list test-cli-tool test-cli-test config clean-config sprint-start sprint-end pre-sprint sprint check-tasks update-completed-tasks task-sanity-check go-fmt go-vet golangci-lint-check golangci-lint-fix govulncheck check check-fix check-all build-migrate migrate migrate-dry-run install-tools go-mod-tidy go-mod-verify pre-commit ci validate check-deps test-go test-go-fast test-go-verbose test-go-parallel test-go-tools-short test-real-models version scorecard scorecard-full scorecard-plans report-plan demo-tui task-list task-list-todo task-list-in-progress task-list-done task-prune-done task-update task-create queue-enqueue-wave queue-worker queue-dispatcher proto delete-expired-archive analyze-critical-path proto-check proto-clean vendor-licenses exarp-list exarp-report-scorecard exarp-report-overview exarp-health-server exarp-health-docs exarp-context-budget exarp-test test-mcp-stdio validate-opencode-config validate-plugin
 
 # Project configuration
 PROJECT_NAME := exarp-go
@@ -454,7 +454,7 @@ check-fix: go-fmt golangci-lint-fix ## Check and auto-fix code (fmt + lint-fix)
 check-all: check govulncheck ## Run all checks including security (fmt + vet + lint + vulncheck)
 	@echo "$(GREEN)✅ All checks passed (including security)$(NC)"
 
-pre-release: build govulncheck ## Run before release: build + vulnerability check (not run on pre-commit/pre-push)
+pre-release: build govulncheck vendor-licenses ## Run before release: build + vulnerability check + vendor credits (not run on pre-commit/pre-push)
 	@if [ -f $(BINARY_PATH) ]; then \
 		echo "$(BLUE)Running security scan...$(NC)"; \
 		$(BINARY_PATH) -tool security -args '{"action":"scan"}' </dev/null || (echo "$(RED)❌ Security scan failed$(NC)" && exit 1); \
@@ -945,6 +945,13 @@ queue-worker: build ## Run Asynq worker (requires REDIS_ADDR)
 		exit 1; \
 	fi
 	@$(BINARY_PATH) worker
+
+queue-dispatcher: build ## Run wave dispatcher (requires REDIS_ADDR)
+	@if [ -z "$$REDIS_ADDR" ]; then \
+		echo "$(YELLOW)⚠️  Set REDIS_ADDR (e.g. export REDIS_ADDR=127.0.0.1:6379)$(NC)"; \
+		exit 1; \
+	fi
+	@$(BINARY_PATH) queue dispatcher --interval $${DISPATCH_INTERVAL:-5m}
 
 ##@ exarp-go tools (CLI)
 

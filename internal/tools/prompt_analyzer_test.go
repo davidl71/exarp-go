@@ -150,3 +150,107 @@ func TestParsePromptAnalysis(t *testing.T) {
 		})
 	}
 }
+
+func TestGenerateSuggestions_WithMockGenerator(t *testing.T) {
+	ctx := context.Background()
+
+	suggestionsJSON := `{"suggestions":[{"dimension":"clarity","issue":"ambiguous wording","recommendation":"use precise terms"},{"dimension":"completeness","issue":"missing context","recommendation":"add file paths"}]}`
+	gen := &mockAnalysisGenerator{response: suggestionsJSON}
+
+	analysis := &PromptAnalysis{
+		Clarity:       0.5,
+		Specificity:   0.6,
+		Completeness:  0.4,
+		Structure:     0.7,
+		Actionability: 0.6,
+		Summary:       "Needs improvement",
+	}
+
+	result, err := GenerateSuggestions(ctx, "Refactor the module.", analysis, "", "code", gen)
+	if err != nil {
+		t.Fatalf("GenerateSuggestions: %v", err)
+	}
+
+	if len(result.Suggestions) != 2 {
+		t.Fatalf("got %d suggestions, want 2", len(result.Suggestions))
+	}
+	if result.Suggestions[0].Dimension != "clarity" {
+		t.Errorf("Suggestions[0].Dimension = %q, want clarity", result.Suggestions[0].Dimension)
+	}
+	if result.Suggestions[1].Recommendation != "add file paths" {
+		t.Errorf("Suggestions[1].Recommendation = %q", result.Suggestions[1].Recommendation)
+	}
+}
+
+func TestRefinePrompt_WithMockGenerator(t *testing.T) {
+	ctx := context.Background()
+
+	gen := &mockAnalysisGenerator{response: "Refactor the auth module in internal/auth by extracting token validation into a helper function."}
+
+	suggestions := &SuggestionsResponse{
+		Suggestions: []SuggestionItem{
+			{Dimension: "specificity", Issue: "vague", Recommendation: "name the module and file"},
+		},
+	}
+
+	refined, err := RefinePrompt(ctx, "Refactor the module.", suggestions, "", "code", gen)
+	if err != nil {
+		t.Fatalf("RefinePrompt: %v", err)
+	}
+	if refined == "" {
+		t.Fatal("expected non-empty refined prompt")
+	}
+	if refined != "Refactor the auth module in internal/auth by extracting token validation into a helper function." {
+		t.Errorf("refined = %q", refined)
+	}
+}
+
+// mockLoopGenerator cycles through responses to simulate multiple iterations of the refinement loop.
+type mockLoopGenerator struct {
+	responses []string
+	callIndex int
+}
+
+func (m *mockLoopGenerator) Supported() bool { return true }
+
+func (m *mockLoopGenerator) Generate(_ context.Context, _ string, _ int, _ float32) (string, error) {
+	if m.callIndex >= len(m.responses) {
+		return m.responses[len(m.responses)-1], nil
+	}
+	resp := m.responses[m.callIndex]
+	m.callIndex++
+	return resp, nil
+}
+
+func TestRefinePromptLoop_SuccessfulIteration(t *testing.T) {
+	ctx := context.Background()
+
+	// The loop calls: AnalyzePrompt (1 Generate) → check MinScore → stop if above threshold.
+	// Return analysis with all scores >= 0.9 so it stops on the first iteration.
+	highScoreAnalysis := `{"clarity":0.95,"specificity":0.92,"completeness":0.90,"structure":0.93,"actionability":0.91,"summary":"Excellent prompt","notes":[]}`
+
+	gen := &mockLoopGenerator{
+		responses: []string{highScoreAnalysis},
+	}
+
+	finalPrompt, lastAnalysis, err := RefinePromptLoop(ctx, "Add unit tests for auth module.", "", "code", gen, &RefinePromptLoopOptions{
+		MaxIterations:     3,
+		MinScoreThreshold: 0.9,
+	})
+	if err != nil {
+		t.Fatalf("RefinePromptLoop: %v", err)
+	}
+
+	if finalPrompt != "Add unit tests for auth module." {
+		t.Errorf("finalPrompt = %q, want original (already above threshold)", finalPrompt)
+	}
+	if lastAnalysis == nil {
+		t.Fatal("expected non-nil lastAnalysis")
+	}
+	if lastAnalysis.MinScore() < 0.9 {
+		t.Errorf("MinScore() = %v, want >= 0.9", lastAnalysis.MinScore())
+	}
+	if lastAnalysis.Summary != "Excellent prompt" {
+		t.Errorf("Summary = %q, want 'Excellent prompt'", lastAnalysis.Summary)
+	}
+}

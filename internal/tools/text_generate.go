@@ -9,7 +9,8 @@ import (
 )
 
 // handleTextGenerate implements the unified text_generate tool.
-// provider=fm uses DefaultFMProvider(); provider=insight uses DefaultReportInsight(); provider=mlx uses DefaultMLXProvider().
+// provider=fm uses DefaultFMProvider(); provider=ollama uses DefaultOllamaTextGenerator(); provider=insight uses DefaultReportInsight();
+// provider=mlx uses DefaultMLXProvider(); provider=localai uses DefaultLocalAIProvider().
 // provider=auto (or task_type/task_description provided) uses ResolveModelForTask + ModelRouter for model selection (T-207).
 func handleTextGenerate(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
 	var params map[string]interface{}
@@ -57,6 +58,8 @@ func handleTextGenerate(ctx context.Context, args json.RawMessage) ([]framework.
 	switch provider {
 	case "fm":
 		gen = DefaultFMProvider()
+	case "ollama":
+		gen = DefaultOllamaTextGenerator()
 	case "insight":
 		gen = DefaultReportInsight()
 	case "mlx":
@@ -64,7 +67,7 @@ func handleTextGenerate(ctx context.Context, args json.RawMessage) ([]framework.
 	case "localai":
 		gen = DefaultLocalAIProvider()
 	default:
-		return nil, fmt.Errorf("unknown provider: %q (use \"fm\", \"insight\", \"mlx\", \"localai\", or \"auto\")", provider)
+		return nil, fmt.Errorf("unknown provider: %q (use \"fm\", \"ollama\", \"insight\", \"mlx\", \"localai\", or \"auto\")", provider)
 	}
 
 	if gen == nil || !gen.Supported() {

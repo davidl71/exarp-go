@@ -356,6 +356,7 @@ message TaskSummary {
   repeated string tags = 5;
   string long_description = 6;
   repeated string dependencies = 7;
+  repeated string recommended_tools = 8;
 }
 
 // SyncResults holds sync action result details (validated_tasks, issues, etc.).

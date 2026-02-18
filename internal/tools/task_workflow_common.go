@@ -17,6 +17,7 @@ import (
 	"github.com/davidl71/exarp-go/proto"
 	mcpframework "github.com/davidl71/mcp-go-core/pkg/mcp/framework"
 	"github.com/davidl71/mcp-go-core/pkg/mcp/response"
+	"github.com/spf13/cast"
 )
 
 // ParseTaskIDsFromParams extracts task IDs from params. Supports task_id (single string) and
@@ -132,6 +133,10 @@ func TaskWorkflowResponseToMap(resp *proto.TaskWorkflowResponse) map[string]inte
 				m["dependencies"] = t.Dependencies
 			}
 
+			if len(t.RecommendedTools) > 0 {
+				m["recommended_tools"] = t.RecommendedTools
+			}
+
 			tasks[i] = m
 		}
 
@@ -158,13 +163,14 @@ func taskToTaskSummary(t *models.Todo2Task) *proto.TaskSummary {
 	}
 
 	return &proto.TaskSummary{
-		Id:              t.ID,
-		Content:         t.Content,
-		Status:          t.Status,
-		Priority:        t.Priority,
-		Tags:            t.Tags,
-		LongDescription: t.LongDescription,
-		Dependencies:    t.Dependencies,
+		Id:               t.ID,
+		Content:          t.Content,
+		Status:           t.Status,
+		Priority:         t.Priority,
+		Tags:             t.Tags,
+		LongDescription:  t.LongDescription,
+		Dependencies:     t.Dependencies,
+		RecommendedTools: GetRecommendedTools(t.Metadata),
 	}
 }
 
@@ -446,11 +452,11 @@ func handleTaskWorkflowUpdate(ctx context.Context, params map[string]interface{}
 
 	addTags := parseTagsFromParams(params)
 	removeTags := parseRemoveTagsFromParams(params)
-	name, _ := params["name"].(string)
-	longDescription, _ := params["long_description"].(string)
-	parentID, _ := params["parent_id"].(string)
+	name := cast.ToString(params["name"])
+	longDescription := cast.ToString(params["long_description"])
+	parentID := cast.ToString(params["parent_id"])
 	dependencies := parseDependenciesFromParams(params)
-	localAIBackend, _ := params["local_ai_backend"].(string)
+	localAIBackend := cast.ToString(params["local_ai_backend"])
 	hasLocalAIBackend := strings.TrimSpace(localAIBackend) != ""
 	recommendedTools := parseRecommendedToolsFromParams(params)
 	hasRecommendedTools := len(recommendedTools) > 0
@@ -752,7 +758,7 @@ func handleTaskWorkflowList(ctx context.Context, params map[string]interface{}) 
 	}
 
 	// Optional: sort by execution order (dependency order)
-	if order, _ := params["order"].(string); order == "execution" || order == "dependency" {
+	if order := cast.ToString(params["order"]); order == "execution" || order == "dependency" {
 		orderedIDs, _, _, err := BacklogExecutionOrder(tasks, nil)
 		if err == nil {
 			filteredMap := make(map[string]Todo2Task)
@@ -788,7 +794,7 @@ func handleTaskWorkflowList(ctx context.Context, params map[string]interface{}) 
 	}
 
 	// Format output
-	outputFormat, _ := params["output_format"].(string)
+	outputFormat := cast.ToString(params["output_format"])
 	if outputFormat == "" {
 		outputFormat = "text"
 	}
@@ -817,7 +823,7 @@ func handleTaskWorkflowList(ctx context.Context, params map[string]interface{}) 
 			taskMaps[i] = m
 		}
 		out := map[string]interface{}{"success": true, "method": "list", "tasks": taskMaps}
-		compact, _ := params["compact"].(bool)
+		compact := cast.ToBool(params["compact"])
 		return FormatResultOptionalCompact(out, "", compact)
 	}
 	// Text format: column widths aligned with TUI (internal/cli/tui.go colIDMedium, colStatus, colPriority)
@@ -905,7 +911,7 @@ func handleTaskWorkflowSync(ctx context.Context, params map[string]interface{}) 
 
 	// Check if this is a list sub-action (for listing tasks)
 	// If sub_action is "list", we just load and return tasks (no sync needed)
-	subAction, _ := params["sub_action"].(string)
+	subAction := cast.ToString(params["sub_action"])
 	if subAction == "list" {
 		// For list, just load tasks and format them (no sync)
 		return handleTaskWorkflowList(ctx, params)
@@ -1004,7 +1010,7 @@ func handleTaskWorkflowSync(ctx context.Context, params map[string]interface{}) 
 	}
 
 	result := TaskWorkflowResponseToMap(resp)
-	if external, _ := params["external"].(bool); external {
+	if cast.ToBool(params["external"]) {
 		if result["sync_results"] != nil {
 			if m, ok := result["sync_results"].(map[string]interface{}); ok {
 				m["external_sync_note"] = "External sync is a future nice-to-have; performed SQLite↔JSON sync only."
@@ -1012,7 +1018,7 @@ func handleTaskWorkflowSync(ctx context.Context, params map[string]interface{}) 
 		}
 	}
 
-	outputPath, _ := params["output_path"].(string)
+	outputPath := cast.ToString(params["output_path"])
 
 	return response.FormatResult(result, outputPath)
 }
@@ -1123,7 +1129,7 @@ func handleTaskWorkflowSanityCheck(ctx context.Context, params map[string]interf
 		"sanity_checks": []string{"invalid_task_id", "epoch_dates", "empty_content", "valid_status", "duplicate_ids", "duplicate_content", "missing_dependencies"},
 	}
 
-	outputPath, _ := params["output_path"].(string)
+	outputPath := cast.ToString(params["output_path"])
 
 	return response.FormatResult(result, outputPath)
 }
@@ -1215,7 +1221,7 @@ func handleTaskWorkflowClarity(ctx context.Context, params map[string]interface{
 		"recommendations": buildClarityRecommendations(clarityIssues),
 	}
 
-	outputPath, _ := params["output_path"].(string)
+	outputPath := cast.ToString(params["output_path"])
 
 	// Handle text vs JSON formatting
 	if outputFormat == "json" {
@@ -1426,7 +1432,7 @@ func handleTaskWorkflowCleanup(ctx context.Context, params map[string]interface{
 			result["sync_error"] = syncErr.Error()
 		}
 
-		outputPath, _ := params["output_path"].(string)
+		outputPath := cast.ToString(params["output_path"])
 
 		return response.FormatResult(result, outputPath)
 	}
@@ -1538,7 +1544,7 @@ func handleTaskWorkflowCleanup(ctx context.Context, params map[string]interface{
 		"include_legacy":  includeLegacy,
 	}
 
-	outputPath, _ := params["output_path"].(string)
+	outputPath := cast.ToString(params["output_path"])
 
 	return response.FormatResult(result, outputPath)
 }
@@ -1612,7 +1618,7 @@ func handleTaskWorkflowFixEmptyDescriptions(ctx context.Context, params map[stri
 			result["sync_error"] = syncErr.Error()
 		}
 
-		outputPath, _ := params["output_path"].(string)
+		outputPath := cast.ToString(params["output_path"])
 
 		return response.FormatResult(result, outputPath)
 	}
@@ -1670,7 +1676,7 @@ func handleTaskWorkflowFixEmptyDescriptions(ctx context.Context, params map[stri
 		"method":        "file",
 		"tasks_updated": updated,
 	}
-	outputPath, _ := params["output_path"].(string)
+	outputPath := cast.ToString(params["output_path"])
 
 	return response.FormatResult(result, outputPath)
 }
@@ -1778,8 +1784,8 @@ func handleTaskWorkflowLinkPlanning(ctx context.Context, params map[string]inter
 		return nil, fmt.Errorf("failed to find project root: %w", err)
 	}
 
-	planningDoc, _ := params["planning_doc"].(string)
-	epicID, _ := params["epic_id"].(string)
+	planningDoc := cast.ToString(params["planning_doc"])
+	epicID := cast.ToString(params["epic_id"])
 
 	if planningDoc == "" && epicID == "" {
 		return nil, fmt.Errorf("at least one of planning_doc or epic_id is required for link_planning")
@@ -2109,7 +2115,7 @@ func handleTaskWorkflowCreate(ctx context.Context, params map[string]interface{}
 		}
 	}
 
-	outputPath, _ := params["output_path"].(string)
+	outputPath := cast.ToString(params["output_path"])
 
 	return response.FormatResult(result, outputPath)
 }
@@ -2179,7 +2185,7 @@ func handleTaskWorkflowEnrichToolHints(ctx context.Context, params map[string]in
 		"updated_count": len(updatedIDs),
 		"task_ids":      updatedIDs,
 	}
-	outputPath, _ := params["output_path"].(string)
+	outputPath := cast.ToString(params["output_path"])
 	return response.FormatResult(result, outputPath)
 }
 
@@ -2379,7 +2385,7 @@ func formatEstimateComment(estimate EstimationResult) string {
 // (fm|mlx|ollama) and saves it as a comment. Uses BuildEstimationPrompt-style prompt building.
 // Params: task_id (required), local_ai_backend (optional, overrides task metadata preferred_backend).
 func handleTaskWorkflowSummarize(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
-	taskID, _ := params["task_id"].(string)
+	taskID := cast.ToString(params["task_id"])
 	if taskID == "" {
 		return nil, fmt.Errorf("summarize action requires task_id")
 	}
@@ -2547,7 +2553,7 @@ Respond with a concise, plain-text summary only. No JSON, no bullet points.`,
 // calls the preferred local AI backend, and returns the output — without applying any file changes.
 // Params: task_id (required), local_ai_backend (optional), instruction (optional extra instruction).
 func handleTaskWorkflowRunWithAI(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
-	taskID, _ := params["task_id"].(string)
+	taskID := cast.ToString(params["task_id"])
 	if taskID == "" {
 		return nil, fmt.Errorf("run_with_ai action requires task_id")
 	}
@@ -2581,7 +2587,7 @@ func handleTaskWorkflowRunWithAI(ctx context.Context, params map[string]interfac
 	}
 
 	// Optional extra instruction from caller
-	instruction, _ := params["instruction"].(string)
+	instruction := cast.ToString(params["instruction"])
 	if instruction == "" {
 		instruction = "Analyze this task and provide: 1) a brief implementation plan, 2) key risks or blockers, 3) suggested next steps. Keep your response concise and actionable."
 	}

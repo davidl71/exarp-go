@@ -149,6 +149,64 @@ Suggested defaults (config or code):
 
 ---
 
+## API and CLI Reference: `recommended_tools`
+
+### What it is
+
+A comma-separated list of MCP tool identifiers suggested for a task. Stored in task metadata as `recommended_tools` (array of strings). When surfaced in JSON responses, it appears as a `recommended_tools` string field on `TaskSummary` proto messages and in session prime `suggested_next` items.
+
+### How to set
+
+**Via `task_workflow` MCP tool (create):**
+```json
+{
+  "action": "create",
+  "name": "Research auth patterns",
+  "recommended_tools": "tractatus_thinking,context7"
+}
+```
+
+**Via `task_workflow` MCP tool (update):**
+```json
+{
+  "action": "update",
+  "task_id": "T-123",
+  "recommended_tools": "report,task_workflow,health"
+}
+```
+
+**Via CLI:**
+```bash
+exarp-go task create "Research auth patterns" --recommended-tools tractatus_thinking,context7
+exarp-go task update T-123 --recommended-tools report,task_workflow,health
+```
+
+**Via tag-based enrichment (automatic):**
+Use `task_workflow` with `action=enrich_tool_hints` to apply tag → tool rules from `.cursor/task_tool_rules.yaml` (or built-in defaults) to all Todo and In Progress tasks. See [Tag → tool mapping](#5-tag--tool-mapping-mvp) above.
+
+### Where it appears
+
+| Surface | Field | Description |
+|---------|-------|-------------|
+| `task show` / `get_todo_details` | `recommended_tools` | Array of tool IDs in task detail payload |
+| Session prime `suggested_next` | `recommended_tools` | Included per suggested task so the AI knows which tools to use |
+| `task_workflow` list (JSON) | `recommended_tools` | Present in `TaskSummary` entries when set |
+| Proto `TaskSummary` | `repeated string recommended_tools = 8` | Wire-format field for typed clients |
+
+### Example
+
+```
+recommended_tools: "report,task_workflow,health"
+```
+
+This tells the AI (or human) that the task benefits from the `report`, `task_workflow`, and `health` MCP tools.
+
+### Canonical tool identifiers
+
+See the [Canonical tool identifiers](#2-canonical-tool-identifiers) table above. Common values: `tractatus_thinking`, `context7`, `task_workflow`, `task_analysis`, `report`, `health`, `ollama`, `mlx`.
+
+---
+
 ## References
 
 - Session prime hints: `internal/tools/session.go` (`getHintsForMode`, suggested_next).

@@ -212,9 +212,9 @@ func GetToolCatalog() map[string]ToolCatalogEntry {
 		},
 		"text_generate": {
 			Tool:             "text_generate",
-			Hint:             "Unified generate-text. provider=fm|insight|mlx (default fm). Uses DefaultFMProvider (fm), DefaultReportInsight (insight), or DefaultMLXProvider (mlx).",
+			Hint:             "Unified generate-text dispatcher. provider=fm|ollama|insight|mlx|localai|auto. Single entry point for all LLM text generation.",
 			Category:         "AI & ML",
-			Description:      "Unified generate-text via FM (default) or ReportInsight; use when only generate-text is needed",
+			Description:      "Unified text generation across all backends (FM, Ollama, MLX, LocalAI, auto model selection)",
 			RecommendedModel: "claude-haiku",
 		},
 		"task_execute": {
