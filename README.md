@@ -122,6 +122,8 @@ For detailed configuration options, see:
 
 **OpenCode / OAC:** To use exarp-go with [OpenCode](https://opencode.ai/) or [OpenAgentsControl (OAC)](https://github.com/darrenhinde/OpenAgentsControl), add exarp-go as an MCP server in your OpenCode config. See [docs/OPENCODE_INTEGRATION.md](docs/OPENCODE_INTEGRATION.md) for MCP, CLI, and HTTP API; [docs/OPENAGENTSCONTROL_EXARP_GO_COMBO_PLAN.md](docs/OPENAGENTSCONTROL_EXARP_GO_COMBO_PLAN.md) for OAC + exarp-go workflow. Example config: [docs/opencode-exarp-go.example.json](docs/opencode-exarp-go.example.json).
 
+**Cursor Plugin:** exarp-go can be installed as a [Cursor Marketplace plugin](https://cursor.com/marketplace) for one-click MCP setup. See [docs/CURSOR_PLUGIN_PLAN.md](docs/CURSOR_PLUGIN_PLAN.md) for the plugin manifest and config.
+
 ## Dependencies
 
 ### Required Dependencies

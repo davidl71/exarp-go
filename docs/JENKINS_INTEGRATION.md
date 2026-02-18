@@ -30,6 +30,22 @@ Jenkins can run exarp-go as a build step, consume its output for gates, and opti
 
 **Use case:** Every build gets a project health snapshot; no code changes required.
 
+**Example pipeline stage (Quick Win #1):**
+
+```groovy
+stage('Scorecard') {
+  steps {
+    sh '''
+      ./bin/exarp-go -tool report -args '{"action":"scorecard","output_format":"json"}' > scorecard.json 2>&1 || true
+      cat scorecard.json
+    '''
+    archiveArtifacts artifacts: 'scorecard.json', fingerprint: true
+  }
+}
+```
+
+Optional: add a `post` step or separate stage to fail when `overall_score` is below a threshold (see §4 Quality Gate).
+
 ---
 
 ## 2. Agentic Validation in Jenkins (Mirror agentic-ci)
@@ -49,6 +65,46 @@ Jenkins can run exarp-go as a build step, consume its output for gates, and opti
 4. Fail the job if any validation step fails.
 
 **Use case:** Run agentic validation in Jenkins instead of (or in addition to) GitHub Actions.
+
+**Example pipeline (Quick Win #2):**
+
+```groovy
+pipeline {
+  agent any
+  stages {
+    stage('Build exarp-go') {
+      steps {
+        sh 'go build -o bin/exarp-go ./cmd/server'
+      }
+    }
+    stage('Validate MCP Tools') {
+      steps {
+        sh './bin/exarp-go -test tool_workflow'
+        sh './bin/exarp-go -test automation'
+        sh './bin/exarp-go -test testing'
+      }
+    }
+    stage('Test Agent Behavior') {
+      steps {
+        sh '''
+          ./bin/exarp-go -tool testing -args '{"action":"validate","test_path":"./internal/tools","framework":"go"}'
+        '''
+      }
+    }
+    stage('Check Todo2 Integration') {
+      steps {
+        sh './bin/exarp-go -tool task_workflow -args \'{"action":"sync"}\''
+      }
+    }
+    stage('Generate Agent Report') {
+      steps {
+        sh './bin/exarp-go -tool report -args \'{"action":"overview","include_metrics":true}\' > agent_report.txt'
+        archiveArtifacts artifacts: 'agent_report.txt', fingerprint: true
+      }
+    }
+  }
+}
+```
 
 ---
 
@@ -76,6 +132,29 @@ Jenkins can run exarp-go as a build step, consume its output for gates, and opti
 3. Pass/fail the stage based on that; block deploy if the gate fails.
 
 **Use case:** Deploy only when project health is above a defined threshold.
+
+**Example quality gate stage (extends scorecard stage):**
+
+```groovy
+stage('Quality Gate') {
+  steps {
+    script {
+      def scorecard = sh(
+        script: './bin/exarp-go -tool report -args \'{"action":"scorecard","output_format":"json"}\'',
+        returnStdout: true
+      ).trim()
+      def json = readJSON text: scorecard
+      def score = json.overall_score ?: 0
+      def threshold = env.SCORECARD_THRESHOLD ?: 70
+      if (score < threshold.toInteger()) {
+        error "Scorecard failed: score ${score} < threshold ${threshold}"
+      }
+    }
+  }
+}
+```
+
+Set `SCORECARD_THRESHOLD` as a job parameter or environment variable. Requires the [Pipeline Utility Steps](https://plugins.jenkins.io/pipeline-utility-steps/) plugin for `readJSON`. If the scorecard JSON nests `overall_score` under `health`, use `json.health?.overall_score ?: 0`.
 
 ---
 
@@ -105,6 +184,41 @@ Jenkins can run exarp-go as a build step, consume its output for gates, and opti
 
 **Use case:** Recurring project health and “wisdom” digest for the team.
 
+**Example scheduled job (Quick Win #3):**
+
+1. Create a **Freestyle** or **Pipeline** job in Jenkins.
+2. Under **Build Triggers**, enable **Build periodically** and set cron (e.g. `H 8 * * 1-5` for weekdays at 8:00).
+3. Pipeline script:
+
+```groovy
+pipeline {
+  agent any
+  triggers { cron('H 8 * * 1-5') }  // weekdays 8:00
+  stages {
+    stage('Build') { steps { sh 'go build -o bin/exarp-go ./cmd/server' } }
+    stage('Report Overview') {
+      steps {
+        sh './bin/exarp-go -tool report -args \'{"action":"overview","include_metrics":true}\' > report.txt'
+        archiveArtifacts artifacts: 'report.txt'
+      }
+    }
+    stage('Briefing (optional)') {
+      steps {
+        sh './bin/exarp-go -tool report -args \'{"action":"briefing"}\' > briefing.txt || true'
+        archiveArtifacts artifacts: 'briefing.txt', allowEmptyArchive: true
+      }
+    }
+  }
+  post {
+    success {
+      // Optional: emailext subject: 'exarp-go daily report', body: readFile('report.txt'), to: 'team@example.com'
+    }
+  }
+}
+```
+
+Publish to email, Slack, or Confluence via Jenkins plugins or `post` steps.
+
 ---
 
 ## 7. Task-Aware Builds (Todo2 + Jenkins)
@@ -120,6 +234,28 @@ Jenkins can run exarp-go as a build step, consume its output for gates, and opti
    - Or drive a parameterized job: “Build and test for task T-XXX” with options from exarp-go.
 
 **Use case:** Traceability from builds to tasks and clearer ownership.
+
+**Example task-aware build stage:**
+
+```groovy
+stage('Tag Build with Task') {
+  steps {
+    script {
+      def taskJson = sh(
+        script: './bin/exarp-go -tool task_workflow -args \'{"action":"sync","sub_action":"list","status":"In Progress","output_format":"json","compact":true}\'',
+        returnStdout: true
+      ).trim()
+      def tasks = readJSON text: taskJson
+      def taskIds = tasks.tasks?.collect { it.id } ?: []
+      def label = taskIds.size() > 0 ? taskIds.join(',') : 'no-task'
+      env.BUILD_TASK_LABEL = label
+    }
+    echo "Build linked to tasks: ${env.BUILD_TASK_LABEL}"
+  }
+}
+```
+
+Use `BUILD_TASK_LABEL` for build display name, notifications, or downstream parameterized jobs. For suggested-next tasks, use `status: "Todo"` and pick the first item from `suggested_next` in session prime output.
 
 ---
 

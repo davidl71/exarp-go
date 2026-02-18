@@ -1,0 +1,13 @@
+{
+  "name": "exarp-go",
+  "displayName": "exarp-go",
+  "version": "1.0.0",
+  "description": "Task lifecycle, reports, session, and automation MCP server for Cursor and OpenCode.",
+  "author": {
+    "name": "exarp-go",
+    "email": ""
+  },
+  "license": "MIT",
+  "keywords": ["tasks", "todo2", "report", "session", "mcp", "automation"],
+  "repository": "https://github.com/davidl71/exarp-go"
+}
