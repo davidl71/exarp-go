@@ -172,6 +172,33 @@ func TestHandleTaskAnalysisNative(t *testing.T) {
 			},
 		},
 		{
+			name: "noise action",
+			params: map[string]interface{}{
+				"action": "noise",
+			},
+			wantError: false,
+			validate: func(t *testing.T, result []framework.TextContent) {
+				if len(result) == 0 {
+					t.Error("expected non-empty result")
+					return
+				}
+				var data map[string]interface{}
+				if err := json.Unmarshal([]byte(result[0].Text), &data); err != nil {
+					t.Errorf("noise action should return JSON: %v", err)
+					return
+				}
+				if _, ok := data["noise_candidates"]; !ok {
+					t.Error("noise result should contain noise_candidates")
+				}
+				if _, ok := data["filter_tag"]; !ok {
+					t.Error("noise result should contain filter_tag")
+				}
+				if tag, _ := data["filter_tag"].(string); tag != "discovered" {
+					t.Errorf("noise filter_tag = %q, want discovered", tag)
+				}
+			},
+		},
+		{
 			name: "unknown action",
 			params: map[string]interface{}{
 				"action": "unknown",

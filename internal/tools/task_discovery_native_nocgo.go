@@ -175,13 +175,13 @@ func scanCommentsBasic(projectRoot string, patterns []string, includeFIXME bool)
 
 		// Skip directories and non-code files
 		if info.IsDir() {
-			// Skip common ignore directories and archive
+			// Skip common ignore directories: vendor, build outputs, archive
 			if strings.Contains(path, ".git") || strings.Contains(path, "node_modules") ||
 				strings.Contains(path, "__pycache__") || strings.Contains(path, ".venv") ||
 				strings.Contains(path, "vendor") || strings.Contains(path, ".idea") ||
 				strings.Contains(path, ".vscode") || strings.Contains(path, "dist") ||
 				strings.Contains(path, "build") || strings.Contains(path, "target") ||
-				strings.Contains(path, "/archive/") {
+				strings.Contains(path, "/archive/") || filepath.Base(path) == "bin" {
 				return filepath.SkipDir
 			}
 			return nil

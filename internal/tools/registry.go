@@ -500,13 +500,13 @@ func registerBatch2Tools(server framework.MCPServer) error {
 	// T-32: task_analysis
 	if err := server.RegisterTool(
 		"task_analysis",
-		"[HINT: Task analysis. action=duplicates|tags|discover_tags|hierarchy|dependencies|dependencies_summary|suggest_dependencies|parallelization|validate|execution_plan|complexity|conflicts. execution_plan with output_format=subagents_plan writes parallel-execution-subagents.plan.md using wave detection. conflicts detects task-overlap (In Progress with dependent also In Progress). complexity classifies tasks (simple/medium/complex) per Model-Assisted Workflow. discover_tags scans MD files for tag hints and uses LLM (Apple FM/Ollama) for semantic inference.]",
+		"[HINT: Task analysis. action=duplicates|tags|discover_tags|hierarchy|dependencies|dependencies_summary|suggest_dependencies|parallelization|validate|execution_plan|complexity|conflicts|noise. execution_plan with output_format=subagents_plan writes parallel-execution-subagents.plan.md using wave detection. conflicts detects task-overlap (In Progress with dependent also In Progress). complexity classifies tasks (simple/medium/complex) per Model-Assisted Workflow. discover_tags scans MD files for tag hints and uses LLM (Apple FM/Ollama) for semantic inference. noise detects sentence-fragment/junk tasks; filters #discovered by default.]",
 		framework.ToolSchema{
 			Type: "object",
 			Properties: map[string]interface{}{
 				"action": map[string]interface{}{
 					"type":    "string",
-					"enum":    []string{"duplicates", "tags", "discover_tags", "hierarchy", "dependencies", "dependencies_summary", "suggest_dependencies", "parallelization", "fix_missing_deps", "validate", "execution_plan", "complexity", "conflicts"},
+					"enum":    []string{"duplicates", "tags", "discover_tags", "hierarchy", "dependencies", "dependencies_summary", "suggest_dependencies", "parallelization", "fix_missing_deps", "validate", "execution_plan", "complexity", "conflicts", "noise"},
 					"default": "duplicates",
 				},
 				"similarity_threshold": map[string]interface{}{
@@ -612,7 +612,7 @@ func registerBatch2Tools(server framework.MCPServer) error {
 				},
 				"filter_tag": map[string]interface{}{
 					"type":        "string",
-					"description": "For action=execution_plan: restrict backlog to tasks with this tag.",
+					"description": "For action=noise: filter to tasks with this tag (default: discovered when empty). For action=execution_plan: restrict backlog to tasks with this tag.",
 				},
 				"filter_tags": map[string]interface{}{
 					"type":        "string",
