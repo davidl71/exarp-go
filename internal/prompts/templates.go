@@ -782,6 +782,7 @@ func substituteTemplate(template string, args map[string]interface{}) string {
 		placeholder := "{" + key + "}"
 		// Convert value to string safely
 		var valueStr string
+
 		switch v := value.(type) {
 		case string:
 			valueStr = v

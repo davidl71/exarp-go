@@ -3,7 +3,6 @@ package tools
 import (
 	"context"
 	"encoding/json"
-	"os"
 	"testing"
 
 	"github.com/davidl71/exarp-go/internal/framework"
@@ -11,9 +10,7 @@ import (
 
 func TestHandleAddExternalToolHintsNative(t *testing.T) {
 	tmpDir := t.TempDir()
-	os.Setenv("PROJECT_ROOT", tmpDir)
-
-	defer os.Unsetenv("PROJECT_ROOT")
+	t.Setenv("PROJECT_ROOT", tmpDir)
 
 	tests := []struct {
 		name      string
@@ -33,11 +30,13 @@ func TestHandleAddExternalToolHintsNative(t *testing.T) {
 					t.Error("expected non-empty result")
 					return
 				}
+
 				var data map[string]interface{}
 				if err := json.Unmarshal([]byte(result[0].Text), &data); err != nil {
 					t.Errorf("invalid JSON: %v", err)
 					return
 				}
+
 				if status, ok := data["status"].(string); !ok || status != "success" {
 					t.Errorf("expected status='success', got %v", data["status"])
 				}
@@ -79,9 +78,7 @@ func TestHandleAddExternalToolHintsNative(t *testing.T) {
 
 func TestHandleAddExternalToolHints(t *testing.T) {
 	tmpDir := t.TempDir()
-	os.Setenv("PROJECT_ROOT", tmpDir)
-
-	defer os.Unsetenv("PROJECT_ROOT")
+	t.Setenv("PROJECT_ROOT", tmpDir)
 
 	tests := []struct {
 		name      string

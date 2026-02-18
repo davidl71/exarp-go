@@ -14,27 +14,34 @@ func initCommentsTestDB(t *testing.T) string {
 	t.Helper()
 	testDBMu.Lock()
 	t.Cleanup(func() { testDBMu.Unlock() })
+
 	_, self, _, _ := runtime.Caller(0)
 	repoRoot := filepath.Dir(filepath.Dir(filepath.Dir(self)))
 	migrationsDir := filepath.Join(repoRoot, "migrations")
 	tmpDir := t.TempDir()
+
 	cfg, err := LoadConfig(tmpDir)
 	if err != nil {
 		t.Fatalf("LoadConfig() error = %v", err)
 	}
+
 	cfg.Driver = DriverSQLite
 	cfg.DSN = filepath.Join(tmpDir, ".todo2", "todo2.db")
 	cfg.MigrationsDir = migrationsDir
 	cfg.AutoMigrate = true
+
 	if err = InitWithConfig(cfg); err != nil {
 		t.Fatalf("InitWithConfig() error = %v", err)
 	}
+
 	t.Cleanup(func() { _ = Close() })
+
 	return tmpDir
 }
 
 func TestAddComments(t *testing.T) {
 	initCommentsTestDB(t)
+
 	var err error
 	// Create a task first (required for foreign key; use valid ID T-<digits>)
 	taskID := "T-1000001"
@@ -91,6 +98,7 @@ func TestAddComments(t *testing.T) {
 
 func TestAddCommentsBatch(t *testing.T) {
 	initCommentsTestDB(t)
+
 	var err error
 	// Create task (valid ID: T-<digits>)
 	taskID := "T-1000002"
@@ -149,6 +157,7 @@ func TestAddCommentsBatch(t *testing.T) {
 
 func TestGetComments(t *testing.T) {
 	initCommentsTestDB(t)
+
 	var err error
 	// Create task (valid ID)
 	taskID := "T-1000003"
@@ -203,6 +212,7 @@ func TestGetComments(t *testing.T) {
 
 func TestGetCommentsByType(t *testing.T) {
 	initCommentsTestDB(t)
+
 	var err error
 	// Create tasks (valid IDs)
 	taskID1, taskID2 := "T-1000004", "T-1000005"
@@ -255,6 +265,7 @@ func TestGetCommentsByType(t *testing.T) {
 
 func TestGetCommentsWithTypeFilter(t *testing.T) {
 	initCommentsTestDB(t)
+
 	var err error
 	// Create task (valid ID)
 	taskID := "T-1000006"
@@ -296,6 +307,7 @@ func TestGetCommentsWithTypeFilter(t *testing.T) {
 
 func TestDeleteComment(t *testing.T) {
 	initCommentsTestDB(t)
+
 	var err error
 	// Create task (valid ID)
 	taskID := "T-1000007"
@@ -355,6 +367,7 @@ func TestDeleteComment(t *testing.T) {
 
 func TestCommentCascadeDelete(t *testing.T) {
 	initCommentsTestDB(t)
+
 	var err error
 	// Create task (valid ID)
 	taskID := "T-1000008"

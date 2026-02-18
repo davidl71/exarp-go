@@ -30,6 +30,7 @@ func TestMCPToolInvocation(t *testing.T) {
 					t.Error("expected non-empty result")
 					return
 				}
+
 				var data map[string]interface{}
 				if err := json.Unmarshal([]byte(result[0].Text), &data); err != nil {
 					t.Errorf("invalid JSON: %v", err)
@@ -51,11 +52,13 @@ func TestMCPToolInvocation(t *testing.T) {
 					t.Error("expected non-empty result")
 					return
 				}
+
 				var data map[string]interface{}
 				if err := json.Unmarshal([]byte(result[0].Text), &data); err != nil {
 					t.Errorf("invalid JSON: %v", err)
 					return
 				}
+
 				if success, ok := data["success"].(bool); !ok || !success {
 					t.Error("expected success=true")
 				}
@@ -73,6 +76,7 @@ func TestMCPToolInvocation(t *testing.T) {
 					t.Error("expected non-empty result")
 					return
 				}
+
 				var data map[string]interface{}
 				if err := json.Unmarshal([]byte(result[0].Text), &data); err != nil {
 					t.Errorf("invalid JSON: %v", err)

@@ -7,6 +7,7 @@ package cli
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -30,6 +31,7 @@ func handleCursorCommand(parsed *mcpcli.Args) error {
 			sub = strings.ToLower(first)
 		}
 	}
+
 	if sub == "" {
 		sub = "run"
 	}
@@ -57,6 +59,7 @@ func runCursorRun(parsed *mcpcli.Args) error {
 
 	customPrompt := parsed.GetFlag("p", "")
 	customPrompt = strings.TrimSpace(customPrompt)
+
 	if customPrompt == "" {
 		customPrompt = parsed.GetFlag("prompt", "")
 		customPrompt = strings.TrimSpace(customPrompt)
@@ -80,12 +83,15 @@ func runCursorRun(parsed *mcpcli.Args) error {
 		if err != nil {
 			return fmt.Errorf("load task %s: %w", taskID, err)
 		}
+
 		prompt = PromptForTask(task.ID, task.Content)
+
 		if task.LongDescription != "" {
 			desc := strings.TrimSpace(task.LongDescription)
 			if len(desc) > 400 {
 				desc = desc[:397] + "..."
 			}
+
 			prompt = prompt + "\n\n" + desc
 		}
 	} else {
@@ -100,6 +106,7 @@ func runCursorRun(parsed *mcpcli.Args) error {
 	if mode != "plan" && mode != "ask" && mode != "agent" {
 		mode = "plan"
 	}
+
 	noInteractive := parsed.GetBoolFlag("no-interactive", false)
 
 	execPath, baseArgs := agentCommand()
@@ -107,11 +114,13 @@ func runCursorRun(parsed *mcpcli.Args) error {
 		fmt.Fprintln(os.Stderr, "agent command not on PATH (default: cursor agent; set EXARP_AGENT_CMD or install Cursor CLI)")
 		fmt.Fprintln(os.Stderr, "  Install: curl https://cursor.com/install -fsS | bash")
 		fmt.Fprintln(os.Stderr, "  See: https://cursor.com/docs/cli/overview")
+
 		return fmt.Errorf("agent command not found")
 	}
 
 	args := append([]string{}, baseArgs...)
 	args = append(args, "--mode="+mode)
+
 	if noInteractive {
 		args = append(args, "-p", prompt)
 	} else {
@@ -129,11 +138,14 @@ func runCursorRun(parsed *mcpcli.Args) error {
 	if noInteractive {
 		err := cmd.Run()
 		if err != nil {
-			if exitErr, ok := err.(*exec.ExitError); ok {
+			exitErr := &exec.ExitError{}
+			if errors.As(err, &exitErr) {
 				os.Exit(exitErr.ExitCode())
 			}
+
 			return err
 		}
+
 		return nil
 	}
 
@@ -143,7 +155,9 @@ func runCursorRun(parsed *mcpcli.Args) error {
 		if !result.Launched {
 			return fmt.Errorf("%s", result.Message)
 		}
+
 		fmt.Fprintln(os.Stderr, result.Message)
+
 		return nil
 	}
 
@@ -176,12 +190,15 @@ func printCursorRunHelp() {
 // loadTaskForCursor loads a task by ID for cursor run (requires DB init).
 func loadTaskForCursor(taskID string) (*database.Todo2Task, error) {
 	ctx := context.Background()
+
 	task, err := database.GetTask(ctx, taskID)
 	if err != nil {
 		return nil, err
 	}
+
 	if task == nil {
 		return nil, fmt.Errorf("task %s not found", taskID)
 	}
+
 	return task, nil
 }

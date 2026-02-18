@@ -23,14 +23,21 @@ func setupTestProjectRoot(t *testing.T) (string, func()) {
 
 	// Set PROJECT_ROOT environment variable
 	originalProjectRoot := os.Getenv("PROJECT_ROOT")
-	os.Setenv("PROJECT_ROOT", tmpDir)
+
+	if err := os.Setenv("PROJECT_ROOT", tmpDir); err != nil {
+		t.Fatalf("Failed to set PROJECT_ROOT: %v", err)
+	}
 
 	// Cleanup function
 	cleanup := func() {
 		if originalProjectRoot != "" {
-			os.Setenv("PROJECT_ROOT", originalProjectRoot)
+			if err := os.Setenv("PROJECT_ROOT", originalProjectRoot); err != nil {
+				t.Logf("Failed to restore PROJECT_ROOT: %v", err)
+			}
 		} else {
-			os.Unsetenv("PROJECT_ROOT")
+			if err := os.Unsetenv("PROJECT_ROOT"); err != nil {
+				t.Logf("Failed to unset PROJECT_ROOT: %v", err)
+			}
 		}
 	}
 
@@ -123,7 +130,9 @@ func TestHandleMemoryMaintNative_Health(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// Clean up any existing memories
 			memoriesDir := filepath.Join(projectRoot, ".exarp", "memories")
-			os.RemoveAll(memoriesDir)
+			if err := os.RemoveAll(memoriesDir); err != nil {
+				t.Fatalf("Failed to remove memories directory: %v", err)
+			}
 
 			// Setup test memories
 			tt.setupMemories(t)
@@ -253,6 +262,7 @@ func TestHandleMemoryMaintNative_GC(t *testing.T) {
 					CreatedAt:   time.Now().AddDate(0, 0, -5).Format(time.RFC3339),
 					SessionDate: time.Now().AddDate(0, 0, -5).Format("2006-01-02"),
 				}
+
 				createTestMemory(t, projectRoot, memory1)
 				createTestMemory(t, projectRoot, memory2)
 			},
@@ -270,7 +280,9 @@ func TestHandleMemoryMaintNative_GC(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// Clean up any existing memories
 			memoriesDir := filepath.Join(projectRoot, ".exarp", "memories")
-			os.RemoveAll(memoriesDir)
+			if err := os.RemoveAll(memoriesDir); err != nil {
+				t.Fatalf("Failed to remove memories directory: %v", err)
+			}
 
 			// Setup test memories
 			tt.setupMemories(t)
@@ -373,7 +385,9 @@ func TestHandleMemoryMaintNative_Prune(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// Clean up any existing memories
 			memoriesDir := filepath.Join(projectRoot, ".exarp", "memories")
-			os.RemoveAll(memoriesDir)
+			if err := os.RemoveAll(memoriesDir); err != nil {
+				t.Fatalf("Failed to remove memories directory: %v", err)
+			}
 
 			// Setup test memories
 			tt.setupMemories(t)
@@ -446,6 +460,7 @@ func TestHandleMemoryMaintNative_Consolidate(t *testing.T) {
 					CreatedAt:   time.Now().AddDate(0, 0, -5).Format(time.RFC3339),
 					SessionDate: time.Now().AddDate(0, 0, -5).Format("2006-01-02"),
 				}
+
 				createTestMemory(t, projectRoot, memory1)
 				createTestMemory(t, projectRoot, memory2)
 			},
@@ -479,6 +494,7 @@ func TestHandleMemoryMaintNative_Consolidate(t *testing.T) {
 					CreatedAt:   time.Now().AddDate(0, 0, -5).Format(time.RFC3339),
 					SessionDate: time.Now().AddDate(0, 0, -5).Format("2006-01-02"),
 				}
+
 				createTestMemory(t, projectRoot, memory1)
 				createTestMemory(t, projectRoot, memory2)
 			},
@@ -497,7 +513,9 @@ func TestHandleMemoryMaintNative_Consolidate(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// Clean up any existing memories
 			memoriesDir := filepath.Join(projectRoot, ".exarp", "memories")
-			os.RemoveAll(memoriesDir)
+			if err := os.RemoveAll(memoriesDir); err != nil {
+				t.Fatalf("Failed to remove memories directory: %v", err)
+			}
 
 			// Setup test memories
 			tt.setupMemories(t)
@@ -546,8 +564,8 @@ func TestHandleMemoryMaintNative_Dream(t *testing.T) {
 	params := map[string]interface{}{"action": "dream"}
 
 	argsJSON, _ := json.Marshal(params)
-	_, err := handleMemoryMaintNative(ctx, argsJSON)
 
+	_, err := handleMemoryMaintNative(ctx, argsJSON)
 	if err == nil {
 		t.Error("handleMemoryMaintNative() with dream action should return error")
 	}
@@ -565,8 +583,8 @@ func TestHandleMemoryMaintNative_UnknownAction(t *testing.T) {
 	params := map[string]interface{}{"action": "unknown_action"}
 
 	argsJSON, _ := json.Marshal(params)
-	_, err := handleMemoryMaintNative(ctx, argsJSON)
 
+	_, err := handleMemoryMaintNative(ctx, argsJSON)
 	if err == nil {
 		t.Error("handleMemoryMaintNative() with unknown action should return error")
 	}
@@ -581,8 +599,8 @@ func TestHandleMemoryMaintNative_DefaultAction(t *testing.T) {
 	params := map[string]interface{}{} // No action specified
 
 	argsJSON, _ := json.Marshal(params)
-	result, err := handleMemoryMaintNative(ctx, argsJSON)
 
+	result, err := handleMemoryMaintNative(ctx, argsJSON)
 	if err != nil {
 		t.Errorf("handleMemoryMaintNative() with default action error = %v", err)
 		return

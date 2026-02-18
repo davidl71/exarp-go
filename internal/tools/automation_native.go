@@ -4,9 +4,11 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -60,30 +62,54 @@ func handleAutomationNative(ctx context.Context, params map[string]interface{}) 
 	}
 }
 
-// automationAgentPath returns the path to the Cursor agent binary, or "" if not found.
+// automationAgentCommand returns the executable path and base args for the Cursor agent command.
 // Respects EXARP_AGENT_CMD (e.g. "agent" or "cursor agent"). Used by automation cursor-agent step.
-func automationAgentPath() string {
+func automationAgentCommand() (string, []string) {
 	if raw := os.Getenv("EXARP_AGENT_CMD"); raw != "" {
 		parts := strings.Fields(strings.TrimSpace(raw))
 		if len(parts) == 0 {
-			return ""
+			return "", nil
 		}
+
 		if path, err := exec.LookPath(parts[0]); err == nil {
-			return path
+			if len(parts) > 1 {
+				return path, parts[1:]
+			}
+
+			return path, nil
 		}
-		return ""
+
+		return "", nil
 	}
+
 	if path, err := exec.LookPath("agent"); err == nil {
-		return path
+		return path, nil
 	}
+
 	parts := strings.Fields(strings.TrimSpace("cursor agent"))
 	if len(parts) == 0 {
-		return ""
+		return "", nil
 	}
+
 	if path, err := exec.LookPath(parts[0]); err == nil {
-		return path
+		if len(parts) > 1 {
+			return path, parts[1:]
+		}
+
+		return path, nil
 	}
-	return ""
+
+	return "", nil
+}
+
+func cursorAgentTimeout() time.Duration {
+	if raw := strings.TrimSpace(os.Getenv("EXARP_AGENT_TIMEOUT_SECONDS")); raw != "" {
+		if sec, err := strconv.Atoi(raw); err == nil && sec > 0 {
+			return time.Duration(sec) * time.Second
+		}
+	}
+
+	return 60 * time.Second
 }
 
 // runCursorAgentStep runs the Cursor CLI agent with -p prompt in projectRoot and captures stdout/stderr.
@@ -92,39 +118,56 @@ func runCursorAgentStep(projectRoot, prompt string) (output string, exitCode int
 	if projectRoot == "" || prompt == "" {
 		return "", -1, fmt.Errorf("project root and prompt required")
 	}
-	agentPath := automationAgentPath()
+
+	agentPath, baseArgs := automationAgentCommand()
 	if agentPath == "" {
 		return "", -1, fmt.Errorf("agent not on PATH (set EXARP_AGENT_CMD or install Cursor CLI: https://cursor.com/docs/cli/overview)")
 	}
-	args := []string{"-p", prompt}
-	cmd := exec.Command(agentPath, args...)
+
+	ctx, cancel := context.WithTimeout(context.Background(), cursorAgentTimeout())
+	defer cancel()
+
+	args := append([]string{}, baseArgs...)
+	args = append(args, "-p", prompt)
+	cmd := exec.CommandContext(ctx, agentPath, args...)
 	cmd.Dir = projectRoot
 	cmd.Env = os.Environ()
+	cmd.Stdin = nil
+
 	var stdout, stderr bytes.Buffer
+
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
 	runErr := cmd.Run()
+
 	if stdout.Len() > 0 || stderr.Len() > 0 {
 		var b strings.Builder
 		if stdout.Len() > 0 {
 			b.Write(stdout.Bytes())
 		}
+
 		if stderr.Len() > 0 {
 			if b.Len() > 0 {
 				b.WriteString("\n--- stderr ---\n")
 			}
+
 			b.Write(stderr.Bytes())
 		}
+
 		output = strings.TrimSpace(b.String())
 	}
+
 	code := 0
+
 	if runErr != nil {
-		if exitErr, ok := runErr.(*exec.ExitError); ok {
+		exitErr := &exec.ExitError{}
+		if errors.As(runErr, &exitErr) {
 			code = exitErr.ExitCode()
 		} else {
 			code = -1
 		}
 	}
+
 	return output, code, runErr
 }
 
@@ -134,23 +177,28 @@ func appendCursorAgentStepIfRequested(ctx context.Context, params map[string]int
 	if useCursor, _ := params["use_cursor_agent"].(bool); !useCursor {
 		return
 	}
+
 	projectRoot, rootErr := FindProjectRoot()
 	if rootErr != nil || projectRoot == "" {
 		return
 	}
+
 	prompt, _ := params["cursor_agent_prompt"].(string)
 	if prompt == "" {
 		prompt = "Review the backlog and suggest which task to do next"
 	}
+
 	startCursor := time.Now()
 	out, code, runErr := runCursorAgentStep(projectRoot, prompt)
 	dur := time.Since(startCursor).Seconds()
 	status := "success"
 	sum := fmt.Sprintf("exit_code=%d, duration_sec=%.2f", code, dur)
+
 	if runErr != nil {
 		status = "failed"
 		sum = runErr.Error()
 	}
+
 	taskCursor := map[string]interface{}{
 		"task_id":   "cursor_agent",
 		"task_name": "Cursor Agent Step",
@@ -162,11 +210,14 @@ func appendCursorAgentStepIfRequested(ctx context.Context, params map[string]int
 	if runErr != nil {
 		taskCursor["error"] = runErr.Error()
 	}
+
 	if out != "" {
 		taskCursor["output"] = out
 	}
+
 	tasksRun, _ := results["tasks_run"].([]map[string]interface{})
 	tasksRun = append(tasksRun, taskCursor)
+
 	results["tasks_run"] = tasksRun
 	if status == "success" {
 		tasksSucceeded, _ := results["tasks_succeeded"].([]string)
@@ -819,6 +870,10 @@ func handleAutomationDiscover(ctx context.Context, params map[string]interface{}
 		taskDiscoveryParams["output_path"] = outputPath
 	}
 
+	if useLLM, ok := params["use_llm"].(bool); ok {
+		taskDiscoveryParams["use_llm"] = useLLM
+	}
+
 	// Call task_discovery native handler
 	result, err := handleTaskDiscoveryNative(ctx, taskDiscoveryParams)
 	if err != nil {
@@ -892,6 +947,7 @@ func runParallelTasks(ctx context.Context, tasks []parallelTask, maxParallel int
 
 		go func(idx int, task parallelTask) {
 			defer wg.Done()
+
 			sem <- struct{}{}
 
 			defer func() { <-sem }()

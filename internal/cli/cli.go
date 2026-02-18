@@ -51,21 +51,21 @@ func EnsureConfigAndDatabase(projectRoot string) {
 		}
 
 		if err := database.InitWithCentralizedConfig(projectRoot, dbCfg); err != nil {
-			logWarn(nil, "Database initialization with centralized config failed", "error", err, "operation", "EnsureConfigAndDatabase", "fallback", "legacy config")
+			logWarn(context.Background(), "Database initialization with centralized config failed", "error", err, "operation", "EnsureConfigAndDatabase", "fallback", "legacy config")
 			// Fall through to legacy init
 		} else {
-			logDebug(nil, "Database initialized with centralized config", "path", fullCfg.Database.SQLitePath, "operation", "EnsureConfigAndDatabase")
+			logDebug(context.Background(), "Database initialized with centralized config", "path", fullCfg.Database.SQLitePath, "operation", "EnsureConfigAndDatabase")
 			return
 		}
 	}
 
 	// Fall back to legacy config (SetGlobalConfig already set defaults via GetGlobalConfig)
 	if err := database.Init(projectRoot); err != nil {
-		logWarn(nil, "Database initialization failed", "error", err, "operation", "EnsureConfigAndDatabase", "fallback", "JSON")
+		logWarn(context.Background(), "Database initialization failed", "error", err, "operation", "EnsureConfigAndDatabase", "fallback", "JSON")
 		return
 	}
 
-	logDebug(nil, "Database initialized", "path", projectRoot+"/.todo2/todo2.db", "operation", "EnsureConfigAndDatabase")
+	logDebug(context.Background(), "Database initialized", "path", projectRoot+"/.todo2/todo2.db", "operation", "EnsureConfigAndDatabase")
 }
 
 // initializeDatabase initializes the database if project root is found
@@ -75,7 +75,7 @@ func EnsureConfigAndDatabase(projectRoot string) {
 func initializeDatabase() {
 	projectRoot, err := tools.FindProjectRoot()
 	if err != nil {
-		logWarn(nil, "Could not find project root", "error", err, "operation", "initializeDatabase", "fallback", "JSON")
+		logWarn(context.Background(), "Could not find project root", "error", err, "operation", "initializeDatabase", "fallback", "JSON")
 		return
 	}
 
@@ -206,7 +206,7 @@ func Run() error {
 
 	defer func() {
 		if err := database.Close(); err != nil {
-			logWarn(nil, "Error closing database", "error", err, "operation", "closeDatabase")
+			logWarn(context.Background(), "Error closing database", "error", err, "operation", "closeDatabase")
 		}
 	}()
 

@@ -68,6 +68,7 @@ func NewAccessControlFromConfig() *AccessControl {
 func (ac *AccessControl) AllowTool(toolName string) {
 	ac.mu.Lock()
 	defer ac.mu.Unlock()
+
 	ac.toolPerms[toolName] = PermissionAllow
 	ac.allowedTools[toolName] = true
 	delete(ac.deniedTools, toolName)
@@ -77,6 +78,7 @@ func (ac *AccessControl) AllowTool(toolName string) {
 func (ac *AccessControl) DenyTool(toolName string) {
 	ac.mu.Lock()
 	defer ac.mu.Unlock()
+
 	ac.toolPerms[toolName] = PermissionDeny
 	ac.deniedTools[toolName] = true
 	delete(ac.allowedTools, toolName)
@@ -86,6 +88,7 @@ func (ac *AccessControl) DenyTool(toolName string) {
 func (ac *AccessControl) AllowResource(uri string) {
 	ac.mu.Lock()
 	defer ac.mu.Unlock()
+
 	ac.resourcePerms[uri] = PermissionAllow
 }
 
@@ -93,6 +96,7 @@ func (ac *AccessControl) AllowResource(uri string) {
 func (ac *AccessControl) DenyResource(uri string) {
 	ac.mu.Lock()
 	defer ac.mu.Unlock()
+
 	ac.resourcePerms[uri] = PermissionDeny
 }
 

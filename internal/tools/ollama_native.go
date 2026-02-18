@@ -165,7 +165,11 @@ func ollamaGenerateText(ctx context.Context, prompt string, maxTokens int, tempe
 		return "", fmt.Errorf("call Ollama API: %w", err)
 	}
 
-	defer resp.Body.Close()
+	defer func() {
+		if closeErr := resp.Body.Close(); closeErr != nil {
+			// best effort close
+		}
+	}()
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
@@ -203,7 +207,11 @@ func handleOllamaStatus(ctx context.Context, host string) ([]framework.TextConte
 		return response.FormatResult(result, "")
 	}
 
-	defer resp.Body.Close()
+	defer func() {
+		if closeErr := resp.Body.Close(); closeErr != nil {
+			// best effort close
+		}
+	}()
 
 	if resp.StatusCode != http.StatusOK {
 		result := map[string]interface{}{
@@ -264,7 +272,11 @@ func handleOllamaModels(ctx context.Context, host string) ([]framework.TextConte
 		return nil, fmt.Errorf("Ollama server not running. Start it with: ollama serve: %w", err)
 	}
 
-	defer resp.Body.Close()
+	defer func() {
+		if closeErr := resp.Body.Close(); closeErr != nil {
+			// best effort close
+		}
+	}()
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("Ollama server returned status %d", resp.StatusCode)
@@ -403,7 +415,11 @@ func handleOllamaGenerate(ctx context.Context, params map[string]interface{}, ho
 		return nil, fmt.Errorf("failed to call Ollama API: %w", err)
 	}
 
-	defer resp.Body.Close()
+	defer func() {
+		if closeErr := resp.Body.Close(); closeErr != nil {
+			// best effort close
+		}
+	}()
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
@@ -501,7 +517,11 @@ func handleOllamaPull(ctx context.Context, params map[string]interface{}, host s
 		return nil, fmt.Errorf("failed to call Ollama API: %w", err)
 	}
 
-	defer resp.Body.Close()
+	defer func() {
+		if closeErr := resp.Body.Close(); closeErr != nil {
+			// best effort close
+		}
+	}()
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
@@ -754,6 +774,7 @@ func handleOllamaSummary(ctx context.Context, params map[string]interface{}, hos
 
 	// Convert data to string if needed
 	var dataStr string
+
 	switch v := dataRaw.(type) {
 	case string:
 		dataStr = v

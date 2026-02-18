@@ -69,6 +69,7 @@ func TestParsePromptAnalysis(t *testing.T) {
 				if r.Clarity != 0.85 {
 					t.Errorf("Clarity = %v, want 0.85", r.Clarity)
 				}
+
 				if r.Specificity != 0.6 {
 					t.Errorf("Specificity = %v, want 0.6", r.Specificity)
 				}
@@ -81,6 +82,7 @@ func TestParsePromptAnalysis(t *testing.T) {
 				if r.Clarity != 0.9 {
 					t.Errorf("Clarity = %v, want 0.9", r.Clarity)
 				}
+
 				if r.Specificity != 0.7 {
 					t.Errorf("Specificity = %v, want 0.7", r.Specificity)
 				}

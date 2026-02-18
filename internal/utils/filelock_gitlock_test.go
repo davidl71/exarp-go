@@ -98,6 +98,7 @@ func TestWithGitLock_Contention(t *testing.T) {
 			return nil
 		})
 	}()
+
 	<-firstHolding
 
 	err := WithGitLock(dir, 50*time.Millisecond, func() error {

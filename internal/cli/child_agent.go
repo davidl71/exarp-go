@@ -8,6 +8,7 @@ package cli
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -57,30 +58,37 @@ func agentCommand() (execPath string, baseArgs []string) {
 		if len(parts) == 0 {
 			return "", nil
 		}
+
 		path, err := exec.LookPath(parts[0])
 		if err != nil {
 			return "", nil
 		}
+
 		if len(parts) > 1 {
 			return path, parts[1:]
 		}
+
 		return path, nil
 	}
 	// Default: try standalone Cursor CLI binary "agent" first, then "cursor agent"
 	if path, err := exec.LookPath("agent"); err == nil {
 		return path, nil
 	}
+
 	parts := strings.Fields(strings.TrimSpace(DefaultAgentCommand))
 	if len(parts) == 0 {
 		return "", nil
 	}
+
 	path, err := exec.LookPath(parts[0])
 	if err != nil {
 		return "", nil
 	}
+
 	if len(parts) > 1 {
 		return path, parts[1:]
 	}
+
 	return path, nil
 }
 
@@ -97,11 +105,14 @@ func agentShellCommand() string {
 	if raw == "" {
 		raw = DefaultAgentCommand
 	}
+
 	s := strings.TrimSpace(raw)
 	extra := agentExtraArgs()
+
 	if len(extra) > 0 {
 		s = s + " " + strings.Join(extra, " ")
 	}
+
 	return s
 }
 
@@ -111,9 +122,11 @@ func agentExtraArgs() []string {
 	if os.Getenv("EXARP_AGENT_APPROVE_MCPS") != "" && os.Getenv("EXARP_AGENT_APPROVE_MCPS") != "0" {
 		return []string{"--approve-mcps"}
 	}
+
 	if raw := os.Getenv("EXARP_AGENT_EXTRA_ARGS"); raw != "" {
 		return strings.Fields(strings.TrimSpace(raw))
 	}
+
 	return nil
 }
 
@@ -167,13 +180,16 @@ func runChildAgent(projectRoot, prompt string, interactive bool) (result ChildAg
 
 	ctx := context.Background()
 	extra := agentExtraArgs()
+
 	var args []string
+
 	args = append(append(args, baseArgs...), extra...)
 	if interactive {
 		args = append(args, prompt)
 	} else {
 		args = append(args, "-p", prompt)
 	}
+
 	cmd := exec.CommandContext(ctx, execPath, args...)
 	cmd.Dir = projectRoot
 	cmd.Stdin = nil
@@ -201,6 +217,7 @@ func runChildAgent(projectRoot, prompt string, interactive bool) (result ChildAg
 	if interactive {
 		prefix = "Launched (interactive): "
 	}
+
 	if len(prompt) > 60 {
 		result.Message = prefix + prompt[:57] + "..."
 	} else {
@@ -213,35 +230,17 @@ func runChildAgent(projectRoot, prompt string, interactive bool) (result ChildAg
 // runInNewTerminal opens a new Terminal/iTerm tab and runs the agent interactively (macOS).
 // Uses a temp file for the prompt to avoid shell quoting issues. Tries iTerm first (new tab or window); falls back to Terminal.app if iTerm fails or is not available.
 func runInNewTerminal(projectRoot, prompt string) (result ChildAgentRunResult) {
-	tmp, err := os.CreateTemp("", "exarp-agent-prompt-*.txt")
-	if err != nil {
-		result.Launched = false
-		result.Message = "failed to create temp file: " + err.Error()
-		return result
-	}
-	tmpPath := tmp.Name()
-	defer os.Remove(tmpPath)
-
-	if _, err := tmp.WriteString(prompt); err != nil {
-		result.Launched = false
-		result.Message = "failed to write prompt: " + err.Error()
-		return result
-	}
-	if err := tmp.Close(); err != nil {
-		result.Launched = false
-		result.Message = "failed to close temp file: " + err.Error()
-		return result
-	}
-
-	if runIniTermTab(projectRoot, tmpPath) {
+	if runIniTermTab(projectRoot, prompt) {
 		result.Launched = true
 		result.Prompt = prompt
 		result.Pid = 0
+
 		if len(prompt) > 60 {
 			result.Message = "Launched (interactive): " + prompt[:57] + "..."
 		} else {
 			result.Message = "Launched (interactive): " + prompt
 		}
+
 		return result
 	}
 
@@ -249,35 +248,38 @@ func runInNewTerminal(projectRoot, prompt string) (result ChildAgentRunResult) {
 	agentCmd := agentShellCommand()
 	script := `on run argv
   set projectRoot to item 1 of argv
-  set promptPath to item 2 of argv
+  set promptText to item 2 of argv
   set agentCmd to item 3 of argv
-  set promptText to read (POSIX file promptPath) as text
   tell application "Terminal" to do script "cd " & quoted form of projectRoot & " && " & agentCmd & " " & quoted form of promptText
   tell application "Terminal" to activate
 end run`
-	cmd := exec.Command("osascript", "-e", script, "--", projectRoot, tmpPath, agentCmd)
+	cmd := exec.Command("osascript", "-e", script, "--", projectRoot, prompt, agentCmd)
 	cmd.Env = os.Environ()
+
 	if err := cmd.Run(); err != nil {
 		result.Launched = false
 		result.Message = "failed to open Terminal: " + err.Error()
+
 		return result
 	}
 
 	result.Launched = true
 	result.Prompt = prompt
 	result.Pid = 0
+
 	if len(prompt) > 60 {
 		result.Message = "Launched (interactive): " + prompt[:57] + "..."
 	} else {
 		result.Message = "Launched (interactive): " + prompt
 	}
+
 	return result
 }
 
 // runIniTermTab opens a new iTerm tab (or window if iTerm had no windows) and runs the agent. Returns true if iTerm was used.
 // If ITERM_SESSION_ID is set (we are already inside an iTerm session), uses current window directly to avoid focus-stealing
 // and new-window creation. Otherwise activates iTerm normally (e.g. launching from Cursor Terminal).
-func runIniTermTab(projectRoot, promptPath string) bool {
+func runIniTermTab(projectRoot, prompt string) bool {
 	agentCmd := agentShellCommand()
 
 	var script string
@@ -285,7 +287,7 @@ func runIniTermTab(projectRoot, promptPath string) bool {
 		// Already inside iTerm — use current window, no activate needed.
 		script = `on run argv
   set projectRoot to item 1 of argv
-  set promptPath to item 2 of argv
+  set promptText to item 2 of argv
   set agentCmd to item 3 of argv
   tell application "iTerm"
     if (count of windows) is 0 then
@@ -294,14 +296,14 @@ func runIniTermTab(projectRoot, promptPath string) bool {
       set w to current window
     end if
     tell w to set tb to (create tab with default profile)
-    tell current session of tb to write text "cd " & quoted form of projectRoot & " && " & agentCmd & " \"$(cat " & quoted form of promptPath & ")\""
+    tell current session of tb to write text "cd " & quoted form of projectRoot & " && " & agentCmd & " " & quoted form of promptText
   end tell
 end run`
 	} else {
 		// Not inside iTerm — activate it (may open a new window if iTerm wasn't running).
 		script = `on run argv
   set projectRoot to item 1 of argv
-  set promptPath to item 2 of argv
+  set promptText to item 2 of argv
   set agentCmd to item 3 of argv
   tell application "iTerm" to activate
   if (count of windows) is 0 then
@@ -310,22 +312,26 @@ end run`
     set w to current window
   end if
   tell w to set tb to (create tab with default profile)
-  tell current session of tb to write text "cd " & quoted form of projectRoot & " && " & agentCmd & " \"$(cat " & quoted form of promptPath & ")\""
+  tell current session of tb to write text "cd " & quoted form of projectRoot & " && " & agentCmd & " " & quoted form of promptText
 end run`
 	}
 
-	cmd := exec.Command("osascript", "-e", script, "--", projectRoot, promptPath, agentCmd)
+	cmd := exec.Command("osascript", "-e", script, "--", projectRoot, prompt, agentCmd)
 	cmd.Env = os.Environ()
+
 	return cmd.Run() == nil
 }
 
 // runChildAgentWithCapture starts the non-interactive agent, captures output, and sends JobOutputMsg when done.
 func runChildAgentWithCapture(projectRoot, prompt string) (result ChildAgentRunResult, done <-chan JobOutputMsg) {
 	ch := make(chan JobOutputMsg, 1)
+
 	if prompt == "" {
 		result.Launched = false
 		result.Message = "no prompt"
+
 		ch <- JobOutputMsg{Err: fmt.Errorf("no prompt")}
+
 		return result, ch
 	}
 
@@ -333,14 +339,18 @@ func runChildAgentWithCapture(projectRoot, prompt string) (result ChildAgentRunR
 	if execPath == "" {
 		result.Launched = false
 		result.Message = "agent command not on PATH (default: cursor agent; set EXARP_AGENT_CMD or install Cursor CLI)"
+
 		ch <- JobOutputMsg{Err: fmt.Errorf("agent command not on PATH")}
+
 		return result, ch
 	}
 
 	if projectRoot == "" {
 		result.Launched = false
 		result.Message = "no project root"
+
 		ch <- JobOutputMsg{Err: fmt.Errorf("no project root")}
+
 		return result, ch
 	}
 
@@ -354,16 +364,20 @@ func runChildAgentWithCapture(projectRoot, prompt string) (result ChildAgentRunR
 	stdoutPipe, err := cmd.StdoutPipe()
 	if err != nil {
 		result.Launched = false
+
 		result.Message = err.Error()
 		ch <- JobOutputMsg{Err: err}
+
 		return result, ch
 	}
 
 	stderrPipe, err := cmd.StderrPipe()
 	if err != nil {
 		result.Launched = false
+
 		result.Message = err.Error()
 		ch <- JobOutputMsg{Err: err}
+
 		return result, ch
 	}
 
@@ -371,8 +385,10 @@ func runChildAgentWithCapture(projectRoot, prompt string) (result ChildAgentRunR
 
 	if err := cmd.Start(); err != nil {
 		result.Launched = false
+
 		result.Message = err.Error()
 		ch <- JobOutputMsg{Err: err}
+
 		return result, ch
 	}
 
@@ -383,6 +399,7 @@ func runChildAgentWithCapture(projectRoot, prompt string) (result ChildAgentRunR
 
 	result.Launched = true
 	result.Prompt = prompt
+
 	if len(prompt) > 60 {
 		result.Message = "Launched: " + prompt[:57] + "..."
 	} else {
@@ -391,28 +408,39 @@ func runChildAgentWithCapture(projectRoot, prompt string) (result ChildAgentRunR
 
 	go func() {
 		var stdoutBuf, stderrBuf bytes.Buffer
+
 		pipeDone := make(chan struct{}, 2)
+
 		go func() { _, _ = io.Copy(&stdoutBuf, stdoutPipe); pipeDone <- struct{}{} }()
 		go func() { _, _ = io.Copy(&stderrBuf, stderrPipe); pipeDone <- struct{}{} }()
+
 		exitErr := cmd.Wait()
+
 		<-pipeDone
 		<-pipeDone
+
 		var combined strings.Builder
 		if stdoutBuf.Len() > 0 {
 			combined.Write(stdoutBuf.Bytes())
 		}
+
 		if stderrBuf.Len() > 0 {
 			if combined.Len() > 0 {
 				combined.WriteString("\n--- stderr ---\n")
 			}
+
 			combined.Write(stderrBuf.Bytes())
 		}
+
 		exitCode := 0
+
 		if exitErr != nil {
-			if exit, ok := exitErr.(*exec.ExitError); ok {
+			exit := &exec.ExitError{}
+			if errors.As(exitErr, &exit) {
 				exitCode = exit.ExitCode()
 			}
 		}
+
 		ch <- JobOutputMsg{Pid: pid, Output: strings.TrimSpace(combined.String()), ExitCode: exitCode, Err: exitErr}
 	}()
 

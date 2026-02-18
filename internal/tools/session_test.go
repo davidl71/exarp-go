@@ -30,14 +30,17 @@ func TestHandleSessionPrompts(t *testing.T) {
 					t.Error("expected non-empty result")
 					return
 				}
+
 				var data map[string]interface{}
 				if err := json.Unmarshal([]byte(result[0].Text), &data); err != nil {
 					t.Errorf("invalid JSON: %v", err)
 					return
 				}
+
 				if success, ok := data["success"].(bool); !ok || !success {
 					t.Error("expected success=true")
 				}
+
 				if method, ok := data["method"].(string); !ok || method != "native_go" {
 					t.Error("expected method=native_go")
 				}
@@ -56,6 +59,7 @@ func TestHandleSessionPrompts(t *testing.T) {
 					t.Errorf("invalid JSON: %v", err)
 					return
 				}
+
 				if filters, ok := data["filters_applied"].(map[string]interface{}); ok {
 					if mode, ok := filters["mode"].(string); !ok || mode != "daily_checkin" {
 						t.Errorf("expected mode filter, got %v", filters)
@@ -76,6 +80,7 @@ func TestHandleSessionPrompts(t *testing.T) {
 					t.Errorf("invalid JSON: %v", err)
 					return
 				}
+
 				if filters, ok := data["filters_applied"].(map[string]interface{}); ok {
 					if category, ok := filters["category"].(string); !ok || category != "workflow" {
 						t.Errorf("expected category filter, got %v", filters)
@@ -96,6 +101,7 @@ func TestHandleSessionPrompts(t *testing.T) {
 					t.Errorf("invalid JSON: %v", err)
 					return
 				}
+
 				if filters, ok := data["filters_applied"].(map[string]interface{}); ok {
 					if keywords, ok := filters["keywords"].([]interface{}); !ok || len(keywords) == 0 {
 						t.Errorf("expected keywords filter, got %v", filters)
@@ -140,14 +146,17 @@ func TestHandleSessionAssignee(t *testing.T) {
 					t.Error("expected non-empty result")
 					return
 				}
+
 				var data map[string]interface{}
 				if err := json.Unmarshal([]byte(result[0].Text), &data); err != nil {
 					t.Errorf("invalid JSON: %v", err)
 					return
 				}
+
 				if success, ok := data["success"].(bool); !ok || !success {
 					t.Error("expected success=true")
 				}
+
 				if method, ok := data["method"].(string); !ok || method != "native_go" {
 					t.Error("expected method=native_go")
 				}
@@ -166,6 +175,7 @@ func TestHandleSessionAssignee(t *testing.T) {
 					t.Errorf("invalid JSON: %v", err)
 					return
 				}
+
 				if filters, ok := data["filters_applied"].(map[string]interface{}); ok {
 					if status, ok := filters["status_filter"].(string); !ok || status != "Todo" {
 						t.Errorf("expected status filter, got %v", filters)
@@ -186,6 +196,7 @@ func TestHandleSessionAssignee(t *testing.T) {
 					t.Errorf("invalid JSON: %v", err)
 					return
 				}
+
 				if filters, ok := data["filters_applied"].(map[string]interface{}); ok {
 					if priority, ok := filters["priority_filter"].(string); !ok || priority != "high" {
 						t.Errorf("expected priority filter, got %v", filters)
@@ -206,6 +217,7 @@ func TestHandleSessionAssignee(t *testing.T) {
 					t.Errorf("invalid JSON: %v", err)
 					return
 				}
+
 				if name, ok := data["assignee_name"].(string); !ok || name != "test-agent" {
 					t.Errorf("expected assignee_name=test-agent, got %v", data["assignee_name"])
 				}

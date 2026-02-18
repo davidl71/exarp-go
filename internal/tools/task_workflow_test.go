@@ -13,9 +13,7 @@ import (
 
 func TestHandleTaskWorkflowNative(t *testing.T) {
 	tmpDir := t.TempDir()
-	os.Setenv("PROJECT_ROOT", tmpDir)
-
-	defer os.Unsetenv("PROJECT_ROOT")
+	t.Setenv("PROJECT_ROOT", tmpDir)
 
 	tests := []struct {
 		name      string
@@ -34,6 +32,7 @@ func TestHandleTaskWorkflowNative(t *testing.T) {
 					t.Error("expected non-empty result")
 					return
 				}
+
 				var data map[string]interface{}
 				if err := json.Unmarshal([]byte(result[0].Text), &data); err != nil {
 					t.Errorf("invalid JSON: %v", err)
@@ -114,11 +113,13 @@ func TestHandleTaskWorkflowNative(t *testing.T) {
 					t.Error("expected non-empty result for sync list")
 					return
 				}
+
 				var data map[string]interface{}
 				if err := json.Unmarshal([]byte(result[0].Text), &data); err != nil {
 					t.Errorf("invalid JSON: %v", err)
 					return
 				}
+
 				if _, ok := data["tasks"]; !ok {
 					t.Error("expected tasks field in list result")
 				}
@@ -137,11 +138,13 @@ func TestHandleTaskWorkflowNative(t *testing.T) {
 					t.Error("expected non-empty result for cleanup dry_run")
 					return
 				}
+
 				var data map[string]interface{}
 				if err := json.Unmarshal([]byte(result[0].Text), &data); err != nil {
 					t.Errorf("invalid JSON: %v", err)
 					return
 				}
+
 				if dr, ok := data["dry_run"].(bool); !ok || !dr {
 					t.Error("expected dry_run=true in cleanup result")
 				}
@@ -160,11 +163,13 @@ func TestHandleTaskWorkflowNative(t *testing.T) {
 					t.Error("expected non-empty result for clarity")
 					return
 				}
+
 				var data map[string]interface{}
 				if err := json.Unmarshal([]byte(result[0].Text), &data); err != nil {
 					t.Errorf("invalid JSON: %v", err)
 					return
 				}
+
 				if _, ok := data["clarity_issues"]; !ok {
 					t.Error("expected clarity_issues in clarity result")
 				}
@@ -300,9 +305,7 @@ func TestHandleTaskWorkflowNative(t *testing.T) {
 
 func TestHandleTaskWorkflowApproveConfirmViaElicitation(t *testing.T) {
 	tmpDir := t.TempDir()
-	os.Setenv("PROJECT_ROOT", tmpDir)
-
-	defer os.Unsetenv("PROJECT_ROOT")
+	t.Setenv("PROJECT_ROOT", tmpDir)
 
 	t.Run("confirm_via_elicitation with mock decline returns cancelled", func(t *testing.T) {
 		ctx := mcpframework.ContextWithEliciter(context.Background(), &mockEliciter{Action: "decline"})
@@ -353,9 +356,7 @@ func TestHandleTaskWorkflowApproveConfirmViaElicitation(t *testing.T) {
 
 func TestApprovalWorkflowActions(t *testing.T) {
 	tmpDir := t.TempDir()
-	os.Setenv("PROJECT_ROOT", tmpDir)
-
-	defer os.Unsetenv("PROJECT_ROOT")
+	t.Setenv("PROJECT_ROOT", tmpDir)
 
 	todo2Dir := filepath.Join(tmpDir, ".todo2")
 	if err := os.MkdirAll(todo2Dir, 0755); err != nil {
@@ -440,9 +441,7 @@ func TestApprovalWorkflowActions(t *testing.T) {
 
 func TestHandleTaskWorkflow(t *testing.T) {
 	tmpDir := t.TempDir()
-	os.Setenv("PROJECT_ROOT", tmpDir)
-
-	defer os.Unsetenv("PROJECT_ROOT")
+	t.Setenv("PROJECT_ROOT", tmpDir)
 
 	tests := []struct {
 		name      string

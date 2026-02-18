@@ -2,7 +2,6 @@
 package cli
 
 import (
-	"os"
 	"strings"
 	"testing"
 
@@ -19,6 +18,7 @@ func TestHandleCursorCommand_Help(t *testing.T) {
 		if parsed.Command != "cursor" {
 			t.Logf("ParseArgs(%v) => command=%q", args, parsed.Command)
 		}
+
 		err := handleCursorCommand(parsed)
 		if err != nil {
 			t.Errorf("handleCursorCommand(%v) err = %v", args, err)
@@ -28,10 +28,12 @@ func TestHandleCursorCommand_Help(t *testing.T) {
 
 func TestHandleCursorCommand_NoTaskOrPrompt(t *testing.T) {
 	parsed := mcpcli.ParseArgs([]string{"cursor", "run"})
+
 	err := handleCursorCommand(parsed)
 	if err == nil {
 		t.Error("expected error when no task-id or -p")
 	}
+
 	if !strings.Contains(err.Error(), "task-id") && !strings.Contains(err.Error(), "prompt") {
 		t.Errorf("error should mention task-id or prompt: %v", err)
 	}
@@ -58,15 +60,17 @@ func TestPromptForTask(t *testing.T) {
 func TestAgentCommand_EnvOverride(t *testing.T) {
 	// When EXARP_AGENT_CMD is set, agentCommand should use it (we can't assert path without agent)
 	const fake = "/nonexistent/agent"
-	os.Setenv("EXARP_AGENT_CMD", fake)
-	defer os.Unsetenv("EXARP_AGENT_CMD")
+
+	t.Setenv("EXARP_AGENT_CMD", fake)
+
 	path, args := agentCommand()
 	if path != "" {
 		// If /nonexistent/agent exists (unlikely), path would be set
 		t.Logf("EXARP_AGENT_CMD set: path=%q args=%v", path, args)
 	}
 	// When unset, we try "agent" then "cursor agent" - just ensure we don't panic
-	os.Unsetenv("EXARP_AGENT_CMD")
+	t.Setenv("EXARP_AGENT_CMD", "")
+
 	path, args = agentCommand()
 	t.Logf("EXARP_AGENT_CMD unset: path=%q args=%v", path, args)
 }
@@ -84,6 +88,7 @@ func TestRunCursorRun_CustomPrompt(t *testing.T) {
 	if err == nil {
 		return // e.g. agent found and ran (unlikely in test)
 	}
+
 	msg := err.Error()
 	if !strings.Contains(msg, "project root") && !strings.Contains(msg, "agent") && !strings.Contains(msg, "empty") {
 		t.Logf("runCursorRun(-p hello) err = %v (acceptable)", err)
@@ -101,7 +106,7 @@ func TestLoadTaskForCursor_NoDB(t *testing.T) {
 	}
 }
 
-// Ensure cursor run subcommand is accepted (integration with ParseArgs)
+// Ensure cursor run subcommand is accepted (integration with ParseArgs).
 func TestCursorRun_ParseArgs(t *testing.T) {
 	cases := []struct {
 		args        []string
@@ -117,6 +122,7 @@ func TestCursorRun_ParseArgs(t *testing.T) {
 		if parsed.Command != c.wantCommand {
 			t.Errorf("ParseArgs(%v) Command = %q, want %q", c.args, parsed.Command, c.wantCommand)
 		}
+
 		if parsed.Subcommand != c.wantSub {
 			t.Errorf("ParseArgs(%v) Subcommand = %q, want %q", c.args, parsed.Subcommand, c.wantSub)
 		}

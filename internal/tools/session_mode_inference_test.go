@@ -3,7 +3,6 @@ package tools
 import (
 	"context"
 	"encoding/json"
-	"os"
 	"testing"
 	"time"
 )
@@ -43,15 +42,11 @@ func TestHandleInferSessionModeNative(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Save original PROJECT_ROOT
-			originalRoot := os.Getenv("PROJECT_ROOT")
-			defer os.Setenv("PROJECT_ROOT", originalRoot)
-
 			// Set test PROJECT_ROOT if provided
 			if tt.projectRootEnv != "" {
-				os.Setenv("PROJECT_ROOT", tt.projectRootEnv)
+				t.Setenv("PROJECT_ROOT", tt.projectRootEnv)
 			} else {
-				os.Unsetenv("PROJECT_ROOT")
+				t.Setenv("PROJECT_ROOT", "")
 			}
 
 			// Clear cache

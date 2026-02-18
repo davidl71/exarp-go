@@ -16,13 +16,27 @@ func TestHandleGenerateConfigNative(t *testing.T) {
 
 	// Create temporary test directory
 	tmpDir := t.TempDir()
+
 	goModPath := filepath.Join(tmpDir, "go.mod")
-	os.WriteFile(goModPath, []byte("module test\n"), 0644)
+	if err := os.WriteFile(goModPath, []byte("module test\n"), 0644); err != nil {
+		t.Fatalf("failed to write go.mod: %v", err)
+	}
 
 	// Change to tmpDir so GetProjectRoot(".") finds it
-	originalWd, _ := os.Getwd()
-	os.Chdir(tmpDir)
-	defer os.Chdir(originalWd)
+	originalWd, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("failed to get working directory: %v", err)
+	}
+
+	if err := os.Chdir(tmpDir); err != nil {
+		t.Fatalf("failed to chdir to temp dir: %v", err)
+	}
+
+	defer func() {
+		if chdirErr := os.Chdir(originalWd); chdirErr != nil {
+			t.Errorf("failed to restore working directory: %v", chdirErr)
+		}
+	}()
 
 	tests := []struct {
 		name           string
@@ -71,7 +85,10 @@ func TestHandleGenerateConfigNative(t *testing.T) {
 			wantErr: false,
 			validateResult: func(t *testing.T, result []framework.TextContent) bool {
 				var response map[string]interface{}
-				json.Unmarshal([]byte(result[0].Text), &response)
+				if err := json.Unmarshal([]byte(result[0].Text), &response); err != nil {
+					t.Errorf("failed to unmarshal result: %v", err)
+					return false
+				}
 
 				if response["success"] != true {
 					t.Errorf("expected success=true, got %v", response["success"])
@@ -90,7 +107,10 @@ func TestHandleGenerateConfigNative(t *testing.T) {
 			wantErr: false,
 			validateResult: func(t *testing.T, result []framework.TextContent) bool {
 				var response map[string]interface{}
-				json.Unmarshal([]byte(result[0].Text), &response)
+				if err := json.Unmarshal([]byte(result[0].Text), &response); err != nil {
+					t.Errorf("failed to unmarshal result: %v", err)
+					return false
+				}
 
 				if response["status"] != "success" {
 					t.Errorf("expected status='success', got %v", response["status"])
@@ -112,10 +132,7 @@ func TestHandleGenerateConfigNative(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Set PROJECT_ROOT as backup
-			originalRoot := os.Getenv("PROJECT_ROOT")
-			defer os.Setenv("PROJECT_ROOT", originalRoot)
-			os.Setenv("PROJECT_ROOT", tmpDir)
+			t.Setenv("PROJECT_ROOT", tmpDir)
 
 			result, err := handleGenerateConfigNative(ctx, tt.args)
 
@@ -134,8 +151,11 @@ func TestHandleGenerateConfigNative(t *testing.T) {
 func TestHandleGenerateRules(t *testing.T) {
 	ctx := context.Background()
 	tmpDir := t.TempDir()
+
 	goModPath := filepath.Join(tmpDir, "go.mod")
-	os.WriteFile(goModPath, []byte("module test\n"), 0644)
+	if err := os.WriteFile(goModPath, []byte("module test\n"), 0644); err != nil {
+		t.Fatalf("failed to write go.mod: %v", err)
+	}
 
 	tests := []struct {
 		name           string
@@ -151,7 +171,10 @@ func TestHandleGenerateRules(t *testing.T) {
 			wantErr: false,
 			validateResult: func(t *testing.T, result []framework.TextContent) bool {
 				var response map[string]interface{}
-				json.Unmarshal([]byte(result[0].Text), &response)
+				if err := json.Unmarshal([]byte(result[0].Text), &response); err != nil {
+					t.Errorf("failed to unmarshal result: %v", err)
+					return false
+				}
 
 				if response["success"] != true {
 					t.Errorf("expected success=true, got %v", response["success"])
@@ -180,7 +203,10 @@ func TestHandleGenerateRules(t *testing.T) {
 			wantErr: false,
 			validateResult: func(t *testing.T, result []framework.TextContent) bool {
 				var response map[string]interface{}
-				json.Unmarshal([]byte(result[0].Text), &response)
+				if err := json.Unmarshal([]byte(result[0].Text), &response); err != nil {
+					t.Errorf("failed to unmarshal result: %v", err)
+					return false
+				}
 
 				if response["success"] != true {
 					t.Errorf("expected success=true, got %v", response["success"])
@@ -199,7 +225,10 @@ func TestHandleGenerateRules(t *testing.T) {
 			wantErr: false,
 			validateResult: func(t *testing.T, result []framework.TextContent) bool {
 				var response map[string]interface{}
-				json.Unmarshal([]byte(result[0].Text), &response)
+				if err := json.Unmarshal([]byte(result[0].Text), &response); err != nil {
+					t.Errorf("failed to unmarshal result: %v", err)
+					return false
+				}
 
 				if response["success"] != true {
 					t.Errorf("expected success=true, got %v", response["success"])
@@ -245,7 +274,10 @@ func TestHandleGenerateIgnore(t *testing.T) {
 			wantErr: false,
 			validateResult: func(t *testing.T, result []framework.TextContent) bool {
 				var response map[string]interface{}
-				json.Unmarshal([]byte(result[0].Text), &response)
+				if err := json.Unmarshal([]byte(result[0].Text), &response); err != nil {
+					t.Errorf("failed to unmarshal result: %v", err)
+					return false
+				}
 
 				if response["success"] != true {
 					t.Errorf("expected success=true, got %v", response["success"])
@@ -265,7 +297,10 @@ func TestHandleGenerateIgnore(t *testing.T) {
 			wantErr: false,
 			validateResult: func(t *testing.T, result []framework.TextContent) bool {
 				var response map[string]interface{}
-				json.Unmarshal([]byte(result[0].Text), &response)
+				if err := json.Unmarshal([]byte(result[0].Text), &response); err != nil {
+					t.Errorf("failed to unmarshal result: %v", err)
+					return false
+				}
 
 				if response["success"] != true {
 					t.Errorf("expected success=true, got %v", response["success"])
@@ -315,7 +350,10 @@ func TestHandleSimplifyRules(t *testing.T) {
 			wantErr: false,
 			validateResult: func(t *testing.T, result []framework.TextContent) bool {
 				var response map[string]interface{}
-				json.Unmarshal([]byte(result[0].Text), &response)
+				if err := json.Unmarshal([]byte(result[0].Text), &response); err != nil {
+					t.Errorf("failed to unmarshal result: %v", err)
+					return false
+				}
 
 				if response["status"] != "success" {
 					t.Errorf("expected status='success', got %v", response["status"])
@@ -331,12 +369,17 @@ func TestHandleSimplifyRules(t *testing.T) {
 				"dry_run": true,
 			},
 			setupFiles: func(projectRoot string) {
-				os.WriteFile(filepath.Join(projectRoot, ".cursorrules"), []byte("# Test rules\n"), 0644)
+				if err := os.WriteFile(filepath.Join(projectRoot, ".cursorrules"), []byte("# Test rules\n"), 0644); err != nil {
+					return
+				}
 			},
 			wantErr: false,
 			validateResult: func(t *testing.T, result []framework.TextContent) bool {
 				var response map[string]interface{}
-				json.Unmarshal([]byte(result[0].Text), &response)
+				if err := json.Unmarshal([]byte(result[0].Text), &response); err != nil {
+					t.Errorf("failed to unmarshal result: %v", err)
+					return false
+				}
 
 				if response["status"] != "success" {
 					t.Errorf("expected status='success', got %v", response["status"])
@@ -385,6 +428,7 @@ func TestCursorRulesGenerator_AnalyzeProject(t *testing.T) {
 				if _, ok := analysis["languages"]; !ok {
 					t.Error("expected languages in analysis")
 				}
+
 				if _, ok := analysis["frameworks"]; !ok {
 					t.Error("expected frameworks in analysis")
 				}
@@ -398,12 +442,14 @@ func TestCursorRulesGenerator_AnalyzeProject(t *testing.T) {
 			validate: func(t *testing.T, analysis map[string]interface{}) {
 				languages, _ := analysis["languages"].([]interface{})
 				foundGo := false
+
 				for _, lang := range languages {
 					if lang == "go" {
 						foundGo = true
 						break
 					}
 				}
+
 				if !foundGo {
 					t.Log("Note: Go language may not be detected in empty project")
 				}

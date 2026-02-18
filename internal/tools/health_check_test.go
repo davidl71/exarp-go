@@ -40,11 +40,13 @@ func TestHandleHealthDocs(t *testing.T) {
 					t.Error("expected non-empty result")
 					return
 				}
+
 				var data map[string]interface{}
 				if err := json.Unmarshal([]byte(result[0].Text), &data); err != nil {
 					t.Errorf("invalid JSON: %v", err)
 					return
 				}
+
 				if success, ok := data["success"].(bool); !ok || !success {
 					t.Error("expected success=true")
 				}
@@ -70,6 +72,7 @@ func TestHandleHealthDocs(t *testing.T) {
 
 	// Set PROJECT_ROOT for tests
 	oldRoot := os.Getenv("PROJECT_ROOT")
+
 	os.Setenv("PROJECT_ROOT", tmpDir)
 	defer os.Setenv("PROJECT_ROOT", oldRoot)
 
@@ -108,11 +111,13 @@ func TestHandleHealthDOD(t *testing.T) {
 					t.Error("expected non-empty result")
 					return
 				}
+
 				var data map[string]interface{}
 				if err := json.Unmarshal([]byte(result[0].Text), &data); err != nil {
 					t.Errorf("invalid JSON: %v", err)
 					return
 				}
+
 				if success, ok := data["success"].(bool); !ok || !success {
 					t.Error("expected success=true")
 				}
@@ -135,6 +140,7 @@ func TestHandleHealthDOD(t *testing.T) {
 					t.Errorf("invalid JSON: %v", err)
 					return
 				}
+
 				if taskID, ok := data["task_id"].(string); !ok || taskID != "T-123" {
 					t.Errorf("expected task_id=T-123, got %v", data["task_id"])
 				}
@@ -193,11 +199,13 @@ func TestHandleHealthCICD(t *testing.T) {
 					t.Error("expected non-empty result")
 					return
 				}
+
 				var data map[string]interface{}
 				if err := json.Unmarshal([]byte(result[0].Text), &data); err != nil {
 					t.Errorf("invalid JSON: %v", err)
 					return
 				}
+
 				if success, ok := data["success"].(bool); !ok || !success {
 					t.Error("expected success=true")
 				}

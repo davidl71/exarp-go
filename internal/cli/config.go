@@ -335,6 +335,7 @@ func parseDuration(s string) (time.Duration, error) {
 // parseFloat parses a float string.
 func parseFloat(s string) (float64, error) {
 	var f float64
+
 	_, err := fmt.Sscanf(s, "%f", &f)
 
 	return f, err

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 	"time"
 
 	"github.com/davidl71/exarp-go/internal/framework"
@@ -268,9 +269,10 @@ func handlePromptTrackingAnalyze(ctx context.Context, params map[string]interfac
 	patterns := []string{}
 
 	if avgIter, ok := analysis["avg_iterations"].(string); ok {
-		var avg float64
-
-		fmt.Sscanf(avgIter, "%f", &avg)
+		avg, parseErr := strconv.ParseFloat(avgIter, 64)
+		if parseErr != nil {
+			avg = 0
+		}
 
 		if avg > 3 {
 			patterns = append(patterns, "High iteration count - consider more detailed initial prompts")
@@ -295,9 +297,10 @@ func handlePromptTrackingAnalyze(ctx context.Context, params map[string]interfac
 	recommendations := []string{}
 
 	if avgIter, ok := analysis["avg_iterations"].(string); ok {
-		var avg float64
-
-		fmt.Sscanf(avgIter, "%f", &avg)
+		avg, parseErr := strconv.ParseFloat(avgIter, 64)
+		if parseErr != nil {
+			avg = 0
+		}
 
 		if avg > 2 {
 			recommendations = append(recommendations, "Break down complex tasks into smaller, more specific prompts")

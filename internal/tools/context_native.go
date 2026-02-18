@@ -62,6 +62,7 @@ func handleContextSummarizeNative(ctx context.Context, params map[string]interfa
 
 	// Convert data to string (simplified - protobuf ensures it's already a string)
 	var dataStr string
+
 	switch v := dataRaw.(type) {
 	case string:
 		dataStr = v

@@ -33,6 +33,7 @@ func TestMCPToolViaCLI(t *testing.T) {
 				if _, ok := data["detection"]; !ok {
 					t.Error("expected detection field in session prime")
 				}
+
 				if _, ok := data["auto_primed"]; !ok {
 					t.Error("expected auto_primed field")
 				}
@@ -66,6 +67,7 @@ func TestMCPToolViaCLI(t *testing.T) {
 				if tool, ok := data["tool"].(string); !ok || tool == "" {
 					t.Error("expected tool field (string) in help response")
 				}
+
 				if _, ok := data["hint"]; !ok {
 					t.Error("expected hint field in help response")
 				}

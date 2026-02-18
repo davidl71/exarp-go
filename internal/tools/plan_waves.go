@@ -33,7 +33,9 @@ func ParseWavesFromPlanMarkdown(path string) (map[int][]string, error) {
 	defer f.Close()
 
 	waves := make(map[int][]string)
-	var currentWave int = -1
+
+	var currentWave = -1
+
 	var currentIDs []string
 
 	flushWave := func() {
@@ -48,13 +50,16 @@ func ParseWavesFromPlanMarkdown(path string) (map[int][]string, error) {
 
 		if m := phaseHeadingRegex.FindStringSubmatch(line); len(m) >= 2 {
 			flushWave()
+
 			var phaseNum int
 			if _, err := fmt.Sscanf(m[1], "%d", &phaseNum); err == nil && phaseNum >= 1 {
 				currentWave = phaseNum - 1 // Phase 1 -> wave 0
 			} else {
 				currentWave = -1
 			}
+
 			currentIDs = nil
+
 			continue
 		}
 
@@ -68,9 +73,11 @@ func ParseWavesFromPlanMarkdown(path string) (map[int][]string, error) {
 			}
 		}
 	}
+
 	if err := scanner.Err(); err != nil {
 		return nil, err
 	}
+
 	flushWave()
 
 	if len(waves) == 0 {
@@ -82,11 +89,14 @@ func ParseWavesFromPlanMarkdown(path string) (map[int][]string, error) {
 	for k := range waves {
 		levels = append(levels, k)
 	}
+
 	sort.Ints(levels)
+
 	normalized := make(map[int][]string)
 	for i, level := range levels {
 		normalized[i] = waves[level]
 	}
+
 	return normalized, nil
 }
 
@@ -97,10 +107,12 @@ func LoadWavesFromPlanFile(projectRoot string) (map[int][]string, error) {
 	if projectRoot == "" {
 		return nil, nil
 	}
+
 	path := filepath.Join(projectRoot, DefaultPlanWavesPath)
 	if _, err := os.Stat(path); os.IsNotExist(err) {
 		return nil, nil
 	}
+
 	return ParseWavesFromPlanMarkdown(path)
 }
 
@@ -111,26 +123,33 @@ func filterWavesToBacklogOnly(waves map[int][]string, taskList []Todo2Task) map[
 	for _, t := range taskList {
 		taskByID[t.ID] = t
 	}
+
 	levels := make([]int, 0, len(waves))
 	for k := range waves {
 		levels = append(levels, k)
 	}
+
 	sort.Ints(levels)
+
 	filtered := make(map[int][]string)
 	idx := 0
+
 	for _, level := range levels {
 		ids := waves[level]
 		keep := make([]string, 0, len(ids))
+
 		for _, id := range ids {
 			if t, ok := taskByID[id]; ok && IsBacklogStatus(t.Status) {
 				keep = append(keep, id)
 			}
 		}
+
 		if len(keep) > 0 {
 			filtered[idx] = keep
 			idx++
 		}
 	}
+
 	return filtered
 }
 
@@ -140,18 +159,23 @@ func filterWavesToBacklogOnly(waves map[int][]string, taskList []Todo2Task) map[
 // Waves include only Todo and In Progress tasks; Done tasks are excluded.
 func ComputeWavesForTUI(projectRoot string, taskList []Todo2Task) (map[int][]string, error) {
 	var waves map[int][]string
+
 	var err error
+
 	waves, err = LoadWavesFromPlanFile(projectRoot)
 	if err == nil && waves != nil && len(waves) > 0 {
 		waves = filterWavesToBacklogOnly(waves, taskList)
 		return waves, nil
 	}
+
 	_, waves, _, err = BacklogExecutionOrder(taskList, nil)
 	if err != nil {
 		return nil, err
 	}
+
 	if max := config.MaxTasksPerWave(); max > 0 {
 		waves = LimitWavesByMaxTasks(waves, max)
 	}
+
 	return waves, nil
 }

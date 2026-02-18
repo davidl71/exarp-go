@@ -544,10 +544,12 @@ func handleSessionEnd(ctx context.Context, params map[string]interface{}, projec
 	// Add suggested_next_action and cursor_cli_suggestion for the next suggested task
 	if suggested := GetSuggestedNextTasks(projectRoot, 1); len(suggested) > 0 {
 		t := suggested[0]
+
 		taskMap := map[string]interface{}{"id": t.ID, "content": t.Content}
 		if hint := buildSuggestedNextAction(taskMap); hint != "" {
 			result["suggested_next_action"] = hint
 		}
+
 		if cmd := buildCursorCliSuggestion(taskMap); cmd != "" {
 			result["cursor_cli_suggestion"] = cmd
 		}
@@ -619,10 +621,12 @@ func handleSessionResume(ctx context.Context, projectRoot string) ([]framework.T
 	// Add suggested_next_action and cursor_cli_suggestion for first suggested task (same as prime)
 	if suggested := GetSuggestedNextTasks(projectRoot, 1); len(suggested) > 0 {
 		t := suggested[0]
+
 		taskMap := map[string]interface{}{"id": t.ID, "content": t.Content}
 		if hint := buildSuggestedNextAction(taskMap); hint != "" {
 			result["suggested_next_action"] = hint
 		}
+
 		if cmd := buildCursorCliSuggestion(taskMap); cmd != "" {
 			result["cursor_cli_suggestion"] = cmd
 		}
@@ -721,18 +725,22 @@ func handleSessionList(ctx context.Context, params map[string]interface{}, proje
 	if inc, ok := params["include_closed"].(bool); ok {
 		includeClosed = inc
 	}
+
 	if !includeClosed {
 		var open []interface{}
+
 		for _, v := range handoffs {
 			h, ok := v.(map[string]interface{})
 			if !ok {
 				continue
 			}
+
 			status, _ := h["status"].(string)
 			if status != "closed" && status != "approved" {
 				open = append(open, v)
 			}
 		}
+
 		handoffs = open
 	}
 
@@ -802,12 +810,18 @@ func handleSessionSync(ctx context.Context, params map[string]interface{}, proje
 
 				if err == nil && len(output) > 0 {
 					cmd = exec.CommandContext(ctx, "git", "add", ".todo2")
+
 					cmd.Dir = projectRoot
-					cmd.Run()
+					if err := cmd.Run(); err != nil {
+						return fmt.Errorf("git add .todo2: %w", err)
+					}
 
 					cmd = exec.CommandContext(ctx, "git", "commit", "-m", "Auto-sync Todo2 state")
+
 					cmd.Dir = projectRoot
-					cmd.Run()
+					if err := cmd.Run(); err != nil {
+						return fmt.Errorf("git commit auto-sync Todo2 state: %w", err)
+					}
 
 					result["committed"] = true
 				}
@@ -1625,6 +1639,7 @@ func deleteHandoffs(projectRoot string, handoffIDs []string) (int, error) {
 	}
 
 	idsSet := make(map[string]struct{})
+
 	for _, id := range handoffIDs {
 		if id != "" {
 			idsSet[id] = struct{}{}
@@ -1646,19 +1661,24 @@ func deleteHandoffs(projectRoot string, handoffIDs []string) (int, error) {
 	}
 
 	handoffs, _ := handoffData["handoffs"].([]interface{})
+
 	var kept []interface{}
+
 	deleted := 0
+
 	for _, v := range handoffs {
 		h, ok := v.(map[string]interface{})
 		if !ok {
 			kept = append(kept, v)
 			continue
 		}
+
 		id, _ := h["id"].(string)
 		if _, want := idsSet[id]; want {
 			deleted++
 			continue
 		}
+
 		kept = append(kept, v)
 	}
 
@@ -1667,6 +1687,7 @@ func deleteHandoffs(projectRoot string, handoffIDs []string) (int, error) {
 	}
 
 	handoffData["handoffs"] = kept
+
 	out, err := json.MarshalIndent(handoffData, "", "  ")
 	if err != nil {
 		return 0, err
@@ -1743,6 +1764,7 @@ func buildCursorCliSuggestion(task map[string]interface{}) string {
 	if action == "" {
 		return ""
 	}
+
 	return fmt.Sprintf("agent -p %q --mode=plan", action)
 }
 
@@ -1910,6 +1932,7 @@ func handleSessionAssigneeList(ctx context.Context, params map[string]interface{
 		var assignee sql.NullString
 
 		var assignedAt sql.NullInt64 // assigned_at is INTEGER (Unix timestamp)
+
 		err := db.QueryRowContext(ctx, `
 			SELECT assignee, assigned_at
 			FROM tasks
