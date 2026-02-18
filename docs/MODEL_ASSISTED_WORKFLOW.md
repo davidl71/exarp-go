@@ -39,8 +39,13 @@ This document outlines how to use local LLM models (CodeLlama via MLX, Ollama mo
 
 - **Task metadata `preferred_backend`** — Optional key: `fm` (Apple Foundation Models), `mlx`, or `ollama`. When set on a task, tools that use LLMs (estimation, text_generate, report insights) respect it.
 - **Tool param `local_ai_backend`** — Pass to `task_workflow` create/update or `estimation` to override the backend for that call. Stored as `preferred_backend` when creating tasks.
-- **summarize** — When `local_ai_backend` is not passed, the task's `preferred_backend` is used; if unset, the default is `fm`.
-- **run_with_ai** — Uses the task's `preferred_backend` when `local_ai_backend` is not passed; optional `instruction` adds extra guidance for the model.
+- **summarize** — When `local_ai_backend` is not passed, the task's `preferred_backend` is used; if unset, the default is `fm`. The param overrides task metadata for that call.
+- **run_with_ai** — Uses the task's `preferred_backend` when `local_ai_backend` is not passed; optional `instruction` adds extra guidance for the model. The param overrides task metadata for that call.
+
+**Summarize and run_with_ai backend selection:**  
+`task_workflow` actions `summarize` and `run_with_ai` both use the task's `preferred_backend` (from task metadata) when the caller does not supply `local_ai_backend`. If neither is set, the default is `fm` (FM chain: Apple → Ollama → stub). CLI: `exarp-go task summarize T-xxx [--local-ai-backend fm]` and `exarp-go task run-with-ai T-xxx [--backend ollama]`.
+
+**CLI commands with backend options:** `task create`, `task update`, `task estimate`, `task summarize`, and `task run-with-ai` accept `--local-ai-backend` or (for run-with-ai) `--backend` with values `fm`, `mlx`, or `ollama`.
 
 **Examples:**
 
@@ -51,8 +56,9 @@ exarp-go -tool task_workflow -args '{"action":"create","name":"Add tests","long_
 # Estimation with specific backend
 exarp-go -tool estimation -args '{"action":"estimate","name":"Refactor module","local_ai_backend":"mlx"}'
 
-# Set preferred_backend on existing task via task_workflow update (metadata)
-exarp-go -tool task_workflow -args '{"action":"update","task_id":"T-123","metadata":{"preferred_backend":"ollama"}}'
+# Set preferred_backend on existing task (CLI or MCP)
+exarp-go task update T-123 --local-ai-backend ollama
+# Or: exarp-go -tool task_workflow -args '{"action":"update","task_id":"T-123","local_ai_backend":"ollama"}'
 
 # CLI subcommands (task estimate, summarize, run-with-ai)
 exarp-go task estimate "Refactor module" --local-ai-backend ollama

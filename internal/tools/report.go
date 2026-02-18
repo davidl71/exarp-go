@@ -14,6 +14,7 @@ import (
 	"github.com/davidl71/exarp-go/internal/database"
 	"github.com/davidl71/exarp-go/internal/framework"
 	"github.com/davidl71/exarp-go/proto"
+	"github.com/spf13/cast"
 )
 
 // handleReportOverview handles the overview action for report tool.
@@ -24,12 +25,12 @@ func handleReportOverview(ctx context.Context, params map[string]interface{}) ([
 	}
 
 	outputFormat := "text"
-	if format, ok := params["output_format"].(string); ok && format != "" {
+	if format := strings.TrimSpace(cast.ToString(params["output_format"])); format != "" {
 		outputFormat = format
 	}
 
-	outputPath, _ := params["output_path"].(string)
-	includePlanning, _ := params["include_planning"].(bool)
+	outputPath := cast.ToString(params["output_path"])
+	includePlanning := cast.ToBool(params["include_planning"])
 
 	// Aggregate project data (proto-based internally)
 	overviewProto, err := aggregateProjectDataProto(ctx, projectRoot, includePlanning)
@@ -43,7 +44,7 @@ func handleReportOverview(ctx context.Context, params map[string]interface{}) ([
 	switch outputFormat {
 	case "json":
 		overviewMap := ProtoToProjectOverviewData(overviewProto)
-		compact, _ := params["compact"].(bool)
+		compact := cast.ToBool(params["compact"])
 		contents, err := FormatResultOptionalCompact(overviewMap, outputPath, compact)
 		if err != nil {
 			return nil, fmt.Errorf("failed to format JSON: %w", err)
@@ -180,6 +181,21 @@ func handleReportPlan(ctx context.Context, params map[string]interface{}) ([]fra
 		outputPath = filepath.Join(projectRoot, ".cursor", "plans", slug)
 	} else {
 		outputPath = ensurePlanMdSuffix(outputPath)
+	}
+
+	repair, _ := params["repair"].(bool)
+	planPath, _ := params["plan_path"].(string)
+	if planPath == "" {
+		planPath = outputPath
+	} else {
+		planPath = ensurePlanMdSuffix(planPath)
+	}
+	if repair {
+		repaired, err := repairPlanFile(ctx, projectRoot, planPath, planTitle)
+		if err != nil {
+			return nil, fmt.Errorf("repair plan: %w", err)
+		}
+		return []framework.TextContent{{Type: "text", Text: repaired}}, nil
 	}
 
 	planMD, err := generatePlanMarkdown(ctx, projectRoot, planTitle)
@@ -768,8 +784,20 @@ func generatePlanMarkdown(ctx context.Context, projectRoot, planTitle string) (s
 	sb.WriteString("status: draft\n")
 	sb.WriteString(fmt.Sprintf("last_updated: %q\n", planDate))
 	sb.WriteString("tag_hints: [planning]\n")
+	// Referenced by / Agents in frontmatter so Cursor UI can show "Referenced by N" (same as body block below)
+	sb.WriteString("referenced_by:\n")
+	sb.WriteString("  - .cursor/agents/wave-task-runner.md\n")
+	sb.WriteString("  - .cursor/agents/wave-verifier.md\n")
+	sb.WriteString("  - .cursor/rules/plan-execution.mdc\n")
+	sb.WriteString("agents:\n")
+	sb.WriteString("  - name: wave-task-runner\n")
+	sb.WriteString("    path: .cursor/agents/wave-task-runner.md\n")
+	sb.WriteString("    role: Run one task per wave from this plan\n")
+	sb.WriteString("  - name: wave-verifier\n")
+	sb.WriteString("    path: .cursor/agents/wave-verifier.md\n")
+	sb.WriteString("    role: Verify wave outcomes and update status\n")
 	sb.WriteString("---\n\n")
-
+	sb.WriteString("*Regenerate with: `exarp-go -tool report -args '{\"action\":\"plan\"}'`. Do not edit frontmatter in Cursor; it may strip fields and break Build.*\n\n")
 	sb.WriteString(fmt.Sprintf("# %s Plan\n\n", displayName))
 	sb.WriteString(fmt.Sprintf("**Generated:** %s\n\n", planDate))
 	sb.WriteString("**Status:** draft\n\n")
@@ -1034,6 +1062,176 @@ func generatePlanMarkdown(ctx context.Context, projectRoot, planTitle string) (s
 	sb.WriteString("- *(Add other plan or doc links as needed.)*\n")
 
 	return sb.String(), nil
+}
+
+// repairPlanFile reads an existing .plan.md, recomputes frontmatter and the "## 3. Iterative Milestones" section from Todo2, and writes the file back so Cursor stripping is undone without losing other body content.
+func repairPlanFile(ctx context.Context, projectRoot, planPath, planTitle string) (string, error) {
+	data, err := os.ReadFile(planPath)
+	if err != nil {
+		return "", fmt.Errorf("read plan file: %w", err)
+	}
+	content := string(data)
+
+	// Locate frontmatter end (after second "---")
+	firstDash := strings.Index(content, "---\n")
+	if firstDash < 0 {
+		return "", fmt.Errorf("plan file has no frontmatter")
+	}
+	secondDash := strings.Index(content[firstDash+4:], "\n---\n")
+	if secondDash < 0 {
+		return "", fmt.Errorf("plan file frontmatter not closed")
+	}
+	frontmatterEnd := firstDash + 4 + secondDash + len("\n---\n")
+
+	// Locate "## 3. Iterative Milestones" and "## 4. Recommended Execution Order"
+	marker3 := "## 3. Iterative Milestones"
+	marker4 := "## 4. Recommended Execution Order"
+	idx3 := strings.Index(content, marker3)
+	idx4 := strings.Index(content, marker4)
+	if idx3 < 0 || idx4 < 0 || idx4 <= idx3 {
+		return "", fmt.Errorf("plan file missing ## 3 or ## 4 section")
+	}
+
+	bodyBefore := content[frontmatterEnd:idx3]
+	bodyAfter := content[idx4:]
+
+	// Recompute todoEntries and waves from Todo2 (same as generatePlanMarkdown)
+	displayName := planDisplayName(planTitle)
+	info, _ := getProjectInfo(projectRoot)
+	overview := getStr(info, "description")
+	if overview == "" {
+		overview = fmt.Sprintf("Deliver and maintain %s with clear milestones and quality gates.", displayName)
+	}
+
+	store := NewDefaultTaskStore(projectRoot)
+	list, _ := store.ListTasks(ctx, nil)
+	tasks := tasksFromPtrs(list)
+	taskByID := make(map[string]Todo2Task)
+	for _, t := range tasks {
+		taskByID[t.ID] = t
+	}
+
+	actions, _ := getNextActions(projectRoot)
+	todoEntries := make([]struct{ id, content, status string }, 0, len(actions))
+	for _, a := range actions {
+		id := getStr(a, "task_id")
+		if id == "" {
+			continue
+		}
+		contentStr := getStr(a, "name")
+		status := "pending"
+		if t, ok := taskByID[id]; ok {
+			if contentStr == "" {
+				contentStr = t.Content
+			}
+			status = todo2StatusToCursorStatus(t.Status)
+		}
+		if contentStr == "" {
+			contentStr = id
+		}
+		contentStr = strings.TrimSpace(contentStr)
+		if len(contentStr) > 120 {
+			contentStr = contentStr[:117] + "..."
+		}
+		todoEntries = append(todoEntries, struct{ id, content, status string }{id, contentStr, status})
+	}
+
+	_, waves, _, _ := BacklogExecutionOrder(tasks, nil)
+	if max := config.MaxTasksPerWave(); max > 0 {
+		waves = LimitWavesByMaxTasks(waves, max)
+	}
+
+	planDate := time.Now().Format("2006-01-02")
+
+	// Build new frontmatter (same as generatePlanMarkdown)
+	var fm strings.Builder
+	fm.WriteString("---\n")
+	fm.WriteString(fmt.Sprintf("name: %s Plan\n", displayName))
+	fm.WriteString(fmt.Sprintf("overview: %q\n", escapeYAMLString(overview)))
+	if len(todoEntries) > 0 {
+		fm.WriteString("todos:\n")
+		for _, e := range todoEntries {
+			fm.WriteString(fmt.Sprintf("  - id: %s\n", e.id))
+			fm.WriteString(fmt.Sprintf("    content: %q\n", escapeYAMLString(e.content)))
+			fm.WriteString(fmt.Sprintf("    status: %s\n", e.status))
+		}
+	} else {
+		fm.WriteString("todos: []\n")
+	}
+	if len(waves) > 0 {
+		levelOrder := make([]int, 0, len(waves))
+		for k := range waves {
+			levelOrder = append(levelOrder, k)
+		}
+		sort.Ints(levelOrder)
+		fm.WriteString("waves:\n")
+		for _, level := range levelOrder {
+			ids := waves[level]
+			if len(ids) == 0 {
+				continue
+			}
+			quoted := make([]string, len(ids))
+			for i, id := range ids {
+				quoted[i] = fmt.Sprintf("%q", id)
+			}
+			fm.WriteString("  - [" + strings.Join(quoted, ", ") + "]\n")
+		}
+	}
+	fm.WriteString("isProject: true\n")
+	fm.WriteString("status: draft\n")
+	fm.WriteString(fmt.Sprintf("last_updated: %q\n", planDate))
+	fm.WriteString("tag_hints: [planning]\n")
+	fm.WriteString("referenced_by:\n")
+	fm.WriteString("  - .cursor/agents/wave-task-runner.md\n")
+	fm.WriteString("  - .cursor/agents/wave-verifier.md\n")
+	fm.WriteString("  - .cursor/rules/plan-execution.mdc\n")
+	fm.WriteString("agents:\n")
+	fm.WriteString("  - name: wave-task-runner\n")
+	fm.WriteString("    path: .cursor/agents/wave-task-runner.md\n")
+	fm.WriteString("    role: Run one task per wave from this plan\n")
+	fm.WriteString("  - name: wave-verifier\n")
+	fm.WriteString("    path: .cursor/agents/wave-verifier.md\n")
+	fm.WriteString("    role: Verify wave outcomes and update status\n")
+	fm.WriteString("---\n\n")
+
+	// Build new "## 3. Iterative Milestones" section with checkboxes
+	reminder := "*Regenerate with: `exarp-go -tool report -args '{\"action\":\"plan\"}'`. Do not edit frontmatter in Cursor; it may strip fields and break Build.*\n\n"
+	var milestones strings.Builder
+	milestones.WriteString("## 3. Iterative Milestones\n\n")
+	milestones.WriteString("Each milestone is independently valuable. Check off as done.\n\n")
+	if len(actions) > 0 {
+		for _, a := range actions {
+			name := getStr(a, "name")
+			taskID := getStr(a, "task_id")
+			if name == "" {
+				name = taskID
+			}
+			status := "pending"
+			if t, ok := taskByID[taskID]; ok {
+				status = todo2StatusToCursorStatus(t.Status)
+			}
+			box := "[ ]"
+			if status == "completed" {
+				box = "[x]"
+			}
+			line := fmt.Sprintf("- %s **%s** (%s)", box, name, taskID)
+			if t, ok := taskByID[taskID]; ok {
+				if refs := getTaskFileRefs(&t); len(refs) > 0 {
+					line += " — " + strings.Join(refs, ", ")
+				}
+			}
+			milestones.WriteString(line + "\n")
+		}
+	} else {
+		milestones.WriteString("- [ ] *(Add Todo2 tasks to populate milestones)*\n")
+	}
+	milestones.WriteString("\n---\n\n")
+
+	repaired := fm.String() + reminder + bodyBefore + milestones.String() + bodyAfter
+	if err := os.WriteFile(planPath, []byte(repaired), 0644); err != nil {
+		return "", fmt.Errorf("write repaired plan: %w", err)
+	}
+	return fmt.Sprintf("Plan format repaired: %s (frontmatter and ## 3. Iterative Milestones restored)", planPath), nil
 }
 
 // getTaskFileRefs extracts file/code references from task metadata (T-1769980664971).
@@ -1302,11 +1500,7 @@ func aggregateProjectDataProto(ctx context.Context, projectRoot string, includeP
 }
 
 func getStr(m map[string]interface{}, key string) string {
-	if s, ok := m[key].(string); ok {
-		return s
-	}
-
-	return ""
+	return cast.ToString(m[key])
 }
 
 // planFilenameFromTitle returns a safe filename stem from a plan title (e.g. "github.com/davidl71/exarp-go" -> "exarp-go").

@@ -16,7 +16,7 @@ Frameworks that orchestrate AI models and services for complex applications and 
 | **Genkit Go** | Open-source framework by Google; unified API for AI apps across multiple model providers, multimodal content, tool calling. |
 | **Ollama** | Run large language models locally; useful for offline or self-hosted AI. (exarp-go integrates with Ollama via HTTP API + optional Python bridge.) |
 | **LocalAI** | Open-source, self-hosted alternative to the OpenAI API; run AI models on your own infrastructure (OpenAI-compatible API). |
-| **Go AI SDK** | Toolkit for building AI-powered applications and agents in Go; feature parity to the Vercel AI SDK. |
+| **Jetify AI** (Go AI SDK) | Unified AI SDK for Go ([github.com/jetify-com/ai](https://github.com/jetify-com/ai)); multi-provider (OpenAI, Anthropic), streaming, tool calling, embeddings, structured output; Vercel AI SDK–style API. Public alpha, Apache-2.0. |
 
 ---
 
@@ -85,6 +85,8 @@ Concrete ways exarp-go could improve by leveraging or aligning with the Go AI ec
   - **Go AI SDK** for a standard agent interface and streaming, if the project wants parity with the Vercel AI SDK.
 - **Recommendation:** Keep the current abstraction for “single-call” generation; evaluate langchaingo or Go AI SDK only when adding explicit agent workflows (and prefer minimal dependency).
 
+**Evaluation (langchaingo / Jetify AI):** As of 2026-02, exarp-go uses a minimal custom abstraction (FM, Ollama, MLX, LocalAI) and MCP tools for orchestration. **langchaingo** would add chains/agents and Python LangChain parity but increases dependency surface and overlaps with existing MCP tool flows. **Jetify AI** ([github.com/jetify-com/ai](https://github.com/jetify-com/ai)) provides Vercel AI SDK–style unified API and streaming. **Decision:** Do not adopt either until we add explicit multi-step agent workflows (plan → execute → reflect) that benefit from a framework; then re-evaluate with a small proof-of-concept (Jetify AI is the primary candidate for a unified Go SDK). See task T-1771252268378.
+
 ### 5.2 Cloud and self-hosted backends
 
 - **Current:** Local-only (Apple FM, Ollama, MLX) plus optional **LocalAI** (OpenAI-compatible). No direct use of Google, OpenAI, or Anthropic SDKs.
@@ -103,6 +105,8 @@ Concrete ways exarp-go could improve by leveraging or aligning with the Go AI ec
   - Optional dedicated resource (e.g. `stdio://llm/status`) if clients need a separate LLM-status endpoint.
 - **Recommendation:** Add a short “AI/LLM” section in the main docs that links to this file and the LLM docs.
 
+**Decision (stdio://llm/status):** Deferred. The existing `stdio://models` resource already exposes backend status (`fm_available`, `localai_available`, tool names, hint). A separate `stdio://llm/status` resource would duplicate this unless we need a distinct endpoint for non-MCP clients. Revisit if such a requirement appears (see task T-1771252280227).
+
 ### 5.4 Numerical and graph stack
 
 - **Current:** Gonum for task graphs and statistics; no other ML libraries.
@@ -113,7 +117,7 @@ Concrete ways exarp-go could improve by leveraging or aligning with the Go AI ec
 
 | Area | Current | Improvement |
 |------|---------|-------------|
-| Orchestration | Custom tools + providers | Consider langchaingo or Go AI SDK only if adding agentic workflows. |
+| Orchestration | Custom tools + providers | Consider langchaingo or Jetify AI only if adding agentic workflows. |
 | Cloud / self-hosted | Local (FM, Ollama, MLX) + optional LocalAI | Optional cloud SDKs later. |
 | Discovery / docs | stdio://models, tool hints | Link this doc and LLM patterns from main docs; optional stdio://llm/status. |
 | Numerics / ML | Gonum (graph + stat) | Keep; add GoLearn/Gonum only if new ML features are needed. |
@@ -141,3 +145,20 @@ The **general agent abstraction** (T-1771252286533) defines a single interface s
 - **Internal:** [LLM_NATIVE_ABSTRACTION_PATTERNS.md](LLM_NATIVE_ABSTRACTION_PATTERNS.md), [LLM_EXPOSURE_OPPORTUNITIES.md](LLM_EXPOSURE_OPPORTUNITIES.md), [LLM_ABSTRACTIONS_REDUCE_PYTHON.md](LLM_ABSTRACTIONS_REDUCE_PYTHON.md).
 - **Code:** `internal/tools/llm_backends.go`, `internal/tools/graph_helpers.go`, `internal/tools/statistics.go`, `internal/tools/*provider*.go`.
 - **Cursor rules:** `.cursor/rules/llm-tools.mdc` (when to use which LLM tool).
+
+---
+
+## 8. External resources and curated lists
+
+Ecosystem overviews, official references, and third-party SDKs useful when evaluating or documenting the Go AI stack.
+
+| Resource | Description |
+|----------|-------------|
+| **[Go Wiki: AI](https://go.dev/wiki/AI)** | Official Go wiki: calling hosted vs local (e.g. Ollama) services, prompt management with `text/template`, and pointers to Genkit Go, langchaingo, Ollama. |
+| **[Jetify AI](https://github.com/jetify-com/ai)** | Unified Go AI SDK (OpenAI, Anthropic; streaming, tools, embeddings). See §1 and §5.1. |
+| **[The State of AI in Go](https://captainnobody1.medium.com/the-state-of-ai-in-go-ceb3d029664a)** (Medium) | Article on the current Go AI ecosystem: libraries, patterns, and gaps. |
+| **[awesome-golang-ai](https://github.com/promacanthus/awesome-golang-ai)** | Curated list: benchmarks, LLM tools, RAG, MCP, ML libs, neural networks, learning resources. |
+| **[CodeGPT – Go AI](https://www.codegpt.co/agents/go)** | IDE-focused AI assistant for Go development (concurrency, web services, testing); product reference, not a library. |
+| **[LaunchDarkly Go AI SDK](https://launchdarkly.com/docs/sdk/ai/go)** | LaunchDarkly’s Go SDK for **AI Configs**: context-based model/config selection, metrics and tracking, feature-flag-style control of AI behaviour (operational layer, not a provider SDK). |
+
+**Relation to exarp-go:** The wiki and awesome list support “state of the ecosystem” and discovery. Jetify AI is the main candidate if we later adopt a unified Go SDK. LaunchDarkly is relevant only if we add feature flags or external metrics for LLM calls.

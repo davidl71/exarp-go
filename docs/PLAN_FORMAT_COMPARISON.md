@@ -106,3 +106,18 @@ There is no YAML frontmatter field for "Referenced by" or agents; both are markd
 - **Tables and mermaid** — Same structure as reference plans so Cursor can parse sections and execution order.
 
 Rebuild exarp-go and run `report(action="plan")` to generate a plan in `.cursor/plans/` with this format. Reference: **~/.cursor/plans/configuration_tasks_plan_983edd1f.plan.md**.
+
+### Build button does nothing (Cursor IDE)
+
+Cursor has known issues where the **Build** button on a plan does nothing or stops working:
+
+- **Frontmatter stripped on save:** Saving the plan from Cursor (or certain editors) can remove YAML fields Cursor doesn’t recognize (e.g. `status: draft`, `last_updated`, `tag_hints`, `waves`). Build may only work when `status: draft` (and optionally other expected fields) are present in the frontmatter.
+- **Plan corruption:** Saving plans to the repo or locally has been reported to corrupt the file and break Build ([forum](https://forum.cursor.com/t/plans-corrupt-when-save-it-to-your-repo-breaking-build-button-from-working/149598)).
+
+**Workarounds:**
+
+1. **Restore frontmatter:** Ensure the plan has at least `name`, `overview`, `todos`, `isProject: true`, and **`status: draft`** in the YAML block. Regenerating with exarp-go restores full frontmatter: `./bin/exarp-go -tool report -args '{"action":"plan"}'`.
+2. **Repair without full regenerate:** To restore frontmatter and the “## 3. Iterative Milestones” checkboxes without overwriting the rest of the body (e.g. after Cursor stripped fields), use: `report(action="plan", repair=true, plan_path=".cursor/plans/exarp-go.plan.md")` or `exarp-go -tool report -args '{"action":"plan","repair":true,"plan_path":".cursor/plans/exarp-go.plan.md"}'`.
+3. **Avoid saving from Cursor:** Edit the plan in a plain editor or only regenerate via exarp-go so Cursor doesn’t rewrite and strip fields.
+4. **Build via chat:** Ask in Cursor chat to “build this plan” or “execute the plan” instead of relying on the Build button.
+5. **Restart Cursor** after fixing the plan file so it re-parses frontmatter.

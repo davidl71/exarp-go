@@ -66,7 +66,7 @@ The `agent` binary is the **Cursor CLI**. It runs Cursor’s AI (e.g. Claude, Cu
 | **Ollama** (local LLM) | `ollama run <model>` then paste prompt | `ollama run <model> "prompt"` or exarp-go `ollama` tool | No Cursor/MCP context; use for local chat or exarp-go tools (e.g. `text_generate`, `ollama`). |
 | **Other (Cloud Agents API)** | Via API: launch agent with prompt | Same API, non-blocking | Cursor Cloud Agents; use `CURSOR_API_KEY` and REST API. |
 
-The TUI “run in child agent” (e.g. **i** / **e** in handoffs, **E** from tasks) currently invokes the **Cursor** backend only (`agent` / `agent -p`). Other backends would require different integration (see T-1771252286533).
+The TUI “run in child agent” (e.g. **i** / **e** in handoffs, **E** from tasks) currently invokes the **Cursor** backend only (`agent` / `agent -p`). A general **agent runner abstraction** is documented in [AGENT_RUNNER_DESIGN.md](AGENT_RUNNER_DESIGN.md) (task T-1771252286533); implementations (Cursor CLI, Cloud API) can be plugged in behind one interface.
 
 ### Install (Cursor CLI)
 
@@ -260,7 +260,9 @@ exarp-go -tool automation -args '{"action":"daily","use_cursor_agent":true,"curs
 
 **Backends:** Reuse existing tools: `text_generate` (provider `fm`|`mlx`|`auto`), `ollama`, `mlx`, `apple_foundation_models` per [LLM tools rule](.cursor/rules/llm-tools.mdc). No new LLM integrations required—only wiring task context and backend preference into existing tools.
 
-**CLI commands:** `exarp-go task create --local-ai-backend <fm|mlx|ollama>`; `exarp-go task estimate "Name" --local-ai-backend <backend>`; `exarp-go task summarize <task-id> [--local-ai-backend <backend>]`; `exarp-go task run-with-ai <task-id> [--backend <fm|ollama|mlx>] [--instruction "..."]`. See [MODEL_ASSISTED_WORKFLOW.md](MODEL_ASSISTED_WORKFLOW.md).
+**Implemented:** CLI supports `task estimate`, `task summarize`, and `task run-with-ai` with backend flags; `task update` accepts `--local-ai-backend` to set a task’s preferred backend. The `EstimationRequest` protobuf includes optional `local_ai_backend` (field 11). `task_workflow` actions `summarize` and `run_with_ai` use the task’s `preferred_backend` when the param is not supplied.
+
+**CLI commands:** `exarp-go task create --local-ai-backend <fm|mlx|ollama>`; `exarp-go task update T-xxx --local-ai-backend <backend>`; `exarp-go task estimate "Name" --local-ai-backend <backend>`; `exarp-go task summarize <task-id> [--local-ai-backend <backend>]`; `exarp-go task run-with-ai <task-id> [--backend <fm|ollama|mlx>] [--instruction "..."]`. See [MODEL_ASSISTED_WORKFLOW.md](MODEL_ASSISTED_WORKFLOW.md).
 
 ---
 

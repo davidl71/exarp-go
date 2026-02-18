@@ -37,6 +37,8 @@ go run ./cmd/server task run-with-ai T-xxx [--backend ollama] [--instruction "..
 
 Task statuses: `Todo` → `In Progress` → `Review` → `Done`
 
+Local AI task subcommands: `task estimate`, `task summarize`, `task run-with-ai`; each supports `--local-ai-backend` or `--backend` (fm|mlx|ollama). `task create` and `task update` accept `--local-ai-backend` to set preferred backend.
+
 ## Build
 
 ```bash
