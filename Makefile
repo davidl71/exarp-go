@@ -1,4 +1,4 @@
-.PHONY: help b build build-debug silent build-race build-no-cgo run test test-watch tag-build-ok r root test-coverage test-html clean install fmt lint lint-all lint-all-fix dev dev-watch dev-test dev-full dev-cycle pre-push bench docs sanity-check sanity-check-cached test-cli test-cli-list test-cli-tool test-cli-test config clean-config sprint-start sprint-end pre-sprint sprint check-tasks update-completed-tasks task-sanity-check go-fmt go-vet golangci-lint-check golangci-lint-fix govulncheck check check-fix check-all build-migrate migrate migrate-dry-run install-tools go-mod-tidy go-mod-verify pre-commit ci validate check-deps test-go test-go-fast test-go-verbose test-go-parallel test-go-tools-short test-real-models version scorecard scorecard-full scorecard-plans report-plan demo-tui task-list task-list-todo task-list-in-progress task-list-done task-prune-done task-update task-create queue-enqueue-wave queue-worker proto delete-expired-archive analyze-critical-path proto-check proto-clean exarp-list exarp-report-scorecard exarp-report-overview exarp-health-server exarp-health-docs exarp-context-budget exarp-test
+.PHONY: help b build build-debug silent build-race build-no-cgo run test test-watch tag-build-ok r root push pull p pl test-coverage test-html clean install fmt lint lint-all lint-all-fix dev dev-watch dev-test dev-full dev-cycle pre-push bench docs sanity-check sanity-check-cached test-cli test-cli-list test-cli-tool test-cli-test config clean-config sprint-start sprint-end pre-sprint sprint check-tasks update-completed-tasks task-sanity-check go-fmt go-vet golangci-lint-check golangci-lint-fix govulncheck check check-fix check-all build-migrate migrate migrate-dry-run install-tools go-mod-tidy go-mod-verify pre-commit ci validate check-deps test-go test-go-fast test-go-verbose test-go-parallel test-go-tools-short test-real-models version scorecard scorecard-full scorecard-plans report-plan demo-tui task-list task-list-todo task-list-in-progress task-list-done task-prune-done task-update task-create queue-enqueue-wave queue-worker proto delete-expired-archive analyze-critical-path proto-check proto-clean exarp-list exarp-report-scorecard exarp-report-overview exarp-health-server exarp-health-docs exarp-context-budget exarp-test
 
 # Project configuration
 PROJECT_NAME := exarp-go
@@ -1141,6 +1141,16 @@ tag-build-ok: build ## Tag current commit as last known-good build (overwrites b
 r: ## Print repo root (use: cd $(make r) from anywhere in repo)
 	@echo "$(REPO_ROOT)"
 root: r ## Alias for r
+
+push: ## Git push from repo root (run from any subdir)
+	@cd "$(REPO_ROOT)" && git push
+pull: ## Git pull from repo root (run from any subdir)
+	@cd "$(REPO_ROOT)" && git pull
+p: push ## Short alias: make p = make push
+pl: pull ## Short alias: make pl = make pull
+status: ## Git status from repo root (run from any subdir); less verbose (no usage hints)
+	@cd "$(REPO_ROOT)" && git -c advice.statusHints=false status
+st: status ## Short alias: make st = make status
 
 ##@ Quick Commands
 

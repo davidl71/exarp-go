@@ -55,6 +55,7 @@ ansible/
 - pip, uv (Python package manager)
 - Node.js & npm
 - Base tools (git, curl, wget, make, build tools)
+- **Git config:** Less verbose output (advice hints off) for the dev user when `configure_git_quiet: true` (default). See [docs/DEV_ENV_GIT_CONFIG.md](DEV_ENV_GIT_CONFIG.md).
 
 **Optional (Configurable):**
 - golangci-lint - Comprehensive Go linter

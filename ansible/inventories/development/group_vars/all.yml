@@ -21,6 +21,9 @@ project_name: "exarp-go"
 project_path: "{{ lookup('env', 'HOME') | default('/Users/' + go_user) }}/Projects/{{ project_name }}"
 project_user: "{{ lookup('env', 'USER') | default(ansible_user_id | default('vagrant')) }}"
 
+# Git: less verbose output (advice.* = false for dev user; see docs/DEV_ENV_GIT_CONFIG.md)
+configure_git_quiet: true
+
 # Optional tools (set to true to install)
 install_linters: true
 install_dev_tools: true
