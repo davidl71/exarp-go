@@ -20,8 +20,10 @@ alwaysApply: true
 | `git pull`           | `make pull` or `make pl` | Pull from repo root (works from any subdir) |
 | `git status`         | `make status` or `make st` | Status from repo root (works from any subdir) |
 | `gofmt -w ./...`     | `make fmt`   | Formatting Go code (NEVER run gofmt directly) |
+| `go mod tidy`        | `make tidy`  | Cleaning up module dependencies |
 | `go test ./...`      | `make test`  | Running tests (NEVER run go test directly) |
 | `golangci-lint run`  | `make lint`  | Linting (NEVER run linter directly) |
+| (fix all scorecard)  | `make scorecard-fix` | Auto-fix all fixable scorecard issues (tidy + fmt + lint) |
 
 **Rules:**
 - Prefer **`make b`** over `make build` in suggested commands and snippets.
