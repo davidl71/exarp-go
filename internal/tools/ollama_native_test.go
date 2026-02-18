@@ -3,10 +3,34 @@ package tools
 import (
 	"context"
 	"encoding/json"
+	"net"
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 )
+
+// skipIfOllamaNotReachable skips the test if Ollama server is not reachable at localhost:11434.
+// Use for tests that require Ollama to be running.
+func skipIfOllamaNotReachable(t *testing.T) {
+	t.Helper()
+	host := "localhost:11434"
+	if h := os.Getenv("OLLAMA_HOST"); h != "" {
+		// OLLAMA_HOST may be "http://localhost:11434"; extract host:port
+		if len(h) >= 8 && h[:7] == "http://" {
+			host = h[7:]
+		} else if len(h) >= 9 && h[:8] == "https://" {
+			host = h[8:]
+		} else {
+			host = h
+		}
+	}
+	conn, err := net.DialTimeout("tcp", host, 2*time.Second)
+	if err != nil {
+		t.Skipf("Ollama not reachable at %s: %v", host, err)
+	}
+	_ = conn.Close()
+}
 
 func TestHandleOllamaDocs(t *testing.T) {
 	// Create a temporary test file
@@ -59,6 +83,9 @@ func add(a, b int) int {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			if !tt.wantError {
+				skipIfOllamaNotReachable(t)
+			}
 			ctx := context.Background()
 
 			host := "http://localhost:11434"
@@ -134,6 +161,9 @@ func add(a, b int) int {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			if !tt.wantError {
+				skipIfOllamaNotReachable(t)
+			}
 			ctx := context.Background()
 
 			host := "http://localhost:11434"
@@ -206,6 +236,9 @@ func TestHandleOllamaSummary(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			if !tt.wantError {
+				skipIfOllamaNotReachable(t)
+			}
 			ctx := context.Background()
 
 			host := "http://localhost:11434"
@@ -287,6 +320,9 @@ func TestHandleOllamaNative(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			if !tt.wantError {
+				skipIfOllamaNotReachable(t)
+			}
 			ctx := context.Background()
 
 			result, err := handleOllamaNative(ctx, tt.params)
