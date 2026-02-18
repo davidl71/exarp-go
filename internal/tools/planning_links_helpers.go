@@ -137,9 +137,9 @@ func ValidateTaskReference(taskID string, tasks []models.Todo2Task) error {
 
 // PlanningDependencyHint is a dependency hint extracted from a planning document (e.g. "Depends on T-XXX" or order).
 type PlanningDependencyHint struct {
-	TaskID     string `json:"task_id"`
+	TaskID      string `json:"task_id"`
 	DependsOnID string `json:"depends_on_id"`
-	Reason     string `json:"reason"`
+	Reason      string `json:"reason"`
 }
 
 // ExtractDependencyHintsFromPlan reads a single plan file and returns dependency hints.
@@ -149,7 +149,9 @@ func ExtractDependencyHintsFromPlan(planPath string) ([]PlanningDependencyHint, 
 	if err != nil {
 		return nil, err
 	}
+
 	content := string(data)
+
 	var hints []PlanningDependencyHint
 
 	// Explicit patterns (case-insensitive)
@@ -175,6 +177,7 @@ func ExtractDependencyHintsFromPlan(planPath string) ([]PlanningDependencyHint, 
 					}
 				}
 			}
+
 			if len(ids) == 1 {
 				// "Depends on: T-456" without task context - try previous line for (T-XXX)
 				if i > 0 {
@@ -189,10 +192,12 @@ func ExtractDependencyHintsFromPlan(planPath string) ([]PlanningDependencyHint, 
 				}
 			}
 		}
+
 		if depListRe.MatchString(line) {
 			subs := depListRe.FindStringSubmatch(line)
 			if len(subs) >= 2 {
 				depIDs := taskIDRe.FindAllString(subs[1], -1)
+
 				if i > 0 {
 					prevIDs := taskIDRe.FindAllString(lines[i-1], -1)
 					if len(prevIDs) > 0 {
@@ -214,12 +219,15 @@ func ExtractDependencyHintsFromPlan(planPath string) ([]PlanningDependencyHint, 
 
 	// Milestone order: only from checkbox lines (- [ ] **Name** (T-ID)) so order reflects sequence
 	checkboxRe := regexp.MustCompile(`^\s*-\s*\[\s*[ xX]\s*\]\s*(?:\*\*[^*]+\*\*|.+?)\s*\(\s*([A-Za-z0-9_-]+)\s*\)`)
+
 	var orderedIDs []string
+
 	for _, line := range lines {
 		if subs := checkboxRe.FindStringSubmatch(line); len(subs) >= 2 {
 			orderedIDs = append(orderedIDs, strings.TrimSpace(subs[1]))
 		}
 	}
+
 	for k := 1; k < len(orderedIDs); k++ {
 		curr, prev := orderedIDs[k], orderedIDs[k-1]
 		if curr != prev {
@@ -237,6 +245,7 @@ func ExtractDependencyHintsFromPlan(planPath string) ([]PlanningDependencyHint, 
 // ExtractDependencyHintsFromPlanDir scans .cursor/plans and docs for *.plan.md / *_PLAN*.md and returns merged hints.
 func ExtractDependencyHintsFromPlanDir(projectRoot string) []PlanningDependencyHint {
 	var all []PlanningDependencyHint
+
 	seen := make(map[string]struct{})
 
 	dirs := []string{
@@ -248,31 +257,39 @@ func ExtractDependencyHintsFromPlanDir(projectRoot string) []PlanningDependencyH
 		if err != nil {
 			continue
 		}
+
 		for _, e := range entries {
 			if e.IsDir() {
 				continue
 			}
+
 			name := e.Name()
 			if !strings.HasSuffix(name, ".md") {
 				continue
 			}
+
 			if !strings.Contains(strings.ToLower(name), "plan") {
 				continue
 			}
+
 			full := filepath.Join(dir, name)
+
 			hints, err := ExtractDependencyHintsFromPlan(full)
 			if err != nil {
 				continue
 			}
+
 			for _, h := range hints {
 				key := h.TaskID + "|" + h.DependsOnID
 				if _, ok := seen[key]; !ok {
 					seen[key] = struct{}{}
+
 					all = append(all, h)
 				}
 			}
 		}
 	}
+
 	return all
 }
 

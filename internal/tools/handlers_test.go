@@ -147,10 +147,12 @@ func TestHandleToolCatalog(t *testing.T) {
 					t.Error("expected non-empty result")
 					return
 				}
+
 				text := result[0].Text
 				if !hasSubstring(text, "tool") {
 					t.Error("expected 'tool' field in response")
 				}
+
 				if !hasSubstring(text, "description") {
 					t.Error("expected 'description' field in response")
 				}
@@ -167,6 +169,7 @@ func TestHandleToolCatalog(t *testing.T) {
 					t.Error("expected non-empty result")
 					return
 				}
+
 				text := result[0].Text
 				if !hasSubstring(text, "error") {
 					t.Error("expected error in response")
@@ -185,6 +188,7 @@ func TestHandleToolCatalog(t *testing.T) {
 					t.Error("expected non-empty result")
 					return
 				}
+
 				text := result[0].Text
 				if !hasSubstring(text, "error") {
 					t.Error("expected error in response")
@@ -256,13 +260,16 @@ func TestHandleContextBatchNative(t *testing.T) {
 					t.Error("expected non-empty result")
 					return
 				}
+
 				text := result[0].Text
 				if !hasSubstring(text, "combined_summary") {
 					t.Error("expected 'combined_summary' field in response")
 				}
+
 				if !hasSubstring(text, "total_items") {
 					t.Error("expected 'total_items' field in response")
 				}
+
 				if !hasSubstring(text, "token_estimate") {
 					t.Error("expected 'token_estimate' field in response")
 				}
@@ -283,6 +290,7 @@ func TestHandleContextBatchNative(t *testing.T) {
 					t.Error("expected non-empty result")
 					return
 				}
+
 				text := result[0].Text
 				if !hasSubstring(text, "summaries") {
 					t.Error("expected 'summaries' field in response when combine=false")
@@ -304,6 +312,7 @@ func TestHandleContextBatchNative(t *testing.T) {
 					t.Error("expected non-empty result")
 					return
 				}
+
 				text := result[0].Text
 				if !hasSubstring(text, "total_items") {
 					t.Error("expected 'total_items' field in response")
@@ -322,6 +331,7 @@ func TestHandleContextBatchNative(t *testing.T) {
 					t.Error("expected non-empty result")
 					return
 				}
+
 				text := result[0].Text
 				// Level is stored in individual summaries, verify response structure
 				if !hasSubstring(text, "combined_summary") || !hasSubstring(text, "total_items") {
@@ -341,6 +351,7 @@ func TestHandleContextBatchNative(t *testing.T) {
 					t.Error("expected non-empty result")
 					return
 				}
+
 				text := result[0].Text
 				// Level is stored in individual summaries, verify response structure
 				if !hasSubstring(text, "combined_summary") || !hasSubstring(text, "total_items") {
@@ -373,10 +384,12 @@ func TestHandleContextBatchNative(t *testing.T) {
 					t.Error("expected non-empty result")
 					return
 				}
+
 				text := result[0].Text
 				if !hasSubstring(text, "total_items") {
 					t.Error("expected 'total_items' field in response")
 				}
+
 				if !hasSubstring(text, "0") {
 					t.Error("expected 0 items in response")
 				}

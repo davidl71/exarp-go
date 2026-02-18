@@ -3,7 +3,6 @@ package tools
 import (
 	"context"
 	"encoding/json"
-	"os"
 	"strings"
 	"testing"
 
@@ -13,9 +12,7 @@ import (
 
 func TestHandleTaskAnalysisNative(t *testing.T) {
 	tmpDir := t.TempDir()
-	os.Setenv("PROJECT_ROOT", tmpDir)
-
-	defer os.Unsetenv("PROJECT_ROOT")
+	t.Setenv("PROJECT_ROOT", tmpDir)
 
 	tests := []struct {
 		name      string
@@ -34,6 +31,7 @@ func TestHandleTaskAnalysisNative(t *testing.T) {
 					t.Error("expected non-empty result")
 					return
 				}
+
 				var data map[string]interface{}
 				if err := json.Unmarshal([]byte(result[0].Text), &data); err != nil {
 					t.Errorf("invalid JSON: %v", err)
@@ -69,6 +67,7 @@ func TestHandleTaskAnalysisNative(t *testing.T) {
 					t.Errorf("invalid JSON: %v", err)
 					return
 				}
+
 				if _, ok := data["tag_analysis"]; !ok {
 					t.Error("expected tag_analysis in result")
 				}
@@ -85,14 +84,17 @@ func TestHandleTaskAnalysisNative(t *testing.T) {
 					t.Error("expected non-empty result")
 					return
 				}
+
 				var data map[string]interface{}
 				if err := json.Unmarshal([]byte(result[0].Text), &data); err != nil {
 					t.Errorf("invalid JSON: %v", err)
 					return
 				}
+
 				if _, ok := data["conflict"]; !ok {
 					t.Error("expected conflict key in result")
 				}
+
 				if _, ok := data["conflicts"]; !ok {
 					t.Error("expected conflicts key in result")
 				}
@@ -115,6 +117,7 @@ func TestHandleTaskAnalysisNative(t *testing.T) {
 					if len(result[0].Text) == 0 {
 						t.Error("expected non-empty result (JSON or text)")
 					}
+
 					return
 				}
 			},
@@ -136,6 +139,7 @@ func TestHandleTaskAnalysisNative(t *testing.T) {
 					if len(result[0].Text) == 0 {
 						t.Error("expected non-empty result (JSON or text)")
 					}
+
 					return
 				}
 			},
@@ -151,14 +155,17 @@ func TestHandleTaskAnalysisNative(t *testing.T) {
 					t.Error("expected non-empty result")
 					return
 				}
+
 				var data map[string]interface{}
 				if err := json.Unmarshal([]byte(result[0].Text), &data); err != nil {
 					t.Errorf("validate action should return JSON: %v", err)
 					return
 				}
+
 				if _, ok := data["missing_deps"]; !ok {
 					t.Error("validate result should contain missing_deps")
 				}
+
 				if _, ok := data["missing_count"]; !ok {
 					t.Error("validate result should contain missing_count")
 				}
@@ -192,9 +199,7 @@ func TestHandleTaskAnalysisNative(t *testing.T) {
 
 func TestHandleTaskAnalysis(t *testing.T) {
 	tmpDir := t.TempDir()
-	os.Setenv("PROJECT_ROOT", tmpDir)
-
-	defer os.Unsetenv("PROJECT_ROOT")
+	t.Setenv("PROJECT_ROOT", tmpDir)
 
 	tests := []struct {
 		name      string

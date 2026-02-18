@@ -200,7 +200,7 @@ func checkCodeAttribution(projectRoot string, results *AttributionResults) {
 // checkDirectoryForAttribution checks a directory for attribution patterns.
 func checkDirectoryForAttribution(dirPath string, patterns []*regexp.Regexp, results *AttributionResults) {
 	// Limit depth and file types
-	filepath.Walk(dirPath, func(path string, info os.FileInfo, err error) error {
+	if err := filepath.Walk(dirPath, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return nil
 		}
@@ -221,7 +221,11 @@ func checkDirectoryForAttribution(dirPath string, patterns []*regexp.Regexp, res
 		}
 
 		// Limit depth
-		relPath, _ := filepath.Rel(dirPath, path)
+		relPath, relErr := filepath.Rel(dirPath, path)
+		if relErr != nil {
+			return nil
+		}
+
 		if strings.Count(relPath, string(filepath.Separator)) > 3 {
 			return nil
 		}
@@ -264,7 +268,13 @@ func checkDirectoryForAttribution(dirPath string, patterns []*regexp.Regexp, res
 		}
 
 		return nil
-	})
+	}); err != nil {
+		results.Warnings = append(results.Warnings, map[string]interface{}{
+			"type":    "attribution_check",
+			"file":    dirPath,
+			"message": fmt.Sprintf("Error walking directory: %v", err),
+		})
+	}
 }
 
 // generateAttributionReport generates a markdown report.

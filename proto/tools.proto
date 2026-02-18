@@ -627,6 +627,8 @@ message SessionPrimeResult {
   repeated string conflict_hints = 13;
   string status_label = 14;
   string status_context = 15;
+  // Ready-to-run Cursor CLI command for first suggested task (e.g. agent -p "Work on T-123: ..." --mode=plan). Omitted if no suggested_next.
+  string cursor_cli_suggestion = 16;
 }
 
 // SessionHandoffResult for handoff end/resume (type-safe response)

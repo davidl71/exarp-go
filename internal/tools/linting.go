@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"github.com/davidl71/exarp-go/internal/config"
@@ -774,8 +775,11 @@ func parseTextOutput(outputStr string, lintErrors *[]LintError) {
 			message := parts[2]
 
 			lineNum := 0
+
 			if len(lineCol) > 0 {
-				fmt.Sscanf(lineCol[0], "%d", &lineNum)
+				if parsedLine, err := strconv.Atoi(lineCol[0]); err == nil {
+					lineNum = parsedLine
+				}
 			}
 
 			// Extract rule name if present
@@ -897,6 +901,7 @@ func runShellcheck(ctx context.Context, path string, fix bool) (*LintResult, err
 
 			for _, issue := range jsonOutput {
 				severity := "warning"
+
 				switch issue.Level {
 				case "error":
 					severity = "error"
@@ -1073,13 +1078,21 @@ func parseShellcheckTextOutput(outputStr string, lintErrors *[]LintError) {
 				file = strings.TrimSpace(file)
 
 				lineNum := 0
+
 				if strings.HasPrefix(parts[1], " line ") {
-					fmt.Sscanf(parts[1], " line %d", &lineNum)
+					lineText := strings.TrimSpace(strings.TrimPrefix(parts[1], " line "))
+					if parsedLine, err := strconv.Atoi(lineText); err == nil {
+						lineNum = parsedLine
+					}
 				}
 
 				columnNum := 0
+
 				if strings.HasPrefix(parts[2], " column ") {
-					fmt.Sscanf(parts[2], " column %d", &columnNum)
+					columnText := strings.TrimSpace(strings.TrimPrefix(parts[2], " column "))
+					if parsedColumn, err := strconv.Atoi(columnText); err == nil {
+						columnNum = parsedColumn
+					}
 				}
 
 				codeAndMessage := strings.TrimSpace(parts[3])

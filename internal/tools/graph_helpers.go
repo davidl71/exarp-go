@@ -158,6 +158,7 @@ func DetectCycles(tg *TaskGraph) [][]string {
 	recStack := make(map[int64]bool)
 
 	var dfs func(nodeID int64, path []int64)
+
 	dfs = func(nodeID int64, path []int64) {
 		visited[nodeID] = true
 		recStack[nodeID] = true
@@ -692,13 +693,17 @@ func LimitWavesByMaxTasks(waves map[int][]string, maxPerWave int) map[int][]stri
 	if maxPerWave <= 0 || len(waves) == 0 {
 		return waves
 	}
+
 	levels := make([]int, 0, len(waves))
 	for k := range waves {
 		levels = append(levels, k)
 	}
+
 	sort.Ints(levels)
+
 	out := make(map[int][]string)
 	idx := 0
+
 	for _, level := range levels {
 		ids := waves[level]
 		for start := 0; start < len(ids); start += maxPerWave {
@@ -706,9 +711,11 @@ func LimitWavesByMaxTasks(waves map[int][]string, maxPerWave int) map[int][]stri
 			if end > len(ids) {
 				end = len(ids)
 			}
+
 			out[idx] = append([]string(nil), ids[start:end]...)
 			idx++
 		}
 	}
+
 	return out
 }

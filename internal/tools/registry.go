@@ -67,7 +67,7 @@ func registerBatch1Tools(server framework.MCPServer) error {
 	// T-23: generate_config
 	if err := server.RegisterTool(
 		"generate_config",
-		"[HINT: Config generation. action=rules|ignore|simplify. Creates IDE config files.]",
+		"[HINT: Cursor config generation. action=rules|ignore|simplify. Creates Cursor-specific config files (.cursor/rules/*.mdc, .cursorignore). Not applicable to Claude Code.]",
 		framework.ToolSchema{
 			Type: "object",
 			Properties: map[string]interface{}{
@@ -373,13 +373,13 @@ func registerBatch2Tools(server framework.MCPServer) error {
 	// T-30: report
 	if err := server.RegisterTool(
 		"report",
-		"[HINT: Report generation. action=overview|scorecard|briefing|prd|plan|scorecard_plans|parallel_execution_plan. plan generates Cursor-style .plan.md; include_subagents=true also updates parallel-execution-subagents.plan.md. parallel_execution_plan writes subagents plan only.]",
+		"[HINT: Report generation. action=overview|scorecard|briefing|prd|plan|scorecard_plans|parallel_execution_plan|update_waves_from_plan. plan generates .plan.md; update_waves_from_plan syncs Todo2 deps from docs/PARALLEL_EXECUTION_PLAN_RESEARCH.md.]",
 		framework.ToolSchema{
 			Type: "object",
 			Properties: map[string]interface{}{
 				"action": map[string]interface{}{
 					"type":        "string",
-					"enum":        []string{"overview", "scorecard", "briefing", "prd", "plan", "scorecard_plans", "parallel_execution_plan"},
+					"enum":        []string{"overview", "scorecard", "briefing", "prd", "plan", "scorecard_plans", "parallel_execution_plan", "update_waves_from_plan"},
 					"default":     "overview",
 					"description": "plan: write .plan.md; scorecard_plans: improve-<dim>.plan.md; parallel_execution_plan: parallel-execution-subagents.plan.md",
 				},
@@ -389,7 +389,7 @@ func registerBatch2Tools(server framework.MCPServer) error {
 				},
 				"output_path": map[string]interface{}{
 					"type":        "string",
-					"description": "For action=plan: path for plan file (default: .cursor/plans/<project-slug>.plan.md so Cursor shows Build)",
+					"description": "For action=plan: path for plan file (default: .cursor/plans/<project-slug>.plan.md)",
 				},
 				"plan_title": map[string]interface{}{
 					"type":        "string",
@@ -500,7 +500,7 @@ func registerBatch2Tools(server framework.MCPServer) error {
 	// T-32: task_analysis
 	if err := server.RegisterTool(
 		"task_analysis",
-		"[HINT: Task analysis. action=duplicates|tags|discover_tags|hierarchy|dependencies|dependencies_summary|suggest_dependencies|parallelization|validate|execution_plan|complexity|conflicts. Task quality and structure. conflicts detects task-overlap (In Progress tasks with dependent also In Progress). complexity classifies tasks (simple/medium/complex) per Model-Assisted Workflow. discover_tags scans MD files for tag hints and uses LLM (Apple FM/Ollama) for semantic inference.]",
+		"[HINT: Task analysis. action=duplicates|tags|discover_tags|hierarchy|dependencies|dependencies_summary|suggest_dependencies|parallelization|validate|execution_plan|complexity|conflicts. execution_plan with output_format=subagents_plan writes parallel-execution-subagents.plan.md using wave detection. conflicts detects task-overlap (In Progress with dependent also In Progress). complexity classifies tasks (simple/medium/complex) per Model-Assisted Workflow. discover_tags scans MD files for tag hints and uses LLM (Apple FM/Ollama) for semantic inference.]",
 		framework.ToolSchema{
 			Type: "object",
 			Properties: map[string]interface{}{
@@ -673,13 +673,13 @@ func registerBatch2Tools(server framework.MCPServer) error {
 	// T-34: task_workflow
 	if err := server.RegisterTool(
 		"task_workflow",
-		"[HINT: Task workflow. action=sync|approve|clarify|clarity|cleanup|create|fix_dates|fix_empty_descriptions|fix_invalid_ids|link_planning|request_approval|sync_approvals|apply_approval_result|sanity_check|sync_from_plan|sync_plan_status. Manage task lifecycle. ⚠️ CRITICAL: PREFER convenience commands (exarp-go task ...) for common operations. FALLBACK to this tool for advanced operations (clarity, cleanup, complex filters). NEVER edit .todo2/state.todo2.json directly. Use action=approve with task_ids for batch updates. Use action=create to create new tasks. Use action=link_planning with task_id/task_ids and planning_doc/epic_id to set planning hints on Todo or In Progress tasks only. Sync is SQLite↔JSON only; external sync is a future nice-to-have (ignored if passed).]",
+		"[HINT: Task workflow. action=sync|approve|clarify|clarity|cleanup|create|fix_dates|fix_empty_descriptions|fix_invalid_ids|link_planning|request_approval|sync_approvals|apply_approval_result|sanity_check|sync_from_plan|sync_plan_status|summarize|run_with_ai. Manage task lifecycle. ⚠️ CRITICAL: PREFER convenience commands (exarp-go task ...) for common operations. FALLBACK to this tool for advanced operations (clarity, cleanup, complex filters, summarize, run_with_ai). NEVER edit .todo2/state.todo2.json directly. Use action=approve with task_ids for batch updates. Use action=create to create new tasks. Use action=link_planning with task_id/task_ids and planning_doc/epic_id to set planning hints on Todo or In Progress tasks only. Use action=summarize with task_id (and optional local_ai_backend) to generate an AI summary and save as comment. Use action=run_with_ai with task_id (and optional local_ai_backend, instruction) to run a task through a local LLM and get implementation guidance. Sync is SQLite↔JSON only; external sync is a future nice-to-have (ignored if passed).]",
 		framework.ToolSchema{
 			Type: "object",
 			Properties: map[string]interface{}{
 				"action": map[string]interface{}{
 					"type":    "string",
-					"enum":    []string{"sync", "approve", "clarify", "clarity", "cleanup", "create", "delete", "fix_dates", "fix_empty_descriptions", "fix_invalid_ids", "link_planning", "request_approval", "sync_approvals", "apply_approval_result", "sanity_check", "sync_from_plan", "sync_plan_status", "update"},
+					"enum":    []string{"sync", "approve", "clarify", "clarity", "cleanup", "create", "delete", "fix_dates", "fix_empty_descriptions", "fix_invalid_ids", "link_planning", "request_approval", "sync_approvals", "apply_approval_result", "sanity_check", "sync_from_plan", "sync_plan_status", "update", "summarize", "run_with_ai"},
 					"default": "sync",
 				},
 				"dry_run": map[string]interface{}{
@@ -779,16 +779,16 @@ func registerBatch2Tools(server framework.MCPServer) error {
 					"description": "Task description (required for create action)",
 				},
 				"tags": map[string]interface{}{
-					"type":        []interface{}{"array", "string"},
-					"description": "Task tags (array of strings or comma-separated string)",
+					"type":        "string",
+					"description": "Task tags as comma-separated values (e.g. 'backend,urgent') or JSON array encoded as string (e.g. '[\"backend\",\"urgent\"]')",
 				},
 				"remove_tags": map[string]interface{}{
-					"type":        []interface{}{"array", "string"},
-					"description": "Tags to remove from task(s). For action=update: array or comma-separated string.",
+					"type":        "string",
+					"description": "Tags to remove from task(s). For action=update: comma-separated values or JSON array encoded as string.",
 				},
 				"dependencies": map[string]interface{}{
-					"type":        []interface{}{"array", "string"},
-					"description": "Task dependencies (array of task IDs or comma-separated string)",
+					"type":        "string",
+					"description": "Task dependencies as comma-separated task IDs or JSON array encoded as string (e.g. '[\"T-1\",\"T-2\"]')",
 				},
 				"auto_estimate": map[string]interface{}{
 					"type":        "boolean",
@@ -797,8 +797,17 @@ func registerBatch2Tools(server framework.MCPServer) error {
 				},
 				"local_ai_backend": map[string]interface{}{
 					"type":        "string",
-					"description": "For create: preferred local LLM for estimation (fm|mlx|ollama). Stored in task metadata as preferred_backend.",
+					"description": "For create/update: preferred local LLM for estimation (fm|mlx|ollama). Stored in task metadata as preferred_backend. For summarize/run_with_ai: overrides task metadata to select backend.",
 					"enum":        []string{"", "fm", "mlx", "ollama"},
+				},
+				"instruction": map[string]interface{}{
+					"type":        "string",
+					"description": "For run_with_ai: custom instruction/question for the LLM about the task. Defaults to implementation plan + risks + next steps.",
+				},
+				"save_comment": map[string]interface{}{
+					"type":        "boolean",
+					"default":     true,
+					"description": "For summarize: when true (default), save generated summary as a task comment.",
 				},
 				"planning_doc": map[string]interface{}{
 					"type":        "string",
@@ -839,7 +848,8 @@ func registerBatch2Tools(server framework.MCPServer) error {
 					"default": 3,
 				},
 				"file_extensions": map[string]interface{}{
-					"type": "array",
+					"type":  "array",
+					"items": map[string]interface{}{"type": "string"},
 				},
 				"confidence_threshold": map[string]interface{}{
 					"type":    "number",
@@ -996,6 +1006,15 @@ func registerBatch3Tools(server framework.MCPServer) error {
 				"output_path": map[string]interface{}{
 					"type": "string",
 				},
+				"use_cursor_agent": map[string]interface{}{
+					"type":        "boolean",
+					"default":     false,
+					"description": "When true, run Cursor CLI agent -p in project root and attach output to result (daily/nightly/sprint). Requires agent on PATH.",
+				},
+				"cursor_agent_prompt": map[string]interface{}{
+					"type":        "string",
+					"description": "Prompt for Cursor agent step when use_cursor_agent is true. Default: \"Review the backlog and suggest which task to do next\".",
+				},
 			},
 		},
 		handleAutomation,
@@ -1130,6 +1149,7 @@ func registerBatch3Tools(server framework.MCPServer) error {
 				},
 				"task_ids": map[string]interface{}{
 					"type":        "array",
+					"items":       map[string]interface{}{"type": "string"},
 					"description": "For estimate_batch: list of task IDs to estimate (or omit with status_filter for all matching)",
 				},
 				"status_filter": map[string]interface{}{
@@ -1255,7 +1275,7 @@ func registerBatch3Tools(server framework.MCPServer) error {
 	// T-43: session
 	if err := server.RegisterTool(
 		"session",
-		"[HINT: Session. action=prime|handoff|prompts|assignee. Use ask_preferences=true for MCP elicitation at prime. Unified session management tools.]",
+		"[HINT: Session. action=prime|handoff|prompts|assignee. Use ask_preferences=true for MCP elicitation at prime. Prime and handoff return suggested_next_action (next task hint) and suggested_next (ordered task list). Unified session management tools.]",
 		framework.ToolSchema{
 			Type: "object",
 			Properties: map[string]interface{}{
@@ -1784,7 +1804,20 @@ func registerBatch5Tools(server framework.MCPServer) error {
 			Type: "object",
 			Properties: map[string]interface{}{
 				"tools": map[string]interface{}{
-					"type":        "array",
+					"type": "array",
+					"items": map[string]interface{}{
+						"oneOf": []interface{}{
+							map[string]interface{}{"type": "string"},
+							map[string]interface{}{
+								"type": "object",
+								"properties": map[string]interface{}{
+									"tool":   map[string]interface{}{"type": "string"},
+									"action": map[string]interface{}{"type": "string"},
+								},
+								"required": []string{"tool"},
+							},
+						},
+					},
 					"description": "Tool configs: [{tool, action}] or tool names. Default: duplicates, dependencies, todo2.",
 				},
 			},

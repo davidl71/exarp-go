@@ -53,6 +53,7 @@ func ConfigureFromConfig(cfg config.LoggingConfig) {
 	l := Default()
 
 	level := mcplog.LevelInfo
+
 	switch strings.ToLower(cfg.Level) {
 	case "debug":
 		level = mcplog.LevelDebug

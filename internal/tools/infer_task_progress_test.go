@@ -118,9 +118,7 @@ func TestHandleInferTaskProgressNative_ResponseShape(t *testing.T) {
 		t.Fatalf("write state: %v", err)
 	}
 
-	os.Setenv("PROJECT_ROOT", tmpDir)
-
-	defer os.Unsetenv("PROJECT_ROOT")
+	t.Setenv("PROJECT_ROOT", tmpDir)
 
 	ctx := context.Background()
 	params := map[string]interface{}{
@@ -277,9 +275,7 @@ func TestHandleInferTaskProgressNative_ReportFileAndDryRun(t *testing.T) {
 		t.Fatalf("write state: %v", err)
 	}
 
-	os.Setenv("PROJECT_ROOT", tmpDir)
-
-	defer os.Unsetenv("PROJECT_ROOT")
+	t.Setenv("PROJECT_ROOT", tmpDir)
 
 	reportPath := filepath.Join(tmpDir, "out", "TASK_COMPLETION_CHECK.md")
 	ctx := context.Background()

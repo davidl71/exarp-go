@@ -865,7 +865,7 @@ func discoverTagsFromMarkdown(projectRoot, docPath string) []map[string]interfac
 	bracketPattern := regexp.MustCompile(`\[([a-zA-Z][a-zA-Z0-9_-]+)\]`)                 // [tag]
 	tagsLinePattern := regexp.MustCompile(`(?i)^(?:tags?|labels?|categories?):\s*(.+)$`) // Tags: tag1, tag2
 
-	filepath.Walk(searchPath, func(path string, info os.FileInfo, err error) error {
+	if err := filepath.Walk(searchPath, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return nil
 		}
@@ -972,7 +972,9 @@ func discoverTagsFromMarkdown(projectRoot, docPath string) []map[string]interfac
 		}
 
 		return nil
-	})
+	}); err != nil {
+		return discoveries
+	}
 
 	return discoveries
 }
@@ -1007,7 +1009,7 @@ func discoverTagsFromMarkdownWithCache(projectRoot, docPath string, useCache boo
 		"observations": true, "example": true, "examples": true,
 	}
 
-	filepath.Walk(searchPath, func(path string, info os.FileInfo, err error) error {
+	if err := filepath.Walk(searchPath, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return nil
 		}
@@ -1133,7 +1135,9 @@ func discoverTagsFromMarkdownWithCache(projectRoot, docPath string, useCache boo
 		}
 
 		return nil
-	})
+	}); err != nil {
+		return discoveries, cacheHits, cacheMisses
+	}
 
 	return discoveries, cacheHits, cacheMisses
 }
@@ -1181,7 +1185,9 @@ func saveDiscoveriesToCache(discoveries []map[string]interface{}) {
 		}
 
 		// Save to database
-		database.SaveDiscoveredTags(filePath, fileHash, cacheEntries)
+		if err := database.SaveDiscoveredTags(filePath, fileHash, cacheEntries); err != nil {
+			continue
+		}
 	}
 }
 
@@ -1206,7 +1212,10 @@ func saveFileTaskTagsToCache(tagMatches map[string][]string, discoveries []map[s
 				// Check if this tag came from this file
 				for _, ftag := range ftags {
 					if ftag == tag {
-						database.SaveFileTaskTag(filePath, taskID, tag, true)
+						if err := database.SaveFileTaskTag(filePath, taskID, tag, true); err != nil {
+							continue
+						}
+
 						break
 					}
 				}
@@ -1233,7 +1242,9 @@ func updateTagFrequencyCache(tasks []Todo2Task) {
 
 	for tag, count := range tagCounts {
 		isCanonical := canonicalSet[tag]
-		database.UpdateTagFrequency(tag, count, isCanonical)
+		if err := database.UpdateTagFrequency(tag, count, isCanonical); err != nil {
+			continue
+		}
 	}
 }
 
@@ -1873,9 +1884,9 @@ func enrichTaskTagSuggestionsWithLLM(ctx context.Context, tasks []Todo2Task, ana
 
 			return "mlx", processed, profile
 		}
+
 	fallthroughTiny:
 		// Tiny path failed; fall through to ModelRouter (FM → Ollama → MLX)
-
 	}
 
 	// Use DefaultModelRouter for tag enrichment: FM chain, then Ollama, then MLX.
@@ -2361,6 +2372,49 @@ func handleTaskAnalysisExecutionPlan(ctx context.Context, params map[string]inte
 	}
 
 	outputPath, _ := params["output_path"].(string)
+
+	// subagents_plan: write parallel-execution-subagents.plan.md using wave detection
+	if outputFormat == "subagents_plan" {
+		wavesCopy := waves
+		if max := config.MaxTasksPerWave(); max > 0 {
+			wavesCopy = LimitWavesByMaxTasks(wavesCopy, max)
+		}
+
+		if len(wavesCopy) == 0 {
+			return nil, fmt.Errorf("no waves (empty backlog or no Todo/In Progress tasks)")
+		}
+
+		planTitle, _ := params["plan_title"].(string)
+		if planTitle == "" {
+			planTitle = filepath.Base(projectRoot)
+
+			if info, err := getProjectInfo(projectRoot); err == nil {
+				if name, ok := info["name"].(string); ok && name != "" {
+					planTitle = name
+				}
+			}
+		}
+
+		if outputPath == "" {
+			outputPath = filepath.Join(projectRoot, ".cursor", "plans", "parallel-execution-subagents.plan.md")
+		}
+
+		if dir := filepath.Dir(outputPath); dir != "." {
+			if err := os.MkdirAll(dir, 0755); err != nil {
+				return nil, fmt.Errorf("failed to create plan directory: %w", err)
+			}
+		}
+
+		md := FormatWavesAsSubagentsPlanMarkdown(wavesCopy, planTitle)
+		if err := os.WriteFile(outputPath, []byte(md), 0644); err != nil {
+			return nil, fmt.Errorf("failed to write subagents plan: %w", err)
+		}
+
+		msg := fmt.Sprintf("Parallel execution subagents plan saved to: %s", outputPath)
+
+		return []framework.TextContent{{Type: "text", Text: msg}}, nil
+	}
+
 	if outputFormat == "json" {
 		if outputPath != "" {
 			if err := os.MkdirAll(filepath.Dir(outputPath), 0755); err != nil {

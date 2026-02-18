@@ -27,14 +27,17 @@ func TestHandleRecommendWorkflowNative(t *testing.T) {
 					t.Error("expected non-empty result")
 					return
 				}
+
 				var data map[string]interface{}
 				if err := json.Unmarshal([]byte(result[0].Text), &data); err != nil {
 					t.Errorf("invalid JSON: %v", err)
 					return
 				}
+
 				if success, ok := data["success"].(bool); !ok || !success {
 					t.Error("expected success=true")
 				}
+
 				if recommendedMode, ok := data["data"].(map[string]interface{})["recommended_mode"].(string); !ok {
 					t.Error("expected recommended_mode in result")
 				} else if recommendedMode != "ASK" && recommendedMode != "AGENT" {
@@ -55,6 +58,7 @@ func TestHandleRecommendWorkflowNative(t *testing.T) {
 					t.Errorf("invalid JSON: %v", err)
 					return
 				}
+
 				if dataMap, ok := data["data"].(map[string]interface{}); ok {
 					if recommendedMode, ok := dataMap["recommended_mode"].(string); ok {
 						// Complex tasks should likely recommend AGENT mode
@@ -96,6 +100,7 @@ func TestHandleRecommendWorkflowNative(t *testing.T) {
 					t.Errorf("invalid JSON: %v", err)
 					return
 				}
+
 				if dataMap, ok := data["data"].(map[string]interface{}); ok {
 					if _, ok := dataMap["rationale"]; !ok {
 						t.Error("expected rationale in result when include_rationale=true")

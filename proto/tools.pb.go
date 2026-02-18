@@ -4721,8 +4721,10 @@ type SessionPrimeResult struct {
 	ConflictHints  []string               `protobuf:"bytes,13,rep,name=conflict_hints,json=conflictHints,proto3" json:"conflict_hints,omitempty"`
 	StatusLabel    string                 `protobuf:"bytes,14,opt,name=status_label,json=statusLabel,proto3" json:"status_label,omitempty"`
 	StatusContext  string                 `protobuf:"bytes,15,opt,name=status_context,json=statusContext,proto3" json:"status_context,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	// Ready-to-run Cursor CLI command for first suggested task (e.g. agent -p "Work on T-123: ..." --mode=plan). Omitted if no suggested_next.
+	CursorCliSuggestion string `protobuf:"bytes,16,opt,name=cursor_cli_suggestion,json=cursorCliSuggestion,proto3" json:"cursor_cli_suggestion,omitempty"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
 }
 
 func (x *SessionPrimeResult) Reset() {
@@ -4856,6 +4858,13 @@ func (x *SessionPrimeResult) GetStatusLabel() string {
 func (x *SessionPrimeResult) GetStatusContext() string {
 	if x != nil {
 		return x.StatusContext
+	}
+	return ""
+}
+
+func (x *SessionPrimeResult) GetCursorCliSuggestion() string {
+	if x != nil {
+		return x.CursorCliSuggestion
 	}
 	return ""
 }
@@ -6482,7 +6491,7 @@ const file_proto_tools_proto_rawDesc = "" +
 	"\vdescription\x18\x02 \x01(\tR\vdescription\"H\n" +
 	"\x11LockCleanupReport\x12\x18\n" +
 	"\acleaned\x18\x01 \x01(\x05R\acleaned\x12\x19\n" +
-	"\btask_ids\x18\x02 \x03(\tR\ataskIds\"\x87\x05\n" +
+	"\btask_ids\x18\x02 \x03(\tR\ataskIds\"\xbb\x05\n" +
 	"\x12SessionPrimeResult\x12\x1f\n" +
 	"\vauto_primed\x18\x01 \x01(\bR\n" +
 	"autoPrimed\x12\x16\n" +
@@ -6502,7 +6511,8 @@ const file_proto_tools_proto_rawDesc = "" +
 	"\x0faction_required\x18\f \x01(\tR\x0eactionRequired\x12%\n" +
 	"\x0econflict_hints\x18\r \x03(\tR\rconflictHints\x12!\n" +
 	"\fstatus_label\x18\x0e \x01(\tR\vstatusLabel\x12%\n" +
-	"\x0estatus_context\x18\x0f \x01(\tR\rstatusContext\"\xe5\x01\n" +
+	"\x0estatus_context\x18\x0f \x01(\tR\rstatusContext\x122\n" +
+	"\x15cursor_cli_suggestion\x18\x10 \x01(\tR\x13cursorCliSuggestion\"\xe5\x01\n" +
 	"\x14SessionHandoffResult\x12\x18\n" +
 	"\asuccess\x18\x01 \x01(\bR\asuccess\x12\x16\n" +
 	"\x06method\x18\x02 \x01(\tR\x06method\x12\x17\n" +

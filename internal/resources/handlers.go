@@ -163,11 +163,11 @@ func RegisterAllResources(server framework.MCPServer) error {
 		return fmt.Errorf("failed to register models resource: %w", err)
 	}
 
-	// stdio://cursor/skills — hints for Cursor about which skills to read when using exarp-go
+	// stdio://cursor/skills — workflow guide for all MCP clients (Cursor skills + Claude Code commands)
 	if err := server.RegisterResource(
 		"stdio://cursor/skills",
-		"Cursor skill hints",
-		"Hints for Cursor: which skills to read when using exarp-go (task-workflow, use-exarp-tools, report-scorecard).",
+		"exarp-go workflow guide",
+		"Workflow guide for exarp-go MCP tools: task management, session, reports, health. Usable by Cursor (skills) and Claude Code (CLAUDE.md + commands).",
 		"text/markdown",
 		handleCursorSkills,
 	); err != nil {

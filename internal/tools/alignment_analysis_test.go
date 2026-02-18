@@ -17,6 +17,7 @@ func TestHandleAlignmentTodo2(t *testing.T) {
 	_ = os.WriteFile(goalsPath, []byte("# Goals\nMigrate to Go.\n"), 0644)
 
 	oldRoot := os.Getenv("PROJECT_ROOT")
+
 	os.Setenv("PROJECT_ROOT", tmpDir)
 	defer os.Setenv("PROJECT_ROOT", oldRoot)
 
@@ -37,14 +38,17 @@ func TestHandleAlignmentTodo2(t *testing.T) {
 					t.Error("expected non-empty result")
 					return
 				}
+
 				var data map[string]interface{}
 				if err := json.Unmarshal([]byte(result[0].Text), &data); err != nil {
 					t.Errorf("invalid JSON: %v", err)
 					return
 				}
+
 				if status, _ := data["status"].(string); status != "success" {
 					t.Errorf("expected status=success, got %q", status)
 				}
+
 				if _, ok := data["total_tasks_analyzed"]; !ok {
 					t.Error("expected total_tasks_analyzed")
 				}
@@ -63,6 +67,7 @@ func TestHandleAlignmentTodo2(t *testing.T) {
 					t.Errorf("invalid JSON: %v", err)
 					return
 				}
+
 				if _, ok := data["report_path"]; !ok {
 					t.Error("expected report_path in response")
 				}
@@ -112,6 +117,7 @@ As a user, I want to export my data so that I can backup my information.
 	}
 
 	oldRoot := os.Getenv("PROJECT_ROOT")
+
 	os.Setenv("PROJECT_ROOT", tmpDir)
 	defer os.Setenv("PROJECT_ROOT", oldRoot)
 
@@ -132,24 +138,30 @@ As a user, I want to export my data so that I can backup my information.
 					t.Error("expected non-empty result")
 					return
 				}
+
 				var envelope map[string]interface{}
 				if err := json.Unmarshal([]byte(result[0].Text), &envelope); err != nil {
 					t.Errorf("invalid JSON: %v", err)
 					return
 				}
+
 				if success, ok := envelope["success"].(bool); !ok || !success {
 					t.Error("expected success=true in envelope")
 				}
+
 				data, _ := envelope["data"].(map[string]interface{})
 				if data == nil {
 					t.Fatal("expected data object")
 				}
+
 				if _, ok := data["tasks_analyzed"]; !ok {
 					t.Error("expected tasks_analyzed in data")
 				}
+
 				if _, ok := data["overall_alignment_score"]; !ok {
 					t.Error("expected overall_alignment_score in data")
 				}
+
 				if _, ok := data["recommendations"]; !ok {
 					t.Error("expected recommendations in data")
 				}
@@ -168,6 +180,7 @@ As a user, I want to export my data so that I can backup my information.
 					t.Errorf("invalid JSON: %v", err)
 					return
 				}
+
 				data, _ := envelope["data"].(map[string]interface{})
 				if data != nil {
 					if reportPath, _ := data["report_path"].(string); reportPath != "" {
@@ -215,10 +228,12 @@ func TestHandleAnalyzeAlignmentNative(t *testing.T) {
 					t.Error("expected non-empty result")
 					return
 				}
+
 				var data map[string]interface{}
 				if json.Unmarshal([]byte(result[0].Text), &data) != nil {
 					return
 				}
+
 				if data["status"] != "success" {
 					t.Error("expected status=success for todo2")
 				}
@@ -235,10 +250,12 @@ func TestHandleAnalyzeAlignmentNative(t *testing.T) {
 					t.Error("expected non-empty result")
 					return
 				}
+
 				var envelope map[string]interface{}
 				if json.Unmarshal([]byte(result[0].Text), &envelope) != nil {
 					return
 				}
+
 				if success, _ := envelope["success"].(bool); !success {
 					t.Error("expected success=true for prd")
 				}

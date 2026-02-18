@@ -144,7 +144,7 @@ func calculateDocumentationScore(scorecard *GoScorecardResult) float64 {
 		checks++
 	}
 
-	if scorecard.Health.CursorDocsExist {
+	if scorecard.Health.AIAssistDocsExist {
 		score += 15
 		checks++
 	}

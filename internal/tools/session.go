@@ -112,6 +112,10 @@ func SessionPrimeResultToMap(pb *proto.SessionPrimeResult) map[string]interface{
 		out["status_context"] = pb.StatusContext
 	}
 
+	if pb.CursorCliSuggestion != "" {
+		out["cursor_cli_suggestion"] = pb.CursorCliSuggestion
+	}
+
 	return out
 }
 
@@ -307,6 +311,16 @@ func handleSessionPrime(ctx context.Context, params map[string]interface{}) ([]f
 		}
 	}
 
+	var suggestedNext []map[string]interface{}
+	if includeTasks && tasksErr == nil {
+		suggestedNext = getSuggestedNextTasksFromTasks(tasks, 10)
+		if len(suggestedNext) > 0 {
+			if cmd := buildCursorCliSuggestion(suggestedNext[0]); cmd != "" {
+				pb.CursorCliSuggestion = cmd
+			}
+		}
+	}
+
 	result := SessionPrimeResultToMap(pb)
 
 	if includeTasks {
@@ -314,12 +328,10 @@ func handleSessionPrime(ctx context.Context, params map[string]interface{}) ([]f
 			result["tasks"] = map[string]interface{}{"error": "Failed to load tasks"}
 		} else {
 			result["tasks"] = getTasksSummaryFromTasks(tasks)
-			suggestedNext := getSuggestedNextTasksFromTasks(tasks, 10)
-
 			if len(suggestedNext) > 0 {
 				result["suggested_next"] = suggestedNext
-				if cli := buildCursorCLISuggestion(suggestedNext[0]); cli != "" {
-					result["cursor_cli_suggestion"] = cli
+				if hint := buildSuggestedNextAction(suggestedNext[0]); hint != "" {
+					result["suggested_next_action"] = hint
 				}
 			}
 		}
@@ -382,9 +394,12 @@ func handleSessionHandoff(ctx context.Context, params map[string]interface{}) ([
 		if action == "approve" {
 			status = "approved"
 		}
+
 		return handleSessionHandoffStatus(ctx, params, projectRoot, status)
+	case "delete":
+		return handleSessionHandoffDelete(ctx, params, projectRoot)
 	default:
-		return nil, fmt.Errorf("unknown handoff action: %s (use 'end', 'resume', 'latest', 'list', 'sync', 'export', 'close', or 'approve')", action)
+		return nil, fmt.Errorf("unknown handoff action: %s (use 'end', 'resume', 'latest', 'list', 'sync', 'export', 'close', 'approve', or 'delete')", action)
 	}
 }
 
@@ -526,12 +541,17 @@ func handleSessionEnd(ctx context.Context, params map[string]interface{}, projec
 		result["message"] = "Dry run: Would create handoff note"
 	}
 
-	// Add cursor_cli_suggestion for the next suggested task
+	// Add suggested_next_action and cursor_cli_suggestion for the next suggested task
 	if suggested := GetSuggestedNextTasks(projectRoot, 1); len(suggested) > 0 {
 		t := suggested[0]
+
 		taskMap := map[string]interface{}{"id": t.ID, "content": t.Content}
-		if cli := buildCursorCLISuggestion(taskMap); cli != "" {
-			result["cursor_cli_suggestion"] = cli
+		if hint := buildSuggestedNextAction(taskMap); hint != "" {
+			result["suggested_next_action"] = hint
+		}
+
+		if cmd := buildCursorCliSuggestion(taskMap); cmd != "" {
+			result["cursor_cli_suggestion"] = cmd
 		}
 	}
 
@@ -596,6 +616,20 @@ func handleSessionResume(ctx context.Context, projectRoot string) ([]framework.T
 		"handoff":        handoffMap,
 		"from_same_host": handoffHost == hostname,
 		"message":        fmt.Sprintf("Resuming session. Latest handoff from %s", handoffHost),
+	}
+
+	// Add suggested_next_action and cursor_cli_suggestion for first suggested task (same as prime)
+	if suggested := GetSuggestedNextTasks(projectRoot, 1); len(suggested) > 0 {
+		t := suggested[0]
+
+		taskMap := map[string]interface{}{"id": t.ID, "content": t.Content}
+		if hint := buildSuggestedNextAction(taskMap); hint != "" {
+			result["suggested_next_action"] = hint
+		}
+
+		if cmd := buildCursorCliSuggestion(taskMap); cmd != "" {
+			result["cursor_cli_suggestion"] = cmd
+		}
 	}
 
 	return mcpresponse.FormatResult(result, "")
@@ -686,6 +720,30 @@ func handleSessionList(ctx context.Context, params map[string]interface{}, proje
 
 	handoffs, _ := handoffData["handoffs"].([]interface{})
 
+	// Filter closed/approved if include_closed is false (default)
+	includeClosed := true
+	if inc, ok := params["include_closed"].(bool); ok {
+		includeClosed = inc
+	}
+
+	if !includeClosed {
+		var open []interface{}
+
+		for _, v := range handoffs {
+			h, ok := v.(map[string]interface{})
+			if !ok {
+				continue
+			}
+
+			status, _ := h["status"].(string)
+			if status != "closed" && status != "approved" {
+				open = append(open, v)
+			}
+		}
+
+		handoffs = open
+	}
+
 	// Get last N handoffs
 	start := len(handoffs) - limit
 	if start < 0 {
@@ -752,12 +810,18 @@ func handleSessionSync(ctx context.Context, params map[string]interface{}, proje
 
 				if err == nil && len(output) > 0 {
 					cmd = exec.CommandContext(ctx, "git", "add", ".todo2")
+
 					cmd.Dir = projectRoot
-					cmd.Run()
+					if err := cmd.Run(); err != nil {
+						return fmt.Errorf("git add .todo2: %w", err)
+					}
 
 					cmd = exec.CommandContext(ctx, "git", "commit", "-m", "Auto-sync Todo2 state")
+
 					cmd.Dir = projectRoot
-					cmd.Run()
+					if err := cmd.Run(); err != nil {
+						return fmt.Errorf("git commit auto-sync Todo2 state: %w", err)
+					}
 
 					result["committed"] = true
 				}
@@ -892,6 +956,15 @@ type TimeSuggestion struct {
 
 // detectAgentType detects the current agent type.
 func detectAgentType(projectRoot string) AgentInfo {
+	// 0. Claude Code detection (check before EXARP_AGENT so it's always recognized)
+	if os.Getenv("CLAUDE_CODE") != "" || os.Getenv("ANTHROPIC_CLI") != "" || os.Getenv("CLAUDE_CODE_VERSION") != "" {
+		return AgentInfo{
+			Agent:  "claude-code",
+			Source: "environment",
+			Config: map[string]interface{}{"client": "claude-code"},
+		}
+	}
+
 	// 1. Environment variable
 	if agent := os.Getenv("EXARP_AGENT"); agent != "" {
 		return AgentInfo{
@@ -979,7 +1052,7 @@ func getAgentContext(agent string) AgentContext {
 			Agent:           agent,
 			RecommendedMode: "development",
 			FocusAreas:      []string{"Frontend", "React", "TypeScript"},
-			RelevantTools:   []string{"run_tests", "generate_cursorignore"},
+			RelevantTools:   []string{"run_tests", "generate_config"},
 		},
 		"security": {
 			Agent:           agent,
@@ -1068,12 +1141,12 @@ func getWorkflowModeDescription(mode string) string {
 
 // getPlanModeContext returns (plan_path, plan_mode_hint) for session prime.
 // plan_path: relative path to current .plan.md if found.
-// plan_mode_hint: suggestion to use Cursor Plan Mode when backlog suggests complex/multi-step work.
+// plan_mode_hint: suggestion to use structured planning when backlog is complex.
 func getPlanModeContext(projectRoot string, tasks []Todo2Task) (planPath, planModeHint string) {
 	planPath = getCurrentPlanPath(projectRoot)
 
 	if shouldSuggestPlanMode(tasks) {
-		planModeHint = "Consider Cursor Plan Mode for multi-step work when backlog has many high-priority or dependency-heavy tasks"
+		planModeHint = "Complex backlog detected: consider structured planning — generate a .plan.md (report action=plan) and work through tasks in dependency order"
 	}
 
 	return planPath, planModeHint
@@ -1401,49 +1474,63 @@ func updateHandoffStatus(projectRoot string, handoffIDs []string, status string)
 	if len(handoffIDs) == 0 {
 		return nil
 	}
+
 	handoffFile := filepath.Join(projectRoot, ".todo2", "handoffs.json")
 	if err := os.MkdirAll(filepath.Dir(handoffFile), 0755); err != nil {
 		return err
 	}
+
 	idsSet := make(map[string]struct{})
+
 	for _, id := range handoffIDs {
 		if id != "" {
 			idsSet[id] = struct{}{}
 		}
 	}
+
 	fileCache := cache.GetGlobalFileCache()
+
 	data, _, err := fileCache.ReadFile(handoffFile)
 	if err != nil {
 		return err
 	}
+
 	var handoffData map[string]interface{}
 	if err := json.Unmarshal(data, &handoffData); err != nil {
 		return err
 	}
+
 	handoffs, _ := handoffData["handoffs"].([]interface{})
 	if len(handoffs) == 0 {
 		return nil
 	}
+
 	updated := 0
+
 	for _, v := range handoffs {
 		h, ok := v.(map[string]interface{})
 		if !ok {
 			continue
 		}
+
 		id, _ := h["id"].(string)
 		if _, want := idsSet[id]; want {
 			h["status"] = status
 			updated++
 		}
 	}
+
 	if updated == 0 {
 		return nil
 	}
+
 	handoffData["handoffs"] = handoffs
+
 	out, err := json.MarshalIndent(handoffData, "", "  ")
 	if err != nil {
 		return err
 	}
+
 	return os.WriteFile(handoffFile, out, 0644)
 }
 
@@ -1471,24 +1558,146 @@ func handleSessionHandoffStatus(ctx context.Context, params map[string]interface
 			}
 		}
 	}
+
 	if len(ids) == 0 {
 		return nil, fmt.Errorf("handoff_id or handoff_ids required for close/approve")
 	}
+
 	if err := updateHandoffStatus(projectRoot, ids, status); err != nil {
 		return nil, fmt.Errorf("failed to update handoff status: %w", err)
 	}
+
 	label := "closed"
 	if status == "approved" {
 		label = "approved"
 	}
+
 	result := map[string]interface{}{
-		"success":  true,
-		"method":   "native_go",
-		"updated":  len(ids),
-		"status":   status,
-		"message":  fmt.Sprintf("%d handoff(s) %s", len(ids), label),
+		"success": true,
+		"method":  "native_go",
+		"updated": len(ids),
+		"status":  status,
+		"message": fmt.Sprintf("%d handoff(s) %s", len(ids), label),
 	}
+
 	return mcpresponse.FormatResult(result, "")
+}
+
+// handleSessionHandoffDelete removes handoffs by id from handoffs.json.
+func handleSessionHandoffDelete(ctx context.Context, params map[string]interface{}, projectRoot string) ([]framework.TextContent, error) {
+	var ids []string
+	if id, ok := params["handoff_id"].(string); ok && id != "" {
+		ids = []string{id}
+	} else if raw, ok := params["handoff_ids"]; ok {
+		switch v := raw.(type) {
+		case []interface{}:
+			for _, i := range v {
+				if s, ok := i.(string); ok && s != "" {
+					ids = append(ids, s)
+				}
+			}
+		case string:
+			if v != "" {
+				var list []string
+				if json.Unmarshal([]byte(v), &list) == nil {
+					ids = list
+				} else {
+					ids = []string{v}
+				}
+			}
+		}
+	}
+
+	if len(ids) == 0 {
+		return nil, fmt.Errorf("handoff_id or handoff_ids required for delete")
+	}
+
+	deleted, err := deleteHandoffs(projectRoot, ids)
+	if err != nil {
+		return nil, fmt.Errorf("failed to delete handoffs: %w", err)
+	}
+
+	result := map[string]interface{}{
+		"success": true,
+		"method":  "native_go",
+		"deleted": deleted,
+		"message": fmt.Sprintf("%d handoff(s) deleted", deleted),
+	}
+
+	return mcpresponse.FormatResult(result, "")
+}
+
+// deleteHandoffs removes handoffs by id from handoffs.json. Returns count deleted.
+func deleteHandoffs(projectRoot string, handoffIDs []string) (int, error) {
+	if len(handoffIDs) == 0 {
+		return 0, nil
+	}
+
+	handoffFile := filepath.Join(projectRoot, ".todo2", "handoffs.json")
+	if err := os.MkdirAll(filepath.Dir(handoffFile), 0755); err != nil {
+		return 0, err
+	}
+
+	idsSet := make(map[string]struct{})
+
+	for _, id := range handoffIDs {
+		if id != "" {
+			idsSet[id] = struct{}{}
+		}
+	}
+
+	if _, err := os.Stat(handoffFile); os.IsNotExist(err) {
+		return 0, nil
+	}
+
+	data, err := os.ReadFile(handoffFile)
+	if err != nil {
+		return 0, err
+	}
+
+	var handoffData map[string]interface{}
+	if err := json.Unmarshal(data, &handoffData); err != nil {
+		return 0, err
+	}
+
+	handoffs, _ := handoffData["handoffs"].([]interface{})
+
+	var kept []interface{}
+
+	deleted := 0
+
+	for _, v := range handoffs {
+		h, ok := v.(map[string]interface{})
+		if !ok {
+			kept = append(kept, v)
+			continue
+		}
+
+		id, _ := h["id"].(string)
+		if _, want := idsSet[id]; want {
+			deleted++
+			continue
+		}
+
+		kept = append(kept, v)
+	}
+
+	if deleted == 0 {
+		return 0, nil
+	}
+
+	handoffData["handoffs"] = kept
+
+	out, err := json.MarshalIndent(handoffData, "", "  ")
+	if err != nil {
+		return 0, err
+	}
+
+	if err := os.WriteFile(handoffFile, out, 0644); err != nil {
+		return 0, err
+	}
+
+	return deleted, nil
 }
 
 // getGitStatus gets current Git status.
@@ -1529,24 +1738,34 @@ func getGitStatus(ctx context.Context, projectRoot string) map[string]interface{
 	return status
 }
 
-// buildCursorCLISuggestion builds a ready-to-run Cursor CLI command from a suggested task map.
+// buildSuggestedNextAction builds a client-agnostic next-action hint from a suggested task map.
 // Expects a map with "id" and "content" keys. Returns empty string if task info is missing.
-func buildCursorCLISuggestion(task map[string]interface{}) string {
+// For Cursor: can be used as argument to `agent -p`. For Claude Code: descriptive action hint.
+func buildSuggestedNextAction(task map[string]interface{}) string {
 	id, _ := task["id"].(string)
 	content, _ := task["content"].(string)
+
 	if id == "" {
 		return ""
 	}
 
-	prompt := "Work on " + id
 	if content != "" {
-		prompt += ": " + truncateString(content, 60)
+		return fmt.Sprintf("Work on %s: %s", id, truncateString(content, 80))
 	}
 
-	// Escape double quotes in prompt for shell safety
-	prompt = strings.ReplaceAll(prompt, `"`, `\"`)
+	return fmt.Sprintf("Work on %s", id)
+}
 
-	return fmt.Sprintf(`agent -p "%s" --mode=plan`, prompt)
+// buildCursorCliSuggestion builds a ready-to-run Cursor CLI command from the first suggested task.
+// Returns e.g. `agent -p "Work on T-123: Task name" --mode=plan` for session prime/handoff JSON.
+// See docs/CURSOR_API_AND_CLI_INTEGRATION.md §3.2.
+func buildCursorCliSuggestion(task map[string]interface{}) string {
+	action := buildSuggestedNextAction(task)
+	if action == "" {
+		return ""
+	}
+
+	return fmt.Sprintf("agent -p %q --mode=plan", action)
 }
 
 // truncateString truncates a string to max length.
@@ -1713,6 +1932,7 @@ func handleSessionAssigneeList(ctx context.Context, params map[string]interface{
 		var assignee sql.NullString
 
 		var assignedAt sql.NullInt64 // assigned_at is INTEGER (Unix timestamp)
+
 		err := db.QueryRowContext(ctx, `
 			SELECT assignee, assigned_at
 			FROM tasks

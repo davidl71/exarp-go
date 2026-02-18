@@ -84,8 +84,8 @@ func main() {
 	fmt.Println("---------------------------------------------")
 
 	invalidPath := "docs/NONEXISTENT.md"
-	err = tools.ValidatePlanningLink(projectRoot, invalidPath)
 
+	err = tools.ValidatePlanningLink(projectRoot, invalidPath)
 	if err != nil {
 		fmt.Printf("✓ Correctly rejected invalid path: %s\n", invalidPath)
 		fmt.Printf("  Error: %v\n", err)
@@ -105,8 +105,8 @@ func main() {
 	}
 
 	validTaskID := "T-1234567890"
-	err = tools.ValidateTaskReference(validTaskID, testTasks)
 
+	err = tools.ValidateTaskReference(validTaskID, testTasks)
 	if err == nil {
 		fmt.Printf("✓ Valid task reference: %s\n", validTaskID)
 	} else {
@@ -114,8 +114,8 @@ func main() {
 	}
 
 	invalidTaskID := "T-9999999999"
-	err = tools.ValidateTaskReference(invalidTaskID, testTasks)
 
+	err = tools.ValidateTaskReference(invalidTaskID, testTasks)
 	if err != nil {
 		fmt.Printf("✓ Correctly rejected invalid task ID: %s\n", invalidTaskID)
 		fmt.Printf("  Error: %v\n", err)

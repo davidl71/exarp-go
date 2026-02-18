@@ -94,6 +94,7 @@ func (rl *RateLimiter) Wait(ctx context.Context, clientID string) error {
 				waitTime = 0
 			}
 		}
+
 		rl.mu.RUnlock()
 
 		// Wait for the oldest request to expire or context cancellation

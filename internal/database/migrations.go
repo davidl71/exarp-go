@@ -108,8 +108,8 @@ func getMigrationFiles() ([]Migration, error) {
 
 		// Read migration SQL
 		migrationPath := filepath.Join(migrationsDir, filename)
-		sql, err := os.ReadFile(migrationPath)
 
+		sql, err := os.ReadFile(migrationPath)
 		if err != nil {
 			return nil, fmt.Errorf("failed to read migration file %s: %w", migrationPath, err)
 		}
@@ -162,8 +162,8 @@ func getMigrationFilesFromDir(dir string) ([]Migration, error) {
 		}
 
 		migrationPath := filepath.Join(dir, filename)
-		sql, err := os.ReadFile(migrationPath)
 
+		sql, err := os.ReadFile(migrationPath)
 		if err != nil {
 			return nil, fmt.Errorf("failed to read migration file %s: %w", migrationPath, err)
 		}

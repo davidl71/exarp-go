@@ -7,7 +7,7 @@ import (
 
 // ReservedSubcommands are first-argument values that are CLI subcommands,
 // not tool names. Used by mode detection so "exarp-go task list" stays CLI.
-var ReservedSubcommands = []string{"task", "config", "tui", "tui3270", "lock", "cursor"}
+var ReservedSubcommands = []string{"task", "config", "tui", "tui3270", "lock", "session", "cursor"}
 
 // CLIFlags are arguments that indicate CLI mode (e.g. from hooks or scripts).
 // If any of these appear in os.Args, we run CLI instead of MCP server.
@@ -66,17 +66,6 @@ func NormalizeToolArgs(args []string) ([]string, bool) {
 	}
 
 	return []string{args[0], "-tool", first, "-args", string(argsJSON)}, true
-}
-
-// HasToolFlag returns true if -tool or --tool appears in args (e.g. os.Args[1:]).
-// Used to prefer tool execution over subcommand when both could apply (e.g. exarp-go -tool session -args '{}').
-func HasToolFlag(args []string) bool {
-	for _, a := range args {
-		if a == "-tool" || a == "--tool" {
-			return true
-		}
-	}
-	return false
 }
 
 // HasCLIFlags returns true if args indicate CLI mode (subcommand or flag).

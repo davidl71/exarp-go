@@ -3,7 +3,6 @@ package tools
 import (
 	"context"
 	"encoding/json"
-	"os"
 	"testing"
 
 	"github.com/davidl71/exarp-go/internal/framework"
@@ -11,9 +10,7 @@ import (
 
 func TestHandleSecurityScan(t *testing.T) {
 	tmpDir := t.TempDir()
-	os.Setenv("PROJECT_ROOT", tmpDir)
-
-	defer os.Unsetenv("PROJECT_ROOT")
+	t.Setenv("PROJECT_ROOT", tmpDir)
 
 	tests := []struct {
 		name      string
@@ -49,9 +46,7 @@ func TestHandleSecurityScan(t *testing.T) {
 
 func TestHandleSecurityAlerts(t *testing.T) {
 	tmpDir := t.TempDir()
-	os.Setenv("PROJECT_ROOT", tmpDir)
-
-	defer os.Unsetenv("PROJECT_ROOT")
+	t.Setenv("PROJECT_ROOT", tmpDir)
 
 	tests := []struct {
 		name      string
@@ -95,9 +90,7 @@ func TestHandleSecurityAlerts(t *testing.T) {
 
 func TestHandleSecurity(t *testing.T) {
 	tmpDir := t.TempDir()
-	os.Setenv("PROJECT_ROOT", tmpDir)
-
-	defer os.Unsetenv("PROJECT_ROOT")
+	t.Setenv("PROJECT_ROOT", tmpDir)
 
 	tests := []struct {
 		name      string

@@ -51,21 +51,21 @@ func EnsureConfigAndDatabase(projectRoot string) {
 		}
 
 		if err := database.InitWithCentralizedConfig(projectRoot, dbCfg); err != nil {
-			logWarn(nil, "Database initialization with centralized config failed", "error", err, "operation", "EnsureConfigAndDatabase", "fallback", "legacy config")
+			logWarn(context.Background(), "Database initialization with centralized config failed", "error", err, "operation", "EnsureConfigAndDatabase", "fallback", "legacy config")
 			// Fall through to legacy init
 		} else {
-			logDebug(nil, "Database initialized with centralized config", "path", fullCfg.Database.SQLitePath, "operation", "EnsureConfigAndDatabase")
+			logDebug(context.Background(), "Database initialized with centralized config", "path", fullCfg.Database.SQLitePath, "operation", "EnsureConfigAndDatabase")
 			return
 		}
 	}
 
 	// Fall back to legacy config (SetGlobalConfig already set defaults via GetGlobalConfig)
 	if err := database.Init(projectRoot); err != nil {
-		logWarn(nil, "Database initialization failed", "error", err, "operation", "EnsureConfigAndDatabase", "fallback", "JSON")
+		logWarn(context.Background(), "Database initialization failed", "error", err, "operation", "EnsureConfigAndDatabase", "fallback", "JSON")
 		return
 	}
 
-	logDebug(nil, "Database initialized", "path", projectRoot+"/.todo2/todo2.db", "operation", "EnsureConfigAndDatabase")
+	logDebug(context.Background(), "Database initialized", "path", projectRoot+"/.todo2/todo2.db", "operation", "EnsureConfigAndDatabase")
 }
 
 // initializeDatabase initializes the database if project root is found
@@ -75,7 +75,7 @@ func EnsureConfigAndDatabase(projectRoot string) {
 func initializeDatabase() {
 	projectRoot, err := tools.FindProjectRoot()
 	if err != nil {
-		logWarn(nil, "Could not find project root", "error", err, "operation", "initializeDatabase", "fallback", "JSON")
+		logWarn(context.Background(), "Could not find project root", "error", err, "operation", "initializeDatabase", "fallback", "JSON")
 		return
 	}
 
@@ -111,17 +111,11 @@ func setupServer() (framework.MCPServer, error) {
 
 // Run starts the CLI interface.
 // Uses mcp-go-core ParseArgs for structured CLI dispatch; subcommands (config, task, tui, tui3270) keep os.Args-based remainder.
-// When -tool or --tool is present, flag-based tool execution is used instead of subcommand (so "exarp-go -tool session -args '{}'" invokes the session tool, not the session subcommand).
 func Run() error {
-	args := os.Args[1:]
-	parsed := mcpcli.ParseArgs(args)
+	parsed := mcpcli.ParseArgs(os.Args[1:])
 
-	// Prefer flag-based mode when -tool is explicitly passed (fixes -tool session being treated as session subcommand).
-	useFlagMode := HasToolFlag(args)
-
-	if !useFlagMode {
-		// Subcommand dispatch (config, task, tui, tui3270)
-		switch parsed.Command {
+	// Subcommand dispatch (config, task, tui, tui3270)
+	switch parsed.Command {
 	case "config":
 		return handleConfigCommand(parsed)
 	case "task":
@@ -150,15 +144,6 @@ func Run() error {
 	case "lock":
 		initializeDatabase()
 		return handleLockCommand(parsed)
-	case "cursor":
-		initializeDatabase()
-
-		server, err := setupServer()
-		if err != nil {
-			return err
-		}
-
-		return handleCursorCommand(server, parsed)
 	case "session":
 		initializeDatabase()
 
@@ -168,6 +153,9 @@ func Run() error {
 		}
 
 		return handleSessionCommand(server, parsed)
+	case "cursor":
+		initializeDatabase()
+		return handleCursorCommand(parsed)
 	case "tui3270":
 		tuiParsed := mcpcli.ParseArgs(os.Args[2:])
 		daemon := tuiParsed.GetBoolFlag("daemon", false) || tuiParsed.GetBoolFlag("d", false)
@@ -200,7 +188,6 @@ func Run() error {
 		}
 
 		return RunTUI3270(server, status, port, daemon, pidFile)
-		}
 	}
 
 	// Flag-based modes (-tool, -list, -test, -i, -completion); use flag package (ParseArgs doesn't handle -flag value skip)
@@ -219,7 +206,7 @@ func Run() error {
 
 	defer func() {
 		if err := database.Close(); err != nil {
-			logWarn(nil, "Error closing database", "error", err, "operation", "closeDatabase")
+			logWarn(context.Background(), "Error closing database", "error", err, "operation", "closeDatabase")
 		}
 	}()
 
@@ -643,7 +630,6 @@ func showUsage() {
 	_, _ = fmt.Println("Usage:")
 	_, _ = fmt.Println("  exarp-go [flags]")
 	_, _ = fmt.Println("  exarp-go task <command> [options]")
-	_, _ = fmt.Println("  exarp-go cursor run <task-id | -p prompt> [--mode plan|ask|agent] [--no-interactive]")
 	_, _ = fmt.Println("  exarp-go tui [status]")
 	_, _ = fmt.Println("  exarp-go tui3270 [status] [port]")
 	_, _ = fmt.Println("  exarp-go session handoffs")
@@ -675,13 +661,12 @@ func showUsage() {
 	_, _ = fmt.Println("Session:")
 	_, _ = fmt.Println("  session handoffs       View session handoff notes (from previous sessions)")
 	_, _ = fmt.Println()
-	_, _ = fmt.Println("Cursor Integration:")
-	_, _ = fmt.Println("  cursor run <task-id>                Run Cursor agent with task prompt")
-	_, _ = fmt.Println("  cursor run -p \"prompt\"              Run with custom prompt")
-	_, _ = fmt.Println("  cursor run <task-id> --mode plan    Run in plan mode")
-	_, _ = fmt.Println("  cursor run -p \"...\" --no-interactive  Non-interactive mode")
-	_, _ = fmt.Println("  cursor help                         Show cursor help")
-	_, _ = fmt.Println()
+	_, _ = fmt.Println("Cursor integration:")
+	_, _ = fmt.Println("  cursor run [task-id]       Run Cursor agent with task context (e.g. cursor run T-123)")
+	_, _ = fmt.Println("  cursor run -p \"prompt\"     Run Cursor agent with custom prompt")
+	_, _ = fmt.Println("  cursor run --no-interactive  Non-interactive (agent -p); use with -p or task-id")
+	_, _ = fmt.Println("  cursor run --mode plan|ask|agent  Cursor agent mode (default: plan)")
+	_, _ = fmt.Println("  Run from project root so exarp-go MCP tools are available.")
 	_, _ = fmt.Println("  Install Cursor CLI: curl https://cursor.com/install -fsS | bash")
 	_, _ = fmt.Println("  Set CURSOR_API_KEY for non-interactive/CI use. See docs/CURSOR_API_AND_CLI_INTEGRATION.md")
 	_, _ = fmt.Println()
@@ -697,8 +682,7 @@ func showUsage() {
 	_, _ = fmt.Println("  exarp-go task update T-1 --new-priority high")
 	_, _ = fmt.Println("  exarp-go session handoffs")
 	_, _ = fmt.Println("  exarp-go cursor run T-123")
-	_, _ = fmt.Println("  exarp-go cursor run T-123 --mode plan")
-	_, _ = fmt.Println("  exarp-go cursor run -p \"Review the backlog\"")
+	_, _ = fmt.Println("  exarp-go cursor run -p \"Implement feature X\" --no-interactive")
 	_, _ = fmt.Println("  exarp-go -completion bash > /usr/local/etc/bash_completion.d/exarp-go")
 	_, _ = fmt.Println()
 }
