@@ -1,0 +1,39 @@
+---
+description: Prefer Make and shell shortcuts when suggesting commands in exarp-go
+alwaysApply: true
+---
+
+# Make and shell shortcuts (exarp-go)
+
+**Use these shortcuts when suggesting shell commands so the user can run less typing.**
+
+## Makefile shortcuts
+
+| Instead of           | Use      | When suggesting |
+|----------------------|----------|------------------|
+| `make build`         | `make b`  | Building the Go binary |
+| (none)               | `make r`  | Print repo root (e.g. for scripts) |
+| (none)               | `make root` | Same as `make r` |
+| long path            | `cd $(make r)` | Change to project root from anywhere in repo |
+| (none)               | `make tag-build-ok` | Tag current commit as last known-good build |
+
+**Rules:**
+- Prefer **`make b`** over `make build` in suggested commands and snippets.
+- When a command must run from project root, suggest **`cd $(make r)`** first (or `r` if the user's shell has the alias).
+
+## Shell alias (user's ~/.zshrc)
+
+The user has in `~/.zshrc`:
+
+```sh
+alias r='cd $(git rev-parse --show-toplevel 2>/dev/null)'
+```
+
+- **Interactive use:** You can suggest **`r`** to cd to repo root from any subdir (any git repo).
+- **Scripts / non-interactive:** Prefer **`cd $(make r)`** so it works without relying on the alias.
+
+## Checklist when suggesting commands
+
+- [ ] Build → use `make b` (not `make build`).
+- [ ] Need to be in project root → suggest `cd $(make r)` or `r` (interactive).
+- [ ] Tag last good build → suggest `make tag-build-ok`.
