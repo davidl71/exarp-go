@@ -1,0 +1,15 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "_comment": "Example OpenCode/OAC config: add exarp-go as MCP so agents can call task_workflow, report, session, health, etc. Copy to ~/.config/opencode/opencode.json or project opencode.json.",
+  "mcp": {
+    "exarp-go": {
+      "type": "local",
+      "command": ["/absolute/path/to/exarp-go/bin/exarp-go"],
+      "enabled": true,
+      "environment": {
+        "PROJECT_ROOT": "/path/to/your/project"
+      },
+      "timeout": 10000
+    }
+  }
+}

@@ -1,6 +1,6 @@
 # exarp-go and OpenCode Integration
 
-OpenCode is an open-source AI coding agent (TUI, desktop, IDE). exarp-go can interact with it in three ways: **MCP**, **CLI**, and **HTTP API**.
+OpenCode is an open-source AI coding agent (TUI, desktop, IDE). exarp-go can interact with it in three ways: **MCP**, **CLI**, and **HTTP API**. **OpenAgentsControl (OAC)** and other OpenCode-based tools use the same MCP config: add exarp-go under `mcp` in your OpenCode config file (see [OPENAGENTSCONTROL_EXARP_GO_COMBO_PLAN.md](OPENAGENTSCONTROL_EXARP_GO_COMBO_PLAN.md)).
 
 ---
 
@@ -131,3 +131,42 @@ OpenCode doesn’t speak HTTP to exarp-go by default; this is useful if you add 
 | **HTTP** | Scripts or custom tools call exarp-go’s REST API while `exarp-go -serve` is running. |
 
 For tight integration (agent calling tasks, reports, session prime), configure exarp-go as an MCP server in OpenCode’s `mcp` config and set `PROJECT_ROOT` to the project you’re working in.
+
+---
+
+## 4. OpenCode and Cursor (ACP)
+
+OpenCode [supports the Agent Client Protocol (ACP)](https://opencode.ai/docs/acp/): you run `opencode acp` and your editor talks to OpenCode over JSON-RPC via stdio. Editors that support ACP (Zed, JetBrains, Avante.nvim, CodeCompanion.nvim) can add OpenCode as an agent server; see [OpenCode ACP docs](https://opencode.ai/docs/acp/) for their config snippets.
+
+### Can Cursor use OpenCode via ACP?
+
+**Cursor does not currently support configuring an external ACP agent** the way Zed does (e.g. `agent_servers` → `command: "opencode", args: ["acp"]`). So you cannot “point Cursor at OpenCode” in Cursor settings and have Cursor’s chat use OpenCode as the backend.
+
+The existing **Cursor ↔ ACP** projects do the **reverse**:
+
+- **[cursor-acp](https://github.com/roshan-c/cursor-acp)** and **[cursor-agent-acp](https://github.com/blowmage/cursor-agent-acp-npm)** expose the **Cursor CLI agent** over ACP. That lets ACP clients (Zed, JetBrains, Emacs, Neovim) use **Cursor** as their agent, not the other way around.
+
+### Practical integration today
+
+| Goal | Approach |
+|------|----------|
+| **Use OpenCode as the agent** | Use an ACP-capable editor (Zed, JetBrains, Neovim). In that editor, add OpenCode as the ACP agent: `command: "opencode", args: ["acp"]` (see [OpenCode ACP](https://opencode.ai/docs/acp/)). Add exarp-go as MCP in OpenCode’s config so OpenCode can call task_workflow, report, session. |
+| **Use Cursor and OpenCode on the same project** | Use **Cursor** for editing + Cursor’s built-in agent + exarp-go MCP. Use **OpenCode** (TUI or inside Zed/JetBrains/Neovim via ACP) in the same repo with exarp-go MCP. Same `.todo2` / `PROJECT_ROOT` = shared tasks and reports. |
+| **Use Cursor’s agent from another editor** | Install [cursor-acp](https://github.com/roshan-c/cursor-acp) or [cursor-agent-acp](https://github.com/blowmage/cursor-agent-acp-npm), then in Zed (or another ACP client) add “Cursor” as an agent that runs the adapter. |
+
+### If Cursor adds ACP agent support later
+
+If Cursor gains a setting like “external agent server” (similar to Zed’s `agent_servers`), the config would look like:
+
+```json
+{
+  "agent_servers": {
+    "OpenCode": {
+      "command": "opencode",
+      "args": ["acp"]
+    }
+  }
+}
+```
+
+Until then, use an ACP-capable editor when you want OpenCode as the agent, and use Cursor with its own agent + exarp-go MCP when you want Cursor; both can share exarp-go for tasks and reports.

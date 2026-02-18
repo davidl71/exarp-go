@@ -191,9 +191,9 @@ func TestHandleTaskWorkflowNative(t *testing.T) {
 			},
 			wantError: true,
 		},
-		// update requires at least one of new_status or priority
+		// update requires at least one of new_status, priority, ..., or local_ai_backend
 		{
-			name: "update with task_ids but no new_status or priority",
+			name: "update with task_ids but no new_status priority or local_ai_backend",
 			params: map[string]interface{}{
 				"action":   "update",
 				"task_ids": []interface{}{"T-1"},
@@ -283,6 +283,111 @@ func TestHandleTaskWorkflowNative(t *testing.T) {
 
 		if updated, _ := linkData["updated_ids"].([]interface{}); len(updated) != 1 {
 			t.Errorf("link_planning updated_ids = %v, want 1 item", updated)
+		}
+	})
+
+	// update with only local_ai_backend sets preferred_backend in task metadata (A1 verification)
+	t.Run("update with local_ai_backend sets preferred_backend", func(t *testing.T) {
+		ctx := context.Background()
+
+		createResult, err := handleTaskWorkflowNative(ctx, map[string]interface{}{
+			"action":           "create",
+			"name":             "Local AI backend test task",
+			"long_description": "For update local_ai_backend test",
+		})
+		if err != nil {
+			t.Fatalf("create task: %v", err)
+		}
+		if len(createResult) == 0 {
+			t.Fatal("create returned no result")
+		}
+
+		var createData map[string]interface{}
+		if err := json.Unmarshal([]byte(createResult[0].Text), &createData); err != nil {
+			t.Fatalf("create result JSON: %v", err)
+		}
+		taskObj, _ := createData["task"].(map[string]interface{})
+		taskID, _ := taskObj["id"].(string)
+		if taskID == "" {
+			t.Fatal("create did not return task id")
+		}
+
+		_, err = handleTaskWorkflowNative(ctx, map[string]interface{}{
+			"action":            "update",
+			"task_id":           taskID,
+			"local_ai_backend": "ollama",
+		})
+		if err != nil {
+			t.Fatalf("update with local_ai_backend: %v", err)
+		}
+
+		tasks, err := LoadTodo2Tasks(tmpDir)
+		if err != nil {
+			t.Fatalf("LoadTodo2Tasks: %v", err)
+		}
+		var found *Todo2Task
+		for i := range tasks {
+			if tasks[i].ID == taskID {
+				found = &tasks[i]
+				break
+			}
+		}
+		if found == nil {
+			t.Fatal("task not found after update")
+		}
+		if found.Metadata == nil {
+			t.Fatal("task metadata is nil")
+		}
+		preferred, _ := found.Metadata["preferred_backend"].(string)
+		if preferred != "ollama" {
+			t.Errorf("task preferred_backend = %q, want ollama", preferred)
+		}
+	})
+
+	// create with local_ai_backend sets preferred_backend in task metadata (B1 verification)
+	t.Run("create with local_ai_backend sets preferred_backend", func(t *testing.T) {
+		ctx := context.Background()
+		createResult, err := handleTaskWorkflowNative(ctx, map[string]interface{}{
+			"action":            "create",
+			"name":              "Create with local AI backend test",
+			"long_description":  "B1: verify preferred_backend on create",
+			"local_ai_backend": "mlx",
+		})
+		if err != nil {
+			t.Fatalf("create task: %v", err)
+		}
+		if len(createResult) == 0 {
+			t.Fatal("create returned no result")
+		}
+		var createData map[string]interface{}
+		if err := json.Unmarshal([]byte(createResult[0].Text), &createData); err != nil {
+			t.Fatalf("create result JSON: %v", err)
+		}
+		taskObj, _ := createData["task"].(map[string]interface{})
+		taskID, _ := taskObj["id"].(string)
+		if taskID == "" {
+			t.Fatal("create did not return task id")
+		}
+		tasks, err := LoadTodo2Tasks(tmpDir)
+		if err != nil {
+			t.Fatalf("LoadTodo2Tasks: %v", err)
+		}
+		var found *Todo2Task
+		for i := range tasks {
+			if tasks[i].ID == taskID {
+				found = &tasks[i]
+				break
+			}
+		}
+		if found == nil {
+			t.Fatal("task not found after create")
+		}
+		if found.Metadata == nil {
+			t.Fatal("task metadata is nil")
+		}
+		preferred, _ := found.Metadata["preferred_backend"].(string)
+		if preferred != "mlx" {
+			t.Errorf("task preferred_backend = %q, want mlx", preferred)
 		}
 	})
 

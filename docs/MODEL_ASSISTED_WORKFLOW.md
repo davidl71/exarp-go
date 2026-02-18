@@ -39,6 +39,8 @@ This document outlines how to use local LLM models (CodeLlama via MLX, Ollama mo
 
 - **Task metadata `preferred_backend`** — Optional key: `fm` (Apple Foundation Models), `mlx`, or `ollama`. When set on a task, tools that use LLMs (estimation, text_generate, report insights) respect it.
 - **Tool param `local_ai_backend`** — Pass to `task_workflow` create/update or `estimation` to override the backend for that call. Stored as `preferred_backend` when creating tasks.
+- **summarize** — When `local_ai_backend` is not passed, the task's `preferred_backend` is used; if unset, the default is `fm`.
+- **run_with_ai** — Uses the task's `preferred_backend` when `local_ai_backend` is not passed; optional `instruction` adds extra guidance for the model.
 
 **Examples:**
 
@@ -51,6 +53,11 @@ exarp-go -tool estimation -args '{"action":"estimate","name":"Refactor module","
 
 # Set preferred_backend on existing task via task_workflow update (metadata)
 exarp-go -tool task_workflow -args '{"action":"update","task_id":"T-123","metadata":{"preferred_backend":"ollama"}}'
+
+# CLI subcommands (task estimate, summarize, run-with-ai)
+exarp-go task estimate "Refactor module" --local-ai-backend ollama
+exarp-go task summarize T-xxx [--local-ai-backend fm]
+exarp-go task run-with-ai T-xxx [--backend ollama] [--instruction "..."]
 ```
 
 ---
@@ -528,7 +535,7 @@ Mark as Done or Request Changes
 - [ ] Integrate with task creation workflow
 
 ### Phase 6: Testing & Documentation
-- [ ] Unit tests for all components
+- [x] Unit tests for all components — `execution_apply_test.go`, `prompt_analyzer_test.go` (mock generator), `task_execute_test.go` (mock ModelRouter); no real LLM required.
 - [x] Integration tests with real models — See `internal/tools/real_models_integration_test.go`. Run with `make test-real-models` (requires a local backend; skipped in `go test -short`).
 - [ ] Performance benchmarks
 - [x] User documentation — End-user guide (when to use local models, task_execute vs prompt optimization, make test-real-models), backend requirements, and testing section
