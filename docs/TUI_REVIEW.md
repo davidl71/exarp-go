@@ -1,7 +1,14 @@
 # TUI / CLI / MCP Architecture Review
 
-**Date:** 2026-02-19
-**Scope:** `internal/cli/tui.go`, `tui3270.go`, `tui_test.go`, `child_agent.go`, `cli.go`, `mode.go`, MCP tool registry
+**Date:** 2026-02-19  
+**Last Updated:** 2026-02-20 (Post-refactoring)  
+**Scope:** `internal/cli/tui*.go`, `tui3270.go`, `child_agent.go`, `cli.go`, `mode.go`, MCP tool registry
+
+---
+
+## Update 2026-02-20: Refactoring Completed ✅
+
+Major code organization improvements completed. See [Section 11: Completed Improvements](#11-completed-improvements-2026-02-20) for details.
 
 ---
 
@@ -11,7 +18,7 @@
 |---------|---------|------:|-----------|---------|
 | MCP tools | `internal/tools/registry.go` + handlers | ~1,960 | JSON-RPC 2.0 / stdio | AI agent capability API (24 tools) |
 | CLI | `internal/cli/cli.go`, `task.go` | ~920 | flag + mcp-go-core | Terminal commands (`exarp-go task list`, etc.) |
-| Bubbletea TUI | `internal/cli/tui.go` | 4,582 | charmbracelet/bubbletea + lipgloss | Interactive ANSI terminal UI |
+| Bubbletea TUI | `internal/cli/tui*.go` (multiple files) | ~2,800 | charmbracelet/bubbletea + lipgloss | Interactive ANSI terminal UI |
 | 3270 TUI | `internal/cli/tui3270.go` | 1,841 | racingmars/go3270 | IBM 3270 mainframe-style TN3270 server |
 | Child agent | `internal/cli/child_agent.go` | 513 | stdlib | Shared Cursor CLI agent launcher |
 | Mode detection | `internal/cli/mode.go` | 96 | -- | CLI/MCP mode and subcommand detection |
@@ -86,12 +93,12 @@ TUI3270   ──→ server.CallTool()       ──→ MCP Tools
 - Bubbletea TUI has features no other surface has (jobs, wave move, queue enqueue)
 - 3270 TUI reimplements logic independently (editor, recommendation runner)
 
-### 5.2 Code Quality
-- `tui.go` is 4,582 lines in one file (should be split into ~8 files)
-- `model` struct has 50+ fields ("god object")
-- `Update()` is ~1,200 lines of nested mode/key dispatch
-- Mode is a bare string with 8+ values (no enum, no compile-time checks)
-- 15+ message types defined inline (could be in separate file)
+### 5.2 Code Quality ~~(PARTIALLY RESOLVED)~~
+- ~~`tui.go` is 4,582 lines in one file~~ ✅ **FIXED**: Split into multiple files (see Section 11)
+- ~~`Update()` is ~1,200 lines of nested mode/key dispatch~~ ✅ **FIXED**: Extracted to handler methods
+- ~~Mode is a bare string with 8+ values~~ ✅ **FIXED**: Added mode constants in `tui_modes.go`
+- `model` struct has 50+ fields ("god object") ⚠️ **REMAINING**: See future work
+- 15+ message types defined inline ⚠️ **REMAINING**: Already in separate `tui_messages.go`
 
 ### 5.3 Duplication
 - `truncatePad` (tui.go) and `t3270Pad` (tui3270.go): same algorithm
@@ -248,12 +255,96 @@ Task ID parsing/validation exists in three places:
 
 ---
 
-## 11. References
+## 11. Completed Improvements (2026-02-20)
 
-- `internal/cli/tui.go` — Bubbletea TUI (4,582 lines)
+### Tier 1 Quick Wins — COMPLETED ✅
+
+All Tier 1 improvements from Section 10 have been completed:
+
+1. ✅ **Removed confirmed dead code**
+2. ✅ **Extracted magic strings into constants**
+   - Created `internal/cli/tui_modes.go` with 14 constants
+   - 9 mode constants: `ModeTasks`, `ModeConfig`, etc.
+   - 5 sort constants: `SortByID`, `SortByStatus`, etc.
+   - Replaced ~200 magic strings across 12 files
+3. ✅ **Unexported unused functions** (already done in prior work)
+
+### Tier 2 Code Organization — COMPLETED ✅
+
+4. ✅ **Split tui.go into per-concern files**
+   - Created `tui_update_handlers.go` (366 lines) - keyboard handlers
+   - Created `tui_update_navigation.go` (122 lines) - navigation logic
+   - Created `tui_modes.go` (25 lines) - mode & sort constants
+   - Reduced `tui_update.go` from 1,337 → 969 lines (**-28%**)
+
+5. ✅ **Added typed handler methods**
+   - 6 focused handler methods for keyboard input
+   - Clean handler chain pattern in Update()
+   - Each handler ~50-100 lines (AI-friendly)
+
+### New Features Added ✅
+
+1. ✅ **Bulk Status Update** (Shift+D)
+   - Multi-select tasks with Space
+   - Press Shift+D to update all selected
+   - Interactive status selection prompt
+   
+2. ✅ **Review Status Shortcut** ('r' key)
+   - Completed status shortcuts: d/i/t/r
+   - Updated help documentation
+
+### Metrics
+
+| Metric | Before | After | Change |
+|--------|--------|-------|--------|
+| `tui_update.go` lines | 1,337 | 969 | -28% |
+| Helper files | 0 | 3 | +513 lines |
+| Mode constants | 0 | 14 | Type-safe |
+| Magic strings | ~200 | 0 | -100% |
+| New features | 0 | 2 | Bulk update + 'r' key |
+
+### Remaining Future Work
+
+See **Section 12: Future Improvements** below for follow-up tasks.
+
+---
+
+## 12. Future Improvements
+
+Follow-up tasks have been created in Todo2. See tasks tagged with `tui`:
+
+### High Priority
+- **T-1771543659626936000**: Extract action handlers into `tui_update_actions.go`
+- **T-1771543663481255000**: Extract sort/filter logic into `tui_update_filters.go`
+- **T-1771543666094356000**: Route TUI through MCP tools instead of direct DB access
+- **T-1771543667742498000**: Add unit tests for keyboard handlers
+- **T-1771543674831113000**: Improve error handling and user feedback
+
+### Medium Priority
+- **T-1771543669306198000**: Add 3270 TUI test coverage
+- **T-1771543670781451000**: Deduplicate code between TUI and TUI3270
+- **T-1771543672166929000**: Create state machine for mode transitions
+
+### Low Priority (Complex)
+- **T-1771543664811514000**: Decompose model struct into per-view state structs (1 day, high risk)
+- **T-1771543673354872000**: Add keyboard shortcut customization
+
+See tasks for detailed descriptions, effort estimates, and implementation guidance.
+
+---
+
+## 13. References
+
+- `internal/cli/tui_update.go` — Main Update() method (969 lines, down from 1,337)
+- `internal/cli/tui_update_handlers.go` — Keyboard handlers (366 lines) **NEW**
+- `internal/cli/tui_update_navigation.go` — Navigation logic (122 lines) **NEW**
+- `internal/cli/tui_modes.go` — Mode & sort constants (25 lines) **NEW**
+- `internal/cli/tui_tasks.go` — Tasks view rendering
+- `internal/cli/tui_commands.go` — Async tea.Cmd factories
+- `internal/cli/tui_messages.go` — tea.Msg types
 - `internal/cli/tui3270.go` — 3270 TUI (1,841 lines)
 - `internal/cli/child_agent.go` — Shared child agent launcher
-- `internal/cli/tui_test.go` — TUI tests
+- `internal/cli/tui_test.go` — TUI tests (13 passing)
 - `internal/tools/registry.go` — MCP tool registry (24 tools)
 - `docs/ISPF_PATTERNS_RESEARCH.md` — ISPF design patterns
 - `docs/3270_TUI_IMPLEMENTATION.md` — 3270 implementation guide
