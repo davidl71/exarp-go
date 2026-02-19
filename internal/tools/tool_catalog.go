@@ -3,7 +3,6 @@ package tools
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	"github.com/davidl71/exarp-go/internal/framework"
 	mcpresponse "github.com/davidl71/mcp-go-core/pkg/mcp/response"
@@ -314,80 +313,6 @@ func handleToolCatalogNative(ctx context.Context, params map[string]interface{})
 	default:
 		return nil, fmt.Errorf("unknown tool_catalog action: %s. Use 'help' (list action converted to stdio://tools resources)", action)
 	}
-}
-
-// handleToolCatalogList handles the list action.
-func handleToolCatalogList(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
-	catalog := GetToolCatalog()
-
-	// Get filters
-	category, _ := params["category"].(string)
-	persona, _ := params["persona"].(string)
-
-	includeExamples := true
-	if inc, ok := params["include_examples"].(bool); ok {
-		includeExamples = inc
-	}
-
-	// Filter tools
-	var filtered []ToolCatalogEntry
-
-	categories := make(map[string]bool)
-
-	for toolID, tool := range catalog {
-		// Apply category filter (case-insensitive)
-		if category != "" && !strings.EqualFold(tool.Category, category) {
-			continue
-		}
-
-		// Persona filter would need to be added to catalog entries if needed
-		// For now, we'll skip persona filtering as it's not in our catalog structure
-
-		// Create entry
-		entry := tool
-		entry.Tool = toolID
-
-		// Add examples if requested
-		if !includeExamples {
-			entry.Examples = nil
-		}
-
-		filtered = append(filtered, entry)
-		categories[tool.Category] = true
-	}
-
-	// Build response
-	catList := make([]string, 0, len(categories))
-	for cat := range categories {
-		catList = append(catList, cat)
-	}
-
-	// Sort categories (simple alphabetical)
-	for i := 0; i < len(catList)-1; i++ {
-		for j := i + 1; j < len(catList); j++ {
-			if catList[i] > catList[j] {
-				catList[i], catList[j] = catList[j], catList[i]
-			}
-		}
-	}
-
-	response := ToolCatalogResponse{
-		Tools:               filtered,
-		Count:               len(filtered),
-		AvailableCategories: catList,
-		AvailablePersonas:   []string{}, // Not currently supported
-		FiltersApplied: map[string]interface{}{
-			"category": category,
-			"persona":  persona,
-		},
-	}
-
-	m, err := mcpresponse.ConvertToMap(response)
-	if err != nil {
-		return nil, fmt.Errorf("failed to convert catalog response: %w", err)
-	}
-
-	return mcpresponse.FormatResult(m, "")
 }
 
 // handleToolCatalogHelp handles the help action.

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"sort"
 
+	"github.com/davidl71/exarp-go/internal/models"
 	"gonum.org/v1/gonum/graph/simple"
 	"gonum.org/v1/gonum/graph/topo"
 )
@@ -589,20 +590,20 @@ type BacklogTaskDetail struct {
 // IsBacklogStatus returns true if status is Todo or In Progress.
 func IsBacklogStatus(status string) bool {
 	s := NormalizeStatusToTitleCase(status)
-	return s == "Todo" || s == "In Progress"
+	return s == models.StatusTodo || s == models.StatusInProgress
 }
 
 // priorityOrderForSort returns sort key for priority (lower = higher priority).
 func priorityOrderForSort(priority string) int {
 	p := NormalizePriority(priority)
 	switch p {
-	case "critical":
+	case models.PriorityCritical:
 		return 0
-	case "high":
+	case models.PriorityHigh:
 		return 1
-	case "medium":
+	case models.PriorityMedium:
 		return 2
-	case "low":
+	case models.PriorityLow:
 		return 3
 	default:
 		return 4

@@ -15,6 +15,7 @@ import (
 
 	"github.com/davidl71/exarp-go/internal/config"
 	"github.com/davidl71/exarp-go/internal/database"
+	"github.com/davidl71/exarp-go/internal/models"
 	"github.com/davidl71/exarp-go/internal/framework"
 	"github.com/davidl71/exarp-go/internal/taskanalysis"
 	"github.com/davidl71/exarp-go/proto"
@@ -3609,7 +3610,7 @@ func findParallelizableTasks(tasks []Todo2Task, durationWeight float64) []Parall
 
 			priority := task.Priority
 			if priority == "" {
-				priority = "medium"
+				priority = models.PriorityMedium
 			}
 
 			byPriority[priority] = append(byPriority[priority], taskID)
@@ -3636,7 +3637,7 @@ func findParallelizableTasks(tasks []Todo2Task, durationWeight float64) []Parall
 
 			priority := task.Priority
 			if priority == "" {
-				priority = "medium"
+				priority = models.PriorityMedium
 			}
 
 			byPriority[priority] = append(byPriority[priority], taskID)
@@ -3667,7 +3668,7 @@ func findParallelizableTasks(tasks []Todo2Task, durationWeight float64) []Parall
 
 	// Sort groups by priority (high -> medium -> low)
 	sort.Slice(groups, func(i, j int) bool {
-		priorityOrder := map[string]int{"high": 0, "medium": 1, "low": 2}
+		priorityOrder := map[string]int{models.PriorityHigh: 0, models.PriorityMedium: 1, models.PriorityLow: 2}
 		return priorityOrder[groups[i].Priority] < priorityOrder[groups[j].Priority]
 	})
 
@@ -3701,7 +3702,7 @@ func findParallelizableTasksSimple(tasks []Todo2Task, durationWeight float64) []
 
 			priority := task.Priority
 			if priority == "" {
-				priority = "medium"
+				priority = models.PriorityMedium
 			}
 
 			byPriority[priority] = append(byPriority[priority], taskID)
@@ -3720,7 +3721,7 @@ func findParallelizableTasksSimple(tasks []Todo2Task, durationWeight float64) []
 
 	// Sort groups by priority (high -> medium -> low)
 	sort.Slice(groups, func(i, j int) bool {
-		priorityOrder := map[string]int{"high": 0, "medium": 1, "low": 2}
+		priorityOrder := map[string]int{models.PriorityHigh: 0, models.PriorityMedium: 1, models.PriorityLow: 2}
 		return priorityOrder[groups[i].Priority] < priorityOrder[groups[j].Priority]
 	})
 
