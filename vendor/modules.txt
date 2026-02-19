@@ -135,6 +135,9 @@ github.com/google/s2a-go/stream
 github.com/joshgarnett/agent-client-protocol-go/acp
 github.com/joshgarnett/agent-client-protocol-go/acp/api
 github.com/joshgarnett/agent-client-protocol-go/util
+# github.com/lawlielt/ctxcache v1.0.1
+## explicit; go 1.21
+github.com/lawlielt/ctxcache
 # github.com/google/uuid v1.6.0
 ## explicit
 github.com/google/uuid
