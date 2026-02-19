@@ -1,7 +1,10 @@
 package tools
 
 import (
+	"bytes"
+	"compress/gzip"
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"os"
 	"path/filepath"
@@ -593,5 +596,116 @@ func TestGetCurrentPlanPath(t *testing.T) {
 
 	if got != want {
 		t.Errorf("getCurrentPlanPath() = %q, want %q", got, want)
+	}
+}
+
+// TestDecodePointInTimeSnapshot tests round-trip and error cases for gzip+base64 snapshot decoding.
+func TestDecodePointInTimeSnapshot(t *testing.T) {
+	t.Run("empty string returns error", func(t *testing.T) {
+		_, err := DecodePointInTimeSnapshot("")
+		if err == nil {
+			t.Error("expected error for empty snapshot")
+		}
+	})
+
+	t.Run("invalid base64 returns error", func(t *testing.T) {
+		_, err := DecodePointInTimeSnapshot("not-valid-base64!!!")
+		if err == nil {
+			t.Error("expected error for invalid base64")
+		}
+	})
+
+	t.Run("valid gzip+base64 round-trip", func(t *testing.T) {
+		payload := []byte(`{"todos":[{"id":"T-1","content":"Test","status":"Todo"}]}`)
+		var buf bytes.Buffer
+		w := gzip.NewWriter(&buf)
+		if _, err := w.Write(payload); err != nil {
+			t.Fatalf("gzip write: %v", err)
+		}
+		if err := w.Close(); err != nil {
+			t.Fatalf("gzip close: %v", err)
+		}
+		encoded := base64.StdEncoding.EncodeToString(buf.Bytes())
+
+		decoded, err := DecodePointInTimeSnapshot(encoded)
+		if err != nil {
+			t.Fatalf("DecodePointInTimeSnapshot: %v", err)
+		}
+		if !bytes.Equal(decoded, payload) {
+			t.Errorf("decoded = %q, want %q", decoded, payload)
+		}
+	})
+}
+
+// TestHandoffEndWithTaskJournalAndSnapshot verifies handoff end attaches task_journal and point_in_time_snapshot when requested.
+func TestHandoffEndWithTaskJournalAndSnapshot(t *testing.T) {
+	cleanup := initSessionTestDB(t)
+	defer cleanup()
+
+	ctx := context.Background()
+	// Create one task so snapshot has content
+	task := &database.Todo2Task{
+		ID:       "T-session-test-1",
+		Content:  "Session handoff test task",
+		Status:   "Todo",
+		Priority: "medium",
+	}
+	if err := database.CreateTask(ctx, task); err != nil {
+		t.Fatalf("CreateTask: %v", err)
+	}
+
+	params := map[string]interface{}{
+		"action":                        "handoff",
+		"sub_action":                    "end",
+		"summary":                      "Test handoff with journal and snapshot",
+		"include_tasks":                true,
+		"include_point_in_time_snapshot": true,
+		"modified_task_ids":            []interface{}{"T-session-test-1", "T-other"},
+	}
+	result, err := handleSessionNative(ctx, params)
+	if err != nil {
+		t.Fatalf("handleSessionNative: %v", err)
+	}
+	if len(result) == 0 {
+		t.Fatal("expected non-empty result")
+	}
+
+	var data map[string]interface{}
+	if err := json.Unmarshal([]byte(result[0].Text), &data); err != nil {
+		t.Fatalf("invalid JSON result: %v", err)
+	}
+	handoff, ok := data["handoff"].(map[string]interface{})
+	if !ok {
+		t.Fatal("result has no handoff object")
+	}
+
+	if journal, ok := handoff["task_journal"].([]interface{}); !ok || len(journal) != 2 {
+		t.Errorf("handoff missing or wrong task_journal: %v", handoff["task_journal"])
+	}
+	if snap, ok := handoff["point_in_time_snapshot"].(string); !ok || snap == "" {
+		t.Errorf("handoff missing or empty point_in_time_snapshot")
+	}
+	if fmt, ok := handoff["point_in_time_snapshot_format"].(string); !ok || fmt != "gz+b64" {
+		t.Errorf("handoff point_in_time_snapshot_format = %v, want gz+b64", handoff["point_in_time_snapshot_format"])
+	}
+	if cnt, ok := handoff["point_in_time_snapshot_task_count"].(float64); !ok || int(cnt) != 1 {
+		t.Errorf("handoff point_in_time_snapshot_task_count = %v, want 1", handoff["point_in_time_snapshot_task_count"])
+	}
+
+	// Decode snapshot and verify we get our task back
+	encoded, _ := handoff["point_in_time_snapshot"].(string)
+	decoded, err := DecodePointInTimeSnapshot(encoded)
+	if err != nil {
+		t.Fatalf("DecodePointInTimeSnapshot: %v", err)
+	}
+	tasks, err := ParseTasksFromJSON(decoded)
+	if err != nil {
+		t.Fatalf("ParseTasksFromJSON: %v", err)
+	}
+	if len(tasks) != 1 {
+		t.Errorf("decoded tasks length = %d, want 1", len(tasks))
+	}
+	if len(tasks) > 0 && tasks[0].Content != "Session handoff test task" {
+		t.Errorf("decoded task content = %q", tasks[0].Content)
 	}
 }

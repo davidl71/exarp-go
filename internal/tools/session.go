@@ -1,8 +1,11 @@
 package tools
 
 import (
+	"bytes"
+	"compress/gzip"
 	"context"
 	"database/sql"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -489,12 +492,12 @@ func handleSessionEnd(ctx context.Context, params map[string]interface{}, projec
 		gitStatus = getGitStatus(ctx, projectRoot)
 	}
 
-	// Get current tasks in progress
+	// Get current tasks in progress and optionally full task list for point-in-time snapshot
 	var tasksInProgress []map[string]interface{}
+	var allTasksForSnapshot []Todo2Task
+	store := NewDefaultTaskStore(projectRoot)
 
 	if _, has := params["include_tasks"]; !has || cast.ToBool(params["include_tasks"]) {
-		store := NewDefaultTaskStore(projectRoot)
-
 		list, err := store.ListTasks(ctx, nil)
 		if err == nil {
 			tasks := tasksFromPtrs(list)
@@ -505,6 +508,54 @@ func handleSessionEnd(ctx context.Context, params map[string]interface{}, projec
 						"content": task.Content,
 						"status":  task.Status,
 					})
+				}
+			}
+			allTasksForSnapshot = tasks
+		}
+	}
+
+	includePointInTimeSnapshot := cast.ToBool(params["include_point_in_time_snapshot"])
+	if includePointInTimeSnapshot && len(allTasksForSnapshot) == 0 {
+		list, err := store.ListTasks(ctx, nil)
+		if err == nil {
+			allTasksForSnapshot = tasksFromPtrs(list)
+		}
+	}
+
+	// Optional: task journal (modified tasks this session). Caller can pass modified_task_ids or task_journal.
+	var taskJournal []map[string]interface{}
+	if ids, ok := params["modified_task_ids"].([]interface{}); ok {
+		for _, v := range ids {
+			if id, ok := v.(string); ok && id != "" {
+				taskJournal = append(taskJournal, map[string]interface{}{"id": id, "action": "modified"})
+			}
+		}
+	}
+	if journal, ok := params["task_journal"].([]interface{}); ok && len(taskJournal) == 0 {
+		for _, v := range journal {
+			if m, ok := v.(map[string]interface{}); ok {
+				taskJournal = append(taskJournal, m)
+			}
+		}
+	}
+	if journalRaw, ok := params["task_journal"].(string); ok && journalRaw != "" && len(taskJournal) == 0 {
+		var decoded []map[string]interface{}
+		if err := json.Unmarshal([]byte(journalRaw), &decoded); err == nil {
+			taskJournal = decoded
+		}
+	}
+
+	// Point-in-time snapshot: full task list as gzip+base64 (state.todo2.json shape)
+	var pointInTimeSnapshot, pointInTimeSnapshotFormat string
+	if includePointInTimeSnapshot && len(allTasksForSnapshot) > 0 {
+		raw, err := MarshalTasksToStateJSON(allTasksForSnapshot)
+		if err == nil {
+			var buf bytes.Buffer
+			w := gzip.NewWriter(&buf)
+			if _, err := w.Write(raw); err == nil {
+				if err := w.Close(); err == nil {
+					pointInTimeSnapshot = base64.StdEncoding.EncodeToString(buf.Bytes())
+					pointInTimeSnapshotFormat = "gz+b64"
 				}
 			}
 		}
@@ -520,6 +571,14 @@ func handleSessionEnd(ctx context.Context, params map[string]interface{}, projec
 		"next_steps":        nextSteps,
 		"git_status":        gitStatus,
 		"tasks_in_progress": tasksInProgress,
+	}
+	if len(taskJournal) > 0 {
+		handoff["task_journal"] = taskJournal
+	}
+	if pointInTimeSnapshot != "" {
+		handoff["point_in_time_snapshot"] = pointInTimeSnapshot
+		handoff["point_in_time_snapshot_format"] = pointInTimeSnapshotFormat
+		handoff["point_in_time_snapshot_task_count"] = len(allTasksForSnapshot)
 	}
 
 	if !dryRun {
@@ -943,6 +1002,28 @@ func handleSessionExport(ctx context.Context, params map[string]interface{}, pro
 	}
 
 	return mcpresponse.FormatResult(result, "")
+}
+
+// DecodePointInTimeSnapshot decodes a gzip+base64 point-in-time snapshot from a handoff.
+// Returns the raw JSON bytes (state.todo2.json shape with "todos" array). Use ParseTasksFromJSON to get []Todo2Task.
+func DecodePointInTimeSnapshot(encoded string) ([]byte, error) {
+	if encoded == "" {
+		return nil, fmt.Errorf("empty snapshot")
+	}
+	raw, err := base64.StdEncoding.DecodeString(encoded)
+	if err != nil {
+		return nil, fmt.Errorf("base64 decode: %w", err)
+	}
+	r, err := gzip.NewReader(bytes.NewReader(raw))
+	if err != nil {
+		return nil, fmt.Errorf("gzip reader: %w", err)
+	}
+	defer r.Close()
+	var out bytes.Buffer
+	if _, err := out.ReadFrom(r); err != nil {
+		return nil, fmt.Errorf("gzip read: %w", err)
+	}
+	return out.Bytes(), nil
 }
 
 // Helper types and functions

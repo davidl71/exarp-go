@@ -2,7 +2,7 @@
 
 **Purpose:** Reference for the Go AI landscape (frameworks, provider SDKs, ML/numerics), what exarp-go uses today, and how exarp-go could improve by aligning with or adopting from this ecosystem.
 
-**See also:** [LLM_NATIVE_ABSTRACTION_PATTERNS.md](LLM_NATIVE_ABSTRACTION_PATTERNS.md), [LLM_EXPOSURE_OPPORTUNITIES.md](LLM_EXPOSURE_OPPORTUNITIES.md).
+**See also:** [LLM_NATIVE_ABSTRACTION_PATTERNS.md](LLM_NATIVE_ABSTRACTION_PATTERNS.md), [LLM_EXPOSURE_OPPORTUNITIES.md](LLM_EXPOSURE_OPPORTUNITIES.md). Section 9 covers Transformers-style equivalents (Go/Swift) and LLM middleware.
 
 ---
 
@@ -144,7 +144,7 @@ The **general agent abstraction** (T-1771252286533) defines a single interface s
 
 - **Internal:** [LLM_NATIVE_ABSTRACTION_PATTERNS.md](LLM_NATIVE_ABSTRACTION_PATTERNS.md), [LLM_EXPOSURE_OPPORTUNITIES.md](LLM_EXPOSURE_OPPORTUNITIES.md), [LLM_ABSTRACTIONS_REDUCE_PYTHON.md](LLM_ABSTRACTIONS_REDUCE_PYTHON.md).
 - **Code:** `internal/tools/llm_backends.go`, `internal/tools/graph_helpers.go`, `internal/tools/statistics.go`, `internal/tools/*provider*.go`.
-- **Cursor rules:** `.cursor/rules/llm-tools.mdc` (when to use which LLM tool).
+- **Cursor rules:** `.cursor/rules/llm-tools.mdc` (when to use which LLM tool). See also §9 for Transformers-style equivalents and LLM middleware.
 
 ---
 
@@ -162,3 +162,55 @@ Ecosystem overviews, official references, and third-party SDKs useful when evalu
 | **[LaunchDarkly Go AI SDK](https://launchdarkly.com/docs/sdk/ai/go)** | LaunchDarkly’s Go SDK for **AI Configs**: context-based model/config selection, metrics and tracking, feature-flag-style control of AI behaviour (operational layer, not a provider SDK). |
 
 **Relation to exarp-go:** The wiki and awesome list support “state of the ecosystem” and discovery. Jetify AI is the main candidate if we later adopt a unified Go SDK. LaunchDarkly is relevant only if we add feature flags or external metrics for LLM calls.
+
+---
+
+## 9. Transformers-style equivalents (Go / Swift) and LLM middleware
+
+Reference for developers looking for Hugging Face Transformers–like options in Go or Swift, and for middleware that unifies multiple LLM backends behind a single API.
+
+### 9.1 Go: no full Transformers port; inference via bindings
+
+There is no Go library that replicates the full scope of Hugging Face Transformers (model definitions, training, Hub). Inference is done via bindings to C++ runtimes:
+
+| Project | Role | Notes |
+|---------|------|--------|
+| **[llama.cpp](https://github.com/ggerganov/llama.cpp)** | C++ engine | GGUF models, GPU (Metal, CUDA, ROCm, etc.); used by many wrappers. |
+| **[tcpipuk/llama-go](https://github.com/tcpipuk/llama-go)** | Go bindings | Idiomatic Go: chat, generation, embeddings, speculative decoding; actively maintained. |
+| **[swdunlop/llm-go](https://github.com/swdunlop/llm-go)** | Go bindings | Simpler wrapper around llama.cpp; basic load/predict + optional HTTP server. |
+| **Ollama** | App + Go backend | Uses its own [ggml backend in Go](https://pkg.go.dev/github.com/ollama/ollama/ml/backend/ggml); consumed via HTTP API. exarp-go uses Ollama via native client + optional Python bridge. |
+
+**Relation to exarp-go:** We use **Ollama** (HTTP API) for llama-style models; no need for a separate Transformers-in-Go unless we want to embed **llama-go** for in-process GGUF inference.
+
+### 9.2 Swift: MLX Swift LM as Transformers analogue
+
+| Project | Role | Notes |
+|---------|------|--------|
+| **[ml-explore/mlx-swift](https://github.com/ml-explore/mlx-swift)** | Core | Array/ML framework for Apple Silicon. |
+| **[ml-explore/mlx-swift-lm](https://github.com/ml-explore/mlx-swift-lm)** | LLM/VLM layer | Closest to Transformers in Swift: many architectures (Llama, Mistral, Gemma, Phi, Qwen), Hugging Face Hub, LoRA/fine-tuning, VLMs, embedders. [Swift Package Registry](https://swiftpackageregistry.com/ml-explore/mlx-swift-lm). |
+| **[ml-explore/mlx-swift-examples](https://github.com/ml-explore/mlx-swift-examples)** | Examples | Chat, CLI, fine-tuning. |
+| **Apple Foundation Models** | System API | `SystemLanguageModel`; on-device Apple models. exarp-go uses this via Swift/CGO. |
+
+**Relation to exarp-go:** We use **Apple FM** (Swift/CGO) and an **MLX bridge**. For arbitrary HF/MLX-community models from Swift, **mlx-swift-lm** is the natural option; same MLX ecosystem the bridge targets.
+
+### 9.3 LLM middleware (unified API, routing, observability)
+
+Middleware that sits in front of multiple LLM backends and exposes a single API (often OpenAI-compatible) for routing, keys, and observability.
+
+| Middleware | Stack | Role | Relation to exarp-go |
+|------------|--------|------|----------------------|
+| **[inference-gateway/inference-gateway](https://github.com/inference-gateway/inference-gateway)** | Go | Proxy: Ollama, OpenAI, Groq, Cohere, Anthropic, Cloudflare, DeepSeek. OpenAI-compatible API, MCP integration, OpenTelemetry, K8s. | **Best fit:** Run as a sidecar or service; exarp-go can add an optional backend that calls the gateway URL (like LocalAI). Single place for cloud routing and MCP tool exposure. |
+| **[mozilla-ai/any-llm](https://github.com/mozilla-ai/any-llm)** | Python | Unified SDK + optional FastAPI gateway; budgets, API keys, analytics. | Useful for Python services; exarp-go unchanged; Python can call Inference Gateway instead. |
+| **[tluyben/llm-router](https://pkg.go.dev/github.com/tluyben/llm-router)** | Go | Intercepts OpenAI/Anthropic calls, forwards to OpenRouter; system prompt injection, streaming, Docker. | Use when you want one API key and many models (OpenRouter) or a drop-in proxy. |
+| **[llmrooter/router](https://github.com/llmrooter/router)** | Go | Self-hosted Open Router–like gateway with React admin UI. | Alternative to OpenRouter for self-hosted routing. |
+| **LocalAI** | Go | Self-hosted OpenAI-compatible API for local models (GGUF, etc.). | **Already in exarp-go** as optional backend via `LOCALAI_BASE_URL`; middleware for anything OpenAI-compatible to use local models. |
+
+**Recommendation:** For a single HTTP API across local + cloud with optional MCP and observability, add **Inference Gateway** as an optional backend (e.g. `provider=inference-gateway` or new backend pointing at the gateway URL). See §4.1 and [LLM_NATIVE_ABSTRACTION_PATTERNS.md](LLM_NATIVE_ABSTRACTION_PATTERNS.md).
+
+### 9.4 Related ecosystem (Node, skills)
+
+| Resource | Description |
+|----------|-------------|
+| **[Meridius-Labs/apple-on-device-ai](https://github.com/Meridius-Labs/apple-on-device-ai)** | Node/TypeScript bindings for Apple on-device models; Vercel AI SDK provider. Same capability as exarp-go Apple FM in the JS/TS ecosystem. |
+| **[MCP Market: Apple Foundation Models skill](https://mcpmarket.com/tools/skills/apple-foundation-models)** | Claude Code skill (guidance) for SystemLanguageModel, guided generation, tool calling, guardrails. Complementary to exarp-go implementation. |
+| **[Hugging Face Transformers](https://github.com/huggingface/transformers)** | Python model-definition and inference framework; 1M+ Hub checkpoints. exarp-go does not use it; Go/Swift alternatives above. |

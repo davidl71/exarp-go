@@ -201,6 +201,9 @@ func (g *CursorRulesGenerator) AnalyzeProject() map[string]interface{} {
 		".jsx": "javascript",
 		".go":  "go",
 		".rs":  "rust",
+		".sh":  "shell",
+		".yml": "yaml",
+		".yaml": "yaml",
 	}
 
 	for ext, lang := range extensions {
@@ -231,6 +234,14 @@ func (g *CursorRulesGenerator) AnalyzeProject() map[string]interface{} {
 			if !contains(recommendedRules, "api") {
 				recommendedRules = append(recommendedRules, "api")
 			}
+		}
+	}
+
+	// Detect Ansible (playbooks/roles in ansible/)
+	if g.hasDirectory("ansible") && (g.hasDirectory("ansible/playbooks") || g.hasDirectory("ansible/roles")) {
+		frameworks = append(frameworks, "ansible")
+		if !contains(recommendedRules, "ansible") {
+			recommendedRules = append(recommendedRules, "ansible")
 		}
 	}
 

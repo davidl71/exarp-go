@@ -24,6 +24,12 @@ alwaysApply: true
 | `go test ./...`      | `make test`  | Running tests (NEVER run go test directly) |
 | `golangci-lint run`  | `make lint`  | Linting (NEVER run linter directly) |
 | (fix all scorecard)  | `make scorecard-fix` | Auto-fix all fixable scorecard issues (tidy + fmt + lint) |
+| task show one        | `make task-show TASK_ID=T-123` | Show full task details |
+| task + local AI      | `make task-run-with-ai TASK_ID=T-123 [BACKEND=ollama]` | Run task through FM/Ollama/MLX |
+| security scan only   | `make check-security` | Run exarp-go security scan (no govulncheck) |
+| queue usage hints    | `make queue-status` | Show REDIS_ADDR and enqueue/worker/dispatcher hints |
+| remove binary        | `make clean-binary` | Remove bin/exarp-go (then make build for full rebuild) |
+| Ansible in Docker    | `make ansible-docker-smoke` | Syntax-check playbook in Ubuntu container |
 
 **Rules:**
 - Prefer **`make b`** over `make build` in suggested commands and snippets.

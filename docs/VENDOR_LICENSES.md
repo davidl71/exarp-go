@@ -6,6 +6,8 @@ exarp-go vendors Go dependencies in `vendor/`. The original **exarp** project ma
 
 **How to regenerate:** run `make vendor-licenses` (or `./scripts/vendor_licenses.sh` from repo root).
 
+For duplication checks and improvement ideas (e.g. spf13/cast, rate limiter), see [VENDOR_USAGE_AND_IMPROVEMENTS.md](VENDOR_USAGE_AND_IMPROVEMENTS.md).
+
 | Package | Version | License | License file |
 |---------|---------|---------|--------------|
 | cloud.google.com/go/auth | v0.18.1 | Apache-2.0 | vendor/cloud.google.com/go/auth/LICENSE |
