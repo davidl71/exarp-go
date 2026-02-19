@@ -24,7 +24,8 @@ ansible/
 │       ├── hosts                  # Production hosts
 │       └── group_vars/all.yml     # Production variables
 ├── playbooks/
-│   ├── development.yml            # Development setup playbook
+│   ├── development.yml            # Development setup playbook (uses BECOME)
+│   ├── development-user.yml       # User-only setup, no sudo (see "Running without sudo")
 │   ├── production.yml             # Production setup playbook
 │   └── templates/
 │       └── exarp-go.service.j2    # Systemd service template
@@ -111,6 +112,37 @@ ansible-playbook playbooks/development.yml --tags linters
 
 # Skip optional tools
 ansible-playbook playbooks/development.yml --skip-tags optional
+```
+
+### Running without sudo (no BECOME password)
+
+Some tasks only need to write into your home directory or `~/go/bin` and can run **without a BECOME (sudo) password**.
+
+| Requires BECOME (sudo) | Can run without BECOME |
+|------------------------|------------------------|
+| System packages (apt/dnf/homebrew), CA certs, Xcode CLI tools | Create `project_path`, `bin`, `logs` in your home |
+| Installing Go to `/usr/local/go` | Writing Go env (GOROOT, GOPATH, PATH) into `~/.zshrc` / `~/.bashrc` |
+| `/etc/environment` changes | `git config --global advice.*` |
+| Creating system user, chown of dirs | `go install` (protoc-gen-go, gomarklint, shfmt, govulncheck, golangci-lint) → `~/go/bin` |
+| System-wide Node/npm (e.g. `/usr/local/bin`) | `npm install -g --prefix ~/.npm-global` (markdownlint-cli, cspell) |
+| Ollama, Redis, fswatch/inotify (system install) | — |
+
+**User-only playbook (no sudo):**
+
+```bash
+cd ansible
+ansible-playbook -i inventories/development playbooks/development-user.yml
+```
+
+No `--ask-become-pass` is needed. **Prerequisites:** Go must already be installed (e.g. run full `development.yml` once, or install Go manually). Node.js is required only if you use markdownlint-cli or cspell; the user playbook installs them under `~/.npm-global/bin`.
+
+### SSL (macOS)
+
+On macOS, Python/Ansible can hit `CERTIFICATE_VERIFY_FAILED` when fetching over HTTPS. **`run-dev-setup.sh`** sets `SSL_CERT_FILE` and `REQUESTS_CA_BUNDLE` to the system CA bundle (`/etc/ssl/cert.pem` or Homebrew OpenSSL’s) so `ansible-galaxy` and the Go role’s `uri`/`get_url` work without curl fallbacks. If you run `ansible-playbook` or `ansible-galaxy` yourself and see SSL errors, run the script instead or export the same vars:
+
+```bash
+export SSL_CERT_FILE=/etc/ssl/cert.pem
+export REQUESTS_CA_BUNDLE=/etc/ssl/cert.pem
 ```
 
 ## Configuration

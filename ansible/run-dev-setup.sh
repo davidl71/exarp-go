@@ -6,6 +6,17 @@ set -e
 
 cd "$(dirname "$0")"
 
+# Use system CA bundle on macOS so Ansible/Python SSL works (avoids CERTIFICATE_VERIFY_FAILED)
+if [[ "$(uname)" == "Darwin" ]]; then
+    for f in /etc/ssl/cert.pem /usr/local/etc/openssl/cert.pem; do
+        if [[ -f "$f" ]]; then
+            export SSL_CERT_FILE="$f"
+            export REQUESTS_CA_BUNDLE="$f"
+            break
+        fi
+    done
+fi
+
 echo "=== Ansible Development Setup ==="
 echo ""
 
@@ -60,28 +71,32 @@ echo "3. Tasks that will run:"
 ansible-playbook --list-tasks -i inventories/development playbooks/development.yml | grep -E "^(  |    )" | head -25
 echo ""
 
-# --- Confirm ---
-read -p "Continue with installation? (y/N): " -n 1 -r
-echo
-if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-    echo "Cancelled."
-    exit 0
+# --- Check if user-only (no sudo) setup is enough ---
+NEED_SUDO=""
+if ! command -v go &>/dev/null && [[ ! -x /usr/local/go/bin/go ]]; then
+    NEED_SUDO="y"
 fi
-
-# --- Run ---
-echo ""
-echo "4. Running development setup..."
-echo ""
-
-EXTRA_ARGS=""
+for cmd in git make curl; do
+    if ! command -v "$cmd" &>/dev/null; then
+        NEED_SUDO="y"
+        break
+    fi
+done
 if [[ "$(uname)" == "Darwin" ]]; then
-    # macOS: localhost, may not need become password for Homebrew
-    EXTRA_ARGS="--ask-become-pass"
-else
-    EXTRA_ARGS="--ask-become-pass"
+    if ! command -v gcc &>/dev/null && ! command -v clang &>/dev/null && [[ ! -x /Library/Developer/CommandLineTools/usr/bin/gcc ]]; then
+        NEED_SUDO="y"
+    fi
 fi
 
-ansible-playbook -i inventories/development playbooks/development.yml $EXTRA_ARGS
+if [[ -z "$NEED_SUDO" ]]; then
+    echo "4. System check: Go and build tools present → user-only setup (no sudo)."
+    echo ""
+    ansible-playbook -i inventories/development playbooks/development-user.yml
+else
+    echo "4. System check: full setup required (Go and/or build tools missing) → will use sudo."
+    echo ""
+    ansible-playbook -i inventories/development playbooks/development.yml --ask-become-pass
+fi
 
 echo ""
 echo "=== Setup Complete ==="

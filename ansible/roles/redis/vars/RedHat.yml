@@ -1,0 +1,3 @@
+---
+_redis_pkg: redis
+_redis_service_name: redis

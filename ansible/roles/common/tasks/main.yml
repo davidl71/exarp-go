@@ -4,6 +4,7 @@
 
 - name: Load OS-specific variables
   ansible.builtin.include_vars: "{{ ansible_os_family }}.yml"
+  tags: [common]
 
 # --- Package cache (Linux only) ---
 
@@ -11,69 +12,73 @@
   ansible.builtin.apt:
     update_cache: true
     cache_valid_time: 3600
-  ignore_errors: true
   register: apt_update_result
   changed_when: false
   failed_when: false
   when: ansible_os_family == "Debian"
+  tags: [common, packages]
 
 - name: Warn if apt update had issues
   ansible.builtin.debug:
     msg: "⚠️  Apt cache update had some issues. Continuing with available packages..."
   when:
     - ansible_os_family == "Debian"
-    - apt_update_result is defined
-    - (apt_update_result.rc is defined and apt_update_result.rc != 0) or apt_update_result.failed | default(false)
+    - apt_update_result.rc is defined
+    - apt_update_result.rc != 0
+  tags: [common, packages]
 
 - name: Update package cache (RedHat/CentOS)
-  ansible.builtin.yum:
+  ansible.builtin.dnf:
     update_cache: true
   when: ansible_os_family == "RedHat"
+  tags: [common, packages]
 
 # --- CA certificates (Linux only; macOS uses system keychain) ---
-# ca-certificates is installed via _base_packages above; just update the trust store.
+# ca-certificates is installed via _base_packages; just update the trust store.
 
 - name: Update CA trust store (Debian/Ubuntu)
   ansible.builtin.command: update-ca-certificates
   register: ca_update_debian
   changed_when: "'0 added' not in (ca_update_debian.stdout | default(''))"
   when: ansible_os_family == "Debian"
+  tags: [common, security]
 
 - name: Update CA trust store (RedHat/CentOS)
   ansible.builtin.command: update-ca-trust extract
   changed_when: false
   when: ansible_os_family == "RedHat"
+  tags: [common, security]
 
 - name: Verify CA certificate bundle exists
   ansible.builtin.stat:
     path: "{{ _ca_bundle_path }}"
   register: ca_bundle
   when: ansible_system == "Linux"
+  tags: [common, security]
 
 - name: Display CA certificate status
   ansible.builtin.debug:
     msg: "Mozilla CA certificates: {{ '✅ Installed' if ca_bundle.stat.exists | default(false) else '❌ Not found' }} ({{ _ca_bundle_path }})"
   when: ansible_system == "Linux"
+  tags: [common, security]
 
 # --- Base packages (uses OS-specific _base_packages list) ---
 
-- name: Install base packages (Debian/Ubuntu)
-  ansible.builtin.apt:
+- name: Install base packages (Linux)
+  ansible.builtin.package:
     name: "{{ _base_packages }}"
     state: present
-  when: ansible_os_family == "Debian"
-
-- name: Install base packages (RedHat/CentOS)
-  ansible.builtin.yum:
-    name: "{{ _base_packages }}"
-    state: present
-  when: ansible_os_family == "RedHat"
+  when: ansible_system == "Linux"
+  tags: [common, packages]
 
 - name: Install base packages (macOS)
   community.general.homebrew:
     name: "{{ _base_packages }}"
     state: present
   when: ansible_system == "Darwin"
+  tags: [common, packages]
+
+# --- macOS build tools ---
 
 - name: Install Xcode Command Line Tools (macOS)
   ansible.builtin.command: xcode-select --install
@@ -83,43 +88,40 @@
   failed_when: false
   changed_when: xcode_tools_result.rc == 0
   when: ansible_system == "Darwin"
+  tags: [common, packages]
 
-- name: Verify C compiler availability (macOS)
-  ansible.builtin.shell: |
-    command -v gcc >/dev/null 2>&1 || command -v clang >/dev/null 2>&1 || command -v cc >/dev/null 2>&1
-  register: c_compiler_check
+- name: Verify macOS build tools
+  ansible.builtin.command: "which {{ item.bin }}"
+  register: macos_build_checks
   changed_when: false
   failed_when: false
+  loop:
+    - {bin: "gcc", label: "C compiler (gcc/clang)"}
+    - {bin: "swiftc", label: "Swift compiler (swiftc)"}
+    - {bin: "xcrun", label: "Xcode tools (xcrun)"}
+  loop_control:
+    label: "{{ item.label }}"
   when: ansible_system == "Darwin"
-
-- name: Verify Swift compiler availability (macOS)
-  ansible.builtin.command: which swiftc
-  register: swift_compiler_check
-  changed_when: false
-  failed_when: false
-  when: ansible_system == "Darwin"
-
-- name: Verify xcrun availability (macOS)
-  ansible.builtin.command: which xcrun
-  register: xcrun_check
-  changed_when: false
-  failed_when: false
-  when: ansible_system == "Darwin"
+  tags: [common, packages]
 
 - name: Display build dependencies status (macOS)
   ansible.builtin.debug:
-    msg:
-      - "Build Dependencies Status:"
-      - "  C compiler (gcc/clang/cc): {{ '✅ Available' if c_compiler_check.rc == 0 else '❌ Not found' }}"
-      - "  Swift compiler (swiftc): {{ '✅ Available' if swift_compiler_check.rc == 0 else '❌ Not found (required for Apple FM)' }}"
-      - "  Xcode tools (xcrun): {{ '✅ Available' if xcrun_check.rc == 0 else '❌ Not found (required for Apple FM)' }}"
+    msg: >-
+      Build Dependencies:
+      {% for r in macos_build_checks.results | default([]) %}
+      {{ r.item.label }}: {{ '✅' if r.rc == 0 else '❌ Not found' }}{{ ', ' if not loop.last else '' }}
+      {% endfor %}
   when: ansible_system == "Darwin"
+  tags: [common, packages]
+
+# --- User and directories ---
 
 - name: Get current user
   ansible.builtin.command: whoami
   register: current_user
   changed_when: false
   when: ansible_user is not defined
+  tags: [common]
 
 - name: Create project user
   ansible.builtin.user:
@@ -130,6 +132,7 @@
   when:
     - project_user is defined
     - (ansible_user is defined and project_user != ansible_user) or (ansible_user is not defined and project_user != current_user.stdout)
+  tags: [common]
 
 - name: Create project directories
   ansible.builtin.file:
@@ -143,133 +146,130 @@
     - "{{ project_path }}/logs"
   loop_control:
     label: "{{ item }}"
+  tags: [common]
 
-# GitHub CLI (gh) - Optional installation
+# --- GitHub CLI (gh) - Optional ---
 
-- name: Check if GitHub CLI (gh) is already installed
-  ansible.builtin.command: gh --version
-  register: gh_version_check
-  changed_when: false
-  failed_when: false
-  ignore_errors: true
+- name: Install GitHub CLI
   when: install_gh | default(false)
+  tags: [common, gh]
+  block:
+    - name: Check if GitHub CLI (gh) is already installed
+      ansible.builtin.command: gh --version
+      register: gh_version_check
+      changed_when: false
+      failed_when: false
 
-- name: Check if GitHub CLI package is available in apt (Debian/Ubuntu)
-  ansible.builtin.shell: apt-cache search ^gh$ 2>/dev/null | grep -q "^gh " || exit 1
-  args:
-    executable: /bin/bash
-  register: gh_apt_available
-  changed_when: false
-  failed_when: false
-  ignore_errors: true
-  when:
-    - install_gh | default(false)
-    - ansible_os_family == "Debian"
-    - gh_version_check.rc != 0
+    - name: Install GitHub CLI (macOS)
+      community.general.homebrew:
+        name: gh
+        state: present
+      when:
+        - gh_version_check.rc != 0
+        - ansible_system == "Darwin"
 
-- name: Install GitHub CLI via apt package (Debian/Ubuntu - if available in repos)
-  ansible.builtin.apt:
-    name: gh
-    state: present
-    update_cache: true
-  when:
-    - install_gh | default(false)
-    - ansible_os_family == "Debian"
-    - gh_version_check.rc != 0
-    - gh_apt_available is defined
-    - gh_apt_available.rc == 0  # Only use if package is in default repos
+    - name: Check if GitHub CLI package is available in apt
+      ansible.builtin.shell: apt-cache search ^gh$ 2>/dev/null | grep -q "^gh "
+      args:
+        executable: /bin/bash
+      register: gh_apt_available
+      changed_when: false
+      failed_when: false
+      when:
+        - gh_version_check.rc != 0
+        - ansible_os_family == "Debian"
 
-- name: Install GitHub CLI via official apt repository (Debian/Ubuntu - fallback)
-  ansible.builtin.shell: |
-    set -o pipefail
-    type -p curl >/dev/null || (apt-get update && apt-get install curl -y)
-    curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | \
-      dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg \
-    && chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg \
-    && echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] \
-      https://cli.github.com/packages stable main" | \
-      tee /etc/apt/sources.list.d/github-cli.list > /dev/null \
-    && apt-get update \
-    && apt-get install gh -y
-  args:
-    executable: /bin/bash
-    creates: /usr/bin/gh
-  when:
-    - install_gh | default(false)
-    - ansible_os_family == "Debian"
-    - gh_version_check.rc != 0
-    - gh_apt_available is defined
-    - gh_apt_available.rc != 0  # Use fallback if package not in default repos
+    - name: Install GitHub CLI via apt (if available)
+      ansible.builtin.apt:
+        name: gh
+        state: present
+        update_cache: true
+      when:
+        - gh_version_check.rc != 0
+        - ansible_os_family == "Debian"
+        - gh_apt_available.rc | default(1) == 0
 
-- name: Install GitHub CLI (RedHat/CentOS/Fedora)
-  ansible.builtin.package:
-    name: gh
-    state: present
-  when:
-    - install_gh | default(false)
-    - ansible_os_family in ["RedHat", "Suse"]
-    - gh_version_check.rc != 0
+    - name: Install GitHub CLI via official apt repository (fallback)
+      ansible.builtin.shell: |
+        set -o pipefail
+        type -p curl >/dev/null || (apt-get update && apt-get install curl -y)
+        curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | \
+          dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg \
+        && chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg \
+        && echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] \
+          https://cli.github.com/packages stable main" | \
+          tee /etc/apt/sources.list.d/github-cli.list > /dev/null \
+        && apt-get update \
+        && apt-get install gh -y
+      args:
+        executable: /bin/bash
+        creates: /usr/bin/gh
+      when:
+        - gh_version_check.rc != 0
+        - ansible_os_family == "Debian"
+        - gh_apt_available.rc | default(1) != 0
 
-- name: Install GitHub CLI (macOS)
-  community.general.homebrew:
-    name: gh
-    state: present
-  when:
-    - install_gh | default(false)
-    - ansible_system == "Darwin"
-    - gh_version_check.rc != 0
+    - name: Install GitHub CLI (RedHat/CentOS)
+      ansible.builtin.package:
+        name: gh
+        state: present
+      when:
+        - gh_version_check.rc != 0
+        - ansible_os_family in ["RedHat", "Suse"]
 
-- name: Verify GitHub CLI installation
-  ansible.builtin.command: gh --version
-  register: gh_verify
-  changed_when: false
-  failed_when: false
-  ignore_errors: true
-  when: install_gh | default(false)
+    - name: Verify GitHub CLI installation
+      ansible.builtin.command: gh --version
+      register: gh_verify
+      changed_when: false
+      failed_when: false
 
 - name: Display GitHub CLI installation status
   ansible.builtin.debug:
     msg: >-
       GitHub CLI (gh):
-      {{ gh_verify.stdout if (install_gh | default(false)) and gh_verify.rc == 0
+      {{ gh_verify.stdout if (install_gh | default(false)) and gh_verify.rc | default(1) == 0
       else 'Not installed (set install_gh: true to install)' }}
+  tags: [common, gh]
 
-# Runtime dependencies
+# --- Runtime dependencies ---
 
 - name: Install SQLite runtime (Linux)
   ansible.builtin.package:
     name: "{{ _sqlite_packages }}"
     state: present
-  when: ansible_system == "Linux" and _sqlite_packages | length > 0
+  when:
+    - ansible_system == "Linux"
+    - _sqlite_packages | length > 0
+  tags: [common, runtime]
 
 - name: Verify SQLite installation
   ansible.builtin.command: sqlite3 --version
   register: sqlite_version
   changed_when: false
   failed_when: false
-  ignore_errors: true
+  tags: [common, runtime]
 
 - name: Verify C compiler availability (Linux)
-  ansible.builtin.command: which gcc || which clang || which cc
+  ansible.builtin.command: which gcc
   register: c_compiler_check_linux
   changed_when: false
   failed_when: false
   when: ansible_system == "Linux"
+  tags: [common, runtime]
 
 - name: Display build dependencies status (Linux)
   ansible.builtin.debug:
-    msg:
-      - "Build Dependencies Status:"
-      - "  C compiler (gcc/clang/cc): {{ '✅ Available' if c_compiler_check_linux.rc == 0 else '❌ Not found (required for CGO)' }}"
+    msg: "C compiler: {{ '✅ Available' if c_compiler_check_linux.rc == 0 else '❌ Not found (required for CGO)' }}"
   when: ansible_system == "Linux"
+  tags: [common, runtime]
 
 - name: Display runtime dependencies status
   ansible.builtin.debug:
-    msg:
-      - "Runtime Dependencies Status:"
-      - "  SQLite: {{ sqlite_version.stdout if sqlite_version.rc == 0 else '⚠️  Not found (modernc.org/sqlite is pure Go, but system SQLite is recommended)' }}"
+    msg: "SQLite: {{ sqlite_version.stdout if sqlite_version.rc == 0 else '⚠️  Not found (modernc.org/sqlite is pure Go, but system SQLite recommended)' }}"
+  tags: [common, runtime]
 
-# Git: less verbose output (dev preference; see docs/DEV_ENV_GIT_CONFIG.md)
+# --- Git configuration ---
+
 - name: Set git advice for less verbose output (development user)
   ansible.builtin.command: "git config --global advice.{{ item }} false"
   loop:
@@ -298,10 +298,10 @@
     - forceDeleteBranch
     - skippedCherryPicks
     - amWorkDir
+  loop_control:
+    label: "advice.{{ item }}"
   become_user: "{{ project_user }}"
   changed_when: false
   failed_when: false
   when: configure_git_quiet | default(true)
-  tags:
-    - common
-    - always
+  tags: [common, git]

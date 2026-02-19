@@ -1,0 +1,14 @@
+---
+galaxy_info:
+  role_name: redis
+  description: Optional Redis server for exarp-go queue/worker (Asynq)
+  min_ansible_version: "2.14"
+  platforms:
+    - name: Debian
+      versions: [bookworm, jammy, noble]
+    - name: EL
+      versions: [8, 9]
+    - name: MacOSX
+      versions: [all]
+
+dependencies: []

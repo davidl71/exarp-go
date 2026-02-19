@@ -1,0 +1,15 @@
+---
+galaxy_info:
+  role_name: linters
+  description: Optional code quality linters (Go, shell, YAML, markdown, spelling)
+  min_ansible_version: "2.14"
+  platforms:
+    - name: Debian
+      versions: [bookworm, jammy, noble]
+    - name: EL
+      versions: [8, 9]
+    - name: MacOSX
+      versions: [all]
+
+dependencies:
+  - role: golang

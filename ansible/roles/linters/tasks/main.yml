@@ -1,12 +1,13 @@
 ---
 # Linters role - Install optional linters and code quality tools
-# Phase 0: batch system packages (shellcheck, yamllint, ansible-lint, actionlint, Node.js) in one apt/yum/brew call.
+# Phase 0: batch system packages (shellcheck, yamllint, ansible-lint, actionlint, Node.js) in one apt/dnf/brew call.
 # Phase 1: fire off Go/npm tool installs in parallel (async).
 # Phase 2: wait for async jobs (failures are tolerated — linters are optional).
 # Phase 3: verify.
 
 - name: Load OS-specific variables
   ansible.builtin.include_vars: "{{ ansible_os_family }}.yml"
+  tags: [linters, optional]
 
 # --- Phase 0: System packages (shellcheck, yamllint, ansible-lint, actionlint, Node.js) — one batched install per OS ---
 
@@ -18,27 +19,24 @@
          ([ _ansible_lint_pkg ] if ('ansible-lint' in linters and _ansible_lint_pkg is defined) else []) +
          ([ _actionlint_pkg ] if ('actionlint' in linters and _actionlint_pkg is defined) else []) +
          ([ _nodejs_pkg ]     if ('markdownlint-cli' in linters or 'cspell' in linters) else []) }}
-
-- name: Install system linter packages (apt)
-  ansible.builtin.apt:
-    name: "{{ _linter_sys_pkgs }}"
-    state: present
-    update_cache: false
-  when: ansible_os_family == "Debian" and _linter_sys_pkgs | length > 0
   tags: [linters, optional]
 
-- name: Install system linter packages (yum/dnf)
-  ansible.builtin.yum:
+- name: Install system linter packages
+  ansible.builtin.package:
     name: "{{ _linter_sys_pkgs }}"
     state: present
-  when: ansible_os_family == "RedHat" and _linter_sys_pkgs | length > 0
+  when:
+    - _linter_sys_pkgs | length > 0
+    - ansible_system == "Linux"
   tags: [linters, optional]
 
 - name: Install system linter packages (Homebrew)
   community.general.homebrew:
     name: "{{ _linter_sys_pkgs }}"
     state: present
-  when: ansible_system == "Darwin" and _linter_sys_pkgs | length > 0
+  when:
+    - _linter_sys_pkgs | length > 0
+    - ansible_system == "Darwin"
   tags: [linters, optional]
 
 - name: Install ansible-lint (pip) on Linux
@@ -48,7 +46,7 @@
     executable: pip3
   when:
     - "'ansible-lint' in linters"
-    - ansible_os_family != "Darwin"
+    - ansible_system == "Linux"
   tags: [linters, optional]
 
 # --- Phase 1: Fire off async installs (all independent) ---
@@ -67,63 +65,38 @@
   when: "'golangci-lint' in linters"
   tags: [linters, optional]
 
-- name: Install gomarklint (async)
-  ansible.builtin.command: go install github.com/shinagawa-web/gomarklint@latest
+- name: Install Go-based linters (async)
+  ansible.builtin.command: "go install {{ item.pkg }}"
   environment:
     GOPATH: "{{ go_gopath }}"
     PATH: "{{ go_install_path }}/bin:{{ go_bin_path }}:{{ ansible_env.PATH }}"
   args:
-    creates: "{{ go_bin_path }}/gomarklint"
+    creates: "{{ go_bin_path }}/{{ item.bin }}"
   async: 300
   poll: 0
-  register: gomarklint_job
-  when: "'gomarklint' in linters"
+  register: go_linter_jobs
+  loop:
+    - {name: "gomarklint", bin: "gomarklint", pkg: "github.com/shinagawa-web/gomarklint@latest"}
+    - {name: "shfmt", bin: "shfmt", pkg: "mvdan.cc/sh/v3/cmd/shfmt@latest"}
+    - {name: "govulncheck", bin: "govulncheck", pkg: "golang.org/x/vuln/cmd/govulncheck@latest"}
+  loop_control:
+    label: "{{ item.name }}"
+  when: "item.name in linters"
   tags: [linters, optional]
 
-- name: Install shfmt (async)
-  ansible.builtin.command: go install mvdan.cc/sh/v3/cmd/shfmt@latest
-  environment:
-    GOPATH: "{{ go_gopath }}"
-    PATH: "{{ go_install_path }}/bin:{{ go_bin_path }}:{{ ansible_env.PATH }}"
+- name: Install npm-based linters (async)
+  ansible.builtin.command: "npm install -g {{ item.pkg }}"
   args:
-    creates: "{{ go_bin_path }}/shfmt"
-  async: 300
-  poll: 0
-  register: shfmt_job
-  when: "'shfmt' in linters"
-  tags: [linters, optional]
-
-- name: Install govulncheck (async)
-  ansible.builtin.command: go install golang.org/x/vuln/cmd/govulncheck@latest
-  environment:
-    GOPATH: "{{ go_gopath }}"
-    PATH: "{{ go_install_path }}/bin:{{ go_bin_path }}:{{ ansible_env.PATH }}"
-  args:
-    creates: "{{ go_bin_path }}/govulncheck"
-  async: 300
-  poll: 0
-  register: govulncheck_job
-  when: "'govulncheck' in linters"
-  tags: [linters, optional]
-
-- name: Install markdownlint-cli (async)
-  ansible.builtin.command: npm install -g markdownlint-cli
-  args:
-    creates: /usr/local/bin/markdownlint
+    creates: "{{ _npm_global_bin | default('/usr/local/bin') }}/{{ item.bin }}"
   async: 120
   poll: 0
-  register: markdownlint_job
-  when: "'markdownlint-cli' in linters"
-  tags: [linters, optional]
-
-- name: Install cspell (async)
-  ansible.builtin.command: npm install -g cspell
-  args:
-    creates: /usr/local/bin/cspell
-  async: 120
-  poll: 0
-  register: cspell_job
-  when: "'cspell' in linters"
+  register: npm_linter_jobs
+  loop:
+    - {name: "markdownlint-cli", bin: "markdownlint", pkg: "markdownlint-cli"}
+    - {name: "cspell", bin: "cspell", pkg: "cspell"}
+  loop_control:
+    label: "{{ item.name }}"
+  when: "item.name in linters"
   tags: [linters, optional]
 
 # --- Phase 2: Wait for async jobs (failures tolerated — linters are optional) ---
@@ -139,59 +112,32 @@
   when: golangci_job is not skipped and golangci_job.ansible_job_id is defined
   tags: [linters, optional]
 
-- name: Wait for gomarklint install
+- name: Wait for Go-based linter installs
   ansible.builtin.async_status:
-    jid: "{{ gomarklint_job.ansible_job_id }}"
-  register: gomarklint_result
-  until: gomarklint_result.finished
+    jid: "{{ item.ansible_job_id }}"
+  loop: "{{ go_linter_jobs.results | default([]) }}"
+  loop_control:
+    label: "{{ item.item.name | default('unknown') }}"
+  register: go_linter_results
+  until: go_linter_results.finished
   retries: 30
   delay: 10
   failed_when: false
-  when: gomarklint_job is not skipped and gomarklint_job.ansible_job_id is defined
+  when: item.ansible_job_id is defined
   tags: [linters, optional]
 
-- name: Wait for shfmt install
+- name: Wait for npm-based linter installs
   ansible.builtin.async_status:
-    jid: "{{ shfmt_job.ansible_job_id }}"
-  register: shfmt_result
-  until: shfmt_result.finished
-  retries: 30
-  delay: 10
-  failed_when: false
-  when: shfmt_job is not skipped and shfmt_job.ansible_job_id is defined
-  tags: [linters, optional]
-
-- name: Wait for govulncheck install
-  ansible.builtin.async_status:
-    jid: "{{ govulncheck_job.ansible_job_id }}"
-  register: govulncheck_result
-  until: govulncheck_result.finished
-  retries: 30
-  delay: 10
-  failed_when: false
-  when: govulncheck_job is not skipped and govulncheck_job.ansible_job_id is defined
-  tags: [linters, optional]
-
-- name: Wait for markdownlint-cli install
-  ansible.builtin.async_status:
-    jid: "{{ markdownlint_job.ansible_job_id }}"
-  register: markdownlint_result
-  until: markdownlint_result.finished
+    jid: "{{ item.ansible_job_id }}"
+  loop: "{{ npm_linter_jobs.results | default([]) }}"
+  loop_control:
+    label: "{{ item.item.name | default('unknown') }}"
+  register: npm_linter_results
+  until: npm_linter_results.finished
   retries: 12
   delay: 10
   failed_when: false
-  when: markdownlint_job is not skipped and markdownlint_job.ansible_job_id is defined
-  tags: [linters, optional]
-
-- name: Wait for cspell install
-  ansible.builtin.async_status:
-    jid: "{{ cspell_job.ansible_job_id }}"
-  register: cspell_result
-  until: cspell_result.finished
-  retries: 12
-  delay: 10
-  failed_when: false
-  when: cspell_job is not skipped and cspell_job.ansible_job_id is defined
+  when: item.ansible_job_id is defined
   tags: [linters, optional]
 
 # --- Phase 3: Verify ---

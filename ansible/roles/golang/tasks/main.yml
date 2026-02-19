@@ -3,99 +3,104 @@
 
 - name: Load OS-specific variables
   ansible.builtin.include_vars: "{{ ansible_os_family }}.yml"
+  tags: [golang]
 
 - name: Set user home directory
   ansible.builtin.set_fact:
     _user_home: "{{ ansible_env.HOME if ansible_connection == 'local' else '/home/' + go_user }}"
+  tags: [golang]
 
 - name: Check if Go is already installed
   ansible.builtin.command: go version
   register: go_version_check
   changed_when: false
   failed_when: false
+  tags: [golang]
 
-# Ensure go_version_resolved is set (default to go_version; "latest" and "pinned" tasks override)
 - name: Set default resolved Go version
   ansible.builtin.set_fact:
     go_version_resolved: "{{ go_version }}"
+  tags: [golang]
 
-# Normalize OS/arch for go.dev/dl URLs (darwin/linux; amd64/arm64)
 - name: Set Go download OS and architecture
   ansible.builtin.set_fact:
     go_dl_os: "{{ ansible_system | lower }}"
     go_dl_arch: "{{ {'x86_64': 'amd64', 'aarch64': 'arm64'}.get(ansible_architecture, ansible_architecture) }}"
+  tags: [golang]
 
-# Resolve latest stable version from go.dev when go_version is "latest"
-- name: Get latest stable Go version from go.dev (plain text)
-  ansible.builtin.uri:
-    url: "https://go.dev/VERSION?m=text"
-    return_content: true
-    headers:
-      Accept: "text/plain"
-  register: go_latest_release
-  failed_when: false
+# Resolve latest stable version from go.dev (block/rescue for SSL fallback)
+- name: Resolve latest Go version
   when: go_version == 'latest'
+  tags: [golang]
+  block:
+    - name: Fetch latest Go version from go.dev
+      ansible.builtin.uri:
+        url: "https://go.dev/VERSION?m=text"
+        return_content: true
+        headers:
+          Accept: "text/plain"
+      register: go_latest_release
 
-# curl fallback — intentional SSL workaround for macOS Python (see .ansible-lint skip_list)
-- name: Fallback — fetch Go version with curl (SSL workaround for macOS Python)
-  ansible.builtin.command: curl -sSf https://go.dev/VERSION?m=text
-  register: go_latest_curl
-  changed_when: false
-  when: go_version == 'latest' and (go_latest_release is failed or go_latest_release.content is not defined)
+    - name: Set resolved Go version from go.dev
+      ansible.builtin.set_fact:
+        go_version_resolved: "{{ (go_latest_release.content | regex_findall('go([0-9]+\\.[0-9]+(?:\\.[0-9]+)?)') | first) | default(go_version_fallback) }}"
 
-- name: Set resolved Go version (latest from uri)
-  ansible.builtin.set_fact:
-    go_version_resolved: "{{ (go_latest_release.content | regex_findall('go([0-9]+\\.[0-9]+(?:\\.[0-9]+)?)') | first) | default(go_version_fallback) }}"
-  when: go_version == 'latest' and go_latest_release is succeeded and go_latest_release.content is defined
+  rescue:
+    # curl fallback — macOS Python SSL often fails against go.dev
+    - name: Fallback — fetch Go version with curl
+      ansible.builtin.command: curl -sSf https://go.dev/VERSION?m=text
+      register: go_latest_curl
+      changed_when: false
+      failed_when: false
 
-- name: Set resolved Go version (latest from curl fallback)
-  ansible.builtin.set_fact:
-    go_version_resolved: "{{ (go_latest_curl.stdout | regex_findall('go([0-9]+\\.[0-9]+(?:\\.[0-9]+)?)') | first) | default(go_version_fallback) }}"
-  when: go_version == 'latest' and (go_latest_release is failed or go_latest_release.content is not defined) and go_latest_curl is succeeded
-
-- name: Set resolved Go version (hardcoded fallback)
-  ansible.builtin.set_fact:
-    go_version_resolved: "{{ go_version_fallback }}"
-  when: go_version == 'latest' and go_version_resolved == 'latest'
+    - name: Set resolved Go version from curl
+      ansible.builtin.set_fact:
+        go_version_resolved: >-
+          {{ (go_latest_curl.stdout | regex_findall('go([0-9]+\\.[0-9]+(?:\\.[0-9]+)?)') | first) | default(go_version_fallback)
+             if go_latest_curl.rc == 0
+             else go_version_fallback }}
 
 - name: Set resolved Go version (pinned)
   ansible.builtin.set_fact:
     go_version_resolved: "{{ go_version }}"
   when: go_version != 'latest'
+  tags: [golang]
 
 - name: Display resolved Go version
   ansible.builtin.debug:
     msg: "Resolved Go version: {{ go_version_resolved }}"
+  tags: [golang]
 
-# Single fact used by all install/extract tasks — avoids repeating the condition 4 times.
 - name: Check whether Go needs (re)installing
   ansible.builtin.set_fact:
     _go_needs_install: >-
       {{ go_version_resolved != 'latest' and
          (go_version_check.rc != 0 or go_version_check.stdout is not search(go_version_resolved)) }}
+  tags: [golang, install]
 
-- name: Download Go
-  ansible.builtin.get_url:
-    url: "https://go.dev/dl/go{{ go_version_resolved }}.{{ go_dl_os }}-{{ go_dl_arch }}.tar.gz"
-    dest: /tmp/go.tar.gz
-    mode: '0644'
-  register: go_download
-  failed_when: false
-  when: _go_needs_install
-
-# curl fallback — intentional SSL workaround for macOS Python (see .ansible-lint skip_list)
-- name: Fallback — download Go with curl (SSL workaround for macOS Python)
-  ansible.builtin.command: >
-    curl -sSfL -o /tmp/go.tar.gz
-    "https://go.dev/dl/go{{ go_version_resolved }}.{{ go_dl_os }}-{{ go_dl_arch }}.tar.gz"
-  changed_when: true
-  when: _go_needs_install and go_download is defined and go_download is failed
+# Download Go (block/rescue for SSL fallback)
+- name: Download Go tarball
+  when: _go_needs_install | bool
+  tags: [golang, install]
+  block:
+    - name: Download Go via get_url
+      ansible.builtin.get_url:
+        url: "https://go.dev/dl/go{{ go_version_resolved }}.{{ go_dl_os }}-{{ go_dl_arch }}.tar.gz"
+        dest: /tmp/go.tar.gz
+        mode: '0644'
+  rescue:
+    - name: Fallback — download Go with curl
+      ansible.builtin.command: >
+        curl -sSfL -o /tmp/go.tar.gz
+        "https://go.dev/dl/go{{ go_version_resolved }}.{{ go_dl_os }}-{{ go_dl_arch }}.tar.gz"
+      changed_when: true
 
 - name: Remove old Go installation
   ansible.builtin.file:
     path: "{{ go_install_path }}"
     state: absent
-  when: _go_needs_install
+  when: _go_needs_install | bool
+  tags: [golang, install]
 
 - name: Extract Go
   ansible.builtin.unarchive:
@@ -104,7 +109,8 @@
     remote_src: true
     owner: root
     group: "{{ _go_root_group }}"
-  when: _go_needs_install
+  when: _go_needs_install | bool
+  tags: [golang, install]
 
 - name: Set Go environment variables (/etc/environment)
   ansible.builtin.lineinfile:
@@ -119,6 +125,7 @@
   loop_control:
     label: "{{ item.key }}"
   when: _go_has_etc_environment
+  tags: [golang, env]
 
 - name: Set Go environment in user shell profile
   ansible.builtin.blockinfile:
@@ -130,15 +137,18 @@
     marker: "# {mark} ANSIBLE MANAGED BLOCK - Go environment"
     create: true
   when: go_user is defined
+  tags: [golang, env]
 
 - name: Verify Go installation
   ansible.builtin.command: go version
   register: go_verify
   changed_when: false
+  tags: [golang]
 
 - name: Display Go version
   ansible.builtin.debug:
     msg: "Go installed: {{ go_verify.stdout }}"
+  tags: [golang]
 
 # protoc is installed by the common role via _base_packages (protobuf-compiler / protobuf).
 # Only protoc-gen-go (Go tool) needs to be installed here.
@@ -148,8 +158,8 @@
   register: protoc_verify
   changed_when: false
   failed_when: false
+  tags: [golang, tools]
 
-# Install protoc-gen-go (Go protobuf code generator)
 - name: Check if protoc-gen-go is already installed
   ansible.builtin.command: protoc-gen-go --version
   register: protoc_gen_go_check
@@ -157,6 +167,7 @@
   failed_when: false
   environment:
     PATH: "{{ go_bin_path }}:{{ lookup('env', 'PATH') }}"
+  tags: [golang, tools]
 
 - name: Install protoc-gen-go
   ansible.builtin.command: go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
@@ -165,6 +176,7 @@
     PATH: "{{ go_bin_path }}:{{ lookup('env', 'PATH') }}"
     GOPATH: "{{ go_gopath }}"
   when: protoc_gen_go_check.rc != 0
+  tags: [golang, tools]
 
 - name: Verify protoc-gen-go installation
   ansible.builtin.command: protoc-gen-go --version
@@ -173,6 +185,7 @@
   failed_when: false
   environment:
     PATH: "{{ go_bin_path }}:{{ lookup('env', 'PATH') }}"
+  tags: [golang, tools]
 
 - name: Display protoc-gen-go installation status
   ansible.builtin.debug:
@@ -180,3 +193,4 @@
       protoc-gen-go:
       {{ protoc_gen_go_verify.stdout if protoc_gen_go_verify.rc == 0
       else 'Not installed (will be installed on first use)' }}
+  tags: [golang, tools]
