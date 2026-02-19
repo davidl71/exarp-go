@@ -1,5 +1,7 @@
 package database
 
+import "github.com/davidl71/exarp-go/internal/models"
+
 // SchemaVersion represents the current schema version.
 // Must match the highest migration version (migrations/00N_*.sql).
 const SchemaVersion = 8
@@ -41,36 +43,33 @@ const (
 	ColTaskAgent           = "agent"
 )
 
-// Status values.
+// Re-export constants from models so existing callers of database.StatusTodo etc. keep working.
 const (
-	StatusTodo       = "Todo"
-	StatusInProgress = "In Progress"
-	StatusReview     = "Review"
-	StatusDone       = "Done"
-	StatusCancelled  = "Cancelled"
-	StatusBlocked    = "Blocked"
+	StatusTodo       = models.StatusTodo
+	StatusInProgress = models.StatusInProgress
+	StatusReview     = models.StatusReview
+	StatusDone       = models.StatusDone
+	StatusCancelled  = models.StatusCancelled
+	StatusBlocked    = models.StatusBlocked
 )
 
-// Priority values.
 const (
-	PriorityLow      = "low"
-	PriorityMedium   = "medium"
-	PriorityHigh     = "high"
-	PriorityCritical = "critical"
+	PriorityLow      = models.PriorityLow
+	PriorityMedium   = models.PriorityMedium
+	PriorityHigh     = models.PriorityHigh
+	PriorityCritical = models.PriorityCritical
 )
 
-// Comment types.
 const (
-	CommentTypeResearch = "research_with_links"
-	CommentTypeResult   = "result"
-	CommentTypeNote     = "note"
-	CommentTypeManual   = "manualsetup"
+	CommentTypeResearch = models.CommentTypeResearch
+	CommentTypeResult   = models.CommentTypeResult
+	CommentTypeNote     = models.CommentTypeNote
+	CommentTypeManual   = models.CommentTypeManual
 )
 
-// Activity types.
 const (
-	ActivityTypeCreated       = "todo_created"
-	ActivityTypeCommentAdded  = "comment_added"
-	ActivityTypeStatusChanged = "status_changed"
-	ActivityTypeUpdated       = "todo_updated"
+	ActivityTypeCreated       = models.ActivityTypeCreated
+	ActivityTypeCommentAdded  = models.ActivityTypeCommentAdded
+	ActivityTypeStatusChanged = models.ActivityTypeStatusChanged
+	ActivityTypeUpdated       = models.ActivityTypeUpdated
 )

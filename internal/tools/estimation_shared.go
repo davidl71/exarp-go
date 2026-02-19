@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/davidl71/exarp-go/internal/database"
+	"github.com/davidl71/exarp-go/internal/models"
 	"github.com/spf13/cast"
 )
 
@@ -406,7 +407,7 @@ func analyzeByPriority(completedTasks []struct {
 	for _, task := range completedTasks {
 		priority := task.priority
 		if priority == "" {
-			priority = "medium"
+			priority = models.PriorityMedium
 		}
 
 		priorityTasks[priority] = append(priorityTasks[priority], task)
@@ -559,7 +560,7 @@ func handleEstimationBatch(projectRoot string, params map[string]interface{}) (s
 	} else {
 		// Default: all Todo
 		for _, t := range tasks {
-			if t.Status == "Todo" {
+			if t.Status == models.StatusTodo {
 				target = append(target, t)
 			}
 		}
@@ -590,7 +591,7 @@ func handleEstimationBatch(projectRoot string, params map[string]interface{}) (s
 
 		priority := task.Priority
 		if priority == "" {
-			priority = "medium"
+			priority = models.PriorityMedium
 		}
 
 		res, err := estimateStatistically(projectRoot, task.Content, details, task.Tags, priority, useHistorical)
@@ -717,7 +718,7 @@ func loadHistoricalTasksFromJSON(projectRoot string) ([]HistoricalTask, error) {
 
 	for _, task := range state.Todos {
 		status := normalizeStatus(task.Status)
-		if status != "Done" {
+		if status != models.StatusDone {
 			continue
 		}
 
@@ -926,10 +927,10 @@ func estimateFromKeywords(text string) float64 {
 func getPriorityMultiplier(priority string) float64 {
 	priority = strings.ToLower(priority)
 	multipliers := map[string]float64{
-		"low":      0.8,
-		"medium":   1.0,
-		"high":     1.2,
-		"critical": 1.5,
+		models.PriorityLow:      0.8,
+		models.PriorityMedium:   1.0,
+		models.PriorityHigh:     1.2,
+		models.PriorityCritical: 1.5,
 	}
 
 	if mult, ok := multipliers[priority]; ok {

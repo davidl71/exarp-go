@@ -269,23 +269,12 @@ func runFlagBasedMode() error {
 	}
 }
 
-// IsTTY checks if stdin is a terminal.
-// Uses mcp-go-core CLI utilities for shared implementation.
-func IsTTY() bool {
-	return mcpcli.IsTTY()
-}
-
-// IsTTYStdout checks if stdout is a terminal.
-// Use for colored output detection: enable colors only when stdout is a TTY.
-// Uses mcp-go-core IsTTYFile(os.Stdout).
-func IsTTYStdout() bool {
+func isTTYStdout() bool {
 	return mcpcli.IsTTYFile(os.Stdout)
 }
 
-// ColorEnabled returns true when colored CLI output is appropriate (stdout is a TTY).
-// Callers may use this to enable ANSI color codes for list, tool output, etc.
-func ColorEnabled() bool {
-	return IsTTYStdout()
+func colorEnabled() bool {
+	return isTTYStdout()
 }
 
 // ExecutionMode is the detected run mode (cli vs mcp). Re-exported from mcp-go-core.
@@ -344,7 +333,7 @@ func ConciseOutput(s string) string {
 }
 
 func colorizeToolName(name string) string {
-	if !ColorEnabled() {
+	if !colorEnabled() {
 		return name
 	}
 

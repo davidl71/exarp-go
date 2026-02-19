@@ -13,6 +13,7 @@ import (
 	"github.com/davidl71/exarp-go/internal/config"
 	"github.com/davidl71/exarp-go/internal/database"
 	"github.com/davidl71/exarp-go/internal/framework"
+	"github.com/davidl71/exarp-go/internal/models"
 	"github.com/davidl71/exarp-go/proto"
 	"github.com/spf13/cast"
 )
@@ -1036,7 +1037,7 @@ func generatePlanMarkdown(ctx context.Context, projectRoot, planTitle string) (s
 	}
 
 	for _, t := range tasks {
-		if IsPendingStatus(t.Status) && t.Priority == "low" && !actionIDs[t.ID] {
+		if IsPendingStatus(t.Status) && t.Priority == models.PriorityLow && !actionIDs[t.ID] {
 			deferred = append(deferred, fmt.Sprintf("**%s** (%s) — low priority", t.ID, t.Content))
 		}
 	}
@@ -1297,11 +1298,11 @@ func escapeYAMLString(s string) string {
 // todo2StatusToCursorStatus maps Todo2 status to Cursor plan todo status (pending, in_progress, completed).
 func todo2StatusToCursorStatus(todo2Status string) string {
 	switch strings.TrimSpace(strings.ToLower(todo2Status)) {
-	case "done":
+	case strings.ToLower(models.StatusDone):
 		return "completed"
-	case "in progress", "inprogress":
+	case strings.ToLower(models.StatusInProgress), "inprogress":
 		return "in_progress"
-	case "review":
+	case strings.ToLower(models.StatusReview):
 		return "in_progress"
 	default:
 		return "pending"
@@ -1751,7 +1752,7 @@ func getRisksAndBlockers(projectRoot string) ([]map[string]interface{}, error) {
 	if err == nil {
 		tasks := tasksFromPtrs(list)
 		for _, task := range tasks {
-			if IsPendingStatus(task.Status) && task.Priority == "critical" {
+			if IsPendingStatus(task.Status) && task.Priority == models.PriorityCritical {
 				risks = append(risks, map[string]interface{}{
 					"type":        "blocker",
 					"description": task.Content,
@@ -1793,7 +1794,7 @@ func getNextActions(projectRoot string) ([]map[string]interface{}, error) {
 	if err != nil {
 		// Fallback: high/critical pending without order
 		for _, task := range tasks {
-			if IsPendingStatus(task.Status) && (task.Priority == "high" || task.Priority == "critical") {
+			if IsPendingStatus(task.Status) && (task.Priority == models.PriorityHigh || task.Priority == models.PriorityCritical) {
 				estimatedHours := 0.0
 
 				if task.Metadata != nil {
@@ -1885,11 +1886,11 @@ func generatePRD(ctx context.Context, projectRoot, projectName string, includeAr
 			for _, task := range tasks {
 				if IsPendingStatus(task.Status) {
 					switch task.Priority {
-					case "critical":
+					case models.PriorityCritical:
 						criticalTasks = append(criticalTasks, task)
-					case "high":
+					case models.PriorityHigh:
 						highTasks = append(highTasks, task)
-					case "medium":
+					case models.PriorityMedium:
 						mediumTasks = append(mediumTasks, task)
 					}
 				}

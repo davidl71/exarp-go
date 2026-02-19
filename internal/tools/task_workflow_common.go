@@ -179,12 +179,12 @@ func taskToTaskSummary(t *models.Todo2Task) *proto.TaskSummary {
 // This is platform-agnostic (doesn't require Apple FM).
 func handleTaskWorkflowApprove(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	// Extract parameters
-	status := "Review"
+	status := models.StatusReview
 	if s, ok := params["status"].(string); ok && s != "" {
 		status = normalizeStatus(s)
 	}
 
-	newStatus := "Todo"
+	newStatus := models.StatusTodo
 	if s, ok := params["new_status"].(string); ok && s != "" {
 		newStatus = normalizeStatus(s)
 	}
@@ -465,7 +465,7 @@ func handleTaskWorkflowUpdate(ctx context.Context, params map[string]interface{}
 		return nil, fmt.Errorf("update action requires at least one of new_status, priority, tags, remove_tags, name, long_description, parent_id, dependencies, local_ai_backend, or recommended_tools")
 	}
 
-	useClaim := newStatus == "In Progress"
+	useClaim := newStatus == models.StatusInProgress
 
 	var agentID string
 
@@ -612,7 +612,7 @@ func handleTaskWorkflowUpdate(ctx context.Context, params map[string]interface{}
 		result["skipped_locked"] = skippedLocked
 	}
 
-	if newStatus == "Review" && updatedCount > 0 {
+	if newStatus == models.StatusReview && updatedCount > 0 {
 		approvalRequests := make([]ApprovalRequest, 0, len(updatedIDs))
 
 		for _, id := range updatedIDs {
@@ -632,35 +632,6 @@ func handleTaskWorkflowUpdate(ctx context.Context, params map[string]interface{}
 
 	return response.FormatResult(result, "")
 }
-
-// extractTaskIDs returns task IDs from a slice of *Todo2Task (for approve file fallback).
-func extractTaskIDs(candidates []*models.Todo2Task) []string {
-	ids := make([]string, len(candidates))
-	for i, t := range candidates {
-		ids[i] = t.ID
-	}
-
-	return ids
-}
-
-// handleTaskWorkflowList is moved below to avoid duplicating the file-based approve loop.
-func handleTaskWorkflowListPlaceholder(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
-	store, err := getTaskStore(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	_, err = store.ListTasks(ctx, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	_ = params
-
-	return nil, nil
-}
-
-var _ = handleTaskWorkflowListPlaceholder // avoid unused; real list is handleTaskWorkflowList
 
 // handleTaskWorkflowApproveMCP returns an error when project root or task load fails (no bridge).
 func handleTaskWorkflowApproveMCP(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
@@ -731,7 +702,7 @@ func handleTaskWorkflowList(ctx context.Context, params map[string]interface{}) 
 			continue
 		}
 
-		if openOnly && task.Status != "Todo" && task.Status != "In Progress" {
+		if openOnly && task.Status != models.StatusTodo && task.Status != models.StatusInProgress {
 			continue
 		}
 
@@ -1025,8 +996,8 @@ func handleTaskWorkflowSync(ctx context.Context, params map[string]interface{}) 
 
 // Valid task statuses for sanity check.
 var validTaskStatuses = map[string]bool{
-	"Todo": true, "In Progress": true, "Done": true, "Review": true,
-	"todo": true, "in progress": true, "done": true, "review": true,
+	models.StatusTodo: true, models.StatusInProgress: true, models.StatusDone: true, models.StatusReview: true,
+	strings.ToLower(models.StatusTodo): true, strings.ToLower(models.StatusInProgress): true, strings.ToLower(models.StatusDone): true, strings.ToLower(models.StatusReview): true,
 }
 
 // handleTaskWorkflowSanityCheck runs generic Todo2 task sanity checks (epoch dates, empty content, valid status, duplicate IDs, missing deps).
@@ -1049,7 +1020,7 @@ func handleTaskWorkflowSanityCheck(ctx context.Context, params map[string]interf
 
 	for _, task := range tasks {
 		// Invalid task ID (e.g. T-NaN from JS "T-" + NaN)
-		if !isValidTaskID(task.ID) {
+		if !models.IsValidTaskID(task.ID) {
 			issues = append(issues, fmt.Sprintf("Task has invalid ID format: %q (expected T-<integer>)", task.ID))
 		}
 
@@ -1069,7 +1040,7 @@ func handleTaskWorkflowSanityCheck(ctx context.Context, params map[string]interf
 			issues = append(issues, fmt.Sprintf("Task %s has epoch/invalid last_modified", task.ID))
 		}
 
-		if strings.TrimSpace(strings.ToLower(task.Status)) == "done" && models.IsEpochDate(task.CompletedAt) {
+		if strings.EqualFold(task.Status, models.StatusDone) && models.IsEpochDate(task.CompletedAt) {
 			issues = append(issues, fmt.Sprintf("Task %s (Done) has epoch/invalid completed_at", task.ID))
 		}
 
@@ -1245,24 +1216,6 @@ func handleTaskWorkflowClarity(ctx context.Context, params map[string]interface{
 	}, nil
 }
 
-// isValidTaskID returns true unless the task ID looks like a malformed T- ID (e.g. T-NaN).
-// IDs with other prefixes (AFM-, AUTO-, etc.) are allowed. Only T-<non-integer> is invalid.
-func isValidTaskID(taskID string) bool {
-	if !strings.HasPrefix(taskID, "T-") {
-		return true
-	}
-
-	numStr := strings.TrimPrefix(taskID, "T-")
-
-	var num int64
-
-	if _, err := fmt.Sscanf(numStr, "%d", &num); err != nil {
-		return false
-	}
-
-	return num > 0
-}
-
 // isOldSequentialID checks if a task ID uses the old sequential format (T-1, T-2, etc.)
 // vs the new epoch format (T-1768158627000)
 // Old format: T- followed by a small number (< 10000, typically 1-999)
@@ -1307,7 +1260,7 @@ func handleTaskWorkflowCleanup(ctx context.Context, params map[string]interface{
 	// Try database first for efficient filtering and deletion
 	if db, err := database.GetDB(); err == nil && db != nil {
 		// Get all pending tasks
-		pendingStatus := "Todo"
+		pendingStatus := models.StatusTodo
 		filters := &database.TaskFilters{Status: &pendingStatus}
 
 		tasks, err := database.ListTasks(context.Background(), filters)
@@ -1316,19 +1269,19 @@ func handleTaskWorkflowCleanup(ctx context.Context, params map[string]interface{
 		}
 
 		// Also get "In Progress" and "Review" tasks
-		inProgressStatus := "In Progress"
+		inProgressStatus := models.StatusInProgress
 		filters.Status = &inProgressStatus
 		inProgressTasks, _ := database.ListTasks(context.Background(), filters)
 		tasks = append(tasks, inProgressTasks...)
 
-		reviewStatus := "Review"
+		reviewStatus := models.StatusReview
 		filters.Status = &reviewStatus
 		reviewTasks, _ := database.ListTasks(context.Background(), filters)
 		tasks = append(tasks, reviewTasks...)
 
 		// Also get "Done" tasks if including legacy (legacy tasks might be marked Done)
 		if includeLegacy {
-			doneStatus := "Done"
+			doneStatus := models.StatusDone
 			filters.Status = &doneStatus
 			doneTasks, _ := database.ListTasks(context.Background(), filters)
 			tasks = append(tasks, doneTasks...)
@@ -1772,8 +1725,8 @@ func formatStaleTasksFromPtrs(tasks []*models.Todo2Task) []map[string]interface{
 
 // allowedStatusForLinkPlanning restricts link_planning to Todo and In Progress only.
 var allowedStatusForLinkPlanning = map[string]bool{
-	"Todo":        true,
-	"In Progress": true,
+	models.StatusTodo:        true,
+	models.StatusInProgress: true,
 }
 
 // handleTaskWorkflowLinkPlanning sets planning_doc and/or epic_id on existing tasks.
@@ -2224,7 +2177,7 @@ func handleTaskWorkflowEnrichToolHints(ctx context.Context, params map[string]in
 			continue
 		}
 		status := strings.TrimSpace(strings.ToLower(t.Status))
-		if status != "todo" && status != "in progress" {
+		if status != strings.ToLower(models.StatusTodo) && status != strings.ToLower(models.StatusInProgress) {
 			continue
 		}
 
@@ -2307,7 +2260,7 @@ func handleTaskWorkflowFixInvalidIDs(ctx context.Context, params map[string]inte
 	counter := int64(0)
 
 	for i := range tasks {
-		if !isValidTaskID(tasks[i].ID) {
+		if !models.IsValidTaskID(tasks[i].ID) {
 			oldID := tasks[i].ID
 			counter++
 			newID := fmt.Sprintf("T-%d", baseEpoch+counter)

@@ -88,12 +88,6 @@ func handleTaskListParsed(server framework.MCPServer, parsed *mcpcli.Args) error
 	return executeTaskWorkflow(server, toolArgs)
 }
 
-// handleTaskList handles "task list" command (legacy, used by tests).
-func handleTaskList(server framework.MCPServer, args []string) error {
-	parsed := mcpcli.ParseArgs(append([]string{"task", "list"}, args...))
-	return handleTaskListParsed(server, parsed)
-}
-
 // handleTaskStatus handles "task status <task-id>" command.
 func handleTaskStatus(server framework.MCPServer, args []string) error {
 	if len(args) == 0 {
@@ -186,12 +180,6 @@ func handleTaskUpdateWithParams(server framework.MCPServer, taskIDs []string, ol
 	return executeTaskWorkflow(server, toolArgs)
 }
 
-// handleTaskUpdate handles "task update" command (legacy, used by tests).
-func handleTaskUpdate(server framework.MCPServer, args []string) error {
-	parsed := mcpcli.ParseArgs(append([]string{"task", "update"}, args...))
-	return handleTaskUpdateParsed(server, parsed)
-}
-
 // handleTaskCreateParsed handles "task create" command using ParseArgs result.
 func handleTaskCreateParsed(server framework.MCPServer, parsed *mcpcli.Args) error {
 	name := strings.TrimSpace(strings.Join(parsed.Positional, " "))
@@ -237,12 +225,6 @@ func handleTaskCreateParsed(server framework.MCPServer, parsed *mcpcli.Args) err
 	}
 
 	return executeTaskWorkflow(server, toolArgs)
-}
-
-// handleTaskCreate handles "task create" command (legacy, used by tests).
-func handleTaskCreate(server framework.MCPServer, args []string) error {
-	parsed := mcpcli.ParseArgs(append([]string{"task", "create"}, args...))
-	return handleTaskCreateParsed(server, parsed)
 }
 
 // handleTaskShow handles "task show <task-id>" command.

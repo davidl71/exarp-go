@@ -92,13 +92,6 @@ func agentCommand() (execPath string, baseArgs []string) {
 	return path, nil
 }
 
-// AgentBinary returns the path to the agent executable, or "" if not found.
-// Prefer agentCommand() when building the full command (cursor agent vs agent).
-func AgentBinary() string {
-	path, _ := agentCommand()
-	return path
-}
-
 // agentShellCommand returns the agent command as a single string for shell use (e.g. "cursor agent" or "cursor agent --approve-mcps").
 func agentShellCommand() string {
 	raw := os.Getenv("EXARP_AGENT_CMD")

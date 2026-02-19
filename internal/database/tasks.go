@@ -161,30 +161,14 @@ func jsonSafeValue(v interface{}) interface{} {
 	}
 }
 
-// IsValidTaskID returns true if id is a valid task ID (T-<digits>).
-// Rejects empty, "T-NaN", "T-undefined", and any non-numeric suffix.
+// IsValidTaskID delegates to models.IsValidTaskID.
 func IsValidTaskID(id string) bool {
-	if id == "" || id == "T-NaN" || id == "T-undefined" {
-		return false
-	}
-
-	if !strings.HasPrefix(id, "T-") || len(id) <= 2 {
-		return false
-	}
-
-	for _, c := range id[2:] {
-		if c < '0' || c > '9' {
-			return false
-		}
-	}
-
-	return true
+	return models.IsValidTaskID(id)
 }
 
-// GenerateTaskID returns a new task ID in the form T-<epoch_nanoseconds>.
-// Nanosecond precision ensures uniqueness when creating multiple tasks in quick succession.
+// GenerateTaskID delegates to models.GenerateTaskID.
 func GenerateTaskID() string {
-	return fmt.Sprintf("T-%d", time.Now().UnixNano())
+	return models.GenerateTaskID()
 }
 
 // CreateTask creates a new task in the database

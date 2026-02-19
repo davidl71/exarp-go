@@ -17,6 +17,7 @@ import (
 
 	"github.com/davidl71/exarp-go/internal/cache"
 	"github.com/davidl71/exarp-go/internal/config"
+	"github.com/davidl71/exarp-go/internal/models"
 	"github.com/davidl71/exarp-go/internal/database"
 	"github.com/davidl71/exarp-go/internal/framework"
 	"github.com/davidl71/exarp-go/internal/utils"
@@ -263,7 +264,7 @@ func handleSessionPrime(ctx context.Context, params map[string]interface{}) ([]f
 
 		todoCount := 0
 		for _, t := range tasks {
-			if t.Status == "Todo" {
+			if t.Status == models.StatusTodo {
 				todoCount++
 			}
 		}
@@ -502,7 +503,7 @@ func handleSessionEnd(ctx context.Context, params map[string]interface{}, projec
 		if err == nil {
 			tasks := tasksFromPtrs(list)
 			for _, task := range tasks {
-				if task.Status == "In Progress" {
+				if task.Status == models.StatusInProgress {
 					tasksInProgress = append(tasksInProgress, map[string]interface{}{
 						"id":      task.ID,
 						"content": task.Content,
@@ -1318,7 +1319,7 @@ func shouldSuggestPlanMode(tasks []Todo2Task) bool {
 
 		backlog++
 
-		if t.Priority == "high" || t.Priority == "critical" {
+		if t.Priority == models.PriorityHigh || t.Priority == models.PriorityCritical {
 			highPriority++
 		}
 
