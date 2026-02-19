@@ -1,3 +1,4 @@
+// scorecard_mlx.go — MLX-based AI analysis for scorecard data processing.
 package tools
 
 import (
@@ -21,15 +22,29 @@ func GoScorecardToMap(scorecard *GoScorecardResult) map[string]interface{} {
 
 	result["blockers"] = ExtractBlockers(scorecard)
 	result["recommendations"] = scorecard.Recommendations
+	if len(scorecard.LargeFileCandidates) > 0 {
+		candidates := make([]map[string]interface{}, 0, len(scorecard.LargeFileCandidates))
+		for _, f := range scorecard.LargeFileCandidates {
+			candidates = append(candidates, map[string]interface{}{
+				"path":             f.Path,
+				"lines":            f.Lines,
+				"bytes":            f.Bytes,
+				"estimated_tokens": f.EstimatedTokens,
+			})
+		}
+		result["large_file_candidates"] = candidates
+	}
 	result["metrics"] = map[string]interface{}{
-		"go_files":      scorecard.Metrics.GoFiles,
-		"go_lines":      scorecard.Metrics.GoLines,
-		"go_test_files": scorecard.Metrics.GoTestFiles,
-		"go_test_lines": scorecard.Metrics.GoTestLines,
-		"test_coverage": scorecard.Health.GoTestCoverage,
-		"mcp_tools":     scorecard.Metrics.MCPTools,
-		"mcp_prompts":   scorecard.Metrics.MCPPrompts,
-		"mcp_resources": scorecard.Metrics.MCPResources,
+		"go_files":          scorecard.Metrics.GoFiles,
+		"go_lines":          scorecard.Metrics.GoLines,
+		"go_test_files":     scorecard.Metrics.GoTestFiles,
+		"go_test_lines":     scorecard.Metrics.GoTestLines,
+		"test_coverage":     scorecard.Health.GoTestCoverage,
+		"mcp_tools":         scorecard.Metrics.MCPTools,
+		"mcp_prompts":       scorecard.Metrics.MCPPrompts,
+		"mcp_resources":     scorecard.Metrics.MCPResources,
+		"estimated_tokens":  scorecard.Metrics.EstimatedTokens,
+		"total_code_bytes":  scorecard.Metrics.TotalCodeBytes,
 	}
 
 	return result

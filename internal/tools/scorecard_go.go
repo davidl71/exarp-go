@@ -1,3 +1,4 @@
+// scorecard_go.go — Go-native scorecard calculation: build, test, lint, security checks.
 package tools
 
 import (
@@ -17,18 +18,20 @@ import (
 
 // GoProjectMetrics represents Go-specific project metrics.
 type GoProjectMetrics struct {
-	GoFiles        int    `json:"go_files"`
-	GoLines        int    `json:"go_lines"`
-	GoTestFiles    int    `json:"go_test_files"`
-	GoTestLines    int    `json:"go_test_lines"`
-	PythonFiles    int    `json:"python_files"` // Bridge scripts only
-	PythonLines    int    `json:"python_lines"`
-	GoModules      int    `json:"go_modules"`
-	GoDependencies int    `json:"go_dependencies"`
-	GoVersion      string `json:"go_version"`
-	MCPTools       int    `json:"mcp_tools"`
-	MCPPrompts     int    `json:"mcp_prompts"`
-	MCPResources   int    `json:"mcp_resources"`
+	GoFiles         int    `json:"go_files"`
+	GoLines         int    `json:"go_lines"`
+	GoTestFiles     int    `json:"go_test_files"`
+	GoTestLines     int    `json:"go_test_lines"`
+	PythonFiles     int    `json:"python_files"` // Bridge scripts only
+	PythonLines     int    `json:"python_lines"`
+	GoModules       int    `json:"go_modules"`
+	GoDependencies  int    `json:"go_dependencies"`
+	GoVersion       string `json:"go_version"`
+	MCPTools        int    `json:"mcp_tools"`
+	MCPPrompts      int    `json:"mcp_prompts"`
+	MCPResources    int    `json:"mcp_resources"`
+	TotalCodeBytes  int    `json:"total_code_bytes"`  // Sum of .go, _test.go, bridge/tests .py file sizes (for token estimate)
+	EstimatedTokens int    `json:"estimated_tokens"`  // Ratio-based estimate (chars × tokens_per_char); use for context budgeting
 }
 
 // GoHealthChecks represents Go-specific health check results.
@@ -57,12 +60,27 @@ type GoHealthChecks struct {
 	AIAssistDocsExist bool `json:"ai_assist_docs_exist"` // .cursor/skills, .cursor/rules, CLAUDE.md, or .claude/commands/
 }
 
+// FileSizeInfo holds per-file size and token estimate for split/refactor analysis.
+type FileSizeInfo struct {
+	Path            string `json:"path"`              // Relative to project root
+	Lines           int    `json:"lines"`
+	Bytes           int    `json:"bytes"`
+	EstimatedTokens int    `json:"estimated_tokens"`
+}
+
+// Default thresholds for "large file" (split/refactor candidates).
+const (
+	defaultLargeFileTokenThreshold = 6000 // ~24KB at 0.25 tokens/char; exceeds typical context chunk
+	defaultLargeFileLineThreshold  = 500  // Common style-guide limit
+)
+
 // GoScorecardResult represents the complete Go scorecard.
 type GoScorecardResult struct {
-	Metrics         GoProjectMetrics `json:"metrics"`
-	Health          GoHealthChecks   `json:"health"`
-	Recommendations []string         `json:"recommendations"`
-	Score           float64          `json:"score"`
+	Metrics             GoProjectMetrics `json:"metrics"`
+	Health              GoHealthChecks   `json:"health"`
+	Recommendations     []string         `json:"recommendations"`
+	Score               float64          `json:"score"`
+	LargeFileCandidates []FileSizeInfo   `json:"large_file_candidates,omitempty"` // Files above token/line threshold; consider splitting
 	// FastModeUsed is true when scorecard was generated with FastMode (coverage/lint not run).
 	FastModeUsed bool `json:"fast_mode_used,omitempty"`
 }
@@ -76,8 +94,8 @@ type ScorecardOptions struct {
 func collectGoMetrics(ctx context.Context, projectRoot string) (*GoProjectMetrics, error) {
 	metrics := &GoProjectMetrics{}
 
-	// Count Go files
-	goFiles, goLines, err := countGoFiles(projectRoot)
+	// Count Go files (files, lines, bytes)
+	goFiles, goLines, goBytes, err := countGoFilesWithBytes(projectRoot)
 	if err != nil {
 		return nil, fmt.Errorf("failed to count Go files: %w", err)
 	}
@@ -86,7 +104,7 @@ func collectGoMetrics(ctx context.Context, projectRoot string) (*GoProjectMetric
 	metrics.GoLines = goLines
 
 	// Count Go test files
-	testFiles, testLines, err := countGoTestFiles(projectRoot)
+	testFiles, testLines, testBytes, err := countGoTestFilesWithBytes(projectRoot)
 	if err != nil {
 		return nil, fmt.Errorf("failed to count Go test files: %w", err)
 	}
@@ -95,13 +113,17 @@ func collectGoMetrics(ctx context.Context, projectRoot string) (*GoProjectMetric
 	metrics.GoTestLines = testLines
 
 	// Count Python files (bridge scripts only)
-	pythonFiles, pythonLines, err := countPythonFiles(projectRoot)
+	pythonFiles, pythonLines, pythonBytes, err := countPythonFilesWithBytes(projectRoot)
 	if err != nil {
 		return nil, fmt.Errorf("failed to count Python files: %w", err)
 	}
 
 	metrics.PythonFiles = pythonFiles
 	metrics.PythonLines = pythonLines
+
+	totalBytes := goBytes + testBytes + pythonBytes
+	metrics.TotalCodeBytes = totalBytes
+	metrics.EstimatedTokens = int(float64(totalBytes) * config.TokensPerChar())
 
 	// Check Go module
 	if _, err := os.Stat(filepath.Join(projectRoot, "go.mod")); err == nil {
@@ -228,9 +250,73 @@ func performGoHealthChecks(ctx context.Context, projectRoot string, opts *Scorec
 	return health, nil
 }
 
-// countGoFiles counts Go source files and lines.
-func countGoFiles(root string) (int, int, error) {
-	var count, lines int
+// collectPerFileCodeStats returns per-file stats (path, lines, bytes, estimated tokens) for .go, _test.go, and bridge/tests .py.
+// Used for large-file detection (split/refactor candidates) and for optional token-based analysis.
+func collectPerFileCodeStats(projectRoot string) ([]FileSizeInfo, error) {
+	var out []FileSizeInfo
+
+	err := filepath.Walk(projectRoot, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+
+		if info.IsDir() {
+			if info.Name() == ".venv" || info.Name() == "vendor" || info.Name() == ".git" || info.Name() == "__pycache__" {
+				return filepath.SkipDir
+			}
+			return nil
+		}
+
+		rel, _ := filepath.Rel(projectRoot, path)
+		if rel == "" || rel == "." {
+			return nil
+		}
+
+		var add bool
+		if strings.HasSuffix(path, ".go") {
+			add = true
+		} else if strings.HasSuffix(path, ".py") && (strings.Contains(path, "bridge/") || strings.Contains(path, "tests/")) {
+			add = true
+		}
+		if !add {
+			return nil
+		}
+
+		data, err := os.ReadFile(path)
+		if err != nil {
+			return nil // skip unreadable
+		}
+
+		lines := len(strings.Split(string(data), "\n"))
+		bytes := len(data)
+		tokens := int(float64(bytes) * config.TokensPerChar())
+
+		out = append(out, FileSizeInfo{
+			Path:            rel,
+			Lines:           lines,
+			Bytes:           bytes,
+			EstimatedTokens: tokens,
+		})
+		return nil
+	})
+
+	return out, err
+}
+
+// filterLargeFileCandidates returns files that exceed the token or line threshold (split/refactor candidates).
+func filterLargeFileCandidates(files []FileSizeInfo, tokenThreshold, lineThreshold int) []FileSizeInfo {
+	var out []FileSizeInfo
+	for _, f := range files {
+		if f.EstimatedTokens >= tokenThreshold || f.Lines >= lineThreshold {
+			out = append(out, f)
+		}
+	}
+	return out
+}
+
+// countGoFilesWithBytes counts Go source files, lines, and total bytes (for token estimate).
+func countGoFilesWithBytes(root string) (int, int, int, error) {
+	var count, lines, bytes int
 
 	err := filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
@@ -248,22 +334,22 @@ func countGoFiles(root string) (int, int, error) {
 
 		if strings.HasSuffix(path, ".go") && !strings.HasSuffix(path, "_test.go") {
 			count++
-			// Count lines
 			data, err := os.ReadFile(path)
 			if err == nil {
 				lines += len(strings.Split(string(data), "\n"))
+				bytes += len(data)
 			}
 		}
 
 		return nil
 	})
 
-	return count, lines, err
+	return count, lines, bytes, err
 }
 
-// countGoTestFiles counts Go test files and lines.
-func countGoTestFiles(root string) (int, int, error) {
-	var count, lines int
+// countGoTestFilesWithBytes counts Go test files, lines, and total bytes (for token estimate).
+func countGoTestFilesWithBytes(root string) (int, int, int, error) {
+	var count, lines, bytes int
 
 	err := filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
@@ -284,18 +370,19 @@ func countGoTestFiles(root string) (int, int, error) {
 			data, err := os.ReadFile(path)
 			if err == nil {
 				lines += len(strings.Split(string(data), "\n"))
+				bytes += len(data)
 			}
 		}
 
 		return nil
 	})
 
-	return count, lines, err
+	return count, lines, bytes, err
 }
 
-// countPythonFiles counts Python files and lines (bridge scripts only).
-func countPythonFiles(root string) (int, int, error) {
-	var count, lines int
+// countPythonFilesWithBytes counts Python files and lines (bridge scripts only) and total bytes (for token estimate).
+func countPythonFilesWithBytes(root string) (int, int, int, error) {
+	var count, lines, bytes int
 
 	err := filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
@@ -318,6 +405,7 @@ func countPythonFiles(root string) (int, int, error) {
 				data, err := os.ReadFile(path)
 				if err == nil {
 					lines += len(strings.Split(string(data), "\n"))
+					bytes += len(data)
 				}
 			}
 		}
@@ -325,7 +413,7 @@ func countPythonFiles(root string) (int, int, error) {
 		return nil
 	})
 
-	return count, lines, err
+	return count, lines, bytes, err
 }
 
 // getGoModuleInfo gets Go module dependency count and version.
@@ -623,9 +711,9 @@ func checkAccessControl(projectRoot string) bool {
 	return strings.Contains(content, "type AccessControl") && strings.Contains(content, "func CheckToolAccess")
 }
 
-// generateGoRecommendations generates recommendations based on health checks.
+// generateGoRecommendations generates recommendations based on health checks and large-file analysis.
 // When fastModeUsed is true, recommendations for skipped checks (go mod tidy, go build, etc.) are not added.
-func generateGoRecommendations(health *GoHealthChecks, metrics *GoProjectMetrics, fastModeUsed bool) []string {
+func generateGoRecommendations(health *GoHealthChecks, metrics *GoProjectMetrics, fastModeUsed bool, largeFileCandidates []FileSizeInfo) []string {
 	var recommendations []string
 
 	if !health.GoModExists {
@@ -676,6 +764,10 @@ func generateGoRecommendations(health *GoHealthChecks, metrics *GoProjectMetrics
 	autoFixable := !health.GoFmtCompliant || (!fastModeUsed && !health.GoModTidyPasses) || (!fastModeUsed && health.GoLintConfigured && !health.GoLintPasses)
 	if autoFixable {
 		recommendations = append(recommendations, "💡 Auto-fix all: make scorecard-fix")
+	}
+
+	if len(largeFileCandidates) > 0 {
+		recommendations = append(recommendations, "Consider splitting/refactoring large files (see Large files section) for better LLM context fit and maintainability")
 	}
 
 	return recommendations
@@ -825,7 +917,17 @@ func FormatGoScorecard(scorecard *GoScorecardResult) string {
 	sb.WriteString(fmt.Sprintf("    MCP Tools:        %d\n", scorecard.Metrics.MCPTools))
 	sb.WriteString(fmt.Sprintf("    MCP Prompts:      %d\n", scorecard.Metrics.MCPPrompts))
 	sb.WriteString(fmt.Sprintf("    MCP Resources:    %d\n", scorecard.Metrics.MCPResources))
+	sb.WriteString(fmt.Sprintf("    Est. tokens (code): %d (≈ context cost if sent to LLM; ratio-based)\n", scorecard.Metrics.EstimatedTokens))
 	sb.WriteString("\n")
+
+	// Large files (split/refactor candidates): multi-stage token/size → threshold → list
+	if len(scorecard.LargeFileCandidates) > 0 {
+		sb.WriteString("  Large files (consider splitting/refactoring for context fit):\n")
+		for _, f := range scorecard.LargeFileCandidates {
+			sb.WriteString(fmt.Sprintf("    %s  %d lines  ~%d tokens\n", f.Path, f.Lines, f.EstimatedTokens))
+		}
+		sb.WriteString("\n")
+	}
 
 	// Health Checks
 	sb.WriteString("  Go Health Checks:\n")
@@ -974,17 +1076,25 @@ func GenerateGoScorecard(ctx context.Context, projectRoot string, opts *Scorecar
 
 	fastMode := opts != nil && opts.FastMode
 
-	// Generate recommendations
-	recommendations := generateGoRecommendations(health, metrics, fastMode)
+	// Multi-stage: per-file token/size → threshold filter → split/refactor candidates
+	allFiles, err := collectPerFileCodeStats(projectRoot)
+	if err != nil {
+		return nil, fmt.Errorf("failed to collect per-file stats: %w", err)
+	}
+	largeCandidates := filterLargeFileCandidates(allFiles, defaultLargeFileTokenThreshold, defaultLargeFileLineThreshold)
+
+	// Generate recommendations (include large-file rec when applicable)
+	recommendations := generateGoRecommendations(health, metrics, fastMode, largeCandidates)
 
 	// Calculate score
 	score := calculateGoScore(health, metrics)
 
 	return &GoScorecardResult{
-		Metrics:         *metrics,
-		Health:          *health,
-		Recommendations: recommendations,
-		Score:           score,
-		FastModeUsed:    fastMode,
+		Metrics:             *metrics,
+		Health:              *health,
+		Recommendations:     recommendations,
+		Score:               score,
+		LargeFileCandidates: largeCandidates,
+		FastModeUsed:        fastMode,
 	}, nil
 }
