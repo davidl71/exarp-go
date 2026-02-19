@@ -1,3 +1,4 @@
+// tui_commands.go — TUI tea.Cmd factories for background operations.
 package cli
 
 import (
@@ -51,6 +52,22 @@ func loadTasks(status string) tea.Cmd {
 		}
 
 		return taskLoadedMsg{tasks: tasks, err: err}
+	}
+}
+
+// updateTaskStatusCmd updates a task's status in the DB and returns statusUpdateDoneMsg so the list can be reloaded.
+func updateTaskStatusCmd(taskID, newStatus string) tea.Cmd {
+	return func() tea.Msg {
+		ctx := context.Background()
+		task, err := database.GetTask(ctx, taskID)
+		if err != nil {
+			return statusUpdateDoneMsg{err: err}
+		}
+		task.Status = newStatus
+		if err := database.UpdateTask(ctx, task); err != nil {
+			return statusUpdateDoneMsg{err: err}
+		}
+		return statusUpdateDoneMsg{}
 	}
 }
 

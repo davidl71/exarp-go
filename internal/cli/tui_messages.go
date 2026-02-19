@@ -1,3 +1,4 @@
+// tui_messages.go — TUI tea.Msg types for all async operations.
 package cli
 
 import (
@@ -103,3 +104,8 @@ type childAgentResultMsg struct {
 type tickMsg time.Time
 
 type configSavedMsg struct{}
+
+// statusUpdateDoneMsg is sent after inline status change (d/i/t) so the task list is reloaded.
+type statusUpdateDoneMsg struct {
+	err error
+}

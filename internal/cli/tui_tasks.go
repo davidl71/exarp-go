@@ -1,3 +1,4 @@
+// tui_tasks.go — TUI tasks tab: narrow/medium/wide list rendering.
 package cli
 
 import (
@@ -148,6 +149,12 @@ func (m model) viewTasks() string {
 	statusBar.WriteString(" collapse  ")
 	statusBar.WriteString(helpStyle.Render("s"))
 	statusBar.WriteString(" details  ")
+	statusBar.WriteString(helpStyle.Render("d"))
+	statusBar.WriteString(" Done  ")
+	statusBar.WriteString(helpStyle.Render("i"))
+	statusBar.WriteString(" In Prog  ")
+	statusBar.WriteString(helpStyle.Render("t"))
+	statusBar.WriteString(" Todo  ")
 	statusBar.WriteString(helpStyle.Render("r"))
 	statusBar.WriteString(" refresh  ")
 	statusBar.WriteString(helpStyle.Render("a"))

@@ -11,7 +11,8 @@
 .PHONY: sprint-start sprint-end pre-sprint sprint check-tasks update-completed-tasks task-sanity-check
 .PHONY: task-list task-list-todo task-list-in-progress task-list-done task-prune-done task-update task-create task-show task-run-with-ai
 .PHONY: queue-enqueue-wave queue-worker queue-dispatcher queue-status
-.PHONY: exarp-list exarp-report-scorecard exarp-report-overview exarp-health-server exarp-health-docs exarp-context-budget exarp-test
+.PHONY: exarp-list exarp-report-scorecard exarp-report-overview exarp-session-prime exarp-health-server exarp-health-docs exarp-context-budget exarp-test
+.PHONY: context-token-check context-token-metrics
 .PHONY: version scorecard scorecard-full scorecard-plans report-plan demo-tui
 .PHONY: delete-expired-archive analyze-critical-path vendor-licenses handoff-export
 .PHONY: pre-commit ci validate check-deps scorecard-fix
@@ -35,6 +36,12 @@ REPO_ROOT := $(shell git rev-parse --show-toplevel 2>/dev/null)
 
 # Detect Go binary (check PATH first, then common locations)
 GO := $(shell if command -v go >/dev/null 2>&1; then echo go; elif [ -x /usr/local/go/bin/go ]; then echo /usr/local/go/bin/go; elif [ -x $$HOME/.local/go/bin/go ]; then echo $$HOME/.local/go/bin/go; else echo go; fi)
+
+# Unset GOROOT when it points to a missing dir so 'go' finds its root from the binary (avoids "cannot find GOROOT" when e.g. Go was moved or installed elsewhere)
+GOROOT_MISSING := $(shell [ -n "$$GOROOT" ] && [ ! -d "$$GOROOT" ] && echo 1)
+ifeq ($(GOROOT_MISSING),1)
+  export GOROOT :=
+endif
 
 # Use vendor when present so build works without local replace paths (devwisdom-go, mcp-go-core)
 ifneq ($(wildcard vendor/modules.txt),)
@@ -522,7 +529,7 @@ lint-fix: ## Lint and auto-fix code with exarp-go (requires build)
 		echo "$(YELLOW)exarp-go lint-fix tool completed (check output above)$(NC)"
 	@echo "$(GREEN)✅ Linting and fixes complete$(NC)"
 
-lint-all: ## Lint everything: Go + docs + .cursor/plans (requires build)
+lint-all: ## Lint everything: Go + docs + .cursor/plans + navigability (requires build)
 	$(call exarp_ensure_binary)
 	@echo "$(BLUE)Linting Go...$(NC)"
 	@$(BINARY_PATH) -tool lint -args '{"action":"run","linter":"auto","path":"."}' 2>/dev/null || true
@@ -530,6 +537,8 @@ lint-all: ## Lint everything: Go + docs + .cursor/plans (requires build)
 	@$(BINARY_PATH) -tool lint -args '{"action":"run","path":"docs","linter":"markdownlint"}' 2>/dev/null || true
 	@echo "$(BLUE)Linting .cursor/plans...$(NC)"
 	@$(BINARY_PATH) -tool lint -args '{"action":"run","path":".cursor/plans","linter":"markdownlint"}' 2>/dev/null || true
+	@echo "$(BLUE)Checking AI navigability...$(NC)"
+	@bash scripts/check-navigability.sh || true
 	@echo "$(GREEN)✅ Lint-all complete$(NC)"
 
 lint-all-fix: ## Lint and fix everything: Go + docs + .cursor/plans (requires build)
@@ -1004,9 +1013,10 @@ define exarp_ensure_binary
 fi
 endef
 
-# Use compact JSON when supported (session prime, task list, and future report) to reduce context size
+# Use compact JSON when supported (session prime, task list, report) to reduce context size; responses include token_estimate
 _exarp_report_scorecard_args := '{"action":"scorecard","include_metrics":true,"output_format":"json","compact":true}'
 _exarp_report_overview_args   := '{"action":"overview","include_metrics":true,"output_format":"json","compact":true}'
+_exarp_session_prime_args    := '{"action":"prime","include_tasks":true,"include_hints":true,"output_format":"json","compact":true}'
 
 exarp-list: ## List exarp-go tools (CLI)
 	$(call exarp_run,-list)
@@ -1016,6 +1026,9 @@ exarp-report-scorecard: ## Run report tool (action=scorecard) via exarp-go CLI
 
 exarp-report-overview: ## Run report tool (action=overview) via exarp-go CLI
 	$(call exarp_run,-tool report -args $(_exarp_report_overview_args))
+
+exarp-session-prime: ## Run session (action=prime) with JSON+compact; response includes token_estimate
+	$(call exarp_run,-tool session -args $(_exarp_session_prime_args))
 
 exarp-health-server: ## Run health tool (action=server) via exarp-go CLI
 	$(call exarp_run,-tool health -args '{"action":"server"}')
@@ -1036,6 +1049,41 @@ exarp-test: ## Smoke-test a tool via exarp-go -test; use TOOL=name (e.g. make ex
 		exit 1; \
 	fi
 	$(call exarp_run,-test $(TOOL))
+
+# Context token budget: use token_estimate from report/session JSON (see CONTEXT_REDUCTION_OPTIONS.md)
+# Run overview, scorecard, session prime with JSON; extract token_estimate (jq). Optional TOKEN_BUDGET_LIMIT (0 = skip check).
+context-token-metrics: build ## Echo token_estimate for overview, scorecard, session prime (requires jq for parsing)
+	@echo "$(BLUE)Context token metrics (token_estimate from JSON)...$(NC)"
+	@if ! command -v jq >/dev/null 2>&1; then \
+		echo "$(YELLOW)Install jq to parse token_estimate (e.g. brew install jq)$(NC)"; \
+		$(BINARY_PATH) -tool report -args $(_exarp_report_overview_args) 2>/dev/null | head -1; exit 0; \
+	fi
+	@overview=$$($(BINARY_PATH) -tool report -args $(_exarp_report_overview_args) 2>/dev/null | jq -r '.token_estimate // "n/a"'); \
+	scorecard=$$($(BINARY_PATH) -tool report -args $(_exarp_report_scorecard_args) 2>/dev/null | jq -r '.token_estimate // "n/a"'); \
+	prime=$$(PROJECT_ROOT="$(CURDIR)" $(BINARY_PATH) -tool session -args $(_exarp_session_prime_args) 2>/dev/null | jq -r '.token_estimate // "n/a"'); \
+	echo "report(overview) token_estimate: $${overview}"; \
+	echo "report(scorecard) token_estimate: $${scorecard}"; \
+	echo "session(prime) token_estimate: $${prime}"
+
+context-token-check: build ## Fail if report/session JSON token_estimate exceeds TOKEN_BUDGET_LIMIT (default 0 = disabled). Use in CI.
+	@limit=$${TOKEN_BUDGET_LIMIT:-0}; \
+	if [ "$$limit" -eq 0 ] 2>/dev/null; then \
+		echo "$(BLUE)TOKEN_BUDGET_LIMIT not set or 0 - skipping token budget check$(NC)"; exit 0; \
+	fi
+	@if ! command -v jq >/dev/null 2>&1; then \
+		echo "$(YELLOW)jq not found - skipping context-token-check (install jq for CI)$(NC)"; exit 0; \
+	fi
+	@echo "$(BLUE)Checking context token_estimate against limit $${TOKEN_BUDGET_LIMIT}...$(NC)"
+	@overview=$$($(BINARY_PATH) -tool report -args $(_exarp_report_overview_args) 2>/dev/null | jq -r '.token_estimate // 0'); \
+	scorecard=$$($(BINARY_PATH) -tool report -args $(_exarp_report_scorecard_args) 2>/dev/null | jq -r '.token_estimate // 0'); \
+	prime=$$(PROJECT_ROOT="$(CURDIR)" $(BINARY_PATH) -tool session -args $(_exarp_session_prime_args) 2>/dev/null | jq -r '.token_estimate // 0'); \
+	for name in "overview:$$overview" "scorecard:$$scorecard" "prime:$$prime"; do \
+		n=$${name%%:*}; v=$${name#*:}; \
+		if [ "$$v" -gt "$$limit" ] 2>/dev/null; then \
+			echo "$(RED)❌ $$n token_estimate=$$v exceeds limit $$limit$(NC)"; exit 1; \
+		fi; \
+	done; \
+	echo "$(GREEN)✅ All token_estimate within limit $${TOKEN_BUDGET_LIMIT}$(NC)"
 
 sprint: ## Run full sprint automation (process all background tasks)
 	@echo "$(BLUE)Running sprint automation...$(NC)"
@@ -1272,6 +1320,16 @@ lint-ansible: ## Run ansible-lint on playbooks/roles (requires ansible-lint; run
 	@command -v ansible-lint >/dev/null 2>&1 || (echo "$(RED)ansible-lint not found. Install: brew install ansible-lint or pip install ansible-lint$(NC)" && exit 1)
 	@cd ansible && ansible-lint --format=pep8 -v
 	@echo "$(GREEN)✅ ansible-lint done$(NC)"
+
+lint-nav: ## Check AI navigability aids (file comments, package docs, magic strings)
+	@echo "$(BLUE)Checking AI navigability...$(NC)"
+	@bash scripts/check-navigability.sh
+	@echo "$(GREEN)✅ Navigability check complete$(NC)"
+
+lint-nav-fix: ## Check AI navigability with fix hints
+	@echo "$(BLUE)Checking AI navigability (with fix hints)...$(NC)"
+	@bash scripts/check-navigability.sh --fix-hint || true
+	@echo "$(YELLOW)Review hints above and apply fixes$(NC)"
 
 ##@ Model-Assisted Testing (Future)
 
