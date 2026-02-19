@@ -137,7 +137,7 @@ func (m model) handleBulkStatusKeys(key string) (model, tea.Cmd, bool) {
 		if len(taskIDs) > 0 {
 			m.loading = true
 			m.bulkStatusPrompt = false
-			return m, bulkUpdateStatusCmd(taskIDs, newStatus), true
+			return m, bulkUpdateStatusCmd(m.server, taskIDs, newStatus), true
 		}
 
 		m.bulkStatusPrompt = false
@@ -237,7 +237,7 @@ func (m model) handleTasksInlineStatus(key string) (model, tea.Cmd, bool) {
 
 				if task.Status != newStatus {
 					m.loading = true
-					return m, updateTaskStatusCmd(task.ID, newStatus), true
+					return m, updateTaskStatusCmd(m.server, task.ID, newStatus), true
 				}
 			}
 		}

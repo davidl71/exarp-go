@@ -565,7 +565,7 @@ func taskMatchesSearch(t *database.Todo2Task, q string) bool {
 
 func (m model) Init() tea.Cmd {
 	// Load tasks, start auto-refresh ticker, and get initial window size
-	return tea.Batch(loadTasks(m.status), tick(), tea.WindowSize())
+	return tea.Batch(loadTasks(m.server, m.status), tick(), tea.WindowSize())
 }
 
 func getProjectName(projectRoot string) string {
