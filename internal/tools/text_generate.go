@@ -1,3 +1,4 @@
+// text_generate.go — MCP "text_generate" tool: model-routed text generation (auto/fm/ollama/mlx).
 package tools
 
 import (

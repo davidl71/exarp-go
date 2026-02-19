@@ -1,3 +1,4 @@
+// todo2_json.go — JSON file adapter for Todo2 tasks (legacy fallback storage).
 package tools
 
 import (

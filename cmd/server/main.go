@@ -1,3 +1,6 @@
+// main.go — Main entry point: CLI dispatch or MCP stdio server.
+//
+// Package main provides the exarp-go MCP server and CLI entry point.
 package main
 
 import (

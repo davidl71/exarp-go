@@ -1,3 +1,4 @@
+// tui_waves.go — TUI waves tab view rendering.
 package cli
 
 import (

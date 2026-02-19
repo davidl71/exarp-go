@@ -1,3 +1,4 @@
+// todo2_db_adapter.go — SQLite adapter for Todo2 task storage (DB-first with JSON fallback).
 package tools
 
 import (

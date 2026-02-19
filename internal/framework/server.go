@@ -1,3 +1,4 @@
+// Package framework provides the MCP server interface abstraction and type re-exports.
 package framework
 
 import (

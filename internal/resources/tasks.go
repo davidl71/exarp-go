@@ -1,3 +1,4 @@
+// tasks.go — Resource handlers for stdio://tasks/* (list, by-status, by-id, models).
 package resources
 
 import (

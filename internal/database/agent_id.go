@@ -1,3 +1,4 @@
+// agent_id.go — Agent ID generation for task lock ownership.
 package database
 
 import (

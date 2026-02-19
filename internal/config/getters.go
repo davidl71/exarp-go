@@ -1,3 +1,4 @@
+// getters.go — Global config access and field getter methods.
 package config
 
 import (

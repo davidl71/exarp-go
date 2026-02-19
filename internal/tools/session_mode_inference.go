@@ -1,3 +1,4 @@
+// session_mode_inference.go — MCP "infer_session_mode" tool: detect optimal workflow mode.
 package tools
 
 import (
@@ -8,6 +9,7 @@ import (
 	"time"
 
 	"github.com/davidl71/exarp-go/internal/framework"
+	"github.com/davidl71/exarp-go/internal/models"
 	"github.com/davidl71/mcp-go-core/pkg/mcp/response"
 )
 
@@ -144,7 +146,7 @@ func inferModeFromTasks(tasks []Todo2Task, projectRoot string) ModeInferenceResu
 			pendingCount++
 		}
 
-		if task.Status == "In Progress" {
+		if task.Status == models.StatusInProgress {
 			inProgressCount++
 		}
 

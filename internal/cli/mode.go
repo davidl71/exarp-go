@@ -1,3 +1,4 @@
+// mode.go — CLI "mode" subcommand: workflow mode get/set/suggest.
 package cli
 
 import (

@@ -1,3 +1,4 @@
+// tui_styles.go — TUI lipgloss styles and column width constants.
 package cli
 
 import "github.com/charmbracelet/lipgloss"

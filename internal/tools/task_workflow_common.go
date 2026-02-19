@@ -1,3 +1,4 @@
+// task_workflow_common.go — Task CRUD and workflow action handlers (sync, create, update, etc).
 package tools
 
 import (
@@ -794,6 +795,7 @@ func handleTaskWorkflowList(ctx context.Context, params map[string]interface{}) 
 			taskMaps[i] = m
 		}
 		out := map[string]interface{}{"success": true, "method": "list", "tasks": taskMaps}
+		AddTokenEstimateToResult(out)
 		compact := cast.ToBool(params["compact"])
 		return FormatResultOptionalCompact(out, "", compact)
 	}

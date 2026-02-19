@@ -1,3 +1,4 @@
+// security.go — MCP "security" tool: vulnerability scanning and security checks.
 package tools
 
 import (

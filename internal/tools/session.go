@@ -1,3 +1,4 @@
+// session.go — MCP "session" tool: prime, handoff (end/list/resume/latest/export/close).
 package tools
 
 import (
@@ -366,6 +367,7 @@ func handleSessionPrime(ctx context.Context, params map[string]interface{}) ([]f
 	pb.StatusLabel = statusLabel
 	pb.StatusContext = statusContext
 
+	AddTokenEstimateToResult(result)
 	compact := cast.ToBool(params["compact"])
 	return FormatResultOptionalCompact(result, "", compact)
 }

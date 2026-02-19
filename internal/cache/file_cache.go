@@ -1,3 +1,6 @@
+// file_cache.go — Thread-safe file cache with mtime-based invalidation.
+//
+// Package cache provides file-based and TTL in-memory caching for scorecard, reports, and other data.
 package cache
 
 import (

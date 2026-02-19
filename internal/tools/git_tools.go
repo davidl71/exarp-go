@@ -1,3 +1,4 @@
+// git_tools.go — MCP "git_tools" tool: commits, branches, diff, graph, merge, set_branch.
 package tools
 
 import (

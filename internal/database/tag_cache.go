@@ -1,3 +1,4 @@
+// tag_cache.go — In-memory tag cache for canonical tag lookups and discovery.
 package database
 
 import (

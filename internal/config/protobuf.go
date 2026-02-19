@@ -1,3 +1,4 @@
+// protobuf.go — Protobuf serialization/deserialization for FullConfig.
 package config
 
 import (

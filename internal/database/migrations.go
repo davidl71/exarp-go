@@ -1,3 +1,4 @@
+// migrations.go — Database schema migration management and execution.
 package database
 
 import (

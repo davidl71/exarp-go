@@ -1,3 +1,4 @@
+// plan_waves.go — Wave execution helpers for parallel task plan management.
 package tools
 
 import (

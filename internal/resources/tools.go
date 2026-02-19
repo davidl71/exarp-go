@@ -1,3 +1,4 @@
+// tools.go — Resource handler for stdio://tools (MCP tool catalog listing).
 package resources
 
 import (

@@ -1,3 +1,4 @@
+// driver_sqlite.go — SQLite driver implementation (primary storage backend).
 package database
 
 import (

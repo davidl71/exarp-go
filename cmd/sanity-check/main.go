@@ -1,3 +1,6 @@
+// main.go — CLI tool to verify MCP tool/prompt/resource registration counts.
+//
+// Package main provides the entry point for the sanity-check tool.
 package main
 
 import (

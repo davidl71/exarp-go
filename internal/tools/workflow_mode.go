@@ -1,3 +1,4 @@
+// workflow_mode.go — MCP "workflow_mode" tool: get, set, suggest workflow modes.
 package tools
 
 import (

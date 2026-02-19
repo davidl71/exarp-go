@@ -1,3 +1,6 @@
+// main.go — Test harness for MLX report insights.
+//
+// Package main provides the entry point for the MLX report test harness.
 package main
 
 import (

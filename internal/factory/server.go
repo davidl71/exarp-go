@@ -1,3 +1,6 @@
+// server.go — MCP server factory: creates and configures framework instances.
+//
+// Package factory provides MCP server framework instantiation from configuration.
 package factory
 
 import (
@@ -8,6 +11,7 @@ import (
 	"github.com/davidl71/mcp-go-core/pkg/mcp/framework"
 	"github.com/davidl71/mcp-go-core/pkg/mcp/framework/adapters/gosdk"
 	"github.com/davidl71/mcp-go-core/pkg/mcp/logging"
+	"github.com/lawlielt/ctxcache"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
@@ -35,6 +39,15 @@ func toolLoggingMiddleware(logger *logging.Logger) func(gosdk.ToolHandlerFunc) g
 	}
 }
 
+// toolContextCacheMiddleware wraps each tool request context with a request-scoped cache (ctxcache)
+// so handlers can use ctxcache.Get/Set for per-request memoization without cross-request bleed.
+func toolContextCacheMiddleware(next gosdk.ToolHandlerFunc) gosdk.ToolHandlerFunc {
+	return func(ctx context.Context, req *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		ctx = ctxcache.NewContextWithCache(ctx)
+		return next(ctx, req)
+	}
+}
+
 // NewServer creates a new MCP server using the specified framework.
 func NewServer(frameworkType config.FrameworkType, name, version string) (framework.MCPServer, error) {
 	switch frameworkType {
@@ -43,6 +56,7 @@ func NewServer(frameworkType config.FrameworkType, name, version string) (framew
 		// T-274: Add tool middleware (logging) - middleware chain applied in adapter
 		return gosdk.NewGoSDKAdapter(name, version,
 			gosdk.WithLogger(logger),
+			gosdk.WithMiddleware(toolContextCacheMiddleware),
 			gosdk.WithMiddleware(toolLoggingMiddleware(logger)),
 		), nil
 	default:

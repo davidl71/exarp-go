@@ -1,3 +1,4 @@
+// tui_config.go — TUI config tab view rendering.
 package cli
 
 import (

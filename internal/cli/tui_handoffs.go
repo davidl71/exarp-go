@@ -1,3 +1,4 @@
+// tui_handoffs.go — TUI handoffs tab view and detail rendering.
 package cli
 
 import (

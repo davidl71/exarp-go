@@ -1,3 +1,4 @@
+// todo2_protobuf.go — Protobuf serialization/deserialization for Todo2Task.
 package models
 
 import (

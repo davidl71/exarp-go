@@ -1,3 +1,4 @@
+// external_tool_hints.go — MCP "add_external_tool_hints" tool: inject tool hints into docs.
 package tools
 
 import (

@@ -1,3 +1,4 @@
+// cursor_skills.go — Resource handler for .cursor/skills/ SKILL.md files.
 package resources
 
 import (

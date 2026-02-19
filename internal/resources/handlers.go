@@ -1,3 +1,6 @@
+// handlers.go — MCP resource registry: registers all stdio:// resource handlers.
+//
+// Package resources provides MCP resource handlers for stdio:// URIs (tasks, tools, session, etc.).
 package resources
 
 import (

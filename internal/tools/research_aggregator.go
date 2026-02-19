@@ -1,3 +1,4 @@
+// research_aggregator.go — MCP "research_aggregator" tool: aggregate research findings.
 package tools
 
 import (

@@ -1,3 +1,4 @@
+// memory.go — MCP "memory" tool: store, recall, search, list, forget project memories.
 package tools
 
 import (

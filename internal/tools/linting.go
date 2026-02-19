@@ -1,3 +1,4 @@
+// linting.go — MCP "lint" tool: run and analyze linters (Go, markdown, navigability).
 package tools
 
 import (

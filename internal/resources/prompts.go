@@ -1,3 +1,4 @@
+// prompts.go — Resource handlers for stdio://prompts and stdio://prompts/{name}.
 package resources
 
 import (

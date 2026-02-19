@@ -1,3 +1,4 @@
+// tool_catalog.go — MCP "tool_catalog" tool: help and discovery for available tools.
 package tools
 
 import (

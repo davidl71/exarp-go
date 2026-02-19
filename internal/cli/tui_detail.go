@@ -1,3 +1,4 @@
+// tui_detail.go — TUI task detail view rendering.
 package cli
 
 import (

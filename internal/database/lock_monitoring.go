@@ -1,3 +1,4 @@
+// lock_monitoring.go — Stale lock detection, cleanup, and lease monitoring.
 package database
 
 import (

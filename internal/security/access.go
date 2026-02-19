@@ -1,3 +1,4 @@
+// access.go — Access control, permission checking, and rate limiting.
 package security
 
 import (

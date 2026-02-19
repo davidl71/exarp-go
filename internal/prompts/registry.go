@@ -1,3 +1,6 @@
+// registry.go — Registers all MCP prompts with the server framework.
+//
+// Package prompts provides MCP prompt registration and template definitions.
 package prompts
 
 import (

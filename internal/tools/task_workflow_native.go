@@ -1,3 +1,4 @@
+// task_workflow_native.go — MCP "task_workflow" tool entry point: action dispatch switch.
 package tools
 
 import (
@@ -85,7 +86,7 @@ func handleTaskWorkflowSyncApprovals(ctx context.Context, params map[string]inte
 	var tasks []*models.Todo2Task
 
 	if db, err := database.GetDB(); err == nil && db != nil {
-		reviewTasks, err := database.GetTasksByStatus(ctx, "Review")
+		reviewTasks, err := database.GetTasksByStatus(ctx, models.StatusReview)
 		if err == nil {
 			tasks = reviewTasks
 		}
@@ -97,7 +98,7 @@ func handleTaskWorkflowSyncApprovals(ctx context.Context, params map[string]inte
 			return nil, fmt.Errorf("sync_approvals: %w", err)
 		}
 
-		reviewStatus := "Review"
+		reviewStatus := models.StatusReview
 
 		list, err := store.ListTasks(ctx, &database.TaskFilters{Status: &reviewStatus})
 		if err != nil {
@@ -138,9 +139,9 @@ func handleTaskWorkflowApplyApprovalResult(ctx context.Context, params map[strin
 
 	feedback, _ := params["feedback"].(string)
 
-	newStatus := "Done"
+	newStatus := models.StatusDone
 	if resultVal == "rejected" {
-		newStatus = "In Progress"
+		newStatus = models.StatusInProgress
 	}
 	// Update via same path as update action
 	updateParams := map[string]interface{}{
@@ -374,7 +375,7 @@ func resolveTaskClarification(ctx context.Context, params map[string]interface{}
 		}
 
 		if moveToTodo {
-			task.Status = "Todo"
+			task.Status = models.StatusTodo
 		}
 
 		// Update task in database
@@ -440,7 +441,7 @@ func resolveTaskClarification(ctx context.Context, params map[string]interface{}
 	}
 
 	if moveToTodo {
-		task.Status = "Todo"
+		task.Status = models.StatusTodo
 	}
 
 	if err := store.UpdateTask(ctx, task); err != nil {
@@ -510,7 +511,7 @@ func resolveBatchClarifications(ctx context.Context, params map[string]interface
 			}
 
 			if moveToTodo {
-				task.Status = "Todo"
+				task.Status = models.StatusTodo
 			}
 
 			// Update task in database
@@ -589,7 +590,7 @@ func resolveBatchClarifications(ctx context.Context, params map[string]interface
 		}
 
 		if moveToTodo {
-			task.Status = "Todo"
+			task.Status = models.StatusTodo
 		}
 
 		if err := store.UpdateTask(ctx, task); err != nil {

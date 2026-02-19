@@ -1,3 +1,4 @@
+// validation.go — Config validation rules for timeouts, thresholds, and sections.
 package config
 
 import (

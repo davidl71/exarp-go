@@ -1,3 +1,4 @@
+// report_mlx.go — MLX-based AI insights for report enrichment via DefaultReportInsight.
 package tools
 
 import (

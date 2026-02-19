@@ -1,3 +1,4 @@
+// prompt_tracking.go — MCP "prompt_tracking" tool: log, list, stats for prompt usage.
 package tools
 
 import (

@@ -1,3 +1,4 @@
+// comments.go — CRUD operations for task comments (research, result, note).
 package database
 
 import (

@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/davidl71/exarp-go/internal/database"
+	"github.com/davidl71/exarp-go/internal/models"
 )
 
 // TaskOverlapConflict describes a dependency conflict: two tasks both In Progress where one blocks the other.
@@ -32,7 +33,7 @@ func DetectTaskOverlapConflicts(tasks []*database.Todo2Task) []TaskOverlapConfli
 	inProgressSet := make(map[string]bool)
 
 	for _, t := range tasks {
-		if t != nil && NormalizeStatusToTitleCase(t.Status) == "In Progress" {
+		if t != nil && NormalizeStatusToTitleCase(t.Status) == models.StatusInProgress {
 			inProgressSet[t.ID] = true
 		}
 	}
@@ -40,7 +41,7 @@ func DetectTaskOverlapConflicts(tasks []*database.Todo2Task) []TaskOverlapConfli
 	var out []TaskOverlapConflict
 
 	for _, t := range tasks {
-		if t == nil || NormalizeStatusToTitleCase(t.Status) != "In Progress" {
+		if t == nil || NormalizeStatusToTitleCase(t.Status) != models.StatusInProgress {
 			continue
 		}
 
@@ -96,7 +97,7 @@ func DetectFileConflicts(tasks []*database.Todo2Task) []FileConflict {
 	taskFiles := make(map[string][]string)
 
 	for _, t := range tasks {
-		if t == nil || NormalizeStatusToTitleCase(t.Status) != "In Progress" {
+		if t == nil || NormalizeStatusToTitleCase(t.Status) != models.StatusInProgress {
 			continue
 		}
 

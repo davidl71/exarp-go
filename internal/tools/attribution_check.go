@@ -1,3 +1,4 @@
+// attribution_check.go — MCP "check_attribution" tool: license and attribution validation.
 package tools
 
 import (
@@ -351,7 +352,7 @@ func createAttributionTasks(ctx context.Context, projectRoot string, results Att
 		task := &models.Todo2Task{
 			ID:       taskID,
 			Content:  "Fix high-severity attribution compliance issues",
-			Status:   "Todo",
+			Status:   models.StatusTodo,
 			Priority: "high",
 			Tags:     []string{"attribution", "compliance", "legal"},
 			Metadata: map[string]interface{}{
@@ -387,7 +388,7 @@ func createAttributionTasks(ctx context.Context, projectRoot string, results Att
 		task := &models.Todo2Task{
 			ID:       taskID,
 			Content:  "Add missing attribution headers",
-			Status:   "Todo",
+			Status:   models.StatusTodo,
 			Priority: "medium",
 			Tags:     []string{"attribution", "compliance"},
 			Metadata: map[string]interface{}{

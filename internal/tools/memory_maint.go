@@ -1,3 +1,4 @@
+// memory_maint.go — MCP "memory_maint" tool: health, gc, prune, consolidate, dream.
 package tools
 
 import (

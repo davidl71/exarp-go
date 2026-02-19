@@ -1,3 +1,6 @@
+// external.go — ExternalSource interface and dispatch for external task sync.
+//
+// Package tasksync provides external task sync adapters for GitHub Issues, Google Tasks, and Microsoft To Do.
 package tasksync
 
 import (

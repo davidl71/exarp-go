@@ -1,3 +1,4 @@
+// tui3270.go — IBM 3270 mainframe TUI using racingmars/go3270.
 package cli
 
 import (

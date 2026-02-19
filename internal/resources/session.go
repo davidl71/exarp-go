@@ -1,3 +1,4 @@
+// session.go — Resource handler for stdio://session/status (context and UI labels).
 package resources
 
 import (

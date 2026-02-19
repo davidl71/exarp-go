@@ -1,3 +1,4 @@
+// config.go — CLI "config" subcommand: show, set, export, init, convert.
 package cli
 
 import (

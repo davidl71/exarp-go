@@ -1,3 +1,4 @@
+// google_tasks.go — Google Tasks API sync adapter (OAuth2 + tasks/v1).
 package tasksync
 
 import (

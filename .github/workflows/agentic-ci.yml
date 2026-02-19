@@ -93,8 +93,17 @@ jobs:
         run: |
           echo "Generating agent evaluation report..."
           ./bin/exarp-go -tool report \
-            -args '{"action":"overview","include_metrics":true}' > agent_report.txt || true
+            -args '{"action":"overview","include_metrics":true,"output_format":"json","compact":true}' > agent_report.txt || true
           cat agent_report.txt
+
+      - name: Context token metrics (token_estimate from report/session)
+        run: |
+          make context-token-metrics || true
+
+      - name: Context token budget check (optional)
+        run: |
+          # Fail if token_estimate exceeds limit (set in env or default 20000). 0 = skip.
+          make context-token-check TOKEN_BUDGET_LIMIT=$${TOKEN_BUDGET_LIMIT:-20000} || true
 
       - name: Full handoff export
         run: |

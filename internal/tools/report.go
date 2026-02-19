@@ -1,3 +1,4 @@
+// report.go — MCP "report" tool: overview, scorecard, briefing, plan, PRD actions.
 package tools
 
 import (
@@ -45,6 +46,7 @@ func handleReportOverview(ctx context.Context, params map[string]interface{}) ([
 	switch outputFormat {
 	case "json":
 		overviewMap := ProtoToProjectOverviewData(overviewProto)
+		AddTokenEstimateToResult(overviewMap)
 		compact := cast.ToBool(params["compact"])
 		contents, err := FormatResultOptionalCompact(overviewMap, outputPath, compact)
 		if err != nil {
@@ -101,6 +103,7 @@ func handleReportBriefing(ctx context.Context, params map[string]interface{}) ([
 	// Build briefing from proto (type-safe)
 	briefingProto := BuildBriefingDataProto(engine, score)
 	briefingMap := BriefingDataToMap(briefingProto)
+	AddTokenEstimateToResult(briefingMap)
 	compact, _ := params["compact"].(bool)
 	return FormatResultOptionalCompact(briefingMap, "", compact)
 }

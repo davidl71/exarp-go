@@ -1,3 +1,4 @@
+// ollama_native.go — MCP "ollama" tool: status, models, generate, pull, hardware, docs.
 package tools
 
 import (

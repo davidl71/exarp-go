@@ -1,3 +1,4 @@
+// driver.go — Database driver interface, dialect abstraction, and factory.
 package database
 
 import (

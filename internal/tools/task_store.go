@@ -1,3 +1,4 @@
+// task_store.go — Task store interface and context helpers (DB-first, JSON fallback).
 package tools
 
 import (

@@ -1,3 +1,4 @@
+// recommend.go — MCP "recommend" tool: model, workflow, and advisor recommendations.
 package tools
 
 import (

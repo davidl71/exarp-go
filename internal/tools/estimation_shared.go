@@ -1,3 +1,4 @@
+// estimation_shared.go — Shared estimation logic for task effort (estimate, batch actions).
 package tools
 
 import (

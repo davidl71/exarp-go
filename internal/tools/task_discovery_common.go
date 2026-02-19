@@ -1,3 +1,4 @@
+// task_discovery_common.go — Shared logic for discovering tasks from code comments and docs.
 package tools
 
 import (
@@ -8,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/davidl71/exarp-go/internal/database"
+	"github.com/davidl71/exarp-go/internal/models"
 )
 
 // tagPattern matches hashtags in TODO comments (e.g., #refactor, #bug, #performance).
@@ -179,7 +181,7 @@ func createTasksFromDiscoveries(ctx context.Context, projectRoot string, discove
 		newTask := &Todo2Task{
 			ID:       taskID,
 			Content:  text,
-			Status:   "Todo",
+			Status:   models.StatusTodo,
 			Priority: "medium",
 			Tags:     taskTags,
 			Metadata: database.SanitizeMetadataForWrite(metadata),
