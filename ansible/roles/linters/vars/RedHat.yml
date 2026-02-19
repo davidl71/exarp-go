@@ -2,4 +2,4 @@
 _shellcheck_pkg: ShellCheck
 _yamllint_pkg: yamllint
 _nodejs_pkg: nodejs
-_pkg_install_method: yum
+_npm_global_bin: /usr/local/bin

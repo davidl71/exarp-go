@@ -1,0 +1,14 @@
+---
+galaxy_info:
+  role_name: ollama
+  description: Install Ollama and pull LLM models for local inference
+  min_ansible_version: "2.14"
+  platforms:
+    - name: Debian
+      versions: [bookworm, jammy, noble]
+    - name: EL
+      versions: [8, 9]
+    - name: MacOSX
+      versions: [all]
+
+dependencies: []

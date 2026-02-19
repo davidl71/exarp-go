@@ -1,0 +1,148 @@
+---
+# User-level development setup — no BECOME (no sudo) required
+# Run as the remote user; installs only into ~ (home), ~/go/bin, and ~/.npm-global.
+# Use when you cannot or do not want to enter a sudo password.
+#
+# Prerequisites (must already be installed):
+#   - Go at go_install_path (e.g. /usr/local/go) — or run full development.yml once
+#   - Node.js (if using markdownlint-cli or cspell)
+#   - git, make (for building)
+#
+# Usage: ansible-playbook -i inventories/development playbooks/development-user.yml
+
+- name: User-level setup (no sudo)
+  hosts: development
+  become: false
+  gather_facts: true
+
+  vars:
+    _user_home: "{{ ansible_env.HOME | default(lookup('env', 'HOME')) }}"
+    _go_shell_profile: "{{ '.zshrc' if ansible_os_family == 'Darwin' else '.bashrc' }}"
+    _npm_user_prefix: "{{ _user_home }}/.npm-global"
+
+  tasks:
+    - name: Create project directories (user-owned)
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        mode: '0755'
+      loop:
+        - "{{ project_path }}"
+        - "{{ project_path }}/bin"
+        - "{{ project_path }}/logs"
+      loop_control:
+        label: "{{ item }}"
+      tags: [user, dirs]
+
+    - name: Set Go environment in user shell profile
+      ansible.builtin.blockinfile:
+        path: "{{ _user_home }}/{{ _go_shell_profile }}"
+        block: |
+          export GOROOT={{ go_install_path }}
+          export GOPATH={{ go_gopath }}
+          export PATH=$GOROOT/bin:$GOPATH/bin:$PATH
+        marker: "# {mark} ANSIBLE MANAGED BLOCK - Go environment"
+        create: true
+      tags: [user, env]
+
+    - name: Set git advice for less verbose output
+      ansible.builtin.command: "git config --global advice.{{ item }} false"
+      loop:
+        - statusHints
+        - statusUoption
+        - addEmptyPathspec
+        - addEmbeddedRepo
+        - detachedHead
+        - diverging
+        - pushUpdateRejected
+        - rebaseInProgress
+        - amWorkDir
+      loop_control:
+        label: "advice.{{ item }}"
+      changed_when: false
+      failed_when: false
+      when: configure_git_quiet | default(true)
+      tags: [user, git]
+
+    - name: Install protoc-gen-go (user)
+      ansible.builtin.command: go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
+      environment:
+        PATH: "{{ go_install_path }}/bin:{{ go_bin_path }}:{{ ansible_env.PATH }}"
+        GOPATH: "{{ go_gopath }}"
+      args:
+        creates: "{{ go_bin_path }}/protoc-gen-go"
+      tags: [user, tools]
+
+    - name: Install Go-based linters (user)
+      ansible.builtin.command: "go install {{ item.pkg }}"
+      environment:
+        GOPATH: "{{ go_gopath }}"
+        PATH: "{{ go_install_path }}/bin:{{ go_bin_path }}:{{ ansible_env.PATH }}"
+      args:
+        creates: "{{ go_bin_path }}/{{ item.bin }}"
+      loop:
+        - {name: "gomarklint", bin: "gomarklint", pkg: "github.com/shinagawa-web/gomarklint@latest"}
+        - {name: "shfmt", bin: "shfmt", pkg: "mvdan.cc/sh/v3/cmd/shfmt@latest"}
+        - {name: "govulncheck", bin: "govulncheck", pkg: "golang.org/x/vuln/cmd/govulncheck@latest"}
+      loop_control:
+        label: "{{ item.name }}"
+      when:
+        - install_linters | default(false)
+        - item.name in (linters | default([]))
+      tags: [user, linters]
+
+    - name: Install golangci-lint (user, to GOPATH/bin)
+      ansible.builtin.shell: |
+        set -o pipefail
+        curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b {{ go_bin_path }} latest
+      args:
+        creates: "{{ go_bin_path }}/golangci-lint"
+        executable: /bin/bash
+      when:
+        - install_linters | default(false)
+        - "'golangci-lint' in (linters | default([]))"
+      tags: [user, linters]
+
+    - name: Ensure npm user prefix directory exists
+      ansible.builtin.file:
+        path: "{{ _npm_user_prefix }}/bin"
+        state: directory
+        mode: '0755'
+      when:
+        - install_linters | default(false)
+        - "'markdownlint-cli' in (linters | default([])) or 'cspell' in (linters | default([]))"
+      tags: [user, linters]
+
+    - name: Install npm-based linters (user prefix, no sudo)
+      ansible.builtin.command: "npm install -g {{ item.pkg }} --prefix {{ _npm_user_prefix }}"
+      args:
+        creates: "{{ _npm_user_prefix }}/bin/{{ item.bin }}"
+      loop:
+        - {name: "markdownlint-cli", bin: "markdownlint", pkg: "markdownlint-cli"}
+        - {name: "cspell", bin: "cspell", pkg: "cspell"}
+      loop_control:
+        label: "{{ item.name }}"
+      when:
+        - install_linters | default(false)
+        - item.name in (linters | default([]))
+      tags: [user, linters]
+
+    - name: Add npm user bin to shell profile (if used)
+      ansible.builtin.lineinfile:
+        path: "{{ _user_home }}/{{ _go_shell_profile }}"
+        line: 'export PATH="{{ _npm_user_prefix }}/bin:$PATH"'
+        regexp: '^\s*export PATH=.*\.npm-global'
+        state: present
+      when:
+        - install_linters | default(false)
+        - "'markdownlint-cli' in (linters | default([])) or 'cspell' in (linters | default([]))"
+      tags: [user, env]
+
+    - name: Display user setup summary
+      ansible.builtin.debug:
+        msg:
+          - "✅ User-level setup complete (no sudo used)"
+          - "Go: {{ go_install_path }}, GOPATH: {{ go_gopath }}"
+          - "Project: {{ project_path }}"
+          - "Add to PATH if needed: {{ _npm_user_prefix }}/bin (for markdownlint/cspell)"
+      tags: [user, always]

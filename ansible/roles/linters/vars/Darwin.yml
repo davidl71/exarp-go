@@ -4,4 +4,4 @@ _yamllint_pkg: yamllint
 _ansible_lint_pkg: ansible-lint
 _actionlint_pkg: actionlint
 _nodejs_pkg: node
-_pkg_install_method: homebrew
+_npm_global_bin: /usr/local/bin

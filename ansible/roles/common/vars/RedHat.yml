@@ -1,6 +1,6 @@
 ---
 # RedHat/CentOS-specific variables
-_pkg_manager: yum
+_pkg_manager: dnf
 _root_group: root
 _shell_rc_name: .bashrc
 _ca_bundle_path: /etc/pki/tls/certs/ca-bundle.crt

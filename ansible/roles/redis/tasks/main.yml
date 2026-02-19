@@ -2,42 +2,45 @@
 # Redis role - Optional Redis server for exarp-go queue/worker (Asynq)
 # When install_redis is true, installs Redis so REDIS_ADDR=127.0.0.1:6379 works for:
 #   make queue-enqueue-wave, make queue-worker
-# See docs/EXARP_CLI_SHORTCUTS.md and .cursor/plans/redis-asynq-and-tui.plan.md
+# See docs/EXARP_CLI_SHORTCUTS.md
+
+- name: Load OS-specific variables
+  ansible.builtin.include_vars: "{{ ansible_os_family }}.yml"
+  tags: [redis]
+
+- name: Install Redis (Linux)
+  ansible.builtin.package:
+    name: "{{ _redis_pkg }}"
+    state: present
+  when: ansible_system == "Linux"
+  tags: [redis, install]
 
 - name: Install Redis (macOS)
   community.general.homebrew:
-    name: redis
+    name: "{{ _redis_pkg }}"
     state: present
   when: ansible_system == "Darwin"
-
-- name: Install Redis (Debian/Ubuntu)
-  ansible.builtin.apt:
-    name: redis-server
-    state: present
-  when: ansible_os_family == "Debian"
-
-- name: Install Redis (RedHat/CentOS)
-  ansible.builtin.dnf:
-    name: redis
-    state: present
-  when: ansible_os_family == "RedHat"
+  tags: [redis, install]
 
 - name: Ensure Redis service is started (macOS)
   ansible.builtin.command: brew services start redis
   register: _redis_services
   changed_when: _redis_services.rc == 0 and "started" in (_redis_services.stdout | default(''))
   when: ansible_system == "Darwin"
+  tags: [redis, service]
 
 - name: Ensure Redis service is started (Linux)
   ansible.builtin.service:
-    name: "{{ 'redis-server' if ansible_os_family == 'Debian' else 'redis' }}"
+    name: "{{ _redis_service_name }}"
     state: started
     enabled: true
-  when: ansible_os_family in ['Debian', 'RedHat']
+  when: ansible_system == "Linux"
+  tags: [redis, service]
 
 - name: Display Redis post-install hint
   ansible.builtin.debug:
     msg:
       - "Redis installed for exarp-go queue/worker (optional)"
-      - "Set REDIS_ADDR=127.0.0.1:6379 then: make queue-enqueue-wave, make queue-worker"
+      - "Set REDIS_ADDR={{ redis_bind_address }}:{{ redis_port }} then: make queue-enqueue-wave, make queue-worker"
       - "See docs/EXARP_CLI_SHORTCUTS.md"
+  tags: [redis]

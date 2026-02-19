@@ -1,0 +1,12 @@
+---
+# Linters role defaults — override in inventory group_vars
+
+# npm global bin path (where npm install -g puts binaries)
+_npm_global_bin: /usr/local/bin
+
+# Default linters to install (override in inventory to customise)
+linters:
+  - golangci-lint
+  - govulncheck
+  - shellcheck
+  - shfmt

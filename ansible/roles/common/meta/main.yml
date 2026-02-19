@@ -1,0 +1,14 @@
+---
+galaxy_info:
+  role_name: common
+  description: Base system setup — packages, CA certs, user, directories, git config
+  min_ansible_version: "2.14"
+  platforms:
+    - name: Debian
+      versions: [bookworm, jammy, noble]
+    - name: EL
+      versions: [8, 9]
+    - name: MacOSX
+      versions: [all]
+
+dependencies: []

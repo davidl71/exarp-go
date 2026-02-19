@@ -1,0 +1,11 @@
+---
+# Common role defaults — override in inventory group_vars
+
+# Project
+project_name: "exarp-go"
+project_user: "{{ lookup('env', 'USER') | default(ansible_user_id | default('vagrant')) }}"
+project_path: "{{ lookup('env', 'HOME') | default('/home/' + project_user) }}/Projects/{{ project_name }}"
+
+# Optional features
+install_gh: false
+configure_git_quiet: true
