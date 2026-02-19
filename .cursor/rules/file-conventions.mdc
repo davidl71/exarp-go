@@ -1,0 +1,68 @@
+---
+description: File naming patterns and conventions for exarp-go
+globs:
+  - "internal/**/*.go"
+  - "cmd/**/*.go"
+---
+
+# File Naming Conventions
+
+Follow these patterns when creating or renaming Go files. Consistent naming lets agents locate code by convention.
+
+## Tool handler files (`internal/tools/`)
+
+| Pattern | Example | Purpose |
+|---------|---------|---------|
+| `<tool>.go` | `report.go`, `memory.go` | Primary handler and shared logic |
+| `<tool>_native.go` | `task_workflow_native.go` | Native Go entry point (action dispatch) |
+| `<tool>_native_nocgo.go` | `mlx_native_nocgo.go` | Stub for non-CGO builds |
+| `<tool>_common.go` | `task_workflow_common.go` | Shared helpers across native/bridge |
+| `<tool>_shared.go` | `task_analysis_shared.go` | Shared logic when only one impl exists |
+| `<tool>_provider.go` | `ollama_provider.go` | External service client |
+| `<tool>_test.go` | `report_test.go` | Unit tests |
+| `<tool>_bench_test.go` | `task_analysis_bench_test.go` | Benchmarks |
+
+## TUI files (`internal/cli/`)
+
+| Pattern | Example | Purpose |
+|---------|---------|---------|
+| `tui.go` | — | Core model struct, Init, RunTUI, search, sorting |
+| `tui_update.go` | — | `Update()` method (message handling) |
+| `tui_views.go` | — | `View()` method (main dispatch) |
+| `tui_<section>.go` | `tui_tasks.go`, `tui_waves.go` | Per-tab/section view rendering |
+| `tui_commands.go` | — | tea.Cmd factories (background commands) |
+| `tui_messages.go` | — | tea.Msg types |
+| `tui_styles.go` | — | lipgloss styles and column constants |
+| `tui_helpers.go` | — | Layout/formatting utilities |
+| `tui3270.go` | — | IBM 3270 mainframe TUI (separate framework) |
+
+## Database files (`internal/database/`)
+
+| Pattern | Example | Purpose |
+|---------|---------|---------|
+| `<entity>.go` | `tasks.go` | CRUD operations for an entity |
+| `schema.go` | — | Constants, table names, re-exported model constants |
+| `locking.go` | — | Agent lock/lease operations |
+| `migrations/` | — | Schema migration SQL files |
+
+## Model files (`internal/models/`)
+
+| Pattern | Example | Purpose |
+|---------|---------|---------|
+| `todo2.go` | — | Todo2Task struct and related types |
+| `constants.go` | — | Status, priority, comment type, activity type constants |
+| `task_id.go` | — | IsValidTaskID, GenerateTaskID |
+| `task_hash.go` (planned) | — | Content hash and normalization |
+
+## Build tag conventions
+
+| Tag | When | Files |
+|-----|------|-------|
+| `//go:build !cgo` | Non-CGO stub returning "not available" | `*_nocgo.go` |
+| `//go:build darwin && arm64 && cgo` | Apple Silicon + CGO only | `*_native.go` (FM, MLX, estimation, context) |
+
+## When creating new files
+
+1. Follow the naming pattern for the package you're adding to.
+2. If a file exceeds ~800 lines, split by concern (see TUI split as precedent).
+3. Always add a package-level doc comment in the first `.go` file of a new package, or a file-level comment for new files in existing packages.

@@ -1,0 +1,83 @@
+---
+description: Enforce AI navigability standards when creating or modifying Go files
+alwaysApply: true
+---
+
+# AI Navigability Enforcement
+
+Every Go file must be understandable by an AI agent reading it for the first time. These standards are **enforced by `make lint-nav`** and checked by the scorecard.
+
+## Required navigability aids
+
+### 1. Package doc comment (one per package)
+
+Every package must have a doc comment in exactly one file (conventionally the file matching the package name, or `doc.go`).
+
+```go
+// Package tools implements all MCP tool handlers for the exarp-go server.
+// Each tool is registered in registry.go and dispatched via handlers.go.
+package tools
+```
+
+**Enforcement:** `make lint-nav` flags packages with zero doc comments.
+
+### 2. File-level orientation comment (every `.go` file)
+
+Every `.go` file must start with a comment (before or after the `package` line) explaining what the file contains and how it relates to the system. This is the single most impactful aid for AI agents scanning a codebase.
+
+```go
+// report.go — MCP "report" tool: overview, scorecard, briefing, plan, PRD.
+// Actions are dispatched in handleReportNative; AI insights use DefaultReportInsight().
+package tools
+```
+
+**Enforcement:** `make lint-nav` flags `.go` files >50 lines with no comment before line 5.
+
+### 3. Action/enum constants (not magic strings)
+
+Use named constants from `internal/models/constants.go` instead of bare string literals for status, priority, and comment types.
+
+```go
+// GOOD
+if task.Status == models.StatusDone { ... }
+
+// BAD
+if task.Status == "Done" { ... }
+```
+
+**Enforcement:** `make lint-nav` flags bare `"Todo"`, `"In Progress"`, `"Done"`, `"Review"` string literals in tool handler files.
+
+### 4. Cross-references in complex logic
+
+When a function delegates to another package or file, add a one-line comment pointing to it.
+
+```go
+// Delegates to internal/database.ClaimTaskForAgent for lock acquisition.
+result, err := database.ClaimTaskForAgent(ctx, taskID, agentID, lease)
+```
+
+Not required for obvious calls (e.g., `fmt.Errorf`), only for cross-package domain logic.
+
+## When to check
+
+**You MUST run `make lint-nav` or mentally verify these rules when:**
+
+1. Creating a new `.go` file — add file-level comment + package doc if first file in package.
+2. Modifying a file that lacks a file-level comment — add one as part of your change.
+3. Adding a new MCP tool — ensure handler, registry entry, and code-map rule are all updated.
+4. Using bare string literals for task status/priority — replace with `models.*` constants.
+
+## Quick fix checklist
+
+When `make lint-nav` reports issues:
+
+- **"missing file comment"** → Add a 1–2 line `// filename.go — ...` comment before the package line.
+- **"missing package doc"** → Add `// Package X ...` doc comment in the primary file of that package.
+- **"magic string"** → Replace with constant from `internal/models/constants.go`.
+- **"large file without orientation"** → Add file comment explaining structure and key functions.
+
+## Exemptions
+
+- Test files (`*_test.go`) and benchmark files (`*_bench_test.go`) are exempt from file-level comments (but package docs still required).
+- Generated files (protobuf, etc.) are exempt from all checks.
+- Files under `vendor/` are exempt.
