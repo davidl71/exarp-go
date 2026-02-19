@@ -13,7 +13,7 @@
 .PHONY: queue-enqueue-wave queue-worker queue-dispatcher queue-status
 .PHONY: exarp-list exarp-report-scorecard exarp-report-overview exarp-health-server exarp-health-docs exarp-context-budget exarp-test
 .PHONY: version scorecard scorecard-full scorecard-plans report-plan demo-tui
-.PHONY: delete-expired-archive analyze-critical-path vendor-licenses
+.PHONY: delete-expired-archive analyze-critical-path vendor-licenses handoff-export
 .PHONY: pre-commit ci validate check-deps scorecard-fix
 .PHONY: ansible-check ansible-dev ansible-list ansible-galaxy ansible-docker-smoke
 .PHONY: lint-shellcheck lint-yaml lint-ansible
@@ -486,12 +486,19 @@ check-security: build ## Run security scan only (exarp-go security action=scan)
 	@echo "$(BLUE)Running security scan...$(NC)"
 	@$(BINARY_PATH) -tool security -args '{"action":"scan"}' </dev/null && echo "$(GREEN)✅ Security scan passed$(NC)" || (echo "$(RED)❌ Security scan failed$(NC)" && exit 1)
 
-pre-release: build govulncheck vendor-licenses ## Run before release: build + vulnerability check + vendor credits (not run on pre-commit/pre-push)
+# Full handoff: end session with point-in-time snapshot, then export to docs for CI/remote (see docs/HANDOFF_VIA_GIT.md).
+handoff-export: build ## Create full handoff (end + export to docs/CI_HANDOFF.json) for pre-release or CI
+	@echo "$(BLUE)Creating full handoff (end + export)...$(NC)"
+	@$(BINARY_PATH) -tool session -args '{"action":"handoff","sub_action":"end","summary":"CI pre-release handoff","include_tasks":true,"include_point_in_time_snapshot":true}' </dev/null && \
+	$(BINARY_PATH) -tool session -args '{"action":"handoff","sub_action":"export","output_path":"docs/CI_HANDOFF.json","export_latest":true}' </dev/null && \
+	echo "$(GREEN)✅ Handoff exported to docs/CI_HANDOFF.json$(NC)" || (echo "$(RED)❌ Handoff export failed$(NC)" && exit 1)
+
+pre-release: build govulncheck vendor-licenses handoff-export ## Run before release: build + vuln check + vendor credits + full handoff export (not run on pre-commit/pre-push)
 	@if [ -f $(BINARY_PATH) ]; then \
 		echo "$(BLUE)Running security scan...$(NC)"; \
 		$(BINARY_PATH) -tool security -args '{"action":"scan"}' </dev/null || (echo "$(RED)❌ Security scan failed$(NC)" && exit 1); \
 	fi
-	@echo "$(GREEN)✅ Pre-release checks passed (build + govulncheck + security scan)$(NC)"
+	@echo "$(GREEN)✅ Pre-release checks passed (build + govulncheck + security scan + handoff export)$(NC)"
 
 # Legacy targets (using exarp-go binary; exarp_ensure_binary builds if missing)
 fmt: ## Format code with exarp-go (gofmt/goimports) (requires build)

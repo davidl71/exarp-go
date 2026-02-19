@@ -30,6 +30,8 @@ Use the exarp-go `session` tool with `action=handoff` and `sub_action`:
 - `include_git_status` — include git status (default true)
 - `unassign_my_tasks` — release task locks for this agent (default true)
 - `dry_run` — preview without saving
+- **Task journal:** `modified_task_ids` — array of task IDs modified this session; or `task_journal` — JSON array of `{ "id", "action" }` (or string). Stored in handoff as `task_journal`.
+- **Point-in-time snapshot:** `include_point_in_time_snapshot: true` — attach full task list as gzip+base64 in handoff (`point_in_time_snapshot`). Decode with `tools.DecodePointInTimeSnapshot` or see [HANDOFF_VIA_GIT.md](../../docs/HANDOFF_VIA_GIT.md).
 
 **Examples (MCP):**
 ```json
