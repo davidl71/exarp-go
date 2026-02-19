@@ -1,3 +1,4 @@
+// schema.go — Config schema: FullConfig struct and all sub-config types.
 package config
 
 import (

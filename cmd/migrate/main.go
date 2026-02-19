@@ -1,3 +1,6 @@
+// main.go — CLI tool to migrate Todo2 data from JSON to SQLite.
+//
+// Package main provides the entry point for the JSON-to-SQLite migration tool.
 package main
 
 import (

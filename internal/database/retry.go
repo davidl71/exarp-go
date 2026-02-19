@@ -1,3 +1,4 @@
+// retry.go — Database operation retry with exponential backoff for transient errors.
 package database
 
 import (

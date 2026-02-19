@@ -1,3 +1,4 @@
+// tasks_lock.go — Task locking: claim, release, renew leases for agent coordination.
 package database
 
 import (

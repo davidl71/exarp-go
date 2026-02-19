@@ -1,3 +1,7 @@
+// handlers.go — Top-level MCP tool dispatch: routes tool calls to per-tool handlers.
+//
+// Package tools implements all MCP tool handlers for the exarp-go server.
+// Each tool is registered in registry.go and dispatched via this file.
 package tools
 
 import (
@@ -10,6 +14,7 @@ import (
 
 	"github.com/davidl71/exarp-go/internal/cache"
 	"github.com/davidl71/exarp-go/internal/framework"
+	"github.com/davidl71/exarp-go/internal/models"
 	"github.com/davidl71/exarp-go/proto"
 	"github.com/davidl71/mcp-go-core/pkg/mcp/request"
 	"github.com/davidl71/mcp-go-core/pkg/mcp/response"
@@ -269,6 +274,7 @@ func handleReport(ctx context.Context, args json.RawMessage) ([]framework.TextCo
 				"recommendations":  scorecardProto.GetRecommendations(),
 				"metrics":          scorecardMap["metrics"],
 			}
+			AddTokenEstimateToResult(out)
 			compact := cast.ToBool(params["compact"])
 			return FormatResultOptionalCompact(out, "", compact)
 		}
@@ -479,7 +485,7 @@ func handleTaskWorkflow(ctx context.Context, args json.RawMessage) ([]framework.
 			"action":        "sync",
 			"sub_action":    "list",
 			"output_format": "text",
-			"status":        "Review",
+			"status":        models.StatusReview,
 		})
 	}
 

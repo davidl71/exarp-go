@@ -1,3 +1,4 @@
+// automation_native.go — MCP "automation" tool: sprint_start, sprint_end, pre_sprint workflows.
 package tools
 
 import (

@@ -1,3 +1,4 @@
+// uri_parser.go — URI parsing helpers for stdio:// resource path segments.
 package resources
 
 import (

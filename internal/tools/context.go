@@ -1,3 +1,4 @@
+// context.go — MCP "context" and "context_budget" tools: summarize and budget context tokens.
 package tools
 
 import (

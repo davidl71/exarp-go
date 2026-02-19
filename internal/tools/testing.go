@@ -1,3 +1,4 @@
+// testing.go — MCP "testing" tool: validate, run, and coverage for project tests.
 package tools
 
 import (

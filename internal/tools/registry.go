@@ -1,3 +1,4 @@
+// registry.go — MCP tool/prompt/resource registration (3 batches of tools).
 package tools
 
 import (

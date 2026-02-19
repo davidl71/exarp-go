@@ -1,3 +1,4 @@
+// alignment_analysis.go — MCP "analyze_alignment" tool: todo2 and PRD alignment checks.
 package tools
 
 import (
@@ -581,7 +582,7 @@ func createAlignmentFollowupTasks(ctx context.Context, analysis AlignmentAnalysi
 		task := &models.Todo2Task{
 			ID:       taskID,
 			Content:  "Review misaligned tasks",
-			Status:   "Todo",
+			Status:   models.StatusTodo,
 			Priority: "medium",
 			Tags:     []string{"alignment", "review"},
 			Metadata: map[string]interface{}{
@@ -615,7 +616,7 @@ func createAlignmentFollowupTasks(ctx context.Context, analysis AlignmentAnalysi
 		task := &models.Todo2Task{
 			ID:       taskID,
 			Content:  "Review stale tasks",
-			Status:   "Todo",
+			Status:   models.StatusTodo,
 			Priority: "low",
 			Tags:     []string{"alignment", "cleanup"},
 			Metadata: map[string]interface{}{

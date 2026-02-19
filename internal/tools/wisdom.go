@@ -1,3 +1,4 @@
+// wisdom.go — Wisdom provider integration for devwisdom advisory features.
 package tools
 
 import (

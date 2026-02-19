@@ -1,3 +1,4 @@
+// prompts_helpers.go — Helpers for formatting prompt content from templates.
 package resources
 
 import (

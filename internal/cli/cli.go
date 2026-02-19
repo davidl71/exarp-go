@@ -1,3 +1,6 @@
+// cli.go — CLI entry point: subcommand dispatch, flag parsing, MCP tool invocation.
+//
+// Package cli provides CLI subcommands, the Bubbletea TUI, and the 3270 TUI for exarp-go.
 package cli
 
 import (

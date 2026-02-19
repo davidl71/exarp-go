@@ -1,3 +1,4 @@
+// infer_task_progress.go — MCP "infer_task_progress" tool: heuristic task completion detection.
 package tools
 
 import (

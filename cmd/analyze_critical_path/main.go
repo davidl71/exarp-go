@@ -1,3 +1,6 @@
+// main.go — CLI tool to analyze task dependency critical path.
+//
+// Package main provides the entry point for the critical path analysis tool.
 package main
 
 import (

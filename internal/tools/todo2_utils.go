@@ -1,3 +1,4 @@
+// todo2_utils.go — Shared Todo2 utilities: load, save, format, and sync helpers.
 package tools
 
 import (

@@ -1,3 +1,6 @@
+// main.go — CLI tool to display task statistics (mean, median, quantiles, etc.).
+//
+// Package main provides the entry point for the statistics tool.
 package main
 
 import (

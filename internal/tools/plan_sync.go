@@ -1,3 +1,4 @@
+// plan_sync.go — Sync plan wave statuses with actual task statuses in Todo2.
 package tools
 
 import (
@@ -10,6 +11,7 @@ import (
 
 	"github.com/davidl71/exarp-go/internal/database"
 	"github.com/davidl71/exarp-go/internal/framework"
+	"github.com/davidl71/exarp-go/internal/models"
 	"github.com/davidl71/mcp-go-core/pkg/mcp/response"
 	"gopkg.in/yaml.v3"
 )
@@ -70,24 +72,24 @@ func parsePlanFile(path string) ([]PlanTodo, map[string]bool, error) {
 func cursorStatusToTodo2(s string) string {
 	switch strings.TrimSpace(strings.ToLower(s)) {
 	case "completed", "done":
-		return "Done"
+		return models.StatusDone
 	case "in_progress", "inprogress":
-		return "In Progress"
+		return models.StatusInProgress
 	case "review":
-		return "Review"
+		return models.StatusReview
 	default:
-		return "Todo"
+		return models.StatusTodo
 	}
 }
 
 // todo2StatusToPlanStatus maps Todo2 status to Cursor plan frontmatter status.
 func todo2StatusToPlanStatus(s string) string {
 	switch strings.TrimSpace(s) {
-	case "Done":
+	case models.StatusDone:
 		return "done"
-	case "In Progress":
+	case models.StatusInProgress:
 		return "in_progress"
-	case "Review":
+	case models.StatusReview:
 		return "review"
 	default:
 		return "pending"
@@ -153,7 +155,7 @@ func writePlanFileBack(planPath string, todos []PlanTodo, statusByID map[string]
 		subs := checkboxRe.FindStringSubmatch(line)
 		if len(subs) >= 5 {
 			taskID := strings.TrimSpace(subs[4])
-			checked := statusByID[taskID] == "Done"
+			checked := statusByID[taskID] == models.StatusDone
 			box := "[ ]"
 
 			if checked {
@@ -236,10 +238,10 @@ func handleTaskWorkflowSyncFromPlan(ctx context.Context, params map[string]inter
 		// Checkbox in milestones overrides frontmatter status for Done/Todo
 		if checked, ok := checkboxState[todo.ID]; ok {
 			if checked {
-				todo2Status = "Done"
-			} else if todo2Status == "Done" {
+				todo2Status = models.StatusDone
+			} else if todo2Status == models.StatusDone {
 				// Checkbox unchecked overrides completed in frontmatter
-				todo2Status = "Todo"
+				todo2Status = models.StatusTodo
 			}
 		}
 

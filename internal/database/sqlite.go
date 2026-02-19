@@ -1,3 +1,4 @@
+// sqlite.go — SQLite connection pool, initialization, and global DB handle.
 package database
 
 import (

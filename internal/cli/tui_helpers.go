@@ -1,3 +1,4 @@
+// tui_helpers.go — TUI layout/formatting utilities (truncate, wrap, indent).
 package cli
 
 import (

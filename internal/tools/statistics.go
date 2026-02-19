@@ -1,3 +1,4 @@
+// statistics.go — Statistical calculations (mean, median, stddev) for task metrics.
 package tools
 
 import (

@@ -1,3 +1,4 @@
+// task_tool_rules.go — Validation rules for task tool operations (YAML-based config).
 package tools
 
 import (

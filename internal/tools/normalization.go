@@ -1,7 +1,10 @@
+// normalization.go — Task status and priority normalization helpers.
 package tools
 
 import (
 	"strings"
+
+	"github.com/davidl71/exarp-go/internal/models"
 )
 
 // NormalizeStatus normalizes task status to canonical lowercase form.
@@ -92,7 +95,7 @@ func NormalizeStatus(status string) string {
 //   - NormalizeStatusToTitleCase("") -> "Todo"
 func NormalizeStatusToTitleCase(status string) string {
 	if strings.TrimSpace(status) == "" {
-		return "Todo"
+		return models.StatusTodo
 	}
 
 	// First normalize to canonical lowercase form
@@ -100,13 +103,13 @@ func NormalizeStatusToTitleCase(status string) string {
 
 	// Map canonical lowercase to Title Case
 	titleCaseMap := map[string]string{
-		"todo":        "Todo",
-		"in_progress": "In Progress",
-		"review":      "Review",
-		"completed":   "Done", // Map "completed" to "Done" for consistency
-		"done":        "Done",
-		"blocked":     "Blocked",
-		"cancelled":   "Cancelled",
+		"todo":        models.StatusTodo,
+		"in_progress": models.StatusInProgress,
+		"review":      models.StatusReview,
+		"completed":   models.StatusDone,
+		"done":        models.StatusDone,
+		"blocked":     models.StatusBlocked,
+		"cancelled":   models.StatusCancelled,
 	}
 
 	if titleCase, ok := titleCaseMap[normalized]; ok {

@@ -1,3 +1,4 @@
+// config.go — Database configuration: driver selection and connection settings.
 package database
 
 import (

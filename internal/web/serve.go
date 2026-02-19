@@ -1,3 +1,6 @@
+// serve.go — HTTP server for embedded web-based status dashboard.
+//
+// Package web provides an embedded HTTP server for the project status dashboard.
 package web
 
 import (

@@ -1,3 +1,4 @@
+// scorecard.go — Resource handler for stdio://scorecard (project health metrics).
 package resources
 
 import (

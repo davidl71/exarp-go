@@ -1,3 +1,4 @@
+// Package models provides shared types, constants, and task ID utilities used across packages.
 package models
 
 import "strings"

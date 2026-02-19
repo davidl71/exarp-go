@@ -1,3 +1,4 @@
+// tui.go — Bubbletea TUI: core model struct, Init, RunTUI, sorting, search.
 package cli
 
 import (

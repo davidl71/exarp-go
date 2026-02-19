@@ -1,3 +1,4 @@
+// driver_postgres.go — PostgreSQL driver implementation.
 package database
 
 import (

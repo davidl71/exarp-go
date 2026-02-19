@@ -1,3 +1,4 @@
+// task.go — CLI "task" subcommand: list, create, update, show, estimate, summarize.
 package cli
 
 import (

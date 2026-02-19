@@ -1,3 +1,4 @@
+// task_analysis_suggest_deps.go — Dependency suggestion heuristics for task analysis.
 package tools
 
 import (

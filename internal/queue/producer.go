@@ -1,3 +1,4 @@
+// producer.go — Asynq producer: enqueues wave task_execute jobs to Redis.
 package queue
 
 import (

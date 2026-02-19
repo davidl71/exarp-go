@@ -1,3 +1,4 @@
+// hooks_setup.go — MCP "setup_hooks" tool: install and configure git hooks.
 package tools
 
 import (

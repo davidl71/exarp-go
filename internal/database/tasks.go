@@ -1,3 +1,6 @@
+// tasks.go — Task CRUD operations: create, read, update, delete, list, filter.
+//
+// Package database provides SQLite storage for tasks, comments, activities, and agent locks.
 package database
 
 import (

@@ -1,3 +1,4 @@
+// microsoft_todo.go — Microsoft To Do sync adapter (Graph API).
 package tasksync
 
 import (

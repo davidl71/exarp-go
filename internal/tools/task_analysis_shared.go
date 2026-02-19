@@ -1,3 +1,4 @@
+// task_analysis_shared.go — MCP "task_analysis" tool: deps, duplicates, stale, execution plan.
 package tools
 
 import (

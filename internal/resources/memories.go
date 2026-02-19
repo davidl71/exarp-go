@@ -1,3 +1,4 @@
+// memories.go — Resource handlers for stdio://memories/* (list, search, by-category).
 package resources
 
 import (

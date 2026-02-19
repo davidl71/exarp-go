@@ -1,3 +1,4 @@
+// ttl_cache.go — Thread-safe in-memory key-value cache with per-entry TTL.
 package cache
 
 import (

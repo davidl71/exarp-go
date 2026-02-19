@@ -1,3 +1,4 @@
+// health_check.go — MCP "health" tool: server, git, docs, dod, cicd, tools, ctags checks.
 package tools
 
 import (

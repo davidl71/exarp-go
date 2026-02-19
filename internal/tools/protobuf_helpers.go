@@ -1,3 +1,4 @@
+// protobuf_helpers.go — Protobuf serialization helpers for MCP request/response types.
 package tools
 
 import (

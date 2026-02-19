@@ -1,3 +1,6 @@
+// main.go — Test harness for task estimation tool.
+//
+// Package main provides the entry point for the estimation tool test harness.
 package main
 
 import (

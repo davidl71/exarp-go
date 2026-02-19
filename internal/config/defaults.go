@@ -1,3 +1,4 @@
+// defaults.go — Default configuration values for all config sections.
 package config
 
 import (

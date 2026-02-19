@@ -1,3 +1,4 @@
+// tui_jobs.go — TUI background jobs tab view rendering.
 package cli
 
 import (

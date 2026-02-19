@@ -1,3 +1,4 @@
+// infer_task_progress_evidence.go — Evidence gathering for heuristic task progress inference.
 package tools
 
 import (

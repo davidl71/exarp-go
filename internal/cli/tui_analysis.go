@@ -1,3 +1,4 @@
+// tui_analysis.go — TUI task analysis tab view rendering.
 package cli
 
 import (

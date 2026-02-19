@@ -1,3 +1,4 @@
+// tui_scorecard.go — TUI scorecard tab and help view rendering.
 package cli
 
 import (

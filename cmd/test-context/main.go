@@ -1,3 +1,6 @@
+// main.go — Test harness for context summarization tool.
+//
+// Package main provides the entry point for the context tool test harness.
 package main
 
 import (

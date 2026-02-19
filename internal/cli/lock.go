@@ -1,3 +1,4 @@
+// lock.go — CLI "lock" subcommand: task locking status and operations.
 package cli
 
 import (

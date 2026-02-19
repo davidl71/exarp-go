@@ -1,3 +1,6 @@
+// main.go — Test harness for task tool operations.
+//
+// Package main provides the entry point for the task tools test harness.
 package main
 
 import (

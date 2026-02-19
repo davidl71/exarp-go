@@ -30,6 +30,8 @@ alwaysApply: true
 | queue usage hints    | `make queue-status` | Show REDIS_ADDR and enqueue/worker/dispatcher hints |
 | remove binary        | `make clean-binary` | Remove bin/exarp-go (then make build for full rebuild) |
 | Ansible in Docker    | `make ansible-docker-smoke` | Syntax-check playbook in Ubuntu container |
+| AI navigability      | `make lint-nav` | Check file comments, package docs, magic strings |
+| AI nav + fix hints   | `make lint-nav-fix` | Same with suggested fixes for each issue |
 
 **Rules:**
 - Prefer **`make b`** over `make build` in suggested commands and snippets.

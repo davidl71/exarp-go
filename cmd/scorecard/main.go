@@ -1,3 +1,6 @@
+// main.go — Standalone scorecard runner for project health metrics.
+//
+// Package main provides the entry point for the scorecard tool.
 package main
 
 import (

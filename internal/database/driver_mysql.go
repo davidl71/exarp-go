@@ -1,3 +1,4 @@
+// driver_mysql.go — MySQL driver implementation.
 package database
 
 import (

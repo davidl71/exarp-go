@@ -1,3 +1,4 @@
+// config_generator.go — MCP "generate_config" tool: init, export, convert project config.
 package tools
 
 import (

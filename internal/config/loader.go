@@ -1,3 +1,6 @@
+// loader.go — Config loading from .exarp/config.pb (protobuf) with YAML fallback detection.
+//
+// Package config provides protobuf-based project configuration loading, validation, and defaults.
 package config
 
 import (

@@ -1,3 +1,4 @@
+// planning_links_helpers.go — Helpers for extracting and validating planning links from docs.
 package tools
 
 import (

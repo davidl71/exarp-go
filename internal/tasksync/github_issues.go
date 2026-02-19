@@ -1,3 +1,4 @@
+// github_issues.go — GitHub Issues sync adapter (go-github v60).
 package tasksync
 
 import (

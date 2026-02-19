@@ -1,3 +1,4 @@
+// graph_helpers.go — Gonum graph helpers for task dependency analysis and critical path.
 package tools
 
 import (

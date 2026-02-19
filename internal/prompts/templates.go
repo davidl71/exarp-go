@@ -1,3 +1,4 @@
+// templates.go — MCP prompt template strings (workflow, persona, advisor, etc.).
 package prompts
 
 import (
