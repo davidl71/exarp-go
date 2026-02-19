@@ -2,6 +2,31 @@
 
 Ways to reduce MCP/LLM context size and improve speed in exarp-go.
 
+**Token estimation:** Budget and item counts use a character ratio (`tokens_per_char`, default 0.25). For more accurate counts when using OpenAI-compatible APIs, see the **Token estimation (nice-to-have)** subsection in [GO_AI_ECOSYSTEM.md](GO_AI_ECOSYSTEM.md#55-token-estimation-nice-to-have) (tiktoken-go).
+
+## Pre-tokenizing for AIs (output and input)
+
+**Would pre-tokenizing output or input (e.g. for make/sprint) help AIs?** Yes.
+
+- **Pre-tokenizing output (what exarp-go returns):** If **report**, **session** (prime), and **task_workflow** (list) responses include a top-level **`token_estimate`** (or `response_tokens`) in the JSON envelope, the AI (e.g. Cursor) can:
+  - Know how much context the response consumed and budget subsequent calls.
+  - Prefer compact/summary modes when near limit; avoid re-requesting huge payloads when `content_hash` indicates no change.
+  - Use this in **make**-driven flows (e.g. `exarp-report-overview`, `exarp-report-scorecard`) so scripts or the agent see token cost and can trim what gets sent to an LLM in the next step.
+
+- **Pre-tokenizing input (what gets sent to the LLM):** When building context for an LLM (e.g. for sprint automation or prime), **attaching token counts per item** (or per chunk) lets the AI or the **context** tool:
+  - Truncate or summarize to fit a budget before calling the model (e.g. “include suggested_next + top 5 tasks only”).
+  - Use **context(action=budget, items=[...], budget_tokens=N)** to get `safe_to_summarize` and then only send summarized items into the prompt.
+
+- **Make/sprint:** For **sprint-start**, **sprint-end**, **pre-sprint**, or **make scorecard/report**, having token metadata on outputs (and, where applicable, on inputs passed to automation) helps AIs:
+  - Decide whether to run report again or reuse a cached overview when under budget.
+  - Keep sprint context (task list + scorecard + handoffs) within a safe token window by dropping or summarizing the heaviest items when `token_estimate` is high.
+
+**Status:** **`token_estimate`** is now added to the JSON envelope for **session** (prime), **report** (overview, scorecard, briefing), and **task_workflow** (list) when returning JSON. Uses `config.TokensPerChar()`; see `AddTokenEstimateToResult` in `internal/tools/response_compact.go`. Optional **`content_hash`** for cache/dedup is still future work.
+
+**Make / CI:** Use **`make context-token-metrics`** to echo `token_estimate` for overview, scorecard, and session prime (requires `jq`). Use **`make context-token-check TOKEN_BUDGET_LIMIT=N`** to fail if any exceed N (0 = skip). Agentic CI runs both; set `TOKEN_BUDGET_LIMIT` in the workflow to enforce a hard limit.
+
+---
+
 ## 1. Compact JSON (no indentation)
 
 **Where:** All tool responses that use `response.FormatResult()` (JSON is `MarshalIndent(..., "  ")`).

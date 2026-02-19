@@ -113,7 +113,42 @@ Concrete ways exarp-go could improve by leveraging or aligning with the Go AI ec
 - **Opportunity:** Gonum is already part of the ecosystem; no change needed for current use cases.
 - **Recommendation:** Keep using Gonum; if future features need classical ML (e.g. clustering, regression beyond current stats), consider **GoLearn** or more Gonum packages before adding Gorgonia/TensorFlow.
 
-### 5.5 Summary table
+### 5.5 Token estimation (nice-to-have)
+
+- **Current:** Token counts are estimated with a **character ratio** (`tokens_per_char`, default `0.25`). Used by the **context** tool (budget analysis, summarization token estimates) and config (`thresholds.tokens_per_char`, `context.tokens_per_char`). See [pkg.go.dev](https://pkg.go.dev/github.com/tiktoken-go/tokenizer#section-documentation) and `internal/tools/context.go` (`estimateTokens`).
+- **Nice-to-have:** **[tiktoken-go](https://pkg.go.dev/github.com/tiktoken-go/tokenizer)** — pure Go port of OpenAI's tokenizer. Provides:
+  - **Accurate counts** for OpenAI-style APIs: `Codec.Count(text)` or `Encode`/`Decode` with encodings such as `Cl100kBase`, `O200kBase`, `R50kBase`. Useful when context or report payloads are sent to **OpenAI-compatible** endpoints (e.g. cloud API, LocalAI with same tokenization).
+  - **Model-aware:** `tokenizer.ForModel(model)` for GPT-4, o1, etc.; aligns estimates with what the API actually counts.
+- **Usefulness for exarp-go:**
+  - **High** when integrating with **OpenAI API or OpenAI-compatible** services: budget and truncation decisions would match server-side limits.
+  - **Low** for **local-only** (Apple FM, Ollama, MLX): those backends use different tokenization; the current ratio is a reasonable heuristic.
+  - **Optional/feature-flag:** Use tiktoken when a config flag or provider indicates “OpenAI-compatible”; otherwise keep ratio-based estimation to avoid dependency and binary size impact.
+- **Tradeoffs:** Library embeds ~4MB of vocabularies (compiled into the binary); MIT license; module at v0.7.0. Adds a direct dependency. Consider as an **optional** dependency or build tag so vendors who never call OpenAI-compatible APIs don’t pay the cost.
+- **Recommendation:** Document as nice-to-have; consider adding when exarp-go gains first-class support for OpenAI (or compatible) API and context limits must match server-side token counts.
+
+- **Would tiktoken help?** Yes, when the consumer is an **OpenAI or OpenAI-compatible** API. It would:
+  - Make **pre-tokenized output** (e.g. `token_estimate` on report/prime/task list) match what the API actually counts, so AIs can budget and truncate accurately.
+  - Improve **context** tool budget/summarize decisions and **scorecard** “tokenizability” and large-file thresholds when the user sends that data to an OpenAI-style endpoint.
+  - For **local-only** (FM, Ollama, MLX), the ratio remains sufficient; tiktoken is optional.
+
+- **What else could tiktoken give?**
+  - **Exact truncation:** Truncate to exactly N tokens (Encode then take first N, Decode) so payloads never overshoot context limits; ratio-based truncation can overshoot.
+  - **Token-boundary chunking:** Split text into fixed-size token chunks (e.g. 512 tokens) for RAG or batching, so boundaries match what the model sees (no mid-token cuts).
+  - **Cost estimation:** Combine token count with $/token (per model) to estimate API cost before calling (e.g. for report or sprint flows).
+  - **Multi-encoding / model-specific counts:** Report “tokens for GPT-4” vs “tokens for o1” (different encodings) so the AI can choose the right budget per model; `ForModel(model)` and encodings like `Cl100kBase`, `O200kBase` support this.
+  - **Decode/inspect:** Decode token IDs to see token boundaries and special tokens; useful for debugging or “first N tokens” preview that respects tokenization.
+  - **Special tokens:** Count or flag special tokens (BOS, EOS, etc.) when present, for prompt-engineering or prompt-size accuracy.
+
+- **Scorecard use (tokenizability of code):** The **project scorecard** reports **estimated tokens** for the codebase (Go + Go test + bridge/tests Python files) using the same ratio (`tokens_per_char`). That gives a “tokenizability” metric: how many tokens the code would consume if sent to an LLM (e.g. for context budgeting or RAG). See `GoProjectMetrics.EstimatedTokens` and `TotalCodeBytes` in `internal/tools/scorecard_go.go`. **Optional:** If tiktoken-go is added (e.g. behind a build tag), the scorecard could expose an **OpenAI token count** for the same files for users who send code to OpenAI-compatible APIs.
+
+- **Multi-stage logic for split/refactor candidates:** The scorecard uses a **three-stage pipeline** to find files that would benefit from splitting or refactoring:
+  1. **Per-file stats:** `collectPerFileCodeStats(projectRoot)` walks all `.go`, `_test.go`, and bridge/tests `.py` files and records path, lines, bytes, and ratio-based estimated tokens per file.
+  2. **Threshold filter:** `filterLargeFileCandidates(files, tokenThreshold, lineThreshold)` keeps only files that exceed the token threshold (default 6000 ≈ ~24KB) or the line threshold (default 500). These thresholds are tunable constants in `scorecard_go.go`.
+  3. **Output:** The scorecard result includes `LargeFileCandidates` (list of `FileSizeInfo`). The formatted scorecard has a “Large files (consider splitting/refactoring for context fit)” section listing path, lines, and est. tokens; a recommendation is added when the list is non-empty. JSON/MLX output includes `large_file_candidates` for automation or tooling.
+
+  This helps identify files that (a) would consume a large share of context if sent to an LLM, and (b) often indicate modules that have grown too large and would benefit from splitting for maintainability.
+
+### 5.6 Summary table
 
 | Area | Current | Improvement |
 |------|---------|-------------|
@@ -121,6 +156,7 @@ Concrete ways exarp-go could improve by leveraging or aligning with the Go AI ec
 | Cloud / self-hosted | Local (FM, Ollama, MLX) + optional LocalAI | Optional cloud SDKs later. |
 | Discovery / docs | stdio://models, tool hints | Link this doc and LLM patterns from main docs; optional stdio://llm/status. |
 | Numerics / ML | Gonum (graph + stat) | Keep; add GoLearn/Gonum only if new ML features are needed. |
+| **Token estimation** | Chars × `tokens_per_char` (0.25) | **Nice-to-have:** [tiktoken-go](https://pkg.go.dev/github.com/tiktoken-go/tokenizer) for OpenAI-compatible API accuracy; optional dep or build tag. |
 
 ---
 
