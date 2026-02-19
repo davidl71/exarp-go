@@ -101,7 +101,13 @@ This gives a **planner–worker style flow** without implementing “LLM as tool
 
 ---
 
-## 6. References
+## 6. Workflow DSL and automation
+
+Once the **simple workflow DSL** exists (see [WORKFLOW_DSL_AND_MESSAGE_BUS.md](WORKFLOW_DSL_AND_MESSAGE_BUS.md)) — YAML steps with `tool` + `params`, run by an in-process runner that dispatches to the same handlers as `runDailyTask` — **fm_plan_and_execute** can be used as a **single step** in daily/nightly or project workflows. That simplifies automation: no need to express “planner then N workers” in YAML; the tool hides the dynamic fan-out. The DSL would just list `tool: fm_plan_and_execute` with `params: { task: "..." }` like any other step.
+
+---
+
+## 7. References
 
 - Article: [LLMs Calling LLMs: Building AI Agents with Apple's Foundation Models and Tool Calling](https://www.natashatherobot.com/p/ai-agents-apples-foundation-models-tool-calling)
 - FM in exarp-go: `internal/tools/apple_foundation.go`, `fm_apple.go`, `fm_chain.go`, `fm_provider.go`

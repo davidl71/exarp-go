@@ -30,7 +30,25 @@ No separate “message bus” product: the **message bus is Redis + Asynq** (Go 
 
 ## 3. How workflow DSL fits the message bus
 
-- **Project workflows** (e.g. `.exarp/workflows/daily.yaml`): Declarative list of steps (tool + action + params), optional parallel groups. Run by a **Go in-process runner** that resolves steps and calls the same native handlers used today in `runDailyTask` / `runParallelTasks`. No subprocess per step; no Dagu CLI.
+### 3.1 Using plan-and-execute as one workflow step
+
+The **fm_plan_and_execute** tool (see [APPLE_FM_PLANNER_WORKER.md](APPLE_FM_PLANNER_WORKER.md)) implements a planner → workers → combine flow in Go. Once the workflow DSL runner exists, automation can treat it as a **single step** in a YAML workflow, e.g.:
+
+```yaml
+steps:
+  - tool: health
+    params: { action: server }
+  - tool: fm_plan_and_execute
+    params: { task: "Summarize this week's backlog priorities", max_subtasks: 4 }
+  - tool: report
+    params: { action: overview }
+```
+
+That avoids hand-wiring planner + N workers in the DSL; the tool encapsulates the dynamic fan-out (N depends on planner output). The DSL runner would dispatch this like any other step via the same `runDailyTask`-style dispatch (tool name + params). No change to the minimal schema is required.
+
+---
+
+- **Project workflows** (e.g. `.exarp/workflows/daily.yaml`): Declarative list of steps (tool + action + params), optional parallel groups. Run by a **Go in-process runner** that resolves steps and calls the same native handlers used today in `runDailyTask` / `runParallelTasks`. No subprocess per step; no Dagu CLI. Tools like **fm_plan_and_execute** fit as single steps (see §3.1).
 - **Single-host:** Automation tool (or new `workflow run` command) loads project YAML and runs the runner in-process. Behavior matches current hardcoded daily/nightly but driven by project git.
 - **With Redis+Asynq (future):**
   - **Option A — One job per workflow:** Producer enqueues one job: `{"trigger":"automation","workflow":"daily"}` (or `action":"daily"`). Worker runs the same in-process runner (loads `.exarp/workflows/daily.yaml` or built-in daily), so one worker executes the whole pipeline. Simple; good when the workflow is small or must run sequentially.
