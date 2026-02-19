@@ -10,3 +10,4 @@ linters:
   - govulncheck
   - shellcheck
   - shfmt
+  - universal-ctags

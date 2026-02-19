@@ -1,6 +1,7 @@
 ---
 _shellcheck_pkg: shellcheck
 _yamllint_pkg: yamllint
+_universal_ctags_pkg: universal-ctags
 _ansible_lint_pkg: ansible-lint
 _actionlint_pkg: actionlint
 _nodejs_pkg: node

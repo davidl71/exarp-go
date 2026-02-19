@@ -1,4 +1,23 @@
-.PHONY: help b build build-debug silent build-race build-no-cgo run test test-watch tag-build-ok pre-release r root push pull p pl test-coverage test-html clean install fmt lint lint-all lint-all-fix dev dev-watch dev-test dev-full dev-cycle pre-push bench docs sanity-check sanity-check-cached test-cli test-cli-list test-cli-tool test-cli-test config clean-config sprint-start sprint-end pre-sprint sprint check-tasks update-completed-tasks task-sanity-check go-fmt go-vet golangci-lint-check golangci-lint-fix govulncheck check check-fix check-all build-migrate migrate migrate-dry-run install-tools go-mod-tidy go-mod-verify pre-commit ci validate check-deps test-go test-go-fast test-go-verbose test-go-parallel test-go-tools-short test-real-models version scorecard scorecard-full scorecard-plans report-plan demo-tui task-list task-list-todo task-list-in-progress task-list-done task-prune-done task-update task-create queue-enqueue-wave queue-worker queue-dispatcher proto delete-expired-archive analyze-critical-path proto-check proto-clean vendor-licenses exarp-list exarp-report-scorecard exarp-report-overview exarp-health-server exarp-health-docs exarp-context-budget exarp-test test-mcp-stdio validate-opencode-config validate-plugin tidy scorecard-fix ansible-check ansible-dev ansible-list ansible-galaxy lint-shellcheck lint-yaml lint-ansible
+# Phony targets (grouped for readability)
+.PHONY: help b build build-debug silent build-race build-no-cgo run
+.PHONY: test test-watch test-go test-go-fast test-go-verbose test-go-parallel test-go-tools-short test-real-models test-coverage test-html test-tools test-cli test-cli-list test-cli-tool test-cli-test test-mcp-stdio
+.PHONY: config clean-config tag-build-ok tags pre-release r root push pull p pl status st
+.PHONY: go-fmt go-vet golangci-lint-check golangci-lint-fix govulncheck check check-fix check-all check-security
+.PHONY: fmt lint lint-fix lint-all lint-all-fix
+.PHONY: dev dev-watch dev-test dev-full dev-cycle pre-push bench docs
+.PHONY: sanity-check sanity-check-cached clean clean-all clean-binary clean-config
+.PHONY: install install-binary install-tools go-mod-tidy go-mod-verify tidy
+.PHONY: build-migrate migrate migrate-dry-run proto proto-check proto-clean proto-buf
+.PHONY: sprint-start sprint-end pre-sprint sprint check-tasks update-completed-tasks task-sanity-check
+.PHONY: task-list task-list-todo task-list-in-progress task-list-done task-prune-done task-update task-create task-show task-run-with-ai
+.PHONY: queue-enqueue-wave queue-worker queue-dispatcher queue-status
+.PHONY: exarp-list exarp-report-scorecard exarp-report-overview exarp-health-server exarp-health-docs exarp-context-budget exarp-test
+.PHONY: version scorecard scorecard-full scorecard-plans report-plan demo-tui
+.PHONY: delete-expired-archive analyze-critical-path vendor-licenses
+.PHONY: pre-commit ci validate check-deps scorecard-fix
+.PHONY: ansible-check ansible-dev ansible-list ansible-galaxy ansible-docker-smoke
+.PHONY: lint-shellcheck lint-yaml lint-ansible
+.PHONY: validate-opencode-config validate-plugin
 
 # Project configuration
 PROJECT_NAME := exarp-go
@@ -155,10 +174,13 @@ help: ## Show this help message
 		echo "$(YELLOW)💡 Tip: Run 'make config' to detect available tools and optimize targets$(NC)"; \
 	fi
 	@echo ""
-	@echo "$(BLUE)Quick start:$(NC)"
-	@echo "  $(GREEN)make all$(NC)        - Build and run sanity checks (default)"
-	@echo "  $(GREEN)make build$(NC)      - Build the binary"
-	@echo "  $(GREEN)make test$(NC)       - Run all tests"
+	@echo "$(BLUE)Quick reference:$(NC)"
+	@echo "  $(GREEN)make b$(NC)           - Build binary (short for build)"
+	@echo "  $(GREEN)make test$(NC)       - Run tests  |  $(GREEN)make fmt$(NC) - Format  |  $(GREEN)make lint$(NC) - Lint"
+	@echo "  $(GREEN)make task-list$(NC)  - List tasks (TASK_FLAGS=\"--status Todo\")"
+	@echo "  $(GREEN)make task-show TASK_ID=T-123$(NC)  - Show one task"
+	@echo "  $(GREEN)make task-run-with-ai TASK_ID=T-123 [BACKEND=ollama]$(NC)  - Task + local AI"
+	@echo "  $(GREEN)make check-security$(NC)  - Security scan only"
 	@echo ""
 	@echo "$(BLUE)Development workflow:$(NC)"
 	@echo "  $(GREEN)make dev-cycle$(NC)  - Format, test, ready for commit"
@@ -460,6 +482,10 @@ scorecard-fix: go-mod-tidy fmt lint-fix ## Auto-fix all scorecard issues that ha
 	@echo "$(GREEN)✅ All auto-fixable scorecard issues resolved$(NC)"
 	@echo "$(YELLOW)ℹ️  Re-run scorecard to verify: make scorecard-full$(NC)"
 
+check-security: build ## Run security scan only (exarp-go security action=scan)
+	@echo "$(BLUE)Running security scan...$(NC)"
+	@$(BINARY_PATH) -tool security -args '{"action":"scan"}' </dev/null && echo "$(GREEN)✅ Security scan passed$(NC)" || (echo "$(RED)❌ Security scan failed$(NC)" && exit 1)
+
 pre-release: build govulncheck vendor-licenses ## Run before release: build + vulnerability check + vendor credits (not run on pre-commit/pre-push)
 	@if [ -f $(BINARY_PATH) ]; then \
 		echo "$(BLUE)Running security scan...$(NC)"; \
@@ -467,80 +493,47 @@ pre-release: build govulncheck vendor-licenses ## Run before release: build + vu
 	fi
 	@echo "$(GREEN)✅ Pre-release checks passed (build + govulncheck + security scan)$(NC)"
 
-# Legacy targets (using exarp-go binary)
+# Legacy targets (using exarp-go binary; exarp_ensure_binary builds if missing)
 fmt: ## Format code with exarp-go (gofmt/goimports) (requires build)
-	@if [ -f $(BINARY_PATH) ]; then \
-		echo "$(BLUE)Formatting code...$(NC)"; \
-		$(BINARY_PATH) -tool lint -args '{"action":"run","linter":"gofmt","path":".","fix":true}' 2>/dev/null || \
-			echo "$(YELLOW)exarp-go format tool completed (check output above)$(NC)"; \
-		echo "$(GREEN)✅ Code formatted$(NC)"; \
-	else \
-		echo "$(YELLOW)⚠️  exarp-go binary not found$(NC)"; \
-		echo "$(YELLOW)   Building binary first...$(NC)"; \
-		$(MAKE) build; \
-		echo "$(BLUE)Formatting code...$(NC)"; \
-		$(BINARY_PATH) -tool lint -args '{"action":"run","linter":"gofmt","path":".","fix":true}' 2>/dev/null || \
-			echo "$(YELLOW)exarp-go format tool completed (check output above)$(NC)"; \
-		echo "$(GREEN)✅ Code formatted$(NC)"; \
-	fi
+	$(call exarp_ensure_binary)
+	@echo "$(BLUE)Formatting code...$(NC)"
+	@$(BINARY_PATH) -tool lint -args '{"action":"run","linter":"gofmt","path":".","fix":true}' 2>/dev/null || \
+		echo "$(YELLOW)exarp-go format tool completed (check output above)$(NC)"
+	@echo "$(GREEN)✅ Code formatted$(NC)"
 
 lint: ## Lint code with exarp-go (requires build)
-	@if [ -f $(BINARY_PATH) ]; then \
-		echo "$(BLUE)Linting code...$(NC)"; \
-		$(BINARY_PATH) -tool lint -args '{"action":"run","linter":"auto","path":"."}' 2>/dev/null || \
-			echo "$(YELLOW)exarp-go lint tool completed (check output above)$(NC)"; \
-		echo "$(GREEN)✅ Linting complete$(NC)"; \
-	else \
-		echo "$(YELLOW)⚠️  exarp-go binary not found$(NC)"; \
-		echo "$(YELLOW)   Building binary first...$(NC)"; \
-		$(MAKE) build; \
-		echo "$(BLUE)Linting code...$(NC)"; \
-		$(BINARY_PATH) -tool lint -args '{"action":"run","linter":"auto","path":"."}' 2>/dev/null || \
-			echo "$(YELLOW)exarp-go lint tool completed (check output above)$(NC)"; \
-		echo "$(GREEN)✅ Linting complete$(NC)"; \
-	fi
+	$(call exarp_ensure_binary)
+	@echo "$(BLUE)Linting code...$(NC)"
+	@$(BINARY_PATH) -tool lint -args '{"action":"run","linter":"auto","path":"."}' 2>/dev/null || \
+		echo "$(YELLOW)exarp-go lint tool completed (check output above)$(NC)"
+	@echo "$(GREEN)✅ Linting complete$(NC)"
 
 lint-fix: ## Lint and auto-fix code with exarp-go (requires build)
-	@if [ -f $(BINARY_PATH) ]; then \
-		echo "$(BLUE)Linting and fixing code...$(NC)"; \
-		$(BINARY_PATH) -tool lint -args '{"action":"run","linter":"auto","path":".","fix":true}' 2>/dev/null || \
-			echo "$(YELLOW)exarp-go lint-fix tool completed (check output above)$(NC)"; \
-		echo "$(GREEN)✅ Linting and fixes complete$(NC)"; \
-	else \
-		echo "$(YELLOW)⚠️  exarp-go binary not found$(NC)"; \
-		echo "$(YELLOW)   Building binary first...$(NC)"; \
-		$(MAKE) build; \
-		echo "$(BLUE)Linting and fixing code...$(NC)"; \
-		$(BINARY_PATH) -tool lint -args '{"action":"run","linter":"auto","path":".","fix":true}' 2>/dev/null || \
-			echo "$(YELLOW)exarp-go lint-fix tool completed (check output above)$(NC)"; \
-		echo "$(GREEN)✅ Linting and fixes complete$(NC)"; \
-	fi
+	$(call exarp_ensure_binary)
+	@echo "$(BLUE)Linting and fixing code...$(NC)"
+	@$(BINARY_PATH) -tool lint -args '{"action":"run","linter":"auto","path":".","fix":true}' 2>/dev/null || \
+		echo "$(YELLOW)exarp-go lint-fix tool completed (check output above)$(NC)"
+	@echo "$(GREEN)✅ Linting and fixes complete$(NC)"
 
 lint-all: ## Lint everything: Go + docs + .cursor/plans (requires build)
-	@if [ -f $(BINARY_PATH) ]; then \
-		echo "$(BLUE)Linting Go...$(NC)"; \
-		$(BINARY_PATH) -tool lint -args '{"action":"run","linter":"auto","path":"."}' 2>/dev/null || true; \
-		echo "$(BLUE)Linting docs...$(NC)"; \
-		$(BINARY_PATH) -tool lint -args '{"action":"run","path":"docs","linter":"markdownlint"}' 2>/dev/null || true; \
-		echo "$(BLUE)Linting .cursor/plans...$(NC)"; \
-		$(BINARY_PATH) -tool lint -args '{"action":"run","path":".cursor/plans","linter":"markdownlint"}' 2>/dev/null || true; \
-		echo "$(GREEN)✅ Lint-all complete$(NC)"; \
-	else \
-		echo "$(YELLOW)⚠️  exarp-go binary not found$(NC)"; $(MAKE) build; $(MAKE) lint-all; \
-	fi
+	$(call exarp_ensure_binary)
+	@echo "$(BLUE)Linting Go...$(NC)"
+	@$(BINARY_PATH) -tool lint -args '{"action":"run","linter":"auto","path":"."}' 2>/dev/null || true
+	@echo "$(BLUE)Linting docs...$(NC)"
+	@$(BINARY_PATH) -tool lint -args '{"action":"run","path":"docs","linter":"markdownlint"}' 2>/dev/null || true
+	@echo "$(BLUE)Linting .cursor/plans...$(NC)"
+	@$(BINARY_PATH) -tool lint -args '{"action":"run","path":".cursor/plans","linter":"markdownlint"}' 2>/dev/null || true
+	@echo "$(GREEN)✅ Lint-all complete$(NC)"
 
 lint-all-fix: ## Lint and fix everything: Go + docs + .cursor/plans (requires build)
-	@if [ -f $(BINARY_PATH) ]; then \
-		echo "$(BLUE)Linting and fixing Go...$(NC)"; \
-		$(BINARY_PATH) -tool lint -args '{"action":"run","linter":"auto","path":".","fix":true}' 2>/dev/null || true; \
-		echo "$(BLUE)Linting and fixing docs...$(NC)"; \
-		$(BINARY_PATH) -tool lint -args '{"action":"run","path":"docs","linter":"markdownlint","fix":true}' 2>/dev/null || true; \
-		echo "$(BLUE)Linting and fixing .cursor/plans...$(NC)"; \
-		$(BINARY_PATH) -tool lint -args '{"action":"run","path":".cursor/plans","linter":"markdownlint","fix":true}' 2>/dev/null || true; \
-		echo "$(GREEN)✅ Lint-all-fix complete$(NC)"; \
-	else \
-		echo "$(YELLOW)⚠️  exarp-go binary not found$(NC)"; $(MAKE) build; $(MAKE) lint-all-fix; \
-	fi
+	$(call exarp_ensure_binary)
+	@echo "$(BLUE)Linting and fixing Go...$(NC)"
+	@$(BINARY_PATH) -tool lint -args '{"action":"run","linter":"auto","path":".","fix":true}' 2>/dev/null || true
+	@echo "$(BLUE)Linting and fixing docs...$(NC)"
+	@$(BINARY_PATH) -tool lint -args '{"action":"run","path":"docs","linter":"markdownlint","fix":true}' 2>/dev/null || true
+	@echo "$(BLUE)Linting and fixing .cursor/plans...$(NC)"
+	@$(BINARY_PATH) -tool lint -args '{"action":"run","path":".cursor/plans","linter":"markdownlint","fix":true}' 2>/dev/null || true
+	@echo "$(GREEN)✅ Lint-all-fix complete$(NC)"
 
 ##@ Benchmarking
 
@@ -551,6 +544,14 @@ bench: go-bench ## Run Go benchmarks
 docs: ## Generate documentation
 	@echo "$(BLUE)Generating documentation...$(NC)"
 	@echo "$(YELLOW)Documentation generation not available for Go server$(NC)"
+
+# Optional: requires universal-ctags on PATH (e.g. brew install universal-ctags). See docs/CTAGS_USAGE.md.
+CTAGS ?= ctags
+TAGS_FILE ?= tags
+tags: ## Generate tags file for Go + shell (editors, scripts). Requires universal-ctags.
+	@command -v $(CTAGS) >/dev/null 2>&1 || { echo "$(YELLOW)universal-ctags not found; install e.g. brew install universal-ctags$(NC)"; exit 1; }
+	$(Q)$(CTAGS) -R -o $(TAGS_FILE) --languages=Go,Sh --exclude=.git --exclude=vendor --exclude=bin .
+	@echo "$(GREEN)✅ Generated $(TAGS_FILE)$(NC)"
 
 scorecard: ## Generate project scorecard (fast mode - default)
 	@echo "$(BLUE)Generating project scorecard (fast mode)...$(NC)"
@@ -594,11 +595,14 @@ vendor-licenses: ## Update docs/VENDOR_LICENSES.md from vendor/ (credits and lic
 
 ##@ Cleanup
 
-clean: ## Clean build artifacts and cache
+clean: ## Clean build artifacts and cache (binary kept by design; use clean-binary to remove it)
 	@echo "$(BLUE)Cleaning...$(NC)"
 	@rm -f coverage-go.out coverage-go.html
 	@rm -f bin/sanity-check bin/migrate
 	@echo "$(GREEN)✅ Clean complete$(NC)"
+
+clean-binary: ## Remove exarp-go binary (use clean then build for full rebuild)
+	@if [ -f $(BINARY_PATH) ]; then rm -f $(BINARY_PATH); echo "$(GREEN)✅ Binary removed$(NC)"; else echo "$(YELLOW)No binary at $(BINARY_PATH)$(NC)"; fi
 
 clean-all: clean ## Clean everything including virtual environment
 	@echo "$(BLUE)Cleaning everything...$(NC)"
@@ -933,6 +937,18 @@ task-create: ## Create a task (TASK_NAME="Title" TASK_DESC="Description" TASK_PR
 		echo "$(RED)❌ exarp-go binary not found - run 'make build' first$(NC)"; exit 1; \
 	fi
 
+task-show: build ## Show one task (TASK_ID=T-xxx)
+	@if [ -z "$(TASK_ID)" ]; then \
+		echo "$(RED)❌ Usage: make task-show TASK_ID=T-123$(NC)"; exit 1; \
+	fi
+	@$(BINARY_PATH) task show $(TASK_ID) 2>&1 | grep -v "INFO\|Warning\|Database" || true
+
+task-run-with-ai: build ## Run task through local LLM (TASK_ID=T-xxx, BACKEND=fm|ollama|mlx)
+	@if [ -z "$(TASK_ID)" ]; then \
+		echo "$(RED)❌ Usage: make task-run-with-ai TASK_ID=T-123 [BACKEND=ollama]$(NC)"; exit 1; \
+	fi
+	@$(BINARY_PATH) task run-with-ai $(TASK_ID) --backend "$${BACKEND:-fm}" 2>&1 | grep -v "INFO\|Warning\|Database" || true
+
 queue-enqueue-wave: build ## Enqueue wave to Redis+Asynq (WAVE=0, requires REDIS_ADDR)
 	@if [ -z "$$REDIS_ADDR" ]; then \
 		echo "$(YELLOW)⚠️  Set REDIS_ADDR (e.g. export REDIS_ADDR=127.0.0.1:6379)$(NC)"; \
@@ -954,6 +970,13 @@ queue-dispatcher: build ## Run wave dispatcher (requires REDIS_ADDR)
 	fi
 	@$(BINARY_PATH) queue dispatcher --interval $${DISPATCH_INTERVAL:-5m}
 
+queue-status: ## Show queue usage (REDIS_ADDR; no CLI status command yet)
+	@echo "$(BLUE)Queue (Redis+Asynq)$(NC)"
+	@echo "  REDIS_ADDR = $${REDIS_ADDR:-<not set>}"
+	@echo "  Enqueue: make queue-enqueue-wave WAVE=0"
+	@echo "  Worker:  make queue-worker"
+	@echo "  Dispatch: make queue-dispatcher"
+
 ##@ exarp-go tools (CLI)
 
 define exarp_run
@@ -962,6 +985,15 @@ define exarp_run
 else \
 	echo "$(RED)❌ exarp-go binary not found - run 'make build' first$(NC)"; \
 	exit 1; \
+fi
+endef
+
+# Ensure exarp-go binary exists; run 'make build' if missing (for fmt, lint, etc.)
+define exarp_ensure_binary
+@if [ ! -f $(BINARY_PATH) ]; then \
+	echo "$(YELLOW)⚠️  exarp-go binary not found$(NC)"; \
+	echo "$(YELLOW)   Building binary first...$(NC)"; \
+	$(MAKE) build; \
 fi
 endef
 
@@ -1201,6 +1233,7 @@ quick-build: build ## Quick build (verify imports)
 
 ##@ Ansible Development Environment
 
+# Optional: run 'make ansible-galaxy' first if syntax-check needs community.general (see T-1771459746925000000)
 ansible-check: ## Syntax-check Ansible dev playbook
 	@cd ansible && ansible-playbook --syntax-check -i inventories/development playbooks/development.yml
 
@@ -1209,6 +1242,11 @@ ansible-dev: ## Run Ansible dev setup (interactive, asks for sudo)
 
 ansible-list: ## List Ansible dev playbook tasks
 	@cd ansible && ansible-playbook --list-tasks -i inventories/development playbooks/development.yml
+
+ansible-docker-smoke: ## Run Ansible syntax-check in Ubuntu Docker (cross-platform smoke; optional)
+	@docker run --rm -v "$(CURDIR)/ansible:/ansible:ro" -w /ansible cytopia/ansible:latest-tools \
+		ansible-playbook --syntax-check -i inventories/development playbooks/development.yml
+	@echo "$(GREEN)✅ ansible-docker-smoke passed$(NC)"
 
 ansible-galaxy: ## Install Ansible Galaxy requirements (run once so ansible-lint syntax-check finds community.general)
 	@cd ansible && ansible-galaxy collection install -r requirements.yml --force-with-deps
