@@ -130,11 +130,23 @@ jobs:
       - name: Build
         run: go build -o bin/exarp-go ./cmd/server
 
+      - name: Full handoff export
+        run: |
+          ./bin/exarp-go -tool session -args '{"action":"handoff","sub_action":"end","summary":"CI handoff","include_tasks":true,"include_point_in_time_snapshot":true}'
+          ./bin/exarp-go -tool session -args '{"action":"handoff","sub_action":"export","output_path":"docs/CI_HANDOFF.json","export_latest":true}'
+
       - name: Upload binary
         uses: actions/upload-artifact@v4
         with:
           name: exarp-go-binary
           path: bin/exarp-go
+          retention-days: 7
+
+      - name: Upload CI handoff
+        uses: actions/upload-artifact@v4
+        with:
+          name: ci-handoff
+          path: docs/CI_HANDOFF.json
           retention-days: 7
 
   security:
@@ -164,6 +176,41 @@ jobs:
         run: |
           go install golang.org/x/vuln/cmd/govulncheck@latest
           govulncheck ./...
+  pre-release:
+    name: Pre-release (full)
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+
+      - name: Cache Go modules
+        uses: actions/cache@v4
+        with:
+          path: ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+
+      - name: Download dependencies
+        run: go mod download
+
+      - name: Run pre-release
+        run: make pre-release
+
+      - name: Upload pre-release artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: pre-release-artifacts
+          path: |
+            bin/exarp-go
+            docs/CI_HANDOFF.json
+          retention-days: 14
 
   module-check:
     name: Go Module Check
