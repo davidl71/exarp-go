@@ -1,0 +1,47 @@
+# Dependencies and third-party code (large; rarely needed in context)
+vendor/
+
+# Build and binaries
+bin/
+build/
+/server
+*.test
+*.out
+
+# Coverage and test artifacts
+coverage*.out
+coverage*.html
+coverage.out
+coverage-report/
+test-results/
+
+# Runtime and state (avoid indexing task DB and caches)
+.todo2/
+.exarp/
+.make.config
+.agentic-tools-mcp/
+
+# Temp and logs
+tmp/
+.tmp/
+temp/
+*.tmp
+*.log
+
+# Python
+.venv/
+venv/
+__pycache__/
+*.pyc
+*.pyo
+
+# Optional: tool output patterns (if Cursor indexes these)
+internal/tools/\{\"*
+
+# Generated / check output
+.vibecheck/
+docs/TODO2_ALIGNMENT_REPORT.md
+
+# Go workspace (local)
+go.work
+go.work.sum
