@@ -5,35 +5,35 @@ func (m model) View() string {
 		return m.viewHelp()
 	}
 
-	if m.mode == "taskDetail" && m.taskDetailTask != nil {
+	if m.mode == ModeTaskDetail && m.taskDetailTask != nil {
 		return m.viewTaskDetail()
 	}
 
-	if m.mode == "configSection" {
+	if m.mode == ModeConfigSection {
 		return m.viewConfigSection()
 	}
 
-	if m.mode == "config" {
+	if m.mode == ModeConfig {
 		return m.viewConfig()
 	}
 
-	if m.mode == "scorecard" {
+	if m.mode == ModeScorecard {
 		return m.viewScorecard()
 	}
 
-	if m.mode == "handoffs" {
+	if m.mode == ModeHandoffs {
 		return m.viewHandoffs()
 	}
 
-	if m.mode == "waves" {
+	if m.mode == ModeWaves {
 		return m.viewWaves()
 	}
 
-	if m.mode == "taskAnalysis" {
+	if m.mode == ModeTaskAnalysis {
 		return m.viewTaskAnalysis()
 	}
 
-	if m.mode == "jobs" {
+	if m.mode == ModeJobs {
 		return m.viewJobs()
 	}
 

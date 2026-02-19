@@ -105,7 +105,14 @@ type tickMsg time.Time
 
 type configSavedMsg struct{}
 
-// statusUpdateDoneMsg is sent after inline status change (d/i/t) so the task list is reloaded.
+// statusUpdateDoneMsg is sent after inline status change (d/i/t/r) so the task list is reloaded.
 type statusUpdateDoneMsg struct {
 	err error
+}
+
+// bulkStatusUpdateDoneMsg is sent after bulk status update (D) so the task list is reloaded.
+type bulkStatusUpdateDoneMsg struct {
+	updated int
+	total   int
+	err     error
 }

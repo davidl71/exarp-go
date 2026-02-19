@@ -111,6 +111,10 @@ type model struct {
 
 	// Child agent: last result message for status display (cleared on next key or refresh)
 	childAgentMsg string
+
+	// Bulk status update: when bulkStatusPrompt is true, showing status selection menu
+	bulkStatusPrompt bool
+	bulkStatusMsg    string // result message after bulk update
 }
 
 // initialModel creates the TUI model. initialWidth and initialHeight are optional;
@@ -152,7 +156,7 @@ func initialModel(server framework.MCPServer, status string, projectRoot, projec
 		lastUpdate:         time.Now(),
 		projectRoot:        projectRoot,
 		projectName:        projectName,
-		mode:               "tasks",
+		mode:               ModeTasks,
 		configSections:     sections,
 		configCursor:       0,
 		configData:         cfg,
@@ -162,7 +166,7 @@ func initialModel(server framework.MCPServer, status string, projectRoot, projec
 		configSaveSuccess:  false,
 		scorecardLoading:   false,
 		taskDetailTask:     nil,
-		sortOrder:          "hierarchy",
+		sortOrder:          SortByHierarchy,
 		sortAsc:            true,
 		searchQuery:        "",
 		searchMode:         false,
@@ -196,11 +200,11 @@ func sortTasksBy(tasks []*database.Todo2Task, order string, asc bool) {
 		var cmp int
 
 		switch order {
-		case "status":
+		case SortByStatus:
 			cmp = strings.Compare(strings.ToLower(a.Status), strings.ToLower(b.Status))
-		case "priority":
+		case SortByPriority:
 			cmp = strings.Compare(strings.ToLower(a.Priority), strings.ToLower(b.Priority))
-		case "updated":
+		case SortByUpdated:
 			cmp = strings.Compare(a.LastModified, b.LastModified)
 		default:
 			cmp = strings.Compare(a.ID, b.ID)

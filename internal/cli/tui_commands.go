@@ -71,6 +71,29 @@ func updateTaskStatusCmd(taskID, newStatus string) tea.Cmd {
 	}
 }
 
+// bulkUpdateStatusCmd updates multiple tasks' status in the DB and returns bulkStatusUpdateDoneMsg.
+func bulkUpdateStatusCmd(taskIDs []string, newStatus string) tea.Cmd {
+	return func() tea.Msg {
+		ctx := context.Background()
+		updated := 0
+		var lastErr error
+		for _, taskID := range taskIDs {
+			task, err := database.GetTask(ctx, taskID)
+			if err != nil {
+				lastErr = err
+				continue
+			}
+			task.Status = newStatus
+			if err := database.UpdateTask(ctx, task); err != nil {
+				lastErr = err
+				continue
+			}
+			updated++
+		}
+		return bulkStatusUpdateDoneMsg{updated: updated, total: len(taskIDs), err: lastErr}
+	}
+}
+
 func loadScorecard(projectRoot string, fullMode bool) tea.Cmd {
 	return func() tea.Msg {
 		if projectRoot == "" {

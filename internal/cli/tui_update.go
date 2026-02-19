@@ -9,7 +9,6 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/davidl71/exarp-go/internal/config"
 	"github.com/davidl71/exarp-go/internal/database"
-	"github.com/davidl71/exarp-go/internal/models"
 	"github.com/davidl71/exarp-go/internal/tools"
 )
 
@@ -42,7 +41,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.tasks = msg.tasks
 		m.computeHierarchyOrder() // always compute so hierarchy depth/order available
 
-		if m.sortOrder == "hierarchy" && len(m.hierarchyOrder) > 0 {
+		if m.sortOrder == SortByHierarchy && len(m.hierarchyOrder) > 0 {
 			// use hierarchy order (parent then children, with depth)
 		} else {
 			sortTasksBy(m.tasks, m.sortOrder, m.sortAsc)
@@ -61,7 +60,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		m.lastUpdate = time.Now()
 		// If in waves view, recompute waves (prefer docs/PARALLEL_EXECUTION_PLAN_RESEARCH.md)
-		if m.mode == "waves" && len(m.tasks) > 0 {
+		if m.mode == ModeWaves && len(m.tasks) > 0 {
 			taskList := make([]tools.Todo2Task, 0, len(m.tasks))
 
 			for _, t := range m.tasks {
@@ -109,6 +108,18 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if msg.err != nil {
 			m.err = msg.err
 			return m, nil
+		}
+		m.loading = true
+		return m, loadTasks(m.status)
+
+	case bulkStatusUpdateDoneMsg:
+		m.loading = false
+		if msg.err != nil {
+			m.bulkStatusMsg = fmt.Sprintf("Bulk update failed: %v", msg.err)
+		} else {
+			m.bulkStatusMsg = fmt.Sprintf("Updated %d/%d tasks", msg.updated, msg.total)
+			// Clear selection after successful bulk update
+			m.selected = make(map[int]struct{})
 		}
 		m.loading = true
 		return m, loadTasks(m.status)
@@ -169,12 +180,12 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case tickMsg:
 		// Auto-refresh tasks periodically (only in tasks mode)
-		if m.mode == "tasks" && m.autoRefresh && !m.loading {
+		if m.mode == ModeTasks && m.autoRefresh && !m.loading {
 			m.loading = true
 			return m, loadTasks(m.status)
 		}
 		// Continue ticking
-		if m.mode == "tasks" && m.autoRefresh {
+		if m.mode == ModeTasks && m.autoRefresh {
 			return m, tick()
 		}
 
@@ -185,7 +196,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 
 	case configSectionDetailMsg:
-		m.mode = "configSection"
+		m.mode = ModeConfigSection
 		m.configSectionText = msg.text
 
 		return m, nil
@@ -310,377 +321,54 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 
 	case tea.KeyMsg:
-		switch msg.String() {
-		case "ctrl+c", "q":
-			if m.showHelp {
-				m.showHelp = false
-				return m, nil
-			}
+		key := msg.String()
 
-			if m.mode == "config" && m.configChanged {
-				// Ask for confirmation before quitting with unsaved changes
-				// For now, just quit (could add confirmation dialog later)
-			}
-
-			return m, tea.Quit
-
-		case "?", "h":
-			m.showHelp = !m.showHelp
-			return m, nil
-
-		case "esc":
-			if m.showHelp {
-				m.showHelp = false
-				return m, nil
-			}
-
-			if m.searchMode {
-				m.searchMode = false
-				m.searchQuery = ""
-				m.filteredIndices = nil
-
-				return m, nil
-			}
-
-			if m.mode == "taskAnalysis" {
-				m.mode = m.taskAnalysisReturnMode
-				if m.taskAnalysisReturnMode == "" {
-					m.mode = "tasks"
-				}
-
-				return m, nil
-			}
-
-			if m.mode == "waves" {
-				if m.waveDetailLevel >= 0 {
-					m.waveDetailLevel = -1
-				} else {
-					m.mode = "tasks"
-					m.cursor = 0
-				}
-
-				return m, nil
-			}
-
-			if m.mode == "jobs" {
-				if m.jobsDetailIndex >= 0 {
-					m.jobsDetailIndex = -1
-				} else {
-					m.mode = "tasks"
-					m.cursor = 0
-				}
-
-				return m, nil
-			}
-
-			return m, nil
+		// Try global keys first (quit, help, esc)
+		if newModel, cmd, handled := m.handleGlobalKeys(key); handled {
+			return newModel, cmd
 		}
 
-		// When help is open, ignore all other keys (handled above)
+		// When help is open, ignore all other keys
 		if m.showHelp {
 			return m, nil
 		}
 
-		// Search mode: accept input, Enter to apply, Esc already handled above
-		if m.searchMode && m.mode == "tasks" {
-			switch msg.String() {
-			case "enter":
-				m.searchMode = false
-				m.filteredIndices = m.computeFilteredIndices()
-
-				if len(m.visibleIndices()) > 0 && m.cursor >= len(m.visibleIndices()) {
-					m.cursor = len(m.visibleIndices()) - 1
-				}
-
-				return m, nil
-			case "backspace":
-				if len(m.searchQuery) > 0 {
-					m.searchQuery = m.searchQuery[:len(m.searchQuery)-1]
-				}
-
-				return m, nil
-			default:
-				if len(msg.String()) == 1 && msg.Type == tea.KeyRunes {
-					m.searchQuery += msg.String()
-				}
-
-				return m, nil
-			}
+		// Try search mode keys
+		if newModel, cmd, handled := m.handleSearchKeys(key, msg); handled {
+			return newModel, cmd
 		}
 
-		// Inline status change in task list: d=Done, i=In Progress, t=Todo
-		if m.mode == "tasks" && !m.searchMode {
-			switch msg.String() {
-			case "d", "i", "t":
-				vis := m.visibleIndices()
-				if len(vis) > 0 && m.cursor < len(vis) {
-					realIdx := m.realIndexAt(m.cursor)
-					if realIdx < len(m.tasks) && m.tasks[realIdx] != nil {
-						task := m.tasks[realIdx]
-						var newStatus string
-						switch msg.String() {
-						case "d":
-							newStatus = models.StatusDone
-						case "i":
-							newStatus = models.StatusInProgress
-						case "t":
-							newStatus = models.StatusTodo
-						}
-						if task.Status != newStatus {
-							m.loading = true
-							return m, updateTaskStatusCmd(task.ID, newStatus)
-						}
-					}
-				}
-				return m, nil
-			}
+		// Try bulk status update keys
+		if newModel, cmd, handled := m.handleBulkStatusKeys(key); handled {
+			return newModel, cmd
 		}
 
-		// When task detail is open, Esc / Enter / Space close it
-		if m.mode == "taskDetail" {
-			switch msg.String() {
-			case "esc", "enter", " ":
-				m.mode = "tasks"
-				m.taskDetailTask = nil
-
-				return m, nil
-			}
+		// Try inline status change keys (d/i/t/r/D)
+		if newModel, cmd, handled := m.handleTasksInlineStatus(key); handled {
+			return newModel, cmd
 		}
 
-		// When config section detail is open, Esc / Enter / Space close it
-		if m.mode == "configSection" {
-			switch msg.String() {
-			case "esc", "enter", " ":
-				m.mode = "config"
-				m.configSectionText = ""
-
-				return m, nil
-			}
+		// Try detail overlay close keys (esc/enter/space for overlays)
+		if newModel, cmd, handled := m.handleDetailOverlayKeys(key); handled {
+			return newModel, cmd
 		}
 
-		// When handoff detail is open, Esc / Enter / Space close it
-		if m.mode == "handoffs" && m.handoffDetailIndex >= 0 {
-			switch msg.String() {
-			case "esc", "enter", " ":
-				m.handoffDetailIndex = -1
-				return m, nil
-			}
+		// Try view toggle keys (p, H, b, w, c)
+		if newModel, cmd, handled := m.handleViewToggleKeys(key); handled {
+			return newModel, cmd
 		}
 
-		// When wave detail is open (viewing tasks for a wave), Esc / Enter / Space close it (or cancel move)
-		if m.mode == "waves" && m.waveDetailLevel >= 0 {
-			switch msg.String() {
-			case "esc", "enter", " ":
-				if m.waveMoveTaskID != "" {
-					m.waveMoveTaskID = ""
-					m.waveMoveMsg = ""
-
-					return m, nil
-				}
-
-				m.waveUpdateMsg = ""
-				m.waveDetailLevel = -1
-
-				return m, nil
-			}
+		// Try navigation keys (up/down/j/k)
+		if newModel, cmd, handled := m.handleNavigationKeys(key); handled {
+			return newModel, cmd
 		}
 
-		// When job detail is open, Esc / Enter / Space close it
-		if m.mode == "jobs" && m.jobsDetailIndex >= 0 {
-			switch msg.String() {
-			case "esc", "enter", " ":
-				m.jobsDetailIndex = -1
-				return m, nil
-			}
-		}
-
-		switch msg.String() {
-		case "p":
-			// Back from scorecard or task analysis to previous view
-			switch m.mode {
-			case "scorecard":
-				m.mode = "tasks"
-				m.cursor = 0
-			case "taskAnalysis":
-				m.mode = m.taskAnalysisReturnMode
-				if m.taskAnalysisReturnMode == "" {
-					m.mode = "tasks"
-				}
-			case "tasks":
-				m.mode = "scorecard"
-				m.scorecardLoading = true
-				m.scorecardErr = nil
-				m.scorecardText = ""
-
-				return m, loadScorecard(m.projectRoot, false)
-			case "handoffs":
-				m.mode = "tasks"
-				m.cursor = 0
-			}
-
-			return m, nil
-
-		case "H":
-			// Toggle handoffs view (session handoff notes)
-			if m.mode == "handoffs" {
-				m.mode = "tasks"
-				m.cursor = 0
-
-				return m, nil
-			}
-
-			m.mode = "handoffs"
-			m.handoffLoading = true
-			m.handoffErr = nil
-			m.handoffText = ""
-			m.handoffEntries = nil
-			m.handoffCursor = 0
-			m.handoffSelected = make(map[int]struct{})
-			m.handoffDetailIndex = -1
-			m.handoffActionMsg = ""
-
-			return m, loadHandoffs(m.server)
-
-		case "b":
-			// Toggle background jobs view
-			if m.mode == "jobs" {
-				m.mode = "tasks"
-				m.cursor = 0
-
-				return m, nil
-			}
-
-			m.mode = "jobs"
-			m.jobsCursor = 0
-			m.jobsDetailIndex = -1
-
-			return m, nil
-
-		case "w":
-			// Toggle waves view (dependency-order waves from backlog)
-			if m.mode == "waves" {
-				m.mode = "tasks"
-				m.cursor = 0
-				m.waveDetailLevel = -1
-
-				return m, nil
-			}
-
-			if m.mode == "tasks" && len(m.tasks) > 0 {
-				m.mode = "waves"
-				m.waveDetailLevel = -1
-				m.waveCursor = 0
-				// Compute waves (prefer docs/PARALLEL_EXECUTION_PLAN_RESEARCH.md)
-				taskList := make([]tools.Todo2Task, 0, len(m.tasks))
-
-				for _, t := range m.tasks {
-					if t != nil {
-						taskList = append(taskList, *t)
-					}
-				}
-
-				waves, err := tools.ComputeWavesForTUI(m.projectRoot, taskList)
-				if err != nil {
-					m.waves = nil
-				} else {
-					m.waves = waves
-				}
-			}
-
-			return m, nil
-
-		case "c":
-			// Toggle between tasks and config view
-			switch m.mode {
-			case "tasks":
-				m.mode = "config"
-				m.configCursor = 0
-			case "config":
-				m.mode = "tasks"
-				m.cursor = 0
-				m.configSaveMessage = ""
-			case "handoffs":
-				m.mode = "tasks"
-				m.cursor = 0
-			case "waves", "jobs":
-				m.mode = "tasks"
-				m.cursor = 0
-			}
-
-			return m, nil
-
-		case "up", "k":
-			if m.mode == "scorecard" {
-				if len(m.scorecardRecs) > 0 && m.scorecardRecCursor > 0 {
-					m.scorecardRecCursor--
-				}
-
-				return m, nil
-			}
-
-			if m.mode == "config" {
-				if m.configCursor > 0 {
-					m.configCursor--
-				}
-			} else if m.mode == "tasks" {
-				vis := m.visibleIndices()
-				if len(vis) > 0 && m.cursor > 0 {
-					m.cursor--
-				}
-			} else if m.mode == "handoffs" && m.handoffDetailIndex < 0 && len(m.handoffEntries) > 0 && m.handoffCursor > 0 {
-				m.handoffCursor--
-			} else if m.mode == "waves" && m.waveDetailLevel >= 0 && m.waveMoveTaskID == "" {
-				ids := m.waves[m.waveDetailLevel]
-				if len(ids) > 0 && m.waveTaskCursor > 0 {
-					m.waveTaskCursor--
-				}
-			} else if m.mode == "waves" && m.waveDetailLevel < 0 && len(m.waves) > 0 && m.waveCursor > 0 {
-				m.waveCursor--
-			} else if m.mode == "jobs" && m.jobsDetailIndex < 0 && len(m.jobs) > 0 && m.jobsCursor > 0 {
-				m.jobsCursor--
-			}
-
-			return m, nil
-
-		case "down", "j":
-			if m.mode == "scorecard" {
-				if len(m.scorecardRecs) > 0 && m.scorecardRecCursor < len(m.scorecardRecs)-1 {
-					m.scorecardRecCursor++
-				}
-
-				return m, nil
-			}
-
-			if m.mode == "config" {
-				if m.configCursor < len(m.configSections)-1 {
-					m.configCursor++
-				}
-			} else if m.mode == "tasks" {
-				vis := m.visibleIndices()
-				if len(vis) > 0 && m.cursor < len(vis)-1 {
-					m.cursor++
-				}
-			} else if m.mode == "handoffs" && m.handoffDetailIndex < 0 && len(m.handoffEntries) > 0 && m.handoffCursor < len(m.handoffEntries)-1 {
-				m.handoffCursor++
-			} else if m.mode == "waves" && m.waveDetailLevel >= 0 && m.waveMoveTaskID == "" {
-				ids := m.waves[m.waveDetailLevel]
-				if len(ids) > 0 && m.waveTaskCursor < len(ids)-1 {
-					m.waveTaskCursor++
-				}
-			} else if m.mode == "waves" && m.waveDetailLevel < 0 && len(m.waves) > 0 {
-				levels := sortedWaveLevels(m.waves)
-				if m.waveCursor < len(levels)-1 {
-					m.waveCursor++
-				}
-			} else if m.mode == "jobs" && m.jobsDetailIndex < 0 && len(m.jobs) > 0 && m.jobsCursor < len(m.jobs)-1 {
-				m.jobsCursor++
-			}
-
-			return m, nil
+		// Continue with remaining key handlers below...
+		switch key {
 
 		case "enter", " ", "e", "i":
 			// In handoffs: "i" = start interactive agent with handoff (do not close)
-			if m.mode == "handoffs" && msg.String() == "i" && len(m.handoffEntries) > 0 {
+			if m.mode == ModeHandoffs && msg.String() == "i" && len(m.handoffEntries) > 0 {
 				var h map[string]interface{}
 				if m.handoffDetailIndex >= 0 && m.handoffDetailIndex < len(m.handoffEntries) {
 					h = m.handoffEntries[m.handoffDetailIndex]
@@ -706,7 +394,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 
 			// In handoffs: "e" = execute current handoff in agent and close it
-			if m.mode == "handoffs" && msg.String() == "e" && len(m.handoffEntries) > 0 {
+			if m.mode == ModeHandoffs && msg.String() == "e" && len(m.handoffEntries) > 0 {
 				var h map[string]interface{}
 
 				var id string
@@ -739,7 +427,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m, nil
 			}
 
-			if m.mode == "scorecard" {
+			if m.mode == ModeScorecard {
 				if len(m.scorecardRecs) > 0 && m.scorecardRecCursor < len(m.scorecardRecs) {
 					rec := m.scorecardRecs[m.scorecardRecCursor]
 					if _, _, ok := recommendationToCommand(rec); ok {
@@ -750,10 +438,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m, nil
 			}
 
-			if m.mode == "config" {
+			if m.mode == ModeConfig {
 				// Open config section editor (for now, just show section details)
 				return m, showConfigSection(m.configSections[m.configCursor], m.configData)
-			} else if m.mode == "tasks" {
+			} else if m.mode == ModeTasks {
 				// Toggle selection (cursor is index into visible list)
 				vis := m.visibleIndices()
 				if len(vis) > 0 && m.cursor < len(vis) {
@@ -764,7 +452,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 						m.selected[realIdx] = struct{}{}
 					}
 				}
-			} else if m.mode == "handoffs" && m.handoffDetailIndex < 0 && len(m.handoffEntries) > 0 {
+			} else if m.mode == ModeHandoffs && m.handoffDetailIndex < 0 && len(m.handoffEntries) > 0 {
 				if msg.String() == " " {
 					// Space: toggle selection
 					if _, ok := m.handoffSelected[m.handoffCursor]; ok {
@@ -776,13 +464,13 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					// Enter or e: open detail
 					m.handoffDetailIndex = m.handoffCursor
 				}
-			} else if m.mode == "waves" && m.waveDetailLevel < 0 && len(m.waves) > 0 {
+			} else if m.mode == ModeWaves && m.waveDetailLevel < 0 && len(m.waves) > 0 {
 				levels := sortedWaveLevels(m.waves)
 				if m.waveCursor < len(levels) {
 					m.waveDetailLevel = levels[m.waveCursor]
 					m.waveTaskCursor = 0
 				}
-			} else if m.mode == "jobs" && m.jobsDetailIndex < 0 && len(m.jobs) > 0 {
+			} else if m.mode == ModeJobs && m.jobsDetailIndex < 0 && len(m.jobs) > 0 {
 				m.jobsDetailIndex = m.jobsCursor
 			}
 
@@ -790,7 +478,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		case "r":
 			switch m.mode {
-			case "config":
+			case ModeConfig:
 				// Reload config
 				m.configSaveMessage = ""
 
@@ -801,19 +489,19 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 
 				return m, nil
-			case "scorecard":
+			case ModeScorecard:
 				// Refresh scorecard (fast mode for manual refresh; use Run then Enter for full refresh)
 				m.scorecardLoading = true
 				return m, loadScorecard(m.projectRoot, false)
-			case "handoffs":
+			case ModeHandoffs:
 				// Refresh handoffs
 				m.handoffLoading = true
 				return m, loadHandoffs(m.server)
-			case "waves":
+			case ModeWaves:
 				// Refresh tasks (waves recompute on taskLoadedMsg)
 				m.loading = true
 				return m, loadTasks(m.status)
-			case "taskAnalysis":
+			case ModeTaskAnalysis:
 				if !m.taskAnalysisLoading {
 					m.taskAnalysisLoading = true
 
@@ -834,7 +522,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		case "x":
 			// Close/dismiss handoffs: from detail view (current item) or list view (selected or current)
-			if m.mode == "handoffs" && len(m.handoffEntries) > 0 {
+			if m.mode == ModeHandoffs && len(m.handoffEntries) > 0 {
 				var ids []string
 
 				if m.handoffDetailIndex >= 0 && m.handoffDetailIndex < len(m.handoffEntries) {
@@ -860,11 +548,11 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, nil
 
 		case "a":
-			if m.mode == "scorecard" {
+			if m.mode == ModeScorecard {
 				return m, nil
 			}
 
-			if m.mode == "handoffs" && len(m.handoffEntries) > 0 {
+			if m.mode == ModeHandoffs && len(m.handoffEntries) > 0 {
 				// Approve: from detail view (current item) or list view (selected or current)
 				var ids []string
 
@@ -888,7 +576,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 			}
 
-			if m.mode == "tasks" {
+			if m.mode == ModeTasks {
 				// Toggle auto-refresh
 				m.autoRefresh = !m.autoRefresh
 				if m.autoRefresh {
@@ -900,7 +588,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		case "d":
 			// Delete handoffs: from detail view (current item) or list view (selected or current)
-			if m.mode == "handoffs" && len(m.handoffEntries) > 0 {
+			if m.mode == ModeHandoffs && len(m.handoffEntries) > 0 {
 				var ids []string
 
 				if m.handoffDetailIndex >= 0 && m.handoffDetailIndex < len(m.handoffEntries) {
@@ -927,21 +615,21 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		case "o":
 			// Cycle sort order (id → status → priority → updated → hierarchy → id)
-			if m.mode == "tasks" && len(m.tasks) > 0 {
+			if m.mode == ModeTasks && len(m.tasks) > 0 {
 				switch m.sortOrder {
-				case "id":
-					m.sortOrder = "status"
-				case "status":
-					m.sortOrder = "priority"
-				case "priority":
-					m.sortOrder = "updated"
-				case "updated":
-					m.sortOrder = "hierarchy"
+				case SortByID:
+					m.sortOrder = SortByStatus
+				case SortByStatus:
+					m.sortOrder = SortByPriority
+				case SortByPriority:
+					m.sortOrder = SortByUpdated
+				case SortByUpdated:
+					m.sortOrder = SortByHierarchy
 				default:
-					m.sortOrder = "id"
+					m.sortOrder = SortByID
 				}
 
-				if m.sortOrder == "hierarchy" {
+				if m.sortOrder == SortByHierarchy {
 					m.computeHierarchyOrder()
 				} else {
 					sortTasksBy(m.tasks, m.sortOrder, m.sortAsc)
@@ -956,9 +644,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		case "O":
 			// Toggle sort direction (asc ↔ desc)
-			if m.mode == "tasks" && len(m.tasks) > 0 {
+			if m.mode == ModeTasks && len(m.tasks) > 0 {
 				m.sortAsc = !m.sortAsc
-				if m.sortOrder == "hierarchy" {
+				if m.sortOrder == SortByHierarchy {
 					m.computeHierarchyOrder()
 				} else {
 					sortTasksBy(m.tasks, m.sortOrder, m.sortAsc)
@@ -969,7 +657,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		case "/":
 			// Start search/filter (vim-style)
-			if m.mode == "tasks" {
+			if m.mode == ModeTasks {
 				m.searchMode = true
 				// Keep previous searchQuery so user can extend or backspace
 			}
@@ -978,7 +666,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		case "n":
 			// Next search match (vim-style)
-			if m.mode == "tasks" && m.searchQuery != "" {
+			if m.mode == ModeTasks && m.searchQuery != "" {
 				vis := m.visibleIndices()
 				if len(vis) > 0 && m.cursor < len(vis)-1 {
 					m.cursor++
@@ -989,7 +677,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		case "N":
 			// Previous search match (vim-style)
-			if m.mode == "tasks" && m.searchQuery != "" {
+			if m.mode == ModeTasks && m.searchQuery != "" {
 				if m.cursor > 0 {
 					m.cursor--
 				}
@@ -999,7 +687,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		case "tab", "\t":
 			// In tasks mode: collapse/expand tree node under cursor (if it has children)
-			if m.mode == "tasks" {
+			if m.mode == ModeTasks {
 				vis := m.visibleIndices()
 				if len(vis) > 0 && m.cursor < len(vis) {
 					realIdx := m.realIndexAt(m.cursor)
@@ -1019,30 +707,30 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		case "u":
 			// In config view: update (save current config to .exarp/config.pb protobuf)
-			if m.mode == "config" {
+			if m.mode == ModeConfig {
 				return m, saveConfig(m.projectRoot, m.configData)
 			}
 
 			return m, nil
 
 		case "s":
-			if m.mode == "scorecard" {
+			if m.mode == ModeScorecard {
 				return m, nil
 			}
 
 			switch m.mode {
-			case "tasks":
+			case ModeTasks:
 				// Show task details in-TUI (word-wrapped)
 				vis := m.visibleIndices()
 				if len(vis) > 0 && m.cursor < len(vis) {
-					m.mode = "taskDetail"
+					m.mode = ModeTaskDetail
 					m.taskDetailTask = m.tasks[m.realIndexAt(m.cursor)]
 
 					return m, nil
 				}
-			case "taskDetail":
+			case ModeTaskDetail:
 				// Close task detail on 's' too (so same key can close)
-				m.mode = "tasks"
+				m.mode = ModeTasks
 				m.taskDetailTask = nil
 
 				return m, nil
@@ -1053,7 +741,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		case "R":
 			// In waves view: run exarp tools (task_workflow sync, task_analysis parallelization) then refresh waves
-			if m.mode == "waves" {
+			if m.mode == ModeWaves {
 				m.loading = true
 				m.err = nil
 
@@ -1064,7 +752,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		case "U":
 			// In waves view: update Todo2 task dependencies from docs/PARALLEL_EXECUTION_PLAN_RESEARCH.md
-			if m.mode == "waves" {
+			if m.mode == ModeWaves {
 				m.loading = true
 				m.waveUpdateMsg = ""
 
@@ -1074,7 +762,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, nil
 
 		case "Q":
-			if m.mode == "waves" && m.queueEnabled && len(m.waves) > 0 {
+			if m.mode == ModeWaves && m.queueEnabled && len(m.waves) > 0 {
 				levels := sortedWaveLevels(m.waves)
 				waveIdx := 0
 				if m.waveDetailLevel >= 0 {
@@ -1099,9 +787,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		case "A":
 			// In tasks or waves: run task_analysis and show result in dedicated view
-			if m.mode == "tasks" || m.mode == "waves" {
+			if m.mode == ModeTasks || m.mode == ModeWaves {
 				m.taskAnalysisReturnMode = m.mode
-				m.mode = "taskAnalysis"
+				m.mode = ModeTaskAnalysis
 				m.taskAnalysisLoading = true
 				m.taskAnalysisErr = nil
 				m.taskAnalysisText = ""
@@ -1112,7 +800,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m, runTaskAnalysis(m.server, "parallelization")
 			}
 
-			if m.mode == "taskAnalysis" && !m.taskAnalysisLoading {
+			if m.mode == ModeTaskAnalysis && !m.taskAnalysisLoading {
 				// Rerun same action
 				m.taskAnalysisLoading = true
 				m.taskAnalysisApproveMsg = ""
@@ -1124,7 +812,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		case "y":
 			// In task analysis view: approve = write waves plan to .cursor/plans/parallel-execution-subagents.plan.md
-			if m.mode == "taskAnalysis" && !m.taskAnalysisLoading && !m.taskAnalysisApproveLoading {
+			if m.mode == ModeTaskAnalysis && !m.taskAnalysisLoading && !m.taskAnalysisApproveLoading {
 				m.taskAnalysisApproveLoading = true
 				m.taskAnalysisApproveMsg = ""
 
@@ -1135,7 +823,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		case "m":
 			// In waves expanded view: start "move task to wave" (then press 0-9 to pick target wave)
-			if m.mode == "waves" && m.waveDetailLevel >= 0 && m.waveMoveTaskID == "" {
+			if m.mode == ModeWaves && m.waveDetailLevel >= 0 && m.waveMoveTaskID == "" {
 				ids := m.waves[m.waveDetailLevel]
 				if len(ids) > 0 && m.waveTaskCursor < len(ids) {
 					m.waveMoveTaskID = ids[m.waveTaskCursor]
@@ -1146,7 +834,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, nil
 
 		case "0", "1", "2", "3", "4", "5", "6", "7", "8", "9":
-			if m.mode == "waves" && m.waveMoveTaskID != "" {
+			if m.mode == ModeWaves && m.waveMoveTaskID != "" {
 				targetLevel := int(msg.String()[0] - '0')
 				levels := sortedWaveLevels(m.waves)
 
@@ -1195,7 +883,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "E":
 			// Execute current context (task, handoff, wave) in child agent
 			m.childAgentMsg = ""
-			if m.mode == "tasks" {
+			if m.mode == ModeTasks {
 				vis := m.visibleIndices()
 				if len(vis) > 0 && m.cursor < len(vis) {
 					task := m.tasks[m.realIndexAt(m.cursor)]
@@ -1204,10 +892,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 						return m, runChildAgentCmd(m.projectRoot, prompt, ChildAgentTask)
 					}
 				}
-			} else if m.mode == "taskDetail" && m.taskDetailTask != nil {
+			} else if m.mode == ModeTaskDetail && m.taskDetailTask != nil {
 				prompt := PromptForTask(m.taskDetailTask.ID, m.taskDetailTask.Content)
 				return m, runChildAgentCmd(m.projectRoot, prompt, ChildAgentTask)
-			} else if m.mode == "handoffs" {
+			} else if m.mode == ModeHandoffs {
 				if m.handoffDetailIndex >= 0 && m.handoffDetailIndex < len(m.handoffEntries) {
 					h := m.handoffEntries[m.handoffDetailIndex]
 					sum, _ := h["summary"].(string)
@@ -1233,7 +921,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 					return m, runChildAgentCmd(m.projectRoot, prompt, ChildAgentHandoff)
 				}
-			} else if m.mode == "waves" && len(m.waves) > 0 {
+			} else if m.mode == ModeWaves && len(m.waves) > 0 {
 				levels := sortedWaveLevels(m.waves)
 				waveIdx := 0
 
@@ -1262,7 +950,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "L":
 			// Launch plan in child agent (tasks or taskDetail)
 			m.childAgentMsg = ""
-			if m.mode == "tasks" || m.mode == "taskDetail" {
+			if m.mode == ModeTasks || m.mode == ModeTaskDetail {
 				prompt := PromptForPlan(m.projectRoot)
 				return m, runChildAgentCmd(m.projectRoot, prompt, ChildAgentPlan)
 			}

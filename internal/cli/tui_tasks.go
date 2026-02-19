@@ -102,6 +102,35 @@ func (m model) viewTasks() string {
 		b.WriteString("\n")
 	}
 
+	// Bulk status update prompt
+	if m.bulkStatusPrompt {
+		selectedCount := len(m.selected)
+		prompt := fmt.Sprintf("Bulk update %d task(s) - Select status: ", selectedCount)
+		prompt += helpStyle.Render("d")
+		prompt += "=Done "
+		prompt += helpStyle.Render("i")
+		prompt += "=In Progress "
+		prompt += helpStyle.Render("t")
+		prompt += "=Todo "
+		prompt += helpStyle.Render("r")
+		prompt += "=Review "
+		prompt += helpStyle.Render("Esc")
+		prompt += "=Cancel"
+		b.WriteString(statusBarStyle.Render(prompt))
+		b.WriteString("\n")
+	}
+
+	// Bulk status update result message
+	if m.bulkStatusMsg != "" {
+		msgLine := m.bulkStatusMsg
+		if len(msgLine) > availableWidth-2 {
+			msgLine = msgLine[:availableWidth-5] + "..."
+		}
+		b.WriteString("\n")
+		b.WriteString(helpStyle.Render("  " + msgLine))
+		b.WriteString("\n")
+	}
+
 	// Task list - adjust layout based on terminal width
 	if useWideLayout {
 		// Wide layout: multi-column or side-by-side
@@ -149,14 +178,10 @@ func (m model) viewTasks() string {
 	statusBar.WriteString(" collapse  ")
 	statusBar.WriteString(helpStyle.Render("s"))
 	statusBar.WriteString(" details  ")
-	statusBar.WriteString(helpStyle.Render("d"))
-	statusBar.WriteString(" Done  ")
-	statusBar.WriteString(helpStyle.Render("i"))
-	statusBar.WriteString(" In Prog  ")
-	statusBar.WriteString(helpStyle.Render("t"))
-	statusBar.WriteString(" Todo  ")
-	statusBar.WriteString(helpStyle.Render("r"))
-	statusBar.WriteString(" refresh  ")
+	statusBar.WriteString(helpStyle.Render("d/i/t/r"))
+	statusBar.WriteString(" status  ")
+	statusBar.WriteString(helpStyle.Render("D"))
+	statusBar.WriteString(" bulk  ")
 	statusBar.WriteString(helpStyle.Render("a"))
 	statusBar.WriteString(" auto  ")
 	statusBar.WriteString(helpStyle.Render("c"))

@@ -10,6 +10,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/davidl71/exarp-go/internal/database"
 	"github.com/davidl71/exarp-go/internal/framework"
+	"github.com/davidl71/exarp-go/internal/models"
 	"github.com/davidl71/exarp-go/tests/fixtures"
 )
 
@@ -26,8 +27,8 @@ func createTestTasks(count int) []*database.Todo2Task {
 		tasks[i] = &database.Todo2Task{
 			ID:              "T-" + string(rune('1'+i)),
 			Content:         "Test Task " + string(rune('1'+i)),
-			Status:          "Todo",
-			Priority:        "medium",
+			Status:          models.StatusTodo,
+			Priority:        models.PriorityMedium,
 			LongDescription: "Test task description",
 			Tags:            []string{"test"},
 			Dependencies:    []string{},
@@ -267,12 +268,12 @@ func TestTUIInlineStatusChange(t *testing.T) {
 		m.loading = false
 		// Restore task to Todo so next key triggers a change
 		if len(m.tasks) > 0 {
-			m.tasks[0].Status = "Todo"
+			m.tasks[0].Status = models.StatusTodo
 		}
 	}
 
 	// t (Todo) only triggers when current status is not Todo
-	m.tasks[0].Status = "In Progress"
+	m.tasks[0].Status = models.StatusInProgress
 	updated, cmd := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'t'}})
 	updatedModel := updated.(model)
 	if !updatedModel.loading {
@@ -416,7 +417,7 @@ func TestTUIConfigNavigation(t *testing.T) {
 // TestTUIEmptyState tests rendering when no tasks are available.
 func TestTUIEmptyState(t *testing.T) {
 	server := setupMockServer(t)
-	m := initialModel(server, "Todo", "/test", "test-project", 0, 0)
+	m := initialModel(server, models.StatusTodo, "/test", "test-project", 0, 0)
 	m.tasks = []*database.Todo2Task{}
 	m.loading = false
 
@@ -458,8 +459,8 @@ func TestTUITaskDetailRecordsOutput(t *testing.T) {
 		{
 			ID:              "T-1771245906548",
 			Content:         "Fix tools health and hooks tests",
-			Status:          "Todo",
-			Priority:        "medium",
+			Status:          models.StatusTodo,
+			Priority:        models.PriorityMedium,
 			LongDescription: "Objective: Fix internal/tools TestHandleHealthDocs, TestHandleHealthCICD. Acceptance: Health docs/DOD/CICD tests pass or are skipped.",
 			Tags:            []string{"testing", "health"},
 			Dependencies:    []string{},
