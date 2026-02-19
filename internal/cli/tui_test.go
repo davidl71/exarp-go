@@ -238,6 +238,56 @@ func TestTUIRefresh(t *testing.T) {
 	}
 }
 
+// TestTUIInlineStatusChange tests that d/i/t in task list set loading and return status-update command.
+func TestTUIInlineStatusChange(t *testing.T) {
+	server := setupMockServer(t)
+	m := initialModel(server, "", "/test", "test-project", 0, 0)
+	m.tasks = createTestTasks(2)
+	m.loading = false
+	m.mode = "tasks"
+	m.searchMode = false
+	m.cursor = 0
+
+	// d (Done) and i (In Progress) both change status when task is Todo
+	for _, key := range []rune{'d', 'i'} {
+		updated, cmd := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{key}})
+		updatedModel := updated.(model)
+		if !updatedModel.loading {
+			t.Errorf("key %q: expected loading=true after inline status key", string(key))
+		}
+		if cmd == nil {
+			t.Errorf("key %q: expected non-nil command", string(key))
+		} else {
+			msg := cmd()
+			if _, ok := msg.(statusUpdateDoneMsg); !ok {
+				t.Errorf("key %q: command returned %T, want statusUpdateDoneMsg", string(key), msg)
+			}
+		}
+		m = updatedModel
+		m.loading = false
+		// Restore task to Todo so next key triggers a change
+		if len(m.tasks) > 0 {
+			m.tasks[0].Status = "Todo"
+		}
+	}
+
+	// t (Todo) only triggers when current status is not Todo
+	m.tasks[0].Status = "In Progress"
+	updated, cmd := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'t'}})
+	updatedModel := updated.(model)
+	if !updatedModel.loading {
+		t.Error("key t: expected loading=true after inline status key")
+	}
+	if cmd == nil {
+		t.Error("key t: expected non-nil command")
+	} else {
+		msg := cmd()
+		if _, ok := msg.(statusUpdateDoneMsg); !ok {
+			t.Errorf("key t: command returned %T, want statusUpdateDoneMsg", msg)
+		}
+	}
+}
+
 // TestTUIAutoRefreshToggle tests toggling auto-refresh with 'a' key.
 func TestTUIAutoRefreshToggle(t *testing.T) {
 	server := setupMockServer(t)

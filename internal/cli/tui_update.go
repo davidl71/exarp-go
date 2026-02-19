@@ -1,3 +1,4 @@
+// tui_update.go — TUI Update() method: all Bubbletea message handling.
 package cli
 
 import (
@@ -8,6 +9,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/davidl71/exarp-go/internal/config"
 	"github.com/davidl71/exarp-go/internal/database"
+	"github.com/davidl71/exarp-go/internal/models"
 	"github.com/davidl71/exarp-go/internal/tools"
 )
 
@@ -100,6 +102,15 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// Reload tasks so waves recompute from updated backlog
 		m.loading = true
 
+		return m, loadTasks(m.status)
+
+	case statusUpdateDoneMsg:
+		m.loading = false
+		if msg.err != nil {
+			m.err = msg.err
+			return m, nil
+		}
+		m.loading = true
 		return m, loadTasks(m.status)
 
 	case taskAnalysisLoadedMsg:
@@ -393,6 +404,34 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.searchQuery += msg.String()
 				}
 
+				return m, nil
+			}
+		}
+
+		// Inline status change in task list: d=Done, i=In Progress, t=Todo
+		if m.mode == "tasks" && !m.searchMode {
+			switch msg.String() {
+			case "d", "i", "t":
+				vis := m.visibleIndices()
+				if len(vis) > 0 && m.cursor < len(vis) {
+					realIdx := m.realIndexAt(m.cursor)
+					if realIdx < len(m.tasks) && m.tasks[realIdx] != nil {
+						task := m.tasks[realIdx]
+						var newStatus string
+						switch msg.String() {
+						case "d":
+							newStatus = models.StatusDone
+						case "i":
+							newStatus = models.StatusInProgress
+						case "t":
+							newStatus = models.StatusTodo
+						}
+						if task.Status != newStatus {
+							m.loading = true
+							return m, updateTaskStatusCmd(task.ID, newStatus)
+						}
+					}
+				}
 				return m, nil
 			}
 		}
