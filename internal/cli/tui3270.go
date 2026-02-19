@@ -20,6 +20,7 @@ import (
 	"github.com/davidl71/exarp-go/internal/config"
 	"github.com/davidl71/exarp-go/internal/database"
 	"github.com/davidl71/exarp-go/internal/framework"
+	"github.com/davidl71/exarp-go/internal/models"
 	"github.com/davidl71/exarp-go/internal/tools"
 	"github.com/racingmars/go3270"
 )
@@ -48,12 +49,12 @@ func loadTasksForStatus(ctx context.Context, status string) ([]*database.Todo2Ta
 		return database.GetTasksByStatus(ctx, status)
 	}
 
-	todo, err := database.GetTasksByStatus(ctx, "Todo")
+	todo, err := database.GetTasksByStatus(ctx, models.StatusTodo)
 	if err != nil {
 		return nil, err
 	}
 
-	inProgress, err := database.GetTasksByStatus(ctx, "In Progress")
+	inProgress, err := database.GetTasksByStatus(ctx, models.StatusInProgress)
 	if err != nil {
 		return nil, err
 	}

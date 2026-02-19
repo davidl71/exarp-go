@@ -33,3 +33,11 @@ const (
 	ActivityTypeStatusChanged = "status_changed"
 	ActivityTypeUpdated       = "todo_updated"
 )
+
+// LLM backend values.
+const (
+	BackendFM     = "fm"
+	BackendMLX    = "mlx"
+	BackendOllama = "ollama"
+	BackendAuto   = "auto"
+)
