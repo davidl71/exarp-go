@@ -16,6 +16,7 @@
     _linter_sys_pkgs: >-
       {{ ([ _shellcheck_pkg ] if 'shellcheck' in linters else []) +
          ([ _yamllint_pkg ] if 'yamllint' in linters else []) +
+         ([ _universal_ctags_pkg ] if ('universal-ctags' in linters and _universal_ctags_pkg is defined) else []) +
          ([ _ansible_lint_pkg ] if ('ansible-lint' in linters and _ansible_lint_pkg is defined) else []) +
          ([ _actionlint_pkg ] if ('actionlint' in linters and _actionlint_pkg is defined) else []) +
          ([ _nodejs_pkg ]     if ('markdownlint-cli' in linters or 'cspell' in linters) else []) }}
@@ -143,7 +144,7 @@
 # --- Phase 3: Verify ---
 
 - name: Verify linter installations
-  ansible.builtin.command: "{{ item.command }} --version"
+  ansible.builtin.command: "{{ item.command }} {{ item.version_flag | default('--version') }}"
   register: linter_versions
   changed_when: false
   failed_when: false
@@ -154,6 +155,7 @@
     - {name: "shellcheck", command: "shellcheck"}
     - {name: "shfmt", command: "{{ go_bin_path }}/shfmt"}
     - {name: "yamllint", command: "yamllint"}
+    - {name: "universal-ctags", command: "ctags", version_flag: "--version"}
     - {name: "ansible-lint", command: "ansible-lint"}
     - {name: "actionlint", command: "actionlint"}
     - {name: "markdownlint-cli", command: "markdownlint"}

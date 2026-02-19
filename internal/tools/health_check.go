@@ -48,8 +48,10 @@ func handleHealthNative(ctx context.Context, params map[string]interface{}) ([]f
 		return handleHealthCICD(ctx, params)
 	case "tools":
 		return handleHealthTools(ctx, params)
+	case "ctags":
+		return handleHealthCtags(ctx, params)
 	default:
-		return nil, fmt.Errorf("health action %q not supported (use: server, git, docs, dod, cicd, tools)", action)
+		return nil, fmt.Errorf("health action %q not supported (use: server, git, docs, dod, cicd, tools, ctags)", action)
 	}
 }
 
@@ -558,5 +560,42 @@ func handleHealthCICD(ctx context.Context, params map[string]interface{}) ([]fra
 	resultJSON, _ := json.Marshal(result)
 	resp := &proto.HealthReport{Action: "cicd", OutputPath: outputPath, ResultJson: string(resultJSON)}
 
+	return response.FormatResult(HealthReportToMap(resp), resp.GetOutputPath())
+}
+
+// handleHealthCtags handles the "ctags" action - reports if universal-ctags binary and/or tags file are present.
+// Use when checking whether make tags / symbol index is available (see docs/CTAGS_USAGE.md).
+func handleHealthCtags(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
+	projectRoot, err := FindProjectRoot()
+	if err != nil {
+		if envRoot := os.Getenv("PROJECT_ROOT"); envRoot != "" {
+			projectRoot = envRoot
+		} else {
+			wd, _ := os.Getwd()
+			projectRoot = wd
+		}
+	}
+
+	ctagsPath, ctagsErr := exec.LookPath("ctags")
+	ctagsAvailable := ctagsErr == nil && ctagsPath != ""
+
+	tagsPath := filepath.Join(projectRoot, "tags")
+	tagsInfo, tagsErr := os.Stat(tagsPath)
+	tagsPresent := tagsErr == nil && tagsInfo != nil && !tagsInfo.IsDir()
+	tagsSize := int64(0)
+	if tagsPresent {
+		tagsSize = tagsInfo.Size()
+	}
+
+	result := map[string]interface{}{
+		"ctags_available":   ctagsAvailable,
+		"ctags_path":       ctagsPath,
+		"tags_file_present": tagsPresent,
+		"tags_file_path":   tagsPath,
+		"tags_file_size":   tagsSize,
+		"note":             "Run 'make tags' to generate tags file (requires universal-ctags). See docs/CTAGS_USAGE.md.",
+	}
+	resultJSON, _ := json.Marshal(result)
+	resp := &proto.HealthReport{Action: "ctags", ResultJson: string(resultJSON)}
 	return response.FormatResult(HealthReportToMap(resp), resp.GetOutputPath())
 }

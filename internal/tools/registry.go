@@ -115,13 +115,13 @@ func registerBatch1Tools(server framework.MCPServer) error {
 	// T-24: health
 	if err := server.RegisterTool(
 		"health",
-		"[HINT: action=server|git|docs|dod|cicd|tools. Check project health and component status. Use when diagnosing issues or before releases.]",
+		"[HINT: action=server|git|docs|dod|cicd|tools|ctags. Check project health and component status. Use when diagnosing issues or before releases. action=ctags reports if universal-ctags and tags file are present.]",
 		framework.ToolSchema{
 			Type: "object",
 			Properties: map[string]interface{}{
 				"action": map[string]interface{}{
 					"type":    "string",
-					"enum":    []string{"server", "git", "docs", "dod", "cicd", "tools"},
+					"enum":    []string{"server", "git", "docs", "dod", "cicd", "tools", "ctags"},
 					"default": "server",
 				},
 				"agent_name": map[string]interface{}{
@@ -1356,6 +1356,19 @@ func registerBatch3Tools(server framework.MCPServer) error {
 				"include_git_status": map[string]interface{}{
 					"type":    "boolean",
 					"default": true,
+				},
+				"include_point_in_time_snapshot": map[string]interface{}{
+					"type":        "boolean",
+					"default":     false,
+					"description": "When true (handoff end), attach full task list as gzip+base64 snapshot in handoff",
+				},
+				"task_journal": map[string]interface{}{
+					"type":        "string",
+					"description": "Optional JSON array of {id, action?, ...} for tasks modified this session (handoff end)",
+				},
+				"modified_task_ids": map[string]interface{}{
+					"type":        "array",
+					"description": "Optional list of task IDs modified this session; stored as task_journal (handoff end)",
 				},
 				"limit": map[string]interface{}{
 					"type":    "integer",

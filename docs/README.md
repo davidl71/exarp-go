@@ -19,6 +19,7 @@
 - `LLM_NATIVE_ABSTRACTION_PATTERNS.md` - LLM abstraction patterns and discovery
 
 ### Active Workflows
+- `HANDOFF_VIA_GIT.md` - Hand off so remote gets exarp task list via git (export handoff + task snapshot to tracked docs)
 - `DEV_TEST_AUTOMATION.md` - Development and testing automation
 - `WORKFLOW_USAGE.md` - Workflow usage guide
 - `WORKFLOW_MODE_TOOL_GROUPS.md` - Tool groups enable/disable functionality
@@ -31,6 +32,10 @@
 - `SCORECARD_GO_IMPLEMENTATION.md` - Scorecard feature documentation
 - `MARKDOWN_LINTING_RESEARCH.md` - Markdown linting research
 - `MARKDOWN_LINTING_TEST_RESULTS.md` - Markdown linting test results
+
+### Index and discoverability
+- `DOCS_AND_CODE_INDEX.md` - Purpose of docs/code index; whether an index helps Cursor and other agents; recommendations
+- `CTAGS_USAGE.md` - Using universal-ctags in CI, Make, TUI, and other non-Cursor features; `make tags` target
 
 ### Reference Documentation
 - `PROTOBUF_USAGE.md` - Protobuf usage and build tooling (make proto, make proto-buf)
