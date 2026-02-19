@@ -30,8 +30,8 @@ type GoProjectMetrics struct {
 	MCPTools        int    `json:"mcp_tools"`
 	MCPPrompts      int    `json:"mcp_prompts"`
 	MCPResources    int    `json:"mcp_resources"`
-	TotalCodeBytes  int    `json:"total_code_bytes"`  // Sum of .go, _test.go, bridge/tests .py file sizes (for token estimate)
-	EstimatedTokens int    `json:"estimated_tokens"`  // Ratio-based estimate (chars × tokens_per_char); use for context budgeting
+	TotalCodeBytes  int    `json:"total_code_bytes"` // Sum of .go, _test.go, bridge/tests .py file sizes (for token estimate)
+	EstimatedTokens int    `json:"estimated_tokens"` // Ratio-based estimate (chars × tokens_per_char); use for context budgeting
 }
 
 // GoHealthChecks represents Go-specific health check results.
@@ -62,7 +62,7 @@ type GoHealthChecks struct {
 
 // FileSizeInfo holds per-file size and token estimate for split/refactor analysis.
 type FileSizeInfo struct {
-	Path            string `json:"path"`              // Relative to project root
+	Path            string `json:"path"` // Relative to project root
 	Lines           int    `json:"lines"`
 	Bytes           int    `json:"bytes"`
 	EstimatedTokens int    `json:"estimated_tokens"`

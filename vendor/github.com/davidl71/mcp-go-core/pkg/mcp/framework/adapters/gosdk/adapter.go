@@ -32,7 +32,7 @@ func NewGoSDKAdapter(name, version string, opts ...AdapterOption) *GoSDKAdapter 
 		name:         name,
 		toolHandlers: make(map[string]framework.ToolHandler),
 		toolInfo:     make(map[string]types.ToolInfo),
-		logger:       logging.NewLogger(), // Default logger
+		logger:       logging.NewLogger(),  // Default logger
 		middleware:   NewMiddlewareChain(), // Default empty middleware chain
 	}
 

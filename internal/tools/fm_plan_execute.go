@@ -19,8 +19,8 @@ import (
 )
 
 const (
-	defaultMaxSubtasks = 5
-	defaultPlanTokens  = 512
+	defaultMaxSubtasks  = 5
+	defaultPlanTokens   = 512
 	defaultWorkerTokens = 512
 )
 

@@ -655,12 +655,12 @@ func TestHandoffEndWithTaskJournalAndSnapshot(t *testing.T) {
 	}
 
 	params := map[string]interface{}{
-		"action":                        "handoff",
-		"sub_action":                    "end",
-		"summary":                      "Test handoff with journal and snapshot",
-		"include_tasks":                true,
+		"action":                         "handoff",
+		"sub_action":                     "end",
+		"summary":                        "Test handoff with journal and snapshot",
+		"include_tasks":                  true,
 		"include_point_in_time_snapshot": true,
-		"modified_task_ids":            []interface{}{"T-session-test-1", "T-other"},
+		"modified_task_ids":              []interface{}{"T-session-test-1", "T-other"},
 	}
 	result, err := handleSessionNative(ctx, params)
 	if err != nil {

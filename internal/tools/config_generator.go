@@ -195,15 +195,15 @@ func (g *CursorRulesGenerator) AnalyzeProject() map[string]interface{} {
 
 	// Detect languages by file extension
 	extensions := map[string]string{
-		".py":  "python",
-		".ts":  "typescript",
-		".tsx": "typescript",
-		".js":  "javascript",
-		".jsx": "javascript",
-		".go":  "go",
-		".rs":  "rust",
-		".sh":  "shell",
-		".yml": "yaml",
+		".py":   "python",
+		".ts":   "typescript",
+		".tsx":  "typescript",
+		".js":   "javascript",
+		".jsx":  "javascript",
+		".go":   "go",
+		".rs":   "rust",
+		".sh":   "shell",
+		".yml":  "yaml",
 		".yaml": "yaml",
 	}
 

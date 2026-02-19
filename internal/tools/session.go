@@ -18,9 +18,9 @@ import (
 
 	"github.com/davidl71/exarp-go/internal/cache"
 	"github.com/davidl71/exarp-go/internal/config"
-	"github.com/davidl71/exarp-go/internal/models"
 	"github.com/davidl71/exarp-go/internal/database"
 	"github.com/davidl71/exarp-go/internal/framework"
+	"github.com/davidl71/exarp-go/internal/models"
 	"github.com/davidl71/exarp-go/internal/utils"
 	"github.com/davidl71/exarp-go/proto"
 	mcpframework "github.com/davidl71/mcp-go-core/pkg/mcp/framework"
@@ -327,12 +327,18 @@ func handleSessionPrime(ctx context.Context, params map[string]interface{}) ([]f
 		}
 	}
 
+	// include_cli_command defaults to false so interactive chat does not get the runnable agent command;
+	// only suggested_next_action (text) is returned. Set true for CLI/TUI/scripts that may execute it.
+	includeCliCommand := cast.ToBool(params["include_cli_command"])
+
 	var suggestedNext []map[string]interface{}
 	if includeTasks && tasksErr == nil {
 		suggestedNext = getSuggestedNextTasksFromTasks(tasks, 10)
 		if len(suggestedNext) > 0 {
-			if cmd := buildCursorCliSuggestion(suggestedNext[0]); cmd != "" {
-				pb.CursorCliSuggestion = cmd
+			if includeCliCommand {
+				if cmd := buildCursorCliSuggestion(suggestedNext[0]); cmd != "" {
+					pb.CursorCliSuggestion = cmd
+				}
 			}
 		}
 	}
@@ -398,9 +404,9 @@ func handleSessionHandoff(ctx context.Context, params map[string]interface{}) ([
 	case "end":
 		return handleSessionEnd(ctx, params, projectRoot)
 	case "resume":
-		return handleSessionResume(ctx, projectRoot)
+		return handleSessionResume(ctx, params, projectRoot)
 	case "latest":
-		return handleSessionLatest(projectRoot)
+		return handleSessionLatest(params, projectRoot)
 	case "list":
 		return handleSessionList(ctx, params, projectRoot)
 	case "sync":
@@ -615,7 +621,8 @@ func handleSessionEnd(ctx context.Context, params map[string]interface{}, projec
 		result["message"] = "Dry run: Would create handoff note"
 	}
 
-	// Add suggested_next_action and cursor_cli_suggestion for the next suggested task
+	// Add suggested_next_action; add cursor_cli_suggestion only when include_cli_command is true (default false).
+	includeCliCommand := cast.ToBool(params["include_cli_command"])
 	if suggested := GetSuggestedNextTasks(projectRoot, 1); len(suggested) > 0 {
 		t := suggested[0]
 
@@ -624,8 +631,10 @@ func handleSessionEnd(ctx context.Context, params map[string]interface{}, projec
 			result["suggested_next_action"] = hint
 		}
 
-		if cmd := buildCursorCliSuggestion(taskMap); cmd != "" {
-			result["cursor_cli_suggestion"] = cmd
+		if includeCliCommand {
+			if cmd := buildCursorCliSuggestion(taskMap); cmd != "" {
+				result["cursor_cli_suggestion"] = cmd
+			}
 		}
 	}
 
@@ -633,7 +642,7 @@ func handleSessionEnd(ctx context.Context, params map[string]interface{}, projec
 }
 
 // handleSessionResume resumes a session by reviewing latest handoff.
-func handleSessionResume(ctx context.Context, projectRoot string) ([]framework.TextContent, error) {
+func handleSessionResume(ctx context.Context, params map[string]interface{}, projectRoot string) ([]framework.TextContent, error) {
 	handoffFile := filepath.Join(projectRoot, ".todo2", "handoffs.json")
 
 	if _, err := os.Stat(handoffFile); os.IsNotExist(err) {
@@ -692,7 +701,8 @@ func handleSessionResume(ctx context.Context, projectRoot string) ([]framework.T
 		"message":        fmt.Sprintf("Resuming session. Latest handoff from %s", handoffHost),
 	}
 
-	// Add suggested_next_action and cursor_cli_suggestion for first suggested task (same as prime)
+	// Add suggested_next_action; add cursor_cli_suggestion only when include_cli_command is true (default false).
+	includeCliCommand := cast.ToBool(params["include_cli_command"])
 	if suggested := GetSuggestedNextTasks(projectRoot, 1); len(suggested) > 0 {
 		t := suggested[0]
 
@@ -701,8 +711,10 @@ func handleSessionResume(ctx context.Context, projectRoot string) ([]framework.T
 			result["suggested_next_action"] = hint
 		}
 
-		if cmd := buildCursorCliSuggestion(taskMap); cmd != "" {
-			result["cursor_cli_suggestion"] = cmd
+		if includeCliCommand {
+			if cmd := buildCursorCliSuggestion(taskMap); cmd != "" {
+				result["cursor_cli_suggestion"] = cmd
+			}
 		}
 	}
 
@@ -710,7 +722,7 @@ func handleSessionResume(ctx context.Context, projectRoot string) ([]framework.T
 }
 
 // handleSessionLatest gets the most recent handoff note.
-func handleSessionLatest(projectRoot string) ([]framework.TextContent, error) {
+func handleSessionLatest(params map[string]interface{}, projectRoot string) ([]framework.TextContent, error) {
 	handoffFile := filepath.Join(projectRoot, ".todo2", "handoffs.json")
 
 	if _, err := os.Stat(handoffFile); os.IsNotExist(err) {

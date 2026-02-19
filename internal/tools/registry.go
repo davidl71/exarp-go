@@ -795,18 +795,18 @@ func registerBatch2Tools(server framework.MCPServer) error {
 				"output_path": map[string]interface{}{
 					"type": "string",
 				},
-			"name": map[string]interface{}{
-				"type":        "string",
-				"description": "Task name (required for single create; omit when using tasks array)",
-			},
-			"long_description": map[string]interface{}{
-				"type":        "string",
-				"description": "Task description (for single create; omit when using tasks array)",
-			},
-			"tasks": map[string]interface{}{
-				"type":        "string",
-				"description": "JSON array of tasks for batch create. Each element: {name, priority?, tags?, long_description?, dependencies?}. Example: [{\"name\":\"Task A\",\"priority\":\"high\"},{\"name\":\"Task B\"}]",
-			},
+				"name": map[string]interface{}{
+					"type":        "string",
+					"description": "Task name (required for single create; omit when using tasks array)",
+				},
+				"long_description": map[string]interface{}{
+					"type":        "string",
+					"description": "Task description (for single create; omit when using tasks array)",
+				},
+				"tasks": map[string]interface{}{
+					"type":        "string",
+					"description": "JSON array of tasks for batch create. Each element: {name, priority?, tags?, long_description?, dependencies?}. Example: [{\"name\":\"Task A\",\"priority\":\"high\"},{\"name\":\"Task B\"}]",
+				},
 				"tags": map[string]interface{}{
 					"type":        "string",
 					"description": "Task tags as comma-separated values (e.g. 'backend,urgent') or JSON array encoded as string (e.g. '[\"backend\",\"urgent\"]')",
@@ -1329,6 +1329,11 @@ func registerBatch3Tools(server framework.MCPServer) error {
 					"type":        "boolean",
 					"default":     false,
 					"description": "When true (e.g. for prime), return compact JSON to reduce context size",
+				},
+				"include_cli_command": map[string]interface{}{
+					"type":        "boolean",
+					"default":     false,
+					"description": "When true, include cursor_cli_suggestion (runnable agent -p command) in the response. Default false so chat only gets suggested_next_action (text); set true for CLI/TUI/scripts that may execute the command.",
 				},
 				"ask_preferences": map[string]interface{}{
 					"type":        "boolean",
