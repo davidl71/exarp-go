@@ -1,13 +1,13 @@
 # Ansible Setup Summary
 
-**Date:** 2026-01-07  
+**Date:** 2026-02-19  
 **Status:** ✅ Complete
 
 ## Overview
 
-Created comprehensive Ansible playbooks for setting up both development and production environments for the exarp-go Go MCP server, with optional linters and dependencies.
+Ansible playbooks for setting up development and production environments for the exarp-go Go MCP server. Roles use OS-specific variable files (`vars/Darwin.yml`, `vars/Debian.yml`, `vars/RedHat.yml`) to reduce duplication, and independent installs run in parallel via `async`.
 
-## Structure Created
+## Structure
 
 ```
 ansible/
@@ -15,30 +15,30 @@ ansible/
 ├── README.md                      # Full documentation
 ├── QUICKSTART.md                  # Quick start guide
 ├── requirements.yml               # Ansible Galaxy dependencies
+├── run-dev-setup.sh               # Interactive dev setup script
 ├── inventories/
 │   ├── development/
 │   │   ├── hosts                  # Development hosts
-│   │   └── group_vars/
-│   │       └── all.yml            # Development variables
+│   │   └── group_vars/all.yml     # Development variables
 │   └── production/
 │       ├── hosts                  # Production hosts
-│       └── group_vars/
-│           └── all.yml            # Production variables
+│       └── group_vars/all.yml     # Production variables
 ├── playbooks/
 │   ├── development.yml            # Development setup playbook
 │   ├── production.yml             # Production setup playbook
 │   └── templates/
-│       └── exarp-go.service.j2    # Systemd service template (used by production.yml)
+│       └── exarp-go.service.j2    # Systemd service template
 └── roles/
-    ├── common/                    # Base system setup
+    ├── common/                    # Base system setup, SQLite, CA certs
+    │   ├── tasks/main.yml
+    │   └── vars/{Darwin,Debian,RedHat}.yml
+    ├── golang/                    # Go, protoc, protoc-gen-go
+    │   ├── tasks/main.yml
+    │   ├── defaults/main.yml
+    │   └── vars/{Darwin,Debian,RedHat}.yml
+    ├── linters/                   # Optional linters (includes Node.js for npm tools)
     │   └── tasks/main.yml
-    ├── golang/                    # Go installation
-    │   └── tasks/main.yml
-    ├── python/                    # Python & package managers
-    │   └── tasks/main.yml
-    ├── linters/                   # Optional linters
-    │   └── tasks/main.yml
-    ├── ollama/                    # Optional Ollama
+    ├── ollama/                    # Optional Ollama + model pulls
     │   └── tasks/main.yml
     └── redis/                     # Optional Redis (queue/worker)
         └── tasks/main.yml
@@ -49,46 +49,48 @@ ansible/
 ### Development Environment
 
 **Always Installed:**
-- Go 1.24.0
-- Protocol Buffers (protoc + protoc-gen-go) — in **common** and **golang** roles; use `make proto` after setup
-- Python 3.10+
-- pip, uv (Python package manager)
-- Node.js & npm
-- Base tools (git, curl, wget, make, build tools)
-- **Git config:** Less verbose output (advice hints off) for the dev user when `configure_git_quiet: true` (default). See [docs/DEV_ENV_GIT_CONFIG.md](DEV_ENV_GIT_CONFIG.md).
+- Go (latest stable or pinned) with SSL fallback for macOS
+- Protocol Buffers (protoc + protoc-gen-go) — use `make proto` after setup
+- Base tools (git, curl, wget, jq, make, build tools)
+- SQLite runtime
+- **Git config:** Less verbose output (advice hints off) when `configure_git_quiet: true` (default)
 
 **Optional (Configurable):**
-- golangci-lint - Comprehensive Go linter
-- gomarklint - Go markdown linter
-- shellcheck - Shell script linter
-- shfmt - Shell script formatter
-- markdownlint-cli - Markdown linter
-- cspell - Code spell checker
-- fswatch (macOS) / inotify-tools (Linux) - File watchers
-- **Redis** - For exarp-go queue/worker (Asynq). Set `install_redis: true` in group_vars; then use `REDIS_ADDR=127.0.0.1:6379` with `make queue-enqueue-wave` and `make queue-worker`. See `docs/EXARP_CLI_SHORTCUTS.md`.
+- golangci-lint, govulncheck — Go linters
+- gomarklint, shellcheck, shfmt — Code quality tools
+- yamllint, ansible-lint — YAML/Ansible linting (ansible-lint on macOS: brew; Linux: pip3)
+- actionlint — GitHub Actions linting (macOS: brew; add to `linters` list if desired)
+- markdownlint-cli, cspell — Markdown/spelling (installs Node.js automatically)
+- fswatch (macOS) / inotify-tools (Linux) — File watchers
+- **Ollama** — Local LLM server + models for native tests
+- **Redis** — For queue/worker (Asynq). Set `install_redis: true`; use `REDIS_ADDR=127.0.0.1:6379`
 
 ### Production Environment
 
 **Installed:**
-- Go 1.24.0
-- Python 3.10+
-- pip, uv
-- Node.js & npm
+- Go (latest stable or pinned)
 - Base tools
-- Systemd service for exarp-go
+- Systemd service for exarp-go (Linux only)
 
 **Not Installed:**
-- Linters (not needed in production)
-- Development tools
-- File watchers
+- Linters, dev tools, file watchers
 
 ## Usage
 
-### Development Setup
+### Development Setup (Makefile)
+
+```bash
+make ansible-check    # Syntax check
+make ansible-dev      # Interactive setup (recommended)
+make ansible-list     # List tasks
+make ansible-galaxy   # Install Galaxy requirements
+```
+
+### Development Setup (Manual)
 
 ```bash
 cd ansible
-ansible-playbook playbooks/development.yml
+ansible-playbook -i inventories/development playbooks/development.yml --ask-become-pass
 ```
 
 ### Production Setup
@@ -131,15 +133,16 @@ install_redis: false       # Redis for queue/worker (REDIS_ADDR=127.0.0.1:6379)
 linters:
   - golangci-lint
   - shellcheck
+  - yamllint
+  - ansible-lint
   - gomarklint
-  # Add more as needed
+  # Add more as needed (e.g. actionlint on macOS)
 ```
 
-### Change Versions
+### Change Go Version
 
 ```yaml
-go_version: "latest"   # or pin e.g. "1.25.6"
-python_version: "3.10"
+go_version: "latest"   # or pin e.g. "1.26.0"
 ```
 
 ## Verification
@@ -178,6 +181,6 @@ python_version: "3.10"
 
 ---
 
-**Last Updated:** 2026-01-07  
+**Last Updated:** 2026-02-19  
 **Status:** ✅ Ready to use
 

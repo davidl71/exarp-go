@@ -8,11 +8,6 @@ go_user: "deploy"
 go_gopath: "/home/{{ go_user }}/go"
 go_bin_path: "/home/{{ go_user }}/go/bin"
 
-# Python configuration
-python_version: "3.10"
-python_pip_version: "latest"
-uv_version: "latest"
-
 # Project configuration
 project_name: "exarp-go"
 project_path: "/opt/{{ project_name }}"
@@ -30,7 +25,4 @@ linters: []
 # Development tools (empty for production)
 dev_tools: []
 
-# Node.js tools (for MCP servers)
-node_tools:
-  - npx  # Comes with npm
 

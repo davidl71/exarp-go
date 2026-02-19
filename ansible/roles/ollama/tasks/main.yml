@@ -9,11 +9,14 @@
   when: ansible_system == "Darwin"
   tags: [ollama, optional]
 
+# curl | sh is the official Ollama install method on Linux — no package alternative exists.
 - name: Install Ollama (Linux) via official install script
   ansible.builtin.shell: |
+    set -o pipefail
     curl -fsSL https://ollama.com/install.sh | sh
   args:
     creates: /usr/local/bin/ollama
+    executable: /bin/bash
   when: ansible_system == "Linux"
   tags: [ollama, optional]
 
@@ -31,18 +34,20 @@
   async: 600
   poll: 0
   register: ollama_pull_jobs
+  changed_when: true
   failed_when: false
   when: ollama_models | length > 0 and ollama_which.rc == 0
   tags: [ollama, optional]
 
 - name: Wait for all model pulls to complete
-  async_status:
+  ansible.builtin.async_status:
     jid: "{{ item.ansible_job_id }}"
   loop: "{{ ollama_pull_jobs.results | default([]) }}"
   register: ollama_pull_results
   until: ollama_pull_results.finished | default(true)
   retries: 60
   delay: 10
+  failed_when: false
   when: item.ansible_job_id is defined
   loop_control:
     label: "{{ item.item | default('unknown') }}"

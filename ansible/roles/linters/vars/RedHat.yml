@@ -1,0 +1,5 @@
+---
+_shellcheck_pkg: ShellCheck
+_yamllint_pkg: yamllint
+_nodejs_pkg: nodejs
+_pkg_install_method: yum

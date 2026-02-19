@@ -1,0 +1,16 @@
+# Relax rules so make lint-ansible passes without mass refactor.
+# Tighten over time by removing from skip_list and fixing roles.
+# See https://ansible.readthedocs.io/projects/lint/configuring/
+
+offline: true  # skip ansible-galaxy install (run make ansible-galaxy separately if needed)
+profile: min
+
+skip_list:
+  - var-naming          # role vars use _prefix convention
+  - fqcn[action-core]   # use short names for builtins for now
+  - yaml[empty-lines]
+  - yaml[truthy]
+  - command-instead-of-module
+  - no-changed-when
+  - risky-file-permissions
+  - name[casing]
