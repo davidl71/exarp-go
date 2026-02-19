@@ -1,0 +1,7 @@
+---
+_shellcheck_pkg: shellcheck
+_yamllint_pkg: yamllint
+_ansible_lint_pkg: ansible-lint
+_actionlint_pkg: actionlint
+_nodejs_pkg: node
+_pkg_install_method: homebrew

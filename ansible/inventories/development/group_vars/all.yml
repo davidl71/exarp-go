@@ -10,11 +10,6 @@ go_user: "{{ lookup('env', 'USER') | default(ansible_user_id | default('vagrant'
 go_gopath: "{{ lookup('env', 'HOME') | default('/Users/' + go_user) }}/go"
 go_bin_path: "{{ go_gopath }}/bin"
 
-# Python configuration
-python_version: "3.10"
-python_pip_version: "latest"
-uv_version: "latest"
-
 # Project configuration
 project_name: "exarp-go"
 # Use HOME env var, fallback to /Users/username on macOS
@@ -38,6 +33,8 @@ linters:
   - govulncheck
   - shellcheck
   - shfmt
+  - yamllint
+  - ansible-lint   # macOS: brew; Linux: pip3 (requires python3-pip)
   - gomarklint
   - markdownlint-cli
   - cspell
@@ -46,10 +43,6 @@ linters:
 dev_tools:
   - fswatch  # macOS file watcher
   - inotify-tools  # Linux file watcher
-
-# Node.js tools (for MCP servers)
-node_tools:
-  - npx  # Comes with npm
 
 # Ollama (when install_ollama: true) - models pulled so ollama native tests pass
 ollama_models:

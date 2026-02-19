@@ -244,14 +244,6 @@ type Resource struct {
 
 ## Migration-Specific Guidelines
 
-### Python Bridge Integration
-- **Use exec.Command** for Python bridge calls
-- **PREFER `uv run python`** - Use `uv run python` instead of `python3` when possible
-- **Check for uv first** - Detect `uv` availability before falling back to `python3`
-- **JSON-RPC 2.0** for communication protocol
-- **Error propagation** from Python to Go
-- **Timeout handling** for long-running Python operations
-
 ### Framework Switching
 - **Configuration-based** framework selection
 - **No hard dependencies** on specific framework
@@ -637,11 +629,9 @@ err := database.AddComments(taskID, comments)
 **Testing:**
 - `make test` - Run all tests (Go + Python)
 - `make test-go` - Run Go tests
-- `make test-python` - Run Python tests (requires pytest)
 - `make test-integration` - Run integration tests
 - `make test-coverage` - Run tests with coverage report
 - `make test-coverage-go` - Generate Go test coverage report
-- `make test-coverage-python` - Generate Python test coverage report
 - `make test-html` - Generate HTML coverage reports
 - `make test-watch` - Run tests in watch mode
 - `make test-tools` - Test Go server tools
@@ -663,8 +653,7 @@ err := database.AddComments(taskID, comments)
 - `make sanity-check` - Verify tools/resources/prompts counts match expected values
 
 **Installation:**
-- `make install` - Install Python dependencies (optional)
-- `make install-dev` - Install Python development dependencies
+- `make install` - Install exarp-go binary
 
 **Benchmarking:**
 - `make bench` - Run benchmarks (requires pytest)
@@ -713,7 +702,6 @@ err := database.AddComments(taskID, comments)
 8. **PREFER Makefile targets** - When multiple options exist, choose the Makefile target
 9. **PREFER `make silent`** - For routine builds (e.g. before commit, verification), use `make silent` to reduce terminal output
 10. **Use `make config` first** - If tools are not detected, run `make config` to configure the build system
-11. **PREFER `uv` for Python operations** - Use `uv run python` or `uvx` instead of direct `python3` commands when possible
 
 ### Examples
 
@@ -722,8 +710,6 @@ err := database.AddComments(taskID, comments)
 go build -o bin/exarp-go ./cmd/server
 go test ./...
 golangci-lint run ./...
-python3 -m pytest tests/
-pip install package
 ```
 
 **✅ CORRECT:**
@@ -731,16 +717,7 @@ pip install package
 make build
 make test
 make lint
-uv run pytest tests/  # or make test-python
-uv sync  # or make install
 ```
-
-**Python Command Guidelines:**
-- **PREFER `uv`** - Use `uv run python` instead of `python3` when possible
-- **PREFER `uvx`** - Use `uvx package-name` for one-off tool execution
-- **PREFER `uv sync`** - Use `uv sync` instead of `pip install`
-- **Fallback to python3** - Only use `python3` if `uv` is not available
-- **Use Makefile targets** - Prefer `make test-python`, `make install`, etc. over direct commands
 
 **Exception:** Only use direct commands when:
 - The operation is not covered by any Makefile target

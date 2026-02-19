@@ -3,13 +3,7 @@
 # OS-specific variables loaded from vars/{{ ansible_os_family }}.yml
 
 - name: Load OS-specific variables
-  ansible.builtin.include_vars: "{{ item }}"
-  with_first_found:
-    - "{{ ansible_os_family }}.yml"
-    - "Darwin.yml"
-  vars:
-    ansible_search_path:
-      - "{{ role_path }}/vars"
+  ansible.builtin.include_vars: "{{ ansible_os_family }}.yml"
 
 # --- Package cache (Linux only) ---
 
@@ -37,18 +31,7 @@
   when: ansible_os_family == "RedHat"
 
 # --- CA certificates (Linux only; macOS uses system keychain) ---
-
-- name: Install Mozilla CA certificates (Debian/Ubuntu)
-  ansible.builtin.apt:
-    name: ca-certificates
-    state: present
-  when: ansible_os_family == "Debian"
-
-- name: Install Mozilla CA certificates (RedHat/CentOS)
-  ansible.builtin.yum:
-    name: ca-certificates
-    state: present
-  when: ansible_os_family == "RedHat"
+# ca-certificates is installed via _base_packages above; just update the trust store.
 
 - name: Update CA trust store (Debian/Ubuntu)
   ansible.builtin.command: update-ca-certificates
@@ -288,12 +271,36 @@
 
 # Git: less verbose output (dev preference; see docs/DEV_ENV_GIT_CONFIG.md)
 - name: Set git advice for less verbose output (development user)
-  ansible.builtin.shell: |
-    for key in statusHints statusUoption addEmptyPathspec addEmbeddedRepo checkoutAmbiguousRemoteBranchName commitBeforeMerge detachedHead diverging implicitIdentity mergeConflict nestedTag pushNonFFCurrent pushNonFFMatching pushUpdateRejected pushRefNeedsUpdate rebaseInProgress resetQuiet rmHints updateRefs waitingForEditor ignoredHook resolveConflict forceDeleteBranch skippedCherryPicks amWorkDir; do
-      git config --global advice.$key false 2>/dev/null || true
-    done
+  ansible.builtin.command: "git config --global advice.{{ item }} false"
+  loop:
+    - statusHints
+    - statusUoption
+    - addEmptyPathspec
+    - addEmbeddedRepo
+    - checkoutAmbiguousRemoteBranchName
+    - commitBeforeMerge
+    - detachedHead
+    - diverging
+    - implicitIdentity
+    - mergeConflict
+    - nestedTag
+    - pushNonFFCurrent
+    - pushNonFFMatching
+    - pushUpdateRejected
+    - pushRefNeedsUpdate
+    - rebaseInProgress
+    - resetQuiet
+    - rmHints
+    - updateRefs
+    - waitingForEditor
+    - ignoredHook
+    - resolveConflict
+    - forceDeleteBranch
+    - skippedCherryPicks
+    - amWorkDir
   become_user: "{{ project_user }}"
-  changed_when: true
+  changed_when: false
+  failed_when: false
   when: configure_git_quiet | default(true)
   tags:
     - common

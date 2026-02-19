@@ -1,4 +1,4 @@
-.PHONY: help b build build-debug silent build-race build-no-cgo run test test-watch tag-build-ok pre-release r root push pull p pl test-coverage test-html clean install fmt lint lint-all lint-all-fix dev dev-watch dev-test dev-full dev-cycle pre-push bench docs sanity-check sanity-check-cached test-cli test-cli-list test-cli-tool test-cli-test config clean-config sprint-start sprint-end pre-sprint sprint check-tasks update-completed-tasks task-sanity-check go-fmt go-vet golangci-lint-check golangci-lint-fix govulncheck check check-fix check-all build-migrate migrate migrate-dry-run install-tools go-mod-tidy go-mod-verify pre-commit ci validate check-deps test-go test-go-fast test-go-verbose test-go-parallel test-go-tools-short test-real-models version scorecard scorecard-full scorecard-plans report-plan demo-tui task-list task-list-todo task-list-in-progress task-list-done task-prune-done task-update task-create queue-enqueue-wave queue-worker queue-dispatcher proto delete-expired-archive analyze-critical-path proto-check proto-clean vendor-licenses exarp-list exarp-report-scorecard exarp-report-overview exarp-health-server exarp-health-docs exarp-context-budget exarp-test test-mcp-stdio validate-opencode-config validate-plugin tidy scorecard-fix
+.PHONY: help b build build-debug silent build-race build-no-cgo run test test-watch tag-build-ok pre-release r root push pull p pl test-coverage test-html clean install fmt lint lint-all lint-all-fix dev dev-watch dev-test dev-full dev-cycle pre-push bench docs sanity-check sanity-check-cached test-cli test-cli-list test-cli-tool test-cli-test config clean-config sprint-start sprint-end pre-sprint sprint check-tasks update-completed-tasks task-sanity-check go-fmt go-vet golangci-lint-check golangci-lint-fix govulncheck check check-fix check-all build-migrate migrate migrate-dry-run install-tools go-mod-tidy go-mod-verify pre-commit ci validate check-deps test-go test-go-fast test-go-verbose test-go-parallel test-go-tools-short test-real-models version scorecard scorecard-full scorecard-plans report-plan demo-tui task-list task-list-todo task-list-in-progress task-list-done task-prune-done task-update task-create queue-enqueue-wave queue-worker queue-dispatcher proto delete-expired-archive analyze-critical-path proto-check proto-clean vendor-licenses exarp-list exarp-report-scorecard exarp-report-overview exarp-health-server exarp-health-docs exarp-context-budget exarp-test test-mcp-stdio validate-opencode-config validate-plugin tidy scorecard-fix ansible-check ansible-dev ansible-list ansible-galaxy lint-shellcheck lint-yaml lint-ansible
 
 # Project configuration
 PROJECT_NAME := exarp-go
@@ -289,7 +289,7 @@ test-go-tools-short: ## Run internal/tools tests with -short (skips discover/spr
 	 (echo "$(RED)❌ Tools tests failed$(NC)" && exit 1)
 	@echo "$(GREEN)✅ Tools tests passed (short)$(NC)"
 
-test-integration: ## Run Go tests (Python integration tests removed)
+test-integration: ## Run integration tests
 	@echo "$(BLUE)Running Go tests...$(NC)"
 	@$(GO) test ./... -v || echo "$(YELLOW)⚠️  Go tests failed$(NC)"
 
@@ -544,7 +544,7 @@ lint-all-fix: ## Lint and fix everything: Go + docs + .cursor/plans (requires bu
 
 ##@ Benchmarking
 
-bench: go-bench ## Run Go benchmarks (Python benchmarks removed; use 'make go-bench')
+bench: go-bench ## Run Go benchmarks
 
 ##@ Documentation
 
@@ -596,11 +596,8 @@ vendor-licenses: ## Update docs/VENDOR_LICENSES.md from vendor/ (credits and lic
 
 clean: ## Clean build artifacts and cache
 	@echo "$(BLUE)Cleaning...$(NC)"
-	@rm -rf __pycache__ .pytest_cache .coverage htmlcov/
 	@rm -f coverage-go.out coverage-go.html
 	@rm -f bin/sanity-check bin/migrate
-	@find . -type d -name __pycache__ -exec rm -r {} + 2>/dev/null || true
-	@find . -type f -name "*.pyc" -delete 2>/dev/null || true
 	@echo "$(GREEN)✅ Clean complete$(NC)"
 
 clean-all: clean ## Clean everything including virtual environment
@@ -631,9 +628,7 @@ install-binary: build ## Install exarp-go binary to GOPATH/bin (adds to PATH)
 		echo "$(YELLOW)   Add to ~/.zshrc or ~/.bashrc: export PATH=\"$$GOPATH_BIN:\$$PATH\"$(NC)"; \
 	fi
 
-install: install-binary ## Install exarp-go binary (no Python dependencies)
-
-install-dev: install ## Alias for install (no Python dev deps)
+install: install-binary ## Install exarp-go binary
 
 ##@ Go Development
 
@@ -1018,7 +1013,7 @@ sprint: ## Run full sprint automation (process all background tasks)
 		echo "$(GREEN)✅ Sprint automation complete$(NC)"; \
 	fi
 
-# Native Go: infer_task_progress tool (no Python or agentic-tools MCP required).
+# Native Go: infer_task_progress tool.
 # use_fm=false keeps runs fast on large backlogs; set use_fm=true for FM-enhanced inference.
 check-tasks: build ## Batch check all Todo and In Progress tasks to find completed ones (dry run)
 	@echo "$(BLUE)Checking tasks for completion (dry run)...$(NC)"
@@ -1203,6 +1198,35 @@ st: status ## Short alias: make st = make status
 quick-test: test-tools ## Quick test (tools only)
 quick-dev: dev ## Quick dev mode (watch only)
 quick-build: build ## Quick build (verify imports)
+
+##@ Ansible Development Environment
+
+ansible-check: ## Syntax-check Ansible dev playbook
+	@cd ansible && ansible-playbook --syntax-check -i inventories/development playbooks/development.yml
+
+ansible-dev: ## Run Ansible dev setup (interactive, asks for sudo)
+	@cd ansible && bash run-dev-setup.sh
+
+ansible-list: ## List Ansible dev playbook tasks
+	@cd ansible && ansible-playbook --list-tasks -i inventories/development playbooks/development.yml
+
+ansible-galaxy: ## Install Ansible Galaxy requirements (run once so ansible-lint syntax-check finds community.general)
+	@cd ansible && ansible-galaxy collection install -r requirements.yml --force-with-deps
+
+lint-shellcheck: ## Run shellcheck on scripts (requires shellcheck)
+	@command -v shellcheck >/dev/null 2>&1 || (echo "$(RED)shellcheck not found. Install: brew install shellcheck$(NC)" && exit 1)
+	@shellcheck -x scripts/*.sh ansible/run-dev-setup.sh
+	@echo "$(GREEN)✅ shellcheck done$(NC)"
+
+lint-yaml: ## Run yamllint on YAML/Ansible files (requires yamllint)
+	@command -v yamllint >/dev/null 2>&1 || (echo "$(RED)yamllint not found. Install: brew install yamllint$(NC)" && exit 1)
+	@yamllint -f standard .github ansible
+	@echo "$(GREEN)✅ yamllint done$(NC)"
+
+lint-ansible: ## Run ansible-lint on playbooks/roles (requires ansible-lint; run make ansible-galaxy first for syntax-check)
+	@command -v ansible-lint >/dev/null 2>&1 || (echo "$(RED)ansible-lint not found. Install: brew install ansible-lint or pip install ansible-lint$(NC)" && exit 1)
+	@cd ansible && ansible-lint --format=pep8 -v
+	@echo "$(GREEN)✅ ansible-lint done$(NC)"
 
 ##@ Model-Assisted Testing (Future)
 

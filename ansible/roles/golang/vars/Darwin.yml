@@ -1,0 +1,4 @@
+---
+_go_root_group: wheel
+_go_shell_profile: .zshrc
+_go_has_etc_environment: false
