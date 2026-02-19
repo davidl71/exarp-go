@@ -96,12 +96,24 @@ jobs:
             -args '{"action":"overview","include_metrics":true}' > agent_report.txt || true
           cat agent_report.txt
 
+      - name: Full handoff export
+        run: |
+          ./bin/exarp-go -tool session -args '{"action":"handoff","sub_action":"end","summary":"Agentic CI handoff","include_tasks":true,"include_point_in_time_snapshot":true}'
+          ./bin/exarp-go -tool session -args '{"action":"handoff","sub_action":"export","output_path":"docs/CI_HANDOFF.json","export_latest":true}'
+
       - name: Upload Agent Report
         uses: actions/upload-artifact@v4
         if: always()
         with:
           name: agent-validation-report
           path: agent_report.txt
+          retention-days: 7
+
+      - name: Upload CI handoff
+        uses: actions/upload-artifact@v4
+        with:
+          name: ci-handoff
+          path: docs/CI_HANDOFF.json
           retention-days: 7
 
   # Job 3: Combined validation (exarp-go validation only; AgentScope evaluation removed 2026-01-29)
