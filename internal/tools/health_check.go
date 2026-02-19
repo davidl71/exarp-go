@@ -19,11 +19,11 @@ import (
 )
 
 // Design limit for MCP tool count (monitored by tool_count_health / health action=tools).
-const designLimitTools = 33
+const designLimitTools = 34
 
 // ExpectedToolCountBase is the base number of tools registered by RegisterAllTools (without conditional Apple FM).
 // With Apple Foundation Models on darwin/arm64/cgo build, count is ExpectedToolCountBase+1.
-const ExpectedToolCountBase = 32 // 32 base (33 with Apple FM on darwin/arm64/cgo)
+const ExpectedToolCountBase = 33 // 33 base (34 with Apple FM on darwin/arm64/cgo)
 
 // handleHealthNative handles the health tool with native Go implementation
 // Implements all actions: "server", "git", "docs", "dod", "cicd", "tools"
@@ -76,7 +76,7 @@ func HealthReportToMap(resp *proto.HealthReport) map[string]interface{} {
 	return out
 }
 
-// handleHealthTools handles the "tools" action - MCP tool count vs design limit (≤33).
+// handleHealthTools handles the "tools" action - MCP tool count vs design limit (≤34).
 // Used by daily automation as tool_count_health.
 func handleHealthTools(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	toolCount := ExpectedToolCountBase

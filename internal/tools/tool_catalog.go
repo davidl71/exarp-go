@@ -203,6 +203,13 @@ func GetToolCatalog() map[string]ToolCatalogEntry {
 			Description:      "Apple Foundation Models on-device; part of LLM abstraction (FMProvider)",
 			RecommendedModel: "claude-haiku",
 		},
+		"fm_plan_and_execute": {
+			Tool:             "fm_plan_and_execute",
+			Hint:             "Plan-and-execute with FM/Ollama. Breaks task into subtasks (planner), runs workers in parallel, combines. Use for complex single-shot tasks.",
+			Category:         "AI & ML",
+			Description:      "Plan-and-execute flow: planner breaks task into subtasks, workers run in parallel, results combined (uses DefaultFMProvider)",
+			RecommendedModel: "claude-haiku",
+		},
 		"ollama": {
 			Tool:             "ollama",
 			Hint:             "LLM abstraction. ollama. action=status|models|generate|pull|hardware|docs|quality|summary. Native then bridge (DefaultOllama()).",

@@ -1555,6 +1555,40 @@ func registerBatch3Tools(server framework.MCPServer) error {
 		return err
 	}
 
+	// Plan-and-execute flow (uses DefaultFMProvider: Apple FM or Ollama)
+	if err := server.RegisterTool(
+		"fm_plan_and_execute",
+		"[HINT: Plan-and-execute with FM/Ollama. Breaks task into subtasks (planner), runs workers in parallel, combines. Use for complex single-shot tasks.]",
+		framework.ToolSchema{
+			Type: "object",
+			Properties: map[string]interface{}{
+				"task": map[string]interface{}{
+					"type":        "string",
+					"description": "The high-level task to plan and execute",
+				},
+				"max_subtasks": map[string]interface{}{
+					"type":        "integer",
+					"default":     5,
+					"description": "Maximum number of subtasks (1-20)",
+				},
+				"plan_max_tokens": map[string]interface{}{
+					"type":        "integer",
+					"default":     512,
+					"description": "Max tokens for planner response",
+				},
+				"worker_max_tokens": map[string]interface{}{
+					"type":        "integer",
+					"default":     512,
+					"description": "Max tokens per worker response",
+				},
+			},
+			Required: []string{"task"},
+		},
+		handleFMPlanAndExecute,
+	); err != nil {
+		return fmt.Errorf("failed to register fm_plan_and_execute: %w", err)
+	}
+
 	return nil
 }
 
