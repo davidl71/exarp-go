@@ -12,9 +12,7 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/davidl71/exarp-go/internal/config"
-	"github.com/davidl71/exarp-go/internal/database"
 	"github.com/davidl71/exarp-go/internal/framework"
-	"github.com/davidl71/exarp-go/internal/models"
 	"github.com/davidl71/exarp-go/internal/queue"
 	"github.com/davidl71/exarp-go/internal/tools"
 )
@@ -27,70 +25,29 @@ func tick() tea.Cmd {
 	})
 }
 
-func loadTasks(status string) tea.Cmd {
+func loadTasks(server framework.MCPServer, status string) tea.Cmd {
 	return func() tea.Msg {
 		ctx := context.Background()
-
-		var tasks []*database.Todo2Task
-
-		var err error
-
-		if status != "" {
-			tasks, err = database.GetTasksByStatus(ctx, status)
-		} else {
-			todo, errTodo := database.GetTasksByStatus(ctx, models.StatusTodo)
-			inProgress, errIP := database.GetTasksByStatus(ctx, models.StatusInProgress)
-
-			if errTodo != nil {
-				err = errTodo
-			} else if errIP != nil {
-				err = errIP
-			} else {
-				tasks = append(tasks, todo...)
-				tasks = append(tasks, inProgress...)
-			}
-		}
-
+		tasks, err := listTasksViaMCP(ctx, server, status)
 		return taskLoadedMsg{tasks: tasks, err: err}
 	}
 }
 
-// updateTaskStatusCmd updates a task's status in the DB and returns statusUpdateDoneMsg so the list can be reloaded.
-func updateTaskStatusCmd(taskID, newStatus string) tea.Cmd {
+// updateTaskStatusCmd updates a task's status via task_workflow MCP tool and returns statusUpdateDoneMsg.
+func updateTaskStatusCmd(server framework.MCPServer, taskID, newStatus string) tea.Cmd {
 	return func() tea.Msg {
 		ctx := context.Background()
-		task, err := database.GetTask(ctx, taskID)
-		if err != nil {
-			return statusUpdateDoneMsg{err: err}
-		}
-		task.Status = newStatus
-		if err := database.UpdateTask(ctx, task); err != nil {
-			return statusUpdateDoneMsg{err: err}
-		}
-		return statusUpdateDoneMsg{}
+		err := updateTaskStatusViaMCP(ctx, server, taskID, newStatus)
+		return statusUpdateDoneMsg{err: err}
 	}
 }
 
-// bulkUpdateStatusCmd updates multiple tasks' status in the DB and returns bulkStatusUpdateDoneMsg.
-func bulkUpdateStatusCmd(taskIDs []string, newStatus string) tea.Cmd {
+// bulkUpdateStatusCmd updates multiple tasks' status via task_workflow MCP tool and returns bulkStatusUpdateDoneMsg.
+func bulkUpdateStatusCmd(server framework.MCPServer, taskIDs []string, newStatus string) tea.Cmd {
 	return func() tea.Msg {
 		ctx := context.Background()
-		updated := 0
-		var lastErr error
-		for _, taskID := range taskIDs {
-			task, err := database.GetTask(ctx, taskID)
-			if err != nil {
-				lastErr = err
-				continue
-			}
-			task.Status = newStatus
-			if err := database.UpdateTask(ctx, task); err != nil {
-				lastErr = err
-				continue
-			}
-			updated++
-		}
-		return bulkStatusUpdateDoneMsg{updated: updated, total: len(taskIDs), err: lastErr}
+		updated, err := bulkUpdateStatusViaMCP(ctx, server, taskIDs, newStatus)
+		return bulkStatusUpdateDoneMsg{updated: updated, total: len(taskIDs), err: err}
 	}
 }
 
@@ -308,22 +265,15 @@ func runReportParallelExecutionPlan(server framework.MCPServer, projectRoot stri
 	}
 }
 
-func moveTaskToWaveCmd(task *database.Todo2Task, newDeps []string) tea.Cmd {
+func moveTaskToWaveCmd(server framework.MCPServer, taskID string, newDeps []string) tea.Cmd {
 	return func() tea.Msg {
-		if task == nil {
+		if taskID == "" {
 			return moveTaskToWaveDoneMsg{taskID: "", err: fmt.Errorf("no task")}
 		}
 
 		ctx := context.Background()
-		updated := *task
-		updated.Dependencies = make([]string, len(newDeps))
-		copy(updated.Dependencies, newDeps)
-
-		if err := database.UpdateTask(ctx, &updated); err != nil {
-			return moveTaskToWaveDoneMsg{taskID: task.ID, err: err}
-		}
-
-		return moveTaskToWaveDoneMsg{taskID: task.ID, err: nil}
+		err := moveTaskToWaveViaMCP(ctx, server, taskID, newDeps)
+		return moveTaskToWaveDoneMsg{taskID: taskID, err: err}
 	}
 }
 

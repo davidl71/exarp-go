@@ -772,7 +772,6 @@ func handleTaskWorkflowList(ctx context.Context, params map[string]interface{}) 
 	}
 
 	if outputFormat == "json" {
-		// Build task list with recommended_tools from metadata (not in proto TaskSummary)
 		taskMaps := make([]map[string]interface{}, len(filtered))
 		for i := range filtered {
 			t := &filtered[i]
@@ -789,9 +788,25 @@ func handleTaskWorkflowList(ctx context.Context, params map[string]interface{}) 
 			if len(t.Dependencies) > 0 {
 				m["dependencies"] = t.Dependencies
 			}
+			if t.ParentID != "" {
+				m["parent_id"] = t.ParentID
+			}
+			if t.LastModified != "" {
+				m["last_modified"] = t.LastModified
+			}
+			if t.CreatedAt != "" {
+				m["created_at"] = t.CreatedAt
+			}
+			if t.CompletedAt != "" {
+				m["completed_at"] = t.CompletedAt
+			}
+			if len(t.Metadata) > 0 {
+				m["metadata"] = t.Metadata
+			}
 			if rt := GetRecommendedTools(t.Metadata); len(rt) > 0 {
 				m["recommended_tools"] = rt
 			}
+		
 			taskMaps[i] = m
 		}
 		out := map[string]interface{}{"success": true, "method": "list", "tasks": taskMaps}
