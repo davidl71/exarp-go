@@ -1,0 +1,20 @@
+#!/bin/sh
+# Adds Co-authored-by trailer from git config so you don't have to type it each time.
+# Setup (from repo root):
+#   1. git config core.hooksPath scripts/git-hooks
+#   2. git config exarp-go.coauthor "Co Author Name <email@example.com>"
+# Or symlink/copy this file to .git/hooks/prepare-commit-msg and set exarp-go.coauthor.
+#
+# Skip for merge/squash and when Co-authored-by is already in the message.
+set -e
+msgfile="$1"
+source="${2:-}"
+coauthor=$(git config --get exarp-go.coauthor 2>/dev/null) || true
+[ -n "$coauthor" ] || exit 0
+[ -n "$msgfile" ] && [ -f "$msgfile" ] || exit 0
+# Skip merge and squash
+case "$source" in merge|squash) exit 0 ;; esac
+# Don't add if already present
+grep -q '^Co-authored-by:' "$msgfile" 2>/dev/null && exit 0
+# Append trailer (after any existing content, before comment block)
+printf '\nCo-authored-by: %s\n' "$coauthor" >> "$msgfile"
