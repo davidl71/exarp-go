@@ -20,11 +20,11 @@ import (
 )
 
 // Design limit for MCP tool count (monitored by tool_count_health / health action=tools).
-const designLimitTools = 34
+const designLimitTools = 36
 
 // ExpectedToolCountBase is the base number of tools registered by RegisterAllTools (without conditional Apple FM).
 // With Apple Foundation Models on darwin/arm64/cgo build, count is ExpectedToolCountBase+1.
-const ExpectedToolCountBase = 33 // 33 base (34 with Apple FM on darwin/arm64/cgo)
+const ExpectedToolCountBase = 34 // 34 base (35 with Apple FM on darwin/arm64/cgo)
 
 // handleHealthNative handles the health tool with native Go implementation
 // Implements all actions: "server", "git", "docs", "dod", "cicd", "tools"
@@ -590,11 +590,11 @@ func handleHealthCtags(ctx context.Context, params map[string]interface{}) ([]fr
 
 	result := map[string]interface{}{
 		"ctags_available":   ctagsAvailable,
-		"ctags_path":       ctagsPath,
+		"ctags_path":        ctagsPath,
 		"tags_file_present": tagsPresent,
-		"tags_file_path":   tagsPath,
-		"tags_file_size":   tagsSize,
-		"note":             "Run 'make tags' to generate tags file (requires universal-ctags). See docs/CTAGS_USAGE.md.",
+		"tags_file_path":    tagsPath,
+		"tags_file_size":    tagsSize,
+		"note":              "Run 'make tags' to generate tags file (requires universal-ctags). See docs/CTAGS_USAGE.md.",
 	}
 	resultJSON, _ := json.Marshal(result)
 	resp := &proto.HealthReport{Action: "ctags", ResultJson: string(resultJSON)}

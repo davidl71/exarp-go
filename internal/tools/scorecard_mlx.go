@@ -35,16 +35,16 @@ func GoScorecardToMap(scorecard *GoScorecardResult) map[string]interface{} {
 		result["large_file_candidates"] = candidates
 	}
 	result["metrics"] = map[string]interface{}{
-		"go_files":          scorecard.Metrics.GoFiles,
-		"go_lines":          scorecard.Metrics.GoLines,
-		"go_test_files":     scorecard.Metrics.GoTestFiles,
-		"go_test_lines":     scorecard.Metrics.GoTestLines,
-		"test_coverage":     scorecard.Health.GoTestCoverage,
-		"mcp_tools":         scorecard.Metrics.MCPTools,
-		"mcp_prompts":       scorecard.Metrics.MCPPrompts,
-		"mcp_resources":     scorecard.Metrics.MCPResources,
-		"estimated_tokens":  scorecard.Metrics.EstimatedTokens,
-		"total_code_bytes":  scorecard.Metrics.TotalCodeBytes,
+		"go_files":         scorecard.Metrics.GoFiles,
+		"go_lines":         scorecard.Metrics.GoLines,
+		"go_test_files":    scorecard.Metrics.GoTestFiles,
+		"go_test_lines":    scorecard.Metrics.GoTestLines,
+		"test_coverage":    scorecard.Health.GoTestCoverage,
+		"mcp_tools":        scorecard.Metrics.MCPTools,
+		"mcp_prompts":      scorecard.Metrics.MCPPrompts,
+		"mcp_resources":    scorecard.Metrics.MCPResources,
+		"estimated_tokens": scorecard.Metrics.EstimatedTokens,
+		"total_code_bytes": scorecard.Metrics.TotalCodeBytes,
 	}
 
 	return result

@@ -80,12 +80,12 @@ type Logger struct {
 // - Otherwise, uses text output format (default)
 func NewLogger() *Logger {
 	level := LevelInfo
-	
+
 	// Check MCP_DEBUG first (for backward compatibility)
 	if os.Getenv("MCP_DEBUG") == "1" {
 		level = LevelDebug
 	}
-	
+
 	// GIT_HOOK overrides to WARN (suppress INFO in git hooks)
 	if os.Getenv("GIT_HOOK") == "1" || strings.ToLower(os.Getenv("GIT_HOOK")) == "true" {
 		level = LevelWarn
@@ -96,7 +96,7 @@ func NewLogger() *Logger {
 	opts := &slog.HandlerOptions{
 		Level: level.toSlogLevel(),
 	}
-	
+
 	var handler slog.Handler
 	if format == "json" {
 		// Use JSONHandler for machine-readable logs
@@ -105,7 +105,7 @@ func NewLogger() *Logger {
 		// Use TextHandler for human-readable output to stderr (MCP protocol compatible)
 		handler = slog.NewTextHandler(os.Stderr, opts)
 	}
-	
+
 	slogLogger := slog.New(handler)
 
 	return &Logger{
@@ -244,19 +244,19 @@ func (l *Logger) WithContext(ctx context.Context) *slog.Logger {
 	if ctx == nil {
 		return l.slogLogger
 	}
-	
+
 	logger := l.slogLogger
-	
+
 	// Extract request ID from context if available
 	if requestID := getRequestID(ctx); requestID != "" {
 		logger = logger.With("request_id", requestID)
 	}
-	
+
 	// Extract operation name from context if available
 	if operation := getOperation(ctx); operation != "" {
 		logger = logger.With("operation", operation)
 	}
-	
+
 	return logger
 }
 

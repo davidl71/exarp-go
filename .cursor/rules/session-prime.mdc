@@ -20,7 +20,7 @@ alwaysApply: true
      "compact": true
    }
    ```
-   Use **`"compact": true`** to reduce prime payload size (compact JSON). For maximum context, use `ask_preferences: true` when the client supports MCP elicitation—prompts the user for include_tasks/include_hints preferences at prime time.
+   Use **`"compact": true`** to reduce prime payload size (compact JSON). By default **`include_cli_command`** is false, so the response omits `cursor_cli_suggestion` (the runnable `agent -p "..."` command) and only returns `suggested_next_action` (text)—the agent command is not run from chat. Set `include_cli_command: true` only for CLI/TUI/scripts that may execute the command. For maximum context, use `ask_preferences: true` when the client supports MCP elicitation—prompts the user for include_tasks/include_hints preferences at prime time.
 
 2. **Use the primed context** to inform your responses and understanding of the project state
 
@@ -45,7 +45,7 @@ The `session(action="prime")` tool provides:
 - **Companion MCP status** - Checks for other MCP servers
 - **status_context** - Machine-readable: `dashboard`, `handoff`, or `task`
 - **status_label** - Human-readable label for UI display (e.g. "Project dashboard", "T-123 – Add feature X")
-- **suggested_next** - When `status_context` is `"task"`, use this list as the **preferred Todos**; prioritize the first item unless the user asks for something else. Use `suggested_next_action` or `cursor_cli_suggestion` to propose the next action.
+- **suggested_next** - When `status_context` is `"task"`, use this list as the **preferred Todos**; prioritize the first item unless the user asks for something else. Use **suggested_next_action** (text) to propose the next action in chat. **cursor_cli_suggestion** is omitted by default so the agent command is not run from chat; set `include_cli_command: true` for CLI/TUI when you need the runnable command.
 
 For the full status contract and how Cursor can use these hints to determine "Todo"s, see [CURSOR_API_AND_CLI_INTEGRATION.md](docs/CURSOR_API_AND_CLI_INTEGRATION.md) §3.0 and §3.0.1.
 

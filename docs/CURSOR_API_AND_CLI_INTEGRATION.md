@@ -131,11 +131,11 @@ Cursor does not define a formal API for "suggested todos" in its [documentation]
 
 | Source | What we provide | How Cursor can use it |
 |--------|-----------------|------------------------|
-| **session(action=prime)** | `status_context`, `status_label`, `suggested_next` (array of `{id, content, priority, ...}`), `suggested_next_action`, `cursor_cli_suggestion` | When `status_context === "task"`, treat `suggested_next` as the **preferred Todo list**; prioritize the first item unless the user asks for something else. Use `suggested_next_action` or `cursor_cli_suggestion` for one-click/CLI. |
+| **session(action=prime)** | `status_context`, `status_label`, `suggested_next` (array of `{id, content, priority, ...}`), `suggested_next_action`, and optionally `cursor_cli_suggestion` | When `status_context === "task"`, treat `suggested_next` as the **preferred Todo list**; use **suggested_next_action** (text) in chat. **`include_cli_command`** defaults to false, so `cursor_cli_suggestion` is omitted and the agent command is not run from chat; set `include_cli_command: true` for CLI/TUI/scripts when you need the runnable command. |
 | **stdio://suggested-tasks** (resource) | Same dependency-ready list (up to 10 tasks) as JSON; no tool call required | Cursor can read this resource to get "Todo"s in context without calling session prime. |
 | **.cursor/rules/todo2-overview.mdc** | Auto-generated task overview (Todo count, recent tasks) | In-context snapshot of backlog; session prime gives the *ordered* suggested list. |
 
-**Recommendation for the AI:** After calling `session(action="prime", include_tasks=true)`, if `status_context` is `"task"` and `suggested_next` is non-empty, use that list as the current "Todo"s and suggest working on the first item (e.g. via `suggested_next_action` or `cursor_cli_suggestion`). See `.cursor/rules/session-prime.mdc` for the mandatory prime-at-start rule.
+**Recommendation for the AI:** Call `session(action="prime", include_tasks=true)`; `include_cli_command` defaults to false, so the response does not include the runnable `agent -p "..."` command. Use `suggested_next_action` (text) to propose the next task in chat. When running from CLI/TUI or scripts, pass `include_cli_command: true` to get `cursor_cli_suggestion` for one-click/CLI. See `.cursor/rules/session-prime.mdc` for the mandatory prime-at-start rule.
 
 ---
 

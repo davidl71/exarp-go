@@ -1727,7 +1727,7 @@ func formatStaleTasksFromPtrs(tasks []*models.Todo2Task) []map[string]interface{
 
 // allowedStatusForLinkPlanning restricts link_planning to Todo and In Progress only.
 var allowedStatusForLinkPlanning = map[string]bool{
-	models.StatusTodo:        true,
+	models.StatusTodo:       true,
 	models.StatusInProgress: true,
 }
 

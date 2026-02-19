@@ -45,8 +45,8 @@ func ProtobufToParams(msg proto.Message, opts *ProtobufToParamsOptions) (map[str
 	// This ensures field names like "task_id" instead of "taskId"
 	// We use EmitDefaultValues=true because some *RequestToParams functions always include booleans
 	marshalOpts := protojson.MarshalOptions{
-		EmitDefaultValues: true,  // Include all fields (including false booleans and zero values)
-		UseProtoNames:     true,  // Use snake_case field names from proto (e.g., "task_id" not "taskId")
+		EmitDefaultValues: true, // Include all fields (including false booleans and zero values)
+		UseProtoNames:     true, // Use snake_case field names from proto (e.g., "task_id" not "taskId")
 	}
 
 	jsonBytes, err := marshalOpts.Marshal(msg)

@@ -1013,10 +1013,11 @@ define exarp_ensure_binary
 fi
 endef
 
-# Use compact JSON when supported (session prime, task list, report) to reduce context size; responses include token_estimate
+# Use compact JSON when supported (session prime, task list, report) to reduce context size; responses include token_estimate.
+# include_cli_command false so make output never contains the runnable "agent -p ..." command (avoids Cursor/terminal running it).
 _exarp_report_scorecard_args := '{"action":"scorecard","include_metrics":true,"output_format":"json","compact":true}'
 _exarp_report_overview_args   := '{"action":"overview","include_metrics":true,"output_format":"json","compact":true}'
-_exarp_session_prime_args    := '{"action":"prime","include_tasks":true,"include_hints":true,"output_format":"json","compact":true}'
+_exarp_session_prime_args    := '{"action":"prime","include_tasks":true,"include_hints":true,"output_format":"json","compact":true,"include_cli_command":false}'
 
 exarp-list: ## List exarp-go tools (CLI)
 	$(call exarp_run,-list)

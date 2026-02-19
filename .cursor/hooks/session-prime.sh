@@ -20,7 +20,7 @@ fi
 
 PRIME_JSON=""
 if command -v "$EXARP_GO" >/dev/null 2>&1; then
-  RAW=$("$EXARP_GO" -tool session -args '{"action":"prime","include_tasks":true,"include_hints":true,"compact":true}' -json -quiet 2>/dev/null) || true
+  RAW=$("$EXARP_GO" -tool session -args '{"action":"prime","include_tasks":true,"include_hints":true,"compact":true,"include_cli_command":false}' -json -quiet 2>/dev/null) || true
   if [[ -n "$RAW" ]]; then
     # CLI returns [{"type":"text","text":"<prime JSON>"}]; extract inner JSON
     if command -v jq >/dev/null 2>&1; then

@@ -377,8 +377,8 @@ var _ = Describe("race", func() {
 			state := p.Stats()
 			return state.TotalConns == 0 && state.IdleConns == 0 && p.QueueLen() == 0
 		}, "3s", "50ms").Should(BeTrue())
-  })
-  
+	})
+
 	It("wait", func() {
 		opt := &pool.Options{
 			Dialer: func(ctx context.Context) (net.Conn, error) {
