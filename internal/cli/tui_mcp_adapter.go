@@ -7,10 +7,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/davidl71/exarp-go/internal/database"
 	"github.com/davidl71/exarp-go/internal/framework"
+	"github.com/davidl71/exarp-go/internal/tools"
 )
 
 // mcpListTasksResponse is the JSON envelope from task_workflow sync/list with output_format=json.
@@ -152,11 +154,12 @@ func moveTaskToWaveViaMCP(ctx context.Context, server framework.MCPServer, taskI
 	return err
 }
 
-// getTaskViaMCP fetches a single task by ID through task_workflow sync/list with output_format=json.
+// getTaskViaMCP fetches a single task by ID through task_workflow sync/list with task_ids filter.
 func getTaskViaMCP(ctx context.Context, server framework.MCPServer, taskID string) (*database.Todo2Task, error) {
 	text, err := callToolText(ctx, server, "task_workflow", map[string]interface{}{
 		"action":        "sync",
 		"sub_action":    "list",
+		"task_ids":      taskID,
 		"output_format": "json",
 		"compact":       true,
 	})
@@ -169,13 +172,76 @@ func getTaskViaMCP(ctx context.Context, server framework.MCPServer, taskID strin
 		return nil, fmt.Errorf("parse task list JSON: %w", err)
 	}
 
-	for i := range resp.Tasks {
-		if resp.Tasks[i].ID == taskID {
-			return resp.Tasks[i].toTodo2Task(), nil
-		}
+	if len(resp.Tasks) > 0 {
+		return resp.Tasks[0].toTodo2Task(), nil
 	}
 
 	return nil, fmt.Errorf("task %s not found", taskID)
+}
+
+// HandoffEntry is a typed representation of a session handoff note.
+// Replaces map[string]interface{} access across both TUIs.
+type HandoffEntry struct {
+	ID        string   `json:"id,omitempty"`
+	Summary   string   `json:"summary,omitempty"`
+	Host      string   `json:"host,omitempty"`
+	Timestamp string   `json:"timestamp,omitempty"`
+	Status    string   `json:"status,omitempty"`
+	NextSteps []string `json:"next_steps,omitempty"`
+	Blockers  []string `json:"blockers,omitempty"`
+}
+
+// handoffListPayload is the JSON envelope from session handoff list.
+type handoffListPayload struct {
+	Handoffs []HandoffEntry `json:"handoffs"`
+	Count    int            `json:"count"`
+	Total    int            `json:"total"`
+}
+
+// fetchHandoffs loads handoff entries via the session MCP tool.
+func fetchHandoffs(ctx context.Context, server framework.MCPServer, limit int) ([]HandoffEntry, error) {
+	args := map[string]interface{}{"action": "handoff", "sub_action": "list"}
+	if limit > 0 {
+		args["limit"] = float64(limit)
+	}
+
+	text, err := callToolText(ctx, server, "session", args)
+	if err != nil {
+		return nil, fmt.Errorf("session handoff list: %w", err)
+	}
+
+	var payload handoffListPayload
+	if err := json.Unmarshal([]byte(text), &payload); err != nil {
+		return nil, fmt.Errorf("parse handoff JSON: %w", err)
+	}
+
+	return payload.Handoffs, nil
+}
+
+// firstWaveTaskIDs converts task pointers to values and returns the first wave's task IDs.
+func firstWaveTaskIDs(projectRoot string, tasks []*database.Todo2Task) (waveLevel int, ids []string, err error) {
+	taskList := make([]database.Todo2Task, 0, len(tasks))
+	for _, t := range tasks {
+		if t != nil {
+			taskList = append(taskList, *t)
+		}
+	}
+
+	waves, err := tools.ComputeWavesForTUI(projectRoot, taskList)
+	if err != nil {
+		return 0, nil, err
+	}
+	if len(waves) == 0 {
+		return 0, nil, fmt.Errorf("no waves")
+	}
+
+	levels := make([]int, 0, len(waves))
+	for k := range waves {
+		levels = append(levels, k)
+	}
+	sort.Ints(levels)
+
+	return levels[0], waves[levels[0]], nil
 }
 
 // updateTaskFieldsViaMCP updates a task's status, priority, and description through task_workflow.

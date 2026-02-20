@@ -4,7 +4,6 @@ package cli
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"net"
 	"os/exec"
@@ -29,7 +28,79 @@ const (
 	t3270WidStatus   = 12
 	t3270WidPriority = 10
 	t3270WidContent  = 32
+
+	t3270HeaderRow    = 4  // first data row in task list
+	t3270StatusBarRow = 22 // status bar row
+	t3270PFKeyRow     = 23 // PF key help row
 )
+
+// statusColor returns the go3270 color for a task status.
+func statusColor(status string) go3270.Color {
+	switch status {
+	case "Done":
+		return go3270.Green
+	case "In Progress":
+		return go3270.Yellow
+	case "Todo":
+		return go3270.Turquoise
+	case "Review":
+		return go3270.Pink
+	default:
+		return go3270.DefaultColor
+	}
+}
+
+// priorityColor returns the go3270 color for a task priority.
+func priorityColor(priority string) go3270.Color {
+	switch strings.ToLower(priority) {
+	case "high":
+		return go3270.Red
+	case "medium":
+		return go3270.Yellow
+	case "low":
+		return go3270.Green
+	default:
+		return go3270.DefaultColor
+	}
+}
+
+// statusFilters is the ordered list of status values cycled by PF9.
+var statusFilters = []string{"Todo", "In Progress", "Review", "Done", ""}
+
+// nextStatusFilter returns the next status in the cycle after current.
+func nextStatusFilter(current string) string {
+	for i, s := range statusFilters {
+		if s == current {
+			return statusFilters[(i+1)%len(statusFilters)]
+		}
+	}
+	return statusFilters[0]
+}
+
+// updateTaskStatus updates the cursor task's status via MCP and returns to the task list.
+func (state *tui3270State) updateTaskStatus(newStatus string) (go3270.Tx, any, error) {
+	if state.cursor >= len(state.tasks) {
+		return state.taskListTransaction, state, nil
+	}
+	task := state.tasks[state.cursor]
+	ctx := context.Background()
+	if err := updateTaskFieldsViaMCP(ctx, state.server, task.ID, newStatus, task.Priority, task.LongDescription); err != nil {
+		logError(ctx, "Error updating task status", "error", err, "task_id", task.ID)
+	}
+	return state.taskListTransaction, state, nil
+}
+
+// updateTaskStatusForSelected updates the selectedTask's status via MCP and returns to the task list.
+func (state *tui3270State) updateTaskStatusForSelected(newStatus string) (go3270.Tx, any, error) {
+	if state.selectedTask == nil {
+		return state.taskListTransaction, state, nil
+	}
+	ctx := context.Background()
+	if err := updateTaskFieldsViaMCP(ctx, state.server, state.selectedTask.ID, newStatus, state.selectedTask.Priority, state.selectedTask.LongDescription); err != nil {
+		logError(ctx, "Error updating task status", "error", err, "task_id", state.selectedTask.ID)
+	}
+	return state.taskListTransaction, state, nil
+}
 
 func t3270Pad(s string, width int) string {
 	if len(s) >= width {
@@ -92,22 +163,22 @@ func (state *tui3270State) taskListTransaction(conn net.Conn, devInfo go3270.Dev
 
 	// Row 1: title left, LINE x OF y, COMMAND ===> with input, SCROLL ===> xx (mainframe-style)
 	screen := go3270.Screen{
-		{Row: 1, Col: 2, Content: title, Intense: true},
-		{Row: 1, Col: 45, Content: fmt.Sprintf("LINE %d OF %d", currentLine, totalLines), Intense: true},
-		{Row: 1, Col: 55, Content: "COMMAND ===>", Intense: true},
-		{Row: 1, Col: 68, Write: true, Name: "command", Content: state.command},
-		{Row: 1, Col: 72, Content: "SCROLL ===> " + scrollIndicator, Intense: true},
+		{Row: 1, Col: 2, Content: title, Intense: true, Color: go3270.Blue},
+		{Row: 1, Col: 45, Content: fmt.Sprintf("LINE %d OF %d", currentLine, totalLines), Intense: true, Color: go3270.Blue},
+		{Row: 1, Col: 55, Content: "COMMAND ===>", Intense: true, Color: go3270.Green},
+		{Row: 1, Col: 68, Write: true, Name: "command", Content: state.command, Color: go3270.Turquoise},
+		{Row: 1, Col: 72, Content: "SCROLL ===> " + scrollIndicator, Intense: true, Color: go3270.Blue},
 	}
 
 	// Row 2: blank
 	screen = append(screen, go3270.Field{Row: 2, Col: 2, Content: ""})
 
-	// Row 3: column headers (intense, like yellow headers)
-	screen = append(screen, go3270.Field{Row: 3, Col: t3270ColS, Content: t3270Pad("S", t3270WidS), Intense: true})
-	screen = append(screen, go3270.Field{Row: 3, Col: t3270ColID, Content: t3270Pad("ID", t3270WidID), Intense: true})
-	screen = append(screen, go3270.Field{Row: 3, Col: t3270ColStatus, Content: t3270Pad("STATUS", t3270WidStatus), Intense: true})
-	screen = append(screen, go3270.Field{Row: 3, Col: t3270ColPriority, Content: t3270Pad("PRIORITY", t3270WidPriority), Intense: true})
-	screen = append(screen, go3270.Field{Row: 3, Col: t3270ColContent, Content: t3270Pad("CONTENT", t3270WidContent), Intense: true})
+	// Row 3: column headers (yellow-style, intense white)
+	screen = append(screen, go3270.Field{Row: 3, Col: t3270ColS, Content: t3270Pad("S", t3270WidS), Intense: true, Color: go3270.White})
+	screen = append(screen, go3270.Field{Row: 3, Col: t3270ColID, Content: t3270Pad("ID", t3270WidID), Intense: true, Color: go3270.White})
+	screen = append(screen, go3270.Field{Row: 3, Col: t3270ColStatus, Content: t3270Pad("STATUS", t3270WidStatus), Intense: true, Color: go3270.White})
+	screen = append(screen, go3270.Field{Row: 3, Col: t3270ColPriority, Content: t3270Pad("PRIORITY", t3270WidPriority), Intense: true, Color: go3270.White})
+	screen = append(screen, go3270.Field{Row: 3, Col: t3270ColContent, Content: t3270Pad("CONTENT", t3270WidContent), Intense: true, Color: go3270.White})
 
 	startIdx := state.listOffset
 
@@ -120,30 +191,33 @@ func (state *tui3270State) taskListTransaction(conn net.Conn, devInfo go3270.Dev
 		endIdx = startIdx
 	}
 
-	for row, i := 4, startIdx; i < endIdx; row, i = row+1, i+1 {
+	for row, i := t3270HeaderRow, startIdx; i < endIdx; row, i = row+1, i+1 {
 		task := state.tasks[i]
+		isCursor := i == state.cursor
 
 		s := "  "
-		if i == state.cursor {
+		cursorHL := go3270.DefaultHighlight
+		if isCursor {
 			s = "> "
+			cursorHL = go3270.ReverseVideo
 		}
 
-		screen = append(screen, go3270.Field{Row: row, Col: t3270ColS, Content: t3270Pad(s, t3270WidS)})
-		screen = append(screen, go3270.Field{Row: row, Col: t3270ColID, Content: t3270Pad(task.ID, t3270WidID)})
+		screen = append(screen, go3270.Field{Row: row, Col: t3270ColS, Content: t3270Pad(s, t3270WidS), Highlighting: cursorHL, Color: go3270.Green})
+		screen = append(screen, go3270.Field{Row: row, Col: t3270ColID, Content: t3270Pad(task.ID, t3270WidID), Highlighting: cursorHL, Color: go3270.Turquoise})
 
 		st := task.Status
 		if st == "" {
 			st = "-"
 		}
 
-		screen = append(screen, go3270.Field{Row: row, Col: t3270ColStatus, Content: t3270Pad(st, t3270WidStatus)})
+		screen = append(screen, go3270.Field{Row: row, Col: t3270ColStatus, Content: t3270Pad(st, t3270WidStatus), Highlighting: cursorHL, Color: statusColor(task.Status)})
 
 		pri := strings.ToUpper(task.Priority)
 		if pri == "" {
 			pri = "-"
 		}
 
-		screen = append(screen, go3270.Field{Row: row, Col: t3270ColPriority, Content: t3270Pad(pri, t3270WidPriority)})
+		screen = append(screen, go3270.Field{Row: row, Col: t3270ColPriority, Content: t3270Pad(pri, t3270WidPriority), Highlighting: cursorHL, Color: priorityColor(task.Priority)})
 
 		content := task.Content
 		if content == "" {
@@ -154,10 +228,10 @@ func (state *tui3270State) taskListTransaction(conn net.Conn, devInfo go3270.Dev
 			content = "(no description)"
 		}
 
-		screen = append(screen, go3270.Field{Row: row, Col: t3270ColContent, Content: t3270Pad(content, t3270WidContent)})
+		screen = append(screen, go3270.Field{Row: row, Col: t3270ColContent, Content: t3270Pad(content, t3270WidContent), Highlighting: cursorHL})
 	}
 
-	// Row 22: status left, help text
+	// Row 22: status bar (white for metadata)
 	statusLine := fmt.Sprintf("Tasks: %d", len(state.tasks))
 	if state.cursor < len(state.tasks) {
 		statusLine += fmt.Sprintf("  Cursor: %d/%d", state.cursor+1, len(state.tasks))
@@ -167,13 +241,14 @@ func (state *tui3270State) taskListTransaction(conn net.Conn, devInfo go3270.Dev
 		statusLine += fmt.Sprintf("  Filter: %s", state.filter)
 	}
 
-	screen = append(screen, go3270.Field{Row: 22, Col: 2, Content: statusLine})
+	screen = append(screen, go3270.Field{Row: t3270StatusBarRow, Col: 2, Content: statusLine, Color: go3270.White})
 
-	// Row 23: PF key line
+	// Row 23: PF key line (turquoise for instructional text)
 	screen = append(screen, go3270.Field{
-		Row:     23,
+		Row:     t3270PFKeyRow,
 		Col:     2,
-		Content: "PF1=Help  PF3=Back  PF7=Up  PF8=Down  Enter=Select  PF12=Cancel  PF2=Edit",
+		Content: "PF1=Help PF3=Back PF7/8=Scroll PF9=Filter PF4=Done PF5=WIP PF6=Todo PF2=Edit",
+		Color:   go3270.Turquoise,
 	})
 
 	opts := go3270.ScreenOpts{
@@ -237,7 +312,15 @@ func (state *tui3270State) taskListTransaction(conn net.Conn, devInfo go3270.Dev
 		return state.taskListTransaction, state, nil
 	}
 
-	if response.AID == go3270.AIDEnter || response.AID == go3270.AIDPF1 {
+	if response.AID == go3270.AIDEnter {
+		// Cursor-position row selection: Response.Row is 0-based; Field.Row is 1-based
+		taskIdx := response.Row - (t3270HeaderRow - 1) + state.listOffset
+		if taskIdx >= 0 && taskIdx < len(state.tasks) {
+			state.cursor = taskIdx
+			state.selectedTask = state.tasks[taskIdx]
+			return state.taskDetailTransaction, state, nil
+		}
+
 		if state.cursor < len(state.tasks) {
 			state.selectedTask = state.tasks[state.cursor]
 			return state.taskDetailTransaction, state, nil
@@ -245,11 +328,36 @@ func (state *tui3270State) taskListTransaction(conn net.Conn, devInfo go3270.Dev
 	}
 
 	if response.AID == go3270.AIDPF2 {
-		// Edit selected task
 		if state.cursor < len(state.tasks) {
 			state.selectedTask = state.tasks[state.cursor]
 			return state.taskEditorTransaction, state, nil
 		}
+	}
+
+	// PF9: cycle status filter
+	if response.AID == go3270.AIDPF9 {
+		state.status = nextStatusFilter(state.status)
+		state.cursor = 0
+		state.listOffset = 0
+		state.filter = ""
+		return state.taskListTransaction, state, nil
+	}
+
+	// PF4=Done, PF5=In Progress, PF6=Todo, PF10=Review
+	if response.AID == go3270.AIDPF4 {
+		return state.updateTaskStatus("Done")
+	}
+
+	if response.AID == go3270.AIDPF5 {
+		return state.updateTaskStatus("In Progress")
+	}
+
+	if response.AID == go3270.AIDPF6 {
+		return state.updateTaskStatus("Todo")
+	}
+
+	if response.AID == go3270.AIDPF10 {
+		return state.updateTaskStatus("Review")
 	}
 
 	if response.AID == go3270.AIDPF12 {
@@ -273,13 +381,13 @@ func (state *tui3270State) taskDetailTransaction(conn net.Conn, devInfo go3270.D
 	task := state.selectedTask
 
 	screen := go3270.Screen{
-		{Row: 1, Col: 2, Content: "TASK DETAILS", Intense: true},
+		{Row: 1, Col: 2, Content: "TASK DETAILS", Intense: true, Color: go3270.Blue},
 		{Row: 3, Col: 2, Content: "Task ID:", Intense: true},
-		{Row: 3, Col: 12, Content: task.ID},
+		{Row: 3, Col: 12, Content: task.ID, Color: go3270.Turquoise},
 		{Row: 4, Col: 2, Content: "Status:", Intense: true},
-		{Row: 4, Col: 12, Content: task.Status},
+		{Row: 4, Col: 12, Content: task.Status, Color: statusColor(task.Status)},
 		{Row: 5, Col: 2, Content: "Priority:", Intense: true},
-		{Row: 5, Col: 12, Content: task.Priority},
+		{Row: 5, Col: 12, Content: task.Priority, Color: priorityColor(task.Priority)},
 	}
 
 	row := 7
@@ -291,26 +399,14 @@ func (state *tui3270State) taskDetailTransaction(conn net.Conn, devInfo go3270.D
 			Intense: true,
 		})
 		row++
-		// Split content into multiple lines if needed
-		content := task.Content
-		for len(content) > 0 {
-			lineLen := 76
-			if len(content) < lineLen {
-				lineLen = len(content)
-			}
 
-			screen = append(screen, go3270.Field{
-				Row:     row,
-				Col:     2,
-				Content: content[:lineLen],
-			})
-			row++
-
-			if len(content) > lineLen {
-				content = content[lineLen:]
-			} else {
+		for _, line := range splitIntoLines(task.Content, 4, 76) {
+			if strings.TrimSpace(line) == "" {
 				break
 			}
+
+			screen = append(screen, go3270.Field{Row: row, Col: 2, Content: line})
+			row++
 		}
 	}
 
@@ -322,26 +418,19 @@ func (state *tui3270State) taskDetailTransaction(conn net.Conn, devInfo go3270.D
 			Intense: true,
 		})
 		row++
-		// Split description into multiple lines
-		desc := task.LongDescription
-		for len(desc) > 0 && row < 20 {
-			lineLen := 76
-			if len(desc) < lineLen {
-				lineLen = len(desc)
-			}
 
-			screen = append(screen, go3270.Field{
-				Row:     row,
-				Col:     2,
-				Content: desc[:lineLen],
-			})
-			row++
+		maxDescLines := 20 - row
+		if maxDescLines < 1 {
+			maxDescLines = 1
+		}
 
-			if len(desc) > lineLen {
-				desc = desc[lineLen:]
-			} else {
+		for _, line := range splitIntoLines(task.LongDescription, maxDescLines, 76) {
+			if row >= 20 || strings.TrimSpace(line) == "" {
 				break
 			}
+
+			screen = append(screen, go3270.Field{Row: row, Col: 2, Content: line})
+			row++
 		}
 	}
 
@@ -375,11 +464,12 @@ func (state *tui3270State) taskDetailTransaction(conn net.Conn, devInfo go3270.D
 		row++
 	}
 
-	// Add help line
+	// PF key line
 	screen = append(screen, go3270.Field{
-		Row:     23,
+		Row:     t3270PFKeyRow,
 		Col:     2,
-		Content: "PF3=Back  PF12=Cancel",
+		Content: "PF1=Help PF2=Edit PF3=Back PF4=Done PF5=WIP PF6=Todo PF10=Review PF12=Cancel",
+		Color:   go3270.Turquoise,
 	})
 
 	opts := go3270.ScreenOpts{
@@ -400,8 +490,21 @@ func (state *tui3270State) taskDetailTransaction(conn net.Conn, devInfo go3270.D
 	}
 
 	if response.AID == go3270.AIDPF2 {
-		// Edit task
 		return state.taskEditorTransaction, state, nil
+	}
+
+	// PF4=Done, PF5=In Progress, PF6=Todo, PF10=Review (from detail view)
+	if response.AID == go3270.AIDPF4 {
+		return state.updateTaskStatusForSelected("Done")
+	}
+	if response.AID == go3270.AIDPF5 {
+		return state.updateTaskStatusForSelected("In Progress")
+	}
+	if response.AID == go3270.AIDPF6 {
+		return state.updateTaskStatusForSelected("Todo")
+	}
+	if response.AID == go3270.AIDPF10 {
+		return state.updateTaskStatusForSelected("Review")
 	}
 
 	// Default: stay on detail screen
@@ -419,12 +522,12 @@ func (state *tui3270State) configTransaction(conn net.Conn, devInfo go3270.DevIn
 		}
 
 		errScreen := go3270.Screen{
-			{Row: 1, Col: 2, Content: "CONFIGURATION", Intense: true},
-			{Row: 3, Col: 2, Content: "Config could not be loaded (protobuf required)."},
-			{Row: 5, Col: 2, Content: "Run: exarp-go config init"},
-			{Row: 6, Col: 2, Content: "  or: exarp-go config convert yaml protobuf"},
-			{Row: 8, Col: 2, Content: msg},
-			{Row: 22, Col: 2, Content: "PF3=Back to menu"},
+			{Row: 1, Col: 2, Content: "CONFIGURATION", Intense: true, Color: go3270.Blue},
+			{Row: 3, Col: 2, Content: "Config could not be loaded (protobuf required).", Color: go3270.Red},
+			{Row: 5, Col: 2, Content: "Run: exarp-go config init", Color: go3270.Green},
+			{Row: 6, Col: 2, Content: "  or: exarp-go config convert yaml protobuf", Color: go3270.Green},
+			{Row: 8, Col: 2, Content: msg, Color: go3270.Yellow},
+			{Row: t3270StatusBarRow, Col: 2, Content: "PF3=Back to menu", Color: go3270.Turquoise},
 		}
 		screenOpts := go3270.ScreenOpts{Codepage: devInfo.Codepage()}
 
@@ -441,15 +544,15 @@ func (state *tui3270State) configTransaction(conn net.Conn, devInfo go3270.DevIn
 	}
 
 	screen := go3270.Screen{
-		{Row: 1, Col: 2, Content: "CONFIGURATION", Intense: true},
-		{Row: 3, Col: 2, Content: "Configuration sections:"},
+		{Row: 1, Col: 2, Content: "CONFIGURATION", Intense: true, Color: go3270.Blue},
+		{Row: 3, Col: 2, Content: "Configuration sections:", Color: go3270.Green},
 		{Row: 5, Col: 4, Content: "1. Timeouts"},
 		{Row: 6, Col: 4, Content: "2. Thresholds"},
 		{Row: 7, Col: 4, Content: "3. Tasks"},
 		{Row: 8, Col: 4, Content: "4. Database"},
 		{Row: 9, Col: 4, Content: "5. Security"},
 		{Row: 11, Col: 2, Content: "Section:", Write: true, Name: "section"},
-		{Row: 22, Col: 2, Content: "PF3=Back  Enter=Select"},
+		{Row: t3270StatusBarRow, Col: 2, Content: "PF3=Back  Enter=Select", Color: go3270.Turquoise},
 	}
 
 	// Show some config values (simplified - just show that config is loaded)
@@ -483,35 +586,10 @@ func (state *tui3270State) configTransaction(conn net.Conn, devInfo go3270.DevIn
 	return state.mainMenuTransaction, state, nil
 }
 
-// recommendationToCommand3270 maps scorecard recommendation text to (name, args); prefers Makefile targets; ok false if not runnable.
-func recommendationToCommand3270(rec string) (name string, args []string, ok bool) {
-	rec = strings.TrimSpace(rec)
-
-	switch {
-	case strings.Contains(rec, "go mod tidy"):
-		return "make", []string{"go-mod-tidy"}, true
-	case strings.Contains(rec, "go fmt"):
-		return "make", []string{"go-fmt"}, true
-	case strings.Contains(rec, "go vet"):
-		return "make", []string{"go-vet"}, true
-	case strings.Contains(rec, "Fix Go build"):
-		return "make", []string{"build"}, true
-	case strings.Contains(rec, "golangci-lint issues"):
-		return "make", []string{"golangci-lint-fix"}, true
-	case strings.Contains(rec, "failing Go tests"), strings.Contains(rec, "go test"):
-		return "make", []string{"test"}, true
-	case strings.Contains(rec, "govulncheck"):
-		return "make", []string{"govulncheck"}, true
-	case strings.Contains(rec, "test coverage"):
-		return "make", []string{"test-coverage"}, true
-	default:
-		return "", nil, false
-	}
-}
-
-// runRecommendation3270 runs a recommendation command in projectRoot and returns output and error.
-func runRecommendation3270(projectRoot, rec string) (output string, err error) {
-	name, args, ok := recommendationToCommand3270(rec)
+// runRecommendation runs a recommendation command in projectRoot and returns output and error.
+// Uses the shared recommendationToCommand from tui_commands.go.
+func runRecommendation(projectRoot, rec string) (output string, err error) {
+	name, args, ok := recommendationToCommand(rec)
 	if !ok {
 		return "", fmt.Errorf("no runnable command for this recommendation")
 	}
@@ -549,9 +627,9 @@ func (state *tui3270State) scorecardTransaction(conn net.Conn, devInfo go3270.De
 		scorecard, err := tools.GenerateGoScorecard(ctx, state.projectRoot, scorecardOpts)
 		if err != nil {
 			errScreen := go3270.Screen{
-				{Row: 2, Col: 2, Content: "SCORECARD", Intense: true},
-				{Row: 4, Col: 2, Content: "Error: " + err.Error()},
-				{Row: 22, Col: 2, Content: "PF3=Back"},
+				{Row: 2, Col: 2, Content: "SCORECARD", Intense: true, Color: go3270.Blue},
+				{Row: 4, Col: 2, Content: "Error: " + err.Error(), Color: go3270.Red},
+				{Row: t3270StatusBarRow, Col: 2, Content: "PF3=Back", Color: go3270.Turquoise},
 			}
 			screenOpts := go3270.ScreenOpts{Codepage: devInfo.Codepage()}
 
@@ -576,9 +654,9 @@ func (state *tui3270State) scorecardTransaction(conn net.Conn, devInfo go3270.De
 			combined.WriteString(")")
 		} else {
 			errScreen := go3270.Screen{
-				{Row: 2, Col: 2, Content: "SCORECARD", Intense: true},
-				{Row: 4, Col: 2, Content: "Error: " + err.Error()},
-				{Row: 22, Col: 2, Content: "PF3=Back"},
+				{Row: 2, Col: 2, Content: "SCORECARD", Intense: true, Color: go3270.Blue},
+				{Row: 4, Col: 2, Content: "Error: " + err.Error(), Color: go3270.Red},
+				{Row: t3270StatusBarRow, Col: 2, Content: "PF3=Back", Color: go3270.Turquoise},
 			}
 			screenOpts := go3270.ScreenOpts{Codepage: devInfo.Codepage()}
 
@@ -607,8 +685,8 @@ func (state *tui3270State) scorecardTransaction(conn net.Conn, devInfo go3270.De
 	}
 
 	screen := go3270.Screen{
-		{Row: 1, Col: 2, Content: "PROJECT SCORECARD", Intense: true},
-		{Row: 22, Col: 2, Content: "PF3=Back to menu"},
+		{Row: 1, Col: 2, Content: "PROJECT SCORECARD", Intense: true, Color: go3270.Blue},
+		{Row: t3270StatusBarRow, Col: 2, Content: "PF3=Back to menu", Color: go3270.Turquoise},
 	}
 	if len(state.scorecardRecs) > 0 {
 		screen = append(screen,
@@ -646,7 +724,7 @@ func (state *tui3270State) scorecardTransaction(conn net.Conn, devInfo go3270.De
 		var n int
 		if _, parseErr := fmt.Sscanf(runRec, "%d", &n); parseErr == nil && n >= 1 && n <= len(state.scorecardRecs) {
 			rec := state.scorecardRecs[n-1]
-			out, runErr := runRecommendation3270(state.projectRoot, rec)
+			out, runErr := runRecommendation(state.projectRoot, rec)
 			resultLines := strings.Split(strings.TrimSpace(out), "\n")
 
 			if runErr != nil {
@@ -658,9 +736,9 @@ func (state *tui3270State) scorecardTransaction(conn net.Conn, devInfo go3270.De
 			}
 
 			resultScreen := go3270.Screen{
-				{Row: 1, Col: 2, Content: "IMPLEMENT RESULT (#" + runRec + ")", Intense: true},
-				{Row: 2, Col: 2, Content: rec},
-				{Row: 22, Col: 2, Content: "PF3=Back to scorecard"},
+				{Row: 1, Col: 2, Content: "IMPLEMENT RESULT (#" + runRec + ")", Intense: true, Color: go3270.Blue},
+				{Row: 2, Col: 2, Content: rec, Color: go3270.Green},
+				{Row: t3270StatusBarRow, Col: 2, Content: "PF3=Back to scorecard", Color: go3270.Turquoise},
 			}
 
 			for i, line := range resultLines {
@@ -690,16 +768,16 @@ func (state *tui3270State) scorecardTransaction(conn net.Conn, devInfo go3270.De
 }
 
 // handoffTransaction shows session handoff notes (from session tool, handoff list).
+// Uses shared fetchHandoffs from tui_mcp_adapter.go.
 func (state *tui3270State) handoffTransaction(conn net.Conn, devInfo go3270.DevInfo, data any) (go3270.Tx, any, error) {
 	ctx := context.Background()
-	args := map[string]interface{}{"action": "handoff", "sub_action": "list"}
 
-	argsBytes, err := json.Marshal(args)
+	entries, err := fetchHandoffs(ctx, state.server, 0)
 	if err != nil {
 		errScreen := go3270.Screen{
-			{Row: 2, Col: 2, Content: "SESSION HANDOFFS", Intense: true},
-			{Row: 4, Col: 2, Content: "Error: " + err.Error()},
-			{Row: 22, Col: 2, Content: "PF3=Back to menu"},
+			{Row: 2, Col: 2, Content: "SESSION HANDOFFS", Intense: true, Color: go3270.Blue},
+			{Row: 4, Col: 2, Content: "Error: " + err.Error(), Color: go3270.Red},
+			{Row: t3270StatusBarRow, Col: 2, Content: "PF3=Back to menu", Color: go3270.Turquoise},
 		}
 		screenOpts := go3270.ScreenOpts{Codepage: devInfo.Codepage()}
 
@@ -708,53 +786,46 @@ func (state *tui3270State) handoffTransaction(conn net.Conn, devInfo go3270.DevI
 		}
 
 		return state.mainMenuTransaction, state, nil
-	}
-
-	result, err := state.server.CallTool(ctx, "session", argsBytes)
-	if err != nil {
-		errScreen := go3270.Screen{
-			{Row: 2, Col: 2, Content: "SESSION HANDOFFS", Intense: true},
-			{Row: 4, Col: 2, Content: "Error: " + err.Error()},
-			{Row: 22, Col: 2, Content: "PF3=Back to menu"},
-		}
-		screenOpts := go3270.ScreenOpts{Codepage: devInfo.Codepage()}
-
-		if _, showErr := go3270.ShowScreenOpts(errScreen, nil, conn, screenOpts); showErr != nil {
-			return nil, nil, showErr
-		}
-
-		return state.mainMenuTransaction, state, nil
-	}
-
-	var text strings.Builder
-	for _, c := range result {
-		text.WriteString(c.Text)
-		text.WriteString("\n")
-	}
-
-	content := strings.TrimSpace(text.String())
-	lines := strings.Split(content, "\n")
-	maxRows := 18
-
-	if len(lines) > maxRows {
-		lines = lines[:maxRows]
 	}
 
 	screen := go3270.Screen{
-		{Row: 1, Col: 2, Content: "SESSION HANDOFFS", Intense: true},
-		{Row: 22, Col: 2, Content: "PF3=Back to menu"},
+		{Row: 1, Col: 2, Content: "SESSION HANDOFFS", Intense: true, Color: go3270.Blue},
+		{Row: t3270StatusBarRow, Col: 2, Content: "PF3=Back to menu", Color: go3270.Turquoise},
 	}
 
-	for i, line := range lines {
-		if len(line) > 78 {
-			line = line[:75] + "..."
-		}
-
-		screen = append(screen, go3270.Field{Row: 2 + i, Col: 2, Content: line})
-	}
-
-	if len(lines) == 0 {
+	if len(entries) == 0 {
 		screen = append(screen, go3270.Field{Row: 2, Col: 2, Content: "No handoff notes."})
+	} else {
+		row := 2
+		for i, h := range entries {
+			if row >= 20 {
+				break
+			}
+			header := fmt.Sprintf("Handoff %d: %s", i+1, h.Host)
+			if h.Timestamp != "" {
+				ts := h.Timestamp
+				if len(ts) > 19 {
+					ts = ts[:19]
+				}
+				header += " (" + ts + ")"
+			}
+			if len(header) > 78 {
+				header = header[:75] + "..."
+			}
+			screen = append(screen, go3270.Field{Row: row, Col: 2, Content: header, Intense: true, Color: go3270.Turquoise})
+			row++
+
+			if h.Summary != "" {
+				for _, line := range splitIntoLines(h.Summary, 3, 76) {
+					if row >= 20 || strings.TrimSpace(line) == "" {
+						break
+					}
+					screen = append(screen, go3270.Field{Row: row, Col: 4, Content: line})
+					row++
+				}
+			}
+			row++
+		}
 	}
 
 	screenOpts := go3270.ScreenOpts{Codepage: devInfo.Codepage()}
@@ -775,29 +846,46 @@ func (state *tui3270State) handoffTransaction(conn net.Conn, devInfo go3270.DevI
 	return state.handoffTransaction, state, nil
 }
 
+// validStatus returns a Validator that accepts known task statuses.
+func validStatus() go3270.Validator {
+	valid := map[string]bool{"Todo": true, "In Progress": true, "Review": true, "Done": true}
+	return func(input string) bool {
+		return valid[strings.TrimSpace(input)]
+	}
+}
+
+// validPriority returns a Validator that accepts known task priorities.
+func validPriority() go3270.Validator {
+	valid := map[string]bool{"low": true, "medium": true, "high": true, "": true}
+	return func(input string) bool {
+		return valid[strings.ToLower(strings.TrimSpace(input))]
+	}
+}
+
 // taskEditorTransaction shows ISPF-like task editor.
+// Uses HandleScreenAlt for validation loop and field merging.
 func (state *tui3270State) taskEditorTransaction(conn net.Conn, devInfo go3270.DevInfo, data any) (go3270.Tx, any, error) {
 	if state.selectedTask == nil {
 		return state.taskListTransaction, state, nil
 	}
 
 	task := state.selectedTask
-
-	// Split description into lines for editing (max 10 lines)
 	descLines := splitIntoLines(task.LongDescription, 10, 70)
 
 	screen := go3270.Screen{
-		{Row: 1, Col: 2, Content: "EDIT TASK", Intense: true},
+		{Row: 1, Col: 2, Content: "EDIT TASK", Intense: true, Color: go3270.Blue},
+		{Row: 1, Col: 60, Content: "", Name: "errmsg", Color: go3270.Red},
 		{Row: 3, Col: 2, Content: "Task ID:", Intense: true},
-		{Row: 3, Col: 12, Content: task.ID}, // Read-only
+		{Row: 3, Col: 12, Content: task.ID, Color: go3270.Turquoise},
 		{Row: 4, Col: 2, Content: "Status:", Intense: true},
-		{Row: 4, Col: 12, Write: true, Name: "status", Content: task.Status},
+		{Row: 4, Col: 12, Write: true, Name: "status", Content: task.Status, Color: go3270.Green},
+		{Row: 4, Col: 40, Content: "(Todo/In Progress/Review/Done)", Color: go3270.Turquoise},
 		{Row: 5, Col: 2, Content: "Priority:", Intense: true},
-		{Row: 5, Col: 12, Write: true, Name: "priority", Content: task.Priority},
+		{Row: 5, Col: 12, Write: true, Name: "priority", Content: task.Priority, Color: go3270.Green},
+		{Row: 5, Col: 40, Content: "(low/medium/high)", Color: go3270.Turquoise},
 		{Row: 7, Col: 2, Content: "Description:", Intense: true},
 	}
 
-	// Add description lines as editable fields
 	row := 8
 	for i, line := range descLines {
 		if row > 17 {
@@ -814,33 +902,20 @@ func (state *tui3270State) taskEditorTransaction(conn net.Conn, devInfo go3270.D
 		row++
 	}
 
-	// Add command line
+	screen = append(screen, go3270.Field{Row: 20, Col: 2, Content: "Command ===>", Intense: true, Color: go3270.Green})
+	screen = append(screen, go3270.Field{Row: 20, Col: 15, Write: true, Name: "command", Content: state.command, Color: go3270.Turquoise})
 	screen = append(screen, go3270.Field{
-		Row:     22,
+		Row:     t3270PFKeyRow,
 		Col:     2,
-		Content: "Command ===>",
-		Intense: true,
-	})
-	screen = append(screen, go3270.Field{
-		Row:     22,
-		Col:     15,
-		Write:   true,
-		Name:    "command",
-		Content: state.command,
+		Content: "PF3=Exit  Enter=Save  CANCEL=Abandon",
+		Color:   go3270.Turquoise,
 	})
 
-	// Add help line
-	screen = append(screen, go3270.Field{
-		Row:     23,
-		Col:     2,
-		Content: "PF3=Exit  PF15=Save  Enter=Execute Command  CANCEL=Abandon",
-	})
-
-	opts := go3270.ScreenOpts{
-		Codepage: devInfo.Codepage(),
+	rules := go3270.Rules{
+		"status":   {Validator: validStatus(), ErrorText: "Status must be: Todo, In Progress, Review, or Done"},
+		"priority": {Validator: validPriority(), ErrorText: "Priority must be: low, medium, or high"},
 	}
 
-	// Prepare initial values
 	initialValues := map[string]string{
 		"status":   task.Status,
 		"priority": task.Priority,
@@ -850,63 +925,60 @@ func (state *tui3270State) taskEditorTransaction(conn net.Conn, devInfo go3270.D
 		initialValues[fmt.Sprintf("desc_line%d", i+1)] = line
 	}
 
-	response, err := go3270.ShowScreenOpts(screen, initialValues, conn, opts)
+	// HandleScreenAlt loops until validation passes on Enter/PF15, or PF3/PF1/PF12 exits immediately.
+	response, err := go3270.HandleScreenAlt(
+		screen, rules, initialValues,
+		[]go3270.AID{go3270.AIDEnter, go3270.AIDPF15},
+		[]go3270.AID{go3270.AIDPF3, go3270.AIDPF1, go3270.AIDPF12},
+		"errmsg", 4, 12,
+		conn, devInfo, devInfo.Codepage(),
+	)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	// Save command line
-	state.command = strings.TrimSpace(response.Values["command"])
+	if response.AID == go3270.AIDPF1 {
+		return state.helpTransaction, state, nil
+	}
 
-	// Handle commands
+	if response.AID == go3270.AIDPF3 || response.AID == go3270.AIDPF12 {
+		state.command = ""
+		return state.taskListTransaction, state, nil
+	}
+
+	// Check command line for CANCEL
+	state.command = strings.TrimSpace(response.Values["command"])
 	cmd := strings.ToUpper(state.command)
+
 	if cmd == "CANCEL" || cmd == "C" {
 		state.command = ""
 		return state.taskListTransaction, state, nil
 	}
 
-	if cmd == "SAVE" || cmd == "S" || response.AID == go3270.AIDPF15 {
-		// Save changes
-		ctx := context.Background()
-		task.Status = strings.TrimSpace(response.Values["status"])
-		task.Priority = strings.TrimSpace(response.Values["priority"])
-
-		// Reconstruct description from lines
-		var descParts []string
-
-		for i := 1; i <= 10; i++ {
-			lineKey := fmt.Sprintf("desc_line%d", i)
-			if line, ok := response.Values[lineKey]; ok && strings.TrimSpace(line) != "" {
-				descParts = append(descParts, strings.TrimSpace(line))
-			}
-		}
-
-		task.LongDescription = strings.Join(descParts, "\n")
-
-		// Update task via MCP
-		if err := updateTaskFieldsViaMCP(ctx, state.server, task.ID, task.Status, task.Priority, task.LongDescription); err != nil {
-			logError(context.Background(), "Error updating task", "error", err, "operation", "updateTask", "task_id", task.ID)
-		} else {
-			state.command = ""
-			return state.taskListTransaction, state, nil
-		}
-	}
-
-	// Handle other commands
-	if state.command != "" {
+	if cmd != "" && cmd != "SAVE" && cmd != "S" {
 		return state.handleCommand(state.command, state.taskEditorTransaction)
 	}
 
-	// Handle PF keys
-	if response.AID == go3270.AIDPF1 {
-		return state.helpTransaction, state, nil
+	// Save: validation already passed via HandleScreenAlt
+	ctx := context.Background()
+	task.Status = strings.TrimSpace(response.Values["status"])
+	task.Priority = strings.TrimSpace(response.Values["priority"])
+
+	var descParts []string
+	for i := 1; i <= 10; i++ {
+		lineKey := fmt.Sprintf("desc_line%d", i)
+		if line, ok := response.Values[lineKey]; ok && strings.TrimSpace(line) != "" {
+			descParts = append(descParts, strings.TrimSpace(line))
+		}
 	}
 
-	if response.AID == go3270.AIDPF3 {
-		state.command = ""
-		return state.taskListTransaction, state, nil
+	task.LongDescription = strings.Join(descParts, "\n")
+
+	if err := updateTaskFieldsViaMCP(ctx, state.server, task.ID, task.Status, task.Priority, task.LongDescription); err != nil {
+		logError(context.Background(), "Error updating task", "error", err, "operation", "updateTask", "task_id", task.ID)
 	}
 
-	// Default: stay in editor
-	return state.taskEditorTransaction, state, nil
+	state.command = ""
+
+	return state.taskListTransaction, state, nil
 }

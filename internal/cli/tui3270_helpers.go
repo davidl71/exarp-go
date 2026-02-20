@@ -4,14 +4,11 @@ package cli
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"net"
-	"sort"
 	"strings"
 
 	"github.com/davidl71/exarp-go/internal/database"
-	"github.com/davidl71/exarp-go/internal/tools"
 	"github.com/racingmars/go3270"
 )
 
@@ -25,9 +22,9 @@ func (state *tui3270State) loadTasksForStatus(ctx context.Context, status string
 func (state *tui3270State) showChildAgentResultTransaction(message string, nextTx go3270.Tx) go3270.Tx {
 	return func(conn net.Conn, devInfo go3270.DevInfo, data any) (go3270.Tx, any, error) {
 		screen := go3270.Screen{
-			{Row: 2, Col: 2, Content: "CHILD AGENT", Intense: true},
-			{Row: 4, Col: 2, Content: message},
-			{Row: 22, Col: 2, Content: "PF3=Back to menu"},
+			{Row: 2, Col: 2, Content: "CHILD AGENT", Intense: true, Color: go3270.Blue},
+			{Row: 4, Col: 2, Content: message, Color: go3270.Green},
+			{Row: 22, Col: 2, Content: "PF3=Back to menu", Color: go3270.Turquoise},
 		}
 		if len(message) > 76 {
 			// Wrap
@@ -54,33 +51,29 @@ func (state *tui3270State) helpTransaction(conn net.Conn, devInfo go3270.DevInfo
 	lines := []string{
 		"EXARP-GO 3270 - HELP",
 		"",
-		"Main menu options:",
-		"  1 = Task List  2 = Config  3 = Scorecard  4 = Handoffs  5 = Exit  6 = Run in child agent",
+		"Main menu: 1=Tasks 2=Config 3=Scorecard 4=Handoffs 5=Exit 6=Agent",
 		"",
-		"Commands (type in Command ===> field, then Enter):",
-		"  TASKS or T     - Go to Task List",
-		"  CONFIG         - Go to Configuration",
-		"  SCORECARD or SC - Go to Scorecard",
-		"  HANDOFFS or HO - Go to Session handoffs",
-		"  MENU or M      - Go to Main Menu",
-		"  RUN TASK       - Run current task in child agent",
-		"  RUN PLAN       - Run plan in child agent",
-		"  RUN WAVE       - Run first wave in child agent",
-		"  RUN HANDOFF    - Run first handoff in child agent",
-		"  FIND <text>    - Filter tasks by text",
-		"  RESET          - Clear filter",
-		"  VIEW [id]      - View task details",
-		"  EDIT [id]      - Edit task",
-		"  TOP / BOTTOM   - Scroll to top/bottom of list",
+		"Commands (type in COMMAND ===> field):",
+		"  TASKS/T  CONFIG  SC  HANDOFFS/HO  MENU/M  HELP/H",
+		"  FIND <text>  RESET  VIEW [id]  EDIT [id]  TOP  BOTTOM",
+		"  RUN TASK|PLAN|WAVE|HANDOFF",
 		"",
-		"PF keys:",
-		"  PF1 = Help   PF3 = Back/Exit   PF7/PF8 = Scroll (task list)",
+		"PF keys (all screens):",
+		"  PF1=Help  PF3=Back/Exit",
+		"",
+		"PF keys (task list):",
+		"  PF7/8=Scroll  PF9=Cycle status filter  PF2=Edit",
+		"  PF4=Mark Done  PF5=Mark In Progress  PF6=Mark Todo",
+		"  PF10=Mark Review  Enter=Select (click row)",
+		"",
+		"PF keys (task detail):",
+		"  PF2=Edit  PF4=Done  PF5=WIP  PF6=Todo  PF10=Review",
 		"",
 		"Press PF3 to return.",
 	}
 	screen := go3270.Screen{
-		{Row: 1, Col: 2, Content: "HELP", Intense: true},
-		{Row: 22, Col: 2, Content: "PF3=Back to previous screen"},
+		{Row: 1, Col: 2, Content: "HELP", Intense: true, Color: go3270.Blue},
+		{Row: 22, Col: 2, Content: "PF3=Back to previous screen", Color: go3270.Turquoise},
 	}
 
 	for i, line := range lines {
@@ -331,61 +324,30 @@ func (state *tui3270State) handleCommand(cmd string, currentTx go3270.Tx) (go327
 				return state.showChildAgentResultTransaction("No tasks", state.taskListTransaction), state, nil
 			}
 
-			taskList := make([]tools.Todo2Task, 0, len(state.tasks))
-
-			for _, t := range state.tasks {
-				if t != nil {
-					taskList = append(taskList, *t)
-				}
-			}
-
-			waves, err := tools.ComputeWavesForTUI(state.projectRoot, taskList)
-			if err != nil || len(waves) == 0 {
+			level, ids, err := firstWaveTaskIDs(state.projectRoot, state.tasks)
+			if err != nil {
 				return state.showChildAgentResultTransaction("No waves", state.taskListTransaction), state, nil
 			}
 
-			levels := make([]int, 0, len(waves))
-			for k := range waves {
-				levels = append(levels, k)
-			}
-
-			sort.Ints(levels)
-			prompt := PromptForWave(levels[0], waves[levels[0]])
+			prompt := PromptForWave(level, ids)
 			r := RunChildAgent(state.projectRoot, prompt)
 
 			return state.showChildAgentResultTransaction(r.Message, state.taskListTransaction), state, nil
 		case "HANDOFF":
 			ctx := context.Background()
-			sessionArgs := map[string]interface{}{"action": "handoff", "sub_action": "list", "limit": float64(5)}
-			argsBytes, _ := json.Marshal(sessionArgs)
 
-			result, err := state.server.CallTool(ctx, "session", argsBytes)
-			if err != nil {
-				return state.showChildAgentResultTransaction(err.Error(), state.taskListTransaction), state, nil
-			}
-
-			var text strings.Builder
-			for _, c := range result {
-				text.WriteString(c.Text)
-			}
-
-			var payload struct {
-				Handoffs []map[string]interface{} `json:"handoffs"`
-			}
-
-			if json.Unmarshal([]byte(text.String()), &payload) != nil || len(payload.Handoffs) == 0 {
+			entries, err := fetchHandoffs(ctx, state.server, 5)
+			if err != nil || len(entries) == 0 {
 				return state.showChildAgentResultTransaction("No handoffs", state.taskListTransaction), state, nil
 			}
 
-			h := payload.Handoffs[0]
-			sum, _ := h["summary"].(string)
-
-			var steps []interface{}
-			if s, ok := h["next_steps"].([]interface{}); ok {
-				steps = s
+			h := entries[0]
+			steps := make([]interface{}, len(h.NextSteps))
+			for i, s := range h.NextSteps {
+				steps[i] = s
 			}
 
-			prompt := PromptForHandoff(sum, steps)
+			prompt := PromptForHandoff(h.Summary, steps)
 			r := RunChildAgent(state.projectRoot, prompt)
 
 			return state.showChildAgentResultTransaction(r.Message, state.taskListTransaction), state, nil
