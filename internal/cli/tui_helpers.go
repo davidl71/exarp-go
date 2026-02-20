@@ -1,4 +1,4 @@
-// tui_helpers.go — TUI layout/formatting utilities (truncate, wrap, indent).
+// tui_helpers.go — TUI layout/formatting utilities (truncate, wrap, indent, cursor markers, priority styling).
 package cli
 
 import (
@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/charmbracelet/lipgloss"
+	"github.com/davidl71/exarp-go/internal/models"
 )
 
 func truncatePad(s string, width int) string {
@@ -130,4 +131,106 @@ func highlightRow(line string, width int, selected bool) string {
 	}
 
 	return selectedStyle.Render(line)
+}
+
+// cursorMarkerNarrow returns ">" for active cursor, "✓" for selected+active, " " otherwise.
+func cursorMarkerNarrow(isCursor, isSelected bool) string {
+	if !isCursor {
+		return " "
+	}
+
+	if isSelected {
+		return "✓"
+	}
+
+	return ">"
+}
+
+// cursorMarkerWide returns " → " for active cursor, " ✓ " for selected+active, "   " otherwise.
+func cursorMarkerWide(isCursor, isSelected bool) string {
+	if !isCursor {
+		return "   "
+	}
+
+	if isSelected {
+		return " ✓ "
+	}
+
+	return " → "
+}
+
+// formatPriorityFull returns the priority string upper-cased and padded, or "---" if empty.
+func formatPriorityFull(priority string, width int) string {
+	s := strings.ToUpper(priority)
+	if s == "" {
+		s = "---"
+	}
+
+	return truncatePad(s, width)
+}
+
+// formatPriorityShort returns the first letter of priority upper-cased, or "-" if empty.
+func formatPriorityShort(priority string, width int) string {
+	s := "-"
+	if priority != "" {
+		s = strings.ToUpper(priority[:1])
+	}
+
+	return truncatePad(s, width)
+}
+
+// stylePriorityInLine applies color styling to the priority short indicator within a line.
+func stylePriorityInLine(line, priority, priorityShort string) string {
+	if priority == "" {
+		return line
+	}
+
+	switch strings.ToLower(priority) {
+	case models.PriorityHigh:
+		return strings.Replace(line, priorityShort, highPriorityStyle.Render(priorityShort), 1)
+	case models.PriorityMedium:
+		return strings.Replace(line, priorityShort, mediumPriorityStyle.Render(priorityShort), 1)
+	case models.PriorityLow:
+		return strings.Replace(line, priorityShort, lowPriorityStyle.Render(priorityShort), 1)
+	default:
+		return line
+	}
+}
+
+// formatStatus returns the status string padded, or "---" if empty.
+func formatStatus(status string, width int) string {
+	s := status
+	if s == "" {
+		s = "---"
+	}
+
+	return truncatePad(s, width)
+}
+
+// taskContent returns the task's content (or long description), truncated to maxWidth.
+func taskContent(content, longDesc string, maxWidth int) string {
+	c := content
+	if c == "" {
+		c = longDesc
+	}
+
+	if len(c) > maxWidth && maxWidth > 3 {
+		c = c[:maxWidth-3] + "..."
+	}
+
+	if c == "" {
+		c = "(no description)"
+	}
+
+	return c
+}
+
+// renderRow applies indent, tree marker, cursor highlight, and normal styling to a row.
+func renderRow(line string, indent, marker string, isCursor bool, width int) string {
+	line = indent + marker + line
+	if isCursor {
+		return highlightRow(line, width, true)
+	}
+
+	return normalStyle.Render(line)
 }

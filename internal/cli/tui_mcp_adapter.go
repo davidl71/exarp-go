@@ -151,3 +151,52 @@ func moveTaskToWaveViaMCP(ctx context.Context, server framework.MCPServer, taskI
 	_, err := callToolText(ctx, server, "task_workflow", args)
 	return err
 }
+
+// getTaskViaMCP fetches a single task by ID through task_workflow sync/list with output_format=json.
+func getTaskViaMCP(ctx context.Context, server framework.MCPServer, taskID string) (*database.Todo2Task, error) {
+	text, err := callToolText(ctx, server, "task_workflow", map[string]interface{}{
+		"action":        "sync",
+		"sub_action":    "list",
+		"output_format": "json",
+		"compact":       true,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("task_workflow list for %s: %w", taskID, err)
+	}
+
+	var resp mcpListTasksResponse
+	if err := json.Unmarshal([]byte(text), &resp); err != nil {
+		return nil, fmt.Errorf("parse task list JSON: %w", err)
+	}
+
+	for i := range resp.Tasks {
+		if resp.Tasks[i].ID == taskID {
+			return resp.Tasks[i].toTodo2Task(), nil
+		}
+	}
+
+	return nil, fmt.Errorf("task %s not found", taskID)
+}
+
+// updateTaskFieldsViaMCP updates a task's status, priority, and description through task_workflow.
+func updateTaskFieldsViaMCP(ctx context.Context, server framework.MCPServer, taskID, status, priority, description string) error {
+	args := map[string]interface{}{
+		"action":   "update",
+		"task_ids": taskID,
+	}
+
+	if status != "" {
+		args["new_status"] = status
+	}
+
+	if priority != "" {
+		args["new_priority"] = priority
+	}
+
+	if description != "" {
+		args["long_description"] = description
+	}
+
+	_, err := callToolText(ctx, server, "task_workflow", args)
+	return err
+}
