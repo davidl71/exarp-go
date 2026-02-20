@@ -4,13 +4,10 @@ package cli
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"net"
-	"sort"
 	"strings"
 
-	"github.com/davidl71/exarp-go/internal/tools"
 	"github.com/racingmars/go3270"
 )
 
@@ -22,19 +19,19 @@ func (state *tui3270State) mainMenuTransaction(conn net.Conn, devInfo go3270.Dev
 	}
 
 	screen := go3270.Screen{
-		{Row: 2, Col: 2, Content: title, Intense: true},
-		{Row: 4, Col: 2, Content: "Select an option (1-6) or type a command below:"},
-		{Row: 6, Col: 4, Content: "1. Task List"},
-		{Row: 7, Col: 4, Content: "2. Configuration"},
-		{Row: 8, Col: 4, Content: "3. Scorecard"},
-		{Row: 9, Col: 4, Content: "4. Session handoffs"},
-		{Row: 10, Col: 4, Content: "5. Exit"},
-		{Row: 11, Col: 4, Content: "6. Run in child agent (task/plan/wave/handoff)"},
-		{Row: 12, Col: 2, Content: "Option: "},
-		{Row: 12, Col: 10, Content: "", Write: true, Name: "option"},
-		{Row: 22, Col: 2, Content: "Command ===>", Intense: true},
-		{Row: 22, Col: 15, Write: true, Name: "command", Content: ""},
-		{Row: 23, Col: 2, Content: "PF1=Help  PF3=Exit  Enter=Select option or run command"},
+		{Row: 2, Col: 2, Content: title, Intense: true, Color: go3270.Blue},
+		{Row: 4, Col: 2, Content: "Select an option (1-6) or type a command below:", Color: go3270.Green},
+		{Row: 6, Col: 4, Content: "1. Task List", Color: go3270.Turquoise},
+		{Row: 7, Col: 4, Content: "2. Configuration", Color: go3270.Turquoise},
+		{Row: 8, Col: 4, Content: "3. Scorecard", Color: go3270.Turquoise},
+		{Row: 9, Col: 4, Content: "4. Session handoffs", Color: go3270.Turquoise},
+		{Row: 10, Col: 4, Content: "5. Exit", Color: go3270.Turquoise},
+		{Row: 11, Col: 4, Content: "6. Run in child agent (task/plan/wave/handoff)", Color: go3270.Turquoise},
+		{Row: 12, Col: 2, Content: "Option: ", Intense: true},
+		{Row: 12, Col: 10, Content: "", Write: true, Name: "option", Color: go3270.Green},
+		{Row: 22, Col: 2, Content: "Command ===>", Intense: true, Color: go3270.Green},
+		{Row: 22, Col: 15, Write: true, Name: "command", Content: "", Color: go3270.Turquoise},
+		{Row: 23, Col: 2, Content: "PF1=Help  PF3=Exit  Enter=Select option or run command", Color: go3270.Turquoise},
 	}
 
 	opts := go3270.ScreenOpts{
@@ -118,17 +115,17 @@ func extractMenuOption(s string) string {
 // childAgentMenuTransaction shows Run in child agent submenu (option 6).
 func (state *tui3270State) childAgentMenuTransaction(conn net.Conn, devInfo go3270.DevInfo, data any) (go3270.Tx, any, error) {
 	screen := go3270.Screen{
-		{Row: 2, Col: 2, Content: "RUN IN CHILD AGENT", Intense: true},
-		{Row: 4, Col: 2, Content: "Launches Cursor CLI 'agent' in project root with a prompt."},
+		{Row: 2, Col: 2, Content: "RUN IN CHILD AGENT", Intense: true, Color: go3270.Blue},
+		{Row: 4, Col: 2, Content: "Launches Cursor CLI 'agent' in project root with a prompt.", Color: go3270.Green},
 		{Row: 5, Col: 2, Content: "Select (1-5):"},
-		{Row: 7, Col: 4, Content: "1. Task (current or first)"},
-		{Row: 8, Col: 4, Content: "2. Plan"},
-		{Row: 9, Col: 4, Content: "3. Wave (first wave)"},
-		{Row: 10, Col: 4, Content: "4. Handoff (first handoff)"},
-		{Row: 11, Col: 4, Content: "5. Back to main menu"},
-		{Row: 13, Col: 2, Content: "Option: "},
-		{Row: 13, Col: 10, Content: "", Write: true, Name: "option_val"},
-		{Row: 22, Col: 2, Content: "PF3=Back"},
+		{Row: 7, Col: 4, Content: "1. Task (current or first)", Color: go3270.Turquoise},
+		{Row: 8, Col: 4, Content: "2. Plan", Color: go3270.Turquoise},
+		{Row: 9, Col: 4, Content: "3. Wave (first wave)", Color: go3270.Turquoise},
+		{Row: 10, Col: 4, Content: "4. Handoff (first handoff)", Color: go3270.Turquoise},
+		{Row: 11, Col: 4, Content: "5. Back to main menu", Color: go3270.Turquoise},
+		{Row: 13, Col: 2, Content: "Option: ", Intense: true},
+		{Row: 13, Col: 10, Content: "", Write: true, Name: "option_val", Color: go3270.Green},
+		{Row: 22, Col: 2, Content: "PF3=Back", Color: go3270.Turquoise},
 	}
 
 	opts := go3270.ScreenOpts{Codepage: devInfo.Codepage()}
@@ -196,65 +193,28 @@ func (state *tui3270State) childAgentMenuTransaction(conn net.Conn, devInfo go32
 			return state.showChildAgentResultTransaction(msg, state.mainMenuTransaction), state, nil
 		}
 
-		taskList := make([]tools.Todo2Task, 0, len(tasks))
-
-		for _, t := range tasks {
-			if t != nil {
-				taskList = append(taskList, *t)
-			}
+		level, ids, err := firstWaveTaskIDs(state.projectRoot, tasks)
+		if err != nil {
+			return state.showChildAgentResultTransaction("No waves", state.mainMenuTransaction), state, nil
 		}
 
-		waves, err := tools.ComputeWavesForTUI(state.projectRoot, taskList)
-		if err != nil || len(waves) == 0 {
-			msg := "No waves"
-			if err != nil {
-				msg = err.Error()
-			}
-
-			return state.showChildAgentResultTransaction(msg, state.mainMenuTransaction), state, nil
-		}
-
-		levels := make([]int, 0, len(waves))
-		for k := range waves {
-			levels = append(levels, k)
-		}
-
-		sort.Ints(levels)
-		ids := waves[levels[0]]
-		prompt = PromptForWave(levels[0], ids)
+		prompt = PromptForWave(level, ids)
 		kind = ChildAgentWave
 	case "4":
 		ctx := context.Background()
-		args := map[string]interface{}{"action": "handoff", "sub_action": "list", "limit": float64(5)}
-		argsBytes, _ := json.Marshal(args)
 
-		result, err := state.server.CallTool(ctx, "session", argsBytes)
-		if err != nil {
-			return state.showChildAgentResultTransaction(err.Error(), state.mainMenuTransaction), state, nil
-		}
-
-		var text strings.Builder
-		for _, c := range result {
-			text.WriteString(c.Text)
-		}
-
-		var payload struct {
-			Handoffs []map[string]interface{} `json:"handoffs"`
-		}
-
-		if json.Unmarshal([]byte(text.String()), &payload) != nil || len(payload.Handoffs) == 0 {
+		entries, err := fetchHandoffs(ctx, state.server, 5)
+		if err != nil || len(entries) == 0 {
 			return state.showChildAgentResultTransaction("No handoffs", state.mainMenuTransaction), state, nil
 		}
 
-		h := payload.Handoffs[0]
-		sum, _ := h["summary"].(string)
-
-		var steps []interface{}
-		if s, ok := h["next_steps"].([]interface{}); ok {
-			steps = s
+		h := entries[0]
+		steps := make([]interface{}, len(h.NextSteps))
+		for i, s := range h.NextSteps {
+			steps[i] = s
 		}
 
-		prompt = PromptForHandoff(sum, steps)
+		prompt = PromptForHandoff(h.Summary, steps)
 		kind = ChildAgentHandoff
 	default:
 		return state.childAgentMenuTransaction, state, nil
