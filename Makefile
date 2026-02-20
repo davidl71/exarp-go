@@ -1057,11 +1057,11 @@ context-token-metrics: build ## Echo token_estimate for overview, scorecard, ses
 	@echo "$(BLUE)Context token metrics (token_estimate from JSON)...$(NC)"
 	@if ! command -v jq >/dev/null 2>&1; then \
 		echo "$(YELLOW)Install jq to parse token_estimate (e.g. brew install jq)$(NC)"; \
-		$(BINARY_PATH) -tool report -args $(_exarp_report_overview_args) 2>/dev/null | head -1; exit 0; \
+		$(BINARY_PATH) -quiet -tool report -args $(_exarp_report_overview_args) 2>/dev/null | head -1; exit 0; \
 	fi
-	@overview=$$($(BINARY_PATH) -tool report -args $(_exarp_report_overview_args) 2>/dev/null | jq -r '.token_estimate // "n/a"'); \
-	scorecard=$$($(BINARY_PATH) -tool report -args $(_exarp_report_scorecard_args) 2>/dev/null | jq -r '.token_estimate // "n/a"'); \
-	prime=$$(PROJECT_ROOT="$(CURDIR)" $(BINARY_PATH) -tool session -args $(_exarp_session_prime_args) 2>/dev/null | jq -r '.token_estimate // "n/a"'); \
+	@overview=$$($(BINARY_PATH) -quiet -tool report -args $(_exarp_report_overview_args) 2>/dev/null | jq -r '.token_estimate // "n/a"'); \
+	scorecard=$$($(BINARY_PATH) -quiet -tool report -args $(_exarp_report_scorecard_args) 2>/dev/null | jq -r '.token_estimate // "n/a"'); \
+	prime=$$(PROJECT_ROOT="$(CURDIR)" $(BINARY_PATH) -quiet -tool session -args $(_exarp_session_prime_args) 2>/dev/null | jq -r '.token_estimate // "n/a"'); \
 	echo "report(overview) token_estimate: $${overview}"; \
 	echo "report(scorecard) token_estimate: $${scorecard}"; \
 	echo "session(prime) token_estimate: $${prime}"
@@ -1075,9 +1075,9 @@ context-token-check: build ## Fail if report/session JSON token_estimate exceeds
 		echo "$(YELLOW)jq not found - skipping context-token-check (install jq for CI)$(NC)"; exit 0; \
 	fi
 	@echo "$(BLUE)Checking context token_estimate against limit $${TOKEN_BUDGET_LIMIT}...$(NC)"
-	@overview=$$($(BINARY_PATH) -tool report -args $(_exarp_report_overview_args) 2>/dev/null | jq -r '.token_estimate // 0'); \
-	scorecard=$$($(BINARY_PATH) -tool report -args $(_exarp_report_scorecard_args) 2>/dev/null | jq -r '.token_estimate // 0'); \
-	prime=$$(PROJECT_ROOT="$(CURDIR)" $(BINARY_PATH) -tool session -args $(_exarp_session_prime_args) 2>/dev/null | jq -r '.token_estimate // 0'); \
+	@overview=$$($(BINARY_PATH) -quiet -tool report -args $(_exarp_report_overview_args) 2>/dev/null | jq -r '.token_estimate // 0'); \
+	scorecard=$$($(BINARY_PATH) -quiet -tool report -args $(_exarp_report_scorecard_args) 2>/dev/null | jq -r '.token_estimate // 0'); \
+	prime=$$(PROJECT_ROOT="$(CURDIR)" $(BINARY_PATH) -quiet -tool session -args $(_exarp_session_prime_args) 2>/dev/null | jq -r '.token_estimate // 0'); \
 	for name in "overview:$$overview" "scorecard:$$scorecard" "prime:$$prime"; do \
 		n=$${name%%:*}; v=$${name#*:}; \
 		if [ "$$v" -gt "$$limit" ] 2>/dev/null; then \
