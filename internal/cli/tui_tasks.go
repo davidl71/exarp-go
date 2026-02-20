@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/davidl71/exarp-go/internal/models"
 	humanize "github.com/dustin/go-humanize"
 )
 
@@ -220,31 +219,21 @@ func (m model) renderNarrowTaskList(b *strings.Builder, width int) {
 	vis := m.visibleIndices()
 	for idx, realIdx := range vis {
 		task := m.tasks[realIdx]
-		indent := m.indentForTask(realIdx)
-		marker := m.treeMarkerForTask(realIdx)
+		isCursor := m.cursor == idx
+		_, isSelected := m.selected[realIdx]
+		cursor := cursorMarkerNarrow(isCursor, isSelected)
 
-		cursor := " "
-		if m.cursor == idx {
-			cursor = ">"
-			if _, ok := m.selected[realIdx]; ok {
-				cursor = "✓"
-			}
-		}
-
-		// Minimal info: indent + tree marker + cursor + ID, status, truncated content
-		line := fmt.Sprintf("%s%s%s %s", indent, marker, cursor, task.ID)
-
+		line := fmt.Sprintf("%s %s", cursor, task.ID)
 		if task.Status != "" {
 			line += " " + statusStyle.Render(task.Status)
 		}
 
-		// Truncate content to fit
+		maxContentWidth := width - len(line) - 10
 		content := task.Content
 		if content == "" {
 			content = task.LongDescription
 		}
 
-		maxContentWidth := width - len(line) - 10 // Reserve space
 		if maxContentWidth > 0 && len(content) > maxContentWidth {
 			content = content[:maxContentWidth-3] + "..."
 		}
@@ -253,20 +242,13 @@ func (m model) renderNarrowTaskList(b *strings.Builder, width int) {
 			line += " " + content
 		}
 
-		if m.cursor == idx {
-			line = highlightRow(line, width, true)
-		} else {
-			line = normalStyle.Render(line)
-		}
-
-		b.WriteString(line)
+		b.WriteString(renderRow(line, m.indentForTask(realIdx), m.treeMarkerForTask(realIdx), isCursor, width))
 		b.WriteString("\n")
 	}
 }
 
 // renderMediumTaskList renders tasks in a medium terminal (80-120 chars).
 func (m model) renderMediumTaskList(b *strings.Builder, width int) {
-	// Column headers aligned with column width constants
 	header := fmt.Sprintf("%-*s %-*s %-*s %-*s %-*s %s",
 		colCursor, "", colIDMedium, "ID", colStatus, "STATUS", colPriority, "PRIORITY", colPRI, "PRI", "DESCRIPTION")
 	b.WriteString(helpStyle.Render(header))
@@ -274,108 +256,35 @@ func (m model) renderMediumTaskList(b *strings.Builder, width int) {
 	b.WriteString(borderStyle.Render(strings.Repeat("─", width)))
 	b.WriteString("\n")
 
-	minDescWidth := width - (colCursor + 1 + colIDMedium + 1 + colStatus + 1 + colPriority + 1 + colPRI + 1)
-	if minDescWidth < 10 {
-		minDescWidth = 10
+	descWidth := width - (colCursor + 1 + colIDMedium + 1 + colStatus + 1 + colPriority + 1 + colPRI + 1)
+	if descWidth < 10 {
+		descWidth = 10
 	}
 
 	vis := m.visibleIndices()
 	for idx, realIdx := range vis {
 		task := m.tasks[realIdx]
-		indent := m.indentForTask(realIdx)
-		marker := m.treeMarkerForTask(realIdx)
+		isCursor := m.cursor == idx
+		_, isSelected := m.selected[realIdx]
 
-		cursor := "   "
-		if m.cursor == idx {
-			cursor = " → "
-			if _, ok := m.selected[realIdx]; ok {
-				cursor = " ✓ "
-			}
-		}
-
+		cursor := cursorMarkerWide(isCursor, isSelected)
 		taskID := truncatePad(task.ID, colIDMedium)
-
-		statusStr := task.Status
-		if statusStr == "" {
-			statusStr = "---"
-		}
-
-		statusStr = truncatePad(statusStr, colStatus)
-
-		priorityFull := strings.ToUpper(task.Priority)
-		if priorityFull == "" {
-			priorityFull = "---"
-		}
-
-		priorityFull = truncatePad(priorityFull, colPriority)
-
-		priorityShort := "-"
-		if task.Priority != "" {
-			priorityShort = strings.ToUpper(task.Priority[:1])
-		}
-
-		priorityShort = truncatePad(priorityShort, colPRI)
-
-		content := task.Content
-		if content == "" {
-			content = task.LongDescription
-		}
-
-		if len(content) > minDescWidth {
-			content = content[:minDescWidth-3] + "..."
-		}
-
-		if content == "" {
-			content = "(no description)"
-		}
+		statusStr := formatStatus(task.Status, colStatus)
+		priFull := formatPriorityFull(task.Priority, colPriority)
+		priShort := formatPriorityShort(task.Priority, colPRI)
+		content := taskContent(task.Content, task.LongDescription, descWidth)
 
 		line := fmt.Sprintf("%-*s %-*s %-*s %-*s %-*s %s",
-			colCursor, cursor, colIDMedium, taskID, colStatus, statusStr, colPriority, priorityFull, colPRI, priorityShort, content)
-
-		if task.Priority != "" {
-			switch strings.ToLower(task.Priority) {
-			case models.PriorityHigh:
-				line = strings.Replace(line, priorityShort, highPriorityStyle.Render(priorityShort), 1)
-			case models.PriorityMedium:
-				line = strings.Replace(line, priorityShort, mediumPriorityStyle.Render(priorityShort), 1)
-			case models.PriorityLow:
-				line = strings.Replace(line, priorityShort, lowPriorityStyle.Render(priorityShort), 1)
-			}
-		}
-
-		line = indent + marker + line
-		if m.cursor == idx {
-			line = highlightRow(line, width, true)
-		} else {
-			line = normalStyle.Render(line)
-		}
-
-		b.WriteString(line)
+			colCursor, cursor, colIDMedium, taskID, colStatus, statusStr, colPriority, priFull, colPRI, priShort, content)
+		line = stylePriorityInLine(line, task.Priority, priShort)
+		b.WriteString(renderRow(line, m.indentForTask(realIdx), m.treeMarkerForTask(realIdx), isCursor, width))
 		b.WriteString("\n")
 	}
 }
 
-// Wide-layout constants: compact column widths to maximize space for Description.
-// Single space between columns; fixed total = 52 so description gets (width - 53) or more.
-const (
-	wideColCursor          = 3  // " → " or " ✓ "
-	wideColID              = 18 // T-xxxxxxxxxxxxx
-	wideColStatus          = 11 // "In Progress"
-	wideColPriority        = 8  // "PRIORITY" / "medium"
-	wideColPRI             = 3  // H/M/L
-	wideColOLD             = 3  // "OLD" or "   "
-	wideColSpaces          = 6  // one space between each of 7 columns
-	wideFixedColsTotal     = wideColCursor + wideColID + wideColStatus + wideColPriority + wideColPRI + wideColOLD + wideColSpaces
-	wideMinDescWidth       = 50
-	wideTagsColMin         = 24
-	wideShowTagsThreshold  = 160
-	wideFixedPlusDescSpace = wideFixedColsTotal + 1
-)
-
 // renderWideTaskList renders tasks in a wide terminal (>= 120 chars). Uses full width:
 // description column grows with terminal width; TAGS column appears when width >= 160.
 func (m model) renderWideTaskList(b *strings.Builder, width int) {
-	// Compute description and optional tags column widths so each row fills width.
 	maxDescWidth := width - wideFixedPlusDescSpace
 	if maxDescWidth < wideMinDescWidth {
 		maxDescWidth = wideMinDescWidth
@@ -383,13 +292,10 @@ func (m model) renderWideTaskList(b *strings.Builder, width int) {
 
 	tagsWidth := 0
 	if width >= wideShowTagsThreshold {
-		// Reserve space for TAGS; description gets the rest.
 		tagsWidth = wideTagsColMin
-
 		maxDescWidth = width - wideFixedPlusDescSpace - 1 - tagsWidth
 		if maxDescWidth < wideMinDescWidth {
 			maxDescWidth = wideMinDescWidth
-
 			tagsWidth = width - wideFixedPlusDescSpace - maxDescWidth - 1
 			if tagsWidth < 5 {
 				tagsWidth = 0
@@ -397,10 +303,8 @@ func (m model) renderWideTaskList(b *strings.Builder, width int) {
 		}
 	}
 
-	descHeader := truncatePad("DESCRIPTION", maxDescWidth)
-
 	header := fmt.Sprintf("%-*s %-*s %-*s %-*s %-*s %-*s %s",
-		wideColCursor, "", wideColID, "ID", wideColStatus, "STATUS", wideColPriority, "PRIORITY", wideColPRI, "PRI", wideColOLD, "OLD", descHeader)
+		wideColCursor, "", wideColID, "ID", wideColStatus, "STATUS", wideColPriority, "PRIORITY", wideColPRI, "PRI", wideColOLD, "OLD", truncatePad("DESCRIPTION", maxDescWidth))
 	if tagsWidth > 0 {
 		header += " " + truncatePad("TAGS", tagsWidth)
 	}
@@ -413,64 +317,24 @@ func (m model) renderWideTaskList(b *strings.Builder, width int) {
 	vis := m.visibleIndices()
 	for idx, realIdx := range vis {
 		task := m.tasks[realIdx]
-		indent := m.indentForTask(realIdx)
-		marker := m.treeMarkerForTask(realIdx)
+		isCursor := m.cursor == idx
+		_, isSelected := m.selected[realIdx]
 
-		cursor := "   "
-		if m.cursor == idx {
-			cursor = " → "
-			if _, ok := m.selected[realIdx]; ok {
-				cursor = " ✓ "
-			}
-		}
-
+		cursor := cursorMarkerWide(isCursor, isSelected)
 		taskID := truncatePad(task.ID, wideColID)
+		statusStr := formatStatus(task.Status, wideColStatus)
+		priFull := formatPriorityFull(task.Priority, wideColPriority)
+		priShort := formatPriorityShort(task.Priority, wideColPRI)
 
-		statusStr := task.Status
-		if statusStr == "" {
-			statusStr = "---"
-		}
-
-		statusStr = truncatePad(statusStr, wideColStatus)
-
-		priorityFull := strings.ToUpper(task.Priority)
-		if priorityFull == "" {
-			priorityFull = "---"
-		}
-
-		priorityFull = truncatePad(priorityFull, wideColPriority)
-
-		priorityShort := "-"
-		if task.Priority != "" {
-			priorityShort = strings.ToUpper(task.Priority[:1])
-		}
-
-		priorityShort = truncatePad(priorityShort, wideColPRI)
-
-		oldStr := "   "
+		oldIndicator := truncatePad("   ", wideColOLD)
 		if isOldSequentialID(task.ID) {
-			oldStr = "OLD"
+			oldIndicator = truncatePad("OLD", wideColOLD)
 		}
 
-		oldIndicator := truncatePad(oldStr, wideColOLD)
-
-		content := task.Content
-		if content == "" {
-			content = task.LongDescription
-		}
-
-		if len(content) > maxDescWidth {
-			content = content[:maxDescWidth-3] + "..."
-		}
-
-		if content == "" {
-			content = "(no description)"
-		}
-
-		content = truncatePad(content, maxDescWidth)
+		content := truncatePad(taskContent(task.Content, task.LongDescription, maxDescWidth), maxDescWidth)
 
 		line := fmt.Sprintf("%-*s %-*s %-*s %-*s %-*s %-*s %s",
-			wideColCursor, cursor, wideColID, taskID, wideColStatus, statusStr, wideColPriority, priorityFull, wideColPRI, priorityShort, wideColOLD, oldIndicator, content)
+			wideColCursor, cursor, wideColID, taskID, wideColStatus, statusStr, wideColPriority, priFull, wideColPRI, priShort, wideColOLD, oldIndicator, content)
 
 		if tagsWidth > 0 && len(task.Tags) > 0 {
 			tagsStr := strings.Join(task.Tags, ",")
@@ -481,29 +345,12 @@ func (m model) renderWideTaskList(b *strings.Builder, width int) {
 			line += " " + helpStyle.Render(tagsStr)
 		}
 
-		if task.Priority != "" {
-			switch strings.ToLower(task.Priority) {
-			case models.PriorityHigh:
-				line = strings.Replace(line, priorityShort, highPriorityStyle.Render(priorityShort), 1)
-			case models.PriorityMedium:
-				line = strings.Replace(line, priorityShort, mediumPriorityStyle.Render(priorityShort), 1)
-			case models.PriorityLow:
-				line = strings.Replace(line, priorityShort, lowPriorityStyle.Render(priorityShort), 1)
-			}
-		}
-
+		line = stylePriorityInLine(line, task.Priority, priShort)
 		if isOldSequentialID(task.ID) {
 			line = strings.Replace(line, "OLD", oldIDStyle.Render("OLD"), 1)
 		}
 
-		line = indent + marker + line
-		if m.cursor == idx {
-			line = highlightRow(line, width, true)
-		} else {
-			line = normalStyle.Render(line)
-		}
-
-		b.WriteString(line)
+		b.WriteString(renderRow(line, m.indentForTask(realIdx), m.treeMarkerForTask(realIdx), isCursor, width))
 		b.WriteString("\n")
 	}
 }

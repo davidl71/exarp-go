@@ -68,4 +68,18 @@ const (
 
 	minTermWidth  = 80
 	minTermHeight = 24
+
+	// Wide-layout constants: compact column widths to maximize space for Description.
+	wideColCursor          = 3
+	wideColID              = 18
+	wideColStatus          = 11
+	wideColPriority        = 8
+	wideColPRI             = 3
+	wideColOLD             = 3
+	wideColSpaces          = 6
+	wideFixedColsTotal     = wideColCursor + wideColID + wideColStatus + wideColPriority + wideColPRI + wideColOLD + wideColSpaces
+	wideMinDescWidth       = 50
+	wideTagsColMin         = 24
+	wideShowTagsThreshold  = 160
+	wideFixedPlusDescSpace = wideFixedColsTotal + 1
 )
