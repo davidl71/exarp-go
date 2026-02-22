@@ -79,5 +79,5 @@ When `make lint-nav` reports issues:
 ## Exemptions
 
 - Test files (`*_test.go`) and benchmark files (`*_bench_test.go`) are exempt from file-level comments (but package docs still required).
-- Generated files (protobuf, etc.) are exempt from all checks.
+- Generated files (e.g. `proto/*.pb.go`) are exempt from all checks; edit `.proto` sources and run `make proto` instead.
 - Files under `vendor/` are exempt.

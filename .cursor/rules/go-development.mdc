@@ -686,6 +686,11 @@ err := database.AddComments(taskID, comments)
 - `make migrate` - Run migration tool (requires build-migrate first)
 - `make migrate-dry-run` - Preview migration without actually migrating
 
+**Protobuf:**
+- `make proto` - Generate Go from `.proto` files (tools, todo2, config, bridge)
+- `make proto-check` - Validate `.proto` syntax
+- `make proto-clean` - Remove generated `.pb.go` files
+
 **Quick Commands:**
 - `make all` - Build essential components and run sanity tests (default)
 - `make help` - Show help message with all available targets
@@ -702,6 +707,7 @@ err := database.AddComments(taskID, comments)
 8. **PREFER Makefile targets** - When multiple options exist, choose the Makefile target
 9. **PREFER `make silent`** - For routine builds (e.g. before commit, verification), use `make silent` to reduce terminal output
 10. **Use `make config` first** - If tools are not detected, run `make config` to configure the build system
+11. **NEVER edit `proto/*.pb.go`** - Generated files. Change `proto/*.proto` and run `make proto` to regenerate
 
 ### Examples
 

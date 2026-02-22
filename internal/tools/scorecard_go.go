@@ -74,6 +74,16 @@ const (
 	defaultLargeFileLineThreshold  = 500  // Common style-guide limit
 )
 
+// skipGeneratedProtobufGo reports whether path is a generated proto Go file (proto/*.pb.go) and should be excluded from scorecard metrics and checks.
+func skipGeneratedProtobufGo(projectRoot, path string) bool {
+	rel, err := filepath.Rel(projectRoot, path)
+	if err != nil {
+		return false
+	}
+	relSlash := filepath.ToSlash(rel)
+	return strings.HasPrefix(relSlash, "proto/") && strings.HasSuffix(relSlash, ".pb.go")
+}
+
 // GoScorecardResult represents the complete Go scorecard.
 type GoScorecardResult struct {
 	Metrics             GoProjectMetrics `json:"metrics"`
@@ -137,7 +147,7 @@ func collectGoMetrics(ctx context.Context, projectRoot string) (*GoProjectMetric
 	}
 
 	// MCP server counts (these should be accurate)
-	metrics.MCPTools = 24     // Fixed: was 0
+	metrics.MCPTools = 25     // 24 base + llamacpp
 	metrics.MCPPrompts = 15   // Fixed: was 38 (actual count may vary, check sanity-check)
 	metrics.MCPResources = 17 // Updated: 11 base + 6 task resources
 
@@ -274,6 +284,9 @@ func collectPerFileCodeStats(projectRoot string) ([]FileSizeInfo, error) {
 
 		var add bool
 		if strings.HasSuffix(path, ".go") {
+			if skipGeneratedProtobufGo(projectRoot, path) {
+				return nil
+			}
 			add = true
 		} else if strings.HasSuffix(path, ".py") && (strings.Contains(path, "bridge/") || strings.Contains(path, "tests/")) {
 			add = true
@@ -333,6 +346,9 @@ func countGoFilesWithBytes(root string) (int, int, int, error) {
 		}
 
 		if strings.HasSuffix(path, ".go") && !strings.HasSuffix(path, "_test.go") {
+			if skipGeneratedProtobufGo(root, path) {
+				return nil
+			}
 			count++
 			data, err := os.ReadFile(path)
 			if err == nil {
@@ -526,7 +542,9 @@ func checkGoFmt(ctx context.Context, root string) bool {
 		}
 
 		if strings.HasSuffix(path, ".go") {
-			goFiles = append(goFiles, path)
+			if !skipGeneratedProtobufGo(root, path) {
+				goFiles = append(goFiles, path)
+			}
 		}
 
 		return nil
