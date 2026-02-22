@@ -54,7 +54,8 @@ func (state *tui3270State) helpTransaction(conn net.Conn, devInfo go3270.DevInfo
 		"Main menu: 1=Tasks 2=Config 3=Scorecard 4=Handoffs 5=Exit 6=Agent 7=Health",
 		"",
 		"Commands (type in COMMAND ===> field):",
-		"  TASKS/T  CONFIG  SC  HANDOFFS/HO  MENU/M  HELP/H  HEALTH/SDSF",
+		"  TASKS/T  CONFIG  SC  HANDOFFS/HO  MENU/M  HELP/H",
+		"  HEALTH/SDSF  GIT/GITLOG  SPRINT/BOARD",
 		"  FIND <text>  RESET  VIEW [id]  EDIT [id]  TOP  BOTTOM",
 		"  RUN TASK|PLAN|WAVE|HANDOFF",
 		"",
@@ -164,6 +165,12 @@ func (state *tui3270State) handleCommand(cmd string, currentTx go3270.Tx) (go327
 	case "HEALTH", "SDSF":
 		state.command = ""
 		return state.healthTransaction, state, nil
+	case "GIT", "GITLOG":
+		state.command = ""
+		return state.gitDashboardTransaction, state, nil
+	case "SPRINT", "BOARD":
+		state.command = ""
+		return state.sprintBoardTransaction, state, nil
 	case "FIND", "F":
 		// Filter/search tasks
 		if len(args) > 0 {
