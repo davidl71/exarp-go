@@ -55,7 +55,7 @@ func (state *tui3270State) helpTransaction(conn net.Conn, devInfo go3270.DevInfo
 		"",
 		"Commands (type in COMMAND ===> field):",
 		"  TASKS/T  CONFIG  SC  HANDOFFS/HO  MENU/M  HELP/H",
-		"  HEALTH/SDSF  GIT/GITLOG  SPRINT/BOARD",
+		"  HEALTH/SDSF  GIT/GITLOG  SPRINT/BOARD  SWAP",
 		"  FIND <text>  RESET  VIEW [id]  EDIT [id]  TOP  BOTTOM",
 		"  RUN TASK|PLAN|WAVE|HANDOFF",
 		"",
@@ -63,7 +63,7 @@ func (state *tui3270State) helpTransaction(conn net.Conn, devInfo go3270.DevInfo
 		"  S=Select(view)  E=Edit  D=Mark Done  I=Mark In Progress",
 		"",
 		"PF keys (all screens):",
-		"  PF1=Help  PF3=Back/Exit",
+		"  PF1=Help  PF3=Back/Exit  PF11=Swap session",
 		"",
 		"PF keys (task list):",
 		"  PF7/8=Scroll  PF9=Cycle status filter  PF2=Edit",
@@ -145,11 +145,11 @@ func (state *tui3270State) handleCommand(cmd string, currentTx go3270.Tx) (go327
 		state.command = ""
 		return state.healthTransaction, state, nil
 	case "SC", "SCORECARD":
-		state.pushSession("Tasks", fallback)
+		state.pushSession("Tasks", state.taskListTransaction)
 		state.command = ""
 		return state.scorecardTransaction, state, nil
 	case "HANDOFFS", "HO":
-		state.pushSession("Tasks", fallback)
+		state.pushSession("Tasks", state.taskListTransaction)
 		state.command = ""
 		return state.handoffTransaction, state, nil
 	case "MENU", "M", "MAIN":
@@ -165,15 +165,15 @@ func (state *tui3270State) handleCommand(cmd string, currentTx go3270.Tx) (go327
 		state.command = ""
 		return state.helpTransaction, state, nil
 	case "HEALTH", "SDSF":
-		state.pushSession("Tasks", fallback)
+		state.pushSession("Tasks", state.taskListTransaction)
 		state.command = ""
 		return state.healthTransaction, state, nil
 	case "GIT", "GITLOG":
-		state.pushSession("Tasks", fallback)
+		state.pushSession("Tasks", state.taskListTransaction)
 		state.command = ""
 		return state.gitDashboardTransaction, state, nil
 	case "SPRINT", "BOARD":
-		state.pushSession("Tasks", fallback)
+		state.pushSession("Tasks", state.taskListTransaction)
 		state.command = ""
 		return state.sprintBoardTransaction, state, nil
 	case "SWAP":
