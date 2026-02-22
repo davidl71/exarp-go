@@ -437,6 +437,15 @@ func (state *tui3270State) taskListTransaction(conn net.Conn, devInfo go3270.Dev
 		return state.mainMenuTransaction, state, nil
 	}
 
+	// PF11: swap to previous session
+	if response.AID == go3270.AIDPF11 {
+		s := state.popSession()
+		if s != nil {
+			state.pushSession("Tasks", state.taskListTransaction)
+			return s.tx, state, nil
+		}
+	}
+
 	if response.AID == go3270.AIDPF7 {
 		// Scroll up
 		if state.cursor > 0 {
@@ -881,6 +890,15 @@ func (state *tui3270State) scorecardTransaction(conn net.Conn, devInfo go3270.De
 	if response.AID == go3270.AIDPF3 {
 		return state.mainMenuTransaction, state, nil
 	}
+
+	if response.AID == go3270.AIDPF11 {
+		s := state.popSession()
+		if s != nil {
+			state.pushSession("Scorecard", state.scorecardTransaction)
+			return s.tx, state, nil
+		}
+	}
+
 	// Check if user entered a recommendation number to run
 	runRec := strings.TrimSpace(response.Values["run_rec"])
 	if runRec != "" && len(state.scorecardRecs) > 0 {
@@ -1262,6 +1280,14 @@ func (state *tui3270State) healthTransaction(conn net.Conn, devInfo go3270.DevIn
 		return state.mainMenuTransaction, state, nil
 	}
 
+	if response.AID == go3270.AIDPF11 {
+		s := state.popSession()
+		if s != nil {
+			state.pushSession("Health", state.healthTransaction)
+			return s.tx, state, nil
+		}
+	}
+
 	return state.healthTransaction, state, nil
 }
 
@@ -1348,6 +1374,14 @@ func (state *tui3270State) gitDashboardTransaction(conn net.Conn, devInfo go3270
 
 	if response.AID == go3270.AIDPF3 {
 		return state.mainMenuTransaction, state, nil
+	}
+
+	if response.AID == go3270.AIDPF11 {
+		s := state.popSession()
+		if s != nil {
+			state.pushSession("Git", state.gitDashboardTransaction)
+			return s.tx, state, nil
+		}
 	}
 
 	return state.gitDashboardTransaction, state, nil
@@ -1450,6 +1484,14 @@ func (state *tui3270State) sprintBoardTransaction(conn net.Conn, devInfo go3270.
 
 	if response.AID == go3270.AIDPF3 {
 		return state.mainMenuTransaction, state, nil
+	}
+
+	if response.AID == go3270.AIDPF11 {
+		s := state.popSession()
+		if s != nil {
+			state.pushSession("Board", state.sprintBoardTransaction)
+			return s.tx, state, nil
+		}
 	}
 
 	return state.sprintBoardTransaction, state, nil

@@ -145,9 +145,11 @@ func (state *tui3270State) handleCommand(cmd string, currentTx go3270.Tx) (go327
 		state.command = ""
 		return state.healthTransaction, state, nil
 	case "SC", "SCORECARD":
+		state.pushSession("Tasks", fallback)
 		state.command = ""
 		return state.scorecardTransaction, state, nil
 	case "HANDOFFS", "HO":
+		state.pushSession("Tasks", fallback)
 		state.command = ""
 		return state.handoffTransaction, state, nil
 	case "MENU", "M", "MAIN":
