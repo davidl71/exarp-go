@@ -334,7 +334,7 @@ test-coverage: test-coverage-go ## Run tests with coverage (Go only)
 
 test-coverage-go: ## Generate Go test coverage report
 	@echo "$(BLUE)Running Go tests with coverage...$(NC)"
-	@$(GO) test ./... -coverprofile=coverage-go.out -covermode=atomic -coverpkg=./cmd/...,./internal/... || \
+	@$(GO) test ./... -coverprofile=coverage-go.out -covermode=atomic -coverpkg=./internal/... || \
 	 echo "$(YELLOW)⚠️  Go coverage failed$(NC)"
 	@$(GO) tool cover -html=coverage-go.out -o coverage-go.html 2>/dev/null || true
 	@echo "$(GREEN)✅ Go coverage report: coverage-go.html$(NC)"

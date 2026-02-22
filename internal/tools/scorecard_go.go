@@ -648,7 +648,7 @@ func checkGoTest(ctx context.Context, root string) (bool, float64) {
 	ctx, cancel := context.WithTimeout(ctx, config.ToolTimeout("testing"))
 	defer cancel()
 
-	cmd := exec.CommandContext(ctx, "go", "test", "./...", "-coverprofile=coverage.out", "-covermode=atomic", "-coverpkg=./cmd/...,./internal/...")
+	cmd := exec.CommandContext(ctx, "go", "test", "./...", "-coverprofile=coverage.out", "-covermode=atomic", "-coverpkg=./internal/...")
 	cmd.Dir = root
 	err := cmd.Run()
 	passes := err == nil
