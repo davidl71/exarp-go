@@ -105,6 +105,40 @@ This document outlines identified code duplication and refactoring opportunities
 
 ---
 
+## Large Files (Context Fit)
+
+Files that exceed ~400 lines or ~4k tokens can hurt AI/editor context fit. Consider splitting or extracting by responsibility. **Source:** scorecard/lint or context-budget tooling.
+
+| File | Lines | ~Tokens | Suggested split / refactor |
+|------|-------|---------|---------------------------|
+| `internal/cli/child_agent.go` | 507 | ~3.5k | Extract agent invocation/streaming into `child_agent_invoke.go`, keep types/opts in main file. |
+| `internal/cli/cli.go` | 910 | ~7.5k | Split by subcommand: `cli_dispatch.go` (root), `cli_task.go`, `cli_report.go`, `cli_health.go`, etc.; keep shared flags in `cli.go`. |
+| `internal/cli/config.go` | 542 | ~3.8k | Move config load/save vs validation into `config_load.go` / `config_validate.go` if needed. |
+| `internal/cli/tui3270_transactions.go` | 985 | ~7.5k | One file per transaction group: `tui3270_menu.go`, `tui3270_tasklist.go`, `tui3270_editor.go`, `tui3270_scorecard.go`, etc. |
+| `internal/cli/tui_test.go` | 542 | ~3.7k | Split by area: `tui_test_basic.go`, `tui_test_commands.go`, `tui_test_detail.go` (or similar). |
+| `internal/config/protobuf.go` | 1072 | ~8.3k | Split by domain: load/save, validation, defaults, and proto↔internal mapping in separate files. |
+| `internal/config/protobuf_test.go` | 526 | ~4.1k | Mirror protobuf split: one test file per prod file. |
+| `internal/database/tasks.go` | 1550 | ~10.3k | Extract: `tasks_crud.go`, `tasks_list.go`, `tasks_filters.go`, `tasks_helpers.go`; keep core types in `tasks.go`. |
+| `internal/database/tasks_lock.go` | 549 | ~3.6k | Consider `tasks_lock_claim.go` vs `tasks_lock_cleanup.go` if logical. |
+| `internal/database/tasks_lock_test.go` | 523 | ~3.3k | Split by test group (claim, renew, cleanup, stale). |
+| `internal/database/tasks_test.go` | 731 | ~4.4k | Split by area: CRUD tests, list/filter tests, migration tests. |
+| `internal/prompts/templates.go` | 803 | ~8.6k | Group prompts by tool or domain; e.g. `templates_task.go`, `templates_report.go`, `templates_session.go`. |
+| `internal/prompts/templates_test.go` | 502 | ~3.4k | Mirror template split. |
+| `internal/tools/alignment_analysis.go` | 640 | ~4.5k | Extract: alignment scoring vs PRD/todo2 comparison into separate files. |
+| `internal/tools/automation_native.go` | 1049 | ~8.4k | Split by workflow: sprint_start, sprint_end, pre_sprint, or by phase (setup / run / report). |
+| `internal/tools/config_generator.go` | 1029 | ~6.6k | Split: init, export, convert (and shared helpers). |
+| `internal/tools/config_generator_test.go` | 538 | ~3.2k | Mirror generator split. |
+| `internal/tools/estimation_shared.go` | 1072 | ~7.4k | Split: estimation types/helpers, batch logic, single-task flow. |
+| `internal/tools/git_tools.go` | 931 | ~6.1k | Split by action: commits, branches, tasks, diff, graph, merge. |
+| `internal/tools/graph_helpers.go` | 724 | ~4.5k | Extract: graph build, cycle detection, critical path, level calculation. |
+
+**Principles for splits:**
+- Preserve package API; avoid changing callers where possible.
+- Keep types and interfaces in one place; move implementation blocks.
+- After split: run `make test`, `make lint`, update `.cursor/rules/code-map.mdc` if tool/file mapping changes.
+
+---
+
 ## Refactoring Principles
 
 ### 1. DRY (Don't Repeat Yourself)
@@ -211,6 +245,7 @@ This document outlines identified code duplication and refactoring opportunities
 1. ⏳ Consider SQL query builder
 2. ⏳ Refactor metadata handling
 3. ⏳ Review architecture for additional opportunities
+4. ⏳ Large-file splits for context fit (see **Large Files (Context Fit)** table above); prioritize `internal/database/tasks.go`, `internal/cli/cli.go`, `internal/config/protobuf.go`, `internal/tools/automation_native.go`.
 
 ---
 
@@ -222,5 +257,5 @@ This document outlines identified code duplication and refactoring opportunities
 
 ---
 
-**Last Updated:** 2026-01-12  
+**Last Updated:** 2026-02-21  
 **Next Review:** After next refactoring session
