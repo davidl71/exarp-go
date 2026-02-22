@@ -21,6 +21,12 @@ import (
 	"github.com/racingmars/go3270"
 )
 
+// tui3270Session captures a return-point in the session stack (PF11 swap).
+type tui3270Session struct {
+	name string   // Human-readable label (e.g. "Tasks", "Scorecard")
+	tx   go3270.Tx // Transaction to return to
+}
+
 // tui3270State holds the state for a 3270 TUI session.
 type tui3270State struct {
 	server                framework.MCPServer
@@ -37,6 +43,35 @@ type tui3270State struct {
 	filter                string   // Current filter/search term
 	scorecardRecs         []string // Last scorecard recommendations (for Run #)
 	scorecardFullModeNext bool     // When true, next scorecard load uses full checks (e.g. after Run #)
+	sessionStack          []tui3270Session // Stack of saved sessions for PF11 swap
+}
+
+// pushSession saves the current transaction as a named session on the stack.
+func (state *tui3270State) pushSession(name string, tx go3270.Tx) {
+	const maxStack = 8
+	state.sessionStack = append(state.sessionStack, tui3270Session{name: name, tx: tx})
+	if len(state.sessionStack) > maxStack {
+		state.sessionStack = state.sessionStack[len(state.sessionStack)-maxStack:]
+	}
+}
+
+// popSession removes and returns the most recent session, or nil if empty.
+func (state *tui3270State) popSession() *tui3270Session {
+	if len(state.sessionStack) == 0 {
+		return nil
+	}
+	s := state.sessionStack[len(state.sessionStack)-1]
+	state.sessionStack = state.sessionStack[:len(state.sessionStack)-1]
+	return &s
+}
+
+// sessionNames returns the names of all sessions on the stack (oldest first).
+func (state *tui3270State) sessionNames() []string {
+	names := make([]string, len(state.sessionStack))
+	for i, s := range state.sessionStack {
+		names[i] = s.name
+	}
+	return names
 }
 
 // RunTUI3270 starts a 3270 TUI server.
