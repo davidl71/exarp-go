@@ -357,7 +357,7 @@ func (state *tui3270State) taskListTransaction(conn net.Conn, devInfo go3270.Dev
 	screen = append(screen, go3270.Field{
 		Row:     pfRow,
 		Col:     2,
-		Content: "S=Sel E=Edit D=Done I=WIP  PF1=Help PF3=Back PF7/8=Scroll PF9=Filter",
+		Content: "S=Sel E=Edit D=Done I=WIP PF1=Help PF3=Back PF7/8=Scrl PF9=Flt PF11=Swap",
 		Color:   go3270.Turquoise,
 	})
 
