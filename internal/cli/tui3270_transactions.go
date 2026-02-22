@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/davidl71/exarp-go/internal/config"
+	"github.com/davidl71/exarp-go/internal/database"
 	"github.com/davidl71/exarp-go/internal/tools"
 	"github.com/racingmars/go3270"
 )
@@ -382,7 +383,12 @@ func (state *tui3270State) taskListTransaction(conn net.Conn, devInfo go3270.Dev
 		return state.handleCommand(state.command, state.taskListTransaction)
 	}
 
-	// Process ISPF-style line commands (S/E/D/I typed in S column)
+	// Process ISPF-style line commands (S/E/D/I typed in S column).
+	// S and E navigate immediately (first match wins). D and I are batched.
+	var firstSelectIdx int = -1
+	var firstSelectMode string
+	var batchUpdates int
+
 	for idx := 0; idx < endIdx-startIdx; idx++ {
 		val := strings.TrimSpace(strings.ToUpper(response.Values[fmt.Sprintf("s_%d", idx)]))
 		taskIdx := startIdx + idx
@@ -391,21 +397,31 @@ func (state *tui3270State) taskListTransaction(conn net.Conn, devInfo go3270.Dev
 		}
 		task := state.tasks[taskIdx]
 		switch val {
-		case "S":
-			state.cursor = taskIdx
-			state.selectedTask = task
-			return state.taskDetailTransaction, state, nil
-		case "E":
-			state.cursor = taskIdx
-			state.selectedTask = task
-			return state.taskEditorTransaction, state, nil
+		case "S", "E":
+			if firstSelectIdx < 0 {
+				firstSelectIdx = taskIdx
+				firstSelectMode = val
+			}
 		case "D":
 			_ = updateTaskFieldsViaMCP(ctx, state.server, task.ID, "Done", task.Priority, task.LongDescription)
-			return state.taskListTransaction, state, nil
+			batchUpdates++
 		case "I":
 			_ = updateTaskFieldsViaMCP(ctx, state.server, task.ID, "In Progress", task.Priority, task.LongDescription)
-			return state.taskListTransaction, state, nil
+			batchUpdates++
 		}
+	}
+
+	if firstSelectIdx >= 0 {
+		state.cursor = firstSelectIdx
+		state.selectedTask = state.tasks[firstSelectIdx]
+		if firstSelectMode == "E" {
+			return state.taskEditorTransaction, state, nil
+		}
+		return state.taskDetailTransaction, state, nil
+	}
+
+	if batchUpdates > 0 {
+		return state.taskListTransaction, state, nil
 	}
 
 	// Handle attention keys
@@ -1247,4 +1263,194 @@ func (state *tui3270State) healthTransaction(conn net.Conn, devInfo go3270.DevIn
 	}
 
 	return state.healthTransaction, state, nil
+}
+
+// gitDashboardTransaction shows a git status/log dashboard.
+func (state *tui3270State) gitDashboardTransaction(conn net.Conn, devInfo go3270.DevInfo, data any) (go3270.Tx, any, error) {
+	ctx := context.Background()
+
+	showLoadingOverlay(conn, devInfo, "Loading git data...")
+
+	gPFRow := t3270PFRow(devInfo)
+	gContentMax := t3270ContentMaxRow(devInfo)
+
+	screen := go3270.Screen{
+		{Row: 1, Col: 2, Content: "GIT DASHBOARD", Intense: true, Color: go3270.Blue},
+		{Row: gPFRow, Col: 2, Content: "PF1=Help  PF3=Back  PF7/8=Scroll", Color: go3270.Turquoise},
+	}
+
+	row := 3
+
+	// Branches section
+	screen = append(screen, go3270.Field{Row: row, Col: 2, Content: "--- Branches ---", Intense: true, Color: go3270.Green})
+	row++
+
+	branchText, branchErr := callToolText(ctx, state.server, "git_tools", map[string]interface{}{"action": "branches"})
+	if branchErr != nil {
+		screen = append(screen, go3270.Field{Row: row, Col: 4, Content: "Error: " + branchErr.Error(), Color: go3270.Red})
+		row++
+	} else {
+		for _, line := range strings.Split(strings.TrimSpace(branchText), "\n") {
+			if row >= gContentMax/2 {
+				break
+			}
+			if len(line) > 74 {
+				line = line[:71] + "..."
+			}
+			color := go3270.DefaultColor
+			if strings.Contains(line, "*") || strings.Contains(line, "current") {
+				color = go3270.Green
+			}
+			screen = append(screen, go3270.Field{Row: row, Col: 4, Content: line, Color: color})
+			row++
+		}
+	}
+
+	row++
+
+	// Recent commits section
+	if row < gContentMax-2 {
+		screen = append(screen, go3270.Field{Row: row, Col: 2, Content: "--- Recent Commits (last 10) ---", Intense: true, Color: go3270.Green})
+		row++
+
+		commitText, commitErr := callToolText(ctx, state.server, "git_tools", map[string]interface{}{"action": "commits", "count": 10})
+		if commitErr != nil {
+			screen = append(screen, go3270.Field{Row: row, Col: 4, Content: "Error: " + commitErr.Error(), Color: go3270.Red})
+			row++
+		} else {
+			for _, line := range strings.Split(strings.TrimSpace(commitText), "\n") {
+				if row >= gContentMax {
+					break
+				}
+				if len(line) > 74 {
+					line = line[:71] + "..."
+				}
+				color := go3270.DefaultColor
+				if strings.HasPrefix(strings.TrimSpace(line), "* ") || strings.HasPrefix(strings.TrimSpace(line), "commit ") {
+					color = go3270.Yellow
+				}
+				screen = append(screen, go3270.Field{Row: row, Col: 4, Content: line, Color: color})
+				row++
+			}
+		}
+	}
+
+	screenOpts := go3270.ScreenOpts{Codepage: devInfo.Codepage()}
+
+	response, err := go3270.ShowScreenOpts(screen, nil, conn, screenOpts)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	if response.AID == go3270.AIDPF1 {
+		return state.helpTransaction, state, nil
+	}
+
+	if response.AID == go3270.AIDPF3 {
+		return state.mainMenuTransaction, state, nil
+	}
+
+	return state.gitDashboardTransaction, state, nil
+}
+
+// sprintBoardTransaction shows a kanban-style sprint board with tasks grouped by status.
+func (state *tui3270State) sprintBoardTransaction(conn net.Conn, devInfo go3270.DevInfo, data any) (go3270.Tx, any, error) {
+	ctx := context.Background()
+
+	showLoadingOverlay(conn, devInfo, "Loading sprint board...")
+
+	sPFRow := t3270PFRow(devInfo)
+	sContentMax := t3270ContentMaxRow(devInfo)
+
+	// Load tasks for each status
+	type column struct {
+		status string
+		tasks  []*database.Todo2Task
+	}
+	columns := []column{
+		{"Todo", nil},
+		{"In Progress", nil},
+		{"Review", nil},
+		{"Done", nil},
+	}
+
+	for i := range columns {
+		tasks, err := listTasksViaMCP(ctx, state.server, columns[i].status)
+		if err == nil {
+			columns[i].tasks = tasks
+		}
+	}
+
+	screen := go3270.Screen{
+		{Row: 1, Col: 2, Content: "SPRINT BOARD", Intense: true, Color: go3270.Blue},
+		{Row: sPFRow, Col: 2, Content: "PF1=Help  PF3=Back", Color: go3270.Turquoise},
+	}
+
+	// Column layout: 4 columns x 19 chars, with 1-char separators, starting at col 2
+	// Col positions: 2, 22, 42, 62 (each 18 chars wide + 1 separator)
+	colWidth := 18
+	colStarts := []int{2, 22, 42, 62}
+
+	// Column headers (row 3)
+	for i, col := range columns {
+		header := fmt.Sprintf("%-*s", colWidth, fmt.Sprintf("%s (%d)", col.status, len(col.tasks)))
+		if len(header) > colWidth {
+			header = header[:colWidth]
+		}
+		screen = append(screen, go3270.Field{
+			Row: 3, Col: colStarts[i], Content: header,
+			Intense: true, Color: statusColor(col.status),
+		})
+	}
+
+	// Separator line (row 4)
+	for i := range columns {
+		screen = append(screen, go3270.Field{
+			Row: 4, Col: colStarts[i], Content: strings.Repeat("-", colWidth),
+			Color: go3270.Green,
+		})
+	}
+
+	// Task rows (row 5 onwards)
+	maxRows := sContentMax - 5
+	if maxRows < 5 {
+		maxRows = 5
+	}
+
+	for rowIdx := 0; rowIdx < maxRows; rowIdx++ {
+		screenRow := 5 + rowIdx
+		for colIdx, col := range columns {
+			if rowIdx < len(col.tasks) {
+				task := col.tasks[rowIdx]
+				content := task.Content
+				if content == "" {
+					content = task.ID
+				}
+				if len(content) > colWidth {
+					content = content[:colWidth-1] + "~"
+				}
+				screen = append(screen, go3270.Field{
+					Row: screenRow, Col: colStarts[colIdx],
+					Content: fmt.Sprintf("%-*s", colWidth, content),
+				})
+			}
+		}
+	}
+
+	screenOpts := go3270.ScreenOpts{Codepage: devInfo.Codepage()}
+
+	response, err := go3270.ShowScreenOpts(screen, nil, conn, screenOpts)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	if response.AID == go3270.AIDPF1 {
+		return state.helpTransaction, state, nil
+	}
+
+	if response.AID == go3270.AIDPF3 {
+		return state.mainMenuTransaction, state, nil
+	}
+
+	return state.sprintBoardTransaction, state, nil
 }
