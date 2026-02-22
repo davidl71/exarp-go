@@ -1,5 +1,5 @@
 # Phony targets (grouped for readability)
-.PHONY: help b build build-debug silent build-race build-no-cgo run
+.PHONY: help b build build-local b-local build-debug silent build-race build-no-cgo run
 .PHONY: test test-watch test-go test-go-fast test-go-verbose test-go-parallel test-go-tools-short test-real-models test-coverage test-html test-tools test-cli test-cli-list test-cli-tool test-cli-test test-mcp-stdio
 .PHONY: config clean-config tag-build-ok tags pre-release r root push pull p pl status st
 .PHONY: go-fmt go-vet golangci-lint-check golangci-lint-fix govulncheck check check-fix check-all check-security
@@ -222,6 +222,12 @@ build: ## Build the Go server (CGO enabled on Mac Silicon by default, disabled e
 		CGO_ENABLED=0 $(GO) build -ldflags "-X main.Version=$(VERSION) -X main.BuildTime=$(BUILD_TIME) -X main.GitCommit=$(GIT_COMMIT)" -o $(BINARY_PATH) ./cmd/server || (echo "$(RED)❌ Build failed$(NC)" && exit 1); \
 		echo "$(GREEN)✅ Server built: $(BINARY_PATH) (v$(VERSION))$(NC)"; \
 	fi
+
+b-local: build-local ## Short alias: make b-local = make build-local
+build-local: ## Build using local mcp-go-core (go mod replace); -mod=mod, CGO_ENABLED=0. Requires: go mod edit -replace github.com/davidl71/mcp-go-core=../mcp-go-core
+	$(Q)echo "$(BLUE)Building $(PROJECT_NAME) v$(VERSION) with local mcp-go-core (-mod=mod)...$(NC)"
+	@CGO_ENABLED=0 $(GO) build -mod=mod -ldflags "-X main.Version=$(VERSION) -X main.BuildTime=$(BUILD_TIME) -X main.GitCommit=$(GIT_COMMIT)" -o $(BINARY_PATH) ./cmd/server || (echo "$(RED)❌ Build failed$(NC)" && exit 1)
+	@echo "$(GREEN)✅ Server built: $(BINARY_PATH) (v$(VERSION))$(NC)"
 
 build-debug: ## Build with debug symbols (for debugging)
 	@echo "$(BLUE)Building $(PROJECT_NAME) v$(VERSION) with debug symbols...$(NC)"
