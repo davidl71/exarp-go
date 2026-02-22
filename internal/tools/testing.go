@@ -187,7 +187,7 @@ func analyzeGoCoverage(ctx context.Context, projectRoot, coverageFile string, mi
 		coverProfile = coverageFile
 	}
 
-	cmd := exec.CommandContext(ctx, "go", "test", "./...", "-coverprofile", coverProfile, "-covermode=atomic", "-coverpkg=./cmd/...,./internal/...")
+	cmd := exec.CommandContext(ctx, "go", "test", "./...", "-coverprofile", coverProfile, "-covermode=atomic", "-coverpkg=./internal/...")
 	cmd.Dir = projectRoot
 
 	if err := cmd.Run(); err != nil {

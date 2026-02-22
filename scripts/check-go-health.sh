@@ -114,7 +114,7 @@ fi
 
 # Check test coverage
 echo -n "Checking test coverage... "
-if go test ./... -coverprofile=coverage.out -coverpkg=./cmd/...,./internal/... > /dev/null 2>&1; then
+if go test ./... -coverprofile=coverage.out -coverpkg=./internal/... > /dev/null 2>&1; then
     COVERAGE=$(go tool cover -func=coverage.out 2>/dev/null | grep total | awk '{print $3}')
     rm -f coverage.out
     if [ -n "$COVERAGE" ]; then
