@@ -105,18 +105,60 @@ The implementation uses `devInfo.Codepage()` to ensure proper UTF-8 to EBCDIC tr
 - Falls back to CP1047 if code page not detected
 - Supports all single-byte EBCDIC code pages supported by x3270
 
+## Registering as a 3270BBS Door
+
+[3270BBS](https://github.com/moshix/3270BBS) supports remote host proxying — users connect to 3270BBS, select a remote host from a "Doors" menu, and get proxied to another TN3270 server. exarp-go can be registered as a door since it uses the same TN3270 protocol.
+
+### Configuration
+
+Add the following to your 3270BBS `tsu.cnf` configuration:
+
+```ini
+remote4=ExarpGo
+remote4_description="exarp-go task management"
+remote4_addr=localhost
+remote4_port=3270
+```
+
+Adjust the `remote4_addr` to the hostname or IP where exarp-go is running. The port should match the `--port` flag passed to `exarp-go tui3270` (default: 3270).
+
+### Requirements
+
+- exarp-go must be running with `exarp-go tui3270` (or `exarp-go tui3270 --daemon`)
+- 3270BBS and exarp-go can run on the same host (use different ports) or separate hosts
+- Users return from the exarp-go door to 3270BBS by pressing **PA3**
+
+### Community
+
+The 3270BBS community is active at [Forum3270](https://www.moshix.tech). Publishing exarp-go as a door gives the 3270 TUI exposure beyond its current audience.
+
+## Implemented Features
+
+The following features have been implemented:
+
+1. **Color-coded status/priority**: Task status and priority displayed with distinct 3270 colors
+2. **Blue+Intense title bars**: All screen titles use mainframe-standard Blue+Intense headers
+3. **Turquoise PF key lines**: Instructional PF key help lines in Turquoise
+4. **ReverseVideo cursor row**: Selected row highlighted with reverse video
+5. **PF9 status filter cycling**: Cycle through Todo/In Progress/Review/Done/All with PF9
+6. **HandleScreen validation**: Task editor uses `HandleScreenAlt` with field validation rules
+7. **Cursor-position row selection**: Click-to-select using Enter key + cursor position
+8. **ISPF-style line commands**: Type S/E/D/I next to task rows for Select/Edit/Done/In Progress
+9. **Green structural borders**: ASCII box-drawing borders around menu panels
+10. **Terminal size adaptation**: Dynamic layout based on terminal dimensions (Model 2/3/4/5)
+11. **Scorecard color coding**: Scores color-coded Green/Yellow/Red by threshold
+12. **NoClear loading indicators**: Non-destructive "Loading..." overlays during data fetch
+13. **Health/SDSF panel**: System health dashboard with git status, task counts, and server info
+14. **Help system**: Context-sensitive help screen (PF1) with command and line command reference
+
 ## Future Enhancements
 
-Based on 3270BBS patterns, potential improvements:
+Potential improvements:
 
-1. **Task Editing**: Full CRUD operations for tasks
-2. **Batch Operations**: Select multiple tasks for batch updates
-3. **Search/Filter**: Search tasks by content, tags, or other criteria
-4. **Auto-refresh**: Periodic task list updates (like bubbletea TUI)
-5. **Color Support**: Use 3270 color attributes for better visual distinction
-6. **Graphic Escape**: Support CP310 for enhanced box drawing (if client supports)
-7. **Multi-session**: Support multiple virtual sessions (F23/F24 pattern from 3270BBS)
-8. **Help System**: Context-sensitive help (PF1)
+1. **Batch Operations**: Select multiple tasks for batch updates (multi-row line commands)
+2. **Graphic Escape**: Support CP310 for enhanced box drawing (if client supports)
+3. **Multi-session**: Support multiple virtual sessions (F23/F24 pattern from 3270BBS)
+4. **Standalone mini-apps**: Git dashboard, log viewer, sprint board as separate `go3270.Tx` chains
 
 ## Dependencies
 

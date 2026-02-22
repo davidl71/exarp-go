@@ -17,9 +17,9 @@ import (
 
 // mcpListTasksResponse is the JSON envelope from task_workflow sync/list with output_format=json.
 type mcpListTasksResponse struct {
-	Success bool                `json:"success"`
-	Method  string              `json:"method"`
-	Tasks   []mcpTaskJSON       `json:"tasks"`
+	Success bool          `json:"success"`
+	Method  string        `json:"method"`
+	Tasks   []mcpTaskJSON `json:"tasks"`
 }
 
 // mcpTaskJSON mirrors the JSON fields emitted by task_workflow list.
@@ -138,6 +138,30 @@ func bulkUpdateStatusViaMCP(ctx context.Context, server framework.MCPServer, tas
 		return 0, err
 	}
 	return len(taskIDs), nil
+}
+
+// createTaskViaMCP creates a new task through task_workflow create action.
+func createTaskViaMCP(ctx context.Context, server framework.MCPServer, name string) (string, error) {
+	text, err := callToolText(ctx, server, "task_workflow", map[string]interface{}{
+		"action":        "create",
+		"name":          name,
+		"priority":      "medium",
+		"output_format": "json",
+	})
+	if err != nil {
+		return "", err
+	}
+	var resp struct {
+		TaskID string `json:"task_id"`
+		ID     string `json:"id"`
+	}
+	if json.Unmarshal([]byte(text), &resp) == nil && (resp.TaskID != "" || resp.ID != "") {
+		if resp.TaskID != "" {
+			return resp.TaskID, nil
+		}
+		return resp.ID, nil
+	}
+	return "", nil
 }
 
 // moveTaskToWaveViaMCP updates a task's dependencies through task_workflow update.

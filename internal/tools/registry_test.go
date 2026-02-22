@@ -17,8 +17,8 @@ func TestRegisterAllTools(t *testing.T) {
 		t.Fatalf("RegisterAllTools() error = %v", err)
 	}
 
-	// Verify all tools are registered (base 33 from RegisterAllTools including fm_plan_and_execute; +1 when Apple FM on darwin/arm64/cgo).
-	expectedCount := 33
+	// Verify all tools are registered (base 34 from RegisterAllTools including fm_plan_and_execute + llamacpp; +1 when Apple FM on darwin/arm64/cgo).
+	expectedCount := 34
 	if server.ToolCount() != expectedCount && server.ToolCount() != expectedCount+1 {
 		t.Errorf("server.ToolCount() = %v, want %d or %d (with conditional Apple Foundation Models)",
 			server.ToolCount(), expectedCount, expectedCount+1)
@@ -51,6 +51,7 @@ func TestRegisterAllTools(t *testing.T) {
 		"infer_session_mode",
 		"ollama",
 		"mlx",
+		"llamacpp",
 		"context_budget",
 		"context",
 		"text_generate",
@@ -99,8 +100,8 @@ func TestRegisterAllTools_RegistrationError(t *testing.T) {
 		{"analyze_alignment", "generate_config", "health", "setup_hooks", "check_attribution", "add_external_tool_hints"},
 		// Batch 2: 9 medium tools
 		{"memory", "memory_maint", "report", "security", "task_analysis", "task_discovery", "task_workflow", "infer_task_progress", "testing"},
-		// Batch 3: 10 advanced tools
-		{"automation", "tool_catalog", "workflow_mode", "lint", "estimation", "git_tools", "session", "infer_session_mode", "ollama", "mlx"},
+		// Batch 3: 11 advanced tools
+		{"automation", "tool_catalog", "workflow_mode", "lint", "estimation", "git_tools", "session", "infer_session_mode", "ollama", "mlx", "llamacpp"},
 		// Batch 4 + 5: context_budget, context, text_generate, task_execute, prompt_tracking, recommend, research_aggregator, cursor_cloud_agent, fm_plan_and_execute
 		{"context_budget", "context", "text_generate", "task_execute", "prompt_tracking", "recommend", "research_aggregator", "cursor_cloud_agent", "fm_plan_and_execute"},
 	}

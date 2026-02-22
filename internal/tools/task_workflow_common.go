@@ -806,7 +806,7 @@ func handleTaskWorkflowList(ctx context.Context, params map[string]interface{}) 
 			if rt := GetRecommendedTools(t.Metadata); len(rt) > 0 {
 				m["recommended_tools"] = rt
 			}
-		
+
 			taskMaps[i] = m
 		}
 		out := map[string]interface{}{"success": true, "method": "list", "tasks": taskMaps}
@@ -1086,7 +1086,7 @@ func handleTaskWorkflowSanityCheck(ctx context.Context, params map[string]interf
 	contentToIDs := make(map[string][]string)
 
 	for _, task := range tasks {
-		key := normalizeTaskContent(task.Content, task.LongDescription)
+		key := models.NormalizeForComparison(task.Content, task.LongDescription)
 		if key == "" {
 			continue
 		}

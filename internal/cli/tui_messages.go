@@ -110,6 +110,12 @@ type statusUpdateDoneMsg struct {
 	err error
 }
 
+// taskCreatedMsg is sent after inline task creation completes.
+type taskCreatedMsg struct {
+	taskID string
+	err    error
+}
+
 // bulkStatusUpdateDoneMsg is sent after bulk status update (D) so the task list is reloaded.
 type bulkStatusUpdateDoneMsg struct {
 	updated int

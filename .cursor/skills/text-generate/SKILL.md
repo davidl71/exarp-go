@@ -25,6 +25,7 @@ Apply this skill when you need quick text generation using local AI backends (Ap
 |----------|---------|-------------|
 | `fm` (default) | Apple Foundation Models | On Apple Silicon, macOS 26+, fast & private |
 | `mlx` | MLX | Apple Silicon, bridge-based |
+| `llamacpp` | llama.cpp (go-llama.cpp) | Direct GGUF inference, no server needed. Requires `llamacpp` build tag |
 | `insight` | Report insight provider | Report/analysis tasks |
 | `auto` | Best available | Let system choose |
 
@@ -70,13 +71,15 @@ Before using, check if backends are available:
 ```
 Resource: stdio://models
 Look for: data.backends.fm_available = true
+         data.backends.llamacpp_available = true
 ```
 
-If `fm_available` is false, fall back to `ollama` or `mlx` providers.
+If `fm_available` is false, fall back to `llamacpp`, `ollama`, or `mlx` providers.
 
 ## Decision Flow
 
 1. **Need quick text gen?** → Use `text_generate`
 2. **On Apple Silicon?** → Use `provider=fm` (default)
-3. **FM unavailable?** → Try `provider=ollama` or `provider=mlx`
-4. **Need conversation/memory?** → Use full LLM, not text_generate
+3. **FM unavailable?** → Try `provider=llamacpp` (no server needed) or `provider=ollama` or `provider=mlx`
+4. **Want direct GGUF inference?** → Use `provider=llamacpp` (requires build tag)
+5. **Need conversation/memory?** → Use full LLM, not text_generate

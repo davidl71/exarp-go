@@ -31,6 +31,7 @@ jobs:
       - name: Download dependencies
         run: go mod download
 
+      # Taskfile equivalent: task test (or task test:coverage for coverage)
       - name: Run tests
         run: go test -v -coverprofile=coverage.out ./...
 
@@ -64,6 +65,7 @@ jobs:
       - name: Download dependencies
         run: go mod download
 
+      # Taskfile equivalent: task lint:golangci
       - name: Run golangci-lint
         uses: golangci/golangci-lint-action@v4
         with:
@@ -93,9 +95,11 @@ jobs:
       - name: Download dependencies
         run: go mod download
 
+      # Taskfile equivalent: task vet
       - name: Run go vet
         run: go vet ./...
 
+      # Taskfile equivalent: task fmt (run to fix; CI only checks)
       - name: Run go fmt check
         run: |
           if [ "$(gofmt -l . | wc -l)" -gt 0 ]; then
@@ -127,6 +131,7 @@ jobs:
       - name: Download dependencies
         run: go mod download
 
+      # Taskfile equivalent: task build
       - name: Build
         run: go build -o bin/exarp-go ./cmd/server
 
@@ -172,6 +177,7 @@ jobs:
       - name: Download dependencies
         run: go mod download
 
+      # Taskfile equivalent: task govulncheck
       - name: Run govulncheck
         run: |
           go install golang.org/x/vuln/cmd/govulncheck@latest
@@ -200,6 +206,7 @@ jobs:
       - name: Download dependencies
         run: go mod download
 
+      # Taskfile equivalent: task pre-release
       - name: Run pre-release
         run: make pre-release
 
@@ -246,6 +253,7 @@ jobs:
             exit 1
           fi
 
+      # Taskfile equivalent: task tidy
       - name: Run go mod tidy
         run: go mod tidy
 
@@ -256,6 +264,28 @@ jobs:
             git diff
             exit 1
           fi
+
+  lint-extras:
+    name: Shellcheck, yamllint, ansible-lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install linters
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq shellcheck yamllint
+          pip install --quiet ansible-lint
+
+      - name: Run shellcheck
+        run: shellcheck -x scripts/*.sh ansible/run-dev-setup.sh
+
+      - name: Run yamllint
+        run: yamllint -f standard .github ansible
+
+      - name: Run ansible-lint
+        run: cd ansible && ansible-lint --format=pep8
 
   scorecard:
     name: Go Scorecard
@@ -280,6 +310,7 @@ jobs:
       - name: Download dependencies
         run: go mod download
 
+      # Taskfile equivalent: task exarp:scorecard (requires build; uses binary)
       - name: Generate Go scorecard
         run: |
           go run ./cmd/server -tool report -args '{"action":"scorecard","include_metrics":true}'

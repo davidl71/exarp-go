@@ -14,14 +14,16 @@ import (
 // (FM, Ollama, MLX, LocalAI) without calling each tool.
 func LLMBackendStatus() map[string]interface{} {
 	return map[string]interface{}{
-		"fm_available":      FMAvailable(),
-		"mlx_available":     MLAvailable(),
-		"localai_available": LocalAIAvailable(),
-		"ollama_tool":       "ollama",
-		"mlx_tool":          "mlx",
-		"apple_fm_tool":     "apple_foundation_models",
-		"localai_tool":      "text_generate",
-		"hint":              "text_generate is the unified generate-text dispatcher (provider=fm|ollama|mlx|localai|insight|auto). Use provider=auto for model selection. Separate tools (apple_foundation_models, ollama, mlx) offer rich actions (status, models, pull, hardware, docs, quality) beyond generation.",
+		"fm_available":       FMAvailable(),
+		"mlx_available":      MLAvailable(),
+		"localai_available":  LocalAIAvailable(),
+		"llamacpp_available": LlamaCppAvailable(),
+		"ollama_tool":        "ollama",
+		"mlx_tool":           "mlx",
+		"apple_fm_tool":      "apple_foundation_models",
+		"localai_tool":       "text_generate",
+		"llamacpp_tool":      "llamacpp",
+		"hint":               "text_generate is the unified generate-text dispatcher (provider=fm|ollama|mlx|localai|llamacpp|insight|auto). Use provider=auto for model selection. Separate tools (apple_foundation_models, ollama, mlx, llamacpp) offer rich actions (status, models, pull, hardware, docs, quality) beyond generation.",
 	}
 }
 
@@ -36,4 +38,10 @@ func LocalAIAvailable() bool {
 // Does not verify MLX is actually installed—Generate may still fail.
 func MLAvailable() bool {
 	return runtime.GOOS == "darwin" && runtime.GOARCH == "arm64"
+}
+
+// LlamaCppAvailable reports whether llama.cpp is compiled in.
+// True only when built with the llamacpp build tag and CGO enabled.
+func LlamaCppAvailable() bool {
+	return DefaultLlamaCppProvider() != nil
 }

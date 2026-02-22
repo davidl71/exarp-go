@@ -51,6 +51,15 @@ func bulkUpdateStatusCmd(server framework.MCPServer, taskIDs []string, newStatus
 	}
 }
 
+// createTaskCmd creates a new task via task_workflow MCP tool and returns taskCreatedMsg.
+func createTaskCmd(server framework.MCPServer, name string) tea.Cmd {
+	return func() tea.Msg {
+		ctx := context.Background()
+		taskID, err := createTaskViaMCP(ctx, server, name)
+		return taskCreatedMsg{taskID: taskID, err: err}
+	}
+}
+
 func loadScorecard(projectRoot string, fullMode bool) tea.Cmd {
 	return func() tea.Msg {
 		if projectRoot == "" {

@@ -1,0 +1,621 @@
+# yaml-language-server: $schema=https://taskfile.dev/schema.json
+#
+# Taskfile.yml — exarp-go build system (Phase 1)
+# Coexists with Makefile. Use `task <name>` or `task --list` to see all targets.
+# Install: brew install go-task
+version: '3'
+
+dotenv: ['.env']
+
+output: prefixed
+
+# Unset stale GOROOT (e.g. after brew upgrades Go to a new cellar path)
+# Set GOFLAGS for vendor mode when vendor/ is present
+env:
+  GOROOT:
+    sh: |
+      if [ -n "$GOROOT" ] && [ ! -d "$GOROOT" ]; then
+        echo ""
+      else
+        echo "${GOROOT:-}"
+      fi
+  GOFLAGS:
+    sh: test -f vendor/modules.txt && echo "-mod=vendor" || echo ""
+
+vars:
+  PROJECT_NAME: exarp-go
+  BINARY_NAME: exarp-go
+  BINARY_PATH: bin/exarp-go
+  VERSION:
+    sh: git describe --tags --always --dirty 2>/dev/null || echo "dev"
+  BUILD_TIME:
+    sh: date -u +"%Y-%m-%dT%H:%M:%SZ"
+  GIT_COMMIT:
+    sh: git rev-parse --short HEAD 2>/dev/null || echo "unknown"
+  REPO_ROOT:
+    sh: git rev-parse --show-toplevel 2>/dev/null
+  LDFLAGS: >-
+    -X main.Version={{.VERSION}}
+    -X main.BuildTime={{.BUILD_TIME}}
+    -X main.GitCommit={{.GIT_COMMIT}}
+  IS_MAC_SILICON: '{{if and (eq OS "darwin") (eq ARCH "arm64")}}true{{else}}false{{end}}'
+  CGO_FLAG: '{{if eq .IS_MAC_SILICON "true"}}1{{else}}0{{end}}'
+
+# ─── Build ────────────────────────────────────────────────────────────────────
+
+tasks:
+  default:
+    desc: Build and run sanity checks
+    deps: [build, sanity-check]
+    cmds:
+      - echo "✅ All essential builds and sanity checks completed"
+
+  build:
+    desc: Build the Go server (CGO auto-detected on Mac Silicon)
+    aliases: [b]
+    env:
+      CGO_ENABLED: '{{.CGO_FLAG}}'
+    cmds:
+      - cmd: echo "Building with CGO (Apple Foundation Models support)"
+        if: '{{eq .IS_MAC_SILICON "true"}}'
+      - cmd: echo "Building without CGO (static binary)"
+        if: '{{ne .IS_MAC_SILICON "true"}}'
+      - go build -ldflags "{{.LDFLAGS}}" -o {{.BINARY_PATH}} ./cmd/server
+      - echo "✅ Built {{.BINARY_PATH}} ({{.VERSION}})"
+    sources:
+      - '**/*.go'
+      - go.mod
+      - go.sum
+    generates:
+      - '{{.BINARY_PATH}}'
+    preconditions:
+      - sh: command -v go
+        msg: "Go not found. Install Go first."
+
+  build:debug:
+    desc: Build with debug symbols
+    env:
+      CGO_ENABLED: '{{.CGO_FLAG}}'
+    cmds:
+      - go build -gcflags="all=-N -l" -ldflags "{{.LDFLAGS}}" -o {{.BINARY_PATH}} ./cmd/server
+      - echo "✅ Debug build complete"
+    preconditions:
+      - sh: command -v go
+        msg: "Go not found."
+
+  build:race:
+    desc: Build with race detector (testing only)
+    env:
+      CGO_ENABLED: '{{.CGO_FLAG}}'
+    cmds:
+      - echo "⚠️  Race detector adds overhead - use for testing only"
+      - go build -race -ldflags "{{.LDFLAGS}}" -o {{.BINARY_PATH}} ./cmd/server
+      - echo "✅ Race detector build complete"
+
+  build:no-cgo:
+    desc: Build without CGO (explicit, cross-platform)
+    env:
+      CGO_ENABLED: '0'
+    cmds:
+      - go build -ldflags "{{.LDFLAGS}}" -o {{.BINARY_PATH}} ./cmd/server
+      - echo "✅ Built without CGO"
+
+  build:apple-fm:
+    desc: Build with Apple Foundation Models support
+    platforms: [darwin/arm64]
+    deps: [build:swift-bridge]
+    env:
+      CGO_ENABLED: '1'
+    cmds:
+      - go build -ldflags "{{.LDFLAGS}}" -o {{.BINARY_PATH}} ./cmd/server
+      - echo "✅ Built with Apple FM support"
+    preconditions:
+      - sh: command -v gcc || command -v clang || command -v cc
+        msg: "C compiler required for CGO. Run: xcode-select --install"
+
+  build:swift-bridge:
+    desc: Build Swift bridge for go-foundationmodels
+    internal: true
+    platforms: [darwin/arm64]
+    status:
+      - test -f vendor/github.com/blacktop/go-foundationmodels/libFMShim.a
+    cmds:
+      - cmd: go mod vendor
+        if: '! test -d vendor'
+      - |
+        cd vendor/github.com/blacktop/go-foundationmodels && \
+        swiftc -sdk $(xcrun --show-sdk-path) -target arm64-apple-macos26 \
+          -emit-object -parse-as-library -whole-module-optimization -O \
+          -o libFMShim.o FoundationModelsShim.swift && \
+        ar rcs libFMShim.a libFMShim.o && \
+        rm -f libFMShim.o
+      - echo "✅ Swift bridge built"
+    preconditions:
+      - sh: command -v swiftc
+        msg: "Swift compiler not found. Install Xcode."
+      - sh: command -v xcrun
+        msg: "xcrun not found. Install Xcode."
+
+  build:migrate:
+    desc: Build JSON to SQLite migration tool
+    env:
+      CGO_ENABLED: '1'
+    cmds:
+      - go build -o bin/migrate ./cmd/migrate
+      - echo "✅ Migration tool built"
+
+  run:
+    desc: Build and run the MCP server
+    deps: [build]
+    cmds:
+      - ./{{.BINARY_PATH}}
+
+# ─── Testing ──────────────────────────────────────────────────────────────────
+
+  test:
+    desc: Run all Go tests
+    aliases: [t]
+    env:
+      CGO_ENABLED: '0'
+    cmds:
+      - go test ./... -parallel 4
+      - echo "✅ All tests passed"
+
+  test:fast:
+    desc: Fast tests (pre-push, short mode)
+    env:
+      CGO_ENABLED: '0'
+    cmds:
+      - go test ./... -parallel 4 -short
+      - echo "✅ Fast tests passed"
+
+  test:verbose:
+    desc: Run tests with verbose output
+    env:
+      CGO_ENABLED: '0'
+    cmds:
+      - go test ./... -v
+
+  test:coverage:
+    desc: Run tests with coverage report
+    cmds:
+      - go test ./... -coverprofile=coverage-go.out -covermode=atomic
+      - go tool cover -html=coverage-go.out -o coverage-go.html 2>/dev/null || true
+      - echo "✅ Coverage report → coverage-go.html"
+
+  test:tools:
+    desc: Verify exarp-go binary exists and is executable
+    deps: [build]
+    cmds:
+      - test -f {{.BINARY_PATH}}
+      - test -x {{.BINARY_PATH}}
+      - echo "✅ Binary verified"
+
+  test:cli:
+    desc: Run CLI functionality tests
+    deps: [build]
+    cmds:
+      - '{{.BINARY_PATH}} -list > /dev/null 2>&1'
+      - echo "✅ CLI tests passed"
+
+  test:mcp-stdio:
+    desc: MCP stdio smoke test (initialize + tools/list)
+    deps: [build]
+    env:
+      PROJECT_ROOT: '{{.REPO_ROOT}}'
+    cmds:
+      - bash scripts/test-mcp-stdio.sh {{.BINARY_PATH}}
+      - echo "✅ MCP stdio smoke test passed"
+
+  sanity-check:
+    desc: Verify tools/resources/prompts counts
+    cmds:
+      - go build -o bin/sanity-check cmd/sanity-check/main.go
+      - ./bin/sanity-check
+    sources:
+      - cmd/sanity-check/main.go
+    generates:
+      - bin/sanity-check
+
+# ─── Code Quality ─────────────────────────────────────────────────────────────
+
+  fmt:
+    desc: Format Go code
+    cmds:
+      - go fmt ./...
+      - echo "✅ Code formatted"
+
+  vet:
+    desc: Check Go code with go vet
+    cmds:
+      - go vet ./...
+      - echo "✅ go vet passed"
+
+  lint:
+    desc: Lint code via exarp-go
+    deps: [build]
+    cmds:
+      - '{{.BINARY_PATH}} -tool lint -args ''{"action":"run","linter":"auto","path":"."}'''''
+      - echo "✅ Linting complete"
+
+  lint:fix:
+    desc: Lint and auto-fix via exarp-go
+    deps: [build]
+    cmds:
+      - '{{.BINARY_PATH}} -tool lint -args ''{"action":"run","linter":"auto","path":".","fix":true}'''''
+      - echo "✅ Lint fixes applied"
+
+  lint:golangci:
+    desc: Run golangci-lint directly
+    cmds:
+      - golangci-lint run --timeout 5m ./...
+      - echo "✅ golangci-lint passed"
+    preconditions:
+      - sh: command -v golangci-lint
+        msg: "golangci-lint not found. Install: go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.9.0"
+
+  lint:golangci:fix:
+    desc: Run golangci-lint with auto-fix
+    cmds:
+      - golangci-lint run --timeout 5m --fix ./...
+      - echo "✅ golangci-lint fixes applied"
+    preconditions:
+      - sh: command -v golangci-lint
+        msg: "golangci-lint not found."
+
+  lint:nav:
+    desc: Check AI navigability aids
+    cmds:
+      - bash scripts/check-navigability.sh
+      - echo "✅ Navigability check complete"
+
+  lint:nav:fix:
+    desc: Check AI navigability with fix hints
+    cmds:
+      - bash scripts/check-navigability.sh --fix-hint || true
+
+  check:
+    desc: Full code quality check (fmt + vet + lint)
+    cmds:
+      - task: fmt
+      - task: vet
+      - task: lint:golangci
+
+  check:fix:
+    desc: Check and auto-fix (fmt + lint-fix)
+    cmds:
+      - task: fmt
+      - task: lint:golangci:fix
+
+  check:security:
+    desc: Run security scan
+    deps: [build]
+    cmds:
+      - '{{.BINARY_PATH}} -tool security -args ''{"action":"scan"}'' </dev/null'
+      - echo "✅ Security scan passed"
+
+  govulncheck:
+    desc: Check for vulnerabilities
+    cmds:
+      - govulncheck ./...
+      - echo "✅ No vulnerabilities found"
+    preconditions:
+      - sh: command -v govulncheck || test -x "$HOME/go/bin/govulncheck"
+        msg: "govulncheck not found. Install: go install golang.org/x/vuln/cmd/govulncheck@latest"
+
+  scorecard-fix:
+    desc: Auto-fix all scorecard issues (tidy + fmt + lint-fix)
+    cmds:
+      - task: tidy
+      - task: fmt
+      - task: lint:fix
+
+# ─── Dependencies ─────────────────────────────────────────────────────────────
+
+  tidy:
+    desc: Clean up Go module dependencies
+    cmds:
+      - go mod tidy
+      - cmd: go mod vendor
+        if: test -d vendor
+      - echo "✅ Dependencies cleaned"
+
+  mod:verify:
+    desc: Verify go.mod and go.sum are in sync
+    cmds:
+      - go mod verify
+      - echo "✅ Module verification passed"
+
+  check-deps:
+    desc: Check for outdated Go dependencies
+    cmds:
+      - go list -u -m all 2>/dev/null | grep -E "\[.*\]" || echo "✅ All dependencies up to date"
+
+# ─── Development ──────────────────────────────────────────────────────────────
+
+  dev:
+    desc: Development mode (rebuild on file changes)
+    watch: true
+    sources:
+      - '**/*.go'
+      - go.mod
+    cmds:
+      - go build -ldflags "{{.LDFLAGS}}" -o {{.BINARY_PATH}} ./cmd/server
+      - echo "✅ Rebuilt {{.BINARY_PATH}}"
+
+  dev:cycle:
+    desc: Quick dev cycle (format + fast test)
+    cmds:
+      - task: fmt
+      - task: test:fast
+      - echo "✅ Dev cycle complete — ready for commit"
+
+  pre-push:
+    desc: Pre-push checks (verify + check + test)
+    cmds:
+      - task: mod:verify
+      - task: check
+      - task: test:fast
+      - echo "✅ Pre-push checks passed"
+
+  pre-commit:
+    desc: Pre-commit checks (tidy + fmt + vet + lint)
+    cmds:
+      - task: tidy
+      - task: fmt
+      - task: vet
+      - task: check
+
+  pre-release:
+    desc: Pre-release (build + vulncheck + security + handoff)
+    deps: [build]
+    cmds:
+      - task: govulncheck
+      - task: check:security
+      - echo "✅ Pre-release checks passed"
+
+  ci:
+    desc: CI checks (verify + check + test)
+    cmds:
+      - task: mod:verify
+      - task: check
+      - task: test
+
+# ─── Exarp Task Management ───────────────────────────────────────────────────
+
+  task:list:
+    desc: 'List tasks (use: task task:list -- --status Todo)'
+    deps: [build]
+    cmds:
+      - '{{.BINARY_PATH}} task list {{.CLI_ARGS}} 2>&1 | grep -v "INFO\|Warning\|Database" || true'
+
+  task:list:todo:
+    desc: List all Todo tasks
+    deps: [build]
+    cmds:
+      - '{{.BINARY_PATH}} task list --status Todo 2>&1 | grep -v "INFO\|Warning\|Database" || true'
+
+  task:list:in-progress:
+    desc: List all In Progress tasks
+    deps: [build]
+    cmds:
+      - '{{.BINARY_PATH}} task list --status "In Progress" 2>&1 | grep -v "INFO\|Warning\|Database" || true'
+
+  task:list:done:
+    desc: List all Done tasks
+    deps: [build]
+    cmds:
+      - '{{.BINARY_PATH}} task list --status Done 2>&1 | grep -v "INFO\|Warning\|Database" || true'
+
+  task:show:
+    desc: 'Show task details (use: task task:show -- T-123)'
+    deps: [build]
+    cmds:
+      - '{{.BINARY_PATH}} task show {{.CLI_ARGS}} 2>&1 | grep -v "INFO\|Warning\|Database" || true'
+    preconditions:
+      - sh: '[ -n "{{.CLI_ARGS}}" ]'
+        msg: 'Usage: task task:show -- T-123'
+
+  task:update:
+    desc: 'Update task status (use: task task:update -- T-123 --new-status Done)'
+    deps: [build]
+    cmds:
+      - '{{.BINARY_PATH}} task update {{.CLI_ARGS}} 2>&1 | grep -v "INFO\|Warning\|Database" || true'
+    preconditions:
+      - sh: '[ -n "{{.CLI_ARGS}}" ]'
+        msg: 'Usage: task task:update -- T-123 --new-status Done'
+
+  task:create:
+    desc: 'Create a task (use: task task:create -- "My task" --priority high)'
+    deps: [build]
+    cmds:
+      - '{{.BINARY_PATH}} task create {{.CLI_ARGS}} 2>&1 | grep -v "INFO\|Warning\|Database" || true'
+    preconditions:
+      - sh: '[ -n "{{.CLI_ARGS}}" ]'
+        msg: 'Usage: task task:create -- "Task name" --priority medium'
+
+  task:run-with-ai:
+    desc: 'Run task through local LLM (use: task task:run-with-ai -- T-123 --backend ollama)'
+    deps: [build]
+    cmds:
+      - '{{.BINARY_PATH}} task run-with-ai {{.CLI_ARGS}} 2>&1 | grep -v "INFO\|Warning\|Database" || true'
+    preconditions:
+      - sh: '[ -n "{{.CLI_ARGS}}" ]'
+        msg: 'Usage: task task:run-with-ai -- T-123 [--backend fm|ollama|mlx]'
+
+  task:sanity:
+    desc: Run Todo2 task sanity check
+    deps: [build]
+    env:
+      PROJECT_ROOT: '{{.REPO_ROOT}}'
+    cmds:
+      - '{{.BINARY_PATH}} -tool task_workflow -args ''{"action":"sanity_check"}'''
+      - echo "✅ Task sanity check passed"
+
+  check-tasks:
+    desc: Batch check tasks for completion (dry run)
+    deps: [build]
+    env:
+      PROJECT_ROOT: '{{.REPO_ROOT}}'
+    cmds:
+      - '{{.BINARY_PATH}} -tool infer_task_progress -args ''{"dry_run":true,"use_fm":false,"output_path":"docs/TASK_COMPLETION_CHECK.md"}'''
+      - echo "✅ Task completion check complete (dry run)"
+
+# ─── Sprint Automation ───────────────────────────────────────────────────────
+
+  sprint:start:
+    desc: Run sprint start workflow
+    deps: [build]
+    cmds:
+      - '{{.BINARY_PATH}} -tool automation -args ''{"action":"sprint","run_analysis_tools":true,"run_testing_tools":false,"extract_subtasks":true,"auto_approve":true,"max_iterations":1}'''
+      - echo "✅ Sprint start complete"
+
+  sprint:end:
+    desc: Run sprint end workflow
+    deps: [build]
+    cmds:
+      - task: test:coverage
+      - '{{.BINARY_PATH}} -tool health -args ''{"action":"docs"}'' 2>/dev/null || true'
+      - '{{.BINARY_PATH}} -tool security -args ''{"action":"report"}'' 2>/dev/null || true'
+      - echo "✅ Sprint end complete"
+
+  pre-sprint:
+    desc: Pre-sprint cleanup (duplicates, alignment, docs)
+    deps: [build]
+    cmds:
+      - '{{.BINARY_PATH}} -tool task_analysis -args ''{"action":"duplicates"}'' 2>/dev/null || true'
+      - '{{.BINARY_PATH}} -tool analyze_alignment -args ''{"action":"todo2"}'' 2>/dev/null || true'
+      - '{{.BINARY_PATH}} -tool health -args ''{"action":"docs"}'' 2>/dev/null || true'
+      - echo "✅ Pre-sprint cleanup complete"
+
+# ─── Exarp Tools (CLI) ───────────────────────────────────────────────────────
+
+  exarp:list:
+    desc: List exarp-go tools
+    deps: [build]
+    cmds:
+      - '{{.BINARY_PATH}} -list'
+
+  exarp:scorecard:
+    desc: Run project scorecard
+    deps: [build]
+    cmds:
+      - '{{.BINARY_PATH}} -tool report -args ''{"action":"scorecard","include_metrics":true,"output_format":"json","compact":true}'''
+
+  exarp:overview:
+    desc: Run project overview
+    deps: [build]
+    cmds:
+      - '{{.BINARY_PATH}} -tool report -args ''{"action":"overview","include_metrics":true,"output_format":"json","compact":true}'''
+
+  exarp:prime:
+    desc: Run session prime
+    deps: [build]
+    env:
+      PROJECT_ROOT: '{{.REPO_ROOT}}'
+    cmds:
+      - '{{.BINARY_PATH}} -tool session -args ''{"action":"prime","include_tasks":true,"include_hints":true,"compact":true}'''
+
+  exarp:health:
+    desc: Run health check (server)
+    deps: [build]
+    cmds:
+      - '{{.BINARY_PATH}} -tool health -args ''{"action":"server"}'''
+
+  exarp:test:
+    desc: 'Smoke-test a tool (use: task exarp:test -- health)'
+    deps: [build]
+    cmds:
+      - '{{.BINARY_PATH}} -test {{.CLI_ARGS}}'
+    preconditions:
+      - sh: '[ -n "{{.CLI_ARGS}}" ]'
+        msg: 'Usage: task exarp:test -- health'
+
+# ─── Scorecard ────────────────────────────────────────────────────────────────
+
+  scorecard:
+    desc: Generate project scorecard (fast mode)
+    cmds:
+      - go run ./cmd/scorecard
+
+  scorecard:full:
+    desc: Generate project scorecard (full mode)
+    cmds:
+      - go run ./cmd/scorecard --full
+
+# ─── Git Shortcuts ────────────────────────────────────────────────────────────
+
+  push:
+    desc: Git push
+    aliases: [p]
+    dir: '{{.REPO_ROOT}}'
+    cmds:
+      - git push
+
+  pull:
+    desc: Git pull
+    aliases: [pl]
+    dir: '{{.REPO_ROOT}}'
+    cmds:
+      - git pull
+
+  status:
+    desc: Git status
+    aliases: [st]
+    dir: '{{.REPO_ROOT}}'
+    cmds:
+      - git -c advice.statusHints=false status
+
+  tag-build-ok:
+    desc: Tag current commit as last known-good build
+    deps: [build]
+    cmds:
+      - git tag -f build-ok
+      - echo "✅ Tagged as build-ok"
+      - echo "  Compare → git diff build-ok  |  Breakage → git log build-ok..HEAD --oneline"
+
+# ─── Cleanup ──────────────────────────────────────────────────────────────────
+
+  clean:
+    desc: Clean build artifacts (keeps binary)
+    cmds:
+      - rm -f coverage-go.out coverage-go.html
+      - rm -f bin/sanity-check bin/migrate
+      - echo "✅ Clean complete"
+
+  clean:binary:
+    desc: Remove exarp-go binary
+    cmds:
+      - rm -f {{.BINARY_PATH}}
+      - echo "✅ Binary removed"
+
+  clean:all:
+    desc: Clean everything including venv
+    deps: [clean]
+    cmds:
+      - rm -rf .venv/ uv.lock
+      - echo "✅ Full clean complete"
+
+# ─── Version Info ─────────────────────────────────────────────────────────────
+
+  version:
+    desc: Show version information
+    cmds:
+      - |
+        echo "Project:    {{.PROJECT_NAME}}"
+        echo "Version:    {{.VERSION}}"
+        echo "Build Time: {{.BUILD_TIME}}"
+        echo "Git Commit: {{.GIT_COMMIT}}"
+        echo "Go Version: $(go version 2>/dev/null || echo unknown)"
+        echo "OS/Arch:    {{OS}}/{{ARCH}}"
+
+  install:
+    desc: Install exarp-go binary to GOPATH/bin
+    deps: [build]
+    cmds:
+      - |
+        GOPATH_BIN=$(go env GOPATH)/bin
+        mkdir -p "$GOPATH_BIN"
+        cp {{.BINARY_PATH}} "$GOPATH_BIN/{{.BINARY_NAME}}"
+        chmod +x "$GOPATH_BIN/{{.BINARY_NAME}}"
+        echo "✅ Installed to $GOPATH_BIN/{{.BINARY_NAME}}"

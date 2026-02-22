@@ -20,15 +20,32 @@ func (state *tui3270State) mainMenuTransaction(conn net.Conn, devInfo go3270.Dev
 
 	screen := go3270.Screen{
 		{Row: 2, Col: 2, Content: title, Intense: true, Color: go3270.Blue},
-		{Row: 4, Col: 2, Content: "Select an option (1-6) or type a command below:", Color: go3270.Green},
-		{Row: 6, Col: 4, Content: "1. Task List", Color: go3270.Turquoise},
-		{Row: 7, Col: 4, Content: "2. Configuration", Color: go3270.Turquoise},
-		{Row: 8, Col: 4, Content: "3. Scorecard", Color: go3270.Turquoise},
-		{Row: 9, Col: 4, Content: "4. Session handoffs", Color: go3270.Turquoise},
-		{Row: 10, Col: 4, Content: "5. Exit", Color: go3270.Turquoise},
-		{Row: 11, Col: 4, Content: "6. Run in child agent (task/plan/wave/handoff)", Color: go3270.Turquoise},
-		{Row: 12, Col: 2, Content: "Option: ", Intense: true},
-		{Row: 12, Col: 10, Content: "", Write: true, Name: "option", Color: go3270.Green},
+		{Row: 4, Col: 2, Content: "Select an option (1-7) or type a command below:", Color: go3270.Green},
+		{Row: 5, Col: 3, Content: "+------------------------------------------------+", Color: go3270.Green},
+		{Row: 6, Col: 3, Content: "|", Color: go3270.Green},
+		{Row: 6, Col: 5, Content: "1. Task List", Color: go3270.Turquoise},
+		{Row: 6, Col: 52, Content: "|", Color: go3270.Green},
+		{Row: 7, Col: 3, Content: "|", Color: go3270.Green},
+		{Row: 7, Col: 5, Content: "2. Configuration", Color: go3270.Turquoise},
+		{Row: 7, Col: 52, Content: "|", Color: go3270.Green},
+		{Row: 8, Col: 3, Content: "|", Color: go3270.Green},
+		{Row: 8, Col: 5, Content: "3. Scorecard", Color: go3270.Turquoise},
+		{Row: 8, Col: 52, Content: "|", Color: go3270.Green},
+		{Row: 9, Col: 3, Content: "|", Color: go3270.Green},
+		{Row: 9, Col: 5, Content: "4. Session handoffs", Color: go3270.Turquoise},
+		{Row: 9, Col: 52, Content: "|", Color: go3270.Green},
+		{Row: 10, Col: 3, Content: "|", Color: go3270.Green},
+		{Row: 10, Col: 5, Content: "5. Exit", Color: go3270.Turquoise},
+		{Row: 10, Col: 52, Content: "|", Color: go3270.Green},
+		{Row: 11, Col: 3, Content: "|", Color: go3270.Green},
+		{Row: 11, Col: 5, Content: "6. Run in child agent (task/plan/wave/handoff)", Color: go3270.Turquoise},
+		{Row: 11, Col: 52, Content: "|", Color: go3270.Green},
+		{Row: 12, Col: 3, Content: "|", Color: go3270.Green},
+		{Row: 12, Col: 5, Content: "7. System health (SDSF)", Color: go3270.Turquoise},
+		{Row: 12, Col: 52, Content: "|", Color: go3270.Green},
+		{Row: 13, Col: 3, Content: "+------------------------------------------------+", Color: go3270.Green},
+		{Row: 14, Col: 2, Content: "Option: ", Intense: true},
+		{Row: 14, Col: 10, Content: "", Write: true, Name: "option", Color: go3270.Green},
 		{Row: 22, Col: 2, Content: "Command ===>", Intense: true, Color: go3270.Green},
 		{Row: 22, Col: 15, Write: true, Name: "command", Content: "", Color: go3270.Turquoise},
 		{Row: 23, Col: 2, Content: "PF1=Help  PF3=Exit  Enter=Select option or run command", Color: go3270.Turquoise},
@@ -79,6 +96,8 @@ func (state *tui3270State) mainMenuTransaction(conn net.Conn, devInfo go3270.Dev
 		return state.mainMenuTransaction, state, nil
 	case "6":
 		return state.childAgentMenuTransaction, state, nil
+	case "7":
+		return state.healthTransaction, state, nil
 	default:
 		// Invalid option, stay on main menu
 		return state.mainMenuTransaction, state, nil
@@ -92,19 +111,19 @@ func extractMenuOption(s string) string {
 		return ""
 	}
 	// Single digit
-	if len(s) == 1 && s >= "1" && s <= "6" {
+	if len(s) == 1 && s >= "1" && s <= "7" {
 		return s
 	}
 	// Last character (e.g. "Option: 1" -> "1")
 	if len(s) > 0 {
 		c := s[len(s)-1:]
-		if c >= "1" && c <= "6" {
+		if c >= "1" && c <= "7" {
 			return c
 		}
 	}
 	// First digit in string
 	for _, r := range s {
-		if r >= '1' && r <= '6' {
+		if r >= '1' && r <= '7' {
 			return string(r)
 		}
 	}
@@ -118,13 +137,25 @@ func (state *tui3270State) childAgentMenuTransaction(conn net.Conn, devInfo go32
 		{Row: 2, Col: 2, Content: "RUN IN CHILD AGENT", Intense: true, Color: go3270.Blue},
 		{Row: 4, Col: 2, Content: "Launches Cursor CLI 'agent' in project root with a prompt.", Color: go3270.Green},
 		{Row: 5, Col: 2, Content: "Select (1-5):"},
-		{Row: 7, Col: 4, Content: "1. Task (current or first)", Color: go3270.Turquoise},
-		{Row: 8, Col: 4, Content: "2. Plan", Color: go3270.Turquoise},
-		{Row: 9, Col: 4, Content: "3. Wave (first wave)", Color: go3270.Turquoise},
-		{Row: 10, Col: 4, Content: "4. Handoff (first handoff)", Color: go3270.Turquoise},
-		{Row: 11, Col: 4, Content: "5. Back to main menu", Color: go3270.Turquoise},
-		{Row: 13, Col: 2, Content: "Option: ", Intense: true},
-		{Row: 13, Col: 10, Content: "", Write: true, Name: "option_val", Color: go3270.Green},
+		{Row: 6, Col: 3, Content: "+--------------------------------------------+", Color: go3270.Green},
+		{Row: 7, Col: 3, Content: "|", Color: go3270.Green},
+		{Row: 7, Col: 5, Content: "1. Task (current or first)", Color: go3270.Turquoise},
+		{Row: 7, Col: 48, Content: "|", Color: go3270.Green},
+		{Row: 8, Col: 3, Content: "|", Color: go3270.Green},
+		{Row: 8, Col: 5, Content: "2. Plan", Color: go3270.Turquoise},
+		{Row: 8, Col: 48, Content: "|", Color: go3270.Green},
+		{Row: 9, Col: 3, Content: "|", Color: go3270.Green},
+		{Row: 9, Col: 5, Content: "3. Wave (first wave)", Color: go3270.Turquoise},
+		{Row: 9, Col: 48, Content: "|", Color: go3270.Green},
+		{Row: 10, Col: 3, Content: "|", Color: go3270.Green},
+		{Row: 10, Col: 5, Content: "4. Handoff (first handoff)", Color: go3270.Turquoise},
+		{Row: 10, Col: 48, Content: "|", Color: go3270.Green},
+		{Row: 11, Col: 3, Content: "|", Color: go3270.Green},
+		{Row: 11, Col: 5, Content: "5. Back to main menu", Color: go3270.Turquoise},
+		{Row: 11, Col: 48, Content: "|", Color: go3270.Green},
+		{Row: 12, Col: 3, Content: "+--------------------------------------------+", Color: go3270.Green},
+		{Row: 14, Col: 2, Content: "Option: ", Intense: true},
+		{Row: 14, Col: 10, Content: "", Write: true, Name: "option_val", Color: go3270.Green},
 		{Row: 22, Col: 2, Content: "PF3=Back", Color: go3270.Turquoise},
 	}
 

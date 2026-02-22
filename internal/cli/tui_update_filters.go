@@ -76,6 +76,27 @@ func (m model) handleSortFilterKeys(key string) (model, tea.Cmd, bool) {
 		}
 		return m, nil, true
 
+	case "v":
+		// Toggle compact/spacious list density (inspired by omm)
+		if m.mode == ModeTasks {
+			m.spaciousMode = !m.spaciousMode
+			m.ensureCursorVisible()
+		}
+		return m, nil, true
+
+	case "f":
+		// Cycle status filter (from 3270 PF9 pattern): Todo → In Progress → Review → Done → All
+		if m.mode == ModeTasks {
+			m.status = nextBubbleStatusFilter(m.status)
+			m.cursor = 0
+			m.viewportOffset = 0
+			m.searchQuery = ""
+			m.filteredIndices = nil
+			m.loading = true
+			return m, loadTasks(m.server, m.status), true
+		}
+		return m, nil, true
+
 	case "tab", "\t":
 		// In tasks mode: collapse/expand tree node under cursor (if it has children)
 		if m.mode == ModeTasks {

@@ -199,6 +199,14 @@ func (m model) handleActionKeys(key string, msg tea.KeyMsg) (model, tea.Cmd, boo
 		}
 		return m, nil, true
 
+	case "+":
+		if m.mode == ModeTasks && !m.searchMode && !m.bulkStatusPrompt {
+			m.createMode = true
+			m.createInput = ""
+			return m, nil, true
+		}
+		return m, nil, true
+
 	case "s":
 		if m.mode == ModeScorecard {
 			return m, nil, true
@@ -209,6 +217,7 @@ func (m model) handleActionKeys(key string, msg tea.KeyMsg) (model, tea.Cmd, boo
 			if len(vis) > 0 && m.cursor < len(vis) {
 				m.mode = ModeTaskDetail
 				m.taskDetailTask = m.tasks[m.realIndexAt(m.cursor)]
+				m.taskDetailScrollTop = 0
 				return m, nil, true
 			}
 		case ModeTaskDetail:

@@ -12,10 +12,13 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/davidl71/exarp-go/internal/framework"
 	"github.com/davidl71/mcp-go-core/pkg/mcp/response"
 )
+
+const fmDiscoveryTimeout = 10 * time.Second
 
 // handleTaskDiscoveryNative handles task_discovery with native Go and Apple FM.
 func handleTaskDiscoveryNative(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
@@ -448,10 +451,14 @@ func findOrphanTasks(ctx context.Context, projectRoot string) []map[string]inter
 }
 
 // enhanceTaskWithAppleFM uses the default FM to extract structured task information.
+// A per-call timeout prevents a hung FM from blocking the entire discovery scan.
 func enhanceTaskWithAppleFM(ctx context.Context, taskText string) map[string]interface{} {
 	if !FMAvailable() {
 		return nil
 	}
+
+	fmCtx, cancel := context.WithTimeout(ctx, fmDiscoveryTimeout)
+	defer cancel()
 
 	prompt := fmt.Sprintf(`Extract structured information from this task comment:
 
@@ -460,7 +467,7 @@ func enhanceTaskWithAppleFM(ctx context.Context, taskText string) map[string]int
 Return JSON with: {"description": "cleaned task description", "priority": "low|medium|high", "category": "bug|feature|refactor|docs"}`,
 		taskText)
 
-	result, err := DefaultFMProvider().Generate(ctx, prompt, 200, 0.2)
+	result, err := DefaultFMProvider().Generate(fmCtx, prompt, 200, 0.2)
 	if err != nil {
 		return nil
 	}
@@ -480,12 +487,15 @@ Return JSON with: {"description": "cleaned task description", "priority": "low|m
 }
 
 // enhancePlanningDocWithAppleFM uses the default FM to extract task/epic references and structure from planning documents.
+// A per-call timeout prevents a hung FM from blocking the entire discovery scan.
 func enhancePlanningDocWithAppleFM(ctx context.Context, content string, filePath string) map[string]interface{} {
 	if !FMAvailable() {
 		return nil
 	}
 
-	// Limit content size to avoid token limits (keep first 5000 chars)
+	fmCtx, cancel := context.WithTimeout(ctx, fmDiscoveryTimeout)
+	defer cancel()
+
 	contentLimit := len(content)
 	if contentLimit > 5000 {
 		contentLimit = 5000
@@ -517,7 +527,7 @@ Return JSON only (no other text):
 }`,
 		filePath, contentPreview)
 
-	result, err := DefaultFMProvider().Generate(ctx, prompt, 1000, 0.2)
+	result, err := DefaultFMProvider().Generate(fmCtx, prompt, 1000, 0.2)
 	if err != nil {
 		return nil
 	}

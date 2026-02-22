@@ -67,8 +67,10 @@ func handleTextGenerate(ctx context.Context, args json.RawMessage) ([]framework.
 		gen = DefaultMLXProvider()
 	case "localai":
 		gen = DefaultLocalAIProvider()
+	case "llamacpp":
+		gen = DefaultLlamaCppProvider()
 	default:
-		return nil, fmt.Errorf("unknown provider: %q (use \"fm\", \"ollama\", \"insight\", \"mlx\", \"localai\", or \"auto\")", provider)
+		return nil, fmt.Errorf("unknown provider: %q (use \"fm\", \"ollama\", \"insight\", \"mlx\", \"localai\", \"llamacpp\", or \"auto\")", provider)
 	}
 
 	if gen == nil || !gen.Supported() {

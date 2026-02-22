@@ -21,6 +21,9 @@ Apply this skill when the workspace uses the exarp-go MCP server and you need to
 | Project overview, scorecard, or briefing | `report` with `action=overview`, `action=scorecard`, or `action=briefing`. |
 | Docs health, CI, or repo status | `health` with appropriate `action` (e.g. docs, git, cicd). |
 | Task branches, merge task changes, task commit history, diff tasks | `git_tools` with `action=commits|branches|tasks|diff|graph|merge|set_branch`. |
+| **Task analysis (deps, duplicates, plan)** | `task_analysis` with `action=parallelization|dependencies|duplicates|conflicts|execution_plan|tags|suggest_deps|stale|completable`. |
+| **Run a task (execute)** | `task_execute` — execute a task by ID (single action). |
+| **Local llama.cpp inference** | `llamacpp` with `action=status|models|generate|load|unload`. Requires CGO + libbinding.a. |
 | **Broken references / link check in docs** | `lint` with `path` set to `docs` (or a `.md` file) and `linter=markdownlint` or `auto`. gomarklint link check is enabled in `.gomarklint.json`. See **lint-docs** skill. |
 | **Task discovery (TODO/markdown/orphans)** | `task_discovery` with `action=comments|markdown|planning_links|orphans|all`; optional `create_tasks=true`. Deprecated items (strikethrough, "(removed)") are never created as tasks — see `.cursor/rules/task-discovery.mdc`. |
 | Session context at conversation start | `session` with `action=prime`, `include_hints=true`, `include_tasks=true`. |
@@ -31,6 +34,7 @@ Apply this skill when the workspace uses the exarp-go MCP server and you need to
 | **Available prompts (workflow, persona, category)** | Resource **stdio://prompts**; **stdio://prompts/mode/{mode}**, **stdio://prompts/persona/{persona}**, **stdio://prompts/category/{category}** for filtered lists. |
 | **Models / LLM backends (local AI)** | Resource **stdio://models** — returns `data.models` (recommend catalog) and **data.backends** (fm_available, tool names). Use to choose backend before calling apple_foundation_models, ollama, mlx, or text_generate. |
 | **Task list / suggested tasks** | **stdio://tasks**, **stdio://tasks/status/{status}**, **stdio://suggested-tasks** for dependency-ready tasks. |
+| **Docs/code for a GitHub repo** | **GitMCP** for a specific repo’s docs/code (e.g. this repo); **Context7** for library/framework docs. See `.cursor/rules/mcp-configuration.mdc` (Context7 vs GitMCP vs web search). **GitHub MCP** for issues/PRs/repo API. |
 
 ## Resources and prompts (quick reference)
 

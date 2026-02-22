@@ -55,6 +55,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if len(vis) > 0 && m.cursor >= len(vis) {
 			m.cursor = len(vis) - 1
 		}
+		m.ensureCursorVisible()
 
 		m.lastUpdate = time.Now()
 		// If in waves view, recompute waves (prefer docs/PARALLEL_EXECUTION_PLAN_RESEARCH.md)
@@ -106,6 +107,18 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if msg.err != nil {
 			m.err = msg.err
 			return m, nil
+		}
+		m.loading = true
+		return m, loadTasks(m.server, m.status)
+
+	case taskCreatedMsg:
+		m.loading = false
+		if msg.err != nil {
+			m.childAgentMsg = fmt.Sprintf("Create failed: %v", msg.err)
+		} else if msg.taskID != "" {
+			m.childAgentMsg = fmt.Sprintf("Created %s", msg.taskID)
+		} else {
+			m.childAgentMsg = "Task created"
 		}
 		m.loading = true
 		return m, loadTasks(m.server, m.status)
@@ -321,6 +334,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyMsg:
 		key := msg.String()
 
+		// Clear transient feedback messages on any keypress so they don't persist
+		m.clearTransientMessages()
+
 		// Try global keys first (quit, help, esc)
 		if newModel, cmd, handled := m.handleGlobalKeys(key); handled {
 			return newModel, cmd
@@ -333,6 +349,11 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		// Try search mode keys
 		if newModel, cmd, handled := m.handleSearchKeys(key, msg); handled {
+			return newModel, cmd
+		}
+
+		// Try inline task creation keys
+		if newModel, cmd, handled := m.handleCreateKeys(key, msg); handled {
 			return newModel, cmd
 		}
 

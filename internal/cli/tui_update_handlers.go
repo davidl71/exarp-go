@@ -3,6 +3,8 @@
 package cli
 
 import (
+	"strings"
+
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/davidl71/exarp-go/internal/models"
 	"github.com/davidl71/exarp-go/internal/tools"
@@ -84,23 +86,59 @@ func (m model) handleSearchKeys(key string, msg tea.KeyMsg) (model, tea.Cmd, boo
 	switch key {
 	case "enter":
 		m.searchMode = false
-		m.filteredIndices = m.computeFilteredIndices()
-
-		if len(m.visibleIndices()) > 0 && m.cursor >= len(m.visibleIndices()) {
-			m.cursor = len(m.visibleIndices()) - 1
-		}
-
 		return m, nil, true
 
 	case "backspace":
 		if len(m.searchQuery) > 0 {
 			m.searchQuery = m.searchQuery[:len(m.searchQuery)-1]
 		}
+		m.filteredIndices = m.computeFilteredIndices()
+		m.cursor = 0
+		m.viewportOffset = 0
 		return m, nil, true
 
 	default:
 		if len(msg.String()) == 1 && msg.Type == tea.KeyRunes {
 			m.searchQuery += msg.String()
+		}
+		m.filteredIndices = m.computeFilteredIndices()
+		m.cursor = 0
+		m.viewportOffset = 0
+		return m, nil, true
+	}
+}
+
+// handleCreateKeys handles inline task creation input.
+func (m model) handleCreateKeys(key string, msg tea.KeyMsg) (model, tea.Cmd, bool) {
+	if !m.createMode || m.mode != ModeTasks {
+		return m, nil, false
+	}
+
+	switch key {
+	case "esc":
+		m.createMode = false
+		m.createInput = ""
+		return m, nil, true
+
+	case "enter":
+		name := strings.TrimSpace(m.createInput)
+		m.createMode = false
+		m.createInput = ""
+		if name == "" {
+			return m, nil, true
+		}
+		m.loading = true
+		return m, createTaskCmd(m.server, name), true
+
+	case "backspace":
+		if len(m.createInput) > 0 {
+			m.createInput = m.createInput[:len(m.createInput)-1]
+		}
+		return m, nil, true
+
+	default:
+		if len(msg.String()) == 1 && msg.Type == tea.KeyRunes {
+			m.createInput += msg.String()
 		}
 		return m, nil, true
 	}
@@ -153,12 +191,36 @@ func (m model) handleBulkStatusKeys(key string) (model, tea.Cmd, bool) {
 
 // handleDetailOverlayKeys handles Esc/Enter/Space for detail overlays.
 func (m model) handleDetailOverlayKeys(key string) (model, tea.Cmd, bool) {
-	// Task detail overlay
+	// Task detail overlay — scroll support + close
 	if m.mode == ModeTaskDetail {
 		switch key {
-		case "esc", "enter", " ":
+		case "esc", "enter", " ", "s":
 			m.mode = ModeTasks
 			m.taskDetailTask = nil
+			m.taskDetailScrollTop = 0
+			return m, nil, true
+		case "up", "k":
+			if m.taskDetailScrollTop > 0 {
+				m.taskDetailScrollTop--
+			}
+			return m, nil, true
+		case "down", "j":
+			m.taskDetailScrollTop++
+			return m, nil, true
+		case "pgup", "ctrl+u":
+			m.taskDetailScrollTop -= 10
+			if m.taskDetailScrollTop < 0 {
+				m.taskDetailScrollTop = 0
+			}
+			return m, nil, true
+		case "pgdown", "ctrl+d":
+			m.taskDetailScrollTop += 10
+			return m, nil, true
+		case "home", "g":
+			m.taskDetailScrollTop = 0
+			return m, nil, true
+		case "end", "G":
+			m.taskDetailScrollTop = 9999
 			return m, nil, true
 		}
 	}

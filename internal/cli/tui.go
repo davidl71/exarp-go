@@ -90,7 +90,11 @@ type model struct {
 	jobsDetailIndex int // -1 = list, >= 0 = showing detail for that job
 
 	// Task detail overlay (pressing 's' on a task)
-	taskDetailTask *database.Todo2Task
+	taskDetailTask      *database.Todo2Task
+	taskDetailScrollTop int // scroll offset for long detail content
+
+	// Viewport: scroll offset for task list so only visible rows are rendered
+	viewportOffset int
 
 	// Sort: order (id|status|priority|updated|hierarchy), ascending
 	sortOrder          string
@@ -107,6 +111,13 @@ type model struct {
 
 	// Help overlay
 	showHelp bool
+
+	// Compact vs spacious list density (toggle with 'v', inspired by omm)
+	spaciousMode bool
+
+	// Inline task creation (inspired by omm): + to start, type name, Enter to create, Esc cancel
+	createMode  bool
+	createInput string
 
 	// Child agent: last result message for status display (cleared on next key or refresh)
 	childAgentMsg string
