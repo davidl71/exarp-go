@@ -144,7 +144,7 @@ func (state *tui3270State) handleCommand(cmd string, currentTx go3270.Tx) (go327
 	case "7":
 		state.command = ""
 		return state.healthTransaction, state, nil
-	case "SCORECARD", "SC":
+	case "SC", "SCORECARD":
 		state.command = ""
 		return state.scorecardTransaction, state, nil
 	case "HANDOFFS", "HO":
@@ -163,14 +163,24 @@ func (state *tui3270State) handleCommand(cmd string, currentTx go3270.Tx) (go327
 		state.command = ""
 		return state.helpTransaction, state, nil
 	case "HEALTH", "SDSF":
+		state.pushSession("Tasks", fallback)
 		state.command = ""
 		return state.healthTransaction, state, nil
 	case "GIT", "GITLOG":
+		state.pushSession("Tasks", fallback)
 		state.command = ""
 		return state.gitDashboardTransaction, state, nil
 	case "SPRINT", "BOARD":
+		state.pushSession("Tasks", fallback)
 		state.command = ""
 		return state.sprintBoardTransaction, state, nil
+	case "SWAP":
+		state.command = ""
+		s := state.popSession()
+		if s != nil {
+			return s.tx, state, nil
+		}
+		return state.mainMenuTransaction, state, nil
 	case "FIND", "F":
 		// Filter/search tasks
 		if len(args) > 0 {
