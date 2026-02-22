@@ -179,7 +179,7 @@ tasks:
   test:coverage:
     desc: Run tests with coverage report
     cmds:
-      - go test ./... -coverprofile=coverage-go.out -covermode=atomic
+      - go test ./... -coverprofile=coverage-go.out -covermode=atomic -coverpkg=./cmd/...,./internal/...
       - go tool cover -html=coverage-go.out -o coverage-go.html 2>/dev/null || true
       - echo "✅ Coverage report → coverage-go.html"
 

@@ -33,7 +33,7 @@ jobs:
 
       # Taskfile equivalent: task test (or task test:coverage for coverage)
       - name: Run tests
-        run: go test -v -coverprofile=coverage.out ./...
+        run: go test -v -coverprofile=coverage.out -coverpkg=./cmd/...,./internal/... ./...
 
       - name: Upload coverage
         uses: codecov/codecov-action@v4
