@@ -50,7 +50,16 @@ func loadTodo2TasksFromJSON(projectRoot string) ([]Todo2Task, error) {
 		return nil, fmt.Errorf("failed to read Todo2 file: %w", err)
 	}
 
-	return ParseTasksFromJSON(data)
+	tasks, err := ParseTasksFromJSON(data)
+	if err != nil {
+		return nil, err
+	}
+
+	for i := range tasks {
+		models.EnsureContentHash(&tasks[i])
+	}
+
+	return tasks, nil
 }
 
 // SaveTodo2Tasks saves tasks to database (preferred) or .todo2/state.todo2.json (fallback).
@@ -111,6 +120,28 @@ func SyncTodo2Tasks(projectRoot string) error {
 	// Load from both sources
 	dbTasksLoaded, dbErr := loadTodo2TasksFromDB()
 	jsonTasksLoaded, _ := loadTodo2TasksFromJSON(projectRoot)
+
+	// Detect content hash conflicts (same ID, different content in DB vs JSON)
+	dbByID := make(map[string]Todo2Task)
+	for _, t := range dbTasksLoaded {
+		dbByID[t.ID] = t
+	}
+
+	jsonByID := make(map[string]Todo2Task)
+	for _, t := range jsonTasksLoaded {
+		jsonByID[t.ID] = t
+	}
+
+	for id, jsonTask := range jsonByID {
+		if dbTask, ok := dbByID[id]; ok {
+			dbHash := models.GetContentHash(&dbTask)
+			jsonHash := models.GetContentHash(&jsonTask)
+			if dbHash != "" && jsonHash != "" && dbHash != jsonHash {
+				fmt.Fprintf(os.Stderr, "Warning: sync conflict on task %s: DB and JSON have different content (DB hash=%s, JSON hash=%s); DB version takes precedence\n",
+					id, dbHash[:12], jsonHash[:12])
+			}
+		}
+	}
 
 	// Build merged task map (database takes precedence)
 	taskMap := make(map[string]Todo2Task)

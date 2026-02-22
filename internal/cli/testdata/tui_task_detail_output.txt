@@ -1,20 +1,23 @@
- TEST-PROJECT - TASK DETAIL  Esc/Enter/Space=close                            
+ TEST-PROJECT - TASK DETAIL                                                   
 ──────────────────────────────────────────────────────────────────────────────
-Task: T-1771245906548
+  Task:     T-1771245906548
+  Status:   Todo
+  Priority: medium
 
-Status: Todo
+  ── Content ──────────────────────────
+  Fix tools health and hooks tests
 
-Priority: medium
+  ── Description ──────────────────────
+  Objective: Fix internal/tools TestHandleHealthDocs, TestHandleHealthCICD.
+  Acceptance: Health docs/DOD/CICD tests pass or are skipped.
 
-Content:
-Fix tools health and hooks tests
+  Tags: testing, health
 
-Description:
-Objective: Fix internal/tools TestHandleHealthDocs, TestHandleHealthCICD.
-Acceptance: Health docs/DOD/CICD tests pass or are skipped.
 
-Tags: testing, health
-  ... (truncated)
-                 
+
+
+
+
+
 ──────────────────────────────────────────────────────────────────────────────
- Press Esc, Enter, or Space to close  s=close                                   
+ ↑↓ scroll  Esc/Enter close                                                     

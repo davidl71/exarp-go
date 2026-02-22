@@ -7,6 +7,8 @@ alwaysApply: true
 
 **Use these shortcuts when suggesting shell commands so the user can run less typing.**
 
+**Taskfile.yml** is also available: run `task --list` to see all targets. Most Makefile targets have Taskfile equivalents (e.g. `task b` = `make b`, `task test` = `make test`). Install: `brew install go-task`.
+
 ## Makefile shortcuts
 
 | Instead of           | Use      | When suggesting |

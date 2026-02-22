@@ -971,7 +971,7 @@ func registerBatch2Tools(server framework.MCPServer) error {
 	return nil
 }
 
-// registerBatch3Tools registers Batch 3 tools (8 advanced tools).
+// registerBatch3Tools registers Batch 3 tools (9 advanced tools).
 func registerBatch3Tools(server framework.MCPServer) error {
 	// T-37: automation
 	if err := server.RegisterTool(
@@ -1569,6 +1569,11 @@ func registerBatch3Tools(server framework.MCPServer) error {
 		return fmt.Errorf("failed to register mlx: %w", err)
 	}
 
+	// llamacpp — local GGUF inference via llama.cpp bindings
+	if err := registerLlamaCppTool(server); err != nil {
+		return fmt.Errorf("failed to register llamacpp: %w", err)
+	}
+
 	// Apple Foundation Models tool (platform-specific, conditional compilation)
 	if err := registerAppleFoundationModelsTool(server); err != nil {
 		return err
@@ -1719,9 +1724,9 @@ func registerBatch5Tools(server framework.MCPServer) error {
 			Properties: map[string]interface{}{
 				"provider": map[string]interface{}{
 					"type":        "string",
-					"enum":        []string{"fm", "ollama", "insight", "mlx", "localai", "auto"},
+					"enum":        []string{"fm", "ollama", "insight", "mlx", "localai", "llamacpp", "auto"},
 					"default":     "fm",
-					"description": "Backend: fm (Apple/chain), ollama (native Ollama), insight (report), mlx (Apple Silicon), localai (OpenAI-compatible), or auto (model selection from task_type/task_description)",
+					"description": "Backend: fm (Apple/chain), ollama (native Ollama), insight (report), mlx (Apple Silicon), localai (OpenAI-compatible), llamacpp (GGUF via llama.cpp), or auto (model selection from task_type/task_description)",
 				},
 				"prompt": map[string]interface{}{
 					"type":        "string",

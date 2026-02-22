@@ -54,6 +54,16 @@ var (
 	lowPriorityStyle = lipgloss.NewStyle().
 				Foreground(lipgloss.Color("#00FF00"))
 
+	// Status colors (mirrors 3270 TUI statusColor palette)
+	statusDoneStyle = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("#00FF00")) // green
+	statusInProgressStyle = lipgloss.NewStyle().
+				Foreground(lipgloss.Color("#FFFF00")) // yellow
+	statusTodoStyle = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("#00FFFF")) // cyan/turquoise
+	statusReviewStyle = lipgloss.NewStyle().
+				Foreground(lipgloss.Color("#FF69B4")) // pink
+
 	borderStyle = lipgloss.NewStyle().
 			Foreground(lipgloss.Color("#808080"))
 )

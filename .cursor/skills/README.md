@@ -4,7 +4,7 @@ Skills in this folder extend the AI with exarp-go workflows. **Read the SKILL.md
 
 **For humans:** See [docs/CURSOR_SKILLS_GUIDE.md](../../docs/CURSOR_SKILLS_GUIDE.md) for a guide on how to use these skills (example prompts, locking, git_tools, conflict detection).
 
-**Resources:** When using exarp-go MCP, fetch **stdio://cursor/skills** for skill text, **stdio://tools** or **stdio://tools/{category}** for the tool catalog, **stdio://prompts** for prompt list, and **stdio://models** for model/backend discovery. See use-exarp-tools skill for full list.
+**Resources:** When using exarp-go MCP, fetch **stdio://cursor/skills** for skill text, **stdio://tools** or **stdio://tools/{category}** for the tool catalog, **stdio://prompts** for prompt list, and **stdio://models** for model/backend discovery. For doc lookup (Context7 vs GitMCP vs web), see `.cursor/rules/mcp-configuration.mdc`. See use-exarp-tools skill for full list.
 
 | Skill | When to use |
 |-------|-------------|

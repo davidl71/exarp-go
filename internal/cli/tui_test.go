@@ -527,7 +527,7 @@ func TestTUITaskDetailRecordsOutput(t *testing.T) {
 		t.Error("output should contain task content")
 	}
 
-	if !strings.Contains(output, "Esc/Enter/Space") {
+	if !strings.Contains(output, "Esc/Enter") {
 		t.Error("output should contain close hint")
 	}
 }

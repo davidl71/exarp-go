@@ -6,6 +6,7 @@
 .cursor/plans/
 .todo2/
 .make.config
+.task/
 .agentic-tools-mcp/
 
 # Exarp runtime directories (state, cache, logs, temporary files)

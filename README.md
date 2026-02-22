@@ -203,13 +203,36 @@ go build -o bin/exarp-go ./cmd/server
 ## Running
 
 ```bash
-./bin/exarp-go
+./bin/exarp-go          # Start MCP stdio server (default)
 ```
 
-Or use the wrapper script:
+### CLI Subcommands
 
 ```bash
-./run_server.sh
+# Task management
+exarp-go task list [--status Todo] [--priority high] [--limit 10]
+exarp-go task create "Task name" --priority high [--local-ai-backend fm]
+exarp-go task update T-xxx --new-status Done
+exarp-go task show T-xxx
+exarp-go task status T-xxx
+exarp-go task estimate "Task name" [--local-ai-backend ollama]
+exarp-go task summarize T-xxx [--local-ai-backend fm]
+exarp-go task run-with-ai T-xxx [--backend ollama] [--instruction "..."]
+
+# Configuration
+exarp-go config init          # Create .exarp/config.pb with defaults
+exarp-go config show [yaml|json]
+exarp-go config export [yaml|json|protobuf]
+exarp-go config convert yaml protobuf
+
+# Interactive TUIs
+exarp-go tui                  # Bubbletea terminal UI
+exarp-go tui3270 [--port 3270] # IBM 3270 mainframe TUI (TN3270)
+
+# Direct tool invocation
+exarp-go -tool <name> -args '{"action":"..."}'
+exarp-go -test <name>         # Run tool self-test
+exarp-go -list                # List all registered tools
 ```
 
 ## Shell Completion

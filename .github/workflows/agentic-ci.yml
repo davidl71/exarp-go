@@ -32,6 +32,7 @@ jobs:
       - name: Download dependencies
         run: go mod download
 
+      # Taskfile equivalent: task build
       - name: Build exarp-go
         run: go build -o bin/exarp-go ./cmd/server
 
@@ -96,10 +97,12 @@ jobs:
             -args '{"action":"overview","include_metrics":true,"output_format":"json","compact":true}' > agent_report.txt || true
           cat agent_report.txt
 
+      # Makefile-only: context-token-metrics (no Taskfile equivalent yet)
       - name: Context token metrics (token_estimate from report/session)
         run: |
           make context-token-metrics || true
 
+      # Makefile-only: context-token-check (no Taskfile equivalent yet)
       - name: Context token budget check (optional)
         run: |
           # Fail if token_estimate exceeds limit (set in env or default 20000). 0 = skip.

@@ -45,6 +45,8 @@ func (m model) viewTasks() string {
 
 	if m.status != "" {
 		title += fmt.Sprintf(" [%s]", strings.ToUpper(m.status))
+	} else {
+		title += " [ALL]"
 	}
 
 	headerLine.WriteString(headerStyle.Render(title))
@@ -98,6 +100,12 @@ func (m model) viewTasks() string {
 	if m.searchMode {
 		searchPrompt := "/" + m.searchQuery + "_"
 		b.WriteString(helpStyle.Render("Search: " + searchPrompt + " (Enter=apply Esc=cancel)"))
+		b.WriteString("\n")
+	}
+
+	// Inline task creation prompt
+	if m.createMode {
+		b.WriteString(helpStyle.Render("New task: " + m.createInput + "_ (Enter=create Esc=cancel)"))
 		b.WriteString("\n")
 	}
 
@@ -159,57 +167,8 @@ func (m model) viewTasks() string {
 	b.WriteString(borderStyle.Render(strings.Repeat("─", availableWidth)))
 	b.WriteString("\n")
 
-	// Status bar content
-	statusBar := strings.Builder{}
-	statusBar.WriteString(statusBarStyle.Render("Commands:"))
-	statusBar.WriteString(" ")
-	statusBar.WriteString(helpStyle.Render("↑↓/jk"))
-	statusBar.WriteString(" nav  ")
-	statusBar.WriteString(helpStyle.Render("/"))
-	statusBar.WriteString(" search  ")
-	statusBar.WriteString(helpStyle.Render("n/N"))
-	statusBar.WriteString(" next/prev  ")
-	statusBar.WriteString(helpStyle.Render("o/O"))
-	statusBar.WriteString(" sort  ")
-	statusBar.WriteString(helpStyle.Render("Space"))
-	statusBar.WriteString(" select  ")
-	statusBar.WriteString(helpStyle.Render("Tab"))
-	statusBar.WriteString(" collapse  ")
-	statusBar.WriteString(helpStyle.Render("s"))
-	statusBar.WriteString(" details  ")
-	statusBar.WriteString(helpStyle.Render("d/i/t/r"))
-	statusBar.WriteString(" status  ")
-	statusBar.WriteString(helpStyle.Render("D"))
-	statusBar.WriteString(" bulk  ")
-	statusBar.WriteString(helpStyle.Render("a"))
-	statusBar.WriteString(" auto  ")
-	statusBar.WriteString(helpStyle.Render("c"))
-	statusBar.WriteString(" config  ")
-	statusBar.WriteString(helpStyle.Render("p"))
-	statusBar.WriteString(" scorecard  ")
-	statusBar.WriteString(helpStyle.Render("w"))
-	statusBar.WriteString(" w waves  ")
-	statusBar.WriteString(helpStyle.Render("A"))
-	statusBar.WriteString(" analysis  ")
-	statusBar.WriteString(helpStyle.Render("b"))
-	statusBar.WriteString(" jobs  ")
-	statusBar.WriteString(helpStyle.Render("E"))
-	statusBar.WriteString(" child agent  ")
-	statusBar.WriteString(helpStyle.Render("L"))
-	statusBar.WriteString(" plan  ")
-	statusBar.WriteString(helpStyle.Render("?/h"))
-	statusBar.WriteString(" help  ")
-	statusBar.WriteString(helpStyle.Render("q"))
-	statusBar.WriteString(" quit")
-
-	// Fill remaining space
-	statusText := statusBar.String()
-	if len(statusText) < availableWidth {
-		padding := strings.Repeat(" ", availableWidth-len(statusText))
-		statusText += statusBarStyle.Render(padding)
-	}
-
-	b.WriteString(statusText)
+	// Width-responsive status bar: show more commands on wider terminals
+	b.WriteString(m.renderTaskStatusBar(availableWidth))
 
 	return b.String()
 }
@@ -217,7 +176,14 @@ func (m model) viewTasks() string {
 // renderNarrowTaskList renders tasks in a narrow terminal (< 80 chars).
 func (m model) renderNarrowTaskList(b *strings.Builder, width int) {
 	vis := m.visibleIndices()
-	for idx, realIdx := range vis {
+	pageSize := m.taskListPageSize()
+	end := m.viewportOffset + pageSize
+	if end > len(vis) {
+		end = len(vis)
+	}
+
+	for idx := m.viewportOffset; idx < end; idx++ {
+		realIdx := vis[idx]
 		task := m.tasks[realIdx]
 		isCursor := m.cursor == idx
 		_, isSelected := m.selected[realIdx]
@@ -225,7 +191,7 @@ func (m model) renderNarrowTaskList(b *strings.Builder, width int) {
 
 		line := fmt.Sprintf("%s %s", cursor, task.ID)
 		if task.Status != "" {
-			line += " " + statusStyle.Render(task.Status)
+			line += " " + styleStatus(task.Status)
 		}
 
 		maxContentWidth := width - len(line) - 10
@@ -243,6 +209,18 @@ func (m model) renderNarrowTaskList(b *strings.Builder, width int) {
 		}
 
 		b.WriteString(renderRow(line, m.indentForTask(realIdx), m.treeMarkerForTask(realIdx), isCursor, width))
+		b.WriteString("\n")
+
+		if m.spaciousMode {
+			desc := spaciousDescLine(task.LongDescription, width-4)
+			b.WriteString(helpStyle.Render("   " + desc))
+			b.WriteString("\n")
+		}
+	}
+
+	if len(vis) > pageSize {
+		scrollInfo := fmt.Sprintf("  [%d-%d of %d]", m.viewportOffset+1, end, len(vis))
+		b.WriteString(helpStyle.Render(scrollInfo))
 		b.WriteString("\n")
 	}
 }
@@ -262,7 +240,14 @@ func (m model) renderMediumTaskList(b *strings.Builder, width int) {
 	}
 
 	vis := m.visibleIndices()
-	for idx, realIdx := range vis {
+	pageSize := m.taskListPageSize()
+	end := m.viewportOffset + pageSize
+	if end > len(vis) {
+		end = len(vis)
+	}
+
+	for idx := m.viewportOffset; idx < end; idx++ {
+		realIdx := vis[idx]
 		task := m.tasks[realIdx]
 		isCursor := m.cursor == idx
 		_, isSelected := m.selected[realIdx]
@@ -276,8 +261,21 @@ func (m model) renderMediumTaskList(b *strings.Builder, width int) {
 
 		line := fmt.Sprintf("%-*s %-*s %-*s %-*s %-*s %s",
 			colCursor, cursor, colIDMedium, taskID, colStatus, statusStr, colPriority, priFull, colPRI, priShort, content)
+		line = styleStatusInLine(line, task.Status, statusStr)
 		line = stylePriorityInLine(line, task.Priority, priShort)
 		b.WriteString(renderRow(line, m.indentForTask(realIdx), m.treeMarkerForTask(realIdx), isCursor, width))
+		b.WriteString("\n")
+
+		if m.spaciousMode {
+			desc := spaciousDescLine(task.LongDescription, width-6)
+			b.WriteString(helpStyle.Render("     " + desc))
+			b.WriteString("\n")
+		}
+	}
+
+	if len(vis) > pageSize {
+		scrollInfo := fmt.Sprintf("  [%d-%d of %d]", m.viewportOffset+1, end, len(vis))
+		b.WriteString(helpStyle.Render(scrollInfo))
 		b.WriteString("\n")
 	}
 }
@@ -315,7 +313,14 @@ func (m model) renderWideTaskList(b *strings.Builder, width int) {
 	b.WriteString("\n")
 
 	vis := m.visibleIndices()
-	for idx, realIdx := range vis {
+	pageSize := m.taskListPageSize()
+	end := m.viewportOffset + pageSize
+	if end > len(vis) {
+		end = len(vis)
+	}
+
+	for idx := m.viewportOffset; idx < end; idx++ {
+		realIdx := vis[idx]
 		task := m.tasks[realIdx]
 		isCursor := m.cursor == idx
 		_, isSelected := m.selected[realIdx]
@@ -345,12 +350,25 @@ func (m model) renderWideTaskList(b *strings.Builder, width int) {
 			line += " " + helpStyle.Render(tagsStr)
 		}
 
+		line = styleStatusInLine(line, task.Status, statusStr)
 		line = stylePriorityInLine(line, task.Priority, priShort)
 		if isOldSequentialID(task.ID) {
 			line = strings.Replace(line, "OLD", oldIDStyle.Render("OLD"), 1)
 		}
 
 		b.WriteString(renderRow(line, m.indentForTask(realIdx), m.treeMarkerForTask(realIdx), isCursor, width))
+		b.WriteString("\n")
+
+		if m.spaciousMode {
+			desc := spaciousDescLine(task.LongDescription, width-6)
+			b.WriteString(helpStyle.Render("     " + desc))
+			b.WriteString("\n")
+		}
+	}
+
+	if len(vis) > pageSize {
+		scrollInfo := fmt.Sprintf("  [%d-%d of %d]", m.viewportOffset+1, end, len(vis))
+		b.WriteString(helpStyle.Render(scrollInfo))
 		b.WriteString("\n")
 	}
 }

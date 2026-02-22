@@ -17,6 +17,8 @@ Shared set (single source: `~/.cursor/mcp.json`). Project `.cursor/mcp.json` is 
 | **exarp-go** | Exarp project management automation (this repo) ✅ **ACTIVE** |
 | **tractatus_thinking** | Tractatus Thinking MCP — structured reasoning, logical analysis |
 | **context7** | Context7 MCP — advanced context and documentation retrieval (e.g. add_external_tool_hints) |
+| **github** | GitHub MCP — official; repos, issues, PRs (remote `api.githubcopilot.com`; OAuth or PAT). See [GitHub Docs](https://docs.github.com/en/copilot/how-tos/provide-context/use-mcp/set-up-the-github-mcp-server). |
+| **gitmcp** | GitMCP — free remote MCP for any GitHub repo; fetch/search docs and code (`gitmcp.io/owner/repo` or `gitmcp.io/docs`). See [idosal/git-mcp](https://github.com/idosal/git-mcp). |
 
 ### When to Use Context7 vs Web Search
 
@@ -32,6 +34,19 @@ Shared set (single source: `~/.cursor/mcp.json`). Project `.cursor/mcp.json` is 
 - **Anything Context7 doesn’t cover** — try Context7 first; fall back to web search if no suitable library ID or no useful answer.
 
 **Context7 workflow:** `resolve-library-id` (query + libraryName) → `query-docs` (libraryId + query). Do not call more than 3 times per question.
+
+### When to Use GitMCP
+
+**Prefer GitMCP** when you need:
+- **Docs or code from a specific GitHub repo** — e.g. this repo (`gitmcp.io/davidl71/exarp-go`) or another (add `gitmcp.io/owner/repo` to config, or use generic `gitmcp.io/docs` and specify repo per request).
+- **Up-to-date README / llms.txt / code search** for a project the AI might not have in context — reduces hallucinations by fetching from the live repo.
+- **Repo-specific API usage or examples** when Context7 doesn’t index that project.
+
+**Tools:** `fetch_*_documentation`, `search_*_documentation`, `search_*_code` (names vary by server URL). Use **Context7** for broad library/framework docs; use **GitMCP** for a known GitHub repo’s own docs and code.
+
+### When to Use GitHub MCP
+
+Use **GitHub MCP** when the task involves **GitHub primitives**: list/create/update issues or PRs, repo metadata, branch/commit context for Copilot, or workflows that need authenticated GitHub API access. It does not replace GitMCP (docs/code fetch) or Context7 (library docs).
 
 ### When to Use Tractatus
 

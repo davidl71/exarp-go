@@ -51,12 +51,15 @@ func (state *tui3270State) helpTransaction(conn net.Conn, devInfo go3270.DevInfo
 	lines := []string{
 		"EXARP-GO 3270 - HELP",
 		"",
-		"Main menu: 1=Tasks 2=Config 3=Scorecard 4=Handoffs 5=Exit 6=Agent",
+		"Main menu: 1=Tasks 2=Config 3=Scorecard 4=Handoffs 5=Exit 6=Agent 7=Health",
 		"",
 		"Commands (type in COMMAND ===> field):",
-		"  TASKS/T  CONFIG  SC  HANDOFFS/HO  MENU/M  HELP/H",
+		"  TASKS/T  CONFIG  SC  HANDOFFS/HO  MENU/M  HELP/H  HEALTH/SDSF",
 		"  FIND <text>  RESET  VIEW [id]  EDIT [id]  TOP  BOTTOM",
 		"  RUN TASK|PLAN|WAVE|HANDOFF",
+		"",
+		"Line commands (type in S column next to task row):",
+		"  S=Select(view)  E=Edit  D=Mark Done  I=Mark In Progress",
 		"",
 		"PF keys (all screens):",
 		"  PF1=Help  PF3=Back/Exit",
@@ -71,13 +74,18 @@ func (state *tui3270State) helpTransaction(conn net.Conn, devInfo go3270.DevInfo
 		"",
 		"Press PF3 to return.",
 	}
+
+	helpPFRow := t3270PFRow(devInfo)
+	helpContentMax := t3270ContentMaxRow(devInfo)
+
 	screen := go3270.Screen{
 		{Row: 1, Col: 2, Content: "HELP", Intense: true, Color: go3270.Blue},
-		{Row: 22, Col: 2, Content: "PF3=Back to previous screen", Color: go3270.Turquoise},
+		{Row: helpPFRow, Col: 2, Content: "PF3=Back to previous screen", Color: go3270.Turquoise},
 	}
 
+	maxLines := helpContentMax - 2
 	for i, line := range lines {
-		if i >= 20 {
+		if i >= maxLines {
 			break
 		}
 
@@ -132,6 +140,9 @@ func (state *tui3270State) handleCommand(cmd string, currentTx go3270.Tx) (go327
 	case "5":
 		state.command = ""
 		return nil, nil, nil // Exit
+	case "7":
+		state.command = ""
+		return state.healthTransaction, state, nil
 	case "SCORECARD", "SC":
 		state.command = ""
 		return state.scorecardTransaction, state, nil
@@ -150,6 +161,9 @@ func (state *tui3270State) handleCommand(cmd string, currentTx go3270.Tx) (go327
 	case "HELP", "H":
 		state.command = ""
 		return state.helpTransaction, state, nil
+	case "HEALTH", "SDSF":
+		state.command = ""
+		return state.healthTransaction, state, nil
 	case "FIND", "F":
 		// Filter/search tasks
 		if len(args) > 0 {
@@ -282,11 +296,15 @@ func (state *tui3270State) handleCommand(cmd string, currentTx go3270.Tx) (go327
 		return state.taskListTransaction, state, nil
 
 	case "BOTTOM", "BOT":
-		// Go to bottom of list
+		// Go to bottom of list; use default maxVisible since devInfo is not in scope
 		if len(state.tasks) > 0 {
 			state.cursor = len(state.tasks) - 1
-			if state.cursor >= 18 {
-				state.listOffset = state.cursor - 17
+			mv := 18
+			if state.devInfo != nil {
+				mv = t3270MaxVisible(state.devInfo)
+			}
+			if state.cursor >= mv {
+				state.listOffset = state.cursor - mv + 1
 			}
 		}
 

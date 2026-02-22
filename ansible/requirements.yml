@@ -5,7 +5,7 @@
 # Collections
 collections:
   - name: community.general
-    version: ">=7.0.0"
+    version: ">=8.0.0"
 
 # Roles (if needed)
 # roles:

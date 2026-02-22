@@ -60,13 +60,13 @@ github.com/clipperhouse/displaywidth
 # github.com/clipperhouse/uax29/v2 v2.6.0
 ## explicit; go 1.18
 github.com/clipperhouse/uax29/v2/graphemes
-# github.com/davidl71/devwisdom-go v0.1.2
+# github.com/davidl71/devwisdom-go v0.1.2 => ../devwisdom-go
 ## explicit; go 1.25.5
 github.com/davidl71/devwisdom-go/internal/config
 github.com/davidl71/devwisdom-go/internal/wisdom
 github.com/davidl71/devwisdom-go/internal/wisdom/sefaria
 github.com/davidl71/devwisdom-go/pkg/wisdom
-# github.com/davidl71/mcp-go-core v0.3.1
+# github.com/davidl71/mcp-go-core v0.3.1 => ../mcp-go-core
 ## explicit; go 1.24.0
 github.com/davidl71/mcp-go-core/pkg/mcp/cli
 github.com/davidl71/mcp-go-core/pkg/mcp/framework
@@ -77,7 +77,7 @@ github.com/davidl71/mcp-go-core/pkg/mcp/response
 github.com/davidl71/mcp-go-core/pkg/mcp/security
 github.com/davidl71/mcp-go-core/pkg/mcp/types
 # github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f
-## explicit; go 1.13
+## explicit
 github.com/dgryski/go-rendezvous
 # github.com/dustin/go-humanize v1.0.1
 ## explicit; go 1.16
@@ -130,14 +130,6 @@ github.com/google/s2a-go/internal/v2/remotesigner
 github.com/google/s2a-go/internal/v2/tlsconfigstore
 github.com/google/s2a-go/retry
 github.com/google/s2a-go/stream
-# github.com/joshgarnett/agent-client-protocol-go v0.0.0-20250902121345-69cbaf95b89e
-## explicit; go 1.25
-github.com/joshgarnett/agent-client-protocol-go/acp
-github.com/joshgarnett/agent-client-protocol-go/acp/api
-github.com/joshgarnett/agent-client-protocol-go/util
-# github.com/lawlielt/ctxcache v1.0.1
-## explicit; go 1.21
-github.com/lawlielt/ctxcache
 # github.com/google/uuid v1.6.0
 ## explicit
 github.com/google/uuid
@@ -164,6 +156,14 @@ github.com/hibiken/asynq/internal/log
 github.com/hibiken/asynq/internal/proto
 github.com/hibiken/asynq/internal/rdb
 github.com/hibiken/asynq/internal/timeutil
+# github.com/joshgarnett/agent-client-protocol-go v0.0.0-20250902121345-69cbaf95b89e
+## explicit; go 1.25.0
+github.com/joshgarnett/agent-client-protocol-go/acp
+github.com/joshgarnett/agent-client-protocol-go/acp/api
+github.com/joshgarnett/agent-client-protocol-go/util
+# github.com/lawlielt/ctxcache v1.0.1
+## explicit; go 1.21
+github.com/lawlielt/ctxcache
 # github.com/lib/pq v1.11.2
 ## explicit; go 1.21
 github.com/lib/pq
@@ -211,11 +211,8 @@ github.com/ncruces/go-strftime
 ## explicit; go 1.18
 github.com/racingmars/go3270
 github.com/racingmars/go3270/internal/codepage
-# github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec
-## explicit; go 1.12
-github.com/remyoudompheng/bigfft
 # github.com/redis/go-redis/v9 v9.14.1
-## explicit; go 1.21
+## explicit; go 1.18
 github.com/redis/go-redis/v9
 github.com/redis/go-redis/v9/auth
 github.com/redis/go-redis/v9/internal
@@ -225,20 +222,23 @@ github.com/redis/go-redis/v9/internal/pool
 github.com/redis/go-redis/v9/internal/proto
 github.com/redis/go-redis/v9/internal/rand
 github.com/redis/go-redis/v9/internal/util
-# github.com/robfig/cron/v3 v3.0.1
+# github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec
 ## explicit; go 1.12
-github.com/robfig/cron/v3
+github.com/remyoudompheng/bigfft
 # github.com/rivo/uniseg v0.4.7
 ## explicit; go 1.18
 github.com/rivo/uniseg
-# github.com/spf13/cast v1.10.0
-## explicit; go 1.18
-github.com/spf13/cast
-github.com/spf13/cast/internal
+# github.com/robfig/cron/v3 v3.0.1
+## explicit; go 1.12
+github.com/robfig/cron/v3
 # github.com/rqlite/gorqlite v0.0.0-20250609141355-ac86a4a1c9a8
-## explicit
+## explicit; go 1.17
 github.com/rqlite/gorqlite
 github.com/rqlite/gorqlite/stdlib
+# github.com/spf13/cast v1.10.0
+## explicit; go 1.21.0
+github.com/spf13/cast
+github.com/spf13/cast/internal
 # github.com/xo/terminfo v0.0.0-20220910002029-abceb7e1c41e
 ## explicit; go 1.19
 github.com/xo/terminfo
@@ -292,11 +292,10 @@ golang.org/x/crypto/internal/poly1305
 ## explicit; go 1.24.0
 golang.org/x/exp/constraints
 # golang.org/x/exp/event v0.0.0-20250718183923-645b1fa84792
-## explicit
+## explicit; go 1.23.0
 golang.org/x/exp/event
-golang.org/x/exp/event/otel
 # golang.org/x/exp/jsonrpc2 v0.0.0-20250819193227-8b4c13bb791b
-## explicit; go 1.22
+## explicit; go 1.24.0
 golang.org/x/exp/jsonrpc2
 # golang.org/x/net v0.50.0
 ## explicit; go 1.24.0
@@ -338,7 +337,7 @@ golang.org/x/text/transform
 golang.org/x/text/unicode/bidi
 golang.org/x/text/unicode/norm
 # golang.org/x/time v0.14.0
-## explicit; go 1.18
+## explicit; go 1.24.0
 golang.org/x/time/rate
 # golang.org/x/xerrors v0.0.0-20240903120638-7835f813f4da
 ## explicit; go 1.18
@@ -531,3 +530,5 @@ modernc.org/memory
 modernc.org/sqlite
 modernc.org/sqlite/lib
 modernc.org/sqlite/vtab
+# github.com/davidl71/devwisdom-go => ../devwisdom-go
+# github.com/davidl71/mcp-go-core => ../mcp-go-core

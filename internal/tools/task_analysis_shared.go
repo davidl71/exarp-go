@@ -2945,13 +2945,43 @@ func truncateStr(s string, max int) string {
 // Helper functions for duplicates detection
 
 func findDuplicateTasks(tasks []Todo2Task, threshold float64) [][]string {
-	// For small datasets, use sequential approach (overhead of parallelization not worth it)
-	if len(tasks) < 100 {
-		return findDuplicateTasksSequential(tasks, threshold)
+	// Fast pass: exact duplicates by content hash (O(n) vs O(n²) similarity)
+	hashGroups := make(map[string][]string)
+	for i := range tasks {
+		hash := models.GetContentHash(&tasks[i])
+		if hash != "" {
+			hashGroups[hash] = append(hashGroups[hash], tasks[i].ID)
+		}
 	}
 
-	// For larger datasets, use parallel processing
-	return findDuplicateTasksParallel(tasks, threshold)
+	var groups [][]string
+	exactIDs := make(map[string]bool)
+	for _, ids := range hashGroups {
+		if len(ids) > 1 {
+			groups = append(groups, ids)
+			for _, id := range ids {
+				exactIDs[id] = true
+			}
+		}
+	}
+
+	// Filter out exact-match tasks before running expensive similarity check
+	remaining := make([]Todo2Task, 0, len(tasks))
+	for _, t := range tasks {
+		if !exactIDs[t.ID] {
+			remaining = append(remaining, t)
+		}
+	}
+
+	// Similarity pass on remaining tasks
+	var similarGroups [][]string
+	if len(remaining) < 100 {
+		similarGroups = findDuplicateTasksSequential(remaining, threshold)
+	} else {
+		similarGroups = findDuplicateTasksParallel(remaining, threshold)
+	}
+
+	return append(groups, similarGroups...)
 }
 
 // findDuplicateTasksSequential is the original sequential implementation

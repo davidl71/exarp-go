@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/davidl71/exarp-go/internal/database"
+	"github.com/davidl71/exarp-go/internal/models"
 )
 
 // loadTodo2TasksFromDB loads tasks from database.
@@ -20,9 +21,10 @@ func loadTodo2TasksFromDB() ([]Todo2Task, error) {
 		return nil, fmt.Errorf("failed to load tasks from database: %w", err)
 	}
 
-	// Convert []*Todo2Task to []Todo2Task
+	// Convert []*Todo2Task to []Todo2Task and backfill content hash
 	result := make([]Todo2Task, len(tasks))
 	for i, task := range tasks {
+		models.EnsureContentHash(task)
 		result[i] = *task
 	}
 
@@ -57,6 +59,8 @@ func saveTodo2TasksToDB(tasks []Todo2Task) error {
 	tasksNeedingDeps := make(map[string][]string) // task ID -> original dependencies
 
 	for _, task := range sortedTasks {
+		models.SetContentHash(&task)
+
 		var saveErr error
 
 		// First, try to find by ID
@@ -230,18 +234,10 @@ func tasksMatchByContent(task1, task2 Todo2Task) bool {
 	return content1 == content2
 }
 
-// normalizeTaskContent normalizes task content for comparison
-// Strips whitespace, converts to lowercase, and combines content + description.
+// normalizeTaskContent normalizes task content for comparison.
+// Delegates to models.NormalizeForComparison for shared normalization logic.
 func normalizeTaskContent(content, description string) string {
-	combined := content + " " + description
-	// Remove extra whitespace and convert to lowercase
-	normalized := strings.TrimSpace(strings.ToLower(combined))
-	// Remove multiple spaces
-	for strings.Contains(normalized, "  ") {
-		normalized = strings.ReplaceAll(normalized, "  ", " ")
-	}
-
-	return normalized
+	return models.NormalizeForComparison(content, description)
 }
 
 // filterValidDependencies filters out dependencies that don't exist in the task list or database
