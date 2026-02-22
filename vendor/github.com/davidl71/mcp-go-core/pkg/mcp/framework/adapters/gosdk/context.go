@@ -2,16 +2,17 @@ package gosdk
 
 import (
 	"context"
-	"fmt"
+
+	"github.com/davidl71/mcp-go-core/pkg/mcp/framework"
 )
 
 // ValidateContext checks if context is valid and not cancelled
 func ValidateContext(ctx context.Context) error {
 	if ctx == nil {
-		return fmt.Errorf("context cannot be nil")
+		return &framework.ErrContextCancelled{Err: nil}
 	}
 	if err := ctx.Err(); err != nil {
-		return fmt.Errorf("context cancelled: %w", err)
+		return &framework.ErrContextCancelled{Err: err}
 	}
 	return nil
 }

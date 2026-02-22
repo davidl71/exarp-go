@@ -51,7 +51,7 @@ func InferTaskProgressResponseToMap(resp *proto.InferTaskProgressResponse) map[s
 }
 
 // handleInferTaskProgressNative runs task completion inference (heuristics only in Iteration 1).
-// Loads Todo + In Progress tasks, gathers codebase evidence, scores each task, returns JSON.
+// Loads tasks by status filter (default: In Progress), gathers codebase evidence, scores each task, returns JSON.
 // Does not call database.UpdateTask in this iteration.
 func handleInferTaskProgressNative(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	projectRoot, err := FindProjectRoot()
@@ -88,7 +88,13 @@ func handleInferTaskProgressNative(ctx context.Context, params map[string]interf
 		extensions = defaultInferTaskProgressExtensions
 	}
 
-	candidates, err := loadInProgressTasks(ctx, projectRoot)
+	// Default to In Progress, but allow filtering by other statuses (e.g., Todo)
+	statusFilter := database.StatusInProgress
+	if sf, ok := params["status_filter"].(string); ok && sf != "" {
+		statusFilter = sf
+	}
+
+	candidates, err := loadTasksByStatus(ctx, projectRoot, statusFilter)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load tasks: %w", err)
 	}
@@ -162,17 +168,22 @@ func handleInferTaskProgressNative(ctx context.Context, params map[string]interf
 	return response.FormatResult(InferTaskProgressResponseToMap(resp), resp.GetOutputPath())
 }
 
-// loadInProgressTasks returns only In Progress tasks via TaskStore.
-func loadInProgressTasks(ctx context.Context, projectRoot string) ([]Todo2Task, error) {
+// loadTasksByStatus returns tasks filtered by status via TaskStore.
+// Supports any valid status: Todo, In Progress, Review, Done, Cancelled.
+func loadTasksByStatus(ctx context.Context, projectRoot string, status string) ([]Todo2Task, error) {
 	store := NewDefaultTaskStore(projectRoot)
-	inProgress := database.StatusInProgress
 
-	list, err := store.ListTasks(ctx, &database.TaskFilters{Status: &inProgress})
+	list, err := store.ListTasks(ctx, &database.TaskFilters{Status: &status})
 	if err != nil {
 		return nil, err
 	}
 
 	return tasksFromPtrs(list), nil
+}
+
+// loadInProgressTasks returns only In Progress tasks via TaskStore (legacy wrapper).
+func loadInProgressTasks(ctx context.Context, projectRoot string) ([]Todo2Task, error) {
+	return loadTasksByStatus(ctx, projectRoot, database.StatusInProgress)
 }
 
 var wordTokenRe = regexp.MustCompile(`[a-zA-Z0-9_]{2,}`)

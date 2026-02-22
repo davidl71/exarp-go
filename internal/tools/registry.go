@@ -869,12 +869,17 @@ func registerBatch2Tools(server framework.MCPServer) error {
 	// T-34b: infer_task_progress
 	if err := server.RegisterTool(
 		"infer_task_progress",
-		"[HINT: Analyze In Progress tasks against codebase to infer completions. Use when checking if tasks are already done. dry_run, auto_update_tasks.]",
+		"[HINT: Analyze tasks against codebase to infer completions. status_filter (default: In Progress) can be set to Todo, Review, etc. Use when checking if tasks are already done. dry_run, auto_update_tasks.]",
 		framework.ToolSchema{
 			Type: "object",
 			Properties: map[string]interface{}{
 				"project_root": map[string]interface{}{
 					"type": "string",
+				},
+				"status_filter": map[string]interface{}{
+					"type":        "string",
+					"default":     "In Progress",
+					"description": "Filter tasks by status (Todo, In Progress, Review, Done, Cancelled). Default: In Progress",
 				},
 				"scan_depth": map[string]interface{}{
 					"type":    "number",

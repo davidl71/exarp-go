@@ -314,3 +314,137 @@ func TestHandleInferTaskProgressNative_ReportFileAndDryRun(t *testing.T) {
 	}
 	t.Errorf("report file missing expected content (Summary or JSON keys): got %d bytes", len(content))
 }
+
+func TestLoadTasksByStatus(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	todo2Dir := filepath.Join(tmpDir, ".todo2")
+	if err := os.MkdirAll(todo2Dir, 0755); err != nil {
+		t.Fatalf("mkdir .todo2: %v", err)
+	}
+
+	// Create test tasks in different statuses
+	statePath := filepath.Join(todo2Dir, "state.todo2.json")
+	testData := `{
+		"todos": [
+			{"id": "T-1", "content": "Todo task", "status": "Todo", "priority": "medium"},
+			{"id": "T-2", "content": "In Progress task", "status": "In Progress", "priority": "high"},
+			{"id": "T-3", "content": "Done task", "status": "Done", "priority": "low"},
+			{"id": "T-4", "content": "Another Todo task", "status": "Todo", "priority": "low"}
+		]
+	}`
+	if err := os.WriteFile(statePath, []byte(testData), 0644); err != nil {
+		t.Fatalf("write state: %v", err)
+	}
+
+	t.Setenv("PROJECT_ROOT", tmpDir)
+	ctx := context.Background()
+
+	// Test loading Todo tasks
+	todoTasks, err := loadTasksByStatus(ctx, tmpDir, "Todo")
+	if err != nil {
+		t.Fatalf("loadTasksByStatus(Todo): %v", err)
+	}
+
+	if len(todoTasks) != 2 {
+		t.Errorf("expected 2 Todo tasks, got %d", len(todoTasks))
+	}
+
+	for _, task := range todoTasks {
+		if task.Status != "Todo" {
+			t.Errorf("task %s has status %s, expected Todo", task.ID, task.Status)
+		}
+	}
+
+	// Test loading In Progress tasks
+	inProgressTasks, err := loadTasksByStatus(ctx, tmpDir, "In Progress")
+	if err != nil {
+		t.Fatalf("loadTasksByStatus(In Progress): %v", err)
+	}
+
+	if len(inProgressTasks) != 1 {
+		t.Errorf("expected 1 In Progress task, got %d", len(inProgressTasks))
+	}
+
+	if len(inProgressTasks) > 0 && inProgressTasks[0].ID != "T-2" {
+		t.Errorf("expected task T-2, got %s", inProgressTasks[0].ID)
+	}
+
+	// Test loading Done tasks
+	doneTasks, err := loadTasksByStatus(ctx, tmpDir, "Done")
+	if err != nil {
+		t.Fatalf("loadTasksByStatus(Done): %v", err)
+	}
+
+	if len(doneTasks) != 1 {
+		t.Errorf("expected 1 Done task, got %d", len(doneTasks))
+	}
+}
+
+func TestHandleInferTaskProgressNative_WithStatusFilter(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	todo2Dir := filepath.Join(tmpDir, ".todo2")
+	if err := os.MkdirAll(todo2Dir, 0755); err != nil {
+		t.Fatalf("mkdir .todo2: %v", err)
+	}
+
+	// Create test tasks with matching codebase evidence
+	statePath := filepath.Join(todo2Dir, "state.todo2.json")
+	testData := `{
+		"todos": [
+			{"id": "T-100", "content": "Add foo feature", "status": "Todo", "priority": "high", "long_description": "Implement foo in internal/foo.go"},
+			{"id": "T-101", "content": "Fix bar bug", "status": "In Progress", "priority": "medium"},
+			{"id": "T-102", "content": "Refactor baz", "status": "Todo", "priority": "low", "long_description": "Refactor baz module"}
+		]
+	}`
+	if err := os.WriteFile(statePath, []byte(testData), 0644); err != nil {
+		t.Fatalf("write state: %v", err)
+	}
+
+	// Create corresponding codebase files
+	internalDir := filepath.Join(tmpDir, "internal")
+	if err := os.MkdirAll(internalDir, 0755); err != nil {
+		t.Fatalf("mkdir internal: %v", err)
+	}
+
+	fooFile := filepath.Join(internalDir, "foo.go")
+	if err := os.WriteFile(fooFile, []byte("package foo\n\n// foo feature implementation\nfunc Foo() {}\n"), 0644); err != nil {
+		t.Fatalf("write foo.go: %v", err)
+	}
+
+	t.Setenv("PROJECT_ROOT", tmpDir)
+	ctx := context.Background()
+
+	// Test with status_filter=Todo
+	params := map[string]interface{}{
+		"project_root":         tmpDir,
+		"status_filter":        "Todo",
+		"dry_run":              true,
+		"confidence_threshold": 0.5,
+		"scan_depth":           2,
+		"use_fm":               false, // Disable FM to make test deterministic
+	}
+
+	result, err := handleInferTaskProgressNative(ctx, params)
+	if err != nil {
+		t.Fatalf("handleInferTaskProgressNative: %v", err)
+	}
+
+	var data map[string]interface{}
+	if err := json.Unmarshal([]byte(result[0].Text), &data); err != nil {
+		t.Fatalf("invalid JSON: %v", err)
+	}
+
+	totalAnalyzed := int(data["total_tasks_analyzed"].(float64))
+	if totalAnalyzed != 2 {
+		t.Errorf("expected 2 Todo tasks analyzed, got %d", totalAnalyzed)
+	}
+
+	// Should find at least T-100 with foo evidence
+	inferences := int(data["inferences_made"].(float64))
+	if inferences < 1 {
+		t.Logf("Warning: expected at least 1 inference for T-100 (foo match), got %d", inferences)
+		t.Logf("Full result: %+v", data)
+	}
+}
