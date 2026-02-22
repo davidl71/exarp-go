@@ -5,13 +5,14 @@
 .cursor/mcp.json.backup*
 .cursor/plans/
 .todo2/
+.todo2/state.todo2.json
+.todo2/todo2.db
 .make.config
 .task/
 .agentic-tools-mcp/
 
 # Exarp runtime directories (state, cache, logs, temporary files)
 .exarp/
-.todo2/
 
 # Generated reports (e.g. by analyze_alignment, pre-push hooks)
 docs/TODO2_ALIGNMENT_REPORT.md
