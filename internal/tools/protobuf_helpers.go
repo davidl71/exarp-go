@@ -1,15 +1,40 @@
-// protobuf_helpers.go — Protobuf serialization helpers for MCP request/response types.
+// protobuf_helpers.go — Protobuf helpers: Memory, Context, Report, Health, and Metrics conversions.
+// See also: protobuf_helpers_report.go, protobuf_helpers_tools.go
 package tools
 
 import (
 	"encoding/json"
 	"fmt"
-
 	"github.com/davidl71/exarp-go/proto"
 	"github.com/davidl71/mcp-go-core/pkg/mcp/request"
 	protobuf "google.golang.org/protobuf/proto"
 )
 
+// ─── Contents ───────────────────────────────────────────────────────────────
+//   ParseMemoryRequest — ParseMemoryRequest parses a memory tool request (protobuf or JSON)
+//   MemoryRequestToParams — MemoryRequestToParams converts a protobuf MemoryRequest to params map for compatibility
+//   MemoryToProto — MemoryToProto converts a Memory to protobuf Memory.
+//   ProtoToMemory — ProtoToMemory converts a protobuf Memory to Memory.
+//   SerializeMemoryToProtobuf — SerializeMemoryToProtobuf marshals a Memory to its protobuf binary representation.
+//   DeserializeMemoryFromProtobuf — DeserializeMemoryFromProtobuf unmarshals protobuf binary data into a Memory.
+//   MemoryResponseToMap — MemoryResponseToMap converts MemoryResponse proto to map for response.FormatResult.
+//   ParseContextRequest — ParseContextRequest parses a context tool request (protobuf or JSON)
+//   ContextRequestToParams — ContextRequestToParams converts a protobuf ContextRequest to params map for compatibility
+//   ParseContextItems — ParseContextItems parses items from protobuf request or JSON string
+//   ContextItemToDataString — ContextItemToDataString extracts data string from ContextItem
+//   ParseReportRequest — ParseReportRequest parses a report tool request (protobuf or JSON).
+//   ReportRequestToParams — ReportRequestToParams converts a protobuf ReportRequest to params map
+//   ProjectInfoToProto — ProjectInfoToProto converts map[string]interface{} to proto.ProjectInfo.
+//   ProtoToProjectInfo — ProtoToProjectInfo converts proto.ProjectInfo to map[string]interface{}.
+//   HealthDataToProto — HealthDataToProto converts map[string]interface{} to proto.HealthData.
+//   ProtoToHealthData — ProtoToHealthData converts proto.HealthData to map[string]interface{}.
+//   CodebaseMetricsToProto — CodebaseMetricsToProto converts map[string]interface{} to proto.CodebaseMetrics.
+//   ProtoToCodebaseMetrics — ProtoToCodebaseMetrics converts proto.CodebaseMetrics to map[string]interface{}.
+//   TaskMetricsToProto — TaskMetricsToProto converts map[string]interface{} to proto.TaskMetrics.
+//   ProtoToTaskMetrics — ProtoToTaskMetrics converts proto.TaskMetrics to map[string]interface{}.
+// ────────────────────────────────────────────────────────────────────────────
+
+// ─── ParseMemoryRequest ─────────────────────────────────────────────────────
 // ParseMemoryRequest parses a memory tool request (protobuf or JSON)
 // Returns protobuf request if protobuf format, or nil with JSON params map.
 func ParseMemoryRequest(args json.RawMessage) (*proto.MemoryRequest, map[string]interface{}, error) {
@@ -27,6 +52,7 @@ func ParseMemoryRequest(args json.RawMessage) (*proto.MemoryRequest, map[string]
 	return nil, params, nil
 }
 
+// ─── MemoryRequestToParams ──────────────────────────────────────────────────
 // MemoryRequestToParams converts a protobuf MemoryRequest to params map for compatibility
 // This function now uses the generic ProtobufToParams converter from mcp-go-core.
 func MemoryRequestToParams(req *proto.MemoryRequest) map[string]interface{} {
@@ -47,6 +73,7 @@ func MemoryRequestToParams(req *proto.MemoryRequest) map[string]interface{} {
 	return params
 }
 
+// ─── MemoryToProto ──────────────────────────────────────────────────────────
 // MemoryToProto converts a Memory to protobuf Memory.
 func MemoryToProto(memory *Memory) (*proto.Memory, error) {
 	if memory == nil {
@@ -89,6 +116,7 @@ func MemoryToProto(memory *Memory) (*proto.Memory, error) {
 	return pbMemory, nil
 }
 
+// ─── ProtoToMemory ──────────────────────────────────────────────────────────
 // ProtoToMemory converts a protobuf Memory to Memory.
 func ProtoToMemory(pbMemory *proto.Memory) (*Memory, error) {
 	if pbMemory == nil {
@@ -123,6 +151,7 @@ func ProtoToMemory(pbMemory *proto.Memory) (*Memory, error) {
 	return memory, nil
 }
 
+// ─── SerializeMemoryToProtobuf ──────────────────────────────────────────────
 // SerializeMemoryToProtobuf marshals a Memory to its protobuf binary representation.
 func SerializeMemoryToProtobuf(memory *Memory) ([]byte, error) {
 	pbMemory, err := MemoryToProto(memory)
@@ -133,6 +162,7 @@ func SerializeMemoryToProtobuf(memory *Memory) ([]byte, error) {
 	return protobuf.Marshal(pbMemory)
 }
 
+// ─── DeserializeMemoryFromProtobuf ──────────────────────────────────────────
 // DeserializeMemoryFromProtobuf unmarshals protobuf binary data into a Memory.
 func DeserializeMemoryFromProtobuf(data []byte) (*Memory, error) {
 	pbMemory := &proto.Memory{}
@@ -143,6 +173,7 @@ func DeserializeMemoryFromProtobuf(data []byte) (*Memory, error) {
 	return ProtoToMemory(pbMemory)
 }
 
+// ─── MemoryResponseToMap ────────────────────────────────────────────────────
 // MemoryResponseToMap converts MemoryResponse proto to map for response.FormatResult.
 func MemoryResponseToMap(resp *proto.MemoryResponse) map[string]interface{} {
 	if resp == nil {
@@ -214,6 +245,7 @@ func MemoryResponseToMap(resp *proto.MemoryResponse) map[string]interface{} {
 	return out
 }
 
+// ─── ParseContextRequest ────────────────────────────────────────────────────
 // ParseContextRequest parses a context tool request (protobuf or JSON)
 // Returns protobuf request if protobuf format, or nil with JSON params map.
 func ParseContextRequest(args json.RawMessage) (*proto.ContextRequest, map[string]interface{}, error) {
@@ -231,6 +263,7 @@ func ParseContextRequest(args json.RawMessage) (*proto.ContextRequest, map[strin
 	return nil, params, nil
 }
 
+// ─── ContextRequestToParams ─────────────────────────────────────────────────
 // ContextRequestToParams converts a protobuf ContextRequest to params map for compatibility
 // This function now uses the generic ProtobufToParams converter from mcp-go-core.
 func ContextRequestToParams(req *proto.ContextRequest) map[string]interface{} {
@@ -251,6 +284,7 @@ func ContextRequestToParams(req *proto.ContextRequest) map[string]interface{} {
 	return params
 }
 
+// ─── ParseContextItems ──────────────────────────────────────────────────────
 // ParseContextItems parses items from protobuf request or JSON string
 // Returns array of ContextItem-like structures for easier processing.
 func ParseContextItems(itemsRaw interface{}) ([]*proto.ContextItem, error) {
@@ -328,12 +362,14 @@ func ParseContextItems(itemsRaw interface{}) ([]*proto.ContextItem, error) {
 	return contextItems, nil
 }
 
+// ─── ContextItemToDataString ────────────────────────────────────────────────
 // ContextItemToDataString extracts data string from ContextItem
 // Helper function to simplify data extraction.
 func ContextItemToDataString(item *proto.ContextItem) string {
 	return item.Data
 }
 
+// ─── ParseReportRequest ─────────────────────────────────────────────────────
 // ParseReportRequest parses a report tool request (protobuf or JSON).
 func ParseReportRequest(args json.RawMessage) (*proto.ReportRequest, map[string]interface{}, error) {
 	req, params, err := request.ParseRequest(args, func() *proto.ReportRequest {
@@ -350,6 +386,7 @@ func ParseReportRequest(args json.RawMessage) (*proto.ReportRequest, map[string]
 	return nil, params, nil
 }
 
+// ─── ReportRequestToParams ──────────────────────────────────────────────────
 // ReportRequestToParams converts a protobuf ReportRequest to params map
 // This function now uses the generic ProtobufToParams converter from mcp-go-core.
 func ReportRequestToParams(req *proto.ReportRequest) map[string]interface{} {
@@ -370,6 +407,7 @@ func ReportRequestToParams(req *proto.ReportRequest) map[string]interface{} {
 	return params
 }
 
+// ─── ProjectInfoToProto ─────────────────────────────────────────────────────
 // ProjectInfoToProto converts map[string]interface{} to proto.ProjectInfo.
 func ProjectInfoToProto(info map[string]interface{}) *proto.ProjectInfo {
 	pb := &proto.ProjectInfo{}
@@ -396,6 +434,7 @@ func ProjectInfoToProto(info map[string]interface{}) *proto.ProjectInfo {
 	return pb
 }
 
+// ─── ProtoToProjectInfo ─────────────────────────────────────────────────────
 // ProtoToProjectInfo converts proto.ProjectInfo to map[string]interface{}.
 func ProtoToProjectInfo(pb *proto.ProjectInfo) map[string]interface{} {
 	return map[string]interface{}{
@@ -407,6 +446,7 @@ func ProtoToProjectInfo(pb *proto.ProjectInfo) map[string]interface{} {
 	}
 }
 
+// ─── HealthDataToProto ──────────────────────────────────────────────────────
 // HealthDataToProto converts map[string]interface{} to proto.HealthData.
 func HealthDataToProto(health map[string]interface{}) *proto.HealthData {
 	pb := &proto.HealthData{}
@@ -431,6 +471,7 @@ func HealthDataToProto(health map[string]interface{}) *proto.HealthData {
 	return pb
 }
 
+// ─── ProtoToHealthData ──────────────────────────────────────────────────────
 // ProtoToHealthData converts proto.HealthData to map[string]interface{}.
 func ProtoToHealthData(pb *proto.HealthData) map[string]interface{} {
 	result := map[string]interface{}{
@@ -450,6 +491,7 @@ func ProtoToHealthData(pb *proto.HealthData) map[string]interface{} {
 	return result
 }
 
+// ─── CodebaseMetricsToProto ─────────────────────────────────────────────────
 // CodebaseMetricsToProto converts map[string]interface{} to proto.CodebaseMetrics.
 func CodebaseMetricsToProto(metrics map[string]interface{}) *proto.CodebaseMetrics {
 	pb := &proto.CodebaseMetrics{}
@@ -510,6 +552,7 @@ func CodebaseMetricsToProto(metrics map[string]interface{}) *proto.CodebaseMetri
 	return pb
 }
 
+// ─── ProtoToCodebaseMetrics ─────────────────────────────────────────────────
 // ProtoToCodebaseMetrics converts proto.CodebaseMetrics to map[string]interface{}.
 func ProtoToCodebaseMetrics(pb *proto.CodebaseMetrics) map[string]interface{} {
 	return map[string]interface{}{
@@ -525,6 +568,7 @@ func ProtoToCodebaseMetrics(pb *proto.CodebaseMetrics) map[string]interface{} {
 	}
 }
 
+// ─── TaskMetricsToProto ─────────────────────────────────────────────────────
 // TaskMetricsToProto converts map[string]interface{} to proto.TaskMetrics.
 func TaskMetricsToProto(metrics map[string]interface{}) *proto.TaskMetrics {
 	pb := &proto.TaskMetrics{}
@@ -557,6 +601,7 @@ func TaskMetricsToProto(metrics map[string]interface{}) *proto.TaskMetrics {
 	return pb
 }
 
+// ─── ProtoToTaskMetrics ─────────────────────────────────────────────────────
 // ProtoToTaskMetrics converts proto.TaskMetrics to map[string]interface{}.
 func ProtoToTaskMetrics(pb *proto.TaskMetrics) map[string]interface{} {
 	return map[string]interface{}{
@@ -569,1154 +614,3 @@ func ProtoToTaskMetrics(pb *proto.TaskMetrics) map[string]interface{} {
 }
 
 // GoScorecardResultToProto converts GoScorecardResult to proto.ScorecardData for type-safe report/MLX path.
-func GoScorecardResultToProto(scorecard *GoScorecardResult) *proto.ScorecardData {
-	if scorecard == nil {
-		return nil
-	}
-
-	pb := &proto.ScorecardData{
-		Score:           scorecard.Score,
-		Recommendations: scorecard.Recommendations,
-		Blockers:        ExtractBlockers(scorecard),
-		TestCoverage:    scorecard.Health.GoTestCoverage,
-		ComponentScores: map[string]float64{
-			"testing":       calculateTestingScore(scorecard),
-			"security":      calculateSecurityScore(scorecard),
-			"documentation": calculateDocumentationScore(scorecard),
-			"completion":    calculateCompletionScore(scorecard),
-			"ci_cd":         calculateCICDScore(scorecard),
-		},
-		MetricsCounts: map[string]int32{
-			"go_files":      int32(scorecard.Metrics.GoFiles),
-			"go_lines":      int32(scorecard.Metrics.GoLines),
-			"go_test_files": int32(scorecard.Metrics.GoTestFiles),
-			"go_test_lines": int32(scorecard.Metrics.GoTestLines),
-			"mcp_tools":     int32(scorecard.Metrics.MCPTools),
-			"mcp_prompts":   int32(scorecard.Metrics.MCPPrompts),
-			"mcp_resources": int32(scorecard.Metrics.MCPResources),
-		},
-	}
-
-	return pb
-}
-
-// BriefingDataToMap converts proto.BriefingData to map for JSON output (same shape as legacy briefing map).
-func BriefingDataToMap(pb *proto.BriefingData) map[string]interface{} {
-	if pb == nil {
-		return make(map[string]interface{})
-	}
-
-	quotes := make([]interface{}, 0, len(pb.Quotes))
-
-	for _, q := range pb.Quotes {
-		if q == nil {
-			continue
-		}
-
-		quotes = append(quotes, map[string]interface{}{
-			"quote":         q.Quote,
-			"source":        q.Source,
-			"encouragement": q.Encouragement,
-			"wisdom_source": q.WisdomSource,
-			"wisdom_icon":   q.WisdomIcon,
-		})
-	}
-
-	return map[string]interface{}{
-		"date":    pb.Date,
-		"score":   pb.Score,
-		"quotes":  quotes,
-		"sources": pb.Sources,
-	}
-}
-
-// ProtoToScorecardMap converts proto.ScorecardData to map for MLX/JSON (same shape as GoScorecardToMap).
-func ProtoToScorecardMap(pb *proto.ScorecardData) map[string]interface{} {
-	if pb == nil {
-		return make(map[string]interface{})
-	}
-
-	scores := make(map[string]interface{})
-	for k, v := range pb.ComponentScores {
-		scores[k] = v
-	}
-
-	metrics := make(map[string]interface{})
-	for k, v := range pb.MetricsCounts {
-		metrics[k] = int(v)
-	}
-
-	metrics["test_coverage"] = pb.TestCoverage
-
-	return map[string]interface{}{
-		"overall_score":   pb.Score,
-		"scores":          scores,
-		"blockers":        pb.Blockers,
-		"recommendations": pb.Recommendations,
-		"metrics":         metrics,
-	}
-}
-
-// ProjectOverviewDataToProto converts map[string]interface{} to proto.ProjectOverviewData
-// NOTE: Currently unused - kept for potential future protobuf-based report processing.
-func ProjectOverviewDataToProto(data map[string]interface{}) *proto.ProjectOverviewData {
-	pb := &proto.ProjectOverviewData{}
-
-	if project, ok := data["project"].(map[string]interface{}); ok {
-		pb.Project = ProjectInfoToProto(project)
-	}
-
-	if health, ok := data["health"].(map[string]interface{}); ok {
-		pb.Health = HealthDataToProto(health)
-	}
-
-	if codebase, ok := data["codebase"].(map[string]interface{}); ok {
-		pb.Codebase = CodebaseMetricsToProto(codebase)
-	}
-
-	if tasks, ok := data["tasks"].(map[string]interface{}); ok {
-		pb.Tasks = TaskMetricsToProto(tasks)
-	}
-
-	if phases, ok := data["phases"].(map[string]interface{}); ok {
-		// Convert phases map to repeated ProjectPhase
-		for key, phaseRaw := range phases {
-			if phase, ok := phaseRaw.(map[string]interface{}); ok {
-				pbPhase := &proto.ProjectPhase{
-					Name: key,
-				}
-				if status, ok := phase["status"].(string); ok {
-					pbPhase.Status = status
-				}
-
-				if progress, ok := phase["progress"].(int); ok {
-					pbPhase.Progress = int32(progress)
-				} else if progress, ok := phase["progress"].(float64); ok {
-					pbPhase.Progress = int32(progress)
-				}
-
-				pb.Phases = append(pb.Phases, pbPhase)
-			}
-		}
-	}
-
-	if risks, ok := data["risks"].([]interface{}); ok {
-		for _, riskRaw := range risks {
-			if risk, ok := riskRaw.(map[string]interface{}); ok {
-				pbRisk := &proto.RiskOrBlocker{}
-				if typ, ok := risk["type"].(string); ok {
-					pbRisk.Type = typ
-				}
-
-				if desc, ok := risk["description"].(string); ok {
-					pbRisk.Description = desc
-				}
-
-				if taskID, ok := risk["task_id"].(string); ok {
-					pbRisk.TaskId = taskID
-				}
-
-				if priority, ok := risk["priority"].(string); ok {
-					pbRisk.Priority = priority
-				}
-
-				pb.Risks = append(pb.Risks, pbRisk)
-			}
-		}
-	}
-
-	if actions, ok := data["next_actions"].([]interface{}); ok {
-		for _, actionRaw := range actions {
-			if action, ok := actionRaw.(map[string]interface{}); ok {
-				pbAction := &proto.NextAction{}
-				if taskID, ok := action["task_id"].(string); ok {
-					pbAction.TaskId = taskID
-				}
-
-				if name, ok := action["name"].(string); ok {
-					pbAction.Name = name
-				}
-
-				if priority, ok := action["priority"].(string); ok {
-					pbAction.Priority = priority
-				}
-
-				if hours, ok := action["estimated_hours"].(float64); ok {
-					pbAction.EstimatedHours = hours
-				}
-
-				pb.NextActions = append(pb.NextActions, pbAction)
-			}
-		}
-	}
-
-	if generatedAt, ok := data["generated_at"].(string); ok {
-		pb.GeneratedAt = generatedAt
-	}
-
-	return pb
-}
-
-// ProtoToProjectOverviewData converts proto.ProjectOverviewData to map[string]interface{}
-// NOTE: Currently unused - kept for potential future protobuf-based report processing.
-func ProtoToProjectOverviewData(pb *proto.ProjectOverviewData) map[string]interface{} {
-	data := make(map[string]interface{})
-
-	if pb.Project != nil {
-		data["project"] = ProtoToProjectInfo(pb.Project)
-	}
-
-	if pb.Health != nil {
-		data["health"] = ProtoToHealthData(pb.Health)
-	}
-
-	if pb.Codebase != nil {
-		data["codebase"] = ProtoToCodebaseMetrics(pb.Codebase)
-	}
-
-	if pb.Tasks != nil {
-		data["tasks"] = ProtoToTaskMetrics(pb.Tasks)
-	}
-
-	if len(pb.Phases) > 0 {
-		phases := make(map[string]interface{})
-		for _, phase := range pb.Phases {
-			phases[phase.Name] = map[string]interface{}{
-				"name":     phase.Name,
-				"status":   phase.Status,
-				"progress": int(phase.Progress),
-			}
-		}
-
-		data["phases"] = phases
-	}
-
-	if len(pb.Risks) > 0 {
-		risks := make([]interface{}, 0, len(pb.Risks))
-		for _, risk := range pb.Risks {
-			risks = append(risks, map[string]interface{}{
-				"type":        risk.Type,
-				"description": risk.Description,
-				"task_id":     risk.TaskId,
-				"priority":    risk.Priority,
-			})
-		}
-
-		data["risks"] = risks
-	}
-
-	if len(pb.NextActions) > 0 {
-		actions := make([]interface{}, 0, len(pb.NextActions))
-		for _, action := range pb.NextActions {
-			actions = append(actions, map[string]interface{}{
-				"task_id":         action.TaskId,
-				"name":            action.Name,
-				"priority":        action.Priority,
-				"estimated_hours": action.EstimatedHours,
-			})
-		}
-
-		data["next_actions"] = actions
-	}
-
-	if pb.GeneratedAt != "" {
-		data["generated_at"] = pb.GeneratedAt
-	}
-
-	return data
-}
-
-// ParseTaskWorkflowRequest parses a task_workflow tool request (protobuf or JSON).
-func ParseTaskWorkflowRequest(args json.RawMessage) (*proto.TaskWorkflowRequest, map[string]interface{}, error) {
-	req, params, err := request.ParseRequest(args, func() *proto.TaskWorkflowRequest {
-		return &proto.TaskWorkflowRequest{}
-	})
-	if err != nil {
-		return nil, nil, err
-	}
-
-	if req != nil {
-		return req, nil, nil
-	}
-
-	return nil, params, nil
-}
-
-// TaskWorkflowRequestToParams converts a protobuf TaskWorkflowRequest to params map
-// This function now uses the generic ProtobufToParams converter from mcp-go-core
-// to eliminate repetitive field-by-field conversion code.
-func TaskWorkflowRequestToParams(req *proto.TaskWorkflowRequest) map[string]interface{} {
-	if req == nil {
-		return make(map[string]interface{})
-	}
-
-	// Use generic converter with options matching existing behavior
-	params, err := request.ProtobufToParams(req, &request.ProtobufToParamsOptions{
-		FilterEmptyStrings:  true, // Filter empty strings and zero numbers
-		StringifyArrays:     true, // Convert arrays to JSON strings
-		ConvertFloat64ToInt: true, // Convert stale_threshold_hours from float64 to int
-		Float64ToIntFields:  []string{"stale_threshold_hours"},
-	})
-	if err != nil {
-		// Fallback to empty map if conversion fails (shouldn't happen in practice)
-		return make(map[string]interface{})
-	}
-
-	return params
-}
-
-// ParseHealthRequest parses a health tool request (protobuf or JSON).
-func ParseHealthRequest(args json.RawMessage) (*proto.HealthRequest, map[string]interface{}, error) {
-	req, params, err := request.ParseRequest(args, func() *proto.HealthRequest {
-		return &proto.HealthRequest{}
-	})
-	if err != nil {
-		return nil, nil, err
-	}
-
-	if req != nil {
-		return req, nil, nil
-	}
-
-	return nil, params, nil
-}
-
-// HealthRequestToParams converts a protobuf HealthRequest to params map
-// This function now uses the generic ProtobufToParams converter from mcp-go-core.
-func HealthRequestToParams(req *proto.HealthRequest) map[string]interface{} {
-	if req == nil {
-		return make(map[string]interface{})
-	}
-
-	params, err := request.ProtobufToParams(req, &request.ProtobufToParamsOptions{
-		FilterEmptyStrings: true,
-		StringifyArrays:    false,
-	})
-	if err != nil {
-		return make(map[string]interface{})
-	}
-
-	return params
-}
-
-// ParseSecurityRequest parses a security tool request (protobuf or JSON).
-func ParseSecurityRequest(args json.RawMessage) (*proto.SecurityRequest, map[string]interface{}, error) {
-	req, params, err := request.ParseRequest(args, func() *proto.SecurityRequest {
-		return &proto.SecurityRequest{}
-	})
-	if err != nil {
-		return nil, nil, err
-	}
-
-	if req != nil {
-		return req, nil, nil
-	}
-
-	return nil, params, nil
-}
-
-// SecurityRequestToParams converts a protobuf SecurityRequest to params map
-// This function now uses the generic ProtobufToParams converter from mcp-go-core.
-func SecurityRequestToParams(req *proto.SecurityRequest) map[string]interface{} {
-	if req == nil {
-		return make(map[string]interface{})
-	}
-
-	params, err := request.ProtobufToParams(req, &request.ProtobufToParamsOptions{
-		FilterEmptyStrings: true,
-		StringifyArrays:    true, // Languages is an array
-	})
-	if err != nil {
-		return make(map[string]interface{})
-	}
-
-	return params
-}
-
-// ParseInferSessionModeRequest parses an infer_session_mode request (protobuf or JSON).
-func ParseInferSessionModeRequest(args json.RawMessage) (*proto.InferSessionModeRequest, map[string]interface{}, error) {
-	req, params, err := request.ParseRequest(args, func() *proto.InferSessionModeRequest {
-		return &proto.InferSessionModeRequest{}
-	})
-	if err != nil {
-		return nil, nil, err
-	}
-
-	if req != nil {
-		return req, nil, nil
-	}
-
-	return nil, params, nil
-}
-
-// InferSessionModeRequestToParams converts a protobuf InferSessionModeRequest to params map
-// This function now uses the generic ProtobufToParams converter from mcp-go-core.
-func InferSessionModeRequestToParams(req *proto.InferSessionModeRequest) map[string]interface{} {
-	if req == nil {
-		return make(map[string]interface{})
-	}
-
-	params, err := request.ProtobufToParams(req, &request.ProtobufToParamsOptions{
-		FilterEmptyStrings: true,
-		StringifyArrays:    false,
-	})
-	if err != nil {
-		return make(map[string]interface{})
-	}
-
-	return params
-}
-
-// ParseToolCatalogRequest parses a tool_catalog request (protobuf or JSON).
-func ParseToolCatalogRequest(args json.RawMessage) (*proto.ToolCatalogRequest, map[string]interface{}, error) {
-	req, params, err := request.ParseRequest(args, func() *proto.ToolCatalogRequest {
-		return &proto.ToolCatalogRequest{}
-	})
-	if err != nil {
-		return nil, nil, err
-	}
-
-	if req != nil {
-		return req, nil, nil
-	}
-
-	return nil, params, nil
-}
-
-// ToolCatalogRequestToParams converts a protobuf ToolCatalogRequest to params map
-// This function now uses the generic ProtobufToParams converter from mcp-go-core.
-func ToolCatalogRequestToParams(req *proto.ToolCatalogRequest) map[string]interface{} {
-	if req == nil {
-		return make(map[string]interface{})
-	}
-
-	params, err := request.ProtobufToParams(req, &request.ProtobufToParamsOptions{
-		FilterEmptyStrings: true,
-		StringifyArrays:    false,
-	})
-	if err != nil {
-		return make(map[string]interface{})
-	}
-
-	return params
-}
-
-// ParseWorkflowModeRequest parses a workflow_mode request (protobuf or JSON).
-func ParseWorkflowModeRequest(args json.RawMessage) (*proto.WorkflowModeRequest, map[string]interface{}, error) {
-	req, params, err := request.ParseRequest(args, func() *proto.WorkflowModeRequest {
-		return &proto.WorkflowModeRequest{}
-	})
-	if err != nil {
-		return nil, nil, err
-	}
-
-	if req != nil {
-		return req, nil, nil
-	}
-
-	return nil, params, nil
-}
-
-// WorkflowModeRequestToParams converts a protobuf WorkflowModeRequest to params map
-// This function now uses the generic ProtobufToParams converter from mcp-go-core.
-func WorkflowModeRequestToParams(req *proto.WorkflowModeRequest) map[string]interface{} {
-	if req == nil {
-		return make(map[string]interface{})
-	}
-
-	params, err := request.ProtobufToParams(req, &request.ProtobufToParamsOptions{
-		FilterEmptyStrings: true,
-		StringifyArrays:    false,
-	})
-	if err != nil {
-		return make(map[string]interface{})
-	}
-
-	return params
-}
-
-// ParseEstimationRequest parses an estimation request (protobuf or JSON).
-func ParseEstimationRequest(args json.RawMessage) (*proto.EstimationRequest, map[string]interface{}, error) {
-	req, params, err := request.ParseRequest(args, func() *proto.EstimationRequest {
-		return &proto.EstimationRequest{}
-	})
-	if err != nil {
-		return nil, nil, err
-	}
-
-	if req != nil {
-		return req, nil, nil
-	}
-
-	return nil, params, nil
-}
-
-// EstimationRequestToParams converts a protobuf EstimationRequest to params map
-// This function now uses the generic ProtobufToParams converter from mcp-go-core.
-func EstimationRequestToParams(req *proto.EstimationRequest) map[string]interface{} {
-	if req == nil {
-		return make(map[string]interface{})
-	}
-
-	params, err := request.ProtobufToParams(req, &request.ProtobufToParamsOptions{
-		FilterEmptyStrings:  true,
-		StringifyArrays:     true,  // TagList is an array
-		ConvertFloat64ToInt: false, // Keep mlx_weight as float64 (it's a weight, not a count)
-	})
-	if err != nil {
-		return make(map[string]interface{})
-	}
-
-	// Ensure local_ai_backend is in params when set (proto field 11)
-	if b := req.GetLocalAiBackend(); b != "" {
-		params["local_ai_backend"] = b
-	}
-	return params
-}
-
-// ParseSessionRequest parses a session request (protobuf or JSON).
-func ParseSessionRequest(args json.RawMessage) (*proto.SessionRequest, map[string]interface{}, error) {
-	req, params, err := request.ParseRequest(args, func() *proto.SessionRequest {
-		return &proto.SessionRequest{}
-	})
-	if err != nil {
-		return nil, nil, err
-	}
-
-	if req != nil {
-		return req, nil, nil
-	}
-
-	return nil, params, nil
-}
-
-// SessionRequestToParams converts a protobuf SessionRequest to params map
-// This function now uses the generic ProtobufToParams converter from mcp-go-core.
-func SessionRequestToParams(req *proto.SessionRequest) map[string]interface{} {
-	if req == nil {
-		return make(map[string]interface{})
-	}
-
-	params, err := request.ProtobufToParams(req, &request.ProtobufToParamsOptions{
-		FilterEmptyStrings:  true,
-		StringifyArrays:     false,
-		ConvertFloat64ToInt: true,
-		Float64ToIntFields:  []string{"limit"},
-	})
-	if err != nil {
-		return make(map[string]interface{})
-	}
-
-	return params
-}
-
-// ParseGitToolsRequest parses a git_tools request (protobuf or JSON).
-func ParseGitToolsRequest(args json.RawMessage) (*proto.GitToolsRequest, map[string]interface{}, error) {
-	req, params, err := request.ParseRequest(args, func() *proto.GitToolsRequest {
-		return &proto.GitToolsRequest{}
-	})
-	if err != nil {
-		return nil, nil, err
-	}
-
-	if req != nil {
-		return req, nil, nil
-	}
-
-	return nil, params, nil
-}
-
-// GitToolsRequestToParams converts a protobuf GitToolsRequest to params map
-// This function now uses the generic ProtobufToParams converter from mcp-go-core.
-func GitToolsRequestToParams(req *proto.GitToolsRequest) map[string]interface{} {
-	if req == nil {
-		return make(map[string]interface{})
-	}
-
-	params, err := request.ProtobufToParams(req, &request.ProtobufToParamsOptions{
-		FilterEmptyStrings:  true,
-		StringifyArrays:     false,
-		ConvertFloat64ToInt: true,
-		Float64ToIntFields:  []string{"limit", "max_commits"},
-	})
-	if err != nil {
-		return make(map[string]interface{})
-	}
-
-	return params
-}
-
-// GitToolsResponseToMap converts GitToolsResponse proto to map for response.FormatResult (unmarshals result_json).
-func GitToolsResponseToMap(resp *proto.GitToolsResponse) map[string]interface{} {
-	if resp == nil {
-		return nil
-	}
-
-	out := map[string]interface{}{
-		"success": resp.GetSuccess(),
-		"action":  resp.GetAction(),
-	}
-
-	if resp.GetResultJson() != "" {
-		var payload map[string]interface{}
-		if json.Unmarshal([]byte(resp.GetResultJson()), &payload) == nil {
-			for k, v := range payload {
-				out[k] = v
-			}
-		}
-	}
-
-	return out
-}
-
-// TestingResponseToMap converts TestingResponse proto to map for response.FormatResult (unmarshals result_json).
-func TestingResponseToMap(resp *proto.TestingResponse) map[string]interface{} {
-	if resp == nil {
-		return nil
-	}
-
-	out := map[string]interface{}{
-		"success": resp.GetSuccess(),
-		"action":  resp.GetAction(),
-	}
-
-	if resp.GetResultJson() != "" {
-		var payload map[string]interface{}
-		if json.Unmarshal([]byte(resp.GetResultJson()), &payload) == nil {
-			for k, v := range payload {
-				out[k] = v
-			}
-		}
-	}
-
-	return out
-}
-
-// ParseMemoryMaintRequest parses a memory_maint request (protobuf or JSON).
-func ParseMemoryMaintRequest(args json.RawMessage) (*proto.MemoryMaintRequest, map[string]interface{}, error) {
-	req, params, err := request.ParseRequest(args, func() *proto.MemoryMaintRequest {
-		return &proto.MemoryMaintRequest{}
-	})
-	if err != nil {
-		return nil, nil, err
-	}
-
-	if req != nil {
-		return req, nil, nil
-	}
-
-	return nil, params, nil
-}
-
-// MemoryMaintRequestToParams converts a protobuf MemoryMaintRequest to params map
-// This function now uses the generic ProtobufToParams converter from mcp-go-core.
-func MemoryMaintRequestToParams(req *proto.MemoryMaintRequest) map[string]interface{} {
-	if req == nil {
-		return make(map[string]interface{})
-	}
-
-	params, err := request.ProtobufToParams(req, &request.ProtobufToParamsOptions{
-		FilterEmptyStrings:  true,
-		StringifyArrays:     false,
-		ConvertFloat64ToInt: true,
-		Float64ToIntFields:  []string{"max_age_days", "scorecard_max_age_days", "keep_minimum"},
-		// Note: value_threshold and similarity_threshold remain as float64 (they're thresholds, not counts)
-	})
-	if err != nil {
-		return make(map[string]interface{})
-	}
-
-	return params
-}
-
-// ParseTaskAnalysisRequest parses a task_analysis request (protobuf or JSON).
-func ParseTaskAnalysisRequest(args json.RawMessage) (*proto.TaskAnalysisRequest, map[string]interface{}, error) {
-	req, params, err := request.ParseRequest(args, func() *proto.TaskAnalysisRequest {
-		return &proto.TaskAnalysisRequest{}
-	})
-	if err != nil {
-		return nil, nil, err
-	}
-
-	if req != nil {
-		return req, nil, nil
-	}
-
-	return nil, params, nil
-}
-
-// TaskAnalysisRequestToParams converts a protobuf TaskAnalysisRequest to params map
-// This function now uses the generic ProtobufToParams converter from mcp-go-core.
-func TaskAnalysisRequestToParams(req *proto.TaskAnalysisRequest) map[string]interface{} {
-	if req == nil {
-		return make(map[string]interface{})
-	}
-
-	params, err := request.ProtobufToParams(req, &request.ProtobufToParamsOptions{
-		FilterEmptyStrings:  true,
-		StringifyArrays:     false,
-		ConvertFloat64ToInt: false, // Keep similarity_threshold as float64 (it's a threshold, not a count)
-	})
-	if err != nil {
-		return make(map[string]interface{})
-	}
-
-	return params
-}
-
-// ParseTaskDiscoveryRequest parses a task_discovery request (protobuf or JSON).
-func ParseTaskDiscoveryRequest(args json.RawMessage) (*proto.TaskDiscoveryRequest, map[string]interface{}, error) {
-	req, params, err := request.ParseRequest(args, func() *proto.TaskDiscoveryRequest {
-		return &proto.TaskDiscoveryRequest{}
-	})
-	if err != nil {
-		return nil, nil, err
-	}
-
-	if req != nil {
-		return req, nil, nil
-	}
-
-	return nil, params, nil
-}
-
-// TaskDiscoveryRequestToParams converts a protobuf TaskDiscoveryRequest to params map
-// This function now uses the generic ProtobufToParams converter from mcp-go-core.
-func TaskDiscoveryRequestToParams(req *proto.TaskDiscoveryRequest) map[string]interface{} {
-	if req == nil {
-		return make(map[string]interface{})
-	}
-
-	params, err := request.ProtobufToParams(req, &request.ProtobufToParamsOptions{
-		FilterEmptyStrings: true,
-		StringifyArrays:    false,
-	})
-	if err != nil {
-		return make(map[string]interface{})
-	}
-
-	return params
-}
-
-// ParseOllamaRequest parses an ollama request (protobuf or JSON).
-func ParseOllamaRequest(args json.RawMessage) (*proto.OllamaRequest, map[string]interface{}, error) {
-	req, params, err := request.ParseRequest(args, func() *proto.OllamaRequest {
-		return &proto.OllamaRequest{}
-	})
-	if err != nil {
-		return nil, nil, err
-	}
-
-	if req != nil {
-		return req, nil, nil
-	}
-
-	return nil, params, nil
-}
-
-// OllamaRequestToParams converts a protobuf OllamaRequest to params map
-// This function now uses the generic ProtobufToParams converter from mcp-go-core.
-func OllamaRequestToParams(req *proto.OllamaRequest) map[string]interface{} {
-	if req == nil {
-		return make(map[string]interface{})
-	}
-
-	params, err := request.ProtobufToParams(req, &request.ProtobufToParamsOptions{
-		FilterEmptyStrings:  true,
-		StringifyArrays:     false,
-		ConvertFloat64ToInt: true,
-		Float64ToIntFields:  []string{"num_gpu", "num_threads", "context_size"},
-	})
-	if err != nil {
-		return make(map[string]interface{})
-	}
-
-	return params
-}
-
-// ParseMlxRequest parses an mlx request (protobuf or JSON).
-func ParseMlxRequest(args json.RawMessage) (*proto.MLXRequest, map[string]interface{}, error) {
-	req, params, err := request.ParseRequest(args, func() *proto.MLXRequest {
-		return &proto.MLXRequest{}
-	})
-	if err != nil {
-		return nil, nil, err
-	}
-
-	if req != nil {
-		return req, nil, nil
-	}
-
-	return nil, params, nil
-}
-
-// MlxRequestToParams converts a protobuf MlxRequest to params map
-// This function now uses the generic ProtobufToParams converter from mcp-go-core.
-func MlxRequestToParams(req *proto.MLXRequest) map[string]interface{} {
-	if req == nil {
-		return make(map[string]interface{})
-	}
-
-	params, err := request.ProtobufToParams(req, &request.ProtobufToParamsOptions{
-		FilterEmptyStrings:  true,
-		StringifyArrays:     false,
-		ConvertFloat64ToInt: true,
-		Float64ToIntFields:  []string{"max_tokens"},
-		// Note: temperature remains as float64 (it's a threshold, not a count)
-	})
-	if err != nil {
-		return make(map[string]interface{})
-	}
-
-	return params
-}
-
-// ParsePromptTrackingRequest parses a prompt_tracking request (protobuf or JSON).
-func ParsePromptTrackingRequest(args json.RawMessage) (*proto.PromptTrackingRequest, map[string]interface{}, error) {
-	req, params, err := request.ParseRequest(args, func() *proto.PromptTrackingRequest {
-		return &proto.PromptTrackingRequest{}
-	})
-	if err != nil {
-		return nil, nil, err
-	}
-
-	if req != nil {
-		return req, nil, nil
-	}
-
-	return nil, params, nil
-}
-
-// PromptTrackingRequestToParams converts a protobuf PromptTrackingRequest to params map
-// This function now uses the generic ProtobufToParams converter from mcp-go-core.
-func PromptTrackingRequestToParams(req *proto.PromptTrackingRequest) map[string]interface{} {
-	if req == nil {
-		return make(map[string]interface{})
-	}
-
-	params, err := request.ProtobufToParams(req, &request.ProtobufToParamsOptions{
-		FilterEmptyStrings:  true,
-		StringifyArrays:     false,
-		ConvertFloat64ToInt: true,
-		Float64ToIntFields:  []string{"iteration", "days"},
-	})
-	if err != nil {
-		return make(map[string]interface{})
-	}
-
-	return params
-}
-
-// ParseRecommendRequest parses a recommend request (protobuf or JSON).
-func ParseRecommendRequest(args json.RawMessage) (*proto.RecommendRequest, map[string]interface{}, error) {
-	req, params, err := request.ParseRequest(args, func() *proto.RecommendRequest {
-		return &proto.RecommendRequest{}
-	})
-	if err != nil {
-		return nil, nil, err
-	}
-
-	if req != nil {
-		return req, nil, nil
-	}
-
-	return nil, params, nil
-}
-
-// RecommendRequestToParams converts a protobuf RecommendRequest to params map
-// This function now uses the generic ProtobufToParams converter from mcp-go-core.
-func RecommendRequestToParams(req *proto.RecommendRequest) map[string]interface{} {
-	if req == nil {
-		return make(map[string]interface{})
-	}
-
-	params, err := request.ProtobufToParams(req, &request.ProtobufToParamsOptions{
-		FilterEmptyStrings: true,
-		StringifyArrays:    false,
-	})
-	if err != nil {
-		return make(map[string]interface{})
-	}
-
-	return params
-}
-
-// ParseAnalyzeAlignmentRequest parses an analyze_alignment request (protobuf or JSON).
-func ParseAnalyzeAlignmentRequest(args json.RawMessage) (*proto.AnalyzeAlignmentRequest, map[string]interface{}, error) {
-	req, params, err := request.ParseRequest(args, func() *proto.AnalyzeAlignmentRequest {
-		return &proto.AnalyzeAlignmentRequest{}
-	})
-	if err != nil {
-		return nil, nil, err
-	}
-
-	if req != nil {
-		return req, nil, nil
-	}
-
-	return nil, params, nil
-}
-
-// AnalyzeAlignmentRequestToParams converts a protobuf AnalyzeAlignmentRequest to params map
-// This function now uses the generic ProtobufToParams converter from mcp-go-core.
-func AnalyzeAlignmentRequestToParams(req *proto.AnalyzeAlignmentRequest) map[string]interface{} {
-	if req == nil {
-		return make(map[string]interface{})
-	}
-
-	params, err := request.ProtobufToParams(req, &request.ProtobufToParamsOptions{
-		FilterEmptyStrings: true,
-		StringifyArrays:    false,
-	})
-	if err != nil {
-		return make(map[string]interface{})
-	}
-
-	return params
-}
-
-// ParseGenerateConfigRequest parses a generate_config request (protobuf or JSON).
-func ParseGenerateConfigRequest(args json.RawMessage) (*proto.GenerateConfigRequest, map[string]interface{}, error) {
-	req, params, err := request.ParseRequest(args, func() *proto.GenerateConfigRequest {
-		return &proto.GenerateConfigRequest{}
-	})
-	if err != nil {
-		return nil, nil, err
-	}
-
-	if req != nil {
-		return req, nil, nil
-	}
-
-	return nil, params, nil
-}
-
-// GenerateConfigRequestToParams converts a protobuf GenerateConfigRequest to params map
-// This function now uses the generic ProtobufToParams converter from mcp-go-core.
-func GenerateConfigRequestToParams(req *proto.GenerateConfigRequest) map[string]interface{} {
-	if req == nil {
-		return make(map[string]interface{})
-	}
-
-	params, err := request.ProtobufToParams(req, &request.ProtobufToParamsOptions{
-		FilterEmptyStrings: true,
-		StringifyArrays:    false,
-	})
-	if err != nil {
-		return make(map[string]interface{})
-	}
-
-	return params
-}
-
-// ParseSetupHooksRequest parses a setup_hooks request (protobuf or JSON).
-func ParseSetupHooksRequest(args json.RawMessage) (*proto.SetupHooksRequest, map[string]interface{}, error) {
-	req, params, err := request.ParseRequest(args, func() *proto.SetupHooksRequest {
-		return &proto.SetupHooksRequest{}
-	})
-	if err != nil {
-		return nil, nil, err
-	}
-
-	if req != nil {
-		return req, nil, nil
-	}
-
-	return nil, params, nil
-}
-
-// SetupHooksRequestToParams converts a protobuf SetupHooksRequest to params map
-// This function now uses the generic ProtobufToParams converter from mcp-go-core.
-func SetupHooksRequestToParams(req *proto.SetupHooksRequest) map[string]interface{} {
-	if req == nil {
-		return make(map[string]interface{})
-	}
-
-	params, err := request.ProtobufToParams(req, &request.ProtobufToParamsOptions{
-		FilterEmptyStrings: true,
-		StringifyArrays:    true, // Hooks is an array
-	})
-	if err != nil {
-		return make(map[string]interface{})
-	}
-
-	return params
-}
-
-// ParseCheckAttributionRequest parses a check_attribution request (protobuf or JSON).
-func ParseCheckAttributionRequest(args json.RawMessage) (*proto.CheckAttributionRequest, map[string]interface{}, error) {
-	req, params, err := request.ParseRequest(args, func() *proto.CheckAttributionRequest {
-		return &proto.CheckAttributionRequest{}
-	})
-	if err != nil {
-		return nil, nil, err
-	}
-
-	if req != nil {
-		return req, nil, nil
-	}
-
-	return nil, params, nil
-}
-
-// CheckAttributionRequestToParams converts a protobuf CheckAttributionRequest to params map
-// This function now uses the generic ProtobufToParams converter from mcp-go-core.
-func CheckAttributionRequestToParams(req *proto.CheckAttributionRequest) map[string]interface{} {
-	if req == nil {
-		return make(map[string]interface{})
-	}
-
-	params, err := request.ProtobufToParams(req, &request.ProtobufToParamsOptions{
-		FilterEmptyStrings: true,
-		StringifyArrays:    false,
-	})
-	if err != nil {
-		return make(map[string]interface{})
-	}
-
-	return params
-}
-
-// ParseAddExternalToolHintsRequest parses an add_external_tool_hints request (protobuf or JSON).
-func ParseAddExternalToolHintsRequest(args json.RawMessage) (*proto.AddExternalToolHintsRequest, map[string]interface{}, error) {
-	req, params, err := request.ParseRequest(args, func() *proto.AddExternalToolHintsRequest {
-		return &proto.AddExternalToolHintsRequest{}
-	})
-	if err != nil {
-		return nil, nil, err
-	}
-
-	if req != nil {
-		return req, nil, nil
-	}
-
-	return nil, params, nil
-}
-
-// AddExternalToolHintsRequestToParams converts a protobuf AddExternalToolHintsRequest to params map
-// This function now uses the generic ProtobufToParams converter from mcp-go-core.
-func AddExternalToolHintsRequestToParams(req *proto.AddExternalToolHintsRequest) map[string]interface{} {
-	if req == nil {
-		return make(map[string]interface{})
-	}
-
-	params, err := request.ProtobufToParams(req, &request.ProtobufToParamsOptions{
-		FilterEmptyStrings:  true,
-		StringifyArrays:     false,
-		ConvertFloat64ToInt: true,
-		Float64ToIntFields:  []string{"min_file_size"},
-	})
-	if err != nil {
-		return make(map[string]interface{})
-	}
-
-	return params
-}
-
-// ParseTestingRequest parses a testing tool request (protobuf or JSON).
-func ParseTestingRequest(args json.RawMessage) (*proto.TestingRequest, map[string]interface{}, error) {
-	req, params, err := request.ParseRequest(args, func() *proto.TestingRequest {
-		return &proto.TestingRequest{}
-	})
-	if err != nil {
-		return nil, nil, err
-	}
-
-	if req != nil {
-		return req, nil, nil
-	}
-
-	return nil, params, nil
-}
-
-// TestingRequestToParams converts a protobuf TestingRequest to params map
-// This function now uses the generic ProtobufToParams converter from mcp-go-core.
-func TestingRequestToParams(req *proto.TestingRequest) map[string]interface{} {
-	if req == nil {
-		return make(map[string]interface{})
-	}
-
-	params, err := request.ProtobufToParams(req, &request.ProtobufToParamsOptions{
-		FilterEmptyStrings:  true,
-		StringifyArrays:     false,
-		ConvertFloat64ToInt: true,
-		Float64ToIntFields:  []string{"min_coverage"},
-		// Note: min_confidence remains as float64 (it's a threshold, not a count)
-	})
-	if err != nil {
-		return make(map[string]interface{})
-	}
-
-	return params
-}
-
-// ParseAutomationRequest parses an automation tool request (protobuf or JSON).
-func ParseAutomationRequest(args json.RawMessage) (*proto.AutomationRequest, map[string]interface{}, error) {
-	req, params, err := request.ParseRequest(args, func() *proto.AutomationRequest {
-		return &proto.AutomationRequest{}
-	})
-	if err != nil {
-		return nil, nil, err
-	}
-
-	if req != nil {
-		return req, nil, nil
-	}
-
-	return nil, params, nil
-}
-
-// AutomationRequestToParams converts a protobuf AutomationRequest to params map
-// This function now uses the generic ProtobufToParams converter from mcp-go-core.
-func AutomationRequestToParams(req *proto.AutomationRequest) map[string]interface{} {
-	if req == nil {
-		return make(map[string]interface{})
-	}
-
-	params, err := request.ProtobufToParams(req, &request.ProtobufToParamsOptions{
-		FilterEmptyStrings:  true,
-		StringifyArrays:     true, // Tasks and TagFilter are arrays
-		ConvertFloat64ToInt: true,
-		Float64ToIntFields:  []string{"max_tasks_per_host", "max_parallel_tasks", "max_iterations"},
-		// Note: min_value_score remains as float64 (it's a threshold, not a count)
-	})
-	if err != nil {
-		return make(map[string]interface{})
-	}
-
-	return params
-}
-
-// ParseLintRequest parses a lint tool request (protobuf or JSON).
-func ParseLintRequest(args json.RawMessage) (*proto.LintRequest, map[string]interface{}, error) {
-	req, params, err := request.ParseRequest(args, func() *proto.LintRequest {
-		return &proto.LintRequest{}
-	})
-	if err != nil {
-		return nil, nil, err
-	}
-
-	if req != nil {
-		return req, nil, nil
-	}
-
-	return nil, params, nil
-}
-
-// LintRequestToParams converts a protobuf LintRequest to params map
-// This function now uses the generic ProtobufToParams converter from mcp-go-core.
-func LintRequestToParams(req *proto.LintRequest) map[string]interface{} {
-	if req == nil {
-		return make(map[string]interface{})
-	}
-
-	params, err := request.ProtobufToParams(req, &request.ProtobufToParamsOptions{
-		FilterEmptyStrings: true,
-		StringifyArrays:    false,
-	})
-	if err != nil {
-		return make(map[string]interface{})
-	}
-
-	return params
-}

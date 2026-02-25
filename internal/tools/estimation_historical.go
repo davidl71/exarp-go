@@ -1,0 +1,452 @@
+// estimation_historical.go — Estimation historical: load tasks, build prompt, parse LLM response, EstimateWithOllama.
+package tools
+
+import (
+	"context"
+	"encoding/json"
+	"fmt"
+	"math"
+	"os"
+	"path/filepath"
+	"sort"
+	"strings"
+	"time"
+	"github.com/davidl71/exarp-go/internal/database"
+	"github.com/davidl71/exarp-go/internal/models"
+)
+
+// loadHistoricalTasks loads completed tasks from Todo2 (DB-first, then JSON fallback).
+// When the project uses SQLite, Done tasks are loaded from the database with
+// estimation columns (created, last_modified, completed_at, estimated_hours, actual_hours).
+// If the database is unavailable or returns no usable rows, falls back to .todo2/state.todo2.json.
+func loadHistoricalTasks(projectRoot string) ([]HistoricalTask, error) {
+	// Try database first (same pattern as LoadTodo2Tasks)
+	if list, err := database.GetDoneTasksForEstimation(context.Background()); err == nil && len(list) > 0 {
+		historical := make([]HistoricalTask, 0, len(list))
+
+		for _, task := range list {
+			actualHours := task.ActualHours
+			if actualHours == 0 {
+				completedAt := task.CompletedAt
+				if completedAt == "" {
+					completedAt = task.LastModified
+				}
+
+				if task.Created != "" && completedAt != "" {
+					if createdTime, err := time.Parse(time.RFC3339, task.Created); err == nil {
+						if completedTime, err := time.Parse(time.RFC3339, completedAt); err == nil {
+							duration := completedTime.Sub(createdTime)
+							calendarHours := duration.Hours()
+							days := calendarHours / 24.0
+							estimatedWorkHours := math.Min(calendarHours, days*8.0)
+							estimatedWorkHours = math.Min(16.0, estimatedWorkHours)
+							actualHours = math.Max(0.1, estimatedWorkHours)
+						}
+					}
+				}
+			}
+
+			if actualHours > 0 {
+				name := task.Content
+				if name == "" {
+					name = task.ID
+				}
+
+				historical = append(historical, HistoricalTask{
+					Name:           name,
+					Details:        task.LongDescription,
+					Tags:           task.Tags,
+					Priority:       task.Priority,
+					EstimatedHours: task.EstimatedHours,
+					ActualHours:    actualHours,
+					Created:        task.Created,
+					CompletedAt:    task.CompletedAt,
+				})
+			}
+		}
+
+		if len(historical) > 0 {
+			return historical, nil
+		}
+	}
+
+	// Fallback: load from JSON file (e.g. DB unavailable, or no estimation columns populated)
+	return loadHistoricalTasksFromJSON(projectRoot)
+}
+
+// loadHistoricalTasksFromJSON loads completed tasks from .todo2/state.todo2.json.
+// Used when the database is unavailable or returns no Done tasks with estimation data.
+func loadHistoricalTasksFromJSON(projectRoot string) ([]HistoricalTask, error) {
+	todo2Path := filepath.Join(projectRoot, ".todo2", "state.todo2.json")
+
+	data, err := os.ReadFile(todo2Path)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return []HistoricalTask{}, nil
+		}
+
+		return nil, fmt.Errorf("failed to read Todo2 file: %w", err)
+	}
+
+	var state struct {
+		Todos []HistoricalTaskData `json:"todos"`
+	}
+
+	if err := json.Unmarshal(data, &state); err != nil {
+		return nil, fmt.Errorf("failed to parse Todo2 JSON: %w", err)
+	}
+
+	historical := make([]HistoricalTask, 0)
+
+	for _, task := range state.Todos {
+		status := normalizeStatus(task.Status)
+		if status != models.StatusDone {
+			continue
+		}
+
+		actualHours := task.ActualHours
+		if actualHours == 0 {
+			completedAt := task.CompletedAt
+			if completedAt == "" {
+				completedAt = task.LastModified
+			}
+
+			if task.Created != "" && completedAt != "" {
+				if createdTime, err := time.Parse(time.RFC3339, task.Created); err == nil {
+					if completedTime, err := time.Parse(time.RFC3339, completedAt); err == nil {
+						duration := completedTime.Sub(createdTime)
+						calendarHours := duration.Hours()
+						days := calendarHours / 24.0
+						estimatedWorkHours := math.Min(calendarHours, days*8.0)
+						estimatedWorkHours = math.Min(16.0, estimatedWorkHours)
+						actualHours = math.Max(0.1, estimatedWorkHours)
+					}
+				}
+			}
+		}
+
+		if actualHours > 0 {
+			name := task.Name
+			if name == "" {
+				name = task.Content
+			}
+
+			details := task.LongDescription
+			if details == "" {
+				details = task.Details
+			}
+
+			historical = append(historical, HistoricalTask{
+				Name:           name,
+				Details:        details,
+				Tags:           task.Tags,
+				Priority:       task.Priority,
+				EstimatedHours: task.EstimatedHours,
+				ActualHours:    actualHours,
+				Created:        task.Created,
+				CompletedAt:    task.CompletedAt,
+			})
+		}
+	}
+
+	return historical, nil
+}
+
+// estimateFromHistory estimates using historical data matching.
+func estimateFromHistory(text string, tags []string, priority string, historical []HistoricalTask) (*float64, float64) {
+	type match struct {
+		actualHours float64
+		score       float64
+	}
+
+	matches := make([]match, 0)
+
+	textWords := make(map[string]bool)
+	for _, word := range strings.Fields(text) {
+		textWords[word] = true
+	}
+
+	for _, record := range historical {
+		score := 0.0
+		recordText := strings.ToLower(record.Name + " " + record.Details)
+		recordWords := make(map[string]bool)
+
+		for _, word := range strings.Fields(recordText) {
+			recordWords[word] = true
+		}
+
+		// Text similarity (word overlap)
+		if len(textWords) > 0 && len(recordWords) > 0 {
+			intersection := 0
+			union := len(textWords)
+
+			for word := range recordWords {
+				if textWords[word] {
+					intersection++
+				} else {
+					union++
+				}
+			}
+
+			if union > 0 {
+				wordOverlap := float64(intersection) / float64(union)
+				score += wordOverlap * 0.5
+			}
+		}
+
+		// Tag matching
+		if len(tags) > 0 && len(record.Tags) > 0 {
+			tagOverlap := 0
+
+			tagSet := make(map[string]bool)
+			for _, tag := range tags {
+				tagSet[strings.ToLower(tag)] = true
+			}
+
+			for _, tag := range record.Tags {
+				if tagSet[strings.ToLower(tag)] {
+					tagOverlap++
+				}
+			}
+
+			if len(record.Tags) > 0 {
+				score += float64(tagOverlap) / float64(len(record.Tags)) * 0.3
+			}
+		}
+
+		// Priority matching
+		if strings.EqualFold(priority, record.Priority) {
+			score += 0.2
+		}
+
+		if score > 0.1 {
+			matches = append(matches, match{
+				actualHours: record.ActualHours,
+				score:       score,
+			})
+		}
+	}
+
+	if len(matches) == 0 {
+		return nil, 0.0
+	}
+
+	// Sort by score and take top matches
+	sort.Slice(matches, func(i, j int) bool {
+		return matches[i].score > matches[j].score
+	})
+
+	topN := 10
+	if len(matches) < topN {
+		topN = len(matches)
+	}
+
+	topMatches := matches[:topN]
+
+	// Weighted average
+	totalWeight := 0.0
+	weightedSum := 0.0
+
+	for _, m := range topMatches {
+		totalWeight += m.score
+		weightedSum += m.actualHours * m.score
+	}
+
+	if totalWeight == 0 {
+		return nil, 0.0
+	}
+
+	estimate := weightedSum / totalWeight
+
+	// Confidence based on match quality
+	avgScore := totalWeight / float64(len(topMatches))
+	confidence := math.Min(0.9, 0.3+avgScore*0.6)
+
+	return &estimate, confidence
+}
+
+// estimateFromKeywords estimates using keyword heuristics
+// These are conservative estimates based on typical task durations.
+func estimateFromKeywords(text string) float64 {
+	// Very quick tasks (typos, version bumps, simple configs)
+	quickKeywords := []string{"quick", "simple", "minor", "small", "fix typo", "typo", "update version", "bump", "version", "config", "spelling"}
+	for _, kw := range quickKeywords {
+		if strings.Contains(text, kw) {
+			return 0.25 // 15 minutes
+		}
+	}
+
+	// Small tasks (single feature, simple addition)
+	smallKeywords := []string{"add", "create", "implement", "setup", "install", "configure", "fix", "bug", "patch"}
+	for _, kw := range smallKeywords {
+		if strings.Contains(text, kw) {
+			return 1.0 // 1 hour
+		}
+	}
+
+	// Medium tasks (refactoring, integration, updates)
+	mediumKeywords := []string{"refactor", "migrate", "integrate", "update", "improve", "enhance", "modify", "change"}
+	for _, kw := range mediumKeywords {
+		if strings.Contains(text, kw) {
+			return 2.0 // 2 hours
+		}
+	}
+
+	// Large tasks (complex features, major changes)
+	largeKeywords := []string{"complex", "major", "rewrite", "redesign", "architecture", "system", "framework", "platform"}
+	for _, kw := range largeKeywords {
+		if strings.Contains(text, kw) {
+			return 4.0 // 4 hours
+		}
+	}
+
+	// Default: assume small task (1 hour)
+	// Most tasks are small fixes or features
+	return 1.0
+}
+
+// getPriorityMultiplier returns time multiplier based on priority.
+func getPriorityMultiplier(priority string) float64 {
+	priority = strings.ToLower(priority)
+	multipliers := map[string]float64{
+		models.PriorityLow:      0.8,
+		models.PriorityMedium:   1.0,
+		models.PriorityHigh:     1.2,
+		models.PriorityCritical: 1.5,
+	}
+
+	if mult, ok := multipliers[priority]; ok {
+		return mult
+	}
+
+	return 1.0
+}
+
+// HistoricalTaskData represents task data from Todo2 for historical analysis.
+type HistoricalTaskData struct {
+	ID              string   `json:"id,omitempty"`
+	Name            string   `json:"name,omitempty"`
+	Content         string   `json:"content,omitempty"`
+	LongDescription string   `json:"long_description,omitempty"`
+	Details         string   `json:"details,omitempty"`
+	Status          string   `json:"status"`
+	Priority        string   `json:"priority,omitempty"`
+	Tags            []string `json:"tags,omitempty"`
+	EstimatedHours  float64  `json:"estimatedHours,omitempty"`
+	ActualHours     float64  `json:"actualHours,omitempty"`
+	Created         string   `json:"created,omitempty"`
+	CompletedAt     string   `json:"completedAt,omitempty"`
+	LastModified    string   `json:"lastModified,omitempty"`
+}
+
+// BuildEstimationPrompt returns the standard task estimation prompt for LLM backends (Ollama, MLX, etc.).
+func BuildEstimationPrompt(name, details string, tags []string, priority string) string {
+	tagsStr := "none"
+	if len(tags) > 0 {
+		tagsStr = strings.Join(tags, ", ")
+	}
+
+	return fmt.Sprintf(`You are an expert software development task estimator. Respond ONLY with valid JSON.
+
+Estimate the time required to complete this software development task.
+
+TASK INFORMATION:
+- Name: %s
+- Details: %s
+- Tags: %s
+- Priority: %s
+
+RESPONSE FORMAT (JSON only):
+{
+    "estimate_hours": <number between 0.5 and 20>,
+    "confidence": <number between 0.0 and 1.0>,
+    "complexity": <number between 1 and 10>,
+    "reasoning": "<brief 1-2 sentence explanation>"
+}`, name, details, tagsStr, priority)
+}
+
+// ParseLLMEstimationResponse extracts EstimationResult from LLM response text (Ollama/MLX/any JSON).
+func ParseLLMEstimationResponse(text string) (*EstimationResult, error) {
+	jsonStr := ExtractJSONObjectFromLLMResponse(text)
+	if jsonStr == "" {
+		return nil, fmt.Errorf("no JSON object found in response")
+	}
+
+	var parsed struct {
+		EstimateHours float64 `json:"estimate_hours"`
+		Confidence    float64 `json:"confidence"`
+		Complexity    float64 `json:"complexity"`
+		Reasoning     string  `json:"reasoning"`
+	}
+
+	if err := json.Unmarshal([]byte(jsonStr), &parsed); err != nil {
+		return nil, fmt.Errorf("failed to parse JSON: %w", err)
+	}
+
+	if parsed.EstimateHours < 0.5 || parsed.EstimateHours > 20 {
+		parsed.EstimateHours = math.Max(0.5, math.Min(20, parsed.EstimateHours))
+	}
+
+	if parsed.Confidence < 0 || parsed.Confidence > 1 {
+		parsed.Confidence = math.Max(0, math.Min(1, parsed.Confidence))
+	}
+
+	stdDev := parsed.EstimateHours * 0.3
+	lowerBound := math.Max(0.5, parsed.EstimateHours-1.96*stdDev)
+	upperBound := parsed.EstimateHours + 1.96*stdDev
+
+	return &EstimationResult{
+		EstimateHours: math.Round(parsed.EstimateHours*10) / 10,
+		Confidence:    math.Min(0.95, parsed.Confidence),
+		Method:        "ollama",
+		LowerBound:    math.Round(lowerBound*10) / 10,
+		UpperBound:    math.Round(upperBound*10) / 10,
+		Metadata: map[string]interface{}{
+			"complexity": parsed.Complexity,
+			"reasoning":  parsed.Reasoning,
+		},
+	}, nil
+}
+
+// EstimateWithOllama runs task estimation using the default Ollama provider.
+// Model defaults to llama3.2; pass empty to use default.
+func EstimateWithOllama(ctx context.Context, name, details string, tags []string, priority, model string) (*EstimationResult, error) {
+	prompt := BuildEstimationPrompt(name, details, tags, priority)
+
+	if model == "" {
+		model = "llama3.2"
+	}
+
+	params := map[string]interface{}{
+		"action": "generate",
+		"prompt": prompt,
+		"model":  model,
+		"stream": false,
+	}
+
+	tc, err := DefaultOllama().Invoke(ctx, params)
+	if err != nil {
+		return nil, fmt.Errorf("ollama invoke: %w", err)
+	}
+
+	var responseText string
+
+	if len(tc) > 0 && tc[0].Text != "" {
+		var genResp map[string]interface{}
+		if err := json.Unmarshal([]byte(tc[0].Text), &genResp); err == nil {
+			if resp, ok := genResp["response"].(string); ok {
+				responseText = resp
+			}
+		}
+
+		if responseText == "" {
+			responseText = tc[0].Text
+		}
+	}
+
+	if responseText == "" {
+		return nil, fmt.Errorf("ollama returned empty response")
+	}
+
+	return ParseLLMEstimationResponse(responseText)
+}
