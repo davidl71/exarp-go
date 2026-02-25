@@ -1,6 +1,4 @@
-// errors.go — Standardized error handling utilities for MCP tool handlers.
-// Provides consistent error wrapping patterns across all tools.
-package tools
+package framework
 
 import (
 	"fmt"

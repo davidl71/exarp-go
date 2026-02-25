@@ -3,8 +3,6 @@ package tools
 
 import (
 	"encoding/json"
-	"fmt"
-	"os"
 
 	"github.com/davidl71/exarp-go/internal/config"
 	"github.com/davidl71/exarp-go/internal/framework"
@@ -33,25 +31,5 @@ func FormatResultOptionalCompact(result map[string]interface{}, outputPath strin
 	if !compact {
 		return mcpresponse.FormatResult(result, outputPath)
 	}
-
-	output, err := json.Marshal(result)
-	if err != nil {
-		return nil, fmt.Errorf("failed to marshal result: %w", err)
-	}
-
-	if outputPath != "" {
-		if err := os.WriteFile(outputPath, output, 0644); err == nil {
-			result["output_path"] = outputPath
-			output, err = json.Marshal(result)
-			if err != nil {
-				return []framework.TextContent{
-					{Type: "text", Text: string(output)},
-				}, nil
-			}
-		}
-	}
-
-	return []framework.TextContent{
-		{Type: "text", Text: string(output)},
-	}, nil
+	return mcpresponse.FormatResultCompact(result, outputPath)
 }
