@@ -47,14 +47,14 @@ func NewGoSDKAdapter(name, version string, opts ...AdapterOption) *GoSDKAdapter 
 // RegisterTool registers a tool with the server using the new v1.2.0 API
 func (a *GoSDKAdapter) RegisterTool(name, description string, schema types.ToolSchema, handler framework.ToolHandler) error {
 	// Input validation
-	if err := ValidateToolRegistration(name, description, handler); err != nil {
-		return err
+	if err := ValidateRegistration(name, description, handler); err != nil {
+		return fmt.Errorf("tool registration: %w", err)
 	}
 	if schema.Type == "" {
 		schema.Type = "object" // Default to object type
 	}
 	if schema.Type != "object" {
-		return &framework.ErrInvalidTool{ToolName: name, Reason: "schema type must be 'object', got " + schema.Type}
+		return fmt.Errorf("tool schema type must be 'object', got %q", schema.Type)
 	}
 
 	a.logger.Debug("", "Registering tool: %s", name)
@@ -112,11 +112,8 @@ func (a *GoSDKAdapter) RegisterTool(name, description string, schema types.ToolS
 		}, nil
 	}
 
-	// Apply middleware chain (T-274) - wrap before AddTool
-	wrappedHandler := a.middleware.WrapToolHandler(toolHandler)
-
-	// Use server.AddTool (low-level API). Convert to mcp.ToolHandler (same signature, different type).
-	a.server.AddTool(tool, mcp.ToolHandler(wrappedHandler))
+	// Use server.AddTool (low-level API) since we're using ToolHandler
+	a.server.AddTool(tool, toolHandler)
 
 	// Store handler and info for CLI access
 	a.toolHandlers[name] = handler
@@ -135,8 +132,8 @@ func (a *GoSDKAdapter) RegisterPrompt(name, description string, handler framewor
 	a.logger.Debug("", "Registering prompt: %s", name)
 
 	// Input validation
-	if err := ValidatePromptRegistration(name, description, handler); err != nil {
-		return err
+	if err := ValidateRegistration(name, description, handler); err != nil {
+		return fmt.Errorf("prompt registration: %w", err)
 	}
 
 	// Create prompt definition
@@ -201,7 +198,7 @@ func (a *GoSDKAdapter) RegisterResource(uri, name, description, mimeType string,
 
 	// Input validation
 	if err := ValidateResourceRegistration(uri, name, description, handler); err != nil {
-		return err
+		return fmt.Errorf("resource registration: %w", err)
 	}
 
 	// Create resource definition
@@ -271,7 +268,7 @@ func (a *GoSDKAdapter) Run(ctx context.Context, transport framework.Transport) e
 
 	// Validate server
 	if a.server == nil {
-		return &framework.ErrTransport{Reason: "server is nil"}
+		return fmt.Errorf("server is nil")
 	}
 
 	// Use provided transport or default to stdio
@@ -292,7 +289,7 @@ func (a *GoSDKAdapter) Run(ctx context.Context, transport framework.Transport) e
 		// The adapter just needs to know that SSE is being used
 		sseTransport, ok := transport.(*framework.SSETransport)
 		if !ok {
-			return &framework.ErrTransport{Reason: "SSE transport must be of type *framework.SSETransport"}
+			return fmt.Errorf("SSE transport must be of type *framework.SSETransport")
 		}
 		// The framework SSETransport manages the HTTP server
 		// The MCP SDK will use stdio for now, but the framework transport
@@ -304,7 +301,7 @@ func (a *GoSDKAdapter) Run(ctx context.Context, transport framework.Transport) e
 		mcpTransport = &mcp.StdioTransport{}
 		_ = sseTransport // Acknowledge SSE transport is provided
 	default:
-		return &framework.ErrTransport{Reason: "unsupported transport type: " + transport.Type()}
+		return fmt.Errorf("unsupported transport type: %s", transport.Type())
 	}
 
 	// Start the transport
@@ -338,7 +335,7 @@ func (a *GoSDKAdapter) CallTool(ctx context.Context, name string, args json.RawM
 	// Fast path: direct map lookup (O(1))
 	handler, exists := a.toolHandlers[name]
 	if !exists {
-		return nil, &framework.ErrToolNotFound{ToolName: name}
+		return nil, fmt.Errorf("tool %q not found", name)
 	}
 	return handler(ctx, args)
 }
