@@ -5,13 +5,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/davidl71/exarp-go/internal/projectroot"
+	"github.com/davidl71/exarp-go/internal/security"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strconv"
 	"strings"
-	"github.com/davidl71/exarp-go/internal/projectroot"
-	"github.com/davidl71/exarp-go/internal/security"
 )
 
 // runMarkdownlint runs gomarklint (native Go markdown linter).

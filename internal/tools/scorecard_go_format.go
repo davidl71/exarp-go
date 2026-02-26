@@ -4,13 +4,13 @@ package tools
 import (
 	"context"
 	"fmt"
+	"github.com/davidl71/exarp-go/internal/config"
+	"github.com/davidl71/exarp-go/internal/projectroot"
+	"github.com/davidl71/exarp-go/internal/security"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
-	"github.com/davidl71/exarp-go/internal/config"
-	"github.com/davidl71/exarp-go/internal/projectroot"
-	"github.com/davidl71/exarp-go/internal/security"
 )
 
 // generateGoRecommendations generates recommendations based on health checks and large-file analysis.

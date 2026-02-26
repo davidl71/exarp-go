@@ -7,13 +7,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/davidl71/exarp-go/internal/framework"
+	"github.com/davidl71/exarp-go/proto"
 	"os"
 	"os/exec"
 	"strconv"
 	"strings"
 	"time"
-	"github.com/davidl71/exarp-go/internal/framework"
-	"github.com/davidl71/exarp-go/proto"
 )
 
 // AutomationResponseToMap converts AutomationResponse to a map for response.FormatResult (unmarshals result_json).
@@ -223,4 +223,3 @@ func appendCursorAgentStepIfRequested(ctx context.Context, params map[string]int
 		results["tasks_failed"] = append(tasksFailed, "cursor_agent")
 	}
 }
-

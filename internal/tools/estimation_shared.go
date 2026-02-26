@@ -2,9 +2,9 @@
 package tools
 
 import (
+	"github.com/spf13/cast"
 	"math"
 	"strings"
-	"github.com/spf13/cast"
 )
 
 // MetadataKeyPreferredBackend is the task metadata key for local AI backend preference (fm, mlx, ollama).
@@ -150,4 +150,3 @@ func estimateStatistically(projectRoot, name, details string, tags []string, pri
 		},
 	}, nil
 }
-

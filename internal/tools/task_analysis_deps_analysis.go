@@ -6,13 +6,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"os"
-	"path/filepath"
-	"strings"
 	"github.com/davidl71/exarp-go/internal/framework"
 	"github.com/davidl71/exarp-go/internal/taskanalysis"
 	"github.com/davidl71/exarp-go/proto"
 	"github.com/davidl71/mcp-go-core/pkg/mcp/response"
+	"os"
+	"path/filepath"
+	"strings"
 )
 
 // ─── Contents ───────────────────────────────────────────────────────────────
@@ -421,4 +421,3 @@ func findNoiseTasks(tasks []Todo2Task) []map[string]interface{} {
 	}
 	return candidates
 }
-

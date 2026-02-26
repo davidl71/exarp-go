@@ -686,4 +686,3 @@ func DecodePointInTimeSnapshot(encoded string) ([]byte, error) {
 }
 
 // Helper types and functions
-

@@ -4,12 +4,12 @@ package tools
 import (
 	"context"
 	"encoding/json"
-	"time"
 	"github.com/davidl71/exarp-go/internal/config"
 	"github.com/davidl71/exarp-go/internal/database"
 	"github.com/davidl71/exarp-go/internal/framework"
 	"github.com/davidl71/exarp-go/proto"
 	"github.com/davidl71/mcp-go-core/pkg/mcp/response"
+	"time"
 )
 
 // handleAutomationDaily handles the "daily" action for automation tool.
@@ -634,4 +634,3 @@ func handleAutomationSprint(ctx context.Context, params map[string]interface{}) 
 
 	return response.FormatResult(AutomationResponseToMap(resp), "")
 }
-

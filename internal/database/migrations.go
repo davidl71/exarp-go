@@ -10,6 +10,8 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+
+	"github.com/davidl71/exarp-go/internal/projectroot"
 )
 
 // RunMigrations runs all pending migrations using findProjectRoot() to locate migration files.
@@ -84,7 +86,10 @@ func getMigrationFiles() ([]Migration, error) {
 
 	migrationsDir := filepath.Join(projectRoot, "migrations")
 
-	// Read migration directory
+	if err := os.MkdirAll(migrationsDir, 0o755); err != nil {
+		return nil, fmt.Errorf("failed to create migrations directory: %w", err)
+	}
+
 	entries, err := os.ReadDir(migrationsDir)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read migrations directory: %w", err)
@@ -186,29 +191,10 @@ func getMigrationFilesFromDir(dir string) ([]Migration, error) {
 	return migrations, nil
 }
 
-// findProjectRoot finds the project root by looking for .todo2 directory.
+// findProjectRoot finds the exarp project root using the canonical resolver.
+// Checks PROJECT_ROOT env first, then walks up from cwd for .exarp/.todo2 markers.
 func findProjectRoot() (string, error) {
-	dir, err := os.Getwd()
-	if err != nil {
-		return "", fmt.Errorf("failed to get current directory: %w", err)
-	}
-
-	for {
-		todo2Path := filepath.Join(dir, ".todo2")
-		if _, err := os.Stat(todo2Path); err == nil {
-			return dir, nil
-		}
-
-		parent := filepath.Dir(dir)
-		if parent == dir {
-			// Reached root
-			break
-		}
-
-		dir = parent
-	}
-
-	return "", fmt.Errorf("project root not found (no .todo2 directory)")
+	return projectroot.Find()
 }
 
 // getAppliedMigrations returns a map of applied migration versions.

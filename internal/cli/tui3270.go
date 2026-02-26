@@ -23,7 +23,7 @@ import (
 
 // tui3270Session captures a return-point in the session stack (PF11 swap).
 type tui3270Session struct {
-	name string   // Human-readable label (e.g. "Tasks", "Scorecard")
+	name string    // Human-readable label (e.g. "Tasks", "Scorecard")
 	tx   go3270.Tx // Transaction to return to
 }
 
@@ -39,10 +39,10 @@ type tui3270State struct {
 	mode                  string // "tasks", "taskdetail", "config", "editor"
 	selectedTask          *database.Todo2Task
 	devInfo               go3270.DevInfo
-	command               string   // Command line input
-	filter                string   // Current filter/search term
-	scorecardRecs         []string // Last scorecard recommendations (for Run #)
-	scorecardFullModeNext bool     // When true, next scorecard load uses full checks (e.g. after Run #)
+	command               string           // Command line input
+	filter                string           // Current filter/search term
+	scorecardRecs         []string         // Last scorecard recommendations (for Run #)
+	scorecardFullModeNext bool             // When true, next scorecard load uses full checks (e.g. after Run #)
 	sessionStack          []tui3270Session // Stack of saved sessions for PF11 swap
 }
 

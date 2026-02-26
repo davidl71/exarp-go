@@ -4,9 +4,9 @@ package tools
 import (
 	"context"
 	"fmt"
-	"os"
 	"github.com/davidl71/exarp-go/internal/config"
 	"github.com/davidl71/exarp-go/internal/security"
+	"os"
 )
 
 // LintResult represents the result of a linting operation.
@@ -90,4 +90,3 @@ func runLinter(ctx context.Context, linter, path string, fix bool) (*LintResult,
 		return nil, fmt.Errorf("unsupported linter: %s (supported: golangci-lint, go-vet, gofmt, goimports, markdownlint, shellcheck)", linter)
 	}
 }
-

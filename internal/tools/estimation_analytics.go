@@ -5,12 +5,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/davidl71/exarp-go/internal/models"
+	"github.com/spf13/cast"
 	"math"
 	"sort"
 	"strings"
 	"time"
-	"github.com/davidl71/exarp-go/internal/models"
-	"github.com/spf13/cast"
 )
 
 // handleEstimationAnalyze handles the analyze action
@@ -485,4 +485,3 @@ func handleEstimationBatch(projectRoot string, params map[string]interface{}) (s
 
 	return string(resultJSON), nil
 }
-

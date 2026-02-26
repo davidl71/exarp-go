@@ -5,13 +5,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"strconv"
-	"time"
 	"github.com/davidl71/exarp-go/internal/cache"
 	"github.com/davidl71/exarp-go/internal/framework"
 	"github.com/davidl71/exarp-go/internal/models"
 	"github.com/davidl71/mcp-go-core/pkg/mcp/request"
 	"github.com/spf13/cast"
+	"strconv"
+	"time"
 )
 
 // handleAnalyzeAlignment handles the analyze_alignment tool

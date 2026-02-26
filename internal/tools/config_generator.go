@@ -5,11 +5,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/davidl71/exarp-go/internal/framework"
+	"github.com/davidl71/mcp-go-core/pkg/mcp/response"
 	"os"
 	"path/filepath"
 	"strings"
-	"github.com/davidl71/exarp-go/internal/framework"
-	"github.com/davidl71/mcp-go-core/pkg/mcp/response"
 )
 
 // handleGenerateConfigNative handles the generate_config tool with native Go implementation.
@@ -163,4 +163,3 @@ func handleSimplifyRules(ctx context.Context, params map[string]interface{}, pro
 		"dry_run":         dryRun,
 	}, "")
 }
-

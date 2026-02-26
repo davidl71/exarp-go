@@ -4,10 +4,10 @@ package tools
 import (
 	"context"
 	"fmt"
+	"github.com/davidl71/exarp-go/internal/config"
 	"os"
 	"path/filepath"
 	"strings"
-	"github.com/davidl71/exarp-go/internal/config"
 )
 
 // GoProjectMetrics represents Go-specific project metrics.
@@ -253,4 +253,3 @@ func performGoHealthChecks(ctx context.Context, projectRoot string, opts *Scorec
 
 	return health, nil
 }
-
