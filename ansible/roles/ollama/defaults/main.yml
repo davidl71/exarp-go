@@ -1,6 +1,9 @@
 ---
 # Ollama role defaults
-# Models to pull after install (llama3.2 = app default; llama3 = used by some tests)
+# Models to pull after install. Use light/quantized models for faster tests and lower memory.
+# - qwen2.5:1.5b = light default for ollama native tests (~1GB)
+# - Quantized tags (e.g. qwen2.5:7b-q4_0) recommended for larger families
 ollama_models:
-  - llama3.2
-  - llama3
+  - qwen2.5:1.5b   # Light default for tests (make test-ollama)
+  - llama3.2        # App config default (optional)
+  - llama3          # Legacy test fallback (optional)
