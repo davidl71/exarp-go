@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"github.com/davidl71/exarp-go/internal/config"
 	"github.com/davidl71/exarp-go/internal/framework"
-	"github.com/davidl71/mcp-go-core/pkg/mcp/response"
 	"io"
 	"net/http"
 	"os"
@@ -228,7 +227,7 @@ func handleOllamaStatus(ctx context.Context, host string) ([]framework.TextConte
 			"error":  "Ollama server not running. Start it with: ollama serve",
 		}
 
-		return response.FormatResult(result, "")
+		return framework.FormatResult(result, "")
 	}
 
 	defer func() {
@@ -244,7 +243,7 @@ func handleOllamaStatus(ctx context.Context, host string) ([]framework.TextConte
 			"error":  fmt.Sprintf("Ollama server returned status %d", resp.StatusCode),
 		}
 
-		return response.FormatResult(result, "")
+		return framework.FormatResult(result, "")
 	}
 
 	var tagsResp struct {
@@ -276,7 +275,7 @@ func handleOllamaStatus(ctx context.Context, host string) ([]framework.TextConte
 		"models":      modelNames,
 	}
 
-	return response.FormatResult(result, "")
+	return framework.FormatResult(result, "")
 }
 
 // ─── handleOllamaModels ─────────────────────────────────────────────────────
@@ -344,7 +343,7 @@ func handleOllamaModels(ctx context.Context, host string) ([]framework.TextConte
 		"tip":     "Use generate action to generate text with a model",
 	}
 
-	return response.FormatResult(result, "")
+	return framework.FormatResult(result, "")
 }
 
 // ─── handleOllamaGenerate ───────────────────────────────────────────────────
@@ -480,7 +479,7 @@ func handleOllamaGenerate(ctx context.Context, params map[string]interface{}, ho
 			"streamed": true,
 		}
 
-		return response.FormatResult(result, "")
+		return framework.FormatResult(result, "")
 	} else {
 		// Non-streaming: read single response
 		var generateResp OllamaGenerateResponse
@@ -500,7 +499,7 @@ func handleOllamaGenerate(ctx context.Context, params map[string]interface{}, ho
 			result["total_duration_ms"] = generateResp.TotalDuration / 1000000 // Convert nanoseconds to milliseconds
 		}
 
-		return response.FormatResult(result, "")
+		return framework.FormatResult(result, "")
 	}
 }
 

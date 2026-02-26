@@ -33,5 +33,14 @@ var (
 	FormatErrors       = framework.FormatErrors
 )
 
+// Eliciter re-export from mcp-go-core for backward compatibility.
+type Eliciter = framework.Eliciter
+
+// Re-export Eliciter context helpers from mcp-go-core.
+var (
+	EliciterFromContext = framework.EliciterFromContext
+	ContextWithEliciter = framework.ContextWithEliciter
+)
+
 // JsonRawMessage is an alias for json.RawMessage to avoid import conflicts.
 type JsonRawMessage = json.RawMessage

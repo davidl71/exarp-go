@@ -13,8 +13,6 @@ import (
 	"github.com/davidl71/exarp-go/internal/framework"
 	"github.com/davidl71/exarp-go/internal/models"
 	"github.com/davidl71/exarp-go/proto"
-	mcpframework "github.com/davidl71/mcp-go-core/pkg/mcp/framework"
-	"github.com/davidl71/mcp-go-core/pkg/mcp/response"
 	"github.com/spf13/cast"
 )
 
@@ -53,7 +51,7 @@ func handleTaskWorkflowApprove(ctx context.Context, params map[string]interface{
 	const elicitationTimeout = 15 * time.Second
 
 	if confirm, _ := params["confirm_via_elicitation"].(bool); confirm {
-		if eliciter := mcpframework.EliciterFromContext(ctx); eliciter != nil {
+		if eliciter := framework.EliciterFromContext(ctx); eliciter != nil {
 			schema := map[string]interface{}{
 				"type": "object",
 				"properties": map[string]interface{}{
@@ -72,12 +70,12 @@ func handleTaskWorkflowApprove(ctx context.Context, params map[string]interface{
 					msg = "Batch approve cancelled: elicitation timed out"
 				}
 
-				return response.FormatResult(TaskWorkflowResponseToMap(&proto.TaskWorkflowResponse{Success: false, Cancelled: true, Message: msg}), "")
+				return framework.FormatResult(TaskWorkflowResponseToMap(&proto.TaskWorkflowResponse{Success: false, Cancelled: true, Message: msg}), "")
 			}
 
 			if content != nil {
 				if proceed, ok := content["proceed"].(bool); ok && !proceed {
-					return response.FormatResult(TaskWorkflowResponseToMap(&proto.TaskWorkflowResponse{Success: false, Cancelled: true, Message: "Batch approve cancelled by user"}), "")
+					return framework.FormatResult(TaskWorkflowResponseToMap(&proto.TaskWorkflowResponse{Success: false, Cancelled: true, Message: "Batch approve cancelled by user"}), "")
 				}
 
 				if dr, ok := content["dry_run"].(bool); ok && dr {
@@ -152,7 +150,7 @@ func handleTaskWorkflowApprove(ctx context.Context, params map[string]interface{
 			Tasks:         summaries,
 		}
 
-		return response.FormatResult(TaskWorkflowResponseToMap(resp), "")
+		return framework.FormatResult(TaskWorkflowResponseToMap(resp), "")
 	}
 
 	// Update tasks via store (handles DB and file; sync is internal)
@@ -174,7 +172,7 @@ func handleTaskWorkflowApprove(ctx context.Context, params map[string]interface{
 		TaskIds:       approvedIDs,
 	}
 
-	return response.FormatResult(TaskWorkflowResponseToMap(resp), "")
+	return framework.FormatResult(TaskWorkflowResponseToMap(resp), "")
 }
 
 // parseTagsFromParams extracts tags from params (comma-separated string or array). Used by create and update.
@@ -471,7 +469,7 @@ func handleTaskWorkflowUpdate(ctx context.Context, params map[string]interface{}
 		}
 	}
 
-	return response.FormatResult(result, "")
+	return framework.FormatResult(result, "")
 }
 
 // handleTaskWorkflowApproveMCP returns an error when project root or task load fails (no bridge).

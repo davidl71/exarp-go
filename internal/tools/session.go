@@ -13,7 +13,6 @@ import (
 	"github.com/davidl71/exarp-go/internal/framework"
 	"github.com/davidl71/exarp-go/internal/models"
 	"github.com/davidl71/exarp-go/proto"
-	mcpframework "github.com/davidl71/mcp-go-core/pkg/mcp/framework"
 	"github.com/spf13/cast"
 )
 
@@ -135,7 +134,7 @@ func handleSessionPrime(ctx context.Context, params map[string]interface{}) ([]f
 	var elicitationOutcome string
 
 	if cast.ToBool(params["ask_preferences"]) {
-		if eliciter := mcpframework.EliciterFromContext(ctx); eliciter != nil {
+		if eliciter := framework.EliciterFromContext(ctx); eliciter != nil {
 			schema := map[string]interface{}{
 				"type": "object",
 				"properties": map[string]interface{}{

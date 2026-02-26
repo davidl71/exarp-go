@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"github.com/davidl71/exarp-go/internal/database"
 	"github.com/davidl71/exarp-go/internal/framework"
-	"github.com/davidl71/mcp-go-core/pkg/mcp/response"
 	"github.com/spf13/cast"
 	"strings"
 )
@@ -172,7 +171,7 @@ Respond with a concise, plain-text summary only. No JSON, no bullet points.`,
 				"warning": fmt.Sprintf("summary generated but comment not saved: %v", err2),
 			}
 
-			return response.FormatResult(result, "")
+			return framework.FormatResult(result, "")
 		}
 	}
 
@@ -184,7 +183,7 @@ Respond with a concise, plain-text summary only. No JSON, no bullet points.`,
 		"comment_saved": saveComment,
 	}
 
-	return response.FormatResult(result, "")
+	return framework.FormatResult(result, "")
 }
 
 // ─── handleTaskWorkflowRunWithAI ────────────────────────────────────────────
@@ -332,5 +331,5 @@ INSTRUCTION:
 		"output":      outputText,
 	}
 
-	return response.FormatResult(result, "")
+	return framework.FormatResult(result, "")
 }

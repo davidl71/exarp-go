@@ -6,7 +6,6 @@ import (
 	"fmt"
 
 	"github.com/davidl71/exarp-go/internal/framework"
-	mcpresponse "github.com/davidl71/mcp-go-core/pkg/mcp/response"
 )
 
 // ToolCatalogEntry represents a tool in the catalog.
@@ -325,7 +324,7 @@ func handleToolCatalogHelp(ctx context.Context, params map[string]interface{}) (
 			"error":  "tool_name parameter required for help action",
 		}
 
-		return mcpresponse.FormatResult(errorResponse, "")
+		return framework.FormatResult(errorResponse, "")
 	}
 
 	catalog := GetToolCatalog()
@@ -337,7 +336,7 @@ func handleToolCatalogHelp(ctx context.Context, params map[string]interface{}) (
 			"error":  fmt.Sprintf("Tool '%s' not found in catalog", toolName),
 		}
 
-		return mcpresponse.FormatResult(errorResponse, "")
+		return framework.FormatResult(errorResponse, "")
 	}
 
 	// Build help response
@@ -352,5 +351,5 @@ func handleToolCatalogHelp(ctx context.Context, params map[string]interface{}) (
 		helpResponse["examples"] = tool.Examples
 	}
 
-	return mcpresponse.FormatResult(helpResponse, "")
+	return framework.FormatResult(helpResponse, "")
 }

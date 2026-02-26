@@ -9,7 +9,6 @@ import (
 	"github.com/davidl71/exarp-go/internal/database"
 	"github.com/davidl71/exarp-go/internal/framework"
 	"github.com/davidl71/exarp-go/proto"
-	"github.com/davidl71/mcp-go-core/pkg/mcp/response"
 	"sort"
 	"time"
 )
@@ -381,7 +380,7 @@ func handleTaskAnalysisTags(ctx context.Context, params map[string]interface{}) 
 	resultJSON, _ := json.Marshal(result)
 	resp := &proto.TaskAnalysisResponse{Action: "tags", OutputPath: outputPath, ResultJson: string(resultJSON)}
 
-	return response.FormatResult(TaskAnalysisResponseToMap(resp), resp.GetOutputPath())
+	return framework.FormatResult(TaskAnalysisResponseToMap(resp), resp.GetOutputPath())
 }
 
 // ─── handleTaskAnalysisDiscoverTags ─────────────────────────────────────────
@@ -656,7 +655,7 @@ func handleTaskAnalysisDiscoverTags(ctx context.Context, params map[string]inter
 	resultJSON, _ := json.Marshal(result)
 	resp := &proto.TaskAnalysisResponse{Action: "discover_tags", ResultJson: string(resultJSON)}
 
-	return response.FormatResult(TaskAnalysisResponseToMap(resp), resp.GetOutputPath())
+	return framework.FormatResult(TaskAnalysisResponseToMap(resp), resp.GetOutputPath())
 }
 
 // discoverTagsFromMarkdown scans markdown files for tag patterns.

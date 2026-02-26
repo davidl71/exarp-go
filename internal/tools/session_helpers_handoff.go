@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"github.com/davidl71/exarp-go/internal/cache"
 	"github.com/davidl71/exarp-go/internal/framework"
-	mcpresponse "github.com/davidl71/mcp-go-core/pkg/mcp/response"
 	"github.com/spf13/cast"
 	"os"
 	"os/exec"
@@ -235,7 +234,7 @@ func handleSessionHandoffStatus(ctx context.Context, params map[string]interface
 		"message": fmt.Sprintf("%d handoff(s) %s", len(ids), label),
 	}
 
-	return mcpresponse.FormatResult(result, "")
+	return framework.FormatResult(result, "")
 }
 
 // ─── handleSessionHandoffDelete ─────────────────────────────────────────────
@@ -280,7 +279,7 @@ func handleSessionHandoffDelete(ctx context.Context, params map[string]interface
 		"message": fmt.Sprintf("%d handoff(s) deleted", deleted),
 	}
 
-	return mcpresponse.FormatResult(result, "")
+	return framework.FormatResult(result, "")
 }
 
 // ─── deleteHandoffs ─────────────────────────────────────────────────────────

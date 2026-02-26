@@ -14,8 +14,6 @@ import (
 	"github.com/davidl71/exarp-go/internal/database"
 	"github.com/davidl71/exarp-go/internal/framework"
 	"github.com/davidl71/exarp-go/internal/models"
-	mcpframework "github.com/davidl71/mcp-go-core/pkg/mcp/framework"
-	"github.com/davidl71/mcp-go-core/pkg/mcp/response"
 )
 
 // handleTaskWorkflowNative handles task_workflow with native Go and FM chain (Apple → Ollama → stub).
@@ -119,7 +117,7 @@ func handleTaskWorkflowSyncApprovals(ctx context.Context, params map[string]inte
 		"instructions":      "Call @gotoHuman request-human-review-with-form for each approval_request (form_id, field_data). Set GOTOHUMAN_API_KEY if needed. See docs/GOTOHUMAN_API_REFERENCE.md.",
 	}
 
-	return response.FormatResult(result, "")
+	return framework.FormatResult(result, "")
 }
 
 // handleTaskWorkflowApplyApprovalResult updates a task when human approves or rejects in gotoHuman (T-112).
@@ -205,7 +203,7 @@ func handleTaskWorkflowRequestApproval(ctx context.Context, params map[string]in
 		"instructions":     instructions,
 	}
 
-	return response.FormatResult(result, string(payload))
+	return framework.FormatResult(result, string(payload))
 }
 
 // handleTaskWorkflowFixDates backfills created/last_modified from DB created_at/updated_at for tasks with empty or 1970 dates, then syncs to JSON.
@@ -226,7 +224,7 @@ func handleTaskWorkflowFixDates(ctx context.Context, params map[string]interface
 			"sync_error":    err.Error(),
 		}
 
-		return response.FormatResult(result, "")
+		return framework.FormatResult(result, "")
 	}
 
 	if err := SyncTodo2Tasks(projectRoot); err != nil {
@@ -237,7 +235,7 @@ func handleTaskWorkflowFixDates(ctx context.Context, params map[string]interface
 			"sync_error":    err.Error(),
 		}
 
-		return response.FormatResult(result, "")
+		return framework.FormatResult(result, "")
 	}
 	// Regenerate overview so dates never show 1970
 	if overviewErr := WriteTodo2Overview(projectRoot); overviewErr != nil {
@@ -251,7 +249,7 @@ func handleTaskWorkflowFixDates(ctx context.Context, params map[string]interface
 		"synced":        true,
 	}
 
-	return response.FormatResult(result, "")
+	return framework.FormatResult(result, "")
 }
 
 // handleTaskWorkflowClarify handles clarify action with default FM for question generation.
@@ -330,7 +328,7 @@ func listTasksAwaitingClarification(ctx context.Context, params map[string]inter
 		"tasks":                        needingClarification,
 	}
 
-	return response.FormatResult(result, "")
+	return framework.FormatResult(result, "")
 }
 
 // resolveTaskClarification resolves a single task clarification.
@@ -402,7 +400,7 @@ func resolveTaskClarification(ctx context.Context, params map[string]interface{}
 			result["sync_error"] = syncErr.Error()
 		}
 
-		return response.FormatResult(result, "")
+		return framework.FormatResult(result, "")
 	}
 
 	// Fallback to TaskStore (file-based when DB unavailable)
@@ -455,7 +453,7 @@ func resolveTaskClarification(ctx context.Context, params map[string]interface{}
 		"message": "Clarification resolved",
 	}
 
-	return response.FormatResult(result, "")
+	return framework.FormatResult(result, "")
 }
 
 // resolveBatchClarifications resolves multiple clarifications.
@@ -543,7 +541,7 @@ func resolveBatchClarifications(ctx context.Context, params map[string]interface
 			result["sync_error"] = syncErr.Error()
 		}
 
-		return response.FormatResult(result, "")
+		return framework.FormatResult(result, "")
 	}
 
 	// Fallback to TaskStore (file-based when DB unavailable)
@@ -608,7 +606,7 @@ func resolveBatchClarifications(ctx context.Context, params map[string]interface
 		"message":  fmt.Sprintf("Resolved %d clarifications", resolved),
 	}
 
-	return response.FormatResult(result, "")
+	return framework.FormatResult(result, "")
 }
 
 // handleTaskWorkflowDelete deletes one or more tasks by ID. Accepts task_id (single) or task_ids (comma-separated or array). Syncs DB to JSON once after all deletes.
@@ -618,7 +616,7 @@ func handleTaskWorkflowDelete(ctx context.Context, params map[string]interface{}
 	const elicitationTimeout = 15 * time.Second
 
 	if confirm, _ := params["confirm_via_elicitation"].(bool); confirm {
-		if eliciter := mcpframework.EliciterFromContext(ctx); eliciter != nil {
+		if eliciter := framework.EliciterFromContext(ctx); eliciter != nil {
 			schema := map[string]interface{}{
 				"type": "object",
 				"properties": map[string]interface{}{
@@ -638,13 +636,13 @@ func handleTaskWorkflowDelete(ctx context.Context, params map[string]interface{}
 
 				result := map[string]interface{}{"cancelled": true, "message": msg}
 
-				return response.FormatResult(result, "")
+				return framework.FormatResult(result, "")
 			}
 
 			if content != nil {
 				if proceed, ok := content["proceed"].(bool); ok && !proceed {
 					result := map[string]interface{}{"cancelled": true, "message": "Delete cancelled by user"}
-					return response.FormatResult(result, "")
+					return framework.FormatResult(result, "")
 				}
 			}
 		}
@@ -673,7 +671,7 @@ func handleTaskWorkflowDelete(ctx context.Context, params map[string]interface{}
 	projectRoot, err := FindProjectRoot()
 	if err != nil {
 		result := map[string]interface{}{"success": len(failed) == 0, "method": "database", "deleted": deleted, "failed": failed, "sync_skipped": true}
-		return response.FormatResult(result, "")
+		return framework.FormatResult(result, "")
 	}
 
 	// Update JSON to remove deleted tasks so sync never reintroduces them.
@@ -699,12 +697,12 @@ func handleTaskWorkflowDelete(ctx context.Context, params map[string]interface{}
 
 	if err := SyncTodo2Tasks(projectRoot); err != nil {
 		result := map[string]interface{}{"success": len(failed) == 0, "method": "database", "deleted": deleted, "failed": failed, "sync_error": err.Error()}
-		return response.FormatResult(result, "")
+		return framework.FormatResult(result, "")
 	}
 
 	result := map[string]interface{}{"success": len(failed) == 0, "method": "database", "deleted": deleted, "failed": failed, "synced": true}
 
-	return response.FormatResult(result, "")
+	return framework.FormatResult(result, "")
 }
 
 // generateClarificationQuestion uses the default FM to generate clarification questions.

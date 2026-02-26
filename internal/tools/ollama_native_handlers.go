@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"github.com/davidl71/exarp-go/internal/config"
 	"github.com/davidl71/exarp-go/internal/framework"
-	"github.com/davidl71/mcp-go-core/pkg/mcp/response"
 	"io"
 	"net/http"
 	"os"
@@ -102,7 +101,7 @@ func handleOllamaPull(ctx context.Context, params map[string]interface{}, host s
 		"message": fmt.Sprintf("Model %s pull initiated. Check Ollama logs for progress.", model),
 	}
 
-	return response.FormatResult(result, "")
+	return framework.FormatResult(result, "")
 }
 
 // ─── handleOllamaHardware ───────────────────────────────────────────────────
@@ -116,7 +115,7 @@ func handleOllamaHardware(ctx context.Context) ([]framework.TextContent, error) 
 		"tip":     "Set OLLAMA_NUM_GPU and OLLAMA_NUM_THREADS environment variables for optimization",
 	}
 
-	return response.FormatResult(result, "")
+	return framework.FormatResult(result, "")
 }
 
 // ─── handleOllamaDocs ───────────────────────────────────────────────────────
@@ -205,7 +204,7 @@ Generate the documented version of this code.`, style, string(code))
 		"documented_length": len(responseText),
 	}
 
-	return response.FormatResult(docResult, "")
+	return framework.FormatResult(docResult, "")
 }
 
 // ─── handleOllamaQuality ────────────────────────────────────────────────────
@@ -304,7 +303,7 @@ Code:
 		"timestamp": time.Now().Format(time.RFC3339),
 	}
 
-	return response.FormatResult(qualityResult, "")
+	return framework.FormatResult(qualityResult, "")
 }
 
 // ─── handleOllamaSummary ────────────────────────────────────────────────────
@@ -427,5 +426,5 @@ Provide a structured summary.`, level, dataStr)
 		"timestamp":       time.Now().Format(time.RFC3339),
 	}
 
-	return response.FormatResult(summaryResult, "")
+	return framework.FormatResult(summaryResult, "")
 }

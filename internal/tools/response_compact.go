@@ -6,7 +6,6 @@ import (
 
 	"github.com/davidl71/exarp-go/internal/config"
 	"github.com/davidl71/exarp-go/internal/framework"
-	mcpresponse "github.com/davidl71/mcp-go-core/pkg/mcp/response"
 )
 
 // AddTokenEstimateToResult sets result["token_estimate"] to the estimated token count of the
@@ -29,7 +28,7 @@ func AddTokenEstimateToResult(result map[string]interface{}) {
 // When compact is false, delegates to mcp-go-core FormatResult (indented JSON).
 func FormatResultOptionalCompact(result map[string]interface{}, outputPath string, compact bool) ([]framework.TextContent, error) {
 	if !compact {
-		return mcpresponse.FormatResult(result, outputPath)
+		return framework.FormatResult(result, outputPath)
 	}
-	return mcpresponse.FormatResultCompact(result, outputPath)
+	return framework.FormatResultCompact(result, outputPath)
 }

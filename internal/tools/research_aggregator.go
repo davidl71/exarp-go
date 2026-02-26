@@ -8,7 +8,6 @@ import (
 	"strings"
 
 	"github.com/davidl71/exarp-go/internal/framework"
-	"github.com/davidl71/mcp-go-core/pkg/mcp/response"
 )
 
 // defaultResearchTools returns default tool configs for research aggregator.
@@ -91,7 +90,7 @@ func handleResearchAggregator(ctx context.Context, args json.RawMessage) ([]fram
 		"report":    sb.String(),
 	}
 
-	return response.FormatResult(combined, sb.String())
+	return framework.FormatResult(combined, sb.String())
 }
 
 func defaultActionForTool(name string) string {

@@ -11,7 +11,6 @@ import (
 	"github.com/davidl71/exarp-go/internal/config"
 	"github.com/davidl71/exarp-go/internal/framework"
 	"github.com/davidl71/exarp-go/proto"
-	"github.com/davidl71/mcp-go-core/pkg/mcp/response"
 )
 
 // TaskAnalysisResponseToMap converts TaskAnalysisResponse to a map for response.FormatResult (unmarshals result_json into map).
@@ -132,7 +131,7 @@ func handleTaskAnalysisConflicts(ctx context.Context, params map[string]interfac
 	resultJSON, _ := json.Marshal(out)
 	resp := &proto.TaskAnalysisResponse{Action: "conflicts", ResultJson: string(resultJSON)}
 
-	return response.FormatResult(TaskAnalysisResponseToMap(resp), resp.GetOutputPath())
+	return framework.FormatResult(TaskAnalysisResponseToMap(resp), resp.GetOutputPath())
 }
 
 // handleTaskAnalysisDuplicates handles duplicates detection.
@@ -207,7 +206,7 @@ func handleTaskAnalysisDuplicates(ctx context.Context, params map[string]interfa
 	resultJSON, _ := json.Marshal(result)
 	resp := &proto.TaskAnalysisResponse{Action: "duplicates", OutputPath: outputPath, ResultJson: string(resultJSON)}
 
-	return response.FormatResult(TaskAnalysisResponseToMap(resp), resp.GetOutputPath())
+	return framework.FormatResult(TaskAnalysisResponseToMap(resp), resp.GetOutputPath())
 }
 
 // CanonicalTagRules returns default tag consolidation rules aligned with scorecard dimensions.

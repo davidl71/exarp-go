@@ -14,7 +14,6 @@ import (
 	"strings"
 
 	"github.com/davidl71/exarp-go/internal/framework"
-	"github.com/davidl71/mcp-go-core/pkg/mcp/response"
 )
 
 // handleTaskDiscoveryNative handles task_discovery with native Go (no Apple FM)
@@ -147,7 +146,7 @@ func handleTaskDiscoveryNative(ctx context.Context, params map[string]interface{
 		}
 	}
 
-	return response.FormatResult(result, "")
+	return framework.FormatResult(result, "")
 }
 
 // scanCommentsBasic scans code files for TODO/FIXME comments (basic version without AI enhancement)

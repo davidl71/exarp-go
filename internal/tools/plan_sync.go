@@ -12,7 +12,6 @@ import (
 	"github.com/davidl71/exarp-go/internal/database"
 	"github.com/davidl71/exarp-go/internal/framework"
 	"github.com/davidl71/exarp-go/internal/models"
-	"github.com/davidl71/mcp-go-core/pkg/mcp/response"
 	"gopkg.in/yaml.v3"
 )
 
@@ -340,5 +339,5 @@ func handleTaskWorkflowSyncFromPlan(ctx context.Context, params map[string]inter
 		"dry_run":       dryRun,
 	}
 
-	return response.FormatResult(result, "")
+	return framework.FormatResult(result, "")
 }

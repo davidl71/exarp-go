@@ -5,8 +5,8 @@ package tools
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/davidl71/exarp-go/internal/framework"
 	"github.com/davidl71/exarp-go/proto"
-	"github.com/davidl71/mcp-go-core/pkg/mcp/request"
 	protobuf "google.golang.org/protobuf/proto"
 )
 
@@ -38,7 +38,7 @@ import (
 // ParseMemoryRequest parses a memory tool request (protobuf or JSON)
 // Returns protobuf request if protobuf format, or nil with JSON params map.
 func ParseMemoryRequest(args json.RawMessage) (*proto.MemoryRequest, map[string]interface{}, error) {
-	req, params, err := request.ParseRequest(args, func() *proto.MemoryRequest {
+	req, params, err := framework.ParseRequest(args, func() *proto.MemoryRequest {
 		return &proto.MemoryRequest{}
 	})
 	if err != nil {
@@ -60,7 +60,7 @@ func MemoryRequestToParams(req *proto.MemoryRequest) map[string]interface{} {
 		return make(map[string]interface{})
 	}
 
-	params, err := request.ProtobufToParams(req, &request.ProtobufToParamsOptions{
+	params, err := framework.ProtobufToParams(req, &framework.ProtobufToParamsOptions{
 		FilterEmptyStrings:  true,
 		StringifyArrays:     false,
 		ConvertFloat64ToInt: true,
@@ -249,7 +249,7 @@ func MemoryResponseToMap(resp *proto.MemoryResponse) map[string]interface{} {
 // ParseContextRequest parses a context tool request (protobuf or JSON)
 // Returns protobuf request if protobuf format, or nil with JSON params map.
 func ParseContextRequest(args json.RawMessage) (*proto.ContextRequest, map[string]interface{}, error) {
-	req, params, err := request.ParseRequest(args, func() *proto.ContextRequest {
+	req, params, err := framework.ParseRequest(args, func() *proto.ContextRequest {
 		return &proto.ContextRequest{}
 	})
 	if err != nil {
@@ -271,7 +271,7 @@ func ContextRequestToParams(req *proto.ContextRequest) map[string]interface{} {
 		return make(map[string]interface{})
 	}
 
-	params, err := request.ProtobufToParams(req, &request.ProtobufToParamsOptions{
+	params, err := framework.ProtobufToParams(req, &framework.ProtobufToParamsOptions{
 		FilterEmptyStrings:  true,
 		StringifyArrays:     false,
 		ConvertFloat64ToInt: true,
@@ -372,7 +372,7 @@ func ContextItemToDataString(item *proto.ContextItem) string {
 // ─── ParseReportRequest ─────────────────────────────────────────────────────
 // ParseReportRequest parses a report tool request (protobuf or JSON).
 func ParseReportRequest(args json.RawMessage) (*proto.ReportRequest, map[string]interface{}, error) {
-	req, params, err := request.ParseRequest(args, func() *proto.ReportRequest {
+	req, params, err := framework.ParseRequest(args, func() *proto.ReportRequest {
 		return &proto.ReportRequest{}
 	})
 	if err != nil {
@@ -394,7 +394,7 @@ func ReportRequestToParams(req *proto.ReportRequest) map[string]interface{} {
 		return make(map[string]interface{})
 	}
 
-	params, err := request.ProtobufToParams(req, &request.ProtobufToParamsOptions{
+	params, err := framework.ProtobufToParams(req, &framework.ProtobufToParamsOptions{
 		FilterEmptyStrings:  true,
 		StringifyArrays:     false,
 		ConvertFloat64ToInt: true,

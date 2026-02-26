@@ -6,7 +6,6 @@ import (
 	"context"
 	"fmt"
 	"github.com/davidl71/exarp-go/internal/framework"
-	"github.com/davidl71/mcp-go-core/pkg/mcp/response"
 	"strings"
 	"time"
 )
@@ -56,7 +55,7 @@ func handleMemoryMaintDream(ctx context.Context, params map[string]interface{}) 
 		"timestamp":     time.Now().Format(time.RFC3339),
 	}
 
-	return response.FormatResult(dream, "")
+	return framework.FormatResult(dream, "")
 }
 
 // ─── similarityRatio ────────────────────────────────────────────────────────

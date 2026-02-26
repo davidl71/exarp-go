@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"github.com/davidl71/exarp-go/internal/config"
 	"github.com/davidl71/exarp-go/internal/framework"
-	"github.com/davidl71/mcp-go-core/pkg/mcp/response"
 	"time"
 )
 
@@ -148,7 +147,7 @@ func handleMemoryMaintHealth(ctx context.Context, params map[string]interface{})
 		"recommendations":  recommendations,
 	}
 
-	return response.FormatResult(result, "")
+	return framework.FormatResult(result, "")
 }
 
 // ─── handleMemoryMaintGC ────────────────────────────────────────────────────
@@ -289,7 +288,7 @@ func handleMemoryMaintGC(ctx context.Context, params map[string]interface{}) ([]
 		result["deleted_ids"] = toDelete
 	}
 
-	return response.FormatResult(result, "")
+	return framework.FormatResult(result, "")
 }
 
 // ─── handleMemoryMaintPrune ─────────────────────────────────────────────────
@@ -412,7 +411,7 @@ func handleMemoryMaintPrune(ctx context.Context, params map[string]interface{}) 
 		result["pruned_ids"] = toPrune
 	}
 
-	return response.FormatResult(result, "")
+	return framework.FormatResult(result, "")
 }
 
 // ─── handleMemoryMaintConsolidate ───────────────────────────────────────────
@@ -552,7 +551,7 @@ func handleMemoryMaintConsolidate(ctx context.Context, params map[string]interfa
 		result["deleted_ids"] = deletedIDs
 	}
 
-	return response.FormatResult(result, "")
+	return framework.FormatResult(result, "")
 }
 
 // handleMemoryMaintDream handles the dream action for memory_maint tool

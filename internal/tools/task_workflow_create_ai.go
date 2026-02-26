@@ -10,7 +10,6 @@ import (
 	"github.com/davidl71/exarp-go/internal/database"
 	"github.com/davidl71/exarp-go/internal/framework"
 	"github.com/davidl71/exarp-go/internal/models"
-	"github.com/davidl71/mcp-go-core/pkg/mcp/response"
 	"github.com/spf13/cast"
 	"os"
 	"path/filepath"
@@ -125,7 +124,7 @@ func handleTaskWorkflowCreateBatch(ctx context.Context, params map[string]interf
 	}
 
 	outputPath := cast.ToString(params["output_path"])
-	return response.FormatResult(batchResult, outputPath)
+	return framework.FormatResult(batchResult, outputPath)
 }
 
 // ─── handleTaskWorkflowCreateSingle ─────────────────────────────────────────
@@ -330,7 +329,7 @@ func handleTaskWorkflowCreateSingle(ctx context.Context, params map[string]inter
 
 	outputPath := cast.ToString(params["output_path"])
 
-	return response.FormatResult(result, outputPath)
+	return framework.FormatResult(result, outputPath)
 }
 
 // ─── handleTaskWorkflowEnrichToolHints ──────────────────────────────────────
@@ -400,7 +399,7 @@ func handleTaskWorkflowEnrichToolHints(ctx context.Context, params map[string]in
 		"task_ids":      updatedIDs,
 	}
 	outputPath := cast.ToString(params["output_path"])
-	return response.FormatResult(result, outputPath)
+	return framework.FormatResult(result, outputPath)
 }
 
 // ─── handleTaskWorkflowFixInvalidIDs ────────────────────────────────────────
@@ -461,7 +460,7 @@ func handleTaskWorkflowFixInvalidIDs(ctx context.Context, params map[string]inte
 			"message":     "no invalid task IDs found",
 		}
 
-		return response.FormatResult(result, "")
+		return framework.FormatResult(result, "")
 	}
 
 	// Update dependencies: any task referencing an old ID should reference the new ID
@@ -503,7 +502,7 @@ func handleTaskWorkflowFixInvalidIDs(ctx context.Context, params map[string]inte
 		"id_mapping":  mapping,
 	}
 
-	return response.FormatResult(result, "")
+	return framework.FormatResult(result, "")
 }
 
 // ─── generateEpochTaskID ────────────────────────────────────────────────────

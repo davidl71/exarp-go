@@ -12,7 +12,6 @@ import (
 
 	"github.com/davidl71/exarp-go/internal/framework"
 	"github.com/davidl71/exarp-go/proto"
-	"github.com/davidl71/mcp-go-core/pkg/mcp/response"
 )
 
 // SuggestedDependency is a single suggestion: task_id should depend on suggested_dep_id (reason).
@@ -299,5 +298,5 @@ func handleTaskAnalysisSuggestDependencies(ctx context.Context, params map[strin
 		ResultJson: string(resultJSON),
 	}
 
-	return response.FormatResult(TaskAnalysisResponseToMap(resp), resp.GetOutputPath())
+	return framework.FormatResult(TaskAnalysisResponseToMap(resp), resp.GetOutputPath())
 }
