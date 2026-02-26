@@ -269,7 +269,6 @@ func GetDefaults() *FullConfig {
 			Features: FeaturesConfig{
 				SQLiteEnabled: true,
 				JSONFallback:  true,
-				PythonBridge:  true,
 				MCPServers:    []string{},
 			},
 			SkipChecks:  []string{},

@@ -312,6 +312,5 @@ message ProjectConfig {
 message FeaturesConfig {
   bool sqlite_enabled = 1;
   bool json_fallback = 2;
-  bool python_bridge = 3;
   repeated string mcp_servers = 4;
 }

@@ -329,7 +329,6 @@ type ProjectConfig struct {
 type FeaturesConfig struct {
 	SQLiteEnabled bool     `yaml:"sqlite_enabled"`
 	JSONFallback  bool     `yaml:"json_fallback"`
-	PythonBridge  bool     `yaml:"python_bridge"`
 	MCPServers    []string `yaml:"mcp_servers"`
 }
 

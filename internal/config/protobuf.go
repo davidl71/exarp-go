@@ -114,7 +114,7 @@ func ToProtobuf(cfg *FullConfig) (*configpb.FullConfig, error) {
 	if cfg.Project.Name != "" || cfg.Project.Type != "" || cfg.Project.Language != "" ||
 		cfg.Project.Root != "" || cfg.Project.Todo2Path != "" || cfg.Project.ExarpPath != "" ||
 		cfg.Project.Features.SQLiteEnabled || cfg.Project.Features.JSONFallback ||
-		cfg.Project.Features.PythonBridge || len(cfg.Project.Features.MCPServers) > 0 ||
+		len(cfg.Project.Features.MCPServers) > 0 ||
 		len(cfg.Project.SkipChecks) > 0 || len(cfg.Project.CustomTools) > 0 {
 		pb.Project = projectToProtobuf(&cfg.Project)
 	}
@@ -1052,7 +1052,6 @@ func featuresToProtobuf(f *FeaturesConfig) *configpb.FeaturesConfig {
 	return &configpb.FeaturesConfig{
 		SqliteEnabled: f.SQLiteEnabled,
 		JsonFallback:  f.JSONFallback,
-		PythonBridge:  f.PythonBridge,
 		McpServers:    f.MCPServers,
 	}
 }
@@ -1065,7 +1064,6 @@ func featuresFromProtobuf(pb *configpb.FeaturesConfig) FeaturesConfig {
 	return FeaturesConfig{
 		SQLiteEnabled: pb.GetSqliteEnabled(),
 		JSONFallback:  pb.GetJsonFallback(),
-		PythonBridge:  pb.GetPythonBridge(),
 		MCPServers:    pb.GetMcpServers(),
 	}
 }

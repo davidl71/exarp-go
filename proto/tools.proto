@@ -36,7 +36,7 @@ message MemoryRequest {
 // MemoryResponse represents the response from the memory tool
 message MemoryResponse {
   bool success = 1;
-  string method = 2;  // "native_go" or "python_bridge"
+  string method = 2;  // execution method
   repeated Memory memories = 3;
   int32 count = 4;
   string memory_id = 5;

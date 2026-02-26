@@ -235,7 +235,7 @@ func (x *MemoryRequest) GetLimit() int32 {
 type MemoryResponse struct {
 	state               protoimpl.MessageState `protogen:"open.v1"`
 	Success             bool                   `protobuf:"varint,1,opt,name=success,proto3" json:"success,omitempty"`
-	Method              string                 `protobuf:"bytes,2,opt,name=method,proto3" json:"method,omitempty"` // "native_go" or "python_bridge"
+	Method              string                 `protobuf:"bytes,2,opt,name=method,proto3" json:"method,omitempty"` // execution method
 	Memories            []*Memory              `protobuf:"bytes,3,rep,name=memories,proto3" json:"memories,omitempty"`
 	Count               int32                  `protobuf:"varint,4,opt,name=count,proto3" json:"count,omitempty"`
 	MemoryId            string                 `protobuf:"bytes,5,opt,name=memory_id,json=memoryId,proto3" json:"memory_id,omitempty"`
