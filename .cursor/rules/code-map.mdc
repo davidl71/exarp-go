@@ -11,7 +11,7 @@ Use this map to jump directly to the right file when working on a tool, feature,
 
 | Tool | Handler file(s) | Key actions |
 |------|-----------------|-------------|
-| `task_workflow` | `task_workflow_native.go` → `task_workflow_common.go` | sync, create, update, delete, approve, cleanup, sanity, clarify, summarize, run_with_ai |
+| `task_workflow` | `task_workflow_native.go` → `task_workflow_actions.go`, `task_workflow_common.go` | sync, create, update, delete, approve, cleanup, sanity, clarify, summarize, run_with_ai |
 | `task_analysis` | `task_analysis_shared.go` | parallelization, dependencies, duplicates, conflicts, execution_plan, tags, suggest_deps, stale, completable |
 | `report` | `report.go` | overview, scorecard, briefing, plan, parallel_execution_plan, update_waves_from_plan, prd |
 | `session` | `session.go` | prime, handoff (end/list/resume/latest/export/close/approve) |
@@ -47,8 +47,10 @@ Use this map to jump directly to the right file when working on a tool, feature,
 | `task_execute` | `task_execute.go` | (single action) |
 | `cursor_cloud_agent` | `cursor_cloud_agent.go` | (single action) |
 | `fm_plan_and_execute` | `fm_plan_execute.go` | plan, execute, status |
+| `read_resource` | `resources_as_tools.go` | (read any MCP resource by URI) |
+| `list_resources` | `resources_as_tools.go` | (list all registered MCP resources) |
 
-All handler files are in `internal/tools/`. Registration is in `registry.go` which dispatches to 4 semantic groups: `registerCoreTools` (task_workflow/session/report/health), `registerAITools` (memory/estimation/LLM backends), `registerInfraTools` (automation/git/lint/testing/security/hooks), `registerMiscTools` (alignment/attribution/tool_catalog/workflow_mode/context/recommend/cursor).
+All handler files are in `internal/tools/`. Registration is in `registry.go` which dispatches to 4 semantic groups: `registerCoreTools` (task_workflow/session/report/health), `registerAITools` (memory/estimation/LLM backends), `registerInfraTools` (automation/git/lint/testing/security/hooks), `registerMiscTools` (alignment/attribution/tool_catalog/workflow_mode/context/recommend/cursor/resources-as-tools).
 
 ## Package Responsibilities
 
@@ -60,8 +62,8 @@ All handler files are in `internal/tools/`. Registration is in `registry.go` whi
 | `internal/database` | SQLite storage for tasks, comments, activities, locks | `tasks.go` (types, metadata, ID), `tasks_crud.go`, `tasks_list.go`, `tasks_helpers.go`, `tasks_misc.go`, `schema.go`, `tasks_lock.go`, `migrations/` |
 | `internal/models` | Shared types and constants (no DB dependency) | `todo2.go` (Todo2Task struct), `constants.go` (status/priority), `task_id.go` |
 | `internal/config` | Protobuf-based project configuration | `schema.go` (FullConfig), `loader.go`, `writer.go` |
-| `internal/framework` | MCP server interface abstraction | `server.go` (MCPServer interface), `types.go` |
-| `internal/factory` | Framework factory (creates MCPServer instances) | `factory.go` |
+| `internal/framework` | MCP server interface abstraction + hook/filter types | `server.go` (MCPServer interface, Hooks, ToolFilterFunc) |
+| `internal/factory` | Framework factory with middleware chain | `server.go` (recovery → cache → logging → hooks middleware, WithToolFilter, filteredServer) |
 | `internal/resources` | MCP resource handlers (stdio:// URIs) | `handlers.go` (registry), `tasks.go`, `tools.go`, `session.go` |
 | `internal/prompts` | MCP prompt definitions | `registry.go` |
 | `internal/cache` | File-based caching (scorecard, reports) | `file_cache.go` |
