@@ -105,7 +105,7 @@ func main() {
 		logging.Fatal("Failed to load config: %v", err)
 	}
 
-	server, err := factory.NewServerFromConfig(cfg)
+	server, err := factory.NewServerFromConfig(cfg, factory.WithToolFilter(tools.ToolFilterForMode()))
 	if err != nil {
 		logging.Fatal("Failed to create server: %v", err)
 	}
@@ -152,7 +152,7 @@ func runServeMode(addr string) {
 		logging.Fatal("Failed to load config: %v", err)
 	}
 
-	server, err := factory.NewServerFromConfig(cfg)
+	server, err := factory.NewServerFromConfig(cfg, factory.WithToolFilter(tools.ToolFilterForMode()))
 	if err != nil {
 		logging.Fatal("Failed to create server: %v", err)
 	}
@@ -201,7 +201,7 @@ func runACPMode() {
 		logging.Fatal("Failed to load config: %v", err)
 	}
 
-	mcpServer, err := factory.NewServerFromConfig(cfg)
+	mcpServer, err := factory.NewServerFromConfig(cfg, factory.WithToolFilter(tools.ToolFilterForMode()))
 	if err != nil {
 		logging.Fatal("Failed to create MCP server: %v", err)
 	}

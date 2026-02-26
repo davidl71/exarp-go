@@ -2,7 +2,7 @@
 
 ## Project
 
-Go-based MCP server. 35 tools (36 with Apple FM), 36 prompts, 24 resources. Primary language: Go. Also: shell scripts (scripts/, ansible/), Ansible (YAML playbooks/roles in ansible/). SQLite-backed task system (Todo2). Apple Foundation Models + Ollama + MLX for local AI.
+Go-based MCP server. 37 tools (38 with Apple FM), 36 prompts, 24 resources. Primary language: Go. Also: shell scripts (scripts/, ansible/), Ansible (YAML playbooks/roles in ansible/). SQLite-backed task system (Todo2). Apple Foundation Models + Ollama + MLX for local AI.
 
 ## MCP servers available in this session
 
@@ -63,8 +63,11 @@ Use `go run ./cmd/server ...` for CLI ops during development.
 - **Error handling**: always `fmt.Errorf("context: %w", err)` — never ignore errors
 - **Task store**: use `getTaskStore(ctx)` — never load JSON/DB directly in tool handlers
 - **Preferred backend**: stored in `task.Metadata["preferred_backend"]` (fm|mlx|ollama); read with `GetPreferredBackend(task.Metadata)`
-- **New task_workflow actions**: add to switch in `task_workflow_native.go`, handler in `task_workflow_common.go`, enum in `registry.go`
+- **New task_workflow actions**: add to switch in `task_workflow_native.go`, handler in `task_workflow_actions.go` or `task_workflow_common.go`, enum in `registry.go`
 - **Count sync**: when adding tools/prompts/resources, update comment + test assertions + expected lists
+- **Middleware chain** (factory/server.go): recovery → cache → logging → hooks. Add new middleware via `gosdk.WithMiddleware()`
+- **Singleflight**: scorecard uses `scorecardFlight.Do()` to dedup concurrent computations; tag cache uses `tagCacheFlight`
+- **ResourcesAsTools**: `TrackResource()` in `resources/handlers.go` feeds `read_resource`/`list_resources` tools
 
 ## LLM backends
 

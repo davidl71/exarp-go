@@ -158,7 +158,8 @@ func (f *filteredServer) ListTools() []framework.ToolInfo {
 	return f.filter(context.Background(), f.MCPServer.ListTools())
 }
 
-// NewServerFromConfig creates server from configuration.
-func NewServerFromConfig(cfg *config.Config) (framework.MCPServer, error) {
-	return NewServer(cfg.Framework, cfg.Name, cfg.Version)
+// NewServerFromConfig creates server from configuration with default options
+// (workflow-mode tool filter enabled).
+func NewServerFromConfig(cfg *config.Config, opts ...ServerOption) (framework.MCPServer, error) {
+	return NewServer(cfg.Framework, cfg.Name, cfg.Version, opts...)
 }

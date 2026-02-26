@@ -445,3 +445,99 @@ func handleWorkflowModeStats(ctx context.Context, manager *WorkflowModeManager) 
 
 	return framework.FormatResult(stats, "")
 }
+
+// toolGroup maps each tool name to a logical group for filtering.
+var toolGroup = map[string]string{
+	"task_workflow":       "core",
+	"session":             "core",
+	"report":              "core",
+	"health":              "core",
+	"tool_catalog":        "tool_catalog",
+	"workflow_mode":       "tool_catalog",
+	"list_resources":      "tool_catalog",
+	"read_resource":       "tool_catalog",
+	"task_analysis":       "tasks",
+	"task_discovery":      "tasks",
+	"infer_task_progress": "tasks",
+	"task_execute":        "tasks",
+	"memory":              "memory",
+	"memory_maint":        "memory",
+	"security":            "security",
+	"automation":          "automation",
+	"lint":                "automation",
+	"testing":             "testing",
+	"git_tools":           "automation",
+	"setup_hooks":         "config",
+	"generate_config":     "config",
+	"estimation":          "tasks",
+	"ollama":              "advisors",
+	"mlx":                 "advisors",
+	"llamacpp":            "advisors",
+	"text_generate":       "advisors",
+	"context":             "advisors",
+	"context_budget":      "advisors",
+	"recommend":           "advisors",
+	"analyze_alignment":   "prd",
+	"check_attribution":   "automation",
+	"add_external_tool_hints": "automation",
+	"infer_session_mode":  "workflow",
+	"prompt_tracking":     "workflow",
+	"research_aggregator": "advisors",
+	"cursor_cloud_agent":  "workflow",
+	"fm_plan_and_execute": "advisors",
+}
+
+// modeDefaultGroups defines which tool groups are active for each workflow mode.
+var modeDefaultGroups = map[string]map[string]bool{
+	"development":     {"core": true, "tool_catalog": true, "tasks": true, "memory": true, "automation": true, "advisors": true, "config": true, "workflow": true},
+	"all":             {"core": true, "tool_catalog": true, "tasks": true, "memory": true, "security": true, "automation": true, "testing": true, "config": true, "advisors": true, "workflow": true, "prd": true},
+	"task_management": {"core": true, "tool_catalog": true, "tasks": true, "memory": true, "workflow": true},
+	"security_review": {"core": true, "tool_catalog": true, "security": true, "automation": true, "testing": true},
+	"code_review":     {"core": true, "tool_catalog": true, "testing": true, "automation": true, "memory": true},
+	"sprint_planning": {"core": true, "tool_catalog": true, "tasks": true, "prd": true, "workflow": true, "memory": true},
+	"daily_checkin":   {"core": true, "tool_catalog": true, "tasks": true, "memory": true, "workflow": true},
+	"debugging":       {"core": true, "tool_catalog": true, "testing": true, "memory": true, "advisors": true, "automation": true},
+}
+
+// ToolFilterForMode returns a ToolFilterFunc that shows/hides tools based on the
+// current workflow mode. Core and tool_catalog groups are always visible.
+func ToolFilterForMode() framework.ToolFilterFunc {
+	return func(ctx context.Context, tools []framework.ToolInfo) []framework.ToolInfo {
+		manager := getWorkflowManager()
+		mode := manager.state.CurrentMode
+
+		activeGroups := modeDefaultGroups[mode]
+		if activeGroups == nil {
+			activeGroups = modeDefaultGroups["all"]
+		}
+
+		// Apply extra/disabled overrides
+		merged := make(map[string]bool, len(activeGroups))
+		for g, v := range activeGroups {
+			merged[g] = v
+		}
+		for _, g := range manager.state.ExtraGroups {
+			merged[strings.ToLower(g)] = true
+		}
+		for _, g := range manager.state.DisabledGroups {
+			delete(merged, strings.ToLower(g))
+		}
+		// Core and tool_catalog are always on
+		merged["core"] = true
+		merged["tool_catalog"] = true
+
+		var filtered []framework.ToolInfo
+		for _, t := range tools {
+			group, ok := toolGroup[t.Name]
+			if !ok {
+				// Unknown tools are always visible
+				filtered = append(filtered, t)
+				continue
+			}
+			if merged[group] {
+				filtered = append(filtered, t)
+			}
+		}
+		return filtered
+	}
+}

@@ -9,8 +9,12 @@ import (
 	"strings"
 
 	"github.com/davidl71/exarp-go/internal/framework"
+	"github.com/davidl71/exarp-go/proto"
 	"github.com/spf13/cast"
+	"golang.org/x/sync/singleflight"
 )
+
+var reportOverviewFlight singleflight.Group
 
 // handleReportOverview handles the overview action for report tool.
 func handleReportOverview(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
@@ -27,11 +31,14 @@ func handleReportOverview(ctx context.Context, params map[string]interface{}) ([
 	outputPath := cast.ToString(params["output_path"])
 	includePlanning := cast.ToBool(params["include_planning"])
 
-	// Aggregate project data (proto-based internally)
-	overviewProto, err := aggregateProjectDataProto(ctx, projectRoot, includePlanning)
+	flightKey := fmt.Sprintf("overview:%s:%v", projectRoot, includePlanning)
+	v, err, _ := reportOverviewFlight.Do(flightKey, func() (interface{}, error) {
+		return aggregateProjectDataProto(ctx, projectRoot, includePlanning)
+	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to aggregate project data: %w", err)
 	}
+	overviewProto := v.(*proto.ProjectOverviewData)
 
 	// Format output based on requested format (use proto for type-safe formatting)
 	var formattedOutput string

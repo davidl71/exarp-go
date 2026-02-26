@@ -6,7 +6,11 @@ import (
 	"encoding/hex"
 	"fmt"
 	"time"
+
+	"golang.org/x/sync/singleflight"
 )
+
+var tagCacheFlight singleflight.Group
 
 // DiscoveredTag represents a tag discovered from a file.
 type DiscoveredTag struct {
@@ -41,7 +45,18 @@ type FileTaskTag struct {
 }
 
 // GetDiscoveredTagsForFile retrieves cached discovered tags for a file.
+// Uses singleflight to deduplicate concurrent queries for the same file path.
 func GetDiscoveredTagsForFile(filePath string) ([]DiscoveredTag, error) {
+	v, err, _ := tagCacheFlight.Do("tags:"+filePath, func() (interface{}, error) {
+		return getDiscoveredTagsForFileDB(filePath)
+	})
+	if err != nil {
+		return nil, err
+	}
+	return v.([]DiscoveredTag), nil
+}
+
+func getDiscoveredTagsForFileDB(filePath string) ([]DiscoveredTag, error) {
 	db, err := GetDB()
 	if err != nil {
 		return nil, err
