@@ -14,6 +14,7 @@ import (
 	"github.com/davidl71/exarp-go/internal/database"
 	"github.com/davidl71/exarp-go/internal/framework"
 	"github.com/davidl71/exarp-go/internal/models"
+	"github.com/spf13/cast"
 )
 
 // prdPersona holds persona metadata for PRD alignment (matches Python prd_generator.PERSONAS).
@@ -39,9 +40,9 @@ var prdPersonas = map[string]prdPersona{
 // Implements both "todo2" and "prd" actions natively.
 func handleAnalyzeAlignmentNative(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	// Get action (default: "todo2")
-	action := "todo2"
-	if actionRaw, ok := params["action"].(string); ok && actionRaw != "" {
-		action = actionRaw
+	action := strings.TrimSpace(cast.ToString(params["action"]))
+	if action == "" {
+		action = "todo2"
 	}
 
 	switch action {
@@ -85,16 +86,11 @@ func handleAlignmentTodo2(ctx context.Context, params map[string]interface{}) ([
 
 	// Get optional parameters
 	createFollowupTasks := true
-	if createRaw, ok := params["create_followup_tasks"].(bool); ok {
-		createFollowupTasks = createRaw
+	if _, has := params["create_followup_tasks"]; has {
+		createFollowupTasks = cast.ToBool(params["create_followup_tasks"])
 	}
 
-	outputPath := ""
-	if outputPathRaw, ok := params["output_path"].(string); ok && outputPathRaw != "" {
-		outputPath = outputPathRaw
-	} else {
-		outputPath = filepath.Join(projectRoot, "docs", "TODO2_ALIGNMENT_REPORT.md")
-	}
+	outputPath := DefaultReportOutputPath(projectRoot, "TODO2_ALIGNMENT_REPORT.md", params)
 
 	// Create followup tasks if requested
 	tasksCreated := 0
@@ -226,7 +222,7 @@ func handleAlignmentPRD(ctx context.Context, params map[string]interface{}) ([]f
 		"alignment_by_persona":    alignmentByPersona,
 	}
 
-	outputPath, _ := params["output_path"].(string)
+	outputPath := cast.ToString(params["output_path"])
 	if outputPath != "" {
 		fullPath := outputPath
 		if !filepath.IsAbs(fullPath) {

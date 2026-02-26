@@ -13,6 +13,7 @@ import (
 	"github.com/davidl71/exarp-go/internal/database"
 	"github.com/davidl71/exarp-go/internal/framework"
 	"github.com/davidl71/exarp-go/internal/models"
+	"github.com/spf13/cast"
 )
 
 // handleCheckAttributionNative handles the check_attribution tool with native Go implementation.
@@ -23,18 +24,13 @@ func handleCheckAttributionNative(ctx context.Context, params map[string]interfa
 		return nil, fmt.Errorf("project root: %w", err)
 	}
 
-	// Get optional parameters
+	// Get optional parameters (default create_tasks true)
 	createTasks := true
-	if createTasksRaw, ok := params["create_tasks"].(bool); ok {
-		createTasks = createTasksRaw
+	if _, has := params["create_tasks"]; has {
+		createTasks = cast.ToBool(params["create_tasks"])
 	}
 
-	outputPath := ""
-	if outputPathRaw, ok := params["output_path"].(string); ok && outputPathRaw != "" {
-		outputPath = outputPathRaw
-	} else {
-		outputPath = filepath.Join(projectRoot, "docs", "ATTRIBUTION_COMPLIANCE_REPORT.md")
-	}
+	outputPath := DefaultReportOutputPath(projectRoot, "ATTRIBUTION_COMPLIANCE_REPORT.md", params)
 
 	// Perform attribution check
 	results := performAttributionCheck(projectRoot)

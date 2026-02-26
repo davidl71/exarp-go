@@ -7,18 +7,20 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/davidl71/exarp-go/internal/cache"
 	"github.com/davidl71/exarp-go/internal/framework"
+	"github.com/spf13/cast"
 )
 
 // handleSetupHooksNative handles the setup_hooks tool with native Go implementation
 // Implements both "git" and "patterns" actions - fully native Go.
 func handleSetupHooksNative(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	// Get action (default: "git")
-	action := "git"
-	if actionRaw, ok := params["action"].(string); ok && actionRaw != "" {
-		action = actionRaw
+	action := strings.TrimSpace(cast.ToString(params["action"]))
+	if action == "" {
+		action = "git"
 	}
 
 	switch action {
@@ -45,16 +47,13 @@ func handleSetupGitHooks(ctx context.Context, params map[string]interface{}) ([]
 		return nil, fmt.Errorf(".git/hooks directory not found. Are you in a git repository? Run 'git init' first")
 	}
 
-	// Get optional parameters
+	// Get optional parameters (default install true)
 	install := true
-	if installRaw, ok := params["install"].(bool); ok {
-		install = installRaw
+	if _, has := params["install"]; has {
+		install = cast.ToBool(params["install"])
 	}
 
-	dryRun := false
-	if dryRunRaw, ok := params["dry_run"].(bool); ok {
-		dryRun = dryRunRaw
-	}
+	dryRun := cast.ToBool(params["dry_run"])
 
 	// Get hooks to install
 	var hooksToInstall []string
@@ -202,26 +201,21 @@ func handleSetupPatternHooks(ctx context.Context, params map[string]interface{})
 	}
 
 	// Get optional parameters
-	dryRun := false
-	if dryRunRaw, ok := params["dry_run"].(bool); ok {
-		dryRun = dryRunRaw
-	}
+	dryRun := cast.ToBool(params["dry_run"])
 
 	// Get patterns (optional - can be JSON string or will use defaults)
 	var patterns map[string]interface{}
-	if patternsRaw, ok := params["patterns"].(string); ok && patternsRaw != "" {
+	if patternsRaw := strings.TrimSpace(cast.ToString(params["patterns"])); patternsRaw != "" {
 		if err := json.Unmarshal([]byte(patternsRaw), &patterns); err != nil {
 			return nil, fmt.Errorf("failed to parse patterns JSON: %w", err)
 		}
 	} else {
-		// Use default patterns
 		patterns = getDefaultPatterns()
 	}
 
 	// Get config path (optional)
-	configPath := ""
-	if configPathRaw, ok := params["config_path"].(string); ok && configPathRaw != "" {
-		configPath = configPathRaw
+	configPath := strings.TrimSpace(cast.ToString(params["config_path"]))
+	if configPath != "" {
 		// Load patterns from config file if it exists (using file cache)
 		fileCache := cache.GetGlobalFileCache()
 		if data, _, err := fileCache.ReadFile(configPath); err == nil {
