@@ -2,7 +2,7 @@
 
 **Tag hints:** `#docs` `#refactor`
 
-> A Go-based MCP (Model Context Protocol) server providing 24 tools, 36 prompts, and 23 resources
+> A Go-based MCP (Model Context Protocol) server providing 35 tools (36 with Apple FM), 36 prompts, and 24 resources
 > for AI-assisted project management, code quality, and local LLM integration.
 
 ## Package Map
@@ -51,9 +51,9 @@ flowchart TD
     end
 
     subgraph Registration["Registration"]
-        TOOLS_REG["internal/tools/registry.go<br/>24 tools (5 batches)"]
+        TOOLS_REG["internal/tools/registry.go<br/>35 tools (4 groups)"]
         PROMPTS_REG["internal/prompts/registry.go<br/>36 prompts"]
-        RESOURCES_REG["internal/resources/handlers.go<br/>23 resources"]
+        RESOURCES_REG["internal/resources/handlers.go<br/>24 resources"]
     end
 
     subgraph Handlers["Tool Handlers"]
@@ -107,7 +107,7 @@ flowchart TD
 | CLI dispatch or MCP stdio | `cmd/server/main.go` | Detects mode from flags/TTY, routes to CLI or MCP server |
 | CLI subcommand routing | `internal/cli/cli.go` | Parses `-tool`, `task`, `tui`, `config` subcommands |
 | MCP tool dispatch | `internal/tools/handlers.go` | Routes JSON-RPC tool calls to per-tool handler functions |
-| Tool registration | `internal/tools/registry.go` | Registers 24 tools in 5 batches with schemas |
+| Tool registration | `internal/tools/registry.go` | Registers 35 tools in 4 semantic groups with schemas |
 | HTTP API + PWA | `internal/api/server.go` + `internal/web/` | REST API wrapping MCP tools; embedded SPA |
 | ACP server | `internal/acp/server.go` | Agent Client Protocol for Zed/JetBrains/OpenCode |
 
@@ -120,7 +120,7 @@ flowchart TD
 | `models.Todo2Task` | `internal/models/todo2.go` | Canonical task struct used across all packages |
 | `models.Status*` / `Priority*` | `internal/models/constants.go` | Named constants for statuses, priorities, comment types |
 | `database.TaskStore` | `internal/database/tasks_crud.go` | CRUD operations: GetTask, CreateTask, UpdateTask, DeleteTask |
-| `database.ClaimTaskForAgent` | `internal/database/locking.go` | Distributed lock acquisition for multi-agent safety |
+| `database.ClaimTaskForAgent` | `internal/database/tasks_lock.go` | Distributed lock acquisition for multi-agent safety |
 | `config.FullConfig` | `internal/config/schema.go` | Protobuf-based project configuration |
 | `TextGenerator` interface | `internal/tools/text_generate.go` | LLM provider contract (FM, Ollama, MLX, LocalAI) |
 | `cache.ScorecardCache` | `internal/cache/file_cache.go` | TTL-based cache for expensive scorecard computation |
@@ -146,10 +146,12 @@ handlers.go (dispatch)  →  <tool>_native.go (entry)  →  <tool>_common.go (sh
    - Add file-level orientation comment
    - Implement handler function: `func handle<ToolName>(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error)`
 
-2. **Register in `registry.go`**:
-   - Add to the appropriate `registerBatchNTools()` function
+2. **Register in the appropriate registry file**:
+   - Core tools (task_workflow, session, report, health): `registry_core.go`
+   - AI/LLM tools (memory, estimation, ollama, mlx, text_generate, etc.): `registry_ai.go`
+   - Infra tools (automation, git_tools, testing, lint, security, hooks): `registry_infra.go`
+   - Misc tools (alignment, attribution, tool_catalog, workflow_mode, etc.): `registry_misc.go`
    - Provide tool name, description (with `[HINT: ...]`), JSON schema, and handler reference
-   - Update the batch comment with new tool count
 
 3. **Add protobuf support** (optional):
    - Define request/response in `proto/*.proto`
@@ -192,18 +194,14 @@ The project supports multiple local LLM backends through a unified abstraction:
 
 The `text_generate` tool with `provider=auto` uses `model_router.go` to select the best available backend.
 
-## File Split Candidates
+## Large Files Reference
 
-The following large files are candidates for future splitting (tracked as documentation, not urgent):
+Files over 600 lines that are candidates for future splitting if they become merge-conflict hotspots:
 
-| File | Lines | Suggested Split |
+| File | Lines | Notes |
 |---|---|---|
-| `task_analysis_shared.go` | ~3,991 | Extract graph algorithms, duplicate detection, dependency analysis |
-| `task_workflow_common.go` | ~2,729 | Extract CRUD helpers, batch operations, AI integration |
-| `report.go` | ~2,288 | Extract scorecard dispatch, overview/briefing helpers |
-| `session.go` | ~2,193 | Extract handoff operations into `session_handoff.go` |
-| `registry.go` | ~1,962 | Extract per-batch registration into separate files |
-| `protobuf_helpers.go` | ~1,722 | Extract per-tool parse/convert pairs |
-| `database/tasks.go` | ~1,500+ | Already split into `tasks_crud.go`, `tasks_list.go`, etc. |
-
-These are documented for reference. Splits should be done incrementally with full test coverage verification (`make test`) after each split.
+| `internal/tools/task_workflow_native.go` | ~730 | Clarify sub-action is ~350 lines — candidate for `task_workflow_clarify.go` |
+| `internal/tools/todo2_utils.go` | ~655 | Mixed: I/O, overview writing, helpers, status utils |
+| `internal/tools/automation_scheduled.go` | ~635 | Three independent handlers (daily/nightly/sprint) |
+| `internal/tools/task_workflow_maintenance.go` | ~664 | Sync + sanity + cleanup |
+| `internal/config/protobuf.go` | ~1,071 | 15+ proto conversion pairs; could split by config section |

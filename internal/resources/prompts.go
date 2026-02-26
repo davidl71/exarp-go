@@ -14,24 +14,8 @@ import (
 // handleAllPrompts handles the stdio://prompts resource
 // Returns all prompts in compact format (name + description only).
 func handleAllPrompts(ctx context.Context, uri string) ([]byte, string, error) {
-	// All prompt names in registry order (35 prompts; see internal/prompts/registry.go)
-	promptNames := []string{
-		// Original prompts (9)
-		"align", "discover", "config", "scan", "scorecard", "overview", "plan",
-		"dashboard", "remember",
-		// High-value workflow prompts (7)
-		"daily_checkin", "sprint_start", "sprint_end", "pre_sprint",
-		"post_impl", "sync", "dups",
-		// mcp-generic-tools prompts
-		"context", "mode",
-		// Task management prompts
-		"task_update",
-		// Migrated from Python (16): docs, automation, workflow, advisor, personas
-		"docs", "automation_discover", "weekly_maintenance", "task_review", "project_health",
-		"automation_setup", "advisor_consult", "advisor_briefing",
-		"persona_developer", "persona_project_manager", "persona_code_reviewer", "persona_executive",
-		"persona_security", "persona_architect", "persona_qa", "persona_tech_writer",
-	}
+	// Derive prompt names from the single source of truth in the prompts registry.
+	promptNames := prompts.ListAllPromptNames()
 
 	// Build compact format (name + description only)
 	promptList := make([]map[string]interface{}, 0, len(promptNames))
