@@ -221,7 +221,7 @@ func registerInfraTools(server framework.MCPServer) error {
 	// lint
 	if err := server.RegisterTool(
 		"lint",
-		"[HINT: action=run|analyze. Run linters or analyze results. Supports golangci-lint, gofmt, gomarklint (with link check). Use when checking code quality.]",
+		"[HINT: action=run|analyze. Run linters or analyze results. Go: golangci-lint, go-vet, gofmt, goimports. Markdown: markdownlint. Shell: shellcheck. C/C++: clang-tidy, cppcheck, clang-format. Python: ruff, flake8, pylint. Rust: clippy, rustfmt. linter=auto detects from file extension.]",
 		framework.ToolSchema{
 			Type: "object",
 			Properties: map[string]interface{}{
@@ -234,8 +234,16 @@ func registerInfraTools(server framework.MCPServer) error {
 					"type": "string",
 				},
 				"linter": map[string]interface{}{
-					"type":    "string",
-					"default": "golangci-lint",
+					"type": "string",
+					"enum": []string{
+						"auto",
+						"golangci-lint", "go-vet", "gofmt", "goimports",
+						"markdownlint", "shellcheck",
+						"clang-tidy", "cppcheck", "clang-format",
+						"ruff", "flake8", "pylint",
+						"clippy", "rustfmt",
+					},
+					"default": "auto",
 				},
 				"fix": map[string]interface{}{
 					"type":    "boolean",
