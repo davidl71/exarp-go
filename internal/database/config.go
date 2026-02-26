@@ -68,6 +68,10 @@ func LoadConfig(projectRoot string) (*Config, error) {
 		cfg.AutoMigrate = false
 	}
 
+	if migrDir := os.Getenv("EXARP_MIGRATIONS_DIR"); migrDir != "" {
+		cfg.MigrationsDir = migrDir
+	}
+
 	return cfg, nil
 }
 
@@ -146,6 +150,10 @@ func LoadConfigFromCentralizedFields(projectRoot string, dbCfg DatabaseConfigFie
 
 	if autoMigrate := os.Getenv("DB_AUTO_MIGRATE"); autoMigrate == "false" {
 		dbConfig.AutoMigrate = false
+	}
+
+	if migrDir := os.Getenv("EXARP_MIGRATIONS_DIR"); migrDir != "" {
+		dbConfig.MigrationsDir = migrDir
 	}
 
 	return dbConfig, nil

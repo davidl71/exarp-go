@@ -300,6 +300,16 @@ func (state *tui3270State) taskListTransaction(conn net.Conn, devInfo go3270.Dev
 		endIdx = startIdx
 	}
 
+	if len(state.tasks) == 0 {
+		msg := "No tasks found."
+		if state.filter != "" {
+			msg = fmt.Sprintf("No tasks match filter: %s", state.filter)
+		} else if state.status != "" {
+			msg = fmt.Sprintf("No tasks with status: %s", state.status)
+		}
+		screen = append(screen, go3270.Field{Row: t3270HeaderRow, Col: t3270ColID, Content: msg, Color: go3270.Yellow})
+	}
+
 	for row, i := t3270HeaderRow, startIdx; i < endIdx; row, i = row+1, i+1 {
 		task := state.tasks[i]
 		isCursor := i == state.cursor

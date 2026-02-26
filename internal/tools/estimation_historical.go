@@ -5,14 +5,14 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/davidl71/exarp-go/internal/database"
+	"github.com/davidl71/exarp-go/internal/models"
 	"math"
 	"os"
 	"path/filepath"
 	"sort"
 	"strings"
 	"time"
-	"github.com/davidl71/exarp-go/internal/database"
-	"github.com/davidl71/exarp-go/internal/models"
 )
 
 // loadHistoricalTasks loads completed tasks from Todo2 (DB-first, then JSON fallback).

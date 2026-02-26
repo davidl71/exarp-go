@@ -3,13 +3,13 @@ package tools
 
 import (
 	"context"
+	"github.com/davidl71/exarp-go/internal/config"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
-	"github.com/davidl71/exarp-go/internal/config"
 )
 
 // collectPerFileCodeStats returns per-file stats (path, lines, bytes, estimated tokens) for .go, _test.go, and bridge/tests .py.
@@ -480,4 +480,3 @@ func checkAccessControl(projectRoot string) bool {
 
 	return strings.Contains(content, "type AccessControl") && strings.Contains(content, "func CheckToolAccess")
 }
-

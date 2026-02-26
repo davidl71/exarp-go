@@ -5,12 +5,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/davidl71/exarp-go/internal/projectroot"
+	"github.com/davidl71/exarp-go/internal/security"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
-	"github.com/davidl71/exarp-go/internal/projectroot"
-	"github.com/davidl71/exarp-go/internal/security"
 )
 
 // runGolangciLint runs golangci-lint.
@@ -527,4 +527,3 @@ func detectLinter(path string) string {
 		return "go-vet" // Default to Go linter
 	}
 }
-
