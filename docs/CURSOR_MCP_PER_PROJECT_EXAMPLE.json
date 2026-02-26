@@ -1,0 +1,10 @@
+{
+  "_comment": "Moved to docs/examples/. Use docs/examples/cursor-mcp-per-project.json or see docs/examples/README.md.",
+  "mcpServers": {
+    "exarp-go": {
+      "command": "{{PROJECT_ROOT}}/../exarp-go/bin/exarp-go",
+      "args": [],
+      "env": { "PROJECT_ROOT": "{{PROJECT_ROOT}}" }
+    }
+  }
+}

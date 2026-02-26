@@ -1,0 +1,21 @@
+# Optional: tag → recommended_tools mapping for task_workflow action=enrich_tool_hints.
+# Copy to .cursor/task_tool_rules.yaml in your project to override or extend built-in rules.
+# Tags can be with or without "#"; keys here are normalized to lowercase.
+#
+# Built-in defaults (see internal/tools/task_tool_rules.go):
+#   research, design, planning → tractatus_thinking
+#   docs → context7
+#   task_workflow, task_management → task_workflow, task_analysis
+#
+tag_tools:
+  research:
+    - tractatus_thinking
+  docs:
+    - context7
+  task_workflow:
+    - task_workflow
+    - task_analysis
+  # Add custom mappings:
+  # security:
+  #   - task_analysis
+  #   - report

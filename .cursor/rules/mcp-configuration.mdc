@@ -9,7 +9,11 @@ alwaysApply: true
 
 ## Current MCP Servers
 
-Shared set (single source: `~/.cursor/mcp.json`). Project `.cursor/mcp.json` is gitignored and should be **empty or absent** to avoid duplicates.
+**Global config:** `~/.cursor/mcp.json` (single source for shared servers — e.g. from devwisdom-go `make install-mcp-config`).
+
+**Per-project exarp-go:** You can have exarp-go MCP **per project** so each workspace uses its own `.todo2` and project root. Use the project’s `.cursor/mcp.json` with an `exarp-go` entry and `PROJECT_ROOT`: `{{PROJECT_ROOT}}`. Cursor uses the workspace config when that folder is open. See [Per-project exarp-go MCP](#per-project-exarp-go-mcp) below.
+
+Do not duplicate the full global server list in every repo; use project config only for exarp-go (and any other project-specific MCP overrides) so each project gets the right `PROJECT_ROOT`.
 
 | Server | Purpose |
 |--------|---------|
@@ -81,6 +85,41 @@ To install or replace: from devwisdom-go run `make install-mcp-config` (or `REPL
 - **Custom vars**: Add project-specific environment variables as needed
 - **No secrets**: Never commit API keys or secrets to config file
 
+### Per-project exarp-go MCP
+
+To use exarp-go **per project** (each repo has its own tasks and PROJECT_ROOT):
+
+1. In the **project** you want to use exarp-go in, create or edit `.cursor/mcp.json` (this file is gitignored in exarp-go; in other repos you may commit it or add `.cursor/mcp.json` to `.gitignore` and use an example).
+2. Add only the `exarp-go` server (Cursor merges with your global `~/.cursor/mcp.json`):
+
+**Binary in a sibling exarp-go clone (common for development):**
+```json
+{
+  "mcpServers": {
+    "exarp-go": {
+      "command": "{{PROJECT_ROOT}}/../exarp-go/bin/exarp-go",
+      "args": [],
+      "env": { "PROJECT_ROOT": "{{PROJECT_ROOT}}" }
+    }
+  }
+}
+```
+
+**Or use the wrapper script (builds if needed):**
+```json
+{
+  "mcpServers": {
+    "exarp-go": {
+      "command": "{{PROJECT_ROOT}}/../exarp-go/run-exarp-go.sh",
+      "args": [],
+      "env": { "PROJECT_ROOT": "{{PROJECT_ROOT}}", "EXARP_WATCH": "0" }
+    }
+  }
+}
+```
+
+Replace `../exarp-go` with the path to your exarp-go install relative to the project root (or use an absolute path). When you open project A, exarp-go uses project A’s `.todo2`; when you open project B, it uses project B’s `.todo2`. See `docs/examples/README.md` and `docs/examples/cursor-mcp-per-project.json`.
+
 ### Transport Protocol
 - **STDIO**: Recommended for Cursor IDE integration
 - **JSON-RPC 2.0**: Standard protocol for MCP communication
@@ -151,7 +190,8 @@ To install or replace: from devwisdom-go run `make install-mcp-config` (or `REPL
 ## Best Practices
 
 ### Configuration Management
-- ✅ **Single source**: Use `~/.cursor/mcp.json` (from devwisdom-go `make install-mcp-config`); project `.cursor/mcp.json` empty or absent
+- ✅ **Global config**: Use `~/.cursor/mcp.json` for shared servers (devwisdom, tractatus, context7, etc.); install via devwisdom-go `make install-mcp-config`.
+- ✅ **Per-project exarp-go**: Use the project’s `.cursor/mcp.json` to add only exarp-go (and any project-specific overrides) with `PROJECT_ROOT`: `{{PROJECT_ROOT}}` so each workspace gets the correct project root.
 - ✅ **Documentation**: Document each server's purpose and usage
 - ✅ **Validation**: Validate JSON syntax before committing
 - ✅ **Testing**: Test each server independently before adding to config

@@ -259,7 +259,7 @@ After installation, you'll get tab completion for:
 
 ## MCP Configuration
 
-Add to `.cursor/mcp.json`:
+Add to `.cursor/mcp.json`. See **[docs/examples/](docs/examples/README.md)** for full examples (binary, wrapper script, per-project).
 
 ```json
 {
