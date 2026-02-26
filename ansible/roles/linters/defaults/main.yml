@@ -12,3 +12,8 @@ linters:
   - shellcheck
   - shfmt
   - universal-ctags
+  # Uncomment to enable PHP / LaTeX linters:
+  # - phpcs
+  # - phpstan
+  # - chktex
+  # - lacheck

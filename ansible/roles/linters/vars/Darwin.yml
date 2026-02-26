@@ -9,3 +9,5 @@ _npm_global_bin: /usr/local/bin
 _cppcheck_pkg: cppcheck
 _clang_tidy_pkg: llvm
 _ruff_pkg: ruff
+_chktex_pkg: chktex
+_lacheck_pkg: lacheck
