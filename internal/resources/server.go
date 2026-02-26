@@ -3,15 +3,15 @@ package resources
 import (
 	"context"
 	"encoding/json"
-	"os"
+
+	"github.com/davidl71/exarp-go/internal/tools"
 )
 
 // handleServerStatus handles the stdio://server/status resource
 // Returns server operational status, version, and project root information.
 func handleServerStatus(ctx context.Context, uri string) ([]byte, string, error) {
-	// Get project root from environment variable
-	projectRoot := os.Getenv("PROJECT_ROOT")
-	if projectRoot == "" {
+	projectRoot, err := tools.FindProjectRoot()
+	if err != nil {
 		projectRoot = "unknown"
 	}
 

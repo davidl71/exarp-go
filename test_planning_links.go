@@ -11,7 +11,7 @@ import (
 )
 
 func main() {
-	projectRoot, err := os.Getwd()
+	projectRoot, err := tools.GetProjectRootWithFallback()
 	if err != nil {
 		fmt.Printf("Error: %v\n", err)
 		os.Exit(1)

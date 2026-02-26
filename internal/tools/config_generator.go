@@ -24,21 +24,9 @@ func handleGenerateConfigNative(ctx context.Context, args json.RawMessage) ([]fr
 	}
 
 	// Get project root - try multiple methods
-	var projectRoot string
-
-	var err error
-
-	// Try FindProjectRoot first
-	projectRoot, err = FindProjectRoot()
+	projectRoot, err := GetProjectRootWithFallback()
 	if err != nil {
-		// Fallback to PROJECT_ROOT env var
-		if envRoot := os.Getenv("PROJECT_ROOT"); envRoot != "" {
-			projectRoot = envRoot
-		} else {
-			// Fallback to current working directory
-			wd, _ := os.Getwd()
-			projectRoot = wd
-		}
+		return nil, fmt.Errorf("project root: %w", err)
 	}
 
 	switch action {

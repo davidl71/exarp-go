@@ -99,15 +99,9 @@ func handleHealthTools(ctx context.Context, params map[string]interface{}) ([]fr
 // handleHealthServer handles the "server" action for health tool.
 func handleHealthServer(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	// Get project root
-	projectRoot, err := FindProjectRoot()
+	projectRoot, err := GetProjectRootWithFallback()
 	if err != nil {
-		// Fallback to PROJECT_ROOT env var or current directory
-		if envRoot := os.Getenv("PROJECT_ROOT"); envRoot != "" {
-			projectRoot = envRoot
-		} else {
-			wd, _ := os.Getwd()
-			projectRoot = wd
-		}
+		return nil, fmt.Errorf("project root: %w", err)
 	}
 
 	// Try to get version from go.mod or pyproject.toml
@@ -175,14 +169,9 @@ func handleHealthServer(ctx context.Context, params map[string]interface{}) ([]f
 // Checks git working copy health (status, uncommitted changes, remote sync).
 func handleHealthGit(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	// Get project root
-	projectRoot, err := FindProjectRoot()
+	projectRoot, err := GetProjectRootWithFallback()
 	if err != nil {
-		if envRoot := os.Getenv("PROJECT_ROOT"); envRoot != "" {
-			projectRoot = envRoot
-		} else {
-			wd, _ := os.Getwd()
-			projectRoot = wd
-		}
+		return nil, fmt.Errorf("project root: %w", err)
 	}
 
 	// Get parameters
@@ -314,14 +303,9 @@ func handleHealthGit(ctx context.Context, params map[string]interface{}) ([]fram
 // Checks documentation health (basic checks: README exists, docs directory exists).
 func handleHealthDocs(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	// Get project root
-	projectRoot, err := FindProjectRoot()
+	projectRoot, err := GetProjectRootWithFallback()
 	if err != nil {
-		if envRoot := os.Getenv("PROJECT_ROOT"); envRoot != "" {
-			projectRoot = envRoot
-		} else {
-			wd, _ := os.Getwd()
-			projectRoot = wd
-		}
+		return nil, fmt.Errorf("project root: %w", err)
 	}
 
 	// Get parameters
@@ -490,14 +474,9 @@ func handleHealthCICD(ctx context.Context, params map[string]interface{}) ([]fra
 	outputPath, _ := params["output_path"].(string)
 
 	// Get project root
-	projectRoot, err := FindProjectRoot()
+	projectRoot, err := GetProjectRootWithFallback()
 	if err != nil {
-		if envRoot := os.Getenv("PROJECT_ROOT"); envRoot != "" {
-			projectRoot = envRoot
-		} else {
-			wd, _ := os.Getwd()
-			projectRoot = wd
-		}
+		return nil, fmt.Errorf("project root: %w", err)
 	}
 
 	// Check for CI/CD files
@@ -566,14 +545,9 @@ func handleHealthCICD(ctx context.Context, params map[string]interface{}) ([]fra
 // handleHealthCtags handles the "ctags" action - reports if universal-ctags binary and/or tags file are present.
 // Use when checking whether make tags / symbol index is available (see docs/CTAGS_USAGE.md).
 func handleHealthCtags(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
-	projectRoot, err := FindProjectRoot()
+	projectRoot, err := GetProjectRootWithFallback()
 	if err != nil {
-		if envRoot := os.Getenv("PROJECT_ROOT"); envRoot != "" {
-			projectRoot = envRoot
-		} else {
-			wd, _ := os.Getwd()
-			projectRoot = wd
-		}
+		return nil, fmt.Errorf("project root: %w", err)
 	}
 
 	ctagsPath, ctagsErr := exec.LookPath("ctags")

@@ -45,10 +45,8 @@ func getWorkflowManager() *WorkflowModeManager {
 		}
 
 		statePath := filepath.Join(exarpPath, "workflow_mode.json")
-		if projectRoot, err := FindProjectRoot(); err == nil && projectRoot != "" {
-			statePath = filepath.Join(projectRoot, exarpPath, "workflow_mode.json")
-		} else if projectRoot := os.Getenv("PROJECT_ROOT"); projectRoot != "" && projectRoot != "unknown" {
-			statePath = filepath.Join(projectRoot, exarpPath, "workflow_mode.json")
+		if root, err := GetProjectRootWithFallback(); err == nil && root != "" {
+			statePath = filepath.Join(root, exarpPath, "workflow_mode.json")
 		}
 
 		globalWorkflowManager = &WorkflowModeManager{
