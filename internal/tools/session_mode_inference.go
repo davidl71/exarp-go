@@ -4,7 +4,6 @@ package tools
 import (
 	"context"
 	"fmt"
-	"os"
 	"strings"
 	"time"
 
@@ -51,24 +50,17 @@ func HandleInferSessionModeNative(ctx context.Context, params map[string]interfa
 		}
 	}
 
-	// Find project root
-	projectRoot := os.Getenv("PROJECT_ROOT")
-	if projectRoot == "" || projectRoot == "unknown" {
-		var err error
-
-		projectRoot, err = FindProjectRoot()
-		if err != nil {
-			// If project root not found, return unknown mode
-			result := ModeInferenceResult{
-				Mode:       SessionModeUNKNOWN,
-				Confidence: 0.0,
-				Reasoning:  []string{"Project root not found"},
-				Metrics:    map[string]interface{}{},
-				Timestamp:  time.Now().Format(time.RFC3339),
-			}
-
-			return marshalInferenceResult(result)
+	projectRoot, err := FindProjectRoot()
+	if err != nil {
+		result := ModeInferenceResult{
+			Mode:       SessionModeUNKNOWN,
+			Confidence: 0.0,
+			Reasoning:  []string{"Project root not found"},
+			Metrics:    map[string]interface{}{},
+			Timestamp:  time.Now().Format(time.RFC3339),
 		}
+
+		return marshalInferenceResult(result)
 	}
 
 	// Load Todo2 tasks via TaskStore

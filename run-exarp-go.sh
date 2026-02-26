@@ -2,7 +2,7 @@
 
 ###############################################################################
 # Cursor MCP Server Wrapper
-# 
+#
 # Simple wrapper for exarp-go that builds if needed and runs the server.
 # Designed for Cursor IDE STDIO transport.
 #
@@ -16,9 +16,9 @@
 
 set -euo pipefail
 
-# Configuration
+# Configuration; respect PROJECT_ROOT if set by caller (e.g. AI agent)
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$SCRIPT_DIR"
+PROJECT_ROOT="${PROJECT_ROOT:-$SCRIPT_DIR}"
 BINARY_NAME="exarp-go"
 BINARY_PATH="$PROJECT_ROOT/bin/$BINARY_NAME"
 
@@ -36,9 +36,9 @@ WATCH_DIRS=(
 # Build binary if it doesn't exist or is older than source files
 needs_rebuild() {
     if [[ ! -f "$BINARY_PATH" ]]; then
-        return 0  # Needs build
+        return 0 # Needs build
     fi
-    
+
     # Check if any Go source file is newer than binary
     # Try Linux stat format first, fallback to macOS, then default to 0
     local binary_time=0
@@ -49,35 +49,35 @@ needs_rebuild() {
         # macOS format
         binary_time=$(stat -f %m "$BINARY_PATH" 2>/dev/null || echo 0)
     fi
-    
+
     local newest_source=0
     # Try Linux stat format first
     if command -v stat >/dev/null 2>&1; then
         if stat -c %Y /dev/null >/dev/null 2>&1; then
             # Linux format
             newest_source=$(find "$PROJECT_ROOT/cmd" "$PROJECT_ROOT/internal" "$PROJECT_ROOT/bridge" \
-                -name "*.go" -type f -exec stat -c %Y {} \; 2>/dev/null | \
+                -name "*.go" -type f -exec stat -c %Y {} \; 2>/dev/null |
                 sort -n | tail -1 || echo 0)
         elif stat -f %m /dev/null >/dev/null 2>&1; then
             # macOS format
             newest_source=$(find "$PROJECT_ROOT/cmd" "$PROJECT_ROOT/internal" "$PROJECT_ROOT/bridge" \
-                -name "*.go" -type f -exec stat -f %m {} \; 2>/dev/null | \
+                -name "*.go" -type f -exec stat -f %m {} \; 2>/dev/null |
                 sort -n | tail -1 || echo 0)
         fi
     fi
-    
+
     if [[ "${newest_source:-0}" -gt "${binary_time:-0}" ]]; then
-        return 0  # Needs build
+        return 0 # Needs build
     fi
-    
-    return 1  # Doesn't need build
+
+    return 1 # Doesn't need build
 }
 
 # Build binary
 build() {
     echo "[BUILD] Building $BINARY_NAME..." >&2
     mkdir -p "$PROJECT_ROOT/bin"
-    
+
     if go build -o "$BINARY_PATH" ./cmd/server 2>&1; then
         chmod +x "$BINARY_PATH"
         echo "[BUILD] ✅ Build successful" >&2
@@ -105,13 +105,13 @@ get_server_pid() {
 start_server() {
     # Stop existing server if running
     stop_server
-    
+
     # Start new server
     "$BINARY_PATH" "$@" &
     local pid=$!
-    echo "$pid" > "$PROJECT_ROOT/.exarp-go.pid"
+    echo "$pid" >"$PROJECT_ROOT/.exarp-go.pid"
     echo "[SERVER] Started (PID: $pid)" >&2
-    
+
     # Wait a moment to check if it crashed
     sleep 0.5
     if ! kill -0 "$pid" 2>/dev/null; then
@@ -149,13 +149,13 @@ watch_fswatch() {
     # Also watch go.mod and go.sum
     watch_paths+=("$PROJECT_ROOT/go.mod")
     watch_paths+=("$PROJECT_ROOT/go.sum")
-    
+
     echo "[WATCH] Starting file watcher (fswatch)..." >&2
     echo "[WATCH] Watching: ${WATCH_DIRS[*]}" >&2
-    
+
     fswatch -o -r "${watch_paths[@]}" 2>/dev/null | while read -r; do
         echo "[WATCH] File change detected" >&2
-        
+
         # Rebuild on change (but don't restart - Cursor manages the process)
         if build; then
             echo "[WATCH] ✅ Rebuild complete - restart Cursor to use new binary" >&2
@@ -171,18 +171,18 @@ watch_inotify() {
             watch_paths+=("$PROJECT_ROOT/$dir")
         fi
     done
-    
+
     echo "[WATCH] Starting file watcher (inotifywait)..." >&2
     echo "[WATCH] Watching: ${WATCH_DIRS[*]}" >&2
-    
+
     inotifywait -m -r -e modify,create,delete \
         --include '\.(go|py)$' \
         "${watch_paths[@]}" 2>/dev/null | while read -r directory event file; do
         # Debounce: ignore if file is being written (common with editors)
         sleep 0.2
-        
+
         echo "[WATCH] File change detected: $file" >&2
-        
+
         # Rebuild on change (but don't restart - Cursor manages the process)
         if build; then
             echo "[WATCH] ✅ Rebuild complete - restart Cursor to use new binary" >&2
@@ -194,9 +194,9 @@ watch_inotify() {
 watch_polling() {
     echo "[WATCH] Starting polling-based file watcher..." >&2
     echo "[WATCH] Watching: ${WATCH_DIRS[*]}" >&2
-    
+
     local last_check=0
-    
+
     while true; do
         local current_check=0
         # Try Linux stat format first, then macOS
@@ -211,16 +211,16 @@ watch_polling() {
                 -name "*.go" -o -name "*.py" -type f \
                 -exec stat -f %m {} \; 2>/dev/null | sort -n | tail -1 || echo "0")
         fi
-        
+
         if [[ "${current_check:-0}" -gt "${last_check:-0}" ]] && [[ "${last_check:-0}" -gt 0 ]]; then
             echo "[WATCH] File change detected" >&2
-            
+
             # Rebuild on change (but don't restart - Cursor manages the process)
             if build; then
                 echo "[WATCH] ✅ Rebuild complete - restart Cursor to use new binary" >&2
             fi
         fi
-        
+
         last_check=$current_check
         sleep 2
     done
@@ -231,10 +231,10 @@ watch_files() {
     echo "[WATCH] ⚠️  Watch mode enabled (rebuild only)" >&2
     echo "[WATCH] Note: For Cursor MCP, restart Cursor manually after rebuild" >&2
     echo "[WATCH] Server will NOT restart automatically in watch mode (STDIO constraint)" >&2
-    
-    if command -v fswatch &> /dev/null; then
+
+    if command -v fswatch &>/dev/null; then
         watch_fswatch "$@"
-    elif command -v inotifywait &> /dev/null; then
+    elif command -v inotifywait &>/dev/null; then
         watch_inotify "$@"
     else
         echo "[WATCH] ⚠️  fswatch/inotifywait not found, using polling mode" >&2
@@ -255,14 +255,14 @@ cleanup() {
 main() {
     # Change to project root
     cd "$PROJECT_ROOT"
-    
+
     # Build if needed
     if needs_rebuild; then
         if ! build; then
             exit 1
         fi
     fi
-    
+
     # Watch mode or single run
     if [[ "$WATCH_MODE" == "1" ]] || [[ "$WATCH_MODE" == "true" ]]; then
         # Watch mode: rebuild on changes, but don't auto-restart server
@@ -271,11 +271,11 @@ main() {
         echo "[INFO] Watch mode: Auto-rebuilding on file changes..." >&2
         echo "[INFO] Note: For Cursor MCP, restart Cursor after rebuild completes" >&2
         echo "[INFO] Server will run in foreground for STDIO" >&2
-        
+
         # Start file watcher in background
         watch_files "$@" &
         local watcher_pid=$!
-        
+
         # Cleanup function for watch mode
         watch_cleanup() {
             echo "[CLEANUP] Shutting down watcher..." >&2
@@ -283,12 +283,12 @@ main() {
             wait "$watcher_pid" 2>/dev/null || true
         }
         trap watch_cleanup SIGINT SIGTERM EXIT
-        
+
         # Run server in foreground (STDIO for Cursor)
         # Don't use exec here so we can clean up the watcher
         "$BINARY_PATH" "$@"
         local exit_code=$?
-        
+
         # Cleanup watcher
         watch_cleanup
         exit $exit_code
@@ -300,4 +300,3 @@ main() {
 
 # Run main
 main "$@"
-

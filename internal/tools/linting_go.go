@@ -5,8 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/davidl71/exarp-go/internal/projectroot"
-	"github.com/davidl71/exarp-go/internal/security"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -30,75 +28,17 @@ func runGolangciLint(ctx context.Context, path string, fix bool) (*LintResult, e
 		}, nil
 	}
 
-	// Find project root - prefer PROJECT_ROOT env var, then look for go.mod
-	var projectRoot string
-
-	var absPath string
-
-	// Try PROJECT_ROOT environment variable first (set by MCP server)
-	if envRoot := os.Getenv("PROJECT_ROOT"); envRoot != "" {
-		if _, err := os.Stat(filepath.Join(envRoot, "go.mod")); err == nil {
-			projectRoot = envRoot
-		}
+	projectRoot, absPath, relPath, err := resolveLintPaths(path)
+	if err != nil {
+		return nil, err
 	}
 
-	// If PROJECT_ROOT not set or invalid, find by walking up from path
-	if projectRoot == "" {
-		// Convert path to absolute
-		if filepath.IsAbs(path) {
-			absPath = path
-		} else {
-			// Try PROJECT_ROOT first, then fall back to Getwd
-			if envRoot := os.Getenv("PROJECT_ROOT"); envRoot != "" {
-				absPath = filepath.Join(envRoot, path)
-			} else {
-				wd, _ := os.Getwd()
-				absPath = filepath.Join(wd, path)
-			}
-		}
-
-		// Walk up from the path to find go.mod
-		currentPath := absPath
-
-		for {
-			if _, err := os.Stat(filepath.Join(currentPath, "go.mod")); err == nil {
-				projectRoot = currentPath
-				break
-			}
-
-			parent := filepath.Dir(currentPath)
-			if parent == currentPath {
-				// Reached filesystem root, use current working directory
-				projectRoot, _ = os.Getwd()
-				break
-			}
-
-			currentPath = parent
-		}
-	} else {
-		// PROJECT_ROOT is set, use it to resolve relative paths
-		if filepath.IsAbs(path) {
-			absPath = path
-		} else {
-			absPath = filepath.Join(projectRoot, path)
-		}
-	}
-
-	// Determine if path is a directory
 	pathInfo, err := os.Stat(absPath)
 	isDir := err == nil && pathInfo.IsDir()
 
-	// Build command (v2 uses --output.json.path instead of --out-format=json)
 	args := []string{"run", "--output.json.path=stdout"}
 	if fix {
 		args = append(args, "--fix")
-	}
-
-	// Get relative path from project root
-	relPath, err := filepath.Rel(projectRoot, absPath)
-	if err != nil {
-		// Fallback: use path as-is if we can't get relative
-		relPath = path
 	}
 
 	// Add path with ... for recursive directory traversal
@@ -214,35 +154,14 @@ func runGoVet(ctx context.Context, path string) (*LintResult, error) {
 		}, nil
 	}
 
-	// Get project root for path validation
-	projectRoot := os.Getenv("PROJECT_ROOT")
-	if projectRoot == "" {
-		// Try to find project root
-		var err error
-
-		projectRoot, err = projectroot.FindFrom(path)
-		if err != nil {
-			// Fallback to current directory
-			projectRoot, _ = os.Getwd()
-		}
-	}
-
-	// Validate and sanitize path to prevent directory traversal
-	_, relPath, err := security.ValidatePathWithinRoot(path, projectRoot)
+	projectRoot, absPath, relPath, err := resolveLintPaths(path)
 	if err != nil {
-		return nil, fmt.Errorf("invalid path: %w", err)
-	}
-
-	// Determine if path is a directory (validate again to get absPath)
-	absPath, err := security.ValidatePath(path, projectRoot)
-	if err != nil {
-		return nil, fmt.Errorf("invalid path: %w", err)
+		return nil, err
 	}
 
 	pathInfo, err := os.Stat(absPath)
 	isDir := err == nil && pathInfo != nil && pathInfo.IsDir()
 
-	// Build command
 	args := []string{"vet"}
 
 	// Add path with ... for recursive directory traversal
@@ -307,7 +226,6 @@ func runGoVet(ctx context.Context, path string) (*LintResult, error) {
 
 // runGofmt runs gofmt.
 func runGofmt(ctx context.Context, path string, fix bool) (*LintResult, error) {
-	// Check if gofmt is available
 	if _, err := exec.LookPath("gofmt"); err != nil {
 		return &LintResult{
 			Success: false,
@@ -322,30 +240,16 @@ func runGofmt(ctx context.Context, path string, fix bool) (*LintResult, error) {
 		}, nil
 	}
 
-	// Get project root for path validation
-	projectRoot := os.Getenv("PROJECT_ROOT")
-	if projectRoot == "" {
-		var err error
-
-		projectRoot, err = projectroot.FindFrom(path)
-		if err != nil {
-			projectRoot, _ = os.Getwd()
-		}
-	}
-
-	// Validate and sanitize path to prevent directory traversal
-	_, relPath, err := security.ValidatePathWithinRoot(path, projectRoot)
+	projectRoot, _, relPath, err := resolveLintPaths(path)
 	if err != nil {
-		return nil, fmt.Errorf("invalid path: %w", err)
+		return nil, err
 	}
 
-	// Build command
 	args := []string{"-d"}
 	if fix {
 		args = []string{"-w"}
 	}
 
-	// Add path
 	if relPath != "." && relPath != "" {
 		args = append(args, relPath)
 	} else {
@@ -421,30 +325,16 @@ func runGoimports(ctx context.Context, path string, fix bool) (*LintResult, erro
 		}, nil
 	}
 
-	// Get project root for path validation
-	projectRoot := os.Getenv("PROJECT_ROOT")
-	if projectRoot == "" {
-		var err error
-
-		projectRoot, err = projectroot.FindFrom(path)
-		if err != nil {
-			projectRoot, _ = os.Getwd()
-		}
-	}
-
-	// Validate and sanitize path to prevent directory traversal
-	_, relPath, err := security.ValidatePathWithinRoot(path, projectRoot)
+	projectRoot, _, relPath, err := resolveLintPaths(path)
 	if err != nil {
-		return nil, fmt.Errorf("invalid path: %w", err)
+		return nil, err
 	}
 
-	// Build command
 	args := []string{"-d"}
 	if fix {
 		args = []string{"-w"}
 	}
 
-	// Add path
 	if relPath != "." && relPath != "" {
 		args = append(args, relPath)
 	} else {
@@ -518,27 +408,13 @@ func runDeadcode(ctx context.Context, path string) (*LintResult, error) {
 		}, nil
 	}
 
-	// Get project root for path validation
-	projectRoot := os.Getenv("PROJECT_ROOT")
-	if projectRoot == "" {
-		var err error
-
-		projectRoot, err = projectroot.FindFrom(path)
-		if err != nil {
-			projectRoot, _ = os.Getwd()
-		}
-	}
-
-	// Validate and sanitize path to prevent directory traversal
-	absPath, relPath, err := security.ValidatePathWithinRoot(path, projectRoot)
+	projectRoot, absPath, relPath, err := resolveLintPaths(path)
 	if err != nil {
-		return nil, fmt.Errorf("invalid path: %w", err)
+		return nil, err
 	}
 
 	pathInfo, err := os.Stat(absPath)
 	isDir := err == nil && pathInfo != nil && pathInfo.IsDir()
-
-	// Build command - deadcode takes packages as args
 	args := []string{}
 	if relPath == "." || relPath == "" {
 		args = append(args, "./...")

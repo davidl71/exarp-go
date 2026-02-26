@@ -3,7 +3,6 @@ package tools
 import (
 	"context"
 	"encoding/json"
-	"os"
 
 	"github.com/davidl71/exarp-go/internal/framework"
 )
@@ -11,9 +10,8 @@ import (
 // handleServerStatusNative handles the server_status tool with native Go implementation
 // Returns server operational status, version, and project root information.
 func handleServerStatusNative(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
-	// Get project root from environment variable
-	projectRoot := os.Getenv("PROJECT_ROOT")
-	if projectRoot == "" {
+	projectRoot, err := FindProjectRoot()
+	if err != nil {
 		projectRoot = "unknown"
 	}
 

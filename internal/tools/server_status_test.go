@@ -72,7 +72,7 @@ func TestHandleServerStatusNative(t *testing.T) {
 			},
 		},
 		{
-			name:           "with unknown project root",
+			name:           "with no PROJECT_ROOT env resolves via FindProjectRoot",
 			args:           fixtures.MustToJSONRawMessage(map[string]interface{}{}),
 			projectRootEnv: "",
 			wantErr:        false,
@@ -88,8 +88,9 @@ func TestHandleServerStatusNative(t *testing.T) {
 					return
 				}
 
-				if status["project_root"] != "unknown" {
-					t.Errorf("expected project_root 'unknown', got %v", status["project_root"])
+				pr, ok := status["project_root"].(string)
+				if !ok || pr == "" {
+					t.Errorf("expected non-empty project_root, got %v", status["project_root"])
 				}
 			},
 		},

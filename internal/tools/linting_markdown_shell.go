@@ -5,8 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/davidl71/exarp-go/internal/projectroot"
-	"github.com/davidl71/exarp-go/internal/security"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -40,24 +38,11 @@ func runMarkdownlint(ctx context.Context, path string, fix bool) (*LintResult, e
 		}
 	}
 
-	// Get project root for path validation
-	projectRoot := os.Getenv("PROJECT_ROOT")
-	if projectRoot == "" {
-		var err error
-
-		projectRoot, err = projectroot.FindFrom(path)
-		if err != nil {
-			projectRoot, _ = os.Getwd()
-		}
-	}
-
-	// Validate and sanitize path to prevent directory traversal
-	absPath, relPath, err := security.ValidatePathWithinRoot(path, projectRoot)
+	projectRoot, absPath, relPath, err := resolveLintPaths(path)
 	if err != nil {
-		return nil, fmt.Errorf("invalid path: %w", err)
+		return nil, err
 	}
 
-	// Determine if path is a directory or file
 	info, err := os.Stat(absPath)
 	isDir := err == nil && info != nil && info.IsDir()
 
@@ -234,28 +219,13 @@ func runShellcheck(ctx context.Context, path string, fix bool) (*LintResult, err
 		return runShfmt(ctx, path, fix)
 	}
 
-	// Get project root for path validation
-	projectRoot := os.Getenv("PROJECT_ROOT")
-	if projectRoot == "" {
-		var err error
-
-		projectRoot, err = projectroot.FindFrom(path)
-		if err != nil {
-			projectRoot, _ = os.Getwd()
-		}
-	}
-
-	// Validate and sanitize path to prevent directory traversal
-	absPath, relPath, err := security.ValidatePathWithinRoot(path, projectRoot)
+	projectRoot, absPath, relPath, err := resolveLintPaths(path)
 	if err != nil {
-		return nil, fmt.Errorf("invalid path: %w", err)
+		return nil, err
 	}
 
-	// Determine if path is a directory or file
 	info, err := os.Stat(absPath)
 	isDir := err == nil && info != nil && info.IsDir()
-
-	// Build command - use JSON output for shellcheck
 	args := []string{"--format=json"}
 
 	if fix {
@@ -361,51 +331,11 @@ func runShfmt(ctx context.Context, path string, fix bool) (*LintResult, error) {
 		}, nil
 	}
 
-	// Find project root
-	var projectRoot string
-
-	var absPath string
-
-	if filepath.IsAbs(path) {
-		absPath = path
-	} else {
-		if envRoot := os.Getenv("PROJECT_ROOT"); envRoot != "" {
-			absPath = filepath.Join(envRoot, path)
-		} else {
-			wd, _ := os.Getwd()
-			absPath = filepath.Join(wd, path)
-		}
-	}
-
-	// Walk up to find project root
-	currentPath := absPath
-	info, err := os.Stat(absPath)
-
-	if err == nil && !info.IsDir() {
-		currentPath = filepath.Dir(absPath)
-	}
-
-	for {
-		if _, err := os.Stat(filepath.Join(currentPath, "go.mod")); err == nil {
-			projectRoot = currentPath
-			break
-		}
-
-		parent := filepath.Dir(currentPath)
-		if parent == currentPath {
-			projectRoot, _ = os.Getwd()
-			break
-		}
-
-		currentPath = parent
-	}
-
-	relPath, err := filepath.Rel(projectRoot, absPath)
+	projectRoot, _, relPath, err := resolveLintPaths(path)
 	if err != nil {
-		relPath = path
+		return nil, err
 	}
 
-	// Build command
 	args := []string{}
 	if fix {
 		args = append(args, "-w") // Write formatted output

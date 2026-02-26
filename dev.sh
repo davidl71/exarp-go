@@ -21,9 +21,9 @@
 
 set -euo pipefail
 
-# Configuration
+# Configuration; respect PROJECT_ROOT if set by caller (e.g. AI agent)
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$SCRIPT_DIR"
+PROJECT_ROOT="${PROJECT_ROOT:-$SCRIPT_DIR}"
 PYTHON="uv run python"
 BINARY_PATH="$PROJECT_ROOT/bin/exarp-go"
 # Optional: REDIS_ADDR=127.0.0.1:6379 for queue/worker (make queue-enqueue-wave, make queue-worker)

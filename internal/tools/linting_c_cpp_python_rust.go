@@ -462,9 +462,10 @@ func runRustfmt(ctx context.Context, path string, fix bool) (*LintResult, error)
 // ── Shared helpers ────────────────────────────────────────────────────────────
 
 // resolveLintPaths resolves project root, absolute path, and relative path for a lint target.
+// Uses projectroot.Find() which checks PROJECT_ROOT env then walks up for markers.
 func resolveLintPaths(path string) (projectRoot, absPath, relPath string, err error) {
-	projectRoot = os.Getenv("PROJECT_ROOT")
-	if projectRoot == "" {
+	projectRoot, err = projectroot.Find()
+	if err != nil {
 		projectRoot, err = projectroot.FindFrom(path)
 		if err != nil {
 			projectRoot, _ = os.Getwd()

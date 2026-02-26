@@ -16,7 +16,8 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+# Respect PROJECT_ROOT if set by caller (e.g. AI agent); else use repo root
+PROJECT_ROOT="${PROJECT_ROOT:-$(cd "$SCRIPT_DIR/.." && pwd)}"
 DEMO_DIR="$PROJECT_ROOT/docs/demo"
 BINARY_PATH="$PROJECT_ROOT/bin/exarp-go"
 
