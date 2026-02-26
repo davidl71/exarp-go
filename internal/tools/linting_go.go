@@ -501,6 +501,102 @@ func runGoimports(ctx context.Context, path string, fix bool) (*LintResult, erro
 	}, nil
 }
 
+// runDeadcode runs deadcode.
+func runDeadcode(ctx context.Context, path string) (*LintResult, error) {
+	// Check if deadcode is available
+	if _, err := exec.LookPath("deadcode"); err != nil {
+		return &LintResult{
+			Success: false,
+			Linter:  "deadcode",
+			Output:  "deadcode not found. Install it with: go install golang.org/x/tools/cmd/deadcode@latest",
+			Errors: []LintError{
+				{
+					Message:  "deadcode binary not found in PATH",
+					Severity: "error",
+				},
+			},
+		}, nil
+	}
+
+	// Get project root for path validation
+	projectRoot := os.Getenv("PROJECT_ROOT")
+	if projectRoot == "" {
+		var err error
+
+		projectRoot, err = projectroot.FindFrom(path)
+		if err != nil {
+			projectRoot, _ = os.Getwd()
+		}
+	}
+
+	// Validate and sanitize path to prevent directory traversal
+	absPath, relPath, err := security.ValidatePathWithinRoot(path, projectRoot)
+	if err != nil {
+		return nil, fmt.Errorf("invalid path: %w", err)
+	}
+
+	pathInfo, err := os.Stat(absPath)
+	isDir := err == nil && pathInfo != nil && pathInfo.IsDir()
+
+	// Build command - deadcode takes packages as args
+	args := []string{}
+	if relPath == "." || relPath == "" {
+		args = append(args, "./...")
+	} else if isDir {
+		if !strings.HasSuffix(relPath, "/...") {
+			args = append(args, "./"+relPath+"/...")
+		} else {
+			args = append(args, "./"+relPath)
+		}
+	} else {
+		// For files, get the package
+		args = append(args, "./"+filepath.Dir(relPath)+"/...")
+	}
+
+	cmd := exec.CommandContext(ctx, "deadcode", args...)
+	cmd.Dir = projectRoot
+
+	output, err := cmd.CombinedOutput()
+	outputStr := string(output)
+
+	// deadcode returns non-zero when issues found
+	success := err == nil || strings.Contains(err.Error(), "exit status")
+
+	var lintErrors []LintError
+
+	if outputStr != "" {
+		lines := strings.Split(strings.TrimSpace(outputStr), "\n")
+		for _, line := range lines {
+			line = strings.TrimSpace(line)
+			if line == "" {
+				continue
+			}
+
+			// Parse deadcode output: "package/path:file.go:line: unused function Foo"
+			parts := strings.SplitN(line, ":", 4)
+			if len(parts) >= 3 {
+				lintErrors = append(lintErrors, LintError{
+					File:     parts[1],
+					Message:  strings.Join(parts[2:], ":"),
+					Severity: "warning",
+				})
+			} else {
+				lintErrors = append(lintErrors, LintError{
+					Message:  line,
+					Severity: "warning",
+				})
+			}
+		}
+	}
+
+	return &LintResult{
+		Success: success,
+		Linter:  "deadcode",
+		Output:  outputStr,
+		Errors:  lintErrors,
+	}, nil
+}
+
 // detectLinter automatically detects the appropriate linter based on file extension.
 func detectLinter(path string) string {
 	// Check if path is a directory or file

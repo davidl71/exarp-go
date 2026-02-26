@@ -58,37 +58,6 @@ func TestRealModels_TextGenerate(t *testing.T) {
 	}
 }
 
-func TestRealModels_AnalyzePrompt(t *testing.T) {
-	if testing.Short() {
-		t.Skip("skipping integration test with real models in short mode")
-	}
-
-	ctx := context.Background()
-
-	gen := DefaultFMProvider()
-	if gen == nil || !gen.Supported() {
-		t.Skip("no real model backend available")
-	}
-
-	result, err := AnalyzePrompt(ctx, "List three colors.", "", "test", gen)
-	if err != nil {
-		if isConnectionRefused(err) {
-			t.Skip("Ollama not running:", err)
-		}
-		t.Fatalf("AnalyzePrompt with real model: %v", err)
-	}
-
-	if result == nil {
-		t.Fatal("expected non-nil PromptAnalysis")
-	}
-	// At least one dimension should be set (model may not return full JSON)
-	hasScore := result.Clarity > 0 || result.Specificity > 0 || result.Completeness > 0 ||
-		result.Structure > 0 || result.Actionability > 0
-	if !hasScore && result.Summary == "" {
-		t.Error("expected at least one score or summary from prompt analysis")
-	}
-}
-
 func TestRealModels_AnalyzeTask(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping integration test with real models in short mode")
@@ -171,32 +140,3 @@ func TestRealModels_TaskExecutionFlow(t *testing.T) {
 	}
 }
 
-// TestRealModels_RefinePromptLoop runs the refinement loop (T-218) with a real generator.
-func TestRealModels_RefinePromptLoop(t *testing.T) {
-	if testing.Short() {
-		t.Skip("skipping integration test with real models in short mode")
-	}
-
-	gen := DefaultFMProvider()
-	if gen == nil || !gen.Supported() {
-		t.Skip("no real model backend available")
-	}
-
-	ctx := context.Background()
-
-	finalPrompt, lastAnalysis, err := RefinePromptLoop(ctx, "List three colors.", "", "test", gen, &RefinePromptLoopOptions{MaxIterations: 1})
-	if err != nil {
-		if isConnectionRefused(err) {
-			t.Skip("Ollama not running:", err)
-		}
-		t.Fatalf("RefinePromptLoop with real model: %v", err)
-	}
-
-	if finalPrompt == "" {
-		t.Error("expected non-empty finalPrompt from refinement loop")
-	}
-
-	if lastAnalysis == nil {
-		t.Error("expected non-nil lastAnalysis from refinement loop")
-	}
-}

@@ -8,15 +8,6 @@ import (
 	"time"
 )
 
-// CanonicalTag represents a canonical tag mapping.
-type CanonicalTag struct {
-	OldTag    string
-	NewTag    string
-	Category  string
-	CreatedAt int64
-	UpdatedAt int64
-}
-
 // DiscoveredTag represents a tag discovered from a file.
 type DiscoveredTag struct {
 	ID           int64
@@ -47,80 +38,6 @@ type FileTaskTag struct {
 	Tag       string
 	Applied   bool
 	CreatedAt int64
-}
-
-// GetCanonicalTags retrieves all canonical tag mappings from the database.
-func GetCanonicalTags() (map[string]string, error) {
-	db, err := GetDB()
-	if err != nil {
-		return nil, err
-	}
-
-	rows, err := db.Query("SELECT old_tag, new_tag FROM canonical_tags")
-	if err != nil {
-		return nil, fmt.Errorf("failed to query canonical tags: %w", err)
-	}
-	defer rows.Close()
-
-	tags := make(map[string]string)
-
-	for rows.Next() {
-		var oldTag, newTag string
-		if err := rows.Scan(&oldTag, &newTag); err != nil {
-			continue
-		}
-
-		tags[oldTag] = newTag
-	}
-
-	return tags, nil
-}
-
-// GetCanonicalTagsByCategory retrieves canonical tags by category.
-func GetCanonicalTagsByCategory(category string) ([]CanonicalTag, error) {
-	db, err := GetDB()
-	if err != nil {
-		return nil, err
-	}
-
-	rows, err := db.Query("SELECT old_tag, new_tag, category, created_at, updated_at FROM canonical_tags WHERE category = ?", category)
-	if err != nil {
-		return nil, fmt.Errorf("failed to query canonical tags: %w", err)
-	}
-	defer rows.Close()
-
-	var tags []CanonicalTag
-
-	for rows.Next() {
-		var tag CanonicalTag
-		if err := rows.Scan(&tag.OldTag, &tag.NewTag, &tag.Category, &tag.CreatedAt, &tag.UpdatedAt); err != nil {
-			continue
-		}
-
-		tags = append(tags, tag)
-	}
-
-	return tags, nil
-}
-
-// UpsertCanonicalTag inserts or updates a canonical tag mapping.
-func UpsertCanonicalTag(oldTag, newTag, category string) error {
-	db, err := GetDB()
-	if err != nil {
-		return err
-	}
-
-	now := time.Now().Unix()
-	_, err = db.Exec(`
-		INSERT INTO canonical_tags (old_tag, new_tag, category, created_at, updated_at)
-		VALUES (?, ?, ?, ?, ?)
-		ON CONFLICT(old_tag) DO UPDATE SET
-			new_tag = excluded.new_tag,
-			category = excluded.category,
-			updated_at = excluded.updated_at
-	`, oldTag, newTag, category, now, now)
-
-	return err
 }
 
 // GetDiscoveredTagsForFile retrieves cached discovered tags for a file.
@@ -221,39 +138,6 @@ func SaveDiscoveredTags(filePath, fileHash string, tags []DiscoveredTag) error {
 	return tx.Commit()
 }
 
-// GetAllDiscoveredTags retrieves all discovered tags.
-func GetAllDiscoveredTags() ([]DiscoveredTag, error) {
-	db, err := GetDB()
-	if err != nil {
-		return nil, err
-	}
-
-	rows, err := db.Query(`
-		SELECT id, file_path, file_hash, tag, source, llm_suggested, created_at, updated_at
-		FROM discovered_tags ORDER BY file_path, tag
-	`)
-	if err != nil {
-		return nil, fmt.Errorf("failed to query discovered tags: %w", err)
-	}
-	defer rows.Close()
-
-	var tags []DiscoveredTag
-
-	for rows.Next() {
-		var tag DiscoveredTag
-
-		var llmSuggested int
-		if err := rows.Scan(&tag.ID, &tag.FilePath, &tag.FileHash, &tag.Tag, &tag.Source, &llmSuggested, &tag.CreatedAt, &tag.UpdatedAt); err != nil {
-			continue
-		}
-
-		tag.LLMSuggested = llmSuggested == 1
-		tags = append(tags, tag)
-	}
-
-	return tags, nil
-}
-
 // UpdateTagFrequency updates the frequency count for a tag.
 func UpdateTagFrequency(tag string, count int, isCanonical bool) error {
 	db, err := GetDB()
@@ -338,39 +222,6 @@ func SaveFileTaskTag(filePath, taskID, tag string, applied bool) error {
 	return err
 }
 
-// GetFileTaskTags retrieves file-to-task tag matches for a task.
-func GetFileTaskTags(taskID string) ([]FileTaskTag, error) {
-	db, err := GetDB()
-	if err != nil {
-		return nil, err
-	}
-
-	rows, err := db.Query(`
-		SELECT id, file_path, task_id, tag, applied, created_at
-		FROM file_task_tags WHERE task_id = ?
-	`, taskID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to query file task tags: %w", err)
-	}
-	defer rows.Close()
-
-	var tags []FileTaskTag
-
-	for rows.Next() {
-		var tag FileTaskTag
-
-		var applied int
-		if err := rows.Scan(&tag.ID, &tag.FilePath, &tag.TaskID, &tag.Tag, &applied, &tag.CreatedAt); err != nil {
-			continue
-		}
-
-		tag.Applied = applied == 1
-		tags = append(tags, tag)
-	}
-
-	return tags, nil
-}
-
 // ComputeFileHash computes MD5 hash of file content.
 func ComputeFileHash(content []byte) string {
 	hash := md5.Sum(content)
@@ -385,18 +236,6 @@ func ClearDiscoveredTagsCache() error {
 	}
 
 	_, err = db.Exec("DELETE FROM discovered_tags")
-
-	return err
-}
-
-// ClearFileTaskTagsCache clears all file-task tag matches.
-func ClearFileTaskTagsCache() error {
-	db, err := GetDB()
-	if err != nil {
-		return err
-	}
-
-	_, err = db.Exec("DELETE FROM file_task_tags")
 
 	return err
 }

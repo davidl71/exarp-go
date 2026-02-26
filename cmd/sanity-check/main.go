@@ -16,11 +16,11 @@ import (
 )
 
 // Expected counts
-// Tools = 34 base (RegisterAllTools in registry.go) + 1 conditional (Apple Foundation Models on darwin/arm64/cgo) = 35 on Mac Silicon
+// Tools = 36 base (RegisterAllTools in registry.go) + 1 conditional (Apple Foundation Models on darwin/arm64/cgo) = 37 on Mac Silicon
 // Prompts = 36 (19 original + 16 migrated from Python + 1 tractatus_decompose)
 // Resources = 24 (scorecard, memories, prompts, session/mode, session/status, server/status, models, cursor/skills, tools, tasks).
 const (
-	EXPECTED_TOOLS     = 35 // Base tools (36 with conditional Apple Foundation Models on darwin/arm64/cgo)
+	EXPECTED_TOOLS     = 37 // Base tools (38 with conditional Apple Foundation Models on darwin/arm64/cgo)
 	EXPECTED_PROMPTS   = 36
 	EXPECTED_RESOURCES = 24
 )

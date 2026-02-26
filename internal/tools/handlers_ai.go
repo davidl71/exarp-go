@@ -131,6 +131,7 @@ func handleLint(ctx context.Context, args json.RawMessage) ([]framework.TextCont
 		"go vet":           true,
 		"gofmt":            true,
 		"goimports":        true,
+		"deadcode":         true,
 		"markdownlint":     true,
 		"markdownlint-cli": true,
 		"mdl":              true,

@@ -81,16 +81,6 @@ func OllamaGenerateTimeout() time.Duration {
 	return GetGlobalConfig().Timeouts.OllamaGenerate
 }
 
-// HTTPClientTimeout returns the HTTP client timeout.
-func HTTPClientTimeout() time.Duration {
-	return GetGlobalConfig().Timeouts.HTTPClient
-}
-
-// DatabaseRetryTimeout returns the database retry timeout.
-func DatabaseRetryTimeout() time.Duration {
-	return GetGlobalConfig().Timeouts.DatabaseRetry
-}
-
 // Threshold getters - convenient access to threshold values
 
 // SimilarityThreshold returns the similarity threshold for duplicate detection.
@@ -98,44 +88,9 @@ func SimilarityThreshold() float64 {
 	return GetGlobalConfig().Thresholds.SimilarityThreshold
 }
 
-// MinDescriptionLength returns the minimum description length for tasks.
-func MinDescriptionLength() int {
-	return GetGlobalConfig().Thresholds.MinDescriptionLength
-}
-
-// MinTaskConfidence returns the minimum task confidence threshold.
-func MinTaskConfidence() float64 {
-	return GetGlobalConfig().Thresholds.MinTaskConfidence
-}
-
 // MinCoverage returns the minimum test coverage percentage.
 func MinCoverage() int {
 	return GetGlobalConfig().Thresholds.MinCoverage
-}
-
-// MinTestConfidence returns the minimum test confidence threshold.
-func MinTestConfidence() float64 {
-	return GetGlobalConfig().Thresholds.MinTestConfidence
-}
-
-// MinEstimationConfidence returns the minimum estimation confidence threshold.
-func MinEstimationConfidence() float64 {
-	return GetGlobalConfig().Thresholds.MinEstimationConfidence
-}
-
-// MLXWeight returns the MLX model weight for estimation.
-func MLXWeight() float64 {
-	return GetGlobalConfig().Thresholds.MLXWeight
-}
-
-// MaxParallelTasks returns the maximum number of parallel tasks.
-func MaxParallelTasks() int {
-	return GetGlobalConfig().Thresholds.MaxParallelTasks
-}
-
-// MaxTasksPerHost returns the maximum number of tasks per host.
-func MaxTasksPerHost() int {
-	return GetGlobalConfig().Thresholds.MaxTasksPerHost
 }
 
 // MaxTasksPerWave returns the maximum number of tasks per wave (0 = no limit).
@@ -156,21 +111,6 @@ func TokensPerChar() float64 {
 // DefaultContextBudget returns the default context token budget.
 func DefaultContextBudget() int {
 	return GetGlobalConfig().Thresholds.DefaultContextBudget
-}
-
-// ContextReductionThreshold returns the context reduction threshold.
-func ContextReductionThreshold() float64 {
-	return GetGlobalConfig().Thresholds.ContextReductionThreshold
-}
-
-// RateLimitRequests returns the rate limit requests per window.
-func RateLimitRequests() int {
-	return GetGlobalConfig().Thresholds.RateLimitRequests
-}
-
-// RateLimitWindow returns the rate limit window duration.
-func RateLimitWindow() time.Duration {
-	return GetGlobalConfig().Thresholds.RateLimitWindow
 }
 
 // Task getters - convenient access to task configuration
@@ -200,37 +140,7 @@ func TaskMinDescriptionLength() int {
 	return GetGlobalConfig().Tasks.MinDescriptionLength
 }
 
-// RequireTaskDescription returns whether task description is required.
-func RequireTaskDescription() bool {
-	return GetGlobalConfig().Tasks.RequireDescription
-}
-
-// AutoClarifyTasks returns whether to auto-request task clarification.
-func AutoClarifyTasks() bool {
-	return GetGlobalConfig().Tasks.AutoClarify
-}
-
 // Database getters - convenient access to database configuration
-
-// GetDatabaseConfig returns the full database configuration.
-func GetDatabaseConfig() DatabaseConfig {
-	return GetGlobalConfig().Database
-}
-
-// SQLitePath returns the SQLite database file path.
-func SQLitePath() string {
-	return GetGlobalConfig().Database.SQLitePath
-}
-
-// JSONFallbackPath returns the JSON fallback file path.
-func JSONFallbackPath() string {
-	return GetGlobalConfig().Database.JSONFallbackPath
-}
-
-// DatabaseMaxConnections returns the maximum database connections.
-func DatabaseMaxConnections() int {
-	return GetGlobalConfig().Database.MaxConnections
-}
 
 // DatabaseConnectionTimeout returns the database connection timeout.
 func DatabaseConnectionTimeout() time.Duration {
@@ -240,103 +150,6 @@ func DatabaseConnectionTimeout() time.Duration {
 // DatabaseQueryTimeout returns the database query timeout.
 func DatabaseQueryTimeout() time.Duration {
 	return GetGlobalConfig().Database.QueryTimeout
-}
-
-// DatabaseRetryAttempts returns the number of database retry attempts.
-func DatabaseRetryAttempts() int {
-	return GetGlobalConfig().Database.RetryAttempts
-}
-
-// DatabaseRetryInitialDelay returns the initial retry delay.
-func DatabaseRetryInitialDelay() time.Duration {
-	return GetGlobalConfig().Database.RetryInitialDelay
-}
-
-// DatabaseRetryMaxDelay returns the maximum retry delay.
-func DatabaseRetryMaxDelay() time.Duration {
-	return GetGlobalConfig().Database.RetryMaxDelay
-}
-
-// DatabaseRetryMultiplier returns the retry delay multiplier.
-func DatabaseRetryMultiplier() float64 {
-	return GetGlobalConfig().Database.RetryMultiplier
-}
-
-// Security getters - convenient access to security configuration
-
-// GetSecurityConfig returns the full security configuration.
-func GetSecurityConfig() SecurityConfig {
-	return GetGlobalConfig().Security
-}
-
-// RateLimitEnabled returns whether rate limiting is enabled.
-func RateLimitEnabled() bool {
-	return GetGlobalConfig().Security.RateLimit.Enabled
-}
-
-// RateLimitRequestsPerWindow returns the number of requests allowed per window.
-func RateLimitRequestsPerWindow() int {
-	return GetGlobalConfig().Security.RateLimit.RequestsPerWindow
-}
-
-// RateLimitWindowDuration returns the rate limit window duration.
-func RateLimitWindowDuration() time.Duration {
-	return GetGlobalConfig().Security.RateLimit.WindowDuration
-}
-
-// RateLimitBurstSize returns the rate limit burst size.
-func RateLimitBurstSize() int {
-	return GetGlobalConfig().Security.RateLimit.BurstSize
-}
-
-// PathValidationEnabled returns whether path validation is enabled.
-func PathValidationEnabled() bool {
-	return GetGlobalConfig().Security.PathValidation.Enabled
-}
-
-// PathValidationAllowAbsolutePaths returns whether absolute paths are allowed.
-func PathValidationAllowAbsolutePaths() bool {
-	return GetGlobalConfig().Security.PathValidation.AllowAbsolutePaths
-}
-
-// PathValidationMaxDepth returns the maximum path depth.
-func PathValidationMaxDepth() int {
-	return GetGlobalConfig().Security.PathValidation.MaxDepth
-}
-
-// PathValidationBlockedPatterns returns the blocked path patterns.
-func PathValidationBlockedPatterns() []string {
-	return GetGlobalConfig().Security.PathValidation.BlockedPatterns
-}
-
-// FileLimitsMaxFileSize returns the maximum file size.
-func FileLimitsMaxFileSize() int64 {
-	return GetGlobalConfig().Security.FileLimits.MaxFileSize
-}
-
-// FileLimitsMaxFilesPerOperation returns the maximum files per operation.
-func FileLimitsMaxFilesPerOperation() int {
-	return GetGlobalConfig().Security.FileLimits.MaxFilesPerOperation
-}
-
-// FileLimitsAllowedExtensions returns the allowed file extensions.
-func FileLimitsAllowedExtensions() []string {
-	return GetGlobalConfig().Security.FileLimits.AllowedExtensions
-}
-
-// AccessControlEnabled returns whether access control is enabled.
-func AccessControlEnabled() bool {
-	return GetGlobalConfig().Security.AccessControl.Enabled
-}
-
-// AccessControlDefaultPolicy returns the default access control policy.
-func AccessControlDefaultPolicy() string {
-	return GetGlobalConfig().Security.AccessControl.DefaultPolicy
-}
-
-// AccessControlRestrictedTools returns the list of restricted tools.
-func AccessControlRestrictedTools() []string {
-	return GetGlobalConfig().Security.AccessControl.RestrictedTools
 }
 
 // Project and Workflow getters - convenient access to project and workflow configuration

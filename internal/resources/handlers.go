@@ -7,13 +7,23 @@ import (
 	"fmt"
 
 	"github.com/davidl71/exarp-go/internal/framework"
+	"github.com/davidl71/exarp-go/internal/tools"
 )
+
+// registerAndTrack registers a resource with the server and tracks it for ResourcesAsTools.
+func registerAndTrack(server framework.MCPServer, uri, name, description, mimeType string, handler framework.ResourceHandler) error {
+	if err := server.RegisterResource(uri, name, description, mimeType, handler); err != nil {
+		return err
+	}
+	tools.TrackResource(uri, name, description, mimeType, handler)
+	return nil
+}
 
 // RegisterAllResources registers all resources with the server.
 func RegisterAllResources(server framework.MCPServer) error {
 	// Register 23 resources (all native Go; no Python bridge)
 	// stdio://scorecard
-	if err := server.RegisterResource(
+	if err := registerAndTrack(server,
 		"stdio://scorecard",
 		"Project Scorecard",
 		"Get current project scorecard with all health metrics.",
@@ -24,7 +34,7 @@ func RegisterAllResources(server framework.MCPServer) error {
 	}
 
 	// stdio://memories
-	if err := server.RegisterResource(
+	if err := registerAndTrack(server,
 		"stdio://memories",
 		"All Memories",
 		"Get all AI session memories - browsable context for session continuity.",
@@ -35,7 +45,7 @@ func RegisterAllResources(server framework.MCPServer) error {
 	}
 
 	// stdio://memories/category/{category}
-	if err := server.RegisterResource(
+	if err := registerAndTrack(server,
 		"stdio://memories/category/{category}",
 		"Memories by Category",
 		"Get memories filtered by category (debug, research, architecture, preference, insight).",
@@ -46,7 +56,7 @@ func RegisterAllResources(server framework.MCPServer) error {
 	}
 
 	// stdio://memories/task/{task_id}
-	if err := server.RegisterResource(
+	if err := registerAndTrack(server,
 		"stdio://memories/task/{task_id}",
 		"Memories for Task",
 		"Get memories linked to a specific task.",
@@ -57,7 +67,7 @@ func RegisterAllResources(server framework.MCPServer) error {
 	}
 
 	// stdio://memories/recent
-	if err := server.RegisterResource(
+	if err := registerAndTrack(server,
 		"stdio://memories/recent",
 		"Recent Memories",
 		"Get memories from the last 24 hours.",
@@ -68,7 +78,7 @@ func RegisterAllResources(server framework.MCPServer) error {
 	}
 
 	// stdio://memories/session/{date}
-	if err := server.RegisterResource(
+	if err := registerAndTrack(server,
 		"stdio://memories/session/{date}",
 		"Session Memories",
 		"Get memories from a specific session date (YYYY-MM-DD format).",
@@ -79,7 +89,7 @@ func RegisterAllResources(server framework.MCPServer) error {
 	}
 
 	// stdio://prompts
-	if err := server.RegisterResource(
+	if err := registerAndTrack(server,
 		"stdio://prompts",
 		"All Prompts",
 		"Get all prompts in compact format for discovery.",
@@ -90,7 +100,7 @@ func RegisterAllResources(server framework.MCPServer) error {
 	}
 
 	// stdio://prompts/mode/{mode}
-	if err := server.RegisterResource(
+	if err := registerAndTrack(server,
 		"stdio://prompts/mode/{mode}",
 		"Prompts by Mode",
 		"Get prompts for a workflow mode (daily_checkin, security_review, task_management, etc.).",
@@ -101,7 +111,7 @@ func RegisterAllResources(server framework.MCPServer) error {
 	}
 
 	// stdio://prompts/persona/{persona}
-	if err := server.RegisterResource(
+	if err := registerAndTrack(server,
 		"stdio://prompts/persona/{persona}",
 		"Prompts by Persona",
 		"Get prompts for a persona (developer, pm, qa, reviewer, etc.).",
@@ -112,7 +122,7 @@ func RegisterAllResources(server framework.MCPServer) error {
 	}
 
 	// stdio://prompts/category/{category}
-	if err := server.RegisterResource(
+	if err := registerAndTrack(server,
 		"stdio://prompts/category/{category}",
 		"Prompts by Category",
 		"Get prompts in a category (workflow, persona, analysis, etc.).",
@@ -123,7 +133,7 @@ func RegisterAllResources(server framework.MCPServer) error {
 	}
 
 	// stdio://session/mode
-	if err := server.RegisterResource(
+	if err := registerAndTrack(server,
 		"stdio://session/mode",
 		"Session Mode",
 		"Get current inferred session mode (AGENT/ASK/MANUAL) with confidence.",
@@ -134,7 +144,7 @@ func RegisterAllResources(server framework.MCPServer) error {
 	}
 
 	// stdio://session/status — dynamic context for UI labels (handoff, task, dashboard)
-	if err := server.RegisterResource(
+	if err := registerAndTrack(server,
 		"stdio://session/status",
 		"Session Status",
 		"Get current session context (handoff, current task, project dashboard) for dynamic UI labels.",
@@ -145,7 +155,7 @@ func RegisterAllResources(server framework.MCPServer) error {
 	}
 
 	// stdio://server/status
-	if err := server.RegisterResource(
+	if err := registerAndTrack(server,
 		"stdio://server/status",
 		"Server Status",
 		"Get server operational status, version, and project root information.",
@@ -156,7 +166,7 @@ func RegisterAllResources(server framework.MCPServer) error {
 	}
 
 	// stdio://models
-	if err := server.RegisterResource(
+	if err := registerAndTrack(server,
 		"stdio://models",
 		"AI Models",
 		"Get all available AI models with capabilities.",
@@ -167,7 +177,7 @@ func RegisterAllResources(server framework.MCPServer) error {
 	}
 
 	// stdio://cursor/skills — workflow guide for all MCP clients (Cursor skills + Claude Code commands)
-	if err := server.RegisterResource(
+	if err := registerAndTrack(server,
 		"stdio://cursor/skills",
 		"exarp-go workflow guide",
 		"Workflow guide for exarp-go MCP tools: task management, session, reports, health. Usable by Cursor (skills) and Claude Code (CLAUDE.md + commands).",
@@ -178,7 +188,7 @@ func RegisterAllResources(server framework.MCPServer) error {
 	}
 
 	// stdio://tools
-	if err := server.RegisterResource(
+	if err := registerAndTrack(server,
 		"stdio://tools",
 		"All Tools",
 		"Get all tools in the catalog.",
@@ -189,7 +199,7 @@ func RegisterAllResources(server framework.MCPServer) error {
 	}
 
 	// stdio://tools/{category}
-	if err := server.RegisterResource(
+	if err := registerAndTrack(server,
 		"stdio://tools/{category}",
 		"Tools by Category",
 		"Get tools filtered by category.",
@@ -200,7 +210,7 @@ func RegisterAllResources(server framework.MCPServer) error {
 	}
 
 	// stdio://tasks
-	if err := server.RegisterResource(
+	if err := registerAndTrack(server,
 		"stdio://tasks",
 		"All Tasks",
 		"Get all tasks (read-only, paginated with limit of 50).",
@@ -211,7 +221,7 @@ func RegisterAllResources(server framework.MCPServer) error {
 	}
 
 	// stdio://tasks/{task_id}
-	if err := server.RegisterResource(
+	if err := registerAndTrack(server,
 		"stdio://tasks/{task_id}",
 		"Task by ID",
 		"Get a specific task by ID with full details.",
@@ -222,7 +232,7 @@ func RegisterAllResources(server framework.MCPServer) error {
 	}
 
 	// stdio://tasks/status/{status}
-	if err := server.RegisterResource(
+	if err := registerAndTrack(server,
 		"stdio://tasks/status/{status}",
 		"Tasks by Status",
 		"Get tasks filtered by status (Todo, In Progress, Done).",
@@ -233,7 +243,7 @@ func RegisterAllResources(server framework.MCPServer) error {
 	}
 
 	// stdio://tasks/priority/{priority}
-	if err := server.RegisterResource(
+	if err := registerAndTrack(server,
 		"stdio://tasks/priority/{priority}",
 		"Tasks by Priority",
 		"Get tasks filtered by priority (low, medium, high, critical).",
@@ -244,7 +254,7 @@ func RegisterAllResources(server framework.MCPServer) error {
 	}
 
 	// stdio://tasks/tag/{tag}
-	if err := server.RegisterResource(
+	if err := registerAndTrack(server,
 		"stdio://tasks/tag/{tag}",
 		"Tasks by Tag",
 		"Get tasks filtered by tag (any tag value).",
@@ -255,7 +265,7 @@ func RegisterAllResources(server framework.MCPServer) error {
 	}
 
 	// stdio://tasks/summary
-	if err := server.RegisterResource(
+	if err := registerAndTrack(server,
 		"stdio://tasks/summary",
 		"Tasks Summary",
 		"Get task statistics and overview (counts by status, priority, tags).",
@@ -266,7 +276,7 @@ func RegisterAllResources(server framework.MCPServer) error {
 	}
 
 	// stdio://suggested-tasks — dependency-ready tasks for Cursor/Todo2 hints
-	if err := server.RegisterResource(
+	if err := registerAndTrack(server,
 		"stdio://suggested-tasks",
 		"Suggested Tasks",
 		"Get dependency-ordered tasks ready to start (all dependencies Done). For Cursor and MCP clients.",
