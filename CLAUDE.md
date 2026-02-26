@@ -92,6 +92,10 @@ session  action=prime|handoff
 
 `use-exarp-tools`, `task-workflow`, `report-scorecard`, `session-handoff`, `task-cleanup`, `lint-docs`, `tractatus-decompose`, `thinking-workflow`
 
+## Configuration examples
+
+Example configs for Cursor (`.cursor/mcp.json`), OpenCode (`opencode.json`), and optional project files: **`docs/examples/`** — see `docs/examples/README.md` for the index. Use these when suggesting MCP or OpenCode setup to users or other agents.
+
 ## Go conventions
 
 - Table-driven tests (`t.Run`)

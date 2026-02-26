@@ -1,6 +1,5 @@
 {
   "$schema": "https://opencode.ai/config.json",
-  "_comment": "Canonical examples in docs/examples/. See docs/examples/opencode-exarp-go.json and docs/examples/README.md.",
   "mcp": {
     "exarp-go": {
       "type": "local",

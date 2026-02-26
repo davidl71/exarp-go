@@ -58,7 +58,7 @@ In your OpenCode config file, add:
 
 To confirm exarp-go works with OpenCode MCP:
 
-1. **Config:** Add exarp-go to `mcp` in `~/.config/opencode/opencode.json` or project `opencode.json` with `command` and `environment.PROJECT_ROOT` (see [docs/opencode-exarp-go.example.json](opencode-exarp-go.example.json)).
+1. **Config:** Add exarp-go to `mcp` in `~/.config/opencode/opencode.json` or project `opencode.json` with `command` and `environment.PROJECT_ROOT` (see [docs/examples/opencode-exarp-go.json](examples/opencode-exarp-go.json) and [docs/examples/README.md](examples/README.md)).
 2. **Run OpenCode:** Start OpenCode (e.g. `opencode` or `opencode --agent OpenAgent`) in a repo that has a `.todo2` (or run once so exarp-go can create it).
 3. **List tools:** In the agent session, ask to list MCP tools or run a command that uses exarp-go; confirm `task_workflow`, `report`, `session`, `health`, etc. appear.
 4. **Call a tool:** Ask the agent to run a task list or report (e.g. “list my Todo2 tasks” or “give me a project overview”). Confirm the agent can invoke the tool and you see task or report output.

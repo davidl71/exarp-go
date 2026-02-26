@@ -2,7 +2,9 @@
 
 ## Current Configuration
 
-The `exarp-go` MCP server is configured in `.cursor/mcp.json`:
+The `exarp-go` MCP server is configured in `.cursor/mcp.json`. Example configs (binary, wrapper script, per-project) are in **[docs/examples/](examples/README.md)** — copy the one that matches your setup.
+
+Minimal example (binary in project):
 
 ```json
 {
