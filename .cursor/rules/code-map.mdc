@@ -48,7 +48,7 @@ Use this map to jump directly to the right file when working on a tool, feature,
 | `cursor_cloud_agent` | `cursor_cloud_agent.go` | (single action) |
 | `fm_plan_and_execute` | `fm_plan_execute.go` | plan, execute, status |
 
-All handler files are in `internal/tools/`. Registration is in `registry.go` (5 batches: `registerBatch1Tools` through `registerBatch5Tools`).
+All handler files are in `internal/tools/`. Registration is in `registry.go` which dispatches to 4 semantic groups: `registerCoreTools` (task_workflow/session/report/health), `registerAITools` (memory/estimation/LLM backends), `registerInfraTools` (automation/git/lint/testing/security/hooks), `registerMiscTools` (alignment/attribution/tool_catalog/workflow_mode/context/recommend/cursor).
 
 ## Package Responsibilities
 
@@ -57,7 +57,7 @@ All handler files are in `internal/tools/`. Registration is in `registry.go` (5 
 | `cmd/server` | Entry point: CLI dispatch or MCP stdio server | `main.go` |
 | `internal/cli` | CLI subcommands + Bubbletea TUI + 3270 TUI | `cli.go` (dispatch), `tui*.go` (14 files), `tui3270.go`, `task.go`, `child_agent.go` |
 | `internal/tools` | All MCP tool handlers (business logic) | See tool map above; `handlers.go` (top-level dispatch) |
-| `internal/database` | SQLite storage for tasks, comments, activities, locks | `tasks.go` (types, metadata, ID), `tasks_crud.go`, `tasks_list.go`, `tasks_helpers.go`, `tasks_misc.go`, `schema.go`, `locking.go`, `migrations/` |
+| `internal/database` | SQLite storage for tasks, comments, activities, locks | `tasks.go` (types, metadata, ID), `tasks_crud.go`, `tasks_list.go`, `tasks_helpers.go`, `tasks_misc.go`, `schema.go`, `tasks_lock.go`, `migrations/` |
 | `internal/models` | Shared types and constants (no DB dependency) | `todo2.go` (Todo2Task struct), `constants.go` (status/priority), `task_id.go` |
 | `internal/config` | Protobuf-based project configuration | `schema.go` (FullConfig), `loader.go`, `writer.go` |
 | `internal/framework` | MCP server interface abstraction | `server.go` (MCPServer interface), `types.go` |
