@@ -6,3 +6,6 @@ _ansible_lint_pkg: ansible-lint
 _actionlint_pkg: actionlint
 _nodejs_pkg: node
 _npm_global_bin: /usr/local/bin
+_cppcheck_pkg: cppcheck
+_clang_tidy_pkg: llvm
+_ruff_pkg: ruff

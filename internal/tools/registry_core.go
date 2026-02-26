@@ -42,6 +42,11 @@ func registerCoreTools(server framework.MCPServer) error {
 					"type":    "string",
 					"default": "Todo",
 				},
+				"priority": map[string]interface{}{
+					"type":        "string",
+					"description": "For create/update: task priority (high|medium|low).",
+					"enum":        []string{"high", "medium", "low"},
+				},
 				"clarification_none": map[string]interface{}{
 					"type":    "boolean",
 					"default": false,

@@ -19,7 +19,10 @@
          ([ _universal_ctags_pkg ] if ('universal-ctags' in linters and _universal_ctags_pkg is defined) else []) +
          ([ _ansible_lint_pkg ] if ('ansible-lint' in linters and _ansible_lint_pkg is defined) else []) +
          ([ _actionlint_pkg ] if ('actionlint' in linters and _actionlint_pkg is defined) else []) +
-         ([ _nodejs_pkg ]     if ('markdownlint-cli' in linters or 'cspell' in linters) else []) }}
+         ([ _nodejs_pkg ]     if ('markdownlint-cli' in linters or 'cspell' in linters) else []) +
+         ([ _cppcheck_pkg ]   if ('cppcheck' in linters and _cppcheck_pkg is defined) else []) +
+         ([ _clang_tidy_pkg ] if ('clang-tidy' in linters and _clang_tidy_pkg is defined) else []) +
+         ([ _ruff_pkg ]       if ('ruff' in linters and ansible_system == 'Darwin' and _ruff_pkg is defined) else []) }}
   tags: [linters, optional]
 
 - name: Install system linter packages
@@ -47,6 +50,16 @@
     executable: pip3
   when:
     - "'ansible-lint' in linters"
+    - ansible_system == "Linux"
+  tags: [linters, optional]
+
+- name: Install ruff (pip) on Linux
+  ansible.builtin.pip:
+    name: ruff
+    state: present
+    executable: pip3
+  when:
+    - "'ruff' in linters"
     - ansible_system == "Linux"
   tags: [linters, optional]
 
@@ -83,6 +96,17 @@
   loop_control:
     label: "{{ item.name }}"
   when: "item.name in linters"
+  tags: [linters, optional]
+
+- name: Install Rust linter components via rustup (async)
+  ansible.builtin.shell: |
+    rustup component add clippy rustfmt
+  args:
+    executable: /bin/bash
+  async: 120
+  poll: 0
+  register: rustup_job
+  when: "'clippy' in linters or 'rustfmt' in linters"
   tags: [linters, optional]
 
 - name: Install npm-based linters (async)
@@ -127,6 +151,17 @@
   when: item.ansible_job_id is defined
   tags: [linters, optional]
 
+- name: Wait for Rust component installs
+  ansible.builtin.async_status:
+    jid: "{{ rustup_job.ansible_job_id }}"
+  register: rustup_result
+  until: rustup_result.finished
+  retries: 12
+  delay: 10
+  failed_when: false
+  when: rustup_job is not skipped and rustup_job.ansible_job_id is defined
+  tags: [linters, optional]
+
 - name: Wait for npm-based linter installs
   ansible.builtin.async_status:
     jid: "{{ item.ansible_job_id }}"
@@ -160,6 +195,11 @@
     - {name: "actionlint", command: "actionlint"}
     - {name: "markdownlint-cli", command: "markdownlint"}
     - {name: "cspell", command: "cspell"}
+    - {name: "clang-tidy", command: "clang-tidy"}
+    - {name: "cppcheck", command: "cppcheck"}
+    - {name: "ruff", command: "ruff"}
+    - {name: "clippy", command: "rustup", version_flag: "component list --installed"}
+    - {name: "rustfmt", command: "rustfmt"}
   when: item.name in linters
   tags: [linters, optional]
 

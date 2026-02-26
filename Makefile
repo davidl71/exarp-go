@@ -1255,7 +1255,7 @@ proto-buf: ## Generate Go code using buf (preferred; falls back to proto if buf 
 
 ##@ Tool Installation
 
-install-tools: ## Install Go development tools (golangci-lint, govulncheck, protoc-gen-go)
+install-tools: ## Install development tools (golangci-lint, govulncheck, protoc-gen-go; optional: clang-tidy, cppcheck, ruff, rustup)
 	@echo "$(BLUE)Installing Go development tools...$(NC)"
 	@if ! command -v golangci-lint >/dev/null 2>&1; then \
 		echo "$(BLUE)Installing golangci-lint...$(NC)"; \
@@ -1280,6 +1280,17 @@ install-tools: ## Install Go development tools (golangci-lint, govulncheck, prot
 		echo "$(GREEN)✅ protoc-gen-go installed$(NC)"; \
 	else \
 		echo "$(GREEN)✅ protoc-gen-go already installed$(NC)"; \
+	fi
+	@echo "$(BLUE)Optional: C/C++ linters (clang-tidy, cppcheck)$(NC)"
+	@if command -v clang-tidy >/dev/null 2>&1; then echo "$(GREEN)✅ clang-tidy available$(NC)"; else echo "$(YELLOW)  clang-tidy not found (brew install llvm / apt install clang-tidy)$(NC)"; fi
+	@if command -v cppcheck >/dev/null 2>&1; then echo "$(GREEN)✅ cppcheck available$(NC)"; else echo "$(YELLOW)  cppcheck not found (brew install cppcheck / apt install cppcheck)$(NC)"; fi
+	@echo "$(BLUE)Optional: Python linter (ruff)$(NC)"
+	@if command -v ruff >/dev/null 2>&1; then echo "$(GREEN)✅ ruff available$(NC)"; else echo "$(YELLOW)  ruff not found (brew install ruff / pip install ruff)$(NC)"; fi
+	@echo "$(BLUE)Optional: Rust linters (clippy, rustfmt)$(NC)"
+	@if command -v cargo >/dev/null 2>&1; then \
+		rustup component add clippy rustfmt 2>/dev/null && echo "$(GREEN)✅ Rust components installed$(NC)" || echo "$(YELLOW)  Failed to install Rust components (rustup component add clippy rustfmt)$(NC)"; \
+	else \
+		echo "$(YELLOW)  cargo not found (install Rust via https://rustup.rs)$(NC)"; \
 	fi
 	@echo "$(GREEN)✅ All tools installed$(NC)"
 

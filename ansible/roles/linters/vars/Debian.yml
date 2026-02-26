@@ -4,3 +4,5 @@ _yamllint_pkg: yamllint
 _universal_ctags_pkg: universal-ctags
 _nodejs_pkg: nodejs
 _npm_global_bin: /usr/local/bin
+_cppcheck_pkg: cppcheck
+_clang_tidy_pkg: clang-tidy

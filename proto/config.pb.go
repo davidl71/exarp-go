@@ -2359,7 +2359,6 @@ type FeaturesConfig struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	SqliteEnabled bool                   `protobuf:"varint,1,opt,name=sqlite_enabled,json=sqliteEnabled,proto3" json:"sqlite_enabled,omitempty"`
 	JsonFallback  bool                   `protobuf:"varint,2,opt,name=json_fallback,json=jsonFallback,proto3" json:"json_fallback,omitempty"`
-	PythonBridge  bool                   `protobuf:"varint,3,opt,name=python_bridge,json=pythonBridge,proto3" json:"python_bridge,omitempty"`
 	McpServers    []string               `protobuf:"bytes,4,rep,name=mcp_servers,json=mcpServers,proto3" json:"mcp_servers,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -2405,13 +2404,6 @@ func (x *FeaturesConfig) GetSqliteEnabled() bool {
 func (x *FeaturesConfig) GetJsonFallback() bool {
 	if x != nil {
 		return x.JsonFallback
-	}
-	return false
-}
-
-func (x *FeaturesConfig) GetPythonBridge() bool {
-	if x != nil {
-		return x.PythonBridge
 	}
 	return false
 }
@@ -2648,11 +2640,10 @@ const file_proto_config_proto_rawDesc = "" +
 	"\bfeatures\x18\a \x01(\v2\x1c.exarp.config.FeaturesConfigR\bfeatures\x12\x1f\n" +
 	"\vskip_checks\x18\b \x03(\tR\n" +
 	"skipChecks\x12!\n" +
-	"\fcustom_tools\x18\t \x03(\tR\vcustomTools\"\xa2\x01\n" +
+	"\fcustom_tools\x18\t \x03(\tR\vcustomTools\"}\n" +
 	"\x0eFeaturesConfig\x12%\n" +
 	"\x0esqlite_enabled\x18\x01 \x01(\bR\rsqliteEnabled\x12#\n" +
-	"\rjson_fallback\x18\x02 \x01(\bR\fjsonFallback\x12#\n" +
-	"\rpython_bridge\x18\x03 \x01(\bR\fpythonBridge\x12\x1f\n" +
+	"\rjson_fallback\x18\x02 \x01(\bR\fjsonFallback\x12\x1f\n" +
 	"\vmcp_servers\x18\x04 \x03(\tR\n" +
 	"mcpServersB$Z\"github.com/davidl71/exarp-go/protob\x06proto3"
 
