@@ -87,7 +87,7 @@ func (t *SSETransport) Start(ctx context.Context) error {
 	defer t.mu.Unlock()
 
 	if t.started {
-		return &ErrTransport{Reason: "SSE transport already started"}
+		return fmt.Errorf("SSE transport already started")
 	}
 
 	// Create HTTP server if not already set
@@ -189,7 +189,7 @@ func (t *SSETransport) WriteMessage(data []byte) error {
 	defer t.mu.RUnlock()
 
 	if !t.started {
-		return &ErrTransport{Reason: "SSE transport not started"}
+		return fmt.Errorf("SSE transport not started")
 	}
 
 	message := fmt.Sprintf("data: %s\n\n", string(data))
@@ -201,8 +201,8 @@ func (t *SSETransport) WriteMessage(data []byte) error {
 			// Connection closed, skip
 			continue
 		default:
-			// Write message (message is already formatted)
-			if _, err := fmt.Fprint(w, message); err != nil {
+			// Write message
+			if _, err := fmt.Fprintf(w, message); err != nil {
 				// Connection error, will be cleaned up on next request
 				continue
 			}
