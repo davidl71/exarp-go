@@ -157,14 +157,18 @@ exarp-go ships with an OpenCode plugin (`.opencode/plugins/exarp-go.ts`) that ad
 | Feature | Hook | Description |
 |---------|------|-------------|
 | **Auto `PROJECT_ROOT`** | `shell.env` | Injects `PROJECT_ROOT` into every shell command so exarp-go always knows the project root. |
-| **System prompt context** | `experimental.chat.system.transform` | Injects current task state into every LLM system prompt — the LLM always knows your tasks without being asked. Cached with 30s TTL; invalidated on `todo.updated` and `session.created` events. |
-| **First-message injection** | `chat.message` | Prepends a compact task summary into the first user message of each session so the LLM has immediate task awareness. |
+| **System prompt context** | `experimental.chat.system.transform` | Injects current task state into every LLM system prompt — the LLM always knows your tasks without being asked. Cached with 30s TTL; invalidated on `todo.updated` and `session.created` events. Skipped for sub-agents and title generation. |
+| **First-message injection** | `chat.message` | Prepends a compact task summary (marked `synthetic: true`) into the first user message of each session so the LLM has immediate task awareness. Skipped for sub-agents. |
+| **Sub-agent filtering** | `chat.message`, `system.transform` | Skips task injection for sub-agents (`mode === "subagent"`) and title generation (`mode === "title"`) to avoid noise and token waste. |
 | **Compaction context** | `experimental.session.compacting` | Injects current task state into compaction summaries so task context survives context resets. |
 | **Plugin tools** | `tool` | Registers `exarp_tasks`, `exarp_update_task`, `exarp_prime` — faster than MCP round-trips. |
 | **TUI toasts** | `session.created`, `todo.updated` events + `client.tui.showToast` | Shows toast notifications for task counts on session start and cache refreshes on task changes. |
 | **Prompt auto-expand** | `tui.prompt.append` event + `client.tui.appendPrompt` | When the user pastes or types a task ID (T-xxxx) into the prompt, appends that task's details (status, priority, content) automatically. |
 | **Command cache sync** | `tui.command.execute` event | Invalidates task cache when `/tasks`, `/prime`, `/scorecard`, or `/health` commands run so results are fresh. |
 | **Toast-driven sync** | `tui.toast.show` event | When other plugins or OpenCode show a task-related toast, invalidates cache to stay in sync. |
+| **Session error toasts** | `session.error` event + `client.tui.showToast` | Shows an error toast when a session encounters an error. |
+| **Tool output reminders** | `tool.execute.after` | Appends in-progress task reminders to tool output so the agent maintains task awareness during tool use. |
+| **Primary tool restriction** | `config` hook | Registers `exarp_update_task` as a primary-only tool so sub-agents cannot accidentally change task status. |
 | **macOS notifications** | `session.idle` event | Sends a desktop notification when a session goes idle. |
 | **Slash commands** | `config` hook | Registers `/tasks`, `/prime`, `/scorecard`, `/health` commands. |
 

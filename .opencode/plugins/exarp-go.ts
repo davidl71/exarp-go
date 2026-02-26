@@ -4,9 +4,11 @@
  * Complements the exarp-go MCP server with lifecycle hooks:
  * - Auto-injects PROJECT_ROOT into shell environment
  * - Injects task state into system prompt + user messages (virtual sidebar)
+ * - Skips injection for sub-agents and title generation (agent filtering)
  * - Injects task state into compaction so it survives context resets
  * - Custom tools: exarp_tasks, exarp_update_task, exarp_prime
- * - macOS notifications on session idle
+ * - tool.execute.after: appends in-progress task reminders to tool output
+ * - macOS notifications on session idle; toasts on session errors
  * - Slash commands: /tasks, /prime, /scorecard, /health
  */
 
@@ -155,6 +157,15 @@ async function appendToPrompt(client: any, text: string) {
   }
 }
 
+function isSubAgent(input: any): boolean {
+  const mode = input?.agent?.mode;
+  return mode === "subagent" || mode === "title";
+}
+
+function getInProgressTasks(tasks: TaskSummary[]): TaskSummary[] {
+  return tasks.filter((t) => t.status === "In Progress");
+}
+
 export const ExarpGoPlugin: Plugin = async ({ $, client, directory }) => {
   const projectRoot = directory;
 
@@ -296,9 +307,16 @@ export const ExarpGoPlugin: Plugin = async ({ $, client, directory }) => {
           invalidateCache();
         }
       }
+
+      if (event.type === "session.error") {
+        const props = (event as any).properties || {};
+        const errMsg: string = props.message || props.error || "Unknown error";
+        await showToast(client, `exarp-go: session error — ${errMsg}`, "error");
+      }
     },
 
     "chat.message": async (input, output) => {
+      if (isSubAgent(input)) return;
       const isFirstMessage = !seenSessions.has(input.sessionID);
       if (isFirstMessage) {
         seenSessions.add(input.sessionID);
@@ -307,12 +325,14 @@ export const ExarpGoPlugin: Plugin = async ({ $, client, directory }) => {
           output.parts.unshift({
             type: "text",
             text: `[exarp-go tasks: ${formatTasksCompact(cache.tasks)}]`,
+            synthetic: true,
           } as any);
         }
       }
     },
 
-    "experimental.chat.system.transform": async (_input, output) => {
+    "experimental.chat.system.transform": async (input, output) => {
+      if (isSubAgent(input)) return;
       const cache = await refreshCache($);
       output.system.push(`
 <exarp-go-context>
@@ -330,6 +350,17 @@ Mark tasks Done when you complete work that satisfies them.
 `);
     },
 
+    "tool.execute.after": async (_input, output) => {
+      const cache = await refreshCache($);
+      const active = getInProgressTasks(cache.tasks);
+      if (active.length > 0) {
+        const reminder = active
+          .map((t) => `${t.id}: ${t.content}`)
+          .join("; ");
+        output.result += `\n\n[In Progress (${active.length}): ${reminder}]`;
+      }
+    },
+
     "experimental.session.compacting": async (_input, output) => {
       const cache = await refreshCache($);
       output.context.push(`
@@ -343,6 +374,12 @@ Always call exarp_prime or session(action="prime") at the start of a new session
     },
 
     async config(config) {
+      config.experimental = config.experimental ?? {};
+      config.experimental.primary_tools = [
+        ...(config.experimental.primary_tools || []),
+        "exarp_update_task",
+      ];
+
       config.command = config.command ?? {};
 
       config.command["tasks"] = {
