@@ -4,7 +4,8 @@
 
 set -e
 
-PROJECT_ROOT="${1:-.}"
+# Respect PROJECT_ROOT if set by caller (e.g. AI agent); else use first arg or cwd
+PROJECT_ROOT="${PROJECT_ROOT:-${1:-.}}"
 cd "$PROJECT_ROOT"
 
 echo "🔍 Go Project Health Check"

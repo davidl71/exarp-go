@@ -4,9 +4,8 @@ package tools
 import (
 	"context"
 	"fmt"
+
 	"github.com/davidl71/exarp-go/internal/config"
-	"github.com/davidl71/exarp-go/internal/security"
-	"os"
 )
 
 // LintResult represents the result of a linting operation.
@@ -35,39 +34,11 @@ func runLinter(ctx context.Context, linter, path string, fix bool) (*LintResult,
 	ctx, cancel := context.WithTimeout(ctx, config.ToolTimeout("linting"))
 	defer cancel()
 
-	// Get project root for path validation
-	projectRoot := os.Getenv("PROJECT_ROOT")
-	if projectRoot == "" {
-		// Try to find project root
-		var err error
-
-		projectRoot, err = FindProjectRoot()
-		if err != nil {
-			// Fallback to current directory
-			projectRoot, _ = os.Getwd()
-		}
-	}
-
-	// Determine target path
 	targetPath := path
 	if targetPath == "" {
 		targetPath = "."
 	}
 
-	// Validate and sanitize path to prevent directory traversal
-	validatedPath, err := security.ValidatePathExists(targetPath, projectRoot)
-	if err != nil {
-		return nil, fmt.Errorf("invalid path: %w", err)
-	}
-
-	targetPath = validatedPath
-
-	// Auto-detect linter based on file type if not specified
-	if linter == "" || linter == "auto" {
-		linter = detectLinter(targetPath)
-	}
-
-	// Auto-detect linter based on file type if not specified
 	if linter == "" || linter == "auto" {
 		linter = detectLinter(targetPath)
 	}

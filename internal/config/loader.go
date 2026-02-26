@@ -525,10 +525,5 @@ func applyEnvOverrides(cfg *FullConfig) {
 // FindProjectRoot finds the exarp project root. Delegates to projectroot.Find().
 // Returns current directory on error (config needs a path; tools.FindProjectRoot returns error).
 func FindProjectRoot() (string, error) {
-	root, err := projectroot.Find()
-	if err != nil {
-		return os.Getwd()
-	}
-
-	return root, nil
+	return projectroot.Find()
 }
