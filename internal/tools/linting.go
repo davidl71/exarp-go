@@ -82,6 +82,8 @@ func runLinter(ctx context.Context, linter, path string, fix bool) (*LintResult,
 		return runGofmt(ctx, targetPath, fix)
 	case "goimports":
 		return runGoimports(ctx, targetPath, fix)
+	case "deadcode":
+		return runDeadcode(ctx, targetPath)
 	case "markdownlint", "markdownlint-cli", "mdl", "markdown":
 		return runMarkdownlint(ctx, targetPath, fix)
 	case "shellcheck", "shfmt", "shell":
@@ -100,6 +102,6 @@ func runLinter(ctx context.Context, linter, path string, fix bool) (*LintResult,
 	case "rustfmt":
 		return runRustfmt(ctx, targetPath, fix)
 	default:
-		return nil, fmt.Errorf("unsupported linter: %s (supported: golangci-lint, go-vet, gofmt, goimports, markdownlint, shellcheck, clang-tidy, cppcheck, clang-format, ruff, flake8, pylint, clippy, rustfmt)", linter)
+		return nil, fmt.Errorf("unsupported linter: %s (supported: golangci-lint, go-vet, gofmt, goimports, deadcode, markdownlint, shellcheck, clang-tidy, cppcheck, clang-format, ruff, flake8, pylint, clippy, rustfmt)", linter)
 	}
 }

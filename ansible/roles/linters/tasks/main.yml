@@ -93,6 +93,7 @@
     - {name: "gomarklint", bin: "gomarklint", pkg: "github.com/shinagawa-web/gomarklint@latest"}
     - {name: "shfmt", bin: "shfmt", pkg: "mvdan.cc/sh/v3/cmd/shfmt@latest"}
     - {name: "govulncheck", bin: "govulncheck", pkg: "golang.org/x/vuln/cmd/govulncheck@latest"}
+    - {name: "deadcode", bin: "deadcode", pkg: "golang.org/x/tools/cmd/deadcode@latest"}
   loop_control:
     label: "{{ item.name }}"
   when: "item.name in linters"
@@ -187,6 +188,7 @@
     - {name: "golangci-lint", command: "{{ go_bin_path }}/golangci-lint"}
     - {name: "govulncheck", command: "{{ go_bin_path }}/govulncheck"}
     - {name: "gomarklint", command: "{{ go_bin_path }}/gomarklint"}
+    - {name: "deadcode", command: "{{ go_bin_path }}/deadcode"}
     - {name: "shellcheck", command: "shellcheck"}
     - {name: "shfmt", command: "{{ go_bin_path }}/shfmt"}
     - {name: "yamllint", command: "yamllint"}

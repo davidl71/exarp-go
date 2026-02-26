@@ -5,38 +5,25 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strconv"
+	"time"
+
 	"github.com/davidl71/exarp-go/internal/cache"
 	"github.com/davidl71/exarp-go/internal/framework"
 	"github.com/davidl71/exarp-go/internal/models"
+	"github.com/davidl71/exarp-go/proto"
 	"github.com/spf13/cast"
-	"strconv"
-	"time"
 )
 
-// handleAnalyzeAlignment handles the analyze_alignment tool
+// handleAnalyzeAlignment handles the analyze_alignment tool.
 // Fully native Go for both "todo2" and "prd" actions; no Python bridge.
-func handleAnalyzeAlignment(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
-	// Try protobuf first, fall back to JSON for backward compatibility
-	req, params, err := ParseAnalyzeAlignmentRequest(args)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse arguments: %w", err)
-	}
-
-	// Convert protobuf request to params map if needed
-	if req != nil {
-		params = AnalyzeAlignmentRequestToParams(req)
-		framework.ApplyDefaults(params, map[string]interface{}{
-			"action": "todo2",
-		})
-	}
-
-	result, err := handleAnalyzeAlignmentNative(ctx, params)
-	if err != nil {
-		return nil, fmt.Errorf("analyze_alignment failed: %w", err)
-	}
-
-	return result, nil
-}
+var handleAnalyzeAlignment = WrapHandler(
+	"analyze_alignment",
+	func(args json.RawMessage) (any, map[string]interface{}, error) { return ParseAnalyzeAlignmentRequest(args) },
+	func(req any) map[string]interface{} { return AnalyzeAlignmentRequestToParams(req.(*proto.AnalyzeAlignmentRequest)) },
+	map[string]interface{}{"action": "todo2"},
+	handleAnalyzeAlignmentNative,
+)
 
 // handleGenerateConfig handles the generate_config tool
 // Uses native Go implementation for all actions (rules, ignore, simplify) - fully native Go.
@@ -64,86 +51,49 @@ func handleGenerateConfig(ctx context.Context, args json.RawMessage) ([]framewor
 	return handleGenerateConfigNative(ctx, argsJSON)
 }
 
-// handleHealth handles the health tool
+// handleHealth handles the health tool.
 // Uses native Go implementation for all actions (server, git, docs, dod, cicd) - fully native Go with no fallback.
-func handleHealth(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
-	// Try protobuf first, fall back to JSON for backward compatibility
-	req, params, err := ParseHealthRequest(args)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse arguments: %w", err)
-	}
+var handleHealth = WrapHandler(
+	"health",
+	func(args json.RawMessage) (any, map[string]interface{}, error) { return ParseHealthRequest(args) },
+	func(req any) map[string]interface{} { return HealthRequestToParams(req.(*proto.HealthRequest)) },
+	map[string]interface{}{"action": "server"},
+	handleHealthNative,
+)
 
-	// Convert protobuf request to params map if needed
-	if req != nil {
-		params = HealthRequestToParams(req)
-		framework.ApplyDefaults(params, map[string]interface{}{
-			"action": "server",
-		})
-	}
-
-	// Use native Go implementation - all actions are native
-	return handleHealthNative(ctx, params)
-}
-
-// handleSetupHooks handles the setup_hooks tool
+// handleSetupHooks handles the setup_hooks tool.
 // Uses native Go implementation for both "git" and "patterns" actions - fully native Go.
-func handleSetupHooks(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
-	// Try protobuf first, fall back to JSON for backward compatibility
-	req, params, err := ParseSetupHooksRequest(args)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse arguments: %w", err)
-	}
+var handleSetupHooks = WrapHandler(
+	"setup_hooks",
+	func(args json.RawMessage) (any, map[string]interface{}, error) { return ParseSetupHooksRequest(args) },
+	func(req any) map[string]interface{} { return SetupHooksRequestToParams(req.(*proto.SetupHooksRequest)) },
+	map[string]interface{}{"action": "git"},
+	handleSetupHooksNative,
+)
 
-	// Convert protobuf request to params map if needed
-	if req != nil {
-		params = SetupHooksRequestToParams(req)
-		framework.ApplyDefaults(params, map[string]interface{}{
-			"action": "git",
-		})
-	}
-
-	// Use native Go implementation only (git + patterns actions)
-	return handleSetupHooksNative(ctx, params)
-}
-
-// handleCheckAttribution handles the check_attribution tool
+// handleCheckAttribution handles the check_attribution tool.
 // Uses native Go implementation only - fully native Go, no Python fallback.
-func handleCheckAttribution(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
-	// Try protobuf first, fall back to JSON for backward compatibility
-	req, params, err := ParseCheckAttributionRequest(args)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse arguments: %w", err)
-	}
+var handleCheckAttribution = WrapHandler(
+	"check_attribution",
+	func(args json.RawMessage) (any, map[string]interface{}, error) { return ParseCheckAttributionRequest(args) },
+	func(req any) map[string]interface{} { return CheckAttributionRequestToParams(req.(*proto.CheckAttributionRequest)) },
+	nil,
+	handleCheckAttributionNative,
+)
 
-	// Convert protobuf request to params map if needed
-	if req != nil {
-		params = CheckAttributionRequestToParams(req)
-	}
-
-	// Use native Go implementation only
-	return handleCheckAttributionNative(ctx, params)
-}
-
-// handleAddExternalToolHints handles the add_external_tool_hints tool
+// handleAddExternalToolHints handles the add_external_tool_hints tool.
 // Uses native Go implementation - fully native Go, no Python bridge needed.
-func handleAddExternalToolHints(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
-	// Try protobuf first, fall back to JSON for backward compatibility
-	req, params, err := ParseAddExternalToolHintsRequest(args)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse arguments: %w", err)
-	}
-
-	// Convert protobuf request to params map if needed
-	if req != nil {
-		params = AddExternalToolHintsRequestToParams(req)
-		framework.ApplyDefaults(params, map[string]interface{}{
-			"min_file_size": 50,
-		})
-	}
-
-	// Use native Go implementation
-	return handleAddExternalToolHintsNative(ctx, params)
-}
+var handleAddExternalToolHints = WrapHandler(
+	"add_external_tool_hints",
+	func(args json.RawMessage) (any, map[string]interface{}, error) {
+		return ParseAddExternalToolHintsRequest(args)
+	},
+	func(req any) map[string]interface{} {
+		return AddExternalToolHintsRequestToParams(req.(*proto.AddExternalToolHintsRequest))
+	},
+	map[string]interface{}{"min_file_size": 50},
+	handleAddExternalToolHintsNative,
+)
 
 // Batch 2 Tool Handlers (T-28 through T-35)
 
@@ -238,11 +188,13 @@ func handleReport(ctx context.Context, args json.RawMessage) ([]framework.TextCo
 		}
 		if scorecard == nil {
 			opts := &ScorecardOptions{FastMode: fastMode}
-			var err error
-			scorecard, err = GenerateGoScorecard(ctx, projectRoot, opts)
+			v, err, _ := scorecardFlight.Do(cacheKey, func() (interface{}, error) {
+				return GenerateGoScorecard(ctx, projectRoot, opts)
+			})
 			if err != nil {
 				return nil, fmt.Errorf("report scorecard: %w", err)
 			}
+			scorecard = v.(*GoScorecardResult)
 			if !skipCache {
 				if data, err := json.Marshal(scorecard); err == nil {
 					cache.GetScorecardCache().Set(cacheKey, data, 5*time.Minute)
@@ -403,47 +355,23 @@ func handleSecurity(ctx context.Context, args json.RawMessage) ([]framework.Text
 // handleTaskAnalysis handles the task_analysis tool (native Go only, no Python fallback).
 // All actions (duplicates, tags, dependencies, parallelization, hierarchy) use native Go.
 // Hierarchy uses the FM provider abstraction (Apple FM when available; clear error otherwise).
-func handleTaskAnalysis(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
-	req, params, err := ParseTaskAnalysisRequest(args)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse arguments: %w", err)
-	}
+var handleTaskAnalysis = WrapHandler(
+	"task_analysis",
+	func(args json.RawMessage) (any, map[string]interface{}, error) { return ParseTaskAnalysisRequest(args) },
+	func(req any) map[string]interface{} { return TaskAnalysisRequestToParams(req.(*proto.TaskAnalysisRequest)) },
+	map[string]interface{}{"output_format": "text"},
+	handleTaskAnalysisNative,
+)
 
-	if req != nil {
-		params = TaskAnalysisRequestToParams(req)
-		framework.ApplyDefaults(params, map[string]interface{}{
-			"output_format": "text",
-		})
-	}
-
-	return handleTaskAnalysisNative(ctx, params)
-}
-
-// handleTaskDiscovery handles the task_discovery tool
+// handleTaskDiscovery handles the task_discovery tool.
 // Uses native Go implementation only (comments, markdown, orphans, create_tasks); no Python bridge.
-func handleTaskDiscovery(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
-	// Try protobuf first, fall back to JSON for backward compatibility
-	req, params, err := ParseTaskDiscoveryRequest(args)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse arguments: %w", err)
-	}
-
-	// Convert protobuf request to params map if needed
-	if req != nil {
-		params = TaskDiscoveryRequestToParams(req)
-		framework.ApplyDefaults(params, map[string]interface{}{
-			"action":       "all",
-			"json_pattern": "**/.todo2/state.todo2.json",
-		})
-	}
-
-	result, err := handleTaskDiscoveryNative(ctx, params)
-	if err != nil {
-		return nil, fmt.Errorf("task_discovery failed: %w", err)
-	}
-
-	return result, nil
-}
+var handleTaskDiscovery = WrapHandler(
+	"task_discovery",
+	func(args json.RawMessage) (any, map[string]interface{}, error) { return ParseTaskDiscoveryRequest(args) },
+	func(req any) map[string]interface{} { return TaskDiscoveryRequestToParams(req.(*proto.TaskDiscoveryRequest)) },
+	map[string]interface{}{"action": "all", "json_pattern": "**/.todo2/state.todo2.json"},
+	handleTaskDiscoveryNative,
+)
 
 // handleInferTaskProgress handles the infer_task_progress tool (native Go).
 // Evaluates Todo/In Progress tasks against codebase evidence and infers completion.

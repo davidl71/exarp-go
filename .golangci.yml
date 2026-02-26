@@ -52,8 +52,9 @@ linters:
     - errcheck          # Check for unchecked errors
     - govet             # Go vet
     - ineffassign       # Detect unused assignments
-    - staticcheck       # Static analysis
+    - staticcheck       # Static analysis (includes deadcode)
     - unused            # Unused code detection
+    - deadcode         # Dead code detection
     - misspell          # Spelling checker
     - unconvert         # Remove unnecessary conversions
     - unparam           # Unused parameters

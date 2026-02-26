@@ -88,12 +88,8 @@ func TestWorkflowDefaultMode(t *testing.T) {
 	}
 }
 
-func TestDatabaseRetryGetters(t *testing.T) {
+func TestDatabaseTimeoutGetters(t *testing.T) {
 	SetGlobalConfig(GetDefaults())
-
-	if DatabaseRetryAttempts() != 3 {
-		t.Errorf("DatabaseRetryAttempts() = %d, want 3", DatabaseRetryAttempts())
-	}
 
 	if DatabaseConnectionTimeout() != 30*time.Second {
 		t.Errorf("DatabaseConnectionTimeout() = %v, want 30s", DatabaseConnectionTimeout())

@@ -432,8 +432,85 @@ func mergeConfig(defaults, fileConfig *FullConfig) *FullConfig {
 		merged.Security.AccessControl.RestrictedTools = fileConfig.Security.AccessControl.RestrictedTools
 	}
 
-	// TODO: Merge remaining sections (logging, tools, workflow, memory, project, automations)
-	// For Phase 2, we focus on database and security
+	// Logging
+	if fileConfig.Logging.Level != "" {
+		merged.Logging.Level = fileConfig.Logging.Level
+	}
+	if fileConfig.Logging.Format != "" {
+		merged.Logging.Format = fileConfig.Logging.Format
+	}
+	if fileConfig.Logging.LogDir != "" {
+		merged.Logging.LogDir = fileConfig.Logging.LogDir
+	}
+	if fileConfig.Logging.LogFile != "" {
+		merged.Logging.LogFile = fileConfig.Logging.LogFile
+	}
+	merged.Logging.IncludeTimestamps = fileConfig.Logging.IncludeTimestamps
+	merged.Logging.IncludeCaller = fileConfig.Logging.IncludeCaller
+	merged.Logging.ColorOutput = fileConfig.Logging.ColorOutput
+	if fileConfig.Logging.RetentionDays > 0 {
+		merged.Logging.RetentionDays = fileConfig.Logging.RetentionDays
+	}
+
+	// Tools
+	if fileConfig.Tools.Scorecard.OutputFormat != "" {
+		merged.Tools.Scorecard.OutputFormat = fileConfig.Tools.Scorecard.OutputFormat
+	}
+	merged.Tools.Scorecard.IncludeWisdom = fileConfig.Tools.Scorecard.IncludeWisdom
+	if fileConfig.Tools.Linting.DefaultLinter != "" {
+		merged.Tools.Linting.DefaultLinter = fileConfig.Tools.Linting.DefaultLinter
+	}
+	if fileConfig.Tools.Linting.Timeout > 0 {
+		merged.Tools.Linting.Timeout = fileConfig.Tools.Linting.Timeout
+	}
+	merged.Tools.Linting.AutoFix = fileConfig.Tools.Linting.AutoFix
+	if fileConfig.Tools.Ollama.DefaultHost != "" {
+		merged.Tools.Ollama.DefaultHost = fileConfig.Tools.Ollama.DefaultHost
+	}
+	if fileConfig.Tools.Ollama.DefaultModel != "" {
+		merged.Tools.Ollama.DefaultModel = fileConfig.Tools.Ollama.DefaultModel
+	}
+	if fileConfig.Tools.MLX.DefaultModel != "" {
+		merged.Tools.MLX.DefaultModel = fileConfig.Tools.MLX.DefaultModel
+	}
+	if fileConfig.Tools.MLX.DefaultMaxTokens > 0 {
+		merged.Tools.MLX.DefaultMaxTokens = fileConfig.Tools.MLX.DefaultMaxTokens
+	}
+
+	// Workflow
+	if fileConfig.Workflow.DefaultMode != "" {
+		merged.Workflow.DefaultMode = fileConfig.Workflow.DefaultMode
+	}
+	merged.Workflow.AutoDetectMode = fileConfig.Workflow.AutoDetectMode
+	if len(fileConfig.Workflow.Modes) > 0 {
+		merged.Workflow.Modes = fileConfig.Workflow.Modes
+	}
+
+	// Memory
+	if fileConfig.Memory.StoragePath != "" {
+		merged.Memory.StoragePath = fileConfig.Memory.StoragePath
+	}
+	if fileConfig.Memory.RetentionDays > 0 {
+		merged.Memory.RetentionDays = fileConfig.Memory.RetentionDays
+	}
+	if fileConfig.Memory.MaxMemories > 0 {
+		merged.Memory.MaxMemories = fileConfig.Memory.MaxMemories
+	}
+	merged.Memory.AutoCleanup = fileConfig.Memory.AutoCleanup
+
+	// Project
+	if fileConfig.Project.Name != "" {
+		merged.Project.Name = fileConfig.Project.Name
+	}
+	if fileConfig.Project.Type != "" {
+		merged.Project.Type = fileConfig.Project.Type
+	}
+	if fileConfig.Project.Language != "" {
+		merged.Project.Language = fileConfig.Project.Language
+	}
+	if fileConfig.Project.Root != "" {
+		merged.Project.Root = fileConfig.Project.Root
+	}
 
 	return &merged
 }

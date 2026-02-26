@@ -8,6 +8,7 @@ _npm_global_bin: /usr/local/bin
 linters:
   - golangci-lint
   - govulncheck
+  - deadcode
   - shellcheck
   - shfmt
   - universal-ctags

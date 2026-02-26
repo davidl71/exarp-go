@@ -4,14 +4,18 @@ package tools
 import (
 	"context"
 	"fmt"
-	"github.com/davidl71/exarp-go/internal/config"
-	"github.com/davidl71/exarp-go/internal/projectroot"
-	"github.com/davidl71/exarp-go/internal/security"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
+
+	"github.com/davidl71/exarp-go/internal/config"
+	"github.com/davidl71/exarp-go/internal/projectroot"
+	"github.com/davidl71/exarp-go/internal/security"
+	"golang.org/x/sync/singleflight"
 )
+
+var scorecardFlight singleflight.Group
 
 // generateGoRecommendations generates recommendations based on health checks and large-file analysis.
 // When fastModeUsed is true, recommendations for skipped checks (go mod tidy, go build, etc.) are not added.

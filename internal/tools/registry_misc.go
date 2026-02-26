@@ -192,5 +192,9 @@ func registerMiscTools(server framework.MCPServer) error {
 		return fmt.Errorf("failed to register context_budget: %w", err)
 	}
 
+	if err := RegisterResourcesAsTools(server); err != nil {
+		return fmt.Errorf("failed to register resources-as-tools: %w", err)
+	}
+
 	return nil
 }

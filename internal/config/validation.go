@@ -33,8 +33,26 @@ func ValidateConfig(cfg *FullConfig) error {
 		return fmt.Errorf("security validation failed: %w", err)
 	}
 
-	// TODO: Validate other sections in future phases (logging, tools, workflow, memory, project, automations)
+	if err := validateLogging(cfg.Logging); err != nil {
+		return fmt.Errorf("logging validation failed: %w", err)
+	}
 
+	return nil
+}
+
+// validateLogging validates logging configuration.
+func validateLogging(logging LoggingConfig) error {
+	validLevels := map[string]bool{"debug": true, "info": true, "warn": true, "error": true, "": true}
+	if !validLevels[logging.Level] {
+		return fmt.Errorf("level (%s) must be debug, info, warn, or error", logging.Level)
+	}
+	validFormats := map[string]bool{"text": true, "json": true, "": true}
+	if !validFormats[logging.Format] {
+		return fmt.Errorf("format (%s) must be text or json", logging.Format)
+	}
+	if logging.RetentionDays < 0 {
+		return fmt.Errorf("retention_days (%d) must be non-negative", logging.RetentionDays)
+	}
 	return nil
 }
 

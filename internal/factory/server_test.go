@@ -2,6 +2,7 @@ package factory
 
 import (
 	"context"
+	"encoding/json"
 	"testing"
 
 	"github.com/davidl71/exarp-go/internal/config"
@@ -278,6 +279,139 @@ func TestToolLoggingMiddleware(t *testing.T) {
 
 	if res == nil {
 		t.Error("wrapped handler returned nil result")
+	}
+}
+
+// TestToolRecoveryMiddleware verifies panic recovery returns a clean MCP error.
+func TestToolRecoveryMiddleware(t *testing.T) {
+	panicking := func(_ context.Context, _ *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		panic("test panic")
+	}
+
+	wrapped := toolRecoveryMiddleware(panicking)
+	ctx := context.Background()
+	req := &mcp.CallToolRequest{Params: &mcp.CallToolParamsRaw{Name: "crashy_tool"}}
+
+	result, err := wrapped(ctx, req)
+	if err != nil {
+		t.Fatalf("recovery middleware should not return error, got: %v", err)
+	}
+	if result == nil {
+		t.Fatal("recovery middleware should return a result")
+	}
+	if !result.IsError {
+		t.Error("recovery middleware result should have IsError=true")
+	}
+	if len(result.Content) == 0 {
+		t.Fatal("recovery middleware result should have content")
+	}
+	text, ok := result.Content[0].(*mcp.TextContent)
+	if !ok || text == nil {
+		t.Fatal("recovery middleware result content should be TextContent")
+	}
+	if text.Text == "" {
+		t.Error("recovery middleware result text should not be empty")
+	}
+}
+
+// TestToolRecoveryMiddleware_NoPanic verifies normal execution passes through.
+func TestToolRecoveryMiddleware_NoPanic(t *testing.T) {
+	normal := func(_ context.Context, _ *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		return &mcp.CallToolResult{Content: []mcp.Content{
+			&mcp.TextContent{Text: "ok"},
+		}}, nil
+	}
+
+	wrapped := toolRecoveryMiddleware(normal)
+	ctx := context.Background()
+	req := &mcp.CallToolRequest{Params: &mcp.CallToolParamsRaw{Name: "safe_tool"}}
+
+	result, err := wrapped(ctx, req)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result.IsError {
+		t.Error("normal result should not be IsError")
+	}
+}
+
+// TestToolHooksMiddleware verifies before/after hooks are called.
+func TestToolHooksMiddleware(t *testing.T) {
+	var beforeCalled, afterCalled bool
+	hooks := &framework.Hooks{
+		BeforeToolCall: func(_ context.Context, name string, _ json.RawMessage) {
+			beforeCalled = true
+			if name != "hooked_tool" {
+				t.Errorf("BeforeToolCall name = %q, want hooked_tool", name)
+			}
+		},
+		AfterToolCall: func(_ context.Context, name string, _ json.RawMessage) {
+			afterCalled = true
+			if name != "hooked_tool" {
+				t.Errorf("AfterToolCall name = %q, want hooked_tool", name)
+			}
+		},
+	}
+
+	inner := func(_ context.Context, _ *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		return &mcp.CallToolResult{}, nil
+	}
+
+	mw := toolHooksMiddleware(hooks)
+	wrapped := mw(inner)
+
+	ctx := context.Background()
+	req := &mcp.CallToolRequest{Params: &mcp.CallToolParamsRaw{Name: "hooked_tool"}}
+	_, err := wrapped(ctx, req)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !beforeCalled {
+		t.Error("BeforeToolCall was not called")
+	}
+	if !afterCalled {
+		t.Error("AfterToolCall was not called")
+	}
+}
+
+// TestWithHooks verifies hooks integration with NewServer.
+func TestWithHooks(t *testing.T) {
+	var hookInvoked bool
+	hooks := &framework.Hooks{
+		BeforeToolCall: func(_ context.Context, _ string, _ json.RawMessage) {
+			hookInvoked = true
+		},
+	}
+	server, err := NewServer(config.FrameworkGoSDK, "hook-test", "1.0.0", WithHooks(hooks))
+	if err != nil {
+		t.Fatalf("NewServer with hooks error: %v", err)
+	}
+	if server == nil {
+		t.Fatal("server is nil")
+	}
+	_ = hookInvoked
+}
+
+// TestWithToolFilter verifies tool filtering wraps the server.
+func TestWithToolFilter(t *testing.T) {
+	filter := func(_ context.Context, tools []framework.ToolInfo) []framework.ToolInfo {
+		var filtered []framework.ToolInfo
+		for _, tool := range tools {
+			if tool.Name != "hidden" {
+				filtered = append(filtered, tool)
+			}
+		}
+		return filtered
+	}
+	server, err := NewServer(config.FrameworkGoSDK, "filter-test", "1.0.0", WithToolFilter(filter))
+	if err != nil {
+		t.Fatalf("NewServer with filter error: %v", err)
+	}
+	if server == nil {
+		t.Fatal("server is nil")
+	}
+	if _, ok := server.(*filteredServer); !ok {
+		t.Error("server should be a *filteredServer when tool filter is set")
 	}
 }
 
