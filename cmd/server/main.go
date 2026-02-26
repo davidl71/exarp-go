@@ -5,7 +5,9 @@ package main
 
 import (
 	"context"
+	"errors"
 	"flag"
+	"io"
 	"net/http"
 	"os"
 	"strings"
@@ -124,6 +126,10 @@ func main() {
 
 	ctx := context.Background()
 	if err := server.Run(ctx, nil); err != nil {
+		// Normal MCP shutdown when client disconnects (e.g. stdin closed) — exit 0, don't log as fatal.
+		if errors.Is(err, io.EOF) || strings.Contains(err.Error(), "server is closing") {
+			os.Exit(0)
+		}
 		logging.Fatal("Server error: %v", err)
 	}
 }
