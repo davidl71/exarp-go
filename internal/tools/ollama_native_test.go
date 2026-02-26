@@ -32,6 +32,24 @@ func skipIfOllamaNotReachable(t *testing.T) {
 	_ = conn.Close()
 }
 
+// getOllamaTestModel returns the Ollama model for tests (env OLLAMA_TEST_MODEL or default qwen2.5:1.5b).
+// Use a light model for fast tests; override to your preferred model if needed.
+func getOllamaTestModel() string {
+	if s := os.Getenv("OLLAMA_TEST_MODEL"); s != "" {
+		return s
+	}
+	return "qwen2.5:1.5b"
+}
+
+// getOllamaTestCodeModel returns the Ollama code model for tests (env OLLAMA_TEST_CODE_MODEL or default qwen2.5:1.5b).
+// Same light default as getOllamaTestModel for speed; override for code-specific models (e.g. qwen3-coder:latest).
+func getOllamaTestCodeModel() string {
+	if s := os.Getenv("OLLAMA_TEST_CODE_MODEL"); s != "" {
+		return s
+	}
+	return "qwen2.5:1.5b"
+}
+
 func TestHandleOllamaDocs(t *testing.T) {
 	// Create a temporary test file
 	tmpDir := t.TempDir()
@@ -57,7 +75,7 @@ func add(a, b int) int {
 			params: map[string]interface{}{
 				"action":    "docs",
 				"file_path": testFile,
-				"model":     "llama3",
+				"model":     getOllamaTestModel(),
 				"style":     "google",
 			},
 			wantError: false, // Will fail if Ollama not running, but that's expected
@@ -66,7 +84,7 @@ func add(a, b int) int {
 			name: "missing file_path",
 			params: map[string]interface{}{
 				"action": "docs",
-				"model":  "llama3",
+				"model":  getOllamaTestModel(),
 			},
 			wantError: true,
 		},
@@ -75,7 +93,7 @@ func add(a, b int) int {
 			params: map[string]interface{}{
 				"action":    "docs",
 				"file_path": "/nonexistent/file.go",
-				"model":     "llama3",
+				"model":     getOllamaTestModel(),
 			},
 			wantError: true,
 		},
@@ -135,7 +153,7 @@ func add(a, b int) int {
 			params: map[string]interface{}{
 				"action":    "quality",
 				"file_path": testFile,
-				"model":     "llama3",
+				"model":     getOllamaTestModel(),
 			},
 			wantError: false, // Will fail if Ollama not running, but that's expected
 		},
@@ -143,7 +161,7 @@ func add(a, b int) int {
 			name: "missing file_path",
 			params: map[string]interface{}{
 				"action": "quality",
-				"model":  "llama3",
+				"model":  getOllamaTestModel(),
 			},
 			wantError: true,
 		},
@@ -152,7 +170,7 @@ func add(a, b int) int {
 			params: map[string]interface{}{
 				"action":              "quality",
 				"file_path":           testFile,
-				"model":               "llama3",
+				"model":               getOllamaTestModel(),
 				"include_suggestions": true,
 			},
 			wantError: false, // Will fail if Ollama not running, but that's expected
@@ -199,7 +217,7 @@ func TestHandleOllamaSummary(t *testing.T) {
 			params: map[string]interface{}{
 				"action": "summary",
 				"data":   "This is a test document that needs to be summarized.",
-				"model":  "llama3",
+				"model":  getOllamaTestModel(),
 			},
 			wantError: false, // Will fail if Ollama not running, but that's expected
 		},
@@ -207,7 +225,7 @@ func TestHandleOllamaSummary(t *testing.T) {
 			name: "missing data",
 			params: map[string]interface{}{
 				"action": "summary",
-				"model":  "llama3",
+				"model":  getOllamaTestModel(),
 			},
 			wantError: true,
 		},
@@ -216,7 +234,7 @@ func TestHandleOllamaSummary(t *testing.T) {
 			params: map[string]interface{}{
 				"action": "summary",
 				"data":   "Long document text here...",
-				"model":  "llama3",
+				"model":  getOllamaTestModel(),
 				"level":  "detailed",
 			},
 			wantError: false, // Will fail if Ollama not running, but that's expected
@@ -228,7 +246,7 @@ func TestHandleOllamaSummary(t *testing.T) {
 				"data": map[string]interface{}{
 					"content": "Test content",
 				},
-				"model": "llama3",
+				"model": getOllamaTestModel(),
 			},
 			wantError: false, // Will fail if Ollama not running, but that's expected
 		},
@@ -306,6 +324,7 @@ func TestHandleOllamaNative(t *testing.T) {
 			params: map[string]interface{}{
 				"action": "summary",
 				"data":   "Test text",
+				"model":  getOllamaTestCodeModel(),
 			},
 			wantError: false, // Will fail if Ollama not running, but that's expected
 		},

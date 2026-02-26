@@ -26,14 +26,14 @@ func (*ollamaTextGenerator) Supported() bool {
 
 func (o *ollamaTextGenerator) Generate(ctx context.Context, prompt string, maxTokens int, temperature float32) (string, error) {
 	host := "http://localhost:11434"
-	model := "llama3.2"
 
 	if cfg := config.GetGlobalConfig(); cfg != nil && cfg.Tools.Ollama.DefaultHost != "" {
 		host = cfg.Tools.Ollama.DefaultHost
 	}
 
-	if cfg := config.GetGlobalConfig(); cfg != nil && cfg.Tools.Ollama.DefaultModel != "" {
-		model = cfg.Tools.Ollama.DefaultModel
+	model := config.GetOllamaDefaultModel()
+	if model == "" {
+		model = "llama3.2"
 	}
 
 	return ollamaGenerateText(ctx, prompt, maxTokens, temperature, host, model)

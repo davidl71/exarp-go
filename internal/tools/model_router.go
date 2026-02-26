@@ -7,7 +7,11 @@
 
 package tools
 
-import "context"
+import (
+	"context"
+
+	"github.com/davidl71/exarp-go/internal/config"
+)
 
 // ModelType identifies which backend/model to use (FM chain, Ollama variant, or MLX).
 type ModelType string
@@ -84,9 +88,9 @@ func (r *defaultModelRouter) Generate(ctx context.Context, model ModelType, prom
 
 		return p.Generate(ctx, prompt, maxTokens, temperature)
 	case ModelOllamaLlama:
-		return r.generateOllama(ctx, "llama3.2", prompt, maxTokens, temperature)
+		return r.generateOllama(ctx, config.GetOllamaDefaultModel(), prompt, maxTokens, temperature)
 	case ModelOllamaCode:
-		return r.generateOllama(ctx, "codellama", prompt, maxTokens, temperature)
+		return r.generateOllama(ctx, config.GetOllamaCodeModel(), prompt, maxTokens, temperature)
 	case ModelMLX:
 		mlx := DefaultMLXProvider()
 		if mlx == nil || !mlx.Supported() {

@@ -566,6 +566,8 @@ This runs `go test -run RealModels ./internal/tools/... -timeout=120s -count=1` 
 | **Ollama** | Any (GPU/RAM recommended) | Install [Ollama](https://ollama.ai/), run `ollama serve`, pull a model |
 | **MLX** | Apple Silicon | Install [MLX](https://ml-explore.github.io/mlx/) (Python) |
 
+For **faster Ollama-based tests**, pull a light model (e.g. `ollama pull qwen2.5:1.5b`); tests default to `qwen2.5:1.5b`. For larger families, use a **quantized tag** (e.g. `qwen2.5:7b-q4_0`) to keep runs fast and memory use low. Set `OLLAMA_DEFAULT_MODEL` / `OLLAMA_CODE_MODEL` (and optionally `OLLAMA_TEST_MODEL` / `OLLAMA_TEST_CODE_MODEL`) to use your preferred models.
+
 Tests use `DefaultFMProvider()` (FM → Ollama bridge → MLX bridge) and skip with a clear message if no backend is available.
 
 ---

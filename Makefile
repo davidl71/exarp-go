@@ -1,6 +1,6 @@
 # Phony targets (grouped for readability)
 .PHONY: help b build build-local b-local build-debug silent build-race build-no-cgo run
-.PHONY: test test-watch test-go test-go-fast test-go-verbose test-go-parallel test-go-tools-short test-real-models test-coverage test-html test-tools test-cli test-cli-list test-cli-tool test-cli-test test-mcp-stdio
+.PHONY: test test-watch test-go test-go-fast test-go-verbose test-go-parallel test-go-tools-short test-real-models test-ollama test-coverage test-html test-tools test-cli test-cli-list test-cli-tool test-cli-test test-mcp-stdio
 .PHONY: config clean-config tag-build-ok tags pre-release r root push pull p pl status st
 .PHONY: go-fmt go-vet golangci-lint-check golangci-lint-fix govulncheck check check-fix check-all check-security
 .PHONY: fmt lint lint-fix lint-all lint-all-fix
@@ -335,6 +335,12 @@ test-integration: ## Run integration tests
 test-real-models: ## Run integration tests with real LLM backends (FM/Ollama/MLX); omit -short, requires local backend
 	@echo "$(BLUE)Running real-models integration tests...$(NC)"
 	@$(GO) test -run RealModels ./internal/tools/... -timeout=120s -count=1 || echo "$(YELLOW)⚠️  Real-models tests failed or skipped (no backend)$(NC)"
+
+test-ollama: ## Run Go tests with Ollama; uses light default (qwen2.5:1.5b) unless OLLAMA_DEFAULT_MODEL/OLLAMA_CODE_MODEL set (e.g. to qwen3:8b, qwen3-coder:latest)
+	@echo "$(BLUE)Running Go tests with Ollama (pull qwen2.5:1.5b for fast tests, or set OLLAMA_DEFAULT_MODEL/OLLAMA_CODE_MODEL)...$(NC)"
+	@CGO_ENABLED=0 $(GO) test ./... -parallel 4 || \
+	 (echo "$(RED)❌ Go tests failed$(NC)" && exit 1)
+	@echo "$(GREEN)✅ Go tests passed (Ollama)$(NC)"
 
 test-coverage: test-coverage-go ## Run tests with coverage (Go only)
 

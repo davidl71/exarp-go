@@ -2,6 +2,7 @@
 package config
 
 import (
+	"os"
 	"sync"
 	"time"
 )
@@ -182,4 +183,20 @@ func MemoryStoragePath() string {
 	}
 
 	return path
+}
+
+// GetOllamaDefaultModel returns the Ollama default model (env OLLAMA_DEFAULT_MODEL overrides config).
+func GetOllamaDefaultModel() string {
+	if s := os.Getenv("OLLAMA_DEFAULT_MODEL"); s != "" {
+		return s
+	}
+	return GetGlobalConfig().Tools.Ollama.DefaultModel
+}
+
+// GetOllamaCodeModel returns the Ollama code model (env OLLAMA_CODE_MODEL overrides default).
+func GetOllamaCodeModel() string {
+	if s := os.Getenv("OLLAMA_CODE_MODEL"); s != "" {
+		return s
+	}
+	return "codellama"
 }

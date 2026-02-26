@@ -50,6 +50,9 @@ func TestRealModels_TextGenerate(t *testing.T) {
 		if isConnectionRefused(err) {
 			t.Skip("Ollama not running:", err)
 		}
+		if strings.Contains(err.Error(), "not found") {
+			t.Skipf("Ollama default model not installed (set OLLAMA_DEFAULT_MODEL to a model you have): %v", err)
+		}
 		t.Fatalf("Generate with real model: %v", err)
 	}
 
@@ -74,6 +77,9 @@ func TestRealModels_AnalyzeTask(t *testing.T) {
 	if err != nil {
 		if isConnectionRefused(err) {
 			t.Skip("Ollama not running:", err)
+		}
+		if strings.Contains(err.Error(), "not found") {
+			t.Skipf("Ollama default model not installed (set OLLAMA_DEFAULT_MODEL): %v", err)
 		}
 		t.Fatalf("AnalyzeTask with real model: %v", err)
 	}
@@ -127,6 +133,9 @@ func TestRealModels_TaskExecutionFlow(t *testing.T) {
 	if err != nil {
 		if isConnectionRefused(err) {
 			t.Skip("Ollama not running:", err)
+		}
+		if strings.Contains(err.Error(), "not found") {
+			t.Skipf("Ollama default model not installed (set OLLAMA_DEFAULT_MODEL): %v", err)
 		}
 		t.Fatalf("RunTaskExecutionFlow with real model: %v", err)
 	}

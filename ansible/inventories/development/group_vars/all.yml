@@ -45,7 +45,9 @@ dev_tools:
   - inotify-tools  # Linux file watcher
 
 # Ollama (when install_ollama: true) - models pulled so ollama native tests pass
+# Use light/quantized models for faster tests; quantized tags (e.g. qwen2.5:7b-q4_0) reduce memory
 ollama_models:
-  - llama3.2   # App default
-  - llama3     # Used by some tests
+  - qwen2.5:1.5b   # Light default for tests (make test-ollama)
+  - llama3.2       # App default (optional)
+  - llama3         # Legacy test fallback (optional)
 
