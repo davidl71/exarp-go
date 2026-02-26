@@ -49,6 +49,8 @@ func handleTaskWorkflowNative(ctx context.Context, params map[string]interface{}
 		return handleTaskWorkflowLinkPlanning(ctx, params)
 	case "delete":
 		return handleTaskWorkflowDelete(ctx, params)
+	case "add_comment":
+		return handleTaskWorkflowAddComment(ctx, params)
 	case "update":
 		return handleTaskWorkflowUpdate(ctx, params)
 	case "request_approval":

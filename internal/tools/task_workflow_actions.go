@@ -15,6 +15,7 @@ import (
 	"github.com/davidl71/exarp-go/internal/database"
 	"github.com/davidl71/exarp-go/internal/framework"
 	"github.com/davidl71/exarp-go/internal/models"
+	"github.com/spf13/cast"
 )
 
 // handleTaskWorkflowSyncApprovals returns approval requests for all tasks in Review (T-111).
@@ -616,6 +617,53 @@ func handleTaskWorkflowDelete(ctx context.Context, params map[string]interface{}
 
 	result := map[string]interface{}{"success": len(failed) == 0, "method": "database", "deleted": deleted, "failed": failed, "synced": true}
 
+	return framework.FormatResult(result, "")
+}
+
+// handleTaskWorkflowAddComment adds a comment to a task (result, note, research_with_links, manualsetup).
+// Params: task_id (required), content (required), comment_type (optional, default "result").
+func handleTaskWorkflowAddComment(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
+	taskID := strings.TrimSpace(cast.ToString(params["task_id"]))
+	if taskID == "" {
+		return nil, fmt.Errorf("add_comment requires task_id")
+	}
+	content := cast.ToString(params["content"])
+	if content == "" {
+		return nil, fmt.Errorf("add_comment requires content")
+	}
+	commentType := strings.TrimSpace(strings.ToLower(cast.ToString(params["comment_type"])))
+	if commentType == "" {
+		commentType = models.CommentTypeResult
+	}
+	switch commentType {
+	case models.CommentTypeResult, models.CommentTypeNote, models.CommentTypeResearch, models.CommentTypeManual:
+		// valid
+	default:
+		return nil, fmt.Errorf("add_comment comment_type must be one of: result, note, research_with_links, manualsetup")
+	}
+
+	store, err := getTaskStore(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("add_comment: %w", err)
+	}
+	task, err := store.GetTask(ctx, taskID)
+	if err != nil {
+		return nil, fmt.Errorf("add_comment: %w", err)
+	}
+	if task == nil {
+		return nil, fmt.Errorf("add_comment: task %s not found", taskID)
+	}
+
+	comment := database.Comment{Type: commentType, Content: content}
+	if err := database.AddComments(ctx, taskID, []database.Comment{comment}); err != nil {
+		return nil, fmt.Errorf("add_comment: %w", err)
+	}
+	result := map[string]interface{}{
+		"success":     true,
+		"task_id":     taskID,
+		"comment_type": commentType,
+		"message":     "comment added",
+	}
 	return framework.FormatResult(result, "")
 }
 

@@ -11,13 +11,13 @@ func registerCoreTools(server framework.MCPServer) error {
 	// task_workflow
 	if err := server.RegisterTool(
 		"task_workflow",
-		"[HINT: action=sync|approve|create|update|delete|clarify|cleanup|summarize|run_with_ai|link_planning. Task lifecycle management. Use for CRUD, batch status updates (approve+task_ids), AI summaries. Prefer exarp-go task CLI for simple ops. Related: task_analysis, session.]",
+		"[HINT: action=sync|approve|create|update|delete|clarify|cleanup|summarize|run_with_ai|link_planning|add_comment. Task lifecycle management. Use for CRUD, batch status updates (approve+task_ids), AI summaries, add result/note comments. Prefer exarp-go task CLI for simple ops. Related: task_analysis, session.]",
 		framework.ToolSchema{
 			Type: "object",
 			Properties: map[string]interface{}{
 				"action": map[string]interface{}{
 					"type":    "string",
-					"enum":    []string{"sync", "approve", "clarify", "clarity", "cleanup", "create", "delete", "enrich_tool_hints", "fix_dates", "fix_empty_descriptions", "fix_invalid_ids", "link_planning", "request_approval", "sync_approvals", "apply_approval_result", "sanity_check", "sync_from_plan", "sync_plan_status", "update", "summarize", "run_with_ai"},
+					"enum":    []string{"sync", "approve", "clarify", "clarity", "cleanup", "create", "delete", "add_comment", "enrich_tool_hints", "fix_dates", "fix_empty_descriptions", "fix_invalid_ids", "link_planning", "request_approval", "sync_approvals", "apply_approval_result", "sanity_check", "sync_from_plan", "sync_plan_status", "update", "summarize", "run_with_ai"},
 					"default": "sync",
 				},
 				"dry_run": map[string]interface{}{
@@ -75,6 +75,16 @@ func registerCoreTools(server framework.MCPServer) error {
 				"feedback": map[string]interface{}{
 					"type":        "string",
 					"description": "For apply_approval_result: optional feedback when result=rejected (appended to task)",
+				},
+				"comment_type": map[string]interface{}{
+					"type":        "string",
+					"description": "For add_comment: type of comment (result, note, research_with_links, manualsetup)",
+					"enum":        []string{"result", "note", "research_with_links", "manualsetup"},
+					"default":     "result",
+				},
+				"content": map[string]interface{}{
+					"type":        "string",
+					"description": "For add_comment: comment body text (required)",
 				},
 				"clarification_text": map[string]interface{}{
 					"type": "string",

@@ -5,8 +5,10 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 
+	"github.com/davidl71/exarp-go/internal/database"
 	"github.com/davidl71/exarp-go/internal/framework"
 	mcpframework "github.com/davidl71/mcp-go-core/pkg/mcp/framework"
 )
@@ -121,6 +123,32 @@ func TestHandleTaskWorkflowNative(t *testing.T) {
 			params: map[string]interface{}{
 				"action": "apply_approval_result",
 				"result": "approved",
+			},
+			wantError: true,
+		},
+		{
+			name: "add_comment requires task_id",
+			params: map[string]interface{}{
+				"action": "add_comment",
+				"content": "some result text",
+			},
+			wantError: true,
+		},
+		{
+			name: "add_comment requires content",
+			params: map[string]interface{}{
+				"action": "add_comment",
+				"task_id": "T-1",
+			},
+			wantError: true,
+		},
+		{
+			name: "add_comment invalid comment_type",
+			params: map[string]interface{}{
+				"action":       "add_comment",
+				"task_id":      "T-1",
+				"content":      "text",
+				"comment_type": "invalid",
 			},
 			wantError: true,
 		},
@@ -420,6 +448,71 @@ func TestHandleTaskWorkflowNative(t *testing.T) {
 		preferred, _ := found.Metadata["preferred_backend"].(string)
 		if preferred != "mlx" {
 			t.Errorf("task preferred_backend = %q, want mlx", preferred)
+		}
+	})
+
+	// add_comment success: create task then add result comment
+	t.Run("add_comment success", func(t *testing.T) {
+		ctx := context.Background()
+		// Ensure DB is initialized with migrations so AddComments and create use SQLite
+		if err := os.MkdirAll(filepath.Join(tmpDir, ".todo2"), 0755); err != nil {
+			t.Fatalf("mkdir .todo2: %v", err)
+		}
+		cfg, err := database.LoadConfig(tmpDir)
+		if err != nil {
+			t.Fatalf("LoadConfig: %v", err)
+		}
+		_, self, _, _ := runtime.Caller(0)
+		repoRoot := filepath.Dir(filepath.Dir(filepath.Dir(self)))
+		cfg.MigrationsDir = filepath.Join(repoRoot, "migrations")
+		cfg.AutoMigrate = true
+		if err := database.InitWithConfig(cfg); err != nil {
+			t.Fatalf("database.InitWithConfig: %v", err)
+		}
+		t.Cleanup(func() { _ = database.Close() })
+
+		createResult, err := handleTaskWorkflowNative(ctx, map[string]interface{}{
+			"action":           "create",
+			"name":             "Task for add_comment test",
+			"long_description": "Used to test add_comment action",
+		})
+		if err != nil {
+			t.Fatalf("create task: %v", err)
+		}
+		if len(createResult) == 0 {
+			t.Fatal("create returned no result")
+		}
+		var createData map[string]interface{}
+		if err := json.Unmarshal([]byte(createResult[0].Text), &createData); err != nil {
+			t.Fatalf("create result JSON: %v", err)
+		}
+		taskObj, _ := createData["task"].(map[string]interface{})
+		taskID, _ := taskObj["id"].(string)
+		if taskID == "" {
+			t.Fatal("create did not return task id")
+		}
+
+		addResult, err := handleTaskWorkflowNative(ctx, map[string]interface{}{
+			"action":       "add_comment",
+			"task_id":      taskID,
+			"content":      "Result: completed successfully.",
+			"comment_type": "result",
+		})
+		if err != nil {
+			t.Fatalf("add_comment: %v", err)
+		}
+		if len(addResult) == 0 {
+			t.Fatal("add_comment returned no result")
+		}
+		var addData map[string]interface{}
+		if err := json.Unmarshal([]byte(addResult[0].Text), &addData); err != nil {
+			t.Fatalf("add_comment result JSON: %v", err)
+		}
+		if success, _ := addData["success"].(bool); !success {
+			t.Errorf("add_comment success = false, want true; response: %v", addData)
+		}
+		if got, _ := addData["comment_type"].(string); got != "result" {
+			t.Errorf("add_comment comment_type = %q, want result", got)
 		}
 	})
 
