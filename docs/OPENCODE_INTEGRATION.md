@@ -148,7 +148,46 @@ For tight integration (agent calling tasks, reports, session prime), configure e
 
 ---
 
-## 4. MLX + OpenCode (Local Models)
+## 4. Plugin (lifecycle hooks + slash commands)
+
+exarp-go ships with an OpenCode plugin (`.opencode/plugins/exarp-go.ts`) that adds lifecycle hooks on top of the MCP integration. The plugin is loaded automatically when OpenCode starts in this project.
+
+### What the plugin provides
+
+| Feature | Hook | Description |
+|---------|------|-------------|
+| **Auto `PROJECT_ROOT`** | `shell.env` | Injects `PROJECT_ROOT` into every shell command so exarp-go always knows the project root. |
+| **System prompt context** | `experimental.chat.system.transform` | Injects current task state into every LLM system prompt — the LLM always knows your tasks without being asked. Cached with 30s TTL; invalidated on `todo.updated` and `session.created` events. |
+| **Compaction context** | `experimental.session.compacting` | Injects current task state into compaction summaries so task context survives context resets. |
+| **macOS notifications** | `session.idle` event | Sends a desktop notification when a session goes idle. |
+| **Slash commands** | `config` hook | Registers `/tasks`, `/prime`, `/scorecard`, `/health` commands. |
+
+### Slash commands
+
+| Command | Description |
+|---------|-------------|
+| `/tasks` | List current tasks grouped by status |
+| `/prime` | Prime session with project context, hints, and handoffs |
+| `/scorecard` | Generate and display the project scorecard |
+| `/health` | Run project health checks (tools, docs) |
+
+### Setup
+
+The plugin auto-loads from `.opencode/plugins/`. Dependencies are installed by OpenCode (Bun) at startup from `.opencode/package.json`.
+
+If you want to use a custom exarp-go binary path, set `EXARP_GO_BINARY`:
+
+```bash
+EXARP_GO_BINARY=/path/to/bin/exarp-go opencode
+```
+
+### Plugin + MCP together
+
+The plugin complements MCP — it does not replace it. MCP provides the 35+ tools (task_workflow, report, session, etc.) that the LLM calls directly. The plugin adds environment setup, lifecycle hooks, context persistence across compactions, and convenience slash commands.
+
+---
+
+## 5. MLX + OpenCode (Local Models)
 
 Use local MLX models with OpenCode for on-device inference. Combined with exarp-go MCP, you get tasks, reports, and session prime alongside local LLM planning.
 
@@ -211,7 +250,7 @@ For OpenCode and code intelligence, **MCP (exarp-go) is sufficient** — you do 
 
 ---
 
-## 5. OpenCode and Cursor (ACP)
+## 6. OpenCode and Cursor (ACP)
 
 OpenCode [supports the Agent Client Protocol (ACP)](https://opencode.ai/docs/acp/): you run `opencode acp` and your editor talks to OpenCode over JSON-RPC via stdio. Editors that support ACP (Zed, JetBrains, Avante.nvim, CodeCompanion.nvim) can add OpenCode as an agent server; see [OpenCode ACP docs](https://opencode.ai/docs/acp/) for their config snippets.
 

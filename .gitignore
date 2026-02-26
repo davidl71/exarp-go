@@ -67,3 +67,6 @@ handoff-export-session.json
 # Accidental tool output / JSON-named files under internal/tools
 internal/tools/\{\"*
 .aider*
+
+# OpenCode plugin dependencies (installed by bun at startup)
+.opencode/node_modules/
