@@ -15,15 +15,9 @@ import (
 // handleAddExternalToolHintsNative handles the add_external_tool_hints tool with native Go implementation.
 func handleAddExternalToolHintsNative(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	// Get project root
-	projectRoot, err := FindProjectRoot()
+	projectRoot, err := GetProjectRootWithFallback()
 	if err != nil {
-		// Fallback to PROJECT_ROOT env var or current directory
-		if envRoot := os.Getenv("PROJECT_ROOT"); envRoot != "" {
-			projectRoot = envRoot
-		} else {
-			wd, _ := os.Getwd()
-			projectRoot = wd
-		}
+		return nil, fmt.Errorf("project root: %w", err)
 	}
 
 	// Get optional parameters

@@ -34,15 +34,9 @@ func handleSetupHooksNative(ctx context.Context, params map[string]interface{}) 
 // handleSetupGitHooks handles the "git" action for setup_hooks.
 func handleSetupGitHooks(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	// Get project root
-	projectRoot, err := FindProjectRoot()
+	projectRoot, err := GetProjectRootWithFallback()
 	if err != nil {
-		// Fallback to PROJECT_ROOT env var or current directory
-		if envRoot := os.Getenv("PROJECT_ROOT"); envRoot != "" {
-			projectRoot = envRoot
-		} else {
-			wd, _ := os.Getwd()
-			projectRoot = wd
-		}
+		return nil, fmt.Errorf("project root: %w", err)
 	}
 
 	// Check if .git/hooks directory exists
@@ -202,15 +196,9 @@ export GIT_HOOK=1
 // Sets up pattern-based automation triggers.
 func handleSetupPatternHooks(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	// Get project root
-	projectRoot, err := FindProjectRoot()
+	projectRoot, err := GetProjectRootWithFallback()
 	if err != nil {
-		// Fallback to PROJECT_ROOT env var or current directory
-		if envRoot := os.Getenv("PROJECT_ROOT"); envRoot != "" {
-			projectRoot = envRoot
-		} else {
-			wd, _ := os.Getwd()
-			projectRoot = wd
-		}
+		return nil, fmt.Errorf("project root: %w", err)
 	}
 
 	// Get optional parameters

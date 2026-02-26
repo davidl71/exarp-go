@@ -57,15 +57,9 @@ func handleAnalyzeAlignmentNative(ctx context.Context, params map[string]interfa
 // handleAlignmentTodo2 handles the "todo2" action for analyze_alignment.
 func handleAlignmentTodo2(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	// Get project root
-	projectRoot, err := FindProjectRoot()
+	projectRoot, err := GetProjectRootWithFallback()
 	if err != nil {
-		// Fallback to PROJECT_ROOT env var or current directory
-		if envRoot := os.Getenv("PROJECT_ROOT"); envRoot != "" {
-			projectRoot = envRoot
-		} else {
-			wd, _ := os.Getwd()
-			projectRoot = wd
-		}
+		return nil, fmt.Errorf("project root: %w", err)
 	}
 
 	// Load tasks via TaskStore
@@ -144,14 +138,9 @@ func handleAlignmentTodo2(ctx context.Context, params map[string]interface{}) ([
 
 // handleAlignmentPRD handles the "prd" action: task-to-persona alignment using PRD.md and persona keywords.
 func handleAlignmentPRD(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
-	projectRoot, err := FindProjectRoot()
+	projectRoot, err := GetProjectRootWithFallback()
 	if err != nil {
-		if envRoot := os.Getenv("PROJECT_ROOT"); envRoot != "" {
-			projectRoot = envRoot
-		} else {
-			wd, _ := os.Getwd()
-			projectRoot = wd
-		}
+		return nil, fmt.Errorf("project root: %w", err)
 	}
 
 	store := NewDefaultTaskStore(projectRoot)

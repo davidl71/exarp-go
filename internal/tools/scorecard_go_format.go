@@ -349,10 +349,9 @@ func GenerateGoScorecard(ctx context.Context, projectRoot string, opts *Scorecar
 	// Get current working directory if projectRoot is empty
 	if projectRoot == "" {
 		var err error
-
-		projectRoot, err = os.Getwd()
+		projectRoot, err = GetProjectRootWithFallback()
 		if err != nil {
-			return nil, fmt.Errorf("failed to get working directory: %w", err)
+			return nil, fmt.Errorf("failed to resolve project root: %w", err)
 		}
 	}
 
