@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/davidl71/exarp-go/internal/framework"
+	"github.com/spf13/cast"
 )
 
 // handleAddExternalToolHintsNative handles the add_external_tool_hints tool with native Go implementation.
@@ -21,28 +22,14 @@ func handleAddExternalToolHintsNative(ctx context.Context, params map[string]int
 	}
 
 	// Get optional parameters
-	dryRun := false
-	if dryRunRaw, ok := params["dry_run"].(bool); ok {
-		dryRun = dryRunRaw
-	}
+	dryRun := cast.ToBool(params["dry_run"])
 
 	minFileSize := 50
-
-	if minFileSizeRaw, ok := params["min_file_size"]; ok {
-		switch v := minFileSizeRaw.(type) {
-		case int:
-			minFileSize = v
-		case float64:
-			minFileSize = int(v)
-		}
+	if v := cast.ToInt(params["min_file_size"]); v > 0 {
+		minFileSize = v
 	}
 
-	outputPath := ""
-	if outputPathRaw, ok := params["output_path"].(string); ok && outputPathRaw != "" {
-		outputPath = outputPathRaw
-	} else {
-		outputPath = filepath.Join(projectRoot, "docs", "EXTERNAL_TOOL_HINTS_REPORT.md")
-	}
+	outputPath := DefaultReportOutputPath(projectRoot, "EXTERNAL_TOOL_HINTS_REPORT.md", params)
 
 	// Perform external tool hints analysis
 	results := processExternalToolHints(projectRoot, minFileSize, dryRun)

@@ -16,6 +16,7 @@ import (
 	"github.com/davidl71/exarp-go/internal/cache"
 	"github.com/davidl71/exarp-go/internal/framework"
 	"github.com/davidl71/exarp-go/proto"
+	"github.com/spf13/cast"
 )
 
 // Design limit for MCP tool count (monitored by tool_count_health / health action=tools).
@@ -30,9 +31,9 @@ const ExpectedToolCountBase = 37 // 37 base (38 with Apple FM on darwin/arm64/cg
 // Note: Some actions provide basic functionality; complex features may fall back to Python bridge.
 func handleHealthNative(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	// Get action (default: "server")
-	action := "server"
-	if actionRaw, ok := params["action"].(string); ok && actionRaw != "" {
-		action = actionRaw
+	action := strings.TrimSpace(cast.ToString(params["action"]))
+	if action == "" {
+		action = "server"
 	}
 
 	switch action {
@@ -175,9 +176,9 @@ func handleHealthGit(ctx context.Context, params map[string]interface{}) ([]fram
 	}
 
 	// Get parameters
-	agentName, _ := params["agent_name"].(string)
+	agentName := cast.ToString(params["agent_name"])
 
-	checkRemote, _ := params["check_remote"].(bool)
+	checkRemote := cast.ToBool(params["check_remote"])
 	if !checkRemote {
 		checkRemote = true // Default to true
 	}
@@ -309,8 +310,8 @@ func handleHealthDocs(ctx context.Context, params map[string]interface{}) ([]fra
 	}
 
 	// Get parameters
-	outputPath, _ := params["output_path"].(string)
-	createTasks, _ := params["create_tasks"].(bool)
+	outputPath := cast.ToString(params["output_path"])
+	createTasks := cast.ToBool(params["create_tasks"])
 
 	// Basic documentation checks
 	checks := map[string]interface{}{
@@ -395,10 +396,10 @@ func handleHealthDocs(ctx context.Context, params map[string]interface{}) ([]fra
 // Checks definition of done for tasks.
 func handleHealthDOD(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	// Get parameters
-	taskID, _ := params["task_id"].(string)
-	changedFiles, _ := params["changed_files"].(string)
-	autoCheck, _ := params["auto_check"].(bool)
-	outputPath, _ := params["output_path"].(string)
+	taskID := cast.ToString(params["task_id"])
+	changedFiles := cast.ToString(params["changed_files"])
+	autoCheck := cast.ToBool(params["auto_check"])
+	outputPath := cast.ToString(params["output_path"])
 
 	// Basic DOD checks
 	checks := map[string]interface{}{
@@ -469,9 +470,9 @@ func handleHealthDOD(ctx context.Context, params map[string]interface{}) ([]fram
 // Validates CI/CD workflows.
 func handleHealthCICD(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	// Get parameters
-	workflowPath, _ := params["workflow_path"].(string)
-	checkRunners, _ := params["check_runners"].(bool)
-	outputPath, _ := params["output_path"].(string)
+	workflowPath := cast.ToString(params["workflow_path"])
+	checkRunners := cast.ToBool(params["check_runners"])
+	outputPath := cast.ToString(params["output_path"])
 
 	// Get project root
 	projectRoot, err := GetProjectRootWithFallback()

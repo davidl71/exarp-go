@@ -9,6 +9,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/spf13/cast"
 )
 
 // handleGenerateConfigNative handles the generate_config tool with native Go implementation.
@@ -18,9 +20,9 @@ func handleGenerateConfigNative(ctx context.Context, args json.RawMessage) ([]fr
 		return nil, fmt.Errorf("failed to parse arguments: %w", err)
 	}
 
-	action := "rules"
-	if a, ok := params["action"].(string); ok && a != "" {
-		action = a
+	action := strings.TrimSpace(cast.ToString(params["action"]))
+	if action == "" {
+		action = "rules"
 	}
 
 	// Get project root - try multiple methods
@@ -43,9 +45,9 @@ func handleGenerateConfigNative(ctx context.Context, args json.RawMessage) ([]fr
 
 // handleGenerateRules handles the "rules" action for generate_config.
 func handleGenerateRules(ctx context.Context, params map[string]interface{}, projectRoot string) ([]framework.TextContent, error) {
-	rulesStr, _ := params["rules"].(string)
-	overwrite, _ := params["overwrite"].(bool)
-	analyzeOnly, _ := params["analyze_only"].(bool)
+	rulesStr := cast.ToString(params["rules"])
+	overwrite := cast.ToBool(params["overwrite"])
+	analyzeOnly := cast.ToBool(params["analyze_only"])
 
 	generator := NewCursorRulesGenerator(projectRoot)
 
@@ -85,16 +87,16 @@ func handleGenerateRules(ctx context.Context, params map[string]interface{}, pro
 // handleGenerateIgnore handles the "ignore" action for generate_config.
 func handleGenerateIgnore(ctx context.Context, params map[string]interface{}, projectRoot string) ([]framework.TextContent, error) {
 	includeIndexing := true
-	if val, ok := params["include_indexing"].(bool); ok {
-		includeIndexing = val
+	if _, has := params["include_indexing"]; has {
+		includeIndexing = cast.ToBool(params["include_indexing"])
 	}
 
 	analyzeProject := true
-	if val, ok := params["analyze_project"].(bool); ok {
-		analyzeProject = val
+	if _, has := params["analyze_project"]; has {
+		analyzeProject = cast.ToBool(params["analyze_project"])
 	}
 
-	dryRun, _ := params["dry_run"].(bool)
+	dryRun := cast.ToBool(params["dry_run"])
 
 	generator := NewCursorIgnoreGenerator(projectRoot)
 	results := generator.GenerateIgnore(includeIndexing, analyzeProject, dryRun)
@@ -107,9 +109,9 @@ func handleGenerateIgnore(ctx context.Context, params map[string]interface{}, pr
 
 // handleSimplifyRules handles the "simplify" action for generate_config.
 func handleSimplifyRules(ctx context.Context, params map[string]interface{}, projectRoot string) ([]framework.TextContent, error) {
-	ruleFilesStr, _ := params["rule_files"].(string)
-	dryRun, _ := params["dry_run"].(bool)
-	outputDir, _ := params["output_dir"].(string)
+	ruleFilesStr := cast.ToString(params["rule_files"])
+	dryRun := cast.ToBool(params["dry_run"])
+	outputDir := cast.ToString(params["output_dir"])
 
 	var ruleFiles []string
 

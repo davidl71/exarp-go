@@ -13,6 +13,7 @@ import (
 	"github.com/davidl71/exarp-go/internal/cache"
 	"github.com/davidl71/exarp-go/internal/config"
 	"github.com/davidl71/exarp-go/internal/framework"
+	"github.com/spf13/cast"
 )
 
 // WorkflowModeState represents the persisted workflow mode state.
@@ -291,7 +292,7 @@ func (m *WorkflowModeManager) suggestMode(text string) map[string]interface{} {
 
 // handleWorkflowModeNative handles the workflow_mode tool with native Go implementation.
 func handleWorkflowModeNative(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
-	action, _ := params["action"].(string)
+	action := cast.ToString(params["action"])
 	if action == "" {
 		action = "focus"
 	}
@@ -317,10 +318,10 @@ func handleWorkflowModeNative(ctx context.Context, params map[string]interface{}
 
 // handleWorkflowModeFocus handles the focus action.
 func handleWorkflowModeFocus(ctx context.Context, params map[string]interface{}, manager *WorkflowModeManager) ([]framework.TextContent, error) {
-	statusOnly, _ := params["status"].(bool)
-	mode, _ := params["mode"].(string)
-	enableGroup, _ := params["enable_group"].(string)
-	disableGroup, _ := params["disable_group"].(string)
+	statusOnly := cast.ToBool(params["status"])
+	mode := cast.ToString(params["mode"])
+	enableGroup := cast.ToString(params["enable_group"])
+	disableGroup := cast.ToString(params["disable_group"])
 
 	// Status only
 	if statusOnly || (mode == "" && enableGroup == "" && disableGroup == "") {
@@ -403,8 +404,8 @@ func handleWorkflowModeFocus(ctx context.Context, params map[string]interface{},
 
 // handleWorkflowModeSuggest handles the suggest action.
 func handleWorkflowModeSuggest(ctx context.Context, params map[string]interface{}, manager *WorkflowModeManager) ([]framework.TextContent, error) {
-	text, _ := params["text"].(string)
-	autoSwitch, _ := params["auto_switch"].(bool)
+	text := cast.ToString(params["text"])
+	autoSwitch := cast.ToBool(params["auto_switch"])
 
 	suggestion := manager.suggestMode(text)
 

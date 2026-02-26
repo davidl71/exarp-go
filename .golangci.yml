@@ -54,7 +54,6 @@ linters:
     - ineffassign       # Detect unused assignments
     - staticcheck       # Static analysis (includes deadcode)
     - unused            # Unused code detection
-    - deadcode         # Dead code detection
     - misspell          # Spelling checker
     - unconvert         # Remove unnecessary conversions
     - unparam           # Unused parameters
