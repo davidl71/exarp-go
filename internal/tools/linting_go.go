@@ -625,6 +625,10 @@ func detectLinter(path string) string {
 		return "ruff"
 	case ".rs":
 		return "clippy"
+	case ".php":
+		return "phpcs"
+	case ".tex", ".ltx", ".sty", ".cls":
+		return "chktex"
 	default:
 		return "go-vet" // Default to Go linter
 	}

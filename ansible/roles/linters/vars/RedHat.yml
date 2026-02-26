@@ -6,3 +6,5 @@ _nodejs_pkg: nodejs
 _npm_global_bin: /usr/local/bin
 _cppcheck_pkg: cppcheck
 _clang_tidy_pkg: clang-tools-extra
+_chktex_pkg: chktex
+_lacheck_pkg: lacheck

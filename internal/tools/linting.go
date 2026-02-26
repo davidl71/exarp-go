@@ -101,7 +101,13 @@ func runLinter(ctx context.Context, linter, path string, fix bool) (*LintResult,
 		return runCargoClippy(ctx, targetPath, fix)
 	case "rustfmt":
 		return runRustfmt(ctx, targetPath, fix)
+	// PHP
+	case "phpcs", "phpstan", "php-cs-fixer", "phpcbf", "php":
+		return runPHPCS(ctx, targetPath, fix)
+	// LaTeX
+	case "chktex", "lacheck", "latex", "tex":
+		return runChktex(ctx, targetPath, fix)
 	default:
-		return nil, fmt.Errorf("unsupported linter: %s (supported: golangci-lint, go-vet, gofmt, goimports, deadcode, markdownlint, shellcheck, clang-tidy, cppcheck, clang-format, ruff, flake8, pylint, clippy, rustfmt)", linter)
+		return nil, fmt.Errorf("unsupported linter: %s (supported: golangci-lint, go-vet, gofmt, goimports, deadcode, markdownlint, shellcheck, clang-tidy, cppcheck, clang-format, ruff, flake8, pylint, clippy, rustfmt, phpcs, phpstan, php-cs-fixer, chktex, lacheck)", linter)
 	}
 }
