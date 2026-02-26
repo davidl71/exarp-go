@@ -14,7 +14,6 @@ import (
 	"github.com/davidl71/exarp-go/internal/config"
 	"github.com/davidl71/exarp-go/internal/framework"
 	"github.com/davidl71/exarp-go/proto"
-	"github.com/davidl71/mcp-go-core/pkg/mcp/response"
 )
 
 // handleTestingRun handles the run action for testing tool.
@@ -50,7 +49,7 @@ func handleTestingRun(ctx context.Context, params map[string]interface{}) ([]fra
 
 	resp := &proto.TestingResponse{Success: true, Action: "run", ResultJson: result}
 
-	return response.FormatResult(TestingResponseToMap(resp), "")
+	return framework.FormatResult(TestingResponseToMap(resp), "")
 }
 
 // handleTestingCoverage handles the coverage action for testing tool.
@@ -87,7 +86,7 @@ func handleTestingCoverage(ctx context.Context, params map[string]interface{}) (
 
 	resp := &proto.TestingResponse{Success: true, Action: "coverage", ResultJson: result}
 
-	return response.FormatResult(TestingResponseToMap(resp), "")
+	return framework.FormatResult(TestingResponseToMap(resp), "")
 }
 
 // handleTestingValidate handles the validate action for testing tool.
@@ -118,7 +117,7 @@ func handleTestingValidate(ctx context.Context, params map[string]interface{}) (
 
 	resp := &proto.TestingResponse{Success: true, Action: "validate", ResultJson: result}
 
-	return response.FormatResult(TestingResponseToMap(resp), "")
+	return framework.FormatResult(TestingResponseToMap(resp), "")
 }
 
 // runGoTests runs Go tests and returns formatted results.

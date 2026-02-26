@@ -14,7 +14,6 @@ import (
 	"github.com/davidl71/exarp-go/internal/database"
 	"github.com/davidl71/exarp-go/internal/framework"
 	"github.com/davidl71/exarp-go/internal/models"
-	"github.com/davidl71/mcp-go-core/pkg/mcp/response"
 )
 
 // prdPersona holds persona metadata for PRD alignment (matches Python prd_generator.PERSONAS).
@@ -140,7 +139,7 @@ func handleAlignmentTodo2(ctx context.Context, params map[string]interface{}) ([
 		"status":                  "success",
 	}
 
-	return response.FormatResult(responseData, "")
+	return framework.FormatResult(responseData, "")
 }
 
 // handleAlignmentPRD handles the "prd" action: task-to-persona alignment using PRD.md and persona keywords.
@@ -258,7 +257,7 @@ func handleAlignmentPRD(ctx context.Context, params map[string]interface{}) ([]f
 		"timestamp": time.Now().Unix(),
 	}
 
-	return response.FormatResult(envelope, "")
+	return framework.FormatResult(envelope, "")
 }
 
 func fileExists(path string) bool {

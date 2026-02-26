@@ -6,7 +6,6 @@ import (
 	"os"
 
 	"github.com/davidl71/exarp-go/internal/framework"
-	"github.com/davidl71/mcp-go-core/pkg/mcp/response"
 )
 
 // handleServerStatusNative handles the server_status tool with native Go implementation
@@ -26,5 +25,5 @@ func handleServerStatusNative(ctx context.Context, args json.RawMessage) ([]fram
 		"project_root":    projectRoot,
 	}
 
-	return response.FormatResult(status, "")
+	return framework.FormatResult(status, "")
 }

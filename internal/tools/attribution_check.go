@@ -13,7 +13,6 @@ import (
 	"github.com/davidl71/exarp-go/internal/database"
 	"github.com/davidl71/exarp-go/internal/framework"
 	"github.com/davidl71/exarp-go/internal/models"
-	"github.com/davidl71/mcp-go-core/pkg/mcp/response"
 )
 
 // handleCheckAttributionNative handles the check_attribution tool with native Go implementation.
@@ -81,7 +80,7 @@ func handleCheckAttributionNative(ctx context.Context, params map[string]interfa
 		"status":              "success",
 	}
 
-	return response.FormatResult(responseData, "")
+	return framework.FormatResult(responseData, "")
 }
 
 // AttributionResults represents the results of attribution checking.

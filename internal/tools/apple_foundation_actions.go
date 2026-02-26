@@ -7,7 +7,6 @@ import (
 	fm "github.com/blacktop/go-foundationmodels"
 	"github.com/davidl71/exarp-go/internal/framework"
 	"github.com/davidl71/exarp-go/internal/platform"
-	"github.com/davidl71/mcp-go-core/pkg/mcp/response"
 )
 
 // handleStatusAction handles the "status" action (no prompt required).
@@ -27,7 +26,7 @@ func handleStatusAction() ([]framework.TextContent, error) {
 		status["model_available"] = available
 	}
 
-	return response.FormatResult(status, "")
+	return framework.FormatResult(status, "")
 }
 
 // handleHardwareAction handles the "hardware" action (no prompt required).
@@ -46,7 +45,7 @@ func handleHardwareAction() ([]framework.TextContent, error) {
 		hardware["cgo_enabled"] = true
 	}
 
-	return response.FormatResult(hardware, "")
+	return framework.FormatResult(hardware, "")
 }
 
 // handleModelsAction handles the "models" action (no prompt required).
@@ -65,5 +64,5 @@ func handleModelsAction() ([]framework.TextContent, error) {
 		models["note"] = "Use CheckModelAvailability() to check model availability"
 	}
 
-	return response.FormatResult(models, "")
+	return framework.FormatResult(models, "")
 }

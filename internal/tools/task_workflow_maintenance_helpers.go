@@ -8,7 +8,6 @@ import (
 	"github.com/davidl71/exarp-go/internal/database"
 	"github.com/davidl71/exarp-go/internal/framework"
 	"github.com/davidl71/exarp-go/internal/models"
-	"github.com/davidl71/mcp-go-core/pkg/mcp/response"
 	"github.com/spf13/cast"
 	"os"
 	"strings"
@@ -62,7 +61,7 @@ func handleTaskWorkflowFixEmptyDescriptions(ctx context.Context, params map[stri
 				"task_ids":      ids,
 			}
 
-			return response.FormatResult(result, "")
+			return framework.FormatResult(result, "")
 		}
 
 		updatedIDs := []string{}
@@ -96,7 +95,7 @@ func handleTaskWorkflowFixEmptyDescriptions(ctx context.Context, params map[stri
 
 		outputPath := cast.ToString(params["output_path"])
 
-		return response.FormatResult(result, outputPath)
+		return framework.FormatResult(result, outputPath)
 	}
 
 	store, err := getTaskStore(ctx)
@@ -126,7 +125,7 @@ func handleTaskWorkflowFixEmptyDescriptions(ctx context.Context, params map[stri
 			"task_ids":      ids,
 		}
 
-		return response.FormatResult(result, "")
+		return framework.FormatResult(result, "")
 	}
 
 	var updated int
@@ -154,7 +153,7 @@ func handleTaskWorkflowFixEmptyDescriptions(ctx context.Context, params map[stri
 	}
 	outputPath := cast.ToString(params["output_path"])
 
-	return response.FormatResult(result, outputPath)
+	return framework.FormatResult(result, outputPath)
 }
 
 // ─── buildClarityRecommendations ────────────────────────────────────────────
@@ -373,7 +372,7 @@ func handleTaskWorkflowLinkPlanning(ctx context.Context, params map[string]inter
 		result["sync_error"] = linkSyncErr.Error()
 	}
 
-	return response.FormatResult(result, "")
+	return framework.FormatResult(result, "")
 }
 
 // handleTaskWorkflowCreate handles create action for creating new tasks.

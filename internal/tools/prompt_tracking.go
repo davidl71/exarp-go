@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/davidl71/exarp-go/internal/framework"
-	"github.com/davidl71/mcp-go-core/pkg/mcp/response"
 )
 
 // PromptEntry represents a single prompt log entry.
@@ -154,7 +153,7 @@ func handlePromptTrackingLog(ctx context.Context, params map[string]interface{})
 		"timestamp": time.Now().Unix(),
 	}
 
-	return response.FormatResult(result, "")
+	return framework.FormatResult(result, "")
 }
 
 // handlePromptTrackingAnalyze handles the analyze action.
@@ -185,7 +184,7 @@ func handlePromptTrackingAnalyze(ctx context.Context, params map[string]interfac
 			"recommendations": []string{"No prompt history found. Use log action to track prompts."},
 		}
 
-		return response.FormatResult(result, "")
+		return framework.FormatResult(result, "")
 	}
 
 	// Load all log files
@@ -321,5 +320,5 @@ func handlePromptTrackingAnalyze(ctx context.Context, params map[string]interfac
 		"timestamp": time.Now().Unix(),
 	}
 
-	return response.FormatResult(result, "")
+	return framework.FormatResult(result, "")
 }

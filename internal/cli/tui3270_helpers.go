@@ -1,16 +1,238 @@
-// tui3270_helpers.go — Command handling, help screen, and utility transactions for the 3270 TUI.
-// Extracted from tui3270.go. Handles ISPF-style command parsing, help overlay, child agent results.
+// tui3270_helpers.go — Command handling, help screen, utility transactions, and display helpers for the 3270 TUI.
+// Extracted from tui3270.go and tui3270_transactions.go.
+// Handles ISPF-style command parsing, help overlay, child agent results, color helpers, and layout constants.
 package cli
 
 import (
 	"context"
 	"fmt"
 	"net"
+	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/davidl71/exarp-go/internal/database"
 	"github.com/racingmars/go3270"
 )
+
+var scorecardScoreRe = regexp.MustCompile(`(\d+)\s*/\s*(\d+)`)
+var scorecardPctRe = regexp.MustCompile(`(\d+)%`)
+
+// 3270 task list column layout (fixed-width, aligned like mainframe job list).
+const (
+	t3270ColS        = 2
+	t3270ColID       = 5
+	t3270ColStatus   = 24
+	t3270ColPriority = 37
+	t3270ColContent  = 48
+	t3270WidS        = 2
+	t3270WidID       = 18
+	t3270WidStatus   = 12
+	t3270WidPriority = 10
+	t3270WidContent  = 32
+
+	t3270HeaderRow    = 4  // first data row in task list
+	t3270StatusBarRow = 22 // status bar row
+	t3270PFKeyRow     = 23 // PF key help row
+)
+
+// t3270MaxVisible returns the number of visible task rows based on terminal dimensions.
+// Falls back to 18 (default 24-row terminal minus header/status/PF key rows).
+func t3270MaxVisible(devInfo go3270.DevInfo) int {
+	rows, _ := devInfo.AltDimensions()
+	if rows < 24 {
+		rows = 24
+	}
+	visible := rows - 6 // header(3) + status(1) + pfkeys(1) + margin(1)
+	if visible < 10 {
+		visible = 10
+	}
+	return visible
+}
+
+// t3270ContentMaxRow returns the last usable content row before the status bar.
+func t3270ContentMaxRow(devInfo go3270.DevInfo) int {
+	rows, _ := devInfo.AltDimensions()
+	if rows < 24 {
+		rows = 24
+	}
+	return rows - 4 // Reserve status bar, PF key row, and margin
+}
+
+// t3270StatusRow returns the status bar row based on terminal dimensions.
+func t3270StatusRow(devInfo go3270.DevInfo) int {
+	rows, _ := devInfo.AltDimensions()
+	if rows < 24 {
+		rows = 24
+	}
+	return rows - 2
+}
+
+// t3270PFRow returns the PF key help row based on terminal dimensions.
+func t3270PFRow(devInfo go3270.DevInfo) int {
+	rows, _ := devInfo.AltDimensions()
+	if rows < 24 {
+		rows = 24
+	}
+	return rows - 1
+}
+
+// showLoadingOverlay displays a "Loading..." message on the status bar without clearing the screen.
+func showLoadingOverlay(conn net.Conn, devInfo go3270.DevInfo, message string) {
+	row := t3270StatusRow(devInfo)
+	loadingScreen := go3270.Screen{
+		{Row: row, Col: 2, Content: t3270Pad(message, 40), Color: go3270.Yellow, Intense: true},
+	}
+	_, _ = go3270.ShowScreenOpts(loadingScreen, nil, conn, go3270.ScreenOpts{
+		NoClear:    true,
+		NoResponse: true,
+		Codepage:   devInfo.Codepage(),
+	})
+}
+
+// statusColor returns the go3270 color for a task status.
+func statusColor(status string) go3270.Color {
+	switch status {
+	case "Done":
+		return go3270.Green
+	case "In Progress":
+		return go3270.Yellow
+	case "Todo":
+		return go3270.Turquoise
+	case "Review":
+		return go3270.Pink
+	default:
+		return go3270.DefaultColor
+	}
+}
+
+// priorityColor returns the go3270 color for a task priority.
+func priorityColor(priority string) go3270.Color {
+	switch strings.ToLower(priority) {
+	case "high":
+		return go3270.Red
+	case "medium":
+		return go3270.Yellow
+	case "low":
+		return go3270.Green
+	default:
+		return go3270.DefaultColor
+	}
+}
+
+// scorecardLineColor returns a go3270 color based on score patterns in a scorecard line.
+func scorecardLineColor(line string) go3270.Color {
+	upper := strings.ToUpper(line)
+
+	// Section headers
+	if strings.HasPrefix(line, "===") {
+		return go3270.Green
+	}
+
+	// Explicit pass/fail indicators
+	if strings.Contains(upper, "PASS") || strings.Contains(line, "✓") || strings.Contains(line, "✅") {
+		return go3270.Green
+	}
+	if strings.Contains(upper, "FAIL") || strings.Contains(line, "✗") || strings.Contains(line, "❌") {
+		return go3270.Red
+	}
+
+	// Score pattern: "N/M" (e.g. "85/100")
+	if m := scorecardScoreRe.FindStringSubmatch(line); len(m) == 3 {
+		num, _ := strconv.Atoi(m[1])
+		den, _ := strconv.Atoi(m[2])
+		if den > 0 {
+			pct := num * 100 / den
+			if pct >= 80 {
+				return go3270.Green
+			}
+			if pct >= 50 {
+				return go3270.Yellow
+			}
+			return go3270.Red
+		}
+	}
+
+	// Percentage pattern: "85%"
+	if m := scorecardPctRe.FindStringSubmatch(line); len(m) == 2 {
+		pct, _ := strconv.Atoi(m[1])
+		if pct >= 80 {
+			return go3270.Green
+		}
+		if pct >= 50 {
+			return go3270.Yellow
+		}
+		return go3270.Red
+	}
+
+	return go3270.DefaultColor
+}
+
+// statusFilters is the ordered list of status values cycled by PF9.
+var statusFilters = []string{"Todo", "In Progress", "Review", "Done", ""}
+
+// nextStatusFilter returns the next status in the cycle after current.
+func nextStatusFilter(current string) string {
+	for i, s := range statusFilters {
+		if s == current {
+			return statusFilters[(i+1)%len(statusFilters)]
+		}
+	}
+	return statusFilters[0]
+}
+
+// updateTaskStatus updates the cursor task's status via MCP and returns to the task list.
+func (state *tui3270State) updateTaskStatus(newStatus string) (go3270.Tx, any, error) {
+	if state.cursor >= len(state.tasks) {
+		return state.taskListTransaction, state, nil
+	}
+	task := state.tasks[state.cursor]
+	ctx := context.Background()
+	if err := updateTaskFieldsViaMCP(ctx, state.server, task.ID, newStatus, task.Priority, task.LongDescription); err != nil {
+		logError(ctx, "Error updating task status", "error", err, "task_id", task.ID)
+	}
+	return state.taskListTransaction, state, nil
+}
+
+// updateTaskStatusForSelected updates the selectedTask's status via MCP and returns to the task list.
+func (state *tui3270State) updateTaskStatusForSelected(newStatus string) (go3270.Tx, any, error) {
+	if state.selectedTask == nil {
+		return state.taskListTransaction, state, nil
+	}
+	ctx := context.Background()
+	if err := updateTaskFieldsViaMCP(ctx, state.server, state.selectedTask.ID, newStatus, state.selectedTask.Priority, state.selectedTask.LongDescription); err != nil {
+		logError(ctx, "Error updating task status", "error", err, "task_id", state.selectedTask.ID)
+	}
+	return state.taskListTransaction, state, nil
+}
+
+func t3270Pad(s string, width int) string {
+	if len(s) >= width {
+		if width <= 3 {
+			return s[:width]
+		}
+
+		return s[:width-3] + "..."
+	}
+
+	return s + strings.Repeat(" ", width-len(s))
+}
+
+// validStatus returns a Validator that accepts known task statuses.
+func validStatus() go3270.Validator {
+	valid := map[string]bool{"Todo": true, "In Progress": true, "Review": true, "Done": true}
+	return func(input string) bool {
+		return valid[strings.TrimSpace(input)]
+	}
+}
+
+// validPriority returns a Validator that accepts known task priorities.
+func validPriority() go3270.Validator {
+	valid := map[string]bool{"low": true, "medium": true, "high": true, "": true}
+	return func(input string) bool {
+		return valid[strings.ToLower(strings.TrimSpace(input))]
+	}
+}
 
 // loadTasksForStatus loads tasks by status via MCP adapter.
 // When status is empty, returns open tasks only (Todo + In Progress).

@@ -7,8 +7,6 @@ import (
 	"fmt"
 	"github.com/davidl71/exarp-go/internal/framework"
 	"github.com/davidl71/exarp-go/proto"
-	"github.com/davidl71/mcp-go-core/pkg/mcp/request"
-	"github.com/davidl71/mcp-go-core/pkg/mcp/response"
 	"github.com/spf13/cast"
 	"strings"
 )
@@ -25,7 +23,7 @@ func handleCursorCloudAgent(ctx context.Context, args json.RawMessage) ([]framew
 	if params == nil {
 		params = make(map[string]interface{})
 	}
-	request.ApplyDefaults(params, map[string]interface{}{"action": "list"})
+	framework.ApplyDefaults(params, map[string]interface{}{"action": "list"})
 	return handleCursorCloudAgentNative(ctx, params)
 }
 
@@ -43,7 +41,7 @@ func handleAutomation(ctx context.Context, args json.RawMessage) ([]framework.Te
 	// Convert protobuf request to params map if needed
 	if req != nil {
 		params = AutomationRequestToParams(req)
-		request.ApplyDefaults(params, map[string]interface{}{
+		framework.ApplyDefaults(params, map[string]interface{}{
 			"action": "daily",
 		})
 	}
@@ -64,7 +62,7 @@ func handleToolCatalog(ctx context.Context, args json.RawMessage) ([]framework.T
 	// Convert protobuf request to params map if needed
 	if req != nil {
 		params = ToolCatalogRequestToParams(req)
-		request.ApplyDefaults(params, map[string]interface{}{
+		framework.ApplyDefaults(params, map[string]interface{}{
 			"action": "help",
 		})
 	}
@@ -85,7 +83,7 @@ func handleWorkflowMode(ctx context.Context, args json.RawMessage) ([]framework.
 	// Convert protobuf request to params map if needed
 	if req != nil {
 		params = WorkflowModeRequestToParams(req)
-		request.ApplyDefaults(params, map[string]interface{}{
+		framework.ApplyDefaults(params, map[string]interface{}{
 			"action": "focus",
 		})
 	}
@@ -105,7 +103,7 @@ func handleLint(ctx context.Context, args json.RawMessage) ([]framework.TextCont
 	// Convert protobuf request to params map if needed
 	if req != nil {
 		params = LintRequestToParams(req)
-		request.ApplyDefaults(params, map[string]interface{}{
+		framework.ApplyDefaults(params, map[string]interface{}{
 			"action": "run",
 			"linter": "golangci-lint",
 		})
@@ -150,12 +148,12 @@ func handleLint(ctx context.Context, args json.RawMessage) ([]framework.TextCont
 			return nil, fmt.Errorf("lint failed: %w", err)
 		}
 
-		m, err := response.ConvertToMap(result)
+		m, err := framework.ConvertToMap(result)
 		if err != nil {
 			return nil, fmt.Errorf("failed to convert lint result: %w", err)
 		}
 
-		return response.FormatResult(m, "")
+		return framework.FormatResult(m, "")
 	}
 
 	// Unsupported linter: native only (no bridge fallback)
@@ -199,7 +197,7 @@ func handleEstimation(ctx context.Context, args json.RawMessage) ([]framework.Te
 	// Convert protobuf request to params map if needed
 	if req != nil {
 		params = EstimationRequestToParams(req)
-		request.ApplyDefaults(params, map[string]interface{}{
+		framework.ApplyDefaults(params, map[string]interface{}{
 			"action":   "estimate",
 			"priority": "medium",
 		})
@@ -217,7 +215,7 @@ func handleEstimation(ctx context.Context, args json.RawMessage) ([]framework.Te
 
 	resp := &proto.EstimationResult{Action: action, ResultJson: result}
 
-	return response.FormatResult(EstimationResultToMap(resp), "")
+	return framework.FormatResult(EstimationResultToMap(resp), "")
 }
 
 // handleGitTools handles the git_tools tool using native Go implementation.
@@ -283,7 +281,7 @@ func handleGitTools(ctx context.Context, args json.RawMessage) ([]framework.Text
 
 	resp := &proto.GitToolsResponse{Success: true, Action: action, ResultJson: result}
 
-	return response.FormatResult(GitToolsResponseToMap(resp), "")
+	return framework.FormatResult(GitToolsResponseToMap(resp), "")
 }
 
 // handleSession handles the session tool
@@ -298,7 +296,7 @@ func handleSession(ctx context.Context, args json.RawMessage) ([]framework.TextC
 	// Convert protobuf request to params map if needed
 	if req != nil {
 		params = SessionRequestToParams(req)
-		request.ApplyDefaults(params, map[string]interface{}{
+		framework.ApplyDefaults(params, map[string]interface{}{
 			"action":    "prime",
 			"direction": "both",
 		})
@@ -335,7 +333,7 @@ func handleOllama(ctx context.Context, args json.RawMessage) ([]framework.TextCo
 
 	if req != nil {
 		params = OllamaRequestToParams(req)
-		request.ApplyDefaults(params, map[string]interface{}{
+		framework.ApplyDefaults(params, map[string]interface{}{
 			"model": "llama3.2",
 		})
 	}
@@ -357,7 +355,7 @@ func handleMlx(ctx context.Context, args json.RawMessage) ([]framework.TextConte
 
 	if req != nil {
 		params = MlxRequestToParams(req)
-		request.ApplyDefaults(params, map[string]interface{}{
+		framework.ApplyDefaults(params, map[string]interface{}{
 			"model": "mlx-community/Phi-3.5-mini-instruct-4bit",
 		})
 	}
@@ -385,7 +383,7 @@ func handleContext(ctx context.Context, args json.RawMessage) ([]framework.TextC
 	if req != nil {
 		params = ContextRequestToParams(req)
 		// Set defaults for protobuf request
-		request.ApplyDefaults(params, map[string]interface{}{
+		framework.ApplyDefaults(params, map[string]interface{}{
 			"action":     "summarize",
 			"level":      "brief",
 			"max_tokens": 512,
@@ -455,7 +453,7 @@ func handlePromptTracking(ctx context.Context, args json.RawMessage) ([]framewor
 	// Convert protobuf request to params map if needed
 	if req != nil {
 		params = PromptTrackingRequestToParams(req)
-		request.ApplyDefaults(params, map[string]interface{}{
+		framework.ApplyDefaults(params, map[string]interface{}{
 			"action":    "analyze",
 			"iteration": 1,
 			"days":      7,
@@ -478,7 +476,7 @@ func handleRecommend(ctx context.Context, args json.RawMessage) ([]framework.Tex
 	// Convert protobuf request to params map if needed
 	if req != nil {
 		params = RecommendRequestToParams(req)
-		request.ApplyDefaults(params, map[string]interface{}{
+		framework.ApplyDefaults(params, map[string]interface{}{
 			"action":       "model",
 			"optimize_for": "quality",
 		})

@@ -19,7 +19,6 @@ import (
 	"github.com/davidl71/exarp-go/internal/framework"
 	"github.com/davidl71/exarp-go/internal/models"
 	"github.com/davidl71/exarp-go/internal/utils"
-	mcpresponse "github.com/davidl71/mcp-go-core/pkg/mcp/response"
 	"github.com/spf13/cast"
 )
 
@@ -282,7 +281,7 @@ func handleSessionEnd(ctx context.Context, params map[string]interface{}, projec
 		}
 	}
 
-	return mcpresponse.FormatResult(result, "")
+	return framework.FormatResult(result, "")
 }
 
 // handleSessionResume resumes a session by reviewing latest handoff.
@@ -297,7 +296,7 @@ func handleSessionResume(ctx context.Context, params map[string]interface{}, pro
 			"message":     "No handoff notes found. Starting fresh session.",
 		}
 
-		return mcpresponse.FormatResult(result, "")
+		return framework.FormatResult(result, "")
 	}
 
 	// Load handoff history (using file cache)
@@ -322,7 +321,7 @@ func handleSessionResume(ctx context.Context, params map[string]interface{}, pro
 			"message":     "No handoff notes found. Starting fresh session.",
 		}
 
-		return mcpresponse.FormatResult(result, "")
+		return framework.FormatResult(result, "")
 	}
 
 	// Get latest handoff (last in array)
@@ -362,7 +361,7 @@ func handleSessionResume(ctx context.Context, params map[string]interface{}, pro
 		}
 	}
 
-	return mcpresponse.FormatResult(result, "")
+	return framework.FormatResult(result, "")
 }
 
 // handleSessionLatest gets the most recent handoff note.
@@ -377,7 +376,7 @@ func handleSessionLatest(params map[string]interface{}, projectRoot string) ([]f
 			"message":     "No handoff notes found",
 		}
 
-		return mcpresponse.FormatResult(result, "")
+		return framework.FormatResult(result, "")
 	}
 
 	fileCache := cache.GetGlobalFileCache()
@@ -401,7 +400,7 @@ func handleSessionLatest(params map[string]interface{}, projectRoot string) ([]f
 			"message":     "No handoff notes found",
 		}
 
-		return mcpresponse.FormatResult(result, "")
+		return framework.FormatResult(result, "")
 	}
 
 	latestHandoff := handoffs[len(handoffs)-1]
@@ -413,7 +412,7 @@ func handleSessionLatest(params map[string]interface{}, projectRoot string) ([]f
 		"handoff":     latestHandoff,
 	}
 
-	return mcpresponse.FormatResult(result, "")
+	return framework.FormatResult(result, "")
 }
 
 // handleSessionList lists recent handoff notes.
@@ -433,7 +432,7 @@ func handleSessionList(ctx context.Context, params map[string]interface{}, proje
 			"count":    0,
 		}
 
-		return mcpresponse.FormatResult(result, "")
+		return framework.FormatResult(result, "")
 	}
 
 	fileCache := cache.GetGlobalFileCache()
@@ -490,7 +489,7 @@ func handleSessionList(ctx context.Context, params map[string]interface{}, proje
 		"total":    len(handoffs),
 	}
 
-	return mcpresponse.FormatResult(result, "")
+	return framework.FormatResult(result, "")
 }
 
 // handleSessionSync syncs Todo2 state across agents.
@@ -570,11 +569,11 @@ func handleSessionSync(ctx context.Context, params map[string]interface{}, proje
 			result["success"] = false
 			result["error"] = err.Error()
 
-			return mcpresponse.FormatResult(result, "")
+			return framework.FormatResult(result, "")
 		}
 	}
 
-	return mcpresponse.FormatResult(result, "")
+	return framework.FormatResult(result, "")
 }
 
 // handleSessionExport exports handoff data to a JSON file for sharing between agents.
@@ -660,7 +659,7 @@ func handleSessionExport(ctx context.Context, params map[string]interface{}, pro
 		"message":     fmt.Sprintf("Handoff data exported to %s", outputPath),
 	}
 
-	return mcpresponse.FormatResult(result, "")
+	return framework.FormatResult(result, "")
 }
 
 // DecodePointInTimeSnapshot decodes a gzip+base64 point-in-time snapshot from a handoff.

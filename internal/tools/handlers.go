@@ -8,7 +8,6 @@ import (
 	"github.com/davidl71/exarp-go/internal/cache"
 	"github.com/davidl71/exarp-go/internal/framework"
 	"github.com/davidl71/exarp-go/internal/models"
-	"github.com/davidl71/mcp-go-core/pkg/mcp/request"
 	"github.com/spf13/cast"
 	"strconv"
 	"time"
@@ -26,7 +25,7 @@ func handleAnalyzeAlignment(ctx context.Context, args json.RawMessage) ([]framew
 	// Convert protobuf request to params map if needed
 	if req != nil {
 		params = AnalyzeAlignmentRequestToParams(req)
-		request.ApplyDefaults(params, map[string]interface{}{
+		framework.ApplyDefaults(params, map[string]interface{}{
 			"action": "todo2",
 		})
 	}
@@ -51,7 +50,7 @@ func handleGenerateConfig(ctx context.Context, args json.RawMessage) ([]framewor
 	// Convert protobuf request to params map if needed
 	if req != nil {
 		params = GenerateConfigRequestToParams(req)
-		request.ApplyDefaults(params, map[string]interface{}{
+		framework.ApplyDefaults(params, map[string]interface{}{
 			"action": "rules",
 		})
 	}
@@ -77,7 +76,7 @@ func handleHealth(ctx context.Context, args json.RawMessage) ([]framework.TextCo
 	// Convert protobuf request to params map if needed
 	if req != nil {
 		params = HealthRequestToParams(req)
-		request.ApplyDefaults(params, map[string]interface{}{
+		framework.ApplyDefaults(params, map[string]interface{}{
 			"action": "server",
 		})
 	}
@@ -98,7 +97,7 @@ func handleSetupHooks(ctx context.Context, args json.RawMessage) ([]framework.Te
 	// Convert protobuf request to params map if needed
 	if req != nil {
 		params = SetupHooksRequestToParams(req)
-		request.ApplyDefaults(params, map[string]interface{}{
+		framework.ApplyDefaults(params, map[string]interface{}{
 			"action": "git",
 		})
 	}
@@ -137,7 +136,7 @@ func handleAddExternalToolHints(ctx context.Context, args json.RawMessage) ([]fr
 	// Convert protobuf request to params map if needed
 	if req != nil {
 		params = AddExternalToolHintsRequestToParams(req)
-		request.ApplyDefaults(params, map[string]interface{}{
+		framework.ApplyDefaults(params, map[string]interface{}{
 			"min_file_size": 50,
 		})
 	}
@@ -173,7 +172,7 @@ func handleMemoryMaint(ctx context.Context, args json.RawMessage) ([]framework.T
 	// Convert protobuf request to params map if needed
 	if req != nil {
 		params = MemoryMaintRequestToParams(req)
-		request.ApplyDefaults(params, map[string]interface{}{
+		framework.ApplyDefaults(params, map[string]interface{}{
 			"action":         "health",
 			"merge_strategy": "newest",
 			"scope":          "week",
@@ -197,7 +196,7 @@ func handleReport(ctx context.Context, args json.RawMessage) ([]framework.TextCo
 	if req != nil {
 		params = ReportRequestToParams(req)
 		// Set defaults for protobuf request
-		request.ApplyDefaults(params, map[string]interface{}{
+		framework.ApplyDefaults(params, map[string]interface{}{
 			"action":        "overview",
 			"output_format": "text",
 		})
@@ -361,7 +360,7 @@ func handleSecurity(ctx context.Context, args json.RawMessage) ([]framework.Text
 	// Convert protobuf request to params map if needed
 	if req != nil {
 		params = SecurityRequestToParams(req)
-		request.ApplyDefaults(params, map[string]interface{}{
+		framework.ApplyDefaults(params, map[string]interface{}{
 			"action": "report",
 			"repo":   "davidl71/exarp-go",
 			"state":  "open",
@@ -412,7 +411,7 @@ func handleTaskAnalysis(ctx context.Context, args json.RawMessage) ([]framework.
 
 	if req != nil {
 		params = TaskAnalysisRequestToParams(req)
-		request.ApplyDefaults(params, map[string]interface{}{
+		framework.ApplyDefaults(params, map[string]interface{}{
 			"output_format": "text",
 		})
 	}
@@ -432,7 +431,7 @@ func handleTaskDiscovery(ctx context.Context, args json.RawMessage) ([]framework
 	// Convert protobuf request to params map if needed
 	if req != nil {
 		params = TaskDiscoveryRequestToParams(req)
-		request.ApplyDefaults(params, map[string]interface{}{
+		framework.ApplyDefaults(params, map[string]interface{}{
 			"action":       "all",
 			"json_pattern": "**/.todo2/state.todo2.json",
 		})
@@ -474,7 +473,7 @@ func handleTaskWorkflow(ctx context.Context, args json.RawMessage) ([]framework.
 	if req != nil {
 		params = TaskWorkflowRequestToParams(req)
 		// Set defaults for protobuf request
-		request.ApplyDefaults(params, map[string]interface{}{
+		framework.ApplyDefaults(params, map[string]interface{}{
 			"action":        "sync",
 			"sub_action":    "list",
 			"output_format": "text",
@@ -501,7 +500,7 @@ func handleTesting(ctx context.Context, args json.RawMessage) ([]framework.TextC
 	// Convert protobuf request to params map if needed
 	if req != nil {
 		params = TestingRequestToParams(req)
-		request.ApplyDefaults(params, map[string]interface{}{
+		framework.ApplyDefaults(params, map[string]interface{}{
 			"action":         "run",
 			"test_framework": "auto",
 			"format":         "html",

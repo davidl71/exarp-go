@@ -11,7 +11,6 @@ import (
 	"github.com/davidl71/exarp-go/internal/config"
 	"github.com/davidl71/exarp-go/internal/database"
 	"github.com/davidl71/exarp-go/internal/framework"
-	mcpresponse "github.com/davidl71/mcp-go-core/pkg/mcp/response"
 	"github.com/spf13/cast"
 )
 
@@ -107,7 +106,7 @@ func handleSessionPrompts(ctx context.Context, params map[string]interface{}) ([
 		},
 	}
 
-	return mcpresponse.FormatResult(result, "")
+	return framework.FormatResult(result, "")
 }
 
 // handleSessionAssignee handles the assignee action - manages task assignments.
@@ -212,7 +211,7 @@ func handleSessionAssigneeList(ctx context.Context, params map[string]interface{
 		},
 	}
 
-	return mcpresponse.FormatResult(result, "")
+	return framework.FormatResult(result, "")
 }
 
 // handleSessionAssigneeAssign assigns a task to an agent/human/host.
@@ -268,7 +267,7 @@ func handleSessionAssigneeAssign(ctx context.Context, params map[string]interfac
 				"locked_by": result.LockedBy,
 			}
 
-			return mcpresponse.FormatResult(response, "")
+			return framework.FormatResult(response, "")
 		}
 
 		return nil, fmt.Errorf("task assignment failed: %w", result.Error)
@@ -284,7 +283,7 @@ func handleSessionAssigneeAssign(ctx context.Context, params map[string]interfac
 		"dry_run":       dryRun,
 	}
 
-	return mcpresponse.FormatResult(response, "")
+	return framework.FormatResult(response, "")
 }
 
 // handleSessionAssigneeUnassign unassigns a task.
@@ -312,5 +311,5 @@ func handleSessionAssigneeUnassign(ctx context.Context, params map[string]interf
 		"unassigned_at": time.Now().Format(time.RFC3339),
 	}
 
-	return mcpresponse.FormatResult(response, "")
+	return framework.FormatResult(response, "")
 }

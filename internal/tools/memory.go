@@ -16,7 +16,6 @@ import (
 	"github.com/davidl71/exarp-go/internal/database"
 	"github.com/davidl71/exarp-go/internal/framework"
 	"github.com/davidl71/exarp-go/proto"
-	"github.com/davidl71/mcp-go-core/pkg/mcp/response"
 )
 
 // Memory represents a stored memory.
@@ -182,7 +181,7 @@ func handleMemorySave(ctx context.Context, params map[string]interface{}) ([]fra
 		resp.Memories = []*proto.Memory{pbMem}
 	}
 
-	return response.FormatResult(MemoryResponseToMap(resp), "")
+	return framework.FormatResult(MemoryResponseToMap(resp), "")
 }
 
 // handleMemoryRecall handles recall action.
@@ -269,7 +268,7 @@ func handleMemoryRecall(ctx context.Context, params map[string]interface{}) ([]f
 		IncludeRelated: includeRelated,
 	}
 
-	return response.FormatResult(MemoryResponseToMap(resp), "")
+	return framework.FormatResult(MemoryResponseToMap(resp), "")
 }
 
 // handleMemorySearch handles search action (basic text search in Go).
@@ -380,7 +379,7 @@ func handleMemorySearch(ctx context.Context, params map[string]interface{}) ([]f
 		TotalFound: int32(len(scored)),
 	}
 
-	return response.FormatResult(MemoryResponseToMap(resp), "")
+	return framework.FormatResult(MemoryResponseToMap(resp), "")
 }
 
 // handleMemoryList handles list action.
@@ -455,7 +454,7 @@ func handleMemoryList(ctx context.Context, params map[string]interface{}) ([]fra
 		AvailableCategories: memoryCategories(),
 	}
 
-	return response.FormatResult(MemoryResponseToMap(resp), "")
+	return framework.FormatResult(MemoryResponseToMap(resp), "")
 }
 
 // Helper functions

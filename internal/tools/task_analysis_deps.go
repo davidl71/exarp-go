@@ -9,7 +9,6 @@ import (
 	"github.com/davidl71/exarp-go/internal/config"
 	"github.com/davidl71/exarp-go/internal/framework"
 	"github.com/davidl71/exarp-go/proto"
-	"github.com/davidl71/mcp-go-core/pkg/mcp/response"
 	"os"
 	"path/filepath"
 	"sort"
@@ -135,7 +134,7 @@ func handleTaskAnalysisDependencies(ctx context.Context, params map[string]inter
 		resultJSON, _ := json.Marshal(result)
 		resp := &proto.TaskAnalysisResponse{Action: "dependencies", OutputPath: outputPath, ResultJson: string(resultJSON)}
 
-		return response.FormatResult(TaskAnalysisResponseToMap(resp), resp.GetOutputPath())
+		return framework.FormatResult(TaskAnalysisResponseToMap(resp), resp.GetOutputPath())
 	}
 
 	output := formatDependencyAnalysisText(result)
@@ -332,7 +331,7 @@ func handleTaskAnalysisExecutionPlan(ctx context.Context, params map[string]inte
 		resultJSON, _ := json.Marshal(result)
 		resp := &proto.TaskAnalysisResponse{Action: "execution_plan", OutputPath: outputPath, ResultJson: string(resultJSON)}
 
-		return response.FormatResult(TaskAnalysisResponseToMap(resp), resp.GetOutputPath())
+		return framework.FormatResult(TaskAnalysisResponseToMap(resp), resp.GetOutputPath())
 	}
 
 	output := formatExecutionPlanText(result)

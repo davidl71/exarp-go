@@ -10,7 +10,6 @@ import (
 	"github.com/davidl71/exarp-go/internal/framework"
 	"github.com/davidl71/exarp-go/internal/models"
 	"github.com/davidl71/exarp-go/proto"
-	"github.com/davidl71/mcp-go-core/pkg/mcp/response"
 	"github.com/spf13/cast"
 	"os"
 	"strings"
@@ -148,7 +147,7 @@ func handleTaskWorkflowSync(ctx context.Context, params map[string]interface{}) 
 
 	outputPath := cast.ToString(params["output_path"])
 
-	return response.FormatResult(result, outputPath)
+	return framework.FormatResult(result, outputPath)
 }
 
 // ─── validTaskStatuses ──────────────────────────────────────────────────────
@@ -261,7 +260,7 @@ func handleTaskWorkflowSanityCheck(ctx context.Context, params map[string]interf
 
 	outputPath := cast.ToString(params["output_path"])
 
-	return response.FormatResult(result, outputPath)
+	return framework.FormatResult(result, outputPath)
 }
 
 // ─── handleTaskWorkflowClarity ──────────────────────────────────────────────
@@ -357,7 +356,7 @@ func handleTaskWorkflowClarity(ctx context.Context, params map[string]interface{
 	// Handle text vs JSON formatting
 	if outputFormat == "json" {
 		// Use response.FormatResult for JSON format
-		return response.FormatResult(result, outputPath)
+		return framework.FormatResult(result, outputPath)
 	}
 
 	// Text format - use custom formatter
@@ -505,7 +504,7 @@ func handleTaskWorkflowCleanup(ctx context.Context, params map[string]interface{
 				"include_legacy":  includeLegacy,
 			}
 
-			return response.FormatResult(result, "")
+			return framework.FormatResult(result, "")
 		}
 
 		// Delete stale and legacy tasks from database
@@ -549,7 +548,7 @@ func handleTaskWorkflowCleanup(ctx context.Context, params map[string]interface{
 
 		outputPath := cast.ToString(params["output_path"])
 
-		return response.FormatResult(result, outputPath)
+		return framework.FormatResult(result, outputPath)
 	}
 
 	// Fallback to TaskStore
@@ -619,7 +618,7 @@ func handleTaskWorkflowCleanup(ctx context.Context, params map[string]interface{
 			"include_legacy":  includeLegacy,
 		}
 
-		return response.FormatResult(result, "")
+		return framework.FormatResult(result, "")
 	}
 
 	// Remove stale and legacy tasks
@@ -661,5 +660,5 @@ func handleTaskWorkflowCleanup(ctx context.Context, params map[string]interface{
 
 	outputPath := cast.ToString(params["output_path"])
 
-	return response.FormatResult(result, outputPath)
+	return framework.FormatResult(result, outputPath)
 }

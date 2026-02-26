@@ -10,7 +10,6 @@ import (
 	"strings"
 
 	"github.com/davidl71/exarp-go/internal/framework"
-	"github.com/davidl71/mcp-go-core/pkg/mcp/response"
 )
 
 // handleAddExternalToolHintsNative handles the add_external_tool_hints tool with native Go implementation.
@@ -85,7 +84,7 @@ func handleAddExternalToolHintsNative(ctx context.Context, params map[string]int
 		"hints_skipped_sample": results.HintsSkipped,
 	}
 
-	return response.FormatResult(responseData, "")
+	return framework.FormatResult(responseData, "")
 }
 
 // ExternalToolHintsResults represents the results of external tool hints processing.

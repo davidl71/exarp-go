@@ -10,7 +10,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/davidl71/exarp-go/internal/framework"
-	"github.com/davidl71/mcp-go-core/pkg/mcp/response"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -177,7 +176,7 @@ func handleTaskDiscoveryNative(ctx context.Context, params map[string]interface{
 		}
 	}
 
-	return response.FormatResult(result, "")
+	return framework.FormatResult(result, "")
 }
 
 // ─── scanComments ───────────────────────────────────────────────────────────

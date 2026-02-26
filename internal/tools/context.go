@@ -8,7 +8,6 @@ import (
 
 	"github.com/davidl71/exarp-go/internal/config"
 	"github.com/davidl71/exarp-go/internal/framework"
-	"github.com/davidl71/mcp-go-core/pkg/mcp/response"
 )
 
 // TOKENS_PER_CHAR is the estimated tokens per character (rough approximation).
@@ -122,7 +121,7 @@ func handleContextBudget(ctx context.Context, args json.RawMessage) ([]framework
 		"agent_hint":        agentHint,
 	}
 
-	return response.FormatResult(result, "")
+	return framework.FormatResult(result, "")
 }
 
 // estimateTokens estimates token count for text using provided ratio.
@@ -307,7 +306,7 @@ func handleContextBatchNative(ctx context.Context, params map[string]interface{}
 		}
 	}
 
-	return response.FormatResult(result, "")
+	return framework.FormatResult(result, "")
 }
 
 // createSimpleSummary creates a simple summary without Apple FM

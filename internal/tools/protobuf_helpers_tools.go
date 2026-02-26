@@ -4,8 +4,8 @@ package tools
 
 import (
 	"encoding/json"
+	"github.com/davidl71/exarp-go/internal/framework"
 	"github.com/davidl71/exarp-go/proto"
-	"github.com/davidl71/mcp-go-core/pkg/mcp/request"
 )
 
 // ─── Contents ───────────────────────────────────────────────────────────────
@@ -93,7 +93,7 @@ func TestingResponseToMap(resp *proto.TestingResponse) map[string]interface{} {
 // ─── ParseMemoryMaintRequest ────────────────────────────────────────────────
 // ParseMemoryMaintRequest parses a memory_maint request (protobuf or JSON).
 func ParseMemoryMaintRequest(args json.RawMessage) (*proto.MemoryMaintRequest, map[string]interface{}, error) {
-	req, params, err := request.ParseRequest(args, func() *proto.MemoryMaintRequest {
+	req, params, err := framework.ParseRequest(args, func() *proto.MemoryMaintRequest {
 		return &proto.MemoryMaintRequest{}
 	})
 	if err != nil {
@@ -115,7 +115,7 @@ func MemoryMaintRequestToParams(req *proto.MemoryMaintRequest) map[string]interf
 		return make(map[string]interface{})
 	}
 
-	params, err := request.ProtobufToParams(req, &request.ProtobufToParamsOptions{
+	params, err := framework.ProtobufToParams(req, &framework.ProtobufToParamsOptions{
 		FilterEmptyStrings:  true,
 		StringifyArrays:     false,
 		ConvertFloat64ToInt: true,
@@ -132,7 +132,7 @@ func MemoryMaintRequestToParams(req *proto.MemoryMaintRequest) map[string]interf
 // ─── ParseTaskAnalysisRequest ───────────────────────────────────────────────
 // ParseTaskAnalysisRequest parses a task_analysis request (protobuf or JSON).
 func ParseTaskAnalysisRequest(args json.RawMessage) (*proto.TaskAnalysisRequest, map[string]interface{}, error) {
-	req, params, err := request.ParseRequest(args, func() *proto.TaskAnalysisRequest {
+	req, params, err := framework.ParseRequest(args, func() *proto.TaskAnalysisRequest {
 		return &proto.TaskAnalysisRequest{}
 	})
 	if err != nil {
@@ -154,7 +154,7 @@ func TaskAnalysisRequestToParams(req *proto.TaskAnalysisRequest) map[string]inte
 		return make(map[string]interface{})
 	}
 
-	params, err := request.ProtobufToParams(req, &request.ProtobufToParamsOptions{
+	params, err := framework.ProtobufToParams(req, &framework.ProtobufToParamsOptions{
 		FilterEmptyStrings:  true,
 		StringifyArrays:     false,
 		ConvertFloat64ToInt: false, // Keep similarity_threshold as float64 (it's a threshold, not a count)
@@ -169,7 +169,7 @@ func TaskAnalysisRequestToParams(req *proto.TaskAnalysisRequest) map[string]inte
 // ─── ParseTaskDiscoveryRequest ──────────────────────────────────────────────
 // ParseTaskDiscoveryRequest parses a task_discovery request (protobuf or JSON).
 func ParseTaskDiscoveryRequest(args json.RawMessage) (*proto.TaskDiscoveryRequest, map[string]interface{}, error) {
-	req, params, err := request.ParseRequest(args, func() *proto.TaskDiscoveryRequest {
+	req, params, err := framework.ParseRequest(args, func() *proto.TaskDiscoveryRequest {
 		return &proto.TaskDiscoveryRequest{}
 	})
 	if err != nil {
@@ -191,7 +191,7 @@ func TaskDiscoveryRequestToParams(req *proto.TaskDiscoveryRequest) map[string]in
 		return make(map[string]interface{})
 	}
 
-	params, err := request.ProtobufToParams(req, &request.ProtobufToParamsOptions{
+	params, err := framework.ProtobufToParams(req, &framework.ProtobufToParamsOptions{
 		FilterEmptyStrings: true,
 		StringifyArrays:    false,
 	})
@@ -205,7 +205,7 @@ func TaskDiscoveryRequestToParams(req *proto.TaskDiscoveryRequest) map[string]in
 // ─── ParseOllamaRequest ─────────────────────────────────────────────────────
 // ParseOllamaRequest parses an ollama request (protobuf or JSON).
 func ParseOllamaRequest(args json.RawMessage) (*proto.OllamaRequest, map[string]interface{}, error) {
-	req, params, err := request.ParseRequest(args, func() *proto.OllamaRequest {
+	req, params, err := framework.ParseRequest(args, func() *proto.OllamaRequest {
 		return &proto.OllamaRequest{}
 	})
 	if err != nil {
@@ -227,7 +227,7 @@ func OllamaRequestToParams(req *proto.OllamaRequest) map[string]interface{} {
 		return make(map[string]interface{})
 	}
 
-	params, err := request.ProtobufToParams(req, &request.ProtobufToParamsOptions{
+	params, err := framework.ProtobufToParams(req, &framework.ProtobufToParamsOptions{
 		FilterEmptyStrings:  true,
 		StringifyArrays:     false,
 		ConvertFloat64ToInt: true,
@@ -243,7 +243,7 @@ func OllamaRequestToParams(req *proto.OllamaRequest) map[string]interface{} {
 // ─── ParseMlxRequest ────────────────────────────────────────────────────────
 // ParseMlxRequest parses an mlx request (protobuf or JSON).
 func ParseMlxRequest(args json.RawMessage) (*proto.MLXRequest, map[string]interface{}, error) {
-	req, params, err := request.ParseRequest(args, func() *proto.MLXRequest {
+	req, params, err := framework.ParseRequest(args, func() *proto.MLXRequest {
 		return &proto.MLXRequest{}
 	})
 	if err != nil {
@@ -265,7 +265,7 @@ func MlxRequestToParams(req *proto.MLXRequest) map[string]interface{} {
 		return make(map[string]interface{})
 	}
 
-	params, err := request.ProtobufToParams(req, &request.ProtobufToParamsOptions{
+	params, err := framework.ProtobufToParams(req, &framework.ProtobufToParamsOptions{
 		FilterEmptyStrings:  true,
 		StringifyArrays:     false,
 		ConvertFloat64ToInt: true,
@@ -282,7 +282,7 @@ func MlxRequestToParams(req *proto.MLXRequest) map[string]interface{} {
 // ─── ParsePromptTrackingRequest ─────────────────────────────────────────────
 // ParsePromptTrackingRequest parses a prompt_tracking request (protobuf or JSON).
 func ParsePromptTrackingRequest(args json.RawMessage) (*proto.PromptTrackingRequest, map[string]interface{}, error) {
-	req, params, err := request.ParseRequest(args, func() *proto.PromptTrackingRequest {
+	req, params, err := framework.ParseRequest(args, func() *proto.PromptTrackingRequest {
 		return &proto.PromptTrackingRequest{}
 	})
 	if err != nil {
@@ -304,7 +304,7 @@ func PromptTrackingRequestToParams(req *proto.PromptTrackingRequest) map[string]
 		return make(map[string]interface{})
 	}
 
-	params, err := request.ProtobufToParams(req, &request.ProtobufToParamsOptions{
+	params, err := framework.ProtobufToParams(req, &framework.ProtobufToParamsOptions{
 		FilterEmptyStrings:  true,
 		StringifyArrays:     false,
 		ConvertFloat64ToInt: true,
@@ -320,7 +320,7 @@ func PromptTrackingRequestToParams(req *proto.PromptTrackingRequest) map[string]
 // ─── ParseRecommendRequest ──────────────────────────────────────────────────
 // ParseRecommendRequest parses a recommend request (protobuf or JSON).
 func ParseRecommendRequest(args json.RawMessage) (*proto.RecommendRequest, map[string]interface{}, error) {
-	req, params, err := request.ParseRequest(args, func() *proto.RecommendRequest {
+	req, params, err := framework.ParseRequest(args, func() *proto.RecommendRequest {
 		return &proto.RecommendRequest{}
 	})
 	if err != nil {
@@ -342,7 +342,7 @@ func RecommendRequestToParams(req *proto.RecommendRequest) map[string]interface{
 		return make(map[string]interface{})
 	}
 
-	params, err := request.ProtobufToParams(req, &request.ProtobufToParamsOptions{
+	params, err := framework.ProtobufToParams(req, &framework.ProtobufToParamsOptions{
 		FilterEmptyStrings: true,
 		StringifyArrays:    false,
 	})
@@ -356,7 +356,7 @@ func RecommendRequestToParams(req *proto.RecommendRequest) map[string]interface{
 // ─── ParseAnalyzeAlignmentRequest ───────────────────────────────────────────
 // ParseAnalyzeAlignmentRequest parses an analyze_alignment request (protobuf or JSON).
 func ParseAnalyzeAlignmentRequest(args json.RawMessage) (*proto.AnalyzeAlignmentRequest, map[string]interface{}, error) {
-	req, params, err := request.ParseRequest(args, func() *proto.AnalyzeAlignmentRequest {
+	req, params, err := framework.ParseRequest(args, func() *proto.AnalyzeAlignmentRequest {
 		return &proto.AnalyzeAlignmentRequest{}
 	})
 	if err != nil {
@@ -378,7 +378,7 @@ func AnalyzeAlignmentRequestToParams(req *proto.AnalyzeAlignmentRequest) map[str
 		return make(map[string]interface{})
 	}
 
-	params, err := request.ProtobufToParams(req, &request.ProtobufToParamsOptions{
+	params, err := framework.ProtobufToParams(req, &framework.ProtobufToParamsOptions{
 		FilterEmptyStrings: true,
 		StringifyArrays:    false,
 	})
@@ -392,7 +392,7 @@ func AnalyzeAlignmentRequestToParams(req *proto.AnalyzeAlignmentRequest) map[str
 // ─── ParseGenerateConfigRequest ─────────────────────────────────────────────
 // ParseGenerateConfigRequest parses a generate_config request (protobuf or JSON).
 func ParseGenerateConfigRequest(args json.RawMessage) (*proto.GenerateConfigRequest, map[string]interface{}, error) {
-	req, params, err := request.ParseRequest(args, func() *proto.GenerateConfigRequest {
+	req, params, err := framework.ParseRequest(args, func() *proto.GenerateConfigRequest {
 		return &proto.GenerateConfigRequest{}
 	})
 	if err != nil {
@@ -414,7 +414,7 @@ func GenerateConfigRequestToParams(req *proto.GenerateConfigRequest) map[string]
 		return make(map[string]interface{})
 	}
 
-	params, err := request.ProtobufToParams(req, &request.ProtobufToParamsOptions{
+	params, err := framework.ProtobufToParams(req, &framework.ProtobufToParamsOptions{
 		FilterEmptyStrings: true,
 		StringifyArrays:    false,
 	})
@@ -428,7 +428,7 @@ func GenerateConfigRequestToParams(req *proto.GenerateConfigRequest) map[string]
 // ─── ParseSetupHooksRequest ─────────────────────────────────────────────────
 // ParseSetupHooksRequest parses a setup_hooks request (protobuf or JSON).
 func ParseSetupHooksRequest(args json.RawMessage) (*proto.SetupHooksRequest, map[string]interface{}, error) {
-	req, params, err := request.ParseRequest(args, func() *proto.SetupHooksRequest {
+	req, params, err := framework.ParseRequest(args, func() *proto.SetupHooksRequest {
 		return &proto.SetupHooksRequest{}
 	})
 	if err != nil {
@@ -450,7 +450,7 @@ func SetupHooksRequestToParams(req *proto.SetupHooksRequest) map[string]interfac
 		return make(map[string]interface{})
 	}
 
-	params, err := request.ProtobufToParams(req, &request.ProtobufToParamsOptions{
+	params, err := framework.ProtobufToParams(req, &framework.ProtobufToParamsOptions{
 		FilterEmptyStrings: true,
 		StringifyArrays:    true, // Hooks is an array
 	})
@@ -464,7 +464,7 @@ func SetupHooksRequestToParams(req *proto.SetupHooksRequest) map[string]interfac
 // ─── ParseCheckAttributionRequest ───────────────────────────────────────────
 // ParseCheckAttributionRequest parses a check_attribution request (protobuf or JSON).
 func ParseCheckAttributionRequest(args json.RawMessage) (*proto.CheckAttributionRequest, map[string]interface{}, error) {
-	req, params, err := request.ParseRequest(args, func() *proto.CheckAttributionRequest {
+	req, params, err := framework.ParseRequest(args, func() *proto.CheckAttributionRequest {
 		return &proto.CheckAttributionRequest{}
 	})
 	if err != nil {
@@ -486,7 +486,7 @@ func CheckAttributionRequestToParams(req *proto.CheckAttributionRequest) map[str
 		return make(map[string]interface{})
 	}
 
-	params, err := request.ProtobufToParams(req, &request.ProtobufToParamsOptions{
+	params, err := framework.ProtobufToParams(req, &framework.ProtobufToParamsOptions{
 		FilterEmptyStrings: true,
 		StringifyArrays:    false,
 	})
@@ -500,7 +500,7 @@ func CheckAttributionRequestToParams(req *proto.CheckAttributionRequest) map[str
 // ─── ParseAddExternalToolHintsRequest ───────────────────────────────────────
 // ParseAddExternalToolHintsRequest parses an add_external_tool_hints request (protobuf or JSON).
 func ParseAddExternalToolHintsRequest(args json.RawMessage) (*proto.AddExternalToolHintsRequest, map[string]interface{}, error) {
-	req, params, err := request.ParseRequest(args, func() *proto.AddExternalToolHintsRequest {
+	req, params, err := framework.ParseRequest(args, func() *proto.AddExternalToolHintsRequest {
 		return &proto.AddExternalToolHintsRequest{}
 	})
 	if err != nil {
@@ -522,7 +522,7 @@ func AddExternalToolHintsRequestToParams(req *proto.AddExternalToolHintsRequest)
 		return make(map[string]interface{})
 	}
 
-	params, err := request.ProtobufToParams(req, &request.ProtobufToParamsOptions{
+	params, err := framework.ProtobufToParams(req, &framework.ProtobufToParamsOptions{
 		FilterEmptyStrings:  true,
 		StringifyArrays:     false,
 		ConvertFloat64ToInt: true,
@@ -538,7 +538,7 @@ func AddExternalToolHintsRequestToParams(req *proto.AddExternalToolHintsRequest)
 // ─── ParseTestingRequest ────────────────────────────────────────────────────
 // ParseTestingRequest parses a testing tool request (protobuf or JSON).
 func ParseTestingRequest(args json.RawMessage) (*proto.TestingRequest, map[string]interface{}, error) {
-	req, params, err := request.ParseRequest(args, func() *proto.TestingRequest {
+	req, params, err := framework.ParseRequest(args, func() *proto.TestingRequest {
 		return &proto.TestingRequest{}
 	})
 	if err != nil {
@@ -560,7 +560,7 @@ func TestingRequestToParams(req *proto.TestingRequest) map[string]interface{} {
 		return make(map[string]interface{})
 	}
 
-	params, err := request.ProtobufToParams(req, &request.ProtobufToParamsOptions{
+	params, err := framework.ProtobufToParams(req, &framework.ProtobufToParamsOptions{
 		FilterEmptyStrings:  true,
 		StringifyArrays:     false,
 		ConvertFloat64ToInt: true,
@@ -577,7 +577,7 @@ func TestingRequestToParams(req *proto.TestingRequest) map[string]interface{} {
 // ─── ParseAutomationRequest ─────────────────────────────────────────────────
 // ParseAutomationRequest parses an automation tool request (protobuf or JSON).
 func ParseAutomationRequest(args json.RawMessage) (*proto.AutomationRequest, map[string]interface{}, error) {
-	req, params, err := request.ParseRequest(args, func() *proto.AutomationRequest {
+	req, params, err := framework.ParseRequest(args, func() *proto.AutomationRequest {
 		return &proto.AutomationRequest{}
 	})
 	if err != nil {
@@ -599,7 +599,7 @@ func AutomationRequestToParams(req *proto.AutomationRequest) map[string]interfac
 		return make(map[string]interface{})
 	}
 
-	params, err := request.ProtobufToParams(req, &request.ProtobufToParamsOptions{
+	params, err := framework.ProtobufToParams(req, &framework.ProtobufToParamsOptions{
 		FilterEmptyStrings:  true,
 		StringifyArrays:     true, // Tasks and TagFilter are arrays
 		ConvertFloat64ToInt: true,
@@ -616,7 +616,7 @@ func AutomationRequestToParams(req *proto.AutomationRequest) map[string]interfac
 // ─── ParseLintRequest ───────────────────────────────────────────────────────
 // ParseLintRequest parses a lint tool request (protobuf or JSON).
 func ParseLintRequest(args json.RawMessage) (*proto.LintRequest, map[string]interface{}, error) {
-	req, params, err := request.ParseRequest(args, func() *proto.LintRequest {
+	req, params, err := framework.ParseRequest(args, func() *proto.LintRequest {
 		return &proto.LintRequest{}
 	})
 	if err != nil {
@@ -638,7 +638,7 @@ func LintRequestToParams(req *proto.LintRequest) map[string]interface{} {
 		return make(map[string]interface{})
 	}
 
-	params, err := request.ProtobufToParams(req, &request.ProtobufToParamsOptions{
+	params, err := framework.ProtobufToParams(req, &framework.ProtobufToParamsOptions{
 		FilterEmptyStrings: true,
 		StringifyArrays:    false,
 	})

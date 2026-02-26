@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/davidl71/exarp-go/internal/framework"
-	"github.com/davidl71/mcp-go-core/pkg/mcp/response"
 )
 
 // summarizeWithAppleFM summarizes text using the default FM provider (e.g. Apple Foundation Models when available).
@@ -148,5 +147,5 @@ func handleContextSummarizeNative(ctx context.Context, params map[string]interfa
 		result["raw_data"] = rawData
 	}
 
-	return response.FormatResult(result, "")
+	return framework.FormatResult(result, "")
 }

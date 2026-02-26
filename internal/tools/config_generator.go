@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/davidl71/exarp-go/internal/framework"
-	"github.com/davidl71/mcp-go-core/pkg/mcp/response"
 	"os"
 	"path/filepath"
 	"strings"
@@ -71,7 +70,7 @@ func handleGenerateRules(ctx context.Context, params map[string]interface{}, pro
 			"tip":             "Run without analyze_only to generate recommended rules",
 		}
 
-		return response.FormatResult(result, "")
+		return framework.FormatResult(result, "")
 	}
 
 	var rulesList []string
@@ -89,7 +88,7 @@ func handleGenerateRules(ctx context.Context, params map[string]interface{}, pro
 		"errors":    len(results["errors"].([]string)),
 	}
 
-	return response.FormatResult(map[string]interface{}{
+	return framework.FormatResult(map[string]interface{}{
 		"success": true,
 		"data":    results,
 	}, "")
@@ -112,7 +111,7 @@ func handleGenerateIgnore(ctx context.Context, params map[string]interface{}, pr
 	generator := NewCursorIgnoreGenerator(projectRoot)
 	results := generator.GenerateIgnore(includeIndexing, analyzeProject, dryRun)
 
-	return response.FormatResult(map[string]interface{}{
+	return framework.FormatResult(map[string]interface{}{
 		"success": true,
 		"data":    results,
 	}, "")
@@ -155,7 +154,7 @@ func handleSimplifyRules(ctx context.Context, params map[string]interface{}, pro
 	simplifier := NewRuleSimplifier(projectRoot)
 	results := simplifier.SimplifyRules(ruleFiles, dryRun, outputDir)
 
-	return response.FormatResult(map[string]interface{}{
+	return framework.FormatResult(map[string]interface{}{
 		"status":          "success",
 		"files_processed": results["files_processed"],
 		"files_skipped":   results["files_skipped"],

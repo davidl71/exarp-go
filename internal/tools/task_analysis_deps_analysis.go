@@ -9,7 +9,6 @@ import (
 	"github.com/davidl71/exarp-go/internal/framework"
 	"github.com/davidl71/exarp-go/internal/taskanalysis"
 	"github.com/davidl71/exarp-go/proto"
-	"github.com/davidl71/mcp-go-core/pkg/mcp/response"
 	"os"
 	"path/filepath"
 	"strings"
@@ -77,7 +76,7 @@ func handleTaskAnalysisComplexity(ctx context.Context, params map[string]interfa
 	resultJSON, _ := json.Marshal(result)
 	resp := &proto.TaskAnalysisResponse{Action: "complexity", OutputPath: outputPath, ResultJson: string(resultJSON)}
 
-	return response.FormatResult(TaskAnalysisResponseToMap(resp), resp.GetOutputPath())
+	return framework.FormatResult(TaskAnalysisResponseToMap(resp), resp.GetOutputPath())
 }
 
 // ─── handleTaskAnalysisParallelization ──────────────────────────────────────
@@ -131,7 +130,7 @@ func handleTaskAnalysisParallelization(ctx context.Context, params map[string]in
 		resultJSON, _ := json.Marshal(result)
 		resp := &proto.TaskAnalysisResponse{Action: "parallelization", OutputPath: outputPath, ResultJson: string(resultJSON)}
 
-		return response.FormatResult(TaskAnalysisResponseToMap(resp), resp.GetOutputPath())
+		return framework.FormatResult(TaskAnalysisResponseToMap(resp), resp.GetOutputPath())
 	}
 
 	output := formatParallelizationAnalysisText(result)
@@ -182,7 +181,7 @@ func handleTaskAnalysisFixMissingDeps(ctx context.Context, params map[string]int
 		resultJSON, _ := json.Marshal(out)
 		resp := &proto.TaskAnalysisResponse{Action: "fix_missing_deps", ResultJson: string(resultJSON)}
 
-		return response.FormatResult(TaskAnalysisResponseToMap(resp), resp.GetOutputPath())
+		return framework.FormatResult(TaskAnalysisResponseToMap(resp), resp.GetOutputPath())
 	}
 
 	// Per task, collect missing dep IDs to remove
@@ -246,7 +245,7 @@ func handleTaskAnalysisFixMissingDeps(ctx context.Context, params map[string]int
 	resultJSON, _ := json.Marshal(result)
 	resp := &proto.TaskAnalysisResponse{Action: "fix_missing_deps", ResultJson: string(resultJSON)}
 
-	return response.FormatResult(TaskAnalysisResponseToMap(resp), resp.GetOutputPath())
+	return framework.FormatResult(TaskAnalysisResponseToMap(resp), resp.GetOutputPath())
 }
 
 // ─── handleTaskAnalysisValidate ─────────────────────────────────────────────
@@ -303,7 +302,7 @@ func handleTaskAnalysisValidate(ctx context.Context, params map[string]interface
 	resultJSON, _ := json.Marshal(result)
 	resp := &proto.TaskAnalysisResponse{Action: "validate", ResultJson: string(resultJSON)}
 
-	return response.FormatResult(TaskAnalysisResponseToMap(resp), resp.GetOutputPath())
+	return framework.FormatResult(TaskAnalysisResponseToMap(resp), resp.GetOutputPath())
 }
 
 // ─── handleTaskAnalysisNoise ────────────────────────────────────────────────
@@ -357,7 +356,7 @@ func handleTaskAnalysisNoise(ctx context.Context, params map[string]interface{})
 	resultJSON, _ := json.Marshal(result)
 	resp := &proto.TaskAnalysisResponse{Action: "noise", OutputPath: outputPath, ResultJson: string(resultJSON)}
 
-	return response.FormatResult(TaskAnalysisResponseToMap(resp), resp.GetOutputPath())
+	return framework.FormatResult(TaskAnalysisResponseToMap(resp), resp.GetOutputPath())
 }
 
 // ─── findNoiseTasks ─────────────────────────────────────────────────────────

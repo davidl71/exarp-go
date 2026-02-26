@@ -10,7 +10,6 @@ import (
 	"github.com/davidl71/devwisdom-go/pkg/wisdom"
 	"github.com/davidl71/exarp-go/internal/database"
 	"github.com/davidl71/exarp-go/internal/framework"
-	mcpresponse "github.com/davidl71/mcp-go-core/pkg/mcp/response"
 )
 
 // ModelInfo represents information about an AI model.
@@ -147,7 +146,7 @@ func handleRecommendModelNative(ctx context.Context, params map[string]interface
 		"timestamp": 0,
 	}
 
-	return mcpresponse.FormatResult(response, "")
+	return framework.FormatResult(response, "")
 }
 
 // findBestModel finds the best model for a given task.
@@ -287,7 +286,7 @@ func handleRecommendWorkflowNative(ctx context.Context, params map[string]interf
 		"timestamp": 0,
 	}
 
-	return mcpresponse.FormatResult(response, "")
+	return framework.FormatResult(response, "")
 }
 
 // WorkflowRecommendation represents a workflow mode recommendation.
@@ -549,12 +548,12 @@ func handleRecommendAdvisorNative(ctx context.Context, params map[string]interfa
 	}
 
 	// Convert to JSON
-	consultationMap, err := mcpresponse.ConvertToMap(consultation)
+	consultationMap, err := framework.ConvertToMap(consultation)
 	if err != nil {
 		return nil, fmt.Errorf("failed to convert consultation: %w", err)
 	}
 
-	return mcpresponse.FormatResult(consultationMap, "")
+	return framework.FormatResult(consultationMap, "")
 }
 
 // minInt returns the minimum of two integers.

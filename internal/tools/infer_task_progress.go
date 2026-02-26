@@ -14,7 +14,6 @@ import (
 	"github.com/davidl71/exarp-go/internal/database"
 	"github.com/davidl71/exarp-go/internal/framework"
 	"github.com/davidl71/exarp-go/proto"
-	"github.com/davidl71/mcp-go-core/pkg/mcp/response"
 )
 
 // Default file extensions for evidence gathering (match Python default).
@@ -165,7 +164,7 @@ func handleInferTaskProgressNative(ctx context.Context, params map[string]interf
 	resultJSON, _ := json.Marshal(result)
 	resp := &proto.InferTaskProgressResponse{OutputPath: outputPath, ResultJson: string(resultJSON)}
 
-	return response.FormatResult(InferTaskProgressResponseToMap(resp), resp.GetOutputPath())
+	return framework.FormatResult(InferTaskProgressResponseToMap(resp), resp.GetOutputPath())
 }
 
 // loadTasksByStatus returns tasks filtered by status via TaskStore.

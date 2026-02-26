@@ -4,8 +4,8 @@ package tools
 
 import (
 	"encoding/json"
+	"github.com/davidl71/exarp-go/internal/framework"
 	"github.com/davidl71/exarp-go/proto"
-	"github.com/davidl71/mcp-go-core/pkg/mcp/request"
 )
 
 // ─── Contents ───────────────────────────────────────────────────────────────
@@ -299,7 +299,7 @@ func ProtoToProjectOverviewData(pb *proto.ProjectOverviewData) map[string]interf
 // ─── ParseTaskWorkflowRequest ───────────────────────────────────────────────
 // ParseTaskWorkflowRequest parses a task_workflow tool request (protobuf or JSON).
 func ParseTaskWorkflowRequest(args json.RawMessage) (*proto.TaskWorkflowRequest, map[string]interface{}, error) {
-	req, params, err := request.ParseRequest(args, func() *proto.TaskWorkflowRequest {
+	req, params, err := framework.ParseRequest(args, func() *proto.TaskWorkflowRequest {
 		return &proto.TaskWorkflowRequest{}
 	})
 	if err != nil {
@@ -323,7 +323,7 @@ func TaskWorkflowRequestToParams(req *proto.TaskWorkflowRequest) map[string]inte
 	}
 
 	// Use generic converter with options matching existing behavior
-	params, err := request.ProtobufToParams(req, &request.ProtobufToParamsOptions{
+	params, err := framework.ProtobufToParams(req, &framework.ProtobufToParamsOptions{
 		FilterEmptyStrings:  true, // Filter empty strings and zero numbers
 		StringifyArrays:     true, // Convert arrays to JSON strings
 		ConvertFloat64ToInt: true, // Convert stale_threshold_hours from float64 to int
@@ -340,7 +340,7 @@ func TaskWorkflowRequestToParams(req *proto.TaskWorkflowRequest) map[string]inte
 // ─── ParseHealthRequest ─────────────────────────────────────────────────────
 // ParseHealthRequest parses a health tool request (protobuf or JSON).
 func ParseHealthRequest(args json.RawMessage) (*proto.HealthRequest, map[string]interface{}, error) {
-	req, params, err := request.ParseRequest(args, func() *proto.HealthRequest {
+	req, params, err := framework.ParseRequest(args, func() *proto.HealthRequest {
 		return &proto.HealthRequest{}
 	})
 	if err != nil {
@@ -362,7 +362,7 @@ func HealthRequestToParams(req *proto.HealthRequest) map[string]interface{} {
 		return make(map[string]interface{})
 	}
 
-	params, err := request.ProtobufToParams(req, &request.ProtobufToParamsOptions{
+	params, err := framework.ProtobufToParams(req, &framework.ProtobufToParamsOptions{
 		FilterEmptyStrings: true,
 		StringifyArrays:    false,
 	})
@@ -376,7 +376,7 @@ func HealthRequestToParams(req *proto.HealthRequest) map[string]interface{} {
 // ─── ParseSecurityRequest ───────────────────────────────────────────────────
 // ParseSecurityRequest parses a security tool request (protobuf or JSON).
 func ParseSecurityRequest(args json.RawMessage) (*proto.SecurityRequest, map[string]interface{}, error) {
-	req, params, err := request.ParseRequest(args, func() *proto.SecurityRequest {
+	req, params, err := framework.ParseRequest(args, func() *proto.SecurityRequest {
 		return &proto.SecurityRequest{}
 	})
 	if err != nil {
@@ -398,7 +398,7 @@ func SecurityRequestToParams(req *proto.SecurityRequest) map[string]interface{} 
 		return make(map[string]interface{})
 	}
 
-	params, err := request.ProtobufToParams(req, &request.ProtobufToParamsOptions{
+	params, err := framework.ProtobufToParams(req, &framework.ProtobufToParamsOptions{
 		FilterEmptyStrings: true,
 		StringifyArrays:    true, // Languages is an array
 	})
@@ -412,7 +412,7 @@ func SecurityRequestToParams(req *proto.SecurityRequest) map[string]interface{} 
 // ─── ParseInferSessionModeRequest ───────────────────────────────────────────
 // ParseInferSessionModeRequest parses an infer_session_mode request (protobuf or JSON).
 func ParseInferSessionModeRequest(args json.RawMessage) (*proto.InferSessionModeRequest, map[string]interface{}, error) {
-	req, params, err := request.ParseRequest(args, func() *proto.InferSessionModeRequest {
+	req, params, err := framework.ParseRequest(args, func() *proto.InferSessionModeRequest {
 		return &proto.InferSessionModeRequest{}
 	})
 	if err != nil {
@@ -434,7 +434,7 @@ func InferSessionModeRequestToParams(req *proto.InferSessionModeRequest) map[str
 		return make(map[string]interface{})
 	}
 
-	params, err := request.ProtobufToParams(req, &request.ProtobufToParamsOptions{
+	params, err := framework.ProtobufToParams(req, &framework.ProtobufToParamsOptions{
 		FilterEmptyStrings: true,
 		StringifyArrays:    false,
 	})
@@ -448,7 +448,7 @@ func InferSessionModeRequestToParams(req *proto.InferSessionModeRequest) map[str
 // ─── ParseToolCatalogRequest ────────────────────────────────────────────────
 // ParseToolCatalogRequest parses a tool_catalog request (protobuf or JSON).
 func ParseToolCatalogRequest(args json.RawMessage) (*proto.ToolCatalogRequest, map[string]interface{}, error) {
-	req, params, err := request.ParseRequest(args, func() *proto.ToolCatalogRequest {
+	req, params, err := framework.ParseRequest(args, func() *proto.ToolCatalogRequest {
 		return &proto.ToolCatalogRequest{}
 	})
 	if err != nil {
@@ -470,7 +470,7 @@ func ToolCatalogRequestToParams(req *proto.ToolCatalogRequest) map[string]interf
 		return make(map[string]interface{})
 	}
 
-	params, err := request.ProtobufToParams(req, &request.ProtobufToParamsOptions{
+	params, err := framework.ProtobufToParams(req, &framework.ProtobufToParamsOptions{
 		FilterEmptyStrings: true,
 		StringifyArrays:    false,
 	})
@@ -484,7 +484,7 @@ func ToolCatalogRequestToParams(req *proto.ToolCatalogRequest) map[string]interf
 // ─── ParseWorkflowModeRequest ───────────────────────────────────────────────
 // ParseWorkflowModeRequest parses a workflow_mode request (protobuf or JSON).
 func ParseWorkflowModeRequest(args json.RawMessage) (*proto.WorkflowModeRequest, map[string]interface{}, error) {
-	req, params, err := request.ParseRequest(args, func() *proto.WorkflowModeRequest {
+	req, params, err := framework.ParseRequest(args, func() *proto.WorkflowModeRequest {
 		return &proto.WorkflowModeRequest{}
 	})
 	if err != nil {
@@ -506,7 +506,7 @@ func WorkflowModeRequestToParams(req *proto.WorkflowModeRequest) map[string]inte
 		return make(map[string]interface{})
 	}
 
-	params, err := request.ProtobufToParams(req, &request.ProtobufToParamsOptions{
+	params, err := framework.ProtobufToParams(req, &framework.ProtobufToParamsOptions{
 		FilterEmptyStrings: true,
 		StringifyArrays:    false,
 	})
@@ -520,7 +520,7 @@ func WorkflowModeRequestToParams(req *proto.WorkflowModeRequest) map[string]inte
 // ─── ParseEstimationRequest ─────────────────────────────────────────────────
 // ParseEstimationRequest parses an estimation request (protobuf or JSON).
 func ParseEstimationRequest(args json.RawMessage) (*proto.EstimationRequest, map[string]interface{}, error) {
-	req, params, err := request.ParseRequest(args, func() *proto.EstimationRequest {
+	req, params, err := framework.ParseRequest(args, func() *proto.EstimationRequest {
 		return &proto.EstimationRequest{}
 	})
 	if err != nil {
@@ -542,7 +542,7 @@ func EstimationRequestToParams(req *proto.EstimationRequest) map[string]interfac
 		return make(map[string]interface{})
 	}
 
-	params, err := request.ProtobufToParams(req, &request.ProtobufToParamsOptions{
+	params, err := framework.ProtobufToParams(req, &framework.ProtobufToParamsOptions{
 		FilterEmptyStrings:  true,
 		StringifyArrays:     true,  // TagList is an array
 		ConvertFloat64ToInt: false, // Keep mlx_weight as float64 (it's a weight, not a count)
@@ -561,7 +561,7 @@ func EstimationRequestToParams(req *proto.EstimationRequest) map[string]interfac
 // ─── ParseSessionRequest ────────────────────────────────────────────────────
 // ParseSessionRequest parses a session request (protobuf or JSON).
 func ParseSessionRequest(args json.RawMessage) (*proto.SessionRequest, map[string]interface{}, error) {
-	req, params, err := request.ParseRequest(args, func() *proto.SessionRequest {
+	req, params, err := framework.ParseRequest(args, func() *proto.SessionRequest {
 		return &proto.SessionRequest{}
 	})
 	if err != nil {
@@ -583,7 +583,7 @@ func SessionRequestToParams(req *proto.SessionRequest) map[string]interface{} {
 		return make(map[string]interface{})
 	}
 
-	params, err := request.ProtobufToParams(req, &request.ProtobufToParamsOptions{
+	params, err := framework.ProtobufToParams(req, &framework.ProtobufToParamsOptions{
 		FilterEmptyStrings:  true,
 		StringifyArrays:     false,
 		ConvertFloat64ToInt: true,
@@ -599,7 +599,7 @@ func SessionRequestToParams(req *proto.SessionRequest) map[string]interface{} {
 // ─── ParseGitToolsRequest ───────────────────────────────────────────────────
 // ParseGitToolsRequest parses a git_tools request (protobuf or JSON).
 func ParseGitToolsRequest(args json.RawMessage) (*proto.GitToolsRequest, map[string]interface{}, error) {
-	req, params, err := request.ParseRequest(args, func() *proto.GitToolsRequest {
+	req, params, err := framework.ParseRequest(args, func() *proto.GitToolsRequest {
 		return &proto.GitToolsRequest{}
 	})
 	if err != nil {
@@ -621,7 +621,7 @@ func GitToolsRequestToParams(req *proto.GitToolsRequest) map[string]interface{} 
 		return make(map[string]interface{})
 	}
 
-	params, err := request.ProtobufToParams(req, &request.ProtobufToParamsOptions{
+	params, err := framework.ProtobufToParams(req, &framework.ProtobufToParamsOptions{
 		FilterEmptyStrings:  true,
 		StringifyArrays:     false,
 		ConvertFloat64ToInt: true,

@@ -8,7 +8,6 @@ import (
 	"github.com/davidl71/exarp-go/internal/database"
 	"github.com/davidl71/exarp-go/internal/framework"
 	"github.com/davidl71/exarp-go/proto"
-	"github.com/davidl71/mcp-go-core/pkg/mcp/response"
 	"time"
 )
 
@@ -247,7 +246,7 @@ func handleAutomationDaily(ctx context.Context, params map[string]interface{}) (
 	resultJSON, _ := json.Marshal(responseData)
 	resp := &proto.AutomationResponse{Action: "daily", ResultJson: string(resultJSON)}
 
-	return response.FormatResult(AutomationResponseToMap(resp), "")
+	return framework.FormatResult(AutomationResponseToMap(resp), "")
 }
 
 // handleAutomationNightly handles the "nightly" action for automation tool
@@ -442,7 +441,7 @@ func handleAutomationNightly(ctx context.Context, params map[string]interface{})
 	resultJSON, _ := json.Marshal(responseData)
 	resp := &proto.AutomationResponse{Action: "nightly", ResultJson: string(resultJSON)}
 
-	return response.FormatResult(AutomationResponseToMap(resp), "")
+	return framework.FormatResult(AutomationResponseToMap(resp), "")
 }
 
 // handleAutomationSprint handles the "sprint" action for automation tool
@@ -632,5 +631,5 @@ func handleAutomationSprint(ctx context.Context, params map[string]interface{}) 
 	resultJSON, _ := json.Marshal(responseData)
 	resp := &proto.AutomationResponse{Action: "sprint", ResultJson: string(resultJSON)}
 
-	return response.FormatResult(AutomationResponseToMap(resp), "")
+	return framework.FormatResult(AutomationResponseToMap(resp), "")
 }

@@ -13,7 +13,6 @@ import (
 	"github.com/davidl71/exarp-go/internal/framework"
 	"github.com/davidl71/exarp-go/internal/models"
 	"github.com/davidl71/exarp-go/proto"
-	"github.com/davidl71/mcp-go-core/pkg/mcp/response"
 )
 
 func buildLegacyGraphFormat(tg *TaskGraph) DependencyGraph {
@@ -525,7 +524,7 @@ Return JSON array with format: [{"task_id": "T-1", "level": "component", "compon
 			resultJSON, _ := json.Marshal(analysis)
 			resp := &proto.TaskAnalysisResponse{Action: "hierarchy", ResultJson: string(resultJSON)}
 
-			return response.FormatResult(TaskAnalysisResponseToMap(resp), resp.GetOutputPath())
+			return framework.FormatResult(TaskAnalysisResponseToMap(resp), resp.GetOutputPath())
 		}
 	}
 
@@ -560,7 +559,7 @@ Return JSON array with format: [{"task_id": "T-1", "level": "component", "compon
 	resultJSON, _ := json.Marshal(analysis)
 	resp := &proto.TaskAnalysisResponse{Action: "hierarchy", ResultJson: string(resultJSON)}
 
-	return response.FormatResult(TaskAnalysisResponseToMap(resp), resp.GetOutputPath())
+	return framework.FormatResult(TaskAnalysisResponseToMap(resp), resp.GetOutputPath())
 }
 
 func buildHierarchyRecommendations(classifications []map[string]interface{}, tasks []Todo2Task) []map[string]interface{} {

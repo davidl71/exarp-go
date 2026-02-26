@@ -16,7 +16,6 @@ import (
 	"github.com/davidl71/exarp-go/internal/cache"
 	"github.com/davidl71/exarp-go/internal/framework"
 	"github.com/davidl71/exarp-go/proto"
-	"github.com/davidl71/mcp-go-core/pkg/mcp/response"
 )
 
 // Design limit for MCP tool count (monitored by tool_count_health / health action=tools).
@@ -94,7 +93,7 @@ func handleHealthTools(ctx context.Context, params map[string]interface{}) ([]fr
 	resultJSON, _ := json.Marshal(result)
 	resp := &proto.HealthReport{Action: "tools", ResultJson: string(resultJSON)}
 
-	return response.FormatResult(HealthReportToMap(resp), resp.GetOutputPath())
+	return framework.FormatResult(HealthReportToMap(resp), resp.GetOutputPath())
 }
 
 // handleHealthServer handles the "server" action for health tool.
@@ -169,7 +168,7 @@ func handleHealthServer(ctx context.Context, params map[string]interface{}) ([]f
 	resultJSON, _ := json.Marshal(result)
 	resp := &proto.HealthReport{Action: "server", ResultJson: string(resultJSON)}
 
-	return response.FormatResult(HealthReportToMap(resp), resp.GetOutputPath())
+	return framework.FormatResult(HealthReportToMap(resp), resp.GetOutputPath())
 }
 
 // handleHealthGit handles the "git" action for health tool
@@ -212,7 +211,7 @@ func handleHealthGit(ctx context.Context, params map[string]interface{}) ([]fram
 		resultJSON, _ := json.Marshal(result)
 		resp := &proto.HealthReport{Action: "git", ResultJson: string(resultJSON)}
 
-		return response.FormatResult(HealthReportToMap(resp), resp.GetOutputPath())
+		return framework.FormatResult(HealthReportToMap(resp), resp.GetOutputPath())
 	}
 
 	// Get git status
@@ -308,7 +307,7 @@ func handleHealthGit(ctx context.Context, params map[string]interface{}) ([]fram
 	resultJSON, _ := json.Marshal(result)
 	resp := &proto.HealthReport{Action: "git", ResultJson: string(resultJSON)}
 
-	return response.FormatResult(HealthReportToMap(resp), resp.GetOutputPath())
+	return framework.FormatResult(HealthReportToMap(resp), resp.GetOutputPath())
 }
 
 // handleHealthDocs handles the "docs" action for health tool
@@ -405,7 +404,7 @@ func handleHealthDocs(ctx context.Context, params map[string]interface{}) ([]fra
 	resultJSON, _ := json.Marshal(result)
 	resp := &proto.HealthReport{Action: "docs", OutputPath: outputPath, ResultJson: string(resultJSON)}
 
-	return response.FormatResult(HealthReportToMap(resp), resp.GetOutputPath())
+	return framework.FormatResult(HealthReportToMap(resp), resp.GetOutputPath())
 }
 
 // handleHealthDOD handles the "dod" action for health tool
@@ -439,7 +438,7 @@ func handleHealthDOD(ctx context.Context, params map[string]interface{}) ([]fram
 		resultJSON, _ := json.Marshal(result)
 		resp := &proto.HealthReport{Action: "dod", OutputPath: outputPath, ResultJson: string(resultJSON)}
 
-		return response.FormatResult(HealthReportToMap(resp), resp.GetOutputPath())
+		return framework.FormatResult(HealthReportToMap(resp), resp.GetOutputPath())
 	}
 
 	// General DOD check (if changed_files provided)
@@ -479,7 +478,7 @@ func handleHealthDOD(ctx context.Context, params map[string]interface{}) ([]fram
 	resultJSON, _ := json.Marshal(result)
 	resp := &proto.HealthReport{Action: "dod", OutputPath: outputPath, ResultJson: string(resultJSON)}
 
-	return response.FormatResult(HealthReportToMap(resp), resp.GetOutputPath())
+	return framework.FormatResult(HealthReportToMap(resp), resp.GetOutputPath())
 }
 
 // handleHealthCICD handles the "cicd" action for health tool
@@ -561,7 +560,7 @@ func handleHealthCICD(ctx context.Context, params map[string]interface{}) ([]fra
 	resultJSON, _ := json.Marshal(result)
 	resp := &proto.HealthReport{Action: "cicd", OutputPath: outputPath, ResultJson: string(resultJSON)}
 
-	return response.FormatResult(HealthReportToMap(resp), resp.GetOutputPath())
+	return framework.FormatResult(HealthReportToMap(resp), resp.GetOutputPath())
 }
 
 // handleHealthCtags handles the "ctags" action - reports if universal-ctags binary and/or tags file are present.
@@ -598,5 +597,5 @@ func handleHealthCtags(ctx context.Context, params map[string]interface{}) ([]fr
 	}
 	resultJSON, _ := json.Marshal(result)
 	resp := &proto.HealthReport{Action: "ctags", ResultJson: string(resultJSON)}
-	return response.FormatResult(HealthReportToMap(resp), resp.GetOutputPath())
+	return framework.FormatResult(HealthReportToMap(resp), resp.GetOutputPath())
 }

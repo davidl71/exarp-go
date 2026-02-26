@@ -1,4 +1,4 @@
-// registry.go — MCP tool/prompt/resource registration (3 batches of tools).
+// registry.go — MCP tool/prompt/resource registration.
 package tools
 
 import (
@@ -9,30 +9,17 @@ import (
 
 // RegisterAllTools registers all tools with the server.
 func RegisterAllTools(server framework.MCPServer) error {
-	// Batch 1: Simple tools (T-22 through T-27)
-	if err := registerBatch1Tools(server); err != nil {
-		return fmt.Errorf("failed to register Batch 1 tools: %w", err)
+	if err := registerCoreTools(server); err != nil {
+		return fmt.Errorf("failed to register core tools: %w", err)
 	}
-
-	// Batch 2: Medium tools (T-28 through T-35)
-	if err := registerBatch2Tools(server); err != nil {
-		return fmt.Errorf("failed to register Batch 2 tools: %w", err)
+	if err := registerAITools(server); err != nil {
+		return fmt.Errorf("failed to register AI tools: %w", err)
 	}
-
-	// Batch 3: Advanced tools (T-37 through T-44)
-	if err := registerBatch3Tools(server); err != nil {
-		return fmt.Errorf("failed to register Batch 3 tools: %w", err)
+	if err := registerInfraTools(server); err != nil {
+		return fmt.Errorf("failed to register infra tools: %w", err)
 	}
-
-	// Batch 4: mcp-generic-tools migration (2 native Go tools)
-	if err := registerBatch4Tools(server); err != nil {
-		return fmt.Errorf("failed to register Batch 4 tools: %w", err)
+	if err := registerMiscTools(server); err != nil {
+		return fmt.Errorf("failed to register misc tools: %w", err)
 	}
-
-	// Batch 5: Phase 3 migration - remaining unified tools (4 tools)
-	if err := registerBatch5Tools(server); err != nil {
-		return fmt.Errorf("failed to register Batch 5 tools: %w", err)
-	}
-
 	return nil
 }

@@ -10,7 +10,6 @@ import (
 
 	"github.com/davidl71/exarp-go/internal/cache"
 	"github.com/davidl71/exarp-go/internal/framework"
-	"github.com/davidl71/mcp-go-core/pkg/mcp/response"
 )
 
 // handleSetupHooksNative handles the setup_hooks tool with native Go implementation
@@ -196,7 +195,7 @@ export GIT_HOOK=1
 		}
 	}
 
-	return response.FormatResult(results, "")
+	return framework.FormatResult(results, "")
 }
 
 // handleSetupPatternHooks handles the "patterns" action for setup_hooks
@@ -320,7 +319,7 @@ func handleSetupPatternHooks(ctx context.Context, params map[string]interface{})
 		setupTaskStatusIntegration(projectRoot, patterns, results)
 	}
 
-	return response.FormatResult(results, "")
+	return framework.FormatResult(results, "")
 }
 
 // getDefaultPatterns returns default pattern configurations.

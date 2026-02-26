@@ -13,7 +13,6 @@ import (
 	"github.com/davidl71/exarp-go/internal/cache"
 	"github.com/davidl71/exarp-go/internal/config"
 	"github.com/davidl71/exarp-go/internal/framework"
-	mcpresponse "github.com/davidl71/mcp-go-core/pkg/mcp/response"
 )
 
 // WorkflowModeState represents the persisted workflow mode state.
@@ -314,7 +313,7 @@ func handleWorkflowModeNative(ctx context.Context, params map[string]interface{}
 			"error":  fmt.Sprintf("Unknown workflow_mode action: %s. Use 'focus', 'suggest', or 'stats'.", action),
 		}
 
-		return mcpresponse.FormatResult(errorResponse, "")
+		return framework.FormatResult(errorResponse, "")
 	}
 }
 
@@ -327,12 +326,12 @@ func handleWorkflowModeFocus(ctx context.Context, params map[string]interface{},
 
 	// Status only
 	if statusOnly || (mode == "" && enableGroup == "" && disableGroup == "") {
-		statusMap, err := mcpresponse.ConvertToMap(manager.getStatus())
+		statusMap, err := framework.ConvertToMap(manager.getStatus())
 		if err != nil {
 			return nil, fmt.Errorf("failed to convert status: %w", err)
 		}
 
-		return mcpresponse.FormatResult(statusMap, "")
+		return framework.FormatResult(statusMap, "")
 	}
 
 	var response map[string]interface{}
@@ -345,7 +344,7 @@ func handleWorkflowModeFocus(ctx context.Context, params map[string]interface{},
 				"error":   err.Error(),
 			}
 
-			return mcpresponse.FormatResult(errorResponse, "")
+			return framework.FormatResult(errorResponse, "")
 		}
 
 		response = map[string]interface{}{
@@ -366,7 +365,7 @@ func handleWorkflowModeFocus(ctx context.Context, params map[string]interface{},
 				"error":   err.Error(),
 			}
 
-			return mcpresponse.FormatResult(errorResponse, "")
+			return framework.FormatResult(errorResponse, "")
 		}
 
 		response = map[string]interface{}{
@@ -386,7 +385,7 @@ func handleWorkflowModeFocus(ctx context.Context, params map[string]interface{},
 				"error":   err.Error(),
 			}
 
-			return mcpresponse.FormatResult(errorResponse, "")
+			return framework.FormatResult(errorResponse, "")
 		}
 
 		response = map[string]interface{}{
@@ -401,7 +400,7 @@ func handleWorkflowModeFocus(ctx context.Context, params map[string]interface{},
 		}
 	}
 
-	return mcpresponse.FormatResult(response, "")
+	return framework.FormatResult(response, "")
 }
 
 // handleWorkflowModeSuggest handles the suggest action.
@@ -430,7 +429,7 @@ func handleWorkflowModeSuggest(ctx context.Context, params map[string]interface{
 		suggestion["auto_switched"] = false
 	}
 
-	return mcpresponse.FormatResult(suggestion, "")
+	return framework.FormatResult(suggestion, "")
 }
 
 // handleWorkflowModeStats handles the stats action.
@@ -444,5 +443,5 @@ func handleWorkflowModeStats(ctx context.Context, manager *WorkflowModeManager) 
 		"note":            "Stats show current mode state; per-tool usage counts are not tracked.",
 	}
 
-	return mcpresponse.FormatResult(stats, "")
+	return framework.FormatResult(stats, "")
 }
