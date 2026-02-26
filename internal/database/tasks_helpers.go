@@ -8,16 +8,16 @@ import (
 	"fmt"
 )
 
-// loadTaskTags loads tags for a single task
-// Works with both *sql.DB (via QueryContext) and *sql.Tx (via QueryContext).
-func loadTaskTags(ctx context.Context, queryCtx context.Context, querier interface {
+// querier interface for both *sql.DB and *sql.Tx
+type querier interface {
 	QueryContext(ctx context.Context, query string, args ...interface{}) (*sql.Rows, error)
-}, taskID string) ([]string, error) {
-	rows, err := querier.QueryContext(queryCtx, `
-		SELECT tag FROM task_tags WHERE task_id = ? ORDER BY tag
-	`, taskID)
+}
+
+// loadStrings loads string values from a query
+func loadStrings(ctx context.Context, queryCtx context.Context, querier querier, query string, args ...interface{}) ([]string, error) {
+	rows, err := querier.QueryContext(queryCtx, query, args...)
 	if err != nil {
-		return nil, fmt.Errorf("failed to query tags: %w", err)
+		return nil, fmt.Errorf("failed to query: %w", err)
 	}
 
 	defer func() {
@@ -26,56 +26,33 @@ func loadTaskTags(ctx context.Context, queryCtx context.Context, querier interfa
 		}
 	}()
 
-	var tags []string
+	var results []string
 
 	for rows.Next() {
-		var tag string
-		if err := rows.Scan(&tag); err != nil {
-			return nil, fmt.Errorf("failed to scan tag: %w", err)
+		var s string
+		if err := rows.Scan(&s); err != nil {
+			return nil, fmt.Errorf("failed to scan: %w", err)
 		}
-
-		tags = append(tags, tag)
+		results = append(results, s)
 	}
 
 	if err = rows.Err(); err != nil {
-		return nil, fmt.Errorf("error iterating tag rows: %w", err)
+		return nil, fmt.Errorf("error iterating rows: %w", err)
 	}
 
-	return tags, nil
+	return results, nil
+}
+
+// loadTaskTags loads tags for a single task
+func loadTaskTags(ctx context.Context, queryCtx context.Context, querier querier, taskID string) ([]string, error) {
+	return loadStrings(ctx, queryCtx, querier,
+		`SELECT tag FROM task_tags WHERE task_id = ? ORDER BY tag`,
+		taskID)
 }
 
 // loadTaskDependencies loads dependencies for a single task
-// Works with both *sql.DB (via QueryContext) and *sql.Tx (via QueryContext).
-func loadTaskDependencies(ctx context.Context, queryCtx context.Context, querier interface {
-	QueryContext(ctx context.Context, query string, args ...interface{}) (*sql.Rows, error)
-}, taskID string) ([]string, error) {
-	rows, err := querier.QueryContext(queryCtx, `
-		SELECT depends_on_id FROM task_dependencies WHERE task_id = ? ORDER BY depends_on_id
-	`, taskID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to query dependencies: %w", err)
-	}
-
-	defer func() {
-		if err := rows.Close(); err != nil {
-			// Log error but don't fail - this is cleanup
-		}
-	}()
-
-	var dependencies []string
-
-	for rows.Next() {
-		var depID string
-		if err := rows.Scan(&depID); err != nil {
-			return nil, fmt.Errorf("failed to scan dependency: %w", err)
-		}
-
-		dependencies = append(dependencies, depID)
-	}
-
-	if err = rows.Err(); err != nil {
-		return nil, fmt.Errorf("error iterating dependency rows: %w", err)
-	}
-
-	return dependencies, nil
+func loadTaskDependencies(ctx context.Context, queryCtx context.Context, querier querier, taskID string) ([]string, error) {
+	return loadStrings(ctx, queryCtx, querier,
+		`SELECT depends_on_id FROM task_dependencies WHERE task_id = ? ORDER BY depends_on_id`,
+		taskID)
 }
