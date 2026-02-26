@@ -517,12 +517,18 @@ func detectLinter(path string) string {
 	// Check file extension
 	ext := strings.ToLower(filepath.Ext(path))
 	switch ext {
-	case ".md", ".markdown":
-		return "markdownlint"
 	case ".go":
 		return "go-vet"
+	case ".md", ".markdown":
+		return "markdownlint"
 	case ".sh", ".bash":
 		return "shellcheck"
+	case ".c", ".cc", ".cpp", ".cxx", ".h", ".hpp", ".hxx":
+		return "clang-tidy"
+	case ".py":
+		return "ruff"
+	case ".rs":
+		return "clippy"
 	default:
 		return "go-vet" // Default to Go linter
 	}

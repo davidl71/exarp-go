@@ -86,7 +86,20 @@ func runLinter(ctx context.Context, linter, path string, fix bool) (*LintResult,
 		return runMarkdownlint(ctx, targetPath, fix)
 	case "shellcheck", "shfmt", "shell":
 		return runShellcheck(ctx, targetPath, fix)
+	// C / C++
+	case "clang-tidy", "cppcheck", "c", "cpp", "c++":
+		return runClangTidy(ctx, targetPath, fix)
+	case "clang-format":
+		return runClangFormat(ctx, targetPath, fix)
+	// Python
+	case "ruff", "flake8", "pylint", "python":
+		return runRuff(ctx, targetPath, fix)
+	// Rust
+	case "clippy", "cargo-clippy", "cargo clippy", "rust":
+		return runCargoClippy(ctx, targetPath, fix)
+	case "rustfmt":
+		return runRustfmt(ctx, targetPath, fix)
 	default:
-		return nil, fmt.Errorf("unsupported linter: %s (supported: golangci-lint, go-vet, gofmt, goimports, markdownlint, shellcheck)", linter)
+		return nil, fmt.Errorf("unsupported linter: %s (supported: golangci-lint, go-vet, gofmt, goimports, markdownlint, shellcheck, clang-tidy, cppcheck, clang-format, ruff, flake8, pylint, clippy, rustfmt)", linter)
 	}
 }
