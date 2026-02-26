@@ -158,9 +158,27 @@ exarp-go ships with an OpenCode plugin (`.opencode/plugins/exarp-go.ts`) that ad
 |---------|------|-------------|
 | **Auto `PROJECT_ROOT`** | `shell.env` | Injects `PROJECT_ROOT` into every shell command so exarp-go always knows the project root. |
 | **System prompt context** | `experimental.chat.system.transform` | Injects current task state into every LLM system prompt — the LLM always knows your tasks without being asked. Cached with 30s TTL; invalidated on `todo.updated` and `session.created` events. |
+| **First-message injection** | `chat.message` | Prepends a compact task summary into the first user message of each session so the LLM has immediate task awareness. |
 | **Compaction context** | `experimental.session.compacting` | Injects current task state into compaction summaries so task context survives context resets. |
+| **Plugin tools** | `tool` | Registers `exarp_tasks`, `exarp_update_task`, `exarp_prime` — faster than MCP round-trips. |
+| **TUI toasts** | `session.created`, `todo.updated` events + `client.tui.showToast` | Shows toast notifications for task counts on session start and cache refreshes on task changes. |
+| **Prompt auto-expand** | `tui.prompt.append` event + `client.tui.appendPrompt` | When the user pastes or types a task ID (T-xxxx) into the prompt, appends that task's details (status, priority, content) automatically. |
+| **Command cache sync** | `tui.command.execute` event | Invalidates task cache when `/tasks`, `/prime`, `/scorecard`, or `/health` commands run so results are fresh. |
+| **Toast-driven sync** | `tui.toast.show` event | When other plugins or OpenCode show a task-related toast, invalidates cache to stay in sync. |
 | **macOS notifications** | `session.idle` event | Sends a desktop notification when a session goes idle. |
 | **Slash commands** | `config` hook | Registers `/tasks`, `/prime`, `/scorecard`, `/health` commands. |
+
+### Plugin tools (faster than MCP)
+
+The plugin registers three tools directly in OpenCode, bypassing MCP for lower latency:
+
+| Tool | Description |
+|------|-------------|
+| `exarp_tasks` | List tasks, optionally filtered by status (Todo, In Progress, Review, Done) |
+| `exarp_update_task` | Update a task's status (e.g. mark Done when work is complete) |
+| `exarp_prime` | Full session prime with tasks, hints, handoffs, and suggested actions |
+
+These coexist with the MCP tools. Use plugin tools for quick task operations; use MCP tools (`task_workflow`, `report`, etc.) for advanced operations like create, delete, analysis, and reports.
 
 ### Slash commands
 
