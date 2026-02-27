@@ -8,6 +8,7 @@ import (
 	"github.com/davidl71/exarp-go/internal/config"
 	"github.com/davidl71/exarp-go/internal/database"
 	"github.com/davidl71/exarp-go/internal/framework"
+	"github.com/spf13/cast"
 	"os"
 	"path/filepath"
 	"sort"
@@ -34,7 +35,7 @@ func handleReportPlan(ctx context.Context, params map[string]interface{}) ([]fra
 		return nil, fmt.Errorf("failed to find project root: %w", err)
 	}
 
-	planTitle, _ := params["plan_title"].(string)
+	planTitle := cast.ToString(params["plan_title"])
 	if planTitle == "" {
 		if info, err := getProjectInfo(projectRoot); err == nil {
 			if name, ok := info["name"].(string); ok && name != "" {
@@ -47,16 +48,13 @@ func handleReportPlan(ctx context.Context, params map[string]interface{}) ([]fra
 		}
 	}
 
-	outputPath, _ := params["output_path"].(string)
-	if outputPath == "" {
-		slug := planFilenameFromTitle(planTitle) + ".plan.md"
-		outputPath = filepath.Join(projectRoot, ".cursor", "plans", slug)
-	} else {
+	outputPath := DefaultPlanOutputPath(projectRoot, planFilenameFromTitle(planTitle)+".plan.md", params)
+	if strings.TrimSpace(cast.ToString(params["output_path"])) != "" {
 		outputPath = ensurePlanMdSuffix(outputPath)
 	}
 
-	repair, _ := params["repair"].(bool)
-	planPath, _ := params["plan_path"].(string)
+	repair := cast.ToBool(params["repair"])
+	planPath := cast.ToString(params["plan_path"])
 	if planPath == "" {
 		planPath = outputPath
 	} else {
@@ -86,7 +84,7 @@ func handleReportPlan(ctx context.Context, params map[string]interface{}) ([]fra
 	}
 
 	// Optionally update parallel-execution-subagents.plan.md when include_subagents is true
-	includeSubagents, _ := params["include_subagents"].(bool)
+	includeSubagents := cast.ToBool(params["include_subagents"])
 	if includeSubagents {
 		subagentsMD, subErr := generateParallelExecutionSubagentsMarkdown(ctx, projectRoot, planTitle)
 		if subErr != nil {
@@ -251,7 +249,7 @@ func handleReportParallelExecutionPlan(ctx context.Context, params map[string]in
 		return nil, fmt.Errorf("failed to find project root: %w", err)
 	}
 
-	planTitle, _ := params["plan_title"].(string)
+	planTitle := cast.ToString(params["plan_title"])
 	if planTitle == "" {
 		if info, err := getProjectInfo(projectRoot); err == nil {
 			if name, ok := info["name"].(string); ok && name != "" {
@@ -264,7 +262,7 @@ func handleReportParallelExecutionPlan(ctx context.Context, params map[string]in
 		}
 	}
 
-	outputPath, _ := params["output_path"].(string)
+	outputPath := cast.ToString(params["output_path"])
 	if outputPath == "" {
 		outputPath = filepath.Join(projectRoot, ".cursor", "plans", "parallel-execution-subagents.plan.md")
 	}
@@ -300,7 +298,7 @@ func handleReportUpdateWavesFromPlan(ctx context.Context, params map[string]inte
 		return nil, fmt.Errorf("failed to find project root: %w", err)
 	}
 
-	planPath, _ := params["plan_path"].(string)
+	planPath := cast.ToString(params["plan_path"])
 	if planPath == "" {
 		planPath = filepath.Join(projectRoot, DefaultPlanWavesPath)
 	}
@@ -423,8 +421,8 @@ func handleReportScorecardPlans(ctx context.Context, params map[string]interface
 	}
 
 	fastMode := true
-	if v, ok := params["fast_mode"].(bool); ok {
-		fastMode = v
+	if _, has := params["fast_mode"]; has {
+		fastMode = cast.ToBool(params["fast_mode"])
 	}
 
 	opts := &ScorecardOptions{FastMode: fastMode}

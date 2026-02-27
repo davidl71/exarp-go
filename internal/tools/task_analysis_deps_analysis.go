@@ -72,7 +72,8 @@ func handleTaskAnalysisComplexity(ctx context.Context, params map[string]interfa
 		"total":           len(classifications),
 	}
 
-	outputPath, _ := params["output_path"].(string)
+	projectRoot, _ := FindProjectRoot()
+	outputPath := DefaultReportOutputPath(projectRoot, "TASK_ANALYSIS_COMPLEXITY.json", params)
 	resultJSON, _ := json.Marshal(result)
 	resp := &proto.TaskAnalysisResponse{Action: "complexity", OutputPath: outputPath, ResultJson: string(resultJSON)}
 
@@ -119,7 +120,8 @@ func handleTaskAnalysisParallelization(ctx context.Context, params map[string]in
 	// Include human-readable report in JSON for CLI/consumers
 	result["report"] = formatParallelizationAnalysisText(result)
 
-	outputPath, _ := params["output_path"].(string)
+	projectRoot, _ := FindProjectRoot()
+	outputPath := DefaultReportOutputPath(projectRoot, "TASK_ANALYSIS_PARALLELIZATION.md", params)
 	if outputFormat == "json" {
 		if outputPath != "" {
 			if err := os.MkdirAll(filepath.Dir(outputPath), 0755); err != nil {
@@ -352,7 +354,8 @@ func handleTaskAnalysisNoise(ctx context.Context, params map[string]interface{})
 		"noise_candidates": noiseCandidates,
 	}
 
-	outputPath, _ := params["output_path"].(string)
+	projectRoot, _ := FindProjectRoot()
+	outputPath := DefaultReportOutputPath(projectRoot, "TASK_ANALYSIS_NOISE.json", params)
 	resultJSON, _ := json.Marshal(result)
 	resp := &proto.TaskAnalysisResponse{Action: "noise", OutputPath: outputPath, ResultJson: string(resultJSON)}
 

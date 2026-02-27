@@ -19,38 +19,37 @@ import (
 func handleTaskWorkflowApprove(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	// Extract parameters
 	status := models.StatusReview
-	if s, ok := params["status"].(string); ok && s != "" {
-		status = normalizeStatus(s)
+	if v, ok := params["status"]; ok && cast.ToString(v) != "" {
+		status = normalizeStatus(cast.ToString(v))
 	}
 
 	newStatus := models.StatusTodo
-	if s, ok := params["new_status"].(string); ok && s != "" {
-		newStatus = normalizeStatus(s)
+	if v, ok := params["new_status"]; ok && cast.ToString(v) != "" {
+		newStatus = normalizeStatus(cast.ToString(v))
 	}
 
 	// Default false: include all matching tasks (including short/empty descriptions)
 	clarificationNone := false
-	if cn, ok := params["clarification_none"].(bool); ok {
-		clarificationNone = cn
+	if _, ok := params["clarification_none"]; ok {
+		clarificationNone = cast.ToBool(params["clarification_none"])
 	}
 
 	var filterTag string
-	if tag, ok := params["filter_tag"].(string); ok {
-		filterTag = tag
+	if v, ok := params["filter_tag"]; ok {
+		filterTag = cast.ToString(v)
 	}
 
 	taskIDs := ParseTaskIDsFromParams(params)
 
 	dryRun := false
-	if dr, ok := params["dry_run"].(bool); ok {
-		dryRun = dr
+	if _, ok := params["dry_run"]; ok {
+		dryRun = cast.ToBool(params["dry_run"])
 	}
 
 	// Optional MCP Elicitation: confirm batch approve when confirm_via_elicitation is true.
-	// Use a timeout so elicitation never blocks indefinitely.
 	const elicitationTimeout = 15 * time.Second
 
-	if confirm, _ := params["confirm_via_elicitation"].(bool); confirm {
+	if cast.ToBool(params["confirm_via_elicitation"]) {
 		if eliciter := framework.EliciterFromContext(ctx); eliciter != nil {
 			schema := map[string]interface{}{
 				"type": "object",
@@ -185,7 +184,7 @@ func parseTagsFromParams(params map[string]interface{}) []string {
 				tags = append(tags, strings.TrimSpace(tagStr))
 			}
 		}
-	} else if tStr, ok := params["tags"].(string); ok && tStr != "" {
+	} else if tStr := cast.ToString(params["tags"]); tStr != "" {
 		for _, tag := range strings.Split(tStr, ",") {
 			if trimmed := strings.TrimSpace(tag); trimmed != "" {
 				tags = append(tags, trimmed)
@@ -206,7 +205,7 @@ func parseRemoveTagsFromParams(params map[string]interface{}) []string {
 				tags = append(tags, strings.TrimSpace(tagStr))
 			}
 		}
-	} else if tStr, ok := params["remove_tags"].(string); ok && tStr != "" {
+	} else if tStr := cast.ToString(params["remove_tags"]); tStr != "" {
 		for _, tag := range strings.Split(tStr, ",") {
 			if trimmed := strings.TrimSpace(tag); trimmed != "" {
 				tags = append(tags, trimmed)
@@ -226,7 +225,7 @@ func parseRecommendedToolsFromParams(params map[string]interface{}) []string {
 				tools = append(tools, strings.TrimSpace(s))
 			}
 		}
-	} else if tStr, ok := params["recommended_tools"].(string); ok && tStr != "" {
+	} else if tStr := cast.ToString(params["recommended_tools"]); tStr != "" {
 		for _, s := range strings.Split(tStr, ",") {
 			if trimmed := strings.TrimSpace(s); trimmed != "" {
 				tools = append(tools, trimmed)
@@ -250,7 +249,7 @@ func parseDependenciesFromParams(params map[string]interface{}) []string {
 		return deps
 	}
 
-	if dStr, ok := params["dependencies"].(string); ok && dStr != "" {
+	if dStr := cast.ToString(params["dependencies"]); dStr != "" {
 		var deps []string
 
 		for _, dep := range strings.Split(dStr, ",") {
@@ -279,12 +278,12 @@ func handleTaskWorkflowUpdate(ctx context.Context, params map[string]interface{}
 		return nil, fmt.Errorf("failed to get task store: %w", err)
 	}
 
-	newStatus, _ := params["new_status"].(string)
+	newStatus := cast.ToString(params["new_status"])
 	if newStatus != "" {
 		newStatus = normalizeStatus(newStatus)
 	}
 
-	priority, _ := params["priority"].(string)
+	priority := cast.ToString(params["priority"])
 	if priority != "" {
 		priority = normalizePriority(priority)
 	}
@@ -410,8 +409,8 @@ func handleTaskWorkflowUpdate(ctx context.Context, params map[string]interface{}
 		}
 
 		// Update preferred local AI backend if provided
-		if backend, ok := params["local_ai_backend"].(string); ok && backend != "" {
-			backend = strings.TrimSpace(strings.ToLower(backend))
+		if hasLocalAIBackend {
+			backend := strings.TrimSpace(strings.ToLower(localAIBackend))
 			if backend == "fm" || backend == "mlx" || backend == "ollama" {
 				if task.Metadata == nil {
 					task.Metadata = make(map[string]interface{})
@@ -499,26 +498,24 @@ func handleTaskWorkflowList(ctx context.Context, params map[string]interface{}) 
 
 	var limit int
 
-	if s, ok := params["status"].(string); ok {
-		status = s
+	if v, ok := params["status"]; ok {
+		status = cast.ToString(v)
 	}
 
-	if p, ok := params["priority"].(string); ok {
-		priority = p
+	if v, ok := params["priority"]; ok {
+		priority = cast.ToString(v)
 	}
 
-	if tag, ok := params["filter_tag"].(string); ok {
-		filterTag = tag
+	if v, ok := params["filter_tag"]; ok {
+		filterTag = cast.ToString(v)
 	}
 
-	if tid, ok := params["task_id"].(string); ok {
-		taskID = tid
+	if v, ok := params["task_id"]; ok {
+		taskID = cast.ToString(v)
 	}
 
-	if l, ok := params["limit"].(float64); ok {
-		limit = int(l)
-	} else if l, ok := params["limit"].(int); ok {
-		limit = l
+	if l, ok := params["limit"]; ok {
+		limit = cast.ToInt(l)
 	}
 
 	// Default to open tasks only (Todo + In Progress) when no status filter is given

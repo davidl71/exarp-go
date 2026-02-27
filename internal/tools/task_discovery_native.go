@@ -10,6 +10,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/davidl71/exarp-go/internal/framework"
+	"github.com/spf13/cast"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -31,15 +32,15 @@ const fmDiscoveryTimeout = 10 * time.Second
 // ─── handleTaskDiscoveryNative ──────────────────────────────────────────────
 // handleTaskDiscoveryNative handles task_discovery with native Go and Apple FM.
 func handleTaskDiscoveryNative(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
-	action, _ := params["action"].(string)
+	action := cast.ToString(params["action"])
 	if action == "" {
 		action = "all"
 	}
 
 	// Use default FM for semantic extraction when available (can be explicitly disabled via params["use_llm"]).
 	useAppleFM := FMAvailable()
-	if useLLM, ok := params["use_llm"].(bool); ok {
-		useAppleFM = useAppleFM && useLLM
+	if _, has := params["use_llm"]; has {
+		useAppleFM = useAppleFM && cast.ToBool(params["use_llm"])
 	}
 
 	projectRoot, err := FindProjectRoot()
@@ -53,7 +54,7 @@ func handleTaskDiscoveryNative(ctx context.Context, params map[string]interface{
 	if action == "comments" || action == "all" {
 		filePatterns := []string{"**/*.go", "**/*.py", "**/*.js", "**/*.ts"}
 
-		if patterns, ok := params["file_patterns"].(string); ok && patterns != "" {
+		if patterns := cast.ToString(params["file_patterns"]); patterns != "" {
 			var parsed []string
 			if err := json.Unmarshal([]byte(patterns), &parsed); err == nil {
 				filePatterns = parsed
@@ -61,8 +62,8 @@ func handleTaskDiscoveryNative(ctx context.Context, params map[string]interface{
 		}
 
 		includeFIXME := true
-		if inc, ok := params["include_fixme"].(bool); ok {
-			includeFIXME = inc
+		if _, has := params["include_fixme"]; has {
+			includeFIXME = cast.ToBool(params["include_fixme"])
 		}
 
 		commentTasks := scanComments(ctx, projectRoot, filePatterns, includeFIXME, useAppleFM)
@@ -71,10 +72,7 @@ func handleTaskDiscoveryNative(ctx context.Context, params map[string]interface{
 
 	// Scan markdown
 	if action == "markdown" || action == "all" {
-		docPath := ""
-		if path, ok := params["doc_path"].(string); ok {
-			docPath = path
-		}
+		docPath := cast.ToString(params["doc_path"])
 
 		markdownTasks := scanMarkdown(projectRoot, docPath)
 		discoveries = append(discoveries, markdownTasks...)
@@ -88,10 +86,7 @@ func handleTaskDiscoveryNative(ctx context.Context, params map[string]interface{
 
 	// Scan git repository for JSON files
 	if action == "git_json" || action == "all" {
-		jsonPattern := ""
-		if pattern, ok := params["json_pattern"].(string); ok && pattern != "" {
-			jsonPattern = pattern
-		}
+		jsonPattern := cast.ToString(params["json_pattern"])
 
 		gitJSONTasks := scanGitJSON(projectRoot, jsonPattern)
 		discoveries = append(discoveries, gitJSONTasks...)
@@ -99,10 +94,7 @@ func handleTaskDiscoveryNative(ctx context.Context, params map[string]interface{
 
 	// Scan planning documents for task/epic links
 	if action == "planning_links" || action == "all" {
-		docPath := ""
-		if path, ok := params["doc_path"].(string); ok {
-			docPath = path
-		}
+		docPath := cast.ToString(params["doc_path"])
 
 		planningLinks := scanPlanningDocs(ctx, projectRoot, docPath, useAppleFM)
 		discoveries = append(discoveries, planningLinks...)
@@ -156,23 +148,22 @@ func handleTaskDiscoveryNative(ctx context.Context, params map[string]interface{
 	}
 
 	// Optionally create tasks if requested (parity with nocgo build)
-	if createTasks, ok := params["create_tasks"].(bool); ok && createTasks {
+	if createTasks := cast.ToBool(params["create_tasks"]); createTasks {
 		createdTasks := createTasksFromDiscoveries(ctx, projectRoot, discoveries)
 		result["tasks_created"] = createdTasks
 	}
 
-	// Optionally write result to output_path
-	if outputPath, ok := params["output_path"].(string); ok && outputPath != "" {
-		fullPath := outputPath
-		if !filepath.IsAbs(fullPath) {
-			fullPath = filepath.Join(projectRoot, fullPath)
-		}
+	// Optionally write result to output_path (default docs/task_discovery_report.json when not set)
+	outputPath := DefaultReportOutputPath(projectRoot, "task_discovery_report.json", params)
+	fullPath := outputPath
+	if !filepath.IsAbs(fullPath) {
+		fullPath = filepath.Join(projectRoot, fullPath)
+	}
 
-		if err := os.MkdirAll(filepath.Dir(fullPath), 0755); err == nil {
-			raw, _ := json.MarshalIndent(result, "", "  ")
-			if err := os.WriteFile(fullPath, raw, 0644); err == nil {
-				result["report_path"] = fullPath
-			}
+	if err := os.MkdirAll(filepath.Dir(fullPath), 0755); err == nil {
+		raw, _ := json.MarshalIndent(result, "", "  ")
+		if err := os.WriteFile(fullPath, raw, 0644); err == nil {
+			result["report_path"] = fullPath
 		}
 	}
 

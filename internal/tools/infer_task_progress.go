@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/davidl71/exarp-go/internal/config"
 	"github.com/davidl71/exarp-go/internal/database"
 	"github.com/davidl71/exarp-go/internal/framework"
 	"github.com/davidl71/exarp-go/proto"
@@ -320,7 +321,9 @@ func enhanceWithFM(ctx context.Context, tasks []Todo2Task, scored []InferredResu
 		prompt := buildFMCompletionPrompt(task, evidence)
 		model := DefaultModelRouter.SelectModel("general", ModelRequirements{})
 
-		resp, err := DefaultModelRouter.Generate(ctx, model, prompt, 300, 0.2)
+		genCtx, genCancel := context.WithTimeout(ctx, config.OllamaGenerateTimeout())
+		resp, err := DefaultModelRouter.Generate(genCtx, model, prompt, 300, 0.2)
+		genCancel()
 		if err != nil {
 			continue
 		}
