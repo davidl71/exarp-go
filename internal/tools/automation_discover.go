@@ -8,6 +8,7 @@ import (
 	"github.com/davidl71/exarp-go/internal/config"
 	"github.com/davidl71/exarp-go/internal/database"
 	"github.com/davidl71/exarp-go/internal/framework"
+	"github.com/spf13/cast"
 	"sync"
 	"time"
 )
@@ -21,18 +22,16 @@ func handleAutomationDiscover(ctx context.Context, params map[string]interface{}
 	}
 
 	// Get optional parameters
-	if minValueScore, ok := params["min_value_score"].(float64); ok {
-		// Note: task_discovery doesn't have min_value_score, but we can filter results
-		// For now, just pass it through (might be used for filtering)
-		taskDiscoveryParams["min_value_score"] = minValueScore
+	if _, has := params["min_value_score"]; has {
+		taskDiscoveryParams["min_value_score"] = cast.ToFloat64(params["min_value_score"])
 	}
 
-	if outputPath, ok := params["output_path"].(string); ok && outputPath != "" {
+	if outputPath := cast.ToString(params["output_path"]); outputPath != "" {
 		taskDiscoveryParams["output_path"] = outputPath
 	}
 
-	if useLLM, ok := params["use_llm"].(bool); ok {
-		taskDiscoveryParams["use_llm"] = useLLM
+	if _, has := params["use_llm"]; has {
+		taskDiscoveryParams["use_llm"] = cast.ToBool(params["use_llm"])
 	}
 
 	// Call task_discovery native handler
