@@ -14,6 +14,7 @@ import (
 	"github.com/davidl71/exarp-go/internal/config"
 	"github.com/davidl71/exarp-go/internal/framework"
 	"github.com/davidl71/exarp-go/proto"
+	"github.com/spf13/cast"
 )
 
 // handleTestingRun handles the run action for testing tool.
@@ -24,18 +25,18 @@ func handleTestingRun(ctx context.Context, params map[string]interface{}) ([]fra
 	}
 
 	testPath := "./..."
-	if path, ok := params["test_path"].(string); ok && path != "" {
+	if path := cast.ToString(params["test_path"]); path != "" {
 		testPath = path
 	}
 
 	verbose := true
-	if v, ok := params["verbose"].(bool); ok {
-		verbose = v
+	if _, has := params["verbose"]; has {
+		verbose = cast.ToBool(params["verbose"])
 	}
 
 	coverage := false
-	if c, ok := params["coverage"].(bool); ok {
-		coverage = c
+	if _, has := params["coverage"]; has {
+		coverage = cast.ToBool(params["coverage"])
 	}
 
 	if !IsGoProject() {
@@ -59,19 +60,16 @@ func handleTestingCoverage(ctx context.Context, params map[string]interface{}) (
 		return nil, fmt.Errorf("failed to find project root: %w", err)
 	}
 
-	coverageFile := ""
-	if file, ok := params["coverage_file"].(string); ok && file != "" {
-		coverageFile = file
-	}
+	coverageFile := cast.ToString(params["coverage_file"])
 
 	// Use config default, allow override from params
 	minCoverage := config.MinCoverage()
-	if min, ok := params["min_coverage"].(float64); ok {
-		minCoverage = int(min)
+	if _, has := params["min_coverage"]; has {
+		minCoverage = int(cast.ToFloat64(params["min_coverage"]))
 	}
 
 	format := "html"
-	if f, ok := params["format"].(string); ok && f != "" {
+	if f := cast.ToString(params["format"]); f != "" {
 		format = f
 	}
 
@@ -97,12 +95,12 @@ func handleTestingValidate(ctx context.Context, params map[string]interface{}) (
 	}
 
 	testPath := "./..."
-	if path, ok := params["test_path"].(string); ok && path != "" {
+	if path := cast.ToString(params["test_path"]); path != "" {
 		testPath = path
 	}
 
 	testFramework := "auto"
-	if f, ok := params["framework"].(string); ok && f != "" {
+	if f := cast.ToString(params["framework"]); f != "" {
 		testFramework = f
 	}
 

@@ -27,8 +27,8 @@ import (
 // handleTaskWorkflowFixEmptyDescriptions sets long_description from content for tasks with empty long_description, then syncs to JSON.
 func handleTaskWorkflowFixEmptyDescriptions(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	dryRun := false
-	if dr, ok := params["dry_run"].(bool); ok {
-		dryRun = dr
+	if _, has := params["dry_run"]; has {
+		dryRun = cast.ToBool(params["dry_run"])
 	}
 
 	if db, err := database.GetDB(); err == nil && db != nil {
