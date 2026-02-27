@@ -5,7 +5,8 @@
       "args": [],
       "env": {
         "PROJECT_ROOT": "{{PROJECT_ROOT}}"
-      }
+      },
+      "description": "Exarp project automation — tools, prompts, and resources (Todo2, scorecard, lint, report)"
     }
   }
 }

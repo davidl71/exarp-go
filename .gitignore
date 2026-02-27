@@ -3,6 +3,7 @@
 .cursor/rules/todo2.mdc
 .cursor/mcp.json
 .cursor/mcp.json.backup*
+# .cursor/exarp-go-mcp-debug.log — temporarily allow reading for debugging (re-add to ignore when done)
 .cursor/plans/
 .todo2/
 .todo2/state.todo2.json

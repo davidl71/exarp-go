@@ -315,6 +315,20 @@ func (s *Server) RegisterTool(name string, handler ToolHandler) error {
 
 ## Dependencies Management
 
+### Project root resolution (Find vs Fallback)
+
+**When to use `FindProjectRoot()`:**
+- Tool handlers, resources, and MCP entry points that **require** a valid exarp project root (e.g. paths to `.todo2`, `.exarp`, `docs/`).
+- When failure to resolve root should be an error (e.g. report, task_workflow, scorecard).
+- Uses: `PROJECT_ROOT` env (if set and not placeholder), else walk up from cwd for `.exarp` or `.todo2`.
+
+**When to use `GetProjectRootWithFallback()`:**
+- Best-effort root for state paths or optional file writes (e.g. default output path when no root is acceptable).
+- When you need a path and can tolerate cwd if no marker is found (e.g. some report defaults).
+- Returns: `FindProjectRoot()` result, else `PROJECT_ROOT` env, else `os.Getwd()`; only errors if `Getwd()` fails.
+
+**Rule of thumb:** Prefer `FindProjectRoot()` for tools that read/write project state; use `GetProjectRootWithFallback()` when a best-effort path is enough and you don’t want to fail when outside a marked project.
+
 ### Go Modules
 - **Use go.mod** for dependency management
 - **Pin versions** for production dependencies

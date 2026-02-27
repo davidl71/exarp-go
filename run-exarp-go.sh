@@ -22,9 +22,20 @@ PROJECT_ROOT="${PROJECT_ROOT:-$SCRIPT_DIR}"
 BINARY_NAME="exarp-go"
 BINARY_PATH="$PROJECT_ROOT/bin/$BINARY_NAME"
 
+# Optional: log script errors to file for debugging (e.g. Cursor MCP). Set EXARP_DEBUG_LOG=1 in env.
+if [[ "${EXARP_DEBUG_LOG:-0}" == "1" ]] && [[ -n "$PROJECT_ROOT" ]]; then
+    EXARP_DEBUG_FILE="${PROJECT_ROOT}/.cursor/exarp-go-mcp-debug.log"
+    exec 2> >(tee -a "$EXARP_DEBUG_FILE" >&2)
+fi
+
 # Watch mode (disable via EXARP_WATCH=0 environment variable)
-# Default: enabled for automatic rebuilds during development
-WATCH_MODE="${EXARP_WATCH:-1}"
+# When stdin is not a TTY (e.g. Cursor MCP pipe), force single-run to avoid any
+# script output or background watcher that could break the JSON-RPC stream.
+if [[ ! -t 0 ]]; then
+    WATCH_MODE=0
+else
+    WATCH_MODE="${EXARP_WATCH:-1}"
+fi
 
 # Directories to watch
 WATCH_DIRS=(
@@ -57,14 +68,19 @@ needs_rebuild() {
             # Linux format
             newest_source=$(find "$PROJECT_ROOT/cmd" "$PROJECT_ROOT/internal" "$PROJECT_ROOT/bridge" \
                 -name "*.go" -type f -exec stat -c %Y {} \; 2>/dev/null |
-                sort -n | tail -1 || echo 0)
+                sort -n | tail -1 | head -1 || echo 0)
         elif stat -f %m /dev/null >/dev/null 2>&1; then
             # macOS format
             newest_source=$(find "$PROJECT_ROOT/cmd" "$PROJECT_ROOT/internal" "$PROJECT_ROOT/bridge" \
                 -name "*.go" -type f -exec stat -f %m {} \; 2>/dev/null |
-                sort -n | tail -1 || echo 0)
+                sort -n | tail -1 | head -1 || echo 0)
         fi
     fi
+    # Ensure single integer (avoid "syntax error" from newlines or empty)
+    newest_source=${newest_source:-0}
+    [[ "$newest_source" =~ ^[0-9]+$ ]] || newest_source=0
+    binary_time=${binary_time:-0}
+    [[ "$binary_time" =~ ^[0-9]+$ ]] || binary_time=0
 
     if [[ "${newest_source:-0}" -gt "${binary_time:-0}" ]]; then
         return 0 # Needs build
@@ -203,14 +219,16 @@ watch_polling() {
         if stat -c %Y /dev/null >/dev/null 2>&1; then
             # Linux format
             current_check=$(find "$PROJECT_ROOT/cmd" "$PROJECT_ROOT/internal" "$PROJECT_ROOT/bridge" \
-                -name "*.go" -o -name "*.py" -type f \
-                -exec stat -c %Y {} \; 2>/dev/null | sort -n | tail -1 || echo "0")
+                \( -name "*.go" -o -name "*.py" \) -type f \
+                -exec stat -c %Y {} \; 2>/dev/null | sort -n | tail -1 | head -1 || echo "0")
         elif stat -f %m /dev/null >/dev/null 2>&1; then
             # macOS format
             current_check=$(find "$PROJECT_ROOT/cmd" "$PROJECT_ROOT/internal" "$PROJECT_ROOT/bridge" \
-                -name "*.go" -o -name "*.py" -type f \
-                -exec stat -f %m {} \; 2>/dev/null | sort -n | tail -1 || echo "0")
+                \( -name "*.go" -o -name "*.py" \) -type f \
+                -exec stat -f %m {} \; 2>/dev/null | sort -n | tail -1 | head -1 || echo "0")
         fi
+        [[ "$current_check" =~ ^[0-9]+$ ]] || current_check=0
+        [[ "$last_check" =~ ^[0-9]+$ ]] || last_check=0
 
         if [[ "${current_check:-0}" -gt "${last_check:-0}" ]] && [[ "${last_check:-0}" -gt 0 ]]; then
             echo "[WATCH] File change detected" >&2
@@ -256,10 +274,22 @@ main() {
     # Change to project root
     cd "$PROJECT_ROOT"
 
-    # Build if needed
-    if needs_rebuild; then
+    # Build if needed (required only when binary missing)
+    local need_build=0
+    if [[ ! -f "$BINARY_PATH" ]]; then
+        need_build=1
+    elif needs_rebuild; then
+        need_build=1
+    fi
+
+    if [[ "$need_build" -eq 1 ]]; then
         if ! build; then
-            exit 1
+            # If binary exists (e.g. rebuild failed), still run it so MCP can load
+            if [[ ! -f "$BINARY_PATH" ]]; then
+                echo "[BUILD] ❌ No binary and build failed - cannot start server" >&2
+                exit 1
+            fi
+            echo "[BUILD] ⚠️  Rebuild failed, running existing binary" >&2
         fi
     fi
 
