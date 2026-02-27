@@ -24,8 +24,8 @@ type Todo2State = models.Todo2State
 
 // LoadTodo2Tasks loads tasks from database (preferred) or .todo2/state.todo2.json (fallback).
 func LoadTodo2Tasks(projectRoot string) ([]Todo2Task, error) {
-	// Try database first
-	if tasks, err := loadTodo2TasksFromDB(); err == nil {
+	// Try database first (scoped to project when projectRoot is set)
+	if tasks, err := loadTodo2TasksFromDB(projectRoot); err == nil {
 		return tasks, nil
 	}
 
@@ -55,6 +55,15 @@ func loadTodo2TasksFromJSON(projectRoot string) ([]Todo2Task, error) {
 		return nil, err
 	}
 
+	projectID := filepath.Base(projectRoot)
+	if projectID != "" && projectID != "." {
+		for i := range tasks {
+			if tasks[i].ProjectID == "" {
+				tasks[i].ProjectID = projectID
+			}
+		}
+	}
+
 	for i := range tasks {
 		models.EnsureContentHash(&tasks[i])
 	}
@@ -67,7 +76,7 @@ func loadTodo2TasksFromJSON(projectRoot string) ([]Todo2Task, error) {
 // (avoids merge/sync reintroducing removed tasks from stale JSON).
 func SaveTodo2Tasks(projectRoot string, tasks []Todo2Task) error {
 	// Try database first
-	if err := saveTodo2TasksToDB(tasks); err == nil {
+	if err := saveTodo2TasksToDB(projectRoot, tasks); err == nil {
 		// Keep JSON in sync so a later sync does not reintroduce removed tasks (e.g. after merge)
 		if jsonErr := saveTodo2TasksToJSON(projectRoot, tasks); jsonErr != nil {
 			return fmt.Errorf("database saved but JSON write failed: %w", jsonErr)
@@ -134,8 +143,8 @@ func GetProjectRootWithFallback() (string, error) {
 // It loads from both sources, merges them (database takes precedence for conflicts),
 // and saves to both to ensure consistency.
 func SyncTodo2Tasks(projectRoot string) error {
-	// Load from both sources
-	dbTasksLoaded, dbErr := loadTodo2TasksFromDB()
+	// Load from both sources (DB scoped to current project)
+	dbTasksLoaded, dbErr := loadTodo2TasksFromDB(projectRoot)
 	jsonTasksLoaded, _ := loadTodo2TasksFromJSON(projectRoot)
 
 	// Detect content hash conflicts (same ID, different content in DB vs JSON)
@@ -180,7 +189,11 @@ func SyncTodo2Tasks(projectRoot string) error {
 	}
 
 	// Filter out AUTO-* tasks for database (keep them in JSON only)
-	// AUTO-* tasks are automated/system tasks that don't need to be in database
+	// Also only persist current project's tasks to DB so multiple projects don't clobber.
+	projectID := filepath.Base(projectRoot)
+	if projectID == "" || projectID == "." {
+		projectID = "default"
+	}
 	dbTasksToSave := make([]Todo2Task, 0, len(mergedTasks))
 	jsonTasksForSave := make([]Todo2Task, 0, len(mergedTasks))
 
@@ -189,8 +202,10 @@ func SyncTodo2Tasks(projectRoot string) error {
 			// Skip AUTO-* tasks for database, but keep in JSON
 			jsonTasksForSave = append(jsonTasksForSave, task)
 		} else {
-			// Regular tasks go to both
-			dbTasksToSave = append(dbTasksToSave, task)
+			// Only write current project's tasks to DB
+			if task.ProjectID == "" || task.ProjectID == projectID {
+				dbTasksToSave = append(dbTasksToSave, task)
+			}
 			jsonTasksForSave = append(jsonTasksForSave, task)
 		}
 	}
@@ -207,7 +222,7 @@ func SyncTodo2Tasks(projectRoot string) error {
 			fmt.Fprintf(os.Stderr, "Warning: Failed to cleanup AUTO tasks from database: %v\n", err)
 		}
 
-		dbSaveErr = saveTodo2TasksToDB(dbTasksToSave)
+		dbSaveErr = saveTodo2TasksToDB(projectRoot, dbTasksToSave)
 		if dbSaveErr != nil {
 			// Database save had errors - log but continue
 			// The error message includes details about which tasks failed
