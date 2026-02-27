@@ -64,6 +64,11 @@ func handleReportOverview(ctx context.Context, params map[string]interface{}) ([
 
 	// Save to file if requested
 	if outputPath != "" {
+		if dir := filepath.Dir(outputPath); dir != "." {
+			if err := os.MkdirAll(dir, 0755); err != nil {
+				return nil, fmt.Errorf("failed to create output directory: %w", err)
+			}
+		}
 		if err := os.WriteFile(outputPath, []byte(formattedOutput), 0644); err != nil {
 			return nil, fmt.Errorf("failed to write output file: %w", err)
 		}
@@ -146,6 +151,11 @@ func handleReportPRD(ctx context.Context, params map[string]interface{}) ([]fram
 
 	// Save to file if requested
 	if outputPath != "" {
+		if dir := filepath.Dir(outputPath); dir != "." {
+			if err := os.MkdirAll(dir, 0755); err != nil {
+				return nil, fmt.Errorf("failed to create output directory: %w", err)
+			}
+		}
 		if err := os.WriteFile(outputPath, []byte(prd), 0644); err != nil {
 			return nil, fmt.Errorf("failed to write PRD file: %w", err)
 		}
