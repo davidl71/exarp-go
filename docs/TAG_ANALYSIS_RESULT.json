@@ -1,0 +1,302 @@
+{
+  "action": "tags",
+  "dry_run": true,
+  "llm_semantic_method": "",
+  "llm_semantic_processed": 0,
+  "match_existing_only": false,
+  "method": "native_go",
+  "output_path": "/Users/dlowes/Projects/exarp-go/docs/TAG_ANALYSIS_RESULT.json",
+  "profile_ms": {
+    "apply_and_cache": 0,
+    "keyword": 0,
+    "llm_batch_avg_ms": 0,
+    "llm_batch_max_ms": 0,
+    "llm_batch_min_ms": 0,
+    "llm_batches": 0,
+    "llm_total": 0,
+    "load_tasks": 0
+  },
+  "recommendations": [
+    {
+      "count": 1,
+      "message": "Tag 'llm' is only used 1 time(s), consider consolidating",
+      "tag": "llm",
+      "type": "consolidate"
+    },
+    {
+      "count": 1,
+      "message": "Tag 'tech-debt' is only used 1 time(s), consider consolidating",
+      "tag": "tech-debt",
+      "type": "consolidate"
+    },
+    {
+      "count": 1,
+      "message": "Tag 'feature' is only used 1 time(s), consider consolidating",
+      "tag": "feature",
+      "type": "consolidate"
+    },
+    {
+      "count": 1,
+      "message": "Tag 'v2' is only used 1 time(s), consider consolidating",
+      "tag": "v2",
+      "type": "consolidate"
+    },
+    {
+      "count": 1,
+      "message": "Tag 'filelock' is only used 1 time(s), consider consolidating",
+      "tag": "filelock",
+      "type": "consolidate"
+    },
+    {
+      "count": 1,
+      "message": "Tag 'integration' is only used 1 time(s), consider consolidating",
+      "tag": "integration",
+      "type": "consolidate"
+    },
+    {
+      "count": 1,
+      "message": "Tag 'errors' is only used 1 time(s), consider consolidating",
+      "tag": "errors",
+      "type": "consolidate"
+    },
+    {
+      "count": 1,
+      "message": "Tag 'response' is only used 1 time(s), consider consolidating",
+      "tag": "response",
+      "type": "consolidate"
+    },
+    {
+      "count": 1,
+      "message": "Tag 'audit' is only used 1 time(s), consider consolidating",
+      "tag": "audit",
+      "type": "consolidate"
+    },
+    {
+      "count": 1,
+      "message": "Tag 'workflow' is only used 1 time(s), consider consolidating",
+      "tag": "workflow",
+      "type": "consolidate"
+    },
+    {
+      "count": 1,
+      "message": "Tag 'epic' is only used 1 time(s), consider consolidating",
+      "tag": "epic",
+      "type": "consolidate"
+    },
+    {
+      "count": 1,
+      "message": "Tag 'database' is only used 1 time(s), consider consolidating",
+      "tag": "database",
+      "type": "consolidate"
+    },
+    {
+      "count": 1,
+      "message": "Tag 'reliability' is only used 1 time(s), consider consolidating",
+      "tag": "reliability",
+      "type": "consolidate"
+    },
+    {
+      "count": 1,
+      "message": "Tag 'todo2' is only used 1 time(s), consider consolidating",
+      "tag": "todo2",
+      "type": "consolidate"
+    }
+  ],
+  "success": true,
+  "tag_analysis": {
+    "inconsistent_tags": {},
+    "tag_frequency": {
+      "architecture": 6,
+      "audit": 1,
+      "cache": 2,
+      "cleanup": 7,
+      "database": 1,
+      "deadcode": 5,
+      "deferred": 2,
+      "docs": 2,
+      "epic": 1,
+      "errors": 1,
+      "feature": 1,
+      "filelock": 1,
+      "framework": 2,
+      "infra": 3,
+      "integration": 1,
+      "llm": 1,
+      "mcp-go-core": 6,
+      "opencode": 3,
+      "performance": 2,
+      "plugin": 3,
+      "quality": 10,
+      "refactor": 9,
+      "reliability": 1,
+      "research": 2,
+      "response": 1,
+      "security": 2,
+      "tech-debt": 1,
+      "testing": 3,
+      "todo2": 1,
+      "v2": 1,
+      "workflow": 1
+    },
+    "tag_suggestions": {
+      "T-1772056718478802000": [
+        "bug",
+        "mcp"
+      ],
+      "T-1772056739613403000": [
+        "mcp"
+      ],
+      "T-1772056740718615000": [
+        "feature",
+        "bug",
+        "mcp"
+      ],
+      "T-1772056740720274000": [
+        "mcp"
+      ],
+      "T-1772056740722069000": [
+        "mcp",
+        "feature",
+        "config"
+      ],
+      "T-1772056740723802000": [
+        "testing",
+        "config",
+        "mcp"
+      ],
+      "T-1772113376012012000": [
+        "bug",
+        "feature"
+      ],
+      "T-1772113376072649000": [
+        "testing"
+      ],
+      "T-1772113376075430000": [
+        "feature",
+        "testing",
+        "database",
+        "config"
+      ],
+      "T-1772113376109471000": [
+        "bug",
+        "config"
+      ],
+      "T-1772113376112151000": [
+        "feature",
+        "refactor"
+      ],
+      "T-1772129738782801000": [
+        "config",
+        "feature"
+      ],
+      "T-1772129743697232000": [
+        "feature"
+      ],
+      "T-1772129748158487000": [
+        "feature"
+      ],
+      "T-1772129756972879000": [
+        "bug"
+      ],
+      "T-1772131185241023000": [
+        "mcp"
+      ],
+      "T-1772134717306182000": [
+        "config",
+        "docs",
+        "feature"
+      ],
+      "T-1772134723803816000": [
+        "docs",
+        "cli",
+        "bug",
+        "feature"
+      ],
+      "T-1772134728403574000": [
+        "feature",
+        "database",
+        "docs"
+      ],
+      "T-1772134733181454000": [
+        "docs"
+      ],
+      "T-1772136648790645000": [
+        "database",
+        "feature"
+      ],
+      "T-1772136656476874000": [
+        "testing",
+        "mcp",
+        "bug",
+        "feature"
+      ],
+      "T-1772136660747168000": [
+        "feature",
+        "docs",
+        "mcp"
+      ],
+      "T-1772136670103125000": [
+        "feature",
+        "mcp"
+      ],
+      "T-1772136673724719000": [
+        "cli",
+        "mcp"
+      ],
+      "T-1772136678618765000": [
+        "mcp",
+        "docs",
+        "feature"
+      ],
+      "T-1772137862028932000": [
+        "feature"
+      ],
+      "T-1772140735013773000": [
+        "feature"
+      ],
+      "T-1772140737468013000": [
+        "security",
+        "testing",
+        "feature"
+      ],
+      "T-1772141897342701000": [
+        "bug",
+        "feature"
+      ],
+      "T-1772143560854762000": [
+        "config"
+      ],
+      "T-1772143562014999000": [
+        "docs",
+        "feature"
+      ],
+      "T-1772143563564620000": [
+        "feature",
+        "config"
+      ],
+      "T-1772145574514688000": [
+        "refactor"
+      ],
+      "T-1772145575571319000": [
+        "feature",
+        "config",
+        "refactor"
+      ],
+      "T-1772145576928133000": [
+        "refactor",
+        "docs"
+      ],
+      "T-1772145580628283000": [
+        "refactor",
+        "docs"
+      ],
+      "T-1772145581512743000": [
+        "refactor"
+      ]
+    },
+    "unused_tags": null
+  },
+  "total_tasks": 43,
+  "use_llm_semantic": false,
+  "use_tiny_tag_model": false
+}

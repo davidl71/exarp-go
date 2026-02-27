@@ -27,6 +27,8 @@ tmp/
 temp/
 *.tmp
 *.log
+# Allow reading MCP debug log for troubleshooting (remove when done)
+!.cursor/exarp-go-mcp-debug.log
 
 # Python
 .venv/
