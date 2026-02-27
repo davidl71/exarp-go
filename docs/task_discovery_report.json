@@ -1,0 +1,2448 @@
+{
+  "action": "all",
+  "ai_enhanced": false,
+  "discoveries": [
+    {
+      "file": "Makefile",
+      "line": 23,
+      "source": "comment",
+      "text": "Taskfile.yml is the preferred task runner. Most make targets have",
+      "type": "NOTE"
+    },
+    {
+      "file": "internal/cli/cli.go",
+      "line": 76,
+      "source": "comment",
+      "text": "Database remains open for the duration of CLI execution",
+      "type": "NOTE"
+    },
+    {
+      "file": "internal/database/config.go",
+      "line": 118,
+      "source": "comment",
+      "text": "database.Config is simpler (Driver, DSN, AutoMigrate)",
+      "type": "NOTE"
+    },
+    {
+      "file": "internal/database/sqlite.go",
+      "line": 26,
+      "source": "comment",
+      "text": "To use centralized config, call InitWithCentralizedConfig instead.",
+      "type": "NOTE"
+    },
+    {
+      "file": "internal/database/sqlite.go",
+      "line": 134,
+      "source": "comment",
+      "text": "Reading the DB pointer is safe without mutex (atomic pointer read)",
+      "type": "NOTE"
+    },
+    {
+      "file": "internal/database/tasks_lock_test.go",
+      "line": 103,
+      "source": "comment",
+      "text": "We can't check assignee/lock_until directly from GetTask since",
+      "type": "NOTE"
+    },
+    {
+      "file": "internal/framework/server_test.go",
+      "line": 9,
+      "source": "comment",
+      "text": "We can't test with fixtures here due to import cycle",
+      "type": "NOTE"
+    },
+    {
+      "file": "internal/resources/handlers.go",
+      "line": 293,
+      "source": "comment",
+      "text": "handleScorecard and memory handlers are implemented in scorecard.go and memories.go",
+      "type": "NOTE"
+    },
+    {
+      "file": "internal/resources/handlers.go",
+      "line": 297,
+      "source": "comment",
+      "text": "handleAllPrompts, handlePromptsByMode, handlePromptsByPersona, handlePromptsByCategory",
+      "type": "NOTE"
+    },
+    {
+      "file": "internal/tools/apple_foundation_test.go",
+      "line": 86,
+      "source": "comment",
+      "text": "This will fail on unsupported platforms or without Swift bridge",
+      "type": "NOTE"
+    },
+    {
+      "file": "internal/tools/handlers.go",
+      "line": 102,
+      "source": "comment",
+      "text": "Basic text search is native; semantic search enhancement can be added later in Go if needed.",
+      "type": "NOTE"
+    },
+    {
+      "file": "internal/tools/handlers.go",
+      "line": 104,
+      "source": "comment",
+      "text": "handleMemoryNative already handles protobuf parsing, so we just pass args through",
+      "type": "NOTE"
+    },
+    {
+      "file": "internal/tools/handlers_ai.go",
+      "line": 252,
+      "source": "comment",
+      "text": "This is acceptable as a special case since GitToolsParams is a struct, not a map",
+      "type": "NOTE"
+    },
+    {
+      "file": "internal/tools/handlers_ai.go",
+      "line": 370,
+      "source": "comment",
+      "text": "Individual tool handlers (handleContextSummarize, handleContextBatch, handlePromptLog,",
+      "type": "NOTE"
+    },
+    {
+      "file": "internal/tools/handlers_ai.go",
+      "line": 520,
+      "source": "comment",
+      "text": "handleServerStatus removed - server_status tool converted to stdio://server/status resource",
+      "type": "NOTE"
+    },
+    {
+      "file": "internal/tools/handlers_ai.go",
+      "line": 523,
+      "source": "comment",
+      "text": "handleDemonstrateElicit and handleInteractiveTaskCreate removed",
+      "type": "NOTE"
+    },
+    {
+      "file": "internal/tools/handlers_test.go",
+      "line": 116,
+      "source": "comment",
+      "text": "The actual handler may not check context, but Python bridge will",
+      "type": "NOTE"
+    },
+    {
+      "file": "internal/tools/handlers_test.go",
+      "line": 124,
+      "source": "comment",
+      "text": "TestHandleServerStatus removed - server_status tool converted to stdio://server/status resource",
+      "type": "NOTE"
+    },
+    {
+      "file": "internal/tools/handlers_test.go",
+      "line": 136,
+      "source": "comment",
+      "text": "\"list\" action converted to stdio://tools and stdio://tools/{category} resources",
+      "type": "NOTE"
+    },
+    {
+      "file": "internal/tools/handlers_test.go",
+      "line": 227,
+      "source": "comment",
+      "text": "TestHandleServerStatusNative removed - server_status tool converted to stdio://server/status resource",
+      "type": "NOTE"
+    },
+    {
+      "file": "internal/tools/health_check.go",
+      "line": 31,
+      "source": "comment",
+      "text": "Some actions provide basic functionality; complex features may fall back to Python bridge.",
+      "type": "NOTE"
+    },
+    {
+      "file": "internal/tools/health_check.go",
+      "line": 376,
+      "source": "comment",
+      "text": "For full documentation analysis (broken links, format validation, etc.),",
+      "type": "NOTE"
+    },
+    {
+      "file": "internal/tools/health_check.go",
+      "line": 380,
+      "source": "comment",
+      "text": "Full report generation would require Python bridge",
+      "type": "NOTE"
+    },
+    {
+      "file": "internal/tools/health_check.go",
+      "line": 384,
+      "source": "comment",
+      "text": "Task creation would require Todo2 integration",
+      "type": "NOTE"
+    },
+    {
+      "file": "internal/tools/health_check.go",
+      "line": 414,
+      "source": "comment",
+      "text": "Full DOD checking requires Todo2 database access",
+      "type": "NOTE"
+    },
+    {
+      "file": "internal/tools/health_check.go",
+      "line": 532,
+      "source": "comment",
+      "text": "Full workflow validation would require YAML parsing",
+      "type": "NOTE"
+    },
+    {
+      "file": "internal/tools/llamacpp_provider.go",
+      "line": 41,
+      "source": "comment",
+      "text": "implement actual generation using go-skynet/go-llama.cpp bindings",
+      "type": "TODO"
+    },
+    {
+      "file": "internal/tools/normalization_test.go",
+      "line": 17,
+      "source": "comment",
+      "text": "variants",
+      "type": "TODO"
+    },
+    {
+      "file": "internal/tools/normalization_test.go",
+      "line": 78,
+      "source": "comment",
+      "text": "variants",
+      "type": "TODO"
+    },
+    {
+      "file": "internal/tools/protobuf_helpers_report.go",
+      "line": 130,
+      "source": "comment",
+      "text": "Currently unused - kept for potential future protobuf-based report processing.",
+      "type": "NOTE"
+    },
+    {
+      "file": "internal/tools/protobuf_helpers_report.go",
+      "line": 231,
+      "source": "comment",
+      "text": "Currently unused - kept for potential future protobuf-based report processing.",
+      "type": "NOTE"
+    },
+    {
+      "file": "internal/tools/protobuf_helpers_tools.go",
+      "line": 123,
+      "source": "comment",
+      "text": "value_threshold and similarity_threshold remain as float64 (they're thresholds, not counts)",
+      "type": "NOTE"
+    },
+    {
+      "file": "internal/tools/protobuf_helpers_tools.go",
+      "line": 273,
+      "source": "comment",
+      "text": "temperature remains as float64 (it's a threshold, not a count)",
+      "type": "NOTE"
+    },
+    {
+      "file": "internal/tools/protobuf_helpers_tools.go",
+      "line": 568,
+      "source": "comment",
+      "text": "min_confidence remains as float64 (it's a threshold, not a count)",
+      "type": "NOTE"
+    },
+    {
+      "file": "internal/tools/protobuf_helpers_tools.go",
+      "line": 607,
+      "source": "comment",
+      "text": "min_value_score remains as float64 (it's a threshold, not a count)",
+      "type": "NOTE"
+    },
+    {
+      "file": "internal/tools/recommend_test.go",
+      "line": 130,
+      "source": "comment",
+      "text": "findBestWorkflowMode and handleRecommendNative are internal functions",
+      "type": "NOTE"
+    },
+    {
+      "file": "internal/tools/registry_misc.go",
+      "line": 165,
+      "source": "comment",
+      "text": "Individual Python bridge tools (context_summarize, context_batch, prompt_log, prompt_analyze,",
+      "type": "NOTE"
+    },
+    {
+      "file": "internal/tools/registry_misc.go",
+      "line": 170,
+      "source": "comment",
+      "text": "list_models tool removed - converted to stdio://models resource",
+      "type": "NOTE"
+    },
+    {
+      "file": "internal/tools/session_assignee.go",
+      "line": 158,
+      "source": "comment",
+      "text": "assignee is stored in tasks_lock table, we'll need to query it",
+      "type": "NOTE"
+    },
+    {
+      "file": "internal/tools/session_handoff.go",
+      "line": 27,
+      "source": "comment",
+      "text": "The action parameter for handoff might be nested - check both",
+      "type": "NOTE"
+    },
+    {
+      "file": "internal/tools/statistics.go",
+      "line": 153,
+      "source": "comment",
+      "text": "Currently uses original O(n log n) approach for all datasets to maintain exact compatibility",
+      "type": "NOTE"
+    },
+    {
+      "file": "internal/tools/statistics_bench_test.go",
+      "line": 27,
+      "source": "comment",
+      "text": "We'll sort in the benchmark to measure sorting overhead",
+      "type": "NOTE"
+    },
+    {
+      "file": "internal/tools/todo2_utils.go",
+      "line": 309,
+      "source": "comment",
+      "text": "This matches Python implementation where only \"todo\" is considered pending.",
+      "type": "NOTE"
+    },
+    {
+      "file": "internal/tools/tool_catalog.go",
+      "line": 302,
+      "source": "comment",
+      "text": "\"list\" action converted to stdio://tools and stdio://tools/{category} resources",
+      "type": "NOTE"
+    },
+    {
+      "file": "server",
+      "line": 18678,
+      "source": "comment",
+      "text": "that it is presently the policy of IANA to assign a single well-known",
+      "type": "NOTE"
+    },
+    {
+      "file": "server",
+      "line": 19134,
+      "source": "comment",
+      "text": "that these are for Kerberos v4, and are unofficial.  Sites running",
+      "type": "NOTE"
+    },
+    {
+      "completed": false,
+      "file": ".cursor/plans/cursor-plan-mode-improvements.plan.md",
+      "source": "markdown",
+      "text": "**Add file/code references to plan milestones** (T-1769980664971)",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": ".cursor/plans/cursor-plan-mode-improvements.plan.md",
+      "source": "markdown",
+      "text": "**Align Scope section with Purpose \u0026 Success Criteria** (T-1769980677401)",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": ".cursor/plans/cursor-plan-mode-improvements.plan.md",
+      "source": "markdown",
+      "text": "**Add tag_hints to generated plan frontmatter** (T-1769980679071)",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": ".cursor/plans/cursor-plan-mode-improvements.plan.md",
+      "source": "markdown",
+      "text": "**Add plan sync from file (Cursor to Todo2)** (T-1769980680612)",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": ".cursor/plans/cursor-plan-mode-improvements.plan.md",
+      "source": "markdown",
+      "text": "**Update existing plans without overwriting hand-edits** (T-1769980682108)",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": ".cursor/plans/cursor-plan-mode-improvements.plan.md",
+      "source": "markdown",
+      "text": "**Update report tool MCP descriptor for plan actions** (T-1769980690895)",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": ".cursor/plans/cursor-plan-mode-improvements.plan.md",
+      "source": "markdown",
+      "text": "**Session prime: suggest Plan Mode for complex tasks** (T-1769980692361)",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": ".cursor/plans/cursor-plan-mode-improvements.plan.md",
+      "source": "markdown",
+      "text": "**Sync plan status back to Todo2 when built** (T-1769980693841)",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": ".cursor/plans/exarp-go.plan.md",
+      "source": "markdown",
+      "text": "**WrapHandler abstraction for 29 tool handlers** (T-1772113376070017000)",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": ".cursor/plans/exarp-go.plan.md",
+      "source": "markdown",
+      "text": "**Split task_workflow_native.go and task_workflow_crud.go** (T-1772113376072649000)",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": ".cursor/plans/exarp-go.plan.md",
+      "source": "markdown",
+      "text": "**Resolve actionable TODOs: config sections merge + DB field** (T-1772113376075430000)",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": ".cursor/plans/exarp-go.plan.md",
+      "source": "markdown",
+      "text": "**Test coverage: critical tool handler files** (T-1772113376012012000)",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": ".cursor/plans/exarp-go.plan.md",
+      "source": "markdown",
+      "text": "**Test coverage: LLM backend providers** (T-1772113376109471000)",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": ".cursor/plans/exarp-go.plan.md",
+      "source": "markdown",
+      "text": "**Archive/cleanup stale docs in docs/** (T-1772113376112151000)",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": ".cursor/plans/exarp-go.plan.md",
+      "source": "markdown",
+      "text": "**Remove deadcode: config getters (33 functions)** (T-1772129738782801000)",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": ".cursor/plans/exarp-go.plan.md",
+      "source": "markdown",
+      "text": "**Remove deadcode: database helpers (24 functions)** (T-1772129743697232000)",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": ".cursor/plans/exarp-go.plan.md",
+      "source": "markdown",
+      "text": "**Remove deadcode: security/access (13+ functions)** (T-1772129748158487000)",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": ".cursor/plans/exarp-go.plan.md",
+      "source": "markdown",
+      "text": "**Remove deadcode: llamacpp + prompt_analyzer (21 functions)** (T-1772129752403115000)",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/AGENT_LOCKING_STRATEGY.md",
+      "source": "markdown",
+      "text": "Add `version`, `assignee`, `assigned_at`, `lock_until` fields to schema",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/AGENT_LOCKING_STRATEGY.md",
+      "source": "markdown",
+      "text": "Create migration script",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/AGENT_LOCKING_STRATEGY.md",
+      "source": "markdown",
+      "text": "Implement `ClaimTaskForAgent()` with SELECT FOR UPDATE",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/AGENT_LOCKING_STRATEGY.md",
+      "source": "markdown",
+      "text": "Implement `ReleaseTask()`",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/AGENT_LOCKING_STRATEGY.md",
+      "source": "markdown",
+      "text": "Update `UpdateTask()` to use version checks",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/AGENT_LOCKING_STRATEGY.md",
+      "source": "markdown",
+      "text": "Add Python wrapper for claim operations",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/AGENT_LOCKING_STRATEGY.md",
+      "source": "markdown",
+      "text": "Implement lease renewal mechanism",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/AGENT_LOCKING_STRATEGY.md",
+      "source": "markdown",
+      "text": "Add dead agent cleanup job",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/AGENT_LOCKING_STRATEGY.md",
+      "source": "markdown",
+      "text": "Update task workflow tools to use atomic claims",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/AGENT_LOCKING_STRATEGY.md",
+      "source": "markdown",
+      "text": "Fine-grained file locking (for Git operations) — **Design (T-78):** see [Git lock](#git-lock-t-78) below",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/AGENT_LOCKING_STRATEGY.md",
+      "source": "markdown",
+      "text": "Agent heartbeat system",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/AGENT_LOCKING_STRATEGY.md",
+      "source": "markdown",
+      "text": "Lock timeout monitoring/alerts",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/AGENT_LOCKING_STRATEGY.md",
+      "source": "markdown",
+      "text": "Performance metrics (lock contention, wait times)",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/APPLE_FOUNDATION_MODELS_ACTIVITY_MONITOR_VERIFICATION.md",
+      "source": "markdown",
+      "text": "GPU History shows activity during API call",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/APPLE_FOUNDATION_MODELS_ACTIVITY_MONITOR_VERIFICATION.md",
+      "source": "markdown",
+      "text": "CPU usage remains relatively low (\u003c50%)",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/APPLE_FOUNDATION_MODELS_ACTIVITY_MONITOR_VERIFICATION.md",
+      "source": "markdown",
+      "text": "API calls complete successfully",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/APPLE_FOUNDATION_MODELS_ACTIVITY_MONITOR_VERIFICATION.md",
+      "source": "markdown",
+      "text": "Response times are reasonable (\u003c5 seconds for simple queries)",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/APPLE_FOUNDATION_MODELS_ACTIVITY_MONITOR_VERIFICATION.md",
+      "source": "markdown",
+      "text": "No errors in server logs",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/CRITICAL_PATH_ANALYSIS.md",
+      "source": "markdown",
+      "text": "Memory system migrated (blocks Phase 4)",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/CRITICAL_PATH_ANALYSIS.md",
+      "source": "markdown",
+      "text": "Session tool migrated (high value)",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/CRITICAL_PATH_ANALYSIS.md",
+      "source": "markdown",
+      "text": "Phase 4 resources migrated (after memory)",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/CRITICAL_PATH_ANALYSIS.md",
+      "source": "markdown",
+      "text": "All critical path items complete",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/CURSOR_BACKGROUND_AGENTS_SETUP.md",
+      "source": "markdown",
+      "text": "Open Settings (Cmd+, / Ctrl+,)",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/CURSOR_BACKGROUND_AGENTS_SETUP.md",
+      "source": "markdown",
+      "text": "Navigate to Beta Features",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/CURSOR_BACKGROUND_AGENTS_SETUP.md",
+      "source": "markdown",
+      "text": "Enable \"Cursor: Background Agents\"",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/CURSOR_BACKGROUND_AGENTS_SETUP.md",
+      "source": "markdown",
+      "text": "Verify Pro plan subscription",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/CURSOR_BACKGROUND_AGENTS_SETUP.md",
+      "source": "markdown",
+      "text": "Restart Cursor",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/CURSOR_BACKGROUND_AGENTS_SETUP.md",
+      "source": "markdown",
+      "text": "Press `Ctrl+E` / `Cmd+E` to open sidebar",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/CURSOR_BACKGROUND_AGENTS_SETUP.md",
+      "source": "markdown",
+      "text": "Verify Background Agents sidebar appears",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/CURSOR_PLUGIN_PLAN.md",
+      "source": "markdown",
+      "text": "Add a short “Cursor Plugin” subsection to README or docs index that links here.",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/CURSOR_PLUGIN_PLAN.md",
+      "source": "markdown",
+      "text": "Optional: bundle 1–2 rules (e.g. task-workflow, session) as part of the plugin.",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/CURSOR_PLUGIN_PLAN.md",
+      "source": "markdown",
+      "text": "Submit plugin to Cursor team for marketplace (per [Building Plugins](https://cursor.com/docs/plugins/building.md)).",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/CURSOR_PLUGIN_PLAN.md",
+      "source": "markdown",
+      "text": "Optional: Add MCP deeplink for one-click install ([MCP install links](https://cursor.com/docs/context/mcp/install-links.md)).",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/CURSOR_PLUGIN_SUBMISSION.md",
+      "source": "markdown",
+      "text": "Plugin manifest: `.cursor-plugin/plugin.json` with `name`, `displayName`, `description`, `version`, `license`, `keywords`",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/CURSOR_PLUGIN_SUBMISSION.md",
+      "source": "markdown",
+      "text": "MCP config: `mcp.json` at repo root with `exarp-go` server entry",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/CURSOR_PLUGIN_SUBMISSION.md",
+      "source": "markdown",
+      "text": "Binary builds: `make build` succeeds; `bin/exarp-go` exists and runs",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/DATABASE_ABSTRACTION.md",
+      "source": "markdown",
+      "text": "Connection pooling configuration",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/DATABASE_ABSTRACTION.md",
+      "source": "markdown",
+      "text": "Read replica support",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/DATABASE_ABSTRACTION.md",
+      "source": "markdown",
+      "text": "Database-specific optimizations",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/DATABASE_ABSTRACTION.md",
+      "source": "markdown",
+      "text": "Migration rollback support",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/DATABASE_ABSTRACTION.md",
+      "source": "markdown",
+      "text": "Database health checks",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/EXTERNAL_TASK_SOURCES.md",
+      "source": "markdown",
+      "text": "Two-way sync with conflict resolution UI",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/EXTERNAL_TASK_SOURCES.md",
+      "source": "markdown",
+      "text": "Scheduled automatic sync",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/EXTERNAL_TASK_SOURCES.md",
+      "source": "markdown",
+      "text": "Webhook support for real-time sync",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/EXTERNAL_TASK_SOURCES.md",
+      "source": "markdown",
+      "text": "Additional sources (Asana, Trello, Jira, etc.)",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/EXTERNAL_TASK_SOURCES.md",
+      "source": "markdown",
+      "text": "Batch operations for better performance",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/EXTERNAL_TASK_SOURCES.md",
+      "source": "markdown",
+      "text": "Sync history and audit log",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/FUTURE_SSE_IMPLEMENTATION.md",
+      "source": "markdown",
+      "text": "Implement SSETransport struct and methods",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/FUTURE_SSE_IMPLEMENTATION.md",
+      "source": "markdown",
+      "text": "Basic HTTP server setup",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/FUTURE_SSE_IMPLEMENTATION.md",
+      "source": "markdown",
+      "text": "SSE connection handling",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/FUTURE_SSE_IMPLEMENTATION.md",
+      "source": "markdown",
+      "text": "Simple message send/receive",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/FUTURE_SSE_IMPLEMENTATION.md",
+      "source": "markdown",
+      "text": "JSON-RPC 2.0 over SSE",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/FUTURE_SSE_IMPLEMENTATION.md",
+      "source": "markdown",
+      "text": "Request/response correlation",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/FUTURE_SSE_IMPLEMENTATION.md",
+      "source": "markdown",
+      "text": "Error handling",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/FUTURE_SSE_IMPLEMENTATION.md",
+      "source": "markdown",
+      "text": "Connection management",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/FUTURE_SSE_IMPLEMENTATION.md",
+      "source": "markdown",
+      "text": "Authentication/authorization",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/FUTURE_SSE_IMPLEMENTATION.md",
+      "source": "markdown",
+      "text": "Rate limiting",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/FUTURE_SSE_IMPLEMENTATION.md",
+      "source": "markdown",
+      "text": "Connection pooling",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/FUTURE_SSE_IMPLEMENTATION.md",
+      "source": "markdown",
+      "text": "Graceful shutdown",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/FUTURE_SSE_IMPLEMENTATION.md",
+      "source": "markdown",
+      "text": "Metrics and monitoring",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/FUTURE_SSE_IMPLEMENTATION.md",
+      "source": "markdown",
+      "text": "Unit tests",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/FUTURE_SSE_IMPLEMENTATION.md",
+      "source": "markdown",
+      "text": "Integration tests",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/FUTURE_SSE_IMPLEMENTATION.md",
+      "source": "markdown",
+      "text": "Load testing",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/FUTURE_SSE_IMPLEMENTATION.md",
+      "source": "markdown",
+      "text": "Documentation",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/FUTURE_SSE_IMPLEMENTATION.md",
+      "source": "markdown",
+      "text": "Example implementations",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/GOTOHUMAN_INTEGRATION_PLAN.md",
+      "source": "markdown",
+      "text": "Load gotoHuman server in Cursor",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/GOTOHUMAN_INTEGRATION_PLAN.md",
+      "source": "markdown",
+      "text": "Discover available gotoHuman tools",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/GOTOHUMAN_INTEGRATION_PLAN.md",
+      "source": "markdown",
+      "text": "Update Todo2 task status based on approval",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/GOTOHUMAN_INTEGRATION_PLAN.md",
+      "source": "markdown",
+      "text": "Add approval history tracking",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/GOTOHUMAN_INTEGRATION_PLAN.md",
+      "source": "markdown",
+      "text": "Add approval timeout handling",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/GOTOHUMAN_INTEGRATION_PLAN.md",
+      "source": "markdown",
+      "text": "Add approval reminders",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/GOTOHUMAN_INTEGRATION_PLAN.md",
+      "source": "markdown",
+      "text": "Add approval delegation",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/GOTOHUMAN_INTEGRATION_PLAN.md",
+      "source": "markdown",
+      "text": "Add approval analytics",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/GOTOHUMAN_INTEGRATION_PLAN.md",
+      "source": "markdown",
+      "text": "Test gotoHuman server loads in Cursor",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/GOTOHUMAN_INTEGRATION_PLAN.md",
+      "source": "markdown",
+      "text": "List available gotoHuman tools",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/GOTOHUMAN_INTEGRATION_PLAN.md",
+      "source": "markdown",
+      "text": "Test sending approval request",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/GOTOHUMAN_INTEGRATION_PLAN.md",
+      "source": "markdown",
+      "text": "Test checking approval status",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/GOTOHUMAN_INTEGRATION_PLAN.md",
+      "source": "markdown",
+      "text": "Test task moves to Review → approval request sent",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/GOTOHUMAN_INTEGRATION_PLAN.md",
+      "source": "markdown",
+      "text": "Test human approves → task moves to Done",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/GOTOHUMAN_INTEGRATION_PLAN.md",
+      "source": "markdown",
+      "text": "Test human rejects → task moves back to In Progress",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/GOTOHUMAN_INTEGRATION_PLAN.md",
+      "source": "markdown",
+      "text": "Test approval timeout handling",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/GOTOHUMAN_INTEGRATION_PLAN.md",
+      "source": "markdown",
+      "text": "Complete workflow: Task → Review → Approval → Done",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/GOTOHUMAN_INTEGRATION_PLAN.md",
+      "source": "markdown",
+      "text": "Multiple concurrent approval requests",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/GOTOHUMAN_INTEGRATION_PLAN.md",
+      "source": "markdown",
+      "text": "Approval cancellation",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/GOTOHUMAN_INTEGRATION_PLAN.md",
+      "source": "markdown",
+      "text": "Approval delegation",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/GOTOHUMAN_TOOLS_DOCUMENTATION.md",
+      "source": "markdown",
+      "text": "List all available forms",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/GOTOHUMAN_TOOLS_DOCUMENTATION.md",
+      "source": "markdown",
+      "text": "Get schema for each form",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/GOTOHUMAN_TOOLS_DOCUMENTATION.md",
+      "source": "markdown",
+      "text": "Test basic approval request",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/GOTOHUMAN_TOOLS_DOCUMENTATION.md",
+      "source": "markdown",
+      "text": "Document form fields and usage",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/GOTOHUMAN_TOOLS_DOCUMENTATION.md",
+      "source": "markdown",
+      "text": "Create approval form mapping",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/GOTOHUMAN_TOOLS_DOCUMENTATION.md",
+      "source": "markdown",
+      "text": "Enhance `task_workflow` tool",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/GOTOHUMAN_TOOLS_DOCUMENTATION.md",
+      "source": "markdown",
+      "text": "Auto-send approval on Review state",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/GOTOHUMAN_TOOLS_DOCUMENTATION.md",
+      "source": "markdown",
+      "text": "Handle approval responses",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/GOTOHUMAN_TOOLS_DOCUMENTATION.md",
+      "source": "markdown",
+      "text": "Approval status checking",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/GOTOHUMAN_TOOLS_DOCUMENTATION.md",
+      "source": "markdown",
+      "text": "Approval timeout handling",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/GOTOHUMAN_TOOLS_DOCUMENTATION.md",
+      "source": "markdown",
+      "text": "Approval history tracking",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/GOTOHUMAN_TOOLS_DOCUMENTATION.md",
+      "source": "markdown",
+      "text": "Approval analytics",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/MCP_CONFIG_VERIFICATION.md",
+      "source": "markdown",
+      "text": "`command` points to `bin/exarp-go` (or equivalent path)",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/MCP_CONFIG_VERIFICATION.md",
+      "source": "markdown",
+      "text": "No `python`, `python3`, `uv run`, or `.py` in command",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/MCP_CONFIG_VERIFICATION.md",
+      "source": "markdown",
+      "text": "`PROJECT_ROOT` set in `env` when using `{{PROJECT_ROOT}}`",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/MCP_CONFIG_VERIFICATION.md",
+      "source": "markdown",
+      "text": "Binary exists and is executable (`chmod +x bin/exarp-go`)",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/MCP_FRAMEWORKS_COMPARISON.md",
+      "source": "markdown",
+      "text": "Set up HTTP server with SSE endpoint",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/MCP_FRAMEWORKS_COMPARISON.md",
+      "source": "markdown",
+      "text": "Configure OAuth if needed",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/MCP_FRAMEWORKS_COMPARISON.md",
+      "source": "markdown",
+      "text": "Use `url` and `transport` in `mcp.json`",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/MCP_FRAMEWORKS_COMPARISON.md",
+      "source": "markdown",
+      "text": "Handle authentication tokens",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/MCP_FRAMEWORKS_COMPARISON.md",
+      "source": "markdown",
+      "text": "Support multiple concurrent connections",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/MCP_GO_CORE_IMPROVEMENTS.md",
+      "source": "markdown",
+      "text": "Review current adapter implementation",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/MCP_GO_CORE_IMPROVEMENTS.md",
+      "source": "markdown",
+      "text": "Identify any local customizations that need preservation",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/MCP_GO_CORE_IMPROVEMENTS.md",
+      "source": "markdown",
+      "text": "Test mcp-go-core adapter compatibility",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/MCP_GO_CORE_IMPROVEMENTS.md",
+      "source": "markdown",
+      "text": "Update `internal/factory/server.go` to use mcp-go-core adapter",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/MCP_GO_CORE_IMPROVEMENTS.md",
+      "source": "markdown",
+      "text": "Add optional logging support",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/MCP_GO_CORE_IMPROVEMENTS.md",
+      "source": "markdown",
+      "text": "Remove local adapter copy (`internal/framework/adapters/gosdk/adapter.go`)",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/MCP_GO_CORE_IMPROVEMENTS.md",
+      "source": "markdown",
+      "text": "Update tests to work with mcp-go-core adapter",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/MCP_GO_CORE_IMPROVEMENTS.md",
+      "source": "markdown",
+      "text": "Verify all tools/prompts/resources still work",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/MCP_GO_CORE_IMPROVEMENTS.md",
+      "source": "markdown",
+      "text": "Update documentation",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/MCP_GO_CORE_IMPROVEMENTS.md",
+      "source": "markdown",
+      "text": "Consider adding middleware for logging/metrics (optional)",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/MODEL_ASSISTED_WORKFLOW.md",
+      "source": "markdown",
+      "text": "Implement task analyzer",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/MODEL_ASSISTED_WORKFLOW.md",
+      "source": "markdown",
+      "text": "Create breakdown prompt templates",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/MODEL_ASSISTED_WORKFLOW.md",
+      "source": "markdown",
+      "text": "Add breakdown result parser",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/MODEL_ASSISTED_WORKFLOW.md",
+      "source": "markdown",
+      "text": "Integrate with Todo2 task creation",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/MODEL_ASSISTED_WORKFLOW.md",
+      "source": "markdown",
+      "text": "Implement task complexity classifier",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/MODEL_ASSISTED_WORKFLOW.md",
+      "source": "markdown",
+      "text": "Implement prompt analyzer",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/MODEL_ASSISTED_WORKFLOW.md",
+      "source": "markdown",
+      "text": "Integrate with task creation workflow",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/MODEL_ASSISTED_WORKFLOW.md",
+      "source": "markdown",
+      "text": "Performance benchmarks",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/MULTI_AGENT_PLAN.md",
+      "source": "markdown",
+      "text": "Create research result aggregator",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/MULTI_AGENT_PLAN.md",
+      "source": "markdown",
+      "text": "Add agent performance tracking",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/MULTI_AGENT_PLAN.md",
+      "source": "markdown",
+      "text": "Design agent pool system",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/MULTI_AGENT_PLAN.md",
+      "source": "markdown",
+      "text": "Implement load balancing",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/OPENAGENTSCONTROL_EXARP_GO_COMBO_PLAN.md",
+      "source": "markdown",
+      "text": "Optional: add `docs/OPENAGENTSCONTROL_EXARP_GO_COMBO_PLAN.md` to vizvibe.mmd as a future or current node.",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/OPENAGENTSCONTROL_EXARP_GO_COMBO_PLAN.md",
+      "source": "markdown",
+      "text": "Verify: run OAC (e.g. `opencode --agent OpenAgent`) in a repo that has exarp-go MCP configured; confirm tools (task list, report) are callable by the agent.",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/OPENAGENTSCONTROL_EXARP_GO_COMBO_PLAN.md",
+      "source": "markdown",
+      "text": "Optional: add OAC to docs that compare tools (e.g. when to use OAC vs exarp-go vs Cursor-only).",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/PHASE_3_EXECUTION_PLAN.md",
+      "source": "markdown",
+      "text": "All 4 remaining actions implemented in native Go",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/PHASE_3_EXECUTION_PLAN.md",
+      "source": "markdown",
+      "text": "Handler routes to native implementation for all actions",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/PHASE_3_EXECUTION_PLAN.md",
+      "source": "markdown",
+      "text": "Python bridge fallback maintained for error cases",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/PHASE_3_EXECUTION_PLAN.md",
+      "source": "markdown",
+      "text": "Unit tests for each action",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/PHASE_3_EXECUTION_PLAN.md",
+      "source": "markdown",
+      "text": "Integration tests via MCP interface",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/PHASE_3_EXECUTION_PLAN.md",
+      "source": "markdown",
+      "text": "`orphans` action implemented in native Go",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/PHASE_3_EXECUTION_PLAN.md",
+      "source": "markdown",
+      "text": "Uses task_analysis for dependency checking",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/PHASE_3_EXECUTION_PLAN.md",
+      "source": "markdown",
+      "text": "Integration tests pass",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/PHASE_3_EXECUTION_PLAN.md",
+      "source": "markdown",
+      "text": "All 3 remaining actions implemented",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/PHASE_3_EXECUTION_PLAN.md",
+      "source": "markdown",
+      "text": "Handler routes to native for all actions",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/PHASE_3_EXECUTION_PLAN.md",
+      "source": "markdown",
+      "text": "Tests pass",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/PHASE_3_EXECUTION_PLAN.md",
+      "source": "markdown",
+      "text": "All partial implementations completed (3A)",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/PHASE_3_EXECUTION_PLAN.md",
+      "source": "markdown",
+      "text": "All medium complexity tools migrated (3B)",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/PHASE_3_EXECUTION_PLAN.md",
+      "source": "markdown",
+      "text": "High complexity tools evaluated and migrated where practical (3C)",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/PHASE_3_EXECUTION_PLAN.md",
+      "source": "markdown",
+      "text": "Automation tool documented as intentional Python bridge retention",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/PHASE_3_EXECUTION_PLAN.md",
+      "source": "markdown",
+      "text": "All migrated tools have tests",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/PHASE_3_EXECUTION_PLAN.md",
+      "source": "markdown",
+      "text": "No regressions in functionality",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/PYTHON_CODE_AUDIT_T50.md",
+      "source": "markdown",
+      "text": "Remove `prompt_tracking` routing from bridge (already returns error)",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/PYTHON_CODE_AUDIT_T50.md",
+      "source": "markdown",
+      "text": "Remove `server_status` routing from bridge (already returns error)",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/PYTHON_CODE_AUDIT_T50.md",
+      "source": "markdown",
+      "text": "Add legacy comments to removed tool implementations",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/PYTHON_CODE_AUDIT_T50.md",
+      "source": "markdown",
+      "text": "Verify Python implementations exist for removed tools",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/PYTHON_CODE_AUDIT_T50.md",
+      "source": "markdown",
+      "text": "Check if removed tools are imported/used elsewhere",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/PYTHON_CODE_AUDIT_T50.md",
+      "source": "markdown",
+      "text": "Verify FastMCP-only tools (`demonstrate_elicit`, `interactive_task_create`) exist",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/PYTHON_CODE_AUDIT_T50.md",
+      "source": "markdown",
+      "text": "Consider removing legacy tool implementations after full migration",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/PYTHON_CODE_AUDIT_T50.md",
+      "source": "markdown",
+      "text": "Document bridge cleanup strategy in migration docs",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/SECURITY_AUDIT.md",
+      "source": "markdown",
+      "text": "Create `internal/security/path.go`",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/SECURITY_AUDIT.md",
+      "source": "markdown",
+      "text": "Implement `ValidatePath()` function",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/SECURITY_AUDIT.md",
+      "source": "markdown",
+      "text": "Update `linting.go` to use path validation",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/SECURITY_AUDIT.md",
+      "source": "markdown",
+      "text": "Update `scorecard_go.go` to use path validation",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/SECURITY_AUDIT.md",
+      "source": "markdown",
+      "text": "Update `bridge/python.go` to use path validation",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/SECURITY_AUDIT.md",
+      "source": "markdown",
+      "text": "Add tests for path boundary enforcement",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/SECURITY_AUDIT.md",
+      "source": "markdown",
+      "text": "Create `internal/security/ratelimit.go`",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/SECURITY_AUDIT.md",
+      "source": "markdown",
+      "text": "Implement sliding window rate limiter",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/SECURITY_AUDIT.md",
+      "source": "markdown",
+      "text": "Configure default limits",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/SECURITY_AUDIT.md",
+      "source": "markdown",
+      "text": "Add per-tool limits",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/SECURITY_AUDIT.md",
+      "source": "markdown",
+      "text": "Add tests for rate limiting",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/SECURITY_AUDIT.md",
+      "source": "markdown",
+      "text": "Design access control model",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/SECURITY_AUDIT.md",
+      "source": "markdown",
+      "text": "Implement permission system",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/SECURITY_AUDIT.md",
+      "source": "markdown",
+      "text": "Add configuration support",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/SECURITY_AUDIT.md",
+      "source": "markdown",
+      "text": "Update tool/resource handlers",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/SECURITY_AUDIT.md",
+      "source": "markdown",
+      "text": "Add audit logging",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/SECURITY_AUDIT.md",
+      "source": "markdown",
+      "text": "Test directory traversal prevention (`../../../etc/passwd`)",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/SECURITY_AUDIT.md",
+      "source": "markdown",
+      "text": "Test symlink handling",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/SECURITY_AUDIT.md",
+      "source": "markdown",
+      "text": "Test absolute paths outside project root",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/SECURITY_AUDIT.md",
+      "source": "markdown",
+      "text": "Test relative paths that escape root",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/SECURITY_AUDIT.md",
+      "source": "markdown",
+      "text": "Test edge cases (empty paths, special characters)",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/SECURITY_AUDIT.md",
+      "source": "markdown",
+      "text": "Test request limit enforcement",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/SECURITY_AUDIT.md",
+      "source": "markdown",
+      "text": "Test sliding window accuracy",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/SECURITY_AUDIT.md",
+      "source": "markdown",
+      "text": "Test per-tool limits",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/SECURITY_AUDIT.md",
+      "source": "markdown",
+      "text": "Test concurrent requests",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/SECURITY_AUDIT.md",
+      "source": "markdown",
+      "text": "Test limit reset behavior",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/SECURITY_AUDIT.md",
+      "source": "markdown",
+      "text": "Test tool access permissions",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/SECURITY_AUDIT.md",
+      "source": "markdown",
+      "text": "Test resource access permissions",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/SECURITY_AUDIT.md",
+      "source": "markdown",
+      "text": "Test deny list functionality",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/SECURITY_AUDIT.md",
+      "source": "markdown",
+      "text": "Test allow list functionality",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/STALE_LOCK_DETECTION_AND_HANDLING.md",
+      "source": "markdown",
+      "text": "CLI command for lock status monitoring",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/STALE_LOCK_DETECTION_AND_HANDLING.md",
+      "source": "markdown",
+      "text": "Lock statistics and metrics",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/STALE_LOCK_DETECTION_AND_HANDLING.md",
+      "source": "markdown",
+      "text": "Alerting system for stale lock patterns",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/STREAM_5_TESTING_VALIDATION.md",
+      "source": "markdown",
+      "text": "Audit all native tool handlers for test coverage",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/STREAM_5_TESTING_VALIDATION.md",
+      "source": "markdown",
+      "text": "Add unit tests for uncovered tools",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/STREAM_5_TESTING_VALIDATION.md",
+      "source": "markdown",
+      "text": "Test hybrid tool fallback mechanisms",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/STREAM_5_TESTING_VALIDATION.md",
+      "source": "markdown",
+      "text": "Test error handling and edge cases",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/STREAM_5_TESTING_VALIDATION.md",
+      "source": "markdown",
+      "text": "Achieve 80%+ coverage for native implementations",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/STREAM_5_TESTING_VALIDATION.md",
+      "source": "markdown",
+      "text": "Implement `test_server_initialization()` - Spawn server, verify startup",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/STREAM_5_TESTING_VALIDATION.md",
+      "source": "markdown",
+      "text": "Implement `test_all_tools_available()` - Verify all 28-29 tools registered",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/STREAM_5_TESTING_VALIDATION.md",
+      "source": "markdown",
+      "text": "Implement `test_all_prompts_available()` - Verify all 18 prompts registered",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/STREAM_5_TESTING_VALIDATION.md",
+      "source": "markdown",
+      "text": "Implement `test_all_resources_available()` - Verify all 21 resources registered",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/STREAM_5_TESTING_VALIDATION.md",
+      "source": "markdown",
+      "text": "Implement `test_tool_invocation_via_stdio()` - Test tool execution",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/STREAM_5_TESTING_VALIDATION.md",
+      "source": "markdown",
+      "text": "Implement `test_error_responses()` - Test error handling",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/STREAM_5_TESTING_VALIDATION.md",
+      "source": "markdown",
+      "text": "Implement `test_batch_requests()` - Test batch operations",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/STREAM_5_TESTING_VALIDATION.md",
+      "source": "markdown",
+      "text": "Create `tests/performance/` directory",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/STREAM_5_TESTING_VALIDATION.md",
+      "source": "markdown",
+      "text": "Add benchmarks for all native tool handlers",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/STREAM_5_TESTING_VALIDATION.md",
+      "source": "markdown",
+      "text": "Compare native vs Python bridge performance (where applicable)",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/STREAM_5_TESTING_VALIDATION.md",
+      "source": "markdown",
+      "text": "Document performance improvements",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/STREAM_5_TESTING_VALIDATION.md",
+      "source": "markdown",
+      "text": "Add performance regression detection to CI/CD",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/STREAM_5_TESTING_VALIDATION.md",
+      "source": "markdown",
+      "text": "All tools registered (29 tools verified)",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/STREAM_5_TESTING_VALIDATION.md",
+      "source": "markdown",
+      "text": "All prompts registered (18 prompts verified)",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/STREAM_5_TESTING_VALIDATION.md",
+      "source": "markdown",
+      "text": "All resources registered (21 resources verified)",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/STREAM_5_TESTING_VALIDATION.md",
+      "source": "markdown",
+      "text": "MCP protocol compliance (JSON-RPC 2.0)",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/STREAM_5_TESTING_VALIDATION.md",
+      "source": "markdown",
+      "text": "No regressions in existing functionality",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/STREAM_5_TESTING_VALIDATION.md",
+      "source": "markdown",
+      "text": "Performance improvements documented",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/STREAM_5_TESTING_VALIDATION.md",
+      "source": "markdown",
+      "text": "Error handling validated",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/STREAM_5_TESTING_VALIDATION.md",
+      "source": "markdown",
+      "text": "Edge cases covered",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/STREAM_5_TESTING_VALIDATION.md",
+      "source": "markdown",
+      "text": "Documentation updated",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/STREAM_5_TESTING_VALIDATION.md",
+      "source": "markdown",
+      "text": "Update `docs/MIGRATION_VALIDATION.md` with Stream 5 results",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/STREAM_5_TESTING_VALIDATION.md",
+      "source": "markdown",
+      "text": "Run comprehensive validation suite",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/STREAM_5_TESTING_VALIDATION.md",
+      "source": "markdown",
+      "text": "Document validation results",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/STREAM_5_TESTING_VALIDATION.md",
+      "source": "markdown",
+      "text": "Create validation checklist",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/STREAM_5_TESTING_VALIDATION.md",
+      "source": "markdown",
+      "text": "Add validation to CI/CD pipeline",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/STREAM_5_TESTING_VALIDATION.md",
+      "source": "markdown",
+      "text": "Generate baseline coverage report",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/STREAM_5_TESTING_VALIDATION.md",
+      "source": "markdown",
+      "text": "Identify coverage gaps",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/STREAM_5_TESTING_VALIDATION.md",
+      "source": "markdown",
+      "text": "Add tests to fill gaps",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/STREAM_5_TESTING_VALIDATION.md",
+      "source": "markdown",
+      "text": "Achieve 80%+ coverage",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/STREAM_5_TESTING_VALIDATION.md",
+      "source": "markdown",
+      "text": "Add coverage reporting to CI/CD",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/STREAM_5_TEST_COVERAGE_GAP_ANALYSIS.md",
+      "source": "markdown",
+      "text": "Prioritize tool test implementation order",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/STREAM_5_TEST_COVERAGE_GAP_ANALYSIS.md",
+      "source": "markdown",
+      "text": "Create test templates for each pattern",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/STREAM_5_TEST_COVERAGE_GAP_ANALYSIS.md",
+      "source": "markdown",
+      "text": "Document test setup/teardown patterns",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/STREAM_5_TEST_COVERAGE_GAP_ANALYSIS.md",
+      "source": "markdown",
+      "text": "Fix build error in `session.go` (Stream 1 dependency)",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/STREAM_5_TEST_COVERAGE_GAP_ANALYSIS.md",
+      "source": "markdown",
+      "text": "Implement tests for Phase 1 tools (8 tools)",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/STREAM_5_TEST_COVERAGE_GAP_ANALYSIS.md",
+      "source": "markdown",
+      "text": "Achieve 30-40% coverage",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/STREAM_5_TEST_COVERAGE_GAP_ANALYSIS.md",
+      "source": "markdown",
+      "text": "Document test patterns",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/STREAM_5_TEST_COVERAGE_GAP_ANALYSIS.md",
+      "source": "markdown",
+      "text": "Create test utilities if needed",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/STREAM_5_TEST_COVERAGE_GAP_ANALYSIS.md",
+      "source": "markdown",
+      "text": "Implement tests for Phase 2 tools (8 tools)",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/STREAM_5_TEST_COVERAGE_GAP_ANALYSIS.md",
+      "source": "markdown",
+      "text": "Implement tests for Phase 3 tools (8 tools - after build error fixed)",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/STREAM_5_TEST_COVERAGE_GAP_ANALYSIS.md",
+      "source": "markdown",
+      "text": "Achieve 60-70% coverage",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/STREAM_5_TEST_COVERAGE_GAP_ANALYSIS.md",
+      "source": "markdown",
+      "text": "Add integration tests where needed",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/STREAM_5_TEST_COVERAGE_GAP_ANALYSIS.md",
+      "source": "markdown",
+      "text": "Implement tests for Phase 4 tools (4 tools)",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/STREAM_5_TEST_COVERAGE_GAP_ANALYSIS.md",
+      "source": "markdown",
+      "text": "Achieve 80%+ coverage",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/STREAM_5_TEST_COVERAGE_GAP_ANALYSIS.md",
+      "source": "markdown",
+      "text": "Performance benchmarks for all tools",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/STREAM_5_TEST_COVERAGE_GAP_ANALYSIS.md",
+      "source": "markdown",
+      "text": "Regression test framework",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/STREAM_5_TEST_COVERAGE_GAP_ANALYSIS.md",
+      "source": "markdown",
+      "text": "CI/CD integration",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/archive/ARCHIVE_RETENTION_POLICY.md",
+      "source": "markdown",
+      "text": "Review status updates category",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/archive/ARCHIVE_RETENTION_POLICY.md",
+      "source": "markdown",
+      "text": "Check for broken references",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/archive/ARCHIVE_RETENTION_POLICY.md",
+      "source": "markdown",
+      "text": "Update this document if needed",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/archive/ARCHIVE_RETENTION_POLICY.md",
+      "source": "markdown",
+      "text": "Review implementation summaries",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/archive/ARCHIVE_RETENTION_POLICY.md",
+      "source": "markdown",
+      "text": "Check retention dates",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/archive/ARCHIVE_RETENTION_POLICY.md",
+      "source": "markdown",
+      "text": "Delete expired files",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/archive/ARCHIVE_RETENTION_POLICY.md",
+      "source": "markdown",
+      "text": "Review all categories",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/archive/ARCHIVE_RETENTION_POLICY.md",
+      "source": "markdown",
+      "text": "Update retention policy if needed",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/archive/ARCHIVE_RETENTION_POLICY.md",
+      "source": "markdown",
+      "text": "Archive this policy document if superseded",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/example.plan.md",
+      "source": "markdown",
+      "text": "**Set up project** — Next.js, TypeScript, Tailwind, repo structure",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/example.plan.md",
+      "source": "markdown",
+      "text": "**Google OAuth** — Sign in / sign out, session handling",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/example.plan.md",
+      "source": "markdown",
+      "text": "**Spotify connection** — Connect account, store tokens securely",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/example.plan.md",
+      "source": "markdown",
+      "text": "**Dashboard — Top artists/songs** — Weekly and monthly views",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/example.plan.md",
+      "source": "markdown",
+      "text": "**Listening time trends** — Charts and time-range filters",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/example.plan.md",
+      "source": "markdown",
+      "text": "**Genre breakdown** — Summary and filters",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/example.plan.md",
+      "source": "markdown",
+      "text": "**Public profile page** — Shareable stats, privacy controls",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/example.plan.md",
+      "source": "markdown",
+      "text": "**Mobile-friendly UI** — Responsive layout and touch targets",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/exarp-go-generated.plan.md",
+      "source": "markdown",
+      "text": "**Cursor CLI: add 'cursor run' subcommand Add exarp-go cursor run [task-id] and cursor run -p \"prompt\" to invoke Cursor agent with task or custom prompt from project root. Detect agent on PATH; optional --mode plan|ask|agent, --no-interactive. See docs/CURSOR_API_AND_CLI_INTEGRATION.md. high** (T-1771164528145)",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/exarp-go-generated.plan.md",
+      "source": "markdown",
+      "text": "**General agent abstraction for run-agent-in-task** (T-1771252286533)",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/exarp-go-generated.plan.md",
+      "source": "markdown",
+      "text": "**Handoffs list display and detail view in TUI** (T-1771355107420602000)",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/exarp-go-generated.plan.md",
+      "source": "markdown",
+      "text": "**Fix runIniTermTab: detect ITERM_SESSION_ID to open tab in current iTerm window instead of new window high** (T-1771360298493675000)",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/exarp-go-generated.plan.md",
+      "source": "markdown",
+      "text": "**Improve exarp-opencode interaction: add --quiet flag to suppress verbose CLI output high** (T-1771360895822062000)",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/exarp-go-generated.plan.md",
+      "source": "markdown",
+      "text": "**Improve exarp-opencode interaction: add --json flag for structured machine-readable output high** (T-1771360896308433000)",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/exarp-go-generated.plan.md",
+      "source": "markdown",
+      "text": "**Automation: optional Cursor agent step Add use_cursor_agent and cursor_agent_prompt params to automation tool. When set, run agent -p in project root and attach output to result. See docs/CURSOR_API_AND_CLI_INTEGRATION.md §3.3. medium** (T-1771164549862)",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/exarp-go-generated.plan.md",
+      "source": "markdown",
+      "text": "**Unit tests for all components (Phase 6)** (T-1771171348644)",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/exarp-go-generated.plan.md",
+      "source": "markdown",
+      "text": "**Performance benchmarks (Phase 6)** (T-1771171349874)",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/exarp-go-generated.plan.md",
+      "source": "markdown",
+      "text": "**Fix database comment tests (FK constraint)** (T-1771245897653)",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/generated_plan_comparison.plan.md",
+      "source": "markdown",
+      "text": "**Migrate CLI to use mcp-go-core CLI utilities** (T-1769991219035)",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/generated_plan_comparison.plan.md",
+      "source": "markdown",
+      "text": "**Document gotoHuman API/tools** (T-105)",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/generated_plan_comparison.plan.md",
+      "source": "markdown",
+      "text": "**Test basic approval request flow** (T-106)",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/generated_plan_comparison.plan.md",
+      "source": "markdown",
+      "text": "**Create approval request helper function** (T-107)",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/generated_plan_comparison.plan.md",
+      "source": "markdown",
+      "text": "**Enhance `task_workflow` tool with approval action** (T-108)",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/generated_plan_comparison.plan.md",
+      "source": "markdown",
+      "text": "**Add approval request when task moves to Review** (T-109)",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/generated_plan_comparison.plan.md",
+      "source": "markdown",
+      "text": "**Test approval workflow end-to-end** (T-110)",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/generated_plan_comparison.plan.md",
+      "source": "markdown",
+      "text": "**Auto-sync Review tasks with gotoHuman** (T-111)",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/generated_plan_comparison.plan.md",
+      "source": "markdown",
+      "text": "**Handle approval/rejection responses** (T-112)",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/plans/mcp-go-core-extraction.plan.md",
+      "source": "markdown",
+      "text": "T-1772056740723802000 — Remove duplicate ratelimit.go, use mcp-go-core version",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/plans/mcp-go-core-extraction.plan.md",
+      "source": "markdown",
+      "text": "T-1772056739613403000 — Extract TTLCache and FileCache to mcp-go-core/pkg/mcp/cache",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/plans/mcp-go-core-extraction.plan.md",
+      "source": "markdown",
+      "text": "T-1772056740718615000 — Extract ToolError types to mcp-go-core/pkg/mcp/framework",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/plans/mcp-go-core-extraction.plan.md",
+      "source": "markdown",
+      "text": "T-1772056740722069000 — Add FormatResultCompact to mcp-go-core/pkg/mcp/response",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/plans/mcp-go-core-extraction.plan.md",
+      "source": "markdown",
+      "text": "T-1772056740720274000 — Extract FileLock to mcp-go-core/pkg/mcp/filelock",
+      "type": "MARKDOWN_TASK"
+    }
+  ],
+  "method": "native_go",
+  "summary": {
+    "by_source": {
+      "comment": 46,
+      "markdown": 301
+    },
+    "by_type": {
+      "MARKDOWN_TASK": 301,
+      "NOTE": 43,
+      "TODO": 3
+    },
+    "total": 347
+  }
+}
