@@ -36,7 +36,7 @@ jobs:
         run: go test -v -coverprofile=coverage.out -coverpkg=./internal/... ./...
 
       - name: Upload coverage
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v5
         with:
           file: ./coverage.out
           flags: go
