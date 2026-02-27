@@ -4,19 +4,28 @@ package tools
 import (
 	"context"
 	"fmt"
+	"path/filepath"
 	"strings"
 
 	"github.com/davidl71/exarp-go/internal/database"
 	"github.com/davidl71/exarp-go/internal/models"
 )
 
-// loadTodo2TasksFromDB loads tasks from database.
-func loadTodo2TasksFromDB() ([]Todo2Task, error) {
+// loadTodo2TasksFromDB loads tasks from database (scoped to project when projectRoot is set).
+func loadTodo2TasksFromDB(projectRoot string) ([]Todo2Task, error) {
 	if db, err := database.GetDB(); err != nil || db == nil {
 		return nil, fmt.Errorf("database not available")
 	}
 
-	tasks, err := database.ListTasks(context.Background(), nil)
+	ctx := context.Background()
+	var filters *database.TaskFilters
+	if projectRoot != "" {
+		projectID := filepath.Base(projectRoot)
+		if projectID != "" && projectID != "." {
+			filters = &database.TaskFilters{ProjectID: &projectID}
+		}
+	}
+	tasks, err := database.ListTasks(ctx, filters)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load tasks from database: %w", err)
 	}
@@ -31,11 +40,10 @@ func loadTodo2TasksFromDB() ([]Todo2Task, error) {
 	return result, nil
 }
 
-// saveTodo2TasksToDB saves tasks to database
+// saveTodo2TasksToDB saves tasks to database (projectRoot used to scope obsolete-task cleanup).
 // Matches tasks by ID first, then by content/description if ID doesn't match
-// This handles cases where same task was created with different epoch-based IDs
 // Sorts tasks by dependency order to ensure dependencies are created before dependents.
-func saveTodo2TasksToDB(tasks []Todo2Task) error {
+func saveTodo2TasksToDB(projectRoot string, tasks []Todo2Task) error {
 	if db, err := database.GetDB(); err != nil || db == nil {
 		return fmt.Errorf("database not available")
 	}
@@ -72,7 +80,7 @@ func saveTodo2TasksToDB(tasks []Todo2Task) error {
 			// AUTO tasks should always be created as new tasks even if content matches
 			var matchedTask *Todo2Task
 			if !strings.HasPrefix(task.ID, "AUTO-") {
-				matchedTask = findTaskByContent(ctx, task)
+				matchedTask = findTaskByContent(ctx, projectRoot, task)
 			}
 
 			if matchedTask != nil {
@@ -175,6 +183,7 @@ func saveTodo2TasksToDB(tasks []Todo2Task) error {
 	}
 
 	// Remove from DB any tasks not in the input list (replace semantics, e.g. after merge)
+	// Only remove tasks that belong to this project so we don't delete other projects' tasks.
 	inputIDs := make(map[string]bool)
 
 	for _, t := range tasks {
@@ -183,7 +192,14 @@ func saveTodo2TasksToDB(tasks []Todo2Task) error {
 		}
 	}
 
-	allDB, err := database.ListTasks(ctx, nil)
+	var listFilters *database.TaskFilters
+	if projectRoot != "" {
+		pid := filepath.Base(projectRoot)
+		if pid != "" && pid != "." {
+			listFilters = &database.TaskFilters{ProjectID: &pid}
+		}
+	}
+	allDB, err := database.ListTasks(ctx, listFilters)
 	if err == nil {
 		for _, t := range allDB {
 			if t != nil && !inputIDs[t.ID] {
@@ -202,15 +218,21 @@ func saveTodo2TasksToDB(tasks []Todo2Task) error {
 	return nil
 }
 
-// findTaskByContent searches for a task with matching content/description
+// findTaskByContent searches for a task with matching content/description in the same project.
 // Used to detect duplicate tasks with different IDs (e.g., epoch-based IDs).
-func findTaskByContent(ctx context.Context, task Todo2Task) *Todo2Task {
+func findTaskByContent(ctx context.Context, projectRoot string, task Todo2Task) *Todo2Task {
 	if db, err := database.GetDB(); err != nil || db == nil {
 		return nil
 	}
 
-	// Load all tasks and check content match
-	allTasks, err := database.ListTasks(ctx, nil)
+	var filters *database.TaskFilters
+	if projectRoot != "" {
+		pid := filepath.Base(projectRoot)
+		if pid != "" && pid != "." {
+			filters = &database.TaskFilters{ProjectID: &pid}
+		}
+	}
+	allTasks, err := database.ListTasks(ctx, filters)
 	if err != nil {
 		return nil
 	}

@@ -4,6 +4,7 @@ package tools
 import (
 	"context"
 	"fmt"
+	"path/filepath"
 
 	"github.com/davidl71/exarp-go/internal/database"
 )
@@ -67,6 +68,19 @@ func (s *dbOrFileStore) UpdateTask(ctx context.Context, task *database.Todo2Task
 }
 
 func (s *dbOrFileStore) ListTasks(ctx context.Context, filters *database.TaskFilters) ([]*database.Todo2Task, error) {
+	projectID := filepath.Base(s.projectRoot)
+	if projectID == "" || projectID == "." {
+		projectID = "default"
+	}
+	// Default list to current project so multiple projects using the same DB don't clobber each other.
+	if filters == nil {
+		filters = &database.TaskFilters{ProjectID: &projectID}
+	} else if filters.ProjectID == nil {
+		f2 := *filters
+		f2.ProjectID = &projectID
+		filters = &f2
+	}
+
 	if db, err := database.GetDB(); err == nil && db != nil {
 		return database.ListTasks(ctx, filters)
 	}
@@ -82,6 +96,14 @@ func (s *dbOrFileStore) ListTasks(ctx context.Context, filters *database.TaskFil
 func (s *dbOrFileStore) CreateTask(ctx context.Context, task *database.Todo2Task) error {
 	if task == nil {
 		return fmt.Errorf("task is required")
+	}
+
+	// Tag task with current project so tasks don't clobber across projects and can be aggregated.
+	if task.ProjectID == "" {
+		task.ProjectID = filepath.Base(s.projectRoot)
+		if task.ProjectID == "" || task.ProjectID == "." {
+			task.ProjectID = "default"
+		}
 	}
 
 	if db, err := database.GetDB(); err == nil && db != nil {
@@ -177,6 +199,10 @@ func filterTasksToPtrs(tasks []Todo2Task, filters *database.TaskFilters) []*data
 			if !found {
 				continue
 			}
+		}
+
+		if filters.ProjectID != nil && t.ProjectID != *filters.ProjectID {
+			continue
 		}
 
 		out = append(out, t)
