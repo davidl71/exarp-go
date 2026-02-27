@@ -64,12 +64,12 @@ func handleTaskWorkflowCreateBatch(ctx context.Context, params map[string]interf
 	}
 
 	// Shared params inherited by all tasks unless overridden per-task
-	sharedPlanningDoc, _ := params["planning_doc"].(string)
-	sharedEpicID, _ := params["epic_id"].(string)
-	sharedParentID, _ := params["parent_id"].(string)
+	sharedPlanningDoc := cast.ToString(params["planning_doc"])
+	sharedEpicID := cast.ToString(params["epic_id"])
+	sharedParentID := cast.ToString(params["parent_id"])
 	autoEstimate := true
-	if ae, ok := params["auto_estimate"].(bool); ok {
-		autoEstimate = ae
+	if _, ok := params["auto_estimate"]; ok {
+		autoEstimate = cast.ToBool(params["auto_estimate"])
 	}
 
 	var createdTasks []map[string]interface{}
@@ -140,24 +140,24 @@ func handleTaskWorkflowCreateSingle(ctx context.Context, params map[string]inter
 		return nil, fmt.Errorf("failed to find project root: %w", err)
 	}
 
-	name, _ := params["name"].(string)
+	name := cast.ToString(params["name"])
 	if name == "" {
 		return nil, fmt.Errorf("name is required for task creation")
 	}
 
-	longDescription, _ := params["long_description"].(string)
+	longDescription := cast.ToString(params["long_description"])
 	if longDescription == "" {
 		longDescription = name
 	}
 
 	status := config.DefaultTaskStatus()
-	if s, ok := params["status"].(string); ok && s != "" {
-		status = normalizeStatus(s)
+	if v, ok := params["status"]; ok && cast.ToString(v) != "" {
+		status = normalizeStatus(cast.ToString(v))
 	}
 
 	priority := config.DefaultTaskPriority()
-	if p, ok := params["priority"].(string); ok && p != "" {
-		priority = normalizePriority(p)
+	if v, ok := params["priority"]; ok && cast.ToString(v) != "" {
+		priority = normalizePriority(cast.ToString(v))
 	}
 
 	tags := config.DefaultTaskTags()
@@ -171,7 +171,7 @@ func handleTaskWorkflowCreateSingle(ctx context.Context, params map[string]inter
 				tags = append(tags, tagStr)
 			}
 		}
-	} else if tStr, ok := params["tags"].(string); ok && tStr != "" {
+	} else if tStr := cast.ToString(params["tags"]); tStr != "" {
 		tagList := strings.Split(tStr, ",")
 		for _, tag := range tagList {
 			tag = strings.TrimSpace(tag)
@@ -189,7 +189,7 @@ func handleTaskWorkflowCreateSingle(ctx context.Context, params map[string]inter
 				dependencies = append(dependencies, depStr)
 			}
 		}
-	} else if dStr, ok := params["dependencies"].(string); ok && dStr != "" {
+	} else if dStr := cast.ToString(params["dependencies"]); dStr != "" {
 		depList := strings.Split(dStr, ",")
 		for _, dep := range depList {
 			dep = strings.TrimSpace(dep)
@@ -223,7 +223,7 @@ func handleTaskWorkflowCreateSingle(ctx context.Context, params map[string]inter
 	}
 
 	var planningDoc string
-	if pd, ok := params["planning_doc"].(string); ok && pd != "" {
+	if pd := cast.ToString(params["planning_doc"]); pd != "" {
 		planningDoc = pd
 		if err := ValidatePlanningLink(projectRoot, planningDoc); err != nil {
 			return nil, fmt.Errorf("invalid planning document link: %w", err)
@@ -231,14 +231,14 @@ func handleTaskWorkflowCreateSingle(ctx context.Context, params map[string]inter
 	}
 
 	var epicID string
-	if eid, ok := params["epic_id"].(string); ok && eid != "" {
+	if eid := cast.ToString(params["epic_id"]); eid != "" {
 		epicID = eid
 		if err := ValidateTaskReference(epicID, tasks); err != nil {
 			return nil, fmt.Errorf("invalid epic ID: %w", err)
 		}
 	}
 
-	parentID, _ := params["parent_id"].(string)
+	parentID := cast.ToString(params["parent_id"])
 	if parentID != "" {
 		if err := ValidateTaskReference(parentID, tasks); err != nil {
 			return nil, fmt.Errorf("invalid parent_id: %w", err)
@@ -275,8 +275,7 @@ func handleTaskWorkflowCreateSingle(ctx context.Context, params map[string]inter
 		SetPlanningLinkMetadata(task, linkMeta)
 	}
 
-	if backend, ok := params["local_ai_backend"].(string); ok && backend != "" {
-		backend = strings.TrimSpace(strings.ToLower(backend))
+	if backend := strings.TrimSpace(strings.ToLower(cast.ToString(params["local_ai_backend"]))); backend != "" {
 		if backend == "fm" || backend == "mlx" || backend == "ollama" {
 			task.Metadata[MetadataKeyPreferredBackend] = backend
 		}
@@ -303,8 +302,8 @@ func handleTaskWorkflowCreateSingle(ctx context.Context, params map[string]inter
 	}
 
 	autoEstimate := true
-	if ae, ok := params["auto_estimate"].(bool); ok {
-		autoEstimate = ae
+	if _, ok := params["auto_estimate"]; ok {
+		autoEstimate = cast.ToBool(params["auto_estimate"])
 	}
 
 	if autoEstimate {

@@ -9,6 +9,7 @@ import (
 	"github.com/davidl71/exarp-go/internal/config"
 	"github.com/davidl71/exarp-go/internal/framework"
 	"github.com/davidl71/exarp-go/proto"
+	"github.com/spf13/cast"
 	"os"
 	"path/filepath"
 	"sort"
@@ -123,7 +124,8 @@ func handleTaskAnalysisDependencies(ctx context.Context, params map[string]inter
 	// Include human-readable report in JSON for CLI/consumers
 	result["report"] = formatDependencyAnalysisText(result)
 
-	outputPath, _ := params["output_path"].(string)
+	projectRoot, _ := FindProjectRoot()
+	outputPath := DefaultReportOutputPath(projectRoot, "TASK_ANALYSIS_DEPENDENCIES.md", params)
 	if outputFormat == "json" {
 		if outputPath != "" {
 			if err := os.MkdirAll(filepath.Dir(outputPath), 0755); err != nil {
@@ -277,7 +279,7 @@ func handleTaskAnalysisExecutionPlan(ctx context.Context, params map[string]inte
 		outputFormat = format
 	}
 
-	outputPath, _ := params["output_path"].(string)
+	outputPath := cast.ToString(params["output_path"])
 
 	// subagents_plan: write parallel-execution-subagents.plan.md using wave detection
 	if outputFormat == "subagents_plan" {
@@ -290,7 +292,7 @@ func handleTaskAnalysisExecutionPlan(ctx context.Context, params map[string]inte
 			return nil, fmt.Errorf("no waves (empty backlog or no Todo/In Progress tasks)")
 		}
 
-		planTitle, _ := params["plan_title"].(string)
+		planTitle := cast.ToString(params["plan_title"])
 		if planTitle == "" {
 			planTitle = filepath.Base(projectRoot)
 
@@ -302,7 +304,7 @@ func handleTaskAnalysisExecutionPlan(ctx context.Context, params map[string]inte
 		}
 
 		if outputPath == "" {
-			outputPath = filepath.Join(projectRoot, ".cursor", "plans", "parallel-execution-subagents.plan.md")
+			outputPath = DefaultPlanOutputPath(projectRoot, "parallel-execution-subagents.plan.md", params)
 		}
 
 		if dir := filepath.Dir(outputPath); dir != "." {

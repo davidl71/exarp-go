@@ -16,6 +16,7 @@ import (
 	"github.com/davidl71/exarp-go/internal/database"
 	"github.com/davidl71/exarp-go/internal/framework"
 	"github.com/davidl71/exarp-go/proto"
+	"github.com/spf13/cast"
 )
 
 // Memory represents a stored memory.
@@ -71,7 +72,7 @@ func handleMemoryNative(ctx context.Context, args json.RawMessage) ([]framework.
 		}
 	}
 
-	action, _ := params["action"].(string)
+	action := cast.ToString(params["action"])
 	if action == "" {
 		action = "search"
 	}
@@ -94,15 +95,15 @@ func handleMemoryNative(ctx context.Context, args json.RawMessage) ([]framework.
 
 // handleMemorySave handles save action.
 func handleMemorySave(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
-	title, _ := params["title"].(string)
-	content, _ := params["content"].(string)
+	title := cast.ToString(params["title"])
+	content := cast.ToString(params["content"])
 
 	if title == "" || content == "" {
 		return nil, fmt.Errorf("title and content are required for save action")
 	}
 
 	category := "insight"
-	if cat, ok := params["category"].(string); ok && cat != "" {
+	if cat := cast.ToString(params["category"]); cat != "" {
 		category = cat
 	}
 
@@ -126,12 +127,12 @@ func handleMemorySave(ctx context.Context, params map[string]interface{}) ([]fra
 	}
 
 	var taskID string
-	if tid, ok := params["task_id"].(string); ok {
+	if tid := cast.ToString(params["task_id"]); tid != "" {
 		taskID = tid
 	}
 
 	var metadata map[string]interface{}
-	if metaStr, ok := params["metadata"].(string); ok && metaStr != "" {
+	if metaStr := cast.ToString(params["metadata"]); metaStr != "" {
 		if err := json.Unmarshal([]byte(metaStr), &metadata); err != nil {
 			return nil, fmt.Errorf("invalid metadata JSON: %w", err)
 		}
@@ -186,14 +187,14 @@ func handleMemorySave(ctx context.Context, params map[string]interface{}) ([]fra
 
 // handleMemoryRecall handles recall action.
 func handleMemoryRecall(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
-	taskID, _ := params["task_id"].(string)
+	taskID := cast.ToString(params["task_id"])
 	if taskID == "" {
 		return nil, fmt.Errorf("task_id is required for recall action")
 	}
 
 	includeRelated := true
-	if ir, ok := params["include_related"].(bool); ok {
-		includeRelated = ir
+	if _, has := params["include_related"]; has {
+		includeRelated = cast.ToBool(params["include_related"])
 	}
 
 	projectRoot, err := FindProjectRoot()
@@ -273,18 +274,18 @@ func handleMemoryRecall(ctx context.Context, params map[string]interface{}) ([]f
 
 // handleMemorySearch handles search action (basic text search in Go).
 func handleMemorySearch(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
-	query, _ := params["query"].(string)
+	query := cast.ToString(params["query"])
 	if query == "" {
 		return nil, fmt.Errorf("query is required for search action")
 	}
 
 	limit := 10
-	if l, ok := params["limit"].(float64); ok {
+	if l := cast.ToFloat64(params["limit"]); l > 0 {
 		limit = int(l)
 	}
 
 	var category string
-	if cat, ok := params["category"].(string); ok && cat != "" && cat != "insight" {
+	if cat := cast.ToString(params["category"]); cat != "" && cat != "insight" {
 		category = cat
 	}
 
@@ -385,12 +386,12 @@ func handleMemorySearch(ctx context.Context, params map[string]interface{}) ([]f
 // handleMemoryList handles list action.
 func handleMemoryList(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	var category string
-	if cat, ok := params["category"].(string); ok && cat != "" {
+	if cat := cast.ToString(params["category"]); cat != "" {
 		category = cat
 	}
 
 	limit := 50
-	if l, ok := params["limit"].(float64); ok {
+	if l := cast.ToFloat64(params["limit"]); l > 0 {
 		limit = int(l)
 	}
 

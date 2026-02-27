@@ -41,10 +41,6 @@ func handleOllamaPull(ctx context.Context, params map[string]interface{}, host s
 	}
 
 	timeout := config.OllamaDownloadTimeout()
-	if timeout <= 0 {
-		timeout = 300 * time.Second
-	}
-
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 

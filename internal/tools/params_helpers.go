@@ -16,3 +16,12 @@ func DefaultReportOutputPath(projectRoot, defaultFilename string, params map[str
 	}
 	return filepath.Join(projectRoot, "docs", defaultFilename)
 }
+
+// DefaultPlanOutputPath returns params["output_path"] if non-empty, else projectRoot/.cursor/plans/defaultFilename.
+// Use for tools that write plan files with an optional output_path and .cursor/plans default.
+func DefaultPlanOutputPath(projectRoot, defaultFilename string, params map[string]interface{}) string {
+	if p := strings.TrimSpace(cast.ToString(params["output_path"])); p != "" {
+		return p
+	}
+	return filepath.Join(projectRoot, ".cursor", "plans", defaultFilename)
+}

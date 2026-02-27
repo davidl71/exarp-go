@@ -28,7 +28,7 @@ func handleReportOverview(ctx context.Context, params map[string]interface{}) ([
 		outputFormat = format
 	}
 
-	outputPath := cast.ToString(params["output_path"])
+	outputPath := DefaultReportOutputPath(projectRoot, "PROJECT_OVERVIEW.md", params)
 	includePlanning := cast.ToBool(params["include_planning"])
 
 	flightKey := fmt.Sprintf("overview:%s:%v", projectRoot, includePlanning)
@@ -104,7 +104,7 @@ func handleReportBriefing(ctx context.Context, params map[string]interface{}) ([
 	briefingProto := BuildBriefingDataProto(engine, score)
 	briefingMap := BriefingDataToMap(briefingProto)
 	AddTokenEstimateToResult(briefingMap)
-	compact, _ := params["compact"].(bool)
+	compact := cast.ToBool(params["compact"])
 	return FormatResultOptionalCompact(briefingMap, "", compact)
 }
 
@@ -115,28 +115,28 @@ func handleReportPRD(ctx context.Context, params map[string]interface{}) ([]fram
 		return nil, fmt.Errorf("failed to find project root: %w", err)
 	}
 
-	projectName, _ := params["project_name"].(string)
+	projectName := cast.ToString(params["project_name"])
 	if projectName == "" {
 		// Try to get from go.mod or default
 		projectName = filepath.Base(projectRoot)
 	}
 
 	includeArchitecture := true
-	if arch, ok := params["include_architecture"].(bool); ok {
-		includeArchitecture = arch
+	if _, ok := params["include_architecture"]; ok {
+		includeArchitecture = cast.ToBool(params["include_architecture"])
 	}
 
 	includeMetrics := true
-	if metrics, ok := params["include_metrics"].(bool); ok {
-		includeMetrics = metrics
+	if _, ok := params["include_metrics"]; ok {
+		includeMetrics = cast.ToBool(params["include_metrics"])
 	}
 
 	includeTasks := true
-	if tasks, ok := params["include_tasks"].(bool); ok {
-		includeTasks = tasks
+	if _, ok := params["include_tasks"]; ok {
+		includeTasks = cast.ToBool(params["include_tasks"])
 	}
 
-	outputPath, _ := params["output_path"].(string)
+	outputPath := DefaultReportOutputPath(projectRoot, "PRD.md", params)
 
 	// Generate PRD
 	prd, err := generatePRD(ctx, projectRoot, projectName, includeArchitecture, includeMetrics, includeTasks)

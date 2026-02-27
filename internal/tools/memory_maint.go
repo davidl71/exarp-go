@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"github.com/davidl71/exarp-go/internal/config"
 	"github.com/davidl71/exarp-go/internal/framework"
+	"github.com/spf13/cast"
 	"time"
 )
 
@@ -27,7 +28,7 @@ func handleMemoryMaintNative(ctx context.Context, args json.RawMessage) ([]frame
 		return nil, fmt.Errorf("failed to parse arguments: %w", err)
 	}
 
-	action, _ := params["action"].(string)
+	action := cast.ToString(params["action"])
 	if action == "" {
 		action = "health"
 	}
@@ -159,28 +160,28 @@ func handleMemoryMaintGC(ctx context.Context, params map[string]interface{}) ([]
 	}
 
 	maxAgeDays := 90
-	if age, ok := params["max_age_days"].(float64); ok {
+	if age := cast.ToFloat64(params["max_age_days"]); age > 0 {
 		maxAgeDays = int(age)
 	}
 
 	deleteOrphaned := true
-	if do, ok := params["delete_orphaned"].(bool); ok {
-		deleteOrphaned = do
+	if _, has := params["delete_orphaned"]; has {
+		deleteOrphaned = cast.ToBool(params["delete_orphaned"])
 	}
 
 	deleteDuplicates := true
-	if dd, ok := params["delete_duplicates"].(bool); ok {
-		deleteDuplicates = dd
+	if _, has := params["delete_duplicates"]; has {
+		deleteDuplicates = cast.ToBool(params["delete_duplicates"])
 	}
 
 	scorecardMaxAgeDays := 7
-	if age, ok := params["scorecard_max_age_days"].(float64); ok {
+	if age := cast.ToFloat64(params["scorecard_max_age_days"]); age > 0 {
 		scorecardMaxAgeDays = int(age)
 	}
 
 	dryRun := true
-	if dr, ok := params["dry_run"].(bool); ok {
-		dryRun = dr
+	if _, has := params["dry_run"]; has {
+		dryRun = cast.ToBool(params["dry_run"])
 	}
 
 	memories, err := LoadAllMemories(projectRoot)
@@ -300,18 +301,18 @@ func handleMemoryMaintPrune(ctx context.Context, params map[string]interface{}) 
 	}
 
 	valueThreshold := 0.3
-	if threshold, ok := params["value_threshold"].(float64); ok {
+	if threshold := cast.ToFloat64(params["value_threshold"]); threshold > 0 {
 		valueThreshold = threshold
 	}
 
 	keepMinimum := 50
-	if min, ok := params["keep_minimum"].(float64); ok {
+	if min := cast.ToFloat64(params["keep_minimum"]); min > 0 {
 		keepMinimum = int(min)
 	}
 
 	dryRun := true
-	if dr, ok := params["dry_run"].(bool); ok {
-		dryRun = dr
+	if _, has := params["dry_run"]; has {
+		dryRun = cast.ToBool(params["dry_run"])
 	}
 
 	memories, err := LoadAllMemories(projectRoot)
@@ -423,18 +424,18 @@ func handleMemoryMaintConsolidate(ctx context.Context, params map[string]interfa
 	}
 
 	similarityThreshold := config.SimilarityThreshold()
-	if threshold, ok := params["similarity_threshold"].(float64); ok {
+	if threshold := cast.ToFloat64(params["similarity_threshold"]); threshold > 0 {
 		similarityThreshold = threshold
 	}
 
 	mergeStrategy := "newest"
-	if strategy, ok := params["merge_strategy"].(string); ok && strategy != "" {
+	if strategy := cast.ToString(params["merge_strategy"]); strategy != "" {
 		mergeStrategy = strategy
 	}
 
 	dryRun := true
-	if dr, ok := params["dry_run"].(bool); ok {
-		dryRun = dr
+	if _, has := params["dry_run"]; has {
+		dryRun = cast.ToBool(params["dry_run"])
 	}
 
 	memories, err := LoadAllMemories(projectRoot)

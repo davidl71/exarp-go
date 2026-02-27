@@ -14,12 +14,13 @@ import (
 	"strings"
 
 	"github.com/davidl71/exarp-go/internal/framework"
+	"github.com/spf13/cast"
 )
 
 // handleTaskDiscoveryNative handles task_discovery with native Go (no Apple FM)
 // Basic scanning works on all platforms - Apple FM is only for semantic enhancement
 func handleTaskDiscoveryNative(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
-	action, _ := params["action"].(string)
+	action := cast.ToString(params["action"])
 	if action == "" {
 		action = "all"
 	}
@@ -34,15 +35,15 @@ func handleTaskDiscoveryNative(ctx context.Context, params map[string]interface{
 	// Scan comments
 	if action == "comments" || action == "all" {
 		filePatterns := []string{"**/*.go", "**/*.py", "**/*.js", "**/*.ts", "**/*.rs", "**/*.java", "**/*.cpp", "**/*.c"}
-		if patterns, ok := params["file_patterns"].(string); ok && patterns != "" {
+		if patterns := cast.ToString(params["file_patterns"]); patterns != "" {
 			var parsed []string
 			if err := json.Unmarshal([]byte(patterns), &parsed); err == nil {
 				filePatterns = parsed
 			}
 		}
 		includeFIXME := true
-		if inc, ok := params["include_fixme"].(bool); ok {
-			includeFIXME = inc
+		if _, has := params["include_fixme"]; has {
+			includeFIXME = cast.ToBool(params["include_fixme"])
 		}
 		commentTasks := scanCommentsBasic(projectRoot, filePatterns, includeFIXME)
 		discoveries = append(discoveries, commentTasks...)
@@ -50,10 +51,7 @@ func handleTaskDiscoveryNative(ctx context.Context, params map[string]interface{
 
 	// Scan markdown
 	if action == "markdown" || action == "all" {
-		docPath := ""
-		if path, ok := params["doc_path"].(string); ok {
-			docPath = path
-		}
+		docPath := cast.ToString(params["doc_path"])
 		markdownTasks := scanMarkdownBasic(projectRoot, docPath)
 		discoveries = append(discoveries, markdownTasks...)
 	}
@@ -66,20 +64,14 @@ func handleTaskDiscoveryNative(ctx context.Context, params map[string]interface{
 
 	// Scan git repository for JSON files
 	if action == "git_json" || action == "all" {
-		jsonPattern := ""
-		if pattern, ok := params["json_pattern"].(string); ok && pattern != "" {
-			jsonPattern = pattern
-		}
+		jsonPattern := cast.ToString(params["json_pattern"])
 		gitJSONTasks := scanGitJSON(projectRoot, jsonPattern)
 		discoveries = append(discoveries, gitJSONTasks...)
 	}
 
 	// Scan planning documents for task/epic links (regex-based fallback)
 	if action == "planning_links" || action == "all" {
-		docPath := ""
-		if path, ok := params["doc_path"].(string); ok {
-			docPath = path
-		}
+		docPath := cast.ToString(params["doc_path"])
 		planningLinks := scanPlanningDocsBasic(projectRoot, docPath)
 		discoveries = append(discoveries, planningLinks...)
 	}
@@ -127,22 +119,21 @@ func handleTaskDiscoveryNative(ctx context.Context, params map[string]interface{
 	}
 
 	// Optionally create tasks if requested
-	if createTasks, ok := params["create_tasks"].(bool); ok && createTasks {
+	if createTasks := cast.ToBool(params["create_tasks"]); createTasks {
 		createdTasks := createTasksFromDiscoveries(ctx, projectRoot, discoveries)
 		result["tasks_created"] = createdTasks
 	}
 
-	// Optionally write result to output_path (parity with CGO build)
-	if outputPath, ok := params["output_path"].(string); ok && outputPath != "" {
-		fullPath := outputPath
-		if !filepath.IsAbs(fullPath) {
-			fullPath = filepath.Join(projectRoot, fullPath)
-		}
-		if err := os.MkdirAll(filepath.Dir(fullPath), 0755); err == nil {
-			raw, _ := json.MarshalIndent(result, "", "  ")
-			if err := os.WriteFile(fullPath, raw, 0644); err == nil {
-				result["report_path"] = fullPath
-			}
+	// Optionally write result to output_path (parity with CGO build; default docs/task_discovery_report.json when not set)
+	outputPath := DefaultReportOutputPath(projectRoot, "task_discovery_report.json", params)
+	fullPath := outputPath
+	if !filepath.IsAbs(fullPath) {
+		fullPath = filepath.Join(projectRoot, fullPath)
+	}
+	if err := os.MkdirAll(filepath.Dir(fullPath), 0755); err == nil {
+		raw, _ := json.MarshalIndent(result, "", "  ")
+		if err := os.WriteFile(fullPath, raw, 0644); err == nil {
+			result["report_path"] = fullPath
 		}
 	}
 

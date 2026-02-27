@@ -63,6 +63,10 @@ func ToolTimeout(toolName string) time.Duration {
 		if cfg.Timeouts.ToolReport > 0 {
 			return cfg.Timeouts.ToolReport
 		}
+	case "task_analysis":
+		if cfg.Timeouts.ToolReport > 0 {
+			return cfg.Timeouts.ToolReport
+		}
 	}
 	// Default timeout
 	if cfg.Timeouts.ToolDefault > 0 {
@@ -72,14 +76,20 @@ func ToolTimeout(toolName string) time.Duration {
 	return 60 * time.Second // Fallback
 }
 
-// OllamaDownloadTimeout returns the Ollama download timeout.
+// OllamaDownloadTimeout returns the Ollama download timeout (default 300s when not set).
 func OllamaDownloadTimeout() time.Duration {
-	return GetGlobalConfig().Timeouts.OllamaDownload
+	if d := GetGlobalConfig().Timeouts.OllamaDownload; d > 0 {
+		return d
+	}
+	return 300 * time.Second
 }
 
-// OllamaGenerateTimeout returns the Ollama generation timeout.
+// OllamaGenerateTimeout returns the Ollama generation timeout (default 300s when not set).
 func OllamaGenerateTimeout() time.Duration {
-	return GetGlobalConfig().Timeouts.OllamaGenerate
+	if g := GetGlobalConfig().Timeouts.OllamaGenerate; g > 0 {
+		return g
+	}
+	return 300 * time.Second
 }
 
 // Threshold getters - convenient access to threshold values

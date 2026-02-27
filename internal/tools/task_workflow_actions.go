@@ -21,7 +21,7 @@ import (
 // handleTaskWorkflowSyncApprovals returns approval requests for all tasks in Review (T-111).
 // The client can send each to gotoHuman via request-human-review-with-form.
 func handleTaskWorkflowSyncApprovals(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
-	formID, _ := params["form_id"].(string)
+	formID := cast.ToString(params["form_id"])
 
 	var tasks []*models.Todo2Task
 
@@ -65,19 +65,19 @@ func handleTaskWorkflowSyncApprovals(ctx context.Context, params map[string]inte
 // handleTaskWorkflowApplyApprovalResult updates a task when human approves or rejects in gotoHuman (T-112).
 // Params: task_id (required), result (required: "approved" or "rejected"), feedback (optional, for rejection).
 func handleTaskWorkflowApplyApprovalResult(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
-	taskID, _ := params["task_id"].(string)
+	taskID := cast.ToString(params["task_id"])
 	if taskID == "" {
 		return nil, fmt.Errorf("apply_approval_result requires task_id")
 	}
 
-	resultVal, _ := params["result"].(string)
+	resultVal := cast.ToString(params["result"])
 	resultVal = strings.TrimSpace(strings.ToLower(resultVal))
 
 	if resultVal != "approved" && resultVal != "rejected" {
 		return nil, fmt.Errorf("apply_approval_result requires result=approved or result=rejected")
 	}
 
-	feedback, _ := params["feedback"].(string)
+	feedback := cast.ToString(params["feedback"])
 
 	newStatus := models.StatusDone
 	if resultVal == "rejected" {
@@ -117,12 +117,12 @@ func handleTaskWorkflowApplyApprovalResult(ctx context.Context, params map[strin
 // handleTaskWorkflowRequestApproval builds a gotoHuman approval request payload for a Todo2 task.
 // The client (e.g. Cursor) should call @gotoHuman request-human-review-with-form with the returned payload.
 func handleTaskWorkflowRequestApproval(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
-	taskID, _ := params["task_id"].(string)
+	taskID := cast.ToString(params["task_id"])
 	if taskID == "" {
 		return nil, fmt.Errorf("request_approval requires task_id")
 	}
 
-	formID, _ := params["form_id"].(string)
+	formID := cast.ToString(params["form_id"])
 
 	projectRoot, err := FindProjectRoot()
 	if err != nil {
@@ -196,7 +196,7 @@ func handleTaskWorkflowClarify(ctx context.Context, params map[string]interface{
 		return nil, ErrFMNotSupported
 	}
 
-	subAction, _ := params["sub_action"].(string)
+	subAction := cast.ToString(params["sub_action"])
 	if subAction == "" {
 		subAction = "list"
 	}
@@ -265,7 +265,7 @@ func listTasksAwaitingClarification(ctx context.Context, params map[string]inter
 }
 
 func resolveTaskClarification(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
-	taskID, _ := params["task_id"].(string)
+	taskID := cast.ToString(params["task_id"])
 	if taskID == "" {
 		return nil, fmt.Errorf("task_id is required for resolve action")
 	}
@@ -276,8 +276,8 @@ func resolveTaskClarification(ctx context.Context, params map[string]interface{}
 			return nil, fmt.Errorf("task %s not found: %w", taskID, err)
 		}
 
-		clarificationText, _ := params["clarification_text"].(string)
-		decision, _ := params["decision"].(string)
+		clarificationText := cast.ToString(params["clarification_text"])
+		decision := cast.ToString(params["decision"])
 
 		if clarificationText != "" {
 			if task.LongDescription == "" {
@@ -296,8 +296,8 @@ func resolveTaskClarification(ctx context.Context, params map[string]interface{}
 		}
 
 		moveToTodo := true
-		if move, ok := params["move_to_todo"].(bool); ok {
-			moveToTodo = move
+		if _, ok := params["move_to_todo"]; ok {
+			moveToTodo = cast.ToBool(params["move_to_todo"])
 		}
 
 		if moveToTodo {
@@ -339,12 +339,12 @@ func resolveTaskClarification(ctx context.Context, params map[string]interface{}
 		return nil, fmt.Errorf("task %s not found", taskID)
 	}
 
-	clarificationText, _ := params["clarification_text"].(string)
-	decision, _ := params["decision"].(string)
+	clarificationText := cast.ToString(params["clarification_text"])
+	decision := cast.ToString(params["decision"])
 
 	moveToTodo := true
-	if move, ok := params["move_to_todo"].(bool); ok {
-		moveToTodo = move
+	if _, ok := params["move_to_todo"]; ok {
+		moveToTodo = cast.ToBool(params["move_to_todo"])
 	}
 
 	if clarificationText != "" {
@@ -382,7 +382,7 @@ func resolveTaskClarification(ctx context.Context, params map[string]interface{}
 }
 
 func resolveBatchClarifications(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
-	decisionsJSON, _ := params["decisions_json"].(string)
+	decisionsJSON := cast.ToString(params["decisions_json"])
 	if decisionsJSON == "" {
 		return nil, fmt.Errorf("decisions_json is required for batch action")
 	}
@@ -396,7 +396,7 @@ func resolveBatchClarifications(ctx context.Context, params map[string]interface
 		resolved := 0
 
 		for _, decision := range decisions {
-			taskID, _ := decision["task_id"].(string)
+			taskID := cast.ToString(decision["task_id"])
 			if taskID == "" {
 				continue
 			}
@@ -406,8 +406,8 @@ func resolveBatchClarifications(ctx context.Context, params map[string]interface
 				continue
 			}
 
-			clarificationText, _ := decision["clarification_text"].(string)
-			decisionText, _ := decision["decision"].(string)
+			clarificationText := cast.ToString(decision["clarification_text"])
+			decisionText := cast.ToString(decision["decision"])
 
 			if clarificationText != "" {
 				if task.LongDescription == "" {
@@ -426,8 +426,8 @@ func resolveBatchClarifications(ctx context.Context, params map[string]interface
 			}
 
 			moveToTodo := true
-			if move, ok := decision["move_to_todo"].(bool); ok {
-				moveToTodo = move
+			if _, ok := decision["move_to_todo"]; ok {
+				moveToTodo = cast.ToBool(decision["move_to_todo"])
 			}
 
 			if moveToTodo {
@@ -482,8 +482,8 @@ func resolveBatchClarifications(ctx context.Context, params map[string]interface
 			continue
 		}
 
-		clarificationText, _ := decision["clarification_text"].(string)
-		decisionText, _ := decision["decision"].(string)
+		clarificationText := cast.ToString(decision["clarification_text"])
+		decisionText := cast.ToString(decision["decision"])
 
 		moveToTodo := true
 		if move, ok := decision["move_to_todo"].(bool); ok {
@@ -532,7 +532,7 @@ func resolveBatchClarifications(ctx context.Context, params map[string]interface
 func handleTaskWorkflowDelete(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	const elicitationTimeout = 15 * time.Second
 
-	if confirm, _ := params["confirm_via_elicitation"].(bool); confirm {
+	if confirm := cast.ToBool(params["confirm_via_elicitation"]); confirm {
 		if eliciter := framework.EliciterFromContext(ctx); eliciter != nil {
 			schema := map[string]interface{}{
 				"type": "object",

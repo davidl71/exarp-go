@@ -285,7 +285,8 @@ func handleTaskAnalysisSuggestDependencies(ctx context.Context, params map[strin
 
 	resultJSON, _ := json.Marshal(result)
 
-	outputPath, _ := params["output_path"].(string)
+	projectRoot, _ := FindProjectRoot()
+	outputPath := DefaultReportOutputPath(projectRoot, "SUGGEST_DEPS_REPORT.json", params)
 	if outputPath != "" {
 		if err := os.MkdirAll(filepath.Dir(outputPath), 0755); err == nil {
 			_ = os.WriteFile(outputPath, resultJSON, 0644)

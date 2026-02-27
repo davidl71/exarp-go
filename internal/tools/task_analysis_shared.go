@@ -196,7 +196,8 @@ func handleTaskAnalysisDuplicates(ctx context.Context, params map[string]interfa
 		result["tasks_after_merge"] = len(tasks)
 	}
 
-	outputPath, _ := params["output_path"].(string)
+	projectRoot, _ := FindProjectRoot()
+	outputPath := DefaultReportOutputPath(projectRoot, "TASK_ANALYSIS_DUPLICATES.md", params)
 	if outputPath != "" {
 		if err := os.MkdirAll(filepath.Dir(outputPath), 0755); err != nil {
 			return nil, fmt.Errorf("failed to create output dir: %w", err)

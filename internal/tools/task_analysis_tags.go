@@ -6,9 +6,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/davidl71/exarp-go/internal/config"
 	"github.com/davidl71/exarp-go/internal/database"
 	"github.com/davidl71/exarp-go/internal/framework"
 	"github.com/davidl71/exarp-go/proto"
+	"github.com/spf13/cast"
 	"sort"
 	"time"
 )
@@ -180,8 +182,8 @@ func handleTaskAnalysisTags(ctx context.Context, params map[string]interface{}) 
 	profileLoadMs := time.Since(t0).Milliseconds()
 
 	dryRun := true
-	if run, ok := params["dry_run"].(bool); ok {
-		dryRun = run
+	if _, ok := params["dry_run"]; ok {
+		dryRun = cast.ToBool(params["dry_run"])
 	}
 
 	// Analyze tags
@@ -190,16 +192,14 @@ func handleTaskAnalysisTags(ctx context.Context, params map[string]interface{}) 
 	profileKeywordMs := time.Since(t1).Milliseconds()
 
 	// Optional batch: limit and/or prioritize tasks with no tags (tag_suggestions only)
-	limit := 0
-	if l, ok := params["limit"].(float64); ok && l > 0 {
-		limit = int(l)
-	} else if l, ok := params["limit"].(int); ok && l > 0 {
-		limit = l
+	limit := cast.ToInt(params["limit"])
+	if limit < 0 {
+		limit = 0
 	}
 
 	prioritizeUntagged := false
-	if p, ok := params["prioritize_untagged"].(bool); ok {
-		prioritizeUntagged = p
+	if _, ok := params["prioritize_untagged"]; ok {
+		prioritizeUntagged = cast.ToBool(params["prioritize_untagged"])
 	}
 
 	if (limit > 0 || prioritizeUntagged) && len(tagAnalysis.TagSuggestions) > 0 {
@@ -240,8 +240,8 @@ func handleTaskAnalysisTags(ctx context.Context, params map[string]interface{}) 
 
 	// Apply canonical rules if requested
 	useCanonical := false
-	if canonical, ok := params["use_canonical_rules"].(bool); ok {
-		useCanonical = canonical
+	if _, ok := params["use_canonical_rules"]; ok {
+		useCanonical = cast.ToBool(params["use_canonical_rules"])
 	}
 
 	if useCanonical {
@@ -251,7 +251,7 @@ func handleTaskAnalysisTags(ctx context.Context, params map[string]interface{}) 
 	}
 
 	// Apply custom rules if provided (in addition to canonical)
-	customRulesJSON, _ := params["custom_rules"].(string)
+	customRulesJSON := cast.ToString(params["custom_rules"])
 	if customRulesJSON != "" {
 		var rules map[string]string
 		if err := json.Unmarshal([]byte(customRulesJSON), &rules); err == nil {
@@ -260,7 +260,7 @@ func handleTaskAnalysisTags(ctx context.Context, params map[string]interface{}) 
 	}
 
 	// Remove additional tags if requested
-	removeTagsJSON, _ := params["remove_tags"].(string)
+	removeTagsJSON := cast.ToString(params["remove_tags"])
 	if removeTagsJSON != "" {
 		var tagsToRemove []string
 		if err := json.Unmarshal([]byte(removeTagsJSON), &tagsToRemove); err == nil {
@@ -270,18 +270,18 @@ func handleTaskAnalysisTags(ctx context.Context, params map[string]interface{}) 
 
 	// Optional: LLM semantic pass for quick tag addition from task title + content + existing tags
 	useLLMSemantic := false
-	if u, ok := params["use_llm_semantic"].(bool); ok {
-		useLLMSemantic = u
+	if _, ok := params["use_llm_semantic"]; ok {
+		useLLMSemantic = cast.ToBool(params["use_llm_semantic"])
 	}
 
 	matchExistingOnly := false
-	if m, ok := params["match_existing_only"].(bool); ok {
-		matchExistingOnly = m
+	if _, ok := params["match_existing_only"]; ok {
+		matchExistingOnly = cast.ToBool(params["match_existing_only"])
 	}
 
 	useTinyTagModel := false
-	if u, ok := params["use_tiny_tag_model"].(bool); ok {
-		useTinyTagModel = u
+	if _, ok := params["use_tiny_tag_model"]; ok {
+		useTinyTagModel = cast.ToBool(params["use_tiny_tag_model"])
 	}
 
 	llmSemanticMethod := ""
@@ -290,11 +290,9 @@ func handleTaskAnalysisTags(ctx context.Context, params map[string]interface{}) 
 	var llmProfile llmTagProfile
 
 	if useLLMSemantic {
-		llmBatchSize := 0
-		if b, ok := params["llm_batch_size"].(float64); ok && b > 0 {
-			llmBatchSize = int(b)
-		} else if b, ok := params["llm_batch_size"].(int); ok && b > 0 {
-			llmBatchSize = b
+		llmBatchSize := cast.ToInt(params["llm_batch_size"])
+		if llmBatchSize < 0 {
+			llmBatchSize = 0
 		}
 
 		llmSemanticMethod, llmSemanticProcessed, llmProfile = enrichTaskTagSuggestionsWithLLM(ctx, tasks, &tagAnalysis, llmBatchSize, matchExistingOnly, useTinyTagModel)
@@ -368,7 +366,8 @@ func handleTaskAnalysisTags(ctx context.Context, params map[string]interface{}) 
 		},
 	}
 
-	outputPath, _ := params["output_path"].(string)
+	projectRoot, _ := FindProjectRoot()
+	outputPath := DefaultReportOutputPath(projectRoot, "TAG_ANALYSIS_RESULT.json", params)
 	if outputPath != "" {
 		if err := saveAnalysisResult(outputPath, result); err != nil {
 			return nil, fmt.Errorf("failed to save result: %w", err)
@@ -388,11 +387,12 @@ func handleTaskAnalysisTags(ctx context.Context, params map[string]interface{}) 
 func handleTaskAnalysisDiscoverTags(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	startTime := time.Now()
 
-	// Parse timeout parameter (default: 5 minutes)
-	timeoutSec := 300 // 5 minutes default
-	if t, ok := params["timeout_seconds"].(float64); ok && t > 0 {
-		timeoutSec = int(t)
-	} else if t, ok := params["timeout_seconds"].(int); ok && t > 0 {
+	// Parse timeout parameter (default from config, else 5 minutes)
+	timeoutSec := int(config.ToolTimeout("task_analysis").Seconds())
+	if timeoutSec <= 0 {
+		timeoutSec = 300
+	}
+	if t := cast.ToInt(params["timeout_seconds"]); t > 0 {
 		timeoutSec = t
 	}
 
@@ -418,35 +418,33 @@ func handleTaskAnalysisDiscoverTags(ctx context.Context, params map[string]inter
 	tasks := tasksFromPtrs(list)
 
 	dryRun := true
-	if run, ok := params["dry_run"].(bool); ok {
-		dryRun = run
+	if _, ok := params["dry_run"]; ok {
+		dryRun = cast.ToBool(params["dry_run"])
 	}
 
 	useLLM := true
-	if llm, ok := params["use_llm"].(bool); ok {
-		useLLM = llm
+	if _, ok := params["use_llm"]; ok {
+		useLLM = cast.ToBool(params["use_llm"])
 	}
 
 	useCache := true
-	if cache, ok := params["use_cache"].(bool); ok {
-		useCache = cache
+	if _, ok := params["use_cache"]; ok {
+		useCache = cast.ToBool(params["use_cache"])
 	}
 
 	clearCache := false
-	if clear, ok := params["clear_cache"].(bool); ok {
-		clearCache = clear
+	if _, ok := params["clear_cache"]; ok {
+		clearCache = cast.ToBool(params["clear_cache"])
 	}
 
-	docPath := "docs"
-	if path, ok := params["doc_path"].(string); ok && path != "" {
-		docPath = path
+	docPath := cast.ToString(params["doc_path"])
+	if docPath == "" {
+		docPath = "docs"
 	}
 
-	llmBatchSize := 0
-	if b, ok := params["llm_batch_size"].(float64); ok && b > 0 {
-		llmBatchSize = int(b)
-	} else if b, ok := params["llm_batch_size"].(int); ok && b > 0 {
-		llmBatchSize = b
+	llmBatchSize := cast.ToInt(params["llm_batch_size"])
+	if llmBatchSize < 0 {
+		llmBatchSize = 0
 	}
 
 	// Clear cache if requested
@@ -509,16 +507,14 @@ func handleTaskAnalysisDiscoverTags(ctx context.Context, params map[string]inter
 	tagMatches := matchDiscoveredTagsToTasks(discoveries, tasks)
 
 	// Optional batch: limit and/or prioritize tasks with no tags
-	limit := 0
-	if l, ok := params["limit"].(float64); ok && l > 0 {
-		limit = int(l)
-	} else if l, ok := params["limit"].(int); ok && l > 0 {
-		limit = l
+	limit := cast.ToInt(params["limit"])
+	if limit < 0 {
+		limit = 0
 	}
 
 	prioritizeUntagged := false
-	if p, ok := params["prioritize_untagged"].(bool); ok {
-		prioritizeUntagged = p
+	if _, ok := params["prioritize_untagged"]; ok {
+		prioritizeUntagged = cast.ToBool(params["prioritize_untagged"])
 	}
 
 	if (limit > 0 || prioritizeUntagged) && len(tagMatches) > 0 {
@@ -559,8 +555,8 @@ func handleTaskAnalysisDiscoverTags(ctx context.Context, params map[string]inter
 
 	// Optional: only backlog (Todo + In Progress) — parse todo2 backlog and update tags for those only
 	backlogOnly := false
-	if b, ok := params["backlog_only"].(bool); ok {
-		backlogOnly = b
+	if _, ok := params["backlog_only"]; ok {
+		backlogOnly = cast.ToBool(params["backlog_only"])
 	}
 
 	if backlogOnly && len(tagMatches) > 0 {
