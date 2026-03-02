@@ -71,3 +71,4 @@ internal/tools/\{\"*
 
 # OpenCode plugin dependencies (installed by bun at startup)
 .opencode/node_modules/
+CLAUDE.md
