@@ -253,8 +253,8 @@ func TestHandleReport(t *testing.T) {
 			params: map[string]interface{}{
 				"action": "scorecard",
 			},
-			// scorecard: no error only when IsGoProject(); otherwise expect "only supported for Go projects"
-			wantError: !IsGoProject(),
+			// scorecard: always succeeds; Go project gets Go scorecard, non-Go gets generic scorecard
+			wantError: false,
 		},
 		{
 			name: "parallel_execution_plan action (empty project yields no waves)",

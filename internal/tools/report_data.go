@@ -235,7 +235,7 @@ func getProjectInfo(projectRoot string) (map[string]interface{}, error) {
 
 // getCodebaseMetrics collects codebase statistics.
 func getCodebaseMetrics(projectRoot string) (map[string]interface{}, error) {
-	var goFiles, pythonFiles, totalFiles int
+	var goFiles, pythonFiles, cppFiles, rustFiles, totalFiles int
 
 	// Count files (simplified - could use more sophisticated counting)
 	err := filepath.Walk(projectRoot, func(path string, info os.FileInfo, err error) error {
@@ -245,19 +245,23 @@ func getCodebaseMetrics(projectRoot string) (map[string]interface{}, error) {
 
 		if info.IsDir() {
 			// Skip hidden and vendor directories
-			if strings.HasPrefix(info.Name(), ".") || info.Name() == "vendor" {
+			if strings.HasPrefix(info.Name(), ".") || info.Name() == "vendor" || info.Name() == "node_modules" || info.Name() == "build" || info.Name() == "target" || info.Name() == "__pycache__" {
 				return filepath.SkipDir
 			}
 
 			return nil
 		}
 
-		ext := filepath.Ext(path)
+		ext := strings.ToLower(filepath.Ext(path))
 		switch ext {
 		case ".go":
 			goFiles++
 		case ".py":
 			pythonFiles++
+		case ".cpp", ".cc", ".cxx", ".c", ".h", ".hpp", ".hxx":
+			cppFiles++
+		case ".rs":
+			rustFiles++
 		}
 
 		totalFiles++
@@ -266,15 +270,17 @@ func getCodebaseMetrics(projectRoot string) (map[string]interface{}, error) {
 	})
 
 	metrics := map[string]interface{}{
-		"go_files":     goFiles,
-		"go_lines":     0, // Could count lines if needed
-		"python_files": pythonFiles,
-		"python_lines": 0, // Could count lines if needed
-		"total_files":  totalFiles,
-		"total_lines":  0,  // Could count lines if needed
-		"tools":        28, // From registry (28 base + 1 conditional Apple FM)
-		"prompts":      35, // From templates.go (19 original + 16 migrated from Python)
-		"resources":    21, // From resources/handlers.go
+		"go_files":      goFiles,
+		"go_lines":      0, // Could count lines if needed
+		"python_files":  pythonFiles,
+		"python_lines":  0, // Could count lines if needed
+		"cpp_files":     cppFiles,
+		"rust_files":    rustFiles,
+		"total_files":   totalFiles,
+		"total_lines":   0,  // Could count lines if needed
+		"tools":         28, // From registry (28 base + 1 conditional Apple FM)
+		"prompts":       35, // From templates.go (19 original + 16 migrated from Python)
+		"resources":     21, // From resources/handlers.go
 	}
 
 	// Count tools, prompts, resources from registry

@@ -168,13 +168,109 @@ func handleReport(ctx context.Context, args json.RawMessage) ([]framework.TextCo
 	// Route to native implementations based on action (no Python bridge fallback)
 	switch action {
 	case "scorecard":
-		if !IsGoProject() {
-			return nil, fmt.Errorf("scorecard action is only supported for Go projects (go.mod); use action=overview for other project types")
-		}
-
 		projectRoot, err := FindProjectRoot()
 		if err != nil {
 			return nil, fmt.Errorf("report scorecard: %w", err)
+		}
+
+		if !IsGoProject() {
+			// Generic scorecard for non-Go projects (C++ / Python / Rust / Go / TypeScript / Swift)
+			pb, errPb := aggregateProjectDataProto(ctx, projectRoot, false)
+			if errPb != nil {
+				return nil, fmt.Errorf("report scorecard (generic): %w", errPb)
+			}
+			skipCache := cast.ToBool(params["skip_scorecard_cache"])
+			cacheKey := "multilang:" + projectRoot + "|" + MultilangCacheSignature(projectRoot)
+			var langs []LangHealth
+			fromCache := false
+			if !skipCache {
+				if cached, ok := cache.GetScorecardCache().Get(cacheKey); ok {
+					var decoded []LangHealth
+					if err := json.Unmarshal(cached, &decoded); err == nil {
+						langs = decoded
+						fromCache = true
+					}
+				}
+			}
+			if !fromCache {
+				langs = CollectMultilangHealth(ctx, projectRoot)
+				if !skipCache {
+					if data, err := json.Marshal(langs); err == nil {
+						cache.GetScorecardCache().Set(cacheKey, data, 5*time.Minute)
+					}
+				}
+			}
+			score := genericScoreFromOverview(pb)
+			if len(langs) > 0 {
+				var sum float64
+				for _, h := range langs {
+					if h.Detected {
+						sum += h.Score
+					}
+				}
+				score = 0.5*score + 0.5*(sum/float64(len(langs)))
+			}
+			productionReady := score >= 70 && len(pb.Risks) == 0
+			outputFormat := cast.ToString(params["output_format"])
+			if outputFormat == "json" {
+				blockers := make([]string, 0, len(pb.Risks))
+				for _, r := range pb.Risks {
+					blockers = append(blockers, r.Description)
+				}
+				recommendations := make([]string, 0)
+				if len(pb.Risks) > 0 {
+					recommendations = append(recommendations, "Address blockers and high-priority risks")
+				}
+				if pb.Tasks != nil && pb.Tasks.Pending > 0 {
+					recommendations = append(recommendations, "Work through next actions in suggested order")
+				}
+				for _, h := range langs {
+					recommendations = append(recommendations, h.Recommendations...)
+				}
+				metrics := map[string]interface{}{
+					"tasks_total":     int32(0),
+					"tasks_completed": int32(0),
+					"tasks_pending":   int32(0),
+					"completion_rate": 0.0,
+				}
+				if pb.Tasks != nil {
+					metrics["tasks_total"] = pb.Tasks.Total
+					metrics["tasks_completed"] = pb.Tasks.Completed
+					metrics["tasks_pending"] = pb.Tasks.Pending
+					metrics["completion_rate"] = pb.Tasks.CompletionRate
+				}
+				langList := make([]map[string]interface{}, 0, len(langs))
+				for _, h := range langs {
+					if !h.Detected {
+						continue
+					}
+					langList = append(langList, map[string]interface{}{
+						"lang":            h.Lang,
+						"lang_root":      h.LangRoot,
+						"score":           h.Score,
+						"build_passes":    h.BuildPasses,
+						"test_passes":     h.TestPasses,
+						"lint_passes":     h.LintPasses,
+						"fmt_passes":      h.FmtPasses,
+						"file_count":      h.FileCount,
+						"recommendations": h.Recommendations,
+					})
+				}
+				out := map[string]interface{}{
+					"overall_score":    score,
+					"production_ready": productionReady,
+					"type":             "generic",
+					"blockers":         blockers,
+					"recommendations":  recommendations,
+					"metrics":          metrics,
+					"languages":        langList,
+				}
+				AddTokenEstimateToResult(out)
+				compact := cast.ToBool(params["compact"])
+				return FormatResultOptionalCompact(out, "", compact)
+			}
+			text := FormatMultilangScorecard(ctx, projectRoot, pb)
+			return []framework.TextContent{{Type: "text", Text: text}}, nil
 		}
 
 		fastMode := true

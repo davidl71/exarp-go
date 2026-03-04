@@ -160,16 +160,15 @@ func calculateGoScore(health *GoHealthChecks, metrics *GoProjectMetrics) float64
 	return (score / maxScore) * 100
 }
 
-// IsGoProject checks if the current directory is a Go project
-// Exported for use by resource handlers.
+// IsGoProject reports whether the project root (from FindProjectRoot, e.g. PROJECT_ROOT) contains go.mod.
+// Uses project root instead of os.Getwd() so MCP invocations with PROJECT_ROOT set are evaluated correctly.
 func IsGoProject() bool {
-	wd, err := os.Getwd()
-	if err != nil {
+	root, err := FindProjectRoot()
+	if err != nil || root == "" {
 		return false
 	}
 
-	_, err = os.Stat(filepath.Join(wd, "go.mod"))
-
+	_, err = os.Stat(filepath.Join(root, "go.mod"))
 	return err == nil
 }
 
