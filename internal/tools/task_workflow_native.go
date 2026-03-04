@@ -19,7 +19,7 @@ func handleTaskWorkflowNative(ctx context.Context, params map[string]interface{}
 
 	ctx = context.WithValue(ctx, taskStoreKey, NewDefaultTaskStore(projectRoot))
 
-	action, _ := params["action"].(string)
+	action := ParamString(params, "action")
 	if action == "" {
 		action = "sync"
 	}
