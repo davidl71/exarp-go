@@ -2,11 +2,11 @@
 .PHONY: help b build build-local b-local build-debug silent build-race build-no-cgo run
 .PHONY: test test-watch test-go test-go-fast test-go-verbose test-go-parallel test-go-tools-short test-real-models test-ollama test-coverage test-html test-tools test-cli test-cli-list test-cli-tool test-cli-test test-mcp-stdio
 .PHONY: config clean-config tag-build-ok tags pre-release r root push pull p pl status st
-.PHONY: go-fmt go-vet golangci-lint-check golangci-lint-fix govulncheck check check-fix check-all check-security
+.PHONY: go-fmt go-vet golangci-lint-check golangci-lint-fix govulncheck check deadcode check-fix check-all check-security
 .PHONY: fmt lint lint-fix lint-all lint-all-fix
 .PHONY: dev dev-watch dev-test dev-full dev-cycle pre-push bench docs
 .PHONY: sanity-check sanity-check-cached clean clean-all clean-binary clean-config
-.PHONY: install install-binary install-tools go-mod-tidy go-mod-verify tidy
+.PHONY: install install-binary install-runner fix-mcp-config install-tools go-mod-tidy go-mod-verify tidy
 .PHONY: build-migrate migrate migrate-dry-run proto proto-check proto-clean proto-buf
 .PHONY: sprint-start sprint-end pre-sprint sprint check-tasks update-completed-tasks task-sanity-check
 .PHONY: task-list task-list-todo task-list-in-progress task-list-done task-prune-done task-update task-create task-show task-run-with-ai
@@ -493,6 +493,11 @@ govulncheck: ## Check for vulnerabilities with govulncheck
 check: go-fmt go-vet golangci-lint-check ## Check code quality (fmt + vet + lint)
 	@echo "$(GREEN)✅ All code quality checks passed$(NC)"
 
+deadcode: ## Run deadcode to find unreachable functions (deadcode -test ./...). Install: go install golang.org/x/tools/cmd/deadcode@latest
+	@command -v deadcode >/dev/null 2>&1 || { echo "$(RED)deadcode not found. Install: go install golang.org/x/tools/cmd/deadcode@latest$(NC)"; exit 1; }
+	@echo "$(BLUE)Running deadcode -test ./...$(NC)"
+	@deadcode -test ./...
+
 check-fix: go-fmt golangci-lint-fix ## Check and auto-fix code (fmt + lint-fix)
 	@echo "$(GREEN)✅ Code checked and fixed$(NC)"
 
@@ -664,7 +669,29 @@ install-binary: build ## Install exarp-go binary to GOPATH/bin (adds to PATH)
 		echo "$(YELLOW)   Add to ~/.zshrc or ~/.bashrc: export PATH=\"$$GOPATH_BIN:\$$PATH\"$(NC)"; \
 	fi
 
-install: install-binary ## Install exarp-go binary
+install-runner: ## Install portable runner script to GOPATH/bin (for use by MCP from client projects)
+	@echo "$(BLUE)Installing portable runner...$(NC)"
+	@if [ ! -f "scripts/run_exarp_go.sh" ]; then \
+		echo "$(RED)❌ Runner script not found: scripts/run_exarp_go.sh$(NC)"; \
+		exit 1; \
+	fi
+	@GOPATH_BIN=$$($(GO) env GOPATH)/bin; \
+	if [ -z "$$GOPATH_BIN" ] || [ "$$GOPATH_BIN" = "/bin" ]; then \
+		echo "$(RED)❌ Invalid GOPATH/bin: $$GOPATH_BIN$(NC)"; \
+		exit 1; \
+	fi; \
+	mkdir -p "$$GOPATH_BIN"; \
+	cp "scripts/run_exarp_go.sh" "$$GOPATH_BIN/run_exarp_go.sh"; \
+	chmod +x "$$GOPATH_BIN/run_exarp_go.sh"; \
+	echo "$(GREEN)✅ Installed runner to: $$GOPATH_BIN/run_exarp_go.sh$(NC)"; \
+	echo "$(BLUE)   Use this path in client project MCP config (see docs/PORTABLE_MCP_RUNNER.md)$(NC)"
+
+install: install-binary install-runner ## Install exarp-go binary and portable runner to GOPATH/bin
+
+fix-mcp-config: ## Evaluate and fix exarp-go entry in Cursor MCP config (use MCP_CONFIG_FLAGS e.g. --cursor-global, --cursor-project=DIR, --dry-run)
+	@bash scripts/fix-exarp-mcp-config.sh $(or $(MCP_CONFIG_FLAGS),--eval-only)
+
+install-mcp-config: fix-mcp-config ## Alias for fix-mcp-config (evaluate/fix Cursor mcp.json exarp-go entry)
 
 ##@ Go Development
 

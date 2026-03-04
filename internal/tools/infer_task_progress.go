@@ -178,11 +178,6 @@ func loadTasksByStatus(ctx context.Context, projectRoot string, status string) (
 	return tasksFromPtrs(list), nil
 }
 
-// loadInProgressTasks returns only In Progress tasks via TaskStore (legacy wrapper).
-func loadInProgressTasks(ctx context.Context, projectRoot string) ([]Todo2Task, error) {
-	return loadTasksByStatus(ctx, projectRoot, database.StatusInProgress)
-}
-
 var wordTokenRe = regexp.MustCompile(`[a-zA-Z0-9_]{2,}`)
 
 // scoreAllTasksHeuristic scores every task (confidence 0-1 and evidence). No threshold filter.

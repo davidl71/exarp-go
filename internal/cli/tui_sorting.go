@@ -152,19 +152,6 @@ func (m *model) computeHierarchyOrder() {
 	}
 }
 
-// taskParentMap returns task ID -> parent task ID for all tasks that have a parent.
-func (m model) taskParentMap() map[string]string {
-	out := make(map[string]string, len(m.tasks))
-
-	for _, t := range m.tasks {
-		if t.ParentID != "" {
-			out[t.ID] = t.ParentID
-		}
-	}
-
-	return out
-}
-
 // taskAncestorIDs returns for each task ID the set of ancestor IDs (parent + dependencies).
 // Used to hide both parent_id descendants and dependency dependents when a node is collapsed.
 func (m model) taskAncestorIDs() map[string][]string {

@@ -667,7 +667,9 @@ err := database.AddComments(taskID, comments)
 - `make sanity-check` - Verify tools/resources/prompts counts match expected values
 
 **Installation:**
-- `make install` - Install exarp-go binary
+- `make install` - Install exarp-go binary and portable runner to GOPATH/bin
+- `make install-binary` - Install only the binary; `make install-runner` - Install only the runner script
+- `make fix-mcp-config` - Evaluate/fix exarp-go entry in Cursor MCP config (default: eval only; use `MCP_CONFIG_FLAGS="--cursor-global"` to update)
 
 **Benchmarking:**
 - `make bench` - Run benchmarks (requires pytest)

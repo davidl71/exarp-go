@@ -74,14 +74,14 @@
     },
     {
       "file": "internal/tools/handlers.go",
-      "line": 102,
+      "line": 110,
       "source": "comment",
       "text": "Basic text search is native; semantic search enhancement can be added later in Go if needed.",
       "type": "NOTE"
     },
     {
       "file": "internal/tools/handlers.go",
-      "line": 104,
+      "line": 112,
       "source": "comment",
       "text": "handleMemoryNative already handles protobuf parsing, so we just pass args through",
       "type": "NOTE"
@@ -207,14 +207,7 @@
     },
     {
       "file": "internal/tools/protobuf_helpers_report.go",
-      "line": 130,
-      "source": "comment",
-      "text": "Currently unused - kept for potential future protobuf-based report processing.",
-      "type": "NOTE"
-    },
-    {
-      "file": "internal/tools/protobuf_helpers_report.go",
-      "line": 231,
+      "line": 128,
       "source": "comment",
       "text": "Currently unused - kept for potential future protobuf-based report processing.",
       "type": "NOTE"
@@ -298,7 +291,7 @@
     },
     {
       "file": "internal/tools/todo2_utils.go",
-      "line": 309,
+      "line": 283,
       "source": "comment",
       "text": "This matches Python implementation where only \"todo\" is considered pending.",
       "type": "NOTE"
@@ -2398,6 +2391,69 @@
     },
     {
       "completed": false,
+      "file": "docs/plans/2026-02-27-gateway-provider.plan.md",
+      "source": "markdown",
+      "text": "**Create plan doc** (T-1)",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/plans/2026-02-27-gateway-provider.plan.md",
+      "source": "markdown",
+      "text": "**Run sync_from_plan** (T-2)",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/plans/2026-02-27-gateway-provider.plan.md",
+      "source": "markdown",
+      "text": "**Add gateway_provider.go** (T-3)",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/plans/2026-02-27-gateway-provider.plan.md",
+      "source": "markdown",
+      "text": "**Register gateway in text_generate and llm_backends** (T-4)",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/plans/2026-02-27-gateway-provider.plan.md",
+      "source": "markdown",
+      "text": "**Optional model param and GenerateWithModel** (T-5)",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/plans/2026-02-27-gateway-provider.plan.md",
+      "source": "markdown",
+      "text": "**Tests and docs** (T-6)",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/plans/2026-02-27-gateway-provider.plan.md",
+      "source": "markdown",
+      "text": "**Document compose pattern** (T-7)",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/plans/2026-02-27-gateway-provider.plan.md",
+      "source": "markdown",
+      "text": "**Document Cursor + kcolemangt/llm-router** (T-8)",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/plans/2026-02-27-gateway-provider.plan.md",
+      "source": "markdown",
+      "text": "**Optional ModelRouter + gateway** (T-9)",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
       "file": "docs/plans/mcp-go-core-extraction.plan.md",
       "source": "markdown",
       "text": "T-1772056740723802000 — Remove duplicate ratelimit.go, use mcp-go-core version",
@@ -2435,14 +2491,14 @@
   "method": "native_go",
   "summary": {
     "by_source": {
-      "comment": 46,
-      "markdown": 301
+      "comment": 45,
+      "markdown": 310
     },
     "by_type": {
-      "MARKDOWN_TASK": 301,
-      "NOTE": 43,
+      "MARKDOWN_TASK": 310,
+      "NOTE": 42,
       "TODO": 3
     },
-    "total": 347
+    "total": 355
   }
 }

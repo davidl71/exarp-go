@@ -4,7 +4,10 @@
       "command": "{{PROJECT_ROOT}}/bin/exarp-go",
       "args": [],
       "env": {
-        "PROJECT_ROOT": "{{PROJECT_ROOT}}"
+        "PROJECT_ROOT": "{{PROJECT_ROOT}}",
+        "EXARP_MIGRATIONS_DIR": "{{PROJECT_ROOT}}/migrations",
+        "EXARP_WATCH": "0",
+        "EXARP_DEBUG_LOG": "0"
       },
       "description": "Exarp project automation — tools, prompts, and resources (Todo2, scorecard, lint, report)"
     }

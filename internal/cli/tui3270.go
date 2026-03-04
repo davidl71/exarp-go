@@ -65,15 +65,6 @@ func (state *tui3270State) popSession() *tui3270Session {
 	return &s
 }
 
-// sessionNames returns the names of all sessions on the stack (oldest first).
-func (state *tui3270State) sessionNames() []string {
-	names := make([]string, len(state.sessionStack))
-	for i, s := range state.sessionStack {
-		names[i] = s.name
-	}
-	return names
-}
-
 // RunTUI3270 starts a 3270 TUI server.
 func RunTUI3270(server framework.MCPServer, status string, port int, daemon bool, pidFile string) error {
 	// Daemonize if requested

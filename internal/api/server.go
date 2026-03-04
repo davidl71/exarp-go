@@ -184,13 +184,3 @@ type projectRootKey struct{}
 func withProjectRoot(ctx context.Context, root string) context.Context {
 	return context.WithValue(ctx, projectRootKey{}, root)
 }
-
-// GetProjectRoot returns the project root from context if set by the API server.
-func GetProjectRoot(ctx context.Context) (string, bool) {
-	v := ctx.Value(projectRootKey{})
-	if s, ok := v.(string); ok && s != "" {
-		return s, true
-	}
-
-	return "", false
-}

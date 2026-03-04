@@ -17,6 +17,7 @@
 - `OPENCODE_INTEGRATION.md` - Use exarp-go with OpenCode (MCP, CLI, HTTP API)
 - `GO_AI_ECOSYSTEM.md` - AI/LLM backend stack (FM, Ollama, MLX, LocalAI)
 - `LLM_NATIVE_ABSTRACTION_PATTERNS.md` - LLM abstraction patterns and discovery
+- `research/LLM_ROUTER_AND_ROUTELLM_RESEARCH.md` - radlab llm-router (gateway) and RouteLLM (ML cost routing) research
 
 ### Active Workflows
 - `HANDOFF_VIA_GIT.md` - Hand off so remote gets exarp task list via git (export handoff + task snapshot to tracked docs)

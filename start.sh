@@ -25,7 +25,10 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="${PROJECT_ROOT:-$SCRIPT_DIR}"
+# Use script dir when PROJECT_ROOT unset or literal Cursor placeholder (so MCP always starts)
+if [[ -z "${PROJECT_ROOT}" || "${PROJECT_ROOT}" == "{{PROJECT_ROOT}}" ]]; then
+  PROJECT_ROOT="$SCRIPT_DIR"
+fi
 BINARY_NAME="exarp-go"
 BINARY_PATH="$PROJECT_ROOT/bin/$BINARY_NAME"
 

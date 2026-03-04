@@ -91,12 +91,6 @@ func HandleInferSessionModeNative(ctx context.Context, params map[string]interfa
 	return marshalInferenceResult(result)
 }
 
-// handleInferSessionModeNative is an alias for HandleInferSessionModeNative
-// Kept for backward compatibility with existing tool handler.
-func handleInferSessionModeNative(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
-	return HandleInferSessionModeNative(ctx, params)
-}
-
 // marshalInferenceResult marshals the inference result to JSON.
 func marshalInferenceResult(result ModeInferenceResult) ([]framework.TextContent, error) {
 	m, err := framework.ConvertToMap(result)

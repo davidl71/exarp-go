@@ -19,8 +19,12 @@ import (
 // Fully native Go for both "todo2" and "prd" actions; no Python bridge.
 var handleAnalyzeAlignment = WrapHandler(
 	"analyze_alignment",
-	func(args json.RawMessage) (any, map[string]interface{}, error) { return ParseAnalyzeAlignmentRequest(args) },
-	func(req any) map[string]interface{} { return AnalyzeAlignmentRequestToParams(req.(*proto.AnalyzeAlignmentRequest)) },
+	func(args json.RawMessage) (any, map[string]interface{}, error) {
+		return ParseAnalyzeAlignmentRequest(args)
+	},
+	func(req any) map[string]interface{} {
+		return AnalyzeAlignmentRequestToParams(req.(*proto.AnalyzeAlignmentRequest))
+	},
 	map[string]interface{}{"action": "todo2"},
 	handleAnalyzeAlignmentNative,
 )
@@ -75,8 +79,12 @@ var handleSetupHooks = WrapHandler(
 // Uses native Go implementation only - fully native Go, no Python fallback.
 var handleCheckAttribution = WrapHandler(
 	"check_attribution",
-	func(args json.RawMessage) (any, map[string]interface{}, error) { return ParseCheckAttributionRequest(args) },
-	func(req any) map[string]interface{} { return CheckAttributionRequestToParams(req.(*proto.CheckAttributionRequest)) },
+	func(args json.RawMessage) (any, map[string]interface{}, error) {
+		return ParseCheckAttributionRequest(args)
+	},
+	func(req any) map[string]interface{} {
+		return CheckAttributionRequestToParams(req.(*proto.CheckAttributionRequest))
+	},
 	nil,
 	handleCheckAttributionNative,
 )
@@ -358,7 +366,9 @@ func handleSecurity(ctx context.Context, args json.RawMessage) ([]framework.Text
 var handleTaskAnalysis = WrapHandler(
 	"task_analysis",
 	func(args json.RawMessage) (any, map[string]interface{}, error) { return ParseTaskAnalysisRequest(args) },
-	func(req any) map[string]interface{} { return TaskAnalysisRequestToParams(req.(*proto.TaskAnalysisRequest)) },
+	func(req any) map[string]interface{} {
+		return TaskAnalysisRequestToParams(req.(*proto.TaskAnalysisRequest))
+	},
 	map[string]interface{}{"output_format": "text"},
 	handleTaskAnalysisNative,
 )
@@ -367,8 +377,12 @@ var handleTaskAnalysis = WrapHandler(
 // Uses native Go implementation only (comments, markdown, orphans, create_tasks); no Python bridge.
 var handleTaskDiscovery = WrapHandler(
 	"task_discovery",
-	func(args json.RawMessage) (any, map[string]interface{}, error) { return ParseTaskDiscoveryRequest(args) },
-	func(req any) map[string]interface{} { return TaskDiscoveryRequestToParams(req.(*proto.TaskDiscoveryRequest)) },
+	func(args json.RawMessage) (any, map[string]interface{}, error) {
+		return ParseTaskDiscoveryRequest(args)
+	},
+	func(req any) map[string]interface{} {
+		return TaskDiscoveryRequestToParams(req.(*proto.TaskDiscoveryRequest))
+	},
 	map[string]interface{}{"action": "all", "json_pattern": "**/.todo2/state.todo2.json"},
 	handleTaskDiscoveryNative,
 )

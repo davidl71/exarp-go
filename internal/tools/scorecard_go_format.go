@@ -173,16 +173,6 @@ func IsGoProject() bool {
 	return err == nil
 }
 
-// getProjectRoot gets the project root directory.
-func getProjectRoot() string {
-	wd, err := os.Getwd()
-	if err != nil {
-		return "."
-	}
-
-	return wd
-}
-
 // FormatGoScorecard formats the Go scorecard as text output.
 func FormatGoScorecard(scorecard *GoScorecardResult) string {
 	var sb strings.Builder

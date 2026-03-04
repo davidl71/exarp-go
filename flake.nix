@@ -13,8 +13,8 @@
       devShells = forEachSystem (system:
         let
           pkgs = pkgsFor system;
-          # go.mod specifies go 1.25.5; use go from nixpkgs (24.11 has go_1_22).
-          # Override with pkgs.go_1_23 or go_1_24 when available if needed.
+          # go.mod specifies go 1.25.5; nixpkgs 24.11 provides go_1_22.
+          # For Go 1.23+ use nixpkgs-unstable or a newer channel and set go = pkgs.go_1_23; etc.
           go = pkgs.go_1_22;
         in
         {
@@ -23,7 +23,7 @@
             buildInputs = with pkgs; [
               go
               gcc
-              make
+              gnumake
               git
               protobuf
               golangci-lint

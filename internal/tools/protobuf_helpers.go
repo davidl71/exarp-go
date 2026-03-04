@@ -446,31 +446,6 @@ func ProtoToProjectInfo(pb *proto.ProjectInfo) map[string]interface{} {
 	}
 }
 
-// ─── HealthDataToProto ──────────────────────────────────────────────────────
-// HealthDataToProto converts map[string]interface{} to proto.HealthData.
-func HealthDataToProto(health map[string]interface{}) *proto.HealthData {
-	pb := &proto.HealthData{}
-	if score, ok := health["overall_score"].(float64); ok {
-		pb.OverallScore = score
-	}
-
-	if ready, ok := health["production_ready"].(bool); ok {
-		pb.ProductionReady = ready
-	}
-
-	if scores, ok := health["scores"].(map[string]interface{}); ok {
-		pb.Scores = make(map[string]float64)
-
-		for k, v := range scores {
-			if score, ok := v.(float64); ok {
-				pb.Scores[k] = score
-			}
-		}
-	}
-
-	return pb
-}
-
 // ─── ProtoToHealthData ──────────────────────────────────────────────────────
 // ProtoToHealthData converts proto.HealthData to map[string]interface{}.
 func ProtoToHealthData(pb *proto.HealthData) map[string]interface{} {

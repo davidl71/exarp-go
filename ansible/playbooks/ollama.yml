@@ -1,5 +1,6 @@
 ---
-# Ollama-only playbook - Install Ollama and pull models (fix environment for ollama tool / tests)
+# Ollama-only playbook - Install Ollama and pull missing models (fix environment for ollama tool / tests)
+# Pull is idempotent: only missing models are downloaded.
 # Usage: ansible-playbook -i inventories/development playbooks/ollama.yml
 
 - name: Setup Ollama for exarp-go
@@ -15,6 +16,6 @@
   tasks:
     - name: Display Ollama next step
       ansible.builtin.debug:
-        msg: "Start server with: ollama serve (or run Ollama app). Then run: make test-go"
+        msg: "Start server with: ollama serve (or run Ollama app). Then run: make test-go or make test-ollama"
       tags:
         - ollama

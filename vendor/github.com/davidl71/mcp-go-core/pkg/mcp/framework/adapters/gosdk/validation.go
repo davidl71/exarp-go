@@ -1,69 +1,87 @@
 package gosdk
 
 import (
-	"fmt"
-
+	"github.com/davidl71/mcp-go-core/pkg/mcp/framework"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
-// ValidateRegistration validates common registration parameters
-// for tools, prompts, and resources.
-func ValidateRegistration(name, description string, handler interface{}) error {
+// ValidateToolRegistration validates tool registration parameters and returns typed errors.
+func ValidateToolRegistration(name, description string, handler interface{}) error {
 	if name == "" {
-		return fmt.Errorf("name cannot be empty")
+		return &framework.ErrInvalidTool{ToolName: "", Reason: "name cannot be empty"}
 	}
 	if description == "" {
-		return fmt.Errorf("description cannot be empty")
+		return &framework.ErrInvalidTool{ToolName: name, Reason: "description cannot be empty"}
 	}
 	if handler == nil {
-		return fmt.Errorf("handler cannot be nil")
+		return &framework.ErrInvalidTool{ToolName: name, Reason: "handler cannot be nil"}
 	}
 	return nil
 }
 
-// ValidateResourceRegistration validates resource-specific registration parameters
+// ValidatePromptRegistration validates prompt registration parameters and returns typed errors.
+func ValidatePromptRegistration(name, description string, handler interface{}) error {
+	if name == "" {
+		return &framework.ErrInvalidPrompt{PromptName: "", Reason: "name cannot be empty"}
+	}
+	if description == "" {
+		return &framework.ErrInvalidPrompt{PromptName: name, Reason: "description cannot be empty"}
+	}
+	if handler == nil {
+		return &framework.ErrInvalidPrompt{PromptName: name, Reason: "handler cannot be nil"}
+	}
+	return nil
+}
+
+// ValidateResourceRegistration validates resource-specific registration parameters and returns typed errors.
 func ValidateResourceRegistration(uri, name, description string, handler interface{}) error {
-	if err := ValidateRegistration(name, description, handler); err != nil {
-		return err
+	if name == "" {
+		return &framework.ErrInvalidResource{URI: uri, Reason: "name cannot be empty"}
+	}
+	if description == "" {
+		return &framework.ErrInvalidResource{URI: uri, Reason: "description cannot be empty"}
+	}
+	if handler == nil {
+		return &framework.ErrInvalidResource{URI: uri, Reason: "handler cannot be nil"}
 	}
 	if uri == "" {
-		return fmt.Errorf("resource URI cannot be empty")
+		return &framework.ErrInvalidResource{URI: "", Reason: "resource URI cannot be empty"}
 	}
 	return nil
 }
 
-// ValidateCallToolRequest validates a CallToolRequest
+// ValidateCallToolRequest validates a CallToolRequest and returns typed errors.
 func ValidateCallToolRequest(req *mcp.CallToolRequest) error {
 	if req == nil {
-		return fmt.Errorf("call tool request cannot be nil")
+		return &framework.ErrInvalidRequest{RequestType: "CallTool", Reason: "request cannot be nil"}
 	}
 	if req.Params == nil {
-		return fmt.Errorf("call tool request params cannot be nil")
+		return &framework.ErrInvalidRequest{RequestType: "CallTool", Reason: "params cannot be nil"}
 	}
 	return nil
 }
 
-// ValidateGetPromptRequest validates a GetPromptRequest
+// ValidateGetPromptRequest validates a GetPromptRequest and returns typed errors.
 func ValidateGetPromptRequest(req *mcp.GetPromptRequest) error {
 	if req == nil {
-		return fmt.Errorf("get prompt request cannot be nil")
+		return &framework.ErrInvalidRequest{RequestType: "GetPrompt", Reason: "request cannot be nil"}
 	}
 	if req.Params == nil {
-		return fmt.Errorf("get prompt request params cannot be nil")
+		return &framework.ErrInvalidRequest{RequestType: "GetPrompt", Reason: "params cannot be nil"}
 	}
 	return nil
 }
 
-// ValidateReadResourceRequest validates a ReadResourceRequest
+// ValidateReadResourceRequest validates a ReadResourceRequest and returns typed errors.
 func ValidateReadResourceRequest(req *mcp.ReadResourceRequest) error {
 	if req == nil {
-		return fmt.Errorf("read resource request cannot be nil")
+		return &framework.ErrInvalidRequest{RequestType: "ReadResource", Reason: "request cannot be nil"}
 	}
 	if req.Params == nil {
-		return fmt.Errorf("read resource request params cannot be nil")
+		return &framework.ErrInvalidRequest{RequestType: "ReadResource", Reason: "params cannot be nil"}
 	}
 	if req.Params.URI == "" {
-		return fmt.Errorf("resource URI cannot be empty")
+		return &framework.ErrInvalidResource{URI: "", Reason: "resource URI cannot be empty"}
 	}
 	return nil
 }

@@ -129,7 +129,7 @@ func TestHandleTaskWorkflowNative(t *testing.T) {
 		{
 			name: "add_comment requires task_id",
 			params: map[string]interface{}{
-				"action": "add_comment",
+				"action":  "add_comment",
 				"content": "some result text",
 			},
 			wantError: true,
@@ -137,7 +137,7 @@ func TestHandleTaskWorkflowNative(t *testing.T) {
 		{
 			name: "add_comment requires content",
 			params: map[string]interface{}{
-				"action": "add_comment",
+				"action":  "add_comment",
 				"task_id": "T-1",
 			},
 			wantError: true,

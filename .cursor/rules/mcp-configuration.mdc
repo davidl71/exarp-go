@@ -90,7 +90,20 @@ To install or replace: from devwisdom-go run `make install-mcp-config` (or `REPL
 To use exarp-go **per project** (each repo has its own tasks and PROJECT_ROOT):
 
 1. In the **project** you want to use exarp-go in, create or edit `.cursor/mcp.json` (this file is gitignored in exarp-go; in other repos you may commit it or add `.cursor/mcp.json` to `.gitignore` and use an example).
-2. Add only the `exarp-go` server (Cursor merges with your global `~/.cursor/mcp.json`):
+2. Add only the `exarp-go` server (Cursor merges with your global `~/.cursor/mcp.json`).
+
+**Portable runner (recommended for client projects):** Copy `scripts/run_exarp_go.sh` from exarp-go into your project’s `scripts/` and point the MCP command at it. The script resolves exarp-go (sibling repo, PATH, or EXARP_GO_ROOT) and sets PROJECT_ROOT. See `docs/PORTABLE_MCP_RUNNER.md` and `docs/examples/cursor-mcp-portable.json`.
+```json
+{
+  "mcpServers": {
+    "exarp-go": {
+      "command": "{{PROJECT_ROOT}}/scripts/run_exarp_go.sh",
+      "args": [],
+      "env": { "PROJECT_ROOT": "{{PROJECT_ROOT}}" }
+    }
+  }
+}
+```
 
 **Binary in a sibling exarp-go clone (common for development):**
 ```json
@@ -105,7 +118,7 @@ To use exarp-go **per project** (each repo has its own tasks and PROJECT_ROOT):
 }
 ```
 
-**Or use the wrapper script (builds if needed):**
+**Or use the wrapper script when your workspace is the exarp-go repo (builds if needed):**
 ```json
 {
   "mcpServers": {

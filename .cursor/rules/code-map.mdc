@@ -61,7 +61,8 @@ All handler files are in `internal/tools/`. Registration is in `registry.go` whi
 | `internal/tools` | All MCP tool handlers (business logic) | See tool map above; `handlers.go` (top-level dispatch) |
 | `internal/database` | SQLite storage for tasks, comments, activities, locks | `tasks.go` (types, metadata, ID), `tasks_crud.go`, `tasks_list.go`, `tasks_helpers.go`, `tasks_misc.go`, `schema.go`, `tasks_lock.go`, `migrations/` |
 | `internal/models` | Shared types and constants (no DB dependency) | `todo2.go` (Todo2Task struct), `constants.go` (status/priority), `task_id.go` |
-| `internal/config` | Protobuf-based project configuration | `schema.go` (FullConfig), `loader.go`, `writer.go` |
+| `internal/config` | Protobuf-based project configuration | `schema.go` (FullConfig), `loader.go` (Load, **FindProjectRoot** → projectroot.Find), `writer.go` |
+| `internal/projectroot` | Project root resolution (markers .exarp, .todo2; PROJECT_ROOT env) | `projectroot.go` (Find, FindFrom, FindFromWithMarkers). **Single implementation:** config.FindProjectRoot() and tools.FindProjectRoot() delegate here. Use tools.GetProjectRootWithFallback() for best-effort. |
 | `internal/framework` | MCP server interface abstraction + hook/filter types | `server.go` (MCPServer interface, Hooks, ToolFilterFunc) |
 | `internal/factory` | Framework factory with middleware chain | `server.go` (recovery → cache → logging → hooks middleware, WithToolFilter, filteredServer) |
 | `internal/resources` | MCP resource handlers (stdio:// URIs) | `handlers.go` (registry), `tasks.go`, `tools.go`, `session.go` |

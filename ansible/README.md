@@ -177,7 +177,7 @@ Use tags to run specific parts of the playbook:
 To fix the environment so ollama native tests pass (server + models):
 
 1. Set `install_ollama: true` in `inventories/development/group_vars/all.yml`.
-2. Run the **ollama-only** playbook (recommended; does not run other roles):
+2. Run the **ollama-only** playbook (recommended; installs Ollama and pulls missing models; pull is idempotent):
    ```bash
    ansible-playbook -i inventories/development playbooks/ollama.yml
    ```
@@ -186,7 +186,7 @@ To fix the environment so ollama native tests pass (server + models):
    ansible-playbook -i inventories/development playbooks/development.yml --tags ollama
    ```
 3. Start the Ollama server: `ollama serve` (or run the Ollama app).
-4. Run tests: `make test-go` or `make test-ollama`. Ollama tests use a **light default model** (`qwen2.5:1.5b`) for speed; pull it with `ollama pull qwen2.5:1.5b`. For larger families use **quantized tags** (e.g. `qwen2.5:7b-q4_0`) to keep runs fast and memory low. Override with `OLLAMA_TEST_MODEL` / `OLLAMA_TEST_CODE_MODEL` (and `OLLAMA_DEFAULT_MODEL` / `OLLAMA_CODE_MODEL` for real-models tests) to match your installed models.
+4. Run tests: `make test-go` or `make test-ollama`. Ollama tests use a **light default model** (`qwen2.5:1.5b`) for speed; the playbook pulls it (and any other `ollama_models`) automatically. Override with `OLLAMA_TEST_MODEL` / `OLLAMA_TEST_CODE_MODEL` (and `OLLAMA_DEFAULT_MODEL` / `OLLAMA_CODE_MODEL` for real-models tests) to match your installed models.
 
 ## Examples
 

@@ -18,6 +18,13 @@ type TextGenerator interface {
 	Generate(ctx context.Context, prompt string, maxTokens int, temperature float32) (string, error)
 }
 
+// TextGeneratorWithModel extends TextGenerator with optional model override for the request.
+// Implemented by LocalAI and Gateway providers so text_generate can pass params["model"] (e.g. router-mf-0.11, ollama/phi4).
+type TextGeneratorWithModel interface {
+	TextGenerator
+	GenerateWithModel(ctx context.Context, prompt string, maxTokens int, temperature float32, modelOverride string) (string, error)
+}
+
 // FMProvider abstracts foundation model access so tools (e.g. task_analysis hierarchy)
 // can use Apple FM when available and fail cleanly otherwise, without Python fallback.
 // FMProvider implements TextGenerator.

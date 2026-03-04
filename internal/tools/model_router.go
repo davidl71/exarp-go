@@ -9,6 +9,7 @@ package tools
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/davidl71/exarp-go/internal/config"
 )
@@ -19,6 +20,8 @@ type ModelType string
 const (
 	// ModelFM uses the FM chain (Apple → Ollama → stub) via DefaultFMProvider().
 	ModelFM ModelType = "fm"
+	// ModelGateway uses the OpenAI-compatible gateway (OPENAI_GATEWAY_BASE_URL) when set; used by provider=auto.
+	ModelGateway ModelType = "gateway"
 	// ModelOllamaLlama uses Ollama with a general model (e.g. llama3.2).
 	ModelOllamaLlama ModelType = "ollama-llama"
 	// ModelOllamaCode uses Ollama with a code model (e.g. codellama).
@@ -53,13 +56,18 @@ var DefaultModelRouter ModelRouter = &defaultModelRouter{}
 
 // SelectModel picks the best available backend for task type and requirements.
 // Code tasks prefer Ollama CodeLlama or MLX; general tasks prefer FM chain or Ollama Llama.
-// Availability: FMAvailable(), MLAvailable() (darwin/arm64); MLX preferred for code on Apple Silicon.
+// When OPENAI_GATEWAY_BASE_URL is set, gateway is preferred after FM so provider=auto can use it.
+// Availability: FMAvailable(), GatewayAvailable(), MLAvailable() (darwin/arm64); MLX preferred for code on Apple Silicon.
 func (r *defaultModelRouter) SelectModel(taskType string, requirements ModelRequirements) ModelType {
 	isCode := taskType == "code" || taskType == "code_analysis" || taskType == "code_generation"
 
 	if FMAvailable() {
 		// FM chain (Apple or Ollama) is available; use it for both code and general.
 		return ModelFM
+	}
+	if GatewayAvailable() {
+		// Gateway configured: use it for provider=auto (single URL/key; router handles model choice).
+		return ModelGateway
 	}
 	// Prefer MLX for code tasks on Apple Silicon (local, no ollama serve needed).
 	if isCode && MLAvailable() {
@@ -87,6 +95,12 @@ func (r *defaultModelRouter) Generate(ctx context.Context, model ModelType, prom
 		}
 
 		return p.Generate(ctx, prompt, maxTokens, temperature)
+	case ModelGateway:
+		g := DefaultGatewayProvider()
+		if g == nil || !g.Supported() {
+			return "", fmt.Errorf("gateway not configured (set OPENAI_GATEWAY_BASE_URL)")
+		}
+		return g.Generate(ctx, prompt, maxTokens, temperature)
 	case ModelOllamaLlama:
 		return r.generateOllama(ctx, config.GetOllamaDefaultModel(), prompt, maxTokens, temperature)
 	case ModelOllamaCode:
@@ -136,7 +150,10 @@ func ResolveModelForTask(taskDescription, taskType, optimizeFor string) (ModelTy
 	case "ollama-llama3.2":
 		return ModelOllamaLlama, req
 	default:
-		// Cloud models (claude-*, gpt-4o, o1-*, gemini-*) → FM chain
+		// Cloud models (claude-*, gpt-4o, o1-*, gemini-*) → gateway when configured, else FM chain
+		if GatewayAvailable() {
+			return ModelGateway, req
+		}
 		return ModelFM, req
 	}
 }

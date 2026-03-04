@@ -1,6 +1,7 @@
 ---
 # Ollama role - Install Ollama and pull models for exarp-go ollama tool / tests
 # Uses async to pull models in parallel (each model ~2-4GB download).
+# ollama pull is idempotent: skips download if model already present.
 
 - name: Install Ollama (macOS)
   community.general.homebrew:
@@ -20,23 +21,44 @@
   when: ansible_system == "Linux"
   tags: [ollama, optional]
 
-- name: Verify Ollama binary is available
-  ansible.builtin.command: which ollama
-  register: ollama_which
+# Resolve Ollama binary path (PATH may not include Homebrew on macOS in non-interactive runs)
+- name: Resolve Ollama binary path
+  ansible.builtin.shell: |
+    if command -v ollama >/dev/null 2>&1; then
+      command -v ollama
+    elif [ -x /opt/homebrew/bin/ollama ]; then
+      echo /opt/homebrew/bin/ollama
+    elif [ -x /usr/local/bin/ollama ]; then
+      echo /usr/local/bin/ollama
+    else
+      exit 1
+    fi
+  register: ollama_path_result
   changed_when: false
   failed_when: false
   tags: [ollama, optional]
 
-# Pull models in parallel (each is independent)
+- name: Set Ollama binary path fact
+  ansible.builtin.set_fact:
+    ollama_bin: "{{ ollama_path_result.stdout | trim }}"
+  when: ollama_path_result.rc == 0 and ollama_path_result.stdout | length > 0
+  tags: [ollama, optional]
+
+# Pull missing models (ollama pull is idempotent — skips if already present)
 - name: Pull Ollama models (async — parallel downloads)
-  ansible.builtin.command: "ollama pull {{ item }}"
-  loop: "{{ ollama_models }}"
-  async: 600
+  ansible.builtin.command: "{{ ollama_bin }} pull {{ item }}"
+  loop: "{{ ollama_models | default([]) }}"
+  async: 900
   poll: 0
   register: ollama_pull_jobs
   changed_when: true
   failed_when: false
-  when: ollama_models | length > 0 and ollama_which.rc == 0
+  when:
+    - ollama_models | default([]) | length > 0
+    - ollama_bin is defined
+  environment:
+    # Ensure PATH includes Homebrew on macOS for any child processes
+    PATH: "{{ '/opt/homebrew/bin:/usr/local/bin:' + (ansible_env.PATH | default('')) if ansible_system == 'Darwin' else (ansible_env.PATH | default('')) }}"
   tags: [ollama, optional]
 
 - name: Wait for all model pulls to complete
@@ -45,7 +67,7 @@
   loop: "{{ ollama_pull_jobs.results | default([]) }}"
   register: ollama_pull_results
   until: ollama_pull_results.finished | default(true)
-  retries: 60
+  retries: 90
   delay: 10
   failed_when: false
   when: item.ansible_job_id is defined
@@ -56,7 +78,7 @@
 - name: Display Ollama installation status
   ansible.builtin.debug:
     msg:
-      - "Ollama: {{ '✅ installed' if ollama_which.rc == 0 else '❌ not found' }}"
-      - "Models pulled: {{ ollama_models | default([]) | join(', ') }}"
+      - "Ollama: {{ '✅ ' + ollama_bin if ollama_bin is defined else '❌ not found (install Ollama first)' }}"
+      - "Models (pull missing): {{ ollama_models | default([]) | join(', ') }}"
       - "Start server with: ollama serve (or run Ollama app)"
   tags: [ollama, optional]

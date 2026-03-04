@@ -12,7 +12,6 @@ import (
 //   GoScorecardResultToProto
 //   BriefingDataToMap — BriefingDataToMap converts proto.BriefingData to map for JSON output (same shape as legacy briefing map).
 //   ProtoToScorecardMap — ProtoToScorecardMap converts proto.ScorecardData to map for MLX/JSON (same shape as GoScorecardToMap).
-//   ProjectOverviewDataToProto — ProjectOverviewDataToProto converts map[string]interface{} to proto.ProjectOverviewData
 //   ProtoToProjectOverviewData — ProtoToProjectOverviewData converts proto.ProjectOverviewData to map[string]interface{}
 //   ParseTaskWorkflowRequest — ParseTaskWorkflowRequest parses a task_workflow tool request (protobuf or JSON).
 //   TaskWorkflowRequestToParams — TaskWorkflowRequestToParams converts a protobuf TaskWorkflowRequest to params map
@@ -31,7 +30,6 @@ import (
 //   ParseSessionRequest — ParseSessionRequest parses a session request (protobuf or JSON).
 //   SessionRequestToParams — SessionRequestToParams converts a protobuf SessionRequest to params map
 //   ParseGitToolsRequest — ParseGitToolsRequest parses a git_tools request (protobuf or JSON).
-//   GitToolsRequestToParams — GitToolsRequestToParams converts a protobuf GitToolsRequest to params map
 // ────────────────────────────────────────────────────────────────────────────
 
 // ─── GoScorecardResultToProto ───────────────────────────────────────────────
@@ -123,107 +121,6 @@ func ProtoToScorecardMap(pb *proto.ScorecardData) map[string]interface{} {
 		"recommendations": pb.Recommendations,
 		"metrics":         metrics,
 	}
-}
-
-// ─── ProjectOverviewDataToProto ─────────────────────────────────────────────
-// ProjectOverviewDataToProto converts map[string]interface{} to proto.ProjectOverviewData
-// NOTE: Currently unused - kept for potential future protobuf-based report processing.
-func ProjectOverviewDataToProto(data map[string]interface{}) *proto.ProjectOverviewData {
-	pb := &proto.ProjectOverviewData{}
-
-	if project, ok := data["project"].(map[string]interface{}); ok {
-		pb.Project = ProjectInfoToProto(project)
-	}
-
-	if health, ok := data["health"].(map[string]interface{}); ok {
-		pb.Health = HealthDataToProto(health)
-	}
-
-	if codebase, ok := data["codebase"].(map[string]interface{}); ok {
-		pb.Codebase = CodebaseMetricsToProto(codebase)
-	}
-
-	if tasks, ok := data["tasks"].(map[string]interface{}); ok {
-		pb.Tasks = TaskMetricsToProto(tasks)
-	}
-
-	if phases, ok := data["phases"].(map[string]interface{}); ok {
-		// Convert phases map to repeated ProjectPhase
-		for key, phaseRaw := range phases {
-			if phase, ok := phaseRaw.(map[string]interface{}); ok {
-				pbPhase := &proto.ProjectPhase{
-					Name: key,
-				}
-				if status, ok := phase["status"].(string); ok {
-					pbPhase.Status = status
-				}
-
-				if progress, ok := phase["progress"].(int); ok {
-					pbPhase.Progress = int32(progress)
-				} else if progress, ok := phase["progress"].(float64); ok {
-					pbPhase.Progress = int32(progress)
-				}
-
-				pb.Phases = append(pb.Phases, pbPhase)
-			}
-		}
-	}
-
-	if risks, ok := data["risks"].([]interface{}); ok {
-		for _, riskRaw := range risks {
-			if risk, ok := riskRaw.(map[string]interface{}); ok {
-				pbRisk := &proto.RiskOrBlocker{}
-				if typ, ok := risk["type"].(string); ok {
-					pbRisk.Type = typ
-				}
-
-				if desc, ok := risk["description"].(string); ok {
-					pbRisk.Description = desc
-				}
-
-				if taskID, ok := risk["task_id"].(string); ok {
-					pbRisk.TaskId = taskID
-				}
-
-				if priority, ok := risk["priority"].(string); ok {
-					pbRisk.Priority = priority
-				}
-
-				pb.Risks = append(pb.Risks, pbRisk)
-			}
-		}
-	}
-
-	if actions, ok := data["next_actions"].([]interface{}); ok {
-		for _, actionRaw := range actions {
-			if action, ok := actionRaw.(map[string]interface{}); ok {
-				pbAction := &proto.NextAction{}
-				if taskID, ok := action["task_id"].(string); ok {
-					pbAction.TaskId = taskID
-				}
-
-				if name, ok := action["name"].(string); ok {
-					pbAction.Name = name
-				}
-
-				if priority, ok := action["priority"].(string); ok {
-					pbAction.Priority = priority
-				}
-
-				if hours, ok := action["estimated_hours"].(float64); ok {
-					pbAction.EstimatedHours = hours
-				}
-
-				pb.NextActions = append(pb.NextActions, pbAction)
-			}
-		}
-	}
-
-	if generatedAt, ok := data["generated_at"].(string); ok {
-		pb.GeneratedAt = generatedAt
-	}
-
-	return pb
 }
 
 // ─── ProtoToProjectOverviewData ─────────────────────────────────────────────
@@ -611,27 +508,6 @@ func ParseGitToolsRequest(args json.RawMessage) (*proto.GitToolsRequest, map[str
 	}
 
 	return nil, params, nil
-}
-
-// ─── GitToolsRequestToParams ────────────────────────────────────────────────
-// GitToolsRequestToParams converts a protobuf GitToolsRequest to params map
-// This function now uses the generic ProtobufToParams converter from mcp-go-core.
-func GitToolsRequestToParams(req *proto.GitToolsRequest) map[string]interface{} {
-	if req == nil {
-		return make(map[string]interface{})
-	}
-
-	params, err := framework.ProtobufToParams(req, &framework.ProtobufToParamsOptions{
-		FilterEmptyStrings:  true,
-		StringifyArrays:     false,
-		ConvertFloat64ToInt: true,
-		Float64ToIntFields:  []string{"limit", "max_commits"},
-	})
-	if err != nil {
-		return make(map[string]interface{})
-	}
-
-	return params
 }
 
 // GitToolsResponseToMap converts GitToolsResponse proto to map for response.FormatResult (unmarshals result_json).

@@ -59,8 +59,9 @@ exarp-go uses a **custom LLM abstraction** (no langchaingo, Genkit, or Go AI SDK
 | **Ollama** | Local LLM server (status, models, generate, pull, etc.). | Native Go HTTP client first; Python bridge fallback. `internal/tools/ollama_native.go`, `ollama_provider.go`; `DefaultOllama()`. |
 | **MLX** | Report/scorecard insights (long-form text). | Python bridge; `DefaultReportInsight()` tries MLX then FM. `internal/tools/mlx_invoke.go`, `insight_provider.go`. |
 | **LocalAI** | Self-hosted OpenAI-compatible API (optional). | Env: `LOCALAI_BASE_URL` (required), `LOCALAI_MODEL` (optional). `internal/tools/localai_provider.go`; `text_generate` with `provider=localai`. |
+| **Gateway** | Any OpenAI-compatible router (inference-gateway, pLLM, kcolemangt/llm-router, radlab llm-router, RouteLLM). | Env: `OPENAI_GATEWAY_BASE_URL` (required), `OPENAI_GATEWAY_MODEL`, `OPENAI_GATEWAY_API_KEY` (optional). `internal/tools/gateway_provider.go`; `text_generate` with `provider=gateway`. Optional `model` param for RouteLLM (`router-mf-0.11`) or prefix routing (`ollama/phi4`). |
 
-- **Unified entry:** `text_generate` tool with `provider: fm | insight | mlx | localai`.
+- **Unified entry:** `text_generate` tool with `provider: fm | insight | mlx | localai | gateway`.
 - **Discovery:** `stdio://models` exposes `backends` (e.g. `fm_available`, tool names). See [LLM_EXPOSURE_OPPORTUNITIES.md](LLM_EXPOSURE_OPPORTUNITIES.md).
 
 ### 4.2 Numerical / graph
@@ -94,6 +95,7 @@ Concrete ways exarp-go could improve by leveraging or aligning with the Go AI ec
   - **LocalAI:** Add an optional backend that talks to a LocalAI server (OpenAI-compatible API). Gives users a self-hosted “OpenAI-style” option alongside Ollama.
   - **Provider SDKs (optional):** For future “cloud fallback” or optional features, consider **Go OpenAI**, **Google Generative AI Go SDK**, or **Go Anthropic** behind the same provider interface. Not required for current scope.
 - **LocalAI (implemented):** Optional backend via `LOCALAI_BASE_URL` and optional `LOCALAI_MODEL`; use `text_generate` with `provider=localai`. Discovery: `stdio://models` includes `localai_available` and `localai_tool`.
+- **Gateway (implemented):** Optional backend via `OPENAI_GATEWAY_BASE_URL`; use `text_generate` with `provider=gateway`. **provider=auto** uses the gateway when configured (and FM is not available): ModelRouter selects ModelGateway and ResolveModelForTask maps cloud-model recommendations to the gateway. Works with any OpenAI-compatible router (inference-gateway, pLLM, kcolemangt/llm-router, radlab llm-router, RouteLLM). Pass optional `model` in the tool args for RouteLLM (`router-mf-0.11`) or prefix-based routing (`ollama/phi4`, `groq/...`). **Cursor users:** You can run [kcolemangt/llm-router](https://github.com/kcolemangt/llm-router) as Cursor’s “Override OpenAI Base URL” (e.g. via ngrok) and use the same URL for exarp-go with `provider=gateway`. See [research/LLM_ROUTER_AND_ROUTELLM_RESEARCH.md](research/LLM_ROUTER_AND_ROUTELLM_RESEARCH.md) §6.5.
 - **Opportunity:** Provider SDKs (optional) for future cloud fallback: **Go OpenAI**, **Google Generative AI Go SDK**, or **Go Anthropic** behind the same provider interface. Not required for current scope.
 - **Recommendation:** Defer cloud SDKs until there is a concrete need.
 
@@ -178,7 +180,7 @@ The **general agent abstraction** (T-1771252286533) defines a single interface s
 
 ## 7. References
 
-- **Internal:** [LLM_NATIVE_ABSTRACTION_PATTERNS.md](LLM_NATIVE_ABSTRACTION_PATTERNS.md), [LLM_EXPOSURE_OPPORTUNITIES.md](LLM_EXPOSURE_OPPORTUNITIES.md), [LLM_ABSTRACTIONS_REDUCE_PYTHON.md](LLM_ABSTRACTIONS_REDUCE_PYTHON.md).
+- **Internal:** [LLM_NATIVE_ABSTRACTION_PATTERNS.md](LLM_NATIVE_ABSTRACTION_PATTERNS.md), [LLM_EXPOSURE_OPPORTUNITIES.md](LLM_EXPOSURE_OPPORTUNITIES.md), [LLM_ABSTRACTIONS_REDUCE_PYTHON.md](LLM_ABSTRACTIONS_REDUCE_PYTHON.md), [research/LLM_ROUTER_AND_ROUTELLM_RESEARCH.md](research/LLM_ROUTER_AND_ROUTELLM_RESEARCH.md).
 - **Code:** `internal/tools/llm_backends.go`, `internal/tools/graph_helpers.go`, `internal/tools/statistics.go`, `internal/tools/*provider*.go`.
 - **Cursor rules:** `.cursor/rules/llm-tools.mdc` (when to use which LLM tool). See also §9 for Transformers-style equivalents and LLM middleware.
 
@@ -236,17 +238,23 @@ Middleware that sits in front of multiple LLM backends and exposes a single API 
 | Middleware | Stack | Role | Relation to exarp-go |
 |------------|--------|------|----------------------|
 | **[inference-gateway/inference-gateway](https://github.com/inference-gateway/inference-gateway)** | Go | Proxy: Ollama, OpenAI, Groq, Cohere, Anthropic, Cloudflare, DeepSeek. OpenAI-compatible API, MCP integration, OpenTelemetry, K8s. | **Best fit:** Run as a sidecar or service; exarp-go can add an optional backend that calls the gateway URL (like LocalAI). Single place for cloud routing and MCP tool exposure. |
+| **[radlab-dev-group/llm-router](https://github.com/radlab-dev-group/llm-router)** | Python | REST gateway: load balancing across Ollama/vLLM/LM Studio/OpenAI; masking, anonymization, GPG audit logs; Prometheus. | Optional backend like LocalAI; adds security (PII masking, guardrails) and multi-provider load balancing. See [research/LLM_ROUTER_AND_ROUTELLM_RESEARCH.md](research/LLM_ROUTER_AND_ROUTELLM_RESEARCH.md). |
+| **[lm-sys/RouteLLM](https://github.com/lm-sys/RouteLLM)** | Python | ML-based query router: routes simple→cheap, complex→strong model; up to 85% cost reduction, ~95% GPT-4 perf; LiteLLM-backed. | Optional backend when exarp-go calls cloud APIs; intelligent cost-quality tradeoff. See [research/LLM_ROUTER_AND_ROUTELLM_RESEARCH.md](research/LLM_ROUTER_AND_ROUTELLM_RESEARCH.md). |
 | **[mozilla-ai/any-llm](https://github.com/mozilla-ai/any-llm)** | Python | Unified SDK + optional FastAPI gateway; budgets, API keys, analytics. | Useful for Python services; exarp-go unchanged; Python can call Inference Gateway instead. |
 | **[tluyben/llm-router](https://pkg.go.dev/github.com/tluyben/llm-router)** | Go | Intercepts OpenAI/Anthropic calls, forwards to OpenRouter; system prompt injection, streaming, Docker. | Use when you want one API key and many models (OpenRouter) or a drop-in proxy. |
 | **[llmrooter/router](https://github.com/llmrooter/router)** | Go | Self-hosted Open Router–like gateway with React admin UI. | Alternative to OpenRouter for self-hosted routing. |
+| **[pLLM](https://pllm.dev/)** | Go | Enterprise gateway: multi-provider, adaptive routing, failover, RBAC, audit, cost mgmt. | Production/enterprise deployments. See [research/LLM_ROUTER_AND_ROUTELLM_RESEARCH.md](research/LLM_ROUTER_AND_ROUTELLM_RESEARCH.md) §6. |
+| **[kcolemangt/llm-router](https://github.com/kcolemangt/llm-router)** | Go | Reverse proxy for Cursor: prefix routing (ollama/, groq/, openai/), model aliases, role rewrites. | **Cursor Base URL** — use with ngrok for local + cloud models. |
 | **LocalAI** | Go | Self-hosted OpenAI-compatible API for local models (GGUF, etc.). | **Already in exarp-go** as optional backend via `LOCALAI_BASE_URL`; middleware for anything OpenAI-compatible to use local models. |
 
-**Recommendation:** For a single HTTP API across local + cloud with optional MCP and observability, add **Inference Gateway** as an optional backend (e.g. `provider=inference-gateway` or new backend pointing at the gateway URL). See §4.1 and [LLM_NATIVE_ABSTRACTION_PATTERNS.md](LLM_NATIVE_ABSTRACTION_PATTERNS.md).
+**Recommendation:** For a single HTTP API across local + cloud with optional MCP and observability, add **Inference Gateway** as an optional backend (e.g. `provider=inference-gateway` or new backend pointing at the gateway URL). For security-focused deployments (masking, audit), **radlab llm-router** is a strong option. For cost optimization with cloud models, **RouteLLM** adds per-query routing. See §4.1 and [LLM_NATIVE_ABSTRACTION_PATTERNS.md](LLM_NATIVE_ABSTRACTION_PATTERNS.md).
 
-### 9.4 Related ecosystem (Node, skills)
+### 9.4 Related ecosystem (Node, skills, workflow platforms)
 
 | Resource | Description |
 |----------|-------------|
 | **[Meridius-Labs/apple-on-device-ai](https://github.com/Meridius-Labs/apple-on-device-ai)** | Node/TypeScript bindings for Apple on-device models; Vercel AI SDK provider. Same capability as exarp-go Apple FM in the JS/TS ecosystem. |
 | **[MCP Market: Apple Foundation Models skill](https://mcpmarket.com/tools/skills/apple-foundation-models)** | Claude Code skill (guidance) for SystemLanguageModel, guided generation, tool calling, guardrails. Complementary to exarp-go implementation. |
 | **[Hugging Face Transformers](https://github.com/huggingface/transformers)** | Python model-definition and inference framework; 1M+ Hub checkpoints. exarp-go does not use it; Go/Swift alternatives above. |
+| **[n8n](https://github.com/n8n-io/n8n)** | Workflow automation (TypeScript); AI nodes for OpenAI, Claude, Ollama, HuggingFace. Not an LLM router—orchestrates workflows that call LLMs. |
+| **[MindStudio](https://mindstudio.ai)** | No-code AI agent builder; 200+ models. Agent orchestration, not a gateway. See [research/LLM_ROUTER_AND_ROUTELLM_RESEARCH.md](research/LLM_ROUTER_AND_ROUTELLM_RESEARCH.md) §5. |

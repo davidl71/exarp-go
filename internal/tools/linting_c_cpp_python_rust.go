@@ -622,9 +622,11 @@ func parseCargoJSON(output string) []LintError {
 		var msg struct {
 			Reason  string `json:"reason"`
 			Message *struct {
-				Code    *struct{ Code string `json:"code"` } `json:"code"`
-				Level   string                               `json:"level"`
-				Message string                               `json:"message"`
+				Code *struct {
+					Code string `json:"code"`
+				} `json:"code"`
+				Level   string `json:"level"`
+				Message string `json:"message"`
 				Spans   []struct {
 					FileName    string `json:"file_name"`
 					LineStart   int    `json:"line_start"`

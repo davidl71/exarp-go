@@ -1,0 +1,12 @@
+{
+  "_comment": "Use when exarp-go is installed globally (make install). Replace /Users/me/go/bin with output of: go env GOPATH + /bin",
+  "mcpServers": {
+    "exarp-go": {
+      "command": "/Users/me/go/bin/run_exarp_go.sh",
+      "args": [],
+      "env": {
+        "PROJECT_ROOT": "{{PROJECT_ROOT}}"
+      }
+    }
+  }
+}

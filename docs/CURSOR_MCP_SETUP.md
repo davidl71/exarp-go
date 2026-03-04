@@ -2,7 +2,7 @@
 
 ## Current Configuration
 
-The `exarp-go` MCP server is configured in `.cursor/mcp.json`. Example configs (binary, wrapper script, per-project) are in **[docs/examples/](examples/README.md)** — copy the one that matches your setup.
+The `exarp-go` MCP server is configured in `.cursor/mcp.json`. Example configs (binary, wrapper script, per-project) are in **[docs/examples/](examples/README.md)** — copy the one that matches your setup. For **other projects** (not the exarp-go repo), use the **portable runner**: copy `scripts/run_exarp_go.sh` into your project and use [cursor-mcp-portable.json](examples/cursor-mcp-portable.json); see [PORTABLE_MCP_RUNNER.md](PORTABLE_MCP_RUNNER.md).
 
 Minimal example (binary in project):
 
@@ -75,6 +75,7 @@ In Cursor chat, you should be able to:
    ```bash
    test -f /Users/davidl/Projects/exarp-go/bin/exarp-go && echo "✅ Binary exists" || echo "❌ Binary missing"
    ```
+   If using the wrapper (`run-exarp-go.sh`), ensure `run-exarp-go.sh` and `start.sh` exist in the project root and are executable: `chmod +x run-exarp-go.sh start.sh`.
 
 2. **Check binary permissions:**
    ```bash
@@ -84,8 +85,9 @@ In Cursor chat, you should be able to:
 3. **Rebuild binary:**
    ```bash
    cd /Users/davidl/Projects/exarp-go
-   go build -o bin/exarp-go ./cmd/server
+   make b
    ```
+   (Never run `go build` directly — use the Makefile per project rules.)
 
 4. **Check Cursor logs:**
    - Open Cursor Settings
