@@ -41,7 +41,7 @@ func TaskAnalysisResponseToMap(resp *proto.TaskAnalysisResponse) map[string]inte
 // handleTaskAnalysisNative dispatches to the appropriate action (duplicates, tags, dependencies, parallelization, hierarchy).
 // Hierarchy uses the FM abstraction (DefaultFMProvider()); when FM is not available, hierarchy returns a clear error (no Python fallback).
 func handleTaskAnalysisNative(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
-	action, _ := params["action"].(string)
+	action := ParamString(params, "action")
 	if action == "" {
 		action = "duplicates"
 	}

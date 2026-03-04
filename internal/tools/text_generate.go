@@ -20,25 +20,27 @@ func handleTextGenerate(ctx context.Context, args json.RawMessage) ([]framework.
 	}
 
 	provider := "fm"
-	if p, ok := params["provider"].(string); ok && p != "" {
+	if p := ParamString(params, "provider"); p != "" {
 		provider = p
 	}
 
-	prompt, _ := params["prompt"].(string)
+	prompt := ParamString(params, "prompt")
 	if prompt == "" {
 		return nil, fmt.Errorf("prompt is required for text_generate")
 	}
 
-	taskType, _ := params["task_type"].(string)
-	taskDesc, _ := params["task_description"].(string)
+	taskType := ParamString(params, "task_type")
+	taskDesc := ParamString(params, "task_description")
 
 	optimizeFor := "quality"
-	if o, ok := params["optimize_for"].(string); ok && o != "" {
+	if o := ParamString(params, "optimize_for"); o != "" {
 		optimizeFor = o
 	}
 
 	maxTokens := getMaxTokens(params)
 	temperature := getTemperature(params)
+
+	modelOverride := ParamString(params, "model")
 
 	// Model selection (T-207): when provider=auto or task hints provided, use recommend + router
 	useModelSelection := provider == "auto" || taskType != "" || taskDesc != ""
@@ -67,17 +69,29 @@ func handleTextGenerate(ctx context.Context, args json.RawMessage) ([]framework.
 		gen = DefaultMLXProvider()
 	case "localai":
 		gen = DefaultLocalAIProvider()
+	case "gateway":
+		gen = DefaultGatewayProvider()
 	case "llamacpp":
 		gen = DefaultLlamaCppProvider()
 	default:
-		return nil, fmt.Errorf("unknown provider: %q (use \"fm\", \"ollama\", \"insight\", \"mlx\", \"localai\", \"llamacpp\", or \"auto\")", provider)
+		return nil, fmt.Errorf("unknown provider: %q (use \"fm\", \"ollama\", \"insight\", \"mlx\", \"localai\", \"gateway\", \"llamacpp\", or \"auto\")", provider)
 	}
 
 	if gen == nil || !gen.Supported() {
 		return nil, fmt.Errorf("provider %q is not available", provider)
 	}
 
-	text, err := gen.Generate(ctx, prompt, maxTokens, temperature)
+	var text string
+	var err error
+	if modelOverride != "" && (provider == "localai" || provider == "gateway") {
+		if withModel, ok := gen.(TextGeneratorWithModel); ok {
+			text, err = withModel.GenerateWithModel(ctx, prompt, maxTokens, temperature, modelOverride)
+		} else {
+			text, err = gen.Generate(ctx, prompt, maxTokens, temperature)
+		}
+	} else {
+		text, err = gen.Generate(ctx, prompt, maxTokens, temperature)
+	}
 	if err != nil {
 		return nil, fmt.Errorf("text_generate failed: %w", err)
 	}

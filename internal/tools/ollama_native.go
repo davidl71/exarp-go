@@ -76,27 +76,25 @@ type OllamaGenerateResponse struct {
 // ─── getOllamaModelParam ────────────────────────────────────────────────────
 // getOllamaModelParam returns the model name from params. Ollama API uses "model"; accept "name" as alias for callers that use it (T-53).
 func getOllamaModelParam(params map[string]interface{}, defaultVal string) string {
-	if m, ok := params["model"].(string); ok && m != "" {
+	if m := ParamString(params, "model"); m != "" {
 		return m
 	}
-
-	if n, ok := params["name"].(string); ok && n != "" {
+	if n := ParamString(params, "name"); n != "" {
 		return n
 	}
-
 	return defaultVal
 }
 
 // ─── handleOllamaNative ─────────────────────────────────────────────────────
 // handleOllamaNative handles the ollama tool with native Go HTTP client.
 func handleOllamaNative(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
-	action, _ := params["action"].(string)
+	action := ParamString(params, "action")
 	if action == "" {
 		action = "status"
 	}
 
 	host := "http://localhost:11434"
-	if h, ok := params["host"].(string); ok && h != "" {
+	if h := ParamString(params, "host"); h != "" {
 		host = h
 	}
 
@@ -349,7 +347,7 @@ func handleOllamaModels(ctx context.Context, host string) ([]framework.TextConte
 // ─── handleOllamaGenerate ───────────────────────────────────────────────────
 // handleOllamaGenerate generates text using Ollama.
 func handleOllamaGenerate(ctx context.Context, params map[string]interface{}, host string) ([]framework.TextContent, error) {
-	prompt, _ := params["prompt"].(string)
+	prompt := ParamString(params, "prompt")
 	if prompt == "" {
 		return nil, fmt.Errorf("prompt parameter is required for generate action")
 	}
@@ -392,7 +390,7 @@ func handleOllamaGenerate(ctx context.Context, params map[string]interface{}, ho
 	}
 
 	// Parse options JSON string if provided
-	if optionsStr, ok := params["options"].(string); ok && optionsStr != "" {
+	if optionsStr := ParamString(params, "options"); optionsStr != "" {
 		var customOptions map[string]interface{}
 		if err := json.Unmarshal([]byte(optionsStr), &customOptions); err == nil {
 			// Merge custom options

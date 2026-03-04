@@ -59,7 +59,7 @@ func handleInferTaskProgressNative(ctx context.Context, params map[string]interf
 		return nil, fmt.Errorf("failed to find project root: %w", err)
 	}
 
-	if root, ok := params["project_root"].(string); ok && root != "" {
+	if root := ParamString(params, "project_root"); root != "" {
 		projectRoot = root
 	}
 
@@ -90,7 +90,7 @@ func handleInferTaskProgressNative(ctx context.Context, params map[string]interf
 
 	// Default to In Progress, but allow filtering by other statuses (e.g., Todo)
 	statusFilter := database.StatusInProgress
-	if sf, ok := params["status_filter"].(string); ok && sf != "" {
+	if sf := ParamString(params, "status_filter"); sf != "" {
 		statusFilter = sf
 	}
 
@@ -151,10 +151,7 @@ func handleInferTaskProgressNative(ctx context.Context, params map[string]interf
 		"auto_update":          autoUpdate,
 	}
 
-	outputPath := ""
-	if p, ok := params["output_path"].(string); ok && p != "" {
-		outputPath = p
-	}
+	outputPath := ParamString(params, "output_path")
 
 	if outputPath != "" {
 		if writeErr := writeInferReport(outputPath, result, dryRun, method); writeErr != nil {
