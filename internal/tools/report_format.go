@@ -80,6 +80,113 @@ func formatOverviewTextProto(pb *proto.ProjectOverviewData) string {
 	return sb.String()
 }
 
+// genericScoreFromOverview computes an overall score (0–100) from overview data when Health is not set (non-Go project).
+// Uses task completion rate (70% weight) and risk penalty (30% weight).
+func genericScoreFromOverview(pb *proto.ProjectOverviewData) float64 {
+	if pb == nil {
+		return 0
+	}
+	completion := 0.0
+	if pb.Tasks != nil {
+		completion = pb.Tasks.CompletionRate
+	}
+	riskPenalty := 0.0
+	if n := len(pb.Risks); n > 0 {
+		riskPenalty = float64(n) * 15
+		if riskPenalty > 100 {
+			riskPenalty = 100
+		}
+	}
+	score := 0.7*completion + 0.3*(100-riskPenalty)
+	if score < 0 {
+		return 0
+	}
+	if score > 100 {
+		return 100
+	}
+	return score
+}
+
+// FormatMultilangScorecard builds a full generic scorecard including C++/Python/Rust health (run build/test/lint).
+// Call this from the report handler when generating the generic scorecard.
+func FormatMultilangScorecard(ctx context.Context, projectRoot string, pb *proto.ProjectOverviewData) string {
+	langs := CollectMultilangHealth(ctx, projectRoot)
+	return formatGenericScorecardWithLangs(pb, langs)
+}
+
+// formatGenericScorecardWithLangs formats overview + optional per-language (C++/Python/Rust) sections.
+func formatGenericScorecardWithLangs(pb *proto.ProjectOverviewData, langs []LangHealth) string {
+	if pb == nil {
+		return ""
+	}
+	score := genericScoreFromOverview(pb)
+	if len(langs) > 0 {
+		var sum float64
+		for _, h := range langs {
+			if h.Detected {
+				sum += h.Score
+			}
+		}
+		if n := len(langs); n > 0 {
+			score = 0.5*score + 0.5*(sum/float64(n))
+		}
+	}
+	productionReady := score >= 70 && len(pb.Risks) == 0
+
+	var sb strings.Builder
+	sb.WriteString("======================================================================\n")
+	sb.WriteString("  📊 PROJECT SCORECARD (generic)\n")
+	sb.WriteString("======================================================================\n\n")
+	sb.WriteString(fmt.Sprintf("  OVERALL SCORE: %.1f%%\n", score))
+	if productionReady {
+		sb.WriteString("  Production Ready: YES ✅\n")
+	} else {
+		sb.WriteString("  Production Ready: NO ❌\n")
+	}
+	sb.WriteString("\n  (Score: task completion + risks")
+	if len(langs) > 0 {
+		sb.WriteString(" + C++/Python/Rust health")
+	}
+	sb.WriteString("; use action=overview for full details.)\n\n")
+
+	if pb.Tasks != nil {
+		sb.WriteString("  Task Status:\n")
+		sb.WriteString(fmt.Sprintf("    Total:       %d\n", pb.Tasks.Total))
+		sb.WriteString(fmt.Sprintf("    Pending:     %d\n", pb.Tasks.Pending))
+		sb.WriteString(fmt.Sprintf("    Completed:   %d\n", pb.Tasks.Completed))
+		sb.WriteString(fmt.Sprintf("    Completion:  %.1f%%\n", pb.Tasks.CompletionRate))
+		sb.WriteString("\n")
+	}
+	if pb.Codebase != nil {
+		sb.WriteString("  Codebase:\n")
+		sb.WriteString(fmt.Sprintf("    Total files: %d\n", pb.Codebase.TotalFiles))
+		sb.WriteString(fmt.Sprintf("    Go files:    %d\n", pb.Codebase.GoFiles))
+		sb.WriteString(fmt.Sprintf("    Python files: %d\n", pb.Codebase.PythonFiles))
+		sb.WriteString("\n")
+	}
+	if len(langs) > 0 {
+		sb.WriteString("  Languages (C++ / Python / Rust / Go / TypeScript / Swift):\n")
+		sb.WriteString(FormatMultilangSections(langs))
+	}
+	if len(pb.Risks) > 0 {
+		sb.WriteString("  Blockers / Risks:\n")
+		for _, r := range pb.Risks {
+			sb.WriteString(fmt.Sprintf("    • %s\n", r.Description))
+		}
+		sb.WriteString("\n")
+	}
+	if len(pb.NextActions) > 0 {
+		sb.WriteString("  Next Actions:\n")
+		for i, a := range pb.NextActions {
+			if i >= 5 {
+				break
+			}
+			sb.WriteString(fmt.Sprintf("    %d. %s (Priority: %s)\n", i+1, a.Name, a.Priority))
+		}
+	}
+	return sb.String()
+}
+
 // GetOverviewText returns project overview as plain text for TUI/CLI display.
 // It aggregates project data (health when Go project, tasks, codebase, etc.) and formats as text.
 func GetOverviewText(ctx context.Context, projectRoot string) (string, error) {
