@@ -13,24 +13,88 @@ import (
 	"github.com/davidl71/exarp-go/internal/framework"
 )
 
-// handleSecurityScan handles the scan action for security tool (Go projects only; no bridge fallback).
+// handleSecurityScan handles the scan action for security tool (Go, Python, Rust, Node).
+// Runs language-specific dependency scanners for each detected ecosystem and aggregates results.
 func handleSecurityScan(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	projectRoot, err := FindProjectRoot()
 	if err != nil {
 		return nil, fmt.Errorf("failed to find project root: %w", err)
 	}
 
-	if !IsGoProject() {
-		return nil, fmt.Errorf("security scan is only supported for Go projects (go.mod)")
+	var allVulns []Vulnerability
+	var ecosystems []string
+	var ranAny bool
+
+	// Go: govulncheck
+	if DetectGoProject(projectRoot) {
+		vulns, err := scanGoDependencies(ctx, projectRoot)
+		if err == nil {
+			ranAny = true
+			for _, v := range vulns {
+				v.Ecosystem = "go"
+				allVulns = append(allVulns, v)
+			}
+			ecosystems = append(ecosystems, "go")
+		}
 	}
 
-	vulns, err := scanGoDependencies(ctx, projectRoot)
-	if err != nil {
-		return nil, fmt.Errorf("security scan: %w", err)
+	// Python: pip-audit or safety
+	if DetectPythonProject(projectRoot) {
+		_, pythonRoot := DetectPythonProjectRoot(projectRoot)
+		scanDir := filepath.Join(projectRoot, pythonRoot)
+		vulns, err := scanPythonDependencies(ctx, scanDir)
+		if err == nil {
+			ranAny = true
+			for _, v := range vulns {
+				v.Ecosystem = "python"
+				allVulns = append(allVulns, v)
+			}
+			ecosystems = append(ecosystems, "python")
+		}
 	}
 
-	result := formatSecurityScanResults(vulns, "go")
+	// Rust: cargo audit
+	if DetectRustProject(projectRoot) {
+		_, rustRoot := DetectRustProjectRoot(projectRoot)
+		scanDir := filepath.Join(projectRoot, rustRoot)
+		vulns, err := scanRustDependencies(ctx, scanDir)
+		if err == nil {
+			ranAny = true
+			for _, v := range vulns {
+				v.Ecosystem = "rust"
+				allVulns = append(allVulns, v)
+			}
+			ecosystems = append(ecosystems, "rust")
+		}
+	}
 
+	// Node/TypeScript: npm audit
+	if DetectTypeScriptProject(projectRoot) {
+		_, tsRoot := DetectTypeScriptProjectRoot(projectRoot)
+		scanDir := filepath.Join(projectRoot, tsRoot)
+		vulns, err := scanNpmDependencies(ctx, scanDir)
+		if err == nil {
+			ranAny = true
+			for _, v := range vulns {
+				v.Ecosystem = "npm"
+				allVulns = append(allVulns, v)
+			}
+			ecosystems = append(ecosystems, "npm")
+		}
+	}
+
+	if !ranAny {
+		msg := "No supported dependency scanner ran for this project."
+		if len(ecosystems) == 0 {
+			msg = "No Go, Python, Rust, or Node project detected in project root. Use semgrep or CodeQL for static analysis."
+		}
+		result := formatSecurityScanResults(allVulns, "multilang")
+		result = msg + "\n\n" + result
+		return []framework.TextContent{{Type: "text", Text: result}}, nil
+	}
+
+	ecosystemLabel := strings.Join(ecosystems, ", ")
+	result := formatSecurityScanResults(allVulns, ecosystemLabel)
 	return []framework.TextContent{
 		{Type: "text", Text: result},
 	}, nil
@@ -132,6 +196,157 @@ func scanGoDependencies(ctx context.Context, projectRoot string) ([]Vulnerabilit
 	return vulns, nil
 }
 
+// scanPythonDependencies runs pip-audit (or safety) in dir and returns vulnerabilities.
+func scanPythonDependencies(ctx context.Context, dir string) ([]Vulnerability, error) {
+	// Prefer pip-audit (recommended by PyPA)
+	cmd := exec.CommandContext(ctx, "pip-audit", "--format", "json")
+	cmd.Dir = dir
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		// pip-audit exits 1 when vulns found; still parse output
+		if len(output) == 0 {
+			return nil, fmt.Errorf("pip-audit failed: %w", err)
+		}
+	}
+	return parsePipAuditOutput(string(output))
+}
+
+func parsePipAuditOutput(output string) ([]Vulnerability, error) {
+	var vulns []Vulnerability
+	var result struct {
+		Dependencies []struct {
+			Name    string `json:"name"`
+			Version string `json:"version"`
+			Vulns   []struct {
+				ID          string `json:"id"`
+				FixVersions []struct {
+					ID string `json:"id"`
+				} `json:"fix_versions"`
+				Description string `json:"description"`
+			} `json:"vulns"`
+		} `json:"dependencies"`
+	}
+	if err := json.Unmarshal([]byte(output), &result); err != nil {
+		return nil, err
+	}
+	for _, dep := range result.Dependencies {
+		for _, v := range dep.Vulns {
+			fixVer := ""
+			if len(v.FixVersions) > 0 {
+				fixVer = v.FixVersions[0].ID
+			}
+			vulns = append(vulns, Vulnerability{
+				Package:     dep.Name,
+				Version:     dep.Version,
+				VulnID:      v.ID,
+				Description: v.Description,
+				FixVersion:  fixVer,
+				Severity:    "unknown",
+			})
+		}
+	}
+	return vulns, nil
+}
+
+// scanRustDependencies runs cargo audit in dir and returns vulnerabilities.
+func scanRustDependencies(ctx context.Context, dir string) ([]Vulnerability, error) {
+	cmd := exec.CommandContext(ctx, "cargo", "audit", "--json")
+	cmd.Dir = dir
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		if len(output) == 0 {
+			return nil, fmt.Errorf("cargo audit failed: %w", err)
+		}
+	}
+	return parseCargoAuditOutput(string(output))
+}
+
+func parseCargoAuditOutput(output string) ([]Vulnerability, error) {
+	var vulns []Vulnerability
+	// cargo-audit --json: top-level "vulnerabilities" object with "list" array
+	var result struct {
+		Vulnerabilities struct {
+			List []struct {
+				ID          string `json:"id"`
+				Package     string `json:"package"`
+				Title       string `json:"title"`
+				Description string `json:"description"`
+				Versions    struct {
+					Patched []string `json:"patched"`
+				} `json:"versions"`
+			} `json:"list"`
+		} `json:"vulnerabilities"`
+	}
+	if err := json.Unmarshal([]byte(output), &result); err != nil {
+		return nil, err
+	}
+	for _, v := range result.Vulnerabilities.List {
+		fixVer := ""
+		if len(v.Versions.Patched) > 0 {
+			fixVer = v.Versions.Patched[0]
+		}
+		vulns = append(vulns, Vulnerability{
+			Package:     v.Package,
+			VulnID:      v.ID,
+			Description: v.Title + ": " + v.Description,
+			FixVersion:  fixVer,
+			Severity:    "unknown",
+		})
+	}
+	return vulns, nil
+}
+
+// scanNpmDependencies runs npm audit --json in dir and returns vulnerabilities.
+func scanNpmDependencies(ctx context.Context, dir string) ([]Vulnerability, error) {
+	cmd := exec.CommandContext(ctx, "npm", "audit", "--json")
+	cmd.Dir = dir
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		// npm audit exits non-zero when vulns exist; still parse
+		if len(output) == 0 {
+			return nil, fmt.Errorf("npm audit failed: %w", err)
+		}
+	}
+	return parseNpmAuditOutput(string(output))
+}
+
+func parseNpmAuditOutput(output string) ([]Vulnerability, error) {
+	var vulns []Vulnerability
+	var result struct {
+		Vulnerabilities map[string]struct {
+			Severity  string `json:"severity"`
+			Via       []interface{} `json:"via"`
+			Range     string `json:"range"`
+			FixAvailable interface{} `json:"fixAvailable"`
+		} `json:"vulnerabilities"`
+	}
+	if err := json.Unmarshal([]byte(output), &result); err != nil {
+		return nil, err
+	}
+	for pkg, v := range result.Vulnerabilities {
+		desc := pkg
+		if len(v.Via) > 0 {
+			if m, ok := v.Via[0].(map[string]interface{}); ok {
+				if id, _ := m["id"].(string); id != "" {
+					desc = id
+				}
+			}
+		}
+		fixVer := ""
+		if s, ok := v.FixAvailable.(string); ok && s != "false" {
+			fixVer = s
+		}
+		vulns = append(vulns, Vulnerability{
+			Package:     pkg,
+			VulnID:      desc,
+			Severity:    v.Severity,
+			FixVersion:  fixVer,
+			Description: v.Range,
+		})
+	}
+	return vulns, nil
+}
+
 // Vulnerability represents a security vulnerability.
 type Vulnerability struct {
 	Package     string `json:"package"`
@@ -140,6 +355,7 @@ type Vulnerability struct {
 	Severity    string `json:"severity"`
 	Description string `json:"description"`
 	FixVersion  string `json:"fix_version,omitempty"`
+	Ecosystem   string `json:"ecosystem,omitempty"` // go, python, rust, npm
 }
 
 // parseGovulncheckOutput parses govulncheck output.
@@ -174,6 +390,9 @@ func formatSecurityScanResults(vulns []Vulnerability, ecosystem string) string {
 
 	for i, vuln := range vulns {
 		sb.WriteString(fmt.Sprintf("%d. %s\n", i+1, vuln.Package))
+		if vuln.Ecosystem != "" {
+			sb.WriteString(fmt.Sprintf("   Ecosystem: %s\n", vuln.Ecosystem))
+		}
 
 		if vuln.Version != "" {
 			sb.WriteString(fmt.Sprintf("   Version: %s\n", vuln.Version))

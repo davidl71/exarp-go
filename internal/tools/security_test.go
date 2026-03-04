@@ -3,6 +3,7 @@ package tools
 import (
 	"context"
 	"encoding/json"
+	"strings"
 	"testing"
 
 	"github.com/davidl71/exarp-go/internal/framework"
@@ -19,11 +20,21 @@ func TestHandleSecurityScan(t *testing.T) {
 		validate  func(*testing.T, []framework.TextContent)
 	}{
 		{
-			name: "scan action (requires go.mod; tmpDir has none)",
+			name: "scan action (no go/python/rust/node in tmpDir)",
 			params: map[string]interface{}{
 				"action": "scan",
 			},
-			wantError: true, // security scan is only supported for Go projects
+			wantError: false, // multilang: returns success with message when no ecosystem detected
+			validate: func(t *testing.T, result []framework.TextContent) {
+				if len(result) == 0 {
+					t.Error("expected non-empty result")
+					return
+				}
+				text := result[0].Text
+				if !strings.Contains(text, "No Go") && !strings.Contains(text, "No supported") && !strings.Contains(text, "vulnerabilities") {
+					t.Errorf("expected result to mention no project or vulnerabilities, got: %s", text)
+				}
+			},
 		},
 	}
 
@@ -102,7 +113,7 @@ func TestHandleSecurity(t *testing.T) {
 			params: map[string]interface{}{
 				"action": "scan",
 			},
-			wantError: true,
+			wantError: false, // multilang scan returns success with message
 		},
 		{
 			name: "alerts action",
