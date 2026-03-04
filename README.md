@@ -154,6 +154,9 @@ For detailed configuration options, see:
 **Development Tools:**
 - **make** - Build automation (recommended for development)
   - Most systems include make by default
+- **Ninja** (optional) - Cross-platform build; useful when Make is unavailable (e.g. Windows)
+  - Install: [ninja-build.org](https://ninja-build.org/) (e.g. `choco install ninja` on Windows, `brew install ninja` on macOS)
+  - Use: `ninja` or `ninja build` (build), `ninja test`, `ninja fmt`, `ninja lint`, `ninja clean` — see `build.ninja`
 - **golangci-lint** - Advanced Go linting (optional; v2 required for .golangci.yml)
   - Install: `go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.9.0`  
   - Or binary: `curl -sSfL https://golangci-lint.run/install.sh | sh -s -- -b $(go env GOPATH)/bin v2.9.0`
@@ -196,6 +199,8 @@ uv sync --dev
 
 # Build Go binary
 make build
+# or (with Ninja, e.g. on Windows)
+ninja
 # or
 go build -o bin/exarp-go ./cmd/server
 ```
@@ -306,6 +311,14 @@ make go-dev-test  # Go dev mode with auto-test
 make go-build     # Build Go binary
 make go-run       # Run Go binary
 make go-test      # Run Go tests
+```
+
+**Nix (development shell):**
+```bash
+nix develop
+# or: nix develop -c $SHELL
+# Provides: go, gcc, make, git, protoc, golangci-lint. Uses nixpkgs 24.11 (Go 1.22).
+# Enable flakes if needed: nix --extra-experimental-features 'nix-command flakes' develop
 ```
 
 **📚 Documentation:**

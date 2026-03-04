@@ -1,0 +1,15 @@
+{
+  "_comment": "Use this if {{PROJECT_ROOT}} in command gives errors. Replace /path/to/exarp-go with your actual repo path (e.g. /Users/dlowes/Projects/mcp/exarp-go).",
+  "mcpServers": {
+    "exarp-go": {
+      "command": "/path/to/exarp-go/bin/exarp-go",
+      "args": [],
+      "env": {
+        "PROJECT_ROOT": "{{PROJECT_ROOT}}",
+        "EXARP_MIGRATIONS_DIR": "/path/to/exarp-go/migrations",
+        "EXARP_WATCH": "0"
+      },
+      "description": "Exarp project automation (absolute path fallback)"
+    }
+  }
+}

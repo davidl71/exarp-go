@@ -3,9 +3,10 @@
   "mcp": {
     "exarp-go": {
       "type": "local",
-      "command": ["/Users/dlowes/Projects/exarp-go/run-exarp-go.sh"],
+      "command": ["/Users/dlowes/Projects/mcp/exarp-go/run-exarp-go.sh"],
       "enabled": true,
       "environment": {
+        "EXARP_MIGRATIONS_DIR": "/Users/dlowes/Projects/mcp/exarp-go/migrations",
         "EXARP_WATCH": "0"
       }
     }

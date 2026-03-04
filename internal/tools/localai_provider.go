@@ -38,12 +38,25 @@ func (*localaiTextGenerator) Supported() bool {
 }
 
 // Generate sends the prompt to LocalAI /v1/chat/completions and returns the first choice content.
-func (*localaiTextGenerator) Generate(ctx context.Context, prompt string, maxTokens int, temperature float32) (string, error) {
+func (g *localaiTextGenerator) Generate(ctx context.Context, prompt string, maxTokens int, temperature float32) (string, error) {
+	return g.generateWithModel(ctx, prompt, maxTokens, temperature, "")
+}
+
+// GenerateWithModel sends the prompt with an explicit model override (for RouteLLM, prefix routing, etc.).
+// If modelOverride is empty, env LOCALAI_MODEL or default is used.
+func (g *localaiTextGenerator) GenerateWithModel(ctx context.Context, prompt string, maxTokens int, temperature float32, modelOverride string) (string, error) {
+	return g.generateWithModel(ctx, prompt, maxTokens, temperature, modelOverride)
+}
+
+func (g *localaiTextGenerator) generateWithModel(ctx context.Context, prompt string, maxTokens int, temperature float32, modelOverride string) (string, error) {
 	baseURL := strings.TrimSpace(os.Getenv(localAIEnvBaseURL))
 	if baseURL == "" {
 		return "", fmt.Errorf("LOCALAI_BASE_URL is not set")
 	}
-	model := strings.TrimSpace(os.Getenv(localAIEnvModel))
+	model := strings.TrimSpace(modelOverride)
+	if model == "" {
+		model = strings.TrimSpace(os.Getenv(localAIEnvModel))
+	}
 	if model == "" {
 		model = localAIDefaultModel
 	}

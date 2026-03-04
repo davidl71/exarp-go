@@ -11,9 +11,9 @@ import (
 	"time"
 
 	"github.com/davidl71/exarp-go/internal/cache"
+	"github.com/davidl71/exarp-go/internal/config"
 	"github.com/davidl71/exarp-go/internal/database"
 	"github.com/davidl71/exarp-go/internal/models"
-	"github.com/davidl71/exarp-go/internal/projectroot"
 )
 
 // Todo2Task is an alias for models.Todo2Task (for backward compatibility).
@@ -116,16 +116,16 @@ func saveTodo2TasksToJSON(projectRoot string, tasks []Todo2Task) error {
 	return nil
 }
 
-// FindProjectRoot finds the exarp project root. Delegates to projectroot.Find().
+// FindProjectRoot finds the exarp project root. Delegates to config.FindProjectRoot() (single implementation).
 // Use this for tools, resources, and handlers that need the project root.
 func FindProjectRoot() (string, error) {
-	return projectroot.Find()
+	return config.FindProjectRoot()
 }
 
 // GetProjectRootWithFallback returns project root: FindProjectRoot, else PROJECT_ROOT env, else cwd.
 // Use when a best-effort root is needed (e.g. state file path); returns error only if os.Getwd() fails.
 func GetProjectRootWithFallback() (string, error) {
-	root, err := projectroot.Find()
+	root, err := config.FindProjectRoot()
 	if err == nil && root != "" {
 		return root, nil
 	}
@@ -262,7 +262,7 @@ func SyncTodo2Tasks(projectRoot string) error {
 }
 
 // GetTaskByID returns a task by ID via TaskStore (database or JSON fallback).
-// Caller must not mutate the task if storage is shared; for updates use UpdateTaskStatus or database.UpdateTask.
+// Caller must not mutate the task if storage is shared; for updates use database.UpdateTask.
 func GetTaskByID(ctx context.Context, projectRoot string, id string) (*Todo2Task, error) {
 	if id == "" {
 		return nil, fmt.Errorf("task id is required")
@@ -271,32 +271,6 @@ func GetTaskByID(ctx context.Context, projectRoot string, id string) (*Todo2Task
 	store := NewDefaultTaskStore(projectRoot)
 
 	return store.GetTask(ctx, id)
-}
-
-// UpdateTaskStatus updates a single task's status via TaskStore (database or JSON fallback).
-func UpdateTaskStatus(ctx context.Context, projectRoot string, taskID string, newStatus string) error {
-	if taskID == "" || newStatus == "" {
-		return fmt.Errorf("task_id and new_status are required")
-	}
-
-	newStatus = normalizeStatus(newStatus)
-	store := NewDefaultTaskStore(projectRoot)
-
-	task, err := store.GetTask(ctx, taskID)
-	if err != nil {
-		return fmt.Errorf("get task: %w", err)
-	}
-
-	task.Status = newStatus
-	if err := store.UpdateTask(ctx, task); err != nil {
-		return fmt.Errorf("update task: %w", err)
-	}
-
-	if syncErr := SyncTodo2Tasks(projectRoot); syncErr != nil {
-		return fmt.Errorf("sync after update: %w", syncErr)
-	}
-
-	return nil
 }
 
 // normalizeStatus normalizes status to Title Case.

@@ -89,7 +89,7 @@ func (s *Server) handleSessionPrompt(ctx context.Context, params *api.PromptRequ
 		if promptCtx.Err() == context.Canceled {
 			return &api.PromptResponse{StopReason: api.StopReasonCancelled}, nil
 		}
-		logging.Warn("[ACP] Prompt error: %v", err)
+		logging.Error("[ACP] Prompt error: %v", err)
 		return &api.PromptResponse{StopReason: api.StopReasonRefusal}, err
 	}
 

@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "exarp-go": {
+      "command": "{{PROJECT_ROOT}}/scripts/run_exarp_go.sh",
+      "args": [],
+      "env": {
+        "PROJECT_ROOT": "{{PROJECT_ROOT}}"
+      }
+    }
+  }
+}

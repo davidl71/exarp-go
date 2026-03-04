@@ -18,10 +18,10 @@ import (
 )
 
 const (
-	gatewayEnvBaseURL = "OPENAI_GATEWAY_BASE_URL"
-	gatewayEnvModel   = "OPENAI_GATEWAY_MODEL"
-	gatewayEnvAPIKey  = "OPENAI_GATEWAY_API_KEY"
-	gatewayDefaultModel = "gpt-3.5-turbo"
+	gatewayEnvBaseURL     = "OPENAI_GATEWAY_BASE_URL"
+	gatewayEnvModel       = "OPENAI_GATEWAY_MODEL"
+	gatewayEnvAPIKey      = "OPENAI_GATEWAY_API_KEY"
+	gatewayDefaultModel   = "gpt-3.5-turbo"
 	gatewayDefaultTimeout = 120 * time.Second
 )
 

@@ -2,7 +2,6 @@
 package utils
 
 import (
-	"fmt"
 	"path/filepath"
 	"time"
 
@@ -19,19 +18,6 @@ var NewFileLock = mcpfilelock.NewFileLock
 
 // DefaultGitLockTimeout is the default wait time for acquiring the Git sync lock.
 const DefaultGitLockTimeout = 60 * time.Second
-
-// TaskLock creates a file lock for a specific task.
-func TaskLock(projectRoot string, taskID string, timeout time.Duration) (*FileLock, error) {
-	lockDir := filepath.Join(projectRoot, ".todo2", "locks")
-	lockPath := filepath.Join(lockDir, fmt.Sprintf("task_%s.lock", taskID))
-	return NewFileLock(lockPath, timeout)
-}
-
-// StateFileLock creates a file lock for the entire state file.
-func StateFileLock(projectRoot string, timeout time.Duration) (*FileLock, error) {
-	lockPath := filepath.Join(projectRoot, ".todo2", "state.todo2.json.lock")
-	return NewFileLock(lockPath, timeout)
-}
 
 // GitSyncLockPath returns the path to the repo-level Git sync lock file.
 // Any process that performs git add/commit/push must acquire this lock first.

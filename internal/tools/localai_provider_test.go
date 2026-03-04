@@ -52,3 +52,7 @@ func TestLocalAIGenerate_NoBaseURL(t *testing.T) {
 		t.Errorf("error should mention LOCALAI_BASE_URL: %v", err)
 	}
 }
+
+func TestLocalAI_ImplementsTextGeneratorWithModel(t *testing.T) {
+	var _ TextGeneratorWithModel = (*localaiTextGenerator)(nil)
+}

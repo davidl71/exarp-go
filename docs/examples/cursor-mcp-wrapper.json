@@ -5,6 +5,7 @@
       "args": [],
       "env": {
         "PROJECT_ROOT": "{{PROJECT_ROOT}}",
+        "EXARP_MIGRATIONS_DIR": "{{PROJECT_ROOT}}/migrations",
         "EXARP_WATCH": "0"
       }
     }

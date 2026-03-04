@@ -95,7 +95,7 @@ func main() {
 		if database.DB != nil {
 			defer func() {
 				if err := database.Close(); err != nil {
-					logging.Warn("Error closing database: %v", err)
+					logging.Error("Error closing database: %v", err)
 				}
 			}()
 		}
@@ -147,7 +147,7 @@ func runServeMode(addr string) {
 		if database.DB != nil {
 			defer func() {
 				if err := database.Close(); err != nil {
-					logging.Warn("Error closing database: %v", err)
+					logging.Error("Error closing database: %v", err)
 				}
 			}()
 		}
@@ -196,7 +196,7 @@ func runACPMode() {
 		if database.DB != nil {
 			defer func() {
 				if err := database.Close(); err != nil {
-					logging.Warn("Error closing database: %v", err)
+					logging.Error("Error closing database: %v", err)
 				}
 			}()
 		}

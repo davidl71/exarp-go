@@ -659,10 +659,10 @@ func handleTaskWorkflowAddComment(ctx context.Context, params map[string]interfa
 		return nil, fmt.Errorf("add_comment: %w", err)
 	}
 	result := map[string]interface{}{
-		"success":     true,
-		"task_id":     taskID,
+		"success":      true,
+		"task_id":      taskID,
 		"comment_type": commentType,
-		"message":     "comment added",
+		"message":      "comment added",
 	}
 	return framework.FormatResult(result, "")
 }

@@ -14,16 +14,16 @@ func TestDefaultModelRouter_SelectModel(t *testing.T) {
 		name         string
 		taskType     string
 		requirements ModelRequirements
-		// We only assert that we get a valid ModelType; actual choice depends on FMAvailable() at runtime.
+		// We only assert that we get a valid ModelType; actual choice depends on FMAvailable()/GatewayAvailable() at runtime.
 		wantOneOf []ModelType
 	}{
-		{"general empty", "", ModelRequirements{}, []ModelType{ModelFM, ModelOllamaLlama}},
-		{"general explicit", "general", ModelRequirements{}, []ModelType{ModelFM, ModelOllamaLlama, ModelMLX}},
-		{"code task", "code", ModelRequirements{}, []ModelType{ModelFM, ModelOllamaCode, ModelMLX}},
-		{"code_analysis", "code_analysis", ModelRequirements{}, []ModelType{ModelFM, ModelOllamaCode, ModelMLX}},
-		{"code_generation", "code_generation", ModelRequirements{}, []ModelType{ModelFM, ModelOllamaCode, ModelMLX}},
-		{"prefer speed", "general", ModelRequirements{PreferSpeed: true}, []ModelType{ModelFM, ModelOllamaLlama}},
-		{"prefer cost general", "general", ModelRequirements{PreferCost: true}, []ModelType{ModelFM, ModelOllamaLlama, ModelMLX}},
+		{"general empty", "", ModelRequirements{}, []ModelType{ModelFM, ModelGateway, ModelOllamaLlama}},
+		{"general explicit", "general", ModelRequirements{}, []ModelType{ModelFM, ModelGateway, ModelOllamaLlama, ModelMLX}},
+		{"code task", "code", ModelRequirements{}, []ModelType{ModelFM, ModelGateway, ModelOllamaCode, ModelMLX}},
+		{"code_analysis", "code_analysis", ModelRequirements{}, []ModelType{ModelFM, ModelGateway, ModelOllamaCode, ModelMLX}},
+		{"code_generation", "code_generation", ModelRequirements{}, []ModelType{ModelFM, ModelGateway, ModelOllamaCode, ModelMLX}},
+		{"prefer speed", "general", ModelRequirements{PreferSpeed: true}, []ModelType{ModelFM, ModelGateway, ModelOllamaLlama}},
+		{"prefer cost general", "general", ModelRequirements{PreferCost: true}, []ModelType{ModelFM, ModelGateway, ModelOllamaLlama, ModelMLX}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -56,7 +56,7 @@ func TestDefaultModelRouter_Generate_UnknownType(t *testing.T) {
 }
 
 func TestModelTypeConstants(t *testing.T) {
-	if ModelFM == "" || ModelOllamaLlama == "" || ModelOllamaCode == "" || ModelMLX == "" {
+	if ModelFM == "" || ModelGateway == "" || ModelOllamaLlama == "" || ModelOllamaCode == "" || ModelMLX == "" {
 		t.Error("model type constants should be non-empty")
 	}
 }

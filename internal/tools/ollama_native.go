@@ -23,7 +23,6 @@ import (
 //   OllamaGenerateResponse — OllamaGenerateResponse represents the response from generation.
 //   getOllamaModelParam — getOllamaModelParam returns the model name from params. Ollama API uses "model"; accept "name" as alias for callers that use it (T-53).
 //   handleOllamaNative — handleOllamaNative handles the ollama tool with native Go HTTP client.
-//   ollamaAvailable — ollamaAvailable returns true if the Ollama server at host is reachable (quick GET /api/tags).
 //   ollamaGenerateText — ollamaGenerateText performs non-streaming generate and returns only the response text.
 //   handleOllamaStatus — handleOllamaStatus checks if Ollama server is running.
 //   handleOllamaModels — handleOllamaModels lists available models.
@@ -118,29 +117,6 @@ func handleOllamaNative(ctx context.Context, params map[string]interface{}) ([]f
 	default:
 		return nil, fmt.Errorf("unknown action: %s (use 'status', 'models', 'generate', 'pull', 'hardware', 'docs', 'quality', or 'summary')", action)
 	}
-}
-
-// ─── ollamaAvailable ────────────────────────────────────────────────────────
-// ollamaAvailable returns true if the Ollama server at host is reachable (quick GET /api/tags).
-func ollamaAvailable(ctx context.Context, host string) bool {
-	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
-	defer cancel()
-
-	url := fmt.Sprintf("%s/api/tags", host)
-
-	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
-	if err != nil {
-		return false
-	}
-
-	resp, err := ollamaHTTPClient.Do(req)
-	if err != nil {
-		return false
-	}
-
-	_ = resp.Body.Close()
-
-	return resp.StatusCode == http.StatusOK
 }
 
 // ─── ollamaGenerateText ─────────────────────────────────────────────────────

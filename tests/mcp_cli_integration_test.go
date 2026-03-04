@@ -85,7 +85,18 @@ func TestMCPToolViaCLI(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			cmd := exec.Command(binaryPath, "-tool", tt.tool, "-args", tt.args)
 
-			cmd.Env = append(os.Environ(), "PROJECT_ROOT="+filepath.Join("..", ".."))
+			// Repo root so .todo2 and migrations/ are found (avoids "no such table: tasks").
+			// When running from tests/, cwd is tests/ so we use parent directory.
+			cwd, _ := os.Getwd()
+			repoRoot := filepath.Clean(filepath.Join(cwd, ".."))
+			if repoRoot == "." {
+				repoRoot = cwd
+			}
+			absRepo, _ := filepath.Abs(repoRoot)
+			if absRepo != "" {
+				repoRoot = absRepo
+			}
+			cmd.Env = append(os.Environ(), "PROJECT_ROOT="+repoRoot)
 
 			output, err := cmd.CombinedOutput()
 
@@ -165,7 +176,15 @@ func TestMCPToolErrorHandlingViaCLI(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			cmd := exec.Command(binaryPath, "-tool", tt.tool, "-args", tt.args)
 
-			cmd.Env = append(os.Environ(), "PROJECT_ROOT="+filepath.Join("..", ".."))
+			cwd, _ := os.Getwd()
+			repoRoot := filepath.Clean(filepath.Join(cwd, ".."))
+			if repoRoot == "." {
+				repoRoot = cwd
+			}
+			if abs, _ := filepath.Abs(repoRoot); abs != "" {
+				repoRoot = abs
+			}
+			cmd.Env = append(os.Environ(), "PROJECT_ROOT="+repoRoot)
 
 			output, err := cmd.CombinedOutput()
 
@@ -202,7 +221,15 @@ func TestMCPToolJSONResponseFormat(t *testing.T) {
 		t.Run(tool.name, func(t *testing.T) {
 			cmd := exec.Command(binaryPath, "-tool", tool.name, "-args", tool.args)
 
-			cmd.Env = append(os.Environ(), "PROJECT_ROOT="+filepath.Join("..", ".."))
+			cwd, _ := os.Getwd()
+			repoRoot := filepath.Clean(filepath.Join(cwd, ".."))
+			if repoRoot == "." {
+				repoRoot = cwd
+			}
+			if abs, _ := filepath.Abs(repoRoot); abs != "" {
+				repoRoot = abs
+			}
+			cmd.Env = append(os.Environ(), "PROJECT_ROOT="+repoRoot)
 
 			output, err := cmd.CombinedOutput()
 			if err != nil {
