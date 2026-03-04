@@ -27,6 +27,7 @@ build/
 coverage*.out
 coverage*.html
 coverage.out
+.ninja_log
 
 # Test artifacts
 test-results/
