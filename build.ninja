@@ -1,0 +1,66 @@
+# Ninja build file for exarp-go (cross-platform; use when Make is unavailable, e.g. Windows).
+# See https://ninja-build.org/ and https://sachinsu.github.io/posts/ninjabuildsystem/
+# Primary build automation remains the Makefile; Taskfile.yml also available.
+
+go = go
+binary = bin/exarp-go
+mod_flags = -mod=vendor
+# Optional: set GOFLAGS in environment to override (e.g. GOFLAGS= for -mod=mod).
+
+rule go_build
+  command = $go build $mod_flags -ldflags "-X main.Version=dev -X main.BuildTime= -X main.GitCommit=" -o $out ./cmd/server
+  description = build $out
+
+rule go_test
+  command = $go test $mod_flags ./... && touch $out
+  description = test
+
+rule go_fmt
+  command = $go fmt ./... && touch $out
+  description = fmt
+
+rule go_vet
+  command = $go vet $mod_flags ./... && touch $out
+  description = vet
+
+rule go_tidy
+  command = $go mod tidy && touch $out
+  description = go mod tidy
+
+rule run_lint
+  command = $go run ./cmd/server -tool lint -args '{"action":"run","linter":"auto","path":"."}' 2>/dev/null || true; touch $out
+  description = lint
+
+rule run_deadcode
+  command = deadcode -test ./... 2>/dev/null || true; touch $out
+  description = deadcode
+
+rule clean_all
+  command = rm -f $binary .stamp-test .stamp-fmt .stamp-vet .stamp-tidy .stamp-lint .stamp-deadcode 2>/dev/null; touch $out
+  description = clean
+
+# Build binary (default target). Inputs: go.mod so Ninja rebuilds when deps change.
+build $binary: go_build go.mod go.sum
+
+# Stamp-based targets (re-run when go.mod changes or after clean).
+build .stamp-test: go_test go.mod
+build .stamp-fmt: go_fmt go.mod
+build .stamp-vet: go_vet go.mod
+build .stamp-tidy: go_tidy go.mod
+build .stamp-lint: run_lint go.mod
+build .stamp-deadcode: run_deadcode go.mod
+
+build .cleaned: clean_all
+
+# Phony aliases (e.g. ninja test, ninja fmt).
+build build: phony $binary
+build test: phony .stamp-test
+build fmt: phony .stamp-fmt
+build vet: phony .stamp-vet
+build tidy: phony .stamp-tidy
+build lint: phony .stamp-lint
+build deadcode: phony .stamp-deadcode
+build clean: phony .cleaned
+
+# Default: build binary.
+default build
