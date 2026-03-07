@@ -6,6 +6,7 @@
       "command": ["/Users/dlowes/Projects/mcp/exarp-go/run-exarp-go.sh"],
       "enabled": true,
       "environment": {
+        "PROJECT_ROOT": "/Users/dlowes/Projects/mcp/exarp-go",
         "EXARP_MIGRATIONS_DIR": "/Users/dlowes/Projects/mcp/exarp-go/migrations",
         "EXARP_WATCH": "0"
       }
