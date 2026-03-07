@@ -17,8 +17,8 @@ func TestRegisterAllTools(t *testing.T) {
 		t.Fatalf("RegisterAllTools() error = %v", err)
 	}
 
-	// Verify all tools are registered (base 36 from RegisterAllTools including fm_plan_and_execute + llamacpp + read_resource + list_resources; +1 when Apple FM on darwin/arm64/cgo).
-	expectedCount := 36
+	// Verify all tools are registered (base 36 from RegisterAllTools including fm_plan_and_execute + llamacpp + read_resource + list_resources; +1 scan_dependency_security; +1 when Apple FM on darwin/arm64/cgo).
+	expectedCount := 37
 	if server.ToolCount() != expectedCount && server.ToolCount() != expectedCount+1 {
 		t.Errorf("server.ToolCount() = %v, want %d or %d (with conditional Apple Foundation Models)",
 			server.ToolCount(), expectedCount, expectedCount+1)
@@ -36,6 +36,7 @@ func TestRegisterAllTools(t *testing.T) {
 		"memory_maint",
 		"report",
 		"security",
+		"scan_dependency_security",
 		"task_analysis",
 		"task_discovery",
 		"task_workflow",
@@ -100,8 +101,8 @@ func TestRegisterAllTools_RegistrationError(t *testing.T) {
 	expectedBatches := [][]string{
 		// Batch 1: 6 simple tools
 		{"analyze_alignment", "generate_config", "health", "setup_hooks", "check_attribution", "add_external_tool_hints"},
-		// Batch 2: 9 medium tools
-		{"memory", "memory_maint", "report", "security", "task_analysis", "task_discovery", "task_workflow", "infer_task_progress", "testing"},
+		// Batch 2: 9 medium tools (+ scan_dependency_security)
+		{"memory", "memory_maint", "report", "security", "scan_dependency_security", "task_analysis", "task_discovery", "task_workflow", "infer_task_progress", "testing"},
 		// Batch 3: 11 advanced tools
 		{"automation", "tool_catalog", "workflow_mode", "lint", "estimation", "git_tools", "session", "infer_session_mode", "ollama", "mlx", "llamacpp"},
 		// Batch 4 + 5: context_budget + read_resource/list_resources, context, text_generate, task_execute, prompt_tracking, recommend, research_aggregator, cursor_cloud_agent, fm_plan_and_execute
@@ -172,5 +173,40 @@ func TestRegisterAllTools_SchemaValidation(t *testing.T) {
 		if tool.Schema.Properties == nil {
 			t.Errorf("tool %q schema.Properties is nil", toolName)
 		}
+	}
+}
+
+func TestRegisterAllTools_TextGenerateIncludesGatewayProvider(t *testing.T) {
+	server := fixtures.NewMockServer("test-server")
+
+	if err := RegisterAllTools(server); err != nil {
+		t.Fatalf("RegisterAllTools() error = %v", err)
+	}
+
+	tool, exists := server.GetTool("text_generate")
+	if !exists {
+		t.Fatal("text_generate not registered")
+	}
+
+	provider, ok := tool.Schema.Properties["provider"].(map[string]interface{})
+	if !ok {
+		t.Fatal("text_generate provider schema missing")
+	}
+
+	enumVals, ok := provider["enum"].([]string)
+	if !ok {
+		t.Fatalf("provider enum type = %T, want []string", provider["enum"])
+	}
+
+	foundGateway := false
+	for _, v := range enumVals {
+		if v == "gateway" {
+			foundGateway = true
+			break
+		}
+	}
+
+	if !foundGateway {
+		t.Fatalf("text_generate provider enum missing gateway: %v", enumVals)
 	}
 }

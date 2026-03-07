@@ -163,21 +163,24 @@ func registerInfraTools(server framework.MCPServer) error {
 	// testing
 	if err := server.RegisterTool(
 		"testing",
-		"[HINT: action=run|coverage|suggest|validate. Execute tests, analyze coverage, suggest tests. Use when running tests or checking coverage.]",
+		"[HINT: action=run|coverage|suggest|validate. Execute tests, analyze coverage, suggest tests. Today, run|coverage|validate are Go-project flows; use when running tests or checking coverage.]",
 		framework.ToolSchema{
 			Type: "object",
 			Properties: map[string]interface{}{
 				"action": map[string]interface{}{
-					"type":    "string",
-					"enum":    []string{"run", "coverage", "suggest", "validate"},
-					"default": "run",
+					"type":        "string",
+					"enum":        []string{"run", "coverage", "suggest", "validate"},
+					"default":     "run",
+					"description": "Testing action. run|coverage|validate currently operate on Go projects; suggest can be used more broadly.",
 				},
 				"test_path": map[string]interface{}{
-					"type": "string",
+					"type":        "string",
+					"description": "Go test target path for run/validate (defaults to ./...).",
 				},
 				"test_framework": map[string]interface{}{
-					"type":    "string",
-					"default": "auto",
+					"type":        "string",
+					"default":     "auto",
+					"description": "Framework hint for test suggestion flows.",
 				},
 				"verbose": map[string]interface{}{
 					"type":    "boolean",
@@ -188,7 +191,8 @@ func registerInfraTools(server framework.MCPServer) error {
 					"default": false,
 				},
 				"coverage_file": map[string]interface{}{
-					"type": "string",
+					"type":        "string",
+					"description": "Coverage profile path for Go coverage analysis.",
 				},
 				"min_coverage": map[string]interface{}{
 					"type":    "integer",
@@ -206,7 +210,8 @@ func registerInfraTools(server framework.MCPServer) error {
 					"default": 0.7,
 				},
 				"framework": map[string]interface{}{
-					"type": "string",
+					"type":        "string",
+					"description": "Validation framework hint. framework=go still requires a Go project with go.mod.",
 				},
 				"output_path": map[string]interface{}{
 					"type": "string",
@@ -314,6 +319,21 @@ func registerInfraTools(server framework.MCPServer) error {
 		handleSecurity,
 	); err != nil {
 		return fmt.Errorf("failed to register security: %w", err)
+	}
+
+	// scan_dependency_security — alias for security action=scan (multilang: Go, Python, Rust, Node)
+	if err := server.RegisterTool(
+		"scan_dependency_security",
+		"[HINT: Run dependency vulnerability scan for Go/Python/Rust/Node. Same as security(action=scan). Use in hooks or when checking dependencies.]",
+		framework.ToolSchema{
+			Type: "object",
+			Properties: map[string]interface{}{
+				"quick": map[string]interface{}{"type": "boolean"},
+			},
+		},
+		handleScanDependencySecurity,
+	); err != nil {
+		return fmt.Errorf("failed to register scan_dependency_security: %w", err)
 	}
 
 	// generate_config

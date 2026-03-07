@@ -3,6 +3,8 @@ package tools
 import (
 	"context"
 	"encoding/json"
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/davidl71/exarp-go/internal/framework"
@@ -86,6 +88,42 @@ func TestHandleLint(t *testing.T) {
 				tt.validate(t, result)
 			}
 		})
+	}
+}
+
+func TestHandleLint_DefaultsToAutoDetection(t *testing.T) {
+	tmpDir := t.TempDir()
+	t.Setenv("PROJECT_ROOT", tmpDir)
+
+	pyFile := filepath.Join(tmpDir, "test.py")
+	if err := os.WriteFile(pyFile, []byte("print('hello')\n"), 0644); err != nil {
+		t.Fatalf("WriteFile: %v", err)
+	}
+
+	argsJSON, _ := json.Marshal(map[string]interface{}{
+		"action": "run",
+		"path":   pyFile,
+	})
+
+	result, err := handleLint(context.Background(), argsJSON)
+	if err != nil {
+		t.Fatalf("handleLint() error = %v", err)
+	}
+	if len(result) == 0 {
+		t.Fatal("expected non-empty result")
+	}
+
+	var payload map[string]interface{}
+	if err := json.Unmarshal([]byte(result[0].Text), &payload); err != nil {
+		t.Fatalf("invalid JSON result: %v", err)
+	}
+
+	got, _ := payload["linter"].(string)
+	switch got {
+	case "ruff", "flake8", "pylint":
+		// Expected: a Python linter selected from auto-detection.
+	default:
+		t.Fatalf("default linter = %v, want Python linter from auto-detection", got)
 	}
 }
 

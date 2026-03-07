@@ -172,7 +172,7 @@ func generatePlanMarkdown(ctx context.Context, projectRoot, planTitle string) (s
 	if err == nil {
 		sb.WriteString(fmt.Sprintf("- **Project type:** %s\n", getStr(info, "type")))
 		sb.WriteString(fmt.Sprintf("- **Tools:** %v | **Prompts:** %v | **Resources:** %v\n", metrics["tools"], metrics["prompts"], metrics["resources"]))
-		sb.WriteString(fmt.Sprintf("- **Codebase:** %v files (Go: %v)\n", metrics["total_files"], metrics["go_files"]))
+		sb.WriteString("- **Codebase:** " + formatCodebaseSummary(metrics) + "\n")
 	}
 
 	sb.WriteString("- **Storage:** Todo2 (SQLite primary, JSON fallback)\n")
@@ -412,6 +412,50 @@ func generatePlanMarkdown(ctx context.Context, projectRoot, planTitle string) (s
 	sb.WriteString("- *(Add other plan or doc links as needed.)*\n")
 
 	return sb.String(), nil
+}
+
+func formatCodebaseSummary(metrics map[string]interface{}) string {
+	total := getInt(metrics, "total_files")
+	languageCounts := []struct {
+		label string
+		key   string
+	}{
+		{label: "Go", key: "go_files"},
+		{label: "Python", key: "python_files"},
+		{label: "C/C++", key: "cpp_files"},
+		{label: "Rust", key: "rust_files"},
+	}
+
+	parts := make([]string, 0, len(languageCounts))
+	for _, item := range languageCounts {
+		if count := getInt(metrics, item.key); count > 0 {
+			parts = append(parts, fmt.Sprintf("%s: %d", item.label, count))
+		}
+	}
+
+	if len(parts) == 0 {
+		return fmt.Sprintf("%d files", total)
+	}
+
+	return fmt.Sprintf("%d files (%s)", total, strings.Join(parts, ", "))
+}
+
+func getInt(m map[string]interface{}, key string) int {
+	v, ok := m[key]
+	if !ok || v == nil {
+		return 0
+	}
+
+	switch n := v.(type) {
+	case int:
+		return n
+	case int64:
+		return int(n)
+	case float64:
+		return int(n)
+	default:
+		return 0
+	}
 }
 
 // ─── repairPlanFile ─────────────────────────────────────────────────────────

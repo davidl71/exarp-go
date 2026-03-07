@@ -104,8 +104,12 @@ func handleTestingValidate(ctx context.Context, params map[string]interface{}) (
 		testFramework = f
 	}
 
-	if !IsGoProject() && testFramework != "go" {
-		return nil, fmt.Errorf("testing validate is only supported for Go projects (go.mod) or framework=go")
+	if !IsGoProject() {
+		if testFramework == "go" {
+			return nil, fmt.Errorf("testing validate framework=go requires a Go project (go.mod)")
+		}
+
+		return nil, fmt.Errorf("testing validate is only supported for Go projects (go.mod)")
 	}
 
 	result, err := validateGoTests(projectRoot, testPath)
