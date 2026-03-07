@@ -81,17 +81,18 @@ func TestPrintCursorRunHelp_NoPanic(t *testing.T) {
 }
 
 func TestRunCursorRun_CustomPrompt(t *testing.T) {
-	// Just ensure we don't panic when -p is provided; actual exec would need agent on PATH
+	// Force the "agent not found" path so this test does not depend on local Cursor CLI installs.
+	t.Setenv("EXARP_AGENT_CMD", "/nonexistent/exarp-test-agent")
+
 	parsed := mcpcli.ParseArgs([]string{"cursor", "run", "-p", "hello"})
-	// Run in a dir that is not a project root to avoid DB; we expect project root error or agent not found
 	err := runCursorRun(parsed)
 	if err == nil {
-		return // e.g. agent found and ran (unlikely in test)
+		t.Fatal("expected error when agent command is forced to a nonexistent path")
 	}
 
 	msg := err.Error()
-	if !strings.Contains(msg, "project root") && !strings.Contains(msg, "agent") && !strings.Contains(msg, "empty") {
-		t.Logf("runCursorRun(-p hello) err = %v (acceptable)", err)
+	if !strings.Contains(msg, "agent") {
+		t.Fatalf("expected agent-related error, got: %v", err)
 	}
 }
 

@@ -6,6 +6,7 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 )
@@ -48,6 +49,17 @@ func getOllamaTestCodeModel() string {
 		return s
 	}
 	return "qwen2.5:1.5b"
+}
+
+func skipIfOllamaModelUnavailable(t *testing.T, err error) {
+	t.Helper()
+	if err == nil {
+		return
+	}
+	msg := err.Error()
+	if strings.Contains(msg, "not found") || strings.Contains(msg, "status 404") {
+		t.Skipf("Ollama test model not installed (set OLLAMA_TEST_MODEL/OLLAMA_TEST_CODE_MODEL): %v", err)
+	}
 }
 
 func TestHandleOllamaDocs(t *testing.T) {
@@ -112,6 +124,9 @@ func add(a, b int) int {
 			}
 
 			result, err := handleOllamaDocs(ctx, tt.params, host)
+			if !tt.wantError {
+				skipIfOllamaModelUnavailable(t, err)
+			}
 			if (err != nil) != tt.wantError {
 				t.Errorf("handleOllamaDocs() error = %v, wantError %v", err, tt.wantError)
 				return
@@ -190,6 +205,9 @@ func add(a, b int) int {
 			}
 
 			result, err := handleOllamaQuality(ctx, tt.params, host)
+			if !tt.wantError {
+				skipIfOllamaModelUnavailable(t, err)
+			}
 			if (err != nil) != tt.wantError {
 				t.Errorf("handleOllamaQuality() error = %v, wantError %v", err, tt.wantError)
 				return
@@ -265,6 +283,9 @@ func TestHandleOllamaSummary(t *testing.T) {
 			}
 
 			result, err := handleOllamaSummary(ctx, tt.params, host)
+			if !tt.wantError {
+				skipIfOllamaModelUnavailable(t, err)
+			}
 			if (err != nil) != tt.wantError {
 				t.Errorf("handleOllamaSummary() error = %v, wantError %v", err, tt.wantError)
 				return
@@ -345,6 +366,9 @@ func TestHandleOllamaNative(t *testing.T) {
 			ctx := context.Background()
 
 			result, err := handleOllamaNative(ctx, tt.params)
+			if !tt.wantError {
+				skipIfOllamaModelUnavailable(t, err)
+			}
 			if (err != nil) != tt.wantError {
 				t.Errorf("handleOllamaNative() error = %v, wantError %v", err, tt.wantError)
 				return

@@ -150,9 +150,8 @@ func handleSessionEnd(ctx context.Context, params map[string]interface{}, projec
 	store := NewDefaultTaskStore(projectRoot)
 
 	if _, has := params["include_tasks"]; !has || cast.ToBool(params["include_tasks"]) {
-		list, err := store.ListTasks(ctx, nil)
+		tasks, err := listTasksForSessionHandoff(ctx, projectRoot, store)
 		if err == nil {
-			tasks := tasksFromPtrs(list)
 			for _, task := range tasks {
 				if task.Status == models.StatusInProgress {
 					tasksInProgress = append(tasksInProgress, map[string]interface{}{
@@ -168,9 +167,9 @@ func handleSessionEnd(ctx context.Context, params map[string]interface{}, projec
 
 	includePointInTimeSnapshot := cast.ToBool(params["include_point_in_time_snapshot"])
 	if includePointInTimeSnapshot && len(allTasksForSnapshot) == 0 {
-		list, err := store.ListTasks(ctx, nil)
+		tasks, err := listTasksForSessionHandoff(ctx, projectRoot, store)
 		if err == nil {
-			allTasksForSnapshot = tasksFromPtrs(list)
+			allTasksForSnapshot = tasks
 		}
 	}
 
@@ -282,6 +281,59 @@ func handleSessionEnd(ctx context.Context, params map[string]interface{}, projec
 	}
 
 	return framework.FormatResult(result, "")
+}
+
+func listTasksForSessionHandoff(ctx context.Context, projectRoot string, store database.TaskStore) ([]Todo2Task, error) {
+	list, err := store.ListTasks(ctx, nil)
+	if err == nil && len(list) > 0 {
+		return tasksFromPtrs(list), nil
+	}
+
+	projectID := filepath.Base(projectRoot)
+	if projectID == "" || projectID == "." {
+		projectID = "default"
+	}
+
+	if db, dbErr := database.GetDB(); dbErr == nil && db != nil {
+		all, listErr := database.ListTasks(ctx, nil)
+		if listErr == nil {
+			legacyScoped := filterTasksForProjectOrLegacy(tasksFromPtrs(all), projectID)
+			if len(legacyScoped) > 0 {
+				return legacyScoped, nil
+			}
+		}
+	}
+
+	tasks, loadErr := LoadTodo2Tasks(projectRoot)
+	if loadErr != nil {
+		if err != nil {
+			return nil, err
+		}
+
+		return nil, loadErr
+	}
+
+	legacyScoped := filterTasksForProjectOrLegacy(tasks, projectID)
+	if len(legacyScoped) > 0 {
+		return legacyScoped, nil
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	return tasks, nil
+}
+
+func filterTasksForProjectOrLegacy(tasks []Todo2Task, projectID string) []Todo2Task {
+	out := make([]Todo2Task, 0, len(tasks))
+	for _, task := range tasks {
+		if task.ProjectID == "" || task.ProjectID == projectID {
+			out = append(out, task)
+		}
+	}
+
+	return out
 }
 
 // handleSessionResume resumes a session by reviewing latest handoff.

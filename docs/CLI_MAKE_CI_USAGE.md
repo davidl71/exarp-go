@@ -68,6 +68,37 @@ Scripts can use `exarp-go tool_name key=value ...`. The CLI rewrites this to `-t
 
 ---
 
+## Task command examples
+
+For common task workflows, prefer the convenience CLI over raw `-tool task_workflow` calls.
+
+```bash
+exarp-go task create "Subtask" \
+  --description "Implement the parser" \
+  --priority high \
+  --dependencies T-1,T-2 \
+  --parent-id T-10 \
+  --planning-doc docs/implementation.plan.md
+
+exarp-go task update T-42 \
+  --new-status "In Progress" \
+  --dependencies T-1,T-7 \
+  --parent-id T-10
+
+exarp-go task update T-42 \
+  --tags backend,mcp \
+  --remove-tags stale \
+  --name "Refine MCP parser"
+```
+
+Use the raw tool form when you need parameters that are not surfaced by the convenience CLI or when scripting directly against MCP-style payloads:
+
+```bash
+./bin/exarp-go -tool task_workflow -args '{"action":"update","task_ids":"T-42","dependencies":"T-1,T-7","parent_id":"T-10"}'
+```
+
+---
+
 ## References
 
 - **CURSOR_MCP_SETUP.md** — MCP server setup for Cursor.

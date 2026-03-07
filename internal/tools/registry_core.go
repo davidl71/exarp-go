@@ -5,194 +5,147 @@ import (
 	"fmt"
 
 	"github.com/davidl71/exarp-go/internal/framework"
+	"github.com/davidl71/exarp-go/internal/taskworkflowspec"
 )
 
 func registerCoreTools(server framework.MCPServer) error {
+	taskWorkflowProps := taskworkflowspec.AppendTaskFieldSchemaProperties(map[string]interface{}{
+		"action": map[string]interface{}{
+			"type":    "string",
+			"enum":    []string{"sync", "approve", "clarify", "clarity", "cleanup", "create", "delete", "add_comment", "enrich_tool_hints", "fix_dates", "fix_empty_descriptions", "fix_invalid_ids", "link_planning", "request_approval", "sync_approvals", "apply_approval_result", "sanity_check", "sync_from_plan", "sync_plan_status", "update", "summarize", "run_with_ai"},
+			"default": "sync",
+		},
+		"dry_run": map[string]interface{}{
+			"type":    "boolean",
+			"default": false,
+		},
+		"confirm_via_elicitation": map[string]interface{}{
+			"type":        "boolean",
+			"default":     false,
+			"description": "When true and client supports MCP elicitation, prompt user to confirm before approve or delete (form: proceed, optional dry_run for approve)",
+		},
+		"external": map[string]interface{}{
+			"type":        "boolean",
+			"default":     false,
+			"description": "Future nice-to-have: sync with external sources (e.g. infer_task_progress). Currently ignored; SQLite↔JSON sync is performed.",
+		},
+		"status": map[string]interface{}{
+			"type":    "string",
+			"default": "Review",
+		},
+		"clarification_none": map[string]interface{}{
+			"type":    "boolean",
+			"default": false,
+		},
+		"filter_tag": map[string]interface{}{
+			"type": "string",
+		},
+		"task_ids": map[string]interface{}{
+			"type": "string",
+		},
+		"sub_action": map[string]interface{}{
+			"type":    "string",
+			"default": "list",
+		},
+		"task_id": map[string]interface{}{
+			"type": "string",
+		},
+		"form_id": map[string]interface{}{
+			"type":        "string",
+			"description": "For request_approval/sync_approvals: gotoHuman form ID from list-forms (optional)",
+		},
+		"result": map[string]interface{}{
+			"type":        "string",
+			"description": "For apply_approval_result: 'approved' or 'rejected' (from gotoHuman decision)",
+		},
+		"feedback": map[string]interface{}{
+			"type":        "string",
+			"description": "For apply_approval_result: optional feedback when result=rejected (appended to task)",
+		},
+		"comment_type": map[string]interface{}{
+			"type":        "string",
+			"description": "For add_comment: type of comment (result, note, research_with_links, manualsetup)",
+			"enum":        []string{"result", "note", "research_with_links", "manualsetup"},
+			"default":     "result",
+		},
+		"content": map[string]interface{}{
+			"type":        "string",
+			"description": "For add_comment: comment body text (required)",
+		},
+		"clarification_text": map[string]interface{}{
+			"type": "string",
+		},
+		"decision": map[string]interface{}{
+			"type": "string",
+		},
+		"decisions_json": map[string]interface{}{
+			"type": "string",
+		},
+		"move_to_todo": map[string]interface{}{
+			"type":    "boolean",
+			"default": true,
+		},
+		"auto_apply": map[string]interface{}{
+			"type":    "boolean",
+			"default": false,
+		},
+		"order": map[string]interface{}{
+			"type":        "string",
+			"description": "For sub_action=list: order results by 'execution' or 'dependency' (backlog dependency order)",
+		},
+		"output_format": map[string]interface{}{
+			"type":    "string",
+			"default": "text",
+		},
+		"compact": map[string]interface{}{
+			"type":        "boolean",
+			"default":     false,
+			"description": "When true and output_format=json, return compact JSON (no indentation) to reduce context size",
+		},
+		"stale_threshold_hours": map[string]interface{}{
+			"type":    "number",
+			"default": 2.0,
+		},
+		"include_legacy": map[string]interface{}{
+			"type":        "boolean",
+			"default":     false,
+			"description": "If true, also identify and remove legacy tasks with old sequential IDs (T-1, T-2, etc.)",
+		},
+		"output_path": map[string]interface{}{
+			"type": "string",
+		},
+		"tasks": map[string]interface{}{
+			"type":        "string",
+			"description": "JSON array of tasks for batch create. Each element: {name, priority?, tags?, long_description?, dependencies?}. Example: [{\"name\":\"Task A\",\"priority\":\"high\"},{\"name\":\"Task B\"}]",
+		},
+		"auto_estimate": map[string]interface{}{
+			"type":        "boolean",
+			"default":     true,
+			"description": "Automatically estimate task duration and add as comment (default: true)",
+		},
+		"instruction": map[string]interface{}{
+			"type":        "string",
+			"description": "For run_with_ai: custom instruction/question for the LLM about the task. Defaults to implementation plan + risks + next steps.",
+		},
+		"save_comment": map[string]interface{}{
+			"type":        "boolean",
+			"default":     true,
+			"description": "For summarize: when true (default), save generated summary as a task comment.",
+		},
+		"write_plan": map[string]interface{}{
+			"type":        "boolean",
+			"default":     true,
+			"description": "For sync_from_plan: when true (default), update plan file checkboxes and frontmatter from Todo2 status (bidirectional).",
+		},
+	})
+
 	// task_workflow
 	if err := server.RegisterTool(
 		"task_workflow",
 		"[HINT: action=sync|approve|create|update|delete|clarify|cleanup|summarize|run_with_ai|link_planning|add_comment. Task lifecycle management. Use for CRUD, batch status updates (approve+task_ids), AI summaries, add result/note comments. Prefer exarp-go task CLI for simple ops. Related: task_analysis, session.]",
 		framework.ToolSchema{
-			Type: "object",
-			Properties: map[string]interface{}{
-				"action": map[string]interface{}{
-					"type":    "string",
-					"enum":    []string{"sync", "approve", "clarify", "clarity", "cleanup", "create", "delete", "add_comment", "enrich_tool_hints", "fix_dates", "fix_empty_descriptions", "fix_invalid_ids", "link_planning", "request_approval", "sync_approvals", "apply_approval_result", "sanity_check", "sync_from_plan", "sync_plan_status", "update", "summarize", "run_with_ai"},
-					"default": "sync",
-				},
-				"dry_run": map[string]interface{}{
-					"type":    "boolean",
-					"default": false,
-				},
-				"confirm_via_elicitation": map[string]interface{}{
-					"type":        "boolean",
-					"default":     false,
-					"description": "When true and client supports MCP elicitation, prompt user to confirm before approve or delete (form: proceed, optional dry_run for approve)",
-				},
-				"external": map[string]interface{}{
-					"type":        "boolean",
-					"default":     false,
-					"description": "Future nice-to-have: sync with external sources (e.g. infer_task_progress). Currently ignored; SQLite↔JSON sync is performed.",
-				},
-				"status": map[string]interface{}{
-					"type":    "string",
-					"default": "Review",
-				},
-				"new_status": map[string]interface{}{
-					"type":    "string",
-					"default": "Todo",
-				},
-				"priority": map[string]interface{}{
-					"type":        "string",
-					"description": "For create/update: task priority (high|medium|low).",
-					"enum":        []string{"high", "medium", "low"},
-				},
-				"clarification_none": map[string]interface{}{
-					"type":    "boolean",
-					"default": false,
-				},
-				"filter_tag": map[string]interface{}{
-					"type": "string",
-				},
-				"task_ids": map[string]interface{}{
-					"type": "string",
-				},
-				"sub_action": map[string]interface{}{
-					"type":    "string",
-					"default": "list",
-				},
-				"task_id": map[string]interface{}{
-					"type": "string",
-				},
-				"form_id": map[string]interface{}{
-					"type":        "string",
-					"description": "For request_approval/sync_approvals: gotoHuman form ID from list-forms (optional)",
-				},
-				"result": map[string]interface{}{
-					"type":        "string",
-					"description": "For apply_approval_result: 'approved' or 'rejected' (from gotoHuman decision)",
-				},
-				"feedback": map[string]interface{}{
-					"type":        "string",
-					"description": "For apply_approval_result: optional feedback when result=rejected (appended to task)",
-				},
-				"comment_type": map[string]interface{}{
-					"type":        "string",
-					"description": "For add_comment: type of comment (result, note, research_with_links, manualsetup)",
-					"enum":        []string{"result", "note", "research_with_links", "manualsetup"},
-					"default":     "result",
-				},
-				"content": map[string]interface{}{
-					"type":        "string",
-					"description": "For add_comment: comment body text (required)",
-				},
-				"clarification_text": map[string]interface{}{
-					"type": "string",
-				},
-				"decision": map[string]interface{}{
-					"type": "string",
-				},
-				"decisions_json": map[string]interface{}{
-					"type": "string",
-				},
-				"move_to_todo": map[string]interface{}{
-					"type":    "boolean",
-					"default": true,
-				},
-				"auto_apply": map[string]interface{}{
-					"type":    "boolean",
-					"default": false,
-				},
-				"order": map[string]interface{}{
-					"type":        "string",
-					"description": "For sub_action=list: order results by 'execution' or 'dependency' (backlog dependency order)",
-				},
-				"output_format": map[string]interface{}{
-					"type":    "string",
-					"default": "text",
-				},
-				"compact": map[string]interface{}{
-					"type":        "boolean",
-					"default":     false,
-					"description": "When true and output_format=json, return compact JSON (no indentation) to reduce context size",
-				},
-				"stale_threshold_hours": map[string]interface{}{
-					"type":    "number",
-					"default": 2.0,
-				},
-				"include_legacy": map[string]interface{}{
-					"type":        "boolean",
-					"default":     false,
-					"description": "If true, also identify and remove legacy tasks with old sequential IDs (T-1, T-2, etc.)",
-				},
-				"output_path": map[string]interface{}{
-					"type": "string",
-				},
-				"name": map[string]interface{}{
-					"type":        "string",
-					"description": "Task name (required for single create; omit when using tasks array)",
-				},
-				"long_description": map[string]interface{}{
-					"type":        "string",
-					"description": "Task description (for single create; omit when using tasks array)",
-				},
-				"tasks": map[string]interface{}{
-					"type":        "string",
-					"description": "JSON array of tasks for batch create. Each element: {name, priority?, tags?, long_description?, dependencies?}. Example: [{\"name\":\"Task A\",\"priority\":\"high\"},{\"name\":\"Task B\"}]",
-				},
-				"tags": map[string]interface{}{
-					"type":        "string",
-					"description": "Task tags as comma-separated values (e.g. 'backend,urgent') or JSON array encoded as string (e.g. '[\"backend\",\"urgent\"]')",
-				},
-				"remove_tags": map[string]interface{}{
-					"type":        "string",
-					"description": "Tags to remove from task(s). For action=update: comma-separated values or JSON array encoded as string.",
-				},
-				"dependencies": map[string]interface{}{
-					"type":        "string",
-					"description": "Task dependencies as comma-separated task IDs or JSON array encoded as string (e.g. '[\"T-1\",\"T-2\"]')",
-				},
-				"auto_estimate": map[string]interface{}{
-					"type":        "boolean",
-					"default":     true,
-					"description": "Automatically estimate task duration and add as comment (default: true)",
-				},
-				"local_ai_backend": map[string]interface{}{
-					"type":        "string",
-					"description": "For create/update: preferred local LLM for estimation (fm|mlx|ollama). Stored in task metadata as preferred_backend. For summarize/run_with_ai: overrides task metadata to select backend.",
-					"enum":        []string{"", "fm", "mlx", "ollama"},
-				},
-				"recommended_tools": map[string]interface{}{
-					"type":        "string",
-					"description": "For create/update: comma-separated MCP tool IDs to suggest for this task (e.g. report, task_workflow). Stored in task metadata as recommended_tools; exposed in task show and session prime suggested_next.",
-				},
-				"instruction": map[string]interface{}{
-					"type":        "string",
-					"description": "For run_with_ai: custom instruction/question for the LLM about the task. Defaults to implementation plan + risks + next steps.",
-				},
-				"save_comment": map[string]interface{}{
-					"type":        "boolean",
-					"default":     true,
-					"description": "For summarize: when true (default), save generated summary as a task comment.",
-				},
-				"planning_doc": map[string]interface{}{
-					"type":        "string",
-					"description": "Path to planning document. For link_planning: optional, stored in task metadata. For sync_from_plan/sync_plan_status: required (.plan.md path).",
-				},
-				"write_plan": map[string]interface{}{
-					"type":        "boolean",
-					"default":     true,
-					"description": "For sync_from_plan: when true (default), update plan file checkboxes and frontmatter from Todo2 status (bidirectional).",
-				},
-				"epic_id": map[string]interface{}{
-					"type":        "string",
-					"description": "Epic task ID if this task is part of an epic (optional, stored in task metadata and parent_id)",
-				},
-				"parent_id": map[string]interface{}{
-					"type":        "string",
-					"description": "Parent task ID for hierarchy (optional; separate from blocking dependencies). For create/update/link_planning.",
-				},
-			},
+			Type:       "object",
+			Properties: taskWorkflowProps,
 		},
 		handleTaskWorkflow,
 	); err != nil {
