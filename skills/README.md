@@ -1,4 +1,4 @@
-# exarp-go Cursor Skills
+# exarp-go Cursor/Codex Skills
 
 Bundled [Cursor Agent Skills](https://www.cursor.com/changelog) that teach the AI when and how to use exarp-go MCP tools. Copy these into your Cursor skills path to use them.
 
@@ -22,6 +22,17 @@ cp -r skills/use-exarp-tools skills/task-workflow skills/report-scorecard .curso
 ```
 
 **Paths:** Cursor discovers skills from `~/.cursor/skills/` (personal) and `.cursor/skills/` (project). Do not put these in `~/.cursor/skills-cursor/`; that directory is reserved for Cursor’s built-in skills.
+
+## Codex Installation
+
+Codex discovers personal skills from `~/.codex/skills/`.
+
+```bash
+mkdir -p ~/.codex/skills
+cp -r skills/use-exarp-tools ~/.codex/skills/
+cp -r skills/task-workflow ~/.codex/skills/
+cp -r skills/report-scorecard ~/.codex/skills/
+```
 
 ## Bundled skills
 
