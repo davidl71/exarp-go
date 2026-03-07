@@ -92,9 +92,9 @@ func GetToolCatalog() map[string]ToolCatalogEntry {
 		},
 		"testing": {
 			Tool:             "testing",
-			Hint:             "TRIGGER: 'test', 'coverage', 'run tests', 'test failure', 'validate'. Test execution and analysis.",
+			Hint:             "TRIGGER: 'test', 'coverage', 'run tests', 'test failure', 'validate'. Testing workflows; run|coverage|validate are Go-project flows today.",
 			Category:         "Code Quality",
-			Description:      "Unified testing: run tests, coverage analysis, test suggestions, validation. Use when user mentions tests, coverage, or test failures.",
+			Description:      "Runs Go test/coverage/validation flows and offers test suggestions. Use when user mentions tests, coverage, or test failures; non-Go repos should treat run/coverage/validate as Go-specific until framework-aware runners are added.",
 			RecommendedModel: "claude-haiku",
 		},
 
@@ -184,7 +184,6 @@ func GetToolCatalog() map[string]ToolCatalogEntry {
 			Description:      "Generates project reports: overview, scorecard, briefing, PRD, plan (.plan.md). OpenCode/agent: use overview/scorecard/briefing for project status.",
 			RecommendedModel: "claude-haiku",
 		},
-
 		// Automation
 		"automation": {
 			Tool:             "automation",
@@ -218,9 +217,9 @@ func GetToolCatalog() map[string]ToolCatalogEntry {
 		},
 		"text_generate": {
 			Tool:             "text_generate",
-			Hint:             "Unified generate-text dispatcher. provider=fm|ollama|insight|mlx|localai|auto. Single entry point for all LLM text generation.",
+			Hint:             "Unified generate-text dispatcher. provider=fm|ollama|insight|mlx|localai|gateway|llamacpp|auto. Single entry point for all LLM text generation.",
 			Category:         "AI & ML",
-			Description:      "Unified text generation across all backends (FM, Ollama, MLX, LocalAI, auto model selection)",
+			Description:      "Unified text generation across all backends (FM, Ollama, MLX, LocalAI, gateway, llama.cpp, auto model selection)",
 			RecommendedModel: "claude-haiku",
 		},
 		"task_execute": {

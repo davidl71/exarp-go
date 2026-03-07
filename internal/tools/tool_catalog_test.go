@@ -3,6 +3,7 @@ package tools
 import (
 	"context"
 	"encoding/json"
+	"strings"
 	"testing"
 
 	"github.com/davidl71/exarp-go/internal/framework"
@@ -185,5 +186,37 @@ func TestGetToolCatalog(t *testing.T) {
 		if entry.Description == "" {
 			t.Errorf("catalog entry '%s' has empty Description field", toolID)
 		}
+	}
+}
+
+func TestGetToolCatalog_TextGenerateMentionsGatewayAndLlamacpp(t *testing.T) {
+	catalog := GetToolCatalog()
+	entry, exists := catalog["text_generate"]
+	if !exists {
+		t.Fatal("text_generate missing from catalog")
+	}
+
+	if !strings.Contains(entry.Hint, "gateway") || !strings.Contains(entry.Hint, "llamacpp") {
+		t.Fatalf("text_generate hint = %q, want gateway and llamacpp", entry.Hint)
+	}
+
+	if !strings.Contains(entry.Description, "gateway") || !strings.Contains(entry.Description, "llama.cpp") {
+		t.Fatalf("text_generate description = %q, want gateway and llama.cpp", entry.Description)
+	}
+}
+
+func TestGetToolCatalog_TestingDocumentsGoSpecificFlows(t *testing.T) {
+	catalog := GetToolCatalog()
+	entry, exists := catalog["testing"]
+	if !exists {
+		t.Fatal("testing missing from catalog")
+	}
+
+	if !strings.Contains(entry.Hint, "Go-project flows") {
+		t.Fatalf("testing hint = %q, want Go-project flows note", entry.Hint)
+	}
+
+	if !strings.Contains(entry.Description, "Go test/coverage/validation") {
+		t.Fatalf("testing description = %q, want Go-specific execution note", entry.Description)
 	}
 }

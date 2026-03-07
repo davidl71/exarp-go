@@ -105,12 +105,12 @@ func handleLint(ctx context.Context, args json.RawMessage) ([]framework.TextCont
 		params = LintRequestToParams(req)
 		framework.ApplyDefaults(params, map[string]interface{}{
 			"action": "run",
-			"linter": "golangci-lint",
+			"linter": "auto",
 		})
 	}
 
 	// Extract parameters
-	linter := "golangci-lint" // Default to golangci-lint for Go projects
+	linter := "auto"
 	if l := strings.TrimSpace(cast.ToString(params["linter"])); l != "" {
 		linter = l
 	}

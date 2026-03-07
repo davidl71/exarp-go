@@ -3,6 +3,7 @@ package tools
 import (
 	"context"
 	"encoding/json"
+	"strings"
 	"testing"
 
 	"github.com/davidl71/exarp-go/internal/framework"
@@ -138,6 +139,7 @@ func TestHandleTestingValidate(t *testing.T) {
 		name      string
 		params    map[string]interface{}
 		wantError bool
+		wantMsg   string
 		validate  func(*testing.T, []framework.TextContent)
 	}{
 		{
@@ -146,12 +148,22 @@ func TestHandleTestingValidate(t *testing.T) {
 				"action": "validate",
 			},
 			wantError: true,
+			wantMsg:   "only supported for Go projects",
 			validate: func(t *testing.T, result []framework.TextContent) {
 				if len(result) == 0 {
 					t.Error("expected non-empty result")
 					return
 				}
 			},
+		},
+		{
+			name: "validate action with framework=go (non-Go project)",
+			params: map[string]interface{}{
+				"action":    "validate",
+				"framework": "go",
+			},
+			wantError: true,
+			wantMsg:   "framework=go requires a Go project",
 		},
 	}
 
@@ -163,6 +175,9 @@ func TestHandleTestingValidate(t *testing.T) {
 			if (err != nil) != tt.wantError {
 				t.Errorf("handleTestingValidate() error = %v, wantError %v", err, tt.wantError)
 				return
+			}
+			if tt.wantError && tt.wantMsg != "" && (err == nil || !strings.Contains(err.Error(), tt.wantMsg)) {
+				t.Errorf("handleTestingValidate() error = %v, want message containing %q", err, tt.wantMsg)
 			}
 
 			if !tt.wantError && tt.validate != nil {

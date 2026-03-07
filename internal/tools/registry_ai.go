@@ -312,15 +312,15 @@ func registerAITools(server framework.MCPServer) error {
 	// text_generate
 	if err := server.RegisterTool(
 		"text_generate",
-		"[HINT: provider=fm|ollama|insight|mlx|localai|auto. Unified text generation across all LLM backends. Single entry point for generate-text. task_type enables auto model selection.]",
+		"[HINT: provider=fm|ollama|insight|mlx|localai|gateway|llamacpp|auto. Unified text generation across all LLM backends. Single entry point for generate-text. task_type enables auto model selection.]",
 		framework.ToolSchema{
 			Type: "object",
 			Properties: map[string]interface{}{
 				"provider": map[string]interface{}{
 					"type":        "string",
-					"enum":        []string{"fm", "ollama", "insight", "mlx", "localai", "llamacpp", "auto"},
+					"enum":        []string{"fm", "ollama", "insight", "mlx", "localai", "gateway", "llamacpp", "auto"},
 					"default":     "fm",
-					"description": "Backend: fm (Apple/chain), ollama (native Ollama), insight (report), mlx (Apple Silicon), localai (OpenAI-compatible), llamacpp (GGUF via llama.cpp), or auto (model selection from task_type/task_description)",
+					"description": "Backend: fm (Apple/chain), ollama (native Ollama), insight (report), mlx (Apple Silicon), localai (OpenAI-compatible), gateway (OpenAI-compatible router), llamacpp (GGUF via llama.cpp), or auto (model selection from task_type/task_description)",
 				},
 				"prompt": map[string]interface{}{
 					"type":        "string",
