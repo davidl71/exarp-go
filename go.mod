@@ -74,7 +74,7 @@ require (
 	modernc.org/memory v1.11.0 // indirect
 )
 
-// Local clones for development (cloned via git clone / gh repo clone).
+// Local clones for development (sibling directories under /home/david/Projects/mcp/).
 // Run: git clone https://github.com/davidl71/mcp-go-core ../mcp-go-core
 //      git clone https://github.com/davidl71/devwisdom-go ../devwisdom-go
 replace github.com/davidl71/devwisdom-go => ../devwisdom-go

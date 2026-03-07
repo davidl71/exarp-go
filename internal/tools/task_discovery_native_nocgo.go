@@ -165,13 +165,14 @@ func scanCommentsBasic(projectRoot string, patterns []string, includeFIXME bool)
 
 		// Skip directories and non-code files
 		if info.IsDir() {
-			// Skip common ignore directories: vendor, build outputs, archive
+			// Skip common ignore directories: vendor, build outputs, archive, third_party
 			if strings.Contains(path, ".git") || strings.Contains(path, "node_modules") ||
 				strings.Contains(path, "__pycache__") || strings.Contains(path, ".venv") ||
 				strings.Contains(path, "vendor") || strings.Contains(path, ".idea") ||
 				strings.Contains(path, ".vscode") || strings.Contains(path, "dist") ||
 				strings.Contains(path, "build") || strings.Contains(path, "target") ||
-				strings.Contains(path, "/archive/") || filepath.Base(path) == "bin" {
+				strings.Contains(path, "/archive/") || strings.Contains(path, "third_party") ||
+				filepath.Base(path) == "bin" {
 				return filepath.SkipDir
 			}
 			return nil
@@ -273,7 +274,8 @@ func scanMarkdownBasic(projectRoot string, docPath string) []map[string]interfac
 		if info.IsDir() {
 			if strings.Contains(path, ".git") || strings.Contains(path, "node_modules") ||
 				strings.Contains(path, "vendor") || strings.Contains(path, "dist") ||
-				strings.Contains(path, "build") || strings.Contains(path, "/archive/") {
+				strings.Contains(path, "build") || strings.Contains(path, "/archive/") ||
+				strings.Contains(path, "third_party") {
 				return filepath.SkipDir
 			}
 			return nil
@@ -338,7 +340,8 @@ func scanPlanningDocsBasic(projectRoot string, docPath string) []map[string]inte
 		if info.IsDir() {
 			if strings.Contains(path, ".git") || strings.Contains(path, "node_modules") ||
 				strings.Contains(path, "vendor") || strings.Contains(path, "dist") ||
-				strings.Contains(path, "build") || strings.Contains(path, "/archive/") {
+				strings.Contains(path, "build") || strings.Contains(path, "/archive/") ||
+				strings.Contains(path, "third_party") {
 				return filepath.SkipDir
 			}
 			return nil

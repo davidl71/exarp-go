@@ -70,3 +70,20 @@ func ParseRequest[T proto.Message](
 	// Successfully parsed as JSON
 	return zero, params, nil
 }
+
+// ParseRequestToParams parses args as either protobuf or JSON and returns a single params map.
+// If protobuf parsing succeeds, the message is converted to params using ProtobufToParams with opts.
+// If JSON parsing succeeds, the unmarshaled map is returned. opts is only used for the protobuf path;
+// nil opts is valid and applies no post-processing to proto conversion.
+//
+// This reduces boilerplate in tool handlers that only need a params map (proto-first, JSON-fallback).
+func ParseRequestToParams[T proto.Message](args json.RawMessage, newMessage func() T, opts *ProtobufToParamsOptions) (map[string]interface{}, error) {
+	req, params, err := ParseRequest(args, newMessage)
+	if err != nil {
+		return nil, err
+	}
+	if params != nil {
+		return params, nil
+	}
+	return ProtobufToParams(req, opts)
+}

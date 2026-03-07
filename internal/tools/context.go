@@ -25,18 +25,19 @@ type ItemAnalysis struct {
 // Estimates token usage and suggests context reduction strategy
 // Uses protobuf parsing for type-safe argument handling.
 func handleContextBudget(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
-	// Try protobuf first, fall back to JSON for backward compatibility
 	req, params, err := ParseContextRequest(args)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse arguments: %w", err)
 	}
-
-	// Convert protobuf request to params map if needed
 	if req != nil {
 		params = ContextRequestToParams(req)
-		if req.BudgetTokens == 0 {
-			params["budget_tokens"] = config.DefaultContextBudget()
-		}
+	}
+	if budgetRaw, ok := params["budget_tokens"]; !ok || budgetRaw == nil {
+		params["budget_tokens"] = config.DefaultContextBudget()
+	} else if budgetFloat, ok := budgetRaw.(float64); ok && budgetFloat == 0 {
+		params["budget_tokens"] = config.DefaultContextBudget()
+	} else if budgetInt, ok := budgetRaw.(int); ok && budgetInt == 0 {
+		params["budget_tokens"] = config.DefaultContextBudget()
 	}
 
 	// Get items (required)

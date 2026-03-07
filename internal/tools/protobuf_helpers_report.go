@@ -298,19 +298,11 @@ func ProtoToProjectOverviewData(pb *proto.ProjectOverviewData) map[string]interf
 
 // ─── ParseTaskWorkflowRequest ───────────────────────────────────────────────
 // ParseTaskWorkflowRequest parses a task_workflow tool request (protobuf or JSON).
+// Returns (*proto.TaskWorkflowRequest, nil, nil) on proto success, or (nil, params, nil) on JSON fallback.
 func ParseTaskWorkflowRequest(args json.RawMessage) (*proto.TaskWorkflowRequest, map[string]interface{}, error) {
-	req, params, err := framework.ParseRequest(args, func() *proto.TaskWorkflowRequest {
+	return framework.ParseRequest(args, func() *proto.TaskWorkflowRequest {
 		return &proto.TaskWorkflowRequest{}
 	})
-	if err != nil {
-		return nil, nil, err
-	}
-
-	if req != nil {
-		return req, nil, nil
-	}
-
-	return nil, params, nil
 }
 
 // ─── TaskWorkflowRequestToParams ────────────────────────────────────────────
@@ -339,19 +331,11 @@ func TaskWorkflowRequestToParams(req *proto.TaskWorkflowRequest) map[string]inte
 
 // ─── ParseHealthRequest ─────────────────────────────────────────────────────
 // ParseHealthRequest parses a health tool request (protobuf or JSON).
+// Returns (*proto.HealthRequest, nil, nil) on proto success, or (nil, params, nil) on JSON fallback.
 func ParseHealthRequest(args json.RawMessage) (*proto.HealthRequest, map[string]interface{}, error) {
-	req, params, err := framework.ParseRequest(args, func() *proto.HealthRequest {
+	return framework.ParseRequest(args, func() *proto.HealthRequest {
 		return &proto.HealthRequest{}
 	})
-	if err != nil {
-		return nil, nil, err
-	}
-
-	if req != nil {
-		return req, nil, nil
-	}
-
-	return nil, params, nil
 }
 
 // ─── HealthRequestToParams ──────────────────────────────────────────────────
@@ -376,18 +360,9 @@ func HealthRequestToParams(req *proto.HealthRequest) map[string]interface{} {
 // ─── ParseSecurityRequest ───────────────────────────────────────────────────
 // ParseSecurityRequest parses a security tool request (protobuf or JSON).
 func ParseSecurityRequest(args json.RawMessage) (*proto.SecurityRequest, map[string]interface{}, error) {
-	req, params, err := framework.ParseRequest(args, func() *proto.SecurityRequest {
+	return framework.ParseRequest(args, func() *proto.SecurityRequest {
 		return &proto.SecurityRequest{}
 	})
-	if err != nil {
-		return nil, nil, err
-	}
-
-	if req != nil {
-		return req, nil, nil
-	}
-
-	return nil, params, nil
 }
 
 // ─── SecurityRequestToParams ────────────────────────────────────────────────
@@ -412,18 +387,9 @@ func SecurityRequestToParams(req *proto.SecurityRequest) map[string]interface{} 
 // ─── ParseInferSessionModeRequest ───────────────────────────────────────────
 // ParseInferSessionModeRequest parses an infer_session_mode request (protobuf or JSON).
 func ParseInferSessionModeRequest(args json.RawMessage) (*proto.InferSessionModeRequest, map[string]interface{}, error) {
-	req, params, err := framework.ParseRequest(args, func() *proto.InferSessionModeRequest {
+	return framework.ParseRequest(args, func() *proto.InferSessionModeRequest {
 		return &proto.InferSessionModeRequest{}
 	})
-	if err != nil {
-		return nil, nil, err
-	}
-
-	if req != nil {
-		return req, nil, nil
-	}
-
-	return nil, params, nil
 }
 
 // ─── InferSessionModeRequestToParams ────────────────────────────────────────
@@ -448,18 +414,9 @@ func InferSessionModeRequestToParams(req *proto.InferSessionModeRequest) map[str
 // ─── ParseToolCatalogRequest ────────────────────────────────────────────────
 // ParseToolCatalogRequest parses a tool_catalog request (protobuf or JSON).
 func ParseToolCatalogRequest(args json.RawMessage) (*proto.ToolCatalogRequest, map[string]interface{}, error) {
-	req, params, err := framework.ParseRequest(args, func() *proto.ToolCatalogRequest {
+	return framework.ParseRequest(args, func() *proto.ToolCatalogRequest {
 		return &proto.ToolCatalogRequest{}
 	})
-	if err != nil {
-		return nil, nil, err
-	}
-
-	if req != nil {
-		return req, nil, nil
-	}
-
-	return nil, params, nil
 }
 
 // ─── ToolCatalogRequestToParams ─────────────────────────────────────────────
@@ -484,18 +441,9 @@ func ToolCatalogRequestToParams(req *proto.ToolCatalogRequest) map[string]interf
 // ─── ParseWorkflowModeRequest ───────────────────────────────────────────────
 // ParseWorkflowModeRequest parses a workflow_mode request (protobuf or JSON).
 func ParseWorkflowModeRequest(args json.RawMessage) (*proto.WorkflowModeRequest, map[string]interface{}, error) {
-	req, params, err := framework.ParseRequest(args, func() *proto.WorkflowModeRequest {
+	return framework.ParseRequest(args, func() *proto.WorkflowModeRequest {
 		return &proto.WorkflowModeRequest{}
 	})
-	if err != nil {
-		return nil, nil, err
-	}
-
-	if req != nil {
-		return req, nil, nil
-	}
-
-	return nil, params, nil
 }
 
 // ─── WorkflowModeRequestToParams ────────────────────────────────────────────
@@ -520,18 +468,9 @@ func WorkflowModeRequestToParams(req *proto.WorkflowModeRequest) map[string]inte
 // ─── ParseEstimationRequest ─────────────────────────────────────────────────
 // ParseEstimationRequest parses an estimation request (protobuf or JSON).
 func ParseEstimationRequest(args json.RawMessage) (*proto.EstimationRequest, map[string]interface{}, error) {
-	req, params, err := framework.ParseRequest(args, func() *proto.EstimationRequest {
+	return framework.ParseRequest(args, func() *proto.EstimationRequest {
 		return &proto.EstimationRequest{}
 	})
-	if err != nil {
-		return nil, nil, err
-	}
-
-	if req != nil {
-		return req, nil, nil
-	}
-
-	return nil, params, nil
 }
 
 // ─── EstimationRequestToParams ──────────────────────────────────────────────
@@ -561,18 +500,9 @@ func EstimationRequestToParams(req *proto.EstimationRequest) map[string]interfac
 // ─── ParseSessionRequest ────────────────────────────────────────────────────
 // ParseSessionRequest parses a session request (protobuf or JSON).
 func ParseSessionRequest(args json.RawMessage) (*proto.SessionRequest, map[string]interface{}, error) {
-	req, params, err := framework.ParseRequest(args, func() *proto.SessionRequest {
+	return framework.ParseRequest(args, func() *proto.SessionRequest {
 		return &proto.SessionRequest{}
 	})
-	if err != nil {
-		return nil, nil, err
-	}
-
-	if req != nil {
-		return req, nil, nil
-	}
-
-	return nil, params, nil
 }
 
 // ─── SessionRequestToParams ─────────────────────────────────────────────────
@@ -599,18 +529,9 @@ func SessionRequestToParams(req *proto.SessionRequest) map[string]interface{} {
 // ─── ParseGitToolsRequest ───────────────────────────────────────────────────
 // ParseGitToolsRequest parses a git_tools request (protobuf or JSON).
 func ParseGitToolsRequest(args json.RawMessage) (*proto.GitToolsRequest, map[string]interface{}, error) {
-	req, params, err := framework.ParseRequest(args, func() *proto.GitToolsRequest {
+	return framework.ParseRequest(args, func() *proto.GitToolsRequest {
 		return &proto.GitToolsRequest{}
 	})
-	if err != nil {
-		return nil, nil, err
-	}
-
-	if req != nil {
-		return req, nil, nil
-	}
-
-	return nil, params, nil
 }
 
 // ─── GitToolsRequestToParams ────────────────────────────────────────────────
@@ -635,3 +556,41 @@ func GitToolsRequestToParams(req *proto.GitToolsRequest) map[string]interface{} 
 }
 
 // GitToolsResponseToMap converts GitToolsResponse proto to map for response.FormatResult (unmarshals result_json).
+func GitToolsResponseToMap(resp *proto.GitToolsResponse) map[string]interface{} {
+	if resp == nil {
+		return make(map[string]interface{})
+	}
+	out := map[string]interface{}{
+		"success": resp.GetSuccess(),
+		"action":  resp.GetAction(),
+	}
+	if rj := resp.GetResultJson(); rj != "" {
+		var parsed interface{}
+		if err := json.Unmarshal([]byte(rj), &parsed); err == nil {
+			out["result"] = parsed
+		} else {
+			out["result_json"] = rj
+		}
+	}
+	return out
+}
+
+// TestingResponseToMap converts TestingResponse proto to map for response.FormatResult (unmarshals result_json).
+func TestingResponseToMap(resp *proto.TestingResponse) map[string]interface{} {
+	if resp == nil {
+		return make(map[string]interface{})
+	}
+	out := map[string]interface{}{
+		"success": resp.GetSuccess(),
+		"action":  resp.GetAction(),
+	}
+	if rj := resp.GetResultJson(); rj != "" {
+		var parsed interface{}
+		if err := json.Unmarshal([]byte(rj), &parsed); err == nil {
+			out["result"] = parsed
+		} else {
+			out["result_json"] = rj
+		}
+	}
+	return out
+}

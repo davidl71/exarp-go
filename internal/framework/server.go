@@ -24,15 +24,17 @@ type (
 // ToolError re-export for backward compatibility.
 type ToolError = framework.ToolError
 
-// Re-export ToolError helper functions from mcp-go-core.
-var (
-	WrapToolError      = framework.WrapToolError
+// Re-export error types from mcp-go-core for backward compatibility.
+type (
 	ParseError         = framework.ParseError
 	ActionError        = framework.ActionError
 	UnknownActionError = framework.UnknownActionError
 	ValidationError    = framework.ValidationError
 	FormatErrors       = framework.FormatErrors
 )
+
+// Re-export ToolError helper function from mcp-go-core.
+var WrapToolError = framework.WrapToolError
 
 // Eliciter re-export from mcp-go-core for backward compatibility.
 type Eliciter = framework.Eliciter

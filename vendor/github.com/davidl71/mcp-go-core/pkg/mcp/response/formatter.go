@@ -84,8 +84,8 @@ func FormatResult(result map[string]interface{}, outputPath string) ([]types.Tex
 	}, nil
 }
 
-// FormatResultCompact formats a result map as compact (non-indented) JSON and optionally
-// writes it to a file. Compact output reduces payload size for AI context budgeting.
+// FormatResultCompact formats a result map as compact (non-indented) JSON.
+// Similar to FormatResult but outputs JSON without indentation for smaller payload size.
 func FormatResultCompact(result map[string]interface{}, outputPath string) ([]types.TextContent, error) {
 	output, err := json.Marshal(result)
 	if err != nil {

@@ -35,21 +35,16 @@ import (
 // ────────────────────────────────────────────────────────────────────────────
 
 // ─── ParseMemoryRequest ─────────────────────────────────────────────────────
-// ParseMemoryRequest parses a memory tool request (protobuf or JSON)
-// Returns protobuf request if protobuf format, or nil with JSON params map.
-func ParseMemoryRequest(args json.RawMessage) (*proto.MemoryRequest, map[string]interface{}, error) {
-	req, params, err := framework.ParseRequest(args, func() *proto.MemoryRequest {
+// ParseMemoryRequest parses a memory tool request (protobuf or JSON) and returns a params map.
+func ParseMemoryRequest(args json.RawMessage) (map[string]interface{}, error) {
+	return framework.ParseRequestToParams(args, func() *proto.MemoryRequest {
 		return &proto.MemoryRequest{}
+	}, &framework.ProtobufToParamsOptions{
+		FilterEmptyStrings:  true,
+		StringifyArrays:     false,
+		ConvertFloat64ToInt: true,
+		Float64ToIntFields:  []string{"limit"},
 	})
-	if err != nil {
-		return nil, nil, err
-	}
-
-	if req != nil {
-		return req, nil, nil
-	}
-
-	return nil, params, nil
 }
 
 // ─── MemoryRequestToParams ──────────────────────────────────────────────────
@@ -246,21 +241,12 @@ func MemoryResponseToMap(resp *proto.MemoryResponse) map[string]interface{} {
 }
 
 // ─── ParseContextRequest ────────────────────────────────────────────────────
-// ParseContextRequest parses a context tool request (protobuf or JSON)
-// Returns protobuf request if protobuf format, or nil with JSON params map.
+// ParseContextRequest parses a context tool request (protobuf or JSON).
+// Returns (*proto.ContextRequest, nil, nil) on proto success, or (nil, params, nil) on JSON fallback.
 func ParseContextRequest(args json.RawMessage) (*proto.ContextRequest, map[string]interface{}, error) {
-	req, params, err := framework.ParseRequest(args, func() *proto.ContextRequest {
+	return framework.ParseRequest(args, func() *proto.ContextRequest {
 		return &proto.ContextRequest{}
 	})
-	if err != nil {
-		return nil, nil, err
-	}
-
-	if req != nil {
-		return req, nil, nil
-	}
-
-	return nil, params, nil
 }
 
 // ─── ContextRequestToParams ─────────────────────────────────────────────────
@@ -371,19 +357,11 @@ func ContextItemToDataString(item *proto.ContextItem) string {
 
 // ─── ParseReportRequest ─────────────────────────────────────────────────────
 // ParseReportRequest parses a report tool request (protobuf or JSON).
+// Returns (*proto.ReportRequest, nil, nil) on proto success, or (nil, params, nil) on JSON fallback.
 func ParseReportRequest(args json.RawMessage) (*proto.ReportRequest, map[string]interface{}, error) {
-	req, params, err := framework.ParseRequest(args, func() *proto.ReportRequest {
+	return framework.ParseRequest(args, func() *proto.ReportRequest {
 		return &proto.ReportRequest{}
 	})
-	if err != nil {
-		return nil, nil, err
-	}
-
-	if req != nil {
-		return req, nil, nil
-	}
-
-	return nil, params, nil
 }
 
 // ─── ReportRequestToParams ──────────────────────────────────────────────────
