@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/davidl71/exarp-go/internal/framework"
+	"github.com/davidl71/exarp-go/internal/taskworkflowspec"
 	mcpcli "github.com/davidl71/mcp-go-core/pkg/mcp/cli"
 )
 
@@ -110,10 +111,6 @@ func handleTaskStatus(server framework.MCPServer, args []string) error {
 // handleTaskUpdateParsed handles "task update" command using ParseArgs result.
 func handleTaskUpdateParsed(server framework.MCPServer, parsed *mcpcli.Args) error {
 	oldStatus := parsed.GetFlag("status", "")
-	newStatus := parsed.GetFlag("new-status", "")
-	newPriority := parsed.GetFlag("new-priority", "")
-	recommendedTools := parsed.GetFlag("recommended-tools", "")
-	localAIBackend := parsed.GetFlag("local-ai-backend", "")
 	autoApply := parsed.GetBoolFlag("auto-apply", false)
 	idsStr := parsed.GetFlag("ids", "")
 
@@ -133,49 +130,67 @@ func handleTaskUpdateParsed(server framework.MCPServer, parsed *mcpcli.Args) err
 		return fmt.Errorf("task update requires task ID(s) or --status flag")
 	}
 
-	return handleTaskUpdateWithParams(server, taskIDs, oldStatus, newStatus, newPriority, recommendedTools, localAIBackend, autoApply)
+	input := taskworkflowspec.TaskUpdateInput{TaskIDs: taskIDs}
+	if parsed.HasFlag("new-status") {
+		input.NewStatus = taskworkflowspec.OptionalString{Set: true, Value: parsed.GetFlag("new-status", "")}
+	}
+	if parsed.HasFlag("new-priority") {
+		input.Priority = taskworkflowspec.OptionalString{Set: true, Value: parsed.GetFlag("new-priority", "")}
+	}
+	if parsed.HasFlag("tags") {
+		input.Tags = taskworkflowspec.OptionalList{Set: true, Values: taskworkflowspec.CSVToList(parsed.GetFlag("tags", ""))}
+	}
+	if parsed.HasFlag("remove-tags") {
+		input.RemoveTags = taskworkflowspec.OptionalList{Set: true, Values: taskworkflowspec.CSVToList(parsed.GetFlag("remove-tags", ""))}
+	}
+	if parsed.HasFlag("name") {
+		input.Name = taskworkflowspec.OptionalString{Set: true, Value: parsed.GetFlag("name", "")}
+	}
+	if parsed.HasFlag("description") {
+		input.LongDescription = taskworkflowspec.OptionalString{Set: true, Value: parsed.GetFlag("description", "")}
+	}
+	if parsed.HasFlag("dependencies") {
+		input.Dependencies = taskworkflowspec.OptionalList{Set: true, Values: taskworkflowspec.CSVToList(parsed.GetFlag("dependencies", ""))}
+	}
+	if parsed.HasFlag("recommended-tools") {
+		input.RecommendedTools = taskworkflowspec.OptionalList{Set: true, Values: taskworkflowspec.CSVToList(parsed.GetFlag("recommended-tools", ""))}
+	}
+	if parsed.HasFlag("local-ai-backend") {
+		input.LocalAIBackend = taskworkflowspec.OptionalString{Set: true, Value: parsed.GetFlag("local-ai-backend", "")}
+	}
+	if parsed.HasFlag("parent-id") {
+		input.ParentID = taskworkflowspec.OptionalString{Set: true, Value: parsed.GetFlag("parent-id", "")}
+	}
+
+	return handleTaskUpdateWithParams(server, oldStatus, input, autoApply)
 }
 
 // handleTaskUpdateWithParams executes the update with parsed params.
-func handleTaskUpdateWithParams(server framework.MCPServer, taskIDs []string, oldStatus, newStatus, newPriority, recommendedTools, localAIBackend string, autoApply bool) error {
-	if len(taskIDs) == 0 && oldStatus == "" {
+func handleTaskUpdateWithParams(server framework.MCPServer, oldStatus string, input taskworkflowspec.TaskUpdateInput, autoApply bool) error {
+	if len(input.TaskIDs) == 0 && oldStatus == "" {
 		return fmt.Errorf("task update requires task ID(s) or --status flag")
 	}
 
-	if newStatus == "" && newPriority == "" && recommendedTools == "" && localAIBackend == "" {
-		return fmt.Errorf("task update requires --new-status, --new-priority, --recommended-tools, and/or --local-ai-backend")
+	if !input.NewStatus.Set && !input.Priority.Set && !input.Tags.Set && !input.RemoveTags.Set && !input.Name.Set &&
+		!input.LongDescription.Set && !input.Dependencies.Set && !input.RecommendedTools.Set &&
+		!input.LocalAIBackend.Set && !input.ParentID.Set {
+		return fmt.Errorf("task update requires at least one task field such as --new-status, --new-priority, --dependencies, --parent-id, --tags, --remove-tags, --name, --description, --recommended-tools, or --local-ai-backend")
 	}
-	// Use action "update" when we have task IDs and any of new_status, new_priority, recommended_tools, or local_ai_backend
-	if len(taskIDs) > 0 && (newPriority != "" || newStatus != "" || recommendedTools != "" || localAIBackend != "") {
-		toolArgs := map[string]interface{}{
-			"action":   "update",
-			"task_ids": strings.Join(taskIDs, ","),
-		}
-		if newStatus != "" {
-			toolArgs["new_status"] = newStatus
-		}
-		if newPriority != "" {
-			toolArgs["priority"] = newPriority
-		}
-		if recommendedTools != "" {
-			toolArgs["recommended_tools"] = strings.TrimSpace(recommendedTools)
-		}
-		if localAIBackend != "" {
-			toolArgs["local_ai_backend"] = localAIBackend
-		}
-		return executeTaskWorkflow(server, toolArgs)
+
+	if len(input.TaskIDs) > 0 {
+		return executeTaskWorkflow(server, input.ToToolArgs())
 	}
 	// Status-only batch: use action "approve" (filter by old status, no task_ids required)
 	toolArgs := map[string]interface{}{
 		"action":     "approve",
-		"new_status": newStatus,
+		"new_status": input.NewStatus.Value,
 		"auto_apply": autoApply,
 	}
 	if oldStatus != "" {
 		toolArgs["status"] = oldStatus
 	}
-	if len(taskIDs) > 0 {
-		toolArgs["task_ids"] = strings.Join(taskIDs, ",")
+	if len(input.TaskIDs) > 0 {
+		toolArgs["task_ids"] = strings.Join(input.TaskIDs, ",")
 	}
 
 	return executeTaskWorkflow(server, toolArgs)
@@ -189,43 +204,36 @@ func handleTaskCreateParsed(server framework.MCPServer, parsed *mcpcli.Args) err
 	}
 
 	description := parsed.GetFlag("description", "")
-	priority := parsed.GetFlag("priority", "")
-	tagsStr := parsed.GetFlag("tags", "")
-	localAIBackend := parsed.GetFlag("local-ai-backend", "")
-	recommendedTools := parsed.GetFlag("recommended-tools", "")
-
-	var tags []string
-
-	if tagsStr != "" {
-		for _, t := range strings.Split(tagsStr, ",") {
-			if trimmed := strings.TrimSpace(t); trimmed != "" {
-				tags = append(tags, trimmed)
-			}
-		}
+	input := taskworkflowspec.TaskCreateInput{
+		Name:            name,
+		LongDescription: taskworkflowspec.OptionalString{Set: true, Value: description},
+	}
+	if parsed.HasFlag("priority") {
+		input.Priority = taskworkflowspec.OptionalString{Set: true, Value: parsed.GetFlag("priority", "")}
+	}
+	if parsed.HasFlag("tags") {
+		input.Tags = taskworkflowspec.OptionalList{Set: true, Values: taskworkflowspec.CSVToList(parsed.GetFlag("tags", ""))}
+	}
+	if parsed.HasFlag("dependencies") {
+		input.Dependencies = taskworkflowspec.OptionalList{Set: true, Values: taskworkflowspec.CSVToList(parsed.GetFlag("dependencies", ""))}
+	}
+	if parsed.HasFlag("local-ai-backend") {
+		input.LocalAIBackend = taskworkflowspec.OptionalString{Set: true, Value: parsed.GetFlag("local-ai-backend", "")}
+	}
+	if parsed.HasFlag("recommended-tools") {
+		input.RecommendedTools = taskworkflowspec.OptionalList{Set: true, Values: taskworkflowspec.CSVToList(parsed.GetFlag("recommended-tools", ""))}
+	}
+	if parsed.HasFlag("planning-doc") {
+		input.PlanningDoc = taskworkflowspec.OptionalString{Set: true, Value: parsed.GetFlag("planning-doc", "")}
+	}
+	if parsed.HasFlag("epic-id") {
+		input.EpicID = taskworkflowspec.OptionalString{Set: true, Value: parsed.GetFlag("epic-id", "")}
+	}
+	if parsed.HasFlag("parent-id") {
+		input.ParentID = taskworkflowspec.OptionalString{Set: true, Value: parsed.GetFlag("parent-id", "")}
 	}
 
-	toolArgs := map[string]interface{}{
-		"action":           "create",
-		"name":             name,
-		"long_description": description,
-	}
-	if priority != "" {
-		toolArgs["priority"] = priority
-	}
-
-	if len(tags) > 0 {
-		toolArgs["tags"] = strings.Join(tags, ",")
-	}
-
-	if localAIBackend != "" {
-		toolArgs["local_ai_backend"] = localAIBackend
-	}
-
-	if recommendedTools != "" {
-		toolArgs["recommended_tools"] = strings.TrimSpace(recommendedTools)
-	}
-
-	return executeTaskWorkflow(server, toolArgs)
+	return executeTaskWorkflow(server, input.ToToolArgs())
 }
 
 // handleTaskShow handles "task show <task-id>" command.
@@ -449,6 +457,12 @@ func showTaskUsage() error {
 	_, _ = fmt.Println("  --status <status>       Current status (for batch updates)")
 	_, _ = fmt.Println("  --new-status <status>   New status")
 	_, _ = fmt.Println("  --new-priority <pri>    New priority (low, medium, high); requires task ID(s)")
+	_, _ = fmt.Println("  --dependencies <ids>    Comma-separated dependency task IDs; replaces dependencies")
+	_, _ = fmt.Println("  --parent-id <task-id>   Set parent task ID for hierarchy")
+	_, _ = fmt.Println("  --tags <tags>           Comma-separated tags to add")
+	_, _ = fmt.Println("  --remove-tags <tags>    Comma-separated tags to remove")
+	_, _ = fmt.Println("  --name <text>           Replace task title/content")
+	_, _ = fmt.Println("  --description <text>    Replace task description")
 	_, _ = fmt.Println("  --recommended-tools <list>  Comma-separated MCP tool IDs; requires task ID(s)")
 	_, _ = fmt.Println("  --local-ai-backend <backend>  Set task preferred backend (fm|mlx|ollama); requires task ID(s)")
 	_, _ = fmt.Println("  --ids <ids>             Comma-separated task IDs")
@@ -458,6 +472,10 @@ func showTaskUsage() error {
 	_, _ = fmt.Println("  --description <text>           Task description")
 	_, _ = fmt.Println("  --priority <priority>          Task priority (low, medium, high)")
 	_, _ = fmt.Println("  --tags <tags>                  Comma-separated tags")
+	_, _ = fmt.Println("  --dependencies <ids>           Comma-separated dependency task IDs")
+	_, _ = fmt.Println("  --parent-id <task-id>          Parent task ID for hierarchy")
+	_, _ = fmt.Println("  --epic-id <task-id>            Epic task ID")
+	_, _ = fmt.Println("  --planning-doc <path>          Linked planning document path")
 	_, _ = fmt.Println("  --local-ai-backend <backend>   Preferred local AI (fm|mlx|ollama)")
 	_, _ = fmt.Println("  --recommended-tools <list>     Comma-separated MCP tool IDs (e.g. report,task_workflow)")
 	_, _ = fmt.Println()
@@ -480,8 +498,10 @@ func showTaskUsage() error {
 	_, _ = fmt.Println("  exarp-go task status T-123")
 	_, _ = fmt.Println("  exarp-go task update T-1 --new-status \"Done\"")
 	_, _ = fmt.Println("  exarp-go task update T-1 --new-priority high")
+	_, _ = fmt.Println("  exarp-go task update T-2 --dependencies \"T-1,T-3\" --parent-id T-10")
 	_, _ = fmt.Println("  exarp-go task update --status \"Todo\" --new-status \"Done\" --ids \"T-1,T-2\"")
 	_, _ = fmt.Println("  exarp-go task create \"Fix bug\" --description \"Fix the bug\" --priority \"high\"")
+	_, _ = fmt.Println("  exarp-go task create \"Subtask\" --parent-id T-10 --dependencies \"T-1\" --planning-doc docs/plan.md")
 	_, _ = fmt.Println("  exarp-go task create \"AI task\" --local-ai-backend ollama --recommended-tools report")
 	_, _ = fmt.Println("  exarp-go task estimate \"Add tests\" --local-ai-backend fm")
 	_, _ = fmt.Println("  exarp-go task summarize T-123")

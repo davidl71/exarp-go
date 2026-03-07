@@ -260,9 +260,24 @@ exarp-go -tool automation -args '{"action":"daily","use_cursor_agent":true,"curs
 
 **Backends:** Reuse existing tools: `text_generate` (provider `fm`|`mlx`|`auto`), `ollama`, `mlx`, `apple_foundation_models` per [LLM tools rule](.cursor/rules/llm-tools.mdc). No new LLM integrations required—only wiring task context and backend preference into existing tools.
 
-**Implemented:** CLI supports `task estimate`, `task summarize`, and `task run-with-ai` with backend flags; `task update` accepts `--local-ai-backend` to set a task’s preferred backend. The `EstimationRequest` protobuf includes optional `local_ai_backend` (field 11). `task_workflow` actions `summarize` and `run_with_ai` use the task’s `preferred_backend` when the param is not supplied.
+**Implemented:** CLI supports `task estimate`, `task summarize`, and `task run-with-ai` with backend flags. `task create` and `task update` now expose more of the `task_workflow` surface directly from CLI, including dependency and hierarchy fields. The `EstimationRequest` protobuf includes optional `local_ai_backend` (field 11). `task_workflow` actions `summarize` and `run_with_ai` use the task’s `preferred_backend` when the param is not supplied.
 
-**CLI commands:** `exarp-go task create --local-ai-backend <fm|mlx|ollama>`; `exarp-go task update T-xxx --local-ai-backend <backend>`; `exarp-go task estimate "Name" --local-ai-backend <backend>`; `exarp-go task summarize <task-id> [--local-ai-backend <backend>]`; `exarp-go task run-with-ai <task-id> [--backend <fm|ollama|mlx>] [--instruction "..."]`. See [MODEL_ASSISTED_WORKFLOW.md](MODEL_ASSISTED_WORKFLOW.md).
+**CLI commands:** `exarp-go task create --local-ai-backend <fm|mlx|ollama> [--dependencies <ids>] [--parent-id <task-id>] [--epic-id <task-id>] [--planning-doc <path>]`; `exarp-go task update T-xxx --local-ai-backend <backend> [--dependencies <ids>] [--parent-id <task-id>] [--tags <tags>] [--remove-tags <tags>] [--name <text>] [--description <text>]`; `exarp-go task estimate "Name" --local-ai-backend <backend>`; `exarp-go task summarize <task-id> [--local-ai-backend <backend>]`; `exarp-go task run-with-ai <task-id> [--backend <fm|ollama|mlx>] [--instruction "..."]`. See [MODEL_ASSISTED_WORKFLOW.md](MODEL_ASSISTED_WORKFLOW.md).
+
+**Examples:**
+
+```bash
+exarp-go task create "Subtask" \
+  --parent-id T-10 \
+  --dependencies T-1,T-3 \
+  --planning-doc docs/implementation.plan.md
+
+exarp-go task update T-42 \
+  --dependencies T-1,T-7 \
+  --parent-id T-10 \
+  --tags backend,mcp \
+  --remove-tags stale
+```
 
 ---
 
