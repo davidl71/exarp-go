@@ -1383,7 +1383,7 @@ quick-build: build ## Quick build (verify imports)
 
 ##@ Ansible Development Environment
 
-# Optional: run 'make ansible-galaxy' first if syntax-check needs community.general (see T-1771459746925000000)
+# ansible-lint now auto-installs collections (offline removed from .ansible-lint). Run 'make ansible-galaxy' for offline install.
 ansible-check: ## Syntax-check Ansible dev playbook
 	@cd ansible && ansible-playbook --syntax-check -i inventories/development playbooks/development.yml
 
@@ -1411,7 +1411,7 @@ lint-yaml: ## Run yamllint on YAML/Ansible files (requires yamllint)
 	@yamllint -f standard .github ansible
 	@echo "$(GREEN)✅ yamllint done$(NC)"
 
-lint-ansible: ## Run ansible-lint on playbooks/roles (requires ansible-lint; run make ansible-galaxy first for syntax-check)
+lint-ansible: ## Run ansible-lint on playbooks/roles (auto-installs community.general from requirements.yml)
 	@command -v ansible-lint >/dev/null 2>&1 || (echo "$(RED)ansible-lint not found. Install: brew install ansible-lint or pip install ansible-lint$(NC)" && exit 1)
 	@cd ansible && ansible-lint --format=pep8 -v
 	@echo "$(GREEN)✅ ansible-lint done$(NC)"

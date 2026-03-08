@@ -2,7 +2,9 @@
 # Tighten over time by removing from skip_list and fixing roles.
 # See https://ansible.readthedocs.io/projects/lint/configuring/
 
-offline: true  # skip ansible-galaxy install (run make ansible-galaxy separately if needed)
+# Install collections from requirements.yml (so ansible-lint can resolve community.general.homebrew)
+# Use 'make ansible-galaxy' for offline install; remove offline:true to allow on-demand install
+# offline: true  # disabled so ansible-lint can auto-install community.general (T-1771459746925000000)
 profile: min
 
 skip_list:
