@@ -2,62 +2,59 @@
 package framework
 
 import (
-	"context"
 	"encoding/json"
 
-	"github.com/davidl71/mcp-go-core/pkg/mcp/framework"
+	core "github.com/davidl71/mcp-go-core/pkg/mcp/framework"
 	"github.com/davidl71/mcp-go-core/pkg/mcp/types"
 )
 
 // Re-export types and interfaces from mcp-go-core for backward compatibility.
 type (
-	MCPServer       = framework.MCPServer
-	ToolHandler     = framework.ToolHandler
-	PromptHandler   = framework.PromptHandler
-	ResourceHandler = framework.ResourceHandler
-	Transport       = framework.Transport
+	MCPServer       = core.MCPServer
+	ToolHandler     = core.ToolHandler
+	PromptHandler   = core.PromptHandler
+	ResourceHandler = core.ResourceHandler
+	Transport       = core.Transport
 	TextContent     = types.TextContent
 	ToolSchema      = types.ToolSchema
 	ToolInfo        = types.ToolInfo
 )
 
 // ToolError re-export for backward compatibility.
-type ToolError = framework.ToolError
+type ToolError = core.ToolError
 
 // Re-export error types from mcp-go-core for backward compatibility.
 type (
-	ParseError         = framework.ParseError
-	ActionError        = framework.ActionError
-	UnknownActionError = framework.UnknownActionError
-	ValidationError    = framework.ValidationError
-	FormatErrors       = framework.FormatErrors
+	ParseError         = core.ParseError
+	ActionError        = core.ActionError
+	UnknownActionError = core.UnknownActionError
+	ValidationError    = core.ValidationError
+	FormatErrors       = core.FormatErrors
 )
 
 // Re-export ToolError helper function from mcp-go-core.
-var WrapToolError = framework.WrapToolError
+var WrapToolError = core.WrapToolError
 
 // Eliciter re-export from mcp-go-core for backward compatibility.
-type Eliciter = framework.Eliciter
+type Eliciter = core.Eliciter
 
 // Re-export Eliciter context helpers from mcp-go-core.
 var (
-	EliciterFromContext = framework.EliciterFromContext
-	ContextWithEliciter = framework.ContextWithEliciter
+	EliciterFromContext = core.EliciterFromContext
+	ContextWithEliciter = core.ContextWithEliciter
 )
 
 // JsonRawMessage is an alias for json.RawMessage to avoid import conflicts.
 type JsonRawMessage = json.RawMessage
 
-// ToolHookFunc is called before or after a tool invocation for cross-cutting concerns
-// (logging, metrics, audit trail). The name parameter is the tool name.
-type ToolHookFunc func(ctx context.Context, name string, args json.RawMessage)
+// Re-export tool hooks and filter from mcp-go-core for backward compatibility.
+type (
+	ToolHookFunc   = core.ToolHookFunc
+	Hooks          = core.Hooks
+	ToolFilterFunc = core.ToolFilterFunc
+)
 
-// Hooks provides before/after callbacks for the tool handler pipeline.
-type Hooks struct {
-	BeforeToolCall ToolHookFunc
-	AfterToolCall  ToolHookFunc
-}
+// Re-export FilteredServer and NewFilteredServer from mcp-go-core.
+type FilteredServer = core.FilteredServer
 
-// ToolFilterFunc filters the set of visible tools per request context.
-// Return a subset of tools to restrict visibility for the current session/mode.
-type ToolFilterFunc func(ctx context.Context, tools []ToolInfo) []ToolInfo
+var NewFilteredServer = core.NewFilteredServer

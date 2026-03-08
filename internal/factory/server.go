@@ -5,7 +5,6 @@ package factory
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"log/slog"
 	"runtime/debug"
@@ -78,28 +77,6 @@ func toolRecoveryMiddleware(next gosdk.ToolHandlerFunc) gosdk.ToolHandlerFunc {
 	}
 }
 
-// toolHooksMiddleware runs before/after callbacks around each tool invocation.
-func toolHooksMiddleware(hooks *framework.Hooks) func(gosdk.ToolHandlerFunc) gosdk.ToolHandlerFunc {
-	return func(next gosdk.ToolHandlerFunc) gosdk.ToolHandlerFunc {
-		return func(ctx context.Context, req *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-			name := ""
-			var rawArgs json.RawMessage
-			if req != nil && req.Params != nil {
-				name = req.Params.Name
-				rawArgs = req.Params.Arguments
-			}
-			if hooks.BeforeToolCall != nil {
-				hooks.BeforeToolCall(ctx, name, rawArgs)
-			}
-			result, err := next(ctx, req)
-			if hooks.AfterToolCall != nil {
-				hooks.AfterToolCall(ctx, name, rawArgs)
-			}
-			return result, err
-		}
-	}
-}
-
 // ServerOption configures NewServer behaviour.
 type ServerOption func(*serverConfig)
 
@@ -135,27 +112,16 @@ func NewServer(frameworkType config.FrameworkType, name, version string, opts ..
 			gosdk.WithMiddleware(toolLoggingMiddleware(logger)),
 		}
 		if cfg.hooks != nil {
-			adapterOpts = append(adapterOpts, gosdk.WithMiddleware(toolHooksMiddleware(cfg.hooks)))
+			adapterOpts = append(adapterOpts, gosdk.WithHooks(cfg.hooks))
 		}
 		adapter := gosdk.NewGoSDKAdapter(name, version, adapterOpts...)
 		if cfg.toolFilter != nil {
-			return &filteredServer{MCPServer: adapter, filter: cfg.toolFilter}, nil
+			return framework.NewFilteredServer(adapter, cfg.toolFilter), nil
 		}
 		return adapter, nil
 	default:
 		return nil, fmt.Errorf("unknown framework: %s", frameworkType)
 	}
-}
-
-// filteredServer wraps an MCPServer and applies a ToolFilterFunc to ListTools.
-type filteredServer struct {
-	framework.MCPServer
-	filter framework.ToolFilterFunc
-}
-
-// ListTools applies the tool filter to the inner server's tool list.
-func (f *filteredServer) ListTools() []framework.ToolInfo {
-	return f.filter(context.Background(), f.MCPServer.ListTools())
 }
 
 // NewServerFromConfig creates server from configuration with default options
