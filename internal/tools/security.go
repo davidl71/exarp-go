@@ -314,10 +314,10 @@ func parseNpmAuditOutput(output string) ([]Vulnerability, error) {
 	var vulns []Vulnerability
 	var result struct {
 		Vulnerabilities map[string]struct {
-			Severity  string `json:"severity"`
-			Via       []interface{} `json:"via"`
-			Range     string `json:"range"`
-			FixAvailable interface{} `json:"fixAvailable"`
+			Severity     string        `json:"severity"`
+			Via          []interface{} `json:"via"`
+			Range        string        `json:"range"`
+			FixAvailable interface{}   `json:"fixAvailable"`
 		} `json:"vulnerabilities"`
 	}
 	if err := json.Unmarshal([]byte(output), &result); err != nil {
@@ -525,4 +525,18 @@ func formatDependabotAlerts(alerts []DependabotAlert) string {
 	}
 
 	return sb.String()
+}
+
+// handleScanDependencySecurity is an alias wrapper for security scan action
+// Provides a more explicit tool name for dependency vulnerability scanning
+func handleScanDependencySecurity(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
+	// Parse parameters to extract "quick" flag
+	var params map[string]interface{}
+	if err := json.Unmarshal(args, &params); err != nil {
+		return nil, fmt.Errorf("failed to parse params: %w", err)
+	}
+
+	// Call handleSecurityScan with "scan" action
+	params["action"] = "scan"
+	return handleSecurityScan(ctx, params)
 }
