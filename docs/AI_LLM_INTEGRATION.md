@@ -200,13 +200,14 @@ exarp-go -tool mlx -args '{
 
 The `opencode.json` file configures exarp-go as an MCP server for OpenCode:
 
+**Option 1: Direct Binary (Recommended for exarp-go repo)**
 ```json
 {
   "$schema": "https://opencode.ai/config.json",
   "mcp": {
     "exarp-go": {
       "type": "local",
-      "command": ["/Users/davidl/go/bin/run_exarp_go.sh"],
+      "command": ["/Users/davidl/Projects/mcp/exarp-go/bin/exarp-go"],
       "enabled": true,
       "environment": {
         "PROJECT_ROOT": "/Users/davidl/Projects/mcp/exarp-go",
@@ -218,14 +219,44 @@ The `opencode.json` file configures exarp-go as an MCP server for OpenCode:
 }
 ```
 
+**Option 2: Wrapper Script (Recommended for other projects)**
+```json
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "exarp-go": {
+      "type": "local",
+      "command": ["/Users/davidl/go/bin/run_exarp_go.sh"],
+      "enabled": true,
+      "environment": {
+        "PROJECT_ROOT": "/path/to/your/project",
+        "EXARP_MIGRATIONS_DIR": "/Users/davidl/Projects/mcp/exarp-go/migrations",
+        "EXARP_WATCH": "0"
+      }
+    }
+  }
+}
+```
+
+**Why two options?**
+- **Direct binary**: Fastest, best for exarp-go development
+- **Wrapper script**: Auto-resolves binary location, best for other projects
+
 ### Key Configuration Parameters
 
 | Parameter | Purpose | Example |
 |-----------|---------|---------|
-| `command` | Path to exarp-go wrapper script | `run_exarp_go.sh` |
-| `PROJECT_ROOT` | Workspace root directory | `/path/to/project` |
-| `EXARP_MIGRATIONS_DIR` | Todo2 migrations location | `/path/to/migrations` |
-| `EXARP_WATCH` | Auto-reload on changes (0=off) | `0` or `1` |
+| `command` | Path to exarp-go binary or wrapper | Direct: `bin/exarp-go`<br>Wrapper: `run_exarp_go.sh` |
+| `PROJECT_ROOT` | Workspace root directory | `/path/to/your/project` |
+| `EXARP_MIGRATIONS_DIR` | Todo2 migrations location | `/path/to/exarp-go/migrations` |
+| `EXARP_WATCH` | Auto-reload on changes (0=off) | `0` (stable) or `1` (dev) |
+
+**Setup Instructions**:
+1. For **exarp-go repo**: Use direct binary (`bin/exarp-go`)
+2. For **other projects**: Use wrapper script (`run_exarp_go.sh`)
+3. Always set `PROJECT_ROOT` to your current project
+4. Use `EXARP_WATCH=0` for production stability
+5. See `opencode.json.template` for quick setup
 
 ### OpenCode-Specific Features
 

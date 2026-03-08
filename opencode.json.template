@@ -1,0 +1,15 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "exarp-go": {
+      "type": "local",
+      "command": ["/Users/{{USERNAME}}/go/bin/run_exarp_go.sh"],
+      "enabled": true,
+      "environment": {
+        "PROJECT_ROOT": "{{PROJECT_ROOT}}",
+        "EXARP_MIGRATIONS_DIR": "/Users/{{USERNAME}}/Projects/mcp/exarp-go/migrations",
+        "EXARP_WATCH": "0"
+      }
+    }
+  }
+}
