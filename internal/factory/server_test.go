@@ -7,6 +7,7 @@ import (
 
 	"github.com/davidl71/exarp-go/internal/config"
 	"github.com/davidl71/exarp-go/internal/framework"
+	"github.com/davidl71/mcp-go-core/pkg/mcp/framework/adapters/gosdk"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
@@ -357,7 +358,7 @@ func TestToolHooksMiddleware(t *testing.T) {
 		return &mcp.CallToolResult{}, nil
 	}
 
-	mw := toolHooksMiddleware(hooks)
+	mw := gosdk.HooksToolMiddleware(hooks)
 	wrapped := mw(inner)
 
 	ctx := context.Background()
@@ -410,8 +411,8 @@ func TestWithToolFilter(t *testing.T) {
 	if server == nil {
 		t.Fatal("server is nil")
 	}
-	if _, ok := server.(*filteredServer); !ok {
-		t.Error("server should be a *filteredServer when tool filter is set")
+	if _, ok := server.(*framework.FilteredServer); !ok {
+		t.Error("server should be a *framework.FilteredServer when tool filter is set")
 	}
 }
 
