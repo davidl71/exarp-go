@@ -3,7 +3,7 @@
   "mcp": {
     "exarp-go": {
       "type": "local",
-      "command": ["/Users/davidl/go/bin/run_exarp_go.sh"],
+      "command": ["/Users/davidl/Projects/mcp/exarp-go/bin/exarp-go"],
       "enabled": true,
       "environment": {
         "PROJECT_ROOT": "/Users/davidl/Projects/mcp/exarp-go",
