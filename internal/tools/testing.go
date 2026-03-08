@@ -40,7 +40,7 @@ func handleTestingRun(ctx context.Context, params map[string]interface{}) ([]fra
 	}
 
 	if !IsGoProject() {
-		return nil, fmt.Errorf("testing run is only supported for Go projects (go.mod)")
+		return nil, fmt.Errorf("testing run requires a Go project (go.mod not found). For non-Go testing, use the automation tool with your test commands (e.g., pytest, npm test, cargo test)")
 	}
 
 	result, err := runGoTests(ctx, projectRoot, testPath, verbose, coverage)
@@ -74,7 +74,7 @@ func handleTestingCoverage(ctx context.Context, params map[string]interface{}) (
 	}
 
 	if !IsGoProject() {
-		return nil, fmt.Errorf("testing coverage is only supported for Go projects (go.mod)")
+		return nil, fmt.Errorf("testing coverage requires a Go project (go.mod not found). For non-Go coverage, use language-specific tools (e.g., coverage.py for Python, Jest for JS/TS)")
 	}
 
 	result, err := analyzeGoCoverage(ctx, projectRoot, coverageFile, minCoverage, format)

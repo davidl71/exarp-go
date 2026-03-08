@@ -129,11 +129,13 @@ exarp-go is a **comprehensive project automation and AI-powered task management 
   - Validates tool availability
 
 #### Testing
-- **testing** - Test execution and analysis
+- **testing** - Go test execution and analysis
   - Actions: `run`, `coverage`, `suggest`, `validate`
-  - Runs tests across languages (Go, Python, Shell, Ansible)
+  - **Language Support**: Go only (requires `go.mod`)
+  - Runs Go tests with optional coverage
   - Coverage analysis and gap identification
   - Test structure validation
+  - **Note**: For non-Go projects, use `automation` tool with test commands
 
 #### Linting
 - **lint** - Multi-language linting
@@ -376,14 +378,16 @@ stdio://suggested-tasks
 
 | Language | Testing | Linting | Security | Task Discovery |
 |----------|---------|---------|----------|----------------|
-| **Go** | ✅ (go test) | ✅ (golangci-lint) | ✅ (govulncheck) | ✅ (TODO comments) |
-| **Python** | ✅ (pytest) | ⚠️ (partial) | ✅ (pip-audit) | ✅ (TODO comments) |
-| **Rust** | ✅ (cargo test) | ✅ (clippy) | ✅ (cargo-audit) | ✅ (TODO comments) |
-| **Node.js** | ✅ (npm/jest) | ⚠️ (partial) | ✅ (npm-audit) | ✅ (TODO comments) |
-| **Shell** | ✅ (bats) | ✅ (shellcheck) | N/A | ✅ (TODO comments) |
-| **Ansible** | ✅ (ansible-test) | ✅ (ansible-lint) | N/A | ✅ (TODO comments) |
+| **Go** | ✅ (`testing` tool) | ✅ (golangci-lint) | ✅ (govulncheck) | ✅ (TODO comments) |
+| **Python** | ⚠️ (via `automation`) | ⚠️ (partial) | ✅ (pip-audit) | ✅ (TODO comments) |
+| **Rust** | ⚠️ (via `automation`) | ✅ (clippy) | ✅ (cargo-audit) | ✅ (TODO comments) |
+| **Node.js** | ⚠️ (via `automation`) | ⚠️ (partial) | ✅ (npm-audit) | ✅ (TODO comments) |
+| **Shell** | ⚠️ (via `automation`) | ✅ (shellcheck) | N/A | ✅ (TODO comments) |
+| **Ansible** | ⚠️ (via `automation`) | ✅ (ansible-lint) | N/A | ✅ (TODO comments) |
 | **Markdown** | N/A | ✅ (markdownlint, gomarklint) | N/A | ✅ (checklists) |
 | **YAML** | N/A | ✅ (yamllint) | N/A | N/A |
+
+**Note**: The `testing` tool is Go-only. For other languages, use the `automation` tool to schedule your test commands (pytest, npm test, cargo test, etc.).
 
 ---
 

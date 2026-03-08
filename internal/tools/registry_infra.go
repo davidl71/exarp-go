@@ -163,7 +163,7 @@ func registerInfraTools(server framework.MCPServer) error {
 	// testing
 	if err := server.RegisterTool(
 		"testing",
-		"[HINT: action=run|coverage|suggest|validate. Execute tests, analyze coverage, suggest tests. Today, run|coverage|validate are Go-project flows; use when running tests or checking coverage.]",
+		"[HINT: action=run|coverage|suggest|validate. Go testing tool. Execute tests, analyze coverage, suggest tests. run|coverage|validate require Go projects (go.mod). For non-Go projects, use automation tool with test commands.]",
 		framework.ToolSchema{
 			Type: "object",
 			Properties: map[string]interface{}{
