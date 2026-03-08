@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
 	"strconv"
 	"strings"
 
@@ -32,6 +33,8 @@ func handleTaskCommand(server framework.MCPServer, parsed *mcpcli.Args) error {
 		return handleTaskUpdateParsed(server, parsed)
 	case "create":
 		return handleTaskCreateParsed(server, parsed)
+	case "create-batch":
+		return handleTaskCreateBatchParsed(server, parsed)
 	case "show":
 		return handleTaskShow(server, parsed.Positional)
 	case "delete":
@@ -47,7 +50,7 @@ func handleTaskCommand(server framework.MCPServer, parsed *mcpcli.Args) error {
 	case "help":
 		return showTaskUsage()
 	default:
-		return fmt.Errorf("unknown task command: %s (use: list, status, update, create, show, delete, sync, estimate, summarize, run-with-ai, help)", subcommand)
+		return fmt.Errorf("unknown task command: %s (use: list, status, update, create, create-batch, show, delete, sync, estimate, summarize, run-with-ai, help)", subcommand)
 	}
 }
 
@@ -223,6 +226,36 @@ func handleTaskCreateParsed(server framework.MCPServer, parsed *mcpcli.Args) err
 
 	if recommendedTools != "" {
 		toolArgs["recommended_tools"] = strings.TrimSpace(recommendedTools)
+	}
+
+	return executeTaskWorkflow(server, toolArgs)
+}
+
+// handleTaskCreateBatchParsed handles "task create-batch --file <path>" by reading a JSON array
+// and calling task_workflow create with tasks=<json>.
+func handleTaskCreateBatchParsed(server framework.MCPServer, parsed *mcpcli.Args) error {
+	filePath := parsed.GetFlag("file", "")
+	if filePath == "" {
+		return fmt.Errorf("task create-batch requires --file <path> with a JSON array of tasks (name, long_description?, tags?, priority?, dependencies?)")
+	}
+
+	contents, err := os.ReadFile(filePath)
+	if err != nil {
+		return fmt.Errorf("task create-batch: read file %s: %w", filePath, err)
+	}
+
+	// Validate it's a JSON array (task_workflow will re-parse)
+	var arr []interface{}
+	if err := json.Unmarshal(contents, &arr); err != nil {
+		return fmt.Errorf("task create-batch: file must be a JSON array: %w", err)
+	}
+
+	toolArgs := map[string]interface{}{
+		"action": "create",
+		"tasks":  string(contents),
+	}
+	if parsed.HasFlag("auto_estimate") {
+		toolArgs["auto_estimate"] = parsed.GetBoolFlag("auto_estimate", true)
 	}
 
 	return executeTaskWorkflow(server, toolArgs)
@@ -427,6 +460,7 @@ func showTaskUsage() error {
 	_, _ = fmt.Println("  status <task-id>        Show task status")
 	_, _ = fmt.Println("  update [options]        Update task status")
 	_, _ = fmt.Println("  create <name> [options]  Create new task")
+	_, _ = fmt.Println("  create-batch --file <path>  Create tasks from JSON array file")
 	_, _ = fmt.Println("  show <task-id>          Show full task details")
 	_, _ = fmt.Println("  delete <task-id>        Delete a task (e.g. wrong project)")
 	_, _ = fmt.Println("  sync                    Sync Todo2 (SQLite ↔ JSON)")
@@ -483,6 +517,7 @@ func showTaskUsage() error {
 	_, _ = fmt.Println("  exarp-go task update --status \"Todo\" --new-status \"Done\" --ids \"T-1,T-2\"")
 	_, _ = fmt.Println("  exarp-go task create \"Fix bug\" --description \"Fix the bug\" --priority \"high\"")
 	_, _ = fmt.Println("  exarp-go task create \"AI task\" --local-ai-backend ollama --recommended-tools report")
+	_, _ = fmt.Println("  exarp-go task create-batch --file docs/tasks_mcp_learnings_batch.json")
 	_, _ = fmt.Println("  exarp-go task estimate \"Add tests\" --local-ai-backend fm")
 	_, _ = fmt.Println("  exarp-go task summarize T-123")
 	_, _ = fmt.Println("  exarp-go task run-with-ai T-123 --backend ollama")
