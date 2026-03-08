@@ -1,121 +1,40 @@
 # exarp-go Implementation Plan
 
 **Generated**: 2026-03-08  
-**Total Tasks**: 509 (153 Todo, 356 Done)  
-**Scope**: Remaining work after cleanup and architectural unification
+**Updated**: 2026-03-08 (llamacpp deferred)  
+**Total Tasks**: 473 (102 Todo, 371 Done)  
+**Scope**: Remaining work after cleanup, architectural unification, and llamacpp deferral
 
 ---
 
 ## Executive Summary
 
-After recent MCP/CLI drift fixes and cleanup of wrong-project tasks, exarp-go has **153 remaining tasks** organized into clear implementation tracks:
+After recent MCP/CLI drift fixes and cleanup of wrong-project tasks, exarp-go has **~100 remaining tasks** organized into clear implementation tracks:
 
-1. **llamacpp Integration** - 34 high-priority tasks (Mac/Metal GPU support)
+1. **~~llamacpp Integration~~** - **DEFERRED** (see `LLAMACPP_FUTURE.md` - use Ollama instead)
 2. **Compatibility & Polish** - Language-neutral tooling
 3. **TUI Enhancements** - Better task management UX
 4. **Test Coverage** - Fill remaining gaps
 5. **Documentation** - User-facing guides
 
-**Critical Path**: llamacpp integration (Waves 1-7)  
-**Quick Wins**: OpenCode flags (--quiet, --json), TUI shortcuts
+**Critical Path**: TUI enhancements and compatibility improvements  
+**Quick Wins**: ✅ Phase 1 complete! (OpenCode flags, iTerm fix, test fixes, TUI shortcuts)
 
 ---
 
-## Track 1: llamacpp Integration (Mac/Metal) 🔥
+## Track 1: ~~llamacpp Integration~~ **DEFERRED** ⏸️
 
-**Priority**: HIGH  
-**Timeline**: 2-3 weeks  
-**Value**: Local LLM support with GPU acceleration for Mac users
+**Status**: **Cancelled** - 36 tasks deleted  
+**Reason**: Too complex (8-12 hours), Ollama already works excellently  
+**Alternative**: Use Ollama (recommended) - see `docs/LLAMACPP_FUTURE.md`
 
-### Wave 1: Build Foundation (Week 1, Days 1-2)
-**Goal**: Get llamacpp building on macOS/arm64
+The llamacpp integration has been deferred. The codebase includes optional llamacpp stub code that can be enabled with build tags if needed in the future, but **Ollama is the recommended approach** for local LLM inference.
 
-- [ ] T-1771367222946 - Test go-skynet/go-llama.cpp build on macOS/arm64 (HIGH)
-- [ ] T-1771367262618 - Add go-skynet/go-llama.cpp dependency to go.mod (HIGH)
-- [ ] T-1771367292653 - Update Makefile with libbinding.a build target (HIGH)
-- [ ] T-1771367294624 - Add build-llamacpp make target (MEDIUM)
-- [ ] T-1771367296219 - Document build requirements for llama.cpp (LOW)
-- [ ] T-1771367297447 - Create build script for llama.cpp submodule (MEDIUM)
+**What was removed**: 36 tasks across 7 waves (build, implementation, integration, testing, docs)  
+**Alternative**: Use Ollama - `brew install ollama && ollama pull llama3.2`  
+**Future**: See `docs/LLAMACPP_FUTURE.md` if this becomes necessary
 
-**Acceptance**: `make build-llamacpp` succeeds on macOS
-
----
-
-### Wave 2: Core Implementation (Week 1, Days 3-5)
-**Goal**: ModelManager and GPU detection working
-
-- [ ] T-1771367264021 - Create llamacpp.go with CGO build tags (HIGH)
-- [ ] T-1771367269400 - Add GPU detection for Metal and CUDA (HIGH)
-- [ ] T-1771367249199 - Create ModelManager singleton with reference counting (HIGH)
-- [ ] T-1771367250500 - Implement LRU cache for loaded models (HIGH)
-- [ ] T-1771367254117 - Implement thread-safe concurrent model access (HIGH)
-
-**Acceptance**: Can load/unload models safely with GPU detection
-
----
-
-### Wave 3: Ollama Integration (Week 2, Days 1-3)
-**Goal**: Auto-discover and load GGUF models from Ollama
-
-- [ ] T-1771367227570 - Design Ollama manifest parsing strategy (HIGH)
-- [ ] T-1771367235348 - Implement Ollama manifest parser (HIGH)
-- [ ] T-1771367236869 - Create model discovery from Ollama storage (HIGH)
-- [ ] T-1771367238424 - Map Ollama model names to GGUF blob paths (HIGH)
-- [ ] T-1771367266058 - Implement GGUF model loader with dual path resolution (HIGH)
-- [ ] T-1771367242253 - Test GGUF loading from Ollama blobs (HIGH)
-
-**Acceptance**: `llamacpp models` lists available Ollama GGUF models
-
----
-
-### Wave 4: Text Generation API (Week 2, Days 4-5)
-**Goal**: Generate text via llamacpp
-
-- [ ] T-1771367225957 - Design llamacpp tool schema and API (HIGH)
-- [ ] T-1771367267805 - Implement text generation endpoint (HIGH)
-- [ ] T-1771367270980 - Implement context management and tokenization (MEDIUM)
-- [ ] T-1771367272521 - Create llamacpp provider for TextGenerator interface (HIGH)
-- [ ] T-1771367279593 - Register llamacpp tool in registry.go (HIGH)
-
-**Acceptance**: `llamacpp generate prompt="test"` returns text
-
----
-
-### Wave 5: Integration (Week 3, Days 1-2)
-**Goal**: Wire into provider chain and config
-
-- [ ] T-1771367281667 - Update provider chain with llamacpp fallback (HIGH)
-- [ ] T-1771367286109 - Update text_generate tool for llamacpp provider (HIGH)
-- [ ] T-1771367283347 - Add llamacpp configuration to config schema (MEDIUM)
-- [ ] T-1771367284807 - Add llamacpp to stdio://models resource (MEDIUM)
-- [ ] T-1771367252253 - Add model warmup and preload configuration (MEDIUM)
-- [ ] T-1771367255624 - Add memory usage monitoring and limits (MEDIUM)
-- [ ] T-1771367240441 - Add model alias mapping system (MEDIUM)
-
-**Acceptance**: `text_generate provider=llamacpp` works end-to-end
-
----
-
-### Wave 6: Testing (Week 3, Days 3-4)
-**Goal**: Verify Metal GPU, integration tests
-
-- [ ] T-1771367308667 - Test GPU offloading on Metal and CUDA (MEDIUM)
-- [ ] T-1771367303630 - Unit tests for llamacpp tool handlers (MEDIUM)
-- [ ] T-1771367305621 - Integration tests with Ollama models (MEDIUM)
-- [ ] T-1771367307285 - Benchmark vs Ollama HTTP performance (LOW)
-
-**Acceptance**: Tests pass, Metal GPU utilized
-
----
-
-### Wave 7: Documentation (Week 3, Day 5)
-**Goal**: User-facing docs and examples
-
-- [ ] T-1771367224337 - Document GGUF model compatibility requirements (MEDIUM)
-- [ ] T-1771367312044 - Update text-generate skill with llamacpp option (LOW)
-- [ ] T-1771367310542 - Update LLM_EXPOSURE_OPPORTUNITIES.md documentation (LOW)
-
-**Acceptance**: Docs merged, examples tested
+**Key insight**: The stub implementation already exists with proper build tags. If needed in the future, enable with `-tags llamacpp,cgo` after building the C++ dependencies.
 
 ---
 
