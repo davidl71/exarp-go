@@ -3,11 +3,11 @@
   "mcp": {
     "exarp-go": {
       "type": "local",
-      "command": ["/Users/dlowes/Projects/mcp/exarp-go/run-exarp-go.sh"],
+      "command": ["/Users/davidl/go/bin/run_exarp_go.sh"],
       "enabled": true,
       "environment": {
-        "PROJECT_ROOT": "/Users/dlowes/Projects/mcp/exarp-go",
-        "EXARP_MIGRATIONS_DIR": "/Users/dlowes/Projects/mcp/exarp-go/migrations",
+        "PROJECT_ROOT": "/Users/davidl/Projects/mcp/exarp-go",
+        "EXARP_MIGRATIONS_DIR": "/Users/davidl/Projects/mcp/exarp-go/migrations",
         "EXARP_WATCH": "0"
       }
     }
