@@ -58,7 +58,7 @@ jobs:
           go-version: '1.25'
 
       - name: Download exarp-go binary
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: exarp-go-binary
           path: bin/
@@ -139,7 +139,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Download validation reports
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           path: validation_reports/
 
