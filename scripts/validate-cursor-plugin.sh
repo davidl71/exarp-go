@@ -6,7 +6,6 @@ set -e
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
 NC='\033[0m'
 
 ROOT="${1:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"
@@ -83,4 +82,4 @@ if [ "$ERRORS" -gt 0 ]; then
   exit 1
 fi
 echo ""
-printf "${GREEN}Plugin validation passed. Run 'make validate-plugin' for full check.${NC}\n"
+printf "%b\n" "${GREEN}Plugin validation passed. Run 'make validate-plugin' for full check.${NC}"

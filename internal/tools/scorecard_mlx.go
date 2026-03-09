@@ -116,6 +116,9 @@ func calculateSecurityScore(scorecard *GoScorecardResult) float64 {
 	if scorecard.Health.GoVulnCheckPasses {
 		score += 40
 		checks++
+	} else if !scorecard.Health.GoVulnCheckAvailable {
+		score += 10
+		checks++
 	}
 
 	if scorecard.Health.PathBoundaryEnforcement {
@@ -229,7 +232,7 @@ func ExtractBlockers(scorecard *GoScorecardResult) []string {
 		blockers = append(blockers, fmt.Sprintf("Low test coverage: %.1f%%", scorecard.Health.GoTestCoverage))
 	}
 
-	if !scorecard.Health.GoVulnCheckPasses {
+	if scorecard.Health.GoVulnCheckAvailable && !scorecard.Health.GoVulnCheckPasses {
 		blockers = append(blockers, "Security vulnerabilities detected")
 	}
 

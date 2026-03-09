@@ -59,7 +59,7 @@ check_file_comment() {
   basename="$(basename "$file")"
 
   case "$basename" in
-    *_test.go|*_bench_test.go|*.pb.go|*.pb.*.go|doc.go) return ;;
+    *_test.go|*.pb.go|*.pb.*.go|doc.go) return ;;
   esac
 
   local line_count
@@ -122,7 +122,7 @@ check_magic_strings() {
 
   [[ "$file" != internal/tools/* ]] && return
   case "$basename" in
-    *_test.go|*_bench_test.go|constants.go|registry.go) return ;;
+    *_test.go|constants.go|registry.go) return ;;
   esac
 
   # Use grep for speed: find candidate lines, then filter false positives
@@ -157,7 +157,7 @@ check_large_files() {
   basename="$(basename "$file")"
 
   case "$basename" in
-    *_test.go|*_bench_test.go) return ;;
+    *_test.go) return ;;
   esac
 
   local line_count
@@ -173,7 +173,7 @@ echo "=== AI Navigability Check ==="
 echo "Scanning: ${SCAN_DIRS[*]}"
 echo ""
 
-cd "$ROOT_DIR"
+cd "$ROOT_DIR" || exit 1
 
 FILE_COUNT=0
 for scan_dir in "${SCAN_DIRS[@]}"; do
