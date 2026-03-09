@@ -42,9 +42,15 @@ func WrapHandler(
 
 		if req != nil {
 			params = convert(req)
-			if defaults != nil {
-				framework.ApplyDefaults(params, defaults)
-			}
+		}
+
+		if params == nil {
+			params = make(map[string]interface{})
+		}
+
+		// Apply defaults for both protobuf and JSON paths
+		if defaults != nil {
+			framework.ApplyDefaults(params, defaults)
 		}
 
 		result, err := handler(ctx, params)
