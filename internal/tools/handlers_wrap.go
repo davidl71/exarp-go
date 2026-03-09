@@ -6,6 +6,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"reflect"
 
 	"github.com/davidl71/exarp-go/internal/framework"
 )
@@ -40,7 +41,7 @@ func WrapHandler(
 			return nil, fmt.Errorf("failed to parse arguments: %w", err)
 		}
 
-		if req != nil {
+		if !isNilAny(req) {
 			params = convert(req)
 		}
 
@@ -59,5 +60,19 @@ func WrapHandler(
 		}
 
 		return result, nil
+	}
+}
+
+func isNilAny(v any) bool {
+	if v == nil {
+		return true
+	}
+
+	rv := reflect.ValueOf(v)
+	switch rv.Kind() {
+	case reflect.Chan, reflect.Func, reflect.Interface, reflect.Map, reflect.Pointer, reflect.Slice:
+		return rv.IsNil()
+	default:
+		return false
 	}
 }

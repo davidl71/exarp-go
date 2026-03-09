@@ -61,6 +61,33 @@ func TestWrapHandler_AppliesDefaultsWhenJSONParamsAreNil(t *testing.T) {
 	}
 }
 
+func TestWrapHandler_IgnoresTypedNilProtoOnJSONPath(t *testing.T) {
+	type fakeProto struct{ Value string }
+
+	handler := WrapHandler(
+		"test_tool",
+		func(args json.RawMessage) (any, map[string]interface{}, error) {
+			var req *fakeProto
+			return req, map[string]interface{}{"action": "json"}, nil
+		},
+		func(req any) map[string]interface{} {
+			return map[string]interface{}{"action": "proto"}
+		},
+		nil,
+		func(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
+			return []framework.TextContent{{Type: "text", Text: fmt.Sprintf("action=%s", params["action"])}}, nil
+		},
+	)
+
+	result, err := handler(context.Background(), json.RawMessage(`{}`))
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(result) != 1 || result[0].Text != "action=json" {
+		t.Errorf("got %v, want action=json", result)
+	}
+}
+
 func TestWrapHandler_ProtoPath(t *testing.T) {
 	type fakeProto struct{ Value string }
 
