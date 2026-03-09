@@ -5,7 +5,6 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 
@@ -63,8 +62,12 @@ func generateGoRecommendations(health *GoHealthChecks, metrics *GoProjectMetrics
 		recommendations = append(recommendations, fmt.Sprintf("Increase test coverage (currently %.1f%%, target: %.0f%%): make test-coverage", health.GoTestCoverage, minCoverage))
 	}
 
-	if !fastModeUsed && !health.GoVulnCheckPasses {
+	if !fastModeUsed && health.GoVulnCheckAvailable && !health.GoVulnCheckPasses {
 		recommendations = append(recommendations, "Run 'make govulncheck' for security scanning")
+	}
+
+	if !fastModeUsed && !health.GoVulnCheckAvailable {
+		recommendations = append(recommendations, "Install or expose 'govulncheck' in PATH so the scorecard can verify Go dependency vulnerabilities")
 	}
 
 	autoFixable := !health.GoFmtCompliant || (!fastModeUsed && !health.GoModTidyPasses) || (!fastModeUsed && health.GoLintConfigured && !health.GoLintPasses)
@@ -148,7 +151,7 @@ func calculateGoScore(health *GoHealthChecks, metrics *GoProjectMetrics) float64
 		score += 20
 	} else {
 		// Partial credit if tool not installed
-		if _, err := exec.LookPath("govulncheck"); err != nil {
+		if !health.GoVulnCheckAvailable {
 			score += 5 // Tool not installed, but not a failure
 		}
 	}
@@ -243,7 +246,7 @@ func FormatGoScorecard(scorecard *GoScorecardResult) string {
 		sb.WriteString(fmt.Sprintf("    Test coverage:        %.1f%%\n", scorecard.Health.GoTestCoverage))
 	}
 
-	sb.WriteString(fmt.Sprintf("    govulncheck:          %s\n", checkMarkOrSkipped(scorecard.Health.GoVulnCheckPasses, scorecard.FastModeUsed)))
+	sb.WriteString(fmt.Sprintf("    govulncheck:          %s\n", checkMarkSkippedOrUnavailable(scorecard.Health.GoVulnCheckPasses, scorecard.FastModeUsed, !scorecard.Health.GoVulnCheckAvailable)))
 	sb.WriteString("\n")
 
 	// Security Features
@@ -327,6 +330,22 @@ func checkMarkOrSkipped(value, skipped bool) string {
 
 	if skipped {
 		return "— (skipped)"
+	}
+
+	return "❌"
+}
+
+func checkMarkSkippedOrUnavailable(value, skipped, unavailable bool) string {
+	if value {
+		return "✅"
+	}
+
+	if skipped {
+		return "— (skipped)"
+	}
+
+	if unavailable {
+		return "— (unavailable)"
 	}
 
 	return "❌"

@@ -47,7 +47,7 @@ SERVER_PID=$!
 # Wait for server to be ready
 sleep 1
 
-# Cleanup function
+# shellcheck disable=SC2329  # Invoked via trap below.
 cleanup() {
     echo ""
     echo -e "${BLUE}Cleaning up...${NC}"
@@ -57,24 +57,6 @@ cleanup() {
 }
 
 trap cleanup EXIT
-
-# Function to send JSON-RPC request
-send_request() {
-    local method="$1"
-    local params="${2:-{}}"
-    
-    local request=$(cat <<EOF
-{
-  "jsonrpc": "2.0",
-  "id": 1,
-  "method": "$method",
-  "params": $params
-}
-EOF
-)
-    
-    echo "$request" | "$BINARY_PATH" 2>/dev/null | jq -r '.result' 2>/dev/null || echo ""
-}
 
 # Initialize MCP connection
 echo -e "${BLUE}Initializing MCP connection...${NC}"
@@ -213,4 +195,3 @@ else
     fi
     exit 1
 fi
-

@@ -11,6 +11,8 @@ linters:
   - deadcode
   - shellcheck
   - shfmt
+  - yamllint
+  - ansible-lint
   - universal-ctags
   # Uncomment to enable PHP / LaTeX linters:
   # - phpcs

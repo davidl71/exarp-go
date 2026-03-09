@@ -6,6 +6,17 @@ set -e
 
 cd "$(dirname "$0")"
 
+SCRIPT_DIR="$(pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+ANSIBLE_CACHE_ROOT="${PROJECT_ROOT}/.cache/ansible"
+
+export ANSIBLE_HOME="${ANSIBLE_HOME:-${ANSIBLE_CACHE_ROOT}/home}"
+export ANSIBLE_LOCAL_TEMP="${ANSIBLE_LOCAL_TEMP:-${ANSIBLE_CACHE_ROOT}/tmp}"
+export ANSIBLE_REMOTE_TMP="${ANSIBLE_REMOTE_TMP:-${ANSIBLE_CACHE_ROOT}/remote-tmp}"
+export ANSIBLE_GALAXY_CACHE_DIR="${ANSIBLE_GALAXY_CACHE_DIR:-${ANSIBLE_CACHE_ROOT}/galaxy-cache}"
+
+mkdir -p "$ANSIBLE_HOME" "$ANSIBLE_LOCAL_TEMP" "$ANSIBLE_REMOTE_TMP" "$ANSIBLE_GALAXY_CACHE_DIR"
+
 # Use system CA bundle on macOS so Ansible/Python SSL works (avoids CERTIFICATE_VERIFY_FAILED)
 if [[ "$(uname)" == "Darwin" ]]; then
     for f in /etc/ssl/cert.pem /usr/local/etc/openssl/cert.pem; do
@@ -107,4 +118,3 @@ echo "  gh --version 2>/dev/null || echo 'gh: not installed (set install_gh: tru
 echo "  golangci-lint --version 2>/dev/null || echo 'golangci-lint: not installed (set install_linters: true)'"
 echo "  redis-cli ping 2>/dev/null && echo 'Redis: OK (REDIS_ADDR=127.0.0.1:6379)' || echo 'Redis: not installed (set install_redis: true)'"
 echo "  ollama --version 2>/dev/null || echo 'Ollama: not installed (set install_ollama: true)'"
-

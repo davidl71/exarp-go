@@ -410,21 +410,21 @@ func checkGoTest(ctx context.Context, root string) (bool, float64) {
 	return passes, coverage
 }
 
-// checkGoVulncheck checks if govulncheck passes.
-func checkGoVulncheck(ctx context.Context, root string) bool {
+// checkGoVulncheck reports whether govulncheck is available and whether the scan passed.
+func checkGoVulncheck(ctx context.Context, root string) (available bool, passes bool) {
 	ctx, cancel := context.WithTimeout(ctx, config.ToolTimeout("scorecard"))
 	defer cancel()
 
 	// Check if govulncheck is available
 	if _, err := exec.LookPath("govulncheck"); err != nil {
-		return false // Not installed, not a failure
+		return false, false
 	}
 
 	cmd := exec.CommandContext(ctx, "govulncheck", "./...")
 	cmd.Dir = root
 	err := cmd.Run()
 
-	return err == nil
+	return true, err == nil
 }
 
 // checkPathBoundaryEnforcement checks if path boundary enforcement is implemented.

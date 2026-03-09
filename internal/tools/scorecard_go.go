@@ -30,19 +30,20 @@ type GoProjectMetrics struct {
 
 // GoHealthChecks represents Go-specific health check results.
 type GoHealthChecks struct {
-	GoModExists       bool    `json:"go_mod_exists"`
-	GoSumExists       bool    `json:"go_sum_exists"`
-	GoModTidyPasses   bool    `json:"go_mod_tidy_passes"`
-	GoVersionValid    bool    `json:"go_version_valid"`
-	GoVersion         string  `json:"go_version"`
-	GoBuildPasses     bool    `json:"go_build_passes"`
-	GoVetPasses       bool    `json:"go_vet_passes"`
-	GoFmtCompliant    bool    `json:"go_fmt_compliant"`
-	GoLintConfigured  bool    `json:"go_lint_configured"`
-	GoLintPasses      bool    `json:"go_lint_passes"`
-	GoTestPasses      bool    `json:"go_test_passes"`
-	GoTestCoverage    float64 `json:"go_test_coverage"`
-	GoVulnCheckPasses bool    `json:"go_vulncheck_passes"`
+	GoModExists          bool    `json:"go_mod_exists"`
+	GoSumExists          bool    `json:"go_sum_exists"`
+	GoModTidyPasses      bool    `json:"go_mod_tidy_passes"`
+	GoVersionValid       bool    `json:"go_version_valid"`
+	GoVersion            string  `json:"go_version"`
+	GoBuildPasses        bool    `json:"go_build_passes"`
+	GoVetPasses          bool    `json:"go_vet_passes"`
+	GoFmtCompliant       bool    `json:"go_fmt_compliant"`
+	GoLintConfigured     bool    `json:"go_lint_configured"`
+	GoLintPasses         bool    `json:"go_lint_passes"`
+	GoTestPasses         bool    `json:"go_test_passes"`
+	GoTestCoverage       float64 `json:"go_test_coverage"`
+	GoVulnCheckAvailable bool    `json:"go_vulncheck_available"`
+	GoVulnCheckPasses    bool    `json:"go_vulncheck_passes"`
 	// Security features
 	PathBoundaryEnforcement bool `json:"path_boundary_enforcement"`
 	RateLimiting            bool `json:"rate_limiting"`
@@ -201,7 +202,7 @@ func performGoHealthChecks(ctx context.Context, projectRoot string, opts *Scorec
 
 	// Check govulncheck (skip in fast mode)
 	if opts == nil || !opts.FastMode {
-		health.GoVulnCheckPasses = checkGoVulncheck(ctx, projectRoot)
+		health.GoVulnCheckAvailable, health.GoVulnCheckPasses = checkGoVulncheck(ctx, projectRoot)
 	}
 
 	// Check security features
