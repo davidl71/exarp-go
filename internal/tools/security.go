@@ -13,6 +13,11 @@ import (
 	"github.com/davidl71/exarp-go/internal/framework"
 )
 
+var runDependabotAlertsCommand = func(ctx context.Context, repo, jqQuery string) ([]byte, error) {
+	cmd := exec.CommandContext(ctx, "gh", "api", fmt.Sprintf("repos/%s/dependabot/alerts", repo), "--jq", jqQuery)
+	return cmd.CombinedOutput()
+}
+
 // handleSecurityScan handles the scan action for security tool (Go, Python, Rust, Node).
 // Runs language-specific dependency scanners for each detected ecosystem and aggregates results.
 func handleSecurityScan(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
@@ -437,9 +442,7 @@ func fetchDependabotAlerts(ctx context.Context, repo, state string) ([]Dependabo
 	// Use gh CLI to fetch alerts (same approach as Python)
 	jqQuery := `.[] | {package: .security_vulnerability.package.name, severity: .security_vulnerability.severity, cve: .security_advisory.cve_id, state: .state, ecosystem: .security_vulnerability.package.ecosystem, description: .security_advisory.summary, fix_available: .security_vulnerability.first_patched_version != null, fixed_version: .security_vulnerability.first_patched_version.identifier}`
 
-	cmd := exec.CommandContext(ctx, "gh", "api", fmt.Sprintf("repos/%s/dependabot/alerts", repo), "--jq", jqQuery)
-
-	output, err := cmd.CombinedOutput()
+	output, err := runDependabotAlertsCommand(ctx, repo, jqQuery)
 	if err != nil {
 		return nil, fmt.Errorf("gh CLI failed: %w, output: %s", err, output)
 	}

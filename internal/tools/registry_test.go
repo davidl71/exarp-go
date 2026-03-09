@@ -17,13 +17,6 @@ func TestRegisterAllTools(t *testing.T) {
 		t.Fatalf("RegisterAllTools() error = %v", err)
 	}
 
-	// Verify all tools are registered (base 36 from RegisterAllTools including fm_plan_and_execute + llamacpp + read_resource + list_resources; +1 scan_dependency_security; +1 when Apple FM on darwin/arm64/cgo).
-	expectedCount := 37
-	if server.ToolCount() != expectedCount && server.ToolCount() != expectedCount+1 {
-		t.Errorf("server.ToolCount() = %v, want %d or %d (with conditional Apple Foundation Models)",
-			server.ToolCount(), expectedCount, expectedCount+1)
-	}
-
 	// Verify specific tools are registered
 	expectedTools := []string{
 		"analyze_alignment",
@@ -64,6 +57,13 @@ func TestRegisterAllTools(t *testing.T) {
 		"fm_plan_and_execute",
 		"read_resource",
 		"list_resources",
+	}
+
+	// The explicit tool list is the primary contract. Allow one extra conditional Apple FM tool.
+	expectedCount := len(expectedTools)
+	if server.ToolCount() != expectedCount && server.ToolCount() != expectedCount+1 {
+		t.Errorf("server.ToolCount() = %v, want %d or %d (with conditional Apple Foundation Models)",
+			server.ToolCount(), expectedCount, expectedCount+1)
 	}
 
 	for _, toolName := range expectedTools {
