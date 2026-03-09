@@ -13,12 +13,17 @@ func ParamString(params map[string]interface{}, key string) string {
 	return strings.TrimSpace(cast.ToString(params[key]))
 }
 
-// DefaultReportOutputPath returns params["output_path"] if non-empty, else projectRoot/docs/defaultFilename.
-// Use for tools that write a report and accept an optional output_path with a docs/ default.
+// DefaultReportOutputPath returns params["output_path"] if non-empty, else a default path under projectRoot.
+// Noisy generated analysis artifacts default to out/, while user-facing docs default to docs/.
 func DefaultReportOutputPath(projectRoot, defaultFilename string, params map[string]interface{}) string {
 	if p := ParamString(params, "output_path"); p != "" {
 		return p
 	}
+
+	if useOutDirForDefaultReport(defaultFilename) {
+		return filepath.Join(projectRoot, "out", defaultFilename)
+	}
+
 	return filepath.Join(projectRoot, "docs", defaultFilename)
 }
 
@@ -29,4 +34,22 @@ func DefaultPlanOutputPath(projectRoot, defaultFilename string, params map[strin
 		return p
 	}
 	return filepath.Join(projectRoot, ".cursor", "plans", defaultFilename)
+}
+
+func useOutDirForDefaultReport(defaultFilename string) bool {
+	switch defaultFilename {
+	case "PROJECT_OVERVIEW.md",
+		"TASK_ANALYSIS_DUPLICATES.md",
+		"TAG_ANALYSIS_RESULT.json",
+		"TASK_ANALYSIS_DEPENDENCIES.md",
+		"TASK_ANALYSIS_DEPENDENCIES_SUMMARY.json",
+		"TASK_ANALYSIS_COMPLEXITY.json",
+		"TASK_ANALYSIS_PARALLELIZATION.md",
+		"TASK_ANALYSIS_NOISE.json",
+		"SUGGEST_DEPS_REPORT.json",
+		"task_discovery_report.json":
+		return true
+	default:
+		return false
+	}
 }

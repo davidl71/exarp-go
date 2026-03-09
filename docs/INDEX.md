@@ -77,15 +77,15 @@
 | Document | Description |
 |----------|-------------|
 | `IMPLEMENTATION_PLAN.md` | **UPDATED** 6-week implementation roadmap |
-| `PROJECT_OVERVIEW.md` | Auto-generated project status |
+| `out/PROJECT_OVERVIEW.md` | Auto-generated project status |
 | `PRD.md` | Product requirements document |
 | `PROJECT_GOALS.md` | Project goals and objectives |
 
 ### Analysis & Reports
 | Document | Description |
 |----------|-------------|
-| `TASK_ANALYSIS_DUPLICATES.md` | Auto-generated duplicate analysis |
-| `TAG_ANALYSIS_RESULT.json` | Tag analysis (auto-generated) |
+| `out/TASK_ANALYSIS_DUPLICATES.md` | Auto-generated duplicate analysis |
+| `out/TAG_ANALYSIS_RESULT.json` | Tag analysis (auto-generated) |
 | `DEADCODE_REPORT.md` | Dead code analysis |
 
 ---
@@ -147,9 +147,9 @@ rg "keyword" docs/*.md
 ```
 
 **Auto-Generated** (updated by tools):
-- `PROJECT_OVERVIEW.md`
-- `TASK_ANALYSIS_DUPLICATES.md`
-- `TAG_ANALYSIS_RESULT.json`
+- `out/PROJECT_OVERVIEW.md`
+- `out/TASK_ANALYSIS_DUPLICATES.md`
+- `out/TAG_ANALYSIS_RESULT.json`
 - Various `*_REPORT.md` files
 
 **User-Maintained** (manually updated):

@@ -153,7 +153,7 @@ func handleTaskDiscoveryNative(ctx context.Context, params map[string]interface{
 		result["tasks_created"] = createdTasks
 	}
 
-	// Optionally write result to output_path (default docs/task_discovery_report.json when not set)
+	// Optionally write result to output_path (default out/task_discovery_report.json when not set)
 	outputPath := DefaultReportOutputPath(projectRoot, "task_discovery_report.json", params)
 	fullPath := outputPath
 	if !filepath.IsAbs(fullPath) {
