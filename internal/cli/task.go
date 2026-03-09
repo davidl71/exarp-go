@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
 	"strconv"
 	"strings"
 
@@ -96,16 +97,12 @@ func handleTaskStatus(server framework.MCPServer, args []string) error {
 		return fmt.Errorf("task status requires a task ID")
 	}
 
-	taskID := args[0]
-
-	// Build task_workflow args to get task details
-	toolArgs := map[string]interface{}{
-		"action":     "sync",
-		"sub_action": "list",
-		"task_id":    taskID,
+	task, err := loadSingleTask(server, strings.TrimSpace(args[0]))
+	if err != nil {
+		return err
 	}
 
-	return executeTaskWorkflow(server, toolArgs)
+	return printTaskStatus(task)
 }
 
 // handleTaskUpdateParsed handles "task update" command using ParseArgs result.
@@ -242,17 +239,12 @@ func handleTaskShow(server framework.MCPServer, args []string) error {
 		return fmt.Errorf("task show requires a task ID")
 	}
 
-	taskID := args[0]
-
-	// Build task_workflow args to get full task details
-	toolArgs := map[string]interface{}{
-		"action":        "sync",
-		"sub_action":    "list",
-		"task_id":       taskID,
-		"output_format": "text",
+	task, err := loadSingleTask(server, strings.TrimSpace(args[0]))
+	if err != nil {
+		return err
 	}
 
-	return executeTaskWorkflow(server, toolArgs)
+	return printTaskDetails(task)
 }
 
 // handleTaskDelete handles "task delete <task-id>" command.
@@ -405,6 +397,140 @@ func executeTaskWorkflow(server framework.MCPServer, toolArgs map[string]interfa
 	}
 
 	return nil
+}
+
+func loadSingleTask(server framework.MCPServer, taskID string) (map[string]interface{}, error) {
+	if taskID == "" {
+		return nil, fmt.Errorf("task ID cannot be empty")
+	}
+
+	ctx := context.Background()
+	toolArgs := map[string]interface{}{
+		"action":        "sync",
+		"sub_action":    "list",
+		"task_id":       taskID,
+		"output_format": "json",
+		"compact":       true,
+	}
+	argsBytes, err := json.Marshal(toolArgs)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal task query arguments: %w", err)
+	}
+
+	result, err := server.CallTool(ctx, "task_workflow", argsBytes)
+	if err != nil {
+		return nil, fmt.Errorf("task operation failed: %w", err)
+	}
+	if len(result) == 0 {
+		return nil, fmt.Errorf("task %s not found", taskID)
+	}
+
+	var response struct {
+		Tasks []map[string]interface{} `json:"tasks"`
+	}
+	if err := json.Unmarshal([]byte(result[0].Text), &response); err != nil {
+		return nil, fmt.Errorf("failed to parse task response: %w", err)
+	}
+	if len(response.Tasks) == 0 {
+		return nil, fmt.Errorf("task %s not found", taskID)
+	}
+
+	return response.Tasks[0], nil
+}
+
+func printTaskStatus(task map[string]interface{}) error {
+	id := taskString(task["id"])
+	status := taskString(task["status"])
+	if CLIOutputOpts.JSON {
+		out := map[string]interface{}{
+			"success": true,
+			"method":  "status",
+			"task": map[string]interface{}{
+				"id":      id,
+				"status":  status,
+				"content": taskString(task["content"]),
+			},
+		}
+		if priority := taskString(task["priority"]); priority != "" {
+			outTask := out["task"].(map[string]interface{})
+			outTask["priority"] = priority
+		}
+		return printTaskJSON(out)
+	}
+
+	if id != "" {
+		_, _ = fmt.Fprintf(os.Stdout, "Task: %s\n", id)
+	}
+	_, _ = fmt.Fprintf(os.Stdout, "Status: %s\n", status)
+	if priority := taskString(task["priority"]); priority != "" {
+		_, _ = fmt.Fprintf(os.Stdout, "Priority: %s\n", priority)
+	}
+	if content := taskString(task["content"]); content != "" {
+		_, _ = fmt.Fprintf(os.Stdout, "Content: %s\n", content)
+	}
+	return nil
+}
+
+func printTaskDetails(task map[string]interface{}) error {
+	if CLIOutputOpts.JSON {
+		return printTaskJSON(map[string]interface{}{
+			"success": true,
+			"method":  "show",
+			"task":    task,
+		})
+	}
+
+	writeTaskField("ID", taskString(task["id"]))
+	writeTaskField("Status", taskString(task["status"]))
+	writeTaskField("Priority", taskString(task["priority"]))
+	writeTaskField("Content", taskString(task["content"]))
+	writeTaskField("Description", taskString(task["long_description"]))
+	writeTaskField("Parent ID", taskString(task["parent_id"]))
+	writeTaskField("Created", taskString(task["created_at"]))
+	writeTaskField("Completed", taskString(task["completed_at"]))
+	writeTaskField("Last Modified", taskString(task["last_modified"]))
+	writeTaskField("Tags", joinTaskStrings(task["tags"]))
+	writeTaskField("Dependencies", joinTaskStrings(task["dependencies"]))
+	writeTaskField("Recommended Tools", joinTaskStrings(task["recommended_tools"]))
+	return nil
+}
+
+func printTaskJSON(v map[string]interface{}) error {
+	data, err := json.Marshal(v)
+	if err != nil {
+		return fmt.Errorf("failed to marshal task output: %w", err)
+	}
+	_, _ = fmt.Fprintln(os.Stdout, string(data))
+	return nil
+}
+
+func writeTaskField(name, value string) {
+	if value == "" {
+		return
+	}
+	_, _ = fmt.Fprintf(os.Stdout, "%s: %s\n", name, value)
+}
+
+func taskString(v interface{}) string {
+	s, _ := v.(string)
+	return strings.TrimSpace(s)
+}
+
+func joinTaskStrings(v interface{}) string {
+	switch x := v.(type) {
+	case []string:
+		return strings.Join(x, ", ")
+	case []interface{}:
+		out := make([]string, 0, len(x))
+		for _, item := range x {
+			if s := taskString(item); s != "" {
+				out = append(out, s)
+			}
+		}
+		return strings.Join(out, ", ")
+	default:
+		return ""
+	}
 }
 
 // parseTaskIDs parses a comma-separated list of task IDs.
