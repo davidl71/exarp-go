@@ -340,13 +340,22 @@ func handleTaskAnalysisExecutionPlan(ctx context.Context, params map[string]inte
 		}
 	}
 
+	topTasks := buildCodexTopTasks(details, waves)
+	suggestedNextAction := buildExecutionPlanSuggestedNextAction(topTasks)
+	agentHint := buildExecutionPlanAgentHint(suggestedNextAction)
+	summary := buildExecutionPlanSummary(len(orderedIDs), topTasks)
+
 	result := map[string]interface{}{
-		"success":          true,
-		"method":           "native_go",
-		"backlog_count":    len(orderedIDs),
-		"ordered_task_ids": orderedIDs,
-		"waves":            waves,
-		"details":          details,
+		"success":               true,
+		"method":                "native_go",
+		"backlog_count":         len(orderedIDs),
+		"ordered_task_ids":      orderedIDs,
+		"waves":                 waves,
+		"details":               details,
+		"top_tasks":             topTasks,
+		"suggested_next_action": suggestedNextAction,
+		"agent_hint":            agentHint,
+		"summary":               summary,
 	}
 
 	outputFormat := "json"
@@ -446,6 +455,14 @@ func formatExecutionPlanText(result map[string]interface{}) string {
 	sb.WriteString("Backlog execution order\n")
 	sb.WriteString(strings.Repeat("-", 40) + "\n")
 
+	if summary := ParamString(result, "summary"); summary != "" {
+		sb.WriteString(summary + "\n")
+	}
+	if next := ParamString(result, "suggested_next_action"); next != "" {
+		sb.WriteString("Next: " + next + "\n")
+	}
+	sb.WriteString("\n")
+
 	if ids, ok := result["ordered_task_ids"].([]string); ok {
 		for i, id := range ids {
 			sb.WriteString(fmt.Sprintf("%d. %s\n", i+1, id))
@@ -521,6 +538,83 @@ func formatExecutionPlanMarkdown(result map[string]interface{}, projectRoot stri
 // ─── fmtTime ────────────────────────────────────────────────────────────────
 func fmtTime(t time.Time) string {
 	return t.Format("2006-01-02 15:04:05")
+}
+
+func buildCodexTopTasks(details []BacklogTaskDetail, waves map[int][]string) []map[string]interface{} {
+	if len(details) == 0 {
+		return []map[string]interface{}{}
+	}
+
+	waveByTask := make(map[string]int, len(details))
+	for level, ids := range waves {
+		for _, id := range ids {
+			waveByTask[id] = level
+		}
+	}
+
+	limit := 3
+	if len(details) < limit {
+		limit = len(details)
+	}
+
+	topTasks := make([]map[string]interface{}, 0, limit)
+	for i := 0; i < limit; i++ {
+		d := details[i]
+		whyNow := fmt.Sprintf("wave_%d_priority_%s", waveByTask[d.ID], NormalizePriority(d.Priority))
+		if waveByTask[d.ID] == 0 {
+			whyNow = "wave_0_no_dependencies"
+		}
+
+		topTasks = append(topTasks, map[string]interface{}{
+			"id":       d.ID,
+			"content":  d.Content,
+			"priority": d.Priority,
+			"status":   d.Status,
+			"level":    d.Level,
+			"tags":     d.Tags,
+			"why_now":  whyNow,
+		})
+	}
+
+	return topTasks
+}
+
+func buildExecutionPlanSuggestedNextAction(topTasks []map[string]interface{}) string {
+	if len(topTasks) == 0 {
+		return "No actionable backlog tasks found."
+	}
+
+	first := topTasks[0]
+	id := ParamString(first, "id")
+	content := ParamString(first, "content")
+	if id == "" {
+		return "No actionable backlog tasks found."
+	}
+	if content == "" {
+		return fmt.Sprintf("Work on %s.", id)
+	}
+
+	return fmt.Sprintf("Work on %s: %s", id, content)
+}
+
+func buildExecutionPlanAgentHint(suggestedNextAction string) string {
+	if suggestedNextAction == "" || suggestedNextAction == "No actionable backlog tasks found." {
+		return "Backlog is empty or filtered out; use task_workflow list/show to inspect remaining work."
+	}
+
+	return suggestedNextAction + " Then use task_workflow show or summarize on that task before implementation."
+}
+
+func buildExecutionPlanSummary(backlogCount int, topTasks []map[string]interface{}) string {
+	if backlogCount == 0 {
+		return "Backlog has no Todo or In Progress tasks."
+	}
+
+	if len(topTasks) == 0 {
+		return fmt.Sprintf("Backlog has %d actionable tasks.", backlogCount)
+	}
+
+	return fmt.Sprintf("Backlog has %d actionable tasks. Start with %s.", backlogCount, ParamString(topTasks[0], "id"))
 }
 
 // handleTaskAnalysisComplexity classifies task complexity (simple/medium/complex) using heuristic rules.

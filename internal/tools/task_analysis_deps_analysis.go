@@ -345,13 +345,20 @@ func handleTaskAnalysisNoise(ctx context.Context, params map[string]interface{})
 	}
 
 	noiseCandidates := findNoiseTasks(tasks)
+	safeDeleteTaskIDs, rewriteTaskIDs := classifyNoiseCandidates(noiseCandidates)
+	summary := buildNoiseSummary(len(noiseCandidates), len(safeDeleteTaskIDs), len(rewriteTaskIDs))
+	agentHint := buildNoiseAgentHint(len(safeDeleteTaskIDs), len(rewriteTaskIDs))
 	result := map[string]interface{}{
-		"success":          true,
-		"method":           "native_go",
-		"filter_tag":       filterTag,
-		"tasks_scanned":    len(tasks),
-		"noise_count":      len(noiseCandidates),
-		"noise_candidates": noiseCandidates,
+		"success":              true,
+		"method":               "native_go",
+		"filter_tag":           filterTag,
+		"tasks_scanned":        len(tasks),
+		"noise_count":          len(noiseCandidates),
+		"noise_candidates":     noiseCandidates,
+		"safe_delete_task_ids": safeDeleteTaskIDs,
+		"rewrite_task_ids":     rewriteTaskIDs,
+		"summary":              summary,
+		"agent_hint":           agentHint,
 	}
 
 	projectRoot, _ := FindProjectRoot()
@@ -422,4 +429,52 @@ func findNoiseTasks(tasks []Todo2Task) []map[string]interface{} {
 		}
 	}
 	return candidates
+}
+
+func classifyNoiseCandidates(candidates []map[string]interface{}) (safeDelete []string, rewrite []string) {
+	safeDelete = make([]string, 0)
+	rewrite = make([]string, 0)
+
+	for _, candidate := range candidates {
+		id := ParamString(candidate, "id")
+		reason := ParamString(candidate, "reason")
+		content := strings.ToLower(strings.TrimSpace(ParamString(candidate, "content")))
+		if id == "" {
+			continue
+		}
+
+		if strings.Contains(reason, "sentence fragment") ||
+			strings.Contains(reason, "truncated/ellipsis") ||
+			strings.HasPrefix(content, "that ") ||
+			strings.HasPrefix(content, "this ") ||
+			strings.HasPrefix(content, "the ") {
+			safeDelete = append(safeDelete, id)
+			continue
+		}
+
+		rewrite = append(rewrite, id)
+	}
+
+	return safeDelete, rewrite
+}
+
+func buildNoiseSummary(noiseCount, safeDeleteCount, rewriteCount int) string {
+	if noiseCount == 0 {
+		return "No likely noise tasks found."
+	}
+
+	return fmt.Sprintf("%d noisy tasks found; %d look safe to delete and %d should be rewritten.", noiseCount, safeDeleteCount, rewriteCount)
+}
+
+func buildNoiseAgentHint(safeDeleteCount, rewriteCount int) string {
+	switch {
+	case safeDeleteCount > 0 && rewriteCount > 0:
+		return "Delete the obvious fragments first, then rewrite the remaining short legacy task titles."
+	case safeDeleteCount > 0:
+		return "Delete the obvious fragment tasks; they do not look actionable."
+	case rewriteCount > 0:
+		return "Rewrite the remaining short legacy task titles rather than deleting them."
+	default:
+		return "No cleanup action needed."
+	}
 }
