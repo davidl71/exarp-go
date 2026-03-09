@@ -3,6 +3,7 @@ package tools
 import (
 	"context"
 	"encoding/json"
+	"os"
 	"strings"
 	"testing"
 
@@ -190,6 +191,18 @@ func TestHandleTaskAnalysisNative(t *testing.T) {
 				if _, ok := data["noise_candidates"]; !ok {
 					t.Error("noise result should contain noise_candidates")
 				}
+				if _, ok := data["safe_delete_task_ids"]; !ok {
+					t.Error("noise result should contain safe_delete_task_ids")
+				}
+				if _, ok := data["rewrite_task_ids"]; !ok {
+					t.Error("noise result should contain rewrite_task_ids")
+				}
+				if _, ok := data["summary"]; !ok {
+					t.Error("noise result should contain summary")
+				}
+				if _, ok := data["agent_hint"]; !ok {
+					t.Error("noise result should contain agent_hint")
+				}
 				if _, ok := data["filter_tag"]; !ok {
 					t.Error("noise result should contain filter_tag")
 				}
@@ -300,6 +313,88 @@ func TestHandleTaskAnalysis_DependenciesSummaryJSON(t *testing.T) {
 	}
 	if _, ok := data["execution_plan"].(map[string]interface{}); !ok {
 		t.Fatalf("expected execution_plan object, got %#v", data["execution_plan"])
+	}
+
+	planData := data["execution_plan"].(map[string]interface{})
+	if _, ok := planData["suggested_next_action"]; !ok {
+		t.Fatalf("expected execution_plan suggested_next_action, got %#v", planData)
+	}
+	if _, ok := planData["top_tasks"]; !ok {
+		t.Fatalf("expected execution_plan top_tasks, got %#v", planData)
+	}
+	if _, ok := planData["agent_hint"]; !ok {
+		t.Fatalf("expected execution_plan agent_hint, got %#v", planData)
+	}
+	if _, ok := planData["summary"]; !ok {
+		t.Fatalf("expected execution_plan summary, got %#v", planData)
+	}
+}
+
+func TestHandleTaskAnalysisExecutionPlanCodexFields(t *testing.T) {
+	cleanup := initSessionTestDB(t)
+	t.Cleanup(cleanup)
+
+	ctx := context.Background()
+	projectRoot := t.TempDir()
+	if root := os.Getenv("PROJECT_ROOT"); root != "" {
+		projectRoot = root
+	}
+	store := NewDefaultTaskStore(projectRoot)
+	if err := store.CreateTask(ctx, &Todo2Task{
+		ID:       "T-1",
+		Content:  "First actionable task",
+		Status:   "Todo",
+		Priority: "high",
+		Tags:     []string{"testing"},
+	}); err != nil {
+		t.Fatalf("CreateTask(T-1) error = %v", err)
+	}
+	if err := store.CreateTask(ctx, &Todo2Task{
+		ID:       "T-2",
+		Content:  "Second actionable task",
+		Status:   "Todo",
+		Priority: "medium",
+	}); err != nil {
+		t.Fatalf("CreateTask(T-2) error = %v", err)
+	}
+
+	result, err := handleTaskAnalysisNative(ctx, map[string]interface{}{
+		"action":        "execution_plan",
+		"output_format": "json",
+	})
+	if err != nil {
+		t.Fatalf("handleTaskAnalysisNative() error = %v", err)
+	}
+	if len(result) == 0 {
+		t.Fatal("expected non-empty result")
+	}
+
+	var data map[string]interface{}
+	if err := json.Unmarshal([]byte(result[0].Text), &data); err != nil {
+		t.Fatalf("invalid JSON: %v", err)
+	}
+
+	if got := data["suggested_next_action"]; got == nil || got == "" {
+		t.Fatalf("expected suggested_next_action, got %#v", got)
+	}
+	if got := data["agent_hint"]; got == nil || got == "" {
+		t.Fatalf("expected agent_hint, got %#v", got)
+	}
+	if got := data["summary"]; got == nil || got == "" {
+		t.Fatalf("expected summary, got %#v", got)
+	}
+
+	topTasks, ok := data["top_tasks"].([]interface{})
+	if !ok || len(topTasks) == 0 {
+		t.Fatalf("expected non-empty top_tasks, got %#v", data["top_tasks"])
+	}
+
+	first, ok := topTasks[0].(map[string]interface{})
+	if !ok {
+		t.Fatalf("expected top_tasks[0] object, got %#v", topTasks[0])
+	}
+	if _, ok := first["why_now"]; !ok {
+		t.Fatalf("expected top_tasks[0].why_now, got %#v", first)
 	}
 }
 
