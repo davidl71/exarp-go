@@ -5,6 +5,7 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/davidl71/exarp-go/internal/database"
@@ -250,5 +251,103 @@ func TestRunTaskExecutionFlow_EmptyTaskID(t *testing.T) {
 	})
 	if err == nil {
 		t.Fatal("expected error for empty TaskID")
+	}
+}
+
+func TestRunTaskExecutionFlow_DefaultMinConfidencePreventsApply(t *testing.T) {
+	ctx := context.Background()
+
+	projectRoot := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(projectRoot, ".todo2"), 0755); err != nil {
+		t.Fatalf("create .todo2 dir: %v", err)
+	}
+
+	if err := database.Init(projectRoot); err != nil {
+		t.Fatalf("database.Init: %v", err)
+	}
+	defer func() { _ = database.Close() }()
+
+	task := &database.Todo2Task{
+		Content:  "Default confidence task",
+		Status:   "Todo",
+		Priority: "medium",
+	}
+	if err := database.CreateTask(ctx, task); err != nil {
+		t.Fatalf("CreateTask: %v", err)
+	}
+
+	router := &mockExecutionRouter{response: `{"changes":[{"file":"should_not_exist.txt","new_content":"data"}],"explanation":"Low confidence.","confidence":0.2}`}
+
+	result, err := RunTaskExecutionFlow(ctx, RunTaskExecutionFlowParams{
+		TaskID:      task.ID,
+		ProjectRoot: projectRoot,
+		Apply:       true,
+		ModelRouter: router,
+	})
+	if err != nil {
+		t.Fatalf("RunTaskExecutionFlow: %v", err)
+	}
+
+	if len(result.Applied) != 0 {
+		t.Fatalf("Applied = %v, want no files applied", result.Applied)
+	}
+	if _, err := os.Stat(filepath.Join(projectRoot, "should_not_exist.txt")); !os.IsNotExist(err) {
+		t.Fatal("expected low-confidence change to be skipped by default threshold")
+	}
+}
+
+func TestRunTaskExecutionFlow_AddsResultComment(t *testing.T) {
+	ctx := context.Background()
+
+	projectRoot := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(projectRoot, ".todo2"), 0755); err != nil {
+		t.Fatalf("create .todo2 dir: %v", err)
+	}
+
+	if err := database.Init(projectRoot); err != nil {
+		t.Fatalf("database.Init: %v", err)
+	}
+	defer func() { _ = database.Close() }()
+
+	task := &database.Todo2Task{
+		Content:  "Commented task",
+		Status:   "Todo",
+		Priority: "medium",
+	}
+	if err := database.CreateTask(ctx, task); err != nil {
+		t.Fatalf("CreateTask: %v", err)
+	}
+
+	router := &mockExecutionRouter{response: `{"changes":[{"file":"result.txt","new_content":"done"}],"explanation":"Created a result file.","confidence":0.9}`}
+
+	result, err := RunTaskExecutionFlow(ctx, RunTaskExecutionFlowParams{
+		TaskID:        task.ID,
+		ProjectRoot:   projectRoot,
+		Apply:         true,
+		MinConfidence: 0.5,
+		ModelRouter:   router,
+	})
+	if err != nil {
+		t.Fatalf("RunTaskExecutionFlow: %v", err)
+	}
+	if !result.CommentAdded {
+		t.Fatal("expected execution result comment to be added")
+	}
+
+	comments, err := database.GetComments(ctx, task.ID)
+	if err != nil {
+		t.Fatalf("GetComments: %v", err)
+	}
+	if len(comments) != 1 {
+		t.Fatalf("len(comments) = %d, want 1", len(comments))
+	}
+	if comments[0].Type != database.CommentTypeResult {
+		t.Fatalf("comment type = %q, want %q", comments[0].Type, database.CommentTypeResult)
+	}
+	if !strings.Contains(comments[0].Content, "Created a result file.") {
+		t.Fatalf("comment content missing explanation: %q", comments[0].Content)
+	}
+	if !strings.Contains(comments[0].Content, "result.txt") {
+		t.Fatalf("comment content missing applied file list: %q", comments[0].Content)
 	}
 }

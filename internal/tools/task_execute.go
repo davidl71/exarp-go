@@ -93,6 +93,10 @@ type RunTaskExecutionFlowResult struct {
 // parses the response, optionally applies file changes, and adds a result comment to the task.
 func RunTaskExecutionFlow(ctx context.Context, p RunTaskExecutionFlowParams) (*RunTaskExecutionFlowResult, error) {
 	result := &RunTaskExecutionFlowResult{TaskID: p.TaskID}
+	minConfidence := p.MinConfidence
+	if minConfidence == 0 {
+		minConfidence = defaultMinConfidence
+	}
 
 	store := NewDefaultTaskStore(p.ProjectRoot)
 
@@ -142,7 +146,7 @@ func RunTaskExecutionFlow(ctx context.Context, p RunTaskExecutionFlowParams) (*R
 	result.Confidence = parsed.Confidence
 	result.Explanation = parsed.Explanation
 
-	if p.Apply && parsed.Confidence >= p.MinConfidence && len(parsed.Changes) > 0 {
+	if p.Apply && parsed.Confidence >= minConfidence && len(parsed.Changes) > 0 {
 		applied, applyErr := ApplyChanges(p.ProjectRoot, parsed.Changes)
 		if applyErr != nil {
 			result.ApplyError = applyErr.Error()

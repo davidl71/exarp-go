@@ -197,6 +197,10 @@ func TestHandleAutomationNightly(t *testing.T) {
 }
 
 func TestHandleAutomationSprint(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping sprint test in short mode (can reach real FM-backed hierarchy analysis)")
+	}
+
 	tests := []struct {
 		name      string
 		params    map[string]interface{}
