@@ -118,6 +118,8 @@ For detailed configuration options, see:
 
 **Cursor rules (AI guidance):** If you use Cursor, see `docs/CURSOR_RULES.md` for project rules, including **code and planning tag hints** so generated plans and code stay aligned with Todo2 tags. For **how to use Cursor skills** (task-workflow, locking, git_tools, conflict detection), see [docs/CURSOR_SKILLS_GUIDE.md](docs/CURSOR_SKILLS_GUIDE.md).
 
+**Codex quickstart:** If you use Codex or another terminal coding agent, start with [docs/CODEX.md](docs/CODEX.md) for the shortest repo-specific guide: what to read first, what to ignore, preferred `make` targets, and the fast verification command `make codex-smoke`.
+
 **Model-assisted workflow:** For local LLM integration (CodeLlama/MLX/Ollama) for task breakdown, execution, and prompt optimization, see [docs/MODEL_ASSISTED_WORKFLOW.md](docs/MODEL_ASSISTED_WORKFLOW.md). The docs index is in [docs/README.md](docs/README.md).
 
 **AI/LLM stack:** For the full backend stack (Apple FM, Ollama, MLX, LocalAI) and discovery, see [docs/GO_AI_ECOSYSTEM.md](docs/GO_AI_ECOSYSTEM.md) and [docs/LLM_NATIVE_ABSTRACTION_PATTERNS.md](docs/LLM_NATIVE_ABSTRACTION_PATTERNS.md).

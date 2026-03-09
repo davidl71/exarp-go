@@ -18,6 +18,7 @@ test-results/
 # Runtime and state (avoid indexing task DB and caches)
 .todo2/
 .exarp/
+.cache/
 .make.config
 .agentic-tools-mcp/
 
@@ -43,6 +44,10 @@ internal/tools/\{\"*
 # Generated / check output
 .vibecheck/
 docs/TODO2_ALIGNMENT_REPORT.md
+
+# Archived docs and generated plans (large, low-signal for most tasks)
+docs/archive/
+.cursor/plans/
 
 # Go workspace (local)
 go.work
