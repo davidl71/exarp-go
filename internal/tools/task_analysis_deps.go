@@ -159,6 +159,68 @@ func handleTaskAnalysisDependencies(ctx context.Context, params map[string]inter
 // ─── handleTaskAnalysisDependenciesSummary ──────────────────────────────────
 // handleTaskAnalysisDependenciesSummary combines dependencies, parallelization, and execution_plan (T-227).
 func handleTaskAnalysisDependenciesSummary(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
+	outputFormat := ParamString(params, "output_format")
+	if outputFormat == "" {
+		outputFormat = "text"
+	}
+
+	if outputFormat == "json" {
+		jsonParams := make(map[string]interface{}, len(params)+1)
+		for k, v := range params {
+			jsonParams[k] = v
+		}
+		jsonParams["output_format"] = "json"
+
+		deps, err := handleTaskAnalysisDependencies(ctx, jsonParams)
+		if err != nil {
+			return nil, err
+		}
+		par, err := handleTaskAnalysisParallelization(ctx, jsonParams)
+		if err != nil {
+			return nil, err
+		}
+		plan, err := handleTaskAnalysisExecutionPlan(ctx, jsonParams)
+		if err != nil {
+			return nil, err
+		}
+
+		depsData, err := parseTaskAnalysisJSONContent(deps)
+		if err != nil {
+			return nil, fmt.Errorf("dependencies_summary dependencies: %w", err)
+		}
+		parData, err := parseTaskAnalysisJSONContent(par)
+		if err != nil {
+			return nil, fmt.Errorf("dependencies_summary parallelization: %w", err)
+		}
+		planData, err := parseTaskAnalysisJSONContent(plan)
+		if err != nil {
+			return nil, fmt.Errorf("dependencies_summary execution_plan: %w", err)
+		}
+
+		reportParts := []string{}
+		if report := ParamString(depsData, "report"); report != "" {
+			reportParts = append(reportParts, "## Dependency Analysis\n"+report)
+		}
+		if report := ParamString(parData, "report"); report != "" {
+			reportParts = append(reportParts, "## Parallelization\n"+report)
+		}
+		reportParts = append(reportParts, "## Execution Plan\n"+formatExecutionPlanText(planData))
+
+		result := map[string]interface{}{
+			"success":         true,
+			"method":          "native_go",
+			"action":          "dependencies_summary",
+			"dependencies":    depsData,
+			"parallelization": parData,
+			"execution_plan":  planData,
+			"report":          "# Task Dependencies Summary\n\n" + strings.Join(reportParts, "\n\n"),
+		}
+
+		projectRoot, _ := FindProjectRoot()
+		outputPath := DefaultReportOutputPath(projectRoot, "TASK_ANALYSIS_DEPENDENCIES_SUMMARY.json", params)
+		return framework.FormatResult(result, outputPath)
+	}
+
 	var parts []string
 
 	deps, err := handleTaskAnalysisDependencies(ctx, params)
@@ -179,6 +241,19 @@ func handleTaskAnalysisDependenciesSummary(ctx context.Context, params map[strin
 	report := "# Task Dependencies Summary\n\n" + strings.Join(parts, "\n\n")
 
 	return []framework.TextContent{{Type: "text", Text: report}}, nil
+}
+
+func parseTaskAnalysisJSONContent(contents []framework.TextContent) (map[string]interface{}, error) {
+	if len(contents) == 0 {
+		return nil, fmt.Errorf("empty tool result")
+	}
+
+	var data map[string]interface{}
+	if err := json.Unmarshal([]byte(contents[0].Text), &data); err != nil {
+		return nil, fmt.Errorf("invalid JSON result: %w", err)
+	}
+
+	return data, nil
 }
 
 // ─── handleTaskAnalysisExecutionPlan ────────────────────────────────────────

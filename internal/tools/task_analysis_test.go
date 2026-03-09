@@ -224,6 +224,85 @@ func TestHandleTaskAnalysisNative(t *testing.T) {
 	}
 }
 
+func TestHandleTaskAnalysis_JSONActionRouting(t *testing.T) {
+	tmpDir := t.TempDir()
+	t.Setenv("PROJECT_ROOT", tmpDir)
+
+	req, params, err := ParseTaskAnalysisRequest(json.RawMessage(`{"action":"conflicts","output_format":"json"}`))
+	if err != nil {
+		t.Fatalf("ParseTaskAnalysisRequest() unexpected error: %v", err)
+	}
+	if req != nil {
+		t.Fatalf("ParseTaskAnalysisRequest() unexpectedly returned proto request: %#v", req)
+	}
+	if got := params["action"]; got != "conflicts" {
+		t.Fatalf("ParseTaskAnalysisRequest() action = %#v, want conflicts", got)
+	}
+
+	nativeResult, err := handleTaskAnalysisNative(context.Background(), params)
+	if err != nil {
+		t.Fatalf("handleTaskAnalysisNative() unexpected error: %v", err)
+	}
+	var nativeData map[string]interface{}
+	if err := json.Unmarshal([]byte(nativeResult[0].Text), &nativeData); err != nil {
+		t.Fatalf("invalid native JSON: %v", err)
+	}
+	if got := nativeData["action"]; got != "conflicts" {
+		t.Fatalf("native action = %#v, want conflicts", got)
+	}
+
+	result, err := handleTaskAnalysis(context.Background(), json.RawMessage(`{"action":"conflicts","output_format":"json"}`))
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(result) == 0 {
+		t.Fatal("expected non-empty result")
+	}
+
+	var data map[string]interface{}
+	if err := json.Unmarshal([]byte(result[0].Text), &data); err != nil {
+		t.Fatalf("invalid JSON: %v", err)
+	}
+
+	if got := data["action"]; got != "conflicts" {
+		t.Fatalf("action = %#v, want conflicts", got)
+	}
+	if _, ok := data["conflict"]; !ok {
+		t.Fatalf("expected conflict field in result, got %#v", data)
+	}
+}
+
+func TestHandleTaskAnalysis_DependenciesSummaryJSON(t *testing.T) {
+	tmpDir := t.TempDir()
+	t.Setenv("PROJECT_ROOT", tmpDir)
+
+	result, err := handleTaskAnalysis(context.Background(), json.RawMessage(`{"action":"dependencies_summary","output_format":"json"}`))
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(result) == 0 {
+		t.Fatal("expected non-empty result")
+	}
+
+	var data map[string]interface{}
+	if err := json.Unmarshal([]byte(result[0].Text), &data); err != nil {
+		t.Fatalf("invalid JSON: %v", err)
+	}
+
+	if got := data["action"]; got != "dependencies_summary" {
+		t.Fatalf("action = %#v, want dependencies_summary", got)
+	}
+	if _, ok := data["dependencies"].(map[string]interface{}); !ok {
+		t.Fatalf("expected dependencies object, got %#v", data["dependencies"])
+	}
+	if _, ok := data["parallelization"].(map[string]interface{}); !ok {
+		t.Fatalf("expected parallelization object, got %#v", data["parallelization"])
+	}
+	if _, ok := data["execution_plan"].(map[string]interface{}); !ok {
+		t.Fatalf("expected execution_plan object, got %#v", data["execution_plan"])
+	}
+}
+
 func TestHandleTaskAnalysis(t *testing.T) {
 	tmpDir := t.TempDir()
 	t.Setenv("PROJECT_ROOT", tmpDir)
