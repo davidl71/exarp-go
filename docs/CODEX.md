@@ -17,7 +17,6 @@ Avoid spending context on local state, generated output, and archives unless the
 - `.cache/`
 - `bin/`
 - `dist/`
-- `out/`
 - `vendor/`
 - `docs/archive/`
 - `.cursor/plans/`
@@ -29,6 +28,7 @@ These are already excluded from Cursor indexing via `.cursorignore`, and most ar
 - `bin/` for local developer binaries such as `bin/exarp-go`
 - `dist/` for packaged or release-style artifacts
 - `out/` for generated one-off outputs and reports
+- `out/` is gitignored, but agents should read it when recent tool output is relevant to the current task
 - Do not leave compiled binaries at repo root; `server`, `migrate`, and similar root-level artifacts are legacy leftovers
 
 ### Preferred Commands
