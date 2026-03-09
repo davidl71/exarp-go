@@ -19,10 +19,11 @@
 # Generated reports (e.g. by analyze_alignment, pre-push hooks)
 docs/TODO2_ALIGNMENT_REPORT.md
 
-# Go build artifacts
+# Build and packaging artifacts
 bin/
 build/
-/server
+dist/
+out/
 *.test
 *.out
 coverage*.out
@@ -73,4 +74,9 @@ internal/tools/\{\"*
 
 # OpenCode plugin dependencies (installed by bun at startup)
 .opencode/node_modules/
+
+# Legacy root-level binaries from older workflows
+/server
+/migrate
+/test-report-mlx
 CLAUDE.md

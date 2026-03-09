@@ -28,6 +28,8 @@
 PROJECT_NAME := exarp-go
 BINARY_NAME := exarp-go
 BINARY_PATH := bin/$(BINARY_NAME)
+DIST_DIR := dist
+OUT_DIR := out
 
 # Version information
 VERSION := $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
@@ -636,10 +638,12 @@ vendor-licenses: ## Update docs/VENDOR_LICENSES.md from vendor/ (credits and lic
 
 ##@ Cleanup
 
-clean: ## Clean build artifacts and cache (binary kept by design; use clean-binary to remove it)
+clean: ## Clean generated artifacts and caches (keeps bin/exarp-go; removes legacy root binaries)
 	@echo "$(BLUE)Cleaning...$(NC)"
 	@rm -f coverage-go.out coverage-go.html
 	@rm -f bin/sanity-check bin/migrate
+	@rm -rf $(DIST_DIR) $(OUT_DIR)
+	@rm -f server migrate test-report-mlx
 	@echo "$(GREEN)✅ Clean complete$(NC)"
 
 clean-binary: ## Remove exarp-go binary (use clean then build for full rebuild)

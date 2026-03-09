@@ -577,10 +577,12 @@ tasks:
 # ─── Cleanup ──────────────────────────────────────────────────────────────────
 
   clean:
-    desc: Clean build artifacts (keeps binary)
+    desc: Clean generated artifacts (keeps bin/exarp-go; removes legacy root binaries)
     cmds:
       - rm -f coverage-go.out coverage-go.html
       - rm -f bin/sanity-check bin/migrate
+      - rm -rf dist out
+      - rm -f server migrate test-report-mlx
       - echo "✅ Clean complete"
 
   clean:binary:
