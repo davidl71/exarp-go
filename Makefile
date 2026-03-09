@@ -4,7 +4,7 @@
 .PHONY: config clean-config tag-build-ok tags pre-release r root push pull p pl status st
 .PHONY: go-fmt go-vet golangci-lint-check golangci-lint-fix govulncheck check deadcode check-fix check-all check-security
 .PHONY: fmt lint lint-fix lint-all lint-all-fix
-.PHONY: dev dev-watch dev-test dev-full dev-cycle pre-push bench docs
+.PHONY: dev dev-watch dev-test dev-full dev-cycle pre-push bench docs codex-smoke
 .PHONY: sanity-check sanity-check-cached clean clean-all clean-binary clean-config
 .PHONY: install install-binary install-runner fix-mcp-config install-tools go-mod-tidy go-mod-verify tidy
 .PHONY: build-migrate migrate migrate-dry-run proto proto-check proto-clean proto-buf
@@ -157,6 +157,9 @@ dev-cycle: go-fmt test-go-fast ## Quick development cycle (format, test, ready f
 pre-push: go-mod-verify check test-go-fast ## Pre-push checks (verify modules, check code, test)
 	@echo "$(GREEN)✅ Pre-push checks passed - safe to push$(NC)"
 
+codex-smoke: go-fmt go-vet test-go-fast test-mcp-stdio ## Fast Codex verification: format, vet, tests, and MCP stdio smoke check
+	@echo "$(GREEN)✅ Codex smoke checks passed$(NC)"
+
 help: ## Show this help message
 	@echo "$(BLUE)Available targets:$(NC)"
 	@grep -hE '^[a-zA-Z_-]+:.*?## .*$$' Makefile | awk 'BEGIN {FS = ":.*?## "} {printf "  $(GREEN)%-20s$(NC) %s\n", $$1, $$2}'
@@ -188,6 +191,7 @@ help: ## Show this help message
 	@echo "$(BLUE)Quick reference:$(NC)"
 	@echo "  $(GREEN)make b$(NC)           - Build binary (short for build)"
 	@echo "  $(GREEN)make test$(NC)       - Run tests  |  $(GREEN)make fmt$(NC) - Format  |  $(GREEN)make lint$(NC) - Lint"
+	@echo "  $(GREEN)make codex-smoke$(NC) - Fast agent smoke check (fmt + vet + test + MCP stdio)"
 	@echo "  $(GREEN)make task-list$(NC)  - List tasks (TASK_FLAGS=\"--status Todo\")"
 	@echo "  $(GREEN)make task-show TASK_ID=T-123$(NC)  - Show one task"
 	@echo "  $(GREEN)make task-run-with-ai TASK_ID=T-123 [BACKEND=ollama]$(NC)  - Task + local AI"
@@ -1439,4 +1443,3 @@ test-breakdown: ## Test task breakdown with models
 test-auto-exec: ## Test auto-execution with models
 	@echo "$(BLUE)Testing auto-execution...$(NC)"
 	@echo "$(YELLOW)Model-assisted testing not yet implemented$(NC)"
-

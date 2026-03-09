@@ -13,6 +13,7 @@
 - `BRIDGE_ANALYSIS_TABLE.md` - Bridge reference table
 
 ### Cursor & AI
+- `CODEX.md` - Compact Codex/agent quickstart: what to read first, what to ignore, and the preferred verification command
 - `CURSOR_RULES.md` - Cursor rules index and **code/planning tag hints** for Todo2 alignment
 - `OPENCODE_INTEGRATION.md` - Use exarp-go with OpenCode (MCP, CLI, HTTP API)
 - `GO_AI_ECOSYSTEM.md` - AI/LLM backend stack (FM, Ollama, MLX, LocalAI)
@@ -89,4 +90,3 @@ When adding new documentation:
 
 **Total Active Docs:** 22 files  
 **Total Archived Docs:** 49 files
-
