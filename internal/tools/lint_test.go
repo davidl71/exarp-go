@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/davidl71/exarp-go/internal/framework"
@@ -124,6 +125,72 @@ func TestHandleLint_DefaultsToAutoDetection(t *testing.T) {
 		// Expected: a Python linter selected from auto-detection.
 	default:
 		t.Fatalf("default linter = %v, want Python linter from auto-detection", got)
+	}
+}
+
+func TestHandleLint_AutoDirectoryAggregatesLinters(t *testing.T) {
+	tmpDir := t.TempDir()
+	t.Setenv("PROJECT_ROOT", tmpDir)
+
+	if err := os.WriteFile(filepath.Join(tmpDir, "main.go"), []byte("package main\nfunc main() {}\n"), 0644); err != nil {
+		t.Fatalf("WriteFile go: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(tmpDir, "README.md"), []byte("# test\n"), 0644); err != nil {
+		t.Fatalf("WriteFile md: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(tmpDir, "script.sh"), []byte("#!/bin/sh\necho ok\n"), 0755); err != nil {
+		t.Fatalf("WriteFile sh: %v", err)
+	}
+
+	argsJSON, _ := json.Marshal(map[string]interface{}{
+		"action": "run",
+		"linter": "auto",
+		"path":   tmpDir,
+	})
+
+	result, err := handleLint(context.Background(), argsJSON)
+	if err != nil {
+		t.Fatalf("handleLint() error = %v", err)
+	}
+	if len(result) == 0 {
+		t.Fatal("expected non-empty result")
+	}
+
+	var payload map[string]interface{}
+	if err := json.Unmarshal([]byte(result[0].Text), &payload); err != nil {
+		t.Fatalf("invalid JSON result: %v", err)
+	}
+
+	if got := payload["linter"]; got != "auto" {
+		t.Fatalf("linter = %v, want auto", got)
+	}
+
+	raw, ok := payload["raw"].(map[string]interface{})
+	if !ok {
+		t.Fatalf("expected raw object, got %#v", payload["raw"])
+	}
+
+	selected, ok := raw["selected_linters"].([]interface{})
+	if !ok || len(selected) == 0 {
+		t.Fatalf("expected selected_linters, got %#v", raw["selected_linters"])
+	}
+
+	selectedText := make([]string, 0, len(selected))
+	for _, item := range selected {
+		if s, ok := item.(string); ok {
+			selectedText = append(selectedText, s)
+		}
+	}
+
+	joined := strings.Join(selectedText, ",")
+	if !strings.Contains(joined, "markdownlint") {
+		t.Fatalf("selected_linters missing markdownlint: %v", selectedText)
+	}
+	if !strings.Contains(joined, "shellcheck") {
+		t.Fatalf("selected_linters missing shellcheck: %v", selectedText)
+	}
+	if !strings.Contains(joined, "go-vet") && !strings.Contains(joined, "golangci-lint") {
+		t.Fatalf("selected_linters missing Go linter: %v", selectedText)
 	}
 }
 
