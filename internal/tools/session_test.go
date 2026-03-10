@@ -426,6 +426,75 @@ func TestHandleSessionNative(t *testing.T) {
 	}
 }
 
+func TestHandleSessionPrimeIncludesRecommendedToolsInSuggestedNext(t *testing.T) {
+	cleanup := initSessionTestDB(t)
+	defer cleanup()
+
+	ctx := context.Background()
+	projectRoot, err := FindProjectRoot()
+	if err != nil {
+		t.Fatalf("FindProjectRoot: %v", err)
+	}
+	task := &database.Todo2Task{
+		ID:              "T-session-recommended-1",
+		Content:         "Prime should expose recommended tools",
+		LongDescription: "Session prime regression test",
+		Status:          "Todo",
+		Priority:        "high",
+		ProjectID:       filepath.Base(projectRoot),
+		Metadata: map[string]interface{}{
+			MetadataKeyRecommendedTools: []interface{}{"task_workflow", "report"},
+		},
+	}
+	if err := database.CreateTask(ctx, task); err != nil {
+		t.Fatalf("CreateTask: %v", err)
+	}
+
+	result, err := handleSessionNative(ctx, map[string]interface{}{
+		"action":        "prime",
+		"include_tasks": true,
+	})
+	if err != nil {
+		t.Fatalf("handleSessionNative: %v", err)
+	}
+	if len(result) == 0 {
+		t.Fatal("expected non-empty result")
+	}
+
+	var data map[string]interface{}
+	if err := json.Unmarshal([]byte(result[0].Text), &data); err != nil {
+		t.Fatalf("invalid JSON result: %v", err)
+	}
+
+	suggested, ok := data["suggested_next"].([]interface{})
+	if !ok || len(suggested) == 0 {
+		t.Fatalf("expected suggested_next entries, got %v", data["suggested_next"])
+	}
+
+	found := false
+	for _, item := range suggested {
+		m, ok := item.(map[string]interface{})
+		if !ok {
+			continue
+		}
+		if m["id"] != task.ID {
+			continue
+		}
+		tools, ok := m["recommended_tools"].([]interface{})
+		if !ok {
+			t.Fatalf("expected recommended_tools array for task %s, got %T", task.ID, m["recommended_tools"])
+		}
+		if len(tools) != 2 || tools[0] != "task_workflow" || tools[1] != "report" {
+			t.Fatalf("recommended_tools = %v, want [task_workflow report]", tools)
+		}
+		found = true
+		break
+	}
+	if !found {
+		t.Fatalf("task %s not found in suggested_next: %v", task.ID, suggested)
+	}
+}
+
 func TestBuildSuggestedNextAction(t *testing.T) {
 	tests := []struct {
 		name string

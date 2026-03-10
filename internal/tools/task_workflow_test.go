@@ -453,6 +453,108 @@ func TestHandleTaskWorkflowNative(t *testing.T) {
 		}
 	})
 
+	t.Run("update with recommended_tools sets metadata", func(t *testing.T) {
+		ctx := context.Background()
+
+		createResult, err := handleTaskWorkflowNative(ctx, map[string]interface{}{
+			"action":           "create",
+			"name":             "Recommended tools update test",
+			"long_description": "Verify recommended_tools on update",
+			"auto_estimate":    false,
+		})
+		if err != nil {
+			t.Fatalf("create task: %v", err)
+		}
+		if len(createResult) == 0 {
+			t.Fatal("create returned no result")
+		}
+
+		var createData map[string]interface{}
+		if err := json.Unmarshal([]byte(createResult[0].Text), &createData); err != nil {
+			t.Fatalf("create result JSON: %v", err)
+		}
+		taskObj, _ := createData["task"].(map[string]interface{})
+		taskID, _ := taskObj["id"].(string)
+		if taskID == "" {
+			t.Fatal("create did not return task id")
+		}
+
+		_, err = handleTaskWorkflowNative(ctx, map[string]interface{}{
+			"action":            "update",
+			"task_id":           taskID,
+			"recommended_tools": "task_workflow,report",
+		})
+		if err != nil {
+			t.Fatalf("update with recommended_tools: %v", err)
+		}
+
+		tasks, err := LoadTodo2Tasks(tmpDir)
+		if err != nil {
+			t.Fatalf("LoadTodo2Tasks: %v", err)
+		}
+		var found *Todo2Task
+		for i := range tasks {
+			if tasks[i].ID == taskID {
+				found = &tasks[i]
+				break
+			}
+		}
+		if found == nil {
+			t.Fatal("task not found after update")
+		}
+		got := GetRecommendedTools(found.Metadata)
+		if len(got) != 2 || got[0] != "task_workflow" || got[1] != "report" {
+			t.Fatalf("recommended_tools = %v, want [task_workflow report]", got)
+		}
+	})
+
+	t.Run("create with recommended_tools sets metadata", func(t *testing.T) {
+		ctx := context.Background()
+
+		createResult, err := handleTaskWorkflowNative(ctx, map[string]interface{}{
+			"action":            "create",
+			"name":              "Recommended tools create test",
+			"long_description":  "Verify recommended_tools on create",
+			"recommended_tools": "task_analysis,health",
+			"auto_estimate":     false,
+		})
+		if err != nil {
+			t.Fatalf("create task: %v", err)
+		}
+		if len(createResult) == 0 {
+			t.Fatal("create returned no result")
+		}
+
+		var createData map[string]interface{}
+		if err := json.Unmarshal([]byte(createResult[0].Text), &createData); err != nil {
+			t.Fatalf("create result JSON: %v", err)
+		}
+		taskObj, _ := createData["task"].(map[string]interface{})
+		taskID, _ := taskObj["id"].(string)
+		if taskID == "" {
+			t.Fatal("create did not return task id")
+		}
+
+		tasks, err := LoadTodo2Tasks(tmpDir)
+		if err != nil {
+			t.Fatalf("LoadTodo2Tasks: %v", err)
+		}
+		var found *Todo2Task
+		for i := range tasks {
+			if tasks[i].ID == taskID {
+				found = &tasks[i]
+				break
+			}
+		}
+		if found == nil {
+			t.Fatal("task not found after create")
+		}
+		got := GetRecommendedTools(found.Metadata)
+		if len(got) != 2 || got[0] != "task_analysis" || got[1] != "health" {
+			t.Fatalf("recommended_tools = %v, want [task_analysis health]", got)
+		}
+	})
+
 	// add_comment success: create task then add result comment
 	t.Run("add_comment success", func(t *testing.T) {
 		ctx := context.Background()
@@ -657,6 +759,67 @@ func TestHandleTaskWorkflowCleanupReportsStoreDrift(t *testing.T) {
 	}
 	if count, ok := data["db_only_count"].(float64); !ok || int(count) != 1 {
 		t.Fatalf("expected db_only_count=1, got %v", data["db_only_count"])
+	}
+}
+
+func TestHandleTaskWorkflowEnrichToolHintsUsesProjectRulesAndIsIdempotent(t *testing.T) {
+	cleanup := initSessionTestDB(t)
+	defer cleanup()
+
+	projectRoot, err := FindProjectRoot()
+	if err != nil {
+		t.Fatalf("FindProjectRoot: %v", err)
+	}
+
+	rulesDir := filepath.Join(projectRoot, ".cursor")
+	if err := os.MkdirAll(rulesDir, 0755); err != nil {
+		t.Fatalf("MkdirAll(.cursor): %v", err)
+	}
+	rulesPath := filepath.Join(rulesDir, "task_tool_rules.yaml")
+	rulesYAML := "tag_tools:\n  docs: [report]\n  testing: [testing]\n"
+	if err := os.WriteFile(rulesPath, []byte(rulesYAML), 0644); err != nil {
+		t.Fatalf("WriteFile(task_tool_rules.yaml): %v", err)
+	}
+
+	task := &models.Todo2Task{
+		ID:              "T-enrich-1",
+		Content:         "Task for tool enrichment",
+		LongDescription: "Uses docs and testing tags",
+		Status:          models.StatusTodo,
+		Priority:        "medium",
+		Tags:            []string{"docs", "testing"},
+		ProjectID:       filepath.Base(projectRoot),
+		CreatedAt:       time.Now().Format(time.RFC3339),
+		LastModified:    time.Now().Format(time.RFC3339),
+		Metadata: map[string]interface{}{
+			MetadataKeyRecommendedTools: []interface{}{"task_workflow"},
+		},
+	}
+	if err := database.CreateTask(context.Background(), task); err != nil {
+		t.Fatalf("database.CreateTask: %v", err)
+	}
+
+	ctx := context.Background()
+	if _, err := handleTaskWorkflowEnrichToolHints(ctx, map[string]interface{}{}); err != nil {
+		t.Fatalf("handleTaskWorkflowEnrichToolHints first run: %v", err)
+	}
+	if _, err := handleTaskWorkflowEnrichToolHints(ctx, map[string]interface{}{}); err != nil {
+		t.Fatalf("handleTaskWorkflowEnrichToolHints second run: %v", err)
+	}
+
+	updated, err := database.GetTask(ctx, task.ID)
+	if err != nil {
+		t.Fatalf("database.GetTask: %v", err)
+	}
+	got := GetRecommendedTools(updated.Metadata)
+	want := []string{"task_workflow", "report", "testing"}
+	if len(got) != len(want) {
+		t.Fatalf("recommended_tools length = %d, want %d (%v)", len(got), len(want), got)
+	}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Fatalf("recommended_tools[%d] = %q, want %q (full=%v)", i, got[i], want[i], got)
+		}
 	}
 }
 
