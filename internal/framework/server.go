@@ -27,6 +27,12 @@ type ResourceTemplateRegistrar interface {
 	RegisterResourceTemplate(uriTemplate, name, description, mimeType string, handler ResourceHandler) error
 }
 
+// ServerExtensionReporter is implemented by servers that can report the
+// advertised MCP capability extensions configured at startup.
+type ServerExtensionReporter interface {
+	ServerExtensions() map[string]any
+}
+
 // Eliciter re-export from mcp-go-core for backward compatibility.
 type Eliciter = framework.Eliciter
 

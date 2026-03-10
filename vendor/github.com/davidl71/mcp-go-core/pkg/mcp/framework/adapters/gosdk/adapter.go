@@ -14,6 +14,8 @@ import (
 // GoSDKAdapter adapts the official Go SDK to the framework interface
 type GoSDKAdapter struct {
 	server       *mcp.Server
+	impl         *mcp.Implementation
+	serverOpts   *mcp.ServerOptions
 	name         string
 	toolHandlers map[string]framework.ToolHandler // Pre-allocated map for O(1) lookups
 	toolInfo     map[string]types.ToolInfo        // Pre-allocated map for O(1) lookups
@@ -25,10 +27,11 @@ type GoSDKAdapter struct {
 // Options can be provided to configure the adapter (e.g., WithLogger, WithMiddleware)
 func NewGoSDKAdapter(name, version string, opts ...AdapterOption) *GoSDKAdapter {
 	adapter := &GoSDKAdapter{
-		server: mcp.NewServer(&mcp.Implementation{
+		impl: &mcp.Implementation{
 			Name:    name,
 			Version: version,
-		}, nil),
+		},
+		serverOpts:   &mcp.ServerOptions{},
 		name:         name,
 		toolHandlers: make(map[string]framework.ToolHandler),
 		toolInfo:     make(map[string]types.ToolInfo),
@@ -40,6 +43,8 @@ func NewGoSDKAdapter(name, version string, opts ...AdapterOption) *GoSDKAdapter 
 	for _, opt := range opts {
 		opt(adapter)
 	}
+
+	adapter.server = mcp.NewServer(adapter.impl, adapter.serverOpts)
 
 	return adapter
 }
@@ -330,6 +335,18 @@ func (a *GoSDKAdapter) Run(ctx context.Context, transport framework.Transport) e
 // GetName returns the server name
 func (a *GoSDKAdapter) GetName() string {
 	return a.name
+}
+
+// ServerExtensions returns a shallow copy of the configured advertised server extensions.
+func (a *GoSDKAdapter) ServerExtensions() map[string]any {
+	if a.serverOpts == nil || a.serverOpts.Capabilities == nil || len(a.serverOpts.Capabilities.Extensions) == 0 {
+		return nil
+	}
+	out := make(map[string]any, len(a.serverOpts.Capabilities.Extensions))
+	for k, v := range a.serverOpts.Capabilities.Extensions {
+		out[k] = v
+	}
+	return out
 }
 
 // CallTool executes a tool directly (for CLI mode)

@@ -3,6 +3,7 @@ package gosdk
 import (
 	"github.com/davidl71/mcp-go-core/pkg/mcp/framework"
 	"github.com/davidl71/mcp-go-core/pkg/mcp/logging"
+	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
 // AdapterOption configures a GoSDKAdapter
@@ -95,5 +96,40 @@ func WithHooks(hooks *framework.Hooks) AdapterOption {
 		if hooks != nil {
 			a.middleware.AddToolMiddleware(HooksToolMiddleware(hooks))
 		}
+	}
+}
+
+// WithImplementationTitle sets a human-friendly title in the advertised MCP implementation.
+func WithImplementationTitle(title string) AdapterOption {
+	return func(a *GoSDKAdapter) {
+		if a.impl != nil {
+			a.impl.Title = title
+		}
+	}
+}
+
+// WithServerCapabilities replaces the default server capabilities configuration.
+func WithServerCapabilities(capabilities *mcp.ServerCapabilities) AdapterOption {
+	return func(a *GoSDKAdapter) {
+		if a.serverOpts == nil {
+			a.serverOpts = &mcp.ServerOptions{}
+		}
+		a.serverOpts.Capabilities = capabilities
+	}
+}
+
+// WithServerExtension advertises a vendor-prefixed extension in server capabilities.
+func WithServerExtension(name string, settings map[string]any) AdapterOption {
+	return func(a *GoSDKAdapter) {
+		if name == "" {
+			return
+		}
+		if a.serverOpts == nil {
+			a.serverOpts = &mcp.ServerOptions{}
+		}
+		if a.serverOpts.Capabilities == nil {
+			a.serverOpts.Capabilities = &mcp.ServerCapabilities{}
+		}
+		a.serverOpts.Capabilities.AddExtension(name, settings)
 	}
 }
