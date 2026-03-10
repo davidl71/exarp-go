@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/davidl71/exarp-go/internal/framework"
+	"github.com/davidl71/exarp-go/internal/prompts"
 	"github.com/davidl71/exarp-go/proto"
 )
 
@@ -216,6 +217,30 @@ func TestHandleReportPlan(t *testing.T) {
 				tt.validate(t, result)
 			}
 		})
+	}
+}
+
+func TestGetCodebaseMetrics_UsesCurrentRegistryCounts(t *testing.T) {
+	tmpDir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(tmpDir, "main.go"), []byte("package main\n"), 0o644); err != nil {
+		t.Fatalf("write main.go: %v", err)
+	}
+
+	metrics, err := getCodebaseMetrics(tmpDir)
+	if err != nil {
+		t.Fatalf("getCodebaseMetrics() error = %v", err)
+	}
+
+	if got := metrics["tools"]; got != ExpectedToolCountBase {
+		t.Fatalf("tools = %v, want %d", got, ExpectedToolCountBase)
+	}
+
+	if got := metrics["prompts"]; got != len(prompts.ListAllPromptNames()) {
+		t.Fatalf("prompts = %v, want %d", got, len(prompts.ListAllPromptNames()))
+	}
+
+	if got := metrics["resources"]; got != 24 {
+		t.Fatalf("resources = %v, want 24", got)
 	}
 }
 

@@ -48,6 +48,10 @@ func TestHandleToolCatalogNative(t *testing.T) {
 				if help["category"] == nil {
 					t.Error("expected category field in result")
 				}
+
+				if help["class"] != "primary" {
+					t.Errorf("expected class 'primary', got %v", help["class"])
+				}
 			},
 		},
 		{
@@ -218,5 +222,36 @@ func TestGetToolCatalog_TestingDocumentsGoSpecificFlows(t *testing.T) {
 
 	if !strings.Contains(entry.Description, "Go test/coverage/validation") {
 		t.Fatalf("testing description = %q, want Go-specific execution note", entry.Description)
+	}
+}
+
+func TestGetToolCatalog_ClassificationsAndAliases(t *testing.T) {
+	catalog := GetToolCatalog()
+
+	primary, exists := catalog["task_workflow"]
+	if !exists {
+		t.Fatal("task_workflow missing from catalog")
+	}
+	if primary.Class != "primary" {
+		t.Fatalf("task_workflow class = %q, want primary", primary.Class)
+	}
+
+	specialist, exists := catalog["ollama"]
+	if !exists {
+		t.Fatal("ollama missing from catalog")
+	}
+	if specialist.Class != "specialist" {
+		t.Fatalf("ollama class = %q, want specialist", specialist.Class)
+	}
+
+	alias, exists := catalog["task_execute"]
+	if !exists {
+		t.Fatal("task_execute missing from catalog")
+	}
+	if alias.Class != "alias" {
+		t.Fatalf("task_execute class = %q, want alias", alias.Class)
+	}
+	if alias.PreferredTool != "task_workflow" {
+		t.Fatalf("task_execute preferred_tool = %q, want task_workflow", alias.PreferredTool)
 	}
 }

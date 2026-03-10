@@ -14,6 +14,8 @@ type ToolCatalogEntry struct {
 	Hint             string   `json:"hint"`
 	Category         string   `json:"category"`
 	Description      string   `json:"description"`
+	Class            string   `json:"class,omitempty"`
+	PreferredTool    string   `json:"preferred_tool,omitempty"`
 	RecommendedModel string   `json:"recommended_model,omitempty"`
 	Examples         []string `json:"examples,omitempty"`
 }
@@ -53,6 +55,7 @@ func GetToolCatalog() map[string]ToolCatalogEntry {
 			Hint:             "TRIGGER: 'alignment', 'PRD', 'requirements', 'does this match'. Checks if tasks align with project requirements.",
 			Category:         "Task Management",
 			Description:      "Analyzes task-project alignment and generates alignment reports. Use when user asks about PRD alignment or requirements compliance.",
+			Class:            "specialist",
 			RecommendedModel: "claude-haiku",
 		},
 		"task_analysis": {
@@ -60,6 +63,7 @@ func GetToolCatalog() map[string]ToolCatalogEntry {
 			Hint:             "TRIGGER: 'analyze tasks', 'dependencies', 'duplicates', 'conflicts', 'parallel', 'execution plan'. Advanced task analysis.",
 			Category:         "Task Management",
 			Description:      "Analyzes tasks for duplicates, tags, hierarchy, dependencies, and parallelization opportunities. Use when user wants to understand task relationships or find conflicts.",
+			Class:            "primary",
 			RecommendedModel: "claude-haiku",
 		},
 		"task_discovery": {
@@ -67,6 +71,7 @@ func GetToolCatalog() map[string]ToolCatalogEntry {
 			Hint:             "TRIGGER: 'find tasks', 'discover', 'missing tasks', 'scan for todos'. Searches code and docs for tasks.",
 			Category:         "Task Management",
 			Description:      "Discovers tasks from code comments, markdown files, and other sources. Use when user wants to find tasks that aren't in the task list yet.",
+			Class:            "primary",
 			RecommendedModel: "claude-haiku",
 		},
 		"task_workflow": {
@@ -74,6 +79,7 @@ func GetToolCatalog() map[string]ToolCatalogEntry {
 			Hint:             "TRIGGER: 'task workflow', 'create task', 'update task', 'list tasks', 'T-xxx', 'todo', 'triaging'. OpenCode/agent: use for list/update/create when user asks for backlog or task status; use action=sync, sub_action=list with status/filter_tag. PREFER exarp-go task CLI for simple ops; use this tool for clarify, cleanup, sync_approvals.",
 			Category:         "Task Management",
 			Description:      "Manages task workflow: sync, approve, clarify, cleanup, create. OpenCode/agent: use for listing/updating tasks (action=sync, sub_action=list). PREFER CLI (exarp-go task list/update/create) for simple ops. Never edit .todo2/state.todo2.json directly.",
+			Class:            "primary",
 			RecommendedModel: "claude-haiku",
 			Examples: []string{
 				"Simple: exarp-go task list, exarp-go task update T-123 --new-status Done",
@@ -88,6 +94,7 @@ func GetToolCatalog() map[string]ToolCatalogEntry {
 			Hint:             "TRIGGER: 'lint', 'format', 'gofmt', 'style', 'analyze code'. Code linting and formatting.",
 			Category:         "Code Quality",
 			Description:      "Runs linters and analyzes code quality issues. Use when user asks to lint, format, or check code style.",
+			Class:            "primary",
 			RecommendedModel: "claude-haiku",
 		},
 		"testing": {
@@ -95,6 +102,7 @@ func GetToolCatalog() map[string]ToolCatalogEntry {
 			Hint:             "TRIGGER: 'test', 'coverage', 'run tests', 'test failure', 'validate'. Testing workflows; run|coverage|validate are Go-project flows today.",
 			Category:         "Code Quality",
 			Description:      "Runs Go test/coverage/validation flows and offers test suggestions. Use when user mentions tests, coverage, or test failures; non-Go repos should treat run/coverage/validate as Go-specific until framework-aware runners are added.",
+			Class:            "primary",
 			RecommendedModel: "claude-haiku",
 		},
 
@@ -104,6 +112,7 @@ func GetToolCatalog() map[string]ToolCatalogEntry {
 			Hint:             "TRIGGER: 'security', 'vulnerabilities', 'scan', 'safe', 'security check', 'govulncheck'. Security scanning.",
 			Category:         "Security",
 			Description:      "Security scanning and vulnerability assessment. Use when user asks about security, vulnerabilities, or wants to check for issues.",
+			Class:            "primary",
 			RecommendedModel: "claude-haiku",
 		},
 		"check_attribution": {
@@ -111,6 +120,7 @@ func GetToolCatalog() map[string]ToolCatalogEntry {
 			Hint:             "Attribution compliance check. Verify proper attribution for all third-party components.",
 			Category:         "Security",
 			Description:      "Checks for proper attribution of third-party code and licenses",
+			Class:            "specialist",
 			RecommendedModel: "claude-haiku",
 		},
 
@@ -120,6 +130,7 @@ func GetToolCatalog() map[string]ToolCatalogEntry {
 			Hint:             "TRIGGER: 'context', 'too much context', 'compact', 'summarize', 'context budget'. Manages conversation context size.",
 			Category:         "Workflow",
 			Description:      "Manages context: summarize, estimate budget, batch operations. Use when context is getting large or user asks about context limits.",
+			Class:            "specialist",
 			RecommendedModel: "claude-haiku",
 		},
 		"tool_catalog": {
@@ -127,6 +138,7 @@ func GetToolCatalog() map[string]ToolCatalogEntry {
 			Hint:             "Tool catalog. action=list|help. Unified tool catalog and help.",
 			Category:         "Workflow",
 			Description:      "Browses tool catalog and provides help for available tools",
+			Class:            "primary",
 			RecommendedModel: "claude-haiku",
 		},
 		"workflow_mode": {
@@ -134,6 +146,7 @@ func GetToolCatalog() map[string]ToolCatalogEntry {
 			Hint:             "Workflow mode management. action=focus|suggest|stats. Unified workflow operations.",
 			Category:         "Workflow",
 			Description:      "Manages workflow modes and operational states",
+			Class:            "primary",
 			RecommendedModel: "claude-haiku",
 		},
 		"server_status": {
@@ -150,6 +163,7 @@ func GetToolCatalog() map[string]ToolCatalogEntry {
 			Hint:             "Config generation. action=rules|ignore|simplify. Creates IDE config files.",
 			Category:         "Configuration",
 			Description:      "Generates IDE configuration files (.cursorrules, .cursorignore)",
+			Class:            "primary",
 			RecommendedModel: "claude-haiku",
 		},
 		"setup_hooks": {
@@ -157,6 +171,7 @@ func GetToolCatalog() map[string]ToolCatalogEntry {
 			Hint:             "Hooks setup. action=git|patterns. Install automation hooks.",
 			Category:         "Configuration",
 			Description:      "Sets up Git hooks and automation triggers",
+			Class:            "primary",
 			RecommendedModel: "claude-haiku",
 		},
 
@@ -166,6 +181,7 @@ func GetToolCatalog() map[string]ToolCatalogEntry {
 			Hint:             "TRIGGER: 'remember', 'recall', 'memory', 'what did we decide', 'save this', 'look up'. AI memory storage.",
 			Category:         "Memory & Learning",
 			Description:      "Manages AI memory: save, recall, and search discoveries. Use when user wants to remember something or recall past decisions.",
+			Class:            "primary",
 			RecommendedModel: "claude-haiku",
 		},
 		"memory_maint": {
@@ -173,6 +189,7 @@ func GetToolCatalog() map[string]ToolCatalogEntry {
 			Hint:             "Memory maintenance. action=health|gc|prune|consolidate|dream. Lifecycle management.",
 			Category:         "Memory & Learning",
 			Description:      "Maintains memory system: health checks, garbage collection, consolidation",
+			Class:            "primary",
 			RecommendedModel: "claude-haiku",
 		},
 
@@ -182,6 +199,7 @@ func GetToolCatalog() map[string]ToolCatalogEntry {
 			Hint:             "TRIGGER: 'report', 'briefing', 'plan', 'PRD', 'scorecard', 'overview'. OpenCode/agent: use action=overview for quick status, action=scorecard for health, action=briefing for standup. Creates project reports.",
 			Category:         "Reporting",
 			Description:      "Generates project reports: overview, scorecard, briefing, PRD, plan (.plan.md). OpenCode/agent: use overview/scorecard/briefing for project status.",
+			Class:            "primary",
 			RecommendedModel: "claude-haiku",
 		},
 		// Automation
@@ -190,6 +208,7 @@ func GetToolCatalog() map[string]ToolCatalogEntry {
 			Hint:             "Automation. action=daily|nightly|sprint|discover. Unified automation tool.",
 			Category:         "Automation",
 			Description:      "Unified automation: daily, nightly, sprint, and discovery workflows",
+			Class:            "primary",
 			RecommendedModel: "claude-haiku",
 		},
 
@@ -199,6 +218,7 @@ func GetToolCatalog() map[string]ToolCatalogEntry {
 			Hint:             "LLM abstraction (FM). action=generate|respond|summarize|classify. On-device Apple Silicon. Uses DefaultFMProvider().",
 			Category:         "AI & ML",
 			Description:      "Apple Foundation Models on-device; part of LLM abstraction (FMProvider)",
+			Class:            "specialist",
 			RecommendedModel: "claude-haiku",
 		},
 		"fm_plan_and_execute": {
@@ -206,6 +226,7 @@ func GetToolCatalog() map[string]ToolCatalogEntry {
 			Hint:             "Plan-and-execute with FM/Ollama. Breaks task into subtasks (planner), runs workers in parallel, combines. Use for complex single-shot tasks.",
 			Category:         "AI & ML",
 			Description:      "Plan-and-execute flow: planner breaks task into subtasks, workers run in parallel, results combined (uses DefaultFMProvider)",
+			Class:            "specialist",
 			RecommendedModel: "claude-haiku",
 		},
 		"ollama": {
@@ -213,6 +234,7 @@ func GetToolCatalog() map[string]ToolCatalogEntry {
 			Hint:             "LLM abstraction. ollama. action=status|models|generate|pull|hardware|docs|quality|summary. Native then bridge (DefaultOllama()).",
 			Category:         "AI & ML",
 			Description:      "Ollama local LLM; part of LLM abstraction (OllamaProvider, native then bridge)",
+			Class:            "specialist",
 			RecommendedModel: "claude-haiku",
 		},
 		"text_generate": {
@@ -220,6 +242,7 @@ func GetToolCatalog() map[string]ToolCatalogEntry {
 			Hint:             "Unified generate-text dispatcher. provider=fm|ollama|insight|mlx|localai|gateway|llamacpp|auto. Single entry point for all LLM text generation.",
 			Category:         "AI & ML",
 			Description:      "Unified text generation across all backends (FM, Ollama, MLX, LocalAI, gateway, llama.cpp, auto model selection)",
+			Class:            "primary",
 			RecommendedModel: "claude-haiku",
 		},
 		"task_execute": {
@@ -227,6 +250,8 @@ func GetToolCatalog() map[string]ToolCatalogEntry {
 			Hint:             "Run execution flow for a Todo2 task. task_execution template + model + ApplyChanges + result comment.",
 			Category:         "Workflow",
 			Description:      "Model-assisted task execution: load task, run task_execution prompt, parse response, optionally apply file changes, add result comment (T-215)",
+			Class:            "alias",
+			PreferredTool:    "task_workflow",
 			RecommendedModel: "claude-haiku",
 		},
 		"mlx": {
@@ -234,6 +259,7 @@ func GetToolCatalog() map[string]ToolCatalogEntry {
 			Hint:             "LLM abstraction (MLX). action=status|hardware|models|generate. Bridge-only; report insights use DefaultReportInsight() (MLX then FM).",
 			Category:         "AI & ML",
 			Description:      "MLX on Apple Silicon; part of LLM abstraction (report insights: MLX then FM)",
+			Class:            "specialist",
 			RecommendedModel: "claude-haiku",
 		},
 		"recommend": {
@@ -241,6 +267,7 @@ func GetToolCatalog() map[string]ToolCatalogEntry {
 			Hint:             "Recommend. action=model|workflow|advisor. Unified recommendation tool.",
 			Category:         "AI & ML",
 			Description:      "Recommends models, workflows, and advisors based on task context",
+			Class:            "primary",
 			RecommendedModel: "claude-haiku",
 		},
 
@@ -250,6 +277,7 @@ func GetToolCatalog() map[string]ToolCatalogEntry {
 			Hint:             "TRIGGER: 'health check', 'server status', 'git status', 'docs status'. OpenCode/agent: use action=docs|git|cicd|tools for component status. Checks project health.",
 			Category:         "Utilities",
 			Description:      "Health checks for server, git, docs, definition of done, CI/CD. OpenCode/agent: use for component status (docs, git, cicd, tools).",
+			Class:            "primary",
 			RecommendedModel: "claude-haiku",
 		},
 		"git_tools": {
@@ -257,6 +285,7 @@ func GetToolCatalog() map[string]ToolCatalogEntry {
 			Hint:             "Git tools. action=commits|branches|tasks|diff|graph|merge|set_branch. Unified git-inspired tools.",
 			Category:         "Utilities",
 			Description:      "Git-inspired task management and version control operations",
+			Class:            "primary",
 			RecommendedModel: "claude-haiku",
 		},
 		"session": {
@@ -264,6 +293,7 @@ func GetToolCatalog() map[string]ToolCatalogEntry {
 			Hint:             "TRIGGER: 'session start', 'handoff', 'context', 'resume', 'what should I do next', 'prime'. OpenCode/agent: call action=prime at session start (include_tasks, include_hints); use handoff to leave/resume notes.",
 			Category:         "Utilities",
 			Description:      "Session management: prime, handoff, prompts, assignee. OpenCode/agent: prime at start for task/hint context; handoff for leave/resume notes.",
+			Class:            "primary",
 			RecommendedModel: "claude-haiku",
 		},
 		"infer_session_mode": {
@@ -271,6 +301,8 @@ func GetToolCatalog() map[string]ToolCatalogEntry {
 			Hint:             "Session mode inference. Returns AGENT/ASK/MANUAL with confidence.",
 			Category:         "Utilities",
 			Description:      "Infers session mode (AGENT/ASK/MANUAL) based on task patterns",
+			Class:            "alias",
+			PreferredTool:    "session",
 			RecommendedModel: "claude-haiku",
 		},
 		"estimation": {
@@ -278,6 +310,7 @@ func GetToolCatalog() map[string]ToolCatalogEntry {
 			Hint:             "TRIGGER: 'estimate', 'how long', 'duration', 'time estimate', 'effort'. Task duration estimation.",
 			Category:         "Utilities",
 			Description:      "Estimates task duration using historical data and ML models. Use when user asks how long a task will take.",
+			Class:            "specialist",
 			RecommendedModel: "claude-haiku",
 		},
 		"prompt_tracking": {
@@ -285,6 +318,7 @@ func GetToolCatalog() map[string]ToolCatalogEntry {
 			Hint:             "Prompt tracking. action=log|analyze. Track and analyze prompts.",
 			Category:         "Utilities",
 			Description:      "Tracks and analyzes prompt usage patterns",
+			Class:            "specialist",
 			RecommendedModel: "claude-haiku",
 		},
 		"add_external_tool_hints": {
@@ -292,6 +326,7 @@ func GetToolCatalog() map[string]ToolCatalogEntry {
 			Hint:             "Tool hints. Files scanned, modified, hints added.",
 			Category:         "Utilities",
 			Description:      "Adds external tool hints to documentation",
+			Class:            "specialist",
 			RecommendedModel: "claude-haiku",
 		},
 	}
@@ -344,6 +379,8 @@ func handleToolCatalogHelp(ctx context.Context, params map[string]interface{}) (
 		"hint":              tool.Hint,
 		"category":          tool.Category,
 		"description":       tool.Description,
+		"class":             tool.Class,
+		"preferred_tool":    tool.PreferredTool,
 		"recommended_model": tool.RecommendedModel,
 	}
 	if len(tool.Examples) > 0 {

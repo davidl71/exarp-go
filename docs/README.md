@@ -6,6 +6,12 @@
 
 ## Current Documentation
 
+### Preferred Tool Surface
+- Primary entry points: `task_workflow`, `task_analysis`, `task_discovery`, `report`, `health`, `session`, `automation`, `testing`, `lint`, `security`, `git_tools`, `memory`, `memory_maint`, `recommend`, `text_generate`, `workflow_mode`, `tool_catalog`, `generate_config`, `setup_hooks`
+- Specialist tools: backend- or domain-specific helpers such as `ollama`, `mlx`, `llamacpp`, `cursor_cloud_agent`, `fm_plan_and_execute`, `analyze_alignment`, `check_attribution`
+- Compatibility aliases: `task_execute` -> `task_workflow`, `infer_session_mode` -> `session`, `scan_dependency_security` -> `security`, `context_budget` -> `context`
+- See `TOOL_CONSOLIDATION_ANALYSIS.md` for the current consolidation map and migration guidance
+
 ### Architecture & Design
 - `FRAMEWORK_AGNOSTIC_DESIGN.md` - Framework-agnostic architecture pattern
 - `DEVWISDOM_GO_LESSONS.md` - Go development best practices and lessons learned

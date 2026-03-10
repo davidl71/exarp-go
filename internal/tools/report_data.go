@@ -12,6 +12,7 @@ import (
 	"github.com/davidl71/exarp-go/internal/cache"
 	"github.com/davidl71/exarp-go/internal/config"
 	"github.com/davidl71/exarp-go/internal/models"
+	"github.com/davidl71/exarp-go/internal/prompts"
 	"github.com/davidl71/exarp-go/proto"
 	"github.com/spf13/cast"
 )
@@ -290,6 +291,11 @@ func getCodebaseMetrics(projectRoot string) (map[string]interface{}, error) {
 		return nil
 	})
 
+	// Keep these metadata counts aligned with the current native registries.
+	// Resources remain a fixed count here because tools cannot import internal/resources
+	// without a package cycle.
+	const expectedResourceCount = 24
+
 	metrics := map[string]interface{}{
 		"go_files":     goFiles,
 		"go_lines":     0, // Could count lines if needed
@@ -298,18 +304,11 @@ func getCodebaseMetrics(projectRoot string) (map[string]interface{}, error) {
 		"cpp_files":    cppFiles,
 		"rust_files":   rustFiles,
 		"total_files":  totalFiles,
-		"total_lines":  0,  // Could count lines if needed
-		"tools":        28, // From registry (28 base + 1 conditional Apple FM)
-		"prompts":      35, // From templates.go (19 original + 16 migrated from Python)
-		"resources":    21, // From resources/handlers.go
+		"total_lines":  0, // Could count lines if needed
+		"tools":        ExpectedToolCountBase,
+		"prompts":      len(prompts.ListAllPromptNames()),
+		"resources":    expectedResourceCount,
 	}
-
-	// Count tools, prompts, resources from registry
-	// These would need to be exported from registry.go or counted differently
-	// For now, use values matching MIGRATION_STATUS_CURRENT.md
-	metrics["tools"] = 28
-	metrics["prompts"] = 34
-	metrics["resources"] = 21
 
 	return metrics, err
 }

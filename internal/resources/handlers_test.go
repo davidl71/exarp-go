@@ -18,6 +18,9 @@ func TestRegisterAllResources(t *testing.T) {
 	if server.ResourceCount() != 24 {
 		t.Errorf("server.ResourceCount() = %v, want 24", server.ResourceCount())
 	}
+	if server.ResourceTemplateCount() != 11 {
+		t.Errorf("server.ResourceTemplateCount() = %v, want 11", server.ResourceTemplateCount())
+	}
 
 	// Verify specific resources are registered
 	expectedResources := []string{
@@ -63,6 +66,40 @@ func TestRegisterAllResources(t *testing.T) {
 
 		if resource.MimeType == "" {
 			t.Errorf("resource %q mimeType is empty", uri)
+		}
+	}
+
+	expectedTemplates := []string{
+		"stdio://memories/category/{category}",
+		"stdio://memories/task/{task_id}",
+		"stdio://memories/session/{date}",
+		"stdio://prompts/mode/{mode}",
+		"stdio://prompts/persona/{persona}",
+		"stdio://prompts/category/{category}",
+		"stdio://tools/{category}",
+		"stdio://tasks/{task_id}",
+		"stdio://tasks/status/{status}",
+		"stdio://tasks/priority/{priority}",
+		"stdio://tasks/tag/{tag}",
+	}
+
+	for _, uri := range expectedTemplates {
+		resource, exists := server.GetResourceTemplate(uri)
+		if !exists {
+			t.Errorf("resource template %q not registered", uri)
+			continue
+		}
+
+		if resource.URI != uri {
+			t.Errorf("resource template.URI = %v, want %v", resource.URI, uri)
+		}
+
+		if resource.Name == "" {
+			t.Errorf("resource template %q name is empty", uri)
+		}
+
+		if resource.MimeType == "" {
+			t.Errorf("resource template %q mimeType is empty", uri)
 		}
 	}
 }
