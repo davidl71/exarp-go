@@ -388,16 +388,29 @@ func findNoiseTasks(tasks []Todo2Task) []map[string]interface{} {
 	}
 	// Action verbs that suggest real tasks
 	actionVerbs := []string{
-		"add", "fix", "implement", "create", "update", "migrate", "document",
-		"test", "refactor", "remove", "replace", "extract", "integrate",
-		"verify", "validate", "support", "handle", "allow", "enable",
-		"ensure", "improve", "optimize", "complete", "run", "build",
+		"add", "allow", "audit", "build", "check", "clean", "complete", "create",
+		"document", "enable", "ensure", "expose", "extract", "fetch", "fix",
+		"handle", "implement", "improve", "integrate", "investigate", "list",
+		"migrate", "optimize", "refactor", "remove", "replace", "retrieve",
+		"review", "run", "scan", "support", "test", "update", "validate",
+		"verify", "wire", "write",
+	}
+	statePhrases := []string{
+		"pass", "passes", "done", "complete", "completed", "cancelled", "cancellation",
+		"required", "requires", "supported", "available",
+	}
+	meaningfulTags := map[string]bool{
+		"testing": true, "mcp": true, "migration": true, "docs": true, "documentation": true,
+		"formid": true, "integration": true, "api": true, "ci": true, "database": true,
 	}
 
 	var candidates []map[string]interface{}
 	for _, t := range tasks {
-		content := strings.TrimSpace(t.Content + " " + t.LongDescription)
+		title := strings.TrimSpace(t.Content)
+		description := strings.TrimSpace(t.LongDescription)
+		content := strings.TrimSpace(title + " " + description)
 		contentLower := strings.ToLower(content)
+		titleLower := strings.ToLower(title)
 		var reason string
 
 		if len(content) < 20 {
@@ -405,7 +418,7 @@ func findNoiseTasks(tasks []Todo2Task) []map[string]interface{} {
 		} else if strings.Contains(content, "...") && len(content) < 80 {
 			reason = "truncated/ellipsis"
 		} else {
-			firstWord := strings.Fields(contentLower)
+			firstWord := strings.Fields(titleLower)
 			if len(firstWord) > 0 {
 				first := firstWord[0]
 				for _, starter := range fragmentStarters {
@@ -417,13 +430,40 @@ func findNoiseTasks(tasks []Todo2Task) []map[string]interface{} {
 				if reason == "" {
 					hasAction := false
 					for _, verb := range actionVerbs {
-						if strings.HasPrefix(first, verb) || strings.Contains(contentLower, " "+verb+" ") {
+						if first == verb || strings.HasPrefix(first, verb) || strings.Contains(titleLower, " "+verb+" ") {
 							hasAction = true
 							break
 						}
 					}
-					if !hasAction && len(content) < 60 {
-						reason = "no action verb, short content"
+					meaningfulContext := false
+					if len(t.Metadata) > 0 {
+						if ParamString(t.Metadata, "discovered_from") != "" {
+							meaningfulContext = true
+						}
+					}
+					if !meaningfulContext {
+						for _, tag := range t.Tags {
+							if meaningfulTags[strings.ToLower(tag)] {
+								meaningfulContext = true
+								break
+							}
+						}
+					}
+					isStatePhrase := false
+					for _, phrase := range statePhrases {
+						if strings.Contains(titleLower, phrase) {
+							isStatePhrase = true
+							break
+						}
+					}
+					titleWords := strings.Fields(title)
+					shortTitle := len(title) < 45 || len(titleWords) <= 4
+					if !hasAction && shortTitle {
+						if isStatePhrase {
+							reason = "title is a vague state phrase"
+						} else if !meaningfulContext {
+							reason = "title is a short generic noun phrase"
+						}
 					}
 				}
 			}

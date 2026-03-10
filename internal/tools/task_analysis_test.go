@@ -526,6 +526,103 @@ func TestBuildBatchTagPrompt(t *testing.T) {
 	}
 }
 
+func TestFindNoiseTasksAvoidsActionableShortTitles(t *testing.T) {
+	tasks := []Todo2Task{
+		{
+			ID:              "T-131",
+			Content:         "List all available forms from the provider",
+			LongDescription: "List all available forms from the provider",
+			Tags:            []string{"discovered", "formid", "markdown"},
+			Metadata: map[string]interface{}{
+				"discovered_from": "docs/GOTOHUMAN_TOOLS_DOCUMENTATION.md",
+			},
+		},
+		{
+			ID:              "T-301",
+			Content:         "Review and validate the migration plan",
+			LongDescription: "Review and validate the migration plan",
+			Tags:            []string{"discovered", "migration", "markdown"},
+			Metadata: map[string]interface{}{
+				"discovered_from": "docs/SQLITE_MIGRATION_PLAN.md",
+			},
+		},
+		{
+			ID:              "T-132",
+			Content:         "Implement schema retrieval for all available forms",
+			LongDescription: "Implement schema retrieval for all available forms",
+			Tags:            []string{"discovered", "formid", "markdown"},
+			Metadata: map[string]interface{}{
+				"discovered_from": "docs/GOTOHUMAN_TOOLS_DOCUMENTATION.md",
+			},
+		},
+	}
+
+	got := findNoiseTasks(tasks)
+	if len(got) != 0 {
+		t.Fatalf("expected no noise candidates, got %v", got)
+	}
+}
+
+func TestFindNoiseTasksFlagsVagueStatePhrasesAndFragments(t *testing.T) {
+	tasks := []Todo2Task{
+		{
+			ID:              "T-255",
+			Content:         "Integration tests pass",
+			LongDescription: "Integration tests pass",
+			Tags:            []string{"discovered", "testing", "markdown"},
+			Metadata: map[string]interface{}{
+				"discovered_from": "docs/PHASE_3_EXECUTION_PLAN.md",
+			},
+		},
+		{
+			ID:              "T-67",
+			Content:         "Requires Swift bridge",
+			LongDescription: "Requires Swift bridge",
+			Tags:            []string{"comment", "discovered"},
+			Metadata: map[string]interface{}{
+				"discovered_from": "tests/integration/mcp/test_apple_foundation_models.py",
+			},
+		},
+		{
+			ID:              "T-frag",
+			Content:         "that should be removed",
+			LongDescription: "that should be removed",
+		},
+	}
+
+	got := findNoiseTasks(tasks)
+	if len(got) != 3 {
+		t.Fatalf("expected 3 noise candidates, got %v", got)
+	}
+
+	reasonsByID := map[string]string{}
+	for _, candidate := range got {
+		id, _ := candidate["id"].(string)
+		reason, _ := candidate["reason"].(string)
+		reasonsByID[id] = reason
+	}
+
+	if reasonsByID["T-255"] != "title is a vague state phrase" {
+		t.Fatalf("expected state phrase reason for T-255, got %q", reasonsByID["T-255"])
+	}
+	if reasonsByID["T-67"] != "title is a vague state phrase" {
+		t.Fatalf("expected state phrase reason for T-67, got %q", reasonsByID["T-67"])
+	}
+	if !strings.Contains(reasonsByID["T-frag"], "sentence fragment") {
+		t.Fatalf("expected sentence fragment reason for T-frag, got %q", reasonsByID["T-frag"])
+	}
+
+	safeDelete, rewrite := classifyNoiseCandidates(got)
+	sort.Strings(safeDelete)
+	sort.Strings(rewrite)
+	if len(safeDelete) != 1 || safeDelete[0] != "T-frag" {
+		t.Fatalf("expected only T-frag safe to delete, got %v", safeDelete)
+	}
+	if len(rewrite) != 2 || rewrite[0] != "T-255" || rewrite[1] != "T-67" {
+		t.Fatalf("expected rewrite set [T-255 T-67], got %v", rewrite)
+	}
+}
+
 func TestSuggestNextLLMBatchSize(t *testing.T) {
 	tests := []struct {
 		name        string
