@@ -518,8 +518,9 @@ func handleTaskWorkflowList(ctx context.Context, params map[string]interface{}) 
 		limit = cast.ToInt(l)
 	}
 
-	// Default to open tasks only (Todo + In Progress) when no status filter is given
-	openOnly := status == ""
+	// Default to open tasks only (Todo + In Progress) when no status filter is given.
+	// When querying a specific task_id (used by `task show`), include closed tasks too.
+	openOnly := status == "" && taskID == ""
 	if openOnly {
 		status = "" // keep empty so we filter by open set below
 	}

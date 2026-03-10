@@ -10,6 +10,7 @@ import (
 	"github.com/davidl71/exarp-go/internal/models"
 	"github.com/spf13/cast"
 	"os"
+	"path/filepath"
 	"strings"
 )
 
@@ -158,6 +159,64 @@ func handleTaskWorkflowFixEmptyDescriptions(ctx context.Context, params map[stri
 
 // ─── buildClarityRecommendations ────────────────────────────────────────────
 // Helper functions for clarity action
+
+type storeDriftReport struct {
+	JSONOnlyIDs []string `json:"json_only_ids,omitempty"`
+	DBOnlyIDs   []string `json:"db_only_ids,omitempty"`
+}
+
+func detectTaskStoreDrift(projectRoot string) (*storeDriftReport, error) {
+	if projectRoot == "" {
+		return nil, fmt.Errorf("project root is required")
+	}
+
+	dbTasks, err := loadTodo2TasksFromDB(projectRoot)
+	if err != nil {
+		return nil, err
+	}
+
+	jsonTasks, err := loadTodo2TasksFromJSON(projectRoot)
+	if err != nil {
+		return nil, err
+	}
+
+	projectID := filepath.Base(projectRoot)
+	if projectID == "" || projectID == "." {
+		projectID = "default"
+	}
+
+	dbIDs := make(map[string]bool, len(dbTasks))
+	for _, task := range dbTasks {
+		dbIDs[task.ID] = true
+	}
+
+	jsonIDs := make(map[string]bool, len(jsonTasks))
+	jsonOnly := make([]string, 0)
+	for _, task := range jsonTasks {
+		if task.ProjectID != "" && task.ProjectID != projectID {
+			continue
+		}
+		jsonIDs[task.ID] = true
+		if strings.HasPrefix(task.ID, "AUTO-") {
+			continue
+		}
+		if !dbIDs[task.ID] {
+			jsonOnly = append(jsonOnly, task.ID)
+		}
+	}
+
+	dbOnly := make([]string, 0)
+	for _, task := range dbTasks {
+		if !jsonIDs[task.ID] {
+			dbOnly = append(dbOnly, task.ID)
+		}
+	}
+
+	return &storeDriftReport{
+		JSONOnlyIDs: jsonOnly,
+		DBOnlyIDs:   dbOnly,
+	}, nil
+}
 
 func buildClarityRecommendations(issues []map[string]interface{}) []map[string]interface{} {
 	recommendations := []map[string]interface{}{}
