@@ -122,8 +122,8 @@ func FindProjectRoot() (string, error) {
 	return config.FindProjectRoot()
 }
 
-// GetProjectRootWithFallback returns project root: FindProjectRoot, else PROJECT_ROOT env, else cwd.
-// Use when a best-effort root is needed (e.g. state file path); returns error only if os.Getwd() fails.
+// GetProjectRootWithFallback returns project root: FindProjectRoot, else PROJECT_ROOT env.
+// Use when a best-effort root is needed, but still require an explicit or discoverable project root.
 func GetProjectRootWithFallback() (string, error) {
 	root, err := config.FindProjectRoot()
 	if err == nil && root != "" {
@@ -132,11 +132,7 @@ func GetProjectRootWithFallback() (string, error) {
 	if env := os.Getenv("PROJECT_ROOT"); env != "" && !strings.Contains(env, "{{PROJECT_ROOT}}") {
 		return filepath.Clean(env), nil
 	}
-	wd, err := os.Getwd()
-	if err != nil {
-		return "", fmt.Errorf("project root not found and getwd failed: %w", err)
-	}
-	return wd, nil
+	return "", fmt.Errorf("project root not found; set PROJECT_ROOT or run from a project with .todo2/.exarp markers")
 }
 
 // SyncTodo2Tasks synchronizes tasks between database and JSON file

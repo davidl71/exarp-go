@@ -19,6 +19,8 @@ env:
       else
         echo "${GOROOT:-}"
       fi
+  GOCACHE: '{{.REPO_ROOT}}/.cache/go-build'
+  GOMODCACHE: '{{.REPO_ROOT}}/.cache/go-mod'
   GOFLAGS:
     sh: test -f vendor/modules.txt && echo "-mod=vendor" || echo ""
 
