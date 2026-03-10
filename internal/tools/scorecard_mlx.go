@@ -144,34 +144,14 @@ func calculateSecurityScore(scorecard *GoScorecardResult) float64 {
 }
 
 func calculateDocumentationScore(scorecard *GoScorecardResult) float64 {
-	score := 0.0
-	checks := 0
-
-	if scorecard.Health.ReadmeExists {
-		score += 40
-		checks++
-	}
-
-	if scorecard.Health.DocsDirExists {
-		score += 30
-		checks++
-	}
-
-	if scorecard.Health.DocsFileCount > 0 {
-		score += 15
-		checks++
-	}
-
+	score := calculateDocsHealthScore(&scorecard.Health)
 	if scorecard.Health.AIAssistDocsExist {
-		score += 15
-		checks++
+		score += 10
 	}
-
-	if checks > 0 {
-		return score
+	if score > 100 {
+		return 100
 	}
-
-	return 0
+	return score
 }
 
 func calculateCompletionScore(scorecard *GoScorecardResult) float64 {
@@ -236,5 +216,33 @@ func ExtractBlockers(scorecard *GoScorecardResult) []string {
 		blockers = append(blockers, "Security vulnerabilities detected")
 	}
 
+	if scorecard.Health.DocsStalePathMatches > 0 {
+		blockers = append(blockers, fmt.Sprintf("Stale documentation paths: %d", scorecard.Health.DocsStalePathMatches))
+	}
+
+	if scorecard.Health.DocsMissingReferenceCount > 0 {
+		blockers = append(blockers, fmt.Sprintf("Broken documentation references: %d", scorecard.Health.DocsMissingReferenceCount))
+	}
+
 	return blockers
+}
+
+func calculateDocsHealthScore(health *GoHealthChecks) float64 {
+	score := 0.0
+	if health.ReadmeExists {
+		score += 20
+	}
+	if health.DocsDirExists {
+		score += 20
+	}
+	if health.DocsLiveCount > 0 || health.DocsFileCount > 0 {
+		score += 20
+	}
+	if health.DocsStalePathMatches == 0 {
+		score += 20
+	}
+	if health.DocsMissingReferenceCount == 0 {
+		score += 20
+	}
+	return score
 }

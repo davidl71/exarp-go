@@ -87,61 +87,61 @@ func calculateGoScore(health *GoHealthChecks, metrics *GoProjectMetrics) float64
 	score := 0.0
 	maxScore := 0.0
 
-	// Module health (20%)
-	maxScore += 20
+	// Module health (15%)
+	maxScore += 15
 
 	if health.GoModExists {
-		score += 5
+		score += 3.75
 	}
 
 	if health.GoSumExists {
-		score += 5
+		score += 3.75
 	}
 
 	if health.GoModTidyPasses {
-		score += 5
+		score += 3.75
 	}
 
 	if health.GoVersionValid {
-		score += 5
+		score += 3.75
 	}
 
-	// Build & Quality (30%)
-	maxScore += 30
+	// Build & Quality (25%)
+	maxScore += 25
 
 	if health.GoBuildPasses {
-		score += 10
+		score += 8.3333333333
 	}
 
 	if health.GoVetPasses {
-		score += 5
+		score += 4.1666666667
 	}
 
 	if health.GoFmtCompliant {
-		score += 5
+		score += 4.1666666667
 	}
 
 	if health.GoLintConfigured {
-		score += 5
+		score += 4.1666666667
 	}
 
 	if health.GoLintPasses {
-		score += 5
+		score += 4.1666666667
 	}
 
-	// Testing (30%)
-	maxScore += 30
+	// Testing (25%)
+	maxScore += 25
 
 	if health.GoTestPasses {
-		score += 15
+		score += 12.5
 	}
 
 	if health.GoTestCoverage >= float64(config.MinCoverage()) {
-		score += 15
+		score += 12.5
 	} else if health.GoTestCoverage >= 50.0 {
-		score += 10
+		score += 8.3333333333
 	} else if health.GoTestCoverage > 0 {
-		score += 5
+		score += 4.1666666667
 	}
 
 	// Security (20%)
@@ -155,6 +155,10 @@ func calculateGoScore(health *GoHealthChecks, metrics *GoProjectMetrics) float64
 			score += 5 // Tool not installed, but not a failure
 		}
 	}
+
+	// Documentation (15%)
+	maxScore += 15
+	score += (calculateDocsHealthScore(health) / 100.0) * 15
 
 	if maxScore == 0 {
 		return 0

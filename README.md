@@ -191,7 +191,7 @@ Install with: `uv sync --dev` or `uv pip install -e ".[dev]"`
 ## Installation
 
 ```bash
-cd /Users/davidl/Projects/exarp-go
+cd {{PROJECT_ROOT}}
 
 # Install Python dependencies (if using uv)
 uv sync

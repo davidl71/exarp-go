@@ -366,7 +366,10 @@ func handleTaskAnalysisTags(ctx context.Context, params map[string]interface{}) 
 		},
 	}
 
-	projectRoot, _ := FindProjectRoot()
+	projectRoot, err := GetProjectRootWithFallback()
+	if err != nil {
+		return nil, fmt.Errorf("failed to resolve project root: %w", err)
+	}
 	outputPath := DefaultReportOutputPath(projectRoot, "TAG_ANALYSIS_RESULT.json", params)
 	if outputPath != "" {
 		if err := saveAnalysisResult(outputPath, result); err != nil {

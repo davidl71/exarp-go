@@ -42,7 +42,7 @@ Projects should be in `~/Projects/`:
 ### Build exarp-go (ARM64)
 
 ```bash
-cd ~/Projects/exarp-go
+cd {{PROJECT_ROOT}}
 go build -o bin/exarp-go ./cmd/server
 chmod +x bin/exarp-go
 
@@ -93,7 +93,7 @@ For projects on the remote machine, create `.cursor/mcp.json` in each project wo
       "description": "Crew Role: Advisor - DevWisdom Go MCP Server"
     },
     "exarp-go": {
-      "command": "/Users/davidl/Projects/exarp-go/bin/exarp-go",
+      "command": "{{PROJECT_ROOT}}/bin/exarp-go",
       "args": [],
       "env": {
         "PROJECT_ROOT": "{{PROJECT_ROOT}}"
@@ -112,7 +112,7 @@ For projects on the remote machine, create `.cursor/mcp.json` in each project wo
 
 ```bash
 # Verify exarp-go
-test -f ~/Projects/exarp-go/bin/exarp-go && echo "✅ exarp-go ready" || echo "❌ Build exarp-go"
+test -f {{PROJECT_ROOT}}/bin/exarp-go && echo "✅ exarp-go ready" || echo "❌ Build exarp-go"
 
 # Verify devwisdom
 test -f ~/Projects/devwisdom-go/devwisdom && echo "✅ devwisdom ready" || echo "❌ Build devwisdom"
@@ -125,7 +125,7 @@ test -f ~/Projects/devwisdom-go/run-advisor.sh && echo "✅ wrapper ready" || ec
 
 ```bash
 # Test exarp-go
-~/Projects/exarp-go/bin/exarp-go --help
+{{PROJECT_ROOT}}/bin/exarp-go --help
 
 # Test devwisdom
 ~/Projects/devwisdom-go/devwisdom --help
@@ -176,7 +176,7 @@ export PATH="$HOME/.cargo/bin:$PATH"
 If using Python bridge features:
 
 ```bash
-cd ~/Projects/exarp-go
+cd {{PROJECT_ROOT}}
 # Check if Python bridge scripts exist
 ls -la bridge/*.py
 
@@ -193,7 +193,7 @@ python3 bridge/execute_tool.py --help
 open -a Cursor
 
 # Or from terminal
-open -a Cursor ~/Projects/exarp-go
+open -a Cursor {{PROJECT_ROOT}}
 ```
 
 ### 2. Verify MCP Configuration
@@ -216,7 +216,7 @@ In Cursor chat, try:
 
 **Solution:**
 1. Verify absolute paths in `.cursor/mcp.json`
-2. Check binary exists: `ls -la /Users/davidl/Projects/exarp-go/bin/exarp-go`
+2. Check binary exists: `ls -la {{PROJECT_ROOT}}/bin/exarp-go`
 3. Check binary is executable: `chmod +x /path/to/binary`
 4. Restart Cursor after changes
 
@@ -227,7 +227,7 @@ In Cursor chat, try:
 **Solution:**
 ```bash
 # Rebuild for ARM64
-cd ~/Projects/exarp-go
+cd {{PROJECT_ROOT}}
 go build -o bin/exarp-go ./cmd/server
 
 # Verify architecture
@@ -242,7 +242,7 @@ file bin/exarp-go
 **Solution:**
 ```bash
 # Make binaries executable
-chmod +x ~/Projects/exarp-go/bin/exarp-go
+chmod +x {{PROJECT_ROOT}}/bin/exarp-go
 chmod +x ~/Projects/devwisdom-go/devwisdom
 chmod +x ~/Projects/devwisdom-go/run-advisor.sh
 
@@ -277,7 +277,7 @@ set -e
 echo "🚀 Setting up MCP servers on macOS M4..."
 
 # Build exarp-go
-cd ~/Projects/exarp-go
+cd {{PROJECT_ROOT}}
 echo "📦 Building exarp-go..."
 go build -o bin/exarp-go ./cmd/server
 chmod +x bin/exarp-go
@@ -305,4 +305,3 @@ echo "📝 Next: Configure .cursor/mcp.json in your workspace"
 - [Cursor MCP Setup Guide](./CURSOR_MCP_SETUP.md)
 - [Tailscale SSH Setup](./TAILSCALE_SSH_SETUP.md)
 - [Apple Silicon Development](https://developer.apple.com/documentation/apple-silicon)
-

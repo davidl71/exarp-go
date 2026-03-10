@@ -23,7 +23,7 @@ The workspace is configured with **5 MCP servers** in `.cursor/mcp.json`:
       "description": "DevWisdom Go MCP Server - Wisdom quotes, trusted advisors, and inspirational guidance"
     },
     "exarp-go": {
-      "command": "/Users/davidl/Projects/exarp-go/run_server.sh",
+      "command": "{{PROJECT_ROOT}}/run-exarp-go.sh",
       "args": [],
       "env": {
         "PROJECT_ROOT": "{{PROJECT_ROOT}}"
@@ -61,7 +61,7 @@ The workspace is configured with **5 MCP servers** in `.cursor/mcp.json`:
 
 **Role:** Core execution and project management
 
-**Command:** `/Users/davidl/Projects/exarp-go/run_server.sh`
+**Command:** `{{PROJECT_ROOT}}/run-exarp-go.sh`
 
 **Capabilities:**
 - **24 Tools:** Comprehensive project management, automation, analysis, testing, security
@@ -285,7 +285,7 @@ Each server provides **distinct, complementary functionality**:
 
 **✅ All wrapper scripts verified:**
 ```bash
-$ ls -la /Users/davidl/Projects/exarp-go/run_server.sh
+$ ls -la {{PROJECT_ROOT}}/run-exarp-go.sh
 -rwxr-xr-x  1 davidl  staff  329 Jan  8 15:52 run_server.sh
 
 $ ls -la /Users/davidl/Projects/devwisdom-go/run_devwisdom.sh
@@ -343,13 +343,13 @@ agentic-tools.infer_task_progress()
 
 1. **Check wrapper scripts exist:**
    ```bash
-   test -f /Users/davidl/Projects/exarp-go/run_server.sh && echo "✅" || echo "❌"
+   test -f {{PROJECT_ROOT}}/run-exarp-go.sh && echo "✅" || echo "❌"
    test -f /Users/davidl/Projects/devwisdom-go/run_devwisdom.sh && echo "✅" || echo "❌"
    ```
 
 2. **Verify permissions:**
    ```bash
-   chmod +x /Users/davidl/Projects/exarp-go/run_server.sh
+   chmod +x {{PROJECT_ROOT}}/run-exarp-go.sh
    chmod +x /Users/davidl/Projects/devwisdom-go/run_devwisdom.sh
    ```
 
@@ -398,4 +398,3 @@ agentic-tools.infer_task_progress()
 
 *Last Updated: January 9, 2026*  
 *Analysis Date: January 9, 2026*
-

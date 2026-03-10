@@ -27,7 +27,7 @@ The `exarp-go` MCP server includes built-in `ollama` and `mlx` tools. These are 
 {
   "mcpServers": {
     "exarp-go": {
-      "command": "/Users/davidl/Projects/exarp-go/bin/exarp-go",
+      "command": "{{PROJECT_ROOT}}/bin/exarp-go",
       "args": [],
       "env": {
         "PROJECT_ROOT": "{{PROJECT_ROOT}}",
@@ -277,4 +277,3 @@ The MLX models are automatically downloaded when first used. No manual pull need
 - [Ollama Documentation](https://ollama.ai/docs)
 - [MLX Documentation](https://ml-explore.github.io/mlx/)
 - [CodeLlama Models](https://huggingface.co/codellama)
-

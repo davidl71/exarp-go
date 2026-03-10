@@ -5,6 +5,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
+	"path/filepath"
 	"strconv"
 	"time"
 
@@ -173,7 +175,7 @@ func handleReport(ctx context.Context, args json.RawMessage) ([]framework.TextCo
 			return nil, fmt.Errorf("report scorecard: %w", err)
 		}
 
-		if !IsGoProject() {
+		if !isGoProjectRoot(projectRoot) {
 			// Generic scorecard for non-Go projects (C++ / Python / Rust / Go / TypeScript / Swift)
 			pb, errPb := aggregateProjectDataProto(ctx, projectRoot, false)
 			if errPb != nil {
@@ -246,7 +248,7 @@ func handleReport(ctx context.Context, args json.RawMessage) ([]framework.TextCo
 					}
 					langList = append(langList, map[string]interface{}{
 						"lang":            h.Lang,
-						"lang_root":      h.LangRoot,
+						"lang_root":       h.LangRoot,
 						"score":           h.Score,
 						"build_passes":    h.BuildPasses,
 						"test_passes":     h.TestPasses,
@@ -267,7 +269,15 @@ func handleReport(ctx context.Context, args json.RawMessage) ([]framework.TextCo
 				}
 				AddTokenEstimateToResult(out)
 				compact := cast.ToBool(params["compact"])
-				return FormatResultOptionalCompact(out, "", compact)
+				outputPath := cast.ToString(params["output_path"])
+				if outputPath != "" {
+					if dir := filepath.Dir(outputPath); dir != "." {
+						if err := os.MkdirAll(dir, 0755); err != nil {
+							return nil, fmt.Errorf("report scorecard (generic): create output dir: %w", err)
+						}
+					}
+				}
+				return FormatResultOptionalCompact(out, outputPath, compact)
 			}
 			text := FormatMultilangScorecard(ctx, projectRoot, pb)
 			return []framework.TextContent{{Type: "text", Text: text}}, nil
@@ -324,7 +334,15 @@ func handleReport(ctx context.Context, args json.RawMessage) ([]framework.TextCo
 			}
 			AddTokenEstimateToResult(out)
 			compact := cast.ToBool(params["compact"])
-			return FormatResultOptionalCompact(out, "", compact)
+			outputPath := cast.ToString(params["output_path"])
+			if outputPath != "" {
+				if dir := filepath.Dir(outputPath); dir != "." {
+					if err := os.MkdirAll(dir, 0755); err != nil {
+						return nil, fmt.Errorf("report scorecard: create output dir: %w", err)
+					}
+				}
+			}
+			return FormatResultOptionalCompact(out, outputPath, compact)
 		}
 		// Use proto-derived map for MLX enhancement
 		enhanced, err := enhanceReportWithMLX(ctx, scorecardMap, action)

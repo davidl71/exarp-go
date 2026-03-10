@@ -77,7 +77,7 @@ Update `.cursor/mcp.json` to include PATH in environment:
 {
   "mcpServers": {
     "exarp-go": {
-      "command": "/Users/davidl/Projects/exarp-go/bin/exarp-go",
+      "command": "{{PROJECT_ROOT}}/bin/exarp-go",
       "env": {
         "PROJECT_ROOT": "{{PROJECT_ROOT}}",
         "PATH": "/Users/davidl/go/bin:/Users/davidl/.nvm/versions/node/v20.19.5/bin:{{PATH}}"
@@ -124,4 +124,3 @@ The Ansible playbook should ensure PATH is configured. Current status:
 
 **Last Updated:** 2026-01-07  
 **Status:** ✅ Linters installed, PATH configuration needed for exarp-go detection
-

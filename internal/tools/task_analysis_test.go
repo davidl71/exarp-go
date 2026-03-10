@@ -3,7 +3,10 @@ package tools
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"os"
+	"path/filepath"
+	"sort"
 	"strings"
 	"testing"
 
@@ -438,6 +441,58 @@ func TestHandleTaskAnalysis(t *testing.T) {
 				t.Error("expected non-empty result")
 			}
 		})
+	}
+}
+
+func TestHandleTaskAnalysisSuggestDependencies_WriteError(t *testing.T) {
+	cleanup := initSessionTestDB(t)
+	t.Cleanup(cleanup)
+
+	projectRoot := t.TempDir()
+	t.Setenv("PROJECT_ROOT", projectRoot)
+
+	blockingFile := filepath.Join(projectRoot, "blocked")
+	if err := os.WriteFile(blockingFile, []byte("x"), 0644); err != nil {
+		t.Fatalf("WriteFile(blockingFile) error = %v", err)
+	}
+
+	_, err := handleTaskAnalysisNative(context.Background(), map[string]interface{}{
+		"action":      "suggest_dependencies",
+		"output_path": filepath.Join(blockingFile, "report.json"),
+	})
+	if err == nil {
+		t.Fatal("expected write error for invalid output path")
+	}
+	if !strings.Contains(err.Error(), "failed to create output dir") && !strings.Contains(err.Error(), "failed to write suggestions report") {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestFindDuplicateTasksParallel_GroupsTransitiveMatchesDeterministically(t *testing.T) {
+	tasks := make([]Todo2Task, 0, 103)
+	for i := 0; i < 100; i++ {
+		tasks = append(tasks, Todo2Task{
+			ID:      fmt.Sprintf("T-noise-%03d", i),
+			Content: fmt.Sprintf("unique filler task %03d marker", i),
+		})
+	}
+	tasks = append(tasks,
+		Todo2Task{ID: "T-A", Content: "alpha beta"},
+		Todo2Task{ID: "T-B", Content: "alpha beta gamma"},
+		Todo2Task{ID: "T-C", Content: "beta gamma"},
+	)
+
+	dups := findDuplicateTasksParallel(tasks, 0.6)
+	found := false
+	for _, group := range dups {
+		sort.Strings(group)
+		if len(group) == 3 && group[0] == "T-A" && group[1] == "T-B" && group[2] == "T-C" {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Fatalf("expected transitive duplicate group [T-A T-B T-C], got %v", dups)
 	}
 }
 

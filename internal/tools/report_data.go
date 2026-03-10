@@ -19,12 +19,13 @@ import (
 // aggregateProjectDataProto returns overview data as proto for type-safe report formatting.
 func aggregateProjectDataProto(ctx context.Context, projectRoot string, includePlanning bool) (*proto.ProjectOverviewData, error) {
 	pb := &proto.ProjectOverviewData{}
+	var healthWarning string
 
 	if projectInfo, err := getProjectInfo(projectRoot); err == nil {
 		pb.Project = ProjectInfoToProto(projectInfo)
 	}
 
-	if IsGoProject() {
+	if isGoProjectRoot(projectRoot) {
 		opts := &ScorecardOptions{FastMode: true}
 
 		scorecard, err := GenerateGoScorecard(ctx, projectRoot, opts)
@@ -41,6 +42,8 @@ func aggregateProjectDataProto(ctx context.Context, projectRoot string, includeP
 				ProductionReady: scorecard.Score >= float64(config.MinCoverage()),
 				Scores:          scores,
 			}
+		} else {
+			healthWarning = fmt.Sprintf("scorecard generation failed: %v", err)
 		}
 	}
 
@@ -117,7 +120,25 @@ func aggregateProjectDataProto(ctx context.Context, projectRoot string, includeP
 		}
 	}
 
+	if healthWarning != "" {
+		if pb.Project == nil {
+			pb.Project = &proto.ProjectInfo{}
+		}
+		if pb.Project.Description != "" {
+			pb.Project.Description += " | "
+		}
+		pb.Project.Description += "Health warning: " + healthWarning
+	}
+
 	return pb, nil
+}
+
+func isGoProjectRoot(projectRoot string) bool {
+	if projectRoot == "" {
+		return false
+	}
+	_, err := os.Stat(filepath.Join(projectRoot, "go.mod"))
+	return err == nil
 }
 
 func getStr(m map[string]interface{}, key string) string {
@@ -270,17 +291,17 @@ func getCodebaseMetrics(projectRoot string) (map[string]interface{}, error) {
 	})
 
 	metrics := map[string]interface{}{
-		"go_files":      goFiles,
-		"go_lines":      0, // Could count lines if needed
-		"python_files":  pythonFiles,
-		"python_lines":  0, // Could count lines if needed
-		"cpp_files":     cppFiles,
-		"rust_files":    rustFiles,
-		"total_files":   totalFiles,
-		"total_lines":   0,  // Could count lines if needed
-		"tools":         28, // From registry (28 base + 1 conditional Apple FM)
-		"prompts":       35, // From templates.go (19 original + 16 migrated from Python)
-		"resources":     21, // From resources/handlers.go
+		"go_files":     goFiles,
+		"go_lines":     0, // Could count lines if needed
+		"python_files": pythonFiles,
+		"python_lines": 0, // Could count lines if needed
+		"cpp_files":    cppFiles,
+		"rust_files":   rustFiles,
+		"total_files":  totalFiles,
+		"total_lines":  0,  // Could count lines if needed
+		"tools":        28, // From registry (28 base + 1 conditional Apple FM)
+		"prompts":      35, // From templates.go (19 original + 16 migrated from Python)
+		"resources":    21, // From resources/handlers.go
 	}
 
 	// Count tools, prompts, resources from registry

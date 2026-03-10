@@ -21,7 +21,7 @@ This guide describes how to monitor Activity Monitor during Apple Foundation Mod
 ### 1. Build with Apple Foundation Models Support
 
 ```bash
-cd /Users/davidl/Projects/exarp-go
+cd {{PROJECT_ROOT}}
 
 # Build Swift bridge (if not already built)
 make build-swift-bridge

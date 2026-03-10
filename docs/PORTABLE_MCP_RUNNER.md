@@ -128,7 +128,7 @@ The script chooses which exarp-go to run in this order:
 | 2 | CWD exarp-go repo | Walk up from CWD; use `bin/exarp-go` or `go run ./cmd/server` |
 | 3 | PATH | `exarp-go` on PATH |
 | 4 | Sibling | `PROJECT_ROOT/../exarp-go/bin/exarp-go` |
-| 5 | Fallback paths | `~/go/bin/exarp-go`, `~/Projects/exarp-go/bin/exarp-go`, `~/Projects/mcp/exarp-go/bin/exarp-go`, `/usr/local/bin/exarp-go` |
+| 5 | Fallback paths | `~/go/bin/exarp-go`, `~/Projects/mcp/exarp-go/bin/exarp-go`, `/usr/local/bin/exarp-go` |
 
 Exarp-go repo detection: directory has `go.mod` containing `exarp-go` and either `cmd/server/main.go` or executable `bin/exarp-go`.
 

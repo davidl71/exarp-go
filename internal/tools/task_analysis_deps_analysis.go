@@ -72,7 +72,10 @@ func handleTaskAnalysisComplexity(ctx context.Context, params map[string]interfa
 		"total":           len(classifications),
 	}
 
-	projectRoot, _ := FindProjectRoot()
+	projectRoot, err := GetProjectRootWithFallback()
+	if err != nil {
+		return nil, fmt.Errorf("failed to resolve project root: %w", err)
+	}
 	outputPath := DefaultReportOutputPath(projectRoot, "TASK_ANALYSIS_COMPLEXITY.json", params)
 	resultJSON, _ := json.Marshal(result)
 	resp := &proto.TaskAnalysisResponse{Action: "complexity", OutputPath: outputPath, ResultJson: string(resultJSON)}
@@ -120,7 +123,10 @@ func handleTaskAnalysisParallelization(ctx context.Context, params map[string]in
 	// Include human-readable report in JSON for CLI/consumers
 	result["report"] = formatParallelizationAnalysisText(result)
 
-	projectRoot, _ := FindProjectRoot()
+	projectRoot, err := GetProjectRootWithFallback()
+	if err != nil {
+		return nil, fmt.Errorf("failed to resolve project root: %w", err)
+	}
 	outputPath := DefaultReportOutputPath(projectRoot, "TASK_ANALYSIS_PARALLELIZATION.md", params)
 	if outputFormat == "json" {
 		if outputPath != "" {
@@ -361,7 +367,10 @@ func handleTaskAnalysisNoise(ctx context.Context, params map[string]interface{})
 		"agent_hint":           agentHint,
 	}
 
-	projectRoot, _ := FindProjectRoot()
+	projectRoot, err := GetProjectRootWithFallback()
+	if err != nil {
+		return nil, fmt.Errorf("failed to resolve project root: %w", err)
+	}
 	outputPath := DefaultReportOutputPath(projectRoot, "TASK_ANALYSIS_NOISE.json", params)
 	resultJSON, _ := json.Marshal(result)
 	resp := &proto.TaskAnalysisResponse{Action: "noise", OutputPath: outputPath, ResultJson: string(resultJSON)}

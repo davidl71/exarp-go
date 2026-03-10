@@ -44,7 +44,7 @@ For exarp-go to detect linters, they must be in the system PATH:
 Run the detection test:
 
 ```bash
-cd /Users/davidl/Projects/exarp-go
+cd {{PROJECT_ROOT}}
 go run /tmp/test-linter-detection.go
 ```
 
@@ -87,4 +87,3 @@ The Ansible playbook should ensure linters are in PATH:
 ---
 
 **Last Updated:** 2026-01-07
-

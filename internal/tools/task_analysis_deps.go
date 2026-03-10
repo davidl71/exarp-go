@@ -124,7 +124,10 @@ func handleTaskAnalysisDependencies(ctx context.Context, params map[string]inter
 	// Include human-readable report in JSON for CLI/consumers
 	result["report"] = formatDependencyAnalysisText(result)
 
-	projectRoot, _ := FindProjectRoot()
+	projectRoot, err := GetProjectRootWithFallback()
+	if err != nil {
+		return nil, fmt.Errorf("failed to resolve project root: %w", err)
+	}
 	outputPath := DefaultReportOutputPath(projectRoot, "TASK_ANALYSIS_DEPENDENCIES.md", params)
 	if outputFormat == "json" {
 		if outputPath != "" {
@@ -216,7 +219,10 @@ func handleTaskAnalysisDependenciesSummary(ctx context.Context, params map[strin
 			"report":          "# Task Dependencies Summary\n\n" + strings.Join(reportParts, "\n\n"),
 		}
 
-		projectRoot, _ := FindProjectRoot()
+		projectRoot, err := GetProjectRootWithFallback()
+		if err != nil {
+			return nil, fmt.Errorf("failed to resolve project root: %w", err)
+		}
 		outputPath := DefaultReportOutputPath(projectRoot, "TASK_ANALYSIS_DEPENDENCIES_SUMMARY.json", params)
 		return framework.FormatResult(result, outputPath)
 	}
@@ -259,7 +265,7 @@ func parseTaskAnalysisJSONContent(contents []framework.TextContent) (map[string]
 // ─── handleTaskAnalysisExecutionPlan ────────────────────────────────────────
 // handleTaskAnalysisExecutionPlan handles execution plan: backlog (Todo + In Progress) in dependency order.
 func handleTaskAnalysisExecutionPlan(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
-	projectRoot, err := FindProjectRoot()
+	projectRoot, err := GetProjectRootWithFallback()
 	if err != nil {
 		return nil, fmt.Errorf("failed to find project root: %w", err)
 	}

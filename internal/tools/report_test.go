@@ -3,6 +3,8 @@ package tools
 import (
 	"context"
 	"encoding/json"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -307,6 +309,51 @@ func TestAggregateProjectDataProto(t *testing.T) {
 
 	if pb.Project == nil && pb.Tasks == nil && pb.Codebase == nil {
 		t.Error("expected at least one of project, tasks, or codebase to be set")
+	}
+}
+
+func TestAggregateProjectDataProto_UsesExplicitProjectRootForGoDetection(t *testing.T) {
+	outerRoot := t.TempDir()
+	t.Setenv("PROJECT_ROOT", outerRoot)
+
+	goRoot := t.TempDir()
+	if err := os.WriteFile(filepath.Join(goRoot, "go.mod"), []byte("module example.com/test\n\ngo 1.24\n"), 0644); err != nil {
+		t.Fatalf("WriteFile(go.mod) error = %v", err)
+	}
+
+	pb, err := aggregateProjectDataProto(context.Background(), goRoot, false)
+	if err != nil {
+		t.Fatalf("aggregateProjectDataProto() error = %v", err)
+	}
+	if pb.Health == nil && (pb.Project == nil || !strings.Contains(pb.Project.Description, "Health warning:")) {
+		t.Fatalf("expected Go-root health attempt based on explicit project root, got %#v", pb)
+	}
+}
+
+func TestHandleReportScorecardJSON_WritesOutputPath(t *testing.T) {
+	tmpDir := t.TempDir()
+	t.Setenv("PROJECT_ROOT", tmpDir)
+	if err := os.WriteFile(filepath.Join(tmpDir, "go.mod"), []byte("module example.com/test\n\ngo 1.24\n"), 0644); err != nil {
+		t.Fatalf("WriteFile(go.mod) error = %v", err)
+	}
+	outputPath := filepath.Join(tmpDir, "out", "scorecard.json")
+
+	argsJSON, _ := json.Marshal(map[string]interface{}{
+		"action":        "scorecard",
+		"output_format": "json",
+		"output_path":   outputPath,
+		"fast_mode":     true,
+	})
+
+	result, err := handleReport(context.Background(), argsJSON)
+	if err != nil {
+		t.Fatalf("handleReport() error = %v", err)
+	}
+	if len(result) == 0 {
+		t.Fatal("expected non-empty result")
+	}
+	if _, err := os.Stat(outputPath); err != nil {
+		t.Fatalf("expected scorecard output file at %s: %v", outputPath, err)
 	}
 }
 
