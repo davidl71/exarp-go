@@ -19,7 +19,6 @@ import (
 	"encoding/json"
 
 	"github.com/davidl71/mcp-go-core/pkg/mcp/types"
-	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
 // MCPServer abstracts MCP server functionality
@@ -32,9 +31,6 @@ type MCPServer interface {
 
 	// RegisterResource registers a resource handler
 	RegisterResource(uri, name, description, mimeType string, handler ResourceHandler) error
-
-	// RegisterResourceTemplate registers a resource template handler
-	RegisterResourceTemplate(uriTemplate, name, description, mimeType string, handler ResourceHandler) error
 
 	// Run starts the server with the given transport
 	Run(ctx context.Context, transport Transport) error
@@ -61,9 +57,6 @@ type PromptHandler func(ctx context.Context, args map[string]interface{}) (strin
 
 // ResourceHandler handles resource requests
 type ResourceHandler func(ctx context.Context, uri string) ([]byte, string, error)
-
-// ResourceTemplate is re-exported for compatibility with the underlying Go SDK.
-type ResourceTemplate = mcp.ResourceTemplate
 
 // Transport is defined in transport.go
 // Imported here for backward compatibility

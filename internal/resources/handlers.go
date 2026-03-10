@@ -21,7 +21,11 @@ func registerAndTrack(server framework.MCPServer, uri, name, description, mimeTy
 
 // registerTemplate registers a resource template for parameterized URI discovery.
 func registerTemplate(server framework.MCPServer, uriTemplate, name, description, mimeType string, handler framework.ResourceHandler) error {
-	return server.RegisterResourceTemplate(uriTemplate, name, description, mimeType, handler)
+	registrar, ok := any(server).(framework.ResourceTemplateRegistrar)
+	if !ok {
+		return nil
+	}
+	return registrar.RegisterResourceTemplate(uriTemplate, name, description, mimeType, handler)
 }
 
 // RegisterAllResources registers all resources with the server.

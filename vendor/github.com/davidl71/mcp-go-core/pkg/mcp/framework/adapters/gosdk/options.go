@@ -1,6 +1,9 @@
 package gosdk
 
-import "github.com/davidl71/mcp-go-core/pkg/mcp/logging"
+import (
+	"github.com/davidl71/mcp-go-core/pkg/mcp/framework"
+	"github.com/davidl71/mcp-go-core/pkg/mcp/logging"
+)
 
 // AdapterOption configures a GoSDKAdapter
 type AdapterOption func(*GoSDKAdapter)
@@ -75,6 +78,22 @@ func WithMiddleware(middleware interface{}) AdapterOption {
 		if resourceMw, ok := middleware.(func(ResourceHandlerFunc) ResourceHandlerFunc); ok {
 			a.middleware.AddResourceMiddleware(resourceMw)
 			return
+		}
+
+		// If it's framework Hooks, add hooks tool middleware
+		if hooks, ok := middleware.(*framework.Hooks); ok {
+			a.middleware.AddToolMiddleware(HooksToolMiddleware(hooks))
+			return
+		}
+	}
+}
+
+// WithHooks adds before/after tool call hooks to the adapter.
+// Hooks are invoked for every tool call (before and after the handler runs).
+func WithHooks(hooks *framework.Hooks) AdapterOption {
+	return func(a *GoSDKAdapter) {
+		if hooks != nil {
+			a.middleware.AddToolMiddleware(HooksToolMiddleware(hooks))
 		}
 	}
 }
