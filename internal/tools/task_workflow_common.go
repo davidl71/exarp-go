@@ -58,14 +58,14 @@ type taskStoreKeyType struct{}
 
 var taskStoreKey = &taskStoreKeyType{}
 
-// getTaskStore returns the TaskStore from context, or builds one from FindProjectRoot() if not set.
+// getTaskStore returns the TaskStore from context, or builds one from the resolved project root if not set.
 // Use this in handlers to access task storage; allows tests to inject database.NewMockTaskStore().
 func getTaskStore(ctx context.Context) (database.TaskStore, error) {
 	if s, ok := ctx.Value(taskStoreKey).(database.TaskStore); ok && s != nil {
 		return s, nil
 	}
 
-	projectRoot, err := FindProjectRoot()
+	projectRoot, err := GetProjectRootWithFallback()
 	if err != nil {
 		return nil, err
 	}

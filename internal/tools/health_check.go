@@ -5,10 +5,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io/fs"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -300,8 +302,8 @@ func handleHealthGit(ctx context.Context, params map[string]interface{}) ([]fram
 	return framework.FormatResult(HealthReportToMap(resp), resp.GetOutputPath())
 }
 
-// handleHealthDocs handles the "docs" action for health tool
-// Checks documentation health (basic checks: README exists, docs directory exists).
+// handleHealthDocs handles the "docs" action for health tool.
+// Checks documentation health with a recursive scan and stale-reference detection.
 func handleHealthDocs(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	// Get project root
 	projectRoot, err := GetProjectRootWithFallback()
@@ -312,13 +314,24 @@ func handleHealthDocs(ctx context.Context, params map[string]interface{}) ([]fra
 	// Get parameters
 	outputPath := cast.ToString(params["output_path"])
 	createTasks := cast.ToBool(params["create_tasks"])
+	changedFiles := ParamString(params, "changed_files")
 
-	// Basic documentation checks
+	// Documentation checks
 	checks := map[string]interface{}{
-		"readme_exists":   false,
-		"docs_dir_exists": false,
-		"readme_size":     0,
-		"docs_file_count": 0,
+		"readme_exists":              false,
+		"docs_dir_exists":            false,
+		"readme_size":                0,
+		"docs_file_count":            0,
+		"live_docs_count":            0,
+		"archive_docs_count":         0,
+		"generated_docs_count":       0,
+		"stale_path_matches":         0,
+		"missing_reference_count":    0,
+		"excluded_generated_outputs": generatedDocOutputs(),
+	}
+	findings := map[string]interface{}{
+		"stale_paths":        []map[string]interface{}{},
+		"missing_references": []map[string]interface{}{},
 	}
 
 	// Check for README
@@ -337,52 +350,65 @@ func handleHealthDocs(ctx context.Context, params map[string]interface{}) ([]fra
 	docsDir := filepath.Join(projectRoot, "docs")
 	if info, err := os.Stat(docsDir); err == nil && info.IsDir() {
 		checks["docs_dir_exists"] = true
-		// Count markdown files in docs
-		entries, _ := os.ReadDir(docsDir)
-		mdCount := 0
-
-		for _, entry := range entries {
-			if !entry.IsDir() && (strings.HasSuffix(entry.Name(), ".md") || strings.HasSuffix(entry.Name(), ".rst")) {
-				mdCount++
-			}
+		stats, walkErr := collectDocsHealthStats(projectRoot, docsDir)
+		if walkErr != nil {
+			return nil, fmt.Errorf("scan docs: %w", walkErr)
 		}
 
-		checks["docs_file_count"] = mdCount
+		checks["docs_file_count"] = stats.TotalDocs
+		checks["live_docs_count"] = stats.LiveDocs
+		checks["archive_docs_count"] = stats.ArchiveDocs
+		checks["generated_docs_count"] = stats.GeneratedDocs
+		checks["stale_path_matches"] = len(stats.StalePaths)
+		checks["missing_reference_count"] = len(stats.MissingReferences)
+		findings["stale_paths"] = stats.StalePaths
+		findings["missing_references"] = stats.MissingReferences
 	}
 
-	// Calculate basic health score
+	// Calculate health score based on useful documentation and lack of stale references.
 	score := 0.0
 	if checks["readme_exists"].(bool) {
-		score += 50.0
+		score += 20.0
 	}
 
 	if checks["docs_dir_exists"].(bool) {
-		score += 30.0
+		score += 20.0
 	}
 
-	if checks["docs_file_count"].(int) > 0 {
+	if checks["live_docs_count"].(int) > 0 {
+		score += 20.0
+	}
+	if checks["stale_path_matches"].(int) == 0 {
+		score += 20.0
+	}
+	if checks["missing_reference_count"].(int) == 0 {
 		score += 20.0
 	}
 
 	// Build result
 	result := map[string]interface{}{
-		"status":       "completed",
-		"health_score": score,
-		"checks":       checks,
-		"project_root": projectRoot,
-		"timestamp":    time.Now().Unix(),
+		"status":        "completed",
+		"health_score":  score,
+		"checks":        checks,
+		"findings":      findings,
+		"project_root":  projectRoot,
+		"scan_mode":     "recursive",
+		"changed_files": changedFiles,
+		"timestamp":     time.Now().Unix(),
 	}
 
-	// Note: For full documentation analysis (broken links, format validation, etc.),
-	// this falls back to Python bridge. This is a simplified version.
 	if outputPath != "" {
-		result["report_path"] = outputPath
-		// Note: Full report generation would require Python bridge
+		fullPath := outputPath
+		if !filepath.IsAbs(fullPath) {
+			fullPath = filepath.Join(projectRoot, outputPath)
+		}
+		if err := writeDocsHealthReport(fullPath, result); err != nil {
+			return nil, fmt.Errorf("write docs health report: %w", err)
+		}
+		result["report_path"] = fullPath
 	}
 
 	if createTasks {
-		// Note: Task creation would require Todo2 integration
-		// For now, just note that tasks would be created
 		result["tasks_note"] = "Task creation requires Python bridge for full functionality"
 	}
 
@@ -390,6 +416,239 @@ func handleHealthDocs(ctx context.Context, params map[string]interface{}) ([]fra
 	resp := &proto.HealthReport{Action: "docs", OutputPath: outputPath, ResultJson: string(resultJSON)}
 
 	return framework.FormatResult(HealthReportToMap(resp), resp.GetOutputPath())
+}
+
+type docsHealthStats struct {
+	TotalDocs         int
+	LiveDocs          int
+	ArchiveDocs       int
+	GeneratedDocs     int
+	StalePaths        []map[string]interface{}
+	MissingReferences []map[string]interface{}
+}
+
+func collectDocsHealthStats(projectRoot, docsDir string) (docsHealthStats, error) {
+	stats := docsHealthStats{
+		StalePaths:        []map[string]interface{}{},
+		MissingReferences: []map[string]interface{}{},
+	}
+
+	err := filepath.WalkDir(docsDir, func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if d.IsDir() || !isDocFile(path) {
+			return nil
+		}
+
+		stats.TotalDocs++
+
+		relPath, relErr := filepath.Rel(projectRoot, path)
+		if relErr != nil {
+			relPath = path
+		}
+		relPath = filepath.ToSlash(relPath)
+
+		switch {
+		case strings.HasPrefix(relPath, "docs/archive/"):
+			stats.ArchiveDocs++
+		case isGeneratedDocOutput(path):
+			stats.GeneratedDocs++
+		default:
+			stats.LiveDocs++
+		}
+
+		// Archive and generated snapshot docs are informational only.
+		if strings.HasPrefix(relPath, "docs/archive/") || isGeneratedDocOutput(path) {
+			return nil
+		}
+
+		content, readErr := os.ReadFile(path)
+		if readErr != nil {
+			return readErr
+		}
+
+		stats.StalePaths = append(stats.StalePaths, findStalePathMatches(relPath, string(content))...)
+		stats.MissingReferences = append(stats.MissingReferences, findMissingDocReferences(projectRoot, path, string(content))...)
+
+		return nil
+	})
+	if err != nil {
+		return docsHealthStats{}, err
+	}
+
+	sortDocsHealthFindings(stats.StalePaths)
+	sortDocsHealthFindings(stats.MissingReferences)
+
+	return stats, nil
+}
+
+func isDocFile(path string) bool {
+	return strings.HasSuffix(path, ".md") || strings.HasSuffix(path, ".rst")
+}
+
+func generatedDocOutputs() []string {
+	return []string{
+		"ATTRIBUTION_COMPLIANCE_REPORT.md",
+		"CI_CD_VALIDATION_REPORT.md",
+		"DAILY_AUTOMATION_REPORT.md",
+		"DOCUMENTATION_HEALTH_REPORT.md",
+		"DOGFOODING_RESULTS.md",
+		"TEST_RESULTS.md",
+		"custom_report.md",
+	}
+}
+
+func isGeneratedDocOutput(path string) bool {
+	base := filepath.Base(path)
+	for _, name := range generatedDocOutputs() {
+		if base == name {
+			return true
+		}
+	}
+	return false
+}
+
+func findStalePathMatches(relPath, content string) []map[string]interface{} {
+	stalePatterns := []string{
+		"/Users/davidl/Projects/exarp-go",
+		"~/Projects/exarp-go",
+	}
+
+	var matches []map[string]interface{}
+	for _, pattern := range stalePatterns {
+		count := strings.Count(content, pattern)
+		if count == 0 {
+			continue
+		}
+		matches = append(matches, map[string]interface{}{
+			"file":    relPath,
+			"pattern": pattern,
+			"count":   count,
+		})
+	}
+	return matches
+}
+
+func findMissingDocReferences(projectRoot, docPath, content string) []map[string]interface{} {
+	linkPattern := regexp.MustCompile(`!?\[[^\]]*\]\(([^)]+)\)`)
+	matches := linkPattern.FindAllStringSubmatch(content, -1)
+	var missing []map[string]interface{}
+	seen := make(map[string]struct{})
+
+	for _, match := range matches {
+		if len(match) < 2 {
+			continue
+		}
+		target := strings.TrimSpace(match[1])
+		if target == "" ||
+			strings.HasPrefix(target, "#") ||
+			strings.Contains(target, "://") ||
+			strings.HasPrefix(target, "mailto:") ||
+			strings.HasPrefix(target, "file://") ||
+			strings.Contains(target, "{{") {
+			continue
+		}
+
+		target = strings.SplitN(target, "#", 2)[0]
+		target = strings.SplitN(target, "?", 2)[0]
+		if target == "" {
+			continue
+		}
+
+		var fullPath string
+		if filepath.IsAbs(target) {
+			fullPath = filepath.Clean(target)
+		} else {
+			fullPath = filepath.Clean(filepath.Join(filepath.Dir(docPath), filepath.FromSlash(target)))
+		}
+
+		if _, err := os.Stat(fullPath); err == nil {
+			continue
+		}
+
+		key := docPath + "->" + target
+		if _, exists := seen[key]; exists {
+			continue
+		}
+		seen[key] = struct{}{}
+
+		relPath, relErr := filepath.Rel(projectRoot, docPath)
+		if relErr != nil {
+			relPath = docPath
+		}
+
+		missing = append(missing, map[string]interface{}{
+			"file":   filepath.ToSlash(relPath),
+			"target": filepath.ToSlash(target),
+		})
+	}
+
+	return missing
+}
+
+func sortDocsHealthFindings(items []map[string]interface{}) {
+	sort.Slice(items, func(i, j int) bool {
+		left := fmt.Sprintf("%v:%v", items[i]["file"], items[i]["target"])
+		right := fmt.Sprintf("%v:%v", items[j]["file"], items[j]["target"])
+		return left < right
+	})
+}
+
+func writeDocsHealthReport(outputPath string, result map[string]interface{}) error {
+	if dir := filepath.Dir(outputPath); dir != "." {
+		if err := os.MkdirAll(dir, 0755); err != nil {
+			return err
+		}
+	}
+
+	if strings.HasSuffix(strings.ToLower(outputPath), ".json") {
+		raw, err := json.MarshalIndent(result, "", "  ")
+		if err != nil {
+			return err
+		}
+		return os.WriteFile(outputPath, raw, 0644)
+	}
+
+	return os.WriteFile(outputPath, []byte(formatDocsHealthMarkdown(result)), 0644)
+}
+
+func formatDocsHealthMarkdown(result map[string]interface{}) string {
+	checks, _ := result["checks"].(map[string]interface{})
+	findings, _ := result["findings"].(map[string]interface{})
+	stalePaths, _ := findings["stale_paths"].([]map[string]interface{})
+	missingRefs, _ := findings["missing_references"].([]map[string]interface{})
+
+	var b strings.Builder
+	b.WriteString("# Documentation Health Report\n\n")
+	b.WriteString(fmt.Sprintf("- Health score: %.1f\n", cast.ToFloat64(result["health_score"])))
+	b.WriteString(fmt.Sprintf("- Project root: `%v`\n", result["project_root"]))
+	b.WriteString(fmt.Sprintf("- Scan mode: `%v`\n", result["scan_mode"]))
+	b.WriteString(fmt.Sprintf("- Live docs: %d\n", cast.ToInt(checks["live_docs_count"])))
+	b.WriteString(fmt.Sprintf("- Archive docs: %d\n", cast.ToInt(checks["archive_docs_count"])))
+	b.WriteString(fmt.Sprintf("- Generated docs excluded from score: %d\n", cast.ToInt(checks["generated_docs_count"])))
+	b.WriteString(fmt.Sprintf("- Stale path matches: %d\n", cast.ToInt(checks["stale_path_matches"])))
+	b.WriteString(fmt.Sprintf("- Missing references: %d\n", cast.ToInt(checks["missing_reference_count"])))
+
+	b.WriteString("\n## Stale Paths\n")
+	if len(stalePaths) == 0 {
+		b.WriteString("- None\n")
+	} else {
+		for _, item := range stalePaths {
+			b.WriteString(fmt.Sprintf("- `%v`: `%v` (%v)\n", item["file"], item["pattern"], item["count"]))
+		}
+	}
+
+	b.WriteString("\n## Missing References\n")
+	if len(missingRefs) == 0 {
+		b.WriteString("- None\n")
+	} else {
+		for _, item := range missingRefs {
+			b.WriteString(fmt.Sprintf("- `%v` -> `%v`\n", item["file"], item["target"]))
+		}
+	}
+
+	return b.String()
 }
 
 // handleHealthDOD handles the "dod" action for health tool

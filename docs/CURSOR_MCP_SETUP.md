@@ -10,7 +10,7 @@ Minimal example (binary in project):
 {
   "mcpServers": {
     "exarp-go": {
-      "command": "/Users/davidl/Projects/exarp-go/bin/exarp-go",
+      "command": "{{PROJECT_ROOT}}/bin/exarp-go",
       "args": [],
       "env": {
         "PROJECT_ROOT": "{{PROJECT_ROOT}}"
@@ -27,7 +27,7 @@ Minimal example (binary in project):
 
 ## Server Status
 
-✅ **Binary Location:** `/Users/davidl/Projects/exarp-go/bin/exarp-go`
+✅ **Binary Location:** `{{PROJECT_ROOT}}/bin/exarp-go`
 ✅ **Binary Status:** Built and executable
 ✅ **Server Type:** STDIO-based MCP server (JSON-RPC 2.0)
 ✅ **Mode Detection:** Auto-detects TTY (CLI mode) vs non-TTY (MCP server mode)
@@ -37,7 +37,7 @@ Minimal example (binary in project):
 ### Step 1: Verify Binary Exists
 
 ```bash
-cd /Users/davidl/Projects/exarp-go
+cd {{PROJECT_ROOT}}
 ls -la bin/exarp-go
 # Should show: -rwxr-xr-x ... bin/exarp-go
 ```
@@ -73,18 +73,18 @@ In Cursor chat, you should be able to:
 
 1. **Check binary path:**
    ```bash
-   test -f /Users/davidl/Projects/exarp-go/bin/exarp-go && echo "✅ Binary exists" || echo "❌ Binary missing"
+   test -f {{PROJECT_ROOT}}/bin/exarp-go && echo "✅ Binary exists" || echo "❌ Binary missing"
    ```
    If using the wrapper (`run-exarp-go.sh`), ensure `run-exarp-go.sh` and `start.sh` exist in the project root and are executable: `chmod +x run-exarp-go.sh start.sh`.
 
 2. **Check binary permissions:**
    ```bash
-   chmod +x /Users/davidl/Projects/exarp-go/bin/exarp-go
+   chmod +x {{PROJECT_ROOT}}/bin/exarp-go
    ```
 
 3. **Rebuild binary:**
    ```bash
-   cd /Users/davidl/Projects/exarp-go
+   cd {{PROJECT_ROOT}}
    make b
    ```
    (Never run `go build` directly — use the Makefile per project rules.)
@@ -105,7 +105,7 @@ In Cursor chat, you should be able to:
 
 2. **Check dependencies:**
    ```bash
-   cd /Users/davidl/Projects/exarp-go
+   cd {{PROJECT_ROOT}}
    go mod download
    go mod verify
    ```
@@ -137,7 +137,7 @@ If you prefer to use the wrapper script (with auto-rebuild), update the config:
 {
   "mcpServers": {
     "exarp-go": {
-      "command": "/Users/davidl/Projects/exarp-go/run-exarp-go.sh",
+      "command": "{{PROJECT_ROOT}}/run-exarp-go.sh",
       "args": [],
       "env": {
         "PROJECT_ROOT": "{{PROJECT_ROOT}}",
@@ -185,4 +185,3 @@ After server is loaded:
 
 **Last Updated:** 2026-01-07
 **Status:** ✅ Configuration ready for Cursor
-

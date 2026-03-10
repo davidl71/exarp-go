@@ -65,7 +65,7 @@
       "description": "Crew Role: Analyst - Tractatus Thinking MCP Server"
     },
     "exarp-go": {
-      "command": "/Users/davidl/Projects/exarp-go/bin/exarp-go",
+      "command": "{{PROJECT_ROOT}}/bin/exarp-go",
       "description": "Crew Role: Executor - Go-based MCP server"
     }
   }
@@ -168,4 +168,3 @@ Enhance Todo2 workflow tools to use gotoHuman:
 
 **Last Updated:** 2026-01-07
 **Status:** ✅ Analysis complete - gotoHuman found in devwisdom-go
-

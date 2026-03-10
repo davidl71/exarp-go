@@ -33,7 +33,6 @@
 - `SCORECARD_GO_MODIFICATIONS.md` - Scorecard implementation details
 - `SCORECARD_GO_IMPLEMENTATION.md` - Scorecard feature documentation
 - `MARKDOWN_LINTING_RESEARCH.md` - Markdown linting research
-- `MARKDOWN_LINTING_TEST_RESULTS.md` - Markdown linting test results
 
 ### Index and discoverability
 - `DOCS_AND_CODE_INDEX.md` - Purpose of docs/code index; whether an index helps Cursor and other agents; recommendations
@@ -53,7 +52,6 @@
 - `MLX_ARCHITECTURE_ANALYSIS.md` - MLX integration analysis
 
 ### Cleanup & Maintenance
-- `DOCUMENTATION_CLEANUP_ANALYSIS.md` - Documentation cleanup analysis
 - `PYTHON_CODE_AUDIT_REPORT.md` - Python code audit results
 
 ---

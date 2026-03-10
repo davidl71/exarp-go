@@ -47,7 +47,7 @@ The `go-foundationmodels` package requires building a Swift bridge library. This
    ```
 3. **Build exarp-go**:
    ```bash
-   cd /Users/davidl/Projects/exarp-go
+   cd {{PROJECT_ROOT}}
    CGO_ENABLED=1 go build ./cmd/server
    ```
 
@@ -113,7 +113,7 @@ This allows the code to compile on non-Apple platforms without the Swift bridge.
 
 ### Platform Detection Tests
 ```bash
-cd /Users/davidl/Projects/exarp-go
+cd {{PROJECT_ROOT}}
 go test ./internal/platform -v
 ```
 
@@ -162,4 +162,3 @@ go test ./internal/platform -v
 ✅ **Graceful Fallback**: Implemented for unsupported platforms
 
 The integration is **functionally complete** and ready for testing once the Swift bridge is built.
-

@@ -19,7 +19,7 @@ You can configure Cursor to run MCP server commands via SSH, allowing you to use
       "command": "ssh",
       "args": [
         "davids-mac-mini.tailf62197.ts.net",
-        "/Users/davidl/Projects/exarp-go/bin/exarp-go"
+        "{{PROJECT_ROOT}}/bin/exarp-go"
       ],
       "env": {
         "PROJECT_ROOT": "{{PROJECT_ROOT}}"
@@ -139,7 +139,7 @@ Based on your setup (local Linux machine, remote macOS M4):
       "command": "ssh",
       "args": [
         "davids-mac-mini.tailf62197.ts.net",
-        "/Users/davidl/Projects/exarp-go/bin/exarp-go"
+        "{{PROJECT_ROOT}}/bin/exarp-go"
       ],
       "env": {
         "PROJECT_ROOT": "{{PROJECT_ROOT}}"
@@ -149,7 +149,7 @@ Based on your setup (local Linux machine, remote macOS M4):
       "command": "ssh",
       "args": [
         "davids-mac-mini.tailf62197.ts.net",
-        "/Users/davidl/Projects/exarp-go/bin/exarp-go"
+        "{{PROJECT_ROOT}}/bin/exarp-go"
       ],
       "env": {
         "PROJECT_ROOT": "{{PROJECT_ROOT}}",
@@ -201,7 +201,7 @@ Based on your setup (local Linux machine, remote macOS M4):
       "command": "ssh",
       "args": [
         "davids-mac-mini.tailf62197.ts.net",
-        "/Users/davidl/Projects/exarp-go/bin/exarp-go"
+        "{{PROJECT_ROOT}}/bin/exarp-go"
       ],
       "env": {
         "PROJECT_ROOT": "{{PROJECT_ROOT}}",
@@ -222,7 +222,7 @@ Based on your setup (local Linux machine, remote macOS M4):
 ssh davids-mac-mini.tailf62197.ts.net "echo '✅ SSH working'"
 
 # Test remote binary
-ssh davids-mac-mini.tailf62197.ts.net "/Users/davidl/Projects/exarp-go/bin/exarp-go --help"
+ssh davids-mac-mini.tailf62197.ts.net "{{PROJECT_ROOT}}/bin/exarp-go --help"
 ```
 
 ### Step 2: Configure SSH Keys (if needed)
@@ -249,7 +249,7 @@ Edit `.cursor/mcp.json` in your workspace:
       "command": "ssh",
       "args": [
         "davids-mac-mini.tailf62197.ts.net",
-        "/Users/davidl/Projects/exarp-go/bin/exarp-go"
+        "{{PROJECT_ROOT}}/bin/exarp-go"
       ],
       "env": {
         "PROJECT_ROOT": "{{PROJECT_ROOT}}"
@@ -329,7 +329,7 @@ Edit `.cursor/mcp.json` in your workspace:
       "command": "ssh",
       "args": [
         "davids-mac-mini.tailf62197.ts.net",
-        "/Users/davidl/Projects/exarp-go/bin/exarp-go"
+        "{{PROJECT_ROOT}}/bin/exarp-go"
       ],
       "env": {
         "PROJECT_ROOT": "{{PROJECT_ROOT}}",
@@ -349,7 +349,7 @@ Edit `.cursor/mcp.json` in your workspace:
   "mcpServers": {
     "remote-exarp-go": {
       "command": "ssh",
-      "args": ["davids-mac-mini.tailf62197.ts.net", "/Users/davidl/Projects/exarp-go/bin/exarp-go"],
+      "args": ["davids-mac-mini.tailf62197.ts.net", "{{PROJECT_ROOT}}/bin/exarp-go"],
       "description": "Remote exarp-go"
     },
     "remote-advisor": {
@@ -366,4 +366,3 @@ Edit `.cursor/mcp.json` in your workspace:
 - [Cursor Background Agents Documentation](https://docs.cursor.com/en/background-agents)
 - [MCP Protocol Specification](https://modelcontextprotocol.io/)
 - [SSH Configuration Guide](./TAILSCALE_SSH_SETUP.md)
-

@@ -109,9 +109,8 @@ func findDuplicateTasksParallel(tasks []Todo2Task, threshold float64) [][]string
 	}
 
 	type similarityResult struct {
-		i          int
-		j          int
-		similarity float64
+		i int
+		j int
 	}
 
 	// Channel for task pairs to process
@@ -135,9 +134,8 @@ func findDuplicateTasksParallel(tasks []Todo2Task, threshold float64) [][]string
 					similarity := calculateSimilarity(task1, task2)
 					if similarity >= threshold {
 						results <- similarityResult{
-							i:          pair.i,
-							j:          j,
-							similarity: similarity,
+							i: pair.i,
+							j: j,
 						}
 					}
 				}
@@ -160,34 +158,50 @@ func findDuplicateTasksParallel(tasks []Todo2Task, threshold float64) [][]string
 		close(results)
 	}()
 
-	// Collect results
-	processed := make(map[string]bool)
-	duplicateMap := make(map[int][]int) // task index -> list of duplicate indices
-
-	for result := range results {
-		if !processed[tasks[result.i].ID] && !processed[tasks[result.j].ID] {
-			if duplicateMap[result.i] == nil {
-				duplicateMap[result.i] = []int{result.i}
-			}
-
-			duplicateMap[result.i] = append(duplicateMap[result.i], result.j)
-			processed[tasks[result.j].ID] = true
+	// Collect edges and build connected components deterministically.
+	parent := make([]int, len(tasks))
+	for i := range parent {
+		parent[i] = i
+	}
+	var find func(int) int
+	find = func(x int) int {
+		if parent[x] != x {
+			parent[x] = find(parent[x])
+		}
+		return parent[x]
+	}
+	union := func(a, b int) {
+		ra := find(a)
+		rb := find(b)
+		if ra == rb {
+			return
+		}
+		if ra < rb {
+			parent[rb] = ra
+		} else {
+			parent[ra] = rb
 		}
 	}
+	for result := range results {
+		union(result.i, result.j)
+	}
 
-	// Build duplicate groups
-	duplicates := [][]string{}
+	groupsByRoot := make(map[int][]int)
+	for i := range tasks {
+		root := find(i)
+		groupsByRoot[root] = append(groupsByRoot[root], i)
+	}
 
-	for i, group := range duplicateMap {
-		if len(group) > 1 && !processed[tasks[i].ID] {
-			groupIDs := make([]string, len(group))
-			for idx, taskIdx := range group {
-				groupIDs[idx] = tasks[taskIdx].ID
-			}
-
-			duplicates = append(duplicates, groupIDs)
-			processed[tasks[i].ID] = true
+	duplicates := make([][]string, 0, len(groupsByRoot))
+	for _, group := range groupsByRoot {
+		if len(group) < 2 {
+			continue
 		}
+		groupIDs := make([]string, len(group))
+		for idx, taskIdx := range group {
+			groupIDs[idx] = tasks[taskIdx].ID
+		}
+		duplicates = append(duplicates, groupIDs)
 	}
 
 	return duplicates

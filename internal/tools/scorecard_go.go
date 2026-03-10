@@ -49,10 +49,16 @@ type GoHealthChecks struct {
 	RateLimiting            bool `json:"rate_limiting"`
 	AccessControl           bool `json:"access_control"`
 	// Documentation (for documentation score dimension)
-	ReadmeExists      bool `json:"readme_exists"`
-	DocsDirExists     bool `json:"docs_dir_exists"`
-	DocsFileCount     int  `json:"docs_file_count"`
-	AIAssistDocsExist bool `json:"ai_assist_docs_exist"` // .cursor/skills, .cursor/rules, CLAUDE.md, or .claude/commands/
+	ReadmeExists              bool    `json:"readme_exists"`
+	DocsDirExists             bool    `json:"docs_dir_exists"`
+	DocsFileCount             int     `json:"docs_file_count"`
+	DocsLiveCount             int     `json:"docs_live_count"`
+	DocsArchiveCount          int     `json:"docs_archive_count"`
+	DocsGeneratedCount        int     `json:"docs_generated_count"`
+	DocsStalePathMatches      int     `json:"docs_stale_path_matches"`
+	DocsMissingReferenceCount int     `json:"docs_missing_reference_count"`
+	DocsHealthScore           float64 `json:"docs_health_score"`
+	AIAssistDocsExist         bool    `json:"ai_assist_docs_exist"` // .cursor/skills, .cursor/rules, CLAUDE.md, or .claude/commands/
 }
 
 // FileSizeInfo holds per-file size and token estimate for split/refactor analysis.
@@ -222,11 +228,21 @@ func performGoHealthChecks(ctx context.Context, projectRoot string, opts *Scorec
 	docsDir := filepath.Join(projectRoot, "docs")
 	if info, err := os.Stat(docsDir); err == nil && info.IsDir() {
 		health.DocsDirExists = true
-
-		entries, _ := os.ReadDir(docsDir)
-		for _, e := range entries {
-			if !e.IsDir() && (strings.HasSuffix(e.Name(), ".md") || strings.HasSuffix(e.Name(), ".rst")) {
-				health.DocsFileCount++
+		stats, statsErr := collectDocsHealthStats(projectRoot, docsDir)
+		if statsErr == nil {
+			health.DocsFileCount = stats.TotalDocs
+			health.DocsLiveCount = stats.LiveDocs
+			health.DocsArchiveCount = stats.ArchiveDocs
+			health.DocsGeneratedCount = stats.GeneratedDocs
+			health.DocsStalePathMatches = len(stats.StalePaths)
+			health.DocsMissingReferenceCount = len(stats.MissingReferences)
+		} else {
+			entries, _ := os.ReadDir(docsDir)
+			for _, e := range entries {
+				if !e.IsDir() && (strings.HasSuffix(e.Name(), ".md") || strings.HasSuffix(e.Name(), ".rst")) {
+					health.DocsFileCount++
+					health.DocsLiveCount++
+				}
 			}
 		}
 	}
@@ -251,6 +267,8 @@ func performGoHealthChecks(ctx context.Context, projectRoot string, opts *Scorec
 	if info, _ := os.Stat(claudeCommands); info != nil && info.IsDir() {
 		health.AIAssistDocsExist = true
 	}
+
+	health.DocsHealthScore = calculateDocsHealthScore(health)
 
 	return health, nil
 }

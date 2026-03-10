@@ -132,7 +132,7 @@ If Background Agents aren't available or you prefer a different approach, you ca
       "command": "ssh",
       "args": [
         "davids-mac-mini.tailf62197.ts.net",
-        "/Users/davidl/Projects/exarp-go/bin/exarp-go"
+        "{{PROJECT_ROOT}}/bin/exarp-go"
       ],
       "description": "Remote MCP server via SSH"
     }
@@ -163,4 +163,3 @@ See `docs/REMOTE_MCP_SERVERS.md` for complete setup instructions.
 - [Cursor Background Agents Documentation](https://docs.cursor.com/en/background-agents)
 - [Cursor Community Forum](https://forum.cursor.com)
 - [Remote MCP Servers Guide](./REMOTE_MCP_SERVERS.md)
-

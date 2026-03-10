@@ -234,40 +234,41 @@ func handleTaskAnalysisSuggestDependencies(ctx context.Context, params map[strin
 	// Optionally include hints from planning docs
 	includePlan, _ := params["include_planning_docs"].(bool)
 	if includePlan {
-		projectRoot, _ := FindProjectRoot()
-		if projectRoot != "" {
-			planHints := ExtractDependencyHintsFromPlanDir(projectRoot)
-			for _, h := range planHints {
-				// Only add if both IDs exist and not already a dependency
-				existsTask := false
-				existsDep := false
-				alreadyDep := false
+		projectRoot, err := GetProjectRootWithFallback()
+		if err != nil {
+			return nil, fmt.Errorf("failed to resolve project root: %w", err)
+		}
+		planHints := ExtractDependencyHintsFromPlanDir(projectRoot)
+		for _, h := range planHints {
+			// Only add if both IDs exist and not already a dependency
+			existsTask := false
+			existsDep := false
+			alreadyDep := false
 
-				for _, t := range tasks {
-					if t.ID == h.TaskID {
-						existsTask = true
+			for _, t := range tasks {
+				if t.ID == h.TaskID {
+					existsTask = true
 
-						for _, d := range t.Dependencies {
-							if d == h.DependsOnID {
-								alreadyDep = true
-								break
-							}
+					for _, d := range t.Dependencies {
+						if d == h.DependsOnID {
+							alreadyDep = true
+							break
 						}
 					}
-
-					if t.ID == h.DependsOnID {
-						existsDep = true
-					}
 				}
 
-				if existsTask && existsDep && !alreadyDep {
-					suggestions = append(suggestions, SuggestedDependency{
-						TaskID:         h.TaskID,
-						SuggestedDepID: h.DependsOnID,
-						Reason:         h.Reason,
-						Source:         "planning_doc",
-					})
+				if t.ID == h.DependsOnID {
+					existsDep = true
 				}
+			}
+
+			if existsTask && existsDep && !alreadyDep {
+				suggestions = append(suggestions, SuggestedDependency{
+					TaskID:         h.TaskID,
+					SuggestedDepID: h.DependsOnID,
+					Reason:         h.Reason,
+					Source:         "planning_doc",
+				})
 			}
 		}
 	}
@@ -285,11 +286,17 @@ func handleTaskAnalysisSuggestDependencies(ctx context.Context, params map[strin
 
 	resultJSON, _ := json.Marshal(result)
 
-	projectRoot, _ := FindProjectRoot()
+	projectRoot, err := GetProjectRootWithFallback()
+	if err != nil {
+		return nil, fmt.Errorf("failed to resolve project root: %w", err)
+	}
 	outputPath := DefaultReportOutputPath(projectRoot, "SUGGEST_DEPS_REPORT.json", params)
 	if outputPath != "" {
-		if err := os.MkdirAll(filepath.Dir(outputPath), 0755); err == nil {
-			_ = os.WriteFile(outputPath, resultJSON, 0644)
+		if err := os.MkdirAll(filepath.Dir(outputPath), 0755); err != nil {
+			return nil, fmt.Errorf("failed to create output dir: %w", err)
+		}
+		if err := os.WriteFile(outputPath, resultJSON, 0644); err != nil {
+			return nil, fmt.Errorf("failed to write suggestions report: %w", err)
 		}
 	}
 
