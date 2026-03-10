@@ -7,9 +7,11 @@ import (
 	"path/filepath"
 	"runtime"
 	"testing"
+	"time"
 
 	"github.com/davidl71/exarp-go/internal/database"
 	"github.com/davidl71/exarp-go/internal/framework"
+	"github.com/davidl71/exarp-go/internal/models"
 	mcpframework "github.com/davidl71/mcp-go-core/pkg/mcp/framework"
 )
 
@@ -530,6 +532,131 @@ func TestHandleTaskWorkflowNative(t *testing.T) {
 				tt.validate(t, result)
 			}
 		})
+	}
+}
+
+func TestHandleTaskWorkflowListIncludesDoneTaskWhenTaskIDSpecified(t *testing.T) {
+	cleanup := initSessionTestDB(t)
+	defer cleanup()
+
+	projectRoot, err := FindProjectRoot()
+	if err != nil {
+		t.Fatalf("FindProjectRoot: %v", err)
+	}
+
+	task := &models.Todo2Task{
+		ID:              "T-list-done-1",
+		Content:         "Done task for direct lookup",
+		LongDescription: "Regression test for task_id list filtering",
+		Status:          models.StatusDone,
+		Priority:        "medium",
+		ProjectID:       filepath.Base(projectRoot),
+		CreatedAt:       time.Now().Format(time.RFC3339),
+		LastModified:    time.Now().Format(time.RFC3339),
+		CompletedAt:     time.Now().Format(time.RFC3339),
+	}
+	if err := database.CreateTask(context.Background(), task); err != nil {
+		t.Fatalf("database.CreateTask: %v", err)
+	}
+
+	result, err := handleTaskWorkflowList(context.Background(), map[string]interface{}{
+		"task_id":       task.ID,
+		"output_format": "json",
+	})
+	if err != nil {
+		t.Fatalf("handleTaskWorkflowList: %v", err)
+	}
+	if len(result) == 0 {
+		t.Fatal("expected non-empty result")
+	}
+
+	var data map[string]interface{}
+	if err := json.Unmarshal([]byte(result[0].Text), &data); err != nil {
+		t.Fatalf("json.Unmarshal: %v", err)
+	}
+
+	tasks, ok := data["tasks"].([]interface{})
+	if !ok {
+		t.Fatalf("expected tasks array, got %T", data["tasks"])
+	}
+	if len(tasks) != 1 {
+		t.Fatalf("expected 1 task, got %d", len(tasks))
+	}
+
+	got, ok := tasks[0].(map[string]interface{})
+	if !ok {
+		t.Fatalf("expected task object, got %T", tasks[0])
+	}
+	if got["id"] != task.ID {
+		t.Fatalf("expected task id %q, got %v", task.ID, got["id"])
+	}
+	if got["status"] != models.StatusDone {
+		t.Fatalf("expected status %q, got %v", models.StatusDone, got["status"])
+	}
+}
+
+func TestHandleTaskWorkflowCleanupReportsStoreDrift(t *testing.T) {
+	cleanup := initSessionTestDB(t)
+	defer cleanup()
+
+	projectRoot, err := FindProjectRoot()
+	if err != nil {
+		t.Fatalf("FindProjectRoot: %v", err)
+	}
+	projectID := filepath.Base(projectRoot)
+	now := time.Now().Format(time.RFC3339)
+
+	dbOnlyTask := &models.Todo2Task{
+		ID:              "T-db-only-1",
+		Content:         "DB only task",
+		LongDescription: "Present only in database",
+		Status:          models.StatusTodo,
+		Priority:        "low",
+		ProjectID:       projectID,
+		CreatedAt:       now,
+		LastModified:    now,
+	}
+	if err := database.CreateTask(context.Background(), dbOnlyTask); err != nil {
+		t.Fatalf("database.CreateTask(dbOnlyTask): %v", err)
+	}
+
+	jsonOnlyTask := Todo2Task{
+		ID:              "T-json-only-1",
+		Content:         "JSON only task",
+		LongDescription: "Present only in JSON",
+		Status:          models.StatusTodo,
+		Priority:        "low",
+		ProjectID:       projectID,
+		CreatedAt:       now,
+		LastModified:    now,
+	}
+	if err := saveTodo2TasksToJSON(projectRoot, []Todo2Task{jsonOnlyTask}); err != nil {
+		t.Fatalf("saveTodo2TasksToJSON: %v", err)
+	}
+
+	result, err := handleTaskWorkflowCleanup(context.Background(), map[string]interface{}{
+		"dry_run": true,
+	})
+	if err != nil {
+		t.Fatalf("handleTaskWorkflowCleanup: %v", err)
+	}
+	if len(result) == 0 {
+		t.Fatal("expected non-empty result")
+	}
+
+	var data map[string]interface{}
+	if err := json.Unmarshal([]byte(result[0].Text), &data); err != nil {
+		t.Fatalf("json.Unmarshal: %v", err)
+	}
+
+	if detected, ok := data["store_drift_detected"].(bool); !ok || !detected {
+		t.Fatalf("expected store_drift_detected=true, got %v", data["store_drift_detected"])
+	}
+	if count, ok := data["json_only_count"].(float64); !ok || int(count) != 1 {
+		t.Fatalf("expected json_only_count=1, got %v", data["json_only_count"])
+	}
+	if count, ok := data["db_only_count"].(float64); !ok || int(count) != 1 {
+		t.Fatalf("expected db_only_count=1, got %v", data["db_only_count"])
 	}
 }
 

@@ -418,6 +418,14 @@ func handleTaskWorkflowCleanup(ctx context.Context, params map[string]interface{
 		dryRun = dr
 	}
 
+	projectRoot, _ := FindProjectRoot()
+	var driftBefore *storeDriftReport
+	if projectRoot != "" {
+		if drift, err := detectTaskStoreDrift(projectRoot); err == nil {
+			driftBefore = drift
+		}
+	}
+
 	// Try database first for efficient filtering and deletion
 	if db, err := database.GetDB(); err == nil && db != nil {
 		// Get all pending tasks
@@ -503,6 +511,13 @@ func handleTaskWorkflowCleanup(ctx context.Context, params map[string]interface{
 				"threshold_hours": staleThresholdHours,
 				"include_legacy":  includeLegacy,
 			}
+			if driftBefore != nil {
+				result["store_drift_detected"] = len(driftBefore.JSONOnlyIDs) > 0 || len(driftBefore.DBOnlyIDs) > 0
+				result["json_only_count"] = len(driftBefore.JSONOnlyIDs)
+				result["json_only_tasks"] = driftBefore.JSONOnlyIDs
+				result["db_only_count"] = len(driftBefore.DBOnlyIDs)
+				result["db_only_tasks"] = driftBefore.DBOnlyIDs
+			}
 
 			return framework.FormatResult(result, "")
 		}
@@ -516,15 +531,23 @@ func handleTaskWorkflowCleanup(ctx context.Context, params map[string]interface{
 			}
 		}
 
-		// Sync DB to JSON (shared workflow)
+		// Sync DB to JSON (shared workflow), and repair any detected store drift.
 		var syncErr error
+		needsSync := len(removedIDs) > 0
+		if driftBefore != nil && (len(driftBefore.JSONOnlyIDs) > 0 || len(driftBefore.DBOnlyIDs) > 0) {
+			needsSync = true
+		}
+		if needsSync && projectRoot != "" {
+			syncErr = SyncTodo2Tasks(projectRoot)
+			if syncErr != nil {
+				fmt.Fprintf(os.Stderr, "Warning: sync DB to JSON after cleanup failed: %v\n", syncErr)
+			}
+		}
 
-		if len(removedIDs) > 0 {
-			if projectRoot, findErr := FindProjectRoot(); findErr == nil {
-				syncErr = SyncTodo2Tasks(projectRoot)
-				if syncErr != nil {
-					fmt.Fprintf(os.Stderr, "Warning: sync DB to JSON after cleanup failed: %v\n", syncErr)
-				}
+		var driftAfter *storeDriftReport
+		if projectRoot != "" {
+			if drift, err := detectTaskStoreDrift(projectRoot); err == nil {
+				driftAfter = drift
 			}
 		}
 
@@ -541,6 +564,22 @@ func handleTaskWorkflowCleanup(ctx context.Context, params map[string]interface{
 			"removed_tasks":   removedIDs,
 			"threshold_hours": staleThresholdHours,
 			"include_legacy":  includeLegacy,
+		}
+		if driftBefore != nil {
+			result["store_drift_detected"] = len(driftBefore.JSONOnlyIDs) > 0 || len(driftBefore.DBOnlyIDs) > 0
+			result["json_only_count_before"] = len(driftBefore.JSONOnlyIDs)
+			result["json_only_tasks_before"] = driftBefore.JSONOnlyIDs
+			result["db_only_count_before"] = len(driftBefore.DBOnlyIDs)
+			result["db_only_tasks_before"] = driftBefore.DBOnlyIDs
+		}
+		if driftAfter != nil {
+			result["json_only_count_after"] = len(driftAfter.JSONOnlyIDs)
+			result["json_only_tasks_after"] = driftAfter.JSONOnlyIDs
+			result["db_only_count_after"] = len(driftAfter.DBOnlyIDs)
+			result["db_only_tasks_after"] = driftAfter.DBOnlyIDs
+			result["store_drift_repaired"] = driftBefore != nil &&
+				(len(driftBefore.JSONOnlyIDs) > 0 || len(driftBefore.DBOnlyIDs) > 0) &&
+				len(driftAfter.JSONOnlyIDs) == 0 && len(driftAfter.DBOnlyIDs) == 0
 		}
 		if syncErr != nil {
 			result["sync_error"] = syncErr.Error()
@@ -617,6 +656,13 @@ func handleTaskWorkflowCleanup(ctx context.Context, params map[string]interface{
 			"threshold_hours": staleThresholdHours,
 			"include_legacy":  includeLegacy,
 		}
+		if driftBefore != nil {
+			result["store_drift_detected"] = len(driftBefore.JSONOnlyIDs) > 0 || len(driftBefore.DBOnlyIDs) > 0
+			result["json_only_count"] = len(driftBefore.JSONOnlyIDs)
+			result["json_only_tasks"] = driftBefore.JSONOnlyIDs
+			result["db_only_count"] = len(driftBefore.DBOnlyIDs)
+			result["db_only_tasks"] = driftBefore.DBOnlyIDs
+		}
 
 		return framework.FormatResult(result, "")
 	}
@@ -656,6 +702,13 @@ func handleTaskWorkflowCleanup(ctx context.Context, params map[string]interface{
 		"removed_tasks":   removedIDs,
 		"threshold_hours": staleThresholdHours,
 		"include_legacy":  includeLegacy,
+	}
+	if driftBefore != nil {
+		result["store_drift_detected"] = len(driftBefore.JSONOnlyIDs) > 0 || len(driftBefore.DBOnlyIDs) > 0
+		result["json_only_count_before"] = len(driftBefore.JSONOnlyIDs)
+		result["json_only_tasks_before"] = driftBefore.JSONOnlyIDs
+		result["db_only_count_before"] = len(driftBefore.DBOnlyIDs)
+		result["db_only_tasks_before"] = driftBefore.DBOnlyIDs
 	}
 
 	outputPath := cast.ToString(params["output_path"])
