@@ -19,6 +19,11 @@ func registerAndTrack(server framework.MCPServer, uri, name, description, mimeTy
 	return nil
 }
 
+// registerTemplate registers a resource template for parameterized URI discovery.
+func registerTemplate(server framework.MCPServer, uriTemplate, name, description, mimeType string, handler framework.ResourceHandler) error {
+	return server.RegisterResourceTemplate(uriTemplate, name, description, mimeType, handler)
+}
+
 // RegisterAllResources registers all resources with the server.
 func RegisterAllResources(server framework.MCPServer) error {
 	// Register 23 resources (all native Go; no Python bridge)
@@ -54,6 +59,15 @@ func RegisterAllResources(server framework.MCPServer) error {
 	); err != nil {
 		return fmt.Errorf("failed to register memories by category resource: %w", err)
 	}
+	if err := registerTemplate(server,
+		"stdio://memories/category/{category}",
+		"Memories by Category",
+		"Get memories filtered by category (debug, research, architecture, preference, insight).",
+		"application/json",
+		handleMemoriesByCategory,
+	); err != nil {
+		return fmt.Errorf("failed to register memories by category template: %w", err)
+	}
 
 	// stdio://memories/task/{task_id}
 	if err := registerAndTrack(server,
@@ -64,6 +78,15 @@ func RegisterAllResources(server framework.MCPServer) error {
 		handleMemoriesByTask,
 	); err != nil {
 		return fmt.Errorf("failed to register memories by task resource: %w", err)
+	}
+	if err := registerTemplate(server,
+		"stdio://memories/task/{task_id}",
+		"Memories for Task",
+		"Get memories linked to a specific task.",
+		"application/json",
+		handleMemoriesByTask,
+	); err != nil {
+		return fmt.Errorf("failed to register memories by task template: %w", err)
 	}
 
 	// stdio://memories/recent
@@ -87,6 +110,15 @@ func RegisterAllResources(server framework.MCPServer) error {
 	); err != nil {
 		return fmt.Errorf("failed to register session memories resource: %w", err)
 	}
+	if err := registerTemplate(server,
+		"stdio://memories/session/{date}",
+		"Session Memories",
+		"Get memories from a specific session date (YYYY-MM-DD format).",
+		"application/json",
+		handleSessionMemories,
+	); err != nil {
+		return fmt.Errorf("failed to register session memories template: %w", err)
+	}
 
 	// stdio://prompts
 	if err := registerAndTrack(server,
@@ -109,6 +141,15 @@ func RegisterAllResources(server framework.MCPServer) error {
 	); err != nil {
 		return fmt.Errorf("failed to register prompts by mode resource: %w", err)
 	}
+	if err := registerTemplate(server,
+		"stdio://prompts/mode/{mode}",
+		"Prompts by Mode",
+		"Get prompts for a workflow mode (daily_checkin, security_review, task_management, etc.).",
+		"application/json",
+		handlePromptsByMode,
+	); err != nil {
+		return fmt.Errorf("failed to register prompts by mode template: %w", err)
+	}
 
 	// stdio://prompts/persona/{persona}
 	if err := registerAndTrack(server,
@@ -120,6 +161,15 @@ func RegisterAllResources(server framework.MCPServer) error {
 	); err != nil {
 		return fmt.Errorf("failed to register prompts by persona resource: %w", err)
 	}
+	if err := registerTemplate(server,
+		"stdio://prompts/persona/{persona}",
+		"Prompts by Persona",
+		"Get prompts for a persona (developer, pm, qa, reviewer, etc.).",
+		"application/json",
+		handlePromptsByPersona,
+	); err != nil {
+		return fmt.Errorf("failed to register prompts by persona template: %w", err)
+	}
 
 	// stdio://prompts/category/{category}
 	if err := registerAndTrack(server,
@@ -130,6 +180,15 @@ func RegisterAllResources(server framework.MCPServer) error {
 		handlePromptsByCategory,
 	); err != nil {
 		return fmt.Errorf("failed to register prompts by category resource: %w", err)
+	}
+	if err := registerTemplate(server,
+		"stdio://prompts/category/{category}",
+		"Prompts by Category",
+		"Get prompts in a category (workflow, persona, analysis, etc.).",
+		"application/json",
+		handlePromptsByCategory,
+	); err != nil {
+		return fmt.Errorf("failed to register prompts by category template: %w", err)
 	}
 
 	// stdio://session/mode
@@ -208,6 +267,15 @@ func RegisterAllResources(server framework.MCPServer) error {
 	); err != nil {
 		return fmt.Errorf("failed to register tools by category resource: %w", err)
 	}
+	if err := registerTemplate(server,
+		"stdio://tools/{category}",
+		"Tools by Category",
+		"Get tools filtered by category.",
+		"application/json",
+		handleToolsByCategory,
+	); err != nil {
+		return fmt.Errorf("failed to register tools by category template: %w", err)
+	}
 
 	// stdio://tasks
 	if err := registerAndTrack(server,
@@ -230,6 +298,15 @@ func RegisterAllResources(server framework.MCPServer) error {
 	); err != nil {
 		return fmt.Errorf("failed to register task by ID resource: %w", err)
 	}
+	if err := registerTemplate(server,
+		"stdio://tasks/{task_id}",
+		"Task by ID",
+		"Get a specific task by ID with full details.",
+		"application/json",
+		handleTaskByID,
+	); err != nil {
+		return fmt.Errorf("failed to register task by ID template: %w", err)
+	}
 
 	// stdio://tasks/status/{status}
 	if err := registerAndTrack(server,
@@ -240,6 +317,15 @@ func RegisterAllResources(server framework.MCPServer) error {
 		handleTasksByStatus,
 	); err != nil {
 		return fmt.Errorf("failed to register tasks by status resource: %w", err)
+	}
+	if err := registerTemplate(server,
+		"stdio://tasks/status/{status}",
+		"Tasks by Status",
+		"Get tasks filtered by status (Todo, In Progress, Done).",
+		"application/json",
+		handleTasksByStatus,
+	); err != nil {
+		return fmt.Errorf("failed to register tasks by status template: %w", err)
 	}
 
 	// stdio://tasks/priority/{priority}
@@ -252,6 +338,15 @@ func RegisterAllResources(server framework.MCPServer) error {
 	); err != nil {
 		return fmt.Errorf("failed to register tasks by priority resource: %w", err)
 	}
+	if err := registerTemplate(server,
+		"stdio://tasks/priority/{priority}",
+		"Tasks by Priority",
+		"Get tasks filtered by priority (low, medium, high, critical).",
+		"application/json",
+		handleTasksByPriority,
+	); err != nil {
+		return fmt.Errorf("failed to register tasks by priority template: %w", err)
+	}
 
 	// stdio://tasks/tag/{tag}
 	if err := registerAndTrack(server,
@@ -262,6 +357,15 @@ func RegisterAllResources(server framework.MCPServer) error {
 		handleTasksByTag,
 	); err != nil {
 		return fmt.Errorf("failed to register tasks by tag resource: %w", err)
+	}
+	if err := registerTemplate(server,
+		"stdio://tasks/tag/{tag}",
+		"Tasks by Tag",
+		"Get tasks filtered by tag (any tag value).",
+		"application/json",
+		handleTasksByTag,
+	); err != nil {
+		return fmt.Errorf("failed to register tasks by tag template: %w", err)
 	}
 
 	// stdio://tasks/summary

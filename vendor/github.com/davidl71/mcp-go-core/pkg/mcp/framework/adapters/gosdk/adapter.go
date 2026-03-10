@@ -32,7 +32,7 @@ func NewGoSDKAdapter(name, version string, opts ...AdapterOption) *GoSDKAdapter 
 		name:         name,
 		toolHandlers: make(map[string]framework.ToolHandler),
 		toolInfo:     make(map[string]types.ToolInfo),
-		logger:       logging.NewLogger(), // Default logger
+		logger:       logging.NewLogger(),  // Default logger
 		middleware:   NewMiddlewareChain(), // Default empty middleware chain
 	}
 
@@ -259,6 +259,59 @@ func (a *GoSDKAdapter) RegisterResource(uri, name, description, mimeType string,
 	a.server.AddResource(resource, resourceHandler)
 
 	a.logger.Info("", "Resource registered successfully: %s", uri)
+	return nil
+}
+
+// RegisterResourceTemplate registers a resource template with the server.
+func (a *GoSDKAdapter) RegisterResourceTemplate(uriTemplate, name, description, mimeType string, handler framework.ResourceHandler) error {
+	a.logger.Debug("", "Registering resource template: %s", uriTemplate)
+
+	if err := ValidateResourceRegistration(uriTemplate, name, description, handler); err != nil {
+		return err
+	}
+
+	template := &mcp.ResourceTemplate{
+		URITemplate: uriTemplate,
+		Name:        name,
+		Description: description,
+		MIMEType:    mimeType,
+	}
+
+	baseResourceHandler := func(ctx context.Context, req *mcp.ReadResourceRequest) (*mcp.ReadResourceResult, error) {
+		if err := ValidateContext(ctx); err != nil {
+			return nil, err
+		}
+		if err := ValidateReadResourceRequest(req); err != nil {
+			return nil, err
+		}
+
+		data, resolvedMimeType, err := handler(ctx, req.Params.URI)
+		if err != nil {
+			return nil, fmt.Errorf("resource template handler failed for URI %q: %w", req.Params.URI, err)
+		}
+		if data == nil {
+			data = []byte{}
+		}
+
+		return &mcp.ReadResourceResult{
+			Contents: []*mcp.ResourceContents{
+				{
+					URI:      req.Params.URI,
+					MIMEType: resolvedMimeType,
+					Text:     string(data),
+				},
+			},
+		}, nil
+	}
+
+	wrappedResourceHandler := a.middleware.WrapResourceHandler(baseResourceHandler)
+	resourceHandler := mcp.ResourceHandler(func(ctx context.Context, req *mcp.ReadResourceRequest) (*mcp.ReadResourceResult, error) {
+		return wrappedResourceHandler(ctx, req)
+	})
+
+	a.server.AddResourceTemplate(template, resourceHandler)
+
+	a.logger.Info("", "Resource template registered successfully: %s", uriTemplate)
 	return nil
 }
 

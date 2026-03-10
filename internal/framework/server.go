@@ -11,14 +11,15 @@ import (
 
 // Re-export types and interfaces from mcp-go-core for backward compatibility.
 type (
-	MCPServer       = framework.MCPServer
-	ToolHandler     = framework.ToolHandler
-	PromptHandler   = framework.PromptHandler
-	ResourceHandler = framework.ResourceHandler
-	Transport       = framework.Transport
-	TextContent     = types.TextContent
-	ToolSchema      = types.ToolSchema
-	ToolInfo        = types.ToolInfo
+	MCPServer        = framework.MCPServer
+	ToolHandler      = framework.ToolHandler
+	PromptHandler    = framework.PromptHandler
+	ResourceHandler  = framework.ResourceHandler
+	ResourceTemplate = framework.ResourceTemplate
+	Transport        = framework.Transport
+	TextContent      = types.TextContent
+	ToolSchema       = types.ToolSchema
+	ToolInfo         = types.ToolInfo
 )
 
 // ToolError re-export for backward compatibility.

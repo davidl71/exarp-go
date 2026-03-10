@@ -48,6 +48,10 @@ func (c *countingServer) RegisterResource(uri, name, description, mimeType strin
 	return c.MCPServer.RegisterResource(uri, name, description, mimeType, handler)
 }
 
+func (c *countingServer) RegisterResourceTemplate(uriTemplate, name, description, mimeType string, handler framework.ResourceHandler) error {
+	return c.MCPServer.RegisterResourceTemplate(uriTemplate, name, description, mimeType, handler)
+}
+
 func main() {
 	// Load configuration
 	cfg, err := config.Load()

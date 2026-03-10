@@ -18,10 +18,27 @@
 
 ## 📚 User Guides
 
+### Preferred Tool Surface
+Use these first unless you specifically need a backend-specific or compatibility tool:
+
+- `task_workflow`, `task_analysis`, `task_discovery`
+- `report`, `health`, `session`, `automation`
+- `testing`, `lint`, `security`, `git_tools`
+- `memory`, `memory_maint`, `recommend`, `text_generate`
+- `workflow_mode`, `tool_catalog`, `generate_config`, `setup_hooks`
+
+Advanced/specialist tools such as `ollama`, `mlx`, `llamacpp`, `cursor_cloud_agent`, and `fm_plan_and_execute` still exist, but they are not the recommended starting surface.
+
+Compatibility aliases still exist for migration:
+- `task_execute` -> prefer `task_workflow`
+- `infer_session_mode` -> prefer `session`
+- `scan_dependency_security` -> prefer `security`
+- `context_budget` -> prefer `context`
+
 ### Task Management
 | Document | Description |
 |----------|-------------|
-| `TASK_TOOLS_GUIDE.md` | **NEW** Complete guide to task_workflow, task_analysis, task_execute |
+| `TASK_TOOLS_GUIDE.md` | Guide to task_workflow, task_analysis, and task-discovery flows |
 | `TASK_TOOLS_COMPARISON.md` | Detailed comparison of task tools |
 | `EXARP_CLI_SHORTCUTS.md` | CLI shortcuts reference |
 
@@ -119,7 +136,7 @@ Historical and outdated documentation has been moved to `docs/archive/`.
 
 **Most Important Docs for New Users**:
 1. `CURSOR_MCP_SETUP.md` or `OPENCODE_INTEGRATION.md` - Get started with your IDE
-2. `TASK_TOOLS_GUIDE.md` - Learn task management
+2. `TASK_TOOLS_GUIDE.md` - Learn the primary task-management surface
 3. `CLI_MAKE_CI_USAGE.md` - CLI reference
 4. `LINT_TARGETS.md` - Code quality tools
 5. `GO_AI_ECOSYSTEM.md` - Local LLM setup
