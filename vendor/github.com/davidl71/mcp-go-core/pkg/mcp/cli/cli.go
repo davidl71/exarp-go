@@ -99,8 +99,7 @@ func ParseArgs(argv []string) *Args {
 		Positional: make([]string, 0),
 	}
 
-	for i := 0; i < len(argv); i++ {
-		arg := argv[i]
+	for i, arg := range argv {
 		if arg == "" {
 			continue
 		}

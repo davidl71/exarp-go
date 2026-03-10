@@ -31,6 +31,10 @@ func (s *taskCommandStubServer) RegisterResource(string, string, string, string,
 	return nil
 }
 
+func (s *taskCommandStubServer) RegisterResourceTemplate(string, string, string, string, framework.ResourceHandler) error {
+	return nil
+}
+
 func (s *taskCommandStubServer) Run(context.Context, framework.Transport) error { return nil }
 
 func (s *taskCommandStubServer) GetName() string { return "stub" }

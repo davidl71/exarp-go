@@ -1,4 +1,4 @@
-// request.go — Framework wrappers for mcp-go-core request utilities.
+// request.go — Shared request parsing helpers used by framework adapters and tools.
 package framework
 
 import (
@@ -6,13 +6,27 @@ import (
 	"encoding/json"
 	"fmt"
 
-	mcprequest "github.com/davidl71/mcp-go-core/pkg/mcp/request"
+	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 )
 
 // ApplyDefaults applies default values to a params map.
 // Defaults are only applied if the key is missing or has an empty string value.
-var ApplyDefaults = mcprequest.ApplyDefaults
+func ApplyDefaults(params map[string]interface{}, defaults map[string]interface{}) {
+	if params == nil {
+		return
+	}
+	for key, defaultValue := range defaults {
+		existingValue, exists := params[key]
+		if !exists {
+			params[key] = defaultValue
+			continue
+		}
+		if strValue, ok := existingValue.(string); ok && strValue == "" {
+			params[key] = defaultValue
+		}
+	}
+}
 
 // ParseRequest parses a protobuf or JSON request from raw MCP args.
 // Returns the protobuf message if protobuf binary succeeds; otherwise returns a JSON params map.
@@ -39,11 +53,115 @@ func ParseRequest[T proto.Message](args json.RawMessage, newMsg func() T) (T, ma
 		}
 	}
 
-	return mcprequest.ParseRequest(args, newMsg)
+	req := newMsg()
+	if err := proto.Unmarshal(args, req); err == nil {
+		return req, nil, nil
+	}
+
+	var params map[string]interface{}
+	if err := json.Unmarshal(args, &params); err != nil {
+		return zero, nil, fmt.Errorf("failed to parse arguments: %w", err)
+	}
+
+	return zero, params, nil
 }
 
 // ProtobufToParamsOptions configures the behavior of ProtobufToParams.
-type ProtobufToParamsOptions = mcprequest.ProtobufToParamsOptions
+type ProtobufToParamsOptions struct {
+	FilterEmptyStrings  bool
+	StringifyArrays     bool
+	ConvertFloat64ToInt bool
+	Float64ToIntFields  []string
+}
 
 // ProtobufToParams converts a protobuf message to a map[string]interface{}.
-var ProtobufToParams = mcprequest.ProtobufToParams
+func ProtobufToParams(msg proto.Message, opts *ProtobufToParamsOptions) (map[string]interface{}, error) {
+	if msg == nil {
+		return make(map[string]interface{}), nil
+	}
+
+	jsonBytes, err := protojson.MarshalOptions{
+		EmitDefaultValues: true,
+		UseProtoNames:     true,
+	}.Marshal(msg)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal protobuf to JSON: %w", err)
+	}
+
+	var params map[string]interface{}
+	if err := json.Unmarshal(jsonBytes, &params); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal JSON to map: %w", err)
+	}
+
+	if opts != nil {
+		if opts.FilterEmptyStrings {
+			params = filterEmptyStrings(params)
+		}
+		if opts.StringifyArrays {
+			params = stringifyArrays(params)
+		}
+		if opts.ConvertFloat64ToInt {
+			params = convertFloat64ToInt(params, opts.Float64ToIntFields)
+		}
+	}
+
+	return params, nil
+}
+
+func filterEmptyStrings(params map[string]interface{}) map[string]interface{} {
+	result := make(map[string]interface{})
+	for k, v := range params {
+		if str, ok := v.(string); ok && str == "" {
+			continue
+		}
+		if f, ok := v.(float64); ok && f == 0.0 {
+			continue
+		}
+		result[k] = v
+	}
+	return result
+}
+
+func stringifyArrays(params map[string]interface{}) map[string]interface{} {
+	result := make(map[string]interface{})
+	for k, v := range params {
+		switch val := v.(type) {
+		case []interface{}:
+			if len(val) == 0 {
+				continue
+			}
+			jsonBytes, err := json.Marshal(val)
+			if err == nil {
+				result[k] = string(jsonBytes)
+			} else {
+				result[k] = val
+			}
+		default:
+			result[k] = v
+		}
+	}
+	return result
+}
+
+func convertFloat64ToInt(params map[string]interface{}, fields []string) map[string]interface{} {
+	if len(fields) == 0 {
+		return params
+	}
+
+	fieldSet := make(map[string]bool, len(fields))
+	for _, field := range fields {
+		fieldSet[field] = true
+	}
+
+	result := make(map[string]interface{})
+	for k, v := range params {
+		if fieldSet[k] {
+			if f, ok := v.(float64); ok {
+				result[k] = int(f)
+				continue
+			}
+		}
+		result[k] = v
+	}
+	return result
+}
