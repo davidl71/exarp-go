@@ -1,18 +1,25 @@
-# Relax rules so make lint-ansible passes without mass refactor.
-# Tighten over time by removing from skip_list and fixing roles.
-# See https://ansible.readthedocs.io/projects/lint/configuring/
+---
+# Keep ansible-lint useful for this repo's playbooks/roles without forcing
+# large refactors of deliberate bootstrap/install patterns.
 
-# Install collections from requirements.yml (so ansible-lint can resolve community.general.homebrew)
-# Use 'make ansible-galaxy' for offline install; remove offline:true to allow on-demand install
-# offline: true  # disabled so ansible-lint can auto-install community.general (T-1771459746925000000)
-profile: min
+profile: basic
+use_default_rules: true
+
+exclude_paths:
+  - .cache/
+
+warn_list:
+  - experimental
 
 skip_list:
-  - var-naming          # role vars use _prefix convention
-  - fqcn[action-core]   # use short names for builtins for now
-  - yaml[empty-lines]
-  - yaml[truthy]
+  # Bootstrap/install tasks intentionally use command/shell for vendor install
+  # flows, platform checks, and one-shot system utilities.
   - command-instead-of-module
+  # Many verification/bootstrap commands are intentionally read-only or use
+  # explicit changed_when/failed_when handling elsewhere in the task.
   - no-changed-when
-  - risky-file-permissions
-  - name[casing]
+  # Existing roles predate strict ansible-lint role-prefix naming conventions.
+  - var-naming
+  # Role meta files are intentionally minimal; adding full Galaxy metadata is
+  # outside the scope of local lint hygiene for these playbooks.
+  - schema[meta]
