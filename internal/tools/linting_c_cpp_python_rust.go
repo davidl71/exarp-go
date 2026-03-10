@@ -468,7 +468,7 @@ func resolveLintPaths(path string) (projectRoot, absPath, relPath string, err er
 	if err != nil {
 		projectRoot, err = projectroot.FindFrom(path)
 		if err != nil {
-			projectRoot, _ = os.Getwd()
+			return "", "", "", fmt.Errorf("project root not found for lint target %q: set PROJECT_ROOT or lint a path inside a project with .todo2/.exarp markers", path)
 		}
 	}
 

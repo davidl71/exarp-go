@@ -1404,15 +1404,15 @@ quick-build: build ## Quick build (verify imports)
 # ansible-lint now auto-installs collections (offline removed from .ansible-lint). Run 'make ansible-galaxy' for offline install.
 ansible-check: ## Syntax-check Ansible dev playbook
 	@mkdir -p "$(ANSIBLE_LOCAL_TEMP)" "$(ANSIBLE_REMOTE_TMP)" "$(ANSIBLE_GALAXY_CACHE_DIR)" "$(ANSIBLE_HOME_DIR)"
-	@cd ansible && ANSIBLE_HOME="$(ANSIBLE_HOME_DIR)" ANSIBLE_LOCAL_TEMP="$(ANSIBLE_LOCAL_TEMP)" ANSIBLE_REMOTE_TMP="$(ANSIBLE_REMOTE_TMP)" ANSIBLE_GALAXY_CACHE_DIR="$(ANSIBLE_GALAXY_CACHE_DIR)" ansible-playbook --syntax-check -i inventories/development playbooks/development.yml
+	@cd ansible && PROJECT_ROOT="$(REPO_ROOT)" ANSIBLE_HOME="$(ANSIBLE_HOME_DIR)" ANSIBLE_LOCAL_TEMP="$(ANSIBLE_LOCAL_TEMP)" ANSIBLE_REMOTE_TMP="$(ANSIBLE_REMOTE_TMP)" ANSIBLE_GALAXY_CACHE_DIR="$(ANSIBLE_GALAXY_CACHE_DIR)" ansible-playbook --syntax-check -i inventories/development playbooks/development.yml
 
 ansible-dev: ## Run Ansible dev setup (interactive, asks for sudo)
 	@mkdir -p "$(ANSIBLE_LOCAL_TEMP)" "$(ANSIBLE_REMOTE_TMP)" "$(ANSIBLE_GALAXY_CACHE_DIR)" "$(ANSIBLE_HOME_DIR)"
-	@cd ansible && ANSIBLE_HOME="$(ANSIBLE_HOME_DIR)" ANSIBLE_LOCAL_TEMP="$(ANSIBLE_LOCAL_TEMP)" ANSIBLE_REMOTE_TMP="$(ANSIBLE_REMOTE_TMP)" ANSIBLE_GALAXY_CACHE_DIR="$(ANSIBLE_GALAXY_CACHE_DIR)" bash run-dev-setup.sh
+	@cd ansible && PROJECT_ROOT="$(REPO_ROOT)" ANSIBLE_HOME="$(ANSIBLE_HOME_DIR)" ANSIBLE_LOCAL_TEMP="$(ANSIBLE_LOCAL_TEMP)" ANSIBLE_REMOTE_TMP="$(ANSIBLE_REMOTE_TMP)" ANSIBLE_GALAXY_CACHE_DIR="$(ANSIBLE_GALAXY_CACHE_DIR)" bash run-dev-setup.sh
 
 ansible-list: ## List Ansible dev playbook tasks
 	@mkdir -p "$(ANSIBLE_LOCAL_TEMP)" "$(ANSIBLE_REMOTE_TMP)" "$(ANSIBLE_GALAXY_CACHE_DIR)" "$(ANSIBLE_HOME_DIR)"
-	@cd ansible && ANSIBLE_HOME="$(ANSIBLE_HOME_DIR)" ANSIBLE_LOCAL_TEMP="$(ANSIBLE_LOCAL_TEMP)" ANSIBLE_REMOTE_TMP="$(ANSIBLE_REMOTE_TMP)" ANSIBLE_GALAXY_CACHE_DIR="$(ANSIBLE_GALAXY_CACHE_DIR)" ansible-playbook --list-tasks -i inventories/development playbooks/development.yml
+	@cd ansible && PROJECT_ROOT="$(REPO_ROOT)" ANSIBLE_HOME="$(ANSIBLE_HOME_DIR)" ANSIBLE_LOCAL_TEMP="$(ANSIBLE_LOCAL_TEMP)" ANSIBLE_REMOTE_TMP="$(ANSIBLE_REMOTE_TMP)" ANSIBLE_GALAXY_CACHE_DIR="$(ANSIBLE_GALAXY_CACHE_DIR)" ansible-playbook --list-tasks -i inventories/development playbooks/development.yml
 
 ansible-docker-smoke: ## Run Ansible syntax-check in Ubuntu Docker (cross-platform smoke; optional)
 	@docker run --rm -v "$(CURDIR)/ansible:/ansible:ro" -w /ansible cytopia/ansible:latest-tools \
@@ -1421,11 +1421,11 @@ ansible-docker-smoke: ## Run Ansible syntax-check in Ubuntu Docker (cross-platfo
 
 ansible-galaxy: ## Install Ansible Galaxy requirements (run once so ansible-lint syntax-check finds community.general)
 	@mkdir -p "$(ANSIBLE_LOCAL_TEMP)" "$(ANSIBLE_REMOTE_TMP)" "$(ANSIBLE_GALAXY_CACHE_DIR)" "$(ANSIBLE_HOME_DIR)"
-	@cd ansible && ANSIBLE_HOME="$(ANSIBLE_HOME_DIR)" ANSIBLE_LOCAL_TEMP="$(ANSIBLE_LOCAL_TEMP)" ANSIBLE_REMOTE_TMP="$(ANSIBLE_REMOTE_TMP)" ANSIBLE_GALAXY_CACHE_DIR="$(ANSIBLE_GALAXY_CACHE_DIR)" ansible-galaxy collection install -r requirements.yml --force-with-deps
+	@cd ansible && PROJECT_ROOT="$(REPO_ROOT)" ANSIBLE_HOME="$(ANSIBLE_HOME_DIR)" ANSIBLE_LOCAL_TEMP="$(ANSIBLE_LOCAL_TEMP)" ANSIBLE_REMOTE_TMP="$(ANSIBLE_REMOTE_TMP)" ANSIBLE_GALAXY_CACHE_DIR="$(ANSIBLE_GALAXY_CACHE_DIR)" ansible-galaxy collection install -r requirements.yml --force-with-deps
 
 ansible-linters: ## Install lint helper tools via Ansible linters tag (interactive; may ask for sudo)
 	@mkdir -p "$(ANSIBLE_LOCAL_TEMP)" "$(ANSIBLE_REMOTE_TMP)" "$(ANSIBLE_GALAXY_CACHE_DIR)" "$(ANSIBLE_HOME_DIR)"
-	@cd ansible && ANSIBLE_HOME="$(ANSIBLE_HOME_DIR)" ANSIBLE_LOCAL_TEMP="$(ANSIBLE_LOCAL_TEMP)" ANSIBLE_REMOTE_TMP="$(ANSIBLE_REMOTE_TMP)" ANSIBLE_GALAXY_CACHE_DIR="$(ANSIBLE_GALAXY_CACHE_DIR)" ansible-playbook -i inventories/development playbooks/development.yml --tags linters --ask-become-pass
+	@cd ansible && PROJECT_ROOT="$(REPO_ROOT)" ANSIBLE_HOME="$(ANSIBLE_HOME_DIR)" ANSIBLE_LOCAL_TEMP="$(ANSIBLE_LOCAL_TEMP)" ANSIBLE_REMOTE_TMP="$(ANSIBLE_REMOTE_TMP)" ANSIBLE_GALAXY_CACHE_DIR="$(ANSIBLE_GALAXY_CACHE_DIR)" ansible-playbook -i inventories/development playbooks/development.yml --tags linters --ask-become-pass
 
 lint-shellcheck: ## Run shellcheck on scripts (requires shellcheck)
 	@if ! command -v shellcheck >/dev/null 2>&1; then \
@@ -1461,7 +1461,7 @@ lint-ansible: ## Run ansible-lint on playbooks/roles (auto-installs community.ge
 		fi; \
 	else \
 		mkdir -p "$(ANSIBLE_LOCAL_TEMP)" "$(ANSIBLE_REMOTE_TMP)" "$(ANSIBLE_GALAXY_CACHE_DIR)" "$(ANSIBLE_HOME_DIR)" && \
-		cd ansible && ANSIBLE_HOME="$(ANSIBLE_HOME_DIR)" ANSIBLE_LOCAL_TEMP="$(ANSIBLE_LOCAL_TEMP)" ANSIBLE_REMOTE_TMP="$(ANSIBLE_REMOTE_TMP)" ANSIBLE_GALAXY_CACHE_DIR="$(ANSIBLE_GALAXY_CACHE_DIR)" ansible-lint --format=pep8 -v && \
+		cd ansible && PROJECT_ROOT="$(REPO_ROOT)" ANSIBLE_HOME="$(ANSIBLE_HOME_DIR)" ANSIBLE_LOCAL_TEMP="$(ANSIBLE_LOCAL_TEMP)" ANSIBLE_REMOTE_TMP="$(ANSIBLE_REMOTE_TMP)" ANSIBLE_GALAXY_CACHE_DIR="$(ANSIBLE_GALAXY_CACHE_DIR)" ansible-lint --format=pep8 -v && \
 		echo "$(GREEN)✅ ansible-lint done$(NC)"; \
 	fi
 

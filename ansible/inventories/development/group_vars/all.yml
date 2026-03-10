@@ -12,8 +12,8 @@ go_bin_path: "{{ go_gopath }}/bin"
 
 # Project configuration
 project_name: "exarp-go"
-# Use HOME env var, fallback to /Users/username on macOS
-project_path: "{{ lookup('env', 'HOME') | default('/Users/' + go_user) }}/Projects/{{ project_name }}"
+# Prefer PROJECT_ROOT so Ansible targets the active checkout; fallback keeps the old default layout.
+project_path: "{{ lookup('env', 'PROJECT_ROOT') | default((lookup('env', 'HOME') | default('/Users/' + go_user)) + '/Projects/' + project_name, true) }}"
 project_user: "{{ lookup('env', 'USER') | default(ansible_user_id | default('vagrant')) }}"
 
 # Git: less verbose output (advice.* = false for dev user; see docs/DEV_ENV_GIT_CONFIG.md)
@@ -50,4 +50,3 @@ ollama_models:
   - qwen2.5:1.5b   # Light default for tests (make test-ollama)
   - llama3.2       # App default (optional)
   - llama3         # Legacy test fallback (optional)
-
