@@ -24,5 +24,3 @@ linters: []
 
 # Development tools (empty for production)
 dev_tools: []
-
-

@@ -55,7 +55,11 @@ func TestRqliteDriver_Open_SkipsWhenNoServer(t *testing.T) {
 	d := NewRqliteDriver()
 	db, err := d.Open("http://localhost:4001")
 	if err != nil {
-		if strings.Contains(err.Error(), "connection refused") || strings.Contains(err.Error(), "refused") {
+		if strings.Contains(err.Error(), "connection refused") ||
+			strings.Contains(err.Error(), "refused") ||
+			strings.Contains(err.Error(), "operation not permitted") ||
+			strings.Contains(err.Error(), "network is unreachable") ||
+			strings.Contains(err.Error(), "no such host") {
 			t.Skip("rqlite not running at localhost:4001:", err)
 		}
 		t.Fatalf("Open: %v", err)

@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/davidl71/exarp-go/internal/database"
+	"github.com/davidl71/exarp-go/internal/models"
 )
 
 func TestNewDefaultTaskStore_FileFallback(t *testing.T) {
@@ -44,6 +45,10 @@ func TestNewDefaultTaskStore_FileFallback(t *testing.T) {
 		t.Errorf("GetTask content = %q, want File fallback task", got.Content)
 	}
 
+	if gotHash := models.GetContentHash(got); gotHash == "" {
+		t.Error("GetTask content_hash = empty, want populated hash")
+	}
+
 	list, err := store.ListTasks(ctx, nil)
 	if err != nil || len(list) != 1 {
 		t.Fatalf("ListTasks: err=%v len=%d", err, len(list))
@@ -58,6 +63,9 @@ func TestNewDefaultTaskStore_FileFallback(t *testing.T) {
 	if got2.Status != "Done" {
 		t.Errorf("after UpdateTask Status = %q, want Done", got2.Status)
 	}
+	if gotHash := models.GetContentHash(got2); gotHash == "" {
+		t.Error("after UpdateTask content_hash = empty, want populated hash")
+	}
 
 	if err := store.DeleteTask(ctx, "T-998001"); err != nil {
 		t.Fatalf("DeleteTask: %v", err)
@@ -66,5 +74,57 @@ func TestNewDefaultTaskStore_FileFallback(t *testing.T) {
 	got3, _ := store.GetTask(ctx, "T-998001")
 	if got3 != nil {
 		t.Errorf("GetTask after delete = %v, want nil", got3)
+	}
+}
+
+func TestNewDefaultTaskStore_DBCreateAndUpdateSetContentHash(t *testing.T) {
+	cleanup := initSessionTestDB(t)
+	defer cleanup()
+
+	projectRoot, err := GetProjectRootWithFallback()
+	if err != nil {
+		t.Fatalf("GetProjectRootWithFallback: %v", err)
+	}
+
+	store := NewDefaultTaskStore(projectRoot)
+	ctx := context.Background()
+
+	task := &database.Todo2Task{
+		ID:              "T-998002",
+		Content:         "DB-backed task",
+		LongDescription: "Initial description",
+		Status:          "Todo",
+		Priority:        "medium",
+	}
+	if err := store.CreateTask(ctx, task); err != nil {
+		t.Fatalf("CreateTask: %v", err)
+	}
+
+	got, err := store.GetTask(ctx, task.ID)
+	if err != nil || got == nil {
+		t.Fatalf("GetTask after CreateTask: err=%v got=%v", err, got)
+	}
+
+	initialHash := models.GetContentHash(got)
+	if initialHash == "" {
+		t.Fatal("CreateTask content_hash = empty, want populated hash")
+	}
+
+	got.LongDescription = "Updated description"
+	if err := store.UpdateTask(ctx, got); err != nil {
+		t.Fatalf("UpdateTask: %v", err)
+	}
+
+	got2, err := store.GetTask(ctx, task.ID)
+	if err != nil || got2 == nil {
+		t.Fatalf("GetTask after UpdateTask: err=%v got=%v", err, got2)
+	}
+
+	updatedHash := models.GetContentHash(got2)
+	if updatedHash == "" {
+		t.Fatal("UpdateTask content_hash = empty, want populated hash")
+	}
+	if updatedHash == initialHash {
+		t.Errorf("content_hash did not change after content update: got %q", updatedHash)
 	}
 }

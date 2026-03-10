@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 
 	"github.com/davidl71/exarp-go/internal/database"
+	"github.com/davidl71/exarp-go/internal/models"
 )
 
 // dbOrFileStore implements database.TaskStore with DB-first, JSON-file fallback.
@@ -43,6 +44,8 @@ func (s *dbOrFileStore) UpdateTask(ctx context.Context, task *database.Todo2Task
 	if task == nil || task.ID == "" {
 		return fmt.Errorf("task and task.ID are required")
 	}
+
+	models.SetContentHash(task)
 
 	if db, err := database.GetDB(); err == nil && db != nil {
 		if err := database.UpdateTask(ctx, task); err != nil {
@@ -105,6 +108,8 @@ func (s *dbOrFileStore) CreateTask(ctx context.Context, task *database.Todo2Task
 			task.ProjectID = "default"
 		}
 	}
+
+	models.SetContentHash(task)
 
 	if db, err := database.GetDB(); err == nil && db != nil {
 		return database.CreateTask(ctx, task)

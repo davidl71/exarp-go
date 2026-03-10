@@ -272,6 +272,7 @@
 
 - name: Set git advice for less verbose output (development user)
   ansible.builtin.command: "git config --global advice.{{ item }} false"
+  become: false
   loop:
     - statusHints
     - statusUoption
