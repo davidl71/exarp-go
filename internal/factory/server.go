@@ -12,6 +12,7 @@ import (
 
 	"github.com/davidl71/exarp-go/internal/config"
 	"github.com/davidl71/exarp-go/internal/framework"
+	"github.com/davidl71/exarp-go/internal/security"
 	"github.com/davidl71/mcp-go-core/pkg/mcp/framework/adapters/gosdk"
 	"github.com/davidl71/mcp-go-core/pkg/mcp/logging"
 	"github.com/lawlielt/ctxcache"
@@ -74,6 +75,25 @@ func toolRecoveryMiddleware(next gosdk.ToolHandlerFunc) gosdk.ToolHandlerFunc {
 				err = nil
 			}
 		}()
+		return next(ctx, req)
+	}
+}
+
+// toolRateLimitMiddleware checks rate limits before executing a tool.
+// Returns an error if the client has exceeded their rate limit.
+func toolRateLimitMiddleware(next gosdk.ToolHandlerFunc) gosdk.ToolHandlerFunc {
+	return func(ctx context.Context, req *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		clientID := "default"
+		if req != nil && req.Params != nil {
+			if err := security.CheckRateLimit(clientID); err != nil {
+				return &mcp.CallToolResult{
+					IsError: true,
+					Content: []mcp.Content{
+						&mcp.TextContent{Text: fmt.Sprintf("rate limit exceeded: %v", err)},
+					},
+				}, nil
+			}
+		}
 		return next(ctx, req)
 	}
 }
@@ -144,6 +164,7 @@ func NewServer(frameworkType config.FrameworkType, name, version string, opts ..
 			gosdk.WithCompletionHandler(newCompletionHandler()),
 			gosdk.WithResourceSubscriptionHandlers(resourceSubscribeHandler, resourceUnsubscribeHandler),
 			gosdk.WithMiddleware(toolRecoveryMiddleware),
+			gosdk.WithMiddleware(toolRateLimitMiddleware),
 			gosdk.WithMiddleware(toolContextCacheMiddleware),
 			gosdk.WithMiddleware(toolLoggingMiddleware(logger)),
 			gosdk.WithSamplingSupport(),
