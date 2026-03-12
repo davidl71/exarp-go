@@ -70,7 +70,7 @@ var (
 
 const (
 	colCursor   = 3
-	colIDMedium = 18
+	colIDMedium = 22
 	colStatus   = 12
 	colPriority = 10
 	colPRI      = 4
@@ -81,7 +81,7 @@ const (
 
 	// Wide-layout constants: compact column widths to maximize space for Description.
 	wideColCursor          = 3
-	wideColID              = 18
+	wideColID              = 22
 	wideColStatus          = 11
 	wideColPriority        = 8
 	wideColPRI             = 3

@@ -16,11 +16,11 @@ import (
 
 // defaultTableColumns defines the columns for bubble/table sprintboard view.
 var defaultTableColumns = []table.Column{
-	{Title: "ID", Width: 18},
+	{Title: "ID", Width: 22},
 	{Title: "Status", Width: 12},
 	{Title: "Priority", Width: 10},
-	{Title: "Description", Width: 40},
-	{Title: "Tags", Width: 20},
+	{Title: "Description", Width: 38},
+	{Title: "Tags", Width: 18},
 }
 
 // taskItem implements list.Item for bubble/list integration.
