@@ -330,10 +330,7 @@ func handleOllamaGenerate(ctx context.Context, params map[string]interface{}, ho
 
 	model := getOllamaModelParam(params, "llama3.2")
 
-	stream := false
-	if s, ok := params["stream"].(bool); ok {
-		stream = s
-	}
+	stream := ParamBool(params, "stream", false)
 
 	// Build options
 	options := make(map[string]interface{})

@@ -106,10 +106,7 @@ func handleInferTaskProgressNative(ctx context.Context, params map[string]interf
 
 	allScored := scoreAllTasksHeuristic(candidates, evidence)
 
-	useFM := true
-	if u, ok := params["use_fm"].(bool); ok {
-		useFM = u
-	}
+	useFM := ParamBool(params, "use_fm", true)
 
 	if useFM && FMAvailable() {
 		allScored = enhanceWithFM(ctx, candidates, allScored, evidence)
@@ -117,15 +114,9 @@ func handleInferTaskProgressNative(ctx context.Context, params map[string]interf
 
 	inferred := filterByThreshold(allScored, confidenceThreshold)
 
-	dryRun := true
-	if dr, ok := params["dry_run"].(bool); ok {
-		dryRun = dr
-	}
+	dryRun := ParamBool(params, "dry_run", true)
 
-	autoUpdate := false
-	if au, ok := params["auto_update_tasks"].(bool); ok {
-		autoUpdate = au
-	}
+	autoUpdate := ParamBool(params, "auto_update_tasks", false)
 
 	tasksUpdated := 0
 	if autoUpdate && !dryRun && len(inferred) > 0 {

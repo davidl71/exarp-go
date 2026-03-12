@@ -3,6 +3,7 @@ package config
 
 import (
 	"fmt"
+	"strings"
 	"time"
 )
 
@@ -218,6 +219,18 @@ func validateTasks(tasks TasksConfig) error {
 	// Validate stale threshold
 	if tasks.StaleThresholdHours < 0 {
 		return fmt.Errorf("stale_threshold_hours (%d) must be non-negative", tasks.StaleThresholdHours)
+	}
+
+	for action, bindings := range tasks.Keybindings {
+		if strings.TrimSpace(action) == "" {
+			return fmt.Errorf("keybindings contains an empty action")
+		}
+		for _, binding := range bindings {
+			normalized := strings.ToLower(strings.TrimSpace(binding))
+			if normalized == "" {
+				return fmt.Errorf("keybindings for %s contains an empty binding", action)
+			}
+		}
 	}
 
 	// Validate min description length

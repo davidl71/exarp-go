@@ -51,7 +51,14 @@ func TestNewServer_GoSDKAdvertisesExarpExtension(t *testing.T) {
 		t.Fatalf("extension settings type = %T, want map[string]any", raw)
 	}
 
-	for _, key := range []string{"projectRootContext", "resourceTemplates", "toolFiltering"} {
+	for _, key := range []string{
+		"projectRootContext",
+		"resourceTemplates",
+		"toolFiltering",
+		"resourceSubscriptions",
+		"agentRunner",
+		"fmPlanExecute",
+	} {
 		if settings[key] != true {
 			t.Errorf("extension setting %q = %#v, want true", key, settings[key])
 		}

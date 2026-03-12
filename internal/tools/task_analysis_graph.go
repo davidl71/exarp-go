@@ -537,10 +537,7 @@ Return JSON array with format: [{"task_id": "T-1", "level": "component", "compon
 		"hierarchy_recommendations": buildHierarchyRecommendations(classifications, pendingTasks),
 	}
 
-	includeRecommendations := true
-	if rec, ok := params["include_recommendations"].(bool); ok {
-		includeRecommendations = rec
-	}
+	includeRecommendations := ParamBool(params, "include_recommendations", true)
 
 	if !includeRecommendations {
 		delete(analysis, "hierarchy_recommendations")

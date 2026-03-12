@@ -2,10 +2,20 @@
 
 Task-related tools (`task_workflow`, `task_analysis`, `task_discovery`, `estimation`) share several patterns. This doc summarizes them for consistency and future refactors.
 
-## 1. Handler entry (handlers.go)
+## 1. Handler entry (handlers.go) via WrapHandler
 
 - **Parse:** `Parse*Request(args)` → `req, params, err`
-- **Protobuf:** If `req != nil`, set `params = *RequestToParams(req)` and `request.ApplyDefaults(params, defaults)`
+- **CRITICAL:** Defaults must be applied for BOTH protobuf AND JSON paths (not just protobuf):
+  ```go
+  if req != nil {
+      params = RequestToParams(req)
+  }
+  // Apply defaults for both paths
+  if defaults != nil {
+      framework.ApplyDefaults(params, defaults)
+  }
+  ```
+  See `handlers_wrap.go` for the correct implementation.
 - **Dispatch:** Call native handler with `(ctx, params)` or `(ctx, projectRoot, params)` (estimation)
 
 ## 2. Project root resolution
@@ -56,7 +66,8 @@ Task-related tools (`task_workflow`, `task_analysis`, `task_discovery`, `estimat
 
 ## Summary
 
-- **Entry:** Parse request → params + defaults → native handler.
+- **Entry via WrapHandler:** Parse request → convert proto (if any) → apply defaults for BOTH paths → native handler.
+- **Entry manual:** Parse request → params + defaults → native handler.
 - **Project root:** `FindProjectRoot()` in task tools; estimation uses `security.GetProjectRoot(".")` in handler (could align to FindProjectRoot).
 - **Data:** LoadTodo2Tasks/SaveTodo2Tasks + database package when DB available.
 - **FM:** FMAvailable() then DefaultFMProvider().Generate; graceful fallback per tool.

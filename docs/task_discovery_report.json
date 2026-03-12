@@ -1,189 +1,6 @@
 {
   "action": "all",
-  "ai_enhanced": false,
   "discoveries": [
-    {
-      "file": "Makefile",
-      "line": 23,
-      "source": "comment",
-      "text": "Taskfile.yml is the preferred task runner. Most make targets have",
-      "type": "NOTE"
-    },
-    {
-      "file": "internal/cli/cli.go",
-      "line": 76,
-      "source": "comment",
-      "text": "Database remains open for the duration of CLI execution",
-      "type": "NOTE"
-    },
-    {
-      "file": "internal/database/config.go",
-      "line": 118,
-      "source": "comment",
-      "text": "database.Config is simpler (Driver, DSN, AutoMigrate)",
-      "type": "NOTE"
-    },
-    {
-      "file": "internal/database/sqlite.go",
-      "line": 26,
-      "source": "comment",
-      "text": "To use centralized config, call InitWithCentralizedConfig instead.",
-      "type": "NOTE"
-    },
-    {
-      "file": "internal/database/sqlite.go",
-      "line": 134,
-      "source": "comment",
-      "text": "Reading the DB pointer is safe without mutex (atomic pointer read)",
-      "type": "NOTE"
-    },
-    {
-      "file": "internal/database/tasks_lock_test.go",
-      "line": 103,
-      "source": "comment",
-      "text": "We can't check assignee/lock_until directly from GetTask since",
-      "type": "NOTE"
-    },
-    {
-      "file": "internal/framework/server_test.go",
-      "line": 9,
-      "source": "comment",
-      "text": "We can't test with fixtures here due to import cycle",
-      "type": "NOTE"
-    },
-    {
-      "file": "internal/resources/handlers.go",
-      "line": 293,
-      "source": "comment",
-      "text": "handleScorecard and memory handlers are implemented in scorecard.go and memories.go",
-      "type": "NOTE"
-    },
-    {
-      "file": "internal/resources/handlers.go",
-      "line": 297,
-      "source": "comment",
-      "text": "handleAllPrompts, handlePromptsByMode, handlePromptsByPersona, handlePromptsByCategory",
-      "type": "NOTE"
-    },
-    {
-      "file": "internal/tools/apple_foundation_test.go",
-      "line": 86,
-      "source": "comment",
-      "text": "This will fail on unsupported platforms or without Swift bridge",
-      "type": "NOTE"
-    },
-    {
-      "file": "internal/tools/handlers.go",
-      "line": 110,
-      "source": "comment",
-      "text": "Basic text search is native; semantic search enhancement can be added later in Go if needed.",
-      "type": "NOTE"
-    },
-    {
-      "file": "internal/tools/handlers.go",
-      "line": 112,
-      "source": "comment",
-      "text": "handleMemoryNative already handles protobuf parsing, so we just pass args through",
-      "type": "NOTE"
-    },
-    {
-      "file": "internal/tools/handlers_ai.go",
-      "line": 252,
-      "source": "comment",
-      "text": "This is acceptable as a special case since GitToolsParams is a struct, not a map",
-      "type": "NOTE"
-    },
-    {
-      "file": "internal/tools/handlers_ai.go",
-      "line": 370,
-      "source": "comment",
-      "text": "Individual tool handlers (handleContextSummarize, handleContextBatch, handlePromptLog,",
-      "type": "NOTE"
-    },
-    {
-      "file": "internal/tools/handlers_ai.go",
-      "line": 520,
-      "source": "comment",
-      "text": "handleServerStatus removed - server_status tool converted to stdio://server/status resource",
-      "type": "NOTE"
-    },
-    {
-      "file": "internal/tools/handlers_ai.go",
-      "line": 523,
-      "source": "comment",
-      "text": "handleDemonstrateElicit and handleInteractiveTaskCreate removed",
-      "type": "NOTE"
-    },
-    {
-      "file": "internal/tools/handlers_test.go",
-      "line": 116,
-      "source": "comment",
-      "text": "The actual handler may not check context, but Python bridge will",
-      "type": "NOTE"
-    },
-    {
-      "file": "internal/tools/handlers_test.go",
-      "line": 124,
-      "source": "comment",
-      "text": "TestHandleServerStatus removed - server_status tool converted to stdio://server/status resource",
-      "type": "NOTE"
-    },
-    {
-      "file": "internal/tools/handlers_test.go",
-      "line": 136,
-      "source": "comment",
-      "text": "\"list\" action converted to stdio://tools and stdio://tools/{category} resources",
-      "type": "NOTE"
-    },
-    {
-      "file": "internal/tools/handlers_test.go",
-      "line": 227,
-      "source": "comment",
-      "text": "TestHandleServerStatusNative removed - server_status tool converted to stdio://server/status resource",
-      "type": "NOTE"
-    },
-    {
-      "file": "internal/tools/health_check.go",
-      "line": 31,
-      "source": "comment",
-      "text": "Some actions provide basic functionality; complex features may fall back to Python bridge.",
-      "type": "NOTE"
-    },
-    {
-      "file": "internal/tools/health_check.go",
-      "line": 376,
-      "source": "comment",
-      "text": "For full documentation analysis (broken links, format validation, etc.),",
-      "type": "NOTE"
-    },
-    {
-      "file": "internal/tools/health_check.go",
-      "line": 380,
-      "source": "comment",
-      "text": "Full report generation would require Python bridge",
-      "type": "NOTE"
-    },
-    {
-      "file": "internal/tools/health_check.go",
-      "line": 384,
-      "source": "comment",
-      "text": "Task creation would require Todo2 integration",
-      "type": "NOTE"
-    },
-    {
-      "file": "internal/tools/health_check.go",
-      "line": 414,
-      "source": "comment",
-      "text": "Full DOD checking requires Todo2 database access",
-      "type": "NOTE"
-    },
-    {
-      "file": "internal/tools/health_check.go",
-      "line": 532,
-      "source": "comment",
-      "text": "Full workflow validation would require YAML parsing",
-      "type": "NOTE"
-    },
     {
       "file": "internal/tools/llamacpp_provider.go",
       "line": 41,
@@ -204,118 +21,6 @@
       "source": "comment",
       "text": "variants",
       "type": "TODO"
-    },
-    {
-      "file": "internal/tools/protobuf_helpers_report.go",
-      "line": 128,
-      "source": "comment",
-      "text": "Currently unused - kept for potential future protobuf-based report processing.",
-      "type": "NOTE"
-    },
-    {
-      "file": "internal/tools/protobuf_helpers_tools.go",
-      "line": 123,
-      "source": "comment",
-      "text": "value_threshold and similarity_threshold remain as float64 (they're thresholds, not counts)",
-      "type": "NOTE"
-    },
-    {
-      "file": "internal/tools/protobuf_helpers_tools.go",
-      "line": 273,
-      "source": "comment",
-      "text": "temperature remains as float64 (it's a threshold, not a count)",
-      "type": "NOTE"
-    },
-    {
-      "file": "internal/tools/protobuf_helpers_tools.go",
-      "line": 568,
-      "source": "comment",
-      "text": "min_confidence remains as float64 (it's a threshold, not a count)",
-      "type": "NOTE"
-    },
-    {
-      "file": "internal/tools/protobuf_helpers_tools.go",
-      "line": 607,
-      "source": "comment",
-      "text": "min_value_score remains as float64 (it's a threshold, not a count)",
-      "type": "NOTE"
-    },
-    {
-      "file": "internal/tools/recommend_test.go",
-      "line": 130,
-      "source": "comment",
-      "text": "findBestWorkflowMode and handleRecommendNative are internal functions",
-      "type": "NOTE"
-    },
-    {
-      "file": "internal/tools/registry_misc.go",
-      "line": 165,
-      "source": "comment",
-      "text": "Individual Python bridge tools (context_summarize, context_batch, prompt_log, prompt_analyze,",
-      "type": "NOTE"
-    },
-    {
-      "file": "internal/tools/registry_misc.go",
-      "line": 170,
-      "source": "comment",
-      "text": "list_models tool removed - converted to stdio://models resource",
-      "type": "NOTE"
-    },
-    {
-      "file": "internal/tools/session_assignee.go",
-      "line": 158,
-      "source": "comment",
-      "text": "assignee is stored in tasks_lock table, we'll need to query it",
-      "type": "NOTE"
-    },
-    {
-      "file": "internal/tools/session_handoff.go",
-      "line": 27,
-      "source": "comment",
-      "text": "The action parameter for handoff might be nested - check both",
-      "type": "NOTE"
-    },
-    {
-      "file": "internal/tools/statistics.go",
-      "line": 153,
-      "source": "comment",
-      "text": "Currently uses original O(n log n) approach for all datasets to maintain exact compatibility",
-      "type": "NOTE"
-    },
-    {
-      "file": "internal/tools/statistics_bench_test.go",
-      "line": 27,
-      "source": "comment",
-      "text": "We'll sort in the benchmark to measure sorting overhead",
-      "type": "NOTE"
-    },
-    {
-      "file": "internal/tools/todo2_utils.go",
-      "line": 283,
-      "source": "comment",
-      "text": "This matches Python implementation where only \"todo\" is considered pending.",
-      "type": "NOTE"
-    },
-    {
-      "file": "internal/tools/tool_catalog.go",
-      "line": 302,
-      "source": "comment",
-      "text": "\"list\" action converted to stdio://tools and stdio://tools/{category} resources",
-      "type": "NOTE"
-    },
-    {
-      "file": "server",
-      "line": 18678,
-      "source": "comment",
-      "text": "that it is presently the policy of IANA to assign a single well-known",
-      "type": "NOTE"
-    },
-    {
-      "file": "server",
-      "line": 19134,
-      "source": "comment",
-      "text": "that these are for Kerberos v4, and are unofficial.  Sites running",
-      "type": "NOTE"
     },
     {
       "completed": false,
@@ -377,70 +82,224 @@
       "completed": false,
       "file": ".cursor/plans/exarp-go.plan.md",
       "source": "markdown",
-      "text": "**WrapHandler abstraction for 29 tool handlers** (T-1772113376070017000)",
+      "text": "**Unit tests for all components (Phase 6)** (T-1771171348644)",
       "type": "MARKDOWN_TASK"
     },
     {
       "completed": false,
       "file": ".cursor/plans/exarp-go.plan.md",
       "source": "markdown",
-      "text": "**Split task_workflow_native.go and task_workflow_crud.go** (T-1772113376072649000)",
+      "text": "**Performance benchmarks (Phase 6)** (T-1771171349874)",
       "type": "MARKDOWN_TASK"
     },
     {
       "completed": false,
       "file": ".cursor/plans/exarp-go.plan.md",
       "source": "markdown",
-      "text": "**Resolve actionable TODOs: config sections merge + DB field** (T-1772113376075430000)",
+      "text": "**Task tool enrichment: support recommended_tools in metadata and task_workflow** (T-1771172717418)",
       "type": "MARKDOWN_TASK"
     },
     {
       "completed": false,
       "file": ".cursor/plans/exarp-go.plan.md",
       "source": "markdown",
-      "text": "**Test coverage: critical tool handler files** (T-1772113376012012000)",
+      "text": "**Task tool enrichment: include recommended_tools in session prime suggested_next** (T-1771172721983)",
       "type": "MARKDOWN_TASK"
     },
     {
       "completed": false,
       "file": ".cursor/plans/exarp-go.plan.md",
       "source": "markdown",
-      "text": "**Test coverage: LLM backend providers** (T-1772113376109471000)",
+      "text": "**Task tool enrichment: include recommended_tools in task show** (T-1771172723091)",
       "type": "MARKDOWN_TASK"
     },
     {
       "completed": false,
       "file": ".cursor/plans/exarp-go.plan.md",
       "source": "markdown",
-      "text": "**Archive/cleanup stale docs in docs/** (T-1772113376112151000)",
+      "text": "**Task tool enrichment: tag-based enrich_tool_hints tool or task_analysis action** (T-1771172724534)",
       "type": "MARKDOWN_TASK"
     },
     {
       "completed": false,
       "file": ".cursor/plans/exarp-go.plan.md",
       "source": "markdown",
-      "text": "**Remove deadcode: config getters (33 functions)** (T-1772129738782801000)",
+      "text": "**Fix tools infer_task_progress and memory_maint tests** (T-1771245909201)",
       "type": "MARKDOWN_TASK"
     },
     {
       "completed": false,
       "file": ".cursor/plans/exarp-go.plan.md",
       "source": "markdown",
-      "text": "**Remove deadcode: database helpers (24 functions)** (T-1772129743697232000)",
+      "text": "**Wave 2 verification: run wave-verifier and update plan** (T-1771246233626)",
       "type": "MARKDOWN_TASK"
     },
     {
       "completed": false,
       "file": ".cursor/plans/exarp-go.plan.md",
       "source": "markdown",
-      "text": "**Remove deadcode: security/access (13+ functions)** (T-1772129748158487000)",
+      "text": "**Update waves from execution plan action** (T-1771257778074)",
       "type": "MARKDOWN_TASK"
     },
     {
       "completed": false,
       "file": ".cursor/plans/exarp-go.plan.md",
       "source": "markdown",
-      "text": "**Remove deadcode: llamacpp + prompt_analyzer (21 functions)** (T-1772129752403115000)",
+      "text": "**that it is presently the policy of IANA to assign a single well-known** (T-1771279495483) — bin/exarp-go",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": ".cursor/plans/exarp-local-ai.plan.md",
+      "source": "markdown",
+      "text": "T-1771171134703 — Local AI: lightweight task execution (run task with LLM) — §2 CLI, §4 task_local_ai",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": ".cursor/plans/exarp-local-ai.plan.md",
+      "source": "markdown",
+      "text": "T-1771171136408 — CLI: expose local_ai_backend for estimation and task create — §2 --backend, §7",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": ".cursor/plans/exarp-local-ai.plan.md",
+      "source": "markdown",
+      "text": "T-1771171132414 — Local AI: task summarization with preferred backend — §7 #local-ai, append-comment",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": ".cursor/plans/exarp-local-ai.plan.md",
+      "source": "markdown",
+      "text": "T-1771171139453 — Docs: document preferred_backend and local_ai_backend — §5, §7",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": ".cursor/plans/exarp-local-ai.plan.md",
+      "source": "markdown",
+      "text": "T-1771172293634 — Verify task_workflow local_ai_backend for all relevant actions — §10 abstractions",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": ".cursor/plans/exarp-local-ai.plan.md",
+      "source": "markdown",
+      "text": "T-1771164552852 — Local AI task assignment (MLX, AFM, Ollama) — epic; close when above done",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": ".cursor/plans/exarp-local-ai.plan.md",
+      "source": "markdown",
+      "text": "Handoffs list display and detail view in TUI (and §9 waves list/detail); task id T-NaN — fix ID if needed",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": ".cursor/plans/improve-completion.plan.md",
+      "source": "markdown",
+      "text": "Run 'go mod tidy' to clean up dependencies",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": ".cursor/plans/improve-completion.plan.md",
+      "source": "markdown",
+      "text": "Fix Go build errors",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": ".cursor/plans/improve-completion.plan.md",
+      "source": "markdown",
+      "text": "Run 'go fmt ./...' to format code",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": ".cursor/plans/improve-completion.plan.md",
+      "source": "markdown",
+      "text": "Fix golangci-lint issues",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": ".cursor/plans/mcp-go-core-validation-helpers.plan.md",
+      "source": "markdown",
+      "text": "*(Optional)* Add unit tests for the three request validators",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": ".cursor/plans/tui-improvements.plan.md",
+      "source": "markdown",
+      "text": "**T-1771543667742498000**: Add unit tests for keyboard handlers",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": ".cursor/plans/tui-improvements.plan.md",
+      "source": "markdown",
+      "text": "**T-1771543659626936000**: Extract action handlers into tui_update_actions.go",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": ".cursor/plans/tui-improvements.plan.md",
+      "source": "markdown",
+      "text": "**T-1771543663481255000**: Extract sort/filter logic into tui_update_filters.go",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": ".cursor/plans/tui-improvements.plan.md",
+      "source": "markdown",
+      "text": "**T-1771543674831113000**: Improve error handling and user feedback",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": ".cursor/plans/tui-improvements.plan.md",
+      "source": "markdown",
+      "text": "**T-1771543670781451000**: Deduplicate code between TUI and TUI3270",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": ".cursor/plans/tui-improvements.plan.md",
+      "source": "markdown",
+      "text": "**T-1771543669306198000**: Add 3270 TUI test coverage",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": ".cursor/plans/tui-improvements.plan.md",
+      "source": "markdown",
+      "text": "**T-1771543672166929000**: Create state machine for mode transitions",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": ".cursor/plans/tui-improvements.plan.md",
+      "source": "markdown",
+      "text": "**T-1771543666094356000**: Route TUI through MCP tools instead of direct DB access",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": ".cursor/plans/tui-improvements.plan.md",
+      "source": "markdown",
+      "text": "**T-1771543673354872000**: Add keyboard shortcut customization",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": ".cursor/plans/tui-improvements.plan.md",
+      "source": "markdown",
+      "text": "**T-1771543664811514000**: Decompose model struct into per-view state structs",
       "type": "MARKDOWN_TASK"
     },
     {
@@ -1120,6 +979,468 @@
       "file": "docs/GOTOHUMAN_TOOLS_DOCUMENTATION.md",
       "source": "markdown",
       "text": "Approval analytics",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/IMPLEMENTATION_PLAN.md",
+      "source": "markdown",
+      "text": "T-1771360895822 - Add --quiet flag to suppress verbose CLI output (HIGH)",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/IMPLEMENTATION_PLAN.md",
+      "source": "markdown",
+      "text": "T-1771360896308 - Add --json flag for structured machine-readable output (HIGH)",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/IMPLEMENTATION_PLAN.md",
+      "source": "markdown",
+      "text": "T-1771360897057 - Add --concise flag to strip emojis/decorative lines (MEDIUM)",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/IMPLEMENTATION_PLAN.md",
+      "source": "markdown",
+      "text": "T-1771360897632 - Optimize tool descriptions and hints for MCP clients (MEDIUM)",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/IMPLEMENTATION_PLAN.md",
+      "source": "markdown",
+      "text": "T-1771360822084 - Add --quiet and --json flags to exarp CLI (MEDIUM)",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/IMPLEMENTATION_PLAN.md",
+      "source": "markdown",
+      "text": "T-1771360298493 - Fix runIniTermTab: detect ITERM_SESSION_ID (HIGH)",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/IMPLEMENTATION_PLAN.md",
+      "source": "markdown",
+      "text": "T-1771369913069 - Add timeout guard for Apple FM in task discovery (MEDIUM)",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/IMPLEMENTATION_PLAN.md",
+      "source": "markdown",
+      "text": "T-1772958892671074000 - Decide testing tool strategy: Go-only vs multi-language (MEDIUM)",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/IMPLEMENTATION_PLAN.md",
+      "source": "markdown",
+      "text": "T-1772958900371299000 - Audit and neutralize Go-centric narrative in scorecard (LOW)",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/IMPLEMENTATION_PLAN.md",
+      "source": "markdown",
+      "text": "T-1771361056782 - Add opencode-friendly hints to tool descriptions (MEDIUM)",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/IMPLEMENTATION_PLAN.md",
+      "source": "markdown",
+      "text": "T-1771362279364 - Document MLX + OpenCode integration setup (MEDIUM)",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/IMPLEMENTATION_PLAN.md",
+      "source": "markdown",
+      "text": "T-1771456779351 - TUI: Inline status change shortcuts (d=Done, i=In Progress) (HIGH)",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/IMPLEMENTATION_PLAN.md",
+      "source": "markdown",
+      "text": "T-1771355107420 - Handoffs list display and detail view in TUI (HIGH)",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/IMPLEMENTATION_PLAN.md",
+      "source": "markdown",
+      "text": "T-1771456781612 - TUI: Task creation from TUI (n=new task) (MEDIUM)",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/IMPLEMENTATION_PLAN.md",
+      "source": "markdown",
+      "text": "T-1771456780061 - TUI: Bulk status update for selected tasks (MEDIUM)",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/IMPLEMENTATION_PLAN.md",
+      "source": "markdown",
+      "text": "T-1771543674831 - TUI: Improve error handling and user feedback (MEDIUM)",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/IMPLEMENTATION_PLAN.md",
+      "source": "markdown",
+      "text": "T-1771543666094 - TUI: Route through MCP tools instead of direct calls (MEDIUM)",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/IMPLEMENTATION_PLAN.md",
+      "source": "markdown",
+      "text": "T-1771543659626 - TUI: Extract action handlers into tui_update_actions.go (MEDIUM)",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/IMPLEMENTATION_PLAN.md",
+      "source": "markdown",
+      "text": "T-1771543663481 - TUI: Extract sort/filter logic into tui_update_sorts.go (MEDIUM)",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/IMPLEMENTATION_PLAN.md",
+      "source": "markdown",
+      "text": "T-1771543664811 - TUI: Decompose model struct into per-view state (LOW)",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/IMPLEMENTATION_PLAN.md",
+      "source": "markdown",
+      "text": "T-1771543670781 - TUI: Deduplicate code between TUI and TUI3270 (LOW)",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/IMPLEMENTATION_PLAN.md",
+      "source": "markdown",
+      "text": "T-1771543672166 - TUI: Create state machine for mode transitions (LOW)",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/IMPLEMENTATION_PLAN.md",
+      "source": "markdown",
+      "text": "T-1771543673354 - TUI: Add keyboard shortcut customization (LOW)",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/IMPLEMENTATION_PLAN.md",
+      "source": "markdown",
+      "text": "T-1771245912597 - Fix TestRealModels_AnalyzeTask: model output parsing (MEDIUM) ⚠️ **ONLY FAILING TEST**",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/IMPLEMENTATION_PLAN.md",
+      "source": "markdown",
+      "text": "T-1771748461437 - Add behavior validation tests for classify (LOW)",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/IMPLEMENTATION_PLAN.md",
+      "source": "markdown",
+      "text": "T-1771748460125 - Add integration test for task preferred_backend (LOW)",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/IMPLEMENTATION_PLAN.md",
+      "source": "markdown",
+      "text": "T-1771748458942 - Test GenerateWithOptions public function (LOW)",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/IMPLEMENTATION_PLAN.md",
+      "source": "markdown",
+      "text": "T-1771748456311 - Test classify action with custom categories (LOW)",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/IMPLEMENTATION_PLAN.md",
+      "source": "markdown",
+      "text": "T-1771543669306 - TUI: Add 3270 TUI test coverage (LOW)",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/IMPLEMENTATION_PLAN.md",
+      "source": "markdown",
+      "text": "T-1771543667742 - TUI: Add unit tests for keyboard handlers (MEDIUM)",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/IMPLEMENTATION_PLAN.md",
+      "source": "markdown",
+      "text": "T-1771171357749 - Unit tests for task_execute (MEDIUM)",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/IMPLEMENTATION_PLAN.md",
+      "source": "markdown",
+      "text": "T-1771171359038 - Unit tests for prompt_analyzer (MEDIUM)",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/IMPLEMENTATION_PLAN.md",
+      "source": "markdown",
+      "text": "T-1771171360013 - Unit tests for execution_apply (MEDIUM)",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/IMPLEMENTATION_PLAN.md",
+      "source": "markdown",
+      "text": "T-1771460266378 - Docs: Document make lint-* targets in one place (LOW)",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/IMPLEMENTATION_PLAN.md",
+      "source": "markdown",
+      "text": "T-1771460279379 - Docs: Add result comments to completed ansible tasks (LOW)",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/IMPLEMENTATION_PLAN.md",
+      "source": "markdown",
+      "text": "T-1771460263674 - Docs: Document task_analysis and task_execute (MEDIUM)",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/IMPLEMENTATION_PLAN.md",
+      "source": "markdown",
+      "text": "T-1771460263062 - Docs: Add exarp abilities audit to use-exarp-tools (MEDIUM)",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/IMPLEMENTATION_PLAN.md",
+      "source": "markdown",
+      "text": "T-1771460276135 - Docs: Document ansible-galaxy and offline flow (LOW)",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/IMPLEMENTATION_PLAN.md",
+      "source": "markdown",
+      "text": "T-1771355092457 - Validate exarp-go with OpenCode MCP (MEDIUM)",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/IMPLEMENTATION_PLAN.md",
+      "source": "markdown",
+      "text": "T-1771456783942 - Make: Add check-security standalone target (LOW)",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/IMPLEMENTATION_PLAN.md",
+      "source": "markdown",
+      "text": "T-1771456783140 - Make: Clean up dev.sh Python/pytest references (LOW)",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/IMPLEMENTATION_PLAN.md",
+      "source": "markdown",
+      "text": "T-1771456782344 - Make: Add queue-status target (LOW)",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/IMPLEMENTATION_PLAN.md",
+      "source": "markdown",
+      "text": "T-1771456781612 - Make: Add task-show target (LOW)",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/IMPLEMENTATION_PLAN.md",
+      "source": "markdown",
+      "text": "T-1771460265620 - CI: Add lint-shellcheck, lint-yaml, lint-ansible (MEDIUM)",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/IMPLEMENTATION_PLAN.md",
+      "source": "markdown",
+      "text": "T-1771460272225 - Optional: Add actionlint to default linters list (LOW)",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/IMPLEMENTATION_PLAN.md",
+      "source": "markdown",
+      "text": "T-1771459746925 - Ansible-lint: Ensure community.general collection (HIGH)",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/IMPLEMENTATION_PLAN.md",
+      "source": "markdown",
+      "text": "T-1771459748745 - Ansible-lint: Add .ansible-lint config (MEDIUM)",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/IMPLEMENTATION_PLAN.md",
+      "source": "markdown",
+      "text": "T-1771457680959 - Ansible: Add integration test (vagrant/docker) (LOW)",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/IMPLEMENTATION_PLAN.md",
+      "source": "markdown",
+      "text": "T-1771457731564 - Ansible: Verify playbook on Ubuntu/Docker (LOW)",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/IMPLEMENTATION_PLAN.md",
+      "source": "markdown",
+      "text": "T-1771524914059 - Task content hash (optional): memory exact-dedup (LOW)",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/IMPLEMENTATION_PLAN.md",
+      "source": "markdown",
+      "text": "T-1771524906950 - Task content hash: shared NormalizeForComparison (MEDIUM)",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/IMPLEMENTATION_PLAN.md",
+      "source": "markdown",
+      "text": "T-1771524908368 - Task content hash: replace normalizeTaskContent (MEDIUM)",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/IMPLEMENTATION_PLAN.md",
+      "source": "markdown",
+      "text": "T-1771524909926 - Task content hash: duplicate detection by content (MEDIUM)",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/IMPLEMENTATION_PLAN.md",
+      "source": "markdown",
+      "text": "T-1771524911395 - Task content hash: sync conflict reporting (MEDIUM)",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/IMPLEMENTATION_PLAN.md",
+      "source": "markdown",
+      "text": "T-1771524912621 - Task content hash: sanity check use shared norm (LOW)",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/IMPLEMENTATION_PLAN.md",
+      "source": "markdown",
+      "text": "T-1771527444192 - Handoff: optional restore from point-in-time snapshot (LOW)",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/IMPLEMENTATION_PLAN.md",
+      "source": "markdown",
+      "text": "T-1771353163496 - Add rqlite driver (driver_rqlite.go, gorqlite) (MEDIUM)",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/IMPLEMENTATION_PLAN.md",
+      "source": "markdown",
+      "text": "T-1771353168386 - Wire config and env for rqlite (DB_DRIVER, DB_DSN) (MEDIUM)",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/IMPLEMENTATION_PLAN.md",
+      "source": "markdown",
+      "text": "T-1771353169844 - Document self-hosted rqlite setup (docs) (MEDIUM)",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/IMPLEMENTATION_PLAN.md",
+      "source": "markdown",
+      "text": "T-1771353170943 - Tests for rqlite driver and config (MEDIUM)",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/IMPLEMENTATION_PLAN.md",
+      "source": "markdown",
+      "text": "T-1771354500144 - Asynq producer: enqueue task_id from exarp-go (MEDIUM)",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/IMPLEMENTATION_PLAN.md",
+      "source": "markdown",
+      "text": "T-1771252286533 - General agent abstraction for run-agent-in-task (HIGH)",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/IMPLEMENTATION_PLAN.md",
+      "source": "markdown",
+      "text": "T-1771252280227 - Optional stdio://llm/status resource (LOW)",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/IMPLEMENTATION_PLAN.md",
+      "source": "markdown",
+      "text": "T-1771252276374 - Document AI/LLM stack in main docs (MEDIUM)",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/IMPLEMENTATION_PLAN.md",
+      "source": "markdown",
+      "text": "T-1771252272139 - Optional LocalAI backend (OpenAI-compatible) (LOW)",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "docs/IMPLEMENTATION_PLAN.md",
+      "source": "markdown",
+      "text": "T-1771252268378 - Evaluate langchaingo or Go AI SDK (LOW)",
       "type": "MARKDOWN_TASK"
     },
     {
@@ -2486,19 +2807,67 @@
       "source": "markdown",
       "text": "T-1772056740720274000 — Extract FileLock to mcp-go-core/pkg/mcp/filelock",
       "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "vendor/github.com/blacktop/go-foundationmodels/README.md",
+      "source": "markdown",
+      "text": "**Advanced tool schemas** with OpenAPI-style definitions",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "vendor/github.com/blacktop/go-foundationmodels/README.md",
+      "source": "markdown",
+      "text": "**Multi-modal support** (images, audio) when available",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "vendor/github.com/blacktop/go-foundationmodels/README.md",
+      "source": "markdown",
+      "text": "**Performance optimizations** for large contexts",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "vendor/github.com/blacktop/go-foundationmodels/README.md",
+      "source": "markdown",
+      "text": "**Enhanced error handling** with detailed diagnostics",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "vendor/github.com/blacktop/go-foundationmodels/README.md",
+      "source": "markdown",
+      "text": "**Plugin system** for extensible tool management",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "vendor/github.com/blacktop/go-foundationmodels/README.md",
+      "source": "markdown",
+      "text": "**Native streaming support** - Upgrade to Foundation Models native streaming API when available",
+      "type": "MARKDOWN_TASK"
+    },
+    {
+      "completed": false,
+      "file": "vendor/github.com/blacktop/go-foundationmodels/README.md",
+      "source": "markdown",
+      "text": "**Improve Foundation Models consistency** - Research better prompting strategies",
+      "type": "MARKDOWN_TASK"
     }
   ],
   "method": "native_go",
   "summary": {
     "by_source": {
-      "comment": 45,
-      "markdown": 310
+      "comment": 3,
+      "markdown": 405
     },
     "by_type": {
-      "MARKDOWN_TASK": 310,
-      "NOTE": 42,
+      "MARKDOWN_TASK": 405,
       "TODO": 3
     },
-    "total": 355
+    "total": 408
   }
 }

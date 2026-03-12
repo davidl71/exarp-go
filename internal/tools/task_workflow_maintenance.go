@@ -31,10 +31,7 @@ func handleTaskWorkflowSync(ctx context.Context, params map[string]interface{}) 
 		return nil, fmt.Errorf("failed to find project root: %w", err)
 	}
 
-	dryRun := false
-	if dr, ok := params["dry_run"].(bool); ok {
-		dryRun = dr
-	}
+	dryRun := ParamBool(params, "dry_run", false)
 
 	// Check if this is a list sub-action (for listing tasks)
 	// If sub_action is "list", we just load and return tasks (no sync needed)
@@ -278,10 +275,7 @@ func handleTaskWorkflowClarity(ctx context.Context, params map[string]interface{
 
 	tasks := tasksFromPtrs(list)
 
-	autoApply := false
-	if apply, ok := params["auto_apply"].(bool); ok {
-		autoApply = apply
-	}
+	autoApply := ParamBool(params, "auto_apply", false)
 
 	outputFormat := "text"
 	if format, ok := params["output_format"].(string); ok && format != "" {
@@ -408,15 +402,9 @@ func handleTaskWorkflowCleanup(ctx context.Context, params map[string]interface{
 		staleThresholdHours = threshold
 	}
 
-	includeLegacy := false
-	if legacy, ok := params["include_legacy"].(bool); ok {
-		includeLegacy = legacy
-	}
+	includeLegacy := ParamBool(params, "include_legacy", false)
 
-	dryRun := false
-	if dr, ok := params["dry_run"].(bool); ok {
-		dryRun = dr
-	}
+	dryRun := ParamBool(params, "dry_run", false)
 
 	projectRoot, _ := FindProjectRoot()
 	var driftBefore *storeDriftReport

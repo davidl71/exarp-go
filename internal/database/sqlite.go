@@ -140,24 +140,3 @@ func GetDB() (*sql.DB, error) {
 
 	return DB, nil
 }
-
-// GetDriver returns the current database driver
-// Returns error if database is not initialized.
-func GetCurrentDriver() (Driver, error) {
-	if currentDriver == nil {
-		return nil, fmt.Errorf("database not initialized, call Init() first")
-	}
-
-	return currentDriver, nil
-}
-
-// GetDialect returns the SQL dialect for the current database
-// Returns error if database is not initialized.
-func GetDialect() (Dialect, error) {
-	driver, err := GetCurrentDriver()
-	if err != nil {
-		return nil, err
-	}
-
-	return driver.Dialect(), nil
-}

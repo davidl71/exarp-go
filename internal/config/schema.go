@@ -82,9 +82,10 @@ type ThresholdsConfig struct {
 // TasksConfig contains task management defaults and settings.
 type TasksConfig struct {
 	// Defaults
-	DefaultStatus   string   `yaml:"default_status"`
-	DefaultPriority string   `yaml:"default_priority"`
-	DefaultTags     []string `yaml:"default_tags"`
+	DefaultStatus   string              `yaml:"default_status"`
+	DefaultPriority string              `yaml:"default_priority"`
+	DefaultTags     []string            `yaml:"default_tags"`
+	Keybindings     map[string][]string `yaml:"keybindings"`
 
 	// Status transitions (map of status -> allowed next statuses)
 	StatusWorkflow map[string][]string `yaml:"status_workflow"`
