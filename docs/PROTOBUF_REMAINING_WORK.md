@@ -66,11 +66,11 @@
 - Updated `handleReportOverview()` to use protobuf conversion for type-safe processing
 - Eliminates complex type assertions in report formatting
 
-### 5. Python Bridge Communication ✅
-- Generated Python protobuf code: `bridge/proto/bridge_pb2.py`
-- Updated Python bridge script to support protobuf parsing (`--protobuf` flag)
-- Updated Go bridge code to try protobuf first, fall back to JSON
-- Maintains backward compatibility with JSON format
+### 5. Python Bridge Communication ~~(Infrastructure Only)~~
+- ~~Generated Python protobuf code: `bridge/proto/bridge_pb2.py`~~ ⚠️ **NOT IMPLEMENTED**
+- ~~Updated Python bridge script to support protobuf (`--protobuf` flag)~~ ⚠️ **NOT IMPLEMENTED**
+- ~~Updated Go bridge code to try protobuf first, fall back to JSON~~ ⚠️ **NOT IMPLEMENTED**
+- Status: **No Python bridge exists** - proto files are unused/dead code
 
 ## ⏳ Optional Future Enhancements
 
@@ -208,16 +208,16 @@ These handlers have simple parameter structures and can be migrated quickly:
 - **Schemas Created:** ✅ All 27 tool schemas exist in `proto/tools.proto`
 - **Helper Functions:** ✅ All 27 helper function pairs created
 
-## ✅ Migration Complete
+## ✅ Migration Complete (Core)
 
-**All core protobuf migration work is complete!**
+**Status: Core protobuf migration 100% complete ✅**
 
 ### Completed Systems:
 1. ✅ Tool Handler Arguments (27/27 handlers)
 2. ✅ Memory System File Format
 3. ✅ Context Summarization
 4. ✅ Report/Scorecard Data Structures
-5. ✅ Python Bridge Communication (infrastructure + code generation)
+5. ⚠️ Python Bridge Communication - **NOT IMPLEMENTED** (proto files unused)
 
 ### Benefits Achieved:
 - **Type Safety:** Eliminated 50+ manual type assertions

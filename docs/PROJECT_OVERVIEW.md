@@ -13,16 +13,16 @@ Health Scorecard:
   Production Ready: NO ❌
 
 Task Status:
-  Total:           509
-  Pending:        148
-  Completed:      361
-  Completion:     70.9%
+  Total:           473
+  Pending:        93
+  Completed:      380
+  Completion:     80.3%
   Remaining Hours: 0.0
 
 Next Actions:
-  1. General agent abstraction for run-agent-in-task (Priority: high)
-  2. Handoffs list display and detail view in TUI (Priority: high)
-  3. Fix runIniTermTab: detect ITERM_SESSION_ID to open tab in current iTerm window instead of new window high (Priority: high)
-  4. Improve exarp-opencode interaction: add --quiet flag to suppress verbose CLI output high (Priority: high)
-  5. Improve exarp-opencode interaction: add --json flag for structured machine-readable output high (Priority: high)
+  1. Unit tests for all components (Phase 6) (Priority: medium)
+  2. Performance benchmarks (Phase 6) (Priority: medium)
+  3. Task tool enrichment: support recommended_tools in metadata and task_workflow (Priority: medium)
+  4. Task tool enrichment: include recommended_tools in session prime suggested_next (Priority: medium)
+  5. Task tool enrichment: include recommended_tools in task show (Priority: medium)
 
