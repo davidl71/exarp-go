@@ -101,6 +101,54 @@ func WithHooks(hooks *framework.Hooks) AdapterOption {
 	}
 }
 
+// WithImplementationTitle sets a human-friendly title in the advertised MCP implementation.
+func WithImplementationTitle(title string) AdapterOption {
+	return func(a *GoSDKAdapter) {
+		a.impl.Title = title
+	}
+}
+
+// WithServerCapabilities replaces the default server capabilities configuration.
+func WithServerCapabilities(capabilities *mcp.ServerCapabilities) AdapterOption {
+	return func(a *GoSDKAdapter) {
+		if a.serverOpts == nil {
+			a.serverOpts = &mcp.ServerOptions{}
+		}
+		a.serverOpts.Capabilities = capabilities
+	}
+}
+
+// WithServerExtension advertises a vendor-prefixed extension in server capabilities.
+func WithServerExtension(name string, settings map[string]any) AdapterOption {
+	return func(a *GoSDKAdapter) {
+		if name == "" {
+			return
+		}
+		if a.serverOpts == nil {
+			a.serverOpts = &mcp.ServerOptions{}
+		}
+		if a.serverOpts.Capabilities == nil {
+			a.serverOpts.Capabilities = &mcp.ServerCapabilities{}
+		}
+		a.serverOpts.Capabilities.AddExtension(name, settings)
+	}
+}
+
+// WithCompletionHandler sets a handler for completion requests.
+func WithCompletionHandler(handler interface{}) AdapterOption {
+	return func(a *GoSDKAdapter) {
+		a.completionHandler = handler
+	}
+}
+
+// WithResourceSubscriptionHandlers sets handlers for resource subscription/unsubscription.
+func WithResourceSubscriptionHandlers(subscribe, unsubscribe interface{}) AdapterOption {
+	return func(a *GoSDKAdapter) {
+		a.resourceSubscribeHandler = subscribe
+		a.resourceUnsubscribeHandler = unsubscribe
+	}
+}
+
 // WithSamplingSupport enables MCP sampling support in the adapter.
 // When enabled, tools can access the client LLM via framework.SamplerFromContext.
 // This adds middleware that injects a Sampler into the context for each tool call.

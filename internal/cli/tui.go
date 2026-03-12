@@ -254,7 +254,7 @@ func initialModel(server framework.MCPServer, status string, projectRoot, projec
 			useBubbleList:    false, // set to true to enable bubble/list rendering
 			taskTable:        table.New(table.WithColumns(defaultTableColumns), table.WithRows(nil)),
 			useBubbleTable:   false, // set to true to enable bubble/table rendering
-			taskSpinner:      spinner.New(spinner.WithSpinner(spinner.Dot), spinner.WithMessage("Loading...")),
+			taskSpinner:      spinner.New(spinner.WithSpinner(spinner.Dot)),
 			spinnerMessage:   "",
 			commandPalette:   newCommandPalette(),
 		},
