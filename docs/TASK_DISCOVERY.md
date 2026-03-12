@@ -35,7 +35,7 @@ The following paths are automatically excluded:
 - `.git`, `node_modules`, `__pycache__`, `.venv`
 - `vendor`, `.idea`, `.vscode`, `dist`
 - `build`, `target`, `archive`, `bin`
-- `.cache`, `third_party`, `mcp-servers`, `ib-gateway`, `native`
+- `.cache`, `third_party`, `mcp-servers`, `native`
 
 ## Actions
 

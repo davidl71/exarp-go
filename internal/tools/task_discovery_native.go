@@ -199,8 +199,7 @@ func scanComments(ctx context.Context, projectRoot string, patterns []string, in
 				strings.Contains(path, "build") || strings.Contains(path, "target") ||
 				strings.Contains(path, "/archive/") || filepath.Base(path) == "bin" ||
 				strings.Contains(path, ".cache") || strings.Contains(path, "third_party") ||
-				strings.Contains(path, "mcp-servers") || strings.Contains(path, "ib-gateway") ||
-				strings.Contains(path, "native") || strings.Contains(path, "third_party") {
+				strings.Contains(path, "mcp-servers") || strings.Contains(path, "native") {
 				return filepath.SkipDir
 			}
 
