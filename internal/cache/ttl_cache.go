@@ -59,20 +59,6 @@ func (c *TTLCache) Set(key string, value []byte, ttl time.Duration) {
 	c.store[key] = &ttlEntry{value: valCopy, expiresAt: time.Now().Add(ttl)}
 }
 
-// Invalidate removes key from the cache.
-func (c *TTLCache) Invalidate(key string) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	delete(c.store, key)
-}
-
-// Clear removes all entries.
-func (c *TTLCache) Clear() {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	c.store = make(map[string]*ttlEntry)
-}
-
 var (
 	scorecardCache     *TTLCache
 	scorecardCacheOnce sync.Once

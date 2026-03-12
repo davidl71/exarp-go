@@ -6,6 +6,9 @@ import (
 	"strings"
 	"time"
 
+	"charm.land/bubbles/v2/list"
+	"charm.land/bubbles/v2/spinner"
+	"charm.land/bubbles/v2/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/davidl71/exarp-go/internal/tools"
 )
@@ -50,6 +53,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		} else {
 			m.filteredIndices = nil
 		}
+
+		// Update bubble/list with tasks
+		m.taskList.SetItems(itemsFromTasks(m.tasks))
+		m.taskList.SetFilterInputText(m.searchQuery)
 
 		vis := m.visibleIndices()
 		if len(vis) > 0 && m.cursor >= len(vis) {
@@ -207,7 +214,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 
 	case configSectionDetailMsg:
-		m.mode = ModeConfigSection
+		m.transitionTo(ModeConfigSection)
 		m.configSectionText = msg.text
 
 		return m, nil
@@ -352,6 +359,35 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return newModel, cmd
 		}
 
+		// Handle bubble/list messages when enabled
+		if m.useBubbleList {
+			var cmd tea.Cmd
+			m.taskList, cmd = m.taskList.Update(msg)
+			if cmd != nil {
+				return m, cmd
+			}
+			// Sync cursor position from list
+			if m.taskList.Index() >= 0 && m.taskList.Index() != m.cursor {
+				m.cursor = m.taskList.Index()
+			}
+			// Sync search query from list filter
+			m.searchQuery = m.taskList.FilterInputText()
+			m.filteredIndices = nil // list handles filtering internally
+		}
+
+		// Handle bubble/table messages when enabled
+		if m.useBubbleTable {
+			var cmd tea.Cmd
+			m.taskTable, cmd = m.taskTable.Update(msg)
+			if cmd != nil {
+				return m, cmd
+			}
+			// Sync cursor position from table
+			if m.taskTable.Cursor() >= 0 && m.taskTable.Cursor() != m.cursor {
+				m.cursor = m.taskTable.Cursor()
+			}
+		}
+
 		// Try inline task creation keys
 		if newModel, cmd, handled := m.handleCreateKeys(key, msg); handled {
 			return newModel, cmd
@@ -390,6 +426,31 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// Action keys (enter, space, e, i, r, x, a, d, u, s, R, U, Q, A, y, m, 0-9, E, L, default)
 		newModel, cmd, _ := m.handleActionKeys(key, msg)
 		return newModel, cmd
+	}
+
+	// Handle spinner ticks when loading
+	if m.loading {
+		var cmd tea.Cmd
+		m.taskSpinner, cmd = m.taskSpinner.Update(msg)
+		if cmd != nil {
+			return m, cmd
+		}
+	}
+
+	// Handle command palette when visible
+	if m.showCommandPalette {
+		var cmd tea.Cmd
+		m.commandPalette, cmd = m.commandPalette.Update(msg)
+		if cmd != nil {
+			return m, cmd
+		}
+		// Handle Enter key to execute command
+		if key, ok := msg.(tea.KeyMsg); ok && key.String() == "enter" {
+			m.executeCommand(m.commandPalette.Value())
+			m.commandPalette.SetValue("")
+			m.showCommandPalette = false
+			m.commandPalette.Blur()
+		}
 	}
 
 	return m, nil

@@ -49,7 +49,11 @@ func (c *countingServer) RegisterResource(uri, name, description, mimeType strin
 }
 
 func (c *countingServer) RegisterResourceTemplate(uriTemplate, name, description, mimeType string, handler framework.ResourceHandler) error {
-	return c.MCPServer.RegisterResourceTemplate(uriTemplate, name, description, mimeType, handler)
+	c.resourceCount++
+	if registrar, ok := c.MCPServer.(framework.ResourceTemplateRegistrar); ok {
+		return registrar.RegisterResourceTemplate(uriTemplate, name, description, mimeType, handler)
+	}
+	return nil
 }
 
 func main() {

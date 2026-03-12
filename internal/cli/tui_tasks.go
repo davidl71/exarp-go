@@ -1,20 +1,118 @@
-// tui_tasks.go — TUI tasks tab: narrow/medium/wide list rendering.
+// tui_tasks.go — TUI tasks tab: narrow/medium/wide list rendering + bubble/list and bubble/table integration.
 package cli
 
 import (
 	"fmt"
 	"strings"
 
+	"charm.land/bubbles/v2/list"
+	"charm.land/bubbles/v2/spinner"
+	"charm.land/bubbles/v2/table"
+	"charm.land/bubbles/v2/textinput"
 	humanize "github.com/dustin/go-humanize"
+
+	"github.com/davidl71/exarp-go/internal/database"
 )
+
+// defaultTableColumns defines the columns for bubble/table sprintboard view.
+var defaultTableColumns = []table.Column{
+	{Title: "ID", Width: 18},
+	{Title: "Status", Width: 12},
+	{Title: "Priority", Width: 10},
+	{Title: "Description", Width: 40},
+	{Title: "Tags", Width: 20},
+}
+
+// taskItem implements list.Item for bubble/list integration.
+type taskItem struct {
+	task     *database.Todo2Task
+	index    int
+	selected bool
+}
+
+func (t taskItem) FilterValue() string {
+	return t.task.Content + " " + t.task.Status + " " + t.task.Priority + " " + strings.Join(t.task.Tags, " ")
+}
+
+func (t taskItem) Title() string {
+	return t.task.Content
+}
+
+func (t taskItem) Description() string {
+	return fmt.Sprintf("[%s] %s", t.task.Status, t.task.Priority)
+}
+
+// itemsFromTasks converts database tasks to list items.
+func itemsFromTasks(tasks []*database.Todo2Task) []list.Item {
+	items := make([]list.Item, len(tasks))
+	for i, task := range tasks {
+		items[i] = taskItem{task: task, index: i}
+	}
+	return items
+}
+
+// viewTasksList renders the task list using bubble/list.
+func (m model) viewTasksList() string {
+	if len(m.tasks) == 0 {
+		return "\n  No tasks to display\n\n"
+	}
+	m.taskList.SetSize(m.effectiveWidth()-2, m.effectiveHeight()-10)
+	return m.taskList.View()
+}
+
+// rowsFromTasks converts database tasks to table rows.
+func rowsFromTasks(tasks []*database.Todo2Task) []table.Row {
+	rows := make([]table.Row, len(tasks))
+	for i, task := range tasks {
+		rows[i] = table.Row{
+			task.ID,
+			task.Status,
+			task.Priority,
+			truncatePad(task.Content, 38),
+			truncatePad(strings.Join(task.Tags, ","), 18),
+		}
+	}
+	return rows
+}
+
+// viewTasksTable renders the task list using bubble/table.
+func (m model) viewTasksTable() string {
+	if len(m.tasks) == 0 {
+		return "\n  No tasks to display\n\n"
+	}
+	m.taskTable.SetRows(rowsFromTasks(m.tasks))
+	m.taskTable.SetSize(m.effectiveWidth()-2, m.effectiveHeight()-8)
+	return m.taskTable.View()
+}
+
+// viewSpinner returns the spinner view with a message.
+func (m model) viewSpinner() string {
+	m.taskSpinner.SetWidth(m.effectiveWidth() - 4)
+	return "\n  " + m.taskSpinner.View() + " " + m.spinnerMessage + "\n\n"
+}
 
 func (m model) viewTasks() string {
 	if m.loading {
-		return "\n  Loading tasks...\n\n"
+		return m.viewSpinner()
+	}
+
+	// Command palette overlay
+	if m.showCommandPalette {
+		return m.viewCommandPalette()
 	}
 
 	if m.err != nil {
 		return fmt.Sprintf("\n  Error: %v\n\n  Press q to quit.\n\n", m.err)
+	}
+
+	// Use bubble/list if enabled
+	if m.useBubbleList {
+		return m.viewTasksList()
+	}
+
+	// Use bubble/table if enabled
+	if m.useBubbleTable {
+		return m.viewTasksTable()
 	}
 
 	if len(m.tasks) == 0 {
@@ -113,13 +211,13 @@ func (m model) viewTasks() string {
 	if m.bulkStatusPrompt {
 		selectedCount := len(m.selected)
 		prompt := fmt.Sprintf("Bulk update %d task(s) - Select status: ", selectedCount)
-		prompt += helpStyle.Render("d")
+		prompt += helpStyle.Render(bindingList(m.bindingsFor(KeyActionStatusDone)))
 		prompt += "=Done "
-		prompt += helpStyle.Render("i")
+		prompt += helpStyle.Render(bindingList(m.bindingsFor(KeyActionStatusInProgress)))
 		prompt += "=In Progress "
-		prompt += helpStyle.Render("t")
+		prompt += helpStyle.Render(bindingList(m.bindingsFor(KeyActionStatusTodo)))
 		prompt += "=Todo "
-		prompt += helpStyle.Render("r")
+		prompt += helpStyle.Render(bindingList(m.bindingsFor(KeyActionStatusReview)))
 		prompt += "=Review "
 		prompt += helpStyle.Render("Esc")
 		prompt += "=Cancel"
