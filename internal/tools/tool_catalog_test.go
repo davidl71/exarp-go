@@ -200,12 +200,12 @@ func TestGetToolCatalog_TextGenerateMentionsGatewayAndLlamacpp(t *testing.T) {
 		t.Fatal("text_generate missing from catalog")
 	}
 
-	if !strings.Contains(entry.Hint, "gateway") || !strings.Contains(entry.Hint, "llamacpp") {
-		t.Fatalf("text_generate hint = %q, want gateway and llamacpp", entry.Hint)
+	if !strings.Contains(entry.Hint, "gateway") {
+		t.Fatalf("text_generate hint = %q, want gateway", entry.Hint)
 	}
 
-	if !strings.Contains(entry.Description, "gateway") || !strings.Contains(entry.Description, "llama.cpp") {
-		t.Fatalf("text_generate description = %q, want gateway and llama.cpp", entry.Description)
+	if !strings.Contains(entry.Description, "gateway") {
+		t.Fatalf("text_generate description = %q, want gateway", entry.Description)
 	}
 }
 

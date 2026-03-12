@@ -103,12 +103,11 @@ func handleOllamaPull(ctx context.Context, params map[string]interface{}, host s
 // ─── handleOllamaHardware ───────────────────────────────────────────────────
 // handleOllamaHardware returns hardware info and recommendations.
 func handleOllamaHardware(ctx context.Context) ([]framework.TextContent, error) {
-	// Simple hardware detection (can be enhanced)
 	result := map[string]interface{}{
 		"success": true,
 		"method":  "native_go",
-		"message": "Hardware detection not yet implemented in native Go. Use Python bridge for detailed hardware info.",
-		"tip":     "Set OLLAMA_NUM_GPU and OLLAMA_NUM_THREADS environment variables for optimization",
+		"message": "Use environment variables OLLAMA_NUM_GPU and OLLAMA_NUM_THREADS for optimization",
+		"tip":     "Run 'ollama run llama3.2' to verify GPU acceleration",
 	}
 
 	return framework.FormatResult(result, "")

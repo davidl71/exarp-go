@@ -471,7 +471,6 @@ var toolGroup = map[string]string{
 	"estimation":              "tasks",
 	"ollama":                  "advisors",
 	"mlx":                     "advisors",
-	"llamacpp":                "advisors",
 	"text_generate":           "advisors",
 	"context":                 "advisors",
 	"context_budget":          "advisors",

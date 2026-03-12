@@ -240,9 +240,9 @@ func GetToolCatalog() map[string]ToolCatalogEntry {
 		},
 		"text_generate": {
 			Tool:             "text_generate",
-			Hint:             "Unified generate-text dispatcher. provider=fm|ollama|insight|mlx|localai|gateway|llamacpp|auto. Single entry point for all LLM text generation.",
+			Hint:             "Unified generate-text dispatcher. provider=fm|ollama|insight|mlx|localai|gateway|auto. Single entry point for all LLM text generation.",
 			Category:         "AI & ML",
-			Description:      "Unified text generation across all backends (FM, Ollama, MLX, LocalAI, gateway, llama.cpp, auto model selection)",
+			Description:      "Unified text generation across all backends (FM, Ollama, MLX, LocalAI, gateway, auto model selection)",
 			Class:            "primary",
 			RecommendedModel: "claude-haiku",
 		},
