@@ -156,9 +156,9 @@ Generate:
 5. Next Steps - Prioritized action items
 
 Write in a professional, stakeholder-friendly tone.`,
-		getString(projectInfo, "name"),
-		getString(projectInfo, "status"),
-		getFloat(health, "overall_score"),
+		GetStringDefault(projectInfo, "name", "Unknown"),
+		GetStringDefault(projectInfo, "status", "Unknown"),
+		GetFloat(health, "overall_score"),
 		formatTasksForPrompt(tasks),
 		strings.Join(risks, "\n- "))
 
@@ -200,20 +200,4 @@ func formatTasksForPrompt(tasks map[string]interface{}) string {
 	}
 
 	return strings.Join(parts, ", ")
-}
-
-func getString(m map[string]interface{}, key string) string {
-	if val, ok := m[key].(string); ok {
-		return val
-	}
-
-	return "Unknown"
-}
-
-func getFloat(m map[string]interface{}, key string) float64 {
-	if val, ok := m[key].(float64); ok {
-		return val
-	}
-
-	return 0.0
 }

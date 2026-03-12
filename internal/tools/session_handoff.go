@@ -765,17 +765,17 @@ func handleSessionRestore(ctx context.Context, params map[string]interface{}) ([
 	for _, t := range snapshotTodos {
 		if tm, ok := t.(map[string]interface{}); ok {
 			task := Todo2Task{
-				ID:              getStringFromMap(tm, "id"),
-				Content:         getStringFromMap(tm, "content"),
-				Status:          getStringFromMap(tm, "status"),
-				Priority:        getStringFromMap(tm, "priority"),
-				Tags:            getStringSliceFromMap(tm, "tags"),
-				CreatedAt:       getStringFromMap(tm, "created_at"),
-				CompletedAt:     getStringFromMap(tm, "completed_at"),
-				ParentID:        getStringFromMap(tm, "parent_id"),
-				AssignedTo:      getStringFromMap(tm, "assigned_to"),
-				LongDescription: getStringFromMap(tm, "long_description"),
-				Dependencies:    getStringSliceFromMap(tm, "dependencies"),
+				ID:              GetString(tm, "id"),
+				Content:         GetString(tm, "content"),
+				Status:          GetString(tm, "status"),
+				Priority:        GetString(tm, "priority"),
+				Tags:            GetStringSlice(tm, "tags"),
+				CreatedAt:       GetString(tm, "created_at"),
+				CompletedAt:     GetString(tm, "completed_at"),
+				ParentID:        GetString(tm, "parent_id"),
+				AssignedTo:      GetString(tm, "assigned_to"),
+				LongDescription: GetString(tm, "long_description"),
+				Dependencies:    GetStringSlice(tm, "dependencies"),
 			}
 			snapshotTasks = append(snapshotTasks, task)
 		}
@@ -863,28 +863,6 @@ func handleSessionRestore(ctx context.Context, params map[string]interface{}) ([
 	}
 
 	return framework.FormatResult(result, "")
-}
-
-// getStringFromMap retrieves a string from a map
-func getStringFromMap(m map[string]interface{}, key string) string {
-	if v, ok := m[key].(string); ok {
-		return v
-	}
-	return ""
-}
-
-// getStringSliceFromMap retrieves a string slice from a map
-func getStringSliceFromMap(m map[string]interface{}, key string) []string {
-	if v, ok := m[key].([]interface{}); ok {
-		result := make([]string, 0, len(v))
-		for _, s := range v {
-			if str, ok := s.(string); ok {
-				result = append(result, str)
-			}
-		}
-		return result
-	}
-	return nil
 }
 
 // Helper types and functions
