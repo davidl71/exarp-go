@@ -334,14 +334,24 @@ func registerCoreTools(server framework.MCPServer) error {
 	// session
 	if err := server.RegisterTool(
 		"session",
-		"[HINT: action=prime|handoff|prompts|assignee. Session management. Call prime at start; handoff to save/resume context across sessions. Returns suggested_next tasks.]",
+		"[HINT: action=prime|handoff|prompts|assignee|restore. Session management. Call prime at start; handoff to save/resume context across sessions. Use restore to restore from point-in-time snapshot.]",
 		framework.ToolSchema{
 			Type: "object",
 			Properties: map[string]interface{}{
 				"action": map[string]interface{}{
 					"type":    "string",
-					"enum":    []string{"prime", "handoff", "prompts", "assignee"},
+					"enum":    []string{"prime", "handoff", "prompts", "assignee", "restore"},
 					"default": "prime",
+				},
+				"point_in_time_snapshot": map[string]interface{}{
+					"type":        "string",
+					"description": "Base64-encoded gzip snapshot to restore (used with action=restore)",
+				},
+				"restore_strategy": map[string]interface{}{
+					"type":        "string",
+					"enum":        []string{"merge", "replace"},
+					"default":     "merge",
+					"description": "merge: add missing tasks; replace: overwrite all tasks with snapshot",
 				},
 				"include_hints": map[string]interface{}{
 					"type":    "boolean",
