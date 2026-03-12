@@ -297,7 +297,6 @@ func handleSetupPatternHooks(ctx context.Context, params map[string]interface{})
 
 		// Setup integration points
 		setupGitHooksIntegration(projectRoot, patterns, results)
-		setupFileWatcherIntegration(projectRoot, patterns, results)
 		setupTaskStatusIntegration(projectRoot, patterns, results)
 	}
 
@@ -307,25 +306,6 @@ func handleSetupPatternHooks(ctx context.Context, params map[string]interface{})
 // getDefaultPatterns returns default pattern configurations.
 func getDefaultPatterns() map[string]interface{} {
 	return map[string]interface{}{
-		"file_patterns": map[string]interface{}{
-			"docs/**/*.md": map[string]interface{}{
-				"on_change":   "check_documentation_health_tool",
-				"on_create":   "add_external_tool_hints_tool",
-				"description": "Documentation files",
-			},
-			"requirements.txt|Cargo.toml|package.json|pyproject.toml": map[string]interface{}{
-				"on_change":   "scan_dependency_security_tool",
-				"description": "Dependency files",
-			},
-			".todo2/state.todo2.json": map[string]interface{}{
-				"on_change":   "detect_duplicate_tasks_tool",
-				"description": "Todo2 state file",
-			},
-			"CMakeLists.txt|CMakePresets.json": map[string]interface{}{
-				"on_change":   "validate_ci_cd_workflow_tool",
-				"description": "CMake configuration",
-			},
-		},
 		"git_events": map[string]interface{}{
 			"pre_commit": map[string]interface{}{
 				"tools": []string{
@@ -431,30 +411,6 @@ func setupGitHooksIntegration(projectRoot string, patterns map[string]interface{
 	}
 }
 
-// setupFileWatcherIntegration sets up file watcher integration for pattern triggers.
-func setupFileWatcherIntegration(projectRoot string, patterns map[string]interface{}, results map[string]interface{}) {
-	if filePatterns, ok := patterns["file_patterns"].(map[string]interface{}); ok && len(filePatterns) > 0 {
-		watcherScript := filepath.Join(projectRoot, ".cursor", "exarp_file_watcher.py")
-
-		watcherContent := generateFileWatcherScript()
-
-		if err := os.WriteFile(watcherScript, []byte(watcherContent), 0755); err != nil {
-			results["patterns_skipped"] = append(results["patterns_skipped"].([]map[string]interface{}), map[string]interface{}{
-				"category": "file_patterns",
-				"reason":   fmt.Sprintf("Failed to create watcher script: %v", err),
-			})
-
-			return
-		}
-
-		results["file_watcher_integration"] = map[string]interface{}{
-			"status": "configured",
-			"script": watcherScript,
-			"note":   "Run manually or via cron: python3 .cursor/exarp_file_watcher.py",
-		}
-	}
-}
-
 // setupTaskStatusIntegration sets up task status change integration.
 func setupTaskStatusIntegration(projectRoot string, patterns map[string]interface{}, results map[string]interface{}) {
 	if taskStatus, ok := patterns["task_status_changes"].(map[string]interface{}); ok && len(taskStatus) > 0 {
@@ -465,58 +421,4 @@ func setupTaskStatusIntegration(projectRoot string, patterns map[string]interfac
 	}
 }
 
-// generateFileWatcherScript generates the file watcher script content.
-func generateFileWatcherScript() string {
-	return `#!/usr/bin/env python3
-"""
-Exarp File Watcher
-
-Monitors file changes and triggers exarp tools based on patterns.
-Run manually or via cron job.
-"""
-
-import json
-import sys
-from pathlib import Path
-from typing import Dict, List, Optional
-
-# Load pattern configuration
-CONFIG_FILE = Path(__file__).parent.parent / ".cursor" / "exarp_patterns.json"
-
-def load_patterns() -> Dict:
-    """Load pattern configuration."""
-    if not CONFIG_FILE.exists():
-        return {}
-
-    with open(CONFIG_FILE, 'r') as f:
-        config = json.load(f)
-        return config.get("file_patterns", {})
-
-def check_file_changes() -> List[Dict]:
-    """Check for file changes and return matching patterns."""
-    # This is a placeholder - implement actual file watching logic
-    # For now, returns empty list
-    return []
-
-def trigger_tool(tool_name: str) -> bool:
-    """Trigger an exarp tool."""
-    # This is a placeholder - implement actual tool triggering
-    # For now, just prints what would be triggered
-    print(f"Would trigger: {tool_name}")
-    return True
-
-if __name__ == "__main__":
-    patterns = load_patterns()
-    changes = check_file_changes()
-
-    for change in changes:
-        file_path = change["file"]
-        for pattern, config in patterns.items():
-            # Simple pattern matching (implement proper glob/regex matching)
-            if pattern in file_path or file_path.endswith(pattern.split("/")[-1]):
-                if "on_change" in config:
-                    trigger_tool(config["on_change"])
-                if "on_create" in config and change.get("created"):
-                    trigger_tool(config["on_create"])
-`
-}
+// Helper types and functions
