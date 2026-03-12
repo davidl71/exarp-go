@@ -206,9 +206,9 @@ func (state *tui3270State) updateTaskStatusForSelected(newStatus string) (go3270
 	return state.taskListTransaction, state, nil
 }
 
-func t3270Pad(s string, width int) string {
-	return fitWidth(s, width)
-}
+// t3270Pad is an alias for truncatePad (used in 3270 screen building).
+// Now uses the shared implementation from tui_helpers.go.
+var t3270Pad = truncatePad
 
 // validStatus returns a Validator that accepts known task statuses.
 func validStatus() go3270.Validator {
