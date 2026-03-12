@@ -20,6 +20,13 @@ type GoSDKAdapter struct {
 	logger       *logging.Logger
 	middleware   *MiddlewareChain
 	session      *mcp.ServerSession // Captured on first tool call for sampling/roots
+
+	// Optional handlers
+	completionHandler          interface{}
+	resourceSubscribeHandler   interface{}
+	resourceUnsubscribeHandler interface{}
+	impl                       *mcp.Implementation
+	serverOpts                 *mcp.ServerOptions
 }
 
 // NewGoSDKAdapter creates a new Go SDK adapter
@@ -366,4 +373,10 @@ func (a *GoSDKAdapter) ListTools() []types.ToolInfo {
 		tools = append(tools, info)
 	}
 	return tools
+}
+
+// AddToolMiddleware adds a middleware function for tool calls.
+// This allows adding cross-cutting concerns like logging, metrics, or context injection.
+func (a *GoSDKAdapter) AddToolMiddleware(mw func(ToolHandlerFunc) ToolHandlerFunc) {
+	a.middleware.AddToolMiddleware(mw)
 }
