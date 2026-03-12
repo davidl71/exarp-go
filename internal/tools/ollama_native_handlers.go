@@ -122,6 +122,11 @@ func handleOllamaDocs(ctx context.Context, params map[string]interface{}, host s
 		return nil, fmt.Errorf("file_path parameter required for docs action")
 	}
 
+	// Validate path against MCP Roots if available
+	if _, err := ValidatePathAgainstMCPRoots(ctx, filePath); err != nil {
+		return nil, fmt.Errorf("path validation failed: %w", err)
+	}
+
 	outputPath, _ := params["output_path"].(string)
 
 	style, _ := params["style"].(string)
@@ -211,10 +216,12 @@ func handleOllamaQuality(ctx context.Context, params map[string]interface{}, hos
 		return nil, fmt.Errorf("file_path parameter required for quality action")
 	}
 
-	includeSuggestions := true
-	if suggestions, ok := params["include_suggestions"].(bool); ok {
-		includeSuggestions = suggestions
+	// Validate path against MCP Roots if available
+	if _, err := ValidatePathAgainstMCPRoots(ctx, filePath); err != nil {
+		return nil, fmt.Errorf("path validation failed: %w", err)
 	}
+
+	includeSuggestions := ParamBool(params, "include_suggestions", true)
 
 	model := getOllamaModelParam(params, "codellama")
 

@@ -13,6 +13,30 @@ func ParamString(params map[string]interface{}, key string) string {
 	return strings.TrimSpace(cast.ToString(params[key]))
 }
 
+// ParamInt returns params[key] as an int. Returns defaultVal if key is missing or wrong type.
+// Uses defaultVal for missing keys; to distinguish missing from explicit 0, use HasKey first.
+func ParamInt(params map[string]interface{}, key string, defaultVal int) int {
+	if val, err := cast.ToIntE(params[key]); err == nil {
+		return val
+	}
+	return defaultVal
+}
+
+// ParamBool returns params[key] as a bool. Returns defaultVal if key is missing or wrong type.
+// To distinguish between missing key and explicit false, use HasKey() first.
+func ParamBool(params map[string]interface{}, key string, defaultVal bool) bool {
+	if val, err := cast.ToBoolE(params[key]); err == nil {
+		return val
+	}
+	return defaultVal
+}
+
+// HasKey returns true if the key exists in params (even if value is nil/empty).
+func HasKey(params map[string]interface{}, key string) bool {
+	_, exists := params[key]
+	return exists
+}
+
 // DefaultReportOutputPath returns params["output_path"] if non-empty, else a default path under projectRoot.
 // Noisy generated analysis artifacts default to out/, while user-facing docs default to docs/.
 func DefaultReportOutputPath(projectRoot, defaultFilename string, params map[string]interface{}) string {

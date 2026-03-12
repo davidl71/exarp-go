@@ -5,6 +5,8 @@ import (
 	"context"
 	"encoding/json"
 
+	"github.com/modelcontextprotocol/go-sdk/mcp"
+
 	"github.com/davidl71/mcp-go-core/pkg/mcp/framework"
 	"github.com/davidl71/mcp-go-core/pkg/mcp/types"
 )
@@ -33,6 +35,11 @@ type ServerExtensionReporter interface {
 	ServerExtensions() map[string]any
 }
 
+// ResourceUpdateNotifier allows servers to trigger resource update notifications.
+type ResourceUpdateNotifier interface {
+	NotifyResourceUpdated(context.Context, *mcp.ResourceUpdatedNotificationParams) error
+}
+
 // Eliciter re-export from mcp-go-core for backward compatibility.
 type Eliciter = framework.Eliciter
 
@@ -40,6 +47,31 @@ type Eliciter = framework.Eliciter
 var (
 	EliciterFromContext = framework.EliciterFromContext
 	ContextWithEliciter = framework.ContextWithEliciter
+)
+
+// Sampler re-export from mcp-go-core for sampling support.
+// Sampler allows the server to request LLM generation from the client.
+type (
+	Sampler             = framework.Sampler
+	CreateMessageParams = framework.CreateMessageParams
+	SamplingMessage     = framework.SamplingMessage
+	CreateMessageResult = framework.CreateMessageResult
+)
+
+// Re-export Sampler context helpers from mcp-go-core.
+var (
+	SamplerFromContext = framework.SamplerFromContext
+	ContextWithSampler = framework.ContextWithSampler
+)
+
+// Root re-export from mcp-go-core for Roots support.
+// Root represents a client workspace boundary.
+type Root = framework.Root
+
+// Re-export Roots context helpers from mcp-go-core.
+var (
+	RootsFromContext = framework.RootsFromContext
+	ContextWithRoots = framework.ContextWithRoots
 )
 
 // JsonRawMessage is an alias for json.RawMessage to avoid import conflicts.

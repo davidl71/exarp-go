@@ -18,14 +18,30 @@ exarp-go supports two MCP client features: **Roots** (workspace boundaries) and 
 
 **How exarp-go uses it:**
 
-- The gosdk adapter creates the MCP server with `ServerOptions{RootsListChangedHandler}` so the server receives roots/list_changed notifications.
-- When a **resource** is read, the adapter calls `Session.ListRoots(ctx, nil)` and attaches the result to the request context. Resource handlers can read client roots via **`framework.RootsFromContext(ctx)`** (from `github.com/davidl71/mcp-go-core/pkg/mcp/framework`).
-- Handlers that serve path-sensitive or `file://` content can use roots to validate paths and stay within client-allowed boundaries.
+- The gosdk adapter now captures the ServerSession on first tool call.
+- `WithRootsSupport()` middleware injects client roots into context for each tool call.
+- Tools can use `framework.RootsFromContext(ctx)` to access client workspace boundaries.
+- Path validation helper `ValidatePathAgainstMCPRoots()` validates file paths against roots.
+
+**Implementation:**
+
+- `vendor/.../gosdk/adapter.go` - captures ServerSession
+- `vendor/.../gosdk/roots.go` - ServerSessionRootsHandler implementation
+- `vendor/.../gosdk/options.go` - WithRootsSupport() option
+- `internal/tools/path_validation.go` - ValidatePathAgainstMCPRoots() helper
+- `internal/factory/server.go` - Wired WithRootsSupport()
+
+**Tools with path validation:**
+
+- `ollama docs` - validates file_path
+- `ollama quality` - validates file_path
+- `testing` - validates test_path
+- `lint` - validates path
 
 **Example (resource handler):**
 
 ```go
-import mcpframework "github.com/davidl71/mcp-go-core/pkg/mcp/framework"
+import mcpframework "github.com/davidl71/exarp-go/internal/framework"
 
 func myResourceHandler(ctx context.Context, uri string) ([]byte, string, error) {
     roots := mcpframework.RootsFromContext(ctx)
@@ -39,7 +55,49 @@ func myResourceHandler(ctx context.Context, uri string) ([]byte, string, error) 
 }
 ```
 
-**When roots are not set:** If the client does not support roots or has not sent roots, `RootsFromContext(ctx)` returns `nil`. Handlers should treat that as “no roots restriction” and use existing behavior.
+**When roots are not set:** If the client does not support roots or has not sent roots, `RootsFromContext(ctx)` returns `nil`. Handlers should treat that as "no roots restriction" and use existing behavior.
+
+### Path Validation Example
+
+Tools that work with file paths can validate against client roots:
+
+```go
+import (
+    "path/filepath"
+    "strings"
+    mcpframework "github.com/davidl71/exarp-go/internal/framework"
+)
+
+func validatePathAgainstRoots(ctx context.Context, requestedPath string) error {
+    roots := mcpframework.RootsFromContext(ctx)
+    if len(roots) == 0 {
+        return nil // No roots restriction
+    }
+
+    absPath, err := filepath.Abs(requestedPath)
+    if err != nil {
+        return err
+    }
+
+    for _, root := range roots {
+        rootPath := strings.TrimPrefix(root.URI, "file://")
+        absRoot, err := filepath.Abs(rootPath)
+        if err != nil {
+            continue
+        }
+
+        rel, err := filepath.Rel(absRoot, absPath)
+        if err != nil {
+            continue
+        }
+        if !strings.HasPrefix(rel, "..") {
+            return nil // Valid path
+        }
+    }
+
+    return fmt.Errorf("path %s is outside client roots", requestedPath)
+}
+```
 
 ---
 

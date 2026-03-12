@@ -27,6 +27,11 @@ func handleTestingRun(ctx context.Context, params map[string]interface{}) ([]fra
 	testPath := "./..."
 	if path := cast.ToString(params["test_path"]); path != "" {
 		testPath = path
+
+		// Validate path against MCP Roots if available
+		if _, err := ValidatePathAgainstMCPRoots(ctx, testPath); err != nil {
+			return nil, fmt.Errorf("path validation failed: %w", err)
+		}
 	}
 
 	verbose := true

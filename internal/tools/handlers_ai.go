@@ -118,6 +118,11 @@ func handleLint(ctx context.Context, args json.RawMessage) ([]framework.TextCont
 	path := ""
 	if p := cast.ToString(params["path"]); p != "" {
 		path = p
+
+		// Validate path against MCP Roots if available
+		if _, err := ValidatePathAgainstMCPRoots(ctx, path); err != nil {
+			return nil, fmt.Errorf("path validation failed: %w", err)
+		}
 	}
 
 	fix := cast.ToBool(params["fix"])
