@@ -239,7 +239,7 @@ Tool-specific overrides. Each tool has its own sub-section.
 | `exarp_path` | string | `".exarp"` | Exarp path |
 | `features.sqlite_enabled` | bool | `true` | SQLite enabled |
 | `features.json_fallback` | bool | `true` | JSON fallback |
-| `features.python_bridge` | bool | `true` | Python bridge |
+| `features.python_bridge` | bool | `true` | ~~Python bridge~~ **DEPRECATED** - never implemented |
 | `skip_checks` | []string | `[]` | Skip health checks |
 | `custom_tools` | []string | `[]` | Custom tools |
 

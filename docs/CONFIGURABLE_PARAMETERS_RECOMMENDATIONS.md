@@ -447,7 +447,7 @@ project:
   features:
     sqlite_enabled: true               # Use SQLite database
     json_fallback: true                # Fallback to JSON if DB unavailable
-    python_bridge: true               # Enable Python bridge
+    python_bridge: true               # DEPRECATED: never implemented
     mcp_servers: []                    # Additional MCP servers to use
   
   # Overrides
