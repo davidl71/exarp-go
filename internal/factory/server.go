@@ -150,7 +150,6 @@ func NewServer(frameworkType config.FrameworkType, name, version string, opts ..
 		logger := createLogger()
 		adapterOpts := []gosdk.AdapterOption{
 			gosdk.WithLogger(logger),
-			gosdk.WithImplementationTitle("exarp-go"),
 			gosdk.WithServerExtension("davidl71/exarp-go", map[string]any{
 				"projectRootContext":    true,
 				"resourceTemplates":     true,
