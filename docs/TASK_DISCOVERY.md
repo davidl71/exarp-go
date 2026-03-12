@@ -21,7 +21,7 @@ Discover tasks from code comments, markdown files, and orphaned Todo2 tasks.
 |-----------|------|---------|-------------|
 | `action` | string | "all" | Action: comments, markdown, orphans, git_json, planning_links, all |
 | `file_patterns` | string | ["**/*.go", "**/*.py", "**/*.js", "**/*.ts"] | File patterns to scan (JSON array) |
-| `ignore_paths` | string | .cache, third_party, mcp-servers, ib-gateway, native | Comma-separated paths to exclude |
+| `ignore_paths` | string | .cache, third_party, mcp-servers, native | Comma-separated paths to exclude from scanning |
 | `include_fixme` | boolean | true | Include FIXME comments |
 | `doc_path` | string | "docs" | Path to scan for markdown files |
 | `json_pattern` | string | "**/.todo2/state.todo2.json" | Pattern for orphaned task detection |
@@ -30,12 +30,35 @@ Discover tasks from code comments, markdown files, and orphaned Todo2 tasks.
 
 ## Default Ignore Patterns
 
-The following paths are automatically excluded:
+The following paths are automatically excluded from scanning to avoid noise:
 
-- `.git`, `node_modules`, `__pycache__`, `.venv`
-- `vendor`, `.idea`, `.vscode`, `dist`
-- `build`, `target`, `archive`, `bin`
+**Version control & dependencies:**
+- `.git`, `node_modules`, `vendor`
+
+**Python virtual environments:**
+- `__pycache__`, `.venv`
+
+**IDE & editors:**
+- `.idea`, `.vscode`
+
+**Build outputs:**
+- `dist`, `build`, `target`, `archive`, `bin`
+
+**Common noise (external projects, caches):**
 - `.cache`, `third_party`, `mcp-servers`, `native`
+
+## Customizing Ignore Paths
+
+Use the `ignore_paths` parameter to add custom exclusions:
+
+```json
+{
+  "action": "comments",
+  "ignore_paths": "vendor,third_party,my-custom-dir"
+}
+```
+
+The `ignore_paths` parameter adds to (not replaces) the default patterns above.
 
 ## Actions
 
