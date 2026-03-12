@@ -32,8 +32,10 @@ func handleSessionNative(ctx context.Context, params map[string]interface{}) ([]
 		return handleSessionPrompts(ctx, params)
 	case "assignee":
 		return handleSessionAssignee(ctx, params)
+	case "restore":
+		return handleSessionRestore(ctx, params)
 	default:
-		return nil, fmt.Errorf("unknown action: %s (use 'prime', 'handoff', 'prompts', or 'assignee')", action)
+		return nil, fmt.Errorf("unknown action: %s (use 'prime', 'handoff', 'prompts', 'assignee', or 'restore')", action)
 	}
 }
 

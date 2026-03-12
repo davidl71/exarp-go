@@ -736,4 +736,166 @@ func DecodePointInTimeSnapshot(encoded string) ([]byte, error) {
 	return out.Bytes(), nil
 }
 
+// handleSessionRestore restores tasks from a point-in-time snapshot.
+// Takes a base64-encoded gzip snapshot and optionally merges or replaces tasks.
+func handleSessionRestore(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
+	snapshot := cast.ToString(params["point_in_time_snapshot"])
+	if snapshot == "" {
+		return nil, fmt.Errorf("point_in_time_snapshot is required for restore")
+	}
+
+	restoreStrategy := cast.ToString(params["restore_strategy"])
+	if restoreStrategy == "" {
+		restoreStrategy = "merge"
+	}
+
+	projectRoot, err := FindProjectRoot()
+	if err != nil {
+		return nil, fmt.Errorf("failed to find project root: %w", err)
+	}
+
+	// Decode snapshot
+	decoded, err := DecodePointInTimeSnapshot(snapshot)
+	if err != nil {
+		return nil, fmt.Errorf("failed to decode snapshot: %w", err)
+	}
+
+	// Parse snapshot tasks
+	var stateData map[string]interface{}
+	if err := json.Unmarshal(decoded, &stateData); err != nil {
+		return nil, fmt.Errorf("failed to parse snapshot JSON: %w", err)
+	}
+
+	snapshotTodos, ok := stateData["todos"].([]interface{})
+	if !ok {
+		return nil, fmt.Errorf("invalid snapshot format: missing todos array")
+	}
+
+	// Convert to Todo2Task
+	snapshotTasks := make([]Todo2Task, 0, len(snapshotTodos))
+	for _, t := range snapshotTodos {
+		if tm, ok := t.(map[string]interface{}); ok {
+			task := Todo2Task{
+				ID:              getStringFromMap(tm, "id"),
+				Content:         getStringFromMap(tm, "content"),
+				Status:          getStringFromMap(tm, "status"),
+				Priority:        getStringFromMap(tm, "priority"),
+				Tags:            getStringSliceFromMap(tm, "tags"),
+				CreatedAt:       getStringFromMap(tm, "created_at"),
+				CompletedAt:     getStringFromMap(tm, "completed_at"),
+				ParentID:        getStringFromMap(tm, "parent_id"),
+				AssignedTo:      getStringFromMap(tm, "assigned_to"),
+				LongDescription: getStringFromMap(tm, "long_description"),
+				Dependencies:    getStringSliceFromMap(tm, "dependencies"),
+			}
+			snapshotTasks = append(snapshotTasks, task)
+		}
+	}
+
+	if len(snapshotTasks) == 0 {
+		return nil, fmt.Errorf("no tasks found in snapshot")
+	}
+
+	// Load existing tasks
+	store := NewDefaultTaskStore(projectRoot)
+	existingList, err := store.ListTasks(ctx, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load existing tasks: %w", err)
+	}
+	existingTasks := tasksFromPtrs(existingList)
+
+	// Build task maps for quick lookup
+	existingByID := make(map[string]Todo2Task)
+	for _, t := range existingTasks {
+		existingByID[t.ID] = t
+	}
+
+	var tasksToSave []Todo2Task
+	var mergedCount, replacedCount, skippedCount int
+
+	if restoreStrategy == "replace" {
+		// Replace: use all snapshot tasks
+		tasksToSave = snapshotTasks
+		replacedCount = len(existingTasks)
+	} else {
+		// Merge: add missing tasks from snapshot
+		for _, st := range snapshotTasks {
+			if _, exists := existingByID[st.ID]; !exists {
+				tasksToSave = append(tasksToSave, st)
+				mergedCount++
+			} else {
+				skippedCount++
+			}
+		}
+
+		// If no new tasks to add, just return success
+		if len(tasksToSave) == 0 {
+			result := map[string]interface{}{
+				"success":        true,
+				"method":         "native_go",
+				"strategy":       restoreStrategy,
+				"snapshot_tasks": len(snapshotTasks),
+				"existing_tasks": len(existingTasks),
+				"merged":         0,
+				"skipped":        len(snapshotTasks),
+				"message":        "No new tasks to merge (all snapshot tasks already exist)",
+			}
+			return framework.FormatResult(result, "")
+		}
+	}
+
+	// Save tasks
+	var savedCount int
+	for _, task := range tasksToSave {
+		// Check if task exists - use UpdateTask or CreateTask accordingly
+		if _, exists := existingByID[task.ID]; exists {
+			if err := store.UpdateTask(ctx, &task); err != nil {
+				return nil, fmt.Errorf("failed to update task %s: %w", task.ID, err)
+			}
+		} else {
+			if err := store.CreateTask(ctx, &task); err != nil {
+				return nil, fmt.Errorf("failed to create task %s: %w", task.ID, err)
+			}
+		}
+		savedCount++
+	}
+
+	result := map[string]interface{}{
+		"success":        true,
+		"method":         "native_go",
+		"strategy":       restoreStrategy,
+		"snapshot_tasks": len(snapshotTasks),
+		"existing_tasks": len(existingTasks),
+		"merged":         mergedCount,
+		"replaced":       replacedCount,
+		"skipped":        skippedCount,
+		"saved":          savedCount,
+		"message":        fmt.Sprintf("Restored %d tasks from snapshot", savedCount),
+	}
+
+	return framework.FormatResult(result, "")
+}
+
+// getStringFromMap retrieves a string from a map
+func getStringFromMap(m map[string]interface{}, key string) string {
+	if v, ok := m[key].(string); ok {
+		return v
+	}
+	return ""
+}
+
+// getStringSliceFromMap retrieves a string slice from a map
+func getStringSliceFromMap(m map[string]interface{}, key string) []string {
+	if v, ok := m[key].([]interface{}); ok {
+		result := make([]string, 0, len(v))
+		for _, s := range v {
+			if str, ok := s.(string); ok {
+				result = append(result, str)
+			}
+		}
+		return result
+	}
+	return nil
+}
+
 // Helper types and functions
