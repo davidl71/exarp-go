@@ -6,7 +6,7 @@
 //   - registry_ai.go:    memory, estimation, ollama, mlx, text_generate, context, recommend, cursor, FM
 //   - registry_infra.go: automation, git_tools, testing, lint, security, generate_config, setup_hooks
 //   - registry_misc.go:  analyze_alignment, check_attribution, add_external_tool_hints, tool_catalog,
-//     workflow_mode, infer_session_mode, context_budget
+//     workflow_mode, infer_session_mode
 //
 // Handler files follow the naming convention: <tool_name>.go or <tool_name>_native.go (platform-specific).
 // All handlers accept (ctx context.Context, args json.RawMessage) and return ([]framework.TextContent, error).

@@ -161,37 +161,6 @@ func registerMiscTools(server framework.MCPServer) error {
 		return fmt.Errorf("failed to register infer_session_mode: %w", err)
 	}
 
-	// context_budget
-	// Note: Individual Python bridge tools (context_summarize, context_batch, prompt_log, prompt_analyze,
-	// recommend_model, recommend_workflow) were removed in favor of unified tools in registry_ai.go:
-	// - context(action=summarize|budget|batch)
-	// - prompt_tracking(action=log|analyze)
-	// - recommend(action=model|workflow|advisor).
-	// Note: list_models tool removed - converted to stdio://models resource
-	// See internal/resources/models.go for resource implementation
-	if err := server.RegisterTool(
-		"context_budget",
-		"[HINT: Estimate token usage and suggest context reduction. Use when managing context window limits. Related: context.]",
-		framework.ToolSchema{
-			Type: "object",
-			Properties: map[string]interface{}{
-				"items": map[string]interface{}{
-					"type":        "string",
-					"description": "JSON array of items to analyze",
-				},
-				"budget_tokens": map[string]interface{}{
-					"type":        "integer",
-					"default":     4000,
-					"description": "Target token budget",
-				},
-			},
-			Required: []string{"items"},
-		},
-		handleContextBudget,
-	); err != nil {
-		return fmt.Errorf("failed to register context_budget: %w", err)
-	}
-
 	if err := RegisterResourcesAsTools(server); err != nil {
 		return fmt.Errorf("failed to register resources-as-tools: %w", err)
 	}
