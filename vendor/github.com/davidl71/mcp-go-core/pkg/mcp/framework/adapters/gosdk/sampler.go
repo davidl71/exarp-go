@@ -23,7 +23,7 @@ func (s *ServerSessionSampler) CreateMessage(ctx context.Context, params framewo
 	messages := make([]*mcp.SamplingMessageV2, len(params.Messages))
 	for i, msg := range params.Messages {
 		messages[i] = &mcp.SamplingMessageV2{
-			Role:    msg.Role,
+			Role:    mcp.Role(msg.Role),
 			Content: []mcp.Content{&mcp.TextContent{Text: msg.Content}},
 		}
 	}

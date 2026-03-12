@@ -1,8 +1,11 @@
 package gosdk
 
 import (
+	"context"
+
 	"github.com/davidl71/mcp-go-core/pkg/mcp/framework"
 	"github.com/davidl71/mcp-go-core/pkg/mcp/logging"
+	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
 // AdapterOption configures a GoSDKAdapter
