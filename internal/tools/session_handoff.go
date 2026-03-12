@@ -284,45 +284,34 @@ func handleSessionEnd(ctx context.Context, params map[string]interface{}, projec
 }
 
 func listTasksForSessionHandoff(ctx context.Context, projectRoot string, store database.TaskStore) ([]Todo2Task, error) {
-	list, err := store.ListTasks(ctx, nil)
-	if err == nil && len(list) > 0 {
-		return tasksFromPtrs(list), nil
-	}
-
 	projectID := filepath.Base(projectRoot)
 	if projectID == "" || projectID == "." {
 		projectID = "default"
 	}
 
-	if db, dbErr := database.GetDB(); dbErr == nil && db != nil {
-		all, listErr := database.ListTasks(ctx, nil)
-		if listErr == nil {
-			legacyScoped := filterTasksForProjectOrLegacy(tasksFromPtrs(all), projectID)
-			if len(legacyScoped) > 0 {
-				return legacyScoped, nil
-			}
-		}
-	}
-
-	tasks, loadErr := LoadTodo2Tasks(projectRoot)
-	if loadErr != nil {
-		if err != nil {
-			return nil, err
-		}
-
-		return nil, loadErr
-	}
-
-	legacyScoped := filterTasksForProjectOrLegacy(tasks, projectID)
-	if len(legacyScoped) > 0 {
-		return legacyScoped, nil
-	}
-
+	// Use TaskStore which handles DB-first, JSON-fallback automatically
+	list, err := store.ListTasks(ctx, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	return tasks, nil
+	// Filter for this project or legacy tasks (no project ID)
+	legacyScoped := filterTasksForProjectOrLegacy(tasksFromPtrs(list), projectID)
+	if len(legacyScoped) > 0 {
+		return legacyScoped, nil
+	}
+
+	// Fallback: try loading legacy tasks that may not have ProjectID set
+	allTasks, loadErr := LoadTodo2Tasks(projectRoot)
+	if loadErr != nil {
+		if err != nil {
+			return nil, err
+		}
+		return nil, loadErr
+	}
+
+	legacyFiltered := filterTasksForProjectOrLegacy(allTasks, projectID)
+	return legacyFiltered, nil
 }
 
 func filterTasksForProjectOrLegacy(tasks []Todo2Task, projectID string) []Todo2Task {
