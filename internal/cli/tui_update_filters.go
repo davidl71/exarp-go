@@ -3,7 +3,7 @@
 package cli
 
 import (
-	tea "github.com/charmbracelet/bubbletea"
+	tea "charm.land/bubbletea/v2"
 )
 
 // handleSortFilterKeys handles keys that change sort order, sort direction, search, or collapse.

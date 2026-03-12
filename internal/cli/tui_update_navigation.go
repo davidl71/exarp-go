@@ -2,7 +2,7 @@
 package cli
 
 import (
-	tea "github.com/charmbracelet/bubbletea"
+	tea "charm.land/bubbletea/v2"
 )
 
 // handleNavigationKeys handles up/down/j/k/pgup/pgdn/home/end/g/G navigation across all modes.

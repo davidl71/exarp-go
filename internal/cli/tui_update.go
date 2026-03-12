@@ -6,10 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"charm.land/bubbles/v2/list"
-	"charm.land/bubbles/v2/spinner"
-	"charm.land/bubbles/v2/textinput"
-	tea "github.com/charmbracelet/bubbletea"
+	tea "charm.land/bubbletea/v2"
 	"github.com/davidl71/exarp-go/internal/tools"
 )
 
@@ -56,7 +53,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		// Update bubble/list with tasks
 		m.taskList.SetItems(itemsFromTasks(m.tasks))
-		m.taskList.SetFilterInputText(m.searchQuery)
+		m.taskList.SetFilterText(m.searchQuery)
 
 		vis := m.visibleIndices()
 		if len(vis) > 0 && m.cursor >= len(vis) {
@@ -369,7 +366,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.taskList.Index() >= 0 && m.taskList.Index() != m.cursor {
 				m.cursor = m.taskList.Index()
 			}
-			m.searchQuery = m.taskList.FilterInputText()
+			m.searchQuery = m.taskList.FilterValue()
 			m.filteredIndices = nil
 		}
 
@@ -496,7 +493,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.cursor = m.taskList.Index()
 			}
 			// Sync search query from list filter
-			m.searchQuery = m.taskList.FilterInputText()
+			m.searchQuery = m.taskList.FilterValue()
 			m.filteredIndices = nil // list handles filtering internally
 		}
 

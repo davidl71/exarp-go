@@ -3,7 +3,7 @@
 package cli
 
 import (
-	tea "github.com/charmbracelet/bubbletea"
+	tea "charm.land/bubbletea/v2"
 	"github.com/davidl71/exarp-go/internal/config"
 )
 

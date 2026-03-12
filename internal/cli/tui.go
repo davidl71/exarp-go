@@ -14,7 +14,7 @@ import (
 	"charm.land/bubbles/v2/spinner"
 	"charm.land/bubbles/v2/table"
 	"charm.land/bubbles/v2/textinput"
-	tea "github.com/charmbracelet/bubbletea"
+	tea "charm.land/bubbletea/v2"
 	"github.com/davidl71/exarp-go/internal/config"
 	"github.com/davidl71/exarp-go/internal/database"
 	"github.com/davidl71/exarp-go/internal/framework"
@@ -281,7 +281,7 @@ func (m model) handoffSelectedIDs() []string {
 func (m model) Init() tea.Cmd {
 	// Load tasks, start auto-refresh ticker, get initial window size, and start spinner
 	m.taskSpinner, _ = m.taskSpinner.Update(spinner.TickMsg{})
-	return tea.Batch(loadTasks(m.server, m.status), tick(), tea.WindowSize(), m.taskSpinner.Tick())
+	return tea.Batch(loadTasks(m.server, m.status), tick(), func() tea.Msg { return tea.RequestWindowSize() }, func() tea.Msg { return m.taskSpinner.Tick() })
 }
 
 func getProjectName(projectRoot string) string {

@@ -6,9 +6,7 @@ import (
 	"strings"
 
 	"charm.land/bubbles/v2/list"
-	"charm.land/bubbles/v2/spinner"
 	"charm.land/bubbles/v2/table"
-	"charm.land/bubbles/v2/textinput"
 	humanize "github.com/dustin/go-humanize"
 
 	"github.com/davidl71/exarp-go/internal/database"
@@ -81,13 +79,13 @@ func (m model) viewTasksTable() string {
 		return "\n  No tasks to display\n\n"
 	}
 	m.taskTable.SetRows(rowsFromTasks(m.tasks))
-	m.taskTable.SetSize(m.effectiveWidth()-2, m.effectiveHeight()-8)
+	m.taskTable.SetWidth(m.effectiveWidth() - 2)
+	m.taskTable.SetHeight(m.effectiveHeight() - 8)
 	return m.taskTable.View()
 }
 
 // viewSpinner returns the spinner view with a message.
 func (m model) viewSpinner() string {
-	m.taskSpinner.SetWidth(m.effectiveWidth() - 4)
 	return "\n  " + m.taskSpinner.View() + " " + m.spinnerMessage + "\n\n"
 }
 
