@@ -92,12 +92,64 @@ func LoadConfigProtobuf(projectRoot string) (*FullConfig, error) {
 	// Merge file config with defaults (file config takes precedence)
 	cfg = mergeConfig(cfg, fileConfig)
 
+	// Load and apply config override files
+	cfg, err = applyConfigOverrides(projectRoot, cfg)
+	if err != nil {
+		return nil, fmt.Errorf("config override failed: %w", err)
+	}
+
 	// Apply environment variable overrides
 	applyEnvOverrides(cfg)
 
 	// Validate configuration
 	if err := ValidateConfig(cfg); err != nil {
 		return nil, fmt.Errorf("config validation failed: %w", err)
+	}
+
+	return cfg, nil
+}
+
+// applyConfigOverrides loads and applies config override files.
+// Override files are applied in alphabetical order, with later files taking precedence.
+// Common override files: config.local.pb, config.dev.pb, config.prod.pb
+func applyConfigOverrides(projectRoot string, cfg *FullConfig) (*FullConfig, error) {
+	overridePatterns := []string{
+		"config.local.pb",
+		"config.*.pb",
+	}
+
+	exarpDir := filepath.Join(projectRoot, ".exarp")
+
+	for _, pattern := range overridePatterns {
+		matches, err := filepath.Glob(filepath.Join(exarpDir, pattern))
+		if err != nil {
+			continue
+		}
+
+		for _, match := range matches {
+			// Skip the base config file
+			if filepath.Base(match) == "config.pb" {
+				continue
+			}
+
+			data, err := os.ReadFile(match)
+			if err != nil {
+				continue
+			}
+
+			var pbConfig configpb.FullConfig
+			if err := proto.Unmarshal(data, &pbConfig); err != nil {
+				continue
+			}
+
+			overrideConfig, err := FromProtobuf(&pbConfig)
+			if err != nil {
+				continue
+			}
+
+			// Merge override into config (override takes precedence)
+			cfg = mergeConfig(cfg, overrideConfig)
+		}
 	}
 
 	return cfg, nil
