@@ -191,13 +191,16 @@ func scanComments(ctx context.Context, projectRoot string, patterns []string, in
 
 		// Skip directories and non-code files
 		if info.IsDir() {
-			// Skip common ignore directories: vendor, build outputs, archive
+			// Skip common ignore directories: vendor, build outputs, archive, cache, third_party
 			if strings.Contains(path, ".git") || strings.Contains(path, "node_modules") ||
 				strings.Contains(path, "__pycache__") || strings.Contains(path, ".venv") ||
 				strings.Contains(path, "vendor") || strings.Contains(path, ".idea") ||
 				strings.Contains(path, ".vscode") || strings.Contains(path, "dist") ||
 				strings.Contains(path, "build") || strings.Contains(path, "target") ||
-				strings.Contains(path, "/archive/") || filepath.Base(path) == "bin" {
+				strings.Contains(path, "/archive/") || filepath.Base(path) == "bin" ||
+				strings.Contains(path, ".cache") || strings.Contains(path, "third_party") ||
+				strings.Contains(path, "mcp-servers") || strings.Contains(path, "ib-gateway") ||
+				strings.Contains(path, "native") || strings.Contains(path, "third_party") {
 				return filepath.SkipDir
 			}
 
