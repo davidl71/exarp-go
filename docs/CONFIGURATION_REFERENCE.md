@@ -42,6 +42,54 @@ exarp-go config convert yaml protobuf
 
 ---
 
+## Config Override Files
+
+exarp-go supports layered config overrides. Override files are merged on top of the base config, with later files taking precedence.
+
+### Override File Locations
+
+| File | Priority | Use Case |
+|------|----------|----------|
+| `.exarp/config.pb` | Base | Main config (committed to repo) |
+| `.exarp/config.local.pb` | Override 1 | Local dev overrides (in .gitignore) |
+| `.exarp/config.<feature>.pb` | Override N | Feature-specific overrides |
+
+### Override Behavior
+
+- **Merge strategy:** Override files merge into base config. Top-level keys are replaced, nested keys are deep-merged.
+- **Repeated fields:** Override files replace (not append) repeated fields like tags.
+- **Use .gitignore:** Add `config.local.pb` to `.gitignore` for local-only overrides:
+
+```gitignore
+# Local config overrides (private to this machine)
+.exarp/config.local.pb
+```
+
+### Example Override
+
+To override just the default model for a local environment:
+
+```bash
+# Create override file
+exarp-go config init  # create base first
+cp .exarp/config.pb .exarp/config.local.pb
+
+# Edit config.local.pb to change specific values
+# Only the fields you change will override the base config
+```
+
+### Future: File-based Override Patterns
+
+Planned patterns (not yet implemented):
+
+| Pattern | Example | Description |
+|---------|---------|-------------|
+| Environment-specific | `.exarp/config.dev.pb`, `.exarp/config.prod.pb` | Switch via CLI flag |
+| Branch-based | `.exarp/config.<branch>.pb` | Auto-detect from git branch |
+| Feature flags | `.exarp/config.features.pb` | Toggle experimental features |
+
+---
+
 ## Parameter Reference
 
 Values shown are defaults. Durations use Go format (e.g., `30m`, `60s`). Omitted keys inherit defaults.
