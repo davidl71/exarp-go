@@ -27,7 +27,7 @@ func newCommandPalette() textinput.Model {
 	ti := textinput.New()
 	ti.Placeholder = "Type a command... (Esc to close)"
 	ti.Prompt = ">"
-	ti.Width = 40
+	ti.SetWidth(40)
 	ti.ShowSuggestions = true
 	ti.SetSuggestions(commandPaletteSuggestions)
 	return ti

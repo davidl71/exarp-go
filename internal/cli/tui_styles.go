@@ -1,7 +1,7 @@
 // tui_styles.go — TUI lipgloss styles and column width constants.
 package cli
 
-import "github.com/charmbracelet/lipgloss"
+import "charm.land/lipgloss/v2"
 
 var (
 	headerStyle = lipgloss.NewStyle().

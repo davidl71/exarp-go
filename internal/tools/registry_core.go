@@ -182,8 +182,14 @@ func registerCoreTools(server framework.MCPServer) error {
 					"type": "string",
 				},
 				"create_tasks": map[string]interface{}{
-					"type":    "boolean",
-					"default": false,
+					"type":        "boolean",
+					"default":     false,
+					"description": "Automatically create discovered tasks in Todo2",
+				},
+				"use_llm": map[string]interface{}{
+					"type":        "boolean",
+					"default":     true,
+					"description": "Use Apple FM for semantic enhancement (Darwin/arm64 only). Set false to skip LLM calls.",
 				},
 			},
 		},

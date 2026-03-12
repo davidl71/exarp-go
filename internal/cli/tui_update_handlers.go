@@ -5,7 +5,7 @@ package cli
 import (
 	"strings"
 
-	tea "github.com/charmbracelet/bubbletea"
+	tea "charm.land/bubbletea/v2"
 	"github.com/davidl71/exarp-go/internal/models"
 	"github.com/davidl71/exarp-go/internal/tools"
 )
@@ -99,7 +99,7 @@ func (m model) handleSearchKeys(key string, msg tea.KeyMsg) (model, tea.Cmd, boo
 		return m, nil, true
 
 	default:
-		if len(msg.String()) == 1 && msg.Type == tea.KeyRunes {
+		if len(msg.String()) == 1 {
 			m.searchQuery += msg.String()
 		}
 		m.filteredIndices = m.computeFilteredIndices()
@@ -138,7 +138,7 @@ func (m model) handleCreateKeys(key string, msg tea.KeyMsg) (model, tea.Cmd, boo
 		return m, nil, true
 
 	default:
-		if len(msg.String()) == 1 && msg.Type == tea.KeyRunes {
+		if len(msg.String()) == 1 {
 			m.createInput += msg.String()
 		}
 		return m, nil, true
@@ -431,7 +431,7 @@ func (m model) handleViewToggleKeys(key string) (model, tea.Cmd, bool) {
 			m.useBubbleList = !m.useBubbleList
 			if m.useBubbleList {
 				m.taskList.SetItems(itemsFromTasks(m.tasks))
-				m.taskList.SetFilterInputText(m.searchQuery)
+				m.taskList.SetFilterText(m.searchQuery)
 			}
 		}
 		return m, nil, true
