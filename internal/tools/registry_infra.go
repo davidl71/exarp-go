@@ -321,21 +321,6 @@ func registerInfraTools(server framework.MCPServer) error {
 		return fmt.Errorf("failed to register security: %w", err)
 	}
 
-	// scan_dependency_security — alias for security action=scan (multilang: Go, Python, Rust, Node)
-	if err := server.RegisterTool(
-		"scan_dependency_security",
-		"[HINT: Run dependency vulnerability scan for Go/Python/Rust/Node. Same as security(action=scan). Use in hooks or when checking dependencies.]",
-		framework.ToolSchema{
-			Type: "object",
-			Properties: map[string]interface{}{
-				"quick": map[string]interface{}{"type": "boolean"},
-			},
-		},
-		handleScanDependencySecurity,
-	); err != nil {
-		return fmt.Errorf("failed to register scan_dependency_security: %w", err)
-	}
-
 	// generate_config
 	if err := server.RegisterTool(
 		"generate_config",
