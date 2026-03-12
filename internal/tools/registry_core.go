@@ -155,7 +155,7 @@ func registerCoreTools(server framework.MCPServer) error {
 	// task_discovery
 	if err := server.RegisterTool(
 		"task_discovery",
-		"[HINT: action=comments|markdown|orphans|git_json|planning_links|all. Discover tasks from code TODOs and docs. Use when scanning for undocumented work. create_tasks=true to auto-create.]",
+		"[HINT: action=comments|markdown|orphans|git_json|planning_links|all. Discover tasks from code TODOs and docs. Use when scanning for undocumented work. create_tasks=true to auto-create. Use ignore_paths to exclude directories.]",
 		framework.ToolSchema{
 			Type: "object",
 			Properties: map[string]interface{}{
@@ -166,6 +166,10 @@ func registerCoreTools(server framework.MCPServer) error {
 				},
 				"file_patterns": map[string]interface{}{
 					"type": "string",
+				},
+				"ignore_paths": map[string]interface{}{
+					"type":        "string",
+					"description": "Comma-separated paths to ignore (e.g., '.cache,vendor,third_party')",
 				},
 				"include_fixme": map[string]interface{}{
 					"type":    "boolean",
