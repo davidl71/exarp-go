@@ -1,7 +1,28 @@
+# charm.land/bubbles/v2 v2.0.0
+## explicit; go 1.24.2
+charm.land/bubbles/v2/cursor
+charm.land/bubbles/v2/help
+charm.land/bubbles/v2/internal/runeutil
+charm.land/bubbles/v2/key
+charm.land/bubbles/v2/list
+charm.land/bubbles/v2/paginator
+charm.land/bubbles/v2/spinner
+charm.land/bubbles/v2/table
+charm.land/bubbles/v2/textinput
+charm.land/bubbles/v2/viewport
+# charm.land/bubbletea/v2 v2.0.0
+## explicit; go 1.24.2
+charm.land/bubbletea/v2
+# charm.land/lipgloss/v2 v2.0.0
+## explicit; go 1.24.2
+charm.land/lipgloss/v2
 # filippo.io/edwards25519 v1.2.0
 ## explicit; go 1.24.0
 filippo.io/edwards25519
 filippo.io/edwards25519/field
+# github.com/atotto/clipboard v0.1.4
+## explicit
+github.com/atotto/clipboard
 # github.com/aymanbagabas/go-osc52/v2 v2.0.1
 ## explicit; go 1.16
 github.com/aymanbagabas/go-osc52/v2
@@ -11,6 +32,9 @@ github.com/blacktop/go-foundationmodels
 # github.com/cespare/xxhash/v2 v2.3.0
 ## explicit; go 1.11
 github.com/cespare/xxhash/v2
+# github.com/charmbracelet/bubbles v0.13.0
+## explicit; go 1.13
+github.com/charmbracelet/bubbles/key
 # github.com/charmbracelet/bubbletea v1.3.10
 ## explicit; go 1.24.0
 github.com/charmbracelet/bubbletea
@@ -20,9 +44,13 @@ github.com/charmbracelet/colorprofile
 # github.com/charmbracelet/lipgloss v1.1.0
 ## explicit; go 1.18
 github.com/charmbracelet/lipgloss
+# github.com/charmbracelet/ultraviolet v0.0.0-20260205113103-524a6607adb8
+## explicit; go 1.24.2
+github.com/charmbracelet/ultraviolet
 # github.com/charmbracelet/x/ansi v0.11.6
 ## explicit; go 1.24.2
 github.com/charmbracelet/x/ansi
+github.com/charmbracelet/x/ansi/kitty
 github.com/charmbracelet/x/ansi/parser
 # github.com/charmbracelet/x/cellbuf v0.0.15
 ## explicit; go 1.24.2
@@ -30,12 +58,21 @@ github.com/charmbracelet/x/cellbuf
 # github.com/charmbracelet/x/term v0.2.2
 ## explicit; go 1.24.0
 github.com/charmbracelet/x/term
+# github.com/charmbracelet/x/termios v0.1.1
+## explicit; go 1.18
+github.com/charmbracelet/x/termios
+# github.com/charmbracelet/x/windows v0.2.2
+## explicit; go 1.23.0
+github.com/charmbracelet/x/windows
 # github.com/clipperhouse/displaywidth v0.11.0
 ## explicit; go 1.18
 github.com/clipperhouse/displaywidth
 # github.com/clipperhouse/uax29/v2 v2.7.0
 ## explicit; go 1.18
 github.com/clipperhouse/uax29/v2/graphemes
+# github.com/cockroachdb/datadriven v1.0.2
+## explicit; go 1.17
+github.com/cockroachdb/datadriven
 # github.com/davidl71/devwisdom-go v0.1.2 => ../devwisdom-go
 ## explicit; go 1.25.5
 github.com/davidl71/devwisdom-go/internal/config
@@ -84,6 +121,18 @@ github.com/hibiken/asynq/internal/timeutil
 github.com/joshgarnett/agent-client-protocol-go/acp
 github.com/joshgarnett/agent-client-protocol-go/acp/api
 github.com/joshgarnett/agent-client-protocol-go/util
+# github.com/knz/catwalk v0.1.4
+## explicit; go 1.13
+github.com/knz/catwalk
+# github.com/knz/lipgloss-convert v0.1.0
+## explicit; go 1.13
+github.com/knz/lipgloss-convert
+# github.com/kr/pretty v0.3.1
+## explicit; go 1.12
+github.com/kr/pretty
+# github.com/kr/text v0.2.0
+## explicit
+github.com/kr/text
 # github.com/lawlielt/ctxcache v1.0.1
 ## explicit; go 1.21
 github.com/lawlielt/ctxcache
@@ -132,6 +181,9 @@ github.com/muesli/termenv
 # github.com/ncruces/go-strftime v1.0.0
 ## explicit; go 1.17
 github.com/ncruces/go-strftime
+# github.com/pmezard/go-difflib v1.0.0
+## explicit
+github.com/pmezard/go-difflib/difflib
 # github.com/racingmars/go3270 v0.9.13
 ## explicit; go 1.18
 github.com/racingmars/go3270
@@ -165,10 +217,14 @@ github.com/rivo/uniseg
 github.com/robfig/cron/v3
 # github.com/rogpeppe/go-internal v1.14.1
 ## explicit; go 1.23
+github.com/rogpeppe/go-internal/fmtsort
 # github.com/rqlite/gorqlite v0.0.0-20250609141355-ac86a4a1c9a8
 ## explicit; go 1.17
 github.com/rqlite/gorqlite
 github.com/rqlite/gorqlite/stdlib
+# github.com/sahilm/fuzzy v0.1.1
+## explicit
+github.com/sahilm/fuzzy
 # github.com/segmentio/asm v1.2.1
 ## explicit; go 1.18
 github.com/segmentio/asm/ascii
@@ -226,6 +282,7 @@ golang.org/x/oauth2
 golang.org/x/oauth2/internal
 # golang.org/x/sync v0.20.0
 ## explicit; go 1.25.0
+golang.org/x/sync/errgroup
 golang.org/x/sync/singleflight
 # golang.org/x/sys v0.42.0
 ## explicit; go 1.25.0

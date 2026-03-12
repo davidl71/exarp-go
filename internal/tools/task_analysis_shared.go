@@ -154,10 +154,7 @@ func handleTaskAnalysisDuplicates(ctx context.Context, params map[string]interfa
 		similarityThreshold = threshold
 	}
 
-	autoFix := false
-	if fix, ok := params["auto_fix"].(bool); ok {
-		autoFix = fix
-	}
+	autoFix := ParamBool(params, "auto_fix", false)
 
 	// Find duplicates
 	duplicates := findDuplicateTasks(tasks, similarityThreshold)

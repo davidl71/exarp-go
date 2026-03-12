@@ -118,10 +118,7 @@ func handleRecommendModelNative(ctx context.Context, params map[string]interface
 		optimizeFor = optimizeRaw
 	}
 
-	includeAlternatives := true
-	if altRaw, ok := params["include_alternatives"].(bool); ok {
-		includeAlternatives = altRaw
-	}
+	includeAlternatives := ParamBool(params, "include_alternatives", true)
 
 	// Find best matching model
 	recommended := findBestModel(taskDescription, taskType, optimizeFor)
@@ -245,10 +242,7 @@ func handleRecommendWorkflowNative(ctx context.Context, params map[string]interf
 		taskID = idRaw
 	}
 
-	includeRationale := true
-	if rationaleRaw, ok := params["include_rationale"].(bool); ok {
-		includeRationale = rationaleRaw
-	}
+	includeRationale := ParamBool(params, "include_rationale", true)
 
 	// If task_id provided, load task from database
 	if taskID != "" && taskDescription == "" {

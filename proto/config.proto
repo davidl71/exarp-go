@@ -84,6 +84,7 @@ message TasksConfig {
   string default_status = 1;
   string default_priority = 2;
   repeated string default_tags = 3;
+  string keybindings_json = 13;
   
   // Status workflow (map of status -> allowed next statuses)
   // Stored as JSON string for flexibility: {"Todo": ["In Progress"], ...}

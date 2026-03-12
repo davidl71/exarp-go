@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/davidl71/exarp-go/internal/cache"
@@ -537,12 +538,35 @@ func handleTaskWorkflow(ctx context.Context, args json.RawMessage) ([]framework.
 		})
 	}
 
+	action := cast.ToString(params["action"])
+	if action == "" {
+		action = "sync"
+	}
+
 	result, err := handleTaskWorkflowNative(ctx, params)
 	if err != nil {
 		return nil, err
 	}
 
+	if taskWorkflowActionMutates(action) {
+		MarkTaskResourcesChanged(ctx)
+	}
+
 	return result, nil
+}
+
+func taskWorkflowActionMutates(action string) bool {
+	switch strings.ToLower(strings.TrimSpace(action)) {
+	case "approve", "create", "update", "delete",
+		"cleanup", "clarify", "clarity", "fix_dates",
+		"fix_empty_descriptions", "fix_invalid_ids",
+		"link_planning", "request_approval", "sync_from_plan",
+		"sync_plan_status", "apply_approval_result", "run_with_ai",
+		"summarize":
+		return true
+	default:
+		return false
+	}
 }
 
 // handleTesting handles the testing tool.

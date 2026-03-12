@@ -210,10 +210,7 @@ func handleContextBatchNative(ctx context.Context, params map[string]interface{}
 		level = levelRaw
 	}
 
-	combine := true
-	if combineRaw, ok := params["combine"].(bool); ok {
-		combine = combineRaw
-	}
+	combine := ParamBool(params, "combine", true)
 
 	// Summarize each item using protobuf ContextItem (type-safe)
 	summaries := make([]map[string]interface{}, 0, len(contextItems))

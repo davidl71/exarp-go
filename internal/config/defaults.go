@@ -69,6 +69,7 @@ func GetDefaults() *FullConfig {
 			DefaultStatus:   "Todo",
 			DefaultPriority: "medium",
 			DefaultTags:     []string{},
+			Keybindings:     DefaultTaskKeybindings(),
 
 			// Status transitions
 			StatusWorkflow: map[string][]string{
@@ -277,5 +278,22 @@ func GetDefaults() *FullConfig {
 		Automations: AutomationsConfig{
 			// Will be implemented in Phase 5
 		},
+	}
+}
+
+// DefaultTaskKeybindings returns the built-in Bubble Tea TUI keybindings.
+func DefaultTaskKeybindings() map[string][]string {
+	return map[string][]string{
+		"quit":                {"q", "ctrl+c"},
+		"help":                {"?", "h"},
+		"refresh":             {"R"},
+		"toggle_auto_refresh": {"a"},
+		"search":              {"/"},
+		"create_task":         {"+"},
+		"bulk_status":         {"D"},
+		"status_done":         {"d"},
+		"status_in_progress":  {"i"},
+		"status_todo":         {"t"},
+		"status_review":       {"r"},
 	}
 }

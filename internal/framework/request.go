@@ -11,7 +11,7 @@ import (
 )
 
 // ApplyDefaults applies default values to a params map.
-// Defaults are only applied if the key is missing or has an empty string value.
+// Defaults are applied if the key is missing, has an empty string, or has a zero value (0, 0.0, false, empty array).
 func ApplyDefaults(params map[string]interface{}, defaults map[string]interface{}) {
 	if params == nil {
 		return
@@ -22,10 +22,43 @@ func ApplyDefaults(params map[string]interface{}, defaults map[string]interface{
 			params[key] = defaultValue
 			continue
 		}
+		// Handle empty string
 		if strValue, ok := existingValue.(string); ok && strValue == "" {
+			params[key] = defaultValue
+			continue
+		}
+		// Handle zero values: 0, 0.0, false, empty array
+		if isZeroValue(existingValue) {
 			params[key] = defaultValue
 		}
 	}
+}
+
+// isZeroValue returns true if the value is a Go zero value (0, 0.0, false, nil, empty slice).
+func isZeroValue(v interface{}) bool {
+	switch val := v.(type) {
+	case int:
+		return val == 0
+	case int8:
+		return val == 0
+	case int16:
+		return val == 0
+	case int32:
+		return val == 0
+	case int64:
+		return val == 0
+	case float32:
+		return val == 0
+	case float64:
+		return val == 0
+	case bool:
+		return !val
+	case []interface{}:
+		return len(val) == 0
+	case nil:
+		return true
+	}
+	return false
 }
 
 // ParseRequest parses a protobuf or JSON request from raw MCP args.

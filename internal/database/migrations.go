@@ -14,11 +14,6 @@ import (
 	"github.com/davidl71/exarp-go/internal/projectroot"
 )
 
-// RunMigrations runs all pending migrations using findProjectRoot() to locate migration files.
-func RunMigrations() error {
-	return RunMigrationsFromDir("")
-}
-
 // RunMigrationsFromDir runs all pending migrations.
 // If migrationsDir is non-empty, migration files are read from that directory.
 // Otherwise findProjectRoot() is used to find project root and migrations are read from <root>/migrations.

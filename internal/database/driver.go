@@ -134,16 +134,6 @@ func (r *DriverRegistry) Get(driverType DriverType) (Driver, error) {
 	return driver, nil
 }
 
-// List returns all registered driver types.
-func (r *DriverRegistry) List() []DriverType {
-	types := make([]DriverType, 0, len(r.drivers))
-	for t := range r.drivers {
-		types = append(types, t)
-	}
-
-	return types
-}
-
 // Global driver registry.
 var globalRegistry *DriverRegistry
 
@@ -165,9 +155,4 @@ func RegisterDriver(driver Driver) {
 // GetDriver retrieves a driver from the global registry.
 func GetDriver(driverType DriverType) (Driver, error) {
 	return globalRegistry.Get(driverType)
-}
-
-// ListDrivers returns all registered driver types.
-func ListDrivers() []DriverType {
-	return globalRegistry.List()
 }

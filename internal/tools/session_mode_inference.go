@@ -36,7 +36,7 @@ var lastInferenceTime time.Time
 // HandleInferSessionModeNative handles the infer_session_mode tool with native Go implementation
 // Exported for use by resources package.
 func HandleInferSessionModeNative(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
-	forceRecompute, _ := params["force_recompute"].(bool)
+	forceRecompute := ParamBool(params, "force_recompute", false)
 
 	// Check cache (within 2 minutes) unless forcing recompute
 	if !forceRecompute && lastInferenceCache != nil {

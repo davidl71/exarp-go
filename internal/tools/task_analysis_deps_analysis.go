@@ -286,10 +286,7 @@ func handleTaskAnalysisValidate(ctx context.Context, params map[string]interface
 		"missing_count": len(missing),
 	}
 
-	includeHierarchy := false
-	if h, ok := params["include_hierarchy"].(bool); ok {
-		includeHierarchy = h
-	}
+	includeHierarchy := ParamBool(params, "include_hierarchy", false)
 
 	if includeHierarchy && FMAvailable() {
 		hierResult, err := handleTaskAnalysisHierarchy(ctx, params)

@@ -138,3 +138,16 @@ func handleListResources(_ context.Context, _ json.RawMessage) ([]framework.Text
 
 	return []framework.TextContent{{Text: string(data)}}, nil
 }
+
+// ListTrackedResourceURIs returns a sorted list of the registered resource URIs.
+func ListTrackedResourceURIs() []string {
+	resourceRegistryMu.RLock()
+	defer resourceRegistryMu.RUnlock()
+
+	uris := make([]string, 0, len(resourceRegistry))
+	for _, entry := range resourceRegistry {
+		uris = append(uris, entry.URI)
+	}
+	sort.Strings(uris)
+	return uris
+}

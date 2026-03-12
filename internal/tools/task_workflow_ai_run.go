@@ -146,12 +146,8 @@ Respond with a concise, plain-text summary only. No JSON, no bullet points.`,
 		return nil, fmt.Errorf("summarize: empty response from %s backend", backend)
 	}
 
-	// Save summary as a comment
-	saveComment, _ := params["save_comment"].(bool)
-	if v, ok := params["save_comment"]; !ok {
-		_ = v
-		saveComment = true // default: save
-	}
+	// Save summary as a comment (default: save)
+	saveComment := ParamBool(params, "save_comment", true)
 
 	if saveComment {
 		commentContent := fmt.Sprintf("## AI Summary (%s)\n\n%s", backend, summaryText)

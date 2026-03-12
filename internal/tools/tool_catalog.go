@@ -4,6 +4,7 @@ package tools
 import (
 	"context"
 	"fmt"
+	"sort"
 
 	"github.com/davidl71/exarp-go/internal/framework"
 )
@@ -330,6 +331,17 @@ func GetToolCatalog() map[string]ToolCatalogEntry {
 			RecommendedModel: "claude-haiku",
 		},
 	}
+}
+
+// ListToolNames returns the alphabetically sorted tool IDs from the catalog.
+func ListToolNames() []string {
+	catalog := GetToolCatalog()
+	names := make([]string, 0, len(catalog))
+	for name := range catalog {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+	return names
 }
 
 // handleToolCatalogNative handles the tool_catalog tool with native Go implementation

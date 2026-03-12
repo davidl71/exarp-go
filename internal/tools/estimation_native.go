@@ -177,17 +177,14 @@ func handleEstimationEstimate(ctx context.Context, projectRoot string, params ma
 		priority = "medium"
 	}
 
-	useHistorical := true
-	if useHist, ok := params["use_historical"].(bool); ok {
-		useHistorical = useHist
-	}
+	useHistorical := ParamBool(params, "use_historical", true)
 
 	// local_ai_backend overrides: fm (Apple), mlx, ollama. When set, use that backend for LLM estimate.
 	backend, _ := params["local_ai_backend"].(string)
 	backend = strings.TrimSpace(strings.ToLower(backend))
 
 	useAppleFM := backend == "" || backend == "fm"
-	if useAFM, ok := params["use_apple_fm"].(bool); ok && backend == "" {
+	if useAFM := ParamBool(params, "use_apple_fm", true); backend == "" {
 		useAppleFM = useAFM
 	}
 

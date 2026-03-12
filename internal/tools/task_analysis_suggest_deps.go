@@ -232,7 +232,7 @@ func handleTaskAnalysisSuggestDependencies(ctx context.Context, params map[strin
 	suggestions := SuggestDependenciesFromContent(tasks)
 
 	// Optionally include hints from planning docs
-	includePlan, _ := params["include_planning_docs"].(bool)
+	includePlan := ParamBool(params, "include_planning_docs", false)
 	if includePlan {
 		projectRoot, err := GetProjectRootWithFallback()
 		if err != nil {

@@ -170,7 +170,7 @@ func runCursorAgentStep(projectRoot, prompt string) (output string, exitCode int
 // appendCursorAgentStepIfRequested runs the optional Cursor agent step and appends to results.
 // Uses params["use_cursor_agent"] and params["cursor_agent_prompt"]. No-op if use_cursor_agent is false or project root not found.
 func appendCursorAgentStepIfRequested(ctx context.Context, params map[string]interface{}, results map[string]interface{}, startTime time.Time) {
-	if useCursor, _ := params["use_cursor_agent"].(bool); !useCursor {
+	if !ParamBool(params, "use_cursor_agent", false) {
 		return
 	}
 

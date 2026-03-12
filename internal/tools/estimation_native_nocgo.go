@@ -44,10 +44,7 @@ func handleEstimationEstimateNoCGO(ctx context.Context, projectRoot string, para
 		priority = "medium"
 	}
 
-	useHistorical := true
-	if useHist, ok := params["use_historical"].(bool); ok {
-		useHistorical = useHist
-	}
+	useHistorical := ParamBool(params, "use_historical", true)
 
 	backend, _ := params["local_ai_backend"].(string)
 	backend = strings.TrimSpace(strings.ToLower(backend))

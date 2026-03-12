@@ -94,10 +94,7 @@ func handleContextSummarizeNative(ctx context.Context, params map[string]interfa
 		}
 	}
 
-	includeRaw := false
-	if includeRawRaw, ok := params["include_raw"].(bool); ok {
-		includeRaw = includeRawRaw
-	}
+	includeRaw := ParamBool(params, "include_raw", false)
 
 	toolType := ""
 	if toolTypeRaw, ok := params["tool_type"].(string); ok {

@@ -48,35 +48,6 @@ func GetAgentID() (string, error) {
 	return agentID, nil
 }
 
-// GetAgentIDSimple generates a simpler agent ID without PID
-// Format: {agent-type}-{hostname}
-// Use this if you want reusable agent IDs across process restarts.
-func GetAgentIDSimple() (string, error) {
-	agentType := os.Getenv("EXARP_AGENT")
-	if agentType == "" {
-		agentType = "general"
-	}
-
-	hostname, err := os.Hostname()
-	if err != nil {
-		hostname = os.Getenv("HOSTNAME")
-		if hostname == "" {
-			hostname = "unknown"
-		}
-	}
-
-	return fmt.Sprintf("%s-%s", agentType, hostname), nil
-}
-
-// GetAgentIDFromSession uses the session detection logic to get agent type
-// This requires access to the project root and session detection functions
-// For now, keeping it simple with environment variable detection.
-func GetAgentIDFromSession(projectRoot string) (string, error) {
-	// This would call detectAgentType() from session.go
-	// For now, use the simpler version
-	return GetAgentID()
-}
-
 // ParsePIDFromAgentID extracts the process ID from an agent ID string.
 // Agent ID format: {agent-type}-{hostname}-{pid}, e.g. "general-Davids-Mac-mini-12345".
 // Returns (pid, true) if the last segment is numeric, otherwise (0, false).
