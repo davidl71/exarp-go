@@ -3,7 +3,6 @@ package gosdk
 import (
 	"github.com/davidl71/mcp-go-core/pkg/mcp/framework"
 	"github.com/davidl71/mcp-go-core/pkg/mcp/logging"
-	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
 // AdapterOption configures a GoSDKAdapter
@@ -99,37 +98,45 @@ func WithHooks(hooks *framework.Hooks) AdapterOption {
 	}
 }
 
-// WithImplementationTitle sets a human-friendly title in the advertised MCP implementation.
-func WithImplementationTitle(title string) AdapterOption {
+// WithSamplingSupport enables MCP sampling support in the adapter.
+// When enabled, tools can access the client LLM via framework.SamplerFromContext.
+// This adds middleware that injects a Sampler into the context for each tool call.
+func WithSamplingSupport() AdapterOption {
 	return func(a *GoSDKAdapter) {
-		if a.impl != nil {
-			a.impl.Title = title
-		}
+		// Add middleware to inject sampler into context
+		a.middleware.AddToolMiddleware(func(next ToolHandlerFunc) ToolHandlerFunc {
+			return func(ctx context.Context, req *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+				// Get session (captured by adapter)
+				session := a.GetServerSession()
+				if session != nil {
+					sampler := NewServerSessionSampler(session)
+					ctx = framework.ContextWithSampler(ctx, sampler)
+				}
+				return next(ctx, req)
+			}
+		})
 	}
 }
 
-// WithServerCapabilities replaces the default server capabilities configuration.
-func WithServerCapabilities(capabilities *mcp.ServerCapabilities) AdapterOption {
+// WithRootsSupport enables MCP roots support in the adapter.
+// When enabled, tools can access client workspace roots via framework.RootsFromContext.
+// This adds middleware that injects Roots into the context for each tool call.
+func WithRootsSupport() AdapterOption {
 	return func(a *GoSDKAdapter) {
-		if a.serverOpts == nil {
-			a.serverOpts = &mcp.ServerOptions{}
-		}
-		a.serverOpts.Capabilities = capabilities
-	}
-}
-
-// WithServerExtension advertises a vendor-prefixed extension in server capabilities.
-func WithServerExtension(name string, settings map[string]any) AdapterOption {
-	return func(a *GoSDKAdapter) {
-		if name == "" {
-			return
-		}
-		if a.serverOpts == nil {
-			a.serverOpts = &mcp.ServerOptions{}
-		}
-		if a.serverOpts.Capabilities == nil {
-			a.serverOpts.Capabilities = &mcp.ServerCapabilities{}
-		}
-		a.serverOpts.Capabilities.AddExtension(name, settings)
+		// Add middleware to inject roots into context
+		a.middleware.AddToolMiddleware(func(next ToolHandlerFunc) ToolHandlerFunc {
+			return func(ctx context.Context, req *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+				// Get session (captured by adapter)
+				session := a.GetServerSession()
+				if session != nil {
+					rootsHandler := NewServerSessionRootsHandler(session)
+					roots := rootsHandler.GetRoots()
+					if roots != nil {
+						ctx = framework.ContextWithRoots(ctx, roots)
+					}
+				}
+				return next(ctx, req)
+			}
+		})
 	}
 }

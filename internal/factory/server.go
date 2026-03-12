@@ -132,18 +132,31 @@ func NewServer(frameworkType config.FrameworkType, name, version string, opts ..
 			gosdk.WithLogger(logger),
 			gosdk.WithImplementationTitle("exarp-go"),
 			gosdk.WithServerExtension("davidl71/exarp-go", map[string]any{
-				"projectRootContext": true,
-				"resourceTemplates":  true,
-				"toolFiltering":      true,
+				"projectRootContext":    true,
+				"resourceTemplates":     true,
+				"toolFiltering":         true,
+				"resourceSubscriptions": true,
+				"agentRunner":           true,
+				"fmPlanExecute":         true,
+				"sampling":              true, // MCP sampling support
+				"roots":                 true, // MCP roots support
 			}),
+			gosdk.WithCompletionHandler(newCompletionHandler()),
+			gosdk.WithResourceSubscriptionHandlers(resourceSubscribeHandler, resourceUnsubscribeHandler),
 			gosdk.WithMiddleware(toolRecoveryMiddleware),
 			gosdk.WithMiddleware(toolContextCacheMiddleware),
 			gosdk.WithMiddleware(toolLoggingMiddleware(logger)),
+			gosdk.WithSamplingSupport(),
+			gosdk.WithRootsSupport(),
 		}
 		if cfg.hooks != nil {
 			adapterOpts = append(adapterOpts, gosdk.WithMiddleware(toolHooksMiddleware(cfg.hooks)))
 		}
 		adapter := gosdk.NewGoSDKAdapter(name, version, adapterOpts...)
+
+		if notifier, ok := interface{}(adapter).(framework.ResourceUpdateNotifier); ok {
+			adapter.AddToolMiddleware(resourceUpdateMiddleware(notifier))
+		}
 		if cfg.toolFilter != nil {
 			return &filteredServer{MCPServer: adapter, filter: cfg.toolFilter}, nil
 		}
