@@ -207,15 +207,7 @@ func (state *tui3270State) updateTaskStatusForSelected(newStatus string) (go3270
 }
 
 func t3270Pad(s string, width int) string {
-	if len(s) >= width {
-		if width <= 3 {
-			return s[:width]
-		}
-
-		return s[:width-3] + "..."
-	}
-
-	return s + strings.Repeat(" ", width-len(s))
+	return fitWidth(s, width)
 }
 
 // validStatus returns a Validator that accepts known task statuses.

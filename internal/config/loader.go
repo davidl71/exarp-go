@@ -7,12 +7,10 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/davidl71/exarp-go/internal/projectroot"
 	configpb "github.com/davidl71/exarp-go/proto"
 	"google.golang.org/protobuf/proto"
-	"gopkg.in/yaml.v3"
 )
 
 // LoadConfig loads configuration from .exarp/config.pb only (protobuf mandatory).
@@ -33,32 +31,6 @@ func LoadConfig(projectRoot string) (*FullConfig, error) {
 
 	// No config file: use defaults
 	cfg := GetDefaults()
-	applyEnvOverrides(cfg)
-
-	if err := ValidateConfig(cfg); err != nil {
-		return nil, fmt.Errorf("config validation failed: %w", err)
-	}
-
-	return cfg, nil
-}
-
-// LoadConfigYAML loads configuration from .exarp/config.yaml only (for convert/import).
-// Use LoadConfig for normal runtime loading (protobuf mandatory).
-func LoadConfigYAML(projectRoot string) (*FullConfig, error) {
-	cfg := GetDefaults()
-	yamlPath := filepath.Join(projectRoot, ".exarp", "config.yaml")
-
-	data, err := os.ReadFile(yamlPath)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read config file %s: %w", yamlPath, err)
-	}
-
-	var fileConfig FullConfig
-	if err := yaml.Unmarshal(data, &fileConfig); err != nil {
-		return nil, fmt.Errorf("failed to parse config file %s: %w", yamlPath, err)
-	}
-
-	cfg = mergeConfig(cfg, &fileConfig)
 	applyEnvOverrides(cfg)
 
 	if err := ValidateConfig(cfg); err != nil {
@@ -145,19 +117,6 @@ func GetConfigFormat(projectRoot string) (string, error) {
 	}
 
 	return "none", nil
-}
-
-// detectConfigFormat detects the format of a config file based on its extension.
-func detectConfigFormat(configPath string) (string, error) {
-	ext := strings.ToLower(filepath.Ext(configPath))
-	switch ext {
-	case ".yaml", ".yml":
-		return "yaml", nil
-	case ".pb":
-		return "protobuf", nil
-	default:
-		return "", fmt.Errorf("unknown config file format: %s (expected .yaml, .yml, or .pb)", ext)
-	}
 }
 
 // mergeConfig merges fileConfig into defaults, with fileConfig taking precedence.
@@ -302,6 +261,10 @@ func mergeConfig(defaults, fileConfig *FullConfig) *FullConfig {
 
 	if fileConfig.Tasks.DefaultPriority != "" {
 		merged.Tasks.DefaultPriority = fileConfig.Tasks.DefaultPriority
+	}
+
+	if len(fileConfig.Tasks.Keybindings) > 0 {
+		merged.Tasks.Keybindings = cloneStringSliceMap(fileConfig.Tasks.Keybindings)
 	}
 
 	if len(fileConfig.Tasks.DefaultTags) > 0 {

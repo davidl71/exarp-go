@@ -37,6 +37,10 @@ func (m *model) clearTransientMessages() {
 }
 
 func truncatePad(s string, width int) string {
+	return fitWidth(s, width)
+}
+
+func fitWidth(s string, width int) string {
 	if width <= 0 {
 		return s
 	}

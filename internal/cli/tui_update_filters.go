@@ -9,8 +9,8 @@ import (
 // handleSortFilterKeys handles keys that change sort order, sort direction, search, or collapse.
 // Returns (model, cmd, true) when the key was handled.
 func (m model) handleSortFilterKeys(key string) (model, tea.Cmd, bool) {
-	switch key {
-	case "o":
+	switch {
+	case key == "o":
 		// Cycle sort order (id → status → priority → updated → hierarchy → id)
 		if m.mode == ModeTasks && len(m.tasks) > 0 {
 			switch m.sortOrder {
@@ -38,7 +38,7 @@ func (m model) handleSortFilterKeys(key string) (model, tea.Cmd, bool) {
 		}
 		return m, nil, true
 
-	case "O":
+	case key == "O":
 		// Toggle sort direction (asc ↔ desc)
 		if m.mode == ModeTasks && len(m.tasks) > 0 {
 			m.sortAsc = !m.sortAsc
@@ -50,14 +50,14 @@ func (m model) handleSortFilterKeys(key string) (model, tea.Cmd, bool) {
 		}
 		return m, nil, true
 
-	case "/":
+	case m.keyMatches(key, KeyActionSearch):
 		// Start search/filter (vim-style)
 		if m.mode == ModeTasks {
 			m.searchMode = true
 		}
 		return m, nil, true
 
-	case "n":
+	case key == "n":
 		// Next search match (vim-style)
 		if m.mode == ModeTasks && m.searchQuery != "" {
 			vis := m.visibleIndices()
@@ -67,7 +67,7 @@ func (m model) handleSortFilterKeys(key string) (model, tea.Cmd, bool) {
 		}
 		return m, nil, true
 
-	case "N":
+	case key == "N":
 		// Previous search match (vim-style)
 		if m.mode == ModeTasks && m.searchQuery != "" {
 			if m.cursor > 0 {
@@ -76,7 +76,7 @@ func (m model) handleSortFilterKeys(key string) (model, tea.Cmd, bool) {
 		}
 		return m, nil, true
 
-	case "v":
+	case key == "v":
 		// Toggle compact/spacious list density (inspired by omm)
 		if m.mode == ModeTasks {
 			m.spaciousMode = !m.spaciousMode
@@ -84,7 +84,7 @@ func (m model) handleSortFilterKeys(key string) (model, tea.Cmd, bool) {
 		}
 		return m, nil, true
 
-	case "f":
+	case key == "f":
 		// Cycle status filter (from 3270 PF9 pattern): Todo → In Progress → Review → Done → All
 		if m.mode == ModeTasks {
 			m.status = nextBubbleStatusFilter(m.status)
@@ -97,7 +97,7 @@ func (m model) handleSortFilterKeys(key string) (model, tea.Cmd, bool) {
 		}
 		return m, nil, true
 
-	case "tab", "\t":
+	case key == "tab" || key == "\t":
 		// In tasks mode: collapse/expand tree node under cursor (if it has children)
 		if m.mode == ModeTasks {
 			vis := m.visibleIndices()

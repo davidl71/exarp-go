@@ -10,6 +10,10 @@ import (
 	"strings"
 	"time"
 
+	"charm.land/bubbles/v2/list"
+	"charm.land/bubbles/v2/spinner"
+	"charm.land/bubbles/v2/table"
+	"charm.land/bubbles/v2/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/davidl71/exarp-go/internal/config"
 	"github.com/davidl71/exarp-go/internal/database"
@@ -20,6 +24,18 @@ import (
 )
 
 type model struct {
+	CoreState
+	ConfigViewState
+	ScorecardViewState
+	HandoffViewState
+	WavesViewState
+	TaskAnalysisViewState
+	JobsViewState
+	TaskDetailViewState
+	TaskListViewState
+}
+
+type CoreState struct {
 	tasks       []*database.Todo2Task
 	cursor      int
 	selected    map[int]struct{}
@@ -36,8 +52,12 @@ type model struct {
 	width  int
 	height int
 
+	// Current active view
+	mode string
+}
+
+type ConfigViewState struct {
 	// Config editing mode
-	mode              string // "tasks", "config", "scorecard", "handoffs", "waves", "jobs", or "configSection"
 	configSections    []configSection
 	configCursor      int
 	configData        *config.FullConfig
@@ -45,7 +65,9 @@ type model struct {
 	configSectionText string // overlay when Enter on a section
 	configSaveMessage string // after save: success or error line
 	configSaveSuccess bool
+}
 
+type ScorecardViewState struct {
 	// Scorecard view (project health)
 	scorecardText      string
 	scorecardRecs      []string // recommendations from scorecard
@@ -53,7 +75,9 @@ type model struct {
 	scorecardLoading   bool
 	scorecardErr       error
 	scorecardRunOutput string // last "run recommendation" output or error
+}
 
+type HandoffViewState struct {
 	// Handoffs view (session handoff notes)
 	handoffText        string
 	handoffLoading     bool
@@ -63,7 +87,9 @@ type model struct {
 	handoffSelected    map[int]struct{}
 	handoffDetailIndex int    // -1 = list, >= 0 = showing detail for that index
 	handoffActionMsg   string // result of close/approve action
+}
 
+type WavesViewState struct {
 	// Waves view (dependency-order waves from BacklogExecutionOrder)
 	waves           map[int][]string // level -> task IDs (computed when entering waves view)
 	waveDetailLevel int              // -1 = wave list (collapsed), >= 0 = viewing tasks for that wave level
@@ -74,7 +100,9 @@ type model struct {
 	waveUpdateMsg   string           // result message after update waves from plan (success or error)
 	queueEnabled    bool             // true when REDIS_ADDR is set (queue available)
 	queueEnqueueMsg string           // result message after enqueue wave (success or error)
+}
 
+type TaskAnalysisViewState struct {
 	// Task analysis view (run task_analysis tool and show result)
 	taskAnalysisText           string // result text
 	taskAnalysisLoading        bool
@@ -83,16 +111,22 @@ type model struct {
 	taskAnalysisReturnMode     string // "tasks" or "waves" when leaving view
 	taskAnalysisApproveLoading bool
 	taskAnalysisApproveMsg     string // "Saved to ..." or error after y=write waves
+}
 
+type JobsViewState struct {
 	// Background jobs view (child agent launches)
 	jobs            []BackgroundJob
 	jobsCursor      int
 	jobsDetailIndex int // -1 = list, >= 0 = showing detail for that job
+}
 
+type TaskDetailViewState struct {
 	// Task detail overlay (pressing 's' on a task)
 	taskDetailTask      *database.Todo2Task
 	taskDetailScrollTop int // scroll offset for long detail content
+}
 
+type TaskListViewState struct {
 	// Viewport: scroll offset for task list so only visible rows are rendered
 	viewportOffset int
 
@@ -125,6 +159,22 @@ type model struct {
 	// Bulk status update: when bulkStatusPrompt is true, showing status selection menu
 	bulkStatusPrompt bool
 	bulkStatusMsg    string // result message after bulk update
+
+	// Bubble list for task rendering (replaces custom narrow/medium/wide rendering)
+	taskList      list.Model
+	useBubbleList bool // toggle for bubble/list vs custom rendering
+
+	// Bubble table for sprintboard-style view
+	taskTable      table.Model
+	useBubbleTable bool // toggle for bubble/table vs custom rendering
+
+	// Bubble spinner for async operations
+	taskSpinner    spinner.Model
+	spinnerMessage string // message to display with spinner
+
+	// Command palette
+	commandPalette     textinput.Model
+	showCommandPalette bool
 }
 
 // initialModel creates the TUI model. initialWidth and initialHeight are optional;
@@ -154,47 +204,60 @@ func initialModel(server framework.MCPServer, status string, projectRoot, projec
 	}
 
 	return model{
-		tasks:              []*database.Todo2Task{},
-		cursor:             0,
-		selected:           make(map[int]struct{}),
-		status:             status,
-		server:             server,
-		loading:            true,
-		width:              width,
-		height:             height,
-		autoRefresh:        true, // Enable auto-refresh by default
-		lastUpdate:         time.Now(),
-		projectRoot:        projectRoot,
-		projectName:        projectName,
-		mode:               ModeTasks,
-		configSections:     sections,
-		configCursor:       0,
-		configData:         cfg,
-		configChanged:      false,
-		configSectionText:  "",
-		configSaveMessage:  "",
-		configSaveSuccess:  false,
-		scorecardLoading:   false,
-		taskDetailTask:     nil,
-		sortOrder:          SortByHierarchy,
-		sortAsc:            true,
-		searchQuery:        "",
-		searchMode:         false,
-		filteredIndices:    nil,
-		showHelp:           false,
-		childAgentMsg:      "",
-		handoffEntries:     nil,
-		handoffCursor:      0,
-		handoffSelected:    make(map[int]struct{}),
-		handoffDetailIndex: -1,
-		handoffActionMsg:   "",
-		waveDetailLevel:    -1,
-		waveCursor:         0,
-		queueEnabled:       queue.ConfigFromEnv().Enabled(),
-		jobs:               nil,
-		jobsCursor:         0,
-		jobsDetailIndex:    -1,
-		collapsedTaskIDs:   make(map[string]struct{}),
+		CoreState: CoreState{
+			tasks:       []*database.Todo2Task{},
+			cursor:      0,
+			selected:    make(map[int]struct{}),
+			status:      status,
+			server:      server,
+			loading:     true,
+			width:       width,
+			height:      height,
+			autoRefresh: true,
+			lastUpdate:  time.Now(),
+			projectRoot: projectRoot,
+			projectName: projectName,
+			mode:        ModeTasks,
+		},
+		ConfigViewState: ConfigViewState{
+			configSections:    sections,
+			configCursor:      0,
+			configData:        cfg,
+			configChanged:     false,
+			configSectionText: "",
+		},
+		ScorecardViewState: ScorecardViewState{
+			scorecardLoading: false,
+		},
+		HandoffViewState: HandoffViewState{
+			handoffEntries:     nil,
+			handoffCursor:      0,
+			handoffSelected:    make(map[int]struct{}),
+			handoffDetailIndex: -1,
+		},
+		WavesViewState: WavesViewState{
+			waveDetailLevel: -1,
+			waveCursor:      0,
+			queueEnabled:    queue.ConfigFromEnv().Enabled(),
+		},
+		TaskAnalysisViewState: TaskAnalysisViewState{},
+		JobsViewState: JobsViewState{
+			jobsCursor:      0,
+			jobsDetailIndex: -1,
+		},
+		TaskDetailViewState: TaskDetailViewState{},
+		TaskListViewState: TaskListViewState{
+			sortOrder:        SortByHierarchy,
+			sortAsc:          true,
+			collapsedTaskIDs: make(map[string]struct{}),
+			taskList:         list.New(nil, list.NewDefaultDelegate(), 0, 0),
+			useBubbleList:    false, // set to true to enable bubble/list rendering
+			taskTable:        table.New(table.WithColumns(defaultTableColumns), table.WithRows(nil)),
+			useBubbleTable:   false, // set to true to enable bubble/table rendering
+			taskSpinner:      spinner.New(spinner.WithSpinner(spinner.Dot), spinner.WithMessage("Loading...")),
+			spinnerMessage:   "",
+			commandPalette:   newCommandPalette(),
+		},
 	}
 }
 
@@ -216,8 +279,9 @@ func (m model) handoffSelectedIDs() []string {
 }
 
 func (m model) Init() tea.Cmd {
-	// Load tasks, start auto-refresh ticker, and get initial window size
-	return tea.Batch(loadTasks(m.server, m.status), tick(), tea.WindowSize())
+	// Load tasks, start auto-refresh ticker, get initial window size, and start spinner
+	m.taskSpinner, _ = m.taskSpinner.Update(spinner.TickMsg{})
+	return tea.Batch(loadTasks(m.server, m.status), tick(), tea.WindowSize(), m.taskSpinner.Tick())
 }
 
 func getProjectName(projectRoot string) string {
