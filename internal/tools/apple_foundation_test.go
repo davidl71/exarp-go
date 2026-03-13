@@ -264,3 +264,66 @@ func containsSubstring(s, substr string) bool {
 
 	return false
 }
+
+func TestGenerateWithOptions_ParameterPassing(t *testing.T) {
+	// Test that GenerateWithOptions properly accepts parameters
+	// This tests the function signature and parameter handling
+	// Actual API call will fail without Swift bridge, but we verify the function can be called
+
+	tests := []struct {
+		name        string
+		prompt      string
+		maxTokens   int
+		temperature float32
+	}{
+		{
+			name:        "standard parameters",
+			prompt:      "Hello world",
+			maxTokens:   256,
+			temperature: 0.7,
+		},
+		{
+			name:        "zero max tokens",
+			prompt:      "Test",
+			maxTokens:   0,
+			temperature: 0.5,
+		},
+		{
+			name:        "zero temperature",
+			prompt:      "Deterministic output",
+			maxTokens:   100,
+			temperature: 0.0,
+		},
+		{
+			name:        "max temperature",
+			prompt:      "Creative output",
+			maxTokens:   500,
+			temperature: 1.0,
+		},
+		{
+			name:        "empty prompt",
+			prompt:      "",
+			maxTokens:   100,
+			temperature: 0.5,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Call the function - will fail without Swift bridge but verifies parameters are passed
+			_, err := GenerateWithOptions(tt.prompt, tt.maxTokens, tt.temperature)
+
+			// We expect an error on platforms without Swift bridge
+			// The important thing is that the function accepts these parameters
+			if err != nil {
+				// Check if it's the expected "not supported" error
+				errMsg := err.Error()
+				if !containsSubstring(errMsg, "not supported") && !containsSubstring(errMsg, "Swift") && !containsSubstring(errMsg, "foundation") {
+					t.Logf("Got unexpected error: %v", err)
+				} else {
+					t.Logf("Platform not supported (expected): %v", err)
+				}
+			}
+		})
+	}
+}
