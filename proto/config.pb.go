@@ -29,6 +29,7 @@ type FullConfig struct {
 	Thresholds    *ThresholdsConfig      `protobuf:"bytes,3,opt,name=thresholds,proto3" json:"thresholds,omitempty"`
 	Tasks         *TasksConfig           `protobuf:"bytes,4,opt,name=tasks,proto3" json:"tasks,omitempty"`
 	Database      *DatabaseConfig        `protobuf:"bytes,5,opt,name=database,proto3" json:"database,omitempty"`
+	Cloud         *CloudConfig           `protobuf:"bytes,12,opt,name=cloud,proto3" json:"cloud,omitempty"`
 	Security      *SecurityConfig        `protobuf:"bytes,6,opt,name=security,proto3" json:"security,omitempty"`
 	Logging       *LoggingConfig         `protobuf:"bytes,7,opt,name=logging,proto3" json:"logging,omitempty"`
 	Tools         *ToolsConfig           `protobuf:"bytes,8,opt,name=tools,proto3" json:"tools,omitempty"`
@@ -100,6 +101,13 @@ func (x *FullConfig) GetTasks() *TasksConfig {
 func (x *FullConfig) GetDatabase() *DatabaseConfig {
 	if x != nil {
 		return x.Database
+	}
+	return nil
+}
+
+func (x *FullConfig) GetCloud() *CloudConfig {
+	if x != nil {
+		return x.Cloud
 	}
 	return nil
 }
@@ -789,6 +797,90 @@ func (x *DatabaseConfig) GetBackupRetentionDays() int32 {
 		return x.BackupRetentionDays
 	}
 	return 0
+}
+
+// CloudConfig contains cloud storage settings for TaskStore
+type CloudConfig struct {
+	state           protoimpl.MessageState `protogen:"open.v1"`
+	Enabled         bool                   `protobuf:"varint,1,opt,name=enabled,proto3" json:"enabled,omitempty"`
+	Provider        string                 `protobuf:"bytes,2,opt,name=provider,proto3" json:"provider,omitempty"`
+	ProjectID       string                 `protobuf:"bytes,3,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
+	Region          string                 `protobuf:"bytes,4,opt,name=region,proto3" json:"region,omitempty"`
+	CollectionName  string                 `protobuf:"bytes,5,opt,name=collection_name,json=collectionName,proto3" json:"collection_name,omitempty"`
+	CredentialsFile string                 `protobuf:"bytes,6,opt,name=credentials_file,json=credentialsFile,proto3" json:"credentials_file,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
+}
+
+func (x *CloudConfig) Reset() {
+	*x = CloudConfig{}
+	mi := &file_proto_config_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CloudConfig) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CloudConfig) ProtoMessage() {}
+
+func (x *CloudConfig) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_config_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (*CloudConfig) Descriptor() ([]byte, []int) {
+	return file_proto_config_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *CloudConfig) GetEnabled() bool {
+	if x != nil {
+		return x.Enabled
+	}
+	return false
+}
+
+func (x *CloudConfig) GetProvider() string {
+	if x != nil {
+		return x.Provider
+	}
+	return ""
+}
+
+func (x *CloudConfig) GetProjectID() string {
+	if x != nil {
+		return x.ProjectID
+	}
+	return ""
+}
+
+func (x *CloudConfig) GetRegion() string {
+	if x != nil {
+		return x.Region
+	}
+	return ""
+}
+
+func (x *CloudConfig) GetCollectionName() string {
+	if x != nil {
+		return x.CollectionName
+	}
+	return ""
+}
+
+func (x *CloudConfig) GetCredentialsFile() string {
+	if x != nil {
+		return x.CredentialsFile
+	}
+	return ""
 }
 
 // SecurityConfig contains security settings

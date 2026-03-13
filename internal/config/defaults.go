@@ -110,6 +110,14 @@ func GetDefaults() *FullConfig {
 			CheckpointInterval:  1000,
 			BackupRetentionDays: 30,
 		},
+		Cloud: CloudConfig{
+			Enabled:         false,
+			Provider:        "firestore",
+			ProjectID:       "",
+			Region:          "us-central1",
+			CollectionName:  "tasks",
+			CredentialsFile: "",
+		},
 		Security: SecurityConfig{
 			RateLimit: RateLimitConfig{
 				Enabled:           true,

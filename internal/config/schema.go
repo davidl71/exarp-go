@@ -12,6 +12,7 @@ type FullConfig struct {
 	Thresholds  ThresholdsConfig  `yaml:"thresholds"`
 	Tasks       TasksConfig       `yaml:"tasks"`
 	Database    DatabaseConfig    `yaml:"database"`
+	Cloud       CloudConfig       `yaml:"cloud"`
 	Security    SecurityConfig    `yaml:"security"`
 	Logging     LoggingConfig     `yaml:"logging"`
 	Tools       ToolsConfig       `yaml:"tools"`
@@ -122,6 +123,16 @@ type DatabaseConfig struct {
 	WALMode             bool          `yaml:"wal_mode"`
 	CheckpointInterval  int           `yaml:"checkpoint_interval"`
 	BackupRetentionDays int           `yaml:"backup_retention_days"`
+}
+
+// CloudConfig contains cloud storage settings for TaskStore.
+type CloudConfig struct {
+	Enabled         bool   `yaml:"enabled"`
+	Provider        string `yaml:"provider"` // "firestore", "dynamodb"
+	ProjectID       string `yaml:"project_id"`
+	Region          string `yaml:"region"`
+	CollectionName  string `yaml:"collection_name"`  // Firestore collection or DynamoDB table
+	CredentialsFile string `yaml:"credentials_file"` // Path to credentials JSON
 }
 
 // SecurityConfig contains security settings.

@@ -11,6 +11,7 @@ message FullConfig {
   ThresholdsConfig thresholds = 3;
   TasksConfig tasks = 4;
   DatabaseConfig database = 5;
+  CloudConfig cloud = 12;
   SecurityConfig security = 6;
   LoggingConfig logging = 7;
   ToolsConfig tools = 8;
@@ -122,6 +123,16 @@ message DatabaseConfig {
   bool wal_mode = 12;
   int32 checkpoint_interval = 13;
   int32 backup_retention_days = 14;
+}
+
+// CloudConfig contains cloud storage settings for TaskStore
+message CloudConfig {
+  bool enabled = 1;
+  string provider = 2;  // "firestore" or "dynamodb"
+  string project_id = 3;
+  string region = 4;
+  string collection_name = 5;
+  string credentials_file = 6;
 }
 
 // SecurityConfig contains security settings
