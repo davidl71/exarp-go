@@ -45,6 +45,11 @@ func runeKey(r rune) tea.KeyMsg {
 	return tea.KeyPressMsg(tea.Key{Code: r, Text: string(r)})
 }
 
+// spaceKey creates a tea.KeyPressMsg for space
+func spaceKey() tea.KeyMsg {
+	return tea.KeyPressMsg(tea.Key{Code: ' ', Text: " "})
+}
+
 // TestTUIInitialState tests the initial state of the TUI model.
 func TestTUIInitialState(t *testing.T) {
 	server := setupMockServer(t)
@@ -169,7 +174,7 @@ func TestTUIModeSwitching(t *testing.T) {
 	}
 }
 
-// TestTUISelection tests task selection with enter key.
+// TestTUISelection tests task selection with space key.
 func TestTUISelection(t *testing.T) {
 	server := setupMockServer(t)
 	m := initialModel(server, "", "/test", "test-project", 0, 0)
@@ -177,16 +182,16 @@ func TestTUISelection(t *testing.T) {
 	m.loading = false
 	m.cursor = 1
 
-	// Select task at cursor
-	updated, _ := m.Update(keyPress(tea.KeyEnter))
+	// Select task at cursor using space
+	updated, _ := m.Update(spaceKey())
 
 	updatedModel := updated.(model)
 	if _, ok := updatedModel.selected[1]; !ok {
 		t.Error("Expected task 1 to be selected")
 	}
 
-	// Deselect task
-	updated2, _ := updatedModel.Update(keyPress(tea.KeyEnter))
+	// Deselect task using space
+	updated2, _ := updatedModel.Update(spaceKey())
 
 	updatedModel2 := updated2.(model)
 	if _, ok := updatedModel2.selected[1]; ok {

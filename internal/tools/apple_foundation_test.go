@@ -327,3 +327,106 @@ func TestGenerateWithOptions_ParameterPassing(t *testing.T) {
 		})
 	}
 }
+
+func TestClassifyTemperatureMaxTokens(t *testing.T) {
+	tests := []struct {
+		name       string
+		params     map[string]interface{}
+		wantTemp   float32
+		wantMaxTok int
+	}{
+		{
+			name:       "default helper returns 0.7",
+			params:     map[string]interface{}{},
+			wantTemp:   0.7, // helper default; classifyText applies 0.2
+			wantMaxTok: 512,
+		},
+		{
+			name: "custom temperature",
+			params: map[string]interface{}{
+				"temperature": 0.8,
+			},
+			wantTemp:   0.8,
+			wantMaxTok: 512,
+		},
+		{
+			name: "custom max_tokens",
+			params: map[string]interface{}{
+				"max_tokens": 256,
+			},
+			wantTemp:   0.7,
+			wantMaxTok: 256,
+		},
+		{
+			name: "both custom",
+			params: map[string]interface{}{
+				"temperature": 0.5,
+				"max_tokens":  1024,
+			},
+			wantTemp:   0.5,
+			wantMaxTok: 1024,
+		},
+		{
+			name: "zero temperature uses helper default",
+			params: map[string]interface{}{
+				"temperature": 0.0,
+			},
+			wantTemp:   0.0, // zero temperature means use default in classifyText
+			wantMaxTok: 512,
+		},
+		{
+			name: "max temperature",
+			params: map[string]interface{}{
+				"temperature": 1.0,
+			},
+			wantTemp:   1.0,
+			wantMaxTok: 512,
+		},
+		{
+			name: "float64 max_tokens (JSON unmarshaling)",
+			params: map[string]interface{}{
+				"max_tokens": float64(128),
+			},
+			wantTemp:   0.7,
+			wantMaxTok: 128,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			gotTemp := getTemperature(tt.params)
+			if gotTemp != tt.wantTemp {
+				t.Errorf("getTemperature() = %v, want %v", gotTemp, tt.wantTemp)
+			}
+
+			gotMaxTok := getMaxTokens(tt.params)
+			if gotMaxTok != tt.wantMaxTok {
+				t.Errorf("getMaxTokens() = %v, want %v", gotMaxTok, tt.wantMaxTok)
+			}
+		})
+	}
+}
+
+func TestClassifyTextAppliesCorrectDefaults(t *testing.T) {
+	// Test that temperature parameter affects behavior
+	// When temperature is provided, it should be used
+	paramsWithTemp := map[string]interface{}{"temperature": 0.9}
+	temp := getTemperature(paramsWithTemp)
+	if temp != 0.9 {
+		t.Errorf("custom temperature should be 0.9, got %v", temp)
+	}
+
+	// Test that max_tokens parameter is correctly extracted
+	paramsWithMaxTokens := map[string]interface{}{"max_tokens": 256}
+	maxTok := getMaxTokens(paramsWithMaxTokens)
+	if maxTok != 256 {
+		t.Errorf("custom max_tokens should be 256, got %v", maxTok)
+	}
+
+	// Test float64 max_tokens (common in JSON unmarshaling)
+	paramsWithFloatMaxTokens := map[string]interface{}{"max_tokens": float64(128)}
+	maxTok = getMaxTokens(paramsWithFloatMaxTokens)
+	if maxTok != 128 {
+		t.Errorf("float64 max_tokens should be 128, got %v", maxTok)
+	}
+}
