@@ -425,6 +425,9 @@ func handleReport(ctx context.Context, args json.RawMessage) ([]framework.TextCo
 }
 
 // handleSecurity handles the security tool.
+//
+//nolint:dupl
+//golint:ignore // Intentional duplication - different actions make refactoring complex
 func handleSecurity(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
 	// Try protobuf first, fall back to JSON for backward compatibility
 	req, params, err := ParseSecurityRequest(args)
