@@ -289,6 +289,8 @@ exarp-go exposes rich information via MCP resources:
 
 | Resource URI | Content |
 |--------------|---------|
+| `stdio://config` | Current configuration values (JSON) |
+| `stdio://config/schema` | Configuration schema with fields/types |
 | `stdio://tools` | Full tool catalog with categories |
 | `stdio://tools/{category}` | Tools filtered by category |
 | `stdio://prompts` | All prompt names and descriptions |
@@ -305,7 +307,30 @@ exarp-go exposes rich information via MCP resources:
 
 ---
 
-## Common Workflows
+## Config CLI
+
+The CLI provides full config management with validation:
+
+```bash
+# View
+exarp-go config show              # Show all config
+exarp-go config get <key>        # Get specific value
+exarp-go config diff             # Compare vs defaults
+exarp-go config history          # Change history
+
+# Modify (with validation)
+exarp-go config set <key>=<value>   # Set (validated)
+exarp-go config reset <key>          # Reset to default
+exarp-go config template dev         # Apply template
+
+# Validate
+exarp-go config validate          # Validate config
+exarp-go config reload           # Reload and validate
+```
+
+**Validation**: Values are validated before setting (durations, floats 0-1, status, priority, log levels, booleans).
+
+**Templates**: `dev`, `prod`, `minimal`
 
 ### 1. Starting a Session
 ```json

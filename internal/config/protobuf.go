@@ -113,7 +113,8 @@ func ToProtobuf(cfg *FullConfig) (*configpb.FullConfig, error) {
 		cfg.Project.Root != "" || cfg.Project.Todo2Path != "" || cfg.Project.ExarpPath != "" ||
 		cfg.Project.Features.SQLiteEnabled || cfg.Project.Features.JSONFallback ||
 		len(cfg.Project.Features.MCPServers) > 0 ||
-		len(cfg.Project.SkipChecks) > 0 || len(cfg.Project.CustomTools) > 0 {
+		len(cfg.Project.SkipChecks) > 0 || len(cfg.Project.CustomTools) > 0 ||
+		len(cfg.Project.TaskDiscoveryIgnorePaths) > 0 {
 		pb.Project = projectToProtobuf(&cfg.Project)
 	}
 

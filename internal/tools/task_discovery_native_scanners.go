@@ -121,7 +121,7 @@ Return JSON only (no other text):
 
 // ─── scanPlanningDocs ───────────────────────────────────────────────────────
 // scanPlanningDocs scans markdown files for planning document structure and task/epic links.
-func scanPlanningDocs(ctx context.Context, projectRoot string, docPath string, useAppleFM bool) []map[string]interface{} {
+func scanPlanningDocs(ctx context.Context, projectRoot string, docPath string, ignorePaths []string, useAppleFM bool) []map[string]interface{} {
 	discoveries := []map[string]interface{}{}
 
 	searchPath := projectRoot
@@ -138,9 +138,7 @@ func scanPlanningDocs(ctx context.Context, projectRoot string, docPath string, u
 		}
 
 		if info.IsDir() {
-			if strings.Contains(path, ".git") || strings.Contains(path, "node_modules") ||
-				strings.Contains(path, "vendor") || strings.Contains(path, "dist") ||
-				strings.Contains(path, "build") || strings.Contains(path, "/archive/") {
+			if shouldSkipDiscoveryDir(projectRoot, path, ignorePaths) {
 				return filepath.SkipDir
 			}
 

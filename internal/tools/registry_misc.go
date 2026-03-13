@@ -161,6 +161,39 @@ func registerMiscTools(server framework.MCPServer) error {
 		return fmt.Errorf("failed to register infer_session_mode: %w", err)
 	}
 
+	// ask_client - uses MCP Sampling to request LLM generation from client
+	if err := server.RegisterTool(
+		"ask_client",
+		"[HINT: Use client LLM for analysis. Requests the MCP client to generate a response using its LLM via Sampling protocol.]",
+		framework.ToolSchema{
+			Type: "object",
+			Properties: map[string]interface{}{
+				"prompt": map[string]interface{}{
+					"type":        "string",
+					"description": "Prompt to send to the client LLM",
+				},
+				"system_prompt": map[string]interface{}{
+					"type":        "string",
+					"description": "Optional system prompt to guide the LLM",
+				},
+				"temperature": map[string]interface{}{
+					"type":        "number",
+					"description": "Sampling temperature (0.0-1.0)",
+					"default":     0.7,
+				},
+				"max_tokens": map[string]interface{}{
+					"type":        "integer",
+					"description": "Maximum tokens to generate",
+					"default":     512,
+				},
+			},
+			Required: []string{"prompt"},
+		},
+		handleAskClientWrapper,
+	); err != nil {
+		return fmt.Errorf("failed to register ask_client: %w", err)
+	}
+
 	if err := RegisterResourcesAsTools(server); err != nil {
 		return fmt.Errorf("failed to register resources-as-tools: %w", err)
 	}

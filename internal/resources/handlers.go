@@ -4,8 +4,11 @@
 package resources
 
 import (
+	"context"
+	"encoding/json"
 	"fmt"
 
+	"github.com/davidl71/exarp-go/internal/config"
 	"github.com/davidl71/exarp-go/internal/framework"
 	"github.com/davidl71/exarp-go/internal/tools"
 )
@@ -28,8 +31,179 @@ func registerTemplate(server framework.MCPServer, uriTemplate, name, description
 	return registrar.RegisterResourceTemplate(uriTemplate, name, description, mimeType, handler)
 }
 
+// handleConfig handles the stdio://config resource
+// Returns current configuration as JSON.
+func handleConfig(ctx context.Context, uri string) ([]byte, string, error) {
+	projectRoot, err := tools.FindProjectRoot()
+	if err != nil {
+		return nil, "", fmt.Errorf("failed to find project root: %w", err)
+	}
+
+	cfg, err := config.LoadConfig(projectRoot)
+	if err != nil {
+		return nil, "", fmt.Errorf("failed to load config: %w", err)
+	}
+
+	jsonData, err := json.MarshalIndent(cfg, "", "  ")
+	if err != nil {
+		return nil, "", err
+	}
+
+	return jsonData, "application/json", nil
+}
+
+// handleConfigSchema handles the stdio://config/schema resource
+// Returns available config fields and their types.
+func handleConfigSchema(ctx context.Context, uri string) ([]byte, string, error) {
+	schema := map[string]interface{}{
+		"version": map[string]string{
+			"type":        "string",
+			"description": "Config version",
+		},
+		"timeouts": map[string]interface{}{
+			"type": "object",
+			"fields": map[string]string{
+				"task_lock_lease":      "duration",
+				"task_lock_renewal":    "duration",
+				"stale_lock_threshold": "duration",
+				"tool_default":         "duration",
+				"tool_scorecard":       "duration",
+				"tool_linting":         "duration",
+				"tool_testing":         "duration",
+				"tool_report":          "duration",
+				"ollama_download":      "duration",
+				"ollama_generate":      "duration",
+				"http_client":          "duration",
+				"database_retry":       "duration",
+				"context_summarize":    "duration",
+				"context_budget":       "duration",
+			},
+		},
+		"thresholds": map[string]interface{}{
+			"type": "object",
+			"fields": map[string]string{
+				"similarity_threshold":   "float",
+				"min_coverage":           "int",
+				"min_task_confidence":    "float",
+				"min_test_confidence":    "float",
+				"min_description_length": "int",
+			},
+		},
+		"tasks": map[string]interface{}{
+			"type": "object",
+			"fields": map[string]string{
+				"default_status":   "string",
+				"default_priority": "string",
+			},
+		},
+		"project": map[string]interface{}{
+			"type": "object",
+			"fields": map[string]string{
+				"name":                        "string",
+				"type":                        "string",
+				"language":                    "string",
+				"root":                        "string",
+				"task_discovery_ignore_paths": "string[]",
+			},
+		},
+		"database": map[string]interface{}{
+			"type": "object",
+			"fields": map[string]string{
+				"sqlite_path":        "string",
+				"json_fallback_path": "string",
+				"backup_path":        "string",
+				"max_connections":    "int",
+				"connection_timeout": "duration",
+				"query_timeout":      "duration",
+				"retry_attempts":     "int",
+				"auto_vacuum":        "bool",
+				"wal_mode":           "bool",
+			},
+		},
+		"security": map[string]interface{}{
+			"type": "object",
+			"fields": map[string]string{
+				"rate_limit":      "object",
+				"path_validation": "object",
+				"file_limits":     "object",
+				"access_control":  "object",
+			},
+		},
+		"logging": map[string]interface{}{
+			"type": "object",
+			"fields": map[string]string{
+				"level":          "string",
+				"format":         "string",
+				"log_dir":        "string",
+				"log_file":       "string",
+				"color_output":   "bool",
+				"retention_days": "int",
+			},
+		},
+		"tools": map[string]interface{}{
+			"type": "object",
+			"fields": map[string]string{
+				"scorecard": "object",
+				"report":    "object",
+				"linting":   "object",
+				"testing":   "object",
+				"mlx":       "object",
+				"ollama":    "object",
+				"context":   "object",
+			},
+		},
+		"workflow": map[string]interface{}{
+			"type": "object",
+			"fields": map[string]string{
+				"default_mode":     "string",
+				"auto_detect_mode": "bool",
+			},
+		},
+		"memory": map[string]interface{}{
+			"type": "object",
+			"fields": map[string]string{
+				"storage_path":     "string",
+				"session_log_path": "string",
+				"retention_days":   "int",
+				"auto_cleanup":     "bool",
+				"max_memories":     "int",
+			},
+		},
+	}
+
+	jsonData, err := json.MarshalIndent(schema, "", "  ")
+	if err != nil {
+		return nil, "", err
+	}
+
+	return jsonData, "application/json", nil
+}
+
 // RegisterAllResources registers all resources with the server.
 func RegisterAllResources(server framework.MCPServer) error {
+	// Register config resources first
+	// stdio://config
+	if err := registerAndTrack(server,
+		"stdio://config",
+		"Current Configuration",
+		"Get current configuration values as JSON.",
+		"application/json",
+		handleConfig,
+	); err != nil {
+		return fmt.Errorf("failed to register config resource: %w", err)
+	}
+
+	// stdio://config/schema
+	if err := registerAndTrack(server,
+		"stdio://config/schema",
+		"Configuration Schema",
+		"Get configuration schema with available fields and their types.",
+		"application/json",
+		handleConfigSchema,
+	); err != nil {
+		return fmt.Errorf("failed to register config schema resource: %w", err)
+	}
+
 	// Register 23 resources (all native Go; no Python bridge)
 	// stdio://scorecard
 	if err := registerAndTrack(server,

@@ -161,7 +161,7 @@ exarp-go ships with an OpenCode plugin (`.opencode/plugins/exarp-go.ts`) that ad
 | **First-message injection** | `chat.message` | Prepends a compact task summary (marked `synthetic: true`) into the first user message of each session so the LLM has immediate task awareness. Skipped for sub-agents. |
 | **Sub-agent filtering** | `chat.message`, `system.transform` | Skips task injection for sub-agents (`mode === "subagent"`) and title generation (`mode === "title"`) to avoid noise and token waste. |
 | **Compaction context** | `experimental.session.compacting` | Injects current task state into compaction summaries so task context survives context resets. |
-| **Plugin tools** | `tool` | Registers `exarp_tasks`, `exarp_update_task`, `exarp_prime` — faster than MCP round-trips. |
+| **Plugin tools** | `tool` | Registers `exarp_tasks`, `exarp_update_task`, `exarp_prime`, `exarp_config` — faster than MCP round-trips. |
 | **TUI toasts** | `session.created`, `todo.updated` events + `client.tui.showToast` | Shows toast notifications for task counts on session start and cache refreshes on task changes. |
 | **Prompt auto-expand** | `tui.prompt.append` event + `client.tui.appendPrompt` | When the user pastes or types a task ID (T-xxxx) into the prompt, appends that task's details (status, priority, content) automatically. |
 | **Command cache sync** | `tui.command.execute` event | Invalidates task cache when `/tasks`, `/prime`, `/scorecard`, or `/health` commands run so results are fresh. |
@@ -172,15 +172,37 @@ exarp-go ships with an OpenCode plugin (`.opencode/plugins/exarp-go.ts`) that ad
 | **macOS notifications** | `session.idle` event | Sends a desktop notification when a session goes idle. |
 | **Slash commands** | `config` hook | Registers `/tasks`, `/prime`, `/scorecard`, `/health` commands. |
 
+### Plugin Installation
+
+The plugin is at `.opencode/plugins/exarp-go.ts`. OpenCode auto-loads local plugins.
+
+**For this project**: Already configured - just use OpenCode in this directory.
+
+**Global (all projects)**:
+```bash
+mkdir -p ~/.config/opencode/plugins
+cp .opencode/plugins/exarp-go.ts ~/.config/opencode/plugins/
+```
+
+**Publish to npm** (for distribution):
+```bash
+# Create separate repo with package.json
+npm publish
+# Users add to opencode.json:
+# "plugin": ["@yourorg/exarp-go-plugin"]
+```
+
 ### Plugin tools (faster than MCP)
 
-The plugin registers three tools directly in OpenCode, bypassing MCP for lower latency:
+The plugin registers five tools directly in OpenCode, bypassing MCP for lower latency:
 
 | Tool | Description |
 |------|-------------|
 | `exarp_tasks` | List tasks, optionally filtered by status (Todo, In Progress, Review, Done) |
 | `exarp_update_task` | Update a task's status (e.g. mark Done when work is complete) |
 | `exarp_prime` | Full session prime with tasks, hints, handoffs, and suggested actions |
+| `exarp_config` | Get/set config values (`action=get\|set\|show`, `key=...`, `value=...`) |
+| `exarp_followup` | Get/create follow-up task suggestions (`action=suggest\|create`) |
 
 These coexist with the MCP tools. Use plugin tools for quick task operations; use MCP tools (`task_workflow`, `report`, etc.) for advanced operations like create, delete, analysis, and reports.
 
@@ -192,6 +214,8 @@ These coexist with the MCP tools. Use plugin tools for quick task operations; us
 | `/prime` | Prime session with project context, hints, and handoffs |
 | `/scorecard` | Generate and display the project scorecard |
 | `/health` | Run project health checks (tools, docs) |
+| `/config` | Show exarp-go configuration |
+| `/followup` | Get follow-up task suggestions |
 
 ### Setup
 
@@ -202,6 +226,59 @@ If you want to use a custom exarp-go binary path, set `EXARP_GO_BINARY`:
 ```bash
 EXARP_GO_BINARY=/path/to/bin/exarp-go opencode
 ```
+
+### Events
+
+The plugin subscribes to various OpenCode events to maintain task awareness and sync state:
+
+#### Todo Events
+
+| Event | Action |
+|-------|--------|
+| `todo.updated` | Invalidates task cache when tasks change (create/update/delete) |
+
+#### Session Events
+
+| Event | Action |
+|-------|--------|
+| `session.created` | Injects task summary into first message |
+| `session.idle` | Sends macOS desktop notification |
+| `session.error` | Shows error toast with message |
+
+#### TUI Events
+
+| Event | Action |
+|-------|--------|
+| `tui.prompt.append` | Ready for follow-up injection |
+| `tui.command.execute` | Invalidates cache on slash commands |
+| `tui.toast.show` | Task change notifications |
+
+#### Tool Events
+
+| Event | Action |
+|-------|--------|
+| `tool.execute.after` | Appends in-progress task reminders to tool output |
+
+#### Message Events
+
+| Event | Action |
+|-------|--------|
+| `chat.message` (first message) | Injects compact task summary |
+| `experimental.chat.system.transform` | Injects full task state into system prompt |
+
+#### Shell Events
+
+| Event | Action |
+|-------|--------|
+| `shell.env` | Injects `PROJECT_ROOT` into all shell commands |
+
+#### Compaction Events
+
+| Event | Action |
+|-------|--------|
+| `experimental.session.compacting` | Injects task state into compaction context |
+
+---
 
 ### Plugin + MCP together
 
