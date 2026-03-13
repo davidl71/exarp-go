@@ -75,21 +75,23 @@ func callToolText(ctx context.Context, server framework.MCPServer, tool string, 
 }
 
 // listTasksViaMCP loads tasks through task_workflow sync/list.
-// When status is empty, loads both Todo and In Progress tasks (matching the old loadTasks behaviour).
+// When status is empty, loads ALL statuses (Todo, In Progress, Review, Done).
 func listTasksViaMCP(ctx context.Context, server framework.MCPServer, status string) ([]*database.Todo2Task, error) {
 	if status != "" {
 		return listTasksByStatusViaMCP(ctx, server, status)
 	}
 
-	todo, err := listTasksByStatusViaMCP(ctx, server, "Todo")
-	if err != nil {
-		return nil, err
+	// Load ALL statuses when status is empty (All filter)
+	allStatuses := []string{"Todo", "In Progress", "Review", "Done"}
+	var allTasks []*database.Todo2Task
+	for _, s := range allStatuses {
+		tasks, err := listTasksByStatusViaMCP(ctx, server, s)
+		if err != nil {
+			return nil, err
+		}
+		allTasks = append(allTasks, tasks...)
 	}
-	inProgress, err := listTasksByStatusViaMCP(ctx, server, "In Progress")
-	if err != nil {
-		return nil, err
-	}
-	return append(todo, inProgress...), nil
+	return allTasks, nil
 }
 
 func listTasksByStatusViaMCP(ctx context.Context, server framework.MCPServer, status string) ([]*database.Todo2Task, error) {

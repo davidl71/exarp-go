@@ -186,6 +186,8 @@ func (m model) viewHelp() string {
 	b.WriteString("\n  ")
 	b.WriteString(helpStyle.Render("v"))
 	b.WriteString("  Toggle compact/spacious list density\n  ")
+	b.WriteString(helpStyle.Render("*"))
+	b.WriteString("  Cycle spinner style (Dot/Line/MiniDot/Jump/Pulse/Points/Moon/Meter/Ellipsis)\n  ")
 	b.WriteString(helpStyle.Render("c"))
 	b.WriteString("  Switch to Config\n  ")
 	b.WriteString(helpStyle.Render("p"))
