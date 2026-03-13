@@ -17,22 +17,81 @@ Go-based MCP server. 37 tools (38 with Apple FM), 36 prompts, 24 resources. Prim
 
 Call `session` tool with `action=prime`, `include_hints=true`, `include_tasks=true` at the start of every session to get current task context, handoffs, and mode hints.
 
+## Quick reference — common agent operations
+
+These are the most frequent operations. Use CLI for terminal ops; use MCP tools when orchestrating via tool calls.
+
+### Prime session / get context
+```
+# MCP (preferred)
+session  action=prime  include_hints=true  include_tasks=true
+
+# CLI
+go run ./cmd/server session prime 2>/dev/null
+```
+
+### View backlog (Todo tasks)
+```
+# CLI
+go run ./cmd/server task list 2>/dev/null                          # top 17 Todo tasks
+go run ./cmd/server task list --status Todo 2>/dev/null            # same
+go run ./cmd/server task list --priority high 2>/dev/null          # high-priority only
+go run ./cmd/server task list --status "In Progress" 2>/dev/null   # active tasks
+
+# MCP — use action=list (NOT action=sync, which does a full SQLite↔JSON sync)
+task_workflow  action=list
+task_workflow  action=list  status=Todo
+task_workflow  action=list  priority=high
+task_workflow  action=list  status="In Progress"
+```
+
+### Show task detail
+```
+go run ./cmd/server task show T-xxx 2>/dev/null
+```
+
+### Create a task
+```
+# CLI — task name as first positional arg; flags come after
+go run ./cmd/server task create "Task name here" 2>/dev/null
+go run ./cmd/server task create "Task name here" --priority high 2>/dev/null
+go run ./cmd/server task create "Task name here" --priority medium --tags "tag1,tag2" 2>/dev/null
+
+# MCP
+task_workflow  action=create  name="Task name"  priority=high
+```
+
+### Update a task
+```
+go run ./cmd/server task update T-xxx --new-status "In Progress" 2>/dev/null
+go run ./cmd/server task update T-xxx --new-status Done 2>/dev/null
+go run ./cmd/server task update T-xxx --new-priority high 2>/dev/null
+go run ./cmd/server task update T-xxx --name "Corrected name" 2>/dev/null
+go run ./cmd/server task update T-xxx --description "More detail" 2>/dev/null
+
+# MCP
+task_workflow  action=update  task_id=T-xxx  new_status=Done
+```
+
+### Run AI on a task
+```
+go run ./cmd/server task run-with-ai T-xxx --backend ollama 2>/dev/null
+go run ./cmd/server task summarize T-xxx 2>/dev/null
+go run ./cmd/server task estimate "Task name" --local-ai-backend fm 2>/dev/null
+```
+
+> **Tip**: pipe through `2>/dev/null` in CLI commands to suppress log output in scripts.
+
 ## Task management (Todo2)
 
 **Prefer MCP tools over direct file edits. Never edit `.todo2/state.todo2.json` or `.todo2/todo2.db` directly.**
 
 ```
 # MCP tool (preferred)
-task_workflow  action=create|update|delete|summarize|run_with_ai|sync|clarify
+task_workflow  action=list|create|update|delete|summarize|run_with_ai|sync|clarify
 
-# CLI (for quick ops in terminal)
-go run ./cmd/server task list --status Todo
-go run ./cmd/server task create "Name" --priority high --local-ai-backend fm
-go run ./cmd/server task update T-xxx --new-status Done
-go run ./cmd/server task show T-xxx
-go run ./cmd/server task estimate "Task name" --local-ai-backend ollama
-go run ./cmd/server task summarize T-xxx [--local-ai-backend fm]
-go run ./cmd/server task run-with-ai T-xxx [--backend ollama] [--instruction "..."]
+# action=list   — read-only task listing (use this, not sync, for viewing tasks)
+# action=sync   — bidirectional SQLite↔JSON reconciliation (maintenance only)
 ```
 
 Task statuses: `Todo` → `In Progress` → `Review` → `Done`

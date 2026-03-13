@@ -21,7 +21,7 @@ func handleTaskWorkflowNative(ctx context.Context, params map[string]interface{}
 
 	action := ParamString(params, "action")
 	if action == "" {
-		action = "sync"
+		action = "list"
 	}
 
 	switch action {
@@ -29,6 +29,8 @@ func handleTaskWorkflowNative(ctx context.Context, params map[string]interface{}
 		return handleTaskWorkflowClarify(ctx, params)
 	case "approve":
 		return handleTaskWorkflowApprove(ctx, params)
+	case "list":
+		return handleTaskWorkflowList(ctx, params)
 	case "sync":
 		return handleTaskWorkflowSync(ctx, params)
 	case "fix_dates":

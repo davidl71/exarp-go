@@ -392,7 +392,7 @@ func getTasksSummaryFromTasks(tasks []Todo2Task) map[string]interface{} {
 	recentTasks := []map[string]interface{}{}
 
 	for i, task := range tasks {
-		if i >= 10 {
+		if i >= 5 {
 			break
 		}
 

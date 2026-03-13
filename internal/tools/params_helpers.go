@@ -2,6 +2,7 @@
 package tools
 
 import (
+	"fmt"
 	"path/filepath"
 	"strings"
 
@@ -35,6 +36,48 @@ func ParamBool(params map[string]interface{}, key string, defaultVal bool) bool 
 func HasKey(params map[string]interface{}, key string) bool {
 	_, exists := params[key]
 	return exists
+}
+
+// RequireParam returns params[key] as a trimmed string. Returns an error if the
+// key is missing or the value is empty after trimming.
+func RequireParam(params map[string]interface{}, key string) (string, error) {
+	v := strings.TrimSpace(cast.ToString(params[key]))
+	if v == "" {
+		return "", fmt.Errorf("missing required parameter %q", key)
+	}
+	return v, nil
+}
+
+// ParamEnum extracts params[key] as a trimmed string and validates it against
+// the provided set of valid values. Returns an error listing valid options when
+// the value is non-empty but not recognised. Returns defaultVal when the key is
+// absent or empty.
+func ParamEnum(params map[string]interface{}, key string, valid []string, defaultVal string) (string, error) {
+	v := strings.TrimSpace(cast.ToString(params[key]))
+	if v == "" {
+		return defaultVal, nil
+	}
+	for _, ok := range valid {
+		if strings.EqualFold(v, ok) {
+			return ok, nil
+		}
+	}
+	return "", fmt.Errorf("invalid value %q for %q: must be one of %s", v, key, strings.Join(valid, ", "))
+}
+
+// RequireEnum combines RequireParam and ParamEnum: the key must be present and
+// its value must be in the valid set.
+func RequireEnum(params map[string]interface{}, key string, valid []string) (string, error) {
+	v, err := RequireParam(params, key)
+	if err != nil {
+		return "", err
+	}
+	for _, ok := range valid {
+		if strings.EqualFold(v, ok) {
+			return ok, nil
+		}
+	}
+	return "", fmt.Errorf("invalid value %q for %q: must be one of %s", v, key, strings.Join(valid, ", "))
 }
 
 // DefaultReportOutputPath returns params["output_path"] if non-empty, else a default path under projectRoot.

@@ -226,7 +226,7 @@ func registerInfraTools(server framework.MCPServer) error {
 	// lint
 	if err := server.RegisterTool(
 		"lint",
-		"[HINT: action=run|analyze. Run linters or analyze results. Go: golangci-lint, go-vet, gofmt, goimports, deadcode. Markdown: markdownlint. Shell: shellcheck. C/C++: clang-tidy, cppcheck, clang-format. Python: ruff, flake8, pylint. Rust: clippy, rustfmt. PHP: phpcs, phpstan, php-cs-fixer. LaTeX: chktex, lacheck. linter=auto detects from file extension.]",
+		"[HINT: action=run|analyze. Multi-language linter. linter=auto detects from extension. Supports Go, Markdown, Shell, C/C++, Python, Rust, PHP, LaTeX.]",
 		framework.ToolSchema{
 			Type: "object",
 			Properties: map[string]interface{}{

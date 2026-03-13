@@ -151,13 +151,21 @@ func handleTaskWorkflowCreateSingle(ctx context.Context, params map[string]inter
 	}
 
 	status := config.DefaultTaskStatus()
-	if v, ok := params["status"]; ok && cast.ToString(v) != "" {
-		status = normalizeStatus(cast.ToString(v))
+	if rawStatus, err := ParamEnum(params, "status",
+		[]string{"Todo", "In Progress", "Review", "Done", "Blocked", "Cancelled"},
+		""); err != nil {
+		return nil, fmt.Errorf("create: %w", err)
+	} else if rawStatus != "" {
+		status = normalizeStatus(rawStatus)
 	}
 
 	priority := config.DefaultTaskPriority()
-	if v, ok := params["priority"]; ok && cast.ToString(v) != "" {
-		priority = normalizePriority(cast.ToString(v))
+	if rawPriority, err := ParamEnum(params, "priority",
+		[]string{"low", "medium", "high", "critical"},
+		""); err != nil {
+		return nil, fmt.Errorf("create: %w", err)
+	} else if rawPriority != "" {
+		priority = normalizePriority(rawPriority)
 	}
 
 	tags := config.DefaultTaskTags()

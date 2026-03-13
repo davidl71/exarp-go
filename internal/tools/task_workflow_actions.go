@@ -623,23 +623,19 @@ func handleTaskWorkflowDelete(ctx context.Context, params map[string]interface{}
 // handleTaskWorkflowAddComment adds a comment to a task (result, note, research_with_links, manualsetup).
 // Params: task_id (required), content (required), comment_type (optional, default "result").
 func handleTaskWorkflowAddComment(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
-	taskID := strings.TrimSpace(cast.ToString(params["task_id"]))
-	if taskID == "" {
-		return nil, fmt.Errorf("add_comment requires task_id")
+	taskID, err := RequireParam(params, "task_id")
+	if err != nil {
+		return nil, fmt.Errorf("add_comment: %w", err)
 	}
-	content := cast.ToString(params["content"])
-	if content == "" {
-		return nil, fmt.Errorf("add_comment requires content")
+	content, err := RequireParam(params, "content")
+	if err != nil {
+		return nil, fmt.Errorf("add_comment: %w", err)
 	}
-	commentType := strings.TrimSpace(strings.ToLower(cast.ToString(params["comment_type"])))
-	if commentType == "" {
-		commentType = models.CommentTypeResult
-	}
-	switch commentType {
-	case models.CommentTypeResult, models.CommentTypeNote, models.CommentTypeResearch, models.CommentTypeManual:
-		// valid
-	default:
-		return nil, fmt.Errorf("add_comment comment_type must be one of: result, note, research_with_links, manualsetup")
+	commentType, err := ParamEnum(params, "comment_type",
+		[]string{models.CommentTypeResult, models.CommentTypeNote, models.CommentTypeResearch, models.CommentTypeManual},
+		models.CommentTypeResult)
+	if err != nil {
+		return nil, fmt.Errorf("add_comment: %w", err)
 	}
 
 	store, err := getTaskStore(ctx)

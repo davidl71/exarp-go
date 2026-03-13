@@ -278,12 +278,22 @@ func handleTaskWorkflowUpdate(ctx context.Context, params map[string]interface{}
 		return nil, fmt.Errorf("failed to get task store: %w", err)
 	}
 
-	newStatus := cast.ToString(params["new_status"])
+	newStatus, err := ParamEnum(params, "new_status",
+		[]string{"Todo", "In Progress", "Review", "Done", "Blocked", "Cancelled"},
+		"")
+	if err != nil {
+		return nil, fmt.Errorf("update: %w", err)
+	}
 	if newStatus != "" {
 		newStatus = normalizeStatus(newStatus)
 	}
 
-	priority := cast.ToString(params["priority"])
+	priority, err := ParamEnum(params, "priority",
+		[]string{"low", "medium", "high", "critical"},
+		"")
+	if err != nil {
+		return nil, fmt.Errorf("update: %w", err)
+	}
 	if priority != "" {
 		priority = normalizePriority(priority)
 	}
@@ -638,7 +648,11 @@ func handleTaskWorkflowList(ctx context.Context, params map[string]interface{}) 
 				m["tags"] = t.Tags
 			}
 			if t.LongDescription != "" {
-				m["long_description"] = t.LongDescription
+				ld := t.LongDescription
+				if len(ld) > 120 {
+					ld = ld[:117] + "..."
+				}
+				m["long_description"] = ld
 			}
 			if len(t.Dependencies) > 0 {
 				m["dependencies"] = t.Dependencies
@@ -655,7 +669,8 @@ func handleTaskWorkflowList(ctx context.Context, params map[string]interface{}) 
 			if t.CompletedAt != "" {
 				m["completed_at"] = t.CompletedAt
 			}
-			if len(t.Metadata) > 0 {
+			includeMetadata := cast.ToBool(params["include_metadata"])
+			if includeMetadata && len(t.Metadata) > 0 {
 				m["metadata"] = t.Metadata
 			}
 			if rt := GetRecommendedTools(t.Metadata); len(rt) > 0 {
@@ -666,11 +681,15 @@ func handleTaskWorkflowList(ctx context.Context, params map[string]interface{}) 
 		}
 		out := map[string]interface{}{"success": true, "method": "list", "tasks": taskMaps}
 		AddTokenEstimateToResult(out)
-		compact := cast.ToBool(params["compact"])
+		// Default compact=true for MCP callers to reduce token overhead; pass compact=false to opt out
+		compact := true
+		if v, ok := params["compact"]; ok {
+			compact = cast.ToBool(v)
+		}
 		return FormatResultOptionalCompact(out, "", compact)
 	}
 	// Text format: column widths aligned with TUI (internal/cli/tui.go colIDMedium, colStatus, colPriority)
-	const colID = 18
+	const colID = 22
 
 	const colStatus = 12
 
@@ -711,7 +730,7 @@ func handleTaskWorkflowList(ctx context.Context, params map[string]interface{}) 
 	sb.WriteString(strings.Repeat("-", sepLen) + "\n")
 
 	for _, task := range filtered {
-		id := pad(truncate(task.ID, colID), colID)
+		id := pad(task.ID, colID)
 		status := pad(truncate(task.Status, colStatus), colStatus)
 		priority := pad(truncate(task.Priority, colPriority), colPriority)
 

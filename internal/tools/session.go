@@ -323,7 +323,7 @@ func handleSessionPrime(ctx context.Context, params map[string]interface{}) ([]f
 
 	var suggestedNext []map[string]interface{}
 	if includeTasks && tasksErr == nil {
-		suggestedNext = getSuggestedNextTasksFromTasks(tasks, 10)
+		suggestedNext = getSuggestedNextTasksFromTasks(tasks, 5)
 		if len(suggestedNext) > 0 {
 			if includeCliCommand {
 				if cmd := buildCursorCliSuggestion(suggestedNext[0]); cmd != "" {
@@ -364,7 +364,11 @@ func handleSessionPrime(ctx context.Context, params map[string]interface{}) ([]f
 	pb.StatusContext = statusContext
 
 	AddTokenEstimateToResult(result)
-	compact := cast.ToBool(params["compact"])
+	// Default compact=true for MCP callers to reduce token overhead; pass compact=false to opt out
+	compact := true
+	if v, ok := params["compact"]; ok {
+		compact = cast.ToBool(v)
+	}
 	return FormatResultOptionalCompact(result, "", compact)
 }
 

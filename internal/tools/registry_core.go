@@ -12,8 +12,8 @@ func registerCoreTools(server framework.MCPServer) error {
 	taskWorkflowProps := taskworkflowspec.AppendTaskFieldSchemaProperties(map[string]interface{}{
 		"action": map[string]interface{}{
 			"type":    "string",
-			"enum":    []string{"sync", "approve", "clarify", "clarity", "cleanup", "create", "delete", "add_comment", "enrich_tool_hints", "fix_dates", "fix_empty_descriptions", "fix_invalid_ids", "link_planning", "request_approval", "sync_approvals", "apply_approval_result", "sanity_check", "sync_from_plan", "sync_plan_status", "update", "summarize", "run_with_ai"},
-			"default": "sync",
+			"enum":    []string{"list", "create", "update", "delete", "add_comment", "summarize", "run_with_ai", "approve", "clarify", "clarity", "cleanup", "enrich_tool_hints", "fix_dates", "fix_empty_descriptions", "fix_invalid_ids", "link_planning", "request_approval", "sync_approvals", "apply_approval_result", "sanity_check", "sync", "sync_from_plan", "sync_plan_status"},
+			"default": "list",
 		},
 		"dry_run": map[string]interface{}{
 			"type":    "boolean",
@@ -142,7 +142,7 @@ func registerCoreTools(server framework.MCPServer) error {
 	// task_workflow
 	if err := server.RegisterTool(
 		"task_workflow",
-		"[HINT: action=sync|approve|create|update|delete|clarify|cleanup|summarize|run_with_ai|link_planning|add_comment. Task lifecycle management. Use for CRUD, batch status updates (approve+task_ids), AI summaries, add result/note comments. Prefer exarp-go task CLI for simple ops. Related: task_analysis, session.]",
+		"[HINT: action=list|create|update|delete|clarify|summarize|run_with_ai|approve|sync|cleanup|link_planning|add_comment. list supports status/priority/filter_tag/include_metadata. sync=SQLite↔JSON reconciliation, not for listing.]",
 		framework.ToolSchema{
 			Type:       "object",
 			Properties: taskWorkflowProps,
@@ -155,7 +155,7 @@ func registerCoreTools(server framework.MCPServer) error {
 	// task_discovery
 	if err := server.RegisterTool(
 		"task_discovery",
-		"[HINT: action=comments|markdown|orphans|git_json|planning_links|all. Discover tasks from code TODOs and docs. Use when scanning for undocumented work. create_tasks=true to auto-create. Use ignore_paths to exclude directories.]",
+		"[HINT: action=comments|markdown|orphans|git_json|planning_links|all. Discover tasks from code TODOs/docs. create_tasks=true to auto-create. ignore_paths to exclude dirs.]",
 		framework.ToolSchema{
 			Type: "object",
 			Properties: map[string]interface{}{
@@ -205,7 +205,7 @@ func registerCoreTools(server framework.MCPServer) error {
 	// task_analysis
 	if err := server.RegisterTool(
 		"task_analysis",
-		"[HINT: action=duplicates|tags|discover_tags|dependencies|execution_plan|complexity|conflicts|noise. Analyze task backlog. Use when planning sprints, detecting duplicates, or generating execution waves. Related: task_workflow.]",
+		"[HINT: action=duplicates|tags|discover_tags|dependencies|execution_plan|complexity|conflicts|noise. Analyze task backlog for sprint planning, dedup, and execution waves.]",
 		framework.ToolSchema{
 			Type: "object",
 			Properties: map[string]interface{}{
@@ -338,7 +338,7 @@ func registerCoreTools(server framework.MCPServer) error {
 	// session
 	if err := server.RegisterTool(
 		"session",
-		"[HINT: action=prime|handoff|prompts|assignee|restore. Session management. Call prime at start; handoff to save/resume context across sessions. Use restore to restore from point-in-time snapshot.]",
+		"[HINT: action=prime|handoff|prompts|assignee|restore. Call prime at session start; handoff to save/resume context; restore for point-in-time snapshots.]",
 		framework.ToolSchema{
 			Type: "object",
 			Properties: map[string]interface{}{
@@ -489,7 +489,7 @@ func registerCoreTools(server framework.MCPServer) error {
 	// report
 	if err := server.RegisterTool(
 		"report",
-		"[HINT: action=overview|scorecard|briefing|prd|plan. Project reports and plans. Use for project status, scorecard, or generating .plan.md files. Related: task_analysis.]",
+		"[HINT: action=overview|scorecard|briefing|prd|plan. Project reports, status, and .plan.md generation.]",
 		framework.ToolSchema{
 			Type: "object",
 			Properties: map[string]interface{}{
@@ -597,7 +597,7 @@ func registerCoreTools(server framework.MCPServer) error {
 	// health
 	if err := server.RegisterTool(
 		"health",
-		"[HINT: action=server|git|docs|dod|cicd|tools|ctags. Check project health and component status. Use when diagnosing issues or before releases. action=ctags reports if universal-ctags and tags file are present.]",
+		"[HINT: action=server|git|docs|dod|cicd|tools|ctags. Project health and component status checks.]",
 		framework.ToolSchema{
 			Type: "object",
 			Properties: map[string]interface{}{
