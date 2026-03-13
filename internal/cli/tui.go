@@ -23,6 +23,22 @@ import (
 	"golang.org/x/term"
 )
 
+// availableSpinners contains terminal-compatible spinner styles users can cycle through.
+// Only ASCII/Unicode box-drawing spinners are included for tmux compatibility.
+var availableSpinners = []struct {
+	name    string
+	spinner spinner.Spinner
+}{
+	{"Dot", spinner.Dot},
+	{"Line", spinner.Line},
+	{"MiniDot", spinner.MiniDot},
+	{"Jump", spinner.Jump},
+	{"Pulse", spinner.Pulse},
+	{"Points", spinner.Points},
+	{"Meter", spinner.Meter},
+	{"Ellipsis", spinner.Ellipsis},
+}
+
 type model struct {
 	CoreState
 	ConfigViewState
@@ -169,12 +185,17 @@ type TaskListViewState struct {
 	useBubbleTable bool // toggle for bubble/table vs custom rendering
 
 	// Bubble spinner for async operations
-	taskSpinner    spinner.Model
-	spinnerMessage string // message to display with spinner
+	taskSpinner       spinner.Model
+	spinnerMessage    string // message to display with spinner
+	spinnerStyleIndex int    // index into available spinner styles
 
 	// Command palette
 	commandPalette     textinput.Model
 	showCommandPalette bool
+
+	// Contextual help bubble: shows brief hints based on current context
+	contextualHelp     string // Current contextual help message
+	contextualHelpTime int64  // Timestamp when help was shown (for auto-hide)
 }
 
 // initialModel creates the TUI model. initialWidth and initialHeight are optional;
@@ -247,16 +268,17 @@ func initialModel(server framework.MCPServer, status string, projectRoot, projec
 		},
 		TaskDetailViewState: TaskDetailViewState{},
 		TaskListViewState: TaskListViewState{
-			sortOrder:        SortByHierarchy,
-			sortAsc:          true,
-			collapsedTaskIDs: make(map[string]struct{}),
-			taskList:         list.New(nil, list.NewDefaultDelegate(), 0, 0),
-			useBubbleList:    false, // set to true to enable bubble/list rendering
-			taskTable:        table.New(table.WithColumns(defaultTableColumns), table.WithRows(nil)),
-			useBubbleTable:   false, // set to true to enable bubble/table rendering
-			taskSpinner:      spinner.New(spinner.WithSpinner(spinner.Dot)),
-			spinnerMessage:   "",
-			commandPalette:   newCommandPalette(),
+			sortOrder:         SortByHierarchy,
+			sortAsc:           true,
+			collapsedTaskIDs:  make(map[string]struct{}),
+			taskList:          list.New(nil, list.NewDefaultDelegate(), 0, 0),
+			useBubbleList:     false, // set to true to enable bubble/list rendering
+			taskTable:         table.New(table.WithColumns(defaultTableColumns), table.WithRows(nil)),
+			useBubbleTable:    false,                                                          // set to true to enable bubble/table rendering
+			taskSpinner:       spinner.New(spinner.WithSpinner(availableSpinners[1].spinner)), // Line spinner by default
+			spinnerMessage:    "",
+			spinnerStyleIndex: 1, // Default to Line spinner
+			commandPalette:    newCommandPalette(),
 		},
 	}
 }
@@ -326,6 +348,9 @@ func getModuleName(projectRoot string) string {
 // stdout is a TTY; SIGWINCH (window resize) is handled by Bubble Tea and
 // updates the layout via tea.WindowSizeMsg.
 func RunTUI(server framework.MCPServer, status string) error {
+	// Suppress debug logs when running TUI (interactive UI shouldn't show logs)
+	CLIOutputOpts.Quiet = true
+
 	// Initialize database if needed (without closing it immediately)
 	projectRoot, err := tools.FindProjectRoot()
 	projectName := ""

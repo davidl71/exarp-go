@@ -7,6 +7,7 @@ import (
 	"time"
 
 	tea "charm.land/bubbletea/v2"
+	"github.com/davidl71/exarp-go/internal/database"
 	"github.com/davidl71/exarp-go/internal/tools"
 )
 
@@ -36,7 +37,16 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 
-		m.tasks = msg.tasks
+		// Deduplicate tasks by ID to prevent display issues
+		seen := make(map[string]bool)
+		uniqueTasks := make([]*database.Todo2Task, 0, len(msg.tasks))
+		for _, t := range msg.tasks {
+			if t != nil && !seen[t.ID] {
+				seen[t.ID] = true
+				uniqueTasks = append(uniqueTasks, t)
+			}
+		}
+		m.tasks = uniqueTasks
 		m.computeHierarchyOrder() // always compute so hierarchy depth/order available
 
 		if m.sortOrder == SortByHierarchy && len(m.hierarchyOrder) > 0 {
@@ -340,6 +350,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		// Clear transient feedback messages on any keypress so they don't persist
 		m.clearTransientMessages()
+
+		// Update contextual help based on current mode and state
+		m.updateContextualHelp()
 
 		// Try global keys first (quit, help, esc)
 		if newModel, cmd, handled := m.handleGlobalKeys(key); handled {

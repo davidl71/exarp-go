@@ -1,6 +1,10 @@
 package cli
 
-import tea "charm.land/bubbletea/v2"
+import (
+	"time"
+
+	tea "charm.land/bubbletea/v2"
+)
 
 func (m model) View() tea.View {
 	var v tea.View
@@ -35,6 +39,13 @@ func (m model) View() tea.View {
 		v.Cursor = nil
 	}
 
+	// Add contextual help bubble overlay at the bottom
+	helpBubble := m.viewContextualHelp()
+	if helpBubble != "" {
+		// Append help bubble to the bottom
+		v.Content += "\n" + helpBubble
+	}
+
 	return v
 }
 
@@ -67,4 +78,54 @@ func (m model) windowTitle() string {
 		title += " (Config Section)"
 	}
 	return title
+}
+
+// updateContextualHelp updates the contextual help message based on current mode and state.
+func (m *model) updateContextualHelp() {
+	var help string
+
+	switch m.mode {
+	case ModeTasks:
+		if m.searchMode {
+			help = "Type to filter, Enter to apply, Esc to cancel"
+		} else if len(m.selected) > 0 {
+			help = "Space to toggle selection, D to bulk update"
+		} else if m.cursor > 0 {
+			help = "j/k or arrows to navigate, Enter to view, Space to select"
+		} else {
+			help = "Press ? for help, / to search"
+		}
+	case ModeConfig:
+		help = "Arrow keys to navigate, Enter to edit, s to save, q to quit"
+	case ModeScorecard:
+		help = "r to refresh, p to return to tasks"
+	case ModeHandoffs:
+		help = "Enter to view, e to execute, d to delete, a to approve"
+	case ModeWaves:
+		help = "Enter to expand wave, o to reorder, r to refresh"
+	default:
+		help = ""
+	}
+
+	m.contextualHelp = help
+	m.contextualHelpTime = time.Now().Unix()
+}
+
+// viewContextualHelp returns a contextual help bubble if help text is set and recent.
+func (m model) viewContextualHelp() string {
+	if m.contextualHelp == "" {
+		return ""
+	}
+
+	// Auto-hide after 5 seconds
+	if time.Now().Unix()-m.contextualHelpTime > 5 {
+		return ""
+	}
+
+	// Only show if not in help mode and not loading
+	if m.showHelp || m.loading {
+		return ""
+	}
+
+	return softBorderStyle.Render(m.contextualHelp)
 }

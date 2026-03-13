@@ -18,6 +18,7 @@ const (
 	KeyActionStatusInProgress  = "status_in_progress"
 	KeyActionStatusTodo        = "status_todo"
 	KeyActionStatusReview      = "status_review"
+	KeyActionCycleSpinner      = "cycle_spinner"
 )
 
 func (m model) keyMatches(key, action string) bool {

@@ -67,6 +67,9 @@ func (state *tui3270State) popSession() *tui3270Session {
 
 // RunTUI3270 starts a 3270 TUI server.
 func RunTUI3270(server framework.MCPServer, status string, port int, daemon bool, pidFile string) error {
+	// Suppress debug logs when running TUI (interactive UI shouldn't show logs)
+	CLIOutputOpts.Quiet = true
+
 	// Daemonize if requested
 	if daemon {
 		return daemonize(pidFile, func() error {

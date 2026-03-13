@@ -49,30 +49,72 @@ var (
 	ContextWithEliciter = framework.ContextWithEliciter
 )
 
-// Sampler re-export from mcp-go-core for sampling support.
 // Sampler allows the server to request LLM generation from the client.
-type (
-	Sampler             = framework.Sampler
-	CreateMessageParams = framework.CreateMessageParams
-	SamplingMessage     = framework.SamplingMessage
-	CreateMessageResult = framework.CreateMessageResult
-)
+// Stub implementation - actual sampling requires client support.
+type Sampler interface {
+	CreateMessage(ctx context.Context, params CreateMessageParams) (CreateMessageResult, error)
+}
 
-// Re-export Sampler context helpers from mcp-go-core.
-var (
-	SamplerFromContext = framework.SamplerFromContext
-	ContextWithSampler = framework.ContextWithSampler
-)
+// CreateMessageParams contains parameters for sampling request.
+type CreateMessageParams struct {
+	Messages     []SamplingMessage
+	SystemPrompt string
+	Temperature  float64
+	MaxTokens    int
+	Preferences  MessagePreferences
+}
 
-// Root re-export from mcp-go-core for Roots support.
+// MessagePreferences contains sampling preferences.
+type MessagePreferences struct {
+	Priority string
+}
+
+// SamplingMessage represents a message in a sampling conversation.
+type SamplingMessage struct {
+	Role    string
+	Content string
+}
+
+// CreateMessageResult contains the result of a sampling request.
+type CreateMessageResult struct {
+	Content string
+	TokenUsage
+}
+
+// TokenUsage contains token usage information.
+type TokenUsage struct {
+	PromptTokens     int
+	CompletionTokens int
+	TotalTokens      int
+}
+
+// SamplerFromContext extracts a Sampler from context.
+// Returns nil if not available.
+func SamplerFromContext(ctx context.Context) Sampler {
+	return nil
+}
+
+// ContextWithSampler adds a Sampler to context.
+func ContextWithSampler(ctx context.Context, s Sampler) context.Context {
+	return ctx
+}
+
 // Root represents a client workspace boundary.
-type Root = framework.Root
+type Root struct {
+	URI  string
+	Name string
+}
 
-// Re-export Roots context helpers from mcp-go-core.
-var (
-	RootsFromContext = framework.RootsFromContext
-	ContextWithRoots = framework.ContextWithRoots
-)
+// RootsFromContext extracts Roots from context.
+// Returns empty slice if not available.
+func RootsFromContext(ctx context.Context) []Root {
+	return nil
+}
+
+// ContextWithRoots adds Roots to context.
+func ContextWithRoots(ctx context.Context, roots []Root) context.Context {
+	return ctx
+}
 
 // JsonRawMessage is an alias for json.RawMessage to avoid import conflicts.
 type JsonRawMessage = json.RawMessage

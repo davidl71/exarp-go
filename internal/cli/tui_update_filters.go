@@ -3,6 +3,7 @@
 package cli
 
 import (
+	"charm.land/bubbles/v2/spinner"
 	tea "charm.land/bubbletea/v2"
 )
 
@@ -82,6 +83,12 @@ func (m model) handleSortFilterKeys(key string) (model, tea.Cmd, bool) {
 			m.spaciousMode = !m.spaciousMode
 			m.ensureCursorVisible()
 		}
+		return m, nil, true
+
+	case key == "*":
+		// Cycle through spinner styles
+		m.spinnerStyleIndex = (m.spinnerStyleIndex + 1) % len(availableSpinners)
+		m.taskSpinner = spinner.New(spinner.WithSpinner(availableSpinners[m.spinnerStyleIndex].spinner))
 		return m, nil, true
 
 	case key == "f":
