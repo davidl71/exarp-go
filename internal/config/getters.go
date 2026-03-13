@@ -9,7 +9,6 @@ import (
 
 var (
 	globalConfig *FullConfig
-	configOnce   sync.Once
 	configMu     sync.RWMutex
 )
 

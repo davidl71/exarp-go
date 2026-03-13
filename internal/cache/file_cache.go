@@ -16,7 +16,6 @@ type cachedFile struct {
 // FileCache provides thread-safe file caching with mtime-based invalidation.
 type FileCache struct {
 	cache sync.Map
-	mu    sync.RWMutex
 }
 
 // NewFileCache creates a new file cache instance.
