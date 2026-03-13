@@ -34,6 +34,17 @@ issues:
   # Maximum count of issues with the same text
   max-same-issues: 3
 
+  # Exclude specific issues
+  exclude-rules:
+    - path: internal/tools/handlers\.go
+      linters:
+        - dupl
+      text: "lines are duplicate"
+    - path: internal/tools/handlers.go
+      linters:
+        - err113
+      text: "do not define dynamic errors"
+
 # Output configuration
 output:
   # Colored output
