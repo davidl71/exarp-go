@@ -118,6 +118,28 @@ func toolSemaphoreMiddleware(next gosdk.ToolHandlerFunc) gosdk.ToolHandlerFunc {
 	}
 }
 
+// toolAccessControlMiddleware checks access control before executing a tool.
+// Returns an error if the tool is not allowed.
+func toolAccessControlMiddleware(next gosdk.ToolHandlerFunc) gosdk.ToolHandlerFunc {
+	return func(ctx context.Context, req *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		toolName := ""
+		if req != nil && req.Params != nil {
+			toolName = req.Params.Name
+		}
+		if toolName != "" {
+			if err := security.CheckToolAccess(toolName); err != nil {
+				return &mcp.CallToolResult{
+					IsError: true,
+					Content: []mcp.Content{
+						&mcp.TextContent{Text: fmt.Sprintf("access denied: %v", err)},
+					},
+				}, nil
+			}
+		}
+		return next(ctx, req)
+	}
+}
+
 // toolHooksMiddleware runs before/after callbacks around each tool invocation.
 func toolHooksMiddleware(hooks *framework.Hooks) func(gosdk.ToolHandlerFunc) gosdk.ToolHandlerFunc {
 	return func(next gosdk.ToolHandlerFunc) gosdk.ToolHandlerFunc {
@@ -185,6 +207,7 @@ func NewServer(frameworkType config.FrameworkType, name, version string, opts ..
 			gosdk.WithMiddleware(toolRecoveryMiddleware),
 			gosdk.WithMiddleware(toolRateLimitMiddleware),
 			gosdk.WithMiddleware(toolSemaphoreMiddleware),
+			gosdk.WithMiddleware(toolAccessControlMiddleware),
 			gosdk.WithMiddleware(toolContextCacheMiddleware),
 			gosdk.WithMiddleware(toolLoggingMiddleware(logger)),
 			gosdk.WithSamplingSupport(),
