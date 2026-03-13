@@ -52,7 +52,12 @@ func handleTaskDiscoveryNative(ctx context.Context, params map[string]interface{
 
 	// Scan comments
 	if action == "comments" || action == "all" {
-		filePatterns := []string{"**/*.go", "**/*.py", "**/*.js", "**/*.ts"}
+		filePatterns := []string{
+			"**/*.go", "**/*.py", "**/*.js", "**/*.ts", "**/*.tsx", "**/*.jsx",
+			"**/*.rs", "**/*.java", "**/*.cpp", "**/*.c", "**/*.h", "**/*.hpp",
+			"**/*.toml",
+		}
+		ignorePaths := discoveryIgnorePathsForProject(projectRoot, params)
 
 		if patterns := cast.ToString(params["file_patterns"]); patterns != "" {
 			var parsed []string
@@ -66,15 +71,16 @@ func handleTaskDiscoveryNative(ctx context.Context, params map[string]interface{
 			includeFIXME = cast.ToBool(params["include_fixme"])
 		}
 
-		commentTasks := scanComments(ctx, projectRoot, filePatterns, includeFIXME, useAppleFM)
+		commentTasks := scanComments(ctx, projectRoot, filePatterns, ignorePaths, includeFIXME, useAppleFM)
 		discoveries = append(discoveries, commentTasks...)
 	}
 
 	// Scan markdown
 	if action == "markdown" || action == "all" {
 		docPath := cast.ToString(params["doc_path"])
+		ignorePaths := discoveryIgnorePathsForProject(projectRoot, params)
 
-		markdownTasks := scanMarkdown(projectRoot, docPath)
+		markdownTasks := scanMarkdown(projectRoot, docPath, ignorePaths)
 		discoveries = append(discoveries, markdownTasks...)
 	}
 
@@ -95,8 +101,9 @@ func handleTaskDiscoveryNative(ctx context.Context, params map[string]interface{
 	// Scan planning documents for task/epic links
 	if action == "planning_links" || action == "all" {
 		docPath := cast.ToString(params["doc_path"])
+		ignorePaths := discoveryIgnorePathsForProject(projectRoot, params)
 
-		planningLinks := scanPlanningDocs(ctx, projectRoot, docPath, useAppleFM)
+		planningLinks := scanPlanningDocs(ctx, projectRoot, docPath, ignorePaths, useAppleFM)
 		discoveries = append(discoveries, planningLinks...)
 	}
 
@@ -172,18 +179,23 @@ func handleTaskDiscoveryNative(ctx context.Context, params map[string]interface{
 
 // ─── scanComments ───────────────────────────────────────────────────────────
 // scanComments scans code files for TODO/FIXME comments.
-func scanComments(ctx context.Context, projectRoot string, patterns []string, includeFIXME bool, useAppleFM bool) []map[string]interface{} {
+func scanComments(ctx context.Context, projectRoot string, patterns []string, ignorePaths []string, includeFIXME bool, useAppleFM bool) []map[string]interface{} {
 	discoveries := []map[string]interface{}{}
 
 	// Build regex pattern
 	var todoPattern *regexp.Regexp
 	if includeFIXME {
-		todoPattern = regexp.MustCompile(`(?i)(?:#|//)\s*(TODO|FIXME)[\s:]+(.+)`)
+		todoPattern = regexp.MustCompile(`(?i)(?:#|//|/\*)\s*(TODO|FIXME|XXX|HACK|NOTE)(?:\([^)]+\))?[\s:]+(.+)`)
 	} else {
-		todoPattern = regexp.MustCompile(`(?i)(?:#|//)\s*TODO[\s:]+(.+)`)
+		todoPattern = regexp.MustCompile(`(?i)(?:#|//|/\*)\s*TODO(?:\([^)]+\))?[\s:]+(.+)`)
 	}
 
-	// Simple file walking (could be enhanced with glob support)
+	extMap := map[string]bool{
+		".go": true, ".py": true, ".js": true, ".ts": true, ".tsx": true, ".jsx": true,
+		".rs": true, ".java": true, ".cpp": true, ".c": true, ".h": true, ".hpp": true,
+		".toml": true,
+	}
+
 	err := filepath.Walk(projectRoot, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return nil
@@ -191,15 +203,7 @@ func scanComments(ctx context.Context, projectRoot string, patterns []string, in
 
 		// Skip directories and non-code files
 		if info.IsDir() {
-			// Skip common ignore directories: vendor, build outputs, archive, cache, third_party
-			if strings.Contains(path, ".git") || strings.Contains(path, "node_modules") ||
-				strings.Contains(path, "__pycache__") || strings.Contains(path, ".venv") ||
-				strings.Contains(path, "vendor") || strings.Contains(path, ".idea") ||
-				strings.Contains(path, ".vscode") || strings.Contains(path, "dist") ||
-				strings.Contains(path, "build") || strings.Contains(path, "target") ||
-				strings.Contains(path, "/archive/") || filepath.Base(path) == "bin" ||
-				strings.Contains(path, ".cache") || strings.Contains(path, "third_party") ||
-				strings.Contains(path, "mcp-servers") || strings.Contains(path, "native") {
+			if shouldSkipDiscoveryDir(projectRoot, path, ignorePaths) {
 				return filepath.SkipDir
 			}
 
@@ -211,10 +215,13 @@ func scanComments(ctx context.Context, projectRoot string, patterns []string, in
 		matched := false
 
 		for _, pattern := range patterns {
-			if strings.Contains(pattern, ext) || pattern == "**/*" {
+			if strings.Contains(pattern, ext) || pattern == "**/*" || strings.HasSuffix(pattern, ext) {
 				matched = true
 				break
 			}
+		}
+		if !matched && extMap[ext] {
+			matched = true
 		}
 
 		if !matched {
@@ -241,6 +248,12 @@ func scanComments(ctx context.Context, projectRoot string, patterns []string, in
 				} else if len(matches) > 1 {
 					taskText = strings.TrimSpace(matches[1])
 				}
+
+				taskText = strings.TrimPrefix(taskText, "//")
+				taskText = strings.TrimPrefix(taskText, "#")
+				taskText = strings.TrimPrefix(taskText, "/*")
+				taskText = strings.TrimSuffix(taskText, "*/")
+				taskText = strings.TrimSpace(taskText)
 
 				// Extract hashtag-style tags from the comment
 				tags, cleanText := extractTagsFromText(taskText)
@@ -304,7 +317,7 @@ func scanComments(ctx context.Context, projectRoot string, patterns []string, in
 
 // ─── scanMarkdown ───────────────────────────────────────────────────────────
 // scanMarkdown scans markdown files for task lists.
-func scanMarkdown(projectRoot string, docPath string) []map[string]interface{} {
+func scanMarkdown(projectRoot string, docPath string, ignorePaths []string) []map[string]interface{} {
 	discoveries := []map[string]interface{}{}
 
 	searchPath := projectRoot
@@ -320,8 +333,7 @@ func scanMarkdown(projectRoot string, docPath string) []map[string]interface{} {
 		}
 
 		if info.IsDir() {
-			if strings.Contains(path, ".git") || strings.Contains(path, "node_modules") ||
-				strings.Contains(path, "/archive/") {
+			if shouldSkipDiscoveryDir(projectRoot, path, ignorePaths) {
 				return filepath.SkipDir
 			}
 

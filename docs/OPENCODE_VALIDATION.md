@@ -197,6 +197,8 @@ exarp-go task list --quiet --json --concise
 
 | Resource | Purpose | Status |
 |----------|---------|--------|
+| `stdio://config` | Current configuration values | ✅ Available |
+| `stdio://config/schema` | Configuration schema with fields/types | ✅ Available |
 | `stdio://tools` | Full tool catalog | ✅ Available |
 | `stdio://tools/{category}` | Category-filtered tools | ✅ Available |
 | `stdio://prompts` | Prompt catalog | ✅ Available |
@@ -206,6 +208,55 @@ exarp-go task list --quiet --json --concise
 | `stdio://cursor/skills` | Skill catalog | ✅ Available |
 
 **Performance**: Resources are faster than tool calls (no process spawn)
+
+### Config CLI Commands
+
+The `config` subcommand provides comprehensive config management with validation:
+
+```bash
+# View config
+exarp-go config show              # Show all config as YAML
+exarp-go config show json         # Show as JSON
+exarp-go config get <key>        # Get specific value
+exarp-go config diff             # Compare current vs defaults
+exarp-go config history          # Show change history
+
+# Modify config (with validation)
+exarp-go config set <key>=<value>   # Set a value (validated)
+exarp-go config reset <key>          # Reset key to default
+exarp-go config reset all            # Reset all to defaults
+exarp-go config template dev         # Apply template (dev/prod/minimal)
+
+# Manage config file
+exarp-go config init              # Create default .exarp/config.pb
+exarp-go config validate          # Validate config
+exarp-go config reload           # Reload and validate
+exarp-go config export yaml      # Export to YAML
+exarp-go config convert yaml protobuf  # Convert formats
+```
+
+**Templates**: `dev` (verbose), `prod` (minimal), `minimal` (fast)
+
+### Config Validation
+
+Values are validated before setting:
+
+| Key Type | Validation |
+|----------|------------|
+| Durations | Must be valid format (`30m`, `1h`, `45s`) |
+| Floats (0-1) | `similarity_threshold`, `min_task_confidence` |
+| Integers | `min_coverage` (0-100), `min_description_length` (≥0) |
+| Status | `Todo`, `In Progress`, `Review`, `Done`, `Cancelled` |
+| Priority | `high`, `medium`, `low` |
+| Log Level | `debug`, `info`, `warn`, `error` |
+| Boolean | `true` or `false` |
+
+**Example**:
+```bash
+exarp-go config set thresholds.similarity_threshold=1.5
+# Error: validation failed: value must be between 0 and 1
+
+**Key paths**: `version`, `timeouts.<field>`, `thresholds.<field>`, `tasks.<field>`, `project.<field>`, `database.<field>`, `security.<field>`, `logging.<field>`, `tools.<field>`, `workflow.<field>`, `memory.<field>`
 
 ### 3. Action-Based Tool Design
 

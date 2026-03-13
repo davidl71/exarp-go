@@ -468,6 +468,25 @@ func handleTaskWorkflowUpdate(ctx context.Context, params map[string]interface{}
 		}
 	}
 
+	// Suggest follow-up tasks when task is completed (Done)
+	if newStatus == models.StatusDone && updatedCount > 0 {
+		for _, id := range updatedIDs {
+			task, err := store.GetTask(ctx, id)
+			if err != nil || task == nil {
+				continue
+			}
+
+			// Try to suggest follow-ups using LLM
+			suggestions, sugErr := SuggestFollowUps(ctx, task)
+			if sugErr == nil && len(suggestions) > 0 {
+				result["followup_suggestions"] = suggestions
+				result["followup_instructions"] = "Use task_workflow create action to create follow-up tasks from suggestions"
+				break // Only suggest for one task
+			}
+			break // Only check first task
+		}
+	}
+
 	return framework.FormatResult(result, "")
 }
 

@@ -109,6 +109,7 @@ This server hosts tools, prompts, and resources that are broken in FastMCP due t
 - **Workflow**: Mode settings, automation parameters
 - **Memory**: Memory management settings
 - **Project**: Project-specific settings
+  - Includes `project.task_discovery_ignore_paths` for repo-level discovery excludes
 
 For detailed configuration options, see:
 - **`docs/CONFIGURATION_REFERENCE.md`** — Full parameter reference and project-type examples

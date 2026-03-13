@@ -526,6 +526,26 @@ func mergeConfig(defaults, fileConfig *FullConfig) *FullConfig {
 	if fileConfig.Project.Root != "" {
 		merged.Project.Root = fileConfig.Project.Root
 	}
+	if fileConfig.Project.Todo2Path != "" {
+		merged.Project.Todo2Path = fileConfig.Project.Todo2Path
+	}
+	if fileConfig.Project.ExarpPath != "" {
+		merged.Project.ExarpPath = fileConfig.Project.ExarpPath
+	}
+	if len(fileConfig.Project.Features.MCPServers) > 0 {
+		merged.Project.Features.MCPServers = fileConfig.Project.Features.MCPServers
+	}
+	merged.Project.Features.SQLiteEnabled = fileConfig.Project.Features.SQLiteEnabled
+	merged.Project.Features.JSONFallback = fileConfig.Project.Features.JSONFallback
+	if len(fileConfig.Project.SkipChecks) > 0 {
+		merged.Project.SkipChecks = fileConfig.Project.SkipChecks
+	}
+	if len(fileConfig.Project.CustomTools) > 0 {
+		merged.Project.CustomTools = fileConfig.Project.CustomTools
+	}
+	if len(fileConfig.Project.TaskDiscoveryIgnorePaths) > 0 {
+		merged.Project.TaskDiscoveryIgnorePaths = fileConfig.Project.TaskDiscoveryIgnorePaths
+	}
 
 	return &merged
 }

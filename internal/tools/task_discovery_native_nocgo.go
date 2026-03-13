@@ -34,7 +34,12 @@ func handleTaskDiscoveryNative(ctx context.Context, params map[string]interface{
 
 	// Scan comments
 	if action == "comments" || action == "all" {
-		filePatterns := []string{"**/*.go", "**/*.py", "**/*.js", "**/*.ts", "**/*.rs", "**/*.java", "**/*.cpp", "**/*.c"}
+		filePatterns := []string{
+			"**/*.go", "**/*.py", "**/*.js", "**/*.ts", "**/*.tsx", "**/*.jsx",
+			"**/*.rs", "**/*.java", "**/*.cpp", "**/*.c", "**/*.h", "**/*.hpp",
+			"**/*.toml",
+		}
+		ignorePaths := discoveryIgnorePathsForProject(projectRoot, params)
 		if patterns := cast.ToString(params["file_patterns"]); patterns != "" {
 			var parsed []string
 			if err := json.Unmarshal([]byte(patterns), &parsed); err == nil {
@@ -45,14 +50,15 @@ func handleTaskDiscoveryNative(ctx context.Context, params map[string]interface{
 		if _, has := params["include_fixme"]; has {
 			includeFIXME = cast.ToBool(params["include_fixme"])
 		}
-		commentTasks := scanCommentsBasic(projectRoot, filePatterns, includeFIXME)
+		commentTasks := scanCommentsBasic(projectRoot, filePatterns, ignorePaths, includeFIXME)
 		discoveries = append(discoveries, commentTasks...)
 	}
 
 	// Scan markdown
 	if action == "markdown" || action == "all" {
 		docPath := cast.ToString(params["doc_path"])
-		markdownTasks := scanMarkdownBasic(projectRoot, docPath)
+		ignorePaths := discoveryIgnorePathsForProject(projectRoot, params)
+		markdownTasks := scanMarkdownBasic(projectRoot, docPath, ignorePaths)
 		discoveries = append(discoveries, markdownTasks...)
 	}
 
@@ -72,7 +78,8 @@ func handleTaskDiscoveryNative(ctx context.Context, params map[string]interface{
 	// Scan planning documents for task/epic links (regex-based fallback)
 	if action == "planning_links" || action == "all" {
 		docPath := cast.ToString(params["doc_path"])
-		planningLinks := scanPlanningDocsBasic(projectRoot, docPath)
+		ignorePaths := discoveryIgnorePathsForProject(projectRoot, params)
+		planningLinks := scanPlanningDocsBasic(projectRoot, docPath, ignorePaths)
 		discoveries = append(discoveries, planningLinks...)
 	}
 
@@ -141,21 +148,22 @@ func handleTaskDiscoveryNative(ctx context.Context, params map[string]interface{
 }
 
 // scanCommentsBasic scans code files for TODO/FIXME comments (basic version without AI enhancement)
-func scanCommentsBasic(projectRoot string, patterns []string, includeFIXME bool) []map[string]interface{} {
+func scanCommentsBasic(projectRoot string, patterns []string, ignorePaths []string, includeFIXME bool) []map[string]interface{} {
 	discoveries := []map[string]interface{}{}
 
 	// Build regex pattern
 	var todoPattern *regexp.Regexp
 	if includeFIXME {
-		todoPattern = regexp.MustCompile(`(?i)(?:#|//|/\*)\s*(TODO|FIXME|XXX|HACK|NOTE)[\s:]+(.+)`)
+		todoPattern = regexp.MustCompile(`(?i)(?:#|//|/\*)\s*(TODO|FIXME|XXX|HACK|NOTE)(?:\([^)]+\))?[\s:]+(.+)`)
 	} else {
-		todoPattern = regexp.MustCompile(`(?i)(?:#|//|/\*)\s*TODO[\s:]+(.+)`)
+		todoPattern = regexp.MustCompile(`(?i)(?:#|//|/\*)\s*TODO(?:\([^)]+\))?[\s:]+(.+)`)
 	}
 
 	// File extension mapping for pattern matching
 	extMap := map[string]bool{
 		".go": true, ".py": true, ".js": true, ".ts": true, ".tsx": true, ".jsx": true,
 		".rs": true, ".java": true, ".cpp": true, ".c": true, ".h": true, ".hpp": true,
+		".toml": true,
 	}
 
 	err := filepath.Walk(projectRoot, func(path string, info os.FileInfo, err error) error {
@@ -165,15 +173,7 @@ func scanCommentsBasic(projectRoot string, patterns []string, includeFIXME bool)
 
 		// Skip directories and non-code files
 		if info.IsDir() {
-			// Skip common ignore directories: vendor, build outputs, archive, cache, third_party
-			if strings.Contains(path, ".git") || strings.Contains(path, "node_modules") ||
-				strings.Contains(path, "__pycache__") || strings.Contains(path, ".venv") ||
-				strings.Contains(path, "vendor") || strings.Contains(path, ".idea") ||
-				strings.Contains(path, ".vscode") || strings.Contains(path, "dist") ||
-				strings.Contains(path, "build") || strings.Contains(path, "target") ||
-				strings.Contains(path, "/archive/") || filepath.Base(path) == "bin" ||
-				strings.Contains(path, ".cache") || strings.Contains(path, "third_party") ||
-				strings.Contains(path, "mcp-servers") || strings.Contains(path, "native") {
+			if shouldSkipDiscoveryDir(projectRoot, path, ignorePaths) {
 				return filepath.SkipDir
 			}
 			return nil
@@ -257,7 +257,7 @@ func scanCommentsBasic(projectRoot string, patterns []string, includeFIXME bool)
 }
 
 // scanMarkdownBasic scans markdown files for task lists (basic version)
-func scanMarkdownBasic(projectRoot string, docPath string) []map[string]interface{} {
+func scanMarkdownBasic(projectRoot string, docPath string, ignorePaths []string) []map[string]interface{} {
 	discoveries := []map[string]interface{}{}
 
 	searchPath := projectRoot
@@ -273,9 +273,7 @@ func scanMarkdownBasic(projectRoot string, docPath string) []map[string]interfac
 		}
 
 		if info.IsDir() {
-			if strings.Contains(path, ".git") || strings.Contains(path, "node_modules") ||
-				strings.Contains(path, "vendor") || strings.Contains(path, "dist") ||
-				strings.Contains(path, "build") || strings.Contains(path, "/archive/") {
+			if shouldSkipDiscoveryDir(projectRoot, path, ignorePaths) {
 				return filepath.SkipDir
 			}
 			return nil
@@ -321,7 +319,7 @@ func scanMarkdownBasic(projectRoot string, docPath string) []map[string]interfac
 }
 
 // scanPlanningDocsBasic scans markdown files for planning document structure and task/epic links (regex-based)
-func scanPlanningDocsBasic(projectRoot string, docPath string) []map[string]interface{} {
+func scanPlanningDocsBasic(projectRoot string, docPath string, ignorePaths []string) []map[string]interface{} {
 	discoveries := []map[string]interface{}{}
 
 	searchPath := projectRoot
@@ -338,9 +336,7 @@ func scanPlanningDocsBasic(projectRoot string, docPath string) []map[string]inte
 		}
 
 		if info.IsDir() {
-			if strings.Contains(path, ".git") || strings.Contains(path, "node_modules") ||
-				strings.Contains(path, "vendor") || strings.Contains(path, "dist") ||
-				strings.Contains(path, "build") || strings.Contains(path, "/archive/") {
+			if shouldSkipDiscoveryDir(projectRoot, path, ignorePaths) {
 				return filepath.SkipDir
 			}
 			return nil
