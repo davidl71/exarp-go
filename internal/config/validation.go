@@ -243,6 +243,19 @@ func validateTasks(tasks TasksConfig) error {
 
 // validateDatabase validates database configuration.
 func validateDatabase(db DatabaseConfig) error {
+	// Validate backend if specified
+	if db.Backend != "" {
+		validBackends := map[string]bool{
+			"sqlite":   true,
+			"mysql":    true,
+			"postgres": true,
+			"rqlite":   true,
+		}
+		if !validBackends[db.Backend] {
+			return fmt.Errorf("backend (%s) must be one of: sqlite, mysql, postgres, rqlite", db.Backend)
+		}
+	}
+
 	// SQLite path should not be empty if using SQLite
 	if db.SQLitePath == "" {
 		return fmt.Errorf("sqlite_path cannot be empty")

@@ -107,6 +107,7 @@ type TasksConfig struct {
 
 // DatabaseConfig contains database settings.
 type DatabaseConfig struct {
+	Backend             string        `yaml:"backend"`
 	SQLitePath          string        `yaml:"sqlite_path"`
 	JSONFallbackPath    string        `yaml:"json_fallback_path"`
 	BackupPath          string        `yaml:"backup_path"`
@@ -315,15 +316,16 @@ type SessionConfig struct {
 
 // ProjectConfig contains project-specific settings.
 type ProjectConfig struct {
-	Name        string         `yaml:"name"`
-	Type        string         `yaml:"type"`
-	Language    string         `yaml:"language"`
-	Root        string         `yaml:"root"`
-	Todo2Path   string         `yaml:"todo2_path"`
-	ExarpPath   string         `yaml:"exarp_path"`
-	Features    FeaturesConfig `yaml:"features"`
-	SkipChecks  []string       `yaml:"skip_checks"`
-	CustomTools []string       `yaml:"custom_tools"`
+	Name                     string         `yaml:"name"`
+	Type                     string         `yaml:"type"`
+	Language                 string         `yaml:"language"`
+	Root                     string         `yaml:"root"`
+	Todo2Path                string         `yaml:"todo2_path"`
+	ExarpPath                string         `yaml:"exarp_path"`
+	Features                 FeaturesConfig `yaml:"features"`
+	SkipChecks               []string       `yaml:"skip_checks"`
+	CustomTools              []string       `yaml:"custom_tools"`
+	TaskDiscoveryIgnorePaths []string       `yaml:"task_discovery_ignore_paths"`
 }
 
 // FeaturesConfig contains feature flags.

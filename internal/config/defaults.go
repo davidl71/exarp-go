@@ -94,6 +94,7 @@ func GetDefaults() *FullConfig {
 			AutoClarify:          false,
 		},
 		Database: DatabaseConfig{
+			Backend:             "sqlite",
 			SQLitePath:          ".todo2/todo2.db",
 			JSONFallbackPath:    ".todo2/state.todo2.json",
 			BackupPath:          ".todo2/backups",
@@ -272,8 +273,9 @@ func GetDefaults() *FullConfig {
 				JSONFallback:  true,
 				MCPServers:    []string{},
 			},
-			SkipChecks:  []string{},
-			CustomTools: []string{},
+			SkipChecks:               []string{},
+			CustomTools:              []string{},
+			TaskDiscoveryIgnorePaths: []string{},
 		},
 		Automations: AutomationsConfig{
 			// Will be implemented in Phase 5
