@@ -216,7 +216,8 @@ Values shown are defaults. Durations use Go format (e.g., `30m`, `60s`). Omitted
 | `security.file_limits.max_file_size` | int64 | `10485760` | Max file size |
 | `security.file_limits.max_files_per_operation` | int | `1000` | Max files per op |
 | `security.access_control.enabled` | bool | `false` | Enable access control |
-| `security.access_control.default_policy` | string | `"allow"` | Default policy |
+| `security.access_control.default_policy` | string | `"allow"` | Default policy (allow, deny) |
+| `security.access_control.restricted_tools` | []string | `[]` | Tools to restrict (requires default_policy: deny) |
 
 ---
 
