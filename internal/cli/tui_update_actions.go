@@ -11,7 +11,20 @@ import (
 // Returns (model, cmd, true) so the caller always gets a handled result when delegating to this.
 func (m model) handleActionKeys(key string, msg tea.KeyMsg) (model, tea.Cmd, bool) {
 	switch {
-	case key == "enter" || key == " " || key == "e" || key == "i":
+	case key == "enter":
+		// Enter goes into task detail
+		if m.mode == ModeTasks {
+			vis := m.visibleIndices()
+			if len(vis) > 0 && m.cursor < len(vis) {
+				m.transitionTo(ModeTaskDetail)
+				m.taskDetailTask = m.tasks[m.realIndexAt(m.cursor)]
+				m.taskDetailScrollTop = 0
+				return m, nil, true
+			}
+		}
+		return m, nil, true
+
+	case key == " " || key == "space": // Space toggles task selection in tasks mode
 		// In handoffs: "i" = start interactive agent with handoff (do not close)
 		if m.mode == ModeHandoffs && msg.String() == "i" && len(m.handoffEntries) > 0 {
 			var h map[string]interface{}
@@ -98,7 +111,7 @@ func (m model) handleActionKeys(key string, msg tea.KeyMsg) (model, tea.Cmd, boo
 			return m, nil, true
 		}
 		if m.mode == ModeHandoffs && m.handoffDetailIndex < 0 && len(m.handoffEntries) > 0 {
-			if msg.String() == " " {
+			if msg.String() == " " || msg.String() == "space" {
 				if _, ok := m.handoffSelected[m.handoffCursor]; ok {
 					delete(m.handoffSelected, m.handoffCursor)
 				} else {
@@ -212,22 +225,14 @@ func (m model) handleActionKeys(key string, msg tea.KeyMsg) (model, tea.Cmd, boo
 			return m, nil, true
 		}
 		switch m.mode {
-		case ModeTasks:
-			vis := m.visibleIndices()
-			if len(vis) > 0 && m.cursor < len(vis) {
-				m.transitionTo(ModeTaskDetail)
-				m.taskDetailTask = m.tasks[m.realIndexAt(m.cursor)]
-				m.taskDetailScrollTop = 0
-				return m, nil, true
-			}
 		case ModeTaskDetail:
+			// s exits task detail back to task list
 			m.transitionTo(ModeTasks)
 			m.taskDetailTask = nil
 			return m, nil, true
 		default:
 			return m, saveConfig(m.projectRoot, m.configData), true
 		}
-		return m, nil, true
 
 	case m.keyMatches(key, KeyActionRefresh):
 		if m.mode == ModeWaves {
