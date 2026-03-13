@@ -44,9 +44,12 @@ func TestHandleAskClient_NoSampler(t *testing.T) {
 func TestHandleAskClient_Success(t *testing.T) {
 	ctx := framework.ContextWithSampler(context.Background(), &mockSampler{
 		result: framework.CreateMessageResult{
-			Content:    "Hello from client LLM",
-			Model:      "claude-3",
-			StopReason: "end_turn",
+			Content: "Hello from client LLM",
+			TokenUsage: framework.TokenUsage{
+				PromptTokens:     10,
+				CompletionTokens: 5,
+				TotalTokens:      15,
+			},
 		},
 	})
 	params := map[string]interface{}{

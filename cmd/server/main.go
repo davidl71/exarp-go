@@ -54,12 +54,12 @@ func main() {
 	}
 
 	if hasMCPHTTP {
-		mcpHttpFs := flag.NewFlagSet("", flag.ContinueOnError)
-		mcpHttpAddr := mcpHttpFs.String("mcp-http", "", "Listen address for MCP Streamable HTTP (e.g. :8081)")
-		_ = mcpHttpFs.Parse(os.Args[1:])
+		mcpHTTPFs := flag.NewFlagSet("", flag.ContinueOnError)
+		mcpHTTPAddr := mcpHTTPFs.String("mcp-http", "", "Listen address for MCP Streamable HTTP (e.g. :8081)")
+		_ = mcpHTTPFs.Parse(os.Args[1:])
 
-		if *mcpHttpAddr != "" {
-			runMCPHTTPMode(*mcpHttpAddr)
+		if *mcpHTTPAddr != "" {
+			runMCPHTTPMode(*mcpHTTPAddr)
 			return
 		}
 	}

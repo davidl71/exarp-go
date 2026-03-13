@@ -14,7 +14,7 @@ import (
 
 // LangHealth holds per-language health check results and score.
 type LangHealth struct {
-	Lang            string   `json:"lang"`              // "cpp", "python", "rust", "go", "typescript", "swift"
+	Lang            string   `json:"lang"`                // "cpp", "python", "rust", "go", "typescript", "swift"
 	LangRoot        string   `json:"lang_root,omitempty"` // subdir where detected, e.g. "native", "agents/go"
 	Detected        bool     `json:"detected"`
 	BuildPasses     bool     `json:"build_passes"`

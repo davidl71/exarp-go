@@ -1,4 +1,4 @@
-// path.go — File path validation and sanitization (delegates to mcp-go-core).
+// Package security provides file path validation and sanitization.
 package security
 
 import (

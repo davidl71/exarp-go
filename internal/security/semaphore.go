@@ -1,4 +1,4 @@
-// semaphore.go — Semaphore-based concurrency limiting for tool execution.
+// Package security provides semaphore-based concurrency limiting for tool execution.
 package security
 
 import (

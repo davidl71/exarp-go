@@ -20,9 +20,9 @@ import (
 // Prompts = 36 (19 original + 16 migrated from Python + 1 tractatus_decompose)
 // Resources = 24 (scorecard, memories, prompts, session/mode, session/status, server/status, models, cursor/skills, tools, tasks).
 const (
-	EXPECTED_TOOLS     = 37 // Base tools (38 with conditional Apple Foundation Models on darwin/arm64/cgo)
-	EXPECTED_PROMPTS   = 36
-	EXPECTED_RESOURCES = 24
+	ExpectedTools     = 37 // Base tools (38 with conditional Apple Foundation Models on darwin/arm64/cgo)
+	ExpectedPrompts   = 36
+	ExpectedResources = 24
 )
 
 // Counting wrapper to track registrations.
@@ -98,32 +98,32 @@ func main() {
 
 	// Tools (allow +1 for conditional Apple Foundation Models tool)
 	toolCount := server.toolCount
-	toolMatch := toolCount == EXPECTED_TOOLS || toolCount == EXPECTED_TOOLS+1
+	toolMatch := toolCount == ExpectedTools || toolCount == ExpectedTools+1
 
 	if toolMatch {
-		fmt.Printf("✅ Tools: %d/%d (or %d with Apple FM)\n", toolCount, EXPECTED_TOOLS, EXPECTED_TOOLS+1)
+		fmt.Printf("✅ Tools: %d/%d (or %d with Apple FM)\n", toolCount, ExpectedTools, ExpectedTools+1)
 	} else {
-		fmt.Printf("❌ Tools: %d/%d (MISMATCH)\n", toolCount, EXPECTED_TOOLS)
+		fmt.Printf("❌ Tools: %d/%d (MISMATCH)\n", toolCount, ExpectedTools)
 	}
 
 	// Prompts
 	promptCount := server.promptCount
-	promptMatch := promptCount == EXPECTED_PROMPTS
+	promptMatch := promptCount == ExpectedPrompts
 
 	if promptMatch {
-		fmt.Printf("✅ Prompts: %d/%d\n", promptCount, EXPECTED_PROMPTS)
+		fmt.Printf("✅ Prompts: %d/%d\n", promptCount, ExpectedPrompts)
 	} else {
-		fmt.Printf("❌ Prompts: %d/%d (MISMATCH)\n", promptCount, EXPECTED_PROMPTS)
+		fmt.Printf("❌ Prompts: %d/%d (MISMATCH)\n", promptCount, ExpectedPrompts)
 	}
 
 	// Resources
 	resourceCount := server.resourceCount
-	resourceMatch := resourceCount == EXPECTED_RESOURCES
+	resourceMatch := resourceCount == ExpectedResources
 
 	if resourceMatch {
-		fmt.Printf("✅ Resources: %d/%d\n", resourceCount, EXPECTED_RESOURCES)
+		fmt.Printf("✅ Resources: %d/%d\n", resourceCount, ExpectedResources)
 	} else {
-		fmt.Printf("❌ Resources: %d/%d (MISMATCH)\n", resourceCount, EXPECTED_RESOURCES)
+		fmt.Printf("❌ Resources: %d/%d (MISMATCH)\n", resourceCount, ExpectedResources)
 	}
 
 	// Summary
@@ -134,25 +134,24 @@ func main() {
 		fmt.Println()
 		fmt.Printf("Summary: %d tools, %d prompts, %d resources\n", toolCount, promptCount, resourceCount)
 		os.Exit(0)
-	} else {
-		fmt.Println("❌ Count mismatches detected!")
-		fmt.Println()
-
-		if !toolMatch {
-			fmt.Printf("  Tools: Expected %d, got %d (difference: %d)\n",
-				EXPECTED_TOOLS, toolCount, toolCount-EXPECTED_TOOLS)
-		}
-
-		if !promptMatch {
-			fmt.Printf("  Prompts: Expected %d, got %d (difference: %d)\n",
-				EXPECTED_PROMPTS, promptCount, promptCount-EXPECTED_PROMPTS)
-		}
-
-		if !resourceMatch {
-			fmt.Printf("  Resources: Expected %d, got %d (difference: %d)\n",
-				EXPECTED_RESOURCES, resourceCount, resourceCount-EXPECTED_RESOURCES)
-		}
-
-		os.Exit(1)
 	}
+	fmt.Println("❌ Count mismatches detected!")
+	fmt.Println()
+
+	if !toolMatch {
+		fmt.Printf("  Tools: Expected %d, got %d (difference: %d)\n",
+			ExpectedTools, toolCount, toolCount-ExpectedTools)
+	}
+
+	if !promptMatch {
+		fmt.Printf("  Prompts: Expected %d, got %d (difference: %d)\n",
+			ExpectedPrompts, promptCount, promptCount-ExpectedPrompts)
+	}
+
+	if !resourceMatch {
+		fmt.Printf("  Resources: Expected %d, got %d (difference: %d)\n",
+			ExpectedResources, resourceCount, resourceCount-ExpectedResources)
+	}
+
+	os.Exit(1)
 }
