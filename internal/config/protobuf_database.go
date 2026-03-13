@@ -8,6 +8,7 @@ import (
 func databaseToProtobuf(d *DatabaseConfig) *configpb.DatabaseConfig {
 	return ptrToProto(d, func(d *DatabaseConfig) *configpb.DatabaseConfig {
 		return &configpb.DatabaseConfig{
+			Backend:             d.Backend,
 			SqlitePath:          d.SQLitePath,
 			JsonFallbackPath:    d.JSONFallbackPath,
 			BackupPath:          d.BackupPath,
@@ -31,6 +32,7 @@ func databaseFromProtobuf(pb *configpb.DatabaseConfig) DatabaseConfig {
 		return DatabaseConfig{}
 	}
 	return DatabaseConfig{
+		Backend:             pb.GetBackend(),
 		SQLitePath:          pb.GetSqlitePath(),
 		JSONFallbackPath:    pb.GetJsonFallbackPath(),
 		BackupPath:          pb.GetBackupPath(),

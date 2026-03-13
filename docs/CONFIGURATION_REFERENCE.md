@@ -170,6 +170,7 @@ Values shown are defaults. Durations use Go format (e.g., `30m`, `60s`). Omitted
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
+| `backend` | string | `"sqlite"` | Database backend: sqlite, mysql, postgres, rqlite |
 | `sqlite_path` | string | `".todo2/todo2.db"` | SQLite database path |
 | `json_fallback_path` | string | `".todo2/state.todo2.json"` | JSON fallback path |
 | `backup_path` | string | `".todo2/backups"` | Backup directory |
@@ -290,6 +291,7 @@ Tool-specific overrides. Each tool has its own sub-section.
 | `features.python_bridge` | bool | `true` | ~~Python bridge~~ **DEPRECATED** - never implemented |
 | `skip_checks` | []string | `[]` | Skip health checks |
 | `custom_tools` | []string | `[]` | Custom tools |
+| `task_discovery_ignore_paths` | []string | `[]` | Default ignore paths for `task_discovery`; request `ignore_paths` extends this list |
 
 ---
 
@@ -314,6 +316,11 @@ version: "1.0"
 project:
   type: library
   language: go
+  task_discovery_ignore_paths:
+    - vendor
+    - third_party
+    - build
+    - web/dev-dist
 
 thresholds:
   min_coverage: 90

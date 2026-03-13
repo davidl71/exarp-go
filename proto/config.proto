@@ -107,6 +107,7 @@ message TasksConfig {
 
 // DatabaseConfig contains database settings
 message DatabaseConfig {
+  string backend = 15;
   string sqlite_path = 1;
   string json_fallback_path = 2;
   string backup_path = 3;
@@ -307,6 +308,7 @@ message ProjectConfig {
   FeaturesConfig features = 7;
   repeated string skip_checks = 8;
   repeated string custom_tools = 9;
+  repeated string task_discovery_ignore_paths = 10;
 }
 
 // FeaturesConfig contains feature flags

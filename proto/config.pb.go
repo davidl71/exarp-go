@@ -637,6 +637,7 @@ func (x *TasksConfig) GetAutoClarify() bool {
 // DatabaseConfig contains database settings
 type DatabaseConfig struct {
 	state               protoimpl.MessageState `protogen:"open.v1"`
+	Backend             string                 `protobuf:"bytes,15,opt,name=backend,proto3" json:"backend,omitempty"`
 	SqlitePath          string                 `protobuf:"bytes,1,opt,name=sqlite_path,json=sqlitePath,proto3" json:"sqlite_path,omitempty"`
 	JsonFallbackPath    string                 `protobuf:"bytes,2,opt,name=json_fallback_path,json=jsonFallbackPath,proto3" json:"json_fallback_path,omitempty"`
 	BackupPath          string                 `protobuf:"bytes,3,opt,name=backup_path,json=backupPath,proto3" json:"backup_path,omitempty"`
@@ -683,6 +684,13 @@ func (x *DatabaseConfig) ProtoReflect() protoreflect.Message {
 // Deprecated: Use DatabaseConfig.ProtoReflect.Descriptor instead.
 func (*DatabaseConfig) Descriptor() ([]byte, []int) {
 	return file_proto_config_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *DatabaseConfig) GetBackend() string {
+	if x != nil {
+		return x.Backend
+	}
+	return ""
 }
 
 func (x *DatabaseConfig) GetSqlitePath() string {
@@ -2255,18 +2263,19 @@ func (x *ConsolidationConfig) GetFrequency() string {
 
 // ProjectConfig contains project-specific settings
 type ProjectConfig struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
-	Type          string                 `protobuf:"bytes,2,opt,name=type,proto3" json:"type,omitempty"`
-	Language      string                 `protobuf:"bytes,3,opt,name=language,proto3" json:"language,omitempty"`
-	Root          string                 `protobuf:"bytes,4,opt,name=root,proto3" json:"root,omitempty"`
-	Todo2Path     string                 `protobuf:"bytes,5,opt,name=todo2_path,json=todo2Path,proto3" json:"todo2_path,omitempty"`
-	ExarpPath     string                 `protobuf:"bytes,6,opt,name=exarp_path,json=exarpPath,proto3" json:"exarp_path,omitempty"`
-	Features      *FeaturesConfig        `protobuf:"bytes,7,opt,name=features,proto3" json:"features,omitempty"`
-	SkipChecks    []string               `protobuf:"bytes,8,rep,name=skip_checks,json=skipChecks,proto3" json:"skip_checks,omitempty"`
-	CustomTools   []string               `protobuf:"bytes,9,rep,name=custom_tools,json=customTools,proto3" json:"custom_tools,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                    protoimpl.MessageState `protogen:"open.v1"`
+	Name                     string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	Type                     string                 `protobuf:"bytes,2,opt,name=type,proto3" json:"type,omitempty"`
+	Language                 string                 `protobuf:"bytes,3,opt,name=language,proto3" json:"language,omitempty"`
+	Root                     string                 `protobuf:"bytes,4,opt,name=root,proto3" json:"root,omitempty"`
+	Todo2Path                string                 `protobuf:"bytes,5,opt,name=todo2_path,json=todo2Path,proto3" json:"todo2_path,omitempty"`
+	ExarpPath                string                 `protobuf:"bytes,6,opt,name=exarp_path,json=exarpPath,proto3" json:"exarp_path,omitempty"`
+	Features                 *FeaturesConfig        `protobuf:"bytes,7,opt,name=features,proto3" json:"features,omitempty"`
+	SkipChecks               []string               `protobuf:"bytes,8,rep,name=skip_checks,json=skipChecks,proto3" json:"skip_checks,omitempty"`
+	CustomTools              []string               `protobuf:"bytes,9,rep,name=custom_tools,json=customTools,proto3" json:"custom_tools,omitempty"`
+	TaskDiscoveryIgnorePaths []string               `protobuf:"bytes,10,rep,name=task_discovery_ignore_paths,json=taskDiscoveryIgnorePaths,proto3" json:"task_discovery_ignore_paths,omitempty"`
+	unknownFields            protoimpl.UnknownFields
+	sizeCache                protoimpl.SizeCache
 }
 
 func (x *ProjectConfig) Reset() {
@@ -2358,6 +2367,13 @@ func (x *ProjectConfig) GetSkipChecks() []string {
 func (x *ProjectConfig) GetCustomTools() []string {
 	if x != nil {
 		return x.CustomTools
+	}
+	return nil
+}
+
+func (x *ProjectConfig) GetTaskDiscoveryIgnorePaths() []string {
+	if x != nil {
+		return x.TaskDiscoveryIgnorePaths
 	}
 	return nil
 }
@@ -2636,7 +2652,7 @@ const file_proto_config_proto_rawDesc = "" +
 	"\x13ConsolidationConfig\x12\x18\n" +
 	"\aenabled\x18\x01 \x01(\bR\aenabled\x121\n" +
 	"\x14similarity_threshold\x18\x02 \x01(\x01R\x13similarityThreshold\x12\x1c\n" +
-	"\tfrequency\x18\x03 \x01(\tR\tfrequency\"\xa3\x02\n" +
+	"\tfrequency\x18\x03 \x01(\tR\tfrequency\"\xe2\x02\n" +
 	"\rProjectConfig\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x12\n" +
 	"\x04type\x18\x02 \x01(\tR\x04type\x12\x1a\n" +
@@ -2649,7 +2665,9 @@ const file_proto_config_proto_rawDesc = "" +
 	"\bfeatures\x18\a \x01(\v2\x1c.exarp.config.FeaturesConfigR\bfeatures\x12\x1f\n" +
 	"\vskip_checks\x18\b \x03(\tR\n" +
 	"skipChecks\x12!\n" +
-	"\fcustom_tools\x18\t \x03(\tR\vcustomTools\"}\n" +
+	"\fcustom_tools\x18\t \x03(\tR\vcustomTools\x12=\n" +
+	"\x1btask_discovery_ignore_paths\x18\n" +
+	" \x03(\tR\x18taskDiscoveryIgnorePaths\"}\n" +
 	"\x0eFeaturesConfig\x12%\n" +
 	"\x0esqlite_enabled\x18\x01 \x01(\bR\rsqliteEnabled\x12#\n" +
 	"\rjson_fallback\x18\x02 \x01(\bR\fjsonFallback\x12\x1f\n" +
