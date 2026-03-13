@@ -18,6 +18,10 @@ install_linters: false
 install_dev_tools: false
 install_file_watchers: false
 install_gh: false  # GitHub CLI (gh) - optional, useful for release management and authenticated operations
+install_ollama: false  # Ollama - not needed in production
+install_redis: false   # Redis - not needed in production
+install_build_tools: false  # C/C++ build tools - not needed for pure-Go production binary
+install_protobuf: false     # Protocol Buffers - not needed for production
 
 # Linter configuration (empty for production)
 linters: []

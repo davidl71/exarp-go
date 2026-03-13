@@ -8,6 +8,7 @@ _base_packages:
   - curl
   - wget
   - git
-  - make
+_build_packages: []  # macOS Xcode provides gcc/clang via Command Line Tools
+_protobuf_packages:
   - protobuf
 _sqlite_packages: []  # macOS ships with SQLite
