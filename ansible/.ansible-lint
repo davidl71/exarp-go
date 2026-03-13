@@ -4,6 +4,7 @@
 
 profile: basic
 use_default_rules: true
+offline: true
 
 exclude_paths:
   - .cache/
