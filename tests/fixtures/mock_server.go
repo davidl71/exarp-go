@@ -1,3 +1,4 @@
+// Package fixtures provides test fixtures for MCP testing.
 package fixtures
 
 import (

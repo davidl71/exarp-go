@@ -60,7 +60,7 @@ func (s *Server) cors(next http.HandlerFunc) http.HandlerFunc {
 	}
 }
 
-func (s *Server) corsOptions(w http.ResponseWriter, r *http.Request) {
+func (s *Server) corsOptions(w http.ResponseWriter, _ *http.Request) {
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
 	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")

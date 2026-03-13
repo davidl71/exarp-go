@@ -1,4 +1,4 @@
-// filelock.go — Cross-platform file locking for concurrent process access.
+// Package utils provides cross-platform file locking for concurrent process access.
 package utils
 
 import (

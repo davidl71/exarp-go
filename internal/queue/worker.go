@@ -1,4 +1,4 @@
-// worker.go — Asynq worker: processes task_execute jobs from Redis queue.
+// Package queue provides Asynq worker for processing task_execute jobs from Redis.
 package queue
 
 import (
