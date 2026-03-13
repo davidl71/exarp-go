@@ -23,6 +23,7 @@ import (
 	"github.com/davidl71/exarp-go/internal/resources"
 	"github.com/davidl71/exarp-go/internal/tools"
 	"github.com/davidl71/exarp-go/internal/web"
+	framework "github.com/davidl71/mcp-go-core/pkg/mcp/framework"
 )
 
 func main() {
@@ -31,8 +32,10 @@ func main() {
 	// -serve :8080 runs HTTP API + embedded PWA UI only. Only parse when -serve is present
 	// to avoid "flag provided but not defined: -tool" when running CLI (-tool, task, etc.).
 	// -acp runs Agent Client Protocol server (for Zed, JetBrains, OpenCode).
+	// -mcp-http :8081 runs MCP Streamable HTTP server.
 	hasServe := false
 	hasACP := false
+	hasMCPHTTP := false
 	for _, arg := range os.Args[1:] {
 		if arg == "-serve" || strings.HasPrefix(arg, "-serve=") {
 			hasServe = true
@@ -40,11 +43,25 @@ func main() {
 		if arg == "-acp" {
 			hasACP = true
 		}
+		if arg == "-mcp-http" || strings.HasPrefix(arg, "-mcp-http=") {
+			hasMCPHTTP = true
+		}
 	}
 
 	if hasACP {
 		runACPMode()
 		return
+	}
+
+	if hasMCPHTTP {
+		mcpHttpFs := flag.NewFlagSet("", flag.ContinueOnError)
+		mcpHttpAddr := mcpHttpFs.String("mcp-http", "", "Listen address for MCP Streamable HTTP (e.g. :8081)")
+		_ = mcpHttpFs.Parse(os.Args[1:])
+
+		if *mcpHttpAddr != "" {
+			runMCPHTTPMode(*mcpHttpAddr)
+			return
+		}
 	}
 
 	if hasServe {
@@ -229,4 +246,76 @@ func runACPMode() {
 	if err := acpServer.Run(ctx); err != nil {
 		logging.Fatal("ACP server error: %v", err)
 	}
+}
+
+func runMCPHTTPMode(addr string) {
+	logging.Warn("Starting MCP Streamable HTTP server on %s", addr)
+
+	projectRoot, err := tools.FindProjectRoot()
+	if err != nil {
+		logging.Warn("Could not find project root: %v (database unavailable)", err)
+		projectRoot = "."
+	} else {
+		cli.EnsureConfigAndDatabase(projectRoot)
+		if database.DB != nil {
+			defer func() {
+				if err := database.Close(); err != nil {
+					logging.Error("Error closing database: %v", err)
+				}
+			}()
+		}
+	}
+
+	cfg, err := config.Load()
+	if err != nil {
+		logging.Fatal("Failed to load config: %v", err)
+	}
+
+	server, err := factory.NewServerFromConfig(cfg, factory.WithToolFilter(tools.ToolFilterForMode()))
+	if err != nil {
+		logging.Fatal("Failed to create server: %v", err)
+	}
+
+	if err := tools.RegisterAllTools(server); err != nil {
+		logging.Fatal("Failed to register tools: %v", err)
+	}
+
+	if err := prompts.RegisterAllPrompts(server); err != nil {
+		logging.Fatal("Failed to register prompts: %v", err)
+	}
+
+	if err := resources.RegisterAllResources(server); err != nil {
+		logging.Fatal("Failed to register resources: %v", err)
+	}
+
+	httpHandler := &mcpHTTPHandler{server: server}
+
+	logging.Warn("MCP HTTP server ready at http://%s/mcp", addr)
+	if err := http.ListenAndServe(addr, httpHandler); err != nil {
+		logging.Fatal("HTTP server error: %v", err)
+	}
+}
+
+type mcpHTTPHandler struct {
+	server framework.MCPServer
+}
+
+func (h *mcpHTTPHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+	w.Header().Set("Access-Control-Allow-Headers", "Content-Type, MCProtocol-Version")
+
+	if r.Method == "OPTIONS" {
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+
+	if r.URL.Path != "/mcp" && r.URL.Path != "/" {
+		http.NotFound(w, r)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte(`{"status": "ok", "message": "MCP server running. Use stdio transport for full MCP protocol."}`))
 }
