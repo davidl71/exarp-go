@@ -26,6 +26,8 @@ install_file_watchers: true
 install_gh: false  # GitHub CLI (gh) - useful for GitHub API interactions and authenticated git operations
 install_ollama: true   # Ollama - for ollama tool and native tests (ollama serve + models)
 install_redis: false   # Redis - for exarp-go queue/worker (make queue-enqueue-wave, make queue-worker). Set REDIS_ADDR=127.0.0.1:6379
+install_build_tools: true   # C/C++ build tools (gcc, make) - needed for CGO (Apple FM, SQLite). Set false for pure-Go builds
+install_protobuf: true      # Protocol Buffers (protoc) - needed for `make proto`. Set false if not regenerating protos
 
 # Linter configuration
 linters:
