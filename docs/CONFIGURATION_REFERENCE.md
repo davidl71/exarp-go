@@ -188,6 +188,19 @@ Values shown are defaults. Durations use Go format (e.g., `30m`, `60s`). Omitted
 
 ---
 
+### cloud
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `cloud.enabled` | bool | `false` | Enable cloud TaskStore |
+| `cloud.provider` | string | `"firestore"` | Cloud provider: firestore, dynamodb |
+| `cloud.project_id` | string | `""` | GCP project ID (for Firestore) |
+| `cloud.region` | string | `"us-central1"` | Cloud region |
+| `cloud.collection_name` | string | `"tasks"` | Collection/table name |
+| `cloud.credentials_file` | string | `""` | Path to credentials JSON |
+
+---
+
 ### security
 
 | Parameter | Type | Default | Description |

@@ -29,6 +29,11 @@ func ValidateConfig(cfg *FullConfig) error {
 		return fmt.Errorf("database validation failed: %w", err)
 	}
 
+	// Validate cloud
+	if err := validateCloud(cfg.Cloud); err != nil {
+		return fmt.Errorf("cloud validation failed: %w", err)
+	}
+
 	// Validate security
 	if err := validateSecurity(cfg.Security); err != nil {
 		return fmt.Errorf("security validation failed: %w", err)
@@ -308,6 +313,28 @@ func validateDatabase(db DatabaseConfig) error {
 	// Backup retention should be non-negative
 	if db.BackupRetentionDays < 0 {
 		return fmt.Errorf("backup_retention_days (%d) must be non-negative", db.BackupRetentionDays)
+	}
+
+	return nil
+}
+
+// validateCloud validates cloud configuration.
+func validateCloud(cloud CloudConfig) error {
+	if !cloud.Enabled {
+		return nil
+	}
+
+	validProviders := map[string]bool{"firestore": true, "dynamodb": true}
+	if !validProviders[cloud.Provider] {
+		return fmt.Errorf("provider (%s) must be one of: firestore, dynamodb", cloud.Provider)
+	}
+
+	if cloud.Provider == "firestore" && cloud.ProjectID == "" {
+		return fmt.Errorf("project_id is required when cloud provider is firestore")
+	}
+
+	if cloud.CollectionName == "" {
+		return fmt.Errorf("collection_name is required when cloud is enabled")
 	}
 
 	return nil
