@@ -14,9 +14,9 @@ func TestRegisterAllResources(t *testing.T) {
 		t.Fatalf("RegisterAllResources() error = %v", err)
 	}
 
-	// Verify all 24 resources are registered (11 base + 7 task + 2 session + 1 server + 1 models + 2 tools + 1 cursor/skills)
-	if server.ResourceCount() != 24 {
-		t.Errorf("server.ResourceCount() = %v, want 24", server.ResourceCount())
+	// Verify all 27 resources are registered (2 config + 11 base + 7 task + 2 session + 1 server + 1 models + 2 tools + 1 cursor/skills + 1 agent card)
+	if server.ResourceCount() != 27 {
+		t.Errorf("server.ResourceCount() = %v, want 27", server.ResourceCount())
 	}
 	if server.ResourceTemplateCount() != 11 {
 		t.Errorf("server.ResourceTemplateCount() = %v, want 11", server.ResourceTemplateCount())
@@ -24,6 +24,8 @@ func TestRegisterAllResources(t *testing.T) {
 
 	// Verify specific resources are registered
 	expectedResources := []string{
+		"stdio://config",
+		"stdio://config/schema",
 		"stdio://scorecard",
 		"stdio://memories",
 		"stdio://memories/category/{category}",
@@ -47,6 +49,7 @@ func TestRegisterAllResources(t *testing.T) {
 		"stdio://tasks/tag/{tag}",
 		"stdio://tasks/summary",
 		"stdio://suggested-tasks",
+		"agent://card",
 	}
 
 	for _, uri := range expectedResources {
@@ -118,6 +121,16 @@ func TestRegisterAllResources_URIParsing(t *testing.T) {
 		uri  string
 		want bool
 	}{
+		{
+			name: "config",
+			uri:  "stdio://config",
+			want: true,
+		},
+		{
+			name: "config schema",
+			uri:  "stdio://config/schema",
+			want: true,
+		},
 		{
 			name: "scorecard",
 			uri:  "stdio://scorecard",
@@ -255,6 +268,8 @@ func TestRegisterAllResources_HandlerRegistration(t *testing.T) {
 
 	// Verify handlers are registered for each resource
 	expectedResources := []string{
+		"stdio://config",
+		"stdio://config/schema",
 		"stdio://scorecard",
 		"stdio://memories",
 		"stdio://memories/category/{category}",

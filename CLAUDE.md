@@ -153,7 +153,7 @@ session  action=prime|handoff
 
 ## Configuration examples
 
-Example configs for Cursor (`.cursor/mcp.json`), OpenCode (`opencode.json`), and optional project files: **`docs/examples/`** — see `docs/examples/README.md` for the index. Use these when suggesting MCP or OpenCode setup to users or other agents.
+Example configs for Cursor (`.cursor/mcp.json`), OpenCode (`opencode.json`), Claude Code (`.claude/settings.json`), and optional project files: **`docs/examples/`** — see `docs/examples/README.md` for the index. Use these when suggesting MCP, Claude Code, or OpenCode setup to users or other agents.
 
 ## Go conventions
 

@@ -294,7 +294,7 @@ func getCodebaseMetrics(projectRoot string) (map[string]interface{}, error) {
 	// Keep these metadata counts aligned with the current native registries.
 	// Resources remain a fixed count here because tools cannot import internal/resources
 	// without a package cycle.
-	const expectedResourceCount = 24
+	const expectedResourceCount = 27
 
 	metrics := map[string]interface{}{
 		"go_files":     goFiles,

@@ -568,6 +568,17 @@ func RegisterAllResources(server framework.MCPServer) error {
 		return fmt.Errorf("failed to register suggested tasks resource: %w", err)
 	}
 
+	// agent://card — A2A/ACP agent discovery card
+	if err := registerAndTrack(server,
+		"agent://card",
+		"Agent Card",
+		"A2A/ACP agent discovery card: identity, transports, capabilities, and skills grouped by category.",
+		"application/json",
+		handleAgentCard,
+	); err != nil {
+		return fmt.Errorf("failed to register agent card resource: %w", err)
+	}
+
 	return nil
 }
 

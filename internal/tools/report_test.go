@@ -239,8 +239,8 @@ func TestGetCodebaseMetrics_UsesCurrentRegistryCounts(t *testing.T) {
 		t.Fatalf("prompts = %v, want %d", got, len(prompts.ListAllPromptNames()))
 	}
 
-	if got := metrics["resources"]; got != 24 {
-		t.Fatalf("resources = %v, want 24", got)
+	if got := metrics["resources"]; got != 27 {
+		t.Fatalf("resources = %v, want 27", got)
 	}
 }
 

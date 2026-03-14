@@ -36,6 +36,14 @@ Example configuration files for **Cursor**, **OpenCode**, and project-specific t
 
 ---
 
+## Claude Code (`.claude/settings.json`)
+
+| File | Destination | When to use |
+|------|-------------|-------------|
+| [claude-code-settings.json](claude-code-settings.json) | Project: `.claude/settings.json` | Auto-allow all exarp-go MCP tools so Claude Code does not prompt for confirmation on every call. |
+
+Copy to `.claude/settings.json` in your project root. Claude Code merges project settings with `~/.claude/settings.json` (global) and `.claude/settings.local.json` (local overrides).
+
 ## Project config (optional)
 
 | File | Destination | When to use |
@@ -52,5 +60,7 @@ Example configuration files for **Cursor**, **OpenCode**, and project-specific t
 - **Fix existing config:** After global install, run `make fix-mcp-config` (eval only) or `make fix-mcp-config MCP_CONFIG_FLAGS="--cursor-global"` to update Cursor MCP config to use the installed runner. See [PORTABLE_MCP_RUNNER.md](../PORTABLE_MCP_RUNNER.md).
 - **OpenCode:** Prefer [opencode-exarp-go-portable.json](opencode-exarp-go-portable.json) with the portable runner; or [opencode-exarp-go.json](opencode-exarp-go.json) with absolute binary path and `environment.PROJECT_ROOT`. For global install, use path `$(go env GOPATH)/bin/run_exarp_go.sh` and set `PROJECT_ROOT`.
 - **AI agents:** When suggesting config, point users to `docs/examples/` and [PORTABLE_MCP_RUNNER.md](../PORTABLE_MCP_RUNNER.md) for the portable runner.
+
+- **Claude Code allow rules:** Copy [claude-code-settings.json](claude-code-settings.json) to `.claude/settings.json` in your project to auto-allow all exarp-go MCP tools without confirmation prompts.
 
 See also: [PORTABLE_MCP_RUNNER.md](../PORTABLE_MCP_RUNNER.md), [CURSOR_MCP_SETUP.md](../CURSOR_MCP_SETUP.md), [OPENCODE_INTEGRATION.md](../OPENCODE_INTEGRATION.md), [.cursor/rules/mcp-configuration.mdc](../../.cursor/rules/mcp-configuration.mdc).
