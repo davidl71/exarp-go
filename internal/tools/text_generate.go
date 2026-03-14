@@ -11,7 +11,7 @@ import (
 
 // handleTextGenerate implements the unified text_generate tool.
 // provider=fm uses DefaultFMProvider(); provider=ollama uses DefaultOllamaTextGenerator(); provider=insight uses DefaultReportInsight();
-// provider=mlx uses DefaultMLXProvider(); provider=localai uses DefaultLocalAIProvider().
+// provider=mlx uses DefaultMLXProvider(); provider=localai uses DefaultLocalAIProvider(); provider=llamacpp uses DefaultLlamaCppProvider().
 // provider=auto (or task_type/task_description provided) uses ResolveModelForTask + ModelRouter for model selection (T-207).
 func handleTextGenerate(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
 	var params map[string]interface{}
@@ -71,8 +71,10 @@ func handleTextGenerate(ctx context.Context, args json.RawMessage) ([]framework.
 		gen = DefaultLocalAIProvider()
 	case "gateway":
 		gen = DefaultGatewayProvider()
+	case "llamacpp":
+		gen = DefaultLlamaCppProvider()
 	default:
-		return nil, fmt.Errorf("unknown provider: %q (use \"fm\", \"ollama\", \"insight\", \"mlx\", \"localai\", \"gateway\", or \"auto\")", provider)
+		return nil, fmt.Errorf("unknown provider: %q (use \"fm\", \"ollama\", \"insight\", \"mlx\", \"localai\", \"gateway\", \"llamacpp\", or \"auto\")", provider)
 	}
 
 	if gen == nil || !gen.Supported() {

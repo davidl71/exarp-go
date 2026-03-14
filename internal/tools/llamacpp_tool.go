@@ -48,6 +48,7 @@ func handleLlamaCppStatus() ([]framework.TextContent, error) {
 	status := map[string]interface{}{
 		"available":    available,
 		"model_loaded": LlamaCppModelPath(),
+		"manager":      ModelManagerStats(),
 		"gpu": map[string]interface{}{
 			"available":   gpu.Available,
 			"backend":     gpu.Backend,

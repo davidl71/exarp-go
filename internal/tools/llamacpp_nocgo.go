@@ -27,3 +27,8 @@ func LlamaCppUnload() {}
 
 // LlamaCppModelPath returns empty string when llamacpp is not built.
 func LlamaCppModelPath() string { return "" }
+
+// ModelManagerStats returns empty stats when llamacpp is not built.
+func ModelManagerStats() map[string]interface{} {
+	return map[string]interface{}{"available": false}
+}

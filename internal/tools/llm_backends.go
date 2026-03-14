@@ -14,16 +14,18 @@ import (
 // (FM, Ollama, MLX, LocalAI, Gateway) without calling each tool.
 func LLMBackendStatus() map[string]interface{} {
 	return map[string]interface{}{
-		"fm_available":      FMAvailable(),
-		"mlx_available":     MLAvailable(),
-		"localai_available": LocalAIAvailable(),
-		"gateway_available": GatewayAvailable(),
-		"ollama_tool":       "ollama",
-		"mlx_tool":          "mlx",
-		"apple_fm_tool":     "apple_foundation_models",
-		"localai_tool":      "text_generate",
-		"gateway_tool":      "text_generate",
-		"hint":              "text_generate is the unified generate-text dispatcher (provider=fm|ollama|mlx|localai|gateway|insight|auto). Use provider=auto for model selection. Use provider=gateway with OPENAI_GATEWAY_BASE_URL for any OpenAI-compatible router. Separate tools (apple_foundation_models, ollama, mlx) offer rich actions (status, models, pull, hardware, docs, quality) beyond generation.",
+		"fm_available":       FMAvailable(),
+		"mlx_available":      MLAvailable(),
+		"localai_available":  LocalAIAvailable(),
+		"gateway_available":  GatewayAvailable(),
+		"llamacpp_available": LlamaCppAvailable(),
+		"ollama_tool":        "ollama",
+		"mlx_tool":           "mlx",
+		"apple_fm_tool":      "apple_foundation_models",
+		"localai_tool":       "text_generate",
+		"gateway_tool":       "text_generate",
+		"llamacpp_tool":      "llamacpp",
+		"hint":               "text_generate is the unified generate-text dispatcher (provider=fm|ollama|mlx|localai|gateway|llamacpp|insight|auto). Use provider=auto for model selection. Use provider=gateway with OPENAI_GATEWAY_BASE_URL for any OpenAI-compatible router. Separate tools (apple_foundation_models, ollama, mlx, llamacpp) offer rich actions beyond generation.",
 	}
 }
 
