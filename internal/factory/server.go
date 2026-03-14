@@ -203,13 +203,34 @@ func NewServer(frameworkType config.FrameworkType, name, version string, opts ..
 			adapterOpts = append(adapterOpts, gosdk.WithMiddleware(toolHooksMiddleware(cfg.hooks)))
 		}
 		adapter := gosdk.NewGoSDKAdapter(name, version, adapterOpts...)
+		wrapped := &exarpServer{MCPServer: adapter}
 
 		if cfg.toolFilter != nil {
-			return &filteredServer{MCPServer: adapter, filter: cfg.toolFilter}, nil
+			return &filteredServer{MCPServer: wrapped, filter: cfg.toolFilter}, nil
 		}
-		return adapter, nil
+		return wrapped, nil
 	default:
 		return nil, fmt.Errorf("unknown framework: %s", frameworkType)
+	}
+}
+
+// exarpServer wraps a GoSDKAdapter and adds ServerExtensionReporter so clients
+// can discover which exarp-go capability extensions are enabled.
+type exarpServer struct {
+	framework.MCPServer
+}
+
+// ServerExtensions advertises the exarp-go MCP capability extensions.
+func (s *exarpServer) ServerExtensions() map[string]any {
+	return map[string]any{
+		"davidl71/exarp-go": map[string]any{
+			"projectRootContext":    true,
+			"resourceTemplates":    true,
+			"toolFiltering":        true,
+			"resourceSubscriptions": true,
+			"agentRunner":          true,
+			"fmPlanExecute":        true,
+		},
 	}
 }
 
