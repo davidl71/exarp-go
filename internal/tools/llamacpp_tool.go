@@ -67,18 +67,16 @@ func handleLlamaCppStatus() ([]framework.TextContent, error) {
 }
 
 func handleLlamaCppModels() ([]framework.TextContent, error) {
+	projectRoot, _ := FindProjectRoot()
+
 	models, err := DiscoverOllamaModels()
 	if err != nil {
 		return nil, fmt.Errorf("discovering models: %w", err)
 	}
 
-	if len(models) == 0 {
-		return []framework.TextContent{{Type: "text", Text: "No GGUF models found in Ollama storage. Run: ollama pull <model>"}}, nil
-	}
-
-	result := make([]map[string]interface{}, 0, len(models))
+	modelList := make([]map[string]interface{}, 0, len(models))
 	for _, m := range models {
-		result = append(result, map[string]interface{}{
+		modelList = append(modelList, map[string]interface{}{
 			"name":      m.Name,
 			"base":      m.Base,
 			"tag":       m.Tag,
@@ -86,6 +84,16 @@ func handleLlamaCppModels() ([]framework.TextContent, error) {
 			"size":      m.Size,
 			"family":    m.Family,
 		})
+	}
+
+	aliases := ListAllAliases(projectRoot)
+
+	result := map[string]interface{}{
+		"models":  modelList,
+		"aliases": aliases,
+	}
+	if len(models) == 0 {
+		result["hint"] = "No GGUF models found in Ollama storage. Run: ollama pull <model>"
 	}
 
 	data, err := json.MarshalIndent(result, "", "  ")
@@ -125,11 +133,13 @@ func handleLlamaCppGenerate(ctx context.Context, params map[string]interface{}) 
 }
 
 func handleLlamaCppLoad(params map[string]interface{}) ([]framework.TextContent, error) {
+	projectRoot, _ := FindProjectRoot()
+
 	modelPath, _ := params["model_path"].(string)
 	if modelPath == "" {
 		model, _ := params["model"].(string)
 		if model != "" {
-			resolved, err := ResolveOllamaModelPath(model)
+			resolved, err := ResolveModelToPath(model, projectRoot)
 			if err != nil {
 				return nil, fmt.Errorf("resolving model %q: %w", model, err)
 			}

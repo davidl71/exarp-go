@@ -42,17 +42,6 @@ type OllamaLayer struct {
 	Size      int64  `json:"size"`
 }
 
-// modelAliases maps shorthand model names to canonical Ollama model names.
-var modelAliases = map[string]string{
-	"llama3":    "llama3.2",
-	"llama":     "llama3.2",
-	"codellama": "codellama",
-	"phi":       "phi3",
-	"mistral":   "mistral",
-	"gemma":     "gemma2",
-	"qwen":      "qwen2.5",
-}
-
 // modelFamilies maps base model name prefixes to family names for classification.
 var modelFamilies = map[string]string{
 	"llama":     "llama",
@@ -176,19 +165,6 @@ func ResolveOllamaModelPath(name string) (string, error) {
 	}
 
 	return blobPath, nil
-}
-
-// ResolveModelAlias resolves a model alias to its canonical name.
-// Returns the input unchanged if no alias exists.
-func ResolveModelAlias(name string) string {
-	base, tag := parseModelName(name)
-	if canonical, ok := modelAliases[base]; ok {
-		if tag == "latest" {
-			return canonical
-		}
-		return canonical + ":" + tag
-	}
-	return name
 }
 
 // parseOllamaManifest reads and parses an Ollama manifest JSON file.

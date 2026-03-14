@@ -79,8 +79,14 @@ func TestResolveModelAlias(t *testing.T) {
 		{"llama", "llama3.2"},
 		{"phi", "phi3"},
 		{"gemma", "gemma2"},
+		{"qwen", "qwen2.5"},
+		{"deepseek", "deepseek-r1"},
+		{"deepseek-r1", "deepseek-r1"},
+		{"code", "codellama"},
+		{"smollm", "smollm2"},
 		{"unknown-model", "unknown-model"},
 		{"llama3:1b", "llama3.2:1b"},
+		{"qwen:7b", "qwen2.5:7b"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.input, func(t *testing.T) {
@@ -89,6 +95,61 @@ func TestResolveModelAlias(t *testing.T) {
 				t.Errorf("ResolveModelAlias(%q) = %q, want %q", tt.input, got, tt.want)
 			}
 		})
+	}
+}
+
+func TestListAllAliases(t *testing.T) {
+	aliases := ListAllAliases(".")
+	if len(aliases) == 0 {
+		t.Fatal("ListAllAliases() returned empty map")
+	}
+	// Spot-check a few built-ins
+	for _, key := range []string{"llama3", "llama", "phi", "deepseek", "gemma"} {
+		if _, ok := aliases[key]; !ok {
+			t.Errorf("expected built-in alias %q not found", key)
+		}
+	}
+	t.Logf("Total aliases: %d", len(aliases))
+}
+
+func TestResolveModelToPath_FilePath(t *testing.T) {
+	// Alias that resolves to an absolute path should be returned directly
+	// (even if the file doesn't exist — that's the caller's responsibility).
+	path, err := ResolveModelToPath("/nonexistent/model.gguf", ".")
+	if err != nil {
+		t.Fatalf("unexpected error for absolute path: %v", err)
+	}
+	if path != "/nonexistent/model.gguf" {
+		t.Errorf("expected path unchanged, got %q", path)
+	}
+}
+
+func TestResolveModelToPath_UnknownFallsToOllama(t *testing.T) {
+	// Unknown name with no Ollama model available → error from Ollama lookup.
+	_, err := ResolveModelToPath("totally-unknown-model-xyz", ".")
+	if err == nil {
+		t.Log("Ollama lookup succeeded (model may be present on this machine)")
+	} else {
+		t.Logf("Expected error for unknown model: %v", err)
+	}
+}
+
+func TestIsFilePath(t *testing.T) {
+	tests := []struct {
+		v    string
+		want bool
+	}{
+		{"/absolute/path.gguf", true},
+		{"~/models/foo.gguf", true},
+		{"llama3.2:latest", false},
+		{"deepseek-r1", false},
+		{"", false},
+	}
+	for _, tt := range tests {
+		got := isFilePath(tt.v)
+		if got != tt.want {
+			t.Errorf("isFilePath(%q) = %v, want %v", tt.v, got, tt.want)
+		}
 	}
 }
 
