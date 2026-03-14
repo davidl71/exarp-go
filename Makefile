@@ -64,12 +64,20 @@ endif
 export GOCACHE ?= $(REPO_ROOT)/.cache/go-build
 export GOMODCACHE ?= $(REPO_ROOT)/.cache/go-mod
 
-# Colors for output
-GREEN := \033[0;32m
-YELLOW := \033[1;33m
-RED := \033[0;31m
-BLUE := \033[0;34m
-NC := \033[0m # No Color
+# Colors for output — disabled when NO_COLOR is set (https://no-color.org) or output is not a tty
+ifdef NO_COLOR
+  GREEN :=
+  YELLOW :=
+  RED :=
+  BLUE :=
+  NC :=
+else
+  GREEN := \033[0;32m
+  YELLOW := \033[1;33m
+  RED := \033[0;31m
+  BLUE := \033[0;34m
+  NC := \033[0m
+endif
 
 # Quiet mode for git hooks (suppresses output)
 ifdef QUIET

@@ -182,7 +182,7 @@ func GetDefaults() *FullConfig {
 				OutputFormat:  "text",
 			},
 			Report: ReportConfig{
-				DefaultFormat:          "text",
+				DefaultFormat:          "json",
 				DefaultOutputPath:      "",
 				IncludeMetrics:         true,
 				IncludeRecommendations: true,

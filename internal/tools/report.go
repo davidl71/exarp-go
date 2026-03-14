@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/davidl71/exarp-go/internal/config"
 	"github.com/davidl71/exarp-go/internal/framework"
 	"github.com/davidl71/exarp-go/proto"
 	"github.com/spf13/cast"
@@ -23,7 +24,7 @@ func handleReportOverview(ctx context.Context, params map[string]interface{}) ([
 		return nil, fmt.Errorf("failed to find project root: %w", err)
 	}
 
-	outputFormat := "text"
+	outputFormat := config.ReportDefaultFormat()
 	if format := strings.TrimSpace(cast.ToString(params["output_format"])); format != "" {
 		outputFormat = format
 	}

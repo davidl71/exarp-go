@@ -194,6 +194,18 @@ func MemoryStoragePath() string {
 	return path
 }
 
+// ReportDefaultFormat returns the default output format for the report tool.
+// Env EXARP_REPORT_FORMAT overrides config (e.g. "json", "text", "markdown").
+func ReportDefaultFormat() string {
+	if s := os.Getenv("EXARP_REPORT_FORMAT"); s != "" {
+		return s
+	}
+	if f := GetGlobalConfig().Tools.Report.DefaultFormat; f != "" {
+		return f
+	}
+	return "json"
+}
+
 // GetOllamaDefaultModel returns the Ollama default model (env OLLAMA_DEFAULT_MODEL overrides config).
 func GetOllamaDefaultModel() string {
 	if s := os.Getenv("OLLAMA_DEFAULT_MODEL"); s != "" {

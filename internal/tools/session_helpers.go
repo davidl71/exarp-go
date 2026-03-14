@@ -366,6 +366,7 @@ func getHintsForMode(mode string) map[string]string {
 		"tasks":             "Use task_workflow tool for task management",
 		"tractatus":         "Consider tractatus_thinking for logical decomposition of complex concepts (use operation=start)",
 		"context_reduction": "When context is large: use compact=true on prime/task_workflow/report; call context(action=budget, items=[...], budget_tokens=N) for safe_to_summarize and agent_hint.",
+		"no_color":          "Set NO_COLOR=1 in the MCP server env for plain-text output without ANSI codes — recommended for AI/MCP consumers. Affects Makefile output and TUI. See https://no-color.org",
 	}
 
 	switch mode {

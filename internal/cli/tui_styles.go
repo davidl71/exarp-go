@@ -9,7 +9,11 @@ import (
 
 // detectTerminalColorDepth returns the terminal's color capability.
 // 0 = no colors, 8 = basic colors, 256 = 256 colors, 16777216 = truecolor.
+// Returns 0 when NO_COLOR is set (https://no-color.org).
 func detectTerminalColorDepth() int {
+	if os.Getenv("NO_COLOR") != "" {
+		return 0
+	}
 	term := os.Getenv("TERM")
 	switch {
 	case term == "" || term == "dumb":

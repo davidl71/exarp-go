@@ -3,14 +3,8 @@ description: Mark a task as Done in Todo2
 argument-hint: "<task-id>"
 ---
 
-Mark the task $ARGUMENTS as Done:
+Mark task $ARGUMENTS as Done using the exarp-go `task_workflow` MCP tool:
 
-```bash
-cd /Users/davidl/Projects/exarp-go && go run ./cmd/server -tool task_workflow -args "{\"action\":\"update\",\"task_ids\":\"$ARGUMENTS\",\"new_status\":\"Done\"}" 2>/dev/null
-```
+Call with `action=update`, `task_id=$ARGUMENTS`, `new_status=Done`.
 
-Then confirm the status change by showing the task:
-
-```bash
-cd /Users/davidl/Projects/exarp-go && go run ./cmd/server task show $ARGUMENTS 2>/dev/null
-```
+Then confirm by calling `task_workflow` again with `action=list` and `task_id=$ARGUMENTS` (or note the updated status from the response).

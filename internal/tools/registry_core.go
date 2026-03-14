@@ -501,7 +501,7 @@ func registerCoreTools(server framework.MCPServer) error {
 				},
 				"output_format": map[string]interface{}{
 					"type":    "string",
-					"default": "text",
+					"default": "json",
 				},
 				"compact": map[string]interface{}{
 					"type":        "boolean",

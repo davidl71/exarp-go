@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"os"
 	"regexp"
 	"strconv"
 	"strings"
@@ -90,8 +91,14 @@ func showLoadingOverlay(conn net.Conn, devInfo go3270.DevInfo, message string) {
 	})
 }
 
+// noColor3270 is true when the NO_COLOR env var is set (https://no-color.org).
+var noColor3270 = os.Getenv("NO_COLOR") != ""
+
 // statusColor returns the go3270 color for a task status.
 func statusColor(status string) go3270.Color {
+	if noColor3270 {
+		return go3270.DefaultColor
+	}
 	switch status {
 	case "Done":
 		return go3270.Green
@@ -108,6 +115,9 @@ func statusColor(status string) go3270.Color {
 
 // priorityColor returns the go3270 color for a task priority.
 func priorityColor(priority string) go3270.Color {
+	if noColor3270 {
+		return go3270.DefaultColor
+	}
 	switch strings.ToLower(priority) {
 	case "high":
 		return go3270.Red
@@ -122,6 +132,9 @@ func priorityColor(priority string) go3270.Color {
 
 // scorecardLineColor returns a go3270 color based on score patterns in a scorecard line.
 func scorecardLineColor(line string) go3270.Color {
+	if noColor3270 {
+		return go3270.DefaultColor
+	}
 	upper := strings.ToUpper(line)
 
 	// Section headers

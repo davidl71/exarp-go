@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/davidl71/exarp-go/internal/cache"
+	"github.com/davidl71/exarp-go/internal/config"
 	"github.com/davidl71/exarp-go/internal/framework"
 	"github.com/davidl71/exarp-go/internal/models"
 	"github.com/davidl71/exarp-go/proto"
@@ -159,7 +160,7 @@ func handleReport(ctx context.Context, args json.RawMessage) ([]framework.TextCo
 		// Set defaults for protobuf request
 		framework.ApplyDefaults(params, map[string]interface{}{
 			"action":        "overview",
-			"output_format": "text",
+			"output_format": config.ReportDefaultFormat(),
 		})
 	}
 
@@ -320,7 +321,10 @@ func handleReport(ctx context.Context, args json.RawMessage) ([]framework.TextCo
 		scorecardProto := GoScorecardResultToProto(scorecard)
 		scorecardMap := ProtoToScorecardMap(scorecardProto)
 
-		outputFormat := cast.ToString(params["output_format"])
+		outputFormat := strings.TrimSpace(cast.ToString(params["output_format"]))
+		if outputFormat == "" {
+			outputFormat = config.ReportDefaultFormat()
+		}
 		if outputFormat == "json" {
 			// Return JSON for Python/script consumers (e.g. project_overview, consolidated_reporting)
 			blockers := scorecardProto.GetBlockers()
@@ -332,6 +336,16 @@ func handleReport(ctx context.Context, args json.RawMessage) ([]framework.TextCo
 				"blockers":         blockers,
 				"recommendations":  scorecardProto.GetRecommendations(),
 				"metrics":          scorecardMap["metrics"],
+			}
+			// Add devwisdom quote — gracefully skipped if engine unavailable
+			if engine, err := getWisdomEngine(); err == nil {
+				if quote, err := engine.GetWisdom(scorecard.Score, "random"); err == nil && quote != nil {
+					out["wisdom"] = map[string]string{
+						"quote":         quote.Quote,
+						"source":        quote.Source,
+						"encouragement": quote.Encouragement,
+					}
+				}
 			}
 			AddTokenEstimateToResult(out)
 			compact := cast.ToBool(params["compact"])
