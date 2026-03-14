@@ -30,6 +30,7 @@ Example configuration files for **Cursor**, **OpenCode**, and project-specific t
 |------|-------------|-------------|
 | [opencode-exarp-go-portable.json](opencode-exarp-go-portable.json) | Global or project: `opencode.json` | **Recommended.** Portable runner: copy `scripts/run_exarp_go.sh` into your project; set `command` and `environment.PROJECT_ROOT` to your project paths. |
 | [opencode-exarp-go.json](opencode-exarp-go.json) | Global: `~/.config/opencode/opencode.json` or project: `opencode.json` | Direct exarp-go binary path; set `environment.PROJECT_ROOT` to the project root. |
+| [opencode-exarp-go-http.json](opencode-exarp-go-http.json) | Global or project: `opencode.json` | MCP Streamable HTTP transport (`-mcp-http :8081`). Run `bin/exarp-go -mcp-http :8081` first. Use when stdio is not available. |
 
 - Set `environment.PROJECT_ROOT` to the project root (or use the portable runner script which derives it).
 - Optional: `timeout` (e.g. `10000` ms) for slow tools like report.

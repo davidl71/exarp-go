@@ -1,0 +1,10 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "exarp-go": {
+      "type": "sse",
+      "url": "http://localhost:8081/mcp",
+      "enabled": true
+    }
+  }
+}

@@ -332,6 +332,12 @@ func (a *GoSDKAdapter) GetName() string {
 	return a.name
 }
 
+// MCPServer returns the underlying go-sdk *mcp.Server.
+// Used to wire Streamable HTTP transport in MCP HTTP mode.
+func (a *GoSDKAdapter) MCPServer() *mcp.Server {
+	return a.server
+}
+
 // CallTool executes a tool directly (for CLI mode)
 // Optimized for CLI usage with direct map lookup (O(1))
 func (a *GoSDKAdapter) CallTool(ctx context.Context, name string, args json.RawMessage) ([]types.TextContent, error) {

@@ -250,3 +250,27 @@ func (f *filteredServer) ListTools() []framework.ToolInfo {
 func NewServerFromConfig(cfg *config.Config, opts ...ServerOption) (framework.MCPServer, error) {
 	return NewServer(cfg.Framework, cfg.Name, cfg.Version, opts...)
 }
+
+// UnwrapGoSDKServer unwraps the exarp-go server wrappers and returns the underlying
+// go-sdk *mcp.Server. Returns nil if the server was not created from a GoSDKAdapter.
+// Used by MCP Streamable HTTP mode to wire the real HTTP handler.
+func UnwrapGoSDKServer(s framework.MCPServer) *mcp.Server {
+	// Unwrap filteredServer → exarpServer → *gosdk.GoSDKAdapter
+	type unwrapper interface{ Unwrap() framework.MCPServer }
+	for {
+		switch v := s.(type) {
+		case *filteredServer:
+			s = v.MCPServer
+		case *exarpServer:
+			s = v.MCPServer
+		default:
+			// Try the MCPServer() accessor we added to GoSDKAdapter.
+			type mcpServerer interface{ MCPServer() *mcp.Server }
+			if m, ok := s.(mcpServerer); ok {
+				return m.MCPServer()
+			}
+			_ = unwrapper(nil) // satisfy compiler
+			return nil
+		}
+	}
+}

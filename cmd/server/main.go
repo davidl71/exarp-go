@@ -23,7 +23,7 @@ import (
 	"github.com/davidl71/exarp-go/internal/resources"
 	"github.com/davidl71/exarp-go/internal/tools"
 	"github.com/davidl71/exarp-go/internal/web"
-	framework "github.com/davidl71/mcp-go-core/pkg/mcp/framework"
+	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
 func main() {
@@ -288,34 +288,28 @@ func runMCPHTTPMode(addr string) {
 		logging.Fatal("Failed to register resources: %v", err)
 	}
 
-	httpHandler := &mcpHTTPHandler{server: server}
+	mcpSrv := factory.UnwrapGoSDKServer(server)
+	if mcpSrv == nil {
+		logging.Fatal("MCP HTTP: could not unwrap underlying go-sdk server")
+	}
 
-	logging.Warn("MCP HTTP server ready at http://%s/mcp", addr)
-	if err := http.ListenAndServe(addr, httpHandler); err != nil {
+	streamHandler := mcp.NewStreamableHTTPHandler(func(_ *http.Request) *mcp.Server {
+		return mcpSrv
+	}, nil)
+
+	mux := http.NewServeMux()
+	mux.Handle("/mcp", streamHandler)
+	mux.Handle("/mcp/", streamHandler)
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/" {
+			http.Redirect(w, r, "/mcp", http.StatusFound)
+			return
+		}
+		http.NotFound(w, r)
+	})
+
+	logging.Warn("MCP Streamable HTTP server ready at http://%s/mcp", addr)
+	if err := http.ListenAndServe(addr, mux); err != nil {
 		logging.Fatal("HTTP server error: %v", err)
 	}
-}
-
-type mcpHTTPHandler struct {
-	server framework.MCPServer
-}
-
-func (h *mcpHTTPHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
-	w.Header().Set("Access-Control-Allow-Headers", "Content-Type, MCProtocol-Version")
-
-	if r.Method == "OPTIONS" {
-		w.WriteHeader(http.StatusOK)
-		return
-	}
-
-	if r.URL.Path != "/mcp" && r.URL.Path != "/" {
-		http.NotFound(w, r)
-		return
-	}
-
-	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(`{"status": "ok", "message": "MCP server running. Use stdio transport for full MCP protocol."}`))
 }

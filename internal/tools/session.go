@@ -16,6 +16,23 @@ import (
 	"github.com/spf13/cast"
 )
 
+// HandleSessionPrimeJSON returns session prime data as JSON bytes.
+// Used by the prime://context resource handler for OpenCode session bootstrap.
+func HandleSessionPrimeJSON(ctx context.Context) ([]byte, error) {
+	params := map[string]interface{}{
+		"include_hints": true,
+		"include_tasks": true,
+	}
+	result, err := handleSessionPrime(ctx, params)
+	if err != nil {
+		return nil, err
+	}
+	if len(result) == 0 || result[0].Text == "" {
+		return nil, fmt.Errorf("session prime returned empty result")
+	}
+	return []byte(result[0].Text), nil
+}
+
 // handleSessionNative handles the session tool with native Go implementation.
 func handleSessionNative(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	action := strings.TrimSpace(cast.ToString(params["action"]))

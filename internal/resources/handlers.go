@@ -204,7 +204,7 @@ func RegisterAllResources(server framework.MCPServer) error {
 		return fmt.Errorf("failed to register config schema resource: %w", err)
 	}
 
-	// Register 23 resources (all native Go; no Python bridge)
+	// Register 24 resources (all native Go; no Python bridge)
 	// stdio://scorecard
 	if err := registerAndTrack(server,
 		"stdio://scorecard",
@@ -577,6 +577,17 @@ func RegisterAllResources(server framework.MCPServer) error {
 		handleAgentCard,
 	); err != nil {
 		return fmt.Errorf("failed to register agent card resource: %w", err)
+	}
+
+	// prime://context — session bootstrap for OpenCode and other MCP clients
+	if err := registerAndTrack(server,
+		"prime://context",
+		"Session Prime Context",
+		"Compact session prime data (tasks, hints, mode) for OpenCode and Cursor session bootstrap.",
+		"application/json",
+		handlePrimeContext,
+	); err != nil {
+		return fmt.Errorf("failed to register prime context resource: %w", err)
 	}
 
 	return nil
