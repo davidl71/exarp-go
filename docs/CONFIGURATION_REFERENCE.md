@@ -251,7 +251,7 @@ Tool-specific overrides. Each tool has its own sub-section.
 | Section | Key Parameters | Defaults |
 |---------|----------------|----------|
 | `tools.scorecard` | `default_scores`, `include_wisdom`, `output_format` | scores: 50 each, wisdom: true, format: text |
-| `tools.report` | `default_format`, `include_metrics`, `include_recommendations` | format: text, metrics: true |
+| `tools.report` | `default_format`, `include_metrics`, `include_recommendations` | format: **json**, metrics: true |
 | `tools.linting` | `default_linter`, `auto_fix`, `timeout` | linter: auto, fix: false, timeout: 60s |
 | `tools.testing` | `min_coverage`, `coverage_format`, `verbose` | coverage: 80, format: html |
 | `tools.mlx` | `default_model`, `default_max_tokens`, `default_temperature` | Phi-3.5-mini, 512, 0.7 |
@@ -306,6 +306,50 @@ Tool-specific overrides. Each tool has its own sub-section.
 | `skip_checks` | []string | `[]` | Skip health checks |
 | `custom_tools` | []string | `[]` | Custom tools |
 | `task_discovery_ignore_paths` | []string | `[]` | Default ignore paths for `task_discovery`; request `ignore_paths` extends this list |
+
+---
+
+## Environment Variable Overrides
+
+Some settings can be overridden at runtime via environment variables without touching `.exarp/config.pb`. These take precedence over file config.
+
+| Env Var | Overrides | Description |
+|---------|-----------|-------------|
+| `NO_COLOR` | — | Disable all ANSI color output (Makefile, TUI, git hooks). Follows [no-color.org](https://no-color.org). Set to any non-empty value. |
+| `EXARP_REPORT_FORMAT` | `tools.report.default_format` | Default output format for the `report` tool (`json`, `text`, `markdown`). Default: `json`. |
+| `OLLAMA_DEFAULT_MODEL` | `tools.ollama.default_model` | Ollama model name override. |
+| `OLLAMA_CODE_MODEL` | — | Ollama code-specific model (defaults to `codellama`). |
+
+### NO_COLOR
+
+Setting `NO_COLOR=1` suppresses all ANSI escape codes across:
+- **Makefile** targets (`make build`, `make install`, etc.)
+- **TUI** (Bubbletea/lipgloss styles and go3270 color helpers)
+- **Git hooks** (pre-commit, pre-push, post-merge — exported automatically)
+
+Recommended for AI agents, MCP consumers, CI pipelines, and any non-interactive context. The session `prime` hint also advertises this to connected AI clients.
+
+```bash
+# One-off
+NO_COLOR=1 make build
+
+# Persistent in shell / MCP server env
+export NO_COLOR=1
+```
+
+### EXARP_REPORT_FORMAT
+
+Controls the default output format when `output_format` is not passed to the `report` tool:
+
+```bash
+# Return compact JSON (default — best for AI/MCP consumers)
+EXARP_REPORT_FORMAT=json exarp-go -tool report -args '{"action":"scorecard"}'
+
+# Return human-readable text (useful for terminal use)
+EXARP_REPORT_FORMAT=text exarp-go -tool report -args '{"action":"scorecard"}'
+```
+
+Alternatively, set `tools.report.default_format` in `.exarp/config.pb`.
 
 ---
 
@@ -395,6 +439,38 @@ tools:
 memory:
   retention_days: 30
   max_memories: 500
+```
+
+---
+
+### AI / MCP Consumer (JSON Output, No Color)
+
+For use when exarp-go is accessed primarily by AI agents or MCP clients. Set `NO_COLOR=1` in the MCP server env and configure JSON as the default report format.
+
+```yaml
+version: "1.0"
+
+tools:
+  report:
+    default_format: json
+    include_metrics: true
+    include_recommendations: true
+```
+
+MCP server config (e.g. `.cursor/mcp.json`):
+
+```json
+{
+  "mcpServers": {
+    "exarp-go": {
+      "command": "/Users/yourname/go/bin/exarp-go",
+      "env": {
+        "PROJECT_ROOT": "/path/to/project",
+        "NO_COLOR": "1"
+      }
+    }
+  }
+}
 ```
 
 ---
