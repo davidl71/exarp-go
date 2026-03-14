@@ -96,13 +96,14 @@ fi
 # In exarp-go repo: run build and docs health (no vulnerability scan; run make pre-release before release)
 # In other repos: run docs health (exarp-go from PATH). Gracefully skips if exarp-go not found.
 
-# Suppress INFO logs in git hook context (reduces token usage)
+# Suppress INFO logs and ANSI colors in git hook context
 export GIT_HOOK=1
+export NO_COLOR=1
 ` + exarpGoPreamble + `
 # Redirect stdin so exarp-go never sees git refs (avoids JSON parse error if it ran in MCP mode)
 # In exarp-go repo, block commit if build fails (use make silent for minimal output)
 if [ -f Makefile ] && [ -f go.mod ] && grep -q 'exarp-go' go.mod 2>/dev/null; then
-  make silent >/dev/null 2>&1 || { echo "Build failed"; exit 1; }
+  NO_COLOR=1 make silent >/dev/null 2>&1 || { echo "Build failed"; exit 1; }
   "$EXARP_GO" -tool health -args '{"action":"docs"}' </dev/null || exit 1
   "$EXARP_GO" -tool security -args '{"action":"scan"}' </dev/null || exit 1
 else
@@ -114,8 +115,9 @@ fi
 # Exarp pre-push hook
 # Run task alignment and security scan. Gracefully skips if exarp-go not found.
 
-# Suppress INFO logs in git hook context (reduces token usage)
+# Suppress INFO logs and ANSI colors in git hook context
 export GIT_HOOK=1
+export NO_COLOR=1
 ` + exarpGoPreamble + `
 # Redirect stdin so exarp-go never sees git refs (avoids JSON parse error if it ran in MCP mode)
 # Use explicit JSON args to avoid key=value parsing issues in hooks
@@ -125,14 +127,16 @@ export GIT_HOOK=1
 		"post-commit": `#!/bin/sh
 # Exarp post-commit hook (no-op; run 'exarp-go -tool automation -args '"'"'{"action":"discover"}'"'"' manually if needed)
 export GIT_HOOK=1
+export NO_COLOR=1
 # Automation discover removed from hook to avoid slow/noisy runs after every commit
 `,
 		"post-merge": `#!/bin/sh
 # Exarp post-merge hook
 # Run duplicate detection and task sync (non-blocking). Gracefully skips if exarp-go not found.
 
-# Suppress INFO logs in git hook context (reduces token usage)
+# Suppress INFO logs and ANSI colors in git hook context
 export GIT_HOOK=1
+export NO_COLOR=1
 ` + exarpGoPreamble + `
 "$EXARP_GO" -tool task_analysis -args '{"action":"duplicates"}' </dev/null || true
 "$EXARP_GO" -tool task_workflow -args '{"action":"sync"}' </dev/null || true
