@@ -14,6 +14,7 @@
 
 # Exarp runtime directories (state, cache, logs, temporary files)
 .exarp/
+!.exarp/plan.json
 .cache/
 
 # Generated reports (e.g. by analyze_alignment, pre-push hooks)

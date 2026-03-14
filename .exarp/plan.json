@@ -1,0 +1,15 @@
+{
+  "overview": "Ship a production-ready MCP server with AI-powered task management, local LLM inference, and semantic search.",
+  "success_criteria": "All scorecard dimensions green; zero known security issues; llamacpp, chromem-go, and Apple FM fully integrated.",
+  "storage_note": "Todo2 (SQLite primary, JSON fallback)",
+  "invariants_note": "Use Makefile targets; prefer MCP tools over direct file edits; always prefix make/go commands with NO_COLOR=1",
+  "agents": [
+    {"name": "wave-task-runner", "path": ".cursor/agents/wave-task-runner.md", "role": "Run one task per wave from this plan"},
+    {"name": "wave-verifier",    "path": ".cursor/agents/wave-verifier.md",    "role": "Verify wave outcomes and update status"}
+  ],
+  "referenced_by": [
+    ".cursor/agents/wave-task-runner.md",
+    ".cursor/agents/wave-verifier.md",
+    ".cursor/rules/plan-execution.mdc"
+  ]
+}
