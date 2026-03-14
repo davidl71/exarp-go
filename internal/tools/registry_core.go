@@ -526,6 +526,11 @@ func registerCoreTools(server framework.MCPServer) error {
 					"default":     false,
 					"description": "For action=plan: when true, repair existing plan file (restore frontmatter and ## 3. Iterative Milestones) without overwriting rest of body",
 				},
+				"force": map[string]interface{}{
+					"type":        "boolean",
+					"default":     false,
+					"description": "For action=plan: when true, force full regeneration even if plan file already exists (overrides auto-repair behaviour)",
+				},
 				"plan_path": map[string]interface{}{
 					"type":        "string",
 					"description": "For action=plan with repair=true: path to plan file to repair (default: same as output_path)",

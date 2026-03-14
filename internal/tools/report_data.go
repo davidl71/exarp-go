@@ -89,7 +89,7 @@ func aggregateProjectDataProto(ctx context.Context, projectRoot string, includeP
 		}
 	}
 
-	if actions, err := getNextActions(projectRoot); err == nil {
+	if actions, err := getNextActions(projectRoot, 0); err == nil {
 		for _, a := range actions {
 			hours := 0.0
 			if h, ok := a["estimated_hours"].(float64); ok {
@@ -391,22 +391,47 @@ func getProjectPhases() map[string]interface{} {
 func getRisksAndBlockers(projectRoot string) ([]map[string]interface{}, error) {
 	risks := []map[string]interface{}{}
 
-	// Check for incomplete tasks with high priority
 	store := NewDefaultTaskStore(projectRoot)
-
 	list, err := store.ListTasks(context.Background(), nil)
-	if err == nil {
-		tasks := tasksFromPtrs(list)
-		for _, task := range tasks {
-			if IsPendingStatus(task.Status) && task.Priority == models.PriorityCritical {
-				risks = append(risks, map[string]interface{}{
-					"type":        "blocker",
-					"description": task.Content,
-					"task_id":     task.ID,
-					"priority":    task.Priority,
-				})
-			}
+	if err != nil {
+		return risks, nil
+	}
+
+	tasks := tasksFromPtrs(list)
+
+	// Build task map for dependency-blocked detection.
+	taskMap := make(map[string]Todo2Task, len(tasks))
+	for _, t := range tasks {
+		taskMap[t.ID] = t
+	}
+
+	for _, task := range tasks {
+		if !IsPendingStatus(task.Status) {
+			continue
 		}
+
+		isCritical := task.Priority == models.PriorityCritical
+		isHigh := task.Priority == models.PriorityHigh
+
+		// Dependency-blocked: has unresolved deps and is not otherwise ready.
+		isBlocked := len(task.Dependencies) > 0 && !isTaskReady(task, taskMap)
+
+		if !isCritical && !isHigh && !isBlocked {
+			continue
+		}
+
+		riskType := "risk"
+		if isCritical || isBlocked {
+			riskType = "blocker"
+		}
+
+		risks = append(risks, map[string]interface{}{
+			"type":        riskType,
+			"description": task.Content,
+			"task_id":     task.ID,
+			"priority":    task.Priority,
+			"blocked":     isBlocked,
+		})
 	}
 
 	return risks, nil
@@ -424,7 +449,11 @@ func isTaskReady(task Todo2Task, taskMap map[string]Todo2Task) bool {
 }
 
 // getNextActions identifies next priority actions (dependency-aware: only suggests ready tasks).
-func getNextActions(projectRoot string) ([]map[string]interface{}, error) {
+// limit controls how many actions are returned (0 = use default of 10).
+func getNextActions(projectRoot string, limit int) ([]map[string]interface{}, error) {
+	if limit <= 0 {
+		limit = 10
+	}
 	actions := []map[string]interface{}{}
 
 	store := NewDefaultTaskStore(projectRoot)
@@ -455,7 +484,7 @@ func getNextActions(projectRoot string) ([]map[string]interface{}, error) {
 					"priority":        task.Priority,
 					"estimated_hours": estimatedHours,
 				})
-				if len(actions) >= 10 {
+				if len(actions) >= limit {
 					break
 				}
 			}
@@ -469,9 +498,8 @@ func getNextActions(projectRoot string) ([]map[string]interface{}, error) {
 		taskMap[t.ID] = t
 	}
 
-	const maxNext = 10
 	for _, taskID := range orderedIDs {
-		if len(actions) >= maxNext {
+		if len(actions) >= limit {
 			break
 		}
 

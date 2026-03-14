@@ -48,8 +48,9 @@ func generatePlanMarkdown(ctx context.Context, projectRoot, planTitle string) (s
 	}
 
 	snippet := getPlanningSnippet(projectRoot)
-	actions, _ := getNextActions(projectRoot)
+	actions, _ := getNextActions(projectRoot, overrides.resolvedMaxNextActions())
 	risks, _ := getRisksAndBlockers(projectRoot)
+	agentWarnings := overrides.agentPathWarnings(projectRoot)
 
 	// Todos for frontmatter (Cursor-buildable: id, content, status so Cursor displays them as Todos)
 	todoEntries := make([]struct{ id, content, status string }, 0, len(actions))
@@ -421,6 +422,14 @@ func generatePlanMarkdown(ctx context.Context, projectRoot, planTitle string) (s
 	sb.WriteString("- [docs/BACKLOG_EXECUTION_PLAN.md](docs/BACKLOG_EXECUTION_PLAN.md) — full wave breakdown\n")
 	sb.WriteString("- *(Add other plan or doc links as needed.)*\n")
 
+	// Warnings (missing agent paths, etc.)
+	if len(agentWarnings) > 0 {
+		sb.WriteString("\n---\n\n> **Plan warnings:**\n")
+		for _, w := range agentWarnings {
+			sb.WriteString(fmt.Sprintf("> - %s\n", w))
+		}
+	}
+
 	return sb.String(), nil
 }
 
@@ -488,17 +497,14 @@ func repairPlanFile(ctx context.Context, projectRoot, planPath, planTitle string
 	}
 	frontmatterEnd := firstDash + 4 + secondDash + len("\n---\n")
 
-	// Locate "## 3. Iterative Milestones" and "## 4. Recommended Execution Order"
-	marker3 := "## 3. Iterative Milestones"
-	marker4 := "## 4. Recommended Execution Order"
-	idx3 := strings.Index(content, marker3)
-	idx4 := strings.Index(content, marker4)
-	if idx3 < 0 || idx4 < 0 || idx4 <= idx3 {
-		return "", fmt.Errorf("plan file missing ## 3 or ## 4 section")
+	// Locate the milestones section via a line scanner — tolerates any section ordering.
+	// bodyBefore = everything up to (not including) the milestones heading.
+	// bodyAfter  = everything from the next ## heading after milestones onward.
+	// If the milestones section is missing, fall back to full regeneration.
+	bodyBefore, bodyAfter, found := splitAroundSection(content[frontmatterEnd:], "Milestones")
+	if !found {
+		return generatePlanMarkdown(ctx, projectRoot, planTitle)
 	}
-
-	bodyBefore := content[frontmatterEnd:idx3]
-	bodyAfter := content[idx4:]
 
 	// Recompute todoEntries and waves from Todo2 (same as generatePlanMarkdown)
 	displayName := planDisplayName(planTitle)
@@ -521,7 +527,7 @@ func repairPlanFile(ctx context.Context, projectRoot, planPath, planTitle string
 		taskByID[t.ID] = t
 	}
 
-	actions, _ := getNextActions(projectRoot)
+	actions, _ := getNextActions(projectRoot, overrides.resolvedMaxNextActions())
 	todoEntries := make([]struct{ id, content, status string }, 0, len(actions))
 	for _, a := range actions {
 		id := getStr(a, "task_id")

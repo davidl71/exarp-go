@@ -24,8 +24,10 @@ package tools
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 // PlanOverrides holds project-specific overrides for plan generation.
@@ -48,6 +50,19 @@ type PlanOverrides struct {
 
 	// ReferencedBy overrides the referenced_by list in the YAML frontmatter.
 	ReferencedBy []string `json:"referenced_by"`
+
+	// MaxNextActions overrides the default limit of 10 next actions shown in the plan.
+	// 0 means use the default (10).
+	MaxNextActions int `json:"max_next_actions"`
+
+	// ScorecardThresholds maps dimension names to minimum score (0–100) below which
+	// an improvement plan is generated. Keys: "testing", "security", "documentation", "completion".
+	// Omitted keys use the default threshold (100).
+	ScorecardThresholds map[string]int `json:"scorecard_thresholds"`
+
+	// WavesPlanSource overrides the source file for update_waves_from_plan.
+	// Default: "docs/PARALLEL_EXECUTION_PLAN_RESEARCH.md"
+	WavesPlanSource string `json:"waves_plan_source"`
 }
 
 // PlanAgent describes a Cursor agent referenced by the plan.
@@ -130,4 +145,77 @@ func (o *PlanOverrides) resolvedSuccessCriteria() string {
 		return o.SuccessCriteria
 	}
 	return "Clear milestones and quality gates; backlog aligned with execution order."
+}
+
+// resolvedMaxNextActions returns the next-actions limit with fallback.
+func (o *PlanOverrides) resolvedMaxNextActions() int {
+	if o.MaxNextActions > 0 {
+		return o.MaxNextActions
+	}
+	return 10
+}
+
+// resolvedScorecardThreshold returns the threshold for a given dimension (default 100).
+func (o *PlanOverrides) resolvedScorecardThreshold(dimension string) int {
+	if o.ScorecardThresholds != nil {
+		if v, ok := o.ScorecardThresholds[dimension]; ok {
+			return v
+		}
+	}
+	return 100
+}
+
+// resolvedWavesPlanSource returns the waves plan source path with fallback.
+func (o *PlanOverrides) resolvedWavesPlanSource() string {
+	if o.WavesPlanSource != "" {
+		return o.WavesPlanSource
+	}
+	return "docs/PARALLEL_EXECUTION_PLAN_RESEARCH.md"
+}
+
+// splitAroundSection splits body text around the first ## heading whose title
+// contains keyword (case-insensitive). Returns (before, after, true) where:
+//   - before is the text before the matching heading line
+//   - after  is the text from the next ## heading onward (empty if none follows)
+//
+// Returns ("", "", false) if no matching heading is found.
+func splitAroundSection(body, keyword string) (before, after string, found bool) {
+	lower := strings.ToLower(keyword)
+	lines := strings.Split(body, "\n")
+	milestoneIdx := -1
+	nextIdx := len(lines)
+
+	for i, line := range lines {
+		if strings.HasPrefix(line, "## ") && strings.Contains(strings.ToLower(line), lower) {
+			milestoneIdx = i
+			continue
+		}
+		if milestoneIdx >= 0 && strings.HasPrefix(line, "## ") {
+			nextIdx = i
+			break
+		}
+	}
+
+	if milestoneIdx < 0 {
+		return "", "", false
+	}
+
+	before = strings.Join(lines[:milestoneIdx], "\n")
+	if before != "" {
+		before += "\n"
+	}
+	after = strings.Join(lines[nextIdx:], "\n")
+	return before, after, true
+}
+
+// agentPathWarnings returns a list of warning strings for agent paths that don't exist on disk.
+func (o *PlanOverrides) agentPathWarnings(projectRoot string) []string {
+	var warnings []string
+	for _, ag := range o.resolvedAgents() {
+		full := filepath.Join(projectRoot, ag.Path)
+		if _, err := os.Stat(full); err != nil {
+			warnings = append(warnings, fmt.Sprintf("agent path not found: %s", ag.Path))
+		}
+	}
+	return warnings
 }

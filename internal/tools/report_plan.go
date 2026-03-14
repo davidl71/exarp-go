@@ -5,15 +5,17 @@ package tools
 import (
 	"context"
 	"fmt"
-	"github.com/davidl71/exarp-go/internal/config"
-	"github.com/davidl71/exarp-go/internal/database"
-	"github.com/davidl71/exarp-go/internal/framework"
-	"github.com/spf13/cast"
+	"math"
 	"os"
 	"path/filepath"
 	"sort"
 	"strings"
 	"time"
+
+	"github.com/davidl71/exarp-go/internal/config"
+	"github.com/davidl71/exarp-go/internal/database"
+	"github.com/davidl71/exarp-go/internal/framework"
+	"github.com/spf13/cast"
 )
 
 // ─── Contents ───────────────────────────────────────────────────────────────
@@ -60,7 +62,11 @@ func handleReportPlan(ctx context.Context, params map[string]interface{}) ([]fra
 	} else {
 		planPath = ensurePlanMdSuffix(planPath)
 	}
-	if repair {
+	// Auto-repair: if file exists and repair not explicitly set, repair to preserve hand-written body.
+	// Explicit repair=true also enters this path; repair=false skips it (full regenerate).
+	_, fileExists := os.Stat(planPath)
+	autoRepair := repair || (fileExists == nil && !cast.ToBool(params["force"]))
+	if autoRepair {
 		repaired, err := repairPlanFile(ctx, projectRoot, planPath, planTitle)
 		if err != nil {
 			return nil, fmt.Errorf("repair plan: %w", err)
@@ -300,7 +306,8 @@ func handleReportUpdateWavesFromPlan(ctx context.Context, params map[string]inte
 
 	planPath := cast.ToString(params["plan_path"])
 	if planPath == "" {
-		planPath = filepath.Join(projectRoot, DefaultPlanWavesPath)
+		overrides := loadPlanOverrides(projectRoot)
+		planPath = filepath.Join(projectRoot, overrides.resolvedWavesPlanSource())
 	}
 
 	waves, err := ParseWavesFromPlanMarkdown(planPath)
@@ -432,6 +439,8 @@ func handleReportScorecardPlans(ctx context.Context, params map[string]interface
 		return nil, fmt.Errorf("scorecard for plans: %w", err)
 	}
 
+	overrides := loadPlanOverrides(projectRoot)
+
 	scores := map[string]float64{
 		"testing":       calculateTestingScore(scorecard),
 		"security":      calculateSecurityScore(scorecard),
@@ -441,7 +450,8 @@ func handleReportScorecardPlans(ctx context.Context, params map[string]interface
 	byDim := recommendationsByDimension(scorecard.Recommendations)
 
 	// Add a generic documentation recommendation when doc score is below threshold and none exist
-	if scores["documentation"] < 100 && len(byDim["documentation"]) == 0 {
+	docThreshold := float64(overrides.resolvedScorecardThreshold("documentation"))
+	if scores["documentation"] < docThreshold && len(byDim["documentation"]) == 0 {
 		byDim["documentation"] = append(byDim["documentation"], "Improve documentation (README, godoc, .cursor/docs)")
 	}
 
@@ -454,7 +464,8 @@ func handleReportScorecardPlans(ctx context.Context, params map[string]interface
 
 	for _, dim := range []string{"testing", "security", "documentation", "completion"} {
 		cfg := scorecardDimensionConfig[dim]
-		if scores[dim] >= cfg.threshold {
+		threshold := math.Max(cfg.threshold, float64(overrides.resolvedScorecardThreshold(dim)))
+		if scores[dim] >= threshold {
 			continue
 		}
 
