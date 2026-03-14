@@ -5,14 +5,16 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/davidl71/exarp-go/internal/database"
-	"github.com/davidl71/exarp-go/internal/models"
 	"math"
 	"os"
 	"path/filepath"
 	"sort"
 	"strings"
 	"time"
+
+	"github.com/davidl71/exarp-go/internal/database"
+	"github.com/davidl71/exarp-go/internal/models"
+	"github.com/davidl71/exarp-go/internal/vector"
 )
 
 // loadHistoricalTasks loads completed tasks from Todo2 (DB-first, then JSON fallback).
@@ -449,4 +451,91 @@ func EstimateWithOllama(ctx context.Context, name, details string, tags []string
 	}
 
 	return ParseLLMEstimationResponse(responseText)
+}
+
+// estimateFromHistorySemantic ranks historical tasks by semantic similarity using a VectorStore
+// and returns a weighted-average estimate. Returns (nil, 0, nil) when no useful matches exist.
+func estimateFromHistorySemantic(ctx context.Context, store *vector.OllamaStore, query string, tags []string, priority string, historical []HistoricalTask) (*float64, float64, error) {
+	if len(historical) == 0 {
+		return nil, 0, nil
+	}
+
+	docs := make([]vector.Document, len(historical))
+	for i, h := range historical {
+		docs[i] = vector.Document{
+			ID:   fmt.Sprintf("%d", i),
+			Text: h.Name + " " + h.Details,
+		}
+	}
+
+	if err := store.AddAll(ctx, docs); err != nil {
+		return nil, 0, fmt.Errorf("vector add: %w", err)
+	}
+
+	topN := 10
+	results, err := store.Search(ctx, query, topN)
+	if err != nil {
+		return nil, 0, fmt.Errorf("vector search: %w", err)
+	}
+
+	type match struct {
+		actualHours float64
+		score       float64
+	}
+
+	matches := make([]match, 0, len(results))
+	for _, r := range results {
+		var idx int
+		if _, err := fmt.Sscanf(r.ID, "%d", &idx); err != nil || idx < 0 || idx >= len(historical) {
+			continue
+		}
+
+		h := historical[idx]
+		score := float64(r.Similarity)
+
+		// Tag bonus (same weighting as word-overlap path)
+		if len(tags) > 0 && len(h.Tags) > 0 {
+			tagSet := make(map[string]bool, len(tags))
+			for _, t := range tags {
+				tagSet[strings.ToLower(t)] = true
+			}
+			overlap := 0
+			for _, t := range h.Tags {
+				if tagSet[strings.ToLower(t)] {
+					overlap++
+				}
+			}
+			score += float64(overlap) / float64(len(h.Tags)) * 0.3
+		}
+
+		// Priority bonus
+		if strings.EqualFold(priority, h.Priority) {
+			score += 0.2
+		}
+
+		matches = append(matches, match{actualHours: h.ActualHours, score: score})
+	}
+
+	if len(matches) == 0 {
+		return nil, 0, nil
+	}
+
+	sort.Slice(matches, func(i, j int) bool { return matches[i].score > matches[j].score })
+
+	totalWeight := 0.0
+	weightedSum := 0.0
+	for _, m := range matches {
+		totalWeight += m.score
+		weightedSum += m.actualHours * m.score
+	}
+
+	if totalWeight == 0 {
+		return nil, 0, nil
+	}
+
+	estimate := weightedSum / totalWeight
+	avgScore := totalWeight / float64(len(matches))
+	confidence := math.Min(0.9, 0.4+avgScore*0.5)
+
+	return &estimate, confidence, nil
 }

@@ -2,9 +2,12 @@
 package tools
 
 import (
-	"github.com/spf13/cast"
+	"context"
 	"math"
 	"strings"
+
+	"github.com/davidl71/exarp-go/internal/vector"
+	"github.com/spf13/cast"
 )
 
 // MetadataKeyPreferredBackend is the task metadata key for local AI backend preference (fm, mlx, ollama).
@@ -76,21 +79,39 @@ type EstimationResult struct {
 }
 
 // estimateStatistically estimates task duration using statistical methods.
-func estimateStatistically(projectRoot, name, details string, tags []string, priority string, useHistorical bool) (*EstimationResult, error) {
+// When ctx is non-nil and Ollama is reachable, it uses semantic (vector) similarity
+// for historical matching; otherwise falls back to word-overlap scoring.
+func estimateStatistically(ctx context.Context, projectRoot, name, details string, tags []string, priority string, useHistorical bool) (*EstimationResult, error) {
 	text := strings.ToLower(name + " " + details)
 
 	var historicalEstimate *float64
-
 	var historicalConfidence float64
+	embeddingSearch := false
 
 	// Strategy 1: Historical data matching
 	if useHistorical {
 		historical, err := loadHistoricalTasks(projectRoot)
 		if err == nil && len(historical) > 0 {
-			est, conf := estimateFromHistory(text, tags, priority, historical)
-			if est != nil {
-				historicalEstimate = est
-				historicalConfidence = conf
+			// Try semantic search first when Ollama is available.
+			if ctx != nil {
+				store, storeErr := vector.NewOllamaStore("", "")
+				if storeErr == nil && store.Available() {
+					est, conf, semErr := estimateFromHistorySemantic(ctx, store, name+" "+details, tags, priority, historical)
+					if semErr == nil && est != nil {
+						historicalEstimate = est
+						historicalConfidence = conf
+						embeddingSearch = true
+					}
+				}
+			}
+
+			// Fall back to word-overlap if semantic search was not used or failed.
+			if historicalEstimate == nil {
+				est, conf := estimateFromHistory(text, tags, priority, historical)
+				if est != nil {
+					historicalEstimate = est
+					historicalConfidence = conf
+				}
 			}
 		}
 	}
@@ -104,34 +125,27 @@ func estimateStatistically(projectRoot, name, details string, tags []string, pri
 
 	// Combine estimates
 	var baseEstimate float64
-
 	var confidence float64
-
 	var method string
 
 	if historicalEstimate != nil && historicalConfidence > 0.2 {
-		// Use historical estimate (already includes actual work time)
 		baseEstimate = *historicalEstimate
 		confidence = historicalConfidence
-		method = "historical_match"
+		if embeddingSearch {
+			method = "historical_semantic"
+		} else {
+			method = "historical_match"
+		}
 	} else {
-		// Use keyword heuristic
 		baseEstimate = heuristicEstimate
 		confidence = heuristicConfidence
 		method = "keyword_heuristic"
 	}
 
-	// Apply priority multiplier once (not twice!)
 	finalEstimate := baseEstimate * priorityMultiplier
-
-	// Cap estimates at reasonable maximum (20 hours for this tool)
-	// Most tasks should be much shorter
 	finalEstimate = math.Min(20.0, finalEstimate)
-
-	// Round to 1 decimal place
 	finalEstimate = math.Round(finalEstimate*10) / 10
 
-	// Calculate confidence interval
 	stdDev := finalEstimate * 0.3
 	lowerBound := math.Max(0.5, finalEstimate-1.96*stdDev)
 	upperBound := finalEstimate + 1.96*stdDev
@@ -147,6 +161,7 @@ func estimateStatistically(projectRoot, name, details string, tags []string, pri
 			"historical_confidence": historicalConfidence,
 			"heuristic_estimate":    heuristicEstimate,
 			"priority_multiplier":   priorityMultiplier,
+			"embedding_search":      embeddingSearch,
 		},
 	}, nil
 }

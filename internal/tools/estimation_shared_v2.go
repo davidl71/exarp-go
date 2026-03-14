@@ -188,7 +188,7 @@ func handleEstimationEstimateShared(ctx context.Context, projectRoot string, par
 	}
 
 	// Get statistical estimate (always available)
-	statisticalResult, err := estimateStatistically(projectRoot, name, details, tags, priority, useHistorical)
+	statisticalResult, err := estimateStatistically(ctx, projectRoot, name, details, tags, priority, useHistorical)
 	if err != nil {
 		return "", fmt.Errorf("statistical estimation failed: %w", err)
 	}

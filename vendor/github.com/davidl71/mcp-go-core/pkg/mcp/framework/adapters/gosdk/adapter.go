@@ -19,14 +19,6 @@ type GoSDKAdapter struct {
 	toolInfo     map[string]types.ToolInfo        // Pre-allocated map for O(1) lookups
 	logger       *logging.Logger
 	middleware   *MiddlewareChain
-	session      *mcp.ServerSession // Captured on first tool call for sampling/roots
-
-	// Optional handlers
-	completionHandler          interface{}
-	resourceSubscribeHandler   interface{}
-	resourceUnsubscribeHandler interface{}
-	impl                       *mcp.Implementation
-	serverOpts                 *mcp.ServerOptions
 }
 
 // NewGoSDKAdapter creates a new Go SDK adapter
@@ -40,7 +32,7 @@ func NewGoSDKAdapter(name, version string, opts ...AdapterOption) *GoSDKAdapter 
 		name:         name,
 		toolHandlers: make(map[string]framework.ToolHandler),
 		toolInfo:     make(map[string]types.ToolInfo),
-		logger:       logging.NewLogger(),  // Default logger
+		logger:       logging.NewLogger(), // Default logger
 		middleware:   NewMiddlewareChain(), // Default empty middleware chain
 	}
 
@@ -81,11 +73,6 @@ func (a *GoSDKAdapter) RegisterTool(name, description string, schema types.ToolS
 	// Create handler function that matches ToolHandler signature
 	// ToolHandler: func(context.Context, *CallToolRequest) (*CallToolResult, error)
 	toolHandler := func(ctx context.Context, req *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		// Capture session on first tool call for sampling/roots
-		if a.session == nil && req.Session != nil {
-			a.session = req.Session
-		}
-
 		// Check context cancellation
 		if err := ValidateContext(ctx); err != nil {
 			return nil, err
@@ -345,12 +332,6 @@ func (a *GoSDKAdapter) GetName() string {
 	return a.name
 }
 
-// GetServerSession returns the captured ServerSession, or nil if not yet initialized.
-// The session is captured on the first tool call.
-func (a *GoSDKAdapter) GetServerSession() *mcp.ServerSession {
-	return a.session
-}
-
 // CallTool executes a tool directly (for CLI mode)
 // Optimized for CLI usage with direct map lookup (O(1))
 func (a *GoSDKAdapter) CallTool(ctx context.Context, name string, args json.RawMessage) ([]types.TextContent, error) {
@@ -373,10 +354,4 @@ func (a *GoSDKAdapter) ListTools() []types.ToolInfo {
 		tools = append(tools, info)
 	}
 	return tools
-}
-
-// AddToolMiddleware adds a middleware function for tool calls.
-// This allows adding cross-cutting concerns like logging, metrics, or context injection.
-func (a *GoSDKAdapter) AddToolMiddleware(mw func(ToolHandlerFunc) ToolHandlerFunc) {
-	a.middleware.AddToolMiddleware(mw)
 }
