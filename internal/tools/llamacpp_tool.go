@@ -44,8 +44,10 @@ func handleLlamaCppStatus() ([]framework.TextContent, error) {
 	provider := DefaultLlamaCppProvider()
 	gpu := DetectGPU()
 
+	available := provider != nil && provider.Supported()
 	status := map[string]interface{}{
-		"available": provider != nil && provider.Supported(),
+		"available":    available,
+		"model_loaded": LlamaCppModelPath(),
 		"gpu": map[string]interface{}{
 			"available":   gpu.Available,
 			"backend":     gpu.Backend,
@@ -138,11 +140,15 @@ func handleLlamaCppLoad(params map[string]interface{}) ([]framework.TextContent,
 		return nil, fmt.Errorf("model_path or model name is required for llamacpp load")
 	}
 
-	return []framework.TextContent{{Type: "text", Text: fmt.Sprintf("Model load queued: %s (not yet implemented — provider stub)", modelPath)}}, nil
+	if err := LlamaCppLoad(modelPath); err != nil {
+		return nil, fmt.Errorf("llamacpp load failed: %w", err)
+	}
+	return []framework.TextContent{{Type: "text", Text: fmt.Sprintf("Model loaded: %s", modelPath)}}, nil
 }
 
 func handleLlamaCppUnload(_ map[string]interface{}) ([]framework.TextContent, error) {
-	return []framework.TextContent{{Type: "text", Text: "Model unload queued (not yet implemented — provider stub)"}}, nil
+	LlamaCppUnload()
+	return []framework.TextContent{{Type: "text", Text: "Model unloaded"}}, nil
 }
 
 // registerLlamaCppTool registers the "llamacpp" MCP tool with appropriate schema.

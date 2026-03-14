@@ -5,6 +5,8 @@
 // Returns nil/unsupported so the rest of the codebase compiles cleanly.
 package tools
 
+import "fmt"
+
 // DefaultLlamaCppProvider returns nil when llamacpp is not built.
 func DefaultLlamaCppProvider() TextGenerator {
 	return nil
@@ -14,3 +16,14 @@ func DefaultLlamaCppProvider() TextGenerator {
 func llamacppIfAvailable() TextGenerator {
 	return nil
 }
+
+// LlamaCppLoad returns an error when llamacpp is not built.
+func LlamaCppLoad(_ string) error {
+	return fmt.Errorf("llamacpp not available: build with -tags llamacpp,cgo and libbinding.a")
+}
+
+// LlamaCppUnload is a no-op when llamacpp is not built.
+func LlamaCppUnload() {}
+
+// LlamaCppModelPath returns empty string when llamacpp is not built.
+func LlamaCppModelPath() string { return "" }

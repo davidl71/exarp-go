@@ -304,6 +304,11 @@ func registerAITools(server framework.MCPServer) error {
 		return err
 	}
 
+	// llamacpp — always registered; status/models work without CGO, generate requires -tags llamacpp,cgo
+	if err := registerLlamaCppTool(server); err != nil {
+		return err
+	}
+
 	// text_generate
 	if err := server.RegisterTool(
 		"text_generate",

@@ -923,7 +923,9 @@ build-llamacpp: ## Build with llama.cpp support (CGO + llamacpp build tag, requi
 		CGO_ENABLED=1 $(GO) build -ldflags "-X main.Version=$(VERSION) -X main.BuildTime=$(BUILD_TIME) -X main.GitCommit=$(GIT_COMMIT)" -o $(BINARY_PATH) ./cmd/server || \
 		 (echo "$(RED)❌ Build failed$(NC)" && exit 1); \
 	else \
-		CGO_ENABLED=1 LIBRARY_PATH=$(LLAMACPP_DIR) C_INCLUDE_PATH=$(LLAMACPP_DIR) \
+		CGO_ENABLED=1 \
+		CGO_CPPFLAGS="-I$(LLAMACPP_DIR) -I$(LLAMACPP_DIR)/llama.cpp -I$(LLAMACPP_DIR)/llama.cpp/common" \
+		CGO_LDFLAGS="-L$(LLAMACPP_DIR) -lbinding -lstdc++ -framework Foundation -framework Metal -framework MetalKit -framework MetalPerformanceShaders" \
 		 $(GO) build -tags llamacpp -ldflags "-X main.Version=$(VERSION) -X main.BuildTime=$(BUILD_TIME) -X main.GitCommit=$(GIT_COMMIT)" -o $(BINARY_PATH) ./cmd/server || \
 		 (echo "$(RED)❌ Build with llama.cpp failed$(NC)" && exit 1); \
 		echo "$(GREEN)✅ Server built with llama.cpp support: $(BINARY_PATH)$(NC)"; \

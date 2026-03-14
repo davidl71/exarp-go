@@ -26,7 +26,7 @@ const designLimitTools = 40
 
 // ExpectedToolCountBase is the base number of tools registered by RegisterAllTools (without conditional Apple FM).
 // With Apple Foundation Models on darwin/arm64/cgo build, count is ExpectedToolCountBase+1.
-const ExpectedToolCountBase = 37 // 37 base (38 with Apple FM on darwin/arm64/cgo)
+const ExpectedToolCountBase = 38 // 38 base (39 with Apple FM on darwin/arm64/cgo)
 
 // handleHealthNative handles the health tool with native Go implementation
 // Implements all actions: "server", "git", "docs", "dod", "cicd", "tools"
