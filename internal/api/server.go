@@ -107,6 +107,9 @@ func (s *Server) handleGetTasks(w http.ResponseWriter, r *http.Request) {
 
 	argsBytes, _ := json.Marshal(args)
 	ctx := withProjectRoot(r.Context(), s.ProjectRoot)
+	if name := r.Header.Get("X-Client-Name"); name != "" {
+		ctx = framework.WithClientName(ctx, name)
+	}
 	contents, err := s.MCPServer.CallTool(ctx, "task_workflow", argsBytes)
 	s.writeToolResult(w, contents, err)
 }
@@ -119,6 +122,9 @@ func (s *Server) handleSessionPrime(w http.ResponseWriter, r *http.Request) {
 	}
 	argsBytes, _ := json.Marshal(args)
 	ctx := withProjectRoot(r.Context(), s.ProjectRoot)
+	if name := r.Header.Get("X-Client-Name"); name != "" {
+		ctx = framework.WithClientName(ctx, name)
+	}
 	contents, err := s.MCPServer.CallTool(ctx, "session", argsBytes)
 	s.writeToolResult(w, contents, err)
 }
@@ -131,6 +137,9 @@ func (s *Server) handleReportOverview(w http.ResponseWriter, r *http.Request) {
 	}
 	argsBytes, _ := json.Marshal(args)
 	ctx := withProjectRoot(r.Context(), s.ProjectRoot)
+	if name := r.Header.Get("X-Client-Name"); name != "" {
+		ctx = framework.WithClientName(ctx, name)
+	}
 	contents, err := s.MCPServer.CallTool(ctx, "report", argsBytes)
 	s.writeToolResult(w, contents, err)
 }
@@ -143,6 +152,9 @@ func (s *Server) handleReportScorecard(w http.ResponseWriter, r *http.Request) {
 	}
 	argsBytes, _ := json.Marshal(args)
 	ctx := withProjectRoot(r.Context(), s.ProjectRoot)
+	if name := r.Header.Get("X-Client-Name"); name != "" {
+		ctx = framework.WithClientName(ctx, name)
+	}
 	contents, err := s.MCPServer.CallTool(ctx, "report", argsBytes)
 	s.writeToolResult(w, contents, err)
 }
@@ -175,6 +187,9 @@ func (s *Server) handlePostTool(w http.ResponseWriter, r *http.Request) {
 
 	argsBytes, _ := json.Marshal(args)
 	ctx := withProjectRoot(r.Context(), s.ProjectRoot)
+	if clientName := r.Header.Get("X-Client-Name"); clientName != "" {
+		ctx = framework.WithClientName(ctx, clientName)
+	}
 	contents, err := s.MCPServer.CallTool(ctx, name, argsBytes)
 	s.writeToolResult(w, contents, err)
 }

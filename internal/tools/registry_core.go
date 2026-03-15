@@ -38,7 +38,8 @@ func registerCoreTools(server framework.MCPServer) error {
 			"default": false,
 		},
 		"filter_tag": map[string]interface{}{
-			"type": "string",
+			"type":     "string",
+			"examples": []string{"llamacpp", "mcp", "tui"},
 		},
 		"task_ids": map[string]interface{}{
 			"type": "string",
@@ -380,8 +381,16 @@ func registerCoreTools(server framework.MCPServer) error {
 					"default":     false,
 					"description": "When true and client supports elicitation, prompt user for include_tasks/include_hints preferences at prime time",
 				},
+				"client": map[string]interface{}{
+					"type":        "string",
+					"enum":        []string{"claude-code", "cursor", "opencode", "generic"},
+					"description": "MCP client identity â adjusts session prime output (suppresses noise for specific clients)",
+					"examples":    []string{"claude-code", "cursor", "opencode"},
+				},
 				"override_mode": map[string]interface{}{
-					"type": "string",
+					"type":        "string",
+					"description": "Override the detected workflow mode",
+					"examples":    []string{"planning", "daily_checkin", "deep_work"},
 				},
 				"task_id": map[string]interface{}{
 					"type": "string",

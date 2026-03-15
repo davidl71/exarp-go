@@ -188,6 +188,20 @@ func handleSessionPrime(ctx context.Context, params map[string]interface{}) ([]f
 		}
 	}
 
+	// Resolve client identity: explicit param takes precedence over context injection.
+	clientName := cast.ToString(params["client"])
+	if clientName == "" {
+		clientName = framework.ClientNameFromContext(ctx)
+	}
+
+	// Client-specific adjustments before building the result.
+	// opencode: force compact=true to reduce token overhead.
+	if clientName == "opencode" {
+		if _, ok := params["compact"]; !ok {
+			params["compact"] = true
+		}
+	}
+
 	overrideMode := cast.ToString(params["override_mode"])
 
 	projectRoot, err := FindProjectRoot()
@@ -284,8 +298,12 @@ func handleSessionPrime(ctx context.Context, params map[string]interface{}) ([]f
 	}
 
 	handoffAlert := (map[string]interface{})(nil)
-	if _, has := params["include_handoff"]; !has || cast.ToBool(params["include_handoff"]) {
-		handoffAlert = checkHandoffAlert(projectRoot)
+	// cursor client: suppress handoff alert (suppress noise); other clients follow include_handoff param.
+	suppressHandoff := clientName == "cursor"
+	if !suppressHandoff {
+		if _, has := params["include_handoff"]; !has || cast.ToBool(params["include_handoff"]) {
+			handoffAlert = checkHandoffAlert(projectRoot)
+		}
 	}
 
 	actionRequired := ""
@@ -352,6 +370,12 @@ func handleSessionPrime(ctx context.Context, params map[string]interface{}) ([]f
 
 	result := SessionPrimeResultToMap(pb)
 
+	// generic client: minimal output — tasks + mode only, no hints, no handoff noise.
+	if clientName == "generic" {
+		includeHints = false
+		handoffAlert = nil
+	}
+
 	if includeTasks {
 		if tasksErr != nil {
 			result["tasks"] = map[string]interface{}{"error": "Failed to load tasks"}
@@ -379,6 +403,11 @@ func handleSessionPrime(ctx context.Context, params map[string]interface{}) ([]f
 	result["status_context"] = statusContext // enum: dashboard, handoff, or task
 	pb.StatusLabel = statusLabel
 	pb.StatusContext = statusContext
+
+	// Record resolved client identity in metadata.
+	if clientName != "" {
+		result["client"] = clientName
+	}
 
 	AddTokenEstimateToResult(result)
 	// Default compact=true for MCP callers to reduce token overhead; pass compact=false to opt out

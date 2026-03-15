@@ -158,6 +158,7 @@ var UpdateFieldSpecs = []FieldSpec{
 		Schema: map[string]interface{}{
 			"type":        "string",
 			"description": "Task name (required for single create; omit when using tasks array)",
+			"examples":    []string{"Add OAuth2 login", "Fix session timeout bug"},
 		},
 	},
 	{

@@ -18,6 +18,7 @@ import (
 	"github.com/davidl71/exarp-go/internal/config"
 	"github.com/davidl71/exarp-go/internal/database"
 	"github.com/davidl71/exarp-go/internal/factory"
+	"github.com/davidl71/exarp-go/internal/framework"
 	"github.com/davidl71/exarp-go/internal/logging"
 	"github.com/davidl71/exarp-go/internal/prompts"
 	"github.com/davidl71/exarp-go/internal/resources"
@@ -297,9 +298,16 @@ func runMCPHTTPMode(addr string) {
 		return mcpSrv
 	}, nil)
 
+	wrappedMCP := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if name := r.Header.Get("X-Client-Name"); name != "" {
+			r = r.WithContext(framework.WithClientName(r.Context(), name))
+		}
+		streamHandler.ServeHTTP(w, r)
+	})
+
 	mux := http.NewServeMux()
-	mux.Handle("/mcp", streamHandler)
-	mux.Handle("/mcp/", streamHandler)
+	mux.Handle("/mcp", wrappedMCP)
+	mux.Handle("/mcp/", wrappedMCP)
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/" {
 			http.Redirect(w, r, "/mcp", http.StatusFound)

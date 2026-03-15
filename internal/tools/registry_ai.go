@@ -27,8 +27,9 @@ func registerAITools(server framework.MCPServer) error {
 					"type": "string",
 				},
 				"category": map[string]interface{}{
-					"type":    "string",
-					"default": "insight",
+					"type":     "string",
+					"default":  "insight",
+					"examples": []string{"feedback", "project", "user", "reference"},
 				},
 				"task_id": map[string]interface{}{
 					"type": "string",
@@ -41,7 +42,8 @@ func registerAITools(server framework.MCPServer) error {
 					"default": true,
 				},
 				"query": map[string]interface{}{
-					"type": "string",
+					"type":     "string",
+					"examples": []string{"embedding similarity for tasks", "how does session prime work"},
 				},
 				"limit": map[string]interface{}{
 					"type":    "integer",

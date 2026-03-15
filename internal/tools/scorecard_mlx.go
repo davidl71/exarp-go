@@ -201,11 +201,11 @@ func ExtractBlockers(scorecard *GoScorecardResult) []string {
 	}
 
 	if !scorecard.Health.GoBuildPasses {
-		blockers = append(blockers, "Go build fails")
+		blockers = append(blockers, "Build fails")
 	}
 
 	if !scorecard.Health.GoTestPasses {
-		blockers = append(blockers, "Go tests fail")
+		blockers = append(blockers, "Tests fail")
 	}
 
 	if scorecard.Health.GoTestCoverage < 50 && scorecard.Metrics.GoTestFiles > 0 {

@@ -54,7 +54,7 @@ func generateGoRecommendations(health *GoHealthChecks, metrics *GoProjectMetrics
 	}
 
 	if !fastModeUsed && !health.GoTestPasses {
-		recommendations = append(recommendations, "Fix failing Go tests: make test")
+		recommendations = append(recommendations, "Fix failing tests: make test")
 	}
 
 	minCoverage := float64(config.MinCoverage())
@@ -67,7 +67,7 @@ func generateGoRecommendations(health *GoHealthChecks, metrics *GoProjectMetrics
 	}
 
 	if !fastModeUsed && !health.GoVulnCheckAvailable {
-		recommendations = append(recommendations, "Install or expose 'govulncheck' in PATH so the scorecard can verify Go dependency vulnerabilities")
+		recommendations = append(recommendations, "Install or expose 'govulncheck' in PATH so the scorecard can verify dependency vulnerabilities")
 	}
 
 	autoFixable := !health.GoFmtCompliant || (!fastModeUsed && !health.GoModTidyPasses) || (!fastModeUsed && health.GoLintConfigured && !health.GoLintPasses)
@@ -184,7 +184,7 @@ func FormatGoScorecard(scorecard *GoScorecardResult) string {
 	var sb strings.Builder
 
 	sb.WriteString("======================================================================\n")
-	sb.WriteString("  📊 GO PROJECT SCORECARD\n")
+	sb.WriteString("  📊 PROJECT SCORECARD\n")
 	sb.WriteString("======================================================================\n\n")
 
 	// Overall Score
