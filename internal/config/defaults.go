@@ -288,6 +288,9 @@ func GetDefaults() *FullConfig {
 		Automations: AutomationsConfig{
 			// Will be implemented in Phase 5
 		},
+		TUI: TUIConfig{
+			SpinnerStyle: "line",
+		},
 	}
 }
 
@@ -305,5 +308,9 @@ func DefaultTaskKeybindings() map[string][]string {
 		"status_in_progress":  {"i"},
 		"status_todo":         {"t"},
 		"status_review":       {"r"},
+		"detail":              {"enter"},
+		"back":                {"esc"},
+		"next_tab":            {"tab"},
+		"prev_tab":            {"shift+tab"},
 	}
 }

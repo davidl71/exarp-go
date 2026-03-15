@@ -104,7 +104,7 @@ func (m model) handleSortFilterKeys(key string) (model, tea.Cmd, bool) {
 		}
 		return m, nil, true
 
-	case key == "tab" || key == "\t":
+	case m.keyMatches(key, KeyActionNextTab), key == "\t":
 		// In tasks mode: collapse/expand tree node under cursor (if it has children)
 		if m.mode == ModeTasks {
 			vis := m.visibleIndices()

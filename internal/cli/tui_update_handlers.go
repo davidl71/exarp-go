@@ -30,7 +30,7 @@ func (m model) handleGlobalKeys(key string) (model, tea.Cmd, bool) {
 		m.showHelp = !m.showHelp
 		return m, nil, true
 
-	case key == "esc":
+	case m.keyMatches(key, KeyActionBack):
 		if m.showHelp {
 			m.showHelp = false
 			return m, nil, true
@@ -194,33 +194,33 @@ func (m model) handleBulkStatusKeys(key string) (model, tea.Cmd, bool) {
 func (m model) handleDetailOverlayKeys(key string) (model, tea.Cmd, bool) {
 	// Task detail overlay — scroll support + close
 	if m.mode == ModeTaskDetail {
-		switch key {
-		case "esc", "enter", " ", "s":
+		switch {
+		case m.keyMatches(key, KeyActionBack), m.keyMatches(key, KeyActionDetail), key == " ", key == "s":
 			m.transitionTo(ModeTasks)
 			m.taskDetailTask = nil
 			m.taskDetailScrollTop = 0
 			return m, nil, true
-		case "up", "k":
+		case key == "up", key == "k":
 			if m.taskDetailScrollTop > 0 {
 				m.taskDetailScrollTop--
 			}
 			return m, nil, true
-		case "down", "j":
+		case key == "down", key == "j":
 			m.taskDetailScrollTop++
 			return m, nil, true
-		case "pgup", "ctrl+u":
+		case key == "pgup", key == "ctrl+u":
 			m.taskDetailScrollTop -= 10
 			if m.taskDetailScrollTop < 0 {
 				m.taskDetailScrollTop = 0
 			}
 			return m, nil, true
-		case "pgdown", "ctrl+d":
+		case key == "pgdown", key == "ctrl+d":
 			m.taskDetailScrollTop += 10
 			return m, nil, true
-		case "home", "g":
+		case key == "home", key == "g":
 			m.taskDetailScrollTop = 0
 			return m, nil, true
-		case "end", "G":
+		case key == "end", key == "G":
 			m.taskDetailScrollTop = 9999
 			return m, nil, true
 		}

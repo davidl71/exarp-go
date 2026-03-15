@@ -19,6 +19,10 @@ const (
 	KeyActionStatusTodo        = "status_todo"
 	KeyActionStatusReview      = "status_review"
 	KeyActionCycleSpinner      = "cycle_spinner"
+	KeyActionDetail            = "detail"
+	KeyActionBack              = "back"
+	KeyActionNextTab           = "next_tab"
+	KeyActionPrevTab           = "prev_tab"
 )
 
 func (m model) keyMatches(key, action string) bool {

@@ -20,6 +20,12 @@ type FullConfig struct {
 	Memory      MemoryConfig      `yaml:"memory"`
 	Project     ProjectConfig     `yaml:"project"`
 	Automations AutomationsConfig `yaml:"automations"`
+	TUI         TUIConfig         `yaml:"tui"`
+}
+
+// TUIConfig contains TUI-specific settings.
+type TUIConfig struct {
+	SpinnerStyle string `yaml:"spinner_style" json:"spinner_style"`
 }
 
 // TimeoutsConfig contains all timeout and duration settings.

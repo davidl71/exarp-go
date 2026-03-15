@@ -1,83 +1,80 @@
-// tui_commands.go — Command palette for TUI.
+// tui_palette.go — Terminal-adaptive color palette for TUI.
+//
+// Colors are selected based on whether the terminal has a dark or light
+// background, using lipgloss.LightDark. All semantic color names are defined
+// here so that styles throughout the TUI reference this palette rather than
+// hardcoded hex strings.
 package cli
 
 import (
-	"charm.land/bubbles/v2/textinput"
+	"image/color"
+	"os"
+
+	"charm.land/lipgloss/v2"
 )
 
-// commandPaletteSuggestions returns available commands for the command palette.
-var commandPaletteSuggestions = []string{
-	"refresh - Reload tasks",
-	"sort:status - Sort by status",
-	"sort:priority - Sort by priority",
-	"sort:updated - Sort by updated",
-	"sort:hierarchy - Sort by hierarchy",
-	"filter:todo - Filter by Todo",
-	"filter:inprogress - Filter by In Progress",
-	"filter:done - Filter by Done",
-	"filter:review - Filter by Review",
-	"list - Toggle list view",
-	"table - Toggle table view",
-	"help - Show help",
-	"quit - Quit application",
-}
+// tuiLightDark is a LightDarkFunc initialised once at startup from the
+// detected terminal background. It defaults to dark when detection fails
+// (e.g. when stdout is not a TTY, as in tests or pipes).
+var tuiLightDark = lipgloss.LightDark(lipgloss.HasDarkBackground(os.Stdin, os.Stdout))
 
-// newCommandPalette creates a new text input for the command palette.
-func newCommandPalette() textinput.Model {
-	ti := textinput.New()
-	ti.Placeholder = "Type a command... (Esc to close)"
-	ti.Prompt = ">"
-	ti.SetWidth(40)
-	ti.ShowSuggestions = true
-	ti.SetSuggestions(commandPaletteSuggestions)
-	return ti
-}
+// Semantic palette — foreground / text colors.
+//
+// Dark values are chosen for dark terminals (bright, readable on dark BG).
+// Light values are chosen for light terminals (deeper, readable on light BG).
+var (
+	// ColorPrimary is the main accent color used for headers and key elements.
+	ColorPrimary color.Color = tuiLightDark(lipgloss.Color("#005f87"), lipgloss.Color("#87ceeb"))
 
-// viewCommandPalette renders the command palette overlay.
-func (m model) viewCommandPalette() string {
-	m.commandPalette.SetWidth(m.effectiveWidth() - 4)
-	return "\n  " + m.commandPalette.View() + "\n\n  ↑/↓: navigate • Enter: execute • Esc: close\n"
-}
+	// ColorSecondary is used for secondary labels and status bars.
+	ColorSecondary color.Color = tuiLightDark(lipgloss.Color("#005f5f"), lipgloss.Color("#87d7d7"))
 
-// executeCommand parses and executes a command from the command palette.
-func (m *model) executeCommand(cmd string) {
-	switch cmd {
-	case "refresh":
-		m.loading = true
-		// LoadTasks will be called via message
-	case "sort:status":
-		m.sortOrder = SortByStatus
-		m.sortAsc = true
-	case "sort:priority":
-		m.sortOrder = SortByPriority
-		m.sortAsc = true
-	case "sort:updated":
-		m.sortOrder = SortByUpdated
-		m.sortAsc = false
-	case "sort:hierarchy":
-		m.sortOrder = SortByHierarchy
-		m.sortAsc = true
-	case "filter:todo":
-		m.status = "Todo"
-	case "filter:inprogress":
-		m.status = "In Progress"
-	case "filter:done":
-		m.status = "Done"
-	case "filter:review":
-		m.status = "Review"
-	case "list":
-		m.useBubbleList = !m.useBubbleList
-		if m.useBubbleList {
-			m.taskList.SetItems(itemsFromTasks(m.tasks))
-		}
-	case "table":
-		m.useBubbleTable = !m.useBubbleTable
-		if m.useBubbleTable {
-			m.taskTable.SetRows(rowsFromTasks(m.tasks))
-		}
-	case "help":
-		m.showHelp = !m.showHelp
-	case "quit":
-		// Will be handled by the quit key
-	}
-}
+	// ColorAccent is a vivid highlight for selected items and borders.
+	ColorAccent color.Color = tuiLightDark(lipgloss.Color("#875f00"), lipgloss.Color("#ffd700"))
+
+	// ColorMuted is a subdued color for help text and less important info.
+	ColorMuted color.Color = tuiLightDark(lipgloss.Color("#585858"), lipgloss.Color("#9e9e9e"))
+
+	// ColorSuccess indicates a successful or done state (green family).
+	ColorSuccess color.Color = tuiLightDark(lipgloss.Color("#005f00"), lipgloss.Color("#5faf00"))
+
+	// ColorWarning indicates an in-progress or caution state (yellow family).
+	ColorWarning color.Color = tuiLightDark(lipgloss.Color("#875f00"), lipgloss.Color("#d7af00"))
+
+	// ColorDanger is used for high priority, errors, and stale IDs (red family).
+	ColorDanger color.Color = tuiLightDark(lipgloss.Color("#870000"), lipgloss.Color("#ff5f5f"))
+
+	// ColorInfo is used for Todo/new items (cyan family).
+	ColorInfo color.Color = tuiLightDark(lipgloss.Color("#005f87"), lipgloss.Color("#00afaf"))
+
+	// ColorReview is used for the Review status (pink/magenta family).
+	ColorReview color.Color = tuiLightDark(lipgloss.Color("#875f87"), lipgloss.Color("#ff87af"))
+)
+
+// Semantic palette — background colors.
+var (
+	// BgHeader is the background for the header bar.
+	BgHeader color.Color = tuiLightDark(lipgloss.Color("#d7ff00"), lipgloss.Color("#005f00"))
+
+	// BgHeaderText is the foreground for text on BgHeader.
+	BgHeaderText color.Color = tuiLightDark(lipgloss.Color("#000000"), lipgloss.Color("#d7ff00"))
+
+	// BgSelected is the background for a selected/highlighted row.
+	BgSelected color.Color = tuiLightDark(lipgloss.Color("#ffffaf"), lipgloss.Color("#5f5f00"))
+
+	// BgSelectedText is the foreground for text on BgSelected.
+	BgSelectedText color.Color = tuiLightDark(lipgloss.Color("#000000"), lipgloss.Color("#ffffaf"))
+
+	// BgStatusBar is the background for the bottom status bar.
+	BgStatusBar color.Color = tuiLightDark(lipgloss.Color("#dadada"), lipgloss.Color("#1c1c1c"))
+
+	// BgStatusBarText is the foreground for text on BgStatusBar.
+	BgStatusBarText color.Color = tuiLightDark(lipgloss.Color("#000000"), lipgloss.Color("#ffffff"))
+
+	// BgStatus is the background for the mode/status badge in the status bar.
+	BgStatus color.Color = tuiLightDark(lipgloss.Color("#0087af"), lipgloss.Color("#008080"))
+
+	// BgNormal is the default foreground for non-selected rows.
+	BgNormal color.Color = tuiLightDark(lipgloss.Color("#1c1c1c"), lipgloss.Color("#eeeeee"))
+)
+

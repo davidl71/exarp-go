@@ -11,7 +11,7 @@ import (
 // Returns (model, cmd, true) so the caller always gets a handled result when delegating to this.
 func (m model) handleActionKeys(key string, msg tea.KeyMsg) (model, tea.Cmd, bool) {
 	switch {
-	case key == "enter":
+	case m.keyMatches(key, KeyActionDetail):
 		// Enter goes into task detail
 		if m.mode == ModeTasks {
 			vis := m.visibleIndices()

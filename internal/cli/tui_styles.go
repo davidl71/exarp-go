@@ -3,7 +3,9 @@ package cli
 
 import (
 	"os"
+	"strings"
 
+	"charm.land/bubbles/v2/spinner"
 	"charm.land/lipgloss/v2"
 )
 
@@ -125,7 +127,75 @@ var (
 				Border(lipgloss.RoundedBorder()).
 				BorderForeground(lipgloss.Color("#FFFF00")).
 				Padding(1, 2)
+
+	// SoftBorder uses Unicode rounded box-drawing characters for a softer visual appearance.
+	SoftBorder = lipgloss.Border{
+		Top:         "─",
+		Bottom:      "─",
+		Left:        "│",
+		Right:       "│",
+		TopLeft:     "╭",
+		TopRight:    "╮",
+		BottomLeft:  "╰",
+		BottomRight: "╯",
+	}
+
+	// SoftBorderStyle is a panel style with soft rounded borders for unfocused containers.
+	SoftBorderStyle = lipgloss.NewStyle().
+			Border(SoftBorder).
+			BorderForeground(lipgloss.Color("#666666")).
+			Padding(0, 1)
+
+	// SoftBorderFocusedStyle is a panel style with soft rounded borders for the active panel.
+	SoftBorderFocusedStyle = lipgloss.NewStyle().
+				Border(SoftBorder).
+				BorderForeground(lipgloss.Color("#999999")).
+				Padding(0, 1)
+
+	// SoftBoxStyle is a lightweight container for panel/section grouping (no padding).
+	SoftBoxStyle = lipgloss.NewStyle().
+			Border(SoftBorder).
+			BorderForeground(lipgloss.Color("#555555"))
 )
+
+// SpinnerStyleType is a named string type for spinner style configuration.
+type SpinnerStyleType string
+
+const (
+	SpinnerStyleDefault  SpinnerStyleType = "default"
+	SpinnerStyleLine     SpinnerStyleType = "line"
+	SpinnerStyleMiniDot  SpinnerStyleType = "minidot"
+	SpinnerStyleJump     SpinnerStyleType = "jump"
+	SpinnerStylePulse    SpinnerStyleType = "pulse"
+	SpinnerStylePoints   SpinnerStyleType = "points"
+	SpinnerStyleMeter    SpinnerStyleType = "meter"
+	SpinnerStyleEllipsis SpinnerStyleType = "ellipsis"
+)
+
+// SpinnerStyleFromString maps a style name to its bubbles/spinner.Spinner value.
+// Returns spinner.Line for unknown or empty values.
+func SpinnerStyleFromString(s string) spinner.Spinner {
+	switch strings.ToLower(strings.TrimSpace(s)) {
+	case "dot", "default", "":
+		return spinner.Dot
+	case "line":
+		return spinner.Line
+	case "minidot":
+		return spinner.MiniDot
+	case "jump":
+		return spinner.Jump
+	case "pulse":
+		return spinner.Pulse
+	case "points":
+		return spinner.Points
+	case "meter":
+		return spinner.Meter
+	case "ellipsis":
+		return spinner.Ellipsis
+	default:
+		return spinner.Line
+	}
+}
 
 const (
 	colCursor   = 3

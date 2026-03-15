@@ -169,17 +169,21 @@ func (m model) viewTaskDetail() string {
 		end = len(allLines)
 	}
 
+	var contentBlock strings.Builder
 	for i := scrollTop; i < end; i++ {
-		b.WriteString(normalStyle.Render(allLines[i]))
-		b.WriteString("\n")
+		contentBlock.WriteString(normalStyle.Render(allLines[i]))
+		contentBlock.WriteString("\n")
 	}
 
 	// Pad remaining lines so status bar stays at bottom
 	rendered := end - scrollTop
 	for rendered < maxContentLines {
-		b.WriteString("\n")
+		contentBlock.WriteString("\n")
 		rendered++
 	}
+
+	b.WriteString(SoftBoxStyle.Render(contentBlock.String()))
+	b.WriteString("\n")
 
 	b.WriteString(borderStyle.Render(strings.Repeat("─", availableWidth)))
 	b.WriteString("\n")

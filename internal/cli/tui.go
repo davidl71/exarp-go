@@ -198,6 +198,17 @@ type TaskListViewState struct {
 	contextualHelpTime int64  // Timestamp when help was shown (for auto-hide)
 }
 
+// configuredSpinner returns a spinner.Model initialized with the style from cfg.
+// Falls back to spinner.Line when cfg is nil or the style is unrecognized.
+func configuredSpinner(cfg *config.FullConfig) spinner.Model {
+	style := "line"
+	if cfg != nil && cfg.TUI.SpinnerStyle != "" {
+		style = cfg.TUI.SpinnerStyle
+	}
+
+	return spinner.New(spinner.WithSpinner(SpinnerStyleFromString(style)))
+}
+
 // initialModel creates the TUI model. initialWidth and initialHeight are optional;
 // when > 0 they set the terminal size at startup (e.g. from term.GetSize).
 // Resize (SIGWINCH on Unix) is handled by Bubble Tea and delivered as tea.WindowSizeMsg.
@@ -275,9 +286,9 @@ func initialModel(server framework.MCPServer, status string, projectRoot, projec
 			useBubbleList:     false, // set to true to enable bubble/list rendering
 			taskTable:         table.New(table.WithColumns(defaultTableColumns), table.WithRows(nil)),
 			useBubbleTable:    false,                                                          // set to true to enable bubble/table rendering
-			taskSpinner:       spinner.New(spinner.WithSpinner(availableSpinners[1].spinner)), // Line spinner by default
+			taskSpinner:       configuredSpinner(cfg),
 			spinnerMessage:    "",
-			spinnerStyleIndex: 1, // Default to Line spinner
+			spinnerStyleIndex: 1, // Default to Line spinner (may be overridden by config)
 			commandPalette:    newCommandPalette(),
 		},
 	}
