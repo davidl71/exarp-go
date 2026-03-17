@@ -124,9 +124,44 @@ func handleContextBudget(ctx context.Context, args json.RawMessage) ([]framework
 	return framework.FormatResult(result, "")
 }
 
-// estimateTokens estimates token count for text using provided ratio.
-func estimateTokens(text string, tokensPerChar float64) int {
+// EstimateTokens returns the estimated token count for text using the given ratio (tokens per character).
+// Use config.TokensPerChar() for project-configured ratio, or TOKENS_PER_CHAR for default.
+// Safe for use by context tool, llamacpp, and other callers that need to track/limit context size.
+func EstimateTokens(text string, tokensPerChar float64) int {
+	if tokensPerChar <= 0 {
+		tokensPerChar = TOKENS_PER_CHAR
+	}
 	return int(float64(len(text)) * tokensPerChar)
+}
+
+// EstimateTokensWithConfig returns the estimated token count using the project's config ratio.
+func EstimateTokensWithConfig(text string) int {
+	return EstimateTokens(text, config.TokensPerChar())
+}
+
+// TruncateToTokenBudget truncates text so that its estimated token count does not exceed maxTokens.
+// Uses tokensPerChar for estimation; if <= 0, uses TOKENS_PER_CHAR.
+// Returns the truncated string (which may be unchanged if already within budget).
+func TruncateToTokenBudget(text string, maxTokens int, tokensPerChar float64) string {
+	if maxTokens <= 0 {
+		return text
+	}
+	if tokensPerChar <= 0 {
+		tokensPerChar = TOKENS_PER_CHAR
+	}
+	maxChars := int(float64(maxTokens) / tokensPerChar)
+	if maxChars <= 0 {
+		return ""
+	}
+	if len(text) <= maxChars {
+		return text
+	}
+	return text[:maxChars]
+}
+
+// estimateTokens is the package-internal alias for EstimateTokens (config callers use config.TokensPerChar()).
+func estimateTokens(text string, tokensPerChar float64) int {
+	return EstimateTokens(text, tokensPerChar)
 }
 
 // getBudgetRecommendation gets recommendation for a single item.
@@ -165,6 +200,37 @@ func suggestReductionStrategy(analysis []ItemAnalysis, total, budget int) string
 	}
 
 	return fmt.Sprintf("Summarize %d items using 'brief' level. Estimated savings: %d tokens.", toSummarize, estimatedSavings)
+}
+
+// handleContextCount returns estimated token count for the given text (context action=count).
+func handleContextCount(params map[string]interface{}) ([]framework.TextContent, error) {
+	dataRaw, ok := params["data"]
+	if !ok {
+		dataRaw = params["text"]
+	}
+	if dataRaw == nil {
+		return nil, fmt.Errorf("data or text parameter is required for count action")
+	}
+	var text string
+	switch v := dataRaw.(type) {
+	case string:
+		text = v
+	default:
+		text = fmt.Sprintf("%v", v)
+	}
+	tokensPerChar := config.TokensPerChar()
+	if r, ok := params["tokens_per_char"].(float64); ok && r > 0 {
+		tokensPerChar = r
+	} else if r, ok := params["tokens_per_char"].(int); ok && r > 0 {
+		tokensPerChar = float64(r)
+	}
+	tokens := EstimateTokens(text, tokensPerChar)
+	result := map[string]interface{}{
+		"tokens":           tokens,
+		"tokens_per_char":  tokensPerChar,
+		"character_count": len(text),
+	}
+	return framework.FormatResult(result, "")
 }
 
 // buildSafeToRemoveHints returns agent-facing hints for context reduction.

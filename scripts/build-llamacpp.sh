@@ -21,8 +21,11 @@ if [[ "${1:-}" == "--clean" ]]; then
     exit 0
 fi
 
-# --- Step 1: Clone if missing ---
-if [[ ! -d "$LLAMA_DIR" ]]; then
+# --- Step 1: Submodule or clone ---
+if [[ -d "$REPO_ROOT/.git" ]] && [[ -f "$REPO_ROOT/.gitmodules" ]] && grep -q 'path = go-llama.cpp' "$REPO_ROOT/.gitmodules" 2>/dev/null; then
+    info "Initializing go-llama.cpp submodule..."
+    (cd "$REPO_ROOT" && git submodule update --init --recursive go-llama.cpp)
+elif [[ ! -d "$LLAMA_DIR" ]]; then
     info "Cloning go-llama.cpp..."
     git clone --recurse-submodules "$LLAMA_REPO" "$LLAMA_DIR"
 else
@@ -65,7 +68,8 @@ fi
 echo ""
 info "Next steps:"
 echo "  1. Build exarp-go with llamacpp support:"
-echo "     CGO_ENABLED=1 go build -tags llamacpp -o bin/exarp-go ./cmd/server"
+echo "     make build-llamacpp"
+echo "     # or: CGO_ENABLED=1 go build -tags llamacpp -o bin/exarp-go ./cmd/server"
 echo ""
 echo "  2. Set model path:"
 echo "     export LLAMACPP_MODEL_PATH=/path/to/model.gguf"

@@ -337,7 +337,7 @@ func (m model) handleViewToggleKeys(key string) (model, tea.Cmd, bool) {
 			m.scorecardLoading = true
 			m.scorecardErr = nil
 			m.scorecardText = ""
-			return m, loadScorecard(m.projectRoot, false), true
+			return m, loadScorecard(m.server, m.projectRoot, false), true
 		case ModeHandoffs:
 			m.transitionTo(ModeTasks)
 			m.cursor = 0

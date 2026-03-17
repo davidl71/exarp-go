@@ -188,6 +188,8 @@ Install with: `uv sync --dev` or `uv pip install -e ".[dev]"`
   - Install: https://ollama.ai/
 - **MLX** - Required for `mlx` tool functionality
   - Install: https://ml-explore.github.io/mlx/
+- **llama.cpp** - Required for `llamacpp` tool (direct GGUF inference)
+  - Build submodule: `make build-libbinding` then `make build-llamacpp`; or run `./scripts/build-llamacpp.sh`. See [docs/llamacpp-build-requirements.md](docs/llamacpp-build-requirements.md).
 
 ## Installation
 
@@ -352,6 +354,25 @@ make fmt          # Format code
 make lint         # Lint code
 make lint-fix     # Lint and auto-fix
 ```
+
+### Benchmarking
+
+Compare **Ollama (HTTP)** vs **llamacpp (local)** generate performance (latency, throughput):
+
+```bash
+make bench        # Run all Go benchmarks (Ollama benchmark runs if ollama serve is up)
+```
+
+- **Ollama:** Requires `ollama serve` and a model (e.g. `ollama run llama3.2`). Skipped if server is unreachable.
+- **LlamaCpp:** Requires build with `-tags llamacpp,cgo` and a loaded model; skipped otherwise.
+
+Quick one-off report (no full benchmark):
+
+```bash
+go test -run TestOllamaVsLlamaCppPerformanceReport -v ./internal/tools/
+```
+
+Benchmarks live in `internal/tools/ollama_llamacpp_bench_test.go`.
 
 ### Git hooks and release
 

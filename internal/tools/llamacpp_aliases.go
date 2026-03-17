@@ -59,17 +59,21 @@ var builtinModelAliases = map[string]string{
 	"deepseek-r1": "deepseek-r1",
 	"deepseek-v3": "deepseek-v3",
 	// other
-	"smollm":   "smollm2",
+	"smollm":    "smollm2",
 	"tinyllama": "tinyllama",
-	"vicuna":   "vicuna",
-	"orca":     "orca-mini",
+	"vicuna":    "vicuna",
+	"orca":      "orca-mini",
 	"starcoder": "starcoder2",
 }
 
-// LlamaCppAliasConfig holds user-defined alias overrides from .exarp/llamacpp.json.
+// LlamaCppAliasConfig holds user-defined alias overrides and preload/warmup from .exarp/llamacpp.json.
 type LlamaCppAliasConfig struct {
 	// Aliases maps shorthand names to Ollama model names or absolute file paths.
 	Aliases map[string]string `json:"aliases"`
+	// Preload is a list of model names or paths to load on first use (when llamacpp is invoked).
+	Preload []string `json:"preload"`
+	// Warmup, when true, runs a short inference after each preload to keep the model hot.
+	Warmup bool `json:"warmup"`
 }
 
 // llamacppConfigPath returns the path to .exarp/llamacpp.json.

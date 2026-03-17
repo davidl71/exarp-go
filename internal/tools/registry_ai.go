@@ -363,15 +363,15 @@ func registerAITools(server framework.MCPServer) error {
 	// context
 	if err := server.RegisterTool(
 		"context",
-		"[HINT: action=summarize|budget|batch. Context management and summarization. Use when reducing context size or summarizing tool outputs.]",
+		"[HINT: action=summarize|budget|batch|count. Context management, tokenization, and summarization. Use when reducing context size, counting tokens, or summarizing tool outputs.]",
 		framework.ToolSchema{
 			Type: "object",
 			Properties: map[string]interface{}{
 				"action": map[string]interface{}{
 					"type":        "string",
-					"enum":        []string{"summarize", "budget", "batch"},
+					"enum":        []string{"summarize", "budget", "batch", "count"},
 					"default":     "summarize",
-					"description": "Action to perform",
+					"description": "Action to perform (count = estimate tokens for text)",
 				},
 				"data": map[string]interface{}{
 					"type":        "string",
@@ -409,6 +409,14 @@ func registerAITools(server framework.MCPServer) error {
 					"type":        "boolean",
 					"default":     true,
 					"description": "Merge summaries into combined view (batch action)",
+				},
+				"text": map[string]interface{}{
+					"type":        "string",
+					"description": "Text to count tokens for (count action; alternative to data)",
+				},
+				"tokens_per_char": map[string]interface{}{
+					"type":        "number",
+					"description": "Token-to-character ratio for count/budget (default from config)",
 				},
 			},
 		},

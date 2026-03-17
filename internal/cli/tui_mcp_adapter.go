@@ -10,6 +10,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/davidl71/exarp-go/internal/config"
 	"github.com/davidl71/exarp-go/internal/database"
 	"github.com/davidl71/exarp-go/internal/framework"
 	"github.com/davidl71/exarp-go/internal/tools"
@@ -245,6 +246,11 @@ func fetchHandoffs(ctx context.Context, server framework.MCPServer, limit int) (
 }
 
 // firstWaveTaskIDs converts task pointers to values and returns the first wave's task IDs.
+// We keep tools.ComputeWavesForTUI here (Phase 6) rather than routing via task_analysis
+// execution_plan because: (1) ComputeWavesForTUI prefers waves from the plan file
+// (docs/PARALLEL_EXECUTION_PLAN_RESEARCH.md) when present; execution_plan does not
+// read that file. (2) TUI already has the task list in memory; execution_plan would
+// re-fetch tasks and lose plan-file semantics. See docs/TUI_MCP_ADAPTER_DESIGN.md Phase 6.
 func firstWaveTaskIDs(projectRoot string, tasks []*database.Todo2Task) (waveLevel int, ids []string, err error) {
 	taskList := make([]database.Todo2Task, 0, len(tasks))
 	for _, t := range tasks {
@@ -291,4 +297,87 @@ func updateTaskFieldsViaMCP(ctx context.Context, server framework.MCPServer, tas
 
 	_, err := callToolText(ctx, server, "task_workflow", args)
 	return err
+}
+
+// loadConfigForTUI loads project config via the adapter layer.
+// Today wraps config.LoadConfig; can later switch to generate_config "get" if added.
+func loadConfigForTUI(projectRoot string) (*config.FullConfig, error) {
+	return config.LoadConfig(projectRoot)
+}
+
+// saveConfigForTUI writes config to .exarp/config.pb via the adapter layer.
+// Today wraps config.WriteConfigToProtobufFile; can later switch to generate_config "write" if added.
+func saveConfigForTUI(projectRoot string, cfg *config.FullConfig) error {
+	return config.WriteConfigToProtobufFile(projectRoot, cfg)
+}
+
+// getConfigDefaultsForTUI returns default config for TUI (e.g. init or reset).
+func getConfigDefaultsForTUI() *config.FullConfig {
+	return config.GetDefaults()
+}
+
+// getDefaultTaskKeybindingsForTUI returns default task keybindings for TUI.
+func getDefaultTaskKeybindingsForTUI() map[string][]string {
+	return config.DefaultTaskKeybindings()
+}
+
+// scorecardJSONResponse is the report scorecard output_format=json envelope (subset used by TUI).
+type scorecardJSONResponse struct {
+	FormattedText   string   `json:"formatted_text"`
+	Recommendations []string `json:"recommendations"`
+	OverallScore    float64  `json:"overall_score"`
+	Blockers        []string `json:"blockers"`
+}
+
+// loadScorecardForTUI loads scorecard via report MCP tool and returns display text and recommendations.
+// fullMode disables fast_mode so coverage and full checks run.
+func loadScorecardForTUI(ctx context.Context, server framework.MCPServer, projectRoot string, fullMode bool) (text string, recommendations []string, err error) {
+	if server == nil {
+		return "", nil, fmt.Errorf("no server")
+	}
+	args := map[string]interface{}{
+		"action":        "scorecard",
+		"output_format": "json",
+		"fast_mode":     !fullMode,
+	}
+	textResp, err := callToolText(ctx, server, "report", args)
+	if err != nil {
+		return "", nil, fmt.Errorf("report scorecard: %w", err)
+	}
+	var resp scorecardJSONResponse
+	if err := json.Unmarshal([]byte(textResp), &resp); err != nil {
+		return "", nil, fmt.Errorf("parse scorecard JSON: %w", err)
+	}
+	if resp.FormattedText != "" {
+		return resp.FormattedText, resp.Recommendations, nil
+	}
+	// Fallback when formatted_text not present (e.g. generic scorecard)
+	var b strings.Builder
+	fmt.Fprintf(&b, "Score: %.0f\n", resp.OverallScore)
+	if len(resp.Blockers) > 0 {
+		b.WriteString("Blockers:\n")
+		for _, s := range resp.Blockers {
+			b.WriteString("  - ")
+			b.WriteString(s)
+			b.WriteString("\n")
+		}
+	}
+	if len(resp.Recommendations) > 0 {
+		b.WriteString("Recommendations:\n")
+		for _, s := range resp.Recommendations {
+			b.WriteString("  - ")
+			b.WriteString(s)
+			b.WriteString("\n")
+		}
+	}
+	return b.String(), resp.Recommendations, nil
+}
+
+// CloseDatabaseIfOpen closes the process DB if it was opened (e.g. by EnsureConfigAndDatabase).
+// TUI calls this on exit so tui.go and tui3270.go do not reference the database package directly.
+func CloseDatabaseIfOpen() error {
+	if database.DB != nil {
+		return database.Close()
+	}
+	return nil
 }

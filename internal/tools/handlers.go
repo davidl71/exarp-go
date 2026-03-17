@@ -336,6 +336,7 @@ func handleReport(ctx context.Context, args json.RawMessage) ([]framework.TextCo
 				"blockers":         blockers,
 				"recommendations":  scorecardProto.GetRecommendations(),
 				"metrics":          scorecardMap["metrics"],
+				"formatted_text":   FormatGoScorecardWithWisdom(scorecard),
 			}
 			// Add devwisdom quote — gracefully skipped if engine unavailable
 			if engine, err := getWisdomEngine(); err == nil {

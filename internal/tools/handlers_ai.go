@@ -442,8 +442,15 @@ func handleContext(ctx context.Context, args json.RawMessage) ([]framework.TextC
 
 		return result, nil
 
+	case "count":
+		result, err := handleContextCount(params)
+		if err != nil {
+			return nil, fmt.Errorf("context count: %w", err)
+		}
+		return result, nil
+
 	default:
-		return nil, fmt.Errorf("unknown context action %q; use summarize, budget, or batch", action)
+		return nil, fmt.Errorf("unknown context action %q; use summarize, budget, batch, or count", action)
 	}
 }
 

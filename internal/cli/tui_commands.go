@@ -14,7 +14,6 @@ import (
 	"github.com/davidl71/exarp-go/internal/config"
 	"github.com/davidl71/exarp-go/internal/framework"
 	"github.com/davidl71/exarp-go/internal/queue"
-	"github.com/davidl71/exarp-go/internal/tools"
 )
 
 func tick() tea.Cmd {
@@ -60,50 +59,20 @@ func createTaskCmd(server framework.MCPServer, name string) tea.Cmd {
 	}
 }
 
-func loadScorecard(projectRoot string, fullMode bool) tea.Cmd {
+func loadScorecard(server framework.MCPServer, projectRoot string, fullMode bool) tea.Cmd {
 	return func() tea.Msg {
 		if projectRoot == "" {
 			return scorecardLoadedMsg{err: fmt.Errorf("no project root")}
 		}
-
+		if server == nil {
+			return scorecardLoadedMsg{err: fmt.Errorf("no server")}
+		}
 		ctx := context.Background()
-
-		var combined strings.Builder
-
-		var recommendations []string
-
-		if tools.IsGoProject() {
-			opts := &tools.ScorecardOptions{FastMode: !fullMode}
-
-			scorecard, err := tools.GenerateGoScorecard(ctx, projectRoot, opts)
-			if err != nil {
-				return scorecardLoadedMsg{err: err}
-			}
-
-			combined.WriteString("=== Go Scorecard ===\n\n")
-			combined.WriteString(tools.FormatGoScorecard(scorecard))
-			recommendations = scorecard.Recommendations
-		}
-
-		overviewText, err := tools.GetOverviewText(ctx, projectRoot)
+		text, recommendations, err := loadScorecardForTUI(ctx, server, projectRoot, fullMode)
 		if err != nil {
-			if combined.Len() > 0 {
-				combined.WriteString("\n\n=== Project Overview ===\n\n(overview failed: ")
-				combined.WriteString(err.Error())
-				combined.WriteString(")")
-			} else {
-				return scorecardLoadedMsg{err: err}
-			}
-		} else {
-			if combined.Len() > 0 {
-				combined.WriteString("\n\n")
-			}
-
-			combined.WriteString("=== Project Overview ===\n\n")
-			combined.WriteString(overviewText)
+			return scorecardLoadedMsg{err: err}
 		}
-
-		return scorecardLoadedMsg{text: combined.String(), recommendations: recommendations}
+		return scorecardLoadedMsg{text: text, recommendations: recommendations}
 	}
 }
 
@@ -405,7 +374,7 @@ func showConfigSection(section configSection, cfg *config.FullConfig) tea.Cmd {
 
 func saveConfig(projectRoot string, cfg *config.FullConfig) tea.Cmd {
 	return func() tea.Msg {
-		if err := config.WriteConfigToProtobufFile(projectRoot, cfg); err != nil {
+		if err := saveConfigForTUI(projectRoot, cfg); err != nil {
 			return configSaveResultMsg{message: fmt.Sprintf("Save failed: %v", err), success: false}
 		}
 		return configSaveResultMsg{message: "Config saved to .exarp/config.pb", success: true}

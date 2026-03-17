@@ -15,8 +15,8 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/davidl71/exarp-go/internal/database"
 	"github.com/davidl71/exarp-go/internal/framework"
+	"github.com/davidl71/exarp-go/internal/models"
 	"github.com/davidl71/exarp-go/internal/tools"
 	"github.com/racingmars/go3270"
 )
@@ -33,11 +33,11 @@ type tui3270State struct {
 	projectRoot           string
 	projectName           string
 	status                string
-	tasks                 []*database.Todo2Task
+	tasks                 []*models.Todo2Task
 	cursor                int
 	listOffset            int    // For scrolling in list view
 	mode                  string // "tasks", "taskdetail", "config", "editor"
-	selectedTask          *database.Todo2Task
+	selectedTask          *models.Todo2Task
 	devInfo               go3270.DevInfo
 	command               string           // Command line input
 	filter                string           // Current filter/search term
@@ -92,13 +92,11 @@ func runTUI3270Server(server framework.MCPServer, status string, port int) error
 		projectName = getProjectName(projectRoot)
 		EnsureConfigAndDatabase(projectRoot)
 
-		if database.DB != nil {
-			defer func() {
-				if err := database.Close(); err != nil {
-					logWarn(context.Background(), "Error closing database", "error", err, "operation", "closeDatabase")
-				}
-			}()
-		}
+		defer func() {
+			if err := CloseDatabaseIfOpen(); err != nil {
+				logWarn(context.Background(), "Error closing database", "error", err, "operation", "closeDatabase")
+			}
+		}()
 	}
 
 	// Listen for tn3270 connections
@@ -233,7 +231,7 @@ func handle3270Connection(conn net.Conn, server framework.MCPServer, status, pro
 		projectRoot: projectRoot,
 		projectName: projectName,
 		status:      status,
-		tasks:       []*database.Todo2Task{},
+		tasks:       []*models.Todo2Task{},
 		cursor:      0,
 		listOffset:  0,
 		mode:        "tasks",

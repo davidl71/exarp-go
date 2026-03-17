@@ -10,7 +10,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/davidl71/exarp-go/internal/tools"
 	"github.com/racingmars/go3270"
 )
 
@@ -36,79 +35,35 @@ func runRecommendation(projectRoot, rec string) (output string, err error) {
 	return string(out), nil
 }
 
-// scorecardTransaction shows project scorecard (Go scorecard when Go project + project overview).
+// scorecardTransaction shows project scorecard via report MCP tool (adapter).
 // When scorecardFullModeNext is set (e.g. after running a recommendation), uses full checks so coverage is shown.
 func (state *tui3270State) scorecardTransaction(conn net.Conn, devInfo go3270.DevInfo, data any) (go3270.Tx, any, error) {
 	ctx := context.Background()
 
 	scErrPFRow := t3270PFRow(devInfo)
 
-	var combined strings.Builder
-
-	var recommendations []string
-
-	// Use full mode when returning from "Run #" so updated coverage/lint is shown
 	useFullMode := state.scorecardFullModeNext
 	state.scorecardFullModeNext = false
 
 	showLoadingOverlay(conn, devInfo, "Loading scorecard...")
 
-	if tools.IsGoProject() {
-		scorecardOpts := &tools.ScorecardOptions{FastMode: !useFullMode}
-
-		scorecard, err := tools.GenerateGoScorecard(ctx, state.projectRoot, scorecardOpts)
-		if err != nil {
-			errScreen := go3270.Screen{
-				{Row: 2, Col: 2, Content: "SCORECARD", Intense: true, Color: go3270.Blue},
-				{Row: 4, Col: 2, Content: "Error: " + err.Error(), Color: go3270.Red},
-				{Row: scErrPFRow, Col: 2, Content: "PF3=Back", Color: go3270.Turquoise},
-			}
-			screenOpts := go3270.ScreenOpts{Codepage: devInfo.Codepage()}
-
-			if _, showErr := go3270.ShowScreenOpts(errScreen, nil, conn, screenOpts); showErr != nil {
-				return nil, nil, showErr
-			}
-
-			return state.mainMenuTransaction, state, nil
-		}
-
-		recommendations = scorecard.Recommendations
-
-		combined.WriteString("=== Go Scorecard ===\n\n")
-		combined.WriteString(tools.FormatGoScorecard(scorecard))
-	}
-
-	overviewText, err := tools.GetOverviewText(ctx, state.projectRoot)
+	text, recommendations, err := loadScorecardForTUI(ctx, state.server, state.projectRoot, useFullMode)
 	if err != nil {
-		if combined.Len() > 0 {
-			combined.WriteString("\n\n=== Project Overview ===\n\n(overview failed: ")
-			combined.WriteString(err.Error())
-			combined.WriteString(")")
-		} else {
-			errScreen := go3270.Screen{
-				{Row: 2, Col: 2, Content: "SCORECARD", Intense: true, Color: go3270.Blue},
-				{Row: 4, Col: 2, Content: "Error: " + err.Error(), Color: go3270.Red},
-				{Row: scErrPFRow, Col: 2, Content: "PF3=Back", Color: go3270.Turquoise},
-			}
-			screenOpts := go3270.ScreenOpts{Codepage: devInfo.Codepage()}
-
-			if _, showErr := go3270.ShowScreenOpts(errScreen, nil, conn, screenOpts); showErr != nil {
-				return nil, nil, showErr
-			}
-
-			return state.mainMenuTransaction, state, nil
+		errScreen := go3270.Screen{
+			{Row: 2, Col: 2, Content: "SCORECARD", Intense: true, Color: go3270.Blue},
+			{Row: 4, Col: 2, Content: "Error: " + err.Error(), Color: go3270.Red},
+			{Row: scErrPFRow, Col: 2, Content: "PF3=Back", Color: go3270.Turquoise},
 		}
-	} else {
-		if combined.Len() > 0 {
-			combined.WriteString("\n\n")
+		screenOpts := go3270.ScreenOpts{Codepage: devInfo.Codepage()}
+
+		if _, showErr := go3270.ShowScreenOpts(errScreen, nil, conn, screenOpts); showErr != nil {
+			return nil, nil, showErr
 		}
 
-		combined.WriteString("=== Project Overview ===\n\n")
-		combined.WriteString(overviewText)
+		return state.mainMenuTransaction, state, nil
 	}
 
 	state.scorecardRecs = recommendations
-	text := combined.String()
 	lines := strings.Split(text, "\n")
 	scContentMax := t3270ContentMaxRow(devInfo)
 	maxRows := scContentMax - 2 // Reserve title row and margin

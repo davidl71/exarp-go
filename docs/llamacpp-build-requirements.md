@@ -6,6 +6,26 @@ Build guide for exarp-go with llama.cpp support via [go-llama.cpp](https://githu
 
 ---
 
+## Quick start (build the submodule)
+
+From the repo root, build the go-llama.cpp submodule and then exarp-go:
+
+```bash
+make build-libbinding    # Inits submodule if needed, builds libbinding.a
+make build-llamacpp      # Builds exarp-go with llamacpp support
+```
+
+Alternatively, use the script (clones go-llama.cpp if not a submodule, or inits submodule, then builds):
+
+```bash
+./scripts/build-llamacpp.sh
+make build-llamacpp
+```
+
+Use `./scripts/build-llamacpp.sh --clean` to clean go-llama.cpp build artifacts.
+
+---
+
 ## Prerequisites
 
 | Requirement | Minimum Version | Check | Notes |

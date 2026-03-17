@@ -18,18 +18,18 @@ import (
 
 // agentCard is the JSON payload returned at agent://card.
 type agentCard struct {
-	SchemaVersion    string              `json:"schema_version"`
-	Name             string              `json:"name"`
-	Version          string              `json:"version"`
-	Description      string              `json:"description"`
-	Transports       []string            `json:"transports"`
-	Capabilities     agentCapabilities   `json:"capabilities"`
-	Authentication   agentAuth           `json:"authentication"`
-	DefaultInputs    []string            `json:"default_input_modes"`
-	DefaultOutputs   []string            `json:"default_output_modes"`
-	Skills           []agentSkill        `json:"skills"`
-	ToolCount        int                 `json:"tool_count"`
-	Backends         map[string]any      `json:"backends"`
+	SchemaVersion  string            `json:"schema_version"`
+	Name           string            `json:"name"`
+	Version        string            `json:"version"`
+	Description    string            `json:"description"`
+	Transports     []string          `json:"transports"`
+	Capabilities   agentCapabilities `json:"capabilities"`
+	Authentication agentAuth         `json:"authentication"`
+	DefaultInputs  []string          `json:"default_input_modes"`
+	DefaultOutputs []string          `json:"default_output_modes"`
+	Skills         []agentSkill      `json:"skills"`
+	ToolCount      int               `json:"tool_count"`
+	Backends       map[string]any    `json:"backends"`
 }
 
 type agentCapabilities struct {
@@ -95,11 +95,11 @@ func handleAgentCard(ctx context.Context, uri string) ([]byte, string, error) {
 			StateTransitionHistory: false,
 			Extensions: map[string]any{
 				"projectRootContext":    true,
-				"resourceTemplates":    true,
-				"toolFiltering":        true,
+				"resourceTemplates":     true,
+				"toolFiltering":         true,
 				"resourceSubscriptions": true,
-				"agentRunner":          true,
-				"fmPlanExecute":        true,
+				"agentRunner":           true,
+				"fmPlanExecute":         true,
 			},
 		},
 		Authentication: agentAuth{Schemes: []string{"none"}},

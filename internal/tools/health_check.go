@@ -155,12 +155,28 @@ func handleHealthServer(ctx context.Context, params map[string]interface{}) ([]f
 		}
 	}
 
-	// Build result
+	// Process memory (heap + optional RSS; EXARP_MEMORY_LIMIT_MB for soft limit)
+	mem := GetProcessMemoryInfo()
+	memoryMB := mem.HeapSysMB
+	if mem.RSSMB > 0 {
+		memoryMB = mem.RSSMB
+	}
+	processMemory := map[string]interface{}{
+		"heap_alloc_mb": mem.HeapAllocMB,
+		"heap_sys_mb":   mem.HeapSysMB,
+		"rss_mb":        mem.RSSMB,
+		"limit_mb":      mem.LimitMB,
+		"memory_mb":     memoryMB,
+	}
+	if mem.Warning != "" {
+		processMemory["warning"] = mem.Warning
+	}
 	result := map[string]interface{}{
-		"status":       "operational",
-		"version":      version,
-		"project_root": projectRoot,
-		"timestamp":    time.Now().Unix(),
+		"status":         "operational",
+		"version":        version,
+		"project_root":   projectRoot,
+		"timestamp":      time.Now().Unix(),
+		"process_memory": processMemory,
 	}
 	resultJSON, _ := json.Marshal(result)
 	resp := &proto.HealthReport{Action: "server", ResultJson: string(resultJSON)}

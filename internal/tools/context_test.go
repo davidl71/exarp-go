@@ -9,6 +9,108 @@ import (
 	"github.com/davidl71/exarp-go/internal/framework"
 )
 
+func TestEstimateTokens(t *testing.T) {
+	tests := []struct {
+		text         string
+		tokensPerChar float64
+		want         int
+	}{
+		{"", 0.25, 0},
+		{"", 0.5, 0},
+		{"abcd", 0.25, 1},
+		{"abcd", 0.5, 2},
+		{"hello world", 0.25, 2},
+		{"hello world", 1.0, 11},
+		{strings.Repeat("x", 400), 0.25, 100},
+	}
+	for _, tt := range tests {
+		t.Run("", func(t *testing.T) {
+			got := EstimateTokens(tt.text, tt.tokensPerChar)
+			if got != tt.want {
+				t.Errorf("EstimateTokens(%q, %v) = %v, want %v", tt.text, tt.tokensPerChar, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestEstimateTokensDefaultRatio(t *testing.T) {
+	// tokensPerChar <= 0 should use TOKENS_PER_CHAR (0.25)
+	got := EstimateTokens("xxxx", 0)
+	if got != 1 {
+		t.Errorf("EstimateTokens with 0 ratio = %v, want 1", got)
+	}
+}
+
+func TestTruncateToTokenBudget(t *testing.T) {
+	tests := []struct {
+		text          string
+		maxTokens     int
+		tokensPerChar float64
+		want          string
+	}{
+		{"short", 100, 0.25, "short"},
+		{"", 10, 0.25, ""},
+		// 100 tokens at 0.25 = 400 chars max; 500-char input truncates to 400
+		{strings.Repeat("a", 500), 100, 0.25, strings.Repeat("a", 400)},
+		// 5 tokens at 0.25 = 20 chars max; 30-char input truncates to 20
+		{strings.Repeat("b", 30), 5, 0.25, strings.Repeat("b", 20)},
+		{"xy", 0, 0.25, "xy"},
+		{"xy", -1, 0.25, "xy"},
+	}
+	for _, tt := range tests {
+		t.Run("", func(t *testing.T) {
+			got := TruncateToTokenBudget(tt.text, tt.maxTokens, tt.tokensPerChar)
+			if got != tt.want {
+				t.Errorf("TruncateToTokenBudget(%q, %v, %v) = %q, want %q", tt.text, tt.maxTokens, tt.tokensPerChar, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestTruncateToTokenBudgetUsesDefaultRatio(t *testing.T) {
+	// tokensPerChar <= 0 uses TOKENS_PER_CHAR
+	long := strings.Repeat("z", 200)
+	got := TruncateToTokenBudget(long, 25, 0)
+	if len(got) != 100 {
+		t.Errorf("TruncateToTokenBudget with 0 ratio: len = %v, want 100", len(got))
+	}
+}
+
+func TestEstimateTokensWithConfig(t *testing.T) {
+	tmpDir := t.TempDir()
+	t.Setenv("PROJECT_ROOT", tmpDir)
+	// Config may not have .exarp; TokensPerChar() returns default 0.25 when not set
+	got := EstimateTokensWithConfig("four")
+	if got < 1 || got > 2 {
+		t.Errorf("EstimateTokensWithConfig(\"four\") = %v, expected 1 or 2", got)
+	}
+}
+
+func TestHandleContextCount(t *testing.T) {
+	tmpDir := t.TempDir()
+	t.Setenv("PROJECT_ROOT", tmpDir)
+
+	result, err := handleContextCount(map[string]interface{}{
+		"data": "hello world",
+	})
+	if err != nil {
+		t.Fatalf("handleContextCount() error = %v", err)
+	}
+	if len(result) == 0 {
+		t.Fatal("expected non-empty result")
+	}
+	var data map[string]interface{}
+	if err := json.Unmarshal([]byte(result[0].Text), &data); err != nil {
+		t.Fatalf("invalid JSON: %v", err)
+	}
+	if _, ok := data["tokens"]; !ok {
+		t.Error("expected tokens in count result")
+	}
+	if _, ok := data["character_count"]; !ok {
+		t.Error("expected character_count in count result")
+	}
+}
+
 func TestHandleContextBudget(t *testing.T) {
 	tmpDir := t.TempDir()
 	t.Setenv("PROJECT_ROOT", tmpDir)
@@ -124,6 +226,14 @@ func TestHandleContext(t *testing.T) {
 			params: map[string]interface{}{
 				"action": "batch",
 				"items":  []interface{}{"Item 1", "Item 2"},
+			},
+			wantError: false,
+		},
+		{
+			name: "context_count action",
+			params: map[string]interface{}{
+				"action": "count",
+				"data":  "Some text to count tokens for",
 			},
 			wantError: false,
 		},

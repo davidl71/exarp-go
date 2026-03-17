@@ -4,7 +4,6 @@ package cli
 
 import (
 	tea "charm.land/bubbletea/v2"
-	"github.com/davidl71/exarp-go/internal/config"
 )
 
 // handleActionKeys handles action keys (enter, space, e, i, r, x, a, d, u, s, R, U, Q, A, y, m, 0-9, E, L) and default.
@@ -140,7 +139,7 @@ func (m model) handleActionKeys(key string, msg tea.KeyMsg) (model, tea.Cmd, boo
 		switch m.mode {
 		case ModeConfig:
 			m.configSaveMessage = ""
-			cfg, err := config.LoadConfig(m.projectRoot)
+			cfg, err := loadConfigForTUI(m.projectRoot)
 			if err == nil {
 				m.configData = cfg
 				m.configChanged = false
@@ -148,7 +147,7 @@ func (m model) handleActionKeys(key string, msg tea.KeyMsg) (model, tea.Cmd, boo
 			return m, nil, true
 		case ModeScorecard:
 			m.scorecardLoading = true
-			return m, loadScorecard(m.projectRoot, false), true
+			return m, loadScorecard(m.server, m.projectRoot, false), true
 		case ModeHandoffs:
 			m.handoffLoading = true
 			return m, loadHandoffs(m.server), true

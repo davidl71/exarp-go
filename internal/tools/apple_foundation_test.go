@@ -407,6 +407,66 @@ func TestClassifyTemperatureMaxTokens(t *testing.T) {
 	}
 }
 
+func TestBuildClassifyPrompt_WithCustomCategories(t *testing.T) {
+	// Verify classify prompt uses custom categories parameter
+	tests := []struct {
+		name       string
+		text       string
+		categories string
+		wantInPrompt []string
+	}{
+		{
+			name:       "custom categories A B C",
+			text:       "sample text",
+			categories: "A, B, C",
+			wantInPrompt: []string{"A, B, C", "sample text"},
+		},
+		{
+			name:       "single category",
+			text:       "feedback",
+			categories: "positive",
+			wantInPrompt: []string{"positive", "feedback"},
+		},
+		{
+			name:       "default-style categories",
+			text:       "review",
+			categories: "positive, negative, neutral",
+			wantInPrompt: []string{"positive, negative, neutral", "review"},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := buildClassifyPrompt(tt.text, tt.categories)
+			for _, want := range tt.wantInPrompt {
+				if !strings.Contains(got, want) {
+					t.Errorf("buildClassifyPrompt(%q, %q) = %q, want prompt to contain %q", tt.text, tt.categories, got, want)
+				}
+			}
+		})
+	}
+}
+
+func TestHandleAppleFoundationModels_ClassifyAcceptsCustomCategories(t *testing.T) {
+	// Verify classify action accepts categories parameter and does not error on argument parsing
+	ctx := context.Background()
+	args := map[string]interface{}{
+		"action":     "classify",
+		"prompt":     "Text to classify",
+		"categories": "A, B, C",
+	}
+	argsJSON, err := json.Marshal(args)
+	if err != nil {
+		t.Fatalf("json.Marshal() error = %v", err)
+	}
+	_, err = handleAppleFoundationModels(ctx, argsJSON)
+	// Should not fail with argument/prompt/categories error; may fail with platform or FM error
+	if err != nil {
+		if strings.Contains(err.Error(), "categories") || strings.Contains(err.Error(), "prompt is required") || strings.Contains(err.Error(), "unknown action") {
+			t.Errorf("handleAppleFoundationModels(classify, categories=A, B, C) should accept categories param: %v", err)
+		}
+	}
+}
+
 func TestClassifyTextAppliesCorrectDefaults(t *testing.T) {
 	// Test that temperature parameter affects behavior
 	// When temperature is provided, it should be used

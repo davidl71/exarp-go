@@ -77,4 +77,3 @@ var (
 	// BgNormal is the default foreground for non-selected rows.
 	BgNormal color.Color = tuiLightDark(lipgloss.Color("#1c1c1c"), lipgloss.Color("#eeeeee"))
 )
-

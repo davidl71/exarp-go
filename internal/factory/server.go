@@ -225,11 +225,11 @@ func (s *exarpServer) ServerExtensions() map[string]any {
 	return map[string]any{
 		"davidl71/exarp-go": map[string]any{
 			"projectRootContext":    true,
-			"resourceTemplates":    true,
-			"toolFiltering":        true,
+			"resourceTemplates":     true,
+			"toolFiltering":         true,
 			"resourceSubscriptions": true,
-			"agentRunner":          true,
-			"fmPlanExecute":        true,
+			"agentRunner":           true,
+			"fmPlanExecute":         true,
 		},
 	}
 }

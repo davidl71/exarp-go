@@ -102,6 +102,11 @@ func generateText(sess *fm.Session, prompt string, params map[string]interface{}
 	return sess.RespondWithOptions(prompt, maxTokens, temperature), nil
 }
 
+// buildClassifyPrompt builds the prompt used for classification. Exposed for testing.
+func buildClassifyPrompt(text string, categories string) string {
+	return fmt.Sprintf("Classify the following text into one of these categories: %s\n\nText: %s\n\nRespond with only the category name.", categories, text)
+}
+
 // summarizeText summarizes text using Apple Foundation Models.
 func summarizeText(sess *fm.Session, text string, params map[string]interface{}) (string, error) {
 	// Create summarization prompt
@@ -127,8 +132,7 @@ func classifyText(sess *fm.Session, text string, params map[string]interface{}) 
 		categories = cats
 	}
 
-	// Create classification prompt
-	prompt := fmt.Sprintf("Classify the following text into one of these categories: %s\n\nText: %s\n\nRespond with only the category name.", categories, text)
+	prompt := buildClassifyPrompt(text, categories)
 
 	// Use lower temperature for classification (more deterministic)
 	temp := float32(0.2)

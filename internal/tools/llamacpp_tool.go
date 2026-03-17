@@ -8,9 +8,50 @@ import (
 	"encoding/json"
 	"fmt"
 	"runtime"
+	"strings"
+	"sync"
 
 	"github.com/davidl71/exarp-go/internal/framework"
 )
+
+// preloadDone tracks project roots for which preload has already run (once per root).
+var preloadMu sync.Mutex
+var preloadDone = make(map[string]bool)
+
+// RunLlamaCppPreloadIfConfigured loads models listed in .exarp/llamacpp.json "preload" on first use.
+// If "warmup" is true, runs a short inference after each load. Safe to call multiple times; runs at most once per projectRoot.
+func RunLlamaCppPreloadIfConfigured(projectRoot string) {
+	if projectRoot == "" {
+		return
+	}
+	preloadMu.Lock()
+	if preloadDone[projectRoot] {
+		preloadMu.Unlock()
+		return
+	}
+	preloadDone[projectRoot] = true
+	preloadMu.Unlock()
+
+	cfg := loadLlamaCppAliasConfig(projectRoot)
+	if len(cfg.Preload) == 0 {
+		return
+	}
+	ctx := context.Background()
+	for _, name := range cfg.Preload {
+		path, err := ResolveModelToPath(strings.TrimSpace(name), projectRoot)
+		if err != nil {
+			continue // skip unresolvable entries
+		}
+		if err := LlamaCppLoad(path); err != nil {
+			continue // skip load failures (e.g. missing file)
+		}
+		if cfg.Warmup {
+			if p := DefaultLlamaCppProvider(); p != nil && p.Supported() {
+				_, _ = p.Generate(ctx, "Hi", 5, 0)
+			}
+		}
+	}
+}
 
 // handleLlamaCppTool dispatches llamacpp actions.
 func handleLlamaCppTool(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
@@ -41,10 +82,18 @@ func handleLlamaCppTool(ctx context.Context, args json.RawMessage) ([]framework.
 }
 
 func handleLlamaCppStatus() ([]framework.TextContent, error) {
+	projectRoot, _ := FindProjectRoot()
+	RunLlamaCppPreloadIfConfigured(projectRoot)
+
 	provider := DefaultLlamaCppProvider()
 	gpu := DetectGPU()
 
 	available := provider != nil && provider.Supported()
+	mem := GetProcessMemoryInfo()
+	memoryMB := mem.HeapSysMB
+	if mem.RSSMB > 0 {
+		memoryMB = mem.RSSMB
+	}
 	status := map[string]interface{}{
 		"available":    available,
 		"model_loaded": LlamaCppModelPath(),
@@ -56,7 +105,17 @@ func handleLlamaCppStatus() ([]framework.TextContent, error) {
 			"memory_mb":   gpu.MemoryMB,
 			"layers":      gpu.Layers,
 		},
+		"process_memory": map[string]interface{}{
+			"memory_mb":   memoryMB,
+			"heap_alloc_mb": mem.HeapAllocMB,
+			"heap_sys_mb":   mem.HeapSysMB,
+			"rss_mb":        mem.RSSMB,
+			"limit_mb":      mem.LimitMB,
+		},
 		"platform": runtime.GOOS + "/" + runtime.GOARCH,
+	}
+	if mem.Warning != "" {
+		status["process_memory"].(map[string]interface{})["warning"] = mem.Warning
 	}
 
 	data, err := json.MarshalIndent(status, "", "  ")
@@ -117,6 +176,18 @@ func handleLlamaCppGenerate(ctx context.Context, params map[string]interface{}) 
 	maxTokens := 512
 	if v, ok := params["max_tokens"].(float64); ok && v > 0 {
 		maxTokens = int(v)
+	}
+
+	// Optionally truncate prompt to fit context window (context management)
+	if contextSize, ok := params["context_size"].(float64); ok && contextSize > 0 {
+		ctxSize := int(contextSize)
+		if ctxSize > maxTokens {
+			promptBudget := ctxSize - maxTokens
+			prompt = TruncateToTokenBudget(prompt, promptBudget, 0)
+		}
+	} else if contextSize, ok := params["context_size"].(int); ok && contextSize > maxTokens {
+		promptBudget := contextSize - maxTokens
+		prompt = TruncateToTokenBudget(prompt, promptBudget, 0)
 	}
 
 	temperature := float32(0.7)

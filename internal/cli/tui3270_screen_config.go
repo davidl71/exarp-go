@@ -4,13 +4,12 @@ package cli
 import (
 	"net"
 
-	"github.com/davidl71/exarp-go/internal/config"
 	"github.com/racingmars/go3270"
 )
 
 // configTransaction shows configuration editor.
 func (state *tui3270State) configTransaction(conn net.Conn, devInfo go3270.DevInfo, data any) (go3270.Tx, any, error) {
-	cfg, err := config.LoadConfig(state.projectRoot)
+	cfg, err := loadConfigForTUI(state.projectRoot)
 	if err != nil {
 		// Show error screen instead of failing the connection; user can PF3 back
 		msg := err.Error()

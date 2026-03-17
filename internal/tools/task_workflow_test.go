@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"testing"
 	"time"
 
@@ -450,6 +451,62 @@ func TestHandleTaskWorkflowNative(t *testing.T) {
 		preferred, _ := found.Metadata["preferred_backend"].(string)
 		if preferred != "mlx" {
 			t.Errorf("task preferred_backend = %q, want mlx", preferred)
+		}
+	})
+
+	// Integration: run_with_ai uses task preferred_backend=fm when local_ai_backend is not passed.
+	t.Run("run_with_ai routes to task preferred_backend fm", func(t *testing.T) {
+		ctx := context.Background()
+
+		createResult, err := handleTaskWorkflowNative(ctx, map[string]interface{}{
+			"action":           "create",
+			"name":             "FM routing integration test",
+			"long_description": "Verify run_with_ai uses preferred_backend=fm from task metadata",
+			"local_ai_backend": "fm",
+		})
+		if err != nil {
+			t.Fatalf("create task: %v", err)
+		}
+		if len(createResult) == 0 {
+			t.Fatal("create returned no result")
+		}
+
+		var createData map[string]interface{}
+		if err := json.Unmarshal([]byte(createResult[0].Text), &createData); err != nil {
+			t.Fatalf("create result JSON: %v", err)
+		}
+		taskObj, _ := createData["task"].(map[string]interface{})
+		taskID, _ := taskObj["id"].(string)
+		if taskID == "" {
+			t.Fatal("create did not return task id")
+		}
+
+		runResult, err := handleTaskWorkflowNative(ctx, map[string]interface{}{
+			"action":  "run_with_ai",
+			"task_id": taskID,
+		})
+		if err != nil {
+			errStr := err.Error()
+			if strings.Contains(errStr, "unavailable") ||
+				strings.Contains(errStr, "both unavailable") ||
+				strings.Contains(errStr, "generation failed") ||
+				strings.Contains(errStr, "not found") ||
+				strings.Contains(errStr, "404") {
+				t.Skip("no FM or Ollama backend available or model missing; skip routing test")
+			}
+			t.Fatalf("run_with_ai: %v", err)
+		}
+		if len(runResult) == 0 {
+			t.Fatal("run_with_ai returned no result")
+		}
+
+		var runData map[string]interface{}
+		if err := json.Unmarshal([]byte(runResult[0].Text), &runData); err != nil {
+			t.Fatalf("run_with_ai result JSON: %v", err)
+		}
+		backend, _ := runData["backend"].(string)
+		if backend != "fm" {
+			t.Errorf("run_with_ai backend = %q, want fm (task has preferred_backend=fm)", backend)
 		}
 	})
 

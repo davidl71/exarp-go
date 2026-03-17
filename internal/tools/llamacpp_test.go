@@ -4,6 +4,8 @@ package tools
 import (
 	"context"
 	"encoding/json"
+	"os"
+	"runtime"
 	"strings"
 	"testing"
 )
@@ -56,6 +58,75 @@ func TestRecommendGPULayers(t *testing.T) {
 			}
 		})
 	}
+}
+
+// TestGPUOffloadConfig_MetalOrCUDA asserts that GPU detection reports a usable
+// offload config on Metal (darwin/arm64) or CUDA (CUDA_VISIBLE_DEVICES set).
+// GPU code is in llamacpp_gpu.go (no build tags); layers are applied when
+// built with -tags llamacpp,cgo in provider/model_manager via SetGPULayers.
+func TestGPUOffloadConfig_MetalOrCUDA(t *testing.T) {
+	info := DetectGPU()
+
+	if runtime.GOOS == "darwin" && runtime.GOARCH == "arm64" {
+		// Metal: expect backend metal, available, and layers set (-1 = all).
+		if info.Backend != "metal" {
+			t.Errorf("darwin/arm64: Backend = %q, want metal", info.Backend)
+		}
+		if !info.Available {
+			t.Error("darwin/arm64: Available should be true for Metal")
+		}
+		if info.Layers == 0 {
+			t.Errorf("darwin/arm64: Layers = 0, want non-zero (-1 or positive)")
+		}
+		return
+	}
+
+	if cuda := os.Getenv("CUDA_VISIBLE_DEVICES"); cuda != "" {
+		// CUDA: expect backend cuda, available, and layers set.
+		if info.Backend != "cuda" {
+			t.Errorf("CUDA_VISIBLE_DEVICES set: Backend = %q, want cuda", info.Backend)
+		}
+		if !info.Available {
+			t.Error("CUDA_VISIBLE_DEVICES set: Available should be true for CUDA")
+		}
+		if info.Layers <= 0 {
+			t.Errorf("CUDA_VISIBLE_DEVICES set: Layers = %d, want positive", info.Layers)
+		}
+		return
+	}
+
+	t.Skip("no Metal (darwin/arm64) or CUDA (CUDA_VISIBLE_DEVICES) environment; skipping GPU offload config assertion")
+}
+
+// TestLlamaCppGenerateWithGPULayers_Integration runs a tiny generate with
+// GPU layers (when provider uses DetectGPU and SetGPULayers). Skip conditions:
+// - Not built with -tags llamacpp,cgo (provider nil or unsupported).
+// - No model loaded (LLAMACPP_MODEL_PATH unset and no model loaded via tool).
+// - No GPU or model load failure: skip with message instead of fail.
+func TestLlamaCppGenerateWithGPULayers_Integration(t *testing.T) {
+	p := DefaultLlamaCppProvider()
+	if p == nil || !p.Supported() {
+		t.Skip("llamacpp provider not available (build with -tags llamacpp,cgo and load a model or set LLAMACPP_MODEL_PATH)")
+	}
+
+	ctx := context.Background()
+	result, err := handleLlamaCppGenerate(ctx, map[string]interface{}{
+		"prompt":      "Hi",
+		"max_tokens":  4,
+		"temperature": 0,
+	})
+	if err != nil {
+		// No GPU or model/load failure: skip so CI without GPU/model still passes.
+		if strings.Contains(err.Error(), "not available") || strings.Contains(err.Error(), "no model") ||
+			strings.Contains(err.Error(), "load failed") || strings.Contains(err.Error(), "predict") {
+			t.Skipf("llamacpp generate skipped (no GPU or no model): %v", err)
+		}
+		t.Fatalf("handleLlamaCppGenerate: %v", err)
+	}
+	if len(result) == 0 || result[0].Text == "" {
+		t.Error("expected non-empty generate result")
+	}
+	t.Logf("generate (GPU layers) succeeded: %q", result[0].Text)
 }
 
 func TestDiscoverOllamaModels(t *testing.T) {

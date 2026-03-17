@@ -935,10 +935,14 @@ build-llamacpp: ## Build with llama.cpp support (CGO + llamacpp build tag, requi
 LLAMACPP_DIR ?= $(shell pwd)/go-llama.cpp
 LLAMACPP_BINDING = $(LLAMACPP_DIR)/libbinding.a
 
-build-libbinding: ## Build libbinding.a from go-llama.cpp submodule (Metal on macOS, CPU on Linux)
+build-libbinding: ## Build libbinding.a from go-llama.cpp submodule (inits submodule if needed; Metal on macOS, CPU on Linux)
+	@if [ -f .gitmodules ] && grep -q 'path = go-llama.cpp' .gitmodules 2>/dev/null; then \
+		echo "$(BLUE)Initializing go-llama.cpp submodule...$(NC)"; \
+		git submodule update --init --recursive go-llama.cpp; \
+	fi
 	@if [ ! -d "$(LLAMACPP_DIR)" ]; then \
 		echo "$(RED)❌ go-llama.cpp directory not found at $(LLAMACPP_DIR)$(NC)"; \
-		echo "$(YELLOW)   Clone it: git clone --recurse-submodules https://github.com/go-skynet/go-llama.cpp$(NC)"; \
+		echo "$(YELLOW)   Run: ./scripts/build-llamacpp.sh (clones and builds), or add submodule and run: make build-libbinding$(NC)"; \
 		exit 1; \
 	fi
 	@echo "$(BLUE)Building libbinding.a...$(NC)"

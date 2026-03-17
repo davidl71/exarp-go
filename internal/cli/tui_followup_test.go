@@ -3,8 +3,6 @@ package cli
 import (
 	"strings"
 	"testing"
-
-	"github.com/davidl71/exarp-go/internal/config"
 )
 
 func TestTransitionToRejectsInvalidModeChange(t *testing.T) {
@@ -36,7 +34,7 @@ func TestKeyMatchesUsesConfiguredBindings(t *testing.T) {
 func TestViewHelpUsesConfiguredBindings(t *testing.T) {
 	server := setupMockServer(t)
 	m := initialModel(server, "", "/test", "test-project", 100, 40)
-	m.configData = config.GetDefaults()
+	m.configData = getConfigDefaultsForTUI()
 	m.configData.Tasks.Keybindings["create_task"] = []string{"n"}
 
 	help := m.viewHelp()

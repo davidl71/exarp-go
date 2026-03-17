@@ -2,8 +2,6 @@ package cli
 
 import (
 	"strings"
-
-	"github.com/davidl71/exarp-go/internal/config"
 )
 
 const (
@@ -37,7 +35,7 @@ func (m model) keyMatches(key, action string) bool {
 }
 
 func (m model) bindingsFor(action string) []string {
-	defaults := config.DefaultTaskKeybindings()
+	defaults := getDefaultTaskKeybindingsForTUI()
 	if m.configData == nil || len(m.configData.Tasks.Keybindings) == 0 {
 		return append([]string(nil), defaults[action]...)
 	}

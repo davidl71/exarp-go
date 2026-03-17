@@ -16,8 +16,8 @@ import (
 	"charm.land/bubbles/v2/textinput"
 	tea "charm.land/bubbletea/v2"
 	"github.com/davidl71/exarp-go/internal/config"
-	"github.com/davidl71/exarp-go/internal/database"
 	"github.com/davidl71/exarp-go/internal/framework"
+	"github.com/davidl71/exarp-go/internal/models"
 	"github.com/davidl71/exarp-go/internal/queue"
 	"github.com/davidl71/exarp-go/internal/tools"
 	"golang.org/x/term"
@@ -52,7 +52,7 @@ type model struct {
 }
 
 type CoreState struct {
-	tasks       []*database.Todo2Task
+	tasks       []*models.Todo2Task
 	cursor      int
 	selected    map[int]struct{}
 	status      string
@@ -138,7 +138,7 @@ type JobsViewState struct {
 
 type TaskDetailViewState struct {
 	// Task detail overlay (pressing 's' on a task)
-	taskDetailTask      *database.Todo2Task
+	taskDetailTask      *models.Todo2Task
 	taskDetailScrollTop int // scroll offset for long detail content
 }
 
@@ -216,10 +216,10 @@ func initialModel(server framework.MCPServer, status string, projectRoot, projec
 	// Ensure config file exists so TUI config view can load and save (initialize if necessary)
 	pbPath := filepath.Join(projectRoot, ".exarp", "config.pb")
 	if _, err := os.Stat(pbPath); os.IsNotExist(err) {
-		_ = config.WriteConfigToProtobufFile(projectRoot, config.GetDefaults())
+		_ = saveConfigForTUI(projectRoot, getConfigDefaultsForTUI())
 	}
-	// Load config
-	cfg, _ := config.LoadConfig(projectRoot)
+	// Load config via adapter
+	cfg, _ := loadConfigForTUI(projectRoot)
 
 	// Build config sections
 	sections := []configSection{
@@ -237,7 +237,7 @@ func initialModel(server framework.MCPServer, status string, projectRoot, projec
 
 	return model{
 		CoreState: CoreState{
-			tasks:       []*database.Todo2Task{},
+			tasks:       []*models.Todo2Task{},
 			cursor:      0,
 			selected:    make(map[int]struct{}),
 			status:      status,
@@ -285,7 +285,7 @@ func initialModel(server framework.MCPServer, status string, projectRoot, projec
 			taskList:          list.New(nil, list.NewDefaultDelegate(), 0, 0),
 			useBubbleList:     false, // set to true to enable bubble/list rendering
 			taskTable:         table.New(table.WithColumns(defaultTableColumns), table.WithRows(nil)),
-			useBubbleTable:    false,                                                          // set to true to enable bubble/table rendering
+			useBubbleTable:    false, // set to true to enable bubble/table rendering
 			taskSpinner:       configuredSpinner(cfg),
 			spinnerMessage:    "",
 			spinnerStyleIndex: 1, // Default to Line spinner (may be overridden by config)
@@ -372,13 +372,11 @@ func RunTUI(server framework.MCPServer, status string) error {
 		projectName = getProjectName(projectRoot)
 		EnsureConfigAndDatabase(projectRoot)
 
-		if database.DB != nil {
-			defer func() {
-				if err := database.Close(); err != nil {
-					logWarn(context.TODO(), "Error closing database", "error", err, "operation", "closeDatabase")
-				}
-			}()
-		}
+		defer func() {
+			if err := CloseDatabaseIfOpen(); err != nil {
+				logWarn(context.TODO(), "Error closing database", "error", err, "operation", "closeDatabase")
+			}
+		}()
 	}
 
 	// Detect terminal size at startup so the first frame uses correct dimensions.

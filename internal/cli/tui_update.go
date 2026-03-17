@@ -314,7 +314,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// Refresh scorecard with full checks so updated state (e.g. coverage after make test) is shown
 		m.scorecardLoading = true
 
-		return m, loadScorecard(m.projectRoot, true)
+		return m, loadScorecard(m.server, m.projectRoot, true)
 
 	case childAgentResultMsg:
 		if msg.Result.Launched {

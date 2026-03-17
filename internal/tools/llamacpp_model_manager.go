@@ -22,7 +22,7 @@ import (
 type modelEntry struct {
 	path     string
 	model    *llama.LLama
-	refs     int       // active Generate calls holding this model
+	refs     int // active Generate calls holding this model
 	lastUsed time.Time
 	lruElem  *list.Element // pointer into mgr.lru
 }
