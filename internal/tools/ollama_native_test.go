@@ -65,6 +65,7 @@ func skipIfOllamaModelUnavailable(t *testing.T, err error) {
 func TestHandleOllamaDocs(t *testing.T) {
 	// Create a temporary test file
 	tmpDir := t.TempDir()
+	t.Setenv("PROJECT_ROOT", tmpDir)
 	testFile := filepath.Join(tmpDir, "test.go")
 	testCode := `package main
 
@@ -146,6 +147,7 @@ func add(a, b int) int {
 func TestHandleOllamaQuality(t *testing.T) {
 	// Create a temporary test file
 	tmpDir := t.TempDir()
+	t.Setenv("PROJECT_ROOT", tmpDir)
 	testFile := filepath.Join(tmpDir, "test.go")
 	testCode := `package main
 

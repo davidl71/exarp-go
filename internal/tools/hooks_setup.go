@@ -310,6 +310,9 @@ func handleSetupPatternHooks(ctx context.Context, params map[string]interface{})
 // getDefaultPatterns returns default pattern configurations.
 func getDefaultPatterns() map[string]interface{} {
 	return map[string]interface{}{
+		"file_patterns": map[string]interface{}{
+			"go": []string{"**/*.go"},
+		},
 		"git_events": map[string]interface{}{
 			"pre_commit": map[string]interface{}{
 				"tools": []string{

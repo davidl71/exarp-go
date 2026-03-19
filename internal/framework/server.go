@@ -11,6 +11,10 @@ import (
 	"github.com/davidl71/mcp-go-core/pkg/mcp/types"
 )
 
+type samplerContextKeyType struct{}
+
+var samplerContextKey = &samplerContextKeyType{}
+
 // Re-export types and interfaces from mcp-go-core for backward compatibility.
 type (
 	MCPServer       = framework.MCPServer
@@ -91,12 +95,17 @@ type TokenUsage struct {
 // SamplerFromContext extracts a Sampler from context.
 // Returns nil if not available.
 func SamplerFromContext(ctx context.Context) Sampler {
+	if v := ctx.Value(samplerContextKey); v != nil {
+		if s, ok := v.(Sampler); ok {
+			return s
+		}
+	}
 	return nil
 }
 
 // ContextWithSampler adds a Sampler to context.
 func ContextWithSampler(ctx context.Context, s Sampler) context.Context {
-	return ctx
+	return context.WithValue(ctx, samplerContextKey, s)
 }
 
 // Root represents a client workspace boundary.

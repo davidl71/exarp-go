@@ -53,7 +53,7 @@ func ValidatePathAgainstMCPRoots(ctx context.Context, requestedPath string) (str
 
 // validateAgainstProjectRoot falls back to validating against project root
 func validateAgainstProjectRoot(path string) (string, error) {
-	projectRoot, err := FindProjectRoot()
+	projectRoot, err := GetProjectRootWithFallback()
 	if err != nil {
 		// No project root - allow the path
 		return filepath.Abs(path)
@@ -67,6 +67,11 @@ func validateAgainstProjectRoot(path string) (string, error) {
 	absRoot, err := filepath.Abs(projectRoot)
 	if err != nil {
 		return "", err
+	}
+
+	// Special case: "." means current directory - resolve to project root
+	if path == "." {
+		return absRoot, nil
 	}
 
 	rel, err := filepath.Rel(absRoot, absPath)

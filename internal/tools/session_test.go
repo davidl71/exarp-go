@@ -714,10 +714,11 @@ func TestHandoffEndWithTaskJournalAndSnapshot(t *testing.T) {
 	ctx := context.Background()
 	// Create one task so snapshot has content
 	task := &database.Todo2Task{
-		ID:       "T-session-test-1",
-		Content:  "Session handoff test task",
-		Status:   "Todo",
-		Priority: "medium",
+		ID:        "T-session-test-1",
+		Content:   "Session handoff test task",
+		Status:    "Todo",
+		Priority:  "medium",
+		ProjectID: filepath.Base(os.Getenv("PROJECT_ROOT")),
 	}
 	if err := database.CreateTask(ctx, task); err != nil {
 		t.Fatalf("CreateTask: %v", err)

@@ -29,7 +29,6 @@ func TestRegisterAllTools(t *testing.T) {
 		"memory_maint",
 		"report",
 		"security",
-		"scan_dependency_security",
 		"task_analysis",
 		"task_discovery",
 		"task_workflow",
@@ -45,7 +44,7 @@ func TestRegisterAllTools(t *testing.T) {
 		"infer_session_mode",
 		"ollama",
 		"mlx",
-		"context_budget",
+		"llamacpp",
 		"context",
 		"text_generate",
 		"task_execute",
@@ -56,6 +55,7 @@ func TestRegisterAllTools(t *testing.T) {
 		"fm_plan_and_execute",
 		"read_resource",
 		"list_resources",
+		"ask_client",
 	}
 
 	// The explicit tool list is the primary contract. Allow one extra conditional Apple FM tool.
@@ -100,12 +100,12 @@ func TestRegisterAllTools_RegistrationError(t *testing.T) {
 	expectedBatches := [][]string{
 		// Batch 1: 6 simple tools
 		{"analyze_alignment", "generate_config", "health", "setup_hooks", "check_attribution", "add_external_tool_hints"},
-		// Batch 2: 9 medium tools (+ scan_dependency_security)
-		{"memory", "memory_maint", "report", "security", "scan_dependency_security", "task_analysis", "task_discovery", "task_workflow", "infer_task_progress", "testing"},
+		// Batch 2: 9 medium tools
+		{"memory", "memory_maint", "report", "security", "task_analysis", "task_discovery", "task_workflow", "infer_task_progress", "testing"},
 		// Batch 3: 10 advanced tools
-		{"automation", "tool_catalog", "workflow_mode", "lint", "estimation", "git_tools", "session", "infer_session_mode", "ollama", "mlx"},
-		// Batch 4 + 5: context_budget + read_resource/list_resources, context, text_generate, task_execute, prompt_tracking, recommend, research_aggregator, cursor_cloud_agent, fm_plan_and_execute
-		{"context_budget", "read_resource", "list_resources", "context", "text_generate", "task_execute", "prompt_tracking", "recommend", "research_aggregator", "cursor_cloud_agent", "fm_plan_and_execute"},
+		{"automation", "tool_catalog", "workflow_mode", "lint", "estimation", "git_tools", "session", "infer_session_mode", "ollama", "mlx", "llamacpp"},
+		// Batch 4 + 5: context + read_resource/list_resources, text_generate, task_execute, prompt_tracking, recommend, research_aggregator, cursor_cloud_agent, fm_plan_and_execute, ask_client
+		{"context", "read_resource", "list_resources", "text_generate", "task_execute", "prompt_tracking", "recommend", "research_aggregator", "cursor_cloud_agent", "fm_plan_and_execute", "ask_client"},
 	}
 
 	for _, batch := range expectedBatches {

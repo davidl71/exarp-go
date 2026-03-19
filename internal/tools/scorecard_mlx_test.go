@@ -1,6 +1,9 @@
 package tools
 
-import "testing"
+import (
+	"math"
+	"testing"
+)
 
 func TestExtractBlockers_DoesNotFlagUnavailableGovulncheckAsVulnerability(t *testing.T) {
 	scorecard := &GoScorecardResult{
@@ -127,7 +130,7 @@ func TestCalculateGoScore_IncludesDocumentationDimension(t *testing.T) {
 	if healthyScore <= driftedScore {
 		t.Fatalf("expected docs health to affect overall score: healthy=%v drifted=%v", healthyScore, driftedScore)
 	}
-	if healthyScore != 100 {
+	if math.Abs(healthyScore-100) > 1e-6 {
 		t.Fatalf("expected fully healthy scorecard to score 100, got %v", healthyScore)
 	}
 }
