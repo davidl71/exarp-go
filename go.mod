@@ -18,7 +18,7 @@ require (
 	github.com/knz/catwalk v0.1.4
 	github.com/lawlielt/ctxcache v1.0.1
 	github.com/lib/pq v1.11.2
-	github.com/modelcontextprotocol/go-sdk v1.4.0
+	github.com/modelcontextprotocol/go-sdk v1.4.1
 	github.com/philippgille/chromem-go v0.7.0
 	github.com/racingmars/go3270 v0.9.13
 	github.com/rqlite/gorqlite v0.0.0-20250609141355-ac86a4a1c9a8
@@ -86,7 +86,7 @@ require (
 	github.com/rogpeppe/go-internal v1.14.1 // indirect
 	github.com/sahilm/fuzzy v0.1.1 // indirect
 	github.com/segmentio/asm v1.2.1 // indirect
-	github.com/segmentio/encoding v0.5.3 // indirect
+	github.com/segmentio/encoding v0.5.4 // indirect
 	github.com/xo/terminfo v0.0.0-20220910002029-abceb7e1c41e // indirect
 	github.com/yosida95/uritemplate/v3 v3.0.2 // indirect
 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
