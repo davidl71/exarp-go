@@ -85,9 +85,3 @@ func validateAgainstProjectRoot(path string) (string, error) {
 
 	return absPath, nil
 }
-
-// PathValidationEnabled returns true if the current context has MCP Roots set.
-// Tools can use this to determine if enhanced path validation is available.
-func PathValidationEnabled(ctx context.Context) bool {
-	return len(framework.RootsFromContext(ctx)) > 0
-}

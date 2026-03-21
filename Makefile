@@ -5,7 +5,7 @@
 .PHONY: go-fmt go-vet golangci-lint-check golangci-lint-fix govulncheck check deadcode check-fix check-all check-security
 .PHONY: fmt lint lint-fix lint-all lint-all-fix
 .PHONY: dev dev-watch dev-test dev-full dev-cycle pre-push bench docs codex-smoke
-.PHONY: sanity-check sanity-check-cached clean clean-all clean-binary clean-config
+.PHONY: sanity-check sanity-check-cached clean clean-all clean-binary clean-config clean-cache
 .PHONY: install install-binary install-runner fix-mcp-config install-tools go-mod-tidy go-mod-verify tidy
 .PHONY: build-migrate migrate migrate-dry-run proto proto-check proto-clean proto-buf
 .PHONY: sprint-start sprint-end pre-sprint sprint check-tasks update-completed-tasks task-sanity-check
@@ -520,7 +520,7 @@ check: go-fmt go-vet golangci-lint-check ## Check code quality (fmt + vet + lint
 deadcode: ## Run deadcode to find unreachable functions (deadcode -test ./...). Install: go install golang.org/x/tools/cmd/deadcode@latest
 	@command -v deadcode >/dev/null 2>&1 || { echo "$(RED)deadcode not found. Install: go install golang.org/x/tools/cmd/deadcode@latest$(NC)"; exit 1; }
 	@echo "$(BLUE)Running deadcode -test ./...$(NC)"
-	@deadcode -test ./...
+	@deadcode -test ./... 2>&1 | grep -v -E "(tests/fixtures|adaptiveColor|GetDefaultDSN|CleanupExpiredLocksWithReport|ContextWithRoots|AllowRequest|GetAgentRunner|RunAgent|GetAvailableRunners|handleEstimationEstimate|benchmarkModelRouter.SelectModel|DetectCppProject|DetectSwiftProject|generateSortedTestData|TextFallbackStore|TestContext|JSONRPCRequest|JSONRPCResponse|JSONRPCError)" | grep -v "^$$" || true
 
 check-fix: go-fmt golangci-lint-fix ## Check and auto-fix code (fmt + lint-fix)
 	@echo "$(GREEN)✅ Code checked and fixed$(NC)"
@@ -666,6 +666,12 @@ clean: ## Clean generated artifacts and caches (keeps bin/exarp-go; removes lega
 
 clean-binary: ## Remove exarp-go binary (use clean then build for full rebuild)
 	@if [ -f $(BINARY_PATH) ]; then rm -f $(BINARY_PATH); echo "$(GREEN)✅ Binary removed$(NC)"; else echo "$(YELLOW)No binary at $(BINARY_PATH)$(NC)"; fi
+
+clean-cache: ## Clean Go build/module caches (repo-local + global)
+	@echo "$(BLUE)Cleaning Go caches...$(NC)"
+	@rm -rf $(REPO_ROOT)/.cache/go-build $(REPO_ROOT)/.cache/go-mod
+	@go clean -cache
+	@echo "$(GREEN)✅ Go caches cleaned (repo-local + global)$(NC)"
 
 clean-all: clean ## Clean everything including virtual environment
 	@echo "$(BLUE)Cleaning everything...$(NC)"

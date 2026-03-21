@@ -75,22 +75,6 @@ func LoadConfig(projectRoot string) (*Config, error) {
 	return cfg, nil
 }
 
-// GetDefaultDSN returns the default DSN for a driver type.
-func GetDefaultDSN(driver DriverType, projectRoot string) string {
-	switch driver {
-	case DriverSQLite:
-		return filepath.Join(projectRoot, ".todo2", "todo2.db")
-	case DriverMySQL:
-		return "root:password@tcp(localhost:3306)/todo2?charset=utf8mb4&parseTime=True&loc=UTC"
-	case DriverPostgres:
-		return "postgres://postgres:password@localhost:5432/todo2?sslmode=disable"
-	case DriverRqlite:
-		return "http://localhost:4001"
-	default:
-		return ""
-	}
-}
-
 // DatabaseConfigFields holds the database configuration fields from centralized config
 // This struct is used to break the import cycle between database and config packages.
 type DatabaseConfigFields struct {

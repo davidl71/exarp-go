@@ -14,28 +14,16 @@ func ParamString(params map[string]interface{}, key string) string {
 	return strings.TrimSpace(cast.ToString(params[key]))
 }
 
-// ParamInt returns params[key] as an int. Returns defaultVal if key is missing or wrong type.
-// Uses defaultVal for missing keys; to distinguish missing from explicit 0, use HasKey first.
-func ParamInt(params map[string]interface{}, key string, defaultVal int) int {
-	if val, err := cast.ToIntE(params[key]); err == nil {
-		return val
-	}
-	return defaultVal
-}
-
 // ParamBool returns params[key] as a bool. Returns defaultVal if key is missing or wrong type.
-// To distinguish between missing key and explicit false, use HasKey() first.
 func ParamBool(params map[string]interface{}, key string, defaultVal bool) bool {
-	if val, err := cast.ToBoolE(params[key]); err == nil {
+	v, ok := params[key]
+	if !ok || v == nil {
+		return defaultVal
+	}
+	if val, err := cast.ToBoolE(v); err == nil {
 		return val
 	}
 	return defaultVal
-}
-
-// HasKey returns true if the key exists in params (even if value is nil/empty).
-func HasKey(params map[string]interface{}, key string) bool {
-	_, exists := params[key]
-	return exists
 }
 
 // RequireParam returns params[key] as a trimmed string. Returns an error if the
@@ -56,21 +44,6 @@ func ParamEnum(params map[string]interface{}, key string, valid []string, defaul
 	v := strings.TrimSpace(cast.ToString(params[key]))
 	if v == "" {
 		return defaultVal, nil
-	}
-	for _, ok := range valid {
-		if strings.EqualFold(v, ok) {
-			return ok, nil
-		}
-	}
-	return "", fmt.Errorf("invalid value %q for %q: must be one of %s", v, key, strings.Join(valid, ", "))
-}
-
-// RequireEnum combines RequireParam and ParamEnum: the key must be present and
-// its value must be in the valid set.
-func RequireEnum(params map[string]interface{}, key string, valid []string) (string, error) {
-	v, err := RequireParam(params, key)
-	if err != nil {
-		return "", err
 	}
 	for _, ok := range valid {
 		if strings.EqualFold(v, ok) {

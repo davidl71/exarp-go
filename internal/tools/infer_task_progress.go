@@ -266,12 +266,6 @@ func scoreAllTasksHeuristic(tasks []Todo2Task, evidence *CodebaseEvidence) []Inf
 	return results
 }
 
-// scoreTasksHeuristic scores each task and returns only those with confidence >= threshold (for tests).
-func scoreTasksHeuristic(tasks []Todo2Task, evidence *CodebaseEvidence, threshold float64) []InferredResult {
-	all := scoreAllTasksHeuristic(tasks, evidence)
-	return filterByThreshold(all, threshold)
-}
-
 func filterByThreshold(results []InferredResult, threshold float64) []InferredResult {
 	out := make([]InferredResult, 0)
 

@@ -33,26 +33,10 @@ func GetStringSlice(m map[string]interface{}, key string) []string {
 	return nil
 }
 
-// GetInt retrieves an int from a map (handles float64 from JSON unmarshaling).
-func GetInt(m map[string]interface{}, key string) int {
-	if val, ok := m[key].(float64); ok {
-		return int(val)
-	}
-	return 0
-}
-
 // GetFloat retrieves a float64 from a map.
 func GetFloat(m map[string]interface{}, key string) float64 {
 	if val, ok := m[key].(float64); ok {
 		return val
 	}
 	return 0
-}
-
-// GetBool retrieves a bool from a map.
-func GetBool(m map[string]interface{}, key string) bool {
-	if val, ok := m[key].(bool); ok {
-		return val
-	}
-	return false
 }

@@ -12,9 +12,3 @@ import (
 func handleEstimationNative(ctx context.Context, projectRoot string, params map[string]interface{}) (string, error) {
 	return HandleEstimationNative(ctx, projectRoot, params)
 }
-
-// handleEstimationEstimate handles the estimate action.
-// Now uses the shared implementation.
-func handleEstimationEstimate(ctx context.Context, projectRoot string, params map[string]interface{}) (string, error) {
-	return handleEstimationEstimateShared(ctx, projectRoot, params)
-}

@@ -562,7 +562,16 @@ func findMissingDocReferences(projectRoot, docPath, content string) []map[string
 			strings.Contains(target, "://") ||
 			strings.HasPrefix(target, "mailto:") ||
 			strings.HasPrefix(target, "file://") ||
-			strings.Contains(target, "{{") {
+			strings.Contains(target, "{{") ||
+			// Exclude code-like targets (C++/Rust references in code blocks)
+			strings.Contains(target, "::") ||
+			strings.Contains(target, "& ") ||
+			strings.Contains(target, " *") ||
+			strings.Contains(target, " &") ||
+			// Exclude targets that look like code expressions
+			regexp.MustCompile(`^[a-z_]+\s*\(.*\)$`).MatchString(target) ||
+			// Exclude single-line code references like `Type var`
+			regexp.MustCompile(`^[a-zA-Z_][a-zA-Z0-9_]*::[a-zA-Z_][a-zA-Z0-9_]*`).MatchString(target) {
 			continue
 		}
 

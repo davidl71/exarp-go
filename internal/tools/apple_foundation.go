@@ -145,22 +145,3 @@ func classifyText(sess *fm.Session, text string, params map[string]interface{}) 
 
 	return response, nil
 }
-
-// buildGenerationOptions builds generation options from parameters (for future use).
-func buildGenerationOptions(params map[string]interface{}) *fm.GenerationOptions {
-	options := &fm.GenerationOptions{}
-
-	// Temperature
-	if temp, ok := params["temperature"].(float64); ok {
-		temp32 := float32(temp)
-		options.Temperature = &temp32
-	}
-
-	// Max tokens
-	if maxTokens, ok := params["max_tokens"].(float64); ok {
-		maxTokensInt := int(maxTokens)
-		options.MaxTokens = &maxTokensInt
-	}
-
-	return options
-}

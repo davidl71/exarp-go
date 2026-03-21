@@ -68,6 +68,40 @@ type CreateMessageParams struct {
 	Preferences  MessagePreferences
 }
 
+// NewCreateMessageParams creates CreateMessageParams with required messages.
+func NewCreateMessageParams(messages []SamplingMessage) CreateMessageParams {
+	return CreateMessageParams{Messages: messages}
+}
+
+// AddMessage appends a message to the params.
+func (p CreateMessageParams) AddMessage(msg SamplingMessage) CreateMessageParams {
+	p.Messages = append(p.Messages, msg)
+	return p
+}
+
+// AddUserMessage appends a user message.
+func (p CreateMessageParams) AddUserMessage(content string) CreateMessageParams {
+	return p.AddMessage(NewSamplingMessage("user", content))
+}
+
+// WithSystemPrompt sets the system prompt.
+func (p CreateMessageParams) WithSystemPrompt(systemPrompt string) CreateMessageParams {
+	p.SystemPrompt = systemPrompt
+	return p
+}
+
+// WithTemperature sets the temperature.
+func (p CreateMessageParams) WithTemperature(temperature float64) CreateMessageParams {
+	p.Temperature = temperature
+	return p
+}
+
+// WithMaxTokens sets the max tokens.
+func (p CreateMessageParams) WithMaxTokens(maxTokens int) CreateMessageParams {
+	p.MaxTokens = maxTokens
+	return p
+}
+
 // MessagePreferences contains sampling preferences.
 type MessagePreferences struct {
 	Priority string
@@ -77,6 +111,11 @@ type MessagePreferences struct {
 type SamplingMessage struct {
 	Role    string
 	Content string
+}
+
+// NewSamplingMessage creates a SamplingMessage with role and content.
+func NewSamplingMessage(role, content string) SamplingMessage {
+	return SamplingMessage{Role: role, Content: content}
 }
 
 // CreateMessageResult contains the result of a sampling request.
@@ -118,11 +157,6 @@ type Root struct {
 // Returns empty slice if not available.
 func RootsFromContext(ctx context.Context) []Root {
 	return nil
-}
-
-// ContextWithRoots adds Roots to context.
-func ContextWithRoots(ctx context.Context, roots []Root) context.Context {
-	return ctx
 }
 
 // JsonRawMessage is an alias for json.RawMessage to avoid import conflicts.

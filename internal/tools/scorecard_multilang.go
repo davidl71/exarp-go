@@ -311,21 +311,6 @@ func countSwiftFilesIn(dir string) int {
 	return n
 }
 
-// CountCppFiles returns the number of C/C++ source and header files under projectRoot.
-func CountCppFiles(projectRoot string) int {
-	return countCppFilesIn(projectRoot)
-}
-
-// CountPythonFiles returns the number of .py files under projectRoot.
-func CountPythonFiles(projectRoot string) int {
-	return countPythonFilesIn(projectRoot)
-}
-
-// CountRustFiles returns the number of .rs files under projectRoot.
-func CountRustFiles(projectRoot string) int {
-	return countRustFilesIn(projectRoot)
-}
-
 func workDir(projectRoot, langRoot string) string {
 	if langRoot == "" {
 		return projectRoot

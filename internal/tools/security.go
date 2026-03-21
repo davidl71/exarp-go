@@ -105,9 +105,42 @@ func handleSecurityScan(ctx context.Context, params map[string]interface{}) ([]f
 	}, nil
 }
 
+// getGitHubRepoFromRemote returns the "owner/repo" from the current git remote URL.
+// Falls back to empty string if no remote or not a GitHub URL.
+func getGitHubRepoFromRemote(ctx context.Context, projectRoot string) string {
+	cmd := exec.CommandContext(ctx, "git", "remote", "get-url", "origin")
+	cmd.Dir = projectRoot
+	output, err := cmd.Output()
+	if err != nil {
+		return ""
+	}
+	url := strings.TrimSpace(string(output))
+
+	// Handle SSH format: git@github.com:owner/repo.git
+	if strings.HasPrefix(url, "git@github.com:") {
+		url = strings.TrimPrefix(url, "git@github.com:")
+		url = strings.TrimSuffix(url, ".git")
+		return url
+	}
+
+	// Handle HTTPS format: https://github.com/owner/repo.git
+	if strings.HasPrefix(url, "https://github.com/") {
+		url = strings.TrimPrefix(url, "https://github.com/")
+		url = strings.TrimSuffix(url, ".git")
+		return url
+	}
+
+	return ""
+}
+
 // handleSecurityAlerts handles the alerts action for security tool.
 func handleSecurityAlerts(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
-	repo := "davidl71/exarp-go"
+	// Default to current git repo, not hardcoded exarp-go
+	repo := ""
+	if projectRoot, err := FindProjectRoot(); err == nil {
+		repo = getGitHubRepoFromRemote(ctx, projectRoot)
+	}
+	// Override with explicit repo parameter if provided
 	if r, ok := params["repo"].(string); ok && r != "" {
 		repo = r
 	}
@@ -528,18 +561,4 @@ func formatDependabotAlerts(alerts []DependabotAlert) string {
 	}
 
 	return sb.String()
-}
-
-// handleScanDependencySecurity is an alias wrapper for security scan action
-// Provides a more explicit tool name for dependency vulnerability scanning
-func handleScanDependencySecurity(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
-	// Parse parameters to extract "quick" flag
-	var params map[string]interface{}
-	if err := json.Unmarshal(args, &params); err != nil {
-		return nil, fmt.Errorf("failed to parse params: %w", err)
-	}
-
-	// Call handleSecurityScan with "scan" action
-	params["action"] = "scan"
-	return handleSecurityScan(ctx, params)
 }

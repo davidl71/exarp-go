@@ -76,11 +76,3 @@ func applyPrefixFilter(values []string, prefix string) []string {
 	sort.Strings(filtered)
 	return filtered
 }
-
-func resourceSubscribeHandler(context.Context, *mcp.SubscribeRequest) error {
-	return nil
-}
-
-func resourceUnsubscribeHandler(context.Context, *mcp.UnsubscribeRequest) error {
-	return nil
-}

@@ -7,11 +7,6 @@ import (
 	"github.com/davidl71/exarp-go/internal/framework"
 )
 
-// MLXNativeAvailable reports whether native MLX is available. Always false after luxfi/mlx removal; Python bridge removed.
-func MLXNativeAvailable() bool {
-	return false
-}
-
 // handleMlxNative handles the mlx tool without Python. Implements "models" (static list); status/hardware/generate return unavailable message.
 func handleMlxNative(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	action, _ := params["action"].(string)

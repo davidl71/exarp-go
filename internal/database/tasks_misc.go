@@ -104,18 +104,3 @@ func GetDependents(taskID string) ([]string, error) {
 
 	return dependents, rows.Err()
 }
-
-// GetTagsForTask is a helper function to retrieve tags for a task.
-func GetTagsForTask(taskID string) ([]string, error) {
-	db, err := GetDB()
-	if err != nil {
-		return nil, fmt.Errorf("failed to get database: %w", err)
-	}
-
-	ctx := context.Background()
-
-	queryCtx, cancel := withQueryTimeout(ctx)
-	defer cancel()
-
-	return loadTaskTags(ctx, queryCtx, db, taskID)
-}

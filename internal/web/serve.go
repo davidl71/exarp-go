@@ -10,11 +10,6 @@ import (
 //go:embed static
 var staticFS embed.FS
 
-// FS returns the filesystem for the web UI (rooted at static/).
-func FS() (fs.FS, error) {
-	return fs.Sub(staticFS, "static")
-}
-
 // MustFS returns the embedded static FS rooted at static. Panics on error.
 func MustFS() fs.FS {
 	sub, err := fs.Sub(staticFS, "static")

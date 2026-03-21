@@ -46,14 +46,13 @@ func handleAskClient(ctx context.Context, params map[string]interface{}) ([]fram
 		systemPrompt = s
 	}
 
-	result, err := sampler.CreateMessage(ctx, framework.CreateMessageParams{
-		Messages: []framework.SamplingMessage{
-			{Role: "user", Content: prompt},
-		},
-		SystemPrompt: systemPrompt,
-		Temperature:  temperature,
-		MaxTokens:    maxTokens,
-	})
+	result, err := sampler.CreateMessage(ctx,
+		framework.NewCreateMessageParams(nil).
+			AddUserMessage(prompt).
+			WithSystemPrompt(systemPrompt).
+			WithTemperature(temperature).
+			WithMaxTokens(maxTokens),
+	)
 	if err != nil {
 		return nil, fmt.Errorf("sampling failed: %w", err)
 	}
