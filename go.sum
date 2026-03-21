@@ -72,6 +72,10 @@ github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davidl71/mcp-go-core v0.4.0 h1:bD6wQwwc6f/MJkA05WT12jtSA5J668GucE7y8xkwgZ8=
 github.com/davidl71/mcp-go-core v0.4.0/go.mod h1:6JEY0JB4TJMXjILkff4dIK5i5Z9tAUEXvmyfN5ZCwkA=
+github.com/davidl71/mcp-go-core v0.4.1-0.20260321150249-dfbfd9b0bcb5 h1:Xq6eAVNzQP8nFHvpilg2nAM+SZla9q7O5Q+OBrYfur0=
+github.com/davidl71/mcp-go-core v0.4.1-0.20260321150249-dfbfd9b0bcb5/go.mod h1:6JEY0JB4TJMXjILkff4dIK5i5Z9tAUEXvmyfN5ZCwkA=
+github.com/davidl71/mcp-go-core v0.4.1-0.20260321153042-bda21cce53bd h1:ZIe3SNky61VR7d3hd0Cjv+zHX62P+xWoC3uM/ZnWmaA=
+github.com/davidl71/mcp-go-core v0.4.1-0.20260321153042-bda21cce53bd/go.mod h1:6JEY0JB4TJMXjILkff4dIK5i5Z9tAUEXvmyfN5ZCwkA=
 github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f h1:lO4WD4F/rVNCu3HqELle0jiPLLBs70cWOduZpkS1E78=
 github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f/go.mod h1:cuUVRXasLTGF7a8hSLbxyZXjz+1KgoB3wDUb6vlszIc=
 github.com/dustin/go-humanize v1.0.1 h1:GzkhY7T5VNhEkwH0PVJgjz+fX1rhBrR7pRT3mDkpeCY=

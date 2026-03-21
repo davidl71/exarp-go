@@ -26,6 +26,10 @@ func TestFind(t *testing.T) {
 		t.Fatalf("chdir: %v", err)
 	}
 
+	oldProjectRoot := os.Getenv("PROJECT_ROOT")
+	os.Unsetenv("PROJECT_ROOT")
+	defer os.Setenv("PROJECT_ROOT", oldProjectRoot)
+
 	root, err := Find()
 	if err != nil {
 		t.Fatalf("Find() error = %v", err)
