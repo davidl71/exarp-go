@@ -488,6 +488,13 @@ func handleSecurity(ctx context.Context, args json.RawMessage) ([]framework.Text
 		}
 
 		return result, nil
+	case "validate_path":
+		result, err := handleSecurityValidatePath(ctx, params)
+		if err != nil {
+			return nil, fmt.Errorf("security validate_path: %w", err)
+		}
+
+		return result, nil
 	}
 
 	return nil, fmt.Errorf("security action %q not supported; supported: scan, alerts, report", action)

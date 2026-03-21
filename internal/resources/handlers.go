@@ -435,6 +435,28 @@ func RegisterAllResources(server framework.MCPServer) error {
 		return fmt.Errorf("failed to register all tools resource: %w", err)
 	}
 
+	// stdio://tools/names
+	if err := registerAndTrack(server,
+		"stdio://tools/names",
+		"Tool Names",
+		"Get all registered tool names as a JSON array.",
+		"application/json",
+		handleToolNames,
+	); err != nil {
+		return fmt.Errorf("failed to register tool names resource: %w", err)
+	}
+
+	// stdio://resources/uris
+	if err := registerAndTrack(server,
+		"stdio://resources/uris",
+		"Resource URIs",
+		"Get all tracked resource URIs as a JSON array.",
+		"application/json",
+		handleResourceURIs,
+	); err != nil {
+		return fmt.Errorf("failed to register resource URIs resource: %w", err)
+	}
+
 	// stdio://tools/{category}
 	if err := registerAndTrack(server,
 		"stdio://tools/{category}",
@@ -601,3 +623,25 @@ func RegisterAllResources(server framework.MCPServer) error {
 // Note: handleAllPrompts, handlePromptsByMode, handlePromptsByPersona, handlePromptsByCategory
 // are implemented in prompts.go (native Go using prompts.GetPromptTemplate)
 // handleSessionMode is implemented in session.go (native Go using infer_session_mode)
+
+// handleToolNames handles the stdio://tools/names resource
+// Returns all registered tool names as a JSON array.
+func handleToolNames(ctx context.Context, uri string) ([]byte, string, error) {
+	names := tools.ListToolNames()
+	jsonData, err := json.MarshalIndent(names, "", "  ")
+	if err != nil {
+		return nil, "", err
+	}
+	return jsonData, "application/json", nil
+}
+
+// handleResourceURIs handles the stdio://resources/uris resource
+// Returns all tracked resource URIs as a JSON array.
+func handleResourceURIs(ctx context.Context, uri string) ([]byte, string, error) {
+	uris := tools.ListTrackedResourceURIs()
+	jsonData, err := json.MarshalIndent(uris, "", "  ")
+	if err != nil {
+		return nil, "", err
+	}
+	return jsonData, "application/json", nil
+}

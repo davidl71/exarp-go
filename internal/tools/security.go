@@ -11,6 +11,8 @@ import (
 	"strings"
 
 	"github.com/davidl71/exarp-go/internal/framework"
+	"github.com/davidl71/exarp-go/internal/security"
+	"github.com/spf13/cast"
 )
 
 var runDependabotAlertsCommand = func(ctx context.Context, repo, jqQuery string) ([]byte, error) {
@@ -468,6 +470,27 @@ type DependabotAlert struct {
 	Description  string `json:"description"`
 	FixAvailable bool   `json:"fix_available"`
 	FixVersion   string `json:"fixed_version,omitempty"`
+}
+
+// handleSecurityValidatePath handles the validate_path action for security tool.
+// Validates that a path exists and is within the project root.
+func handleSecurityValidatePath(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
+	projectRoot, err := FindProjectRoot()
+	if err != nil {
+		return nil, fmt.Errorf("failed to find project root: %w", err)
+	}
+
+	path := cast.ToString(params["path"])
+	if path == "" {
+		return nil, fmt.Errorf("path is required")
+	}
+
+	absPath, err := security.ValidatePathExists(path, projectRoot)
+	if err != nil {
+		return []framework.TextContent{{Text: fmt.Sprintf("Invalid: %v", err), Type: "text"}}, nil
+	}
+
+	return []framework.TextContent{{Text: fmt.Sprintf("Valid: %s", absPath), Type: "text"}}, nil
 }
 
 // fetchDependabotAlerts fetches Dependabot alerts using gh CLI.
