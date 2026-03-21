@@ -228,6 +228,10 @@ build: ## Build the Go server (CGO enabled on Mac Silicon by default, disabled e
 		echo "$(RED)❌ Go not found. Install Go or set PATH to include Go bin directory$(NC)"; \
 		exit 1; \
 	fi
+	@# Sync vendor if needed (fast no-op if already in sync)
+	@if [ -d vendor ]; then \
+		$(GO) mod vendor 2>/dev/null || true; \
+	fi
 	@# Detect Mac Silicon (Darwin + arm64) - use CGO for Apple Foundation Models
 	@if [ "$$(uname -s)" = "Darwin" ] && [ "$$(uname -m)" = "arm64" ]; then \
 		if command -v gcc >/dev/null 2>&1 || command -v clang >/dev/null 2>&1 || command -v cc >/dev/null 2>&1; then \
