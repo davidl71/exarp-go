@@ -44,11 +44,28 @@ func handleTestingRun(ctx context.Context, params map[string]interface{}) ([]fra
 		coverage = cast.ToBool(params["coverage"])
 	}
 
-	if !IsGoProject() {
-		return nil, fmt.Errorf("testing run requires a Go project (go.mod not found). For non-Go testing, use the automation tool with your test commands (e.g., pytest, npm test, cargo test)")
+	// Determine framework: use param if specified, otherwise auto-detect
+	testFramework := cast.ToString(params["framework"])
+	if testFramework == "" || testFramework == "auto" {
+		testFramework = detectTestFramework(projectRoot)
 	}
 
-	result, err := runGoTests(ctx, projectRoot, testPath, verbose, coverage)
+	var result string
+	switch testFramework {
+	case "go":
+		result, err = runGoTests(ctx, projectRoot, testPath, verbose, coverage)
+	case "python":
+		result, err = runPyTests(ctx, projectRoot, testPath, verbose)
+	case "rust":
+		result, err = runCargoTests(ctx, projectRoot, testPath, verbose)
+	case "node":
+		result, err = runNpmTests(ctx, projectRoot, verbose)
+	case "":
+		return nil, fmt.Errorf("testing run: cannot detect project framework (no go.mod, pyproject.toml, Cargo.toml, or package.json found)")
+	default:
+		return nil, fmt.Errorf("testing run: unsupported framework %q (supported: go, python, rust, node)", testFramework)
+	}
+
 	if err != nil {
 		return nil, fmt.Errorf("testing run: %w", err)
 	}
@@ -78,18 +95,29 @@ func handleTestingCoverage(ctx context.Context, params map[string]interface{}) (
 		format = f
 	}
 
-	if !IsGoProject() {
-		return nil, fmt.Errorf("testing coverage requires a Go project (go.mod not found). For non-Go coverage, use language-specific tools (e.g., coverage.py for Python, Jest for JS/TS)")
+	// Determine framework: use param if specified, otherwise auto-detect
+	testFramework := cast.ToString(params["framework"])
+	if testFramework == "" || testFramework == "auto" {
+		testFramework = detectTestFramework(projectRoot)
 	}
 
-	result, err := analyzeGoCoverage(ctx, projectRoot, coverageFile, minCoverage, format)
-	if err != nil {
-		return nil, fmt.Errorf("testing coverage: %w", err)
+	// Coverage is currently only supported for Go
+	// Python: use coverage.py (coverage run + coverage report)
+	// Node: use jest --coverage or nyc
+	// Rust: use cargo tarpaulin or cargollvm-cov
+	switch testFramework {
+	case "go":
+		result, err := analyzeGoCoverage(ctx, projectRoot, coverageFile, minCoverage, format)
+		if err != nil {
+			return nil, fmt.Errorf("testing coverage: %w", err)
+		}
+		resp := &proto.TestingResponse{Success: true, Action: "coverage", ResultJson: result}
+		return framework.FormatResult(TestingResponseToMap(resp), "")
+	case "":
+		return nil, fmt.Errorf("testing coverage: cannot detect project framework")
+	default:
+		return nil, fmt.Errorf("testing coverage: framework %q not yet supported for coverage (Go is currently supported)", testFramework)
 	}
-
-	resp := &proto.TestingResponse{Success: true, Action: "coverage", ResultJson: result}
-
-	return framework.FormatResult(TestingResponseToMap(resp), "")
 }
 
 // handleTestingValidate handles the validate action for testing tool.
@@ -104,20 +132,26 @@ func handleTestingValidate(ctx context.Context, params map[string]interface{}) (
 		testPath = path
 	}
 
-	testFramework := "auto"
-	if f := cast.ToString(params["framework"]); f != "" {
-		testFramework = f
+	// Determine framework: use param if specified, otherwise auto-detect
+	testFramework := cast.ToString(params["framework"])
+	if testFramework == "" || testFramework == "auto" {
+		testFramework = detectTestFramework(projectRoot)
 	}
 
-	if !IsGoProject() {
-		if testFramework == "go" {
-			return nil, fmt.Errorf("testing validate framework=go requires a Go project (go.mod)")
-		}
-
-		return nil, fmt.Errorf("testing validate is only supported for Go projects (go.mod)")
+	var result string
+	switch testFramework {
+	case "go":
+		result, err = validateGoTests(projectRoot, testPath)
+	case "python":
+		result, err = validatePyTests(projectRoot, testPath)
+	case "rust":
+		result, err = validateCargoTests(projectRoot, testPath)
+	case "":
+		return nil, fmt.Errorf("testing validate: cannot detect project framework")
+	default:
+		return nil, fmt.Errorf("testing validate: unsupported framework %q", testFramework)
 	}
 
-	result, err := validateGoTests(projectRoot, testPath)
 	if err != nil {
 		return nil, fmt.Errorf("testing validate: %w", err)
 	}
@@ -304,6 +338,94 @@ func validateGoTests(projectRoot, testPath string) (string, error) {
 	return string(jsonResult), nil
 }
 
+// validatePyTests validates Python test structure (pytest).
+func validatePyTests(projectRoot, testPath string) (string, error) {
+	issues := []string{}
+
+	// Check for test files (pytest looks for test_*.py or *_test.py)
+	testFiles := []string{}
+
+	searchPath := projectRoot
+	if testPath != "" && testPath != "./..." {
+		searchPath = filepath.Join(projectRoot, testPath)
+	}
+
+	err := filepath.Walk(searchPath, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return nil
+		}
+
+		if !info.IsDir() && (strings.HasPrefix(filepath.Base(path), "test_") || strings.HasSuffix(path, "_test.py")) {
+			testFiles = append(testFiles, path)
+		}
+
+		return nil
+	})
+	if err != nil {
+		return "", fmt.Errorf("failed to walk test path: %w", err)
+	}
+
+	if len(testFiles) == 0 {
+		issues = append(issues, "No pytest test files found (looked for test_*.py and *_test.py)")
+	}
+
+	result := map[string]interface{}{
+		"valid":      len(issues) == 0,
+		"test_files": len(testFiles),
+		"issues":     issues,
+		"test_path":  testPath,
+		"framework":  "python",
+	}
+
+	jsonResult, _ := json.MarshalIndent(result, "", "  ")
+
+	return string(jsonResult), nil
+}
+
+// validateCargoTests validates Rust test structure (cargo test).
+func validateCargoTests(projectRoot, testPath string) (string, error) {
+	issues := []string{}
+
+	// Check for test files (*.rs files with #[test] or #[cfg(test)])
+	testFiles := []string{}
+
+	searchPath := projectRoot
+	if testPath != "" && testPath != "./..." {
+		searchPath = filepath.Join(projectRoot, testPath)
+	}
+
+	err := filepath.Walk(searchPath, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return nil
+		}
+
+		if !info.IsDir() && strings.HasSuffix(path, ".rs") {
+			testFiles = append(testFiles, path)
+		}
+
+		return nil
+	})
+	if err != nil {
+		return "", fmt.Errorf("failed to walk test path: %w", err)
+	}
+
+	if len(testFiles) == 0 {
+		issues = append(issues, "No Rust source files found")
+	}
+
+	result := map[string]interface{}{
+		"valid":      len(issues) == 0,
+		"test_files": len(testFiles),
+		"issues":     issues,
+		"test_path":  testPath,
+		"framework":  "rust",
+	}
+
+	jsonResult, _ := json.MarshalIndent(result, "", "  ")
+
+	return string(jsonResult), nil
+}
+
 // parseFloat is a simple float parser helper.
 func parseFloat(s string) (float64, error) {
 	var f float64
@@ -311,4 +433,109 @@ func parseFloat(s string) (float64, error) {
 	_, err := fmt.Sscanf(s, "%f", &f)
 
 	return f, err
+}
+
+// detectTestFramework returns the detected test framework based on project markers.
+// Returns "go", "python", "rust", "node", or "" if none detected.
+func detectTestFramework(projectRoot string) string {
+	if DetectGoProject(projectRoot) {
+		return "go"
+	}
+	if DetectPythonProject(projectRoot) {
+		return "python"
+	}
+	if DetectRustProject(projectRoot) {
+		return "rust"
+	}
+	if DetectTypeScriptProject(projectRoot) {
+		return "node"
+	}
+	return ""
+}
+
+// runPyTests runs Python tests using pytest.
+func runPyTests(ctx context.Context, projectRoot, testPath string, verbose bool) (string, error) {
+	args := []string{"-m", "pytest"}
+	if verbose {
+		args = append(args, "-v")
+	}
+	if testPath != "" && testPath != "./..." {
+		args = append(args, testPath)
+	}
+
+	cmd := exec.CommandContext(ctx, "python", args...)
+	cmd.Dir = projectRoot
+	output, err := cmd.CombinedOutput()
+
+	result := map[string]interface{}{
+		"framework":  "python",
+		"test_path":  testPath,
+		"output":     string(output),
+		"returncode": 0,
+	}
+
+	if err != nil {
+		exitErr := &exec.ExitError{}
+		if errors.As(err, &exitErr) {
+			result["returncode"] = exitErr.ExitCode()
+		}
+	}
+
+	jsonResult, _ := json.MarshalIndent(result, "", "  ")
+	return string(jsonResult), nil
+}
+
+// runCargoTests runs Rust tests using cargo test.
+func runCargoTests(ctx context.Context, projectRoot, testPath string, verbose bool) (string, error) {
+	args := []string{"test"}
+	if verbose {
+		args = append(args, "-v")
+	}
+	if testPath != "" && testPath != "./..." {
+		args = append(args, "--", testPath)
+	}
+
+	cmd := exec.CommandContext(ctx, "cargo", args...)
+	cmd.Dir = projectRoot
+	output, err := cmd.CombinedOutput()
+
+	result := map[string]interface{}{
+		"framework":  "rust",
+		"test_path":  testPath,
+		"output":     string(output),
+		"returncode": 0,
+	}
+
+	if err != nil {
+		exitErr := &exec.ExitError{}
+		if errors.As(err, &exitErr) {
+			result["returncode"] = exitErr.ExitCode()
+		}
+	}
+
+	jsonResult, _ := json.MarshalIndent(result, "", "  ")
+	return string(jsonResult), nil
+}
+
+// runNpmTests runs Node.js tests using npm test.
+func runNpmTests(ctx context.Context, projectRoot string, verbose bool) (string, error) {
+	cmd := exec.CommandContext(ctx, "npm", "test", "--if-present")
+	cmd.Dir = projectRoot
+	output, err := cmd.CombinedOutput()
+
+	result := map[string]interface{}{
+		"framework":  "node",
+		"output":     string(output),
+		"returncode": 0,
+	}
+
+	if err != nil {
+		exitErr := &exec.ExitError{}
+		if errors.As(err, &exitErr) {
+			result["returncode"] = exitErr.ExitCode()
+		}
+	}
+
+	jsonResult, _ := json.MarshalIndent(result, "", "  ")
+	return string(jsonResult), nil
 }

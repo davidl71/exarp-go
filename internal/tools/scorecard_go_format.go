@@ -260,6 +260,30 @@ func FormatGoScorecard(scorecard *GoScorecardResult) string {
 	sb.WriteString(fmt.Sprintf("    Access control:            %s\n", checkMark(scorecard.Health.AccessControl)))
 	sb.WriteString("\n")
 
+	// Other Languages (polyglot support)
+	if len(scorecard.OtherLanguages) > 0 {
+		sb.WriteString("  Other Languages:\n")
+		for _, lang := range scorecard.OtherLanguages {
+			title := strings.ToUpper(lang.Lang)
+			if lang.LangRoot != "" {
+				title += " (" + lang.LangRoot + ")"
+			}
+			sb.WriteString(fmt.Sprintf("    %s:\n", title))
+			sb.WriteString(fmt.Sprintf("      Files:  %d\n", lang.FileCount))
+			sb.WriteString(fmt.Sprintf("      Score: %.1f%%\n", lang.Score))
+			sb.WriteString(fmt.Sprintf("      Build: %s\n", checkMark(lang.BuildPasses)))
+			sb.WriteString(fmt.Sprintf("      Test:  %s\n", checkMark(lang.TestPasses)))
+			sb.WriteString(fmt.Sprintf("      Lint:  %s\n", checkMark(lang.LintPasses)))
+			sb.WriteString(fmt.Sprintf("      Fmt:   %s\n", checkMark(lang.FmtPasses)))
+			if len(lang.Recommendations) > 0 {
+				for _, rec := range lang.Recommendations {
+					sb.WriteString(fmt.Sprintf("      • %s\n", rec))
+				}
+			}
+		}
+		sb.WriteString("\n")
+	}
+
 	// Recommendations
 	if len(scorecard.Recommendations) > 0 {
 		sb.WriteString("  Recommendations:\n")
@@ -400,6 +424,9 @@ func GenerateGoScorecard(ctx context.Context, projectRoot string, opts *Scorecar
 	}
 	largeCandidates := filterLargeFileCandidates(allFiles, defaultLargeFileTokenThreshold, defaultLargeFileLineThreshold)
 
+	// Collect multi-language health for non-Go languages (polyglot support)
+	otherLangs := collectOtherLanguagesHealth(ctx, projectRoot)
+
 	// Generate recommendations (include large-file rec when applicable)
 	recommendations := generateGoRecommendations(health, metrics, fastMode, largeCandidates)
 
@@ -413,5 +440,18 @@ func GenerateGoScorecard(ctx context.Context, projectRoot string, opts *Scorecar
 		Score:               score,
 		LargeFileCandidates: largeCandidates,
 		FastModeUsed:        fastMode,
+		OtherLanguages:      otherLangs,
 	}, nil
+}
+
+// collectOtherLanguagesHealth collects LangHealth for non-Go languages in the project.
+func collectOtherLanguagesHealth(ctx context.Context, projectRoot string) []LangHealth {
+	var otherLangs []LangHealth
+	allLangs := CollectMultilangHealth(ctx, projectRoot)
+	for _, lang := range allLangs {
+		if lang.Lang != "go" && lang.Detected {
+			otherLangs = append(otherLangs, lang)
+		}
+	}
+	return otherLangs
 }

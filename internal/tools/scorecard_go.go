@@ -94,6 +94,8 @@ type GoScorecardResult struct {
 	LargeFileCandidates []FileSizeInfo   `json:"large_file_candidates,omitempty"` // Files above token/line threshold; consider splitting
 	// FastModeUsed is true when scorecard was generated with FastMode (coverage/lint not run).
 	FastModeUsed bool `json:"fast_mode_used,omitempty"`
+	// OtherLanguages holds LangHealth for non-Go languages detected in the project (polyglot support).
+	OtherLanguages []LangHealth `json:"other_languages,omitempty"`
 }
 
 // ScorecardOptions configures scorecard generation behavior.
