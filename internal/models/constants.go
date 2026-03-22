@@ -68,6 +68,32 @@ const (
 	PriorityCritical = "critical"
 )
 
+// AllPriorities returns all valid task priorities.
+func AllPriorities() []string {
+	return []string{PriorityLow, PriorityMedium, PriorityHigh, PriorityCritical}
+}
+
+// IsValidPriority reports whether priority is a valid task priority.
+func IsValidPriority(priority string) bool {
+	for _, p := range AllPriorities() {
+		if strings.EqualFold(p, priority) {
+			return true
+		}
+	}
+	return false
+}
+
+// IsHighPriority reports whether priority is high or critical.
+func IsHighPriority(priority string) bool {
+	s := strings.ToLower(priority)
+	return s == PriorityHigh || s == PriorityCritical
+}
+
+// IsCritical reports whether priority is critical.
+func IsCritical(priority string) bool {
+	return strings.EqualFold(priority, PriorityCritical)
+}
+
 // Comment types.
 const (
 	CommentTypeResearch = "research_with_links"

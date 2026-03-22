@@ -595,7 +595,7 @@ func WriteTodo2Overview(projectRoot string) error {
 	high := 0
 
 	for _, t := range tasks {
-		if strings.ToLower(t.Priority) == "high" || strings.ToLower(t.Priority) == "critical" {
+		if models.IsHighPriority(t.Priority) {
 			high++
 		}
 	}
@@ -609,7 +609,7 @@ func WriteTodo2Overview(projectRoot string) error {
 	critical := 0
 
 	for _, t := range tasks {
-		if strings.ToLower(t.Priority) == "critical" {
+		if models.IsCritical(t.Priority) {
 			critical++
 		}
 	}
