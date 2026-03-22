@@ -28,6 +28,11 @@ make fmt
 make go-build
 ```
 
+## Shell Commands
+
+- Do NOT use `timeout` command (GNU-only, not available on Mac). Use `gtimeout` from coreutils if installed, or avoid timeouts in commands.
+- Use `$(go run ./cmd/...)` instead of compiled binaries when testing changes.
+
 ## Task Workflow
 
 Use convenience CLI first:
