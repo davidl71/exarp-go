@@ -154,11 +154,6 @@ var validTaskStatuses = map[string]bool{
 	strings.ToLower(models.StatusTodo): true, strings.ToLower(models.StatusInProgress): true, strings.ToLower(models.StatusDone): true, strings.ToLower(models.StatusReview): true, strings.ToLower(models.StatusCancelled): true, strings.ToLower(models.StatusBlocked): true,
 }
 
-// isValidStatusHelper returns true if status is a valid task status.
-func isValidStatusHelper(status string) bool {
-	return models.IsValidStatus(status)
-}
-
 // ─── handleTaskWorkflowSanityCheck ──────────────────────────────────────────
 // handleTaskWorkflowSanityCheck runs generic Todo2 task sanity checks (epoch dates, empty content, valid status, duplicate IDs, missing deps).
 // Use action=sanity_check; optional output_path to write report.
