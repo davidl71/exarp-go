@@ -76,7 +76,7 @@ Authentication is optional in the spec. The recommended pattern is bearer token 
 | Capability needed for A2A | exarp-go today |
 |--------------------------|----------------|
 | HTTP server | `internal/api.NewServer` (used with `-serve`) + MCP HTTP (`-mcp-http`) |
-| Task storage and lifecycle | Todo2 (SQLite-backed), states: `Todo → In Progress → Review → Done` |
+| Task storage and lifecycle | Todo2 (SQLite-backed), states: `Todo → In Progress → Review → Done` (open: `Todo`, `In Progress`, `Blocked`; closed: `Done`, `Cancelled`) |
 | Tool registry | 37 registered MCP tools; all have names and descriptions |
 | Async task execution | `task run-with-ai`, `task_execute` tool |
 | SSE precedent | MCP Streamable HTTP transport (`runMCPHTTPMode`) |

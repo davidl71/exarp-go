@@ -150,8 +150,13 @@ func handleTaskWorkflowSync(ctx context.Context, params map[string]interface{}) 
 // ─── validTaskStatuses ──────────────────────────────────────────────────────
 // Valid task statuses for sanity check.
 var validTaskStatuses = map[string]bool{
-	models.StatusTodo: true, models.StatusInProgress: true, models.StatusDone: true, models.StatusReview: true,
-	strings.ToLower(models.StatusTodo): true, strings.ToLower(models.StatusInProgress): true, strings.ToLower(models.StatusDone): true, strings.ToLower(models.StatusReview): true,
+	models.StatusTodo: true, models.StatusInProgress: true, models.StatusDone: true, models.StatusReview: true, models.StatusCancelled: true, models.StatusBlocked: true,
+	strings.ToLower(models.StatusTodo): true, strings.ToLower(models.StatusInProgress): true, strings.ToLower(models.StatusDone): true, strings.ToLower(models.StatusReview): true, strings.ToLower(models.StatusCancelled): true, strings.ToLower(models.StatusBlocked): true,
+}
+
+// isValidStatusHelper returns true if status is a valid task status.
+func isValidStatusHelper(status string) bool {
+	return models.IsValidStatus(status)
 }
 
 // ─── handleTaskWorkflowSanityCheck ──────────────────────────────────────────

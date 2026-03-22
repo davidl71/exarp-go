@@ -568,7 +568,7 @@ func handleTaskWorkflowList(ctx context.Context, params map[string]interface{}) 
 			continue
 		}
 
-		if openOnly && task.Status != models.StatusTodo && task.Status != models.StatusInProgress {
+		if openOnly && !models.IsOpenStatus(task.Status) {
 			continue
 		}
 

@@ -588,10 +588,10 @@ type BacklogTaskDetail struct {
 	Tags     []string `json:"tags,omitempty"`
 }
 
-// IsBacklogStatus returns true if status is Todo or In Progress.
+// IsBacklogStatus returns true if status is Todo, In Progress, Cancelled, or Blocked.
+// These are "open" statuses that are not yet Done or in Review.
 func IsBacklogStatus(status string) bool {
-	s := NormalizeStatusToTitleCase(status)
-	return s == models.StatusTodo || s == models.StatusInProgress
+	return models.IsOpenStatus(NormalizeStatusToTitleCase(status))
 }
 
 // priorityOrderForSort returns sort key for priority (lower = higher priority).

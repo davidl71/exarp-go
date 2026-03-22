@@ -16,6 +16,8 @@ const (
 	KeyActionStatusInProgress  = "status_in_progress"
 	KeyActionStatusTodo        = "status_todo"
 	KeyActionStatusReview      = "status_review"
+	KeyActionStatusCancelled   = "status_cancelled"
+	KeyActionStatusBlocked     = "status_blocked"
 	KeyActionCycleSpinner      = "cycle_spinner"
 	KeyActionDetail            = "detail"
 	KeyActionBack              = "back"

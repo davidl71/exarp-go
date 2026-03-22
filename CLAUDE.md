@@ -94,7 +94,7 @@ task_workflow  action=list|create|update|delete|summarize|run_with_ai|sync|clari
 # action=sync   — bidirectional SQLite↔JSON reconciliation (maintenance only)
 ```
 
-Task statuses: `Todo` → `In Progress` → `Review` → `Done`
+Task statuses: `Todo` → `In Progress` → `Review` → `Done` (open: `Todo`, `In Progress`, `Blocked`; closed: `Done`, `Cancelled`)
 
 Local AI task subcommands: `task estimate`, `task summarize`, `task run-with-ai`; each supports `--local-ai-backend` or `--backend` (fm|mlx|ollama). `task create` and `task update` accept `--local-ai-backend` to set preferred backend.
 

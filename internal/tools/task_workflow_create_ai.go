@@ -366,8 +366,7 @@ func handleTaskWorkflowEnrichToolHints(ctx context.Context, params map[string]in
 		if t == nil {
 			continue
 		}
-		status := strings.TrimSpace(strings.ToLower(t.Status))
-		if status != strings.ToLower(models.StatusTodo) && status != strings.ToLower(models.StatusInProgress) {
+		if !models.IsOpenStatus(t.Status) {
 			continue
 		}
 
