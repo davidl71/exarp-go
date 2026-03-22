@@ -71,8 +71,12 @@ func handleTaskWorkflowNative(ctx context.Context, params map[string]interface{}
 		return handleTaskWorkflowEnrichToolHints(ctx, params)
 	case "claim":
 		return handleTaskWorkflowClaim(ctx, params)
+	case "batch_claim":
+		return handleTaskWorkflowBatchClaim(ctx, params)
 	case "release":
 		return handleTaskWorkflowRelease(ctx, params)
+	case "agent_status":
+		return handleTaskWorkflowAgentStatus(ctx, params)
 	default:
 		return nil, fmt.Errorf("unknown action: %s", action)
 	}

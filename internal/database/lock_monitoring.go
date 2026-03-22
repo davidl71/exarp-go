@@ -188,6 +188,76 @@ func GetLockStatus(ctx context.Context, taskID string) (*LockStatus, error) {
 	return status, err
 }
 
+// GetLocksByAgent returns all active locks held by a specific agent.
+func GetLocksByAgent(ctx context.Context, agentID string) ([]LockStatus, error) {
+	ctx = ensureContext(ctx)
+
+	queryCtx, cancel := withQueryTimeout(ctx)
+	defer cancel()
+
+	var locks []LockStatus
+
+	err := retryWithBackoff(ctx, func() error {
+		db, err := GetDB()
+		if err != nil {
+			return fmt.Errorf("failed to get database: %w", err)
+		}
+
+		now := time.Now().Unix()
+
+		rows, err := db.QueryContext(queryCtx, `
+			SELECT id, assignee, assigned_at, lock_until
+			FROM tasks
+			WHERE assignee = ? AND lock_until IS NOT NULL
+			ORDER BY lock_until ASC
+		`, agentID)
+		if err != nil {
+			return fmt.Errorf("failed to query locks: %w", err)
+		}
+		defer rows.Close()
+
+		locks = nil
+		for rows.Next() {
+			var taskID, assignee string
+			var assignedAt, lockUntil sql.NullInt64
+
+			if err := rows.Scan(&taskID, &assignee, &assignedAt, &lockUntil); err != nil {
+				return fmt.Errorf("failed to scan lock: %w", err)
+			}
+
+			if !lockUntil.Valid {
+				continue
+			}
+
+			lockTime := time.Unix(lockUntil.Int64, 0)
+			isExpired := lockUntil.Int64 < now
+			isStale := isExpired && (now-lockUntil.Int64) > 300
+
+			var timeRemaining, timeExpired time.Duration
+			if isExpired {
+				timeExpired = time.Since(lockTime)
+			} else {
+				timeRemaining = time.Until(lockTime)
+			}
+
+			locks = append(locks, LockStatus{
+				TaskID:        taskID,
+				Assignee:      assignee,
+				AssignedAt:    time.Unix(assignedAt.Int64, 0),
+				LockUntil:     lockTime,
+				IsExpired:     isExpired,
+				IsStale:       isStale,
+				TimeRemaining: timeRemaining,
+				TimeExpired:   timeExpired,
+			})
+		}
+
+		return rows.Err()
+	})
+
+	return locks, err
+}
+
 // CleanupExpiredLocksWithReport releases locks that have expired and returns detailed report
 // Returns number of locks cleaned up and list of cleaned task IDs.
 func CleanupExpiredLocksWithReport(ctx context.Context, maxAge time.Duration) (int, []string, error) {
