@@ -47,6 +47,15 @@ func ListTasks(ctx context.Context, filters *TaskFilters) ([]*Todo2Task, error) 
 				args = append(args, *filters.Status)
 			}
 
+			if len(filters.Statuses) > 0 {
+				placeholders := make([]string, len(filters.Statuses))
+				for i, s := range filters.Statuses {
+					placeholders[i] = "?"
+					args = append(args, s)
+				}
+				conditions = append(conditions, fmt.Sprintf("t.status IN (%s)", strings.Join(placeholders, ",")))
+			}
+
 			if filters.Priority != nil {
 				conditions = append(conditions, "t.priority = ?")
 				args = append(args, *filters.Priority)
@@ -509,6 +518,31 @@ func GetDoneTasksForEstimation(ctx context.Context) ([]*TaskForEstimation, error
 func GetTasksByStatus(ctx context.Context, status string) ([]*Todo2Task, error) {
 	filters := &TaskFilters{Status: &status}
 	return ListTasks(ctx, filters)
+}
+
+// GetTaskCountByStatus returns the count of tasks with the specified status.
+func GetTaskCountByStatus(ctx context.Context, status string) (int, error) {
+	ctx = ensureContext(ctx)
+
+	queryCtx, cancel := withQueryTimeout(ctx)
+	defer cancel()
+
+	var count int
+
+	err := retryWithBackoff(ctx, func() error {
+		db, err := GetDB()
+		if err != nil {
+			return fmt.Errorf("failed to get database: %w", err)
+		}
+
+		err = db.QueryRowContext(queryCtx, `SELECT COUNT(*) FROM tasks WHERE status = ?`, status).Scan(&count)
+		if err != nil {
+			return fmt.Errorf("failed to count tasks: %w", err)
+		}
+		return nil
+	})
+
+	return count, err
 }
 
 // GetTasksByTag retrieves all tasks with the specified tag.

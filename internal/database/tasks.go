@@ -23,6 +23,7 @@ type Todo2Task = models.Todo2Task
 // TaskFilters represents filters for querying tasks.
 type TaskFilters struct {
 	Status     *string
+	Statuses   []string // Multiple statuses (IN clause)
 	Priority   *string
 	Tag        *string
 	ProjectID  *string

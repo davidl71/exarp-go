@@ -284,12 +284,7 @@ func handleSessionPrime(ctx context.Context, params map[string]interface{}) ([]f
 			hints["plan_mode"] = planModeHint
 		}
 
-		todoCount := 0
-		for _, t := range tasks {
-			if t.Status == models.StatusTodo {
-				todoCount++
-			}
-		}
+		todoCount, _ := database.GetTaskCountByStatus(ctx, models.StatusTodo)
 		if todoCount > 10 {
 			hints["thinking_workflow"] = "For complex backlog analysis, sprint planning, or dependency enrichment: use the thinking-workflow skill (.cursor/skills/thinking-workflow/SKILL.md) — chain tractatus (structure) + sequential (process) + exarp-go MCP (execute)"
 		}
