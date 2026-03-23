@@ -169,7 +169,8 @@ func isSkipDir(path, projectRoot string) bool {
 	parts := strings.Split(filepath.ToSlash(rel), "/")
 	for _, p := range parts {
 		switch p {
-		case ".git", "vendor", "node_modules", "build", "third_party", "__pycache__", "target", ".venv", "venv":
+		case ".git", "vendor", "node_modules", "build", "third_party", "__pycache__", "target", ".venv", "venv",
+			".bfg-report", ".cursor", ".opencode", "docs/archive", "out", "go-llama.cpp":
 			return true
 		}
 		if strings.HasPrefix(p, ".") && p != "." && p != ".." {

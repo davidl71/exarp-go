@@ -122,21 +122,7 @@ func handleTaskWorkflowRelease(ctx context.Context, params map[string]interface{
 // findNextClaimableTask returns the first Todo task ordered by priority (high → critical → medium)
 // with no persistent assignee. The database-level lock is checked atomically by ClaimTaskForAgent.
 func findNextClaimableTask(ctx context.Context) (*models.Todo2Task, error) {
-	for _, priority := range []string{models.PriorityHigh, models.PriorityCritical, models.PriorityMedium} {
-		tasks, err := database.GetTasksByPriority(ctx, priority)
-		if err != nil {
-			continue
-		}
-		for _, t := range tasks {
-			if t.Status != models.StatusTodo {
-				continue
-			}
-			if t.AssignedTo == "" {
-				return t, nil
-			}
-		}
-	}
-	return nil, nil
+	return database.FindNextClaimableTask(ctx)
 }
 
 // text returns a single-item TextContent slice — convenience helper.

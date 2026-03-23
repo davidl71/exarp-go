@@ -286,10 +286,10 @@ func checkGoFmt(ctx context.Context, root string) bool {
 		}
 
 		if info.IsDir() {
-			if info.Name() == ".git" || info.Name() == "vendor" || info.Name() == ".venv" {
+			switch info.Name() {
+			case ".git", "vendor", ".venv", "node_modules", ".bfg-report", ".cursor", ".opencode", "out", "go-llama.cpp":
 				return filepath.SkipDir
 			}
-
 			return nil
 		}
 

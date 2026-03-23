@@ -5,6 +5,7 @@ package database
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -520,4 +521,96 @@ func GetTasksByTag(ctx context.Context, tag string) ([]*Todo2Task, error) {
 func GetTasksByPriority(ctx context.Context, priority string) ([]*Todo2Task, error) {
 	filters := &TaskFilters{Priority: &priority}
 	return ListTasks(ctx, filters)
+}
+
+// FindNextClaimableTask returns the first unassigned Todo task ordered by priority
+// (high → critical → medium). Returns nil if none found.
+// This is more efficient than calling GetTasksByPriority multiple times.
+func FindNextClaimableTask(ctx context.Context) (*Todo2Task, error) {
+	ctx = ensureContext(ctx)
+
+	queryCtx, cancel := withQueryTimeout(ctx)
+	defer cancel()
+
+	var task *Todo2Task
+
+	err := retryWithBackoff(ctx, func() error {
+		db, err := GetDB()
+		if err != nil {
+			return fmt.Errorf("failed to get database: %w", err)
+		}
+
+		query := `
+			SELECT id, content, long_description, status, priority, completed, created, last_modified,
+			       completed_at, metadata, metadata_protobuf, metadata_format, parent_id, project_id,
+			       assigned_to, host, agent
+			FROM tasks
+			WHERE status = ? AND (assigned_to IS NULL OR assigned_to = '')
+			ORDER BY
+				CASE priority
+					WHEN 'high' THEN 1
+					WHEN 'critical' THEN 2
+					WHEN 'medium' THEN 3
+					WHEN 'low' THEN 4
+					ELSE 5
+				END
+			LIMIT 1
+		`
+
+		row := db.QueryRowContext(queryCtx, query, StatusTodo)
+
+		task = &Todo2Task{}
+		var completedInt int
+		var created, lastMod, completedAt sql.NullString
+		var metadataJSON, metadataProtobuf []byte
+		var metadataFormat sql.NullString
+		var parentID sql.NullString
+
+		err = row.Scan(
+			&task.ID, &task.Content, &task.LongDescription, &task.Status, &task.Priority,
+			&completedInt, &created, &lastMod, &completedAt,
+			&metadataJSON, &metadataProtobuf, &metadataFormat, &parentID, &task.ProjectID,
+			&task.AssignedTo, &task.Host, &task.Agent,
+		)
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil // No task found, not an error
+		}
+		if err != nil {
+			return fmt.Errorf("failed to scan task: %w", err)
+		}
+
+		task.Completed = completedInt == 1
+		if created.Valid {
+			task.CreatedAt = created.String
+		}
+		if lastMod.Valid {
+			task.LastModified = lastMod.String
+		}
+		if completedAt.Valid {
+			task.CompletedAt = completedAt.String
+		}
+		if parentID.Valid {
+			task.ParentID = parentID.String
+		}
+
+		task.NormalizeEpochDates()
+
+		// Load tags
+		tags, err := loadTaskTags(ctx, queryCtx, db, task.ID)
+		if err != nil {
+			return fmt.Errorf("failed to load tags: %w", err)
+		}
+		task.Tags = tags
+
+		// Load dependencies
+		deps, err := loadTaskDependencies(ctx, queryCtx, db, task.ID)
+		if err != nil {
+			return fmt.Errorf("failed to load dependencies: %w", err)
+		}
+		task.Dependencies = deps
+
+		return nil
+	})
+
+	return task, err
 }
