@@ -403,11 +403,39 @@ func GenerateGoScorecard(ctx context.Context, projectRoot string, opts *Scorecar
 
 	projectRoot = validatedRoot
 
-	// Collect metrics
-	metrics, err := collectGoMetrics(ctx, projectRoot)
+	// Collect all file stats in a single walk
+	allStats, err := collectAllFileStats(projectRoot)
 	if err != nil {
-		return nil, fmt.Errorf("failed to collect metrics: %w", err)
+		return nil, fmt.Errorf("failed to collect file stats: %w", err)
 	}
+
+	// Build metrics from collected stats
+	metrics := &GoProjectMetrics{
+		GoFiles:        allStats.GoFiles,
+		GoLines:        allStats.GoLines,
+		GoTestFiles:    allStats.TestFiles,
+		GoTestLines:    allStats.TestLines,
+		PythonFiles:    allStats.PythonFiles,
+		PythonLines:    allStats.PythonLines,
+		TotalCodeBytes: allStats.GoBytes + allStats.TestBytes + allStats.PythonBytes,
+	}
+	metrics.TotalCodeBytes = allStats.GoBytes + allStats.TestBytes + allStats.PythonBytes
+	metrics.EstimatedTokens = int(float64(metrics.TotalCodeBytes) * config.TokensPerChar())
+
+	// Check Go module
+	if _, err := os.Stat(filepath.Join(projectRoot, "go.mod")); err == nil {
+		metrics.GoModules = 1
+		deps, version, err := getGoModuleInfo(ctx, projectRoot)
+		if err == nil {
+			metrics.GoDependencies = deps
+			metrics.GoVersion = version
+		}
+	}
+
+	// MCP server counts
+	metrics.MCPTools = 24
+	metrics.MCPPrompts = 15
+	metrics.MCPResources = 17
 
 	// Perform health checks
 	health, err := performGoHealthChecks(ctx, projectRoot, opts)
@@ -418,11 +446,7 @@ func GenerateGoScorecard(ctx context.Context, projectRoot string, opts *Scorecar
 	fastMode := opts != nil && opts.FastMode
 
 	// Multi-stage: per-file token/size → threshold filter → split/refactor candidates
-	allFiles, err := collectPerFileCodeStats(projectRoot)
-	if err != nil {
-		return nil, fmt.Errorf("failed to collect per-file stats: %w", err)
-	}
-	largeCandidates := filterLargeFileCandidates(allFiles, defaultLargeFileTokenThreshold, defaultLargeFileLineThreshold)
+	largeCandidates := filterLargeFileCandidates(allStats.PerFileStats, defaultLargeFileTokenThreshold, defaultLargeFileLineThreshold)
 
 	// Collect multi-language health for non-Go languages (polyglot support)
 	otherLangs := collectOtherLanguagesHealth(ctx, projectRoot)

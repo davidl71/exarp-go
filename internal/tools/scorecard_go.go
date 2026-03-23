@@ -107,34 +107,20 @@ type ScorecardOptions struct {
 func collectGoMetrics(ctx context.Context, projectRoot string) (*GoProjectMetrics, error) {
 	metrics := &GoProjectMetrics{}
 
-	// Count Go files (files, lines, bytes)
-	goFiles, goLines, goBytes, err := countGoFilesWithBytes(projectRoot)
+	// Collect all file stats in a single walk
+	allStats, err := collectAllFileStats(projectRoot)
 	if err != nil {
-		return nil, fmt.Errorf("failed to count Go files: %w", err)
+		return nil, fmt.Errorf("failed to collect file stats: %w", err)
 	}
 
-	metrics.GoFiles = goFiles
-	metrics.GoLines = goLines
+	metrics.GoFiles = allStats.GoFiles
+	metrics.GoLines = allStats.GoLines
+	metrics.GoTestFiles = allStats.TestFiles
+	metrics.GoTestLines = allStats.TestLines
+	metrics.PythonFiles = allStats.PythonFiles
+	metrics.PythonLines = allStats.PythonLines
 
-	// Count Go test files
-	testFiles, testLines, testBytes, err := countGoTestFilesWithBytes(projectRoot)
-	if err != nil {
-		return nil, fmt.Errorf("failed to count Go test files: %w", err)
-	}
-
-	metrics.GoTestFiles = testFiles
-	metrics.GoTestLines = testLines
-
-	// Count Python files (bridge scripts only)
-	pythonFiles, pythonLines, pythonBytes, err := countPythonFilesWithBytes(projectRoot)
-	if err != nil {
-		return nil, fmt.Errorf("failed to count Python files: %w", err)
-	}
-
-	metrics.PythonFiles = pythonFiles
-	metrics.PythonLines = pythonLines
-
-	totalBytes := goBytes + testBytes + pythonBytes
+	totalBytes := allStats.GoBytes + allStats.TestBytes + allStats.PythonBytes
 	metrics.TotalCodeBytes = totalBytes
 	metrics.EstimatedTokens = int(float64(totalBytes) * config.TokensPerChar())
 
