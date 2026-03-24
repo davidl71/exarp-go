@@ -64,7 +64,7 @@ Using MCP resources avoids unnecessary process spawns and gives full tool/prompt
 
 - *User: "What’s the project status?"* → Use `report` with `action=overview` or `action=scorecard`.
 - *User: "What should I work on next?" or "Suggest next task"* → Use `session` with `action=prime`, `include_tasks=true`, `include_hints=true`. Response includes `suggested_next` and `lazy_context`; load the pointed task/skill resources only for the task you actually start.
-- *User: "List my Todo tasks"* → Use task-workflow patterns: `exarp-go task list --status Todo` or `task_workflow` with `action=sync`, `sub_action=list`, `status=Todo`.
+- *User: "List my Todo tasks"* → Use task-workflow patterns: `exarp-go task list --status Todo` or `task_workflow` with `action=list`, `status=Todo`, `output_format=json`.
 - *User: "Is the docs setup ok?"* → Use `health` with `action=docs`.
 - *User: "How big is the Todo2 database?" or "Run vacuum/checkpoint"* → Use `health` with `action=database` and `operation=status|checkpoint|vacuum|analyze`.
 - *User: "Show task change history" or "Merge my task branch"* → Use `git_tools` with `action=commits`, `action=graph`, or `action=merge` (task branches/versioning).

@@ -267,7 +267,7 @@ Review suggestions and apply any missed dependency links that make sense.
 ## Complete Example Flow
 
 1. **Prime session** via exarp-go MCP `session(action=prime)`
-2. **Get backlog** via `task_workflow(action=sync, sub_action=list, status=Todo)`
+2. **Get backlog** via `task_workflow(action=list, status=Todo, output_format=json)`
 3. **Tractatus start** → decompose into clusters
 4. **Tractatus add** → propositions for each cluster + dependencies + priorities
 5. **Tractatus export** → capture structure as markdown
