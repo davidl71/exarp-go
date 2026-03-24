@@ -7,11 +7,10 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
-// QueryContextDB centralizes the context + timeout + database resolution
-// used by read-only operations. It mirrors the ensureContext + withQueryTimeout
-// pattern spread across the datastore and returns a cancel function that must
-// be deferred by callers (even when the helper returns an error, the cancel
-// function is invoked before the error is returned).
+// QueryContextDB is the default setup path for read-only database helpers:
+// normalize the incoming context, apply the query timeout, and resolve the
+// shared sqlx handle in one place so callers can immediately use GetContext or
+// SelectContext without repeating boilerplate.
 func QueryContextDB(ctx context.Context) (context.Context, context.CancelFunc, *sqlx.DB, error) {
 	if ctx == nil {
 		ctx = context.Background()

@@ -7,9 +7,13 @@ import (
 	"io"
 	"os"
 	"strings"
+	"sync"
 	"testing"
 
+	"github.com/davidl71/exarp-go/internal/database"
 	"github.com/davidl71/exarp-go/internal/framework"
+	"github.com/davidl71/exarp-go/internal/models"
+	mcpcli "github.com/davidl71/mcp-go-core/pkg/mcp/cli"
 )
 
 type taskCommandStubServer struct {
@@ -18,6 +22,8 @@ type taskCommandStubServer struct {
 	result   []framework.TextContent
 	err      error
 }
+
+var cliTaskDBMu sync.Mutex
 
 func (s *taskCommandStubServer) RegisterTool(string, string, framework.ToolSchema, framework.ToolHandler) error {
 	return nil
@@ -172,4 +178,72 @@ func captureStdout(t *testing.T, fn func()) string {
 	_ = w.Close()
 	os.Stdout = old
 	return <-done
+}
+
+func TestHandleTaskUpdateLightAcceptsPositionalTaskIDAndNewStatus(t *testing.T) {
+	cliTaskDBMu.Lock()
+	defer cliTaskDBMu.Unlock()
+
+	tmpDir := t.TempDir()
+	if err := database.Init(tmpDir); err != nil {
+		t.Fatalf("Init() error = %v", err)
+	}
+	defer database.Close()
+
+	task := &models.Todo2Task{
+		ID:       "T-3000001",
+		Content:  "CLI update target",
+		Status:   models.StatusTodo,
+		Priority: models.PriorityMedium,
+	}
+	if err := database.CreateTask(context.Background(), task); err != nil {
+		t.Fatalf("CreateTask() error = %v", err)
+	}
+
+	parsed := mcpcli.ParseArgs([]string{"task", "update", "T-3000001", "--new-status", "Done"})
+	if err := handleTaskUpdateLight(parsed); err != nil {
+		t.Fatalf("handleTaskUpdateLight() error = %v", err)
+	}
+
+	got, err := database.GetTask(context.Background(), "T-3000001")
+	if err != nil {
+		t.Fatalf("GetTask() error = %v", err)
+	}
+	if got.Status != models.StatusDone {
+		t.Fatalf("status = %q, want %q", got.Status, models.StatusDone)
+	}
+}
+
+func TestHandleTaskUpdateLightUsesNewPriorityFlag(t *testing.T) {
+	cliTaskDBMu.Lock()
+	defer cliTaskDBMu.Unlock()
+
+	tmpDir := t.TempDir()
+	if err := database.Init(tmpDir); err != nil {
+		t.Fatalf("Init() error = %v", err)
+	}
+	defer database.Close()
+
+	task := &models.Todo2Task{
+		ID:       "T-3000002",
+		Content:  "CLI priority target",
+		Status:   models.StatusTodo,
+		Priority: models.PriorityLow,
+	}
+	if err := database.CreateTask(context.Background(), task); err != nil {
+		t.Fatalf("CreateTask() error = %v", err)
+	}
+
+	parsed := mcpcli.ParseArgs([]string{"task", "update", "--ids", "T-3000002", "--new-priority", "high"})
+	if err := handleTaskUpdateLight(parsed); err != nil {
+		t.Fatalf("handleTaskUpdateLight() error = %v", err)
+	}
+
+	got, err := database.GetTask(context.Background(), "T-3000002")
+	if err != nil {
+		t.Fatalf("GetTask() error = %v", err)
+	}
+	if got.Priority != models.PriorityHigh {
+		t.Fatalf("priority = %q, want %q", got.Priority, models.PriorityHigh)
+	}
 }

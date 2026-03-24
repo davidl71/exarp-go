@@ -157,17 +157,23 @@ func handleTaskStatusLight(args []string) error {
 // handleTaskUpdateLight updates a task using direct database access.
 func handleTaskUpdateLight(parsed *mcpcli.Args) error {
 	idsStr := parsed.GetFlag("ids", "")
-	if idsStr == "" {
-		return fmt.Errorf("update requires --ids flag")
+	var taskIDs []string
+	if idsStr != "" {
+		taskIDs = strings.Split(idsStr, ",")
+	} else {
+		for _, p := range parsed.Positional {
+			if strings.HasPrefix(strings.TrimSpace(p), "T-") {
+				taskIDs = append(taskIDs, p)
+			}
+		}
 	}
 
-	taskIDs := strings.Split(idsStr, ",")
 	for i := range taskIDs {
 		taskIDs[i] = strings.TrimSpace(taskIDs[i])
 	}
 
 	if len(taskIDs) == 0 {
-		return fmt.Errorf("no task IDs provided")
+		return fmt.Errorf("update requires task ID(s) or --ids")
 	}
 
 	if len(taskIDs) == 1 {
@@ -186,10 +192,10 @@ func handleTaskUpdateLight(parsed *mcpcli.Args) error {
 func handleTaskUpdateSingleLight(taskID string, parsed *mcpcli.Args) error {
 	update := database.TaskFieldUpdate{TaskID: taskID}
 
-	if newStatus := parsed.GetFlag("status", ""); newStatus != "" {
+	if newStatus := parsed.GetFlag("new-status", ""); newStatus != "" {
 		update.Status = &newStatus
 	}
-	if newPriority := parsed.GetFlag("priority", ""); newPriority != "" {
+	if newPriority := parsed.GetFlag("new-priority", ""); newPriority != "" {
 		update.Priority = &newPriority
 	}
 	if name := parsed.GetFlag("name", ""); name != "" {

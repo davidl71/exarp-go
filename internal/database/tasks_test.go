@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/davidl71/exarp-go/internal/models"
 )
@@ -251,6 +252,96 @@ func TestListTasks(t *testing.T) {
 
 	if doneTasks[0].ID != "T-7" {
 		t.Errorf("Expected task T-7, got %s", doneTasks[0].ID)
+	}
+}
+
+func TestGetDoneTasksForEstimation(t *testing.T) {
+	testDBMu.Lock()
+	defer testDBMu.Unlock()
+
+	tmpDir := t.TempDir()
+	if err := Init(tmpDir); err != nil {
+		t.Fatalf("Init() error = %v", err)
+	}
+	defer Close()
+
+	doneTask := &models.Todo2Task{
+		ID:       "T-EST-1",
+		Content:  "Historical task",
+		Status:   StatusDone,
+		Priority: "high",
+		Tags:     []string{"estimation", "history"},
+	}
+	todoTask := &models.Todo2Task{
+		ID:       "T-EST-2",
+		Content:  "Active task",
+		Status:   StatusTodo,
+		Priority: "medium",
+	}
+
+	if err := CreateTask(context.Background(), doneTask); err != nil {
+		t.Fatalf("CreateTask(done) error = %v", err)
+	}
+	if err := CreateTask(context.Background(), todoTask); err != nil {
+		t.Fatalf("CreateTask(todo) error = %v", err)
+	}
+
+	done, err := GetDoneTasksForEstimation(context.Background())
+	if err != nil {
+		t.Fatalf("GetDoneTasksForEstimation() error = %v", err)
+	}
+
+	if len(done) != 1 {
+		t.Fatalf("expected 1 done task, got %d", len(done))
+	}
+	if done[0].ID != doneTask.ID {
+		t.Fatalf("expected done task %s, got %s", doneTask.ID, done[0].ID)
+	}
+	if len(done[0].Tags) != 2 {
+		t.Fatalf("expected tags to be batch-loaded, got %v", done[0].Tags)
+	}
+}
+
+func TestFindNextClaimableTask(t *testing.T) {
+	testDBMu.Lock()
+	defer testDBMu.Unlock()
+
+	tmpDir := t.TempDir()
+	if err := Init(tmpDir); err != nil {
+		t.Fatalf("Init() error = %v", err)
+	}
+	defer Close()
+
+	tasks := []*models.Todo2Task{
+		{ID: "T-2000101", Content: "medium todo", Status: StatusTodo, Priority: "medium", Tags: []string{"medium"}},
+		{ID: "T-2000102", Content: "high todo", Status: StatusTodo, Priority: "high", Tags: []string{"high"}, Dependencies: []string{"T-2000101"}},
+		{ID: "T-2000103", Content: "locked todo", Status: StatusTodo, Priority: "critical"},
+	}
+	for _, task := range tasks {
+		if err := CreateTask(context.Background(), task); err != nil {
+			t.Fatalf("CreateTask() error = %v", err)
+		}
+	}
+
+	if _, err := ClaimTaskForAgent(context.Background(), "T-2000103", "agent-1", 10*time.Minute); err != nil {
+		t.Fatalf("ClaimTaskForAgent() error = %v", err)
+	}
+
+	task, err := FindNextClaimableTask(context.Background())
+	if err != nil {
+		t.Fatalf("FindNextClaimableTask() error = %v", err)
+	}
+	if task == nil {
+		t.Fatal("expected claimable task, got nil")
+	}
+	if task.ID != "T-2000102" {
+		t.Fatalf("expected highest priority unlocked task T-2000102, got %s", task.ID)
+	}
+	if len(task.Dependencies) != 1 || task.Dependencies[0] != "T-2000101" {
+		t.Fatalf("expected dependencies to be loaded, got %v", task.Dependencies)
+	}
+	if len(task.Tags) != 1 || task.Tags[0] != "high" {
+		t.Fatalf("expected tags to be loaded, got %v", task.Tags)
 	}
 }
 

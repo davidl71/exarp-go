@@ -220,91 +220,77 @@ type TaskForEstimation struct {
 	Tags            []string
 }
 
+type taskForEstimationRow struct {
+	ID              string          `db:"id"`
+	Content         string          `db:"content"`
+	LongDescription string          `db:"long_description"`
+	Status          string          `db:"status"`
+	Priority        string          `db:"priority"`
+	Created         sql.NullString  `db:"created"`
+	LastModified    sql.NullString  `db:"last_modified"`
+	CompletedAt     sql.NullString  `db:"completed_at"`
+	EstimatedHours  sql.NullFloat64 `db:"estimated_hours"`
+	ActualHours     sql.NullFloat64 `db:"actual_hours"`
+}
+
 // GetDoneTasksForEstimation returns Done tasks with estimation-relevant columns
 // (created, last_modified, completed_at, estimated_hours, actual_hours).
 // Used by estimation tool for DB-first historical loading; falls back to JSON in tools layer.
 func GetDoneTasksForEstimation(ctx context.Context) ([]*TaskForEstimation, error) {
 	ctx = ensureContext(ctx)
 
-	queryCtx, cancel := withQueryTimeout(ctx)
-	defer cancel()
-
 	var result []*TaskForEstimation
 
 	err := retryWithBackoff(ctx, func() error {
-		db, err := GetDBx()
+		queryCtx, cancel, db, err := QueryContextDB(ctx)
 		if err != nil {
-			return fmt.Errorf("failed to get database: %w", err)
+			return err
 		}
+		defer cancel()
 
-		// Schema 001 has created, last_modified, completed_at, estimated_hours, actual_hours
-		rows, err := db.QueryContext(queryCtx, `
+		var rows []taskForEstimationRow
+		if err := db.SelectContext(queryCtx, &rows, `
 			SELECT id, content, long_description, status, priority,
 			       created, last_modified, completed_at, estimated_hours, actual_hours
 			FROM tasks
 			WHERE status = ?
 			ORDER BY created_at DESC
-		`, StatusDone)
-		if err != nil {
+		`, StatusDone); err != nil {
 			return fmt.Errorf("failed to query Done tasks: %w", err)
 		}
-		defer rows.Close()
 
 		var list []*TaskForEstimation
-
 		var taskIDs []string
-
 		taskMap := make(map[string]*TaskForEstimation)
 
-		for rows.Next() {
-			var t TaskForEstimation
-
-			var created, lastMod, completedAt sql.NullString
-
-			var estHours, actHours sql.NullFloat64
-
-			if err := rows.Scan(
-				&t.ID,
-				&t.Content,
-				&t.LongDescription,
-				&t.Status,
-				&t.Priority,
-				&created,
-				&lastMod,
-				&completedAt,
-				&estHours,
-				&actHours,
-			); err != nil {
-				return fmt.Errorf("failed to scan task: %w", err)
+		for _, row := range rows {
+			t := &TaskForEstimation{
+				ID:              row.ID,
+				Content:         row.Content,
+				LongDescription: row.LongDescription,
+				Status:          row.Status,
+				Priority:        row.Priority,
 			}
 
-			if created.Valid {
-				t.Created = created.String
+			if row.Created.Valid {
+				t.Created = row.Created.String
+			}
+			if row.LastModified.Valid {
+				t.LastModified = row.LastModified.String
+			}
+			if row.CompletedAt.Valid {
+				t.CompletedAt = row.CompletedAt.String
+			}
+			if row.EstimatedHours.Valid {
+				t.EstimatedHours = row.EstimatedHours.Float64
+			}
+			if row.ActualHours.Valid {
+				t.ActualHours = row.ActualHours.Float64
 			}
 
-			if lastMod.Valid {
-				t.LastModified = lastMod.String
-			}
-
-			if completedAt.Valid {
-				t.CompletedAt = completedAt.String
-			}
-
-			if estHours.Valid {
-				t.EstimatedHours = estHours.Float64
-			}
-
-			if actHours.Valid {
-				t.ActualHours = actHours.Float64
-			}
-
-			list = append(list, &t)
+			list = append(list, t)
 			taskIDs = append(taskIDs, t.ID)
-			taskMap[t.ID] = &t
-		}
-
-		if err = rows.Err(); err != nil {
-			return fmt.Errorf("error iterating rows: %w", err)
+			taskMap[t.ID] = t
 		}
 
 		// Batch load tags using sqlx.In + SelectContext
@@ -393,21 +379,20 @@ func GetTasksByPriority(ctx context.Context, priority string) ([]*Todo2Task, err
 func FindNextClaimableTask(ctx context.Context) (*Todo2Task, error) {
 	ctx = ensureContext(ctx)
 
-	queryCtx, cancel := withQueryTimeout(ctx)
-	defer cancel()
-
 	var task *Todo2Task
 
 	err := retryWithBackoff(ctx, func() error {
-		db, err := GetDBx()
+		queryCtx, cancel, db, err := QueryContextDB(ctx)
 		if err != nil {
-			return fmt.Errorf("failed to get database: %w", err)
+			return err
 		}
+		defer cancel()
 
 		// Exclude tasks currently locked by an agent (assignee set + lock not yet expired).
 		// assigned_to is persistent ownership; assignee+lock_until is the agent lock column.
 		now := time.Now().Unix()
-		query := `
+		var row taskRow
+		err = db.GetContext(queryCtx, &row, `
 			SELECT id, content, long_description, status, priority, completed, created, last_modified,
 			       completed_at, metadata, metadata_protobuf, metadata_format, parent_id, project_id,
 			       assigned_to, host, agent
@@ -423,46 +408,35 @@ func FindNextClaimableTask(ctx context.Context) (*Todo2Task, error) {
 					ELSE 5
 				END
 			LIMIT 1
-		`
-
-		row := db.QueryRowContext(queryCtx, query, StatusTodo, now)
-
-		task = &Todo2Task{}
-		var completedInt int
-		var created, lastMod, completedAt sql.NullString
-		var metadataJSON, metadataProtobuf []byte
-		var metadataFormat sql.NullString
-		var parentID, projectID sql.NullString
-
-		err = row.Scan(
-			&task.ID, &task.Content, &task.LongDescription, &task.Status, &task.Priority,
-			&completedInt, &created, &lastMod, &completedAt,
-			&metadataJSON, &metadataProtobuf, &metadataFormat, &parentID, &projectID,
-			&task.AssignedTo, &task.Host, &task.Agent,
-		)
+		`, StatusTodo, now)
 		if errors.Is(err, sql.ErrNoRows) {
+			task = nil
 			return nil // No task found, not an error
 		}
 		if err != nil {
-			return fmt.Errorf("failed to scan task: %w", err)
+			return fmt.Errorf("failed to query claimable task: %w", err)
 		}
 
-		task.Completed = completedInt == 1
-		if created.Valid {
-			task.CreatedAt = created.String
+		task = &Todo2Task{
+			ID:              row.ID,
+			Content:         row.Content,
+			LongDescription: row.LongDescription,
+			Status:          row.Status,
+			Priority:        row.Priority,
+			Completed:       row.Completed == 1,
+			CreatedAt:       row.Created,
+			LastModified:    row.LastModified,
+			CompletedAt:     row.CompletedAt,
+			ParentID:        row.ParentID,
+			AssignedTo:      row.AssignedTo,
+			Host:            row.Host,
+			Agent:           row.Agent,
 		}
-		if lastMod.Valid {
-			task.LastModified = lastMod.String
+		if row.ProjectID.Valid {
+			task.ProjectID = row.ProjectID.String
 		}
-		if completedAt.Valid {
-			task.CompletedAt = completedAt.String
-		}
-		if parentID.Valid {
-			task.ParentID = parentID.String
-		}
-		if projectID.Valid {
-			task.ProjectID = projectID.String
-		}
+
+		task.Metadata = DeserializeTaskMetadata(string(row.Metadata), row.MetadataProto, row.MetadataFormat)
 
 		task.NormalizeEpochDates()
 
