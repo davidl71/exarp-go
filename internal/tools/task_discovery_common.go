@@ -314,11 +314,5 @@ func createTasksFromDiscoveries(ctx context.Context, projectRoot string, discove
 		})
 	}
 
-	if len(createdTasks) > 0 {
-		if err := SyncTodo2Tasks(projectRoot); err != nil {
-			fmt.Fprintf(os.Stderr, "Warning: failed to sync after discovery: %v\n", err)
-		}
-	}
-
 	return createdTasks
 }

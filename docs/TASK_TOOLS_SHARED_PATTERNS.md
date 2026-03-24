@@ -36,6 +36,7 @@ Task-related tools (`task_workflow`, `task_analysis`, `task_discovery`, `estimat
 - **Load/save (compat):** `LoadTodo2Tasks(projectRoot)`, `SaveTodo2Tasks(projectRoot, tasks)` from `todo2_utils.go`.
 - **Direct DB is now the exception:** use `database.*` directly only for DB-native capabilities such as locks, execution runs, comments, verifications, or migration/repair helpers.
 - **Pattern:** if the operation is “load/update/create/delete a task”, default to `TaskStore`; if it is inherently SQLite-specific, use `database.*`.
+- **Sync policy:** ordinary CRUD must not trigger full `SyncTodo2Tasks(projectRoot)` implicitly. Reserve full sync for explicit reconciliation actions such as `task_workflow action=sync`, invalid-ID repair, or migration/recovery flows.
 
 ## 5. FM / local LLM usage
 

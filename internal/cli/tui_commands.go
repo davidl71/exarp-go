@@ -130,9 +130,9 @@ func runWavesRefreshTools(server framework.MCPServer) tea.Cmd {
 
 		ctx := context.Background()
 
-		syncArgs, _ := json.Marshal(map[string]interface{}{"action": "sync", "sub_action": "list"})
-		if _, err := server.CallTool(ctx, "task_workflow", syncArgs); err != nil {
-			return wavesRefreshDoneMsg{err: fmt.Errorf("task_workflow sync: %w", err)}
+		listArgs, _ := json.Marshal(map[string]interface{}{"action": "list", "output_format": "json", "compact": true})
+		if _, err := server.CallTool(ctx, "task_workflow", listArgs); err != nil {
+			return wavesRefreshDoneMsg{err: fmt.Errorf("task_workflow list: %w", err)}
 		}
 
 		taArgs, _ := json.Marshal(map[string]interface{}{"action": "parallelization", "output_format": "text"})

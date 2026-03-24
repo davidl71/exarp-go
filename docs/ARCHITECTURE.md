@@ -185,6 +185,8 @@ The next boundary target is to make this explicit as a 3-layer architecture:
 
 `task_workflow` is currently the main application-layer façade for task operations. New task behavior should be added there or behind a shared service/repository helper, not reimplemented in adapters.
 
+Normal task CRUD should not trigger full SQLite↔JSON reconciliation implicitly. Full sync is an explicit maintenance action (`task_workflow action=sync`, repair helpers, or migration/recovery flows), not a side effect of create/update/delete.
+
 Allowed direct `database.*` usage from `internal/tools` is now limited to DB-specific features that do not fit plain task CRUD, such as:
 
 - task locks / claims

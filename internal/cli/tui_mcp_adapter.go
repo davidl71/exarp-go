@@ -75,7 +75,7 @@ func callToolText(ctx context.Context, server framework.MCPServer, tool string, 
 	return b.String(), nil
 }
 
-// listTasksViaMCP loads tasks through task_workflow sync/list.
+// listTasksViaMCP loads tasks through the canonical task_workflow list action.
 // When status is empty, loads ALL statuses (Todo, In Progress, Review, Done).
 func listTasksViaMCP(ctx context.Context, server framework.MCPServer, status string) ([]*database.Todo2Task, error) {
 	if status != "" {
@@ -97,9 +97,8 @@ func listTasksViaMCP(ctx context.Context, server framework.MCPServer, status str
 
 func listTasksByStatusViaMCP(ctx context.Context, server framework.MCPServer, status string) ([]*database.Todo2Task, error) {
 	text, err := callToolText(ctx, server, "task_workflow", map[string]interface{}{
-		"action":        "sync",
-		"sub_action":    "list",
-		"status_filter": status,
+		"action":        "list",
+		"status":        status,
 		"output_format": "json",
 		"compact":       true,
 	})
@@ -181,12 +180,11 @@ func moveTaskToWaveViaMCP(ctx context.Context, server framework.MCPServer, taskI
 	return err
 }
 
-// getTaskViaMCP fetches a single task by ID through task_workflow sync/list with task_ids filter.
+// getTaskViaMCP fetches a single task by ID through the canonical task_workflow list action.
 func getTaskViaMCP(ctx context.Context, server framework.MCPServer, taskID string) (*database.Todo2Task, error) {
 	text, err := callToolText(ctx, server, "task_workflow", map[string]interface{}{
-		"action":        "sync",
-		"sub_action":    "list",
-		"task_ids":      taskID,
+		"action":        "list",
+		"task_id":       taskID,
 		"output_format": "json",
 		"compact":       true,
 	})

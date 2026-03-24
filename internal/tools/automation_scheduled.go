@@ -8,6 +8,8 @@ import (
 	"github.com/davidl71/exarp-go/internal/database"
 	"github.com/davidl71/exarp-go/internal/framework"
 	"github.com/davidl71/exarp-go/proto"
+	"github.com/spf13/cast"
+	"strings"
 	"time"
 )
 
@@ -23,6 +25,22 @@ func handleAutomationDaily(ctx context.Context, params map[string]interface{}) (
 		"tasks_succeeded": []string{},
 		"tasks_failed":    []string{},
 		"summary":         map[string]interface{}{},
+	}
+
+	if guard, skipResult, err := beginAutomationRun(ctx, "daily", strings.TrimSpace(cast.ToString(params["schedule_label"]))); err == nil {
+		if skipResult != nil {
+			skipResponse := map[string]interface{}{
+				"status":  "skipped",
+				"results": skipResult,
+			}
+			resultJSON, _ := json.Marshal(skipResponse)
+			resp := &proto.AutomationResponse{Action: "daily", ResultJson: string(resultJSON)}
+
+			return framework.FormatResult(AutomationResponseToMap(resp), "")
+		}
+		defer finishAutomationRun(ctx, guard, "success", "")
+	} else {
+		results["run_tracking_warning"] = err.Error()
 	}
 
 	// Conflict detection (multi-agent): report before running tasks
@@ -264,6 +282,22 @@ func handleAutomationNightly(ctx context.Context, params map[string]interface{})
 		"summary":         map[string]interface{}{},
 	}
 
+	if guard, skipResult, err := beginAutomationRun(ctx, "nightly", strings.TrimSpace(cast.ToString(params["schedule_label"]))); err == nil {
+		if skipResult != nil {
+			skipResponse := map[string]interface{}{
+				"status":  "skipped",
+				"results": skipResult,
+			}
+			resultJSON, _ := json.Marshal(skipResponse)
+			resp := &proto.AutomationResponse{Action: "nightly", ResultJson: string(resultJSON)}
+
+			return framework.FormatResult(AutomationResponseToMap(resp), "")
+		}
+		defer finishAutomationRun(ctx, guard, "success", "")
+	} else {
+		results["run_tracking_warning"] = err.Error()
+	}
+
 	// Conflict detection (multi-agent)
 	if projectRoot, err := FindProjectRoot(); err == nil {
 		if taskOverlaps, fileConflicts, errDetect := DetectConflicts(ctx, projectRoot); errDetect == nil {
@@ -457,6 +491,22 @@ func handleAutomationSprint(ctx context.Context, params map[string]interface{}) 
 		"tasks_succeeded": []string{},
 		"tasks_failed":    []string{},
 		"summary":         map[string]interface{}{},
+	}
+
+	if guard, skipResult, err := beginAutomationRun(ctx, "sprint", strings.TrimSpace(cast.ToString(params["schedule_label"]))); err == nil {
+		if skipResult != nil {
+			skipResponse := map[string]interface{}{
+				"status":  "skipped",
+				"results": skipResult,
+			}
+			resultJSON, _ := json.Marshal(skipResponse)
+			resp := &proto.AutomationResponse{Action: "sprint", ResultJson: string(resultJSON)}
+
+			return framework.FormatResult(AutomationResponseToMap(resp), "")
+		}
+		defer finishAutomationRun(ctx, guard, "success", "")
+	} else {
+		results["run_tracking_warning"] = err.Error()
 	}
 
 	// Conflict detection (multi-agent)

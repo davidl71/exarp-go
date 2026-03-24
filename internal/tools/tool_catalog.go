@@ -281,9 +281,9 @@ func GetToolCatalog() map[string]ToolCatalogEntry {
 		// Automation
 		"automation": {
 			Tool:             "automation",
-			Hint:             "Automation. action=daily|nightly|sprint|discover. Unified automation tool.",
+			Hint:             "Automation. action=daily|nightly|sprint|discover|schedule|unschedule. Unified automation tool.",
 			Category:         "Automation",
-			Description:      "Unified automation: daily, nightly, sprint, and discovery workflows",
+			Description:      "Unified automation: daily, nightly, sprint, discovery, and OS-native schedule workflows",
 			Class:            "primary",
 			RecommendedModel: "claude-haiku",
 		},

@@ -37,7 +37,7 @@ func AutomationResponseToMap(resp *proto.AutomationResponse) map[string]interfac
 }
 
 // handleAutomationNative handles the automation tool with native Go implementation
-// Implements all actions: "daily", "nightly", "sprint", and "discover".
+// Implements all actions: "daily", "nightly", "sprint", "discover", "schedule", and "unschedule".
 func handleAutomationNative(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	action, _ := params["action"].(string)
 	if action == "" {
@@ -51,10 +51,14 @@ func handleAutomationNative(ctx context.Context, params map[string]interface{}) 
 		return handleAutomationDiscover(ctx, params)
 	case "nightly":
 		return handleAutomationNightly(ctx, params)
+	case "schedule":
+		return handleAutomationSchedule(ctx, params)
 	case "sprint":
 		return handleAutomationSprint(ctx, params)
+	case "unschedule":
+		return handleAutomationUnschedule(ctx, params)
 	default:
-		return nil, fmt.Errorf("unknown automation action: %s (use 'daily', 'nightly', 'sprint', or 'discover')", action)
+		return nil, fmt.Errorf("unknown automation action: %s (use 'daily', 'nightly', 'sprint', 'discover', 'schedule', or 'unschedule')", action)
 	}
 }
 

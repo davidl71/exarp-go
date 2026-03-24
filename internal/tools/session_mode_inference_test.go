@@ -3,6 +3,7 @@ package tools
 import (
 	"context"
 	"encoding/json"
+	"strings"
 	"testing"
 	"time"
 )
@@ -221,6 +222,83 @@ func TestAnalyzeTaskPatterns(t *testing.T) {
 		if statusDist["Done"] != 1 {
 			t.Errorf("analyzeTaskPatterns() status_distribution[Done] = %v, want 1", statusDist["Done"])
 		}
+	}
+}
+
+func TestAnalyzeAgentRolePatterns(t *testing.T) {
+	tasks := []Todo2Task{
+		{ID: "T-1", Status: "In Progress"},
+		{ID: "T-2", Status: "Todo"},
+		{ID: "T-3", Status: "Todo"},
+	}
+
+	SetAgentRole(&tasks[0], AgentRolePlanner)
+	SetAgentRole(&tasks[1], AgentRolePlanner)
+	SetAgentRole(&tasks[2], AgentRoleWorker)
+
+	metrics := analyzeAgentRolePatterns(tasks)
+
+	if got := metrics["dominant_agent_role"]; got != AgentRolePlanner {
+		t.Fatalf("dominant_agent_role = %v, want %v", got, AgentRolePlanner)
+	}
+
+	if got := metrics["tasks_with_agent_role"]; got != 3 {
+		t.Fatalf("tasks_with_agent_role = %v, want 3", got)
+	}
+
+	if got := metrics["agent_role_ratio"]; got != 1.0 {
+		t.Fatalf("agent_role_ratio = %v, want 1.0", got)
+	}
+
+	counts, ok := metrics["agent_role_distribution"].(map[string]int)
+	if !ok {
+		t.Fatalf("agent_role_distribution has type %T, want map[string]int", metrics["agent_role_distribution"])
+	}
+
+	if counts[AgentRolePlanner] != 2 {
+		t.Fatalf("planner count = %d, want 2", counts[AgentRolePlanner])
+	}
+	if counts[AgentRoleWorker] != 1 {
+		t.Fatalf("worker count = %d, want 1", counts[AgentRoleWorker])
+	}
+}
+
+func TestInferModeFromTasks_UsesRoleSignals(t *testing.T) {
+	tasks := []Todo2Task{
+		{ID: "T-1", Status: "In Progress"},
+		{ID: "T-2", Status: "In Progress"},
+		{ID: "T-3", Status: "Todo"},
+		{ID: "T-4", Status: "Todo"},
+	}
+
+	SetAgentRole(&tasks[0], AgentRolePlanner)
+	SetAgentRole(&tasks[1], AgentRolePlanner)
+	SetAgentRole(&tasks[2], AgentRoleWorker)
+
+	result := inferModeFromTasks(tasks, "/tmp")
+
+	if result.Mode != SessionModeAGENT {
+		t.Fatalf("inferModeFromTasks() mode = %v, want %v", result.Mode, SessionModeAGENT)
+	}
+
+	if got := result.Metrics["dominant_agent_role"]; got != AgentRolePlanner {
+		t.Fatalf("dominant_agent_role = %v, want %v", got, AgentRolePlanner)
+	}
+
+	if got := result.Metrics["agent_role_bias"]; got != "agent" {
+		t.Fatalf("agent_role_bias = %v, want agent", got)
+	}
+
+	found := false
+	for _, line := range result.Reasoning {
+		if strings.Contains(line, "Dominant agent role is planner") {
+			found = true
+			break
+		}
+	}
+
+	if !found {
+		t.Fatalf("reasoning = %v, want dominant role signal", result.Reasoning)
 	}
 }
 

@@ -55,6 +55,13 @@ func TestDefaultModelRouter_Generate_UnknownType(t *testing.T) {
 	}
 }
 
+func TestResolveModelForTask_CarriesAgentRole(t *testing.T) {
+	_, req := ResolveModelForTask("task description", "general", "quality", AgentRoleReviewer)
+	if req.AgentRole != AgentRoleReviewer {
+		t.Fatalf("ResolveModelForTask() AgentRole = %q, want %q", req.AgentRole, AgentRoleReviewer)
+	}
+}
+
 func TestModelTypeConstants(t *testing.T) {
 	if ModelFM == "" || ModelGateway == "" || ModelOllamaLlama == "" || ModelOllamaCode == "" || ModelMLX == "" {
 		t.Error("model type constants should be non-empty")

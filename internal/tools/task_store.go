@@ -11,6 +11,8 @@ import (
 )
 
 // dbOrFileStore implements database.TaskStore with DB-first, JSON-file fallback.
+// When SQLite is available, ordinary CRUD writes go to the database only.
+// Full SQLite<->JSON reconciliation is intentionally reserved for explicit sync/repair actions.
 type dbOrFileStore struct {
 	projectRoot string
 }
@@ -48,11 +50,7 @@ func (s *dbOrFileStore) UpdateTask(ctx context.Context, task *database.Todo2Task
 	models.SetContentHash(task)
 
 	if db, err := database.GetDB(); err == nil && db != nil {
-		if err := database.UpdateTask(ctx, task); err != nil {
-			return err
-		}
-
-		return SyncTodo2Tasks(s.projectRoot)
+		return database.UpdateTask(ctx, task)
 	}
 
 	tasks, err := LoadTodo2Tasks(s.projectRoot)
@@ -117,10 +115,7 @@ func (s *dbOrFileStore) CreateTask(ctx context.Context, task *database.Todo2Task
 	models.SetContentHash(task)
 
 	if db, err := database.GetDB(); err == nil && db != nil {
-		if err := database.CreateTask(ctx, task); err != nil {
-			return err
-		}
-		return SyncTodo2Tasks(s.projectRoot)
+		return database.CreateTask(ctx, task)
 	}
 
 	tasks, err := LoadTodo2Tasks(s.projectRoot)
@@ -135,10 +130,7 @@ func (s *dbOrFileStore) CreateTask(ctx context.Context, task *database.Todo2Task
 
 func (s *dbOrFileStore) DeleteTask(ctx context.Context, id string) error {
 	if db, err := database.GetDB(); err == nil && db != nil {
-		if err := database.DeleteTask(ctx, id); err != nil {
-			return err
-		}
-		return SyncTodo2Tasks(s.projectRoot)
+		return database.DeleteTask(ctx, id)
 	}
 
 	tasks, err := LoadTodo2Tasks(s.projectRoot)

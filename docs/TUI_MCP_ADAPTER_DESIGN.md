@@ -62,6 +62,7 @@ Design for routing TUI through MCP tools instead of direct database access. This
 - Consistent behavior guaranteed
 - Easier testing (mock tool layer)
 - Clean separation of concerns
+- Full store reconciliation stays explicit instead of being hidden behind routine CRUD
 
 ## Current Status
 

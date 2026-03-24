@@ -11,14 +11,46 @@ func registerInfraTools(server framework.MCPServer) error {
 	// automation
 	if err := server.RegisterTool(
 		"automation",
-		"[HINT: action=daily|nightly|sprint|discover. Scheduled automation workflows. Use for routine maintenance, sprint automation, or discovering actionable tasks.]",
+		"[HINT: action=daily|nightly|sprint|discover|schedule|unschedule. Scheduled automation workflows. Use for routine maintenance, sprint automation, discovering actionable tasks, or installing OS-native schedules.]",
 		framework.ToolSchema{
 			Type: "object",
 			Properties: map[string]interface{}{
 				"action": map[string]interface{}{
 					"type":    "string",
-					"enum":    []string{"daily", "nightly", "sprint", "discover"},
+					"enum":    []string{"daily", "nightly", "sprint", "discover", "schedule", "unschedule"},
 					"default": "daily",
+				},
+				"target_action": map[string]interface{}{
+					"type":        "string",
+					"enum":        []string{"daily", "nightly", "sprint", "discover"},
+					"default":     "daily",
+					"description": "Automation action to run from the scheduled job.",
+				},
+				"schedule_label": map[string]interface{}{
+					"type":        "string",
+					"description": "Stable identifier for the schedule and overlap guard. Defaults to a derived label.",
+				},
+				"interval_seconds": map[string]interface{}{
+					"type":        "integer",
+					"default":     86400,
+					"description": "Recurrence interval for schedule install. Launchd uses StartInterval; systemd uses OnUnitActiveSec.",
+				},
+				"interval_minutes": map[string]interface{}{
+					"type":        "integer",
+					"default":     1440,
+					"description": "Alternative recurrence interval in minutes.",
+				},
+				"run_at_load": map[string]interface{}{
+					"type":    "boolean",
+					"default": false,
+				},
+				"enabled": map[string]interface{}{
+					"type":    "boolean",
+					"default": true,
+				},
+				"project_root": map[string]interface{}{
+					"type":        "string",
+					"description": "Optional project root override for the scheduled command.",
 				},
 				"tasks": map[string]interface{}{
 					"type":  "array",

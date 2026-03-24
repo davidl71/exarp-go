@@ -4,7 +4,7 @@ import "github.com/davidl71/exarp-go/internal/models"
 
 // SchemaVersion represents the current schema version.
 // Must match the highest migration version (migrations/00N_*.sql).
-const SchemaVersion = 11
+const SchemaVersion = 13
 
 // Table names.
 const (

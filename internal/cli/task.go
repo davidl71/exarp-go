@@ -64,8 +64,7 @@ func handleTaskListParsed(server framework.MCPServer, parsed *mcpcli.Args) error
 	limit, _ := strconv.Atoi(parsed.GetFlag("limit", "0"))
 
 	toolArgs := map[string]interface{}{
-		"action":     "sync",
-		"sub_action": "list",
+		"action": "list",
 	}
 	if status != "" {
 		toolArgs["status"] = status
@@ -408,8 +407,7 @@ func loadSingleTask(server framework.MCPServer, taskID string) (map[string]inter
 
 	ctx := context.Background()
 	toolArgs := map[string]interface{}{
-		"action":        "sync",
-		"sub_action":    "list",
+		"action":        "list",
 		"task_id":       taskID,
 		"output_format": "json",
 		"compact":       true,

@@ -458,7 +458,7 @@ func handleTaskWorkflowDelete(ctx context.Context, params map[string]interface{}
 		deleted = append(deleted, id)
 	}
 
-	result := map[string]interface{}{"success": len(failed) == 0, "method": "store", "deleted": deleted, "failed": failed, "synced": true}
+	result := map[string]interface{}{"success": len(failed) == 0, "method": "store", "deleted": deleted, "failed": failed}
 
 	return framework.FormatResult(result, "")
 }

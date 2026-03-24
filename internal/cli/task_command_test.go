@@ -68,6 +68,9 @@ func TestHandleTaskStatusJSONWrapsSingleTask(t *testing.T) {
 	if server.lastTool != "task_workflow" {
 		t.Fatalf("tool = %q, want task_workflow", server.lastTool)
 	}
+	if got := server.lastArgs["action"]; got != "list" {
+		t.Fatalf("action = %v, want list", got)
+	}
 	if got := server.lastArgs["task_id"]; got != "T-123" {
 		t.Fatalf("task_id = %v, want T-123", got)
 	}
@@ -106,6 +109,39 @@ func TestHandleTaskShowReturnsNotFound(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "not found") {
 		t.Fatalf("error = %q, want contains not found", err.Error())
+	}
+}
+
+func TestHandleTaskListParsedUsesListActionAndStatus(t *testing.T) {
+	server := &taskCommandStubServer{
+		result: []framework.TextContent{{Type: "text", Text: `{"success":true,"method":"list","tasks":[]}`}},
+	}
+
+	restore := setCLIOutputOptsForTest(false, false, false)
+	defer restore()
+
+	parsed := mcpcli.ParseArgs([]string{"task", "list", "--status", "Todo", "--priority", "high", "--tag", "cli"})
+	if err := handleTaskListParsed(server, parsed); err != nil {
+		t.Fatalf("handleTaskListParsed() error = %v", err)
+	}
+
+	if server.lastTool != "task_workflow" {
+		t.Fatalf("tool = %q, want task_workflow", server.lastTool)
+	}
+	if got := server.lastArgs["action"]; got != "list" {
+		t.Fatalf("action = %v, want list", got)
+	}
+	if _, ok := server.lastArgs["sub_action"]; ok {
+		t.Fatalf("sub_action = %v, want omitted", server.lastArgs["sub_action"])
+	}
+	if got := server.lastArgs["status"]; got != "Todo" {
+		t.Fatalf("status = %v, want Todo", got)
+	}
+	if got := server.lastArgs["priority"]; got != "high" {
+		t.Fatalf("priority = %v, want high", got)
+	}
+	if got := server.lastArgs["filter_tag"]; got != "cli" {
+		t.Fatalf("filter_tag = %v, want cli", got)
 	}
 }
 
