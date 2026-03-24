@@ -169,25 +169,22 @@ func handleTaskUpdateLight(parsed *mcpcli.Args) error {
 }
 
 func handleTaskUpdateSingleLight(taskID string, parsed *mcpcli.Args) error {
-	task, err := database.GetTask(context.Background(), taskID)
-	if err != nil {
-		return fmt.Errorf("task %s: %w", taskID, err)
-	}
+	update := database.TaskFieldUpdate{TaskID: taskID}
 
 	if newStatus := parsed.GetFlag("status", ""); newStatus != "" {
-		task.Status = newStatus
+		update.Status = &newStatus
 	}
 	if newPriority := parsed.GetFlag("priority", ""); newPriority != "" {
-		task.Priority = newPriority
+		update.Priority = &newPriority
 	}
 	if name := parsed.GetFlag("name", ""); name != "" {
-		task.Content = name
+		update.Name = &name
 	}
 	if desc := parsed.GetFlag("description", ""); desc != "" {
-		task.LongDescription = desc
+		update.Description = &desc
 	}
 
-	return database.UpdateTask(context.Background(), task)
+	return database.UpdateTaskFields(context.Background(), update)
 }
 
 // handleTaskCreateLight creates a task using direct database access.

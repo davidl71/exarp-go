@@ -773,6 +773,86 @@ func BatchUpdateTaskMetadata(ctx context.Context, updates []TaskMetadataUpdate) 
 	return updated, err
 }
 
+// TaskFieldUpdate represents field updates for a single task.
+type TaskFieldUpdate struct {
+	TaskID      string
+	Status      *string
+	Priority    *string
+	Name        *string
+	Description *string
+}
+
+// UpdateTaskFields updates only the specified fields for a task in a single query.
+// This is more efficient than UpdateTask when only simple fields need updating (no tags/deps changes).
+// Returns error if task not found or update fails.
+func UpdateTaskFields(ctx context.Context, update TaskFieldUpdate) error {
+	if update.TaskID == "" {
+		return fmt.Errorf("task ID is required")
+	}
+
+	ctx = ensureContext(ctx)
+
+	txCtx, cancel := withTransactionTimeout(ctx)
+	defer cancel()
+
+	return retryWithBackoff(ctx, func() error {
+		db, err := GetDB()
+		if err != nil {
+			return fmt.Errorf("failed to get database: %w", err)
+		}
+
+		tx, err := db.BeginTx(txCtx, nil)
+		if err != nil {
+			return fmt.Errorf("failed to begin transaction: %w", err)
+		}
+
+		defer func() {
+			if err != nil {
+				_ = tx.Rollback()
+			}
+		}()
+
+		setClauses := []string{"version = version + 1", "updated_at = strftime('%s', 'now')"}
+		args := []interface{}{}
+
+		if update.Status != nil {
+			setClauses = append(setClauses, "status = ?")
+			args = append(args, *update.Status)
+		}
+		if update.Priority != nil {
+			setClauses = append(setClauses, "priority = ?")
+			args = append(args, *update.Priority)
+		}
+		if update.Name != nil {
+			setClauses = append(setClauses, "content = ?")
+			args = append(args, *update.Name)
+		}
+		if update.Description != nil {
+			setClauses = append(setClauses, "long_description = ?")
+			args = append(args, *update.Description)
+		}
+
+		args = append(args, update.TaskID)
+
+		query := fmt.Sprintf("UPDATE tasks SET %s WHERE id = ?", strings.Join(setClauses, ", "))
+		result, err := tx.ExecContext(txCtx, query, args...)
+		if err != nil {
+			return fmt.Errorf("failed to update task fields: %w", err)
+		}
+
+		rows, _ := result.RowsAffected()
+		if rows == 0 {
+			return fmt.Errorf("task %s not found", update.TaskID)
+		}
+
+		if err = tx.Commit(); err != nil {
+			return fmt.Errorf("failed to commit transaction: %w", err)
+		}
+
+		return nil
+	})
+}
+
 // IsVersionMismatchError reports whether err is a task version mismatch (concurrent update).
 func IsVersionMismatchError(err error) bool {
 	return errors.Is(err, ErrVersionMismatch)

@@ -7,10 +7,13 @@ import (
 	"context"
 	"errors"
 	"flag"
+	"fmt"
 	"io"
 	"net/http"
 	"os"
+	"runtime/pprof"
 	"strings"
+	"time"
 
 	"github.com/davidl71/exarp-go/internal/acp"
 	"github.com/davidl71/exarp-go/internal/api"
@@ -34,9 +37,11 @@ func main() {
 	// to avoid "flag provided but not defined: -tool" when running CLI (-tool, task, etc.).
 	// -acp runs Agent Client Protocol server (for Zed, JetBrains, OpenCode).
 	// -mcp-http :8081 runs MCP Streamable HTTP server.
+	// -benchprof <task-id> runs benchmark with CPU profiling.
 	hasServe := false
 	hasACP := false
 	hasMCPHTTP := false
+	benchTaskID := ""
 	for _, arg := range os.Args[1:] {
 		if arg == "-serve" || strings.HasPrefix(arg, "-serve=") {
 			hasServe = true
@@ -47,6 +52,14 @@ func main() {
 		if arg == "-mcp-http" || strings.HasPrefix(arg, "-mcp-http=") {
 			hasMCPHTTP = true
 		}
+		if strings.HasPrefix(arg, "-benchprof=") {
+			benchTaskID = strings.TrimPrefix(arg, "-benchprof=")
+		}
+	}
+
+	if benchTaskID != "" {
+		runBenchmark(benchTaskID)
+		return
 	}
 
 	if hasACP {
@@ -320,4 +333,64 @@ func runMCPHTTPMode(addr string) {
 	if err := http.ListenAndServe(addr, mux); err != nil {
 		logging.Fatal("HTTP server error: %v", err)
 	}
+}
+
+func runBenchmark(taskID string) {
+	f, err := os.Create("/tmp/cpu.prof")
+	if err != nil {
+		fmt.Printf("Could not create CPU profile: %v\n", err)
+		return
+	}
+	pprof.StartCPUProfile(f)
+	defer pprof.StopCPUProfile()
+
+	projectRoot, err := tools.FindProjectRoot()
+	if err != nil {
+		fmt.Printf("FindProjectRoot error: %v\n", err)
+		return
+	}
+	os.Setenv("PROJECT_ROOT", projectRoot)
+
+	if err := database.Init(projectRoot); err != nil {
+		fmt.Printf("Database.Init error: %v\n", err)
+		return
+	}
+
+	ctx := context.Background()
+
+	priority := "high"
+	update := database.TaskFieldUpdate{
+		TaskID:   taskID,
+		Priority: &priority,
+	}
+
+	start := time.Now()
+	for i := 0; i < 100; i++ {
+		if err := database.UpdateTaskFields(ctx, update); err != nil {
+			fmt.Printf("UpdateTaskFields error: %v\n", err)
+			return
+		}
+	}
+	elapsed := time.Since(start)
+
+	fmt.Printf("100 updates took %v (avg %.2fµs per update)\n", elapsed, float64(elapsed.Nanoseconds())/100/1000)
+
+	mf, err := os.Create("/tmp/mem.prof")
+	if err != nil {
+		fmt.Printf("Could not create memory profile: %v\n", err)
+		return
+	}
+	pprof.WriteHeapProfile(mf)
+	mf.Close()
+
+	gf, err := os.Create("/tmp/goroutine.prof")
+	if err != nil {
+		fmt.Printf("Could not create goroutine profile: %v\n", err)
+		return
+	}
+	pprof.Lookup("goroutine").WriteTo(gf, 0)
+	gf.Close()
+
+	fmt.Println("Profiles written to /tmp/*.prof")
+	fmt.Println("View with: go tool pprof -http=:8080 /tmp/cpu.prof")
 }
