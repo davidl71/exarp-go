@@ -510,12 +510,20 @@ func handleTaskWorkflowCleanup(ctx context.Context, params map[string]interface{
 			return framework.FormatResult(result, "")
 		}
 
-		// Delete stale and legacy tasks from database
-		removedIDs := []string{}
+		// Delete stale and legacy tasks from database in a single transaction
+		idsToDelete := make([]string, len(tasksToRemove))
+		for i, task := range tasksToRemove {
+			idsToDelete[i] = task.ID
+		}
 
-		for _, task := range tasksToRemove {
-			if err := database.DeleteTask(context.Background(), task.ID); err == nil {
-				removedIDs = append(removedIDs, task.ID)
+		removedIDs, err := database.BatchDeleteTasks(context.Background(), idsToDelete)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Warning: batch delete failed, falling back to per-task delete: %v\n", err)
+			removedIDs = []string{}
+			for _, task := range tasksToRemove {
+				if err := database.DeleteTask(context.Background(), task.ID); err == nil {
+					removedIDs = append(removedIDs, task.ID)
+				}
 			}
 		}
 

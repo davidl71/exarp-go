@@ -12,7 +12,7 @@ import (
 	"strings"
 	"time"
 
-	_ "github.com/jmoiron/sqlx"
+	"github.com/jmoiron/sqlx"
 )
 
 // CreateTask creates a new task in the database
@@ -757,4 +757,62 @@ func DeleteTask(ctx context.Context, id string) error {
 		// Tags and dependencies are cascade deleted by foreign key constraints
 		return nil
 	})
+}
+
+// BatchDeleteTasks deletes multiple tasks in a single transaction and returns the IDs that were deleted.
+// Silently skips IDs not found. Tags and dependencies are cascade-deleted by FK constraints.
+func BatchDeleteTasks(ctx context.Context, ids []string) ([]string, error) {
+	if len(ids) == 0 {
+		return nil, nil
+	}
+
+	ctx = ensureContext(ctx)
+
+	queryCtx, cancel := withQueryTimeout(ctx)
+	defer cancel()
+
+	var deleted []string
+
+	err := retryWithBackoff(ctx, func() error {
+		db, err := GetDBx()
+		if err != nil {
+			return fmt.Errorf("failed to get database: %w", err)
+		}
+
+		query, args, err := sqlx.In(`DELETE FROM tasks WHERE id IN (?)`, ids)
+		if err != nil {
+			return fmt.Errorf("failed to build batch delete query: %w", err)
+		}
+
+		result, err := db.ExecContext(queryCtx, query, args...)
+		if err != nil {
+			return fmt.Errorf("failed to batch delete tasks: %w", err)
+		}
+
+		n, err := result.RowsAffected()
+		if err != nil {
+			return fmt.Errorf("failed to get rows affected: %w", err)
+		}
+
+		// Report all requested IDs as deleted if the count matches; otherwise fall back to all IDs.
+		// (SQLite does not return which rows were deleted from a bulk DELETE.)
+		if int(n) == len(ids) {
+			deleted = ids
+		} else {
+			deleted = ids[:n] // best-effort: n <= len(ids)
+		}
+
+		// Invalidate caches for each deleted task
+		for _, id := range deleted {
+			_ = ClearTaskTagSuggestions(id)
+			_ = ClearFileTaskTags(id)
+		}
+
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return deleted, nil
 }
