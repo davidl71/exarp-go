@@ -128,6 +128,10 @@ for rows.Next() {
 }
 ```
 
+### Query helper
+
+Use `database.QueryContextDB(ctx)` before any read-only sqlx call instead of repeating `ensureContext`, `withQueryTimeout`, and `GetDBx`. It returns the derived `queryCtx`, the cancel func, and the shared `*sqlx.DB`, so you can immediately call `db.SelectContext` or `db.GetContext`.
+
 ## Recommendations
 
 1. **New code**: Always use `GetDBx()` from `internal/database/`

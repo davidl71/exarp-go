@@ -2,12 +2,14 @@
 package database
 
 import (
+	"context"
 	"crypto/md5"
+	"database/sql"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"time"
 
-	_ "github.com/jmoiron/sqlx"
 	"golang.org/x/sync/singleflight"
 )
 
@@ -15,24 +17,24 @@ var tagCacheFlight singleflight.Group
 
 // DiscoveredTag represents a tag discovered from a file.
 type DiscoveredTag struct {
-	ID           int64
-	FilePath     string
-	FileHash     string
-	Tag          string
-	Source       string
-	LLMSuggested bool
-	CreatedAt    int64
-	UpdatedAt    int64
+	ID           int64  `db:"id"`
+	FilePath     string `db:"file_path"`
+	FileHash     string `db:"file_hash"`
+	Tag          string `db:"tag"`
+	Source       string `db:"source"`
+	LLMSuggested bool   `db:"llm_suggested"`
+	CreatedAt    int64  `db:"created_at"`
+	UpdatedAt    int64  `db:"updated_at"`
 }
 
 // TagFrequency represents tag usage statistics.
 type TagFrequency struct {
-	Tag         string
-	Count       int
-	LastSeenAt  *int64
-	IsCanonical bool
-	CreatedAt   int64
-	UpdatedAt   int64
+	Tag         string `db:"tag"`
+	Count       int    `db:"count"`
+	LastSeenAt  *int64 `db:"last_seen_at"`
+	IsCanonical bool   `db:"is_canonical"`
+	CreatedAt   int64  `db:"created_at"`
+	UpdatedAt   int64  `db:"updated_at"`
 }
 
 // FileTaskTag represents a file-to-task tag match.
@@ -58,32 +60,20 @@ func GetDiscoveredTagsForFile(filePath string) ([]DiscoveredTag, error) {
 }
 
 func getDiscoveredTagsForFileDB(filePath string) ([]DiscoveredTag, error) {
-	db, err := GetDBx()
+	queryCtx, cancel, db, err := QueryContextDB(context.Background())
 	if err != nil {
 		return nil, err
 	}
-
-	rows, err := db.Query(`
-		SELECT id, file_path, file_hash, tag, source, llm_suggested, created_at, updated_at
-		FROM discovered_tags WHERE file_path = ?
-	`, filePath)
-	if err != nil {
-		return nil, fmt.Errorf("failed to query discovered tags: %w", err)
-	}
-	defer rows.Close()
+	defer cancel()
 
 	var tags []DiscoveredTag
-
-	for rows.Next() {
-		var tag DiscoveredTag
-
-		var llmSuggested int
-		if err := rows.Scan(&tag.ID, &tag.FilePath, &tag.FileHash, &tag.Tag, &tag.Source, &llmSuggested, &tag.CreatedAt, &tag.UpdatedAt); err != nil {
-			continue
-		}
-
-		tag.LLMSuggested = llmSuggested == 1
-		tags = append(tags, tag)
+	if err := db.SelectContext(queryCtx, &tags, `
+		SELECT id, file_path, file_hash, tag, source, llm_suggested, created_at, updated_at
+		FROM discovered_tags
+		WHERE file_path = ?
+		ORDER BY id
+	`, filePath); err != nil {
+		return nil, fmt.Errorf("failed to query discovered tags: %w", err)
 	}
 
 	return tags, nil
@@ -91,49 +81,57 @@ func getDiscoveredTagsForFileDB(filePath string) ([]DiscoveredTag, error) {
 
 // GetDiscoveredTagsWithHash retrieves cached discovered tags if file hash matches.
 func GetDiscoveredTagsWithHash(filePath, currentHash string) ([]DiscoveredTag, bool, error) {
-	db, err := GetDBx()
+	queryCtx, cancel, db, err := QueryContextDB(context.Background())
 	if err != nil {
-		return nil, false, fmt.Errorf("database not initialized")
+		return nil, false, err
 	}
+	defer cancel()
 
-	// Check if any tags exist for this file with matching hash
 	var storedHash string
-
-	err = db.QueryRow("SELECT file_hash FROM discovered_tags WHERE file_path = ? LIMIT 1", filePath).Scan(&storedHash)
+	err = db.GetContext(queryCtx, &storedHash, `
+		SELECT file_hash
+		FROM discovered_tags
+		WHERE file_path = ?
+		LIMIT 1
+	`, filePath)
 	if err != nil {
-		return nil, false, nil // No cache exists
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, false, nil
+		}
+		return nil, false, fmt.Errorf("failed to query discovered hash: %w", err)
 	}
 
 	if storedHash != currentHash {
-		return nil, false, nil // Cache is stale
+		return nil, false, nil
 	}
 
-	// Cache is valid, return cached tags
 	tags, err := GetDiscoveredTagsForFile(filePath)
-
 	return tags, true, err
 }
 
 // SaveDiscoveredTags saves discovered tags for a file.
-func SaveDiscoveredTags(filePath, fileHash string, tags []DiscoveredTag) error {
-	db, err := GetDBx()
-	if err != nil {
-		return err
+func SaveDiscoveredTags(filePath, fileHash string, tags []DiscoveredTag) (err error) {
+	queryCtx, cancel, db, dbErr := QueryContextDB(context.Background())
+	if dbErr != nil {
+		return dbErr
 	}
+	defer cancel()
 
-	tx, err := db.Begin()
+	tx, err := db.BeginTxx(queryCtx, nil)
 	if err != nil {
 		return fmt.Errorf("failed to begin transaction: %w", err)
 	}
-	defer tx.Rollback()
 
-	// Delete existing tags for this file
-	_, err = tx.Exec("DELETE FROM discovered_tags WHERE file_path = ?", filePath)
-	if err != nil {
+	defer func() {
+		if err != nil {
+			_ = tx.Rollback()
+		}
+	}()
+
+	if _, err = tx.ExecContext(queryCtx, "DELETE FROM discovered_tags WHERE file_path = ?", filePath); err != nil {
 		return fmt.Errorf("failed to delete existing tags: %w", err)
 	}
 
-	// Insert new tags
 	now := time.Now().Unix()
 
 	for _, tag := range tags {
@@ -142,11 +140,10 @@ func SaveDiscoveredTags(filePath, fileHash string, tags []DiscoveredTag) error {
 			llmSuggested = 1
 		}
 
-		_, err = tx.Exec(`
+		if _, err = tx.ExecContext(queryCtx, `
 			INSERT INTO discovered_tags (file_path, file_hash, tag, source, llm_suggested, created_at, updated_at)
 			VALUES (?, ?, ?, ?, ?, ?, ?)
-		`, filePath, fileHash, tag.Tag, tag.Source, llmSuggested, now, now)
-		if err != nil {
+		`, filePath, fileHash, tag.Tag, tag.Source, llmSuggested, now, now); err != nil {
 			return fmt.Errorf("failed to insert tag: %w", err)
 		}
 	}
@@ -156,10 +153,11 @@ func SaveDiscoveredTags(filePath, fileHash string, tags []DiscoveredTag) error {
 
 // UpdateTagFrequency updates the frequency count for a tag.
 func UpdateTagFrequency(tag string, count int, isCanonical bool) error {
-	db, err := GetDBx()
+	queryCtx, cancel, db, err := QueryContextDB(context.Background())
 	if err != nil {
 		return err
 	}
+	defer cancel()
 
 	now := time.Now().Unix()
 
@@ -168,7 +166,7 @@ func UpdateTagFrequency(tag string, count int, isCanonical bool) error {
 		canonical = 1
 	}
 
-	_, err = db.Exec(`
+	_, err = db.ExecContext(queryCtx, `
 		INSERT INTO tag_frequency (tag, count, last_seen_at, is_canonical, created_at, updated_at)
 		VALUES (?, ?, ?, ?, ?, ?)
 		ON CONFLICT(tag) DO UPDATE SET
@@ -183,32 +181,19 @@ func UpdateTagFrequency(tag string, count int, isCanonical bool) error {
 
 // GetTagFrequencies retrieves tag frequencies.
 func GetTagFrequencies() ([]TagFrequency, error) {
-	db, err := GetDBx()
+	queryCtx, cancel, db, err := QueryContextDB(context.Background())
 	if err != nil {
 		return nil, err
 	}
-
-	rows, err := db.Query(`
-		SELECT tag, count, last_seen_at, is_canonical, created_at, updated_at
-		FROM tag_frequency ORDER BY count DESC
-	`)
-	if err != nil {
-		return nil, fmt.Errorf("failed to query tag frequencies: %w", err)
-	}
-	defer rows.Close()
+	defer cancel()
 
 	var frequencies []TagFrequency
-
-	for rows.Next() {
-		var freq TagFrequency
-
-		var isCanonical int
-		if err := rows.Scan(&freq.Tag, &freq.Count, &freq.LastSeenAt, &isCanonical, &freq.CreatedAt, &freq.UpdatedAt); err != nil {
-			continue
-		}
-
-		freq.IsCanonical = isCanonical == 1
-		frequencies = append(frequencies, freq)
+	if err := db.SelectContext(queryCtx, &frequencies, `
+		SELECT tag, count, last_seen_at, is_canonical, created_at, updated_at
+		FROM tag_frequency
+		ORDER BY count DESC
+	`); err != nil {
+		return nil, fmt.Errorf("failed to query tag frequencies: %w", err)
 	}
 
 	return frequencies, nil
@@ -216,10 +201,11 @@ func GetTagFrequencies() ([]TagFrequency, error) {
 
 // SaveFileTaskTag saves a file-to-task tag match.
 func SaveFileTaskTag(filePath, taskID, tag string, applied bool) error {
-	db, err := GetDBx()
+	queryCtx, cancel, db, err := QueryContextDB(context.Background())
 	if err != nil {
 		return err
 	}
+	defer cancel()
 
 	appliedInt := 0
 	if applied {
@@ -228,7 +214,7 @@ func SaveFileTaskTag(filePath, taskID, tag string, applied bool) error {
 
 	now := time.Now().Unix()
 
-	_, err = db.Exec(`
+	_, err = db.ExecContext(queryCtx, `
 		INSERT INTO file_task_tags (file_path, task_id, tag, applied, created_at)
 		VALUES (?, ?, ?, ?, ?)
 		ON CONFLICT(file_path, task_id, tag) DO UPDATE SET
@@ -246,22 +232,24 @@ func ComputeFileHash(content []byte) string {
 
 // ClearDiscoveredTagsCache clears all discovered tag cache entries.
 func ClearDiscoveredTagsCache() error {
-	db, err := GetDBx()
+	queryCtx, cancel, db, err := QueryContextDB(context.Background())
 	if err != nil {
 		return err
 	}
+	defer cancel()
 
-	_, err = db.Exec("DELETE FROM discovered_tags")
+	_, err = db.ExecContext(queryCtx, "DELETE FROM discovered_tags")
 
 	return err
 }
 
 // SaveTaskTagSuggestion saves a task-level tag suggestion (from action=tags) for reuse as LLM hint.
 func SaveTaskTagSuggestion(taskID, tag, source string, applied bool) error {
-	db, err := GetDBx()
+	queryCtx, cancel, db, err := QueryContextDB(context.Background())
 	if err != nil {
 		return err
 	}
+	defer cancel()
 
 	appliedInt := 0
 	if applied {
@@ -269,7 +257,7 @@ func SaveTaskTagSuggestion(taskID, tag, source string, applied bool) error {
 	}
 
 	now := time.Now().Unix()
-	_, err = db.Exec(`
+	_, err = db.ExecContext(queryCtx, `
 		INSERT INTO task_tag_suggestions (task_id, tag, source, applied, created_at)
 		VALUES (?, ?, ?, ?, ?)
 		ON CONFLICT(task_id, tag) DO UPDATE SET source = excluded.source, applied = excluded.applied
@@ -280,14 +268,18 @@ func SaveTaskTagSuggestion(taskID, tag, source string, applied bool) error {
 
 // GetTaskTagSuggestions returns cached tag suggestions for a task (for LLM hints).
 func GetTaskTagSuggestions(taskID string) ([]string, error) {
-	db, err := GetDBx()
+	queryCtx, cancel, db, err := QueryContextDB(context.Background())
 	if err != nil {
 		return nil, err
 	}
+	defer cancel()
 
 	var tags []string
-	err = db.Select(&tags, "SELECT tag FROM task_tag_suggestions WHERE task_id = ? ORDER BY created_at", taskID)
-	if err != nil {
+	if err := db.SelectContext(queryCtx, &tags, `
+		SELECT tag FROM task_tag_suggestions
+		WHERE task_id = ?
+		ORDER BY created_at
+	`, taskID); err != nil {
 		return nil, fmt.Errorf("failed to query task tag suggestions: %w", err)
 	}
 
@@ -315,22 +307,24 @@ func GetTopTagFrequencies(limit int) ([]string, error) {
 
 // ClearTaskTagSuggestions clears tag suggestions for a specific task (call on task delete/update).
 func ClearTaskTagSuggestions(taskID string) error {
-	db, err := GetDBx()
+	queryCtx, cancel, db, err := QueryContextDB(context.Background())
 	if err != nil {
 		return err
 	}
+	defer cancel()
 
-	_, err = db.Exec("DELETE FROM task_tag_suggestions WHERE task_id = ?", taskID)
+	_, err = db.ExecContext(queryCtx, "DELETE FROM task_tag_suggestions WHERE task_id = ?", taskID)
 	return err
 }
 
 // ClearFileTaskTags clears file-to-task tag mappings for a specific task (call on task delete/update).
 func ClearFileTaskTags(taskID string) error {
-	db, err := GetDBx()
+	queryCtx, cancel, db, err := QueryContextDB(context.Background())
 	if err != nil {
 		return err
 	}
+	defer cancel()
 
-	_, err = db.Exec("DELETE FROM file_task_tags WHERE task_id = ?", taskID)
+	_, err = db.ExecContext(queryCtx, "DELETE FROM file_task_tags WHERE task_id = ?", taskID)
 	return err
 }

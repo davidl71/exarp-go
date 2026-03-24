@@ -33,51 +33,50 @@ type StaleLockInfo struct {
 func GetActiveLocks(ctx context.Context) ([]LockStatus, error) {
 	ctx = ensureContext(ctx)
 
-	queryCtx, cancel := withQueryTimeout(ctx)
-	defer cancel()
-
 	var locks []LockStatus
 
 	err := retryWithBackoff(ctx, func() error {
-		db, err := GetDBx()
+		queryCtx, cancel, db, err := QueryContextDB(ctx)
 		if err != nil {
-			return fmt.Errorf("failed to get database: %w", err)
+			return err
 		}
+		defer cancel()
 
 		now := time.Now().Unix()
-		rows, err := db.QueryContext(queryCtx, `
+
+		var rows []struct {
+			TaskID     string        `db:"id"`
+			Assignee   string        `db:"assignee"`
+			AssignedAt sql.NullInt64 `db:"assigned_at"`
+			LockUntil  sql.NullInt64 `db:"lock_until"`
+		}
+
+		if err := db.SelectContext(queryCtx, &rows, `
 			SELECT id, assignee, assigned_at, lock_until
 			FROM tasks
 			WHERE assignee IS NOT NULL
 			  AND lock_until IS NOT NULL
 			  AND lock_until >= ?
 			ORDER BY lock_until ASC
-		`, now)
-		if err != nil {
+		`, now); err != nil {
 			return fmt.Errorf("failed to query active locks: %w", err)
 		}
-		defer rows.Close()
 
 		locks = nil
-		for rows.Next() {
-			var taskID, assignee string
-			var assignedAt, lockUntil sql.NullInt64
-			if err := rows.Scan(&taskID, &assignee, &assignedAt, &lockUntil); err != nil {
-				return fmt.Errorf("failed to scan active lock: %w", err)
-			}
-			if !lockUntil.Valid {
+		for _, row := range rows {
+			if !row.LockUntil.Valid {
 				continue
 			}
-			lockTime := time.Unix(lockUntil.Int64, 0)
+			lockTime := time.Unix(row.LockUntil.Int64, 0)
 			locks = append(locks, LockStatus{
-				TaskID:        taskID,
-				Assignee:      assignee,
-				AssignedAt:    time.Unix(assignedAt.Int64, 0),
+				TaskID:        row.TaskID,
+				Assignee:      row.Assignee,
+				AssignedAt:    time.Unix(row.AssignedAt.Int64, 0),
 				LockUntil:     lockTime,
 				TimeRemaining: time.Until(lockTime),
 			})
 		}
-		return rows.Err()
+		return nil
 	})
 
 	return locks, err
@@ -110,56 +109,46 @@ func GetActiveLockMapForTasks(ctx context.Context, taskIDs []string) (map[string
 func DetectStaleLocks(ctx context.Context, nearExpiryThreshold time.Duration) (*StaleLockInfo, error) {
 	ctx = ensureContext(ctx)
 
-	queryCtx, cancel := withQueryTimeout(ctx)
-	defer cancel()
-
 	info := &StaleLockInfo{
 		Locks: []LockStatus{},
 	}
 
 	err := retryWithBackoff(ctx, func() error {
-		db, err := GetDBx()
+		queryCtx, cancel, db, err := QueryContextDB(ctx)
 		if err != nil {
-			return fmt.Errorf("failed to get database: %w", err)
+			return err
 		}
+		defer cancel()
 
 		now := time.Now().Unix()
 		nearExpiryTime := now + int64(nearExpiryThreshold.Seconds())
 
-		// Find all locked tasks (assignee is not NULL)
-		rows, err := db.QueryContext(queryCtx, `
-			SELECT 
-				id,
-				assignee,
-				assigned_at,
-				lock_until
+		var rows []struct {
+			TaskID     string        `db:"id"`
+			Assignee   string        `db:"assignee"`
+			AssignedAt sql.NullInt64 `db:"assigned_at"`
+			LockUntil  sql.NullInt64 `db:"lock_until"`
+		}
+
+		if err := db.SelectContext(queryCtx, &rows, `
+			SELECT id, assignee, assigned_at, lock_until
 			FROM tasks
 			WHERE assignee IS NOT NULL
 			  AND lock_until IS NOT NULL
 			ORDER BY lock_until ASC
-		`)
-		if err != nil {
+		`); err != nil {
 			return fmt.Errorf("failed to query locked tasks: %w", err)
 		}
-		defer rows.Close()
 
-		for rows.Next() {
-			var taskID, assignee string
-
-			var assignedAt, lockUntil sql.NullInt64
-
-			if err := rows.Scan(&taskID, &assignee, &assignedAt, &lockUntil); err != nil {
-				return fmt.Errorf("failed to scan lock status: %w", err)
-			}
-
-			if !lockUntil.Valid {
+		for _, row := range rows {
+			if !row.LockUntil.Valid {
 				continue
 			}
 
-			lockTime := time.Unix(lockUntil.Int64, 0)
-			isExpired := lockUntil.Int64 < now
-			isNearExpiry := !isExpired && lockUntil.Int64 < nearExpiryTime
-			isStale := isExpired && (now-lockUntil.Int64) > 300 // Expired for > 5 minutes
+			lockTime := time.Unix(row.LockUntil.Int64, 0)
+			isExpired := row.LockUntil.Int64 < now
+			isNearExpiry := !isExpired && row.LockUntil.Int64 < nearExpiryTime
+			isStale := isExpired && (now-row.LockUntil.Int64) > 300
 
 			var timeRemaining, timeExpired time.Duration
 			if isExpired {
@@ -169,9 +158,9 @@ func DetectStaleLocks(ctx context.Context, nearExpiryThreshold time.Duration) (*
 			}
 
 			status := LockStatus{
-				TaskID:        taskID,
-				Assignee:      assignee,
-				AssignedAt:    time.Unix(assignedAt.Int64, 0),
+				TaskID:        row.TaskID,
+				Assignee:      row.Assignee,
+				AssignedAt:    time.Unix(row.AssignedAt.Int64, 0),
 				LockUntil:     lockTime,
 				IsExpired:     isExpired,
 				IsStale:       isStale,
@@ -191,7 +180,7 @@ func DetectStaleLocks(ctx context.Context, nearExpiryThreshold time.Duration) (*
 			}
 		}
 
-		return rows.Err()
+		return nil
 	})
 
 	return info, err
@@ -201,26 +190,26 @@ func DetectStaleLocks(ctx context.Context, nearExpiryThreshold time.Duration) (*
 func GetLockStatus(ctx context.Context, taskID string) (*LockStatus, error) {
 	ctx = ensureContext(ctx)
 
-	queryCtx, cancel := withQueryTimeout(ctx)
-	defer cancel()
-
 	var status *LockStatus
 
 	err := retryWithBackoff(ctx, func() error {
-		db, err := GetDBx()
+		queryCtx, cancel, db, err := QueryContextDB(ctx)
 		if err != nil {
-			return fmt.Errorf("failed to get database: %w", err)
+			return err
+		}
+		defer cancel()
+
+		var row struct {
+			Assignee   sql.NullString `db:"assignee"`
+			AssignedAt sql.NullInt64  `db:"assigned_at"`
+			LockUntil  sql.NullInt64  `db:"lock_until"`
 		}
 
-		var assignee sql.NullString
-
-		var assignedAt, lockUntil sql.NullInt64
-
-		err = db.QueryRowContext(queryCtx, `
+		err = db.GetContext(queryCtx, &row, `
 			SELECT assignee, assigned_at, lock_until
 			FROM tasks
 			WHERE id = ?
-		`, taskID).Scan(&assignee, &assignedAt, &lockUntil)
+		`, taskID)
 
 		if errors.Is(err, sql.ErrNoRows) {
 			return fmt.Errorf("task %s not found", taskID)
@@ -230,15 +219,14 @@ func GetLockStatus(ctx context.Context, taskID string) (*LockStatus, error) {
 			return fmt.Errorf("failed to query lock status: %w", err)
 		}
 
-		if !assignee.Valid || !lockUntil.Valid {
-			// Task is not locked
+		if !row.Assignee.Valid || !row.LockUntil.Valid {
 			return nil
 		}
 
 		now := time.Now().Unix()
-		lockTime := time.Unix(lockUntil.Int64, 0)
-		isExpired := lockUntil.Int64 < now
-		isStale := isExpired && (now-lockUntil.Int64) > 300 // Expired for > 5 minutes
+		lockTime := time.Unix(row.LockUntil.Int64, 0)
+		isExpired := row.LockUntil.Int64 < now
+		isStale := isExpired && (now-row.LockUntil.Int64) > 300
 
 		var timeRemaining, timeExpired time.Duration
 		if isExpired {
@@ -249,8 +237,8 @@ func GetLockStatus(ctx context.Context, taskID string) (*LockStatus, error) {
 
 		status = &LockStatus{
 			TaskID:        taskID,
-			Assignee:      assignee.String,
-			AssignedAt:    time.Unix(assignedAt.Int64, 0),
+			Assignee:      row.Assignee.String,
+			AssignedAt:    time.Unix(row.AssignedAt.Int64, 0),
 			LockUntil:     lockTime,
 			IsExpired:     isExpired,
 			IsStale:       isStale,
@@ -268,46 +256,42 @@ func GetLockStatus(ctx context.Context, taskID string) (*LockStatus, error) {
 func GetLocksByAgent(ctx context.Context, agentID string) ([]LockStatus, error) {
 	ctx = ensureContext(ctx)
 
-	queryCtx, cancel := withQueryTimeout(ctx)
-	defer cancel()
-
 	var locks []LockStatus
 
 	err := retryWithBackoff(ctx, func() error {
-		db, err := GetDBx()
+		queryCtx, cancel, db, err := QueryContextDB(ctx)
 		if err != nil {
-			return fmt.Errorf("failed to get database: %w", err)
+			return err
 		}
+		defer cancel()
 
 		now := time.Now().Unix()
 
-		rows, err := db.QueryContext(queryCtx, `
+		var rows []struct {
+			TaskID     string        `db:"id"`
+			Assignee   string        `db:"assignee"`
+			AssignedAt sql.NullInt64 `db:"assigned_at"`
+			LockUntil  sql.NullInt64 `db:"lock_until"`
+		}
+
+		if err := db.SelectContext(queryCtx, &rows, `
 			SELECT id, assignee, assigned_at, lock_until
 			FROM tasks
 			WHERE assignee = ? AND lock_until IS NOT NULL
 			ORDER BY lock_until ASC
-		`, agentID)
-		if err != nil {
+		`, agentID); err != nil {
 			return fmt.Errorf("failed to query locks: %w", err)
 		}
-		defer rows.Close()
 
 		locks = nil
-		for rows.Next() {
-			var taskID, assignee string
-			var assignedAt, lockUntil sql.NullInt64
-
-			if err := rows.Scan(&taskID, &assignee, &assignedAt, &lockUntil); err != nil {
-				return fmt.Errorf("failed to scan lock: %w", err)
-			}
-
-			if !lockUntil.Valid {
+		for _, row := range rows {
+			if !row.LockUntil.Valid {
 				continue
 			}
 
-			lockTime := time.Unix(lockUntil.Int64, 0)
-			isExpired := lockUntil.Int64 < now
-			isStale := isExpired && (now-lockUntil.Int64) > 300
+			lockTime := time.Unix(row.LockUntil.Int64, 0)
+			isExpired := row.LockUntil.Int64 < now
+			isStale := isExpired && (now-row.LockUntil.Int64) > 300
 
 			var timeRemaining, timeExpired time.Duration
 			if isExpired {
@@ -317,9 +301,9 @@ func GetLocksByAgent(ctx context.Context, agentID string) ([]LockStatus, error) 
 			}
 
 			locks = append(locks, LockStatus{
-				TaskID:        taskID,
-				Assignee:      assignee,
-				AssignedAt:    time.Unix(assignedAt.Int64, 0),
+				TaskID:        row.TaskID,
+				Assignee:      row.Assignee,
+				AssignedAt:    time.Unix(row.AssignedAt.Int64, 0),
 				LockUntil:     lockTime,
 				IsExpired:     isExpired,
 				IsStale:       isStale,
@@ -328,7 +312,7 @@ func GetLocksByAgent(ctx context.Context, agentID string) ([]LockStatus, error) 
 			})
 		}
 
-		return rows.Err()
+		return nil
 	})
 
 	return locks, err

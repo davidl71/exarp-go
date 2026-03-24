@@ -19,28 +19,23 @@ import (
 func ListTasks(ctx context.Context, filters *TaskFilters) ([]*Todo2Task, error) {
 	ctx = ensureContext(ctx)
 
-	queryCtx, cancel := withQueryTimeout(ctx)
-	defer cancel()
-
 	var tasks []*Todo2Task
 
 	err := retryWithBackoff(ctx, func() error {
-		db, err := GetDBx()
+		queryCtx, cancel, db, err := QueryContextDB(ctx)
 		if err != nil {
-			return fmt.Errorf("failed to get database: %w", err)
+			return err
 		}
+		defer cancel()
 
-		// Build query with filters (using strings.Builder for better performance)
-		// Include protobuf columns and date columns if they exist (for new schema)
 		var queryBuilder strings.Builder
 
 		queryBuilder.WriteString(`
-			SELECT DISTINCT t.id, t.content, t.long_description, t.status, t.priority, t.completed, t.created, t.last_modified, t.completed_at, t.metadata, t.metadata_protobuf, t.metadata_format, t.parent_id, t.project_id, t.assigned_to, t.host, t.agent
+			SELECT DISTINCT t.id, t.name, t.content, t.long_description, t.status, t.priority, t.completed, t.created, t.last_modified, t.completed_at, t.metadata, t.metadata_protobuf, t.metadata_format, t.parent_id, t.project_id, t.assigned_to, t.host, t.agent
 			FROM tasks t
 		`)
 
 		var args []interface{}
-
 		var conditions []string
 
 		if filters != nil {
@@ -94,7 +89,6 @@ func ListTasks(ctx context.Context, filters *TaskFilters) ([]*Todo2Task, error) 
 
 		if len(conditions) > 0 {
 			queryBuilder.WriteString(" WHERE " + conditions[0])
-
 			for i := 1; i < len(conditions); i++ {
 				queryBuilder.WriteString(" AND " + conditions[i])
 			}
@@ -103,158 +97,56 @@ func ListTasks(ctx context.Context, filters *TaskFilters) ([]*Todo2Task, error) 
 		queryBuilder.WriteString(" ORDER BY t.created_at DESC")
 		query := queryBuilder.String()
 
-		// Schema 9: always has full schema (protobuf + distributed tracking)
-		rows, err := db.QueryContext(queryCtx, query, args...)
-		if err != nil {
+		var rows []taskRow
+		if err := db.SelectContext(queryCtx, &rows, query, args...); err != nil {
 			return fmt.Errorf("failed to query tasks: %w", err)
 		}
-		hasProtobufColumns := true
-		hasDistributedColumns := true
-
-		defer rows.Close()
 
 		var taskList []*Todo2Task
-
 		var taskIDs []string
+		taskMap := make(map[string]*Todo2Task, len(rows))
 
-		taskMap := make(map[string]*Todo2Task)
+		for _, row := range rows {
+			task := Todo2Task{
+				ID:              row.ID,
+				Content:         row.Content,
+				LongDescription: row.LongDescription,
+				Status:          row.Status,
+				Priority:        row.Priority,
+				Completed:       row.Completed == 1,
+				CreatedAt:       row.Created,
+				LastModified:    row.LastModified,
+				CompletedAt:     row.CompletedAt,
+				ParentID:        row.ParentID,
+				AssignedTo:      row.AssignedTo,
+				Host:            row.Host,
+				Agent:           row.Agent,
+			}
 
-		// First pass: collect all tasks and their IDs
-		for rows.Next() {
-			var task Todo2Task
+			if row.ProjectID.Valid {
+				task.ProjectID = row.ProjectID.String
+			}
 
-			var metadataJSON sql.NullString
-
-			var metadataProtobuf []byte // BLOB column
-
-			var metadataFormat sql.NullString
-
-			var completedInt int
-
-			var created, lastMod, completedAt, parentID, projectID, assignedTo, host, agent sql.NullString
-
-			// Scan based on schema level (full, protobuf-only, or minimal)
-			var scanErr error
-			if hasDistributedColumns {
-				scanErr = rows.Scan(
-					&task.ID,
-					&task.Content,
-					&task.LongDescription,
-					&task.Status,
-					&task.Priority,
-					&completedInt,
-					&created,
-					&lastMod,
-					&completedAt,
-					&metadataJSON,
-					&metadataProtobuf,
-					&metadataFormat,
-					&parentID,
-					&projectID,
-					&assignedTo,
-					&host,
-					&agent,
-				)
-				if scanErr == nil {
-					if parentID.Valid {
-						task.ParentID = parentID.String
-					}
-					if projectID.Valid {
-						task.ProjectID = projectID.String
-					}
-					if assignedTo.Valid {
-						task.AssignedTo = assignedTo.String
-					}
-					if host.Valid {
-						task.Host = host.String
-					}
-					if agent.Valid {
-						task.Agent = agent.String
-					}
+			if row.MetadataFormat == "protobuf" && len(row.MetadataProto) > 0 {
+				deserializedTask, err := models.DeserializeTaskFromProtobuf(row.MetadataProto)
+				if err == nil {
+					task.Metadata = deserializedTask.Metadata
+				} else if len(row.Metadata) > 0 {
+					task.Metadata = unmarshalTaskMetadata(string(row.Metadata))
 				}
-			} else if hasProtobufColumns {
-				scanErr = rows.Scan(
-					&task.ID,
-					&task.Content,
-					&task.LongDescription,
-					&task.Status,
-					&task.Priority,
-					&completedInt,
-					&created,
-					&lastMod,
-					&completedAt,
-					&metadataJSON,
-					&metadataProtobuf,
-					&metadataFormat,
-					&parentID,
-				)
-				if scanErr == nil && parentID.Valid {
-					task.ParentID = parentID.String
-				}
-			} else {
-				scanErr = rows.Scan(
-					&task.ID,
-					&task.Content,
-					&task.LongDescription,
-					&task.Status,
-					&task.Priority,
-					&completedInt,
-					&created,
-					&lastMod,
-					&completedAt,
-					&metadataJSON,
-				)
-			}
-
-			if scanErr != nil {
-				return fmt.Errorf("failed to scan task: %w", scanErr)
-			}
-
-			task.Completed = completedInt == 1
-			if created.Valid {
-				task.CreatedAt = created.String
-			}
-
-			if lastMod.Valid {
-				task.LastModified = lastMod.String
-			}
-
-			if completedAt.Valid {
-				task.CompletedAt = completedAt.String
+			} else if len(row.Metadata) > 0 {
+				task.Metadata = unmarshalTaskMetadata(string(row.Metadata))
 			}
 
 			task.NormalizeEpochDates()
 
-			// Deserialize metadata: prefer protobuf if available, fall back to JSON
-			if metadataFormat.Valid && metadataFormat.String == "protobuf" && len(metadataProtobuf) > 0 {
-				// Deserialize from protobuf
-				deserializedTask, err := models.DeserializeTaskFromProtobuf(metadataProtobuf)
-				if err == nil {
-					// Use metadata from protobuf deserialization
-					task.Metadata = deserializedTask.Metadata
-				} else {
-					// Protobuf deserialization failed, fall back to JSON
-					if metadataJSON.Valid && metadataJSON.String != "" {
-						task.Metadata = unmarshalTaskMetadata(metadataJSON.String)
-					}
-				}
-			} else if metadataJSON.Valid && metadataJSON.String != "" {
-				// Use JSON format (legacy or fallback)
-				task.Metadata = unmarshalTaskMetadata(metadataJSON.String)
-			}
-
-			taskIDs = append(taskIDs, task.ID)
-			taskMap[task.ID] = &task
-			taskList = append(taskList, &task)
+			rowCopy := task
+			taskIDs = append(taskIDs, row.ID)
+			taskMap[row.ID] = &rowCopy
+			taskList = append(taskList, &rowCopy)
 		}
 
-		if err = rows.Err(); err != nil {
-			return fmt.Errorf("error iterating rows: %w", err)
-		}
-
-		// Batch load all tags and dependencies in 2 queries instead of N*2 queries
 		if len(taskIDs) > 0 {
-			// Batch load tags using sqlx.In
 			tagQuery, tagArgs, err := sqlx.In(`
 				SELECT task_id, tag FROM task_tags
 				WHERE task_id IN (?)
@@ -278,7 +170,6 @@ func ListTasks(ctx context.Context, filters *TaskFilters) ([]*Todo2Task, error) 
 				}
 			}
 
-			// Batch load dependencies using sqlx.In + SelectContext
 			depQuery, depArgs, err := sqlx.In(`
 				SELECT task_id, depends_on_id FROM task_dependencies
 				WHERE task_id IN (?)
@@ -304,7 +195,6 @@ func ListTasks(ctx context.Context, filters *TaskFilters) ([]*Todo2Task, error) 
 		}
 
 		tasks = taskList
-
 		return nil
 	})
 	if err != nil {
