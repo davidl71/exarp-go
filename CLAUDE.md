@@ -2,7 +2,7 @@
 
 ## Project
 
-Go-based MCP server. 37 tools (38 with Apple FM), 36 prompts, 24 resources. Primary language: Go. Also: shell scripts (scripts/, ansible/), Ansible (YAML playbooks/roles in ansible/). SQLite-backed task system (Todo2). Apple Foundation Models + Ollama + MLX for local AI.
+Go-based MCP server. 36 tools (37 with Apple FM), 36 prompts, 60 resources. Primary language: Go. Also: shell scripts (scripts/, ansible/), Ansible (YAML playbooks/roles in ansible/). SQLite-backed task system (Todo2). Apple Foundation Models + Ollama + MLX for local AI.
 
 ## MCP servers available in this session
 
