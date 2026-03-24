@@ -74,12 +74,30 @@ func CreateTask(ctx context.Context, task *Todo2Task) error {
 		// Insert task with protobuf data (if available) and JSON (for compatibility)
 		now := time.Now().Format(time.RFC3339)
 		// v9 schema: parent_id, assigned_to, host, agent are NOT NULL DEFAULT ''
-		// Use empty string directly instead of sql.NullString
+		// Ensure non-empty strings to satisfy NOT NULL constraints in any schema version
 		parentID := task.ParentID
+		if parentID == "" {
+			parentID = ""
+		}
 		projectID := task.ProjectID // project_id still nullable
 		assignedTo := task.AssignedTo
+		if assignedTo == "" {
+			assignedTo = ""
+		}
 		host := task.Host
+		if host == "" {
+			if h, e := os.Hostname(); e == nil {
+				host = h
+			} else {
+				host = ""
+			}
+		}
 		agent := task.Agent
+		if agent == "" {
+			if a, e := GetAgentID(); e == nil {
+				agent = a
+			}
+		}
 		_, err = tx.ExecContext(txCtx, `
 			INSERT INTO tasks (
 				id, name, content, long_description, status, priority, completed,
