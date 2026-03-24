@@ -1,4 +1,4 @@
-// health_check.go — MCP "health" tool: server, git, docs, dod, cicd, tools, ctags checks.
+// health_check.go — MCP "health" tool: server, git, docs, dod, cicd, tools, database, ctags checks.
 package tools
 
 import (
@@ -16,13 +16,14 @@ import (
 	"time"
 
 	"github.com/davidl71/exarp-go/internal/cache"
+	"github.com/davidl71/exarp-go/internal/database"
 	"github.com/davidl71/exarp-go/internal/framework"
 	"github.com/davidl71/exarp-go/proto"
 	"github.com/spf13/cast"
 )
 
 var (
-	healthModuleRe = regexp.MustCompile(`module\s+([^\s]+)`)
+	healthModuleRe  = regexp.MustCompile(`module\s+([^\s]+)`)
 	healthVersionRe = regexp.MustCompile(`version\s*=\s*["']([^"']+)["']`)
 )
 
@@ -34,7 +35,7 @@ const designLimitTools = 40
 const ExpectedToolCountBase = 38 // 38 base (39 with Apple FM on darwin/arm64/cgo)
 
 // handleHealthNative handles the health tool with native Go implementation
-// Implements all actions: "server", "git", "docs", "dod", "cicd", "tools"
+// Implements all actions: "server", "git", "docs", "dod", "cicd", "tools", "database"
 // Note: Some actions provide basic functionality; complex features may fall back to Python bridge.
 func handleHealthNative(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	// Get action (default: "server")
@@ -56,10 +57,12 @@ func handleHealthNative(ctx context.Context, params map[string]interface{}) ([]f
 		return handleHealthCICD(ctx, params)
 	case "tools":
 		return handleHealthTools(ctx, params)
+	case "database":
+		return handleHealthDatabase(ctx, params)
 	case "ctags":
 		return handleHealthCtags(ctx, params)
 	default:
-		return nil, fmt.Errorf("health action %q not supported (use: server, git, docs, dod, cicd, tools, ctags)", action)
+		return nil, fmt.Errorf("health action %q not supported (use: server, git, docs, dod, cicd, tools, database, ctags)", action)
 	}
 }
 
@@ -100,6 +103,73 @@ func handleHealthTools(ctx context.Context, params map[string]interface{}) ([]fr
 	}
 	resultJSON, _ := json.Marshal(result)
 	resp := &proto.HealthReport{Action: "tools", ResultJson: string(resultJSON)}
+
+	return framework.FormatResult(HealthReportToMap(resp), resp.GetOutputPath())
+}
+
+// handleHealthDatabase handles explicit database health and maintenance actions.
+// Supported operations: status (default), checkpoint, vacuum, analyze.
+func handleHealthDatabase(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
+	operation := strings.TrimSpace(cast.ToString(params["operation"]))
+	if operation == "" {
+		operation = strings.TrimSpace(cast.ToString(params["sub_action"]))
+	}
+	if operation == "" {
+		operation = "status"
+	}
+
+	result := map[string]interface{}{
+		"action":    "database",
+		"operation": operation,
+		"method":    "native_go",
+	}
+
+	switch operation {
+	case "status":
+		status, err := database.GetDatabaseStatus(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("database status: %w", err)
+		}
+		result["success"] = true
+		result["database"] = status
+	case "checkpoint":
+		mode := strings.TrimSpace(cast.ToString(params["checkpoint_mode"]))
+		checkpoint, err := database.RunCheckpoint(ctx, mode)
+		if err != nil {
+			return nil, fmt.Errorf("database checkpoint: %w", err)
+		}
+		status, _ := database.GetDatabaseStatus(ctx)
+		result["success"] = true
+		result["checkpoint"] = checkpoint
+		if status != nil {
+			result["database"] = status
+		}
+	case "vacuum":
+		if err := database.VacuumDatabase(ctx); err != nil {
+			return nil, fmt.Errorf("database vacuum: %w", err)
+		}
+		status, _ := database.GetDatabaseStatus(ctx)
+		result["success"] = true
+		result["message"] = "VACUUM completed"
+		if status != nil {
+			result["database"] = status
+		}
+	case "analyze":
+		if err := database.AnalyzeDatabase(ctx); err != nil {
+			return nil, fmt.Errorf("database analyze: %w", err)
+		}
+		status, _ := database.GetDatabaseStatus(ctx)
+		result["success"] = true
+		result["message"] = "ANALYZE completed"
+		if status != nil {
+			result["database"] = status
+		}
+	default:
+		return nil, fmt.Errorf("database operation %q not supported (use: status, checkpoint, vacuum, analyze)", operation)
+	}
+
+	resultJSON, _ := json.Marshal(result)
+	resp := &proto.HealthReport{Action: "database", ResultJson: string(resultJSON)}
 
 	return framework.FormatResult(HealthReportToMap(resp), resp.GetOutputPath())
 }

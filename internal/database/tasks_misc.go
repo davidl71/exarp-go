@@ -8,6 +8,36 @@ import (
 	"strings"
 )
 
+// DatabaseStatus describes explicit database health/maintenance state.
+type DatabaseStatus struct {
+	Driver             string `json:"driver"`
+	JournalMode        string `json:"journal_mode,omitempty"`
+	AutoVacuum         string `json:"auto_vacuum,omitempty"`
+	PageSize           int64  `json:"page_size,omitempty"`
+	PageCount          int64  `json:"page_count,omitempty"`
+	FreelistCount      int64  `json:"freelist_count,omitempty"`
+	BusyTimeoutMS      int64  `json:"busy_timeout_ms,omitempty"`
+	WALAutocheckpoint  int64  `json:"wal_autocheckpoint,omitempty"`
+	EstimatedDBBytes   int64  `json:"estimated_db_bytes,omitempty"`
+	EstimatedFreeBytes int64  `json:"estimated_free_bytes,omitempty"`
+}
+
+// CheckpointResult describes a WAL checkpoint run.
+type CheckpointResult struct {
+	Mode         string `json:"mode"`
+	Busy         int64  `json:"busy"`
+	LogFrames    int64  `json:"log_frames"`
+	Checkpointed int64  `json:"checkpointed_frames"`
+}
+
+// CurrentDriverType returns the active driver type, if initialized.
+func CurrentDriverType() DriverType {
+	if currentDriver == nil {
+		return ""
+	}
+	return currentDriver.Type()
+}
+
 // FixTaskDates backfills created and last_modified from created_at/updated_at (Unix epoch)
 // for rows where created or last_modified is empty or 1970-01-01. Returns the number of rows updated.
 func FixTaskDates(ctx context.Context) (int64, error) {
@@ -103,4 +133,120 @@ func GetDependents(taskID string) ([]string, error) {
 	}
 
 	return dependents, rows.Err()
+}
+
+// GetDatabaseStatus returns explicit runtime database status.
+func GetDatabaseStatus(ctx context.Context) (*DatabaseStatus, error) {
+	db, err := GetDBx()
+	if err != nil {
+		return nil, err
+	}
+
+	status := &DatabaseStatus{
+		Driver: string(CurrentDriverType()),
+	}
+	if status.Driver == "" {
+		status.Driver = string(DriverSQLite)
+	}
+	if status.Driver != string(DriverSQLite) {
+		return status, nil
+	}
+
+	queryCtx, cancel := withQueryTimeout(ensureContext(ctx))
+	defer cancel()
+
+	if err := db.QueryRowxContext(queryCtx, "PRAGMA journal_mode").Scan(&status.JournalMode); err != nil {
+		return nil, fmt.Errorf("pragma journal_mode: %w", err)
+	}
+	if err := db.QueryRowxContext(queryCtx, "PRAGMA auto_vacuum").Scan(&status.AutoVacuum); err != nil {
+		return nil, fmt.Errorf("pragma auto_vacuum: %w", err)
+	}
+	if err := db.QueryRowxContext(queryCtx, "PRAGMA page_size").Scan(&status.PageSize); err != nil {
+		return nil, fmt.Errorf("pragma page_size: %w", err)
+	}
+	if err := db.QueryRowxContext(queryCtx, "PRAGMA page_count").Scan(&status.PageCount); err != nil {
+		return nil, fmt.Errorf("pragma page_count: %w", err)
+	}
+	if err := db.QueryRowxContext(queryCtx, "PRAGMA freelist_count").Scan(&status.FreelistCount); err != nil {
+		return nil, fmt.Errorf("pragma freelist_count: %w", err)
+	}
+	if err := db.QueryRowxContext(queryCtx, "PRAGMA busy_timeout").Scan(&status.BusyTimeoutMS); err != nil {
+		return nil, fmt.Errorf("pragma busy_timeout: %w", err)
+	}
+	if err := db.QueryRowxContext(queryCtx, "PRAGMA wal_autocheckpoint").Scan(&status.WALAutocheckpoint); err != nil {
+		return nil, fmt.Errorf("pragma wal_autocheckpoint: %w", err)
+	}
+
+	status.EstimatedDBBytes = status.PageCount * status.PageSize
+	status.EstimatedFreeBytes = status.FreelistCount * status.PageSize
+
+	return status, nil
+}
+
+// RunCheckpoint performs an explicit SQLite WAL checkpoint.
+func RunCheckpoint(ctx context.Context, mode string) (*CheckpointResult, error) {
+	db, err := GetDBx()
+	if err != nil {
+		return nil, err
+	}
+	if CurrentDriverType() != "" && CurrentDriverType() != DriverSQLite {
+		return nil, fmt.Errorf("checkpoint is only supported for sqlite")
+	}
+
+	mode = strings.ToUpper(strings.TrimSpace(mode))
+	if mode == "" {
+		mode = "PASSIVE"
+	}
+	switch mode {
+	case "PASSIVE", "FULL", "RESTART", "TRUNCATE":
+	default:
+		return nil, fmt.Errorf("unsupported checkpoint mode %q", mode)
+	}
+
+	queryCtx, cancel := withQueryTimeout(ensureContext(ctx))
+	defer cancel()
+
+	result := &CheckpointResult{Mode: mode}
+	if err := db.QueryRowxContext(queryCtx, fmt.Sprintf("PRAGMA wal_checkpoint(%s)", mode)).Scan(&result.Busy, &result.LogFrames, &result.Checkpointed); err != nil {
+		return nil, fmt.Errorf("wal_checkpoint(%s): %w", mode, err)
+	}
+
+	return result, nil
+}
+
+// VacuumDatabase runs an explicit VACUUM.
+func VacuumDatabase(ctx context.Context) error {
+	db, err := GetDBx()
+	if err != nil {
+		return err
+	}
+	if CurrentDriverType() != "" && CurrentDriverType() != DriverSQLite {
+		return fmt.Errorf("vacuum is only supported for sqlite")
+	}
+
+	queryCtx, cancel := withQueryTimeout(ensureContext(ctx))
+	defer cancel()
+
+	if _, err := db.ExecContext(queryCtx, "VACUUM"); err != nil {
+		return fmt.Errorf("vacuum: %w", err)
+	}
+
+	return nil
+}
+
+// AnalyzeDatabase runs explicit ANALYZE.
+func AnalyzeDatabase(ctx context.Context) error {
+	db, err := GetDBx()
+	if err != nil {
+		return err
+	}
+
+	queryCtx, cancel := withQueryTimeout(ensureContext(ctx))
+	defer cancel()
+
+	if _, err := db.ExecContext(queryCtx, "ANALYZE"); err != nil {
+		return fmt.Errorf("analyze: %w", err)
+	}
+
+	return nil
 }

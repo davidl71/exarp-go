@@ -181,9 +181,9 @@ Values shown are defaults. Durations use Go format (e.g., `30m`, `60s`). Omitted
 | `retry_initial_delay` | duration | `100ms` | Initial retry delay |
 | `retry_max_delay` | duration | `5s` | Max retry delay |
 | `retry_multiplier` | float | `2.0` | Retry backoff multiplier |
-| `auto_vacuum` | bool | `true` | SQLite auto vacuum |
+| `auto_vacuum` | bool | `true` | SQLite auto vacuum setting exposed in config; explicit `health action=database` maintenance is still the supported operational path |
 | `wal_mode` | bool | `true` | WAL mode |
-| `checkpoint_interval` | int | `1000` | Checkpoint interval |
+| `checkpoint_interval` | int | `1000` | Checkpoint interval setting exposed in config; manual checkpoint remains available via `health action=database operation=checkpoint` |
 | `backup_retention_days` | int | `30` | Backup retention |
 
 ---

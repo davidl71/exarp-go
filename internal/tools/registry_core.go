@@ -690,14 +690,22 @@ func registerCoreTools(server framework.MCPServer) error {
 	// health
 	if err := server.RegisterTool(
 		"health",
-		"[HINT: action=server|git|docs|dod|cicd|tools|ctags. Project health and component status checks.]",
+		"[HINT: action=server|git|docs|dod|cicd|tools|database|ctags. Project health and component status checks.]",
 		framework.ToolSchema{
 			Type: "object",
 			Properties: map[string]interface{}{
 				"action": map[string]interface{}{
 					"type":    "string",
-					"enum":    []string{"server", "git", "docs", "dod", "cicd", "tools", "ctags"},
+					"enum":    []string{"server", "git", "docs", "dod", "cicd", "tools", "database", "ctags"},
 					"default": "server",
+				},
+				"operation": map[string]interface{}{
+					"type": "string",
+					"enum": []string{"status", "checkpoint", "vacuum", "analyze"},
+				},
+				"checkpoint_mode": map[string]interface{}{
+					"type": "string",
+					"enum": []string{"PASSIVE", "FULL", "RESTART", "TRUNCATE"},
 				},
 				"agent_name": map[string]interface{}{
 					"type": "string",

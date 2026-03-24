@@ -7,8 +7,109 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/davidl71/exarp-go/internal/database"
 	"github.com/davidl71/exarp-go/internal/framework"
 )
+
+func TestHandleHealthDatabase(t *testing.T) {
+	cleanup := initSessionTestDB(t)
+	defer cleanup()
+
+	ctx := context.Background()
+
+	task := &database.Todo2Task{
+		ID:       "T-health-db-1",
+		Content:  "Database maintenance health test",
+		Status:   "Todo",
+		Priority: "medium",
+	}
+	if err := database.CreateTask(ctx, task); err != nil {
+		t.Fatalf("database.CreateTask: %v", err)
+	}
+
+	tests := []struct {
+		name      string
+		params    map[string]interface{}
+		wantError bool
+		validate  func(*testing.T, map[string]interface{})
+	}{
+		{
+			name: "status",
+			params: map[string]interface{}{
+				"action":    "database",
+				"operation": "status",
+			},
+			validate: func(t *testing.T, data map[string]interface{}) {
+				if success, ok := data["success"].(bool); !ok || !success {
+					t.Fatalf("expected success=true, got %v", data["success"])
+				}
+				dbInfo, ok := data["database"].(map[string]interface{})
+				if !ok {
+					t.Fatalf("expected database map, got %T", data["database"])
+				}
+				if driver, _ := dbInfo["driver"].(string); driver != "sqlite" {
+					t.Fatalf("expected driver=sqlite, got %v", dbInfo["driver"])
+				}
+				if _, ok := dbInfo["page_count"]; !ok {
+					t.Fatal("expected page_count in database status")
+				}
+			},
+		},
+		{
+			name: "checkpoint",
+			params: map[string]interface{}{
+				"action":          "database",
+				"operation":       "checkpoint",
+				"checkpoint_mode": "PASSIVE",
+			},
+			validate: func(t *testing.T, data map[string]interface{}) {
+				checkpoint, ok := data["checkpoint"].(map[string]interface{})
+				if !ok {
+					t.Fatalf("expected checkpoint map, got %T", data["checkpoint"])
+				}
+				if mode, _ := checkpoint["mode"].(string); mode != "PASSIVE" {
+					t.Fatalf("expected checkpoint mode PASSIVE, got %v", checkpoint["mode"])
+				}
+			},
+		},
+		{
+			name: "analyze",
+			params: map[string]interface{}{
+				"action":    "database",
+				"operation": "analyze",
+			},
+			validate: func(t *testing.T, data map[string]interface{}) {
+				if msg, _ := data["message"].(string); msg != "ANALYZE completed" {
+					t.Fatalf("expected analyze completion message, got %v", data["message"])
+				}
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result, err := handleHealthDatabase(ctx, tt.params)
+			if (err != nil) != tt.wantError {
+				t.Fatalf("handleHealthDatabase() error = %v, wantError %v", err, tt.wantError)
+			}
+			if err != nil {
+				return
+			}
+			if len(result) == 0 {
+				t.Fatal("expected non-empty result")
+			}
+
+			var data map[string]interface{}
+			if err := json.Unmarshal([]byte(result[0].Text), &data); err != nil {
+				t.Fatalf("invalid JSON: %v", err)
+			}
+
+			if tt.validate != nil {
+				tt.validate(t, data)
+			}
+		})
+	}
+}
 
 func TestHandleHealthDocs(t *testing.T) {
 	tmpDir := t.TempDir()

@@ -19,7 +19,7 @@ Apply this skill when the workspace uses the exarp-go MCP server and you need to
 | **Suggested next tasks / what to work on** | `session` with `action=prime`, `include_tasks=true`, `include_hints=true`. Returns `suggested_next` (backlog in dependency order). |
 | Task list/update/create/show/delete | Prefer `task_workflow` MCP tool when exarp-go MCP is available; fallback: `exarp-go task` CLI (see task-workflow skill). |
 | Project overview, scorecard, or briefing | `report` with `action=overview`, `action=scorecard`, or `action=briefing`. |
-| Docs health, CI, or repo status | `health` with appropriate `action` (e.g. docs, git, cicd). |
+| Docs health, CI, repo status, or SQLite maintenance | `health` with appropriate `action` (e.g. docs, git, cicd, database). |
 | Task branches, merge task changes, task commit history, diff tasks | `git_tools` with `action=commits|branches|tasks|diff|graph|merge|set_branch`. |
 | **Task analysis (deps, duplicates, plan)** | `task_analysis` with `action=parallelization|dependencies|duplicates|conflicts|execution_plan|tags|suggest_deps|stale|completable`. |
 | **Run a task (execute)** | `task_execute` — execute a task by ID (single action). |
@@ -65,4 +65,5 @@ Using MCP resources avoids unnecessary process spawns and gives full tool/prompt
 - *User: "What should I work on next?" or "Suggest next task"* → Use `session` with `action=prime`, `include_tasks=true`, `include_hints=true`. Response includes `suggested_next` (tasks in dependency order).
 - *User: "List my Todo tasks"* → Use task-workflow patterns: `exarp-go task list --status Todo` or `task_workflow` with `action=sync`, `sub_action=list`, `status=Todo`.
 - *User: "Is the docs setup ok?"* → Use `health` with `action=docs`.
+- *User: "How big is the Todo2 database?" or "Run vacuum/checkpoint"* → Use `health` with `action=database` and `operation=status|checkpoint|vacuum|analyze`.
 - *User: "Show task change history" or "Merge my task branch"* → Use `git_tools` with `action=commits`, `action=graph`, or `action=merge` (task branches/versioning).

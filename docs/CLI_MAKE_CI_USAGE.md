@@ -48,6 +48,7 @@ Build the binary, then run tools:
 ```yaml
 - run: go build -o bin/exarp-go ./cmd/server
 - run: ./bin/exarp-go -tool health -args '{"action":"server"}'
+- run: ./bin/exarp-go -tool health -args '{"action":"database","operation":"status"}'
 - run: ./bin/exarp-go -tool report -args '{"action":"scorecard","include_metrics":true}'
 ```
 
@@ -58,6 +59,7 @@ See `.github/workflows/agentic-ci.yml` and `.github/workflows/go.yml` for full e
 ```bash
 ./bin/exarp-go -tool context -args '{"action":"budget","items":["a","b"],"budget_tokens":4000}'
 ./bin/exarp-go -tool text_generate -args '{"prompt":"Summarize this repo","max_tokens":100}'
+./bin/exarp-go -tool health -args '{"action":"database","operation":"checkpoint","checkpoint_mode":"TRUNCATE"}'
 ```
 
 ---

@@ -13,7 +13,7 @@ This server hosts tools, prompts, and resources that are broken in FastMCP due t
 **Originally migrated (23 tools):**
 - `analyze_alignment` - Todo2 alignment analysis
 - `generate_config` - Cursor config generation
-- `health` - Project health checks
+- `health` - Project health checks, including explicit SQLite maintenance
 - `memory` - Memory management
 - `memory_maint` - Memory maintenance
 - `report` - Project reporting
@@ -37,6 +37,19 @@ This server hosts tools, prompts, and resources that are broken in FastMCP due t
 - `mlx` - MLX integration
 - `git_tools` - Git-inspired task management
 - `session` - Session management (prime/handoff/prompts/assignee)
+
+### Explicit Database Maintenance
+
+Use `health action=database` for SQLite maintenance. These operations are explicit and do not run as side effects of normal task CRUD.
+
+```bash
+./bin/exarp-go -tool health -args '{"action":"database","operation":"status"}'
+./bin/exarp-go -tool health -args '{"action":"database","operation":"checkpoint","checkpoint_mode":"TRUNCATE"}'
+./bin/exarp-go -tool health -args '{"action":"database","operation":"vacuum"}'
+./bin/exarp-go -tool health -args '{"action":"database","operation":"analyze"}'
+```
+
+`status` reports fields such as `page_count`, `freelist_count`, `estimated_db_bytes`, and `estimated_free_bytes` so you can decide whether a manual `vacuum` is worthwhile.
 
 ### Prompts (18 total)
 

@@ -15,6 +15,7 @@ Skills live in `.cursor/skills/<name>/SKILL.md`. When your request matches a ski
 | **session-handoff** | End a session, list handoffs, resume from a handoff |
 | **task-cleanup** | Bulk remove one-off or performance tasks; when those tasks "reappeared" |
 | **lint-docs** | Check broken references, validate doc links, lint markdown |
+| **database-maintenance** | Inspect SQLite status, run explicit checkpoint, vacuum, or analyze |
 | **tractatus-decompose** | Logical decomposition of complex concepts before implementation |
 | **use-exarp-tools** | Choosing the right exarp-go tool (tasks, reports, health, git, etc.) |
 
@@ -29,6 +30,7 @@ Ask naturally; the AI will pick the right skill. Examples:
 | Session handoff | "End my session" / "List handoffs" / "Resume from latest handoff" |
 | Bulk cleanup | "Remove the one-off performance tasks" |
 | Doc quality | "Check for broken links in docs" / "Lint the markdown" |
+| Database maintenance | "Show DB free space" / "Run a WAL checkpoint" / "Vacuum the Todo2 database" |
 | Tool selection | "Show task change history" / "Merge my task branch" / "What should I work on next?" |
 
 ## Multi-Agent: Locking and Task Assignment
