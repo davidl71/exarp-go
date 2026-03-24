@@ -28,6 +28,13 @@ import (
 //   enrichTagsWithLLM — enrichTagsWithLLM uses Apple FM to infer additional tags, in batches of files per call to speed up.
 // ────────────────────────────────────────────────────────────────────────────
 
+// Compiled once at package level — these patterns are used on every markdown file scan.
+var (
+	markdownHashtagPattern  = regexp.MustCompile(`#([a-zA-Z][a-zA-Z0-9_-]+)`)
+	markdownBracketPattern  = regexp.MustCompile(`\[([a-zA-Z][a-zA-Z0-9_-]+)\]`)
+	markdownTagsLinePattern = regexp.MustCompile(`(?i)^(?:tags?|labels?|categories?):\s*(.+)$`)
+)
+
 // ─── discoverTagsFromMarkdownWithCache ──────────────────────────────────────
 // discoverTagsFromMarkdownWithCache scans markdown files with SQLite caching.
 func discoverTagsFromMarkdownWithCache(projectRoot, docPath string, useCache bool) ([]map[string]interface{}, int, int) {
@@ -39,11 +46,6 @@ func discoverTagsFromMarkdownWithCache(projectRoot, docPath string, useCache boo
 	if _, err := os.Stat(searchPath); os.IsNotExist(err) {
 		return discoveries, cacheHits, cacheMisses
 	}
-
-	// Patterns to match tags in markdown
-	hashtagPattern := regexp.MustCompile(`#([a-zA-Z][a-zA-Z0-9_-]+)`)
-	bracketPattern := regexp.MustCompile(`\[([a-zA-Z][a-zA-Z0-9_-]+)\]`)
-	tagsLinePattern := regexp.MustCompile(`(?i)^(?:tags?|labels?|categories?):\s*(.+)$`)
 
 	bracketFalsePositives := map[string]bool{
 		"string": true, "int": true, "bool": true, "float": true, "number": true,
@@ -118,7 +120,7 @@ func discoverTagsFromMarkdownWithCache(projectRoot, docPath string, useCache boo
 		tagSources := []string{}
 
 		// Find hashtags
-		for _, match := range hashtagPattern.FindAllStringSubmatch(fileContent, -1) {
+		for _, match := range markdownHashtagPattern.FindAllStringSubmatch(fileContent, -1) {
 			if len(match) >= 2 {
 				tag := strings.ToLower(match[1])
 				if tag != "todo" && tag != "fixme" && tag != "note" && tag != "warning" &&
@@ -131,7 +133,7 @@ func discoverTagsFromMarkdownWithCache(projectRoot, docPath string, useCache boo
 		}
 
 		// Find bracket tags
-		for _, match := range bracketPattern.FindAllStringSubmatch(fileContent, -1) {
+		for _, match := range markdownBracketPattern.FindAllStringSubmatch(fileContent, -1) {
 			if len(match) >= 2 {
 				tag := strings.ToLower(match[1])
 				if len(tag) > 2 && len(tag) < 30 && !strings.Contains(tag, " ") && !bracketFalsePositives[tag] {
@@ -143,7 +145,7 @@ func discoverTagsFromMarkdownWithCache(projectRoot, docPath string, useCache boo
 
 		// Find explicit tags lines
 		for _, line := range lines {
-			if matches := tagsLinePattern.FindStringSubmatch(line); len(matches) >= 2 {
+			if matches := markdownTagsLinePattern.FindStringSubmatch(line); len(matches) >= 2 {
 				tagList := strings.Split(matches[1], ",")
 				for _, t := range tagList {
 					tag := strings.ToLower(strings.TrimSpace(t))
