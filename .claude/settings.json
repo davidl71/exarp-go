@@ -16,7 +16,6 @@
       "mcp__exarp-go__health",
       "mcp__exarp-go__infer_session_mode",
       "mcp__exarp-go__infer_task_progress",
-      "mcp__exarp-go__llamacpp",
       "mcp__exarp-go__lint",
       "mcp__exarp-go__list_resources",
       "mcp__exarp-go__memory",
