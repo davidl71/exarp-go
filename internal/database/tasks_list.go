@@ -10,7 +10,7 @@ import (
 	"strings"
 
 	"github.com/davidl71/exarp-go/internal/models"
-	_ "github.com/jmoiron/sqlx"
+	"github.com/jmoiron/sqlx"
 )
 
 // ListTasks retrieves tasks with optional filtering
@@ -249,65 +249,52 @@ func ListTasks(ctx context.Context, filters *TaskFilters) ([]*Todo2Task, error) 
 
 		// Batch load all tags and dependencies in 2 queries instead of N*2 queries
 		if len(taskIDs) > 0 {
-			// Batch load tags
-			placeholders := make([]string, len(taskIDs))
-			tagArgs := make([]interface{}, len(taskIDs))
-
-			for i, id := range taskIDs {
-				placeholders[i] = "?"
-				tagArgs[i] = id
+			// Batch load tags using sqlx.In
+			tagQuery, tagArgs, err := sqlx.In(`
+				SELECT task_id, tag FROM task_tags
+				WHERE task_id IN (?)
+				ORDER BY task_id, tag
+			`, taskIDs)
+			if err != nil {
+				return fmt.Errorf("failed to build tag query: %w", err)
 			}
 
-			tagRows, err := db.QueryContext(queryCtx, `
-				SELECT task_id, tag FROM task_tags 
-				WHERE task_id IN (`+strings.Join(placeholders, ", ")+`) 
-				ORDER BY task_id, tag
-			`, tagArgs...)
-			if err != nil {
+			var tagResults []struct {
+				TaskID string `db:"task_id"`
+				Tag    string `db:"tag"`
+			}
+			if err := db.SelectContext(queryCtx, &tagResults, tagQuery, tagArgs...); err != nil {
 				return fmt.Errorf("failed to batch query tags: %w", err)
 			}
 
-			defer tagRows.Close()
-
-			for tagRows.Next() {
-				var taskID, tag string
-				if err := tagRows.Scan(&taskID, &tag); err != nil {
-					return fmt.Errorf("failed to scan tag: %w", err)
-				}
-
-				if task, ok := taskMap[taskID]; ok {
-					task.Tags = append(task.Tags, tag)
+			for _, tr := range tagResults {
+				if task, ok := taskMap[tr.TaskID]; ok {
+					task.Tags = append(task.Tags, tr.Tag)
 				}
 			}
 
-			if err = tagRows.Err(); err != nil {
-				return fmt.Errorf("error iterating tag rows: %w", err)
-			}
-
-			// Batch load dependencies
-			depRows, err := db.QueryContext(queryCtx, `
-				SELECT task_id, depends_on_id FROM task_dependencies 
-				WHERE task_id IN (`+strings.Join(placeholders, ", ")+`) 
+			// Batch load dependencies using sqlx.In + SelectContext
+			depQuery, depArgs, err := sqlx.In(`
+				SELECT task_id, depends_on_id FROM task_dependencies
+				WHERE task_id IN (?)
 				ORDER BY task_id, depends_on_id
-			`, tagArgs...)
+			`, taskIDs)
 			if err != nil {
+				return fmt.Errorf("failed to build dependency query: %w", err)
+			}
+
+			var depResults []struct {
+				TaskID      string `db:"task_id"`
+				DependsOnID string `db:"depends_on_id"`
+			}
+			if err := db.SelectContext(queryCtx, &depResults, depQuery, depArgs...); err != nil {
 				return fmt.Errorf("failed to batch query dependencies: %w", err)
 			}
-			defer depRows.Close()
 
-			for depRows.Next() {
-				var taskID, depID string
-				if err := depRows.Scan(&taskID, &depID); err != nil {
-					return fmt.Errorf("failed to scan dependency: %w", err)
+			for _, dr := range depResults {
+				if task, ok := taskMap[dr.TaskID]; ok {
+					task.Dependencies = append(task.Dependencies, dr.DependsOnID)
 				}
-
-				if task, ok := taskMap[taskID]; ok {
-					task.Dependencies = append(task.Dependencies, depID)
-				}
-			}
-
-			if err = depRows.Err(); err != nil {
-				return fmt.Errorf("error iterating dependency rows: %w", err)
 			}
 		}
 
@@ -425,40 +412,29 @@ func GetDoneTasksForEstimation(ctx context.Context) ([]*TaskForEstimation, error
 			return fmt.Errorf("error iterating rows: %w", err)
 		}
 
-		// Batch load tags
+		// Batch load tags using sqlx.In + SelectContext
 		if len(taskIDs) > 0 {
-			placeholders := make([]string, len(taskIDs))
-			args := make([]interface{}, len(taskIDs))
-
-			for i, id := range taskIDs {
-				placeholders[i] = "?"
-				args[i] = id
+			tagQuery, tagArgs, err := sqlx.In(`
+				SELECT task_id, tag FROM task_tags
+				WHERE task_id IN (?)
+				ORDER BY task_id, tag
+			`, taskIDs)
+			if err != nil {
+				return fmt.Errorf("failed to build tag query: %w", err)
 			}
 
-			tagRows, err := db.QueryContext(queryCtx, `
-				SELECT task_id, tag FROM task_tags
-				WHERE task_id IN (`+strings.Join(placeholders, ", ")+`)
-				ORDER BY task_id, tag
-			`, args...)
-			if err != nil {
+			var tagResults []struct {
+				TaskID string `db:"task_id"`
+				Tag    string `db:"tag"`
+			}
+			if err := db.SelectContext(queryCtx, &tagResults, tagQuery, tagArgs...); err != nil {
 				return fmt.Errorf("failed to batch query tags: %w", err)
 			}
 
-			defer tagRows.Close()
-
-			for tagRows.Next() {
-				var taskID, tag string
-				if err := tagRows.Scan(&taskID, &tag); err != nil {
-					return fmt.Errorf("failed to scan tag: %w", err)
+			for _, tr := range tagResults {
+				if t, ok := taskMap[tr.TaskID]; ok {
+					t.Tags = append(t.Tags, tr.Tag)
 				}
-
-				if t, ok := taskMap[taskID]; ok {
-					t.Tags = append(t.Tags, tag)
-				}
-			}
-
-			if err = tagRows.Err(); err != nil {
-				return fmt.Errorf("error iterating tag rows: %w", err)
 			}
 		}
 

@@ -423,6 +423,7 @@ func registerCoreTools(server framework.MCPServer) error {
 				},
 				"modified_task_ids": map[string]interface{}{
 					"type":        "array",
+					"items":       map[string]interface{}{"type": "string"},
 					"description": "Optional list of task IDs modified this session; stored as task_journal (handoff end)",
 				},
 				"limit": map[string]interface{}{
