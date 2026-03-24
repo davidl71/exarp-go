@@ -21,14 +21,17 @@ type Todo2Task = models.Todo2Task
 
 // TaskFilters represents filters for querying tasks.
 type TaskFilters struct {
-	Status     *string
-	Statuses   []string // Multiple statuses (IN clause)
-	Priority   *string
-	Tag        *string
-	ProjectID  *string
-	AssignedTo *string
-	Host       *string
-	Agent      *string
+	Status    *string
+	Statuses  []string // Multiple statuses (IN clause)
+	Priority  *string
+	Tag       *string
+	ProjectID *string
+	// IncludeNullProjectID treats NULL/empty project_id rows as matching the
+	// requested ProjectID. Use for legacy rows that predate project scoping.
+	IncludeNullProjectID bool
+	AssignedTo           *string
+	Host                 *string
+	Agent                *string
 }
 
 // SanitizeTaskMetadata parses JSON metadata; on failure returns a map with "raw" key and logs.
@@ -111,7 +114,6 @@ func SanitizeMetadataForWrite(metadata map[string]interface{}) map[string]interf
 
 	return out
 }
-
 
 func jsonSafeValue(v interface{}) interface{} {
 	if v == nil {

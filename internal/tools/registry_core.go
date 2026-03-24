@@ -39,7 +39,7 @@ func registerCoreTools(server framework.MCPServer) error {
 		},
 		"filter_tag": map[string]interface{}{
 			"type":     "string",
-			"examples": []string{"llamacpp", "mcp", "tui"},
+			"examples": []string{"execution", "mcp", "tui"},
 		},
 		"task_ids": map[string]interface{}{
 			"type": "string",

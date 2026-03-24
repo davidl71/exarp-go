@@ -1,4 +1,4 @@
-// process_memory.go — Process memory usage and optional soft limit for server/llamacpp.
+// process_memory.go — Process memory usage and optional soft limit for the server/runtime.
 // Uses runtime.ReadMemStats and optionally RSS (Linux /proc). Limit via EXARP_MEMORY_LIMIT_MB.
 package tools
 
@@ -13,7 +13,7 @@ import (
 type ProcessMemoryInfo struct {
 	HeapAllocMB float64 `json:"heap_alloc_mb"` // Go heap allocated (in use)
 	HeapSysMB   float64 `json:"heap_sys_mb"`   // Go heap memory from OS
-	RSSMB       float64 `json:"rss_mb"`       // Resident set size (Linux); 0 if unavailable
+	RSSMB       float64 `json:"rss_mb"`        // Resident set size (Linux); 0 if unavailable
 	LimitMB     int     `json:"limit_mb"`      // Soft limit from EXARP_MEMORY_LIMIT_MB; 0 = no limit
 	Warning     string  `json:"warning,omitempty"`
 }

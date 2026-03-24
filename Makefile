@@ -917,52 +917,6 @@ test-apple-fm-integration: build-apple-fm ## Run Apple Foundation Models integra
 	@CGO_ENABLED=1 go test ./internal/tools -run TestHandleAppleFoundationModels -v || \
 	 echo "$(YELLOW)⚠️  Integration tests failed (may need Swift bridge)$(NC)"
 
-##@ llama.cpp Integration
-
-build-llamacpp: ## Build with llama.cpp support (CGO + llamacpp build tag, requires libbinding.a)
-	@if [ "$(CGO_AVAILABLE)" != "1" ]; then \
-		echo "$(RED)❌ CGO is not available - required for llama.cpp$(NC)"; \
-		exit 1; \
-	fi
-	@echo "$(BLUE)Building with llama.cpp support...$(NC)"
-	@if [ ! -f "$(LLAMACPP_BINDING)" ]; then \
-		echo "$(YELLOW)⚠️  libbinding.a not found at $(LLAMACPP_BINDING)$(NC)"; \
-		echo "$(YELLOW)   Build it first: cd go-llama.cpp && BUILD_TYPE=metal make libbinding.a$(NC)"; \
-		echo "$(YELLOW)   Or set LLAMACPP_DIR to the go-llama.cpp directory$(NC)"; \
-		echo "$(YELLOW)   Falling back to build without llama.cpp$(NC)"; \
-		CGO_ENABLED=1 $(GO) build -ldflags "-X main.Version=$(VERSION) -X main.BuildTime=$(BUILD_TIME) -X main.GitCommit=$(GIT_COMMIT)" -o $(BINARY_PATH) ./cmd/server || \
-		 (echo "$(RED)❌ Build failed$(NC)" && exit 1); \
-	else \
-		CGO_ENABLED=1 \
-		CGO_CPPFLAGS="-I$(LLAMACPP_DIR) -I$(LLAMACPP_DIR)/llama.cpp -I$(LLAMACPP_DIR)/llama.cpp/common" \
-		CGO_LDFLAGS="-L$(LLAMACPP_DIR) -lbinding -lstdc++ -framework Foundation -framework Metal -framework MetalKit -framework MetalPerformanceShaders" \
-		 $(GO) build -tags llamacpp -ldflags "-X main.Version=$(VERSION) -X main.BuildTime=$(BUILD_TIME) -X main.GitCommit=$(GIT_COMMIT)" -o $(BINARY_PATH) ./cmd/server || \
-		 (echo "$(RED)❌ Build with llama.cpp failed$(NC)" && exit 1); \
-		echo "$(GREEN)✅ Server built with llama.cpp support: $(BINARY_PATH)$(NC)"; \
-	fi
-
-# llama.cpp directory and binding library
-LLAMACPP_DIR ?= $(shell pwd)/go-llama.cpp
-LLAMACPP_BINDING = $(LLAMACPP_DIR)/libbinding.a
-
-build-libbinding: ## Build libbinding.a from go-llama.cpp submodule (inits submodule if needed; Metal on macOS, CPU on Linux)
-	@if [ -f .gitmodules ] && grep -q 'path = go-llama.cpp' .gitmodules 2>/dev/null; then \
-		echo "$(BLUE)Initializing go-llama.cpp submodule...$(NC)"; \
-		git submodule update --init --recursive go-llama.cpp; \
-	fi
-	@if [ ! -d "$(LLAMACPP_DIR)" ]; then \
-		echo "$(RED)❌ go-llama.cpp directory not found at $(LLAMACPP_DIR)$(NC)"; \
-		echo "$(YELLOW)   Run: ./scripts/build-llamacpp.sh (clones and builds), or add submodule and run: make build-libbinding$(NC)"; \
-		exit 1; \
-	fi
-	@echo "$(BLUE)Building libbinding.a...$(NC)"
-	@if [ "$$(uname -s)" = "Darwin" ] && [ "$$(uname -m)" = "arm64" ]; then \
-		cd $(LLAMACPP_DIR) && BUILD_TYPE=metal make libbinding.a; \
-	else \
-		cd $(LLAMACPP_DIR) && make libbinding.a; \
-	fi
-	@echo "$(GREEN)✅ libbinding.a built at $(LLAMACPP_BINDING)$(NC)"
-
 ##@ Sprint Automation
 
 sprint-start: ## Run sprint start workflow (clean backlog, align tasks)

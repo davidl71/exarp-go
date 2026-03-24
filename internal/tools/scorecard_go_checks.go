@@ -33,7 +33,7 @@ func collectAllFileStats(projectRoot string) (*FileStats, error) {
 
 		if info.IsDir() {
 			switch info.Name() {
-			case ".git", "vendor", ".venv", "node_modules", "__pycache__", ".bfg-report", ".cursor", ".opencode", "out", "go-llama.cpp":
+			case ".git", "vendor", ".venv", "node_modules", "__pycache__", ".bfg-report", ".cursor", ".opencode", "out":
 				return filepath.SkipDir
 			}
 			return nil
@@ -216,7 +216,7 @@ func checkGoFmt(ctx context.Context, root string) bool {
 
 		if info.IsDir() {
 			switch info.Name() {
-			case ".git", "vendor", ".venv", "node_modules", ".bfg-report", ".cursor", ".opencode", "out", "go-llama.cpp":
+			case ".git", "vendor", ".venv", "node_modules", ".bfg-report", ".cursor", ".opencode", "out":
 				return filepath.SkipDir
 			}
 			return nil

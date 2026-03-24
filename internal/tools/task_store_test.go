@@ -128,3 +128,43 @@ func TestNewDefaultTaskStore_DBCreateAndUpdateSetContentHash(t *testing.T) {
 		t.Errorf("content_hash did not change after content update: got %q", updatedHash)
 	}
 }
+
+func TestNewDefaultTaskStoreListIncludesLegacyNullProjectRows(t *testing.T) {
+	cleanup := initSessionTestDB(t)
+	defer cleanup()
+
+	projectRoot, err := GetProjectRootWithFallback()
+	if err != nil {
+		t.Fatalf("GetProjectRootWithFallback: %v", err)
+	}
+
+	db, err := database.GetDBx()
+	if err != nil {
+		t.Fatalf("GetDBx: %v", err)
+	}
+
+	_, err = db.ExecContext(context.Background(), `
+		INSERT INTO tasks (
+			id, name, content, long_description, status, priority, completed,
+			created, last_modified, metadata, metadata_protobuf, metadata_format,
+			parent_id, project_id, assigned_to, host, agent, version, created_at, updated_at
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, strftime('%s', 'now'), strftime('%s', 'now'))
+	`, "T-legacy-null-project", "", "Legacy null project", "", database.StatusTodo, "medium", 0, "2026-03-24T00:00:00Z", "2026-03-24T00:00:00Z", "", []byte(nil), "json", "", nil, "", "", "")
+	if err != nil {
+		t.Fatalf("insert legacy task: %v", err)
+	}
+
+	store := NewDefaultTaskStore(projectRoot)
+	list, err := store.ListTasks(context.Background(), nil)
+	if err != nil {
+		t.Fatalf("ListTasks: %v", err)
+	}
+
+	for _, task := range list {
+		if task.ID == "T-legacy-null-project" {
+			return
+		}
+	}
+
+	t.Fatal("expected legacy NULL-project task to be visible through the default task store list")
+}

@@ -175,24 +175,24 @@ func CreateTask(ctx context.Context, task *Todo2Task) error {
 
 // taskRow is a flat row scanner for v9 schema (parent_id, assigned_to, host, agent are NOT NULL).
 type taskRow struct {
-	ID              string `db:"id"`
-	Name            string `db:"name"`
-	Content         string `db:"content"`
-	LongDescription string `db:"long_description"`
-	Status          string `db:"status"`
-	Priority        string `db:"priority"`
-	Completed       int    `db:"completed"`
-	Created         string `db:"created"`
-	LastModified    string `db:"last_modified"`
-	CompletedAt     string `db:"completed_at"`
-	Metadata        []byte `db:"metadata"`
-	MetadataProto   []byte `db:"metadata_protobuf"`
-	MetadataFormat  string `db:"metadata_format"`
-	ParentID        string `db:"parent_id"`
-	ProjectID       string `db:"project_id"`
-	AssignedTo      string `db:"assigned_to"`
-	Host            string `db:"host"`
-	Agent           string `db:"agent"`
+	ID              string         `db:"id"`
+	Name            string         `db:"name"`
+	Content         string         `db:"content"`
+	LongDescription string         `db:"long_description"`
+	Status          string         `db:"status"`
+	Priority        string         `db:"priority"`
+	Completed       int            `db:"completed"`
+	Created         string         `db:"created"`
+	LastModified    string         `db:"last_modified"`
+	CompletedAt     string         `db:"completed_at"`
+	Metadata        []byte         `db:"metadata"`
+	MetadataProto   []byte         `db:"metadata_protobuf"`
+	MetadataFormat  string         `db:"metadata_format"`
+	ParentID        string         `db:"parent_id"`
+	ProjectID       sql.NullString `db:"project_id"`
+	AssignedTo      string         `db:"assigned_to"`
+	Host            string         `db:"host"`
+	Agent           string         `db:"agent"`
 }
 
 // GetTask retrieves a task by ID with all related data (tags, dependencies)
@@ -238,7 +238,7 @@ func GetTask(ctx context.Context, id string) (*Todo2Task, error) {
 			LastModified:    row.LastModified,
 			CompletedAt:     row.CompletedAt,
 			ParentID:        row.ParentID,
-			ProjectID:       row.ProjectID,
+			ProjectID:       row.ProjectID.String,
 			AssignedTo:      row.AssignedTo,
 			Host:            row.Host,
 			Agent:           row.Agent,

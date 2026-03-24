@@ -71,7 +71,11 @@ func ListTasks(ctx context.Context, filters *TaskFilters) ([]*Todo2Task, error) 
 			}
 
 			if filters.ProjectID != nil {
-				conditions = append(conditions, "t.project_id = ?")
+				if filters.IncludeNullProjectID {
+					conditions = append(conditions, "(t.project_id = ? OR t.project_id IS NULL OR t.project_id = '')")
+				} else {
+					conditions = append(conditions, "t.project_id = ?")
+				}
 				args = append(args, *filters.ProjectID)
 			}
 			if filters.AssignedTo != nil {
@@ -538,12 +542,12 @@ func FindNextClaimableTask(ctx context.Context) (*Todo2Task, error) {
 		var created, lastMod, completedAt sql.NullString
 		var metadataJSON, metadataProtobuf []byte
 		var metadataFormat sql.NullString
-		var parentID sql.NullString
+		var parentID, projectID sql.NullString
 
 		err = row.Scan(
 			&task.ID, &task.Content, &task.LongDescription, &task.Status, &task.Priority,
 			&completedInt, &created, &lastMod, &completedAt,
-			&metadataJSON, &metadataProtobuf, &metadataFormat, &parentID, &task.ProjectID,
+			&metadataJSON, &metadataProtobuf, &metadataFormat, &parentID, &projectID,
 			&task.AssignedTo, &task.Host, &task.Agent,
 		)
 		if errors.Is(err, sql.ErrNoRows) {
@@ -565,6 +569,9 @@ func FindNextClaimableTask(ctx context.Context) (*Todo2Task, error) {
 		}
 		if parentID.Valid {
 			task.ParentID = parentID.String
+		}
+		if projectID.Valid {
+			task.ProjectID = projectID.String
 		}
 
 		task.NormalizeEpochDates()

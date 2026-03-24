@@ -77,10 +77,15 @@ func (s *dbOrFileStore) ListTasks(ctx context.Context, filters *database.TaskFil
 	}
 	// Default list to current project so multiple projects using the same DB don't clobber each other.
 	if filters == nil {
-		filters = &database.TaskFilters{ProjectID: &projectID}
+		filters = &database.TaskFilters{ProjectID: &projectID, IncludeNullProjectID: true}
 	} else if filters.ProjectID == nil {
 		f2 := *filters
 		f2.ProjectID = &projectID
+		f2.IncludeNullProjectID = true
+		filters = &f2
+	} else if *filters.ProjectID == projectID && !filters.IncludeNullProjectID {
+		f2 := *filters
+		f2.IncludeNullProjectID = true
 		filters = &f2
 	}
 
@@ -206,8 +211,14 @@ func filterTasksToPtrs(tasks []Todo2Task, filters *database.TaskFilters) []*data
 			}
 		}
 
-		if filters.ProjectID != nil && t.ProjectID != *filters.ProjectID {
-			continue
+		if filters.ProjectID != nil {
+			if filters.IncludeNullProjectID {
+				if t.ProjectID != "" && t.ProjectID != *filters.ProjectID {
+					continue
+				}
+			} else if t.ProjectID != *filters.ProjectID {
+				continue
+			}
 		}
 
 		out = append(out, t)

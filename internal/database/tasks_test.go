@@ -254,6 +254,90 @@ func TestListTasks(t *testing.T) {
 	}
 }
 
+func TestGetTaskHandlesNullProjectID(t *testing.T) {
+	testDBMu.Lock()
+	defer testDBMu.Unlock()
+
+	tmpDir := t.TempDir()
+	if err := Init(tmpDir); err != nil {
+		t.Fatalf("Init() error = %v", err)
+	}
+	defer Close()
+
+	db, err := GetDBx()
+	if err != nil {
+		t.Fatalf("GetDBx() error = %v", err)
+	}
+
+	_, err = db.ExecContext(context.Background(), `
+		INSERT INTO tasks (
+			id, name, content, long_description, status, priority, completed,
+			created, last_modified, metadata, metadata_protobuf, metadata_format,
+			parent_id, project_id, assigned_to, host, agent, version, created_at, updated_at
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, strftime('%s', 'now'), strftime('%s', 'now'))
+	`, "T-null-project", "", "Legacy task", "", StatusTodo, "medium", 0, "2026-03-24T00:00:00Z", "2026-03-24T00:00:00Z", "", []byte(nil), "json", "", nil, "", "", "")
+	if err != nil {
+		t.Fatalf("insert legacy task: %v", err)
+	}
+
+	task, err := GetTask(context.Background(), "T-null-project")
+	if err != nil {
+		t.Fatalf("GetTask() error = %v", err)
+	}
+
+	if task.ProjectID != "" {
+		t.Fatalf("ProjectID = %q, want empty string for NULL DB value", task.ProjectID)
+	}
+}
+
+func TestListTasksCanIncludeNullProjectID(t *testing.T) {
+	testDBMu.Lock()
+	defer testDBMu.Unlock()
+
+	tmpDir := t.TempDir()
+	if err := Init(tmpDir); err != nil {
+		t.Fatalf("Init() error = %v", err)
+	}
+	defer Close()
+
+	db, err := GetDBx()
+	if err != nil {
+		t.Fatalf("GetDBx() error = %v", err)
+	}
+
+	_, err = db.ExecContext(context.Background(), `
+		INSERT INTO tasks (
+			id, name, content, long_description, status, priority, completed,
+			created, last_modified, metadata, metadata_protobuf, metadata_format,
+			parent_id, project_id, assigned_to, host, agent, version, created_at, updated_at
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, strftime('%s', 'now'), strftime('%s', 'now'))
+	`, "T-null-filter", "", "Legacy task", "", StatusTodo, "medium", 0, "2026-03-24T00:00:00Z", "2026-03-24T00:00:00Z", "", []byte(nil), "json", "", nil, "", "", "")
+	if err != nil {
+		t.Fatalf("insert legacy task: %v", err)
+	}
+
+	projectID := "exarp-go"
+	tasks, err := ListTasks(context.Background(), &TaskFilters{
+		ProjectID:            &projectID,
+		IncludeNullProjectID: true,
+	})
+	if err != nil {
+		t.Fatalf("ListTasks() error = %v", err)
+	}
+
+	found := false
+	for _, task := range tasks {
+		if task.ID == "T-null-filter" {
+			found = true
+			break
+		}
+	}
+
+	if !found {
+		t.Fatal("expected NULL-project task to be included when IncludeNullProjectID=true")
+	}
+}
+
 func TestGetTasksByStatus(t *testing.T) {
 	testDBMu.Lock()
 	defer testDBMu.Unlock()

@@ -11,7 +11,6 @@ require (
 	github.com/davidl71/devwisdom-go v0.1.2
 	github.com/davidl71/mcp-go-core v0.4.1
 	github.com/dustin/go-humanize v1.0.1
-	github.com/go-skynet/go-llama.cpp v0.0.0-20240314183750-6a8041ef6b46
 	github.com/go-sql-driver/mysql v1.9.3
 	github.com/hibiken/asynq v0.26.0
 	github.com/jmoiron/sqlx v1.4.0

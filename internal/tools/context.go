@@ -126,7 +126,7 @@ func handleContextBudget(ctx context.Context, args json.RawMessage) ([]framework
 
 // EstimateTokens returns the estimated token count for text using the given ratio (tokens per character).
 // Use config.TokensPerChar() for project-configured ratio, or TOKENS_PER_CHAR for default.
-// Safe for use by context tool, llamacpp, and other callers that need to track/limit context size.
+// Safe for use by the context tool and other callers that need to track/limit context size.
 func EstimateTokens(text string, tokensPerChar float64) int {
 	if tokensPerChar <= 0 {
 		tokensPerChar = TOKENS_PER_CHAR
@@ -226,8 +226,8 @@ func handleContextCount(params map[string]interface{}) ([]framework.TextContent,
 	}
 	tokens := EstimateTokens(text, tokensPerChar)
 	result := map[string]interface{}{
-		"tokens":           tokens,
-		"tokens_per_char":  tokensPerChar,
+		"tokens":          tokens,
+		"tokens_per_char": tokensPerChar,
 		"character_count": len(text),
 	}
 	return framework.FormatResult(result, "")

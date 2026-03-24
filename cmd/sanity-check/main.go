@@ -16,13 +16,13 @@ import (
 )
 
 // Expected counts
-// Tools = 38 base (includes llamacpp — always registered) + 1 conditional (Apple Foundation Models on darwin/arm64/cgo) = 39 on Mac Silicon
+// Tools = 37 base + 1 conditional (Apple Foundation Models on darwin/arm64/cgo) = 38 on Mac Silicon
 // Prompts = 36 (19 original + 16 migrated from Python + 1 tractatus_decompose)
 // Resources = 47 (35 RegisterResource + 12 RegisterResourceTemplate):
 // config(2) + scorecard + memories(6) + prompts(4) + session(2) + server + models + cursor/skills + tools(4) + tasks(10) + suggested-tasks + active-work + task-runs + agent/card + prime/context = 35 resources
 // + 12 templates (memories/category, memories/task, memories/session, prompts/mode, prompts/persona, prompts/category, tools/{category}, tasks/{task_id}, tasks/status, tasks/priority, tasks/tag, task-runs/{task_id})
 const (
-	ExpectedTools     = 38 // Base tools (39 with conditional Apple Foundation Models on darwin/arm64/cgo)
+	ExpectedTools     = 37 // Base tools (38 with conditional Apple Foundation Models on darwin/arm64/cgo)
 	ExpectedPrompts   = 36
 	ExpectedResources = 47
 )

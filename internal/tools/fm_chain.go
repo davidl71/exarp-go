@@ -62,9 +62,6 @@ func init() {
 	if g := appleFMIfAvailable(); g != nil {
 		backends = append(backends, g)
 	}
-	if g := llamacppIfAvailable(); g != nil {
-		backends = append(backends, g)
-	}
 
 	backends = append(backends, ollamaTG, stub)
 	DefaultFM = &chainFMProvider{backends: backends}

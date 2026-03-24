@@ -28,7 +28,7 @@ var skipDirNames = map[string]bool{
 	".git": true, "node_modules": true, "__pycache__": true, ".venv": true,
 	"vendor": true, ".idea": true, ".vscode": true, "dist": true, "build": true, "target": true,
 	".bfg-report": true, ".cursor": true, ".opencode": true,
-	"docs/archive": true, "out": true, "go-llama.cpp": true,
+	"docs/archive": true, "out": true,
 }
 
 // GatherEvidence walks the project root up to scanDepth (1-5), restricted by file extensions,

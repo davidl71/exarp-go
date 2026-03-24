@@ -2,7 +2,6 @@
 package tools
 
 import (
-	"encoding/json"
 	"os"
 	"testing"
 )
@@ -34,28 +33,15 @@ func TestGetProcessMemoryInfoWithLimitEnv(t *testing.T) {
 	}
 }
 
-func TestProcessMemoryExposedInLlamaCppStatus(t *testing.T) {
-	result, err := handleLlamaCppStatus()
-	if err != nil {
-		t.Fatalf("handleLlamaCppStatus() error = %v", err)
+func TestProcessMemoryInfoContainsExpectedFields(t *testing.T) {
+	info := GetProcessMemoryInfo()
+	if info.HeapAllocMB < 0 {
+		t.Errorf("HeapAllocMB = %v, want >= 0", info.HeapAllocMB)
 	}
-	if len(result) == 0 || result[0].Text == "" {
-		t.Fatal("handleLlamaCppStatus() returned empty result")
+	if info.HeapSysMB < 0 {
+		t.Errorf("HeapSysMB = %v, want >= 0", info.HeapSysMB)
 	}
-
-	var status map[string]interface{}
-	if err := json.Unmarshal([]byte(result[0].Text), &status); err != nil {
-		t.Fatalf("unmarshal status: %v", err)
+	if info.RSSMB < 0 {
+		t.Errorf("RSSMB = %v, want >= 0", info.RSSMB)
 	}
-	pm, ok := status["process_memory"].(map[string]interface{})
-	if !ok {
-		t.Fatal("status missing process_memory")
-	}
-	if _, ok := pm["memory_mb"]; !ok {
-		t.Error("process_memory missing memory_mb")
-	}
-	if _, ok := pm["heap_alloc_mb"]; !ok {
-		t.Error("process_memory missing heap_alloc_mb")
-	}
-	t.Logf("llamacpp status process_memory: %+v", pm)
 }
