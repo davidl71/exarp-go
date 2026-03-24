@@ -187,9 +187,19 @@ func walkSkipDir(path string, info os.FileInfo, projectRoot string) error {
 	return nil
 }
 
-// countCppFilesIn counts C/C++ files under dir (absolute path). Used for detection and per-dir file count.
-func countCppFilesIn(dir string) int {
-	var n int
+// langFileStats holds per-language file counts from a single directory walk.
+type langFileStats struct {
+	Cpp        int
+	Python     int
+	Rust       int
+	Go         int
+	TypeScript int
+	Swift      int
+}
+
+// collectLangFileStats walks dir once and counts source files for all supported languages.
+func collectLangFileStats(dir string) langFileStats {
+	var s langFileStats
 	_ = filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return nil
@@ -203,114 +213,29 @@ func countCppFilesIn(dir string) int {
 		ext := strings.ToLower(filepath.Ext(path))
 		switch ext {
 		case ".cpp", ".cc", ".cxx", ".c", ".h", ".hpp", ".hxx":
-			n++
-		}
-		return nil
-	})
-	return n
-}
-
-func countPythonFilesIn(dir string) int {
-	var n int
-	_ = filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return nil
-		}
-		if err := walkSkipDir(path, info, dir); err != nil {
-			return err
-		}
-		if info.IsDir() {
-			return nil
-		}
-		if strings.HasSuffix(strings.ToLower(path), ".py") {
-			n++
-		}
-		return nil
-	})
-	return n
-}
-
-func countRustFilesIn(dir string) int {
-	var n int
-	_ = filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return nil
-		}
-		if err := walkSkipDir(path, info, dir); err != nil {
-			return err
-		}
-		if info.IsDir() {
-			return nil
-		}
-		if strings.HasSuffix(strings.ToLower(path), ".rs") {
-			n++
-		}
-		return nil
-	})
-	return n
-}
-
-func countGoFilesIn(dir string) int {
-	var n int
-	_ = filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return nil
-		}
-		if err := walkSkipDir(path, info, dir); err != nil {
-			return err
-		}
-		if info.IsDir() {
-			return nil
-		}
-		if strings.HasSuffix(strings.ToLower(path), ".go") {
-			n++
-		}
-		return nil
-	})
-	return n
-}
-
-func countTypeScriptFilesIn(dir string) int {
-	var n int
-	_ = filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return nil
-		}
-		if err := walkSkipDir(path, info, dir); err != nil {
-			return err
-		}
-		if info.IsDir() {
-			return nil
-		}
-		ext := strings.ToLower(filepath.Ext(path))
-		switch ext {
+			s.Cpp++
+		case ".py":
+			s.Python++
+		case ".rs":
+			s.Rust++
+		case ".go":
+			s.Go++
 		case ".ts", ".tsx", ".js", ".jsx":
-			n++
+			s.TypeScript++
+		case ".swift":
+			s.Swift++
 		}
 		return nil
 	})
-	return n
+	return s
 }
 
-func countSwiftFilesIn(dir string) int {
-	var n int
-	_ = filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return nil
-		}
-		if err := walkSkipDir(path, info, dir); err != nil {
-			return err
-		}
-		if info.IsDir() {
-			return nil
-		}
-		if strings.HasSuffix(strings.ToLower(path), ".swift") {
-			n++
-		}
-		return nil
-	})
-	return n
-}
+func countCppFilesIn(dir string) int        { return collectLangFileStats(dir).Cpp }
+func countPythonFilesIn(dir string) int     { return collectLangFileStats(dir).Python }
+func countRustFilesIn(dir string) int       { return collectLangFileStats(dir).Rust }
+func countGoFilesIn(dir string) int         { return collectLangFileStats(dir).Go }
+func countTypeScriptFilesIn(dir string) int { return collectLangFileStats(dir).TypeScript }
+func countSwiftFilesIn(dir string) int      { return collectLangFileStats(dir).Swift }
 
 func workDir(projectRoot, langRoot string) string {
 	if langRoot == "" {
@@ -561,25 +486,45 @@ func CollectMultilangHealth(ctx context.Context, projectRoot string) []LangHealt
 
 // MultilangCacheSignature returns a stable string for cache key: detected languages, their roots, and file counts.
 // When files are added/removed, the signature changes so the cache is invalidated.
+// Calls collectLangFileStats once per unique dir to avoid redundant walks on shared roots.
 func MultilangCacheSignature(projectRoot string) string {
-	var parts []string
+	type langEntry struct {
+		label string
+		dir   string
+		pick  func(langFileStats) int
+	}
+
+	var entries []langEntry
 	if found, root := DetectCppProjectRoot(projectRoot); found {
-		parts = append(parts, "cpp:"+root+":"+strconv.Itoa(countCppFilesIn(workDir(projectRoot, root))))
+		entries = append(entries, langEntry{"cpp:" + root, workDir(projectRoot, root), func(s langFileStats) int { return s.Cpp }})
 	}
 	if found, root := DetectPythonProjectRoot(projectRoot); found {
-		parts = append(parts, "py:"+root+":"+strconv.Itoa(countPythonFilesIn(workDir(projectRoot, root))))
+		entries = append(entries, langEntry{"py:" + root, workDir(projectRoot, root), func(s langFileStats) int { return s.Python }})
 	}
 	if found, root := DetectRustProjectRoot(projectRoot); found {
-		parts = append(parts, "rs:"+root+":"+strconv.Itoa(countRustFilesIn(workDir(projectRoot, root))))
+		entries = append(entries, langEntry{"rs:" + root, workDir(projectRoot, root), func(s langFileStats) int { return s.Rust }})
 	}
 	if found, root := DetectGoProjectRoot(projectRoot); found {
-		parts = append(parts, "go:"+root+":"+strconv.Itoa(countGoFilesIn(workDir(projectRoot, root))))
+		entries = append(entries, langEntry{"go:" + root, workDir(projectRoot, root), func(s langFileStats) int { return s.Go }})
 	}
 	if found, root := DetectTypeScriptProjectRoot(projectRoot); found {
-		parts = append(parts, "ts:"+root+":"+strconv.Itoa(countTypeScriptFilesIn(workDir(projectRoot, root))))
+		entries = append(entries, langEntry{"ts:" + root, workDir(projectRoot, root), func(s langFileStats) int { return s.TypeScript }})
 	}
 	if found, root := DetectSwiftProjectRoot(projectRoot); found {
-		parts = append(parts, "swift:"+root+":"+strconv.Itoa(countSwiftFilesIn(workDir(projectRoot, root))))
+		entries = append(entries, langEntry{"swift:" + root, workDir(projectRoot, root), func(s langFileStats) int { return s.Swift }})
+	}
+
+	// Walk each unique dir once
+	statsByDir := make(map[string]langFileStats)
+	for _, e := range entries {
+		if _, seen := statsByDir[e.dir]; !seen {
+			statsByDir[e.dir] = collectLangFileStats(e.dir)
+		}
+	}
+
+	parts := make([]string, 0, len(entries))
+	for _, e := range entries {
+		parts = append(parts, e.label+":"+strconv.Itoa(e.pick(statsByDir[e.dir])))
 	}
 	return strings.Join(parts, ",")
 }
