@@ -12,7 +12,7 @@ func registerCoreTools(server framework.MCPServer) error {
 	taskWorkflowProps := taskworkflowspec.AppendTaskFieldSchemaProperties(map[string]interface{}{
 		"action": map[string]interface{}{
 			"type":    "string",
-			"enum":    []string{"list", "create", "update", "delete", "add_comment", "summarize", "run_with_ai", "approve", "clarify", "clarity", "cleanup", "enrich_tool_hints", "fix_dates", "fix_empty_descriptions", "fix_invalid_ids", "link_planning", "request_approval", "sync_approvals", "apply_approval_result", "sanity_check", "sync", "sync_from_plan", "sync_plan_status", "claim", "batch_claim", "release", "agent_status"},
+			"enum":    []string{"list", "create", "update", "delete", "add_comment", "summarize", "run_with_ai", "approve", "clarify", "clarity", "cleanup", "enrich_tool_hints", "fix_dates", "fix_empty_descriptions", "fix_invalid_ids", "link_planning", "request_approval", "sync_approvals", "apply_approval_result", "sanity_check", "sync", "sync_from_plan", "sync_plan_status", "claim", "batch_claim", "release", "agent_status", "start_run", "end_run", "list_runs", "show_run", "verify", "add_progress", "split"},
 			"default": "list",
 		},
 		"dry_run": map[string]interface{}{
@@ -50,6 +50,62 @@ func registerCoreTools(server framework.MCPServer) error {
 		},
 		"task_id": map[string]interface{}{
 			"type": "string",
+		},
+		"run_id": map[string]interface{}{
+			"type":        "string",
+			"description": "Execution run ID for show_run/end_run/verify/add_progress",
+		},
+		"children": map[string]interface{}{
+			"type":        "string",
+			"description": "For split: JSON array of child task definitions [{\"name\":\"Task A\",\"dependencies\":[\"T-1\"]}]",
+		},
+		"dependency_mode": map[string]interface{}{
+			"type":        "string",
+			"description": "For split: 'parallel' or 'serial' child dependency mode",
+		},
+		"summary": map[string]interface{}{
+			"type":        "string",
+			"description": "For start_run/end_run/add_progress: short summary",
+		},
+		"files_touched": map[string]interface{}{
+			"type":        "string",
+			"description": "For end_run: JSON array or comma-separated list of touched files",
+		},
+		"commands_run": map[string]interface{}{
+			"type":        "string",
+			"description": "For end_run: JSON array or comma-separated list of commands executed",
+		},
+		"notes": map[string]interface{}{
+			"type":        "string",
+			"description": "For start_run/end_run: free-form notes",
+		},
+		"kind": map[string]interface{}{
+			"type":        "string",
+			"description": "For verify: verification kind such as lint, compile, test, or manual",
+		},
+		"command": map[string]interface{}{
+			"type":        "string",
+			"description": "For verify: command that was run",
+		},
+		"details": map[string]interface{}{
+			"type":        "string",
+			"description": "For verify: verification details or output summary",
+		},
+		"remaining_work": map[string]interface{}{
+			"type":        "string",
+			"description": "For add_progress: remaining work after this slice",
+		},
+		"files": map[string]interface{}{
+			"type":        "string",
+			"description": "For add_progress: JSON array or comma-separated list of files touched in this slice",
+		},
+		"agent_id": map[string]interface{}{
+			"type":        "string",
+			"description": "Optional agent identifier for claim/start_run/agent_status actions",
+		},
+		"lease_minutes": map[string]interface{}{
+			"type":        "number",
+			"description": "For claim/batch_claim: task lock duration in minutes",
 		},
 		"form_id": map[string]interface{}{
 			"type":        "string",
@@ -143,7 +199,7 @@ func registerCoreTools(server framework.MCPServer) error {
 	// task_workflow
 	if err := server.RegisterTool(
 		"task_workflow",
-		"[HINT: action=list|create|update|delete|clarify|summarize|run_with_ai|approve|sync|cleanup|link_planning|add_comment. list supports status/priority/filter_tag/include_metadata. sync=SQLite↔JSON reconciliation, not for listing.]",
+		"[HINT: action=list|create|update|delete|clarify|summarize|run_with_ai|approve|sync|cleanup|link_planning|add_comment|claim|start_run|end_run|list_runs|show_run|verify|add_progress|split. list supports status/priority/filter_tag/include_metadata. sync=SQLite↔JSON reconciliation, not for listing.]",
 		framework.ToolSchema{
 			Type:       "object",
 			Properties: taskWorkflowProps,
@@ -521,15 +577,15 @@ func registerCoreTools(server framework.MCPServer) error {
 	// report
 	if err := server.RegisterTool(
 		"report",
-		"[HINT: action=overview|scorecard|briefing|prd|plan. Project reports, status, and .plan.md generation.]",
+		"[HINT: action=overview|scorecard|briefing|execution_briefing|prd|plan. Project reports, status, and .plan.md generation.]",
 		framework.ToolSchema{
 			Type: "object",
 			Properties: map[string]interface{}{
 				"action": map[string]interface{}{
 					"type":        "string",
-					"enum":        []string{"overview", "scorecard", "briefing", "prd", "plan", "scorecard_plans", "parallel_execution_plan", "update_waves_from_plan"},
+					"enum":        []string{"overview", "scorecard", "briefing", "execution_briefing", "prd", "plan", "scorecard_plans", "parallel_execution_plan", "update_waves_from_plan"},
 					"default":     "overview",
-					"description": "plan: write .plan.md; scorecard_plans: improve-<dim>.plan.md; parallel_execution_plan: parallel-execution-subagents.plan.md",
+					"description": "execution_briefing: summarize active claims/runs; plan: write .plan.md; scorecard_plans: improve-<dim>.plan.md; parallel_execution_plan: parallel-execution-subagents.plan.md",
 				},
 				"output_format": map[string]interface{}{
 					"type":    "string",

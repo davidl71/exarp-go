@@ -435,6 +435,16 @@ func RegisterAllResources(server framework.MCPServer) error {
 		return fmt.Errorf("failed to register all tools resource: %w", err)
 	}
 
+	if err := registerAndTrack(server,
+		"stdio://tool_catalog",
+		"Tool Catalog",
+		"Get the full tool catalog with descriptions, categories, and usage hints.",
+		"application/json",
+		handleAllTools,
+	); err != nil {
+		return fmt.Errorf("failed to register tool catalog resource: %w", err)
+	}
+
 	// stdio://tools/names
 	if err := registerAndTrack(server,
 		"stdio://tools/names",
@@ -579,6 +589,26 @@ func RegisterAllResources(server framework.MCPServer) error {
 		return fmt.Errorf("failed to register tasks summary resource: %w", err)
 	}
 
+	if err := registerAndTrack(server,
+		"stdio://tasks/ready",
+		"Ready Tasks",
+		"Get dependency-ready tasks that can be started immediately.",
+		"application/json",
+		handleReadyTasks,
+	); err != nil {
+		return fmt.Errorf("failed to register ready tasks resource: %w", err)
+	}
+
+	if err := registerAndTrack(server,
+		"stdio://ready-tasks",
+		"Ready Tasks Alias",
+		"Alias for dependency-ready tasks that can be started immediately.",
+		"application/json",
+		handleReadyTasks,
+	); err != nil {
+		return fmt.Errorf("failed to register ready-tasks alias resource: %w", err)
+	}
+
 	// stdio://suggested-tasks — dependency-ready tasks for Cursor/Todo2 hints
 	if err := registerAndTrack(server,
 		"stdio://suggested-tasks",
@@ -588,6 +618,35 @@ func RegisterAllResources(server framework.MCPServer) error {
 		handleSuggestedTasks,
 	); err != nil {
 		return fmt.Errorf("failed to register suggested tasks resource: %w", err)
+	}
+
+	if err := registerAndTrack(server,
+		"stdio://active-work",
+		"Active Work",
+		"Get active task claims and active execution runs for execution-cockpit discovery.",
+		"application/json",
+		handleActiveWork,
+	); err != nil {
+		return fmt.Errorf("failed to register active work resource: %w", err)
+	}
+
+	if err := registerAndTrack(server,
+		"stdio://task-runs/{task_id}",
+		"Task Runs",
+		"Get recent execution runs for a specific task.",
+		"application/json",
+		handleTaskRuns,
+	); err != nil {
+		return fmt.Errorf("failed to register task runs resource: %w", err)
+	}
+	if err := registerTemplate(server,
+		"stdio://task-runs/{task_id}",
+		"Task Runs",
+		"Get recent execution runs for a specific task.",
+		"application/json",
+		handleTaskRuns,
+	); err != nil {
+		return fmt.Errorf("failed to register task runs template: %w", err)
 	}
 
 	// agent://card — A2A/ACP agent discovery card

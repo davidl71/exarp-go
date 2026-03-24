@@ -1,6 +1,6 @@
 # Task Tools Comparison: `task_analysis`, `task_discovery`, `task_workflow`
 
-**Date:** 2026-01-08  
+**Date:** 2026-03-24  
 **Purpose:** Compare the three task-related tools to understand their differences, similarities, and use cases
 
 ---
@@ -9,14 +9,14 @@
 
 | Tool | Primary Purpose | Implementation | Actions |
 |------|----------------|-----------------|---------|
-| **`task_analysis`** | Analyze existing tasks | Python Bridge | `duplicates`, `tags`, `hierarchy`, `dependencies`, `parallelization` |
-| **`task_discovery`** | Find tasks from code/docs | Python Bridge | `comments`, `markdown`, `orphans`, `all` |
-| **`task_workflow`** | Manage task lifecycle | Python Bridge | `sync`, `approve`, `clarify`, `clarity`, `cleanup` |
+| **`task_analysis`** | Analyze existing tasks | Native Go | `duplicates`, `tags`, `dependencies`, `execution_plan`, `parallelization` |
+| **`task_discovery`** | Find tasks from code/docs | Native Go | `comments`, `markdown`, `orphans`, `planning_links`, `all` |
+| **`task_workflow`** | Manage task lifecycle and active execution | Native Go | `list`, `create`, `update`, `claim`, `start_run`, `verify`, `add_progress`, `split` |
 
 **Key Insight:** These three tools work together in a task management workflow:
 1. **Discover** tasks (`task_discovery`) → Find tasks from various sources
 2. **Analyze** tasks (`task_analysis`) → Understand task structure and quality
-3. **Manage** tasks (`task_workflow`) → Handle task lifecycle and workflow
+3. **Manage** tasks (`task_workflow`) → Handle task lifecycle, active work, and execution evidence
 
 ---
 
@@ -26,24 +26,24 @@
 
 #### `task_analysis` Tool
 - **Type:** Analysis tool (read-only analysis)
-- **Implementation:** Python Bridge
-- **Location:** `project_management_automation/tools/consolidated_analysis.py`
+- **Implementation:** Native Go
+- **Location:** `internal/tools/task_analysis*.go`
 - **Actions:** 5 analysis actions
 - **Output:** Analysis reports, recommendations
 
 #### `task_discovery` Tool
 - **Type:** Discovery tool (find/create tasks)
-- **Implementation:** Python Bridge
-- **Location:** `project_management_automation/tools/consolidated_analysis.py`
+- **Implementation:** Native Go
+- **Location:** `internal/tools/task_discovery*.go`
 - **Actions:** 4 discovery actions
 - **Output:** Found tasks, optionally creates tasks
 
 #### `task_workflow` Tool
-- **Type:** Workflow management tool (modify tasks)
-- **Implementation:** Python Bridge
-- **Location:** `project_management_automation/tools/consolidated_workflow.py`
-- **Actions:** 5 workflow actions
-- **Output:** Task updates, workflow status
+- **Type:** Workflow and execution management tool
+- **Implementation:** Native Go
+- **Location:** `internal/tools/task_workflow_native.go`, `internal/tools/task_workflow_crud.go`, `internal/tools/task_workflow_execution.go`
+- **Actions:** CRUD, approval, claim/agent coordination, and execution-cockpit actions
+- **Output:** Task updates, workflow status, execution runs, verification, and partial progress
 
 ---
 
@@ -488,4 +488,3 @@ The three task tools work together to provide a complete task management solutio
 - **`task_workflow`**: Manage task lifecycle and workflow
 
 All three tools are currently Python Bridge implementations with opportunities for native Go migration and AI enhancement.
-

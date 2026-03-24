@@ -8,6 +8,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/davidl71/exarp-go/internal/database"
 	"github.com/davidl71/exarp-go/internal/framework"
@@ -85,8 +86,22 @@ func handleTaskListLight(parsed *mcpcli.Args) error {
 
 	if CLIOutputOpts.JSON {
 		out := make([]map[string]interface{}, 0, len(tasks))
+		taskIDs := make([]string, 0, len(tasks))
 		for _, t := range tasks {
-			out = append(out, taskToMap(t))
+			taskIDs = append(taskIDs, t.ID)
+		}
+		activeLocks, _ := database.GetActiveLockMapForTasks(context.Background(), taskIDs)
+		for _, t := range tasks {
+			item := taskToMap(t)
+			if lock, ok := activeLocks[t.ID]; ok {
+				item["active_claim"] = map[string]interface{}{
+					"assignee":    lock.Assignee,
+					"assigned_at": lock.AssignedAt.Format(time.RFC3339),
+					"lock_until":  lock.LockUntil.Format(time.RFC3339),
+					"status":      "active",
+				}
+			}
+			out = append(out, item)
 		}
 		return printJSON(map[string]interface{}{"success": true, "tasks": out, "count": len(tasks)})
 	}
@@ -239,7 +254,7 @@ func handleTaskShowLight(args []string) error {
 	return printTaskJSON(map[string]interface{}{
 		"success": true,
 		"method":  "show",
-		"task":    taskToMap(task),
+		"task":    enrichTaskMap(taskToMap(task)),
 	})
 }
 
@@ -793,6 +808,12 @@ func printTaskDetails(task map[string]interface{}) error {
 	writeTaskField("Tags", joinTaskStrings(task["tags"]))
 	writeTaskField("Dependencies", joinTaskStrings(task["dependencies"]))
 	writeTaskField("Recommended Tools", joinTaskStrings(task["recommended_tools"]))
+	if claim, ok := task["active_claim"].(map[string]interface{}); ok {
+		writeTaskField("Active Claim", fmt.Sprintf("%s until %s", taskString(claim["assignee"]), taskString(claim["lock_until"])))
+	}
+	writeTaskField("Recent Runs", formatCount(task["recent_runs"]))
+	writeTaskField("Recent Verifications", formatCount(task["recent_verifications"]))
+	writeTaskField("Recent Progress", formatCount(task["recent_progress"]))
 	return nil
 }
 
@@ -803,6 +824,63 @@ func printTaskJSON(v map[string]interface{}) error {
 	}
 	_, _ = fmt.Fprintln(os.Stdout, string(data))
 	return nil
+}
+
+func enrichTaskMap(task map[string]interface{}) map[string]interface{} {
+	if task == nil {
+		return nil
+	}
+	taskID := taskString(task["id"])
+	if taskID == "" {
+		return task
+	}
+	if activeLocks, err := database.GetActiveLockMapForTasks(context.Background(), []string{taskID}); err == nil {
+		if lock, ok := activeLocks[taskID]; ok {
+			task["active_claim"] = map[string]interface{}{
+				"assignee":    lock.Assignee,
+				"assigned_at": lock.AssignedAt.Format(time.RFC3339),
+				"lock_until":  lock.LockUntil.Format(time.RFC3339),
+				"status":      "active",
+			}
+		}
+	}
+	if runs, err := database.ListTaskExecutionRuns(context.Background(), taskID, "", 5); err == nil && len(runs) > 0 {
+		items := make([]map[string]interface{}, 0, len(runs))
+		for i := range runs {
+			items = append(items, map[string]interface{}{
+				"run_id":     runs[i].RunID,
+				"status":     runs[i].Status,
+				"summary":    runs[i].Summary,
+				"started_at": runs[i].StartedAt.Format(time.RFC3339),
+			})
+		}
+		task["recent_runs"] = items
+	}
+	if verifications, err := database.ListTaskVerifications(context.Background(), taskID, "", 5); err == nil && len(verifications) > 0 {
+		items := make([]map[string]interface{}, 0, len(verifications))
+		for i := range verifications {
+			items = append(items, map[string]interface{}{
+				"verification_id": verifications[i].VerificationID,
+				"kind":            verifications[i].Kind,
+				"result":          verifications[i].Result,
+				"created_at":      verifications[i].CreatedAt.Format(time.RFC3339),
+			})
+		}
+		task["recent_verifications"] = items
+	}
+	if progressEntries, err := database.ListTaskProgressEntries(context.Background(), taskID, "", 5); err == nil && len(progressEntries) > 0 {
+		items := make([]map[string]interface{}, 0, len(progressEntries))
+		for i := range progressEntries {
+			items = append(items, map[string]interface{}{
+				"progress_id":    progressEntries[i].ProgressID,
+				"summary":        progressEntries[i].Summary,
+				"remaining_work": progressEntries[i].RemainingWork,
+				"created_at":     progressEntries[i].CreatedAt.Format(time.RFC3339),
+			})
+		}
+		task["recent_progress"] = items
+	}
+	return task
 }
 
 func writeTaskField(name, value string) {
@@ -829,6 +907,18 @@ func joinTaskStrings(v interface{}) string {
 			}
 		}
 		return strings.Join(out, ", ")
+	default:
+		return ""
+	}
+}
+
+func formatCount(v interface{}) string {
+	switch x := v.(type) {
+	case []interface{}:
+		if len(x) == 0 {
+			return ""
+		}
+		return fmt.Sprintf("%d", len(x))
 	default:
 		return ""
 	}

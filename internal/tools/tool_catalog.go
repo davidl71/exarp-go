@@ -15,6 +15,7 @@ type ToolCatalogEntry struct {
 	Hint             string   `json:"hint"`
 	Category         string   `json:"category"`
 	Description      string   `json:"description"`
+	Aliases          []string `json:"aliases,omitempty"`
 	Class            string   `json:"class,omitempty"`
 	PreferredTool    string   `json:"preferred_tool,omitempty"`
 	RecommendedModel string   `json:"recommended_model,omitempty"`
@@ -77,16 +78,68 @@ func GetToolCatalog() map[string]ToolCatalogEntry {
 		},
 		"task_workflow": {
 			Tool:             "task_workflow",
-			Hint:             "TRIGGER: 'task workflow', 'create task', 'update task', 'list tasks', 'T-xxx', 'todo', 'triaging'. OpenCode/agent: use for list/update/create when user asks for backlog or task status; use action=sync, sub_action=list with status/filter_tag. PREFER exarp-go task CLI for simple ops; use this tool for clarify, cleanup, sync_approvals.",
+			Hint:             "TRIGGER: 'task workflow', 'create task', 'update task', 'list tasks', 'T-xxx', 'todo', 'triaging', 'start run', 'verify'. Use for lifecycle plus execution-cockpit actions. Prefer exarp-go task CLI aliases for simple list/show/update/create flows.",
 			Category:         "Task Management",
-			Description:      "Manages task workflow: sync, approve, clarify, cleanup, create. OpenCode/agent: use for listing/updating tasks (action=sync, sub_action=list). PREFER CLI (exarp-go task list/update/create) for simple ops. Never edit .todo2/state.todo2.json directly.",
+			Description:      "Manages task workflow and execution state: list/create/update, claim, start_run/end_run, verify, add_progress, split, and approvals. Prefer CLI aliases for simple list/show/update/create flows. Never edit .todo2/state.todo2.json directly.",
+			Aliases:          []string{"task list", "task show", "task update", "task create"},
 			Class:            "primary",
 			RecommendedModel: "claude-haiku",
 			Examples: []string{
 				"Simple: exarp-go task list, exarp-go task update T-123 --new-status Done",
+				"Execution: task_workflow(action='start_run', task_id='T-123')",
 				"Advanced: task_workflow(action='clarity', task_id='T-123')",
 				"Never edit .todo2/state.todo2.json directly",
 			},
+		},
+		"task_runs": {
+			Tool:             "task_runs",
+			Hint:             "Alias for execution-run operations. Use when the intent is start_run, end_run, list_runs, or show_run.",
+			Category:         "Task Management",
+			Description:      "Alias entry for execution-run workflows under task_workflow.",
+			Class:            "alias",
+			PreferredTool:    "task_workflow",
+			RecommendedModel: "claude-haiku",
+			Examples: []string{
+				"task_workflow(action='list_runs', task_id='T-123')",
+				"task_workflow(action='start_run', task_id='T-123', summary='Implement feature')",
+			},
+		},
+		"task_verify": {
+			Tool:             "task_verify",
+			Hint:             "Alias for recording verification evidence on a task or execution run.",
+			Category:         "Task Management",
+			Description:      "Alias entry for task_workflow(action='verify').",
+			Class:            "alias",
+			PreferredTool:    "task_workflow",
+			RecommendedModel: "claude-haiku",
+		},
+		"task_progress": {
+			Tool:             "task_progress",
+			Hint:             "Alias for recording partial progress slices on a task or execution run.",
+			Category:         "Task Management",
+			Description:      "Alias entry for task_workflow(action='add_progress').",
+			Class:            "alias",
+			PreferredTool:    "task_workflow",
+			RecommendedModel: "claude-haiku",
+		},
+		"task_claim": {
+			Tool:             "task_claim",
+			Hint:             "Alias for active-work coordination: claim, release, and agent_status.",
+			Category:         "Task Management",
+			Description:      "Alias entry for task claiming and active-work coordination under task_workflow.",
+			Class:            "alias",
+			PreferredTool:    "task_workflow",
+			RecommendedModel: "claude-haiku",
+		},
+		"ready_tasks": {
+			Tool:             "ready_tasks",
+			Hint:             "Alias for dependency-ready task discovery; use suggested-tasks or tasks/ready resources.",
+			Category:         "Task Management",
+			Description:      "Alias entry for dependency-ready work selection.",
+			Class:            "alias",
+			PreferredTool:    "task_workflow",
+			RecommendedModel: "claude-haiku",
+			Aliases:          []string{"stdio://tasks/ready", "stdio://ready-tasks"},
 		},
 
 		// Code Quality
@@ -139,6 +192,7 @@ func GetToolCatalog() map[string]ToolCatalogEntry {
 			Hint:             "Tool catalog. action=list|help. Unified tool catalog and help.",
 			Category:         "Workflow",
 			Description:      "Browses tool catalog and provides help for available tools",
+			Aliases:          []string{"stdio://tools", "stdio://tool_catalog"},
 			Class:            "primary",
 			RecommendedModel: "claude-haiku",
 		},
@@ -197,11 +251,32 @@ func GetToolCatalog() map[string]ToolCatalogEntry {
 		// Reporting
 		"report": {
 			Tool:             "report",
-			Hint:             "TRIGGER: 'report', 'briefing', 'plan', 'PRD', 'scorecard', 'overview'. OpenCode/agent: use action=overview for quick status, action=scorecard for health, action=briefing for standup. Creates project reports.",
+			Hint:             "TRIGGER: 'report', 'briefing', 'plan', 'PRD', 'scorecard', 'overview', 'execution briefing'. Use action=execution_briefing for active work and execution-cockpit status.",
 			Category:         "Reporting",
-			Description:      "Generates project reports: overview, scorecard, briefing, PRD, plan (.plan.md). OpenCode/agent: use overview/scorecard/briefing for project status.",
+			Description:      "Generates project reports: overview, scorecard, briefing, execution_briefing, PRD, and plan (.plan.md). Use execution_briefing for active work and execution-cockpit status.",
+			Aliases:          []string{"execution_briefing"},
 			Class:            "primary",
 			RecommendedModel: "claude-haiku",
+		},
+		"execution_briefing": {
+			Tool:             "execution_briefing",
+			Hint:             "Alias for report(action='execution_briefing') and active-work status discovery.",
+			Category:         "Reporting",
+			Description:      "Alias entry for execution-focused status reporting.",
+			Class:            "alias",
+			PreferredTool:    "report",
+			RecommendedModel: "claude-haiku",
+			Aliases:          []string{"stdio://active-work"},
+		},
+		"active_work": {
+			Tool:             "active_work",
+			Hint:             "Alias for active execution visibility; use report(action='execution_briefing') or stdio://active-work.",
+			Category:         "Reporting",
+			Description:      "Alias entry for active claims and active execution runs.",
+			Class:            "alias",
+			PreferredTool:    "report",
+			RecommendedModel: "claude-haiku",
+			Aliases:          []string{"execution_briefing", "stdio://active-work"},
 		},
 		// Automation
 		"automation": {

@@ -365,6 +365,23 @@ func handleSessionPrime(ctx context.Context, params map[string]interface{}) ([]f
 
 	result := SessionPrimeResultToMap(pb)
 
+	activeLocks, _ := database.GetActiveLocks(ctx)
+	if len(activeLocks) > 0 {
+		lockMaps := make([]map[string]interface{}, 0, len(activeLocks))
+		for _, lock := range activeLocks {
+			lockMaps = append(lockMaps, lockToMap(lock))
+		}
+		result["active_claims"] = lockMaps
+	}
+	activeRuns, _ := database.ListTaskExecutionRuns(ctx, "", "running", 10)
+	if len(activeRuns) > 0 {
+		runMaps := make([]map[string]interface{}, 0, len(activeRuns))
+		for i := range activeRuns {
+			runMaps = append(runMaps, runToMap(&activeRuns[i]))
+		}
+		result["active_runs"] = runMaps
+	}
+
 	// generic client: minimal output — tasks + mode only, no hints, no handoff noise.
 	if clientName == "generic" {
 		includeHints = false

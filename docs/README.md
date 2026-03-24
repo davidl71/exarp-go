@@ -32,6 +32,7 @@
 - `WORKFLOW_USAGE.md` - Workflow usage guide
 - `WORKFLOW_MODE_TOOL_GROUPS.md` - Tool groups enable/disable functionality
 - `WORKFLOW_MODE_TOOL_GROUPS_TEST_RESULTS.md` - Tool groups test results
+- `EXARP_EXECUTION_COCKPIT_GAPS.md` - Real-world execution-state gaps and recommended exarp-go modifications
 - `STREAMLINED_WORKFLOW_SUMMARY.md` - Current workflow summary
 
 ### Current Features

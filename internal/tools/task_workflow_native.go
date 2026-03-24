@@ -77,6 +77,20 @@ func handleTaskWorkflowNative(ctx context.Context, params map[string]interface{}
 		return handleTaskWorkflowRelease(ctx, params)
 	case "agent_status":
 		return handleTaskWorkflowAgentStatus(ctx, params)
+	case "start_run":
+		return handleTaskWorkflowStartRun(ctx, params)
+	case "end_run":
+		return handleTaskWorkflowEndRun(ctx, params)
+	case "list_runs":
+		return handleTaskWorkflowListRuns(ctx, params)
+	case "show_run":
+		return handleTaskWorkflowShowRun(ctx, params)
+	case "verify":
+		return handleTaskWorkflowVerify(ctx, params)
+	case "add_progress":
+		return handleTaskWorkflowAddProgress(ctx, params)
+	case "split":
+		return handleTaskWorkflowSplit(ctx, params)
 	default:
 		return nil, fmt.Errorf("unknown action: %s", action)
 	}

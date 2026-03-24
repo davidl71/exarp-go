@@ -664,6 +664,11 @@ func handleTaskWorkflowList(ctx context.Context, params map[string]interface{}) 
 	}
 
 	if outputFormat == "json" {
+		taskIDs := make([]string, 0, len(filtered))
+		for i := range filtered {
+			taskIDs = append(taskIDs, filtered[i].ID)
+		}
+		activeLocks, _ := database.GetActiveLockMapForTasks(ctx, taskIDs)
 		taskMaps := make([]map[string]interface{}, len(filtered))
 		for i := range filtered {
 			t := &filtered[i]
@@ -702,6 +707,24 @@ func handleTaskWorkflowList(ctx context.Context, params map[string]interface{}) 
 			}
 			if rt := GetRecommendedTools(t.Metadata); len(rt) > 0 {
 				m["recommended_tools"] = rt
+			}
+			if lock, ok := activeLocks[t.ID]; ok {
+				m["active_claim"] = lockToMap(lock)
+			}
+			if taskID != "" {
+				if runs, err := database.ListTaskExecutionRuns(ctx, t.ID, "", 5); err == nil && len(runs) > 0 {
+					items := make([]map[string]interface{}, 0, len(runs))
+					for j := range runs {
+						items = append(items, runToMap(&runs[j]))
+					}
+					m["recent_runs"] = items
+				}
+				if verifications, err := database.ListTaskVerifications(ctx, t.ID, "", 5); err == nil && len(verifications) > 0 {
+					m["recent_verifications"] = verificationListToMaps(verifications)
+				}
+				if progressEntries, err := database.ListTaskProgressEntries(ctx, t.ID, "", 5); err == nil && len(progressEntries) > 0 {
+					m["recent_progress"] = progressListToMaps(progressEntries)
+				}
 			}
 
 			taskMaps[i] = m

@@ -235,6 +235,9 @@ func TestGetToolCatalog_ClassificationsAndAliases(t *testing.T) {
 	if primary.Class != "primary" {
 		t.Fatalf("task_workflow class = %q, want primary", primary.Class)
 	}
+	if len(primary.Aliases) == 0 {
+		t.Fatal("task_workflow aliases missing from catalog")
+	}
 
 	specialist, exists := catalog["ollama"]
 	if !exists {
@@ -253,5 +256,26 @@ func TestGetToolCatalog_ClassificationsAndAliases(t *testing.T) {
 	}
 	if alias.PreferredTool != "task_workflow" {
 		t.Fatalf("task_execute preferred_tool = %q, want task_workflow", alias.PreferredTool)
+	}
+
+	toolCatalog, exists := catalog["tool_catalog"]
+	if !exists {
+		t.Fatal("tool_catalog missing from catalog")
+	}
+	if len(toolCatalog.Aliases) == 0 {
+		t.Fatal("tool_catalog aliases missing from catalog")
+	}
+
+	for _, aliasName := range []string{"task_runs", "task_verify", "task_progress", "task_claim", "ready_tasks", "execution_briefing", "active_work"} {
+		entry, exists := catalog[aliasName]
+		if !exists {
+			t.Fatalf("%s missing from catalog", aliasName)
+		}
+		if entry.Class != "alias" {
+			t.Fatalf("%s class = %q, want alias", aliasName, entry.Class)
+		}
+		if entry.PreferredTool == "" {
+			t.Fatalf("%s preferred_tool missing", aliasName)
+		}
 	}
 }

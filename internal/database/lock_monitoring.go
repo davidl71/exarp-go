@@ -29,6 +29,82 @@ type StaleLockInfo struct {
 	Locks           []LockStatus
 }
 
+// GetActiveLocks returns all non-expired task locks ordered by expiry.
+func GetActiveLocks(ctx context.Context) ([]LockStatus, error) {
+	ctx = ensureContext(ctx)
+
+	queryCtx, cancel := withQueryTimeout(ctx)
+	defer cancel()
+
+	var locks []LockStatus
+
+	err := retryWithBackoff(ctx, func() error {
+		db, err := GetDBx()
+		if err != nil {
+			return fmt.Errorf("failed to get database: %w", err)
+		}
+
+		now := time.Now().Unix()
+		rows, err := db.QueryContext(queryCtx, `
+			SELECT id, assignee, assigned_at, lock_until
+			FROM tasks
+			WHERE assignee IS NOT NULL
+			  AND lock_until IS NOT NULL
+			  AND lock_until >= ?
+			ORDER BY lock_until ASC
+		`, now)
+		if err != nil {
+			return fmt.Errorf("failed to query active locks: %w", err)
+		}
+		defer rows.Close()
+
+		locks = nil
+		for rows.Next() {
+			var taskID, assignee string
+			var assignedAt, lockUntil sql.NullInt64
+			if err := rows.Scan(&taskID, &assignee, &assignedAt, &lockUntil); err != nil {
+				return fmt.Errorf("failed to scan active lock: %w", err)
+			}
+			if !lockUntil.Valid {
+				continue
+			}
+			lockTime := time.Unix(lockUntil.Int64, 0)
+			locks = append(locks, LockStatus{
+				TaskID:        taskID,
+				Assignee:      assignee,
+				AssignedAt:    time.Unix(assignedAt.Int64, 0),
+				LockUntil:     lockTime,
+				TimeRemaining: time.Until(lockTime),
+			})
+		}
+		return rows.Err()
+	})
+
+	return locks, err
+}
+
+// GetActiveLockMapForTasks returns active non-expired locks keyed by task ID.
+func GetActiveLockMapForTasks(ctx context.Context, taskIDs []string) (map[string]LockStatus, error) {
+	locks, err := GetActiveLocks(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if len(taskIDs) == 0 {
+		return map[string]LockStatus{}, nil
+	}
+	allowed := make(map[string]bool, len(taskIDs))
+	for _, id := range taskIDs {
+		allowed[id] = true
+	}
+	out := make(map[string]LockStatus)
+	for _, lock := range locks {
+		if allowed[lock.TaskID] {
+			out[lock.TaskID] = lock
+		}
+	}
+	return out, nil
+}
+
 // DetectStaleLocks finds all locks that are expired or near expiration
 // Returns detailed information about lock status.
 func DetectStaleLocks(ctx context.Context, nearExpiryThreshold time.Duration) (*StaleLockInfo, error) {

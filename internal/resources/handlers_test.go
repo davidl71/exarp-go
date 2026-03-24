@@ -14,12 +14,12 @@ func TestRegisterAllResources(t *testing.T) {
 		t.Fatalf("RegisterAllResources() error = %v", err)
 	}
 
-	// Verify all 30 resources are registered (2 config + 11 base + 7 task + 2 session + 1 server + 1 models + 4 tools + 1 cursor/skills + 1 agent card + 1 prime/context)
-	if server.ResourceCount() != 30 {
-		t.Errorf("server.ResourceCount() = %v, want 30", server.ResourceCount())
+	// Verify all 35 resources are registered.
+	if server.ResourceCount() != 35 {
+		t.Errorf("server.ResourceCount() = %v, want 35", server.ResourceCount())
 	}
-	if server.ResourceTemplateCount() != 11 {
-		t.Errorf("server.ResourceTemplateCount() = %v, want 11", server.ResourceTemplateCount())
+	if server.ResourceTemplateCount() != 12 {
+		t.Errorf("server.ResourceTemplateCount() = %v, want 12", server.ResourceTemplateCount())
 	}
 
 	// Verify specific resources are registered
@@ -41,6 +41,7 @@ func TestRegisterAllResources(t *testing.T) {
 		"stdio://server/status",
 		"stdio://models",
 		"stdio://tools",
+		"stdio://tool_catalog",
 		"stdio://tools/names",
 		"stdio://tools/{category}",
 		"stdio://resources/uris",
@@ -50,7 +51,11 @@ func TestRegisterAllResources(t *testing.T) {
 		"stdio://tasks/priority/{priority}",
 		"stdio://tasks/tag/{tag}",
 		"stdio://tasks/summary",
+		"stdio://tasks/ready",
+		"stdio://ready-tasks",
 		"stdio://suggested-tasks",
+		"stdio://active-work",
+		"stdio://task-runs/{task_id}",
 		"agent://card",
 	}
 
@@ -86,6 +91,7 @@ func TestRegisterAllResources(t *testing.T) {
 		"stdio://tasks/status/{status}",
 		"stdio://tasks/priority/{priority}",
 		"stdio://tasks/tag/{tag}",
+		"stdio://task-runs/{task_id}",
 	}
 
 	for _, uri := range expectedTemplates {

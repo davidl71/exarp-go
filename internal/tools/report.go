@@ -7,8 +7,10 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/davidl71/exarp-go/internal/config"
+	"github.com/davidl71/exarp-go/internal/database"
 	"github.com/davidl71/exarp-go/internal/framework"
 	"github.com/davidl71/exarp-go/proto"
 	"github.com/spf13/cast"
@@ -112,6 +114,54 @@ func handleReportBriefing(ctx context.Context, params map[string]interface{}) ([
 	AddTokenEstimateToResult(briefingMap)
 	compact := cast.ToBool(params["compact"])
 	return FormatResultOptionalCompact(briefingMap, "", compact)
+}
+
+func handleReportExecutionBriefing(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
+	activeLocks, err := database.GetActiveLocks(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load active claims: %w", err)
+	}
+	activeRuns, err := database.ListTaskExecutionRuns(ctx, "", "running", cast.ToInt(params["limit"]))
+	if err != nil {
+		return nil, fmt.Errorf("failed to load active runs: %w", err)
+	}
+	expiredThreshold := 10 * time.Minute
+	expiredClaims := make([]map[string]interface{}, 0)
+	activeClaimMaps := make([]map[string]interface{}, 0, len(activeLocks))
+	for _, lock := range activeLocks {
+		m := lockToMap(lock)
+		activeClaimMaps = append(activeClaimMaps, m)
+		if lock.IsExpired || lock.TimeRemaining < 0 {
+			expiredClaims = append(expiredClaims, m)
+		}
+	}
+	runMaps := make([]map[string]interface{}, 0, len(activeRuns))
+	staleRuns := make([]map[string]interface{}, 0)
+	for i := range activeRuns {
+		runMap := runToMap(&activeRuns[i])
+		runMaps = append(runMaps, runMap)
+		if time.Since(activeRuns[i].StartedAt) > expiredThreshold {
+			staleRuns = append(staleRuns, runMap)
+		}
+	}
+	result := map[string]interface{}{
+		"active_claims": activeClaimMaps,
+		"active_runs":   runMaps,
+		"summary": map[string]interface{}{
+			"active_claim_count": len(activeClaimMaps),
+			"active_run_count":   len(runMaps),
+			"stale_run_count":    len(staleRuns),
+		},
+	}
+	if len(staleRuns) > 0 {
+		result["stale_runs"] = staleRuns
+	}
+	if len(expiredClaims) > 0 {
+		result["expired_claims"] = expiredClaims
+	}
+	AddTokenEstimateToResult(result)
+	compact := cast.ToBool(params["compact"])
+	return FormatResultOptionalCompact(result, "", compact)
 }
 
 // handleReportPRD handles the prd action for report tool.

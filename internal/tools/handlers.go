@@ -395,6 +395,14 @@ func handleReport(ctx context.Context, args json.RawMessage) ([]framework.TextCo
 
 		return result, nil
 
+	case "execution_briefing":
+		result, err := handleReportExecutionBriefing(ctx, params)
+		if err != nil {
+			return nil, fmt.Errorf("report execution_briefing: %w", err)
+		}
+
+		return result, nil
+
 	case "prd":
 		result, err := handleReportPRD(ctx, params)
 		if err != nil {
@@ -436,7 +444,7 @@ func handleReport(ctx context.Context, args json.RawMessage) ([]framework.TextCo
 		return result, nil
 	}
 
-	return nil, fmt.Errorf("report action %q not supported; supported: overview, scorecard, briefing, prd, plan, scorecard_plans, parallel_execution_plan, update_waves_from_plan", action)
+	return nil, fmt.Errorf("report action %q not supported; supported: overview, scorecard, briefing, execution_briefing, prd, plan, scorecard_plans, parallel_execution_plan, update_waves_from_plan", action)
 }
 
 // handleSecurity handles the security tool.

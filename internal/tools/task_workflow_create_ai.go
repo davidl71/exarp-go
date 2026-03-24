@@ -733,7 +733,7 @@ func handleTaskWorkflowFixInvalidIDs(ctx context.Context, params map[string]inte
 // Nanosecond precision avoids UNIQUE constraint failures when creating many tasks in a tight loop
 // (e.g. task_discovery create_tasks). Format remains T-<digits> for IsValidTaskID compatibility.
 func generateEpochTaskID() string {
-	return fmt.Sprintf("T-%d", time.Now().UnixNano())
+	return database.GenerateTaskID()
 }
 
 // ─── normalizePriority ──────────────────────────────────────────────────────
