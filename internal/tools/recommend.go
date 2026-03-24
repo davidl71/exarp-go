@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/davidl71/devwisdom-go/pkg/wisdom"
-	"github.com/davidl71/exarp-go/internal/database"
 	"github.com/davidl71/exarp-go/internal/framework"
 )
 
@@ -246,9 +245,12 @@ func handleRecommendWorkflowNative(ctx context.Context, params map[string]interf
 
 	// If task_id provided, load task from database
 	if taskID != "" && taskDescription == "" {
-		task, err := database.GetTask(ctx, taskID)
+		store, err := getTaskStore(ctx)
 		if err == nil {
-			taskDescription = task.Content + " " + task.LongDescription
+			task, err := store.GetTask(ctx, taskID)
+			if err == nil {
+				taskDescription = task.Content + " " + task.LongDescription
+			}
 		}
 	}
 

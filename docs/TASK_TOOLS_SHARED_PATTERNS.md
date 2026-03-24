@@ -31,22 +31,24 @@ Task-related tools (`task_workflow`, `task_analysis`, `task_discovery`, `estimat
 
 ## 4. Todo2 / database access
 
+- **Canonical task command path:** user-facing task CRUD goes through `task_workflow`.
+- **Tool-layer CRUD path:** `internal/tools` should prefer `getTaskStore(ctx)` / `TaskStore` for ordinary task reads and writes.
 - **Load/save (compat):** `LoadTodo2Tasks(projectRoot)`, `SaveTodo2Tasks(projectRoot, tasks)` from `todo2_utils.go`.
-- **Direct DB (when available):** `database.GetDB()`, then `database.ListTasks`, `GetTask`, `UpdateTask`, `CreateTask`, `AddComments`, `DeleteTask` with `TaskFilters`.
-- **Pattern:** Prefer DB for filtered/single-task ops; use LoadTodo2Tasks/SaveTodo2Tasks when loading/saving full set or when DB may be unavailable.
+- **Direct DB is now the exception:** use `database.*` directly only for DB-native capabilities such as locks, execution runs, comments, verifications, or migration/repair helpers.
+- **Pattern:** if the operation is “load/update/create/delete a task”, default to `TaskStore`; if it is inherently SQLite-specific, use `database.*`.
 
-## 5. FM (Apple Foundation Models) usage
+## 5. FM / local LLM usage
 
-- **Check:** `FMAvailable()` before using Apple FM.
-- **Generate:** `DefaultFMProvider().Generate(ctx, prompt, maxTokens, temperature)`.
+- **Primary task-tool abstraction:** `DefaultFMProvider().Generate(ctx, prompt, maxTokens, temperature)`.
+- **Routing:** FM chain now prefers the configured/default local provider path (for example Ollama-backed flows) instead of a dedicated Apple Foundation Models tool.
 - **Used in:** task_discovery (semantic extraction), task_workflow (clarity), task_analysis (hierarchy/classify), estimation (estimate action).
-- **Fallback:** When `!FMAvailable()`, tools either return a clear error (task_analysis hierarchy) or use statistical/non-FM path (estimation, task_discovery).
+- **Fallback:** When `!FMAvailable()`, tools either return a clear error or use statistical/non-FM paths depending on the feature.
 
-## 6. CGO vs nocgo split
+## 6. Build-tag split
 
-- **With Apple FM:** `*_native.go` (build tag `darwin && arm64 && cgo`).
-- **Without:** `*_native_nocgo.go` (build tag `!(darwin && arm64 && cgo)`).
-- **Shared logic:** `*_shared.go` or `*_common.go` (no FM-specific code so both builds compile).
+- **Current rule:** prefer portable Go implementations with no platform-specific build split unless the feature truly requires it.
+- **If a split is needed:** keep platform- or CGO-specific wiring in `*_native.go` / `*_nocgo.go` or similarly named files, and keep the business logic in `*_shared.go` / `*_common.go`.
+- **Current direction:** Apple FM-specific build-tag branches were removed, so task tools should not introduce new darwin-only CRUD or FM paths.
 
 ## 7. Cross-tool reuse
 
@@ -69,6 +71,6 @@ Task-related tools (`task_workflow`, `task_analysis`, `task_discovery`, `estimat
 - **Entry via WrapHandler:** Parse request → convert proto (if any) → apply defaults for BOTH paths → native handler.
 - **Entry manual:** Parse request → params + defaults → native handler.
 - **Project root:** `FindProjectRoot()` in task tools; estimation uses `security.GetProjectRoot(".")` in handler (could align to FindProjectRoot).
-- **Data:** LoadTodo2Tasks/SaveTodo2Tasks + database package when DB available.
-- **FM:** FMAvailable() then DefaultFMProvider().Generate; graceful fallback per tool.
-- **Structure:** action dispatch; shared types and helpers in `*_shared.go` / `*_common.go`; CGO/nocgo split where Apple FM is used.
+- **Data:** `task_workflow` is the single task command backend; `TaskStore` is the preferred tool-layer CRUD abstraction.
+- **FM:** `FMAvailable()` then `DefaultFMProvider().Generate`; graceful fallback per tool.
+- **Structure:** action dispatch; shared types and helpers in `*_shared.go` / `*_common.go`; use build-tag splits sparingly and only for genuinely platform-specific code.

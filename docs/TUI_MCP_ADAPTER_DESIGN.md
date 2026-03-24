@@ -10,7 +10,7 @@ Design for routing TUI through MCP tools instead of direct database access. This
 
 ---
 
-## Current Architecture (Problem)
+## Current Architecture (Historical Problem)
 
 ```
 ┌─────────┐     ┌──────────┐     ┌──────────┐
@@ -35,7 +35,7 @@ Design for routing TUI through MCP tools instead of direct database access. This
 
 ---
 
-## Proposed Architecture (Solution)
+## Current Target Architecture
 
 ```
 ┌─────────┐     ┌──────────┐     ┌──────────┐
@@ -63,9 +63,17 @@ Design for routing TUI through MCP tools instead of direct database access. This
 - Easier testing (mock tool layer)
 - Clean separation of concerns
 
+## Current Status
+
+The core task CLI has now been deduplicated so `exarp-go task ...` also routes through the canonical `task_workflow` backend. The remaining architectural goal for the TUI is therefore simpler than when this document was written:
+
+- CLI and MCP already share the same task behavior.
+- TUI should do the same through typed MCP helpers.
+- Any remaining direct `database.*` usage in TUI should be treated as a layering leak, not as an acceptable parallel task path.
+
 ---
 
-## Current TUI Database Access
+## Remaining TUI Database Access
 
 ### Analysis Results
 

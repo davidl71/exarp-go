@@ -117,7 +117,10 @@ func (s *dbOrFileStore) CreateTask(ctx context.Context, task *database.Todo2Task
 	models.SetContentHash(task)
 
 	if db, err := database.GetDB(); err == nil && db != nil {
-		return database.CreateTask(ctx, task)
+		if err := database.CreateTask(ctx, task); err != nil {
+			return err
+		}
+		return SyncTodo2Tasks(s.projectRoot)
 	}
 
 	tasks, err := LoadTodo2Tasks(s.projectRoot)
@@ -132,7 +135,10 @@ func (s *dbOrFileStore) CreateTask(ctx context.Context, task *database.Todo2Task
 
 func (s *dbOrFileStore) DeleteTask(ctx context.Context, id string) error {
 	if db, err := database.GetDB(); err == nil && db != nil {
-		return database.DeleteTask(ctx, id)
+		if err := database.DeleteTask(ctx, id); err != nil {
+			return err
+		}
+		return SyncTodo2Tasks(s.projectRoot)
 	}
 
 	tasks, err := LoadTodo2Tasks(s.projectRoot)

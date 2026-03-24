@@ -108,14 +108,8 @@ func handleTaskWorkflowSync(ctx context.Context, params map[string]interface{}) 
 	// Persist cleared epic_id for tasks that referenced a missing epic
 	if !dryRun && len(tasksWithOrphanedEpicFixed) > 0 {
 		for _, t := range tasksWithOrphanedEpicFixed {
-			if err := database.UpdateTask(ctx, t); err != nil {
+			if err := store.UpdateTask(ctx, t); err != nil {
 				fmt.Fprintf(os.Stderr, "Warning: failed to clear orphaned epic_id on task %s: %v\n", t.ID, err)
-			}
-		}
-
-		if len(tasksWithOrphanedEpicFixed) > 0 {
-			if syncErr := SyncTodo2Tasks(projectRoot); syncErr != nil {
-				fmt.Fprintf(os.Stderr, "Warning: sync after clearing orphaned epic_id failed: %v\n", syncErr)
 			}
 		}
 	}

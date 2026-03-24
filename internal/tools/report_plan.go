@@ -13,7 +13,6 @@ import (
 	"time"
 
 	"github.com/davidl71/exarp-go/internal/config"
-	"github.com/davidl71/exarp-go/internal/database"
 	"github.com/davidl71/exarp-go/internal/framework"
 	"github.com/spf13/cast"
 )
@@ -303,6 +302,10 @@ func handleReportUpdateWavesFromPlan(ctx context.Context, params map[string]inte
 	if err != nil {
 		return nil, fmt.Errorf("failed to find project root: %w", err)
 	}
+	store, err := getTaskStore(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("update waves from plan: %w", err)
+	}
 
 	planPath := cast.ToString(params["plan_path"])
 	if planPath == "" {
@@ -343,7 +346,7 @@ func handleReportUpdateWavesFromPlan(ctx context.Context, params map[string]inte
 		}
 
 		for _, taskID := range ids {
-			task, err := database.GetTask(ctx, taskID)
+			task, err := store.GetTask(ctx, taskID)
 			if err != nil || task == nil {
 				continue // skip missing tasks
 			}
@@ -358,7 +361,7 @@ func handleReportUpdateWavesFromPlan(ctx context.Context, params map[string]inte
 				task.Dependencies = make([]string, len(deps))
 				copy(task.Dependencies, deps)
 
-				if err := database.UpdateTask(ctx, task); err != nil {
+				if err := store.UpdateTask(ctx, task); err != nil {
 					return nil, fmt.Errorf("update task %s: %w", taskID, err)
 				}
 			}

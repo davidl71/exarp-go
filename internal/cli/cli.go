@@ -140,21 +140,11 @@ func Run() error {
 	case "task":
 		initializeDatabase()
 		setCLIOutputFromParsed(parsed)
-
-		subcommand := parsed.Subcommand
-		if subcommand == "" && len(parsed.Positional) > 0 {
-			subcommand = parsed.Positional[0]
+		server, err := setupServer()
+		if err != nil {
+			return err
 		}
-
-		if taskCommandNeedsServer(subcommand) {
-			server, err := setupServer()
-			if err != nil {
-				return err
-			}
-			return handleTaskCommand(server, parsed)
-		}
-
-		return handleTaskCommandLight(parsed)
+		return handleTaskCommand(server, parsed)
 	case "tui":
 		initializeDatabase()
 

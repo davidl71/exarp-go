@@ -2,7 +2,7 @@
 
 **Tag hints:** `#docs` `#refactor`
 
-> A Go-based MCP (Model Context Protocol) server providing 35 tools (36 with Apple FM), 36 prompts, and 24 resources
+> A Go-based MCP (Model Context Protocol) server providing native tools, prompts, and resources
 > for AI-assisted project management, code quality, and local LLM integration.
 
 ## Package Map
@@ -68,7 +68,6 @@ flowchart TD
     end
 
     subgraph LLM["LLM Backends"]
-        FM["Apple Foundation Models<br/>(darwin/arm64/cgo)"]
         OLLAMA["Ollama Server<br/>(local HTTP)"]
         MLX["MLX<br/>(Apple Silicon)"]
     end
@@ -88,14 +87,13 @@ flowchart TD
     FACTORY --> RESOURCES_REG
 
     CLI_DISPATCH -->|"-tool flag"| HANDLERS
-    CLI_DISPATCH -->|"task subcommand"| DB
+    CLI_DISPATCH -->|"task subcommand"| HANDLERS
     TOOLS_REG --> HANDLERS
     HANDLERS --> TOOL_IMPL
 
     TOOL_IMPL --> DB
     TOOL_IMPL --> CONFIG
     TOOL_IMPL --> CACHE
-    TOOL_IMPL --> FM
     TOOL_IMPL --> OLLAMA
     TOOL_IMPL --> MLX
 ```
@@ -119,7 +117,7 @@ flowchart TD
 | `framework.ToolHandler` | `internal/framework/server.go` | `func(ctx, json.RawMessage) ([]TextContent, error)` |
 | `models.Todo2Task` | `internal/models/todo2.go` | Canonical task struct used across all packages |
 | `models.Status*` / `Priority*` | `internal/models/constants.go` | Named constants for statuses, priorities, comment types |
-| `database.TaskStore` | `internal/database/tasks_crud.go` | CRUD operations: GetTask, CreateTask, UpdateTask, DeleteTask |
+| `database.TaskStore` | `internal/database/store.go` | Task persistence contract used by tools and adapters |
 | `database.ClaimTaskForAgent` | `internal/database/tasks_lock.go` | Distributed lock acquisition for multi-agent safety |
 | `config.FullConfig` | `internal/config/schema.go` | Protobuf-based project configuration |
 | `TextGenerator` interface | `internal/tools/text_generate.go` | LLM provider contract (FM, Ollama, MLX, LocalAI) |
@@ -165,6 +163,38 @@ handlers.go (dispatch)  →  <tool>_native.go (entry)  →  <tool>_common.go (sh
 5. **Update code-map**:
    - Add entry to `.cursor/rules/code-map.mdc` tool table
 
+## Task Architecture
+
+Task behavior now has a single command/workflow backend:
+
+- `task_workflow` is the canonical task command surface for create, update, delete, sync, list/show-style reads, approval, cleanup, and related workflow actions.
+- `exarp-go task ...` is a CLI adapter over the same backend; it no longer has a separate light CRUD implementation.
+- TUI task CRUD flows are expected to call `task_workflow` through typed adapters instead of calling `database.*` directly.
+
+The intended layering is:
+
+1. User-facing surfaces (`CLI`, `TUI`, MCP clients) call `task_workflow`.
+2. `internal/tools` business logic uses `TaskStore` / task helpers for normal task CRUD.
+3. `internal/database` owns SQL and DB-specific capabilities.
+
+The next boundary target is to make this explicit as a 3-layer architecture:
+
+1. adapters: CLI, TUI, MCP, HTTP
+2. application: tool handlers and task workflow orchestration
+3. infrastructure: SQLite, config persistence, cache, external providers
+
+`task_workflow` is currently the main application-layer façade for task operations. New task behavior should be added there or behind a shared service/repository helper, not reimplemented in adapters.
+
+Allowed direct `database.*` usage from `internal/tools` is now limited to DB-specific features that do not fit plain task CRUD, such as:
+
+- task locks / claims
+- execution runs
+- verifications and progress entries
+- comments
+- migrations and date repair helpers
+
+Direct `database.GetTask/ListTasks/CreateTask/UpdateTask/DeleteTask` inside tool business logic should generally be treated as a layering leak unless the path is DB-specific by nature.
+
 ## Storage Architecture
 
 ```
@@ -176,7 +206,7 @@ handlers.go (dispatch)  →  <tool>_native.go (entry)  →  <tool>_common.go (sh
 └── config.pb             # Project config (protobuf binary)
 ```
 
-- **Database-first**: All task operations go through `internal/database` (SQLite with WAL mode)
+- **Database-first**: persistence lives in `internal/database` (SQLite with WAL mode)
 - **JSON fallback**: `LoadTodo2Tasks()` / `SaveTodo2Tasks()` auto-detect and fall back to JSON if DB unavailable
 - **Migrations**: `internal/database/migrations/*.sql` — applied automatically on Init
 - **Locking**: `database.ClaimTaskForAgent()` provides lease-based distributed locks for multi-agent safety
@@ -187,9 +217,8 @@ The project supports multiple local LLM backends through a unified abstraction:
 
 | Backend | Tool | Build Constraint | Provider |
 |---|---|---|---|
-| Apple Foundation Models | `apple_foundation_models` | `darwin && arm64 && cgo` | `DefaultFMProvider()` |
 | Ollama | `ollama` | None (HTTP client) | `DefaultOllama()` |
-| MLX | `mlx` | None (bridge) | `handleMlxNative()` |
+| MLX | `mlx` | None (bridge / native model list support) | `handleMlxNative()` |
 | Auto-router | `text_generate` | None | `model_router.go` |
 
 The `text_generate` tool with `provider=auto` uses `model_router.go` to select the best available backend.

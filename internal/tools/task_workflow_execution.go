@@ -17,7 +17,11 @@ func handleTaskWorkflowStartRun(ctx context.Context, params map[string]interface
 	if taskID == "" {
 		return nil, fmt.Errorf("start_run: task_id is required")
 	}
-	if _, err := database.GetTask(ctx, taskID); err != nil {
+	store, err := getTaskStore(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("start_run: %w", err)
+	}
+	if _, err := store.GetTask(ctx, taskID); err != nil {
 		return nil, fmt.Errorf("start_run: %w", err)
 	}
 
@@ -167,7 +171,11 @@ func handleTaskWorkflowSplit(ctx context.Context, params map[string]interface{})
 	if taskID == "" {
 		return nil, fmt.Errorf("split: task_id is required")
 	}
-	parent, err := database.GetTask(ctx, taskID)
+	store, err := getTaskStore(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("split: %w", err)
+	}
+	parent, err := store.GetTask(ctx, taskID)
 	if err != nil {
 		return nil, fmt.Errorf("split: %w", err)
 	}
@@ -236,12 +244,12 @@ func handleTaskWorkflowSplit(ctx context.Context, params map[string]interface{})
 		if json.Unmarshal([]byte(result[0].Text), &payload) == nil {
 			if ids := interfaceToStringSlice(payload["task_ids"]); len(ids) > 0 {
 				for i := 1; i < len(ids); i++ {
-					child, err := database.GetTask(ctx, ids[i])
+					child, err := store.GetTask(ctx, ids[i])
 					if err != nil {
 						continue
 					}
 					child.Dependencies = mergeStringLists(child.Dependencies, []string{ids[i-1]})
-					_ = database.UpdateTask(ctx, child)
+					_ = store.UpdateTask(ctx, child)
 				}
 			}
 		}

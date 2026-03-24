@@ -175,12 +175,6 @@ func captureStdout(t *testing.T, fn func()) string {
 	return <-done
 }
 
-func TestTaskCommandNeedsServerIncludesUpdate(t *testing.T) {
-	if !taskCommandNeedsServer("update") {
-		t.Fatal("expected task update to require server")
-	}
-}
-
 func TestHandleTaskUpdateParsedUsesTaskWorkflowForPositionalID(t *testing.T) {
 	server := &taskCommandStubServer{
 		result: []framework.TextContent{{Type: "text", Text: `{"success":true,"updated_count":1}`}},
