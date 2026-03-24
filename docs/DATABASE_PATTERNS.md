@@ -36,9 +36,9 @@ These functions use `GetDB()` for dual DB/file fallback (intentional):
 
 | File | Functions | Purpose |
 |------|-----------|---------|
-| **task_store.go** | TaskStoreDBExists, TaskStoreDBList, TaskStoreDBCreate, TaskStoreDBUpdate, TaskStoreDBDelete | TaskStore operations with JSON fallback |
+| **task_store.go** | TaskStoreDBExists, TaskStoreDBList, TaskStoreDBCreate, TaskStoreDBUpdate, TaskStoreDBDelete | TaskStore interface: DB-first, JSON fallback |
 | **todo2_db_adapter.go** | loadTodo2TasksFromDB, loadTodo2TasksFromJSON, SaveTodo2TasksToDB, GetDBForTodo2DBAdapter | DB ↔ JSON sync adapter |
-| **task_workflow_actions.go** | getTaskStatusFromDB, getTaskMetadataFromDB, batchStatusUpdateFromDB | Task workflow handlers |
+| **task_workflow_actions.go** | getTaskStatusFromDB, getTaskMetadataFromDB, batchStatusUpdateFromDB | Task workflow handlers with fallback |
 | **task_workflow_maintenance.go** | GetTaskForMaintenance, GetTasksWithMetadataForMaintenance | Maintenance with file backup |
 | **session.go** | getSessionFromDB | Session state with file fallback |
 | **todo2_utils.go** | getNextTasksFromDB | Legacy utility functions |
@@ -47,25 +47,43 @@ These functions use `GetDB()` for dual DB/file fallback (intentional):
 | **automation_discover.go** | checkAutomationStoreExists | Discovery with file fallback |
 | **resources/tasks.go** | getTaskForResource | Task resources |
 
-## Migration Status
+## Why JSON Fallback is Required
 
-### Completed (2026-03-24)
+The legacy `GetDB()` usage in `internal/tools/` is **intentional** for backward compatibility:
 
-- [x] `GetTask` - sqlx with `taskRow` struct
-- [x] `CreateTask` - sqlx, removed legacy fallbacks
-- [x] `UpdateTask` - sqlx, removed legacy fallbacks
-- [x] `ListTasks` - sqlx, removed legacy fallbacks
-- [x] `GetDoneTasksForEstimation` - sqlx
-- [x] `FindNextClaimableTask` - sqlx
+### 1. Dual Storage Pattern
 
-### Remaining Legacy Usage
+```go
+// From task_store.go - dbOrFileStore
+func (s *dbOrFileStore) GetTask(ctx context.Context, id string) (*database.Todo2Task, error) {
+    // Try DB first
+    if db, err := database.GetDB(); err == nil && db != nil {
+        return database.GetTask(ctx, id)  // Uses sqlx in database package
+    }
+    // Fallback to JSON file
+    tasks, err := LoadTodo2Tasks(s.projectRoot)
+    // ... search for task in JSON
+}
+```
 
-The `GetDB()` usage in `internal/tools/` is **intentional** for files that need:
-1. JSON file fallback (when DB unavailable)
-2. Sync between DB and JSON representations
-3. Backward compatibility with existing code
+### 2. Reasons for Fallback
 
-These files are candidates for future migration to use TaskStore interface.
+| Reason | Description |
+|--------|-------------|
+| **Backward compatibility** | Projects may not have migrated to database yet |
+| **Sync operations** | `SyncTodo2Tasks` keeps JSON and DB in sync during migration |
+| **Recovery** | If DB is corrupted, JSON serves as backup |
+| **Migration tooling** | During transition, both backends must work |
+| **Legacy projects** | Old projects using JSON-only storage still work |
+
+### 3. Phasing Out
+
+The JSON fallback can be removed once:
+- All existing projects have migrated to DB-only
+- No new projects use JSON storage
+- `SyncTodo2Tasks` is no longer needed
+
+This is technical debt to be addressed in a future migration phase.
 
 ## Schema Version
 
