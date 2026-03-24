@@ -77,7 +77,7 @@ func TestHandleAgentExecutionPack(t *testing.T) {
 		ID:              "T-5100002",
 		Content:         "Reviewer execution task",
 		LongDescription: "Review the latest execution evidence",
-		Status:          models.StatusReview,
+		Status:          models.StatusTodo,
 		Priority:        "medium",
 		Metadata:        map[string]interface{}{"agent_role": "reviewer", "recommended_tools": []interface{}{"task_workflow", "report"}},
 	}
@@ -115,6 +115,13 @@ func TestHandleAgentExecutionPack(t *testing.T) {
 	}
 	if payload["agent_role"] != "reviewer" {
 		t.Fatalf("agent_role = %v, want reviewer", payload["agent_role"])
+	}
+	taskData, ok := payload["task"].(map[string]interface{})
+	if !ok {
+		t.Fatalf("task field missing or wrong type: %T", payload["task"])
+	}
+	if _, ok := taskData["execution_wave"]; !ok {
+		t.Fatalf("execution_wave missing from task payload")
 	}
 }
 

@@ -72,32 +72,30 @@ Use `health action=database` for SQLite maintenance. These operations are explic
 - `sync` - Synchronize tasks between TODO and Todo2
 - `dups` - Find and consolidate duplicate tasks
 
-### Resources (21 total)
-**Base resources (11):**
+### Resources (60 total — 44 static + 16 templates)
+**Base resources:**
+- `stdio://config`, `stdio://config/schema` - Configuration
 - `stdio://scorecard` - Project scorecard
-- `stdio://memories` - All memories
-- `stdio://memories/category/{category}` - Memories by category
-- `stdio://memories/task/{task_id}` - Memories for task
-- `stdio://memories/recent` - Recent memories
-- `stdio://memories/session/{date}` - Session memories
-- `stdio://prompts` - All prompts
-- `stdio://prompts/mode/{mode}` - Prompts by mode
-- `stdio://prompts/persona/{persona}` - Prompts by persona
-- `stdio://prompts/category/{category}` - Prompts by category
-- `stdio://session/mode` - Session mode
+- `stdio://models` - Available LLM backends
+- `stdio://session/mode`, `stdio://session/status` - Session state
 - `stdio://server/status` - Server status
-- `stdio://models` - Available models
-- `stdio://tools` - All tools
-- `stdio://tools/{category}` - Tools by category
+- `stdio://tools`, `stdio://tools/{category}`, `stdio://tools/names`, `stdio://tool_catalog`, `stdio://resources/uris` - Tool/resource discovery
+- `stdio://memories`, `stdio://memories/category/{category}`, `stdio://memories/task/{task_id}`, `stdio://memories/recent`, `stdio://memories/session/{date}` - Memory
+- `stdio://prompts`, `stdio://prompts/mode/{mode}`, `stdio://prompts/persona/{persona}`, `stdio://prompts/category/{category}` - Prompts
+- `stdio://cursor/skills`, `stdio://cursor/skills/{name}`, `stdio://agent/skills`, `stdio://agent/skills/{name}` - Skills
+- `prime://context`, `agent://card` - Agent discovery
 
-**Task resources (7):**
-- `stdio://tasks` - All tasks
-- `stdio://tasks/{task_id}` - Task by ID
-- `stdio://tasks/status/{status}` - Tasks by status
-- `stdio://tasks/priority/{priority}` - Tasks by priority
-- `stdio://tasks/tag/{tag}` - Tasks by tag
-- `stdio://tasks/summary` - Task summary
-- `stdio://suggested-tasks` - Dependency-ready tasks (for Cursor hints)
+**Task resources:**
+- `stdio://tasks`, `stdio://tasks/{task_id}`, `stdio://tasks/status/{status}`, `stdio://tasks/priority/{priority}`, `stdio://tasks/tag/{tag}` - Task queries
+- `stdio://tasks/summary`, `stdio://tasks/ready`, `stdio://ready-tasks`, `stdio://suggested-tasks` - Task summaries
+- `stdio://active-work` - Active claims + runs + orchestration lanes
+- `stdio://task-runs/{task_id}` - Execution runs for a task
+
+**Agent/Execution resources (new):**
+- `stdio://agent/briefing` — compact startup briefing for any agent (session prime + orchestration + ledger)
+- `stdio://agent/task/{task_id}/execution-pack` — per-task workflow pack (workflow contract, safe actions, preconditions, recent runs)
+- `stdio://agent/alerts` — stale locks, long-running runs, review-ready tasks
+- `stdio://codex/briefing`, `stdio://codex/task/{task_id}/execution-pack`, `stdio://codex/alerts` — aliases
 
 ## Configuration
 

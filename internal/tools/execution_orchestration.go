@@ -159,3 +159,22 @@ func delegationReason(role string, todoCount int) string {
 func orderedAgentRoles() []string {
 	return []string{AgentRolePlanner, AgentRoleWorker, AgentRoleReviewer, AgentRoleResearcher}
 }
+
+// CalculateDependencyWave returns the dependency wave (depth) for a task in the open backlog.
+// Wave 0 means the task has no unmet open dependencies and can start immediately.
+// Wave N means at least one dependency is in wave N-1, so this task cannot start until that wave completes.
+// Returns -1 if the task ID is not found among open (non-Done/Cancelled) tasks.
+func CalculateDependencyWave(tasks []Todo2Task, taskID string) int {
+	_, waves, _, err := BacklogExecutionOrder(tasks, nil)
+	if err != nil {
+		return -1
+	}
+	for wave, ids := range waves {
+		for _, id := range ids {
+			if id == taskID {
+				return wave
+			}
+		}
+	}
+	return -1
+}

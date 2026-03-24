@@ -81,7 +81,7 @@ func GetToolCatalog() map[string]ToolCatalogEntry {
 			Hint:             "TRIGGER: 'task workflow', 'create task', 'update task', 'list tasks', 'T-xxx', 'todo', 'triaging', 'start run', 'verify'. Use for lifecycle plus execution-cockpit actions. Prefer exarp-go task CLI aliases for simple list/show/update/create flows.",
 			Category:         "Task Management",
 			Description:      "Manages task workflow and execution state: list/create/update, claim, start_run/end_run, verify, add_progress, split, and approvals. Prefer CLI aliases for simple list/show/update/create flows. Never edit .todo2/state.todo2.json directly.",
-			Aliases:          []string{"task list", "task show", "task update", "task create"},
+			Aliases:          []string{"task list", "task show", "task update", "task create", "stdio://agent/task/{task_id}/execution-pack"},
 			Class:            "primary",
 			RecommendedModel: "claude-haiku",
 			Examples: []string{
@@ -363,6 +363,7 @@ func GetToolCatalog() map[string]ToolCatalogEntry {
 			Description:      "Session management: prime, handoff, prompts, assignee. OpenCode/agent: prime at start for task/hint context; handoff for leave/resume notes.",
 			Class:            "primary",
 			RecommendedModel: "claude-haiku",
+			Aliases:          []string{"stdio://agent/briefing", "stdio://agent/alerts"},
 		},
 		"infer_session_mode": {
 			Tool:             "infer_session_mode",

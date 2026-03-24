@@ -72,10 +72,18 @@ func BuildTaskExecutionPackData(ctx context.Context, projectRoot, taskID string)
 	verifications, _ := database.ListTaskVerifications(ctx, taskID, "", 5)
 	progressEntries, _ := database.ListTaskProgressEntries(ctx, taskID, "", 5)
 
+	taskMap := taskExecutionTaskMap(task)
+	if allPtrs, listErr := store.ListTasks(ctx, nil); listErr == nil {
+		allTasks := tasksFromPtrs(allPtrs)
+		if wave := CalculateDependencyWave(allTasks, taskID); wave >= 0 {
+			taskMap["execution_wave"] = wave
+		}
+	}
+
 	workflowContract := BuildWorkflowContract(task, lockStatus, runs)
 	pack := map[string]interface{}{
 		"resource_kind": "task_execution_pack",
-		"task":          taskExecutionTaskMap(task),
+		"task":          taskMap,
 		"generated_at":  time.Now().Format(time.RFC3339),
 	}
 	for key, value := range workflowContract {
