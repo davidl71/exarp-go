@@ -38,10 +38,12 @@ func main() {
 	// -acp runs Agent Client Protocol server (for Zed, JetBrains, OpenCode).
 	// -mcp-http :8081 runs MCP Streamable HTTP server.
 	// -benchprof <task-id> runs benchmark with CPU profiling.
+	// -cpuprof <file> enables CPU profiling for MCP stdio mode.
 	hasServe := false
 	hasACP := false
 	hasMCPHTTP := false
 	benchTaskID := ""
+	cpuProfFile := ""
 	for _, arg := range os.Args[1:] {
 		if arg == "-serve" || strings.HasPrefix(arg, "-serve=") {
 			hasServe = true
@@ -54,6 +56,9 @@ func main() {
 		}
 		if strings.HasPrefix(arg, "-benchprof=") {
 			benchTaskID = strings.TrimPrefix(arg, "-benchprof=")
+		}
+		if strings.HasPrefix(arg, "-cpuprof=") {
+			cpuProfFile = strings.TrimPrefix(arg, "-cpuprof=")
 		}
 	}
 
@@ -156,6 +161,18 @@ func main() {
 	}
 
 	ctx := context.Background()
+
+	if cpuProfFile != "" {
+		f, err := os.Create(cpuProfFile)
+		if err != nil {
+			logging.Fatal("Failed to create CPU profile file: %v", err)
+		}
+		pprof.StartCPUProfile(f)
+		defer pprof.StopCPUProfile()
+		defer f.Close()
+		fmt.Println("CPU profiling enabled, write 'exit' to stop...")
+	}
+
 	if err := server.Run(ctx, nil); err != nil {
 		// Normal MCP shutdown when client disconnects (e.g. stdin closed) — exit 0, don't log as fatal.
 		if errors.Is(err, io.EOF) || strings.Contains(err.Error(), "server is closing") {

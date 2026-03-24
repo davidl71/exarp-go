@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/davidl71/exarp-go/internal/models"
+	_ "github.com/jmoiron/sqlx"
 )
 
 // ListTasks retrieves tasks with optional filtering
@@ -530,12 +531,12 @@ func GetTaskCountByStatus(ctx context.Context, status string) (int, error) {
 	var count int
 
 	err := retryWithBackoff(ctx, func() error {
-		db, err := GetDB()
+		db, err := GetDBx()
 		if err != nil {
 			return fmt.Errorf("failed to get database: %w", err)
 		}
 
-		err = db.QueryRowContext(queryCtx, `SELECT COUNT(*) FROM tasks WHERE status = ?`, status).Scan(&count)
+		err = db.GetContext(queryCtx, &count, `SELECT COUNT(*) FROM tasks WHERE status = ?`, status)
 		if err != nil {
 			return fmt.Errorf("failed to count tasks: %w", err)
 		}

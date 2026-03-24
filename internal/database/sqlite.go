@@ -7,11 +7,29 @@ import (
 	"path/filepath"
 	"sync"
 
+	"github.com/jmoiron/sqlx"
 	_ "modernc.org/sqlite"
 )
 
-// DB is the global database connection.
-var DB *sql.DB
+// DB is the global database connection (sqlx wrapped for convenience).
+var DB *sqlx.DB
+
+// GetDB returns the underlying *sql.DB for backward compatibility.
+// For new code, prefer using sqlx methods via GetDBx().
+func GetDB() (*sql.DB, error) {
+	if DB == nil {
+		return nil, fmt.Errorf("database not initialized, call Init() first")
+	}
+	return DB.DB, nil
+}
+
+// GetDBx returns the global sqlx database connection.
+func GetDBx() (*sqlx.DB, error) {
+	if DB == nil {
+		return nil, fmt.Errorf("database not initialized, call Init() first")
+	}
+	return DB, nil
+}
 
 // currentDriver is the currently active database driver.
 var currentDriver Driver
@@ -95,7 +113,7 @@ func InitWithConfig(cfg *Config) error {
 		return fmt.Errorf("failed to configure database: %w", err)
 	}
 
-	DB = db
+	DB = sqlx.NewDb(db, string(driver.Type()))
 	currentDriver = driver
 
 	// Run migrations if enabled
@@ -127,16 +145,4 @@ func Close() error {
 	}
 
 	return nil
-}
-
-// GetDB returns the global database connection
-// Returns error if database is not initialized
-// Note: Reading the DB pointer is safe without mutex (atomic pointer read)
-// The mutex in Init()/Close() ensures proper initialization/cleanup.
-func GetDB() (*sql.DB, error) {
-	if DB == nil {
-		return nil, fmt.Errorf("database not initialized, call Init() first")
-	}
-
-	return DB, nil
 }
