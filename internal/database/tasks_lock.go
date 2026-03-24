@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/davidl71/exarp-go/internal/logging"
 	"github.com/davidl71/exarp-go/internal/models"
 )
 
@@ -339,10 +340,16 @@ func RenewLease(ctx context.Context, taskID string, agentID string, leaseDuratio
 	})
 }
 
+const (
+	maxConsecutiveRenewalFailures = 5
+)
+
 // RunLeaseRenewal starts a background goroutine that renews the task lease every renewInterval
 // until ctx is cancelled. Call this when holding a task longer than leaseDuration (e.g. long-running work).
 // renewInterval should be less than leaseDuration (e.g. renew every 20 min for a 30 min lease).
-// The goroutine stops when ctx.Done(); release the task with ReleaseTask when work is done.
+// The goroutine stops when ctx.Done() or after maxConsecutiveRenewalFailures failures.
+// Logs warnings on each renewal failure and stops the goroutine if failures exceed the threshold.
+// Release the task with ReleaseTask when work is done.
 func RunLeaseRenewal(ctx context.Context, taskID, agentID string, leaseDuration, renewInterval time.Duration) {
 	if renewInterval <= 0 || leaseDuration <= 0 {
 		return
@@ -352,12 +359,25 @@ func RunLeaseRenewal(ctx context.Context, taskID, agentID string, leaseDuration,
 		ticker := time.NewTicker(renewInterval)
 		defer ticker.Stop()
 
+		consecutiveFailures := 0
+
 		for {
 			select {
 			case <-ctx.Done():
 				return
 			case <-ticker.C:
-				_ = RenewLease(ctx, taskID, agentID, leaseDuration)
+				if err := RenewLease(ctx, taskID, agentID, leaseDuration); err != nil {
+					consecutiveFailures++
+					logging.Warn("lease renewal failed for task %s: %v (attempt %d/%d)",
+						taskID, err, consecutiveFailures, maxConsecutiveRenewalFailures)
+					if consecutiveFailures >= maxConsecutiveRenewalFailures {
+						logging.Warn("lease renewal failed %d times for task %s, stopping renewal goroutine",
+							maxConsecutiveRenewalFailures, taskID)
+						return
+					}
+					continue
+				}
+				consecutiveFailures = 0
 			}
 		}
 	}()

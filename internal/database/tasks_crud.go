@@ -5,6 +5,7 @@ package database
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
@@ -626,6 +627,150 @@ func UpdateTask(ctx context.Context, task *Todo2Task) error {
 
 		return nil
 	})
+}
+
+// TaskMetadataUpdate represents a single task's metadata update.
+type TaskMetadataUpdate struct {
+	TaskID   string
+	Metadata map[string]interface{}
+}
+
+// TaskStatusUpdate represents a single task's status/priority update.
+type TaskStatusUpdate struct {
+	TaskID   string
+	Status   string
+	Priority string
+}
+
+// BatchUpdateTaskStatus updates status and/or priority for multiple tasks in a single transaction.
+// This is more efficient than individual UpdateTask calls when only status/priority changes are needed.
+// Returns the number of tasks updated and any error.
+func BatchUpdateTaskStatus(ctx context.Context, updates []TaskStatusUpdate) (int, error) {
+	if len(updates) == 0 {
+		return 0, nil
+	}
+
+	ctx = ensureContext(ctx)
+
+	txCtx, cancel := withTransactionTimeout(ctx)
+	defer cancel()
+
+	var updated int
+
+	err := retryWithBackoff(ctx, func() error {
+		db, err := GetDB()
+		if err != nil {
+			return fmt.Errorf("failed to get database: %w", err)
+		}
+
+		tx, err := db.BeginTx(txCtx, nil)
+		if err != nil {
+			return fmt.Errorf("failed to begin transaction: %w", err)
+		}
+
+		defer func() {
+			if err != nil {
+				_ = tx.Rollback()
+			}
+		}()
+
+		for _, u := range updates {
+			setClauses := []string{"version = version + 1", "updated_at = strftime('%s', 'now')"}
+			args := []interface{}{}
+
+			if u.Status != "" {
+				setClauses = append(setClauses, "status = ?")
+				args = append(args, u.Status)
+			}
+
+			if u.Priority != "" {
+				setClauses = append(setClauses, "priority = ?")
+				args = append(args, u.Priority)
+			}
+
+			args = append(args, u.TaskID)
+
+			query := fmt.Sprintf("UPDATE tasks SET %s WHERE id = ?", strings.Join(setClauses, ", "))
+			result, err := tx.ExecContext(txCtx, query, args...)
+			if err != nil {
+				return fmt.Errorf("failed to update status for task %s: %w", u.TaskID, err)
+			}
+
+			rows, _ := result.RowsAffected()
+			updated += int(rows)
+		}
+
+		if err = tx.Commit(); err != nil {
+			return fmt.Errorf("failed to commit transaction: %w", err)
+		}
+
+		return nil
+	})
+
+	return updated, err
+}
+
+// BatchUpdateTaskMetadata updates metadata for multiple tasks in a single transaction.
+// This is more efficient than individual UpdateTask calls when only metadata changes are needed.
+// Returns the number of tasks updated and any error.
+func BatchUpdateTaskMetadata(ctx context.Context, updates []TaskMetadataUpdate) (int, error) {
+	if len(updates) == 0 {
+		return 0, nil
+	}
+
+	ctx = ensureContext(ctx)
+
+	txCtx, cancel := withTransactionTimeout(ctx)
+	defer cancel()
+
+	var updated int
+
+	err := retryWithBackoff(ctx, func() error {
+		db, err := GetDB()
+		if err != nil {
+			return fmt.Errorf("failed to get database: %w", err)
+		}
+
+		tx, err := db.BeginTx(txCtx, nil)
+		if err != nil {
+			return fmt.Errorf("failed to begin transaction: %w", err)
+		}
+
+		defer func() {
+			if err != nil {
+				_ = tx.Rollback()
+			}
+		}()
+
+		for _, u := range updates {
+			metadataJSON, err := json.Marshal(u.Metadata)
+			if err != nil {
+				return fmt.Errorf("failed to marshal metadata for task %s: %w", u.TaskID, err)
+			}
+
+			result, err := tx.ExecContext(txCtx, `
+				UPDATE tasks SET
+					metadata = ?,
+					version = version + 1,
+					updated_at = strftime('%s', 'now')
+				WHERE id = ?
+			`, string(metadataJSON), u.TaskID)
+			if err != nil {
+				return fmt.Errorf("failed to update metadata for task %s: %w", u.TaskID, err)
+			}
+
+			rows, _ := result.RowsAffected()
+			updated += int(rows)
+		}
+
+		if err = tx.Commit(); err != nil {
+			return fmt.Errorf("failed to commit transaction: %w", err)
+		}
+
+		return nil
+	})
+
+	return updated, err
 }
 
 // IsVersionMismatchError reports whether err is a task version mismatch (concurrent update).

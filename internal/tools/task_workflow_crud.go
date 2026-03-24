@@ -325,129 +325,156 @@ func handleTaskWorkflowUpdate(ctx context.Context, params map[string]interface{}
 		}
 	}
 
+	canUseBatchUpdate := !useClaim &&
+		len(addTags) == 0 &&
+		len(removeTags) == 0 &&
+		name == "" &&
+		longDescription == "" &&
+		parentID == "" &&
+		dependencies == nil &&
+		!hasLocalAIBackend &&
+		!hasRecommendedTools
+
 	updatedIDs := []string{}
 	updatedCount := 0
 
 	var skippedLocked []string
 
-	for _, id := range taskIDs {
-		var task *models.Todo2Task
+	if canUseBatchUpdate && (newStatus != "" || priority != "") {
+		batchUpdates := make([]database.TaskStatusUpdate, 0, len(taskIDs))
+		for _, id := range taskIDs {
+			batchUpdates = append(batchUpdates, database.TaskStatusUpdate{
+				TaskID:   id,
+				Status:   newStatus,
+				Priority: priority,
+			})
+		}
 
-		if useClaim && agentID != "" {
-			leaseDuration := config.TaskLockLease()
-
-			claimResult, err := database.ClaimTaskForAgent(ctx, id, agentID, leaseDuration)
-			if err != nil {
-				continue
+		count, err := database.BatchUpdateTaskStatus(ctx, batchUpdates)
+		if err == nil {
+			updatedCount = count
+			for _, u := range batchUpdates {
+				updatedIDs = append(updatedIDs, u.TaskID)
 			}
+		}
+	} else {
+		for _, id := range taskIDs {
+			var task *models.Todo2Task
 
-			if !claimResult.Success {
-				if claimResult.WasLocked {
-					skippedLocked = append(skippedLocked, id)
+			if useClaim && agentID != "" {
+				leaseDuration := config.TaskLockLease()
+
+				claimResult, err := database.ClaimTaskForAgent(ctx, id, agentID, leaseDuration)
+				if err != nil {
+					continue
 				}
 
-				continue
-			}
+				if !claimResult.Success {
+					if claimResult.WasLocked {
+						skippedLocked = append(skippedLocked, id)
+					}
 
-			task = claimResult.Task
-		} else {
-			var err error
+					continue
+				}
 
-			task, err = store.GetTask(ctx, id)
-			if err != nil {
-				continue
-			}
+				task = claimResult.Task
+			} else {
+				var err error
 
-			if newStatus != "" {
-				task.Status = newStatus
-			}
-		}
+				task, err = store.GetTask(ctx, id)
+				if err != nil {
+					continue
+				}
 
-		if priority != "" {
-			task.Priority = priority
-		}
-
-		if len(removeTags) > 0 {
-			removeSet := make(map[string]bool)
-			for _, t := range removeTags {
-				removeSet[t] = true
-			}
-
-			filtered := task.Tags[:0]
-
-			for _, t := range task.Tags {
-				if !removeSet[t] {
-					filtered = append(filtered, t)
+				if newStatus != "" {
+					task.Status = newStatus
 				}
 			}
 
-			task.Tags = filtered
-		}
-
-		if len(addTags) > 0 {
-			existing := make(map[string]bool)
-			for _, t := range task.Tags {
-				existing[t] = true
+			if priority != "" {
+				task.Priority = priority
 			}
 
-			for _, t := range addTags {
-				if !existing[t] {
-					task.Tags = append(task.Tags, t)
+			if len(removeTags) > 0 {
+				removeSet := make(map[string]bool)
+				for _, t := range removeTags {
+					removeSet[t] = true
+				}
+
+				filtered := task.Tags[:0]
+
+				for _, t := range task.Tags {
+					if !removeSet[t] {
+						filtered = append(filtered, t)
+					}
+				}
+
+				task.Tags = filtered
+			}
+
+			if len(addTags) > 0 {
+				existing := make(map[string]bool)
+				for _, t := range task.Tags {
 					existing[t] = true
 				}
+
+				for _, t := range addTags {
+					if !existing[t] {
+						task.Tags = append(task.Tags, t)
+						existing[t] = true
+					}
+				}
 			}
-		}
 
-		if name != "" {
-			task.Content = name
-		}
+			if name != "" {
+				task.Content = name
+			}
 
-		if longDescription != "" {
-			task.LongDescription = longDescription
-		}
+			if longDescription != "" {
+				task.LongDescription = longDescription
+			}
 
-		if !useClaim && newStatus != "" {
-			task.Status = newStatus
-		}
+			if !useClaim && newStatus != "" {
+				task.Status = newStatus
+			}
 
-		if parentID != "" {
-			task.ParentID = parentID
-		}
+			if parentID != "" {
+				task.ParentID = parentID
+			}
 
-		if dependencies != nil {
-			task.Dependencies = dependencies
-		}
+			if dependencies != nil {
+				task.Dependencies = dependencies
+			}
 
-		// Update preferred local AI backend if provided
-		if hasLocalAIBackend {
-			backend := strings.TrimSpace(strings.ToLower(localAIBackend))
-			if backend == "fm" || backend == "mlx" || backend == "ollama" {
+			if hasLocalAIBackend {
+				backend := strings.TrimSpace(strings.ToLower(localAIBackend))
+				if backend == "fm" || backend == "mlx" || backend == "ollama" {
+					if task.Metadata == nil {
+						task.Metadata = make(map[string]interface{})
+					}
+
+					task.Metadata[MetadataKeyPreferredBackend] = backend
+				}
+			}
+
+			if hasRecommendedTools {
 				if task.Metadata == nil {
 					task.Metadata = make(map[string]interface{})
 				}
-
-				task.Metadata[MetadataKeyPreferredBackend] = backend
+				slice := make([]interface{}, len(recommendedTools))
+				for i, t := range recommendedTools {
+					slice[i] = t
+				}
+				task.Metadata[MetadataKeyRecommendedTools] = slice
 			}
-		}
 
-		// Update recommended_tools if provided
-		if hasRecommendedTools {
-			if task.Metadata == nil {
-				task.Metadata = make(map[string]interface{})
+			if err := store.UpdateTask(ctx, task); err != nil {
+				continue
 			}
-			slice := make([]interface{}, len(recommendedTools))
-			for i, t := range recommendedTools {
-				slice[i] = t
-			}
-			task.Metadata[MetadataKeyRecommendedTools] = slice
-		}
 
-		if err := store.UpdateTask(ctx, task); err != nil {
-			continue
+			updatedIDs = append(updatedIDs, id)
+			updatedCount++
 		}
-
-		updatedIDs = append(updatedIDs, id)
-		updatedCount++
 	}
 
 	result := map[string]interface{}{
