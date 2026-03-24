@@ -381,6 +381,28 @@ func registerCoreTools(server framework.MCPServer) error {
 					"default":     false,
 					"description": "When true and client supports elicitation, prompt user for include_tasks/include_hints preferences at prime time",
 				},
+				"context_threshold_pct": map[string]interface{}{
+					"type":        "number",
+					"description": "Auto-compaction ledger: if current context usage (current_tokens/budget_tokens) is >= this percentage, auto-write a thoughts/ledgers/CONTINUITY_{ts}.md ledger. Range 1-100. Omit or 0 to disable.",
+					"examples":    []interface{}{50, 75, 90},
+				},
+				"current_tokens": map[string]interface{}{
+					"type":        "integer",
+					"description": "Current estimated token usage of the session. Used with context_threshold_pct. Falls back to this response's token_estimate if omitted.",
+				},
+				"budget_tokens": map[string]interface{}{
+					"type":        "integer",
+					"description": "Total token budget for the session. Used with context_threshold_pct. Falls back to config default if omitted.",
+				},
+				"inject_ledger": map[string]interface{}{
+					"type":        "boolean",
+					"default":     false,
+					"description": "When true, inject the latest CONTINUITY ledger from thoughts/ledgers/ into the prime result as latest_ledger. Useful after context compaction.",
+				},
+				"ledger_summary": map[string]interface{}{
+					"type":        "string",
+					"description": "Optional freeform notes to append to the auto-written compaction ledger (used with context_threshold_pct).",
+				},
 				"client": map[string]interface{}{
 					"type":        "string",
 					"enum":        []string{"claude-code", "cursor", "opencode", "generic"},

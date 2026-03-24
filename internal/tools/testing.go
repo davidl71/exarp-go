@@ -101,10 +101,6 @@ func handleTestingCoverage(ctx context.Context, params map[string]interface{}) (
 		testFramework = detectTestFramework(projectRoot)
 	}
 
-	// Coverage is currently only supported for Go
-	// Python: use coverage.py (coverage run + coverage report)
-	// Node: use jest --coverage or nyc
-	// Rust: use cargo tarpaulin or cargollvm-cov
 	switch testFramework {
 	case "go":
 		result, err := analyzeGoCoverage(ctx, projectRoot, coverageFile, minCoverage, format)
@@ -113,10 +109,31 @@ func handleTestingCoverage(ctx context.Context, params map[string]interface{}) (
 		}
 		resp := &proto.TestingResponse{Success: true, Action: "coverage", ResultJson: result}
 		return framework.FormatResult(TestingResponseToMap(resp), "")
+	case "python":
+		result, err := analyzePyCoverage(ctx, projectRoot, minCoverage, format)
+		if err != nil {
+			return nil, fmt.Errorf("testing coverage: %w", err)
+		}
+		resp := &proto.TestingResponse{Success: true, Action: "coverage", ResultJson: result}
+		return framework.FormatResult(TestingResponseToMap(resp), "")
+	case "rust":
+		result, err := analyzeRustCoverage(ctx, projectRoot, minCoverage, format)
+		if err != nil {
+			return nil, fmt.Errorf("testing coverage: %w", err)
+		}
+		resp := &proto.TestingResponse{Success: true, Action: "coverage", ResultJson: result}
+		return framework.FormatResult(TestingResponseToMap(resp), "")
+	case "node":
+		result, err := analyzeNodeCoverage(ctx, projectRoot, minCoverage, format)
+		if err != nil {
+			return nil, fmt.Errorf("testing coverage: %w", err)
+		}
+		resp := &proto.TestingResponse{Success: true, Action: "coverage", ResultJson: result}
+		return framework.FormatResult(TestingResponseToMap(resp), "")
 	case "":
 		return nil, fmt.Errorf("testing coverage: cannot detect project framework")
 	default:
-		return nil, fmt.Errorf("testing coverage: framework %q not yet supported for coverage (Go is currently supported)", testFramework)
+		return nil, fmt.Errorf("testing coverage: unsupported framework %q (supported: go, python, rust, node)", testFramework)
 	}
 }
 
@@ -396,6 +413,171 @@ func validateCargoTests(projectRoot, testPath string) (string, error) {
 	}
 	jsonResult, _ := json.MarshalIndent(result, "", "  ")
 	return string(jsonResult), nil
+}
+
+// analyzePyCoverage runs pytest with coverage.py and returns a coverage result JSON.
+// Requires pytest-cov: pip install pytest-cov. Falls back to plain coverage report if available.
+func analyzePyCoverage(ctx context.Context, projectRoot string, minCoverage int, format string) (string, error) {
+	args := []string{"-m", "pytest", "--cov=.", "--cov-report=term-missing"}
+	if format == "html" {
+		args = append(args, "--cov-report=html:coverage_html")
+	}
+
+	cmd := exec.CommandContext(ctx, "python", args...)
+	cmd.Dir = projectRoot
+	output, err := cmd.CombinedOutput()
+	outputStr := string(output)
+
+	coveragePercent := parsePyCoveragePercent(outputStr)
+
+	result := map[string]interface{}{
+		"framework":       "python",
+		"coverage_percent": coveragePercent,
+		"min_coverage":    minCoverage,
+		"meets_threshold": coveragePercent >= float64(minCoverage),
+		"format":          format,
+		"output":          outputStr,
+	}
+	if err != nil {
+		exitErr := &exec.ExitError{}
+		if errors.As(err, &exitErr) {
+			result["returncode"] = exitErr.ExitCode()
+		}
+	}
+	if format == "html" {
+		result["html_dir"] = filepath.Join(projectRoot, "coverage_html")
+	}
+
+	jsonResult, _ := json.MarshalIndent(result, "", "  ")
+	return string(jsonResult), nil
+}
+
+// parsePyCoveragePercent extracts the total coverage percentage from pytest-cov / coverage.py output.
+// Looks for "TOTAL ... X%" at the end of the summary table.
+func parsePyCoveragePercent(output string) float64 {
+	for _, line := range strings.Split(output, "\n") {
+		fields := strings.Fields(line)
+		if len(fields) >= 2 && fields[0] == "TOTAL" {
+			// Last field is "XX%" when pytest-cov summary is present
+			last := fields[len(fields)-1]
+			if strings.HasSuffix(last, "%") {
+				if pct, err := parseFloat(strings.TrimSuffix(last, "%")); err == nil {
+					return pct
+				}
+			}
+		}
+	}
+	return 0
+}
+
+// analyzeRustCoverage runs cargo tarpaulin and returns a coverage result JSON.
+// Requires: cargo install cargo-tarpaulin
+func analyzeRustCoverage(ctx context.Context, projectRoot string, minCoverage int, format string) (string, error) {
+	args := []string{"tarpaulin", "--out", "Stdout"}
+	if format == "html" {
+		args = append(args, "--out", "Html")
+	}
+
+	cmd := exec.CommandContext(ctx, "cargo", args...)
+	cmd.Dir = projectRoot
+	output, err := cmd.CombinedOutput()
+	outputStr := string(output)
+
+	coveragePercent := parseRustCoveragePercent(outputStr)
+
+	result := map[string]interface{}{
+		"framework":        "rust",
+		"coverage_percent": coveragePercent,
+		"min_coverage":     minCoverage,
+		"meets_threshold":  coveragePercent >= float64(minCoverage),
+		"format":           format,
+		"output":           outputStr,
+	}
+	if err != nil {
+		exitErr := &exec.ExitError{}
+		if errors.As(err, &exitErr) {
+			result["returncode"] = exitErr.ExitCode()
+		}
+	}
+	if format == "html" {
+		result["html_file"] = filepath.Join(projectRoot, "tarpaulin-report.html")
+	}
+
+	jsonResult, _ := json.MarshalIndent(result, "", "  ")
+	return string(jsonResult), nil
+}
+
+// parseRustCoveragePercent extracts the total coverage from cargo tarpaulin output.
+// Tarpaulin prints a line like: "XX.XX% coverage, ..."
+func parseRustCoveragePercent(output string) float64 {
+	for _, line := range strings.Split(output, "\n") {
+		line = strings.TrimSpace(line)
+		if idx := strings.Index(line, "% coverage"); idx > 0 {
+			start := strings.LastIndex(line[:idx], " ")
+			if start < 0 {
+				start = 0
+			} else {
+				start++
+			}
+			if pct, err := parseFloat(line[start:idx]); err == nil {
+				return pct
+			}
+		}
+	}
+	return 0
+}
+
+// analyzeNodeCoverage runs jest with --coverage and returns a coverage result JSON.
+// Uses npx jest so it works whether jest is installed locally or globally.
+func analyzeNodeCoverage(ctx context.Context, projectRoot string, minCoverage int, format string) (string, error) {
+	args := []string{"jest", "--coverage", "--coverageReporters=text"}
+	if format == "html" {
+		args = append(args, "--coverageReporters=html")
+	}
+
+	cmd := exec.CommandContext(ctx, "npx", args...)
+	cmd.Dir = projectRoot
+	output, err := cmd.CombinedOutput()
+	outputStr := string(output)
+
+	coveragePercent := parseNodeCoveragePercent(outputStr)
+
+	result := map[string]interface{}{
+		"framework":        "node",
+		"coverage_percent": coveragePercent,
+		"min_coverage":     minCoverage,
+		"meets_threshold":  coveragePercent >= float64(minCoverage),
+		"format":           format,
+		"output":           outputStr,
+	}
+	if err != nil {
+		exitErr := &exec.ExitError{}
+		if errors.As(err, &exitErr) {
+			result["returncode"] = exitErr.ExitCode()
+		}
+	}
+	if format == "html" {
+		result["html_dir"] = filepath.Join(projectRoot, "coverage")
+	}
+
+	jsonResult, _ := json.MarshalIndent(result, "", "  ")
+	return string(jsonResult), nil
+}
+
+// parseNodeCoveragePercent extracts the "All files" statements coverage from jest text output.
+// Jest prints a table: "All files | XX | ..." — we take the Statements column (index 1).
+func parseNodeCoveragePercent(output string) float64 {
+	for _, line := range strings.Split(output, "\n") {
+		if strings.Contains(line, "All files") {
+			parts := strings.Split(line, "|")
+			if len(parts) >= 2 {
+				if pct, err := parseFloat(strings.TrimSpace(parts[1])); err == nil {
+					return pct
+				}
+			}
+		}
+	}
+	return 0
 }
 
 // parseFloat is a simple float parser helper.

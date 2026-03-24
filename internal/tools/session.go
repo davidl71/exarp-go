@@ -405,6 +405,40 @@ func handleSessionPrime(ctx context.Context, params map[string]interface{}) ([]f
 	}
 
 	AddTokenEstimateToResult(result)
+
+	// Auto-compaction ledger: if context_threshold_pct is set (1–100), compare current token
+	// usage against budget and auto-write a CONTINUITY ledger when the threshold is exceeded.
+	if thresholdPct := cast.ToFloat64(params["context_threshold_pct"]); thresholdPct > 0 {
+		currentTokens := cast.ToInt(params["current_tokens"])
+		if currentTokens == 0 {
+			// Fall back to this response's own token estimate as a conservative proxy.
+			currentTokens, _ = result["token_estimate"].(int)
+		}
+		budgetTokens := cast.ToInt(params["budget_tokens"])
+		if budgetTokens == 0 {
+			budgetTokens = config.DefaultContextBudget()
+		}
+		if currentTokens > 0 && budgetTokens > 0 {
+			usagePct := float64(currentTokens) / float64(budgetTokens) * 100
+			if usagePct >= thresholdPct {
+				if ledgerPath, err := writeCompactionLedger(ctx, projectRoot, params); err == nil {
+					result["ledger_written"] = true
+					result["ledger_path"] = ledgerPath
+					result["ledger_trigger_pct"] = usagePct
+				}
+			}
+		}
+	}
+
+	// inject_ledger: include the latest compaction ledger in the prime result so the next
+	// session can read it without a separate call. Useful after context compaction.
+	if cast.ToBool(params["inject_ledger"]) {
+		if content, ledgerPath := readLatestLedger(projectRoot); content != "" {
+			result["latest_ledger"] = content
+			result["latest_ledger_path"] = ledgerPath
+		}
+	}
+
 	// Default compact=true for MCP callers to reduce token overhead; pass compact=false to opt out
 	compact := true
 	if v, ok := params["compact"]; ok {
