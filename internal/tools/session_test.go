@@ -152,6 +152,8 @@ func TestHandleSessionPrompts(t *testing.T) {
 	}
 }
 
+// known-failing: basic_assignee_request subtest expects method=native_go but gets a different value.
+// Likely a session assignee logic change that hasn't been reflected in the test expectation.
 func TestHandleSessionAssignee(t *testing.T) {
 	tests := []struct {
 		name      string

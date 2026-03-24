@@ -195,6 +195,8 @@ func TestHandleContextBudget(t *testing.T) {
 	}
 }
 
+// known-failing: context_summarize_action subtest requires Ollama running on localhost:11434.
+// Skip or start Ollama before running this test.
 func TestHandleContext(t *testing.T) {
 	tmpDir := t.TempDir()
 	t.Setenv("PROJECT_ROOT", tmpDir)

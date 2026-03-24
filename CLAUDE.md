@@ -2,7 +2,8 @@
 
 ## Project
 
-Go-based MCP server. 36 tools (37 with Apple FM), 36 prompts, 60 resources. Primary language: Go. Also: shell scripts (scripts/, ansible/), Ansible (YAML playbooks/roles in ansible/). SQLite-backed task system (Todo2). Apple Foundation Models + Ollama + MLX for local AI.
+Go-based MCP server. Primary language: Go. Also: shell scripts (scripts/, ansible/), Ansible (YAML playbooks/roles in ansible/). SQLite-backed task system (Todo2). Apple Foundation Models + Ollama + MLX for local AI.
+Run `make sanity-check` for current tool/prompt/resource counts (counts in this file go stale).
 
 ## MCP servers available in this session
 
@@ -16,6 +17,8 @@ Go-based MCP server. 36 tools (37 with Apple FM), 36 prompts, 60 resources. Prim
 ## Session start (always)
 
 Call `session` tool with `action=prime`, `include_hints=true`, `include_tasks=true` at the start of every session to get current task context, handoffs, and mode hints.
+
+> **Claude Code note**: MCP tool schemas are deferred — use `ToolSearch` to load a tool's schema before calling it. Load `session` first, then `task_workflow`, `report`, `health` as needed.
 
 ## Quick reference — common agent operations
 
@@ -123,10 +126,29 @@ Use `go run ./cmd/server ...` for CLI ops during development.
 - **Task store**: use `getTaskStore(ctx)` — never load JSON/DB directly in tool handlers
 - **Preferred backend**: stored in `task.Metadata["preferred_backend"]` (fm|mlx|ollama); read with `GetPreferredBackend(task.Metadata)`
 - **New task_workflow actions**: add to switch in `task_workflow_native.go`, handler in `task_workflow_actions.go` or `task_workflow_common.go`, enum in `registry.go`
-- **Count sync**: when adding tools/prompts/resources, update comment + test assertions + expected lists
+- **Count sync**: run `make sanity-check` after adding tools/prompts/resources; update `cmd/sanity-check/main.go` constants + `handlers_test.go` assertions
 - **Middleware chain** (factory/server.go): recovery → cache → logging → hooks. Add new middleware via `gosdk.WithMiddleware()`
 - **Singleflight**: scorecard uses `scorecardFlight.Do()` to dedup concurrent computations; tag cache uses `tagCacheFlight`
 - **ResourcesAsTools**: `TrackResource()` in `resources/handlers.go` feeds `read_resource`/`list_resources` tools
+- **Resource URIs**: prefer `stdio://agent/...`; `stdio://codex/...` are deprecated aliases kept for backward compat only
+- **Dependency wave / execution order**: `suggested_next[].level` IS the dependency wave (0 = ready now, no open blockers). `CalculateDependencyWave()` in `execution_orchestration.go` and `BacklogExecutionOrder()` in `graph_helpers.go` compute the same thing — don't reimplement
+
+## Key utilities (search before implementing)
+
+| Need | Where |
+|------|-------|
+| Dependency wave / execution order | `BacklogExecutionOrder()` — `internal/tools/graph_helpers.go`; returns ordered IDs, `waves map[int][]string`, details |
+| Task graph levels | `GetTaskLevels(tg)` — `internal/tools/graph_helpers.go` |
+| Wave for a single task | `CalculateDependencyWave(tasks, taskID)` — `internal/tools/execution_orchestration.go` |
+| Workflow contract (safe actions, preconditions) | `BuildWorkflowContract(task, claim, runs)` — `internal/tools/agent_resources.go` |
+| Agent startup briefing data | `BuildAgentBriefingData(ctx, projectRoot)` — `internal/tools/agent_resources.go` |
+| Per-task execution pack data | `BuildTaskExecutionPackData(ctx, projectRoot, taskID)` — `internal/tools/agent_resources.go` |
+| Alert data (stale locks, runs, review tasks) | `BuildAgentAlertsData(ctx, projectRoot)` — `internal/tools/agent_resources.go` |
+| Execution lane summary by role | `BuildExecutionOrchestrationSummary()` — `internal/tools/execution_orchestration.go` |
+| Lock/run/verification/progress → map | `lockToMap`, `runToMap`, `verificationToMap`, `progressToMap` — `internal/tools/task_workflow_execution.go` |
+| Agent role from task | `AgentRoleFromTask(task)` — `internal/tools/agent_role.go` |
+| Lazy task context (resource URIs) | `buildLazyTaskContext(task)` — `internal/tools/session_lazy_context.go` |
+| Recommended tools from metadata | `GetRecommendedTools(metadata)` — `internal/tools/agent_resources.go` |
 
 ## LLM backends
 

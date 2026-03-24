@@ -819,6 +819,8 @@ func TestHandleTaskWorkflowCleanupReportsStoreDrift(t *testing.T) {
 	}
 }
 
+// known-failing: expects recommended_tools length=3 but gets 1. Rule-based enrichment from
+// .cursor/rules likely returns fewer hints than expected; test expectation needs updating.
 func TestHandleTaskWorkflowEnrichToolHintsUsesProjectRulesAndIsIdempotent(t *testing.T) {
 	cleanup := initSessionTestDB(t)
 	defer cleanup()
@@ -931,6 +933,8 @@ func TestHandleTaskWorkflowApproveConfirmViaElicitation(t *testing.T) {
 	})
 }
 
+// known-failing: apply_approval_result_updates_task expects status=Done after approve but gets Review.
+// Approval workflow auto-transition logic changed; test expectation needs updating.
 func TestApprovalWorkflowActions(t *testing.T) {
 	tmpDir := t.TempDir()
 	t.Setenv("PROJECT_ROOT", tmpDir)

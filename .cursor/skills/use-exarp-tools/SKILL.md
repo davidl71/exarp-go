@@ -23,7 +23,9 @@ Apply this skill when the workspace uses the exarp-go MCP server and you need to
 | Task branches, merge task changes, task commit history, diff tasks | `git_tools` with `action=commits|branches|tasks|diff|graph|merge|set_branch`. |
 | **Task analysis (deps, duplicates, plan)** | `task_analysis` with `action=parallelization|dependencies|duplicates|conflicts|execution_plan|tags|suggest_deps|stale|completable`. |
 | **Run a task (execute)** | `task_execute` — execute a task by ID (single action). |
-| **Local llama.cpp inference** | `llamacpp` with `action=status|models|generate|load|unload`. Requires CGO + libbinding.a. |
+| **Agent startup briefing** | Resource `stdio://agent/briefing` — compact session prime + orchestration lanes + ledger in one fetch. |
+| **Per-task execution pack** | Resource `stdio://agent/task/{task_id}/execution-pack` — workflow contract, safe actions, preconditions, recent runs. |
+| **Execution alerts** | Resource `stdio://agent/alerts` — stale locks, long-running runs, review-ready tasks. |
 | **Broken references / link check in docs** | `lint` with `path` set to `docs` (or a `.md` file) and `linter=markdownlint` or `auto`. gomarklint link check is enabled in `.gomarklint.json`. See **lint-docs** skill. |
 | **Task discovery (TODO/markdown/orphans)** | `task_discovery` with `action=comments|markdown|planning_links|orphans|all`; optional `create_tasks=true`. Deprecated items (strikethrough, "(removed)") are never created as tasks — see `.cursor/rules/task-discovery.mdc`. |
 | Session context at conversation start | `session` with `action=prime`, `include_hints=true`, `include_tasks=true`. |
@@ -60,6 +62,7 @@ Using MCP resources avoids unnecessary process spawns and gives full tool/prompt
 1. **PROJECT_ROOT** – exarp-go uses the project root from its config (e.g. `PROJECT_ROOT` in `~/.cursor/mcp.json` env). Do not pass project root in tool args unless the tool schema asks for it.
 2. **Prefer convenience** – Use high-level flows (e.g. `exarp-go task ...`, `report` actions) before raw tool JSON when the skill or docs say to.
 3. **Errors** – If a tool fails, check that exarp-go is running and that PROJECT_ROOT matches the workspace you mean.
+4. **Claude Code — load schemas first** – MCP tool schemas are deferred in Claude Code. Use `ToolSearch` to load a tool's schema before invoking it. Common order: `session` → `task_workflow` → `report` → `health`. Resources (`read_resource`, `list_resources`) are always available without pre-loading.
 
 ## Examples
 
