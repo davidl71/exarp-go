@@ -36,6 +36,8 @@ type ModelRequirements struct {
 	PreferSpeed bool
 	// PreferCost prefers free/low-cost backends when set.
 	PreferCost bool
+	// AgentRole hints at the role the agent is playing for this task.
+	AgentRole string
 }
 
 // ModelRouter selects the best model for a task and runs generation.
@@ -59,6 +61,21 @@ var DefaultModelRouter ModelRouter = &defaultModelRouter{}
 // When OPENAI_GATEWAY_BASE_URL is set, gateway is preferred after FM so provider=auto can use it.
 // Availability: FMAvailable(), GatewayAvailable(), MLAvailable() (darwin/arm64); MLX preferred for code on Apple Silicon.
 func (r *defaultModelRouter) SelectModel(taskType string, requirements ModelRequirements) ModelType {
+	if requirements.AgentRole != "" {
+		switch requirements.AgentRole {
+		case AgentRolePlanner, AgentRoleReviewer:
+			if FMAvailable() {
+				return ModelFM
+			}
+		case AgentRoleResearcher:
+			if MLAvailable() {
+				return ModelMLX
+			}
+			if FMAvailable() {
+				return ModelFM
+			}
+		}
+	}
 	isCode := taskType == "code" || taskType == "code_analysis" || taskType == "code_generation"
 
 	if FMAvailable() {
@@ -130,10 +147,11 @@ func (r *defaultModelRouter) generateOllama(ctx context.Context, modelName, prom
 
 // ResolveModelForTask uses the recommend catalog (findBestModel) to pick a model for the given
 // task description and type, then maps to our local ModelType. Implements T-207 model selection logic.
-func ResolveModelForTask(taskDescription, taskType, optimizeFor string) (ModelType, ModelRequirements) {
+func ResolveModelForTask(taskDescription, taskType, optimizeFor, agentRole string) (ModelType, ModelRequirements) {
 	recommended := findBestModel(taskDescription, taskType, optimizeFor)
 
 	req := ModelRequirements{}
+	req.AgentRole = agentRole
 
 	switch optimizeFor {
 	case "speed":

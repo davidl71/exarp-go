@@ -8,6 +8,8 @@
 
 ## Testing Strategy
 
+> The integration tests live in `internal/tools/apple_foundation_test.go`, which is now tagged `darwin && arm64 && cgo && apple_fm`. They only compile when you add `-tags apple_fm` to `go test` (or run `make test-apple-fm`), so regular test runs skip the Apple FM suite until you opt in and have built the Swift bridge.
+
 ### Unit Tests (No Swift Bridge Required)
 
 Unit tests for helper functions can run on all platforms:
@@ -33,6 +35,8 @@ make build-swift-bridge
 # Run integration tests
 make test-apple-fm-integration
 ```
+
+> The integration suite also needs the `apple_fm` build tag (`go test -tags=apple_fm ...`), because `internal/tools/apple_foundation_test.go` is tagged `darwin && arm64 && cgo && apple_fm`.
 
 **Tests:**
 - Handler argument parsing
@@ -177,4 +181,3 @@ make build-swift-bridge
 2. ⏳ Build Swift bridge when ready for integration tests
 3. ⏳ Run integration tests with actual Foundation Models API
 4. ⏳ Test on unsupported platforms to verify graceful fallback
-

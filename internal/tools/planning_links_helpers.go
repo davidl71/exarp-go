@@ -13,6 +13,8 @@ import (
 	"github.com/davidl71/exarp-go/internal/security"
 )
 
+var planningTaskIDRe = regexp.MustCompile(`^T-\d+$`)
+
 // PlanningLinkMetadata represents planning document link metadata stored in task metadata.
 type PlanningLinkMetadata struct {
 	PlanningDoc string   `json:"planning_doc,omitempty"` // Path to planning document
@@ -121,8 +123,7 @@ func ValidateTaskReference(taskID string, tasks []models.Todo2Task) error {
 	}
 
 	// Validate task ID format (T- followed by digits)
-	taskIDPattern := regexp.MustCompile(`^T-\d+$`)
-	if !taskIDPattern.MatchString(taskID) {
+	if !planningTaskIDRe.MatchString(taskID) {
 		return fmt.Errorf("invalid task ID format: %s (expected T-123 or T-1234567890)", taskID)
 	}
 

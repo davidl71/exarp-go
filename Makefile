@@ -222,34 +222,14 @@ help: ## Show this help message
 	@echo "  $(GREEN)make pre-push$(NC)   - Run before git push"
 
 b: build ## Short alias: make b = make build (single Go binary)
-build: ## Build the Go server (CGO enabled on Mac Silicon by default, disabled elsewhere)
+build: ## Build the Go server (CGO disabled for portability)
 	$(Q)echo "$(BLUE)Building $(PROJECT_NAME) v$(VERSION)...$(NC)"
 	@if ! command -v $(GO) >/dev/null 2>&1 && [ ! -x "$(GO)" ]; then \
 		echo "$(RED)❌ Go not found. Install Go or set PATH to include Go bin directory$(NC)"; \
 		exit 1; \
 	fi
-	@# Sync vendor if needed (fast no-op if already in sync)
-	@if [ -d vendor ]; then \
-		$(GO) mod vendor 2>/dev/null || true; \
-	fi
-	@# Detect Mac Silicon (Darwin + arm64) - use CGO for Apple Foundation Models unless disabled.
-	@if [ "$$(uname -s)" = "Darwin" ] && [ "$$(uname -m)" = "arm64" ] && [ "$(NO_APPLE_FM)" != "1" ]; then \
-		if command -v gcc >/dev/null 2>&1 || command -v clang >/dev/null 2>&1 || command -v cc >/dev/null 2>&1; then \
-			echo "$(BLUE)Detected Mac Silicon - Building with CGO (Apple Foundation Models support)$(NC)"; \
-			$(MAKE) build-swift-bridge 2>/dev/null || true; \
-			CGO_ENABLED=1 $(GO) build -ldflags "-X main.Version=$(VERSION) -X main.BuildTime=$(BUILD_TIME) -X main.GitCommit=$(GIT_COMMIT)" -o $(BINARY_PATH) ./cmd/server 2>&1 || (echo "$(YELLOW)⚠️  CGO build failed - falling back to build without CGO$(NC)" && CGO_ENABLED=0 $(GO) build -ldflags "-X main.Version=$(VERSION) -X main.BuildTime=$(BUILD_TIME) -X main.GitCommit=$(GIT_COMMIT)" -o $(BINARY_PATH) ./cmd/server || (echo "$(RED)❌ Build failed$(NC)" && exit 1)); \
-			echo "$(GREEN)✅ Server built: $(BINARY_PATH) (v$(VERSION))$(NC)"; \
-		else \
-			echo "$(YELLOW)⚠️  Mac Silicon detected but C compiler not found - Building without CGO$(NC)"; \
-			echo "$(YELLOW)   Install Xcode Command Line Tools: xcode-select --install$(NC)"; \
-			CGO_ENABLED=0 $(GO) build -ldflags "-X main.Version=$(VERSION) -X main.BuildTime=$(BUILD_TIME) -X main.GitCommit=$(GIT_COMMIT)" -o $(BINARY_PATH) ./cmd/server || (echo "$(RED)❌ Build failed$(NC)" && exit 1); \
-			echo "$(GREEN)✅ Server built: $(BINARY_PATH) (v$(VERSION))$(NC)"; \
-		fi; \
-	else \
-		echo "$(BLUE)Building without CGO for portability (static binary, cross-platform)$(NC)"; \
-		CGO_ENABLED=0 $(GO) build -ldflags "-X main.Version=$(VERSION) -X main.BuildTime=$(BUILD_TIME) -X main.GitCommit=$(GIT_COMMIT)" -o $(BINARY_PATH) ./cmd/server || (echo "$(RED)❌ Build failed$(NC)" && exit 1); \
-		echo "$(GREEN)✅ Server built: $(BINARY_PATH) (v$(VERSION))$(NC)"; \
-	fi
+	@CGO_ENABLED=0 $(GO) build -ldflags "-X main.Version=$(VERSION) -X main.BuildTime=$(BUILD_TIME) -X main.GitCommit=$(GIT_COMMIT)" -o $(BINARY_PATH) ./cmd/server || (echo "$(RED)❌ Build failed$(NC)" && exit 1)
+	@echo "$(GREEN)✅ Server built: $(BINARY_PATH) (v$(VERSION))$(NC)"
 
 b-local: build-local ## Short alias: make b-local = make build-local
 build-local: ## Build using local mcp-go-core (go mod replace); -mod=mod, CGO_ENABLED=0. Requires: go mod edit -replace github.com/davidl71/mcp-go-core=../mcp-go-core
@@ -775,158 +755,6 @@ go-bench: ## Run Go benchmarks (without CGO to avoid Apple FM dependencies)
 	@echo "$(BLUE)Running Go benchmarks (CGO_ENABLED=0)...$(NC)"
 	@CGO_ENABLED=0 $(GO) test -bench=. -benchmem -benchtime=3s ./internal/tools/... || \
 	 echo "$(YELLOW)⚠️  Go benchmarks failed$(NC)"
-
-##@ Apple Foundation Models
-
-# Allow disabling Apple Foundation Models when linking is not possible.
-NO_APPLE_FM ?= 0
-
-# CGO availability detection
-# Checks if CGO can be enabled (requires C compiler)
-CGO_AVAILABLE := $(shell \
-	if command -v gcc >/dev/null 2>&1 || command -v clang >/dev/null 2>&1 || command -v cc >/dev/null 2>&1; then \
-		echo "1"; \
-	else \
-		echo "0"; \
-	fi \
-)
-
-# Platform detection for Swift bridge support
-# Checks: macOS (Darwin) + arm64 architecture + Swift compiler available
-ifeq ($(NO_APPLE_FM),1)
-SWIFT_BRIDGE_SUPPORTED := 0
-else
-SWIFT_BRIDGE_SUPPORTED := $(shell \
-	if [ "$$(uname -s)" = "Darwin" ] && [ "$$(uname -m)" = "arm64" ]; then \
-		if command -v swiftc >/dev/null 2>&1 && command -v xcrun >/dev/null 2>&1; then \
-			echo "1"; \
-		else \
-			echo "0"; \
-		fi; \
-	else \
-		echo "0"; \
-	fi \
-)
-endif
-
-build-no-cgo: ## Build without CGO (explicitly disable CGO even on Mac Silicon)
-	@echo "$(BLUE)Building $(PROJECT_NAME) v$(VERSION) without CGO...$(NC)"
-	@if ! command -v $(GO) >/dev/null 2>&1 && [ ! -x "$(GO)" ]; then \
-		echo "$(RED)❌ Go not found. Install Go or set PATH to include Go bin directory$(NC)"; \
-		exit 1; \
-	fi
-	@echo "$(YELLOW)Note: Building without CGO (static binary, cross-platform)$(NC)"
-	@CGO_ENABLED=0 $(GO) build -ldflags "-X main.Version=$(VERSION) -X main.BuildTime=$(BUILD_TIME) -X main.GitCommit=$(GIT_COMMIT)" -o $(BINARY_PATH) ./cmd/server || (echo "$(RED)❌ Build failed$(NC)" && exit 1)
-	@echo "$(GREEN)✅ Server built: $(BINARY_PATH) (v$(VERSION))$(NC)"
-
-build-apple-fm: build-swift-bridge ## Build with Apple Foundation Models support (CGO_ENABLED=1, full Swift bridge)
-	@if [ "$(CGO_AVAILABLE)" != "1" ]; then \
-		echo "$(RED)❌ CGO is not available - required for Apple Foundation Models$(NC)"; \
-		echo "$(YELLOW)   Reason: C compiler not found (gcc, clang, or cc)$(NC)"; \
-		echo "$(YELLOW)   Solution: Install a C compiler to enable CGO$(NC)"; \
-		echo "$(YELLOW)   - macOS: Install Xcode Command Line Tools: xcode-select --install$(NC)"; \
-		echo "$(YELLOW)   - Linux: Install gcc: sudo apt-get install gcc (Debian/Ubuntu) or sudo yum install gcc (RHEL/CentOS)$(NC)"; \
-		echo "$(YELLOW)   - Or use 'make build' for a build without Apple FM support$(NC)"; \
-		exit 1; \
-	fi
-	@echo "$(BLUE)Building with Apple Foundation Models support...$(NC)"
-	@if [ -d "vendor" ]; then \
-		echo "$(BLUE)Using vendor directory for build...$(NC)"; \
-		CGO_ENABLED=1 go build -mod=vendor -o $(BINARY_PATH) ./cmd/server 2>&1 | grep -v "ld: warning:" || true; \
-		if [ -f "$(BINARY_PATH)" ]; then \
-			echo "$(GREEN)✅ Server built with Apple FM support: $(BINARY_PATH)$(NC)"; \
-		else \
-			echo "$(YELLOW)⚠️  Build with Apple FM failed - Swift bridge may not be available$(NC)"; \
-			echo "$(YELLOW)   Building without Apple FM support (CGO disabled)$(NC)"; \
-			CGO_ENABLED=0 go build -mod=vendor -o $(BINARY_PATH) ./cmd/server || \
-			 (echo "$(RED)❌ Build failed$(NC)" && exit 1); \
-			echo "$(GREEN)✅ Server built without Apple FM support: $(BINARY_PATH)$(NC)"; \
-			echo "$(YELLOW)   Note: Apple Foundation Models tool will not be available$(NC)"; \
-		fi; \
-	else \
-		CGO_ENABLED=1 go build -o $(BINARY_PATH) ./cmd/server 2>&1 | grep -v "ld: warning:" || true; \
-		if [ -f "$(BINARY_PATH)" ]; then \
-			echo "$(GREEN)✅ Server built with Apple FM support: $(BINARY_PATH)$(NC)"; \
-		else \
-			echo "$(YELLOW)⚠️  Build with Apple FM failed - Swift bridge may not be available$(NC)"; \
-			echo "$(YELLOW)   Building without Apple FM support (CGO disabled)$(NC)"; \
-			CGO_ENABLED=0 go build -o $(BINARY_PATH) ./cmd/server || \
-			 (echo "$(RED)❌ Build failed$(NC)" && exit 1); \
-			echo "$(GREEN)✅ Server built without Apple FM support: $(BINARY_PATH)$(NC)"; \
-			echo "$(YELLOW)   Note: Apple Foundation Models tool will not be available$(NC)"; \
-		fi; \
-	fi
-
-build-swift-bridge: ## Build Swift bridge in go-foundationmodels package (auto-detects platform support)
-	@if [ "$(NO_APPLE_FM)" = "1" ]; then \
-		echo "$(YELLOW)⚠️  Apple FM temporarily disabled (NO_APPLE_FM=1) - skipping Swift bridge$(NC)"; \
-		exit 0; \
-	fi
-	@if [ "$(SWIFT_BRIDGE_SUPPORTED)" != "1" ]; then \
-		echo "$(YELLOW)⚠️  Swift bridge not supported on this platform$(NC)"; \
-		if [ "$$(uname -s)" != "Darwin" ]; then \
-			echo "$(YELLOW)   Reason: Not macOS (current OS: $$(uname -s))$(NC)"; \
-		elif [ "$$(uname -m)" != "arm64" ]; then \
-			echo "$(YELLOW)   Reason: Not Apple Silicon (current arch: $$(uname -m))$(NC)"; \
-		elif ! command -v swiftc >/dev/null 2>&1; then \
-			echo "$(YELLOW)   Reason: Swift compiler not found (install Xcode)$(NC)"; \
-		elif ! command -v xcrun >/dev/null 2>&1; then \
-			echo "$(YELLOW)   Reason: xcrun not found (install Xcode)$(NC)"; \
-		fi; \
-		echo "$(YELLOW)   Skipping Swift bridge build$(NC)"; \
-		exit 0; \
-	fi
-	@echo "$(BLUE)Building Swift bridge for go-foundationmodels...$(NC)"
-	@echo "$(YELLOW)Note: Module cache is read-only, using vendor directory...$(NC)"
-	@if [ ! -d "vendor" ]; then \
-		echo "$(BLUE)Creating vendor directory...$(NC)"; \
-		go mod vendor; \
-	fi
-	@if [ -d "vendor/github.com/blacktop/go-foundationmodels" ]; then \
-		cd vendor/github.com/blacktop/go-foundationmodels && \
-		if [ -f "libFMShim.a" ]; then \
-			echo "$(GREEN)✅ Swift bridge already built$(NC)"; \
-		else \
-			echo "$(BLUE)Compiling Swift bridge...$(NC)"; \
-			if swiftc -sdk $$(xcrun --show-sdk-path) -target arm64-apple-macos26 -emit-object -parse-as-library -whole-module-optimization -O -o libFMShim.o FoundationModelsShim.swift 2>/dev/null && \
-			   ar rcs libFMShim.a libFMShim.o && \
-			   rm -f libFMShim.o; then \
-				echo "$(GREEN)✅ Swift bridge built in vendor directory$(NC)"; \
-			else \
-				echo "$(YELLOW)⚠️  Swift bridge build failed - Apple FM will not be available$(NC)"; \
-				echo "$(YELLOW)   This is non-fatal - build will continue without Apple FM support$(NC)"; \
-			fi; \
-		fi; \
-	elif [ -d "$$(go list -m -f '{{.Dir}}' github.com/blacktop/go-foundationmodels@v0.1.8 2>/dev/null)" ]; then \
-		echo "$(YELLOW)⚠️  Vendor directory not found, trying module cache (may fail)...$(NC)"; \
-		cd $$(go list -m -f '{{.Dir}}' github.com/blacktop/go-foundationmodels@v0.1.8) && \
-		if swiftc -sdk $$(xcrun --show-sdk-path) -target arm64-apple-macos26 -emit-object -parse-as-library -whole-module-optimization -O -o libFMShim.o FoundationModelsShim.swift 2>/dev/null && \
-		   ar rcs libFMShim.a libFMShim.o && \
-		   rm -f libFMShim.o; then \
-			echo "$(GREEN)✅ Swift bridge built$(NC)"; \
-		else \
-			echo "$(YELLOW)⚠️  Swift bridge build failed - Apple FM will not be available$(NC)"; \
-			echo "$(YELLOW)   This is non-fatal - build will continue without Apple FM support$(NC)"; \
-		fi; \
-	else \
-		echo "$(YELLOW)⚠️  go-foundationmodels package not found$(NC)"; \
-		echo "$(YELLOW)   Swift bridge cannot be built - Apple FM will not be available$(NC)"; \
-		echo "$(YELLOW)   This is non-fatal - build will continue without Apple FM support$(NC)"; \
-		echo "$(YELLOW)   Try running: go mod vendor$(NC)"; \
-	fi
-
-test-apple-fm: test-apple-fm-unit test-apple-fm-integration ## Run all Apple Foundation Models tests
-
-test-apple-fm-unit: ## Run Apple Foundation Models unit tests (no Swift bridge required)
-	@echo "$(BLUE)Running Apple FM unit tests...$(NC)"
-	@go test ./internal/tools/apple_foundation_helpers_test.go ./internal/tools/apple_foundation_helpers.go -v || \
-	 echo "$(YELLOW)⚠️  Unit tests failed or skipped$(NC)"
-
-test-apple-fm-integration: build-apple-fm ## Run Apple Foundation Models integration tests (requires Swift bridge)
-	@echo "$(BLUE)Running Apple FM integration tests...$(NC)"
-	@echo "$(YELLOW)Note: Requires Swift bridge to be built$(NC)"
-	@CGO_ENABLED=1 go test ./internal/tools -run TestHandleAppleFoundationModels -v || \
-	 echo "$(YELLOW)⚠️  Integration tests failed (may need Swift bridge)$(NC)"
 
 ##@ Sprint Automation
 

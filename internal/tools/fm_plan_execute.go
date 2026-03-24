@@ -18,6 +18,13 @@ import (
 	"github.com/davidl71/exarp-go/internal/framework"
 )
 
+var (
+	fmCodeFenceOpenRe  = regexp.MustCompile("(?s)^```\\w*\\n?")
+	fmCodeFenceCloseRe = regexp.MustCompile("\\n?```\\s*$")
+	fmNumberedListRe   = regexp.MustCompile(`^\d+[.)]\s*`)
+	fmBulletListRe     = regexp.MustCompile(`^[-*]\s*`)
+)
+
 const (
 	defaultMaxSubtasks  = 5
 	defaultPlanTokens   = 512
@@ -125,8 +132,8 @@ func parseSubtasks(planOut string, max int) []string {
 	}
 	// Strip markdown code block if present
 	if strings.HasPrefix(planOut, "```") {
-		planOut = regexp.MustCompile("(?s)^```\\w*\\n?").ReplaceAllString(planOut, "")
-		planOut = regexp.MustCompile("\\n?```\\s*$").ReplaceAllString(planOut, "")
+		planOut = fmCodeFenceOpenRe.ReplaceAllString(planOut, "")
+		planOut = fmCodeFenceCloseRe.ReplaceAllString(planOut, "")
 		planOut = strings.TrimSpace(planOut)
 		if err := json.Unmarshal([]byte(planOut), &arr); err == nil && len(arr) > 0 {
 			if len(arr) > max {
@@ -140,12 +147,8 @@ func parseSubtasks(planOut string, max int) []string {
 	for _, line := range lines {
 		line = strings.TrimSpace(line)
 		// Remove leading "1. ", "2. ", "- ", "* "
-		for _, re := range []*regexp.Regexp{
-			regexp.MustCompile(`^\d+[.)]\s*`),
-			regexp.MustCompile(`^[-*]\s*`),
-		} {
-			line = re.ReplaceAllString(line, "")
-		}
+		line = fmNumberedListRe.ReplaceAllString(line, "")
+		line = fmBulletListRe.ReplaceAllString(line, "")
 		line = strings.TrimSpace(line)
 		if line != "" {
 			arr = append(arr, line)

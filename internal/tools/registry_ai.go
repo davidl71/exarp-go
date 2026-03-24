@@ -301,11 +301,6 @@ func registerAITools(server framework.MCPServer) error {
 		return fmt.Errorf("failed to register mlx: %w", err)
 	}
 
-	// Apple Foundation Models tool (platform-specific, conditional compilation)
-	if err := registerAppleFoundationModelsTool(server); err != nil {
-		return err
-	}
-
 	// text_generate
 	if err := server.RegisterTool(
 		"text_generate",

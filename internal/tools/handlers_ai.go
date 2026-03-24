@@ -352,7 +352,7 @@ func handleOllama(ctx context.Context, args json.RawMessage) ([]framework.TextCo
 	return result, nil
 }
 
-// handleMlx handles the mlx tool. Native-only: models (static list); status/hardware return unavailable message; generate returns error (use ollama or apple_foundation_models). Python bridge removed.
+// handleMlx handles the mlx tool. Native-only: models (static list); status/hardware return unavailable message; generate returns error (use ollama or other providers). Python bridge removed.
 func handleMlx(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
 	req, params, err := ParseMlxRequest(args)
 	if err != nil {

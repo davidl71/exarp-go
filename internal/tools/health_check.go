@@ -21,6 +21,11 @@ import (
 	"github.com/spf13/cast"
 )
 
+var (
+	healthModuleRe = regexp.MustCompile(`module\s+([^\s]+)`)
+	healthVersionRe = regexp.MustCompile(`version\s*=\s*["']([^"']+)["']`)
+)
+
 // Design limit for MCP tool count (monitored by tool_count_health / health action=tools).
 const designLimitTools = 40
 
@@ -119,9 +124,7 @@ func handleHealthServer(ctx context.Context, params map[string]interface{}) ([]f
 		content, _, err := fileCache.ReadFile(goModPath)
 		if err == nil {
 			// Look for module declaration
-			moduleRegex := regexp.MustCompile(`module\s+([^\s]+)`)
-
-			matches := moduleRegex.FindStringSubmatch(string(content))
+			matches := healthModuleRe.FindStringSubmatch(string(content))
 			if len(matches) > 1 {
 				// Try to get version from git
 				gitCmd := exec.CommandContext(ctx, "git", "describe", "--tags", "--always")
@@ -145,9 +148,7 @@ func handleHealthServer(ctx context.Context, params map[string]interface{}) ([]f
 			content, _, err := fileCache.ReadFile(pyprojectPath)
 			if err == nil {
 				// Look for version = "x.y.z"
-				versionRegex := regexp.MustCompile(`version\s*=\s*["']([^"']+)["']`)
-
-				matches := versionRegex.FindStringSubmatch(string(content))
+				matches := healthVersionRe.FindStringSubmatch(string(content))
 				if len(matches) > 1 {
 					version = matches[1]
 				}

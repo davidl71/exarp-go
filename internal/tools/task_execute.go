@@ -124,7 +124,8 @@ func RunTaskExecutionFlow(ctx context.Context, p RunTaskExecutionFlowParams) (*R
 	if router == nil {
 		router = DefaultModelRouter
 	}
-	modelType := router.SelectModel("code_generation", ModelRequirements{})
+	requirements := ModelRequirements{AgentRole: AgentRoleFromTask(task)}
+	modelType := router.SelectModel("code_generation", requirements)
 
 	text, err := router.Generate(ctx, modelType, prompt, defaultMaxTokens, defaultTemperature)
 	if err != nil {

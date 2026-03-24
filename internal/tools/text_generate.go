@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/davidl71/exarp-go/internal/framework"
 )
@@ -45,8 +46,10 @@ func handleTextGenerate(ctx context.Context, args json.RawMessage) ([]framework.
 	// Model selection (T-207): when provider=auto or task hints provided, use recommend + router
 	useModelSelection := provider == "auto" || taskType != "" || taskDesc != ""
 
+	agentRole := strings.TrimSpace(strings.ToLower(ParamString(params, "agent_role")))
+
 	if useModelSelection {
-		modelType, _ := ResolveModelForTask(taskDesc, taskType, optimizeFor)
+		modelType, _ := ResolveModelForTask(taskDesc, taskType, optimizeFor, agentRole)
 
 		text, err := DefaultModelRouter.Generate(ctx, modelType, prompt, maxTokens, temperature)
 		if err != nil {

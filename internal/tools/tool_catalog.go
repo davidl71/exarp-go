@@ -289,14 +289,6 @@ func GetToolCatalog() map[string]ToolCatalogEntry {
 		},
 
 		// AI & ML (LLM abstraction: FM, Ollama, MLX)
-		"apple_foundation_models": {
-			Tool:             "apple_foundation_models",
-			Hint:             "LLM abstraction (FM). action=generate|respond|summarize|classify. On-device Apple Silicon. Uses DefaultFMProvider().",
-			Category:         "AI & ML",
-			Description:      "Apple Foundation Models on-device; part of LLM abstraction (FMProvider)",
-			Class:            "specialist",
-			RecommendedModel: "claude-haiku",
-		},
 		"fm_plan_and_execute": {
 			Tool:             "fm_plan_and_execute",
 			Hint:             "Plan-and-execute with FM/Ollama. Breaks task into subtasks (planner), runs workers in parallel, combines. Use for complex single-shot tasks.",

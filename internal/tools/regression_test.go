@@ -402,7 +402,7 @@ func TestRegressionFeatureParity(t *testing.T) {
 		"recommend":           "Hybrid: native workflow/model; Python fallback when native fails.",
 		"health":              "Hybrid: native server/docs/dod/cicd; Python fallback when native fails.",
 		"ollama":              "Hybrid: native uses HTTP client; Python bridge may differ.",
-		"mlx":                 "Native-only; models (static list); status/hardware return unavailable message; generate returns error (use ollama or apple_foundation_models). Python bridge removed.",
+		"mlx":                 "Native-only; models (static list); status/hardware return unavailable message; generate returns error (use ollama or other providers). Python bridge removed.",
 	}
 
 	for tool, reason := range knownDifferences {

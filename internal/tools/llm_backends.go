@@ -20,10 +20,9 @@ func LLMBackendStatus() map[string]interface{} {
 		"gateway_available": GatewayAvailable(),
 		"ollama_tool":       "ollama",
 		"mlx_tool":          "mlx",
-		"apple_fm_tool":     "apple_foundation_models",
 		"localai_tool":      "text_generate",
 		"gateway_tool":      "text_generate",
-		"hint":              "text_generate is the unified generate-text dispatcher (provider=fm|ollama|mlx|localai|gateway|insight|auto). Use provider=auto for model selection. Use provider=gateway with OPENAI_GATEWAY_BASE_URL for any OpenAI-compatible router. Separate tools (apple_foundation_models, ollama, mlx) offer rich actions beyond generation.",
+		"hint":              "text_generate is the unified generate-text dispatcher (provider=fm|ollama|mlx|localai|gateway|insight|auto). Use provider=auto for model selection. Use provider=gateway with OPENAI_GATEWAY_BASE_URL for any OpenAI-compatible router.",
 	}
 }
 

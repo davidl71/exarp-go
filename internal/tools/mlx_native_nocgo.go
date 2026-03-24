@@ -20,12 +20,12 @@ func handleMlxNative(ctx context.Context, params map[string]interface{}) ([]fram
 	case "status", "hardware":
 		msg := map[string]interface{}{
 			"success": true,
-			"message": "MLX not available in this build. Use action=models for static model list, or use ollama/apple_foundation_models for generation.",
+			"message": "MLX not available in this build. Use action=models for static model list, or use ollama for generation.",
 		}
 
 		return framework.FormatResult(msg, "")
 	case "generate":
-		return nil, fmt.Errorf("MLX generate not available in this build; use ollama or apple_foundation_models tool instead")
+		return nil, fmt.Errorf("MLX generate not available in this build; use ollama or another supported provider instead")
 	default:
 		return nil, fmt.Errorf("unknown mlx action %q; use status, hardware, models, or generate", action)
 	}

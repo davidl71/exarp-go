@@ -482,7 +482,8 @@ func enrichTaskTagSuggestionsWithLLM(ctx context.Context, tasks []Todo2Task, ana
 	}
 
 	// Use DefaultModelRouter for tag enrichment: FM chain, then Ollama, then MLX.
-	requirements := ModelRequirements{PreferSpeed: useTinyTagModel}
+	role := dominantAgentRole(tasks)
+	requirements := ModelRequirements{PreferSpeed: useTinyTagModel, AgentRole: role}
 	model := DefaultModelRouter.SelectModel("general", requirements)
 	method = modelTypeToMethodString(model)
 
