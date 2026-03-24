@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/davidl71/exarp-go/internal/models"
 	"github.com/jmoiron/sqlx"
@@ -509,12 +510,16 @@ func FindNextClaimableTask(ctx context.Context) (*Todo2Task, error) {
 			return fmt.Errorf("failed to get database: %w", err)
 		}
 
+		// Exclude tasks currently locked by an agent (assignee set + lock not yet expired).
+		// assigned_to is persistent ownership; assignee+lock_until is the agent lock column.
+		now := time.Now().Unix()
 		query := `
 			SELECT id, content, long_description, status, priority, completed, created, last_modified,
 			       completed_at, metadata, metadata_protobuf, metadata_format, parent_id, project_id,
 			       assigned_to, host, agent
 			FROM tasks
-			WHERE status = ? AND (assigned_to IS NULL OR assigned_to = '')
+			WHERE status = ?
+			  AND (assignee IS NULL OR lock_until IS NULL OR lock_until < ?)
 			ORDER BY
 				CASE priority
 					WHEN 'high' THEN 1
@@ -526,7 +531,7 @@ func FindNextClaimableTask(ctx context.Context) (*Todo2Task, error) {
 			LIMIT 1
 		`
 
-		row := db.QueryRowContext(queryCtx, query, StatusTodo)
+		row := db.QueryRowContext(queryCtx, query, StatusTodo, now)
 
 		task = &Todo2Task{}
 		var completedInt int

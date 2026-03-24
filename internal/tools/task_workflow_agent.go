@@ -192,14 +192,20 @@ func handleTaskWorkflowBatchClaim(ctx context.Context, params map[string]interfa
 			})
 		}
 	} else {
-		for i := 0; i < count; i++ {
+		// Auto-discover: find + claim up to count tasks. If a claim fails due to a concurrent
+		// agent racing us (TOCTOU between find and claim), retry up to maxAutoClaimAttempts times
+		// rather than silently stopping short.
+		const maxAutoClaimAttempts = 3
+		attempts := 0
+		for len(claimed) < count && attempts < count*maxAutoClaimAttempts {
+			attempts++
 			next, err := findNextClaimableTask(ctx)
 			if err != nil || next == nil {
-				break
+				break // No more claimable tasks
 			}
 			result, err := database.ClaimTaskForAgent(ctx, next.ID, agentID, lease)
 			if err != nil || !result.Success {
-				continue
+				continue // Race lost — find returns next available candidate on next iteration
 			}
 			claimed = append(claimed, next.ID)
 			results = append(results, map[string]interface{}{
