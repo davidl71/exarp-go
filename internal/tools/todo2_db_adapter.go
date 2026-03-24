@@ -98,6 +98,20 @@ func saveTodo2TasksToDB(projectRoot string, tasks []Todo2Task) error {
 		// First, try to find by ID using preloaded map (no DB round-trip)
 		existing := existingByID[task.ID]
 		if existing == nil {
+			existing, err = loadExistingTask(ctx, task.ID)
+			if err != nil {
+				saveErr = fmt.Errorf("failed to load existing task %s: %w", task.ID, err)
+				if saveErr != nil {
+					errs = append(errs, saveErr.Error())
+				}
+				continue
+			}
+			if existing != nil {
+				existingByID[task.ID] = existing
+			}
+		}
+
+		if existing == nil {
 			// Not found by ID — try content match for non-AUTO tasks
 			var matchedTask *database.Todo2Task
 			if !strings.HasPrefix(task.ID, "AUTO-") {
@@ -231,6 +245,24 @@ func isUniqueConstraintError(err error) bool {
 		return false
 	}
 	return strings.Contains(err.Error(), "UNIQUE constraint failed")
+}
+
+func loadExistingTask(ctx context.Context, id string) (*database.Todo2Task, error) {
+	task, err := database.GetTask(ctx, id)
+	if err != nil {
+		if isTaskNotFoundError(err, id) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return task, nil
+}
+
+func isTaskNotFoundError(err error, id string) bool {
+	if err == nil {
+		return false
+	}
+	return strings.Contains(err.Error(), fmt.Sprintf("task %s not found", id))
 }
 
 // filterValidDependencies filters out dependencies that do not exist in the sorted task list or
