@@ -232,8 +232,8 @@ build: ## Build the Go server (CGO enabled on Mac Silicon by default, disabled e
 	@if [ -d vendor ]; then \
 		$(GO) mod vendor 2>/dev/null || true; \
 	fi
-	@# Detect Mac Silicon (Darwin + arm64) - use CGO for Apple Foundation Models
-	@if [ "$$(uname -s)" = "Darwin" ] && [ "$$(uname -m)" = "arm64" ]; then \
+	@# Detect Mac Silicon (Darwin + arm64) - use CGO for Apple Foundation Models unless disabled.
+	@if [ "$$(uname -s)" = "Darwin" ] && [ "$$(uname -m)" = "arm64" ] && [ "$(NO_APPLE_FM)" != "1" ]; then \
 		if command -v gcc >/dev/null 2>&1 || command -v clang >/dev/null 2>&1 || command -v cc >/dev/null 2>&1; then \
 			echo "$(BLUE)Detected Mac Silicon - Building with CGO (Apple Foundation Models support)$(NC)"; \
 			$(MAKE) build-swift-bridge 2>/dev/null || true; \
@@ -778,6 +778,9 @@ go-bench: ## Run Go benchmarks (without CGO to avoid Apple FM dependencies)
 
 ##@ Apple Foundation Models
 
+# Allow disabling Apple Foundation Models when linking is not possible.
+NO_APPLE_FM ?= 0
+
 # CGO availability detection
 # Checks if CGO can be enabled (requires C compiler)
 CGO_AVAILABLE := $(shell \
@@ -790,6 +793,9 @@ CGO_AVAILABLE := $(shell \
 
 # Platform detection for Swift bridge support
 # Checks: macOS (Darwin) + arm64 architecture + Swift compiler available
+ifeq ($(NO_APPLE_FM),1)
+SWIFT_BRIDGE_SUPPORTED := 0
+else
 SWIFT_BRIDGE_SUPPORTED := $(shell \
 	if [ "$$(uname -s)" = "Darwin" ] && [ "$$(uname -m)" = "arm64" ]; then \
 		if command -v swiftc >/dev/null 2>&1 && command -v xcrun >/dev/null 2>&1; then \
@@ -801,6 +807,7 @@ SWIFT_BRIDGE_SUPPORTED := $(shell \
 		echo "0"; \
 	fi \
 )
+endif
 
 build-no-cgo: ## Build without CGO (explicitly disable CGO even on Mac Silicon)
 	@echo "$(BLUE)Building $(PROJECT_NAME) v$(VERSION) without CGO...$(NC)"
@@ -851,6 +858,10 @@ build-apple-fm: build-swift-bridge ## Build with Apple Foundation Models support
 	fi
 
 build-swift-bridge: ## Build Swift bridge in go-foundationmodels package (auto-detects platform support)
+	@if [ "$(NO_APPLE_FM)" = "1" ]; then \
+		echo "$(YELLOW)⚠️  Apple FM temporarily disabled (NO_APPLE_FM=1) - skipping Swift bridge$(NC)"; \
+		exit 0; \
+	fi
 	@if [ "$(SWIFT_BRIDGE_SUPPORTED)" != "1" ]; then \
 		echo "$(YELLOW)⚠️  Swift bridge not supported on this platform$(NC)"; \
 		if [ "$$(uname -s)" != "Darwin" ]; then \

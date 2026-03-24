@@ -51,6 +51,8 @@ The `go-foundationmodels` package requires building a Swift bridge library. This
    CGO_ENABLED=1 go build ./cmd/server
    ```
 
+> If you cannot build the Swift bridge or want to temporarily bypass Apple Foundation Models, set `NO_APPLE_FM=1` before running `make build`; the Makefile will skip the `build-swift-bridge` step and build without CGO support so the server still compiles.
+
 ### Alternative: Conditional Compilation
 
 For production, consider using build tags to make Apple Foundation Models optional:
