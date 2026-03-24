@@ -136,6 +136,14 @@ func saveTodo2TasksToDB(projectRoot string, tasks []Todo2Task) error {
 							successCount++
 							continue
 						}
+					} else if isUniqueConstraintError(err) {
+						if updateErr := database.UpdateTask(ctx, &task); updateErr != nil {
+							saveErr = fmt.Errorf("failed to update task %s after unique constraint: %w", task.ID, updateErr)
+						} else {
+							existingByID[task.ID] = &task
+							successCount++
+							continue
+						}
 					} else {
 						saveErr = fmt.Errorf("failed to create task %s: %w", task.ID, err)
 					}
@@ -216,6 +224,13 @@ func tasksMatchByContent(task1, task2 Todo2Task) bool {
 // normalizeTaskContent normalizes task content for comparison.
 func normalizeTaskContent(content, description string) string {
 	return models.NormalizeForComparison(content, description)
+}
+
+func isUniqueConstraintError(err error) bool {
+	if err == nil {
+		return false
+	}
+	return strings.Contains(err.Error(), "UNIQUE constraint failed")
 }
 
 // filterValidDependencies filters out dependencies that do not exist in the sorted task list or
