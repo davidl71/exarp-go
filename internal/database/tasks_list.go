@@ -98,55 +98,13 @@ func ListTasks(ctx context.Context, filters *TaskFilters) ([]*Todo2Task, error) 
 		queryBuilder.WriteString(" ORDER BY t.created_at DESC")
 		query := queryBuilder.String()
 
-		// Try to query with full schema (protobuf + distributed tracking) first
+		// Schema 9: always has full schema (protobuf + distributed tracking)
 		rows, err := db.QueryContext(queryCtx, query, args...)
-		hasProtobufColumns := true
-		hasDistributedColumns := true
-
-		if err != nil && strings.Contains(err.Error(), "no such column") {
-			hasDistributedColumns = false
-			// Distributed tracking columns don't exist, try without them
-			queryBuilderMid := strings.Builder{}
-			queryBuilderMid.WriteString(`
-				SELECT DISTINCT t.id, t.content, t.long_description, t.status, t.priority, t.completed, t.created, t.last_modified, t.completed_at, t.metadata, t.metadata_protobuf, t.metadata_format, t.parent_id
-				FROM tasks t
-			`)
-			if len(conditions) > 0 {
-				queryBuilderMid.WriteString(" WHERE " + conditions[0])
-				for i := 1; i < len(conditions); i++ {
-					queryBuilderMid.WriteString(" AND " + conditions[i])
-				}
-			}
-			queryBuilderMid.WriteString(" ORDER BY t.created_at DESC")
-			rows, err = db.QueryContext(queryCtx, queryBuilderMid.String(), args...)
-		}
-		if err != nil && strings.Contains(err.Error(), "no such column") {
-			// Protobuf or date columns don't exist, use minimal schema
-			hasProtobufColumns = false
-			hasDistributedColumns = false
-			queryBuilderOld := strings.Builder{}
-			queryBuilderOld.WriteString(`
-				SELECT DISTINCT t.id, t.content, t.long_description, t.status, t.priority, t.completed, t.created, t.last_modified, t.completed_at, t.metadata
-				FROM tasks t
-			`)
-
-			if len(conditions) > 0 {
-				queryBuilderOld.WriteString(" WHERE " + conditions[0])
-
-				for i := 1; i < len(conditions); i++ {
-					queryBuilderOld.WriteString(" AND " + conditions[i])
-				}
-			}
-
-			queryBuilderOld.WriteString(" ORDER BY t.created_at DESC")
-
-			rows, err = db.QueryContext(queryCtx, queryBuilderOld.String(), args...)
-			if err != nil {
-				return fmt.Errorf("failed to query tasks: %w", err)
-			}
-		} else if err != nil {
+		if err != nil {
 			return fmt.Errorf("failed to query tasks: %w", err)
 		}
+		hasProtobufColumns := true
+		hasDistributedColumns := true
 
 		defer rows.Close()
 

@@ -122,49 +122,6 @@ func CreateTask(ctx context.Context, task *Todo2Task) error {
 			host,
 			agent,
 		)
-		// If distributed tracking columns don't exist, try without them
-		if err != nil && strings.Contains(err.Error(), "no such column") {
-			_, err = tx.ExecContext(txCtx, `
-				INSERT INTO tasks (
-					id, name, content, long_description, status, priority, completed,
-					created, last_modified, metadata, metadata_protobuf, metadata_format, parent_id, version, created_at, updated_at
-				) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, strftime('%s', 'now'), strftime('%s', 'now'))
-			`,
-				task.ID,
-				"",
-				task.Content,
-				task.LongDescription,
-				task.Status,
-				task.Priority,
-				completedInt,
-				now,
-				now,
-				metadataJSON,
-				metadataProtobuf,
-				metadataFormat,
-				parentID,
-			)
-		}
-		// If protobuf or parent_id columns don't exist, fall back to minimal schema
-		if err != nil && strings.Contains(err.Error(), "no such column") {
-			_, err = tx.ExecContext(txCtx, `
-				INSERT INTO tasks (
-					id, name, content, long_description, status, priority, completed,
-					created, last_modified, metadata, version, created_at, updated_at
-				) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, strftime('%s', 'now'), strftime('%s', 'now'))
-			`,
-				task.ID,
-				"",
-				task.Content,
-				task.LongDescription,
-				task.Status,
-				task.Priority,
-				completedInt,
-				now,
-				now,
-				metadataJSON,
-			)
-		}
 
 		if err != nil {
 			return fmt.Errorf("failed to insert task: %w", err)
@@ -423,68 +380,6 @@ func UpdateTask(ctx context.Context, task *Todo2Task) error {
 			task.ID,
 			currentVersion,
 		)
-		// If distributed tracking columns don't exist, try without them
-		if err != nil && strings.Contains(err.Error(), "no such column") {
-			result, err = tx.ExecContext(txCtx, `
-				UPDATE tasks SET
-					content = ?,
-					long_description = ?,
-					status = ?,
-					priority = ?,
-					completed = ?,
-					last_modified = ?,
-					completed_at = ?,
-					metadata = ?,
-					metadata_protobuf = ?,
-					metadata_format = ?,
-					parent_id = ?,
-					version = version + 1,
-					updated_at = strftime('%s', 'now')
-				WHERE id = ? AND version = ?
-			`,
-				task.Content,
-				task.LongDescription,
-				task.Status,
-				task.Priority,
-				completedInt,
-				now,
-				completedAtVal,
-				metadataJSON,
-				metadataProtobuf,
-				metadataFormat,
-				sqlNullString(task.ParentID),
-				task.ID,
-				currentVersion,
-			)
-		}
-		// If protobuf or parent_id columns don't exist, fall back to minimal schema
-		if err != nil && strings.Contains(err.Error(), "no such column") {
-			result, err = tx.ExecContext(txCtx, `
-				UPDATE tasks SET
-					content = ?,
-					long_description = ?,
-					status = ?,
-					priority = ?,
-					completed = ?,
-					last_modified = ?,
-					completed_at = ?,
-					metadata = ?,
-					version = version + 1,
-					updated_at = strftime('%s', 'now')
-				WHERE id = ? AND version = ?
-			`,
-				task.Content,
-				task.LongDescription,
-				task.Status,
-				task.Priority,
-				completedInt,
-				now,
-				completedAtVal,
-				metadataJSON,
-				task.ID,
-				currentVersion,
-			)
-		}
 
 		if err != nil {
 			return fmt.Errorf("failed to update task: %w", err)
