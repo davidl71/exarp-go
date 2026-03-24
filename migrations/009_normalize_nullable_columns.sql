@@ -21,6 +21,8 @@ CREATE TABLE tasks_new (
     completed_at TEXT NOT NULL DEFAULT '',
     project_id TEXT,
     metadata TEXT,
+    metadata_protobuf BLOB,
+    metadata_format TEXT DEFAULT 'json',
     version INTEGER NOT NULL DEFAULT 1,
     created_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
     updated_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
@@ -30,13 +32,13 @@ CREATE TABLE tasks_new (
     agent TEXT NOT NULL DEFAULT ''
 );
 
--- Step 2: Copy data from old table (NULLs become empty strings)
+-- Step 2: Copy data from old table (NULLs become empty strings, protobuf/format preserved)
 INSERT INTO tasks_new SELECT 
     id, name, content, long_description, status, priority, completed,
     task_number, estimated_hours, actual_hours, created,
     COALESCE(last_modified, ''),
     COALESCE(completed_at, ''),
-    project_id, metadata, version, created_at, updated_at,
+    project_id, metadata, metadata_protobuf, metadata_format, version, created_at, updated_at,
     COALESCE(parent_id, ''),
     COALESCE(assigned_to, ''),
     COALESCE(host, ''),
@@ -57,6 +59,7 @@ CREATE INDEX IF NOT EXISTS idx_tasks_completed ON tasks(completed);
 CREATE INDEX IF NOT EXISTS idx_tasks_last_modified ON tasks(last_modified);
 CREATE INDEX IF NOT EXISTS idx_tasks_project ON tasks(project_id);
 CREATE INDEX IF NOT EXISTS idx_tasks_parent ON tasks(parent_id);
+CREATE INDEX IF NOT EXISTS idx_tasks_metadata_format ON tasks(metadata_format);
 
 -- assigned_to, host, agent indexes - now simpler since columns are NOT NULL
 CREATE INDEX IF NOT EXISTS idx_tasks_assigned_to ON tasks(assigned_to);

@@ -11,6 +11,9 @@ import (
 )
 
 func TestHandleAppleFoundationModels_ArgumentParsing(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping AFM test in short mode (requires darwin/arm64/cgo and Swift bridge)")
+	}
 	tests := []struct {
 		name      string
 		args      map[string]interface{}
@@ -101,6 +104,9 @@ func TestHandleAppleFoundationModels_ArgumentParsing(t *testing.T) {
 }
 
 func TestHandleAppleFoundationModels_PlatformDetection(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping AFM test in short mode (requires darwin/arm64/cgo and Swift bridge)")
+	}
 	// Test that platform detection is called
 	// This test verifies the integration with platform detection
 	ctx := context.Background()
@@ -131,6 +137,9 @@ func TestHandleAppleFoundationModels_PlatformDetection(t *testing.T) {
 }
 
 func TestHandleAppleFoundationModels_ActionRouting(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping AFM test in short mode (requires darwin/arm64/cgo and Swift bridge)")
+	}
 	tests := []struct {
 		name   string
 		action string
@@ -193,6 +202,9 @@ func TestHandleAppleFoundationModels_ActionRouting(t *testing.T) {
 }
 
 func TestHandleAppleFoundationModels_ErrorHandling(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping AFM test in short mode (requires darwin/arm64/cgo and Swift bridge)")
+	}
 	tests := []struct {
 		name      string
 		argsJSON  json.RawMessage
@@ -229,6 +241,9 @@ func TestHandleAppleFoundationModels_ErrorHandling(t *testing.T) {
 }
 
 func TestHandleAppleFoundationModels_TextContentFormat(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping AFM test in short mode (requires darwin/arm64/cgo and Swift bridge)")
+	}
 	ctx := context.Background()
 
 	args := map[string]interface{}{
@@ -410,27 +425,27 @@ func TestClassifyTemperatureMaxTokens(t *testing.T) {
 func TestBuildClassifyPrompt_WithCustomCategories(t *testing.T) {
 	// Verify classify prompt uses custom categories parameter
 	tests := []struct {
-		name       string
-		text       string
-		categories string
+		name         string
+		text         string
+		categories   string
 		wantInPrompt []string
 	}{
 		{
-			name:       "custom categories A B C",
-			text:       "sample text",
-			categories: "A, B, C",
+			name:         "custom categories A B C",
+			text:         "sample text",
+			categories:   "A, B, C",
 			wantInPrompt: []string{"A, B, C", "sample text"},
 		},
 		{
-			name:       "single category",
-			text:       "feedback",
-			categories: "positive",
+			name:         "single category",
+			text:         "feedback",
+			categories:   "positive",
 			wantInPrompt: []string{"positive", "feedback"},
 		},
 		{
-			name:       "default-style categories",
-			text:       "review",
-			categories: "positive, negative, neutral",
+			name:         "default-style categories",
+			text:         "review",
+			categories:   "positive, negative, neutral",
 			wantInPrompt: []string{"positive, negative, neutral", "review"},
 		},
 	}

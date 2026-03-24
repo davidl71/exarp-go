@@ -312,3 +312,25 @@ func GetTopTagFrequencies(limit int) ([]string, error) {
 
 	return tags, nil
 }
+
+// ClearTaskTagSuggestions clears tag suggestions for a specific task (call on task delete/update).
+func ClearTaskTagSuggestions(taskID string) error {
+	db, err := GetDBx()
+	if err != nil {
+		return err
+	}
+
+	_, err = db.Exec("DELETE FROM task_tag_suggestions WHERE task_id = ?", taskID)
+	return err
+}
+
+// ClearFileTaskTags clears file-to-task tag mappings for a specific task (call on task delete/update).
+func ClearFileTaskTags(taskID string) error {
+	db, err := GetDBx()
+	if err != nil {
+		return err
+	}
+
+	_, err = db.Exec("DELETE FROM file_task_tags WHERE task_id = ?", taskID)
+	return err
+}

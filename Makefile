@@ -327,17 +327,17 @@ dev-full: ## Full development mode (watch + test + coverage)
 test: test-go ## Run all tests (Go only)
 	@echo "$(GREEN)✅ All tests passed$(NC)"
 
-test-go: ## Run Go tests (optimized for speed with parallel execution, CGO disabled)
-	@echo "$(BLUE)Running Go tests (parallel, CGO_ENABLED=0)...$(NC)"
-	@CGO_ENABLED=0 $(GO) test ./... -parallel 4 || \
+test-go: ## Run Go tests (parallel, CGO disabled) - skips AI/LLM tests by default; use test-ai for those
+	@echo "$(BLUE)Running Go tests (parallel, CGO_ENABLED=0, short mode - skips AI)...$(NC)"
+	@CGO_ENABLED=0 $(GO) test ./... -parallel 4 -short || \
 	 (echo "$(RED)❌ Go tests failed$(NC)" && exit 1)
-	@echo "$(GREEN)✅ Go tests passed$(NC)"
+	@echo "$(GREEN)✅ Go tests passed (short mode)$(NC)"
 
-test-go-fast: ## Run Go tests in parallel (fast, no verbose, CGO disabled) - optimized for pre-push
-	@echo "$(BLUE)Running Go tests (parallel, fast, CGO_ENABLED=0)...$(NC)"
-	@CGO_ENABLED=0 $(GO) test ./... -parallel 4 || \
+test-go-fast: ## Run Go tests in parallel (fast, no verbose, CGO disabled) - skips AI/LLM tests; use test-ai to run them
+	@echo "$(BLUE)Running Go tests (parallel, fast, CGO_ENABLED=0, short mode - skips AI)...$(NC)"
+	@CGO_ENABLED=0 $(GO) test ./... -parallel 4 -short || \
 	 (echo "$(RED)❌ Parallel tests failed$(NC)" && exit 1)
-	@echo "$(GREEN)✅ Go tests passed$(NC)"
+	@echo "$(GREEN)✅ Go tests passed (short mode)$(NC)"
 
 test-go-verbose: ## Run Go tests with verbose output (CGO disabled)
 	@echo "$(BLUE)Running Go tests (verbose, CGO_ENABLED=0)...$(NC)"

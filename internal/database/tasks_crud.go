@@ -73,11 +73,13 @@ func CreateTask(ctx context.Context, task *Todo2Task) error {
 
 		// Insert task with protobuf data (if available) and JSON (for compatibility)
 		now := time.Now().Format(time.RFC3339)
-		parentID := sqlNullString(task.ParentID)
-		projectID := sqlNullString(task.ProjectID)
-		assignedTo := sqlNullString(task.AssignedTo)
-		host := sqlNullString(task.Host)
-		agent := sqlNullString(task.Agent)
+		// v9 schema: parent_id, assigned_to, host, agent are NOT NULL DEFAULT ''
+		// Use empty string directly instead of sql.NullString
+		parentID := task.ParentID
+		projectID := task.ProjectID // project_id still nullable
+		assignedTo := task.AssignedTo
+		host := task.Host
+		agent := task.Agent
 		_, err = tx.ExecContext(txCtx, `
 			INSERT INTO tasks (
 				id, name, content, long_description, status, priority, completed,
@@ -196,8 +198,31 @@ func CreateTask(ctx context.Context, task *Todo2Task) error {
 	})
 }
 
+// taskRow is a flat row scanner for v9 schema (parent_id, assigned_to, host, agent are NOT NULL).
+type taskRow struct {
+	ID              string `db:"id"`
+	Name            string `db:"name"`
+	Content         string `db:"content"`
+	LongDescription string `db:"long_description"`
+	Status          string `db:"status"`
+	Priority        string `db:"priority"`
+	Completed       int    `db:"completed"`
+	Created         string `db:"created"`
+	LastModified    string `db:"last_modified"`
+	CompletedAt     string `db:"completed_at"`
+	Metadata        []byte `db:"metadata"`
+	MetadataProto   []byte `db:"metadata_protobuf"`
+	MetadataFormat  string `db:"metadata_format"`
+	ParentID        string `db:"parent_id"`
+	ProjectID       string `db:"project_id"`
+	AssignedTo      string `db:"assigned_to"`
+	Host            string `db:"host"`
+	Agent           string `db:"agent"`
+}
+
 // GetTask retrieves a task by ID with all related data (tags, dependencies)
 // Supports context for timeout and cancellation.
+// Uses sqlx.GetContext for efficient row scanning.
 func GetTask(ctx context.Context, id string) (*Todo2Task, error) {
 	ctx = ensureContext(ctx)
 
@@ -212,171 +237,54 @@ func GetTask(ctx context.Context, id string) (*Todo2Task, error) {
 			return fmt.Errorf("failed to get database: %w", err)
 		}
 
-		// Query task (include protobuf columns if they exist)
-		var taskData Todo2Task
-
-		var metadataJSON sql.NullString
-
-		var metadataProtobuf []byte // BLOB column
-
-		var metadataFormat sql.NullString
-
-		var completedInt int
-
-		var name sql.NullString
-
-		var created, lastModified, completedAt sql.NullString
-
-		var parentID, projectID, assignedTo, host, agent sql.NullString
-
-		// Try to query with full schema (protobuf + distributed tracking)
-		err = db.QueryRowContext(queryCtx, `
+		var row taskRow
+		err = db.GetContext(queryCtx, &row, `
 			SELECT id, name, content, long_description, status, priority, completed,
-			       created, last_modified, completed_at, metadata, metadata_protobuf, metadata_format, parent_id,
-			       project_id, assigned_to, host, agent
+			       created, last_modified, completed_at, metadata, metadata_protobuf, metadata_format,
+			       parent_id, project_id, assigned_to, host, agent
 			FROM tasks
 			WHERE id = ?
-		`, id).Scan(
-			&taskData.ID,
-			&name,
-			&taskData.Content,
-			&taskData.LongDescription,
-			&taskData.Status,
-			&taskData.Priority,
-			&completedInt,
-			&created,
-			&lastModified,
-			&completedAt,
-			&metadataJSON,
-			&metadataProtobuf,
-			&metadataFormat,
-			&parentID,
-			&projectID,
-			&assignedTo,
-			&host,
-			&agent,
-		)
-		if err == nil {
-			if parentID.Valid {
-				taskData.ParentID = parentID.String
-			}
-			if projectID.Valid {
-				taskData.ProjectID = projectID.String
-			}
-			if assignedTo.Valid {
-				taskData.AssignedTo = assignedTo.String
-			}
-			if host.Valid {
-				taskData.Host = host.String
-			}
-			if agent.Valid {
-				taskData.Agent = agent.String
-			}
-		}
-
-		// If distributed tracking columns don't exist, try without them
-		if err != nil && strings.Contains(err.Error(), "no such column") {
-			projectID, assignedTo, host, agent = sql.NullString{}, sql.NullString{}, sql.NullString{}, sql.NullString{}
-			err = db.QueryRowContext(queryCtx, `
-				SELECT id, name, content, long_description, status, priority, completed,
-				       created, last_modified, completed_at, metadata, metadata_protobuf, metadata_format, parent_id
-				FROM tasks
-				WHERE id = ?
-			`, id).Scan(
-				&taskData.ID,
-				&name,
-				&taskData.Content,
-				&taskData.LongDescription,
-				&taskData.Status,
-				&taskData.Priority,
-				&completedInt,
-				&created,
-				&lastModified,
-				&completedAt,
-				&metadataJSON,
-				&metadataProtobuf,
-				&metadataFormat,
-				&parentID,
-			)
-			if err == nil && parentID.Valid {
-				taskData.ParentID = parentID.String
-			}
-		}
-
-		// If protobuf, completed_at, or parent_id column don't exist, fall back to minimal schema
-		if err != nil && strings.Contains(err.Error(), "no such column") {
-			err = db.QueryRowContext(queryCtx, `
-				SELECT id, name, content, long_description, status, priority, completed,
-				       created, last_modified, metadata
-				FROM tasks
-				WHERE id = ?
-			`, id).Scan(
-				&taskData.ID,
-				&name,
-				&taskData.Content,
-				&taskData.LongDescription,
-				&taskData.Status,
-				&taskData.Priority,
-				&completedInt,
-				&created,
-				&lastModified,
-				&metadataJSON,
-			)
-		}
-
+		`, id)
 		if errors.Is(err, sql.ErrNoRows) {
 			return fmt.Errorf("task %s not found", id)
 		}
-
 		if err != nil {
 			return fmt.Errorf("failed to query task: %w", err)
 		}
 
-		taskData.Completed = completedInt == 1
-		if created.Valid {
-			taskData.CreatedAt = created.String
-		}
-
-		if lastModified.Valid {
-			taskData.LastModified = lastModified.String
-		}
-
-		if completedAt.Valid {
-			taskData.CompletedAt = completedAt.String
+		taskData := Todo2Task{
+			ID:              row.ID,
+			Content:         row.Content,
+			LongDescription: row.LongDescription,
+			Status:          row.Status,
+			Priority:        row.Priority,
+			Completed:       row.Completed == 1,
+			CreatedAt:       row.Created,
+			LastModified:    row.LastModified,
+			CompletedAt:     row.CompletedAt,
+			ParentID:        row.ParentID,
+			ProjectID:       row.ProjectID,
+			AssignedTo:      row.AssignedTo,
+			Host:            row.Host,
+			Agent:           row.Agent,
 		}
 
 		taskData.NormalizeEpochDates()
+		taskData.Metadata = DeserializeTaskMetadata(string(row.Metadata), row.MetadataProto, row.MetadataFormat)
 
-		metadataJSONStr := ""
-		if metadataJSON.Valid {
-			metadataJSONStr = metadataJSON.String
-		}
-
-		metadataFormatStr := ""
-		if metadataFormat.Valid {
-			metadataFormatStr = metadataFormat.String
-		}
-
-		taskData.Metadata = DeserializeTaskMetadata(metadataJSONStr, metadataProtobuf, metadataFormatStr)
-
-		// Load tags
 		tags, err := loadTaskTags(ctx, queryCtx, db, id)
 		if err != nil {
 			return err
 		}
-
 		taskData.Tags = tags
 
-		// Load dependencies
 		dependencies, err := loadTaskDependencies(ctx, queryCtx, db, id)
 		if err != nil {
 			return err
 		}
-
 		taskData.Dependencies = dependencies
 
 		task = &taskData
-
 		return nil
 	})
 	if err != nil {
@@ -489,11 +397,11 @@ func UpdateTask(ctx context.Context, task *Todo2Task) error {
 			metadataJSON,
 			metadataProtobuf,
 			metadataFormat,
-			sqlNullString(task.ParentID),
-			sqlNullString(task.ProjectID),
-			sqlNullString(task.AssignedTo),
-			sqlNullString(updateHost),
-			sqlNullString(updateAgent),
+			task.ParentID,
+			task.ProjectID,
+			task.AssignedTo,
+			updateHost,
+			updateAgent,
 			task.ID,
 			currentVersion,
 		)
@@ -627,6 +535,9 @@ func UpdateTask(ctx context.Context, task *Todo2Task) error {
 			return fmt.Errorf("failed to commit transaction: %w", err)
 		}
 
+		// Invalidate caches linked to this task
+		_ = ClearTaskTagSuggestions(task.ID)
+
 		return nil
 	})
 }
@@ -706,6 +617,11 @@ func BatchUpdateTaskStatus(ctx context.Context, updates []TaskStatusUpdate) (int
 			return fmt.Errorf("failed to commit transaction: %w", err)
 		}
 
+		// Invalidate caches for all updated tasks
+		for _, u := range updates {
+			_ = ClearTaskTagSuggestions(u.TaskID)
+		}
+
 		return nil
 	})
 
@@ -767,6 +683,11 @@ func BatchUpdateTaskMetadata(ctx context.Context, updates []TaskMetadataUpdate) 
 
 		if err = tx.Commit(); err != nil {
 			return fmt.Errorf("failed to commit transaction: %w", err)
+		}
+
+		// Invalidate caches for all updated tasks
+		for _, u := range updates {
+			_ = ClearTaskTagSuggestions(u.TaskID)
 		}
 
 		return nil
@@ -851,6 +772,9 @@ func UpdateTaskFields(ctx context.Context, update TaskFieldUpdate) error {
 			return fmt.Errorf("failed to commit transaction: %w", err)
 		}
 
+		// Invalidate caches linked to this task
+		_ = ClearTaskTagSuggestions(update.TaskID)
+
 		return nil
 	})
 }
@@ -912,6 +836,10 @@ func DeleteTask(ctx context.Context, id string) error {
 		if rowsAffected == 0 {
 			return fmt.Errorf("task %s not found", id)
 		}
+
+		// Invalidate caches linked to this task
+		_ = ClearTaskTagSuggestions(id)
+		_ = ClearFileTaskTags(id)
 
 		// Tags and dependencies are cascade deleted by foreign key constraints
 		return nil
