@@ -287,28 +287,32 @@ func analyzeGoCoverage(ctx context.Context, projectRoot, coverageFile string, mi
 	return string(jsonResult), nil
 }
 
-// validateGoTests validates Go test structure.
-func validateGoTests(projectRoot, testPath string) (string, error) {
-	issues := []string{}
-
-	// Check for test files
-	testFiles := []string{}
-
-	err := filepath.Walk(filepath.Join(projectRoot, testPath), func(path string, info os.FileInfo, err error) error {
+// walkTestFiles walks searchPath and returns all files where match(path, base) is true.
+func walkTestFiles(searchPath string, match func(path, base string) bool) ([]string, error) {
+	var files []string
+	err := filepath.Walk(searchPath, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return nil
 		}
-
-		if !info.IsDir() && strings.HasSuffix(path, "_test.go") {
-			testFiles = append(testFiles, path)
+		if !info.IsDir() && match(path, filepath.Base(path)) {
+			files = append(files, path)
 		}
-
 		return nil
 	})
+	return files, err
+}
+
+// validateGoTests validates Go test structure.
+func validateGoTests(projectRoot, testPath string) (string, error) {
+	testFiles, err := walkTestFiles(
+		filepath.Join(projectRoot, testPath),
+		func(path, _ string) bool { return strings.HasSuffix(path, "_test.go") },
+	)
 	if err != nil {
 		return "", fmt.Errorf("failed to walk test path: %w", err)
 	}
 
+	var issues []string
 	if len(testFiles) == 0 {
 		issues = append(issues, "No test files found")
 	}
@@ -319,9 +323,7 @@ func validateGoTests(projectRoot, testPath string) (string, error) {
 		if err != nil {
 			continue
 		}
-
-		content := string(data)
-		if !strings.Contains(content, "func Test") {
+		if !strings.Contains(string(data), "func Test") {
 			issues = append(issues, fmt.Sprintf("No test functions in %s", testFile))
 		}
 	}
@@ -332,39 +334,25 @@ func validateGoTests(projectRoot, testPath string) (string, error) {
 		"issues":     issues,
 		"test_path":  testPath,
 	}
-
 	jsonResult, _ := json.MarshalIndent(result, "", "  ")
-
 	return string(jsonResult), nil
 }
 
 // validatePyTests validates Python test structure (pytest).
 func validatePyTests(projectRoot, testPath string) (string, error) {
-	issues := []string{}
-
-	// Check for test files (pytest looks for test_*.py or *_test.py)
-	testFiles := []string{}
-
 	searchPath := projectRoot
 	if testPath != "" && testPath != "./..." {
 		searchPath = filepath.Join(projectRoot, testPath)
 	}
 
-	err := filepath.Walk(searchPath, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return nil
-		}
-
-		if !info.IsDir() && (strings.HasPrefix(filepath.Base(path), "test_") || strings.HasSuffix(path, "_test.py")) {
-			testFiles = append(testFiles, path)
-		}
-
-		return nil
+	testFiles, err := walkTestFiles(searchPath, func(_, base string) bool {
+		return strings.HasPrefix(base, "test_") || strings.HasSuffix(base, "_test.py")
 	})
 	if err != nil {
 		return "", fmt.Errorf("failed to walk test path: %w", err)
 	}
 
+	var issues []string
 	if len(testFiles) == 0 {
 		issues = append(issues, "No pytest test files found (looked for test_*.py and *_test.py)")
 	}
@@ -376,39 +364,25 @@ func validatePyTests(projectRoot, testPath string) (string, error) {
 		"test_path":  testPath,
 		"framework":  "python",
 	}
-
 	jsonResult, _ := json.MarshalIndent(result, "", "  ")
-
 	return string(jsonResult), nil
 }
 
 // validateCargoTests validates Rust test structure (cargo test).
 func validateCargoTests(projectRoot, testPath string) (string, error) {
-	issues := []string{}
-
-	// Check for test files (*.rs files with #[test] or #[cfg(test)])
-	testFiles := []string{}
-
 	searchPath := projectRoot
 	if testPath != "" && testPath != "./..." {
 		searchPath = filepath.Join(projectRoot, testPath)
 	}
 
-	err := filepath.Walk(searchPath, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return nil
-		}
-
-		if !info.IsDir() && strings.HasSuffix(path, ".rs") {
-			testFiles = append(testFiles, path)
-		}
-
-		return nil
+	testFiles, err := walkTestFiles(searchPath, func(path, _ string) bool {
+		return strings.HasSuffix(path, ".rs")
 	})
 	if err != nil {
 		return "", fmt.Errorf("failed to walk test path: %w", err)
 	}
 
+	var issues []string
 	if len(testFiles) == 0 {
 		issues = append(issues, "No Rust source files found")
 	}
@@ -420,9 +394,7 @@ func validateCargoTests(projectRoot, testPath string) (string, error) {
 		"test_path":  testPath,
 		"framework":  "rust",
 	}
-
 	jsonResult, _ := json.MarshalIndent(result, "", "  ")
-
 	return string(jsonResult), nil
 }
 
