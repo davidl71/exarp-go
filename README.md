@@ -389,7 +389,7 @@ Benchmarks live in `internal/tools/ollama_llamacpp_bench_test.go`.
 
 ### Git hooks and release
 
-- **Pre-commit** runs build + health docs (no vulnerability scan). **Pre-push** runs alignment only.
+- **Pre-commit** runs the local build fast-path. **Pre-push** runs docs health, alignment, and security scan.
 - **Before release:** run `make pre-release` for build + govulncheck + security scan.
 - See [docs/VULNERABILITY_CHECK_POLICY.md](docs/VULNERABILITY_CHECK_POLICY.md) for the full policy.
 

@@ -93,8 +93,8 @@ fi
 	hookConfigs := map[string]string{
 		"pre-commit": `#!/bin/sh
 # Exarp pre-commit hook
-# In exarp-go repo: run build and docs health (no vulnerability scan; run make pre-release before release)
-# In other repos: run docs health (exarp-go from PATH). Gracefully skips if exarp-go not found.
+# In exarp-go repo: run build only. Keep docs/alignment/security on pre-push so commits stay fast.
+# In other repos: no-op if exarp-go is not found. Gracefully skips if exarp-go not found.
 
 # Suppress INFO logs and ANSI colors in git hook context
 export GIT_HOOK=1
@@ -104,16 +104,11 @@ export NO_COLOR=1
 # In exarp-go repo, block commit if build fails (use make silent for minimal output)
 if [ -f Makefile ] && [ -f go.mod ] && grep -q 'exarp-go' go.mod 2>/dev/null; then
   NO_COLOR=1 make silent >/dev/null 2>&1 || { echo "Build failed"; exit 1; }
-  "$EXARP_GO" -tool health -args '{"action":"docs"}' </dev/null || exit 1
-  "$EXARP_GO" -tool security -args '{"action":"scan"}' </dev/null || exit 1
-else
-  "$EXARP_GO" -tool health -args '{"action":"docs"}' </dev/null || exit 1
-  "$EXARP_GO" -tool security -args '{"action":"scan"}' </dev/null || exit 1
 fi
 `,
 		"pre-push": `#!/bin/sh
 # Exarp pre-push hook
-# Run task alignment and security scan. Gracefully skips if exarp-go not found.
+# Run docs health, task alignment, and security scan. Gracefully skips if exarp-go not found.
 
 # Suppress INFO logs and ANSI colors in git hook context
 export GIT_HOOK=1
@@ -121,6 +116,7 @@ export NO_COLOR=1
 ` + exarpGoPreamble + `
 # Redirect stdin so exarp-go never sees git refs (avoids JSON parse error if it ran in MCP mode)
 # Use explicit JSON args to avoid key=value parsing issues in hooks
+"$EXARP_GO" -tool health -args '{"action":"docs"}' </dev/null || exit 1
 "$EXARP_GO" -tool analyze_alignment -args '{"action":"todo2"}' </dev/null || exit 1
 "$EXARP_GO" -tool security -args '{"action":"scan"}' </dev/null || exit 1
 `,
