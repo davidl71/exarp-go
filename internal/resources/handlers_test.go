@@ -14,12 +14,12 @@ func TestRegisterAllResources(t *testing.T) {
 		t.Fatalf("RegisterAllResources() error = %v", err)
 	}
 
-	// Verify all 35 resources are registered.
-	if server.ResourceCount() != 35 {
-		t.Errorf("server.ResourceCount() = %v, want 35", server.ResourceCount())
+	// Verify all 36 resources are registered.
+	if server.ResourceCount() != 36 {
+		t.Errorf("server.ResourceCount() = %v, want 36", server.ResourceCount())
 	}
-	if server.ResourceTemplateCount() != 12 {
-		t.Errorf("server.ResourceTemplateCount() = %v, want 12", server.ResourceTemplateCount())
+	if server.ResourceTemplateCount() != 13 {
+		t.Errorf("server.ResourceTemplateCount() = %v, want 13", server.ResourceTemplateCount())
 	}
 
 	// Verify specific resources are registered
@@ -40,6 +40,8 @@ func TestRegisterAllResources(t *testing.T) {
 		"stdio://session/status",
 		"stdio://server/status",
 		"stdio://models",
+		"stdio://cursor/skills",
+		"stdio://cursor/skills/{name}",
 		"stdio://tools",
 		"stdio://tool_catalog",
 		"stdio://tools/names",
@@ -86,6 +88,7 @@ func TestRegisterAllResources(t *testing.T) {
 		"stdio://prompts/mode/{mode}",
 		"stdio://prompts/persona/{persona}",
 		"stdio://prompts/category/{category}",
+		"stdio://cursor/skills/{name}",
 		"stdio://tools/{category}",
 		"stdio://tasks/{task_id}",
 		"stdio://tasks/status/{status}",
@@ -207,6 +210,16 @@ func TestRegisterAllResources_URIParsing(t *testing.T) {
 		{
 			name: "models",
 			uri:  "stdio://models",
+			want: true,
+		},
+		{
+			name: "cursor skills",
+			uri:  "stdio://cursor/skills",
+			want: true,
+		},
+		{
+			name: "cursor skill by name pattern",
+			uri:  "stdio://cursor/skills/{name}",
 			want: true,
 		},
 		{

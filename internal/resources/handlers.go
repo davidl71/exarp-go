@@ -423,6 +423,24 @@ func RegisterAllResources(server framework.MCPServer) error {
 	); err != nil {
 		return fmt.Errorf("failed to register cursor skills resource: %w", err)
 	}
+	if err := registerAndTrack(server,
+		"stdio://cursor/skills/{name}",
+		"Cursor Skill by Name",
+		"Read one Cursor skill by name so clients can load workflow guidance lazily.",
+		"text/markdown",
+		handleCursorSkillByName,
+	); err != nil {
+		return fmt.Errorf("failed to register cursor skill by name resource: %w", err)
+	}
+	if err := registerTemplate(server,
+		"stdio://cursor/skills/{name}",
+		"Cursor Skill by Name",
+		"Read one Cursor skill by name so clients can load workflow guidance lazily.",
+		"text/markdown",
+		handleCursorSkillByName,
+	); err != nil {
+		return fmt.Errorf("failed to register cursor skill by name template: %w", err)
+	}
 
 	// stdio://tools
 	if err := registerAndTrack(server,

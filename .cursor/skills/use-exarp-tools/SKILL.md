@@ -16,7 +16,7 @@ Apply this skill when the workspace uses the exarp-go MCP server and you need to
 
 | Need | Tool or pattern |
 |------|------------------|
-| **Suggested next tasks / what to work on** | `session` with `action=prime`, `include_tasks=true`, `include_hints=true`. Returns `suggested_next` (backlog in dependency order). |
+| **Suggested next tasks / what to work on** | `session` with `action=prime`, `include_tasks=true`, `include_hints=true`. Returns `suggested_next` (backlog in dependency order) plus `lazy_context` pointers for task/skill resources. |
 | Task list/update/create/show/delete | Prefer `task_workflow` MCP tool when exarp-go MCP is available; fallback: `exarp-go task` CLI (see task-workflow skill). |
 | Project overview, scorecard, or briefing | `report` with `action=overview`, `action=scorecard`, or `action=briefing`. |
 | Docs health, CI, repo status, or SQLite maintenance | `health` with appropriate `action` (e.g. docs, git, cicd, database). |
@@ -38,7 +38,8 @@ Apply this skill when the workspace uses the exarp-go MCP server and you need to
 
 ## Resources and prompts (quick reference)
 
-- **stdio://cursor/skills** — Which skills to read when using exarp-go (same as table above).
+- **stdio://cursor/skills** — Aggregated skill guide for exarp-go.
+- **stdio://cursor/skills/{name}** — Load one skill lazily (for example `stdio://cursor/skills/task-workflow`) when `suggested_next[].lazy_context` points to it.
 - **stdio://tools** — Full tool catalog; **stdio://tools/{category}** for category filter (e.g. "Task Management", "AI & ML").
 - **stdio://prompts** — All prompt names and short descriptions; use **/mode/{mode}**, **/persona/{persona}**, **/category/{category}** for filtered lists.
 - **stdio://models** — Model catalog and `backends` (fm_available, apple_fm_tool, ollama_tool, mlx_tool). Check before using LLM tools (see .cursor/rules/llm-tools.mdc).
@@ -62,7 +63,7 @@ Using MCP resources avoids unnecessary process spawns and gives full tool/prompt
 ## Examples
 
 - *User: "What’s the project status?"* → Use `report` with `action=overview` or `action=scorecard`.
-- *User: "What should I work on next?" or "Suggest next task"* → Use `session` with `action=prime`, `include_tasks=true`, `include_hints=true`. Response includes `suggested_next` (tasks in dependency order).
+- *User: "What should I work on next?" or "Suggest next task"* → Use `session` with `action=prime`, `include_tasks=true`, `include_hints=true`. Response includes `suggested_next` and `lazy_context`; load the pointed task/skill resources only for the task you actually start.
 - *User: "List my Todo tasks"* → Use task-workflow patterns: `exarp-go task list --status Todo` or `task_workflow` with `action=sync`, `sub_action=list`, `status=Todo`.
 - *User: "Is the docs setup ok?"* → Use `health` with `action=docs`.
 - *User: "How big is the Todo2 database?" or "Run vacuum/checkpoint"* → Use `health` with `action=database` and `operation=status|checkpoint|vacuum|analyze`.

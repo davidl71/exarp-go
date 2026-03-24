@@ -232,10 +232,35 @@ func handleSessionEnd(ctx context.Context, params map[string]interface{}, projec
 		handoff["point_in_time_snapshot_task_count"] = len(allTasksForSnapshot)
 	}
 
+	var ledgerPath string
+	ledgerTasks := make([]Todo2Task, 0, len(tasksInProgress))
+	for _, taskMap := range tasksInProgress {
+		if id, ok := taskMap["id"].(string); ok && id != "" {
+			if task, err := store.GetTask(ctx, id); err == nil && task != nil {
+				ledgerTasks = append(ledgerTasks, *task)
+			}
+		}
+	}
+
 	if !dryRun {
 		// Save handoff
 		if err := saveHandoff(projectRoot, handoff); err != nil {
 			return nil, fmt.Errorf("failed to save handoff: %w", err)
+		}
+
+		writtenLedgerPath, ledgerErr := writeContinuityLedger(ctx, projectRoot, continuityLedgerOptions{
+			Reason:          "handoff",
+			Summary:         summary,
+			Blockers:        blockers,
+			NextSteps:       nextSteps,
+			TaskJournal:     taskJournal,
+			TasksInProgress: ledgerTasks,
+		})
+		if ledgerErr != nil {
+			handoff["ledger_write_warning"] = ledgerErr.Error()
+		} else if writtenLedgerPath != "" {
+			ledgerPath = writtenLedgerPath
+			handoff["continuity_ledger_path"] = ledgerPath
 		}
 
 		// Unassign tasks if requested (release lock for current agent on in-progress tasks)
@@ -257,6 +282,9 @@ func handleSessionEnd(ctx context.Context, params map[string]interface{}, projec
 		"dry_run": dryRun,
 		"handoff": handoff,
 		"message": "Session ended. Handoff note created.",
+	}
+	if ledgerPath != "" {
+		result["continuity_ledger_path"] = ledgerPath
 	}
 
 	if dryRun {
@@ -384,6 +412,9 @@ func handleSessionResume(ctx context.Context, params map[string]interface{}, pro
 		"from_same_host": handoffHost == hostname,
 		"message":        fmt.Sprintf("Resuming session. Latest handoff from %s", handoffHost),
 	}
+	if latestLedger := readLatestLedgerSummary(projectRoot); latestLedger != nil {
+		result["latest_ledger"] = latestLedger
+	}
 
 	// Add suggested_next_action; add cursor_cli_suggestion only when include_cli_command is true (default false).
 	includeCliCommand := cast.ToBool(params["include_cli_command"])
@@ -451,6 +482,9 @@ func handleSessionLatest(params map[string]interface{}, projectRoot string) ([]f
 		"method":      "native_go",
 		"has_handoff": true,
 		"handoff":     latestHandoff,
+	}
+	if latestLedger := readLatestLedgerSummary(projectRoot); latestLedger != nil {
+		result["latest_ledger"] = latestLedger
 	}
 
 	return framework.FormatResult(result, "")

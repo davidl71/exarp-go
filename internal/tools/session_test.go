@@ -487,6 +487,20 @@ func TestHandleSessionPrimeIncludesRecommendedToolsInSuggestedNext(t *testing.T)
 		if len(tools) != 2 || tools[0] != "task_workflow" || tools[1] != "report" {
 			t.Fatalf("recommended_tools = %v, want [task_workflow report]", tools)
 		}
+		lazyContext, ok := m["lazy_context"].(map[string]interface{})
+		if !ok {
+			t.Fatalf("expected lazy_context object for task %s, got %T", task.ID, m["lazy_context"])
+		}
+		if lazyContext["task_resource_uri"] != "stdio://tasks/"+task.ID {
+			t.Fatalf("task_resource_uri = %v, want %s", lazyContext["task_resource_uri"], "stdio://tasks/"+task.ID)
+		}
+		skillURIs, ok := lazyContext["skill_resource_uris"].([]interface{})
+		if !ok || len(skillURIs) == 0 {
+			t.Fatalf("expected skill_resource_uris for task %s, got %v", task.ID, lazyContext["skill_resource_uris"])
+		}
+		if skillURIs[0] != "stdio://cursor/skills/use-exarp-tools" {
+			t.Fatalf("first skill_resource_uri = %v, want stdio://cursor/skills/use-exarp-tools", skillURIs[0])
+		}
 		found = true
 		break
 	}
@@ -761,6 +775,11 @@ func TestHandoffEndWithTaskJournalAndSnapshot(t *testing.T) {
 	if cnt, ok := handoff["point_in_time_snapshot_task_count"].(float64); !ok || int(cnt) != 1 {
 		t.Errorf("handoff point_in_time_snapshot_task_count = %v, want 1", handoff["point_in_time_snapshot_task_count"])
 	}
+	if ledgerPath, ok := handoff["continuity_ledger_path"].(string); !ok || ledgerPath == "" {
+		t.Errorf("handoff missing continuity_ledger_path: %v", handoff["continuity_ledger_path"])
+	} else if _, err := os.Stat(ledgerPath); err != nil {
+		t.Errorf("continuity ledger not written: %v", err)
+	}
 
 	// Decode snapshot and verify we get our task back
 	encoded, _ := handoff["point_in_time_snapshot"].(string)
@@ -777,5 +796,47 @@ func TestHandoffEndWithTaskJournalAndSnapshot(t *testing.T) {
 	}
 	if len(tasks) > 0 && tasks[0].Content != "Session handoff test task" {
 		t.Errorf("decoded task content = %q", tasks[0].Content)
+	}
+}
+
+func TestSessionResumeIncludesLatestLedger(t *testing.T) {
+	cleanup := initSessionTestDB(t)
+	defer cleanup()
+
+	ctx := context.Background()
+	params := map[string]interface{}{
+		"action":     "handoff",
+		"sub_action": "end",
+		"summary":    "Resume ledger test",
+		"next_steps": []interface{}{"Pick up the next execution slice"},
+	}
+	if _, err := handleSessionNative(ctx, params); err != nil {
+		t.Fatalf("handleSessionNative handoff end: %v", err)
+	}
+
+	result, err := handleSessionNative(ctx, map[string]interface{}{
+		"action":     "handoff",
+		"sub_action": "resume",
+	})
+	if err != nil {
+		t.Fatalf("handleSessionNative handoff resume: %v", err)
+	}
+	if len(result) == 0 {
+		t.Fatal("expected non-empty result")
+	}
+
+	var data map[string]interface{}
+	if err := json.Unmarshal([]byte(result[0].Text), &data); err != nil {
+		t.Fatalf("invalid JSON result: %v", err)
+	}
+	latestLedger, ok := data["latest_ledger"].(map[string]interface{})
+	if !ok {
+		t.Fatalf("resume result missing latest_ledger: %v", data["latest_ledger"])
+	}
+	if path, ok := latestLedger["path"].(string); !ok || path == "" {
+		t.Fatalf("latest_ledger.path = %v, want non-empty", latestLedger["path"])
+	}
+	if excerpt, ok := latestLedger["excerpt"].(string); !ok || excerpt == "" {
+		t.Fatalf("latest_ledger.excerpt = %v, want non-empty", latestLedger["excerpt"])
 	}
 }

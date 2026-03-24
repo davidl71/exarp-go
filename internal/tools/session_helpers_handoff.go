@@ -65,13 +65,17 @@ func checkHandoffAlert(projectRoot string) map[string]interface{} {
 
 	// Only show if from different host
 	if handoffHost != hostname {
-		return map[string]interface{}{
+		alert := map[string]interface{}{
 			"from_host":  handoffMap["host"],
 			"timestamp":  handoffMap["timestamp"],
 			"summary":    truncateString(fmt.Sprintf("%v", handoffMap["summary"]), 100),
 			"blockers":   handoffMap["blockers"],
 			"next_steps": handoffMap["next_steps"],
 		}
+		if latestLedger := readLatestLedgerSummary(projectRoot); latestLedger != nil {
+			alert["latest_ledger"] = latestLedger
+		}
+		return alert
 	}
 
 	return nil

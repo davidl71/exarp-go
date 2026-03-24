@@ -187,6 +187,13 @@ The next boundary target is to make this explicit as a 3-layer architecture:
 
 Normal task CRUD should not trigger full SQLite↔JSON reconciliation implicitly. Full sync is an explicit maintenance action (`task_workflow action=sync`, repair helpers, or migration/recovery flows), not a side effect of create/update/delete.
 
+Session/bootstrap context follows the same rule: broad workflow guidance can be discovered globally, but task execution should load detailed skills/resources lazily.
+
+- `session action=prime` returns `suggested_next[].lazy_context` for each suggested task.
+- `lazy_context.task_resource_uri` points to the canonical task resource (`stdio://tasks/{task_id}`).
+- `lazy_context.skill_resource_uris` points to per-skill resources such as `stdio://cursor/skills/task-workflow`.
+- `stdio://cursor/skills` remains the aggregated workflow guide, while `stdio://cursor/skills/{name}` is the lazy per-skill resource for task-scoped loading.
+
 Allowed direct `database.*` usage from `internal/tools` is now limited to DB-specific features that do not fit plain task CRUD, such as:
 
 - task locks / claims

@@ -47,6 +47,16 @@ You can attach two optional extras to the handoff:
 | **Task journal** | `modified_task_ids` or `task_journal` | List of tasks modified this session. `modified_task_ids`: array of task IDs (e.g. `["T-1","T-2"]`). `task_journal`: JSON array of objects `{ "id": "T-1", "action": "updated" }` (or pass as string). Stored in handoff as `task_journal`. |
 | **Point-in-time snapshot** | `include_point_in_time_snapshot: true` | Full task list at handoff time, stored as **gzip+base64** in the handoff (`point_in_time_snapshot`). Format marker: `point_in_time_snapshot_format`: `"gz+b64"`. Decode to get state.todo2.json-shaped JSON (see below). |
 
+**Continuity ledger**
+
+When you end a session handoff, exarp-go also writes a structured continuity snapshot to:
+
+```text
+thoughts/ledgers/CONTINUITY_<timestamp>.md
+```
+
+The handoff result includes `continuity_ledger_path`, and `session handoff resume` / `latest` can expose a `latest_ledger` summary with the path and excerpt. This is the quickest way to preserve active execution context, next steps, blockers, and task journal details for the next session without requiring a full export.
+
 **Example: handoff with journal and snapshot**
 ```json
 {

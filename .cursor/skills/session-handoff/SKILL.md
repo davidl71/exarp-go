@@ -32,6 +32,7 @@ Use the exarp-go `session` tool with `action=handoff` and `sub_action`:
 - `dry_run` — preview without saving
 - **Task journal:** `modified_task_ids` — array of task IDs modified this session; or `task_journal` — JSON array of `{ "id", "action" }` (or string). Stored in handoff as `task_journal`.
 - **Point-in-time snapshot:** `include_point_in_time_snapshot: true` — attach full task list as gzip+base64 in handoff (`point_in_time_snapshot`). Decode with `tools.DecodePointInTimeSnapshot` or see [HANDOFF_VIA_GIT.md](../../docs/HANDOFF_VIA_GIT.md).
+- **Continuity ledger:** handoff end now also writes a structured `thoughts/ledgers/CONTINUITY_<ts>.md` snapshot and returns `continuity_ledger_path`. Resume/latest surfaces the most recent ledger summary as `latest_ledger`.
 
 **Examples (MCP):**
 ```json
@@ -67,4 +68,4 @@ In the Handoffs view:
 
 ## Storage
 
-Handoffs are stored in `.todo2/handoffs.json` (last 20 kept). Session prime includes handoff alerts when notes exist from another host.
+Handoffs are stored in `.todo2/handoffs.json` (last 20 kept). Continuity ledgers are stored in `thoughts/ledgers/CONTINUITY_<ts>.md`. Session prime includes handoff alerts when notes exist from another host, and resume/latest can expose the newest continuity ledger.

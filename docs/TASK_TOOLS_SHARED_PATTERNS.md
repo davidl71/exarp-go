@@ -38,6 +38,16 @@ Task-related tools (`task_workflow`, `task_analysis`, `task_discovery`, `estimat
 - **Pattern:** if the operation is “load/update/create/delete a task”, default to `TaskStore`; if it is inherently SQLite-specific, use `database.*`.
 - **Sync policy:** ordinary CRUD must not trigger full `SyncTodo2Tasks(projectRoot)` implicitly. Reserve full sync for explicit reconciliation actions such as `task_workflow action=sync`, invalid-ID repair, or migration/recovery flows.
 
+## 4.1 Session prime and lazy task context
+
+- **Prime stays compact by default:** `session action=prime` should return summary data plus pointers, not preload every skill/doc blob.
+- **Per-task lazy context:** each `suggested_next` item may include `lazy_context` with:
+  - `task_resource_uri` → `stdio://tasks/{task_id}`
+  - `skill_resource_uris` → `stdio://cursor/skills/{name}` entries inferred from `recommended_tools`
+  - `resource_uris` → combined on-demand load list for clients
+- **Aggregated skills remain available:** `stdio://cursor/skills` is the full workflow guide, but execution-focused clients should prefer the per-skill resource when they only need one workflow.
+- **Rule of thumb:** put discovery pointers in prime; fetch detailed task/skill context only when the user actually starts or inspects that task.
+
 ## 5. FM / local LLM usage
 
 - **Primary task-tool abstraction:** `DefaultFMProvider().Generate(ctx, prompt, maxTokens, temperature)`.

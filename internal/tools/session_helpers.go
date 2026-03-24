@@ -448,6 +448,7 @@ func getSuggestedNextTasksFromTasks(tasks []Todo2Task, limit int) []map[string]i
 				if rt := GetRecommendedTools(t.Metadata); len(rt) > 0 {
 					m["recommended_tools"] = rt
 				}
+				m["lazy_context"] = buildLazyTaskContext(t)
 			}
 			out = append(out, m)
 			continue
@@ -463,6 +464,7 @@ func getSuggestedNextTasksFromTasks(tasks []Todo2Task, limit int) []map[string]i
 			if rt := GetRecommendedTools(t.Metadata); len(rt) > 0 {
 				m["recommended_tools"] = rt
 			}
+			m["lazy_context"] = buildLazyTaskContext(t)
 		}
 		out = append(out, m)
 	}

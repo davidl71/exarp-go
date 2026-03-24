@@ -329,6 +329,8 @@ Setting `NO_COLOR=1` suppresses all ANSI escape codes across:
 
 Recommended for AI agents, MCP consumers, CI pipelines, and any non-interactive context. The session `prime` hint also advertises this to connected AI clients.
 
+When `session action=prime` is called with `context_threshold_pct`, exarp-go writes a continuity ledger to `thoughts/ledgers/CONTINUITY_<ts>.md` once the estimated context usage crosses the configured threshold. If `inject_ledger=true`, the newest ledger is returned in the prime response as `latest_ledger`.
+
 ```bash
 # One-off
 NO_COLOR=1 make build

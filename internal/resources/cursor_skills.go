@@ -11,15 +11,23 @@ import (
 	"github.com/davidl71/exarp-go/internal/tools"
 )
 
-// skillPaths are relative to project root; order determines output order.
-var cursorSkillPaths = []string{
-	".cursor/skills/use-exarp-tools/SKILL.md",
-	".cursor/skills/task-workflow/SKILL.md",
-	".cursor/skills/session-handoff/SKILL.md",
-	".cursor/skills/report-scorecard/SKILL.md",
-	".cursor/skills/task-cleanup/SKILL.md",
-	".cursor/skills/lint-docs/SKILL.md",
-	".cursor/skills/tractatus-decompose/SKILL.md",
+type cursorSkill struct {
+	Name string
+	Path string
+}
+
+// cursorSkills are relative to project root; order determines aggregated output order.
+var cursorSkills = []cursorSkill{
+	{Name: "use-exarp-tools", Path: ".cursor/skills/use-exarp-tools/SKILL.md"},
+	{Name: "task-workflow", Path: ".cursor/skills/task-workflow/SKILL.md"},
+	{Name: "session-handoff", Path: ".cursor/skills/session-handoff/SKILL.md"},
+	{Name: "report-scorecard", Path: ".cursor/skills/report-scorecard/SKILL.md"},
+	{Name: "task-cleanup", Path: ".cursor/skills/task-cleanup/SKILL.md"},
+	{Name: "lint-docs", Path: ".cursor/skills/lint-docs/SKILL.md"},
+	{Name: "database-maintenance", Path: ".cursor/skills/database-maintenance/SKILL.md"},
+	{Name: "text-generate", Path: ".cursor/skills/text-generate/SKILL.md"},
+	{Name: "thinking-workflow", Path: ".cursor/skills/thinking-workflow/SKILL.md"},
+	{Name: "tractatus-decompose", Path: ".cursor/skills/tractatus-decompose/SKILL.md"},
 }
 
 // handleCursorSkills handles the stdio://cursor/skills resource.
@@ -35,16 +43,15 @@ func handleCursorSkills(ctx context.Context, uri string) ([]byte, string, error)
 
 	parts = append(parts, "# exarp-go workflow guide\n\nApply when using exarp-go MCP tools. Works with Cursor (skills) and Claude Code (CLAUDE.md + commands).\n")
 
-	for _, rel := range cursorSkillPaths {
-		full := filepath.Join(projectRoot, rel)
+	for _, skill := range cursorSkills {
+		full := filepath.Join(projectRoot, skill.Path)
 
 		body, err := os.ReadFile(full)
 		if err != nil {
 			continue // skip missing skills
 		}
 
-		name := filepath.Base(filepath.Dir(rel))
-		parts = append(parts, fmt.Sprintf("## %s\n\n%s\n", name, strings.TrimSpace(string(body))))
+		parts = append(parts, fmt.Sprintf("## %s\n\n%s\n", skill.Name, strings.TrimSpace(string(body))))
 	}
 
 	if len(parts) <= 1 {
@@ -52,6 +59,42 @@ func handleCursorSkills(ctx context.Context, uri string) ([]byte, string, error)
 	}
 
 	return []byte(strings.Join(parts, "\n")), "text/markdown", nil
+}
+
+// handleCursorSkillByName handles stdio://cursor/skills/{name}.
+// Returns one skill body so clients can load only the relevant skill on demand.
+func handleCursorSkillByName(ctx context.Context, uri string) ([]byte, string, error) {
+	skillName, err := parseURIVariableByIndexWithValidation(uri, 4, "name", "stdio://cursor/skills/{name}")
+	if err != nil {
+		return nil, "", err
+	}
+
+	projectRoot, err := tools.FindProjectRoot()
+	if err != nil {
+		return nil, "", fmt.Errorf("find project root: %w", err)
+	}
+
+	skill, ok := findCursorSkill(skillName)
+	if !ok {
+		return nil, "", fmt.Errorf("unknown skill: %s", skillName)
+	}
+
+	body, err := os.ReadFile(filepath.Join(projectRoot, skill.Path))
+	if err != nil {
+		return nil, "", fmt.Errorf("read skill %s: %w", skillName, err)
+	}
+
+	return body, "text/markdown", nil
+}
+
+func findCursorSkill(name string) (cursorSkill, bool) {
+	for _, skill := range cursorSkills {
+		if strings.EqualFold(skill.Name, name) {
+			return skill, true
+		}
+	}
+
+	return cursorSkill{}, false
 }
 
 // staticSkillHints returns a fallback hint table when skill files are not found.
