@@ -58,11 +58,6 @@ func init() {
 	ollamaTG := &ollamaTextGenerator{}
 	stub := &chainStubFMProvider{}
 
-	backends := []TextGenerator{}
-	if g := appleFMIfAvailable(); g != nil {
-		backends = append(backends, g)
-	}
-
-	backends = append(backends, ollamaTG, stub)
+	backends := []TextGenerator{ollamaTG, stub}
 	DefaultFM = &chainFMProvider{backends: backends}
 }

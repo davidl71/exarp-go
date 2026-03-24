@@ -294,25 +294,17 @@ func (l *llamacppTextGenerator) Generate(ctx context.Context, prompt string, max
 
 ## 7. FM Chain Placement
 
-**Current:** Apple FM → Ollama → stub
+**Current:** Ollama → stub
 
-**New:** Apple FM → **LlamaCpp** → Ollama → stub
-
-**Rationale:** LlamaCpp is local, no server, and uses GGUF directly. Place after Apple FM (prefer on-device) and before Ollama (server-based).
+**Rationale:** Ollama remains the primary fallback for text generation scripts now that Apple FM support is removed, and we keep the stub in place so `DefaultFM` always resolves to a generator.
 
 **Code change (fm_chain.go):**
 
 ```go
-backends := []TextGenerator{}
-if g := appleFMIfAvailable(); g != nil {
-    backends = append(backends, g)
-}
-if g := llamaCppIfAvailable(); g != nil {
-    backends = append(backends, g)
-}
-backends = append(backends, ollamaTG, stub)
+ollamaTG := &ollamaTextGenerator{}
+stub := &chainStubFMProvider{}
+backends := []TextGenerator{ollamaTG, stub}
 ```
-
 ---
 
 ## 8. File Layout
