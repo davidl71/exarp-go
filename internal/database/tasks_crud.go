@@ -11,6 +11,8 @@ import (
 	"os"
 	"strings"
 	"time"
+
+	_ "github.com/jmoiron/sqlx"
 )
 
 // CreateTask creates a new task in the database
@@ -28,7 +30,7 @@ func CreateTask(ctx context.Context, task *Todo2Task) error {
 	defer cancel()
 
 	return retryWithBackoff(ctx, func() error {
-		db, err := GetDB()
+		db, err := GetDBx()
 		if err != nil {
 			return fmt.Errorf("failed to get database: %w", err)
 		}
@@ -205,7 +207,7 @@ func GetTask(ctx context.Context, id string) (*Todo2Task, error) {
 	var task *Todo2Task
 
 	err := retryWithBackoff(ctx, func() error {
-		db, err := GetDB()
+		db, err := GetDBx()
 		if err != nil {
 			return fmt.Errorf("failed to get database: %w", err)
 		}
@@ -394,7 +396,7 @@ func UpdateTask(ctx context.Context, task *Todo2Task) error {
 	defer cancel()
 
 	return retryWithBackoff(ctx, func() error {
-		db, err := GetDB()
+		db, err := GetDBx()
 		if err != nil {
 			return fmt.Errorf("failed to get database: %w", err)
 		}
@@ -658,7 +660,7 @@ func BatchUpdateTaskStatus(ctx context.Context, updates []TaskStatusUpdate) (int
 	var updated int
 
 	err := retryWithBackoff(ctx, func() error {
-		db, err := GetDB()
+		db, err := GetDBx()
 		if err != nil {
 			return fmt.Errorf("failed to get database: %w", err)
 		}
@@ -726,7 +728,7 @@ func BatchUpdateTaskMetadata(ctx context.Context, updates []TaskMetadataUpdate) 
 	var updated int
 
 	err := retryWithBackoff(ctx, func() error {
-		db, err := GetDB()
+		db, err := GetDBx()
 		if err != nil {
 			return fmt.Errorf("failed to get database: %w", err)
 		}
@@ -796,7 +798,7 @@ func UpdateTaskFields(ctx context.Context, update TaskFieldUpdate) error {
 	defer cancel()
 
 	return retryWithBackoff(ctx, func() error {
-		db, err := GetDB()
+		db, err := GetDBx()
 		if err != nil {
 			return fmt.Errorf("failed to get database: %w", err)
 		}
@@ -866,12 +868,12 @@ func CheckUpdateConflict(ctx context.Context, taskID string, expectedVersion int
 	queryCtx, cancel := withQueryTimeout(ctx)
 	defer cancel()
 
-	db, err := GetDB()
+	db, err := GetDBx()
 	if err != nil {
 		return false, 0, fmt.Errorf("failed to get database: %w", err)
 	}
 
-	err = db.QueryRowContext(queryCtx, `SELECT version FROM tasks WHERE id = ?`, taskID).Scan(&currentVersion)
+	err = db.GetContext(queryCtx, &currentVersion, `SELECT version FROM tasks WHERE id = ?`, taskID)
 	if errors.Is(err, sql.ErrNoRows) {
 		return false, 0, fmt.Errorf("task %s not found", taskID)
 	}
@@ -892,7 +894,7 @@ func DeleteTask(ctx context.Context, id string) error {
 	defer cancel()
 
 	return retryWithBackoff(ctx, func() error {
-		db, err := GetDB()
+		db, err := GetDBx()
 		if err != nil {
 			return fmt.Errorf("failed to get database: %w", err)
 		}

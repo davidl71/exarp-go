@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"time"
 
+	_ "github.com/jmoiron/sqlx"
 	"golang.org/x/sync/singleflight"
 )
 
@@ -57,7 +58,7 @@ func GetDiscoveredTagsForFile(filePath string) ([]DiscoveredTag, error) {
 }
 
 func getDiscoveredTagsForFileDB(filePath string) ([]DiscoveredTag, error) {
-	db, err := GetDB()
+	db, err := GetDBx()
 	if err != nil {
 		return nil, err
 	}
@@ -90,7 +91,7 @@ func getDiscoveredTagsForFileDB(filePath string) ([]DiscoveredTag, error) {
 
 // GetDiscoveredTagsWithHash retrieves cached discovered tags if file hash matches.
 func GetDiscoveredTagsWithHash(filePath, currentHash string) ([]DiscoveredTag, bool, error) {
-	db, err := GetDB()
+	db, err := GetDBx()
 	if err != nil {
 		return nil, false, fmt.Errorf("database not initialized")
 	}
@@ -115,7 +116,7 @@ func GetDiscoveredTagsWithHash(filePath, currentHash string) ([]DiscoveredTag, b
 
 // SaveDiscoveredTags saves discovered tags for a file.
 func SaveDiscoveredTags(filePath, fileHash string, tags []DiscoveredTag) error {
-	db, err := GetDB()
+	db, err := GetDBx()
 	if err != nil {
 		return err
 	}
@@ -155,7 +156,7 @@ func SaveDiscoveredTags(filePath, fileHash string, tags []DiscoveredTag) error {
 
 // UpdateTagFrequency updates the frequency count for a tag.
 func UpdateTagFrequency(tag string, count int, isCanonical bool) error {
-	db, err := GetDB()
+	db, err := GetDBx()
 	if err != nil {
 		return err
 	}
@@ -182,7 +183,7 @@ func UpdateTagFrequency(tag string, count int, isCanonical bool) error {
 
 // GetTagFrequencies retrieves tag frequencies.
 func GetTagFrequencies() ([]TagFrequency, error) {
-	db, err := GetDB()
+	db, err := GetDBx()
 	if err != nil {
 		return nil, err
 	}
@@ -215,7 +216,7 @@ func GetTagFrequencies() ([]TagFrequency, error) {
 
 // SaveFileTaskTag saves a file-to-task tag match.
 func SaveFileTaskTag(filePath, taskID, tag string, applied bool) error {
-	db, err := GetDB()
+	db, err := GetDBx()
 	if err != nil {
 		return err
 	}
@@ -245,7 +246,7 @@ func ComputeFileHash(content []byte) string {
 
 // ClearDiscoveredTagsCache clears all discovered tag cache entries.
 func ClearDiscoveredTagsCache() error {
-	db, err := GetDB()
+	db, err := GetDBx()
 	if err != nil {
 		return err
 	}
@@ -257,7 +258,7 @@ func ClearDiscoveredTagsCache() error {
 
 // SaveTaskTagSuggestion saves a task-level tag suggestion (from action=tags) for reuse as LLM hint.
 func SaveTaskTagSuggestion(taskID, tag, source string, applied bool) error {
-	db, err := GetDB()
+	db, err := GetDBx()
 	if err != nil {
 		return err
 	}
@@ -279,27 +280,15 @@ func SaveTaskTagSuggestion(taskID, tag, source string, applied bool) error {
 
 // GetTaskTagSuggestions returns cached tag suggestions for a task (for LLM hints).
 func GetTaskTagSuggestions(taskID string) ([]string, error) {
-	db, err := GetDB()
+	db, err := GetDBx()
 	if err != nil {
 		return nil, err
 	}
 
-	rows, err := db.Query("SELECT tag FROM task_tag_suggestions WHERE task_id = ? ORDER BY created_at", taskID)
+	var tags []string
+	err = db.Select(&tags, "SELECT tag FROM task_tag_suggestions WHERE task_id = ? ORDER BY created_at", taskID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query task tag suggestions: %w", err)
-	}
-
-	defer rows.Close()
-
-	var tags []string
-
-	for rows.Next() {
-		var tag string
-		if err := rows.Scan(&tag); err != nil {
-			continue
-		}
-
-		tags = append(tags, tag)
 	}
 
 	return tags, nil

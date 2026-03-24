@@ -32,7 +32,7 @@ func AddComments(ctx context.Context, taskID string, comments []Comment) error {
 	defer cancel()
 
 	return retryWithBackoff(ctx, func() error {
-		db, err := GetDB()
+		db, err := GetDBx()
 		if err != nil {
 			return fmt.Errorf("failed to get database: %w", err)
 		}
@@ -110,7 +110,7 @@ func queryComments(ctx context.Context, whereClause string, args ...interface{})
 	var comments []Comment
 
 	err := retryWithBackoff(ctx, func() error {
-		db, err := GetDB()
+		db, err := GetDBx()
 		if err != nil {
 			return fmt.Errorf("failed to get database: %w", err)
 		}
@@ -191,7 +191,7 @@ func DeleteComment(ctx context.Context, commentID string) error {
 	defer cancel()
 
 	return retryWithBackoff(ctx, func() error {
-		db, err := GetDB()
+		db, err := GetDBx()
 		if err != nil {
 			return fmt.Errorf("failed to get database: %w", err)
 		}

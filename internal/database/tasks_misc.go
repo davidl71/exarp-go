@@ -19,7 +19,7 @@ func FixTaskDates(ctx context.Context) (int64, error) {
 	var rowsAffected int64
 
 	err := retryWithBackoff(ctx, func() error {
-		db, err := GetDB()
+		db, err := GetDBx()
 		if err != nil {
 			return fmt.Errorf("failed to get database: %w", err)
 		}
@@ -63,7 +63,7 @@ func FixTaskDates(ctx context.Context) (int64, error) {
 
 // GetDependencies retrieves all task IDs that the specified task depends on.
 func GetDependencies(taskID string) ([]string, error) {
-	db, err := GetDB()
+	db, err := GetDBx()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get database: %w", err)
 	}
@@ -78,7 +78,7 @@ func GetDependencies(taskID string) ([]string, error) {
 
 // GetDependents retrieves all task IDs that depend on the specified task.
 func GetDependents(taskID string) ([]string, error) {
-	db, err := GetDB()
+	db, err := GetDBx()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get database: %w", err)
 	}

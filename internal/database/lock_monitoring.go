@@ -42,7 +42,7 @@ func DetectStaleLocks(ctx context.Context, nearExpiryThreshold time.Duration) (*
 	}
 
 	err := retryWithBackoff(ctx, func() error {
-		db, err := GetDB()
+		db, err := GetDBx()
 		if err != nil {
 			return fmt.Errorf("failed to get database: %w", err)
 		}
@@ -131,7 +131,7 @@ func GetLockStatus(ctx context.Context, taskID string) (*LockStatus, error) {
 	var status *LockStatus
 
 	err := retryWithBackoff(ctx, func() error {
-		db, err := GetDB()
+		db, err := GetDBx()
 		if err != nil {
 			return fmt.Errorf("failed to get database: %w", err)
 		}
@@ -198,7 +198,7 @@ func GetLocksByAgent(ctx context.Context, agentID string) ([]LockStatus, error) 
 	var locks []LockStatus
 
 	err := retryWithBackoff(ctx, func() error {
-		db, err := GetDB()
+		db, err := GetDBx()
 		if err != nil {
 			return fmt.Errorf("failed to get database: %w", err)
 		}
@@ -271,7 +271,7 @@ func CleanupExpiredLocksWithReport(ctx context.Context, maxAge time.Duration) (i
 	var cleanedTaskIDs []string
 
 	err := retryWithBackoff(ctx, func() error {
-		db, err := GetDB()
+		db, err := GetDBx()
 		if err != nil {
 			return fmt.Errorf("failed to get database: %w", err)
 		}
@@ -405,7 +405,7 @@ func releaseLocksForTaskIDs(ctx context.Context, taskIDs []string) (int, []strin
 	var cleanedTaskIDs []string
 
 	err := retryWithBackoff(ctx, func() error {
-		db, err := GetDB()
+		db, err := GetDBx()
 		if err != nil {
 			return fmt.Errorf("failed to get database: %w", err)
 		}

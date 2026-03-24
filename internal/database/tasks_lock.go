@@ -35,7 +35,7 @@ func ClaimTaskForAgent(ctx context.Context, taskID string, agentID string, lease
 	}
 
 	err := retryWithBackoff(ctx, func() error {
-		db, err := GetDB()
+		db, err := GetDBx()
 		if err != nil {
 			result.Error = fmt.Errorf("failed to get database: %w", err)
 			return result.Error
@@ -190,7 +190,7 @@ func ReleaseTask(ctx context.Context, taskID string, agentID string) error {
 	defer cancel()
 
 	return retryWithBackoff(ctx, func() error {
-		db, err := GetDB()
+		db, err := GetDBx()
 		if err != nil {
 			return fmt.Errorf("failed to get database: %w", err)
 		}
@@ -269,7 +269,7 @@ func RenewLease(ctx context.Context, taskID string, agentID string, leaseDuratio
 	defer cancel()
 
 	return retryWithBackoff(ctx, func() error {
-		db, err := GetDB()
+		db, err := GetDBx()
 		if err != nil {
 			return fmt.Errorf("failed to get database: %w", err)
 		}
@@ -394,7 +394,7 @@ func CleanupExpiredLocks(ctx context.Context) (int, error) {
 	var cleaned int
 
 	err := retryWithBackoff(ctx, func() error {
-		db, err := GetDB()
+		db, err := GetDBx()
 		if err != nil {
 			return fmt.Errorf("failed to get database: %w", err)
 		}

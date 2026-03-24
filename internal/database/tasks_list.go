@@ -24,7 +24,7 @@ func ListTasks(ctx context.Context, filters *TaskFilters) ([]*Todo2Task, error) 
 	var tasks []*Todo2Task
 
 	err := retryWithBackoff(ctx, func() error {
-		db, err := GetDB()
+		db, err := GetDBx()
 		if err != nil {
 			return fmt.Errorf("failed to get database: %w", err)
 		}
@@ -392,7 +392,7 @@ func GetDoneTasksForEstimation(ctx context.Context) ([]*TaskForEstimation, error
 	var result []*TaskForEstimation
 
 	err := retryWithBackoff(ctx, func() error {
-		db, err := GetDB()
+		db, err := GetDBx()
 		if err != nil {
 			return fmt.Errorf("failed to get database: %w", err)
 		}
@@ -570,7 +570,7 @@ func FindNextClaimableTask(ctx context.Context) (*Todo2Task, error) {
 	var task *Todo2Task
 
 	err := retryWithBackoff(ctx, func() error {
-		db, err := GetDB()
+		db, err := GetDBx()
 		if err != nil {
 			return fmt.Errorf("failed to get database: %w", err)
 		}
