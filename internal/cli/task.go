@@ -22,7 +22,7 @@ import (
 // (for AI/LLM operations). Basic CRUD commands can run without the server.
 func taskCommandNeedsServer(subcommand string) bool {
 	switch subcommand {
-	case "estimate", "summarize", "run-with-ai", "run_with_ai":
+	case "update", "estimate", "summarize", "run-with-ai", "run_with_ai":
 		return true
 	}
 	return false
@@ -45,8 +45,6 @@ func handleTaskCommandLight(parsed *mcpcli.Args) error {
 		return handleTaskListLight(parsed)
 	case "status":
 		return handleTaskStatusLight(parsed.Positional)
-	case "update":
-		return handleTaskUpdateLight(parsed)
 	case "create":
 		return handleTaskCreateLight(parsed)
 	case "show":
@@ -152,60 +150,6 @@ func handleTaskStatusLight(args []string) error {
 		"method":  "status",
 		"task":    taskToMap(task),
 	})
-}
-
-// handleTaskUpdateLight updates a task using direct database access.
-func handleTaskUpdateLight(parsed *mcpcli.Args) error {
-	idsStr := parsed.GetFlag("ids", "")
-	var taskIDs []string
-	if idsStr != "" {
-		taskIDs = strings.Split(idsStr, ",")
-	} else {
-		for _, p := range parsed.Positional {
-			if strings.HasPrefix(strings.TrimSpace(p), "T-") {
-				taskIDs = append(taskIDs, p)
-			}
-		}
-	}
-
-	for i := range taskIDs {
-		taskIDs[i] = strings.TrimSpace(taskIDs[i])
-	}
-
-	if len(taskIDs) == 0 {
-		return fmt.Errorf("update requires task ID(s) or --ids")
-	}
-
-	if len(taskIDs) == 1 {
-		return handleTaskUpdateSingleLight(taskIDs[0], parsed)
-	}
-
-	count := 0
-	for _, id := range taskIDs {
-		if err := handleTaskUpdateSingleLight(id, parsed); err == nil {
-			count++
-		}
-	}
-	return printJSON(map[string]interface{}{"success": true, "updated_count": count})
-}
-
-func handleTaskUpdateSingleLight(taskID string, parsed *mcpcli.Args) error {
-	update := database.TaskFieldUpdate{TaskID: taskID}
-
-	if newStatus := parsed.GetFlag("new-status", ""); newStatus != "" {
-		update.Status = &newStatus
-	}
-	if newPriority := parsed.GetFlag("new-priority", ""); newPriority != "" {
-		update.Priority = &newPriority
-	}
-	if name := parsed.GetFlag("name", ""); name != "" {
-		update.Name = &name
-	}
-	if desc := parsed.GetFlag("description", ""); desc != "" {
-		update.Description = &desc
-	}
-
-	return database.UpdateTaskFields(context.Background(), update)
 }
 
 // handleTaskCreateLight creates a task using direct database access.

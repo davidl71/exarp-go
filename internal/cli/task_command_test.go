@@ -7,12 +7,9 @@ import (
 	"io"
 	"os"
 	"strings"
-	"sync"
 	"testing"
 
-	"github.com/davidl71/exarp-go/internal/database"
 	"github.com/davidl71/exarp-go/internal/framework"
-	"github.com/davidl71/exarp-go/internal/models"
 	mcpcli "github.com/davidl71/mcp-go-core/pkg/mcp/cli"
 )
 
@@ -22,8 +19,6 @@ type taskCommandStubServer struct {
 	result   []framework.TextContent
 	err      error
 }
-
-var cliTaskDBMu sync.Mutex
 
 func (s *taskCommandStubServer) RegisterTool(string, string, framework.ToolSchema, framework.ToolHandler) error {
 	return nil
@@ -180,70 +175,62 @@ func captureStdout(t *testing.T, fn func()) string {
 	return <-done
 }
 
-func TestHandleTaskUpdateLightAcceptsPositionalTaskIDAndNewStatus(t *testing.T) {
-	cliTaskDBMu.Lock()
-	defer cliTaskDBMu.Unlock()
-
-	tmpDir := t.TempDir()
-	if err := database.Init(tmpDir); err != nil {
-		t.Fatalf("Init() error = %v", err)
-	}
-	defer database.Close()
-
-	task := &models.Todo2Task{
-		ID:       "T-3000001",
-		Content:  "CLI update target",
-		Status:   models.StatusTodo,
-		Priority: models.PriorityMedium,
-	}
-	if err := database.CreateTask(context.Background(), task); err != nil {
-		t.Fatalf("CreateTask() error = %v", err)
-	}
-
-	parsed := mcpcli.ParseArgs([]string{"task", "update", "T-3000001", "--new-status", "Done"})
-	if err := handleTaskUpdateLight(parsed); err != nil {
-		t.Fatalf("handleTaskUpdateLight() error = %v", err)
-	}
-
-	got, err := database.GetTask(context.Background(), "T-3000001")
-	if err != nil {
-		t.Fatalf("GetTask() error = %v", err)
-	}
-	if got.Status != models.StatusDone {
-		t.Fatalf("status = %q, want %q", got.Status, models.StatusDone)
+func TestTaskCommandNeedsServerIncludesUpdate(t *testing.T) {
+	if !taskCommandNeedsServer("update") {
+		t.Fatal("expected task update to require server")
 	}
 }
 
-func TestHandleTaskUpdateLightUsesNewPriorityFlag(t *testing.T) {
-	cliTaskDBMu.Lock()
-	defer cliTaskDBMu.Unlock()
+func TestHandleTaskUpdateParsedUsesTaskWorkflowForPositionalID(t *testing.T) {
+	server := &taskCommandStubServer{
+		result: []framework.TextContent{{Type: "text", Text: `{"success":true,"updated_count":1}`}},
+	}
 
-	tmpDir := t.TempDir()
-	if err := database.Init(tmpDir); err != nil {
-		t.Fatalf("Init() error = %v", err)
-	}
-	defer database.Close()
+	restore := setCLIOutputOptsForTest(false, false, false)
+	defer restore()
 
-	task := &models.Todo2Task{
-		ID:       "T-3000002",
-		Content:  "CLI priority target",
-		Status:   models.StatusTodo,
-		Priority: models.PriorityLow,
+	parsed := mcpcli.ParseArgs([]string{"task", "update", "T-3000001", "--new-status", "Done"})
+	if err := handleTaskUpdateParsed(server, parsed); err != nil {
+		t.Fatalf("handleTaskUpdateParsed() error = %v", err)
 	}
-	if err := database.CreateTask(context.Background(), task); err != nil {
-		t.Fatalf("CreateTask() error = %v", err)
+
+	if server.lastTool != "task_workflow" {
+		t.Fatalf("tool = %q, want task_workflow", server.lastTool)
 	}
+	if got := server.lastArgs["action"]; got != "update" {
+		t.Fatalf("action = %v, want update", got)
+	}
+	if got := server.lastArgs["task_ids"]; got != "T-3000001" {
+		t.Fatalf("task_ids = %v, want T-3000001", got)
+	}
+	if got := server.lastArgs["new_status"]; got != "Done" {
+		t.Fatalf("new_status = %v, want Done", got)
+	}
+}
+
+func TestHandleTaskUpdateParsedUsesTaskWorkflowForPriorityFlag(t *testing.T) {
+	server := &taskCommandStubServer{
+		result: []framework.TextContent{{Type: "text", Text: `{"success":true,"updated_count":1}`}},
+	}
+
+	restore := setCLIOutputOptsForTest(false, false, false)
+	defer restore()
 
 	parsed := mcpcli.ParseArgs([]string{"task", "update", "--ids", "T-3000002", "--new-priority", "high"})
-	if err := handleTaskUpdateLight(parsed); err != nil {
-		t.Fatalf("handleTaskUpdateLight() error = %v", err)
+	if err := handleTaskUpdateParsed(server, parsed); err != nil {
+		t.Fatalf("handleTaskUpdateParsed() error = %v", err)
 	}
 
-	got, err := database.GetTask(context.Background(), "T-3000002")
-	if err != nil {
-		t.Fatalf("GetTask() error = %v", err)
+	if server.lastTool != "task_workflow" {
+		t.Fatalf("tool = %q, want task_workflow", server.lastTool)
 	}
-	if got.Priority != models.PriorityHigh {
-		t.Fatalf("priority = %q, want %q", got.Priority, models.PriorityHigh)
+	if got := server.lastArgs["action"]; got != "update" {
+		t.Fatalf("action = %v, want update", got)
+	}
+	if got := server.lastArgs["task_ids"]; got != "T-3000002" {
+		t.Fatalf("task_ids = %v, want T-3000002", got)
+	}
+	if got := server.lastArgs["priority"]; got != "high" {
+		t.Fatalf("priority = %v, want high", got)
 	}
 }
