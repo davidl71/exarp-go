@@ -18,34 +18,34 @@ This document describes the database access patterns in exarp-go, distinguishing
 
 ### ✅ Modern (sqlx) - `internal/database/`
 
-All files in `internal/database/` use `GetDBx()`:
+All functions in `internal/database/` use `GetDBx()`:
 
-| File | Functions Using GetDBx() |
-|------|--------------------------|
-| `tasks_crud.go` | GetTask, CreateTask, UpdateTask, DeleteTask, etc. (8) |
-| `tasks_list.go` | ListTasks, GetDoneTasksForEstimation, FindNextClaimableTask (4) |
-| `tag_cache.go` | Tag cache queries (11) |
-| `tasks_misc.go` | BatchUpdateTaskStatus, GetDependencies (3) |
-| `tasks_lock.go` | Lock operations (4) |
-| `comments.go` | Comment CRUD (3) |
-| `lock_monitoring.go` | Lock monitoring (5) |
+| File | Functions |
+|------|-----------|
+| **tasks_crud.go** | CreateTask, GetTask, UpdateTask, BatchUpdateTaskStatus, BatchUpdateTaskMetadata, UpdateTaskFields, DeleteTask, IsVersionMismatchError, CheckUpdateConflict |
+| **tasks_list.go** | ListTasks, GetDoneTasksForEstimation, GetTasksByStatus, GetTaskCountByStatus, GetTasksByTag, GetTasksByPriority, FindNextClaimableTask |
+| **tag_cache.go** | GetDiscoveredTagsForFile, GetDiscoveredTagsWithHash, SaveDiscoveredTags, UpdateTagFrequency, GetTagFrequencies, SaveFileTaskTag, ClearTaskTagSuggestions, ClearFileTaskTags, GetTaskTagSuggestions, GetTopTagFrequencies |
+| **tasks_misc.go** | FixTaskDates, GetDependencies, GetDependents |
+| **tasks_lock.go** | ClaimTaskForAgent, ReleaseTask, RenewLease, RunLeaseRenewal, CleanupExpiredLocks |
+| **comments.go** | AddComments, GetComments, GetCommentsByType, DeleteComment, GetCommentsWithTypeFilter |
+| **lock_monitoring.go** | DetectStaleLocks, GetLockStatus, GetLocksByAgent, CleanupExpiredLocksWithReport, CleanupDeadAgentLocks |
 
 ### ⚠️ Legacy (GetDB) - `internal/tools/`
 
-These files use `GetDB()` for dual DB/file fallback (intentional):
+These functions use `GetDB()` for dual DB/file fallback (intentional):
 
-| File | Count | Purpose |
-|------|-------|---------|
-| `task_store.go` | 5 | TaskStore operations with JSON fallback |
-| `todo2_db_adapter.go` | 4 | DB ↔ JSON sync adapter |
-| `task_workflow_actions.go` | 3 | Task workflow handlers |
-| `task_workflow_maintenance.go` | 2 | Maintenance with file backup |
-| `session.go` | 1 | Session state with file fallback |
-| `todo2_utils.go` | 1 | Legacy utility functions |
-| `task_workflow_maintenance_helpers.go` | 1 | Maintenance helpers |
-| `session_assignee.go` | 1 | Assignee tracking |
-| `automation_discover.go` | 1 | Discovery with file fallback |
-| `resources/tasks.go` | 1 | Task resources |
+| File | Functions | Purpose |
+|------|-----------|---------|
+| **task_store.go** | TaskStoreDBExists, TaskStoreDBList, TaskStoreDBCreate, TaskStoreDBUpdate, TaskStoreDBDelete | TaskStore operations with JSON fallback |
+| **todo2_db_adapter.go** | loadTodo2TasksFromDB, loadTodo2TasksFromJSON, SaveTodo2TasksToDB, GetDBForTodo2DBAdapter | DB ↔ JSON sync adapter |
+| **task_workflow_actions.go** | getTaskStatusFromDB, getTaskMetadataFromDB, batchStatusUpdateFromDB | Task workflow handlers |
+| **task_workflow_maintenance.go** | GetTaskForMaintenance, GetTasksWithMetadataForMaintenance | Maintenance with file backup |
+| **session.go** | getSessionFromDB | Session state with file fallback |
+| **todo2_utils.go** | getNextTasksFromDB | Legacy utility functions |
+| **task_workflow_maintenance_helpers.go** | getMaintenanceTaskIDsFromDB | Maintenance helpers |
+| **session_assignee.go** | getAgentTasksFromDB | Assignee tracking |
+| **automation_discover.go** | checkAutomationStoreExists | Discovery with file fallback |
+| **resources/tasks.go** | getTaskForResource | Task resources |
 
 ## Migration Status
 
