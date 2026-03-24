@@ -1,10 +1,8 @@
-// scorecard_go.go — Go scorecard: types, consts, collectGoMetrics.
+// scorecard_go.go — Go scorecard: types, consts, and health checks.
 package tools
 
 import (
 	"context"
-	"fmt"
-	"github.com/davidl71/exarp-go/internal/config"
 	"os"
 	"path/filepath"
 	"strings"
@@ -101,46 +99,6 @@ type GoScorecardResult struct {
 // ScorecardOptions configures scorecard generation behavior.
 type ScorecardOptions struct {
 	FastMode bool // Skip expensive operations (go test, go build, go mod tidy)
-}
-
-// collectGoMetrics collects Go-specific project metrics.
-func collectGoMetrics(ctx context.Context, projectRoot string) (*GoProjectMetrics, error) {
-	metrics := &GoProjectMetrics{}
-
-	// Collect all file stats in a single walk
-	allStats, err := collectAllFileStats(projectRoot)
-	if err != nil {
-		return nil, fmt.Errorf("failed to collect file stats: %w", err)
-	}
-
-	metrics.GoFiles = allStats.GoFiles
-	metrics.GoLines = allStats.GoLines
-	metrics.GoTestFiles = allStats.TestFiles
-	metrics.GoTestLines = allStats.TestLines
-	metrics.PythonFiles = allStats.PythonFiles
-	metrics.PythonLines = allStats.PythonLines
-
-	totalBytes := allStats.GoBytes + allStats.TestBytes + allStats.PythonBytes
-	metrics.TotalCodeBytes = totalBytes
-	metrics.EstimatedTokens = int(float64(totalBytes) * config.TokensPerChar())
-
-	// Check Go module
-	if _, err := os.Stat(filepath.Join(projectRoot, "go.mod")); err == nil {
-		metrics.GoModules = 1
-		// Count dependencies
-		deps, version, err := getGoModuleInfo(ctx, projectRoot)
-		if err == nil {
-			metrics.GoDependencies = deps
-			metrics.GoVersion = version
-		}
-	}
-
-	// MCP server counts (these should be accurate)
-	metrics.MCPTools = 24     // Base tools (llamacpp retired)
-	metrics.MCPPrompts = 15   // Fixed: was 38 (actual count may vary, check sanity-check)
-	metrics.MCPResources = 17 // Updated: 11 base + 6 task resources
-
-	return metrics, nil
 }
 
 // performGoHealthChecks performs Go-specific health checks.

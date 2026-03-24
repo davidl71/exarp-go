@@ -31,7 +31,6 @@ func isConnectionRefused(err error) bool {
 	return strings.Contains(err.Error(), "connection refused")
 }
 
-const realModelsTimeoutSeconds = 60
 
 func TestRealModels_TextGenerate(t *testing.T) {
 	if testing.Short() {

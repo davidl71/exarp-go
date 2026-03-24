@@ -5,7 +5,6 @@
 package database
 
 import (
-	"database/sql"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -113,13 +112,6 @@ func SanitizeMetadataForWrite(metadata map[string]interface{}) map[string]interf
 	return out
 }
 
-func sqlNullString(s string) sql.NullString {
-	if s == "" {
-		return sql.NullString{Valid: false}
-	}
-
-	return sql.NullString{String: s, Valid: true}
-}
 
 func jsonSafeValue(v interface{}) interface{} {
 	if v == nil {

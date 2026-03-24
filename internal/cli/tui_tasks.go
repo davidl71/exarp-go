@@ -23,9 +23,8 @@ var defaultTableColumns = []table.Column{
 
 // taskItem implements list.Item for bubble/list integration.
 type taskItem struct {
-	task     *database.Todo2Task
-	index    int
-	selected bool
+	task  *database.Todo2Task
+	index int
 }
 
 func (t taskItem) FilterValue() string {

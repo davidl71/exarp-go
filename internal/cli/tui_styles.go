@@ -69,11 +69,6 @@ var (
 			Background(lipgloss.Color("#000000")).
 			Padding(0, 1)
 
-	statusStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("#FFFFFF")).
-			Background(lipgloss.Color("#008080")).
-			Padding(0, 1)
-
 	selectedStyle = lipgloss.NewStyle().
 			Foreground(lipgloss.Color("#000000")).
 			Background(lipgloss.Color("#FFFF00")).
@@ -117,16 +112,7 @@ var (
 			BorderForeground(lipgloss.Color("#808080")).
 			Padding(1, 2)
 
-	softBorderHeaderStyle = lipgloss.NewStyle().
-				Border(lipgloss.RoundedBorder()).
-				BorderForeground(lipgloss.Color("#00FF00")).
-				BorderTop(false).
-				Padding(1, 2)
 
-	softBorderSelectedStyle = lipgloss.NewStyle().
-				Border(lipgloss.RoundedBorder()).
-				BorderForeground(lipgloss.Color("#FFFF00")).
-				Padding(1, 2)
 
 	// SoftBorder uses Unicode rounded box-drawing characters for a softer visual appearance.
 	SoftBorder = lipgloss.Border{
