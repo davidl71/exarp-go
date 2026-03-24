@@ -144,6 +144,10 @@ func handleReportExecutionBriefing(ctx context.Context, params map[string]interf
 			staleRuns = append(staleRuns, runMap)
 		}
 	}
+	projectRoot, err := FindProjectRoot()
+	if err != nil {
+		return nil, fmt.Errorf("failed to find project root: %w", err)
+	}
 	result := map[string]interface{}{
 		"active_claims": activeClaimMaps,
 		"active_runs":   runMaps,
@@ -152,6 +156,11 @@ func handleReportExecutionBriefing(ctx context.Context, params map[string]interf
 			"active_run_count":   len(runMaps),
 			"stale_run_count":    len(staleRuns),
 		},
+	}
+	if orchestration, err := BuildExecutionOrchestrationSummary(ctx, projectRoot, activeLocks, activeRuns); err == nil {
+		for key, value := range orchestration {
+			result[key] = value
+		}
 	}
 	if len(staleRuns) > 0 {
 		result["stale_runs"] = staleRuns

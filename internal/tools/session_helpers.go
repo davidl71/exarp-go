@@ -449,6 +449,9 @@ func getSuggestedNextTasksFromTasks(tasks []Todo2Task, limit int) []map[string]i
 					m["recommended_tools"] = rt
 				}
 				m["lazy_context"] = buildLazyTaskContext(t)
+				for key, value := range BuildWorkflowContract(&t, nil, nil) {
+					m[key] = value
+				}
 			}
 			out = append(out, m)
 			continue
@@ -465,6 +468,9 @@ func getSuggestedNextTasksFromTasks(tasks []Todo2Task, limit int) []map[string]i
 				m["recommended_tools"] = rt
 			}
 			m["lazy_context"] = buildLazyTaskContext(t)
+			for key, value := range BuildWorkflowContract(&t, nil, nil) {
+				m[key] = value
+			}
 		}
 		out = append(out, m)
 	}

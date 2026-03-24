@@ -7,8 +7,11 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
+	"github.com/davidl71/exarp-go/internal/database"
 	"github.com/davidl71/exarp-go/internal/framework"
+	"github.com/davidl71/exarp-go/internal/models"
 	"github.com/davidl71/exarp-go/internal/prompts"
 	"github.com/davidl71/exarp-go/proto"
 )
@@ -309,6 +312,118 @@ func TestHandleReport(t *testing.T) {
 				t.Error("expected non-empty result")
 			}
 		})
+	}
+}
+
+func TestHandleReportExecutionBriefingIncludesAgentRoleOrchestration(t *testing.T) {
+	cleanup := initSessionTestDB(t)
+	defer cleanup()
+
+	ctx := context.Background()
+	tasks := []*models.Todo2Task{
+		{
+			ID:       "T-4200001",
+			Content:  "Planning slice",
+			Status:   models.StatusTodo,
+			Priority: "high",
+			Metadata: map[string]interface{}{metadataAgentRoleKey: AgentRolePlanner},
+		},
+		{
+			ID:       "T-4200002",
+			Content:  "Implementation slice",
+			Status:   models.StatusTodo,
+			Priority: "high",
+			Metadata: map[string]interface{}{metadataAgentRoleKey: AgentRoleWorker},
+		},
+		{
+			ID:       "T-4200003",
+			Content:  "Review slice",
+			Status:   models.StatusTodo,
+			Priority: "medium",
+			Metadata: map[string]interface{}{metadataAgentRoleKey: AgentRoleReviewer},
+		},
+	}
+	for _, task := range tasks {
+		if err := database.CreateTask(ctx, task); err != nil {
+			t.Fatalf("CreateTask(%s): %v", task.ID, err)
+		}
+	}
+
+	if _, err := database.ClaimTaskForAgent(ctx, "T-4200002", "worker-agent", 30*time.Minute); err != nil {
+		t.Fatalf("ClaimTaskForAgent: %v", err)
+	}
+	run := &database.TaskExecutionRun{
+		TaskID:  "T-4200002",
+		AgentID: "worker-agent",
+		Host:    "test-host",
+		Status:  "running",
+		Summary: "Implementing worker slice",
+	}
+	if err := database.StartTaskExecutionRun(ctx, run); err != nil {
+		t.Fatalf("StartTaskExecutionRun: %v", err)
+	}
+
+	result, err := handleReportExecutionBriefing(ctx, map[string]interface{}{
+		"action":  "execution_briefing",
+		"limit":   10,
+		"compact": true,
+	})
+	if err != nil {
+		t.Fatalf("handleReportExecutionBriefing: %v", err)
+	}
+	if len(result) == 0 {
+		t.Fatal("expected non-empty result")
+	}
+
+	var payload map[string]interface{}
+	if err := json.Unmarshal([]byte(result[0].Text), &payload); err != nil {
+		t.Fatalf("unmarshal result: %v", err)
+	}
+
+	summary, ok := payload["agent_role_summary"].(map[string]interface{})
+	if !ok {
+		t.Fatalf("expected agent_role_summary, got %T", payload["agent_role_summary"])
+	}
+	if got := summary["dominant_role"]; got != AgentRolePlanner && got != AgentRoleWorker && got != AgentRoleReviewer {
+		t.Fatalf("unexpected dominant_role: %v", got)
+	}
+	distribution, ok := summary["distribution"].(map[string]interface{})
+	if !ok || len(distribution) == 0 {
+		t.Fatalf("expected distribution in agent_role_summary, got %v", summary["distribution"])
+	}
+	if distribution[AgentRolePlanner] == nil {
+		t.Fatalf("expected planner in distribution, got %v", distribution)
+	}
+
+	lanes, ok := payload["orchestration_lanes"].([]interface{})
+	if !ok || len(lanes) == 0 {
+		t.Fatalf("expected orchestration_lanes, got %v", payload["orchestration_lanes"])
+	}
+
+	foundWorkerLane := false
+	for _, laneRaw := range lanes {
+		lane, ok := laneRaw.(map[string]interface{})
+		if !ok {
+			continue
+		}
+		if lane["role"] != AgentRoleWorker {
+			continue
+		}
+		foundWorkerLane = true
+		if lane["active_claim_count"] != float64(1) {
+			t.Fatalf("worker active_claim_count = %v, want 1", lane["active_claim_count"])
+		}
+		if lane["active_run_count"] != float64(1) {
+			t.Fatalf("worker active_run_count = %v, want 1", lane["active_run_count"])
+		}
+	}
+	if !foundWorkerLane {
+		t.Fatalf("worker lane not found in %v", lanes)
+	}
+
+	suggestions, ok := payload["delegation_suggestions"].([]interface{})
+	if !ok || len(suggestions) == 0 {
+		t.Fatalf("expected delegation_suggestions, got %v", payload["delegation_suggestions"])
 	}
 }
 

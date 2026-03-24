@@ -76,6 +76,9 @@ func handleTaskByID(ctx context.Context, uri string) ([]byte, string, error) {
 		"task":      formatTaskForResource(task),
 		"timestamp": time.Now().Format(time.RFC3339),
 	}
+	if workflowContract := tools.BuildWorkflowContract(task, nil, nil); len(workflowContract) > 0 {
+		result["workflow_contract"] = workflowContract
+	}
 
 	jsonData, err := json.Marshal(result)
 	if err != nil {
@@ -409,6 +412,13 @@ func handleActiveWork(ctx context.Context, uri string) ([]byte, string, error) {
 		"active_claims": claimMaps,
 		"active_runs":   runMaps,
 		"timestamp":     time.Now().Format(time.RFC3339),
+	}
+	if projectRoot, err := tools.FindProjectRoot(); err == nil {
+		if orchestration, err := tools.BuildExecutionOrchestrationSummary(ctx, projectRoot, activeLocks, activeRuns); err == nil {
+			for key, value := range orchestration {
+				result[key] = value
+			}
+		}
 	}
 
 	jsonData, err := json.Marshal(result)

@@ -55,9 +55,13 @@ For richer or project-aware operations, prefer exarp-go MCP tools/resources:
 
 - `report` with `action=overview|scorecard|briefing`
 - `session` with `action=prime`
+- `stdio://agent/briefing` for one-shot execution-oriented startup context
+- `stdio://agent/task/{task_id}/execution-pack` for task-scoped execution context
+- `stdio://agent/alerts` for compact stale/review-needed polling
 - `task_workflow` for advanced task operations
 - `stdio://tools` for the full tool catalog
 - `stdio://suggested-tasks` for dependency-ready work
+- `stdio://agent/skills` for the aggregated agent-facing skill guide
 
 ### Do Not
 

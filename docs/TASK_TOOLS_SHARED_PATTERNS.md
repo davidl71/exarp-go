@@ -43,10 +43,17 @@ Task-related tools (`task_workflow`, `task_analysis`, `task_discovery`, `estimat
 - **Prime stays compact by default:** `session action=prime` should return summary data plus pointers, not preload every skill/doc blob.
 - **Per-task lazy context:** each `suggested_next` item may include `lazy_context` with:
   - `task_resource_uri` → `stdio://tasks/{task_id}`
-  - `skill_resource_uris` → `stdio://cursor/skills/{name}` entries inferred from `recommended_tools`
+  - `skill_resource_uris` → `stdio://agent/skills/{name}` entries inferred from `recommended_tools`
   - `resource_uris` → combined on-demand load list for clients
-- **Aggregated skills remain available:** `stdio://cursor/skills` is the full workflow guide, but execution-focused clients should prefer the per-skill resource when they only need one workflow.
+- **Aggregated skills remain available:** `stdio://agent/skills` is the full workflow guide, but execution-focused clients should prefer the per-skill resource when they only need one workflow. `stdio://cursor/skills` remains as a compatibility alias.
 - **Rule of thumb:** put discovery pointers in prime; fetch detailed task/skill context only when the user actually starts or inspects that task.
+
+## 4.2 Agent-facing execution resources
+
+- **Briefing:** `stdio://agent/briefing` composes session-prime context, active work, and orchestration summaries into one compact startup packet.
+- **Execution pack:** `stdio://agent/task/{task_id}/execution-pack` provides task context, recent evidence, lazy resources, and ordered workflow guidance in one read.
+- **Alerts:** `stdio://agent/alerts` provides a compact polling surface for expired claims, stale runs, review-ready work, and the current recommended next task.
+- **Compatibility aliases:** `stdio://codex/...` mirrors the same resources for Codex-oriented discovery.
 
 ## 5. FM / local LLM usage
 

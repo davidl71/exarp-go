@@ -30,7 +30,7 @@ Apply this skill when the workspace uses the exarp-go MCP server and you need to
 | Test structure or runs | `testing` with `action=validate`, `action=run`, or `action=coverage`. |
 | Tool-specific help | `tool_catalog` with `action=help` and `tool_name`, or stdio://tools resources. |
 | **Bulk remove one-off/performance tasks** | Use **task-cleanup** skill (batch delete via `task_workflow` with `task_ids`). See `.cursor/skills/task-cleanup/SKILL.md`. |
-| **Cursor: which skills to use** | Read resource **stdio://cursor/skills** or **.cursor/skills/README.md** for task-workflow, use-exarp-tools, report-scorecard, task-cleanup, lint-docs, tractatus-decompose. |
+| **Which skills to use** | Read resource **stdio://agent/skills** (legacy alias: **stdio://cursor/skills**) or **.cursor/skills/README.md** for task-workflow, use-exarp-tools, report-scorecard, task-cleanup, lint-docs, tractatus-decompose. |
 | **Available prompts (workflow, persona, category)** | Resource **stdio://prompts**; **stdio://prompts/mode/{mode}**, **stdio://prompts/persona/{persona}**, **stdio://prompts/category/{category}** for filtered lists. |
 | **Models / LLM backends (local AI)** | Resource **stdio://models** — returns `data.models` (recommend catalog) and **data.backends** (fm_available, tool names). Use to choose backend before calling apple_foundation_models, ollama, mlx, or text_generate. |
 | **Task list / suggested tasks** | **stdio://tasks**, **stdio://tasks/status/{status}**, **stdio://suggested-tasks** for dependency-ready tasks. |
@@ -38,8 +38,9 @@ Apply this skill when the workspace uses the exarp-go MCP server and you need to
 
 ## Resources and prompts (quick reference)
 
-- **stdio://cursor/skills** — Aggregated skill guide for exarp-go.
-- **stdio://cursor/skills/{name}** — Load one skill lazily (for example `stdio://cursor/skills/task-workflow`) when `suggested_next[].lazy_context` points to it.
+- **stdio://agent/skills** — Aggregated agent-facing skill guide for exarp-go.
+- **stdio://agent/skills/{name}** — Load one skill lazily (for example `stdio://agent/skills/task-workflow`) when `suggested_next[].lazy_context` points to it.
+- **stdio://cursor/skills** and **stdio://cursor/skills/{name}** — legacy aliases kept for compatibility.
 - **stdio://tools** — Full tool catalog; **stdio://tools/{category}** for category filter (e.g. "Task Management", "AI & ML").
 - **stdio://prompts** — All prompt names and short descriptions; use **/mode/{mode}**, **/persona/{persona}**, **/category/{category}** for filtered lists.
 - **stdio://models** — Model catalog and `backends` (fm_available, apple_fm_tool, ollama_tool, mlx_tool). Check before using LLM tools (see .cursor/rules/llm-tools.mdc).

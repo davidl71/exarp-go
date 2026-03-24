@@ -424,6 +424,15 @@ func RegisterAllResources(server framework.MCPServer) error {
 		return fmt.Errorf("failed to register cursor skills resource: %w", err)
 	}
 	if err := registerAndTrack(server,
+		"stdio://agent/skills",
+		"Agent Skills",
+		"Agent-agnostic workflow guide for exarp-go MCP tools.",
+		"text/markdown",
+		handleCursorSkills,
+	); err != nil {
+		return fmt.Errorf("failed to register agent skills resource: %w", err)
+	}
+	if err := registerAndTrack(server,
 		"stdio://cursor/skills/{name}",
 		"Cursor Skill by Name",
 		"Read one Cursor skill by name so clients can load workflow guidance lazily.",
@@ -440,6 +449,24 @@ func RegisterAllResources(server framework.MCPServer) error {
 		handleCursorSkillByName,
 	); err != nil {
 		return fmt.Errorf("failed to register cursor skill by name template: %w", err)
+	}
+	if err := registerAndTrack(server,
+		"stdio://agent/skills/{name}",
+		"Agent Skill by Name",
+		"Read one agent-facing skill by name so clients can load workflow guidance lazily.",
+		"text/markdown",
+		handleCursorSkillByName,
+	); err != nil {
+		return fmt.Errorf("failed to register agent skill by name resource: %w", err)
+	}
+	if err := registerTemplate(server,
+		"stdio://agent/skills/{name}",
+		"Agent Skill by Name",
+		"Read one agent-facing skill by name so clients can load workflow guidance lazily.",
+		"text/markdown",
+		handleCursorSkillByName,
+	); err != nil {
+		return fmt.Errorf("failed to register agent skill by name template: %w", err)
 	}
 
 	// stdio://tools
@@ -646,6 +673,79 @@ func RegisterAllResources(server framework.MCPServer) error {
 		handleActiveWork,
 	); err != nil {
 		return fmt.Errorf("failed to register active work resource: %w", err)
+	}
+
+	if err := registerAndTrack(server,
+		"stdio://agent/briefing",
+		"Agent Briefing",
+		"Compact execution-oriented agent briefing built from session prime, active work, and orchestration data.",
+		"application/json",
+		handleAgentBriefing,
+	); err != nil {
+		return fmt.Errorf("failed to register agent briefing resource: %w", err)
+	}
+	if err := registerAndTrack(server,
+		"stdio://codex/briefing",
+		"Codex Briefing",
+		"Alias for stdio://agent/briefing for Codex-oriented clients.",
+		"application/json",
+		handleAgentBriefing,
+	); err != nil {
+		return fmt.Errorf("failed to register codex briefing resource: %w", err)
+	}
+	if err := registerAndTrack(server,
+		"stdio://agent/task/{task_id}/execution-pack",
+		"Task Execution Pack",
+		"Task-scoped execution packet: task context, evidence, workflow contract, and lazy resource pointers.",
+		"application/json",
+		handleAgentExecutionPack,
+	); err != nil {
+		return fmt.Errorf("failed to register agent execution-pack resource: %w", err)
+	}
+	if err := registerTemplate(server,
+		"stdio://agent/task/{task_id}/execution-pack",
+		"Task Execution Pack",
+		"Task-scoped execution packet: task context, evidence, workflow contract, and lazy resource pointers.",
+		"application/json",
+		handleAgentExecutionPack,
+	); err != nil {
+		return fmt.Errorf("failed to register agent execution-pack template: %w", err)
+	}
+	if err := registerAndTrack(server,
+		"stdio://codex/task/{task_id}/execution-pack",
+		"Codex Task Execution Pack",
+		"Alias for stdio://agent/task/{task_id}/execution-pack.",
+		"application/json",
+		handleAgentExecutionPack,
+	); err != nil {
+		return fmt.Errorf("failed to register codex execution-pack resource: %w", err)
+	}
+	if err := registerTemplate(server,
+		"stdio://codex/task/{task_id}/execution-pack",
+		"Codex Task Execution Pack",
+		"Alias for stdio://agent/task/{task_id}/execution-pack.",
+		"application/json",
+		handleAgentExecutionPack,
+	); err != nil {
+		return fmt.Errorf("failed to register codex execution-pack template: %w", err)
+	}
+	if err := registerAndTrack(server,
+		"stdio://agent/alerts",
+		"Agent Alerts",
+		"Compact alert surface for stale locks, stale runs, review-ready work, and recommended next task.",
+		"application/json",
+		handleAgentAlerts,
+	); err != nil {
+		return fmt.Errorf("failed to register agent alerts resource: %w", err)
+	}
+	if err := registerAndTrack(server,
+		"stdio://codex/alerts",
+		"Codex Alerts",
+		"Alias for stdio://agent/alerts for Codex-oriented clients.",
+		"application/json",
+		handleAgentAlerts,
+	); err != nil {
+		return fmt.Errorf("failed to register codex alerts resource: %w", err)
 	}
 
 	if err := registerAndTrack(server,

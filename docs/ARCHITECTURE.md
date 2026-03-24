@@ -191,8 +191,15 @@ Session/bootstrap context follows the same rule: broad workflow guidance can be 
 
 - `session action=prime` returns `suggested_next[].lazy_context` for each suggested task.
 - `lazy_context.task_resource_uri` points to the canonical task resource (`stdio://tasks/{task_id}`).
-- `lazy_context.skill_resource_uris` points to per-skill resources such as `stdio://cursor/skills/task-workflow`.
-- `stdio://cursor/skills` remains the aggregated workflow guide, while `stdio://cursor/skills/{name}` is the lazy per-skill resource for task-scoped loading.
+- `lazy_context.skill_resource_uris` points to per-skill resources such as `stdio://agent/skills/task-workflow`.
+- `stdio://agent/skills` is the agent-agnostic aggregated workflow guide, while `stdio://agent/skills/{name}` is the lazy per-skill resource for task-scoped loading. `stdio://cursor/skills` remains as a compatibility alias.
+
+The execution-cockpit surface also now exposes agent-facing resources layered above the existing task/session state:
+
+- `stdio://agent/briefing` for compact startup context
+- `stdio://agent/task/{task_id}/execution-pack` for one-shot task execution context
+- `stdio://agent/alerts` for stale/blocked/review-needed polling
+- `stdio://codex/...` aliases for Codex-oriented clients
 
 Allowed direct `database.*` usage from `internal/tools` is now limited to DB-specific features that do not fit plain task CRUD, such as:
 

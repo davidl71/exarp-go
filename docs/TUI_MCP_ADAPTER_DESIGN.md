@@ -72,7 +72,7 @@ The core task CLI has now been deduplicated so `exarp-go task ...` also routes t
 - CLI and MCP already share the same task behavior.
 - TUI should do the same through typed MCP helpers.
 - Any remaining direct `database.*` usage in TUI should be treated as a layering leak, not as an acceptable parallel task path.
-- For task-focused views, TUI should prefer `session action=prime` + `suggested_next[].lazy_context` and load `stdio://tasks/{task_id}` / `stdio://cursor/skills/{name}` only when the operator opens that task.
+- For task-focused views, TUI should prefer `session action=prime` + `suggested_next[].lazy_context` and load `stdio://tasks/{task_id}` / `stdio://agent/skills/{name}` only when the operator opens that task.
 
 ---
 

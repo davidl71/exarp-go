@@ -14,12 +14,12 @@ func TestRegisterAllResources(t *testing.T) {
 		t.Fatalf("RegisterAllResources() error = %v", err)
 	}
 
-	// Verify all 36 resources are registered.
-	if server.ResourceCount() != 36 {
-		t.Errorf("server.ResourceCount() = %v, want 36", server.ResourceCount())
+	// Verify all 44 resources are registered.
+	if server.ResourceCount() != 44 {
+		t.Errorf("server.ResourceCount() = %v, want 44", server.ResourceCount())
 	}
-	if server.ResourceTemplateCount() != 13 {
-		t.Errorf("server.ResourceTemplateCount() = %v, want 13", server.ResourceTemplateCount())
+	if server.ResourceTemplateCount() != 16 {
+		t.Errorf("server.ResourceTemplateCount() = %v, want 16", server.ResourceTemplateCount())
 	}
 
 	// Verify specific resources are registered
@@ -41,7 +41,9 @@ func TestRegisterAllResources(t *testing.T) {
 		"stdio://server/status",
 		"stdio://models",
 		"stdio://cursor/skills",
+		"stdio://agent/skills",
 		"stdio://cursor/skills/{name}",
+		"stdio://agent/skills/{name}",
 		"stdio://tools",
 		"stdio://tool_catalog",
 		"stdio://tools/names",
@@ -57,6 +59,12 @@ func TestRegisterAllResources(t *testing.T) {
 		"stdio://ready-tasks",
 		"stdio://suggested-tasks",
 		"stdio://active-work",
+		"stdio://agent/briefing",
+		"stdio://codex/briefing",
+		"stdio://agent/task/{task_id}/execution-pack",
+		"stdio://codex/task/{task_id}/execution-pack",
+		"stdio://agent/alerts",
+		"stdio://codex/alerts",
 		"stdio://task-runs/{task_id}",
 		"agent://card",
 	}
@@ -89,11 +97,14 @@ func TestRegisterAllResources(t *testing.T) {
 		"stdio://prompts/persona/{persona}",
 		"stdio://prompts/category/{category}",
 		"stdio://cursor/skills/{name}",
+		"stdio://agent/skills/{name}",
 		"stdio://tools/{category}",
 		"stdio://tasks/{task_id}",
 		"stdio://tasks/status/{status}",
 		"stdio://tasks/priority/{priority}",
 		"stdio://tasks/tag/{tag}",
+		"stdio://agent/task/{task_id}/execution-pack",
+		"stdio://codex/task/{task_id}/execution-pack",
 		"stdio://task-runs/{task_id}",
 	}
 
@@ -213,13 +224,53 @@ func TestRegisterAllResources_URIParsing(t *testing.T) {
 			want: true,
 		},
 		{
+			name: "agent briefing",
+			uri:  "stdio://agent/briefing",
+			want: true,
+		},
+		{
+			name: "codex briefing",
+			uri:  "stdio://codex/briefing",
+			want: true,
+		},
+		{
+			name: "agent alerts",
+			uri:  "stdio://agent/alerts",
+			want: true,
+		},
+		{
+			name: "codex alerts",
+			uri:  "stdio://codex/alerts",
+			want: true,
+		},
+		{
 			name: "cursor skills",
 			uri:  "stdio://cursor/skills",
 			want: true,
 		},
 		{
+			name: "agent skills",
+			uri:  "stdio://agent/skills",
+			want: true,
+		},
+		{
 			name: "cursor skill by name pattern",
 			uri:  "stdio://cursor/skills/{name}",
+			want: true,
+		},
+		{
+			name: "agent skill by name pattern",
+			uri:  "stdio://agent/skills/{name}",
+			want: true,
+		},
+		{
+			name: "agent execution pack pattern",
+			uri:  "stdio://agent/task/{task_id}/execution-pack",
+			want: true,
+		},
+		{
+			name: "codex execution pack pattern",
+			uri:  "stdio://codex/task/{task_id}/execution-pack",
 			want: true,
 		},
 		{
