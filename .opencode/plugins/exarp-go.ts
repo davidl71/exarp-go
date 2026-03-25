@@ -490,12 +490,55 @@ export const ExarpGoPlugin: Plugin = async ({ $, client, directory }) => {
     "experimental.chat.system.transform": async (input, output) => {
       if (isSubAgent(input)) return;
       const cache = await refreshCache($);
+
+      // Build dependency warnings for in-progress tasks
+      const warnings: string[] = [];
+      const inProgress = cache.tasks.filter((t) => t.status === "In Progress");
+
+      for (const task of inProgress) {
+        if (task.dependencies && task.dependencies.length > 0) {
+          const blockedBy = task.dependencies.filter((depId: string) => {
+            const dep = cache.tasks.find((t) => t.id === depId);
+            return dep && dep.status !== "Done";
+          });
+          if (blockedBy.length > 0) {
+            warnings.push(`⚠️ ${task.id} (${task.content}) blocked by: ${blockedBy.join(", ")}`);
+          }
+        }
+      }
+
+      // Build stale task warnings (>7 days based on task ID timestamp)
+      const staleThreshold = 7 * 24 * 60 * 60 * 1000; // 7 days in ms
+      const now = Date.now();
+      const staleTasks = cache.tasks.filter((t) => {
+        if (t.status === "Done" || t.status === "Cancelled") return false;
+        // Task ID contains timestamp: T-<timestamp><random>
+        const tsMatch = t.id.match(/T-(\d{13})/);
+        if (!tsMatch) return false;
+        const taskTime = parseInt(tsMatch[1], 10);
+        return (now - taskTime) > staleThreshold;
+      });
+
+      let warningsSection = "";
+      if (warnings.length > 0) {
+        warningsSection += `\n## ⚠️ Dependency Warnings\n${warnings.join("\n")}\n`;
+      }
+      if (staleTasks.length > 0) {
+        const staleList = staleTasks.map((t) => {
+          const tsMatch = t.id.match(/T-(\d{13})/);
+          const taskTime = tsMatch ? parseInt(tsMatch[1], 10) : 0;
+          const daysOld = Math.floor((now - taskTime) / (24 * 60 * 60 * 1000));
+          return `- ${t.id} [${daysOld}d old]: ${t.content}`;
+        }).join("\n");
+        warningsSection += `\n## ⏰ Stale Tasks (>7 days)\n${staleList}\n`;
+      }
+
       output.system.push(`
 <exarp-go-context>
 ## Current Tasks
 
 ${cache.text}
-
+${warningsSection}
 You have exarp-go tools available:
 - exarp_tasks: Quick task list (plugin tool, no MCP needed)
 - exarp_update_task: Update task status (plugin tool)
@@ -614,7 +657,35 @@ When completing a task (set status to Done), check for follow-up suggestions and
           invalidateCache();
         }
       } catch {
-        // Silently ignore git command failures (not in git repo, etc.)
+          // Silently ignore git command failures (not in git repo, etc.)
+        }
+      }
+
+      // Build/test result awareness: capture test and build output
+      const buildCommands = ["make test", "make build", "make lint", "go test", "go build", "npm test", "npm run"];
+      const isBuildCommand = buildCommands.some((bc) => cmd.includes(bc));
+
+      if (isBuildCommand) {
+        const exitCode = output?.exitCode ?? -1;
+        const stdout = output?.stdout || "";
+        const stderr = output?.stderr || "";
+
+        // Parse test results
+        const testMatch = stdout.match(/(\d+) passed.*?(\d+) failed/i) ||
+                          stdout.match(/PASS|FAIL/i);
+
+        if (exitCode === 0) {
+          // Success
+          if (testMatch) {
+            await showToast(client, `✅ Tests passed`, "success");
+          } else if (cmd.includes("build")) {
+            await showToast(client, `✅ Build successful`, "success");
+          }
+        } else if (exitCode !== 0) {
+          // Failure
+          const failureInfo = stderr.split("\n").slice(-5).join("; ").slice(0, 200);
+          await showToast(client, `❌ Failed (exit ${exitCode}): ${failureInfo || "see output"}`, "error");
+        }
       }
     },
 
