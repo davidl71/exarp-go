@@ -288,6 +288,19 @@ func handleSessionPrime(ctx context.Context, params map[string]interface{}) ([]f
 		if todoCount > 10 {
 			hints["thinking_workflow"] = "For complex backlog analysis, sprint planning, or dependency enrichment: use the thinking-workflow skill (.cursor/skills/thinking-workflow/SKILL.md) — chain tractatus (structure) + sequential (process) + exarp-go MCP (execute)"
 		}
+
+		// Hint about ownership if tasks lack it
+		if len(tasks) > 0 {
+			missingOwnership := 0
+			for _, task := range tasks {
+				if IsPendingStatus(task.Status) && models.GetTaskOwnership(&task) == nil {
+					missingOwnership++
+				}
+			}
+			if missingOwnership > 2 {
+				hints["add_ownership"] = fmt.Sprintf("⚠️ %d pending tasks lack file ownership. Add with: task_workflow update <id> owned_files=['...'] lane='...' — or run task_analysis action=infer_ownership", missingOwnership)
+			}
+		}
 	} else if includeTasks {
 		planPath, _ = getPlanModeContext(projectRoot, tasks)
 	}

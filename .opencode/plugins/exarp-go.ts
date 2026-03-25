@@ -547,6 +547,11 @@ You have exarp-go tools available:
 - exarp_followup: Get/create follow-up tasks (action=suggest|create, task_id=...)
 - task_workflow, report, session, health: MCP tools for advanced operations
 When completing a task (set status to Done), check for follow-up suggestions and create them to maintain momentum.
+
+**💡 Tip:** When creating or editing tasks, add file ownership for better parallelization:
+  task_workflow create "Fix auth" owned_files='["src/auth/middleware.go"]' lane='backend-auth'
+  task_workflow update T-123 owned_files='["src/api/users.go"]' lane='backend-api'
+  Ownership helps: collision detection, execution planning, agent coordination.
 </exarp-go-context>
 `);
     },
