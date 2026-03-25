@@ -19,7 +19,9 @@
 import type { Plugin } from "@opencode-ai/plugin";
 import { tool } from "@opencode-ai/plugin";
 
-const EXARP_BINARY = process.env.EXARP_GO_BINARY || "exarp-go";
+// Binary resolution: env var > global install > PATH
+const EXARP_BINARY = process.env.EXARP_GO_BINARY ||
+  (process.env.HOME ? `${process.env.HOME}/.local/bin/exarp-go` : "exarp-go");
 const CACHE_TTL_MS = 30_000;
 
 interface TaskSummary {
@@ -172,6 +174,25 @@ function getInProgressTasks(tasks: TaskSummary[]): TaskSummary[] {
 
 export const ExarpGoPlugin: Plugin = async ({ $, client, directory }) => {
   const projectRoot = directory;
+
+  // Check if this project has exarp-go (has .todo2 or .exarp directory)
+  // If not, return a minimal plugin that only sets env vars
+  let hasExarp = false;
+  try {
+    await $`test -d ${projectRoot}/.todo2 || test -d ${projectRoot}/.exarp`.quiet();
+    hasExarp = true;
+  } catch {
+    // Not an exarp-go project - return minimal plugin
+    return {
+      "shell.env": async (_input, output) => {
+        output.env.PROJECT_ROOT = projectRoot;
+      },
+      async config(config) {
+        config.experimental = config.experimental ?? {};
+        config.experimental.primary_tools = config.experimental.primary_tools ?? [];
+      },
+    };
+  }
 
   return {
     "shell.env": async (_input, output) => {
