@@ -548,9 +548,73 @@ When completing a task (set status to Done), check for follow-up suggestions and
               }
             }
           } catch {
-            // Silently ignore correlation errors
-          }
+      // Silently ignore correlation errors
         }
+      }
+    },
+
+    // Git branch → task correlation: detect T-123-* branch patterns
+    "shell.execute.after": async (input, output) => {
+      const cmd = input?.command || input?.cmd || "";
+
+      // Detect git checkout/switch/branch commands
+      const gitCommands = ["checkout", "switch", "branch"];
+      const isGitCommand = gitCommands.some((gc) => cmd.includes(gc));
+
+      if (!isGitCommand) return;
+
+      try {
+        // Get current branch name
+        const branchResult = await $`git rev-parse --abbrev-ref HEAD`.text();
+        const branch = branchResult.trim();
+
+        // Extract task ID from branch name (T-<digits>-* pattern)
+        const taskIdMatch = branch.match(/T-(\d{10,})/);
+        if (!taskIdMatch) return;
+
+        const taskId = `T-${taskIdMatch[1]}`;
+
+        // Check if task exists and is claimable
+        const listResult = await runExarp($, "task_workflow", {
+          action: "list",
+          task_id: taskId,
+          output_format: "json",
+          compact: true,
+        });
+
+        if (!listResult || listResult.includes("0 shown")) return;
+
+        // Parse task info
+        const lines = listResult.split("\n");
+        const jsonLine = lines.find((l: string) => l.trim().startsWith("{"));
+        if (!jsonLine) return;
+
+        const data = JSON.parse(jsonLine);
+        if (!data.tasks || data.tasks.length === 0) return;
+
+        const task = data.tasks[0];
+
+        // Only claim if task is Todo status
+        if (task.status === "Todo") {
+          // Claim the task
+          await runExarp($, "task_workflow", {
+            action: "claim",
+            task_id: taskId,
+            lease_minutes: 120,
+          });
+
+          // Show toast notification
+          await showToast(
+            client,
+            `🌿 Branch: ${branch} → Claimed ${taskId}: ${task.content}`,
+            "success"
+          );
+
+          // Invalidate cache so next prime shows updated state
+          invalidateCache();
+        }
+      } catch {
+        // Silently ignore git command failures (not in git repo, etc.)
       }
     },
 
