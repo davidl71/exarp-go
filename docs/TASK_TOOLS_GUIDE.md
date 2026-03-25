@@ -32,7 +32,27 @@ exarp-go task list --status Todo  # CLI shortcut
 #### Create Task
 ```bash
 exarp-go task create "Fix bug" --description "Details" --priority high
+
+# With ownership metadata for collision-aware parallelization
+exarp-go -tool task_workflow -args '{
+  "action": "create",
+  "name": "Fix auth middleware",
+  "long_description": "Handle JWT validation",
+  "priority": "high",
+  "owned_files": ["src/auth/middleware.go", "src/auth/handlers.go"],
+  "lane": "backend-auth",
+  "ownership_confidence": "explicit"
+}'
 ```
+
+**Ownership Fields:**
+| Field | Type | Description |
+|-------|------|-------------|
+| `owned_files` | string[] | Exact files this task will modify |
+| `owned_globs` | string[] | Glob patterns for broader file ownership |
+| `forbidden_files` | string[] | Files this task should avoid |
+| `lane` | string | Logical lane label (e.g., "backend-auth", "tui-shell", "docs") |
+| `ownership_confidence` | string | "explicit", "inferred", or "unknown" |
 
 #### Update Task
 ```bash
@@ -89,10 +109,26 @@ Maps dependency chains and finds circular dependencies.
 
 #### Find Execution Plan
 ```bash
-exarp-go -tool task_analysis -args '{"action":"execution_plan","epic_id":"T-100"}'
+exarp-go -tool task_analysis -args '{"action":"execution_plan"}'
+
+# Filter by tag
+exarp-go -tool task_analysis -args '{"action":"execution_plan","filter_tag":"backend"}'
+
+# Output as markdown plan file
+exarp-go -tool task_analysis -args '{"action":"execution_plan","output_format":"markdown","output_path":"docs/execution.plan.md"}'
 ```
 
-Creates an execution plan with waves for parallel execution.
+Creates an execution plan with waves for parallel execution. Includes **file collision detection** when tasks have ownership metadata.
+
+**Collision Detection Output:**
+```
+⚠️  File Collision Warnings:
+  - T-123 ↔ T-456 [high] (files: src/auth/middleware.go) (same lane: backend-auth)
+```
+
+**Risk Levels:**
+- `high`: Tasks share exact file ownership (direct conflict)
+- `medium`: Tasks share same lane (potential overlap)
 
 ### All Actions
 - `duplicates` - Find duplicate/similar tasks
@@ -216,6 +252,52 @@ Use `task_workflow` with `tasks` array for batch creation:
 Tasks can specify `recommended_tools` for hints:
 ```bash
 exarp-go task create "Deploy to prod" \
+```
+
+### Ownership and Lanes for Parallel Execution
+
+Declare file ownership to enable collision detection in parallel execution:
+
+```bash
+# Create tasks with ownership
+exarp-go -tool task_workflow -args '{
+  "action": "create",
+  "name": "Update auth middleware",
+  "owned_files": ["src/auth/middleware.go"],
+  "lane": "backend-auth"
+}'
+
+exarp-go -tool task_workflow -args '{
+  "action": "create",
+  "name": "Add auth tests",
+  "owned_files": ["src/auth/middleware_test.go"],
+  "lane": "testing"
+}'
+
+# Execution plan shows collision warnings
+exarp-go -tool task_analysis -args '{"action":"execution_plan"}'
+```
+
+**Common Lanes:**
+| Lane | Purpose |
+|------|---------|
+| `backend-auth` | Authentication/authorization |
+| `backend-api` | REST/GraphQL endpoints |
+| `tui-shell` | Main TUI shell/routing |
+| `tui-pane` | Individual TUI panes |
+| `docs` | Documentation only |
+| `testing` | Test files only |
+| `config` | Configuration changes |
+
+**Update ownership on existing tasks:**
+```bash
+exarp-go -tool task_workflow -args '{
+  "action": "update",
+  "task_ids": ["T-123"],
+  "lane": "backend-api",
+  "owned_files": ["src/api/users.go", "src/api/users_test.go"]
+}'
+```
   --recommended-tools "security,health,git_tools"
 ```
 

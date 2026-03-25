@@ -27,6 +27,7 @@
 - `research/LLM_ROUTER_AND_ROUTELLM_RESEARCH.md` - radlab llm-router (gateway) and RouteLLM (ML cost routing) research
 
 ### Active Workflows
+- TASK_LANES_AND_FILE_OWNERSHIP_PLAN.md - Planning proposal for ownership-aware lanes, file-collision analysis, and safer parallel execution
 - `HANDOFF_VIA_GIT.md` - Hand off so remote gets exarp task list via git (export handoff + task snapshot to tracked docs)
 - `DEV_TEST_AUTOMATION.md` - Development and testing automation
 - `WORKFLOW_USAGE.md` - Workflow usage guide
@@ -38,6 +39,7 @@
 
 ### Current Features
 - `TASK_TOOL_ENRICHMENT_DESIGN.md` - Task tool enrichment (recommended_tools, tag-based enrichment, session prime / task show)
+- `TASK_LANES_AND_FILE_OWNERSHIP_PLAN.md` - Task lanes and file ownership for collision-aware parallelization (Phase 1 complete)
 - `SCORECARD_GO_MODIFICATIONS.md` - Scorecard implementation details
 - `SCORECARD_GO_IMPLEMENTATION.md` - Scorecard feature documentation
 - `MARKDOWN_LINTING_RESEARCH.md` - Markdown linting research
