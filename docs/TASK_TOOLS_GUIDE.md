@@ -130,12 +130,29 @@ Creates an execution plan with waves for parallel execution. Includes **file col
 - `high`: Tasks share exact file ownership (direct conflict)
 - `medium`: Tasks share same lane (potential overlap)
 
+#### Infer Ownership
+```bash
+# Preview what would be inferred (dry run)
+exarp-go -tool task_analysis -args '{"action":"infer_ownership","dry_run":true}'
+
+# Apply inferred ownership to tasks
+exarp-go -tool task_analysis -args '{"action":"infer_ownership"}'
+```
+
+Infers ownership metadata from:
+- **Task content**: Extracts file paths mentioned in descriptions
+- **Tags**: Maps tags to lanes (e.g., `auth` → `backend-auth`)
+- **Directory structure**: Suggests files based on lane
+
+Only updates tasks **without existing ownership** (explicit ownership is preserved).
+
 ### All Actions
 - `duplicates` - Find duplicate/similar tasks
 - `tags` - Analyze tag usage and patterns
 - `dependencies` - Map dependency chains
 - `hierarchy` - Analyze parent-child relationships
-- `execution_plan` - Generate wave-based execution plan
+- `execution_plan` - Generate wave-based execution plan with collision detection
+- `infer_ownership` - Infer file ownership and lanes from task content
 - `analyze` - General analysis with prompt
 
 **Docs**: See `internal/tools/task_analysis*.go`
