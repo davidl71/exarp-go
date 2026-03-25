@@ -718,3 +718,174 @@ func ScanGitHistoryForFiles(projectRoot string, maxCommits int) (map[string]int,
 	// This is a placeholder - full implementation would use exec.Command
 	return freq, nil
 }
+
+// handleTaskAnalysisHotspots handles the hotspots action - reports files that are
+// frequently touched by multiple tasks, helping identify merge conflicts.
+func handleTaskAnalysisHotspots(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
+	store, err := getTaskStore(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get task store: %w", err)
+	}
+
+	list, err := store.ListTasks(ctx, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load tasks: %w", err)
+	}
+
+	tasks := tasksFromPtrs(list)
+
+	// Count how many tasks touch each file
+	fileToTasks := make(map[string][]string)
+	fileEditCount := make(map[string]int)
+
+	for _, task := range tasks {
+		if !IsPendingStatus(task.Status) {
+			continue
+		}
+
+		own := models.GetTaskOwnership(&task)
+		if own == nil {
+			continue
+		}
+
+		for _, f := range own.OwnedFiles {
+			fileToTasks[f] = append(fileToTasks[f], task.ID)
+			fileEditCount[f]++
+		}
+	}
+
+	// Build hotspot list (files touched by 2+ tasks)
+	hotspots := []models.HotspotFile{}
+	highRisk := []string{}
+
+	for file, taskIDs := range fileToTasks {
+		if len(taskIDs) >= 2 {
+			hf := models.HotspotFile{
+				Path:      file,
+				TaskCount: len(taskIDs),
+			}
+			hotspots = append(hotspots, hf)
+
+			if len(taskIDs) >= 3 {
+				highRisk = append(highRisk, file)
+			}
+		}
+	}
+
+	// Sort hotspots by task count (descending)
+	sort.Slice(hotspots, func(i, j int) bool {
+		return hotspots[i].TaskCount > hotspots[j].TaskCount
+	})
+	sort.Strings(highRisk)
+
+	projectRoot, _ := GetProjectRootWithFallback()
+
+	hp := &models.ProjectHotspots{
+		ProjectRoot: projectRoot,
+		AnalyzedAt:  fmt.Sprintf("%v", os.Getpid()), // Placeholder timestamp
+		Hotspots:    hotspots,
+		HighRisk:    highRisk,
+		TotalFiles:  len(fileToTasks),
+	}
+
+	result := map[string]interface{}{
+		"success":         true,
+		"method":          "native_go",
+		"hotspots_count":  len(hotspots),
+		"high_risk_count": len(highRisk),
+		"hotspots":        hotspots,
+		"high_risk_files": highRisk,
+		"total_contested": len(fileToTasks),
+	}
+
+	if len(hotspots) > 0 {
+		result["warning"] = fmt.Sprintf("Found %d contested files - tasks sharing these files may collide", len(hotspots))
+	}
+
+	outputFormat := cast.ToString(params["output_format"])
+	if outputFormat == "" {
+		outputFormat = "text"
+	}
+
+	outputPath := cast.ToString(params["output_path"])
+
+	if outputFormat == "json" {
+		if outputPath != "" {
+			if err := os.MkdirAll(filepath.Dir(outputPath), 0755); err != nil {
+				return nil, fmt.Errorf("failed to create output dir: %w", err)
+			}
+		}
+		resultJSON, _ := json.Marshal(result)
+		resp := &proto.TaskAnalysisResponse{Action: "hotspots", OutputPath: outputPath, ResultJson: string(resultJSON)}
+		return framework.FormatResult(TaskAnalysisResponseToMap(resp), resp.GetOutputPath())
+	}
+
+	// Text format
+	output := formatHotspotsText(hp, fileToTasks)
+
+	if outputPath != "" {
+		if err := os.MkdirAll(filepath.Dir(outputPath), 0755); err != nil {
+			return nil, fmt.Errorf("failed to create output dir: %w", err)
+		}
+		if err := os.WriteFile(outputPath, []byte(output), 0644); err != nil {
+			return nil, fmt.Errorf("failed to save result: %w", err)
+		}
+		output += fmt.Sprintf("\n\n[Saved to: %s]", outputPath)
+	}
+
+	return []framework.TextContent{{Type: "text", Text: output}}, nil
+}
+
+// formatHotspotsText formats hotspot analysis as text.
+func formatHotspotsText(hp *models.ProjectHotspots, fileToTasks map[string][]string) string {
+	var sb strings.Builder
+
+	sb.WriteString("File Hotspot Analysis\n")
+	sb.WriteString(strings.Repeat("=", 40) + "\n\n")
+
+	if len(hp.Hotspots) == 0 {
+		sb.WriteString("No contested files found. All tasks own distinct files.\n")
+		return sb.String()
+	}
+
+	sb.WriteString(fmt.Sprintf("Found %d contested files (touched by multiple tasks):\n\n", len(hp.Hotspots)))
+
+	sb.WriteString("| File | Tasks | Risk |\n")
+	sb.WriteString("|------|-------|------|\n")
+
+	for _, hf := range hp.Hotspots {
+		risk := "medium"
+		if hf.TaskCount >= 3 {
+			risk = "HIGH"
+		}
+		sb.WriteString(fmt.Sprintf("| %s | %d | %s |\n", hf.Path, hf.TaskCount, risk))
+	}
+
+	if len(hp.HighRisk) > 0 {
+		sb.WriteString("\n⚠️  HIGH RISK FILES (3+ tasks):\n")
+		for _, f := range hp.HighRisk {
+			tasks := fileToTasks[f]
+			sb.WriteString(fmt.Sprintf("  - %s (tasks: %s)\n", f, strings.Join(tasks, ", ")))
+		}
+	}
+
+	sb.WriteString("\nRecommendation: Avoid parallelizing tasks that share contested files.\n")
+
+	return sb.String()
+}
+
+// WarnAboutHotspots checks if proposed task files conflict with existing hotspots.
+// Returns warning messages for conflicts found.
+func WarnAboutHotspots(projectRoot string, proposedFiles []string, existingHotspots []models.HotspotFile) []string {
+	var warnings []string
+
+	for _, hf := range existingHotspots {
+		for _, pf := range proposedFiles {
+			if hf.Path == pf && hf.TaskCount >= 2 {
+				warnings = append(warnings, fmt.Sprintf("⚠️  %s is contested (%d other tasks)", hf.Path, hf.TaskCount))
+			}
+		}
+	}
+
+	return warnings
+}
