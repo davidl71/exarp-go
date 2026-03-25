@@ -6,13 +6,16 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/davidl71/exarp-go/internal/cache"
-	"github.com/davidl71/exarp-go/internal/framework"
-	"github.com/spf13/cast"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"sort"
 	"strings"
+
+	"github.com/davidl71/exarp-go/internal/cache"
+	"github.com/davidl71/exarp-go/internal/framework"
+	"github.com/davidl71/exarp-go/internal/models"
+	"github.com/spf13/cast"
 )
 
 // ─── Contents ───────────────────────────────────────────────────────────────
@@ -439,6 +442,62 @@ func truncateString(s string, maxLen int) string {
 	}
 
 	return s[:maxLen-3] + "..."
+}
+
+// ─── buildOwnershipHints ────────────────────────────────────────────────────
+// buildOwnershipHints checks suggested tasks for file collisions and returns warning hints.
+// Returns a list of warning strings about parallelization risks.
+func buildOwnershipHints(suggestedTasks []Todo2Task) []string {
+	if len(suggestedTasks) < 2 {
+		return nil
+	}
+
+	// Build ownership map for suggested tasks
+	ownershipMap := make(map[string]*models.TaskOwnership)
+	for i := range suggestedTasks {
+		own := models.GetTaskOwnership(&suggestedTasks[i])
+		if own != nil && (len(own.OwnedFiles) > 0 || own.Lane != "") {
+			ownershipMap[suggestedTasks[i].ID] = own
+		}
+	}
+
+	if len(ownershipMap) < 2 {
+		return nil
+	}
+
+	var hints []string
+
+	// Check for file collisions
+	fileToTasks := make(map[string][]string)
+	for taskID, own := range ownershipMap {
+		for _, f := range own.OwnedFiles {
+			fileToTasks[f] = append(fileToTasks[f], taskID)
+		}
+	}
+
+	for file, taskIDs := range fileToTasks {
+		if len(taskIDs) >= 2 {
+			sort.Strings(taskIDs)
+			hints = append(hints, fmt.Sprintf("⚠️ File collision: %s shared by %s (run serially)", file, strings.Join(taskIDs, ", ")))
+		}
+	}
+
+	// Check for same-lane tasks
+	laneToTasks := make(map[string][]string)
+	for taskID, own := range ownershipMap {
+		if own.Lane != "" {
+			laneToTasks[own.Lane] = append(laneToTasks[own.Lane], taskID)
+		}
+	}
+
+	for lane, taskIDs := range laneToTasks {
+		if len(taskIDs) >= 2 {
+			sort.Strings(taskIDs)
+			hints = append(hints, fmt.Sprintf("⚠️ Same lane (%s): %s — may have related files", lane, strings.Join(taskIDs, ", ")))
+		}
+	}
+
+	return hints
 }
 
 // handleSessionPrompts handles the prompts action - lists available prompts.

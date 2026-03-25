@@ -398,6 +398,28 @@ func handleSessionPrime(ctx context.Context, params map[string]interface{}) ([]f
 				if hint := buildSuggestedNextAction(suggestedNext[0]); hint != "" {
 					result["suggested_next_action"] = hint
 				}
+
+				// Add ownership collision warnings for suggested tasks
+				suggestedTaskIDs := make([]string, 0, len(suggestedNext))
+				for _, st := range suggestedNext {
+					if id, ok := st["id"].(string); ok {
+						suggestedTaskIDs = append(suggestedTaskIDs, id)
+					}
+				}
+
+				suggestedTaskObjs := make([]Todo2Task, 0, len(suggestedTaskIDs))
+				for _, task := range tasks {
+					for _, sid := range suggestedTaskIDs {
+						if task.ID == sid {
+							suggestedTaskObjs = append(suggestedTaskObjs, task)
+							break
+						}
+					}
+				}
+
+				if ownershipHints := buildOwnershipHints(suggestedTaskObjs); len(ownershipHints) > 0 {
+					result["ownership_warnings"] = ownershipHints
+				}
 			}
 		}
 	}
