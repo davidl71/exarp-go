@@ -135,16 +135,26 @@ Creates an execution plan with waves for parallel execution. Includes **file col
 # Preview what would be inferred (dry run)
 exarp-go -tool task_analysis -args '{"action":"infer_ownership","dry_run":true}'
 
-# Apply inferred ownership to tasks
+# Apply inferred ownership
 exarp-go -tool task_analysis -args '{"action":"infer_ownership"}'
+
+# Use AI for better suggestions (requires Apple FM or Ollama)
+exarp-go -tool task_analysis -args '{"action":"infer_ownership","use_ai":true,"dry_run":true}'
 ```
 
 Infers ownership metadata from:
 - **Task content**: Extracts file paths mentioned in descriptions
 - **Tags**: Maps tags to lanes (e.g., `auth` → `backend-auth`)
 - **Directory structure**: Suggests files based on lane
+- **AI analysis** (`use_ai:true`): Uses foundation model for complex tasks
 
 Only updates tasks **without existing ownership** (explicit ownership is preserved).
+
+**AI Mode** (when `use_ai:true`):
+- Analyzes task content with LLM for better lane suggestions
+- Considers project directory structure for file hints
+- Useful for ambiguous tasks that heuristics can't classify
+- Requires `FM_AVAILABLE` or Ollama backend
 
 ### All Actions
 - `duplicates` - Find duplicate/similar tasks

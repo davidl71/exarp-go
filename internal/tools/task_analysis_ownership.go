@@ -83,6 +83,7 @@ func handleTaskAnalysisInferOwnership(ctx context.Context, params map[string]int
 
 	tasks := tasksFromPtrs(list)
 	dryRun := cast.ToBool(params["dry_run"])
+	useAI := cast.ToBool(params["use_ai"])
 
 	// Get project root for file existence checks
 	projectRoot, _ := GetProjectRootWithFallback()
@@ -107,6 +108,28 @@ func handleTaskAnalysisInferOwnership(ctx context.Context, params map[string]int
 		hasExisting := existingOwn != nil && (len(existingOwn.OwnedFiles) > 0 || existingOwn.Lane != "")
 
 		suggestion := inferTaskOwnership(task, dirIndex, projectRoot, hasExisting)
+
+		// Enhance low-confidence suggestions with AI if requested
+		if useAI && FMAvailable() && suggestion.OwnershipConfidence == "low" && !hasExisting {
+			aiSuggestion := enhanceOwnershipWithAI(ctx, task, projectRoot)
+			if aiSuggestion != nil {
+				// Merge AI suggestions
+				if aiSuggestion.Lane != "" {
+					suggestion.Lane = aiSuggestion.Lane
+					suggestion.LaneReason = "AI suggested: " + aiSuggestion.LaneReason
+				}
+				if len(aiSuggestion.OwnedFiles) > 0 {
+					suggestion.OwnedFiles = append(suggestion.OwnedFiles, aiSuggestion.OwnedFiles...)
+					suggestion.ConfidenceReasons = append(suggestion.ConfidenceReasons, "AI suggested file references")
+				}
+				if len(aiSuggestion.OwnedGlobs) > 0 {
+					suggestion.OwnedGlobs = append(suggestion.OwnedGlobs, aiSuggestion.OwnedGlobs...)
+				}
+				// Recalculate confidence after AI enhancement
+				suggestion.OwnershipConfidence = calculateConfidence(suggestion)
+				suggestion.ConfidenceReasons = append(suggestion.ConfidenceReasons, "enhanced by AI")
+			}
+		}
 
 		if suggestion.OwnershipConfidence != "none" || hasExisting {
 			suggestions = append(suggestions, suggestion)
@@ -138,10 +161,17 @@ func handleTaskAnalysisInferOwnership(ctx context.Context, params map[string]int
 		return confOrder[suggestions[i].OwnershipConfidence] < confOrder[suggestions[j].OwnershipConfidence]
 	})
 
+	method := "native_go"
+	if useAI && FMAvailable() {
+		method = "ai_assisted"
+	}
+
 	result := map[string]interface{}{
 		"success":           true,
-		"method":            "native_go",
+		"method":            method,
 		"dry_run":           dryRun,
+		"use_ai":            useAI && FMAvailable(),
+		"fm_available":      FMAvailable(),
 		"total_tasks":       len(tasks),
 		"suggestions":       suggestions,
 		"suggestions_count": len(suggestions),
@@ -426,6 +456,114 @@ func filesForLane(lane string, dirIndex map[string][]string, projectRoot string)
 	}
 
 	return files
+}
+
+// enhanceOwnershipWithAI uses the foundation model to suggest ownership for tasks
+// that couldn't be confidently inferred by heuristics alone.
+func enhanceOwnershipWithAI(ctx context.Context, task *Todo2Task, projectRoot string) *OwnershipSuggestion {
+	if !FMAvailable() {
+		return nil
+	}
+
+	// Get directory listing for context
+	dirStructure := ""
+	if projectRoot != "" {
+		if entries, err := ReadDirectoryStructure(projectRoot, 3); err == nil {
+			var dirs []string
+			for dir, contents := range entries {
+				if dir == "." || dir == "" {
+					continue
+				}
+				if len(contents) > 0 {
+					maxContents := 5
+					if len(contents) < maxContents {
+						maxContents = len(contents)
+					}
+					dirs = append(dirs, fmt.Sprintf("%s: %v", dir, contents[:maxContents]))
+				}
+			}
+			if len(dirs) > 0 {
+				maxDirs := 20
+				if len(dirs) < maxDirs {
+					maxDirs = len(dirs)
+				}
+				dirStructure = "\n\nProject directory structure:\n" + strings.Join(dirs[:maxDirs], "\n")
+			}
+		}
+	}
+
+	prompt := fmt.Sprintf(`Analyze this task and suggest ownership metadata for parallel execution safety.
+
+Task: %s - %s
+Tags: %v
+Status: %s
+Priority: %s%s
+
+Based on the task content and project structure, suggest:
+1. Lane: Which logical lane does this belong to? (backend-auth, backend-api, tui-shell, tui-pane, docs, testing, config, database, source-architecture, or other)
+2. Owned files: Which specific files is this task likely to modify? (only suggest files that actually exist in the project)
+3. Owned globs: Which file patterns would this task touch?
+
+Available lanes: backend-auth, backend-api, backend-runtime, tui-shell, tui-pane, docs, testing, config, database, source-architecture
+
+Return JSON format:
+{"lane": "...", "lane_reason": "...", "owned_files": ["..."], "owned_globs": ["..."]}`,
+		task.Content, task.LongDescription, task.Tags, task.Status, task.Priority, dirStructure)
+
+	result, err := DefaultFMProvider().Generate(ctx, prompt, 500, 0.3)
+	if err != nil || result == "" {
+		return nil
+	}
+
+	// Parse AI response
+	var aiResult struct {
+		Lane       string   `json:"lane"`
+		LaneReason string   `json:"lane_reason"`
+		OwnedFiles []string `json:"owned_files"`
+		OwnedGlobs []string `json:"owned_globs"`
+	}
+
+	candidate := ExtractJSONArrayFromLLMResponse(result)
+	if candidate == "" {
+		candidate = result
+	}
+
+	if err := json.Unmarshal([]byte(candidate), &aiResult); err != nil {
+		// Try to extract from markdown code block
+		if strings.Contains(result, "```json") {
+			parts := strings.Split(result, "```json")
+			if len(parts) > 1 {
+				end := strings.Index(parts[1], "```")
+				if end > 0 {
+					candidate = strings.TrimSpace(parts[1][:end])
+					json.Unmarshal([]byte(candidate), &aiResult)
+				}
+			}
+		}
+	}
+
+	// Validate and filter owned files (only keep existing ones)
+	validFiles := []string{}
+	if projectRoot != "" && len(aiResult.OwnedFiles) > 0 {
+		for _, f := range aiResult.OwnedFiles {
+			fullPath := filepath.Join(projectRoot, f)
+			if _, err := os.Stat(fullPath); err == nil {
+				validFiles = append(validFiles, f)
+			}
+		}
+		aiResult.OwnedFiles = validFiles
+	}
+
+	if aiResult.Lane == "" && len(aiResult.OwnedFiles) == 0 && len(aiResult.OwnedGlobs) == 0 {
+		return nil
+	}
+
+	return &OwnershipSuggestion{
+		Lane:       aiResult.Lane,
+		LaneReason: aiResult.LaneReason,
+		OwnedFiles: aiResult.OwnedFiles,
+		OwnedGlobs: aiResult.OwnedGlobs,
+	}
 }
 
 // calculateConfidence calculates overall confidence based on signals.
