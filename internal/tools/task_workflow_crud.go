@@ -671,6 +671,21 @@ func handleTaskWorkflowList(ctx context.Context, params map[string]interface{}) 
 			}
 		}
 
+		// Filter by owned file (check ownership metadata)
+		if ownedFile := cast.ToString(params["owned_file"]); ownedFile != "" {
+			ownedFiles := models.GetOwnedFiles(&task)
+			found := false
+			for _, f := range ownedFiles {
+				if f == ownedFile || strings.HasSuffix(f, ownedFile) {
+					found = true
+					break
+				}
+			}
+			if !found {
+				continue
+			}
+		}
+
 		filtered = append(filtered, task)
 	}
 

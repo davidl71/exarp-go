@@ -315,6 +315,36 @@ export const ExarpGoPlugin: Plugin = async ({ $, client, directory }) => {
       }),
 
       // Get follow-up suggestions for a completed task, or create follow-ups
+      // Find task associated with a file (file correlation)
+      exarp_file_task: tool({
+        description:
+          "Find task(s) associated with a file path. Use when editing files to check if work maps to a tracked task.",
+        args: {
+          path: tool.schema
+            .string()
+            .describe("File path to check (absolute or relative to project root)"),
+        },
+        async execute(args) {
+          // Normalize path relative to project root
+          let filePath = args.path;
+          if (filePath.startsWith(projectRoot)) {
+            filePath = filePath.slice(projectRoot.length + 1);
+          }
+
+          const result = await runExarp($, "task_workflow", {
+            action: "list",
+            owned_file: filePath,
+            output_format: "text",
+          });
+
+          if (!result || result.includes("0 shown")) {
+            return `No task found owning: ${filePath}`;
+          }
+
+          return result;
+        },
+      }),
+
       exarp_followup: tool({
         description:
           "Get AI-suggested follow-up tasks for a completed task, or create them. Use after completing a task to see what comes next.",
@@ -486,6 +516,41 @@ When completing a task (set status to Done), check for follow-up suggestions and
           .map((t) => `${t.id}: ${t.content}`)
           .join("; ");
         output.result += `\n\n[In Progress (${active.length}): ${reminder}]`;
+      }
+
+      // File correlation: when edit tools are used, check if file maps to a task
+      const editTools = ["edit", "write", "str_replace", "sed", "patch"];
+      const toolName = _input?.tool || _input?.name || "";
+      if (editTools.some((t) => toolName.includes(t))) {
+        const filePath = _input?.args?.path || _input?.args?.filePath || _input?.args?.file_path || "";
+        if (filePath) {
+          try {
+            const normalizedPath = filePath.startsWith(projectRoot)
+              ? filePath.slice(projectRoot.length + 1)
+              : filePath;
+
+            const raw = await runExarp($, "task_workflow", {
+              action: "list",
+              owned_file: normalizedPath,
+              output_format: "json",
+              compact: true,
+            });
+
+            if (raw && !raw.includes("0 shown")) {
+              const lines = raw.split("\n");
+              const jsonLine = lines.find((l: string) => l.trim().startsWith("{"));
+              if (jsonLine) {
+                const data = JSON.parse(jsonLine);
+                if (data.tasks && data.tasks.length > 0) {
+                  const task = data.tasks[0];
+                  output.result += `\n\n[📁 File mapped to: ${task.id} — ${task.content}]`;
+                }
+              }
+            }
+          } catch {
+            // Silently ignore correlation errors
+          }
+        }
       }
     },
 
