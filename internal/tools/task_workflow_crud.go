@@ -264,6 +264,52 @@ func parseDependenciesFromParams(params map[string]interface{}) []string {
 	return nil
 }
 
+// parseOwnershipFromParams extracts ownership metadata from params.
+// Returns nil if no ownership fields are provided.
+// Params: owned_files (string array or comma-separated), owned_globs, forbidden_files, ownership_confidence, lane.
+func parseOwnershipFromParams(params map[string]interface{}) *models.TaskOwnership {
+	ownedFiles := parseStringSliceFromParams(params, "owned_files")
+	ownedGlobs := parseStringSliceFromParams(params, "owned_globs")
+	forbiddenFiles := parseStringSliceFromParams(params, "forbidden_files")
+	confidence := cast.ToString(params["ownership_confidence"])
+	lane := cast.ToString(params["lane"])
+
+	if len(ownedFiles) == 0 && len(ownedGlobs) == 0 && len(forbiddenFiles) == 0 && confidence == "" && lane == "" {
+		return nil
+	}
+
+	return &models.TaskOwnership{
+		OwnedFiles:          ownedFiles,
+		OwnedGlobs:          ownedGlobs,
+		ForbiddenFiles:      forbiddenFiles,
+		OwnershipConfidence: confidence,
+		Lane:                lane,
+	}
+}
+
+// parseStringSliceFromParams extracts a string slice from params (array or comma-separated string).
+func parseStringSliceFromParams(params map[string]interface{}, key string) []string {
+	if arr, ok := params[key].([]interface{}); ok {
+		var result []string
+		for _, v := range arr {
+			if s, ok := v.(string); ok && s != "" {
+				result = append(result, strings.TrimSpace(s))
+			}
+		}
+		return result
+	}
+	if s := cast.ToString(params[key]); s != "" {
+		var result []string
+		for _, item := range strings.Split(s, ",") {
+			if trimmed := strings.TrimSpace(item); trimmed != "" {
+				result = append(result, trimmed)
+			}
+		}
+		return result
+	}
+	return nil
+}
+
 // handleTaskWorkflowUpdate updates task(s) by ID with optional new_status, priority, tags (merge), remove_tags, name, long_description, dependencies, or local_ai_backend.
 // Uses TaskStore (DB or file); when moving to In Progress uses database.ClaimTaskForAgent for locking.
 // Params: task_ids (required), new_status (optional), priority (optional), tags (optional; merged), remove_tags (optional), name (optional), long_description (optional), dependencies (optional; replaces), local_ai_backend (optional), recommended_tools (optional; MCP tool IDs).
@@ -308,9 +354,11 @@ func handleTaskWorkflowUpdate(ctx context.Context, params map[string]interface{}
 	hasLocalAIBackend := strings.TrimSpace(localAIBackend) != ""
 	recommendedTools := parseRecommendedToolsFromParams(params)
 	hasRecommendedTools := len(recommendedTools) > 0
+	ownership := parseOwnershipFromParams(params)
+	hasOwnership := ownership != nil
 
-	if newStatus == "" && priority == "" && len(addTags) == 0 && len(removeTags) == 0 && name == "" && longDescription == "" && parentID == "" && dependencies == nil && !hasLocalAIBackend && !hasRecommendedTools {
-		return nil, fmt.Errorf("update action requires at least one of new_status, priority, tags, remove_tags, name, long_description, parent_id, dependencies, local_ai_backend, or recommended_tools")
+	if newStatus == "" && priority == "" && len(addTags) == 0 && len(removeTags) == 0 && name == "" && longDescription == "" && parentID == "" && dependencies == nil && !hasLocalAIBackend && !hasRecommendedTools && !hasOwnership {
+		return nil, fmt.Errorf("update action requires at least one of new_status, priority, tags, remove_tags, name, long_description, parent_id, dependencies, local_ai_backend, recommended_tools, or ownership fields (owned_files, lane, etc.)")
 	}
 
 	useClaim := newStatus == models.StatusInProgress
@@ -333,7 +381,8 @@ func handleTaskWorkflowUpdate(ctx context.Context, params map[string]interface{}
 		parentID == "" &&
 		dependencies == nil &&
 		!hasLocalAIBackend &&
-		!hasRecommendedTools
+		!hasRecommendedTools &&
+		!hasOwnership
 
 	updatedIDs := []string{}
 	updatedCount := 0
@@ -466,6 +515,10 @@ func handleTaskWorkflowUpdate(ctx context.Context, params map[string]interface{}
 					slice[i] = t
 				}
 				task.Metadata[MetadataKeyRecommendedTools] = slice
+			}
+
+			if hasOwnership {
+				models.SetTaskOwnership(task, ownership)
 			}
 
 			if err := store.UpdateTask(ctx, task); err != nil {
@@ -708,6 +761,28 @@ func handleTaskWorkflowList(ctx context.Context, params map[string]interface{}) 
 			if rt := GetRecommendedTools(t.Metadata); len(rt) > 0 {
 				m["recommended_tools"] = rt
 			}
+			// Include ownership metadata if present
+			if own := models.GetTaskOwnership(t); own != nil {
+				ownershipMap := make(map[string]interface{})
+				if len(own.OwnedFiles) > 0 {
+					ownershipMap["owned_files"] = own.OwnedFiles
+				}
+				if len(own.OwnedGlobs) > 0 {
+					ownershipMap["owned_globs"] = own.OwnedGlobs
+				}
+				if len(own.ForbiddenFiles) > 0 {
+					ownershipMap["forbidden_files"] = own.ForbiddenFiles
+				}
+				if own.OwnershipConfidence != "" {
+					ownershipMap["ownership_confidence"] = own.OwnershipConfidence
+				}
+				if own.Lane != "" {
+					ownershipMap["lane"] = own.Lane
+				}
+				if len(ownershipMap) > 0 {
+					m["ownership"] = ownershipMap
+				}
+			}
 			if lock, ok := activeLocks[t.ID]; ok {
 				m["active_claim"] = lockToMap(lock)
 			}
@@ -796,10 +871,37 @@ func handleTaskWorkflowList(ctx context.Context, params map[string]interface{}) 
 		sb.WriteString(fmt.Sprintf("%-*s | %-*s | %-*s | %s\n", colID, id, colStatus, status, colPriority, priority, content))
 	}
 
-	// When showing a single task (e.g. task show), append recommended_tools line
+	// When showing a single task (e.g. task show), append recommended_tools and ownership lines
 	if len(filtered) == 1 {
 		if rt := GetRecommendedTools(filtered[0].Metadata); len(rt) > 0 {
 			sb.WriteString("\nRecommended tools: " + strings.Join(rt, ", ") + "\n")
+		}
+		if own := models.GetTaskOwnership(&filtered[0]); own != nil {
+			sb.WriteString("\nOwnership:\n")
+			if own.Lane != "" {
+				sb.WriteString(fmt.Sprintf("  Lane: %s\n", own.Lane))
+			}
+			if own.OwnershipConfidence != "" {
+				sb.WriteString(fmt.Sprintf("  Confidence: %s\n", own.OwnershipConfidence))
+			}
+			if len(own.OwnedFiles) > 0 {
+				sb.WriteString("  Owned files:\n")
+				for _, f := range own.OwnedFiles {
+					sb.WriteString(fmt.Sprintf("    - %s\n", f))
+				}
+			}
+			if len(own.OwnedGlobs) > 0 {
+				sb.WriteString("  Owned globs:\n")
+				for _, g := range own.OwnedGlobs {
+					sb.WriteString(fmt.Sprintf("    - %s\n", g))
+				}
+			}
+			if len(own.ForbiddenFiles) > 0 {
+				sb.WriteString("  Forbidden files:\n")
+				for _, f := range own.ForbiddenFiles {
+					sb.WriteString(fmt.Sprintf("    - %s\n", f))
+				}
+			}
 		}
 	}
 

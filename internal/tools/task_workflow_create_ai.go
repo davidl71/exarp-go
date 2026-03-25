@@ -298,6 +298,11 @@ func handleTaskWorkflowCreateSingleWithDeps(
 		task.Metadata[MetadataKeyRecommendedTools] = slice
 	}
 
+	// Handle ownership metadata (owned_files, lane, etc.)
+	if ownership := parseOwnershipFromParams(params); ownership != nil {
+		models.SetTaskOwnership(task, ownership)
+	}
+
 	if err := store.CreateTask(ctx, task); err != nil {
 		return nil, fmt.Errorf("failed to create task: %w", err)
 	}
@@ -504,6 +509,11 @@ func handleTaskWorkflowCreateSingle(ctx context.Context, params map[string]inter
 			slice[i] = t
 		}
 		task.Metadata[MetadataKeyRecommendedTools] = slice
+	}
+
+	// Handle ownership metadata (owned_files, lane, etc.)
+	if ownership := parseOwnershipFromParams(params); ownership != nil {
+		models.SetTaskOwnership(task, ownership)
 	}
 
 	if err := store.CreateTask(ctx, task); err != nil {

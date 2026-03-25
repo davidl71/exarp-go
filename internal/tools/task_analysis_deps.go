@@ -6,15 +6,17 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/davidl71/exarp-go/internal/config"
-	"github.com/davidl71/exarp-go/internal/framework"
-	"github.com/davidl71/exarp-go/proto"
-	"github.com/spf13/cast"
 	"os"
 	"path/filepath"
 	"sort"
 	"strings"
 	"time"
+
+	"github.com/davidl71/exarp-go/internal/config"
+	"github.com/davidl71/exarp-go/internal/framework"
+	"github.com/davidl71/exarp-go/internal/models"
+	"github.com/davidl71/exarp-go/proto"
+	"github.com/spf13/cast"
 )
 
 // ─── Contents ───────────────────────────────────────────────────────────────
@@ -351,6 +353,10 @@ func handleTaskAnalysisExecutionPlan(ctx context.Context, params map[string]inte
 	agentHint := buildExecutionPlanAgentHint(suggestedNextAction)
 	summary := buildExecutionPlanSummary(len(orderedIDs), topTasks)
 
+	// Detect file collisions between tasks with ownership metadata
+	collisions := DetectFileCollisions(tasks)
+	collisionMap := BuildCollisionMap(collisions)
+
 	result := map[string]interface{}{
 		"success":               true,
 		"method":                "native_go",
@@ -362,6 +368,9 @@ func handleTaskAnalysisExecutionPlan(ctx context.Context, params map[string]inte
 		"suggested_next_action": suggestedNextAction,
 		"agent_hint":            agentHint,
 		"summary":               summary,
+		"file_collisions":       collisions,
+		"collision_map":         collisionMap,
+		"has_collisions":        len(collisions) > 0,
 	}
 
 	outputFormat := "json"
@@ -467,6 +476,23 @@ func formatExecutionPlanText(result map[string]interface{}) string {
 	if next := ParamString(result, "suggested_next_action"); next != "" {
 		sb.WriteString("Next: " + next + "\n")
 	}
+
+	// Collision warnings
+	if hasCollisions, ok := result["has_collisions"].(bool); ok && hasCollisions {
+		sb.WriteString("\n⚠️  File Collision Warnings:\n")
+		if collisions, ok := result["file_collisions"].([]TaskCollision); ok {
+			for _, c := range collisions {
+				sb.WriteString(fmt.Sprintf("  - %s ↔ %s [%s]", c.TaskA, c.TaskB, c.Risk))
+				if len(c.Files) > 0 {
+					sb.WriteString(fmt.Sprintf(" (files: %s)", strings.Join(c.Files, ", ")))
+				}
+				if c.LaneA != "" && c.LaneB != "" && c.LaneA == c.LaneB {
+					sb.WriteString(fmt.Sprintf(" (same lane: %s)", c.LaneA))
+				}
+				sb.WriteString("\n")
+			}
+		}
+	}
 	sb.WriteString("\n")
 
 	if ids, ok := result["ordered_task_ids"].([]string); ok {
@@ -536,6 +562,27 @@ func formatExecutionPlanMarkdown(result map[string]interface{}, projectRoot stri
 	if ids, ok := result["ordered_task_ids"].([]string); ok {
 		sb.WriteString(strings.Join(ids, ", "))
 		sb.WriteString("\n")
+	}
+
+	// Collision warnings in markdown
+	if hasCollisions, ok := result["has_collisions"].(bool); ok && hasCollisions {
+		sb.WriteString("\n## ⚠️ File Collision Warnings\n\n")
+		if collisions, ok := result["file_collisions"].([]TaskCollision); ok {
+			sb.WriteString("| Task A | Task B | Risk | Files | Lane |\n")
+			sb.WriteString("|--------|--------|------|-------|------|\n")
+			for _, c := range collisions {
+				files := strings.Join(c.Files, ", ")
+				if files == "" {
+					files = "-"
+				}
+				lane := "-"
+				if c.LaneA != "" && c.LaneB != "" && c.LaneA == c.LaneB {
+					lane = c.LaneA
+				}
+				sb.WriteString(fmt.Sprintf("| %s | %s | %s | %s | %s |\n", c.TaskA, c.TaskB, c.Risk, files, lane))
+			}
+			sb.WriteString("\n")
+		}
 	}
 
 	return sb.String()
@@ -621,6 +668,141 @@ func buildExecutionPlanSummary(backlogCount int, topTasks []map[string]interface
 	}
 
 	return fmt.Sprintf("Backlog has %d actionable tasks. Start with %s.", backlogCount, ParamString(topTasks[0], "id"))
+}
+
+// TaskCollision represents a file collision between two tasks.
+type TaskCollision struct {
+	TaskA string   `json:"task_a"`
+	TaskB string   `json:"task_b"`
+	Files []string `json:"files"`  // Overlapping files
+	LaneA string   `json:"lane_a"` // Lane of task A (if set)
+	LaneB string   `json:"lane_b"` // Lane of task B (if set)
+	Risk  string   `json:"risk"`   // "high" (same hotspot files) or "medium" (same lane)
+}
+
+// TaskOwnershipInfo holds ownership info for collision detection.
+type TaskOwnershipInfo struct {
+	TaskID         string
+	OwnedFiles     []string
+	OwnedGlobs     []string
+	Lane           string
+	ForbiddenFiles []string
+}
+
+// GetTaskOwnershipInfo extracts ownership info from a task.
+func GetTaskOwnershipInfo(task *Todo2Task) *TaskOwnershipInfo {
+	own := models.GetTaskOwnership(task)
+	if own == nil {
+		return nil
+	}
+	return &TaskOwnershipInfo{
+		TaskID:         task.ID,
+		OwnedFiles:     own.OwnedFiles,
+		OwnedGlobs:     own.OwnedGlobs,
+		Lane:           own.Lane,
+		ForbiddenFiles: own.ForbiddenFiles,
+	}
+}
+
+// DetectFileCollisions detects file collisions between tasks with ownership metadata.
+// Returns collisions sorted by risk (high first).
+func DetectFileCollisions(tasks []Todo2Task) []TaskCollision {
+	// Build ownership map
+	ownershipMap := make(map[string]*TaskOwnershipInfo)
+	for i := range tasks {
+		info := GetTaskOwnershipInfo(&tasks[i])
+		if info != nil && (len(info.OwnedFiles) > 0 || len(info.OwnedGlobs) > 0 || info.Lane != "") {
+			ownershipMap[info.TaskID] = info
+		}
+	}
+
+	// Only check pending tasks (Todo + In Progress)
+	pendingIDs := make(map[string]bool)
+	for _, task := range tasks {
+		if IsPendingStatus(task.Status) {
+			pendingIDs[task.ID] = true
+		}
+	}
+
+	var collisions []TaskCollision
+
+	// Check each pair of pending tasks
+	taskIDs := make([]string, 0, len(ownershipMap))
+	for id := range ownershipMap {
+		if pendingIDs[id] {
+			taskIDs = append(taskIDs, id)
+		}
+	}
+	sort.Strings(taskIDs)
+
+	for i := 0; i < len(taskIDs); i++ {
+		for j := i + 1; j < len(taskIDs); j++ {
+			infoA := ownershipMap[taskIDs[i]]
+			infoB := ownershipMap[taskIDs[j]]
+
+			// Find overlapping files
+			overlapping := findOverlappingFiles(infoA, infoB)
+
+			// Check same lane
+			sameLane := infoA.Lane != "" && infoB.Lane != "" && infoA.Lane == infoB.Lane
+
+			if len(overlapping) > 0 || sameLane {
+				risk := "medium"
+				if len(overlapping) > 0 {
+					risk = "high" // Direct file overlap is high risk
+				}
+				collisions = append(collisions, TaskCollision{
+					TaskA: infoA.TaskID,
+					TaskB: infoB.TaskID,
+					Files: overlapping,
+					LaneA: infoA.Lane,
+					LaneB: infoB.Lane,
+					Risk:  risk,
+				})
+			}
+		}
+	}
+
+	// Sort: high risk first
+	sort.Slice(collisions, func(i, j int) bool {
+		if collisions[i].Risk != collisions[j].Risk {
+			return collisions[i].Risk == "high"
+		}
+		return collisions[i].TaskA < collisions[j].TaskA
+	})
+
+	return collisions
+}
+
+// findOverlappingFiles finds files that appear in both tasks' owned_files.
+func findOverlappingFiles(a, b *TaskOwnershipInfo) []string {
+	fileSet := make(map[string]bool)
+	for _, f := range a.OwnedFiles {
+		fileSet[f] = true
+	}
+
+	var overlapping []string
+	for _, f := range b.OwnedFiles {
+		if fileSet[f] {
+			overlapping = append(overlapping, f)
+		}
+	}
+	sort.Strings(overlapping)
+	return overlapping
+}
+
+// BuildCollisionMap returns a map of task ID -> list of task IDs it conflicts with.
+func BuildCollisionMap(collisions []TaskCollision) map[string][]string {
+	m := make(map[string][]string)
+	for _, c := range collisions {
+		m[c.TaskA] = append(m[c.TaskA], c.TaskB)
+		m[c.TaskB] = append(m[c.TaskB], c.TaskA)
+	}
+	// Sort each list
+	for k := range m {
+		sort.Strings(m[k])
+	}
+	return m
 }
 
 // handleTaskAnalysisComplexity classifies task complexity (simple/medium/complex) using heuristic rules.
