@@ -75,6 +75,8 @@ func handleTaskAnalysisNative(ctx context.Context, params map[string]interface{}
 		return handleTaskAnalysisSuggestDependencies(ctx, params)
 	case "noise":
 		return handleTaskAnalysisNoise(ctx, params)
+	case "infer_ownership":
+		return handleTaskAnalysisInferOwnership(ctx, params)
 	default:
 		return nil, fmt.Errorf("unknown action: %s", action)
 	}

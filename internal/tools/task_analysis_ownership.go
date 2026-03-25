@@ -1,0 +1,582 @@
+// task_analysis_ownership.go — task_analysis infer_ownership action: infer file ownership and lane from task metadata.
+package tools
+
+import (
+	"context"
+	"encoding/json"
+	"fmt"
+	"os"
+	"path/filepath"
+	"regexp"
+	"sort"
+	"strings"
+
+	"github.com/davidl71/exarp-go/internal/framework"
+	"github.com/davidl71/exarp-go/internal/models"
+	"github.com/davidl71/exarp-go/proto"
+	"github.com/spf13/cast"
+)
+
+// OwnershipSuggestion represents an inferred ownership for a task.
+type OwnershipSuggestion struct {
+	TaskID              string   `json:"task_id"`
+	TaskContent         string   `json:"task_content"`
+	Lane                string   `json:"lane,omitempty"`
+	LaneReason          string   `json:"lane_reason,omitempty"`
+	OwnedFiles          []string `json:"owned_files,omitempty"`
+	OwnedGlobs          []string `json:"owned_globs,omitempty"`
+	OwnershipConfidence string   `json:"ownership_confidence"` // "high" | "medium" | "low"
+	ConfidenceReasons   []string `json:"confidence_reasons,omitempty"`
+	AlreadyHasOwnership bool     `json:"already_has_ownership,omitempty"`
+}
+
+// LaneMapping maps tag/directory patterns to lane labels.
+var LaneMapping = []struct {
+	Pattern  string   // Regex pattern to match
+	Lane     string   // Lane label
+	Priority int      // Lower = higher priority
+	Examples []string // Example matching paths
+}{
+	// Backend services
+	{`(?i)\bauth\b|/auth/|/authentication/`, "backend-auth", 10, []string{"src/auth/", "middleware/jwt.go"}},
+	{`(?i)\bapi\b|/api/|/routes/|/handlers/`, "backend-api", 11, []string{"src/api/", "routes/users.go"}},
+	{`(?i)\bbackend\b|/server/|/service/`, "backend-runtime", 12, []string{"cmd/server/", "internal/service/"}},
+
+	// Frontend/TUI
+	{`(?i)\btui\b|/tui/|/ui/`, "tui-shell", 20, []string{"src/tui/", "ui/shell.go"}},
+	{`(?i)\bshell\b|/shell/`, "tui-shell", 21, []string{"src/ui/shell.go"}},
+	{`(?i)\bpane\b|/pane/|/panes/`, "tui-pane", 22, []string{"src/ui/panes/"}},
+
+	// Infrastructure
+	{`(?i)\bconfig\b|/config/|\.ya?ml$|\.toml$`, "config", 30, []string{"config/app.yaml", ".cursor/mcp.json"}},
+	{`(?i)\btest\b|_test\.go$|/test/|/tests/`, "testing", 31, []string{"src/auth_test.go", "tests/integration/"}},
+	{`(?i)\bdoc\b|/docs?/|\.md$`, "docs", 32, []string{"docs/README.md", "README.md"}},
+
+	// Database
+	{`(?i)\bdb\b|database|/db/|/models/|/schema/`, "database", 40, []string{"internal/database/", "migrations/"}},
+
+	// Security
+	{`(?i)\bsecurity\b|/security/|/authz/`, "backend-auth", 50, []string{"internal/security/"}},
+
+	// General
+	{`(?i)\bci\b|/ci/|\.github/|Makefile`, "config", 60, []string{".github/workflows/", "Makefile"}},
+	{`(?i)\bproto\b|\.proto$|/proto/`, "source-architecture", 70, []string{"proto/", "api.proto"}},
+}
+
+// filePathPattern matches common file path patterns in text.
+var filePathPattern = regexp.MustCompile(`(?m)(?:^|\s)(?:(?:\./|[a-zA-Z_][a-zA-Z0-9_-]*/)+(?:[a-zA-Z0-9_.-]+(?:\.[a-zA-Z0-9]+)+)|(?:[a-zA-Z0-9_.-]+\.(?:go|ts|tsx|js|jsx|py|rs|rb|java|c|cpp|h|hpp|md|yaml|yml|toml|json|sql|sh|bash)))\b`)
+
+// wordBoundaryPattern matches potential file references in task content.
+var wordBoundaryPattern = regexp.MustCompile(`(?i)(?:in|to|from|at|of|for|update|fix|add|create|modify|change|implement)\s+(?:the\s+)?([a-zA-Z0-9_/.-]+\.[a-zA-Z0-9]+)`)
+
+// handleTaskAnalysisInferOwnership infers ownership metadata for tasks.
+func handleTaskAnalysisInferOwnership(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
+	store, err := getTaskStore(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get task store: %w", err)
+	}
+
+	list, err := store.ListTasks(ctx, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load tasks: %w", err)
+	}
+
+	tasks := tasksFromPtrs(list)
+	dryRun := cast.ToBool(params["dry_run"])
+
+	// Get project root for file existence checks
+	projectRoot, _ := GetProjectRootWithFallback()
+
+	// Build directory index for lane inference
+	dirIndex := buildDirectoryIndex(projectRoot)
+
+	// Infer ownership for each task
+	suggestions := make([]OwnershipSuggestion, 0)
+	updatedCount := 0
+
+	for i := range tasks {
+		task := &tasks[i]
+
+		// Skip completed tasks
+		if task.Status == models.StatusDone || task.Status == models.StatusCancelled {
+			continue
+		}
+
+		// Check if task already has ownership
+		existingOwn := models.GetTaskOwnership(task)
+		hasExisting := existingOwn != nil && (len(existingOwn.OwnedFiles) > 0 || existingOwn.Lane != "")
+
+		suggestion := inferTaskOwnership(task, dirIndex, projectRoot, hasExisting)
+
+		if suggestion.OwnershipConfidence != "none" || hasExisting {
+			suggestions = append(suggestions, suggestion)
+		}
+
+		// Apply if not dry_run and confidence is high/medium and no existing ownership
+		if !dryRun && !hasExisting && (suggestion.OwnershipConfidence == "high" || suggestion.OwnershipConfidence == "medium") {
+			// Fetch fresh copy for update
+			taskPtr, err := store.GetTask(ctx, task.ID)
+			if err != nil || taskPtr == nil {
+				continue
+			}
+			own := &models.TaskOwnership{
+				OwnedFiles:          suggestion.OwnedFiles,
+				OwnedGlobs:          suggestion.OwnedGlobs,
+				Lane:                suggestion.Lane,
+				OwnershipConfidence: "inferred",
+			}
+			models.SetTaskOwnership(taskPtr, own)
+			if err := store.UpdateTask(ctx, taskPtr); err == nil {
+				updatedCount++
+			}
+		}
+	}
+
+	// Sort by confidence (high first)
+	sort.Slice(suggestions, func(i, j int) bool {
+		confOrder := map[string]int{"high": 0, "medium": 1, "low": 2, "none": 3, "": 4}
+		return confOrder[suggestions[i].OwnershipConfidence] < confOrder[suggestions[j].OwnershipConfidence]
+	})
+
+	result := map[string]interface{}{
+		"success":           true,
+		"method":            "native_go",
+		"dry_run":           dryRun,
+		"total_tasks":       len(tasks),
+		"suggestions":       suggestions,
+		"suggestions_count": len(suggestions),
+		"updated_count":     updatedCount,
+	}
+
+	if dryRun {
+		result["message"] = fmt.Sprintf("Dry run: would update %d tasks with inferred ownership", len(suggestions))
+	} else {
+		result["message"] = fmt.Sprintf("Updated %d tasks with inferred ownership", updatedCount)
+	}
+
+	outputFormat := cast.ToString(params["output_format"])
+	if outputFormat == "" {
+		outputFormat = "json"
+	}
+
+	outputPath := cast.ToString(params["output_path"])
+
+	if outputFormat == "json" {
+		if outputPath != "" {
+			if err := os.MkdirAll(filepath.Dir(outputPath), 0755); err != nil {
+				return nil, fmt.Errorf("failed to create output dir: %w", err)
+			}
+		}
+		resultJSON, _ := json.Marshal(result)
+		resp := &proto.TaskAnalysisResponse{Action: "infer_ownership", OutputPath: outputPath, ResultJson: string(resultJSON)}
+		return framework.FormatResult(TaskAnalysisResponseToMap(resp), resp.GetOutputPath())
+	}
+
+	// Text format
+	output := formatInferOwnershipText(result)
+
+	if outputPath != "" {
+		if err := os.MkdirAll(filepath.Dir(outputPath), 0755); err != nil {
+			return nil, fmt.Errorf("failed to create output dir: %w", err)
+		}
+		if err := os.WriteFile(outputPath, []byte(output), 0644); err != nil {
+			return nil, fmt.Errorf("failed to save result: %w", err)
+		}
+		output += fmt.Sprintf("\n\n[Saved to: %s]", outputPath)
+	}
+
+	return []framework.TextContent{{Type: "text", Text: output}}, nil
+}
+
+// inferTaskOwnership infers ownership for a single task.
+func inferTaskOwnership(task *Todo2Task, dirIndex map[string][]string, projectRoot string, hasExisting bool) OwnershipSuggestion {
+	suggestion := OwnershipSuggestion{
+		TaskID:              task.ID,
+		TaskContent:         task.Content,
+		AlreadyHasOwnership: hasExisting,
+		ConfidenceReasons:   []string{},
+	}
+
+	// Combine task content and description for analysis
+	text := task.Content + " " + task.LongDescription
+
+	// 1. Extract file paths mentioned in task text
+	extractedFiles := extractFilePaths(text, projectRoot)
+	if len(extractedFiles) > 0 {
+		suggestion.OwnedFiles = append(suggestion.OwnedFiles, extractedFiles...)
+		suggestion.ConfidenceReasons = append(suggestion.ConfidenceReasons, fmt.Sprintf("found %d file references in task text", len(extractedFiles)))
+	}
+
+	// 2. Infer lane from tags
+	laneFromTags, tagReason := inferLaneFromTags(task.Tags)
+	if laneFromTags != "" {
+		suggestion.Lane = laneFromTags
+		suggestion.LaneReason = tagReason
+		suggestion.ConfidenceReasons = append(suggestion.ConfidenceReasons, tagReason)
+	}
+
+	// 3. Infer lane from task content if not found from tags
+	if suggestion.Lane == "" {
+		laneFromContent, contentReason := inferLaneFromContent(text)
+		if laneFromContent != "" {
+			suggestion.Lane = laneFromContent
+			suggestion.LaneReason = contentReason
+			suggestion.ConfidenceReasons = append(suggestion.ConfidenceReasons, contentReason)
+		}
+	}
+
+	// 4. Add glob patterns based on lane
+	if suggestion.Lane != "" {
+		globs := globsForLane(suggestion.Lane, dirIndex)
+		suggestion.OwnedGlobs = append(suggestion.OwnedGlobs, globs...)
+	}
+
+	// 5. Infer files from lane directory structure
+	if len(suggestion.OwnedFiles) == 0 && suggestion.Lane != "" {
+		filesFromLane := filesForLane(suggestion.Lane, dirIndex, projectRoot)
+		if len(filesFromLane) > 0 {
+			suggestion.OwnedFiles = append(suggestion.OwnedFiles, filesFromLane...)
+			suggestion.ConfidenceReasons = append(suggestion.ConfidenceReasons, fmt.Sprintf("inferred %d files from lane %s", len(filesFromLane), suggestion.Lane))
+		}
+	}
+
+	// Calculate overall confidence
+	suggestion.OwnershipConfidence = calculateConfidence(suggestion)
+
+	return suggestion
+}
+
+// extractFilePaths extracts file paths from text.
+func extractFilePaths(text, projectRoot string) []string {
+	var paths []string
+	seen := make(map[string]bool)
+
+	// Match explicit file paths
+	matches := filePathPattern.FindAllString(text, -1)
+	for _, m := range matches {
+		m = strings.TrimSpace(m)
+		if m == "" || seen[m] {
+			continue
+		}
+
+		// Clean up path
+		m = strings.TrimPrefix(m, "./")
+
+		// Verify file exists if project root is available
+		if projectRoot != "" {
+			fullPath := filepath.Join(projectRoot, m)
+			if _, err := os.Stat(fullPath); err == nil {
+				paths = append(paths, m)
+				seen[m] = true
+			}
+		} else {
+			paths = append(paths, m)
+			seen[m] = true
+		}
+	}
+
+	// Match "in/to/from X.go" patterns
+	wordMatches := wordBoundaryPattern.FindAllStringSubmatch(text, -1)
+	for _, match := range wordMatches {
+		if len(match) > 1 {
+			path := strings.TrimSpace(match[1])
+			if path != "" && !seen[path] {
+				if projectRoot != "" {
+					fullPath := filepath.Join(projectRoot, path)
+					if _, err := os.Stat(fullPath); err == nil {
+						paths = append(paths, path)
+						seen[path] = true
+					}
+				} else {
+					paths = append(paths, path)
+					seen[path] = true
+				}
+			}
+		}
+	}
+
+	return paths
+}
+
+// inferLaneFromTags infers lane from task tags.
+func inferLaneFromTags(tags []string) (string, string) {
+	tagStr := strings.Join(tags, " ")
+
+	for _, mapping := range LaneMapping {
+		matched, _ := regexp.MatchString(mapping.Pattern, tagStr)
+		if matched {
+			return mapping.Lane, fmt.Sprintf("matched tag pattern for lane %s", mapping.Lane)
+		}
+	}
+
+	return "", ""
+}
+
+// inferLaneFromContent infers lane from task content text.
+func inferLaneFromContent(text string) (string, string) {
+	for _, mapping := range LaneMapping {
+		matched, _ := regexp.MatchString(mapping.Pattern, text)
+		if matched {
+			return mapping.Lane, fmt.Sprintf("matched content pattern for lane %s", mapping.Lane)
+		}
+	}
+
+	return "", ""
+}
+
+// buildDirectoryIndex builds an index of directories in the project.
+func buildDirectoryIndex(projectRoot string) map[string][]string {
+	index := make(map[string][]string)
+
+	if projectRoot == "" {
+		return index
+	}
+
+	filepath.Walk(projectRoot, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return nil
+		}
+
+		// Skip hidden directories and vendor
+		if info.IsDir() {
+			name := info.Name()
+			if strings.HasPrefix(name, ".") && name != "." {
+				return filepath.SkipDir
+			}
+			if name == "vendor" || name == "node_modules" {
+				return filepath.SkipDir
+			}
+			return nil
+		}
+
+		// Index by directory
+		dir := filepath.Dir(path)
+		relDir, _ := filepath.Rel(projectRoot, dir)
+		ext := filepath.Ext(path)
+		index[relDir] = append(index[relDir], ext)
+
+		return nil
+	})
+
+	return index
+}
+
+// globsForLane returns glob patterns for a lane based on directory index.
+func globsForLane(lane string, dirIndex map[string][]string) []string {
+	var globs []string
+
+	// Map lane to likely directory patterns
+	laneToDirPattern := map[string][]string{
+		"backend-auth":        {"auth", "authentication"},
+		"backend-api":         {"api", "routes", "handlers"},
+		"backend-runtime":     {"server", "service", "backend"},
+		"tui-shell":           {"tui", "ui", "shell"},
+		"tui-pane":            {"panes", "pane", "views"},
+		"docs":                {"docs", "doc", "documentation"},
+		"testing":             {"test", "tests", "__tests__"},
+		"config":              {"config", ".cursor", ".github"},
+		"database":            {"db", "database", "models", "schema"},
+		"source-architecture": {"proto", "api"},
+	}
+
+	if patterns, ok := laneToDirPattern[lane]; ok {
+		for _, pattern := range patterns {
+			globs = append(globs, pattern+"/**")
+		}
+	}
+
+	return globs
+}
+
+// filesForLane returns likely files for a lane based on directory index.
+func filesForLane(lane string, dirIndex map[string][]string, projectRoot string) []string {
+	var files []string
+
+	// Map lane to directory keywords
+	laneKeywords := map[string][]string{
+		"backend-auth": {"auth"},
+		"backend-api":  {"api", "route", "handler"},
+		"tui-shell":    {"shell", "app", "input"},
+		"tui-pane":     {"pane", "alert", "log", "setting"},
+		"docs":         {"doc"},
+		"testing":      {"test"},
+	}
+
+	keywords, ok := laneKeywords[lane]
+	if !ok {
+		return files
+	}
+
+	for dir := range dirIndex {
+		dirLower := strings.ToLower(dir)
+		for _, kw := range keywords {
+			if strings.Contains(dirLower, kw) && projectRoot != "" {
+				// Find Go files in this directory
+				fullDir := filepath.Join(projectRoot, dir)
+				entries, err := os.ReadDir(fullDir)
+				if err == nil {
+					for _, entry := range entries {
+						if !entry.IsDir() && strings.HasSuffix(entry.Name(), ".go") && !strings.HasSuffix(entry.Name(), "_test.go") {
+							files = append(files, filepath.Join(dir, entry.Name()))
+						}
+					}
+				}
+			}
+		}
+	}
+
+	return files
+}
+
+// calculateConfidence calculates overall confidence based on signals.
+func calculateConfidence(suggestion OwnershipSuggestion) string {
+	signals := 0
+
+	if len(suggestion.OwnedFiles) > 0 {
+		signals += 2
+	}
+	if suggestion.Lane != "" {
+		signals += 1
+	}
+	if len(suggestion.OwnedGlobs) > 0 {
+		signals += 1
+	}
+	if suggestion.AlreadyHasOwnership {
+		signals -= 2 // Existing ownership means we're just augmenting
+	}
+
+	switch {
+	case signals >= 3:
+		return "high"
+	case signals >= 1:
+		return "medium"
+	default:
+		return "low"
+	}
+}
+
+// formatInferOwnershipText formats the inference result as text.
+func formatInferOwnershipText(result map[string]interface{}) string {
+	var sb strings.Builder
+
+	sb.WriteString("Ownership Inference Results\n")
+	sb.WriteString(strings.Repeat("=", 40) + "\n\n")
+
+	if msg := ParamString(result, "message"); msg != "" {
+		sb.WriteString(msg + "\n\n")
+	}
+
+	if dryRun, _ := result["dry_run"].(bool); dryRun {
+		sb.WriteString("⚠️  DRY RUN MODE - No changes were made\n\n")
+	}
+
+	if suggestions, ok := result["suggestions"].([]OwnershipSuggestion); ok {
+		if len(suggestions) == 0 {
+			sb.WriteString("No ownership suggestions generated.\n")
+			sb.WriteString("Tip: Add file paths or lane tags to task descriptions for better inference.\n")
+		} else {
+			sb.WriteString(fmt.Sprintf("Found %d ownership suggestions:\n\n", len(suggestions)))
+
+			for i, s := range suggestions {
+				sb.WriteString(fmt.Sprintf("%d. %s (%s)\n", i+1, s.TaskID, s.TaskContent))
+				sb.WriteString(fmt.Sprintf("   Confidence: %s\n", s.OwnershipConfidence))
+
+				if s.Lane != "" {
+					sb.WriteString(fmt.Sprintf("   Lane: %s (%s)\n", s.Lane, s.LaneReason))
+				}
+
+				if len(s.OwnedFiles) > 0 {
+					sb.WriteString("   Owned files:\n")
+					for _, f := range s.OwnedFiles {
+						sb.WriteString(fmt.Sprintf("     - %s\n", f))
+					}
+				}
+
+				if len(s.OwnedGlobs) > 0 {
+					sb.WriteString("   Owned globs:\n")
+					for _, g := range s.OwnedGlobs {
+						sb.WriteString(fmt.Sprintf("     - %s\n", g))
+					}
+				}
+
+				if s.AlreadyHasOwnership {
+					sb.WriteString("   ℹ️  Already has ownership (skipped)\n")
+				}
+
+				sb.WriteString("\n")
+			}
+		}
+	}
+
+	// Summary
+	if updated, _ := result["updated_count"].(int); updated > 0 {
+		sb.WriteString(fmt.Sprintf("✓ Updated %d tasks with inferred ownership\n", updated))
+	}
+
+	return sb.String()
+}
+
+// ExtractFileReferences is exported for testing - extracts file references from text.
+func ExtractFileReferences(text string) []string {
+	return extractFilePaths(text, "")
+}
+
+// InferLaneFromText is exported for testing - infers lane from text.
+func InferLaneFromText(text string) string {
+	lane, _ := inferLaneFromContent(text)
+	return lane
+}
+
+// ReadDirectoryStructure scans a directory and returns its structure.
+func ReadDirectoryStructure(root string, maxDepth int) (map[string][]string, error) {
+	result := make(map[string][]string)
+
+	err := filepath.WalkDir(root, func(path string, d os.DirEntry, err error) error {
+		if err != nil {
+			return nil
+		}
+
+		relPath, _ := filepath.Rel(root, path)
+		depth := len(strings.Split(relPath, string(filepath.Separator)))
+
+		if depth > maxDepth {
+			if d.IsDir() {
+				return filepath.SkipDir
+			}
+			return nil
+		}
+
+		if d.IsDir() {
+			name := d.Name()
+			if strings.HasPrefix(name, ".") && name != "." {
+				return filepath.SkipDir
+			}
+			if name == "vendor" || name == "node_modules" {
+				return filepath.SkipDir
+			}
+			dir := filepath.Dir(relPath)
+			result[dir] = append(result[dir], name+"/")
+		} else {
+			dir := filepath.Dir(relPath)
+			result[dir] = append(result[dir], d.Name())
+		}
+
+		return nil
+	})
+
+	return result, err
+}
+
+// ScanGitHistoryForFiles scans git log to find files commonly edited.
+// Returns a map of file paths to edit frequency.
+func ScanGitHistoryForFiles(projectRoot string, maxCommits int) (map[string]int, error) {
+	freq := make(map[string]int)
+
+	if projectRoot == "" {
+		return freq, fmt.Errorf("project root is empty")
+	}
+
+	// Use git log to get recent file changes via os/exec
+	// This is a placeholder - full implementation would use exec.Command
+	return freq, nil
+}
