@@ -421,6 +421,12 @@ func handleSessionPrime(ctx context.Context, params map[string]interface{}) ([]f
 					result["ownership_warnings"] = ownershipHints
 				}
 			}
+
+			// Add hotspot summary: files contested by multiple pending tasks
+			hotspotSummary := buildHotspotSummary(tasks)
+			if len(hotspotSummary) > 0 {
+				result["hotspot_summary"] = hotspotSummary
+			}
 		}
 	}
 

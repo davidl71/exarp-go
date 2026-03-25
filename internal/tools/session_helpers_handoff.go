@@ -500,4 +500,40 @@ func buildOwnershipHints(suggestedTasks []Todo2Task) []string {
 	return hints
 }
 
+// ─── buildHotspotSummary ────────────────────────────────────────────────────
+// buildHotspotSummary analyzes all pending tasks and returns a summary of contested files.
+// Returns a list of hotspot entries: "file_path: N tasks (task_ids)"
+func buildHotspotSummary(tasks []Todo2Task) []string {
+	// Count how many tasks touch each file
+	fileToTasks := make(map[string][]string)
+
+	for i := range tasks {
+		task := &tasks[i]
+		if !IsPendingStatus(task.Status) {
+			continue
+		}
+
+		own := models.GetTaskOwnership(task)
+		if own == nil {
+			continue
+		}
+
+		for _, f := range own.OwnedFiles {
+			fileToTasks[f] = append(fileToTasks[f], task.ID)
+		}
+	}
+
+	// Build hotspot list (files touched by 2+ tasks)
+	var hotspots []string
+	for file, taskIDs := range fileToTasks {
+		if len(taskIDs) >= 2 {
+			sort.Strings(taskIDs)
+			hotspots = append(hotspots, fmt.Sprintf("%s: %d tasks (%s)", file, len(taskIDs), strings.Join(taskIDs, ", ")))
+		}
+	}
+
+	sort.Strings(hotspots)
+	return hotspots
+}
+
 // handleSessionPrompts handles the prompts action - lists available prompts.
