@@ -57,11 +57,9 @@ func TestRegisterAllTools(t *testing.T) {
 		"ask_client",
 	}
 
-	// The explicit tool list is the primary contract. Allow one extra conditional Apple FM tool.
 	expectedCount := len(expectedTools)
-	if server.ToolCount() != expectedCount && server.ToolCount() != expectedCount+1 {
-		t.Errorf("server.ToolCount() = %v, want %d or %d (with conditional Apple Foundation Models)",
-			server.ToolCount(), expectedCount, expectedCount+1)
+	if server.ToolCount() != expectedCount {
+		t.Errorf("server.ToolCount() = %v, want %d", server.ToolCount(), expectedCount)
 	}
 
 	for _, toolName := range expectedTools {

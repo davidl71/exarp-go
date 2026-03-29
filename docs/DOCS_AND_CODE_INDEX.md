@@ -20,7 +20,8 @@
 
 ### Code
 
-- **No formal code index.** Agents and humans rely on:
+- **`docs/CODEBASE_INDEX.md`** — file-oriented map (CLI, `internal/tools`, database, queue). **`docs/MODULARIZATION_PACKAGE_MAP.md`** — where packages may move relative to `mcp-go-core` or optional MCP servers.
+- **Also:** Agents and humans rely on:
   - **CLAUDE.md** – project summary, key patterns, where to add things (e.g. task_workflow: `task_workflow_native.go`, `task_workflow_common.go`, `registry.go`).
   - **.cursorrules** – skills table (paths to SKILL.md), plan paths, task/build rules.
   - **.cursor/rules/*.mdc** – detailed rules (Makefile, Todo2, agent locking, LLM tools, etc.) that often reference specific files or packages.

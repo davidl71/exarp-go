@@ -7,6 +7,8 @@
 
 ## Package Map
 
+For **modularization targets** (exarp-go vs `mcp-go-core` vs optional MCP splits), see **[MODULARIZATION_PACKAGE_MAP.md](./MODULARIZATION_PACKAGE_MAP.md)**.
+
 | Package | Responsibility | Key Files |
 |---|---|---|
 | `cmd/server` | Binary entry point: CLI dispatch, MCP stdio, HTTP API, ACP server | `main.go` |

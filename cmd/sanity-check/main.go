@@ -16,14 +16,14 @@ import (
 )
 
 // Expected counts
-// Tools = 36 base + 1 conditional (Apple Foundation Models on darwin/arm64/cgo) = 37 on Mac Silicon
+// Tools = 36 (RegisterAllTools; Apple FM is via text_generate / helpers, not a separate MCP tool)
 // Prompts = 36 (19 original + 16 migrated from Python + 1 tractatus_decompose)
 // Resources = 60 (44 RegisterResource + 16 RegisterResourceTemplate):
 // config(2) + scorecard + memories(6) + prompts(4) + session(2) + server + models + cursor/skills(2) + agent/skills(2) + tools(4) + tasks(10) + suggested-tasks + active-work + task-runs + agent/card + prime/context = 36 resources
 // + agent/briefing + codex/briefing + agent/alerts + codex/alerts + agent/task/{id}/execution-pack + codex/task/{id}/execution-pack = 6 new resources → 44 total static
 // + 16 templates (memories/category, memories/task, memories/session, prompts/mode, prompts/persona, prompts/category, tools/{category}, tasks/{task_id}, tasks/status, tasks/priority, tasks/tag, task-runs/{task_id}, agent/skills/{name}, agent/task/{task_id}/execution-pack, codex/task/{task_id}/execution-pack, + 1 more)
 const (
-	ExpectedTools     = 36 // Base tools (37 with conditional Apple Foundation Models on darwin/arm64/cgo)
+	ExpectedTools     = 36
 	ExpectedPrompts   = 36
 	ExpectedResources = 60
 )
@@ -99,12 +99,11 @@ func main() {
 	fmt.Println("=== MCP Server Sanity Check ===")
 	fmt.Println()
 
-	// Tools (allow +1 for conditional Apple Foundation Models tool)
 	toolCount := server.toolCount
-	toolMatch := toolCount == ExpectedTools || toolCount == ExpectedTools+1
+	toolMatch := toolCount == ExpectedTools
 
 	if toolMatch {
-		fmt.Printf("✅ Tools: %d/%d (or %d with Apple FM)\n", toolCount, ExpectedTools, ExpectedTools+1)
+		fmt.Printf("✅ Tools: %d/%d\n", toolCount, ExpectedTools)
 	} else {
 		fmt.Printf("❌ Tools: %d/%d (MISMATCH)\n", toolCount, ExpectedTools)
 	}
