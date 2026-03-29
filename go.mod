@@ -7,7 +7,6 @@ require (
 	charm.land/bubbletea/v2 v2.0.0
 	charm.land/lipgloss/v2 v2.0.0
 	cloud.google.com/go/firestore v1.21.0
-	github.com/blacktop/go-foundationmodels v0.1.8
 	github.com/davidl71/devwisdom-go v0.1.2
 	github.com/davidl71/mcp-go-core v0.4.1
 	github.com/dustin/go-humanize v1.0.1
@@ -118,3 +117,5 @@ require (
 // Local clones for development can be enabled temporarily with replace directives
 // when working on sibling repositories. The published module versions are used by default.
 replace github.com/davidl71/devwisdom-go => ../devwisdom-go
+// Sibling mcp-go-core (pkg/mcp/cache). After tagging a new mcp-go-core release, bump require above and remove this line for proxy-only builds.
+replace github.com/davidl71/mcp-go-core => ../mcp-go-core

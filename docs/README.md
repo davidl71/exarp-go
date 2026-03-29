@@ -15,6 +15,7 @@
 ### Architecture & Design
 - `ARCHITECTURE.md` - High-level package map, data flow, link to modularization map
 - `MODULARIZATION_PACKAGE_MAP.md` - exarp-go vs `mcp-go-core` vs optional MCP server splits (`internal/tools` file clusters)
+- `MODULARIZATION_PHASE1.md` - active extraction steps (cache → core, release order)
 - `CODEBASE_INDEX.md` - File-oriented index (CLI, tools, database, queue)
 - `FRAMEWORK_AGNOSTIC_DESIGN.md` - Framework-agnostic architecture pattern
 - `DEVWISDOM_GO_LESSONS.md` - Go development best practices and lessons learned

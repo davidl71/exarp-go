@@ -26,7 +26,7 @@ Living map for **Go modularization**: what stays in **exarp-go**, what should mo
 | `internal/acp` | ACP adapter | **Stay** |
 | `internal/api` | HTTP API for PWA | **Stay** |
 | `internal/archive` | Deprecated | **Stay** / delete over time |
-| `internal/cache` | TTL + file cache (scorecard, etc.) | **Core** (already planned in extraction notes) |
+| `internal/cache` | Re-exports **`mcp-go-core/pkg/mcp/cache`**; **`GetScorecardCache()`** only in exarp | **Core** (implementation) + thin **Stay** wrapper |
 | `internal/cli` | CLI + TUIs | **Stay** (product UX) |
 | `internal/config` | `.exarp` protobuf config | **Stay** (exarp project model) |
 | `internal/database` | SQLite Todo2, migrations, locks | **Stay** |
@@ -137,9 +137,10 @@ Default **exarp-go** MCP keeps: **`task_workflow`**, **`session`**, **`report`**
 exarp-go already depends on `mcp-go-core` for:
 
 - `pkg/mcp/framework`, `pkg/mcp/types`, `pkg/mcp/framework/adapters/gosdk`
-- `pkg/mcp/cli`, `pkg/mcp/logging`, `pkg/mcp/security` (path validation)
+- `pkg/mcp/cli`, `pkg/mcp/logging`, `pkg/mcp/security` (path validation + rate limiting types)
+- **`pkg/mcp/cache`** — `FileCache`, `TTLCache`, `GetGlobalFileCache` (exarp `internal/cache` re-exports + `GetScorecardCache`)
 
-Extend **Core** with: shared caches, file locks, compact JSON responses, tool error types, and reusable resource-as-tool registration — aligned with `docs/plans/mcp-go-core-extraction.plan.md` (historical task list in `docs/task_discovery_report.json`).
+Extend **Core** further with: file locks, compact JSON responses, tool error types, and reusable resource-as-tool registration — aligned with `docs/plans/mcp-go-core-extraction.plan.md` (historical task list in `docs/task_discovery_report.json`). See **`docs/MODULARIZATION_PHASE1.md`** for execution status.
 
 ---
 
