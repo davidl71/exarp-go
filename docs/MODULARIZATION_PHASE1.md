@@ -7,7 +7,7 @@
 | Step | Detail |
 |------|--------|
 | **Cache extraction** | `FileCache`, `TTLCache`, and `GetGlobalFileCache` live in **`mcp-go-core/pkg/mcp/cache`**. exarp-go **`internal/cache`** re-exports them and keeps **`GetScorecardCache()`** (scorecard singleton). |
-| **Local `replace`** | `go.mod` includes `replace github.com/davidl71/mcp-go-core => ../mcp-go-core` for sibling-repo dev. Remove after publishing a tagged **mcp-go-core** release and `go get` bump. |
+| **Published core** | **mcp-go-core `v0.4.2`** (tag on GitHub). exarp-go **`require github.com/davidl71/mcp-go-core v0.4.2`** — no `replace` for core in `go.mod`. For local core hacking, add a temporary `replace` line. |
 
 ## Ratelimit (already complete)
 
@@ -17,7 +17,6 @@
 
 1. **ToolError / response compact** — move types and helpers per extraction plan (medium touch).
 2. **FileLock** — optional `pkg/mcp/filelock` in core (build tags).
-3. **Publish mcp-go-core** — tag patch release, drop `replace` in exarp-go, document in release notes.
 
 ## Verify
 
