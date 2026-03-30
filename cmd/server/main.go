@@ -18,7 +18,6 @@ import (
 	"github.com/davidl71/exarp-go/internal/acp"
 	"github.com/davidl71/exarp-go/internal/api"
 	"github.com/davidl71/exarp-go/internal/cli"
-	"github.com/davidl71/exarp-go/internal/config"
 	"github.com/davidl71/exarp-go/internal/database"
 	"github.com/davidl71/exarp-go/internal/factory"
 	"github.com/davidl71/exarp-go/internal/framework"
@@ -121,31 +120,19 @@ func main() {
 	// Reset flag parsing for MCP mode (in case it was partially parsed)
 	flag.CommandLine = flag.NewFlagSet(os.Args[0], flag.ContinueOnError)
 
-	// Initialize config and database (before server creation)
-	projectRoot, err := tools.FindProjectRoot()
+	// MCP server mode — overlap DB init with server construction (registration stays serial below)
+	server, _, rootErr, err := loadDatabaseAndServerInParallel(tools.ToolFilterForMode())
 	if err != nil {
-		logging.Warn("Could not find project root: %v (database unavailable, will use JSON fallback)", err)
-	} else {
-		cli.EnsureConfigAndDatabase(projectRoot)
-
-		if database.DB != nil {
-			defer func() {
-				if err := database.Close(); err != nil {
-					logging.Error("Error closing database: %v", err)
-				}
-			}()
-		}
+		logging.Fatal("Failed to load config or create server: %v", err)
 	}
-
-	// MCP server mode - run as stdio server
-	cfg, err := config.Load()
-	if err != nil {
-		logging.Fatal("Failed to load config: %v", err)
-	}
-
-	server, err := factory.NewServerFromConfig(cfg, factory.WithToolFilter(tools.ToolFilterForMode()))
-	if err != nil {
-		logging.Fatal("Failed to create server: %v", err)
+	if rootErr != nil {
+		logging.Warn("Could not find project root: %v (database unavailable, will use JSON fallback)", rootErr)
+	} else if database.DB != nil {
+		defer func() {
+			if err := database.Close(); err != nil {
+				logging.Error("Error closing database: %v", err)
+			}
+		}()
 	}
 
 	if err := tools.RegisterAllTools(server); err != nil {
@@ -183,15 +170,15 @@ func main() {
 }
 
 func runServeMode(addr string) {
-	projectRoot, err := tools.FindProjectRoot()
+	server, projectRoot, rootErr, err := loadDatabaseAndServerInParallel(tools.ToolFilterForMode())
 	if err != nil {
-		logging.Warn("Could not find project root: %v (database unavailable)", err)
-
+		logging.Fatal("Failed to load config or create server: %v", err)
+	}
+	if rootErr != nil {
+		logging.Warn("Could not find project root: %v (database unavailable)", rootErr)
 		projectRoot = "."
 	} else {
 		os.Setenv("PROJECT_ROOT", projectRoot)
-		cli.EnsureConfigAndDatabase(projectRoot)
-
 		if database.DB != nil {
 			defer func() {
 				if err := database.Close(); err != nil {
@@ -199,16 +186,6 @@ func runServeMode(addr string) {
 				}
 			}()
 		}
-	}
-
-	cfg, err := config.Load()
-	if err != nil {
-		logging.Fatal("Failed to load config: %v", err)
-	}
-
-	server, err := factory.NewServerFromConfig(cfg, factory.WithToolFilter(tools.ToolFilterForMode()))
-	if err != nil {
-		logging.Fatal("Failed to create server: %v", err)
 	}
 
 	if err := tools.RegisterAllTools(server); err != nil {
@@ -234,13 +211,15 @@ func runServeMode(addr string) {
 }
 
 func runACPMode() {
-	projectRoot, err := tools.FindProjectRoot()
+	mcpServer, projectRoot, rootErr, err := loadDatabaseAndServerInParallel(tools.ToolFilterForMode())
 	if err != nil {
-		logging.Warn("Could not find project root: %v (database unavailable)", err)
+		logging.Fatal("Failed to load config or create MCP server: %v", err)
+	}
+	if rootErr != nil {
+		logging.Warn("Could not find project root: %v (database unavailable)", rootErr)
 		projectRoot = "."
 	} else {
 		os.Setenv("PROJECT_ROOT", projectRoot)
-		cli.EnsureConfigAndDatabase(projectRoot)
 		if database.DB != nil {
 			defer func() {
 				if err := database.Close(); err != nil {
@@ -248,16 +227,6 @@ func runACPMode() {
 				}
 			}()
 		}
-	}
-
-	cfg, err := config.Load()
-	if err != nil {
-		logging.Fatal("Failed to load config: %v", err)
-	}
-
-	mcpServer, err := factory.NewServerFromConfig(cfg, factory.WithToolFilter(tools.ToolFilterForMode()))
-	if err != nil {
-		logging.Fatal("Failed to create MCP server: %v", err)
 	}
 
 	if err := tools.RegisterAllTools(mcpServer); err != nil {
@@ -282,29 +251,18 @@ func runACPMode() {
 func runMCPHTTPMode(addr string) {
 	logging.Warn("Starting MCP Streamable HTTP server on %s", addr)
 
-	projectRoot, err := tools.FindProjectRoot()
+	server, _, rootErr, err := loadDatabaseAndServerInParallel(tools.ToolFilterForMode())
 	if err != nil {
-		logging.Warn("Could not find project root: %v (database unavailable)", err)
-		projectRoot = "."
-	} else {
-		cli.EnsureConfigAndDatabase(projectRoot)
-		if database.DB != nil {
-			defer func() {
-				if err := database.Close(); err != nil {
-					logging.Error("Error closing database: %v", err)
-				}
-			}()
-		}
+		logging.Fatal("Failed to load config or create server: %v", err)
 	}
-
-	cfg, err := config.Load()
-	if err != nil {
-		logging.Fatal("Failed to load config: %v", err)
-	}
-
-	server, err := factory.NewServerFromConfig(cfg, factory.WithToolFilter(tools.ToolFilterForMode()))
-	if err != nil {
-		logging.Fatal("Failed to create server: %v", err)
+	if rootErr != nil {
+		logging.Warn("Could not find project root: %v (database unavailable)", rootErr)
+	} else if database.DB != nil {
+		defer func() {
+			if err := database.Close(); err != nil {
+				logging.Error("Error closing database: %v", err)
+			}
+		}()
 	}
 
 	if err := tools.RegisterAllTools(server); err != nil {

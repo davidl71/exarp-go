@@ -12,6 +12,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/davidl71/exarp-go/internal/config"
@@ -248,18 +249,35 @@ func runFlagBasedMode() error {
 
 	// Shell completion and -list only need registered tool metadata, not Todo2/SQLite.
 	needDB := *testTool != "" || *toolName != "" || *interactive
+	var server framework.MCPServer
+	var err error
 	if needDB {
-		initializeDatabase()
+		var wg sync.WaitGroup
+		wg.Add(2)
+		go func() {
+			defer wg.Done()
+			initializeDatabase()
+		}()
+		go func() {
+			defer wg.Done()
+			var e error
+			server, e = setupServer()
+			err = e
+		}()
+		wg.Wait()
+		if err != nil {
+			return err
+		}
 		defer func() {
-			if err := database.Close(); err != nil {
-				logWarn(context.Background(), "Error closing database", "error", err, "operation", "closeDatabase")
+			if cerr := database.Close(); cerr != nil {
+				logWarn(context.Background(), "Error closing database", "error", cerr, "operation", "closeDatabase")
 			}
 		}()
-	}
-
-	server, err := setupServer()
-	if err != nil {
-		return err
+	} else {
+		server, err = setupServer()
+		if err != nil {
+			return err
+		}
 	}
 
 	switch {
