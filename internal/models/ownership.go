@@ -1,6 +1,8 @@
 // Package models provides shared types, constants, and task ID utilities used across packages.
 package models
 
+import "slices"
+
 // ============================================================================
 // Task Ownership Metadata
 // ============================================================================
@@ -105,13 +107,13 @@ func SetTaskOwnership(task *Todo2Task, own *TaskOwnership) {
 
 	m := make(map[string]interface{})
 	if len(own.OwnedFiles) > 0 {
-		m["owned_files"] = own.OwnedFiles
+		m["owned_files"] = slices.Clone(own.OwnedFiles)
 	}
 	if len(own.OwnedGlobs) > 0 {
-		m["owned_globs"] = own.OwnedGlobs
+		m["owned_globs"] = slices.Clone(own.OwnedGlobs)
 	}
 	if len(own.ForbiddenFiles) > 0 {
-		m["forbidden_files"] = own.ForbiddenFiles
+		m["forbidden_files"] = slices.Clone(own.ForbiddenFiles)
 	}
 	if own.OwnershipConfidence != "" {
 		m["ownership_confidence"] = own.OwnershipConfidence
