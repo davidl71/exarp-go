@@ -25,6 +25,7 @@ type (
 	TextContent     = types.TextContent
 	ToolSchema      = types.ToolSchema
 	ToolInfo        = types.ToolInfo
+	ErrToolFailed   = framework.ErrToolFailed
 )
 
 // ResourceTemplateRegistrar is an optional extension used by servers that support
@@ -51,6 +52,7 @@ type Eliciter = framework.Eliciter
 var (
 	EliciterFromContext = framework.EliciterFromContext
 	ContextWithEliciter = framework.ContextWithEliciter
+	IsToolFailed        = framework.IsToolFailed
 )
 
 // Sampler allows the server to request LLM generation from the client.

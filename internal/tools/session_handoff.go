@@ -653,7 +653,7 @@ func handleSessionSync(ctx context.Context, params map[string]interface{}, proje
 
 // handleSessionExport exports handoff data to a JSON file for sharing between agents.
 func handleSessionExport(ctx context.Context, params map[string]interface{}, projectRoot string) ([]framework.TextContent, error) {
-	outputPath := cast.ToString(params["output_path"])
+	outputPath := ParamOutputPath(params)
 	if outputPath == "" {
 		// Default to handoff-export-{timestamp}.json in project root
 		outputPath = filepath.Join(projectRoot, fmt.Sprintf("handoff-export-%d.json", time.Now().Unix()))
@@ -717,7 +717,7 @@ func handleSessionExport(ctx context.Context, params map[string]interface{}, pro
 	}
 
 	// Ensure directory exists
-	if err := os.MkdirAll(filepath.Dir(outputPath), 0755); err != nil {
+	if err := EnsureParentDir(outputPath); err != nil {
 		return nil, fmt.Errorf("failed to create output directory: %w", err)
 	}
 

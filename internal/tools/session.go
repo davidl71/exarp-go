@@ -498,10 +498,7 @@ func handleSessionPrime(ctx context.Context, params map[string]interface{}) ([]f
 	}
 
 	// Default compact=true for MCP callers to reduce token overhead; pass compact=false to opt out
-	compact := true
-	if v, ok := params["compact"]; ok {
-		compact = cast.ToBool(v)
-	}
+	compact := ParamBool(params, "compact", true)
 	return FormatResultOptionalCompact(result, "", compact)
 }
 

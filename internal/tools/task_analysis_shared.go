@@ -5,8 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"os"
-	"path/filepath"
 
 	"github.com/davidl71/exarp-go/internal/config"
 	"github.com/davidl71/exarp-go/internal/framework"
@@ -203,7 +201,7 @@ func handleTaskAnalysisDuplicates(ctx context.Context, params map[string]interfa
 	}
 	outputPath := DefaultReportOutputPath(projectRoot, "TASK_ANALYSIS_DUPLICATES.md", params)
 	if outputPath != "" {
-		if err := os.MkdirAll(filepath.Dir(outputPath), 0755); err != nil {
+		if err := EnsureParentDir(outputPath); err != nil {
 			return nil, fmt.Errorf("failed to create output dir: %w", err)
 		}
 	}

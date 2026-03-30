@@ -26,7 +26,7 @@ func handleAutomationDiscover(ctx context.Context, params map[string]interface{}
 		taskDiscoveryParams["min_value_score"] = cast.ToFloat64(params["min_value_score"])
 	}
 
-	if outputPath := cast.ToString(params["output_path"]); outputPath != "" {
+	if outputPath := ParamOutputPath(params); outputPath != "" {
 		taskDiscoveryParams["output_path"] = outputPath
 	}
 

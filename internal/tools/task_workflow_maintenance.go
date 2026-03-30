@@ -136,7 +136,7 @@ func handleTaskWorkflowSync(ctx context.Context, params map[string]interface{}) 
 		}
 	}
 
-	outputPath := cast.ToString(params["output_path"])
+	outputPath := ParamOutputPath(params)
 
 	return framework.FormatResult(result, outputPath)
 }
@@ -249,7 +249,7 @@ func handleTaskWorkflowSanityCheck(ctx context.Context, params map[string]interf
 		"sanity_checks": []string{"invalid_task_id", "epoch_dates", "empty_content", "valid_status", "duplicate_ids", "duplicate_content", "missing_dependencies"},
 	}
 
-	outputPath := cast.ToString(params["output_path"])
+	outputPath := ParamOutputPath(params)
 
 	return framework.FormatResult(result, outputPath)
 }
@@ -272,9 +272,7 @@ func handleTaskWorkflowClarity(ctx context.Context, params map[string]interface{
 	autoApply := ParamBool(params, "auto_apply", false)
 
 	outputFormat := "text"
-	if format, ok := params["output_format"].(string); ok && format != "" {
-		outputFormat = format
-	}
+	outputFormat = ParamOutputFormat(params, outputFormat)
 
 	// Analyze tasks for clarity issues
 	clarityIssues := []map[string]interface{}{}
@@ -339,7 +337,7 @@ func handleTaskWorkflowClarity(ctx context.Context, params map[string]interface{
 		"recommendations": buildClarityRecommendations(clarityIssues),
 	}
 
-	outputPath := cast.ToString(params["output_path"])
+	outputPath := ParamOutputPath(params)
 
 	// Handle text vs JSON formatting
 	if outputFormat == "json" {
@@ -352,6 +350,7 @@ func handleTaskWorkflowClarity(ctx context.Context, params map[string]interface{
 
 	// Write to file if outputPath is provided
 	if outputPath != "" {
+		_ = EnsureParentDir(outputPath)
 		if err := os.WriteFile(outputPath, []byte(output), 0644); err == nil {
 			// File written successfully - note: can't add output_path to text output
 			// but we can log it or include in a comment
@@ -575,7 +574,7 @@ func handleTaskWorkflowCleanup(ctx context.Context, params map[string]interface{
 			result["sync_error"] = syncErr.Error()
 		}
 
-		outputPath := cast.ToString(params["output_path"])
+		outputPath := ParamOutputPath(params)
 
 		return framework.FormatResult(result, outputPath)
 	}
@@ -701,7 +700,7 @@ func handleTaskWorkflowCleanup(ctx context.Context, params map[string]interface{
 		result["db_only_tasks_before"] = driftBefore.DBOnlyIDs
 	}
 
-	outputPath := cast.ToString(params["output_path"])
+	outputPath := ParamOutputPath(params)
 
 	return framework.FormatResult(result, outputPath)
 }

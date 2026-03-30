@@ -543,10 +543,7 @@ Return JSON array with format: [{"task_id": "T-1", "level": "component", "compon
 		delete(analysis, "hierarchy_recommendations")
 	}
 
-	outputFormat := "json"
-	if format, ok := params["output_format"].(string); ok && format != "" {
-		outputFormat = format
-	}
+	outputFormat := ParamOutputFormat(params, "json")
 
 	if outputFormat == "text" {
 		output := formatHierarchyAnalysisText(analysis)

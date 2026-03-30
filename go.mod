@@ -8,7 +8,7 @@ require (
 	charm.land/lipgloss/v2 v2.0.0
 	cloud.google.com/go/firestore v1.21.0
 	github.com/davidl71/devwisdom-go v0.1.2
-	github.com/davidl71/mcp-go-core v0.4.2
+	github.com/davidl71/mcp-go-core v0.4.3
 	github.com/dustin/go-humanize v1.0.1
 	github.com/go-sql-driver/mysql v1.9.3
 	github.com/hibiken/asynq v0.26.0

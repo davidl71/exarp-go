@@ -822,10 +822,7 @@ func handleTaskWorkflowList(ctx context.Context, params map[string]interface{}) 
 		out := map[string]interface{}{"success": true, "method": "list", "tasks": taskMaps}
 		AddTokenEstimateToResult(out)
 		// Default compact=true for MCP callers to reduce token overhead; pass compact=false to opt out
-		compact := true
-		if v, ok := params["compact"]; ok {
-			compact = cast.ToBool(v)
-		}
+		compact := ParamBool(params, "compact", true)
 		return FormatResultOptionalCompact(out, "", compact)
 	}
 	// Text format: column widths aligned with TUI (internal/cli/tui.go colIDMedium, colStatus, colPriority)

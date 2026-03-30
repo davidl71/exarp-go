@@ -112,8 +112,6 @@ var (
 			BorderForeground(lipgloss.Color("#808080")).
 			Padding(1, 2)
 
-
-
 	// SoftBorder uses Unicode rounded box-drawing characters for a softer visual appearance.
 	SoftBorder = lipgloss.Border{
 		Top:         "─",

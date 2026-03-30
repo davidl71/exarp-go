@@ -38,6 +38,8 @@ func handleTaskCommand(server framework.MCPServer, parsed *mcpcli.Args) error {
 		return handleTaskCreateParsed(server, parsed)
 	case "show":
 		return handleTaskShow(server, parsed.Positional)
+	case "review":
+		return handleTaskReview(server, parsed.Positional)
 	case "delete":
 		return handleTaskDelete(server, parsed.Positional)
 	case "sync":
@@ -51,7 +53,7 @@ func handleTaskCommand(server framework.MCPServer, parsed *mcpcli.Args) error {
 	case "help":
 		return showTaskUsage()
 	default:
-		return fmt.Errorf("unknown task command: %s (use: list, status, update, create, show, delete, sync, estimate, summarize, run-with-ai, help)", subcommand)
+		return fmt.Errorf("unknown task command: %s (use: list, status, update, create, show, review, delete, sync, estimate, summarize, run-with-ai, help)", subcommand)
 	}
 }
 
@@ -637,6 +639,7 @@ func showTaskUsage() error {
 	_, _ = fmt.Println("  update [options]        Update task status")
 	_, _ = fmt.Println("  create <name> [options]  Create new task")
 	_, _ = fmt.Println("  show <task-id>          Show full task details")
+	_, _ = fmt.Println("  review <task-id>        Open local review UI for execution-pack")
 	_, _ = fmt.Println("  delete <task-id>        Delete a task (e.g. wrong project)")
 	_, _ = fmt.Println("  sync                    Sync Todo2 (SQLite ↔ JSON)")
 	_, _ = fmt.Println("  estimate <name>         Estimate task duration (local AI)")

@@ -17,7 +17,7 @@ type MockServer struct {
 	prompts           map[string]*mockPrompt
 	resources         map[string]*mockResource
 	resourceTemplates map[string]*mockResource
-	mu sync.RWMutex
+	mu                sync.RWMutex
 }
 
 type mockTool struct {

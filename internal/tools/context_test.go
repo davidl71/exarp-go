@@ -11,9 +11,9 @@ import (
 
 func TestEstimateTokens(t *testing.T) {
 	tests := []struct {
-		text         string
+		text          string
 		tokensPerChar float64
-		want         int
+		want          int
 	}{
 		{"", 0.25, 0},
 		{"", 0.5, 0},
@@ -233,7 +233,7 @@ func TestHandleContext(t *testing.T) {
 			name: "context_count action",
 			params: map[string]interface{}{
 				"action": "count",
-				"data":  "Some text to count tokens for",
+				"data":   "Some text to count tokens for",
 			},
 			wantError: false,
 		},

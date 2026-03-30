@@ -50,7 +50,7 @@ func handleReportPlan(ctx context.Context, params map[string]interface{}) ([]fra
 	}
 
 	outputPath := DefaultPlanOutputPath(projectRoot, planFilenameFromTitle(planTitle)+".plan.md", params)
-	if strings.TrimSpace(cast.ToString(params["output_path"])) != "" {
+	if ParamOutputPath(params) != "" {
 		outputPath = ensurePlanMdSuffix(outputPath)
 	}
 
@@ -267,7 +267,7 @@ func handleReportParallelExecutionPlan(ctx context.Context, params map[string]in
 		}
 	}
 
-	outputPath := cast.ToString(params["output_path"])
+	outputPath := ParamOutputPath(params)
 	if outputPath == "" {
 		outputPath = filepath.Join(projectRoot, ".cursor", "plans", "parallel-execution-subagents.plan.md")
 	}
@@ -277,10 +277,8 @@ func handleReportParallelExecutionPlan(ctx context.Context, params map[string]in
 		return nil, fmt.Errorf("generate parallel execution plan: %w", err)
 	}
 
-	if dir := filepath.Dir(outputPath); dir != "." {
-		if err := os.MkdirAll(dir, 0755); err != nil {
-			return nil, fmt.Errorf("create plan directory: %w", err)
-		}
+	if err := EnsureParentDir(outputPath); err != nil {
+		return nil, fmt.Errorf("create plan directory: %w", err)
 	}
 
 	if err := os.WriteFile(outputPath, []byte(subagentsMD), 0644); err != nil {

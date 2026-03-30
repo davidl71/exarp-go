@@ -50,10 +50,10 @@ func mockOllamaServer(t *testing.T) *httptest.Server {
 		}
 		w.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(w).Encode(map[string]interface{}{
-			"model":     req.Model,
-			"response":  "mock response for: " + req.Prompt,
-			"done":      true,
-			"created_at": "2025-01-01T00:00:00Z",
+			"model":          req.Model,
+			"response":       "mock response for: " + req.Prompt,
+			"done":           true,
+			"created_at":     "2025-01-01T00:00:00Z",
 			"total_duration": 1000000,
 		})
 	})
@@ -127,11 +127,11 @@ func TestOllamaIntegration_Mock_Generate(t *testing.T) {
 
 	ctx := context.Background()
 	params := map[string]interface{}{
-		"action":  "generate",
-		"host":    srv.URL,
-		"prompt":  "Say hello",
-		"model":   "test-model",
-		"stream":  false,
+		"action": "generate",
+		"host":   srv.URL,
+		"prompt": "Say hello",
+		"model":  "test-model",
+		"stream": false,
 	}
 
 	result, err := handleOllamaNative(ctx, params)

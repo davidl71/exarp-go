@@ -31,7 +31,6 @@ func isConnectionRefused(err error) bool {
 	return strings.Contains(err.Error(), "connection refused")
 }
 
-
 func TestRealModels_TextGenerate(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping integration test with real models in short mode")

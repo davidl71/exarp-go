@@ -85,7 +85,7 @@ func handleTaskWorkflowFixEmptyDescriptions(ctx context.Context, params map[stri
 		"method":        "store",
 		"tasks_updated": updated,
 	}
-	outputPath := cast.ToString(params["output_path"])
+	outputPath := ParamOutputPath(params)
 
 	return framework.FormatResult(result, outputPath)
 }

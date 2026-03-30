@@ -3,6 +3,7 @@ package tools
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"testing"
 
@@ -154,6 +155,13 @@ func TestWrapHandler_NativeError(t *testing.T) {
 	}
 	if err.Error() != "my_tool failed: something broke" {
 		t.Errorf("got %q, want 'my_tool failed: something broke'", err.Error())
+	}
+	if !framework.IsToolFailed(err) {
+		t.Error("expected IsToolFailed")
+	}
+	var tf *framework.ErrToolFailed
+	if !errors.As(err, &tf) || tf.Err.Error() != "something broke" {
+		t.Errorf("unwrap ErrToolFailed: %v", err)
 	}
 }
 

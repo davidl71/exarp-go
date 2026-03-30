@@ -56,7 +56,7 @@ func WrapHandler(
 
 		result, err := handler(ctx, params)
 		if err != nil {
-			return nil, fmt.Errorf("%s failed: %w", toolName, err)
+			return nil, &framework.ErrToolFailed{ToolName: toolName, Err: err}
 		}
 
 		return result, nil

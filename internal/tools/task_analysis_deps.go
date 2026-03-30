@@ -101,9 +101,7 @@ func handleTaskAnalysisDependencies(ctx context.Context, params map[string]inter
 	}
 
 	outputFormat := "json"
-	if format, ok := params["output_format"].(string); ok && format != "" {
-		outputFormat = format
-	}
+	outputFormat = ParamOutputFormat(params, outputFormat)
 
 	result := map[string]interface{}{
 		"success":               true,
@@ -132,10 +130,8 @@ func handleTaskAnalysisDependencies(ctx context.Context, params map[string]inter
 	}
 	outputPath := DefaultReportOutputPath(projectRoot, "TASK_ANALYSIS_DEPENDENCIES.md", params)
 	if outputFormat == "json" {
-		if outputPath != "" {
-			if err := os.MkdirAll(filepath.Dir(outputPath), 0755); err != nil {
-				return nil, fmt.Errorf("failed to create output dir: %w", err)
-			}
+		if err := EnsureParentDir(outputPath); err != nil {
+			return nil, fmt.Errorf("failed to create output dir: %w", err)
 		}
 
 		resultJSON, _ := json.Marshal(result)
@@ -147,7 +143,7 @@ func handleTaskAnalysisDependencies(ctx context.Context, params map[string]inter
 	output := formatDependencyAnalysisText(result)
 
 	if outputPath != "" {
-		if err := os.MkdirAll(filepath.Dir(outputPath), 0755); err != nil {
+		if err := EnsureParentDir(outputPath); err != nil {
 			return nil, fmt.Errorf("failed to create output dir: %w", err)
 		}
 
@@ -373,12 +369,8 @@ func handleTaskAnalysisExecutionPlan(ctx context.Context, params map[string]inte
 		"has_collisions":        len(collisions) > 0,
 	}
 
-	outputFormat := "json"
-	if format, ok := params["output_format"].(string); ok && format != "" {
-		outputFormat = format
-	}
-
-	outputPath := cast.ToString(params["output_path"])
+	outputFormat := ParamOutputFormat(params, "json")
+	outputPath := ParamOutputPath(params)
 
 	// subagents_plan: write parallel-execution-subagents.plan.md using wave detection
 	if outputFormat == "subagents_plan" {
@@ -423,10 +415,8 @@ func handleTaskAnalysisExecutionPlan(ctx context.Context, params map[string]inte
 	}
 
 	if outputFormat == "json" {
-		if outputPath != "" {
-			if err := os.MkdirAll(filepath.Dir(outputPath), 0755); err != nil {
-				return nil, fmt.Errorf("failed to create output dir: %w", err)
-			}
+		if err := EnsureParentDir(outputPath); err != nil {
+			return nil, fmt.Errorf("failed to create output dir: %w", err)
 		}
 
 		resultJSON, _ := json.Marshal(result)
@@ -438,7 +428,7 @@ func handleTaskAnalysisExecutionPlan(ctx context.Context, params map[string]inte
 	output := formatExecutionPlanText(result)
 
 	if outputPath != "" {
-		if err := os.MkdirAll(filepath.Dir(outputPath), 0755); err != nil {
+		if err := EnsureParentDir(outputPath); err != nil {
 			return nil, fmt.Errorf("failed to create output dir: %w", err)
 		}
 

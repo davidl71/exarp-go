@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"path/filepath"
 	"regexp"
 	"strings"
 
@@ -292,7 +291,7 @@ func handleTaskAnalysisSuggestDependencies(ctx context.Context, params map[strin
 	}
 	outputPath := DefaultReportOutputPath(projectRoot, "SUGGEST_DEPS_REPORT.json", params)
 	if outputPath != "" {
-		if err := os.MkdirAll(filepath.Dir(outputPath), 0755); err != nil {
+		if err := EnsureParentDir(outputPath); err != nil {
 			return nil, fmt.Errorf("failed to create output dir: %w", err)
 		}
 		if err := os.WriteFile(outputPath, resultJSON, 0644); err != nil {

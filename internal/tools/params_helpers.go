@@ -3,6 +3,7 @@ package tools
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -24,6 +25,32 @@ func ParamBool(params map[string]interface{}, key string, defaultVal bool) bool 
 		return val
 	}
 	return defaultVal
+}
+
+// ParamOutputPath returns params["output_path"] as a trimmed string.
+func ParamOutputPath(params map[string]interface{}) string {
+	return ParamString(params, "output_path")
+}
+
+// ParamOutputFormat returns params["output_format"] as a trimmed string, defaulting to defaultVal.
+func ParamOutputFormat(params map[string]interface{}, defaultVal string) string {
+	if v := ParamString(params, "output_format"); v != "" {
+		return v
+	}
+	return defaultVal
+}
+
+// EnsureParentDir creates the parent directory for a path when needed.
+// If path is empty, "."-rooted, or has no parent directory, it does nothing.
+func EnsureParentDir(path string) error {
+	if strings.TrimSpace(path) == "" {
+		return nil
+	}
+	dir := filepath.Dir(path)
+	if dir == "." || dir == "" {
+		return nil
+	}
+	return os.MkdirAll(dir, 0o755)
 }
 
 // RequireParam returns params[key] as a trimmed string. Returns an error if the

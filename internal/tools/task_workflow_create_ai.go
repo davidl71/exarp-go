@@ -142,7 +142,7 @@ func handleTaskWorkflowCreateBatch(ctx context.Context, params map[string]interf
 		batchResult["success"] = len(createdTasks) > 0
 	}
 
-	outputPath := cast.ToString(params["output_path"])
+	outputPath := ParamOutputPath(params)
 	return framework.FormatResult(batchResult, outputPath)
 }
 
@@ -340,7 +340,7 @@ func handleTaskWorkflowCreateSingleWithDeps(
 		}
 	}
 
-	outputPath := cast.ToString(params["output_path"])
+	outputPath := ParamOutputPath(params)
 	return framework.FormatResult(result, outputPath)
 }
 
@@ -553,7 +553,7 @@ func handleTaskWorkflowCreateSingle(ctx context.Context, params map[string]inter
 		}
 	}
 
-	outputPath := cast.ToString(params["output_path"])
+	outputPath := ParamOutputPath(params)
 	return framework.FormatResult(result, outputPath)
 }
 
@@ -631,7 +631,7 @@ func handleTaskWorkflowEnrichToolHints(ctx context.Context, params map[string]in
 		"updated_count": len(updatedIDs),
 		"task_ids":      updatedIDs,
 	}
-	outputPath := cast.ToString(params["output_path"])
+	outputPath := ParamOutputPath(params)
 	return framework.FormatResult(result, outputPath)
 }
 

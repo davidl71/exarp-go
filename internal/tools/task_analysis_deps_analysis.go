@@ -6,12 +6,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
+	"strings"
+
 	"github.com/davidl71/exarp-go/internal/framework"
 	"github.com/davidl71/exarp-go/internal/taskanalysis"
 	"github.com/davidl71/exarp-go/proto"
-	"os"
-	"path/filepath"
-	"strings"
 )
 
 // ─── Contents ───────────────────────────────────────────────────────────────
@@ -106,10 +106,7 @@ func handleTaskAnalysisParallelization(ctx context.Context, params map[string]in
 	// Find parallelizable tasks
 	parallelGroups := findParallelizableTasks(tasks, durationWeight)
 
-	outputFormat := "json"
-	if format, ok := params["output_format"].(string); ok && format != "" {
-		outputFormat = format
-	}
+	outputFormat := ParamOutputFormat(params, "json")
 
 	result := map[string]interface{}{
 		"success":         true,
@@ -129,10 +126,8 @@ func handleTaskAnalysisParallelization(ctx context.Context, params map[string]in
 	}
 	outputPath := DefaultReportOutputPath(projectRoot, "TASK_ANALYSIS_PARALLELIZATION.md", params)
 	if outputFormat == "json" {
-		if outputPath != "" {
-			if err := os.MkdirAll(filepath.Dir(outputPath), 0755); err != nil {
-				return nil, fmt.Errorf("failed to create output dir: %w", err)
-			}
+		if err := EnsureParentDir(outputPath); err != nil {
+			return nil, fmt.Errorf("failed to create output dir: %w", err)
 		}
 
 		resultJSON, _ := json.Marshal(result)
@@ -144,7 +139,7 @@ func handleTaskAnalysisParallelization(ctx context.Context, params map[string]in
 	output := formatParallelizationAnalysisText(result)
 
 	if outputPath != "" {
-		if err := os.MkdirAll(filepath.Dir(outputPath), 0755); err != nil {
+		if err := EnsureParentDir(outputPath); err != nil {
 			return nil, fmt.Errorf("failed to create output dir: %w", err)
 		}
 

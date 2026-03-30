@@ -184,18 +184,12 @@ func handleTaskAnalysisInferOwnership(ctx context.Context, params map[string]int
 		result["message"] = fmt.Sprintf("Updated %d tasks with inferred ownership", updatedCount)
 	}
 
-	outputFormat := cast.ToString(params["output_format"])
-	if outputFormat == "" {
-		outputFormat = "json"
-	}
-
-	outputPath := cast.ToString(params["output_path"])
+	outputFormat := ParamOutputFormat(params, "json")
+	outputPath := ParamOutputPath(params)
 
 	if outputFormat == "json" {
-		if outputPath != "" {
-			if err := os.MkdirAll(filepath.Dir(outputPath), 0755); err != nil {
-				return nil, fmt.Errorf("failed to create output dir: %w", err)
-			}
+		if err := EnsureParentDir(outputPath); err != nil {
+			return nil, fmt.Errorf("failed to create output dir: %w", err)
 		}
 		resultJSON, _ := json.Marshal(result)
 		resp := &proto.TaskAnalysisResponse{Action: "infer_ownership", OutputPath: outputPath, ResultJson: string(resultJSON)}
@@ -206,7 +200,7 @@ func handleTaskAnalysisInferOwnership(ctx context.Context, params map[string]int
 	output := formatInferOwnershipText(result)
 
 	if outputPath != "" {
-		if err := os.MkdirAll(filepath.Dir(outputPath), 0755); err != nil {
+		if err := EnsureParentDir(outputPath); err != nil {
 			return nil, fmt.Errorf("failed to create output dir: %w", err)
 		}
 		if err := os.WriteFile(outputPath, []byte(output), 0644); err != nil {
@@ -802,18 +796,12 @@ func handleTaskAnalysisHotspots(ctx context.Context, params map[string]interface
 		result["warning"] = fmt.Sprintf("Found %d contested files - tasks sharing these files may collide", len(hotspots))
 	}
 
-	outputFormat := cast.ToString(params["output_format"])
-	if outputFormat == "" {
-		outputFormat = "text"
-	}
-
-	outputPath := cast.ToString(params["output_path"])
+	outputFormat := ParamOutputFormat(params, "text")
+	outputPath := ParamOutputPath(params)
 
 	if outputFormat == "json" {
-		if outputPath != "" {
-			if err := os.MkdirAll(filepath.Dir(outputPath), 0755); err != nil {
-				return nil, fmt.Errorf("failed to create output dir: %w", err)
-			}
+		if err := EnsureParentDir(outputPath); err != nil {
+			return nil, fmt.Errorf("failed to create output dir: %w", err)
 		}
 		resultJSON, _ := json.Marshal(result)
 		resp := &proto.TaskAnalysisResponse{Action: "hotspots", OutputPath: outputPath, ResultJson: string(resultJSON)}
@@ -824,7 +812,7 @@ func handleTaskAnalysisHotspots(ctx context.Context, params map[string]interface
 	output := formatHotspotsText(hp, fileToTasks)
 
 	if outputPath != "" {
-		if err := os.MkdirAll(filepath.Dir(outputPath), 0755); err != nil {
+		if err := EnsureParentDir(outputPath); err != nil {
 			return nil, fmt.Errorf("failed to create output dir: %w", err)
 		}
 		if err := os.WriteFile(outputPath, []byte(output), 0644); err != nil {

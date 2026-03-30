@@ -431,12 +431,12 @@ func analyzePyCoverage(ctx context.Context, projectRoot string, minCoverage int,
 	coveragePercent := parsePyCoveragePercent(outputStr)
 
 	result := map[string]interface{}{
-		"framework":       "python",
+		"framework":        "python",
 		"coverage_percent": coveragePercent,
-		"min_coverage":    minCoverage,
-		"meets_threshold": coveragePercent >= float64(minCoverage),
-		"format":          format,
-		"output":          outputStr,
+		"min_coverage":     minCoverage,
+		"meets_threshold":  coveragePercent >= float64(minCoverage),
+		"format":           format,
+		"output":           outputStr,
 	}
 	if err != nil {
 		exitErr := &exec.ExitError{}

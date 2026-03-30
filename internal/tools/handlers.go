@@ -5,8 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"os"
-	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -270,14 +268,10 @@ func handleReport(ctx context.Context, args json.RawMessage) ([]framework.TextCo
 					"languages":        langList,
 				}
 				AddTokenEstimateToResult(out)
-				compact := cast.ToBool(params["compact"])
-				outputPath := cast.ToString(params["output_path"])
-				if outputPath != "" {
-					if dir := filepath.Dir(outputPath); dir != "." {
-						if err := os.MkdirAll(dir, 0755); err != nil {
-							return nil, fmt.Errorf("report scorecard (generic): create output dir: %w", err)
-						}
-					}
+				compact := ParamBool(params, "compact", false)
+				outputPath := ParamOutputPath(params)
+				if err := EnsureParentDir(outputPath); err != nil {
+					return nil, fmt.Errorf("report scorecard (generic): create output dir: %w", err)
 				}
 				return FormatResultOptionalCompact(out, outputPath, compact)
 			}
@@ -321,10 +315,7 @@ func handleReport(ctx context.Context, args json.RawMessage) ([]framework.TextCo
 		scorecardProto := GoScorecardResultToProto(scorecard)
 		scorecardMap := ProtoToScorecardMap(scorecardProto)
 
-		outputFormat := strings.TrimSpace(cast.ToString(params["output_format"]))
-		if outputFormat == "" {
-			outputFormat = config.ReportDefaultFormat()
-		}
+		outputFormat := ParamOutputFormat(params, config.ReportDefaultFormat())
 		if outputFormat == "json" {
 			// Return JSON for Python/script consumers (e.g. project_overview, consolidated_reporting)
 			blockers := scorecardProto.GetBlockers()
@@ -349,14 +340,10 @@ func handleReport(ctx context.Context, args json.RawMessage) ([]framework.TextCo
 				}
 			}
 			AddTokenEstimateToResult(out)
-			compact := cast.ToBool(params["compact"])
-			outputPath := cast.ToString(params["output_path"])
-			if outputPath != "" {
-				if dir := filepath.Dir(outputPath); dir != "." {
-					if err := os.MkdirAll(dir, 0755); err != nil {
-						return nil, fmt.Errorf("report scorecard: create output dir: %w", err)
-					}
-				}
+			compact := ParamBool(params, "compact", false)
+			outputPath := ParamOutputPath(params)
+			if err := EnsureParentDir(outputPath); err != nil {
+				return nil, fmt.Errorf("report scorecard: create output dir: %w", err)
 			}
 			return FormatResultOptionalCompact(out, outputPath, compact)
 		}

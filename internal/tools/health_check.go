@@ -398,7 +398,7 @@ func handleHealthDocs(ctx context.Context, params map[string]interface{}) ([]fra
 	}
 
 	// Get parameters
-	outputPath := cast.ToString(params["output_path"])
+	outputPath := ParamOutputPath(params)
 	createTasks := cast.ToBool(params["create_tasks"])
 	changedFiles := ParamString(params, "changed_files")
 
@@ -753,7 +753,7 @@ func handleHealthDOD(ctx context.Context, params map[string]interface{}) ([]fram
 	taskID := cast.ToString(params["task_id"])
 	changedFiles := cast.ToString(params["changed_files"])
 	autoCheck := cast.ToBool(params["auto_check"])
-	outputPath := cast.ToString(params["output_path"])
+	outputPath := ParamOutputPath(params)
 
 	// Basic DOD checks
 	checks := map[string]interface{}{
@@ -826,7 +826,7 @@ func handleHealthCICD(ctx context.Context, params map[string]interface{}) ([]fra
 	// Get parameters
 	workflowPath := cast.ToString(params["workflow_path"])
 	checkRunners := cast.ToBool(params["check_runners"])
-	outputPath := cast.ToString(params["output_path"])
+	outputPath := ParamOutputPath(params)
 
 	// Get project root
 	projectRoot, err := GetProjectRootWithFallback()

@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 	"time"
 
 	"github.com/davidl71/exarp-go/internal/config"
@@ -27,9 +26,7 @@ func handleReportOverview(ctx context.Context, params map[string]interface{}) ([
 	}
 
 	outputFormat := config.ReportDefaultFormat()
-	if format := strings.TrimSpace(cast.ToString(params["output_format"])); format != "" {
-		outputFormat = format
-	}
+	outputFormat = ParamOutputFormat(params, outputFormat)
 
 	outputPath := DefaultReportOutputPath(projectRoot, "PROJECT_OVERVIEW.md", params)
 	includePlanning := cast.ToBool(params["include_planning"])
@@ -50,7 +47,7 @@ func handleReportOverview(ctx context.Context, params map[string]interface{}) ([
 	case "json":
 		overviewMap := ProtoToProjectOverviewData(overviewProto)
 		AddTokenEstimateToResult(overviewMap)
-		compact := cast.ToBool(params["compact"])
+		compact := ParamBool(params, "compact", false)
 		contents, err := FormatResultOptionalCompact(overviewMap, outputPath, compact)
 		if err != nil {
 			return nil, fmt.Errorf("failed to format JSON: %w", err)

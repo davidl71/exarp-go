@@ -7,7 +7,8 @@
 | Step | Detail |
 |------|--------|
 | **Cache extraction** | `FileCache`, `TTLCache`, and `GetGlobalFileCache` live in **`mcp-go-core/pkg/mcp/cache`**. exarp-go **`internal/cache`** re-exports them and keeps **`GetScorecardCache()`** (scorecard singleton). |
-| **Published core** | **mcp-go-core `v0.4.2`** (tag on GitHub). exarp-go **`require github.com/davidl71/mcp-go-core v0.4.2`** — no `replace` for core in `go.mod`. For local core hacking, add a temporary `replace` line. |
+| **Response + tool errors** | **`FormatResult`** and **`FormatResultCompact`** delegate to **`mcp-go-core/pkg/mcp/response`** from exarp **`internal/framework/response.go`**; **`ConvertToMap`** stays in exarp (JSON round-trip semantics). **`ErrToolFailed`** / **`IsToolFailed`** in core **`pkg/mcp/framework`**, re-exported from exarp **`internal/framework`**, used in **`internal/tools/handlers_wrap.go`**. |
+| **Published core** | **mcp-go-core `v0.4.3`** (tag on GitHub). exarp-go **`require github.com/davidl71/mcp-go-core v0.4.3`** — no `replace` for core in `go.mod`. **`vendor/`** is gitignored; **release order:** tag and push **`v0.4.3`** on **mcp-go-core** first so **`go mod download`**, **`make go-mod-verify`**, and CI can resolve the module. |
 
 ## Ratelimit (already complete)
 
@@ -15,8 +16,7 @@
 
 ## Next (Phase 1 remainder)
 
-1. **ToolError / response compact** — move types and helpers per extraction plan (medium touch).
-2. **FileLock** — optional `pkg/mcp/filelock` in core (build tags).
+1. **FileLock** — optional `pkg/mcp/filelock` in core (build tags).
 
 ## Verify
 
