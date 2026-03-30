@@ -8,6 +8,7 @@ import (
 	"context"
 	"path/filepath"
 	"regexp"
+	"sort"
 	"strings"
 
 	"github.com/davidl71/exarp-go/internal/database"
@@ -122,7 +123,7 @@ func DetectFileConflicts(tasks []*database.Todo2Task) []FileConflict {
 			continue
 		}
 
-		sortStrings(ids)
+		sort.Strings(ids)
 		key := strings.Join(ids, "|")
 		setToFiles[key] = append(setToFiles[key], file)
 	}
@@ -135,16 +136,6 @@ func DetectFileConflicts(tasks []*database.Todo2Task) []FileConflict {
 	}
 
 	return out
-}
-
-func sortStrings(s []string) {
-	for i := 0; i < len(s); i++ {
-		for j := i + 1; j < len(s); j++ {
-			if s[j] < s[i] {
-				s[i], s[j] = s[j], s[i]
-			}
-		}
-	}
 }
 
 // DetectConflicts loads tasks from the store and returns task-overlap and file-level conflicts.

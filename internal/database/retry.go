@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"strings"
 	"time"
 
 	"github.com/davidl71/exarp-go/internal/config"
@@ -25,14 +26,15 @@ func isTransientError(err error) bool {
 
 	// Check for SQLite error codes
 	errStr := err.Error()
+	errLower := strings.ToLower(errStr)
 	// SQLite errors typically include the error code in the message
 	// e.g., "database is locked (5)" or "database is locked (SQLITE_BUSY)"
-	if contains(errStr, "database is locked") ||
-		contains(errStr, "database locked") ||
-		contains(errStr, "SQLITE_BUSY") ||
-		contains(errStr, "SQLITE_LOCKED") ||
-		contains(errStr, "(5)") ||
-		contains(errStr, "(6)") {
+	if strings.Contains(errLower, "database is locked") ||
+		strings.Contains(errLower, "database locked") ||
+		strings.Contains(errLower, "sqlite_busy") ||
+		strings.Contains(errLower, "sqlite_locked") ||
+		strings.Contains(errLower, "(5)") ||
+		strings.Contains(errLower, "(6)") {
 		return true
 	}
 
@@ -42,44 +44,6 @@ func isTransientError(err error) bool {
 	}
 
 	return false
-}
-
-// contains is a simple case-insensitive substring check.
-func contains(s, substr string) bool {
-	return len(s) >= len(substr) && (s == substr ||
-		(len(s) > len(substr) &&
-			(s[:len(substr)] == substr ||
-				s[len(s)-len(substr):] == substr ||
-				indexOf(s, substr) >= 0)))
-}
-
-// indexOf finds the first occurrence of substr in s (case-insensitive).
-func indexOf(s, substr string) int {
-	sLower := toLower(s)
-	substrLower := toLower(substr)
-
-	for i := 0; i <= len(sLower)-len(substrLower); i++ {
-		if sLower[i:i+len(substrLower)] == substrLower {
-			return i
-		}
-	}
-
-	return -1
-}
-
-// toLower converts a string to lowercase (simple implementation).
-func toLower(s string) string {
-	result := make([]byte, len(s))
-
-	for i := 0; i < len(s); i++ {
-		if s[i] >= 'A' && s[i] <= 'Z' {
-			result[i] = s[i] + 32
-		} else {
-			result[i] = s[i]
-		}
-	}
-
-	return string(result)
 }
 
 // retryWithBackoff executes a function with exponential backoff retry for transient errors.
