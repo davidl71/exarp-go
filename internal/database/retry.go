@@ -152,6 +152,14 @@ func retryWithBackoff(ctx context.Context, fn func() error) error {
 	return fmt.Errorf("operation failed after %d retries: %w", maxRetries, lastErr)
 }
 
+// WithRetry executes fn with exponential backoff retry for transient SQLite lock errors.
+//
+// Use this in higher-level packages that need to tolerate brief SQLite contention
+// (e.g. scheduled automation jobs starting at the same time).
+func WithRetry(ctx context.Context, fn func() error) error {
+	return retryWithBackoff(ctx, fn)
+}
+
 // withQueryTimeout creates a context with timeout for database queries.
 // Uses config.DatabaseConnectionTimeout when available (default 30s).
 func withQueryTimeout(ctx context.Context) (context.Context, context.CancelFunc) {

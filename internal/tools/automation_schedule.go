@@ -509,94 +509,113 @@ func beginAutomationRun(ctx context.Context, action, scheduleLabel string) (*aut
 	}
 	scheduleLabel = sanitizeAutomationLabel(scheduleLabel)
 
-	db, err := database.GetDBx()
-	if err != nil {
-		return nil, nil, err
-	}
+	var guard *automationRunGuard
+	var skipResult map[string]interface{}
 
-	queryCtx, cancel := context.WithTimeout(ctx, databaseTimeout())
-	defer cancel()
-
-	tx, err := db.BeginTxx(queryCtx, nil)
-	if err != nil {
-		return nil, nil, err
-	}
-	defer func() {
-		_ = tx.Rollback()
-	}()
-
-	if err := ensureAutomationRunsTableTx(queryCtx, tx); err != nil {
-		return nil, nil, err
-	}
-
-	active, err := getActiveAutomationRunTx(queryCtx, tx, scheduleLabel)
-	if err != nil {
-		return nil, nil, err
-	}
-	if active != nil {
-		if processRunning(active.PID) {
-			_ = tx.Commit()
-			return nil, map[string]interface{}{
-				"status":         "skipped",
-				"reason":         "previous run still active",
-				"schedule_label": scheduleLabel,
-				"active_run":     active,
-			}, nil
+	err := database.WithRetry(ctx, func() error {
+		db, err := database.GetDBx()
+		if err != nil {
+			return err
 		}
 
-		if _, err := tx.ExecContext(queryCtx, `
-			UPDATE automation_runs
-			SET status = 'stale',
-				ended_at = ?,
-				updated_at = ?,
-				error_text = ?
-			WHERE id = ?`,
-			time.Now().Unix(),
-			time.Now().Unix(),
-			sql.NullString{String: "stale automation run replaced", Valid: true},
-			active.ID,
-		); err != nil {
-			return nil, nil, err
-		}
-	}
+		queryCtx, cancel := context.WithTimeout(ctx, databaseTimeout())
+		defer cancel()
 
-	now := time.Now().Unix()
-	host, _ := os.Hostname()
-	res, err := tx.ExecContext(queryCtx, `
-		INSERT INTO automation_runs (
-			schedule_label, action, pid, host, status, started_at, created_at, updated_at
-		) VALUES (?, ?, ?, ?, 'running', ?, ?, ?)
-	`, scheduleLabel, action, os.Getpid(), host, now, now, now)
-	if err != nil {
-		if isUniqueConstraintError(err) {
-			existing, getErr := getActiveAutomationRunTx(queryCtx, tx, scheduleLabel)
-			if getErr != nil {
-				return nil, nil, getErr
-			}
-			if existing != nil && processRunning(existing.PID) {
+		tx, err := db.BeginTxx(queryCtx, nil)
+		if err != nil {
+			return err
+		}
+		defer func() {
+			_ = tx.Rollback()
+		}()
+
+		if err := ensureAutomationRunsTableTx(queryCtx, tx); err != nil {
+			return err
+		}
+
+		active, err := getActiveAutomationRunTx(queryCtx, tx, scheduleLabel)
+		if err != nil {
+			return err
+		}
+		if active != nil {
+			if processRunning(active.PID) {
 				_ = tx.Commit()
-				return nil, map[string]interface{}{
+				skipResult = map[string]interface{}{
 					"status":         "skipped",
 					"reason":         "previous run still active",
 					"schedule_label": scheduleLabel,
-					"active_run":     existing,
-				}, nil
+					"active_run":     active,
+				}
+				return nil
+			}
+
+			if _, err := tx.ExecContext(queryCtx, `
+				UPDATE automation_runs
+				SET status = 'stale',
+					ended_at = ?,
+					updated_at = ?,
+					error_text = ?
+				WHERE id = ?`,
+				time.Now().Unix(),
+				time.Now().Unix(),
+				sql.NullString{String: "stale automation run replaced", Valid: true},
+				active.ID,
+			); err != nil {
+				return err
 			}
 		}
-		return nil, nil, err
-	}
-	runID, _ := res.LastInsertId()
-	if err := tx.Commit(); err != nil {
+
+		now := time.Now().Unix()
+		host, _ := os.Hostname()
+		res, err := tx.ExecContext(queryCtx, `
+			INSERT INTO automation_runs (
+				schedule_label, action, pid, host, status, started_at, created_at, updated_at
+			) VALUES (?, ?, ?, ?, 'running', ?, ?, ?)
+		`, scheduleLabel, action, os.Getpid(), host, now, now, now)
+		if err != nil {
+			if isUniqueConstraintError(err) {
+				existing, getErr := getActiveAutomationRunTx(queryCtx, tx, scheduleLabel)
+				if getErr != nil {
+					return getErr
+				}
+				if existing != nil && processRunning(existing.PID) {
+					_ = tx.Commit()
+					skipResult = map[string]interface{}{
+						"status":         "skipped",
+						"reason":         "previous run still active",
+						"schedule_label": scheduleLabel,
+						"active_run":     existing,
+					}
+					return nil
+				}
+			}
+			return err
+		}
+
+		runID, _ := res.LastInsertId()
+		if err := tx.Commit(); err != nil {
+			return err
+		}
+
+		guard = &automationRunGuard{
+			RunID:         runID,
+			ScheduleLabel: scheduleLabel,
+			Action:        action,
+			PID:           os.Getpid(),
+			StartedAt:     time.Now(),
+		}
+
+		return nil
+	})
+	if err != nil {
 		return nil, nil, err
 	}
 
-	return &automationRunGuard{
-		RunID:         runID,
-		ScheduleLabel: scheduleLabel,
-		Action:        action,
-		PID:           os.Getpid(),
-		StartedAt:     time.Now(),
-	}, nil, nil
+	if skipResult != nil {
+		return nil, skipResult, nil
+	}
+
+	return guard, nil, nil
 }
 
 func finishAutomationRun(ctx context.Context, guard *automationRunGuard, status string, errText string) {
