@@ -82,7 +82,7 @@
 
 **Impact:** Low - Minor optimization, but now complete for full protobuf migration
 
-**Planned in:** `PROTOBUF_ANALYSIS.md` Phase 2, `PROTOBUF_REMAINING_WORK.md` "Optional Future Enhancements"
+**Planned in:** archive/protobuf/PRE_MIGRATION_ANALYSIS.md (stub: docs/PROTOBUF_ANALYSIS.md) Phase 2, `PROTOBUF_REMAINING_WORK.md` "Optional Future Enhancements"
 
 **Recommendation:** ✅ Complete - Python bridge protobuf migration 100% done
 
@@ -105,7 +105,7 @@
 
 **Impact:** Low - Current map-based processing works, protobuf would only help if we process reports internally
 
-**Planned in:** `PROTOBUF_SIMPLIFICATION_OPPORTUNITIES.md` #5, `PROTOBUF_REMAINING_WORK.md` "Report/Scorecard Data"
+**Planned in:** archive/protobuf/SIMPLIFICATION_OPPORTUNITIES_2026-01-13.md (stub: docs/PROTOBUF_SIMPLIFICATION_OPPORTUNITIES.md) #5, `PROTOBUF_REMAINING_WORK.md` "Report/Scorecard Data"
 
 **Recommendation:** Keep schemas for future use, but current implementation is sufficient
 

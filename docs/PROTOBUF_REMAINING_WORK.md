@@ -1,232 +1,29 @@
-# Protobuf Migration - Remaining Work
+# Protobuf — remaining work (optional)
 
-**Last Updated:** 2026-01-13  
-**Status:** Core migration complete (100%) ✅
-- Tool handlers: 27/27 complete ✅
-- Memory system: Complete ✅
-- Context summarization: Complete ✅
+**Last updated:** 2026-03-30  
 
-## ✅ Migrated Handlers (13)
+This file previously duplicated handler migration checklists that **contradicted** the “100% complete” summary (stale items 9–20 listed helpers that already exist). **Do not use this file as a migration guide.**
 
-1. ✅ **Memory** - `handleMemory` / `handleMemoryNative`
-2. ✅ **Context** - `handleContext`
-3. ✅ **Report** - `handleReport`
-4. ✅ **Task Workflow** - `handleTaskWorkflow`
-5. ✅ **Automation** - `handleAutomation`
-6. ✅ **Testing** - `handleTesting`
-7. ✅ **Lint** - `handleLint`
-8. ✅ **Health** - `handleHealth`
-9. ✅ **Security** - `handleSecurity`
-10. ✅ **Infer Session Mode** - `handleInferSessionMode`
-11. ✅ **Tool Catalog** - `handleToolCatalog`
-12. ✅ **Workflow Mode** - `handleWorkflowMode`
-13. ✅ **Estimation** - `handleEstimation`
-14. ✅ **Session** - `handleSession`
-15. ✅ **Git Tools** - `handleGitTools`
-16. ✅ **Memory Maintenance** - `handleMemoryMaint`
-17. ✅ **Task Analysis** - `handleTaskAnalysis`
-18. ✅ **Task Discovery** - `handleTaskDiscovery`
-19. ✅ **Ollama** - `handleOllama`
-20. ✅ **MLX** - `handleMlx`
-21. ✅ **Prompt Tracking** - `handlePromptTracking`
-22. ✅ **Recommend** - `handleRecommend`
-23. ✅ **Analyze Alignment** - `handleAnalyzeAlignment`
-24. ✅ **Generate Config** - `handleGenerateConfig`
-25. ✅ **Setup Hooks** - `handleSetupHooks`
-26. ✅ **Check Attribution** - `handleCheckAttribution`
-27. ✅ **Add External Tool Hints** - `handleAddExternalToolHints`
+## Canonical references
 
-## ✅ Completed Systems
+| Need | Document |
+|------|----------|
+| **Current implementation + code map** | [PROTOBUF_IMPLEMENTATION_STATUS.md](PROTOBUF_IMPLEMENTATION_STATUS.md) |
+| **Regenerating `.pb.go`, Makefile targets** | [PROTOBUF_USAGE.md](PROTOBUF_USAGE.md) |
+| **Integration overview (handlers, bridge, tests)** | [PROTOBUF_INTEGRATION.md](PROTOBUF_INTEGRATION.md) |
+| **Historical research & snapshots** | [archive/protobuf/README.md](archive/protobuf/README.md) (or stub [PROTOBUF_ANALYSIS.md](PROTOBUF_ANALYSIS.md)) |
 
-### 1. Tool Handler Arguments (27/27 handlers) ✅
-- All handlers now support protobuf request parsing with JSON fallback
-- Helper functions created in `internal/tools/protobuf_helpers.go`
-- Backward compatible during transition period
+## Migration status (summary)
 
-### 2. Memory System File Format ✅
-- `saveMemory()` now saves as `.pb` (protobuf binary)
-- `LoadAllMemories()` auto-detects format (.pb first, .json fallback)
-- Automatic migration from JSON to protobuf on load
-- `deleteMemoryFile()` helper handles both formats
-- Test helpers updated to use protobuf format
+- **Tool handlers:** Protobuf-first args with JSON fallback; `internal/tools/protobuf_helpers.go` + **mcp-go-core** `request.ParseRequest[T]()`. Native handlers still receive `json.RawMessage` after params map marshal.
+- **Task DB metadata, config, memory files, report/scorecard internals:** Implemented per [PROTOBUF_IMPLEMENTATION_STATUS.md](PROTOBUF_IMPLEMENTATION_STATUS.md).
+- **Python bridge:** Go↔Python protobuf path exists (`internal/bridge/python.go`, `bridge/execute_tool.py`). Optional: return more fields as binary `ToolResponse` everywhere if profiling shows benefit.
 
-### 3. Context Summarization ✅
-- Added `ParseContextItems()` helper to parse items array using protobuf `ContextItem`
-- Added `ContextItemToDataString()` helper for type-safe data extraction
-- Updated `handleContextBatchNative()` to use protobuf `ContextItem` (eliminates complex type assertions)
-- Updated `handleContextBudget()` to use protobuf parsing and `ContextItem`
-- Simplified batch operations: no more complex type switching and JSON marshaling
-- Type-safe item processing using `proto.ContextItem`
+## Optional follow-ups (backlog)
 
-## ✅ Completed Simplification Opportunities
+1. **MCP wire JSON** — Tool *results* normalized for stdio clients live in **mcp-go-core** (not exarp-go). No extra proto layer required unless you want typed response messages.
+2. **Docs** — Keep STATUS + USAGE + INTEGRATION in sync when adding tools or proto files.
+3. **Benchmarks** — Run/document `todo2_protobuf` benches vs JSON; attach numbers to STATUS or `docs/OPTIMIZATION_RESULTS.md`.
+4. **Automation** — Ensure CI/dev images document `make proto` / `protoc` (Ansible role already mentioned in PROTOBUF_INTEGRATION).
 
-### 4. Report/Scorecard Data ✅
-- Added protobuf schemas: `ProjectOverviewData`, `ProjectInfo`, `HealthData`, `CodebaseMetrics`, `TaskMetrics`, `ProjectPhase`, `RiskOrBlocker`, `NextAction`
-- Added conversion functions: `ProjectInfoToProto()`, `HealthDataToProto()`, etc.
-- Updated `handleReportOverview()` to use protobuf conversion for type-safe processing
-- Eliminates complex type assertions in report formatting
-
-### 5. Python Bridge Communication ~~(Infrastructure Only)~~
-- ~~Generated Python protobuf code: `bridge/proto/bridge_pb2.py`~~ ⚠️ **NOT IMPLEMENTED**
-- ~~Updated Python bridge script to support protobuf (`--protobuf` flag)~~ ⚠️ **NOT IMPLEMENTED**
-- ~~Updated Go bridge code to try protobuf first, fall back to JSON~~ ⚠️ **NOT IMPLEMENTED**
-- Status: **No Python bridge exists** - proto files are unused/dead code
-
-## ⏳ Optional Future Enhancements
-
-### Low Priority (Optional Optimizations)
-
-1. **Full Python Bridge Protobuf Migration** - Optional
-   - Currently: Python bridge supports protobuf but returns JSON (backward compatible)
-   - Future: Return protobuf `ToolResponse` from Python bridge
-   - Benefit: Slightly faster communication, but JSON is already fast enough
-   - Status: Not critical - current implementation works well
-
-9. **Workflow Mode** - `handleWorkflowMode`
-   - Schema: `WorkflowModeRequest` (exists in proto/tools.proto)
-   - Helper needed: `ParseWorkflowModeRequest`, `WorkflowModeRequestToParams`
-
-10. **Tool Catalog** - `handleToolCatalog`
-    - Schema: `ToolCatalogRequest` (exists in proto/tools.proto)
-    - Helper needed: `ParseToolCatalogRequest`, `ToolCatalogRequestToParams`
-
-11. **Prompt Tracking** - `handlePromptTracking`
-    - Schema: `PromptTrackingRequest` (exists in proto/tools.proto)
-    - Helper needed: `ParsePromptTrackingRequest`, `PromptTrackingRequestToParams`
-
-12. **Recommend** - `handleRecommend`
-    - Schema: `RecommendRequest` (exists in proto/tools.proto)
-    - Helper needed: `ParseRecommendRequest`, `RecommendRequestToParams`
-
-### Lower Priority (Less Frequently Used)
-
-13. **Analyze Alignment** - `handleAnalyzeAlignment`
-    - Schema: `AnalyzeAlignmentRequest` (exists in proto/tools.proto)
-    - Helper needed: `ParseAnalyzeAlignmentRequest`, `AnalyzeAlignmentRequestToParams`
-
-14. **Generate Config** - `handleGenerateConfig`
-    - Schema: `GenerateConfigRequest` (exists in proto/tools.proto)
-    - Helper needed: `ParseGenerateConfigRequest`, `GenerateConfigRequestToParams`
-
-15. **Setup Hooks** - `handleSetupHooks`
-    - Schema: `SetupHooksRequest` (exists in proto/tools.proto)
-    - Helper needed: `ParseSetupHooksRequest`, `SetupHooksRequestToParams`
-
-16. **Check Attribution** - `handleCheckAttribution`
-    - Schema: `CheckAttributionRequest` (exists in proto/tools.proto)
-    - Helper needed: `ParseCheckAttributionRequest`, `CheckAttributionRequestToParams`
-
-17. **Add External Tool Hints** - `handleAddExternalToolHints`
-    - Schema: `AddExternalToolHintsRequest` (exists in proto/tools.proto)
-    - Helper needed: `ParseAddExternalToolHintsRequest`, `AddExternalToolHintsRequestToParams`
-
-18. **Ollama** - `handleOllama`
-    - Schema: `OllamaRequest` (exists in proto/tools.proto)
-    - Helper needed: `ParseOllamaRequest`, `OllamaRequestToParams`
-
-19. **MLX** - `handleMlx`
-    - Schema: `MlxRequest` (exists in proto/tools.proto)
-    - Helper needed: `ParseMlxRequest`, `MlxRequestToParams`
-
-20. **Infer Session Mode** - `handleInferSessionMode`
-    - Schema: `InferSessionModeRequest` (exists in proto/tools.proto)
-    - Helper needed: `ParseInferSessionModeRequest`, `InferSessionModeRequestToParams`
-
-## 📋 Migration Pattern
-
-For each remaining handler, follow this pattern:
-
-### Step 1: Add Helper Functions
-
-Add to `internal/tools/protobuf_helpers.go`:
-
-```go
-// Parse[ToolName]Request parses a [tool] request (protobuf or JSON)
-func Parse[ToolName]Request(args json.RawMessage) (*proto.[ToolName]Request, map[string]interface{}, error) {
-	var req proto.[ToolName]Request
-
-	if err := protobuf.Unmarshal(args, &req); err == nil {
-		return &req, nil, nil
-	}
-
-	var params map[string]interface{}
-	if err := json.Unmarshal(args, &params); err != nil {
-		return nil, nil, fmt.Errorf("failed to parse arguments: %w", err)
-	}
-
-	return nil, params, nil
-}
-
-// [ToolName]RequestToParams converts a protobuf [ToolName]Request to params map
-func [ToolName]RequestToParams(req *proto.[ToolName]Request) map[string]interface{} {
-	params := make(map[string]interface{})
-	// Convert all fields from req to params
-	// Handle repeated fields (arrays) by converting to JSON strings
-	// Handle optional fields with defaults
-	return params
-}
-```
-
-### Step 2: Update Handler
-
-Update handler in `internal/tools/handlers.go`:
-
-```go
-func handle[ToolName](ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
-	// Try protobuf first, fall back to JSON for backward compatibility
-	req, params, err := Parse[ToolName]Request(args)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse arguments: %w", err)
-	}
-
-	// Convert protobuf request to params map if needed
-	if req != nil {
-		params = [ToolName]RequestToParams(req)
-		// Set defaults for protobuf request
-	}
-
-	// Continue with existing handler logic using params
-	// ...
-}
-```
-
-## 🎯 Quick Wins (Easiest to Migrate)
-
-These handlers have simple parameter structures and can be migrated quickly:
-
-1. **Health** - Simple action-based tool
-2. **Security** - Simple action-based tool
-3. **Infer Session Mode** - Very simple (no parameters)
-4. **Tool Catalog** - Simple action-based tool
-5. **Workflow Mode** - Simple action-based tool
-
-## 📊 Progress Summary
-
-- **Total Handlers:** 27
-- **Migrated:** 27 (100%) ✅
-- **Remaining:** 0 ✅
-- **Schemas Created:** ✅ All 27 tool schemas exist in `proto/tools.proto`
-- **Helper Functions:** ✅ All 27 helper function pairs created
-
-## ✅ Migration Complete (Core)
-
-**Status: Core protobuf migration 100% complete ✅**
-
-### Completed Systems:
-1. ✅ Tool Handler Arguments (27/27 handlers)
-2. ✅ Memory System File Format
-3. ✅ Context Summarization
-4. ✅ Report/Scorecard Data Structures
-5. ⚠️ Python Bridge Communication - **NOT IMPLEMENTED** (proto files unused)
-
-### Benefits Achieved:
-- **Type Safety:** Eliminated 50+ manual type assertions
-- **Code Simplification:** Removed repetitive JSON parsing patterns
-- **Performance:** 20-30% smaller file sizes, faster serialization
-- **Backward Compatibility:** All systems support both protobuf and JSON
-
-### Optional Future Work:
-- Full Python bridge protobuf responses (currently returns JSON for compatibility)
-- Additional optimization opportunities as they arise
-
-**Status: Core protobuf migration 100% complete ✅**
+For a **prioritized action plan**, see **“Action plan”** in [PROTOBUF_IMPLEMENTATION_STATUS.md](PROTOBUF_IMPLEMENTATION_STATUS.md).

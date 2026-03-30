@@ -2,7 +2,7 @@
 
 **Date:** 2026-01-13  
 **Status:** ✅ **COMPLETE** - All tasks implemented and tested  
-**Related:** `CONFIGURATION_IMPLEMENTATION_PLAN.md`, `PROTOBUF_ANALYSIS.md`
+**Related:** `CONFIGURATION_IMPLEMENTATION_PLAN.md`, `archive/protobuf/PRE_MIGRATION_ANALYSIS.md` (stub: `PROTOBUF_ANALYSIS.md`)
 
 ---
 
@@ -765,7 +765,7 @@ See **Risks & Mitigation → Schema Drift** above for automation and review prac
 ## Related Documents
 
 - `docs/CONFIGURATION_IMPLEMENTATION_PLAN.md` - Main configuration plan (protobuf mandatory, file layout)
-- `docs/PROTOBUF_ANALYSIS.md` - Protobuf usage analysis
+- `docs/archive/protobuf/PRE_MIGRATION_ANALYSIS.md` - Protobuf usage analysis (archived; stub at `docs/PROTOBUF_ANALYSIS.md`)
 - `docs/CONFIGURABLE_PARAMETERS_RECOMMENDATIONS.md` - All parameters
 - `proto/config.proto` - Protobuf schema definition
 - `internal/config/schema.go` - Go struct definitions

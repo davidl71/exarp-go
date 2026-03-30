@@ -463,7 +463,7 @@ func ValidateConfig(cfg *Config) error {
 - `docs/AUTOMATION_CONFIGURATION_ANALYSIS.md` - Automation analysis
 - `docs/CONFIGURABLE_PARAMETERS_RECOMMENDATIONS.md` - All parameters
 - `docs/CONFIGURATION_PROTOBUF_INTEGRATION.md` - **NEW:** Protobuf integration plan (Phase 1.5)
-- `docs/PROTOBUF_ANALYSIS.md` - Protobuf usage analysis
+- `docs/archive/protobuf/PRE_MIGRATION_ANALYSIS.md` - Protobuf usage analysis (archived; stub at `docs/PROTOBUF_ANALYSIS.md`)
 - `internal/config/config.go` - Current config (minimal)
 - `internal/tools/automation_native.go` - Automation implementation
 - `proto/config.proto` - Protobuf schema definition
