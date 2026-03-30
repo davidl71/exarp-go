@@ -40,7 +40,7 @@ func handleTaskExecuteJob(ctx context.Context, t *asynq.Task) error {
 		return fmt.Errorf("task_id and project_root required")
 	}
 
-	// Ensure DB is initialized for this project (safe to call per task; re-inits if project changes).
+	// Ensure DB is initialized for this project (idempotent: same DSN skips reopen; different project re-inits).
 	if fullCfg, err := config.LoadConfig(p.ProjectRoot); err == nil {
 		dbCfg := database.DatabaseConfigFields{
 			SQLitePath:       fullCfg.Database.SQLitePath,

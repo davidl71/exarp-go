@@ -37,6 +37,15 @@ var currentDriver Driver
 // dbMutex protects the global DB variable from concurrent access.
 var dbMutex sync.Mutex
 
+// initCfgFingerprint records the last successful InitWithConfig inputs. When a subsequent init
+// matches, we skip Close/reopen so queue workers and hot paths do not churn the global pool.
+var initCfgFingerprint struct {
+	driver        DriverType
+	dsn           string
+	autoMigrate   bool
+	migrationsDir string
+}
+
 // Init initializes the database connection using the default SQLite driver
 // This is kept for backward compatibility
 // Thread-safe: uses mutex to prevent concurrent initialization
@@ -72,6 +81,15 @@ func InitWithCentralizedConfig(projectRoot string, dbCfg DatabaseConfigFields) e
 func InitWithConfig(cfg *Config) error {
 	dbMutex.Lock()
 	defer dbMutex.Unlock()
+
+	if DB != nil &&
+		cfg != nil &&
+		cfg.Driver == initCfgFingerprint.driver &&
+		cfg.DSN == initCfgFingerprint.dsn &&
+		cfg.AutoMigrate == initCfgFingerprint.autoMigrate &&
+		cfg.MigrationsDir == initCfgFingerprint.migrationsDir {
+		return nil
+	}
 
 	// Close existing connection if any
 	if DB != nil {
@@ -115,6 +133,10 @@ func InitWithConfig(cfg *Config) error {
 
 	DB = sqlx.NewDb(db, string(driver.Type()))
 	currentDriver = driver
+	initCfgFingerprint.driver = cfg.Driver
+	initCfgFingerprint.dsn = cfg.DSN
+	initCfgFingerprint.autoMigrate = cfg.AutoMigrate
+	initCfgFingerprint.migrationsDir = cfg.MigrationsDir
 
 	// Run migrations if enabled
 	if cfg.AutoMigrate {
@@ -140,6 +162,11 @@ func Close() error {
 			currentDriver.Close()
 			currentDriver = nil
 		}
+
+		initCfgFingerprint.driver = ""
+		initCfgFingerprint.dsn = ""
+		initCfgFingerprint.autoMigrate = false
+		initCfgFingerprint.migrationsDir = ""
 
 		return err
 	}

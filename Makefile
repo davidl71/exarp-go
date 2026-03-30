@@ -1,6 +1,6 @@
 # Phony targets (grouped for readability)
 .PHONY: help b build build-local b-local build-debug silent build-race build-no-cgo run
-.PHONY: test test-watch test-go test-go-fast test-go-verbose test-go-parallel test-go-tools-short test-real-models test-ollama test-coverage test-html test-tools test-cli test-cli-list test-cli-tool test-cli-test test-mcp-stdio
+.PHONY: test test-watch test-go test-go-fast test-go-race test-go-verbose test-go-parallel test-go-tools-short test-real-models test-ollama test-coverage test-html test-tools test-cli test-cli-list test-cli-tool test-cli-test test-mcp-stdio
 .PHONY: config clean-config tag-build-ok tags pre-release r root push pull p pl status st
 .PHONY: go-fmt go-vet golangci-lint-check golangci-lint-fix govulncheck check deadcode check-fix check-all check-security
 .PHONY: fmt lint lint-fix lint-all lint-all-fix
@@ -318,6 +318,12 @@ test-go-fast: ## Run Go tests in parallel (fast, no verbose, CGO disabled) - ski
 	@CGO_ENABLED=0 $(GO) test ./... -parallel 4 -short || \
 	 (echo "$(RED)❌ Parallel tests failed$(NC)" && exit 1)
 	@echo "$(GREEN)✅ Go tests passed (short mode)$(NC)"
+
+test-go-race: ## Run Go tests with race detector (slower; stability / concurrency guard)
+	@echo "$(BLUE)Running Go tests with -race (CGO_ENABLED=0, short mode)...$(NC)"
+	@CGO_ENABLED=0 $(GO) test ./... -race -short -parallel 4 -count=1 || \
+	 (echo "$(RED)❌ Race detector tests failed$(NC)" && exit 1)
+	@echo "$(GREEN)✅ Race detector tests passed$(NC)"
 
 test-go-verbose: ## Run Go tests with verbose output (CGO disabled)
 	@echo "$(BLUE)Running Go tests (verbose, CGO_ENABLED=0)...$(NC)"

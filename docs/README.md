@@ -1,6 +1,6 @@
 # Documentation Index
 
-**Last Updated:** 2026-01-07
+**Last Updated:** 2026-03-30
 
 ---
 
@@ -17,6 +17,7 @@
 - `MODULARIZATION_PACKAGE_MAP.md` - exarp-go vs `mcp-go-core` vs optional MCP server splits (`internal/tools` file clusters)
 - `MODULARIZATION_PHASE1.md` - active extraction steps (cache → core, release order)
 - `CODEBASE_INDEX.md` - File-oriented index (CLI, tools, database, queue)
+- `research/STABILITY_AND_PERFORMANCE_REMAINING.md` - Inventory of stability/performance follow-ups (queue DB init, tool semaphore, large-repo walks)
 - `FRAMEWORK_AGNOSTIC_DESIGN.md` - Framework-agnostic architecture pattern
 - `DEVWISDOM_GO_LESSONS.md` - Go development best practices and lessons learned
 - `BRIDGE_ANALYSIS.md` - Python bridge architecture and implementation

@@ -240,13 +240,22 @@ func runFlagBasedMode() error {
 	CLIOutputOpts.JSON = *jsonOut
 	CLIOutputOpts.Concise = *concise
 
-	initializeDatabase()
+	// Usage-only: avoid project-root walk, config load, and SQLite open.
+	if *completion == "" && !*listTools && *testTool == "" && *toolName == "" && !*interactive {
+		showUsage()
+		return nil
+	}
 
-	defer func() {
-		if err := database.Close(); err != nil {
-			logWarn(context.Background(), "Error closing database", "error", err, "operation", "closeDatabase")
-		}
-	}()
+	// Shell completion and -list only need registered tool metadata, not Todo2/SQLite.
+	needDB := *testTool != "" || *toolName != "" || *interactive
+	if needDB {
+		initializeDatabase()
+		defer func() {
+			if err := database.Close(); err != nil {
+				logWarn(context.Background(), "Error closing database", "error", err, "operation", "closeDatabase")
+			}
+		}()
+	}
 
 	server, err := setupServer()
 	if err != nil {
@@ -264,10 +273,8 @@ func runFlagBasedMode() error {
 		return executeTool(server, *toolName, *argsJSON)
 	case *interactive:
 		return runInteractive(server)
-	default:
-		showUsage()
-		return nil
 	}
+	return fmt.Errorf("internal error: flag-based mode exhausted without match")
 }
 
 func isTTYStdout() bool {
