@@ -75,12 +75,20 @@ func HasCLIFlags(args []string) bool {
 		return false
 	}
 
+	// Global flags parsed in cmd/server/main.go before CLI dispatch; skip so
+	// "exarp-go -cpuprof=/tmp/x.pprof task list" is still CLI mode.
 	if isReservedSubcommand(args[1]) {
 		return true
 	}
 
 	for i := 1; i < len(args); i++ {
 		arg := args[i]
+		if strings.HasPrefix(arg, "-cpuprof=") {
+			continue
+		}
+		if isReservedSubcommand(arg) {
+			return true
+		}
 		for _, f := range CLIFlags {
 			if arg == f {
 				return true

@@ -8,6 +8,79 @@ Use this page as the **index** for performance work: general Go patterns (extern
 
 ---
 
+## AI / agent: commands to measure before optimizing
+
+**Context:** Run from **exarp-go repo root**. Use **`make b`** (or **`make silent`**) to build `./bin/exarp-go`. For Go tests/benches, prefer repo **`Makefile` targets** where they exist; otherwise use the `go test` lines below (they match `internal/database/tasks_crud_bench_test.go`).
+
+### Hints (read first)
+
+- **One-shot CLI** (`task list` + `-cpuprof`) captures **startup + one query**; samples are sparse. Prefer **`go test -bench`** on the hot package for stable before/after numbers.
+- **Allocations:** `-benchmem` on benchmarks, or **`-memprofile`** + `go tool pprof -sample_index=alloc_space`.
+- **SQLite / disk:** not CPU pprof — use **`health` `action=database`** (status, WAL, size) or filesystem `du` on `.todo2/`.
+- **`PROJECT_ROOT`:** set when the workload should use another project’s `.todo2` (CLI finds DB via project root).
+
+### Benchmarks (regression-style)
+
+```bash
+# Tool handlers and related (default bench suite; includes -benchmem)
+make bench
+# Equivalent: see Makefile target go-bench (CGO_ENABLED=0, ./internal/tools/...)
+```
+
+### Database CRUD (CPU + heap profiles)
+
+```bash
+mkdir -p logs
+CGO_ENABLED=0 go test -c -o logs/database.test ./internal/database/
+
+# CPU (while iterating benchmarks)
+CGO_ENABLED=0 go test -run='^$' -bench='Benchmark(Create|Get|Update|Delete|BatchUpdate)Task' \
+  -cpuprofile=logs/crud_cpu.pprof ./internal/database/
+go tool pprof -text -nodecount=40 logs/database.test logs/crud_cpu.pprof
+
+# Heap / allocations
+CGO_ENABLED=0 go test -run='^$' -bench='Benchmark(Create|Get|Update|Delete|BatchUpdate)Task' \
+  -benchmem -memprofile=logs/crud_mem.pprof ./internal/database/
+go tool pprof -text -sample_index=alloc_space -nodecount=40 logs/database.test logs/crud_mem.pprof
+```
+
+**Hint:** If symbols look wrong after code changes, re-run **`go test -c -o logs/database.test ./internal/database/`** before `go tool pprof`. For a quick peek without a local binary, **`go tool pprof -text logs/crud_cpu.pprof`** often still ranks hot functions.
+
+### CLI: backlog read / `task_workflow` path (CPU)
+
+```bash
+make b
+./bin/exarp-go -cpuprof=/tmp/cli_tasklist_cpu.pprof task list
+# Optional: limit noise — ./bin/exarp-go -cpuprof=... task list --limit 50
+# Other project DB:
+#   PROJECT_ROOT=/path/to/project ./bin/exarp-go -cpuprof=... task list
+
+go tool pprof -text -nodecount=40 ./bin/exarp-go /tmp/cli_tasklist_cpu.pprof
+```
+
+### MCP stdio session (long-running CPU)
+
+```bash
+./bin/exarp-go -cpuprof=/tmp/mcp_stdio_cpu.pprof
+# interact, then exit client; analyze as above with ./bin/exarp-go
+```
+
+### SQLite / disk health (not CPU)
+
+```bash
+./bin/exarp-go -tool health -args '{"action":"database","operation":"status"}'
+# Optional: checkpoint / vacuum / analyze — see health tool schema (operation field)
+```
+
+### Ad hoc UpdateTask micro-bench (binary entry)
+
+```bash
+# 100x UpdateTaskFields for a real task ID; writes /tmp/cpu.prof, /tmp/mem.prof, /tmp/goroutine.prof
+./bin/exarp-go -benchprof=T-YOUR-ID
+```
+
+---
+
 ## Quick reference: common Go performance patterns
 
 Aligned with the [Go Optimization Guide — common patterns](https://goperf.dev/01-common-patterns/) (memory, concurrency, I/O, compiler).

@@ -130,6 +130,7 @@ func TestHasCLIFlags(t *testing.T) {
 		want bool
 	}{
 		{"task subcommand", []string{"exarp-go", "task", "list"}, true},
+		{"-cpuprof then task list", []string{"exarp-go", "-cpuprof=/tmp/x.prof", "task", "list"}, true},
 		{"config subcommand", []string{"exarp-go", "config"}, true},
 		{"tui subcommand", []string{"exarp-go", "tui"}, true},
 		{"tui3270 subcommand", []string{"exarp-go", "tui3270"}, true},

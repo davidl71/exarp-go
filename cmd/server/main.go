@@ -37,7 +37,7 @@ func main() {
 	// -acp runs Agent Client Protocol server (for Zed, JetBrains, OpenCode).
 	// -mcp-http :8081 runs MCP Streamable HTTP server.
 	// -benchprof <task-id> runs benchmark with CPU profiling.
-	// -cpuprof <file> enables CPU profiling for MCP stdio mode.
+	// -cpuprof=<file> enables CPU profiling for MCP stdio mode and for CLI mode (e.g. task list).
 	hasServe := false
 	hasACP := false
 	hasMCPHTTP := false
@@ -109,6 +109,22 @@ func main() {
 	// Check for CLI flags (completion, list, -tool, task, config, tui, etc.) - work without TTY
 	// Use DetectMode for TTY-based mode; explicit flags take precedence.
 	if cli.HasCLIFlags(os.Args) || cli.DetectMode() == cli.ModeCLI {
+		if cpuProfFile != "" {
+			// Strip -cpuprof= so mcp-go-core ParseArgs does not treat it as an unknown task flag.
+			os.Args = stripCPUProfArg(os.Args)
+			f, err := os.Create(cpuProfFile)
+			if err != nil {
+				logging.Fatal("Failed to create CPU profile file: %v", err)
+			}
+			if err := pprof.StartCPUProfile(f); err != nil {
+				_ = f.Close()
+				logging.Fatal("Failed to start CPU profile: %v", err)
+			}
+			defer func() {
+				pprof.StopCPUProfile()
+				_ = f.Close()
+			}()
+		}
 		// CLI mode - run command line interface
 		if err := cli.Run(); err != nil {
 			logging.Fatal("CLI error: %v", err)
@@ -308,6 +324,22 @@ func runMCPHTTPMode(addr string) {
 	if err := http.ListenAndServe(addr, mux); err != nil {
 		logging.Fatal("HTTP server error: %v", err)
 	}
+}
+
+// stripCPUProfArg returns a copy of args with any -cpuprof=<path> element removed (argv[0] preserved).
+func stripCPUProfArg(args []string) []string {
+	if len(args) == 0 {
+		return args
+	}
+	out := make([]string, 0, len(args))
+	out = append(out, args[0])
+	for _, a := range args[1:] {
+		if strings.HasPrefix(a, "-cpuprof=") {
+			continue
+		}
+		out = append(out, a)
+	}
+	return out
 }
 
 func runBenchmark(taskID string) {
