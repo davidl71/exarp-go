@@ -105,7 +105,7 @@ func CreateTask(ctx context.Context, task *Todo2Task) error {
 			) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, strftime('%s', 'now'), strftime('%s', 'now'))
 		`,
 			task.ID,
-			"", // name - TODO: add to Todo2Task struct if needed
+			"", // name: optional; column retained for AI/tool compatibility (see ColTaskName in schema.go).
 			task.Content,
 			task.LongDescription,
 			task.Status,
@@ -175,9 +175,9 @@ func CreateTask(ctx context.Context, task *Todo2Task) error {
 
 // taskRow is a flat row scanner for v9 schema (parent_id, assigned_to, host, agent are NOT NULL).
 type taskRow struct {
-	ID              string         `db:"id"`
-	Name            string         `db:"name"`
-	Content         string         `db:"content"`
+	ID              string `db:"id"`
+	Name            string `db:"name"` // parallel title for external/AI consumers; app uses Content as canonical title
+	Content         string `db:"content"`
 	LongDescription string         `db:"long_description"`
 	Status          string         `db:"status"`
 	Priority        string         `db:"priority"`

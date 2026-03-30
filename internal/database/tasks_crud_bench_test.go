@@ -2,13 +2,13 @@
 //
 // Profile CPU (example):
 //
-//	CGO_ENABLED=0 go test -run=^$ -bench='Benchmark(Create|Get|Update|Delete|BatchUpdate)Task' -benchmem -count=5 \
+//	CGO_ENABLED=0 go test -run=^$ -bench='Benchmark(CreateTask|GetTask|UpdateTask|DeleteTask|BatchUpdateTaskStatus_64)' -benchmem -count=5 \
 //	  -cpuprofile=crud_cpu.prof ./internal/database/
 //	go tool pprof -http=:6060 crud_cpu.prof
 //
 // Profile allocations:
 //
-//	CGO_ENABLED=0 go test -run=^$ -bench='Benchmark(Create|Get|Update|Delete|BatchUpdate)Task' -benchmem -memprofile=crud_mem.prof ./internal/database/
+//	CGO_ENABLED=0 go test -run=^$ -bench='Benchmark(CreateTask|GetTask|UpdateTask|DeleteTask|BatchUpdateTaskStatus_64)' -benchmem -memprofile=crud_mem.prof ./internal/database/
 //	go tool pprof -http=:6061 -sample_index=alloc_space crud_mem.prof
 package database
 

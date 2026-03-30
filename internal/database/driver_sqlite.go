@@ -4,6 +4,7 @@ package database
 import (
 	"database/sql"
 	"fmt"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -28,9 +29,32 @@ func (d *SQLiteDriver) Type() DriverType {
 	return DriverSQLite
 }
 
+// sqliteOpenDSN converts a filesystem path to a modernc file URI with per-connection PRAGMAs.
+// SQLite foreign_keys default off per connection; URI _pragma applies when each connection opens.
+func sqliteOpenDSN(dsn string) string {
+	if strings.HasPrefix(dsn, "file:") || strings.Contains(dsn, "?") {
+		return dsn
+	}
+	abs := dsn
+	if a, err := filepath.Abs(dsn); err == nil {
+		abs = a
+	}
+	path := filepath.ToSlash(abs)
+	if len(path) >= 2 && path[1] == ':' {
+		// Windows: C:/x -> /C:/x for host-less file URL
+		path = "/" + path
+	}
+	u := url.URL{
+		Scheme:   "file",
+		Path:     path,
+		RawQuery: "_pragma=foreign_keys(on)",
+	}
+	return u.String()
+}
+
 // Open opens a SQLite database connection.
 func (d *SQLiteDriver) Open(dsn string) (*sql.DB, error) {
-	// If DSN is a file path, ensure directory exists
+	openDSN := dsn
 	if !strings.HasPrefix(dsn, "file:") && !strings.Contains(dsn, "?") {
 		dir := filepath.Dir(dsn)
 		if dir != "." && dir != "" {
@@ -38,9 +62,10 @@ func (d *SQLiteDriver) Open(dsn string) (*sql.DB, error) {
 				return nil, fmt.Errorf("failed to create directory: %w", err)
 			}
 		}
+		openDSN = sqliteOpenDSN(dsn)
 	}
 
-	db, err := sql.Open("sqlite", dsn)
+	db, err := sql.Open("sqlite", openDSN)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open SQLite database: %w", err)
 	}

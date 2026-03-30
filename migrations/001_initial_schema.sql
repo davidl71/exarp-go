@@ -13,7 +13,7 @@
 -- Tasks table: Main task storage
 CREATE TABLE IF NOT EXISTS tasks (
     id TEXT PRIMARY KEY,
-    name TEXT,
+    name TEXT,  -- optional; some AI tools expect a name column distinct from content
     content TEXT,
     long_description TEXT,
     status TEXT NOT NULL DEFAULT 'Todo',

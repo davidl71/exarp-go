@@ -4,7 +4,7 @@ import "github.com/davidl71/exarp-go/internal/models"
 
 // SchemaVersion represents the current schema version.
 // Must match the highest migration version (migrations/00N_*.sql).
-const SchemaVersion = 13
+const SchemaVersion = 14
 
 // Table names.
 const (
@@ -20,6 +20,9 @@ const (
 // Column names for tasks table.
 const (
 	ColTaskID              = "id"
+	// ColTaskName is the tasks.name column: kept for compatibility with external consumers
+	// (including some AI tools) that expect a dedicated title field. exarp's primary task title
+	// in the Todo2 model is still content; name may be empty or mirrored by callers as needed.
 	ColTaskName            = "name"
 	ColTaskContent         = "content"
 	ColTaskLongDescription = "long_description"
