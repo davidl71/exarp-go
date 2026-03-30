@@ -2,6 +2,7 @@
 package tools
 
 import (
+	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
@@ -77,12 +78,12 @@ func GatherEvidence(projectRoot string, scanDepth int, extensions []string) (*Co
 		Snippets: make(map[string]string),
 	}
 
-	err = filepath.Walk(rootAbs, func(path string, info os.FileInfo, walkErr error) error {
+	err = filepath.WalkDir(rootAbs, func(path string, d fs.DirEntry, walkErr error) error {
 		if walkErr != nil {
 			return nil
 		}
 
-		if info.IsDir() {
+		if d.IsDir() {
 			base := filepath.Base(path)
 			if skipDirNames[base] {
 				return filepath.SkipDir

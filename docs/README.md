@@ -17,6 +17,7 @@
 - `MODULARIZATION_PACKAGE_MAP.md` - exarp-go vs `mcp-go-core` vs optional MCP server splits (`internal/tools` file clusters)
 - `MODULARIZATION_PHASE1.md` - active extraction steps (cache → core, release order)
 - `CODEBASE_INDEX.md` - File-oriented index (CLI, tools, database, queue)
+- `PERFORMANCE_GUIDE.md` - **Performance hub**: quick-reference table (memory / concurrency / I/O / compiler), link to [goperf.dev common patterns](https://goperf.dev/01-common-patterns/), and index of repo performance docs
 - `research/STABILITY_AND_PERFORMANCE_REMAINING.md` - Inventory of stability/performance follow-ups (queue DB init, tool semaphore, large-repo walks)
 - `FRAMEWORK_AGNOSTIC_DESIGN.md` - Framework-agnostic architecture pattern
 - `DEVWISDOM_GO_LESSONS.md` - Go development best practices and lessons learned

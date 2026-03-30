@@ -2,6 +2,8 @@
 
 ## Status: 2026-03-23
 
+For a **project-wide performance index** and a **short table** of general Go patterns (memory, concurrency, I/O, compiler), see [PERFORMANCE_GUIDE.md](PERFORMANCE_GUIDE.md) and [goperf.dev — common patterns](https://goperf.dev/01-common-patterns/).
+
 ## Executive Summary
 
 Three concrete optimization opportunities identified with ~30% scorecard walk time reduction potential.

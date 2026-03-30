@@ -5,6 +5,8 @@
 **Status:** Research note (2026-03-30). No implementation commitment; use for backlog triage.  
 **Related tasks:** See exarp-go Todo2 for current IDs (titles: queue worker DB init vs pool; tool semaphore permits vs config).
 
+**See also:** [PERFORMANCE_GUIDE.md](../PERFORMANCE_GUIDE.md) (concise pattern table + links to all performance docs) and [Go Optimization Guide — common patterns](https://goperf.dev/01-common-patterns/).
+
 ---
 
 ## 1. Queue worker: per-job database init

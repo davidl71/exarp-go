@@ -4,7 +4,6 @@ package tools
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -126,13 +125,9 @@ func writeContinuityLedger(ctx context.Context, projectRoot string, opts continu
 		sb.WriteString("\n")
 	}
 
-	// Latest handoff summary
-	handoffFile := filepath.Join(projectRoot, ".todo2", "handoffs.json")
-	if data, err := os.ReadFile(handoffFile); err == nil {
-		if summary := extractLatestHandoffSummary(data); summary != "" {
-			sb.WriteString("## Latest Handoff Summary\n\n")
-			sb.WriteString(summary + "\n\n")
-		}
+	if summary := latestHandoffSummaryFromProject(projectRoot); summary != "" {
+		sb.WriteString("## Latest Handoff Summary\n\n")
+		sb.WriteString(summary + "\n\n")
 	}
 
 	// Git branch and uncommitted files
@@ -206,17 +201,14 @@ func readLatestLedgerSummary(projectRoot string) map[string]interface{} {
 	}
 }
 
-// extractLatestHandoffSummary extracts the summary string from the last entry in handoffs.json bytes.
-func extractLatestHandoffSummary(data []byte) string {
-	var handoffData map[string]interface{}
-	if err := json.Unmarshal(data, &handoffData); err != nil {
+// latestHandoffSummaryFromProject loads the handoff store and returns the latest entry summary.
+func latestHandoffSummaryFromProject(projectRoot string) string {
+	if !handoffsAnyFileExists(projectRoot) {
 		return ""
 	}
-	handoffs, _ := handoffData["handoffs"].([]interface{})
-	if len(handoffs) == 0 {
+	store, err := loadHandoffStore(projectRoot)
+	if err != nil {
 		return ""
 	}
-	last, _ := handoffs[len(handoffs)-1].(map[string]interface{})
-	summary, _ := last["summary"].(string)
-	return summary
+	return latestHandoffSummary(store)
 }
