@@ -4,7 +4,7 @@
 .PHONY: config clean-config tag-build-ok tags pre-release r root push pull p pl status st
 .PHONY: go-fmt go-vet golangci-lint-check golangci-lint-fix govulncheck check deadcode check-fix check-all check-security
 .PHONY: fmt lint lint-fix lint-all lint-all-fix
-.PHONY: dev dev-watch dev-test dev-full dev-cycle pre-push bench docs codex-smoke
+.PHONY: dev dev-watch dev-test dev-full dev-cycle pre-push bench crud-bench-reprofile crud-bench-save-baseline crud-bench-compare crud-pprof docs codex-smoke
 .PHONY: sanity-check sanity-check-cached clean clean-all clean-binary clean-config clean-cache
 .PHONY: install install-binary install-runner fix-mcp-config install-tools go-mod-tidy go-mod-verify tidy
 .PHONY: build-migrate migrate migrate-dry-run proto proto-check proto-clean proto-buf
@@ -761,6 +761,18 @@ go-bench: ## Run Go benchmarks (without CGO to avoid Apple FM dependencies)
 	@echo "$(BLUE)Running Go benchmarks (CGO_ENABLED=0)...$(NC)"
 	@CGO_ENABLED=0 $(GO) test -bench=. -benchmem -benchtime=3s ./internal/tools/... || \
 	 echo "$(YELLOW)⚠️  Go benchmarks failed$(NC)"
+
+crud-bench-reprofile: ## CRUD DB benchmarks → logs/crud_bench_latest.txt; benchstat if baseline exists (see PERFORMANCE_GUIDE)
+	@bash scripts/crud_reprofile_compare.sh bench
+
+crud-bench-save-baseline: ## Copy logs/crud_bench_latest.txt → logs/crud_bench_baseline.txt for regression compare
+	@bash scripts/crud_reprofile_compare.sh save-baseline
+
+crud-bench-compare: ## benchstat baseline vs latest only (no go test); needs: go install golang.org/x/perf/cmd/benchstat@latest
+	@bash scripts/crud_reprofile_compare.sh compare
+
+crud-pprof: ## CPU + heap pprof for CRUD benches (logs/database.test + logs/crud_*_<UTC>.pprof)
+	@bash scripts/crud_reprofile_compare.sh pprof
 
 ##@ Sprint Automation
 

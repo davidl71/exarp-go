@@ -37,6 +37,11 @@ test-results/
 coverage-report/
 profiles/
 
+# CRUD bench / pprof scratch (scripts/crud_reprofile_compare.sh, make crud-*)
+logs/crud_bench_*.txt
+logs/crud_cpu_*.pprof
+logs/crud_mem_*.pprof
+
 # Temporary files
 tmp/
 .tmp/

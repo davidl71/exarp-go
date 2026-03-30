@@ -34,17 +34,40 @@ mkdir -p logs
 CGO_ENABLED=0 go test -c -o logs/database.test ./internal/database/
 
 # CPU (while iterating benchmarks)
-CGO_ENABLED=0 go test -run='^$' -bench='Benchmark(Create|Get|Update|Delete|BatchUpdate)Task' \
+# Bench names match tasks_crud_bench_test.go (batch is BenchmarkBatchUpdateTaskStatus_64).
+CGO_ENABLED=0 go test -run='^$' -bench='Benchmark(CreateTask|GetTask|UpdateTask|DeleteTask|BatchUpdateTaskStatus_64)' \
   -cpuprofile=logs/crud_cpu.pprof ./internal/database/
 go tool pprof -text -nodecount=40 logs/database.test logs/crud_cpu.pprof
 
 # Heap / allocations
-CGO_ENABLED=0 go test -run='^$' -bench='Benchmark(Create|Get|Update|Delete|BatchUpdate)Task' \
+CGO_ENABLED=0 go test -run='^$' -bench='Benchmark(CreateTask|GetTask|UpdateTask|DeleteTask|BatchUpdateTaskStatus_64)' \
   -benchmem -memprofile=logs/crud_mem.pprof ./internal/database/
 go tool pprof -text -sample_index=alloc_space -nodecount=40 logs/database.test logs/crud_mem.pprof
 ```
 
 **Hint:** If symbols look wrong after code changes, re-run **`go test -c -o logs/database.test ./internal/database/`** before `go tool pprof`. For a quick peek without a local binary, **`go tool pprof -text logs/crud_cpu.pprof`** often still ranks hot functions.
+
+### Reprofile and compare (CRUD regression)
+
+Script: **`scripts/crud_reprofile_compare.sh`** (same bench regex as above; **`CGO_ENABLED=0`**).
+
+**Benchmarks + `benchstat`**
+
+1. On a known-good commit (or before a change): `make crud-bench-reprofile` then `make crud-bench-save-baseline` → writes `logs/crud_bench_baseline.txt`.
+2. After your change: `make crud-bench-reprofile` → writes `logs/crud_bench_latest.txt` and, if the baseline file exists, prints **`benchstat` baseline vs latest**.
+3. Install **`benchstat`** once: `go install golang.org/x/perf/cmd/benchstat@latest`
+
+Optional env: **`CRUD_BENCH_COUNT`** (default `5`), **`CRUD_BENCH_TIME`** (e.g. `2s` → `-benchtime=2s`). **`make crud-bench-compare`** re-runs **`benchstat`** only (no `go test`).
+
+**CPU profiles + `pprof -base`**
+
+- `make crud-pprof` — builds **`logs/database.test`**, runs the CRUD bench suite once with timestamped **`logs/crud_cpu_<UTC>.pprof`** and **`logs/crud_mem_<UTC>.pprof`**, then prints short **`-text`** summaries.
+- Compare a new capture to an older CPU profile (same **test binary** build is best for stable symbols):
+
+```bash
+bash scripts/crud_reprofile_compare.sh pprof-diff logs/crud_cpu_OLD.pprof logs/crud_cpu_NEW.pprof
+# optional 4th arg: path to test binary (default logs/database.test)
+```
 
 ### CLI: backlog read / `task_workflow` path (CPU)
 

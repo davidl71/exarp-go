@@ -241,7 +241,7 @@ Performance optimizations have been implemented for three high-priority algorith
 ### Benchmark environment (sample run)
 
 - **OS:** darwin arm64, **CPU:** Apple M4  
-- **Command:** `CGO_ENABLED=0 go test -run='^$' -bench='Benchmark(Create|Get|Update|Delete|BatchUpdate)Task' -benchmem -count=5 ./internal/database/`  
+- **Command:** `make crud-bench-reprofile` or `CGO_ENABLED=0 go test -run='^$' -bench='Benchmark(CreateTask|GetTask|UpdateTask|DeleteTask|BatchUpdateTaskStatus_64)' -benchmem -count=5 ./internal/database/`  
 - **Note:** Benchmark task IDs must match `models.IsValidTaskID` (`T-` + digits only). Non-conforming IDs are replaced by `CreateTask`, which invalidates bench setup if the bench uses a fixed string ID for later `Get`/`Delete`.
 
 ### Results (representative, ~median of 5 runs)
@@ -264,16 +264,19 @@ Performance optimizations have been implemented for three high-priority algorith
 
 ```bash
 cd "$(git rev-parse --show-toplevel)"
+make crud-pprof
+# or manually (binary required for symbol resolution):
+CGO_ENABLED=0 go test -c -o logs/database.test ./internal/database/
 CGO_ENABLED=0 go test -run='^$' \
-  -bench='Benchmark(Create|Get|Update|Delete|BatchUpdate)Task' -benchmem \
+  -bench='Benchmark(CreateTask|GetTask|UpdateTask|DeleteTask|BatchUpdateTaskStatus_64)' -benchmem \
   -cpuprofile=crud_cpu.prof -memprofile=crud_mem.prof ./internal/database/
-go tool pprof -http=:6060 crud_cpu.prof
-go tool pprof -sample_index=alloc_space -http=:6061 crud_mem.prof
+go tool pprof -http=:6060 logs/database.test crud_cpu.prof
+go tool pprof -sample_index=alloc_space -http=:6061 logs/database.test crud_mem.prof
 ```
 
 ### Gap vs `make go-bench`
 
-Current **`make go-bench`** only runs `./internal/tools/...`. Database CRUD benches live under `./internal/database/` and must be run explicitly (or via a future Makefile target).
+Current **`make go-bench`** only runs `./internal/tools/...`. Database CRUD benches use **`make crud-bench-reprofile`** / **`make crud-pprof`** (see `docs/PERFORMANCE_GUIDE.md` and `scripts/crud_reprofile_compare.sh`).
 
 ### Suggested exarp-go Todo2 follow-ups (created 2026-03-30)
 
@@ -296,7 +299,9 @@ CGO_ENABLED=0 go test -bench=. -benchmem -benchtime=3s ./internal/tools/...
 
 ### SQLite CRUD benchmarks (`internal/database`)
 ```bash
-CGO_ENABLED=0 go test -run='^$' -bench='Benchmark(Create|Get|Update|Delete|BatchUpdate)Task' -benchmem ./internal/database/
+make crud-bench-reprofile
+# or:
+CGO_ENABLED=0 go test -run='^$' -bench='Benchmark(CreateTask|GetTask|UpdateTask|DeleteTask|BatchUpdateTaskStatus_64)' -benchmem ./internal/database/
 ```
 
 ### Run Specific Benchmarks
