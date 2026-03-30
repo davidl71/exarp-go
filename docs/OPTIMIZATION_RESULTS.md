@@ -235,7 +235,8 @@ Performance optimizations have been implemented for three high-priority algorith
 
 - With SQLite available, ordinary Todo2 CRUD goes to the database; full SQLite↔JSON sync is **not** required on every create/update/delete.
 - `handleTaskWorkflowUpdate` uses a **fast path** (`canUseBatchUpdate`) → `database.BatchUpdateTaskStatus` when only status/priority change; otherwise per-task `GetTask` + `UpdateTask`.
-- `UpdateTask` uses a transaction but **deletes all tags and dependencies and reinserts** them each time (`GetTask` loads row + tags + deps in multiple queries).
+- `UpdateTask` uses a transaction but **deletes all tags and dependencies and reinserts** them each time. `GetTask` uses **one** SQL statement with correlated subqueries for tags/deps (`sqlTaskAggJSON` in `tasks_crud.go`); remaining cost is mostly parsing and allocations.
+- **Design note (research):** [gettask-updatetask-churn.md](research/gettask-updatetask-churn.md) (Todo2 T-1774888049604959000).
 
 ### Benchmark environment (sample run)
 
@@ -256,7 +257,7 @@ Performance optimizations have been implemented for three high-priority algorith
 ### Findings
 
 1. **Batch status update dominates allocations** — ~4.6k allocs for 64 rows (~72 allocs/task) suggests significant per-iteration overhead (scans, slices, or ORM-style churn). Highest-impact target for `task_workflow` bulk status operations after confirmation via memory profile.
-2. **GetTask / UpdateTask** — Non-trivial allocs per op; likely from tag/dep scanning and string handling. Multiple round-trips per full task read are candidates for consolidation (single query with JOINs or batched reads) if profiling shows them in hot paths.
+2. **GetTask / UpdateTask** — Non-trivial allocs per op; likely from JSON aggregation parsing and string handling. SQL is already a single round-trip for `GetTask`; tune parsing/allocs or lazy metadata decode before adding query complexity.
 3. **UpdateTask delete-all + reinsert** — Simple and correct; for large tag/dep sets, diffing inserts/deletes could reduce write churn when MCP callers touch unchanged relations rarely.
 
 ### Profile commands (CRUD)
