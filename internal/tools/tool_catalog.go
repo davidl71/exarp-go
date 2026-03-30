@@ -416,7 +416,7 @@ func ListToolNames() []string {
 // Note: "list" action converted to stdio://tools and stdio://tools/{category} resources
 // This tool now only handles the "help" action.
 func handleToolCatalogNative(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
-	action, _ := params["action"].(string)
+	action := ParamString(params, "action")
 	if action == "" {
 		action = "help"
 	}
@@ -431,7 +431,7 @@ func handleToolCatalogNative(ctx context.Context, params map[string]interface{})
 
 // handleToolCatalogHelp handles the help action.
 func handleToolCatalogHelp(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
-	toolName, _ := params["tool_name"].(string)
+	toolName := ParamString(params, "tool_name")
 	if toolName == "" {
 		errorResponse := map[string]interface{}{
 			"status": "error",

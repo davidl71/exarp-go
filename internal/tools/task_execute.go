@@ -46,7 +46,7 @@ func handleTaskExecute(ctx context.Context, args json.RawMessage) ([]framework.T
 	apply := ParamBool(params, "apply", true)
 
 	minConfidence := defaultMinConfidence
-	if v, ok := params["min_confidence"].(float64); ok && v >= 0 && v <= 1 {
+	if v, ok := ParamFloat64OK(params, "min_confidence"); ok && v >= 0 && v <= 1 {
 		minConfidence = v
 	}
 

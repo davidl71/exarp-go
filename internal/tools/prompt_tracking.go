@@ -74,10 +74,7 @@ func handlePromptTrackingLog(ctx context.Context, params map[string]interface{})
 		outcome = "pending"
 	}
 
-	iteration := 1
-	if iter, ok := params["iteration"].(float64); ok {
-		iteration = int(iter)
-	}
+	iteration := ParamInt(params, "iteration", 1)
 
 	// Truncate long prompts
 	promptText := prompt
@@ -158,10 +155,7 @@ func handlePromptTrackingLog(ctx context.Context, params map[string]interface{})
 
 // handlePromptTrackingAnalyze handles the analyze action.
 func handlePromptTrackingAnalyze(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
-	days := 7
-	if d, ok := params["days"].(float64); ok {
-		days = int(d)
-	}
+	days := ParamInt(params, "days", 7)
 
 	// Find project root
 	projectRoot, err := FindProjectRoot()

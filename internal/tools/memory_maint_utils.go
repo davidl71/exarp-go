@@ -20,11 +20,9 @@ import (
 // ─── handleMemoryMaintDream ─────────────────────────────────────────────────
 func handleMemoryMaintDream(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	// Get score (default: 50)
-	var score = 50.0
-	if sc, ok := params["score"].(float64); ok {
+	score := 50.0
+	if sc, ok := ParamFloat64OK(params, "score"); ok {
 		score = sc
-	} else if sc, ok := params["score"].(int); ok {
-		score = float64(sc)
 	}
 
 	// Validate and clamp score

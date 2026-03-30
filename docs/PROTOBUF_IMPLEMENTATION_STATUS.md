@@ -17,6 +17,7 @@
 | [PROTOBUF_SIMPLIFICATION_OPPORTUNITIES.md](PROTOBUF_SIMPLIFICATION_OPPORTUNITIES.md) | **Stub** → archive. |
 | [PROTOBUF_TUI_FUTURE_IMPROVEMENTS.md](PROTOBUF_TUI_FUTURE_IMPROVEMENTS.md) | **Stub** → archive (TUI3270 + proto ideas). |
 | [CONFIGURATION_PROTOBUF_INTEGRATION.md](CONFIGURATION_PROTOBUF_INTEGRATION.md) | Config-specific protobuf details. |
+| [MCP_TYPE_CONVERSIONS.md](MCP_TYPE_CONVERSIONS.md) | **JSON / map / protobuf type boundaries**, summary table, **wave-1 param helpers** (`ParamInt`, `ParamFloat64`, `ParamStringSlice`, …), and remaining casting targets. |
 
 ---
 

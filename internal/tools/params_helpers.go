@@ -1,4 +1,5 @@
 // params_helpers.go — Shared helpers for MCP tool param parsing and output paths.
+// Prefer ParamInt / ParamFloat64 / ParamFloat64OK / ParamStringSlice over raw type assertions on JSON-backed maps.
 package tools
 
 import (
@@ -25,6 +26,130 @@ func ParamBool(params map[string]interface{}, key string, defaultVal bool) bool 
 		return val
 	}
 	return defaultVal
+}
+
+// ParamInt returns params[key] as int. Accepts JSON numbers (float64), integers, and numeric strings.
+// Returns defaultVal if the key is missing, nil, or not convertible.
+func ParamInt(params map[string]interface{}, key string, defaultVal int) int {
+	if params == nil {
+		return defaultVal
+	}
+	v, ok := params[key]
+	if !ok || v == nil {
+		return defaultVal
+	}
+	i, err := cast.ToInt64E(v)
+	if err != nil {
+		return defaultVal
+	}
+	return int(i)
+}
+
+// ParamIntOK returns (value, true) if key is present, non-nil, and converts to int.
+func ParamIntOK(params map[string]interface{}, key string) (int, bool) {
+	if params == nil {
+		return 0, false
+	}
+	v, ok := params[key]
+	if !ok || v == nil {
+		return 0, false
+	}
+	i, err := cast.ToInt64E(v)
+	if err != nil {
+		return 0, false
+	}
+	return int(i), true
+}
+
+// ParamFloat64 returns params[key] as float64. Returns defaultVal if missing, nil, or not convertible.
+func ParamFloat64(params map[string]interface{}, key string, defaultVal float64) float64 {
+	if params == nil {
+		return defaultVal
+	}
+	v, ok := params[key]
+	if !ok || v == nil {
+		return defaultVal
+	}
+	f, err := cast.ToFloat64E(v)
+	if err != nil {
+		return defaultVal
+	}
+	return f
+}
+
+// ParamFloat64OK returns (value, true) if key is present, non-nil, and converts to float64.
+func ParamFloat64OK(params map[string]interface{}, key string) (float64, bool) {
+	if params == nil {
+		return 0, false
+	}
+	v, ok := params[key]
+	if !ok || v == nil {
+		return 0, false
+	}
+	f, err := cast.ToFloat64E(v)
+	if err != nil {
+		return 0, false
+	}
+	return f, true
+}
+
+// ParamStringSlice coerces params[key] to []string (JSON arrays and []interface{}; a plain string becomes one element — use ParamStringSliceTrimmedCommaSeparated when the string is comma-separated tokens).
+// Returns nil when the key is missing or produces no elements.
+func ParamStringSlice(params map[string]interface{}, key string) []string {
+	if params == nil {
+		return nil
+	}
+	out := cast.ToStringSlice(params[key])
+	if len(out) == 0 {
+		return nil
+	}
+	return out
+}
+
+// ParamStringSliceTrimmed is like ParamStringSlice but trims each element and drops empty strings.
+// Returns nil when there are no non-empty elements after trimming.
+func ParamStringSliceTrimmed(params map[string]interface{}, key string) []string {
+	raw := ParamStringSlice(params, key)
+	if len(raw) == 0 {
+		return nil
+	}
+	out := make([]string, 0, len(raw))
+	for _, s := range raw {
+		if t := strings.TrimSpace(s); t != "" {
+			out = append(out, t)
+		}
+	}
+	if len(out) == 0 {
+		return nil
+	}
+	return out
+}
+
+// ParamStringSliceTrimmedCommaSeparated trims and splits a string value on commas into separate elements.
+// JSON arrays (and other non-string values) delegate to ParamStringSliceTrimmed so each array element stays one token.
+// Use for tags, dependencies, recommended_tools, task_ids lists where clients pass "a,b" or ["a","b"].
+func ParamStringSliceTrimmedCommaSeparated(params map[string]interface{}, key string) []string {
+	if params == nil {
+		return nil
+	}
+	v, ok := params[key]
+	if !ok || v == nil {
+		return nil
+	}
+	if s, ok := v.(string); ok {
+		parts := strings.Split(s, ",")
+		out := make([]string, 0, len(parts))
+		for _, p := range parts {
+			if t := strings.TrimSpace(p); t != "" {
+				out = append(out, t)
+			}
+		}
+		if len(out) == 0 {
+			return nil
+		}
+		return out
+	}
+	return ParamStringSliceTrimmed(params, key)
 }
 
 // ParamOutputPath returns params["output_path"] as a trimmed string.

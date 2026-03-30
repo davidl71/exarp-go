@@ -336,8 +336,8 @@ func handleOllamaGenerate(ctx context.Context, params map[string]interface{}, ho
 	options := make(map[string]interface{})
 
 	// Parse num_gpu
-	if numGPU, ok := params["num_gpu"].(float64); ok {
-		options["num_gpu"] = int(numGPU)
+	if n, ok := ParamIntOK(params, "num_gpu"); ok {
+		options["num_gpu"] = n
 	} else if envGPU := os.Getenv("OLLAMA_NUM_GPU"); envGPU != "" {
 		if gpu, err := strconv.Atoi(envGPU); err == nil {
 			options["num_gpu"] = gpu
@@ -345,8 +345,8 @@ func handleOllamaGenerate(ctx context.Context, params map[string]interface{}, ho
 	}
 
 	// Parse num_threads
-	if numThreads, ok := params["num_threads"].(float64); ok {
-		options["num_threads"] = int(numThreads)
+	if n, ok := ParamIntOK(params, "num_threads"); ok {
+		options["num_threads"] = n
 	} else if envThreads := os.Getenv("OLLAMA_NUM_THREADS"); envThreads != "" {
 		if threads, err := strconv.Atoi(envThreads); err == nil {
 			options["num_threads"] = threads
@@ -354,8 +354,8 @@ func handleOllamaGenerate(ctx context.Context, params map[string]interface{}, ho
 	}
 
 	// Parse context_size
-	if contextSize, ok := params["context_size"].(float64); ok {
-		options["num_ctx"] = int(contextSize)
+	if n, ok := ParamIntOK(params, "context_size"); ok {
+		options["num_ctx"] = n
 	} else if envCtx := os.Getenv("OLLAMA_NUM_CTX"); envCtx != "" {
 		if ctx, err := strconv.Atoi(envCtx); err == nil {
 			options["num_ctx"] = ctx

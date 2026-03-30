@@ -175,11 +175,9 @@ func handleSessionEnd(ctx context.Context, params map[string]interface{}, projec
 
 	// Optional: task journal (modified tasks this session). Caller can pass modified_task_ids or task_journal.
 	var taskJournal []map[string]interface{}
-	if ids, ok := params["modified_task_ids"].([]interface{}); ok {
-		for _, v := range ids {
-			if id, ok := v.(string); ok && id != "" {
-				taskJournal = append(taskJournal, map[string]interface{}{"id": id, "action": "modified"})
-			}
+	if ids := ParamStringSliceTrimmedCommaSeparated(params, "modified_task_ids"); len(ids) > 0 {
+		for _, id := range ids {
+			taskJournal = append(taskJournal, map[string]interface{}{"id": id, "action": "modified"})
 		}
 	}
 	if journal, ok := params["task_journal"].([]interface{}); ok && len(taskJournal) == 0 {

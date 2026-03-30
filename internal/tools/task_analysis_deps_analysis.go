@@ -98,10 +98,7 @@ func handleTaskAnalysisParallelization(ctx context.Context, params map[string]in
 
 	tasks := tasksFromPtrs(list)
 
-	durationWeight := 0.3
-	if weight, ok := params["duration_weight"].(float64); ok {
-		durationWeight = weight
-	}
+	durationWeight := ParamFloat64(params, "duration_weight", 0.3)
 
 	// Find parallelizable tasks
 	parallelGroups := findParallelizableTasks(tasks, durationWeight)

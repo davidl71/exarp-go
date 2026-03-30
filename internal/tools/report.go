@@ -84,14 +84,9 @@ func handleReportOverview(ctx context.Context, params map[string]interface{}) ([
 // handleReportBriefing handles the briefing action for report tool.
 // Uses proto internally (BuildBriefingDataProto) for type-safe briefing data.
 func handleReportBriefing(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
-	var score float64
-
-	if sc, ok := params["score"].(float64); ok {
+	score := 50.0
+	if sc, ok := ParamFloat64OK(params, "score"); ok {
 		score = sc
-	} else if sc, ok := params["score"].(int); ok {
-		score = float64(sc)
-	} else {
-		score = 50.0 // Default score
 	}
 
 	if score < 0 {

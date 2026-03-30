@@ -176,92 +176,22 @@ func handleTaskWorkflowApprove(ctx context.Context, params map[string]interface{
 
 // parseTagsFromParams extracts tags from params (comma-separated string or array). Used by create and update.
 func parseTagsFromParams(params map[string]interface{}) []string {
-	var tags []string
-
-	if t, ok := params["tags"].([]interface{}); ok {
-		for _, tag := range t {
-			if tagStr, ok := tag.(string); ok && tagStr != "" {
-				tags = append(tags, strings.TrimSpace(tagStr))
-			}
-		}
-	} else if tStr := cast.ToString(params["tags"]); tStr != "" {
-		for _, tag := range strings.Split(tStr, ",") {
-			if trimmed := strings.TrimSpace(tag); trimmed != "" {
-				tags = append(tags, trimmed)
-			}
-		}
-	}
-
-	return tags
+	return ParamStringSliceTrimmedCommaSeparated(params, "tags")
 }
 
 // parseRemoveTagsFromParams extracts remove_tags from params (comma-separated string or array). Used by update.
 func parseRemoveTagsFromParams(params map[string]interface{}) []string {
-	var tags []string
-
-	if t, ok := params["remove_tags"].([]interface{}); ok {
-		for _, tag := range t {
-			if tagStr, ok := tag.(string); ok && tagStr != "" {
-				tags = append(tags, strings.TrimSpace(tagStr))
-			}
-		}
-	} else if tStr := cast.ToString(params["remove_tags"]); tStr != "" {
-		for _, tag := range strings.Split(tStr, ",") {
-			if trimmed := strings.TrimSpace(tag); trimmed != "" {
-				tags = append(tags, trimmed)
-			}
-		}
-	}
-
-	return tags
+	return ParamStringSliceTrimmedCommaSeparated(params, "remove_tags")
 }
 
 // parseRecommendedToolsFromParams extracts recommended_tools from params (comma-separated string or array of tool IDs). Returns nil if not provided.
 func parseRecommendedToolsFromParams(params map[string]interface{}) []string {
-	var tools []string
-	if t, ok := params["recommended_tools"].([]interface{}); ok {
-		for _, v := range t {
-			if s, ok := v.(string); ok && s != "" {
-				tools = append(tools, strings.TrimSpace(s))
-			}
-		}
-	} else if tStr := cast.ToString(params["recommended_tools"]); tStr != "" {
-		for _, s := range strings.Split(tStr, ",") {
-			if trimmed := strings.TrimSpace(s); trimmed != "" {
-				tools = append(tools, trimmed)
-			}
-		}
-	}
-	return tools
+	return ParamStringSliceTrimmedCommaSeparated(params, "recommended_tools")
 }
 
 // parseDependenciesFromParams extracts dependencies from params (comma-separated string or array). Returns nil if not provided.
 func parseDependenciesFromParams(params map[string]interface{}) []string {
-	if d, ok := params["dependencies"].([]interface{}); ok {
-		var deps []string
-
-		for _, dep := range d {
-			if depStr, ok := dep.(string); ok && depStr != "" {
-				deps = append(deps, strings.TrimSpace(depStr))
-			}
-		}
-
-		return deps
-	}
-
-	if dStr := cast.ToString(params["dependencies"]); dStr != "" {
-		var deps []string
-
-		for _, dep := range strings.Split(dStr, ",") {
-			if trimmed := strings.TrimSpace(dep); trimmed != "" {
-				deps = append(deps, trimmed)
-			}
-		}
-
-		return deps
-	}
-
-	return nil
+	return ParamStringSliceTrimmedCommaSeparated(params, "dependencies")
 }
 
 // parseOwnershipFromParams extracts ownership metadata from params.
@@ -289,25 +219,7 @@ func parseOwnershipFromParams(params map[string]interface{}) *models.TaskOwnersh
 
 // parseStringSliceFromParams extracts a string slice from params (array or comma-separated string).
 func parseStringSliceFromParams(params map[string]interface{}, key string) []string {
-	if arr, ok := params[key].([]interface{}); ok {
-		var result []string
-		for _, v := range arr {
-			if s, ok := v.(string); ok && s != "" {
-				result = append(result, strings.TrimSpace(s))
-			}
-		}
-		return result
-	}
-	if s := cast.ToString(params[key]); s != "" {
-		var result []string
-		for _, item := range strings.Split(s, ",") {
-			if trimmed := strings.TrimSpace(item); trimmed != "" {
-				result = append(result, trimmed)
-			}
-		}
-		return result
-	}
-	return nil
+	return ParamStringSliceTrimmedCommaSeparated(params, key)
 }
 
 // handleTaskWorkflowUpdate updates task(s) by ID with optional new_status, priority, tags (merge), remove_tags, name, long_description, dependencies, or local_ai_backend.

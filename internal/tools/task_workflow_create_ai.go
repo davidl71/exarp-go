@@ -188,39 +188,13 @@ func handleTaskWorkflowCreateSingleWithDeps(
 	if len(tags) == 0 {
 		tags = []string{}
 	}
-
-	if t, ok := params["tags"].([]interface{}); ok {
-		for _, tag := range t {
-			if tagStr, ok := tag.(string); ok {
-				tags = append(tags, tagStr)
-			}
-		}
-	} else if tStr := cast.ToString(params["tags"]); tStr != "" {
-		tagList := strings.Split(tStr, ",")
-		for _, tag := range tagList {
-			tag = strings.TrimSpace(tag)
-			if tag != "" {
-				tags = append(tags, tag)
-			}
-		}
+	if extra := ParamStringSliceTrimmedCommaSeparated(params, "tags"); len(extra) > 0 {
+		tags = append(tags, extra...)
 	}
 
-	dependencies := []string{}
-
-	if d, ok := params["dependencies"].([]interface{}); ok {
-		for _, dep := range d {
-			if depStr, ok := dep.(string); ok {
-				dependencies = append(dependencies, depStr)
-			}
-		}
-	} else if dStr := cast.ToString(params["dependencies"]); dStr != "" {
-		depList := strings.Split(dStr, ",")
-		for _, dep := range depList {
-			dep = strings.TrimSpace(dep)
-			if dep != "" {
-				dependencies = append(dependencies, dep)
-			}
-		}
+	dependencies := ParamStringSliceTrimmedCommaSeparated(params, "dependencies")
+	if dependencies == nil {
+		dependencies = []string{}
 	}
 
 	nextID := generateEpochTaskID()
@@ -389,39 +363,13 @@ func handleTaskWorkflowCreateSingle(ctx context.Context, params map[string]inter
 	if len(tags) == 0 {
 		tags = []string{}
 	}
-
-	if t, ok := params["tags"].([]interface{}); ok {
-		for _, tag := range t {
-			if tagStr, ok := tag.(string); ok {
-				tags = append(tags, tagStr)
-			}
-		}
-	} else if tStr := cast.ToString(params["tags"]); tStr != "" {
-		tagList := strings.Split(tStr, ",")
-		for _, tag := range tagList {
-			tag = strings.TrimSpace(tag)
-			if tag != "" {
-				tags = append(tags, tag)
-			}
-		}
+	if extra := ParamStringSliceTrimmedCommaSeparated(params, "tags"); len(extra) > 0 {
+		tags = append(tags, extra...)
 	}
 
-	dependencies := []string{}
-
-	if d, ok := params["dependencies"].([]interface{}); ok {
-		for _, dep := range d {
-			if depStr, ok := dep.(string); ok {
-				dependencies = append(dependencies, depStr)
-			}
-		}
-	} else if dStr := cast.ToString(params["dependencies"]); dStr != "" {
-		depList := strings.Split(dStr, ",")
-		for _, dep := range depList {
-			dep = strings.TrimSpace(dep)
-			if dep != "" {
-				dependencies = append(dependencies, dep)
-			}
-		}
+	dependencies := ParamStringSliceTrimmedCommaSeparated(params, "dependencies")
+	if dependencies == nil {
+		dependencies = []string{}
 	}
 
 	list, err := store.ListTasks(ctx, nil)

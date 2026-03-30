@@ -219,10 +219,8 @@ func handleContextCount(params map[string]interface{}) ([]framework.TextContent,
 		text = fmt.Sprintf("%v", v)
 	}
 	tokensPerChar := config.TokensPerChar()
-	if r, ok := params["tokens_per_char"].(float64); ok && r > 0 {
+	if r, ok := ParamFloat64OK(params, "tokens_per_char"); ok && r > 0 {
 		tokensPerChar = r
-	} else if r, ok := params["tokens_per_char"].(int); ok && r > 0 {
-		tokensPerChar = float64(r)
 	}
 	tokens := EstimateTokens(text, tokensPerChar)
 	result := map[string]interface{}{

@@ -390,10 +390,7 @@ func isOldSequentialID(taskID string) bool {
 // ─── handleTaskWorkflowCleanup ──────────────────────────────────────────────
 // handleTaskWorkflowCleanup handles cleanup action for removing stale tasks and legacy tasks.
 func handleTaskWorkflowCleanup(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
-	staleThresholdHours := 2.0
-	if threshold, ok := params["stale_threshold_hours"].(float64); ok {
-		staleThresholdHours = threshold
-	}
+	staleThresholdHours := ParamFloat64(params, "stale_threshold_hours", 2.0)
 
 	includeLegacy := ParamBool(params, "include_legacy", false)
 

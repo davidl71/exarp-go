@@ -152,8 +152,8 @@ func handleTaskAnalysisDuplicates(ctx context.Context, params map[string]interfa
 
 	// Use config default, allow override from params
 	similarityThreshold := config.SimilarityThreshold()
-	if threshold, ok := params["similarity_threshold"].(float64); ok {
-		similarityThreshold = threshold
+	if v, ok := ParamFloat64OK(params, "similarity_threshold"); ok {
+		similarityThreshold = v
 	}
 
 	autoFix := ParamBool(params, "auto_fix", false)

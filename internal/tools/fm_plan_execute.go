@@ -52,23 +52,17 @@ func handleFMPlanAndExecute(ctx context.Context, args json.RawMessage) ([]framew
 	}
 
 	maxSubtasks := defaultMaxSubtasks
-	if n, ok := params["max_subtasks"].(float64); ok && n > 0 && n <= 20 {
-		maxSubtasks = int(n)
-	} else if n, ok := params["max_subtasks"].(int); ok && n > 0 && n <= 20 {
+	if n := ParamInt(params, "max_subtasks", 0); n > 0 && n <= 20 {
 		maxSubtasks = n
 	}
 
 	planTokens := defaultPlanTokens
-	if n, ok := params["plan_max_tokens"].(float64); ok && n > 0 {
-		planTokens = int(n)
-	} else if n, ok := params["plan_max_tokens"].(int); ok && n > 0 {
+	if n := ParamInt(params, "plan_max_tokens", 0); n > 0 {
 		planTokens = n
 	}
 
 	workerTokens := defaultWorkerTokens
-	if n, ok := params["worker_max_tokens"].(float64); ok && n > 0 {
-		workerTokens = int(n)
-	} else if n, ok := params["worker_max_tokens"].(int); ok && n > 0 {
+	if n := ParamInt(params, "worker_max_tokens", 0); n > 0 {
 		workerTokens = n
 	}
 

@@ -84,8 +84,8 @@ func handleAutomationDaily(ctx context.Context, params map[string]interface{}) (
 	}
 
 	maxParallel := 3
-	if mp, ok := params["max_parallel_tasks"].(float64); ok && mp > 0 {
-		maxParallel = int(mp)
+	if mp := ParamInt(params, "max_parallel_tasks", 0); mp > 0 {
+		maxParallel = mp
 	}
 
 	parallelResults := runParallelTasks(ctx, parallelBatch, maxParallel)

@@ -99,22 +99,12 @@ var MODEL_CATALOG = []ModelInfo{
 
 // handleRecommendModelNative handles the "model" action for recommend tool.
 func handleRecommendModelNative(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
-	// Get task description
-	taskDescription := ""
-	if descRaw, ok := params["task_description"].(string); ok {
-		taskDescription = descRaw
-	}
+	taskDescription := ParamString(params, "task_description")
+	taskType := ParamString(params, "task_type")
 
-	// Get task type if provided
-	taskType := ""
-	if typeRaw, ok := params["task_type"].(string); ok {
-		taskType = typeRaw
-	}
-
-	// Get optimization target
 	optimizeFor := "quality"
-	if optimizeRaw, ok := params["optimize_for"].(string); ok {
-		optimizeFor = optimizeRaw
+	if s := ParamString(params, "optimize_for"); s != "" {
+		optimizeFor = s
 	}
 
 	includeAlternatives := ParamBool(params, "include_alternatives", true)
@@ -229,17 +219,8 @@ func findAlternativeModels(recommended ModelInfo, optimizeFor string) []ModelInf
 
 // handleRecommendWorkflowNative handles the "workflow" action for recommend tool.
 func handleRecommendWorkflowNative(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
-	// Get task description
-	taskDescription := ""
-	if descRaw, ok := params["task_description"].(string); ok {
-		taskDescription = descRaw
-	}
-
-	// Get task ID if provided
-	taskID := ""
-	if idRaw, ok := params["task_id"].(string); ok {
-		taskID = idRaw
-	}
+	taskDescription := ParamString(params, "task_description")
+	taskID := ParamString(params, "task_id")
 
 	includeRationale := ParamBool(params, "include_rationale", true)
 
@@ -445,31 +426,15 @@ func analyzeWorkflowMode(taskDescription string, includeRationale bool) Workflow
 // handleRecommendAdvisorNative handles the "advisor" action for recommend tool
 // Uses devwisdom-go wisdom engine directly (no MCP client needed).
 func handleRecommendAdvisorNative(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
-	// Extract parameters
-	var metric, tool, stage, context string
+	metric := ParamString(params, "metric")
+	tool := ParamString(params, "tool")
+	stage := ParamString(params, "stage")
+	advisorCtx := ParamString(params, "context")
 
 	var score float64
 
-	if m, ok := params["metric"].(string); ok {
-		metric = m
-	}
-
-	if t, ok := params["tool"].(string); ok {
-		tool = t
-	}
-
-	if st, ok := params["stage"].(string); ok {
-		stage = st
-	}
-
-	if c, ok := params["context"].(string); ok {
-		context = c
-	}
-
-	if sc, ok := params["score"].(float64); ok {
+	if sc, ok := ParamFloat64OK(params, "score"); ok {
 		score = sc
-	} else if sc, ok := params["score"].(int); ok {
-		score = float64(sc)
 	}
 	// Validate and clamp score to 0-100 range
 	if score < 0 {
@@ -540,7 +505,7 @@ func handleRecommendAdvisorNative(ctx context.Context, params map[string]interfa
 		"quote":             quote.Quote,
 		"quote_source":      quote.Source,
 		"encouragement":     quote.Encouragement,
-		"context":           context,
+		"context":           advisorCtx,
 	}
 
 	// Convert to JSON

@@ -332,8 +332,8 @@ func handleTaskAnalysisExecutionPlan(ctx context.Context, params map[string]inte
 
 	// Optional limit (0 = all)
 	limit := 0
-	if l, ok := params["limit"].(float64); ok && l > 0 {
-		limit = int(l)
+	if l := ParamInt(params, "limit", 0); l > 0 {
+		limit = l
 	}
 
 	if limit > 0 && len(orderedIDs) > limit {

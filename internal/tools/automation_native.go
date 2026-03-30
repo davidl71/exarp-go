@@ -39,7 +39,7 @@ func AutomationResponseToMap(resp *proto.AutomationResponse) map[string]interfac
 // handleAutomationNative handles the automation tool with native Go implementation
 // Implements all actions: "daily", "nightly", "sprint", "discover", "schedule", and "unschedule".
 func handleAutomationNative(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
-	action, _ := params["action"].(string)
+	action := ParamString(params, "action")
 	if action == "" {
 		action = "daily"
 	}
@@ -185,7 +185,7 @@ func appendCursorAgentStepIfRequested(ctx context.Context, params map[string]int
 		return
 	}
 
-	prompt, _ := params["cursor_agent_prompt"].(string)
+	prompt := ParamString(params, "cursor_agent_prompt")
 	if prompt == "" {
 		prompt = "Review the backlog and suggest which task to do next"
 	}

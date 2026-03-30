@@ -33,8 +33,8 @@ func handleTaskWorkflowClaim(ctx context.Context, params map[string]interface{})
 	}
 
 	leaseMins := 30
-	if v, ok := params["lease_minutes"].(float64); ok && v > 0 {
-		leaseMins = int(v)
+	if v := ParamInt(params, "lease_minutes", 0); v > 0 {
+		leaseMins = v
 	}
 	lease := time.Duration(leaseMins) * time.Minute
 
@@ -139,7 +139,7 @@ func text(s string) []framework.TextContent {
 //   - agent_id (optional) — defaults to database.GetAgentID()
 //   - lease_minutes (optional, default 30)
 func handleTaskWorkflowBatchClaim(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
-	taskIDs, _ := params["task_ids"].([]interface{})
+	taskIDs := ParamStringSlice(params, "task_ids")
 
 	agentID := ParamString(params, "agent_id")
 	if agentID == "" {
@@ -151,14 +151,14 @@ func handleTaskWorkflowBatchClaim(ctx context.Context, params map[string]interfa
 	}
 
 	leaseMins := 30
-	if v, ok := params["lease_minutes"].(float64); ok && v > 0 {
-		leaseMins = int(v)
+	if v := ParamInt(params, "lease_minutes", 0); v > 0 {
+		leaseMins = v
 	}
 	lease := time.Duration(leaseMins) * time.Minute
 
 	count := 3
-	if c, ok := params["count"].(float64); ok && c > 0 {
-		count = int(c)
+	if c := ParamInt(params, "count", 0); c > 0 {
+		count = c
 	}
 
 	results := []map[string]interface{}{}
@@ -166,9 +166,8 @@ func handleTaskWorkflowBatchClaim(ctx context.Context, params map[string]interfa
 	failed := []map[string]interface{}{}
 
 	if len(taskIDs) > 0 {
-		for _, id := range taskIDs {
-			tid, ok := id.(string)
-			if !ok {
+		for _, tid := range taskIDs {
+			if tid == "" {
 				continue
 			}
 			result, err := database.ClaimTaskForAgent(ctx, tid, agentID, lease)

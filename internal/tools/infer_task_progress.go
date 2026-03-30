@@ -64,24 +64,18 @@ func handleInferTaskProgressNative(ctx context.Context, params map[string]interf
 	}
 
 	scanDepth := 3
-	if d, ok := params["scan_depth"].(float64); ok && d >= 1 && d <= 5 {
-		scanDepth = int(d)
+	if d, ok := ParamIntOK(params, "scan_depth"); ok && d >= 1 && d <= 5 {
+		scanDepth = d
 	}
 
 	confidenceThreshold := 0.7
-	if t, ok := params["confidence_threshold"].(float64); ok && t >= 0 && t <= 1 {
+	if t, ok := ParamFloat64OK(params, "confidence_threshold"); ok && t >= 0 && t <= 1 {
 		confidenceThreshold = t
 	}
 
 	extensions := defaultInferTaskProgressExtensions
-	if ex, ok := params["file_extensions"].([]interface{}); ok && len(ex) > 0 {
-		extensions = make([]string, 0, len(ex))
-
-		for _, e := range ex {
-			if s, ok := e.(string); ok && s != "" {
-				extensions = append(extensions, s)
-			}
-		}
+	if ex := ParamStringSlice(params, "file_extensions"); len(ex) > 0 {
+		extensions = ex
 	}
 
 	if len(extensions) == 0 {

@@ -164,10 +164,7 @@ func handleEstimationEstimateShared(ctx context.Context, projectRoot string, par
 		useAppleFM = useAFM && FMAvailable()
 	}
 
-	appleFMWeight := 0.3
-	if weight, ok := params["apple_fm_weight"].(float64); ok {
-		appleFMWeight = weight
-	}
+	appleFMWeight := ParamFloat64(params, "apple_fm_weight", 0.3)
 
 	// Parse tags
 	var tags []string

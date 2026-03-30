@@ -31,15 +31,9 @@ func handleAskClient(ctx context.Context, params map[string]interface{}) ([]fram
 		return nil, errSamplingNotSupported
 	}
 
-	temperature := samplingDefaultTemperature
-	if t, ok := params["temperature"].(float64); ok {
-		temperature = t
-	}
+	temperature := ParamFloat64(params, "temperature", samplingDefaultTemperature)
 
-	maxTokens := samplingDefaultMaxTokens
-	if m, ok := params["max_tokens"].(int); ok {
-		maxTokens = m
-	}
+	maxTokens := ParamInt(params, "max_tokens", samplingDefaultMaxTokens)
 
 	systemPrompt := ""
 	if s, ok := params["system_prompt"].(string); ok {
