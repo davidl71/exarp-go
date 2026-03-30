@@ -193,7 +193,24 @@ type taskRow struct {
 	AssignedTo      string         `db:"assigned_to"`
 	Host            string         `db:"host"`
 	Agent           string         `db:"agent"`
+	Version         int64          `db:"version"`
 }
+
+// taskRowWithAgg extends taskRow with correlated json_group_array columns for tags and dependencies.
+type taskRowWithAgg struct {
+	taskRow
+	TagsJSON string `db:"tags_json"`
+	DepsJSON string `db:"deps_json"`
+}
+
+// sqlTaskAggJSON projects ordered tag and dependency arrays for a tasks row alias `t`.
+const sqlTaskAggJSON = `
+, COALESCE((SELECT json_group_array(tag) FROM (
+	SELECT tag FROM task_tags WHERE task_id = t.id ORDER BY tag
+)), '[]') AS tags_json,
+COALESCE((SELECT json_group_array(depends_on_id) FROM (
+	SELECT depends_on_id FROM task_dependencies WHERE task_id = t.id ORDER BY depends_on_id
+)), '[]') AS deps_json`
 
 // GetTask retrieves a task by ID with all related data (tags, dependencies)
 // Supports context for timeout and cancellation.
@@ -212,13 +229,13 @@ func GetTask(ctx context.Context, id string) (*Todo2Task, error) {
 			return fmt.Errorf("failed to get database: %w", err)
 		}
 
-		var row taskRow
+		var row taskRowWithAgg
 		err = db.GetContext(queryCtx, &row, `
-			SELECT id, name, content, long_description, status, priority, completed,
-			       created, last_modified, completed_at, metadata, metadata_protobuf, metadata_format,
-			       parent_id, project_id, assigned_to, host, agent
-			FROM tasks
-			WHERE id = ?
+			SELECT t.id, t.name, t.content, t.long_description, t.status, t.priority, t.completed,
+			       t.created, t.last_modified, t.completed_at, t.metadata, t.metadata_protobuf, t.metadata_format,
+			       t.parent_id, t.project_id, t.assigned_to, t.host, t.agent, t.version`+sqlTaskAggJSON+`
+			FROM tasks AS t
+			WHERE t.id = ?
 		`, id)
 		if errors.Is(err, sql.ErrNoRows) {
 			return fmt.Errorf("task %s not found", id)
@@ -242,20 +259,21 @@ func GetTask(ctx context.Context, id string) (*Todo2Task, error) {
 			AssignedTo:      row.AssignedTo,
 			Host:            row.Host,
 			Agent:           row.Agent,
+			DBVersion:       row.Version,
 		}
 
 		taskData.NormalizeEpochDates()
 		taskData.Metadata = DeserializeTaskMetadata(string(row.Metadata), row.MetadataProto, row.MetadataFormat)
 
-		tags, err := loadTaskTags(ctx, queryCtx, db, id)
+		tags, err := parseJSONArrayToStrings(row.TagsJSON)
 		if err != nil {
-			return err
+			return fmt.Errorf("task %s tags: %w", id, err)
 		}
 		taskData.Tags = tags
 
-		dependencies, err := loadTaskDependencies(ctx, queryCtx, db, id)
+		dependencies, err := parseJSONArrayToStrings(row.DepsJSON)
 		if err != nil {
-			return err
+			return fmt.Errorf("task %s dependencies: %w", id, err)
 		}
 		taskData.Dependencies = dependencies
 
@@ -306,16 +324,20 @@ func UpdateTask(ctx context.Context, task *Todo2Task) error {
 			return err
 		}
 
-		// Get current version for optimistic locking
+		// Get current version for optimistic locking (skip round-trip when caller holds DBVersion from GetTask/List).
 		var currentVersion int64
 
-		err = tx.QueryRowContext(txCtx, `SELECT version FROM tasks WHERE id = ?`, task.ID).Scan(&currentVersion)
-		if errors.Is(err, sql.ErrNoRows) {
-			return fmt.Errorf("task %s not found", task.ID)
-		}
+		if task.DBVersion > 0 {
+			currentVersion = task.DBVersion
+		} else {
+			err = tx.QueryRowContext(txCtx, `SELECT version FROM tasks WHERE id = ?`, task.ID).Scan(&currentVersion)
+			if errors.Is(err, sql.ErrNoRows) {
+				return fmt.Errorf("task %s not found", task.ID)
+			}
 
-		if err != nil {
-			return fmt.Errorf("failed to query task version: %w", err)
+			if err != nil {
+				return fmt.Errorf("failed to query task version: %w", err)
+			}
 		}
 
 		// Update task with optimistic locking (version check)

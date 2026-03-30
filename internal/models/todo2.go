@@ -56,6 +56,9 @@ type Todo2Task struct {
 	AssignedTo string `json:"assigned_to,omitempty"` // Persistent assignee (owner); distinct from lock assignee
 	Host       string `json:"host,omitempty"`        // Hostname where task was created or last modified
 	Agent      string `json:"agent,omitempty"`       // Agent ID that created or last modified (e.g. general-host-pid)
+	// DBVersion is the SQLite optimistic-lock version when the task was loaded from the DB.
+	// json:"-" so it is not persisted in JSON state files; UpdateTask skips a version pre-SELECT when > 0.
+	DBVersion int64 `json:"-"`
 }
 
 // Todo2State represents the Todo2 state file structure.

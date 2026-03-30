@@ -271,7 +271,7 @@ func handleTaskWorkflowClarity(ctx context.Context, params map[string]interface{
 
 	autoApply := ParamBool(params, "auto_apply", false)
 
-	outputFormat := "text"
+	outputFormat := "json"
 	outputFormat = ParamOutputFormat(params, outputFormat)
 
 	// Analyze tasks for clarity issues

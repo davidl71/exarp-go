@@ -728,7 +728,7 @@ func handleTaskWorkflowList(ctx context.Context, params map[string]interface{}) 
 	// Format output
 	outputFormat := cast.ToString(params["output_format"])
 	if outputFormat == "" {
-		outputFormat = "text"
+		outputFormat = "json"
 	}
 
 	if outputFormat == "json" {

@@ -146,6 +146,8 @@ func ClaimTaskForAgent(ctx context.Context, taskID string, agentID string, lease
 			return result.Error
 		}
 
+		taskData.DBVersion = version + 1
+
 		// Load full task details (tags, dependencies)
 		fullTask, err := loadTaskWithRelations(txCtx, tx, taskID)
 		if err != nil {

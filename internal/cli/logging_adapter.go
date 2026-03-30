@@ -10,7 +10,7 @@ import (
 )
 
 // DefaultSlowThreshold is the default threshold for slow operation detection (2 seconds).
-var DefaultSlowThreshold = 2 * time.Second
+const DefaultSlowThreshold = 2 * time.Second
 
 // logInfo logs an info message with structured fields using the shared logger.
 // When CLIOutputOpts.Quiet is true, no log output is written (script/JSON-friendly).

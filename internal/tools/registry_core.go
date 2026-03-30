@@ -151,8 +151,9 @@ func registerCoreTools(server framework.MCPServer) error {
 			"description": "For sub_action=list: order results by 'execution' or 'dependency' (backlog dependency order)",
 		},
 		"output_format": map[string]interface{}{
-			"type":    "string",
-			"default": "text",
+			"type":        "string",
+			"default":     "json",
+			"description": "MCP clients should use json (default). Use text for human table output (e.g. CLI).",
 		},
 		"compact": map[string]interface{}{
 			"type":        "boolean",

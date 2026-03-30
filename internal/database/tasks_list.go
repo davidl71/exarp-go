@@ -31,7 +31,7 @@ func ListTasks(ctx context.Context, filters *TaskFilters) ([]*Todo2Task, error) 
 		var queryBuilder strings.Builder
 
 		queryBuilder.WriteString(`
-			SELECT DISTINCT t.id, t.name, t.content, t.long_description, t.status, t.priority, t.completed, t.created, t.last_modified, t.completed_at, t.metadata, t.metadata_protobuf, t.metadata_format, t.parent_id, t.project_id, t.assigned_to, t.host, t.agent
+			SELECT DISTINCT t.id, t.name, t.content, t.long_description, t.status, t.priority, t.completed, t.created, t.last_modified, t.completed_at, t.metadata, t.metadata_protobuf, t.metadata_format, t.parent_id, t.project_id, t.assigned_to, t.host, t.agent, t.version
 			FROM tasks t
 		`)
 
@@ -121,6 +121,7 @@ func ListTasks(ctx context.Context, filters *TaskFilters) ([]*Todo2Task, error) 
 				AssignedTo:      row.AssignedTo,
 				Host:            row.Host,
 				Agent:           row.Agent,
+				DBVersion:       row.Version,
 			}
 
 			if row.ProjectID.Valid {
@@ -391,16 +392,16 @@ func FindNextClaimableTask(ctx context.Context) (*Todo2Task, error) {
 		// Exclude tasks currently locked by an agent (assignee set + lock not yet expired).
 		// assigned_to is persistent ownership; assignee+lock_until is the agent lock column.
 		now := time.Now().Unix()
-		var row taskRow
+		var row taskRowWithAgg
 		err = db.GetContext(queryCtx, &row, `
-			SELECT id, content, long_description, status, priority, completed, created, last_modified,
-			       completed_at, metadata, metadata_protobuf, metadata_format, parent_id, project_id,
-			       assigned_to, host, agent
-			FROM tasks
-			WHERE status = ?
-			  AND (assignee IS NULL OR lock_until IS NULL OR lock_until < ?)
+			SELECT t.id, t.content, t.long_description, t.status, t.priority, t.completed, t.created, t.last_modified,
+			       t.completed_at, t.metadata, t.metadata_protobuf, t.metadata_format, t.parent_id, t.project_id,
+			       t.assigned_to, t.host, t.agent, t.version`+sqlTaskAggJSON+`
+			FROM tasks AS t
+			WHERE t.status = ?
+			  AND (t.assignee IS NULL OR t.lock_until IS NULL OR t.lock_until < ?)
 			ORDER BY
-				CASE priority
+				CASE t.priority
 					WHEN 'high' THEN 1
 					WHEN 'critical' THEN 2
 					WHEN 'medium' THEN 3
@@ -431,6 +432,7 @@ func FindNextClaimableTask(ctx context.Context) (*Todo2Task, error) {
 			AssignedTo:      row.AssignedTo,
 			Host:            row.Host,
 			Agent:           row.Agent,
+			DBVersion:       row.Version,
 		}
 		if row.ProjectID.Valid {
 			task.ProjectID = row.ProjectID.String
@@ -440,17 +442,15 @@ func FindNextClaimableTask(ctx context.Context) (*Todo2Task, error) {
 
 		task.NormalizeEpochDates()
 
-		// Load tags
-		tags, err := loadTaskTags(ctx, queryCtx, db, task.ID)
+		tags, err := parseJSONArrayToStrings(row.TagsJSON)
 		if err != nil {
-			return fmt.Errorf("failed to load tags: %w", err)
+			return fmt.Errorf("failed to parse tags: %w", err)
 		}
 		task.Tags = tags
 
-		// Load dependencies
-		deps, err := loadTaskDependencies(ctx, queryCtx, db, task.ID)
+		deps, err := parseJSONArrayToStrings(row.DepsJSON)
 		if err != nil {
-			return fmt.Errorf("failed to load dependencies: %w", err)
+			return fmt.Errorf("failed to parse dependencies: %w", err)
 		}
 		task.Dependencies = deps
 

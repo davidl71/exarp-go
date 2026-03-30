@@ -157,8 +157,7 @@ func handleTaskAnalysisInferOwnership(ctx context.Context, params map[string]int
 
 	// Sort by confidence (high first)
 	sort.Slice(suggestions, func(i, j int) bool {
-		confOrder := map[string]int{"high": 0, "medium": 1, "low": 2, "none": 3, "": 4}
-		return confOrder[suggestions[i].OwnershipConfidence] < confOrder[suggestions[j].OwnershipConfidence]
+		return ownershipConfidenceOrder[suggestions[i].OwnershipConfidence] < ownershipConfidenceOrder[suggestions[j].OwnershipConfidence]
 	})
 
 	method := "native_go"
@@ -389,21 +388,7 @@ func buildDirectoryIndex(projectRoot string) map[string][]string {
 func globsForLane(lane string, dirIndex map[string][]string) []string {
 	var globs []string
 
-	// Map lane to likely directory patterns
-	laneToDirPattern := map[string][]string{
-		"backend-auth":        {"auth", "authentication"},
-		"backend-api":         {"api", "routes", "handlers"},
-		"backend-runtime":     {"server", "service", "backend"},
-		"tui-shell":           {"tui", "ui", "shell"},
-		"tui-pane":            {"panes", "pane", "views"},
-		"docs":                {"docs", "doc", "documentation"},
-		"testing":             {"test", "tests", "__tests__"},
-		"config":              {"config", ".cursor", ".github"},
-		"database":            {"db", "database", "models", "schema"},
-		"source-architecture": {"proto", "api"},
-	}
-
-	if patterns, ok := laneToDirPattern[lane]; ok {
+	if patterns, ok := ownershipLaneToDirPattern[lane]; ok {
 		for _, pattern := range patterns {
 			globs = append(globs, pattern+"/**")
 		}
@@ -416,17 +401,7 @@ func globsForLane(lane string, dirIndex map[string][]string) []string {
 func filesForLane(lane string, dirIndex map[string][]string, projectRoot string) []string {
 	var files []string
 
-	// Map lane to directory keywords
-	laneKeywords := map[string][]string{
-		"backend-auth": {"auth"},
-		"backend-api":  {"api", "route", "handler"},
-		"tui-shell":    {"shell", "app", "input"},
-		"tui-pane":     {"pane", "alert", "log", "setting"},
-		"docs":         {"doc"},
-		"testing":      {"test"},
-	}
-
-	keywords, ok := laneKeywords[lane]
+	keywords, ok := ownershipLaneKeywords[lane]
 	if !ok {
 		return files
 	}
@@ -796,7 +771,7 @@ func handleTaskAnalysisHotspots(ctx context.Context, params map[string]interface
 		result["warning"] = fmt.Sprintf("Found %d contested files - tasks sharing these files may collide", len(hotspots))
 	}
 
-	outputFormat := ParamOutputFormat(params, "text")
+	outputFormat := ParamOutputFormat(params, "json")
 	outputPath := ParamOutputPath(params)
 
 	if outputFormat == "json" {

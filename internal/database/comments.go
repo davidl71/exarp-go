@@ -5,6 +5,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"strings"
 	"time"
 )
 
@@ -50,21 +51,21 @@ func AddComments(ctx context.Context, taskID string, comments []Comment) error {
 
 		now := time.Now().Format(time.RFC3339)
 
+		placeholders := make([]string, len(comments))
+		args := make([]interface{}, 0, len(comments)*6)
+
 		for i := range comments {
 			comment := &comments[i]
 
-			// Ensure TaskID is set
 			if comment.TaskID == "" {
 				comment.TaskID = taskID
 			}
 
-			// Generate ID if not provided
 			if comment.ID == "" {
-				timestamp := time.Now().UnixNano()
-				comment.ID = fmt.Sprintf("%s-C-%d", taskID, timestamp)
+				// Include index: UnixNano can repeat within the same tight loop iteration.
+				comment.ID = fmt.Sprintf("%s-C-%d-%d", taskID, time.Now().UnixNano(), i)
 			}
 
-			// Set timestamps if not provided
 			if comment.Created == "" {
 				comment.Created = now
 			}
@@ -73,12 +74,8 @@ func AddComments(ctx context.Context, taskID string, comments []Comment) error {
 				comment.LastModified = now
 			}
 
-			// Insert comment
-			_, err = tx.ExecContext(txCtx, `
-				INSERT INTO task_comments (
-					id, task_id, comment_type, content, created, last_modified, created_at
-				) VALUES (?, ?, ?, ?, ?, ?, strftime('%s', 'now'))
-			`,
+			placeholders[i] = "(?, ?, ?, ?, ?, ?, strftime('%s', 'now'))"
+			args = append(args,
 				comment.ID,
 				comment.TaskID,
 				comment.Type,
@@ -86,9 +83,16 @@ func AddComments(ctx context.Context, taskID string, comments []Comment) error {
 				comment.Created,
 				comment.LastModified,
 			)
-			if err != nil {
-				return fmt.Errorf("failed to insert comment %s: %w", comment.ID, err)
-			}
+		}
+
+		_, err = tx.ExecContext(txCtx,
+			`INSERT INTO task_comments (
+				id, task_id, comment_type, content, created, last_modified, created_at
+			) VALUES `+strings.Join(placeholders, ", "),
+			args...,
+		)
+		if err != nil {
+			return fmt.Errorf("failed to insert comments: %w", err)
 		}
 
 		if err = tx.Commit(); err != nil {

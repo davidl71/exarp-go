@@ -304,8 +304,7 @@ func findParallelizableTasks(tasks []Todo2Task, durationWeight float64) []Parall
 
 	// Sort groups by priority (high -> medium -> low)
 	sort.Slice(groups, func(i, j int) bool {
-		priorityOrder := map[string]int{models.PriorityHigh: 0, models.PriorityMedium: 1, models.PriorityLow: 2}
-		return priorityOrder[groups[i].Priority] < priorityOrder[groups[j].Priority]
+		return parallelGroupPriorityRank[groups[i].Priority] < parallelGroupPriorityRank[groups[j].Priority]
 	})
 
 	return groups
@@ -357,8 +356,7 @@ func findParallelizableTasksSimple(tasks []Todo2Task, durationWeight float64) []
 
 	// Sort groups by priority (high -> medium -> low)
 	sort.Slice(groups, func(i, j int) bool {
-		priorityOrder := map[string]int{models.PriorityHigh: 0, models.PriorityMedium: 1, models.PriorityLow: 2}
-		return priorityOrder[groups[i].Priority] < priorityOrder[groups[j].Priority]
+		return parallelGroupPriorityRank[groups[i].Priority] < parallelGroupPriorityRank[groups[j].Priority]
 	})
 
 	return groups

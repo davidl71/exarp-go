@@ -30,7 +30,31 @@ type WorkflowModeManager struct {
 	statePath string
 }
 
-var globalWorkflowManager *WorkflowModeManager
+// workflowAvailableModes / workflowAvailableGroups / workflowValidModes — getStatus + setMode;
+// slices/maps are read-only at package scope (do not mutate in place).
+var (
+	globalWorkflowManager *WorkflowModeManager
+
+	workflowAvailableModes = []string{
+		"daily_checkin", "security_review", "task_management",
+		"sprint_planning", "code_review", "development", "debugging", "all",
+	}
+	workflowAvailableGroups = []string{
+		"core", "tool_catalog", "health", "tasks", "security",
+		"automation", "config", "testing", "advisors", "memory",
+		"workflow", "prd",
+	}
+	workflowValidModes = map[string]bool{
+		"daily_checkin":   true,
+		"security_review": true,
+		"task_management": true,
+		"sprint_planning": true,
+		"code_review":     true,
+		"development":     true,
+		"debugging":       true,
+		"all":             true,
+	}
+)
 
 // getWorkflowManager returns the global workflow mode manager.
 func getWorkflowManager() *WorkflowModeManager {
@@ -123,36 +147,18 @@ func (m *WorkflowModeManager) saveState() error {
 // getStatus returns current workflow mode status.
 func (m *WorkflowModeManager) getStatus() map[string]interface{} {
 	return map[string]interface{}{
-		"mode":            m.state.CurrentMode,
-		"extra_groups":    m.state.ExtraGroups,
-		"disabled_groups": m.state.DisabledGroups,
-		"last_updated":    m.state.LastUpdated,
-		"available_modes": []string{
-			"daily_checkin", "security_review", "task_management",
-			"sprint_planning", "code_review", "development", "debugging", "all",
-		},
-		"available_groups": []string{
-			"core", "tool_catalog", "health", "tasks", "security",
-			"automation", "config", "testing", "advisors", "memory",
-			"workflow", "prd",
-		},
+		"mode":             m.state.CurrentMode,
+		"extra_groups":     m.state.ExtraGroups,
+		"disabled_groups":  m.state.DisabledGroups,
+		"last_updated":     m.state.LastUpdated,
+		"available_modes":  workflowAvailableModes,
+		"available_groups": workflowAvailableGroups,
 	}
 }
 
 // setMode sets the workflow mode and returns the old mode.
 func (m *WorkflowModeManager) setMode(mode string) (string, error) {
-	validModes := map[string]bool{
-		"daily_checkin":   true,
-		"security_review": true,
-		"task_management": true,
-		"sprint_planning": true,
-		"code_review":     true,
-		"development":     true,
-		"debugging":       true,
-		"all":             true,
-	}
-
-	if !validModes[strings.ToLower(mode)] {
+	if !workflowValidModes[strings.ToLower(mode)] {
 		return "", fmt.Errorf("unknown mode: %s", mode)
 	}
 

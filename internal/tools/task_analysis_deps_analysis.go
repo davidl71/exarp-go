@@ -373,29 +373,6 @@ func handleTaskAnalysisNoise(ctx context.Context, params map[string]interface{})
 // ─── findNoiseTasks ─────────────────────────────────────────────────────────
 // findNoiseTasks applies heuristics to detect sentence fragments and junk tasks.
 func findNoiseTasks(tasks []Todo2Task) []map[string]interface{} {
-	// Fragment starters: mid-sentence phrases, not actionable
-	fragmentStarters := []string{
-		"that ", "and ", "which ", "the ", "this ", "it ", "these ", "those ",
-		"of ", "in ", "for ", "to ", "by ", "is ", "are ", "was ", "were ",
-	}
-	// Action verbs that suggest real tasks
-	actionVerbs := []string{
-		"add", "allow", "audit", "build", "check", "clean", "complete", "create",
-		"document", "enable", "ensure", "expose", "extract", "fetch", "fix",
-		"handle", "implement", "improve", "integrate", "investigate", "list",
-		"migrate", "optimize", "refactor", "remove", "replace", "retrieve",
-		"review", "run", "scan", "support", "test", "update", "validate",
-		"verify", "wire", "write",
-	}
-	statePhrases := []string{
-		"pass", "passes", "done", "complete", "completed", "cancelled", "cancellation",
-		"required", "requires", "supported", "available",
-	}
-	meaningfulTags := map[string]bool{
-		"testing": true, "mcp": true, "migration": true, "docs": true, "documentation": true,
-		"formid": true, "integration": true, "api": true, "ci": true, "database": true,
-	}
-
 	var candidates []map[string]interface{}
 	for _, t := range tasks {
 		title := strings.TrimSpace(t.Content)
@@ -413,7 +390,7 @@ func findNoiseTasks(tasks []Todo2Task) []map[string]interface{} {
 			firstWord := strings.Fields(titleLower)
 			if len(firstWord) > 0 {
 				first := firstWord[0]
-				for _, starter := range fragmentStarters {
+				for _, starter := range noiseFragmentStarters {
 					if strings.HasPrefix(contentLower, starter) {
 						reason = "sentence fragment (starts with \"" + starter + "\")"
 						break
@@ -421,7 +398,7 @@ func findNoiseTasks(tasks []Todo2Task) []map[string]interface{} {
 				}
 				if reason == "" {
 					hasAction := false
-					for _, verb := range actionVerbs {
+					for _, verb := range noiseActionVerbs {
 						if first == verb || strings.HasPrefix(first, verb) || strings.Contains(titleLower, " "+verb+" ") {
 							hasAction = true
 							break
@@ -435,14 +412,14 @@ func findNoiseTasks(tasks []Todo2Task) []map[string]interface{} {
 					}
 					if !meaningfulContext {
 						for _, tag := range t.Tags {
-							if meaningfulTags[strings.ToLower(tag)] {
+							if noiseMeaningfulTags[strings.ToLower(tag)] {
 								meaningfulContext = true
 								break
 							}
 						}
 					}
 					isStatePhrase := false
-					for _, phrase := range statePhrases {
+					for _, phrase := range noiseStatePhrases {
 						if strings.Contains(titleLower, phrase) {
 							isStatePhrase = true
 							break

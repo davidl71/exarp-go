@@ -162,7 +162,7 @@ func handleTaskAnalysisDependencies(ctx context.Context, params map[string]inter
 func handleTaskAnalysisDependenciesSummary(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	outputFormat := ParamString(params, "output_format")
 	if outputFormat == "" {
-		outputFormat = "text"
+		outputFormat = "json"
 	}
 
 	if outputFormat == "json" {

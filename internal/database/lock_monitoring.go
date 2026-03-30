@@ -7,6 +7,8 @@ import (
 	"errors"
 	"fmt"
 	"time"
+
+	"github.com/jmoiron/sqlx"
 )
 
 // LockStatus represents the status of a task lock.
@@ -28,6 +30,20 @@ type StaleLockInfo struct {
 	StaleCount      int // Expired for > 5 minutes
 	Locks           []LockStatus
 }
+
+// releaseAgentLockSet clears assignee/lock_until and bumps version (SQLite).
+// Used by CleanupExpiredLocksWithReport and releaseLocksForTaskIDs.
+const releaseAgentLockSet = `
+UPDATE tasks SET
+	assignee = NULL,
+	assigned_at = NULL,
+	lock_until = NULL,
+	status = CASE
+		WHEN status = 'In Progress' THEN 'Todo'
+		ELSE status
+	END,
+	version = version + 1,
+	updated_at = strftime('%s', 'now')`
 
 // GetActiveLocks returns all non-expired task locks ordered by expiry.
 func GetActiveLocks(ctx context.Context) ([]LockStatus, error) {
@@ -350,69 +366,28 @@ func CleanupExpiredLocksWithReport(ctx context.Context, maxAge time.Duration) (i
 		now := time.Now().Unix()
 		maxAgeUnix := now - int64(maxAge.Seconds())
 
-		// Find expired locks (also consider locks older than maxAge even if not expired)
-		rows, err := tx.QueryContext(txCtx, `
-			SELECT id, assignee, lock_until
-			FROM tasks
-			WHERE assignee IS NOT NULL
-			  AND lock_until IS NOT NULL
-			  AND (lock_until < ? OR assigned_at < ?)
-			ORDER BY lock_until ASC
-		`, now, maxAgeUnix)
+		rows, err := tx.QueryContext(txCtx, releaseAgentLockSet+`
+WHERE assignee IS NOT NULL
+  AND lock_until IS NOT NULL
+  AND (lock_until < ? OR assigned_at < ?)
+RETURNING id
+`, now, maxAgeUnix)
 		if err != nil {
-			return fmt.Errorf("failed to query expired locks: %w", err)
+			return fmt.Errorf("failed to cleanup expired locks: %w", err)
 		}
 		defer rows.Close()
 
-		var taskIDsToClean []string
-
 		for rows.Next() {
-			var taskID, assignee string
-
-			var lockUntil sql.NullInt64
-
-			if err := rows.Scan(&taskID, &assignee, &lockUntil); err != nil {
-				return fmt.Errorf("failed to scan expired lock: %w", err)
+			var taskID string
+			if err := rows.Scan(&taskID); err != nil {
+				return fmt.Errorf("failed to scan returned task id: %w", err)
 			}
-
-			taskIDsToClean = append(taskIDsToClean, taskID)
+			cleaned++
+			cleanedTaskIDs = append(cleanedTaskIDs, taskID)
 		}
 
 		if err := rows.Err(); err != nil {
-			return fmt.Errorf("failed to iterate expired locks: %w", err)
-		}
-
-		// Release expired locks (one at a time for simplicity)
-		if len(taskIDsToClean) > 0 {
-			for _, taskID := range taskIDsToClean {
-				result, err := tx.ExecContext(txCtx, `
-					UPDATE tasks SET
-						assignee = NULL,
-						assigned_at = NULL,
-						lock_until = NULL,
-						status = CASE 
-							WHEN status = 'In Progress' THEN 'Todo'
-							ELSE status
-						END,
-						version = version + 1,
-						updated_at = strftime('%s', 'now')
-					WHERE id = ?
-				`, taskID)
-				if err != nil {
-					return fmt.Errorf("failed to cleanup expired lock for task %s: %w", taskID, err)
-				}
-
-				rowsAffected, err := result.RowsAffected()
-				if err != nil {
-					return fmt.Errorf("failed to get rows affected: %w", err)
-				}
-
-				if rowsAffected > 0 {
-					cleaned++
-
-					cleanedTaskIDs = append(cleanedTaskIDs, taskID)
-				}
-			}
+			return fmt.Errorf("failed to iterate cleanup results: %w", err)
 		}
 
 		return tx.Commit()
@@ -481,34 +456,34 @@ func releaseLocksForTaskIDs(ctx context.Context, taskIDs []string) (int, []strin
 			}
 		}()
 
-		for _, taskID := range taskIDs {
-			result, err := tx.ExecContext(txCtx, `
-				UPDATE tasks SET
-					assignee = NULL,
-					assigned_at = NULL,
-					lock_until = NULL,
-					status = CASE 
-						WHEN status = 'In Progress' THEN 'Todo'
-						ELSE status
-					END,
-					version = version + 1,
-					updated_at = strftime('%s', 'now')
-				WHERE id = ?
-			`, taskID)
-			if err != nil {
-				return fmt.Errorf("failed to release lock for task %s: %w", taskID, err)
-			}
+		if len(taskIDs) == 0 {
+			return tx.Commit()
+		}
 
-			rowsAffected, err := result.RowsAffected()
-			if err != nil {
-				return fmt.Errorf("failed to get rows affected: %w", err)
-			}
+		q, args, err := sqlx.In(releaseAgentLockSet+` WHERE id IN (?) RETURNING id`, taskIDs)
+		if err != nil {
+			return fmt.Errorf("failed to build batch release query: %w", err)
+		}
 
-			if rowsAffected > 0 {
-				cleaned++
+		q = db.Rebind(q)
 
-				cleanedTaskIDs = append(cleanedTaskIDs, taskID)
+		retRows, err := tx.QueryContext(txCtx, q, args...)
+		if err != nil {
+			return fmt.Errorf("failed to batch release locks: %w", err)
+		}
+		defer retRows.Close()
+
+		for retRows.Next() {
+			var id string
+			if err := retRows.Scan(&id); err != nil {
+				return fmt.Errorf("failed to scan released task id: %w", err)
 			}
+			cleaned++
+			cleanedTaskIDs = append(cleanedTaskIDs, id)
+		}
+
+		if err := retRows.Err(); err != nil {
+			return fmt.Errorf("failed to iterate release results: %w", err)
 		}
 
 		return tx.Commit()
