@@ -49,6 +49,8 @@ func handleAutomationNative(ctx context.Context, params map[string]interface{}) 
 		return handleAutomationDaily(ctx, params)
 	case "discover":
 		return handleAutomationDiscover(ctx, params)
+	case "execution_cockpit":
+		return handleAutomationExecutionCockpit(ctx, params)
 	case "nightly":
 		return handleAutomationNightly(ctx, params)
 	case "schedule":
@@ -58,7 +60,7 @@ func handleAutomationNative(ctx context.Context, params map[string]interface{}) 
 	case "unschedule":
 		return handleAutomationUnschedule(ctx, params)
 	default:
-		return nil, fmt.Errorf("unknown automation action: %s (use 'daily', 'nightly', 'sprint', 'discover', 'schedule', or 'unschedule')", action)
+		return nil, fmt.Errorf("unknown automation action: %s (use 'daily', 'nightly', 'sprint', 'discover', 'execution_cockpit', 'schedule', or 'unschedule')", action)
 	}
 }
 

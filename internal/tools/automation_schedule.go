@@ -218,7 +218,7 @@ func resolveAutomationScheduleConfig(params map[string]interface{}) (*automation
 	}
 
 	if !isAutomationTargetAction(targetAction) {
-		return nil, fmt.Errorf("unknown target_action: %s (use daily, nightly, sprint, or discover)", targetAction)
+		return nil, fmt.Errorf("unknown target_action: %s (use daily, nightly, sprint, discover, or execution_cockpit)", targetAction)
 	}
 
 	label := strings.TrimSpace(cast.ToString(params["schedule_label"]))
@@ -720,6 +720,8 @@ func scheduleResponseToMap(action string, result map[string]interface{}) map[str
 func isAutomationTargetAction(action string) bool {
 	switch action {
 	case "daily", "nightly", "sprint", "discover":
+		return true
+	case "execution_cockpit":
 		return true
 	default:
 		return false

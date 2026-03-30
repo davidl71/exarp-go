@@ -11,18 +11,18 @@ func registerInfraTools(server framework.MCPServer) error {
 	// automation
 	if err := server.RegisterTool(
 		"automation",
-		"[HINT: action=daily|nightly|sprint|discover|schedule|unschedule. Scheduled automation workflows. Use for routine maintenance, sprint automation, discovering actionable tasks, or installing OS-native schedules.]",
+		"[HINT: action=daily|nightly|sprint|discover|execution_cockpit|schedule|unschedule. Scheduled automation workflows. Use for routine maintenance, sprint automation, cockpit job generation, discovering actionable tasks, or installing OS-native schedules.]",
 		framework.ToolSchema{
 			Type: "object",
 			Properties: map[string]interface{}{
 				"action": map[string]interface{}{
 					"type":    "string",
-					"enum":    []string{"daily", "nightly", "sprint", "discover", "schedule", "unschedule"},
+					"enum":    []string{"daily", "nightly", "sprint", "discover", "execution_cockpit", "schedule", "unschedule"},
 					"default": "daily",
 				},
 				"target_action": map[string]interface{}{
 					"type":        "string",
-					"enum":        []string{"daily", "nightly", "sprint", "discover"},
+					"enum":        []string{"daily", "nightly", "sprint", "discover", "execution_cockpit"},
 					"default":     "daily",
 					"description": "Automation action to run from the scheduled job.",
 				},

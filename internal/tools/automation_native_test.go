@@ -54,6 +54,12 @@ func TestHandleAutomationNative(t *testing.T) {
 			wantError: false,
 		},
 		{
+			name:      "execution_cockpit action",
+			action:    "execution_cockpit",
+			params:    map[string]interface{}{"action": "execution_cockpit", "output_format": "json"},
+			wantError: false,
+		},
+		{
 			name:      "discover action",
 			action:    "discover",
 			params:    map[string]interface{}{"action": "discover", "use_llm": false},
@@ -365,6 +371,50 @@ func TestHandleAutomationScheduleDryRun(t *testing.T) {
 		}
 		if _, ok := artifacts["script"].(string); !ok {
 			t.Fatalf("artifacts.script missing or wrong type: %#v", artifacts["script"])
+		}
+	})
+}
+
+func TestHandleAutomationScheduleDryRunExecutionCockpit(t *testing.T) {
+	t.Setenv("HOME", t.TempDir())
+
+	runWithTimeout(t, automationTestTimeout, func() {
+		ctx := context.Background()
+
+		result, err := handleAutomationNative(ctx, map[string]interface{}{
+			"action":           "schedule",
+			"target_action":    "execution_cockpit",
+			"schedule_label":   "test-schedule-cockpit",
+			"interval_seconds": 120,
+			"dry_run":          true,
+		})
+		if err != nil {
+			t.Fatalf("handleAutomationNative(schedule cockpit) error = %v", err)
+		}
+		if result == nil || len(result) == 0 {
+			t.Fatal("handleAutomationNative(schedule cockpit) returned empty result")
+		}
+
+		var payload map[string]interface{}
+		if err := json.Unmarshal([]byte(result[0].Text), &payload); err != nil {
+			t.Fatalf("schedule cockpit result JSON invalid: %v", err)
+		}
+		if got := payload["action"]; got != "schedule" {
+			t.Fatalf("action = %#v, want schedule", got)
+		}
+		if got := payload["status"]; got != "success" {
+			t.Fatalf("status = %#v, want success", got)
+		}
+
+		results, ok := payload["results"].(map[string]interface{})
+		if !ok {
+			t.Fatalf("results missing or wrong type: %#v", payload["results"])
+		}
+		if got := results["target_action"]; got != "execution_cockpit" {
+			t.Fatalf("results.target_action = %#v, want execution_cockpit", got)
+		}
+		if got := results["schedule_label"]; got != "test-schedule-cockpit" {
+			t.Fatalf("results.schedule_label = %#v, want test-schedule-cockpit", got)
 		}
 	})
 }
