@@ -4,28 +4,27 @@ package tools
 import (
 	"context"
 	"fmt"
-	"path/filepath"
 	"strings"
 
 	"github.com/davidl71/exarp-go/internal/database"
 	"github.com/davidl71/exarp-go/internal/models"
 )
 
-// loadTodo2TasksFromDB loads tasks from database (scoped to project when projectRoot is set).
+// loadTodo2TasksFromDB loads all tasks from this repo's Todo2 database. projectRoot is reserved for callers;
+// rows are not filtered by project_id (see ListTasks call below).
 func loadTodo2TasksFromDB(projectRoot string) ([]Todo2Task, error) {
+	_ = projectRoot // API stable; DB is already opened for this project root by caller.
+
 	if db, err := database.GetDB(); err != nil || db == nil {
 		return nil, fmt.Errorf("database not available")
 	}
 
 	ctx := context.Background()
-	var filters *database.TaskFilters
-	if projectRoot != "" {
-		projectID := filepath.Base(projectRoot)
-		if projectID != "" && projectID != "." {
-			filters = &database.TaskFilters{ProjectID: &projectID}
-		}
-	}
-	tasks, err := database.ListTasks(ctx, filters)
+	// One .todo2 SQLite file per repo: load every row. Task project_id is logical
+	// ownership (e.g. Aether vs exarp-go), not a storage partition — filtering
+	// ListTasks by basename(projectRoot) dropped cross-labeled tasks and broke
+	// SQLite↔JSON sync for those IDs.
+	tasks, err := database.ListTasks(ctx, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load tasks from database: %w", err)
 	}
@@ -40,13 +39,15 @@ func loadTodo2TasksFromDB(projectRoot string) ([]Todo2Task, error) {
 	return result, nil
 }
 
-// saveTodo2TasksToDB saves tasks to database (projectRoot used to scope obsolete-task cleanup).
+// saveTodo2TasksToDB saves tasks to the open database for this repo (all project_id rows).
 // Matches tasks by ID first, then by content/description if ID doesn't match.
 // Sorts tasks by dependency order to ensure dependencies are created before dependents.
 //
 // Performance: loads existing DB tasks once up front and builds ID+content maps to avoid
 // N GetTask/ListTasks calls inside the loop. Obsolete tasks are removed via BatchDeleteTasks.
 func saveTodo2TasksToDB(projectRoot string, tasks []Todo2Task) error {
+	_ = projectRoot // Reserved; obsolete-task scope uses full DB list (see ListTasks below).
+
 	if db, err := database.GetDB(); err != nil || db == nil {
 		return fmt.Errorf("database not available")
 	}
@@ -60,16 +61,8 @@ func saveTodo2TasksToDB(projectRoot string, tasks []Todo2Task) error {
 	ctx := context.Background()
 
 	// ── Preload all existing DB tasks once ──────────────────────────────────
-	// Build project-scoped filter (same scope used later for obsolete cleanup).
-	var listFilters *database.TaskFilters
-	if projectRoot != "" {
-		pid := filepath.Base(projectRoot)
-		if pid != "" && pid != "." {
-			listFilters = &database.TaskFilters{ProjectID: &pid}
-		}
-	}
-
-	existingPtrs, _ := database.ListTasks(ctx, listFilters)
+	// Same as loadTodo2TasksFromDB: one DB per repo includes all project_id labels.
+	existingPtrs, _ := database.ListTasks(ctx, nil)
 
 	// Two lookup maps: by ID and by normalised content.
 	existingByID := make(map[string]*database.Todo2Task, len(existingPtrs))
