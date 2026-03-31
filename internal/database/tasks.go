@@ -23,15 +23,97 @@ type Todo2Task = models.Todo2Task
 type TaskFilters struct {
 	Status    *string
 	Statuses  []string // Multiple statuses (IN clause)
+	// StatusEnum filters by a typed status. When set, it is converted to the stored title-case string.
+	// Prefer this for internal callers to avoid string comparisons/normalization.
+	StatusEnum *models.TaskStatus
+	// StatusEnums filters by multiple typed statuses (IN clause).
+	StatusEnums []models.TaskStatus
 	Priority  *string
+	// PriorityEnum filters by typed priority. Converted to canonical stored string.
+	PriorityEnum *models.TaskPriority
 	Tag       *string
 	ProjectID *string
+	// IncludeMetadata controls whether ListTasks hydrates task.Metadata by decoding protobuf/JSON
+	// metadata columns. When nil, ListTasks defaults to true for backward compatibility.
+	IncludeMetadata *bool
 	// IncludeNullProjectID treats NULL/empty project_id rows as matching the
 	// requested ProjectID. Use for legacy rows that predate project scoping.
 	IncludeNullProjectID bool
 	AssignedTo           *string
 	Host                 *string
 	Agent                *string
+}
+
+// taskStatusEnumInt maps the canonical title-case status string to its persisted enum int.
+// Keep in sync with migrations/016_recreate_tasks_with_enum_and_timeints.sql.
+func taskStatusEnumInt(statusTitle string) int {
+	switch models.ParseTaskStatus(statusTitle) {
+	case models.TaskStatusTodo:
+		return 1
+	case models.TaskStatusInProgress:
+		return 2
+	case models.TaskStatusReview:
+		return 3
+	case models.TaskStatusDone:
+		return 4
+	case models.TaskStatusBlocked:
+		return 5
+	case models.TaskStatusCancelled:
+		return 6
+	default:
+		return 1
+	}
+}
+
+// taskPriorityEnumInt maps the canonical lowercase priority string to its persisted enum int.
+// Keep in sync with migrations/016_recreate_tasks_with_enum_and_timeints.sql.
+func taskPriorityEnumInt(priorityCanonical string) int {
+	switch models.ParseTaskPriority(priorityCanonical) {
+	case models.TaskPriorityLow:
+		return 1
+	case models.TaskPriorityMedium:
+		return 2
+	case models.TaskPriorityHigh:
+		return 3
+	case models.TaskPriorityCritical:
+		return 4
+	default:
+		return 0
+	}
+}
+
+func taskStatusFromEnumInt(v int) models.TaskStatus {
+	switch v {
+	case 1:
+		return models.TaskStatusTodo
+	case 2:
+		return models.TaskStatusInProgress
+	case 3:
+		return models.TaskStatusReview
+	case 4:
+		return models.TaskStatusDone
+	case 5:
+		return models.TaskStatusBlocked
+	case 6:
+		return models.TaskStatusCancelled
+	default:
+		return models.TaskStatusUnspecified
+	}
+}
+
+func taskPriorityFromEnumInt(v int) models.TaskPriority {
+	switch v {
+	case 1:
+		return models.TaskPriorityLow
+	case 2:
+		return models.TaskPriorityMedium
+	case 3:
+		return models.TaskPriorityHigh
+	case 4:
+		return models.TaskPriorityCritical
+	default:
+		return models.TaskPriorityUnspecified
+	}
 }
 
 // SanitizeTaskMetadata parses JSON metadata; on failure returns a map with "raw" key and logs.

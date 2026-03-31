@@ -411,6 +411,9 @@ func handleSessionPrime(ctx context.Context, params map[string]interface{}) ([]f
 				if hint := buildSuggestedNextAction(suggestedNext[0]); hint != "" {
 					result["suggested_next_action"] = hint
 				}
+				if ln, ok := suggestedNext[0]["lane"].(string); ok && ln != "" {
+					result["suggested_lane"] = ln
+				}
 
 				// Add ownership collision warnings for suggested tasks
 				suggestedTaskIDs := make([]string, 0, len(suggestedNext))

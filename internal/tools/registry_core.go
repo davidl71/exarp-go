@@ -12,7 +12,7 @@ func registerCoreTools(server framework.MCPServer) error {
 	taskWorkflowProps := taskworkflowspec.AppendTaskFieldSchemaProperties(map[string]interface{}{
 		"action": map[string]interface{}{
 			"type":    "string",
-			"enum":    []string{"list", "create", "update", "delete", "add_comment", "summarize", "run_with_ai", "approve", "clarify", "clarity", "cleanup", "enrich_tool_hints", "fix_dates", "fix_empty_descriptions", "fix_invalid_ids", "link_planning", "request_approval", "sync_approvals", "apply_approval_result", "sanity_check", "sync", "sync_from_plan", "sync_plan_status", "claim", "batch_claim", "release", "agent_status", "start_run", "end_run", "list_runs", "show_run", "verify", "add_progress", "split"},
+			"enum":    []string{"list", "create", "update", "delete", "add_comment", "summarize", "run_with_ai", "approve", "clarify", "clarity", "cleanup", "enrich_tool_hints", "fix_dates", "fix_empty_descriptions", "fix_empty_names", "fix_invalid_ids", "link_planning", "request_approval", "sync_approvals", "apply_approval_result", "sanity_check", "sync", "sync_from_plan", "sync_plan_status", "claim", "batch_claim", "release", "agent_status", "start_run", "end_run", "list_runs", "show_run", "verify", "add_progress", "split"},
 			"default": "list",
 		},
 		"dry_run": map[string]interface{}{

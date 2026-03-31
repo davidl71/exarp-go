@@ -348,7 +348,9 @@ func (m model) renderMediumTaskList(b *strings.Builder, width int) {
 		_, isSelected := m.selected[realIdx]
 
 		cursor := cursorMarkerWide(isCursor, isSelected)
-		taskID := truncatePad(task.ID, colIDMedium)
+		// Task IDs should never be truncated; if the column is too narrow, overflow
+		// is preferable to losing the identifier.
+		taskID := task.ID
 		statusStr := formatStatus(task.Status, colStatus)
 		priFull := formatPriorityFull(task.Priority, colPriority)
 		priShort := formatPriorityShort(task.Priority, colPRI)
@@ -421,7 +423,9 @@ func (m model) renderWideTaskList(b *strings.Builder, width int) {
 		_, isSelected := m.selected[realIdx]
 
 		cursor := cursorMarkerWide(isCursor, isSelected)
-		taskID := truncatePad(task.ID, wideColID)
+		// Task IDs should never be truncated; if the column is too narrow, overflow
+		// is preferable to losing the identifier.
+		taskID := task.ID
 		statusStr := formatStatus(task.Status, wideColStatus)
 		priFull := formatPriorityFull(task.Priority, wideColPriority)
 		priShort := formatPriorityShort(task.Priority, wideColPRI)

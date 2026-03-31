@@ -97,7 +97,7 @@ func lintingToProtobuf(l *LintingConfig) *configpb.LintingConfig {
 			DefaultLinter: l.DefaultLinter,
 			AutoFix:       l.AutoFix,
 			IncludeHints:  l.IncludeHints,
-			Timeout:       durationToSeconds(l.Timeout),
+			Timeout:       durationToProto(l.Timeout),
 		}
 	})
 }
@@ -110,7 +110,7 @@ func lintingFromProtobuf(pb *configpb.LintingConfig) LintingConfig {
 		DefaultLinter: pb.GetDefaultLinter(),
 		AutoFix:       pb.GetAutoFix(),
 		IncludeHints:  pb.GetIncludeHints(),
-		Timeout:       secondsToDuration(pb.GetTimeout()),
+		Timeout:       durationFromProto(pb.GetTimeout()),
 	}
 }
 

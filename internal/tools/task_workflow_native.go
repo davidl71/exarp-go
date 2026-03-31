@@ -37,6 +37,8 @@ func handleTaskWorkflowNative(ctx context.Context, params map[string]interface{}
 		return handleTaskWorkflowFixDates(ctx, params)
 	case "fix_empty_descriptions":
 		return handleTaskWorkflowFixEmptyDescriptions(ctx, params)
+	case "fix_empty_names":
+		return handleTaskWorkflowFixEmptyNames(ctx, params)
 	case "clarity":
 		return handleTaskWorkflowClarity(ctx, params)
 	case "cleanup":

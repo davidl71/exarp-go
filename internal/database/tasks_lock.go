@@ -123,12 +123,13 @@ func ClaimTaskForAgent(ctx context.Context, taskID string, agentID string, lease
 				assigned_at = ?,
 				lock_until = ?,
 				status = ?,
+				status_enum = ?,
 				version = version + 1,
 				updated_at = strftime('%s', 'now')
 			WHERE id = ? 
 			  AND version = ?
-			  AND (assignee IS NULL OR lock_until IS NULL OR lock_until < ?)
-		`, agentID, now, leaseUntil, StatusInProgress, taskID, version, now)
+			  AND (assignee = '' OR lock_until = 0 OR lock_until < ?)
+		`, agentID, now, leaseUntil, StatusInProgress, taskStatusEnumInt(StatusInProgress), taskID, version, now)
 		if err != nil {
 			result.Error = fmt.Errorf("failed to update task: %w", err)
 			return result.Error
@@ -146,7 +147,7 @@ func ClaimTaskForAgent(ctx context.Context, taskID string, agentID string, lease
 			return result.Error
 		}
 
-		taskData.DBVersion = version + 1
+		taskData.Version = version + 1
 
 		// Load full task details (tags, dependencies)
 		fullTask, err := loadTaskWithRelations(txCtx, tx, taskID)
@@ -238,9 +239,9 @@ func ReleaseTask(ctx context.Context, taskID string, agentID string) error {
 		// Release lock
 		result, err := tx.ExecContext(txCtx, `
 			UPDATE tasks SET
-				assignee = NULL,
-				assigned_at = NULL,
-				lock_until = NULL,
+				assignee = '',
+				assigned_at = 0,
+				lock_until = 0,
 				version = version + 1,
 				updated_at = strftime('%s', 'now')
 			WHERE id = ? AND assignee = ?
@@ -414,22 +415,11 @@ func CleanupExpiredLocks(ctx context.Context) (int, error) {
 
 		now := time.Now().Unix()
 
-		// Find and release expired locks
-		result, err := tx.ExecContext(txCtx, `
-			UPDATE tasks SET
-				assignee = NULL,
-				assigned_at = NULL,
-				lock_until = NULL,
-				status = CASE 
-					WHEN status = 'In Progress' THEN 'Todo'
-					ELSE status
-				END,
-				version = version + 1,
-				updated_at = strftime('%s', 'now')
-			WHERE assignee IS NOT NULL
-			  AND lock_until IS NOT NULL
-			  AND lock_until < ?
-		`, now)
+		result, err := tx.ExecContext(txCtx, releaseAgentLockSet+`
+WHERE assignee <> ''
+  AND lock_until > 0
+  AND lock_until < ?
+`, now)
 		if err != nil {
 			return fmt.Errorf("failed to cleanup expired locks: %w", err)
 		}

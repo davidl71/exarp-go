@@ -10,7 +10,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/davidl71/exarp-go/internal/cache"
 	"github.com/davidl71/exarp-go/internal/config"
 	"github.com/davidl71/exarp-go/internal/database"
 	"github.com/davidl71/exarp-go/internal/models"
@@ -34,19 +33,14 @@ func LoadTodo2Tasks(projectRoot string) ([]Todo2Task, error) {
 }
 
 // loadTodo2TasksFromJSON loads tasks from JSON file (fallback method).
-// Metadata is sanitized on load; invalid JSON is coerced to {"raw": "..."}.
+// This is canonical-only: no alias fields (title/description, created/updated) are supported.
 func loadTodo2TasksFromJSON(projectRoot string) ([]Todo2Task, error) {
 	todo2Path := filepath.Join(projectRoot, ".todo2", "state.todo2.json")
-
-	// Use file cache for frequently accessed todo2.json file
-	fileCache := cache.GetGlobalFileCache()
-
-	data, _, err := fileCache.ReadFile(todo2Path)
+	data, err := os.ReadFile(todo2Path)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return []Todo2Task{}, nil
 		}
-
 		return nil, fmt.Errorf("failed to read Todo2 file: %w", err)
 	}
 
@@ -81,7 +75,6 @@ func SaveTodo2Tasks(projectRoot string, tasks []Todo2Task) error {
 		if jsonErr := saveTodo2TasksToJSON(projectRoot, tasks); jsonErr != nil {
 			return fmt.Errorf("database saved but JSON write failed: %w", jsonErr)
 		}
-
 		return nil
 	}
 
@@ -90,20 +83,17 @@ func SaveTodo2Tasks(projectRoot string, tasks []Todo2Task) error {
 }
 
 // saveTodo2TasksToJSON saves tasks to JSON file (fallback method).
+// Writes canonical state.todo2.json with no legacy alias fields.
 func saveTodo2TasksToJSON(projectRoot string, tasks []Todo2Task) error {
 	todo2Path := filepath.Join(projectRoot, ".todo2", "state.todo2.json")
-
-	// Ensure directory exists
-	dir := filepath.Dir(todo2Path)
-	if err := os.MkdirAll(dir, 0755); err != nil {
+	if err := os.MkdirAll(filepath.Dir(todo2Path), 0755); err != nil {
 		return fmt.Errorf("failed to create .todo2 directory: %w", err)
 	}
 
-	// Normalize epoch dates so we never persist 1970-01-01
 	for i := range tasks {
 		tasks[i].NormalizeEpochDates()
 	}
-	// Use MarshalTasksToStateJSON so written JSON includes "name" and "description" for Todo2 extension/overview
+
 	data, err := MarshalTasksToStateJSON(tasks)
 	if err != nil {
 		return fmt.Errorf("failed to marshal Todo2 state: %w", err)
@@ -112,7 +102,6 @@ func saveTodo2TasksToJSON(projectRoot string, tasks []Todo2Task) error {
 	if err := os.WriteFile(todo2Path, data, 0644); err != nil {
 		return fmt.Errorf("failed to write Todo2 file: %w", err)
 	}
-
 	return nil
 }
 
@@ -143,115 +132,28 @@ func SyncTodo2Tasks(projectRoot string) error {
 	dbTasksLoaded, dbErr := loadTodo2TasksFromDB(projectRoot)
 	jsonTasksLoaded, _ := loadTodo2TasksFromJSON(projectRoot)
 
-	// Detect content hash conflicts (same ID, different content in DB vs JSON)
-	dbByID := make(map[string]Todo2Task)
-	for _, t := range dbTasksLoaded {
-		dbByID[t.ID] = t
-	}
-
-	jsonByID := make(map[string]Todo2Task)
-	for _, t := range jsonTasksLoaded {
-		jsonByID[t.ID] = t
-	}
-
-	for id, jsonTask := range jsonByID {
-		if dbTask, ok := dbByID[id]; ok {
-			dbHash := models.GetContentHash(&dbTask)
-			jsonHash := models.GetContentHash(&jsonTask)
-			if dbHash != "" && jsonHash != "" && dbHash != jsonHash {
-				fmt.Fprintf(os.Stderr, "Warning: sync conflict on task %s: DB and JSON have different content (DB hash=%s, JSON hash=%s); DB version takes precedence\n",
-					id, dbHash[:12], jsonHash[:12])
-			}
-		}
-	}
-
 	// Build merged task map (database takes precedence)
 	taskMap := make(map[string]Todo2Task)
-
-	// First, add JSON tasks
 	for _, task := range jsonTasksLoaded {
 		taskMap[task.ID] = task
 	}
-
-	// Then, override with database tasks (database takes precedence)
 	for _, task := range dbTasksLoaded {
 		taskMap[task.ID] = task
 	}
 
-	// Convert map back to slice
 	mergedTasks := make([]Todo2Task, 0, len(taskMap))
 	for _, task := range taskMap {
 		mergedTasks = append(mergedTasks, task)
 	}
 
-	// Filter out AUTO-* tasks for database (keep them in JSON only)
-	// Also only persist current project's tasks to DB so multiple projects don't clobber.
-	projectID := filepath.Base(projectRoot)
-	if projectID == "" || projectID == "." {
-		projectID = "default"
-	}
-	dbTasksToSave := make([]Todo2Task, 0, len(mergedTasks))
-	jsonTasksForSave := make([]Todo2Task, 0, len(mergedTasks))
-
-	for _, task := range mergedTasks {
-		if strings.HasPrefix(task.ID, "AUTO-") {
-			// Skip AUTO-* tasks for database, but keep in JSON
-			jsonTasksForSave = append(jsonTasksForSave, task)
-		} else {
-			// Only write current project's tasks to DB
-			if task.ProjectID == "" || task.ProjectID == projectID {
-				dbTasksToSave = append(dbTasksToSave, task)
-			}
-			jsonTasksForSave = append(jsonTasksForSave, task)
-		}
-	}
-
 	// Save to both sources
-	var dbSaveErr, jsonSaveErr error
-
-	// Try to save to database first (without AUTO-* tasks)
 	if dbErr == nil {
-		// Database is available, save to it (excluding AUTO-* tasks)
-		// Also clean up any existing AUTO-* tasks from database
-		if err := cleanupAutoTasksFromDB(); err != nil {
-			// Log but don't fail - cleanup is best effort
-			fmt.Fprintf(os.Stderr, "Warning: Failed to cleanup AUTO tasks from database: %v\n", err)
+		if err := saveTodo2TasksToDB(projectRoot, mergedTasks); err != nil {
+			fmt.Fprintf(os.Stderr, "WARNING: Database save had errors: %v\n", err)
 		}
-
-		dbSaveErr = saveTodo2TasksToDB(projectRoot, dbTasksToSave)
-		if dbSaveErr != nil {
-			// Database save had errors - log but continue
-			// The error message includes details about which tasks failed
-			// We still want to save to JSON as backup
-			// Log the error for debugging
-			fmt.Fprintf(os.Stderr, "WARNING: Database save had errors: %v\n", dbSaveErr)
-		}
-	} else {
-		// Database not available, skip
-		dbSaveErr = fmt.Errorf("database not available: %w", dbErr)
 	}
-
-	// Always save to JSON (as fallback, including AUTO-* tasks)
-	jsonSaveErr = saveTodo2TasksToJSON(projectRoot, jsonTasksForSave)
-
-	// Return error if both failed
-	if dbSaveErr != nil && jsonSaveErr != nil {
-		return fmt.Errorf("failed to save to both sources: database=%w, json=%w", dbSaveErr, jsonSaveErr)
-	}
-
-	// If JSON save failed, report it
-	if jsonSaveErr != nil {
-		return fmt.Errorf("failed to save to JSON: %w", jsonSaveErr)
-	}
-
-	// Database was never available (e.g. test env without Init): JSON-only sync is success
-	if dbErr != nil {
-		return nil
-	}
-
-	// Database was available but save failed - return error so caller knows (JSON saved as backup)
-	if dbSaveErr != nil {
-		return fmt.Errorf("database save failed (JSON saved as backup): %w", dbSaveErr)
+	if err := saveTodo2TasksToJSON(projectRoot, mergedTasks); err != nil {
+		return err
 	}
 
 	return nil
@@ -324,6 +226,7 @@ func cleanupAutoTasksFromDB() error {
 
 	return nil
 }
+
 
 // formatTaskDate returns a display string for a task date; never returns 1970.
 // Empty or epoch dates return "—".
@@ -437,7 +340,8 @@ func tasksReadyToStart(tasks []Todo2Task) map[string]bool {
 	done := make(map[string]bool)
 
 	for _, t := range tasks {
-		if strings.EqualFold(t.Status, "done") {
+		// Prefer typed status when available; fall back to string for legacy callers.
+		if t.StatusEnum == models.TaskStatusDone || strings.EqualFold(t.Status, "done") {
 			done[t.ID] = true
 		}
 	}
@@ -538,12 +442,12 @@ func WriteTodo2Overview(projectRoot string) error {
 		b.WriteString("### " + t.ID + ": " + name + "\n")
 		b.WriteString("- **Status:** " + t.Status + " ")
 
-		switch strings.ToLower(t.Status) {
-		case "done":
+		switch t.StatusEnum {
+		case models.TaskStatusDone:
 			b.WriteString("✅")
-		case "in progress":
+		case models.TaskStatusInProgress:
 			b.WriteString("⚡")
-		case "review":
+		case models.TaskStatusReview:
 			b.WriteString("👀")
 		default:
 			b.WriteString("📋")
@@ -582,12 +486,12 @@ func WriteTodo2Overview(projectRoot string) error {
 	var todo, inProgress, done int
 
 	for _, t := range tasks {
-		switch strings.ToLower(t.Status) {
-		case "todo":
+		switch t.StatusEnum {
+		case models.TaskStatusTodo:
 			todo++
-		case "in progress":
+		case models.TaskStatusInProgress:
 			inProgress++
-		case "done":
+		case models.TaskStatusDone:
 			done++
 		}
 	}

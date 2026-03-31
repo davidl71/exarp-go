@@ -1,6 +1,10 @@
 package tools
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/davidl71/exarp-go/internal/models"
+)
 
 // buildLazyTaskContext returns task-scoped resource pointers that clients can
 // load on demand instead of preloading all skills and workflow guidance.
@@ -13,13 +17,17 @@ func buildLazyTaskContext(task Todo2Task) map[string]interface{} {
 		resourceURIs = append(resourceURIs, skillURIs...)
 	}
 
-	return map[string]interface{}{
+	out := map[string]interface{}{
 		"load_strategy":       "on_demand",
 		"task_resource_uri":   fmt.Sprintf("stdio://tasks/%s", task.ID),
 		"skill_resource_uris": skillURIs,
 		"resource_uris":       resourceURIs,
 		"reason":              "Load these only if you start or inspect this task to keep prime/session context small.",
 	}
+	if ln := models.GetTaskLane(&task); ln != "" {
+		out["lane"] = ln
+	}
+	return out
 }
 
 func skillResourceURIsForTask(task Todo2Task) []string {

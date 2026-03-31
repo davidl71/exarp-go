@@ -24,7 +24,7 @@ Use this page as the **index** for performance work: general Go patterns (extern
 ```bash
 # Tool handlers and related (default bench suite; includes -benchmem)
 make bench
-# Equivalent: see Makefile target go-bench (CGO_ENABLED=0, ./internal/tools/...)
+# Equivalent: see Makefile target go-bench (CGO_ENABLED=0, skips unit tests via -run=^$, ./internal/tools/...)
 ```
 
 ### Database CRUD (CPU + heap profiles)
@@ -81,12 +81,30 @@ make b
 go tool pprof -text -nodecount=40 ./bin/exarp-go /tmp/cli_tasklist_cpu.pprof
 ```
 
+### MCP tool: one-shot `task_workflow list` (CPU)
+
+This captures **startup + one list call** (still sparse, but useful as a quick sanity check).
+For stable before/after numbers, prefer `go test -run=^$ -bench=...` in `./internal/tools`.
+
+```bash
+make b
+./bin/exarp-go -cpuprof=/tmp/mcp_taskworkflow_list_cpu.pprof \
+  -tool task_workflow \
+  -args '{"action":"list","output_format":"json","compact":true,"limit":200}' >/dev/null
+go tool pprof -text -nodecount=40 ./bin/exarp-go /tmp/mcp_taskworkflow_list_cpu.pprof
+```
+
 ### MCP stdio session (long-running CPU)
 
 ```bash
 ./bin/exarp-go -cpuprof=/tmp/mcp_stdio_cpu.pprof
 # interact, then exit client; analyze as above with ./bin/exarp-go
 ```
+
+### Notes: reducing allocs/GC in `task_workflow list`
+
+- `task_workflow list` supports `include_locks=true` (default false). Avoid locks unless needed.
+- For SQL field/row tightening opportunities, see `docs/TASK_WORKFLOW_LIST_SQL_AUDIT.md`.
 
 ### SQLite / disk health (not CPU)
 

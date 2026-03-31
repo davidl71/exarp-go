@@ -8,6 +8,9 @@ import (
 
 	"github.com/davidl71/exarp-go/internal/database"
 	"github.com/davidl71/exarp-go/internal/models"
+	exarpb "github.com/davidl71/exarp-go/proto"
+	gproto "google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 func GetLatestLedgerSummary(projectRoot string) map[string]interface{} {
@@ -116,6 +119,47 @@ func BuildTaskExecutionPackData(ctx context.Context, projectRoot, taskID string)
 	}
 
 	return pack, nil
+}
+
+// BuildTaskExecutionPackJSON returns the execution-pack resource as JSON bytes.
+// It uses a small SQLite blob cache keyed by (task_id, task.version, kind) to avoid
+// recomputing and re-marshaling for polling clients.
+func BuildTaskExecutionPackJSON(ctx context.Context, projectRoot, taskID string) ([]byte, error) {
+	store := NewDefaultTaskStore(projectRoot)
+	task, err := store.GetTask(ctx, taskID)
+	if err != nil || task == nil {
+		return nil, fmt.Errorf("task %s not found", taskID)
+	}
+
+	const cacheKind = "task_execution_pack_v1"
+	cachedBytes, _ := database.GetCacheBlob(ctx, taskID, task.Version, cacheKind)
+	if len(cachedBytes) > 0 {
+		var cached exarpb.CachedTaskExecutionPack
+		if err := gproto.Unmarshal(cachedBytes, &cached); err == nil && len(cached.JsonPayload) > 0 {
+			return cached.JsonPayload, nil
+		}
+	}
+
+	pack, err := BuildTaskExecutionPackData(ctx, projectRoot, taskID)
+	if err != nil {
+		return nil, err
+	}
+	jsonBytes, err := json.Marshal(pack)
+	if err != nil {
+		return nil, fmt.Errorf("marshal execution pack: %w", err)
+	}
+
+	wrapped := &exarpb.CachedTaskExecutionPack{
+		TaskId:      taskID,
+		TaskVersion: task.Version,
+		JsonPayload: jsonBytes,
+		GeneratedAt: timestamppb.Now(),
+	}
+	if blob, err := gproto.Marshal(wrapped); err == nil {
+		_ = database.PutCacheBlob(ctx, taskID, task.Version, cacheKind, blob)
+	}
+
+	return jsonBytes, nil
 }
 
 func BuildWorkflowContract(task *models.Todo2Task, activeClaim *database.LockStatus, runs []database.TaskExecutionRun) map[string]interface{} {

@@ -64,6 +64,7 @@ func handleTaskListParsed(server framework.MCPServer, parsed *mcpcli.Args) error
 	tag := parsed.GetFlag("tag", "")
 	order := parsed.GetFlag("order", "")
 	limit, _ := strconv.Atoi(parsed.GetFlag("limit", "0"))
+	fullDescription := parsed.GetBoolFlag("full-description", false) || parsed.GetBoolFlag("full-long-description", false)
 
 	toolArgs := map[string]interface{}{
 		"action": "list",
@@ -86,6 +87,9 @@ func handleTaskListParsed(server framework.MCPServer, parsed *mcpcli.Args) error
 
 	if order == "execution" || order == "dependency" {
 		toolArgs["order"] = order
+	}
+	if fullDescription {
+		toolArgs["include_full_long_description"] = true
 	}
 	if CLIOutputOpts.JSON {
 		toolArgs["output_format"] = "json"
@@ -641,6 +645,7 @@ func showTaskUsage() error {
 	_, _ = fmt.Println("  show <task-id>          Show full task details")
 	_, _ = fmt.Println("  review <task-id>        Open local review UI for execution-pack")
 	_, _ = fmt.Println("  delete <task-id>        Delete a task (e.g. wrong project)")
+	_, _ = fmt.Println("  fix-empty-names         Backfill empty task.name from content (store maintenance)")
 	_, _ = fmt.Println("  sync                    Sync Todo2 (SQLite ↔ JSON)")
 	_, _ = fmt.Println("  estimate <name>         Estimate task duration (local AI)")
 	_, _ = fmt.Println("  summarize <task-id>     Generate AI summary for task")
@@ -652,6 +657,7 @@ func showTaskUsage() error {
 	_, _ = fmt.Println("  --priority <priority>   Filter by priority (low, medium, high)")
 	_, _ = fmt.Println("  --tag <tag>             Filter by tag")
 	_, _ = fmt.Println("  --limit <number>        Limit number of results")
+	_, _ = fmt.Println("  --full-description      Include full long_description in list output (no truncation)")
 	_, _ = fmt.Println("  --quiet                 Suppress verbose output (OpenCode/script-friendly)")
 	_, _ = fmt.Println("  --json, -j              Machine-readable JSON output")
 	_, _ = fmt.Println("  --concise               Strip emojis and decorative lines")

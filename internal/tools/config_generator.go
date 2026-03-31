@@ -13,13 +13,9 @@ import (
 	"github.com/spf13/cast"
 )
 
-// handleGenerateConfigNative handles the generate_config tool with native Go implementation.
-func handleGenerateConfigNative(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
-	var params map[string]interface{}
-	if err := json.Unmarshal(args, &params); err != nil {
-		return nil, fmt.Errorf("failed to parse arguments: %w", err)
-	}
-
+// handleGenerateConfigParams executes generate_config using a pre-parsed params map.
+// This avoids unnecessary marshal/unmarshal round-trips for protobuf callers.
+func handleGenerateConfigParams(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	action := strings.TrimSpace(cast.ToString(params["action"]))
 	if action == "" {
 		action = "rules"
@@ -41,6 +37,16 @@ func handleGenerateConfigNative(ctx context.Context, args json.RawMessage) ([]fr
 	default:
 		return nil, fmt.Errorf("unknown action: %s. Use 'rules', 'ignore', or 'simplify'", action)
 	}
+}
+
+// handleGenerateConfigNative handles the generate_config tool with native Go implementation.
+func handleGenerateConfigNative(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
+	var params map[string]interface{}
+	if err := json.Unmarshal(args, &params); err != nil {
+		return nil, fmt.Errorf("failed to parse arguments: %w", err)
+	}
+
+	return handleGenerateConfigParams(ctx, params)
 }
 
 // handleGenerateRules handles the "rules" action for generate_config.

@@ -190,7 +190,15 @@ func filterTasksToPtrs(tasks []Todo2Task, filters *database.TaskFilters) []*data
 			continue
 		}
 
+		if filters.StatusEnum != nil && filters.Status == nil && t.StatusEnum != *filters.StatusEnum {
+			continue
+		}
+
 		if filters.Priority != nil && t.Priority != *filters.Priority {
+			continue
+		}
+
+		if filters.PriorityEnum != nil && filters.Priority == nil && t.PriorityEnum != *filters.PriorityEnum {
 			continue
 		}
 

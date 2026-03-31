@@ -35,12 +35,16 @@ type StaleLockInfo struct {
 // Used by CleanupExpiredLocksWithReport and releaseLocksForTaskIDs.
 const releaseAgentLockSet = `
 UPDATE tasks SET
-	assignee = NULL,
-	assigned_at = NULL,
-	lock_until = NULL,
+	assignee = '',
+	assigned_at = 0,
+	lock_until = 0,
 	status = CASE
 		WHEN status = 'In Progress' THEN 'Todo'
 		ELSE status
+	END,
+	status_enum = CASE
+		WHEN status = 'In Progress' THEN 1
+		ELSE status_enum
 	END,
 	version = version + 1,
 	updated_at = strftime('%s', 'now')`
@@ -61,17 +65,16 @@ func GetActiveLocks(ctx context.Context) ([]LockStatus, error) {
 		now := time.Now().Unix()
 
 		var rows []struct {
-			TaskID     string        `db:"id"`
-			Assignee   string        `db:"assignee"`
-			AssignedAt sql.NullInt64 `db:"assigned_at"`
-			LockUntil  sql.NullInt64 `db:"lock_until"`
+			TaskID     string `db:"id"`
+			Assignee   string `db:"assignee"`
+			AssignedAt int64  `db:"assigned_at"`
+			LockUntil  int64  `db:"lock_until"`
 		}
 
 		if err := db.SelectContext(queryCtx, &rows, `
 			SELECT id, assignee, assigned_at, lock_until
 			FROM tasks
-			WHERE assignee IS NOT NULL
-			  AND lock_until IS NOT NULL
+			WHERE assignee <> ''
 			  AND lock_until >= ?
 			ORDER BY lock_until ASC
 		`, now); err != nil {
@@ -80,14 +83,14 @@ func GetActiveLocks(ctx context.Context) ([]LockStatus, error) {
 
 		locks = nil
 		for _, row := range rows {
-			if !row.LockUntil.Valid {
+			if row.LockUntil <= 0 {
 				continue
 			}
-			lockTime := time.Unix(row.LockUntil.Int64, 0)
+			lockTime := time.Unix(row.LockUntil, 0)
 			locks = append(locks, LockStatus{
 				TaskID:        row.TaskID,
 				Assignee:      row.Assignee,
-				AssignedAt:    time.Unix(row.AssignedAt.Int64, 0),
+				AssignedAt:    time.Unix(row.AssignedAt, 0),
 				LockUntil:     lockTime,
 				TimeRemaining: time.Until(lockTime),
 			})
@@ -140,31 +143,31 @@ func DetectStaleLocks(ctx context.Context, nearExpiryThreshold time.Duration) (*
 		nearExpiryTime := now + int64(nearExpiryThreshold.Seconds())
 
 		var rows []struct {
-			TaskID     string        `db:"id"`
-			Assignee   string        `db:"assignee"`
-			AssignedAt sql.NullInt64 `db:"assigned_at"`
-			LockUntil  sql.NullInt64 `db:"lock_until"`
+			TaskID     string `db:"id"`
+			Assignee   string `db:"assignee"`
+			AssignedAt int64  `db:"assigned_at"`
+			LockUntil  int64  `db:"lock_until"`
 		}
 
 		if err := db.SelectContext(queryCtx, &rows, `
 			SELECT id, assignee, assigned_at, lock_until
 			FROM tasks
-			WHERE assignee IS NOT NULL
-			  AND lock_until IS NOT NULL
+			WHERE assignee <> ''
+			  AND lock_until > 0
 			ORDER BY lock_until ASC
 		`); err != nil {
 			return fmt.Errorf("failed to query locked tasks: %w", err)
 		}
 
 		for _, row := range rows {
-			if !row.LockUntil.Valid {
+			if row.LockUntil <= 0 {
 				continue
 			}
 
-			lockTime := time.Unix(row.LockUntil.Int64, 0)
-			isExpired := row.LockUntil.Int64 < now
-			isNearExpiry := !isExpired && row.LockUntil.Int64 < nearExpiryTime
-			isStale := isExpired && (now-row.LockUntil.Int64) > 300
+			lockTime := time.Unix(row.LockUntil, 0)
+			isExpired := row.LockUntil < now
+			isNearExpiry := !isExpired && row.LockUntil < nearExpiryTime
+			isStale := isExpired && (now-row.LockUntil) > 300
 
 			var timeRemaining, timeExpired time.Duration
 			if isExpired {
@@ -176,7 +179,7 @@ func DetectStaleLocks(ctx context.Context, nearExpiryThreshold time.Duration) (*
 			status := LockStatus{
 				TaskID:        row.TaskID,
 				Assignee:      row.Assignee,
-				AssignedAt:    time.Unix(row.AssignedAt.Int64, 0),
+				AssignedAt:    time.Unix(row.AssignedAt, 0),
 				LockUntil:     lockTime,
 				IsExpired:     isExpired,
 				IsStale:       isStale,
@@ -216,9 +219,9 @@ func GetLockStatus(ctx context.Context, taskID string) (*LockStatus, error) {
 		defer cancel()
 
 		var row struct {
-			Assignee   sql.NullString `db:"assignee"`
-			AssignedAt sql.NullInt64  `db:"assigned_at"`
-			LockUntil  sql.NullInt64  `db:"lock_until"`
+			Assignee   string `db:"assignee"`
+			AssignedAt int64  `db:"assigned_at"`
+			LockUntil  int64  `db:"lock_until"`
 		}
 
 		err = db.GetContext(queryCtx, &row, `
@@ -235,14 +238,14 @@ func GetLockStatus(ctx context.Context, taskID string) (*LockStatus, error) {
 			return fmt.Errorf("failed to query lock status: %w", err)
 		}
 
-		if !row.Assignee.Valid || !row.LockUntil.Valid {
+		if row.Assignee == "" || row.LockUntil <= 0 {
 			return nil
 		}
 
 		now := time.Now().Unix()
-		lockTime := time.Unix(row.LockUntil.Int64, 0)
-		isExpired := row.LockUntil.Int64 < now
-		isStale := isExpired && (now-row.LockUntil.Int64) > 300
+		lockTime := time.Unix(row.LockUntil, 0)
+		isExpired := row.LockUntil < now
+		isStale := isExpired && (now-row.LockUntil) > 300
 
 		var timeRemaining, timeExpired time.Duration
 		if isExpired {
@@ -253,8 +256,8 @@ func GetLockStatus(ctx context.Context, taskID string) (*LockStatus, error) {
 
 		status = &LockStatus{
 			TaskID:        taskID,
-			Assignee:      row.Assignee.String,
-			AssignedAt:    time.Unix(row.AssignedAt.Int64, 0),
+			Assignee:      row.Assignee,
+			AssignedAt:    time.Unix(row.AssignedAt, 0),
 			LockUntil:     lockTime,
 			IsExpired:     isExpired,
 			IsStale:       isStale,
@@ -284,16 +287,16 @@ func GetLocksByAgent(ctx context.Context, agentID string) ([]LockStatus, error) 
 		now := time.Now().Unix()
 
 		var rows []struct {
-			TaskID     string        `db:"id"`
-			Assignee   string        `db:"assignee"`
-			AssignedAt sql.NullInt64 `db:"assigned_at"`
-			LockUntil  sql.NullInt64 `db:"lock_until"`
+			TaskID     string `db:"id"`
+			Assignee   string `db:"assignee"`
+			AssignedAt int64  `db:"assigned_at"`
+			LockUntil  int64  `db:"lock_until"`
 		}
 
 		if err := db.SelectContext(queryCtx, &rows, `
 			SELECT id, assignee, assigned_at, lock_until
 			FROM tasks
-			WHERE assignee = ? AND lock_until IS NOT NULL
+			WHERE assignee = ? AND lock_until > 0
 			ORDER BY lock_until ASC
 		`, agentID); err != nil {
 			return fmt.Errorf("failed to query locks: %w", err)
@@ -301,13 +304,13 @@ func GetLocksByAgent(ctx context.Context, agentID string) ([]LockStatus, error) 
 
 		locks = nil
 		for _, row := range rows {
-			if !row.LockUntil.Valid {
+			if row.LockUntil <= 0 {
 				continue
 			}
 
-			lockTime := time.Unix(row.LockUntil.Int64, 0)
-			isExpired := row.LockUntil.Int64 < now
-			isStale := isExpired && (now-row.LockUntil.Int64) > 300
+			lockTime := time.Unix(row.LockUntil, 0)
+			isExpired := row.LockUntil < now
+			isStale := isExpired && (now-row.LockUntil) > 300
 
 			var timeRemaining, timeExpired time.Duration
 			if isExpired {
@@ -319,7 +322,7 @@ func GetLocksByAgent(ctx context.Context, agentID string) ([]LockStatus, error) 
 			locks = append(locks, LockStatus{
 				TaskID:        row.TaskID,
 				Assignee:      row.Assignee,
-				AssignedAt:    time.Unix(row.AssignedAt.Int64, 0),
+				AssignedAt:    time.Unix(row.AssignedAt, 0),
 				LockUntil:     lockTime,
 				IsExpired:     isExpired,
 				IsStale:       isStale,
@@ -367,8 +370,8 @@ func CleanupExpiredLocksWithReport(ctx context.Context, maxAge time.Duration) (i
 		maxAgeUnix := now - int64(maxAge.Seconds())
 
 		rows, err := tx.QueryContext(txCtx, releaseAgentLockSet+`
-WHERE assignee IS NOT NULL
-  AND lock_until IS NOT NULL
+WHERE assignee <> ''
+  AND lock_until > 0
   AND (lock_until < ? OR assigned_at < ?)
 RETURNING id
 `, now, maxAgeUnix)
@@ -460,7 +463,12 @@ func releaseLocksForTaskIDs(ctx context.Context, taskIDs []string) (int, []strin
 			return tx.Commit()
 		}
 
-		q, args, err := sqlx.In(releaseAgentLockSet+` WHERE id IN (?) RETURNING id`, taskIDs)
+		q, args, err := sqlx.In(releaseAgentLockSet+`
+WHERE id IN (?)
+  AND assignee <> ''
+  AND lock_until > 0
+RETURNING id
+`, taskIDs)
 		if err != nil {
 			return fmt.Errorf("failed to build batch release query: %w", err)
 		}

@@ -388,6 +388,7 @@ func handleTaskWorkflowUpdate(ctx context.Context, params map[string]interface{}
 			}
 
 			if name != "" {
+				task.Name = name
 				task.Content = name
 			}
 
@@ -504,16 +505,6 @@ func handleTaskWorkflowList(ctx context.Context, params map[string]interface{}) 
 		return nil, fmt.Errorf("failed to get task store: %w", err)
 	}
 
-	list, err := store.ListTasks(ctx, nil)
-	if err != nil {
-		return nil, fmt.Errorf("failed to load tasks: %w", err)
-	}
-
-	tasks := make([]Todo2Task, len(list))
-	for i, t := range list {
-		tasks[i] = *t
-	}
-
 	// Apply filters
 	var status, priority, filterTag, taskID string
 
@@ -548,10 +539,53 @@ func handleTaskWorkflowList(ctx context.Context, params map[string]interface{}) 
 
 	showAll := strings.EqualFold(status, "all")
 
-	// Filter tasks
-	filtered := []Todo2Task{}
+	order := cast.ToString(params["order"])
+	wantsExecutionOrder := order == "execution" || order == "dependency"
 
-	for _, task := range tasks {
+	// Prefer pushing common filters down into the TaskStore/DB layer to reduce allocations
+	// and row decoding work. Execution-order sorting currently requires the full task set.
+	var list []*Todo2Task
+	if taskID != "" {
+		t, err := store.GetTask(ctx, taskID)
+		if err != nil {
+			return nil, err
+		}
+		list = []*Todo2Task{t}
+	} else if wantsExecutionOrder {
+		// Full task set is needed to compute dependency order.
+		list, err = store.ListTasks(ctx, nil)
+		if err != nil {
+			return nil, fmt.Errorf("failed to load tasks: %w", err)
+		}
+	} else {
+		var filters database.TaskFilters
+		includeMetadata := ParamBool(params, "include_metadata", false)
+		filters.IncludeMetadata = &includeMetadata
+		if openOnly {
+			filters.Statuses = models.OpenStatuses()
+		} else if status != "" && !showAll {
+			filters.Status = &status
+		}
+		if priority != "" {
+			filters.Priority = &priority
+		}
+		if filterTag != "" {
+			filters.Tag = &filterTag
+		}
+
+		list, err = store.ListTasks(ctx, &filters)
+		if err != nil {
+			return nil, fmt.Errorf("failed to load tasks: %w", err)
+		}
+	}
+
+	// Filter tasks
+	filtered := make([]*Todo2Task, 0, len(list))
+
+	for _, task := range list {
+		if task == nil {
+			continue
+		}
 		if taskID != "" && task.ID != taskID {
 			continue
 		}
@@ -560,32 +594,34 @@ func handleTaskWorkflowList(ctx context.Context, params map[string]interface{}) 
 			continue
 		}
 
-		if openOnly && !models.IsOpenStatus(task.Status) {
-			continue
-		}
-
-		if priority != "" && task.Priority != priority {
-			continue
-		}
-
-		if filterTag != "" {
-			found := false
-
-			for _, tag := range task.Tags {
-				if tag == filterTag {
-					found = true
-					break
-				}
-			}
-
-			if !found {
+		// When execution-order sorting is requested we load full task set above; apply filters here.
+		if wantsExecutionOrder {
+			if status != "" && !showAll && task.Status != status {
 				continue
+			}
+			if openOnly && !models.IsOpenStatus(task.Status) {
+				continue
+			}
+			if priority != "" && task.Priority != priority {
+				continue
+			}
+			if filterTag != "" {
+				found := false
+				for _, tag := range task.Tags {
+					if tag == filterTag {
+						found = true
+						break
+					}
+				}
+				if !found {
+					continue
+				}
 			}
 		}
 
 		// Filter by owned file (check ownership metadata)
 		if ownedFile := cast.ToString(params["owned_file"]); ownedFile != "" {
-			ownedFiles := models.GetOwnedFiles(&task)
+			ownedFiles := models.GetOwnedFiles(task)
 			found := false
 			for _, f := range ownedFiles {
 				if f == ownedFile || strings.HasSuffix(f, ownedFile) {
@@ -602,10 +638,19 @@ func handleTaskWorkflowList(ctx context.Context, params map[string]interface{}) 
 	}
 
 	// Optional: sort by execution order (dependency order)
-	if order := cast.ToString(params["order"]); order == "execution" || order == "dependency" {
+	if wantsExecutionOrder {
+		// BacklogExecutionOrder currently operates on []Todo2Task (values), so only
+		// materialize the slice when ordering is requested.
+		tasks := make([]Todo2Task, 0, len(list))
+		for _, t := range list {
+			if t != nil {
+				tasks = append(tasks, *t)
+			}
+		}
+
 		orderedIDs, _, _, err := BacklogExecutionOrder(tasks, nil)
 		if err == nil {
-			filteredMap := make(map[string]Todo2Task)
+			filteredMap := make(map[string]*Todo2Task, len(filtered))
 			for _, t := range filtered {
 				filteredMap[t.ID] = t
 			}
@@ -615,7 +660,7 @@ func handleTaskWorkflowList(ctx context.Context, params map[string]interface{}) 
 				orderedSet[id] = true
 			}
 
-			orderedFiltered := make([]Todo2Task, 0, len(filtered))
+			orderedFiltered := make([]*Todo2Task, 0, len(filtered))
 
 			for _, id := range orderedIDs {
 				if t, ok := filteredMap[id]; ok {
@@ -644,14 +689,21 @@ func handleTaskWorkflowList(ctx context.Context, params map[string]interface{}) 
 	}
 
 	if outputFormat == "json" {
+		includeMetadata := ParamBool(params, "include_metadata", false)
+		includeFullLongDescription := ParamBool(params, "include_full_long_description", false)
+		includeLocks := ParamBool(params, "include_locks", false)
+
 		taskIDs := make([]string, 0, len(filtered))
 		for i := range filtered {
 			taskIDs = append(taskIDs, filtered[i].ID)
 		}
-		activeLocks, _ := database.GetActiveLockMapForTasks(ctx, taskIDs)
+		var activeLocks map[string]database.LockStatus
+		if includeLocks && len(taskIDs) > 0 {
+			activeLocks, _ = database.GetActiveLockMapForTasks(ctx, taskIDs)
+		}
 		taskMaps := make([]map[string]interface{}, len(filtered))
 		for i := range filtered {
-			t := &filtered[i]
+			t := filtered[i]
 			m := map[string]interface{}{"id": t.ID, "content": t.Content, "status": t.Status}
 			if t.Priority != "" {
 				m["priority"] = t.Priority
@@ -664,7 +716,7 @@ func handleTaskWorkflowList(ctx context.Context, params map[string]interface{}) 
 				ld := t.LongDescription
 				// When listing many tasks, truncate long_description to keep responses compact.
 				// When querying a specific task_id (e.g. CLI `task show`), return the full long_description.
-				if taskID == "" && len(ld) > 120 {
+				if !includeFullLongDescription && taskID == "" && len(ld) > 120 {
 					ld = ld[:117] + "..."
 				}
 				m["long_description"] = ld
@@ -685,7 +737,6 @@ func handleTaskWorkflowList(ctx context.Context, params map[string]interface{}) 
 			if t.CompletedAt != "" {
 				m["completed_at"] = t.CompletedAt
 			}
-			includeMetadata := cast.ToBool(params["include_metadata"])
 			if includeMetadata && len(t.Metadata) > 0 {
 				m["metadata"] = t.Metadata
 			}
@@ -714,8 +765,10 @@ func handleTaskWorkflowList(ctx context.Context, params map[string]interface{}) 
 					m["ownership"] = ownershipMap
 				}
 			}
-			if lock, ok := activeLocks[t.ID]; ok {
-				m["active_claim"] = lockToMap(lock)
+			if includeLocks {
+				if lock, ok := activeLocks[t.ID]; ok {
+					m["active_claim"] = lockToMap(lock)
+				}
 			}
 			if taskID != "" {
 				if runs, err := database.ListTaskExecutionRuns(ctx, t.ID, "", 5); err == nil && len(runs) > 0 {
@@ -771,7 +824,7 @@ func handleTaskWorkflowList(ctx context.Context, params map[string]interface{}) 
 
 	var sb strings.Builder
 
-	sb.WriteString(fmt.Sprintf("Tasks (%d total, %d shown)\n", len(tasks), len(filtered)))
+	sb.WriteString(fmt.Sprintf("Tasks (%d total, %d shown)\n", len(list), len(filtered)))
 
 	sepLen := colID + colStatus + colPriority + colContent + 3*3 // 3 " | " separators
 	if sepLen < 80 {
@@ -804,7 +857,7 @@ func handleTaskWorkflowList(ctx context.Context, params map[string]interface{}) 
 		if rt := GetRecommendedTools(filtered[0].Metadata); len(rt) > 0 {
 			sb.WriteString("\nRecommended tools: " + strings.Join(rt, ", ") + "\n")
 		}
-		if own := models.GetTaskOwnership(&filtered[0]); own != nil {
+		if own := models.GetTaskOwnership(filtered[0]); own != nil {
 			sb.WriteString("\nOwnership:\n")
 			if own.Lane != "" {
 				sb.WriteString(fmt.Sprintf("  Lane: %s\n", own.Lane))

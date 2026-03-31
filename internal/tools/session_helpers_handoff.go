@@ -312,16 +312,22 @@ func getGitStatus(ctx context.Context, projectRoot string) map[string]interface{
 func buildSuggestedNextAction(task map[string]interface{}) string {
 	id, _ := task["id"].(string)
 	content, _ := task["content"].(string)
+	lane, _ := task["lane"].(string)
 
 	if id == "" {
 		return ""
 	}
 
-	if content != "" {
-		return fmt.Sprintf("Work on %s: %s", id, truncateString(content, 80))
+	idPart := fmt.Sprintf("Work on %s", id)
+	if lane != "" {
+		idPart = fmt.Sprintf("Work on %s [lane %s]", id, lane)
 	}
 
-	return fmt.Sprintf("Work on %s", id)
+	if content != "" {
+		return fmt.Sprintf("%s: %s", idPart, truncateString(content, 80))
+	}
+
+	return idPart
 }
 
 // ─── buildCursorCliSuggestion ───────────────────────────────────────────────

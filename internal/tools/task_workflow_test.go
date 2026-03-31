@@ -779,20 +779,6 @@ func TestHandleTaskWorkflowCleanupReportsStoreDrift(t *testing.T) {
 		t.Fatalf("database.CreateTask(dbOnlyTask): %v", err)
 	}
 
-	jsonOnlyTask := Todo2Task{
-		ID:              "T-json-only-1",
-		Content:         "JSON only task",
-		LongDescription: "Present only in JSON",
-		Status:          models.StatusTodo,
-		Priority:        "low",
-		ProjectID:       projectID,
-		CreatedAt:       now,
-		LastModified:    now,
-	}
-	if err := saveTodo2TasksToJSON(projectRoot, []Todo2Task{jsonOnlyTask}); err != nil {
-		t.Fatalf("saveTodo2TasksToJSON: %v", err)
-	}
-
 	result, err := handleTaskWorkflowCleanup(context.Background(), map[string]interface{}{
 		"dry_run": true,
 	})
@@ -808,14 +794,9 @@ func TestHandleTaskWorkflowCleanupReportsStoreDrift(t *testing.T) {
 		t.Fatalf("json.Unmarshal: %v", err)
 	}
 
-	if detected, ok := data["store_drift_detected"].(bool); !ok || !detected {
-		t.Fatalf("expected store_drift_detected=true, got %v", data["store_drift_detected"])
-	}
-	if count, ok := data["json_only_count"].(float64); !ok || int(count) != 1 {
-		t.Fatalf("expected json_only_count=1, got %v", data["json_only_count"])
-	}
-	if count, ok := data["db_only_count"].(float64); !ok || int(count) != 1 {
-		t.Fatalf("expected db_only_count=1, got %v", data["db_only_count"])
+	// JSON fallback store drift detection was removed; SQLite is canonical.
+	if detected, ok := data["store_drift_detected"].(bool); ok && detected {
+		t.Fatalf("expected store_drift_detected=false, got true")
 	}
 }
 

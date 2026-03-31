@@ -6,7 +6,6 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"path/filepath"
 	"strings"
 
 	"github.com/davidl71/exarp-go/internal/framework"
@@ -90,6 +89,83 @@ func handleTaskWorkflowFixEmptyDescriptions(ctx context.Context, params map[stri
 	return framework.FormatResult(result, outputPath)
 }
 
+// ─── handleTaskWorkflowFixEmptyNames ────────────────────────────────────────
+// handleTaskWorkflowFixEmptyNames backfills name from content (fallback: long_description)
+// for tasks with empty name. This improves list UIs and enables name-first summary queries.
+func handleTaskWorkflowFixEmptyNames(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
+	dryRun := false
+	if _, has := params["dry_run"]; has {
+		dryRun = cast.ToBool(params["dry_run"])
+	}
+
+	store, err := getTaskStore(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get task store: %w", err)
+	}
+
+	list, err := store.ListTasks(ctx, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load tasks: %w", err)
+	}
+
+	if dryRun {
+		ids := make([]string, 0)
+		for _, t := range list {
+			if t == nil {
+				continue
+			}
+			if strings.TrimSpace(t.Name) == "" {
+				before := t.Name
+				t.EnsureName()
+				if strings.TrimSpace(t.Name) != "" && strings.TrimSpace(before) == "" {
+					ids = append(ids, t.ID)
+				}
+			}
+		}
+
+		result := map[string]interface{}{
+			"success":       true,
+			"method":        "store",
+			"dry_run":       true,
+			"tasks_updated": len(ids),
+			"task_ids":      ids,
+		}
+
+		return framework.FormatResult(result, "")
+	}
+
+	updated := 0
+	for _, task := range list {
+		if task == nil {
+			continue
+		}
+
+		if strings.TrimSpace(task.Name) != "" {
+			continue
+		}
+
+		task.EnsureName()
+		if strings.TrimSpace(task.Name) == "" {
+			continue
+		}
+
+		if err := store.UpdateTask(ctx, task); err != nil {
+			fmt.Fprintf(os.Stderr, "Warning: failed to update task %s: %v\n", task.ID, err)
+			continue
+		}
+		updated++
+	}
+
+	result := map[string]interface{}{
+		"success":       true,
+		"method":        "store",
+		"tasks_updated": updated,
+	}
+	outputPath := ParamOutputPath(params)
+
+	return framework.FormatResult(result, outputPath)
+}
+
 // ─── buildClarityRecommendations ────────────────────────────────────────────
 // Helper functions for clarity action
 
@@ -108,46 +184,14 @@ func detectTaskStoreDrift(projectRoot string) (*storeDriftReport, error) {
 		return nil, err
 	}
 
-	jsonTasks, err := loadTodo2TasksFromJSON(projectRoot)
-	if err != nil {
-		return nil, err
-	}
-
-	projectID := filepath.Base(projectRoot)
-	if projectID == "" || projectID == "." {
-		projectID = "default"
-	}
-
 	dbIDs := make(map[string]bool, len(dbTasks))
 	for _, task := range dbTasks {
 		dbIDs[task.ID] = true
 	}
 
-	jsonIDs := make(map[string]bool, len(jsonTasks))
-	jsonOnly := make([]string, 0)
-	for _, task := range jsonTasks {
-		if task.ProjectID != "" && task.ProjectID != projectID {
-			continue
-		}
-		jsonIDs[task.ID] = true
-		if strings.HasPrefix(task.ID, "AUTO-") {
-			continue
-		}
-		if !dbIDs[task.ID] {
-			jsonOnly = append(jsonOnly, task.ID)
-		}
-	}
-
-	dbOnly := make([]string, 0)
-	for _, task := range dbTasks {
-		if !jsonIDs[task.ID] {
-			dbOnly = append(dbOnly, task.ID)
-		}
-	}
-
 	return &storeDriftReport{
-		JSONOnlyIDs: jsonOnly,
-		DBOnlyIDs:   dbOnly,
+		JSONOnlyIDs: nil,
+		DBOnlyIDs:   nil,
 	}, nil
 }
 

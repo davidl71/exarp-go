@@ -189,7 +189,7 @@ func handleTaskWorkflowSanityCheck(ctx context.Context, params map[string]interf
 			issues = append(issues, fmt.Sprintf("Task %s has epoch/invalid last_modified", task.ID))
 		}
 
-		if strings.EqualFold(task.Status, models.StatusDone) && models.IsEpochDate(task.CompletedAt) {
+		if task.StatusEnum == models.TaskStatusDone && models.IsEpochDate(task.CompletedAt) {
 			issues = append(issues, fmt.Sprintf("Task %s (Done) has epoch/invalid completed_at", task.ID))
 		}
 
@@ -198,9 +198,8 @@ func handleTaskWorkflowSanityCheck(ctx context.Context, params map[string]interf
 			issues = append(issues, fmt.Sprintf("Task %s has empty content/name", task.ID))
 		}
 
-		// Valid status
-		norm := strings.TrimSpace(strings.ToLower(task.Status))
-		if task.Status == "" || !validTaskStatuses[norm] {
+		// Valid status (prefer typed status).
+		if task.StatusEnum == models.TaskStatusUnspecified {
 			issues = append(issues, fmt.Sprintf("Task %s has invalid or empty status: %q", task.ID, task.Status))
 		}
 	}

@@ -294,7 +294,7 @@ Current **`make go-bench`** only runs `./internal/tools/...`. Database CRUD benc
 ```bash
 make go-bench
 # OR
-CGO_ENABLED=0 go test -bench=. -benchmem -benchtime=3s ./internal/tools/...
+CGO_ENABLED=0 go test -run='^$' -bench=. -benchmem -benchtime=3s ./internal/tools/...
 ```
 
 ### SQLite CRUD benchmarks (`internal/database`)

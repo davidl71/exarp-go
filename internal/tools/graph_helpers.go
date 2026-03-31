@@ -586,6 +586,7 @@ type BacklogTaskDetail struct {
 	Status   string   `json:"status"`
 	Level    int      `json:"level"`
 	Tags     []string `json:"tags,omitempty"`
+	Lane     string   `json:"lane,omitempty"` // ownership.lane from task metadata (execution / focus lane)
 }
 
 // IsBacklogStatus returns true if status is Todo, In Progress, Cancelled, or Blocked.
@@ -682,6 +683,7 @@ func BacklogExecutionOrder(tasks []Todo2Task, backlogFilter map[string]bool) (or
 			Status:   t.Status,
 			Level:    level,
 			Tags:     tags,
+			Lane:     models.GetTaskLane(&t),
 		})
 	}
 

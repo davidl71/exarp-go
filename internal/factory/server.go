@@ -101,7 +101,12 @@ func toolRateLimitMiddleware(next gosdk.ToolHandlerFunc) gosdk.ToolHandlerFunc {
 // toolSemaphoreMiddleware limits concurrent tool executions using a semaphore.
 // This prevents resource exhaustion from too many parallel tool calls.
 func toolSemaphoreMiddleware(next gosdk.ToolHandlerFunc) gosdk.ToolHandlerFunc {
-	semaphore := security.GetToolSemaphore(10)
+	permits := config.WorkflowToolLimit()
+	if permits <= 0 {
+		// ToolLimit=0 means no limit.
+		return next
+	}
+	semaphore := security.GetToolSemaphore(permits)
 
 	return func(ctx context.Context, req *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		if !semaphore.TryAcquire() {

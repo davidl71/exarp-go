@@ -48,6 +48,9 @@ var (
 )
 
 func GetToolSemaphore(permits int) *SemaphoreLimiter {
+	// NOTE: permits is only applied on first initialization.
+	// The semaphore is a process-global limiter; callers should pass a single
+	// canonical value (typically from config at server startup).
 	toolSemaphoreOnce.Do(func() {
 		globalToolSemaphore = NewSemaphoreLimiter(permits)
 	})

@@ -350,9 +350,10 @@ func TestCleanupExpiredLocks(t *testing.T) {
 			assigned_at = ?,
 			lock_until = ?,
 			status = ?,
+			status_enum = ?,
 			version = version + 1
 		WHERE id = ?
-	`, "expired-agent", now-600, expiredTime, StatusInProgress, "T-2000007")
+	`, "expired-agent", now-600, expiredTime, StatusInProgress, 2, "T-2000007")
 	if err != nil {
 		t.Fatalf("Failed to set expired lock: %v", err)
 	}
@@ -416,9 +417,10 @@ func TestDetectStaleLocks(t *testing.T) {
 			assigned_at = ?,
 			lock_until = ?,
 			status = ?,
+			status_enum = ?,
 			version = version + 1
 		WHERE id = ?
-	`, "expired-agent", now-1200, expiredTime, StatusInProgress, "T-2000009")
+	`, "expired-agent", now-1200, expiredTime, StatusInProgress, 2, "T-2000009")
 	if err != nil {
 		t.Fatalf("Failed to set expired lock: %v", err)
 	}

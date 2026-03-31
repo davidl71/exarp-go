@@ -8,6 +8,10 @@ This repo’s “how we build” guidance is split across:
 This document adds project-specific guidance on **factories vs helpers vs readonly globals**, and a default rule:
 **outputs at boundaries should be immutable to callers**.
 
+### Protobuf standards
+
+See `docs/PROTOBUF_BEST_PRACTICES.md` (source: [protobuf.dev dos/don’ts](https://protobuf.dev/best-practices/dos-donts/)).
+
 ### Factories
 
 Use a **factory** when you need **pluggability + discovery + consistent construction**.
@@ -92,6 +96,7 @@ and add local “mutable by design” comments at the definition site.
 - Prefer typed structs → marshal once for JSON outputs.
 - If returning `map[string]interface{}`, keep keys stable and document required fields.
 - Keep “compact vs pretty” behavior explicit via params/flags; don’t surprise callers.
+- Task IDs are identifiers: **never truncate them** in UI or JSON/text outputs.
 
 ### Testing expectations
 

@@ -230,6 +230,7 @@ func handleTaskWorkflowCreateSingleWithDeps(
 
 	task := &models.Todo2Task{
 		ID:              nextID,
+		Name:            name,
 		Content:         name,
 		LongDescription: longDescription,
 		Status:          status,
@@ -284,7 +285,7 @@ func handleTaskWorkflowCreateSingleWithDeps(
 	result := map[string]interface{}{
 		"success": true, "method": "store",
 		"task": map[string]interface{}{
-			"id": task.ID, "name": task.Content, "long_description": task.LongDescription,
+			"id": task.ID, "name": task.Name, "long_description": task.LongDescription,
 			"status": task.Status, "priority": task.Priority, "tags": task.Tags, "dependencies": task.Dependencies,
 		},
 	}
@@ -584,30 +585,22 @@ func handleTaskWorkflowEnrichToolHints(ctx context.Context, params map[string]in
 }
 
 // ─── handleTaskWorkflowFixInvalidIDs ────────────────────────────────────────
-// handleTaskWorkflowFixInvalidIDs finds tasks with invalid IDs (e.g. T-NaN from JS), assigns new epoch IDs,
+// handleTaskWorkflowFixInvalidIDs finds tasks with invalid IDs (e.g. T-NaN), assigns new epoch IDs,
 // updates dependencies, removes old DB rows, and saves. Use after sanity_check reports invalid_task_id.
-// Loads from both DB and JSON so tasks that exist only in JSON (e.g. created by Todo2 extension) are found.
+// SQLite is canonical; JSON-only tasks are not supported.
 func handleTaskWorkflowFixInvalidIDs(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	projectRoot, err := FindProjectRoot()
 	if err != nil {
 		return nil, fmt.Errorf("failed to find project root: %w", err)
 	}
 
-	// Load from both DB and JSON: DB-first, then add JSON-only tasks (e.g. T-NaN from Todo2 extension)
+	// Load from DB.
 	taskMap := make(map[string]Todo2Task)
 
 	if dbList, err := database.ListTasks(ctx, nil); err == nil {
 		for _, t := range dbList {
 			if t != nil {
 				taskMap[t.ID] = *t
-			}
-		}
-	}
-
-	if jsonTasks, err := loadTodo2TasksFromJSON(projectRoot); err == nil {
-		for _, t := range jsonTasks {
-			if _, ok := taskMap[t.ID]; !ok {
-				taskMap[t.ID] = t
 			}
 		}
 	}

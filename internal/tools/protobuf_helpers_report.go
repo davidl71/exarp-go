@@ -231,6 +231,18 @@ func TaskWorkflowRequestToParams(req *proto.TaskWorkflowRequest) map[string]inte
 		return make(map[string]interface{})
 	}
 
+	// Enum-first: prefer enums over legacy strings.
+	if req.ActionEnum != proto.TaskWorkflowAction_TASK_WORKFLOW_ACTION_UNSPECIFIED {
+		if s := taskWorkflowActionEnumToString(req.ActionEnum); s != "" {
+			params["action"] = s
+		}
+	}
+	if req.OutputFormatEnum != proto.OutputFormat_OUTPUT_FORMAT_UNSPECIFIED {
+		if s := outputFormatEnumToString(req.OutputFormatEnum); s != "" {
+			params["output_format"] = s
+		}
+	}
+
 	return params
 }
 
@@ -267,6 +279,12 @@ func HealthRequestToParams(req *proto.HealthRequest) map[string]interface{} {
 		return make(map[string]interface{})
 	}
 
+	if req.ActionEnum != proto.HealthAction_HEALTH_ACTION_UNSPECIFIED {
+		if s := healthActionEnumToString(req.ActionEnum); s != "" {
+			params["action"] = s
+		}
+	}
+
 	return params
 }
 
@@ -301,6 +319,12 @@ func SecurityRequestToParams(req *proto.SecurityRequest) map[string]interface{} 
 	})
 	if err != nil {
 		return make(map[string]interface{})
+	}
+
+	if req.ActionEnum != proto.SecurityAction_SECURITY_ACTION_UNSPECIFIED {
+		if s := securityActionEnumToString(req.ActionEnum); s != "" {
+			params["action"] = s
+		}
 	}
 
 	return params
@@ -488,6 +512,12 @@ func SessionRequestToParams(req *proto.SessionRequest) map[string]interface{} {
 	})
 	if err != nil {
 		return make(map[string]interface{})
+	}
+
+	if req.ActionEnum != proto.SessionAction_SESSION_ACTION_UNSPECIFIED {
+		if s := sessionActionEnumToString(req.ActionEnum); s != "" {
+			params["action"] = s
+		}
 	}
 
 	return params

@@ -33,13 +33,9 @@ func handleAgentExecutionPack(ctx context.Context, uri string) ([]byte, string, 
 	if err != nil {
 		return nil, "", fmt.Errorf("failed to find project root: %w", err)
 	}
-	data, err := tools.BuildTaskExecutionPackData(ctx, projectRoot, taskID)
+	jsonData, err := tools.BuildTaskExecutionPackJSON(ctx, projectRoot, taskID)
 	if err != nil {
 		return nil, "", fmt.Errorf("failed to build execution pack: %w", err)
-	}
-	jsonData, err := json.Marshal(data)
-	if err != nil {
-		return nil, "", fmt.Errorf("failed to marshal execution pack: %w", err)
 	}
 	return jsonData, "application/json", nil
 }

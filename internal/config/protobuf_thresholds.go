@@ -23,7 +23,7 @@ func thresholdsToProtobuf(t *ThresholdsConfig) *configpb.ThresholdsConfig {
 			DefaultContextBudget:      int32(t.DefaultContextBudget),
 			ContextReductionThreshold: t.ContextReductionThreshold,
 			RateLimitRequests:         int32(t.RateLimitRequests),
-			RateLimitWindow:           durationToSeconds(t.RateLimitWindow),
+			RateLimitWindow:           durationToProto(t.RateLimitWindow),
 			MaxFileSize:               t.MaxFileSize,
 			MaxPathDepth:              int32(t.MaxPathDepth),
 		}
@@ -50,7 +50,7 @@ func thresholdsFromProtobuf(pb *configpb.ThresholdsConfig) ThresholdsConfig {
 		DefaultContextBudget:      int(pb.GetDefaultContextBudget()),
 		ContextReductionThreshold: pb.GetContextReductionThreshold(),
 		RateLimitRequests:         int(pb.GetRateLimitRequests()),
-		RateLimitWindow:           secondsToDuration(pb.GetRateLimitWindow()),
+		RateLimitWindow:           durationFromProto(pb.GetRateLimitWindow()),
 		MaxFileSize:               pb.GetMaxFileSize(),
 		MaxPathDepth:              int(pb.GetMaxPathDepth()),
 	}

@@ -94,38 +94,24 @@ func handleWorkflowMode(ctx context.Context, args json.RawMessage) ([]framework.
 
 // handleLint handles the lint tool.
 func handleLint(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
-	// Try protobuf first, fall back to JSON for backward compatibility
-	req, params, err := ParseLintRequest(args)
+	req, err := decodeArgsToProto(args, func() *proto.LintRequest { return &proto.LintRequest{} })
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse arguments: %w", err)
+		return nil, err
 	}
 
-	// Convert protobuf request to params map if needed
-	if req != nil {
-		params = LintRequestToParams(req)
-		framework.ApplyDefaults(params, map[string]interface{}{
-			"action": "run",
-			"linter": "auto",
-		})
+	linter := strings.TrimSpace(req.Linter)
+	if linter == "" {
+		linter = "auto"
 	}
 
-	// Extract parameters
-	linter := "auto"
-	if l := strings.TrimSpace(cast.ToString(params["linter"])); l != "" {
-		linter = l
-	}
-
-	path := ""
-	if p := cast.ToString(params["path"]); p != "" {
-		path = p
-
-		// Validate path against MCP Roots if available
+	path := strings.TrimSpace(req.Path)
+	if path != "" {
 		if _, err := ValidatePathAgainstMCPRoots(ctx, path); err != nil {
 			return nil, fmt.Errorf("path validation failed: %w", err)
 		}
 	}
 
-	fix := cast.ToBool(params["fix"])
+	fix := req.Fix
 
 	// Check if this is a native linter - use native Go implementation
 	nativeLinters := map[string]bool{
@@ -234,9 +220,23 @@ func handleGitTools(ctx context.Context, args json.RawMessage) ([]framework.Text
 
 	var params GitToolsParams
 	if req != nil {
+		action := req.Action
+		if req.ActionEnum != proto.GitToolsAction_GIT_TOOLS_ACTION_UNSPECIFIED {
+			if s := gitToolsActionEnumToString(req.ActionEnum); s != "" {
+				action = s
+			}
+		}
+
+		format := req.Format
+		if req.FormatEnum != proto.OutputFormat_OUTPUT_FORMAT_UNSPECIFIED {
+			if s := outputFormatEnumToString(req.FormatEnum); s != "" {
+				format = s
+			}
+		}
+
 		// Convert protobuf request to GitToolsParams struct
 		params = GitToolsParams{
-			Action:           req.Action,
+			Action:           action,
 			TaskID:           req.TaskId,
 			Branch:           req.Branch,
 			Limit:            int(req.Limit),
@@ -244,7 +244,7 @@ func handleGitTools(ctx context.Context, args json.RawMessage) ([]framework.Text
 			Commit2:          req.Commit2,
 			Time1:            req.Time1,
 			Time2:            req.Time2,
-			Format:           req.Format,
+			Format:           format,
 			OutputPath:       req.OutputPath,
 			MaxCommits:       int(req.MaxCommits),
 			SourceBranch:     req.SourceBranch,

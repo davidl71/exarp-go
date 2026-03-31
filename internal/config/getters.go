@@ -174,6 +174,21 @@ func WorkflowDefaultMode() string {
 	return GetGlobalConfig().Workflow.DefaultMode
 }
 
+// WorkflowToolLimit returns the configured per-tool concurrency limit (0 = no limit).
+// This is used by the tool semaphore middleware in internal/factory.
+func WorkflowToolLimit() int {
+	cfg := GetGlobalConfig()
+	mode := cfg.Workflow.DefaultMode
+	if mode == "" {
+		mode = "default"
+	}
+	if m, ok := cfg.Workflow.Modes[mode]; ok {
+		return m.ToolLimit
+	}
+	// Fallback: no limit when mode not found.
+	return 0
+}
+
 // MemoryCategories returns the valid memory categories from config.
 func MemoryCategories() []string {
 	cfg := GetGlobalConfig()

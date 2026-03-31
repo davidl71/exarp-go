@@ -138,3 +138,11 @@ Use `database.QueryContextDB(ctx)` before any read-only sqlx call instead of rep
 2. **Tools package**: Consider using TaskStore interface instead of direct DB access
 3. **JSON fallback**: Deprecated for new features; existing usage can remain
 4. **Testing**: Use `database.GetDBx()` for consistent test patterns
+
+## Enum-first schema note (status/priority)
+
+The tasks table now includes integer enum projections (`status_enum`, `priority_enum`) and int
+timestamps (`*_ts`) for hot-path filtering/ordering. New query work in `internal/database/`
+should prefer the enum/int columns and treat strings as boundary/compat fields.
+
+See `docs/ENUM_FIRST_SQLITE_SCHEMA.md`.

@@ -4,11 +4,43 @@ package exarp.todo2;
 
 option go_package = "github.com/davidl71/exarp-go/proto";
 
+import "google/protobuf/timestamp.proto";
+
+// Todo2TaskStatus is the typed status of a task.
+//
+// Note: We keep the legacy string `status` field for JSON/MCP edge compatibility.
+// Internal paths should prefer `status_enum`.
+enum Todo2TaskStatus {
+  TODO2_TASK_STATUS_UNSPECIFIED = 0;
+  TODO2_TASK_STATUS_TODO = 1;
+  TODO2_TASK_STATUS_IN_PROGRESS = 2;
+  TODO2_TASK_STATUS_REVIEW = 3;
+  TODO2_TASK_STATUS_DONE = 4;
+  TODO2_TASK_STATUS_BLOCKED = 5;
+  TODO2_TASK_STATUS_CANCELLED = 6;
+}
+
+// Todo2TaskPriority is the typed priority of a task.
+//
+// Note: We keep the legacy string `priority` field for JSON/MCP edge compatibility.
+// Internal paths should prefer `priority_enum`.
+enum Todo2TaskPriority {
+  TODO2_TASK_PRIORITY_UNSPECIFIED = 0;
+  TODO2_TASK_PRIORITY_LOW = 1;
+  TODO2_TASK_PRIORITY_MEDIUM = 2;
+  TODO2_TASK_PRIORITY_HIGH = 3;
+  TODO2_TASK_PRIORITY_CRITICAL = 4;
+}
+
 // Todo2Task represents a Todo2 task with all its metadata
 message Todo2Task {
   // Unique task identifier (e.g., "T-123" or epoch-based ID)
   string id = 1;
   
+  // Short task name/title (optional). Intended for list views and external consumers.
+  // content remains the canonical task title used throughout the app/CLI.
+  string name = 16;
+
   // Short task name/content
   string content = 2;
   
@@ -17,9 +49,15 @@ message Todo2Task {
   
   // Task status (e.g., "Todo", "In Progress", "Review", "Done")
   string status = 4;
+
+  // Typed status (preferred for internal use).
+  Todo2TaskStatus status_enum = 17;
   
   // Task priority (e.g., "low", "medium", "high", "critical")
   string priority = 5;
+
+  // Typed priority (preferred for internal use).
+  Todo2TaskPriority priority_enum = 18;
   
   // List of tags associated with the task
   repeated string tags = 6;
@@ -34,11 +72,11 @@ message Todo2Task {
   // For complex values, serialize to JSON string
   map<string, string> metadata = 9;
   
-  // Creation timestamp (Unix timestamp in seconds)
-  int64 created_at = 10;
+  // Creation timestamp
+  google.protobuf.Timestamp created_at = 10;
   
-  // Last modification timestamp (Unix timestamp in seconds)
-  int64 updated_at = 11;
+  // Last modification timestamp
+  google.protobuf.Timestamp updated_at = 11;
 
   // Distributed tracking (for aggregation across projects/hosts/agents)
   string project_id = 12;   // Logical project identifier (e.g. "exarp-go")
@@ -56,5 +94,5 @@ message Todo2State {
   string version = 2;
   
   // Timestamp when state was last saved
-  int64 last_saved = 3;
+  google.protobuf.Timestamp last_saved = 3;
 }

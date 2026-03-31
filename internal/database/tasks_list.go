@@ -31,7 +31,15 @@ func ListTasks(ctx context.Context, filters *TaskFilters) ([]*Todo2Task, error) 
 		var queryBuilder strings.Builder
 
 		queryBuilder.WriteString(`
-			SELECT DISTINCT t.id, t.name, t.content, t.long_description, t.status, t.priority, t.completed, t.created, t.last_modified, t.completed_at, t.metadata, t.metadata_protobuf, t.metadata_format, t.parent_id, t.project_id, t.assigned_to, t.host, t.agent, t.version
+			SELECT DISTINCT
+			       t.id, t.name, t.content, t.long_description,
+			       t.status, t.status_enum,
+			       t.priority, t.priority_enum,
+			       t.completed,
+			       t.created, t.last_modified, t.completed_at,
+			       t.created_ts, t.last_modified_ts, t.completed_at_ts,
+			       t.metadata, t.metadata_protobuf, t.metadata_format,
+			       t.parent_id, t.project_id, t.assigned_to, t.host, t.agent, t.version
 			FROM tasks t
 		`)
 
@@ -44,6 +52,13 @@ func ListTasks(ctx context.Context, filters *TaskFilters) ([]*Todo2Task, error) 
 				args = append(args, *filters.Status)
 			}
 
+			if filters.StatusEnum != nil && filters.Status == nil {
+				if title := (*filters.StatusEnum).TitleString(); title != "" {
+					conditions = append(conditions, "t.status_enum = ?")
+					args = append(args, taskStatusEnumInt(title))
+				}
+			}
+
 			if len(filters.Statuses) > 0 {
 				placeholders := make([]string, len(filters.Statuses))
 				for i, s := range filters.Statuses {
@@ -53,9 +68,33 @@ func ListTasks(ctx context.Context, filters *TaskFilters) ([]*Todo2Task, error) 
 				conditions = append(conditions, fmt.Sprintf("t.status IN (%s)", strings.Join(placeholders, ",")))
 			}
 
+			if len(filters.StatusEnums) > 0 && len(filters.Statuses) == 0 {
+				var ints []int
+				for _, s := range filters.StatusEnums {
+					if title := s.TitleString(); title != "" {
+						ints = append(ints, taskStatusEnumInt(title))
+					}
+				}
+				if len(ints) > 0 {
+					placeholders := make([]string, len(ints))
+					for i, v := range ints {
+						placeholders[i] = "?"
+						args = append(args, v)
+					}
+					conditions = append(conditions, fmt.Sprintf("t.status_enum IN (%s)", strings.Join(placeholders, ",")))
+				}
+			}
+
 			if filters.Priority != nil {
 				conditions = append(conditions, "t.priority = ?")
 				args = append(args, *filters.Priority)
+			}
+
+			if filters.PriorityEnum != nil && filters.Priority == nil {
+				// priority can be empty meaning "unspecified".
+				canon := (*filters.PriorityEnum).CanonicalString()
+				conditions = append(conditions, "t.priority_enum = ?")
+				args = append(args, taskPriorityEnumInt(canon))
 			}
 
 			if filters.Tag != nil {
@@ -94,7 +133,7 @@ func ListTasks(ctx context.Context, filters *TaskFilters) ([]*Todo2Task, error) 
 			}
 		}
 
-		queryBuilder.WriteString(" ORDER BY t.created_at DESC")
+		queryBuilder.WriteString(" ORDER BY t.created_ts DESC")
 		query := queryBuilder.String()
 
 		var rows []taskRow
@@ -109,10 +148,13 @@ func ListTasks(ctx context.Context, filters *TaskFilters) ([]*Todo2Task, error) 
 		for _, row := range rows {
 			task := Todo2Task{
 				ID:              row.ID,
+				Name:            row.Name,
 				Content:         row.Content,
 				LongDescription: row.LongDescription,
 				Status:          row.Status,
+				StatusEnum:      taskStatusFromEnumInt(row.StatusEnumInt),
 				Priority:        row.Priority,
+				PriorityEnum:    taskPriorityFromEnumInt(row.PriorityEnumInt),
 				Completed:       row.Completed == 1,
 				CreatedAt:       row.Created,
 				LastModified:    row.LastModified,
@@ -121,25 +163,32 @@ func ListTasks(ctx context.Context, filters *TaskFilters) ([]*Todo2Task, error) 
 				AssignedTo:      row.AssignedTo,
 				Host:            row.Host,
 				Agent:           row.Agent,
-				DBVersion:       row.Version,
+				Version:         row.Version,
 			}
 
 			if row.ProjectID.Valid {
 				task.ProjectID = row.ProjectID.String
 			}
 
-			if row.MetadataFormat == "protobuf" && len(row.MetadataProto) > 0 {
-				deserializedTask, err := models.DeserializeTaskFromProtobuf(row.MetadataProto)
-				if err == nil {
-					task.Metadata = deserializedTask.Metadata
+			includeMetadata := true
+			if filters != nil && filters.IncludeMetadata != nil {
+				includeMetadata = *filters.IncludeMetadata
+			}
+			if includeMetadata {
+				if row.MetadataFormat == "protobuf" && len(row.MetadataProto) > 0 {
+					deserializedTask, err := models.DeserializeTaskFromProtobuf(row.MetadataProto)
+					if err == nil {
+						task.Metadata = deserializedTask.Metadata
+					} else if len(row.Metadata) > 0 {
+						task.Metadata = unmarshalTaskMetadata(string(row.Metadata))
+					}
 				} else if len(row.Metadata) > 0 {
 					task.Metadata = unmarshalTaskMetadata(string(row.Metadata))
 				}
-			} else if len(row.Metadata) > 0 {
-				task.Metadata = unmarshalTaskMetadata(string(row.Metadata))
 			}
 
 			task.NormalizeEpochDates()
+			task.EnsureName()
 
 			rowCopy := task
 			taskIDs = append(taskIDs, row.ID)
@@ -399,7 +448,7 @@ func FindNextClaimableTask(ctx context.Context) (*Todo2Task, error) {
 			       t.assigned_to, t.host, t.agent, t.version`+sqlTaskAggJSON+`
 			FROM tasks AS t
 			WHERE t.status = ?
-			  AND (t.assignee IS NULL OR t.lock_until IS NULL OR t.lock_until < ?)
+			  AND (t.assignee = '' OR t.lock_until = 0 OR t.lock_until < ?)
 			ORDER BY
 				CASE t.priority
 					WHEN 'high' THEN 1
@@ -423,7 +472,9 @@ func FindNextClaimableTask(ctx context.Context) (*Todo2Task, error) {
 			Content:         row.Content,
 			LongDescription: row.LongDescription,
 			Status:          row.Status,
+			StatusEnum:      models.ParseTaskStatus(row.Status),
 			Priority:        row.Priority,
+			PriorityEnum:    models.ParseTaskPriority(row.Priority),
 			Completed:       row.Completed == 1,
 			CreatedAt:       row.Created,
 			LastModified:    row.LastModified,
@@ -432,7 +483,7 @@ func FindNextClaimableTask(ctx context.Context) (*Todo2Task, error) {
 			AssignedTo:      row.AssignedTo,
 			Host:            row.Host,
 			Agent:           row.Agent,
-			DBVersion:       row.Version,
+			Version:         row.Version,
 		}
 		if row.ProjectID.Valid {
 			task.ProjectID = row.ProjectID.String

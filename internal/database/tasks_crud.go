@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/davidl71/exarp-go/internal/models"
 	"github.com/jmoiron/sqlx"
 )
 
@@ -73,6 +74,23 @@ func CreateTask(ctx context.Context, task *Todo2Task) error {
 
 		// Insert task with protobuf data (if available) and JSON (for compatibility)
 		now := time.Now().Format(time.RFC3339)
+		task.EnsureName()
+		// Normalize + compute enum/int projections for radical enum-first schema.
+		statusTitle := models.ParseTaskStatus(task.Status).TitleString()
+		if statusTitle == "" {
+			statusTitle = StatusTodo
+		}
+		task.Status = statusTitle
+
+		priorityCanon := models.ParseTaskPriority(task.Priority).CanonicalString()
+		if strings.TrimSpace(priorityCanon) == "" {
+			priorityCanon = ""
+		}
+		task.Priority = priorityCanon
+
+		statusEnum := taskStatusEnumInt(task.Status)
+		priorityEnum := taskPriorityEnumInt(task.Priority)
+		nowUnix := time.Now().Unix()
 		// v9 schema: parent_id, assigned_to, host, agent are NOT NULL DEFAULT ''
 		// Ensure non-empty strings to satisfy NOT NULL constraints in any schema version
 		parentID := task.ParentID
@@ -100,19 +118,43 @@ func CreateTask(ctx context.Context, task *Todo2Task) error {
 		}
 		_, err = tx.ExecContext(txCtx, `
 			INSERT INTO tasks (
-				id, name, content, long_description, status, priority, completed,
-				created, last_modified, metadata, metadata_protobuf, metadata_format, parent_id, project_id, assigned_to, host, agent, version, created_at, updated_at
-			) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, strftime('%s', 'now'), strftime('%s', 'now'))
+				id, name, content, long_description,
+				status, status_enum,
+				priority, priority_enum,
+				completed,
+				created, last_modified,
+				created_ts, last_modified_ts, completed_at_ts,
+				metadata, metadata_protobuf, metadata_format,
+				parent_id, project_id, assigned_to, host, agent,
+				assignee, assigned_at, lock_until,
+				version, created_at, updated_at
+			) VALUES (
+			  ?, ?, ?, ?,
+			  ?, ?,
+			  ?, ?,
+			  ?,
+			  ?, ?,
+			  ?, ?, ?,
+			  ?, ?, ?,
+			  ?, ?, ?, ?, ?,
+			  '', 0, 0,
+			  1, strftime('%s', 'now'), strftime('%s', 'now')
+			)
 		`,
 			task.ID,
-			"", // name: optional; column retained for AI/tool compatibility (see ColTaskName in schema.go).
+			task.Name,
 			task.Content,
 			task.LongDescription,
 			task.Status,
+			statusEnum,
 			task.Priority,
+			priorityEnum,
 			completedInt,
 			now,              // created
 			now,              // last_modified
+			nowUnix,          // created_ts
+			nowUnix,          // last_modified_ts
+			int64(0),         // completed_at_ts
 			metadataJSON,     // JSON for backward compatibility
 			metadataProtobuf, // Protobuf binary data (nil if serialization failed)
 			metadataFormat,   // Format indicator
@@ -180,11 +222,16 @@ type taskRow struct {
 	Content         string `db:"content"`
 	LongDescription string         `db:"long_description"`
 	Status          string         `db:"status"`
+	StatusEnumInt   int            `db:"status_enum"`
 	Priority        string         `db:"priority"`
+	PriorityEnumInt int            `db:"priority_enum"`
 	Completed       int            `db:"completed"`
 	Created         string         `db:"created"`
 	LastModified    string         `db:"last_modified"`
 	CompletedAt     string         `db:"completed_at"`
+	CreatedTS       int64          `db:"created_ts"`
+	LastModifiedTS  int64          `db:"last_modified_ts"`
+	CompletedAtTS   int64          `db:"completed_at_ts"`
 	Metadata        []byte         `db:"metadata"`
 	MetadataProto   []byte         `db:"metadata_protobuf"`
 	MetadataFormat  string         `db:"metadata_format"`
@@ -246,6 +293,7 @@ func GetTask(ctx context.Context, id string) (*Todo2Task, error) {
 
 		taskData := Todo2Task{
 			ID:              row.ID,
+			Name:            row.Name,
 			Content:         row.Content,
 			LongDescription: row.LongDescription,
 			Status:          row.Status,
@@ -259,10 +307,11 @@ func GetTask(ctx context.Context, id string) (*Todo2Task, error) {
 			AssignedTo:      row.AssignedTo,
 			Host:            row.Host,
 			Agent:           row.Agent,
-			DBVersion:       row.Version,
+			Version:         row.Version,
 		}
 
 		taskData.NormalizeEpochDates()
+		taskData.EnsureName()
 		taskData.Metadata = DeserializeTaskMetadata(string(row.Metadata), row.MetadataProto, row.MetadataFormat)
 
 		tags, err := parseJSONArrayToStrings(row.TagsJSON)
@@ -324,11 +373,11 @@ func UpdateTask(ctx context.Context, task *Todo2Task) error {
 			return err
 		}
 
-		// Get current version for optimistic locking (skip round-trip when caller holds DBVersion from GetTask/List).
+		// Get current version for optimistic locking (skip round-trip when caller holds Version from GetTask/List).
 		var currentVersion int64
 
-		if task.DBVersion > 0 {
-			currentVersion = task.DBVersion
+		if task.Version > 0 {
+			currentVersion = task.Version
 		} else {
 			err = tx.QueryRowContext(txCtx, `SELECT version FROM tasks WHERE id = ?`, task.ID).Scan(&currentVersion)
 			if errors.Is(err, sql.ErrNoRows) {
@@ -343,10 +392,32 @@ func UpdateTask(ctx context.Context, task *Todo2Task) error {
 		// Update task with optimistic locking (version check)
 		// Include protobuf columns if they exist in schema; set completed_at when status is Done
 		now := time.Now().Format(time.RFC3339)
+		nowUnix := time.Now().Unix()
 		completedAtVal := task.CompletedAt
 
-		if task.Status == "Done" && completedAtVal == "" {
+		// Normalize + compute enum projections for radical enum-first schema.
+		statusTitle := models.ParseTaskStatus(task.Status).TitleString()
+		if statusTitle == "" {
+			statusTitle = StatusTodo
+		}
+		task.Status = statusTitle
+		statusEnum := taskStatusEnumInt(task.Status)
+
+		priorityCanon := models.ParseTaskPriority(task.Priority).CanonicalString()
+		if strings.TrimSpace(priorityCanon) == "" {
+			priorityCanon = ""
+		}
+		task.Priority = priorityCanon
+		priorityEnum := taskPriorityEnumInt(task.Priority)
+
+		if task.Status == StatusDone && completedAtVal == "" {
 			completedAtVal = now
+		}
+		completedAtUnix := int64(0)
+		if completedAtVal != "" {
+			if t, err := time.Parse(time.RFC3339, completedAtVal); err == nil {
+				completedAtUnix = t.Unix()
+			}
 		}
 
 		// Update host/agent to current on modification (for distributed tracking)
@@ -368,10 +439,14 @@ func UpdateTask(ctx context.Context, task *Todo2Task) error {
 				content = ?,
 				long_description = ?,
 				status = ?,
+				status_enum = ?,
 				priority = ?,
+				priority_enum = ?,
 				completed = ?,
 				last_modified = ?,
 				completed_at = ?,
+				last_modified_ts = ?,
+				completed_at_ts = ?,
 				metadata = ?,
 				metadata_protobuf = ?,
 				metadata_format = ?,
@@ -387,10 +462,14 @@ func UpdateTask(ctx context.Context, task *Todo2Task) error {
 			task.Content,
 			task.LongDescription,
 			task.Status,
+			statusEnum,
 			task.Priority,
+			priorityEnum,
 			completedInt,
 			now,
 			completedAtVal,
+			nowUnix,
+			completedAtUnix,
 			metadataJSON,
 			metadataProtobuf,
 			metadataFormat,
@@ -522,24 +601,50 @@ func BatchUpdateTaskStatus(ctx context.Context, updates []TaskStatusUpdate) (int
 			}
 		}()
 
+		const (
+			qStatusAndPriority = "UPDATE tasks SET version = version + 1, updated_at = strftime('%s', 'now'), last_modified_ts = strftime('%s', 'now'), status = ?, status_enum = ?, priority = ?, priority_enum = ? WHERE id = ?"
+			qStatusOnly        = "UPDATE tasks SET version = version + 1, updated_at = strftime('%s', 'now'), last_modified_ts = strftime('%s', 'now'), status = ?, status_enum = ? WHERE id = ?"
+			qPriorityOnly      = "UPDATE tasks SET version = version + 1, updated_at = strftime('%s', 'now'), last_modified_ts = strftime('%s', 'now'), priority = ?, priority_enum = ? WHERE id = ?"
+			qVersionOnly       = "UPDATE tasks SET version = version + 1, updated_at = strftime('%s', 'now') WHERE id = ?"
+		)
+
 		for _, u := range updates {
-			setClauses := []string{"version = version + 1", "updated_at = strftime('%s', 'now')"}
-			args := []interface{}{}
+			hasStatus := u.Status != ""
+			hasPriority := u.Priority != ""
 
-			if u.Status != "" {
-				setClauses = append(setClauses, "status = ?")
-				args = append(args, u.Status)
+			statusTitle := ""
+			statusEnum := 0
+			if hasStatus {
+				statusTitle = models.ParseTaskStatus(u.Status).TitleString()
+				if statusTitle == "" {
+					statusTitle = StatusTodo
+				}
+				statusEnum = taskStatusEnumInt(statusTitle)
 			}
 
-			if u.Priority != "" {
-				setClauses = append(setClauses, "priority = ?")
-				args = append(args, u.Priority)
+			priorityCanon := ""
+			priorityEnum := 0
+			if hasPriority {
+				priorityCanon = models.ParseTaskPriority(u.Priority).CanonicalString()
+				if strings.TrimSpace(priorityCanon) == "" {
+					priorityCanon = ""
+				}
+				priorityEnum = taskPriorityEnumInt(priorityCanon)
 			}
 
-			args = append(args, u.TaskID)
+			var result sql.Result
 
-			query := fmt.Sprintf("UPDATE tasks SET %s WHERE id = ?", strings.Join(setClauses, ", "))
-			result, err := tx.ExecContext(txCtx, query, args...)
+			switch {
+			case hasStatus && hasPriority:
+				result, err = tx.ExecContext(txCtx, qStatusAndPriority, statusTitle, statusEnum, priorityCanon, priorityEnum, u.TaskID)
+			case hasStatus:
+				result, err = tx.ExecContext(txCtx, qStatusOnly, statusTitle, statusEnum, u.TaskID)
+			case hasPriority:
+				result, err = tx.ExecContext(txCtx, qPriorityOnly, priorityCanon, priorityEnum, u.TaskID)
+			default:
+				result, err = tx.ExecContext(txCtx, qVersionOnly, u.TaskID)
+			}
+
 			if err != nil {
 				return fmt.Errorf("failed to update status for task %s: %w", u.TaskID, err)
 			}

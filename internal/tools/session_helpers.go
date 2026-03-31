@@ -446,6 +446,9 @@ func getSuggestedNextTasksFromTasks(tasks []Todo2Task, limit int) []map[string]i
 		if !ok {
 			m := map[string]interface{}{"id": id, "content": ""}
 			if t, has := taskByID[id]; has {
+				if ln := models.GetTaskLane(&t); ln != "" {
+					m["lane"] = ln
+				}
 				if rt := GetRecommendedTools(t.Metadata); len(rt) > 0 {
 					m["recommended_tools"] = rt
 				}
@@ -463,6 +466,9 @@ func getSuggestedNextTasksFromTasks(tasks []Todo2Task, limit int) []map[string]i
 			"content":  d.Content,
 			"priority": d.Priority,
 			"level":    d.Level,
+		}
+		if d.Lane != "" {
+			m["lane"] = d.Lane
 		}
 		if t, has := taskByID[id]; has {
 			if rt := GetRecommendedTools(t.Metadata); len(rt) > 0 {
@@ -503,6 +509,9 @@ func GetSessionStatus(projectRoot string) (label, contextType string, details ma
 		details["task_id"] = t.ID
 		details["content"] = t.Content
 		details["priority"] = t.Priority
+		if t.Lane != "" {
+			details["lane"] = t.Lane
+		}
 
 		return
 	}

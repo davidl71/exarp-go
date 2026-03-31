@@ -404,6 +404,18 @@ func ReportRequestToParams(req *proto.ReportRequest) map[string]interface{} {
 		return make(map[string]interface{})
 	}
 
+	// Enum-first: prefer enums over legacy strings.
+	if req.ActionEnum != proto.ReportAction_REPORT_ACTION_UNSPECIFIED {
+		if s := reportActionEnumToString(req.ActionEnum); s != "" {
+			params["action"] = s
+		}
+	}
+	if req.OutputFormatEnum != proto.OutputFormat_OUTPUT_FORMAT_UNSPECIFIED {
+		if s := outputFormatEnumToString(req.OutputFormatEnum); s != "" {
+			params["output_format"] = s
+		}
+	}
+
 	return params
 }
 

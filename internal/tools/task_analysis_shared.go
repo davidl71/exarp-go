@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/davidl71/exarp-go/internal/config"
 	"github.com/davidl71/exarp-go/internal/framework"
@@ -94,13 +95,14 @@ func handleTaskAnalysisConflicts(ctx context.Context, params map[string]interfac
 		return nil, fmt.Errorf("failed to load tasks: %w", err)
 	}
 
-	conflicts := DetectTaskOverlapConflicts(list)
-	hasConflict := len(conflicts) > 0
+	taskOverlaps := DetectTaskOverlapConflicts(list)
+	fileConflicts := DetectFileConflicts(list)
+	hasConflict := len(taskOverlaps) > 0 || len(fileConflicts) > 0
 	overlapping := make([]string, 0)
 
 	if hasConflict {
 		seen := make(map[string]bool)
-		for _, c := range conflicts {
+		for _, c := range taskOverlaps {
 			if !seen[c.DepTaskID] {
 				seen[c.DepTaskID] = true
 
@@ -113,18 +115,30 @@ func handleTaskAnalysisConflicts(ctx context.Context, params map[string]interfac
 				overlapping = append(overlapping, c.TaskID)
 			}
 		}
+		for _, c := range fileConflicts {
+			for _, id := range c.TaskIDs {
+				if !seen[id] {
+					seen[id] = true
+					overlapping = append(overlapping, id)
+				}
+			}
+		}
 	}
 
 	out := map[string]interface{}{
 		"conflict":    hasConflict,
-		"conflicts":   conflicts,
+		"conflicts":   taskOverlaps,
+		"file_conflicts": fileConflicts,
 		"overlapping": overlapping,
 	}
 
 	if hasConflict {
-		reasons := make([]string, len(conflicts))
-		for i, c := range conflicts {
-			reasons[i] = c.Reason
+		reasons := make([]string, 0, len(taskOverlaps)+len(fileConflicts))
+		for _, c := range taskOverlaps {
+			reasons = append(reasons, c.Reason)
+		}
+		for _, c := range fileConflicts {
+			reasons = append(reasons, "File conflict: tasks "+strings.Join(c.TaskIDs, ", ")+" share "+strings.Join(c.Files, ", "))
 		}
 
 		out["reasons"] = reasons

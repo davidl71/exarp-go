@@ -759,7 +759,7 @@ go-test: ## Run Go tests
 
 go-bench: ## Run Go benchmarks (without CGO to avoid Apple FM dependencies)
 	@echo "$(BLUE)Running Go benchmarks (CGO_ENABLED=0)...$(NC)"
-	@CGO_ENABLED=0 $(GO) test -bench=. -benchmem -benchtime=3s ./internal/tools/... || \
+	@CGO_ENABLED=0 $(GO) test -run=^$$ -bench=. -benchmem -benchtime=3s ./internal/tools/... || \
 	 echo "$(YELLOW)⚠️  Go benchmarks failed$(NC)"
 
 crud-bench-reprofile: ## CRUD DB benchmarks → logs/crud_bench_latest.txt; benchstat if baseline exists (see PERFORMANCE_GUIDE)

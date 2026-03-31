@@ -300,8 +300,14 @@ func handleSessionEnd(ctx context.Context, params map[string]interface{}, projec
 		t := suggested[0]
 
 		taskMap := map[string]interface{}{"id": t.ID, "content": t.Content}
+		if t.Lane != "" {
+			taskMap["lane"] = t.Lane
+		}
 		if hint := buildSuggestedNextAction(taskMap); hint != "" {
 			result["suggested_next_action"] = hint
+		}
+		if t.Lane != "" {
+			result["suggested_lane"] = t.Lane
 		}
 
 		if includeCliCommand {
@@ -411,8 +417,14 @@ func handleSessionResume(ctx context.Context, params map[string]interface{}, pro
 		t := suggested[0]
 
 		taskMap := map[string]interface{}{"id": t.ID, "content": t.Content}
+		if t.Lane != "" {
+			taskMap["lane"] = t.Lane
+		}
 		if hint := buildSuggestedNextAction(taskMap); hint != "" {
 			result["suggested_next_action"] = hint
+		}
+		if t.Lane != "" {
+			result["suggested_lane"] = t.Lane
 		}
 
 		if includeCliCommand {

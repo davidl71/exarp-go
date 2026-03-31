@@ -103,6 +103,15 @@ func DetectFileConflicts(tasks []*database.Todo2Task) []FileConflict {
 		}
 
 		files := filesFromLongDescription(t.LongDescription)
+		if own := models.GetTaskOwnership(t); own != nil {
+			if len(own.OwnedFiles) > 0 {
+				files = append(files, own.OwnedFiles...)
+			}
+			if len(own.OwnedGlobs) > 0 {
+				// We treat globs as matchers against other tasks' owned_files and globs.
+				files = append(files, own.OwnedGlobs...)
+			}
+		}
 		if len(files) > 0 {
 			taskFiles[t.ID] = files
 		}
@@ -113,6 +122,29 @@ func DetectFileConflicts(tasks []*database.Todo2Task) []FileConflict {
 	for taskID, files := range taskFiles {
 		for _, f := range files {
 			fileToTasks[f] = append(fileToTasks[f], taskID)
+		}
+	}
+
+	// Expand overlaps where a glob key matches another key.
+	// Best-effort: uses filepath.Match; safe for small in-progress sets.
+	if len(fileToTasks) > 1 {
+		keys := make([]string, 0, len(fileToTasks))
+		for k := range fileToTasks {
+			keys = append(keys, k)
+		}
+		sort.Strings(keys)
+		for _, g := range keys {
+			if !strings.ContainsAny(g, "*?[") {
+				continue
+			}
+			for _, k := range keys {
+				if g == k {
+					continue
+				}
+				if ok, _ := filepath.Match(g, k); ok {
+					fileToTasks[g] = append(fileToTasks[g], fileToTasks[k]...)
+				}
+			}
 		}
 	}
 	// Group by task set: key = sorted task IDs, value = all shared files

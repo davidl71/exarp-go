@@ -362,11 +362,29 @@ func TestGetTaskHandlesNullProjectID(t *testing.T) {
 
 	_, err = db.ExecContext(context.Background(), `
 		INSERT INTO tasks (
-			id, name, content, long_description, status, priority, completed,
-			created, last_modified, metadata, metadata_protobuf, metadata_format,
-			parent_id, project_id, assigned_to, host, agent, version, created_at, updated_at
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, strftime('%s', 'now'), strftime('%s', 'now'))
-	`, "T-null-project", "", "Legacy task", "", StatusTodo, "medium", 0, "2026-03-24T00:00:00Z", "2026-03-24T00:00:00Z", "", []byte(nil), "json", "", nil, "", "", "")
+			id, name, content, long_description,
+			status, status_enum,
+			priority, priority_enum,
+			completed,
+			created, last_modified, completed_at,
+			created_ts, last_modified_ts, completed_at_ts,
+			metadata, metadata_protobuf, metadata_format,
+			parent_id, project_id, assigned_to, host, agent,
+			assignee, assigned_at, lock_until,
+			version, created_at, updated_at
+		) VALUES (
+		  ?, ?, ?, ?,
+		  ?, ?,
+		  ?, ?,
+		  ?,
+		  ?, ?, '',
+		  strftime('%s', ?), strftime('%s', ?), 0,
+		  ?, ?, ?,
+		  ?, ?, ?, ?, ?,
+		  '', 0, 0,
+		  1, strftime('%s', 'now'), strftime('%s', 'now')
+		)
+	`, "T-null-project", "", "Legacy task", "", StatusTodo, 1, "medium", 2, 0, "2026-03-24T00:00:00Z", "2026-03-24T00:00:00Z", "2026-03-24T00:00:00Z", "2026-03-24T00:00:00Z", "", []byte(nil), "json", "", nil, "", "", "")
 	if err != nil {
 		t.Fatalf("insert legacy task: %v", err)
 	}
@@ -398,11 +416,29 @@ func TestListTasksCanIncludeNullProjectID(t *testing.T) {
 
 	_, err = db.ExecContext(context.Background(), `
 		INSERT INTO tasks (
-			id, name, content, long_description, status, priority, completed,
-			created, last_modified, metadata, metadata_protobuf, metadata_format,
-			parent_id, project_id, assigned_to, host, agent, version, created_at, updated_at
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, strftime('%s', 'now'), strftime('%s', 'now'))
-	`, "T-null-filter", "", "Legacy task", "", StatusTodo, "medium", 0, "2026-03-24T00:00:00Z", "2026-03-24T00:00:00Z", "", []byte(nil), "json", "", nil, "", "", "")
+			id, name, content, long_description,
+			status, status_enum,
+			priority, priority_enum,
+			completed,
+			created, last_modified, completed_at,
+			created_ts, last_modified_ts, completed_at_ts,
+			metadata, metadata_protobuf, metadata_format,
+			parent_id, project_id, assigned_to, host, agent,
+			assignee, assigned_at, lock_until,
+			version, created_at, updated_at
+		) VALUES (
+		  ?, ?, ?, ?,
+		  ?, ?,
+		  ?, ?,
+		  ?,
+		  ?, ?, '',
+		  strftime('%s', ?), strftime('%s', ?), 0,
+		  ?, ?, ?,
+		  ?, ?, ?, ?, ?,
+		  '', 0, 0,
+		  1, strftime('%s', 'now'), strftime('%s', 'now')
+		)
+	`, "T-null-filter", "", "Legacy task", "", StatusTodo, 1, "medium", 2, 0, "2026-03-24T00:00:00Z", "2026-03-24T00:00:00Z", "2026-03-24T00:00:00Z", "2026-03-24T00:00:00Z", "", []byte(nil), "json", "", nil, "", "", "")
 	if err != nil {
 		t.Fatalf("insert legacy task: %v", err)
 	}
