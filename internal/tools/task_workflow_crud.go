@@ -661,7 +661,9 @@ func handleTaskWorkflowList(ctx context.Context, params map[string]interface{}) 
 			}
 			if t.LongDescription != "" {
 				ld := t.LongDescription
-				if len(ld) > 120 {
+				// When listing many tasks, truncate long_description to keep responses compact.
+				// When querying a specific task_id (e.g. CLI `task show`), return the full long_description.
+				if taskID == "" && len(ld) > 120 {
 					ld = ld[:117] + "..."
 				}
 				m["long_description"] = ld
