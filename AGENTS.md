@@ -1,6 +1,6 @@
-# exarp-go Agent Guide (Codex)
+# exarp-go Agent Guide (Codex / OpenCode)
 
-Use these rules when editing this repository with Codex.
+Use these rules when editing this repository with Codex or OpenCode.
 
 ## Core Rules
 
@@ -13,7 +13,7 @@ Use these rules when editing this repository with Codex.
 
 ## MCP and Project Root
 
-- exarp-go MCP server command for this repo: `run-exarp-go.sh`
+- exarp-go MCP server command for this repo: `bin/exarp-go` (direct binary) or `run-exarp-go.sh` (wrapper script)
 - Use `PROJECT_ROOT` as this repo root for task/session/report flows.
 - Cursor/OpenCode configs exist in:
   - `.cursor/mcp.json`

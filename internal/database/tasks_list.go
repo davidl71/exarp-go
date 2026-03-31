@@ -58,6 +58,7 @@ func ListTasks(ctx context.Context, filters *TaskFilters) ([]*Todo2Task, error) 
 			       t.completed,
 			       t.created, t.last_modified, t.completed_at,
 			       t.created_ts, t.last_modified_ts, t.completed_at_ts,
+			       t.created_at, t.updated_at,
 			       t.metadata, t.metadata_protobuf, t.metadata_format,
 			       t.parent_id, t.project_id, t.assigned_to, t.host, t.agent, t.version
 			FROM tasks t
@@ -199,7 +200,8 @@ func ListTasks(ctx context.Context, filters *TaskFilters) ([]*Todo2Task, error) 
 				task.ProjectID = row.ProjectID.String
 			}
 
-			task.FillRFC3339FromUnix(row.CreatedTS, row.LastModifiedTS, row.CompletedAtTS)
+			task.FillRFC3339FromSQLiteTimes(row.CreatedTS, row.LastModifiedTS, row.CompletedAtTS,
+				row.InternalCreatedUnix, row.InternalUpdatedUnix)
 
 			includeMetadata := true
 			if filters != nil && filters.IncludeMetadata != nil {
@@ -476,6 +478,7 @@ func FindNextClaimableTask(ctx context.Context) (*Todo2Task, error) {
 		err = db.GetContext(queryCtx, &row, `
 			SELECT t.id, t.content, t.long_description, t.status, t.priority, t.completed, t.created, t.last_modified,
 			       t.completed_at, t.created_ts, t.last_modified_ts, t.completed_at_ts,
+			       t.created_at, t.updated_at,
 			       t.metadata, t.metadata_protobuf, t.metadata_format, t.parent_id, t.project_id,
 			       t.assigned_to, t.host, t.agent, t.version`+sqlTaskAggJSON+`
 			FROM tasks AS t
@@ -523,7 +526,8 @@ func FindNextClaimableTask(ctx context.Context) (*Todo2Task, error) {
 
 		task.Metadata = DeserializeTaskMetadata(string(row.Metadata), row.MetadataProto, row.MetadataFormat)
 
-		task.FillRFC3339FromUnix(row.CreatedTS, row.LastModifiedTS, row.CompletedAtTS)
+		task.FillRFC3339FromSQLiteTimes(row.CreatedTS, row.LastModifiedTS, row.CompletedAtTS,
+			row.InternalCreatedUnix, row.InternalUpdatedUnix)
 		task.NormalizeEpochDates()
 
 		tags, err := parseJSONArrayToStrings(row.TagsJSON)

@@ -245,6 +245,9 @@ type taskRow struct {
 	Host            string         `db:"host"`
 	Agent           string         `db:"agent"`
 	Version         int64          `db:"version"`
+	// InternalCreatedUnix / InternalUpdatedUnix are INTEGER columns created_at / updated_at (legacy row metadata).
+	InternalCreatedUnix int64 `db:"created_at"`
+	InternalUpdatedUnix int64 `db:"updated_at"`
 }
 
 // taskRowWithAgg extends taskRow with correlated json_group_array columns for tags and dependencies.
@@ -285,6 +288,7 @@ func GetTask(ctx context.Context, id string) (*Todo2Task, error) {
 			SELECT t.id, t.name, t.content, t.long_description, t.status, t.priority, t.completed,
 			       t.created, t.last_modified, t.completed_at,
 			       t.created_ts, t.last_modified_ts, t.completed_at_ts,
+			       t.created_at, t.updated_at,
 			       t.metadata, t.metadata_protobuf, t.metadata_format,
 			       t.parent_id, t.project_id, t.assigned_to, t.host, t.agent, t.version`+sqlTaskAggJSON+`
 			FROM tasks AS t
@@ -316,7 +320,8 @@ func GetTask(ctx context.Context, id string) (*Todo2Task, error) {
 			Version:         row.Version,
 		}
 
-		taskData.FillRFC3339FromUnix(row.CreatedTS, row.LastModifiedTS, row.CompletedAtTS)
+		taskData.FillRFC3339FromSQLiteTimes(row.CreatedTS, row.LastModifiedTS, row.CompletedAtTS,
+			row.InternalCreatedUnix, row.InternalUpdatedUnix)
 		taskData.NormalizeEpochDates()
 		taskData.EnsureName()
 		taskData.Metadata = DeserializeTaskMetadata(string(row.Metadata), row.MetadataProto, row.MetadataFormat)

@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"os"
 	"regexp"
+	"runtime"
 	"strconv"
 	"strings"
 	"sync"
@@ -178,7 +179,8 @@ func Run() error {
 		return handleCursorCommand(parsed)
 	case "tui3270":
 		tuiParsed := mcpcli.ParseArgs(os.Args[2:])
-		daemon := tuiParsed.GetBoolFlag("daemon", false) || tuiParsed.GetBoolFlag("d", false)
+		foreground := tuiParsed.GetBoolFlag("foreground", false) || tuiParsed.GetBoolFlag("f", false)
+		daemon := !foreground
 
 		pidFile := tuiParsed.GetFlag("pid-file", "")
 		if pidFile == "" {
@@ -202,12 +204,26 @@ func Run() error {
 
 		initializeDatabase()
 
+		if daemon {
+			detached, derr := tryDetachTUI3270(pidFile)
+			if derr != nil {
+				return derr
+			}
+			if detached {
+				return nil
+			}
+			if runtime.GOOS == "windows" {
+				logInfo(context.Background(), "3270 background detach is not supported on Windows; running server in foreground",
+					"operation", "tui3270")
+			}
+		}
+
 		server, err := setupServer()
 		if err != nil {
 			return err
 		}
 
-		return RunTUI3270(server, status, port, daemon, pidFile)
+		return RunTUI3270(server, status, port)
 	case "queue":
 		initializeDatabase()
 		return handleQueueCommand(parsed)
@@ -785,9 +801,10 @@ func showUsage() {
 	_, _ = fmt.Println("TUI Commands:")
 	_, _ = fmt.Println("  tui                 Launch terminal user interface for task management")
 	_, _ = fmt.Println("  tui <status>        Launch TUI filtered by status (e.g., 'Todo', 'In Progress')")
-	_, _ = fmt.Println("  tui3270 [status] [port] [--daemon] [--pid-file FILE]  Launch 3270 TUI server")
-	_, _ = fmt.Println("    --daemon, -d          Run in background mode (writes PID file, redirects logs)")
-	_, _ = fmt.Println("    --pid-file FILE       Write PID to FILE (default: .exarp-go-tui3270.pid)")
+	_, _ = fmt.Println("  tui3270 [status] [port]  Launch 3270 TUI server (Unix: daemon/background by default)")
+	_, _ = fmt.Println("    --foreground, -f      Stay in foreground; attach logs to this terminal")
+	_, _ = fmt.Println("    --daemon, -d          Explicit background (default on Unix; no-op if already detached)")
+	_, _ = fmt.Println("    --pid-file FILE       PID file path (default: .exarp-go-tui3270.pid under project root)")
 	_, _ = fmt.Println()
 	_, _ = fmt.Println("Session:")
 	_, _ = fmt.Println("  session handoffs       View session handoff notes (from previous sessions)")

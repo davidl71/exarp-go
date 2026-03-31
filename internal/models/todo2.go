@@ -54,6 +54,22 @@ func (t *Todo2Task) FillRFC3339FromUnix(createdTS, lastModifiedTS, completedAtTS
 	}
 }
 
+// FillRFC3339FromSQLiteTimes fills display timestamps like FillRFC3339FromUnix, but when
+// created_ts or last_modified_ts is zero uses the legacy integer columns created_at /
+// updated_at on the same row (schema v9 / migration 016). Some older writes only bumped
+// those columns or left *_ts at default 0.
+func (t *Todo2Task) FillRFC3339FromSQLiteTimes(createdTS, lastModifiedTS, completedAtTS, legacyCreatedAt, legacyUpdatedAt int64) {
+	created := createdTS
+	if created <= 0 && legacyCreatedAt > 0 {
+		created = legacyCreatedAt
+	}
+	lastMod := lastModifiedTS
+	if lastMod <= 0 && legacyUpdatedAt > 0 {
+		lastMod = legacyUpdatedAt
+	}
+	t.FillRFC3339FromUnix(created, lastMod, completedAtTS)
+}
+
 // Todo2Task represents a Todo2 task.
 type Todo2Task struct {
 	ID string `json:"id"`
