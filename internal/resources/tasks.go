@@ -300,14 +300,18 @@ func handleSuggestedTasks(ctx context.Context, uri string) ([]byte, string, erro
 	taskMaps := make([]map[string]interface{}, len(suggested))
 
 	for i, d := range suggested {
-		taskMaps[i] = map[string]interface{}{
+		m := map[string]interface{}{
 			"id":       d.ID,
 			"content":  d.Content,
 			"priority": d.Priority,
 			"status":   d.Status,
 			"level":    d.Level,
-			"tags":     d.Tags,
+			"tags":     cloneStringSlice(d.Tags),
 		}
+		if d.Lane != "" {
+			m["lane"] = d.Lane
+		}
+		taskMaps[i] = m
 	}
 
 	result := map[string]interface{}{
@@ -352,8 +356,8 @@ func handleTaskRuns(ctx context.Context, uri string) ([]byte, string, error) {
 			"summary":       runs[i].Summary,
 			"started_at":    runs[i].StartedAt.Format(time.RFC3339),
 			"ended_at":      runs[i].EndedAt.Format(time.RFC3339),
-			"files_touched": runs[i].FilesTouched,
-			"commands_run":  runs[i].CommandsRun,
+			"files_touched": cloneStringSlice(runs[i].FilesTouched),
+			"commands_run":  cloneStringSlice(runs[i].CommandsRun),
 		})
 	}
 	result := map[string]interface{}{
@@ -403,8 +407,8 @@ func handleActiveWork(ctx context.Context, uri string) ([]byte, string, error) {
 			"status":        activeRuns[i].Status,
 			"summary":       activeRuns[i].Summary,
 			"started_at":    activeRuns[i].StartedAt.Format(time.RFC3339),
-			"files_touched": activeRuns[i].FilesTouched,
-			"commands_run":  activeRuns[i].CommandsRun,
+			"files_touched": cloneStringSlice(activeRuns[i].FilesTouched),
+			"commands_run":  cloneStringSlice(activeRuns[i].CommandsRun),
 		})
 	}
 
@@ -448,13 +452,13 @@ func formatTaskForResource(task *database.Todo2Task) map[string]interface{} {
 		"long_description": task.LongDescription,
 		"status":           task.Status,
 		"priority":         task.Priority,
-		"tags":             task.Tags,
-		"dependencies":     task.Dependencies,
+		"tags":             cloneStringSlice(task.Tags),
+		"dependencies":     cloneStringSlice(task.Dependencies),
 		"completed":        task.Completed,
-		"metadata":         task.Metadata,
+		"metadata":         cloneMapStringAny(task.Metadata),
 	}
 	if rt := tools.GetRecommendedTools(task.Metadata); len(rt) > 0 {
-		result["recommended_tools"] = rt
+		result["recommended_tools"] = cloneStringSlice(rt)
 	}
 
 	// Query assignee from database if available
@@ -494,4 +498,22 @@ func formatTaskForResource(task *database.Todo2Task) map[string]interface{} {
 	}
 
 	return result
+}
+
+func cloneStringSlice(in []string) []string {
+	if len(in) == 0 {
+		return []string{}
+	}
+	return append([]string(nil), in...)
+}
+
+func cloneMapStringAny(in map[string]interface{}) map[string]interface{} {
+	if in == nil {
+		return nil
+	}
+	out := make(map[string]interface{}, len(in))
+	for k, v := range in {
+		out[k] = v
+	}
+	return out
 }

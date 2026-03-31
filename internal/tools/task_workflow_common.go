@@ -113,7 +113,8 @@ func TaskWorkflowResponseToMap(resp *proto.TaskWorkflowResponse) map[string]inte
 			}
 
 			if len(t.Tags) > 0 {
-				m["tags"] = t.Tags
+				// Clone to avoid leaking references to internal slices.
+				m["tags"] = append([]string(nil), t.Tags...)
 			}
 
 			if t.LongDescription != "" {
@@ -121,11 +122,13 @@ func TaskWorkflowResponseToMap(resp *proto.TaskWorkflowResponse) map[string]inte
 			}
 
 			if len(t.Dependencies) > 0 {
-				m["dependencies"] = t.Dependencies
+				// Clone to avoid leaking references to internal slices.
+				m["dependencies"] = append([]string(nil), t.Dependencies...)
 			}
 
 			if len(t.RecommendedTools) > 0 {
-				m["recommended_tools"] = t.RecommendedTools
+				// Clone to avoid leaking references to internal slices.
+				m["recommended_tools"] = append([]string(nil), t.RecommendedTools...)
 			}
 
 			tasks[i] = m
@@ -158,9 +161,9 @@ func taskToTaskSummary(t *models.Todo2Task) *proto.TaskSummary {
 		Content:          t.Content,
 		Status:           t.Status,
 		Priority:         t.Priority,
-		Tags:             t.Tags,
+		Tags:             append([]string(nil), t.Tags...),
 		LongDescription:  t.LongDescription,
-		Dependencies:     t.Dependencies,
+		Dependencies:     append([]string(nil), t.Dependencies...),
 		RecommendedTools: GetRecommendedTools(t.Metadata),
 	}
 }

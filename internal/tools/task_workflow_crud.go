@@ -657,7 +657,8 @@ func handleTaskWorkflowList(ctx context.Context, params map[string]interface{}) 
 				m["priority"] = t.Priority
 			}
 			if len(t.Tags) > 0 {
-				m["tags"] = t.Tags
+				// Clone to avoid leaking references to internal slices.
+				m["tags"] = append([]string(nil), t.Tags...)
 			}
 			if t.LongDescription != "" {
 				ld := t.LongDescription
@@ -669,7 +670,8 @@ func handleTaskWorkflowList(ctx context.Context, params map[string]interface{}) 
 				m["long_description"] = ld
 			}
 			if len(t.Dependencies) > 0 {
-				m["dependencies"] = t.Dependencies
+				// Clone to avoid leaking references to internal slices.
+				m["dependencies"] = append([]string(nil), t.Dependencies...)
 			}
 			if t.ParentID != "" {
 				m["parent_id"] = t.ParentID
@@ -694,13 +696,13 @@ func handleTaskWorkflowList(ctx context.Context, params map[string]interface{}) 
 			if own := models.GetTaskOwnership(t); own != nil {
 				ownershipMap := make(map[string]interface{})
 				if len(own.OwnedFiles) > 0 {
-					ownershipMap["owned_files"] = own.OwnedFiles
+					ownershipMap["owned_files"] = append([]string(nil), own.OwnedFiles...)
 				}
 				if len(own.OwnedGlobs) > 0 {
-					ownershipMap["owned_globs"] = own.OwnedGlobs
+					ownershipMap["owned_globs"] = append([]string(nil), own.OwnedGlobs...)
 				}
 				if len(own.ForbiddenFiles) > 0 {
-					ownershipMap["forbidden_files"] = own.ForbiddenFiles
+					ownershipMap["forbidden_files"] = append([]string(nil), own.ForbiddenFiles...)
 				}
 				if own.OwnershipConfidence != "" {
 					ownershipMap["ownership_confidence"] = own.OwnershipConfidence

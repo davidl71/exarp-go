@@ -312,6 +312,8 @@ const (
 )
 
 // CLIOutputOpts holds output options for OpenCode/script-friendly CLI (--quiet, --json, --concise).
+// Mutable by design: this is per-process CLI state derived from argv parsing and
+// read by various CLI subcommands during a single invocation.
 var CLIOutputOpts = struct {
 	Quiet   bool
 	JSON    bool

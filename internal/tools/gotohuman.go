@@ -24,7 +24,8 @@ func BuildApprovalRequestFromTask(task *models.Todo2Task, formID string) Approva
 		"priority":    task.Priority,
 	}
 	if len(task.Tags) > 0 {
-		fieldData["tags"] = task.Tags
+		// Clone to avoid leaking references to internal slices.
+		fieldData["tags"] = append([]string(nil), task.Tags...)
 	}
 
 	metadata := map[string]interface{}{

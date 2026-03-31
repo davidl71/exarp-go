@@ -17,6 +17,8 @@ import (
 )
 
 var reportOverviewFlight singleflight.Group
+// Mutable by design: singleflight maintains internal state to deduplicate
+// concurrent overview computations within a process.
 
 // handleReportOverview handles the overview action for report tool.
 func handleReportOverview(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {

@@ -351,32 +351,54 @@ func (s *RuleSimplifier) SimplifyRules(ruleFiles []string, dryRun bool, outputDi
 }
 
 func getSimplificationPatterns() map[string]map[string]string {
-	return map[string]map[string]string{
-		"use_exarp_estimation": {
-			"old": "Use exarp estimation tool to estimate task duration",
-			"new": "Use `estimation` tool (action=estimate) to estimate task duration",
-		},
-		"use_exarp_task_analysis": {
-			"old": "Analyze tasks for duplicates, dependencies, and parallelization",
-			"new": "Use `task_analysis` tool (action=duplicates|dependencies|parallelization) to analyze tasks",
-		},
-		"use_exarp_task_workflow": {
-			"old": "Use task workflow tools to manage task lifecycle",
-			"new": "Use `task_workflow` tool (action=sync|approve|clarify) to manage task lifecycle",
-		},
-		"use_exarp_health": {
-			"old": "Check project health and status",
-			"new": "Use `health` tool (action=server|git|docs) to check project health",
-		},
-		"use_exarp_lint": {
-			"old": "Run linters and fix code issues",
-			"new": "Use `lint` tool (action=run|analyze) to run linters and analyze code",
-		},
-		"use_exarp_testing": {
-			"old": "Run tests and check coverage",
-			"new": "Use `testing` tool (action=run|coverage) to run tests and check coverage",
-		},
+	// Return a defensive copy so callers can't mutate the shared defaults.
+	return cloneMapMapStringString(simplificationPatterns)
+}
+
+var simplificationPatterns = map[string]map[string]string{
+	"use_exarp_estimation": {
+		"old": "Use exarp estimation tool to estimate task duration",
+		"new": "Use `estimation` tool (action=estimate) to estimate task duration",
+	},
+	"use_exarp_task_analysis": {
+		"old": "Analyze tasks for duplicates, dependencies, and parallelization",
+		"new": "Use `task_analysis` tool (action=duplicates|dependencies|parallelization) to analyze tasks",
+	},
+	"use_exarp_task_workflow": {
+		"old": "Use task workflow tools to manage task lifecycle",
+		"new": "Use `task_workflow` tool (action=sync|approve|clarify) to manage task lifecycle",
+	},
+	"use_exarp_health": {
+		"old": "Check project health and status",
+		"new": "Use `health` tool (action=server|git|docs) to check project health",
+	},
+	"use_exarp_lint": {
+		"old": "Run linters and fix code issues",
+		"new": "Use `lint` tool (action=run|analyze) to run linters and analyze code",
+	},
+	"use_exarp_testing": {
+		"old": "Run tests and check coverage",
+		"new": "Use `testing` tool (action=run|coverage) to run tests and check coverage",
+	},
+}
+
+func cloneMapMapStringString(in map[string]map[string]string) map[string]map[string]string {
+	if in == nil {
+		return nil
 	}
+	out := make(map[string]map[string]string, len(in))
+	for k, v := range in {
+		if v == nil {
+			out[k] = nil
+			continue
+		}
+		inner := make(map[string]string, len(v))
+		for k2, v2 := range v {
+			inner[k2] = v2
+		}
+		out[k] = inner
+	}
+	return out
 }
 
 func getRuleTemplates() map[string]RuleTemplate {

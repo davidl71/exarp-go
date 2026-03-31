@@ -25,6 +25,8 @@ var (
 )
 
 // GetScorecardCache returns a singleton TTL cache for scorecard results.
+// Mutable by design: this is process-local state used to avoid recomputing
+// expensive metrics; callers must treat it as an internal optimization detail.
 func GetScorecardCache() *TTLCache {
 	scorecardCacheOnce.Do(func() {
 		scorecardCache = NewTTLCache()
