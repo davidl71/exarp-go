@@ -3,11 +3,15 @@
 package tools
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
+	"strconv"
 	"strings"
 
+	"github.com/davidl71/exarp-go/internal/models"
 	"github.com/spf13/cast"
 )
 
@@ -125,9 +129,151 @@ func ParamStringSliceTrimmed(params map[string]interface{}, key string) []string
 	return out
 }
 
+// parseStringAsJSONStringSlice reports ok when s unmarshals as a JSON array of strings (possibly empty after trimming elements).
+// When ok is true, callers must not fall back to comma-splitting (e.g. "[]" is an empty tag list, not a literal tag).
+func parseStringAsJSONStringSlice(s string) (out []string, ok bool) {
+	s = strings.TrimSpace(s)
+	if len(s) < 2 || s[0] != '[' {
+		return nil, false
+	}
+	var arr []string
+	if err := json.Unmarshal([]byte(s), &arr); err != nil {
+		return nil, false
+	}
+	out = make([]string, 0, len(arr))
+	for _, x := range arr {
+		if t := strings.TrimSpace(x); t != "" {
+			out = append(out, t)
+		}
+	}
+	return out, true
+}
+
+var taskDependencyIDRe = regexp.MustCompile(`T-\d+`)
+
+// dependencyTokensFromValue flattens dependency parameters from MCP/JSON (nested arrays, JSON-text
+// blobs, comma-separated strings, quoted IDs) into raw string tokens before ID validation.
+func dependencyTokensFromValue(v interface{}) []string {
+	if v == nil {
+		return nil
+	}
+	switch t := v.(type) {
+	case string:
+		return dependencyStringTokens(t)
+	case []byte:
+		return dependencyStringTokens(string(t))
+	case []interface{}:
+		var out []string
+		for _, item := range t {
+			out = append(out, dependencyTokensFromValue(item)...)
+		}
+		return out
+	case []string:
+		var out []string
+		for _, item := range t {
+			out = append(out, dependencyTokensFromValue(item)...)
+		}
+		return out
+	default:
+		return dependencyStringTokens(strings.TrimSpace(cast.ToString(t)))
+	}
+}
+
+func dependencyStringTokens(s string) []string {
+	s = strings.TrimSpace(s)
+	if s == "" {
+		return nil
+	}
+	if len(s) >= 2 && s[0] == '[' {
+		var arr []json.RawMessage
+		if err := json.Unmarshal([]byte(s), &arr); err == nil {
+			if len(arr) == 0 {
+				return nil
+			}
+			var out []string
+			for _, raw := range arr {
+				out = append(out, dependencyStringTokens(strings.TrimSpace(string(raw)))...)
+			}
+			return out
+		}
+	}
+	if sl, ok := parseStringAsJSONStringSlice(s); ok {
+		var out []string
+		for _, x := range sl {
+			out = append(out, dependencyTokensFromValue(x)...)
+		}
+		return out
+	}
+	if strings.Contains(s, ",") {
+		parts := strings.Split(s, ",")
+		var out []string
+		for _, p := range parts {
+			if p = strings.TrimSpace(p); p != "" {
+				out = append(out, dependencyStringTokens(p)...)
+			}
+		}
+		return out
+	}
+	if u, err := strconv.Unquote(s); err == nil {
+		return dependencyStringTokens(u)
+	}
+	return []string{s}
+}
+
+// normalizeValidTaskDependencyIDs trims tokens, keeps unique Todo2-style IDs (T-<digits>), and
+// recovers IDs embedded in malformed wrappers (e.g. a single token "['T-1']").
+func normalizeValidTaskDependencyIDs(tokens []string) []string {
+	seen := make(map[string]struct{}, len(tokens))
+	out := make([]string, 0, len(tokens))
+	for _, tok := range tokens {
+		tok = strings.TrimSpace(tok)
+		if tok == "" {
+			continue
+		}
+		if models.IsValidTaskID(tok) {
+			if _, ok := seen[tok]; ok {
+				continue
+			}
+			seen[tok] = struct{}{}
+			out = append(out, tok)
+			continue
+		}
+		for _, m := range taskDependencyIDRe.FindAllString(tok, -1) {
+			if !models.IsValidTaskID(m) {
+				continue
+			}
+			if _, ok := seen[m]; ok {
+				continue
+			}
+			seen[m] = struct{}{}
+			out = append(out, m)
+		}
+	}
+	if len(out) == 0 {
+		return nil
+	}
+	return out
+}
+
+// ParamTaskDependencyIDs extracts task dependency IDs from params[key].
+// It accepts comma-separated strings, JSON arrays (including nested), quoted JSON text, and
+// native []interface{} slices from JSON-RPC — cases that plain ParamStringSliceTrimmedCommaSeparated
+// can mis-parse as one invalid token (e.g. "[\"T-1\"]").
+func ParamTaskDependencyIDs(params map[string]interface{}, key string) []string {
+	if params == nil {
+		return nil
+	}
+	v, ok := params[key]
+	if !ok || v == nil {
+		return nil
+	}
+	return normalizeValidTaskDependencyIDs(dependencyTokensFromValue(v))
+}
+
 // ParamStringSliceTrimmedCommaSeparated trims and splits a string value on commas into separate elements.
-// JSON arrays (and other non-string values) delegate to ParamStringSliceTrimmed so each array element stays one token.
-// Use for tags, dependencies, recommended_tools, task_ids lists where clients pass "a,b" or ["a","b"].
+// String values that look like JSON arrays of strings are parsed as such (one element per array item).
+// Native JSON arrays in params (and other non-string values) delegate to ParamStringSliceTrimmed.
+// Use for tags, dependencies, recommended_tools, task_ids lists where clients pass "a,b", `["a","b"]`, or ["a","b"].
 func ParamStringSliceTrimmedCommaSeparated(params map[string]interface{}, key string) []string {
 	if params == nil {
 		return nil
@@ -137,6 +283,16 @@ func ParamStringSliceTrimmedCommaSeparated(params map[string]interface{}, key st
 		return nil
 	}
 	if s, ok := v.(string); ok {
+		s = strings.TrimSpace(s)
+		if s == "" {
+			return nil
+		}
+		if jsonSlice, ok := parseStringAsJSONStringSlice(s); ok {
+			if len(jsonSlice) == 0 {
+				return nil
+			}
+			return jsonSlice
+		}
 		parts := strings.Split(s, ",")
 		out := make([]string, 0, len(parts))
 		for _, p := range parts {

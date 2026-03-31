@@ -23,6 +23,7 @@ import (
 //   handleTaskAnalysisDependencies
 //   handleTaskAnalysisDependenciesSummary — handleTaskAnalysisDependenciesSummary combines dependencies, parallelization, and execution_plan (T-227).
 //   handleTaskAnalysisExecutionPlan — handleTaskAnalysisExecutionPlan handles execution plan: backlog (Todo + In Progress) in dependency order.
+//   handleTaskAnalysisNextBatch — handleTaskAnalysisNextBatch returns remaining waves + next executable batch (wave 0), with optional tag preference.
 //   formatExecutionPlanText
 //   formatExecutionPlanMarkdown
 //   fmtTime
@@ -42,7 +43,7 @@ func handleTaskAnalysisDependencies(ctx context.Context, params map[string]inter
 
 	tasks := tasksFromPtrs(list)
 
-	cycles, missing, err := GetDependencyAnalysisFromTasks(tasks)
+	cycles, missing, err := GetDependencyAnalysisFromTasksWithStore(ctx, store, tasks)
 	if err != nil {
 		return nil, err
 	}
@@ -258,6 +259,160 @@ func parseTaskAnalysisJSONContent(contents []framework.TextContent) (map[string]
 	}
 
 	return data, nil
+}
+
+// ─── handleTaskAnalysisNextBatch ─────────────────────────────────────────────
+// handleTaskAnalysisNextBatch returns:
+// - remaining_waves: number of non-empty dependency waves in the open backlog
+// - next_wave: the earliest wave index with work (typically 0)
+// - next_batch_task_ids: task IDs from next_wave (optionally reordered by tag preference)
+// - next_batch_details: BacklogTaskDetail entries for that batch
+//
+// Params:
+// - limit (int): max tasks to return in next_batch_task_ids (0 = no limit)
+// - prefer_tags ([]string or comma-separated string): tags to prioritize within the next batch
+// - output_format ("json" | "text"): default json
+func handleTaskAnalysisNextBatch(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
+	store, err := getTaskStore(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get task store: %w", err)
+	}
+
+	list, err := store.ListTasks(ctx, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load tasks: %w", err)
+	}
+
+	tasks := tasksFromPtrs(list)
+
+	orderedIDs, waves, details, err := BacklogExecutionOrder(tasks, nil)
+	if err != nil {
+		return nil, fmt.Errorf("execution order: %w", err)
+	}
+
+	// Apply the same wave splitting config used elsewhere (plan/report/TUI).
+	if max := config.MaxTasksPerWave(); max > 0 {
+		waves = LimitWavesByMaxTasks(waves, max)
+	}
+
+	// Determine next wave (min key).
+	nextWave := -1
+	if len(waves) > 0 {
+		levels := make([]int, 0, len(waves))
+		for k := range waves {
+			levels = append(levels, k)
+		}
+		sort.Ints(levels)
+		if len(levels) > 0 {
+			nextWave = levels[0]
+		}
+	}
+
+	preferTags := ParamStringSlice(params, "prefer_tags")
+	if len(preferTags) == 0 {
+		// Allow comma-separated string fallback.
+		if s := strings.TrimSpace(cast.ToString(params["prefer_tags"])); s != "" {
+			parts := strings.Split(s, ",")
+			for _, p := range parts {
+				if tag := strings.TrimSpace(p); tag != "" {
+					preferTags = append(preferTags, tag)
+				}
+			}
+		}
+	}
+
+	limit := ParamInt(params, "limit", 0)
+
+	var nextBatchIDs []string
+	if nextWave >= 0 {
+		nextBatchIDs = append([]string(nil), waves[nextWave]...)
+	} else {
+		nextBatchIDs = []string{}
+	}
+
+	// Tag-aware stable partition: preferred tags first, preserving execution-order within each partition.
+	if len(preferTags) > 0 && len(nextBatchIDs) > 1 {
+		taskByID := make(map[string]Todo2Task, len(tasks))
+		for _, t := range tasks {
+			taskByID[t.ID] = t
+		}
+
+		hasPreferredTag := func(id string) bool {
+			t, ok := taskByID[id]
+			if !ok {
+				return false
+			}
+			for _, tt := range t.Tags {
+				for _, pt := range preferTags {
+					if tt == pt {
+						return true
+					}
+				}
+			}
+			return false
+		}
+
+		preferred := make([]string, 0, len(nextBatchIDs))
+		other := make([]string, 0, len(nextBatchIDs))
+		for _, id := range nextBatchIDs {
+			if hasPreferredTag(id) {
+				preferred = append(preferred, id)
+			} else {
+				other = append(other, id)
+			}
+		}
+		nextBatchIDs = append(preferred, other...)
+	}
+
+	if limit > 0 && len(nextBatchIDs) > limit {
+		nextBatchIDs = nextBatchIDs[:limit]
+	}
+
+	// Build details for selected batch IDs (preserve batch order).
+	detailByID := make(map[string]BacklogTaskDetail, len(details))
+	for _, d := range details {
+		detailByID[d.ID] = d
+	}
+
+	nextBatchDetails := make([]BacklogTaskDetail, 0, len(nextBatchIDs))
+	for _, id := range nextBatchIDs {
+		if d, ok := detailByID[id]; ok {
+			nextBatchDetails = append(nextBatchDetails, d)
+		}
+	}
+
+	result := map[string]interface{}{
+		"success":             true,
+		"method":              "native_go",
+		"backlog_count":       len(orderedIDs),
+		"remaining_waves":     len(waves),
+		"next_wave":           nextWave,
+		"next_batch_task_ids": nextBatchIDs,
+		"next_batch_details":  nextBatchDetails,
+		"prefer_tags":         preferTags,
+	}
+
+	outputFormat := ParamOutputFormat(params, "json")
+	if outputFormat == "json" {
+		resultJSON, _ := json.Marshal(result)
+		resp := &proto.TaskAnalysisResponse{Action: "next_batch", ResultJson: string(resultJSON)}
+		return framework.FormatResult(TaskAnalysisResponseToMap(resp), resp.GetOutputPath())
+	}
+
+	// Text fallback: compact summary.
+	var b strings.Builder
+	b.WriteString(fmt.Sprintf("Remaining waves: %d\n", len(waves)))
+	b.WriteString(fmt.Sprintf("Next wave: %d\n", nextWave))
+	if len(nextBatchIDs) == 0 {
+		b.WriteString("Next batch: (empty)\n")
+	} else {
+		b.WriteString("Next batch:\n")
+		for _, id := range nextBatchIDs {
+			b.WriteString("- " + id + "\n")
+		}
+	}
+
+	return []framework.TextContent{{Type: "text", Text: b.String()}}, nil
 }
 
 // ─── handleTaskAnalysisExecutionPlan ────────────────────────────────────────

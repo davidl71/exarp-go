@@ -1,5 +1,6 @@
-// Package tools: LLM backend status for discovery (stdio://models, tool hints).
-// Exposes which LLM backends are available so clients can choose the right tool.
+// llm_backends.go — LLM backend discovery map for stdio://models and tool hints.
+// fm_available follows DefaultFMProvider().Supported() (cached Ollama /api/tags probe on the stock chain).
+// ollama_reachable is the explicit probe; Generate can still fail if Ollama stops after a successful probe.
 
 package tools
 
@@ -14,10 +15,11 @@ import (
 // (FM, Ollama, MLX, LocalAI, Gateway) without calling each tool.
 func LLMBackendStatus() map[string]interface{} {
 	return map[string]interface{}{
-		"fm_available":      FMAvailable(),
-		"mlx_available":     MLAvailable(),
-		"localai_available": LocalAIAvailable(),
-		"gateway_available": GatewayAvailable(),
+		"fm_available":       FMAvailable(),
+		"ollama_reachable":   OllamaReachableForFM(),
+		"mlx_available":      MLAvailable(),
+		"localai_available":  LocalAIAvailable(),
+		"gateway_available":  GatewayAvailable(),
 		"ollama_tool":       "ollama",
 		"mlx_tool":          "mlx",
 		"localai_tool":      "text_generate",

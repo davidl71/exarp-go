@@ -473,6 +473,12 @@ message TaskWorkflowRequest {
   bool confirm_via_elicitation = 25;  // When true and client supports MCP elicitation, prompt to confirm approve/delete
   TaskWorkflowAction action_enum = 26;
   OutputFormat output_format_enum = 27;
+  // content is action-dependent:
+  // - action=create: optional shorthand for name/title (name wins if both set)
+  // - action=add_comment: the comment body text
+  string content = 28;
+  // For action=add_comment: type of comment (result, note, research_with_links, manualsetup).
+  string comment_type = 29;
 }
 
 // TaskSummary is a single task entry for list/approve/sync results (type-safe response).

@@ -6,6 +6,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"sort"
 	"strings"
 
 	"github.com/davidl71/exarp-go/internal/framework"
@@ -179,19 +180,42 @@ func detectTaskStoreDrift(projectRoot string) (*storeDriftReport, error) {
 		return nil, fmt.Errorf("project root is required")
 	}
 
+	jsonTasks, err := loadTodo2TasksFromJSON(projectRoot)
+	if err != nil {
+		return nil, fmt.Errorf("load json for store drift: %w", err)
+	}
+
 	dbTasks, err := loadTodo2TasksFromDB(projectRoot)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("load database for store drift: %w", err)
 	}
 
-	dbIDs := make(map[string]bool, len(dbTasks))
+	dbSet := make(map[string]struct{}, len(dbTasks))
 	for _, task := range dbTasks {
-		dbIDs[task.ID] = true
+		dbSet[task.ID] = struct{}{}
 	}
+	jsonSet := make(map[string]struct{}, len(jsonTasks))
+	for _, task := range jsonTasks {
+		jsonSet[task.ID] = struct{}{}
+	}
+
+	var jsonOnly, dbOnly []string
+	for _, task := range jsonTasks {
+		if _, ok := dbSet[task.ID]; !ok {
+			jsonOnly = append(jsonOnly, task.ID)
+		}
+	}
+	for _, task := range dbTasks {
+		if _, ok := jsonSet[task.ID]; !ok {
+			dbOnly = append(dbOnly, task.ID)
+		}
+	}
+	sort.Strings(jsonOnly)
+	sort.Strings(dbOnly)
 
 	return &storeDriftReport{
-		JSONOnlyIDs: nil,
-		DBOnlyIDs:   nil,
+		JSONOnlyIDs: jsonOnly,
+		DBOnlyIDs:   dbOnly,
 	}, nil
 }
 
@@ -338,7 +362,7 @@ func handleTaskWorkflowLinkPlanning(ctx context.Context, params map[string]inter
 	}
 
 	if epicID != "" {
-		if err := ValidateTaskReference(epicID, tasks); err != nil {
+		if err := ValidateTaskReferenceInStore(ctx, store, epicID, tasks); err != nil {
 			return nil, fmt.Errorf("invalid epic_id: %w", err)
 		}
 	}
@@ -350,8 +374,12 @@ func handleTaskWorkflowLinkPlanning(ctx context.Context, params map[string]inter
 	for _, id := range uniqueIDs {
 		task, ok := taskMap[id]
 		if !ok {
-			skippedStatus = append(skippedStatus, id+": not found")
-			continue
+			ptr, gerr := store.GetTask(ctx, id)
+			if gerr != nil {
+				skippedStatus = append(skippedStatus, id+": not found")
+				continue
+			}
+			task = *ptr
 		}
 
 		norm := normalizeStatus(strings.TrimSpace(task.Status))

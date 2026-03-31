@@ -215,6 +215,32 @@ func TestHandleTaskAnalysisNative(t *testing.T) {
 			},
 		},
 		{
+			name: "next_batch action",
+			params: map[string]interface{}{
+				"action":       "next_batch",
+				"output_format": "json",
+			},
+			wantError: false,
+			validate: func(t *testing.T, result []framework.TextContent) {
+				if len(result) == 0 {
+					t.Error("expected non-empty result")
+					return
+				}
+
+				var data map[string]interface{}
+				if err := json.Unmarshal([]byte(result[0].Text), &data); err != nil {
+					t.Errorf("next_batch should return JSON: %v", err)
+					return
+				}
+				if _, ok := data["remaining_waves"]; !ok {
+					t.Error("expected remaining_waves in result")
+				}
+				if _, ok := data["next_batch_task_ids"]; !ok {
+					t.Error("expected next_batch_task_ids in result")
+				}
+			},
+		},
+		{
 			name: "unknown action",
 			params: map[string]interface{}{
 				"action": "unknown",

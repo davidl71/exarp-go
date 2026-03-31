@@ -94,7 +94,7 @@ func handleTaskDiscoveryNative(ctx context.Context, params map[string]interface{
 	if action == "git_json" || action == "all" {
 		jsonPattern := cast.ToString(params["json_pattern"])
 
-		gitJSONTasks := scanGitJSON(projectRoot, jsonPattern)
+		gitJSONTasks := scanGitJSON(ctx, projectRoot, jsonPattern)
 		discoveries = append(discoveries, gitJSONTasks...)
 	}
 
@@ -400,7 +400,7 @@ func findOrphanTasks(ctx context.Context, projectRoot string) []map[string]inter
 		taskMap[task.ID] = true
 	}
 
-	cycles, missing, err := GetDependencyAnalysisFromTasks(tasks)
+	cycles, missing, err := GetDependencyAnalysisFromTasksWithStore(ctx, store, tasks)
 	if err != nil {
 		return orphans
 	}
@@ -445,7 +445,9 @@ func findOrphanTasks(ctx context.Context, projectRoot string) []map[string]inter
 		}
 
 		if parentID != "" && !taskMap[parentID] {
-			issues = append(issues, fmt.Sprintf("missing_parent:%s", parentID))
+			if _, perr := store.GetTask(ctx, parentID); perr != nil {
+				issues = append(issues, fmt.Sprintf("missing_parent:%s", parentID))
+			}
 		}
 
 		if len(task.Dependencies) > 0 && len(task.Tags) == 0 && task.Priority == "" {

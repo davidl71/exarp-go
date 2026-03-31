@@ -376,8 +376,8 @@ func handleMlx(ctx context.Context, args json.RawMessage) ([]framework.TextConte
 // handlePromptAnalyze, handleRecommendModel, handleRecommendWorkflow) were removed in favor of
 // unified handlers below that use action parameters.
 
-// handleContext handles the context tool (unified wrapper)
-// Uses native Go with Apple Foundation Models for summarization when available.
+// handleContext handles the context tool (unified wrapper).
+// Summarize/batch use DefaultFMProvider() (FM chain, typically Ollama); budget/count are local.
 func handleContext(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
 	// Try protobuf first, fall back to JSON for backward compatibility
 	req, params, err := ParseContextRequest(args)
@@ -409,11 +409,7 @@ func handleContext(ctx context.Context, args json.RawMessage) ([]framework.TextC
 	// Route to native Go implementations when available
 	switch action {
 	case "summarize":
-		// Native summarization requires Apple Foundation Models
-		if !FMAvailable() {
-			return nil, fmt.Errorf("context summarize requires Apple Foundation Models (darwin/arm64 with CGO); use action=budget or action=batch for other operations")
-		}
-
+		// Delegates to DefaultFMProvider() (FM chain: e.g. Ollama → stub); errors surface if no backend can generate.
 		result, err := handleContextSummarizeNative(ctx, params)
 		if err != nil {
 			return nil, fmt.Errorf("context summarize: %w", err)
@@ -443,7 +439,7 @@ func handleContext(ctx context.Context, args json.RawMessage) ([]framework.TextC
 		return result, nil
 
 	case "count":
-		result, err := handleContextCount(params)
+		result, err := handleContextCount(ctx, params)
 		if err != nil {
 			return nil, fmt.Errorf("context count: %w", err)
 		}

@@ -111,10 +111,10 @@ func BenchmarkToolInvocationChain(b *testing.B) {
 func BenchmarkHandleTaskWorkflowList(b *testing.B) {
 	ctx := context.Background()
 	params := map[string]interface{}{
-		"action":         "list",
-		"output_format":  "json",
-		"compact":        true,
-		"limit":          50,
+		"action":           "list",
+		"output_format":    "json",
+		"compact":          true,
+		"limit":            50,
 		"include_metadata": false,
 	}
 

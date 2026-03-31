@@ -32,10 +32,15 @@ func TestRunTaskExecutionFlow_WithMockRouter(t *testing.T) {
 		t.Fatalf("create .todo2 dir: %v", err)
 	}
 
+	sessionTestDBMu.Lock()
 	if err := database.Init(projectRoot); err != nil {
+		sessionTestDBMu.Unlock()
 		t.Fatalf("database.Init: %v", err)
 	}
-	defer func() { _ = database.Close() }()
+	defer func() {
+		_ = database.Close()
+		sessionTestDBMu.Unlock()
+	}()
 
 	task := &database.Todo2Task{
 		Content:         "Unit test task",
@@ -86,10 +91,15 @@ func TestRunTaskExecutionFlow_WithMockRouter_InvalidJSON(t *testing.T) {
 		t.Fatalf("create .todo2 dir: %v", err)
 	}
 
+	sessionTestDBMu.Lock()
 	if err := database.Init(projectRoot); err != nil {
+		sessionTestDBMu.Unlock()
 		t.Fatalf("database.Init: %v", err)
 	}
-	defer func() { _ = database.Close() }()
+	defer func() {
+		_ = database.Close()
+		sessionTestDBMu.Unlock()
+	}()
 
 	task := &database.Todo2Task{
 		Content:  "Task",
@@ -125,10 +135,15 @@ func TestRunTaskExecutionFlow_ApplyTrue(t *testing.T) {
 		t.Fatalf("create .todo2 dir: %v", err)
 	}
 
+	sessionTestDBMu.Lock()
 	if err := database.Init(projectRoot); err != nil {
+		sessionTestDBMu.Unlock()
 		t.Fatalf("database.Init: %v", err)
 	}
-	defer func() { _ = database.Close() }()
+	defer func() {
+		_ = database.Close()
+		sessionTestDBMu.Unlock()
+	}()
 
 	task := &database.Todo2Task{
 		Content:         "Apply test task",
@@ -187,10 +202,15 @@ func TestRunTaskExecutionFlow_LowConfidence(t *testing.T) {
 		t.Fatalf("create .todo2 dir: %v", err)
 	}
 
+	sessionTestDBMu.Lock()
 	if err := database.Init(projectRoot); err != nil {
+		sessionTestDBMu.Unlock()
 		t.Fatalf("database.Init: %v", err)
 	}
-	defer func() { _ = database.Close() }()
+	defer func() {
+		_ = database.Close()
+		sessionTestDBMu.Unlock()
+	}()
 
 	task := &database.Todo2Task{
 		Content:  "Low confidence task",
@@ -236,10 +256,15 @@ func TestRunTaskExecutionFlow_EmptyTaskID(t *testing.T) {
 		t.Fatalf("create .todo2 dir: %v", err)
 	}
 
+	sessionTestDBMu.Lock()
 	if err := database.Init(projectRoot); err != nil {
+		sessionTestDBMu.Unlock()
 		t.Fatalf("database.Init: %v", err)
 	}
-	defer func() { _ = database.Close() }()
+	defer func() {
+		_ = database.Close()
+		sessionTestDBMu.Unlock()
+	}()
 
 	router := &mockExecutionRouter{response: `{"changes":[],"explanation":"noop","confidence":1.0}`}
 
@@ -262,10 +287,15 @@ func TestRunTaskExecutionFlow_DefaultMinConfidencePreventsApply(t *testing.T) {
 		t.Fatalf("create .todo2 dir: %v", err)
 	}
 
+	sessionTestDBMu.Lock()
 	if err := database.Init(projectRoot); err != nil {
+		sessionTestDBMu.Unlock()
 		t.Fatalf("database.Init: %v", err)
 	}
-	defer func() { _ = database.Close() }()
+	defer func() {
+		_ = database.Close()
+		sessionTestDBMu.Unlock()
+	}()
 
 	task := &database.Todo2Task{
 		Content:  "Default confidence task",
@@ -304,10 +334,15 @@ func TestRunTaskExecutionFlow_AddsResultComment(t *testing.T) {
 		t.Fatalf("create .todo2 dir: %v", err)
 	}
 
+	sessionTestDBMu.Lock()
 	if err := database.Init(projectRoot); err != nil {
+		sessionTestDBMu.Unlock()
 		t.Fatalf("database.Init: %v", err)
 	}
-	defer func() { _ = database.Close() }()
+	defer func() {
+		_ = database.Close()
+		sessionTestDBMu.Unlock()
+	}()
 
 	task := &database.Todo2Task{
 		Content:  "Commented task",

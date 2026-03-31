@@ -123,6 +123,29 @@ func TestChainFMProvider_Supported(t *testing.T) {
 	}
 }
 
+func TestChainFMProvider_SupportedNoReachableBackend(t *testing.T) {
+	chain := &chainFMProvider{
+		backends: []TextGenerator{
+			&mockGenerator{supported: false},
+			&mockGenerator{supported: false},
+		},
+	}
+	if chain.Supported() {
+		t.Error("chain should report unsupported when no backend is reachable")
+	}
+}
+
+func TestChainFMProvider_SupportedSkipsStub(t *testing.T) {
+	chain := &chainFMProvider{
+		backends: []TextGenerator{
+			&chainStubFMProvider{},
+		},
+	}
+	if chain.Supported() {
+		t.Error("stub-only chain should not report supported")
+	}
+}
+
 func TestChainStubFMProvider(t *testing.T) {
 	stub := &chainStubFMProvider{}
 	if stub.Supported() {

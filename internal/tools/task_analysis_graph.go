@@ -10,6 +10,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/davidl71/exarp-go/internal/database"
 	"github.com/davidl71/exarp-go/internal/framework"
 	"github.com/davidl71/exarp-go/internal/models"
 	"github.com/davidl71/exarp-go/proto"
@@ -39,7 +40,8 @@ func buildLegacyGraphFormat(tg *TaskGraph) DependencyGraph {
 	return graph
 }
 
-func findMissingDependencies(tasks []Todo2Task, tg *TaskGraph) []map[string]interface{} {
+func findMissingDependencies(ctx context.Context, store database.TaskStore, tasks []Todo2Task, tg *TaskGraph) []map[string]interface{} {
+	_ = tg // reserved for future graph-aware checks
 	missing := []map[string]interface{}{}
 	taskMap := make(map[string]bool)
 
@@ -49,29 +51,41 @@ func findMissingDependencies(tasks []Todo2Task, tg *TaskGraph) []map[string]inte
 
 	for _, task := range tasks {
 		for _, dep := range task.Dependencies {
-			if !taskMap[dep] {
-				missing = append(missing, map[string]interface{}{
-					"task_id":     task.ID,
-					"missing_dep": dep,
-					"message":     fmt.Sprintf("Task %s depends on %s which doesn't exist", task.ID, dep),
-				})
+			if taskMap[dep] {
+				continue
 			}
+			if store != nil {
+				if _, err := store.GetTask(ctx, dep); err == nil {
+					continue
+				}
+			}
+			missing = append(missing, map[string]interface{}{
+				"task_id":     task.ID,
+				"missing_dep": dep,
+				"message":     fmt.Sprintf("Task %s depends on %s which doesn't exist", task.ID, dep),
+			})
 		}
 	}
 
 	return missing
 }
 
-// GetDependencyAnalysisFromTasks returns cycles and missing dependencies for the given tasks.
-// Used by task_discovery findOrphanTasks and handleTaskAnalysisDependencies to share graph logic.
+// GetDependencyAnalysisFromTasks returns cycles and missing dependencies for the given tasks (in-memory slice only).
+// Dep IDs omitted from the slice but present in the DB are still reported missing; use GetDependencyAnalysisFromTasksWithStore when a TaskStore is available.
 func GetDependencyAnalysisFromTasks(tasks []Todo2Task) (cycles [][]string, missing []map[string]interface{}, err error) {
+	return GetDependencyAnalysisFromTasksWithStore(context.Background(), nil, tasks)
+}
+
+// GetDependencyAnalysisFromTasksWithStore is like GetDependencyAnalysisFromTasks but resolves dependency targets via
+// store.GetTask when they are absent from the task slice (cross-project_id / legacy rows excluded from ListTasks(nil)).
+func GetDependencyAnalysisFromTasksWithStore(ctx context.Context, store database.TaskStore, tasks []Todo2Task) (cycles [][]string, missing []map[string]interface{}, err error) {
 	tg, err := BuildTaskGraph(tasks)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to build task graph: %w", err)
 	}
 
 	cycles = DetectCycles(tg)
-	missing = findMissingDependencies(tasks, tg)
+	missing = findMissingDependencies(ctx, store, tasks, tg)
 
 	return cycles, missing, nil
 }

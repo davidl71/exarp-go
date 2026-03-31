@@ -40,10 +40,11 @@ var dbMutex sync.Mutex
 // initCfgFingerprint records the last successful InitWithConfig inputs. When a subsequent init
 // matches, we skip Close/reopen so queue workers and hot paths do not churn the global pool.
 var initCfgFingerprint struct {
-	driver        DriverType
-	dsn           string
-	autoMigrate   bool
-	migrationsDir string
+	driver                       DriverType
+	dsn                          string
+	autoMigrate                  bool
+	migrationsDir                string
+	migrationsResolveFingerprint string // resolved source: override path, on-disk abs path, or :embedded:
 }
 
 // Init initializes the database connection using the default SQLite driver
@@ -82,12 +83,18 @@ func InitWithConfig(cfg *Config) error {
 	dbMutex.Lock()
 	defer dbMutex.Unlock()
 
+	wantMigFP, err := resolvedMigrationsFingerprintForInit(cfg)
+	if err != nil {
+		return err
+	}
+
 	if DB != nil &&
 		cfg != nil &&
 		cfg.Driver == initCfgFingerprint.driver &&
 		cfg.DSN == initCfgFingerprint.dsn &&
 		cfg.AutoMigrate == initCfgFingerprint.autoMigrate &&
-		cfg.MigrationsDir == initCfgFingerprint.migrationsDir {
+		cfg.MigrationsDir == initCfgFingerprint.migrationsDir &&
+		wantMigFP == initCfgFingerprint.migrationsResolveFingerprint {
 		return nil
 	}
 
@@ -137,10 +144,15 @@ func InitWithConfig(cfg *Config) error {
 	initCfgFingerprint.dsn = cfg.DSN
 	initCfgFingerprint.autoMigrate = cfg.AutoMigrate
 	initCfgFingerprint.migrationsDir = cfg.MigrationsDir
+	initCfgFingerprint.migrationsResolveFingerprint = wantMigFP
 
-	// Run migrations if enabled
+	// Run migrations if enabled (single resolve; matches wantMigFP)
 	if cfg.AutoMigrate {
-		if err := RunMigrationsFromDir(cfg.MigrationsDir); err != nil {
+		dir, useEmbed, _, err := ResolveMigrationsSource(cfg.MigrationsDir)
+		if err != nil {
+			return fmt.Errorf("failed to resolve migrations: %w", err)
+		}
+		if err := runPendingMigrations(dir, useEmbed); err != nil {
 			return fmt.Errorf("failed to run migrations: %w", err)
 		}
 	}
@@ -167,6 +179,7 @@ func Close() error {
 		initCfgFingerprint.dsn = ""
 		initCfgFingerprint.autoMigrate = false
 		initCfgFingerprint.migrationsDir = ""
+		initCfgFingerprint.migrationsResolveFingerprint = ""
 
 		return err
 	}

@@ -171,7 +171,7 @@ func handleTaskAnalysisFixMissingDeps(ctx context.Context, params map[string]int
 		return nil, fmt.Errorf("failed to build task graph: %w", err)
 	}
 
-	missing := findMissingDependencies(tasks, tg)
+	missing := findMissingDependencies(ctx, store, tasks, tg)
 	if len(missing) == 0 {
 		out := map[string]interface{}{
 			"success":     true,
@@ -269,7 +269,7 @@ func handleTaskAnalysisValidate(ctx context.Context, params map[string]interface
 		return nil, fmt.Errorf("failed to build task graph: %w", err)
 	}
 
-	missing := findMissingDependencies(tasks, tg)
+	missing := findMissingDependencies(ctx, store, tasks, tg)
 	result := map[string]interface{}{
 		"success":       true,
 		"method":        "native_go",

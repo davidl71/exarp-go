@@ -8,35 +8,19 @@ This server hosts tools, prompts, and resources that are broken in FastMCP due t
 
 ## Contents
 
-### Tools (29 total)
+### Tools (36 total)
 
-**Originally migrated (23 tools):**
-- `analyze_alignment` - Todo2 alignment analysis
-- `generate_config` - Cursor config generation
-- `health` - Project health checks, including explicit SQLite maintenance
-- `memory` - Memory management
-- `memory_maint` - Memory maintenance
-- `report` - Project reporting
-- `security` - Security scanning
-- `setup_hooks` - Git hooks setup
-- `task_analysis` - Task analysis
-- `task_discovery` - Task discovery
-- `task_workflow` - Task workflow
-- `testing` - Testing tools
+This repo’s tool surface changes over time; **do not trust hardcoded lists**.
 
-**Phase 3 migration (6 tools):**
-- `infer_session_mode` - Session mode inference
-- `add_external_tool_hints` - Add Context7 hints to documentation
-- `automation` - Unified automation tool (daily/nightly/sprint/discover)
-- `tool_catalog` - Tool catalog and help
-- `workflow_mode` - Workflow mode management
-- `check_attribution` - Attribution compliance check
-- `lint` - Linting tool
-- `estimation` - Task duration estimation
-- `ollama` - Ollama integration
-- `mlx` - MLX integration
-- `git_tools` - Git-inspired task management
-- `session` - Session management (prime/handoff/prompts/assignee)
+- **Canonical counts**: run `make sanity-check`
+- **Canonical names**: use resource `stdio://tools/names` (or `stdio://tools` grouped by category)
+- **Per-tool help**: use `tool_catalog` with `action=help` and `tool_name=<tool>`
+
+Example:
+
+```bash
+./bin/exarp-go -tool tool_catalog -args '{"action":"help","tool_name":"task_workflow"}'
+```
 
 ### Explicit Database Maintenance
 
@@ -51,7 +35,7 @@ Use `health action=database` for SQLite maintenance. These operations are explic
 
 `status` reports fields such as `page_count`, `freelist_count`, `estimated_db_bytes`, and `estimated_free_bytes` so you can decide whether a manual `vacuum` is worthwhile.
 
-### Prompts (18 total)
+### Prompts (36 total)
 
 **Core prompts (8):**
 - `align` - Task alignment analysis
@@ -213,8 +197,9 @@ uv sync
 # Or install Python dev dependencies (optional)
 uv sync --dev
 
-# Build Go binary
+# Build Go binary (CGO off — portable; see docs/CGO_BUILD_PARITY.md for darwin/arm64/cgo vs nocgo)
 make build
+# Apple Silicon + CGO + FM-enhanced task_discovery scanners: `make go-build` when a C compiler is available
 # or (with Ninja, e.g. on Windows)
 ninja
 # or
@@ -295,6 +280,20 @@ Add to `.cursor/mcp.json`. See **[docs/examples/](docs/examples/README.md)** for
     }
   }
 }
+```
+
+### Cursor: reload MCP after changing the binary
+
+Cursor does **not** hot-reload MCP servers. After `make build`, regenerating `proto`, or any change that affects the running server, **restart exarp-go** in Cursor (disable then enable the server in MCP settings, or restart the IDE). Until then, chat still talks to the old process.
+
+### `task_workflow`: `add_comment` from MCP
+
+Use `add_comment` to attach a comment to a task (e.g. note that you reloaded MCP or bumped the binary). Params: `task_id`, `content` (required); `comment_type` optional — `result`, `note`, `research_with_links`, or `manualsetup` (default `result`). Prefer `note` for operational breadcrumbs.
+
+Example:
+
+```bash
+./bin/exarp-go -tool task_workflow -args '{"action":"add_comment","task_id":"T-123","comment_type":"note","content":"Reloaded exarp-go MCP in Cursor after rebuild.","output_format":"json","compact":true}'
 ```
 
 ## Development & Testing

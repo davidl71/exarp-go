@@ -1,80 +1,117 @@
-# CGO Build Parity Matrix
+# CGO vs non-CGO build split (intentional)
 
-This document describes which features are available in CGO vs no-CGO builds, and how we minimize drift between builds.
+This document is the **canonical reference** for why exarp-go uses compile-time build constraints alongside shared (`*_common.go` / `*_shared.go`) code, which files participate, and how to keep **darwin/arm64/cgo** and **everything else** aligned.
 
-## Build Types
+## Build constraint (exact)
 
-| Build | Command | Description |
-|-------|---------|-------------|
-| **CGO (default)** | `make build` or `CGO=1 go build` | Full features including Apple FM |
-| **no-CGO** | `make build-no-cgo` or `CGO=0 go build` | Core features without Apple FM |
+The primary split is **not** “CGO vs no CGO” alone. Go selects one of two variants using:
 
-## Feature Matrix
+| Variant | Constraint | Typical environments |
+|--------|-------------|----------------------|
+| **“CGO native”** | `//go:build darwin && arm64 && cgo` | macOS Apple Silicon, `CGO_ENABLED=1`, full toolchain |
+| **“nocgo fallback”** | `//go:build !(darwin && arm64 && cgo)` | Default **`make build` / `make b`** (always `CGO_ENABLED=0`), Linux/Windows, macOS amd64, CI tests (`make test-go`), and any build where the constraint above is false |
 
-| Feature | CGO Build | no-CGO Build | Shared Code |
-|---------|-----------|--------------|-------------|
-| **Task Discovery** | | | |
-| Basic scanning (TODO/FIXME/markdown) | ✅ | ✅ | ✅ `task_discovery_common.go` |
-| Apple FM semantic enhancement | ✅ | ❌ | Uses runtime `FMAvailable()` |
-| **Estimation** | | | |
-| Statistical estimation | ✅ | ✅ | ✅ `estimation_shared.go` + `estimation_shared_v2.go` |
-| Apple FM estimation | ✅ | ❌ | ✅ Unified via runtime check |
-| Ollama estimation | ✅ | ✅ | ✅ Shared |
-| MLX estimation | ✅ (optional) | ❌ | ✅ Runtime check |
-| **Context** | | | |
-| Summarization (Apple FM) | ✅ | ❌ | ✅ `context_shared.go` |
-| **LLM Backends** | | | |
-| Apple Foundation Models | ✅ | ❌ | darwin/arm64 only |
-| Ollama | ✅ | ✅ | All platforms |
-| MLX | ✅ (optional) | ❌ | Requires CGO |
-| LlamaCpp | ✅ (optional) | ❌ | Requires CGO |
-| LocalAI | ✅ | ✅ | All platforms |
+**Important:** The usual exarp-go binary from `make build` uses **nocgo fallback** files even on Apple Silicon. FM-enhanced **task_discovery** scanners require a build with **`CGO_ENABLED=1`** on darwin/arm64 (for example `make go-build` when a C compiler is present).
 
-## Drift Minimization Strategy
+So: **Linux with CGO** still compiles the **nocgo fallback** files for the tools listed below. Naming uses `_nocgo` as “not the Apple-Silicon-CGO variant,” not “CGO disabled globally.”
 
-We use several strategies to minimize code drift between CGO and no-CGO builds:
+Verification examples:
 
-### 1. Shared Files (`*_shared.go`, `*_common.go`)
-Common logic lives in shared files used by both builds:
-- `task_discovery_common.go` - Scanner logic, ignore paths
-- `estimation_shared.go` - Types, statistical estimation
-- `estimation_shared_v2.go` - Unified dispatcher with runtime checks
-- `context_shared.go` - Unified summarization handler
-- `task_analysis_shared.go` - Analysis dispatcher
-- `task_workflow_common.go` - Workflow infrastructure
+```bash
+# Default unit tests already use CGO off (same variant as make build)
+make test-go
 
-### 2. Runtime Feature Detection
-Instead of compile-time build tags, we use runtime checks:
-```go
-// Both CGO and no-CGO use the same handler
-func HandleContextSummarizeShared(...) {
-    if !FMAvailable() {
-        return error
-    }
-    // Use Apple FM
-}
+# Explicit no-CGO build (same as make build / make b)
+make build
 ```
 
-### 3. Unified Dispatchers
-Handlers check feature availability at runtime:
-```go
-func HandleEstimationNative(...) {
-    if FMAvailable() {
-        // Try Apple FM
-    }
-    if MLAvailable() {
-        // Try MLX
-    }
-    // Fallback to statistical
-}
-```
+On **Apple Silicon**, `make go-build`, `make build-debug`, and `make build-race` enable **CGO** when a C compiler is available, so the **`darwin && arm64 && cgo`** files are selected. That is the path for FM-enhanced **task_discovery** scanners. Apple FM / Swift bridge details: [APPLE_FOUNDATION_MODELS_TESTING.md](APPLE_FOUNDATION_MODELS_TESTING.md).
 
-## Platform Requirements
+## Why a compile-time split exists
 
-| Feature | Platform | CGO Required |
-|---------|----------|--------------|
-| Apple FM | darwin/arm64 | Yes |
-| MLX | darwin/arm64 | Yes |
-| LlamaCpp | All | Optional (CGO) |
-| Ollama | All | No |
-| LocalAI | All | No |
+1. **Symbols that cannot compile on all targets**  
+   Apple FM–enhanced task discovery lives in code that assumes the darwin/arm64/cgo stack (see `task_discovery_native_scanners.go`). The nocgo tree uses regex/basic scanners only.
+
+2. **Single `handleXNative` entry per tool**  
+   Go requires exactly one definition of `handleTaskDiscoveryNative`, `handleEstimationNative`, and `handleContextSummarizeNative` per build. **Estimation** and **context** define those handlers once in unconstrained `*_shared*.go` files; **task_discovery** still uses a **build-tagged pair** (`native` + `native_nocgo`) plus shared `task_discovery_common.go` for portable pieces like `scanGitJSON`.
+
+3. **Runtime vs compile-time**  
+   Most LLM behavior uses **`FMAvailable()`** and **`DefaultFMProvider()`** in **unconstrained** files so one code path runs everywhere. The **task_discovery** scanner stack is the main exception where duplication is traded for compile safety.
+
+## File inventory (`internal/tools`)
+
+| Files | Constraint | Role |
+|-------|------------|------|
+| `task_discovery_native.go` | `darwin && arm64 && cgo` | `handleTaskDiscoveryNative`; FM-aware `scanComments`, `scanMarkdown`, `findOrphanTasks`, planning scan |
+| `task_discovery_native_scanners.go` | `darwin && arm64 && cgo` | Apple FM helpers, `scanPlanningDocs` (git JSON: `task_discovery_common.go`) |
+| `task_discovery_native_nocgo.go` | `!(darwin && arm64 && cgo)` | Same tool entry; `*Basic` scanners; no FM enhancement |
+
+**Unconstrained (all builds):** `task_discovery_common.go` (includes **`scanGitJSON`**), `estimation_shared.go`, `estimation_shared_v2.go` (includes **`handleEstimationNative`** shim → `HandleEstimationNative`), `context_shared.go` (includes **`handleContextSummarizeNative`** shim), `fm_chain.go`, `fm_provider.go`, `fm_ollama.go`, `mlx_native_nocgo.go` (single MLX stub handler), and most other tools.
+
+## Shared “common” layer (include here first)
+
+When changing behavior that must match both variants:
+
+| Area | Shared files |
+|------|----------------|
+| Task discovery | `task_discovery_common.go` — ignore paths, `createTasksFromDiscoveries`, JSON load helpers, types |
+| Estimation | `estimation_shared.go`, `estimation_shared_v2.go` — `HandleEstimationNative`, stats, FM at runtime |
+| Context | `context_shared.go` — `HandleContextSummarizeShared` (FM chain via `DefaultFMProvider()`; honors `ctx`) |
+| FM abstraction | `fm_provider.go`, `fm_chain.go`, `fm_ollama.go` |
+
+New logic that does **not** need Apple-only imports should land in these files (or other untagged helpers), not in the `*_native*.go` pair.
+
+## Behavioral parity checklist
+
+When editing **task discovery**:
+
+- [ ] **CGO variant:** `task_discovery_native.go` + `task_discovery_native_scanners.go`
+- [ ] **nocgo variant:** `task_discovery_native_nocgo.go` (`*Basic` functions)
+- [ ] **Shared:** `task_discovery_common.go` for anything both need
+- [ ] Same actions: `comments`, `markdown`, `orphans`, `git_json`, `planning_links`, `all`
+- [ ] Same report output shape: `summary`, optional `create_tasks`, `report_path`
+- [ ] `git_json`: **`scanGitJSON`** lives only in `task_discovery_common.go`
+
+**Estimation / context:** `handleEstimationNative` and `handleContextSummarizeNative` live in `estimation_shared_v2.go` and `context_shared.go` (no build-tagged shim files).
+
+## Other build tags (not the darwin/arm64/cgo matrix)
+
+| Location | Tag | Purpose |
+|----------|-----|---------|
+| `internal/database/firestore.go` | `with_firestore` | Optional Firestore backend |
+| `scripts/*.go` | `ignore` | Dev utilities not in normal `go build` |
+
+Optional **llamacpp** / **apple_fm** test tags are documented in [llamacpp-build-requirements.md](llamacpp-build-requirements.md) and [APPLE_FOUNDATION_MODELS_TESTING.md](APPLE_FOUNDATION_MODELS_TESTING.md).
+
+## Feature matrix (summary)
+
+| Feature | CGO darwin/arm64 variant | nocgo / other platforms | Primary mechanism |
+|---------|--------------------------|-------------------------|-------------------|
+| Task discovery basic scans | Yes | Yes | Shared + Basic scanners |
+| Task discovery FM enhancement | Yes | No | Build-tagged scanners |
+| Estimation / context | Yes | Yes | Shared handlers + `FMAvailable()` |
+| Ollama / LocalAI | Yes | Yes | Untagged |
+| MLX generate | Stub / limited | Stub | `mlx_native_nocgo.go`; bridge builds optional |
+
+## Related docs
+
+- [TASK_TOOLS_SHARED_PATTERNS.md](TASK_TOOLS_SHARED_PATTERNS.md) — task-tool conventions and shared layers
+- [ARCHITECTURE.md](ARCHITECTURE.md) § Tool handler pattern
+- [.cursor/rules/code-map.mdc](../.cursor/rules/code-map.mdc) — file → tool map
+
+## Build Types (Make / daily use)
+
+| Build | Command | CGO | Split tools (`task_discovery`, etc.) |
+|-------|---------|-----|--------------------------------------|
+| **Default binary** | `make build` / `make b` | **Off** (`CGO_ENABLED=0`) | **nocgo** files on all platforms |
+| **go-build** | `make go-build` | **On** on Darwin arm64 if `cc` exists; else off | **cgo** variant on Mac Silicon when CGO on |
+| **Debug / race** | `make build-debug` / `make build-race` | Same rule as `go-build` on Darwin arm64 | Same as `go-build` |
+
+Plain `go build ./cmd/server` without setting `CGO_ENABLED` follows the Go default (often CGO on where toolchains exist). Prefer documenting **explicit** `CGO_ENABLED=0` vs `1` when reproducing parity issues.
+
+## Drift minimization (strategy summary)
+
+1. **Prefer shared files** for any logic that does not import platform-only packages.
+2. **Use runtime checks** (`FMAvailable()`, `DefaultFMProvider()`) inside shared code when possible (estimation, context, task_analysis, etc.).
+3. **Keep build-tagged pairs thin** when they only delegate to shared functions; prefer a single unconstrained file for thin entrypoints (estimation/context pattern).
+4. **Reserve `task_discovery`’s split** for true FM/scanner differences; push JSON/git/report aggregation to `task_discovery_common.go`.

@@ -17,6 +17,7 @@ import (
 )
 
 var reportOverviewFlight singleflight.Group
+
 // Mutable by design: singleflight maintains internal state to deduplicate
 // concurrent overview computations within a process.
 

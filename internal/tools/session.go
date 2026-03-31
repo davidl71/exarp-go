@@ -33,9 +33,25 @@ func HandleSessionPrimeJSON(ctx context.Context) ([]byte, error) {
 	return []byte(result[0].Text), nil
 }
 
+func isSessionHandoffSubAction(sub string) bool {
+	switch sub {
+	case "end", "resume", "latest", "list", "sync", "export", "close", "approve", "delete":
+		return true
+	default:
+		return false
+	}
+}
+
 // handleSessionNative handles the session tool with native Go implementation.
 func handleSessionNative(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	action := strings.TrimSpace(cast.ToString(params["action"]))
+	// Allow handoff-only clients to pass sub_action (e.g. resume, list) without also setting action=handoff.
+	if action == "" {
+		if sub := strings.TrimSpace(cast.ToString(params["sub_action"])); sub != "" && isSessionHandoffSubAction(sub) {
+			action = "handoff"
+			params["action"] = "handoff"
+		}
+	}
 	if action == "" {
 		action = "prime"
 	}

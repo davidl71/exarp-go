@@ -3,6 +3,7 @@ package tools
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"strings"
 	"testing"
 
@@ -90,7 +91,8 @@ func TestHandleContextCount(t *testing.T) {
 	tmpDir := t.TempDir()
 	t.Setenv("PROJECT_ROOT", tmpDir)
 
-	result, err := handleContextCount(map[string]interface{}{
+	ctx := context.Background()
+	result, err := handleContextCount(ctx, map[string]interface{}{
 		"data": "hello world",
 	})
 	if err != nil {
@@ -108,6 +110,20 @@ func TestHandleContextCount(t *testing.T) {
 	}
 	if _, ok := data["character_count"]; !ok {
 		t.Error("expected character_count in count result")
+	}
+}
+
+func TestHandleContextCountCancelled(t *testing.T) {
+	tmpDir := t.TempDir()
+	t.Setenv("PROJECT_ROOT", tmpDir)
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	_, err := handleContextCount(ctx, map[string]interface{}{"data": "hello"})
+	if err == nil {
+		t.Fatal("handleContextCount: expected cancellation error")
+	}
+	if !errors.Is(err, context.Canceled) {
+		t.Fatalf("handleContextCount: got %v, want %v", err, context.Canceled)
 	}
 }
 
@@ -218,8 +234,7 @@ func TestHandleContext(t *testing.T) {
 				"action": "summarize",
 				"data":   "Some text to summarize",
 			},
-			// Summarize is native-only; returns error when Apple FM not available
-			wantError: !FMAvailable(),
+			wantError: false,
 		},
 		{
 			name: "context_batch action",
@@ -241,9 +256,6 @@ func TestHandleContext(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if tt.name == "context_summarize action" && !FMAvailable() {
-				t.Skip("Apple Foundation Models not available on this platform")
-			}
 			ctx := context.Background()
 			argsJSON, _ := json.Marshal(tt.params)
 

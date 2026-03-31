@@ -38,6 +38,14 @@ func handleTaskWorkflowApprove(ctx context.Context, params map[string]interface{
 	if v, ok := params["filter_tag"]; ok {
 		filterTag = cast.ToString(v)
 	}
+	if strings.TrimSpace(filterTag) != "" {
+		if norm, ok := models.NormalizeTag(filterTag); ok {
+			filterTag = norm
+		} else {
+			// Force an empty result set for invalid tag inputs rather than broadening the query.
+			filterTag = "#__invalid_tag__"
+		}
+	}
 
 	taskIDs := ParseTaskIDsFromParams(params)
 
@@ -176,12 +184,12 @@ func handleTaskWorkflowApprove(ctx context.Context, params map[string]interface{
 
 // parseTagsFromParams extracts tags from params (comma-separated string or array). Used by create and update.
 func parseTagsFromParams(params map[string]interface{}) []string {
-	return ParamStringSliceTrimmedCommaSeparated(params, "tags")
+	return models.NormalizeTags(ParamStringSliceTrimmedCommaSeparated(params, "tags"))
 }
 
 // parseRemoveTagsFromParams extracts remove_tags from params (comma-separated string or array). Used by update.
 func parseRemoveTagsFromParams(params map[string]interface{}) []string {
-	return ParamStringSliceTrimmedCommaSeparated(params, "remove_tags")
+	return models.NormalizeTags(ParamStringSliceTrimmedCommaSeparated(params, "remove_tags"))
 }
 
 // parseRecommendedToolsFromParams extracts recommended_tools from params (comma-separated string or array of tool IDs). Returns nil if not provided.
@@ -191,7 +199,7 @@ func parseRecommendedToolsFromParams(params map[string]interface{}) []string {
 
 // parseDependenciesFromParams extracts dependencies from params (comma-separated string or array). Returns nil if not provided.
 func parseDependenciesFromParams(params map[string]interface{}) []string {
-	return ParamStringSliceTrimmedCommaSeparated(params, "dependencies")
+	return ParamTaskDependencyIDs(params, "dependencies")
 }
 
 // parseOwnershipFromParams extracts ownership metadata from params.
@@ -520,6 +528,13 @@ func handleTaskWorkflowList(ctx context.Context, params map[string]interface{}) 
 
 	if v, ok := params["filter_tag"]; ok {
 		filterTag = cast.ToString(v)
+	}
+	if strings.TrimSpace(filterTag) != "" {
+		if norm, ok := models.NormalizeTag(filterTag); ok {
+			filterTag = norm
+		} else {
+			filterTag = "#__invalid_tag__"
+		}
 	}
 
 	if v, ok := params["task_id"]; ok {
@@ -889,6 +904,39 @@ func handleTaskWorkflowList(ctx context.Context, params map[string]interface{}) 
 	return []framework.TextContent{
 		{Type: "text", Text: sb.String()},
 	}, nil
+}
+
+// handleTaskWorkflowShow is a Cursor-friendly alias for fetching one task by ID.
+// It delegates to list with task_id set, and forces full long_description output.
+func handleTaskWorkflowShow(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
+	taskID := strings.TrimSpace(cast.ToString(params["task_id"]))
+	if taskID == "" {
+		taskID = strings.TrimSpace(cast.ToString(params["id"]))
+	}
+	if taskID == "" {
+		return nil, fmt.Errorf("show action requires task_id (or id)")
+	}
+
+	// Clone params to avoid surprising the caller by mutating their map.
+	next := make(map[string]interface{}, len(params)+2)
+	for k, v := range params {
+		next[k] = v
+	}
+	next["action"] = "list"
+	next["task_id"] = taskID
+
+	// For a single task, show full detail by default.
+	if _, ok := next["output_format"]; !ok {
+		next["output_format"] = "json"
+	}
+	if _, ok := next["include_full_long_description"]; !ok {
+		next["include_full_long_description"] = true
+	}
+	if _, ok := next["include_metadata"]; !ok {
+		next["include_metadata"] = true
+	}
+
+	return handleTaskWorkflowList(ctx, next)
 }
 
 // handleTaskWorkflowSync handles sync action for synchronizing tasks between SQLite and JSON.

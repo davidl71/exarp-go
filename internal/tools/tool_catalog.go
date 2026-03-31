@@ -189,9 +189,9 @@ func GetToolCatalog() map[string]ToolCatalogEntry {
 		},
 		"tool_catalog": {
 			Tool:             "tool_catalog",
-			Hint:             "Tool catalog. action=list|help. Unified tool catalog and help.",
+			Hint:             "Tool catalog. action=help (requires tool_name). For listing tools use stdio://tools or stdio://tools/names resources.",
 			Category:         "Workflow",
-			Description:      "Browses tool catalog and provides help for available tools",
+			Description:      "Provides per-tool help from the static tool catalog. Tool listing is exposed via stdio://tools resources.",
 			Aliases:          []string{"stdio://tools", "stdio://tool_catalog"},
 			Class:            "primary",
 			RecommendedModel: "claude-haiku",

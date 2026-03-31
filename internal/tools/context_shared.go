@@ -11,8 +11,7 @@ import (
 	"github.com/davidl71/exarp-go/internal/framework"
 )
 
-// SummarizeWithFM summarizes text using Apple FM if available, otherwise returns error.
-// This is the runtime-checked version that can be used by both CGO and no-CGO builds.
+// SummarizeWithFM summarizes text using DefaultFMProvider() (configured FM chain).
 func SummarizeWithFM(ctx context.Context, data string, level string, maxTokens int) (string, error) {
 	if !FMAvailable() {
 		return "", ErrFMNotSupported
@@ -48,14 +47,16 @@ func SummarizeWithFM(ctx context.Context, data string, level string, maxTokens i
 	return DefaultFMProvider().Generate(ctx, prompt, maxTokens, temperature)
 }
 
-// HandleContextSummarizeShared is the shared summarization handler used by both CGO and no-CGO builds.
-// It checks FMAvailable() at runtime and returns an appropriate error if Apple FM is not available.
+// HandleContextSummarizeShared is the shared summarization handler for action=summarize.
+// It requires a supported DefaultFMProvider() (e.g. Ollama in the default chain).
 func HandleContextSummarizeShared(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	startTime := time.Now()
 
-	// Check if Apple FM is available
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
 	if !FMAvailable() {
-		return nil, fmt.Errorf("Apple Foundation Models not available on this platform or build (darwin/arm64 with CGO required)")
+		return nil, fmt.Errorf("foundation model provider not available (configure Ollama or FM chain)")
 	}
 
 	// Get required parameters
@@ -101,7 +102,6 @@ func HandleContextSummarizeShared(ctx context.Context, params map[string]interfa
 		toolType = toolTypeRaw
 	}
 
-	// Use Apple FM for summarization
 	summary, err := SummarizeWithFM(ctx, dataStr, level, maxTokens)
 	if err != nil {
 		return nil, fmt.Errorf("FM summarization failed: %w", err)
@@ -142,4 +142,9 @@ func HandleContextSummarizeShared(ctx context.Context, params map[string]interfa
 	}
 
 	return framework.FormatResult(result, "")
+}
+
+// handleContextSummarizeNative delegates to HandleContextSummarizeShared (single symbol for all builds; replaces build-tagged shims).
+func handleContextSummarizeNative(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
+	return HandleContextSummarizeShared(ctx, params)
 }

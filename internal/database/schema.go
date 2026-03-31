@@ -19,7 +19,7 @@ const (
 
 // Column names for tasks table.
 const (
-	ColTaskID              = "id"
+	ColTaskID = "id"
 	// ColTaskName is the tasks.name column: kept for compatibility with external consumers
 	// (including some AI tools) that expect a dedicated title field. exarp's primary task title
 	// in the Todo2 model is still content; name may be empty or mirrored by callers as needed.

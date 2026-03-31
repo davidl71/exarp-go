@@ -17,10 +17,15 @@ func BenchmarkRunTaskExecutionFlow(b *testing.B) {
 		b.Fatalf("create .todo2 dir: %v", err)
 	}
 
+	sessionTestDBMu.Lock()
 	if err := database.Init(projectRoot); err != nil {
+		sessionTestDBMu.Unlock()
 		b.Fatalf("database.Init: %v", err)
 	}
-	defer func() { _ = database.Close() }()
+	defer func() {
+		_ = database.Close()
+		sessionTestDBMu.Unlock()
+	}()
 
 	task := &database.Todo2Task{
 		Content:         "Benchmark task",

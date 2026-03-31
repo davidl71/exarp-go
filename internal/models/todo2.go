@@ -37,25 +37,25 @@ func (t *Todo2Task) NormalizeEpochDates() {
 
 // Todo2Task represents a Todo2 task.
 type Todo2Task struct {
-	ID              string                 `json:"id"`
+	ID string `json:"id"`
 	// Name is a short summary/title intended for list views and external consumers.
 	// Content remains the canonical task title used throughout the app and CLI.
-	Name            string                 `json:"name,omitempty"`
-	Content         string                 `json:"content"`
-	LongDescription string                 `json:"long_description,omitempty"`
-	Status          string                 `json:"status"`
+	Name            string `json:"name,omitempty"`
+	Content         string `json:"content"`
+	LongDescription string `json:"long_description,omitempty"`
+	Status          string `json:"status"`
 	// StatusEnum is the internal typed status; it is derived from Status on load.
 	// It is not part of the canonical JSON shape.
-	StatusEnum      TaskStatus             `json:"-"`
-	Priority        string                 `json:"priority,omitempty"`
+	StatusEnum TaskStatus `json:"-"`
+	Priority   string     `json:"priority,omitempty"`
 	// PriorityEnum is the internal typed priority; it is derived from Priority on load.
 	// It is not part of the canonical JSON shape.
-	PriorityEnum    TaskPriority           `json:"-"`
-	Tags            []string               `json:"tags,omitempty"`
-	Dependencies    []string               `json:"dependencies,omitempty"`
-	ParentID        string                 `json:"parent_id,omitempty"` // Parent task ID (epic or container); hierarchy, not blocking
-	Completed       bool                   `json:"completed,omitempty"`
-	Metadata        map[string]interface{} `json:"metadata,omitempty"`
+	PriorityEnum TaskPriority           `json:"-"`
+	Tags         []string               `json:"tags,omitempty"`
+	Dependencies []string               `json:"dependencies,omitempty"`
+	ParentID     string                 `json:"parent_id,omitempty"` // Parent task ID (epic or container); hierarchy, not blocking
+	Completed    bool                   `json:"completed,omitempty"`
+	Metadata     map[string]interface{} `json:"metadata,omitempty"`
 	// CreatedAt, LastModified, CompletedAt are RFC3339 timestamps from DB/JSON; preserved on load/save.
 	CreatedAt    string `json:"created_at,omitempty"`
 	LastModified string `json:"last_modified,omitempty"`

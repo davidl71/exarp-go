@@ -135,7 +135,7 @@ handlers.go (dispatch)  →  <tool>_native.go (entry)  →  <tool>_common.go (sh
 ```
 
 1. **`handlers.go`**: Top-level dispatch function per tool. Parses protobuf/JSON args, applies defaults, routes to native handler.
-2. **`*_native.go`**: Platform-specific entry point (action switch). Files ending `_nocgo.go` provide stubs for non-CGO builds.
+2. **`*_native.go`**: Platform-specific entry point (action switch). Paired **`_nocgo.go`** files satisfy Go’s single-symbol rule when the **darwin/arm64/cgo** variant differs (see [docs/CGO_BUILD_PARITY.md](CGO_BUILD_PARITY.md)); they are not always “stubs” — **task_discovery** implements a full basic scanner path in the nocgo file.
 3. **`*_common.go`**: Shared business logic that works across native/bridge implementations.
 4. **`*_provider.go`**: External service clients (Ollama HTTP, MLX bridge, etc.).
 

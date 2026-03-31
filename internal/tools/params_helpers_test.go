@@ -74,6 +74,33 @@ func TestParamStringSliceTrimmed(t *testing.T) {
 	}
 }
 
+func TestParamTaskDependencyIDs_nestedAndJSONText(t *testing.T) {
+	var params map[string]interface{}
+	if err := json.Unmarshal([]byte(`{"dependencies":[["T-100","T-101"]]}`), &params); err != nil {
+		t.Fatal(err)
+	}
+	got := ParamTaskDependencyIDs(params, "dependencies")
+	if len(got) != 2 || got[0] != "T-100" || got[1] != "T-101" {
+		t.Fatalf("nested array: got %#v", got)
+	}
+	if err := json.Unmarshal([]byte(`{"dependencies":"[\"T-200\",\"T-201\"]"}`), &params); err != nil {
+		t.Fatal(err)
+	}
+	got = ParamTaskDependencyIDs(params, "dependencies")
+	if len(got) != 2 || got[0] != "T-200" || got[1] != "T-201" {
+		t.Fatalf("JSON text blob: got %#v", got)
+	}
+	// Single string token that older parsers treated as one malformed dependency (brackets included).
+	params = map[string]interface{}{"dependencies": `["T-1774817606330858000"]`}
+	got = ParamTaskDependencyIDs(params, "dependencies")
+	if len(got) != 1 || got[0] != "T-1774817606330858000" {
+		t.Fatalf("JSON array string value: got %#v", got)
+	}
+	if ParamTaskDependencyIDs(map[string]interface{}{}, "dependencies") != nil {
+		t.Fatal("missing key should be nil")
+	}
+}
+
 func TestParamStringSliceTrimmedCommaSeparated(t *testing.T) {
 	var params map[string]interface{}
 	if err := json.Unmarshal([]byte(`{"ids":" T-1 , T-2 ","arr":["x"," y "]}`), &params); err != nil {
@@ -86,6 +113,19 @@ func TestParamStringSliceTrimmedCommaSeparated(t *testing.T) {
 	gotArr := ParamStringSliceTrimmedCommaSeparated(params, "arr")
 	if len(gotArr) != 2 || gotArr[0] != "x" || gotArr[1] != "y" {
 		t.Fatalf("arr: got %#v", gotArr)
+	}
+	if err := json.Unmarshal([]byte(`{"tagsJson":"[\"backend\",\"urgent\"]"}`), &params); err != nil {
+		t.Fatal(err)
+	}
+	gotJSONStr := ParamStringSliceTrimmedCommaSeparated(params, "tagsJson")
+	if len(gotJSONStr) != 2 || gotJSONStr[0] != "backend" || gotJSONStr[1] != "urgent" {
+		t.Fatalf("tagsJson string: got %#v", gotJSONStr)
+	}
+	if err := json.Unmarshal([]byte(`{"emptyArr":"[]"}`), &params); err != nil {
+		t.Fatal(err)
+	}
+	if ParamStringSliceTrimmedCommaSeparated(params, "emptyArr") != nil {
+		t.Fatal("empty JSON array string should yield nil tags")
 	}
 	if ParamStringSliceTrimmedCommaSeparated(params, "missing") != nil {
 		t.Fatal("missing should be nil")

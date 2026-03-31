@@ -276,3 +276,8 @@ func handleEstimationEstimateShared(ctx context.Context, projectRoot string, par
 	}
 	return string(resultJSON), nil
 }
+
+// handleEstimationNative delegates to HandleEstimationNative (single symbol for all builds; replaces build-tagged shims).
+func handleEstimationNative(ctx context.Context, projectRoot string, params map[string]interface{}) (string, error) {
+	return HandleEstimationNative(ctx, projectRoot, params)
+}

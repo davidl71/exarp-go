@@ -878,13 +878,17 @@ task-update: ## Update task status (use TASK_ID=id NEW_STATUS=status)
 		exit 1; \
 	fi
 
-task-create: ## Create a task (TASK_NAME="Title" TASK_DESC="Description" TASK_PRIORITY=medium)
+task-create: ## Create a task (TASK_NAME=... TASK_DESC=... TASK_PRIORITY=medium TASK_TAGS="t1,t2" optional)
 	@if [ -f $(BINARY_PATH) ]; then \
 		if [ -z "$(TASK_NAME)" ]; then \
-			echo "$(RED)❌ Usage: make task-create TASK_NAME=\"My task\" [TASK_DESC=\"...\"] [TASK_PRIORITY=medium]$(NC)"; \
+			echo "$(RED)❌ Usage: make task-create TASK_NAME=\"My task\" [TASK_DESC=\"...\"] [TASK_PRIORITY=medium] [TASK_TAGS=\"a,b\"]$(NC)"; \
 			exit 1; \
 		fi; \
-		$(BINARY_PATH) task create "$(TASK_NAME)" --description "$${TASK_DESC:-}" --priority "$${TASK_PRIORITY:-medium}" 2>&1 | grep -v "INFO\|Warning\|Database" || true; \
+		if [ -n "$${TASK_TAGS:-}" ]; then \
+			$(BINARY_PATH) task create "$(TASK_NAME)" --description "$${TASK_DESC:-}" --priority "$${TASK_PRIORITY:-medium}" --tags "$${TASK_TAGS}" 2>&1 | grep -v "INFO\|Warning\|Database" || true; \
+		else \
+			$(BINARY_PATH) task create "$(TASK_NAME)" --description "$${TASK_DESC:-}" --priority "$${TASK_PRIORITY:-medium}" 2>&1 | grep -v "INFO\|Warning\|Database" || true; \
+		fi; \
 	else \
 		echo "$(RED)❌ exarp-go binary not found - run 'make build' first$(NC)"; exit 1; \
 	fi

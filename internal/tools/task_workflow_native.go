@@ -29,6 +29,8 @@ func handleTaskWorkflowNative(ctx context.Context, params map[string]interface{}
 		return handleTaskWorkflowClarify(ctx, params)
 	case "approve":
 		return handleTaskWorkflowApprove(ctx, params)
+	case "show":
+		return handleTaskWorkflowShow(ctx, params)
 	case "list":
 		return handleTaskWorkflowList(ctx, params)
 	case "sync":

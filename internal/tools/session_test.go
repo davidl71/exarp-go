@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"sync"
 	"testing"
 
 	"github.com/davidl71/exarp-go/internal/database"
@@ -16,16 +17,23 @@ import (
 	mcpframework "github.com/davidl71/mcp-go-core/pkg/mcp/framework"
 )
 
+// sessionTestDBMu serializes tests that use the process-global database handle (database.Init / GetDB).
+// Without this, parallel tests can redirect global DB between Init and CRUD and break isolation.
+var sessionTestDBMu sync.Mutex
+
 // initSessionTestDB creates a temp dir with .todo2, inits the database, sets PROJECT_ROOT, and returns a cleanup func.
 // Use for tests that need task/assignee (handleSessionAssignee, handleSessionNative assignee/prime).
 func initSessionTestDB(t *testing.T) (cleanup func()) {
 	t.Helper()
+	sessionTestDBMu.Lock()
 	dir := t.TempDir()
 	todo2 := filepath.Join(dir, ".todo2")
 	if err := os.MkdirAll(todo2, 0755); err != nil {
+		sessionTestDBMu.Unlock()
 		t.Fatalf("mkdir .todo2: %v", err)
 	}
 	if err := database.Init(dir); err != nil {
+		sessionTestDBMu.Unlock()
 		t.Fatalf("database.Init: %v", err)
 	}
 	oldRoot := os.Getenv("PROJECT_ROOT")
@@ -33,6 +41,7 @@ func initSessionTestDB(t *testing.T) (cleanup func()) {
 	return func() {
 		os.Setenv("PROJECT_ROOT", oldRoot)
 		_ = database.Close()
+		sessionTestDBMu.Unlock()
 	}
 }
 
@@ -839,4 +848,17 @@ func TestSessionResumeIncludesLatestLedger(t *testing.T) {
 	if excerpt, ok := latestLedger["excerpt"].(string); !ok || excerpt == "" {
 		t.Fatalf("latest_ledger.excerpt = %v, want non-empty", latestLedger["excerpt"])
 	}
+}
+
+func TestSessionHandoffInferredWhenOnlySubActionSet(t *testing.T) {
+	cleanup := initSessionTestDB(t)
+	defer cleanup()
+
+	ctx := context.Background()
+	if _, err := handleSessionNative(ctx, map[string]interface{}{
+		"sub_action": "resume",
+	}); err != nil {
+		t.Fatalf("handleSessionNative sub_action only: %v", err)
+	}
+	// No has_handoff error path: empty store is ok
 }

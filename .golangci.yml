@@ -130,10 +130,6 @@ issues:
       path: "internal/tools/context\\.go"
     - linters:
         - staticcheck
-      text: "unused func handleEstimationEstimate"
-      path: "internal/tools/estimation_native\\.go"
-    - linters:
-        - staticcheck
       text: "unused func \\(IsPendingStatusNormalized|IsCompletedStatusNormalized|IsActiveStatusNormalized|IsReviewStatusNormalized\\)"
       path: "internal/tools/normalization\\.go"
     - linters:
@@ -252,10 +248,6 @@ issues:
         - staticcheck
       text: "GetAgentRunner|RunAgent|GetAvailableRunners"
       path: "internal/tools/agent_runner\\.go"
-    - linters:
-        - staticcheck
-      text: "handleEstimationEstimate"
-      path: "internal/tools/estimation_native\\.go"
     - linters:
         - staticcheck
       text: "DetectCppProject|DetectSwiftProject"

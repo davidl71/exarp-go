@@ -243,6 +243,17 @@ func TaskWorkflowRequestToParams(req *proto.TaskWorkflowRequest) map[string]inte
 		}
 	}
 
+	// Back-compat for proto-backed callers:
+	// - create: allow content to act as a shorthand for name/title.
+	// - add_comment: content/comment_type are passed through by ProtobufToParams.
+	if action, _ := params["action"].(string); action == "create" {
+		if _, hasName := params["name"]; !hasName {
+			if c, ok := params["content"].(string); ok && c != "" {
+				params["name"] = c
+			}
+		}
+	}
+
 	return params
 }
 

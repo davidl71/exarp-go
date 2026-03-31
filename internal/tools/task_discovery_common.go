@@ -1,4 +1,5 @@
 // task_discovery_common.go — Shared logic for discovering tasks from code comments and docs.
+// Includes scanGitJSON (git-tracked JSON task state); used by CGO and nocgo task_discovery builds.
 package tools
 
 import (
@@ -6,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -315,4 +317,147 @@ func createTasksFromDiscoveries(ctx context.Context, projectRoot string, discove
 	}
 
 	return createdTasks
+}
+
+// scanGitJSON scans the git repository for tracked JSON files and extracts tasks (e.g. legacy state.todo2.json).
+func scanGitJSON(ctx context.Context, projectRoot string, jsonPattern string) []map[string]interface{} {
+	discoveries := []map[string]interface{}{}
+
+	if jsonPattern == "" {
+		jsonPattern = "**/.todo2/state.todo2.json"
+	}
+
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
+	if err := ctx.Err(); err != nil {
+		return discoveries
+	}
+
+	cmd := exec.CommandContext(ctx, "git", "ls-files", "*.json", "**/*.json")
+	cmd.Dir = projectRoot
+	output, err := cmd.Output()
+	if err != nil {
+		return discoveries
+	}
+
+	jsonFiles := []string{}
+	lines := strings.Split(strings.TrimSpace(string(output)), "\n")
+	defaultPattern := "**/.todo2/state.todo2.json"
+
+	for _, line := range lines {
+		if err := ctx.Err(); err != nil {
+			return discoveries
+		}
+
+		line = strings.TrimSpace(line)
+		if line == "" {
+			continue
+		}
+
+		patternToUse := jsonPattern
+		if patternToUse == "" {
+			patternToUse = defaultPattern
+		}
+
+		matched := false
+		if patternToUse == defaultPattern {
+			matched = strings.Contains(line, "state.todo2.json")
+		} else {
+			matched, _ = filepath.Match(patternToUse, line)
+			if !matched {
+				if strings.HasPrefix(patternToUse, "**/") {
+					pattern := strings.TrimPrefix(patternToUse, "**/")
+					matched, _ = filepath.Match(pattern, filepath.Base(line))
+				}
+				if !matched && strings.Contains(line, strings.TrimPrefix(patternToUse, "**/")) {
+					matched = true
+				}
+			}
+		}
+
+		if matched {
+			jsonFiles = append(jsonFiles, line)
+		}
+	}
+
+	for _, jsonFile := range jsonFiles {
+		if err := ctx.Err(); err != nil {
+			return discoveries
+		}
+
+		fullPath := filepath.Join(projectRoot, jsonFile)
+
+		cmd = exec.CommandContext(ctx, "git", "log", "--all", "--pretty=format:%H", "--", jsonFile)
+		cmd.Dir = projectRoot
+		commitOutput, err := cmd.Output()
+		if err != nil {
+			tasks, _, err := LoadJSONStateFromFile(fullPath)
+			if err == nil {
+				for _, task := range tasks {
+					discoveries = append(discoveries, map[string]interface{}{
+						"type":      "JSON_TASK",
+						"text":      task.Content,
+						"task_id":   task.ID,
+						"status":    task.Status,
+						"priority":  task.Priority,
+						"file":      jsonFile,
+						"source":    "git_json",
+						"completed": task.Completed,
+					})
+				}
+			}
+
+			continue
+		}
+
+		commits := strings.Split(strings.TrimSpace(string(commitOutput)), "\n")
+		processedTasks := make(map[string]bool)
+
+		for _, commit := range commits {
+			if err := ctx.Err(); err != nil {
+				return discoveries
+			}
+
+			commit = strings.TrimSpace(commit)
+			if commit == "" {
+				continue
+			}
+
+			cmd = exec.CommandContext(ctx, "git", "show", commit+":"+jsonFile)
+			cmd.Dir = projectRoot
+			fileContent, err := cmd.Output()
+			if err != nil {
+				continue
+			}
+
+			tasks, _, err := LoadJSONStateFromContent(fileContent)
+			if err != nil {
+				continue
+			}
+
+			for _, task := range tasks {
+				uniqueKey := fmt.Sprintf("%s:%s", task.ID, commit)
+				if processedTasks[uniqueKey] {
+					continue
+				}
+				processedTasks[uniqueKey] = true
+
+				discoveries = append(discoveries, map[string]interface{}{
+					"type":      "JSON_TASK",
+					"text":      task.Content,
+					"task_id":   task.ID,
+					"status":    task.Status,
+					"priority":  task.Priority,
+					"file":      jsonFile,
+					"commit":    commit[:8],
+					"source":    "git_json",
+					"completed": task.Completed,
+				})
+			}
+		}
+	}
+
+	return discoveries
 }

@@ -75,9 +75,9 @@ Tools are registered from `registry.go` → `registry_core.go`, `registry_ai.go`
 | Concern | Primary files | Target |
 |---------|---------------|--------|
 | **memory / memory_maint** | `memory.go`, `memory_maint.go`, `memory_maint_utils.go`, `process_memory.go` | **Stay** (exarp memory store / task coupling) |
-| **estimation** | `estimation_native.go`, `estimation_native_nocgo.go`, `estimation_shared.go`, `estimation_shared_v2.go`, `estimation_historical.go`, `estimation_analytics.go` | **Stay** (historical uses DB); pure math helpers → **Core** if extracted |
+| **estimation** | `estimation_shared.go`, `estimation_shared_v2.go`, `estimation_historical.go`, `estimation_analytics.go` | **Stay** (historical uses DB); pure math helpers → **Core** if extracted |
 | **ollama / mlx / FM / routers** | `ollama_native.go`, `ollama_native_handlers.go`, `ollama_provider.go`, `mlx_*.go`, `fm_*.go`, `apple_foundation_helpers.go`, `model_router.go`, `text_generate.go`, `llm_backends.go`, `llm_response.go`, `localai_provider.go`, `gateway_provider.go`, `insight_provider.go`, `fm_chain.go`, `fm_plan_execute.go` | **MCP‑LLM** (optional split) |
-| **context / prompt_tracking** | `context.go`, `context_shared.go`, `context_native.go`, `context_native_nocgo.go`, `prompt_tracking.go` | **MCP‑LLM** or **Core** if made backend-agnostic |
+| **context / prompt_tracking** | `context.go`, `context_shared.go`, `prompt_tracking.go` | **MCP‑LLM** or **Core** if made backend-agnostic |
 | **recommend** | `recommend.go` | **Stay** or **MCP‑LLM** if only used with local models |
 | **cursor_cloud_agent** | `cursor_cloud_agent.go`, `agent_runner*.go` | **MCP‑Cursor** |
 | **fm_plan_and_execute / task_execute** | `fm_plan_execute.go`, `task_execute.go`, `execution_apply.go` | **Stay** (task store); planner-only → **MCP‑LLM** |

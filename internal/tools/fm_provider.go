@@ -32,7 +32,7 @@ type FMProvider interface {
 	TextGenerator
 }
 
-// DefaultFM is set by init() in fm_chain.go (chain: Apple → Ollama → stub).
+// DefaultFM is set by init() in fm_chain.go (stock: Ollama → stub; Apple may be prepended in other builds).
 // Prefer DefaultFMProvider() for consistency with DefaultReportInsight() and DefaultOllama().
 var DefaultFM FMProvider
 
@@ -42,7 +42,9 @@ func DefaultFMProvider() FMProvider {
 	return DefaultFM
 }
 
-// FMAvailable reports whether a foundation model is available (non-nil and supported).
+// FMAvailable reports whether the default FM provider likely has a working backend.
+// For the stock chain (Ollama → stub), this follows a cached GET /api/tags probe to Ollama.
+// Generate may still be called when a probe was stale; callers should handle Generate errors.
 func FMAvailable() bool {
 	p := DefaultFMProvider()
 	return p != nil && p.Supported()

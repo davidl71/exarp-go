@@ -94,7 +94,7 @@ Discover tasks from JSON files (typically `.todo2/state.todo2.json`) that are co
 
 ### Functions Added
 
-#### `scanGitJSON(projectRoot, jsonPattern)`
+#### `scanGitJSON(ctx, projectRoot, jsonPattern)`
 
 Scans git repository for JSON files and extracts tasks:
 - Uses `git ls-files` to find tracked JSON files

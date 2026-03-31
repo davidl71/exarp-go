@@ -46,6 +46,8 @@ func handleTaskAnalysisNative(ctx context.Context, params map[string]interface{}
 	}
 
 	switch action {
+	case "next_batch":
+		return handleTaskAnalysisNextBatch(ctx, params)
 	case "hierarchy":
 		return handleTaskAnalysisHierarchy(ctx, params)
 	case "duplicates":
@@ -126,10 +128,10 @@ func handleTaskAnalysisConflicts(ctx context.Context, params map[string]interfac
 	}
 
 	out := map[string]interface{}{
-		"conflict":    hasConflict,
-		"conflicts":   taskOverlaps,
+		"conflict":       hasConflict,
+		"conflicts":      taskOverlaps,
 		"file_conflicts": fileConflicts,
-		"overlapping": overlapping,
+		"overlapping":    overlapping,
 	}
 
 	if hasConflict {

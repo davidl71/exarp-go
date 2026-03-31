@@ -7,13 +7,15 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/davidl71/exarp-go/internal/config"
-	"github.com/davidl71/exarp-go/internal/framework"
 	"io"
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 	"time"
+
+	"github.com/davidl71/exarp-go/internal/config"
+	"github.com/davidl71/exarp-go/internal/framework"
 )
 
 // ─── Contents ───────────────────────────────────────────────────────────────
@@ -34,6 +36,37 @@ import (
 // requests to enable connection pooling (Keep-Alive) instead of creating a new
 // client per call. No Client.Timeout; callers use context.WithTimeout per request.
 var ollamaHTTPClient = &http.Client{}
+
+// ollamaFMProbeTimeout bounds GET /api/tags probes used for FMAvailable (default FM chain).
+const ollamaFMProbeTimeout = 2 * time.Second
+
+// ollamaPingTagsAPI reports whether Ollama responded with HTTP 200 for GET {host}/api/tags.
+// Used by OllamaReachableForFM; does not validate the response body.
+func ollamaPingTagsAPI(ctx context.Context, host string) bool {
+	if strings.TrimSpace(host) == "" {
+		return false
+	}
+
+	url := fmt.Sprintf("%s/api/tags", host)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return false
+	}
+
+	resp, err := ollamaHTTPClient.Do(req)
+	if err != nil {
+		return false
+	}
+
+	defer func() {
+		_, _ = io.Copy(io.Discard, resp.Body)
+		if closeErr := resp.Body.Close(); closeErr != nil {
+			// best effort close
+		}
+	}()
+
+	return resp.StatusCode == http.StatusOK
+}
 
 // ─── OllamaModel ────────────────────────────────────────────────────────────
 // OllamaModel represents an Ollama model.

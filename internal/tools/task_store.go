@@ -203,10 +203,15 @@ func filterTasksToPtrs(tasks []Todo2Task, filters *database.TaskFilters) []*data
 		}
 
 		if filters.Tag != nil {
+			normalizedFilter, ok := models.NormalizeTag(*filters.Tag)
+			if !ok {
+				// A malformed filter tag can't match anything.
+				continue
+			}
 			found := false
 
 			for _, tag := range t.Tags {
-				if tag == *filters.Tag {
+				if normalizedTag, ok := models.NormalizeTag(tag); ok && normalizedTag == normalizedFilter {
 					found = true
 					break
 				}

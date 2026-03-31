@@ -23,12 +23,12 @@ type Todo2State = models.Todo2State
 
 // LoadTodo2Tasks loads tasks from database (preferred) or .todo2/state.todo2.json (fallback).
 func LoadTodo2Tasks(projectRoot string) ([]Todo2Task, error) {
-	// Try database first (scoped to project when projectRoot is set)
-	if tasks, err := loadTodo2TasksFromDB(projectRoot); err == nil {
+	tasks, err := loadTodo2TasksFromDB(projectRoot)
+	if err == nil {
 		return tasks, nil
 	}
 
-	// Database not available or query failed, fallback to JSON
+	fmt.Fprintf(os.Stderr, "Todo2: LoadTodo2Tasks using JSON fallback: %v\n", err)
 	return loadTodo2TasksFromJSON(projectRoot)
 }
 
@@ -69,8 +69,8 @@ func loadTodo2TasksFromJSON(projectRoot string) ([]Todo2Task, error) {
 // When database save succeeds, also writes the same list to JSON so both stores stay in sync
 // (avoids merge/sync reintroducing removed tasks from stale JSON).
 func SaveTodo2Tasks(projectRoot string, tasks []Todo2Task) error {
-	// Try database first
-	if err := saveTodo2TasksToDB(projectRoot, tasks); err == nil {
+	err := saveTodo2TasksToDB(projectRoot, tasks)
+	if err == nil {
 		// Keep JSON in sync so a later sync does not reintroduce removed tasks (e.g. after merge)
 		if jsonErr := saveTodo2TasksToJSON(projectRoot, tasks); jsonErr != nil {
 			return fmt.Errorf("database saved but JSON write failed: %w", jsonErr)
@@ -78,7 +78,7 @@ func SaveTodo2Tasks(projectRoot string, tasks []Todo2Task) error {
 		return nil
 	}
 
-	// Database not available or save failed, fallback to JSON
+	fmt.Fprintf(os.Stderr, "Todo2: SaveTodo2Tasks using JSON fallback: %v\n", err)
 	return saveTodo2TasksToJSON(projectRoot, tasks)
 }
 
@@ -128,11 +128,12 @@ func GetProjectRootWithFallback() (string, error) {
 // It loads from both sources, merges them (database takes precedence for conflicts),
 // and saves to both to ensure consistency.
 func SyncTodo2Tasks(projectRoot string) error {
-	// Load from both sources (DB scoped to current project)
 	dbTasksLoaded, dbErr := loadTodo2TasksFromDB(projectRoot)
-	jsonTasksLoaded, _ := loadTodo2TasksFromJSON(projectRoot)
+	jsonTasksLoaded, jsonErr := loadTodo2TasksFromJSON(projectRoot)
+	if jsonErr != nil {
+		return fmt.Errorf("sync: load json: %w", jsonErr)
+	}
 
-	// Build merged task map (database takes precedence)
 	taskMap := make(map[string]Todo2Task)
 	for _, task := range jsonTasksLoaded {
 		taskMap[task.ID] = task
@@ -146,14 +147,16 @@ func SyncTodo2Tasks(projectRoot string) error {
 		mergedTasks = append(mergedTasks, task)
 	}
 
-	// Save to both sources
 	if dbErr == nil {
 		if err := saveTodo2TasksToDB(projectRoot, mergedTasks); err != nil {
-			fmt.Fprintf(os.Stderr, "WARNING: Database save had errors: %v\n", err)
+			return fmt.Errorf("sync: save database: %w", err)
 		}
+	} else {
+		fmt.Fprintf(os.Stderr, "WARNING: sync: database unavailable, updating JSON only: %v\n", dbErr)
 	}
+
 	if err := saveTodo2TasksToJSON(projectRoot, mergedTasks); err != nil {
-		return err
+		return fmt.Errorf("sync: save json: %w", err)
 	}
 
 	return nil
@@ -226,7 +229,6 @@ func cleanupAutoTasksFromDB() error {
 
 	return nil
 }
-
 
 // formatTaskDate returns a display string for a task date; never returns 1970.
 // Empty or epoch dates return "—".

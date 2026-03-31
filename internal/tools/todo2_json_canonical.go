@@ -57,8 +57,8 @@ func LoadJSONStateFromFile(jsonPath string) ([]models.Todo2Task, []database.Comm
 // It only supports canonical field names; unknown fields are ignored by json.Unmarshal.
 func LoadJSONStateFromContent(data []byte) ([]models.Todo2Task, []database.Comment, error) {
 	var raw struct {
-		Todos    []models.Todo2Task     `json:"todos"`
-		Comments []map[string]any      `json:"comments"`
+		Todos    []models.Todo2Task `json:"todos"`
+		Comments []map[string]any   `json:"comments"`
 	}
 	if err := json.Unmarshal(data, &raw); err != nil {
 		return nil, nil, fmt.Errorf("failed to parse JSON: %w", err)
@@ -89,4 +89,3 @@ func LoadJSONStateFromContent(data []byte) ([]models.Todo2Task, []database.Comme
 
 	return raw.Todos, comments, nil
 }
-

@@ -45,4 +45,3 @@ func decodeArgsToProto[T proto.Message](args json.RawMessage, newMsg func() T) (
 
 	return req, nil
 }
-

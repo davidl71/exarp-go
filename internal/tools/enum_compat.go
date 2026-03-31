@@ -195,4 +195,3 @@ func gitToolsActionEnumToString(a proto.GitToolsAction) string {
 		return ""
 	}
 }
-

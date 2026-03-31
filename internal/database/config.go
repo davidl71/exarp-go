@@ -21,9 +21,9 @@ type Config struct {
 	// AutoMigrate determines if migrations should run automatically
 	AutoMigrate bool
 
-	// MigrationsDir overrides the directory used to find migration files.
-	// When set, migrations are loaded from this path instead of findProjectRoot()/migrations.
-	// Used by tests when the DB is in a temp dir that has no migrations.
+	// MigrationsDir is the optional override (e.g. EXARP_MIGRATIONS_DIR): must exist and contain
+	// numbered *.sql files. When empty, ResolveMigrationsSource uses EXARP_GO_ROOT/migrations,
+	// paths next to the binary, projectroot/migrations if present, else built-in embedded SQL.
 	MigrationsDir string
 }
 

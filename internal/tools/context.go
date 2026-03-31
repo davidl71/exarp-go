@@ -25,6 +25,9 @@ type ItemAnalysis struct {
 // Estimates token usage and suggests context reduction strategy
 // Uses protobuf parsing for type-safe argument handling.
 func handleContextBudget(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
 	// Try protobuf first, fall back to JSON for backward compatibility
 	req, params, err := ParseContextRequest(args)
 	if err != nil {
@@ -67,6 +70,11 @@ func handleContextBudget(ctx context.Context, args json.RawMessage) ([]framework
 	totalTokens := 0
 
 	for i, contextItem := range contextItems {
+		if i&63 == 0 {
+			if err := ctx.Err(); err != nil {
+				return nil, err
+			}
+		}
 		// Extract data string from ContextItem (type-safe, no marshaling needed)
 		itemStr := ContextItemToDataString(contextItem)
 
@@ -90,6 +98,9 @@ func handleContextBudget(ctx context.Context, args json.RawMessage) ([]framework
 
 	// Sort by tokens (descending)
 	for i := 0; i < len(analysis)-1; i++ {
+		if err := ctx.Err(); err != nil {
+			return nil, err
+		}
 		for j := i + 1; j < len(analysis); j++ {
 			if analysis[i].Tokens < analysis[j].Tokens {
 				analysis[i], analysis[j] = analysis[j], analysis[i]
@@ -203,7 +214,10 @@ func suggestReductionStrategy(analysis []ItemAnalysis, total, budget int) string
 }
 
 // handleContextCount returns estimated token count for the given text (context action=count).
-func handleContextCount(params map[string]interface{}) ([]framework.TextContent, error) {
+func handleContextCount(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
 	dataRaw, ok := params["data"]
 	if !ok {
 		dataRaw = params["text"]
@@ -282,6 +296,9 @@ func handleContextBatchNative(ctx context.Context, params map[string]interface{}
 	totalSummarized := 0
 
 	for _, contextItem := range contextItems {
+		if err := ctx.Err(); err != nil {
+			return nil, err
+		}
 		// Extract data string from ContextItem (type-safe, no assertions needed)
 		dataStr := ContextItemToDataString(contextItem)
 		toolType := contextItem.ToolType

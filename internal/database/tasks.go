@@ -21,18 +21,18 @@ type Todo2Task = models.Todo2Task
 
 // TaskFilters represents filters for querying tasks.
 type TaskFilters struct {
-	Status    *string
-	Statuses  []string // Multiple statuses (IN clause)
+	Status   *string
+	Statuses []string // Multiple statuses (IN clause)
 	// StatusEnum filters by a typed status. When set, it is converted to the stored title-case string.
 	// Prefer this for internal callers to avoid string comparisons/normalization.
 	StatusEnum *models.TaskStatus
 	// StatusEnums filters by multiple typed statuses (IN clause).
 	StatusEnums []models.TaskStatus
-	Priority  *string
+	Priority    *string
 	// PriorityEnum filters by typed priority. Converted to canonical stored string.
 	PriorityEnum *models.TaskPriority
-	Tag       *string
-	ProjectID *string
+	Tag          *string
+	ProjectID    *string
 	// IncludeMetadata controls whether ListTasks hydrates task.Metadata by decoding protobuf/JSON
 	// metadata columns. When nil, ListTasks defaults to true for backward compatibility.
 	IncludeMetadata *bool

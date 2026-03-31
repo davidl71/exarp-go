@@ -39,10 +39,10 @@ var CreateFieldSpecs = []FieldSpec{
 		CanonicalName: "tags",
 		MCPName:       "tags",
 		CLIFlag:       "tags",
-		Description:   "Comma-separated tags",
+		Description:   "Comma-separated tags, JSON array string, or repeated --tag on CLI",
 		Schema: map[string]interface{}{
 			"type":        "string",
-			"description": "Task tags as comma-separated values (e.g. 'backend,urgent') or JSON array encoded as string (e.g. '[\"backend\",\"urgent\"]')",
+			"description": "Task tags: comma-separated (e.g. 'backend,urgent'), a JSON array string (e.g. '[\"backend\",\"urgent\"]'), or a native JSON array in tool args. CLI: --tags CSV and/or repeated --tag.",
 		},
 	},
 	{

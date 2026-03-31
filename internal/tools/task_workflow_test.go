@@ -754,6 +754,73 @@ func TestHandleTaskWorkflowListIncludesDoneTaskWhenTaskIDSpecified(t *testing.T)
 	}
 }
 
+// Regression: create must accept dependencies whose rows exist in SQLite but are omitted from
+// the default ListTasks (project_id filter), e.g. legacy project_id labels.
+func TestHandleTaskWorkflowCreateDependencyNotInProjectScopedList(t *testing.T) {
+	cleanup := initSessionTestDB(t)
+	defer cleanup()
+
+	projectRoot, err := FindProjectRoot()
+	if err != nil {
+		t.Fatalf("FindProjectRoot: %v", err)
+	}
+	projectBase := filepath.Base(projectRoot)
+	now := time.Now().Format(time.RFC3339)
+
+	depID := "T-1774817606330858000"
+	dep := &models.Todo2Task{
+		ID:              depID,
+		Content:         "Dependency with non-matching project_id",
+		LongDescription: "Not listed under default project filter",
+		Status:          models.StatusTodo,
+		Priority:        "medium",
+		ProjectID:       "other-workspace-label",
+		CreatedAt:       now,
+		LastModified:    now,
+	}
+	if err := database.CreateTask(context.Background(), dep); err != nil {
+		t.Fatalf("CreateTask(dep): %v", err)
+	}
+
+	store := NewDefaultTaskStore(projectRoot)
+	list, err := store.ListTasks(context.Background(), nil)
+	if err != nil {
+		t.Fatalf("ListTasks: %v", err)
+	}
+	for _, row := range list {
+		if row.ID == depID {
+			t.Fatalf("expected dep %q excluded from default project list (projectBase=%q)", depID, projectBase)
+		}
+	}
+
+	ctx := context.Background()
+	result, err := handleTaskWorkflowNative(ctx, map[string]interface{}{
+		"action":        "create",
+		"name":          "Child with cross-label dependency",
+		"auto_estimate": false,
+		"dependencies":  depID,
+	})
+	if err != nil {
+		t.Fatalf("create: %v", err)
+	}
+	if len(result) == 0 {
+		t.Fatal("expected non-empty result")
+	}
+	var data map[string]interface{}
+	if err := json.Unmarshal([]byte(result[0].Text), &data); err != nil {
+		t.Fatalf("result JSON: %v", err)
+	}
+	success, _ := data["success"].(bool)
+	if !success {
+		t.Fatalf("create success=false: %v", data)
+	}
+	taskObj, _ := data["task"].(map[string]interface{})
+	gotDeps, _ := taskObj["dependencies"].([]interface{})
+	if len(gotDeps) != 1 || gotDeps[0] != depID {
+		t.Fatalf("task.dependencies = %v, want [%q]", gotDeps, depID)
+	}
+}
+
 func TestHandleTaskWorkflowCleanupReportsStoreDrift(t *testing.T) {
 	cleanup := initSessionTestDB(t)
 	defer cleanup()
@@ -766,7 +833,7 @@ func TestHandleTaskWorkflowCleanupReportsStoreDrift(t *testing.T) {
 	now := time.Now().Format(time.RFC3339)
 
 	dbOnlyTask := &models.Todo2Task{
-		ID:              "T-db-only-1",
+		ID:              database.GenerateTaskID(),
 		Content:         "DB only task",
 		LongDescription: "Present only in database",
 		Status:          models.StatusTodo,
@@ -779,24 +846,21 @@ func TestHandleTaskWorkflowCleanupReportsStoreDrift(t *testing.T) {
 		t.Fatalf("database.CreateTask(dbOnlyTask): %v", err)
 	}
 
-	result, err := handleTaskWorkflowCleanup(context.Background(), map[string]interface{}{
-		"dry_run": true,
-	})
+	// Avoid relying on handleTaskWorkflowCleanup's project root resolution, which is env-based and
+	// can be mutated by other tests. Drift detection itself is pure given an explicit root.
+	drift, err := detectTaskStoreDrift(projectRoot)
 	if err != nil {
-		t.Fatalf("handleTaskWorkflowCleanup: %v", err)
+		t.Fatalf("detectTaskStoreDrift: %v", err)
 	}
-	if len(result) == 0 {
-		t.Fatal("expected non-empty result")
+	found := false
+	for _, id := range drift.DBOnlyIDs {
+		if id == dbOnlyTask.ID {
+			found = true
+			break
+		}
 	}
-
-	var data map[string]interface{}
-	if err := json.Unmarshal([]byte(result[0].Text), &data); err != nil {
-		t.Fatalf("json.Unmarshal: %v", err)
-	}
-
-	// JSON fallback store drift detection was removed; SQLite is canonical.
-	if detected, ok := data["store_drift_detected"].(bool); ok && detected {
-		t.Fatalf("expected store_drift_detected=false, got true")
+	if !found {
+		t.Fatalf("expected %s in drift.DBOnlyIDs, got %v", dbOnlyTask.ID, drift.DBOnlyIDs)
 	}
 }
 
@@ -1039,6 +1103,51 @@ func TestHandleTaskWorkflow(t *testing.T) {
 				t.Error("expected non-empty result")
 			}
 		})
+	}
+}
+
+func TestTaskWorkflowShowAction(t *testing.T) {
+	tmpDir := t.TempDir()
+	t.Setenv("PROJECT_ROOT", tmpDir)
+
+	todo2Dir := filepath.Join(tmpDir, ".todo2")
+	if err := os.MkdirAll(todo2Dir, 0755); err != nil {
+		t.Fatalf("mkdir .todo2: %v", err)
+	}
+
+	statePath := filepath.Join(todo2Dir, "state.todo2.json")
+	stateJSON := []byte(`{"todos":[{"id":"T-show-1","content":"Show me","status":"Todo","priority":"low","tags":["cli"]}]}`)
+	if err := os.WriteFile(statePath, stateJSON, 0644); err != nil {
+		t.Fatalf("write state: %v", err)
+	}
+
+	ctx := context.Background()
+	result, err := handleTaskWorkflowNative(ctx, map[string]interface{}{
+		"action":         "show",
+		"task_id":        "T-show-1",
+		"output_format":  "json",
+		"compact":        true,
+		"include_locks":  false,
+		"include_metadata": true,
+	})
+	if err != nil {
+		t.Fatalf("show: %v", err)
+	}
+	if len(result) == 0 {
+		t.Fatal("expected non-empty result")
+	}
+
+	var data map[string]interface{}
+	if err := json.Unmarshal([]byte(result[0].Text), &data); err != nil {
+		t.Fatalf("invalid JSON: %v", err)
+	}
+	tasks, _ := data["tasks"].([]interface{})
+	if len(tasks) != 1 {
+		t.Fatalf("expected 1 task, got %#v", data["tasks"])
+	}
+	task0, _ := tasks[0].(map[string]interface{})
+	if task0["id"] != "T-show-1" {
+		t.Fatalf("expected id T-show-1, got %#v", task0["id"])
 	}
 }
 

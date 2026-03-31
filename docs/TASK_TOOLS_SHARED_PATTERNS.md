@@ -59,14 +59,15 @@ Task-related tools (`task_workflow`, `task_analysis`, `task_discovery`, `estimat
 
 - **Primary task-tool abstraction:** `DefaultFMProvider().Generate(ctx, prompt, maxTokens, temperature)`.
 - **Routing:** FM chain now prefers the configured/default local provider path (for example Ollama-backed flows) instead of a dedicated Apple Foundation Models tool.
-- **Used in:** task_discovery (semantic extraction), task_workflow (clarity), task_analysis (hierarchy/classify), estimation (estimate action).
-- **Fallback:** When `!FMAvailable()`, tools either return a clear error or use statistical/non-FM paths depending on the feature.
+- **Used in:** task_discovery (semantic extraction), task_workflow (clarity), task_analysis (hierarchy/classify), estimation (estimate action), **context** summarize/batch (`DefaultFMProvider()`).
+- **Fallback:** When `!FMAvailable()` or `Generate` fails, tools return a clear error or use statistical/non-FM paths depending on the feature. See [CONTEXT_AND_CTX_AUDIT_2026-03.md](CONTEXT_AND_CTX_AUDIT_2026-03.md) for `ctx` + FM chain notes.
 
-## 6. Build-tag split
+## 6. Build-tag split (CGO / darwin/arm64)
 
-- **Current rule:** prefer portable Go implementations with no platform-specific build split unless the feature truly requires it.
-- **If a split is needed:** keep platform- or CGO-specific wiring in `*_native.go` / `*_nocgo.go` or similarly named files, and keep the business logic in `*_shared.go` / `*_common.go`.
-- **Current direction:** Apple FM-specific build-tag branches were removed, so task tools should not introduce new darwin-only CRUD or FM paths.
+- **Canonical doc:** [CGO_BUILD_PARITY.md](CGO_BUILD_PARITY.md) — exact constraints (`darwin && arm64 && cgo` vs negation), file inventory, and **default `make build` uses `CGO_ENABLED=0`** (nocgo fallback everywhere).
+- **Rule:** Prefer portable Go and **`FMAvailable()`** / `DefaultFMProvider()` in `*_shared.go` / `*_common.go` when no Apple-only imports are required.
+- **Intentional exception:** **task_discovery** keeps a compile-time split: FM-enhanced scanners in `task_discovery_native.go` + `task_discovery_native_scanners.go` vs basic scanners in `task_discovery_native_nocgo.go`. Do not copy that pattern for new tools unless symbols cannot compile on Linux/CI.
+- **Thin shims:** `handleEstimationNative` / `handleContextSummarizeNative` live in `estimation_shared_v2.go` and `context_shared.go` (no build-tagged pair).
 
 ## 7. Cross-tool reuse
 
@@ -78,10 +79,10 @@ Task-related tools (`task_workflow`, `task_analysis`, `task_discovery`, `estimat
 | Concern              | Files |
 |----------------------|--------|
 | Todo2 + project root | `todo2_utils.go` (FindProjectRoot, LoadTodo2Tasks, SaveTodo2Tasks, SyncTodo2Tasks) |
-| Task workflow        | `task_workflow_common.go`, `task_workflow_native.go`, `task_workflow_native_nocgo.go` |
+| Task workflow        | `task_workflow_common.go`, `task_workflow_native.go`, `task_workflow_actions.go`, … |
 | Task analysis        | `task_analysis_shared.go` |
-| Task discovery       | `task_discovery_common.go`, `task_discovery_native.go`, `task_discovery_native_nocgo.go` |
-| Estimation           | `estimation_shared.go`, `estimation_native.go`, `estimation_native_nocgo.go` |
+| Task discovery       | `task_discovery_common.go`, `task_discovery_native.go`, `task_discovery_native_scanners.go` (cgo), `task_discovery_native_nocgo.go` |
+| Estimation           | `estimation_shared.go`, `estimation_shared_v2.go` |
 | Handlers + parse     | `handlers.go`, `protobuf_helpers.go` |
 
 ## Summary

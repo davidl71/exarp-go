@@ -3288,8 +3288,14 @@ type TaskWorkflowRequest struct {
 	ConfirmViaElicitation bool               `protobuf:"varint,25,opt,name=confirm_via_elicitation,json=confirmViaElicitation,proto3" json:"confirm_via_elicitation,omitempty"` // When true and client supports MCP elicitation, prompt to confirm approve/delete
 	ActionEnum            TaskWorkflowAction `protobuf:"varint,26,opt,name=action_enum,json=actionEnum,proto3,enum=exarp.tools.TaskWorkflowAction" json:"action_enum,omitempty"`
 	OutputFormatEnum      OutputFormat       `protobuf:"varint,27,opt,name=output_format_enum,json=outputFormatEnum,proto3,enum=exarp.tools.OutputFormat" json:"output_format_enum,omitempty"`
-	unknownFields         protoimpl.UnknownFields
-	sizeCache             protoimpl.SizeCache
+	// content is action-dependent:
+	// - action=create: optional shorthand for name/title (name wins if both set)
+	// - action=add_comment: the comment body text
+	Content string `protobuf:"bytes,28,opt,name=content,proto3" json:"content,omitempty"`
+	// For action=add_comment: type of comment (result, note, research_with_links, manualsetup).
+	CommentType   string `protobuf:"bytes,29,opt,name=comment_type,json=commentType,proto3" json:"comment_type,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *TaskWorkflowRequest) Reset() {
@@ -3509,6 +3515,20 @@ func (x *TaskWorkflowRequest) GetOutputFormatEnum() OutputFormat {
 		return x.OutputFormatEnum
 	}
 	return OutputFormat_OUTPUT_FORMAT_UNSPECIFIED
+}
+
+func (x *TaskWorkflowRequest) GetContent() string {
+	if x != nil {
+		return x.Content
+	}
+	return ""
+}
+
+func (x *TaskWorkflowRequest) GetCommentType() string {
+	if x != nil {
+		return x.CommentType
+	}
+	return ""
 }
 
 // TaskSummary is a single task entry for list/approve/sync results (type-safe response).
@@ -7134,7 +7154,7 @@ const file_proto_tools_proto_rawDesc = "" +
 	"\fjson_pattern\x18\x05 \x01(\tR\vjsonPattern\x12\x1f\n" +
 	"\voutput_path\x18\x06 \x01(\tR\n" +
 	"outputPath\x12!\n" +
-	"\fcreate_tasks\x18\a \x01(\bR\vcreateTasks\"\xed\a\n" +
+	"\fcreate_tasks\x18\a \x01(\bR\vcreateTasks\"\xaa\b\n" +
 	"\x13TaskWorkflowRequest\x12\x16\n" +
 	"\x06action\x18\x01 \x01(\tR\x06action\x12\x17\n" +
 	"\adry_run\x18\x02 \x01(\bR\x06dryRun\x12\x1a\n" +
@@ -7170,7 +7190,9 @@ const file_proto_tools_proto_rawDesc = "" +
 	"\x17confirm_via_elicitation\x18\x19 \x01(\bR\x15confirmViaElicitation\x12@\n" +
 	"\vaction_enum\x18\x1a \x01(\x0e2\x1f.exarp.tools.TaskWorkflowActionR\n" +
 	"actionEnum\x12G\n" +
-	"\x12output_format_enum\x18\x1b \x01(\x0e2\x19.exarp.tools.OutputFormatR\x10outputFormatEnum\"\xfb\x01\n" +
+	"\x12output_format_enum\x18\x1b \x01(\x0e2\x19.exarp.tools.OutputFormatR\x10outputFormatEnum\x12\x18\n" +
+	"\acontent\x18\x1c \x01(\tR\acontent\x12!\n" +
+	"\fcomment_type\x18\x1d \x01(\tR\vcommentType\"\xfb\x01\n" +
 	"\vTaskSummary\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x18\n" +
 	"\acontent\x18\x02 \x01(\tR\acontent\x12\x16\n" +

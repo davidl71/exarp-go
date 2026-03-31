@@ -139,7 +139,19 @@ Exarp-go repo detection: directory has `go.mod` containing `exarp-go` and either
 | `PROJECT_ROOT` | Project exarp-go serves (`.todo2`, task store). Set by Cursor/OpenCode or caller. If unset: when the script is inside a project (e.g. `project/scripts/`), that project is used; when the script is installed globally (e.g. in GOPATH/bin), the **current working directory** is used. |
 | `EXARP_GO_ROOT` | exarp-go repo root; used for working-dir build and `EXARP_MIGRATIONS_DIR`. |
 | `EXARP_GO_VERBOSE=1` | Log to stderr which binary or `go run` is used. |
-| `EXARP_MIGRATIONS_DIR` | Set automatically from `EXARP_GO_ROOT/migrations` when using a repo build. |
+| `EXARP_MIGRATIONS_DIR` | Optional strict override: directory with numbered `NNN_*.sql` files. If unset, exarp-go resolves migrations (see below). The portable runner often sets this from `EXARP_GO_ROOT/migrations` or from `../migrations` next to a dev `bin/exarp-go`. |
+
+### Schema migrations (consumer project vs install)
+
+When **AutoMigrate** is on, migration SQL is loaded in this order until one matches:
+
+1. **`EXARP_MIGRATIONS_DIR`** (if set): must exist and contain at least one numbered `*.sql`.
+2. **`EXARP_GO_ROOT/migrations`** (dev clone).
+3. **Next to `os.Executable`**: `../share/exarp-go/migrations`, then `migrations/`.
+4. **`<project root>/migrations`** (from `projectroot.Find()`): only if that directory already has numbered `*.sql` (no directory creation in the client project).
+5. **Embedded SQL** in the binary (`migrations/embed.go`): used for `go install` / PATH binaries when no on-disk tree is found.
+
+`InitWithConfig` records a **resolved migration fingerprint** (`:embedded:` or the absolute migrations path) so a changed resolution source reopens the pool correctly.
 
 ## Override exarp-go location
 

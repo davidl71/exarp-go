@@ -191,8 +191,9 @@ func handleTaskWorkflowCreateSingleWithDeps(
 	if extra := ParamStringSliceTrimmedCommaSeparated(params, "tags"); len(extra) > 0 {
 		tags = append(tags, extra...)
 	}
+	tags = models.NormalizeTags(tags)
 
-	dependencies := ParamStringSliceTrimmedCommaSeparated(params, "dependencies")
+	dependencies := ParamTaskDependencyIDs(params, "dependencies")
 	if dependencies == nil {
 		dependencies = []string{}
 	}
@@ -200,8 +201,8 @@ func handleTaskWorkflowCreateSingleWithDeps(
 	nextID := generateEpochTaskID()
 
 	for _, dep := range dependencies {
-		if !existingTaskMap[dep] {
-			return nil, fmt.Errorf("dependency %s does not exist", dep)
+		if err := ValidateTaskReferenceInStore(ctx, store, dep, existingTasks); err != nil {
+			return nil, fmt.Errorf("dependency %s: %w", dep, err)
 		}
 	}
 
@@ -216,14 +217,14 @@ func handleTaskWorkflowCreateSingleWithDeps(
 	var epicID string
 	if eid := cast.ToString(params["epic_id"]); eid != "" {
 		epicID = eid
-		if err := ValidateTaskReference(epicID, existingTasks); err != nil {
+		if err := ValidateTaskReferenceInStore(ctx, store, epicID, existingTasks); err != nil {
 			return nil, fmt.Errorf("invalid epic ID: %w", err)
 		}
 	}
 
 	parentID := cast.ToString(params["parent_id"])
 	if parentID != "" {
-		if err := ValidateTaskReference(parentID, existingTasks); err != nil {
+		if err := ValidateTaskReferenceInStore(ctx, store, parentID, existingTasks); err != nil {
 			return nil, fmt.Errorf("invalid parent_id: %w", err)
 		}
 	}
@@ -367,8 +368,9 @@ func handleTaskWorkflowCreateSingle(ctx context.Context, params map[string]inter
 	if extra := ParamStringSliceTrimmedCommaSeparated(params, "tags"); len(extra) > 0 {
 		tags = append(tags, extra...)
 	}
+	tags = models.NormalizeTags(tags)
 
-	dependencies := ParamStringSliceTrimmedCommaSeparated(params, "dependencies")
+	dependencies := ParamTaskDependencyIDs(params, "dependencies")
 	if dependencies == nil {
 		dependencies = []string{}
 	}
@@ -388,8 +390,8 @@ func handleTaskWorkflowCreateSingle(ctx context.Context, params map[string]inter
 	nextID := generateEpochTaskID()
 
 	for _, dep := range dependencies {
-		if !taskMap[dep] {
-			return nil, fmt.Errorf("dependency %s does not exist", dep)
+		if err := ValidateTaskReferenceInStore(ctx, store, dep, tasks); err != nil {
+			return nil, fmt.Errorf("dependency %s: %w", dep, err)
 		}
 	}
 
@@ -404,14 +406,14 @@ func handleTaskWorkflowCreateSingle(ctx context.Context, params map[string]inter
 	var epicID string
 	if eid := cast.ToString(params["epic_id"]); eid != "" {
 		epicID = eid
-		if err := ValidateTaskReference(epicID, tasks); err != nil {
+		if err := ValidateTaskReferenceInStore(ctx, store, epicID, tasks); err != nil {
 			return nil, fmt.Errorf("invalid epic ID: %w", err)
 		}
 	}
 
 	parentID := cast.ToString(params["parent_id"])
 	if parentID != "" {
-		if err := ValidateTaskReference(parentID, tasks); err != nil {
+		if err := ValidateTaskReferenceInStore(ctx, store, parentID, tasks); err != nil {
 			return nil, fmt.Errorf("invalid parent_id: %w", err)
 		}
 	}

@@ -116,10 +116,10 @@ func handleReport(ctx context.Context, args json.RawMessage) ([]framework.TextCo
 
 	params := ReportRequestToParams(req)
 	framework.ApplyDefaults(params, map[string]interface{}{
-		"action":         "overview",
-		"output_format":  "text",
-		"include_tasks":  true,
-		"include_hints":  true,
+		"action":          "overview",
+		"output_format":   "text",
+		"include_tasks":   true,
+		"include_hints":   true,
 		"include_metrics": true,
 	})
 

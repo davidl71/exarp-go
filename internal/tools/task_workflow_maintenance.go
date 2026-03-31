@@ -26,6 +26,10 @@ import (
 
 // ─── handleTaskWorkflowSync ─────────────────────────────────────────────────
 func handleTaskWorkflowSync(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+
 	projectRoot, err := FindProjectRoot()
 	if err != nil {
 		return nil, fmt.Errorf("failed to find project root: %w", err)
@@ -43,6 +47,9 @@ func handleTaskWorkflowSync(ctx context.Context, params map[string]interface{}) 
 
 	// Perform bidirectional sync between SQLite and JSON
 	if !dryRun {
+		if err := ctx.Err(); err != nil {
+			return nil, err
+		}
 		if err := SyncTodo2Tasks(projectRoot); err != nil {
 			return nil, fmt.Errorf("failed to sync tasks: %w", err)
 		}
@@ -78,14 +85,20 @@ func handleTaskWorkflowSync(ctx context.Context, params map[string]interface{}) 
 
 	// Check for missing dependencies and invalid planning links
 	for i := range tasks {
+		if err := ctx.Err(); err != nil {
+			return nil, err
+		}
 		task := &tasks[i]
 		for _, dep := range task.Dependencies {
-			if !taskMap[dep] {
+			if taskMap[dep] {
+				continue
+			}
+			if _, err := store.GetTask(ctx, dep); err != nil {
 				issues = append(issues, fmt.Sprintf("Task %s depends on %s which doesn't exist", task.ID, dep))
 			}
 		}
 
-		// Validate planning document links; auto-clear orphaned epic_id
+		// Validate planning document links; auto-clear orphaned epic_id only when unresolved
 		if linkMeta := GetPlanningLinkMetadata(task); linkMeta != nil {
 			if linkMeta.PlanningDoc != "" {
 				if err := ValidatePlanningLink(projectRoot, linkMeta.PlanningDoc); err != nil {
@@ -94,13 +107,14 @@ func handleTaskWorkflowSync(ctx context.Context, params map[string]interface{}) 
 			}
 
 			if linkMeta.EpicID != "" {
-				if err := ValidateTaskReference(linkMeta.EpicID, tasks); err != nil {
+				if err := ValidateTaskReferenceInStore(ctx, store, linkMeta.EpicID, tasks); err != nil {
 					issues = append(issues, fmt.Sprintf("Task %s has invalid epic ID: %v", task.ID, err))
+					if !dryRun {
+						linkMeta.EpicID = ""
+						SetPlanningLinkMetadata(task, linkMeta)
+						tasksWithOrphanedEpicFixed = append(tasksWithOrphanedEpicFixed, task)
+					}
 				}
-				// Clear orphaned epic_id so future syncs are clean
-				linkMeta.EpicID = ""
-				SetPlanningLinkMetadata(task, linkMeta)
-				tasksWithOrphanedEpicFixed = append(tasksWithOrphanedEpicFixed, task)
 			}
 		}
 	}
@@ -204,10 +218,13 @@ func handleTaskWorkflowSanityCheck(ctx context.Context, params map[string]interf
 		}
 	}
 
-	// Missing dependencies
+	// Missing dependencies (verify against store when dep not in project-scoped list)
 	for _, task := range tasks {
 		for _, dep := range task.Dependencies {
-			if !taskMap[dep] {
+			if taskMap[dep] {
+				continue
+			}
+			if _, err := store.GetTask(ctx, dep); err != nil {
 				issues = append(issues, fmt.Sprintf("Task %s depends on %s which doesn't exist", task.ID, dep))
 			}
 		}

@@ -141,8 +141,9 @@ func handleTaskUpdateParsed(server framework.MCPServer, parsed *mcpcli.Args) err
 	if parsed.HasFlag("new-priority") {
 		input.Priority = taskworkflowspec.OptionalString{Set: true, Value: parsed.GetFlag("new-priority", "")}
 	}
-	if parsed.HasFlag("tags") {
-		input.Tags = taskworkflowspec.OptionalList{Set: true, Values: taskworkflowspec.CSVToList(parsed.GetFlag("tags", ""))}
+	tagVals := MergeTaskTagsFromCSVAndRepeated(parsed.GetFlag("tags", ""), os.Args)
+	if parsed.HasFlag("tags") || len(CollectRepeatedStringFlag(os.Args, "tag")) > 0 {
+		input.Tags = taskworkflowspec.OptionalList{Set: true, Values: tagVals}
 	}
 	if parsed.HasFlag("remove-tags") {
 		input.RemoveTags = taskworkflowspec.OptionalList{Set: true, Values: taskworkflowspec.CSVToList(parsed.GetFlag("remove-tags", ""))}
@@ -178,7 +179,7 @@ func handleTaskUpdateWithParams(server framework.MCPServer, oldStatus string, in
 	if !input.NewStatus.Set && !input.Priority.Set && !input.Tags.Set && !input.RemoveTags.Set && !input.Name.Set &&
 		!input.LongDescription.Set && !input.Dependencies.Set && !input.RecommendedTools.Set &&
 		!input.LocalAIBackend.Set && !input.ParentID.Set {
-		return fmt.Errorf("task update requires at least one task field such as --new-status, --new-priority, --dependencies, --parent-id, --tags, --remove-tags, --name, --description, --recommended-tools, or --local-ai-backend")
+		return fmt.Errorf("task update requires at least one task field such as --new-status, --new-priority, --dependencies, --parent-id, --tags, --tag (repeatable), --remove-tags, --name, --description, --recommended-tools, or --local-ai-backend")
 	}
 
 	if len(input.TaskIDs) > 0 {
@@ -215,8 +216,9 @@ func handleTaskCreateParsed(server framework.MCPServer, parsed *mcpcli.Args) err
 	if parsed.HasFlag("priority") {
 		input.Priority = taskworkflowspec.OptionalString{Set: true, Value: parsed.GetFlag("priority", "")}
 	}
-	if parsed.HasFlag("tags") {
-		input.Tags = taskworkflowspec.OptionalList{Set: true, Values: taskworkflowspec.CSVToList(parsed.GetFlag("tags", ""))}
+	createTagVals := MergeTaskTagsFromCSVAndRepeated(parsed.GetFlag("tags", ""), os.Args)
+	if parsed.HasFlag("tags") || len(CollectRepeatedStringFlag(os.Args, "tag")) > 0 {
+		input.Tags = taskworkflowspec.OptionalList{Set: true, Values: createTagVals}
 	}
 	if parsed.HasFlag("dependencies") {
 		input.Dependencies = taskworkflowspec.OptionalList{Set: true, Values: taskworkflowspec.CSVToList(parsed.GetFlag("dependencies", ""))}
@@ -294,8 +296,11 @@ func handleTaskEstimateParsed(server framework.MCPServer, parsed *mcpcli.Args) e
 	if p := parsed.GetFlag("priority", ""); p != "" {
 		toolArgs["priority"] = p
 	}
-	if t := parsed.GetFlag("tags", ""); t != "" {
-		toolArgs["tags"] = t
+	estTags := MergeTaskTagsFromCSVAndRepeated(parsed.GetFlag("tags", ""), os.Args)
+	if parsed.HasFlag("tags") || len(CollectRepeatedStringFlag(os.Args, "tag")) > 0 {
+		if csv := taskworkflowspec.ListToCSV(estTags); csv != "" {
+			toolArgs["tags"] = csv
+		}
 	}
 	return executeEstimation(server, toolArgs)
 }
@@ -655,7 +660,7 @@ func showTaskUsage() error {
 	_, _ = fmt.Println("List Options:")
 	_, _ = fmt.Println("  --status <status>       Filter by status (Todo, In Progress, Done, Review)")
 	_, _ = fmt.Println("  --priority <priority>   Filter by priority (low, medium, high)")
-	_, _ = fmt.Println("  --tag <tag>             Filter by tag")
+	_, _ = fmt.Println("  --tag <tag>             Filter by tag (list only; single value)")
 	_, _ = fmt.Println("  --limit <number>        Limit number of results")
 	_, _ = fmt.Println("  --full-description      Include full long_description in list output (no truncation)")
 	_, _ = fmt.Println("  --quiet                 Suppress verbose output (OpenCode/script-friendly)")
@@ -669,7 +674,8 @@ func showTaskUsage() error {
 	_, _ = fmt.Println("  --new-priority <pri>    New priority (low, medium, high); requires task ID(s)")
 	_, _ = fmt.Println("  --dependencies <ids>    Comma-separated dependency task IDs; replaces dependencies")
 	_, _ = fmt.Println("  --parent-id <task-id>   Set parent task ID for hierarchy")
-	_, _ = fmt.Println("  --tags <tags>           Comma-separated tags to add")
+	_, _ = fmt.Println("  --tags <tags>           Comma-separated tags to add (merge with repeated --tag)")
+	_, _ = fmt.Println("  --tag <tag>             Add one tag (repeatable; create/update/estimate)")
 	_, _ = fmt.Println("  --remove-tags <tags>    Comma-separated tags to remove")
 	_, _ = fmt.Println("  --name <text>           Replace task title/content")
 	_, _ = fmt.Println("  --description <text>    Replace task description")
@@ -681,7 +687,8 @@ func showTaskUsage() error {
 	_, _ = fmt.Println("Create Options:")
 	_, _ = fmt.Println("  --description <text>           Task description")
 	_, _ = fmt.Println("  --priority <priority>          Task priority (low, medium, high)")
-	_, _ = fmt.Println("  --tags <tags>                  Comma-separated tags")
+	_, _ = fmt.Println("  --tags <tags>                  Comma-separated tags (or repeat --tag)")
+	_, _ = fmt.Println("  --tag <tag>                    One tag; repeatable")
 	_, _ = fmt.Println("  --dependencies <ids>           Comma-separated dependency task IDs")
 	_, _ = fmt.Println("  --parent-id <task-id>          Parent task ID for hierarchy")
 	_, _ = fmt.Println("  --epic-id <task-id>            Epic task ID")
@@ -693,7 +700,8 @@ func showTaskUsage() error {
 	_, _ = fmt.Println("  --local-ai-backend <backend>   Backend for estimation (fm|mlx|ollama)")
 	_, _ = fmt.Println("  --details <text>               Optional task details")
 	_, _ = fmt.Println("  --priority <priority>          Priority (low, medium, high)")
-	_, _ = fmt.Println("  --tags <tags>                  Comma-separated tags")
+	_, _ = fmt.Println("  --tags <tags>                  Comma-separated tags (or repeat --tag)")
+	_, _ = fmt.Println("  --tag <tag>                    One tag; repeatable")
 	_, _ = fmt.Println()
 	_, _ = fmt.Println("Summarize Options:")
 	_, _ = fmt.Println("  --local-ai-backend <backend>   Override task preferred backend (fm|mlx|ollama)")
@@ -710,7 +718,7 @@ func showTaskUsage() error {
 	_, _ = fmt.Println("  exarp-go task update T-1 --new-priority high")
 	_, _ = fmt.Println("  exarp-go task update T-2 --dependencies \"T-1,T-3\" --parent-id T-10")
 	_, _ = fmt.Println("  exarp-go task update --status \"Todo\" --new-status \"Done\" --ids \"T-1,T-2\"")
-	_, _ = fmt.Println("  exarp-go task create \"Fix bug\" --description \"Fix the bug\" --priority \"high\"")
+	_, _ = fmt.Println("  exarp-go task create \"Fix bug\" --description \"Fix the bug\" --priority \"high\" --tag cli --tag backend")
 	_, _ = fmt.Println("  exarp-go task create \"Subtask\" --parent-id T-10 --dependencies \"T-1\" --planning-doc docs/plan.md")
 	_, _ = fmt.Println("  exarp-go task create \"AI task\" --local-ai-backend ollama --recommended-tools report")
 	_, _ = fmt.Println("  exarp-go task estimate \"Add tests\" --local-ai-backend fm")

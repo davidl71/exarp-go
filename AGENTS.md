@@ -9,6 +9,7 @@ Use these rules when editing this repository with Codex.
 3. Do not edit `.todo2/state.todo2.json` or `.todo2/todo2.db` directly. Use `exarp-go task ...` or MCP tools.
 4. Keep changes scoped; do not revert unrelated local modifications.
 5. Prefer updating docs/examples when changing config behavior.
+6. When touching `task_discovery` build-tagged files, read **[docs/CGO_BUILD_PARITY.md](docs/CGO_BUILD_PARITY.md)** (`make build` uses `CGO_ENABLED=0`; `make go-build` enables CGO on Apple Silicon when a C compiler exists). Estimation/context entrypoints are unified in `estimation_shared_v2.go` and `context_shared.go`.
 
 ## MCP and Project Root
 
