@@ -42,7 +42,7 @@ var CreateFieldSpecs = []FieldSpec{
 		Description:   "Comma-separated tags, JSON array string, or repeated --tag on CLI",
 		Schema: map[string]interface{}{
 			"type":        "string",
-			"description": "Task tags: comma-separated (e.g. 'backend,urgent'), a JSON array string (e.g. '[\"backend\",\"urgent\"]'), or a native JSON array in tool args. CLI: --tags CSV and/or repeated --tag.",
+			"description": "Task tags: comma-separated (e.g. 'backend,urgent'), a JSON array string (e.g. '[\"backend\",\"urgent\"]'), or a native JSON array in tool args (required for proto/typed decode when tags include '#'). CLI: --tags CSV and/or repeated --tag.",
 		},
 	},
 	{
@@ -294,6 +294,18 @@ func ListToCSV(values []string) string {
 	return strings.Join(values, ",")
 }
 
+// toolArgStringSlice returns a defensive copy for task_workflow JSON args.
+// Proto fields tags and dependencies are repeated string; protojson requires a JSON array,
+// not a single comma-separated string (otherwise unmarshal fails with e.g. unexpected token on "#tag").
+func toolArgStringSlice(values []string) []string {
+	if len(values) == 0 {
+		return nil
+	}
+	out := make([]string, len(values))
+	copy(out, values)
+	return out
+}
+
 func (in TaskCreateInput) ToToolArgs() map[string]interface{} {
 	toolArgs := map[string]interface{}{
 		"action": "create",
@@ -305,11 +317,11 @@ func (in TaskCreateInput) ToToolArgs() map[string]interface{} {
 	if in.Priority.Set {
 		toolArgs["priority"] = in.Priority.Value
 	}
-	if in.Tags.Set {
-		toolArgs["tags"] = ListToCSV(in.Tags.Values)
+	if in.Tags.Set && len(in.Tags.Values) > 0 {
+		toolArgs["tags"] = toolArgStringSlice(in.Tags.Values)
 	}
-	if in.Dependencies.Set {
-		toolArgs["dependencies"] = ListToCSV(in.Dependencies.Values)
+	if in.Dependencies.Set && len(in.Dependencies.Values) > 0 {
+		toolArgs["dependencies"] = toolArgStringSlice(in.Dependencies.Values)
 	}
 	if in.LocalAIBackend.Set {
 		toolArgs["local_ai_backend"] = in.LocalAIBackend.Value
@@ -340,11 +352,12 @@ func (in TaskUpdateInput) ToToolArgs() map[string]interface{} {
 	if in.Priority.Set {
 		toolArgs["priority"] = in.Priority.Value
 	}
-	if in.Tags.Set {
-		toolArgs["tags"] = ListToCSV(in.Tags.Values)
+	if in.Tags.Set && len(in.Tags.Values) > 0 {
+		toolArgs["tags"] = toolArgStringSlice(in.Tags.Values)
 	}
-	if in.RemoveTags.Set {
-		toolArgs["remove_tags"] = ListToCSV(in.RemoveTags.Values)
+	if in.RemoveTags.Set && len(in.RemoveTags.Values) > 0 {
+		// TaskWorkflowRequest has no remove_tags field yet; kept for non-proto / future wire parity.
+		toolArgs["remove_tags"] = toolArgStringSlice(in.RemoveTags.Values)
 	}
 	if in.Name.Set {
 		toolArgs["name"] = in.Name.Value
@@ -352,8 +365,8 @@ func (in TaskUpdateInput) ToToolArgs() map[string]interface{} {
 	if in.LongDescription.Set {
 		toolArgs["long_description"] = in.LongDescription.Value
 	}
-	if in.Dependencies.Set {
-		toolArgs["dependencies"] = ListToCSV(in.Dependencies.Values)
+	if in.Dependencies.Set && len(in.Dependencies.Values) > 0 {
+		toolArgs["dependencies"] = toolArgStringSlice(in.Dependencies.Values)
 	}
 	if in.LocalAIBackend.Set {
 		toolArgs["local_ai_backend"] = in.LocalAIBackend.Value

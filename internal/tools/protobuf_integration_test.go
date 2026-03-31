@@ -1,6 +1,7 @@
 package tools
 
 import (
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"testing"
@@ -93,5 +94,31 @@ func TestEstimationRequestToParamsLocalAIBackend(t *testing.T) {
 	params := EstimationRequestToParams(req)
 	if got, ok := params["local_ai_backend"].(string); !ok || got != "ollama" {
 		t.Errorf("EstimationRequestToParams() local_ai_backend = %v (ok=%v), want ollama", params["local_ai_backend"], ok)
+	}
+}
+
+// TestDecodeArgsToProtoTaskWorkflowTagsJSONArray verifies CLI-style args use JSON arrays for
+// repeated proto fields (canonical #tags must not be sent as a single comma-separated string).
+func TestDecodeArgsToProtoTaskWorkflowTagsJSONArray(t *testing.T) {
+	t.Parallel()
+	raw := json.RawMessage(`{"action":"create","name":"x","tags":["#cli","#proto"],"dependencies":["T-1"]}`)
+	req, err := decodeArgsToProto(raw, func() *proto.TaskWorkflowRequest { return &proto.TaskWorkflowRequest{} })
+	if err != nil {
+		t.Fatalf("decodeArgsToProto: %v", err)
+	}
+	if len(req.Tags) != 2 || req.Tags[0] != "#cli" || req.Tags[1] != "#proto" {
+		t.Fatalf("Tags = %#v", req.Tags)
+	}
+	if len(req.Dependencies) != 1 || req.Dependencies[0] != "T-1" {
+		t.Fatalf("Dependencies = %#v", req.Dependencies)
+	}
+}
+
+func TestDecodeArgsToProtoTaskWorkflowTagsCSVStringRejected(t *testing.T) {
+	t.Parallel()
+	raw := json.RawMessage(`{"action":"create","name":"x","tags":"#cli,#proto"}`)
+	_, err := decodeArgsToProto(raw, func() *proto.TaskWorkflowRequest { return &proto.TaskWorkflowRequest{} })
+	if err == nil {
+		t.Fatal("expected error when tags is a string for repeated field")
 	}
 }

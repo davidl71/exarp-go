@@ -1,6 +1,9 @@
 package taskworkflowspec
 
-import "testing"
+import (
+	"reflect"
+	"testing"
+)
 
 func containsAllFlags(specs []FieldSpec, flags []string) bool {
 	set := map[string]bool{}
@@ -106,8 +109,13 @@ func TestTaskCreateInputToToolArgs(t *testing.T) {
 	if got := args["action"]; got != "create" {
 		t.Fatalf("action = %v, want create", got)
 	}
-	if got := args["dependencies"]; got != "T-1,T-2" {
-		t.Fatalf("dependencies = %v, want T-1,T-2", got)
+	wantDeps := []string{"T-1", "T-2"}
+	if got, ok := args["dependencies"].([]string); !ok || !reflect.DeepEqual(got, wantDeps) {
+		t.Fatalf("dependencies = %v (%T), want %#v as []string", args["dependencies"], args["dependencies"], wantDeps)
+	}
+	wantTags := []string{"docs", "mcp"}
+	if got, ok := args["tags"].([]string); !ok || !reflect.DeepEqual(got, wantTags) {
+		t.Fatalf("tags = %v (%T), want %#v as []string", args["tags"], args["tags"], wantTags)
 	}
 	if got := args["parent_id"]; got != "T-50" {
 		t.Fatalf("parent_id = %v, want T-50", got)
@@ -139,8 +147,17 @@ func TestTaskUpdateInputToToolArgs(t *testing.T) {
 	if got := args["new_status"]; got != "Done" {
 		t.Fatalf("new_status = %v, want Done", got)
 	}
-	if got := args["dependencies"]; got != "T-9" {
-		t.Fatalf("dependencies = %v, want T-9", got)
+	wantDeps := []string{"T-9"}
+	if got, ok := args["dependencies"].([]string); !ok || !reflect.DeepEqual(got, wantDeps) {
+		t.Fatalf("dependencies = %v (%T), want %#v as []string", args["dependencies"], args["dependencies"], wantDeps)
+	}
+	wantTags := []string{"docs"}
+	if got, ok := args["tags"].([]string); !ok || !reflect.DeepEqual(got, wantTags) {
+		t.Fatalf("tags = %v (%T), want %#v as []string", args["tags"], args["tags"], wantTags)
+	}
+	wantRemove := []string{"old"}
+	if got, ok := args["remove_tags"].([]string); !ok || !reflect.DeepEqual(got, wantRemove) {
+		t.Fatalf("remove_tags = %v (%T), want %#v as []string", args["remove_tags"], args["remove_tags"], wantRemove)
 	}
 	if got := args["parent_id"]; got != "T-10" {
 		t.Fatalf("parent_id = %v, want T-10", got)
