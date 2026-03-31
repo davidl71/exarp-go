@@ -157,15 +157,7 @@ func runDailyTask(ctx context.Context, toolName string, params map[string]interf
 	case "dead_agent_cleanup":
 		return runDeadAgentCleanup(ctx)
 	case "memory_maint":
-		argsJSON, marshalErr := json.Marshal(params)
-		if marshalErr != nil {
-			result["error"] = marshalErr.Error()
-			result["duration"] = time.Since(startTime).Seconds()
-
-			return result
-		}
-
-		toolResult, err = handleMemoryMaintNative(ctx, argsJSON)
+		toolResult, err = handleMemoryMaintNative(ctx, params)
 	case "report":
 		toolResult, err = handleReportOverview(ctx, params)
 	default:

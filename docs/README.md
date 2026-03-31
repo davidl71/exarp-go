@@ -33,6 +33,7 @@
 - `research/LLM_ROUTER_AND_ROUTELLM_RESEARCH.md` - radlab llm-router (gateway) and RouteLLM (ML cost routing) research
 
 ### Active Workflows
+- `EXARP_OPERATOR_CHEATSHEET.md` — Task lifecycle, batch approve (`new_status`, `dry_run`), PROJECT_ROOT, common CLI/MCP footguns
 - TASK_LANES_AND_FILE_OWNERSHIP_PLAN.md - Planning proposal for ownership-aware lanes, file-collision analysis, and safer parallel execution
 - `HANDOFF_VIA_GIT.md` - Hand off so remote gets exarp task list via git (export handoff + task snapshot to tracked docs)
 - `DEV_TEST_AUTOMATION.md` - Development and testing automation

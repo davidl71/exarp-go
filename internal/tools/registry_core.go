@@ -268,8 +268,13 @@ func registerCoreTools(server framework.MCPServer) error {
 			Type: "object",
 			Properties: map[string]interface{}{
 				"action": map[string]interface{}{
-					"type":    "string",
-					"enum":    []string{"duplicates", "tags", "discover_tags", "hierarchy", "dependencies", "dependencies_summary", "suggest_dependencies", "parallelization", "fix_missing_deps", "validate", "execution_plan", "complexity", "conflicts", "noise"},
+					"type": "string",
+					"enum": []string{
+						"duplicates", "tags", "discover_tags", "hierarchy", "dependencies", "dependencies_summary",
+						"suggest_dependencies", "suggest_deps", "parallelization", "fix_missing_deps", "validate",
+						"execution_plan", "complexity", "conflicts", "noise", "infer_ownership", "hotspots",
+						"next_batch", "stale", "completable",
+					},
 					"default": "duplicates",
 				},
 				"similarity_threshold": map[string]interface{}{

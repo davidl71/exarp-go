@@ -2,6 +2,7 @@
 package tools
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -90,8 +91,15 @@ var handleAddExternalToolHints = WrapHandler(
 // Uses native Go for all actions (save, recall, search, list) - fully native Go, no Python bridge
 // Note: Basic text search is native; semantic search enhancement can be added later in Go if needed.
 func handleMemory(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
-	// Note: handleMemoryNative already handles protobuf parsing, so we just pass args through
-	result, err := handleMemoryNative(ctx, args)
+	req, err := decodeArgsToProto(args, func() *proto.MemoryRequest { return &proto.MemoryRequest{} })
+	if err != nil {
+		return nil, fmt.Errorf("memory failed: %w", err)
+	}
+
+	params := MemoryRequestToParams(req)
+	applyMemoryRequestDefaults(req, params)
+
+	result, err := handleMemoryDispatch(ctx, params)
 	if err != nil {
 		return nil, fmt.Errorf("memory failed: %w", err)
 	}
@@ -102,8 +110,20 @@ func handleMemory(ctx context.Context, args json.RawMessage) ([]framework.TextCo
 // handleMemoryMaint handles the memory_maint tool
 // Uses native Go implementation only (health, gc, prune, consolidate, dream) - fully native Go, no Python fallback.
 func handleMemoryMaint(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
-	// Use native Go implementation only (health, gc, prune, consolidate, dream)
-	return handleMemoryMaintNative(ctx, args)
+	req, err := decodeArgsToProto(args, func() *proto.MemoryMaintRequest { return &proto.MemoryMaintRequest{} })
+	if err != nil {
+		return nil, err
+	}
+
+	params := MemoryMaintRequestToParams(req)
+	framework.ApplyDefaults(params, map[string]interface{}{
+		"action":          "health",
+		"merge_strategy":  "newest",
+		"scope":           "week",
+		"dry_run":         true,
+		"interactive":     true,
+	})
+	return handleMemoryMaintNative(ctx, params)
 }
 
 // handleReport handles the report tool.
@@ -459,17 +479,38 @@ func handleSecurity(ctx context.Context, args json.RawMessage) ([]framework.Text
 }
 
 // handleTaskAnalysis handles the task_analysis tool (native Go only, no Python fallback).
-// All actions (duplicates, tags, dependencies, parallelization, hierarchy) use native Go.
-// Hierarchy uses the FM provider abstraction (Apple FM when available; clear error otherwise).
-var handleTaskAnalysis = WrapHandler(
-	"task_analysis",
-	func(args json.RawMessage) (any, map[string]interface{}, error) { return ParseTaskAnalysisRequest(args) },
-	func(req any) map[string]interface{} {
-		return TaskAnalysisRequestToParams(req.(*proto.TaskAnalysisRequest))
-	},
-	map[string]interface{}{"output_format": "text"},
-	handleTaskAnalysisNative,
-)
+// Uses decodeArgsToProto so action_enum / output_format_enum round-trip like task_workflow; merges
+// unknown JSON keys onto params for backward compatibility with extra client fields.
+func handleTaskAnalysis(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
+	raw := map[string]interface{}{}
+	trimmed := bytes.TrimSpace(args)
+	if len(trimmed) > 0 && trimmed[0] == '{' {
+		if err := json.Unmarshal(trimmed, &raw); err != nil {
+			return nil, fmt.Errorf("failed to parse arguments: %w", err)
+		}
+	}
+
+	req, err := decodeArgsToProto(args, func() *proto.TaskAnalysisRequest { return &proto.TaskAnalysisRequest{} })
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse arguments: %w", err)
+	}
+
+	params := TaskAnalysisRequestToParams(req)
+	for k, v := range raw {
+		if _, ok := params[k]; !ok {
+			params[k] = v
+		}
+	}
+
+	framework.ApplyDefaults(params, map[string]interface{}{"output_format": "text"})
+
+	result, err := handleTaskAnalysisNative(ctx, params)
+	if err != nil {
+		return nil, &framework.ErrToolFailed{ToolName: "task_analysis", Err: err}
+	}
+
+	return result, nil
+}
 
 // handleTaskDiscovery handles the task_discovery tool.
 // Uses native Go implementation only (comments, markdown, orphans, create_tasks); no Python bridge.
@@ -488,15 +529,21 @@ var handleTaskDiscovery = WrapHandler(
 // handleInferTaskProgress handles the infer_task_progress tool (native Go).
 // Evaluates Todo/In Progress tasks against codebase evidence and infers completion.
 func handleInferTaskProgress(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
-	var params map[string]interface{}
-	if err := json.Unmarshal(args, &params); err != nil {
+	var raw map[string]interface{}
+	if err := json.Unmarshal(args, &raw); err != nil {
 		return nil, fmt.Errorf("failed to parse arguments: %w", err)
 	}
 
-	if params == nil {
-		params = make(map[string]interface{})
+	if raw == nil {
+		raw = make(map[string]interface{})
 	}
 
+	req, err := decodeArgsToProto(args, func() *proto.InferTaskProgressRequest { return &proto.InferTaskProgressRequest{} })
+	if err != nil {
+		return nil, err
+	}
+
+	params := mergeInferTaskProgressRequest(raw, req)
 	return handleInferTaskProgressNative(ctx, params)
 }
 
@@ -542,8 +589,11 @@ func taskWorkflowActionMutates(action string) bool {
 		"cleanup", "clarify", "clarity", "fix_dates",
 		"fix_empty_descriptions", "fix_empty_names", "fix_invalid_ids",
 		"link_planning", "request_approval", "sync_from_plan",
-		"sync_plan_status", "apply_approval_result", "run_with_ai",
-		"summarize":
+		"sync_plan_status", "apply_approval_result", "sync_approvals",
+		"run_with_ai", "summarize", "add_comment",
+		"claim", "batch_claim", "release",
+		"start_run", "end_run", "verify", "add_progress", "split",
+		"enrich_tool_hints":
 		return true
 	default:
 		return false

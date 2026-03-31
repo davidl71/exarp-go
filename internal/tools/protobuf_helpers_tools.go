@@ -126,6 +126,22 @@ func MemoryMaintRequestToParams(req *proto.MemoryMaintRequest) map[string]interf
 		return make(map[string]interface{})
 	}
 
+	if req.ActionEnum != proto.MemoryMaintAction_MEMORY_MAINT_ACTION_UNSPECIFIED {
+		if s := memoryMaintActionEnumToString(req.ActionEnum); s != "" {
+			params["action"] = s
+		}
+	}
+	if req.MergeStrategyEnum != proto.MemoryMaintMergeStrategy_MEMORY_MAINT_MERGE_STRATEGY_UNSPECIFIED {
+		if s := memoryMaintMergeStrategyEnumToString(req.MergeStrategyEnum); s != "" {
+			params["merge_strategy"] = s
+		}
+	}
+	if req.ScopeEnum != proto.MemoryMaintScope_MEMORY_MAINT_SCOPE_UNSPECIFIED {
+		if s := memoryMaintScopeEnumToString(req.ScopeEnum); s != "" {
+			params["scope"] = s
+		}
+	}
+
 	return params
 }
 
@@ -247,6 +263,17 @@ func OllamaRequestToParams(req *proto.OllamaRequest) map[string]interface{} {
 	})
 	if err != nil {
 		return make(map[string]interface{})
+	}
+
+	if req.StyleEnum != proto.LocalLLMDocstringStyle_LOCAL_LLM_DOCSTRING_STYLE_UNSPECIFIED {
+		if s := localLLMDocstringStyleEnumToString(req.StyleEnum); s != "" {
+			params["style"] = s
+		}
+	}
+	if req.LevelEnum != proto.LocalLLMSummaryLevel_LOCAL_LLM_SUMMARY_LEVEL_UNSPECIFIED {
+		if s := localLLMSummaryLevelEnumToString(req.LevelEnum); s != "" {
+			params["level"] = s
+		}
 	}
 
 	return params
@@ -468,6 +495,12 @@ func SetupHooksRequestToParams(req *proto.SetupHooksRequest) map[string]interfac
 	})
 	if err != nil {
 		return make(map[string]interface{})
+	}
+
+	if req.ActionEnum != proto.SetupHooksAction_SETUP_HOOKS_ACTION_UNSPECIFIED {
+		if s := setupHooksActionEnumToString(req.ActionEnum); s != "" {
+			params["action"] = s
+		}
 	}
 
 	return params

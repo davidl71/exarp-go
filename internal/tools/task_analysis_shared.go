@@ -72,7 +72,7 @@ func handleTaskAnalysisNative(ctx context.Context, params map[string]interface{}
 		return handleTaskAnalysisConflicts(ctx, params)
 	case "dependencies_summary":
 		return handleTaskAnalysisDependenciesSummary(ctx, params)
-	case "suggest_dependencies":
+	case "suggest_dependencies", "suggest_deps":
 		return handleTaskAnalysisSuggestDependencies(ctx, params)
 	case "noise":
 		return handleTaskAnalysisNoise(ctx, params)
@@ -80,6 +80,10 @@ func handleTaskAnalysisNative(ctx context.Context, params map[string]interface{}
 		return handleTaskAnalysisInferOwnership(ctx, params)
 	case "hotspots":
 		return handleTaskAnalysisHotspots(ctx, params)
+	case "stale":
+		return handleTaskAnalysisStale(ctx, params)
+	case "completable":
+		return handleTaskAnalysisCompletable(ctx, params)
 	default:
 		return nil, fmt.Errorf("unknown action: %s", action)
 	}
@@ -226,6 +230,68 @@ func handleTaskAnalysisDuplicates(ctx context.Context, params map[string]interfa
 	resp := &proto.TaskAnalysisResponse{Action: "duplicates", OutputPath: outputPath, ResultJson: string(resultJSON)}
 
 	return framework.FormatResult(TaskAnalysisResponseToMap(resp), resp.GetOutputPath())
+}
+
+// handleTaskAnalysisStale surfaces stale-tag / metadata-flagged backlog tasks using the same
+// heuristics as task_workflow cleanup (always dry_run; no deletions).
+func handleTaskAnalysisStale(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
+	cleanupParams := map[string]interface{}{
+		"dry_run":                 true,
+		"include_legacy":         ParamBool(params, "include_legacy", false),
+		"stale_threshold_hours":  ParamFloat64(params, "stale_threshold_hours", 2.0),
+	}
+
+	contents, err := handleTaskWorkflowCleanup(ctx, cleanupParams)
+	if err != nil {
+		return nil, fmt.Errorf("stale analysis: %w", err)
+	}
+
+	if len(contents) == 0 {
+		return nil, fmt.Errorf("stale analysis: empty result")
+	}
+
+	var payload map[string]interface{}
+	if err := json.Unmarshal([]byte(contents[0].Text), &payload); err != nil {
+		return nil, fmt.Errorf("stale analysis: parse cleanup result: %w", err)
+	}
+
+	payload["action"] = "stale"
+
+	return framework.FormatResult(payload, ParamString(params, "output_path"))
+}
+
+// handleTaskAnalysisCompletable runs infer_task_progress heuristics and labels the payload for task_analysis clients.
+func handleTaskAnalysisCompletable(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
+	inferParams := make(map[string]interface{}, len(params))
+	for k, v := range params {
+		if k == "action" {
+			continue
+		}
+
+		inferParams[k] = v
+	}
+
+	if _, ok := inferParams["dry_run"]; !ok {
+		inferParams["dry_run"] = true
+	}
+
+	contents, err := handleInferTaskProgressNative(ctx, inferParams)
+	if err != nil {
+		return nil, fmt.Errorf("completable analysis: %w", err)
+	}
+
+	if len(contents) == 0 {
+		return nil, fmt.Errorf("completable analysis: empty result")
+	}
+
+	var payload map[string]interface{}
+	if err := json.Unmarshal([]byte(contents[0].Text), &payload); err != nil {
+		return nil, fmt.Errorf("completable analysis: parse infer result: %w", err)
+	}
+
+	payload["action"] = "completable"
+
+	return framework.FormatResult(payload, ParamString(params, "output_path"))
 }
 
 // CanonicalTagRules returns default tag consolidation rules aligned with scorecard dimensions.

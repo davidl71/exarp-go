@@ -255,6 +255,60 @@ func TestListTasks(t *testing.T) {
 	}
 }
 
+func TestListTasksNameContains(t *testing.T) {
+	testDBMu.Lock()
+	defer testDBMu.Unlock()
+
+	tmpDir := t.TempDir()
+	if err := Init(tmpDir); err != nil {
+		t.Fatalf("Init() error = %v", err)
+	}
+	defer Close()
+
+	tasks := []*models.Todo2Task{
+		// IDs must be T-<digits> only (see models.IsValidTaskID).
+		{ID: "T-900001", Name: "Alpha bridge", Content: "Fix bridge", Status: "Todo", Priority: "medium"},
+		{ID: "T-900002", Name: "Beta", Content: "Other work", Status: "Todo", Priority: "medium"},
+	}
+	for _, task := range tasks {
+		if err := CreateTask(context.Background(), task); err != nil {
+			t.Fatalf("CreateTask() error = %v", err)
+		}
+	}
+
+	q := "bridge"
+	got, err := ListTasks(context.Background(), &TaskFilters{NameContains: &q})
+	if err != nil {
+		t.Fatalf("ListTasks(NameContains) error = %v", err)
+	}
+	if len(got) != 1 || got[0].ID != "T-900001" {
+		t.Fatalf("expected 1 task T-900001, got %d tasks (first id=%v)", len(got), firstID(got))
+	}
+
+	q2 := "other"
+	got2, err := ListTasks(context.Background(), &TaskFilters{NameContains: &q2})
+	if err != nil {
+		t.Fatalf("ListTasks(NameContains content) error = %v", err)
+	}
+	if len(got2) != 1 || got2[0].ID != "T-900002" {
+		t.Fatalf("expected 1 task T-900002 by content match, got %d", len(got2))
+	}
+}
+
+func firstID(tasks []*Todo2Task) string {
+	if len(tasks) == 0 {
+		return ""
+	}
+	return tasks[0].ID
+}
+
+func TestLikeContainsPattern(t *testing.T) {
+	// User substring with LIKE metacharacters must be escaped for SQLite ESCAPE '\'.
+	if g, w := likeContainsPattern("100%_off"), `%100\%\_off%`; g != w {
+		t.Fatalf("likeContainsPattern: got %q want %q", g, w)
+	}
+}
+
 func TestGetDoneTasksForEstimation(t *testing.T) {
 	testDBMu.Lock()
 	defer testDBMu.Unlock()

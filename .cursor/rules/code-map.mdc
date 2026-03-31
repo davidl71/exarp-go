@@ -11,7 +11,7 @@ Use this map to jump directly to the right file when working on a tool, feature,
 
 | Tool | Handler file(s) | Key actions |
 |------|-----------------|-------------|
-| `task_workflow` | `task_workflow_native.go` → `task_workflow_actions.go`, `task_workflow_common.go` | sync, create, update, delete, approve, cleanup, sanity, clarify, summarize, run_with_ai |
+| `task_workflow` | `task_workflow_native.go` → `task_workflow_crud.go`, `task_workflow_actions.go`, `task_workflow_common.go` | sync, list (incl. `name` / `name_contains` / `filter_name` on title+content), create, update, delete, approve, cleanup, sanity, clarify, summarize, run_with_ai |
 | `task_analysis` | `task_analysis_shared.go` | parallelization, dependencies, duplicates, conflicts, execution_plan, tags, suggest_deps, stale, completable |
 | `report` | `report.go` | overview, scorecard, briefing, plan, parallel_execution_plan, update_waves_from_plan, prd |
 | `session` | `session.go` | prime, handoff (end/list/resume/latest/export/close/approve) |

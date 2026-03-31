@@ -97,7 +97,11 @@ func CreateTask(ctx context.Context, task *Todo2Task) error {
 		if parentID == "" {
 			parentID = ""
 		}
-		projectID := task.ProjectID // project_id still nullable
+		projectID := strings.TrimSpace(task.ProjectID)
+		if projectID == "" {
+			projectID = DefaultProjectIDFromEnv()
+			task.ProjectID = projectID
+		}
 		assignedTo := task.AssignedTo
 		if assignedTo == "" {
 			assignedTo = ""
@@ -279,7 +283,9 @@ func GetTask(ctx context.Context, id string) (*Todo2Task, error) {
 		var row taskRowWithAgg
 		err = db.GetContext(queryCtx, &row, `
 			SELECT t.id, t.name, t.content, t.long_description, t.status, t.priority, t.completed,
-			       t.created, t.last_modified, t.completed_at, t.metadata, t.metadata_protobuf, t.metadata_format,
+			       t.created, t.last_modified, t.completed_at,
+			       t.created_ts, t.last_modified_ts, t.completed_at_ts,
+			       t.metadata, t.metadata_protobuf, t.metadata_format,
 			       t.parent_id, t.project_id, t.assigned_to, t.host, t.agent, t.version`+sqlTaskAggJSON+`
 			FROM tasks AS t
 			WHERE t.id = ?
@@ -310,6 +316,7 @@ func GetTask(ctx context.Context, id string) (*Todo2Task, error) {
 			Version:         row.Version,
 		}
 
+		taskData.FillRFC3339FromUnix(row.CreatedTS, row.LastModifiedTS, row.CompletedAtTS)
 		taskData.NormalizeEpochDates()
 		taskData.EnsureName()
 		taskData.Metadata = DeserializeTaskMetadata(string(row.Metadata), row.MetadataProto, row.MetadataFormat)

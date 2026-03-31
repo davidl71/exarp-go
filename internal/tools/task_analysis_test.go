@@ -217,7 +217,7 @@ func TestHandleTaskAnalysisNative(t *testing.T) {
 		{
 			name: "next_batch action",
 			params: map[string]interface{}{
-				"action":       "next_batch",
+				"action":        "next_batch",
 				"output_format": "json",
 			},
 			wantError: false,
@@ -237,6 +237,55 @@ func TestHandleTaskAnalysisNative(t *testing.T) {
 				}
 				if _, ok := data["next_batch_task_ids"]; !ok {
 					t.Error("expected next_batch_task_ids in result")
+				}
+			},
+		},
+		{
+			name: "stale action",
+			params: map[string]interface{}{
+				"action":        "stale",
+				"output_format": "json",
+			},
+			wantError: false,
+			validate: func(t *testing.T, result []framework.TextContent) {
+				if len(result) == 0 {
+					t.Error("expected non-empty result")
+					return
+				}
+				var data map[string]interface{}
+				if err := json.Unmarshal([]byte(result[0].Text), &data); err != nil {
+					t.Fatalf("stale action JSON: %v", err)
+				}
+				if data["action"] != "stale" {
+					t.Errorf("action = %v, want stale", data["action"])
+				}
+				if _, ok := data["stale_tasks"]; !ok {
+					t.Error("expected stale_tasks in result")
+				}
+			},
+		},
+		{
+			name: "completable action",
+			params: map[string]interface{}{
+				"action":        "completable",
+				"output_format": "json",
+				"use_fm":        false,
+			},
+			wantError: false,
+			validate: func(t *testing.T, result []framework.TextContent) {
+				if len(result) == 0 {
+					t.Error("expected non-empty result")
+					return
+				}
+				var data map[string]interface{}
+				if err := json.Unmarshal([]byte(result[0].Text), &data); err != nil {
+					t.Fatalf("completable action JSON: %v", err)
+				}
+				if data["action"] != "completable" {
+					t.Errorf("action = %v, want completable", data["action"])
+				}
+				if _, ok := data["inferred_results"]; !ok {
+					t.Error("expected inferred_results in result")
 				}
 			},
 		},
@@ -306,6 +355,30 @@ func TestHandleTaskAnalysis_JSONActionRouting(t *testing.T) {
 		t.Fatalf("invalid JSON: %v", err)
 	}
 
+	if got := data["action"]; got != "conflicts" {
+		t.Fatalf("action = %#v, want conflicts", got)
+	}
+	if _, ok := data["conflict"]; !ok {
+		t.Fatalf("expected conflict field in result, got %#v", data)
+	}
+}
+
+func TestHandleTaskAnalysis_EnumOnlyArgs(t *testing.T) {
+	tmpDir := t.TempDir()
+	t.Setenv("PROJECT_ROOT", tmpDir)
+
+	payload := `{"actionEnum":"TASK_ANALYSIS_ACTION_CONFLICTS","outputFormatEnum":"OUTPUT_FORMAT_JSON"}`
+	result, err := handleTaskAnalysis(context.Background(), json.RawMessage(payload))
+	if err != nil {
+		t.Fatalf("handleTaskAnalysis() error = %v", err)
+	}
+	if len(result) == 0 {
+		t.Fatal("expected non-empty result")
+	}
+	var data map[string]interface{}
+	if err := json.Unmarshal([]byte(result[0].Text), &data); err != nil {
+		t.Fatalf("invalid JSON: %v", err)
+	}
 	if got := data["action"]; got != "conflicts" {
 		t.Fatalf("action = %#v, want conflicts", got)
 	}

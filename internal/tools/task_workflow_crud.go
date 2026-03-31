@@ -230,7 +230,7 @@ func parseStringSliceFromParams(params map[string]interface{}, key string) []str
 	return ParamStringSliceTrimmedCommaSeparated(params, key)
 }
 
-// handleTaskWorkflowUpdate updates task(s) by ID with optional new_status, priority, tags (merge), remove_tags, name, long_description, dependencies, or local_ai_backend.
+// handleTaskWorkflowUpdate updates task(s) by ID with optional new_status, priority, tags (merge), remove_tags, name, long_description, dependencies, local_ai_backend, project_id, or recommended_tools.
 // Uses TaskStore (DB or file); when moving to In Progress uses database.ClaimTaskForAgent for locking.
 // Params: task_ids (required), new_status (optional), priority (optional), tags (optional; merged), remove_tags (optional), name (optional), long_description (optional), dependencies (optional; replaces), local_ai_backend (optional), recommended_tools (optional; MCP tool IDs).
 func handleTaskWorkflowUpdate(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
@@ -277,8 +277,11 @@ func handleTaskWorkflowUpdate(ctx context.Context, params map[string]interface{}
 	ownership := parseOwnershipFromParams(params)
 	hasOwnership := ownership != nil
 
-	if newStatus == "" && priority == "" && len(addTags) == 0 && len(removeTags) == 0 && name == "" && longDescription == "" && parentID == "" && dependencies == nil && !hasLocalAIBackend && !hasRecommendedTools && !hasOwnership {
-		return nil, fmt.Errorf("update action requires at least one of new_status, priority, tags, remove_tags, name, long_description, parent_id, dependencies, local_ai_backend, recommended_tools, or ownership fields (owned_files, lane, etc.)")
+	projectIDParam := strings.TrimSpace(cast.ToString(params["project_id"]))
+	hasProjectID := projectIDParam != ""
+
+	if newStatus == "" && priority == "" && len(addTags) == 0 && len(removeTags) == 0 && name == "" && longDescription == "" && parentID == "" && dependencies == nil && !hasLocalAIBackend && !hasRecommendedTools && !hasOwnership && !hasProjectID {
+		return nil, fmt.Errorf("update action requires at least one of new_status, priority, tags, remove_tags, name, long_description, parent_id, project_id, dependencies, local_ai_backend, recommended_tools, or ownership fields (owned_files, lane, etc.)")
 	}
 
 	useClaim := newStatus == models.StatusInProgress
@@ -302,7 +305,8 @@ func handleTaskWorkflowUpdate(ctx context.Context, params map[string]interface{}
 		dependencies == nil &&
 		!hasLocalAIBackend &&
 		!hasRecommendedTools &&
-		!hasOwnership
+		!hasOwnership &&
+		!hasProjectID
 
 	updatedIDs := []string{}
 	updatedCount := 0
@@ -442,6 +446,10 @@ func handleTaskWorkflowUpdate(ctx context.Context, params map[string]interface{}
 				models.SetTaskOwnership(task, ownership)
 			}
 
+			if hasProjectID {
+				task.ProjectID = projectIDParam
+			}
+
 			if err := store.UpdateTask(ctx, task); err != nil {
 				continue
 			}
@@ -537,6 +545,14 @@ func handleTaskWorkflowList(ctx context.Context, params map[string]interface{}) 
 		}
 	}
 
+	filterName := strings.TrimSpace(cast.ToString(params["name"]))
+	if filterName == "" {
+		filterName = strings.TrimSpace(cast.ToString(params["name_contains"]))
+	}
+	if filterName == "" {
+		filterName = strings.TrimSpace(cast.ToString(params["filter_name"]))
+	}
+
 	if v, ok := params["task_id"]; ok {
 		taskID = cast.ToString(v)
 	}
@@ -587,6 +603,9 @@ func handleTaskWorkflowList(ctx context.Context, params map[string]interface{}) 
 		if filterTag != "" {
 			filters.Tag = &filterTag
 		}
+		if filterName != "" {
+			filters.NameContains = &filterName
+		}
 
 		list, err = store.ListTasks(ctx, &filters)
 		if err != nil {
@@ -631,6 +650,9 @@ func handleTaskWorkflowList(ctx context.Context, params map[string]interface{}) 
 				if !found {
 					continue
 				}
+			}
+			if filterName != "" && !taskMatchesNameFilter(task, filterName) {
+				continue
 			}
 		}
 
@@ -941,3 +963,15 @@ func handleTaskWorkflowShow(ctx context.Context, params map[string]interface{}) 
 
 // handleTaskWorkflowSync handles sync action for synchronizing tasks between SQLite and JSON.
 // The "external" param (sync with external sources, e.g. infer_task_progress) is a future nice-to-have; if passed, it is ignored and SQLite↔JSON sync is performed.
+
+// taskMatchesNameFilter returns true if needle is empty or task title/content contains needle (case-insensitive).
+// Used when list loads the full task set (e.g. execution order); keep in sync with database.NameContains semantics.
+func taskMatchesNameFilter(task *Todo2Task, needle string) bool {
+	if needle == "" || task == nil {
+		return true
+	}
+
+	n := strings.ToLower(needle)
+
+	return strings.Contains(strings.ToLower(task.Name), n) || strings.Contains(strings.ToLower(task.Content), n)
+}

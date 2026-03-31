@@ -22,6 +22,11 @@ enum ReportAction {
   REPORT_ACTION_SCORECARD = 2;
   REPORT_ACTION_BRIEFING = 3;
   REPORT_ACTION_PRD = 4;
+  REPORT_ACTION_EXECUTION_BRIEFING = 5;
+  REPORT_ACTION_PLAN = 6;
+  REPORT_ACTION_SCORECARD_PLANS = 7;
+  REPORT_ACTION_PARALLEL_EXECUTION_PLAN = 8;
+  REPORT_ACTION_UPDATE_WAVES_FROM_PLAN = 9;
 }
 
 // TaskWorkflowAction selects the task_workflow action.
@@ -37,6 +42,32 @@ enum TaskWorkflowAction {
   TASK_WORKFLOW_ACTION_DELETE = 8;
   TASK_WORKFLOW_ACTION_LIST = 9;
   TASK_WORKFLOW_ACTION_SHOW = 10;
+  TASK_WORKFLOW_ACTION_FIX_DATES = 11;
+  TASK_WORKFLOW_ACTION_FIX_EMPTY_DESCRIPTIONS = 12;
+  TASK_WORKFLOW_ACTION_FIX_EMPTY_NAMES = 13;
+  TASK_WORKFLOW_ACTION_SANITY_CHECK = 14;
+  TASK_WORKFLOW_ACTION_FIX_INVALID_IDS = 15;
+  TASK_WORKFLOW_ACTION_LINK_PLANNING = 16;
+  TASK_WORKFLOW_ACTION_ADD_COMMENT = 17;
+  TASK_WORKFLOW_ACTION_REQUEST_APPROVAL = 18;
+  TASK_WORKFLOW_ACTION_SYNC_APPROVALS = 19;
+  TASK_WORKFLOW_ACTION_APPLY_APPROVAL_RESULT = 20;
+  TASK_WORKFLOW_ACTION_SYNC_FROM_PLAN = 21;
+  TASK_WORKFLOW_ACTION_SYNC_PLAN_STATUS = 22;
+  TASK_WORKFLOW_ACTION_SUMMARIZE = 23;
+  TASK_WORKFLOW_ACTION_RUN_WITH_AI = 24;
+  TASK_WORKFLOW_ACTION_ENRICH_TOOL_HINTS = 25;
+  TASK_WORKFLOW_ACTION_CLAIM = 26;
+  TASK_WORKFLOW_ACTION_BATCH_CLAIM = 27;
+  TASK_WORKFLOW_ACTION_RELEASE = 28;
+  TASK_WORKFLOW_ACTION_AGENT_STATUS = 29;
+  TASK_WORKFLOW_ACTION_START_RUN = 30;
+  TASK_WORKFLOW_ACTION_END_RUN = 31;
+  TASK_WORKFLOW_ACTION_LIST_RUNS = 32;
+  TASK_WORKFLOW_ACTION_SHOW_RUN = 33;
+  TASK_WORKFLOW_ACTION_VERIFY = 34;
+  TASK_WORKFLOW_ACTION_ADD_PROGRESS = 35;
+  TASK_WORKFLOW_ACTION_SPLIT = 36;
 }
 
 // TaskAnalysisAction selects the task_analysis action.
@@ -52,6 +83,16 @@ enum TaskAnalysisAction {
   TASK_ANALYSIS_ACTION_SUGGEST_DEPS = 8;
   TASK_ANALYSIS_ACTION_STALE = 9;
   TASK_ANALYSIS_ACTION_COMPLETABLE = 10;
+  TASK_ANALYSIS_ACTION_NEXT_BATCH = 11;
+  TASK_ANALYSIS_ACTION_FIX_MISSING_DEPS = 12;
+  TASK_ANALYSIS_ACTION_VALIDATE = 13;
+  TASK_ANALYSIS_ACTION_EXECUTION_PLAN = 14;
+  TASK_ANALYSIS_ACTION_COMPLEXITY = 15;
+  TASK_ANALYSIS_ACTION_DEPENDENCIES_SUMMARY = 16;
+  TASK_ANALYSIS_ACTION_SUGGEST_DEPENDENCIES = 17;
+  TASK_ANALYSIS_ACTION_NOISE = 18;
+  TASK_ANALYSIS_ACTION_INFER_OWNERSHIP = 19;
+  TASK_ANALYSIS_ACTION_HOTSPOTS = 20;
 }
 
 // SessionAction selects the session tool action.
@@ -120,6 +161,121 @@ enum GitToolsAction {
   GIT_TOOLS_ACTION_SET_BRANCH = 7;
 }
 
+// GitMergeConflictStrategy selects merge conflict resolution for git_tools merge.
+enum GitMergeConflictStrategy {
+  GIT_MERGE_CONFLICT_STRATEGY_UNSPECIFIED = 0;
+  GIT_MERGE_CONFLICT_STRATEGY_NEWER = 1;
+  GIT_MERGE_CONFLICT_STRATEGY_SOURCE = 2;
+  GIT_MERGE_CONFLICT_STRATEGY_TARGET = 3;
+}
+
+// SessionHandoffSubAction selects session handoff sub_action (when action_enum is HANDOFF).
+enum SessionHandoffSubAction {
+  SESSION_HANDOFF_SUB_ACTION_UNSPECIFIED = 0;
+  SESSION_HANDOFF_SUB_ACTION_END = 1;
+  SESSION_HANDOFF_SUB_ACTION_RESUME = 2;
+  SESSION_HANDOFF_SUB_ACTION_LATEST = 3;
+  SESSION_HANDOFF_SUB_ACTION_LIST = 4;
+  SESSION_HANDOFF_SUB_ACTION_SYNC = 5;
+  SESSION_HANDOFF_SUB_ACTION_EXPORT = 6;
+  SESSION_HANDOFF_SUB_ACTION_CLOSE = 7;
+  SESSION_HANDOFF_SUB_ACTION_APPROVE = 8;
+  SESSION_HANDOFF_SUB_ACTION_DELETE = 9;
+}
+
+// SessionSyncDirection selects handoff sync direction.
+enum SessionSyncDirection {
+  SESSION_SYNC_DIRECTION_UNSPECIFIED = 0;
+  SESSION_SYNC_DIRECTION_BOTH = 1;
+  SESSION_SYNC_DIRECTION_PULL = 2;
+  SESSION_SYNC_DIRECTION_PUSH = 3;
+}
+
+// WorkflowModeAction selects workflow_mode action.
+enum WorkflowModeAction {
+  WORKFLOW_MODE_ACTION_UNSPECIFIED = 0;
+  WORKFLOW_MODE_ACTION_FOCUS = 1;
+  WORKFLOW_MODE_ACTION_SUGGEST = 2;
+  WORKFLOW_MODE_ACTION_STATS = 3;
+}
+
+// SetupHooksAction selects setup_hooks action.
+enum SetupHooksAction {
+  SETUP_HOOKS_ACTION_UNSPECIFIED = 0;
+  SETUP_HOOKS_ACTION_GIT = 1;
+  SETUP_HOOKS_ACTION_PATTERNS = 2;
+}
+
+// MemoryMaintAction selects memory_maint action.
+enum MemoryMaintAction {
+  MEMORY_MAINT_ACTION_UNSPECIFIED = 0;
+  MEMORY_MAINT_ACTION_HEALTH = 1;
+  MEMORY_MAINT_ACTION_GC = 2;
+  MEMORY_MAINT_ACTION_PRUNE = 3;
+  MEMORY_MAINT_ACTION_CONSOLIDATE = 4;
+  MEMORY_MAINT_ACTION_DREAM = 5;
+}
+
+// MemoryMaintMergeStrategy selects consolidate merge strategy.
+enum MemoryMaintMergeStrategy {
+  MEMORY_MAINT_MERGE_STRATEGY_UNSPECIFIED = 0;
+  MEMORY_MAINT_MERGE_STRATEGY_NEWEST = 1;
+  MEMORY_MAINT_MERGE_STRATEGY_OLDEST = 2;
+  MEMORY_MAINT_MERGE_STRATEGY_LONGEST = 3;
+}
+
+// MemoryMaintScope selects maintenance scope (e.g. dream/consolidate windows).
+enum MemoryMaintScope {
+  MEMORY_MAINT_SCOPE_UNSPECIFIED = 0;
+  MEMORY_MAINT_SCOPE_DAY = 1;
+  MEMORY_MAINT_SCOPE_WEEK = 2;
+  MEMORY_MAINT_SCOPE_MONTH = 3;
+  MEMORY_MAINT_SCOPE_ALL = 4;
+}
+
+// MemoryToolAction selects memory tool action.
+enum MemoryToolAction {
+  MEMORY_TOOL_ACTION_UNSPECIFIED = 0;
+  MEMORY_TOOL_ACTION_SAVE = 1;
+  MEMORY_TOOL_ACTION_RECALL = 2;
+  MEMORY_TOOL_ACTION_SEARCH = 3;
+  MEMORY_TOOL_ACTION_LIST = 4;
+}
+
+// ContextToolAction selects context tool action (summarize / budget / batch).
+enum ContextToolAction {
+  CONTEXT_TOOL_ACTION_UNSPECIFIED = 0;
+  CONTEXT_TOOL_ACTION_SUMMARIZE = 1;
+  CONTEXT_TOOL_ACTION_BUDGET = 2;
+  CONTEXT_TOOL_ACTION_BATCH = 3;
+}
+
+// LocalLLMSummaryLevel selects summary depth (context + ollama summary).
+enum LocalLLMSummaryLevel {
+  LOCAL_LLM_SUMMARY_LEVEL_UNSPECIFIED = 0;
+  LOCAL_LLM_SUMMARY_LEVEL_BRIEF = 1;
+  LOCAL_LLM_SUMMARY_LEVEL_DETAILED = 2;
+  LOCAL_LLM_SUMMARY_LEVEL_KEY_METRICS = 3;
+  LOCAL_LLM_SUMMARY_LEVEL_ACTIONABLE = 4;
+}
+
+// LocalLLMDocstringStyle selects docstring style hints (ollama docs action).
+enum LocalLLMDocstringStyle {
+  LOCAL_LLM_DOCSTRING_STYLE_UNSPECIFIED = 0;
+  LOCAL_LLM_DOCSTRING_STYLE_GOOGLE = 1;
+  LOCAL_LLM_DOCSTRING_STYLE_NUMPY = 2;
+  LOCAL_LLM_DOCSTRING_STYLE_SPHINX = 3;
+}
+
+// LocalLLMBackend selects preferred on-device / local LLM backend (estimation, routers).
+enum LocalLLMBackend {
+  LOCAL_LLM_BACKEND_UNSPECIFIED = 0;
+  LOCAL_LLM_BACKEND_FM = 1;
+  LOCAL_LLM_BACKEND_MLX = 2;
+  LOCAL_LLM_BACKEND_OLLAMA = 3;
+  LOCAL_LLM_BACKEND_AUTO = 4;
+}
+
 // ============================================================================
 // Memory Tool Messages
 // ============================================================================
@@ -147,6 +303,7 @@ message MemoryRequest {
   bool include_related = 7;  // default: true
   string query = 8;
   int32 limit = 9;  // default: 10
+  MemoryToolAction action_enum = 10;
 }
 
 // MemoryResponse represents the response from the memory tool
@@ -188,6 +345,8 @@ message ContextRequest {
   string items = 7;  // JSON array string (budget/batch actions)
   int32 budget_tokens = 8;  // default: 4000
   bool combine = 9;  // default: true (batch action)
+  ContextToolAction action_enum = 10;
+  LocalLLMSummaryLevel level_enum = 11;
 }
 
 // ContextResponse represents the response from the context tool
@@ -431,6 +590,19 @@ message InferTaskProgressResponse {
   string result_json = 2;
 }
 
+// InferTaskProgressRequest is the type-safe request for infer_task_progress.
+message InferTaskProgressRequest {
+  string project_root = 1;
+  int32 scan_depth = 2;  // default: 3, range 1-5
+  double confidence_threshold = 3;  // default: 0.7
+  repeated string file_extensions = 4;
+  string status_filter = 5;
+  bool use_fm = 6;  // default: true
+  bool dry_run = 7;  // default: true
+  bool auto_update_tasks = 8;  // default: false
+  string output_path = 9;
+}
+
 // TaskDiscoveryRequest represents a request for task discovery
 message TaskDiscoveryRequest {
   string action = 1;  // "comments", "markdown", "orphans", "git_json", "all"
@@ -658,6 +830,8 @@ message EstimationRequest {
   bool use_mlx = 9;  // default: true
   double mlx_weight = 10;  // default: 0.3
   string local_ai_backend = 11;  // optional: fm|mlx|ollama — preferred local LLM for estimate
+  LocalLLMBackend local_ai_backend_enum = 12;
+  LocalLLMSummaryLevel summary_level_enum = 13;
 }
 
 // ============================================================================
@@ -686,6 +860,7 @@ message GitToolsRequest {
   bool dry_run = 16;  // default: false
   GitToolsAction action_enum = 17;
   OutputFormat format_enum = 18;
+  GitMergeConflictStrategy conflict_strategy_enum = 19;
 }
 
 // GitToolsResponse holds git_tools result (commits, branches, tasks, diff, graph, merge, set_branch).
@@ -732,6 +907,8 @@ message SessionRequest {
   int32 max_tasks_per_agent = 28;  // default: 5
   bool ask_preferences = 29;  // When true and client supports elicitation, prompt user for include_tasks/include_hints at prime time
   SessionAction action_enum = 30;
+  SessionHandoffSubAction sub_action_enum = 31;
+  SessionSyncDirection direction_enum = 32;
 }
 
 // SessionDetection holds prime detection (agent, mode, etc.)
@@ -807,6 +984,7 @@ message WorkflowModeRequest {
   bool status = 5;  // default: false
   string text = 6;
   bool auto_switch = 7;  // default: false
+  WorkflowModeAction action_enum = 8;
 }
 
 // ============================================================================
@@ -821,6 +999,7 @@ message SetupHooksRequest {
   string config_path = 4;
   bool install = 5;  // default: true
   bool dry_run = 6;  // default: false
+  SetupHooksAction action_enum = 7;
 }
 
 // ============================================================================
@@ -865,6 +1044,9 @@ message MemoryMaintRequest {
   bool save_dream = 13;  // default: true
   bool dry_run = 14;  // default: true
   bool interactive = 15;  // default: true
+  MemoryMaintAction action_enum = 16;
+  MemoryMaintMergeStrategy merge_strategy_enum = 17;
+  MemoryMaintScope scope_enum = 18;
 }
 
 // ============================================================================
@@ -898,6 +1080,8 @@ message OllamaRequest {
   bool include_suggestions = 13;  // default: true
   string data = 14;
   string level = 15;  // default: "brief"
+  LocalLLMDocstringStyle style_enum = 16;
+  LocalLLMSummaryLevel level_enum = 17;
 }
 
 // ============================================================================

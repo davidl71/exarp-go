@@ -74,21 +74,16 @@ func handleToolCatalog(ctx context.Context, args json.RawMessage) ([]framework.T
 // handleWorkflowMode handles the workflow_mode tool
 // Uses native Go implementation (migrated from Python bridge).
 func handleWorkflowMode(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
-	// Try protobuf first, fall back to JSON for backward compatibility
-	req, params, err := ParseWorkflowModeRequest(args)
+	req, err := decodeArgsToProto(args, func() *proto.WorkflowModeRequest { return &proto.WorkflowModeRequest{} })
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse arguments: %w", err)
 	}
 
-	// Convert protobuf request to params map if needed
-	if req != nil {
-		params = WorkflowModeRequestToParams(req)
-		framework.ApplyDefaults(params, map[string]interface{}{
-			"action": "focus",
-		})
-	}
+	params := WorkflowModeRequestToParams(req)
+	framework.ApplyDefaults(params, map[string]interface{}{
+		"action": "focus",
+	})
 
-	// Use native Go implementation
 	return handleWorkflowModeNative(ctx, params)
 }
 
@@ -180,20 +175,16 @@ func handleEstimation(ctx context.Context, args json.RawMessage) ([]framework.Te
 		return nil, fmt.Errorf("failed to find project root: %w", err)
 	}
 
-	// Try protobuf first, fall back to JSON for backward compatibility
-	req, params, err := ParseEstimationRequest(args)
+	req, err := decodeArgsToProto(args, func() *proto.EstimationRequest { return &proto.EstimationRequest{} })
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse arguments: %w", err)
 	}
 
-	// Convert protobuf request to params map if needed
-	if req != nil {
-		params = EstimationRequestToParams(req)
-		framework.ApplyDefaults(params, map[string]interface{}{
-			"action":   "estimate",
-			"priority": "medium",
-		})
-	}
+	params := EstimationRequestToParams(req)
+	framework.ApplyDefaults(params, map[string]interface{}{
+		"action":   "estimate",
+		"priority": "medium",
+	})
 
 	result, err := handleEstimationNative(ctx, projectRoot, params)
 	if err != nil {
@@ -234,6 +225,13 @@ func handleGitTools(ctx context.Context, args json.RawMessage) ([]framework.Text
 			}
 		}
 
+		conflictStrat := req.ConflictStrategy
+		if req.GetConflictStrategyEnum() != proto.GitMergeConflictStrategy_GIT_MERGE_CONFLICT_STRATEGY_UNSPECIFIED {
+			if s := gitMergeConflictStrategyEnumToString(req.GetConflictStrategyEnum()); s != "" {
+				conflictStrat = s
+			}
+		}
+
 		// Convert protobuf request to GitToolsParams struct
 		params = GitToolsParams{
 			Action:           action,
@@ -249,7 +247,7 @@ func handleGitTools(ctx context.Context, args json.RawMessage) ([]framework.Text
 			MaxCommits:       int(req.MaxCommits),
 			SourceBranch:     req.SourceBranch,
 			TargetBranch:     req.TargetBranch,
-			ConflictStrategy: req.ConflictStrategy,
+			ConflictStrategy: conflictStrat,
 			Author:           req.Author,
 			DryRun:           req.DryRun,
 		}
@@ -293,22 +291,17 @@ func handleGitTools(ctx context.Context, args json.RawMessage) ([]framework.Text
 // handleSession handles the session tool
 // Uses native Go implementation for all actions (prime, handoff, prompts, assignee) - fully native Go.
 func handleSession(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
-	// Try protobuf first, fall back to JSON for backward compatibility
-	req, params, err := ParseSessionRequest(args)
+	req, err := decodeArgsToProto(args, func() *proto.SessionRequest { return &proto.SessionRequest{} })
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse arguments: %w", err)
 	}
 
-	// Convert protobuf request to params map if needed
-	if req != nil {
-		params = SessionRequestToParams(req)
-		framework.ApplyDefaults(params, map[string]interface{}{
-			"action":    "prime",
-			"direction": "both",
-		})
-	}
+	params := SessionRequestToParams(req)
+	framework.ApplyDefaults(params, map[string]interface{}{
+		"action":    "prime",
+		"direction": "both",
+	})
 
-	// Use native Go implementation only (prime, handoff, prompts, assignee)
 	return handleSessionNative(ctx, params)
 }
 
@@ -332,17 +325,15 @@ func handleInferSessionMode(ctx context.Context, args json.RawMessage) ([]framew
 
 // handleOllama handles the ollama tool via DefaultOllama (native only; no bridge fallback).
 func handleOllama(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
-	req, params, err := ParseOllamaRequest(args)
+	req, err := decodeArgsToProto(args, func() *proto.OllamaRequest { return &proto.OllamaRequest{} })
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse arguments: %w", err)
 	}
 
-	if req != nil {
-		params = OllamaRequestToParams(req)
-		framework.ApplyDefaults(params, map[string]interface{}{
-			"model": "llama3.2",
-		})
-	}
+	params := OllamaRequestToParams(req)
+	framework.ApplyDefaults(params, map[string]interface{}{
+		"model": "llama3.2",
+	})
 
 	result, err := DefaultOllama().Invoke(ctx, params)
 	if err != nil {
@@ -379,23 +370,22 @@ func handleMlx(ctx context.Context, args json.RawMessage) ([]framework.TextConte
 // handleContext handles the context tool (unified wrapper).
 // Summarize/batch use DefaultFMProvider() (FM chain, typically Ollama); budget/count are local.
 func handleContext(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
-	// Try protobuf first, fall back to JSON for backward compatibility
+	// Use ParseContextRequest (not strict protojson alone): MCP clients send `items` as a JSON array,
+	// but ContextRequest.items is a string field in proto; framework.ParseRequest preserves compatibility.
 	req, params, err := ParseContextRequest(args)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse arguments: %w", err)
 	}
 
-	// Convert protobuf request to params map if needed (for compatibility with existing functions)
 	if req != nil {
 		params = ContextRequestToParams(req)
-		// Set defaults for protobuf request
 		framework.ApplyDefaults(params, map[string]interface{}{
 			"action":     "summarize",
 			"level":      "brief",
 			"max_tokens": 512,
 		})
 
-		if !req.Combine {
+		if !req.GetCombine() {
 			params["combine"] = true // Default is true
 		}
 	}

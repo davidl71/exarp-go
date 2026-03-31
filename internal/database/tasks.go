@@ -42,6 +42,9 @@ type TaskFilters struct {
 	AssignedTo           *string
 	Host                 *string
 	Agent                *string
+	// NameContains, when non-empty after trim, matches tasks whose name OR content contains
+	// the substring (case-insensitive; SQL LIKE with ESCAPE for %, _, \\).
+	NameContains *string
 }
 
 // taskStatusEnumInt maps the canonical title-case status string to its persisted enum int.

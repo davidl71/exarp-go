@@ -1123,11 +1123,11 @@ func TestTaskWorkflowShowAction(t *testing.T) {
 
 	ctx := context.Background()
 	result, err := handleTaskWorkflowNative(ctx, map[string]interface{}{
-		"action":         "show",
-		"task_id":        "T-show-1",
-		"output_format":  "json",
-		"compact":        true,
-		"include_locks":  false,
+		"action":           "show",
+		"task_id":          "T-show-1",
+		"output_format":    "json",
+		"compact":          true,
+		"include_locks":    false,
 		"include_metadata": true,
 	})
 	if err != nil {

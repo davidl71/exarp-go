@@ -62,6 +62,7 @@ func handleTaskListParsed(server framework.MCPServer, parsed *mcpcli.Args) error
 	status := parsed.GetFlag("status", "")
 	priority := parsed.GetFlag("priority", "")
 	tag := parsed.GetFlag("tag", "")
+	nameQuery := parsed.GetFlag("name", "")
 	order := parsed.GetFlag("order", "")
 	limit, _ := strconv.Atoi(parsed.GetFlag("limit", "0"))
 	fullDescription := parsed.GetBoolFlag("full-description", false) || parsed.GetBoolFlag("full-long-description", false)
@@ -79,6 +80,10 @@ func handleTaskListParsed(server framework.MCPServer, parsed *mcpcli.Args) error
 
 	if tag != "" {
 		toolArgs["filter_tag"] = tag
+	}
+
+	if strings.TrimSpace(nameQuery) != "" {
+		toolArgs["name"] = strings.TrimSpace(nameQuery)
 	}
 
 	if limit > 0 {
@@ -661,6 +666,7 @@ func showTaskUsage() error {
 	_, _ = fmt.Println("  --status <status>       Filter by status (Todo, In Progress, Done, Review)")
 	_, _ = fmt.Println("  --priority <priority>   Filter by priority (low, medium, high)")
 	_, _ = fmt.Println("  --tag <tag>             Filter by tag (list only; single value)")
+	_, _ = fmt.Println("  --name <substr>         Filter by title/content substring (list only; case-insensitive)")
 	_, _ = fmt.Println("  --limit <number>        Limit number of results")
 	_, _ = fmt.Println("  --full-description      Include full long_description in list output (no truncation)")
 	_, _ = fmt.Println("  --quiet                 Suppress verbose output (OpenCode/script-friendly)")
@@ -713,6 +719,7 @@ func showTaskUsage() error {
 	_, _ = fmt.Println("Examples:")
 	_, _ = fmt.Println("  exarp-go task list")
 	_, _ = fmt.Println("  exarp-go task list --status \"In Progress\"")
+	_, _ = fmt.Println("  exarp-go task list --name \"substr\"     # match title/content (case-insensitive)")
 	_, _ = fmt.Println("  exarp-go task status T-123")
 	_, _ = fmt.Println("  exarp-go task update T-1 --new-status \"Done\"")
 	_, _ = fmt.Println("  exarp-go task update T-1 --new-priority high")

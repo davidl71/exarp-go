@@ -118,6 +118,8 @@ For detailed configuration options, see:
 
 **Model-assisted workflow:** For local LLM integration (CodeLlama/MLX/Ollama) for task breakdown, execution, and prompt optimization, see [docs/MODEL_ASSISTED_WORKFLOW.md](docs/MODEL_ASSISTED_WORKFLOW.md). The docs index is in [docs/README.md](docs/README.md).
 
+**Operator cheat sheet:** Task lifecycle, batch `approve` (`new_status`, `dry_run`), `PROJECT_ROOT`, and common footguns — [docs/EXARP_OPERATOR_CHEATSHEET.md](docs/EXARP_OPERATOR_CHEATSHEET.md). Shell/Make shortcuts: [docs/EXARP_CLI_SHORTCUTS.md](docs/EXARP_CLI_SHORTCUTS.md).
+
 **AI/LLM stack:** For the full backend stack (Apple FM, Ollama, MLX, LocalAI) and discovery, see [docs/GO_AI_ECOSYSTEM.md](docs/GO_AI_ECOSYSTEM.md) and [docs/LLM_NATIVE_ABSTRACTION_PATTERNS.md](docs/LLM_NATIVE_ABSTRACTION_PATTERNS.md).
 
 **OpenCode / OAC:** To use exarp-go with [OpenCode](https://opencode.ai/) or [OpenAgentsControl (OAC)](https://github.com/darrenhinde/OpenAgentsControl), add exarp-go as an MCP server in your OpenCode config. See [docs/OPENCODE_INTEGRATION.md](docs/OPENCODE_INTEGRATION.md) for MCP, CLI, and HTTP API; [docs/OPENAGENTSCONTROL_EXARP_GO_COMBO_PLAN.md](docs/OPENAGENTSCONTROL_EXARP_GO_COMBO_PLAN.md) for OAC + exarp-go workflow. Example config: [docs/opencode-exarp-go.example.json](docs/opencode-exarp-go.example.json).

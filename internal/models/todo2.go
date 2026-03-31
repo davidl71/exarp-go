@@ -1,7 +1,10 @@
 // Package models provides shared types, constants, and task ID utilities used across packages.
 package models
 
-import "strings"
+import (
+	"strings"
+	"time"
+)
 
 // IsEpochDate returns true if s is empty or is the Unix epoch (1970-01-01 or numeric 0).
 // Used to avoid displaying or persisting 1/1/1970 when the real date is unknown.
@@ -32,6 +35,22 @@ func (t *Todo2Task) NormalizeEpochDates() {
 
 	if IsEpochDate(t.CompletedAt) {
 		t.CompletedAt = ""
+	}
+}
+
+// FillRFC3339FromUnix sets CreatedAt, LastModified, and CompletedAt from Unix
+// seconds when the string field is empty or epoch-like and the corresponding
+// *_ts value is positive. Used when loading from SQLite so JSON/export matches
+// the integer timeline columns if legacy text fields were never backfilled.
+func (t *Todo2Task) FillRFC3339FromUnix(createdTS, lastModifiedTS, completedAtTS int64) {
+	if IsEpochDate(t.CreatedAt) && createdTS > 0 {
+		t.CreatedAt = time.Unix(createdTS, 0).UTC().Format(time.RFC3339)
+	}
+	if IsEpochDate(t.LastModified) && lastModifiedTS > 0 {
+		t.LastModified = time.Unix(lastModifiedTS, 0).UTC().Format(time.RFC3339)
+	}
+	if IsEpochDate(t.CompletedAt) && completedAtTS > 0 {
+		t.CompletedAt = time.Unix(completedAtTS, 0).UTC().Format(time.RFC3339)
 	}
 }
 

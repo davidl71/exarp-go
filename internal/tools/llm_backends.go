@@ -15,11 +15,11 @@ import (
 // (FM, Ollama, MLX, LocalAI, Gateway) without calling each tool.
 func LLMBackendStatus() map[string]interface{} {
 	return map[string]interface{}{
-		"fm_available":       FMAvailable(),
-		"ollama_reachable":   OllamaReachableForFM(),
-		"mlx_available":      MLAvailable(),
-		"localai_available":  LocalAIAvailable(),
-		"gateway_available":  GatewayAvailable(),
+		"fm_available":      FMAvailable(),
+		"ollama_reachable":  OllamaReachableForFM(),
+		"mlx_available":     MLAvailable(),
+		"localai_available": LocalAIAvailable(),
+		"gateway_available": GatewayAvailable(),
 		"ollama_tool":       "ollama",
 		"mlx_tool":          "mlx",
 		"localai_tool":      "text_generate",

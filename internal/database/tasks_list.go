@@ -14,6 +14,26 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
+// likeContainsPattern builds a LIKE pattern for case-insensitive substring match.
+// %, _, and \ in the user input are escaped for use with "... LIKE ? ESCAPE '\'" (SQLite).
+func likeContainsPattern(substr string) string {
+	var b strings.Builder
+
+	b.WriteByte('%')
+
+	for _, r := range substr {
+		switch r {
+		case '\\', '%', '_':
+			b.WriteByte('\\')
+		}
+		b.WriteRune(r)
+	}
+
+	b.WriteByte('%')
+
+	return b.String()
+}
+
 // ListTasks retrieves tasks with optional filtering
 // Supports context for timeout and cancellation.
 func ListTasks(ctx context.Context, filters *TaskFilters) ([]*Todo2Task, error) {
@@ -124,6 +144,15 @@ func ListTasks(ctx context.Context, filters *TaskFilters) ([]*Todo2Task, error) 
 				conditions = append(conditions, "t.agent = ?")
 				args = append(args, *filters.Agent)
 			}
+
+			if filters.NameContains != nil {
+				if q := strings.TrimSpace(*filters.NameContains); q != "" {
+					pat := strings.ToLower(likeContainsPattern(q))
+					conditions = append(conditions,
+						"(LOWER(COALESCE(t.name,'')) LIKE ? ESCAPE '\\' OR LOWER(COALESCE(t.content,'')) LIKE ? ESCAPE '\\')")
+					args = append(args, pat, pat)
+				}
+			}
 		}
 
 		if len(conditions) > 0 {
@@ -169,6 +198,8 @@ func ListTasks(ctx context.Context, filters *TaskFilters) ([]*Todo2Task, error) 
 			if row.ProjectID.Valid {
 				task.ProjectID = row.ProjectID.String
 			}
+
+			task.FillRFC3339FromUnix(row.CreatedTS, row.LastModifiedTS, row.CompletedAtTS)
 
 			includeMetadata := true
 			if filters != nil && filters.IncludeMetadata != nil {
@@ -444,7 +475,8 @@ func FindNextClaimableTask(ctx context.Context) (*Todo2Task, error) {
 		var row taskRowWithAgg
 		err = db.GetContext(queryCtx, &row, `
 			SELECT t.id, t.content, t.long_description, t.status, t.priority, t.completed, t.created, t.last_modified,
-			       t.completed_at, t.metadata, t.metadata_protobuf, t.metadata_format, t.parent_id, t.project_id,
+			       t.completed_at, t.created_ts, t.last_modified_ts, t.completed_at_ts,
+			       t.metadata, t.metadata_protobuf, t.metadata_format, t.parent_id, t.project_id,
 			       t.assigned_to, t.host, t.agent, t.version`+sqlTaskAggJSON+`
 			FROM tasks AS t
 			WHERE t.status = ?
@@ -491,6 +523,7 @@ func FindNextClaimableTask(ctx context.Context) (*Todo2Task, error) {
 
 		task.Metadata = DeserializeTaskMetadata(string(row.Metadata), row.MetadataProto, row.MetadataFormat)
 
+		task.FillRFC3339FromUnix(row.CreatedTS, row.LastModifiedTS, row.CompletedAtTS)
 		task.NormalizeEpochDates()
 
 		tags, err := parseJSONArrayToStrings(row.TagsJSON)

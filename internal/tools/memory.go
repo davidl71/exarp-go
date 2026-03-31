@@ -42,35 +42,29 @@ func memoryCategories() []string {
 	return config.MemoryCategories()
 }
 
-// handleMemoryNative handles the memory tool with native Go CRUD operations.
-// All success responses use proto.MemoryResponse and are formatted via MemoryResponseToMap;
-// do not return ad-hoc maps so that responses stay aligned to the MemoryResponse proto.
-func handleMemoryNative(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
-	// Try protobuf first, fall back to JSON for backward compatibility
-	req, params, err := ParseMemoryRequest(args)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse arguments: %w", err)
+// applyMemoryRequestDefaults applies legacy defaults when fields are absent on the proto request.
+func applyMemoryRequestDefaults(req *proto.MemoryRequest, params map[string]interface{}) {
+	if req == nil || params == nil {
+		return
 	}
+	if cast.ToString(params["action"]) == "" {
+		params["action"] = "search"
+	}
+	if cast.ToString(params["category"]) == "" {
+		params["category"] = "insight"
+	}
+	if req.GetLimit() == 0 {
+		params["limit"] = 10
+	}
+	if !req.GetIncludeRelated() {
+		params["include_related"] = true // Proto default false means use server default true
+	}
+}
 
-	// Convert protobuf request to params map if needed (for compatibility with existing functions)
-	if req != nil {
-		params = MemoryRequestToParams(req)
-		// Set defaults for protobuf request
-		if req.Action == "" {
-			params["action"] = "search"
-		}
-
-		if req.Category == "" {
-			params["category"] = "insight"
-		}
-
-		if req.Limit == 0 {
-			params["limit"] = 10
-		}
-
-		if !req.IncludeRelated {
-			params["include_related"] = true // Default is true
-		}
+// handleMemoryDispatch routes memory tool actions using a params map (after proto/JSON decode).
+func handleMemoryDispatch(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
+	if params == nil {
+		params = make(map[string]interface{})
 	}
 
 	action := cast.ToString(params["action"])
@@ -84,14 +78,33 @@ func handleMemoryNative(ctx context.Context, args json.RawMessage) ([]framework.
 	case "recall":
 		return handleMemoryRecall(ctx, params)
 	case "search":
-		// Try basic text search in Go first, fall back to Python bridge for semantic search
 		return handleMemorySearch(ctx, params)
 	case "list":
 		return handleMemoryList(ctx, params)
 	default:
-		// Unknown action, fall back to Python bridge
 		return nil, fmt.Errorf("unknown action: %s (use 'save', 'recall', 'search', or 'list')", action)
 	}
+}
+
+// handleMemoryNative handles the memory tool with native Go CRUD operations.
+// All success responses use proto.MemoryResponse and are formatted via MemoryResponseToMap;
+// do not return ad-hoc maps so that responses stay aligned to the MemoryResponse proto.
+func handleMemoryNative(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
+	req, params, err := ParseMemoryRequest(args)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse arguments: %w", err)
+	}
+
+	if req != nil {
+		params = MemoryRequestToParams(req)
+		applyMemoryRequestDefaults(req, params)
+	}
+
+	if params == nil {
+		params = make(map[string]interface{})
+	}
+
+	return handleMemoryDispatch(ctx, params)
 }
 
 // handleMemorySave handles save action.

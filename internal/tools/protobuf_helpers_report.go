@@ -446,6 +446,12 @@ func WorkflowModeRequestToParams(req *proto.WorkflowModeRequest) map[string]inte
 		return make(map[string]interface{})
 	}
 
+	if req.GetActionEnum() != proto.WorkflowModeAction_WORKFLOW_MODE_ACTION_UNSPECIFIED {
+		if s := workflowModeActionEnumToString(req.GetActionEnum()); s != "" {
+			params["action"] = s
+		}
+	}
+
 	return params
 }
 
@@ -486,6 +492,16 @@ func EstimationRequestToParams(req *proto.EstimationRequest) map[string]interfac
 	// Ensure local_ai_backend is in params when set (proto field 11)
 	if b := req.GetLocalAiBackend(); b != "" {
 		params["local_ai_backend"] = b
+	}
+	if req.GetLocalAiBackendEnum() != proto.LocalLLMBackend_LOCAL_LLM_BACKEND_UNSPECIFIED {
+		if s := localLLMBackendEnumToString(req.GetLocalAiBackendEnum()); s != "" {
+			params["local_ai_backend"] = s
+		}
+	}
+	if req.GetSummaryLevelEnum() != proto.LocalLLMSummaryLevel_LOCAL_LLM_SUMMARY_LEVEL_UNSPECIFIED {
+		if s := localLLMSummaryLevelEnumToString(req.GetSummaryLevelEnum()); s != "" {
+			params["summary_level"] = s
+		}
 	}
 	return params
 }
@@ -528,6 +544,16 @@ func SessionRequestToParams(req *proto.SessionRequest) map[string]interface{} {
 	if req.ActionEnum != proto.SessionAction_SESSION_ACTION_UNSPECIFIED {
 		if s := sessionActionEnumToString(req.ActionEnum); s != "" {
 			params["action"] = s
+		}
+	}
+	if req.SubActionEnum != proto.SessionHandoffSubAction_SESSION_HANDOFF_SUB_ACTION_UNSPECIFIED {
+		if s := sessionHandoffSubActionEnumToString(req.SubActionEnum); s != "" {
+			params["sub_action"] = s
+		}
+	}
+	if req.DirectionEnum != proto.SessionSyncDirection_SESSION_SYNC_DIRECTION_UNSPECIFIED {
+		if s := sessionSyncDirectionEnumToString(req.DirectionEnum); s != "" {
+			params["direction"] = s
 		}
 	}
 

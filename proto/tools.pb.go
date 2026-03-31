@@ -80,11 +80,16 @@ func (OutputFormat) EnumDescriptor() ([]byte, []int) {
 type ReportAction int32
 
 const (
-	ReportAction_REPORT_ACTION_UNSPECIFIED ReportAction = 0
-	ReportAction_REPORT_ACTION_OVERVIEW    ReportAction = 1
-	ReportAction_REPORT_ACTION_SCORECARD   ReportAction = 2
-	ReportAction_REPORT_ACTION_BRIEFING    ReportAction = 3
-	ReportAction_REPORT_ACTION_PRD         ReportAction = 4
+	ReportAction_REPORT_ACTION_UNSPECIFIED             ReportAction = 0
+	ReportAction_REPORT_ACTION_OVERVIEW                ReportAction = 1
+	ReportAction_REPORT_ACTION_SCORECARD               ReportAction = 2
+	ReportAction_REPORT_ACTION_BRIEFING                ReportAction = 3
+	ReportAction_REPORT_ACTION_PRD                     ReportAction = 4
+	ReportAction_REPORT_ACTION_EXECUTION_BRIEFING      ReportAction = 5
+	ReportAction_REPORT_ACTION_PLAN                    ReportAction = 6
+	ReportAction_REPORT_ACTION_SCORECARD_PLANS         ReportAction = 7
+	ReportAction_REPORT_ACTION_PARALLEL_EXECUTION_PLAN ReportAction = 8
+	ReportAction_REPORT_ACTION_UPDATE_WAVES_FROM_PLAN  ReportAction = 9
 )
 
 // Enum value maps for ReportAction.
@@ -95,13 +100,23 @@ var (
 		2: "REPORT_ACTION_SCORECARD",
 		3: "REPORT_ACTION_BRIEFING",
 		4: "REPORT_ACTION_PRD",
+		5: "REPORT_ACTION_EXECUTION_BRIEFING",
+		6: "REPORT_ACTION_PLAN",
+		7: "REPORT_ACTION_SCORECARD_PLANS",
+		8: "REPORT_ACTION_PARALLEL_EXECUTION_PLAN",
+		9: "REPORT_ACTION_UPDATE_WAVES_FROM_PLAN",
 	}
 	ReportAction_value = map[string]int32{
-		"REPORT_ACTION_UNSPECIFIED": 0,
-		"REPORT_ACTION_OVERVIEW":    1,
-		"REPORT_ACTION_SCORECARD":   2,
-		"REPORT_ACTION_BRIEFING":    3,
-		"REPORT_ACTION_PRD":         4,
+		"REPORT_ACTION_UNSPECIFIED":             0,
+		"REPORT_ACTION_OVERVIEW":                1,
+		"REPORT_ACTION_SCORECARD":               2,
+		"REPORT_ACTION_BRIEFING":                3,
+		"REPORT_ACTION_PRD":                     4,
+		"REPORT_ACTION_EXECUTION_BRIEFING":      5,
+		"REPORT_ACTION_PLAN":                    6,
+		"REPORT_ACTION_SCORECARD_PLANS":         7,
+		"REPORT_ACTION_PARALLEL_EXECUTION_PLAN": 8,
+		"REPORT_ACTION_UPDATE_WAVES_FROM_PLAN":  9,
 	}
 )
 
@@ -136,17 +151,43 @@ func (ReportAction) EnumDescriptor() ([]byte, []int) {
 type TaskWorkflowAction int32
 
 const (
-	TaskWorkflowAction_TASK_WORKFLOW_ACTION_UNSPECIFIED TaskWorkflowAction = 0
-	TaskWorkflowAction_TASK_WORKFLOW_ACTION_SYNC        TaskWorkflowAction = 1
-	TaskWorkflowAction_TASK_WORKFLOW_ACTION_APPROVE     TaskWorkflowAction = 2
-	TaskWorkflowAction_TASK_WORKFLOW_ACTION_CLARIFY     TaskWorkflowAction = 3
-	TaskWorkflowAction_TASK_WORKFLOW_ACTION_CLARITY     TaskWorkflowAction = 4
-	TaskWorkflowAction_TASK_WORKFLOW_ACTION_CLEANUP     TaskWorkflowAction = 5
-	TaskWorkflowAction_TASK_WORKFLOW_ACTION_CREATE      TaskWorkflowAction = 6
-	TaskWorkflowAction_TASK_WORKFLOW_ACTION_UPDATE      TaskWorkflowAction = 7
-	TaskWorkflowAction_TASK_WORKFLOW_ACTION_DELETE      TaskWorkflowAction = 8
-	TaskWorkflowAction_TASK_WORKFLOW_ACTION_LIST        TaskWorkflowAction = 9
-	TaskWorkflowAction_TASK_WORKFLOW_ACTION_SHOW        TaskWorkflowAction = 10
+	TaskWorkflowAction_TASK_WORKFLOW_ACTION_UNSPECIFIED            TaskWorkflowAction = 0
+	TaskWorkflowAction_TASK_WORKFLOW_ACTION_SYNC                   TaskWorkflowAction = 1
+	TaskWorkflowAction_TASK_WORKFLOW_ACTION_APPROVE                TaskWorkflowAction = 2
+	TaskWorkflowAction_TASK_WORKFLOW_ACTION_CLARIFY                TaskWorkflowAction = 3
+	TaskWorkflowAction_TASK_WORKFLOW_ACTION_CLARITY                TaskWorkflowAction = 4
+	TaskWorkflowAction_TASK_WORKFLOW_ACTION_CLEANUP                TaskWorkflowAction = 5
+	TaskWorkflowAction_TASK_WORKFLOW_ACTION_CREATE                 TaskWorkflowAction = 6
+	TaskWorkflowAction_TASK_WORKFLOW_ACTION_UPDATE                 TaskWorkflowAction = 7
+	TaskWorkflowAction_TASK_WORKFLOW_ACTION_DELETE                 TaskWorkflowAction = 8
+	TaskWorkflowAction_TASK_WORKFLOW_ACTION_LIST                   TaskWorkflowAction = 9
+	TaskWorkflowAction_TASK_WORKFLOW_ACTION_SHOW                   TaskWorkflowAction = 10
+	TaskWorkflowAction_TASK_WORKFLOW_ACTION_FIX_DATES              TaskWorkflowAction = 11
+	TaskWorkflowAction_TASK_WORKFLOW_ACTION_FIX_EMPTY_DESCRIPTIONS TaskWorkflowAction = 12
+	TaskWorkflowAction_TASK_WORKFLOW_ACTION_FIX_EMPTY_NAMES        TaskWorkflowAction = 13
+	TaskWorkflowAction_TASK_WORKFLOW_ACTION_SANITY_CHECK           TaskWorkflowAction = 14
+	TaskWorkflowAction_TASK_WORKFLOW_ACTION_FIX_INVALID_IDS        TaskWorkflowAction = 15
+	TaskWorkflowAction_TASK_WORKFLOW_ACTION_LINK_PLANNING          TaskWorkflowAction = 16
+	TaskWorkflowAction_TASK_WORKFLOW_ACTION_ADD_COMMENT            TaskWorkflowAction = 17
+	TaskWorkflowAction_TASK_WORKFLOW_ACTION_REQUEST_APPROVAL       TaskWorkflowAction = 18
+	TaskWorkflowAction_TASK_WORKFLOW_ACTION_SYNC_APPROVALS         TaskWorkflowAction = 19
+	TaskWorkflowAction_TASK_WORKFLOW_ACTION_APPLY_APPROVAL_RESULT  TaskWorkflowAction = 20
+	TaskWorkflowAction_TASK_WORKFLOW_ACTION_SYNC_FROM_PLAN         TaskWorkflowAction = 21
+	TaskWorkflowAction_TASK_WORKFLOW_ACTION_SYNC_PLAN_STATUS       TaskWorkflowAction = 22
+	TaskWorkflowAction_TASK_WORKFLOW_ACTION_SUMMARIZE              TaskWorkflowAction = 23
+	TaskWorkflowAction_TASK_WORKFLOW_ACTION_RUN_WITH_AI            TaskWorkflowAction = 24
+	TaskWorkflowAction_TASK_WORKFLOW_ACTION_ENRICH_TOOL_HINTS      TaskWorkflowAction = 25
+	TaskWorkflowAction_TASK_WORKFLOW_ACTION_CLAIM                  TaskWorkflowAction = 26
+	TaskWorkflowAction_TASK_WORKFLOW_ACTION_BATCH_CLAIM            TaskWorkflowAction = 27
+	TaskWorkflowAction_TASK_WORKFLOW_ACTION_RELEASE                TaskWorkflowAction = 28
+	TaskWorkflowAction_TASK_WORKFLOW_ACTION_AGENT_STATUS           TaskWorkflowAction = 29
+	TaskWorkflowAction_TASK_WORKFLOW_ACTION_START_RUN              TaskWorkflowAction = 30
+	TaskWorkflowAction_TASK_WORKFLOW_ACTION_END_RUN                TaskWorkflowAction = 31
+	TaskWorkflowAction_TASK_WORKFLOW_ACTION_LIST_RUNS              TaskWorkflowAction = 32
+	TaskWorkflowAction_TASK_WORKFLOW_ACTION_SHOW_RUN               TaskWorkflowAction = 33
+	TaskWorkflowAction_TASK_WORKFLOW_ACTION_VERIFY                 TaskWorkflowAction = 34
+	TaskWorkflowAction_TASK_WORKFLOW_ACTION_ADD_PROGRESS           TaskWorkflowAction = 35
+	TaskWorkflowAction_TASK_WORKFLOW_ACTION_SPLIT                  TaskWorkflowAction = 36
 )
 
 // Enum value maps for TaskWorkflowAction.
@@ -163,19 +204,71 @@ var (
 		8:  "TASK_WORKFLOW_ACTION_DELETE",
 		9:  "TASK_WORKFLOW_ACTION_LIST",
 		10: "TASK_WORKFLOW_ACTION_SHOW",
+		11: "TASK_WORKFLOW_ACTION_FIX_DATES",
+		12: "TASK_WORKFLOW_ACTION_FIX_EMPTY_DESCRIPTIONS",
+		13: "TASK_WORKFLOW_ACTION_FIX_EMPTY_NAMES",
+		14: "TASK_WORKFLOW_ACTION_SANITY_CHECK",
+		15: "TASK_WORKFLOW_ACTION_FIX_INVALID_IDS",
+		16: "TASK_WORKFLOW_ACTION_LINK_PLANNING",
+		17: "TASK_WORKFLOW_ACTION_ADD_COMMENT",
+		18: "TASK_WORKFLOW_ACTION_REQUEST_APPROVAL",
+		19: "TASK_WORKFLOW_ACTION_SYNC_APPROVALS",
+		20: "TASK_WORKFLOW_ACTION_APPLY_APPROVAL_RESULT",
+		21: "TASK_WORKFLOW_ACTION_SYNC_FROM_PLAN",
+		22: "TASK_WORKFLOW_ACTION_SYNC_PLAN_STATUS",
+		23: "TASK_WORKFLOW_ACTION_SUMMARIZE",
+		24: "TASK_WORKFLOW_ACTION_RUN_WITH_AI",
+		25: "TASK_WORKFLOW_ACTION_ENRICH_TOOL_HINTS",
+		26: "TASK_WORKFLOW_ACTION_CLAIM",
+		27: "TASK_WORKFLOW_ACTION_BATCH_CLAIM",
+		28: "TASK_WORKFLOW_ACTION_RELEASE",
+		29: "TASK_WORKFLOW_ACTION_AGENT_STATUS",
+		30: "TASK_WORKFLOW_ACTION_START_RUN",
+		31: "TASK_WORKFLOW_ACTION_END_RUN",
+		32: "TASK_WORKFLOW_ACTION_LIST_RUNS",
+		33: "TASK_WORKFLOW_ACTION_SHOW_RUN",
+		34: "TASK_WORKFLOW_ACTION_VERIFY",
+		35: "TASK_WORKFLOW_ACTION_ADD_PROGRESS",
+		36: "TASK_WORKFLOW_ACTION_SPLIT",
 	}
 	TaskWorkflowAction_value = map[string]int32{
-		"TASK_WORKFLOW_ACTION_UNSPECIFIED": 0,
-		"TASK_WORKFLOW_ACTION_SYNC":        1,
-		"TASK_WORKFLOW_ACTION_APPROVE":     2,
-		"TASK_WORKFLOW_ACTION_CLARIFY":     3,
-		"TASK_WORKFLOW_ACTION_CLARITY":     4,
-		"TASK_WORKFLOW_ACTION_CLEANUP":     5,
-		"TASK_WORKFLOW_ACTION_CREATE":      6,
-		"TASK_WORKFLOW_ACTION_UPDATE":      7,
-		"TASK_WORKFLOW_ACTION_DELETE":      8,
-		"TASK_WORKFLOW_ACTION_LIST":        9,
-		"TASK_WORKFLOW_ACTION_SHOW":        10,
+		"TASK_WORKFLOW_ACTION_UNSPECIFIED":            0,
+		"TASK_WORKFLOW_ACTION_SYNC":                   1,
+		"TASK_WORKFLOW_ACTION_APPROVE":                2,
+		"TASK_WORKFLOW_ACTION_CLARIFY":                3,
+		"TASK_WORKFLOW_ACTION_CLARITY":                4,
+		"TASK_WORKFLOW_ACTION_CLEANUP":                5,
+		"TASK_WORKFLOW_ACTION_CREATE":                 6,
+		"TASK_WORKFLOW_ACTION_UPDATE":                 7,
+		"TASK_WORKFLOW_ACTION_DELETE":                 8,
+		"TASK_WORKFLOW_ACTION_LIST":                   9,
+		"TASK_WORKFLOW_ACTION_SHOW":                   10,
+		"TASK_WORKFLOW_ACTION_FIX_DATES":              11,
+		"TASK_WORKFLOW_ACTION_FIX_EMPTY_DESCRIPTIONS": 12,
+		"TASK_WORKFLOW_ACTION_FIX_EMPTY_NAMES":        13,
+		"TASK_WORKFLOW_ACTION_SANITY_CHECK":           14,
+		"TASK_WORKFLOW_ACTION_FIX_INVALID_IDS":        15,
+		"TASK_WORKFLOW_ACTION_LINK_PLANNING":          16,
+		"TASK_WORKFLOW_ACTION_ADD_COMMENT":            17,
+		"TASK_WORKFLOW_ACTION_REQUEST_APPROVAL":       18,
+		"TASK_WORKFLOW_ACTION_SYNC_APPROVALS":         19,
+		"TASK_WORKFLOW_ACTION_APPLY_APPROVAL_RESULT":  20,
+		"TASK_WORKFLOW_ACTION_SYNC_FROM_PLAN":         21,
+		"TASK_WORKFLOW_ACTION_SYNC_PLAN_STATUS":       22,
+		"TASK_WORKFLOW_ACTION_SUMMARIZE":              23,
+		"TASK_WORKFLOW_ACTION_RUN_WITH_AI":            24,
+		"TASK_WORKFLOW_ACTION_ENRICH_TOOL_HINTS":      25,
+		"TASK_WORKFLOW_ACTION_CLAIM":                  26,
+		"TASK_WORKFLOW_ACTION_BATCH_CLAIM":            27,
+		"TASK_WORKFLOW_ACTION_RELEASE":                28,
+		"TASK_WORKFLOW_ACTION_AGENT_STATUS":           29,
+		"TASK_WORKFLOW_ACTION_START_RUN":              30,
+		"TASK_WORKFLOW_ACTION_END_RUN":                31,
+		"TASK_WORKFLOW_ACTION_LIST_RUNS":              32,
+		"TASK_WORKFLOW_ACTION_SHOW_RUN":               33,
+		"TASK_WORKFLOW_ACTION_VERIFY":                 34,
+		"TASK_WORKFLOW_ACTION_ADD_PROGRESS":           35,
+		"TASK_WORKFLOW_ACTION_SPLIT":                  36,
 	}
 )
 
@@ -210,17 +303,27 @@ func (TaskWorkflowAction) EnumDescriptor() ([]byte, []int) {
 type TaskAnalysisAction int32
 
 const (
-	TaskAnalysisAction_TASK_ANALYSIS_ACTION_UNSPECIFIED     TaskAnalysisAction = 0
-	TaskAnalysisAction_TASK_ANALYSIS_ACTION_DUPLICATES      TaskAnalysisAction = 1
-	TaskAnalysisAction_TASK_ANALYSIS_ACTION_TAGS            TaskAnalysisAction = 2
-	TaskAnalysisAction_TASK_ANALYSIS_ACTION_DISCOVER_TAGS   TaskAnalysisAction = 3
-	TaskAnalysisAction_TASK_ANALYSIS_ACTION_HIERARCHY       TaskAnalysisAction = 4
-	TaskAnalysisAction_TASK_ANALYSIS_ACTION_DEPENDENCIES    TaskAnalysisAction = 5
-	TaskAnalysisAction_TASK_ANALYSIS_ACTION_PARALLELIZATION TaskAnalysisAction = 6
-	TaskAnalysisAction_TASK_ANALYSIS_ACTION_CONFLICTS       TaskAnalysisAction = 7
-	TaskAnalysisAction_TASK_ANALYSIS_ACTION_SUGGEST_DEPS    TaskAnalysisAction = 8
-	TaskAnalysisAction_TASK_ANALYSIS_ACTION_STALE           TaskAnalysisAction = 9
-	TaskAnalysisAction_TASK_ANALYSIS_ACTION_COMPLETABLE     TaskAnalysisAction = 10
+	TaskAnalysisAction_TASK_ANALYSIS_ACTION_UNSPECIFIED          TaskAnalysisAction = 0
+	TaskAnalysisAction_TASK_ANALYSIS_ACTION_DUPLICATES           TaskAnalysisAction = 1
+	TaskAnalysisAction_TASK_ANALYSIS_ACTION_TAGS                 TaskAnalysisAction = 2
+	TaskAnalysisAction_TASK_ANALYSIS_ACTION_DISCOVER_TAGS        TaskAnalysisAction = 3
+	TaskAnalysisAction_TASK_ANALYSIS_ACTION_HIERARCHY            TaskAnalysisAction = 4
+	TaskAnalysisAction_TASK_ANALYSIS_ACTION_DEPENDENCIES         TaskAnalysisAction = 5
+	TaskAnalysisAction_TASK_ANALYSIS_ACTION_PARALLELIZATION      TaskAnalysisAction = 6
+	TaskAnalysisAction_TASK_ANALYSIS_ACTION_CONFLICTS            TaskAnalysisAction = 7
+	TaskAnalysisAction_TASK_ANALYSIS_ACTION_SUGGEST_DEPS         TaskAnalysisAction = 8
+	TaskAnalysisAction_TASK_ANALYSIS_ACTION_STALE                TaskAnalysisAction = 9
+	TaskAnalysisAction_TASK_ANALYSIS_ACTION_COMPLETABLE          TaskAnalysisAction = 10
+	TaskAnalysisAction_TASK_ANALYSIS_ACTION_NEXT_BATCH           TaskAnalysisAction = 11
+	TaskAnalysisAction_TASK_ANALYSIS_ACTION_FIX_MISSING_DEPS     TaskAnalysisAction = 12
+	TaskAnalysisAction_TASK_ANALYSIS_ACTION_VALIDATE             TaskAnalysisAction = 13
+	TaskAnalysisAction_TASK_ANALYSIS_ACTION_EXECUTION_PLAN       TaskAnalysisAction = 14
+	TaskAnalysisAction_TASK_ANALYSIS_ACTION_COMPLEXITY           TaskAnalysisAction = 15
+	TaskAnalysisAction_TASK_ANALYSIS_ACTION_DEPENDENCIES_SUMMARY TaskAnalysisAction = 16
+	TaskAnalysisAction_TASK_ANALYSIS_ACTION_SUGGEST_DEPENDENCIES TaskAnalysisAction = 17
+	TaskAnalysisAction_TASK_ANALYSIS_ACTION_NOISE                TaskAnalysisAction = 18
+	TaskAnalysisAction_TASK_ANALYSIS_ACTION_INFER_OWNERSHIP      TaskAnalysisAction = 19
+	TaskAnalysisAction_TASK_ANALYSIS_ACTION_HOTSPOTS             TaskAnalysisAction = 20
 )
 
 // Enum value maps for TaskAnalysisAction.
@@ -237,19 +340,39 @@ var (
 		8:  "TASK_ANALYSIS_ACTION_SUGGEST_DEPS",
 		9:  "TASK_ANALYSIS_ACTION_STALE",
 		10: "TASK_ANALYSIS_ACTION_COMPLETABLE",
+		11: "TASK_ANALYSIS_ACTION_NEXT_BATCH",
+		12: "TASK_ANALYSIS_ACTION_FIX_MISSING_DEPS",
+		13: "TASK_ANALYSIS_ACTION_VALIDATE",
+		14: "TASK_ANALYSIS_ACTION_EXECUTION_PLAN",
+		15: "TASK_ANALYSIS_ACTION_COMPLEXITY",
+		16: "TASK_ANALYSIS_ACTION_DEPENDENCIES_SUMMARY",
+		17: "TASK_ANALYSIS_ACTION_SUGGEST_DEPENDENCIES",
+		18: "TASK_ANALYSIS_ACTION_NOISE",
+		19: "TASK_ANALYSIS_ACTION_INFER_OWNERSHIP",
+		20: "TASK_ANALYSIS_ACTION_HOTSPOTS",
 	}
 	TaskAnalysisAction_value = map[string]int32{
-		"TASK_ANALYSIS_ACTION_UNSPECIFIED":     0,
-		"TASK_ANALYSIS_ACTION_DUPLICATES":      1,
-		"TASK_ANALYSIS_ACTION_TAGS":            2,
-		"TASK_ANALYSIS_ACTION_DISCOVER_TAGS":   3,
-		"TASK_ANALYSIS_ACTION_HIERARCHY":       4,
-		"TASK_ANALYSIS_ACTION_DEPENDENCIES":    5,
-		"TASK_ANALYSIS_ACTION_PARALLELIZATION": 6,
-		"TASK_ANALYSIS_ACTION_CONFLICTS":       7,
-		"TASK_ANALYSIS_ACTION_SUGGEST_DEPS":    8,
-		"TASK_ANALYSIS_ACTION_STALE":           9,
-		"TASK_ANALYSIS_ACTION_COMPLETABLE":     10,
+		"TASK_ANALYSIS_ACTION_UNSPECIFIED":          0,
+		"TASK_ANALYSIS_ACTION_DUPLICATES":           1,
+		"TASK_ANALYSIS_ACTION_TAGS":                 2,
+		"TASK_ANALYSIS_ACTION_DISCOVER_TAGS":        3,
+		"TASK_ANALYSIS_ACTION_HIERARCHY":            4,
+		"TASK_ANALYSIS_ACTION_DEPENDENCIES":         5,
+		"TASK_ANALYSIS_ACTION_PARALLELIZATION":      6,
+		"TASK_ANALYSIS_ACTION_CONFLICTS":            7,
+		"TASK_ANALYSIS_ACTION_SUGGEST_DEPS":         8,
+		"TASK_ANALYSIS_ACTION_STALE":                9,
+		"TASK_ANALYSIS_ACTION_COMPLETABLE":          10,
+		"TASK_ANALYSIS_ACTION_NEXT_BATCH":           11,
+		"TASK_ANALYSIS_ACTION_FIX_MISSING_DEPS":     12,
+		"TASK_ANALYSIS_ACTION_VALIDATE":             13,
+		"TASK_ANALYSIS_ACTION_EXECUTION_PLAN":       14,
+		"TASK_ANALYSIS_ACTION_COMPLEXITY":           15,
+		"TASK_ANALYSIS_ACTION_DEPENDENCIES_SUMMARY": 16,
+		"TASK_ANALYSIS_ACTION_SUGGEST_DEPENDENCIES": 17,
+		"TASK_ANALYSIS_ACTION_NOISE":                18,
+		"TASK_ANALYSIS_ACTION_INFER_OWNERSHIP":      19,
+		"TASK_ANALYSIS_ACTION_HOTSPOTS":             20,
 	}
 )
 
@@ -681,6 +804,728 @@ func (GitToolsAction) EnumDescriptor() ([]byte, []int) {
 	return file_proto_tools_proto_rawDescGZIP(), []int{10}
 }
 
+// GitMergeConflictStrategy selects merge conflict resolution for git_tools merge.
+type GitMergeConflictStrategy int32
+
+const (
+	GitMergeConflictStrategy_GIT_MERGE_CONFLICT_STRATEGY_UNSPECIFIED GitMergeConflictStrategy = 0
+	GitMergeConflictStrategy_GIT_MERGE_CONFLICT_STRATEGY_NEWER       GitMergeConflictStrategy = 1
+	GitMergeConflictStrategy_GIT_MERGE_CONFLICT_STRATEGY_SOURCE      GitMergeConflictStrategy = 2
+	GitMergeConflictStrategy_GIT_MERGE_CONFLICT_STRATEGY_TARGET      GitMergeConflictStrategy = 3
+)
+
+// Enum value maps for GitMergeConflictStrategy.
+var (
+	GitMergeConflictStrategy_name = map[int32]string{
+		0: "GIT_MERGE_CONFLICT_STRATEGY_UNSPECIFIED",
+		1: "GIT_MERGE_CONFLICT_STRATEGY_NEWER",
+		2: "GIT_MERGE_CONFLICT_STRATEGY_SOURCE",
+		3: "GIT_MERGE_CONFLICT_STRATEGY_TARGET",
+	}
+	GitMergeConflictStrategy_value = map[string]int32{
+		"GIT_MERGE_CONFLICT_STRATEGY_UNSPECIFIED": 0,
+		"GIT_MERGE_CONFLICT_STRATEGY_NEWER":       1,
+		"GIT_MERGE_CONFLICT_STRATEGY_SOURCE":      2,
+		"GIT_MERGE_CONFLICT_STRATEGY_TARGET":      3,
+	}
+)
+
+func (x GitMergeConflictStrategy) Enum() *GitMergeConflictStrategy {
+	p := new(GitMergeConflictStrategy)
+	*p = x
+	return p
+}
+
+func (x GitMergeConflictStrategy) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (GitMergeConflictStrategy) Descriptor() protoreflect.EnumDescriptor {
+	return file_proto_tools_proto_enumTypes[11].Descriptor()
+}
+
+func (GitMergeConflictStrategy) Type() protoreflect.EnumType {
+	return &file_proto_tools_proto_enumTypes[11]
+}
+
+func (x GitMergeConflictStrategy) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use GitMergeConflictStrategy.Descriptor instead.
+func (GitMergeConflictStrategy) EnumDescriptor() ([]byte, []int) {
+	return file_proto_tools_proto_rawDescGZIP(), []int{11}
+}
+
+// SessionHandoffSubAction selects session handoff sub_action (when action_enum is HANDOFF).
+type SessionHandoffSubAction int32
+
+const (
+	SessionHandoffSubAction_SESSION_HANDOFF_SUB_ACTION_UNSPECIFIED SessionHandoffSubAction = 0
+	SessionHandoffSubAction_SESSION_HANDOFF_SUB_ACTION_END         SessionHandoffSubAction = 1
+	SessionHandoffSubAction_SESSION_HANDOFF_SUB_ACTION_RESUME      SessionHandoffSubAction = 2
+	SessionHandoffSubAction_SESSION_HANDOFF_SUB_ACTION_LATEST      SessionHandoffSubAction = 3
+	SessionHandoffSubAction_SESSION_HANDOFF_SUB_ACTION_LIST        SessionHandoffSubAction = 4
+	SessionHandoffSubAction_SESSION_HANDOFF_SUB_ACTION_SYNC        SessionHandoffSubAction = 5
+	SessionHandoffSubAction_SESSION_HANDOFF_SUB_ACTION_EXPORT      SessionHandoffSubAction = 6
+	SessionHandoffSubAction_SESSION_HANDOFF_SUB_ACTION_CLOSE       SessionHandoffSubAction = 7
+	SessionHandoffSubAction_SESSION_HANDOFF_SUB_ACTION_APPROVE     SessionHandoffSubAction = 8
+	SessionHandoffSubAction_SESSION_HANDOFF_SUB_ACTION_DELETE      SessionHandoffSubAction = 9
+)
+
+// Enum value maps for SessionHandoffSubAction.
+var (
+	SessionHandoffSubAction_name = map[int32]string{
+		0: "SESSION_HANDOFF_SUB_ACTION_UNSPECIFIED",
+		1: "SESSION_HANDOFF_SUB_ACTION_END",
+		2: "SESSION_HANDOFF_SUB_ACTION_RESUME",
+		3: "SESSION_HANDOFF_SUB_ACTION_LATEST",
+		4: "SESSION_HANDOFF_SUB_ACTION_LIST",
+		5: "SESSION_HANDOFF_SUB_ACTION_SYNC",
+		6: "SESSION_HANDOFF_SUB_ACTION_EXPORT",
+		7: "SESSION_HANDOFF_SUB_ACTION_CLOSE",
+		8: "SESSION_HANDOFF_SUB_ACTION_APPROVE",
+		9: "SESSION_HANDOFF_SUB_ACTION_DELETE",
+	}
+	SessionHandoffSubAction_value = map[string]int32{
+		"SESSION_HANDOFF_SUB_ACTION_UNSPECIFIED": 0,
+		"SESSION_HANDOFF_SUB_ACTION_END":         1,
+		"SESSION_HANDOFF_SUB_ACTION_RESUME":      2,
+		"SESSION_HANDOFF_SUB_ACTION_LATEST":      3,
+		"SESSION_HANDOFF_SUB_ACTION_LIST":        4,
+		"SESSION_HANDOFF_SUB_ACTION_SYNC":        5,
+		"SESSION_HANDOFF_SUB_ACTION_EXPORT":      6,
+		"SESSION_HANDOFF_SUB_ACTION_CLOSE":       7,
+		"SESSION_HANDOFF_SUB_ACTION_APPROVE":     8,
+		"SESSION_HANDOFF_SUB_ACTION_DELETE":      9,
+	}
+)
+
+func (x SessionHandoffSubAction) Enum() *SessionHandoffSubAction {
+	p := new(SessionHandoffSubAction)
+	*p = x
+	return p
+}
+
+func (x SessionHandoffSubAction) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (SessionHandoffSubAction) Descriptor() protoreflect.EnumDescriptor {
+	return file_proto_tools_proto_enumTypes[12].Descriptor()
+}
+
+func (SessionHandoffSubAction) Type() protoreflect.EnumType {
+	return &file_proto_tools_proto_enumTypes[12]
+}
+
+func (x SessionHandoffSubAction) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use SessionHandoffSubAction.Descriptor instead.
+func (SessionHandoffSubAction) EnumDescriptor() ([]byte, []int) {
+	return file_proto_tools_proto_rawDescGZIP(), []int{12}
+}
+
+// SessionSyncDirection selects handoff sync direction.
+type SessionSyncDirection int32
+
+const (
+	SessionSyncDirection_SESSION_SYNC_DIRECTION_UNSPECIFIED SessionSyncDirection = 0
+	SessionSyncDirection_SESSION_SYNC_DIRECTION_BOTH        SessionSyncDirection = 1
+	SessionSyncDirection_SESSION_SYNC_DIRECTION_PULL        SessionSyncDirection = 2
+	SessionSyncDirection_SESSION_SYNC_DIRECTION_PUSH        SessionSyncDirection = 3
+)
+
+// Enum value maps for SessionSyncDirection.
+var (
+	SessionSyncDirection_name = map[int32]string{
+		0: "SESSION_SYNC_DIRECTION_UNSPECIFIED",
+		1: "SESSION_SYNC_DIRECTION_BOTH",
+		2: "SESSION_SYNC_DIRECTION_PULL",
+		3: "SESSION_SYNC_DIRECTION_PUSH",
+	}
+	SessionSyncDirection_value = map[string]int32{
+		"SESSION_SYNC_DIRECTION_UNSPECIFIED": 0,
+		"SESSION_SYNC_DIRECTION_BOTH":        1,
+		"SESSION_SYNC_DIRECTION_PULL":        2,
+		"SESSION_SYNC_DIRECTION_PUSH":        3,
+	}
+)
+
+func (x SessionSyncDirection) Enum() *SessionSyncDirection {
+	p := new(SessionSyncDirection)
+	*p = x
+	return p
+}
+
+func (x SessionSyncDirection) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (SessionSyncDirection) Descriptor() protoreflect.EnumDescriptor {
+	return file_proto_tools_proto_enumTypes[13].Descriptor()
+}
+
+func (SessionSyncDirection) Type() protoreflect.EnumType {
+	return &file_proto_tools_proto_enumTypes[13]
+}
+
+func (x SessionSyncDirection) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use SessionSyncDirection.Descriptor instead.
+func (SessionSyncDirection) EnumDescriptor() ([]byte, []int) {
+	return file_proto_tools_proto_rawDescGZIP(), []int{13}
+}
+
+// WorkflowModeAction selects workflow_mode action.
+type WorkflowModeAction int32
+
+const (
+	WorkflowModeAction_WORKFLOW_MODE_ACTION_UNSPECIFIED WorkflowModeAction = 0
+	WorkflowModeAction_WORKFLOW_MODE_ACTION_FOCUS       WorkflowModeAction = 1
+	WorkflowModeAction_WORKFLOW_MODE_ACTION_SUGGEST     WorkflowModeAction = 2
+	WorkflowModeAction_WORKFLOW_MODE_ACTION_STATS       WorkflowModeAction = 3
+)
+
+// Enum value maps for WorkflowModeAction.
+var (
+	WorkflowModeAction_name = map[int32]string{
+		0: "WORKFLOW_MODE_ACTION_UNSPECIFIED",
+		1: "WORKFLOW_MODE_ACTION_FOCUS",
+		2: "WORKFLOW_MODE_ACTION_SUGGEST",
+		3: "WORKFLOW_MODE_ACTION_STATS",
+	}
+	WorkflowModeAction_value = map[string]int32{
+		"WORKFLOW_MODE_ACTION_UNSPECIFIED": 0,
+		"WORKFLOW_MODE_ACTION_FOCUS":       1,
+		"WORKFLOW_MODE_ACTION_SUGGEST":     2,
+		"WORKFLOW_MODE_ACTION_STATS":       3,
+	}
+)
+
+func (x WorkflowModeAction) Enum() *WorkflowModeAction {
+	p := new(WorkflowModeAction)
+	*p = x
+	return p
+}
+
+func (x WorkflowModeAction) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (WorkflowModeAction) Descriptor() protoreflect.EnumDescriptor {
+	return file_proto_tools_proto_enumTypes[14].Descriptor()
+}
+
+func (WorkflowModeAction) Type() protoreflect.EnumType {
+	return &file_proto_tools_proto_enumTypes[14]
+}
+
+func (x WorkflowModeAction) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use WorkflowModeAction.Descriptor instead.
+func (WorkflowModeAction) EnumDescriptor() ([]byte, []int) {
+	return file_proto_tools_proto_rawDescGZIP(), []int{14}
+}
+
+// SetupHooksAction selects setup_hooks action.
+type SetupHooksAction int32
+
+const (
+	SetupHooksAction_SETUP_HOOKS_ACTION_UNSPECIFIED SetupHooksAction = 0
+	SetupHooksAction_SETUP_HOOKS_ACTION_GIT         SetupHooksAction = 1
+	SetupHooksAction_SETUP_HOOKS_ACTION_PATTERNS    SetupHooksAction = 2
+)
+
+// Enum value maps for SetupHooksAction.
+var (
+	SetupHooksAction_name = map[int32]string{
+		0: "SETUP_HOOKS_ACTION_UNSPECIFIED",
+		1: "SETUP_HOOKS_ACTION_GIT",
+		2: "SETUP_HOOKS_ACTION_PATTERNS",
+	}
+	SetupHooksAction_value = map[string]int32{
+		"SETUP_HOOKS_ACTION_UNSPECIFIED": 0,
+		"SETUP_HOOKS_ACTION_GIT":         1,
+		"SETUP_HOOKS_ACTION_PATTERNS":    2,
+	}
+)
+
+func (x SetupHooksAction) Enum() *SetupHooksAction {
+	p := new(SetupHooksAction)
+	*p = x
+	return p
+}
+
+func (x SetupHooksAction) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (SetupHooksAction) Descriptor() protoreflect.EnumDescriptor {
+	return file_proto_tools_proto_enumTypes[15].Descriptor()
+}
+
+func (SetupHooksAction) Type() protoreflect.EnumType {
+	return &file_proto_tools_proto_enumTypes[15]
+}
+
+func (x SetupHooksAction) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use SetupHooksAction.Descriptor instead.
+func (SetupHooksAction) EnumDescriptor() ([]byte, []int) {
+	return file_proto_tools_proto_rawDescGZIP(), []int{15}
+}
+
+// MemoryMaintAction selects memory_maint action.
+type MemoryMaintAction int32
+
+const (
+	MemoryMaintAction_MEMORY_MAINT_ACTION_UNSPECIFIED MemoryMaintAction = 0
+	MemoryMaintAction_MEMORY_MAINT_ACTION_HEALTH      MemoryMaintAction = 1
+	MemoryMaintAction_MEMORY_MAINT_ACTION_GC          MemoryMaintAction = 2
+	MemoryMaintAction_MEMORY_MAINT_ACTION_PRUNE       MemoryMaintAction = 3
+	MemoryMaintAction_MEMORY_MAINT_ACTION_CONSOLIDATE MemoryMaintAction = 4
+	MemoryMaintAction_MEMORY_MAINT_ACTION_DREAM       MemoryMaintAction = 5
+)
+
+// Enum value maps for MemoryMaintAction.
+var (
+	MemoryMaintAction_name = map[int32]string{
+		0: "MEMORY_MAINT_ACTION_UNSPECIFIED",
+		1: "MEMORY_MAINT_ACTION_HEALTH",
+		2: "MEMORY_MAINT_ACTION_GC",
+		3: "MEMORY_MAINT_ACTION_PRUNE",
+		4: "MEMORY_MAINT_ACTION_CONSOLIDATE",
+		5: "MEMORY_MAINT_ACTION_DREAM",
+	}
+	MemoryMaintAction_value = map[string]int32{
+		"MEMORY_MAINT_ACTION_UNSPECIFIED": 0,
+		"MEMORY_MAINT_ACTION_HEALTH":      1,
+		"MEMORY_MAINT_ACTION_GC":          2,
+		"MEMORY_MAINT_ACTION_PRUNE":       3,
+		"MEMORY_MAINT_ACTION_CONSOLIDATE": 4,
+		"MEMORY_MAINT_ACTION_DREAM":       5,
+	}
+)
+
+func (x MemoryMaintAction) Enum() *MemoryMaintAction {
+	p := new(MemoryMaintAction)
+	*p = x
+	return p
+}
+
+func (x MemoryMaintAction) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (MemoryMaintAction) Descriptor() protoreflect.EnumDescriptor {
+	return file_proto_tools_proto_enumTypes[16].Descriptor()
+}
+
+func (MemoryMaintAction) Type() protoreflect.EnumType {
+	return &file_proto_tools_proto_enumTypes[16]
+}
+
+func (x MemoryMaintAction) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use MemoryMaintAction.Descriptor instead.
+func (MemoryMaintAction) EnumDescriptor() ([]byte, []int) {
+	return file_proto_tools_proto_rawDescGZIP(), []int{16}
+}
+
+// MemoryMaintMergeStrategy selects consolidate merge strategy.
+type MemoryMaintMergeStrategy int32
+
+const (
+	MemoryMaintMergeStrategy_MEMORY_MAINT_MERGE_STRATEGY_UNSPECIFIED MemoryMaintMergeStrategy = 0
+	MemoryMaintMergeStrategy_MEMORY_MAINT_MERGE_STRATEGY_NEWEST      MemoryMaintMergeStrategy = 1
+	MemoryMaintMergeStrategy_MEMORY_MAINT_MERGE_STRATEGY_OLDEST      MemoryMaintMergeStrategy = 2
+	MemoryMaintMergeStrategy_MEMORY_MAINT_MERGE_STRATEGY_LONGEST     MemoryMaintMergeStrategy = 3
+)
+
+// Enum value maps for MemoryMaintMergeStrategy.
+var (
+	MemoryMaintMergeStrategy_name = map[int32]string{
+		0: "MEMORY_MAINT_MERGE_STRATEGY_UNSPECIFIED",
+		1: "MEMORY_MAINT_MERGE_STRATEGY_NEWEST",
+		2: "MEMORY_MAINT_MERGE_STRATEGY_OLDEST",
+		3: "MEMORY_MAINT_MERGE_STRATEGY_LONGEST",
+	}
+	MemoryMaintMergeStrategy_value = map[string]int32{
+		"MEMORY_MAINT_MERGE_STRATEGY_UNSPECIFIED": 0,
+		"MEMORY_MAINT_MERGE_STRATEGY_NEWEST":      1,
+		"MEMORY_MAINT_MERGE_STRATEGY_OLDEST":      2,
+		"MEMORY_MAINT_MERGE_STRATEGY_LONGEST":     3,
+	}
+)
+
+func (x MemoryMaintMergeStrategy) Enum() *MemoryMaintMergeStrategy {
+	p := new(MemoryMaintMergeStrategy)
+	*p = x
+	return p
+}
+
+func (x MemoryMaintMergeStrategy) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (MemoryMaintMergeStrategy) Descriptor() protoreflect.EnumDescriptor {
+	return file_proto_tools_proto_enumTypes[17].Descriptor()
+}
+
+func (MemoryMaintMergeStrategy) Type() protoreflect.EnumType {
+	return &file_proto_tools_proto_enumTypes[17]
+}
+
+func (x MemoryMaintMergeStrategy) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use MemoryMaintMergeStrategy.Descriptor instead.
+func (MemoryMaintMergeStrategy) EnumDescriptor() ([]byte, []int) {
+	return file_proto_tools_proto_rawDescGZIP(), []int{17}
+}
+
+// MemoryMaintScope selects maintenance scope (e.g. dream/consolidate windows).
+type MemoryMaintScope int32
+
+const (
+	MemoryMaintScope_MEMORY_MAINT_SCOPE_UNSPECIFIED MemoryMaintScope = 0
+	MemoryMaintScope_MEMORY_MAINT_SCOPE_DAY         MemoryMaintScope = 1
+	MemoryMaintScope_MEMORY_MAINT_SCOPE_WEEK        MemoryMaintScope = 2
+	MemoryMaintScope_MEMORY_MAINT_SCOPE_MONTH       MemoryMaintScope = 3
+	MemoryMaintScope_MEMORY_MAINT_SCOPE_ALL         MemoryMaintScope = 4
+)
+
+// Enum value maps for MemoryMaintScope.
+var (
+	MemoryMaintScope_name = map[int32]string{
+		0: "MEMORY_MAINT_SCOPE_UNSPECIFIED",
+		1: "MEMORY_MAINT_SCOPE_DAY",
+		2: "MEMORY_MAINT_SCOPE_WEEK",
+		3: "MEMORY_MAINT_SCOPE_MONTH",
+		4: "MEMORY_MAINT_SCOPE_ALL",
+	}
+	MemoryMaintScope_value = map[string]int32{
+		"MEMORY_MAINT_SCOPE_UNSPECIFIED": 0,
+		"MEMORY_MAINT_SCOPE_DAY":         1,
+		"MEMORY_MAINT_SCOPE_WEEK":        2,
+		"MEMORY_MAINT_SCOPE_MONTH":       3,
+		"MEMORY_MAINT_SCOPE_ALL":         4,
+	}
+)
+
+func (x MemoryMaintScope) Enum() *MemoryMaintScope {
+	p := new(MemoryMaintScope)
+	*p = x
+	return p
+}
+
+func (x MemoryMaintScope) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (MemoryMaintScope) Descriptor() protoreflect.EnumDescriptor {
+	return file_proto_tools_proto_enumTypes[18].Descriptor()
+}
+
+func (MemoryMaintScope) Type() protoreflect.EnumType {
+	return &file_proto_tools_proto_enumTypes[18]
+}
+
+func (x MemoryMaintScope) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use MemoryMaintScope.Descriptor instead.
+func (MemoryMaintScope) EnumDescriptor() ([]byte, []int) {
+	return file_proto_tools_proto_rawDescGZIP(), []int{18}
+}
+
+// MemoryToolAction selects memory tool action.
+type MemoryToolAction int32
+
+const (
+	MemoryToolAction_MEMORY_TOOL_ACTION_UNSPECIFIED MemoryToolAction = 0
+	MemoryToolAction_MEMORY_TOOL_ACTION_SAVE        MemoryToolAction = 1
+	MemoryToolAction_MEMORY_TOOL_ACTION_RECALL      MemoryToolAction = 2
+	MemoryToolAction_MEMORY_TOOL_ACTION_SEARCH      MemoryToolAction = 3
+	MemoryToolAction_MEMORY_TOOL_ACTION_LIST        MemoryToolAction = 4
+)
+
+// Enum value maps for MemoryToolAction.
+var (
+	MemoryToolAction_name = map[int32]string{
+		0: "MEMORY_TOOL_ACTION_UNSPECIFIED",
+		1: "MEMORY_TOOL_ACTION_SAVE",
+		2: "MEMORY_TOOL_ACTION_RECALL",
+		3: "MEMORY_TOOL_ACTION_SEARCH",
+		4: "MEMORY_TOOL_ACTION_LIST",
+	}
+	MemoryToolAction_value = map[string]int32{
+		"MEMORY_TOOL_ACTION_UNSPECIFIED": 0,
+		"MEMORY_TOOL_ACTION_SAVE":        1,
+		"MEMORY_TOOL_ACTION_RECALL":      2,
+		"MEMORY_TOOL_ACTION_SEARCH":      3,
+		"MEMORY_TOOL_ACTION_LIST":        4,
+	}
+)
+
+func (x MemoryToolAction) Enum() *MemoryToolAction {
+	p := new(MemoryToolAction)
+	*p = x
+	return p
+}
+
+func (x MemoryToolAction) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (MemoryToolAction) Descriptor() protoreflect.EnumDescriptor {
+	return file_proto_tools_proto_enumTypes[19].Descriptor()
+}
+
+func (MemoryToolAction) Type() protoreflect.EnumType {
+	return &file_proto_tools_proto_enumTypes[19]
+}
+
+func (x MemoryToolAction) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use MemoryToolAction.Descriptor instead.
+func (MemoryToolAction) EnumDescriptor() ([]byte, []int) {
+	return file_proto_tools_proto_rawDescGZIP(), []int{19}
+}
+
+// ContextToolAction selects context tool action (summarize / budget / batch).
+type ContextToolAction int32
+
+const (
+	ContextToolAction_CONTEXT_TOOL_ACTION_UNSPECIFIED ContextToolAction = 0
+	ContextToolAction_CONTEXT_TOOL_ACTION_SUMMARIZE   ContextToolAction = 1
+	ContextToolAction_CONTEXT_TOOL_ACTION_BUDGET      ContextToolAction = 2
+	ContextToolAction_CONTEXT_TOOL_ACTION_BATCH       ContextToolAction = 3
+)
+
+// Enum value maps for ContextToolAction.
+var (
+	ContextToolAction_name = map[int32]string{
+		0: "CONTEXT_TOOL_ACTION_UNSPECIFIED",
+		1: "CONTEXT_TOOL_ACTION_SUMMARIZE",
+		2: "CONTEXT_TOOL_ACTION_BUDGET",
+		3: "CONTEXT_TOOL_ACTION_BATCH",
+	}
+	ContextToolAction_value = map[string]int32{
+		"CONTEXT_TOOL_ACTION_UNSPECIFIED": 0,
+		"CONTEXT_TOOL_ACTION_SUMMARIZE":   1,
+		"CONTEXT_TOOL_ACTION_BUDGET":      2,
+		"CONTEXT_TOOL_ACTION_BATCH":       3,
+	}
+)
+
+func (x ContextToolAction) Enum() *ContextToolAction {
+	p := new(ContextToolAction)
+	*p = x
+	return p
+}
+
+func (x ContextToolAction) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (ContextToolAction) Descriptor() protoreflect.EnumDescriptor {
+	return file_proto_tools_proto_enumTypes[20].Descriptor()
+}
+
+func (ContextToolAction) Type() protoreflect.EnumType {
+	return &file_proto_tools_proto_enumTypes[20]
+}
+
+func (x ContextToolAction) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use ContextToolAction.Descriptor instead.
+func (ContextToolAction) EnumDescriptor() ([]byte, []int) {
+	return file_proto_tools_proto_rawDescGZIP(), []int{20}
+}
+
+// LocalLLMSummaryLevel selects summary depth (context + ollama summary).
+type LocalLLMSummaryLevel int32
+
+const (
+	LocalLLMSummaryLevel_LOCAL_LLM_SUMMARY_LEVEL_UNSPECIFIED LocalLLMSummaryLevel = 0
+	LocalLLMSummaryLevel_LOCAL_LLM_SUMMARY_LEVEL_BRIEF       LocalLLMSummaryLevel = 1
+	LocalLLMSummaryLevel_LOCAL_LLM_SUMMARY_LEVEL_DETAILED    LocalLLMSummaryLevel = 2
+	LocalLLMSummaryLevel_LOCAL_LLM_SUMMARY_LEVEL_KEY_METRICS LocalLLMSummaryLevel = 3
+	LocalLLMSummaryLevel_LOCAL_LLM_SUMMARY_LEVEL_ACTIONABLE  LocalLLMSummaryLevel = 4
+)
+
+// Enum value maps for LocalLLMSummaryLevel.
+var (
+	LocalLLMSummaryLevel_name = map[int32]string{
+		0: "LOCAL_LLM_SUMMARY_LEVEL_UNSPECIFIED",
+		1: "LOCAL_LLM_SUMMARY_LEVEL_BRIEF",
+		2: "LOCAL_LLM_SUMMARY_LEVEL_DETAILED",
+		3: "LOCAL_LLM_SUMMARY_LEVEL_KEY_METRICS",
+		4: "LOCAL_LLM_SUMMARY_LEVEL_ACTIONABLE",
+	}
+	LocalLLMSummaryLevel_value = map[string]int32{
+		"LOCAL_LLM_SUMMARY_LEVEL_UNSPECIFIED": 0,
+		"LOCAL_LLM_SUMMARY_LEVEL_BRIEF":       1,
+		"LOCAL_LLM_SUMMARY_LEVEL_DETAILED":    2,
+		"LOCAL_LLM_SUMMARY_LEVEL_KEY_METRICS": 3,
+		"LOCAL_LLM_SUMMARY_LEVEL_ACTIONABLE":  4,
+	}
+)
+
+func (x LocalLLMSummaryLevel) Enum() *LocalLLMSummaryLevel {
+	p := new(LocalLLMSummaryLevel)
+	*p = x
+	return p
+}
+
+func (x LocalLLMSummaryLevel) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (LocalLLMSummaryLevel) Descriptor() protoreflect.EnumDescriptor {
+	return file_proto_tools_proto_enumTypes[21].Descriptor()
+}
+
+func (LocalLLMSummaryLevel) Type() protoreflect.EnumType {
+	return &file_proto_tools_proto_enumTypes[21]
+}
+
+func (x LocalLLMSummaryLevel) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use LocalLLMSummaryLevel.Descriptor instead.
+func (LocalLLMSummaryLevel) EnumDescriptor() ([]byte, []int) {
+	return file_proto_tools_proto_rawDescGZIP(), []int{21}
+}
+
+// LocalLLMDocstringStyle selects docstring style hints (ollama docs action).
+type LocalLLMDocstringStyle int32
+
+const (
+	LocalLLMDocstringStyle_LOCAL_LLM_DOCSTRING_STYLE_UNSPECIFIED LocalLLMDocstringStyle = 0
+	LocalLLMDocstringStyle_LOCAL_LLM_DOCSTRING_STYLE_GOOGLE      LocalLLMDocstringStyle = 1
+	LocalLLMDocstringStyle_LOCAL_LLM_DOCSTRING_STYLE_NUMPY       LocalLLMDocstringStyle = 2
+	LocalLLMDocstringStyle_LOCAL_LLM_DOCSTRING_STYLE_SPHINX      LocalLLMDocstringStyle = 3
+)
+
+// Enum value maps for LocalLLMDocstringStyle.
+var (
+	LocalLLMDocstringStyle_name = map[int32]string{
+		0: "LOCAL_LLM_DOCSTRING_STYLE_UNSPECIFIED",
+		1: "LOCAL_LLM_DOCSTRING_STYLE_GOOGLE",
+		2: "LOCAL_LLM_DOCSTRING_STYLE_NUMPY",
+		3: "LOCAL_LLM_DOCSTRING_STYLE_SPHINX",
+	}
+	LocalLLMDocstringStyle_value = map[string]int32{
+		"LOCAL_LLM_DOCSTRING_STYLE_UNSPECIFIED": 0,
+		"LOCAL_LLM_DOCSTRING_STYLE_GOOGLE":      1,
+		"LOCAL_LLM_DOCSTRING_STYLE_NUMPY":       2,
+		"LOCAL_LLM_DOCSTRING_STYLE_SPHINX":      3,
+	}
+)
+
+func (x LocalLLMDocstringStyle) Enum() *LocalLLMDocstringStyle {
+	p := new(LocalLLMDocstringStyle)
+	*p = x
+	return p
+}
+
+func (x LocalLLMDocstringStyle) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (LocalLLMDocstringStyle) Descriptor() protoreflect.EnumDescriptor {
+	return file_proto_tools_proto_enumTypes[22].Descriptor()
+}
+
+func (LocalLLMDocstringStyle) Type() protoreflect.EnumType {
+	return &file_proto_tools_proto_enumTypes[22]
+}
+
+func (x LocalLLMDocstringStyle) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use LocalLLMDocstringStyle.Descriptor instead.
+func (LocalLLMDocstringStyle) EnumDescriptor() ([]byte, []int) {
+	return file_proto_tools_proto_rawDescGZIP(), []int{22}
+}
+
+// LocalLLMBackend selects preferred on-device / local LLM backend (estimation, routers).
+type LocalLLMBackend int32
+
+const (
+	LocalLLMBackend_LOCAL_LLM_BACKEND_UNSPECIFIED LocalLLMBackend = 0
+	LocalLLMBackend_LOCAL_LLM_BACKEND_FM          LocalLLMBackend = 1
+	LocalLLMBackend_LOCAL_LLM_BACKEND_MLX         LocalLLMBackend = 2
+	LocalLLMBackend_LOCAL_LLM_BACKEND_OLLAMA      LocalLLMBackend = 3
+	LocalLLMBackend_LOCAL_LLM_BACKEND_AUTO        LocalLLMBackend = 4
+)
+
+// Enum value maps for LocalLLMBackend.
+var (
+	LocalLLMBackend_name = map[int32]string{
+		0: "LOCAL_LLM_BACKEND_UNSPECIFIED",
+		1: "LOCAL_LLM_BACKEND_FM",
+		2: "LOCAL_LLM_BACKEND_MLX",
+		3: "LOCAL_LLM_BACKEND_OLLAMA",
+		4: "LOCAL_LLM_BACKEND_AUTO",
+	}
+	LocalLLMBackend_value = map[string]int32{
+		"LOCAL_LLM_BACKEND_UNSPECIFIED": 0,
+		"LOCAL_LLM_BACKEND_FM":          1,
+		"LOCAL_LLM_BACKEND_MLX":         2,
+		"LOCAL_LLM_BACKEND_OLLAMA":      3,
+		"LOCAL_LLM_BACKEND_AUTO":        4,
+	}
+)
+
+func (x LocalLLMBackend) Enum() *LocalLLMBackend {
+	p := new(LocalLLMBackend)
+	*p = x
+	return p
+}
+
+func (x LocalLLMBackend) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (LocalLLMBackend) Descriptor() protoreflect.EnumDescriptor {
+	return file_proto_tools_proto_enumTypes[23].Descriptor()
+}
+
+func (LocalLLMBackend) Type() protoreflect.EnumType {
+	return &file_proto_tools_proto_enumTypes[23]
+}
+
+func (x LocalLLMBackend) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use LocalLLMBackend.Descriptor instead.
+func (LocalLLMBackend) EnumDescriptor() ([]byte, []int) {
+	return file_proto_tools_proto_rawDescGZIP(), []int{23}
+}
+
 // Memory represents a stored memory
 type Memory struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
@@ -794,6 +1639,7 @@ type MemoryRequest struct {
 	IncludeRelated bool                   `protobuf:"varint,7,opt,name=include_related,json=includeRelated,proto3" json:"include_related,omitempty"` // default: true
 	Query          string                 `protobuf:"bytes,8,opt,name=query,proto3" json:"query,omitempty"`
 	Limit          int32                  `protobuf:"varint,9,opt,name=limit,proto3" json:"limit,omitempty"` // default: 10
+	ActionEnum     MemoryToolAction       `protobuf:"varint,10,opt,name=action_enum,json=actionEnum,proto3,enum=exarp.tools.MemoryToolAction" json:"action_enum,omitempty"`
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
 }
@@ -889,6 +1735,13 @@ func (x *MemoryRequest) GetLimit() int32 {
 		return x.Limit
 	}
 	return 0
+}
+
+func (x *MemoryRequest) GetActionEnum() MemoryToolAction {
+	if x != nil {
+		return x.ActionEnum
+	}
+	return MemoryToolAction_MEMORY_TOOL_ACTION_UNSPECIFIED
 }
 
 // MemoryResponse represents the response from the memory tool
@@ -1105,6 +1958,8 @@ type ContextRequest struct {
 	Items         string                 `protobuf:"bytes,7,opt,name=items,proto3" json:"items,omitempty"`                                    // JSON array string (budget/batch actions)
 	BudgetTokens  int32                  `protobuf:"varint,8,opt,name=budget_tokens,json=budgetTokens,proto3" json:"budget_tokens,omitempty"` // default: 4000
 	Combine       bool                   `protobuf:"varint,9,opt,name=combine,proto3" json:"combine,omitempty"`                               // default: true (batch action)
+	ActionEnum    ContextToolAction      `protobuf:"varint,10,opt,name=action_enum,json=actionEnum,proto3,enum=exarp.tools.ContextToolAction" json:"action_enum,omitempty"`
+	LevelEnum     LocalLLMSummaryLevel   `protobuf:"varint,11,opt,name=level_enum,json=levelEnum,proto3,enum=exarp.tools.LocalLLMSummaryLevel" json:"level_enum,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1200,6 +2055,20 @@ func (x *ContextRequest) GetCombine() bool {
 		return x.Combine
 	}
 	return false
+}
+
+func (x *ContextRequest) GetActionEnum() ContextToolAction {
+	if x != nil {
+		return x.ActionEnum
+	}
+	return ContextToolAction_CONTEXT_TOOL_ACTION_UNSPECIFIED
+}
+
+func (x *ContextRequest) GetLevelEnum() LocalLLMSummaryLevel {
+	if x != nil {
+		return x.LevelEnum
+	}
+	return LocalLLMSummaryLevel_LOCAL_LLM_SUMMARY_LEVEL_UNSPECIFIED
 }
 
 // ContextResponse represents the response from the context tool
@@ -3163,6 +4032,115 @@ func (x *InferTaskProgressResponse) GetResultJson() string {
 	return ""
 }
 
+// InferTaskProgressRequest is the type-safe request for infer_task_progress.
+type InferTaskProgressRequest struct {
+	state               protoimpl.MessageState `protogen:"open.v1"`
+	ProjectRoot         string                 `protobuf:"bytes,1,opt,name=project_root,json=projectRoot,proto3" json:"project_root,omitempty"`
+	ScanDepth           int32                  `protobuf:"varint,2,opt,name=scan_depth,json=scanDepth,proto3" json:"scan_depth,omitempty"`                                // default: 3, range 1-5
+	ConfidenceThreshold float64                `protobuf:"fixed64,3,opt,name=confidence_threshold,json=confidenceThreshold,proto3" json:"confidence_threshold,omitempty"` // default: 0.7
+	FileExtensions      []string               `protobuf:"bytes,4,rep,name=file_extensions,json=fileExtensions,proto3" json:"file_extensions,omitempty"`
+	StatusFilter        string                 `protobuf:"bytes,5,opt,name=status_filter,json=statusFilter,proto3" json:"status_filter,omitempty"`
+	UseFm               bool                   `protobuf:"varint,6,opt,name=use_fm,json=useFm,proto3" json:"use_fm,omitempty"`                                 // default: true
+	DryRun              bool                   `protobuf:"varint,7,opt,name=dry_run,json=dryRun,proto3" json:"dry_run,omitempty"`                              // default: true
+	AutoUpdateTasks     bool                   `protobuf:"varint,8,opt,name=auto_update_tasks,json=autoUpdateTasks,proto3" json:"auto_update_tasks,omitempty"` // default: false
+	OutputPath          string                 `protobuf:"bytes,9,opt,name=output_path,json=outputPath,proto3" json:"output_path,omitempty"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
+}
+
+func (x *InferTaskProgressRequest) Reset() {
+	*x = InferTaskProgressRequest{}
+	mi := &file_proto_tools_proto_msgTypes[30]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *InferTaskProgressRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*InferTaskProgressRequest) ProtoMessage() {}
+
+func (x *InferTaskProgressRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_tools_proto_msgTypes[30]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use InferTaskProgressRequest.ProtoReflect.Descriptor instead.
+func (*InferTaskProgressRequest) Descriptor() ([]byte, []int) {
+	return file_proto_tools_proto_rawDescGZIP(), []int{30}
+}
+
+func (x *InferTaskProgressRequest) GetProjectRoot() string {
+	if x != nil {
+		return x.ProjectRoot
+	}
+	return ""
+}
+
+func (x *InferTaskProgressRequest) GetScanDepth() int32 {
+	if x != nil {
+		return x.ScanDepth
+	}
+	return 0
+}
+
+func (x *InferTaskProgressRequest) GetConfidenceThreshold() float64 {
+	if x != nil {
+		return x.ConfidenceThreshold
+	}
+	return 0
+}
+
+func (x *InferTaskProgressRequest) GetFileExtensions() []string {
+	if x != nil {
+		return x.FileExtensions
+	}
+	return nil
+}
+
+func (x *InferTaskProgressRequest) GetStatusFilter() string {
+	if x != nil {
+		return x.StatusFilter
+	}
+	return ""
+}
+
+func (x *InferTaskProgressRequest) GetUseFm() bool {
+	if x != nil {
+		return x.UseFm
+	}
+	return false
+}
+
+func (x *InferTaskProgressRequest) GetDryRun() bool {
+	if x != nil {
+		return x.DryRun
+	}
+	return false
+}
+
+func (x *InferTaskProgressRequest) GetAutoUpdateTasks() bool {
+	if x != nil {
+		return x.AutoUpdateTasks
+	}
+	return false
+}
+
+func (x *InferTaskProgressRequest) GetOutputPath() string {
+	if x != nil {
+		return x.OutputPath
+	}
+	return ""
+}
+
 // TaskDiscoveryRequest represents a request for task discovery
 type TaskDiscoveryRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
@@ -3179,7 +4157,7 @@ type TaskDiscoveryRequest struct {
 
 func (x *TaskDiscoveryRequest) Reset() {
 	*x = TaskDiscoveryRequest{}
-	mi := &file_proto_tools_proto_msgTypes[30]
+	mi := &file_proto_tools_proto_msgTypes[31]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3191,7 +4169,7 @@ func (x *TaskDiscoveryRequest) String() string {
 func (*TaskDiscoveryRequest) ProtoMessage() {}
 
 func (x *TaskDiscoveryRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_tools_proto_msgTypes[30]
+	mi := &file_proto_tools_proto_msgTypes[31]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3204,7 +4182,7 @@ func (x *TaskDiscoveryRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TaskDiscoveryRequest.ProtoReflect.Descriptor instead.
 func (*TaskDiscoveryRequest) Descriptor() ([]byte, []int) {
-	return file_proto_tools_proto_rawDescGZIP(), []int{30}
+	return file_proto_tools_proto_rawDescGZIP(), []int{31}
 }
 
 func (x *TaskDiscoveryRequest) GetAction() string {
@@ -3300,7 +4278,7 @@ type TaskWorkflowRequest struct {
 
 func (x *TaskWorkflowRequest) Reset() {
 	*x = TaskWorkflowRequest{}
-	mi := &file_proto_tools_proto_msgTypes[31]
+	mi := &file_proto_tools_proto_msgTypes[32]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3312,7 +4290,7 @@ func (x *TaskWorkflowRequest) String() string {
 func (*TaskWorkflowRequest) ProtoMessage() {}
 
 func (x *TaskWorkflowRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_tools_proto_msgTypes[31]
+	mi := &file_proto_tools_proto_msgTypes[32]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3325,7 +4303,7 @@ func (x *TaskWorkflowRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TaskWorkflowRequest.ProtoReflect.Descriptor instead.
 func (*TaskWorkflowRequest) Descriptor() ([]byte, []int) {
-	return file_proto_tools_proto_rawDescGZIP(), []int{31}
+	return file_proto_tools_proto_rawDescGZIP(), []int{32}
 }
 
 func (x *TaskWorkflowRequest) GetAction() string {
@@ -3548,7 +4526,7 @@ type TaskSummary struct {
 
 func (x *TaskSummary) Reset() {
 	*x = TaskSummary{}
-	mi := &file_proto_tools_proto_msgTypes[32]
+	mi := &file_proto_tools_proto_msgTypes[33]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3560,7 +4538,7 @@ func (x *TaskSummary) String() string {
 func (*TaskSummary) ProtoMessage() {}
 
 func (x *TaskSummary) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_tools_proto_msgTypes[32]
+	mi := &file_proto_tools_proto_msgTypes[33]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3573,7 +4551,7 @@ func (x *TaskSummary) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TaskSummary.ProtoReflect.Descriptor instead.
 func (*TaskSummary) Descriptor() ([]byte, []int) {
-	return file_proto_tools_proto_rawDescGZIP(), []int{32}
+	return file_proto_tools_proto_rawDescGZIP(), []int{33}
 }
 
 func (x *TaskSummary) GetId() string {
@@ -3645,7 +4623,7 @@ type SyncResults struct {
 
 func (x *SyncResults) Reset() {
 	*x = SyncResults{}
-	mi := &file_proto_tools_proto_msgTypes[33]
+	mi := &file_proto_tools_proto_msgTypes[34]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3657,7 +4635,7 @@ func (x *SyncResults) String() string {
 func (*SyncResults) ProtoMessage() {}
 
 func (x *SyncResults) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_tools_proto_msgTypes[33]
+	mi := &file_proto_tools_proto_msgTypes[34]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3670,7 +4648,7 @@ func (x *SyncResults) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SyncResults.ProtoReflect.Descriptor instead.
 func (*SyncResults) Descriptor() ([]byte, []int) {
-	return file_proto_tools_proto_rawDescGZIP(), []int{33}
+	return file_proto_tools_proto_rawDescGZIP(), []int{34}
 }
 
 func (x *SyncResults) GetValidatedTasks() int32 {
@@ -3719,7 +4697,7 @@ type TaskWorkflowResponse struct {
 
 func (x *TaskWorkflowResponse) Reset() {
 	*x = TaskWorkflowResponse{}
-	mi := &file_proto_tools_proto_msgTypes[34]
+	mi := &file_proto_tools_proto_msgTypes[35]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3731,7 +4709,7 @@ func (x *TaskWorkflowResponse) String() string {
 func (*TaskWorkflowResponse) ProtoMessage() {}
 
 func (x *TaskWorkflowResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_tools_proto_msgTypes[34]
+	mi := &file_proto_tools_proto_msgTypes[35]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3744,7 +4722,7 @@ func (x *TaskWorkflowResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TaskWorkflowResponse.ProtoReflect.Descriptor instead.
 func (*TaskWorkflowResponse) Descriptor() ([]byte, []int) {
-	return file_proto_tools_proto_rawDescGZIP(), []int{34}
+	return file_proto_tools_proto_rawDescGZIP(), []int{35}
 }
 
 func (x *TaskWorkflowResponse) GetSuccess() bool {
@@ -3836,7 +4814,7 @@ type AutomationRequest struct {
 
 func (x *AutomationRequest) Reset() {
 	*x = AutomationRequest{}
-	mi := &file_proto_tools_proto_msgTypes[35]
+	mi := &file_proto_tools_proto_msgTypes[36]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3848,7 +4826,7 @@ func (x *AutomationRequest) String() string {
 func (*AutomationRequest) ProtoMessage() {}
 
 func (x *AutomationRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_tools_proto_msgTypes[35]
+	mi := &file_proto_tools_proto_msgTypes[36]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3861,7 +4839,7 @@ func (x *AutomationRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AutomationRequest.ProtoReflect.Descriptor instead.
 func (*AutomationRequest) Descriptor() ([]byte, []int) {
-	return file_proto_tools_proto_rawDescGZIP(), []int{35}
+	return file_proto_tools_proto_rawDescGZIP(), []int{36}
 }
 
 func (x *AutomationRequest) GetAction() string {
@@ -3999,7 +4977,7 @@ type TestingRequest struct {
 
 func (x *TestingRequest) Reset() {
 	*x = TestingRequest{}
-	mi := &file_proto_tools_proto_msgTypes[36]
+	mi := &file_proto_tools_proto_msgTypes[37]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4011,7 +4989,7 @@ func (x *TestingRequest) String() string {
 func (*TestingRequest) ProtoMessage() {}
 
 func (x *TestingRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_tools_proto_msgTypes[36]
+	mi := &file_proto_tools_proto_msgTypes[37]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4024,7 +5002,7 @@ func (x *TestingRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TestingRequest.ProtoReflect.Descriptor instead.
 func (*TestingRequest) Descriptor() ([]byte, []int) {
-	return file_proto_tools_proto_rawDescGZIP(), []int{36}
+	return file_proto_tools_proto_rawDescGZIP(), []int{37}
 }
 
 func (x *TestingRequest) GetAction() string {
@@ -4130,7 +5108,7 @@ type TestingResponse struct {
 
 func (x *TestingResponse) Reset() {
 	*x = TestingResponse{}
-	mi := &file_proto_tools_proto_msgTypes[37]
+	mi := &file_proto_tools_proto_msgTypes[38]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4142,7 +5120,7 @@ func (x *TestingResponse) String() string {
 func (*TestingResponse) ProtoMessage() {}
 
 func (x *TestingResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_tools_proto_msgTypes[37]
+	mi := &file_proto_tools_proto_msgTypes[38]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4155,7 +5133,7 @@ func (x *TestingResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TestingResponse.ProtoReflect.Descriptor instead.
 func (*TestingResponse) Descriptor() ([]byte, []int) {
-	return file_proto_tools_proto_rawDescGZIP(), []int{37}
+	return file_proto_tools_proto_rawDescGZIP(), []int{38}
 }
 
 func (x *TestingResponse) GetSuccess() bool {
@@ -4197,7 +5175,7 @@ type GenerateConfigRequest struct {
 
 func (x *GenerateConfigRequest) Reset() {
 	*x = GenerateConfigRequest{}
-	mi := &file_proto_tools_proto_msgTypes[38]
+	mi := &file_proto_tools_proto_msgTypes[39]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4209,7 +5187,7 @@ func (x *GenerateConfigRequest) String() string {
 func (*GenerateConfigRequest) ProtoMessage() {}
 
 func (x *GenerateConfigRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_tools_proto_msgTypes[38]
+	mi := &file_proto_tools_proto_msgTypes[39]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4222,7 +5200,7 @@ func (x *GenerateConfigRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GenerateConfigRequest.ProtoReflect.Descriptor instead.
 func (*GenerateConfigRequest) Descriptor() ([]byte, []int) {
-	return file_proto_tools_proto_rawDescGZIP(), []int{38}
+	return file_proto_tools_proto_rawDescGZIP(), []int{39}
 }
 
 func (x *GenerateConfigRequest) GetAction() string {
@@ -4309,7 +5287,7 @@ type HealthRequest struct {
 
 func (x *HealthRequest) Reset() {
 	*x = HealthRequest{}
-	mi := &file_proto_tools_proto_msgTypes[39]
+	mi := &file_proto_tools_proto_msgTypes[40]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4321,7 +5299,7 @@ func (x *HealthRequest) String() string {
 func (*HealthRequest) ProtoMessage() {}
 
 func (x *HealthRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_tools_proto_msgTypes[39]
+	mi := &file_proto_tools_proto_msgTypes[40]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4334,7 +5312,7 @@ func (x *HealthRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HealthRequest.ProtoReflect.Descriptor instead.
 func (*HealthRequest) Descriptor() ([]byte, []int) {
-	return file_proto_tools_proto_rawDescGZIP(), []int{39}
+	return file_proto_tools_proto_rawDescGZIP(), []int{40}
 }
 
 func (x *HealthRequest) GetAction() string {
@@ -4431,7 +5409,7 @@ type SecurityRequest struct {
 
 func (x *SecurityRequest) Reset() {
 	*x = SecurityRequest{}
-	mi := &file_proto_tools_proto_msgTypes[40]
+	mi := &file_proto_tools_proto_msgTypes[41]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4443,7 +5421,7 @@ func (x *SecurityRequest) String() string {
 func (*SecurityRequest) ProtoMessage() {}
 
 func (x *SecurityRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_tools_proto_msgTypes[40]
+	mi := &file_proto_tools_proto_msgTypes[41]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4456,7 +5434,7 @@ func (x *SecurityRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SecurityRequest.ProtoReflect.Descriptor instead.
 func (*SecurityRequest) Descriptor() ([]byte, []int) {
-	return file_proto_tools_proto_rawDescGZIP(), []int{40}
+	return file_proto_tools_proto_rawDescGZIP(), []int{41}
 }
 
 func (x *SecurityRequest) GetAction() string {
@@ -4529,7 +5507,7 @@ type LintRequest struct {
 
 func (x *LintRequest) Reset() {
 	*x = LintRequest{}
-	mi := &file_proto_tools_proto_msgTypes[41]
+	mi := &file_proto_tools_proto_msgTypes[42]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4541,7 +5519,7 @@ func (x *LintRequest) String() string {
 func (*LintRequest) ProtoMessage() {}
 
 func (x *LintRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_tools_proto_msgTypes[41]
+	mi := &file_proto_tools_proto_msgTypes[42]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4554,7 +5532,7 @@ func (x *LintRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LintRequest.ProtoReflect.Descriptor instead.
 func (*LintRequest) Descriptor() ([]byte, []int) {
-	return file_proto_tools_proto_rawDescGZIP(), []int{41}
+	return file_proto_tools_proto_rawDescGZIP(), []int{42}
 }
 
 func (x *LintRequest) GetAction() string {
@@ -4636,25 +5614,27 @@ func (x *LintRequest) GetActionEnum() LintAction {
 
 // EstimationRequest represents a request to the estimation tool
 type EstimationRequest struct {
-	state          protoimpl.MessageState `protogen:"open.v1"`
-	Action         string                 `protobuf:"bytes,1,opt,name=action,proto3" json:"action,omitempty"` // "estimate", "analyze", "stats"
-	Name           string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
-	Details        string                 `protobuf:"bytes,3,opt,name=details,proto3" json:"details,omitempty"` // default: ""
-	Tags           string                 `protobuf:"bytes,4,opt,name=tags,proto3" json:"tags,omitempty"`
-	TagList        []string               `protobuf:"bytes,5,rep,name=tag_list,json=tagList,proto3" json:"tag_list,omitempty"`
-	Priority       string                 `protobuf:"bytes,6,opt,name=priority,proto3" json:"priority,omitempty"`                                      // default: "medium"
-	UseHistorical  bool                   `protobuf:"varint,7,opt,name=use_historical,json=useHistorical,proto3" json:"use_historical,omitempty"`      // default: true
-	Detailed       bool                   `protobuf:"varint,8,opt,name=detailed,proto3" json:"detailed,omitempty"`                                     // default: false
-	UseMlx         bool                   `protobuf:"varint,9,opt,name=use_mlx,json=useMlx,proto3" json:"use_mlx,omitempty"`                           // default: true
-	MlxWeight      float64                `protobuf:"fixed64,10,opt,name=mlx_weight,json=mlxWeight,proto3" json:"mlx_weight,omitempty"`                // default: 0.3
-	LocalAiBackend string                 `protobuf:"bytes,11,opt,name=local_ai_backend,json=localAiBackend,proto3" json:"local_ai_backend,omitempty"` // optional: fm|mlx|ollama — preferred local LLM for estimate
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	state              protoimpl.MessageState `protogen:"open.v1"`
+	Action             string                 `protobuf:"bytes,1,opt,name=action,proto3" json:"action,omitempty"` // "estimate", "analyze", "stats"
+	Name               string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	Details            string                 `protobuf:"bytes,3,opt,name=details,proto3" json:"details,omitempty"` // default: ""
+	Tags               string                 `protobuf:"bytes,4,opt,name=tags,proto3" json:"tags,omitempty"`
+	TagList            []string               `protobuf:"bytes,5,rep,name=tag_list,json=tagList,proto3" json:"tag_list,omitempty"`
+	Priority           string                 `protobuf:"bytes,6,opt,name=priority,proto3" json:"priority,omitempty"`                                      // default: "medium"
+	UseHistorical      bool                   `protobuf:"varint,7,opt,name=use_historical,json=useHistorical,proto3" json:"use_historical,omitempty"`      // default: true
+	Detailed           bool                   `protobuf:"varint,8,opt,name=detailed,proto3" json:"detailed,omitempty"`                                     // default: false
+	UseMlx             bool                   `protobuf:"varint,9,opt,name=use_mlx,json=useMlx,proto3" json:"use_mlx,omitempty"`                           // default: true
+	MlxWeight          float64                `protobuf:"fixed64,10,opt,name=mlx_weight,json=mlxWeight,proto3" json:"mlx_weight,omitempty"`                // default: 0.3
+	LocalAiBackend     string                 `protobuf:"bytes,11,opt,name=local_ai_backend,json=localAiBackend,proto3" json:"local_ai_backend,omitempty"` // optional: fm|mlx|ollama — preferred local LLM for estimate
+	LocalAiBackendEnum LocalLLMBackend        `protobuf:"varint,12,opt,name=local_ai_backend_enum,json=localAiBackendEnum,proto3,enum=exarp.tools.LocalLLMBackend" json:"local_ai_backend_enum,omitempty"`
+	SummaryLevelEnum   LocalLLMSummaryLevel   `protobuf:"varint,13,opt,name=summary_level_enum,json=summaryLevelEnum,proto3,enum=exarp.tools.LocalLLMSummaryLevel" json:"summary_level_enum,omitempty"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
 }
 
 func (x *EstimationRequest) Reset() {
 	*x = EstimationRequest{}
-	mi := &file_proto_tools_proto_msgTypes[42]
+	mi := &file_proto_tools_proto_msgTypes[43]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4666,7 +5646,7 @@ func (x *EstimationRequest) String() string {
 func (*EstimationRequest) ProtoMessage() {}
 
 func (x *EstimationRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_tools_proto_msgTypes[42]
+	mi := &file_proto_tools_proto_msgTypes[43]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4679,7 +5659,7 @@ func (x *EstimationRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EstimationRequest.ProtoReflect.Descriptor instead.
 func (*EstimationRequest) Descriptor() ([]byte, []int) {
-	return file_proto_tools_proto_rawDescGZIP(), []int{42}
+	return file_proto_tools_proto_rawDescGZIP(), []int{43}
 }
 
 func (x *EstimationRequest) GetAction() string {
@@ -4759,6 +5739,20 @@ func (x *EstimationRequest) GetLocalAiBackend() string {
 	return ""
 }
 
+func (x *EstimationRequest) GetLocalAiBackendEnum() LocalLLMBackend {
+	if x != nil {
+		return x.LocalAiBackendEnum
+	}
+	return LocalLLMBackend_LOCAL_LLM_BACKEND_UNSPECIFIED
+}
+
+func (x *EstimationRequest) GetSummaryLevelEnum() LocalLLMSummaryLevel {
+	if x != nil {
+		return x.SummaryLevelEnum
+	}
+	return LocalLLMSummaryLevel_LOCAL_LLM_SUMMARY_LEVEL_UNSPECIFIED
+}
+
 // GitToolsRequest represents a request to the git tools
 type GitToolsRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
@@ -4772,23 +5766,24 @@ type GitToolsRequest struct {
 	Time1   string `protobuf:"bytes,7,opt,name=time1,proto3" json:"time1,omitempty"`
 	Time2   string `protobuf:"bytes,8,opt,name=time2,proto3" json:"time2,omitempty"`
 	// Deprecated: prefer format_enum. format will be removed after the compatibility window.
-	Format           string         `protobuf:"bytes,9,opt,name=format,proto3" json:"format,omitempty"` // default: "text"
-	OutputPath       string         `protobuf:"bytes,10,opt,name=output_path,json=outputPath,proto3" json:"output_path,omitempty"`
-	MaxCommits       int32          `protobuf:"varint,11,opt,name=max_commits,json=maxCommits,proto3" json:"max_commits,omitempty"` // default: 50
-	SourceBranch     string         `protobuf:"bytes,12,opt,name=source_branch,json=sourceBranch,proto3" json:"source_branch,omitempty"`
-	TargetBranch     string         `protobuf:"bytes,13,opt,name=target_branch,json=targetBranch,proto3" json:"target_branch,omitempty"`
-	ConflictStrategy string         `protobuf:"bytes,14,opt,name=conflict_strategy,json=conflictStrategy,proto3" json:"conflict_strategy,omitempty"` // default: "newer"
-	Author           string         `protobuf:"bytes,15,opt,name=author,proto3" json:"author,omitempty"`                                             // default: "system"
-	DryRun           bool           `protobuf:"varint,16,opt,name=dry_run,json=dryRun,proto3" json:"dry_run,omitempty"`                              // default: false
-	ActionEnum       GitToolsAction `protobuf:"varint,17,opt,name=action_enum,json=actionEnum,proto3,enum=exarp.tools.GitToolsAction" json:"action_enum,omitempty"`
-	FormatEnum       OutputFormat   `protobuf:"varint,18,opt,name=format_enum,json=formatEnum,proto3,enum=exarp.tools.OutputFormat" json:"format_enum,omitempty"`
-	unknownFields    protoimpl.UnknownFields
-	sizeCache        protoimpl.SizeCache
+	Format               string                   `protobuf:"bytes,9,opt,name=format,proto3" json:"format,omitempty"` // default: "text"
+	OutputPath           string                   `protobuf:"bytes,10,opt,name=output_path,json=outputPath,proto3" json:"output_path,omitempty"`
+	MaxCommits           int32                    `protobuf:"varint,11,opt,name=max_commits,json=maxCommits,proto3" json:"max_commits,omitempty"` // default: 50
+	SourceBranch         string                   `protobuf:"bytes,12,opt,name=source_branch,json=sourceBranch,proto3" json:"source_branch,omitempty"`
+	TargetBranch         string                   `protobuf:"bytes,13,opt,name=target_branch,json=targetBranch,proto3" json:"target_branch,omitempty"`
+	ConflictStrategy     string                   `protobuf:"bytes,14,opt,name=conflict_strategy,json=conflictStrategy,proto3" json:"conflict_strategy,omitempty"` // default: "newer"
+	Author               string                   `protobuf:"bytes,15,opt,name=author,proto3" json:"author,omitempty"`                                             // default: "system"
+	DryRun               bool                     `protobuf:"varint,16,opt,name=dry_run,json=dryRun,proto3" json:"dry_run,omitempty"`                              // default: false
+	ActionEnum           GitToolsAction           `protobuf:"varint,17,opt,name=action_enum,json=actionEnum,proto3,enum=exarp.tools.GitToolsAction" json:"action_enum,omitempty"`
+	FormatEnum           OutputFormat             `protobuf:"varint,18,opt,name=format_enum,json=formatEnum,proto3,enum=exarp.tools.OutputFormat" json:"format_enum,omitempty"`
+	ConflictStrategyEnum GitMergeConflictStrategy `protobuf:"varint,19,opt,name=conflict_strategy_enum,json=conflictStrategyEnum,proto3,enum=exarp.tools.GitMergeConflictStrategy" json:"conflict_strategy_enum,omitempty"`
+	unknownFields        protoimpl.UnknownFields
+	sizeCache            protoimpl.SizeCache
 }
 
 func (x *GitToolsRequest) Reset() {
 	*x = GitToolsRequest{}
-	mi := &file_proto_tools_proto_msgTypes[43]
+	mi := &file_proto_tools_proto_msgTypes[44]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4800,7 +5795,7 @@ func (x *GitToolsRequest) String() string {
 func (*GitToolsRequest) ProtoMessage() {}
 
 func (x *GitToolsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_tools_proto_msgTypes[43]
+	mi := &file_proto_tools_proto_msgTypes[44]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4813,7 +5808,7 @@ func (x *GitToolsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GitToolsRequest.ProtoReflect.Descriptor instead.
 func (*GitToolsRequest) Descriptor() ([]byte, []int) {
-	return file_proto_tools_proto_rawDescGZIP(), []int{43}
+	return file_proto_tools_proto_rawDescGZIP(), []int{44}
 }
 
 func (x *GitToolsRequest) GetAction() string {
@@ -4942,6 +5937,13 @@ func (x *GitToolsRequest) GetFormatEnum() OutputFormat {
 	return OutputFormat_OUTPUT_FORMAT_UNSPECIFIED
 }
 
+func (x *GitToolsRequest) GetConflictStrategyEnum() GitMergeConflictStrategy {
+	if x != nil {
+		return x.ConflictStrategyEnum
+	}
+	return GitMergeConflictStrategy_GIT_MERGE_CONFLICT_STRATEGY_UNSPECIFIED
+}
+
 // GitToolsResponse holds git_tools result (commits, branches, tasks, diff, graph, merge, set_branch).
 type GitToolsResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
@@ -4954,7 +5956,7 @@ type GitToolsResponse struct {
 
 func (x *GitToolsResponse) Reset() {
 	*x = GitToolsResponse{}
-	mi := &file_proto_tools_proto_msgTypes[44]
+	mi := &file_proto_tools_proto_msgTypes[45]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4966,7 +5968,7 @@ func (x *GitToolsResponse) String() string {
 func (*GitToolsResponse) ProtoMessage() {}
 
 func (x *GitToolsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_tools_proto_msgTypes[44]
+	mi := &file_proto_tools_proto_msgTypes[45]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4979,7 +5981,7 @@ func (x *GitToolsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GitToolsResponse.ProtoReflect.Descriptor instead.
 func (*GitToolsResponse) Descriptor() ([]byte, []int) {
-	return file_proto_tools_proto_rawDescGZIP(), []int{44}
+	return file_proto_tools_proto_rawDescGZIP(), []int{45}
 }
 
 func (x *GitToolsResponse) GetSuccess() bool {
@@ -5007,43 +6009,45 @@ func (x *GitToolsResponse) GetResultJson() string {
 type SessionRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Deprecated: prefer action_enum. action will be removed after the client compatibility window.
-	Action             string        `protobuf:"bytes,1,opt,name=action,proto3" json:"action,omitempty"`                                  // "prime", "handoff", "prompts", "assignee"
-	IncludeHints       bool          `protobuf:"varint,2,opt,name=include_hints,json=includeHints,proto3" json:"include_hints,omitempty"` // default: true
-	IncludeTasks       bool          `protobuf:"varint,3,opt,name=include_tasks,json=includeTasks,proto3" json:"include_tasks,omitempty"` // default: true
-	OverrideMode       string        `protobuf:"bytes,4,opt,name=override_mode,json=overrideMode,proto3" json:"override_mode,omitempty"`
-	TaskId             string        `protobuf:"bytes,5,opt,name=task_id,json=taskId,proto3" json:"task_id,omitempty"`
-	Summary            string        `protobuf:"bytes,6,opt,name=summary,proto3" json:"summary,omitempty"`
-	Blockers           string        `protobuf:"bytes,7,opt,name=blockers,proto3" json:"blockers,omitempty"`
-	NextSteps          string        `protobuf:"bytes,8,opt,name=next_steps,json=nextSteps,proto3" json:"next_steps,omitempty"`
-	UnassignMyTasks    bool          `protobuf:"varint,9,opt,name=unassign_my_tasks,json=unassignMyTasks,proto3" json:"unassign_my_tasks,omitempty"`           // default: true
-	IncludeGitStatus   bool          `protobuf:"varint,10,opt,name=include_git_status,json=includeGitStatus,proto3" json:"include_git_status,omitempty"`       // default: true
-	Limit              int32         `protobuf:"varint,11,opt,name=limit,proto3" json:"limit,omitempty"`                                                       // default: 5
-	DryRun             bool          `protobuf:"varint,12,opt,name=dry_run,json=dryRun,proto3" json:"dry_run,omitempty"`                                       // default: false
-	Direction          string        `protobuf:"bytes,13,opt,name=direction,proto3" json:"direction,omitempty"`                                                // default: "both"
-	PreferAgenticTools bool          `protobuf:"varint,14,opt,name=prefer_agentic_tools,json=preferAgenticTools,proto3" json:"prefer_agentic_tools,omitempty"` // default: true
-	AutoCommit         bool          `protobuf:"varint,15,opt,name=auto_commit,json=autoCommit,proto3" json:"auto_commit,omitempty"`                           // default: true
-	Mode               string        `protobuf:"bytes,16,opt,name=mode,proto3" json:"mode,omitempty"`
-	Category           string        `protobuf:"bytes,17,opt,name=category,proto3" json:"category,omitempty"`
-	Keywords           string        `protobuf:"bytes,18,opt,name=keywords,proto3" json:"keywords,omitempty"`
-	AssigneeName       string        `protobuf:"bytes,19,opt,name=assignee_name,json=assigneeName,proto3" json:"assignee_name,omitempty"`
-	AssigneeType       string        `protobuf:"bytes,20,opt,name=assignee_type,json=assigneeType,proto3" json:"assignee_type,omitempty"` // default: "agent"
-	Hostname           string        `protobuf:"bytes,21,opt,name=hostname,proto3" json:"hostname,omitempty"`
-	StatusFilter       string        `protobuf:"bytes,22,opt,name=status_filter,json=statusFilter,proto3" json:"status_filter,omitempty"`
-	SubAction          string        `protobuf:"bytes,23,opt,name=sub_action,json=subAction,proto3" json:"sub_action,omitempty"`
-	OutputPath         string        `protobuf:"bytes,24,opt,name=output_path,json=outputPath,proto3" json:"output_path,omitempty"`
-	ExportLatest       bool          `protobuf:"varint,25,opt,name=export_latest,json=exportLatest,proto3" json:"export_latest,omitempty"` // default: true
-	PriorityFilter     string        `protobuf:"bytes,26,opt,name=priority_filter,json=priorityFilter,proto3" json:"priority_filter,omitempty"`
-	IncludeUnassigned  bool          `protobuf:"varint,27,opt,name=include_unassigned,json=includeUnassigned,proto3" json:"include_unassigned,omitempty"`  // default: false
-	MaxTasksPerAgent   int32         `protobuf:"varint,28,opt,name=max_tasks_per_agent,json=maxTasksPerAgent,proto3" json:"max_tasks_per_agent,omitempty"` // default: 5
-	AskPreferences     bool          `protobuf:"varint,29,opt,name=ask_preferences,json=askPreferences,proto3" json:"ask_preferences,omitempty"`           // When true and client supports elicitation, prompt user for include_tasks/include_hints at prime time
-	ActionEnum         SessionAction `protobuf:"varint,30,opt,name=action_enum,json=actionEnum,proto3,enum=exarp.tools.SessionAction" json:"action_enum,omitempty"`
+	Action             string                  `protobuf:"bytes,1,opt,name=action,proto3" json:"action,omitempty"`                                  // "prime", "handoff", "prompts", "assignee"
+	IncludeHints       bool                    `protobuf:"varint,2,opt,name=include_hints,json=includeHints,proto3" json:"include_hints,omitempty"` // default: true
+	IncludeTasks       bool                    `protobuf:"varint,3,opt,name=include_tasks,json=includeTasks,proto3" json:"include_tasks,omitempty"` // default: true
+	OverrideMode       string                  `protobuf:"bytes,4,opt,name=override_mode,json=overrideMode,proto3" json:"override_mode,omitempty"`
+	TaskId             string                  `protobuf:"bytes,5,opt,name=task_id,json=taskId,proto3" json:"task_id,omitempty"`
+	Summary            string                  `protobuf:"bytes,6,opt,name=summary,proto3" json:"summary,omitempty"`
+	Blockers           string                  `protobuf:"bytes,7,opt,name=blockers,proto3" json:"blockers,omitempty"`
+	NextSteps          string                  `protobuf:"bytes,8,opt,name=next_steps,json=nextSteps,proto3" json:"next_steps,omitempty"`
+	UnassignMyTasks    bool                    `protobuf:"varint,9,opt,name=unassign_my_tasks,json=unassignMyTasks,proto3" json:"unassign_my_tasks,omitempty"`           // default: true
+	IncludeGitStatus   bool                    `protobuf:"varint,10,opt,name=include_git_status,json=includeGitStatus,proto3" json:"include_git_status,omitempty"`       // default: true
+	Limit              int32                   `protobuf:"varint,11,opt,name=limit,proto3" json:"limit,omitempty"`                                                       // default: 5
+	DryRun             bool                    `protobuf:"varint,12,opt,name=dry_run,json=dryRun,proto3" json:"dry_run,omitempty"`                                       // default: false
+	Direction          string                  `protobuf:"bytes,13,opt,name=direction,proto3" json:"direction,omitempty"`                                                // default: "both"
+	PreferAgenticTools bool                    `protobuf:"varint,14,opt,name=prefer_agentic_tools,json=preferAgenticTools,proto3" json:"prefer_agentic_tools,omitempty"` // default: true
+	AutoCommit         bool                    `protobuf:"varint,15,opt,name=auto_commit,json=autoCommit,proto3" json:"auto_commit,omitempty"`                           // default: true
+	Mode               string                  `protobuf:"bytes,16,opt,name=mode,proto3" json:"mode,omitempty"`
+	Category           string                  `protobuf:"bytes,17,opt,name=category,proto3" json:"category,omitempty"`
+	Keywords           string                  `protobuf:"bytes,18,opt,name=keywords,proto3" json:"keywords,omitempty"`
+	AssigneeName       string                  `protobuf:"bytes,19,opt,name=assignee_name,json=assigneeName,proto3" json:"assignee_name,omitempty"`
+	AssigneeType       string                  `protobuf:"bytes,20,opt,name=assignee_type,json=assigneeType,proto3" json:"assignee_type,omitempty"` // default: "agent"
+	Hostname           string                  `protobuf:"bytes,21,opt,name=hostname,proto3" json:"hostname,omitempty"`
+	StatusFilter       string                  `protobuf:"bytes,22,opt,name=status_filter,json=statusFilter,proto3" json:"status_filter,omitempty"`
+	SubAction          string                  `protobuf:"bytes,23,opt,name=sub_action,json=subAction,proto3" json:"sub_action,omitempty"`
+	OutputPath         string                  `protobuf:"bytes,24,opt,name=output_path,json=outputPath,proto3" json:"output_path,omitempty"`
+	ExportLatest       bool                    `protobuf:"varint,25,opt,name=export_latest,json=exportLatest,proto3" json:"export_latest,omitempty"` // default: true
+	PriorityFilter     string                  `protobuf:"bytes,26,opt,name=priority_filter,json=priorityFilter,proto3" json:"priority_filter,omitempty"`
+	IncludeUnassigned  bool                    `protobuf:"varint,27,opt,name=include_unassigned,json=includeUnassigned,proto3" json:"include_unassigned,omitempty"`  // default: false
+	MaxTasksPerAgent   int32                   `protobuf:"varint,28,opt,name=max_tasks_per_agent,json=maxTasksPerAgent,proto3" json:"max_tasks_per_agent,omitempty"` // default: 5
+	AskPreferences     bool                    `protobuf:"varint,29,opt,name=ask_preferences,json=askPreferences,proto3" json:"ask_preferences,omitempty"`           // When true and client supports elicitation, prompt user for include_tasks/include_hints at prime time
+	ActionEnum         SessionAction           `protobuf:"varint,30,opt,name=action_enum,json=actionEnum,proto3,enum=exarp.tools.SessionAction" json:"action_enum,omitempty"`
+	SubActionEnum      SessionHandoffSubAction `protobuf:"varint,31,opt,name=sub_action_enum,json=subActionEnum,proto3,enum=exarp.tools.SessionHandoffSubAction" json:"sub_action_enum,omitempty"`
+	DirectionEnum      SessionSyncDirection    `protobuf:"varint,32,opt,name=direction_enum,json=directionEnum,proto3,enum=exarp.tools.SessionSyncDirection" json:"direction_enum,omitempty"`
 	unknownFields      protoimpl.UnknownFields
 	sizeCache          protoimpl.SizeCache
 }
 
 func (x *SessionRequest) Reset() {
 	*x = SessionRequest{}
-	mi := &file_proto_tools_proto_msgTypes[45]
+	mi := &file_proto_tools_proto_msgTypes[46]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5055,7 +6059,7 @@ func (x *SessionRequest) String() string {
 func (*SessionRequest) ProtoMessage() {}
 
 func (x *SessionRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_tools_proto_msgTypes[45]
+	mi := &file_proto_tools_proto_msgTypes[46]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5068,7 +6072,7 @@ func (x *SessionRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SessionRequest.ProtoReflect.Descriptor instead.
 func (*SessionRequest) Descriptor() ([]byte, []int) {
-	return file_proto_tools_proto_rawDescGZIP(), []int{45}
+	return file_proto_tools_proto_rawDescGZIP(), []int{46}
 }
 
 func (x *SessionRequest) GetAction() string {
@@ -5281,6 +6285,20 @@ func (x *SessionRequest) GetActionEnum() SessionAction {
 	return SessionAction_SESSION_ACTION_UNSPECIFIED
 }
 
+func (x *SessionRequest) GetSubActionEnum() SessionHandoffSubAction {
+	if x != nil {
+		return x.SubActionEnum
+	}
+	return SessionHandoffSubAction_SESSION_HANDOFF_SUB_ACTION_UNSPECIFIED
+}
+
+func (x *SessionRequest) GetDirectionEnum() SessionSyncDirection {
+	if x != nil {
+		return x.DirectionEnum
+	}
+	return SessionSyncDirection_SESSION_SYNC_DIRECTION_UNSPECIFIED
+}
+
 // SessionDetection holds prime detection (agent, mode, etc.)
 type SessionDetection struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
@@ -5295,7 +6313,7 @@ type SessionDetection struct {
 
 func (x *SessionDetection) Reset() {
 	*x = SessionDetection{}
-	mi := &file_proto_tools_proto_msgTypes[46]
+	mi := &file_proto_tools_proto_msgTypes[47]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5307,7 +6325,7 @@ func (x *SessionDetection) String() string {
 func (*SessionDetection) ProtoMessage() {}
 
 func (x *SessionDetection) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_tools_proto_msgTypes[46]
+	mi := &file_proto_tools_proto_msgTypes[47]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5320,7 +6338,7 @@ func (x *SessionDetection) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SessionDetection.ProtoReflect.Descriptor instead.
 func (*SessionDetection) Descriptor() ([]byte, []int) {
-	return file_proto_tools_proto_rawDescGZIP(), []int{46}
+	return file_proto_tools_proto_rawDescGZIP(), []int{47}
 }
 
 func (x *SessionDetection) GetAgent() string {
@@ -5370,7 +6388,7 @@ type SessionAgentContext struct {
 
 func (x *SessionAgentContext) Reset() {
 	*x = SessionAgentContext{}
-	mi := &file_proto_tools_proto_msgTypes[47]
+	mi := &file_proto_tools_proto_msgTypes[48]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5382,7 +6400,7 @@ func (x *SessionAgentContext) String() string {
 func (*SessionAgentContext) ProtoMessage() {}
 
 func (x *SessionAgentContext) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_tools_proto_msgTypes[47]
+	mi := &file_proto_tools_proto_msgTypes[48]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5395,7 +6413,7 @@ func (x *SessionAgentContext) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SessionAgentContext.ProtoReflect.Descriptor instead.
 func (*SessionAgentContext) Descriptor() ([]byte, []int) {
-	return file_proto_tools_proto_rawDescGZIP(), []int{47}
+	return file_proto_tools_proto_rawDescGZIP(), []int{48}
 }
 
 func (x *SessionAgentContext) GetFocusAreas() []string {
@@ -5430,7 +6448,7 @@ type SessionWorkflow struct {
 
 func (x *SessionWorkflow) Reset() {
 	*x = SessionWorkflow{}
-	mi := &file_proto_tools_proto_msgTypes[48]
+	mi := &file_proto_tools_proto_msgTypes[49]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5442,7 +6460,7 @@ func (x *SessionWorkflow) String() string {
 func (*SessionWorkflow) ProtoMessage() {}
 
 func (x *SessionWorkflow) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_tools_proto_msgTypes[48]
+	mi := &file_proto_tools_proto_msgTypes[49]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5455,7 +6473,7 @@ func (x *SessionWorkflow) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SessionWorkflow.ProtoReflect.Descriptor instead.
 func (*SessionWorkflow) Descriptor() ([]byte, []int) {
-	return file_proto_tools_proto_rawDescGZIP(), []int{48}
+	return file_proto_tools_proto_rawDescGZIP(), []int{49}
 }
 
 func (x *SessionWorkflow) GetMode() string {
@@ -5483,7 +6501,7 @@ type LockCleanupReport struct {
 
 func (x *LockCleanupReport) Reset() {
 	*x = LockCleanupReport{}
-	mi := &file_proto_tools_proto_msgTypes[49]
+	mi := &file_proto_tools_proto_msgTypes[50]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5495,7 +6513,7 @@ func (x *LockCleanupReport) String() string {
 func (*LockCleanupReport) ProtoMessage() {}
 
 func (x *LockCleanupReport) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_tools_proto_msgTypes[49]
+	mi := &file_proto_tools_proto_msgTypes[50]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5508,7 +6526,7 @@ func (x *LockCleanupReport) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LockCleanupReport.ProtoReflect.Descriptor instead.
 func (*LockCleanupReport) Descriptor() ([]byte, []int) {
-	return file_proto_tools_proto_rawDescGZIP(), []int{49}
+	return file_proto_tools_proto_rawDescGZIP(), []int{50}
 }
 
 func (x *LockCleanupReport) GetCleaned() int32 {
@@ -5551,7 +6569,7 @@ type SessionPrimeResult struct {
 
 func (x *SessionPrimeResult) Reset() {
 	*x = SessionPrimeResult{}
-	mi := &file_proto_tools_proto_msgTypes[50]
+	mi := &file_proto_tools_proto_msgTypes[51]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5563,7 +6581,7 @@ func (x *SessionPrimeResult) String() string {
 func (*SessionPrimeResult) ProtoMessage() {}
 
 func (x *SessionPrimeResult) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_tools_proto_msgTypes[50]
+	mi := &file_proto_tools_proto_msgTypes[51]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5576,7 +6594,7 @@ func (x *SessionPrimeResult) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SessionPrimeResult.ProtoReflect.Descriptor instead.
 func (*SessionPrimeResult) Descriptor() ([]byte, []int) {
-	return file_proto_tools_proto_rawDescGZIP(), []int{50}
+	return file_proto_tools_proto_rawDescGZIP(), []int{51}
 }
 
 func (x *SessionPrimeResult) GetAutoPrimed() bool {
@@ -5707,7 +6725,7 @@ type SessionHandoffResult struct {
 
 func (x *SessionHandoffResult) Reset() {
 	*x = SessionHandoffResult{}
-	mi := &file_proto_tools_proto_msgTypes[51]
+	mi := &file_proto_tools_proto_msgTypes[52]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5719,7 +6737,7 @@ func (x *SessionHandoffResult) String() string {
 func (*SessionHandoffResult) ProtoMessage() {}
 
 func (x *SessionHandoffResult) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_tools_proto_msgTypes[51]
+	mi := &file_proto_tools_proto_msgTypes[52]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5732,7 +6750,7 @@ func (x *SessionHandoffResult) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SessionHandoffResult.ProtoReflect.Descriptor instead.
 func (*SessionHandoffResult) Descriptor() ([]byte, []int) {
-	return file_proto_tools_proto_rawDescGZIP(), []int{51}
+	return file_proto_tools_proto_rawDescGZIP(), []int{52}
 }
 
 func (x *SessionHandoffResult) GetSuccess() bool {
@@ -5794,13 +6812,14 @@ type WorkflowModeRequest struct {
 	Status        bool                   `protobuf:"varint,5,opt,name=status,proto3" json:"status,omitempty"` // default: false
 	Text          string                 `protobuf:"bytes,6,opt,name=text,proto3" json:"text,omitempty"`
 	AutoSwitch    bool                   `protobuf:"varint,7,opt,name=auto_switch,json=autoSwitch,proto3" json:"auto_switch,omitempty"` // default: false
+	ActionEnum    WorkflowModeAction     `protobuf:"varint,8,opt,name=action_enum,json=actionEnum,proto3,enum=exarp.tools.WorkflowModeAction" json:"action_enum,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *WorkflowModeRequest) Reset() {
 	*x = WorkflowModeRequest{}
-	mi := &file_proto_tools_proto_msgTypes[52]
+	mi := &file_proto_tools_proto_msgTypes[53]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5812,7 +6831,7 @@ func (x *WorkflowModeRequest) String() string {
 func (*WorkflowModeRequest) ProtoMessage() {}
 
 func (x *WorkflowModeRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_tools_proto_msgTypes[52]
+	mi := &file_proto_tools_proto_msgTypes[53]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5825,7 +6844,7 @@ func (x *WorkflowModeRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WorkflowModeRequest.ProtoReflect.Descriptor instead.
 func (*WorkflowModeRequest) Descriptor() ([]byte, []int) {
-	return file_proto_tools_proto_rawDescGZIP(), []int{52}
+	return file_proto_tools_proto_rawDescGZIP(), []int{53}
 }
 
 func (x *WorkflowModeRequest) GetAction() string {
@@ -5877,6 +6896,13 @@ func (x *WorkflowModeRequest) GetAutoSwitch() bool {
 	return false
 }
 
+func (x *WorkflowModeRequest) GetActionEnum() WorkflowModeAction {
+	if x != nil {
+		return x.ActionEnum
+	}
+	return WorkflowModeAction_WORKFLOW_MODE_ACTION_UNSPECIFIED
+}
+
 // SetupHooksRequest represents a request to the setup hooks tool
 type SetupHooksRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
@@ -5886,13 +6912,14 @@ type SetupHooksRequest struct {
 	ConfigPath    string                 `protobuf:"bytes,4,opt,name=config_path,json=configPath,proto3" json:"config_path,omitempty"`
 	Install       bool                   `protobuf:"varint,5,opt,name=install,proto3" json:"install,omitempty"`             // default: true
 	DryRun        bool                   `protobuf:"varint,6,opt,name=dry_run,json=dryRun,proto3" json:"dry_run,omitempty"` // default: false
+	ActionEnum    SetupHooksAction       `protobuf:"varint,7,opt,name=action_enum,json=actionEnum,proto3,enum=exarp.tools.SetupHooksAction" json:"action_enum,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *SetupHooksRequest) Reset() {
 	*x = SetupHooksRequest{}
-	mi := &file_proto_tools_proto_msgTypes[53]
+	mi := &file_proto_tools_proto_msgTypes[54]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5904,7 +6931,7 @@ func (x *SetupHooksRequest) String() string {
 func (*SetupHooksRequest) ProtoMessage() {}
 
 func (x *SetupHooksRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_tools_proto_msgTypes[53]
+	mi := &file_proto_tools_proto_msgTypes[54]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5917,7 +6944,7 @@ func (x *SetupHooksRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetupHooksRequest.ProtoReflect.Descriptor instead.
 func (*SetupHooksRequest) Descriptor() ([]byte, []int) {
-	return file_proto_tools_proto_rawDescGZIP(), []int{53}
+	return file_proto_tools_proto_rawDescGZIP(), []int{54}
 }
 
 func (x *SetupHooksRequest) GetAction() string {
@@ -5962,6 +6989,13 @@ func (x *SetupHooksRequest) GetDryRun() bool {
 	return false
 }
 
+func (x *SetupHooksRequest) GetActionEnum() SetupHooksAction {
+	if x != nil {
+		return x.ActionEnum
+	}
+	return SetupHooksAction_SETUP_HOOKS_ACTION_UNSPECIFIED
+}
+
 // CheckAttributionRequest represents a request to check attribution
 type CheckAttributionRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
@@ -5973,7 +7007,7 @@ type CheckAttributionRequest struct {
 
 func (x *CheckAttributionRequest) Reset() {
 	*x = CheckAttributionRequest{}
-	mi := &file_proto_tools_proto_msgTypes[54]
+	mi := &file_proto_tools_proto_msgTypes[55]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5985,7 +7019,7 @@ func (x *CheckAttributionRequest) String() string {
 func (*CheckAttributionRequest) ProtoMessage() {}
 
 func (x *CheckAttributionRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_tools_proto_msgTypes[54]
+	mi := &file_proto_tools_proto_msgTypes[55]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5998,7 +7032,7 @@ func (x *CheckAttributionRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CheckAttributionRequest.ProtoReflect.Descriptor instead.
 func (*CheckAttributionRequest) Descriptor() ([]byte, []int) {
-	return file_proto_tools_proto_rawDescGZIP(), []int{54}
+	return file_proto_tools_proto_rawDescGZIP(), []int{55}
 }
 
 func (x *CheckAttributionRequest) GetOutputPath() string {
@@ -6027,7 +7061,7 @@ type AddExternalToolHintsRequest struct {
 
 func (x *AddExternalToolHintsRequest) Reset() {
 	*x = AddExternalToolHintsRequest{}
-	mi := &file_proto_tools_proto_msgTypes[55]
+	mi := &file_proto_tools_proto_msgTypes[56]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6039,7 +7073,7 @@ func (x *AddExternalToolHintsRequest) String() string {
 func (*AddExternalToolHintsRequest) ProtoMessage() {}
 
 func (x *AddExternalToolHintsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_tools_proto_msgTypes[55]
+	mi := &file_proto_tools_proto_msgTypes[56]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6052,7 +7086,7 @@ func (x *AddExternalToolHintsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AddExternalToolHintsRequest.ProtoReflect.Descriptor instead.
 func (*AddExternalToolHintsRequest) Descriptor() ([]byte, []int) {
-	return file_proto_tools_proto_rawDescGZIP(), []int{55}
+	return file_proto_tools_proto_rawDescGZIP(), []int{56}
 }
 
 func (x *AddExternalToolHintsRequest) GetDryRun() bool {
@@ -6078,29 +7112,32 @@ func (x *AddExternalToolHintsRequest) GetMinFileSize() int32 {
 
 // MemoryMaintRequest represents a request to the memory maintenance tool
 type MemoryMaintRequest struct {
-	state               protoimpl.MessageState `protogen:"open.v1"`
-	Action              string                 `protobuf:"bytes,1,opt,name=action,proto3" json:"action,omitempty"`                                                           // "health", "gc", "prune", "consolidate", "dream"
-	MaxAgeDays          int32                  `protobuf:"varint,2,opt,name=max_age_days,json=maxAgeDays,proto3" json:"max_age_days,omitempty"`                              // default: 90
-	DeleteOrphaned      bool                   `protobuf:"varint,3,opt,name=delete_orphaned,json=deleteOrphaned,proto3" json:"delete_orphaned,omitempty"`                    // default: true
-	DeleteDuplicates    bool                   `protobuf:"varint,4,opt,name=delete_duplicates,json=deleteDuplicates,proto3" json:"delete_duplicates,omitempty"`              // default: true
-	ScorecardMaxAgeDays int32                  `protobuf:"varint,5,opt,name=scorecard_max_age_days,json=scorecardMaxAgeDays,proto3" json:"scorecard_max_age_days,omitempty"` // default: 7
-	ValueThreshold      float64                `protobuf:"fixed64,6,opt,name=value_threshold,json=valueThreshold,proto3" json:"value_threshold,omitempty"`                   // default: 0.3
-	KeepMinimum         int32                  `protobuf:"varint,7,opt,name=keep_minimum,json=keepMinimum,proto3" json:"keep_minimum,omitempty"`                             // default: 50
-	SimilarityThreshold float64                `protobuf:"fixed64,8,opt,name=similarity_threshold,json=similarityThreshold,proto3" json:"similarity_threshold,omitempty"`    // default: 0.85
-	MergeStrategy       string                 `protobuf:"bytes,9,opt,name=merge_strategy,json=mergeStrategy,proto3" json:"merge_strategy,omitempty"`                        // default: "newest"
-	Scope               string                 `protobuf:"bytes,10,opt,name=scope,proto3" json:"scope,omitempty"`                                                            // default: "week"
-	Advisors            string                 `protobuf:"bytes,11,opt,name=advisors,proto3" json:"advisors,omitempty"`
-	GenerateInsights    bool                   `protobuf:"varint,12,opt,name=generate_insights,json=generateInsights,proto3" json:"generate_insights,omitempty"` // default: true
-	SaveDream           bool                   `protobuf:"varint,13,opt,name=save_dream,json=saveDream,proto3" json:"save_dream,omitempty"`                      // default: true
-	DryRun              bool                   `protobuf:"varint,14,opt,name=dry_run,json=dryRun,proto3" json:"dry_run,omitempty"`                               // default: true
-	Interactive         bool                   `protobuf:"varint,15,opt,name=interactive,proto3" json:"interactive,omitempty"`                                   // default: true
+	state               protoimpl.MessageState   `protogen:"open.v1"`
+	Action              string                   `protobuf:"bytes,1,opt,name=action,proto3" json:"action,omitempty"`                                                           // "health", "gc", "prune", "consolidate", "dream"
+	MaxAgeDays          int32                    `protobuf:"varint,2,opt,name=max_age_days,json=maxAgeDays,proto3" json:"max_age_days,omitempty"`                              // default: 90
+	DeleteOrphaned      bool                     `protobuf:"varint,3,opt,name=delete_orphaned,json=deleteOrphaned,proto3" json:"delete_orphaned,omitempty"`                    // default: true
+	DeleteDuplicates    bool                     `protobuf:"varint,4,opt,name=delete_duplicates,json=deleteDuplicates,proto3" json:"delete_duplicates,omitempty"`              // default: true
+	ScorecardMaxAgeDays int32                    `protobuf:"varint,5,opt,name=scorecard_max_age_days,json=scorecardMaxAgeDays,proto3" json:"scorecard_max_age_days,omitempty"` // default: 7
+	ValueThreshold      float64                  `protobuf:"fixed64,6,opt,name=value_threshold,json=valueThreshold,proto3" json:"value_threshold,omitempty"`                   // default: 0.3
+	KeepMinimum         int32                    `protobuf:"varint,7,opt,name=keep_minimum,json=keepMinimum,proto3" json:"keep_minimum,omitempty"`                             // default: 50
+	SimilarityThreshold float64                  `protobuf:"fixed64,8,opt,name=similarity_threshold,json=similarityThreshold,proto3" json:"similarity_threshold,omitempty"`    // default: 0.85
+	MergeStrategy       string                   `protobuf:"bytes,9,opt,name=merge_strategy,json=mergeStrategy,proto3" json:"merge_strategy,omitempty"`                        // default: "newest"
+	Scope               string                   `protobuf:"bytes,10,opt,name=scope,proto3" json:"scope,omitempty"`                                                            // default: "week"
+	Advisors            string                   `protobuf:"bytes,11,opt,name=advisors,proto3" json:"advisors,omitempty"`
+	GenerateInsights    bool                     `protobuf:"varint,12,opt,name=generate_insights,json=generateInsights,proto3" json:"generate_insights,omitempty"` // default: true
+	SaveDream           bool                     `protobuf:"varint,13,opt,name=save_dream,json=saveDream,proto3" json:"save_dream,omitempty"`                      // default: true
+	DryRun              bool                     `protobuf:"varint,14,opt,name=dry_run,json=dryRun,proto3" json:"dry_run,omitempty"`                               // default: true
+	Interactive         bool                     `protobuf:"varint,15,opt,name=interactive,proto3" json:"interactive,omitempty"`                                   // default: true
+	ActionEnum          MemoryMaintAction        `protobuf:"varint,16,opt,name=action_enum,json=actionEnum,proto3,enum=exarp.tools.MemoryMaintAction" json:"action_enum,omitempty"`
+	MergeStrategyEnum   MemoryMaintMergeStrategy `protobuf:"varint,17,opt,name=merge_strategy_enum,json=mergeStrategyEnum,proto3,enum=exarp.tools.MemoryMaintMergeStrategy" json:"merge_strategy_enum,omitempty"`
+	ScopeEnum           MemoryMaintScope         `protobuf:"varint,18,opt,name=scope_enum,json=scopeEnum,proto3,enum=exarp.tools.MemoryMaintScope" json:"scope_enum,omitempty"`
 	unknownFields       protoimpl.UnknownFields
 	sizeCache           protoimpl.SizeCache
 }
 
 func (x *MemoryMaintRequest) Reset() {
 	*x = MemoryMaintRequest{}
-	mi := &file_proto_tools_proto_msgTypes[56]
+	mi := &file_proto_tools_proto_msgTypes[57]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6112,7 +7149,7 @@ func (x *MemoryMaintRequest) String() string {
 func (*MemoryMaintRequest) ProtoMessage() {}
 
 func (x *MemoryMaintRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_tools_proto_msgTypes[56]
+	mi := &file_proto_tools_proto_msgTypes[57]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6125,7 +7162,7 @@ func (x *MemoryMaintRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MemoryMaintRequest.ProtoReflect.Descriptor instead.
 func (*MemoryMaintRequest) Descriptor() ([]byte, []int) {
-	return file_proto_tools_proto_rawDescGZIP(), []int{56}
+	return file_proto_tools_proto_rawDescGZIP(), []int{57}
 }
 
 func (x *MemoryMaintRequest) GetAction() string {
@@ -6233,6 +7270,27 @@ func (x *MemoryMaintRequest) GetInteractive() bool {
 	return false
 }
 
+func (x *MemoryMaintRequest) GetActionEnum() MemoryMaintAction {
+	if x != nil {
+		return x.ActionEnum
+	}
+	return MemoryMaintAction_MEMORY_MAINT_ACTION_UNSPECIFIED
+}
+
+func (x *MemoryMaintRequest) GetMergeStrategyEnum() MemoryMaintMergeStrategy {
+	if x != nil {
+		return x.MergeStrategyEnum
+	}
+	return MemoryMaintMergeStrategy_MEMORY_MAINT_MERGE_STRATEGY_UNSPECIFIED
+}
+
+func (x *MemoryMaintRequest) GetScopeEnum() MemoryMaintScope {
+	if x != nil {
+		return x.ScopeEnum
+	}
+	return MemoryMaintScope_MEMORY_MAINT_SCOPE_UNSPECIFIED
+}
+
 // ToolCatalogRequest represents a request to the tool catalog
 type ToolCatalogRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
@@ -6244,7 +7302,7 @@ type ToolCatalogRequest struct {
 
 func (x *ToolCatalogRequest) Reset() {
 	*x = ToolCatalogRequest{}
-	mi := &file_proto_tools_proto_msgTypes[57]
+	mi := &file_proto_tools_proto_msgTypes[58]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6256,7 +7314,7 @@ func (x *ToolCatalogRequest) String() string {
 func (*ToolCatalogRequest) ProtoMessage() {}
 
 func (x *ToolCatalogRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_tools_proto_msgTypes[57]
+	mi := &file_proto_tools_proto_msgTypes[58]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6269,7 +7327,7 @@ func (x *ToolCatalogRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ToolCatalogRequest.ProtoReflect.Descriptor instead.
 func (*ToolCatalogRequest) Descriptor() ([]byte, []int) {
-	return file_proto_tools_proto_rawDescGZIP(), []int{57}
+	return file_proto_tools_proto_rawDescGZIP(), []int{58}
 }
 
 func (x *ToolCatalogRequest) GetAction() string {
@@ -6304,13 +7362,15 @@ type OllamaRequest struct {
 	IncludeSuggestions bool                   `protobuf:"varint,13,opt,name=include_suggestions,json=includeSuggestions,proto3" json:"include_suggestions,omitempty"` // default: true
 	Data               string                 `protobuf:"bytes,14,opt,name=data,proto3" json:"data,omitempty"`
 	Level              string                 `protobuf:"bytes,15,opt,name=level,proto3" json:"level,omitempty"` // default: "brief"
+	StyleEnum          LocalLLMDocstringStyle `protobuf:"varint,16,opt,name=style_enum,json=styleEnum,proto3,enum=exarp.tools.LocalLLMDocstringStyle" json:"style_enum,omitempty"`
+	LevelEnum          LocalLLMSummaryLevel   `protobuf:"varint,17,opt,name=level_enum,json=levelEnum,proto3,enum=exarp.tools.LocalLLMSummaryLevel" json:"level_enum,omitempty"`
 	unknownFields      protoimpl.UnknownFields
 	sizeCache          protoimpl.SizeCache
 }
 
 func (x *OllamaRequest) Reset() {
 	*x = OllamaRequest{}
-	mi := &file_proto_tools_proto_msgTypes[58]
+	mi := &file_proto_tools_proto_msgTypes[59]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6322,7 +7382,7 @@ func (x *OllamaRequest) String() string {
 func (*OllamaRequest) ProtoMessage() {}
 
 func (x *OllamaRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_tools_proto_msgTypes[58]
+	mi := &file_proto_tools_proto_msgTypes[59]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6335,7 +7395,7 @@ func (x *OllamaRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use OllamaRequest.ProtoReflect.Descriptor instead.
 func (*OllamaRequest) Descriptor() ([]byte, []int) {
-	return file_proto_tools_proto_rawDescGZIP(), []int{58}
+	return file_proto_tools_proto_rawDescGZIP(), []int{59}
 }
 
 func (x *OllamaRequest) GetAction() string {
@@ -6443,6 +7503,20 @@ func (x *OllamaRequest) GetLevel() string {
 	return ""
 }
 
+func (x *OllamaRequest) GetStyleEnum() LocalLLMDocstringStyle {
+	if x != nil {
+		return x.StyleEnum
+	}
+	return LocalLLMDocstringStyle_LOCAL_LLM_DOCSTRING_STYLE_UNSPECIFIED
+}
+
+func (x *OllamaRequest) GetLevelEnum() LocalLLMSummaryLevel {
+	if x != nil {
+		return x.LevelEnum
+	}
+	return LocalLLMSummaryLevel_LOCAL_LLM_SUMMARY_LEVEL_UNSPECIFIED
+}
+
 // MLXRequest represents a request to the MLX tool
 type MLXRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
@@ -6458,7 +7532,7 @@ type MLXRequest struct {
 
 func (x *MLXRequest) Reset() {
 	*x = MLXRequest{}
-	mi := &file_proto_tools_proto_msgTypes[59]
+	mi := &file_proto_tools_proto_msgTypes[60]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6470,7 +7544,7 @@ func (x *MLXRequest) String() string {
 func (*MLXRequest) ProtoMessage() {}
 
 func (x *MLXRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_tools_proto_msgTypes[59]
+	mi := &file_proto_tools_proto_msgTypes[60]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6483,7 +7557,7 @@ func (x *MLXRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MLXRequest.ProtoReflect.Descriptor instead.
 func (*MLXRequest) Descriptor() ([]byte, []int) {
-	return file_proto_tools_proto_rawDescGZIP(), []int{59}
+	return file_proto_tools_proto_rawDescGZIP(), []int{60}
 }
 
 func (x *MLXRequest) GetAction() string {
@@ -6544,7 +7618,7 @@ type PromptTrackingRequest struct {
 
 func (x *PromptTrackingRequest) Reset() {
 	*x = PromptTrackingRequest{}
-	mi := &file_proto_tools_proto_msgTypes[60]
+	mi := &file_proto_tools_proto_msgTypes[61]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6556,7 +7630,7 @@ func (x *PromptTrackingRequest) String() string {
 func (*PromptTrackingRequest) ProtoMessage() {}
 
 func (x *PromptTrackingRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_tools_proto_msgTypes[60]
+	mi := &file_proto_tools_proto_msgTypes[61]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6569,7 +7643,7 @@ func (x *PromptTrackingRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PromptTrackingRequest.ProtoReflect.Descriptor instead.
 func (*PromptTrackingRequest) Descriptor() ([]byte, []int) {
-	return file_proto_tools_proto_rawDescGZIP(), []int{60}
+	return file_proto_tools_proto_rawDescGZIP(), []int{61}
 }
 
 func (x *PromptTrackingRequest) GetAction() string {
@@ -6637,7 +7711,7 @@ type RecommendRequest struct {
 
 func (x *RecommendRequest) Reset() {
 	*x = RecommendRequest{}
-	mi := &file_proto_tools_proto_msgTypes[61]
+	mi := &file_proto_tools_proto_msgTypes[62]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6649,7 +7723,7 @@ func (x *RecommendRequest) String() string {
 func (*RecommendRequest) ProtoMessage() {}
 
 func (x *RecommendRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_tools_proto_msgTypes[61]
+	mi := &file_proto_tools_proto_msgTypes[62]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6662,7 +7736,7 @@ func (x *RecommendRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RecommendRequest.ProtoReflect.Descriptor instead.
 func (*RecommendRequest) Descriptor() ([]byte, []int) {
-	return file_proto_tools_proto_rawDescGZIP(), []int{61}
+	return file_proto_tools_proto_rawDescGZIP(), []int{62}
 }
 
 func (x *RecommendRequest) GetAction() string {
@@ -6724,7 +7798,7 @@ type InferSessionModeRequest struct {
 
 func (x *InferSessionModeRequest) Reset() {
 	*x = InferSessionModeRequest{}
-	mi := &file_proto_tools_proto_msgTypes[62]
+	mi := &file_proto_tools_proto_msgTypes[63]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6736,7 +7810,7 @@ func (x *InferSessionModeRequest) String() string {
 func (*InferSessionModeRequest) ProtoMessage() {}
 
 func (x *InferSessionModeRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_tools_proto_msgTypes[62]
+	mi := &file_proto_tools_proto_msgTypes[63]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6749,7 +7823,7 @@ func (x *InferSessionModeRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use InferSessionModeRequest.ProtoReflect.Descriptor instead.
 func (*InferSessionModeRequest) Descriptor() ([]byte, []int) {
-	return file_proto_tools_proto_rawDescGZIP(), []int{62}
+	return file_proto_tools_proto_rawDescGZIP(), []int{63}
 }
 
 func (x *InferSessionModeRequest) GetForceRecompute() bool {
@@ -6770,7 +7844,7 @@ type ContextBudgetRequest struct {
 
 func (x *ContextBudgetRequest) Reset() {
 	*x = ContextBudgetRequest{}
-	mi := &file_proto_tools_proto_msgTypes[63]
+	mi := &file_proto_tools_proto_msgTypes[64]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6782,7 +7856,7 @@ func (x *ContextBudgetRequest) String() string {
 func (*ContextBudgetRequest) ProtoMessage() {}
 
 func (x *ContextBudgetRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_tools_proto_msgTypes[63]
+	mi := &file_proto_tools_proto_msgTypes[64]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6795,7 +7869,7 @@ func (x *ContextBudgetRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ContextBudgetRequest.ProtoReflect.Descriptor instead.
 func (*ContextBudgetRequest) Descriptor() ([]byte, []int) {
-	return file_proto_tools_proto_rawDescGZIP(), []int{63}
+	return file_proto_tools_proto_rawDescGZIP(), []int{64}
 }
 
 func (x *ContextBudgetRequest) GetItems() string {
@@ -6826,7 +7900,7 @@ type CachedTaskExecutionPack struct {
 
 func (x *CachedTaskExecutionPack) Reset() {
 	*x = CachedTaskExecutionPack{}
-	mi := &file_proto_tools_proto_msgTypes[64]
+	mi := &file_proto_tools_proto_msgTypes[65]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6838,7 +7912,7 @@ func (x *CachedTaskExecutionPack) String() string {
 func (*CachedTaskExecutionPack) ProtoMessage() {}
 
 func (x *CachedTaskExecutionPack) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_tools_proto_msgTypes[64]
+	mi := &file_proto_tools_proto_msgTypes[65]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6851,7 +7925,7 @@ func (x *CachedTaskExecutionPack) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CachedTaskExecutionPack.ProtoReflect.Descriptor instead.
 func (*CachedTaskExecutionPack) Descriptor() ([]byte, []int) {
-	return file_proto_tools_proto_rawDescGZIP(), []int{64}
+	return file_proto_tools_proto_rawDescGZIP(), []int{65}
 }
 
 func (x *CachedTaskExecutionPack) GetTaskId() string {
@@ -6899,7 +7973,7 @@ const file_proto_tools_proto_rawDesc = "" +
 	"\fsession_date\x18\b \x01(\tR\vsessionDate\x1a;\n" +
 	"\rMetadataEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xfd\x01\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xbd\x02\n" +
 	"\rMemoryRequest\x12\x16\n" +
 	"\x06action\x18\x01 \x01(\tR\x06action\x12\x14\n" +
 	"\x05title\x18\x02 \x01(\tR\x05title\x12\x18\n" +
@@ -6909,7 +7983,10 @@ const file_proto_tools_proto_rawDesc = "" +
 	"\bmetadata\x18\x06 \x01(\tR\bmetadata\x12'\n" +
 	"\x0finclude_related\x18\a \x01(\bR\x0eincludeRelated\x12\x14\n" +
 	"\x05query\x18\b \x01(\tR\x05query\x12\x14\n" +
-	"\x05limit\x18\t \x01(\x05R\x05limit\"\xaa\x04\n" +
+	"\x05limit\x18\t \x01(\x05R\x05limit\x12>\n" +
+	"\vaction_enum\x18\n" +
+	" \x01(\x0e2\x1d.exarp.tools.MemoryToolActionR\n" +
+	"actionEnum\"\xaa\x04\n" +
 	"\x0eMemoryResponse\x12\x18\n" +
 	"\asuccess\x18\x01 \x01(\bR\asuccess\x12\x16\n" +
 	"\x06method\x18\x02 \x01(\tR\x06method\x12/\n" +
@@ -6934,7 +8011,7 @@ const file_proto_tools_proto_rawDesc = "" +
 	"\x05value\x18\x02 \x01(\x05R\x05value:\x028\x01\">\n" +
 	"\vContextItem\x12\x12\n" +
 	"\x04data\x18\x01 \x01(\tR\x04data\x12\x1b\n" +
-	"\ttool_type\x18\x02 \x01(\tR\btoolType\"\x84\x02\n" +
+	"\ttool_type\x18\x02 \x01(\tR\btoolType\"\x87\x03\n" +
 	"\x0eContextRequest\x12\x16\n" +
 	"\x06action\x18\x01 \x01(\tR\x06action\x12\x12\n" +
 	"\x04data\x18\x02 \x01(\tR\x04data\x12\x14\n" +
@@ -6946,7 +8023,12 @@ const file_proto_tools_proto_rawDesc = "" +
 	"includeRaw\x12\x14\n" +
 	"\x05items\x18\a \x01(\tR\x05items\x12#\n" +
 	"\rbudget_tokens\x18\b \x01(\x05R\fbudgetTokens\x12\x18\n" +
-	"\acombine\x18\t \x01(\bR\acombine\"\x82\x03\n" +
+	"\acombine\x18\t \x01(\bR\acombine\x12?\n" +
+	"\vaction_enum\x18\n" +
+	" \x01(\x0e2\x1e.exarp.tools.ContextToolActionR\n" +
+	"actionEnum\x12@\n" +
+	"\n" +
+	"level_enum\x18\v \x01(\x0e2!.exarp.tools.LocalLLMSummaryLevelR\tlevelEnum\"\x82\x03\n" +
 	"\x0fContextResponse\x12\x18\n" +
 	"\asuccess\x18\x01 \x01(\bR\asuccess\x12\x18\n" +
 	"\asummary\x18\x02 \x01(\tR\asummary\x12V\n" +
@@ -7145,7 +8227,19 @@ const file_proto_tools_proto_rawDesc = "" +
 	"\voutput_path\x18\x01 \x01(\tR\n" +
 	"outputPath\x12\x1f\n" +
 	"\vresult_json\x18\x02 \x01(\tR\n" +
-	"resultJson\"\xfa\x01\n" +
+	"resultJson\"\xda\x02\n" +
+	"\x18InferTaskProgressRequest\x12!\n" +
+	"\fproject_root\x18\x01 \x01(\tR\vprojectRoot\x12\x1d\n" +
+	"\n" +
+	"scan_depth\x18\x02 \x01(\x05R\tscanDepth\x121\n" +
+	"\x14confidence_threshold\x18\x03 \x01(\x01R\x13confidenceThreshold\x12'\n" +
+	"\x0ffile_extensions\x18\x04 \x03(\tR\x0efileExtensions\x12#\n" +
+	"\rstatus_filter\x18\x05 \x01(\tR\fstatusFilter\x12\x15\n" +
+	"\x06use_fm\x18\x06 \x01(\bR\x05useFm\x12\x17\n" +
+	"\adry_run\x18\a \x01(\bR\x06dryRun\x12*\n" +
+	"\x11auto_update_tasks\x18\b \x01(\bR\x0fautoUpdateTasks\x12\x1f\n" +
+	"\voutput_path\x18\t \x01(\tR\n" +
+	"outputPath\"\xfa\x01\n" +
 	"\x14TaskDiscoveryRequest\x12\x16\n" +
 	"\x06action\x18\x01 \x01(\tR\x06action\x12#\n" +
 	"\rfile_patterns\x18\x02 \x01(\tR\ffilePatterns\x12#\n" +
@@ -7314,7 +8408,7 @@ const file_proto_tools_proto_rawDesc = "" +
 	" \x01(\tR\n" +
 	"outputPath\x128\n" +
 	"\vaction_enum\x18\v \x01(\x0e2\x17.exarp.tools.LintActionR\n" +
-	"actionEnum\"\xc9\x02\n" +
+	"actionEnum\"\xeb\x03\n" +
 	"\x11EstimationRequest\x12\x16\n" +
 	"\x06action\x18\x01 \x01(\tR\x06action\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x18\n" +
@@ -7328,7 +8422,9 @@ const file_proto_tools_proto_rawDesc = "" +
 	"\n" +
 	"mlx_weight\x18\n" +
 	" \x01(\x01R\tmlxWeight\x12(\n" +
-	"\x10local_ai_backend\x18\v \x01(\tR\x0elocalAiBackend\"\xcc\x04\n" +
+	"\x10local_ai_backend\x18\v \x01(\tR\x0elocalAiBackend\x12O\n" +
+	"\x15local_ai_backend_enum\x18\f \x01(\x0e2\x1c.exarp.tools.LocalLLMBackendR\x12localAiBackendEnum\x12O\n" +
+	"\x12summary_level_enum\x18\r \x01(\x0e2!.exarp.tools.LocalLLMSummaryLevelR\x10summaryLevelEnum\"\xa9\x05\n" +
 	"\x0fGitToolsRequest\x12\x16\n" +
 	"\x06action\x18\x01 \x01(\tR\x06action\x12\x17\n" +
 	"\atask_id\x18\x02 \x01(\tR\x06taskId\x12\x16\n" +
@@ -7352,12 +8448,13 @@ const file_proto_tools_proto_rawDesc = "" +
 	"\vaction_enum\x18\x11 \x01(\x0e2\x1b.exarp.tools.GitToolsActionR\n" +
 	"actionEnum\x12:\n" +
 	"\vformat_enum\x18\x12 \x01(\x0e2\x19.exarp.tools.OutputFormatR\n" +
-	"formatEnum\"e\n" +
+	"formatEnum\x12[\n" +
+	"\x16conflict_strategy_enum\x18\x13 \x01(\x0e2%.exarp.tools.GitMergeConflictStrategyR\x14conflictStrategyEnum\"e\n" +
 	"\x10GitToolsResponse\x12\x18\n" +
 	"\asuccess\x18\x01 \x01(\bR\asuccess\x12\x16\n" +
 	"\x06action\x18\x02 \x01(\tR\x06action\x12\x1f\n" +
 	"\vresult_json\x18\x03 \x01(\tR\n" +
-	"resultJson\"\xa8\b\n" +
+	"resultJson\"\xc0\t\n" +
 	"\x0eSessionRequest\x12\x16\n" +
 	"\x06action\x18\x01 \x01(\tR\x06action\x12#\n" +
 	"\rinclude_hints\x18\x02 \x01(\bR\fincludeHints\x12#\n" +
@@ -7394,7 +8491,9 @@ const file_proto_tools_proto_rawDesc = "" +
 	"\x13max_tasks_per_agent\x18\x1c \x01(\x05R\x10maxTasksPerAgent\x12'\n" +
 	"\x0fask_preferences\x18\x1d \x01(\bR\x0easkPreferences\x12;\n" +
 	"\vaction_enum\x18\x1e \x01(\x0e2\x1a.exarp.tools.SessionActionR\n" +
-	"actionEnum\"\xa0\x01\n" +
+	"actionEnum\x12L\n" +
+	"\x0fsub_action_enum\x18\x1f \x01(\x0e2$.exarp.tools.SessionHandoffSubActionR\rsubActionEnum\x12H\n" +
+	"\x0edirection_enum\x18  \x01(\x0e2!.exarp.tools.SessionSyncDirectionR\rdirectionEnum\"\xa0\x01\n" +
 	"\x10SessionDetection\x12\x14\n" +
 	"\x05agent\x18\x01 \x01(\tR\x05agent\x12!\n" +
 	"\fagent_source\x18\x02 \x01(\tR\vagentSource\x12\x12\n" +
@@ -7442,7 +8541,7 @@ const file_proto_tools_proto_rawDesc = "" +
 	"\fhandoff_json\x18\x05 \x01(\tR\vhandoffJson\x12\x1f\n" +
 	"\vhas_handoff\x18\x06 \x01(\bR\n" +
 	"hasHandoff\x12$\n" +
-	"\x0efrom_same_host\x18\a \x01(\bR\ffromSameHost\"\xd6\x01\n" +
+	"\x0efrom_same_host\x18\a \x01(\bR\ffromSameHost\"\x98\x02\n" +
 	"\x13WorkflowModeRequest\x12\x16\n" +
 	"\x06action\x18\x01 \x01(\tR\x06action\x12\x12\n" +
 	"\x04mode\x18\x02 \x01(\tR\x04mode\x12!\n" +
@@ -7451,7 +8550,9 @@ const file_proto_tools_proto_rawDesc = "" +
 	"\x06status\x18\x05 \x01(\bR\x06status\x12\x12\n" +
 	"\x04text\x18\x06 \x01(\tR\x04text\x12\x1f\n" +
 	"\vauto_switch\x18\a \x01(\bR\n" +
-	"autoSwitch\"\xb1\x01\n" +
+	"autoSwitch\x12@\n" +
+	"\vaction_enum\x18\b \x01(\x0e2\x1f.exarp.tools.WorkflowModeActionR\n" +
+	"actionEnum\"\xf1\x01\n" +
 	"\x11SetupHooksRequest\x12\x16\n" +
 	"\x06action\x18\x01 \x01(\tR\x06action\x12\x14\n" +
 	"\x05hooks\x18\x02 \x03(\tR\x05hooks\x12\x1a\n" +
@@ -7459,7 +8560,9 @@ const file_proto_tools_proto_rawDesc = "" +
 	"\vconfig_path\x18\x04 \x01(\tR\n" +
 	"configPath\x12\x18\n" +
 	"\ainstall\x18\x05 \x01(\bR\ainstall\x12\x17\n" +
-	"\adry_run\x18\x06 \x01(\bR\x06dryRun\"]\n" +
+	"\adry_run\x18\x06 \x01(\bR\x06dryRun\x12>\n" +
+	"\vaction_enum\x18\a \x01(\x0e2\x1d.exarp.tools.SetupHooksActionR\n" +
+	"actionEnum\"]\n" +
 	"\x17CheckAttributionRequest\x12\x1f\n" +
 	"\voutput_path\x18\x01 \x01(\tR\n" +
 	"outputPath\x12!\n" +
@@ -7468,7 +8571,7 @@ const file_proto_tools_proto_rawDesc = "" +
 	"\adry_run\x18\x01 \x01(\bR\x06dryRun\x12\x1f\n" +
 	"\voutput_path\x18\x02 \x01(\tR\n" +
 	"outputPath\x12\"\n" +
-	"\rmin_file_size\x18\x03 \x01(\x05R\vminFileSize\"\xb8\x04\n" +
+	"\rmin_file_size\x18\x03 \x01(\x05R\vminFileSize\"\x8e\x06\n" +
 	"\x12MemoryMaintRequest\x12\x16\n" +
 	"\x06action\x18\x01 \x01(\tR\x06action\x12 \n" +
 	"\fmax_age_days\x18\x02 \x01(\x05R\n" +
@@ -7487,10 +8590,15 @@ const file_proto_tools_proto_rawDesc = "" +
 	"\n" +
 	"save_dream\x18\r \x01(\bR\tsaveDream\x12\x17\n" +
 	"\adry_run\x18\x0e \x01(\bR\x06dryRun\x12 \n" +
-	"\vinteractive\x18\x0f \x01(\bR\vinteractive\"I\n" +
+	"\vinteractive\x18\x0f \x01(\bR\vinteractive\x12?\n" +
+	"\vaction_enum\x18\x10 \x01(\x0e2\x1e.exarp.tools.MemoryMaintActionR\n" +
+	"actionEnum\x12U\n" +
+	"\x13merge_strategy_enum\x18\x11 \x01(\x0e2%.exarp.tools.MemoryMaintMergeStrategyR\x11mergeStrategyEnum\x12<\n" +
+	"\n" +
+	"scope_enum\x18\x12 \x01(\x0e2\x1d.exarp.tools.MemoryMaintScopeR\tscopeEnum\"I\n" +
 	"\x12ToolCatalogRequest\x12\x16\n" +
 	"\x06action\x18\x01 \x01(\tR\x06action\x12\x1b\n" +
-	"\ttool_name\x18\x02 \x01(\tR\btoolName\"\xa7\x03\n" +
+	"\ttool_name\x18\x02 \x01(\tR\btoolName\"\xad\x04\n" +
 	"\rOllamaRequest\x12\x16\n" +
 	"\x06action\x18\x01 \x01(\tR\x06action\x12\x12\n" +
 	"\x04host\x18\x02 \x01(\tR\x04host\x12\x16\n" +
@@ -7509,7 +8617,11 @@ const file_proto_tools_proto_rawDesc = "" +
 	"\x05style\x18\f \x01(\tR\x05style\x12/\n" +
 	"\x13include_suggestions\x18\r \x01(\bR\x12includeSuggestions\x12\x12\n" +
 	"\x04data\x18\x0e \x01(\tR\x04data\x12\x14\n" +
-	"\x05level\x18\x0f \x01(\tR\x05level\"\xad\x01\n" +
+	"\x05level\x18\x0f \x01(\tR\x05level\x12B\n" +
+	"\n" +
+	"style_enum\x18\x10 \x01(\x0e2#.exarp.tools.LocalLLMDocstringStyleR\tstyleEnum\x12@\n" +
+	"\n" +
+	"level_enum\x18\x11 \x01(\x0e2!.exarp.tools.LocalLLMSummaryLevelR\tlevelEnum\"\xad\x01\n" +
 	"\n" +
 	"MLXRequest\x12\x16\n" +
 	"\x06action\x18\x01 \x01(\tR\x06action\x12\x16\n" +
@@ -7549,13 +8661,19 @@ const file_proto_tools_proto_rawDesc = "" +
 	"\x19OUTPUT_FORMAT_UNSPECIFIED\x10\x00\x12\x16\n" +
 	"\x12OUTPUT_FORMAT_TEXT\x10\x01\x12\x1a\n" +
 	"\x16OUTPUT_FORMAT_MARKDOWN\x10\x02\x12\x16\n" +
-	"\x12OUTPUT_FORMAT_JSON\x10\x03*\x99\x01\n" +
+	"\x12OUTPUT_FORMAT_JSON\x10\x03*\xcf\x02\n" +
 	"\fReportAction\x12\x1d\n" +
 	"\x19REPORT_ACTION_UNSPECIFIED\x10\x00\x12\x1a\n" +
 	"\x16REPORT_ACTION_OVERVIEW\x10\x01\x12\x1b\n" +
 	"\x17REPORT_ACTION_SCORECARD\x10\x02\x12\x1a\n" +
 	"\x16REPORT_ACTION_BRIEFING\x10\x03\x12\x15\n" +
-	"\x11REPORT_ACTION_PRD\x10\x04*\x82\x03\n" +
+	"\x11REPORT_ACTION_PRD\x10\x04\x12$\n" +
+	" REPORT_ACTION_EXECUTION_BRIEFING\x10\x05\x12\x16\n" +
+	"\x12REPORT_ACTION_PLAN\x10\x06\x12!\n" +
+	"\x1dREPORT_ACTION_SCORECARD_PLANS\x10\a\x12)\n" +
+	"%REPORT_ACTION_PARALLEL_EXECUTION_PLAN\x10\b\x12(\n" +
+	"$REPORT_ACTION_UPDATE_WAVES_FROM_PLAN\x10\t*\xf2\n" +
+	"\n" +
 	"\x12TaskWorkflowAction\x12$\n" +
 	" TASK_WORKFLOW_ACTION_UNSPECIFIED\x10\x00\x12\x1d\n" +
 	"\x19TASK_WORKFLOW_ACTION_SYNC\x10\x01\x12 \n" +
@@ -7568,7 +8686,33 @@ const file_proto_tools_proto_rawDesc = "" +
 	"\x1bTASK_WORKFLOW_ACTION_DELETE\x10\b\x12\x1d\n" +
 	"\x19TASK_WORKFLOW_ACTION_LIST\x10\t\x12\x1d\n" +
 	"\x19TASK_WORKFLOW_ACTION_SHOW\x10\n" +
-	"*\xac\x03\n" +
+	"\x12\"\n" +
+	"\x1eTASK_WORKFLOW_ACTION_FIX_DATES\x10\v\x12/\n" +
+	"+TASK_WORKFLOW_ACTION_FIX_EMPTY_DESCRIPTIONS\x10\f\x12(\n" +
+	"$TASK_WORKFLOW_ACTION_FIX_EMPTY_NAMES\x10\r\x12%\n" +
+	"!TASK_WORKFLOW_ACTION_SANITY_CHECK\x10\x0e\x12(\n" +
+	"$TASK_WORKFLOW_ACTION_FIX_INVALID_IDS\x10\x0f\x12&\n" +
+	"\"TASK_WORKFLOW_ACTION_LINK_PLANNING\x10\x10\x12$\n" +
+	" TASK_WORKFLOW_ACTION_ADD_COMMENT\x10\x11\x12)\n" +
+	"%TASK_WORKFLOW_ACTION_REQUEST_APPROVAL\x10\x12\x12'\n" +
+	"#TASK_WORKFLOW_ACTION_SYNC_APPROVALS\x10\x13\x12.\n" +
+	"*TASK_WORKFLOW_ACTION_APPLY_APPROVAL_RESULT\x10\x14\x12'\n" +
+	"#TASK_WORKFLOW_ACTION_SYNC_FROM_PLAN\x10\x15\x12)\n" +
+	"%TASK_WORKFLOW_ACTION_SYNC_PLAN_STATUS\x10\x16\x12\"\n" +
+	"\x1eTASK_WORKFLOW_ACTION_SUMMARIZE\x10\x17\x12$\n" +
+	" TASK_WORKFLOW_ACTION_RUN_WITH_AI\x10\x18\x12*\n" +
+	"&TASK_WORKFLOW_ACTION_ENRICH_TOOL_HINTS\x10\x19\x12\x1e\n" +
+	"\x1aTASK_WORKFLOW_ACTION_CLAIM\x10\x1a\x12$\n" +
+	" TASK_WORKFLOW_ACTION_BATCH_CLAIM\x10\x1b\x12 \n" +
+	"\x1cTASK_WORKFLOW_ACTION_RELEASE\x10\x1c\x12%\n" +
+	"!TASK_WORKFLOW_ACTION_AGENT_STATUS\x10\x1d\x12\"\n" +
+	"\x1eTASK_WORKFLOW_ACTION_START_RUN\x10\x1e\x12 \n" +
+	"\x1cTASK_WORKFLOW_ACTION_END_RUN\x10\x1f\x12\"\n" +
+	"\x1eTASK_WORKFLOW_ACTION_LIST_RUNS\x10 \x12!\n" +
+	"\x1dTASK_WORKFLOW_ACTION_SHOW_RUN\x10!\x12\x1f\n" +
+	"\x1bTASK_WORKFLOW_ACTION_VERIFY\x10\"\x12%\n" +
+	"!TASK_WORKFLOW_ACTION_ADD_PROGRESS\x10#\x12\x1e\n" +
+	"\x1aTASK_WORKFLOW_ACTION_SPLIT\x10$*\xb8\x06\n" +
 	"\x12TaskAnalysisAction\x12$\n" +
 	" TASK_ANALYSIS_ACTION_UNSPECIFIED\x10\x00\x12#\n" +
 	"\x1fTASK_ANALYSIS_ACTION_DUPLICATES\x10\x01\x12\x1d\n" +
@@ -7581,7 +8725,17 @@ const file_proto_tools_proto_rawDesc = "" +
 	"!TASK_ANALYSIS_ACTION_SUGGEST_DEPS\x10\b\x12\x1e\n" +
 	"\x1aTASK_ANALYSIS_ACTION_STALE\x10\t\x12$\n" +
 	" TASK_ANALYSIS_ACTION_COMPLETABLE\x10\n" +
-	"*\x9e\x01\n" +
+	"\x12#\n" +
+	"\x1fTASK_ANALYSIS_ACTION_NEXT_BATCH\x10\v\x12)\n" +
+	"%TASK_ANALYSIS_ACTION_FIX_MISSING_DEPS\x10\f\x12!\n" +
+	"\x1dTASK_ANALYSIS_ACTION_VALIDATE\x10\r\x12'\n" +
+	"#TASK_ANALYSIS_ACTION_EXECUTION_PLAN\x10\x0e\x12#\n" +
+	"\x1fTASK_ANALYSIS_ACTION_COMPLEXITY\x10\x0f\x12-\n" +
+	")TASK_ANALYSIS_ACTION_DEPENDENCIES_SUMMARY\x10\x10\x12-\n" +
+	")TASK_ANALYSIS_ACTION_SUGGEST_DEPENDENCIES\x10\x11\x12\x1e\n" +
+	"\x1aTASK_ANALYSIS_ACTION_NOISE\x10\x12\x12(\n" +
+	"$TASK_ANALYSIS_ACTION_INFER_OWNERSHIP\x10\x13\x12!\n" +
+	"\x1dTASK_ANALYSIS_ACTION_HOTSPOTS\x10\x14*\x9e\x01\n" +
 	"\rSessionAction\x12\x1e\n" +
 	"\x1aSESSION_ACTION_UNSPECIFIED\x10\x00\x12\x18\n" +
 	"\x14SESSION_ACTION_PRIME\x10\x01\x12\x1a\n" +
@@ -7627,7 +8781,83 @@ const file_proto_tools_proto_rawDesc = "" +
 	"\x15GIT_TOOLS_ACTION_DIFF\x10\x04\x12\x1a\n" +
 	"\x16GIT_TOOLS_ACTION_GRAPH\x10\x05\x12\x1a\n" +
 	"\x16GIT_TOOLS_ACTION_MERGE\x10\x06\x12\x1f\n" +
-	"\x1bGIT_TOOLS_ACTION_SET_BRANCH\x10\aB$Z\"github.com/davidl71/exarp-go/protob\x06proto3"
+	"\x1bGIT_TOOLS_ACTION_SET_BRANCH\x10\a*\xbe\x01\n" +
+	"\x18GitMergeConflictStrategy\x12+\n" +
+	"'GIT_MERGE_CONFLICT_STRATEGY_UNSPECIFIED\x10\x00\x12%\n" +
+	"!GIT_MERGE_CONFLICT_STRATEGY_NEWER\x10\x01\x12&\n" +
+	"\"GIT_MERGE_CONFLICT_STRATEGY_SOURCE\x10\x02\x12&\n" +
+	"\"GIT_MERGE_CONFLICT_STRATEGY_TARGET\x10\x03*\x9d\x03\n" +
+	"\x17SessionHandoffSubAction\x12*\n" +
+	"&SESSION_HANDOFF_SUB_ACTION_UNSPECIFIED\x10\x00\x12\"\n" +
+	"\x1eSESSION_HANDOFF_SUB_ACTION_END\x10\x01\x12%\n" +
+	"!SESSION_HANDOFF_SUB_ACTION_RESUME\x10\x02\x12%\n" +
+	"!SESSION_HANDOFF_SUB_ACTION_LATEST\x10\x03\x12#\n" +
+	"\x1fSESSION_HANDOFF_SUB_ACTION_LIST\x10\x04\x12#\n" +
+	"\x1fSESSION_HANDOFF_SUB_ACTION_SYNC\x10\x05\x12%\n" +
+	"!SESSION_HANDOFF_SUB_ACTION_EXPORT\x10\x06\x12$\n" +
+	" SESSION_HANDOFF_SUB_ACTION_CLOSE\x10\a\x12&\n" +
+	"\"SESSION_HANDOFF_SUB_ACTION_APPROVE\x10\b\x12%\n" +
+	"!SESSION_HANDOFF_SUB_ACTION_DELETE\x10\t*\xa1\x01\n" +
+	"\x14SessionSyncDirection\x12&\n" +
+	"\"SESSION_SYNC_DIRECTION_UNSPECIFIED\x10\x00\x12\x1f\n" +
+	"\x1bSESSION_SYNC_DIRECTION_BOTH\x10\x01\x12\x1f\n" +
+	"\x1bSESSION_SYNC_DIRECTION_PULL\x10\x02\x12\x1f\n" +
+	"\x1bSESSION_SYNC_DIRECTION_PUSH\x10\x03*\x9c\x01\n" +
+	"\x12WorkflowModeAction\x12$\n" +
+	" WORKFLOW_MODE_ACTION_UNSPECIFIED\x10\x00\x12\x1e\n" +
+	"\x1aWORKFLOW_MODE_ACTION_FOCUS\x10\x01\x12 \n" +
+	"\x1cWORKFLOW_MODE_ACTION_SUGGEST\x10\x02\x12\x1e\n" +
+	"\x1aWORKFLOW_MODE_ACTION_STATS\x10\x03*s\n" +
+	"\x10SetupHooksAction\x12\"\n" +
+	"\x1eSETUP_HOOKS_ACTION_UNSPECIFIED\x10\x00\x12\x1a\n" +
+	"\x16SETUP_HOOKS_ACTION_GIT\x10\x01\x12\x1f\n" +
+	"\x1bSETUP_HOOKS_ACTION_PATTERNS\x10\x02*\xd7\x01\n" +
+	"\x11MemoryMaintAction\x12#\n" +
+	"\x1fMEMORY_MAINT_ACTION_UNSPECIFIED\x10\x00\x12\x1e\n" +
+	"\x1aMEMORY_MAINT_ACTION_HEALTH\x10\x01\x12\x1a\n" +
+	"\x16MEMORY_MAINT_ACTION_GC\x10\x02\x12\x1d\n" +
+	"\x19MEMORY_MAINT_ACTION_PRUNE\x10\x03\x12#\n" +
+	"\x1fMEMORY_MAINT_ACTION_CONSOLIDATE\x10\x04\x12\x1d\n" +
+	"\x19MEMORY_MAINT_ACTION_DREAM\x10\x05*\xc0\x01\n" +
+	"\x18MemoryMaintMergeStrategy\x12+\n" +
+	"'MEMORY_MAINT_MERGE_STRATEGY_UNSPECIFIED\x10\x00\x12&\n" +
+	"\"MEMORY_MAINT_MERGE_STRATEGY_NEWEST\x10\x01\x12&\n" +
+	"\"MEMORY_MAINT_MERGE_STRATEGY_OLDEST\x10\x02\x12'\n" +
+	"#MEMORY_MAINT_MERGE_STRATEGY_LONGEST\x10\x03*\xa9\x01\n" +
+	"\x10MemoryMaintScope\x12\"\n" +
+	"\x1eMEMORY_MAINT_SCOPE_UNSPECIFIED\x10\x00\x12\x1a\n" +
+	"\x16MEMORY_MAINT_SCOPE_DAY\x10\x01\x12\x1b\n" +
+	"\x17MEMORY_MAINT_SCOPE_WEEK\x10\x02\x12\x1c\n" +
+	"\x18MEMORY_MAINT_SCOPE_MONTH\x10\x03\x12\x1a\n" +
+	"\x16MEMORY_MAINT_SCOPE_ALL\x10\x04*\xae\x01\n" +
+	"\x10MemoryToolAction\x12\"\n" +
+	"\x1eMEMORY_TOOL_ACTION_UNSPECIFIED\x10\x00\x12\x1b\n" +
+	"\x17MEMORY_TOOL_ACTION_SAVE\x10\x01\x12\x1d\n" +
+	"\x19MEMORY_TOOL_ACTION_RECALL\x10\x02\x12\x1d\n" +
+	"\x19MEMORY_TOOL_ACTION_SEARCH\x10\x03\x12\x1b\n" +
+	"\x17MEMORY_TOOL_ACTION_LIST\x10\x04*\x9a\x01\n" +
+	"\x11ContextToolAction\x12#\n" +
+	"\x1fCONTEXT_TOOL_ACTION_UNSPECIFIED\x10\x00\x12!\n" +
+	"\x1dCONTEXT_TOOL_ACTION_SUMMARIZE\x10\x01\x12\x1e\n" +
+	"\x1aCONTEXT_TOOL_ACTION_BUDGET\x10\x02\x12\x1d\n" +
+	"\x19CONTEXT_TOOL_ACTION_BATCH\x10\x03*\xd9\x01\n" +
+	"\x14LocalLLMSummaryLevel\x12'\n" +
+	"#LOCAL_LLM_SUMMARY_LEVEL_UNSPECIFIED\x10\x00\x12!\n" +
+	"\x1dLOCAL_LLM_SUMMARY_LEVEL_BRIEF\x10\x01\x12$\n" +
+	" LOCAL_LLM_SUMMARY_LEVEL_DETAILED\x10\x02\x12'\n" +
+	"#LOCAL_LLM_SUMMARY_LEVEL_KEY_METRICS\x10\x03\x12&\n" +
+	"\"LOCAL_LLM_SUMMARY_LEVEL_ACTIONABLE\x10\x04*\xb4\x01\n" +
+	"\x16LocalLLMDocstringStyle\x12)\n" +
+	"%LOCAL_LLM_DOCSTRING_STYLE_UNSPECIFIED\x10\x00\x12$\n" +
+	" LOCAL_LLM_DOCSTRING_STYLE_GOOGLE\x10\x01\x12#\n" +
+	"\x1fLOCAL_LLM_DOCSTRING_STYLE_NUMPY\x10\x02\x12$\n" +
+	" LOCAL_LLM_DOCSTRING_STYLE_SPHINX\x10\x03*\xa3\x01\n" +
+	"\x0fLocalLLMBackend\x12!\n" +
+	"\x1dLOCAL_LLM_BACKEND_UNSPECIFIED\x10\x00\x12\x18\n" +
+	"\x14LOCAL_LLM_BACKEND_FM\x10\x01\x12\x19\n" +
+	"\x15LOCAL_LLM_BACKEND_MLX\x10\x02\x12\x1c\n" +
+	"\x18LOCAL_LLM_BACKEND_OLLAMA\x10\x03\x12\x1a\n" +
+	"\x16LOCAL_LLM_BACKEND_AUTO\x10\x04B$Z\"github.com/davidl71/exarp-go/protob\x06proto3"
 
 var (
 	file_proto_tools_proto_rawDescOnce sync.Once
@@ -7641,8 +8871,8 @@ func file_proto_tools_proto_rawDescGZIP() []byte {
 	return file_proto_tools_proto_rawDescData
 }
 
-var file_proto_tools_proto_enumTypes = make([]protoimpl.EnumInfo, 11)
-var file_proto_tools_proto_msgTypes = make([]protoimpl.MessageInfo, 74)
+var file_proto_tools_proto_enumTypes = make([]protoimpl.EnumInfo, 24)
+var file_proto_tools_proto_msgTypes = make([]protoimpl.MessageInfo, 75)
 var file_proto_tools_proto_goTypes = []any{
 	(OutputFormat)(0),                   // 0: exarp.tools.OutputFormat
 	(ReportAction)(0),                   // 1: exarp.tools.ReportAction
@@ -7655,131 +8885,160 @@ var file_proto_tools_proto_goTypes = []any{
 	(TestingAction)(0),                  // 8: exarp.tools.TestingAction
 	(AutomationAction)(0),               // 9: exarp.tools.AutomationAction
 	(GitToolsAction)(0),                 // 10: exarp.tools.GitToolsAction
-	(*Memory)(nil),                      // 11: exarp.tools.Memory
-	(*MemoryRequest)(nil),               // 12: exarp.tools.MemoryRequest
-	(*MemoryResponse)(nil),              // 13: exarp.tools.MemoryResponse
-	(*ContextItem)(nil),                 // 14: exarp.tools.ContextItem
-	(*ContextRequest)(nil),              // 15: exarp.tools.ContextRequest
-	(*ContextResponse)(nil),             // 16: exarp.tools.ContextResponse
-	(*ContextSummary)(nil),              // 17: exarp.tools.ContextSummary
-	(*ReportRequest)(nil),               // 18: exarp.tools.ReportRequest
-	(*ReportResponse)(nil),              // 19: exarp.tools.ReportResponse
-	(*BriefingQuote)(nil),               // 20: exarp.tools.BriefingQuote
-	(*BriefingData)(nil),                // 21: exarp.tools.BriefingData
-	(*AIInsights)(nil),                  // 22: exarp.tools.AIInsights
-	(*Metrics)(nil),                     // 23: exarp.tools.Metrics
-	(*PlanningSnippet)(nil),             // 24: exarp.tools.PlanningSnippet
-	(*ProjectOverviewData)(nil),         // 25: exarp.tools.ProjectOverviewData
-	(*ScorecardData)(nil),               // 26: exarp.tools.ScorecardData
-	(*ProjectInfo)(nil),                 // 27: exarp.tools.ProjectInfo
-	(*HealthData)(nil),                  // 28: exarp.tools.HealthData
-	(*CodebaseMetrics)(nil),             // 29: exarp.tools.CodebaseMetrics
-	(*TaskMetrics)(nil),                 // 30: exarp.tools.TaskMetrics
-	(*ProjectPhase)(nil),                // 31: exarp.tools.ProjectPhase
-	(*RiskOrBlocker)(nil),               // 32: exarp.tools.RiskOrBlocker
-	(*NextAction)(nil),                  // 33: exarp.tools.NextAction
-	(*AnalyzeAlignmentRequest)(nil),     // 34: exarp.tools.AnalyzeAlignmentRequest
-	(*TaskAnalysisRequest)(nil),         // 35: exarp.tools.TaskAnalysisRequest
-	(*TaskAnalysisResponse)(nil),        // 36: exarp.tools.TaskAnalysisResponse
-	(*AutomationResponse)(nil),          // 37: exarp.tools.AutomationResponse
-	(*EstimationResult)(nil),            // 38: exarp.tools.EstimationResult
-	(*HealthReport)(nil),                // 39: exarp.tools.HealthReport
-	(*InferTaskProgressResponse)(nil),   // 40: exarp.tools.InferTaskProgressResponse
-	(*TaskDiscoveryRequest)(nil),        // 41: exarp.tools.TaskDiscoveryRequest
-	(*TaskWorkflowRequest)(nil),         // 42: exarp.tools.TaskWorkflowRequest
-	(*TaskSummary)(nil),                 // 43: exarp.tools.TaskSummary
-	(*SyncResults)(nil),                 // 44: exarp.tools.SyncResults
-	(*TaskWorkflowResponse)(nil),        // 45: exarp.tools.TaskWorkflowResponse
-	(*AutomationRequest)(nil),           // 46: exarp.tools.AutomationRequest
-	(*TestingRequest)(nil),              // 47: exarp.tools.TestingRequest
-	(*TestingResponse)(nil),             // 48: exarp.tools.TestingResponse
-	(*GenerateConfigRequest)(nil),       // 49: exarp.tools.GenerateConfigRequest
-	(*HealthRequest)(nil),               // 50: exarp.tools.HealthRequest
-	(*SecurityRequest)(nil),             // 51: exarp.tools.SecurityRequest
-	(*LintRequest)(nil),                 // 52: exarp.tools.LintRequest
-	(*EstimationRequest)(nil),           // 53: exarp.tools.EstimationRequest
-	(*GitToolsRequest)(nil),             // 54: exarp.tools.GitToolsRequest
-	(*GitToolsResponse)(nil),            // 55: exarp.tools.GitToolsResponse
-	(*SessionRequest)(nil),              // 56: exarp.tools.SessionRequest
-	(*SessionDetection)(nil),            // 57: exarp.tools.SessionDetection
-	(*SessionAgentContext)(nil),         // 58: exarp.tools.SessionAgentContext
-	(*SessionWorkflow)(nil),             // 59: exarp.tools.SessionWorkflow
-	(*LockCleanupReport)(nil),           // 60: exarp.tools.LockCleanupReport
-	(*SessionPrimeResult)(nil),          // 61: exarp.tools.SessionPrimeResult
-	(*SessionHandoffResult)(nil),        // 62: exarp.tools.SessionHandoffResult
-	(*WorkflowModeRequest)(nil),         // 63: exarp.tools.WorkflowModeRequest
-	(*SetupHooksRequest)(nil),           // 64: exarp.tools.SetupHooksRequest
-	(*CheckAttributionRequest)(nil),     // 65: exarp.tools.CheckAttributionRequest
-	(*AddExternalToolHintsRequest)(nil), // 66: exarp.tools.AddExternalToolHintsRequest
-	(*MemoryMaintRequest)(nil),          // 67: exarp.tools.MemoryMaintRequest
-	(*ToolCatalogRequest)(nil),          // 68: exarp.tools.ToolCatalogRequest
-	(*OllamaRequest)(nil),               // 69: exarp.tools.OllamaRequest
-	(*MLXRequest)(nil),                  // 70: exarp.tools.MLXRequest
-	(*PromptTrackingRequest)(nil),       // 71: exarp.tools.PromptTrackingRequest
-	(*RecommendRequest)(nil),            // 72: exarp.tools.RecommendRequest
-	(*InferSessionModeRequest)(nil),     // 73: exarp.tools.InferSessionModeRequest
-	(*ContextBudgetRequest)(nil),        // 74: exarp.tools.ContextBudgetRequest
-	(*CachedTaskExecutionPack)(nil),     // 75: exarp.tools.CachedTaskExecutionPack
-	nil,                                 // 76: exarp.tools.Memory.MetadataEntry
-	nil,                                 // 77: exarp.tools.MemoryResponse.CategoriesEntry
-	nil,                                 // 78: exarp.tools.ContextResponse.TokenEstimateEntry
-	nil,                                 // 79: exarp.tools.ContextSummary.TokenEstimateEntry
-	nil,                                 // 80: exarp.tools.Metrics.ComponentScoresEntry
-	nil,                                 // 81: exarp.tools.Metrics.CountsEntry
-	nil,                                 // 82: exarp.tools.ScorecardData.ComponentScoresEntry
-	nil,                                 // 83: exarp.tools.ScorecardData.MetricsCountsEntry
-	nil,                                 // 84: exarp.tools.HealthData.ScoresEntry
-	(*timestamppb.Timestamp)(nil),       // 85: google.protobuf.Timestamp
+	(GitMergeConflictStrategy)(0),       // 11: exarp.tools.GitMergeConflictStrategy
+	(SessionHandoffSubAction)(0),        // 12: exarp.tools.SessionHandoffSubAction
+	(SessionSyncDirection)(0),           // 13: exarp.tools.SessionSyncDirection
+	(WorkflowModeAction)(0),             // 14: exarp.tools.WorkflowModeAction
+	(SetupHooksAction)(0),               // 15: exarp.tools.SetupHooksAction
+	(MemoryMaintAction)(0),              // 16: exarp.tools.MemoryMaintAction
+	(MemoryMaintMergeStrategy)(0),       // 17: exarp.tools.MemoryMaintMergeStrategy
+	(MemoryMaintScope)(0),               // 18: exarp.tools.MemoryMaintScope
+	(MemoryToolAction)(0),               // 19: exarp.tools.MemoryToolAction
+	(ContextToolAction)(0),              // 20: exarp.tools.ContextToolAction
+	(LocalLLMSummaryLevel)(0),           // 21: exarp.tools.LocalLLMSummaryLevel
+	(LocalLLMDocstringStyle)(0),         // 22: exarp.tools.LocalLLMDocstringStyle
+	(LocalLLMBackend)(0),                // 23: exarp.tools.LocalLLMBackend
+	(*Memory)(nil),                      // 24: exarp.tools.Memory
+	(*MemoryRequest)(nil),               // 25: exarp.tools.MemoryRequest
+	(*MemoryResponse)(nil),              // 26: exarp.tools.MemoryResponse
+	(*ContextItem)(nil),                 // 27: exarp.tools.ContextItem
+	(*ContextRequest)(nil),              // 28: exarp.tools.ContextRequest
+	(*ContextResponse)(nil),             // 29: exarp.tools.ContextResponse
+	(*ContextSummary)(nil),              // 30: exarp.tools.ContextSummary
+	(*ReportRequest)(nil),               // 31: exarp.tools.ReportRequest
+	(*ReportResponse)(nil),              // 32: exarp.tools.ReportResponse
+	(*BriefingQuote)(nil),               // 33: exarp.tools.BriefingQuote
+	(*BriefingData)(nil),                // 34: exarp.tools.BriefingData
+	(*AIInsights)(nil),                  // 35: exarp.tools.AIInsights
+	(*Metrics)(nil),                     // 36: exarp.tools.Metrics
+	(*PlanningSnippet)(nil),             // 37: exarp.tools.PlanningSnippet
+	(*ProjectOverviewData)(nil),         // 38: exarp.tools.ProjectOverviewData
+	(*ScorecardData)(nil),               // 39: exarp.tools.ScorecardData
+	(*ProjectInfo)(nil),                 // 40: exarp.tools.ProjectInfo
+	(*HealthData)(nil),                  // 41: exarp.tools.HealthData
+	(*CodebaseMetrics)(nil),             // 42: exarp.tools.CodebaseMetrics
+	(*TaskMetrics)(nil),                 // 43: exarp.tools.TaskMetrics
+	(*ProjectPhase)(nil),                // 44: exarp.tools.ProjectPhase
+	(*RiskOrBlocker)(nil),               // 45: exarp.tools.RiskOrBlocker
+	(*NextAction)(nil),                  // 46: exarp.tools.NextAction
+	(*AnalyzeAlignmentRequest)(nil),     // 47: exarp.tools.AnalyzeAlignmentRequest
+	(*TaskAnalysisRequest)(nil),         // 48: exarp.tools.TaskAnalysisRequest
+	(*TaskAnalysisResponse)(nil),        // 49: exarp.tools.TaskAnalysisResponse
+	(*AutomationResponse)(nil),          // 50: exarp.tools.AutomationResponse
+	(*EstimationResult)(nil),            // 51: exarp.tools.EstimationResult
+	(*HealthReport)(nil),                // 52: exarp.tools.HealthReport
+	(*InferTaskProgressResponse)(nil),   // 53: exarp.tools.InferTaskProgressResponse
+	(*InferTaskProgressRequest)(nil),    // 54: exarp.tools.InferTaskProgressRequest
+	(*TaskDiscoveryRequest)(nil),        // 55: exarp.tools.TaskDiscoveryRequest
+	(*TaskWorkflowRequest)(nil),         // 56: exarp.tools.TaskWorkflowRequest
+	(*TaskSummary)(nil),                 // 57: exarp.tools.TaskSummary
+	(*SyncResults)(nil),                 // 58: exarp.tools.SyncResults
+	(*TaskWorkflowResponse)(nil),        // 59: exarp.tools.TaskWorkflowResponse
+	(*AutomationRequest)(nil),           // 60: exarp.tools.AutomationRequest
+	(*TestingRequest)(nil),              // 61: exarp.tools.TestingRequest
+	(*TestingResponse)(nil),             // 62: exarp.tools.TestingResponse
+	(*GenerateConfigRequest)(nil),       // 63: exarp.tools.GenerateConfigRequest
+	(*HealthRequest)(nil),               // 64: exarp.tools.HealthRequest
+	(*SecurityRequest)(nil),             // 65: exarp.tools.SecurityRequest
+	(*LintRequest)(nil),                 // 66: exarp.tools.LintRequest
+	(*EstimationRequest)(nil),           // 67: exarp.tools.EstimationRequest
+	(*GitToolsRequest)(nil),             // 68: exarp.tools.GitToolsRequest
+	(*GitToolsResponse)(nil),            // 69: exarp.tools.GitToolsResponse
+	(*SessionRequest)(nil),              // 70: exarp.tools.SessionRequest
+	(*SessionDetection)(nil),            // 71: exarp.tools.SessionDetection
+	(*SessionAgentContext)(nil),         // 72: exarp.tools.SessionAgentContext
+	(*SessionWorkflow)(nil),             // 73: exarp.tools.SessionWorkflow
+	(*LockCleanupReport)(nil),           // 74: exarp.tools.LockCleanupReport
+	(*SessionPrimeResult)(nil),          // 75: exarp.tools.SessionPrimeResult
+	(*SessionHandoffResult)(nil),        // 76: exarp.tools.SessionHandoffResult
+	(*WorkflowModeRequest)(nil),         // 77: exarp.tools.WorkflowModeRequest
+	(*SetupHooksRequest)(nil),           // 78: exarp.tools.SetupHooksRequest
+	(*CheckAttributionRequest)(nil),     // 79: exarp.tools.CheckAttributionRequest
+	(*AddExternalToolHintsRequest)(nil), // 80: exarp.tools.AddExternalToolHintsRequest
+	(*MemoryMaintRequest)(nil),          // 81: exarp.tools.MemoryMaintRequest
+	(*ToolCatalogRequest)(nil),          // 82: exarp.tools.ToolCatalogRequest
+	(*OllamaRequest)(nil),               // 83: exarp.tools.OllamaRequest
+	(*MLXRequest)(nil),                  // 84: exarp.tools.MLXRequest
+	(*PromptTrackingRequest)(nil),       // 85: exarp.tools.PromptTrackingRequest
+	(*RecommendRequest)(nil),            // 86: exarp.tools.RecommendRequest
+	(*InferSessionModeRequest)(nil),     // 87: exarp.tools.InferSessionModeRequest
+	(*ContextBudgetRequest)(nil),        // 88: exarp.tools.ContextBudgetRequest
+	(*CachedTaskExecutionPack)(nil),     // 89: exarp.tools.CachedTaskExecutionPack
+	nil,                                 // 90: exarp.tools.Memory.MetadataEntry
+	nil,                                 // 91: exarp.tools.MemoryResponse.CategoriesEntry
+	nil,                                 // 92: exarp.tools.ContextResponse.TokenEstimateEntry
+	nil,                                 // 93: exarp.tools.ContextSummary.TokenEstimateEntry
+	nil,                                 // 94: exarp.tools.Metrics.ComponentScoresEntry
+	nil,                                 // 95: exarp.tools.Metrics.CountsEntry
+	nil,                                 // 96: exarp.tools.ScorecardData.ComponentScoresEntry
+	nil,                                 // 97: exarp.tools.ScorecardData.MetricsCountsEntry
+	nil,                                 // 98: exarp.tools.HealthData.ScoresEntry
+	(*timestamppb.Timestamp)(nil),       // 99: google.protobuf.Timestamp
 }
 var file_proto_tools_proto_depIdxs = []int32{
-	76, // 0: exarp.tools.Memory.metadata:type_name -> exarp.tools.Memory.MetadataEntry
-	11, // 1: exarp.tools.MemoryResponse.memories:type_name -> exarp.tools.Memory
-	77, // 2: exarp.tools.MemoryResponse.categories:type_name -> exarp.tools.MemoryResponse.CategoriesEntry
-	78, // 3: exarp.tools.ContextResponse.token_estimate:type_name -> exarp.tools.ContextResponse.TokenEstimateEntry
-	17, // 4: exarp.tools.ContextResponse.summaries:type_name -> exarp.tools.ContextSummary
-	79, // 5: exarp.tools.ContextSummary.token_estimate:type_name -> exarp.tools.ContextSummary.TokenEstimateEntry
-	1,  // 6: exarp.tools.ReportRequest.action_enum:type_name -> exarp.tools.ReportAction
-	0,  // 7: exarp.tools.ReportRequest.output_format_enum:type_name -> exarp.tools.OutputFormat
-	22, // 8: exarp.tools.ReportResponse.ai_insights:type_name -> exarp.tools.AIInsights
-	20, // 9: exarp.tools.BriefingData.quotes:type_name -> exarp.tools.BriefingQuote
-	23, // 10: exarp.tools.AIInsights.metrics:type_name -> exarp.tools.Metrics
-	80, // 11: exarp.tools.Metrics.component_scores:type_name -> exarp.tools.Metrics.ComponentScoresEntry
-	81, // 12: exarp.tools.Metrics.counts:type_name -> exarp.tools.Metrics.CountsEntry
-	27, // 13: exarp.tools.ProjectOverviewData.project:type_name -> exarp.tools.ProjectInfo
-	28, // 14: exarp.tools.ProjectOverviewData.health:type_name -> exarp.tools.HealthData
-	29, // 15: exarp.tools.ProjectOverviewData.codebase:type_name -> exarp.tools.CodebaseMetrics
-	30, // 16: exarp.tools.ProjectOverviewData.tasks:type_name -> exarp.tools.TaskMetrics
-	31, // 17: exarp.tools.ProjectOverviewData.phases:type_name -> exarp.tools.ProjectPhase
-	32, // 18: exarp.tools.ProjectOverviewData.risks:type_name -> exarp.tools.RiskOrBlocker
-	33, // 19: exarp.tools.ProjectOverviewData.next_actions:type_name -> exarp.tools.NextAction
-	24, // 20: exarp.tools.ProjectOverviewData.planning:type_name -> exarp.tools.PlanningSnippet
-	82, // 21: exarp.tools.ScorecardData.component_scores:type_name -> exarp.tools.ScorecardData.ComponentScoresEntry
-	83, // 22: exarp.tools.ScorecardData.metrics_counts:type_name -> exarp.tools.ScorecardData.MetricsCountsEntry
-	84, // 23: exarp.tools.HealthData.scores:type_name -> exarp.tools.HealthData.ScoresEntry
-	3,  // 24: exarp.tools.TaskAnalysisRequest.action_enum:type_name -> exarp.tools.TaskAnalysisAction
-	0,  // 25: exarp.tools.TaskAnalysisRequest.output_format_enum:type_name -> exarp.tools.OutputFormat
-	2,  // 26: exarp.tools.TaskWorkflowRequest.action_enum:type_name -> exarp.tools.TaskWorkflowAction
-	0,  // 27: exarp.tools.TaskWorkflowRequest.output_format_enum:type_name -> exarp.tools.OutputFormat
-	43, // 28: exarp.tools.TaskWorkflowResponse.tasks:type_name -> exarp.tools.TaskSummary
-	44, // 29: exarp.tools.TaskWorkflowResponse.sync_results:type_name -> exarp.tools.SyncResults
-	9,  // 30: exarp.tools.AutomationRequest.action_enum:type_name -> exarp.tools.AutomationAction
-	8,  // 31: exarp.tools.TestingRequest.action_enum:type_name -> exarp.tools.TestingAction
-	5,  // 32: exarp.tools.HealthRequest.action_enum:type_name -> exarp.tools.HealthAction
-	6,  // 33: exarp.tools.SecurityRequest.action_enum:type_name -> exarp.tools.SecurityAction
-	7,  // 34: exarp.tools.LintRequest.action_enum:type_name -> exarp.tools.LintAction
-	10, // 35: exarp.tools.GitToolsRequest.action_enum:type_name -> exarp.tools.GitToolsAction
-	0,  // 36: exarp.tools.GitToolsRequest.format_enum:type_name -> exarp.tools.OutputFormat
-	4,  // 37: exarp.tools.SessionRequest.action_enum:type_name -> exarp.tools.SessionAction
-	57, // 38: exarp.tools.SessionPrimeResult.detection:type_name -> exarp.tools.SessionDetection
-	58, // 39: exarp.tools.SessionPrimeResult.agent_context:type_name -> exarp.tools.SessionAgentContext
-	59, // 40: exarp.tools.SessionPrimeResult.workflow:type_name -> exarp.tools.SessionWorkflow
-	60, // 41: exarp.tools.SessionPrimeResult.lock_cleanup:type_name -> exarp.tools.LockCleanupReport
-	85, // 42: exarp.tools.CachedTaskExecutionPack.generated_at:type_name -> google.protobuf.Timestamp
-	43, // [43:43] is the sub-list for method output_type
-	43, // [43:43] is the sub-list for method input_type
-	43, // [43:43] is the sub-list for extension type_name
-	43, // [43:43] is the sub-list for extension extendee
-	0,  // [0:43] is the sub-list for field type_name
+	90, // 0: exarp.tools.Memory.metadata:type_name -> exarp.tools.Memory.MetadataEntry
+	19, // 1: exarp.tools.MemoryRequest.action_enum:type_name -> exarp.tools.MemoryToolAction
+	24, // 2: exarp.tools.MemoryResponse.memories:type_name -> exarp.tools.Memory
+	91, // 3: exarp.tools.MemoryResponse.categories:type_name -> exarp.tools.MemoryResponse.CategoriesEntry
+	20, // 4: exarp.tools.ContextRequest.action_enum:type_name -> exarp.tools.ContextToolAction
+	21, // 5: exarp.tools.ContextRequest.level_enum:type_name -> exarp.tools.LocalLLMSummaryLevel
+	92, // 6: exarp.tools.ContextResponse.token_estimate:type_name -> exarp.tools.ContextResponse.TokenEstimateEntry
+	30, // 7: exarp.tools.ContextResponse.summaries:type_name -> exarp.tools.ContextSummary
+	93, // 8: exarp.tools.ContextSummary.token_estimate:type_name -> exarp.tools.ContextSummary.TokenEstimateEntry
+	1,  // 9: exarp.tools.ReportRequest.action_enum:type_name -> exarp.tools.ReportAction
+	0,  // 10: exarp.tools.ReportRequest.output_format_enum:type_name -> exarp.tools.OutputFormat
+	35, // 11: exarp.tools.ReportResponse.ai_insights:type_name -> exarp.tools.AIInsights
+	33, // 12: exarp.tools.BriefingData.quotes:type_name -> exarp.tools.BriefingQuote
+	36, // 13: exarp.tools.AIInsights.metrics:type_name -> exarp.tools.Metrics
+	94, // 14: exarp.tools.Metrics.component_scores:type_name -> exarp.tools.Metrics.ComponentScoresEntry
+	95, // 15: exarp.tools.Metrics.counts:type_name -> exarp.tools.Metrics.CountsEntry
+	40, // 16: exarp.tools.ProjectOverviewData.project:type_name -> exarp.tools.ProjectInfo
+	41, // 17: exarp.tools.ProjectOverviewData.health:type_name -> exarp.tools.HealthData
+	42, // 18: exarp.tools.ProjectOverviewData.codebase:type_name -> exarp.tools.CodebaseMetrics
+	43, // 19: exarp.tools.ProjectOverviewData.tasks:type_name -> exarp.tools.TaskMetrics
+	44, // 20: exarp.tools.ProjectOverviewData.phases:type_name -> exarp.tools.ProjectPhase
+	45, // 21: exarp.tools.ProjectOverviewData.risks:type_name -> exarp.tools.RiskOrBlocker
+	46, // 22: exarp.tools.ProjectOverviewData.next_actions:type_name -> exarp.tools.NextAction
+	37, // 23: exarp.tools.ProjectOverviewData.planning:type_name -> exarp.tools.PlanningSnippet
+	96, // 24: exarp.tools.ScorecardData.component_scores:type_name -> exarp.tools.ScorecardData.ComponentScoresEntry
+	97, // 25: exarp.tools.ScorecardData.metrics_counts:type_name -> exarp.tools.ScorecardData.MetricsCountsEntry
+	98, // 26: exarp.tools.HealthData.scores:type_name -> exarp.tools.HealthData.ScoresEntry
+	3,  // 27: exarp.tools.TaskAnalysisRequest.action_enum:type_name -> exarp.tools.TaskAnalysisAction
+	0,  // 28: exarp.tools.TaskAnalysisRequest.output_format_enum:type_name -> exarp.tools.OutputFormat
+	2,  // 29: exarp.tools.TaskWorkflowRequest.action_enum:type_name -> exarp.tools.TaskWorkflowAction
+	0,  // 30: exarp.tools.TaskWorkflowRequest.output_format_enum:type_name -> exarp.tools.OutputFormat
+	57, // 31: exarp.tools.TaskWorkflowResponse.tasks:type_name -> exarp.tools.TaskSummary
+	58, // 32: exarp.tools.TaskWorkflowResponse.sync_results:type_name -> exarp.tools.SyncResults
+	9,  // 33: exarp.tools.AutomationRequest.action_enum:type_name -> exarp.tools.AutomationAction
+	8,  // 34: exarp.tools.TestingRequest.action_enum:type_name -> exarp.tools.TestingAction
+	5,  // 35: exarp.tools.HealthRequest.action_enum:type_name -> exarp.tools.HealthAction
+	6,  // 36: exarp.tools.SecurityRequest.action_enum:type_name -> exarp.tools.SecurityAction
+	7,  // 37: exarp.tools.LintRequest.action_enum:type_name -> exarp.tools.LintAction
+	23, // 38: exarp.tools.EstimationRequest.local_ai_backend_enum:type_name -> exarp.tools.LocalLLMBackend
+	21, // 39: exarp.tools.EstimationRequest.summary_level_enum:type_name -> exarp.tools.LocalLLMSummaryLevel
+	10, // 40: exarp.tools.GitToolsRequest.action_enum:type_name -> exarp.tools.GitToolsAction
+	0,  // 41: exarp.tools.GitToolsRequest.format_enum:type_name -> exarp.tools.OutputFormat
+	11, // 42: exarp.tools.GitToolsRequest.conflict_strategy_enum:type_name -> exarp.tools.GitMergeConflictStrategy
+	4,  // 43: exarp.tools.SessionRequest.action_enum:type_name -> exarp.tools.SessionAction
+	12, // 44: exarp.tools.SessionRequest.sub_action_enum:type_name -> exarp.tools.SessionHandoffSubAction
+	13, // 45: exarp.tools.SessionRequest.direction_enum:type_name -> exarp.tools.SessionSyncDirection
+	71, // 46: exarp.tools.SessionPrimeResult.detection:type_name -> exarp.tools.SessionDetection
+	72, // 47: exarp.tools.SessionPrimeResult.agent_context:type_name -> exarp.tools.SessionAgentContext
+	73, // 48: exarp.tools.SessionPrimeResult.workflow:type_name -> exarp.tools.SessionWorkflow
+	74, // 49: exarp.tools.SessionPrimeResult.lock_cleanup:type_name -> exarp.tools.LockCleanupReport
+	14, // 50: exarp.tools.WorkflowModeRequest.action_enum:type_name -> exarp.tools.WorkflowModeAction
+	15, // 51: exarp.tools.SetupHooksRequest.action_enum:type_name -> exarp.tools.SetupHooksAction
+	16, // 52: exarp.tools.MemoryMaintRequest.action_enum:type_name -> exarp.tools.MemoryMaintAction
+	17, // 53: exarp.tools.MemoryMaintRequest.merge_strategy_enum:type_name -> exarp.tools.MemoryMaintMergeStrategy
+	18, // 54: exarp.tools.MemoryMaintRequest.scope_enum:type_name -> exarp.tools.MemoryMaintScope
+	22, // 55: exarp.tools.OllamaRequest.style_enum:type_name -> exarp.tools.LocalLLMDocstringStyle
+	21, // 56: exarp.tools.OllamaRequest.level_enum:type_name -> exarp.tools.LocalLLMSummaryLevel
+	99, // 57: exarp.tools.CachedTaskExecutionPack.generated_at:type_name -> google.protobuf.Timestamp
+	58, // [58:58] is the sub-list for method output_type
+	58, // [58:58] is the sub-list for method input_type
+	58, // [58:58] is the sub-list for extension type_name
+	58, // [58:58] is the sub-list for extension extendee
+	0,  // [0:58] is the sub-list for field type_name
 }
 
 func init() { file_proto_tools_proto_init() }
@@ -7792,8 +9051,8 @@ func file_proto_tools_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_tools_proto_rawDesc), len(file_proto_tools_proto_rawDesc)),
-			NumEnums:      11,
-			NumMessages:   74,
+			NumEnums:      24,
+			NumMessages:   75,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

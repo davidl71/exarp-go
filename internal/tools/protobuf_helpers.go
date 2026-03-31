@@ -70,6 +70,12 @@ func MemoryRequestToParams(req *proto.MemoryRequest) map[string]interface{} {
 		return make(map[string]interface{})
 	}
 
+	if req.ActionEnum != proto.MemoryToolAction_MEMORY_TOOL_ACTION_UNSPECIFIED {
+		if s := memoryToolActionEnumToString(req.ActionEnum); s != "" {
+			params["action"] = s
+		}
+	}
+
 	return params
 }
 
@@ -279,6 +285,17 @@ func ContextRequestToParams(req *proto.ContextRequest) map[string]interface{} {
 	})
 	if err != nil {
 		return make(map[string]interface{})
+	}
+
+	if req.ActionEnum != proto.ContextToolAction_CONTEXT_TOOL_ACTION_UNSPECIFIED {
+		if s := contextToolActionEnumToString(req.ActionEnum); s != "" {
+			params["action"] = s
+		}
+	}
+	if req.LevelEnum != proto.LocalLLMSummaryLevel_LOCAL_LLM_SUMMARY_LEVEL_UNSPECIFIED {
+		if s := localLLMSummaryLevelEnumToString(req.LevelEnum); s != "" {
+			params["level"] = s
+		}
 	}
 
 	return params

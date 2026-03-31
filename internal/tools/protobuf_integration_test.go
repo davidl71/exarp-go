@@ -97,6 +97,23 @@ func TestEstimationRequestToParamsLocalAIBackend(t *testing.T) {
 	}
 }
 
+func TestEstimationRequestToParamsEnumOverridesString(t *testing.T) {
+	req := &proto.EstimationRequest{
+		Action:             "estimate",
+		Name:               "x",
+		LocalAiBackend:     "ollama",
+		LocalAiBackendEnum: proto.LocalLLMBackend_LOCAL_LLM_BACKEND_FM,
+		SummaryLevelEnum:   proto.LocalLLMSummaryLevel_LOCAL_LLM_SUMMARY_LEVEL_DETAILED,
+	}
+	params := EstimationRequestToParams(req)
+	if got, ok := params["local_ai_backend"].(string); !ok || got != "fm" {
+		t.Errorf("local_ai_backend = %v, want fm (enum wins)", params["local_ai_backend"])
+	}
+	if got, ok := params["summary_level"].(string); !ok || got != "detailed" {
+		t.Errorf("summary_level = %v, want detailed", params["summary_level"])
+	}
+}
+
 // TestDecodeArgsToProtoTaskWorkflowTagsJSONArray verifies CLI-style args use JSON arrays for
 // repeated proto fields (canonical #tags must not be sent as a single comma-separated string).
 func TestDecodeArgsToProtoTaskWorkflowTagsJSONArray(t *testing.T) {
@@ -121,4 +138,55 @@ func TestDecodeArgsToProtoTaskWorkflowTagsCSVStringRejected(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error when tags is a string for repeated field")
 	}
+}
+
+// TestDecodeEnumOnlyMCPArgsReportTaskWorkflowTaskAnalysis verifies enum-first MCP payloads that
+// omit legacy "action" / "output_format" strings (protojson field names actionEnum / outputFormatEnum).
+func TestDecodeEnumOnlyMCPArgsReportTaskWorkflowTaskAnalysis(t *testing.T) {
+	t.Parallel()
+
+	t.Run("report", func(t *testing.T) {
+		raw := json.RawMessage(`{"actionEnum":"REPORT_ACTION_SCORECARD","outputFormatEnum":"OUTPUT_FORMAT_JSON"}`)
+		req, err := decodeArgsToProto(raw, func() *proto.ReportRequest { return &proto.ReportRequest{} })
+		if err != nil {
+			t.Fatalf("decodeArgsToProto: %v", err)
+		}
+		if req.GetActionEnum() != proto.ReportAction_REPORT_ACTION_SCORECARD {
+			t.Fatalf("ActionEnum = %v", req.GetActionEnum())
+		}
+		params := ReportRequestToParams(req)
+		if params["action"] != "scorecard" {
+			t.Fatalf("params[action] = %v, want scorecard", params["action"])
+		}
+		if params["output_format"] != "json" {
+			t.Fatalf("params[output_format] = %v, want json", params["output_format"])
+		}
+	})
+
+	t.Run("task_workflow", func(t *testing.T) {
+		raw := json.RawMessage(`{"actionEnum":"TASK_WORKFLOW_ACTION_VERIFY"}`)
+		req, err := decodeArgsToProto(raw, func() *proto.TaskWorkflowRequest { return &proto.TaskWorkflowRequest{} })
+		if err != nil {
+			t.Fatalf("decodeArgsToProto: %v", err)
+		}
+		params := TaskWorkflowRequestToParams(req)
+		if params["action"] != "verify" {
+			t.Fatalf("params[action] = %v, want verify", params["action"])
+		}
+	})
+
+	t.Run("task_analysis", func(t *testing.T) {
+		raw := json.RawMessage(`{"actionEnum":"TASK_ANALYSIS_ACTION_NEXT_BATCH","outputFormatEnum":"OUTPUT_FORMAT_JSON"}`)
+		req, err := decodeArgsToProto(raw, func() *proto.TaskAnalysisRequest { return &proto.TaskAnalysisRequest{} })
+		if err != nil {
+			t.Fatalf("decodeArgsToProto: %v", err)
+		}
+		params := TaskAnalysisRequestToParams(req)
+		if params["action"] != "next_batch" {
+			t.Fatalf("params[action] = %v, want next_batch", params["action"])
+		}
+		if params["output_format"] != "json" {
+			t.Fatalf("params[output_format] = %v, want json", params["output_format"])
+		}
+	})
 }

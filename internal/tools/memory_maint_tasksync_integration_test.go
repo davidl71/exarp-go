@@ -64,8 +64,7 @@ func TestMemoryMaintAndTaskSync_Integration(t *testing.T) {
 	}
 
 	// 2) memory_maint health (same project root; may have 0 memories)
-	healthArgs, _ := json.Marshal(map[string]interface{}{"action": "health"})
-	healthResult, err := handleMemoryMaintNative(ctx, healthArgs)
+	healthResult, err := handleMemoryMaintNative(ctx, map[string]interface{}{"action": "health"})
 	if err != nil {
 		t.Fatalf("memory_maint health: %v", err)
 	}
@@ -81,8 +80,7 @@ func TestMemoryMaintAndTaskSync_Integration(t *testing.T) {
 	}
 
 	// 3) memory_maint gc dry_run (ensures both tools work in sequence)
-	gcArgs, _ := json.Marshal(map[string]interface{}{"action": "gc", "dry_run": true})
-	gcResult, err := handleMemoryMaintNative(ctx, gcArgs)
+	gcResult, err := handleMemoryMaintNative(ctx, map[string]interface{}{"action": "gc", "dry_run": true})
 	if err != nil {
 		t.Fatalf("memory_maint gc: %v", err)
 	}

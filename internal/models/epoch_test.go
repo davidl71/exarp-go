@@ -45,3 +45,38 @@ func TestNormalizeEpochDates(t *testing.T) {
 		t.Errorf("CompletedAt should be unchanged, got %q", task.CompletedAt)
 	}
 }
+
+func TestFillRFC3339FromUnix(t *testing.T) {
+	t.Parallel()
+
+	const ts = int64(1700000000) // 2023-11-14T22:13:20Z
+	want := "2023-11-14T22:13:20Z"
+
+	task := &Todo2Task{
+		ID:           "T-1",
+		CreatedAt:    "",
+		LastModified: "1970-01-01T00:00:00Z",
+		CompletedAt:  "",
+	}
+	task.FillRFC3339FromUnix(ts, ts, 0)
+
+	if task.CreatedAt != want {
+		t.Errorf("CreatedAt = %q, want %q", task.CreatedAt, want)
+	}
+	if task.LastModified != want {
+		t.Errorf("LastModified = %q, want %q", task.LastModified, want)
+	}
+	if task.CompletedAt != "" {
+		t.Errorf("CompletedAt should stay empty when completedAtTS is 0, got %q", task.CompletedAt)
+	}
+
+	// Do not overwrite non-epoch strings or when unix is zero.
+	task2 := &Todo2Task{ID: "T-2", CreatedAt: "2026-06-01T12:00:00Z", LastModified: ""}
+	task2.FillRFC3339FromUnix(0, ts, 0)
+	if task2.CreatedAt != "2026-06-01T12:00:00Z" {
+		t.Errorf("CreatedAt should be unchanged, got %q", task2.CreatedAt)
+	}
+	if task2.LastModified != want {
+		t.Errorf("LastModified = %q, want %q", task2.LastModified, want)
+	}
+}

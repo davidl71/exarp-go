@@ -142,6 +142,30 @@ func SyncTodo2Tasks(projectRoot string) error {
 		taskMap[task.ID] = task
 	}
 
+	// Drop JSON-only rows that duplicate a DB task by normalized content. After tools
+	// delete duplicates in SQLite only, stale JSON copies would otherwise re-enter the
+	// merged set and force multiple UpdateTask calls on the same row (version mismatch).
+	if dbErr == nil && len(dbTasksLoaded) > 0 {
+		dbIDs := make(map[string]struct{}, len(dbTasksLoaded))
+		dbContentKeys := make(map[string]struct{})
+		for _, t := range dbTasksLoaded {
+			dbIDs[t.ID] = struct{}{}
+			if k := normalizeTaskContent(t.Content, t.LongDescription); k != "" {
+				dbContentKeys[k] = struct{}{}
+			}
+		}
+		for id, t := range taskMap {
+			if _, ok := dbIDs[id]; ok {
+				continue
+			}
+			if k := normalizeTaskContent(t.Content, t.LongDescription); k != "" {
+				if _, dup := dbContentKeys[k]; dup {
+					delete(taskMap, id)
+				}
+			}
+		}
+	}
+
 	mergedTasks := make([]Todo2Task, 0, len(taskMap))
 	for _, task := range taskMap {
 		mergedTasks = append(mergedTasks, task)

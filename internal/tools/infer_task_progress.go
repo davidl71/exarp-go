@@ -50,6 +50,51 @@ func InferTaskProgressResponseToMap(resp *proto.InferTaskProgressResponse) map[s
 	return out
 }
 
+// mergeInferTaskProgressRequest overlays proto-decoded infer_task_progress fields onto a raw JSON map.
+// Booleans are applied only when the corresponding key was present in the original JSON so defaults
+// (e.g. use_fm=true when omitted) match legacy Unmarshal behavior.
+func mergeInferTaskProgressRequest(raw map[string]interface{}, req *proto.InferTaskProgressRequest) map[string]interface{} {
+	if raw == nil {
+		raw = make(map[string]interface{})
+	}
+	if req == nil {
+		return raw
+	}
+	has := func(snake, camel string) bool {
+		_, ok1 := raw[snake]
+		_, ok2 := raw[camel]
+		return ok1 || ok2
+	}
+	if req.GetProjectRoot() != "" {
+		raw["project_root"] = req.GetProjectRoot()
+	}
+	if req.GetScanDepth() != 0 {
+		raw["scan_depth"] = int(req.GetScanDepth())
+	}
+	if req.GetConfidenceThreshold() != 0 {
+		raw["confidence_threshold"] = req.GetConfidenceThreshold()
+	}
+	if ex := req.GetFileExtensions(); len(ex) > 0 {
+		raw["file_extensions"] = ex
+	}
+	if req.GetStatusFilter() != "" {
+		raw["status_filter"] = req.GetStatusFilter()
+	}
+	if req.GetOutputPath() != "" {
+		raw["output_path"] = req.GetOutputPath()
+	}
+	if has("use_fm", "useFm") {
+		raw["use_fm"] = req.GetUseFm()
+	}
+	if has("dry_run", "dryRun") {
+		raw["dry_run"] = req.GetDryRun()
+	}
+	if has("auto_update_tasks", "autoUpdateTasks") {
+		raw["auto_update_tasks"] = req.GetAutoUpdateTasks()
+	}
+	return raw
+}
+
 // handleInferTaskProgressNative runs task completion inference (heuristics only in Iteration 1).
 // Loads tasks by status filter (default: In Progress), gathers codebase evidence, scores each task, returns JSON.
 // Does not call database.UpdateTask in this iteration.

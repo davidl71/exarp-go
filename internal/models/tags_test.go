@@ -41,4 +41,3 @@ func TestNormalizeTags_SplitsWhitespaceAndDedupes(t *testing.T) {
 		}
 	}
 }
-
