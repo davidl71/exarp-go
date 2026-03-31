@@ -235,7 +235,7 @@ exarp-go config convert yaml protobuf
 
 # Interactive TUIs
 exarp-go tui                  # Bubbletea terminal UI
-exarp-go tui3270 [--port 3270] # IBM 3270 mainframe TUI (TN3270)
+exarp-go tui3270 [status] [port]  # TN3270 server; Unix detaches by default (--foreground to block)
 
 # Direct tool invocation
 exarp-go -tool <name> -args '{"action":"..."}'

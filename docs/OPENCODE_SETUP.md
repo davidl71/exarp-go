@@ -82,7 +82,7 @@ sed -i '' 's|/path/to/your/project|'"$(pwd)"'|g' opencode.json
 PROJECT_ROOT=$(pwd) ./bin/exarp-go -list
 
 # Should see:
-# Available tools (39 total):
+# Available tools (36 total):
 #   task_workflow
 #   task_analysis
 #   ...

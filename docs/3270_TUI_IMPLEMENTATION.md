@@ -18,7 +18,8 @@ The 3270 TUI provides a classic mainframe-style interface for task management:
 ### Key Components
 
 1. **`tui3270.go`**: Main 3270 TUI implementation
-   - `RunTUI3270()`: Starts the tn3270 server
+   - `RunTUI3270()`: Runs the tn3270 server in the current process
+   - **Unix:** default is **daemon mode** (`tryDetachTUI3270`): re-exec with `setsid`, PID file + `.log` next to it, child clears PID on exit via `EXARP_TUI3270_PIDFILE`. Use `--foreground` / `-f` for interactive logs in the terminal.
    - `handle3270Connection()`: Handles individual client connections
    - Transaction handlers for each screen
 
@@ -41,8 +42,11 @@ The `tui3270State` struct maintains session state:
 ### Starting the Server
 
 ```bash
-# Start on default port 3270
+# Start on default port 3270 (Unix: detaches to background by default)
 exarp-go tui3270
+
+# Stay in foreground (logs in this terminal)
+exarp-go tui3270 --foreground
 
 # Start on custom port
 exarp-go tui3270 "" 2300
