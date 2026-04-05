@@ -128,3 +128,91 @@ func TestFindFromWithMarkers(t *testing.T) {
 		t.Errorf("FindFromWithMarkers = %s, want %s", root, tmpDir)
 	}
 }
+
+func TestFindPrefersConsumerWhenEnvPointsAtExarpSource(t *testing.T) {
+	consumer := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(consumer, ".todo2"), 0755); err != nil {
+		t.Fatalf("consumer .todo2: %v", err)
+	}
+	exarpSrc := t.TempDir()
+	if err := os.WriteFile(filepath.Join(exarpSrc, "go.mod"), []byte("module github.com/davidl71/exarp-go\n\ngo 1.25\n"), 0644); err != nil {
+		t.Fatalf("go.mod: %v", err)
+	}
+	if err := os.MkdirAll(filepath.Join(exarpSrc, "cmd", "server"), 0755); err != nil {
+		t.Fatalf("cmd/server: %v", err)
+	}
+	if err := os.MkdirAll(filepath.Join(exarpSrc, ".todo2"), 0755); err != nil {
+		t.Fatalf("exarp .todo2: %v", err)
+	}
+
+	sub := filepath.Join(consumer, "apps", "svc")
+	if err := os.MkdirAll(sub, 0755); err != nil {
+		t.Fatalf("subdir: %v", err)
+	}
+
+	origWd, _ := os.Getwd()
+	if err := os.Chdir(sub); err != nil {
+		t.Fatalf("chdir: %v", err)
+	}
+	defer os.Chdir(origWd)
+
+	oldEnv := os.Getenv("PROJECT_ROOT")
+	defer os.Setenv("PROJECT_ROOT", oldEnv)
+	os.Setenv("PROJECT_ROOT", exarpSrc)
+
+	root, err := Find()
+	if err != nil {
+		t.Fatalf("Find: %v", err)
+	}
+	want, _ := filepath.EvalSymlinks(consumer)
+	got, _ := filepath.EvalSymlinks(root)
+	if got != want {
+		t.Fatalf("Find() = %s, want consumer root %s", root, consumer)
+	}
+}
+
+func TestFindStrictProjectRootSkipsConsumerPreference(t *testing.T) {
+	consumer := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(consumer, ".todo2"), 0755); err != nil {
+		t.Fatalf("consumer .todo2: %v", err)
+	}
+	exarpSrc := t.TempDir()
+	if err := os.WriteFile(filepath.Join(exarpSrc, "go.mod"), []byte("module github.com/davidl71/exarp-go\n\ngo 1.25\n"), 0644); err != nil {
+		t.Fatalf("go.mod: %v", err)
+	}
+	if err := os.MkdirAll(filepath.Join(exarpSrc, "cmd", "server"), 0755); err != nil {
+		t.Fatalf("cmd/server: %v", err)
+	}
+	if err := os.MkdirAll(filepath.Join(exarpSrc, ".todo2"), 0755); err != nil {
+		t.Fatalf("exarp .todo2: %v", err)
+	}
+	sub := filepath.Join(consumer, "x")
+	if err := os.MkdirAll(sub, 0755); err != nil {
+		t.Fatalf("subdir: %v", err)
+	}
+
+	origWd, _ := os.Getwd()
+	if err := os.Chdir(sub); err != nil {
+		t.Fatalf("chdir: %v", err)
+	}
+	defer os.Chdir(origWd)
+
+	oldEnv := os.Getenv("PROJECT_ROOT")
+	oldStrict := os.Getenv("EXARP_STRICT_PROJECT_ROOT")
+	defer func() {
+		os.Setenv("PROJECT_ROOT", oldEnv)
+		os.Setenv("EXARP_STRICT_PROJECT_ROOT", oldStrict)
+	}()
+	os.Setenv("PROJECT_ROOT", exarpSrc)
+	os.Setenv("EXARP_STRICT_PROJECT_ROOT", "1")
+
+	root, err := Find()
+	if err != nil {
+		t.Fatalf("Find: %v", err)
+	}
+	want, _ := filepath.EvalSymlinks(exarpSrc)
+	got, _ := filepath.EvalSymlinks(root)
+	if got != want {
+		t.Fatalf("Find() = %s, want PROJECT_ROOT %s", root, exarpSrc)
+	}
+}

@@ -6,9 +6,11 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/davidl71/exarp-go/internal/config"
 	"github.com/davidl71/exarp-go/internal/database"
+	"github.com/davidl71/exarp-go/internal/projectroot"
 	"github.com/davidl71/exarp-go/internal/tools"
 )
 
@@ -23,6 +25,22 @@ func RunDoctor() error {
 	} else {
 		root = projectRoot
 		fmt.Printf("project_root: %s\n", root)
+		if env := strings.TrimSpace(os.Getenv("PROJECT_ROOT")); env != "" &&
+			!strings.Contains(env, "{{PROJECT_ROOT}}") {
+			if absEnv, e := filepath.Abs(env); e == nil {
+				if cwd, e2 := os.Getwd(); e2 == nil {
+					if cwdRoot, e3 := projectroot.FindFrom(cwd); e3 == nil {
+						envNorm, _ := filepath.EvalSymlinks(absEnv)
+						cwdNorm, _ := filepath.EvalSymlinks(cwdRoot)
+						effectNorm, _ := filepath.EvalSymlinks(root)
+						if envNorm != cwdNorm && effectNorm == cwdNorm &&
+							projectroot.IsExarpGoSourceRoot(envNorm) {
+							fmt.Printf("note: PROJECT_ROOT=%s points at exarp-go source; effective root is cwd-based %s (unset PROJECT_ROOT or set EXARP_STRICT_PROJECT_ROOT=1 to force env).\n", absEnv, root)
+						}
+					}
+				}
+			}
+		}
 		dbPath := filepath.Join(root, ".todo2", "todo2.db")
 		if st, e := os.Stat(dbPath); e != nil {
 			fmt.Printf("todo2_db: %s (missing: %v)\n", dbPath, e)
@@ -48,6 +66,7 @@ func RunDoctor() error {
 		fmt.Printf("exarp_binary: %s\n", exe)
 		fmt.Printf("hint: build CLI with: go build -o bin/exarp-go ./cmd/server\n")
 	}
+	fmt.Printf("hint: list tasks with: task list --status Todo --json (use this repo as cwd / resolved project_root; avoid ad-hoc sqlite3 unless debugging schema)\n")
 
 	if root != "" {
 		if _, err := config.LoadConfig(root); err != nil {
