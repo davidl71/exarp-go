@@ -6,7 +6,9 @@ import (
 	"testing"
 
 	"github.com/davidl71/exarp-go/internal/framework"
+	"github.com/davidl71/exarp-go/proto"
 	"github.com/davidl71/exarp-go/tests/fixtures"
+	"github.com/spf13/cast"
 )
 
 func TestHandler_ArgumentParsing(t *testing.T) {
@@ -451,5 +453,27 @@ func TestHandleContextBatchNative(t *testing.T) {
 				tt.check(t, result)
 			}
 		})
+	}
+}
+
+func TestMergeTaskWorkflowZeroPreservingPriorityRank(t *testing.T) {
+	raw := json.RawMessage(`{"action":"update","priority_rank":0}`)
+	req, err := decodeArgsToProto(raw, func() *proto.TaskWorkflowRequest {
+		return &proto.TaskWorkflowRequest{}
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	params := TaskWorkflowRequestToParams(req)
+	if _, ok := params["priority_rank"]; ok {
+		t.Fatalf("expected ProtobufToParams to drop zero priority_rank before merge; got %v", params["priority_rank"])
+	}
+	mergeTaskWorkflowZeroPreservingFieldsFromRawJSON(params, raw)
+	v, ok := params["priority_rank"]
+	if !ok {
+		t.Fatal("expected priority_rank in params after merge")
+	}
+	if n, err := cast.ToInt64E(v); err != nil || n != 0 {
+		t.Fatalf("priority_rank = %v (%v), want 0", v, err)
 	}
 }

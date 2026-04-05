@@ -556,6 +556,7 @@ func handleTaskWorkflow(ctx context.Context, args json.RawMessage) ([]framework.
 	}
 
 	params := TaskWorkflowRequestToParams(req)
+	mergeTaskWorkflowZeroPreservingFieldsFromRawJSON(params, args)
 	framework.ApplyDefaults(params, map[string]interface{}{
 		"action":        "sync",
 		"output_format": "text",
@@ -646,4 +647,20 @@ func handleTesting(ctx context.Context, args json.RawMessage) ([]framework.TextC
 	}
 
 	return nil, fmt.Errorf("testing action %q not supported; supported: run, coverage, validate", action)
+}
+
+// mergeTaskWorkflowZeroPreservingFieldsFromRawJSON copies selected numeric fields from the original
+// JSON tool args into params. ProtobufToParams uses FilterEmptyStrings, which drops zero numbers;
+// priority_rank 0 is valid (earliest within a priority bucket) and must be preserved.
+func mergeTaskWorkflowZeroPreservingFieldsFromRawJSON(params map[string]interface{}, rawArgs json.RawMessage) {
+	if len(params) == 0 || len(bytes.TrimSpace(rawArgs)) == 0 {
+		return
+	}
+	var raw map[string]interface{}
+	if err := json.Unmarshal(rawArgs, &raw); err != nil || raw == nil {
+		return
+	}
+	if v, ok := raw["priority_rank"]; ok && v != nil {
+		params["priority_rank"] = v
+	}
 }
