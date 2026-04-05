@@ -253,9 +253,10 @@ exarp-go -tool task_analysis -args '{"action":"tags"}'
 ### Local AI Backend Selection
 
 All AI-powered features support backend selection:
-- `fm` - Apple Foundation Models (Mac only)
+- `fm` - Apple Foundation Models / FM chain (Mac CGO build when applicable)
 - `ollama` - Ollama (recommended, cross-platform)
-- `mlx` - MLX (Mac Silicon only)
+
+Legacy stored values `mlx` are ignored (treated like auto / FM chain).
 
 ```bash
 exarp-go task estimate "Complex task" --local-ai-backend ollama

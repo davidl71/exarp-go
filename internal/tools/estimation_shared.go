@@ -10,7 +10,7 @@ import (
 	"github.com/spf13/cast"
 )
 
-// MetadataKeyPreferredBackend is the task metadata key for local AI backend preference (fm, mlx, ollama).
+// MetadataKeyPreferredBackend is the task metadata key for local AI backend preference (fm, ollama).
 const MetadataKeyPreferredBackend = "preferred_backend"
 
 // MetadataKeyRecommendedTools is the task metadata key for recommended MCP tools (e.g. tractatus_thinking, context7).
@@ -42,14 +42,16 @@ func GetRecommendedTools(metadata map[string]interface{}) []string {
 }
 
 // GetPreferredBackend returns the preferred local AI backend from task metadata, or "" if unset.
-// Valid values: "fm", "mlx", "ollama".
+// Valid values: "fm", "ollama". Legacy "mlx" maps to "" (auto).
 func GetPreferredBackend(metadata map[string]interface{}) string {
 	if metadata == nil {
 		return ""
 	}
 	s := strings.TrimSpace(strings.ToLower(cast.ToString(metadata[MetadataKeyPreferredBackend])))
 	switch s {
-	case "fm", "mlx", "ollama":
+	case "mlx":
+		return ""
+	case "fm", "ollama":
 		return s
 	default:
 		return ""

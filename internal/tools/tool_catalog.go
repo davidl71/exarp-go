@@ -80,7 +80,7 @@ func GetToolCatalog() map[string]ToolCatalogEntry {
 			Tool:             "task_workflow",
 			Hint:             "TRIGGER: 'task workflow', 'create task', 'update task', 'list tasks', 'T-xxx', 'todo', 'triaging', 'start run', 'verify'. Use for lifecycle plus execution-cockpit actions. Prefer exarp-go task CLI aliases for simple list/show/update/create flows.",
 			Category:         "Task Management",
-			Description:      "Manages task workflow and execution state: list/create/update, claim, start_run/end_run, verify, add_progress, split, and approvals. Prefer CLI aliases for simple list/show/update/create flows. Never edit .todo2/state.todo2.json directly.",
+			Description:      "Manages task workflow and execution state: list/create/update, claim, start_run/end_run, verify, add_progress, split, import_sqlite (merge other Todo2 SQLite DBs), and approvals. Prefer CLI aliases for simple list/show/update/create flows. Never edit .todo2/state.todo2.json directly.",
 			Aliases:          []string{"task list", "task show", "task update", "task create", "stdio://agent/task/{task_id}/execution-pack"},
 			Class:            "primary",
 			RecommendedModel: "claude-haiku",
@@ -288,7 +288,7 @@ func GetToolCatalog() map[string]ToolCatalogEntry {
 			RecommendedModel: "claude-haiku",
 		},
 
-		// AI & ML (LLM abstraction: FM, Ollama, MLX)
+		// AI & ML (LLM abstraction: FM, Ollama)
 		"fm_plan_and_execute": {
 			Tool:             "fm_plan_and_execute",
 			Hint:             "Plan-and-execute with FM/Ollama. Breaks task into subtasks (planner), runs workers in parallel, combines. Use for complex single-shot tasks.",
@@ -307,9 +307,9 @@ func GetToolCatalog() map[string]ToolCatalogEntry {
 		},
 		"text_generate": {
 			Tool:             "text_generate",
-			Hint:             "Unified generate-text dispatcher. provider=fm|ollama|insight|mlx|localai|gateway|auto. Single entry point for all LLM text generation.",
+			Hint:             "Unified generate-text dispatcher. provider=fm|ollama|insight|localai|gateway|auto. Single entry point for all LLM text generation.",
 			Category:         "AI & ML",
-			Description:      "Unified text generation across all backends (FM, Ollama, MLX, LocalAI, gateway, auto model selection)",
+			Description:      "Unified text generation across all backends (FM, Ollama, LocalAI, gateway, auto model selection)",
 			Class:            "primary",
 			RecommendedModel: "claude-haiku",
 		},
@@ -320,14 +320,6 @@ func GetToolCatalog() map[string]ToolCatalogEntry {
 			Description:      "Model-assisted task execution: load task, run task_execution prompt, parse response, optionally apply file changes, add result comment (T-215)",
 			Class:            "alias",
 			PreferredTool:    "task_workflow",
-			RecommendedModel: "claude-haiku",
-		},
-		"mlx": {
-			Tool:             "mlx",
-			Hint:             "LLM abstraction (MLX). action=status|hardware|models|generate. Bridge-only; report insights use DefaultReportInsight() (MLX then FM).",
-			Category:         "AI & ML",
-			Description:      "MLX on Apple Silicon; part of LLM abstraction (report insights: MLX then FM)",
-			Class:            "specialist",
 			RecommendedModel: "claude-haiku",
 		},
 		"recommend": {

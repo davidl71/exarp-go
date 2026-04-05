@@ -1,4 +1,4 @@
-// Integration tests that call real LLM backends (FM, Ollama, MLX) when available.
+// Integration tests that call real LLM backends (FM, Ollama) when available.
 // Skip with: go test -short ./internal/tools/...
 // Run with: go test -run RealModels ./internal/tools/... (omit -short)
 package tools
@@ -40,7 +40,7 @@ func TestRealModels_TextGenerate(t *testing.T) {
 
 	gen := DefaultFMProvider()
 	if gen == nil || !gen.Supported() {
-		t.Skip("no real model backend available (FM/Ollama/MLX)")
+		t.Skip("no real model backend available (FM/Ollama)")
 	}
 
 	text, err := gen.Generate(ctx, "Reply with exactly the word OK and nothing else.", 10, 0)
@@ -96,7 +96,7 @@ func TestRealModels_TaskExecutionFlow(t *testing.T) {
 
 	gen := DefaultFMProvider()
 	if gen == nil || !gen.Supported() {
-		t.Skip("no real model backend available (FM/Ollama/MLX)")
+		t.Skip("no real model backend available (FM/Ollama)")
 	}
 
 	ctx := context.Background()

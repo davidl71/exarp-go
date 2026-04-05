@@ -3,6 +3,8 @@ package tools
 import (
 	"fmt"
 	"testing"
+
+	"github.com/davidl71/exarp-go/internal/models"
 )
 
 // generateTestTasks creates test tasks with dependencies.
@@ -455,6 +457,23 @@ func TestBuildTaskGraphParentID(t *testing.T) {
 
 	if ordered[0] != "T-P" {
 		t.Errorf("first = %v, want T-P", ordered[0])
+	}
+}
+
+func TestBacklogExecutionOrderPriorityRank(t *testing.T) {
+	tasks := []Todo2Task{
+		{ID: "T-a", Content: "a", Status: models.StatusTodo, Priority: models.PriorityHigh, PriorityRank: 20},
+		{ID: "T-b", Content: "b", Status: models.StatusTodo, Priority: models.PriorityHigh, PriorityRank: 5},
+	}
+	ids, _, _, err := BacklogExecutionOrder(tasks, nil)
+	if err != nil {
+		t.Fatalf("BacklogExecutionOrder: %v", err)
+	}
+	if len(ids) != 2 {
+		t.Fatalf("len = %d, want 2", len(ids))
+	}
+	if ids[0] != "T-b" || ids[1] != "T-a" {
+		t.Fatalf("order = %v, want [T-b T-a] (lower rank first)", ids)
 	}
 }
 

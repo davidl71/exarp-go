@@ -30,7 +30,7 @@
 | `tools_estimation_git.proto` | `EstimationRequest`, `GitToolsRequest`, `GitToolsResponse` | ~55 |
 | `tools_session.proto` | `SessionRequest`, `SessionDetection`, `SessionAgentContext`, `SessionWorkflow`, `LockCleanupReport`, `SessionPrimeResult`, `SessionHandoffResult` | ~95 |
 | `tools_misc.proto` | `WorkflowModeRequest`, `SetupHooksRequest`, `CheckAttributionRequest`, `AddExternalToolHintsRequest`, `MemoryMaintRequest`, `ToolCatalogRequest` | ~75 |
-| `tools_llm.proto` | `OllamaRequest`, `MLXRequest`, `PromptTrackingRequest`, `RecommendRequest`, `InferSessionModeRequest`, `ContextBudgetRequest` | ~95 |
+| `tools_llm.proto` | `OllamaRequest`, *(MLXRequest removed)*, `PromptTrackingRequest`, `RecommendRequest`, `InferSessionModeRequest`, `ContextBudgetRequest` | ~95 |
 
 Exact message-to-file mapping can be tuned (e.g. merge small files into `tools_misc.proto` or split task further).
 

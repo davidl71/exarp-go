@@ -87,7 +87,7 @@ func handleAgentCard(ctx context.Context, uri string) ([]byte, string, error) {
 		SchemaVersion: "1.0",
 		Name:          "exarp-go",
 		Version:       version,
-		Description:   "exarp-go MCP server — task management, local AI (FM/Ollama/MLX), project health, semantic memory, and agent automation.",
+		Description:   "exarp-go MCP server — task management, local AI (FM/Ollama), project health, semantic memory, and agent automation.",
 		Transports:    []string{"stdio-mcp", "acp", "mcp-http"},
 		Capabilities: agentCapabilities{
 			Streaming:              true,

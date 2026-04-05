@@ -264,6 +264,8 @@ func handleTaskWorkflowUpdate(ctx context.Context, params map[string]interface{}
 		priority = normalizePriority(priority)
 	}
 
+	priorityRankVal, hasPriorityRank := ParamIntOK(params, "priority_rank")
+
 	addTags := parseTagsFromParams(params)
 	removeTags := parseRemoveTagsFromParams(params)
 	name := cast.ToString(params["name"])
@@ -280,8 +282,8 @@ func handleTaskWorkflowUpdate(ctx context.Context, params map[string]interface{}
 	projectIDParam := strings.TrimSpace(cast.ToString(params["project_id"]))
 	hasProjectID := projectIDParam != ""
 
-	if newStatus == "" && priority == "" && len(addTags) == 0 && len(removeTags) == 0 && name == "" && longDescription == "" && parentID == "" && dependencies == nil && !hasLocalAIBackend && !hasRecommendedTools && !hasOwnership && !hasProjectID {
-		return nil, fmt.Errorf("update action requires at least one of new_status, priority, tags, remove_tags, name, long_description, parent_id, project_id, dependencies, local_ai_backend, recommended_tools, or ownership fields (owned_files, lane, etc.)")
+	if newStatus == "" && priority == "" && !hasPriorityRank && len(addTags) == 0 && len(removeTags) == 0 && name == "" && longDescription == "" && parentID == "" && dependencies == nil && !hasLocalAIBackend && !hasRecommendedTools && !hasOwnership && !hasProjectID {
+		return nil, fmt.Errorf("update action requires at least one of new_status, priority, priority_rank, tags, remove_tags, name, long_description, parent_id, project_id, dependencies, local_ai_backend, recommended_tools, or ownership fields (owned_files, lane, etc.)")
 	}
 
 	useClaim := newStatus == models.StatusInProgress
@@ -297,6 +299,7 @@ func handleTaskWorkflowUpdate(ctx context.Context, params map[string]interface{}
 	}
 
 	canUseBatchUpdate := !useClaim &&
+		!hasPriorityRank &&
 		len(addTags) == 0 &&
 		len(removeTags) == 0 &&
 		name == "" &&
@@ -368,6 +371,10 @@ func handleTaskWorkflowUpdate(ctx context.Context, params map[string]interface{}
 				task.Priority = priority
 			}
 
+			if hasPriorityRank {
+				task.PriorityRank = priorityRankVal
+			}
+
 			if len(removeTags) > 0 {
 				removeSet := make(map[string]bool)
 				for _, t := range removeTags {
@@ -422,7 +429,10 @@ func handleTaskWorkflowUpdate(ctx context.Context, params map[string]interface{}
 
 			if hasLocalAIBackend {
 				backend := strings.TrimSpace(strings.ToLower(localAIBackend))
-				if backend == "fm" || backend == "mlx" || backend == "ollama" {
+				if backend == "mlx" {
+					backend = ""
+				}
+				if backend == "fm" || backend == "ollama" {
 					if task.Metadata == nil {
 						task.Metadata = make(map[string]interface{})
 					}

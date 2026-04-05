@@ -61,7 +61,7 @@ Tools are registered from `registry.go` → `registry_core.go`, `registry_ai.go`
 | **task_discovery** | `task_discovery_native.go`, `task_discovery_native_scanners.go`, `task_discovery_common.go`, `task_discovery_native_nocgo.go` | **Stay** |
 | **task_analysis** | `task_analysis_shared.go`, `task_analysis_graph.go`, `task_analysis_algorithms.go`, `task_analysis_deps.go`, `task_analysis_deps_analysis.go`, `task_analysis_suggest_deps.go`, `task_analysis_ownership.go`, `task_analysis_tags.go`, `task_analysis_tags_discover.go`, `task_analysis_tags_llm.go`, `task_analyzer.go`, `graph_helpers.go`, `plan_waves.go`, `planning_links_helpers.go`, `statistics.go`, `normalization.go` | **Stay** (gonum + `models.Todo2Task`) |
 | **session** | `session.go`, `session_handoff.go`, `session_helpers.go`, `session_helpers_handoff.go`, `session_assignee.go`, `session_ledger.go`, `session_lazy_context.go`, `session_mode_inference.go` | **Stay** |
-| **report** | `report.go`, `report_format.go`, `report_data.go`, `report_plan.go`, `report_plan_generate.go`, `report_plan_overrides.go`, `report_mlx.go`, `scorecard_*.go`, `wisdom.go` | **Stay** |
+| **report** | `report.go`, `report_format.go`, `report_data.go`, `report_plan.go`, `report_plan_generate.go`, `report_plan_overrides.go`, `report_insights.go`, `scorecard_*.go`, `wisdom.go` | **Stay** |
 | **health** | `health_check.go` | **Stay** (DB + project checks); thin “run command” runners could move to **MCP‑Dev** |
 | **infer_task_progress** | `infer_task_progress.go`, `infer_task_progress_evidence.go` | **Stay** |
 
@@ -69,14 +69,14 @@ Tools are registered from `registry.go` → `registry_core.go`, `registry_ai.go`
 
 **LLM surface (as of this doc):**
 
-- There is **no** `llamacpp` MCP tool in the tree (GGUF path removed; see `docs/BACKLOG_PLAN_2026_03_24.md`). Older docs (`docs/llamacpp-build-requirements.md`, `README.md`) may still mention build steps — treat as historical unless the tool is reintroduced.
+- There is **no** `llamacpp` MCP tool in the tree (GGUF path removed; see `docs/BACKLOG_PLAN_2026_03_24.md`). Historical build notes live under `docs/archive/llamacpp-removed/`.
 - **Apple Foundation Models** are used via **`text_generate`** (`provider=fm`), `fm_plan_and_execute`, scorecard/report insight providers, and `apple_foundation_helpers.go` — not via a separate `apple_foundation_models` tool in `registry_ai.go`. **`cmd/sanity-check`** and **`ExpectedToolCountBase`** in `health_check.go` expect **36** tools; update them when registration changes.
 
 | Concern | Primary files | Target |
 |---------|---------------|--------|
 | **memory / memory_maint** | `memory.go`, `memory_maint.go`, `memory_maint_utils.go`, `process_memory.go` | **Stay** (exarp memory store / task coupling) |
 | **estimation** | `estimation_shared.go`, `estimation_shared_v2.go`, `estimation_historical.go`, `estimation_analytics.go` | **Stay** (historical uses DB); pure math helpers → **Core** if extracted |
-| **ollama / mlx / FM / routers** | `ollama_native.go`, `ollama_native_handlers.go`, `ollama_provider.go`, `mlx_*.go`, `fm_*.go`, `apple_foundation_helpers.go`, `model_router.go`, `text_generate.go`, `llm_backends.go`, `llm_response.go`, `localai_provider.go`, `gateway_provider.go`, `insight_provider.go`, `fm_chain.go`, `fm_plan_execute.go` | **MCP‑LLM** (optional split) |
+| **ollama / FM / routers** | `ollama_native.go`, `ollama_native_handlers.go`, `ollama_provider.go`, `fm_*.go`, `apple_foundation_helpers.go`, `model_router.go`, `text_generate.go`, `llm_backends.go`, `llm_response.go`, `localai_provider.go`, `gateway_provider.go`, `insight_provider.go`, `fm_chain.go`, `fm_plan_execute.go` | **MCP‑LLM** (optional split) |
 | **context / prompt_tracking** | `context.go`, `context_shared.go`, `prompt_tracking.go` | **MCP‑LLM** or **Core** if made backend-agnostic |
 | **recommend** | `recommend.go` | **Stay** or **MCP‑LLM** if only used with local models |
 | **cursor_cloud_agent** | `cursor_cloud_agent.go`, `agent_runner*.go` | **MCP‑Cursor** |
@@ -124,7 +124,7 @@ Tools are registered from `registry.go` → `registry_core.go`, `registry_ai.go`
 
 | Server | Tools / scope | Why split |
 |--------|----------------|-----------|
-| **MCP‑LLM** | `ollama`, `mlx`, `text_generate` (incl. `provider=fm`), `fm_plan_and_execute`, FM helper stack (`fm_*.go`, `apple_foundation_helpers.go`); optional `estimation` generate path | CGO, binary size, model daemons, crashes isolated from task server. No separate `llamacpp` tool today. |
+| **MCP‑LLM** | `ollama`, `text_generate` (incl. `provider=fm`), `fm_plan_and_execute`, FM helper stack (`fm_*.go`, `apple_foundation_helpers.go`); optional `estimation` generate path | CGO, binary size, model daemons, crashes isolated from task server. |
 | **MCP‑Dev** | `lint`, `testing`, `security` | Many external binaries; overlaps dedicated security MCPs |
 | **MCP‑Cursor** | `generate_config`, `cursor_cloud_agent`, maybe `external_tool_hints` | Irrelevant for non-Cursor clients |
 

@@ -9,6 +9,30 @@ import (
 	"charm.land/lipgloss/v2"
 )
 
+func (m *model) syncTaskDetailViewport() {
+	availableWidth := m.effectiveWidth() - 2
+	if availableWidth < 40 {
+		availableWidth = 40
+	}
+
+	maxContentLines := m.effectiveHeight() - 5
+	if maxContentLines < 8 {
+		maxContentLines = 8
+	}
+
+	contentWidth := availableWidth - 4
+	if contentWidth < 30 {
+		contentWidth = 30
+	}
+
+	m.taskDetailViewport.SetWidth(contentWidth)
+	m.taskDetailViewport.SetHeight(maxContentLines)
+
+	content := strings.Join(m.buildDetailLines(contentWidth), "\n")
+	m.taskDetailViewport.SetContent(content)
+	m.taskDetailViewport.FillHeight = true
+}
+
 // buildDetailLines constructs the lines for the task detail body.
 func (m model) buildDetailLines(availableWidth int) []string {
 	task := m.taskDetailTask
@@ -129,13 +153,7 @@ func (m model) viewTaskDetail() string {
 		availableWidth = 40
 	}
 
-	// Reserve lines for header(2) + bottom border(1) + status bar(1) + blank(1) = 5
-	maxContentLines := m.effectiveHeight() - 5
-	if maxContentLines < 8 {
-		maxContentLines = 8
-	}
-
-	allLines := m.buildDetailLines(availableWidth)
+	m.syncTaskDetailViewport()
 
 	var b strings.Builder
 
@@ -155,34 +173,7 @@ func (m model) viewTaskDetail() string {
 	b.WriteString(borderStyle.Render(strings.Repeat("─", availableWidth)))
 	b.WriteString("\n")
 
-	// Scrollable content window
-	scrollTop := m.taskDetailScrollTop
-	if scrollTop > len(allLines)-maxContentLines {
-		scrollTop = len(allLines) - maxContentLines
-	}
-	if scrollTop < 0 {
-		scrollTop = 0
-	}
-
-	end := scrollTop + maxContentLines
-	if end > len(allLines) {
-		end = len(allLines)
-	}
-
-	var contentBlock strings.Builder
-	for i := scrollTop; i < end; i++ {
-		contentBlock.WriteString(normalStyle.Render(allLines[i]))
-		contentBlock.WriteString("\n")
-	}
-
-	// Pad remaining lines so status bar stays at bottom
-	rendered := end - scrollTop
-	for rendered < maxContentLines {
-		contentBlock.WriteString("\n")
-		rendered++
-	}
-
-	b.WriteString(SoftBoxStyle.Render(contentBlock.String()))
+	b.WriteString(SoftBoxStyle.Render(m.taskDetailViewport.View()))
 	b.WriteString("\n")
 
 	b.WriteString(borderStyle.Render(strings.Repeat("─", availableWidth)))
@@ -193,10 +184,11 @@ func (m model) viewTaskDetail() string {
 		helpStyle.Render("↑↓") + " scroll",
 		helpStyle.Render("Esc/Enter") + " close",
 	}
-	if len(allLines) > maxContentLines {
+	if m.taskDetailViewport.TotalLineCount() > m.taskDetailViewport.Height() {
 		scrollPct := 0
-		if len(allLines)-maxContentLines > 0 {
-			scrollPct = scrollTop * 100 / (len(allLines) - maxContentLines)
+		maxOffset := m.taskDetailViewport.TotalLineCount() - m.taskDetailViewport.Height()
+		if maxOffset > 0 {
+			scrollPct = m.taskDetailViewport.YOffset() * 100 / maxOffset
 		}
 		statusParts = append(statusParts, fmt.Sprintf("%d%%", scrollPct))
 	}

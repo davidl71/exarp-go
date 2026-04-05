@@ -4,7 +4,7 @@
 **Version**: v0.3.5  
 **Scope**: Complete guide to exarp-go's AI and LLM capabilities
 
-This guide covers all AI/LLM integration in exarp-go, including backend selection, model recommendations, MLX support, and OpenCode integration.
+This guide covers AI/LLM integration in exarp-go: backend selection, `text_generate`, Ollama, FM chain, LocalAI/gateway, and OpenCode MCP usage. The **`mlx` MCP tool was removed** (2026).
 
 ---
 
@@ -13,11 +13,10 @@ This guide covers all AI/LLM integration in exarp-go, including backend selectio
 1. [Quick Start](#quick-start)
 2. [Supported Backends](#supported-backends)
 3. [Backend Selection Strategy](#backend-selection-strategy)
-4. [MLX Integration](#mlx-integration)
-5. [OpenCode Integration](#opencode-integration)
-6. [Tool Reference](#tool-reference)
-7. [Best Practices](#best-practices)
-8. [Troubleshooting](#troubleshooting)
+4. [OpenCode Integration](#opencode-integration)
+5. [Tool Reference](#tool-reference)
+6. [Best Practices](#best-practices)
+7. [Troubleshooting](#troubleshooting)
 
 ---
 
@@ -28,11 +27,9 @@ This guide covers all AI/LLM integration in exarp-go, including backend selectio
 ```bash
 # Via CLI
 exarp-go -tool ollama -args '{"action":"status"}'
-exarp-go -tool mlx -args '{"action":"status"}'
-exarp-go -tool apple_foundation_models -args '{"action":"status"}'
 
 # Via MCP resource (fastest)
-# Read stdio://models for full backend availability
+# Read stdio://models for full backend availability (fm_available, ollama_reachable, localai, gateway)
 ```
 
 ### Generate Text with Auto-Backend Selection
@@ -61,28 +58,25 @@ exarp-go -tool ollama -args '{"action":"status"}'
 
 ## Supported Backends
 
-exarp-go supports **8 LLM backends** with unified interface:
+exarp-go exposes **local and gateway-backed** generation primarily via **`text_generate`** and the **`ollama`** tool:
 
-| Backend | Status | Best For | Platform | Tool Name |
-|---------|--------|----------|----------|-----------|
-| **Ollama** | ✅ Production | Local inference, variety | All | `ollama` |
-| **Apple FM** | ✅ Production | Lowest latency | macOS only | `apple_foundation_models` |
-| **MLX** | ⚠️ Experimental | GPU acceleration | Apple Silicon | `mlx` |
-| **llamacpp** | ⏸️ Deferred | GGUF models | All | `llamacpp` |
-| **Insight** | ✅ Available | Cloud API | All | `text_generate` (provider=insight) |
-| **LocalAI** | ✅ Available | OpenAI-compatible | All | `text_generate` (provider=localai) |
-| **Gateway** | ✅ Available | Load balancing | All | `text_generate` (provider=gateway) |
-| **Auto** | ✅ Recommended | Best available | All | `text_generate` (provider=auto) |
+| Backend | Status | Best For | Entry |
+|---------|--------|----------|--------|
+| **Ollama** | ✅ Production | Local inference, variety | `ollama` tool; `text_generate` `provider=ollama` |
+| **FM chain** | ✅ Production | On-device / default chain | `text_generate` `provider=fm` |
+| **Insight** | ✅ Available | Report-style blurbs | `text_generate` `provider=insight` |
+| **LocalAI** | ✅ Optional | OpenAI-compatible self-host | `text_generate` `provider=localai` |
+| **Gateway** | ✅ Optional | OpenAI-compatible router | `text_generate` `provider=gateway` |
+| **Auto** | ✅ Recommended | Router selection | `text_generate` `provider=auto` |
 
 ### Backend Priorities (Auto Mode)
 
 When using `provider=auto`, exarp-go selects backends in this order:
 
-1. **Apple Foundation Models** (if available and on macOS)
-2. **Ollama** (if running and models available)
-3. **MLX** (if available and on Apple Silicon)
-4. **LocalAI** (if configured)
-5. **Insight** (fallback cloud)
+1. **FM chain** (when `FMAvailable()` / build allows)
+2. **Ollama** (when reachable)
+3. **LocalAI** / **gateway** (when configured)
+4. **Insight** or other fallbacks per router rules
 
 ---
 
@@ -95,7 +89,7 @@ Are you on macOS?
 ├─ Yes → Do you need lowest latency?
 │   ├─ Yes → Use Apple Foundation Models
 │   └─ No → Do you want local models?
-│       ├─ Yes → Use Ollama (recommended) or MLX
+│       ├─ Yes → Use Ollama (recommended) or `text_generate` `provider=fm`
 │       └─ No → Use Insight/cloud
 └─ No (Linux/Windows)
     ├─ Do you want local models?
@@ -113,80 +107,14 @@ Are you on macOS?
 | **Code generation** | Apple FM or Ollama (codellama) | Low latency, good code understanding |
 | **Analysis/research** | Ollama (larger models) | Better reasoning, acceptable latency |
 | **Quick queries** | Apple FM | Lowest latency |
-| **Offline work** | Ollama or MLX | No internet required |
+| **Offline work** | Ollama (or FM on-device) | No cloud required |
 | **Production** | Ollama + fallback to Insight | Reliability + backup |
 
 ---
 
-## MLX Integration
+### MLX (removed from exarp-go)
 
-### Overview
-
-**MLX** is Apple's machine learning framework optimized for Apple Silicon (M1/M2/M3). exarp-go includes experimental MLX support for local GPU-accelerated inference.
-
-### Current Status
-
-- **Implementation**: Go stub + Python bridge
-- **Status**: Experimental (not enabled in default builds)
-- **Recommendation**: Use Ollama instead for production
-- **Build**: Native Go implementation returns "not available" message
-
-### Why Use MLX?
-
-✅ **Pros:**
-- GPU acceleration on Apple Silicon
-- Lower memory usage than Ollama for some models
-- Direct Metal API access
-
-❌ **Cons:**
-- More complex setup than Ollama
-- Requires Python bridge
-- Less mature than Ollama
-- Smaller model ecosystem
-
-### Installation (If Needed)
-
-```bash
-# Install MLX (requires Python 3.9+)
-pip install mlx mlx-lm
-
-# Test MLX
-python3 -c "import mlx; print(mlx.__version__)"
-
-# Run exarp-go with MLX
-exarp-go -tool mlx -args '{"action":"status"}'
-```
-
-### Using MLX
-
-```bash
-# Check hardware support
-exarp-go -tool mlx -args '{"action":"hardware"}'
-
-# List available models
-exarp-go -tool mlx -args '{"action":"models"}'
-
-# Generate text
-exarp-go -tool mlx -args '{
-  "action": "generate",
-  "model": "mlx-community/Llama-3.2-3B-Instruct-4bit",
-  "prompt": "Explain goroutines",
-  "max_tokens": 500
-}'
-```
-
-### MLX vs Ollama
-
-| Feature | MLX | Ollama |
-|---------|-----|--------|
-| **Setup** | Complex (Python + pip) | Simple (brew install) |
-| **Performance** | GPU-accelerated | CPU/GPU hybrid |
-| **Models** | MLX-converted only | Broad ecosystem |
-| **Stability** | Experimental | Production-ready |
-| **Documentation** | Limited | Excellent |
-| **Recommendation** | Experimental use | Production use |
-
-**Verdict**: **Use Ollama** unless you have specific needs for MLX's Metal API integration or are experimenting with MLX-specific features.
+exarp-go **does not** ship an `mlx` MCP tool or MLX Python bridge. For Apple Silicon MLX models inside **OpenCode**, configure OpenCode’s MLX provider separately ([OPENCODE_INTEGRATION.md](OPENCODE_INTEGRATION.md) §5). For exarp-go, use **Ollama** or **`text_generate`** (`provider=fm`, `ollama`, `auto`).
 
 ---
 
@@ -291,7 +219,7 @@ opencode --config opencode.json
 # - Security scanning
 ```
 
-### OpenCode + MLX Workflow
+### OpenCode + exarp-go LLM workflow
 
 ```bash
 # 1. Configure OpenCode with exarp-go
@@ -300,11 +228,8 @@ opencode --config opencode.json
 # 2. In OpenCode, use exarp-go's LLM tools
 #    OpenCode sends: {"tool": "text_generate", "args": {"provider": "auto", ...}}
 #    
-# 3. exarp-go auto-selects best backend:
-#    - Tries Apple FM (fastest on macOS)
-#    - Falls back to Ollama (most reliable)
-#    - Falls back to MLX (if available)
-#    - Final fallback: cloud (Insight)
+# 3. exarp-go auto-selects best backend (provider=auto):
+#    - FM chain / Ollama / gateway per model router and env
 ```
 
 ### Best Practices for OpenCode
@@ -334,28 +259,21 @@ exarp-go -tool text_generate -args '{
 
 **Providers:**
 - `auto` - Auto-select best backend (recommended)
-- `fm` - Apple Foundation Models
+- `fm` - FM chain / Apple FM when available
 - `ollama` - Ollama
-- `mlx` - MLX (experimental)
-- `llamacpp` - llama.cpp (deferred)
-- `insight` - Cloud API
-- `localai` - LocalAI
-- `gateway` - Load balancer
+- `insight` - Report insight / FM chain path
+- `localai` - LocalAI (`LOCALAI_BASE_URL`)
+- `gateway` - OpenAI-compatible gateway (`OPENAI_GATEWAY_BASE_URL`)
 
 ### Backend-Specific Tools
 
-#### Apple Foundation Models
+#### Apple Foundation Models (via `text_generate`)
+
+There is no separate `apple_foundation_models` MCP tool in the default registry; use:
 
 ```bash
-# Status
-exarp-go -tool apple_foundation_models -args '{"action":"status"}'
-
-# List models
-exarp-go -tool apple_foundation_models -args '{"action":"models"}'
-
-# Generate
-exarp-go -tool apple_foundation_models -args '{
-  "action": "generate",
+exarp-go -tool text_generate -args '{
+  "provider": "fm",
   "prompt": "Explain error handling in Go",
   "temperature": 0.7
 }'
@@ -385,26 +303,6 @@ exarp-go -tool ollama -args '{"action":"quality","model":"llama3.2"}'
 
 # Hardware info
 exarp-go -tool ollama -args '{"action":"hardware"}'
-```
-
-#### MLX
-
-```bash
-# Status
-exarp-go -tool mlx -args '{"action":"status"}'
-
-# Hardware capabilities
-exarp-go -tool mlx -args '{"action":"hardware"}'
-
-# List models
-exarp-go -tool mlx -args '{"action":"models"}'
-
-# Generate
-exarp-go -tool mlx -args '{
-  "action": "generate",
-  "model": "mlx-community/Llama-3.2-3B-Instruct-4bit",
-  "prompt": "Explain channels in Go"
-}'
 ```
 
 ### High-Level AI Tools
@@ -456,7 +354,7 @@ exarp-go -tool task_execute -args '{
 ❌ **Don't:**
 - Hardcode specific backends (reduces portability)
 - Assume backend availability without checking
-- Use experimental backends (MLX) in production
+- Assume a backend is up without checking `stdio://models` or `ollama` status
 - Ignore hardware constraints (memory, GPU)
 
 ### 2. Prompt Engineering
@@ -526,24 +424,10 @@ ollama serve
 - **Version**: Requires recent macOS version
 - **Permissions**: May require approval in System Settings
 
-### MLX Errors
-
-```bash
-# Check Python environment
-python3 --version  # Requires 3.9+
-
-# Check MLX installation
-pip list | grep mlx
-
-# Reinstall if needed
-pip install --upgrade mlx mlx-lm
-```
-
 ### Memory Issues
 
 - **Large models**: Use quantized versions (4-bit, 8-bit)
-- **MLX**: Adjust max_tokens parameter
-- **Ollama**: Use smaller models (3B instead of 13B)
+- **Ollama**: Use smaller models (3B instead of 13B); adjust `max_tokens`
 
 ### Performance Issues
 
@@ -558,7 +442,7 @@ pip install --upgrade mlx mlx-lm
 exarp-go -tool list_resources -args '{}'
 
 # Check which backends are available
-# Read stdio://models response for fm_available, ollama_available, mlx_available
+# Read stdio://models response for fm_available, ollama_reachable, localai_available, gateway_available
 ```
 
 ---
@@ -615,7 +499,6 @@ The `auto` provider implements this strategy automatically.
 ## Related Documentation
 
 - **`docs/EXARP_ABILITIES_AUDIT.md`** - Complete tool reference (39 tools)
-- **`docs/LLAMACPP_FUTURE.md`** - llamacpp integration notes
 - **`docs/TASK_TOOLS_GUIDE.md`** - Task management tools
 - **`docs/INDEX.md`** - Full documentation index
 - **`.cursor/skills/`** - Cursor skill documentation
@@ -632,8 +515,7 @@ The `auto` provider implements this strategy automatically.
 | **Generate text (auto)** | `text_generate` | `provider=auto` |
 | **Check backends** | Resource | `stdio://models` |
 | **Use Ollama** | `ollama` | `action=generate` |
-| **Use Apple FM** | `apple_foundation_models` | `action=generate` |
-| **Use MLX** | `mlx` | `action=generate` |
+| **Use Apple FM / FM chain** | `text_generate` | `provider=fm` |
 | **Get recommendation** | `recommend` | `action=model` |
 | **Execute task with AI** | `task_execute` | `task_id=T-123` |
 
@@ -641,11 +523,10 @@ The `auto` provider implements this strategy automatically.
 
 1. **Use Ollama** for production local inference
 2. **Use provider=auto** for automatic backend selection
-3. **Avoid MLX** unless you need experimental features
-4. **Check availability** before using specific backends
-5. **OpenCode integration** works seamlessly via MCP
-6. **Apple FM** is fastest for quick queries on macOS
-7. **llamacpp** is deferred - use Ollama instead
+3. **Check availability** (`stdio://models`) before relying on a backend
+4. **OpenCode integration** works via MCP alongside OpenCode’s own chat providers
+5. **`provider=fm`** is the usual path for the FM chain on supported macOS builds
+6. **Use Ollama** when you want a broad local model catalog without CGO
 
 ---
 

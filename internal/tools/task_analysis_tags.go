@@ -112,7 +112,6 @@ func CanonicalTagRules() map[string]string {
 		"protobuf-integration":   "mcp",
 
 		// Domain: LLM/AI
-		"mlx":                     "llm",
 		"apple-foundation-models": "llm",
 		"apple-silicon":           "llm",
 		"npu":                     "llm",

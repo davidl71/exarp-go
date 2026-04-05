@@ -341,7 +341,7 @@ type HistoricalTaskData struct {
 	LastModified    string   `json:"lastModified,omitempty"`
 }
 
-// BuildEstimationPrompt returns the standard task estimation prompt for LLM backends (Ollama, MLX, etc.).
+// BuildEstimationPrompt returns the standard task estimation prompt for LLM backends (Ollama, FM, etc.).
 func BuildEstimationPrompt(name, details string, tags []string, priority string) string {
 	tagsStr := "none"
 	if len(tags) > 0 {
@@ -367,7 +367,7 @@ RESPONSE FORMAT (JSON only):
 }`, name, details, tagsStr, priority)
 }
 
-// ParseLLMEstimationResponse extracts EstimationResult from LLM response text (Ollama/MLX/any JSON).
+// ParseLLMEstimationResponse extracts EstimationResult from LLM response text (JSON from Ollama, FM, etc.).
 func ParseLLMEstimationResponse(text string) (*EstimationResult, error) {
 	jsonStr := ExtractJSONObjectFromLLMResponse(text)
 	if jsonStr == "" {

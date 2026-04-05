@@ -166,6 +166,9 @@ type Todo2Task struct {
 	Priority string `protobuf:"bytes,5,opt,name=priority,proto3" json:"priority,omitempty"`
 	// Typed priority (preferred for internal use).
 	PriorityEnum Todo2TaskPriority `protobuf:"varint,18,opt,name=priority_enum,json=priorityEnum,proto3,enum=exarp.todo2.Todo2TaskPriority" json:"priority_enum,omitempty"`
+	// Numeric sort key within the same named priority (low/medium/high/critical).
+	// Lower values order earlier after priority tiering (claim, backlog, list).
+	PriorityRank int32 `protobuf:"varint,19,opt,name=priority_rank,json=priorityRank,proto3" json:"priority_rank,omitempty"`
 	// List of tags associated with the task
 	Tags []string `protobuf:"bytes,6,rep,name=tags,proto3" json:"tags,omitempty"`
 	// List of task IDs this task depends on
@@ -272,6 +275,13 @@ func (x *Todo2Task) GetPriorityEnum() Todo2TaskPriority {
 		return x.PriorityEnum
 	}
 	return Todo2TaskPriority_TODO2_TASK_PRIORITY_UNSPECIFIED
+}
+
+func (x *Todo2Task) GetPriorityRank() int32 {
+	if x != nil {
+		return x.PriorityRank
+	}
+	return 0
 }
 
 func (x *Todo2Task) GetTags() []string {
@@ -412,7 +422,7 @@ var File_proto_todo2_proto protoreflect.FileDescriptor
 
 const file_proto_todo2_proto_rawDesc = "" +
 	"\n" +
-	"\x11proto/todo2.proto\x12\vexarp.todo2\x1a\x1fgoogle/protobuf/timestamp.proto\"\xe1\x05\n" +
+	"\x11proto/todo2.proto\x12\vexarp.todo2\x1a\x1fgoogle/protobuf/timestamp.proto\"\x86\x06\n" +
 	"\tTodo2Task\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x10 \x01(\tR\x04name\x12\x18\n" +
@@ -422,7 +432,8 @@ const file_proto_todo2_proto_rawDesc = "" +
 	"\vstatus_enum\x18\x11 \x01(\x0e2\x1c.exarp.todo2.Todo2TaskStatusR\n" +
 	"statusEnum\x12\x1a\n" +
 	"\bpriority\x18\x05 \x01(\tR\bpriority\x12C\n" +
-	"\rpriority_enum\x18\x12 \x01(\x0e2\x1e.exarp.todo2.Todo2TaskPriorityR\fpriorityEnum\x12\x12\n" +
+	"\rpriority_enum\x18\x12 \x01(\x0e2\x1e.exarp.todo2.Todo2TaskPriorityR\fpriorityEnum\x12#\n" +
+	"\rpriority_rank\x18\x13 \x01(\x05R\fpriorityRank\x12\x12\n" +
 	"\x04tags\x18\x06 \x03(\tR\x04tags\x12\"\n" +
 	"\fdependencies\x18\a \x03(\tR\fdependencies\x12\x1c\n" +
 	"\tcompleted\x18\b \x01(\bR\tcompleted\x12@\n" +

@@ -45,11 +45,12 @@ func handleAutomationDaily(ctx context.Context, params map[string]interface{}) (
 
 	// Conflict detection (multi-agent): report before running tasks
 	if projectRoot, err := FindProjectRoot(); err == nil {
-		if taskOverlaps, fileConflicts, errDetect := DetectConflicts(ctx, projectRoot); errDetect == nil {
-			if len(taskOverlaps) > 0 || len(fileConflicts) > 0 {
+		if taskOverlaps, fileConflicts, forbidden, errDetect := DetectConflicts(ctx, projectRoot); errDetect == nil {
+			if len(taskOverlaps) > 0 || len(fileConflicts) > 0 || len(forbidden) > 0 {
 				results["conflicts"] = map[string]interface{}{
 					"task_overlap": taskOverlaps,
 					"file":         fileConflicts,
+					"forbidden":    forbidden,
 				}
 			}
 		}
@@ -300,11 +301,12 @@ func handleAutomationNightly(ctx context.Context, params map[string]interface{})
 
 	// Conflict detection (multi-agent)
 	if projectRoot, err := FindProjectRoot(); err == nil {
-		if taskOverlaps, fileConflicts, errDetect := DetectConflicts(ctx, projectRoot); errDetect == nil {
-			if len(taskOverlaps) > 0 || len(fileConflicts) > 0 {
+		if taskOverlaps, fileConflicts, forbidden, errDetect := DetectConflicts(ctx, projectRoot); errDetect == nil {
+			if len(taskOverlaps) > 0 || len(fileConflicts) > 0 || len(forbidden) > 0 {
 				results["conflicts"] = map[string]interface{}{
 					"task_overlap": taskOverlaps,
 					"file":         fileConflicts,
+					"forbidden":    forbidden,
 				}
 			}
 		}
@@ -511,11 +513,12 @@ func handleAutomationSprint(ctx context.Context, params map[string]interface{}) 
 
 	// Conflict detection (multi-agent)
 	if projectRoot, err := FindProjectRoot(); err == nil {
-		if taskOverlaps, fileConflicts, errDetect := DetectConflicts(ctx, projectRoot); errDetect == nil {
-			if len(taskOverlaps) > 0 || len(fileConflicts) > 0 {
+		if taskOverlaps, fileConflicts, forbidden, errDetect := DetectConflicts(ctx, projectRoot); errDetect == nil {
+			if len(taskOverlaps) > 0 || len(fileConflicts) > 0 || len(forbidden) > 0 {
 				results["conflicts"] = map[string]interface{}{
 					"task_overlap": taskOverlaps,
 					"file":         fileConflicts,
+					"forbidden":    forbidden,
 				}
 			}
 		}

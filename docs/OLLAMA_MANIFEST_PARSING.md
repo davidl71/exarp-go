@@ -1,6 +1,6 @@
 # Ollama Manifest Parsing Strategy for llama.cpp Integration
 
-**Tag hints:** `#design` `#llamacpp` `#ollama-integration`
+**Tag hints:** `#design` `#ollama-integration`
 
 Design for discovering GGUF model files from Ollama's local storage so llama.cpp can load them directly—enabling "serverless" inference using models already downloaded by Ollama, without the Ollama HTTP API.
 
@@ -278,6 +278,6 @@ if err != nil {
 
 ## References
 
-- [LLAMACPP_EVALUATION.md](LLAMACPP_EVALUATION.md) — go-skynet recommendation, model path strategy
+- [archive/llamacpp-removed/LLAMACPP_EVALUATION.md](archive/llamacpp-removed/LLAMACPP_EVALUATION.md) — historical go-skynet / GGUF notes (not shipped in exarp-go)
 - [Inside Ollama's Model Storage](https://medium.com/@dewasheesh.rana/inside-ollamas-model-storage-understanding-blobs-and-manifests-06f1620dd0b2)
 - Ollama registry: `https://registry.ollama.ai/v2/library/{model}/manifests/{tag}`

@@ -234,7 +234,7 @@ This tells the AI (or human) that the task benefits from the `report`, `task_wor
 
 ### Canonical tool identifiers
 
-See the [Canonical tool identifiers](#2-canonical-tool-identifiers) table above. Common values: `tractatus_thinking`, `context7`, `task_workflow`, `task_analysis`, `report`, `health`, `ollama`, `mlx`.
+See the [Canonical tool identifiers](#2-canonical-tool-identifiers) table above. Common values: `tractatus_thinking`, `context7`, `task_workflow`, `task_analysis`, `report`, `health`, `ollama`, `text_generate`.
 
 ---
 

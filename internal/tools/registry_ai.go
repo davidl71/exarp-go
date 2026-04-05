@@ -133,7 +133,7 @@ func registerAITools(server framework.MCPServer) error {
 	// estimation
 	if err := server.RegisterTool(
 		"estimation",
-		"[HINT: action=estimate|analyze|stats|estimate_batch. Task duration estimation. Use when planning work or estimating backlog. Supports FM/MLX/Ollama backends.]",
+		"[HINT: action=estimate|analyze|stats|estimate_batch. Task duration estimation. Use when planning work or estimating backlog. Supports FM and Ollama backends.]",
 		framework.ToolSchema{
 			Type: "object",
 			Properties: map[string]interface{}{
@@ -177,18 +177,10 @@ func registerAITools(server framework.MCPServer) error {
 					"type":    "boolean",
 					"default": false,
 				},
-				"use_mlx": map[string]interface{}{
-					"type":    "boolean",
-					"default": true,
-				},
-				"mlx_weight": map[string]interface{}{
-					"type":    "number",
-					"default": 0.3,
-				},
 				"local_ai_backend": map[string]interface{}{
 					"type":        "string",
-					"description": "Preferred local LLM for estimation: fm (Apple), mlx, ollama. Overrides use_apple_fm when set.",
-					"enum":        []string{"", "fm", "mlx", "ollama"},
+					"description": "Preferred local LLM for estimation: fm (Apple), ollama. Overrides use_apple_fm when set.",
+					"enum":        []string{"", "fm", "ollama"},
 				},
 			},
 		},
@@ -200,7 +192,7 @@ func registerAITools(server framework.MCPServer) error {
 	// ollama
 	if err := server.RegisterTool(
 		"ollama",
-		"[HINT: action=status|models|generate|pull|hardware|docs|quality|summary. Ollama LLM backend. Use for local text generation via Ollama server. Related: mlx, text_generate.]",
+		"[HINT: action=status|models|generate|pull|hardware|docs|quality|summary. Ollama LLM backend. Use for local text generation via Ollama server. Related: text_generate.]",
 		framework.ToolSchema{
 			Type: "object",
 			Properties: map[string]interface{}{
@@ -263,56 +255,18 @@ func registerAITools(server framework.MCPServer) error {
 		return fmt.Errorf("failed to register ollama: %w", err)
 	}
 
-	// mlx
-	if err := server.RegisterTool(
-		"mlx",
-		"[HINT: action=status|hardware|models|generate. MLX LLM backend for Apple Silicon. Use for on-device generation via MLX. Related: ollama, text_generate.]",
-		framework.ToolSchema{
-			Type: "object",
-			Properties: map[string]interface{}{
-				"action": map[string]interface{}{
-					"type":    "string",
-					"enum":    []string{"status", "hardware", "models", "generate"},
-					"default": "status",
-				},
-				"prompt": map[string]interface{}{
-					"type": "string",
-				},
-				"model": map[string]interface{}{
-					"type":    "string",
-					"default": "mlx-community/Phi-3.5-mini-instruct-4bit",
-				},
-				"max_tokens": map[string]interface{}{
-					"type":    "integer",
-					"default": 512,
-				},
-				"temperature": map[string]interface{}{
-					"type":    "number",
-					"default": 0.7,
-				},
-				"verbose": map[string]interface{}{
-					"type":    "boolean",
-					"default": false,
-				},
-			},
-		},
-		handleMlx,
-	); err != nil {
-		return fmt.Errorf("failed to register mlx: %w", err)
-	}
-
 	// text_generate
 	if err := server.RegisterTool(
 		"text_generate",
-		"[HINT: provider=fm|ollama|insight|mlx|localai|gateway|auto. Unified text generation across supported LLM backends. Single entry point for generate-text. task_type enables auto model selection.]",
+		"[HINT: provider=fm|ollama|insight|localai|gateway|auto. Unified text generation across supported LLM backends. Single entry point for generate-text. task_type enables auto model selection.]",
 		framework.ToolSchema{
 			Type: "object",
 			Properties: map[string]interface{}{
 				"provider": map[string]interface{}{
 					"type":        "string",
-					"enum":        []string{"fm", "ollama", "insight", "mlx", "localai", "gateway", "auto"},
+					"enum":        []string{"fm", "ollama", "insight", "localai", "gateway", "auto"},
 					"default":     "fm",
-					"description": "Backend: fm (Apple/chain), ollama (native Ollama), insight (report), mlx (Apple Silicon), localai (OpenAI-compatible), gateway (OpenAI-compatible router), or auto (model selection from task_type/task_description)",
+					"description": "Backend: fm (Apple/chain), ollama (native Ollama), insight (report), localai (OpenAI-compatible), gateway (OpenAI-compatible router), or auto (model selection from task_type/task_description)",
 				},
 				"prompt": map[string]interface{}{
 					"type":        "string",

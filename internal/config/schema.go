@@ -210,7 +210,6 @@ type ToolsConfig struct {
 	Report    ReportConfig    `yaml:"report"`
 	Linting   LintingConfig   `yaml:"linting"`
 	Testing   TestingConfig   `yaml:"testing"`
-	MLX       MLXConfig       `yaml:"mlx"`
 	Ollama    OllamaConfig    `yaml:"ollama"`
 	Context   ContextConfig   `yaml:"context"`
 }
@@ -244,14 +243,6 @@ type TestingConfig struct {
 	MinCoverage      int    `yaml:"min_coverage"`
 	CoverageFormat   string `yaml:"coverage_format"`
 	Verbose          bool   `yaml:"verbose"`
-}
-
-// MLXConfig contains MLX tool settings.
-type MLXConfig struct {
-	DefaultModel       string  `yaml:"default_model"`
-	DefaultMaxTokens   int     `yaml:"default_max_tokens"`
-	DefaultTemperature float64 `yaml:"default_temperature"`
-	Verbose            bool    `yaml:"verbose"`
 }
 
 // OllamaConfig contains Ollama tool settings.

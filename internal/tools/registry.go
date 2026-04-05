@@ -3,7 +3,7 @@
 // Package tools provides all MCP tool handlers for the exarp-go server.
 // Tools are grouped into four semantic registries:
 //   - registry_core.go:  task_workflow, task_discovery, task_analysis, session, report, health
-//   - registry_ai.go:    memory, memory_maint, estimation, ollama, mlx, text_generate, context,
+//   - registry_ai.go:    memory, memory_maint, estimation, ollama, text_generate, context,
 //     prompt_tracking, recommend, cursor_cloud_agent, fm_plan_and_execute, task_execute, research_aggregator
 //   - registry_infra.go: automation, git_tools, testing, lint, security, generate_config, setup_hooks
 //   - registry_misc.go:  analyze_alignment, check_attribution, add_external_tool_hints, tool_catalog,

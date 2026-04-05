@@ -18,7 +18,7 @@ Use a **factory** when you need **pluggability + discovery + consistent construc
 
 - **Use when**:
   - There are multiple implementations behind an interface/trait (providers, drivers, backends)
-  - Selection happens by name/config and you need validation (`"ollama"`, `"mlx"`, `"sqlite"`, …)
+  - Selection happens by name/config and you need validation (`"ollama"`, `"fm"`, `"sqlite"`, …)
   - You want a single place to register/construct variants and keep wiring predictable
 - **Avoid when**:
   - There is only one implementation and branching is not expected

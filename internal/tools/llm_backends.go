@@ -6,25 +6,22 @@ package tools
 
 import (
 	"os"
-	"runtime"
 	"strings"
 )
 
 // LLMBackendStatus returns a map describing available LLM backends for discovery.
 // Used by stdio://models and by clients that need to know what is available
-// (FM, Ollama, MLX, LocalAI, Gateway) without calling each tool.
+// (FM, Ollama, LocalAI, Gateway) without calling each tool.
 func LLMBackendStatus() map[string]interface{} {
 	return map[string]interface{}{
 		"fm_available":      FMAvailable(),
 		"ollama_reachable":  OllamaReachableForFM(),
-		"mlx_available":     MLAvailable(),
 		"localai_available": LocalAIAvailable(),
 		"gateway_available": GatewayAvailable(),
 		"ollama_tool":       "ollama",
-		"mlx_tool":          "mlx",
 		"localai_tool":      "text_generate",
 		"gateway_tool":      "text_generate",
-		"hint":              "text_generate is the unified generate-text dispatcher (provider=fm|ollama|mlx|localai|gateway|insight|auto). Use provider=auto for model selection. Use provider=gateway with OPENAI_GATEWAY_BASE_URL for any OpenAI-compatible router.",
+		"hint":              "text_generate is the unified generate-text dispatcher (provider=fm|ollama|localai|gateway|insight|auto). Use provider=auto for model selection. Use provider=gateway with OPENAI_GATEWAY_BASE_URL for any OpenAI-compatible router.",
 	}
 }
 
@@ -40,9 +37,3 @@ func GatewayAvailable() bool {
 	return strings.TrimSpace(os.Getenv("OPENAI_GATEWAY_BASE_URL")) != ""
 }
 
-// MLAvailable reports whether MLX is potentially available.
-// MLX (bridge) runs on Apple Silicon; returns true only for darwin/arm64.
-// Does not verify MLX is actually installed—Generate may still fail.
-func MLAvailable() bool {
-	return runtime.GOOS == "darwin" && runtime.GOARCH == "arm64"
-}

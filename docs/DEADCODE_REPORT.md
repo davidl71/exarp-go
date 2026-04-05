@@ -37,8 +37,8 @@ Generated from `deadcode -test ./...`. "Unreachable" = not reachable from `main`
 - `CursorIgnoreGenerator.hasFile`, `discoverTagsFromMarkdown`, `UpdatePlanningDocWithTaskRefs`, `UpdateTaskStatus` — internal helpers; verify no dynamic calls.
 - `HealthDataToProto`, `ProjectOverviewDataToProto`, `GitToolsRequestToParams` — proto helpers; may be called from generated or other packages.
 - `handleInferSessionModeNative` — session mode; ensure dispatched from handlers.
-- **llamacpp_model_manager.go** — whole file unreachable (model manager not wired); remove or wire.
-- **mlx_native_nocgo.go** — `MLXNativeAvailable`; stub for non-CGO builds.
+- ~~**llamacpp_model_manager.go**~~ — **removed** with llamacpp/GGUF path removal.
+- ~~**mlx_native_nocgo.go**~~ — **removed** with MLX tool deprecation.
 
 ### internal/utils
 - `TaskLock`, `StateFileLock` — filelock; may be used by migration or legacy code.
@@ -53,5 +53,4 @@ Generated from `deadcode -test ./...`. "Unreachable" = not reachable from `main`
 
 1. ~~**Done:** Remove `loadInProgressTasks` (infer_task_progress.go).~~
 2. ~~**Done:** Remove `aggregateProjectData` and `formatOverviewText` / `formatOverviewMarkdown` / `formatOverviewHTML` (report uses proto path). Remove `getFloatParam` and `getProjectRoot` (scorecard_go_format).~~
-3. **Optional:** Remove or wire `llamacpp_model_manager.go` and related unreachable functions.
-4. **Audit:** For each remaining item in deadcode output, confirm "keep as API/test" or "safe to remove."
+3. **Audit:** For each remaining item in deadcode output, confirm "keep as API/test" or "safe to remove."

@@ -133,7 +133,7 @@ Values shown are defaults. Durations use Go format (e.g., `30m`, `60s`). Omitted
 | `min_coverage` | int | `80` | Minimum test coverage % |
 | `min_test_confidence` | float | `0.7` | Test suggestion confidence |
 | `min_estimation_confidence` | float | `0.7` | Task estimation confidence |
-| `mlx_weight` | float | `0.3` | MLX model weight in estimation |
+| `mlx_weight` | float | `0.3` | **Deprecated** (ignored in estimation); kept for proto/schema backward compatibility |
 | `max_parallel_tasks` | int | `10` | Max concurrent tasks (automation) |
 | `max_tasks_per_host` | int | `5` | Max tasks per agent/host |
 | `max_automation_iterations` | int | `10` | Max automation loop iterations |
@@ -254,7 +254,7 @@ Tool-specific overrides. Each tool has its own sub-section.
 | `tools.report` | `default_format`, `include_metrics`, `include_recommendations` | format: **json**, metrics: true |
 | `tools.linting` | `default_linter`, `auto_fix`, `timeout` | linter: auto, fix: false, timeout: 60s |
 | `tools.testing` | `min_coverage`, `coverage_format`, `verbose` | coverage: 80, format: html |
-| `tools.mlx` | `default_model`, `default_max_tokens`, `default_temperature` | Phi-3.5-mini, 512, 0.7 |
+| ~~`tools.mlx`~~ | *(removed)* | Field **`mlx`** in protobuf `ToolsConfig` is **reserved**; do not use |
 | `tools.ollama` | `default_model`, `default_host`, `default_context_size` | llama3.2, localhost:11434, 4096 |
 | `tools.context` | `default_budget`, `tokens_per_char` | 4000, 0.25 |
 

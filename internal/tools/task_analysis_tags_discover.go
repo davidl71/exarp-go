@@ -371,8 +371,7 @@ const (
 	discoverTagTimeout = 5 * time.Minute                              // Total timeout for discover_tags action
 	llmTagBatchSize    = 25                                           // Default max tasks per LLM call for tag inference (tune via llm_batch_size; bigger = fewer calls, faster)
 	llmTagMaxTokens    = 320                                          // Max tokens for tag-inference response (short JSON; lower = faster generation)
-	ollamaTinyTagModel = "tinyllama"                                  // Small Ollama model for quick tag inference (use_tiny_tag_model)
-	mlxTinyTagModel    = "mlx-community/TinyLlama-1.1B-Chat-v1.0-mlx" // Small MLX model for quick tag inference
+	ollamaTinyTagModel = "tinyllama" // Small Ollama model for quick tag inference (use_tiny_tag_model)
 )
 
 // ─── effectiveLLMBatchSize ──────────────────────────────────────────────────

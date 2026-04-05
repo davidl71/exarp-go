@@ -61,7 +61,7 @@ type RunResult struct {
 - **CLI:** `exarp-go cursor run` continues to use the Cursor CLI runner (or the configured runner).
 - **Automation:** Optional "run agent" step calls `AgentRunner.Run()` with generated prompt; runner chosen from config.
 - **TUI / handoff:** "Run in child agent" uses the configured runner instead of hardcoded `agent` exec.
-- **Task run-with-ai:** Local LLM flow (ollama/mlx/fm) remains separate; this abstraction is for *agent* runs (Cursor or Cloud), not for local model calls.
+- **Task run-with-ai:** Local LLM flow (ollama / `text_generate` / fm) remains separate; this abstraction is for *agent* runs (Cursor or Cloud), not for local model calls.
 
 ---
 

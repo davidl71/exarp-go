@@ -19,8 +19,6 @@ import (
 //   TaskDiscoveryRequestToParams — TaskDiscoveryRequestToParams converts a protobuf TaskDiscoveryRequest to params map
 //   ParseOllamaRequest — ParseOllamaRequest parses an ollama request (protobuf or JSON).
 //   OllamaRequestToParams — OllamaRequestToParams converts a protobuf OllamaRequest to params map
-//   ParseMlxRequest — ParseMlxRequest parses an mlx request (protobuf or JSON).
-//   MlxRequestToParams — MlxRequestToParams converts a protobuf MlxRequest to params map
 //   ParsePromptTrackingRequest — ParsePromptTrackingRequest parses a prompt_tracking request (protobuf or JSON).
 //   PromptTrackingRequestToParams — PromptTrackingRequestToParams converts a protobuf PromptTrackingRequest to params map
 //   ParseRecommendRequest — ParseRecommendRequest parses a recommend request (protobuf or JSON).
@@ -274,45 +272,6 @@ func OllamaRequestToParams(req *proto.OllamaRequest) map[string]interface{} {
 		if s := localLLMSummaryLevelEnumToString(req.LevelEnum); s != "" {
 			params["level"] = s
 		}
-	}
-
-	return params
-}
-
-// ─── ParseMlxRequest ────────────────────────────────────────────────────────
-// ParseMlxRequest parses an mlx request (protobuf or JSON).
-func ParseMlxRequest(args json.RawMessage) (*proto.MLXRequest, map[string]interface{}, error) {
-	req, params, err := framework.ParseRequest(args, func() *proto.MLXRequest {
-		return &proto.MLXRequest{}
-	})
-	if err != nil {
-		return nil, nil, err
-	}
-
-	if req != nil {
-		return req, nil, nil
-	}
-
-	return nil, params, nil
-}
-
-// ─── MlxRequestToParams ─────────────────────────────────────────────────────
-// MlxRequestToParams converts a protobuf MlxRequest to params map
-// This function now uses the generic ProtobufToParams converter from mcp-go-core.
-func MlxRequestToParams(req *proto.MLXRequest) map[string]interface{} {
-	if req == nil {
-		return make(map[string]interface{})
-	}
-
-	params, err := framework.ProtobufToParams(req, &framework.ProtobufToParamsOptions{
-		FilterEmptyStrings:  true,
-		StringifyArrays:     false,
-		ConvertFloat64ToInt: true,
-		Float64ToIntFields:  []string{"max_tokens"},
-		// Note: temperature remains as float64 (it's a threshold, not a count)
-	})
-	if err != nil {
-		return make(map[string]interface{})
 	}
 
 	return params

@@ -617,4 +617,4 @@ func ProtoToTaskMetrics(pb *proto.TaskMetrics) map[string]interface{} {
 	}
 }
 
-// GoScorecardResultToProto converts GoScorecardResult to proto.ScorecardData for type-safe report/MLX path.
+// GoScorecardResultToProto converts GoScorecardResult to proto.ScorecardData for type-safe report path.

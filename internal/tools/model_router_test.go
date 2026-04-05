@@ -18,12 +18,12 @@ func TestDefaultModelRouter_SelectModel(t *testing.T) {
 		wantOneOf []ModelType
 	}{
 		{"general empty", "", ModelRequirements{}, []ModelType{ModelFM, ModelGateway, ModelOllamaLlama}},
-		{"general explicit", "general", ModelRequirements{}, []ModelType{ModelFM, ModelGateway, ModelOllamaLlama, ModelMLX}},
-		{"code task", "code", ModelRequirements{}, []ModelType{ModelFM, ModelGateway, ModelOllamaCode, ModelMLX}},
-		{"code_analysis", "code_analysis", ModelRequirements{}, []ModelType{ModelFM, ModelGateway, ModelOllamaCode, ModelMLX}},
-		{"code_generation", "code_generation", ModelRequirements{}, []ModelType{ModelFM, ModelGateway, ModelOllamaCode, ModelMLX}},
+		{"general explicit", "general", ModelRequirements{}, []ModelType{ModelFM, ModelGateway, ModelOllamaLlama}},
+		{"code task", "code", ModelRequirements{}, []ModelType{ModelFM, ModelGateway, ModelOllamaCode}},
+		{"code_analysis", "code_analysis", ModelRequirements{}, []ModelType{ModelFM, ModelGateway, ModelOllamaCode}},
+		{"code_generation", "code_generation", ModelRequirements{}, []ModelType{ModelFM, ModelGateway, ModelOllamaCode}},
 		{"prefer speed", "general", ModelRequirements{PreferSpeed: true}, []ModelType{ModelFM, ModelGateway, ModelOllamaLlama}},
-		{"prefer cost general", "general", ModelRequirements{PreferCost: true}, []ModelType{ModelFM, ModelGateway, ModelOllamaLlama, ModelMLX}},
+		{"prefer cost general", "general", ModelRequirements{PreferCost: true}, []ModelType{ModelFM, ModelGateway, ModelOllamaLlama}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -63,7 +63,7 @@ func TestResolveModelForTask_CarriesAgentRole(t *testing.T) {
 }
 
 func TestModelTypeConstants(t *testing.T) {
-	if ModelFM == "" || ModelGateway == "" || ModelOllamaLlama == "" || ModelOllamaCode == "" || ModelMLX == "" {
+	if ModelFM == "" || ModelGateway == "" || ModelOllamaLlama == "" || ModelOllamaCode == "" {
 		t.Error("model type constants should be non-empty")
 	}
 }

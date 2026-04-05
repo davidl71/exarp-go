@@ -115,6 +115,8 @@ func taskWorkflowActionEnumToString(a proto.TaskWorkflowAction) string {
 		return "add_progress"
 	case proto.TaskWorkflowAction_TASK_WORKFLOW_ACTION_SPLIT:
 		return "split"
+	case proto.TaskWorkflowAction_TASK_WORKFLOW_ACTION_IMPORT_SQLITE:
+		return "import_sqlite"
 	default:
 		return ""
 	}
@@ -273,6 +275,8 @@ func gitToolsActionEnumToString(a proto.GitToolsAction) string {
 		return "merge"
 	case proto.GitToolsAction_GIT_TOOLS_ACTION_SET_BRANCH:
 		return "set_branch"
+	case proto.GitToolsAction_GIT_TOOLS_ACTION_LOCAL_COMMITS:
+		return "local_commits"
 	default:
 		return ""
 	}
@@ -458,8 +462,6 @@ func localLLMBackendEnumToString(b proto.LocalLLMBackend) string {
 	switch b {
 	case proto.LocalLLMBackend_LOCAL_LLM_BACKEND_FM:
 		return "fm"
-	case proto.LocalLLMBackend_LOCAL_LLM_BACKEND_MLX:
-		return "mlx"
 	case proto.LocalLLMBackend_LOCAL_LLM_BACKEND_OLLAMA:
 		return "ollama"
 	case proto.LocalLLMBackend_LOCAL_LLM_BACKEND_AUTO:

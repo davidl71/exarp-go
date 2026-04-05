@@ -2,7 +2,7 @@
 
 ## Project
 
-Go-based MCP server. Primary language: Go. Also: shell scripts (scripts/, ansible/), Ansible (YAML playbooks/roles in ansible/). SQLite-backed task system (Todo2). Apple Foundation Models + Ollama + MLX for local AI.
+Go-based MCP server. Primary language: Go. Also: shell scripts (scripts/, ansible/), Ansible (YAML playbooks/roles in ansible/). SQLite-backed task system (Todo2). Apple Foundation Models + Ollama (and optional LocalAI/gateway via `text_generate`) for local AI.
 Run `make sanity-check` for current tool/prompt/resource counts (counts in this file go stale).
 
 ## MCP servers available in this session
@@ -99,7 +99,7 @@ task_workflow  action=list|create|update|delete|summarize|run_with_ai|sync|clari
 
 Task statuses: `Todo` → `In Progress` → `Review` → `Done` (open: `Todo`, `In Progress`, `Blocked`; closed: `Done`, `Cancelled`)
 
-Local AI task subcommands: `task estimate`, `task summarize`, `task run-with-ai`; each supports `--local-ai-backend` or `--backend` (fm|mlx|ollama). `task create` and `task update` accept `--local-ai-backend` to set preferred backend.
+Local AI task subcommands: `task estimate`, `task summarize`, `task run-with-ai`; each supports `--local-ai-backend` or `--backend` (fm|ollama). Legacy `mlx` in stored metadata is ignored (treated like auto/fm). `task create` and `task update` accept `--local-ai-backend` to set preferred backend.
 
 ## Build
 
@@ -124,7 +124,7 @@ Use `go run ./cmd/server ...` for CLI ops during development.
 
 - **Error handling**: always `fmt.Errorf("context: %w", err)` — never ignore errors
 - **Task store**: use `getTaskStore(ctx)` — never load JSON/DB directly in tool handlers
-- **Preferred backend**: stored in `task.Metadata["preferred_backend"]` (fm|mlx|ollama); read with `GetPreferredBackend(task.Metadata)`
+- **Preferred backend**: stored in `task.Metadata["preferred_backend"]` (fm|ollama); legacy `mlx` maps to auto; read with `GetPreferredBackend(task.Metadata)`
 - **New task_workflow actions**: add to switch in `task_workflow_native.go`, handler in `task_workflow_actions.go` or `task_workflow_common.go`, enum in `registry.go`
 - **Count sync**: run `make sanity-check` after adding tools/prompts/resources; update `cmd/sanity-check/main.go` constants + `handlers_test.go` assertions
 - **Middleware chain** (factory/server.go): recovery → cache → logging → hooks. Add new middleware via `gosdk.WithMiddleware()`
@@ -156,8 +156,7 @@ Use `go run ./cmd/server ...` for CLI ops during development.
 |---------|------|------|
 | Apple FM | `apple_foundation_models` | darwin/arm64/cgo, on-device |
 | Ollama | `ollama` | local server (`ollama serve`) |
-| MLX | `mlx` | Apple Silicon, bridge-only |
-| Auto | `text_generate provider=auto` | model router selects best |
+| Unified generate | `text_generate` | `provider=fm`, `ollama`, `localai`, `gateway`, `insight`, or `auto` |
 
 Check `stdio://models` resource for `backends.fm_available` before calling FM tools.
 

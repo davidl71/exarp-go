@@ -74,7 +74,7 @@ want it, it belongs in mcp-go-core.
 | `internal/models/` | Todo2 protobuf models |
 | `internal/config/` | Exarp-specific config schema |
 | `internal/cli/` | TUI + cursor integration |
-| `internal/tools/llm_backends.go` | FM/Ollama/MLX orchestration |
+| `internal/tools/llm_backends.go` | FM/Ollama/LocalAI/gateway discovery (`stdio://models`) |
 | `GetScorecardCache()` | Uses exarp config |
 | `TaskLock`, `WithGitLock` | .todo2 path specifics |
 | `AddTokenEstimateToResult` | Uses `config.TokensPerChar()` |

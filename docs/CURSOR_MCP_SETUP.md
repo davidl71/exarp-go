@@ -23,7 +23,7 @@ Minimal example (binary in project):
 
 **See also:** [MCP Roots and Elicitation](MCP_ROOTS_ELICITATION.md) — how exarp-go uses client roots and elicitation. For using exarp-go with **OpenCode** (TUI/IDE agent), see [OpenCode Integration](OPENCODE_INTEGRATION.md).
 
-**Local AI backends:** For task estimation and model-assisted workflows, you can use `preferred_backend` (task metadata) or `local_ai_backend` (tool param) with values `fm`, `mlx`, or `ollama`. See [MODEL_ASSISTED_WORKFLOW.md](MODEL_ASSISTED_WORKFLOW.md) and [CURSOR_API_AND_CLI_INTEGRATION.md](CURSOR_API_AND_CLI_INTEGRATION.md) §3.6.
+**Local AI backends:** For task estimation and model-assisted workflows, you can use `preferred_backend` (task metadata) or `local_ai_backend` (tool param) with values `fm` or `ollama` (legacy `mlx` in old metadata is ignored). See [MODEL_ASSISTED_WORKFLOW.md](MODEL_ASSISTED_WORKFLOW.md) and [CURSOR_API_AND_CLI_INTEGRATION.md](CURSOR_API_AND_CLI_INTEGRATION.md) §3.6.
 
 ## Server Status
 

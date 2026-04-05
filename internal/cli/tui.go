@@ -14,6 +14,7 @@ import (
 	"charm.land/bubbles/v2/spinner"
 	"charm.land/bubbles/v2/table"
 	"charm.land/bubbles/v2/textinput"
+	"charm.land/bubbles/v2/viewport"
 	tea "charm.land/bubbletea/v2"
 	"github.com/davidl71/exarp-go/internal/config"
 	"github.com/davidl71/exarp-go/internal/framework"
@@ -138,8 +139,8 @@ type JobsViewState struct {
 
 type TaskDetailViewState struct {
 	// Task detail overlay (pressing 's' on a task)
-	taskDetailTask      *models.Todo2Task
-	taskDetailScrollTop int // scroll offset for long detail content
+	taskDetailTask     *models.Todo2Task
+	taskDetailViewport viewport.Model
 }
 
 type TaskListViewState struct {

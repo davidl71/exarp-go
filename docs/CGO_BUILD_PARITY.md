@@ -46,7 +46,7 @@ On **Apple Silicon**, `make go-build`, `make build-debug`, and `make build-race`
 | `task_discovery_native_scanners.go` | `darwin && arm64 && cgo` | Apple FM helpers, `scanPlanningDocs` (git JSON: `task_discovery_common.go`) |
 | `task_discovery_native_nocgo.go` | `!(darwin && arm64 && cgo)` | Same tool entry; `*Basic` scanners; no FM enhancement |
 
-**Unconstrained (all builds):** `task_discovery_common.go` (includes **`scanGitJSON`**), `estimation_shared.go`, `estimation_shared_v2.go` (includes **`handleEstimationNative`** shim → `HandleEstimationNative`), `context_shared.go` (includes **`handleContextSummarizeNative`** shim), `fm_chain.go`, `fm_provider.go`, `fm_ollama.go`, `mlx_native_nocgo.go` (single MLX stub handler), and most other tools.
+**Unconstrained (all builds):** `task_discovery_common.go` (includes **`scanGitJSON`**), `estimation_shared.go`, `estimation_shared_v2.go` (includes **`handleEstimationNative`** shim → `HandleEstimationNative`), `context_shared.go` (includes **`handleContextSummarizeNative`** shim), `fm_chain.go`, `fm_provider.go`, `fm_ollama.go`, and most other tools.
 
 ## Shared “common” layer (include here first)
 
@@ -81,7 +81,7 @@ When editing **task discovery**:
 | `internal/database/firestore.go` | `with_firestore` | Optional Firestore backend |
 | `scripts/*.go` | `ignore` | Dev utilities not in normal `go build` |
 
-Optional **llamacpp** / **apple_fm** test tags are documented in [llamacpp-build-requirements.md](llamacpp-build-requirements.md) and [APPLE_FOUNDATION_MODELS_TESTING.md](APPLE_FOUNDATION_MODELS_TESTING.md).
+Optional **Apple FM** / task-scanner build tags are documented in [APPLE_FOUNDATION_MODELS_TESTING.md](APPLE_FOUNDATION_MODELS_TESTING.md) and this file (darwin/arm64/cgo matrix above).
 
 ## Feature matrix (summary)
 
@@ -90,8 +90,7 @@ Optional **llamacpp** / **apple_fm** test tags are documented in [llamacpp-build
 | Task discovery basic scans | Yes | Yes | Shared + Basic scanners |
 | Task discovery FM enhancement | Yes | No | Build-tagged scanners |
 | Estimation / context | Yes | Yes | Shared handlers + `FMAvailable()` |
-| Ollama / LocalAI | Yes | Yes | Untagged |
-| MLX generate | Stub / limited | Stub | `mlx_native_nocgo.go`; bridge builds optional |
+| Ollama / LocalAI / Gateway | Yes | Yes | Untagged |
 
 ## Related docs
 

@@ -8,6 +8,7 @@ import (
 
 	"github.com/davidl71/exarp-go/internal/models"
 	"github.com/davidl71/exarp-go/proto"
+	"github.com/spf13/cast"
 )
 
 // TestProtobufRoundTripWithRealTasks verifies protobuf serialization with real Todo2 tasks (T-1768317405631).
@@ -140,6 +141,44 @@ func TestDecodeArgsToProtoTaskWorkflowTagsCSVStringRejected(t *testing.T) {
 	}
 }
 
+// TestTaskWorkflowRequestProtoIncludesExecutionFields ensures MCP JSON keys like run_id survive
+// decodeArgsToProto → TaskWorkflowRequestToParams (previously missing from .proto, so protojson dropped them).
+func TestTaskWorkflowRequestProtoIncludesExecutionFields(t *testing.T) {
+	t.Parallel()
+
+	raw := json.RawMessage(`{"action":"end_run","run_id":"R-test-1","summary":"slice done","status":"completed"}`)
+	req, err := decodeArgsToProto(raw, func() *proto.TaskWorkflowRequest { return &proto.TaskWorkflowRequest{} })
+	if err != nil {
+		t.Fatalf("decodeArgsToProto: %v", err)
+	}
+	if req.GetRunId() != "R-test-1" {
+		t.Fatalf("RunId = %q", req.GetRunId())
+	}
+	params := TaskWorkflowRequestToParams(req)
+	if got := params["run_id"]; got != "R-test-1" {
+		t.Fatalf("params[run_id] = %v", got)
+	}
+	if got := params["summary"]; got != "slice done" {
+		t.Fatalf("params[summary] = %v", got)
+	}
+	if got := params["status"]; got != "completed" {
+		t.Fatalf("params[status] = %v", got)
+	}
+
+	raw2 := json.RawMessage(`{"action":"claim","task_id":"T-1","agent_id":"agent-x","lease_minutes":45}`)
+	req2, err := decodeArgsToProto(raw2, func() *proto.TaskWorkflowRequest { return &proto.TaskWorkflowRequest{} })
+	if err != nil {
+		t.Fatalf("decodeArgsToProto claim: %v", err)
+	}
+	p2 := TaskWorkflowRequestToParams(req2)
+	if p2["agent_id"] != "agent-x" {
+		t.Fatalf("params[agent_id] = %v", p2["agent_id"])
+	}
+	if got := cast.ToInt(p2["lease_minutes"]); got != 45 {
+		t.Fatalf("params[lease_minutes] = %v, want 45", p2["lease_minutes"])
+	}
+}
+
 // TestDecodeEnumOnlyMCPArgsReportTaskWorkflowTaskAnalysis verifies enum-first MCP payloads that
 // omit legacy "action" / "output_format" strings (protojson field names actionEnum / outputFormatEnum).
 func TestDecodeEnumOnlyMCPArgsReportTaskWorkflowTaskAnalysis(t *testing.T) {
@@ -187,6 +226,38 @@ func TestDecodeEnumOnlyMCPArgsReportTaskWorkflowTaskAnalysis(t *testing.T) {
 		}
 		if params["output_format"] != "json" {
 			t.Fatalf("params[output_format] = %v, want json", params["output_format"])
+		}
+	})
+
+	t.Run("git_tools_local_commits", func(t *testing.T) {
+		raw := json.RawMessage(`{"actionEnum":"GIT_TOOLS_ACTION_LOCAL_COMMITS","formatEnum":"OUTPUT_FORMAT_JSON","conflictStrategyEnum":"GIT_MERGE_CONFLICT_STRATEGY_SOURCE"}`)
+		req, err := decodeArgsToProto(raw, func() *proto.GitToolsRequest { return &proto.GitToolsRequest{} })
+		if err != nil {
+			t.Fatalf("decodeArgsToProto: %v", err)
+		}
+		if req.GetActionEnum() != proto.GitToolsAction_GIT_TOOLS_ACTION_LOCAL_COMMITS {
+			t.Fatalf("ActionEnum = %v", req.GetActionEnum())
+		}
+		if gitToolsActionEnumToString(req.GetActionEnum()) != "local_commits" {
+			t.Fatalf("gitToolsActionEnumToString = %q", gitToolsActionEnumToString(req.GetActionEnum()))
+		}
+	})
+
+	t.Run("session_handoff_enums", func(t *testing.T) {
+		raw := json.RawMessage(`{"actionEnum":"SESSION_ACTION_HANDOFF","subActionEnum":"SESSION_HANDOFF_SUB_ACTION_LIST","directionEnum":"SESSION_SYNC_DIRECTION_PULL"}`)
+		req, err := decodeArgsToProto(raw, func() *proto.SessionRequest { return &proto.SessionRequest{} })
+		if err != nil {
+			t.Fatalf("decodeArgsToProto: %v", err)
+		}
+		params := SessionRequestToParams(req)
+		if params["action"] != "handoff" {
+			t.Fatalf("params[action] = %v, want handoff", params["action"])
+		}
+		if params["sub_action"] != "list" {
+			t.Fatalf("params[sub_action] = %v, want list", params["sub_action"])
+		}
+		if params["direction"] != "pull" {
+			t.Fatalf("params[direction] = %v, want pull", params["direction"])
 		}
 	})
 }

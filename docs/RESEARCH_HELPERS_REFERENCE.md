@@ -12,11 +12,13 @@ Research is done via **MCP tools in Cursor**:
 
 - **Context7** – Library documentation: `resolve-library-id` then `query-docs`.
 - **Tractatus Thinking** – Logical decomposition: call **tractatus_thinking** MCP with `operation=start`, then `add` / `export`. See below.
-- **CodeLlama / MLX / Ollama** – Use exarp-go `mlx`, `ollama`, or `apple_foundation_models` tools, or Cursor’s built-in model for code review and analysis.
+- **CodeLlama / Ollama / FM** – Use exarp-go **`ollama`** or **`text_generate`** (`provider=ollama`, `fm`, `auto`), or Cursor’s built-in model for code review and analysis.
 
 ---
 
 ## CodeLlama Helpers
+
+**Archival:** The Python shapes below described removed `mcp_stdio_tools` helpers. For **exarp-go**, call **`ollama`** (e.g. `action=generate`, model `codellama`) or **`text_generate`** with `provider=ollama` / `fm` / `auto` — there is **no** `mlx` MCP tool.
 
 ### `codellama_analyze_code(code, task_description, model, use_mlx)`
 
@@ -25,14 +27,14 @@ Analyze code using CodeLlama for code review.
 **Parameters:**
 - `code` (str): Code to analyze
 - `task_description` (str): Context/task description
-- `model` (str): Model name (default: "mlx-community/CodeLlama-7b-mlx")
-- `use_mlx` (bool): Use MLX if True, Ollama if False
+- `model` (str): Model name (default: `"codellama"` — typical Ollama tag; adjust to your pulled model)
+- `use_mlx` (bool): **Legacy** — referred to an MLX path that exarp-go no longer exposes; use Ollama / `text_generate` instead.
 
 **Returns:**
 ```python
 {
     "tool": "codellama",
-    "model": "mlx-community/CodeLlama-7b-mlx",
+    "model": "codellama",
     "analysis": "Code quality assessment",
     "findings": ["finding1", "finding2"],
     "recommendations": ["rec1", "rec2"]
@@ -44,7 +46,7 @@ Analyze code using CodeLlama for code review.
 result = await codellama_analyze_code(
     code="func RegisterTool(...) { ... }",
     task_description="Review Go tool registration pattern",
-    model="mlx-community/CodeLlama-7b-mlx"
+    model="codellama"
 )
 ```
 
@@ -60,7 +62,7 @@ Analyze architecture documents using CodeLlama.
 ```python
 {
     "tool": "codellama",
-    "model": "mlx-community/CodeLlama-7b-mlx",
+    "model": "codellama",
     "analysis": "Architecture assessment",
     "strengths": ["strength1", "strength2"],
     "weaknesses": ["weakness1", "weakness2"],
@@ -81,7 +83,7 @@ Review design against requirements.
 ```python
 {
     "tool": "codellama",
-    "model": "mlx-community/CodeLlama-7b-mlx",
+    "model": "codellama",
     "review": "Design review",
     "compliance": {"req1": True, "req2": False},
     "recommendations": ["rec1", "rec2"]
@@ -232,7 +234,7 @@ result = await codellama_analyze_code(
     }
     """,
     task_description="Review Go tool registration pattern",
-    model="mlx-community/CodeLlama-7b-mlx"
+    model="codellama"
 )
 ```
 
@@ -286,7 +288,7 @@ Use MCP tools directly from Cursor:
 
 - **Context7:** `resolve-library-id` then `query-docs`.
 - **Tractatus:** `tractatus_thinking` (operation=start, add, export). See skill `.cursor/skills/tractatus-decompose/SKILL.md`.
-- **LLM/code:** exarp-go `mlx`, `ollama`, or `apple_foundation_models`; or Cursor’s built-in model.
+- **LLM/code:** exarp-go **`ollama`**, **`text_generate`**, **`fm_plan_and_execute`**; or Cursor’s built-in model.
 
 ---
 

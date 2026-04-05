@@ -1430,7 +1430,6 @@ type ToolsConfig struct {
 	Report        *ReportConfig          `protobuf:"bytes,2,opt,name=report,proto3" json:"report,omitempty"`
 	Linting       *LintingConfig         `protobuf:"bytes,3,opt,name=linting,proto3" json:"linting,omitempty"`
 	Testing       *TestingConfig         `protobuf:"bytes,4,opt,name=testing,proto3" json:"testing,omitempty"`
-	Mlx           *MLXConfig             `protobuf:"bytes,5,opt,name=mlx,proto3" json:"mlx,omitempty"`
 	Ollama        *OllamaConfig          `protobuf:"bytes,6,opt,name=ollama,proto3" json:"ollama,omitempty"`
 	Context       *ContextConfig         `protobuf:"bytes,7,opt,name=context,proto3" json:"context,omitempty"`
 	unknownFields protoimpl.UnknownFields
@@ -1491,13 +1490,6 @@ func (x *ToolsConfig) GetLinting() *LintingConfig {
 func (x *ToolsConfig) GetTesting() *TestingConfig {
 	if x != nil {
 		return x.Testing
-	}
-	return nil
-}
-
-func (x *ToolsConfig) GetMlx() *MLXConfig {
-	if x != nil {
-		return x.Mlx
 	}
 	return nil
 }
@@ -1785,75 +1777,6 @@ func (x *TestingConfig) GetVerbose() bool {
 	return false
 }
 
-// MLXConfig contains MLX tool settings
-type MLXConfig struct {
-	state              protoimpl.MessageState `protogen:"open.v1"`
-	DefaultModel       string                 `protobuf:"bytes,1,opt,name=default_model,json=defaultModel,proto3" json:"default_model,omitempty"`
-	DefaultMaxTokens   int32                  `protobuf:"varint,2,opt,name=default_max_tokens,json=defaultMaxTokens,proto3" json:"default_max_tokens,omitempty"`
-	DefaultTemperature float64                `protobuf:"fixed64,3,opt,name=default_temperature,json=defaultTemperature,proto3" json:"default_temperature,omitempty"`
-	Verbose            bool                   `protobuf:"varint,4,opt,name=verbose,proto3" json:"verbose,omitempty"`
-	unknownFields      protoimpl.UnknownFields
-	sizeCache          protoimpl.SizeCache
-}
-
-func (x *MLXConfig) Reset() {
-	*x = MLXConfig{}
-	mi := &file_proto_config_proto_msgTypes[18]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *MLXConfig) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*MLXConfig) ProtoMessage() {}
-
-func (x *MLXConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_config_proto_msgTypes[18]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use MLXConfig.ProtoReflect.Descriptor instead.
-func (*MLXConfig) Descriptor() ([]byte, []int) {
-	return file_proto_config_proto_rawDescGZIP(), []int{18}
-}
-
-func (x *MLXConfig) GetDefaultModel() string {
-	if x != nil {
-		return x.DefaultModel
-	}
-	return ""
-}
-
-func (x *MLXConfig) GetDefaultMaxTokens() int32 {
-	if x != nil {
-		return x.DefaultMaxTokens
-	}
-	return 0
-}
-
-func (x *MLXConfig) GetDefaultTemperature() float64 {
-	if x != nil {
-		return x.DefaultTemperature
-	}
-	return 0
-}
-
-func (x *MLXConfig) GetVerbose() bool {
-	if x != nil {
-		return x.Verbose
-	}
-	return false
-}
-
 // OllamaConfig contains Ollama tool settings
 type OllamaConfig struct {
 	state              protoimpl.MessageState `protogen:"open.v1"`
@@ -1868,7 +1791,7 @@ type OllamaConfig struct {
 
 func (x *OllamaConfig) Reset() {
 	*x = OllamaConfig{}
-	mi := &file_proto_config_proto_msgTypes[19]
+	mi := &file_proto_config_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1880,7 +1803,7 @@ func (x *OllamaConfig) String() string {
 func (*OllamaConfig) ProtoMessage() {}
 
 func (x *OllamaConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_config_proto_msgTypes[19]
+	mi := &file_proto_config_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1893,7 +1816,7 @@ func (x *OllamaConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use OllamaConfig.ProtoReflect.Descriptor instead.
 func (*OllamaConfig) Descriptor() ([]byte, []int) {
-	return file_proto_config_proto_rawDescGZIP(), []int{19}
+	return file_proto_config_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *OllamaConfig) GetDefaultModel() string {
@@ -1944,7 +1867,7 @@ type ContextConfig struct {
 
 func (x *ContextConfig) Reset() {
 	*x = ContextConfig{}
-	mi := &file_proto_config_proto_msgTypes[20]
+	mi := &file_proto_config_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1956,7 +1879,7 @@ func (x *ContextConfig) String() string {
 func (*ContextConfig) ProtoMessage() {}
 
 func (x *ContextConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_config_proto_msgTypes[20]
+	mi := &file_proto_config_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1969,7 +1892,7 @@ func (x *ContextConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ContextConfig.ProtoReflect.Descriptor instead.
 func (*ContextConfig) Descriptor() ([]byte, []int) {
-	return file_proto_config_proto_rawDescGZIP(), []int{20}
+	return file_proto_config_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *ContextConfig) GetDefaultBudget() int32 {
@@ -2015,7 +1938,7 @@ type WorkflowConfig struct {
 
 func (x *WorkflowConfig) Reset() {
 	*x = WorkflowConfig{}
-	mi := &file_proto_config_proto_msgTypes[21]
+	mi := &file_proto_config_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2027,7 +1950,7 @@ func (x *WorkflowConfig) String() string {
 func (*WorkflowConfig) ProtoMessage() {}
 
 func (x *WorkflowConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_config_proto_msgTypes[21]
+	mi := &file_proto_config_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2040,7 +1963,7 @@ func (x *WorkflowConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WorkflowConfig.ProtoReflect.Descriptor instead.
 func (*WorkflowConfig) Descriptor() ([]byte, []int) {
-	return file_proto_config_proto_rawDescGZIP(), []int{21}
+	return file_proto_config_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *WorkflowConfig) GetDefaultMode() string {
@@ -2090,7 +2013,7 @@ type ModeSuggestionsConfig struct {
 
 func (x *ModeSuggestionsConfig) Reset() {
 	*x = ModeSuggestionsConfig{}
-	mi := &file_proto_config_proto_msgTypes[22]
+	mi := &file_proto_config_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2102,7 +2025,7 @@ func (x *ModeSuggestionsConfig) String() string {
 func (*ModeSuggestionsConfig) ProtoMessage() {}
 
 func (x *ModeSuggestionsConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_config_proto_msgTypes[22]
+	mi := &file_proto_config_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2115,7 +2038,7 @@ func (x *ModeSuggestionsConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ModeSuggestionsConfig.ProtoReflect.Descriptor instead.
 func (*ModeSuggestionsConfig) Descriptor() ([]byte, []int) {
-	return file_proto_config_proto_rawDescGZIP(), []int{22}
+	return file_proto_config_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *ModeSuggestionsConfig) GetMorning() string {
@@ -2151,7 +2074,7 @@ type FocusConfig struct {
 
 func (x *FocusConfig) Reset() {
 	*x = FocusConfig{}
-	mi := &file_proto_config_proto_msgTypes[23]
+	mi := &file_proto_config_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2163,7 +2086,7 @@ func (x *FocusConfig) String() string {
 func (*FocusConfig) ProtoMessage() {}
 
 func (x *FocusConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_config_proto_msgTypes[23]
+	mi := &file_proto_config_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2176,7 +2099,7 @@ func (x *FocusConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use FocusConfig.ProtoReflect.Descriptor instead.
 func (*FocusConfig) Descriptor() ([]byte, []int) {
-	return file_proto_config_proto_rawDescGZIP(), []int{23}
+	return file_proto_config_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *FocusConfig) GetEnabled() bool {
@@ -2216,7 +2139,7 @@ type MemoryConfig struct {
 
 func (x *MemoryConfig) Reset() {
 	*x = MemoryConfig{}
-	mi := &file_proto_config_proto_msgTypes[24]
+	mi := &file_proto_config_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2228,7 +2151,7 @@ func (x *MemoryConfig) String() string {
 func (*MemoryConfig) ProtoMessage() {}
 
 func (x *MemoryConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_config_proto_msgTypes[24]
+	mi := &file_proto_config_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2241,7 +2164,7 @@ func (x *MemoryConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MemoryConfig.ProtoReflect.Descriptor instead.
 func (*MemoryConfig) Descriptor() ([]byte, []int) {
-	return file_proto_config_proto_rawDescGZIP(), []int{24}
+	return file_proto_config_proto_rawDescGZIP(), []int{23}
 }
 
 func (x *MemoryConfig) GetCategories() []string {
@@ -2305,7 +2228,7 @@ type ConsolidationConfig struct {
 
 func (x *ConsolidationConfig) Reset() {
 	*x = ConsolidationConfig{}
-	mi := &file_proto_config_proto_msgTypes[25]
+	mi := &file_proto_config_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2317,7 +2240,7 @@ func (x *ConsolidationConfig) String() string {
 func (*ConsolidationConfig) ProtoMessage() {}
 
 func (x *ConsolidationConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_config_proto_msgTypes[25]
+	mi := &file_proto_config_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2330,7 +2253,7 @@ func (x *ConsolidationConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ConsolidationConfig.ProtoReflect.Descriptor instead.
 func (*ConsolidationConfig) Descriptor() ([]byte, []int) {
-	return file_proto_config_proto_rawDescGZIP(), []int{25}
+	return file_proto_config_proto_rawDescGZIP(), []int{24}
 }
 
 func (x *ConsolidationConfig) GetEnabled() bool {
@@ -2373,7 +2296,7 @@ type ProjectConfig struct {
 
 func (x *ProjectConfig) Reset() {
 	*x = ProjectConfig{}
-	mi := &file_proto_config_proto_msgTypes[26]
+	mi := &file_proto_config_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2385,7 +2308,7 @@ func (x *ProjectConfig) String() string {
 func (*ProjectConfig) ProtoMessage() {}
 
 func (x *ProjectConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_config_proto_msgTypes[26]
+	mi := &file_proto_config_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2398,7 +2321,7 @@ func (x *ProjectConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ProjectConfig.ProtoReflect.Descriptor instead.
 func (*ProjectConfig) Descriptor() ([]byte, []int) {
-	return file_proto_config_proto_rawDescGZIP(), []int{26}
+	return file_proto_config_proto_rawDescGZIP(), []int{25}
 }
 
 func (x *ProjectConfig) GetName() string {
@@ -2483,7 +2406,7 @@ type FeaturesConfig struct {
 
 func (x *FeaturesConfig) Reset() {
 	*x = FeaturesConfig{}
-	mi := &file_proto_config_proto_msgTypes[27]
+	mi := &file_proto_config_proto_msgTypes[26]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2495,7 +2418,7 @@ func (x *FeaturesConfig) String() string {
 func (*FeaturesConfig) ProtoMessage() {}
 
 func (x *FeaturesConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_config_proto_msgTypes[27]
+	mi := &file_proto_config_proto_msgTypes[26]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2508,7 +2431,7 @@ func (x *FeaturesConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use FeaturesConfig.ProtoReflect.Descriptor instead.
 func (*FeaturesConfig) Descriptor() ([]byte, []int) {
-	return file_proto_config_proto_rawDescGZIP(), []int{27}
+	return file_proto_config_proto_rawDescGZIP(), []int{26}
 }
 
 func (x *FeaturesConfig) GetSqliteEnabled() bool {
@@ -2682,15 +2605,14 @@ const file_proto_config_proto_rawDesc = "" +
 	"\aenabled\x18\x01 \x01(\bR\aenabled\x12\x19\n" +
 	"\bmax_size\x18\x02 \x01(\x03R\amaxSize\x12\x1b\n" +
 	"\tmax_files\x18\x03 \x01(\x05R\bmaxFiles\x12\x1a\n" +
-	"\bcompress\x18\x04 \x01(\bR\bcompress\"\x82\x03\n" +
+	"\bcompress\x18\x04 \x01(\bR\bcompress\"\xe2\x02\n" +
 	"\vToolsConfig\x12;\n" +
 	"\tscorecard\x18\x01 \x01(\v2\x1d.exarp.config.ScorecardConfigR\tscorecard\x122\n" +
 	"\x06report\x18\x02 \x01(\v2\x1a.exarp.config.ReportConfigR\x06report\x125\n" +
 	"\alinting\x18\x03 \x01(\v2\x1b.exarp.config.LintingConfigR\alinting\x125\n" +
-	"\atesting\x18\x04 \x01(\v2\x1b.exarp.config.TestingConfigR\atesting\x12)\n" +
-	"\x03mlx\x18\x05 \x01(\v2\x17.exarp.config.MLXConfigR\x03mlx\x122\n" +
+	"\atesting\x18\x04 \x01(\v2\x1b.exarp.config.TestingConfigR\atesting\x122\n" +
 	"\x06ollama\x18\x06 \x01(\v2\x1a.exarp.config.OllamaConfigR\x06ollama\x125\n" +
-	"\acontext\x18\a \x01(\v2\x1b.exarp.config.ContextConfigR\acontext\"\x8d\x01\n" +
+	"\acontext\x18\a \x01(\v2\x1b.exarp.config.ContextConfigR\acontextJ\x04\b\x05\x10\x06R\x03mlx\"\x8d\x01\n" +
 	"\x0fScorecardConfig\x12.\n" +
 	"\x13default_scores_json\x18\x01 \x01(\tR\x11defaultScoresJson\x12%\n" +
 	"\x0einclude_wisdom\x18\x02 \x01(\bR\rincludeWisdom\x12#\n" +
@@ -2709,11 +2631,6 @@ const file_proto_config_proto_rawDesc = "" +
 	"\x11default_framework\x18\x01 \x01(\tR\x10defaultFramework\x12!\n" +
 	"\fmin_coverage\x18\x02 \x01(\x05R\vminCoverage\x12'\n" +
 	"\x0fcoverage_format\x18\x03 \x01(\tR\x0ecoverageFormat\x12\x18\n" +
-	"\averbose\x18\x04 \x01(\bR\averbose\"\xa9\x01\n" +
-	"\tMLXConfig\x12#\n" +
-	"\rdefault_model\x18\x01 \x01(\tR\fdefaultModel\x12,\n" +
-	"\x12default_max_tokens\x18\x02 \x01(\x05R\x10defaultMaxTokens\x12/\n" +
-	"\x13default_temperature\x18\x03 \x01(\x01R\x12defaultTemperature\x12\x18\n" +
 	"\averbose\x18\x04 \x01(\bR\averbose\"\xe0\x01\n" +
 	"\fOllamaConfig\x12#\n" +
 	"\rdefault_model\x18\x01 \x01(\tR\fdefaultModel\x12!\n" +
@@ -2789,7 +2706,7 @@ func file_proto_config_proto_rawDescGZIP() []byte {
 	return file_proto_config_proto_rawDescData
 }
 
-var file_proto_config_proto_msgTypes = make([]protoimpl.MessageInfo, 28)
+var file_proto_config_proto_msgTypes = make([]protoimpl.MessageInfo, 27)
 var file_proto_config_proto_goTypes = []any{
 	(*FullConfig)(nil),            // 0: exarp.config.FullConfig
 	(*TimeoutsConfig)(nil),        // 1: exarp.config.TimeoutsConfig
@@ -2809,17 +2726,16 @@ var file_proto_config_proto_goTypes = []any{
 	(*ReportConfig)(nil),          // 15: exarp.config.ReportConfig
 	(*LintingConfig)(nil),         // 16: exarp.config.LintingConfig
 	(*TestingConfig)(nil),         // 17: exarp.config.TestingConfig
-	(*MLXConfig)(nil),             // 18: exarp.config.MLXConfig
-	(*OllamaConfig)(nil),          // 19: exarp.config.OllamaConfig
-	(*ContextConfig)(nil),         // 20: exarp.config.ContextConfig
-	(*WorkflowConfig)(nil),        // 21: exarp.config.WorkflowConfig
-	(*ModeSuggestionsConfig)(nil), // 22: exarp.config.ModeSuggestionsConfig
-	(*FocusConfig)(nil),           // 23: exarp.config.FocusConfig
-	(*MemoryConfig)(nil),          // 24: exarp.config.MemoryConfig
-	(*ConsolidationConfig)(nil),   // 25: exarp.config.ConsolidationConfig
-	(*ProjectConfig)(nil),         // 26: exarp.config.ProjectConfig
-	(*FeaturesConfig)(nil),        // 27: exarp.config.FeaturesConfig
-	(*durationpb.Duration)(nil),   // 28: google.protobuf.Duration
+	(*OllamaConfig)(nil),          // 18: exarp.config.OllamaConfig
+	(*ContextConfig)(nil),         // 19: exarp.config.ContextConfig
+	(*WorkflowConfig)(nil),        // 20: exarp.config.WorkflowConfig
+	(*ModeSuggestionsConfig)(nil), // 21: exarp.config.ModeSuggestionsConfig
+	(*FocusConfig)(nil),           // 22: exarp.config.FocusConfig
+	(*MemoryConfig)(nil),          // 23: exarp.config.MemoryConfig
+	(*ConsolidationConfig)(nil),   // 24: exarp.config.ConsolidationConfig
+	(*ProjectConfig)(nil),         // 25: exarp.config.ProjectConfig
+	(*FeaturesConfig)(nil),        // 26: exarp.config.FeaturesConfig
+	(*durationpb.Duration)(nil),   // 27: google.protobuf.Duration
 }
 var file_proto_config_proto_depIdxs = []int32{
 	1,  // 0: exarp.config.FullConfig.timeouts:type_name -> exarp.config.TimeoutsConfig
@@ -2830,51 +2746,50 @@ var file_proto_config_proto_depIdxs = []int32{
 	6,  // 5: exarp.config.FullConfig.security:type_name -> exarp.config.SecurityConfig
 	11, // 6: exarp.config.FullConfig.logging:type_name -> exarp.config.LoggingConfig
 	13, // 7: exarp.config.FullConfig.tools:type_name -> exarp.config.ToolsConfig
-	21, // 8: exarp.config.FullConfig.workflow:type_name -> exarp.config.WorkflowConfig
-	24, // 9: exarp.config.FullConfig.memory:type_name -> exarp.config.MemoryConfig
-	26, // 10: exarp.config.FullConfig.project:type_name -> exarp.config.ProjectConfig
-	28, // 11: exarp.config.TimeoutsConfig.task_lock_lease:type_name -> google.protobuf.Duration
-	28, // 12: exarp.config.TimeoutsConfig.task_lock_renewal:type_name -> google.protobuf.Duration
-	28, // 13: exarp.config.TimeoutsConfig.stale_lock_threshold:type_name -> google.protobuf.Duration
-	28, // 14: exarp.config.TimeoutsConfig.tool_default:type_name -> google.protobuf.Duration
-	28, // 15: exarp.config.TimeoutsConfig.tool_scorecard:type_name -> google.protobuf.Duration
-	28, // 16: exarp.config.TimeoutsConfig.tool_linting:type_name -> google.protobuf.Duration
-	28, // 17: exarp.config.TimeoutsConfig.tool_testing:type_name -> google.protobuf.Duration
-	28, // 18: exarp.config.TimeoutsConfig.tool_report:type_name -> google.protobuf.Duration
-	28, // 19: exarp.config.TimeoutsConfig.ollama_download:type_name -> google.protobuf.Duration
-	28, // 20: exarp.config.TimeoutsConfig.ollama_generate:type_name -> google.protobuf.Duration
-	28, // 21: exarp.config.TimeoutsConfig.http_client:type_name -> google.protobuf.Duration
-	28, // 22: exarp.config.TimeoutsConfig.database_retry:type_name -> google.protobuf.Duration
-	28, // 23: exarp.config.TimeoutsConfig.context_summarize:type_name -> google.protobuf.Duration
-	28, // 24: exarp.config.TimeoutsConfig.context_budget:type_name -> google.protobuf.Duration
-	28, // 25: exarp.config.ThresholdsConfig.rate_limit_window:type_name -> google.protobuf.Duration
-	28, // 26: exarp.config.DatabaseConfig.connection_timeout:type_name -> google.protobuf.Duration
-	28, // 27: exarp.config.DatabaseConfig.query_timeout:type_name -> google.protobuf.Duration
-	28, // 28: exarp.config.DatabaseConfig.retry_initial_delay:type_name -> google.protobuf.Duration
-	28, // 29: exarp.config.DatabaseConfig.retry_max_delay:type_name -> google.protobuf.Duration
+	20, // 8: exarp.config.FullConfig.workflow:type_name -> exarp.config.WorkflowConfig
+	23, // 9: exarp.config.FullConfig.memory:type_name -> exarp.config.MemoryConfig
+	25, // 10: exarp.config.FullConfig.project:type_name -> exarp.config.ProjectConfig
+	27, // 11: exarp.config.TimeoutsConfig.task_lock_lease:type_name -> google.protobuf.Duration
+	27, // 12: exarp.config.TimeoutsConfig.task_lock_renewal:type_name -> google.protobuf.Duration
+	27, // 13: exarp.config.TimeoutsConfig.stale_lock_threshold:type_name -> google.protobuf.Duration
+	27, // 14: exarp.config.TimeoutsConfig.tool_default:type_name -> google.protobuf.Duration
+	27, // 15: exarp.config.TimeoutsConfig.tool_scorecard:type_name -> google.protobuf.Duration
+	27, // 16: exarp.config.TimeoutsConfig.tool_linting:type_name -> google.protobuf.Duration
+	27, // 17: exarp.config.TimeoutsConfig.tool_testing:type_name -> google.protobuf.Duration
+	27, // 18: exarp.config.TimeoutsConfig.tool_report:type_name -> google.protobuf.Duration
+	27, // 19: exarp.config.TimeoutsConfig.ollama_download:type_name -> google.protobuf.Duration
+	27, // 20: exarp.config.TimeoutsConfig.ollama_generate:type_name -> google.protobuf.Duration
+	27, // 21: exarp.config.TimeoutsConfig.http_client:type_name -> google.protobuf.Duration
+	27, // 22: exarp.config.TimeoutsConfig.database_retry:type_name -> google.protobuf.Duration
+	27, // 23: exarp.config.TimeoutsConfig.context_summarize:type_name -> google.protobuf.Duration
+	27, // 24: exarp.config.TimeoutsConfig.context_budget:type_name -> google.protobuf.Duration
+	27, // 25: exarp.config.ThresholdsConfig.rate_limit_window:type_name -> google.protobuf.Duration
+	27, // 26: exarp.config.DatabaseConfig.connection_timeout:type_name -> google.protobuf.Duration
+	27, // 27: exarp.config.DatabaseConfig.query_timeout:type_name -> google.protobuf.Duration
+	27, // 28: exarp.config.DatabaseConfig.retry_initial_delay:type_name -> google.protobuf.Duration
+	27, // 29: exarp.config.DatabaseConfig.retry_max_delay:type_name -> google.protobuf.Duration
 	7,  // 30: exarp.config.SecurityConfig.rate_limit:type_name -> exarp.config.RateLimitConfig
 	8,  // 31: exarp.config.SecurityConfig.path_validation:type_name -> exarp.config.PathValidationConfig
 	9,  // 32: exarp.config.SecurityConfig.file_limits:type_name -> exarp.config.FileLimitsConfig
 	10, // 33: exarp.config.SecurityConfig.access_control:type_name -> exarp.config.AccessControlConfig
-	28, // 34: exarp.config.RateLimitConfig.window_duration:type_name -> google.protobuf.Duration
+	27, // 34: exarp.config.RateLimitConfig.window_duration:type_name -> google.protobuf.Duration
 	12, // 35: exarp.config.LoggingConfig.log_rotation:type_name -> exarp.config.LogRotationConfig
 	14, // 36: exarp.config.ToolsConfig.scorecard:type_name -> exarp.config.ScorecardConfig
 	15, // 37: exarp.config.ToolsConfig.report:type_name -> exarp.config.ReportConfig
 	16, // 38: exarp.config.ToolsConfig.linting:type_name -> exarp.config.LintingConfig
 	17, // 39: exarp.config.ToolsConfig.testing:type_name -> exarp.config.TestingConfig
-	18, // 40: exarp.config.ToolsConfig.mlx:type_name -> exarp.config.MLXConfig
-	19, // 41: exarp.config.ToolsConfig.ollama:type_name -> exarp.config.OllamaConfig
-	20, // 42: exarp.config.ToolsConfig.context:type_name -> exarp.config.ContextConfig
-	28, // 43: exarp.config.LintingConfig.timeout:type_name -> google.protobuf.Duration
-	22, // 44: exarp.config.WorkflowConfig.mode_suggestions:type_name -> exarp.config.ModeSuggestionsConfig
-	23, // 45: exarp.config.WorkflowConfig.focus:type_name -> exarp.config.FocusConfig
-	25, // 46: exarp.config.MemoryConfig.consolidation:type_name -> exarp.config.ConsolidationConfig
-	27, // 47: exarp.config.ProjectConfig.features:type_name -> exarp.config.FeaturesConfig
-	48, // [48:48] is the sub-list for method output_type
-	48, // [48:48] is the sub-list for method input_type
-	48, // [48:48] is the sub-list for extension type_name
-	48, // [48:48] is the sub-list for extension extendee
-	0,  // [0:48] is the sub-list for field type_name
+	18, // 40: exarp.config.ToolsConfig.ollama:type_name -> exarp.config.OllamaConfig
+	19, // 41: exarp.config.ToolsConfig.context:type_name -> exarp.config.ContextConfig
+	27, // 42: exarp.config.LintingConfig.timeout:type_name -> google.protobuf.Duration
+	21, // 43: exarp.config.WorkflowConfig.mode_suggestions:type_name -> exarp.config.ModeSuggestionsConfig
+	22, // 44: exarp.config.WorkflowConfig.focus:type_name -> exarp.config.FocusConfig
+	24, // 45: exarp.config.MemoryConfig.consolidation:type_name -> exarp.config.ConsolidationConfig
+	26, // 46: exarp.config.ProjectConfig.features:type_name -> exarp.config.FeaturesConfig
+	47, // [47:47] is the sub-list for method output_type
+	47, // [47:47] is the sub-list for method input_type
+	47, // [47:47] is the sub-list for extension type_name
+	47, // [47:47] is the sub-list for extension extendee
+	0,  // [0:47] is the sub-list for field type_name
 }
 
 func init() { file_proto_config_proto_init() }
@@ -2888,7 +2803,7 @@ func file_proto_config_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_config_proto_rawDesc), len(file_proto_config_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   28,
+			NumMessages:   27,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

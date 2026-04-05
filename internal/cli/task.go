@@ -146,6 +146,11 @@ func handleTaskUpdateParsed(server framework.MCPServer, parsed *mcpcli.Args) err
 	if parsed.HasFlag("new-priority") {
 		input.Priority = taskworkflowspec.OptionalString{Set: true, Value: parsed.GetFlag("new-priority", "")}
 	}
+	if parsed.HasFlag("priority-rank") {
+		if v, err := strconv.Atoi(strings.TrimSpace(parsed.GetFlag("priority-rank", ""))); err == nil {
+			input.PriorityRank = taskworkflowspec.OptionalInt{Set: true, Value: v}
+		}
+	}
 	tagVals := MergeTaskTagsFromCSVAndRepeated(parsed.GetFlag("tags", ""), os.Args)
 	if parsed.HasFlag("tags") || len(CollectRepeatedStringFlag(os.Args, "tag")) > 0 {
 		input.Tags = taskworkflowspec.OptionalList{Set: true, Values: tagVals}
@@ -181,10 +186,10 @@ func handleTaskUpdateWithParams(server framework.MCPServer, oldStatus string, in
 		return fmt.Errorf("task update requires task ID(s) or --status flag")
 	}
 
-	if !input.NewStatus.Set && !input.Priority.Set && !input.Tags.Set && !input.RemoveTags.Set && !input.Name.Set &&
+	if !input.NewStatus.Set && !input.Priority.Set && !input.PriorityRank.Set && !input.Tags.Set && !input.RemoveTags.Set && !input.Name.Set &&
 		!input.LongDescription.Set && !input.Dependencies.Set && !input.RecommendedTools.Set &&
 		!input.LocalAIBackend.Set && !input.ParentID.Set {
-		return fmt.Errorf("task update requires at least one task field such as --new-status, --new-priority, --dependencies, --parent-id, --tags, --tag (repeatable), --remove-tags, --name, --description, --recommended-tools, or --local-ai-backend")
+		return fmt.Errorf("task update requires at least one task field such as --new-status, --new-priority, --priority-rank, --dependencies, --parent-id, --tags, --tag (repeatable), --remove-tags, --name, --description, --recommended-tools, or --local-ai-backend")
 	}
 
 	if len(input.TaskIDs) > 0 {
@@ -220,6 +225,11 @@ func handleTaskCreateParsed(server framework.MCPServer, parsed *mcpcli.Args) err
 	}
 	if parsed.HasFlag("priority") {
 		input.Priority = taskworkflowspec.OptionalString{Set: true, Value: parsed.GetFlag("priority", "")}
+	}
+	if parsed.HasFlag("priority-rank") {
+		if v, err := strconv.Atoi(strings.TrimSpace(parsed.GetFlag("priority-rank", ""))); err == nil {
+			input.PriorityRank = taskworkflowspec.OptionalInt{Set: true, Value: v}
+		}
 	}
 	createTagVals := MergeTaskTagsFromCSVAndRepeated(parsed.GetFlag("tags", ""), os.Args)
 	if parsed.HasFlag("tags") || len(CollectRepeatedStringFlag(os.Args, "tag")) > 0 {
@@ -678,6 +688,7 @@ func showTaskUsage() error {
 	_, _ = fmt.Println("  --status <status>       Current status (for batch updates)")
 	_, _ = fmt.Println("  --new-status <status>   New status")
 	_, _ = fmt.Println("  --new-priority <pri>    New priority (low, medium, high); requires task ID(s)")
+	_, _ = fmt.Println("  --priority-rank <int>   Numeric sort key within priority band (lower first)")
 	_, _ = fmt.Println("  --dependencies <ids>    Comma-separated dependency task IDs; replaces dependencies")
 	_, _ = fmt.Println("  --parent-id <task-id>   Set parent task ID for hierarchy")
 	_, _ = fmt.Println("  --tags <tags>           Comma-separated tags to add (merge with repeated --tag)")
@@ -686,34 +697,35 @@ func showTaskUsage() error {
 	_, _ = fmt.Println("  --name <text>           Replace task title/content")
 	_, _ = fmt.Println("  --description <text>    Replace task description")
 	_, _ = fmt.Println("  --recommended-tools <list>  Comma-separated MCP tool IDs; requires task ID(s)")
-	_, _ = fmt.Println("  --local-ai-backend <backend>  Set task preferred backend (fm|mlx|ollama); requires task ID(s)")
+	_, _ = fmt.Println("  --local-ai-backend <backend>  Set task preferred backend (fm|ollama); requires task ID(s)")
 	_, _ = fmt.Println("  --ids <ids>             Comma-separated task IDs")
 	_, _ = fmt.Println("  --auto-apply            Auto-apply changes without confirmation")
 	_, _ = fmt.Println()
 	_, _ = fmt.Println("Create Options:")
 	_, _ = fmt.Println("  --description <text>           Task description")
 	_, _ = fmt.Println("  --priority <priority>          Task priority (low, medium, high)")
+	_, _ = fmt.Println("  --priority-rank <int>          Sort order within priority (lower first; default 0)")
 	_, _ = fmt.Println("  --tags <tags>                  Comma-separated tags (or repeat --tag)")
 	_, _ = fmt.Println("  --tag <tag>                    One tag; repeatable")
 	_, _ = fmt.Println("  --dependencies <ids>           Comma-separated dependency task IDs")
 	_, _ = fmt.Println("  --parent-id <task-id>          Parent task ID for hierarchy")
 	_, _ = fmt.Println("  --epic-id <task-id>            Epic task ID")
 	_, _ = fmt.Println("  --planning-doc <path>          Linked planning document path")
-	_, _ = fmt.Println("  --local-ai-backend <backend>   Preferred local AI (fm|mlx|ollama)")
+	_, _ = fmt.Println("  --local-ai-backend <backend>   Preferred local AI (fm|ollama)")
 	_, _ = fmt.Println("  --recommended-tools <list>     Comma-separated MCP tool IDs (e.g. report,task_workflow)")
 	_, _ = fmt.Println()
 	_, _ = fmt.Println("Estimate Options:")
-	_, _ = fmt.Println("  --local-ai-backend <backend>   Backend for estimation (fm|mlx|ollama)")
+	_, _ = fmt.Println("  --local-ai-backend <backend>   Backend for estimation (fm|ollama)")
 	_, _ = fmt.Println("  --details <text>               Optional task details")
 	_, _ = fmt.Println("  --priority <priority>          Priority (low, medium, high)")
 	_, _ = fmt.Println("  --tags <tags>                  Comma-separated tags (or repeat --tag)")
 	_, _ = fmt.Println("  --tag <tag>                    One tag; repeatable")
 	_, _ = fmt.Println()
 	_, _ = fmt.Println("Summarize Options:")
-	_, _ = fmt.Println("  --local-ai-backend <backend>   Override task preferred backend (fm|mlx|ollama)")
+	_, _ = fmt.Println("  --local-ai-backend <backend>   Override task preferred backend (fm|ollama)")
 	_, _ = fmt.Println()
 	_, _ = fmt.Println("Run-with-AI Options:")
-	_, _ = fmt.Println("  --backend <backend>            Local AI backend (fm|mlx|ollama); alias: --local-ai-backend")
+	_, _ = fmt.Println("  --backend <backend>            Local AI backend (fm|ollama); alias: --local-ai-backend")
 	_, _ = fmt.Println("  --instruction <text>           Extra instruction for the model")
 	_, _ = fmt.Println()
 	_, _ = fmt.Println("Examples:")

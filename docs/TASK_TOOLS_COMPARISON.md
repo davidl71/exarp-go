@@ -174,7 +174,7 @@
 4. **`action="clarity"`** - Improve task clarity
    - Analyzes task descriptions
    - Suggests clarity improvements
-   - Uses MLX for task hour estimation
+   - May use local LLM backends (FM chain / Ollama) for clarity-related helpers where enabled
    - Output: Clarity recommendations
 
 5. **`action="cleanup"`** - Clean up stale tasks
@@ -253,12 +253,12 @@
 |------|---------------|------------------|----------|
 | `task_analysis` | Python Bridge | ⚠️ Not migrated | ❌ None (candidate for Apple FM) |
 | `task_discovery` | Python Bridge | ⚠️ Not migrated | ❌ None (candidate for Apple FM) |
-| `task_workflow` | Python Bridge | ⚠️ Not migrated | ✅ MLX (clarity action) |
+| `task_workflow` | Go-native | ✅ | ✅ Local LLM where clarity/AI actions call `text_generate` / FM chain (no `mlx` tool) |
 
 **Migration Opportunities:**
 - All three tools are Python Bridge (could migrate to native Go)
 - `task_analysis` (hierarchy) is a candidate for Apple Foundation Models
-- `task_workflow` (clarity) already uses MLX
+- `task_workflow` (clarity) may call local LLM paths (not the removed `mlx` MCP tool)
 
 ---
 
@@ -429,7 +429,7 @@ Approved 8 tasks:
 |------|----------|-------|---------|
 | `task_analysis` | ❌ None | N/A | **Candidate for Apple FM** (hierarchy classification) |
 | `task_discovery` | ❌ None | N/A | **Candidate for Apple FM** (semantic extraction) |
-| `task_workflow` | ✅ MLX | MLX | Task hour estimation (clarity action) |
+| `task_workflow` | ✅ Optional | FM / Ollama / router | Clarity and related AI actions |
 
 **Potential AI Enhancements:**
 
@@ -456,7 +456,7 @@ Approved 8 tasks:
 | **Modifies Tasks** | ⚠️ Optional | ⚠️ Optional | ✅ Yes |
 | **Creates Tasks** | ❌ No | ✅ Yes | ❌ No |
 | **Implementation** | Python Bridge | Python Bridge | Python Bridge |
-| **AI Usage** | ❌ None | ❌ None | ✅ MLX (clarity) |
+| **AI Usage** | ❌ None | ❌ None | ✅ Optional local LLM (clarity) |
 | **Dry Run** | ✅ Yes | ❌ No | ✅ Yes |
 | **Output Format** | Text/JSON | Text | Text/JSON |
 | **Use Case** | Quality analysis | Task discovery | Lifecycle management |

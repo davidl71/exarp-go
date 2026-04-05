@@ -78,7 +78,7 @@ Override just the overview and success criteria:
 ```json
 {
   "overview": "Ship a production-ready MCP server with AI-powered task management, local LLM inference, and semantic search.",
-  "success_criteria": "All scorecard dimensions green; zero known security issues; llamacpp, chromem-go, and Apple FM fully integrated.",
+  "success_criteria": "All scorecard dimensions green; zero known security issues; chromem-go and Apple FM (via text_generate/fm chain) fully integrated.",
   "storage_note": "Todo2 (SQLite primary, JSON fallback)",
   "invariants_note": "Use Makefile targets; prefer MCP tools over direct file edits; always prefix make/go commands with NO_COLOR=1",
   "agents": [

@@ -86,11 +86,12 @@ func handleAutomationSchedule(ctx context.Context, params map[string]interface{}
 	}
 
 	if projectRoot, err := FindProjectRoot(); err == nil {
-		if taskOverlaps, fileConflicts, errDetect := DetectConflicts(ctx, projectRoot); errDetect == nil {
-			if len(taskOverlaps) > 0 || len(fileConflicts) > 0 {
+		if taskOverlaps, fileConflicts, forbidden, errDetect := DetectConflicts(ctx, projectRoot); errDetect == nil {
+			if len(taskOverlaps) > 0 || len(fileConflicts) > 0 || len(forbidden) > 0 {
 				result["conflicts"] = map[string]interface{}{
 					"task_overlap": taskOverlaps,
 					"file":         fileConflicts,
+					"forbidden":    forbidden,
 				}
 			}
 		}

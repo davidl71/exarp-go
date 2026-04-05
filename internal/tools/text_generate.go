@@ -1,4 +1,4 @@
-// text_generate.go — MCP "text_generate" tool: model-routed text generation (auto/fm/ollama/mlx).
+// text_generate.go — MCP "text_generate" tool: model-routed text generation (auto/fm/ollama/...).
 package tools
 
 import (
@@ -12,7 +12,7 @@ import (
 
 // handleTextGenerate implements the unified text_generate tool.
 // provider=fm uses DefaultFMProvider(); provider=ollama uses DefaultOllamaTextGenerator(); provider=insight uses DefaultReportInsight();
-// provider=mlx uses DefaultMLXProvider(); provider=localai uses DefaultLocalAIProvider().
+// provider=localai uses DefaultLocalAIProvider().
 // provider=auto (or task_type/task_description provided) uses ResolveModelForTask + ModelRouter for model selection (T-207).
 func handleTextGenerate(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
 	var params map[string]interface{}
@@ -68,14 +68,12 @@ func handleTextGenerate(ctx context.Context, args json.RawMessage) ([]framework.
 		gen = DefaultOllamaTextGenerator()
 	case "insight":
 		gen = DefaultReportInsight()
-	case "mlx":
-		gen = DefaultMLXProvider()
 	case "localai":
 		gen = DefaultLocalAIProvider()
 	case "gateway":
 		gen = DefaultGatewayProvider()
 	default:
-		return nil, fmt.Errorf("unknown provider: %q (use \"fm\", \"ollama\", \"insight\", \"mlx\", \"localai\", \"gateway\", or \"auto\")", provider)
+		return nil, fmt.Errorf("unknown provider: %q (use \"fm\", \"ollama\", \"insight\", \"localai\", \"gateway\", or \"auto\")", provider)
 	}
 
 	if gen == nil || !gen.Supported() {

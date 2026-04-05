@@ -1,5 +1,5 @@
-// estimation_shared.go — Shared estimation handling logic for both CGO and no-CGO builds.
-// Uses runtime FMAvailable() and MLXAvailable() checks for feature detection.
+// estimation_shared_v2.go — Shared estimation handling logic for both CGO and no-CGO builds.
+// Uses runtime FMAvailable() for feature detection.
 package tools
 
 import (
@@ -119,7 +119,6 @@ Respond ONLY with valid JSON in the exact format requested.
 }
 
 // HandleEstimationNative is the shared dispatcher for estimation.
-// Uses runtime checks for FMAvailable() and MLXAvailable().
 func HandleEstimationNative(ctx context.Context, projectRoot string, params map[string]interface{}) (string, error) {
 	action := "estimate"
 	if actionStr, ok := params["action"].(string); ok && actionStr != "" {
@@ -154,9 +153,12 @@ func handleEstimationEstimateShared(ctx context.Context, projectRoot string, par
 
 	useHistorical := ParamBool(params, "use_historical", true)
 
-	// local_ai_backend: fm (Apple), mlx, ollama, or empty (auto)
+	// local_ai_backend: fm (Apple), ollama, or empty (auto). Legacy "mlx" is ignored (same as auto).
 	backend, _ := params["local_ai_backend"].(string)
 	backend = strings.TrimSpace(strings.ToLower(backend))
+	if backend == "mlx" {
+		backend = ""
+	}
 
 	// Determine if we should use Apple FM (only if built with CGO)
 	useAppleFM := FMAvailable() && (backend == "" || backend == "fm")
@@ -205,29 +207,6 @@ func handleEstimationEstimateShared(ctx context.Context, projectRoot string, par
 				statisticalResult.Metadata = make(map[string]interface{})
 			}
 			statisticalResult.Metadata["ollama_error"] = err.Error()
-		}
-	case "mlx":
-		if MLAvailable() {
-			prompt := BuildEstimationPrompt(name, details, tags, priority)
-			raw, err := InvokeMLXTool(ctx, map[string]interface{}{"action": "generate", "prompt": prompt})
-			if err == nil && raw != "" {
-				res, err := ParseLLMEstimationResponse(raw)
-				if err == nil {
-					llmResult = res
-					llmMethod = "mlx"
-				}
-			}
-			if llmResult == nil {
-				if statisticalResult.Metadata == nil {
-					statisticalResult.Metadata = make(map[string]interface{})
-				}
-				statisticalResult.Metadata["mlx_skipped"] = "mlx generate unavailable or failed"
-			}
-		} else {
-			if statisticalResult.Metadata == nil {
-				statisticalResult.Metadata = make(map[string]interface{})
-			}
-			statisticalResult.Metadata["mlx_skipped"] = "MLX not available (requires CGO build)"
 		}
 	default:
 		// Try Apple FM if available and not explicitly disabled

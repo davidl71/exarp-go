@@ -58,6 +58,10 @@ message Todo2Task {
 
   // Typed priority (preferred for internal use).
   Todo2TaskPriority priority_enum = 18;
+
+  // Numeric sort key within the same named priority (low/medium/high/critical).
+  // Lower values order earlier after priority tiering (claim, backlog, list).
+  int32 priority_rank = 19;
   
   // List of tags associated with the task
   repeated string tags = 6;

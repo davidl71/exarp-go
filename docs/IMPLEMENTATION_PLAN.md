@@ -1,9 +1,9 @@
 # exarp-go Implementation Plan
 
 **Generated**: 2026-03-08  
-**Updated**: 2026-03-08 (llamacpp deferred)  
+**Updated**: 2026-04-05 (llamacpp / direct GGUF path removed from product)  
 **Total Tasks**: 473 (102 Todo, 371 Done)  
-**Scope**: Remaining work after cleanup, architectural unification, and llamacpp deferral
+**Scope**: Remaining work after cleanup and architectural unification (local LLMs via Ollama + `text_generate`, Apple FM chain)
 
 ---
 
@@ -11,37 +11,20 @@
 
 After recent MCP/CLI drift fixes and cleanup of wrong-project tasks, exarp-go has **~100 remaining tasks** organized into clear implementation tracks:
 
-1. **~~llamacpp Integration~~** - **DEFERRED** (see `LLAMACPP_FUTURE.md` - use Ollama instead)
-2. **Compatibility & Polish** - Language-neutral tooling
-3. **TUI Enhancements** - Better task management UX
-4. **Test Coverage** - Fill remaining gaps
-5. **Documentation** - User-facing guides
+1. **Compatibility & Polish** - Language-neutral tooling
+2. **TUI Enhancements** - Better task management UX
+3. **Test Coverage** - Fill remaining gaps
+4. **Documentation** - User-facing guides
 
 **Critical Path**: TUI enhancements and compatibility improvements  
 **Quick Wins**: ✅ Phase 1 complete! (OpenCode flags, iTerm fix, test fixes, TUI shortcuts)
 
 ---
 
-## Track 1: ~~llamacpp Integration~~ **DEFERRED** ⏸️
-
-**Status**: **Cancelled** - 36 tasks deleted  
-**Reason**: Too complex (8-12 hours), Ollama already works excellently  
-**Alternative**: Use Ollama (recommended) - see `docs/LLAMACPP_FUTURE.md`
-
-The llamacpp integration has been deferred. The codebase includes optional llamacpp stub code that can be enabled with build tags if needed in the future, but **Ollama is the recommended approach** for local LLM inference.
-
-**What was removed**: 36 tasks across 7 waves (build, implementation, integration, testing, docs)  
-**Alternative**: Use Ollama - `brew install ollama && ollama pull llama3.2`  
-**Future**: See `docs/LLAMACPP_FUTURE.md` if this becomes necessary
-
-**Key insight**: The stub implementation already exists with proper build tags. If needed in the future, enable with `-tags llamacpp,cgo` after building the C++ dependencies.
-
----
-
-## Track 2: Compatibility & Polish ✨
+## Track 1: Compatibility & Polish ✨
 
 **Priority**: MEDIUM  
-**Timeline**: 1 week (can run parallel to llamacpp)  
+**Timeline**: 1 week  
 **Value**: Language-neutral, cross-platform improvements
 
 ### Quick Wins (Days 1-2)
@@ -66,13 +49,13 @@ The llamacpp integration has been deferred. The codebase includes optional llama
 - [ ] T-1772958892671074000 - Decide testing tool strategy: Go-only vs multi-language (MEDIUM)
 - [ ] T-1772958900371299000 - Audit and neutralize Go-centric narrative in scorecard (LOW)
 - [ ] T-1771361056782 - Add opencode-friendly hints to tool descriptions (MEDIUM)
-- [ ] T-1771362279364 - Document MLX + OpenCode integration setup (MEDIUM)
+- [x] T-1771362279364 - ~~Document MLX + OpenCode~~ — exarp-go no longer ships an `mlx` tool; OpenCode MLX is independent (see `OPENCODE_INTEGRATION.md` §5).
 
 **Acceptance**: Tools documented as language-specific or enhanced for multi-language
 
 ---
 
-## Track 3: TUI Enhancements 🖥️
+## Track 2: TUI Enhancements 🖥️
 
 **Priority**: MEDIUM  
 **Timeline**: 3-5 days  
@@ -100,7 +83,7 @@ The llamacpp integration has been deferred. The codebase includes optional llama
 
 ---
 
-## Track 4: Test Coverage 🧪
+## Track 3: Test Coverage 🧪
 
 **Priority**: LOW (except high-priority fixes)  
 **Timeline**: Ongoing  
@@ -124,7 +107,7 @@ The llamacpp integration has been deferred. The codebase includes optional llama
 
 ---
 
-## Track 5: Documentation & Infrastructure 📚
+## Track 4: Documentation & Infrastructure 📚
 
 **Priority**: LOW  
 **Timeline**: Ongoing  
@@ -154,10 +137,10 @@ The llamacpp integration has been deferred. The codebase includes optional llama
 
 ---
 
-## Track 6: Advanced Features (Future) 🚀
+## Track 5: Advanced Features (Future) 🚀
 
 **Priority**: LOW  
-**Timeline**: Post-llamacpp  
+**Timeline**: Ongoing / backlog  
 **Value**: Nice-to-have enhancements
 
 ### Task Workflow
@@ -201,30 +184,18 @@ The llamacpp integration has been deferred. The codebase includes optional llama
 
 ---
 
-### Phase 2: llamacpp Foundation (Week 2-3)
-**Focus**: Build infrastructure for local LLM
+### Phase 2: Compatibility & docs (Week 2-3)
+**Focus**: Language-neutral tooling and MCP polish
 
-1. Waves 1-2: Build system + ModelManager
-2. Wave 3: Ollama integration
-3. Wave 4: Text generation API
+1. Testing tool strategy decision
+2. Scorecard / report language-neutral audit
+3. OpenCode-friendly hints and CLI flags
 
-**Outcome**: Can generate text with llamacpp on Mac
-
----
-
-### Phase 3: Integration & Polish (Week 4)
-**Focus**: Complete llamacpp, compatibility fixes
-
-1. Wave 5: Provider chain integration
-2. Wave 6-7: Testing + docs
-3. Testing tool strategy decision
-4. Scorecard language-neutral audit
-
-**Outcome**: llamacpp fully integrated, language-neutral
+**Outcome**: Clear multi-language story; fewer Go-centric defaults
 
 ---
 
-### Phase 4: TUI Enhancements (Week 5)
+### Phase 3: TUI Enhancements (Week 4)
 **Focus**: Developer UX improvements
 
 1. Handoff view in TUI
@@ -236,7 +207,7 @@ The llamacpp integration has been deferred. The codebase includes optional llama
 
 ---
 
-### Phase 5: Documentation & Infrastructure (Week 6+)
+### Phase 4: Documentation & Infrastructure (Week 5+)
 **Focus**: Sustainability, onboarding
 
 1. Consolidated documentation
@@ -249,15 +220,6 @@ The llamacpp integration has been deferred. The codebase includes optional llama
 ---
 
 ## Metrics & Success Criteria
-
-### llamacpp Track
-- ✅ Builds successfully on macOS/arm64
-- ✅ Detects and uses Metal GPU
-- ✅ Loads GGUF models from Ollama
-- ✅ Generates text via MCP tool
-- ✅ Performance benchmarks show >2x speedup vs Ollama HTTP
-- ✅ Integration tests pass
-- ✅ Documentation complete
 
 ### Compatibility Track
 - ✅ All tools have explicit language compatibility status
@@ -277,15 +239,7 @@ The llamacpp integration has been deferred. The codebase includes optional llama
 
 ## Risk Mitigation
 
-### Risk 1: llamacpp CGO complexity
-**Likelihood**: MEDIUM  
-**Impact**: HIGH  
-**Mitigation**: 
-- Test early on macOS/arm64
-- Have fallback to Ollama HTTP if CGO fails
-- Document known issues clearly
-
-### Risk 2: Model compatibility issues
+### Risk 1: Model compatibility issues (Ollama / FM)
 **Likelihood**: MEDIUM  
 **Impact**: MEDIUM  
 **Mitigation**:
@@ -293,7 +247,7 @@ The llamacpp integration has been deferred. The codebase includes optional llama
 - Test with common models (llama3.2, phi, etc.)
 - Graceful degradation when unsupported
 
-### Risk 3: Scope creep on TUI
+### Risk 2: Scope creep on TUI
 **Likelihood**: HIGH  
 **Impact**: LOW  
 **Mitigation**:
@@ -308,13 +262,13 @@ The llamacpp integration has been deferred. The codebase includes optional llama
 - **Total cleaned**: Removed 11 wrong-project tasks (mcp-go-core, IBKR, Jenkins)
 - **Test status**: 7 "fix test" tasks marked Done (tests now pass)
 - **MCP/CLI drift**: Recently resolved, compatibility matrix updated
-- **Focus**: llamacpp is the critical path for Mac users
+- **Focus**: Ollama + `text_generate` for portable local LLMs; Apple FM via `provider=fm` where CGO/darwin allow
 
 ---
 
 **Next Steps**:
 1. Review and approve this plan
 2. Start Phase 1 (Quick Wins)
-3. Begin Wave 1 (llamacpp build foundation)
+3. Execute Phase 2 (compatibility + docs)
 4. Update plan weekly based on progress
 

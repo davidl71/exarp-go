@@ -265,7 +265,7 @@ $OLLAMA_MODELS/
 ```go
 "provider": map[string]interface{}{
     "type":    "string",
-    "enum":    []string{"fm", "ollama", "insight", "mlx", "localai", "llamacpp", "auto"},
+    "enum":    []string{"fm", "ollama", "insight", "localai", "gateway", "auto"},
     "default": "fm",
     "description": "Backend: ... llamacpp (local GGUF via go-llama.cpp), or auto",
 },

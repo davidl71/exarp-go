@@ -83,8 +83,6 @@ func ToProtobuf(cfg *FullConfig) (*configpb.FullConfig, error) {
 		cfg.Tools.Linting.AutoFix || cfg.Tools.Linting.IncludeHints || cfg.Tools.Linting.Timeout > 0 ||
 		cfg.Tools.Testing.DefaultFramework != "" || cfg.Tools.Testing.MinCoverage > 0 ||
 		cfg.Tools.Testing.CoverageFormat != "" || cfg.Tools.Testing.Verbose ||
-		cfg.Tools.MLX.DefaultModel != "" || cfg.Tools.MLX.DefaultMaxTokens > 0 ||
-		cfg.Tools.MLX.DefaultTemperature > 0 || cfg.Tools.MLX.Verbose ||
 		cfg.Tools.Ollama.DefaultModel != "" || cfg.Tools.Ollama.DefaultHost != "" ||
 		cfg.Tools.Ollama.DefaultContextSize > 0 || cfg.Tools.Ollama.DefaultNumThreads > 0 ||
 		cfg.Tools.Ollama.DefaultNumGPU > 0 || cfg.Tools.Context.DefaultBudget > 0 ||

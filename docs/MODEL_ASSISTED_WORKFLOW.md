@@ -1,8 +1,8 @@
-# Model-Assisted Workflow: CodeLlama, MLX, and Ollama Integration
+# Model-Assisted Workflow: Local LLMs (FM, Ollama)
 
-**Date:** 2026-01-07  
+**Date:** 2026-01-07 (updated 2026-04-05)  
 **Status:** 📋 Design Phase  
-**Purpose:** Leverage local models (CodeLlama/MLX/Ollama) for task breakdown, execution, and prompt optimization
+**Purpose:** Leverage local models (Apple FM chain, Ollama) for task breakdown, execution, and prompt optimization
 
 ---
 
@@ -17,7 +17,7 @@ For documentation on external libraries used in this document, use Context7:
 
 
 
-This document outlines how to use local LLM models (CodeLlama via MLX, Ollama models) to enhance the Todo2 workflow by:
+This document outlines how to use local LLM models (Ollama, FM via `text_generate`) to enhance the Todo2 workflow by:
 1. **Task Breakdown** - Decomposing complex tasks into manageable subtasks
 2. **Easy Task Execution** - Automating routine/simple tasks using local models
 3. **Prompt Optimization** - Iteratively refining prompts for better AI responses
@@ -33,11 +33,11 @@ This document outlines how to use local LLM models (CodeLlama via MLX, Ollama mo
 - **task_execute** — Runs the full execution flow for a Todo2 task: load task, render prompt, call local model, parse response, apply file changes (with confidence threshold), add result comment. Use when you want the AI to attempt implementing a task end-to-end.
 - **Prompt optimization** — Iteratively refines a prompt via `prompt_analyzer` and `RefinePromptLoop` for clarity, specificity, and structure. Use when improving prompts for reuse or when task_execute produces poor outputs and you want to tune the prompt first.
 
-**Running tests with real models:** Use `make test-real-models` to run integration tests that call real backends (FM/Ollama/MLX). Regular `make test` skips these tests. See [Testing with real models](#testing-with-real-models-make-test-real-models) for backend requirements and skip behavior.
+**Running tests with real models:** Use `make test-real-models` to run integration tests that call real backends (FM/Ollama). Regular `make test` skips these tests. See [Testing with real models](#testing-with-real-models-make-test-real-models) for backend requirements and skip behavior.
 
 **Preferred backend and local_ai_backend:**
 
-- **Task metadata `preferred_backend`** — Optional key: `fm` (Apple Foundation Models), `mlx`, or `ollama`. When set on a task, tools that use LLMs (estimation, text_generate, report insights) respect it.
+- **Task metadata `preferred_backend`** — Optional key: `fm` or `ollama` (legacy `mlx` is ignored). When set on a task, tools that use LLMs (estimation, text_generate, report insights) respect it.
 - **Tool param `local_ai_backend`** — Pass to `task_workflow` create/update or `estimation` to override the backend for that call. Stored as `preferred_backend` when creating tasks.
 - **summarize** — When `local_ai_backend` is not passed, the task's `preferred_backend` is used; if unset, the default is `fm`. The param overrides task metadata for that call.
 - **run_with_ai** — Uses the task's `preferred_backend` when `local_ai_backend` is not passed; optional `instruction` adds extra guidance for the model. The param overrides task metadata for that call.
@@ -45,7 +45,7 @@ This document outlines how to use local LLM models (CodeLlama via MLX, Ollama mo
 **Summarize and run_with_ai backend selection:**  
 `task_workflow` actions `summarize` and `run_with_ai` both use the task's `preferred_backend` (from task metadata) when the caller does not supply `local_ai_backend`. If neither is set, the default is `fm` (FM chain: Apple → Ollama → stub). CLI: `exarp-go task summarize T-xxx [--local-ai-backend fm]` and `exarp-go task run-with-ai T-xxx [--backend ollama]`.
 
-**CLI commands with backend options:** `task create`, `task update`, `task estimate`, `task summarize`, and `task run-with-ai` accept `--local-ai-backend` or (for run-with-ai) `--backend` with values `fm`, `mlx`, or `ollama`.
+**CLI commands with backend options:** `task create`, `task update`, `task estimate`, `task summarize`, and `task run-with-ai` accept `--local-ai-backend` or (for run-with-ai) `--backend` with values `fm` or `ollama`.
 
 **Examples:**
 
@@ -54,7 +54,7 @@ This document outlines how to use local LLM models (CodeLlama via MLX, Ollama mo
 exarp-go -tool task_workflow -args '{"action":"create","name":"Add tests","long_description":"...","local_ai_backend":"ollama"}'
 
 # Estimation with specific backend
-exarp-go -tool estimation -args '{"action":"estimate","name":"Refactor module","local_ai_backend":"mlx"}'
+exarp-go -tool estimation -args '{"action":"estimate","name":"Refactor module","local_ai_backend":"ollama"}'
 
 # Set preferred_backend on existing task (CLI or MCP)
 exarp-go task update T-123 --local-ai-backend ollama
@@ -71,7 +71,7 @@ exarp-go task run-with-ai T-xxx [--backend ollama] [--instruction "..."]
 **Key Benefits:**
 - ✅ **Privacy** - All processing happens locally (no data sent to external APIs)
 - ✅ **Cost Efficiency** - No API costs for routine operations
-- ✅ **Speed** - Fast inference on Apple Silicon (MLX) or local GPU (Ollama)
+- ✅ **Speed** - Fast inference on Apple Silicon (FM / Ollama) or local GPU (Ollama)
 - ✅ **Offline Capability** - Works without internet connection
 - ✅ **Iterative Refinement** - Can optimize prompts through multiple iterations
 
@@ -79,47 +79,13 @@ exarp-go task run-with-ai T-xxx [--backend ollama] [--instruction "..."]
 
 ## Research Findings
 
-### CodeLlama (via MLX)
+> **2026-04:** exarp-go does **not** register an `mlx` MCP tool. Use **Ollama** (e.g. codellama tags) or **`text_generate`** with `provider=fm` / `ollama` / `auto`. Historical MLX-only model IDs below are optional on-disk formats; operationally pull CodeLlama via Ollama.
 
-**What It Is:**
-- CodeLlama is a collection of code-focused LLMs (7B-34B parameters)
-- Available in MLX format for Apple Silicon optimization
-- Designed for code synthesis, understanding, and analysis
+### CodeLlama (recommended via Ollama)
 
-**Capabilities:**
-- Code generation and completion
-- Code review and analysis
-- Architecture assessment
-- Documentation generation
-- Task decomposition (breaking down complex problems)
+**What it is:** Code-focused LLMs (7B–34B) for synthesis, review, and task breakdown.
 
-**Current Usage in Project:**
-- ✅ Already used for architecture analysis (`docs/MLX_ARCHITECTURE_ANALYSIS.md`)
-- ✅ Integrated in `estimation` tool (MLX-enhanced task duration estimation)
-- ✅ Available via `mlx` MCP tool
-
-**Models Available:**
-- `mlx-community/CodeLlama-7b-mlx` - 7B parameter model
-- `mlx-community/CodeLlama-13b-mlx` - 13B parameter model
-- `mlx-community/CodeLlama-34b-mlx` - 34B parameter model (larger, more capable)
-
-### MLX Framework
-
-**What It Is:**
-- Apple's machine learning framework optimized for Apple Silicon
-- Provides efficient inference on Neural Engine + Metal GPU
-- Python API similar to NumPy
-
-**Current Integration:**
-- ✅ `mlx` tool available in MCP server
-- ✅ Supports multiple models (Phi-3.5, CodeLlama, Mistral, Qwen)
-- ✅ Used for code analysis and estimation
-
-**Models Suitable for Task Work:**
-- **CodeLlama** - Best for code-related tasks, architecture analysis
-- **Phi-3.5** - Good for general reasoning, task breakdown
-- **Mistral** - Balanced performance for various tasks
-- **Qwen** - Strong for code and reasoning
+**In exarp-go:** Call through **`ollama`** or **`text_generate`** with `provider=ollama` and an Ollama model tag (e.g. `codellama` variants). See `docs/MLX_ARCHITECTURE_ANALYSIS.md` only for historical MLX-community context.
 
 ### Ollama
 
@@ -136,7 +102,7 @@ exarp-go task run-with-ai T-xxx [--backend ollama] [--instruction "..."]
 
 **Models Suitable for Task Work:**
 - **llama3.2** - General purpose, good for task breakdown
-- **codellama** - Code-focused, similar to MLX CodeLlama
+- **codellama** - Code-focused (pull via Ollama)
 - **mistral** - Fast and capable
 - **qwen2.5** - Strong reasoning and code understanding
 
@@ -148,7 +114,7 @@ exarp-go task run-with-ai T-xxx [--backend ollama] [--instruction "..."]
 
 **Problem:** Complex tasks need to be decomposed into manageable subtasks.
 
-**Solution:** Use CodeLlama/MLX to analyze task descriptions and generate subtask breakdowns.
+**Solution:** Use CodeLlama (via Ollama) or the FM chain to analyze task descriptions and generate subtask breakdowns.
 
 **Workflow:**
 1. User creates a complex task (e.g., "Migrate Python MCP server to Go")
@@ -283,10 +249,11 @@ The fix should:
                    │                                      │
         ┌──────────┴──────────┐              ┌──────────┴──────────┐
         │                     │              │                     │
-┌───────▼────────┐   ┌────────▼────────┐  ┌───▼────────┐  ┌───────▼────────┐
-│  MLX Handler   │   │ Ollama Handler │  │ MLX Handler│  │ Ollama Handler │
-│  (CodeLlama)   │   │  (Various)     │  │ (Phi-3.5)  │  │  (llama3.2)    │
-└────────────────┘   └────────────────┘  └────────────┘  └────────────────┘
+┌───────▼────────┐   ┌────────▼────────┐  ┌───▼────────────┐  ┌───────▼────────┐
+│  FM chain      │   │ Ollama (code)  │  │ Gateway        │  │ Ollama (chat)  │
+│  (text_generate│   │  codellama     │  │ (optional)     │  │  llama3.2 …    │
+│   provider=fm) │   │                │  │                │  │                │
+└────────────────┘   └────────────────┘  └────────────────┘  └────────────────┘
 ```
 
 ### Core Components
@@ -328,22 +295,13 @@ type ModelRouter interface {
     Generate(ctx context.Context, model ModelType, prompt string, maxTokens int, temperature float32) (string, error)
 }
 
-// ModelType: fm (FM chain), ollama-llama, ollama-codellama, mlx
+// ModelType: fm, gateway, ollama-llama, ollama-codellama (see model_router.go)
 // DefaultModelRouter is the shared instance.
 ```
 
-**Selection Logic (DefaultModelRouter):**
-1. If `FMAvailable()` → use FM chain (Apple → Ollama → stub)
-2. If code task and `MLAvailable()` (darwin/arm64) → use MLX
-3. If code task → use Ollama codellama
-4. If general task and `MLAvailable()` and `PreferCost` → use MLX
-5. Otherwise → use Ollama llama3.2
+**Selection Logic (`defaultModelRouter.SelectModel`):** planner/reviewer roles prefer FM when `FMAvailable()`; else if FM available return FM; else if `GatewayAvailable()` return gateway; else code-ish tasks → `ollama-codellama`, else → `ollama-llama`. See `internal/tools/model_router.go`.
 
-**Selection Rules:**
-- **FM chain** (Apple Foundation Models or Ollama fallback) — first choice when available
-- **Code tasks** — MLX on Apple Silicon, else Ollama codellama
-- **General tasks** — Ollama llama3.2, or MLX when PreferCost on darwin/arm64
-- **Availability** — `FMAvailable()`, `MLAvailable()` (darwin/arm64); see `LLMBackendStatus()` for discovery
+**Discovery:** `LLMBackendStatus()` / `stdio://models` — no `mlx` tool.
 
 **Usage:** `infer_task_progress`, `task_analysis` (tags action with `use_llm_semantic`).
 
@@ -488,34 +446,25 @@ Mark as Done or Request Changes
 - `model_optimize_prompt` - Refine prompts
 
 **Existing Tools to Enhance:**
-- `estimation` - Already uses MLX, can be enhanced
-- `mlx` - Add task-specific actions
-- `ollama` - Add task-specific actions
+- `estimation` — FM / Ollama backends
+- `ollama` — full action surface
+- `text_generate` — unified provider switch
 
-### 3. Go Migration Considerations
+### 3. Implementation notes
 
-**Current State:**
-- MLX tools use Python bridge (Apple Silicon specific)
-- Ollama can use HTTP API (cross-platform)
-
-**Migration Strategy:**
-- **Phase 1:** Keep MLX via Python bridge (already planned)
-- **Phase 2:** Add Ollama HTTP client in Go (no bridge needed)
-- **Phase 3:** Create Go model router and handlers
-- **Phase 4:** Integrate with Todo2 workflow
+**Current state:** Native Go `ollama` client, `text_generate`, and `model_router.go`; MLX MCP path removed.
 
 ---
 
 ## Implementation Plan
 
 ### Phase 1: Research & Design (Current)
-- ✅ Research CodeLlama, MLX, Ollama capabilities
+- ✅ Research CodeLlama / Ollama / FM capabilities
 - ✅ Design architecture
 - 📋 Create implementation tasks
 
 ### Phase 2: Model Integration
 - [x] Create model router component
-- [x] Implement MLX handler (via Python bridge)
 - [x] Implement Ollama HTTP client
 - [x] Add model selection logic — T-207 Done; `ResolveModelForTask` (recommend + router), `text_generate` provider=auto with task_type/task_description
 
@@ -564,11 +513,10 @@ This runs `go test -run RealModels ./internal/tools/... -timeout=120s -count=1` 
 |---------|----------|-------|
 | **Apple Foundation Models (FM)** | macOS Apple Silicon, CGO build | Built-in; use `make build-apple-fm` |
 | **Ollama** | Any (GPU/RAM recommended) | Install [Ollama](https://ollama.ai/), run `ollama serve`, pull a model |
-| **MLX** | Apple Silicon | Install [MLX](https://ml-explore.github.io/mlx/) (Python) |
 
 For **faster Ollama-based tests**, pull a light model (e.g. `ollama pull qwen2.5:1.5b`); tests default to `qwen2.5:1.5b`. For larger families, use a **quantized tag** (e.g. `qwen2.5:7b-q4_0`) to keep runs fast and memory use low. Set `OLLAMA_DEFAULT_MODEL` / `OLLAMA_CODE_MODEL` (and optionally `OLLAMA_TEST_MODEL` / `OLLAMA_TEST_CODE_MODEL`) to use your preferred models.
 
-Tests use `DefaultFMProvider()` (FM → Ollama bridge → MLX bridge) and skip with a clear message if no backend is available.
+Tests use `DefaultFMProvider()` and Ollama paths as configured; they skip with a clear message if no backend is available.
 
 ---
 
@@ -585,7 +533,7 @@ Tests use `DefaultFMProvider()` (FM → Ollama bridge → MLX bridge) and skip w
 
 ### Trade-offs
 
-1. **Hardware Requirements** - MLX needs Apple Silicon, Ollama needs GPU/RAM
+1. **Hardware Requirements** - FM benefits from Apple Silicon + CGO; Ollama needs GPU/RAM for larger models
 2. **Model Quality** - Local models may be less capable than cloud models
 3. **Setup Complexity** - Need to manage model downloads and updates
 4. **Maintenance** - Models need periodic updates
@@ -612,7 +560,7 @@ Tests use `DefaultFMProvider()` (FM → Ollama bridge → MLX bridge) and skip w
 
 1. **Review and approve this design**
 2. **Create Todo2 tasks for implementation**
-3. **Set up development environment** (MLX, Ollama)
+3. **Set up development environment** (Ollama; optional Apple FM CGO build)
 4. **Implement Phase 2** (Model Integration)
 5. **Test with real tasks**
 6. **Iterate based on results**
@@ -621,8 +569,6 @@ Tests use `DefaultFMProvider()` (FM → Ollama bridge → MLX bridge) and skip w
 
 ## References
 
-- [MLX Framework](https://mlx-framework.org/)
-- [MLX CodeLlama Models](https://huggingface.co/mlx-community/CodeLlama-7b-mlx)
 - [Ollama Documentation](https://ollama.ai/docs)
 - [CodeLlama Paper](https://ai.meta.com/research/publications/code-llama-open-foundation-models-for-code/)
 

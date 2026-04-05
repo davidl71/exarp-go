@@ -1,4 +1,4 @@
-// scorecard_mlx.go — MLX-based AI analysis for scorecard data processing.
+// scorecard_insights.go — Scorecard map formatting and AI-assisted display helpers.
 package tools
 
 import (
@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-// GoScorecardToMap converts GoScorecardResult to map for MLX processing
+// GoScorecardToMap converts GoScorecardResult to map for reporting and resources.
 // Exported for use by resource handlers.
 func GoScorecardToMap(scorecard *GoScorecardResult) map[string]interface{} {
 	result := make(map[string]interface{})
@@ -50,14 +50,14 @@ func GoScorecardToMap(scorecard *GoScorecardResult) map[string]interface{} {
 	return result
 }
 
-// FormatGoScorecardWithMLX formats scorecard with MLX insights.
-func FormatGoScorecardWithMLX(scorecard *GoScorecardResult, insights map[string]interface{}) string {
+// FormatGoScorecardWithAIInsights formats scorecard with LLM-generated insights text.
+func FormatGoScorecardWithAIInsights(scorecard *GoScorecardResult, insights map[string]interface{}) string {
 	var sb strings.Builder
 
 	// Standard scorecard format
 	sb.WriteString(FormatGoScorecard(scorecard))
 
-	// Add AI insights section (from insight provider: MLX or FM)
+	// Add AI insights section (from insight provider / FM chain)
 	if insightsText, ok := insights["insights"].(string); ok && insightsText != "" {
 		sb.WriteString("\n\n")
 		sb.WriteString("═══════════════════════════════════════════════════════════\n")

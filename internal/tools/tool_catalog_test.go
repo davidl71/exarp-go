@@ -193,7 +193,7 @@ func TestGetToolCatalog(t *testing.T) {
 	}
 }
 
-func TestGetToolCatalog_TextGenerateMentionsGatewayAndLlamacpp(t *testing.T) {
+func TestGetToolCatalog_TextGenerateMentionsGateway(t *testing.T) {
 	catalog := GetToolCatalog()
 	entry, exists := catalog["text_generate"]
 	if !exists {

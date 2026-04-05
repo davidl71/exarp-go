@@ -34,7 +34,7 @@ Apply this skill when the workspace uses the exarp-go MCP server and you need to
 | **Bulk remove one-off/performance tasks** | Use **task-cleanup** skill (batch delete via `task_workflow` with `task_ids`). See `.cursor/skills/task-cleanup/SKILL.md`. |
 | **Which skills to use** | Read resource **stdio://agent/skills** (legacy alias: **stdio://cursor/skills**) or **.cursor/skills/README.md** for task-workflow, use-exarp-tools, report-scorecard, task-cleanup, lint-docs, tractatus-decompose. |
 | **Available prompts (workflow, persona, category)** | Resource **stdio://prompts**; **stdio://prompts/mode/{mode}**, **stdio://prompts/persona/{persona}**, **stdio://prompts/category/{category}** for filtered lists. |
-| **Models / LLM backends (local AI)** | Resource **stdio://models** — returns `data.models` (recommend catalog) and **data.backends** (fm_available, tool names). Use to choose backend before calling apple_foundation_models, ollama, mlx, or text_generate. |
+| **Models / LLM backends (local AI)** | Resource **stdio://models** — returns `data.models` (recommend catalog) and **data.backends** (fm_available, ollama_reachable, localai_available, gateway_available). Use to choose backend before calling `apple_foundation_models`, `ollama`, or `text_generate`. |
 | **Task list / suggested tasks** | **stdio://tasks**, **stdio://tasks/status/{status}**, **stdio://suggested-tasks** for dependency-ready tasks. |
 | **Docs/code for a GitHub repo** | **GitMCP** for a specific repo’s docs/code (e.g. this repo); **Context7** for library/framework docs. See `.cursor/rules/mcp-configuration.mdc` (Context7 vs GitMCP vs web search). **GitHub MCP** for issues/PRs/repo API. |
 
@@ -45,7 +45,7 @@ Apply this skill when the workspace uses the exarp-go MCP server and you need to
 - **stdio://cursor/skills** and **stdio://cursor/skills/{name}** — legacy aliases kept for compatibility.
 - **stdio://tools** — Full tool catalog; **stdio://tools/{category}** for category filter (e.g. "Task Management", "AI & ML").
 - **stdio://prompts** — All prompt names and short descriptions; use **/mode/{mode}**, **/persona/{persona}**, **/category/{category}** for filtered lists.
-- **stdio://models** — Model catalog and `backends` (fm_available, apple_fm_tool, ollama_tool, mlx_tool). Check before using LLM tools (see .cursor/rules/llm-tools.mdc).
+- **stdio://models** — Model catalog and `backends` (fm_available, ollama_tool, localai_tool, gateway_tool). Check before using LLM tools (see .cursor/rules/llm-tools.mdc).
 - **stdio://tasks**, **stdio://suggested-tasks** — Task list and dependency-ready suggestions.
 
 ## Discovering exarp-go usage (do not run --help)

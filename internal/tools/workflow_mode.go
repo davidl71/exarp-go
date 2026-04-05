@@ -476,7 +476,6 @@ var toolGroup = map[string]string{
 	"generate_config":         "config",
 	"estimation":              "tasks",
 	"ollama":                  "advisors",
-	"mlx":                     "advisors",
 	"text_generate":           "advisors",
 	"context":                 "advisors",
 	"context_budget":          "advisors",

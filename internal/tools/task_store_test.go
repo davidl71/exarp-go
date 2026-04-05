@@ -147,7 +147,7 @@ func TestNewDefaultTaskStoreListIncludesLegacyNullProjectRows(t *testing.T) {
 		INSERT INTO tasks (
 			id, name, content, long_description,
 			status, status_enum,
-			priority, priority_enum,
+			priority, priority_enum, priority_rank,
 			completed,
 			created, last_modified, completed_at,
 			created_ts, last_modified_ts, completed_at_ts,
@@ -158,7 +158,7 @@ func TestNewDefaultTaskStoreListIncludesLegacyNullProjectRows(t *testing.T) {
 		) VALUES (
 		  ?, ?, ?, ?,
 		  ?, ?,
-		  ?, ?,
+		  ?, ?, 0,
 		  ?,
 		  ?, ?, '',
 		  strftime('%s', ?), strftime('%s', ?), 0,

@@ -9,7 +9,9 @@ import (
 
 	"github.com/davidl71/exarp-go/internal/config"
 	"github.com/davidl71/exarp-go/internal/framework"
+	"github.com/davidl71/exarp-go/internal/models"
 	"github.com/davidl71/exarp-go/proto"
+	"github.com/spf13/cast"
 )
 
 // TaskAnalysisResponseToMap converts TaskAnalysisResponse to a map for response.FormatResult (unmarshals result_json into map).
@@ -101,9 +103,21 @@ func handleTaskAnalysisConflicts(ctx context.Context, params map[string]interfac
 		return nil, fmt.Errorf("failed to load tasks: %w", err)
 	}
 
+	includeTodo := cast.ToBool(params["include_todo"])
+	if raw := strings.TrimSpace(cast.ToString(params["include_statuses"])); raw != "" {
+		for _, p := range strings.Split(raw, ",") {
+			if strings.EqualFold(strings.TrimSpace(p), models.StatusTodo) {
+				includeTodo = true
+
+				break
+			}
+		}
+	}
+
 	taskOverlaps := DetectTaskOverlapConflicts(list)
-	fileConflicts := DetectFileConflicts(list)
-	hasConflict := len(taskOverlaps) > 0 || len(fileConflicts) > 0
+	fileConflicts := DetectFileConflictsWithPreflight(list, includeTodo)
+	forbiddenHits := DetectForbiddenOwnershipConflictsWithPreflight(list, includeTodo)
+	hasConflict := len(taskOverlaps) > 0 || len(fileConflicts) > 0 || len(forbiddenHits) > 0
 	overlapping := make([]string, 0)
 
 	if hasConflict {
@@ -129,22 +143,38 @@ func handleTaskAnalysisConflicts(ctx context.Context, params map[string]interfac
 				}
 			}
 		}
+		for _, c := range forbiddenHits {
+			if !seen[c.TaskID] {
+				seen[c.TaskID] = true
+				overlapping = append(overlapping, c.TaskID)
+			}
+
+			if !seen[c.OtherTaskID] {
+				seen[c.OtherTaskID] = true
+				overlapping = append(overlapping, c.OtherTaskID)
+			}
+		}
 	}
 
 	out := map[string]interface{}{
-		"conflict":       hasConflict,
-		"conflicts":      taskOverlaps,
-		"file_conflicts": fileConflicts,
-		"overlapping":    overlapping,
+		"conflict":            hasConflict,
+		"conflicts":           taskOverlaps,
+		"file_conflicts":      fileConflicts,
+		"ownership_conflicts": forbiddenHits,
+		"overlapping":         overlapping,
+		"include_todo":        includeTodo,
 	}
 
 	if hasConflict {
-		reasons := make([]string, 0, len(taskOverlaps)+len(fileConflicts))
+		reasons := make([]string, 0, len(taskOverlaps)+len(fileConflicts)+len(forbiddenHits))
 		for _, c := range taskOverlaps {
 			reasons = append(reasons, c.Reason)
 		}
 		for _, c := range fileConflicts {
 			reasons = append(reasons, "File conflict: tasks "+strings.Join(c.TaskIDs, ", ")+" share "+strings.Join(c.Files, ", "))
+		}
+		for _, c := range forbiddenHits {
+			reasons = append(reasons, "Ownership: "+c.TaskID+" touches "+c.Path+" forbidden by "+c.OtherTaskID+" ("+c.Reason+")")
 		}
 
 		out["reasons"] = reasons

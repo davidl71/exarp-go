@@ -116,11 +116,11 @@ For detailed configuration options, see:
 
 **Codex quickstart:** If you use Codex or another terminal coding agent, start with [docs/CODEX.md](docs/CODEX.md) for the shortest repo-specific guide: what to read first, what to ignore, preferred `make` targets, and the fast verification command `make codex-smoke`.
 
-**Model-assisted workflow:** For local LLM integration (CodeLlama/MLX/Ollama) for task breakdown, execution, and prompt optimization, see [docs/MODEL_ASSISTED_WORKFLOW.md](docs/MODEL_ASSISTED_WORKFLOW.md). The docs index is in [docs/README.md](docs/README.md).
+**Model-assisted workflow:** For local LLM integration (CodeLlama/Ollama, Apple FM) for task breakdown, execution, and prompt optimization, see [docs/MODEL_ASSISTED_WORKFLOW.md](docs/MODEL_ASSISTED_WORKFLOW.md). The docs index is in [docs/README.md](docs/README.md).
 
 **Operator cheat sheet:** Task lifecycle, batch `approve` (`new_status`, `dry_run`), `PROJECT_ROOT`, and common footguns — [docs/EXARP_OPERATOR_CHEATSHEET.md](docs/EXARP_OPERATOR_CHEATSHEET.md). Shell/Make shortcuts: [docs/EXARP_CLI_SHORTCUTS.md](docs/EXARP_CLI_SHORTCUTS.md).
 
-**AI/LLM stack:** For the full backend stack (Apple FM, Ollama, MLX, LocalAI) and discovery, see [docs/GO_AI_ECOSYSTEM.md](docs/GO_AI_ECOSYSTEM.md) and [docs/LLM_NATIVE_ABSTRACTION_PATTERNS.md](docs/LLM_NATIVE_ABSTRACTION_PATTERNS.md).
+**AI/LLM stack:** For the full backend stack (Apple FM, Ollama, LocalAI) and discovery, see [docs/GO_AI_ECOSYSTEM.md](docs/GO_AI_ECOSYSTEM.md) and [docs/LLM_NATIVE_ABSTRACTION_PATTERNS.md](docs/LLM_NATIVE_ABSTRACTION_PATTERNS.md).
 
 **OpenCode / OAC:** To use exarp-go with [OpenCode](https://opencode.ai/) or [OpenAgentsControl (OAC)](https://github.com/darrenhinde/OpenAgentsControl), add exarp-go as an MCP server in your OpenCode config. See [docs/OPENCODE_INTEGRATION.md](docs/OPENCODE_INTEGRATION.md) for MCP, CLI, and HTTP API; [docs/OPENAGENTSCONTROL_EXARP_GO_COMBO_PLAN.md](docs/OPENAGENTSCONTROL_EXARP_GO_COMBO_PLAN.md) for OAC + exarp-go workflow. Example config: [docs/opencode-exarp-go.example.json](docs/opencode-exarp-go.example.json).
 
@@ -183,10 +183,6 @@ Install with: `uv sync --dev` or `uv pip install -e ".[dev]"`
 **Feature-Specific Optional Dependencies:**
 - **Ollama** - Required for `ollama` tool functionality
   - Install: https://ollama.ai/
-- **MLX** - Required for `mlx` tool functionality
-  - Install: https://ml-explore.github.io/mlx/
-- **llama.cpp** - Required for `llamacpp` tool (direct GGUF inference)
-  - Build submodule: `make build-libbinding` then `make build-llamacpp`; or run `./scripts/build-llamacpp.sh`. See [docs/llamacpp-build-requirements.md](docs/llamacpp-build-requirements.md).
 
 ## Installation
 
@@ -369,22 +365,11 @@ make lint-fix     # Lint and auto-fix
 
 ### Benchmarking
 
-Compare **Ollama (HTTP)** vs **llamacpp (local)** generate performance (latency, throughput):
-
 ```bash
-make bench        # Run all Go benchmarks (Ollama benchmark runs if ollama serve is up)
+make bench        # Run all Go benchmarks (includes Ollama-oriented benches when `ollama serve` is up)
 ```
 
-- **Ollama:** Requires `ollama serve` and a model (e.g. `ollama run llama3.2`). Skipped if server is unreachable.
-- **LlamaCpp:** Requires build with `-tags llamacpp,cgo` and a loaded model; skipped otherwise.
-
-Quick one-off report (no full benchmark):
-
-```bash
-go test -run TestOllamaVsLlamaCppPerformanceReport -v ./internal/tools/
-```
-
-Benchmarks live in `internal/tools/ollama_llamacpp_bench_test.go`.
+- **Ollama:** Requires `ollama serve` and a model (e.g. `ollama run llama3.2`). Skipped if the server is unreachable.
 
 ### Git hooks and release
 

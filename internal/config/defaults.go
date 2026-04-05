@@ -199,12 +199,6 @@ func GetDefaults() *FullConfig {
 				CoverageFormat:   "html",
 				Verbose:          false,
 			},
-			MLX: MLXConfig{
-				DefaultModel:       "mlx-community/Phi-3.5-mini-instruct-4bit",
-				DefaultMaxTokens:   512,
-				DefaultTemperature: 0.7,
-				Verbose:            false,
-			},
 			Ollama: OllamaConfig{
 				DefaultModel:       "llama3.2",
 				DefaultHost:        "http://localhost:11434",

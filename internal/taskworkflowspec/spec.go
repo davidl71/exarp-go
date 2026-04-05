@@ -36,6 +36,17 @@ var CreateFieldSpecs = []FieldSpec{
 		},
 	},
 	{
+		CanonicalName: "priority_rank",
+		MCPName:       "priority_rank",
+		CLIFlag:       "priority-rank",
+		Description:   "Numeric sort key within the same priority (lower first)",
+		Schema: map[string]interface{}{
+			"type":        "integer",
+			"default":     0,
+			"description": "For create/update: ordering within priority band (list, claim, backlog).",
+		},
+	},
+	{
 		CanonicalName: "tags",
 		MCPName:       "tags",
 		CLIFlag:       "tags",
@@ -59,11 +70,11 @@ var CreateFieldSpecs = []FieldSpec{
 		CanonicalName: "local_ai_backend",
 		MCPName:       "local_ai_backend",
 		CLIFlag:       "local-ai-backend",
-		Description:   "Preferred local AI backend (fm, mlx, ollama)",
+		Description:   "Preferred local AI backend (fm, ollama)",
 		Schema: map[string]interface{}{
 			"type":        "string",
-			"description": "For create/update: preferred local LLM for estimation (fm|mlx|ollama). Stored in task metadata as preferred_backend. For summarize/run_with_ai: overrides task metadata to select backend.",
-			"enum":        []string{"", "fm", "mlx", "ollama"},
+			"description": "For create/update: preferred local LLM for estimation (fm|ollama). Stored in task metadata as preferred_backend. For summarize/run_with_ai: overrides task metadata to select backend.",
+			"enum":        []string{"", "fm", "ollama"},
 		},
 	},
 	{
@@ -131,6 +142,16 @@ var UpdateFieldSpecs = []FieldSpec{
 		},
 	},
 	{
+		CanonicalName: "priority_rank",
+		MCPName:       "priority_rank",
+		CLIFlag:       "priority-rank",
+		Description:   "New priority_rank (integer)",
+		Schema: map[string]interface{}{
+			"type":        "integer",
+			"description": "For update: numeric sort order within the same priority band.",
+		},
+	},
+	{
 		CanonicalName: "tags",
 		MCPName:       "tags",
 		CLIFlag:       "tags",
@@ -185,11 +206,11 @@ var UpdateFieldSpecs = []FieldSpec{
 		CanonicalName: "local_ai_backend",
 		MCPName:       "local_ai_backend",
 		CLIFlag:       "local-ai-backend",
-		Description:   "Preferred local AI backend (fm, mlx, ollama)",
+		Description:   "Preferred local AI backend (fm, ollama)",
 		Schema: map[string]interface{}{
 			"type":        "string",
-			"description": "For create/update: preferred local LLM for estimation (fm|mlx|ollama). Stored in task metadata as preferred_backend. For summarize/run_with_ai: overrides task metadata to select backend.",
-			"enum":        []string{"", "fm", "mlx", "ollama"},
+			"description": "For create/update: preferred local LLM for estimation (fm|ollama). Stored in task metadata as preferred_backend. For summarize/run_with_ai: overrides task metadata to select backend.",
+			"enum":        []string{"", "fm", "ollama"},
 		},
 	},
 	{
@@ -224,10 +245,17 @@ type OptionalList struct {
 	Values []string
 }
 
+// OptionalInt is an optional integer field for CLI → task_workflow mapping.
+type OptionalInt struct {
+	Set   bool
+	Value int
+}
+
 type TaskCreateInput struct {
 	Name             string
 	LongDescription  OptionalString
 	Priority         OptionalString
+	PriorityRank     OptionalInt
 	Tags             OptionalList
 	Dependencies     OptionalList
 	LocalAIBackend   OptionalString
@@ -241,6 +269,7 @@ type TaskUpdateInput struct {
 	TaskIDs          []string
 	NewStatus        OptionalString
 	Priority         OptionalString
+	PriorityRank     OptionalInt
 	Tags             OptionalList
 	RemoveTags       OptionalList
 	Name             OptionalString
@@ -317,6 +346,9 @@ func (in TaskCreateInput) ToToolArgs() map[string]interface{} {
 	if in.Priority.Set {
 		toolArgs["priority"] = in.Priority.Value
 	}
+	if in.PriorityRank.Set {
+		toolArgs["priority_rank"] = in.PriorityRank.Value
+	}
 	if in.Tags.Set && len(in.Tags.Values) > 0 {
 		toolArgs["tags"] = toolArgStringSlice(in.Tags.Values)
 	}
@@ -351,6 +383,9 @@ func (in TaskUpdateInput) ToToolArgs() map[string]interface{} {
 	}
 	if in.Priority.Set {
 		toolArgs["priority"] = in.Priority.Value
+	}
+	if in.PriorityRank.Set {
+		toolArgs["priority_rank"] = in.PriorityRank.Value
 	}
 	if in.Tags.Set && len(in.Tags.Values) > 0 {
 		toolArgs["tags"] = toolArgStringSlice(in.Tags.Values)

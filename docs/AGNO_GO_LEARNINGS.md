@@ -10,7 +10,7 @@ Patterns from [Agno-Go](https://github.com/rexleimo/agno-Go) (multi-agent framew
 | **Per-session observability** | Session storage, metrics per session. | **Adopted:** Prime and list responses carry `token_estimate` so clients know the “cost” of this session’s context. Handoff and session state already provide observability. |
 | **Semantic compression** | `EnableSemanticCompression`, max tokens post-compression, optional semantic model. | **Consider:** Optional rule-based abbreviation (preserve dates/IDs/versions); no separate model. See plan §4. |
 | **Lightweight lifecycle** | Agent ~180ns, ~1.2KB; request-scoped semantics. | **Consider:** Request-scoped cache ([ctxcache](https://pkg.go.dev/github.com/lawlielt/ctxcache)) for per-request memoization without cross-request state; see plan §1. |
-| **Multi-provider** | OpenAI, Anthropic, Gemini, Ollama, etc. | **Already:** exarp-go has fm/ollama/mlx/localai. Token accuracy (e.g. tiktoken-go) matters most for OpenAI-compatible; see plan §3. |
+| **Multi-provider** | OpenAI, Anthropic, Gemini, Ollama, etc. | **Already:** exarp-go has fm/ollama/localai/gateway via `text_generate`. Token accuracy (e.g. tiktoken-go) matters most for OpenAI-compatible; see plan §3. |
 | **Structured logging / health** | AgentOS REST, health checks, CORS, timeouts. | **Already:** Health tool and structured logging. Token/cost hints don’t require new infra. |
 
 ## References

@@ -47,8 +47,6 @@ These are valid tools, but they should be documented as specialist/advanced tool
 | Tool | Reason |
 |---|---|
 | `ollama` | Backend-specific |
-| `mlx` | Backend-specific |
-| `llamacpp` | Backend-specific |
 | `cursor_cloud_agent` | Platform/integration-specific |
 | `fm_plan_and_execute` | Advanced orchestration helper |
 | `prompt_tracking` | Useful, but narrow |
@@ -188,8 +186,6 @@ Everything else should be documented as:
 | `session` | Keep primary |
 | `infer_session_mode` | Merge target: `session`; keep alias now |
 | `ollama` | Keep specialist |
-| `mlx` | Keep specialist |
-| `llamacpp` | Keep specialist |
 | `context_budget` | Alias to `context` |
 | `context` | Keep specialist |
 | `text_generate` | Keep primary |

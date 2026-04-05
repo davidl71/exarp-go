@@ -96,7 +96,7 @@ This document confirms that exarp-go works correctly with OpenCode via the Model
 | Category | Tool Count | Sample Tools |
 |----------|-----------|--------------|
 | **Task Management** | 7 | `task_workflow`, `task_analysis`, `task_execute` |
-| **AI & LLM** | 8 | `ollama`, `apple_foundation_models`, `mlx`, `text_generate` |
+| **AI & LLM** | 6+ | `ollama`, `apple_foundation_models`, `text_generate`, `fm_plan_and_execute`, … |
 | **Project Health** | 6 | `health`, `testing`, `lint`, `security` |
 | **Reporting** | 5 | `report`, `generate_config`, `research_aggregator` |
 | **Session Management** | 5 | `session`, `workflow_mode`, `infer_session_mode` |
@@ -404,15 +404,7 @@ vs. separate tools for each action. This reduces tool count and improves discove
 
 ## Known Limitations
 
-1. **MLX Backend**: Experimental, returns "not available in this build"
-   - **Workaround**: Use Ollama instead (recommended)
-   - **Future**: May be enabled with build tags
-
-2. **llamacpp Backend**: Deferred, stub implementation
-   - **Workaround**: Use Ollama instead (recommended)
-   - **Reference**: See `docs/LLAMACPP_FUTURE.md`
-
-3. **Slow Operations**: Some tools are inherently slow
+1. **Slow Operations**: Some tools are inherently slow
    - Security scanning: 3-4s (warns correctly)
    - LLM generation: Varies by backend/model
    - **Mitigation**: Warnings logged for operations >2s

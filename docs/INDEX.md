@@ -27,7 +27,7 @@ Use these first unless you specifically need a backend-specific or compatibility
 - `memory`, `memory_maint`, `recommend`, `text_generate`
 - `workflow_mode`, `tool_catalog`, `generate_config`, `setup_hooks`
 
-Advanced/specialist tools such as `ollama`, `mlx`, `llamacpp`, `cursor_cloud_agent`, and `fm_plan_and_execute` still exist, but they are not the recommended starting surface.
+Advanced/specialist tools such as `ollama`, `cursor_cloud_agent`, and `fm_plan_and_execute` still exist, but they are not the recommended starting surface. Unified generation is via `text_generate` (`fm`, `ollama`, `insight`, `localai`, `gateway`, `auto`).
 
 Compatibility aliases still exist for migration:
 - `task_execute` -> prefer `task_workflow`
@@ -70,8 +70,8 @@ Compatibility aliases still exist for migration:
 ### AI/LLM Stack
 | Document | Description |
 |----------|-------------|
-| `GO_AI_ECOSYSTEM.md` | AI backend stack (Ollama, Apple FM, MLX) |
-| `LLAMACPP_FUTURE.md` | **NEW** Why llamacpp was deferred (use Ollama) |
+| `GO_AI_ECOSYSTEM.md` | AI backend stack (Ollama, Apple FM, LocalAI, gateway) |
+| `archive/llamacpp-removed/` | Historical llama.cpp/GGUF docs (product path removed; use Ollama) |
 | `LLM_NATIVE_ABSTRACTION_PATTERNS.md` | LLM abstraction patterns |
 
 ### MCP Integration

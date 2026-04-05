@@ -12,7 +12,7 @@ func registerCoreTools(server framework.MCPServer) error {
 	taskWorkflowProps := taskworkflowspec.AppendTaskFieldSchemaProperties(map[string]interface{}{
 		"action": map[string]interface{}{
 			"type":    "string",
-			"enum":    []string{"list", "show", "create", "update", "delete", "add_comment", "summarize", "run_with_ai", "approve", "clarify", "clarity", "cleanup", "enrich_tool_hints", "fix_dates", "fix_empty_descriptions", "fix_empty_names", "fix_invalid_ids", "link_planning", "request_approval", "sync_approvals", "apply_approval_result", "sanity_check", "sync", "sync_from_plan", "sync_plan_status", "claim", "batch_claim", "release", "agent_status", "start_run", "end_run", "list_runs", "show_run", "verify", "add_progress", "split"},
+			"enum":    []string{"list", "show", "create", "update", "delete", "add_comment", "summarize", "run_with_ai", "approve", "clarify", "clarity", "cleanup", "enrich_tool_hints", "fix_dates", "fix_empty_descriptions", "fix_empty_names", "fix_invalid_ids", "link_planning", "request_approval", "sync_approvals", "apply_approval_result", "sanity_check", "sync", "sync_from_plan", "sync_plan_status", "claim", "batch_claim", "release", "agent_status", "start_run", "end_run", "list_runs", "show_run", "verify", "add_progress", "split", "import_sqlite"},
 			"default": "list",
 		},
 		"dry_run": map[string]interface{}{
@@ -107,6 +107,36 @@ func registerCoreTools(server framework.MCPServer) error {
 			"type":        "number",
 			"description": "For claim/batch_claim: task lock duration in minutes",
 		},
+		"import_sources": map[string]interface{}{
+			"type":        "string",
+			"description": "For import_sqlite: JSON array of paths (todo2.db files and/or project directories with .todo2/todo2.db). Example: [\"../svc/a\",\"../svc/b/.todo2/todo2.db\"]",
+		},
+		"import_scan_mode": map[string]interface{}{
+			"type":        "string",
+			"default":     "none",
+			"enum":        []string{"none", "immediate", "recursive"},
+			"description": "For import_sqlite: when a source is a directory, none=only that dir's .todo2/todo2.db; immediate=also each child dir with a DB; recursive=walk for **/.todo2/todo2.db",
+		},
+		"import_on_conflict": map[string]interface{}{
+			"type":        "string",
+			"default":     "fail",
+			"enum":        []string{"fail", "skip"},
+			"description": "For import_sqlite: if task id exists in target DB with different content — fail aborts with report; skip omits those tasks",
+		},
+		"import_default_project_id": map[string]interface{}{
+			"type":        "string",
+			"description": "For import_sqlite: if set, fills empty project_id on imported tasks; otherwise uses parent folder name of the source project",
+		},
+		"import_sync_json": map[string]interface{}{
+			"type":        "boolean",
+			"default":     true,
+			"description": "For import_sqlite: after successful import, reconcile SQLite with state.todo2.json",
+		},
+		"import_max_depth": map[string]interface{}{
+			"type":        "integer",
+			"default":     0,
+			"description": "For import_sqlite with immediate or recursive: max depth of project dirs under each source (0=unlimited). Depth 0 = source's own .todo2; depth 1 = one path segment below source (e.g. source/svc/.todo2)",
+		},
 		"form_id": map[string]interface{}{
 			"type":        "string",
 			"description": "For request_approval/sync_approvals: gotoHuman form ID from list-forms (optional)",
@@ -174,7 +204,12 @@ func registerCoreTools(server framework.MCPServer) error {
 		},
 		"tasks": map[string]interface{}{
 			"type":        "string",
-			"description": "JSON array of tasks for batch create. Each element: {name, priority?, tags?, long_description?, dependencies?}. Example: [{\"name\":\"Task A\",\"priority\":\"high\"},{\"name\":\"Task B\"}]",
+			"description": "JSON array of tasks for batch create. Each element: {name, priority?, priority_rank?, tags?, long_description?, dependencies?}. priority_rank: integer, lower sorts earlier within the same named priority. Example: [{\"name\":\"Task A\",\"priority\":\"high\",\"priority_rank\":10}]",
+		},
+		"priority_rank": map[string]interface{}{
+			"type":        "integer",
+			"default":     0,
+			"description": "For create/update: numeric sort order within the same priority band (low/medium/high/critical). Lower values order first in list, next-claimable, and backlog ordering.",
 		},
 		"auto_estimate": map[string]interface{}{
 			"type":        "boolean",
@@ -200,7 +235,7 @@ func registerCoreTools(server framework.MCPServer) error {
 	// task_workflow
 	if err := server.RegisterTool(
 		"task_workflow",
-		"[HINT: action=list|show|create|update|delete|clarify|summarize|run_with_ai|approve|sync|cleanup|link_planning|add_comment|claim|start_run|end_run|list_runs|show_run|verify|add_progress|split. show is an alias for list+task_id. list supports status/priority/filter_tag/include_metadata. sync=SQLite↔JSON reconciliation, not for listing.]",
+		"[HINT: action=list|show|create|update|delete|clarify|summarize|run_with_ai|approve|sync|cleanup|link_planning|add_comment|claim|start_run|end_run|list_runs|show_run|verify|add_progress|split|import_sqlite. show is an alias for list+task_id. list supports status/priority/filter_tag/include_metadata. sync=SQLite↔JSON reconciliation; import_sqlite merges other .todo2/todo2.db files (dry_run, import_scan_mode, import_on_conflict).]",
 		framework.ToolSchema{
 			Type:       "object",
 			Properties: taskWorkflowProps,
@@ -376,7 +411,7 @@ func registerCoreTools(server framework.MCPServer) error {
 				"use_tiny_tag_model": map[string]interface{}{
 					"type":        "boolean",
 					"default":     false,
-					"description": "For action=tags with use_llm_semantic: try Ollama with tinyllama then MLX with TinyLlama (1.1B) for faster tag inference before Apple FM.",
+					"description": "For action=tags with use_llm_semantic: try Ollama with tinyllama for faster tag inference before Apple FM.",
 				},
 				"filter_tag": map[string]interface{}{
 					"type":        "string",
@@ -390,6 +425,15 @@ func registerCoreTools(server framework.MCPServer) error {
 					"type":        "boolean",
 					"default":     false,
 					"description": "For action=suggest_dependencies: when true, also extract dependency hints from .cursor/plans and docs/*plan*.md (Depends on: T-XXX, milestone order).",
+				},
+				"include_todo": map[string]interface{}{
+					"type":        "boolean",
+					"default":     false,
+					"description": "For action=conflicts: include Todo tasks in file and ownership conflict detection (preflight); dependency overlaps remain In Progress only",
+				},
+				"include_statuses": map[string]interface{}{
+					"type":        "string",
+					"description": "For action=conflicts: comma-separated statuses; if any token is Todo (case-insensitive), enables the same preflight expansion as include_todo",
 				},
 			},
 		},

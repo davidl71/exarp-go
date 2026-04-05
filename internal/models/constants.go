@@ -240,7 +240,6 @@ const (
 // LLM backend values.
 const (
 	BackendFM     = "fm"
-	BackendMLX    = "mlx"
 	BackendOllama = "ollama"
 	BackendAuto   = "auto"
 )

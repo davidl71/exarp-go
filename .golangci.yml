@@ -158,10 +158,6 @@ issues:
       path: "internal/tools/resources_as_tools\\.go"
     - linters:
         - staticcheck
-      text: "unused func RecommendGPULayers"
-      path: "internal/tools/llamacpp_gpu\\.go"
-    - linters:
-        - staticcheck
       text: "unused func SerializeTaskToProtobufJSON"
       path: "internal/models/todo2_protobuf\\.go"
     - linters:

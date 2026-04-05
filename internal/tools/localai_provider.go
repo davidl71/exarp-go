@@ -1,5 +1,5 @@
 // Package tools: LocalAI as a TextGenerator (OpenAI-compatible API).
-// Optional backend for self-hosted LocalAI alongside Ollama/FM/MLX.
+// Optional backend for self-hosted LocalAI alongside Ollama/FM.
 // Base URL from env LOCALAI_BASE_URL; optional LOCALAI_MODEL. See docs/GO_AI_ECOSYSTEM.md §5.2.
 
 package tools

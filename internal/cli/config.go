@@ -1453,8 +1453,6 @@ func getToolsValue(tools *config.ToolsConfig, keys []string) (string, error) {
 		return fmt.Sprintf("default_linter=%s, auto_fix=%t", tools.Linting.DefaultLinter, tools.Linting.AutoFix), nil
 	case "testing":
 		return fmt.Sprintf("default_framework=%s, min_coverage=%d", tools.Testing.DefaultFramework, tools.Testing.MinCoverage), nil
-	case "mlx":
-		return fmt.Sprintf("default_model=%s", tools.MLX.DefaultModel), nil
 	case "ollama":
 		return fmt.Sprintf("default_model=%s, default_host=%s", tools.Ollama.DefaultModel, tools.Ollama.DefaultHost), nil
 	case "context":

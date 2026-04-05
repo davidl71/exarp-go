@@ -188,6 +188,7 @@ const (
 	TaskWorkflowAction_TASK_WORKFLOW_ACTION_VERIFY                 TaskWorkflowAction = 34
 	TaskWorkflowAction_TASK_WORKFLOW_ACTION_ADD_PROGRESS           TaskWorkflowAction = 35
 	TaskWorkflowAction_TASK_WORKFLOW_ACTION_SPLIT                  TaskWorkflowAction = 36
+	TaskWorkflowAction_TASK_WORKFLOW_ACTION_IMPORT_SQLITE          TaskWorkflowAction = 37
 )
 
 // Enum value maps for TaskWorkflowAction.
@@ -230,6 +231,7 @@ var (
 		34: "TASK_WORKFLOW_ACTION_VERIFY",
 		35: "TASK_WORKFLOW_ACTION_ADD_PROGRESS",
 		36: "TASK_WORKFLOW_ACTION_SPLIT",
+		37: "TASK_WORKFLOW_ACTION_IMPORT_SQLITE",
 	}
 	TaskWorkflowAction_value = map[string]int32{
 		"TASK_WORKFLOW_ACTION_UNSPECIFIED":            0,
@@ -269,6 +271,7 @@ var (
 		"TASK_WORKFLOW_ACTION_VERIFY":                 34,
 		"TASK_WORKFLOW_ACTION_ADD_PROGRESS":           35,
 		"TASK_WORKFLOW_ACTION_SPLIT":                  36,
+		"TASK_WORKFLOW_ACTION_IMPORT_SQLITE":          37,
 	}
 )
 
@@ -743,14 +746,15 @@ func (AutomationAction) EnumDescriptor() ([]byte, []int) {
 type GitToolsAction int32
 
 const (
-	GitToolsAction_GIT_TOOLS_ACTION_UNSPECIFIED GitToolsAction = 0
-	GitToolsAction_GIT_TOOLS_ACTION_COMMITS     GitToolsAction = 1
-	GitToolsAction_GIT_TOOLS_ACTION_BRANCHES    GitToolsAction = 2
-	GitToolsAction_GIT_TOOLS_ACTION_TASKS       GitToolsAction = 3
-	GitToolsAction_GIT_TOOLS_ACTION_DIFF        GitToolsAction = 4
-	GitToolsAction_GIT_TOOLS_ACTION_GRAPH       GitToolsAction = 5
-	GitToolsAction_GIT_TOOLS_ACTION_MERGE       GitToolsAction = 6
-	GitToolsAction_GIT_TOOLS_ACTION_SET_BRANCH  GitToolsAction = 7
+	GitToolsAction_GIT_TOOLS_ACTION_UNSPECIFIED   GitToolsAction = 0
+	GitToolsAction_GIT_TOOLS_ACTION_COMMITS       GitToolsAction = 1
+	GitToolsAction_GIT_TOOLS_ACTION_BRANCHES      GitToolsAction = 2
+	GitToolsAction_GIT_TOOLS_ACTION_TASKS         GitToolsAction = 3
+	GitToolsAction_GIT_TOOLS_ACTION_DIFF          GitToolsAction = 4
+	GitToolsAction_GIT_TOOLS_ACTION_GRAPH         GitToolsAction = 5
+	GitToolsAction_GIT_TOOLS_ACTION_MERGE         GitToolsAction = 6
+	GitToolsAction_GIT_TOOLS_ACTION_SET_BRANCH    GitToolsAction = 7
+	GitToolsAction_GIT_TOOLS_ACTION_LOCAL_COMMITS GitToolsAction = 8
 )
 
 // Enum value maps for GitToolsAction.
@@ -764,16 +768,18 @@ var (
 		5: "GIT_TOOLS_ACTION_GRAPH",
 		6: "GIT_TOOLS_ACTION_MERGE",
 		7: "GIT_TOOLS_ACTION_SET_BRANCH",
+		8: "GIT_TOOLS_ACTION_LOCAL_COMMITS",
 	}
 	GitToolsAction_value = map[string]int32{
-		"GIT_TOOLS_ACTION_UNSPECIFIED": 0,
-		"GIT_TOOLS_ACTION_COMMITS":     1,
-		"GIT_TOOLS_ACTION_BRANCHES":    2,
-		"GIT_TOOLS_ACTION_TASKS":       3,
-		"GIT_TOOLS_ACTION_DIFF":        4,
-		"GIT_TOOLS_ACTION_GRAPH":       5,
-		"GIT_TOOLS_ACTION_MERGE":       6,
-		"GIT_TOOLS_ACTION_SET_BRANCH":  7,
+		"GIT_TOOLS_ACTION_UNSPECIFIED":   0,
+		"GIT_TOOLS_ACTION_COMMITS":       1,
+		"GIT_TOOLS_ACTION_BRANCHES":      2,
+		"GIT_TOOLS_ACTION_TASKS":         3,
+		"GIT_TOOLS_ACTION_DIFF":          4,
+		"GIT_TOOLS_ACTION_GRAPH":         5,
+		"GIT_TOOLS_ACTION_MERGE":         6,
+		"GIT_TOOLS_ACTION_SET_BRANCH":    7,
+		"GIT_TOOLS_ACTION_LOCAL_COMMITS": 8,
 	}
 )
 
@@ -1476,7 +1482,6 @@ type LocalLLMBackend int32
 const (
 	LocalLLMBackend_LOCAL_LLM_BACKEND_UNSPECIFIED LocalLLMBackend = 0
 	LocalLLMBackend_LOCAL_LLM_BACKEND_FM          LocalLLMBackend = 1
-	LocalLLMBackend_LOCAL_LLM_BACKEND_MLX         LocalLLMBackend = 2
 	LocalLLMBackend_LOCAL_LLM_BACKEND_OLLAMA      LocalLLMBackend = 3
 	LocalLLMBackend_LOCAL_LLM_BACKEND_AUTO        LocalLLMBackend = 4
 )
@@ -1486,14 +1491,12 @@ var (
 	LocalLLMBackend_name = map[int32]string{
 		0: "LOCAL_LLM_BACKEND_UNSPECIFIED",
 		1: "LOCAL_LLM_BACKEND_FM",
-		2: "LOCAL_LLM_BACKEND_MLX",
 		3: "LOCAL_LLM_BACKEND_OLLAMA",
 		4: "LOCAL_LLM_BACKEND_AUTO",
 	}
 	LocalLLMBackend_value = map[string]int32{
 		"LOCAL_LLM_BACKEND_UNSPECIFIED": 0,
 		"LOCAL_LLM_BACKEND_FM":          1,
-		"LOCAL_LLM_BACKEND_MLX":         2,
 		"LOCAL_LLM_BACKEND_OLLAMA":      3,
 		"LOCAL_LLM_BACKEND_AUTO":        4,
 	}
@@ -2398,7 +2401,7 @@ type ReportResponse struct {
 	Success       bool                   `protobuf:"varint,1,opt,name=success,proto3" json:"success,omitempty"`
 	Report        string                 `protobuf:"bytes,2,opt,name=report,proto3" json:"report,omitempty"` // Generated report text
 	OutputPath    string                 `protobuf:"bytes,3,opt,name=output_path,json=outputPath,proto3" json:"output_path,omitempty"`
-	AiInsights    *AIInsights            `protobuf:"bytes,4,opt,name=ai_insights,json=aiInsights,proto3" json:"ai_insights,omitempty"` // MLX-enhanced insights (if available)
+	AiInsights    *AIInsights            `protobuf:"bytes,4,opt,name=ai_insights,json=aiInsights,proto3" json:"ai_insights,omitempty"` // LLM-enhanced insights (if available)
 	Error         string                 `protobuf:"bytes,5,opt,name=error,proto3" json:"error,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -2899,7 +2902,7 @@ func (x *ProjectOverviewData) GetPlanning() *PlanningSnippet {
 	return nil
 }
 
-// ScorecardData represents Go scorecard result for report/MLX path (type-safe)
+// ScorecardData represents Go scorecard result for report path (type-safe)
 type ScorecardData struct {
 	state           protoimpl.MessageState `protogen:"open.v1"`
 	Score           float64                `protobuf:"fixed64,1,opt,name=score,proto3" json:"score,omitempty"`
@@ -3588,7 +3591,7 @@ type TaskAnalysisRequest struct {
 	BacklogOnly            bool               `protobuf:"varint,13,opt,name=backlog_only,json=backlogOnly,proto3" json:"backlog_only,omitempty"`                      // For discover_tags: only match/apply tags to Todo2 backlog (Todo + In Progress).
 	UseLlmSemantic         bool               `protobuf:"varint,14,opt,name=use_llm_semantic,json=useLlmSemantic,proto3" json:"use_llm_semantic,omitempty"`           // For action=tags: use Apple FM or Ollama to suggest tags from task title and content (batched).
 	MatchExistingOnly      bool               `protobuf:"varint,15,opt,name=match_existing_only,json=matchExistingOnly,proto3" json:"match_existing_only,omitempty"`  // For action=tags+use_llm_semantic: quick FM inference matching only from existing tags (canonical + project/cache).
-	UseTinyTagModel        bool               `protobuf:"varint,16,opt,name=use_tiny_tag_model,json=useTinyTagModel,proto3" json:"use_tiny_tag_model,omitempty"`      // For action=tags+use_llm_semantic: try Ollama tinyllama then MLX TinyLlama for faster inference.
+	UseTinyTagModel        bool               `protobuf:"varint,16,opt,name=use_tiny_tag_model,json=useTinyTagModel,proto3" json:"use_tiny_tag_model,omitempty"`      // For action=tags+use_llm_semantic: try Ollama tinyllama for faster inference before larger models.
 	ActionEnum             TaskAnalysisAction `protobuf:"varint,17,opt,name=action_enum,json=actionEnum,proto3,enum=exarp.tools.TaskAnalysisAction" json:"action_enum,omitempty"`
 	OutputFormatEnum       OutputFormat       `protobuf:"varint,18,opt,name=output_format_enum,json=outputFormatEnum,proto3,enum=exarp.tools.OutputFormat" json:"output_format_enum,omitempty"`
 	unknownFields          protoimpl.UnknownFields
@@ -4271,7 +4274,41 @@ type TaskWorkflowRequest struct {
 	// - action=add_comment: the comment body text
 	Content string `protobuf:"bytes,28,opt,name=content,proto3" json:"content,omitempty"`
 	// For action=add_comment: type of comment (result, note, research_with_links, manualsetup).
-	CommentType   string `protobuf:"bytes,29,opt,name=comment_type,json=commentType,proto3" json:"comment_type,omitempty"`
+	CommentType string `protobuf:"bytes,29,opt,name=comment_type,json=commentType,proto3" json:"comment_type,omitempty"`
+	// --- Execution / multi-agent (start_run, end_run, list_runs, show_run, verify, add_progress, split, claim) ---
+	// These fields are absent from earlier revisions; protojson previously dropped them (unknown fields), breaking MCP/typed clients.
+	RunId          string   `protobuf:"bytes,30,opt,name=run_id,json=runId,proto3" json:"run_id,omitempty"`
+	Summary        string   `protobuf:"bytes,31,opt,name=summary,proto3" json:"summary,omitempty"`
+	Notes          string   `protobuf:"bytes,32,opt,name=notes,proto3" json:"notes,omitempty"`
+	FilesTouched   []string `protobuf:"bytes,33,rep,name=files_touched,json=filesTouched,proto3" json:"files_touched,omitempty"`
+	CommandsRun    []string `protobuf:"bytes,34,rep,name=commands_run,json=commandsRun,proto3" json:"commands_run,omitempty"`
+	Kind           string   `protobuf:"bytes,35,opt,name=kind,proto3" json:"kind,omitempty"`
+	Command        string   `protobuf:"bytes,36,opt,name=command,proto3" json:"command,omitempty"`
+	Details        string   `protobuf:"bytes,37,opt,name=details,proto3" json:"details,omitempty"`
+	RemainingWork  string   `protobuf:"bytes,38,opt,name=remaining_work,json=remainingWork,proto3" json:"remaining_work,omitempty"`
+	Files          []string `protobuf:"bytes,39,rep,name=files,proto3" json:"files,omitempty"`
+	Children       string   `protobuf:"bytes,40,opt,name=children,proto3" json:"children,omitempty"`
+	DependencyMode string   `protobuf:"bytes,41,opt,name=dependency_mode,json=dependencyMode,proto3" json:"dependency_mode,omitempty"`
+	Limit          int32    `protobuf:"varint,42,opt,name=limit,proto3" json:"limit,omitempty"`
+	// end_run status, verify outcome, apply_approval_result (approved/rejected), etc.
+	Result       string `protobuf:"bytes,43,opt,name=result,proto3" json:"result,omitempty"`
+	AgentId      string `protobuf:"bytes,44,opt,name=agent_id,json=agentId,proto3" json:"agent_id,omitempty"`
+	LeaseMinutes int32  `protobuf:"varint,45,opt,name=lease_minutes,json=leaseMinutes,proto3" json:"lease_minutes,omitempty"`
+	// import_sqlite: merge external Todo2 SQLite DBs into the current PROJECT_ROOT database.
+	// import_sources: JSON array of paths — each may be a path to todo2.db or a project directory (uses .todo2/todo2.db).
+	ImportSources string `protobuf:"bytes,46,opt,name=import_sources,json=importSources,proto3" json:"import_sources,omitempty"`
+	// import_scan_mode: none | immediate | recursive — when a source path is a directory, discover child project DBs.
+	ImportScanMode string `protobuf:"bytes,47,opt,name=import_scan_mode,json=importScanMode,proto3" json:"import_scan_mode,omitempty"`
+	// import_on_conflict: fail (default) or skip — when a task id exists in the target with a different content hash.
+	ImportOnConflict string `protobuf:"bytes,48,opt,name=import_on_conflict,json=importOnConflict,proto3" json:"import_on_conflict,omitempty"`
+	// import_default_project_id: when set, used for tasks with empty project_id instead of the source folder label.
+	ImportDefaultProjectId string `protobuf:"bytes,49,opt,name=import_default_project_id,json=importDefaultProjectId,proto3" json:"import_default_project_id,omitempty"`
+	// import_sync_json: when true (default), run SQLite↔JSON sync after a successful non-dry import.
+	ImportSyncJson bool `protobuf:"varint,50,opt,name=import_sync_json,json=importSyncJson,proto3" json:"import_sync_json,omitempty"`
+	// import_max_depth: for import_scan_mode immediate|recursive, max directory depth below each source dir for a project root containing .todo2 (0 = unlimited).
+	ImportMaxDepth int32 `protobuf:"varint,51,opt,name=import_max_depth,json=importMaxDepth,proto3" json:"import_max_depth,omitempty"`
+	// priority_rank: optional sort key for create/update; lower sorts earlier within the same named priority.
+	PriorityRank  int32 `protobuf:"varint,52,opt,name=priority_rank,json=priorityRank,proto3" json:"priority_rank,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -4509,6 +4546,167 @@ func (x *TaskWorkflowRequest) GetCommentType() string {
 	return ""
 }
 
+func (x *TaskWorkflowRequest) GetRunId() string {
+	if x != nil {
+		return x.RunId
+	}
+	return ""
+}
+
+func (x *TaskWorkflowRequest) GetSummary() string {
+	if x != nil {
+		return x.Summary
+	}
+	return ""
+}
+
+func (x *TaskWorkflowRequest) GetNotes() string {
+	if x != nil {
+		return x.Notes
+	}
+	return ""
+}
+
+func (x *TaskWorkflowRequest) GetFilesTouched() []string {
+	if x != nil {
+		return x.FilesTouched
+	}
+	return nil
+}
+
+func (x *TaskWorkflowRequest) GetCommandsRun() []string {
+	if x != nil {
+		return x.CommandsRun
+	}
+	return nil
+}
+
+func (x *TaskWorkflowRequest) GetKind() string {
+	if x != nil {
+		return x.Kind
+	}
+	return ""
+}
+
+func (x *TaskWorkflowRequest) GetCommand() string {
+	if x != nil {
+		return x.Command
+	}
+	return ""
+}
+
+func (x *TaskWorkflowRequest) GetDetails() string {
+	if x != nil {
+		return x.Details
+	}
+	return ""
+}
+
+func (x *TaskWorkflowRequest) GetRemainingWork() string {
+	if x != nil {
+		return x.RemainingWork
+	}
+	return ""
+}
+
+func (x *TaskWorkflowRequest) GetFiles() []string {
+	if x != nil {
+		return x.Files
+	}
+	return nil
+}
+
+func (x *TaskWorkflowRequest) GetChildren() string {
+	if x != nil {
+		return x.Children
+	}
+	return ""
+}
+
+func (x *TaskWorkflowRequest) GetDependencyMode() string {
+	if x != nil {
+		return x.DependencyMode
+	}
+	return ""
+}
+
+func (x *TaskWorkflowRequest) GetLimit() int32 {
+	if x != nil {
+		return x.Limit
+	}
+	return 0
+}
+
+func (x *TaskWorkflowRequest) GetResult() string {
+	if x != nil {
+		return x.Result
+	}
+	return ""
+}
+
+func (x *TaskWorkflowRequest) GetAgentId() string {
+	if x != nil {
+		return x.AgentId
+	}
+	return ""
+}
+
+func (x *TaskWorkflowRequest) GetLeaseMinutes() int32 {
+	if x != nil {
+		return x.LeaseMinutes
+	}
+	return 0
+}
+
+func (x *TaskWorkflowRequest) GetImportSources() string {
+	if x != nil {
+		return x.ImportSources
+	}
+	return ""
+}
+
+func (x *TaskWorkflowRequest) GetImportScanMode() string {
+	if x != nil {
+		return x.ImportScanMode
+	}
+	return ""
+}
+
+func (x *TaskWorkflowRequest) GetImportOnConflict() string {
+	if x != nil {
+		return x.ImportOnConflict
+	}
+	return ""
+}
+
+func (x *TaskWorkflowRequest) GetImportDefaultProjectId() string {
+	if x != nil {
+		return x.ImportDefaultProjectId
+	}
+	return ""
+}
+
+func (x *TaskWorkflowRequest) GetImportSyncJson() bool {
+	if x != nil {
+		return x.ImportSyncJson
+	}
+	return false
+}
+
+func (x *TaskWorkflowRequest) GetImportMaxDepth() int32 {
+	if x != nil {
+		return x.ImportMaxDepth
+	}
+	return 0
+}
+
+func (x *TaskWorkflowRequest) GetPriorityRank() int32 {
+	if x != nil {
+		return x.PriorityRank
+	}
+	return 0
+}
+
 // TaskSummary is a single task entry for list/approve/sync results (type-safe response).
 type TaskSummary struct {
 	state            protoimpl.MessageState `protogen:"open.v1"`
@@ -4520,6 +4718,7 @@ type TaskSummary struct {
 	LongDescription  string                 `protobuf:"bytes,6,opt,name=long_description,json=longDescription,proto3" json:"long_description,omitempty"`
 	Dependencies     []string               `protobuf:"bytes,7,rep,name=dependencies,proto3" json:"dependencies,omitempty"`
 	RecommendedTools []string               `protobuf:"bytes,8,rep,name=recommended_tools,json=recommendedTools,proto3" json:"recommended_tools,omitempty"`
+	PriorityRank     int32                  `protobuf:"varint,9,opt,name=priority_rank,json=priorityRank,proto3" json:"priority_rank,omitempty"`
 	unknownFields    protoimpl.UnknownFields
 	sizeCache        protoimpl.SizeCache
 }
@@ -4608,6 +4807,13 @@ func (x *TaskSummary) GetRecommendedTools() []string {
 		return x.RecommendedTools
 	}
 	return nil
+}
+
+func (x *TaskSummary) GetPriorityRank() int32 {
+	if x != nil {
+		return x.PriorityRank
+	}
+	return 0
 }
 
 // SyncResults holds sync action result details (validated_tasks, issues, etc.).
@@ -5614,20 +5820,22 @@ func (x *LintRequest) GetActionEnum() LintAction {
 
 // EstimationRequest represents a request to the estimation tool
 type EstimationRequest struct {
-	state              protoimpl.MessageState `protogen:"open.v1"`
-	Action             string                 `protobuf:"bytes,1,opt,name=action,proto3" json:"action,omitempty"` // "estimate", "analyze", "stats"
-	Name               string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
-	Details            string                 `protobuf:"bytes,3,opt,name=details,proto3" json:"details,omitempty"` // default: ""
-	Tags               string                 `protobuf:"bytes,4,opt,name=tags,proto3" json:"tags,omitempty"`
-	TagList            []string               `protobuf:"bytes,5,rep,name=tag_list,json=tagList,proto3" json:"tag_list,omitempty"`
-	Priority           string                 `protobuf:"bytes,6,opt,name=priority,proto3" json:"priority,omitempty"`                                      // default: "medium"
-	UseHistorical      bool                   `protobuf:"varint,7,opt,name=use_historical,json=useHistorical,proto3" json:"use_historical,omitempty"`      // default: true
-	Detailed           bool                   `protobuf:"varint,8,opt,name=detailed,proto3" json:"detailed,omitempty"`                                     // default: false
-	UseMlx             bool                   `protobuf:"varint,9,opt,name=use_mlx,json=useMlx,proto3" json:"use_mlx,omitempty"`                           // default: true
-	MlxWeight          float64                `protobuf:"fixed64,10,opt,name=mlx_weight,json=mlxWeight,proto3" json:"mlx_weight,omitempty"`                // default: 0.3
-	LocalAiBackend     string                 `protobuf:"bytes,11,opt,name=local_ai_backend,json=localAiBackend,proto3" json:"local_ai_backend,omitempty"` // optional: fm|mlx|ollama — preferred local LLM for estimate
-	LocalAiBackendEnum LocalLLMBackend        `protobuf:"varint,12,opt,name=local_ai_backend_enum,json=localAiBackendEnum,proto3,enum=exarp.tools.LocalLLMBackend" json:"local_ai_backend_enum,omitempty"`
-	SummaryLevelEnum   LocalLLMSummaryLevel   `protobuf:"varint,13,opt,name=summary_level_enum,json=summaryLevelEnum,proto3,enum=exarp.tools.LocalLLMSummaryLevel" json:"summary_level_enum,omitempty"`
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Action        string                 `protobuf:"bytes,1,opt,name=action,proto3" json:"action,omitempty"` // "estimate", "analyze", "stats"
+	Name          string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	Details       string                 `protobuf:"bytes,3,opt,name=details,proto3" json:"details,omitempty"` // default: ""
+	Tags          string                 `protobuf:"bytes,4,opt,name=tags,proto3" json:"tags,omitempty"`
+	TagList       []string               `protobuf:"bytes,5,rep,name=tag_list,json=tagList,proto3" json:"tag_list,omitempty"`
+	Priority      string                 `protobuf:"bytes,6,opt,name=priority,proto3" json:"priority,omitempty"`                                 // default: "medium"
+	UseHistorical bool                   `protobuf:"varint,7,opt,name=use_historical,json=useHistorical,proto3" json:"use_historical,omitempty"` // default: true
+	Detailed      bool                   `protobuf:"varint,8,opt,name=detailed,proto3" json:"detailed,omitempty"`                                // default: false
+	// Deprecated: Marked as deprecated in proto/tools.proto.
+	UseMlx bool `protobuf:"varint,9,opt,name=use_mlx,json=useMlx,proto3" json:"use_mlx,omitempty"` // ignored; reserved for backward compatibility
+	// Deprecated: Marked as deprecated in proto/tools.proto.
+	MlxWeight          float64              `protobuf:"fixed64,10,opt,name=mlx_weight,json=mlxWeight,proto3" json:"mlx_weight,omitempty"`                // ignored; reserved for backward compatibility
+	LocalAiBackend     string               `protobuf:"bytes,11,opt,name=local_ai_backend,json=localAiBackend,proto3" json:"local_ai_backend,omitempty"` // optional: fm|ollama — preferred local LLM for estimate
+	LocalAiBackendEnum LocalLLMBackend      `protobuf:"varint,12,opt,name=local_ai_backend_enum,json=localAiBackendEnum,proto3,enum=exarp.tools.LocalLLMBackend" json:"local_ai_backend_enum,omitempty"`
+	SummaryLevelEnum   LocalLLMSummaryLevel `protobuf:"varint,13,opt,name=summary_level_enum,json=summaryLevelEnum,proto3,enum=exarp.tools.LocalLLMSummaryLevel" json:"summary_level_enum,omitempty"`
 	unknownFields      protoimpl.UnknownFields
 	sizeCache          protoimpl.SizeCache
 }
@@ -5718,6 +5926,7 @@ func (x *EstimationRequest) GetDetailed() bool {
 	return false
 }
 
+// Deprecated: Marked as deprecated in proto/tools.proto.
 func (x *EstimationRequest) GetUseMlx() bool {
 	if x != nil {
 		return x.UseMlx
@@ -5725,6 +5934,7 @@ func (x *EstimationRequest) GetUseMlx() bool {
 	return false
 }
 
+// Deprecated: Marked as deprecated in proto/tools.proto.
 func (x *EstimationRequest) GetMlxWeight() float64 {
 	if x != nil {
 		return x.MlxWeight
@@ -7517,91 +7727,6 @@ func (x *OllamaRequest) GetLevelEnum() LocalLLMSummaryLevel {
 	return LocalLLMSummaryLevel_LOCAL_LLM_SUMMARY_LEVEL_UNSPECIFIED
 }
 
-// MLXRequest represents a request to the MLX tool
-type MLXRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Action        string                 `protobuf:"bytes,1,opt,name=action,proto3" json:"action,omitempty"` // "status", "hardware", "models", "generate"
-	Prompt        string                 `protobuf:"bytes,2,opt,name=prompt,proto3" json:"prompt,omitempty"`
-	Model         string                 `protobuf:"bytes,3,opt,name=model,proto3" json:"model,omitempty"`                           // default: "mlx-community/Phi-3.5-mini-instruct-4bit"
-	MaxTokens     int32                  `protobuf:"varint,4,opt,name=max_tokens,json=maxTokens,proto3" json:"max_tokens,omitempty"` // default: 512
-	Temperature   float64                `protobuf:"fixed64,5,opt,name=temperature,proto3" json:"temperature,omitempty"`             // default: 0.7
-	Verbose       bool                   `protobuf:"varint,6,opt,name=verbose,proto3" json:"verbose,omitempty"`                      // default: false
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *MLXRequest) Reset() {
-	*x = MLXRequest{}
-	mi := &file_proto_tools_proto_msgTypes[60]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *MLXRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*MLXRequest) ProtoMessage() {}
-
-func (x *MLXRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_tools_proto_msgTypes[60]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use MLXRequest.ProtoReflect.Descriptor instead.
-func (*MLXRequest) Descriptor() ([]byte, []int) {
-	return file_proto_tools_proto_rawDescGZIP(), []int{60}
-}
-
-func (x *MLXRequest) GetAction() string {
-	if x != nil {
-		return x.Action
-	}
-	return ""
-}
-
-func (x *MLXRequest) GetPrompt() string {
-	if x != nil {
-		return x.Prompt
-	}
-	return ""
-}
-
-func (x *MLXRequest) GetModel() string {
-	if x != nil {
-		return x.Model
-	}
-	return ""
-}
-
-func (x *MLXRequest) GetMaxTokens() int32 {
-	if x != nil {
-		return x.MaxTokens
-	}
-	return 0
-}
-
-func (x *MLXRequest) GetTemperature() float64 {
-	if x != nil {
-		return x.Temperature
-	}
-	return 0
-}
-
-func (x *MLXRequest) GetVerbose() bool {
-	if x != nil {
-		return x.Verbose
-	}
-	return false
-}
-
 // PromptTrackingRequest represents a request to the prompt tracking tool
 type PromptTrackingRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
@@ -7618,7 +7743,7 @@ type PromptTrackingRequest struct {
 
 func (x *PromptTrackingRequest) Reset() {
 	*x = PromptTrackingRequest{}
-	mi := &file_proto_tools_proto_msgTypes[61]
+	mi := &file_proto_tools_proto_msgTypes[60]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7630,7 +7755,7 @@ func (x *PromptTrackingRequest) String() string {
 func (*PromptTrackingRequest) ProtoMessage() {}
 
 func (x *PromptTrackingRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_tools_proto_msgTypes[61]
+	mi := &file_proto_tools_proto_msgTypes[60]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7643,7 +7768,7 @@ func (x *PromptTrackingRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PromptTrackingRequest.ProtoReflect.Descriptor instead.
 func (*PromptTrackingRequest) Descriptor() ([]byte, []int) {
-	return file_proto_tools_proto_rawDescGZIP(), []int{61}
+	return file_proto_tools_proto_rawDescGZIP(), []int{60}
 }
 
 func (x *PromptTrackingRequest) GetAction() string {
@@ -7711,7 +7836,7 @@ type RecommendRequest struct {
 
 func (x *RecommendRequest) Reset() {
 	*x = RecommendRequest{}
-	mi := &file_proto_tools_proto_msgTypes[62]
+	mi := &file_proto_tools_proto_msgTypes[61]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7723,7 +7848,7 @@ func (x *RecommendRequest) String() string {
 func (*RecommendRequest) ProtoMessage() {}
 
 func (x *RecommendRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_tools_proto_msgTypes[62]
+	mi := &file_proto_tools_proto_msgTypes[61]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7736,7 +7861,7 @@ func (x *RecommendRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RecommendRequest.ProtoReflect.Descriptor instead.
 func (*RecommendRequest) Descriptor() ([]byte, []int) {
-	return file_proto_tools_proto_rawDescGZIP(), []int{62}
+	return file_proto_tools_proto_rawDescGZIP(), []int{61}
 }
 
 func (x *RecommendRequest) GetAction() string {
@@ -7798,7 +7923,7 @@ type InferSessionModeRequest struct {
 
 func (x *InferSessionModeRequest) Reset() {
 	*x = InferSessionModeRequest{}
-	mi := &file_proto_tools_proto_msgTypes[63]
+	mi := &file_proto_tools_proto_msgTypes[62]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7810,7 +7935,7 @@ func (x *InferSessionModeRequest) String() string {
 func (*InferSessionModeRequest) ProtoMessage() {}
 
 func (x *InferSessionModeRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_tools_proto_msgTypes[63]
+	mi := &file_proto_tools_proto_msgTypes[62]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7823,7 +7948,7 @@ func (x *InferSessionModeRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use InferSessionModeRequest.ProtoReflect.Descriptor instead.
 func (*InferSessionModeRequest) Descriptor() ([]byte, []int) {
-	return file_proto_tools_proto_rawDescGZIP(), []int{63}
+	return file_proto_tools_proto_rawDescGZIP(), []int{62}
 }
 
 func (x *InferSessionModeRequest) GetForceRecompute() bool {
@@ -7844,7 +7969,7 @@ type ContextBudgetRequest struct {
 
 func (x *ContextBudgetRequest) Reset() {
 	*x = ContextBudgetRequest{}
-	mi := &file_proto_tools_proto_msgTypes[64]
+	mi := &file_proto_tools_proto_msgTypes[63]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7856,7 +7981,7 @@ func (x *ContextBudgetRequest) String() string {
 func (*ContextBudgetRequest) ProtoMessage() {}
 
 func (x *ContextBudgetRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_tools_proto_msgTypes[64]
+	mi := &file_proto_tools_proto_msgTypes[63]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7869,7 +7994,7 @@ func (x *ContextBudgetRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ContextBudgetRequest.ProtoReflect.Descriptor instead.
 func (*ContextBudgetRequest) Descriptor() ([]byte, []int) {
-	return file_proto_tools_proto_rawDescGZIP(), []int{64}
+	return file_proto_tools_proto_rawDescGZIP(), []int{63}
 }
 
 func (x *ContextBudgetRequest) GetItems() string {
@@ -7900,7 +8025,7 @@ type CachedTaskExecutionPack struct {
 
 func (x *CachedTaskExecutionPack) Reset() {
 	*x = CachedTaskExecutionPack{}
-	mi := &file_proto_tools_proto_msgTypes[65]
+	mi := &file_proto_tools_proto_msgTypes[64]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7912,7 +8037,7 @@ func (x *CachedTaskExecutionPack) String() string {
 func (*CachedTaskExecutionPack) ProtoMessage() {}
 
 func (x *CachedTaskExecutionPack) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_tools_proto_msgTypes[65]
+	mi := &file_proto_tools_proto_msgTypes[64]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7925,7 +8050,7 @@ func (x *CachedTaskExecutionPack) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CachedTaskExecutionPack.ProtoReflect.Descriptor instead.
 func (*CachedTaskExecutionPack) Descriptor() ([]byte, []int) {
-	return file_proto_tools_proto_rawDescGZIP(), []int{65}
+	return file_proto_tools_proto_rawDescGZIP(), []int{64}
 }
 
 func (x *CachedTaskExecutionPack) GetTaskId() string {
@@ -8248,7 +8373,7 @@ const file_proto_tools_proto_rawDesc = "" +
 	"\fjson_pattern\x18\x05 \x01(\tR\vjsonPattern\x12\x1f\n" +
 	"\voutput_path\x18\x06 \x01(\tR\n" +
 	"outputPath\x12!\n" +
-	"\fcreate_tasks\x18\a \x01(\bR\vcreateTasks\"\xaa\b\n" +
+	"\fcreate_tasks\x18\a \x01(\bR\vcreateTasks\"\xa4\x0e\n" +
 	"\x13TaskWorkflowRequest\x12\x16\n" +
 	"\x06action\x18\x01 \x01(\tR\x06action\x12\x17\n" +
 	"\adry_run\x18\x02 \x01(\bR\x06dryRun\x12\x1a\n" +
@@ -8286,7 +8411,30 @@ const file_proto_tools_proto_rawDesc = "" +
 	"actionEnum\x12G\n" +
 	"\x12output_format_enum\x18\x1b \x01(\x0e2\x19.exarp.tools.OutputFormatR\x10outputFormatEnum\x12\x18\n" +
 	"\acontent\x18\x1c \x01(\tR\acontent\x12!\n" +
-	"\fcomment_type\x18\x1d \x01(\tR\vcommentType\"\xfb\x01\n" +
+	"\fcomment_type\x18\x1d \x01(\tR\vcommentType\x12\x15\n" +
+	"\x06run_id\x18\x1e \x01(\tR\x05runId\x12\x18\n" +
+	"\asummary\x18\x1f \x01(\tR\asummary\x12\x14\n" +
+	"\x05notes\x18  \x01(\tR\x05notes\x12#\n" +
+	"\rfiles_touched\x18! \x03(\tR\ffilesTouched\x12!\n" +
+	"\fcommands_run\x18\" \x03(\tR\vcommandsRun\x12\x12\n" +
+	"\x04kind\x18# \x01(\tR\x04kind\x12\x18\n" +
+	"\acommand\x18$ \x01(\tR\acommand\x12\x18\n" +
+	"\adetails\x18% \x01(\tR\adetails\x12%\n" +
+	"\x0eremaining_work\x18& \x01(\tR\rremainingWork\x12\x14\n" +
+	"\x05files\x18' \x03(\tR\x05files\x12\x1a\n" +
+	"\bchildren\x18( \x01(\tR\bchildren\x12'\n" +
+	"\x0fdependency_mode\x18) \x01(\tR\x0edependencyMode\x12\x14\n" +
+	"\x05limit\x18* \x01(\x05R\x05limit\x12\x16\n" +
+	"\x06result\x18+ \x01(\tR\x06result\x12\x19\n" +
+	"\bagent_id\x18, \x01(\tR\aagentId\x12#\n" +
+	"\rlease_minutes\x18- \x01(\x05R\fleaseMinutes\x12%\n" +
+	"\x0eimport_sources\x18. \x01(\tR\rimportSources\x12(\n" +
+	"\x10import_scan_mode\x18/ \x01(\tR\x0eimportScanMode\x12,\n" +
+	"\x12import_on_conflict\x180 \x01(\tR\x10importOnConflict\x129\n" +
+	"\x19import_default_project_id\x181 \x01(\tR\x16importDefaultProjectId\x12(\n" +
+	"\x10import_sync_json\x182 \x01(\bR\x0eimportSyncJson\x12(\n" +
+	"\x10import_max_depth\x183 \x01(\x05R\x0eimportMaxDepth\x12#\n" +
+	"\rpriority_rank\x184 \x01(\x05R\fpriorityRank\"\xa0\x02\n" +
 	"\vTaskSummary\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x18\n" +
 	"\acontent\x18\x02 \x01(\tR\acontent\x12\x16\n" +
@@ -8295,7 +8443,8 @@ const file_proto_tools_proto_rawDesc = "" +
 	"\x04tags\x18\x05 \x03(\tR\x04tags\x12)\n" +
 	"\x10long_description\x18\x06 \x01(\tR\x0flongDescription\x12\"\n" +
 	"\fdependencies\x18\a \x03(\tR\fdependencies\x12+\n" +
-	"\x11recommended_tools\x18\b \x03(\tR\x10recommendedTools\"\x89\x01\n" +
+	"\x11recommended_tools\x18\b \x03(\tR\x10recommendedTools\x12#\n" +
+	"\rpriority_rank\x18\t \x01(\x05R\fpriorityRank\"\x89\x01\n" +
 	"\vSyncResults\x12'\n" +
 	"\x0fvalidated_tasks\x18\x01 \x01(\x05R\x0evalidatedTasks\x12!\n" +
 	"\fissues_found\x18\x02 \x01(\x05R\vissuesFound\x12\x16\n" +
@@ -8408,7 +8557,7 @@ const file_proto_tools_proto_rawDesc = "" +
 	" \x01(\tR\n" +
 	"outputPath\x128\n" +
 	"\vaction_enum\x18\v \x01(\x0e2\x17.exarp.tools.LintActionR\n" +
-	"actionEnum\"\xeb\x03\n" +
+	"actionEnum\"\xf3\x03\n" +
 	"\x11EstimationRequest\x12\x16\n" +
 	"\x06action\x18\x01 \x01(\tR\x06action\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x18\n" +
@@ -8417,11 +8566,11 @@ const file_proto_tools_proto_rawDesc = "" +
 	"\btag_list\x18\x05 \x03(\tR\atagList\x12\x1a\n" +
 	"\bpriority\x18\x06 \x01(\tR\bpriority\x12%\n" +
 	"\x0euse_historical\x18\a \x01(\bR\ruseHistorical\x12\x1a\n" +
-	"\bdetailed\x18\b \x01(\bR\bdetailed\x12\x17\n" +
-	"\ause_mlx\x18\t \x01(\bR\x06useMlx\x12\x1d\n" +
+	"\bdetailed\x18\b \x01(\bR\bdetailed\x12\x1b\n" +
+	"\ause_mlx\x18\t \x01(\bB\x02\x18\x01R\x06useMlx\x12!\n" +
 	"\n" +
 	"mlx_weight\x18\n" +
-	" \x01(\x01R\tmlxWeight\x12(\n" +
+	" \x01(\x01B\x02\x18\x01R\tmlxWeight\x12(\n" +
 	"\x10local_ai_backend\x18\v \x01(\tR\x0elocalAiBackend\x12O\n" +
 	"\x15local_ai_backend_enum\x18\f \x01(\x0e2\x1c.exarp.tools.LocalLLMBackendR\x12localAiBackendEnum\x12O\n" +
 	"\x12summary_level_enum\x18\r \x01(\x0e2!.exarp.tools.LocalLLMSummaryLevelR\x10summaryLevelEnum\"\xa9\x05\n" +
@@ -8621,16 +8770,7 @@ const file_proto_tools_proto_rawDesc = "" +
 	"\n" +
 	"style_enum\x18\x10 \x01(\x0e2#.exarp.tools.LocalLLMDocstringStyleR\tstyleEnum\x12@\n" +
 	"\n" +
-	"level_enum\x18\x11 \x01(\x0e2!.exarp.tools.LocalLLMSummaryLevelR\tlevelEnum\"\xad\x01\n" +
-	"\n" +
-	"MLXRequest\x12\x16\n" +
-	"\x06action\x18\x01 \x01(\tR\x06action\x12\x16\n" +
-	"\x06prompt\x18\x02 \x01(\tR\x06prompt\x12\x14\n" +
-	"\x05model\x18\x03 \x01(\tR\x05model\x12\x1d\n" +
-	"\n" +
-	"max_tokens\x18\x04 \x01(\x05R\tmaxTokens\x12 \n" +
-	"\vtemperature\x18\x05 \x01(\x01R\vtemperature\x12\x18\n" +
-	"\averbose\x18\x06 \x01(\bR\averbose\"\xc0\x01\n" +
+	"level_enum\x18\x11 \x01(\x0e2!.exarp.tools.LocalLLMSummaryLevelR\tlevelEnum\"\xc0\x01\n" +
 	"\x15PromptTrackingRequest\x12\x16\n" +
 	"\x06action\x18\x01 \x01(\tR\x06action\x12\x16\n" +
 	"\x06prompt\x18\x02 \x01(\tR\x06prompt\x12\x17\n" +
@@ -8672,8 +8812,7 @@ const file_proto_tools_proto_rawDesc = "" +
 	"\x12REPORT_ACTION_PLAN\x10\x06\x12!\n" +
 	"\x1dREPORT_ACTION_SCORECARD_PLANS\x10\a\x12)\n" +
 	"%REPORT_ACTION_PARALLEL_EXECUTION_PLAN\x10\b\x12(\n" +
-	"$REPORT_ACTION_UPDATE_WAVES_FROM_PLAN\x10\t*\xf2\n" +
-	"\n" +
+	"$REPORT_ACTION_UPDATE_WAVES_FROM_PLAN\x10\t*\x9a\v\n" +
 	"\x12TaskWorkflowAction\x12$\n" +
 	" TASK_WORKFLOW_ACTION_UNSPECIFIED\x10\x00\x12\x1d\n" +
 	"\x19TASK_WORKFLOW_ACTION_SYNC\x10\x01\x12 \n" +
@@ -8712,7 +8851,8 @@ const file_proto_tools_proto_rawDesc = "" +
 	"\x1dTASK_WORKFLOW_ACTION_SHOW_RUN\x10!\x12\x1f\n" +
 	"\x1bTASK_WORKFLOW_ACTION_VERIFY\x10\"\x12%\n" +
 	"!TASK_WORKFLOW_ACTION_ADD_PROGRESS\x10#\x12\x1e\n" +
-	"\x1aTASK_WORKFLOW_ACTION_SPLIT\x10$*\xb8\x06\n" +
+	"\x1aTASK_WORKFLOW_ACTION_SPLIT\x10$\x12&\n" +
+	"\"TASK_WORKFLOW_ACTION_IMPORT_SQLITE\x10%*\xb8\x06\n" +
 	"\x12TaskAnalysisAction\x12$\n" +
 	" TASK_ANALYSIS_ACTION_UNSPECIFIED\x10\x00\x12#\n" +
 	"\x1fTASK_ANALYSIS_ACTION_DUPLICATES\x10\x01\x12\x1d\n" +
@@ -8772,7 +8912,7 @@ const file_proto_tools_proto_rawDesc = "" +
 	"\x17AUTOMATION_ACTION_DAILY\x10\x01\x12\x1d\n" +
 	"\x19AUTOMATION_ACTION_NIGHTLY\x10\x02\x12\x1c\n" +
 	"\x18AUTOMATION_ACTION_SPRINT\x10\x03\x12\x1e\n" +
-	"\x1aAUTOMATION_ACTION_DISCOVER\x10\x04*\xff\x01\n" +
+	"\x1aAUTOMATION_ACTION_DISCOVER\x10\x04*\xa3\x02\n" +
 	"\x0eGitToolsAction\x12 \n" +
 	"\x1cGIT_TOOLS_ACTION_UNSPECIFIED\x10\x00\x12\x1c\n" +
 	"\x18GIT_TOOLS_ACTION_COMMITS\x10\x01\x12\x1d\n" +
@@ -8781,7 +8921,8 @@ const file_proto_tools_proto_rawDesc = "" +
 	"\x15GIT_TOOLS_ACTION_DIFF\x10\x04\x12\x1a\n" +
 	"\x16GIT_TOOLS_ACTION_GRAPH\x10\x05\x12\x1a\n" +
 	"\x16GIT_TOOLS_ACTION_MERGE\x10\x06\x12\x1f\n" +
-	"\x1bGIT_TOOLS_ACTION_SET_BRANCH\x10\a*\xbe\x01\n" +
+	"\x1bGIT_TOOLS_ACTION_SET_BRANCH\x10\a\x12\"\n" +
+	"\x1eGIT_TOOLS_ACTION_LOCAL_COMMITS\x10\b*\xbe\x01\n" +
 	"\x18GitMergeConflictStrategy\x12+\n" +
 	"'GIT_MERGE_CONFLICT_STRATEGY_UNSPECIFIED\x10\x00\x12%\n" +
 	"!GIT_MERGE_CONFLICT_STRATEGY_NEWER\x10\x01\x12&\n" +
@@ -8851,13 +8992,12 @@ const file_proto_tools_proto_rawDesc = "" +
 	"%LOCAL_LLM_DOCSTRING_STYLE_UNSPECIFIED\x10\x00\x12$\n" +
 	" LOCAL_LLM_DOCSTRING_STYLE_GOOGLE\x10\x01\x12#\n" +
 	"\x1fLOCAL_LLM_DOCSTRING_STYLE_NUMPY\x10\x02\x12$\n" +
-	" LOCAL_LLM_DOCSTRING_STYLE_SPHINX\x10\x03*\xa3\x01\n" +
+	" LOCAL_LLM_DOCSTRING_STYLE_SPHINX\x10\x03*\x8e\x01\n" +
 	"\x0fLocalLLMBackend\x12!\n" +
 	"\x1dLOCAL_LLM_BACKEND_UNSPECIFIED\x10\x00\x12\x18\n" +
-	"\x14LOCAL_LLM_BACKEND_FM\x10\x01\x12\x19\n" +
-	"\x15LOCAL_LLM_BACKEND_MLX\x10\x02\x12\x1c\n" +
+	"\x14LOCAL_LLM_BACKEND_FM\x10\x01\x12\x1c\n" +
 	"\x18LOCAL_LLM_BACKEND_OLLAMA\x10\x03\x12\x1a\n" +
-	"\x16LOCAL_LLM_BACKEND_AUTO\x10\x04B$Z\"github.com/davidl71/exarp-go/protob\x06proto3"
+	"\x16LOCAL_LLM_BACKEND_AUTO\x10\x04\"\x04\b\x02\x10\x02B$Z\"github.com/davidl71/exarp-go/protob\x06proto3"
 
 var (
 	file_proto_tools_proto_rawDescOnce sync.Once
@@ -8872,7 +9012,7 @@ func file_proto_tools_proto_rawDescGZIP() []byte {
 }
 
 var file_proto_tools_proto_enumTypes = make([]protoimpl.EnumInfo, 24)
-var file_proto_tools_proto_msgTypes = make([]protoimpl.MessageInfo, 75)
+var file_proto_tools_proto_msgTypes = make([]protoimpl.MessageInfo, 74)
 var file_proto_tools_proto_goTypes = []any{
 	(OutputFormat)(0),                   // 0: exarp.tools.OutputFormat
 	(ReportAction)(0),                   // 1: exarp.tools.ReportAction
@@ -8958,40 +9098,39 @@ var file_proto_tools_proto_goTypes = []any{
 	(*MemoryMaintRequest)(nil),          // 81: exarp.tools.MemoryMaintRequest
 	(*ToolCatalogRequest)(nil),          // 82: exarp.tools.ToolCatalogRequest
 	(*OllamaRequest)(nil),               // 83: exarp.tools.OllamaRequest
-	(*MLXRequest)(nil),                  // 84: exarp.tools.MLXRequest
-	(*PromptTrackingRequest)(nil),       // 85: exarp.tools.PromptTrackingRequest
-	(*RecommendRequest)(nil),            // 86: exarp.tools.RecommendRequest
-	(*InferSessionModeRequest)(nil),     // 87: exarp.tools.InferSessionModeRequest
-	(*ContextBudgetRequest)(nil),        // 88: exarp.tools.ContextBudgetRequest
-	(*CachedTaskExecutionPack)(nil),     // 89: exarp.tools.CachedTaskExecutionPack
-	nil,                                 // 90: exarp.tools.Memory.MetadataEntry
-	nil,                                 // 91: exarp.tools.MemoryResponse.CategoriesEntry
-	nil,                                 // 92: exarp.tools.ContextResponse.TokenEstimateEntry
-	nil,                                 // 93: exarp.tools.ContextSummary.TokenEstimateEntry
-	nil,                                 // 94: exarp.tools.Metrics.ComponentScoresEntry
-	nil,                                 // 95: exarp.tools.Metrics.CountsEntry
-	nil,                                 // 96: exarp.tools.ScorecardData.ComponentScoresEntry
-	nil,                                 // 97: exarp.tools.ScorecardData.MetricsCountsEntry
-	nil,                                 // 98: exarp.tools.HealthData.ScoresEntry
-	(*timestamppb.Timestamp)(nil),       // 99: google.protobuf.Timestamp
+	(*PromptTrackingRequest)(nil),       // 84: exarp.tools.PromptTrackingRequest
+	(*RecommendRequest)(nil),            // 85: exarp.tools.RecommendRequest
+	(*InferSessionModeRequest)(nil),     // 86: exarp.tools.InferSessionModeRequest
+	(*ContextBudgetRequest)(nil),        // 87: exarp.tools.ContextBudgetRequest
+	(*CachedTaskExecutionPack)(nil),     // 88: exarp.tools.CachedTaskExecutionPack
+	nil,                                 // 89: exarp.tools.Memory.MetadataEntry
+	nil,                                 // 90: exarp.tools.MemoryResponse.CategoriesEntry
+	nil,                                 // 91: exarp.tools.ContextResponse.TokenEstimateEntry
+	nil,                                 // 92: exarp.tools.ContextSummary.TokenEstimateEntry
+	nil,                                 // 93: exarp.tools.Metrics.ComponentScoresEntry
+	nil,                                 // 94: exarp.tools.Metrics.CountsEntry
+	nil,                                 // 95: exarp.tools.ScorecardData.ComponentScoresEntry
+	nil,                                 // 96: exarp.tools.ScorecardData.MetricsCountsEntry
+	nil,                                 // 97: exarp.tools.HealthData.ScoresEntry
+	(*timestamppb.Timestamp)(nil),       // 98: google.protobuf.Timestamp
 }
 var file_proto_tools_proto_depIdxs = []int32{
-	90, // 0: exarp.tools.Memory.metadata:type_name -> exarp.tools.Memory.MetadataEntry
+	89, // 0: exarp.tools.Memory.metadata:type_name -> exarp.tools.Memory.MetadataEntry
 	19, // 1: exarp.tools.MemoryRequest.action_enum:type_name -> exarp.tools.MemoryToolAction
 	24, // 2: exarp.tools.MemoryResponse.memories:type_name -> exarp.tools.Memory
-	91, // 3: exarp.tools.MemoryResponse.categories:type_name -> exarp.tools.MemoryResponse.CategoriesEntry
+	90, // 3: exarp.tools.MemoryResponse.categories:type_name -> exarp.tools.MemoryResponse.CategoriesEntry
 	20, // 4: exarp.tools.ContextRequest.action_enum:type_name -> exarp.tools.ContextToolAction
 	21, // 5: exarp.tools.ContextRequest.level_enum:type_name -> exarp.tools.LocalLLMSummaryLevel
-	92, // 6: exarp.tools.ContextResponse.token_estimate:type_name -> exarp.tools.ContextResponse.TokenEstimateEntry
+	91, // 6: exarp.tools.ContextResponse.token_estimate:type_name -> exarp.tools.ContextResponse.TokenEstimateEntry
 	30, // 7: exarp.tools.ContextResponse.summaries:type_name -> exarp.tools.ContextSummary
-	93, // 8: exarp.tools.ContextSummary.token_estimate:type_name -> exarp.tools.ContextSummary.TokenEstimateEntry
+	92, // 8: exarp.tools.ContextSummary.token_estimate:type_name -> exarp.tools.ContextSummary.TokenEstimateEntry
 	1,  // 9: exarp.tools.ReportRequest.action_enum:type_name -> exarp.tools.ReportAction
 	0,  // 10: exarp.tools.ReportRequest.output_format_enum:type_name -> exarp.tools.OutputFormat
 	35, // 11: exarp.tools.ReportResponse.ai_insights:type_name -> exarp.tools.AIInsights
 	33, // 12: exarp.tools.BriefingData.quotes:type_name -> exarp.tools.BriefingQuote
 	36, // 13: exarp.tools.AIInsights.metrics:type_name -> exarp.tools.Metrics
-	94, // 14: exarp.tools.Metrics.component_scores:type_name -> exarp.tools.Metrics.ComponentScoresEntry
-	95, // 15: exarp.tools.Metrics.counts:type_name -> exarp.tools.Metrics.CountsEntry
+	93, // 14: exarp.tools.Metrics.component_scores:type_name -> exarp.tools.Metrics.ComponentScoresEntry
+	94, // 15: exarp.tools.Metrics.counts:type_name -> exarp.tools.Metrics.CountsEntry
 	40, // 16: exarp.tools.ProjectOverviewData.project:type_name -> exarp.tools.ProjectInfo
 	41, // 17: exarp.tools.ProjectOverviewData.health:type_name -> exarp.tools.HealthData
 	42, // 18: exarp.tools.ProjectOverviewData.codebase:type_name -> exarp.tools.CodebaseMetrics
@@ -9000,9 +9139,9 @@ var file_proto_tools_proto_depIdxs = []int32{
 	45, // 21: exarp.tools.ProjectOverviewData.risks:type_name -> exarp.tools.RiskOrBlocker
 	46, // 22: exarp.tools.ProjectOverviewData.next_actions:type_name -> exarp.tools.NextAction
 	37, // 23: exarp.tools.ProjectOverviewData.planning:type_name -> exarp.tools.PlanningSnippet
-	96, // 24: exarp.tools.ScorecardData.component_scores:type_name -> exarp.tools.ScorecardData.ComponentScoresEntry
-	97, // 25: exarp.tools.ScorecardData.metrics_counts:type_name -> exarp.tools.ScorecardData.MetricsCountsEntry
-	98, // 26: exarp.tools.HealthData.scores:type_name -> exarp.tools.HealthData.ScoresEntry
+	95, // 24: exarp.tools.ScorecardData.component_scores:type_name -> exarp.tools.ScorecardData.ComponentScoresEntry
+	96, // 25: exarp.tools.ScorecardData.metrics_counts:type_name -> exarp.tools.ScorecardData.MetricsCountsEntry
+	97, // 26: exarp.tools.HealthData.scores:type_name -> exarp.tools.HealthData.ScoresEntry
 	3,  // 27: exarp.tools.TaskAnalysisRequest.action_enum:type_name -> exarp.tools.TaskAnalysisAction
 	0,  // 28: exarp.tools.TaskAnalysisRequest.output_format_enum:type_name -> exarp.tools.OutputFormat
 	2,  // 29: exarp.tools.TaskWorkflowRequest.action_enum:type_name -> exarp.tools.TaskWorkflowAction
@@ -9033,7 +9172,7 @@ var file_proto_tools_proto_depIdxs = []int32{
 	18, // 54: exarp.tools.MemoryMaintRequest.scope_enum:type_name -> exarp.tools.MemoryMaintScope
 	22, // 55: exarp.tools.OllamaRequest.style_enum:type_name -> exarp.tools.LocalLLMDocstringStyle
 	21, // 56: exarp.tools.OllamaRequest.level_enum:type_name -> exarp.tools.LocalLLMSummaryLevel
-	99, // 57: exarp.tools.CachedTaskExecutionPack.generated_at:type_name -> google.protobuf.Timestamp
+	98, // 57: exarp.tools.CachedTaskExecutionPack.generated_at:type_name -> google.protobuf.Timestamp
 	58, // [58:58] is the sub-list for method output_type
 	58, // [58:58] is the sub-list for method input_type
 	58, // [58:58] is the sub-list for extension type_name
@@ -9052,7 +9191,7 @@ func file_proto_tools_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_tools_proto_rawDesc), len(file_proto_tools_proto_rawDesc)),
 			NumEnums:      24,
-			NumMessages:   75,
+			NumMessages:   74,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"sort"
 
 	"github.com/davidl71/exarp-go/internal/config"
 	"github.com/davidl71/exarp-go/internal/framework"
@@ -97,16 +98,12 @@ func handleContextBudget(ctx context.Context, args json.RawMessage) ([]framework
 	}
 
 	// Sort by tokens (descending)
-	for i := 0; i < len(analysis)-1; i++ {
-		if err := ctx.Err(); err != nil {
-			return nil, err
-		}
-		for j := i + 1; j < len(analysis); j++ {
-			if analysis[i].Tokens < analysis[j].Tokens {
-				analysis[i], analysis[j] = analysis[j], analysis[i]
-			}
-		}
+	if err := ctx.Err(); err != nil {
+		return nil, err
 	}
+	sort.Slice(analysis, func(i, j int) bool {
+		return analysis[i].Tokens > analysis[j].Tokens
+	})
 
 	// Build result
 	overBudget := totalTokens > budgetTokens

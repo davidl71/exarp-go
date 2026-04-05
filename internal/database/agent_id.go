@@ -48,6 +48,20 @@ func GetAgentID() (string, error) {
 	return agentID, nil
 }
 
+// AgentIdentityWithoutPID returns the agent_id with the trailing "-<pid>" removed when the ID
+// matches GetAgentID format (…-<numeric_pid>). Same workstation session across different
+// processes (e.g. separate CLI invocations) then compares equal for the same agent type+host.
+func AgentIdentityWithoutPID(agentID string) string {
+	pid, ok := ParsePIDFromAgentID(agentID)
+	if !ok {
+		return agentID
+	}
+
+	suffix := fmt.Sprintf("-%d", pid)
+
+	return strings.TrimSuffix(agentID, suffix)
+}
+
 // ParsePIDFromAgentID extracts the process ID from an agent ID string.
 // Agent ID format: {agent-type}-{hostname}-{pid}, e.g. "general-Davids-Mac-mini-12345".
 // Returns (pid, true) if the last segment is numeric, otherwise (0, false).

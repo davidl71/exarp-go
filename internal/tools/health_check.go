@@ -37,8 +37,17 @@ const ExpectedToolCountBase = 36
 // Implements all actions: "server", "git", "docs", "dod", "cicd", "tools", "database"
 // Note: Some actions provide basic functionality; complex features may fall back to Python bridge.
 func handleHealthNative(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
-	// Get action (default: "server")
+	// Get action (default: "server") — prefer typed decode to reduce stringly-typed drift.
 	action := strings.TrimSpace(cast.ToString(params["action"]))
+	if action == "" {
+		var typed struct {
+			Action string `json:"action"`
+		}
+		if err := MapToStructViaJSON(params, &typed); err == nil {
+			action = strings.TrimSpace(typed.Action)
+		}
+	}
+
 	if action == "" {
 		action = "server"
 	}

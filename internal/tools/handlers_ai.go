@@ -343,23 +343,6 @@ func handleOllama(ctx context.Context, args json.RawMessage) ([]framework.TextCo
 	return result, nil
 }
 
-// handleMlx handles the mlx tool. Native-only: models (static list); status/hardware return unavailable message; generate returns error (use ollama or other providers). Python bridge removed.
-func handleMlx(ctx context.Context, args json.RawMessage) ([]framework.TextContent, error) {
-	req, params, err := ParseMlxRequest(args)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse arguments: %w", err)
-	}
-
-	if req != nil {
-		params = MlxRequestToParams(req)
-		framework.ApplyDefaults(params, map[string]interface{}{
-			"model": "mlx-community/Phi-3.5-mini-instruct-4bit",
-		})
-	}
-
-	return handleMlxNative(ctx, params)
-}
-
 // mcp-generic-tools: Context management tools
 
 // Phase 3 Migration: Unified tools

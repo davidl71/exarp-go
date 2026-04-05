@@ -1,4 +1,4 @@
-// report_mlx.go — MLX-based AI insights for report enrichment via DefaultReportInsight.
+// report_insights.go — LLM-based AI insights for report enrichment via DefaultReportInsight.
 package tools
 
 import (
@@ -7,11 +7,8 @@ import (
 	"strings"
 )
 
-// enhanceReportWithMLX enhances report data with AI-generated insights.
-// Uses DefaultReportInsight (tries MLX via bridge, then DefaultFMProvider() when MLX unavailable).
-// Report code does not depend on the bridge or MLX by name.
-func enhanceReportWithMLX(ctx context.Context, reportData map[string]interface{}, action string) (map[string]interface{}, error) {
-	// Build prompt based on action
+// enhanceReportWithAIInsights enhances report data with AI-generated insights using DefaultReportInsight.
+func enhanceReportWithAIInsights(ctx context.Context, reportData map[string]interface{}, action string) (map[string]interface{}, error) {
 	var prompt string
 
 	var maxTokens int
@@ -19,16 +16,15 @@ func enhanceReportWithMLX(ctx context.Context, reportData map[string]interface{}
 	switch action {
 	case "scorecard":
 		prompt = buildScorecardInsightPrompt(reportData)
-		maxTokens = 1000 // Longer for detailed insights
+		maxTokens = 1000
 	case "overview":
 		prompt = buildOverviewInsightPrompt(reportData)
-		maxTokens = 1500 // Even longer for comprehensive overview
+		maxTokens = 1500
 	case "briefing":
-		// Briefing uses devwisdom-go, skip insight enhancement
 		return reportData, nil
 	case "prd":
 		prompt = buildPRDInsightPrompt(reportData)
-		maxTokens = 2000 // Longest for PRD generation
+		maxTokens = 2000
 	default:
 		return reportData, nil
 	}
@@ -40,11 +36,9 @@ func enhanceReportWithMLX(ctx context.Context, reportData map[string]interface{}
 
 	generatedText, err := provider.Generate(ctx, prompt, maxTokens, 0.4)
 	if err != nil || generatedText == "" {
-		// If provider fails or returns empty, return original data without enhancement
 		return reportData, nil
 	}
 
-	// Add AI insights to report data
 	enhancedData := make(map[string]interface{})
 	for k, v := range reportData {
 		enhancedData[k] = v
@@ -61,7 +55,6 @@ func enhanceReportWithMLX(ctx context.Context, reportData map[string]interface{}
 
 // buildScorecardInsightPrompt builds prompt for scorecard insights.
 func buildScorecardInsightPrompt(data map[string]interface{}) string {
-	// Extract key metrics
 	scores := map[string]interface{}{}
 	if s, ok := data["scores"].(map[string]interface{}); ok {
 		scores = s
@@ -82,7 +75,6 @@ func buildScorecardInsightPrompt(data map[string]interface{}) string {
 		}
 	}
 
-	// Build prompt
 	prompt := fmt.Sprintf(`Analyze this project health scorecard and generate intelligent insights:
 
 Overall Score: %.1f/100
@@ -109,7 +101,6 @@ Format as clear, actionable insights suitable for stakeholders.`,
 
 // buildOverviewInsightPrompt builds prompt for overview insights.
 func buildOverviewInsightPrompt(data map[string]interface{}) string {
-	// Extract key sections
 	projectInfo := map[string]interface{}{}
 	if p, ok := data["project"].(map[string]interface{}); ok {
 		projectInfo = p
@@ -167,12 +158,10 @@ Write in a professional, stakeholder-friendly tone.`,
 
 // buildPRDInsightPrompt builds prompt for PRD generation.
 func buildPRDInsightPrompt(data map[string]interface{}) string {
-	// PRD generation would need project context
-	// For now, return a basic prompt
+	_ = data
 	return `Generate a comprehensive Product Requirements Document (PRD) based on the project data provided. Include sections for: Overview, Goals, Features, Technical Requirements, Success Metrics, and Timeline.`
 }
 
-// Helper functions.
 func formatScoresForPrompt(scores map[string]interface{}) string {
 	var parts []string
 

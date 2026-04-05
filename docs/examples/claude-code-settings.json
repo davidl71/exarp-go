@@ -5,7 +5,6 @@
     "allow": [
       "mcp__exarp-go__add_external_tool_hints",
       "mcp__exarp-go__analyze_alignment",
-      "mcp__exarp-go__apple_foundation_models",
       "mcp__exarp-go__ask_client",
       "mcp__exarp-go__automation",
       "mcp__exarp-go__check_attribution",
@@ -22,7 +21,6 @@
       "mcp__exarp-go__list_resources",
       "mcp__exarp-go__memory",
       "mcp__exarp-go__memory_maint",
-      "mcp__exarp-go__mlx",
       "mcp__exarp-go__ollama",
       "mcp__exarp-go__prompt_tracking",
       "mcp__exarp-go__read_resource",

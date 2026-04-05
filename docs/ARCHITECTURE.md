@@ -71,7 +71,7 @@ flowchart TD
 
     subgraph LLM["LLM Backends"]
         OLLAMA["Ollama Server<br/>(local HTTP)"]
-        MLX["MLX<br/>(Apple Silicon)"]
+        FMCHAIN["FM chain / LocalAI / Gateway<br/>(text_generate)"]
     end
 
     CLI --> MAIN
@@ -97,7 +97,7 @@ flowchart TD
     TOOL_IMPL --> CONFIG
     TOOL_IMPL --> CACHE
     TOOL_IMPL --> OLLAMA
-    TOOL_IMPL --> MLX
+    TOOL_IMPL --> FMCHAIN
 ```
 
 ## Entry Points
@@ -122,7 +122,7 @@ flowchart TD
 | `database.TaskStore` | `internal/database/store.go` | Task persistence contract used by tools and adapters |
 | `database.ClaimTaskForAgent` | `internal/database/tasks_lock.go` | Distributed lock acquisition for multi-agent safety |
 | `config.FullConfig` | `internal/config/schema.go` | Protobuf-based project configuration |
-| `TextGenerator` interface | `internal/tools/text_generate.go` | LLM provider contract (FM, Ollama, MLX, LocalAI) |
+| `TextGenerator` interface | `internal/tools/text_generate.go` | LLM provider contract (FM, Ollama, insight, LocalAI, gateway) |
 | `cache.ScorecardCache` | `internal/cache/file_cache.go` | TTL-based cache for expensive scorecard computation |
 
 ## Tool Handler Pattern
@@ -137,7 +137,7 @@ handlers.go (dispatch)  →  <tool>_native.go (entry)  →  <tool>_common.go (sh
 1. **`handlers.go`**: Top-level dispatch function per tool. Parses protobuf/JSON args, applies defaults, routes to native handler.
 2. **`*_native.go`**: Platform-specific entry point (action switch). Paired **`_nocgo.go`** files satisfy Go’s single-symbol rule when the **darwin/arm64/cgo** variant differs (see [docs/CGO_BUILD_PARITY.md](CGO_BUILD_PARITY.md)); they are not always “stubs” — **task_discovery** implements a full basic scanner path in the nocgo file.
 3. **`*_common.go`**: Shared business logic that works across native/bridge implementations.
-4. **`*_provider.go`**: External service clients (Ollama HTTP, MLX bridge, etc.).
+4. **`*_provider.go`**: External service clients (Ollama HTTP, LocalAI, gateway, etc.).
 
 ## Adding a New Tool
 
@@ -148,7 +148,7 @@ handlers.go (dispatch)  →  <tool>_native.go (entry)  →  <tool>_common.go (sh
 
 2. **Register in the appropriate registry file**:
    - Core tools (task_workflow, session, report, health): `registry_core.go`
-   - AI/LLM tools (memory, estimation, ollama, mlx, text_generate, etc.): `registry_ai.go`
+   - AI/LLM tools (memory, estimation, ollama, text_generate, etc.): `registry_ai.go`
    - Infra tools (automation, git_tools, testing, lint, security, hooks): `registry_infra.go`
    - Misc tools (alignment, attribution, tool_catalog, workflow_mode, etc.): `registry_misc.go`
    - Provide tool name, description (with `[HINT: ...]`), JSON schema, and handler reference
@@ -233,11 +233,12 @@ Direct `database.GetTask/ListTasks/CreateTask/UpdateTask/DeleteTask` inside tool
 
 The project supports multiple local LLM backends through a unified abstraction:
 
-| Backend | Tool | Build Constraint | Provider |
+| Backend | Tool / entry | Build Constraint | Provider |
 |---|---|---|---|
 | Ollama | `ollama` | None (HTTP client) | `DefaultOllama()` |
-| MLX | `mlx` | None (bridge / native model list support) | `handleMlxNative()` |
-| Auto-router | `text_generate` | None | `model_router.go` |
+| FM / insight | `text_generate` (`fm`, `insight`) | FM helpers may require darwin/arm64/cgo | `DefaultFMProvider()`, `DefaultReportInsight()` |
+| LocalAI / gateway | `text_generate` | Env (`LOCALAI_BASE_URL`, `OPENAI_GATEWAY_BASE_URL`) | `DefaultLocalAIProvider()`, gateway client |
+| Auto-router | `text_generate` (`provider=auto`) | None | `model_router.go` |
 
 The `text_generate` tool with `provider=auto` uses `model_router.go` to select the best available backend.
 

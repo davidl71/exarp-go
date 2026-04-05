@@ -15,7 +15,7 @@ Use `exarp-go task show T-<id>` to view details.
 | T-1771164549862 | Automation: optional Cursor agent step |
 | T-1771164550717 | MCP tool: cursor_cloud_agent (Cloud Agents API) |
 | T-1771164551664 | Docs: Cursor integration help and CLI section |
-| T-1771164552852 | Local AI task assignment (MLX, AFM, Ollama) |
+| T-1771164552852 | Local AI task assignment (FM, Ollama) |
 
 ---
 
@@ -242,27 +242,27 @@ exarp-go -tool automation -args '{"action":"daily","use_cursor_agent":true,"curs
   - Optional: set `CURSOR_API_KEY` for non-interactive/CI use.
   - Reference this document for API/CLI summary and improvement roadmap.
 
-### 3.6 Local AI task assignment (MLX, AFM, Ollama) — **Task:** T-1771164552852
+### 3.6 Local AI task assignment (FM, Ollama) — **Task:** T-1771164552852
 
-**Idea:** Extend exarp-go so tasks can be assigned to or executed with **local** AI backends (MLX, Apple Foundation Models, Ollama) for estimation, summarization, or lightweight execution—without requiring Cursor or cloud agents.
+**Idea:** Extend exarp-go so tasks can be assigned to or executed with **local** AI backends (Apple FM chain, Ollama) for estimation, summarization, or lightweight execution—without requiring Cursor or cloud agents.
 
 **Options:**
 
-1. **Task metadata:** Add optional `preferred_backend` (or `local_ai_backend`) to task metadata: `mlx` | `fm` | `ollama`. When present, tools that use LLMs (e.g. estimation, text_generate, report insights) can respect it.
-2. **CLI / tool params:** For `task_workflow`, `estimation`, or a new “run task with local AI” flow, accept `--local-ai-backend mlx|fm|ollama` (or JSON param `local_ai_backend`) and pass it through to existing `text_generate` / `ollama` / `mlx` / `apple_foundation_models` tools.
+1. **Task metadata:** Add optional `preferred_backend` (or `local_ai_backend`) to task metadata: `fm` | `ollama` (legacy `mlx` normalized away). When present, tools that use LLMs (e.g. estimation, text_generate, report insights) can respect it.
+2. **CLI / tool params:** For `task_workflow`, `estimation`, or a new “run task with local AI” flow, accept `--local-ai-backend fm|ollama` (or JSON param `local_ai_backend`) and pass through to `text_generate` / `ollama`.
 3. **Lightweight execution:** Optional subcommand or tool, e.g. `exarp-go task run-with-ai T-123 --backend ollama`, that builds a prompt from the task (name + description), calls the chosen local backend via existing LLM tools, and returns or appends the result (e.g. as a comment or summary)—no code edits, just model output for planning/summarization.
 
 **Implementation sketch:**
 
 - **Task store:** Allow optional field on tasks (e.g. in Todo2 custom fields or tags like `#backend:ollama`) for `preferred_backend`. Document in task_workflow schema.
-- **Estimation / text_generate:** When estimation (or other tools) invokes LLM, check task’s `preferred_backend` or explicit param and route to `ollama` / `mlx` / `apple_foundation_models` via existing handlers.
-- **New flow (optional):** `task run-with-ai <task-id> [--backend mlx|fm|ollama]` or MCP tool `task_local_ai` that: loads task, builds prompt, calls `text_generate` (or ollama/mlx) with that backend, returns text. Keeps all execution local.
+- **Estimation / text_generate:** When estimation (or other tools) invokes LLM, check task’s `preferred_backend` or explicit param and route to `ollama` or `text_generate` (`fm` / `auto`) via existing handlers.
+- **New flow (optional):** `task run-with-ai <task-id> [--backend fm|ollama]` or MCP tool `task_local_ai` that: loads task, builds prompt, calls `text_generate` or `ollama`, returns text. Keeps all execution local.
 
-**Backends:** Reuse existing tools: `text_generate` (provider `fm`|`mlx`|`auto`), `ollama`, `mlx`, `apple_foundation_models` per [LLM tools rule](.cursor/rules/llm-tools.mdc). No new LLM integrations required—only wiring task context and backend preference into existing tools.
+**Backends:** Reuse `text_generate` (`fm`, `ollama`, `auto`, …) and `ollama` per [.cursor/rules/llm-tools.mdc](../.cursor/rules/llm-tools.mdc). No separate `mlx` or `apple_foundation_models` MCP tools.
 
 **Implemented:** CLI supports `task estimate`, `task summarize`, and `task run-with-ai` with backend flags. `task create` and `task update` now expose more of the `task_workflow` surface directly from CLI, including dependency and hierarchy fields. The `EstimationRequest` protobuf includes optional `local_ai_backend` (field 11). `task_workflow` actions `summarize` and `run_with_ai` use the task’s `preferred_backend` when the param is not supplied.
 
-**CLI commands:** `exarp-go task create --local-ai-backend <fm|mlx|ollama> [--dependencies <ids>] [--parent-id <task-id>] [--epic-id <task-id>] [--planning-doc <path>]`; `exarp-go task update T-xxx --local-ai-backend <backend> [--dependencies <ids>] [--parent-id <task-id>] [--tags <tags>] [--remove-tags <tags>] [--name <text>] [--description <text>]`; `exarp-go task estimate "Name" --local-ai-backend <backend>`; `exarp-go task summarize <task-id> [--local-ai-backend <backend>]`; `exarp-go task run-with-ai <task-id> [--backend <fm|ollama|mlx>] [--instruction "..."]`. See [MODEL_ASSISTED_WORKFLOW.md](MODEL_ASSISTED_WORKFLOW.md).
+**CLI commands:** `exarp-go task create --local-ai-backend <fm|ollama> …`; `exarp-go task run-with-ai <task-id> [--backend <fm|ollama>] …`. See [MODEL_ASSISTED_WORKFLOW.md](MODEL_ASSISTED_WORKFLOW.md).
 
 **Examples:**
 
@@ -290,7 +290,7 @@ exarp-go task update T-42 \
 | Automation optional Cursor agent step | T-1771164549862 | Medium | Medium | Good for “daily/sprint + Cursor review” workflows. |
 | **cursor_cloud_agent** MCP tool | T-1771164550717 | Medium–High | Medium | For teams using Cloud Agents API; depends on API stability (Beta). |
 | Docs and help text | T-1771164551664 | Low | Low | Improves discoverability. |
-| **Local AI task assignment (MLX, AFM, Ollama)** | T-1771164552852 | Medium | High | Assign/run tasks with local backends; extends existing ollama/mlx/afm tools. |
+| **Local AI task assignment (FM, Ollama)** | T-1771164552852 | Medium | High | Assign/run tasks with local backends via `text_generate` and `ollama`. |
 
 ---
 

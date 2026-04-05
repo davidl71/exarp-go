@@ -28,6 +28,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.height = minTermHeight
 		}
 
+		if m.mode == ModeTaskDetail && m.taskDetailTask != nil {
+			m.syncTaskDetailViewport()
+		}
+
 		return m, nil
 
 	case taskLoadedMsg:
@@ -61,15 +65,12 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.filteredIndices = nil
 		}
 
-		// Update bubble/list with tasks
-		m.taskList.SetItems(itemsFromTasks(m.tasks))
-		m.taskList.SetFilterText(m.searchQuery)
-
 		vis := m.visibleIndices()
 		if len(vis) > 0 && m.cursor >= len(vis) {
 			m.cursor = len(vis) - 1
 		}
 		m.ensureCursorVisible()
+		m.syncTaskComponents()
 
 		m.lastUpdate = time.Now()
 		// If in waves view, recompute waves (prefer docs/PARALLEL_EXECUTION_PLAN_RESEARCH.md)
@@ -346,112 +347,26 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 
 	case tea.KeyPressMsg:
-		key := msg.String()
+		return m.handleKeyMsg(tea.KeyMsg(msg))
 
-		// Clear transient feedback messages on any keypress so they don't persist
-		m.clearTransientMessages()
-
-		// Update contextual help based on current mode and state
-		m.updateContextualHelp()
-
-		// Try global keys first (quit, help, esc)
-		if newModel, cmd, handled := m.handleGlobalKeys(key); handled {
-			return newModel, cmd
-		}
-
-		// When help is open, ignore all other keys
-		if m.showHelp {
-			return m, nil
-		}
-
-		// Try search mode keys
-		if newModel, cmd, handled := m.handleSearchKeys(key, msg); handled {
-			return newModel, cmd
-		}
-
-		// Handle bubble/list messages when enabled
-		if m.useBubbleList {
-			var cmd tea.Cmd
-			m.taskList, cmd = m.taskList.Update(msg)
-			if cmd != nil {
-				return m, cmd
-			}
-			if m.taskList.Index() >= 0 && m.taskList.Index() != m.cursor {
-				m.cursor = m.taskList.Index()
-			}
-			m.searchQuery = m.taskList.FilterValue()
-			m.filteredIndices = nil
-		}
-
-		// Handle bubble/table messages when enabled
-		if m.useBubbleTable {
-			var cmd tea.Cmd
-			m.taskTable, cmd = m.taskTable.Update(msg)
-			if cmd != nil {
-				return m, cmd
-			}
-			if m.taskTable.Cursor() >= 0 && m.taskTable.Cursor() != m.cursor {
-				m.cursor = m.taskTable.Cursor()
-			}
-		}
-
-		// Try inline task creation keys
-		if newModel, cmd, handled := m.handleCreateKeys(key, msg); handled {
-			return newModel, cmd
-		}
-
-		// Try bulk status update keys
-		if newModel, cmd, handled := m.handleBulkStatusKeys(key); handled {
-			return newModel, cmd
-		}
-
-		// Try inline status change keys (d/i/t/r/D)
-		if newModel, cmd, handled := m.handleTasksInlineStatus(key); handled {
-			return newModel, cmd
-		}
-
-		// Try detail overlay close keys (esc/enter/space for overlays)
-		if newModel, cmd, handled := m.handleDetailOverlayKeys(key); handled {
-			return newModel, cmd
-		}
-
-		// Try view toggle keys (p, H, b, w, c)
-		if newModel, cmd, handled := m.handleViewToggleKeys(key); handled {
-			return newModel, cmd
-		}
-
-		// Try navigation keys (up/down/j/k)
-		if newModel, cmd, handled := m.handleNavigationKeys(key); handled {
-			return newModel, cmd
-		}
-
-		// Sort/filter keys (o, O, /, n, N, tab)
-		if newModel, cmd, handled := m.handleSortFilterKeys(key); handled {
-			return newModel, cmd
-		}
-
-		// Action keys (enter, space, e, i, r, x, a, d, u, s, R, U, Q, A, y, m, 0-9, E, L, default)
-		newModel, cmd, _ := m.handleActionKeys(key, msg)
-		return newModel, cmd
-
-	case tea.KeyReleaseMsg:
-		// Handle key release events if needed (e.g., for game controls)
-		// Currently not used but available for future features
-		return m, nil
+	case tea.KeyMsg:
+		return m.handleKeyMsg(msg)
 
 	case tea.PasteStartMsg:
-		// User started pasting - could disable search mode or other input processing
-		m.searchMode = false
 		return m, nil
 
 	case tea.PasteEndMsg:
-		// User finished pasting - could re-enable processing
 		return m, nil
 
 	case tea.PasteMsg:
-		// Handle paste content directly into search or input fields
 		if m.searchMode {
 			m.searchQuery += msg.Content
+			m.filteredIndices = m.computeFilteredIndices()
+			m.cursor = 0
+			m.viewportOffset = 0
+			if m.useBubbleList {
+				m.taskList.SetFilterText(m.searchQuery)
+			}
 		} else if m.createMode {
 			m.createInput += msg.Content
 		}
@@ -468,99 +383,6 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.MouseMotionMsg:
 		// Handle mouse motion events
 		return m, nil
-
-	case tea.MouseMsg:
-		// Legacy mouse handling - could upgrade to specific mouse messages
-		return m, nil
-
-	case tea.KeyMsg:
-		key := msg.String()
-
-		// Clear transient feedback messages on any keypress so they don't persist
-		m.clearTransientMessages()
-
-		// Try global keys first (quit, help, esc)
-		if newModel, cmd, handled := m.handleGlobalKeys(key); handled {
-			return newModel, cmd
-		}
-
-		// When help is open, ignore all other keys
-		if m.showHelp {
-			return m, nil
-		}
-
-		// Try search mode keys
-		if newModel, cmd, handled := m.handleSearchKeys(key, msg); handled {
-			return newModel, cmd
-		}
-
-		// Handle bubble/list messages when enabled
-		if m.useBubbleList {
-			var cmd tea.Cmd
-			m.taskList, cmd = m.taskList.Update(msg)
-			if cmd != nil {
-				return m, cmd
-			}
-			// Sync cursor position from list
-			if m.taskList.Index() >= 0 && m.taskList.Index() != m.cursor {
-				m.cursor = m.taskList.Index()
-			}
-			// Sync search query from list filter
-			m.searchQuery = m.taskList.FilterValue()
-			m.filteredIndices = nil // list handles filtering internally
-		}
-
-		// Handle bubble/table messages when enabled
-		if m.useBubbleTable {
-			var cmd tea.Cmd
-			m.taskTable, cmd = m.taskTable.Update(msg)
-			if cmd != nil {
-				return m, cmd
-			}
-			// Sync cursor position from table
-			if m.taskTable.Cursor() >= 0 && m.taskTable.Cursor() != m.cursor {
-				m.cursor = m.taskTable.Cursor()
-			}
-		}
-
-		// Try inline task creation keys
-		if newModel, cmd, handled := m.handleCreateKeys(key, msg); handled {
-			return newModel, cmd
-		}
-
-		// Try bulk status update keys
-		if newModel, cmd, handled := m.handleBulkStatusKeys(key); handled {
-			return newModel, cmd
-		}
-
-		// Try inline status change keys (d/i/t/r/D)
-		if newModel, cmd, handled := m.handleTasksInlineStatus(key); handled {
-			return newModel, cmd
-		}
-
-		// Try detail overlay close keys (esc/enter/space for overlays)
-		if newModel, cmd, handled := m.handleDetailOverlayKeys(key); handled {
-			return newModel, cmd
-		}
-
-		// Try view toggle keys (p, H, b, w, c)
-		if newModel, cmd, handled := m.handleViewToggleKeys(key); handled {
-			return newModel, cmd
-		}
-
-		// Try navigation keys (up/down/j/k)
-		if newModel, cmd, handled := m.handleNavigationKeys(key); handled {
-			return newModel, cmd
-		}
-
-		// Sort/filter keys (o, O, /, n, N, tab)
-		if newModel, cmd, handled := m.handleSortFilterKeys(key); handled {
-			return newModel, cmd
-		}
-
-		// Action keys (enter, space, e, i, r, x, a, d, u, s, R, U, Q, A, y, m, 0-9, E, L, default)
-		newModel, cmd, _ := m.handleActionKeys(key, msg)
-		return newModel, cmd
 	}
 
 	// Handle spinner ticks when loading
@@ -581,12 +403,103 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		// Handle Enter key to execute command
 		if key, ok := msg.(tea.KeyMsg); ok && key.String() == "enter" {
-			m.executeCommand(m.commandPalette.Value())
+			cmd := m.executeCommand(m.commandPalette.Value())
 			m.commandPalette.SetValue("")
 			m.showCommandPalette = false
 			m.commandPalette.Blur()
+			return m, cmd
 		}
 	}
 
 	return m, nil
+
+}
+
+func (m model) handleKeyMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	key := msg.String()
+
+	// Clear transient feedback messages on any keypress so they don't persist
+	m.clearTransientMessages()
+
+	// Update contextual help based on current mode and state
+	m.updateContextualHelp()
+
+	// Try global keys first (quit, help, esc)
+	if newModel, cmd, handled := m.handleGlobalKeys(key); handled {
+		return newModel, cmd
+	}
+
+	// When help is open, ignore all other keys
+	if m.showHelp {
+		return m, nil
+	}
+
+	// Try search mode keys
+	if newModel, cmd, handled := m.handleSearchKeys(key, msg); handled {
+		return newModel, cmd
+	}
+
+	if m.useBubbleList && (m.searchMode || m.taskList.FilterState() != 0) {
+		var cmd tea.Cmd
+		m.taskList, cmd = m.taskList.Update(msg)
+		if cmd != nil {
+			return m, cmd
+		}
+		if m.taskList.Index() >= 0 && m.taskList.Index() != m.cursor {
+			m.cursor = m.taskList.Index()
+		}
+		m.searchQuery = m.taskList.FilterValue()
+		m.filteredIndices = nil
+	}
+
+	if m.useBubbleTable && false {
+		var cmd tea.Cmd
+		m.taskTable, cmd = m.taskTable.Update(msg)
+		if cmd != nil {
+			return m, cmd
+		}
+		if m.taskTable.Cursor() >= 0 && m.taskTable.Cursor() != m.cursor {
+			m.cursor = m.taskTable.Cursor()
+		}
+	}
+
+	// Try inline task creation keys
+	if newModel, cmd, handled := m.handleCreateKeys(key, msg); handled {
+		return newModel, cmd
+	}
+
+	// Try bulk status update keys
+	if newModel, cmd, handled := m.handleBulkStatusKeys(key); handled {
+		return newModel, cmd
+	}
+
+	// Try inline status change keys (d/i/t/r/D)
+	if newModel, cmd, handled := m.handleTasksInlineStatus(key); handled {
+		return newModel, cmd
+	}
+
+	// Try detail overlay close keys (esc/enter/space for overlays)
+	if newModel, cmd, handled := m.handleDetailOverlayKeys(key); handled {
+		return newModel, cmd
+	}
+
+	// Try view toggle keys (p, H, b, w, c)
+	if newModel, cmd, handled := m.handleViewToggleKeys(key); handled {
+		return newModel, cmd
+	}
+
+	// Try navigation keys (up/down/j/k)
+	if newModel, cmd, handled := m.handleNavigationKeys(key); handled {
+		return newModel, cmd
+	}
+
+	// Sort/filter keys (o, O, /, n, N, tab)
+	if newModel, cmd, handled := m.handleSortFilterKeys(key); handled {
+		return newModel, cmd
+	}
+
+	// Action keys (enter, space, e, i, r, x, a, d, u, s, R, U, Q, A, y, m, 0-9, E, L, default)
+	newModel, cmd, _ := m.handleActionKeys(key, msg)
+	return newModel, cmd
+
 }

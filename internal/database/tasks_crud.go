@@ -90,6 +90,7 @@ func CreateTask(ctx context.Context, task *Todo2Task) error {
 
 		statusEnum := taskStatusEnumInt(task.Status)
 		priorityEnum := taskPriorityEnumInt(task.Priority)
+		priorityRank := task.PriorityRank
 		nowUnix := time.Now().Unix()
 		// v9 schema: parent_id, assigned_to, host, agent are NOT NULL DEFAULT ''
 		// Ensure non-empty strings to satisfy NOT NULL constraints in any schema version
@@ -124,7 +125,7 @@ func CreateTask(ctx context.Context, task *Todo2Task) error {
 			INSERT INTO tasks (
 				id, name, content, long_description,
 				status, status_enum,
-				priority, priority_enum,
+				priority, priority_enum, priority_rank,
 				completed,
 				created, last_modified,
 				created_ts, last_modified_ts, completed_at_ts,
@@ -135,7 +136,7 @@ func CreateTask(ctx context.Context, task *Todo2Task) error {
 			) VALUES (
 			  ?, ?, ?, ?,
 			  ?, ?,
-			  ?, ?,
+			  ?, ?, ?,
 			  ?,
 			  ?, ?,
 			  ?, ?, ?,
@@ -153,6 +154,7 @@ func CreateTask(ctx context.Context, task *Todo2Task) error {
 			statusEnum,
 			task.Priority,
 			priorityEnum,
+			priorityRank,
 			completedInt,
 			now,              // created
 			now,              // last_modified
@@ -229,6 +231,7 @@ type taskRow struct {
 	StatusEnumInt   int            `db:"status_enum"`
 	Priority        string         `db:"priority"`
 	PriorityEnumInt int            `db:"priority_enum"`
+	PriorityRank    int            `db:"priority_rank"`
 	Completed       int            `db:"completed"`
 	Created         string         `db:"created"`
 	LastModified    string         `db:"last_modified"`
@@ -285,7 +288,7 @@ func GetTask(ctx context.Context, id string) (*Todo2Task, error) {
 
 		var row taskRowWithAgg
 		err = db.GetContext(queryCtx, &row, `
-			SELECT t.id, t.name, t.content, t.long_description, t.status, t.priority, t.completed,
+			SELECT t.id, t.name, t.content, t.long_description, t.status, t.priority, t.priority_rank, t.completed,
 			       t.created, t.last_modified, t.completed_at,
 			       t.created_ts, t.last_modified_ts, t.completed_at_ts,
 			       t.created_at, t.updated_at,
@@ -308,6 +311,7 @@ func GetTask(ctx context.Context, id string) (*Todo2Task, error) {
 			LongDescription: row.LongDescription,
 			Status:          row.Status,
 			Priority:        row.Priority,
+			PriorityRank:    row.PriorityRank,
 			Completed:       row.Completed == 1,
 			CreatedAt:       row.Created,
 			LastModified:    row.LastModified,
@@ -421,6 +425,7 @@ func UpdateTask(ctx context.Context, task *Todo2Task) error {
 		}
 		task.Priority = priorityCanon
 		priorityEnum := taskPriorityEnumInt(task.Priority)
+		priorityRank := task.PriorityRank
 
 		if task.Status == StatusDone && completedAtVal == "" {
 			completedAtVal = now
@@ -454,6 +459,7 @@ func UpdateTask(ctx context.Context, task *Todo2Task) error {
 				status_enum = ?,
 				priority = ?,
 				priority_enum = ?,
+				priority_rank = ?,
 				completed = ?,
 				last_modified = ?,
 				completed_at = ?,
@@ -477,6 +483,7 @@ func UpdateTask(ctx context.Context, task *Todo2Task) error {
 			statusEnum,
 			task.Priority,
 			priorityEnum,
+			priorityRank,
 			completedInt,
 			now,
 			completedAtVal,

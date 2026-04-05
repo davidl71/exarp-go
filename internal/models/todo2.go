@@ -2,9 +2,21 @@
 package models
 
 import (
+	"math"
 	"strings"
 	"time"
 )
+
+// ClampPriorityRankForProto coerces priority_rank to protobuf int32 range.
+func ClampPriorityRankForProto(n int) int32 {
+	if n > math.MaxInt32 {
+		return math.MaxInt32
+	}
+	if n < math.MinInt32 {
+		return math.MinInt32
+	}
+	return int32(n)
+}
 
 // IsEpochDate returns true if s is empty or is the Unix epoch (1970-01-01 or numeric 0).
 // Used to avoid displaying or persisting 1/1/1970 when the real date is unknown.
@@ -83,6 +95,9 @@ type Todo2Task struct {
 	// It is not part of the canonical JSON shape.
 	StatusEnum TaskStatus `json:"-"`
 	Priority   string     `json:"priority,omitempty"`
+	// PriorityRank is a numeric sort key within the same named priority (lower = earlier).
+	// Default 0 when unset.
+	PriorityRank int `json:"priority_rank,omitempty"`
 	// PriorityEnum is the internal typed priority; it is derived from Priority on load.
 	// It is not part of the canonical JSON shape.
 	PriorityEnum TaskPriority           `json:"-"`

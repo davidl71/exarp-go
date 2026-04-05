@@ -3,6 +3,9 @@ package cli
 import (
 	"strings"
 	"testing"
+
+	tea "charm.land/bubbletea/v2"
+	"github.com/davidl71/exarp-go/internal/models"
 )
 
 func TestTransitionToRejectsInvalidModeChange(t *testing.T) {
@@ -43,6 +46,192 @@ func TestViewHelpUsesConfiguredBindings(t *testing.T) {
 	}
 	if strings.Contains(help, "+  Create new task inline") {
 		t.Fatal("help output should not show default create-task binding after override")
+	}
+}
+
+func TestViewUsesAltScreen(t *testing.T) {
+	server := setupMockServer(t)
+	m := initialModel(server, "", "/test", "test-project", 100, 40)
+
+	v := m.View()
+	if !v.AltScreen {
+		t.Fatal("expected AltScreen to be enabled")
+	}
+}
+
+func TestTaskDetailViewportSyncAndScroll(t *testing.T) {
+	server := setupMockServer(t)
+	m := initialModel(server, "", "/test", "test-project", 80, 16)
+	m.loading = false
+	m.mode = ModeTasks
+	m.tasks = []*models.Todo2Task{{
+		ID:              "T-100",
+		Content:         "A long task",
+		Status:          "Todo",
+		LongDescription: strings.Repeat("viewport line content ", 60),
+	}}
+
+	detailKey := m.bindingsFor(KeyActionDetail)[0]
+	updated, _, handled := m.handleActionKeys(detailKey, tea.KeyPressMsg(tea.Key{}))
+	if !handled {
+		t.Fatal("expected task detail action to be handled")
+	}
+	if updated.mode != ModeTaskDetail {
+		t.Fatalf("mode = %s, want %s", updated.mode, ModeTaskDetail)
+	}
+	if updated.taskDetailViewport.Height() <= 0 || updated.taskDetailViewport.Width() <= 0 {
+		t.Fatal("expected task detail viewport to be sized")
+	}
+	if updated.taskDetailViewport.TotalLineCount() == 0 {
+		t.Fatal("expected viewport content to be populated")
+	}
+
+	scrolled, _, handled := updated.handleDetailOverlayKeys("down")
+	if !handled {
+		t.Fatal("expected viewport scroll key to be handled")
+	}
+	if scrolled.taskDetailViewport.YOffset() <= 0 {
+		t.Fatal("expected viewport Y offset to increase after scroll")
+	}
+}
+
+func TestHelpBubbleUsesConfiguredRefreshBinding(t *testing.T) {
+	server := setupMockServer(t)
+	m := initialModel(server, "", "/test", "test-project", 100, 40)
+	m.configData.Tasks.Keybindings["refresh"] = []string{"ctrl+r"}
+	m.mode = ModeTasks
+
+	helpBubble := m.viewHelpBubble()
+	if !strings.Contains(helpBubble, "ctrl+r") {
+		t.Fatal("expected help bubble to include configured refresh binding")
+	}
+	if !strings.Contains(helpBubble, "refresh") {
+		t.Fatal("expected help bubble to include refresh help text")
+	}
+}
+
+func TestHandleActionKeysUsesConfiguredRefreshBinding(t *testing.T) {
+	server := setupMockServer(t)
+	m := initialModel(server, "", "/test", "test-project", 100, 40)
+	m.loading = false
+	m.mode = ModeTasks
+	m.configData.Tasks.Keybindings["refresh"] = []string{"ctrl+r"}
+
+	updated, cmd, handled := m.handleActionKeys("ctrl+r", runeKey('r'))
+	if !handled {
+		t.Fatal("expected configured refresh key to be handled")
+	}
+	if cmd == nil {
+		t.Fatal("expected refresh to return a command")
+	}
+	if !updated.loading {
+		t.Fatal("expected refresh to set loading=true")
+	}
+}
+
+func TestCommandPaletteRefreshReturnsLoadCommand(t *testing.T) {
+	server := setupMockServer(t)
+	m := initialModel(server, "", "/test", "test-project", 100, 40)
+	m.loading = false
+
+	cmd := m.executeCommand("refresh - Reload tasks")
+	if cmd == nil {
+		t.Fatal("expected refresh command from command palette")
+	}
+	if !m.loading {
+		t.Fatal("expected command palette refresh to set loading=true")
+	}
+}
+
+func TestCommandPaletteQuitReturnsQuitCommand(t *testing.T) {
+	server := setupMockServer(t)
+	m := initialModel(server, "", "/test", "test-project", 100, 40)
+
+	cmd := m.executeCommand("quit")
+	if cmd == nil {
+		t.Fatal("expected quit command")
+	}
+	if _, ok := cmd().(tea.QuitMsg); !ok {
+		t.Fatal("expected tea.QuitMsg from quit command")
+	}
+}
+
+func TestPasteMsgUpdatesSearchState(t *testing.T) {
+	server := setupMockServer(t)
+	m := initialModel(server, "", "/test", "test-project", 100, 40)
+	m.loading = false
+	m.mode = ModeTasks
+	m.tasks = createTestTasks(3)
+	m.searchMode = true
+
+	updated, _ := m.Update(tea.PasteMsg{Content: "Task 2"})
+	updatedModel := updated.(model)
+
+	if updatedModel.searchQuery != "Task 2" {
+		t.Fatalf("searchQuery = %q, want %q", updatedModel.searchQuery, "Task 2")
+	}
+	if len(updatedModel.filteredIndices) == 0 {
+		t.Fatal("expected filtered indices after paste")
+	}
+	if updatedModel.cursor != 0 {
+		t.Fatalf("cursor = %d, want 0", updatedModel.cursor)
+	}
+}
+
+func TestKeyPressMsgMovesCursor(t *testing.T) {
+	server := setupMockServer(t)
+	m := initialModel(server, "", "/test", "test-project", 100, 40)
+	m.loading = false
+	m.mode = ModeTasks
+	m.tasks = createTestTasks(3)
+
+	updated, _ := m.Update(tea.KeyPressMsg(tea.Key{Code: 'j', Text: "j"}))
+	updatedModel := updated.(model)
+
+	if updatedModel.cursor != 1 {
+		t.Fatalf("cursor = %d, want 1", updatedModel.cursor)
+	}
+}
+
+func TestSyncTaskComponentsUsesVisibleTasks(t *testing.T) {
+	server := setupMockServer(t)
+	m := initialModel(server, "", "/test", "test-project", 100, 40)
+	m.loading = false
+	m.mode = ModeTasks
+	m.tasks = createTestTasks(3)
+	m.searchQuery = "Task 2"
+	m.filteredIndices = m.computeFilteredIndices()
+	m.syncTaskComponents()
+
+	if len(m.visibleTasks()) != 1 {
+		t.Fatalf("visibleTasks len = %d, want 1", len(m.visibleTasks()))
+	}
+	if len(m.taskList.Items()) != 1 {
+		t.Fatalf("taskList items = %d, want 1", len(m.taskList.Items()))
+	}
+	if len(m.taskTable.Rows()) != 1 {
+		t.Fatalf("taskTable rows = %d, want 1", len(m.taskTable.Rows()))
+	}
+	if got := m.taskTable.Rows()[0][0]; got != "T-2" {
+		t.Fatalf("first visible row id = %q, want %q", got, "T-2")
+	}
+}
+
+func TestBubbleListDoesNotStealDetailBinding(t *testing.T) {
+	server := setupMockServer(t)
+	m := initialModel(server, "", "/test", "test-project", 100, 40)
+	m.loading = false
+	m.mode = ModeTasks
+	m.tasks = createTestTasks(3)
+	m.useBubbleList = true
+	m.syncTaskComponents()
+	detailKey := m.bindingsFor(KeyActionDetail)[0]
+
+	updated, _ := m.Update(tea.KeyPressMsg(tea.Key{Text: detailKey}))
+	updatedModel := updated.(model)
+
+	if updatedModel.mode != ModeTaskDetail {
+		t.Fatalf("mode = %s, want %s", updatedModel.mode, ModeTaskDetail)
 	}
 }
 

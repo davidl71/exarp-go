@@ -34,7 +34,7 @@ func (m model) viewHandoffs() string {
 	b.WriteString(" ")
 	b.WriteString(headerLabelStyle.Render("H=back"))
 	b.WriteString(" ")
-	b.WriteString(headerLabelStyle.Render("r=refresh"))
+	b.WriteString(headerLabelStyle.Render(bindingList(m.bindingsFor(KeyActionRefresh)) + "=refresh"))
 	b.WriteString("\n")
 	b.WriteString(borderStyle.Render(strings.Repeat("─", availableWidth)))
 	b.WriteString("\n")
@@ -56,7 +56,7 @@ func (m model) viewHandoffs() string {
 		b.WriteString("\n\n")
 		b.WriteString(borderStyle.Render(strings.Repeat("─", availableWidth)))
 		b.WriteString("\n")
-		b.WriteString(statusBarStyle.Render("Commands: H back  r refresh  q quit"))
+		b.WriteString(statusBarStyle.Render("Commands: H back  " + bindingList(m.bindingsFor(KeyActionRefresh)) + " refresh  q quit"))
 
 		return b.String()
 	}
@@ -67,7 +67,7 @@ func (m model) viewHandoffs() string {
 		b.WriteString("\n\n")
 		b.WriteString(borderStyle.Render(strings.Repeat("─", availableWidth)))
 		b.WriteString("\n")
-		b.WriteString(statusBarStyle.Render("Commands: H back  r refresh  q quit"))
+		b.WriteString(statusBarStyle.Render("Commands: H back  " + bindingList(m.bindingsFor(KeyActionRefresh)) + " refresh  q quit"))
 
 		return b.String()
 	}
@@ -173,7 +173,7 @@ func (m model) viewHandoffs() string {
 
 		b.WriteString(borderStyle.Render(strings.Repeat("─", availableWidth)))
 		b.WriteString("\n")
-		b.WriteString(statusBarStyle.Render("Enter detail  Space select  i interactive agent  e run agent & close  x close  a approve  d delete  H back  r refresh  q quit"))
+		b.WriteString(statusBarStyle.Render("Enter detail  Space select  i interactive agent  e run agent & close  x close  a approve  d delete  H back  " + bindingList(m.bindingsFor(KeyActionRefresh)) + " refresh  q quit"))
 
 		return b.String()
 	}

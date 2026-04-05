@@ -32,7 +32,7 @@ func (m model) viewWaves() string {
 	b.WriteString(" ")
 	b.WriteString(headerLabelStyle.Render("Enter=expand"))
 	b.WriteString(" ")
-	b.WriteString(headerLabelStyle.Render("r=refresh"))
+	b.WriteString(headerLabelStyle.Render(bindingList(m.bindingsFor(KeyActionRefresh)) + "=refresh"))
 	b.WriteString(" ")
 	b.WriteString(headerLabelStyle.Render("R=refresh tools"))
 	b.WriteString(" ")
@@ -45,11 +45,11 @@ func (m model) viewWaves() string {
 
 	if len(m.waves) == 0 {
 		b.WriteString("\n  ")
-		b.WriteString(helpStyle.Render("No backlog waves (Todo/In Progress with dependencies). Refresh tasks (r) or run tools then refresh (R)."))
+		b.WriteString(helpStyle.Render("No backlog waves (Todo/In Progress with dependencies). Refresh tasks (" + bindingList(m.bindingsFor(KeyActionRefresh)) + ") or run tools then refresh (R)."))
 		b.WriteString("\n\n")
 		b.WriteString(borderStyle.Render(strings.Repeat("─", availableWidth)))
 		b.WriteString("\n")
-		b.WriteString(statusBarStyle.Render("Commands: H or w back  r refresh  R refresh tools  q quit"))
+		b.WriteString(statusBarStyle.Render("Commands: H or w back  " + bindingList(m.bindingsFor(KeyActionRefresh)) + " refresh  R refresh tools  q quit"))
 
 		return b.String()
 	}
@@ -122,7 +122,7 @@ func (m model) viewWaves() string {
 		b.WriteString(borderStyle.Render(strings.Repeat("─", availableWidth)))
 		b.WriteString("\n")
 
-		statusLine := "↑↓ move  m move task  U update from plan  Esc/Enter collapse  E run wave  R refresh  H/w back  q quit"
+		statusLine := "↑↓ move  m move task  U update from plan  Esc/Enter collapse  E run wave  " + bindingList(m.bindingsFor(KeyActionRefresh)) + " refresh  H/w back  q quit"
 		if m.queueEnabled {
 			statusLine += "  Q enqueue"
 		}
@@ -174,7 +174,7 @@ func (m model) viewWaves() string {
 
 	b.WriteString(borderStyle.Render(strings.Repeat("─", availableWidth)))
 	b.WriteString("\n")
-	statusLine := "Enter expand  E run wave  R refresh tools  U update from plan  A analysis  H/w back  r refresh  q quit"
+	statusLine := "Enter expand  E run wave  R refresh tools  U update from plan  A analysis  H/w back  " + bindingList(m.bindingsFor(KeyActionRefresh)) + " refresh  q quit"
 	if m.queueEnabled {
 		statusLine = "[Queue] " + statusLine + "  Q enqueue wave"
 	}

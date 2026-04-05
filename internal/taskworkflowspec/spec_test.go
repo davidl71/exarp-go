@@ -24,6 +24,7 @@ func TestCreateFieldSpecsExposeExpectedCLIFlags(t *testing.T) {
 	expected := []string{
 		"description",
 		"priority",
+		"priority-rank",
 		"tags",
 		"dependencies",
 		"local-ai-backend",
@@ -41,6 +42,7 @@ func TestUpdateFieldSpecsExposeExpectedCLIFlags(t *testing.T) {
 	expected := []string{
 		"new-status",
 		"new-priority",
+		"priority-rank",
 		"tags",
 		"remove-tags",
 		"name",
@@ -79,6 +81,7 @@ func TestAppendTaskFieldSchemaPropertiesIncludesSharedFields(t *testing.T) {
 		"action",
 		"new_status",
 		"priority",
+		"priority_rank",
 		"dependencies",
 		"parent_id",
 		"planning_doc",
@@ -97,6 +100,7 @@ func TestTaskCreateInputToToolArgs(t *testing.T) {
 		Name:            "Task A",
 		LongDescription: OptionalString{Set: true, Value: "details"},
 		Priority:        OptionalString{Set: true, Value: "high"},
+		PriorityRank:    OptionalInt{Set: true, Value: 7},
 		Tags:            OptionalList{Set: true, Values: []string{"docs", "mcp"}},
 		Dependencies:    OptionalList{Set: true, Values: []string{"T-1", "T-2"}},
 		PlanningDoc:     OptionalString{Set: true, Value: "docs/plan.md"},
@@ -123,6 +127,9 @@ func TestTaskCreateInputToToolArgs(t *testing.T) {
 	if got := args["epic_id"]; got != "T-100" {
 		t.Fatalf("epic_id = %v, want T-100", got)
 	}
+	if got := args["priority_rank"]; got != 7 {
+		t.Fatalf("priority_rank = %v, want 7", got)
+	}
 }
 
 func TestTaskUpdateInputToToolArgs(t *testing.T) {
@@ -130,6 +137,7 @@ func TestTaskUpdateInputToToolArgs(t *testing.T) {
 		TaskIDs:         []string{"T-1", "T-2"},
 		NewStatus:       OptionalString{Set: true, Value: "Done"},
 		Priority:        OptionalString{Set: true, Value: "low"},
+		PriorityRank:    OptionalInt{Set: true, Value: 3},
 		Tags:            OptionalList{Set: true, Values: []string{"docs"}},
 		RemoveTags:      OptionalList{Set: true, Values: []string{"old"}},
 		Dependencies:    OptionalList{Set: true, Values: []string{"T-9"}},
@@ -161,5 +169,8 @@ func TestTaskUpdateInputToToolArgs(t *testing.T) {
 	}
 	if got := args["parent_id"]; got != "T-10" {
 		t.Fatalf("parent_id = %v, want T-10", got)
+	}
+	if got := args["priority_rank"]; got != 3 {
+		t.Fatalf("priority_rank = %v, want 3", got)
 	}
 }

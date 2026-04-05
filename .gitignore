@@ -48,6 +48,7 @@ tmp/
 temp/
 *.tmp
 *.log
+.exarp-go-tui3270.pid
 
 # Go workspace files
 go.work

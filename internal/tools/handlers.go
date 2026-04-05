@@ -297,7 +297,7 @@ func handleReport(ctx context.Context, args json.RawMessage) ([]framework.TextCo
 				}
 			}
 		}
-		// Use proto for type-safe scorecard data (report/MLX path)
+		// Use proto for type-safe scorecard data (report path)
 		scorecardProto := GoScorecardResultToProto(scorecard)
 		scorecardMap := ProtoToScorecardMap(scorecardProto)
 
@@ -333,11 +333,11 @@ func handleReport(ctx context.Context, args json.RawMessage) ([]framework.TextCo
 			}
 			return FormatResultOptionalCompact(out, outputPath, compact)
 		}
-		// Use proto-derived map for MLX enhancement
-		enhanced, err := enhanceReportWithMLX(ctx, scorecardMap, action)
+		// Optional LLM insight enhancement (FM chain via DefaultReportInsight)
+		enhanced, err := enhanceReportWithAIInsights(ctx, scorecardMap, action)
 		if err == nil && enhanced != nil {
 			if insights, ok := enhanced["ai_insights"].(map[string]interface{}); ok {
-				result := FormatGoScorecardWithMLX(scorecard, insights)
+				result := FormatGoScorecardWithAIInsights(scorecard, insights)
 				wisdomResult := addWisdomToScorecard(result, scorecard)
 
 				return []framework.TextContent{
@@ -592,7 +592,7 @@ func taskWorkflowActionMutates(action string) bool {
 		"sync_plan_status", "apply_approval_result", "sync_approvals",
 		"run_with_ai", "summarize", "add_comment",
 		"claim", "batch_claim", "release",
-		"start_run", "end_run", "verify", "add_progress", "split",
+		"start_run", "end_run", "verify", "add_progress", "split", "import_sqlite",
 		"enrich_tool_hints":
 		return true
 	default:

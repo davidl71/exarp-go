@@ -2,13 +2,6 @@
   "action": "all",
   "discoveries": [
     {
-      "file": "internal/tools/llamacpp_provider.go",
-      "line": 41,
-      "source": "comment",
-      "text": "implement actual generation using go-skynet/go-llama.cpp bindings",
-      "type": "TODO"
-    },
-    {
       "file": "internal/tools/normalization_test.go",
       "line": 17,
       "source": "comment",

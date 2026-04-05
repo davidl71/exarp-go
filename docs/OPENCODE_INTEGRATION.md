@@ -288,6 +288,9 @@ The plugin complements MCP — it does not replace it. MCP provides the 35+ tool
 
 ## 5. MLX + OpenCode (Local Models)
 
+**exarp-go:** Does not register an `mlx` MCP tool or MLX bridge; use `ollama` or `text_generate` for local inference from exarp-go.  
+**OpenCode:** You can still configure OpenCode’s **own** MLX provider (`mlx-lm.server`) for the chat model; that is independent of exarp-go’s LLM stack.
+
 Use local MLX models with OpenCode for on-device inference. Combined with exarp-go MCP, you get tasks, reports, and session prime alongside local LLM planning.
 
 ### Setup

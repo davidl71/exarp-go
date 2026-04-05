@@ -43,7 +43,6 @@ func TestRegisterAllTools(t *testing.T) {
 		"session",
 		"infer_session_mode",
 		"ollama",
-		"mlx",
 		"context",
 		"text_generate",
 		"task_execute",
@@ -100,7 +99,7 @@ func TestRegisterAllTools_RegistrationError(t *testing.T) {
 		// Batch 2: 9 medium tools
 		{"memory", "memory_maint", "report", "security", "task_analysis", "task_discovery", "task_workflow", "infer_task_progress", "testing"},
 		// Batch 3: advanced tools
-		{"automation", "tool_catalog", "workflow_mode", "lint", "estimation", "git_tools", "session", "infer_session_mode", "ollama", "mlx"},
+		{"automation", "tool_catalog", "workflow_mode", "lint", "estimation", "git_tools", "session", "infer_session_mode", "ollama"},
 		// Batch 4 + 5: context + read_resource/list_resources, text_generate, task_execute, prompt_tracking, recommend, research_aggregator, cursor_cloud_agent, fm_plan_and_execute, ask_client
 		{"context", "read_resource", "list_resources", "text_generate", "task_execute", "prompt_tracking", "recommend", "research_aggregator", "cursor_cloud_agent", "fm_plan_and_execute", "ask_client"},
 	}

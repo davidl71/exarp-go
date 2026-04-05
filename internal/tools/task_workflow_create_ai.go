@@ -184,6 +184,8 @@ func handleTaskWorkflowCreateSingleWithDeps(
 		priority = normalizePriority(rawPriority)
 	}
 
+	priorityRank := ParamInt(params, "priority_rank", 0)
+
 	tags := config.DefaultTaskTags()
 	if len(tags) == 0 {
 		tags = []string{}
@@ -236,6 +238,7 @@ func handleTaskWorkflowCreateSingleWithDeps(
 		LongDescription: longDescription,
 		Status:          status,
 		Priority:        priority,
+		PriorityRank:    priorityRank,
 		Tags:            tags,
 		Dependencies:    dependencies,
 		Completed:       false,
@@ -261,7 +264,10 @@ func handleTaskWorkflowCreateSingleWithDeps(
 	}
 
 	if backend := strings.TrimSpace(strings.ToLower(cast.ToString(params["local_ai_backend"]))); backend != "" {
-		if backend == "fm" || backend == "mlx" || backend == "ollama" {
+		if backend == "mlx" {
+			backend = ""
+		}
+		if backend == "fm" || backend == "ollama" {
 			task.Metadata[MetadataKeyPreferredBackend] = backend
 		}
 	}
@@ -287,7 +293,7 @@ func handleTaskWorkflowCreateSingleWithDeps(
 		"success": true, "method": "store",
 		"task": map[string]interface{}{
 			"id": task.ID, "name": task.Name, "long_description": task.LongDescription,
-			"status": task.Status, "priority": task.Priority, "tags": task.Tags, "dependencies": task.Dependencies,
+			"status": task.Status, "priority": task.Priority, "priority_rank": task.PriorityRank, "tags": task.Tags, "dependencies": task.Dependencies,
 		},
 	}
 
@@ -361,6 +367,8 @@ func handleTaskWorkflowCreateSingle(ctx context.Context, params map[string]inter
 		priority = normalizePriority(rawPriority)
 	}
 
+	priorityRank := ParamInt(params, "priority_rank", 0)
+
 	tags := config.DefaultTaskTags()
 	if len(tags) == 0 {
 		tags = []string{}
@@ -424,6 +432,7 @@ func handleTaskWorkflowCreateSingle(ctx context.Context, params map[string]inter
 		LongDescription: longDescription,
 		Status:          status,
 		Priority:        priority,
+		PriorityRank:    priorityRank,
 		Tags:            tags,
 		Dependencies:    dependencies,
 		Completed:       false,
@@ -449,7 +458,10 @@ func handleTaskWorkflowCreateSingle(ctx context.Context, params map[string]inter
 	}
 
 	if backend := strings.TrimSpace(strings.ToLower(cast.ToString(params["local_ai_backend"]))); backend != "" {
-		if backend == "fm" || backend == "mlx" || backend == "ollama" {
+		if backend == "mlx" {
+			backend = ""
+		}
+		if backend == "fm" || backend == "ollama" {
 			task.Metadata[MetadataKeyPreferredBackend] = backend
 		}
 	}
@@ -475,7 +487,7 @@ func handleTaskWorkflowCreateSingle(ctx context.Context, params map[string]inter
 		"success": true, "method": "store",
 		"task": map[string]interface{}{
 			"id": task.ID, "name": task.Content, "long_description": task.LongDescription,
-			"status": task.Status, "priority": task.Priority, "tags": task.Tags, "dependencies": task.Dependencies,
+			"status": task.Status, "priority": task.Priority, "priority_rank": task.PriorityRank, "tags": task.Tags, "dependencies": task.Dependencies,
 		},
 	}
 
@@ -699,7 +711,7 @@ func normalizePriority(priority string) string {
 // ─── addEstimateComment ─────────────────────────────────────────────────────
 // addEstimateComment estimates task duration and adds it as a comment
 // This is called after task creation succeeds, and failures are handled gracefully.
-// Uses task.Metadata["preferred_backend"] (fm|mlx|ollama) when set for local AI backend.
+// Uses task.Metadata["preferred_backend"] (fm|ollama) when set for local AI backend.
 func addEstimateComment(ctx context.Context, projectRoot string, task *models.Todo2Task, name, details string, tags []string, priority string) error {
 	estimationParams := map[string]interface{}{
 		"action":         "estimate",

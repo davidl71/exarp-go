@@ -414,7 +414,7 @@ func TestHandleTaskWorkflowNative(t *testing.T) {
 			"action":           "create",
 			"name":             "Create with local AI backend test",
 			"long_description": "B1: verify preferred_backend on create",
-			"local_ai_backend": "mlx",
+			"local_ai_backend": "fm",
 		})
 		if err != nil {
 			t.Fatalf("create task: %v", err)
@@ -449,8 +449,8 @@ func TestHandleTaskWorkflowNative(t *testing.T) {
 			t.Fatal("task metadata is nil")
 		}
 		preferred, _ := found.Metadata["preferred_backend"].(string)
-		if preferred != "mlx" {
-			t.Errorf("task preferred_backend = %q, want mlx", preferred)
+		if preferred != "fm" {
+			t.Errorf("task preferred_backend = %q, want fm", preferred)
 		}
 	})
 

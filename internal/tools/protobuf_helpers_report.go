@@ -11,7 +11,7 @@ import (
 // ─── Contents ───────────────────────────────────────────────────────────────
 //   GoScorecardResultToProto
 //   BriefingDataToMap — BriefingDataToMap converts proto.BriefingData to map for JSON output (same shape as legacy briefing map).
-//   ProtoToScorecardMap — ProtoToScorecardMap converts proto.ScorecardData to map for MLX/JSON (same shape as GoScorecardToMap).
+//   ProtoToScorecardMap — ProtoToScorecardMap converts proto.ScorecardData to map for JSON (same shape as GoScorecardToMap).
 //   ProtoToProjectOverviewData — ProtoToProjectOverviewData converts proto.ProjectOverviewData to map[string]interface{}
 //   ParseTaskWorkflowRequest — ParseTaskWorkflowRequest parses a task_workflow tool request (protobuf or JSON).
 //   TaskWorkflowRequestToParams — TaskWorkflowRequestToParams converts a protobuf TaskWorkflowRequest to params map
@@ -96,7 +96,7 @@ func BriefingDataToMap(pb *proto.BriefingData) map[string]interface{} {
 }
 
 // ─── ProtoToScorecardMap ────────────────────────────────────────────────────
-// ProtoToScorecardMap converts proto.ScorecardData to map for MLX/JSON (same shape as GoScorecardToMap).
+// ProtoToScorecardMap converts proto.ScorecardData to map for JSON (same shape as GoScorecardToMap).
 func ProtoToScorecardMap(pb *proto.ScorecardData) map[string]interface{} {
 	if pb == nil {
 		return make(map[string]interface{})

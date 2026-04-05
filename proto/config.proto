@@ -205,7 +205,8 @@ message ToolsConfig {
   ReportConfig report = 2;
   LintingConfig linting = 3;
   TestingConfig testing = 4;
-  MLXConfig mlx = 5;
+  reserved 5;
+  reserved "mlx";
   OllamaConfig ollama = 6;
   ContextConfig context = 7;
 }
@@ -239,14 +240,6 @@ message TestingConfig {
   string default_framework = 1;
   int32 min_coverage = 2;
   string coverage_format = 3;
-  bool verbose = 4;
-}
-
-// MLXConfig contains MLX tool settings
-message MLXConfig {
-  string default_model = 1;
-  int32 default_max_tokens = 2;
-  double default_temperature = 3;
   bool verbose = 4;
 }
 

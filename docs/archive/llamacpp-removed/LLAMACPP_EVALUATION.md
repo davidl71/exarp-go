@@ -48,7 +48,7 @@ Could not find an active “dianlight/gollama.cpp” or “gollama.cpp purego”
 - **Contract:** `TextGenerator`: `Supported() bool`, `Generate(ctx, prompt, maxTokens, temperature) (string, error)` (see `internal/tools/fm_provider.go`).
 - **Placement:** New provider (e.g. `llamacpp_provider.go`) implementing `TextGenerator`; register in `text_generate` as `provider=llamacpp` and optionally in FM chain (e.g. after Apple FM, before Ollama) for “no server” GGUF use.
 - **Model path:** Initially config or env (path to `.gguf`); follow-up tasks can add “use Ollama blob storage” (same GGUF files Ollama uses) for discovery and path resolution.
-- **Build:** CGO + build tag; `DefaultLlamaCppProvider()` returns nil / `Supported() = false` when not built (same pattern as Apple FM / MLX).
+- **Build:** CGO + build tag; `DefaultLlamaCppProvider()` returns nil / `Supported() = false` when not built (same pattern as optional Apple FM builds). *(llamacpp / MLX MCP paths are not in current exarp-go registration.)*
 
 ---
 

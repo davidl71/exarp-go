@@ -143,7 +143,7 @@ If Background Agents aren't available or you prefer a different approach, you ca
 **Advantages:**
 - Works with any Cursor plan
 - Direct control over remote execution
-- Use remote hardware (MLX, Ollama, etc.)
+- Use remote hardware (GPU hosts, Ollama, etc.)
 - No separate sidebar needed
 
 See `docs/REMOTE_MCP_SERVERS.md` for complete setup instructions.

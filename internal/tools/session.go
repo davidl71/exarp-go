@@ -337,13 +337,18 @@ func handleSessionPrime(ctx context.Context, params map[string]interface{}) ([]f
 
 	var conflictHints []string
 
-	if taskOverlaps, fileConflicts, err := DetectConflicts(ctx, projectRoot); err == nil {
+	if taskOverlaps, fileConflicts, forbiddenHits, err := DetectConflicts(ctx, projectRoot); err == nil {
 		for _, c := range taskOverlaps {
 			conflictHints = append(conflictHints, "Task overlap: "+c.Reason)
 		}
 
 		for _, c := range fileConflicts {
 			conflictHints = append(conflictHints, "File conflict: tasks "+strings.Join(c.TaskIDs, ", ")+" share file(s): "+strings.Join(c.Files, ", "))
+		}
+
+		for _, c := range forbiddenHits {
+			conflictHints = append(conflictHints,
+				"Ownership forbidden: "+c.TaskID+" touches "+c.Path+" forbidden by "+c.OtherTaskID+" ("+c.Reason+")")
 		}
 	}
 
@@ -409,6 +414,14 @@ func handleSessionPrime(ctx context.Context, params map[string]interface{}) ([]f
 			runMaps = append(runMaps, runToMap(&activeRuns[i]))
 		}
 		result["active_runs"] = runMaps
+	}
+
+	taskByID := make(map[string]Todo2Task, len(tasks))
+	for _, task := range tasks {
+		taskByID[task.ID] = task
+	}
+	if ae := buildActiveExecutionSummary(activeLocks, activeRuns, taskByID); ae != nil {
+		result["active_execution"] = ae
 	}
 
 	// generic client: minimal output — tasks + mode only, no hints, no handoff noise.
@@ -519,6 +532,80 @@ func handleSessionPrime(ctx context.Context, params map[string]interface{}) ([]f
 	// Default compact=true for MCP callers to reduce token overhead; pass compact=false to opt out
 	compact := ParamBool(params, "compact", true)
 	return FormatResultOptionalCompact(result, "", compact)
+}
+
+// buildActiveExecutionSummary picks the focal locked task + optional run for session prime.
+// Prefer the lock held by this process agent ID (PID-insensitive match); if ambiguous, use the sole active lock.
+func buildActiveExecutionSummary(locks []database.LockStatus, runs []database.TaskExecutionRun, taskByID map[string]Todo2Task) map[string]interface{} {
+	if len(locks) == 0 {
+		return nil
+	}
+
+	agentID, err := database.GetAgentID()
+	if err != nil {
+		agentID = ""
+	}
+
+	agentKey := database.AgentIdentityWithoutPID(agentID)
+
+	var chosen *database.LockStatus
+
+	for i := range locks {
+		if agentID != "" &&
+			(locks[i].Assignee == agentID || database.AgentIdentityWithoutPID(locks[i].Assignee) == agentKey) {
+			chosen = &locks[i]
+			break
+		}
+	}
+
+	if chosen == nil && len(locks) == 1 {
+		chosen = &locks[0]
+	}
+
+	if chosen == nil {
+		return nil
+	}
+
+	var run *database.TaskExecutionRun
+
+	for i := range runs {
+		if runs[i].TaskID != chosen.TaskID || runs[i].Status != "running" {
+			continue
+		}
+
+		if agentID != "" &&
+			(runs[i].AgentID == agentID || database.AgentIdentityWithoutPID(runs[i].AgentID) == agentKey) {
+			run = &runs[i]
+			break
+		}
+	}
+
+	if run == nil {
+		for i := range runs {
+			if runs[i].TaskID == chosen.TaskID && runs[i].Status == "running" {
+				run = &runs[i]
+				break
+			}
+		}
+	}
+
+	out := map[string]interface{}{
+		"task_id":    chosen.TaskID,
+		"assignee":   chosen.Assignee,
+		"lock_until": chosen.LockUntil.Format(time.RFC3339),
+	}
+
+	if run != nil {
+		out["run"] = runToMap(run)
+	}
+
+	if t, ok := taskByID[chosen.TaskID]; ok {
+		out["content"] = t.Content
+		out["status"] = t.Status
+		out["priority"] = t.Priority
+	}
+
+	return out
 }
 
 // handleSessionHandoff handles handoff actions (end, resume, latest, list, sync, export).

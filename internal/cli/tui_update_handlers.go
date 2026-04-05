@@ -198,30 +198,25 @@ func (m model) handleDetailOverlayKeys(key string) (model, tea.Cmd, bool) {
 		case m.keyMatches(key, KeyActionBack), m.keyMatches(key, KeyActionDetail), key == " ", key == "s":
 			m.transitionTo(ModeTasks)
 			m.taskDetailTask = nil
-			m.taskDetailScrollTop = 0
+			m.taskDetailViewport.GotoTop()
 			return m, nil, true
 		case key == "up", key == "k":
-			if m.taskDetailScrollTop > 0 {
-				m.taskDetailScrollTop--
-			}
+			m.taskDetailViewport.SetYOffset(max(0, m.taskDetailViewport.YOffset()-1))
 			return m, nil, true
 		case key == "down", key == "j":
-			m.taskDetailScrollTop++
+			m.taskDetailViewport.SetYOffset(m.taskDetailViewport.YOffset() + 1)
 			return m, nil, true
 		case key == "pgup", key == "ctrl+u":
-			m.taskDetailScrollTop -= 10
-			if m.taskDetailScrollTop < 0 {
-				m.taskDetailScrollTop = 0
-			}
+			m.taskDetailViewport.SetYOffset(max(0, m.taskDetailViewport.YOffset()-max(1, m.taskDetailViewport.Height()/2)))
 			return m, nil, true
 		case key == "pgdown", key == "ctrl+d":
-			m.taskDetailScrollTop += 10
+			m.taskDetailViewport.SetYOffset(m.taskDetailViewport.YOffset() + max(1, m.taskDetailViewport.Height()/2))
 			return m, nil, true
 		case key == "home", key == "g":
-			m.taskDetailScrollTop = 0
+			m.taskDetailViewport.GotoTop()
 			return m, nil, true
 		case key == "end", key == "G":
-			m.taskDetailScrollTop = 9999
+			m.taskDetailViewport.GotoBottom()
 			return m, nil, true
 		}
 	}
@@ -430,8 +425,7 @@ func (m model) handleViewToggleKeys(key string) (model, tea.Cmd, bool) {
 		if m.mode == ModeTasks {
 			m.useBubbleList = !m.useBubbleList
 			if m.useBubbleList {
-				m.taskList.SetItems(itemsFromTasks(m.tasks))
-				m.taskList.SetFilterText(m.searchQuery)
+				m.syncTaskComponents()
 			}
 		}
 		return m, nil, true
@@ -441,7 +435,7 @@ func (m model) handleViewToggleKeys(key string) (model, tea.Cmd, bool) {
 		if m.mode == ModeTasks {
 			m.useBubbleTable = !m.useBubbleTable
 			if m.useBubbleTable {
-				m.taskTable.SetRows(rowsFromTasks(m.tasks))
+				m.syncTaskComponents()
 			}
 		}
 		return m, nil, true

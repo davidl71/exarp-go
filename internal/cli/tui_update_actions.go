@@ -17,7 +17,8 @@ func (m model) handleActionKeys(key string, msg tea.KeyMsg) (model, tea.Cmd, boo
 			if len(vis) > 0 && m.cursor < len(vis) {
 				m.transitionTo(ModeTaskDetail)
 				m.taskDetailTask = m.tasks[m.realIndexAt(m.cursor)]
-				m.taskDetailScrollTop = 0
+				m.syncTaskDetailViewport()
+				m.taskDetailViewport.GotoTop()
 				return m, nil, true
 			}
 		}
@@ -135,7 +136,7 @@ func (m model) handleActionKeys(key string, msg tea.KeyMsg) (model, tea.Cmd, boo
 
 		return m, nil, true
 
-	case key == "r":
+	case m.keyMatches(key, KeyActionRefresh):
 		switch m.mode {
 		case ModeConfig:
 			m.configSaveMessage = ""

@@ -63,7 +63,7 @@ You can configure Cursor to run MCP server commands via SSH, allowing you to use
 
 ### Advantages
 
-- ✅ Use remote resources (GPU, MLX, Ollama)
+- ✅ Use remote resources (GPU, Ollama, Apple FM hosts)
 - ✅ Centralized server management
 - ✅ Leverage remote hardware capabilities
 - ✅ Works with stdio-based MCP servers
@@ -127,7 +127,7 @@ Based on your setup (local Linux machine, remote macOS M4):
 ### Option A: SSH-based Remote MCP Servers (Best for Remote Resources)
 
 **Use when:**
-- You want to leverage remote MLX/Ollama on macOS M4
+- You want to leverage remote Ollama or Apple Silicon hosts (macOS M4)
 - Remote has better hardware/resources
 - You want centralized server management
 
@@ -186,7 +186,7 @@ Based on your setup (local Linux machine, remote macOS M4):
 
 **Use both local and remote:**
 - Local: Fast tools (lint, format, etc.)
-- Remote: Resource-intensive tools (MLX, Ollama, CodeLlama)
+- Remote: Resource-intensive tools (Ollama, large-model inference)
 
 **Configuration:**
 ```json
@@ -207,7 +207,7 @@ Based on your setup (local Linux machine, remote macOS M4):
         "PROJECT_ROOT": "{{PROJECT_ROOT}}",
         "OLLAMA_HOST": "http://localhost:11434"
       },
-      "description": "Remote MLX/Ollama tools (powerful hardware)"
+      "description": "Remote exarp-go + Ollama (powerful hardware)"
     }
   }
 }
@@ -320,7 +320,7 @@ Edit `.cursor/mcp.json` in your workspace:
 
 ## Examples
 
-### Remote Ollama + MLX Setup
+### Remote Ollama setup
 
 ```json
 {
@@ -336,7 +336,7 @@ Edit `.cursor/mcp.json` in your workspace:
         "PATH": "/opt/homebrew/bin:/usr/local/bin:...",
         "OLLAMA_HOST": "http://localhost:11434"
       },
-      "description": "Remote exarp-go with Ollama and MLX (M4)"
+      "description": "Remote exarp-go with Ollama (M4)"
     }
   }
 }

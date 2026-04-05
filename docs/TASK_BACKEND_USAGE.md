@@ -96,7 +96,6 @@ These tools don't interact with tasks at all:
 | setup_hooks | No task access |
 | testing | No task access |
 | ollama | No task access |
-| mlx | No task access |
 | apple_foundation | No task access |
 | context | No task access |
 | memory | No task access |

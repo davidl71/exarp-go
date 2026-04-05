@@ -48,12 +48,55 @@ func itemsFromTasks(tasks []*database.Todo2Task) []list.Item {
 	return items
 }
 
+func (m model) visibleTasks() []*database.Todo2Task {
+	vis := m.visibleIndices()
+	if len(vis) == 0 {
+		return nil
+	}
+
+	out := make([]*database.Todo2Task, 0, len(vis))
+	for _, idx := range vis {
+		if idx >= 0 && idx < len(m.tasks) && m.tasks[idx] != nil {
+			out = append(out, m.tasks[idx])
+		}
+	}
+
+	return out
+}
+
+func (m *model) syncTaskComponents() {
+	visible := m.visibleTasks()
+	m.taskList.SetItems(itemsFromTasks(visible))
+	m.taskList.SetFilterText(m.searchQuery)
+	m.taskList.SetSize(m.effectiveWidth()-2, m.effectiveHeight()-10)
+
+	m.taskTable.SetRows(rowsFromTasks(visible))
+	m.taskTable.SetWidth(m.effectiveWidth() - 2)
+	m.taskTable.SetHeight(m.effectiveHeight() - 8)
+
+	if len(visible) == 0 {
+		m.taskTable.SetCursor(0)
+		m.taskList.Select(-1)
+		return
+	}
+
+	if m.cursor >= len(visible) {
+		m.cursor = len(visible) - 1
+	}
+	if m.cursor < 0 {
+		m.cursor = 0
+	}
+
+	m.taskTable.SetCursor(m.cursor)
+	m.taskList.Select(m.cursor)
+}
+
 // viewTasksList renders the task list using bubble/list.
 func (m model) viewTasksList() string {
-	if len(m.tasks) == 0 {
+	if len(m.visibleTasks()) == 0 {
 		return "\n  No tasks to display\n\n"
 	}
-	m.taskList.SetSize(m.effectiveWidth()-2, m.effectiveHeight()-10)
+	m.syncTaskComponents()
 	return m.taskList.View()
 }
 
@@ -74,12 +117,10 @@ func rowsFromTasks(tasks []*database.Todo2Task) []table.Row {
 
 // viewTasksTable renders the task list using bubble/table.
 func (m model) viewTasksTable() string {
-	if len(m.tasks) == 0 {
+	if len(m.visibleTasks()) == 0 {
 		return "\n  No tasks to display\n\n"
 	}
-	m.taskTable.SetRows(rowsFromTasks(m.tasks))
-	m.taskTable.SetWidth(m.effectiveWidth() - 2)
-	m.taskTable.SetHeight(m.effectiveHeight() - 8)
+	m.syncTaskComponents()
 	return m.taskTable.View()
 }
 
@@ -113,7 +154,7 @@ func (m model) viewTasks() string {
 	}
 
 	if len(m.tasks) == 0 {
-		return fmt.Sprintf("\n  No tasks found (status: %s)\n\n  Press q to quit, r to refresh.\n\n", m.status)
+		return fmt.Sprintf("\n  No tasks found (status: %s)\n\n  Press q to quit, %s to refresh.\n\n", m.status, bindingList(m.bindingsFor(KeyActionRefresh)))
 	}
 
 	// Calculate available width (account for padding). Use effective dimensions so

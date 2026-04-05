@@ -116,7 +116,7 @@ An MCP (Model Context Protocol) server for AI-augmented task management with dua
 |------|-----------|
 | `registry.go` | `RegisterAllTools()` — calls the four registries below in order |
 | `registry_core.go` | `task_workflow`, `task_discovery`, `task_analysis`, `session`, `report`, `health`, `infer_task_progress` |
-| `registry_ai.go` | `memory`, `memory_maint`, `estimation`, `ollama`, `mlx`, `text_generate`, `context`, `prompt_tracking`, `recommend`, `cursor_cloud_agent`, `fm_plan_and_execute`, `task_execute`, `research_aggregator` |
+| `registry_ai.go` | `memory`, `memory_maint`, `estimation`, `ollama`, `text_generate`, `context`, `prompt_tracking`, `recommend`, `cursor_cloud_agent`, `fm_plan_and_execute`, `task_execute`, `research_aggregator` |
 | `registry_infra.go` | `automation`, `git_tools`, `testing`, `lint`, `security`, `generate_config`, `setup_hooks` |
 | `registry_misc.go` | `analyze_alignment`, `check_attribution`, `add_external_tool_hints`, `tool_catalog`, `workflow_mode`, `infer_session_mode`, `ask_client`, plus `read_resource` / `list_resources` via `RegisterResourcesAsTools` |
 
@@ -151,7 +151,7 @@ Canonical tool-name list and schema smoke test: `internal/tools/registry_test.go
 | `report.go` | Report generation (overview, scorecard, briefing) |
 | `report_plan.go` | Planning reports |
 | `report_format.go` | Output formatters |
-| `report_mlx.go` | MLX-accelerated reporting |
+| `report_insights.go` | Report/scorecard AI insight helpers (FM chain via `DefaultReportInsight`) |
 | `scorecard_*.go` | Scorecard checks (Go, multi-language) |
 
 ### Git Operations
@@ -177,7 +177,6 @@ Canonical tool-name list and schema smoke test: `internal/tools/registry_test.go
 | `llm_backends.go` | LLM provider discovery / backend status |
 | `apple_foundation_helpers.go` (+ tests) | Apple FM helpers for `text_generate` / report insight / FM chain (no separate `apple_foundation_models` tool in `registry_ai.go`) |
 | `ollama*.go` | Ollama local LLM (`ollama` tool) |
-| `mlx*.go` | MLX (`mlx` tool; generate may defer to other backends) |
 | `localai_provider.go` | LocalAI (`text_generate` provider) |
 | `gateway_provider.go` | OpenAI-compatible gateway (`text_generate`) |
 | `fm_*.go`, `fm_chain.go`, `insight_provider.go` | FM chain, Ollama bridge, report insight routing |
@@ -336,4 +335,4 @@ Canonical tool-name list and schema smoke test: `internal/tools/registry_test.go
 2. **Database**: SQL-based with dialect drivers; uses gorp/squirrel
 3. **TUI**: Bubble Tea v2 for modern TUI; go3270 for classic 3270
 4. **MCP Protocol**: Uses mcp-go-core for transport/stub generation
-5. **LLM abstraction**: `text_generate` and specialized tools (`ollama`, `mlx`); Apple FM via `provider=fm` and helpers — see § LLM/AI Backends above. The former `llamacpp` MCP tool is not present in the current tree.
+5. **LLM abstraction**: `text_generate` (`fm`, `ollama`, `insight`, `localai`, `gateway`, `auto`) and the `ollama` tool; Apple FM via `provider=fm` and helpers — see § LLM/AI Backends above.

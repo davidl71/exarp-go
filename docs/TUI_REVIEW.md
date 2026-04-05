@@ -194,7 +194,7 @@ All surfaces now route through MCP tools. Direct database access is limited to:
 
 ### 9.3 Magic Strings (No Constants)
 
-Status values (`"Todo"`, `"In Progress"`, `"Done"`, `"Review"`), priority values (`"low"`, `"medium"`, `"high"`), and backend names (`"fm"`, `"mlx"`, `"ollama"`) are scattered as string literals across 20+ files.
+Status values (`"Todo"`, `"In Progress"`, `"Done"`, `"Review"`), priority values (`"low"`, `"medium"`, `"high"`), and backend names (`"fm"`, `"ollama"`; legacy `"mlx"` in metadata) are scattered as string literals across 20+ files.
 
 **Impact:** AI agents propose changes with typos (e.g., `"in_progress"` vs `"In Progress"`) because there's no canonical constant to reference.
 

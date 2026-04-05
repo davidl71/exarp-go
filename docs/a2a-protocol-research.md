@@ -94,7 +94,7 @@ A representative agent card reflecting the current tool set:
 ```json
 {
   "name": "exarp-go",
-  "description": "MCP server and task orchestrator with local AI (Ollama, Apple FM, MLX)",
+  "description": "MCP server and task orchestrator with local AI (Ollama, Apple FM, LocalAI/gateway via text_generate)",
   "url": "http://localhost:8080",
   "version": "0.48.0",
   "capabilities": {
@@ -114,7 +114,7 @@ A representative agent card reflecting the current tool set:
     {
       "id": "text_generate",
       "name": "Text Generation",
-      "description": "Generate text via local AI (Ollama, Apple FM, MLX)",
+      "description": "Generate text via local AI (Ollama, Apple FM, insight, LocalAI, gateway, auto)",
       "inputModes": ["text"],
       "outputModes": ["text"]
     },

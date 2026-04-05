@@ -161,6 +161,7 @@ func taskToTaskSummary(t *models.Todo2Task) *proto.TaskSummary {
 		Content:          t.Content,
 		Status:           t.Status,
 		Priority:         t.Priority,
+		PriorityRank:     models.ClampPriorityRankForProto(t.PriorityRank),
 		Tags:             append([]string(nil), t.Tags...),
 		LongDescription:  t.LongDescription,
 		Dependencies:     append([]string(nil), t.Dependencies...),

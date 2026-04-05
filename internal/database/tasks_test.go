@@ -418,7 +418,7 @@ func TestGetTaskHandlesNullProjectID(t *testing.T) {
 		INSERT INTO tasks (
 			id, name, content, long_description,
 			status, status_enum,
-			priority, priority_enum,
+			priority, priority_enum, priority_rank,
 			completed,
 			created, last_modified, completed_at,
 			created_ts, last_modified_ts, completed_at_ts,
@@ -429,7 +429,7 @@ func TestGetTaskHandlesNullProjectID(t *testing.T) {
 		) VALUES (
 		  ?, ?, ?, ?,
 		  ?, ?,
-		  ?, ?,
+		  ?, ?, 0,
 		  ?,
 		  ?, ?, '',
 		  strftime('%s', ?), strftime('%s', ?), 0,
@@ -472,7 +472,7 @@ func TestListTasksCanIncludeNullProjectID(t *testing.T) {
 		INSERT INTO tasks (
 			id, name, content, long_description,
 			status, status_enum,
-			priority, priority_enum,
+			priority, priority_enum, priority_rank,
 			completed,
 			created, last_modified, completed_at,
 			created_ts, last_modified_ts, completed_at_ts,
@@ -483,7 +483,7 @@ func TestListTasksCanIncludeNullProjectID(t *testing.T) {
 		) VALUES (
 		  ?, ?, ?, ?,
 		  ?, ?,
-		  ?, ?,
+		  ?, ?, 0,
 		  ?,
 		  ?, ?, '',
 		  strftime('%s', ?), strftime('%s', ?), 0,

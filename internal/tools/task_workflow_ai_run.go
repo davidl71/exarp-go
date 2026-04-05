@@ -15,6 +15,11 @@ import (
 
 // generateWithBackend handles the common backend selection and generation logic.
 func generateWithBackend(ctx context.Context, prompt, backend, operation string, maxTokens int, temperature float32) (string, error) {
+	backend = strings.TrimSpace(strings.ToLower(backend))
+	if backend == "mlx" {
+		backend = "fm"
+	}
+
 	var result string
 	var err error
 
@@ -42,13 +47,6 @@ func generateWithBackend(ctx context.Context, prompt, backend, operation string,
 
 			return strings.TrimSpace(tc[0].Text), nil
 		}()
-	case "mlx":
-		gen := DefaultMLXProvider()
-		if gen == nil || !gen.Supported() {
-			return "", fmt.Errorf("%s: MLX provider not available", operation)
-		}
-
-		result, err = gen.Generate(ctx, prompt, maxTokens, temperature)
 	default: // "fm"
 		gen := DefaultFMProvider()
 		if gen == nil || !gen.Supported() {
@@ -98,7 +96,7 @@ func generateWithBackend(ctx context.Context, prompt, backend, operation string,
 
 // ─── handleTaskWorkflowSummarize ────────────────────────────────────────────
 // handleTaskWorkflowSummarize generates an AI summary of a task using the preferred local backend
-// (fm|mlx|ollama) and saves it as a comment. Uses BuildEstimationPrompt-style prompt building.
+// (fm|ollama) and saves it as a comment. Uses BuildEstimationPrompt-style prompt building.
 // Params: task_id (required), local_ai_backend (optional, overrides task metadata preferred_backend).
 func handleTaskWorkflowSummarize(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	taskID := cast.ToString(params["task_id"])
@@ -121,8 +119,10 @@ func handleTaskWorkflowSummarize(ctx context.Context, params map[string]interfac
 
 	if b, ok := params["local_ai_backend"].(string); ok && b != "" {
 		b = strings.TrimSpace(strings.ToLower(b))
-		if b == "fm" || b == "mlx" || b == "ollama" {
+		if b == "fm" || b == "ollama" {
 			backend = b
+		} else if b == "mlx" {
+			backend = "fm"
 		}
 	}
 
@@ -218,8 +218,10 @@ func handleTaskWorkflowRunWithAI(ctx context.Context, params map[string]interfac
 
 	if b, ok := params["local_ai_backend"].(string); ok && b != "" {
 		b = strings.TrimSpace(strings.ToLower(b))
-		if b == "fm" || b == "mlx" || b == "ollama" {
+		if b == "fm" || b == "ollama" {
 			backend = b
+		} else if b == "mlx" {
+			backend = "fm"
 		}
 	}
 

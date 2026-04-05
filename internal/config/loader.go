@@ -485,12 +485,6 @@ func mergeConfig(defaults, fileConfig *FullConfig) *FullConfig {
 	if fileConfig.Tools.Ollama.DefaultModel != "" {
 		merged.Tools.Ollama.DefaultModel = fileConfig.Tools.Ollama.DefaultModel
 	}
-	if fileConfig.Tools.MLX.DefaultModel != "" {
-		merged.Tools.MLX.DefaultModel = fileConfig.Tools.MLX.DefaultModel
-	}
-	if fileConfig.Tools.MLX.DefaultMaxTokens > 0 {
-		merged.Tools.MLX.DefaultMaxTokens = fileConfig.Tools.MLX.DefaultMaxTokens
-	}
 
 	// Workflow
 	if fileConfig.Workflow.DefaultMode != "" {

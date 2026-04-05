@@ -68,6 +68,7 @@ enum TaskWorkflowAction {
   TASK_WORKFLOW_ACTION_VERIFY = 34;
   TASK_WORKFLOW_ACTION_ADD_PROGRESS = 35;
   TASK_WORKFLOW_ACTION_SPLIT = 36;
+  TASK_WORKFLOW_ACTION_IMPORT_SQLITE = 37;
 }
 
 // TaskAnalysisAction selects the task_analysis action.
@@ -159,6 +160,7 @@ enum GitToolsAction {
   GIT_TOOLS_ACTION_GRAPH = 5;
   GIT_TOOLS_ACTION_MERGE = 6;
   GIT_TOOLS_ACTION_SET_BRANCH = 7;
+  GIT_TOOLS_ACTION_LOCAL_COMMITS = 8;
 }
 
 // GitMergeConflictStrategy selects merge conflict resolution for git_tools merge.
@@ -271,7 +273,7 @@ enum LocalLLMDocstringStyle {
 enum LocalLLMBackend {
   LOCAL_LLM_BACKEND_UNSPECIFIED = 0;
   LOCAL_LLM_BACKEND_FM = 1;
-  LOCAL_LLM_BACKEND_MLX = 2;
+  reserved 2; // was LOCAL_LLM_BACKEND_MLX (removed)
   LOCAL_LLM_BACKEND_OLLAMA = 3;
   LOCAL_LLM_BACKEND_AUTO = 4;
 }
@@ -398,7 +400,7 @@ message ReportResponse {
   bool success = 1;
   string report = 2;  // Generated report text
   string output_path = 3;
-  AIInsights ai_insights = 4;  // MLX-enhanced insights (if available)
+  AIInsights ai_insights = 4;  // LLM-enhanced insights (if available)
   string error = 5;
 }
 
@@ -452,7 +454,7 @@ message ProjectOverviewData {
   PlanningSnippet planning = 9;
 }
 
-// ScorecardData represents Go scorecard result for report/MLX path (type-safe)
+// ScorecardData represents Go scorecard result for report path (type-safe)
 message ScorecardData {
   double score = 1;
   repeated string recommendations = 2;
@@ -553,7 +555,7 @@ message TaskAnalysisRequest {
   bool backlog_only = 13;  // For discover_tags: only match/apply tags to Todo2 backlog (Todo + In Progress).
   bool use_llm_semantic = 14;  // For action=tags: use Apple FM or Ollama to suggest tags from task title and content (batched).
   bool match_existing_only = 15;  // For action=tags+use_llm_semantic: quick FM inference matching only from existing tags (canonical + project/cache).
-  bool use_tiny_tag_model = 16;   // For action=tags+use_llm_semantic: try Ollama tinyllama then MLX TinyLlama for faster inference.
+  bool use_tiny_tag_model = 16;   // For action=tags+use_llm_semantic: try Ollama tinyllama for faster inference before larger models.
   TaskAnalysisAction action_enum = 17;
   OutputFormat output_format_enum = 18;
 }
@@ -651,6 +653,42 @@ message TaskWorkflowRequest {
   string content = 28;
   // For action=add_comment: type of comment (result, note, research_with_links, manualsetup).
   string comment_type = 29;
+
+  // --- Execution / multi-agent (start_run, end_run, list_runs, show_run, verify, add_progress, split, claim) ---
+  // These fields are absent from earlier revisions; protojson previously dropped them (unknown fields), breaking MCP/typed clients.
+  string run_id = 30;
+  string summary = 31;
+  string notes = 32;
+  repeated string files_touched = 33;
+  repeated string commands_run = 34;
+  string kind = 35;
+  string command = 36;
+  string details = 37;
+  string remaining_work = 38;
+  repeated string files = 39;
+  string children = 40;
+  string dependency_mode = 41;
+  int32 limit = 42;
+  // end_run status, verify outcome, apply_approval_result (approved/rejected), etc.
+  string result = 43;
+  string agent_id = 44;
+  int32 lease_minutes = 45;
+
+  // import_sqlite: merge external Todo2 SQLite DBs into the current PROJECT_ROOT database.
+  // import_sources: JSON array of paths — each may be a path to todo2.db or a project directory (uses .todo2/todo2.db).
+  string import_sources = 46;
+  // import_scan_mode: none | immediate | recursive — when a source path is a directory, discover child project DBs.
+  string import_scan_mode = 47;
+  // import_on_conflict: fail (default) or skip — when a task id exists in the target with a different content hash.
+  string import_on_conflict = 48;
+  // import_default_project_id: when set, used for tasks with empty project_id instead of the source folder label.
+  string import_default_project_id = 49;
+  // import_sync_json: when true (default), run SQLite↔JSON sync after a successful non-dry import.
+  bool import_sync_json = 50;
+  // import_max_depth: for import_scan_mode immediate|recursive, max directory depth below each source dir for a project root containing .todo2 (0 = unlimited).
+  int32 import_max_depth = 51;
+  // priority_rank: optional sort key for create/update; lower sorts earlier within the same named priority.
+  int32 priority_rank = 52;
 }
 
 // TaskSummary is a single task entry for list/approve/sync results (type-safe response).
@@ -663,6 +701,7 @@ message TaskSummary {
   string long_description = 6;
   repeated string dependencies = 7;
   repeated string recommended_tools = 8;
+  int32 priority_rank = 9;
 }
 
 // SyncResults holds sync action result details (validated_tasks, issues, etc.).
@@ -827,9 +866,9 @@ message EstimationRequest {
   string priority = 6;  // default: "medium"
   bool use_historical = 7;  // default: true
   bool detailed = 8;  // default: false
-  bool use_mlx = 9;  // default: true
-  double mlx_weight = 10;  // default: 0.3
-  string local_ai_backend = 11;  // optional: fm|mlx|ollama — preferred local LLM for estimate
+  bool use_mlx = 9 [deprecated = true];  // ignored; reserved for backward compatibility
+  double mlx_weight = 10 [deprecated = true];  // ignored; reserved for backward compatibility
+  string local_ai_backend = 11;  // optional: fm|ollama — preferred local LLM for estimate
   LocalLLMBackend local_ai_backend_enum = 12;
   LocalLLMSummaryLevel summary_level_enum = 13;
 }
@@ -1082,20 +1121,6 @@ message OllamaRequest {
   string level = 15;  // default: "brief"
   LocalLLMDocstringStyle style_enum = 16;
   LocalLLMSummaryLevel level_enum = 17;
-}
-
-// ============================================================================
-// MLX Tool Messages
-// ============================================================================
-
-// MLXRequest represents a request to the MLX tool
-message MLXRequest {
-  string action = 1;  // "status", "hardware", "models", "generate"
-  string prompt = 2;
-  string model = 3;  // default: "mlx-community/Phi-3.5-mini-instruct-4bit"
-  int32 max_tokens = 4;  // default: 512
-  double temperature = 5;  // default: 0.7
-  bool verbose = 6;  // default: false
 }
 
 // ============================================================================

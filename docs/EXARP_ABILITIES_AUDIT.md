@@ -13,7 +13,7 @@ This document provides a complete audit of exarp-go's MCP tools, organized by ca
 exarp-go is a **comprehensive project automation and AI-powered task management system** with 39 MCP tools spanning:
 
 - **Task Management**: Full lifecycle management, analysis, discovery, and AI-assisted execution
-- **AI/LLM Integration**: Multi-backend support (Apple FM, Ollama, MLX, llamacpp) with unified interface
+- **AI/LLM Integration**: Multi-backend support (Apple FM, Ollama, `text_generate` with insight/LocalAI/gateway/auto) with unified interface
 - **Project Health**: Health checks, testing, linting, security scanning
 - **Developer Experience**: Session management, context budgeting, workflow modes
 - **Documentation**: Automated generation, PRD alignment, report generation
@@ -44,7 +44,7 @@ exarp-go is a **comprehensive project automation and AI-powered task management 
 
 - **task_execute** - AI-assisted task execution
   - Loads task from Todo2, generates execution plan via LLM
-  - Supports multiple AI backends (FM, Ollama, MLX)
+  - Supports multiple AI backends (FM, Ollama, router)
   - Provides cost/time estimates
 
 #### Task Discovery
@@ -72,33 +72,18 @@ exarp-go is a **comprehensive project automation and AI-powered task management 
 
 ---
 
-### 2. AI & LLM (8 tools)
+### 2. AI & LLM (highlights; see `registry_ai.go` for full list)
 
 #### Backend Implementations
-- **apple_foundation_models** - Apple FM API integration
-  - Actions: `generate`, `respond`, `status`, `models`
-  - Optimized for Apple Silicon
-  - Lowest latency on macOS
-
 - **ollama** - Ollama backend (recommended for local inference)
   - Actions: `status`, `models`, `generate`, `pull`, `hardware`, `docs`, `quality`, `summary`
   - Full model lifecycle management
   - Hardware capability detection
   - Quality assessment and documentation generation
 
-- **mlx** - MLX backend for Apple Silicon
-  - Actions: `status`, `hardware`, `models`, `generate`
-  - Apple Silicon GPU acceleration
-  - Alternative to Ollama for local models
-
-- **llamacpp** - llama.cpp backend (stub implementation)
-  - Actions: `status`, `models`, `generate`, `load`, `unload`
-  - Note: Currently dormant (use Ollama instead)
-  - See `docs/LLAMACPP_FUTURE.md`
-
 #### Unified Interfaces
 - **text_generate** - Universal LLM interface
-  - Providers: `fm`, `ollama`, `insight`, `mlx`, `localai`, `gateway`, `llamacpp`, `auto`
+  - Providers: `fm`, `ollama`, `insight`, `localai`, `gateway`, `auto`
   - Auto-selects best available backend
   - Consistent API across providers
 
@@ -546,11 +531,6 @@ exarp-go -tool ollama -args '{"action":"status"}'
 
 ## Future Capabilities
 
-See `docs/LLAMACPP_FUTURE.md` for:
-- llamacpp full integration (if needed)
-- Alternative backend options
-- Performance benchmarks
-
 See `docs/IMPLEMENTATION_PLAN.md` for:
 - Track 2: Compatibility improvements
 - Track 3: TUI enhancements
@@ -574,7 +554,7 @@ Use exarp-go when you need:
 
 ✅ **AI Integration**  
 - Multi-backend LLM support
-- Local inference (Ollama, MLX, Apple FM)
+- Local inference (Ollama, Apple FM, optional LocalAI/gateway)
 - Model recommendations
 
 ✅ **Developer Experience**  
@@ -599,7 +579,6 @@ Use exarp-go when you need:
 - `docs/INDEX.md` - Full documentation index
 - `docs/LINT_TARGETS.md` - Complete linting reference
 - `docs/IMPLEMENTATION_PLAN.md` - Roadmap and priorities
-- `docs/LLAMACPP_FUTURE.md` - llamacpp integration notes
 - `.cursor/skills/` - Cursor skill documentation
 - `AGENTS.md` - Agent usage rules
 

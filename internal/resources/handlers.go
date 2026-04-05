@@ -147,7 +147,6 @@ func handleConfigSchema(ctx context.Context, uri string) ([]byte, string, error)
 				"report":    "object",
 				"linting":   "object",
 				"testing":   "object",
-				"mlx":       "object",
 				"ollama":    "object",
 				"context":   "object",
 			},

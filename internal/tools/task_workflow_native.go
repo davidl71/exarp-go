@@ -95,6 +95,8 @@ func handleTaskWorkflowNative(ctx context.Context, params map[string]interface{}
 		return handleTaskWorkflowAddProgress(ctx, params)
 	case "split":
 		return handleTaskWorkflowSplit(ctx, params)
+	case "import_sqlite":
+		return handleTaskWorkflowImportSQLite(ctx, params)
 	default:
 		return nil, fmt.Errorf("unknown action: %s", action)
 	}

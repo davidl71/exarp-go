@@ -2,7 +2,10 @@
 package cli
 
 import (
+	"strings"
+
 	"charm.land/bubbles/v2/textinput"
+	tea "charm.land/bubbletea/v2"
 )
 
 // commandPaletteSuggestions returns available commands for the command palette.
@@ -40,11 +43,13 @@ func (m model) viewCommandPalette() string {
 }
 
 // executeCommand parses and executes a command from the command palette.
-func (m *model) executeCommand(cmd string) {
-	switch cmd {
+func (m *model) executeCommand(cmd string) tea.Cmd {
+	base := strings.TrimSpace(strings.Split(cmd, " - ")[0])
+
+	switch base {
 	case "refresh":
 		m.loading = true
-		// LoadTasks will be called via message
+		return loadTasks(m.server, m.status)
 	case "sort:status":
 		m.sortOrder = SortByStatus
 		m.sortAsc = true
@@ -68,16 +73,18 @@ func (m *model) executeCommand(cmd string) {
 	case "list":
 		m.useBubbleList = !m.useBubbleList
 		if m.useBubbleList {
-			m.taskList.SetItems(itemsFromTasks(m.tasks))
+			m.syncTaskComponents()
 		}
 	case "table":
 		m.useBubbleTable = !m.useBubbleTable
 		if m.useBubbleTable {
-			m.taskTable.SetRows(rowsFromTasks(m.tasks))
+			m.syncTaskComponents()
 		}
 	case "help":
 		m.showHelp = !m.showHelp
 	case "quit":
-		// Will be handled by the quit key
+		return tea.Quit
 	}
+
+	return nil
 }

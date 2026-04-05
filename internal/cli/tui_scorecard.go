@@ -30,7 +30,7 @@ func (m model) viewScorecard() string {
 	b.WriteString(" ")
 	b.WriteString(headerLabelStyle.Render("p=back"))
 	b.WriteString(" ")
-	b.WriteString(headerLabelStyle.Render("r=refresh"))
+	b.WriteString(headerLabelStyle.Render(bindingList(m.bindingsFor(KeyActionRefresh)) + "=refresh"))
 	b.WriteString("\n")
 	b.WriteString(borderStyle.Render(strings.Repeat("─", availableWidth)))
 	b.WriteString("\n")
@@ -44,7 +44,7 @@ func (m model) viewScorecard() string {
 
 	if m.scorecardErr != nil {
 		b.WriteString(fmt.Sprintf("\n  Error: %v\n\n", m.scorecardErr))
-		b.WriteString(statusBarStyle.Render("Commands: p back  r refresh  q quit"))
+		b.WriteString(statusBarStyle.Render("Commands: p back  " + bindingList(m.bindingsFor(KeyActionRefresh)) + " refresh  q quit"))
 
 		return b.String()
 	}
@@ -143,7 +143,7 @@ func (m model) viewScorecard() string {
 	b.WriteString("\n")
 	b.WriteString(borderStyle.Render(strings.Repeat("─", availableWidth)))
 	b.WriteString("\n")
-	b.WriteString(statusBarStyle.Render("Commands: p back  r refresh  e implement selected  q quit"))
+	b.WriteString(statusBarStyle.Render("Commands: p back  " + bindingList(m.bindingsFor(KeyActionRefresh)) + " refresh  e implement selected  q quit"))
 
 	return b.String()
 }
