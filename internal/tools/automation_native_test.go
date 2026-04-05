@@ -14,9 +14,12 @@ import (
 )
 
 // automationTestTimeout is the max duration per automation subtest. Prevents
-// long-running tests (e.g. discover with Apple FM, sprint with many subtasks) from blocking the suite.
+// long-running tests (e.g. discover with Apple FM) from blocking the suite.
 // 25s keeps failures fast vs package default 90s.
 const automationTestTimeout = 25 * time.Second
+
+// automationSprintTestTimeout allows sprint to finish subtasks + backlog ordering on slower disks/CI.
+const automationSprintTestTimeout = 90 * time.Second
 
 // runWithTimeout runs fn in a goroutine and fails the test if it exceeds d.
 // Use for subtests that may block on I/O or Apple FM so they fail fast instead of waiting for package timeout.
@@ -96,10 +99,15 @@ func TestHandleAutomationNative(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.longRun && testing.Short() {
-				t.Skip("skipping long-running discover in short mode")
+				t.Skip("skipping long-running automation subtest in short mode")
 			}
 
-			runWithTimeout(t, automationTestTimeout, func() {
+			timeout := automationTestTimeout
+			if tt.action == "sprint" {
+				timeout = automationSprintTestTimeout
+			}
+
+			runWithTimeout(t, timeout, func() {
 				ctx := context.Background()
 
 				result, err := handleAutomationNative(ctx, tt.params)
@@ -267,17 +275,21 @@ func TestHandleAutomationSprint(t *testing.T) {
 			}
 
 			if !tt.wantError {
-				// Verify result contains expected fields (action is under results)
 				var resultData map[string]interface{}
-				if err := json.Unmarshal([]byte(result[0].Text), &resultData); err == nil {
-					if results, ok := resultData["results"].(map[string]interface{}); ok {
-						if action, ok := results["action"].(string); !ok || action != "sprint" {
-							t.Errorf("handleAutomationSprint() result results.action = %v, want 'sprint'", action)
-						}
-					} else if action, ok := resultData["action"].(string); !ok || action != "sprint" {
-						t.Errorf("handleAutomationSprint() result action = %v, want 'sprint'", action)
+				if err := json.Unmarshal([]byte(result[0].Text), &resultData); err != nil {
+					t.Fatalf("handleAutomationSprint() invalid JSON: %v", err)
+				}
+				// AutomationResponseToMap sets top-level action from the proto; skipped runs omit nested results.action.
+				top, _ := resultData["action"].(string)
+				if top == "sprint" {
+					return
+				}
+				if results, ok := resultData["results"].(map[string]interface{}); ok {
+					if nested, ok := results["action"].(string); ok && nested == "sprint" {
+						return
 					}
 				}
+				t.Errorf("handleAutomationSprint() want top-level or nested action 'sprint', got %#v", resultData["action"])
 			}
 		})
 	}

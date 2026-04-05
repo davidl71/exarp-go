@@ -50,10 +50,12 @@ func handleTaskCommand(server framework.MCPServer, parsed *mcpcli.Args) error {
 		return handleTaskSummarizeParsed(server, parsed)
 	case "run-with-ai", "run_with_ai":
 		return handleTaskRunWithAIParsed(server, parsed)
+	case "wave":
+		return handleTaskWaveCommand(parsed)
 	case "help":
 		return showTaskUsage()
 	default:
-		return fmt.Errorf("unknown task command: %s (use: list, status, update, create, show, review, delete, sync, estimate, summarize, run-with-ai, help)", subcommand)
+		return fmt.Errorf("unknown task command: %s (use: list, status, update, create, show, review, delete, sync, wave, estimate, summarize, run-with-ai, help)", subcommand)
 	}
 }
 
@@ -667,6 +669,8 @@ func showTaskUsage() error {
 	_, _ = fmt.Println("  delete <task-id>        Delete a task (e.g. wrong project)")
 	_, _ = fmt.Println("  fix-empty-names         Backfill empty task.name from content (store maintenance)")
 	_, _ = fmt.Println("  sync                    Sync Todo2 (SQLite ↔ JSON)")
+	_, _ = fmt.Println("  wave remaining <0-2>   Open tasks in a wave (--batch N; --json)")
+	_, _ = fmt.Println("  wave ids <0-2>         Print wave task IDs from parallel-execution-waves.json")
 	_, _ = fmt.Println("  estimate <name>         Estimate task duration (local AI)")
 	_, _ = fmt.Println("  summarize <task-id>     Generate AI summary for task")
 	_, _ = fmt.Println("  run-with-ai <task-id>   Run task through local LLM (implementation guidance)")

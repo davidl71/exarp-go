@@ -316,6 +316,8 @@ func handleTaskWorkflowUpdate(ctx context.Context, params map[string]interface{}
 
 	var skippedLocked []string
 
+	var updateIssues []string
+
 	if canUseBatchUpdate && (newStatus != "" || priority != "") {
 		batchUpdates := make([]database.TaskStatusUpdate, 0, len(taskIDs))
 		for _, id := range taskIDs {
@@ -327,7 +329,9 @@ func handleTaskWorkflowUpdate(ctx context.Context, params map[string]interface{}
 		}
 
 		count, err := database.BatchUpdateTaskStatus(ctx, batchUpdates)
-		if err == nil {
+		if err != nil {
+			updateIssues = append(updateIssues, fmt.Sprintf("batch update: %v", err))
+		} else {
 			updatedCount = count
 			for _, u := range batchUpdates {
 				updatedIDs = append(updatedIDs, u.TaskID)
@@ -342,6 +346,7 @@ func handleTaskWorkflowUpdate(ctx context.Context, params map[string]interface{}
 
 				claimResult, err := database.ClaimTaskForAgent(ctx, id, agentID, leaseDuration)
 				if err != nil {
+					updateIssues = append(updateIssues, fmt.Sprintf("%s: claim error: %v", id, err))
 					continue
 				}
 
@@ -359,6 +364,11 @@ func handleTaskWorkflowUpdate(ctx context.Context, params map[string]interface{}
 
 				task, err = store.GetTask(ctx, id)
 				if err != nil {
+					updateIssues = append(updateIssues, fmt.Sprintf("%s: load task: %v", id, err))
+					continue
+				}
+				if task == nil {
+					updateIssues = append(updateIssues, fmt.Sprintf("%s: task not found", id))
 					continue
 				}
 
@@ -461,6 +471,7 @@ func handleTaskWorkflowUpdate(ctx context.Context, params map[string]interface{}
 			}
 
 			if err := store.UpdateTask(ctx, task); err != nil {
+				updateIssues = append(updateIssues, fmt.Sprintf("%s: save: %v", id, err))
 				continue
 			}
 
@@ -469,14 +480,25 @@ func handleTaskWorkflowUpdate(ctx context.Context, params map[string]interface{}
 		}
 	}
 
+	success := true
+	if len(taskIDs) > 0 && updatedCount == 0 && len(updateIssues) > 0 {
+		success = false
+	}
+
 	result := map[string]interface{}{
-		"success":       true,
+		"success":       success,
 		"method":        "store",
 		"updated_count": updatedCount,
 		"task_ids":      updatedIDs,
 	}
 	if len(skippedLocked) > 0 {
 		result["skipped_locked"] = skippedLocked
+	}
+	if len(updateIssues) > 0 {
+		result["update_issues"] = updateIssues
+		if !success {
+			result["message"] = "no tasks updated; see update_issues"
+		}
 	}
 
 	if newStatus == models.StatusReview && updatedCount > 0 {
@@ -755,6 +777,9 @@ func handleTaskWorkflowList(ctx context.Context, params map[string]interface{}) 
 			if t.Priority != "" {
 				m["priority"] = t.Priority
 			}
+			m["priority_rank"] = t.PriorityRank
+			m["dependencies"] = append([]string(nil), t.Dependencies...)
+			m["version"] = t.Version
 			if len(t.Tags) > 0 {
 				// Clone to avoid leaking references to internal slices.
 				m["tags"] = append([]string(nil), t.Tags...)
@@ -767,10 +792,6 @@ func handleTaskWorkflowList(ctx context.Context, params map[string]interface{}) 
 					ld = ld[:117] + "..."
 				}
 				m["long_description"] = ld
-			}
-			if len(t.Dependencies) > 0 {
-				// Clone to avoid leaking references to internal slices.
-				m["dependencies"] = append([]string(nil), t.Dependencies...)
 			}
 			if t.ParentID != "" {
 				m["parent_id"] = t.ParentID

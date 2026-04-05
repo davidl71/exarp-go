@@ -83,6 +83,9 @@ internal/tools/\{\"*
 # OpenCode plugin dependencies (installed by bun at startup)
 .opencode/node_modules/
 
+# Local agent continuity / scratch (do not commit)
+thoughts/
+
 # Legacy root-level binaries from older workflows
 /server
 /migrate

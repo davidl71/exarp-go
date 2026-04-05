@@ -235,7 +235,7 @@ func registerCoreTools(server framework.MCPServer) error {
 	// task_workflow
 	if err := server.RegisterTool(
 		"task_workflow",
-		"[HINT: action=list|show|create|update|delete|clarify|summarize|run_with_ai|approve|sync|cleanup|link_planning|add_comment|claim|start_run|end_run|list_runs|show_run|verify|add_progress|split|import_sqlite. show is an alias for list+task_id. list supports status/priority/filter_tag/include_metadata. sync=SQLite↔JSON reconciliation; import_sqlite merges other .todo2/todo2.db files (dry_run, import_scan_mode, import_on_conflict).]",
+		"[HINT: action=list|show|create|update|delete|clarify|summarize|run_with_ai|approve|sync|cleanup|link_planning|add_comment|claim|start_run|end_run|list_runs|show_run|verify|add_progress|split|import_sqlite. show is an alias for list+task_id. list JSON includes priority_rank, dependencies, version. update accepts priority_rank alone (0 is valid); on failure check update_issues. sync=SQLite↔JSON; import_sqlite merges other .todo2/todo2.db (dry_run, import_scan_mode, import_on_conflict).]",
 		framework.ToolSchema{
 			Type:       "object",
 			Properties: taskWorkflowProps,

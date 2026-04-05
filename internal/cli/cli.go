@@ -230,6 +230,8 @@ func Run() error {
 	case "worker":
 		initializeDatabase()
 		return handleWorkerCommand(parsed)
+	case "doctor":
+		return RunDoctor()
 	}
 
 	// Flag-based modes (-tool, -list, -test, -i, -completion)
