@@ -11,6 +11,7 @@
 |----------|-------------|
 | `CURSOR_MCP_SETUP.md` | Set up exarp-go with Cursor IDE |
 | `OPENCODE_INTEGRATION.md` | Use exarp-go with OpenCode |
+| `OPENCODE_MORPH_PLUGIN_LEARNINGS.md` | Patterns from OpenCode Morph plugin (fast apply, compaction, routing) |
 | `PORTABLE_MCP_RUNNER.md` | Per-project MCP setup |
 | `CLI_MAKE_CI_USAGE.md` | Command-line usage guide |
 

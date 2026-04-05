@@ -2,6 +2,8 @@
 
 OpenCode is an open-source AI coding agent (TUI, desktop, IDE). exarp-go can interact with it in three ways: **MCP**, **CLI**, and **HTTP API**. **OpenAgentsControl (OAC)** and other OpenCode-based tools use the same MCP config: add exarp-go under `mcp` in your OpenCode config file (see [OPENAGENTSCONTROL_EXARP_GO_COMBO_PLAN.md](OPENAGENTSCONTROL_EXARP_GO_COMBO_PLAN.md)).
 
+**Optional Morph stack:** If you use the [Morph OpenCode plugin](https://github.com/morphllm/opencode-morph-plugin) (fast apply, WarpGrep, compaction), see [OPENCODE_MORPH_PLUGIN_LEARNINGS.md](OPENCODE_MORPH_PLUGIN_LEARNINGS.md) for patterns that may inform exarp-go docs and future session/edit features.
+
 ---
 
 ## 1. MCP server (recommended)
