@@ -19,7 +19,7 @@ func (state *tui3270State) handoffTransaction(conn net.Conn, devInfo go3270.DevI
 	hoErrPFRow := t3270PFRow(devInfo)
 	if err != nil {
 		errScreen := go3270.Screen{
-			{Row: 2, Col: 2, Content: "SESSION HANDOFFS", Intense: true, Color: go3270.Blue},
+			{Row: 2, Col: 2, Content: "SESSION HANDOFFS", Intense: true, Color: t3270ISPFTitleColor()},
 			{Row: 4, Col: 2, Content: "Error: " + err.Error(), Color: go3270.Red},
 			{Row: hoErrPFRow, Col: 2, Content: "PF3=Back to menu", Color: go3270.Turquoise},
 		}
@@ -36,7 +36,7 @@ func (state *tui3270State) handoffTransaction(conn net.Conn, devInfo go3270.DevI
 	hoPFRow := t3270PFRow(devInfo)
 
 	screen := go3270.Screen{
-		{Row: 1, Col: 2, Content: "SESSION HANDOFFS", Intense: true, Color: go3270.Blue},
+		{Row: 1, Col: 2, Content: "SESSION HANDOFFS", Intense: true, Color: t3270ISPFTitleColor()},
 		{Row: hoPFRow, Col: 2, Content: "PF3=Back to menu", Color: go3270.Turquoise},
 	}
 

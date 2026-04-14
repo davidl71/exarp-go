@@ -59,17 +59,23 @@ func (state *tui3270State) taskListTransaction(conn net.Conn, devInfo go3270.Dev
 		scrollIndicator = "TOP"
 	}
 
-	// Row 1: title left, LINE x OF y, COMMAND ===> with input, SCROLL ===> xx (mainframe-style)
+	cols := t3270ScreenCols(devInfo)
+	gc := t3270PanelRuleColor()
+	ruleTop := t3270ISPFRuleLine(cols, " TODO2 TASK LIST ")
+	ruleMid := t3270ISPFRuleLine(cols, "")
+
+	titleC := t3270ISPFTitleColor()
+
+	// Row 0 ISPF rule; row 1 title / line / command / scroll; row 2 dashed rule; row 3 column headers.
 	screen := go3270.Screen{
-		{Row: 1, Col: 2, Content: title, Intense: true, Color: go3270.Blue},
-		{Row: 1, Col: 45, Content: fmt.Sprintf("LINE %d OF %d", currentLine, totalLines), Intense: true, Color: go3270.Blue},
+		{Row: 0, Col: 0, Content: ruleTop, Color: gc},
+		{Row: 1, Col: 2, Content: title, Intense: true, Color: titleC},
+		{Row: 1, Col: 45, Content: fmt.Sprintf("LINE %d OF %d", currentLine, totalLines), Intense: true, Color: titleC},
 		{Row: 1, Col: 55, Content: "COMMAND ===>", Intense: true, Color: go3270.Green},
 		{Row: 1, Col: 68, Write: true, Name: "command", Content: state.command, Color: go3270.Turquoise},
-		{Row: 1, Col: 72, Content: "SCROLL ===> " + scrollIndicator, Intense: true, Color: go3270.Blue},
+		{Row: 1, Col: 72, Content: "SCROLL ===> " + scrollIndicator, Intense: true, Color: titleC},
+		{Row: 2, Col: 0, Content: ruleMid, Color: gc},
 	}
-
-	// Row 2: blank
-	screen = append(screen, go3270.Field{Row: 2, Col: 2, Content: ""})
 
 	// Row 3: column headers (yellow-style, intense white)
 	screen = append(screen, go3270.Field{Row: 3, Col: t3270ColS, Content: t3270Pad("S", t3270WidS), Intense: true, Color: go3270.White})
@@ -139,10 +145,15 @@ func (state *tui3270State) taskListTransaction(conn net.Conn, devInfo go3270.Dev
 		screen = append(screen, go3270.Field{Row: row, Col: t3270ColContent, Content: t3270Pad(content, t3270WidContent), Highlighting: cursorHL})
 	}
 
-	statusRow := t3270StatusRow(devInfo)
-	pfRow := t3270PFRow(devInfo)
+	rows, _ := devInfo.AltDimensions()
+	if rows < 24 {
+		rows = 24
+	}
+	statusRow := rows - 3
+	pf1 := rows - 2
+	pf2 := rows - 1
 
-	statusLine := fmt.Sprintf("Tasks: %d", len(state.tasks))
+	statusLine := fmt.Sprintf("%s  Tasks: %d", "*** READY ***", len(state.tasks))
 	if state.cursor < len(state.tasks) {
 		statusLine += fmt.Sprintf("  Cursor: %d/%d", state.cursor+1, len(state.tasks))
 	}
@@ -150,15 +161,16 @@ func (state *tui3270State) taskListTransaction(conn net.Conn, devInfo go3270.Dev
 	if state.filter != "" {
 		statusLine += fmt.Sprintf("  Filter: %s", state.filter)
 	}
+	if len(statusLine) > cols-2 {
+		statusLine = statusLine[:cols-5] + "..."
+	}
 
 	screen = append(screen, go3270.Field{Row: statusRow, Col: 2, Content: statusLine, Color: go3270.White})
 
-	screen = append(screen, go3270.Field{
-		Row:     pfRow,
-		Col:     2,
-		Content: "S=Sel E=Edit D=Done I=WIP PF1=Help PF3=Back PF7/8=Scrl PF9=Flt PF11=Swap",
-		Color:   go3270.Turquoise,
-	})
+	screen = append(screen,
+		go3270.Field{Row: pf1, Col: 2, Content: "PF01 Help PF03 Back PF07 Up PF08 Down PF09 Filter PF11 Swap sess", Color: go3270.Turquoise},
+		go3270.Field{Row: pf2, Col: 2, Content: "Line S E D I   PF02 Edit PF04 Done PF05 WIP PF06 Todo PF10 Review PF12 Menu", Color: go3270.Turquoise},
+	)
 
 	opts := go3270.ScreenOpts{
 		Codepage: devInfo.Codepage(),
@@ -271,7 +283,7 @@ func (state *tui3270State) taskListTransaction(conn net.Conn, devInfo go3270.Dev
 
 	if response.AID == go3270.AIDEnter {
 		// Cursor-position row selection: Response.Row is 0-based; Field.Row is 1-based
-		taskIdx := response.Row - (t3270HeaderRow - 1) + state.listOffset
+		taskIdx := response.Row - t3270HeaderRow + state.listOffset
 		if taskIdx >= 0 && taskIdx < len(state.tasks) {
 			state.cursor = taskIdx
 			state.selectedTask = state.tasks[taskIdx]

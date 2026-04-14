@@ -32,10 +32,121 @@ const (
 	t3270WidPriority = 10
 	t3270WidContent  = 32
 
-	t3270HeaderRow    = 4  // first data row in task list
+	t3270HeaderRow    = 4  // first data row in task list (after ISPF rule row, title line, dash, column headers)
 	t3270StatusBarRow = 22 // status bar row
 	t3270PFKeyRow     = 23 // PF key help row
 )
+
+// t3270ScreenCols returns the 3270 screen width; at least 80 for layout math.
+func t3270ScreenCols(devInfo go3270.DevInfo) int {
+	_, cols := devInfo.AltDimensions()
+	if cols < 80 {
+		cols = 80
+	}
+	return cols
+}
+
+// t3270ISPFRuleLine builds a full-width dashed rule with an embedded label (ISPF / 3270BBS style).
+func t3270ISPFRuleLine(width int, label string) string {
+	if width < 20 {
+		width = 80
+	}
+	label = strings.TrimSpace(label)
+	if label == "" {
+		return strings.Repeat("-", width)
+	}
+	maxLabel := width - 6
+	if len(label) > maxLabel {
+		label = label[:maxLabel]
+	}
+	pad := width - len(label) - 2
+	if pad < 4 {
+		if len(label) > width {
+			return label[:width]
+		}
+		return label + strings.Repeat("-", width-len(label))
+	}
+	left := pad / 2
+	right := pad - left
+	return strings.Repeat("-", left) + " " + label + " " + strings.Repeat("-", right)
+}
+
+// t3270MenuBoxTopBottom returns boxed panel top/bottom lines and inner width between borders.
+// The box starts at column leftEdge (0-based); the right '+' ends at column cols-1.
+func t3270MenuBoxTopBottom(devInfo go3270.DevInfo) (top, bottom string, rightPipeCol, inner int) {
+	cols := t3270ScreenCols(devInfo)
+	leftEdge := 2 // 0-based column of '+'
+	inner = cols - leftEdge - 2 // inner '-' count between '+' corners
+	if inner < 40 {
+		inner = 40
+	}
+	top = "+" + strings.Repeat("-", inner) + "+"
+	bottom = top
+	rightPipeCol = leftEdge + len(top) - 1
+	return top, bottom, rightPipeCol, inner
+}
+
+// t3270ISPFTitleColor is used for panel names (ISPF-style: intense white vs. legacy blue menus).
+func t3270ISPFTitleColor() go3270.Color {
+	if noColor3270 {
+		return go3270.DefaultColor
+	}
+	return go3270.White
+}
+
+// t3270PanelRuleColor is used for ISPF-style rules and box borders (classic green 3270).
+func t3270PanelRuleColor() go3270.Color {
+	if noColor3270 {
+		return go3270.DefaultColor
+	}
+	return go3270.Green
+}
+
+// t3270ISPFOptionLine builds "NN  description..." truncated to fit between menu box borders (ISPF option list style).
+func t3270ISPFOptionLine(option int, description string, innerCols int) string {
+	if innerCols < 12 {
+		innerCols = 40
+	}
+	prefix := fmt.Sprintf("%-2d  ", option)
+	maxDesc := innerCols - len(prefix)
+	if maxDesc < 1 {
+		maxDesc = 1
+	}
+	d := strings.TrimSpace(description)
+	for len(d) > maxDesc {
+		if maxDesc <= 3 {
+			d = d[:maxDesc]
+			break
+		}
+		d = d[:maxDesc-1] + "~"
+	}
+	return prefix + d
+}
+
+// t3270ISPFPanelBannerLine builds a two-part banner: left product text + right panel ID (ISPF panel header strip).
+func t3270ISPFPanelBannerLine(cols int, productLeft, panelID string) string {
+	if cols < 40 {
+		cols = 80
+	}
+	panelID = strings.TrimSpace(panelID)
+	productLeft = strings.TrimSpace(productLeft)
+	right := panelID
+	if right != "" && !strings.HasPrefix(strings.ToUpper(right), "PANEL") {
+		right = "Panel " + right
+	}
+	leftMax := cols - len(right) - 3
+	if leftMax < 10 {
+		leftMax = 10
+	}
+	if len(productLeft) > leftMax {
+		productLeft = productLeft[:leftMax-1] + "~"
+	}
+	pad := cols - len(productLeft) - len(right)
+	if pad < 1 {
+		pad = 1
+	}
+	return productLeft + strings.Repeat(" ", pad) + right
+}
 
 // t3270MaxVisible returns the number of visible task rows based on terminal dimensions.
 // Falls back to 18 (default 24-row terminal minus header/status/PF key rows).
@@ -44,7 +155,9 @@ func t3270MaxVisible(devInfo go3270.DevInfo) int {
 	if rows < 24 {
 		rows = 24
 	}
-	visible := rows - 6 // header(3) + status(1) + pfkeys(1) + margin(1)
+	// Top: ISPF rule + title + dash + column headers (4 rows before data at t3270HeaderRow).
+	// Bottom: status + two PF-key rows on task list.
+	visible := rows - 7
 	if visible < 10 {
 		visible = 10
 	}
@@ -80,7 +193,12 @@ func t3270PFRow(devInfo go3270.DevInfo) int {
 
 // showLoadingOverlay displays a "Loading..." message on the status bar without clearing the screen.
 func showLoadingOverlay(conn net.Conn, devInfo go3270.DevInfo, message string) {
-	row := t3270StatusRow(devInfo)
+	rows, _ := devInfo.AltDimensions()
+	if rows < 24 {
+		rows = 24
+	}
+	// Same row as task list ISPF status line (third line from bottom when PF legend uses 2 rows).
+	row := rows - 3
 	loadingScreen := go3270.Screen{
 		{Row: row, Col: 2, Content: t3270Pad(message, 40), Color: go3270.Yellow, Intense: true},
 	}
@@ -248,13 +366,16 @@ func (state *tui3270State) loadTasksForStatus(ctx context.Context, status string
 // showChildAgentResultTransaction shows a one-screen result then returns to nextTx.
 func (state *tui3270State) showChildAgentResultTransaction(message string, nextTx go3270.Tx) go3270.Tx {
 	return func(conn net.Conn, devInfo go3270.DevInfo, data any) (go3270.Tx, any, error) {
+		cols := t3270ScreenCols(devInfo)
+		gc := t3270PanelRuleColor()
+		pf := t3270PFRow(devInfo)
 		screen := go3270.Screen{
-			{Row: 2, Col: 2, Content: "CHILD AGENT", Intense: true, Color: go3270.Blue},
+			{Row: 0, Col: 0, Content: t3270ISPFRuleLine(cols, " CHILD AGENT RESULT "), Color: gc},
+			{Row: 2, Col: 2, Content: "CHILD AGENT", Intense: true, Color: t3270ISPFTitleColor()},
 			{Row: 4, Col: 2, Content: message, Color: go3270.Green},
-			{Row: 22, Col: 2, Content: "PF3=Back to menu", Color: go3270.Turquoise},
+			{Row: pf, Col: 2, Content: "PF01=Help  PF03=Back to menu", Color: go3270.Turquoise},
 		}
 		if len(message) > 76 {
-			// Wrap
 			screen = append(screen, go3270.Field{Row: 5, Col: 2, Content: message[76:]})
 		}
 
@@ -276,8 +397,6 @@ func (state *tui3270State) showChildAgentResultTransaction(message string, nextT
 // helpTransaction shows the help screen (PF1).
 func (state *tui3270State) helpTransaction(conn net.Conn, devInfo go3270.DevInfo, data any) (go3270.Tx, any, error) {
 	lines := []string{
-		"EXARP-GO 3270 - HELP",
-		"",
 		"Main menu: 1=Tasks 2=Config 3=Scorecard 4=Handoffs 5=Exit 6=Agent 7=Health",
 		"",
 		"Commands (type in COMMAND ===> field):",
@@ -306,12 +425,14 @@ func (state *tui3270State) helpTransaction(conn net.Conn, devInfo go3270.DevInfo
 	helpPFRow := t3270PFRow(devInfo)
 	helpContentMax := t3270ContentMaxRow(devInfo)
 
+	cols := t3270ScreenCols(devInfo)
 	screen := go3270.Screen{
-		{Row: 1, Col: 2, Content: "HELP", Intense: true, Color: go3270.Blue},
+		{Row: 0, Col: 0, Content: t3270ISPFRuleLine(cols, " HELP "), Color: t3270PanelRuleColor()},
+		{Row: 1, Col: 2, Content: "EXARP-GO 3270 HELP TUTORIAL", Intense: true, Color: t3270ISPFTitleColor()},
 		{Row: helpPFRow, Col: 2, Content: "PF3=Back to previous screen", Color: go3270.Turquoise},
 	}
 
-	maxLines := helpContentMax - 2
+	maxLines := helpContentMax - 3
 	for i, line := range lines {
 		if i >= maxLines {
 			break
@@ -343,7 +464,6 @@ func (state *tui3270State) handleCommand(cmd string, currentTx go3270.Tx) (go327
 	cmd = strings.TrimSpace(cmd)
 	cmdUpper := strings.ToUpper(cmd)
 
-	// Parse command
 	parts := strings.Fields(cmdUpper)
 	if len(parts) == 0 {
 		return currentTx, state, nil
@@ -352,284 +472,19 @@ func (state *tui3270State) handleCommand(cmd string, currentTx go3270.Tx) (go327
 	command := parts[0]
 	args := parts[1:]
 
-	switch command {
-	case "1":
+	if command == "AGENT" {
 		state.command = ""
-		return state.taskListTransaction, state, nil
-	case "2":
-		state.command = ""
-		return state.configTransaction, state, nil
-	case "3":
-		state.command = ""
-		return state.scorecardTransaction, state, nil
-	case "4":
-		state.command = ""
-		return state.handoffTransaction, state, nil
-	case "5":
-		state.command = ""
-		return nil, nil, nil // Exit
-	case "7":
-		state.command = ""
-		return state.healthTransaction, state, nil
-	case "SC", "SCORECARD":
-		state.pushSession("Tasks", state.taskListTransaction)
-		state.command = ""
-		return state.scorecardTransaction, state, nil
-	case "HANDOFFS", "HO":
-		state.pushSession("Tasks", state.taskListTransaction)
-		state.command = ""
-		return state.handoffTransaction, state, nil
-	case "MENU", "M", "MAIN":
-		state.command = ""
-		return state.mainMenuTransaction, state, nil
-	case "TASKS", "T":
-		state.command = ""
-		return state.taskListTransaction, state, nil
-	case "CONFIG":
-		state.command = ""
-		return state.configTransaction, state, nil
-	case "HELP", "H":
-		state.command = ""
-		return state.helpTransaction, state, nil
-	case "HEALTH", "SDSF":
-		state.pushSession("Tasks", state.taskListTransaction)
-		state.command = ""
-		return state.healthTransaction, state, nil
-	case "GIT", "GITLOG":
-		state.pushSession("Tasks", state.taskListTransaction)
-		state.command = ""
-		return state.gitDashboardTransaction, state, nil
-	case "SPRINT", "BOARD":
-		state.pushSession("Tasks", state.taskListTransaction)
-		state.command = ""
-		return state.sprintBoardTransaction, state, nil
-	case "SWAP":
-		state.command = ""
-		s := state.popSession()
-		if s != nil {
-			return s.tx, state, nil
+		rest := strings.TrimSpace(strings.Join(args, " "))
+		if rest == "" {
+			return state.handleCommand("RUN", currentTx)
 		}
-		return state.mainMenuTransaction, state, nil
-	case "FIND", "F":
-		// Filter/search tasks
-		if len(args) > 0 {
-			state.filter = strings.Join(args, " ")
-			state.cursor = 0
-			state.listOffset = 0
-			ctx := context.Background()
-
-			var err error
-
-			state.tasks, err = state.loadTasksForStatus(ctx, state.status)
-			if err == nil {
-				// Simple text search filter
-				filtered := []*database.Todo2Task{}
-				searchTerm := strings.ToLower(state.filter)
-
-				for _, task := range state.tasks {
-					content := strings.ToLower(task.Content + " " + task.LongDescription)
-					if strings.Contains(content, searchTerm) {
-						filtered = append(filtered, task)
-					}
-				}
-
-				state.tasks = filtered
-			}
-		} else {
-			state.filter = ""
-			ctx := context.Background()
-
-			var err error
-
-			state.tasks, err = state.loadTasksForStatus(ctx, state.status)
-			if err != nil {
-				logError(context.Background(), "Error reloading tasks", "error", err, "operation", "reloadTasks")
-			}
-		}
-
-		state.command = ""
-
-		return state.taskListTransaction, state, nil
-
-	case "RESET", "RES":
-		// Reset filter
-		state.filter = ""
-		state.command = ""
-		ctx := context.Background()
-
-		var err error
-
-		state.tasks, err = state.loadTasksForStatus(ctx, state.status)
-		if err != nil {
-			logError(context.Background(), "Error reloading tasks", "error", err, "operation", "reloadTasks")
-		}
-
-		return state.taskListTransaction, state, nil
-
-	case "EDIT", "E":
-		// Edit task by ID or line number
-		if len(args) > 0 {
-			taskID := args[0]
-			// Check if it's a line number
-			if strings.HasPrefix(taskID, "T-") {
-				// Find task by ID
-				ctx := context.Background()
-
-				task, err := getTaskViaMCP(ctx, state.server, taskID)
-				if err == nil {
-					state.selectedTask = task
-					state.command = ""
-
-					return state.taskEditorTransaction, state, nil
-				}
-			} else {
-				// Try as line number
-				var lineNum int
-				if _, err := fmt.Sscanf(taskID, "%d", &lineNum); err == nil {
-					if lineNum > 0 && lineNum <= len(state.tasks) {
-						state.selectedTask = state.tasks[lineNum-1]
-						state.cursor = lineNum - 1
-						state.command = ""
-
-						return state.taskEditorTransaction, state, nil
-					}
-				}
-			}
-		} else if state.cursor < len(state.tasks) {
-			// Edit current task
-			state.selectedTask = state.tasks[state.cursor]
-			state.command = ""
-
-			return state.taskEditorTransaction, state, nil
-		}
-
-		state.command = ""
-
-		return currentTx, state, nil
-
-	case "VIEW", "V":
-		// View task details
-		if len(args) > 0 {
-			taskID := args[0]
-			if strings.HasPrefix(taskID, "T-") {
-				ctx := context.Background()
-
-				task, err := getTaskViaMCP(ctx, state.server, taskID)
-				if err == nil {
-					state.selectedTask = task
-					state.command = ""
-
-					return state.taskDetailTransaction, state, nil
-				}
-			}
-		} else if state.cursor < len(state.tasks) {
-			state.selectedTask = state.tasks[state.cursor]
-			state.command = ""
-
-			return state.taskDetailTransaction, state, nil
-		}
-
-		state.command = ""
-
-		return currentTx, state, nil
-
-	case "TOP":
-		// Go to top of list
-		state.cursor = 0
-		state.listOffset = 0
-		state.command = ""
-
-		return state.taskListTransaction, state, nil
-
-	case "BOTTOM", "BOT":
-		// Go to bottom of list; use default maxVisible since devInfo is not in scope
-		if len(state.tasks) > 0 {
-			state.cursor = len(state.tasks) - 1
-			mv := 18
-			if state.devInfo != nil {
-				mv = t3270MaxVisible(state.devInfo)
-			}
-			if state.cursor >= mv {
-				state.listOffset = state.cursor - mv + 1
-			}
-		}
-
-		state.command = ""
-
-		return state.taskListTransaction, state, nil
-
-	case "RUN":
-		// RUN TASK | PLAN | WAVE | HANDOFF - execute in child agent
-		state.command = ""
-
-		sub := ""
-		if len(args) > 0 {
-			sub = args[0]
-		}
-
-		switch strings.ToUpper(sub) {
-		case "TASK":
-			if state.cursor < len(state.tasks) {
-				task := state.tasks[state.cursor]
-				prompt := PromptForTask(task.ID, task.Content)
-				r := RunChildAgent(state.projectRoot, prompt)
-
-				return state.showChildAgentResultTransaction(r.Message, state.taskListTransaction), state, nil
-			}
-
-			return state.showChildAgentResultTransaction("No task selected", state.taskListTransaction), state, nil
-		case "PLAN":
-			prompt := PromptForPlan(state.projectRoot)
-			r := RunChildAgent(state.projectRoot, prompt)
-
-			return state.showChildAgentResultTransaction(r.Message, state.taskListTransaction), state, nil
-		case "WAVE":
-			if len(state.tasks) == 0 {
-				return state.showChildAgentResultTransaction("No tasks", state.taskListTransaction), state, nil
-			}
-
-			level, ids, err := firstWaveTaskIDs(state.projectRoot, state.tasks)
-			if err != nil {
-				return state.showChildAgentResultTransaction("No waves", state.taskListTransaction), state, nil
-			}
-
-			prompt := PromptForWave(level, ids)
-			r := RunChildAgent(state.projectRoot, prompt)
-
-			return state.showChildAgentResultTransaction(r.Message, state.taskListTransaction), state, nil
-		case "HANDOFF":
-			ctx := context.Background()
-
-			entries, err := fetchHandoffs(ctx, state.server, 5)
-			if err != nil || len(entries) == 0 {
-				return state.showChildAgentResultTransaction("No handoffs", state.taskListTransaction), state, nil
-			}
-
-			h := entries[0]
-			steps := make([]interface{}, len(h.NextSteps))
-			for i, s := range h.NextSteps {
-				steps[i] = s
-			}
-
-			prompt := PromptForHandoff(h.Summary, steps)
-			r := RunChildAgent(state.projectRoot, prompt)
-
-			return state.showChildAgentResultTransaction(r.Message, state.taskListTransaction), state, nil
-		default:
-			return state.showChildAgentResultTransaction("RUN TASK|PLAN|WAVE|HANDOFF", state.taskListTransaction), state, nil
-		}
-
-	case "AGENT":
-		// Alias for RUN (same args)
-		state.command = ""
-
-		parts := append([]string{"RUN"}, args...)
-
-		return state.handleCommand(strings.Join(parts, " "), currentTx)
-
-	default:
-		// Unknown command - stay on current screen
-		state.command = ""
-		return currentTx, state, nil
+		return state.handleCommand("RUN "+rest, currentTx)
 	}
+
+	if fn, ok := t3270VerbDispatch[command]; ok {
+		return fn(state, currentTx, args)
+	}
+
+	state.command = ""
+	return currentTx, state, nil
 }

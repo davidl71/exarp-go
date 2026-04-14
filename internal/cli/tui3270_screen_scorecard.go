@@ -47,11 +47,15 @@ func (state *tui3270State) scorecardTransaction(conn net.Conn, devInfo go3270.De
 
 	showLoadingOverlay(conn, devInfo, "Loading scorecard...")
 
+	cols := t3270ScreenCols(devInfo)
+	gc := t3270PanelRuleColor()
+
 	text, recommendations, err := loadScorecardForTUI(ctx, state.server, state.projectRoot, useFullMode)
 	if err != nil {
 		errScreen := go3270.Screen{
-			{Row: 2, Col: 2, Content: "SCORECARD", Intense: true, Color: go3270.Blue},
-			{Row: 4, Col: 2, Content: "Error: " + err.Error(), Color: go3270.Red},
+			{Row: 0, Col: 0, Content: t3270ISPFRuleLine(cols, " SCORECARD "), Color: gc},
+			{Row: 1, Col: 2, Content: "SCORECARD", Intense: true, Color: t3270ISPFTitleColor()},
+			{Row: 3, Col: 2, Content: "Error: " + err.Error(), Color: go3270.Red},
 			{Row: scErrPFRow, Col: 2, Content: "PF3=Back", Color: go3270.Turquoise},
 		}
 		screenOpts := go3270.ScreenOpts{Codepage: devInfo.Codepage()}
@@ -79,7 +83,8 @@ func (state *tui3270State) scorecardTransaction(conn net.Conn, devInfo go3270.De
 	scPFRow := t3270PFRow(devInfo)
 
 	screen := go3270.Screen{
-		{Row: 1, Col: 2, Content: "PROJECT SCORECARD", Intense: true, Color: go3270.Blue},
+		{Row: 0, Col: 0, Content: t3270ISPFRuleLine(cols, " PROJECT SCORECARD "), Color: gc},
+		{Row: 1, Col: 2, Content: "PROJECT SCORECARD", Intense: true, Color: t3270ISPFTitleColor()},
 		{Row: scPFRow, Col: 2, Content: "PF3=Back to menu", Color: go3270.Turquoise},
 	}
 	if len(state.scorecardRecs) > 0 {
@@ -87,7 +92,7 @@ func (state *tui3270State) scorecardTransaction(conn net.Conn, devInfo go3270.De
 			go3270.Field{Row: scStatusRow, Col: 2, Content: "Run # (1-" + strconv.Itoa(len(state.scorecardRecs)) + "):", Intense: true},
 			go3270.Field{Row: scStatusRow, Col: 24, Write: true, Name: "run_rec", Content: ""},
 		)
-		screen[1] = go3270.Field{Row: scPFRow, Col: 2, Content: "PF3=Back  Enter=Run selected #"}
+		screen[2] = go3270.Field{Row: scPFRow, Col: 2, Content: "PF3=Back  Enter=Run selected #"}
 	}
 
 	for i, line := range lines {
@@ -143,7 +148,8 @@ func (state *tui3270State) scorecardTransaction(conn net.Conn, devInfo go3270.De
 			}
 
 			resultScreen := go3270.Screen{
-				{Row: 1, Col: 2, Content: "IMPLEMENT RESULT (#" + runRec + ")", Intense: true, Color: go3270.Blue},
+				{Row: 0, Col: 0, Content: t3270ISPFRuleLine(cols, " IMPLEMENT RESULT "), Color: gc},
+				{Row: 1, Col: 2, Content: "IMPLEMENT RESULT (#" + runRec + ")", Intense: true, Color: t3270ISPFTitleColor()},
 				{Row: 2, Col: 2, Content: rec, Color: go3270.Green},
 				{Row: scPFRow, Col: 2, Content: "PF3=Back to scorecard", Color: go3270.Turquoise},
 			}

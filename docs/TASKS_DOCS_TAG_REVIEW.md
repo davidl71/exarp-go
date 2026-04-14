@@ -35,7 +35,7 @@ Tasks that are explicitly about writing or updating documentation:
 | ID | Content |
 |----|--------|
 | **T-1769531792537** | Update migration docs for 4 removed Python fallbacks |
-| T-105 | Document gotoHuman API/tools |
+| T-105 | Document task_workflow review payloads (`approval_request`) |
 | T-134 | Document form fields and usage |
 | T-155 | Documentation updated |
 | T-186 | Document bridge usage |

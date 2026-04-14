@@ -83,7 +83,6 @@ After updating MCP config and restarting Cursor:
 
 ```bash
 # In Cursor chat, test linters:
-@gotoHuman list-forms  # Test gotoHuman
 @exarp-go lint  # Test lint tool
 ```
 

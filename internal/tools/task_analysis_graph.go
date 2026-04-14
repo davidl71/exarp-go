@@ -207,14 +207,14 @@ type ParallelGroup struct {
 	Reason   string   `json:"reason"`
 }
 
-func findParallelizableTasks(tasks []Todo2Task, durationWeight float64) []ParallelGroup {
+func findParallelizableTasks(tasks []Todo2Task, durationWeight float64, tagFilter map[string]bool) []ParallelGroup {
 	groups := []ParallelGroup{}
 
 	// Build dependency graph using gonum
 	tg, err := BuildTaskGraph(tasks)
 	if err != nil {
 		// Fallback to simple approach if graph building fails
-		return findParallelizableTasksSimple(tasks, durationWeight)
+		return findParallelizableTasksSimple(tasks, durationWeight, tagFilter)
 	}
 
 	taskMap := make(map[string]*Todo2Task)
@@ -222,13 +222,19 @@ func findParallelizableTasks(tasks []Todo2Task, durationWeight float64) []Parall
 		taskMap[tasks[i].ID] = &tasks[i]
 	}
 
-	// Filter to pending tasks only
+	// Filter to pending tasks only (Todo); optional tagFilter restricts to matching IDs
 	pendingTasks := []Todo2Task{}
 
 	for _, task := range tasks {
-		if IsPendingStatus(task.Status) {
-			pendingTasks = append(pendingTasks, task)
+		if !IsPendingStatus(task.Status) {
+			continue
 		}
+
+		if tagFilter != nil && !tagFilter[task.ID] {
+			continue
+		}
+
+		pendingTasks = append(pendingTasks, task)
 	}
 
 	if len(pendingTasks) == 0 {
@@ -325,7 +331,7 @@ func findParallelizableTasks(tasks []Todo2Task, durationWeight float64) []Parall
 }
 
 // findParallelizableTasksSimple is a fallback implementation without graph analysis.
-func findParallelizableTasksSimple(tasks []Todo2Task, durationWeight float64) []ParallelGroup {
+func findParallelizableTasksSimple(tasks []Todo2Task, durationWeight float64, tagFilter map[string]bool) []ParallelGroup {
 	groups := []ParallelGroup{}
 
 	taskMap := make(map[string]*Todo2Task)
@@ -337,9 +343,15 @@ func findParallelizableTasksSimple(tasks []Todo2Task, durationWeight float64) []
 	readyTasks := []string{}
 
 	for _, task := range tasks {
-		if IsPendingStatus(task.Status) && len(task.Dependencies) == 0 {
-			readyTasks = append(readyTasks, task.ID)
+		if !IsPendingStatus(task.Status) || len(task.Dependencies) != 0 {
+			continue
 		}
+
+		if tagFilter != nil && !tagFilter[task.ID] {
+			continue
+		}
+
+		readyTasks = append(readyTasks, task.ID)
 	}
 
 	if len(readyTasks) > 0 {
@@ -403,8 +415,22 @@ func formatParallelizationAnalysisText(result map[string]interface{}) string {
 	sb.WriteString("========================\n\n")
 
 	if total, ok := result["total_tasks"].(int); ok {
-		sb.WriteString(fmt.Sprintf("Total Tasks: %d\n\n", total))
+		sb.WriteString(fmt.Sprintf("Total Tasks: %d\n", total))
 	}
+
+	if ft, ok := result["filter_tag"].(string); ok && ft != "" {
+		sb.WriteString(fmt.Sprintf("Tag filter: %s\n", ft))
+	}
+
+	if fts, ok := result["filter_tags"].(string); ok && fts != "" {
+		sb.WriteString(fmt.Sprintf("Tag filters: %s\n", fts))
+	}
+
+	if sc, ok := result["parallelization_scope_count"].(int); ok {
+		sb.WriteString(fmt.Sprintf("Todo tasks matching tag filter: %d\n", sc))
+	}
+
+	sb.WriteString("\n")
 
 	if groups, ok := result["parallel_groups"].([]ParallelGroup); ok && len(groups) > 0 {
 		sb.WriteString("Parallel Execution Groups:\n\n")

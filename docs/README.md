@@ -1,6 +1,6 @@
 # Documentation Index
 
-**Last Updated:** 2026-03-30
+**Last Updated:** 2026-04-05
 
 ---
 
@@ -31,6 +31,8 @@
 - `GO_AI_ECOSYSTEM.md` - AI/LLM backend stack (FM, Ollama, LocalAI, gateway)
 - `LLM_NATIVE_ABSTRACTION_PATTERNS.md` - LLM abstraction patterns and discovery
 - `research/LLM_ROUTER_AND_ROUTELLM_RESEARCH.md` - radlab llm-router (gateway) and RouteLLM (ML cost routing) research
+- `research/DATA_INTEGRATION_AND_AI_LLM_RESEARCH.md` - awesome-go ELT/ETL frameworks + AI section mapped to tasks, TaskStore, and `text_generate`
+- `research/AWESOME_GO_STRUCTURES_NLP_UTILITIES_RESEARCH.md` - awesome-go queues/NLP/utilities sections (dqueue, bleve, DAGs, caches, tokenizers, templates, …) mapped to exarp-go
 
 ### Active Workflows
 - `EXARP_OPERATOR_CHEATSHEET.md` — Task lifecycle, batch approve (`new_status`, `dry_run`), PROJECT_ROOT, common CLI/MCP footguns

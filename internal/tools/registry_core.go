@@ -139,11 +139,11 @@ func registerCoreTools(server framework.MCPServer) error {
 		},
 		"form_id": map[string]interface{}{
 			"type":        "string",
-			"description": "For request_approval/sync_approvals: gotoHuman form ID from list-forms (optional)",
+			"description": "For request_approval/sync_approvals: optional form/template ID echoed in approval_request.form_id",
 		},
 		"result": map[string]interface{}{
 			"type":        "string",
-			"description": "For apply_approval_result: 'approved' or 'rejected' (from gotoHuman decision)",
+			"description": "For apply_approval_result: approved or rejected",
 		},
 		"feedback": map[string]interface{}{
 			"type":        "string",
@@ -415,11 +415,11 @@ func registerCoreTools(server framework.MCPServer) error {
 				},
 				"filter_tag": map[string]interface{}{
 					"type":        "string",
-					"description": "For action=noise: filter to tasks with this tag (default: discovered when empty). For action=execution_plan: restrict backlog to tasks with this tag.",
+					"description": "For action=noise: filter to tasks with this tag (default: discovered when empty). For action=execution_plan: restrict backlog to tasks with this tag. For action=parallelization: restrict to Todo tasks with this tag (dependency graph still uses all tasks).",
 				},
 				"filter_tags": map[string]interface{}{
 					"type":        "string",
-					"description": "For action=execution_plan: restrict backlog to tasks with any of these tags (comma-separated).",
+					"description": "For action=execution_plan: restrict backlog to tasks with any of these tags (comma-separated). For action=parallelization: same for Todo tasks in parallel groups.",
 				},
 				"include_planning_docs": map[string]interface{}{
 					"type":        "boolean",

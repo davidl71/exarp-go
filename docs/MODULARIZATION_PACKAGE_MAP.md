@@ -115,7 +115,7 @@ Tools are registered from `registry.go` → `registry_core.go`, `registry_ai.go`
 | `handlers.go`, `handlers_ai.go`, `handlers_wrap.go`, `handlers_wrap_test.go` | **Stay** dispatch; **Core** for `WrapHandler` / generic adapters |
 | `protobuf_helpers.go`, `protobuf_helpers_report.go`, `protobuf_helpers_tools.go` | **Core** (generic PB↔map; already partially there) |
 | `params_helpers.go`, `helpers.go`, `path_validation.go`, `response_compact.go` | **Core** |
-| `server_status.go`, `gotohuman.go` | **Stay** (product integrations) |
+| `server_status.go`, `approval_request.go` | **Stay** (task workflow helpers) |
 | `conflict_detection.go` | **Stay** |
 
 ---

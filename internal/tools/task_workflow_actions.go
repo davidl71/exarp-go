@@ -18,8 +18,7 @@ import (
 	"github.com/spf13/cast"
 )
 
-// handleTaskWorkflowSyncApprovals returns approval requests for all tasks in Review (T-111).
-// The client can send each to gotoHuman via request-human-review-with-form.
+// handleTaskWorkflowSyncApprovals returns approval requests for all tasks in Review.
 func handleTaskWorkflowSyncApprovals(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	formID := cast.ToString(params["form_id"])
 
@@ -56,13 +55,13 @@ func handleTaskWorkflowSyncApprovals(ctx context.Context, params map[string]inte
 	result := map[string]interface{}{
 		"review_count":      len(approvalRequests),
 		"approval_requests": approvalRequests,
-		"instructions":      "Call @gotoHuman request-human-review-with-form for each approval_request (form_id, field_data). Set GOTOHUMAN_API_KEY if needed. See docs/GOTOHUMAN_API_REFERENCE.md.",
+		"instructions":      "Use each approval_request with your human review process; record outcomes via task_workflow action=apply_approval_result.",
 	}
 
 	return framework.FormatResult(result, "")
 }
 
-// handleTaskWorkflowApplyApprovalResult updates a task when human approves or rejects in gotoHuman (T-112).
+// handleTaskWorkflowApplyApprovalResult updates a task when a human approves or rejects review.
 // Params: task_id (required), result (required: "approved" or "rejected"), feedback (optional, for rejection).
 func handleTaskWorkflowApplyApprovalResult(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	taskID := cast.ToString(params["task_id"])
@@ -114,8 +113,7 @@ func handleTaskWorkflowApplyApprovalResult(ctx context.Context, params map[strin
 	return out, nil
 }
 
-// handleTaskWorkflowRequestApproval builds a gotoHuman approval request payload for a Todo2 task.
-// The client (e.g. Cursor) should call @gotoHuman request-human-review-with-form with the returned payload.
+// handleTaskWorkflowRequestApproval builds an approval request payload for a Todo2 task.
 func handleTaskWorkflowRequestApproval(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
 	taskID := cast.ToString(params["task_id"])
 	if taskID == "" {
@@ -136,7 +134,7 @@ func handleTaskWorkflowRequestApproval(ctx context.Context, params map[string]in
 
 	req := BuildApprovalRequestFromTask(task, formID)
 	payload, _ := json.Marshal(req)
-	instructions := "Call @gotoHuman request-human-review-with-form with formId and fieldData from approval_request. Set GOTOHUMAN_API_KEY if needed. See docs/GOTOHUMAN_API_REFERENCE.md."
+	instructions := "Use approval_request with your human review process; record the outcome via task_workflow action=apply_approval_result."
 	result := map[string]interface{}{
 		"task_id":          taskID,
 		"approval_request": req,

@@ -42,13 +42,13 @@ Longest dependency chain; completing these in order unblocks the most work.
 Each milestone is independently valuable. Check off as done.
 
 - [ ] **Migrate CLI to use mcp-go-core CLI utilities** (T-1769991219035)
-- [ ] **Document gotoHuman API/tools** (T-105)
+- [ ] **Document task_workflow review payloads** (T-105)
 - [ ] **Test basic approval request flow** (T-106)
 - [ ] **Create approval request helper function** (T-107)
 - [ ] **Enhance `task_workflow` tool with approval action** (T-108)
 - [ ] **Add approval request when task moves to Review** (T-109)
 - [ ] **Test approval workflow end-to-end** (T-110)
-- [ ] **Auto-sync Review tasks with gotoHuman** (T-111)
+- [ ] **Batch sync Review tasks (sync_approvals)** (T-111)
 - [ ] **Handle approval/rejection responses** (T-112)
 
 ## 4. Open Questions

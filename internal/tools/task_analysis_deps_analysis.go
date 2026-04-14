@@ -83,6 +83,65 @@ func handleTaskAnalysisComplexity(ctx context.Context, params map[string]interfa
 	return framework.FormatResult(TaskAnalysisResponseToMap(resp), resp.GetOutputPath())
 }
 
+// buildParallelizationPendingTagFilter returns nil when no tag filter is requested.
+// When set, maps Todo task ID -> true for tasks whose tags match filter_tag or any
+// filter_tags entry (exact string match; same rules as execution_plan).
+func buildParallelizationPendingTagFilter(tasks []Todo2Task, params map[string]interface{}) map[string]bool {
+	if ft, ok := params["filter_tag"].(string); ok && ft != "" {
+		out := make(map[string]bool)
+
+		for _, t := range tasks {
+			if !IsPendingStatus(t.Status) {
+				continue
+			}
+
+			for _, tag := range t.Tags {
+				if tag == ft {
+					out[t.ID] = true
+
+					break
+				}
+			}
+		}
+
+		return out
+	}
+
+	if fts, ok := params["filter_tags"].(string); ok && fts != "" {
+		allowed := strings.Split(fts, ",")
+
+		for i := range allowed {
+			allowed[i] = strings.TrimSpace(allowed[i])
+		}
+
+		out := make(map[string]bool)
+
+		for _, t := range tasks {
+			if !IsPendingStatus(t.Status) {
+				continue
+			}
+
+			for _, tag := range t.Tags {
+				for _, a := range allowed {
+					if a != "" && tag == a {
+						out[t.ID] = true
+
+						break
+					}
+				}
+
+				if out[t.ID] {
+					break
+				}
+			}
+		}
+
+		return out
+	}
+
+	return nil
+}
+
 // ─── handleTaskAnalysisParallelization ──────────────────────────────────────
 // handleTaskAnalysisParallelization handles parallelization analysis.
 func handleTaskAnalysisParallelization(ctx context.Context, params map[string]interface{}) ([]framework.TextContent, error) {
@@ -100,8 +159,10 @@ func handleTaskAnalysisParallelization(ctx context.Context, params map[string]in
 
 	durationWeight := ParamFloat64(params, "duration_weight", 0.3)
 
-	// Find parallelizable tasks
-	parallelGroups := findParallelizableTasks(tasks, durationWeight)
+	tagFilter := buildParallelizationPendingTagFilter(tasks, params)
+
+	// Find parallelizable tasks (full graph; pending slice may be tag-filtered)
+	parallelGroups := findParallelizableTasks(tasks, durationWeight, tagFilter)
 
 	outputFormat := ParamOutputFormat(params, "json")
 
@@ -112,6 +173,18 @@ func handleTaskAnalysisParallelization(ctx context.Context, params map[string]in
 		"parallel_groups": parallelGroups,
 		"duration_weight": durationWeight,
 		"recommendations": buildParallelizationRecommendations(parallelGroups),
+	}
+
+	if ft, ok := params["filter_tag"].(string); ok && ft != "" {
+		result["filter_tag"] = ft
+	}
+
+	if fts, ok := params["filter_tags"].(string); ok && fts != "" {
+		result["filter_tags"] = fts
+	}
+
+	if tagFilter != nil {
+		result["parallelization_scope_count"] = len(tagFilter)
 	}
 
 	// Include human-readable report in JSON for CLI/consumers

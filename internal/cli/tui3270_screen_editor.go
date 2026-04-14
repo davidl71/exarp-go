@@ -21,7 +21,7 @@ func (state *tui3270State) taskEditorTransaction(conn net.Conn, devInfo go3270.D
 	descLines := splitIntoLines(task.LongDescription, 10, 70)
 
 	screen := go3270.Screen{
-		{Row: 1, Col: 2, Content: "EDIT TASK", Intense: true, Color: go3270.Blue},
+		{Row: 1, Col: 2, Content: "EDIT TASK", Intense: true, Color: t3270ISPFTitleColor()},
 		{Row: 1, Col: 60, Content: "", Name: "errmsg", Color: go3270.Red},
 		{Row: 3, Col: 2, Content: "Task ID:", Intense: true},
 		{Row: 3, Col: 12, Content: task.ID, Color: go3270.Turquoise},

@@ -26,7 +26,7 @@
       "completed": false,
       "file": ".cursor/plans/cursor-plan-mode-improvements.plan.md",
       "source": "markdown",
-      "text": "**Align Scope section with Purpose \u0026 Success Criteria** (T-1769980677401)",
+      "text": "**Align Scope section with Purpose & Success Criteria** (T-1769980677401)",
       "type": "MARKDOWN_TASK"
     },
     {
@@ -138,56 +138,56 @@
       "completed": false,
       "file": ".cursor/plans/exarp-go.plan.md",
       "source": "markdown",
-      "text": "**that it is presently the policy of IANA to assign a single well-known** (T-1771279495483) — bin/exarp-go",
+      "text": "**that it is presently the policy of IANA to assign a single well-known** (T-1771279495483) \u2014 bin/exarp-go",
       "type": "MARKDOWN_TASK"
     },
     {
       "completed": false,
       "file": ".cursor/plans/exarp-local-ai.plan.md",
       "source": "markdown",
-      "text": "T-1771171134703 — Local AI: lightweight task execution (run task with LLM) — §2 CLI, §4 task_local_ai",
+      "text": "T-1771171134703 \u2014 Local AI: lightweight task execution (run task with LLM) \u2014 \u00a72 CLI, \u00a74 task_local_ai",
       "type": "MARKDOWN_TASK"
     },
     {
       "completed": false,
       "file": ".cursor/plans/exarp-local-ai.plan.md",
       "source": "markdown",
-      "text": "T-1771171136408 — CLI: expose local_ai_backend for estimation and task create — §2 --backend, §7",
+      "text": "T-1771171136408 \u2014 CLI: expose local_ai_backend for estimation and task create \u2014 \u00a72 --backend, \u00a77",
       "type": "MARKDOWN_TASK"
     },
     {
       "completed": false,
       "file": ".cursor/plans/exarp-local-ai.plan.md",
       "source": "markdown",
-      "text": "T-1771171132414 — Local AI: task summarization with preferred backend — §7 #local-ai, append-comment",
+      "text": "T-1771171132414 \u2014 Local AI: task summarization with preferred backend \u2014 \u00a77 #local-ai, append-comment",
       "type": "MARKDOWN_TASK"
     },
     {
       "completed": false,
       "file": ".cursor/plans/exarp-local-ai.plan.md",
       "source": "markdown",
-      "text": "T-1771171139453 — Docs: document preferred_backend and local_ai_backend — §5, §7",
+      "text": "T-1771171139453 \u2014 Docs: document preferred_backend and local_ai_backend \u2014 \u00a75, \u00a77",
       "type": "MARKDOWN_TASK"
     },
     {
       "completed": false,
       "file": ".cursor/plans/exarp-local-ai.plan.md",
       "source": "markdown",
-      "text": "T-1771172293634 — Verify task_workflow local_ai_backend for all relevant actions — §10 abstractions",
+      "text": "T-1771172293634 \u2014 Verify task_workflow local_ai_backend for all relevant actions \u2014 \u00a710 abstractions",
       "type": "MARKDOWN_TASK"
     },
     {
       "completed": false,
       "file": ".cursor/plans/exarp-local-ai.plan.md",
       "source": "markdown",
-      "text": "T-1771164552852 — Local AI task assignment (MLX, AFM, Ollama) — epic; close when above done",
+      "text": "T-1771164552852 \u2014 Local AI task assignment (MLX, AFM, Ollama) \u2014 epic; close when above done",
       "type": "MARKDOWN_TASK"
     },
     {
       "completed": false,
       "file": ".cursor/plans/exarp-local-ai.plan.md",
       "source": "markdown",
-      "text": "Handoffs list display and detail view in TUI (and §9 waves list/detail); task id T-NaN — fix ID if needed",
+      "text": "Handoffs list display and detail view in TUI (and \u00a79 waves list/detail); task id T-NaN \u2014 fix ID if needed",
       "type": "MARKDOWN_TASK"
     },
     {
@@ -362,7 +362,7 @@
       "completed": false,
       "file": "docs/AGENT_LOCKING_STRATEGY.md",
       "source": "markdown",
-      "text": "Fine-grained file locking (for Git operations) — **Design (T-78):** see [Git lock](#git-lock-t-78) below",
+      "text": "Fine-grained file locking (for Git operations) \u2014 **Design (T-78):** see [Git lock](#git-lock-t-78) below",
       "type": "MARKDOWN_TASK"
     },
     {
@@ -397,7 +397,7 @@
       "completed": false,
       "file": "docs/APPLE_FOUNDATION_MODELS_ACTIVITY_MONITOR_VERIFICATION.md",
       "source": "markdown",
-      "text": "CPU usage remains relatively low (\u003c50%)",
+      "text": "CPU usage remains relatively low (<50%)",
       "type": "MARKDOWN_TASK"
     },
     {
@@ -411,7 +411,7 @@
       "completed": false,
       "file": "docs/APPLE_FOUNDATION_MODELS_ACTIVITY_MONITOR_VERIFICATION.md",
       "source": "markdown",
-      "text": "Response times are reasonable (\u003c5 seconds for simple queries)",
+      "text": "Response times are reasonable (<5 seconds for simple queries)",
       "type": "MARKDOWN_TASK"
     },
     {
@@ -502,14 +502,14 @@
       "completed": false,
       "file": "docs/CURSOR_PLUGIN_PLAN.md",
       "source": "markdown",
-      "text": "Add a short “Cursor Plugin” subsection to README or docs index that links here.",
+      "text": "Add a short \u201cCursor Plugin\u201d subsection to README or docs index that links here.",
       "type": "MARKDOWN_TASK"
     },
     {
       "completed": false,
       "file": "docs/CURSOR_PLUGIN_PLAN.md",
       "source": "markdown",
-      "text": "Optional: bundle 1–2 rules (e.g. task-workflow, session) as part of the plugin.",
+      "text": "Optional: bundle 1\u20132 rules (e.g. task-workflow, session) as part of the plugin.",
       "type": "MARKDOWN_TASK"
     },
     {
@@ -752,230 +752,6 @@
     },
     {
       "completed": false,
-      "file": "docs/GOTOHUMAN_INTEGRATION_PLAN.md",
-      "source": "markdown",
-      "text": "Load gotoHuman server in Cursor",
-      "type": "MARKDOWN_TASK"
-    },
-    {
-      "completed": false,
-      "file": "docs/GOTOHUMAN_INTEGRATION_PLAN.md",
-      "source": "markdown",
-      "text": "Discover available gotoHuman tools",
-      "type": "MARKDOWN_TASK"
-    },
-    {
-      "completed": false,
-      "file": "docs/GOTOHUMAN_INTEGRATION_PLAN.md",
-      "source": "markdown",
-      "text": "Update Todo2 task status based on approval",
-      "type": "MARKDOWN_TASK"
-    },
-    {
-      "completed": false,
-      "file": "docs/GOTOHUMAN_INTEGRATION_PLAN.md",
-      "source": "markdown",
-      "text": "Add approval history tracking",
-      "type": "MARKDOWN_TASK"
-    },
-    {
-      "completed": false,
-      "file": "docs/GOTOHUMAN_INTEGRATION_PLAN.md",
-      "source": "markdown",
-      "text": "Add approval timeout handling",
-      "type": "MARKDOWN_TASK"
-    },
-    {
-      "completed": false,
-      "file": "docs/GOTOHUMAN_INTEGRATION_PLAN.md",
-      "source": "markdown",
-      "text": "Add approval reminders",
-      "type": "MARKDOWN_TASK"
-    },
-    {
-      "completed": false,
-      "file": "docs/GOTOHUMAN_INTEGRATION_PLAN.md",
-      "source": "markdown",
-      "text": "Add approval delegation",
-      "type": "MARKDOWN_TASK"
-    },
-    {
-      "completed": false,
-      "file": "docs/GOTOHUMAN_INTEGRATION_PLAN.md",
-      "source": "markdown",
-      "text": "Add approval analytics",
-      "type": "MARKDOWN_TASK"
-    },
-    {
-      "completed": false,
-      "file": "docs/GOTOHUMAN_INTEGRATION_PLAN.md",
-      "source": "markdown",
-      "text": "Test gotoHuman server loads in Cursor",
-      "type": "MARKDOWN_TASK"
-    },
-    {
-      "completed": false,
-      "file": "docs/GOTOHUMAN_INTEGRATION_PLAN.md",
-      "source": "markdown",
-      "text": "List available gotoHuman tools",
-      "type": "MARKDOWN_TASK"
-    },
-    {
-      "completed": false,
-      "file": "docs/GOTOHUMAN_INTEGRATION_PLAN.md",
-      "source": "markdown",
-      "text": "Test sending approval request",
-      "type": "MARKDOWN_TASK"
-    },
-    {
-      "completed": false,
-      "file": "docs/GOTOHUMAN_INTEGRATION_PLAN.md",
-      "source": "markdown",
-      "text": "Test checking approval status",
-      "type": "MARKDOWN_TASK"
-    },
-    {
-      "completed": false,
-      "file": "docs/GOTOHUMAN_INTEGRATION_PLAN.md",
-      "source": "markdown",
-      "text": "Test task moves to Review → approval request sent",
-      "type": "MARKDOWN_TASK"
-    },
-    {
-      "completed": false,
-      "file": "docs/GOTOHUMAN_INTEGRATION_PLAN.md",
-      "source": "markdown",
-      "text": "Test human approves → task moves to Done",
-      "type": "MARKDOWN_TASK"
-    },
-    {
-      "completed": false,
-      "file": "docs/GOTOHUMAN_INTEGRATION_PLAN.md",
-      "source": "markdown",
-      "text": "Test human rejects → task moves back to In Progress",
-      "type": "MARKDOWN_TASK"
-    },
-    {
-      "completed": false,
-      "file": "docs/GOTOHUMAN_INTEGRATION_PLAN.md",
-      "source": "markdown",
-      "text": "Test approval timeout handling",
-      "type": "MARKDOWN_TASK"
-    },
-    {
-      "completed": false,
-      "file": "docs/GOTOHUMAN_INTEGRATION_PLAN.md",
-      "source": "markdown",
-      "text": "Complete workflow: Task → Review → Approval → Done",
-      "type": "MARKDOWN_TASK"
-    },
-    {
-      "completed": false,
-      "file": "docs/GOTOHUMAN_INTEGRATION_PLAN.md",
-      "source": "markdown",
-      "text": "Multiple concurrent approval requests",
-      "type": "MARKDOWN_TASK"
-    },
-    {
-      "completed": false,
-      "file": "docs/GOTOHUMAN_INTEGRATION_PLAN.md",
-      "source": "markdown",
-      "text": "Approval cancellation",
-      "type": "MARKDOWN_TASK"
-    },
-    {
-      "completed": false,
-      "file": "docs/GOTOHUMAN_INTEGRATION_PLAN.md",
-      "source": "markdown",
-      "text": "Approval delegation",
-      "type": "MARKDOWN_TASK"
-    },
-    {
-      "completed": false,
-      "file": "docs/GOTOHUMAN_TOOLS_DOCUMENTATION.md",
-      "source": "markdown",
-      "text": "List all available forms",
-      "type": "MARKDOWN_TASK"
-    },
-    {
-      "completed": false,
-      "file": "docs/GOTOHUMAN_TOOLS_DOCUMENTATION.md",
-      "source": "markdown",
-      "text": "Get schema for each form",
-      "type": "MARKDOWN_TASK"
-    },
-    {
-      "completed": false,
-      "file": "docs/GOTOHUMAN_TOOLS_DOCUMENTATION.md",
-      "source": "markdown",
-      "text": "Test basic approval request",
-      "type": "MARKDOWN_TASK"
-    },
-    {
-      "completed": false,
-      "file": "docs/GOTOHUMAN_TOOLS_DOCUMENTATION.md",
-      "source": "markdown",
-      "text": "Document form fields and usage",
-      "type": "MARKDOWN_TASK"
-    },
-    {
-      "completed": false,
-      "file": "docs/GOTOHUMAN_TOOLS_DOCUMENTATION.md",
-      "source": "markdown",
-      "text": "Create approval form mapping",
-      "type": "MARKDOWN_TASK"
-    },
-    {
-      "completed": false,
-      "file": "docs/GOTOHUMAN_TOOLS_DOCUMENTATION.md",
-      "source": "markdown",
-      "text": "Enhance `task_workflow` tool",
-      "type": "MARKDOWN_TASK"
-    },
-    {
-      "completed": false,
-      "file": "docs/GOTOHUMAN_TOOLS_DOCUMENTATION.md",
-      "source": "markdown",
-      "text": "Auto-send approval on Review state",
-      "type": "MARKDOWN_TASK"
-    },
-    {
-      "completed": false,
-      "file": "docs/GOTOHUMAN_TOOLS_DOCUMENTATION.md",
-      "source": "markdown",
-      "text": "Handle approval responses",
-      "type": "MARKDOWN_TASK"
-    },
-    {
-      "completed": false,
-      "file": "docs/GOTOHUMAN_TOOLS_DOCUMENTATION.md",
-      "source": "markdown",
-      "text": "Approval status checking",
-      "type": "MARKDOWN_TASK"
-    },
-    {
-      "completed": false,
-      "file": "docs/GOTOHUMAN_TOOLS_DOCUMENTATION.md",
-      "source": "markdown",
-      "text": "Approval timeout handling",
-      "type": "MARKDOWN_TASK"
-    },
-    {
-      "completed": false,
-      "file": "docs/GOTOHUMAN_TOOLS_DOCUMENTATION.md",
-      "source": "markdown",
-      "text": "Approval history tracking",
-      "type": "MARKDOWN_TASK"
-    },
-    {
-      "completed": false,
-      "file": "docs/GOTOHUMAN_TOOLS_DOCUMENTATION.md",
-      "source": "markdown",
-      "text": "Approval analytics",
-      "type": "MARKDOWN_TASK"
-    },
-    {
-      "completed": false,
       "file": "docs/IMPLEMENTATION_PLAN.md",
       "source": "markdown",
       "text": "T-1771360895822 - Add --quiet flag to suppress verbose CLI output (HIGH)",
@@ -1139,7 +915,7 @@
       "completed": false,
       "file": "docs/IMPLEMENTATION_PLAN.md",
       "source": "markdown",
-      "text": "T-1771245912597 - Fix TestRealModels_AnalyzeTask: model output parsing (MEDIUM) ⚠️ **ONLY FAILING TEST**",
+      "text": "T-1771245912597 - Fix TestRealModels_AnalyzeTask: model output parsing (MEDIUM) \u26a0\ufe0f **ONLY FAILING TEST**",
       "type": "MARKDOWN_TASK"
     },
     {
@@ -2518,56 +2294,56 @@
       "completed": false,
       "file": "docs/example.plan.md",
       "source": "markdown",
-      "text": "**Set up project** — Next.js, TypeScript, Tailwind, repo structure",
+      "text": "**Set up project** \u2014 Next.js, TypeScript, Tailwind, repo structure",
       "type": "MARKDOWN_TASK"
     },
     {
       "completed": false,
       "file": "docs/example.plan.md",
       "source": "markdown",
-      "text": "**Google OAuth** — Sign in / sign out, session handling",
+      "text": "**Google OAuth** \u2014 Sign in / sign out, session handling",
       "type": "MARKDOWN_TASK"
     },
     {
       "completed": false,
       "file": "docs/example.plan.md",
       "source": "markdown",
-      "text": "**Spotify connection** — Connect account, store tokens securely",
+      "text": "**Spotify connection** \u2014 Connect account, store tokens securely",
       "type": "MARKDOWN_TASK"
     },
     {
       "completed": false,
       "file": "docs/example.plan.md",
       "source": "markdown",
-      "text": "**Dashboard — Top artists/songs** — Weekly and monthly views",
+      "text": "**Dashboard \u2014 Top artists/songs** \u2014 Weekly and monthly views",
       "type": "MARKDOWN_TASK"
     },
     {
       "completed": false,
       "file": "docs/example.plan.md",
       "source": "markdown",
-      "text": "**Listening time trends** — Charts and time-range filters",
+      "text": "**Listening time trends** \u2014 Charts and time-range filters",
       "type": "MARKDOWN_TASK"
     },
     {
       "completed": false,
       "file": "docs/example.plan.md",
       "source": "markdown",
-      "text": "**Genre breakdown** — Summary and filters",
+      "text": "**Genre breakdown** \u2014 Summary and filters",
       "type": "MARKDOWN_TASK"
     },
     {
       "completed": false,
       "file": "docs/example.plan.md",
       "source": "markdown",
-      "text": "**Public profile page** — Shareable stats, privacy controls",
+      "text": "**Public profile page** \u2014 Shareable stats, privacy controls",
       "type": "MARKDOWN_TASK"
     },
     {
       "completed": false,
       "file": "docs/example.plan.md",
       "source": "markdown",
-      "text": "**Mobile-friendly UI** — Responsive layout and touch targets",
+      "text": "**Mobile-friendly UI** \u2014 Responsive layout and touch targets",
       "type": "MARKDOWN_TASK"
     },
     {
@@ -2616,7 +2392,7 @@
       "completed": false,
       "file": "docs/exarp-go-generated.plan.md",
       "source": "markdown",
-      "text": "**Automation: optional Cursor agent step Add use_cursor_agent and cursor_agent_prompt params to automation tool. When set, run agent -p in project root and attach output to result. See docs/CURSOR_API_AND_CLI_INTEGRATION.md §3.3. medium** (T-1771164549862)",
+      "text": "**Automation: optional Cursor agent step Add use_cursor_agent and cursor_agent_prompt params to automation tool. When set, run agent -p in project root and attach output to result. See docs/CURSOR_API_AND_CLI_INTEGRATION.md \u00a73.3. medium** (T-1771164549862)",
       "type": "MARKDOWN_TASK"
     },
     {
@@ -2645,13 +2421,6 @@
       "file": "docs/generated_plan_comparison.plan.md",
       "source": "markdown",
       "text": "**Migrate CLI to use mcp-go-core CLI utilities** (T-1769991219035)",
-      "type": "MARKDOWN_TASK"
-    },
-    {
-      "completed": false,
-      "file": "docs/generated_plan_comparison.plan.md",
-      "source": "markdown",
-      "text": "**Document gotoHuman API/tools** (T-105)",
       "type": "MARKDOWN_TASK"
     },
     {
@@ -2687,13 +2456,6 @@
       "file": "docs/generated_plan_comparison.plan.md",
       "source": "markdown",
       "text": "**Test approval workflow end-to-end** (T-110)",
-      "type": "MARKDOWN_TASK"
-    },
-    {
-      "completed": false,
-      "file": "docs/generated_plan_comparison.plan.md",
-      "source": "markdown",
-      "text": "**Auto-sync Review tasks with gotoHuman** (T-111)",
       "type": "MARKDOWN_TASK"
     },
     {
@@ -2770,35 +2532,35 @@
       "completed": false,
       "file": "docs/plans/mcp-go-core-extraction.plan.md",
       "source": "markdown",
-      "text": "T-1772056740723802000 — Remove duplicate ratelimit.go, use mcp-go-core version",
+      "text": "T-1772056740723802000 \u2014 Remove duplicate ratelimit.go, use mcp-go-core version",
       "type": "MARKDOWN_TASK"
     },
     {
       "completed": false,
       "file": "docs/plans/mcp-go-core-extraction.plan.md",
       "source": "markdown",
-      "text": "T-1772056739613403000 — Extract TTLCache and FileCache to mcp-go-core/pkg/mcp/cache",
+      "text": "T-1772056739613403000 \u2014 Extract TTLCache and FileCache to mcp-go-core/pkg/mcp/cache",
       "type": "MARKDOWN_TASK"
     },
     {
       "completed": false,
       "file": "docs/plans/mcp-go-core-extraction.plan.md",
       "source": "markdown",
-      "text": "T-1772056740718615000 — Extract ToolError types to mcp-go-core/pkg/mcp/framework",
+      "text": "T-1772056740718615000 \u2014 Extract ToolError types to mcp-go-core/pkg/mcp/framework",
       "type": "MARKDOWN_TASK"
     },
     {
       "completed": false,
       "file": "docs/plans/mcp-go-core-extraction.plan.md",
       "source": "markdown",
-      "text": "T-1772056740722069000 — Add FormatResultCompact to mcp-go-core/pkg/mcp/response",
+      "text": "T-1772056740722069000 \u2014 Add FormatResultCompact to mcp-go-core/pkg/mcp/response",
       "type": "MARKDOWN_TASK"
     },
     {
       "completed": false,
       "file": "docs/plans/mcp-go-core-extraction.plan.md",
       "source": "markdown",
-      "text": "T-1772056740720274000 — Extract FileLock to mcp-go-core/pkg/mcp/filelock",
+      "text": "T-1772056740720274000 \u2014 Extract FileLock to mcp-go-core/pkg/mcp/filelock",
       "type": "MARKDOWN_TASK"
     },
     {

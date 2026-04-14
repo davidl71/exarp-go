@@ -168,6 +168,16 @@ function isSubAgent(input: any): boolean {
   return mode === "subagent" || mode === "title";
 }
 
+/** OpenCode should pass sessionID on chat.message; some builds/events omit it — avoid using undefined as a Set key. */
+function resolveOpenCodeSessionID(input: any): string | null {
+  const a = input?.sessionID;
+  const b = input?.sessionId;
+  for (const v of [a, b]) {
+    if (typeof v === "string" && v.trim() !== "") return v.trim();
+  }
+  return null;
+}
+
 function getInProgressTasks(tasks: TaskSummary[]): TaskSummary[] {
   return tasks.filter((t) => t.status === "In Progress");
 }
@@ -494,9 +504,11 @@ export const ExarpGoPlugin: Plugin = async ({ $, client, directory }) => {
 
     "chat.message": async (input, output) => {
       if (isSubAgent(input)) return;
-      const isFirstMessage = !seenSessions.has(input.sessionID);
+      const sessionID = resolveOpenCodeSessionID(input);
+      if (!sessionID) return;
+      const isFirstMessage = !seenSessions.has(sessionID);
       if (isFirstMessage) {
-        seenSessions.add(input.sessionID);
+        seenSessions.add(sessionID);
         const cache = await refreshCache($);
         if (cache.tasks.length > 0) {
           output.parts.unshift({

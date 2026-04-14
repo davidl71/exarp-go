@@ -20,7 +20,7 @@ func (state *tui3270State) healthTransaction(conn net.Conn, devInfo go3270.DevIn
 	hContentMax := t3270ContentMaxRow(devInfo)
 
 	screen := go3270.Screen{
-		{Row: 1, Col: 2, Content: "SYSTEM HEALTH / ACTIVITY (SDSF)", Intense: true, Color: go3270.Blue},
+		{Row: 1, Col: 2, Content: "SYSTEM HEALTH / ACTIVITY (SDSF)", Intense: true, Color: t3270ISPFTitleColor()},
 		{Row: hPFRow, Col: 2, Content: "PF1=Help  PF3=Back to menu", Color: go3270.Turquoise},
 	}
 

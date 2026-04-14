@@ -4,6 +4,8 @@
 
 This document describes the 3270 TUI (Terminal User Interface) implementation for exarp-go, inspired by the [go3270](https://github.com/racingmars/go3270) library and implementation patterns from [3270BBS](https://github.com/moshix/3270BBS).
 
+**See also:** [GO_3270_ISPF_GITHUB_CGO_RESEARCH.md](./GO_3270_ISPF_GITHUB_CGO_RESEARCH.md) — survey of Go TN3270 projects on GitHub and notes on CGO vs embedding LSPF (C++).
+
 ## Features
 
 The 3270 TUI provides a classic mainframe-style interface for task management:

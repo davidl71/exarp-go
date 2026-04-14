@@ -17,7 +17,7 @@ func (state *tui3270State) taskDetailTransaction(conn net.Conn, devInfo go3270.D
 	task := state.selectedTask
 
 	screen := go3270.Screen{
-		{Row: 1, Col: 2, Content: "TASK DETAILS", Intense: true, Color: go3270.Blue},
+		{Row: 1, Col: 2, Content: "TASK DETAILS", Intense: true, Color: t3270ISPFTitleColor()},
 		{Row: 3, Col: 2, Content: "Task ID:", Intense: true},
 		{Row: 3, Col: 12, Content: task.ID, Color: go3270.Turquoise},
 		{Row: 4, Col: 2, Content: "Status:", Intense: true},

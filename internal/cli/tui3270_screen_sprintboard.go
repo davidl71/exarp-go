@@ -40,7 +40,7 @@ func (state *tui3270State) sprintBoardTransaction(conn net.Conn, devInfo go3270.
 	}
 
 	screen := go3270.Screen{
-		{Row: 1, Col: 2, Content: "SPRINT BOARD", Intense: true, Color: go3270.Blue},
+		{Row: 1, Col: 2, Content: "SPRINT BOARD", Intense: true, Color: t3270ISPFTitleColor()},
 		{Row: sPFRow, Col: 2, Content: "PF1=Help  PF3=Back", Color: go3270.Turquoise},
 	}
 

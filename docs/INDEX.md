@@ -1,6 +1,6 @@
 # exarp-go Documentation Index
 
-**Last Updated**: 2026-03-08  
+**Last Updated**: 2026-04-05  
 **Quick Start**: See `GETTING_STARTED.md` (if it exists) or start with `CURSOR_MCP_SETUP.md`
 
 ---
@@ -86,6 +86,13 @@ Compatibility aliases still exist for migration:
 |----------|-------------|
 | `PROTOBUF_USAGE.md` | Protobuf usage and tooling |
 | `TASK_CONTENT_HASH_DESIGN.md` | Task content hashing |
+
+### Research notes
+| Document | Description |
+|----------|-------------|
+| `research/DATA_INTEGRATION_AND_AI_LLM_RESEARCH.md` | awesome-go data-integration + AI/LLM mapped to tasks, TaskStore, MCP (`text_generate`) |
+| `research/AWESOME_GO_STRUCTURES_NLP_UTILITIES_RESEARCH.md` | Queues (dqueue), text analysis, trees, pipes, caches, date/time, errors, codegen, ML, morphological, tokenizers, reflection, template engines |
+| `research/LLM_ROUTER_AND_ROUTELLM_RESEARCH.md` | LLM router / RouteLLM-style options |
 
 ---
 

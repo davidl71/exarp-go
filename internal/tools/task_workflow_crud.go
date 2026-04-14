@@ -515,7 +515,7 @@ func handleTaskWorkflowUpdate(ctx context.Context, params map[string]interface{}
 
 		if len(approvalRequests) > 0 {
 			result["approval_requests"] = approvalRequests
-			result["goto_human_instructions"] = "Call @gotoHuman request-human-review-with-form with each approval_request (form_id, field_data). Set GOTOHUMAN_API_KEY if needed. See docs/GOTOHUMAN_API_REFERENCE.md."
+			result["review_instructions"] = "Use each approval_request with your human review process; record outcomes via task_workflow action=apply_approval_result."
 		}
 	}
 

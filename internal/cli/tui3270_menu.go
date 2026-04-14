@@ -1,5 +1,6 @@
 // tui3270_menu.go — Main menu and child agent menu transactions for the 3270 TUI.
 // Extracted from tui3270.go. Handles menu option selection and child agent launches.
+// Layout follows ISPF-style primary option panels (panel banner, option list, Selection/Command lines).
 package cli
 
 import (
@@ -13,55 +14,90 @@ import (
 
 // mainMenuTransaction shows the main menu.
 func (state *tui3270State) mainMenuTransaction(conn net.Conn, devInfo go3270.DevInfo, data any) (go3270.Tx, any, error) {
-	title := "EXARP-GO TASK MANAGEMENT"
+	product := "EXARP-GO TASK MANAGEMENT"
 	if state.projectName != "" {
-		title = fmt.Sprintf("%s - %s", state.projectName, title)
+		product = fmt.Sprintf("%s - TASK CONSOLE", state.projectName)
+	}
+
+	cols := t3270ScreenCols(devInfo)
+	rows, _ := devInfo.AltDimensions()
+	if rows < 24 {
+		rows = 24
+	}
+	seprow := rows - 4
+	pf1 := rows - 2
+	pf2 := rows - 1
+
+	rule0 := t3270ISPFRuleLine(cols, " PRIMARY OPTION MENU ")
+	topLine, botLine, rPipe, _ := t3270MenuBoxTopBottom(devInfo)
+	innerOpt := rPipe - 4
+	if innerOpt < 20 {
+		innerOpt = 20
+	}
+	gc := t3270PanelRuleColor()
+	banner := t3270ISPFPanelBannerLine(cols, product, "ZEXRPMNU")
+
+	hIntro := "Select an option from the list below.  Enter a number on the Selection line,"
+	hIntro2 := "or a verb command on the Command line, then press Enter to process."
+	if len(hIntro) > cols {
+		hIntro = hIntro[:cols-1] + "~"
+	}
+	if len(hIntro2) > cols {
+		hIntro2 = hIntro2[:cols-1] + "~"
 	}
 
 	screen := go3270.Screen{
-		{Row: 2, Col: 2, Content: title, Intense: true, Color: go3270.Blue},
-		{Row: 4, Col: 2, Content: "Select an option (1-7) or type a command below:", Color: go3270.Green},
-		{Row: 5, Col: 3, Content: "+------------------------------------------------+", Color: go3270.Green},
-		{Row: 6, Col: 3, Content: "|", Color: go3270.Green},
-		{Row: 6, Col: 5, Content: "1. Task List", Color: go3270.Turquoise},
-		{Row: 6, Col: 52, Content: "|", Color: go3270.Green},
-		{Row: 7, Col: 3, Content: "|", Color: go3270.Green},
-		{Row: 7, Col: 5, Content: "2. Configuration", Color: go3270.Turquoise},
-		{Row: 7, Col: 52, Content: "|", Color: go3270.Green},
-		{Row: 8, Col: 3, Content: "|", Color: go3270.Green},
-		{Row: 8, Col: 5, Content: "3. Scorecard", Color: go3270.Turquoise},
-		{Row: 8, Col: 52, Content: "|", Color: go3270.Green},
-		{Row: 9, Col: 3, Content: "|", Color: go3270.Green},
-		{Row: 9, Col: 5, Content: "4. Session handoffs", Color: go3270.Turquoise},
-		{Row: 9, Col: 52, Content: "|", Color: go3270.Green},
-		{Row: 10, Col: 3, Content: "|", Color: go3270.Green},
-		{Row: 10, Col: 5, Content: "5. Exit", Color: go3270.Turquoise},
-		{Row: 10, Col: 52, Content: "|", Color: go3270.Green},
-		{Row: 11, Col: 3, Content: "|", Color: go3270.Green},
-		{Row: 11, Col: 5, Content: "6. Run in child agent (task/plan/wave/handoff)", Color: go3270.Turquoise},
-		{Row: 11, Col: 52, Content: "|", Color: go3270.Green},
-		{Row: 12, Col: 3, Content: "|", Color: go3270.Green},
-		{Row: 12, Col: 5, Content: "7. System health (SDSF)", Color: go3270.Turquoise},
-		{Row: 12, Col: 52, Content: "|", Color: go3270.Green},
-		{Row: 13, Col: 3, Content: "+------------------------------------------------+", Color: go3270.Green},
-		{Row: 14, Col: 2, Content: "Option: ", Intense: true},
-		{Row: 14, Col: 10, Content: "", Write: true, Name: "option", Color: go3270.Green},
-		{Row: 22, Col: 2, Content: "Command ===>", Intense: true, Color: go3270.Green},
-		{Row: 22, Col: 15, Write: true, Name: "command", Content: "", Color: go3270.Turquoise},
-		{Row: 23, Col: 2, Content: "PF1=Help  PF3=Exit  Enter=Select option or run command", Color: go3270.Turquoise},
+		{Row: 0, Col: 0, Content: rule0, Color: gc},
+		{Row: 1, Col: 0, Content: banner, Color: t3270ISPFTitleColor(), Intense: true},
+		{Row: 2, Col: 2, Content: hIntro, Color: go3270.Green},
+		{Row: 3, Col: 2, Content: hIntro2, Color: go3270.Green},
+		{Row: 4, Col: 2, Content: topLine, Color: gc},
 	}
+	opts := []struct {
+		n   int
+		txt string
+	}{
+		{1, "Task list, line commands, and search"},
+		{2, "Configuration and environment"},
+		{3, "Project scorecard and checks"},
+		{4, "Session handoffs and notes"},
+		{5, "Exit Exarp-go / end session"},
+		{6, "Run Cursor child agent (task, plan, wave, handoff)"},
+		{7, "System health and activity (SDSF-style)"},
+	}
+	for i, o := range opts {
+		r := 5 + i
+		line := t3270ISPFOptionLine(o.n, o.txt, innerOpt)
+		screen = append(screen,
+			go3270.Field{Row: r, Col: 2, Content: "|", Color: gc},
+			go3270.Field{Row: r, Col: 4, Content: line, Color: go3270.Turquoise},
+			go3270.Field{Row: r, Col: rPipe, Content: "|", Color: gc},
+		)
+	}
+	boxBotRow := 5 + len(opts)
+	selRow := boxBotRow + 1
+	cmdRow := boxBotRow + 2
+	screen = append(screen,
+		go3270.Field{Row: boxBotRow, Col: 2, Content: botLine, Color: gc},
+		go3270.Field{Row: selRow, Col: 2, Content: "Selection ===>", Intense: true, Color: go3270.Green},
+		go3270.Field{Row: selRow, Col: 18, Content: "", Write: true, Name: "option", Color: go3270.Green},
+		go3270.Field{Row: cmdRow, Col: 2, Content: "Command ===>", Intense: true, Color: go3270.Green},
+		go3270.Field{Row: cmdRow, Col: 18, Write: true, Name: "command", Content: "", Color: go3270.Turquoise},
+		go3270.Field{Row: seprow, Col: 0, Content: t3270ISPFRuleLine(cols, ""), Color: gc},
+		go3270.Field{Row: pf1, Col: 2, Content: t3270Pad("Enter=Process  PF01=Help  PF03=End  PF12=Cancel", cols-4), Color: go3270.Turquoise},
+		go3270.Field{Row: pf2, Col: 2, Content: t3270Pad("Use the Selection line for 1-7; Command line for TASKS, CONFIG, MENU, HELP, ...", cols-4), Color: go3270.Turquoise},
+	)
 
-	opts := go3270.ScreenOpts{
+	opts3270 := go3270.ScreenOpts{
 		Codepage: devInfo.Codepage(),
 	}
 
-	response, err := go3270.ShowScreenOpts(screen, nil, conn, opts)
+	response, err := go3270.ShowScreenOpts(screen, nil, conn, opts3270)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	// Check AID (Action ID) for PF keys
-	if response.AID == go3270.AIDPF3 {
+	if response.AID == go3270.AIDPF3 || response.AID == go3270.AIDPF12 {
 		return nil, nil, nil // Exit
 	}
 
@@ -69,15 +105,12 @@ func (state *tui3270State) mainMenuTransaction(conn net.Conn, devInfo go3270.Dev
 		return state.helpTransaction, state, nil
 	}
 
-	// Check command line first
 	cmd := strings.TrimSpace(response.Values["command"])
 	if cmd != "" {
 		return state.handleCommand(cmd, state.mainMenuTransaction)
 	}
 
-	// Check field value for option (allow "1"-"6", or value after "Option:")
 	optionRaw := strings.TrimSpace(response.Values["option"])
-
 	option := extractMenuOption(optionRaw)
 	switch option {
 	case "1":
@@ -88,85 +121,107 @@ func (state *tui3270State) mainMenuTransaction(conn net.Conn, devInfo go3270.Dev
 		return state.scorecardTransaction, state, nil
 	case "4":
 		return state.handoffTransaction, state, nil
-	case "5", "":
-		if response.AID == go3270.AIDEnter && option == "" {
-			return nil, nil, nil // Exit
-		}
-
+	case "5":
+		return nil, nil, nil // End session (ISPF End)
+	case "":
 		return state.mainMenuTransaction, state, nil
 	case "6":
 		return state.childAgentMenuTransaction, state, nil
 	case "7":
 		return state.healthTransaction, state, nil
 	default:
-		// Invalid option, stay on main menu
 		return state.mainMenuTransaction, state, nil
 	}
 }
 
-// extractMenuOption returns "1".."6" from user input, or "" if none.
+// extractMenuOption returns "1".."7" from user input, or "" if none.
 func extractMenuOption(s string) string {
 	s = strings.TrimSpace(s)
 	if s == "" {
 		return ""
 	}
-	// Single digit
 	if len(s) == 1 && s >= "1" && s <= "7" {
 		return s
 	}
-	// Last character (e.g. "Option: 1" -> "1")
 	if len(s) > 0 {
 		c := s[len(s)-1:]
 		if c >= "1" && c <= "7" {
 			return c
 		}
 	}
-	// First digit in string
 	for _, r := range s {
 		if r >= '1' && r <= '7' {
 			return string(r)
 		}
 	}
-
 	return ""
 }
 
 // childAgentMenuTransaction shows Run in child agent submenu (option 6).
 func (state *tui3270State) childAgentMenuTransaction(conn net.Conn, devInfo go3270.DevInfo, data any) (go3270.Tx, any, error) {
-	screen := go3270.Screen{
-		{Row: 2, Col: 2, Content: "RUN IN CHILD AGENT", Intense: true, Color: go3270.Blue},
-		{Row: 4, Col: 2, Content: "Launches Cursor CLI 'agent' in project root with a prompt.", Color: go3270.Green},
-		{Row: 5, Col: 2, Content: "Select (1-5):"},
-		{Row: 6, Col: 3, Content: "+--------------------------------------------+", Color: go3270.Green},
-		{Row: 7, Col: 3, Content: "|", Color: go3270.Green},
-		{Row: 7, Col: 5, Content: "1. Task (current or first)", Color: go3270.Turquoise},
-		{Row: 7, Col: 48, Content: "|", Color: go3270.Green},
-		{Row: 8, Col: 3, Content: "|", Color: go3270.Green},
-		{Row: 8, Col: 5, Content: "2. Plan", Color: go3270.Turquoise},
-		{Row: 8, Col: 48, Content: "|", Color: go3270.Green},
-		{Row: 9, Col: 3, Content: "|", Color: go3270.Green},
-		{Row: 9, Col: 5, Content: "3. Wave (first wave)", Color: go3270.Turquoise},
-		{Row: 9, Col: 48, Content: "|", Color: go3270.Green},
-		{Row: 10, Col: 3, Content: "|", Color: go3270.Green},
-		{Row: 10, Col: 5, Content: "4. Handoff (first handoff)", Color: go3270.Turquoise},
-		{Row: 10, Col: 48, Content: "|", Color: go3270.Green},
-		{Row: 11, Col: 3, Content: "|", Color: go3270.Green},
-		{Row: 11, Col: 5, Content: "5. Back to main menu", Color: go3270.Turquoise},
-		{Row: 11, Col: 48, Content: "|", Color: go3270.Green},
-		{Row: 12, Col: 3, Content: "+--------------------------------------------+", Color: go3270.Green},
-		{Row: 14, Col: 2, Content: "Option: ", Intense: true},
-		{Row: 14, Col: 10, Content: "", Write: true, Name: "option_val", Color: go3270.Green},
-		{Row: 22, Col: 2, Content: "PF3=Back", Color: go3270.Turquoise},
+	cols := t3270ScreenCols(devInfo)
+	rows, _ := devInfo.AltDimensions()
+	if rows < 24 {
+		rows = 24
 	}
+	seprow := rows - 4
+	pf1 := rows - 2
+	pf2 := rows - 1
 
-	opts := go3270.ScreenOpts{Codepage: devInfo.Codepage()}
+	rule0 := t3270ISPFRuleLine(cols, " CHILD AGENT LAUNCH ")
+	topLine, botLine, rPipe, _ := t3270MenuBoxTopBottom(devInfo)
+	innerOpt := rPipe - 4
+	if innerOpt < 20 {
+		innerOpt = 20
+	}
+	gc := t3270PanelRuleColor()
+	banner := t3270ISPFPanelBannerLine(cols, "Cursor agent launcher in project root", "ZEXRAGNT")
 
-	response, err := go3270.ShowScreenOpts(screen, nil, conn, opts)
+	screen := go3270.Screen{
+		{Row: 0, Col: 0, Content: rule0, Color: gc},
+		{Row: 1, Col: 0, Content: banner, Color: t3270ISPFTitleColor(), Intense: true},
+		{Row: 2, Col: 2, Content: "Choose how to build the agent prompt.  Selection is required.", Color: go3270.Green},
+		{Row: 3, Col: 2, Content: "Option 5 returns to the primary menu without running an agent.", Color: go3270.Green},
+		{Row: 4, Col: 2, Content: topLine, Color: gc},
+	}
+	optLab := []struct {
+		n   int
+		txt string
+	}{
+		{1, "Task (cursor task or first in list)"},
+		{2, "Plan (workspace planning prompt)"},
+		{3, "Wave (first parallel-wave tasks)"},
+		{4, "Handoff (most recent handoff summary)"},
+		{5, "Cancel / return to primary menu"},
+	}
+	for i, o := range optLab {
+		r := 5 + i
+		line := t3270ISPFOptionLine(o.n, o.txt, innerOpt)
+		screen = append(screen,
+			go3270.Field{Row: r, Col: 2, Content: "|", Color: gc},
+			go3270.Field{Row: r, Col: 4, Content: line, Color: go3270.Turquoise},
+			go3270.Field{Row: r, Col: rPipe, Content: "|", Color: gc},
+		)
+	}
+	br := 5 + len(optLab)
+	selRow := br + 1
+	screen = append(screen,
+		go3270.Field{Row: br, Col: 2, Content: botLine, Color: gc},
+		go3270.Field{Row: selRow, Col: 2, Content: "Selection ===>", Intense: true, Color: go3270.Green},
+		go3270.Field{Row: selRow, Col: 18, Content: "", Write: true, Name: "option_val", Color: go3270.Green},
+		go3270.Field{Row: seprow, Col: 0, Content: t3270ISPFRuleLine(cols, ""), Color: gc},
+		go3270.Field{Row: pf1, Col: 2, Content: t3270Pad("Enter=Run selection  PF01=Help  PF03=Primary menu  PF12=Primary menu", cols-4), Color: go3270.Turquoise},
+		go3270.Field{Row: pf2, Col: 2, Content: t3270Pad("Invalid option redisplays this panel.", cols-4), Color: go3270.Turquoise},
+	)
+
+	opts3270 := go3270.ScreenOpts{Codepage: devInfo.Codepage()}
+
+	response, err := go3270.ShowScreenOpts(screen, nil, conn, opts3270)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	if response.AID == go3270.AIDPF3 {
+	if response.AID == go3270.AIDPF3 || response.AID == go3270.AIDPF12 {
 		return state.mainMenuTransaction, state, nil
 	}
 
@@ -187,7 +242,6 @@ func (state *tui3270State) childAgentMenuTransaction(conn net.Conn, devInfo go32
 	case "5":
 		return state.mainMenuTransaction, state, nil
 	case "1":
-		// Task: use current cursor task or first task
 		ctx := context.Background()
 
 		tasks, err := state.loadTasksForStatus(ctx, state.status)

@@ -633,7 +633,7 @@ func TestFindNoiseTasksAvoidsActionableShortTitles(t *testing.T) {
 			LongDescription: "List all available forms from the provider",
 			Tags:            []string{"discovered", "formid", "markdown"},
 			Metadata: map[string]interface{}{
-				"discovered_from": "docs/GOTOHUMAN_TOOLS_DOCUMENTATION.md",
+				"discovered_from": "docs/HUMAN_IN_THE_LOOP_MCP_COMPARISON.md",
 			},
 		},
 		{
@@ -651,7 +651,7 @@ func TestFindNoiseTasksAvoidsActionableShortTitles(t *testing.T) {
 			LongDescription: "Implement schema retrieval for all available forms",
 			Tags:            []string{"discovered", "formid", "markdown"},
 			Metadata: map[string]interface{}{
-				"discovered_from": "docs/GOTOHUMAN_TOOLS_DOCUMENTATION.md",
+				"discovered_from": "docs/HUMAN_IN_THE_LOOP_MCP_COMPARISON.md",
 			},
 		},
 	}
