@@ -36,6 +36,12 @@
         - redis
         - optional
 
+    - role: security_scanners
+      when: install_security_scanners | default(false)
+      tags:
+        - security_scanners
+        - optional
+
   tasks:
     - name: Create project directory
       ansible.builtin.file:
@@ -81,5 +87,6 @@
           - "GitHub CLI (gh) installed: {{ install_gh | default(false) }}"
           - "Ollama installed: {{ install_ollama | default(false) }} (start with: ollama serve)"
           - "Redis installed: {{ install_redis | default(false) }} (for queue/worker: set REDIS_ADDR=127.0.0.1:6379)"
+          - "Security scanners (multilang): {{ install_security_scanners | default(false) }} (govulncheck, pip-audit, cargo-audit, npm for exarp-go security scan)"
       tags:
         - always

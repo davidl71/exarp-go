@@ -20,7 +20,8 @@ ansible/
 │   ├── python/             # Python and package managers
 │   ├── linters/            # Optional linters
 │   ├── ollama/             # Optional Ollama (fixes ollama tool / native tests)
-│   └── redis/              # Optional Redis (queue/worker: make queue-enqueue-wave, queue-worker)
+│   ├── redis/              # Optional Redis (queue/worker: make queue-enqueue-wave, queue-worker)
+│   └── security_scanners/  # Optional multilang security scan tools (govulncheck, pip-audit, cargo-audit, npm)
 ├── playbooks/
 │   ├── development.yml     # Development setup
 │   └── production.yml      # Production setup
@@ -60,17 +61,6 @@ cd ansible
 ansible-galaxy install -r requirements.yml
 ```
 
-**Note:** `ansible-galaxy` is required for `ansible-lint` syntax checks because the playbooks use modules from `community.general` (e.g., `ansible.builtin.package`, `ansible.builtin.git`). Running `make ansible-galaxy` installs this collection.
-
-### Offline Mode
-
-The `.ansible-lint` config includes `offline: true`, which allows `ansible-lint` to run without Galaxy when:
-- Collections are not installed
-- Network/SSL errors occur
-- Running in an air-gapped environment
-
-In offline mode, linting performs static analysis without resolving module references. This is useful for quick local checks or CI environments where Galaxy access is limited.
-
 ## Usage
 
 For a short path, see **[QUICKSTART.md](QUICKSTART.md)** or run `./run-dev-setup.sh` from the ansible directory.
@@ -94,6 +84,9 @@ ansible-playbook playbooks/development.yml --tags linters
 
 # Only install Redis (queue/worker)
 ansible-playbook playbooks/development.yml --tags redis
+
+# Only install security scanners (multilang: govulncheck, pip-audit, cargo-audit, npm)
+ansible-playbook playbooks/development.yml --tags security_scanners
 
 # Skip optional tools
 ansible-playbook playbooks/development.yml --skip-tags optional
@@ -129,6 +122,7 @@ install_dev_tools: true
 install_file_watchers: true
 install_ollama: true   # Ollama (ollama serve + models)
 install_redis: false  # Redis for queue/worker; set REDIS_ADDR=127.0.0.1:6379 (see docs/EXARP_CLI_SHORTCUTS.md)
+install_security_scanners: false  # Multilang security tools for exarp-go security scan (govulncheck, pip-audit, cargo-audit, npm)
 
 # Select specific linters
 linters:
@@ -169,6 +163,7 @@ install_dev_tools: false
 - **cspell** - Code spell checker
 - **fswatch** (macOS) / **inotify-tools** (Linux) - File watchers
 - **Ollama** - For the ollama tool and native tests (set `install_ollama: true`; then run `ollama serve`)
+- **Security scanners (multilang)** - Optional tools for exarp-go `security action=scan`: **govulncheck** (Go), **pip-audit** (Python), **cargo-audit** (Rust), **npm** (Node). Set `install_security_scanners: true` in group_vars.
 
 ## Tags
 
@@ -179,6 +174,8 @@ Use tags to run specific parts of the playbook:
 - `python` - Python installation
 - `linters` - Linter installation
 - `ollama` - Ollama + models (fixes ollama tool / native tests)
+- `redis` - Redis (queue/worker)
+- `security_scanners` - Multilang security scan tools (govulncheck, pip-audit, cargo-audit, npm)
 - `dev_tools` - Development tools
 - `optional` - All optional tools
 - `always` - Always run (default)
@@ -219,15 +216,6 @@ ansible-playbook playbooks/development.yml --tags golang,python
 ansible-playbook playbooks/development.yml --tags linters
 ```
 
-This installs ansible-lint (requires `make ansible-galaxy` for full syntax checking with community.general modules).
-
-### Offline Lint Mode
-
-The `.ansible-lint` file includes `offline: true`. This allows ansible-lint to run without Galaxy:
-- Skip this if you need full module validation
-- Useful for CI/CD in restricted network environments
-- For full validation: run `make ansible-galaxy` first
-
 ### Production Setup (No Linters)
 
 ```bash
@@ -235,21 +223,6 @@ ansible-playbook -i inventories/production/hosts playbooks/production.yml
 ```
 
 ## Troubleshooting
-
-### Ansible Galaxy Issues
-
-If ansible-lint fails with module not found errors (e.g., "ansible.builtin.package"):
-
-```bash
-# Install Galaxy dependencies
-make ansible-galaxy
-
-# Or manually:
-cd ansible
-ansible-galaxy install -r requirements.yml
-```
-
-If Galaxy is unreachable (SSL/network errors), ansible-lint will still run in **offline mode** due to `offline: true` in `.ansible-lint`. This performs static analysis without full module validation.
 
 ### Permission Issues
 

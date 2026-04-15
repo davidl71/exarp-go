@@ -6,9 +6,6 @@ set -e
 
 # Respect PROJECT_ROOT if set by caller (e.g. AI agent); else use first arg or cwd
 PROJECT_ROOT="${PROJECT_ROOT:-${1:-.}}"
-export GOCACHE="${GOCACHE:-$PROJECT_ROOT/.cache/go-build}"
-export GOMODCACHE="${GOMODCACHE:-$PROJECT_ROOT/.cache/go-mod}"
-mkdir -p "$GOCACHE" "$GOMODCACHE"
 cd "$PROJECT_ROOT"
 
 echo "🔍 Go Project Health Check"
@@ -173,3 +170,4 @@ else
     echo -e "${RED}❌ Some checks failed${NC}"
     exit 1
 fi
+

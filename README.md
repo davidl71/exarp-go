@@ -8,34 +8,37 @@ This server hosts tools, prompts, and resources that are broken in FastMCP due t
 
 ## Contents
 
-### Tools (36 total)
+### Tools (29 total)
 
-This repo’s tool surface changes over time; **do not trust hardcoded lists**.
+**Originally migrated (23 tools):**
+- `analyze_alignment` - Todo2 alignment analysis
+- `generate_config` - Cursor config generation
+- `health` - Project health checks
+- `memory` - Memory management
+- `memory_maint` - Memory maintenance
+- `report` - Project reporting
+- `security` - Security scanning
+- `setup_hooks` - Git hooks setup
+- `task_analysis` - Task analysis
+- `task_discovery` - Task discovery
+- `task_workflow` - Task workflow
+- `testing` - Testing tools
 
-- **Canonical counts**: run `make sanity-check`
-- **Canonical names**: use resource `stdio://tools/names` (or `stdio://tools` grouped by category)
-- **Per-tool help**: use `tool_catalog` with `action=help` and `tool_name=<tool>`
+**Phase 3 migration (6 tools):**
+- `infer_session_mode` - Session mode inference
+- `add_external_tool_hints` - Add Context7 hints to documentation
+- `automation` - Unified automation tool (daily/nightly/sprint/discover)
+- `tool_catalog` - Tool catalog and help
+- `workflow_mode` - Workflow mode management
+- `check_attribution` - Attribution compliance check
+- `lint` - Linting tool
+- `estimation` - Task duration estimation
+- `ollama` - Ollama integration
+- `mlx` - MLX integration
+- `git_tools` - Git-inspired task management
+- `session` - Session management (prime/handoff/prompts/assignee)
 
-Example:
-
-```bash
-./bin/exarp-go -tool tool_catalog -args '{"action":"help","tool_name":"task_workflow"}'
-```
-
-### Explicit Database Maintenance
-
-Use `health action=database` for SQLite maintenance. These operations are explicit and do not run as side effects of normal task CRUD.
-
-```bash
-./bin/exarp-go -tool health -args '{"action":"database","operation":"status"}'
-./bin/exarp-go -tool health -args '{"action":"database","operation":"checkpoint","checkpoint_mode":"TRUNCATE"}'
-./bin/exarp-go -tool health -args '{"action":"database","operation":"vacuum"}'
-./bin/exarp-go -tool health -args '{"action":"database","operation":"analyze"}'
-```
-
-`status` reports fields such as `page_count`, `freelist_count`, `estimated_db_bytes`, and `estimated_free_bytes` so you can decide whether a manual `vacuum` is worthwhile.
-
-### Prompts (36 total)
+### Prompts (18 total)
 
 **Core prompts (8):**
 - `align` - Task alignment analysis
@@ -56,30 +59,32 @@ Use `health action=database` for SQLite maintenance. These operations are explic
 - `sync` - Synchronize tasks between TODO and Todo2
 - `dups` - Find and consolidate duplicate tasks
 
-### Resources (60 total — 44 static + 16 templates)
-**Base resources:**
-- `stdio://config`, `stdio://config/schema` - Configuration
+### Resources (21 total)
+**Base resources (11):**
 - `stdio://scorecard` - Project scorecard
-- `stdio://models` - Available LLM backends
-- `stdio://session/mode`, `stdio://session/status` - Session state
+- `stdio://memories` - All memories
+- `stdio://memories/category/{category}` - Memories by category
+- `stdio://memories/task/{task_id}` - Memories for task
+- `stdio://memories/recent` - Recent memories
+- `stdio://memories/session/{date}` - Session memories
+- `stdio://prompts` - All prompts
+- `stdio://prompts/mode/{mode}` - Prompts by mode
+- `stdio://prompts/persona/{persona}` - Prompts by persona
+- `stdio://prompts/category/{category}` - Prompts by category
+- `stdio://session/mode` - Session mode
 - `stdio://server/status` - Server status
-- `stdio://tools`, `stdio://tools/{category}`, `stdio://tools/names`, `stdio://tool_catalog`, `stdio://resources/uris` - Tool/resource discovery
-- `stdio://memories`, `stdio://memories/category/{category}`, `stdio://memories/task/{task_id}`, `stdio://memories/recent`, `stdio://memories/session/{date}` - Memory
-- `stdio://prompts`, `stdio://prompts/mode/{mode}`, `stdio://prompts/persona/{persona}`, `stdio://prompts/category/{category}` - Prompts
-- `stdio://cursor/skills`, `stdio://cursor/skills/{name}`, `stdio://agent/skills`, `stdio://agent/skills/{name}` - Skills
-- `prime://context`, `agent://card` - Agent discovery
+- `stdio://models` - Available models
+- `stdio://tools` - All tools
+- `stdio://tools/{category}` - Tools by category
 
-**Task resources:**
-- `stdio://tasks`, `stdio://tasks/{task_id}`, `stdio://tasks/status/{status}`, `stdio://tasks/priority/{priority}`, `stdio://tasks/tag/{tag}` - Task queries
-- `stdio://tasks/summary`, `stdio://tasks/ready`, `stdio://ready-tasks`, `stdio://suggested-tasks` - Task summaries
-- `stdio://active-work` - Active claims + runs + orchestration lanes
-- `stdio://task-runs/{task_id}` - Execution runs for a task
-
-**Agent/Execution resources (new):**
-- `stdio://agent/briefing` — compact startup briefing for any agent (session prime + orchestration + ledger)
-- `stdio://agent/task/{task_id}/execution-pack` — per-task workflow pack (workflow contract, safe actions, preconditions, recent runs)
-- `stdio://agent/alerts` — stale locks, long-running runs, review-ready tasks
-- `stdio://codex/briefing`, `stdio://codex/task/{task_id}/execution-pack`, `stdio://codex/alerts` — aliases
+**Task resources (7):**
+- `stdio://tasks` - All tasks
+- `stdio://tasks/{task_id}` - Task by ID
+- `stdio://tasks/status/{status}` - Tasks by status
+- `stdio://tasks/priority/{priority}` - Tasks by priority
+- `stdio://tasks/tag/{tag}` - Tasks by tag
+- `stdio://tasks/summary` - Task summary
+- `stdio://suggested-tasks` - Dependency-ready tasks (for Cursor hints)
 
 ## Configuration
 
@@ -104,7 +109,6 @@ Use `health action=database` for SQLite maintenance. These operations are explic
 - **Workflow**: Mode settings, automation parameters
 - **Memory**: Memory management settings
 - **Project**: Project-specific settings
-  - Includes `project.task_discovery_ignore_paths` for repo-level discovery excludes
 
 For detailed configuration options, see:
 - **`docs/CONFIGURATION_REFERENCE.md`** — Full parameter reference and project-type examples
@@ -114,13 +118,9 @@ For detailed configuration options, see:
 
 **Cursor rules (AI guidance):** If you use Cursor, see `docs/CURSOR_RULES.md` for project rules, including **code and planning tag hints** so generated plans and code stay aligned with Todo2 tags. For **how to use Cursor skills** (task-workflow, locking, git_tools, conflict detection), see [docs/CURSOR_SKILLS_GUIDE.md](docs/CURSOR_SKILLS_GUIDE.md).
 
-**Codex quickstart:** If you use Codex or another terminal coding agent, start with [docs/CODEX.md](docs/CODEX.md) for the shortest repo-specific guide: what to read first, what to ignore, preferred `make` targets, and the fast verification command `make codex-smoke`.
+**Model-assisted workflow:** For local LLM integration (CodeLlama/MLX/Ollama) for task breakdown, execution, and prompt optimization, see [docs/MODEL_ASSISTED_WORKFLOW.md](docs/MODEL_ASSISTED_WORKFLOW.md). The docs index is in [docs/README.md](docs/README.md).
 
-**Model-assisted workflow:** For local LLM integration (CodeLlama/Ollama, Apple FM) for task breakdown, execution, and prompt optimization, see [docs/MODEL_ASSISTED_WORKFLOW.md](docs/MODEL_ASSISTED_WORKFLOW.md). The docs index is in [docs/README.md](docs/README.md).
-
-**Operator cheat sheet:** Task lifecycle, batch `approve` (`new_status`, `dry_run`), `PROJECT_ROOT`, and common footguns — [docs/EXARP_OPERATOR_CHEATSHEET.md](docs/EXARP_OPERATOR_CHEATSHEET.md). Shell/Make shortcuts: [docs/EXARP_CLI_SHORTCUTS.md](docs/EXARP_CLI_SHORTCUTS.md).
-
-**AI/LLM stack:** For the full backend stack (Apple FM, Ollama, LocalAI) and discovery, see [docs/GO_AI_ECOSYSTEM.md](docs/GO_AI_ECOSYSTEM.md) and [docs/LLM_NATIVE_ABSTRACTION_PATTERNS.md](docs/LLM_NATIVE_ABSTRACTION_PATTERNS.md).
+**AI/LLM stack:** For the full backend stack (Apple FM, Ollama, MLX, LocalAI) and discovery, see [docs/GO_AI_ECOSYSTEM.md](docs/GO_AI_ECOSYSTEM.md) and [docs/LLM_NATIVE_ABSTRACTION_PATTERNS.md](docs/LLM_NATIVE_ABSTRACTION_PATTERNS.md).
 
 **OpenCode / OAC:** To use exarp-go with [OpenCode](https://opencode.ai/) or [OpenAgentsControl (OAC)](https://github.com/darrenhinde/OpenAgentsControl), add exarp-go as an MCP server in your OpenCode config. See [docs/OPENCODE_INTEGRATION.md](docs/OPENCODE_INTEGRATION.md) for MCP, CLI, and HTTP API; [docs/OPENAGENTSCONTROL_EXARP_GO_COMBO_PLAN.md](docs/OPENAGENTSCONTROL_EXARP_GO_COMBO_PLAN.md) for OAC + exarp-go workflow. Example config: [docs/opencode-exarp-go.example.json](docs/opencode-exarp-go.example.json).
 
@@ -183,11 +183,13 @@ Install with: `uv sync --dev` or `uv pip install -e ".[dev]"`
 **Feature-Specific Optional Dependencies:**
 - **Ollama** - Required for `ollama` tool functionality
   - Install: https://ollama.ai/
+- **MLX** - Required for `mlx` tool functionality
+  - Install: https://ml-explore.github.io/mlx/
 
 ## Installation
 
 ```bash
-cd {{PROJECT_ROOT}}
+cd /Users/davidl/Projects/exarp-go
 
 # Install Python dependencies (if using uv)
 uv sync
@@ -195,9 +197,8 @@ uv sync
 # Or install Python dev dependencies (optional)
 uv sync --dev
 
-# Build Go binary (CGO off — portable; see docs/CGO_BUILD_PARITY.md for darwin/arm64/cgo vs nocgo)
+# Build Go binary
 make build
-# Apple Silicon + CGO + FM-enhanced task_discovery scanners: `make go-build` when a C compiler is available
 # or (with Ninja, e.g. on Windows)
 ninja
 # or
@@ -231,7 +232,7 @@ exarp-go config convert yaml protobuf
 
 # Interactive TUIs
 exarp-go tui                  # Bubbletea terminal UI
-exarp-go tui3270 [status] [port]  # TN3270 server; Unix detaches by default (--foreground to block)
+exarp-go tui3270 [--port 3270] # IBM 3270 mainframe TUI (TN3270)
 
 # Direct tool invocation
 exarp-go -tool <name> -args '{"action":"..."}'
@@ -263,36 +264,36 @@ After installation, you'll get tab completion for:
 
 ## MCP Configuration
 
-Add to `.cursor/mcp.json`. See **[docs/examples/](docs/examples/README.md)** for full examples (binary, wrapper script, per-project).
+For most users, the right setup is: keep `exarp-go` installed separately, then attach it to your current project with the portable runner. This works whether the client repo is Go, Python, JavaScript/TypeScript, or something else.
+
+Recommended for any client repo:
+
+1. Copy `scripts/run_exarp_go.sh` from this repo into your project's `scripts/` directory.
+2. Add this to your project's `.cursor/mcp.json`:
 
 ```json
 {
   "mcpServers": {
     "exarp-go": {
-      "command": "{{PROJECT_ROOT}}/../exarp-go/bin/exarp-go",
+      "command": "{{PROJECT_ROOT}}/scripts/run_exarp_go.sh",
       "args": [],
       "env": {
         "PROJECT_ROOT": "{{PROJECT_ROOT}}"
-      },
-      "description": "Stdio-based MCP tools (broken in FastMCP) - 24 tools, 8 prompts, 6 resources migrated from exarp_pma"
+      }
     }
   }
 }
 ```
 
-### Cursor: reload MCP after changing the binary
+Why this is the default:
+- `PROJECT_ROOT` stays bound to the client repo you opened in Cursor
+- the runner can resolve `exarp-go` from a sibling clone, `PATH`, or `EXARP_GO_ROOT`
+- you do not need the client repo itself to be a Go project
 
-Cursor does **not** hot-reload MCP servers. After `make build`, regenerating `proto`, or any change that affects the running server, **restart exarp-go** in Cursor (disable then enable the server in MCP settings, or restart the IDE). Until then, chat still talks to the old process.
-
-### `task_workflow`: `add_comment` from MCP
-
-Use `add_comment` to attach a comment to a task (e.g. note that you reloaded MCP or bumped the binary). Params: `task_id`, `content` (required); `comment_type` optional — `result`, `note`, `research_with_links`, or `manualsetup` (default `result`). Prefer `note` for operational breadcrumbs.
-
-Example:
-
-```bash
-./bin/exarp-go -tool task_workflow -args '{"action":"add_comment","task_id":"T-123","comment_type":"note","content":"Reloaded exarp-go MCP in Cursor after rebuild.","output_format":"json","compact":true}'
-```
+If you are configuring MCP inside the `exarp-go` repo itself, use the repo-local examples in [docs/examples/README.md](docs/examples/README.md). For all other repos, start with the portable runner examples and guide:
+- [docs/PORTABLE_MCP_RUNNER.md](docs/PORTABLE_MCP_RUNNER.md)
+- [docs/examples/cursor-mcp-portable.json](docs/examples/cursor-mcp-portable.json)
+- [docs/examples/opencode-exarp-go-portable.json](docs/examples/opencode-exarp-go-portable.json)
 
 ## Development & Testing
 
@@ -363,17 +364,9 @@ make lint         # Lint code
 make lint-fix     # Lint and auto-fix
 ```
 
-### Benchmarking
-
-```bash
-make bench        # Run all Go benchmarks (includes Ollama-oriented benches when `ollama serve` is up)
-```
-
-- **Ollama:** Requires `ollama serve` and a model (e.g. `ollama run llama3.2`). Skipped if the server is unreachable.
-
 ### Git hooks and release
 
-- **Pre-commit** runs the local build fast-path. **Pre-push** runs docs health, alignment, and security scan.
+- **Pre-commit** runs build + health docs (no vulnerability scan). **Pre-push** runs alignment only.
 - **Before release:** run `make pre-release` for build + govulncheck + security scan.
 - See [docs/VULNERABILITY_CHECK_POLICY.md](docs/VULNERABILITY_CHECK_POLICY.md) for the full policy.
 

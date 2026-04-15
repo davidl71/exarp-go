@@ -39,7 +39,7 @@ elif [ -f "$CONFIG_GLOBAL_JSONC" ]; then
 fi
 
 if [ -z "$CONFIG" ]; then
-  printf "%b\n" "${RED}✗${NC} No OpenCode config found. Expected:"
+  printf "${RED}✗${NC} No OpenCode config found. Expected:\n"
   printf "  - %s\n" "$CONFIG_GLOBAL"
   printf "  - %s (project root)\n" "$CONFIG_PROJECT"
   exit 1
@@ -77,7 +77,7 @@ except Exception as e:
     print('err:' + str(e))
 " 2>/dev/null || echo "")
 
-if [ -z "$HAS_MCP" ] || [[ "$HAS_MCP" == err:* ]]; then
+if [ -z "$HAS_MCP" ] || [ "$HAS_MCP" = "err:"* ]; then
   check 1 "exarp-go MCP entry present in mcp"
   if [[ "$HAS_MCP" == err:* ]]; then
     warn "Parse error: $HAS_MCP"
@@ -111,7 +111,7 @@ if [ -z "$CMD" ] || [ "$CMD" = "/absolute/path/to/exarp-go/bin/exarp-go" ] || [ 
 else
   # Resolve path (expand PROJECT_ROOT or ~ if used)
   RESOLVED="$CMD"
-  if [[ "$RESOLVED" == *"{{PROJECT_ROOT}}"* ]] || [[ "$RESOLVED" == *"\${PROJECT_ROOT}"* ]]; then
+  if [[ "$RESOLVED" == *'{{PROJECT_ROOT}}'* ]] || [[ "$RESOLVED" == *'\${PROJECT_ROOT}'* ]]; then
     if [ -n "$PROOT" ] && [ -d "$PROOT" ]; then
       RESOLVED=$(echo "$RESOLVED" | sed "s|{{PROJECT_ROOT}}|$PROOT|g" | sed "s|\${PROJECT_ROOT}|$PROOT|g")
     else
@@ -145,4 +145,4 @@ if [ "$ERRORS" -gt 0 ]; then
   exit 1
 fi
 echo ""
-printf "%b\n" "${GREEN}All checks passed. Run OpenCode and verify tools (task_workflow, report, session).${NC}"
+printf "${GREEN}All checks passed. Run OpenCode and verify tools (task_workflow, report, session).${NC}\n"

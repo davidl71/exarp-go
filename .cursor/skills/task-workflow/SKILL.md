@@ -34,25 +34,22 @@ When calling the exarp-go MCP server, use `task_workflow` with these patterns:
 
 | Operation | MCP args |
 |-----------|----------|
-| List tasks | `action=list`, optional: `status`, `filter_tag`, `priority`, `limit`, `order=execution`, `output_format=json` |
-| Show one task | `action=list`, `task_id=<id>`, optional: `output_format=json` |
+| List tasks | `action=sync`, `sub_action=list`, optional: `status`, `filter_tag`, `priority`, `limit`, `order=execution` |
+| Show one task | `action=sync`, `sub_action=list`, `task_id=<id>` |
 | Update status (batch) | `action=approve`, `status=<current>`, `new_status=<new>`, optional: `task_ids`, `filter_tag`, `clarification_none` |
 | Create task | `action=create`, `name`, optional: `long_description`, `priority`, `tags` |
 | Delete task (single) | `action=delete`, `task_id=<id>` |
-| Delete tasks (batch) | `action=delete`, `task_ids=<id1>,<id2>,...` (comma-separated) |
+| Delete tasks (batch) | `action=delete`, `task_ids=<id1>,<id2>,...` (comma-separated; one sync at end) |
 | Clarity / cleanup | `action=clarity` or `action=cleanup`, optional: `task_id`, `stale_threshold_hours` |
-| Full reconciliation | `action=sync` only for explicit repair/recovery or SQLite↔JSON reconciliation |
 
 Examples (MCP):
 
 ```json
-{"action":"list","status":"Todo","filter_tag":"migration","order":"execution","output_format":"json"}
-{"action":"list","task_id":"T-123","output_format":"json"}
+{"action":"sync","sub_action":"list","status":"Todo","filter_tag":"migration","order":"execution"}
 {"action":"approve","status":"Todo","new_status":"In Progress","task_ids":"T-1,T-2,T-3"}
 {"action":"create","name":"New task","long_description":"Description","priority":"high"}
 {"action":"delete","task_id":"T-1768325400284"}
 {"action":"delete","task_ids":"T-321,T-401,T-402,T-403"}
-{"action":"sync"}
 ```
 
 ---

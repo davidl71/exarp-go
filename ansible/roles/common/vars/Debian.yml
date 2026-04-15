@@ -9,14 +9,12 @@ _base_packages:
   - curl
   - wget
   - git
-_build_packages:
   - build-essential
   - gcc
   - g++
   - make
   - pkg-config
   - libc6-dev
-_protobuf_packages:
   - protobuf-compiler
   - libprotobuf-dev
 _sqlite_packages:

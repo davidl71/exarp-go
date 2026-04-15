@@ -78,49 +78,6 @@
   when: ansible_system == "Darwin"
   tags: [common, packages]
 
-# --- Build tools (C/C++ for CGO) - optional ---
-
-- name: Install build packages (Linux)
-  ansible.builtin.package:
-    name: "{{ _build_packages }}"
-    state: present
-  when:
-    - ansible_system == "Linux"
-    - install_build_tools | default(true)
-  tags: [common, packages, build]
-
-- name: Install build tools via Homebrew (macOS)
-  community.general.homebrew:
-    name:
-      - gcc
-      - make
-    state: present
-  when:
-    - ansible_system == "Darwin"
-    - install_build_tools | default(true)
-  tags: [common, packages, build]
-
-# --- Protocol Buffers - optional ---
-
-- name: Install protobuf packages (Linux)
-  ansible.builtin.package:
-    name: "{{ _protobuf_packages }}"
-    state: present
-  when:
-    - ansible_system == "Linux"
-    - install_protobuf | default(true)
-  tags: [common, packages, protobuf]
-
-- name: Install protobuf via Homebrew (macOS)
-  community.general.homebrew:
-    name:
-      - protobuf
-    state: present
-  when:
-    - ansible_system == "Darwin"
-    - install_protobuf | default(true)
-  tags: [common, packages, protobuf]
-
 # --- macOS build tools ---
 
 - name: Install Xcode Command Line Tools (macOS)
@@ -315,7 +272,6 @@
 
 - name: Set git advice for less verbose output (development user)
   ansible.builtin.command: "git config --global advice.{{ item }} false"
-  become: false
   loop:
     - statusHints
     - statusUoption

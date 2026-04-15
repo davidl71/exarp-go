@@ -130,18 +130,8 @@ if ! resolve_exarp_go_bin; then
   exit 1
 fi
 
-# Only set when the tree exists; otherwise leave unset so the binary uses ResolveMigrationsSource
-# (sibling ../migrations, share layout, project root, or embedded SQL).
-if [[ -z "${EXARP_MIGRATIONS_DIR:-}" ]] && [[ -n "${EXARP_GO_ROOT:-}" ]] && [[ -d "${EXARP_GO_ROOT}/migrations" ]]; then
-  export EXARP_MIGRATIONS_DIR="${EXARP_GO_ROOT}/migrations"
-fi
-if [[ -z "${EXARP_MIGRATIONS_DIR:-}" ]] && [[ -n "${EXARP_GO_BIN:-}" ]] && [[ "${EXARP_GO_BIN}" == /* ]]; then
-  _exarp_bin_dir="$(cd "$(dirname "${EXARP_GO_BIN}")" && pwd)"
-  if [[ -d "${_exarp_bin_dir}/../migrations" ]]; then
-    EXARP_MIGRATIONS_DIR="$(cd "${_exarp_bin_dir}/../migrations" && pwd)"
-    export EXARP_MIGRATIONS_DIR
-  fi
-  unset _exarp_bin_dir
+if [[ -n "${EXARP_GO_ROOT:-}" ]]; then
+  export EXARP_MIGRATIONS_DIR="${EXARP_MIGRATIONS_DIR:-${EXARP_GO_ROOT}/migrations}"
 fi
 
 if [[ -n "${EXARP_GO_RUN_GO:-}" ]]; then

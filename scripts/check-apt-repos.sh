@@ -16,7 +16,7 @@ echo ""
 echo "---"
 echo ""
 
-if [ "$EXIT_CODE" -eq 0 ]; then
+if [ $EXIT_CODE -eq 0 ]; then
     echo "✓ apt update completed successfully"
     echo ""
     
@@ -45,3 +45,4 @@ grep -h "^deb\|^URIs:" /etc/apt/sources.list /etc/apt/sources.list.d/*.list /etc
 
 echo ""
 echo "Full output saved to: /tmp/apt-update-output.log"
+

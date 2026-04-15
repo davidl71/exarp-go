@@ -2,8 +2,7 @@
 
 ## Project
 
-Go-based MCP server. Primary language: Go. Also: shell scripts (scripts/, ansible/), Ansible (YAML playbooks/roles in ansible/). SQLite-backed task system (Todo2). Apple Foundation Models + Ollama (and optional LocalAI/gateway via `text_generate`) for local AI.
-Run `make sanity-check` for current tool/prompt/resource counts (counts in this file go stale).
+Go-based MCP server. 37 tools (38 with Apple FM), 36 prompts, 24 resources. Primary language: Go. Also: shell scripts (scripts/, ansible/), Ansible (YAML playbooks/roles in ansible/). SQLite-backed task system (Todo2). Apple Foundation Models + Ollama + MLX for local AI.
 
 ## MCP servers available in this session
 
@@ -18,88 +17,27 @@ Run `make sanity-check` for current tool/prompt/resource counts (counts in this 
 
 Call `session` tool with `action=prime`, `include_hints=true`, `include_tasks=true` at the start of every session to get current task context, handoffs, and mode hints.
 
-> **Claude Code note**: MCP tool schemas are deferred — use `ToolSearch` to load a tool's schema before calling it. Load `session` first, then `task_workflow`, `report`, `health` as needed.
-
-## Quick reference — common agent operations
-
-These are the most frequent operations. Use CLI for terminal ops; use MCP tools when orchestrating via tool calls.
-
-### Prime session / get context
-```
-# MCP (preferred)
-session  action=prime  include_hints=true  include_tasks=true
-
-# CLI
-go run ./cmd/server session prime 2>/dev/null
-```
-
-### View backlog (Todo tasks)
-```
-# CLI
-go run ./cmd/server task list 2>/dev/null                          # top 17 Todo tasks
-go run ./cmd/server task list --status Todo 2>/dev/null            # same
-go run ./cmd/server task list --priority high 2>/dev/null          # high-priority only
-go run ./cmd/server task list --status "In Progress" 2>/dev/null   # active tasks
-
-# MCP — use action=list (NOT action=sync, which does a full SQLite↔JSON sync)
-task_workflow  action=list
-task_workflow  action=list  status=Todo
-task_workflow  action=list  priority=high
-task_workflow  action=list  status="In Progress"
-```
-
-### Show task detail
-```
-go run ./cmd/server task show T-xxx 2>/dev/null
-```
-
-### Create a task
-```
-# CLI — task name as first positional arg; flags come after
-go run ./cmd/server task create "Task name here" 2>/dev/null
-go run ./cmd/server task create "Task name here" --priority high 2>/dev/null
-go run ./cmd/server task create "Task name here" --priority medium --tags "tag1,tag2" 2>/dev/null
-
-# MCP
-task_workflow  action=create  name="Task name"  priority=high
-```
-
-### Update a task
-```
-go run ./cmd/server task update T-xxx --new-status "In Progress" 2>/dev/null
-go run ./cmd/server task update T-xxx --new-status Done 2>/dev/null
-go run ./cmd/server task update T-xxx --new-priority high 2>/dev/null
-go run ./cmd/server task update T-xxx --name "Corrected name" 2>/dev/null
-go run ./cmd/server task update T-xxx --description "More detail" 2>/dev/null
-
-# MCP
-task_workflow  action=update  task_id=T-xxx  new_status=Done
-```
-
-### Run AI on a task
-```
-go run ./cmd/server task run-with-ai T-xxx --backend ollama 2>/dev/null
-go run ./cmd/server task summarize T-xxx 2>/dev/null
-go run ./cmd/server task estimate "Task name" --local-ai-backend fm 2>/dev/null
-```
-
-> **Tip**: pipe through `2>/dev/null` in CLI commands to suppress log output in scripts.
-
 ## Task management (Todo2)
 
 **Prefer MCP tools over direct file edits. Never edit `.todo2/state.todo2.json` or `.todo2/todo2.db` directly.**
 
 ```
 # MCP tool (preferred)
-task_workflow  action=list|create|update|delete|summarize|run_with_ai|sync|clarify
+task_workflow  action=create|update|delete|summarize|run_with_ai|sync|clarify
 
-# action=list   — read-only task listing (use this, not sync, for viewing tasks)
-# action=sync   — bidirectional SQLite↔JSON reconciliation (maintenance only)
+# CLI (for quick ops in terminal)
+go run ./cmd/server task list --status Todo
+go run ./cmd/server task create "Name" --priority high --local-ai-backend fm
+go run ./cmd/server task update T-xxx --new-status Done
+go run ./cmd/server task show T-xxx
+go run ./cmd/server task estimate "Task name" --local-ai-backend ollama
+go run ./cmd/server task summarize T-xxx [--local-ai-backend fm]
+go run ./cmd/server task run-with-ai T-xxx [--backend ollama] [--instruction "..."]
 ```
 
-Task statuses: `Todo` → `In Progress` → `Review` → `Done` (open: `Todo`, `In Progress`, `Blocked`; closed: `Done`, `Cancelled`)
+Task statuses: `Todo` → `In Progress` → `Review` → `Done`
 
-Local AI task subcommands: `task estimate`, `task summarize`, `task run-with-ai`; each supports `--local-ai-backend` or `--backend` (fm|ollama). Legacy `mlx` in stored metadata is ignored (treated like auto/fm). `task create` and `task update` accept `--local-ai-backend` to set preferred backend.
+Local AI task subcommands: `task estimate`, `task summarize`, `task run-with-ai`; each supports `--local-ai-backend` or `--backend` (fm|mlx|ollama). `task create` and `task update` accept `--local-ai-backend` to set preferred backend.
 
 ## Build
 
@@ -124,31 +62,12 @@ Use `go run ./cmd/server ...` for CLI ops during development.
 
 - **Error handling**: always `fmt.Errorf("context: %w", err)` — never ignore errors
 - **Task store**: use `getTaskStore(ctx)` — never load JSON/DB directly in tool handlers
-- **Preferred backend**: stored in `task.Metadata["preferred_backend"]` (fm|ollama); legacy `mlx` maps to auto; read with `GetPreferredBackend(task.Metadata)`
+- **Preferred backend**: stored in `task.Metadata["preferred_backend"]` (fm|mlx|ollama); read with `GetPreferredBackend(task.Metadata)`
 - **New task_workflow actions**: add to switch in `task_workflow_native.go`, handler in `task_workflow_actions.go` or `task_workflow_common.go`, enum in `registry.go`
-- **Count sync**: run `make sanity-check` after adding tools/prompts/resources; update `cmd/sanity-check/main.go` constants + `handlers_test.go` assertions
+- **Count sync**: when adding tools/prompts/resources, update comment + test assertions + expected lists
 - **Middleware chain** (factory/server.go): recovery → cache → logging → hooks. Add new middleware via `gosdk.WithMiddleware()`
 - **Singleflight**: scorecard uses `scorecardFlight.Do()` to dedup concurrent computations; tag cache uses `tagCacheFlight`
 - **ResourcesAsTools**: `TrackResource()` in `resources/handlers.go` feeds `read_resource`/`list_resources` tools
-- **Resource URIs**: prefer `stdio://agent/...`; `stdio://codex/...` are deprecated aliases kept for backward compat only
-- **Dependency wave / execution order**: `suggested_next[].level` IS the dependency wave (0 = ready now, no open blockers). `CalculateDependencyWave()` in `execution_orchestration.go` and `BacklogExecutionOrder()` in `graph_helpers.go` compute the same thing — don't reimplement
-
-## Key utilities (search before implementing)
-
-| Need | Where |
-|------|-------|
-| Dependency wave / execution order | `BacklogExecutionOrder()` — `internal/tools/graph_helpers.go`; returns ordered IDs, `waves map[int][]string`, details |
-| Task graph levels | `GetTaskLevels(tg)` — `internal/tools/graph_helpers.go` |
-| Wave for a single task | `CalculateDependencyWave(tasks, taskID)` — `internal/tools/execution_orchestration.go` |
-| Workflow contract (safe actions, preconditions) | `BuildWorkflowContract(task, claim, runs)` — `internal/tools/agent_resources.go` |
-| Agent startup briefing data | `BuildAgentBriefingData(ctx, projectRoot)` — `internal/tools/agent_resources.go` |
-| Per-task execution pack data | `BuildTaskExecutionPackData(ctx, projectRoot, taskID)` — `internal/tools/agent_resources.go` |
-| Alert data (stale locks, runs, review tasks) | `BuildAgentAlertsData(ctx, projectRoot)` — `internal/tools/agent_resources.go` |
-| Execution lane summary by role | `BuildExecutionOrchestrationSummary()` — `internal/tools/execution_orchestration.go` |
-| Lock/run/verification/progress → map | `lockToMap`, `runToMap`, `verificationToMap`, `progressToMap` — `internal/tools/task_workflow_execution.go` |
-| Agent role from task | `AgentRoleFromTask(task)` — `internal/tools/agent_role.go` |
-| Lazy task context (resource URIs) | `buildLazyTaskContext(task)` — `internal/tools/session_lazy_context.go` |
-| Recommended tools from metadata | `GetRecommendedTools(metadata)` — `internal/tools/agent_resources.go` |
 
 ## LLM backends
 
@@ -156,7 +75,8 @@ Use `go run ./cmd/server ...` for CLI ops during development.
 |---------|------|------|
 | Apple FM | `apple_foundation_models` | darwin/arm64/cgo, on-device |
 | Ollama | `ollama` | local server (`ollama serve`) |
-| Unified generate | `text_generate` | `provider=fm`, `ollama`, `localai`, `gateway`, `insight`, or `auto` |
+| MLX | `mlx` | Apple Silicon, bridge-only |
+| Auto | `text_generate provider=auto` | model router selects best |
 
 Check `stdio://models` resource for `backends.fm_available` before calling FM tools.
 
@@ -174,7 +94,7 @@ session  action=prime|handoff
 
 ## Configuration examples
 
-Example configs for Cursor (`.cursor/mcp.json`), OpenCode (`opencode.json`), Claude Code (`.claude/settings.json`), and optional project files: **`docs/examples/`** — see `docs/examples/README.md` for the index. Use these when suggesting MCP, Claude Code, or OpenCode setup to users or other agents.
+Example configs for Cursor (`.cursor/mcp.json`), OpenCode (`opencode.json`), and optional project files: **`docs/examples/`** — see `docs/examples/README.md` for the index. Use these when suggesting MCP or OpenCode setup to users or other agents.
 
 ## Go conventions
 

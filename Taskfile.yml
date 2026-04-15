@@ -19,8 +19,6 @@ env:
       else
         echo "${GOROOT:-}"
       fi
-  GOCACHE: '{{.REPO_ROOT}}/.cache/go-build'
-  GOMODCACHE: '{{.REPO_ROOT}}/.cache/go-mod'
   GOFLAGS:
     sh: test -f vendor/modules.txt && echo "-mod=vendor" || echo ""
 
@@ -579,12 +577,10 @@ tasks:
 # ─── Cleanup ──────────────────────────────────────────────────────────────────
 
   clean:
-    desc: Clean generated artifacts (keeps bin/exarp-go; removes legacy root binaries)
+    desc: Clean build artifacts (keeps binary)
     cmds:
       - rm -f coverage-go.out coverage-go.html
       - rm -f bin/sanity-check bin/migrate
-      - rm -rf dist out
-      - rm -f server migrate test-report-mlx
       - echo "✅ Clean complete"
 
   clean:binary:

@@ -24,7 +24,7 @@ TOOLS_REQ='{"jsonrpc":"2.0","id":2,"method":"tools/list","params":{}}'
 # Run exarp-go with stdin; send init, then initialized notification, then tools/list
 # MCP flow: client sends initialize -> server responds -> client sends initialized notify -> then tools/list
 RUN=$(mktemp -d)
-trap 'rm -rf "$RUN"' EXIT
+trap "rm -rf $RUN" EXIT
 
 {
   echo "$INIT_REQ"

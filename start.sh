@@ -29,9 +29,6 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 if [[ -z "${PROJECT_ROOT}" || "${PROJECT_ROOT}" == "{{PROJECT_ROOT}}" ]]; then
   PROJECT_ROOT="$SCRIPT_DIR"
 fi
-export GOCACHE="${GOCACHE:-$PROJECT_ROOT/.cache/go-build}"
-export GOMODCACHE="${GOMODCACHE:-$PROJECT_ROOT/.cache/go-mod}"
-mkdir -p "$GOCACHE" "$GOMODCACHE"
 BINARY_NAME="exarp-go"
 BINARY_PATH="$PROJECT_ROOT/bin/$BINARY_NAME"
 
