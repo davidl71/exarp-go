@@ -14,17 +14,15 @@
 
 # Exarp runtime directories (state, cache, logs, temporary files)
 .exarp/
-!.exarp/plan.json
-.cache/
 
 # Generated reports (e.g. by analyze_alignment, pre-push hooks)
 docs/TODO2_ALIGNMENT_REPORT.md
+..bfg-report/
 
-# Build and packaging artifacts
+# Go build artifacts
 bin/
 build/
-dist/
-out/
+/server
 *.test
 *.out
 coverage*.out
@@ -35,12 +33,6 @@ coverage.out
 # Test artifacts
 test-results/
 coverage-report/
-profiles/
-
-# CRUD bench / pprof scratch (scripts/crud_reprofile_compare.sh, make crud-*)
-logs/crud_bench_*.txt
-logs/crud_cpu_*.pprof
-logs/crud_mem_*.pprof
 
 # Temporary files
 tmp/
@@ -48,7 +40,6 @@ tmp/
 temp/
 *.tmp
 *.log
-.exarp-go-tui3270.pid
 
 # Go workspace files
 go.work
@@ -82,13 +73,4 @@ internal/tools/\{\"*
 
 # OpenCode plugin dependencies (installed by bun at startup)
 .opencode/node_modules/
-
-# Local agent continuity / scratch (do not commit)
-thoughts/
-
-# Legacy root-level binaries from older workflows
-/server
-/migrate
-/test-report-mlx
 CLAUDE.md
-vendor/
