@@ -5,15 +5,15 @@ package cli
 import (
 	"strings"
 
-	tea "charm.land/bubbletea/v2"
+	tea "github.com/charmbracelet/bubbletea"
 	"github.com/davidl71/exarp-go/internal/models"
 	"github.com/davidl71/exarp-go/internal/tools"
 )
 
 // handleGlobalKeys handles keys that work in all modes (quit, help, esc).
 func (m model) handleGlobalKeys(key string) (model, tea.Cmd, bool) {
-	switch {
-	case m.keyMatches(key, KeyActionQuit):
+	switch key {
+	case "ctrl+c", "q":
 		if m.showHelp {
 			m.showHelp = false
 			return m, nil, true
@@ -26,11 +26,11 @@ func (m model) handleGlobalKeys(key string) (model, tea.Cmd, bool) {
 
 		return m, tea.Quit, true
 
-	case m.keyMatches(key, KeyActionHelp):
+	case "?", "h":
 		m.showHelp = !m.showHelp
 		return m, nil, true
 
-	case m.keyMatches(key, KeyActionBack):
+	case "esc":
 		if m.showHelp {
 			m.showHelp = false
 			return m, nil, true
@@ -44,11 +44,10 @@ func (m model) handleGlobalKeys(key string) (model, tea.Cmd, bool) {
 		}
 
 		if m.mode == ModeTaskAnalysis {
-			target := m.taskAnalysisReturnMode
-			if target == "" {
-				target = ModeTasks
+			m.mode = m.taskAnalysisReturnMode
+			if m.taskAnalysisReturnMode == "" {
+				m.mode = ModeTasks
 			}
-			m.transitionTo(target)
 			return m, nil, true
 		}
 
@@ -56,7 +55,7 @@ func (m model) handleGlobalKeys(key string) (model, tea.Cmd, bool) {
 			if m.waveDetailLevel >= 0 {
 				m.waveDetailLevel = -1
 			} else {
-				m.transitionTo(ModeTasks)
+				m.mode = ModeTasks
 				m.cursor = 0
 			}
 			return m, nil, true
@@ -66,7 +65,7 @@ func (m model) handleGlobalKeys(key string) (model, tea.Cmd, bool) {
 			if m.jobsDetailIndex >= 0 {
 				m.jobsDetailIndex = -1
 			} else {
-				m.transitionTo(ModeTasks)
+				m.mode = ModeTasks
 				m.cursor = 0
 			}
 			return m, nil, true
@@ -99,7 +98,7 @@ func (m model) handleSearchKeys(key string, msg tea.KeyMsg) (model, tea.Cmd, boo
 		return m, nil, true
 
 	default:
-		if len(msg.String()) == 1 {
+		if len(msg.String()) == 1 && msg.Type == tea.KeyRunes {
 			m.searchQuery += msg.String()
 		}
 		m.filteredIndices = m.computeFilteredIndices()
@@ -138,7 +137,7 @@ func (m model) handleCreateKeys(key string, msg tea.KeyMsg) (model, tea.Cmd, boo
 		return m, nil, true
 
 	default:
-		if len(msg.String()) == 1 {
+		if len(msg.String()) == 1 && msg.Type == tea.KeyRunes {
 			m.createInput += msg.String()
 		}
 		return m, nil, true
@@ -194,29 +193,34 @@ func (m model) handleBulkStatusKeys(key string) (model, tea.Cmd, bool) {
 func (m model) handleDetailOverlayKeys(key string) (model, tea.Cmd, bool) {
 	// Task detail overlay — scroll support + close
 	if m.mode == ModeTaskDetail {
-		switch {
-		case m.keyMatches(key, KeyActionBack), m.keyMatches(key, KeyActionDetail), key == " ", key == "s":
-			m.transitionTo(ModeTasks)
+		switch key {
+		case "esc", "enter", " ", "s":
+			m.mode = ModeTasks
 			m.taskDetailTask = nil
-			m.taskDetailViewport.GotoTop()
+			m.taskDetailScrollTop = 0
 			return m, nil, true
-		case key == "up", key == "k":
-			m.taskDetailViewport.SetYOffset(max(0, m.taskDetailViewport.YOffset()-1))
+		case "up", "k":
+			if m.taskDetailScrollTop > 0 {
+				m.taskDetailScrollTop--
+			}
 			return m, nil, true
-		case key == "down", key == "j":
-			m.taskDetailViewport.SetYOffset(m.taskDetailViewport.YOffset() + 1)
+		case "down", "j":
+			m.taskDetailScrollTop++
 			return m, nil, true
-		case key == "pgup", key == "ctrl+u":
-			m.taskDetailViewport.SetYOffset(max(0, m.taskDetailViewport.YOffset()-max(1, m.taskDetailViewport.Height()/2)))
+		case "pgup", "ctrl+u":
+			m.taskDetailScrollTop -= 10
+			if m.taskDetailScrollTop < 0 {
+				m.taskDetailScrollTop = 0
+			}
 			return m, nil, true
-		case key == "pgdown", key == "ctrl+d":
-			m.taskDetailViewport.SetYOffset(m.taskDetailViewport.YOffset() + max(1, m.taskDetailViewport.Height()/2))
+		case "pgdown", "ctrl+d":
+			m.taskDetailScrollTop += 10
 			return m, nil, true
-		case key == "home", key == "g":
-			m.taskDetailViewport.GotoTop()
+		case "home", "g":
+			m.taskDetailScrollTop = 0
 			return m, nil, true
-		case key == "end", key == "G":
-			m.taskDetailViewport.GotoBottom()
+		case "end", "G":
+			m.taskDetailScrollTop = 9999
 			return m, nil, true
 		}
 	}
@@ -225,7 +229,7 @@ func (m model) handleDetailOverlayKeys(key string) (model, tea.Cmd, bool) {
 	if m.mode == ModeConfigSection {
 		switch key {
 		case "esc", "enter", " ":
-			m.transitionTo(ModeConfig)
+			m.mode = ModeConfig
 			m.configSectionText = ""
 			return m, nil, true
 		}
@@ -274,22 +278,22 @@ func (m model) handleTasksInlineStatus(key string) (model, tea.Cmd, bool) {
 		return m, nil, false
 	}
 
-	switch {
-	case m.keyMatches(key, KeyActionStatusDone), m.keyMatches(key, KeyActionStatusInProgress), m.keyMatches(key, KeyActionStatusTodo), m.keyMatches(key, KeyActionStatusReview):
+	switch key {
+	case "d", "i", "t", "r":
 		vis := m.visibleIndices()
 		if len(vis) > 0 && m.cursor < len(vis) {
 			realIdx := m.realIndexAt(m.cursor)
 			if realIdx < len(m.tasks) && m.tasks[realIdx] != nil {
 				task := m.tasks[realIdx]
 				var newStatus string
-				switch {
-				case m.keyMatches(key, KeyActionStatusDone):
+				switch key {
+				case "d":
 					newStatus = models.StatusDone
-				case m.keyMatches(key, KeyActionStatusInProgress):
+				case "i":
 					newStatus = models.StatusInProgress
-				case m.keyMatches(key, KeyActionStatusTodo):
+				case "t":
 					newStatus = models.StatusTodo
-				case m.keyMatches(key, KeyActionStatusReview):
+				case "r":
 					newStatus = models.StatusReview
 				}
 
@@ -301,7 +305,7 @@ func (m model) handleTasksInlineStatus(key string) (model, tea.Cmd, bool) {
 		}
 		return m, nil, true
 
-	case m.keyMatches(key, KeyActionBulkStatus):
+	case "D":
 		// Bulk status update: if tasks are selected, show status selection prompt
 		if len(m.selected) > 0 {
 			m.bulkStatusPrompt = true
@@ -319,22 +323,21 @@ func (m model) handleViewToggleKeys(key string) (model, tea.Cmd, bool) {
 		// Back from scorecard or task analysis to previous view
 		switch m.mode {
 		case ModeScorecard:
-			m.transitionTo(ModeTasks)
+			m.mode = ModeTasks
 			m.cursor = 0
 		case ModeTaskAnalysis:
-			target := m.taskAnalysisReturnMode
-			if target == "" {
-				target = ModeTasks
+			m.mode = m.taskAnalysisReturnMode
+			if m.taskAnalysisReturnMode == "" {
+				m.mode = ModeTasks
 			}
-			m.transitionTo(target)
 		case ModeTasks:
-			m.transitionTo(ModeScorecard)
+			m.mode = ModeScorecard
 			m.scorecardLoading = true
 			m.scorecardErr = nil
 			m.scorecardText = ""
-			return m, loadScorecard(m.server, m.projectRoot, false), true
+			return m, loadScorecard(m.projectRoot, false), true
 		case ModeHandoffs:
-			m.transitionTo(ModeTasks)
+			m.mode = ModeTasks
 			m.cursor = 0
 		}
 		return m, nil, true
@@ -342,12 +345,12 @@ func (m model) handleViewToggleKeys(key string) (model, tea.Cmd, bool) {
 	case "H":
 		// Toggle handoffs view (session handoff notes)
 		if m.mode == ModeHandoffs {
-			m.transitionTo(ModeTasks)
+			m.mode = ModeTasks
 			m.cursor = 0
 			return m, nil, true
 		}
 
-		m.transitionTo(ModeHandoffs)
+		m.mode = ModeHandoffs
 		m.handoffLoading = true
 		m.handoffErr = nil
 		m.handoffText = ""
@@ -361,12 +364,12 @@ func (m model) handleViewToggleKeys(key string) (model, tea.Cmd, bool) {
 	case "b":
 		// Toggle background jobs view
 		if m.mode == ModeJobs {
-			m.transitionTo(ModeTasks)
+			m.mode = ModeTasks
 			m.cursor = 0
 			return m, nil, true
 		}
 
-		m.transitionTo(ModeJobs)
+		m.mode = ModeJobs
 		m.jobsCursor = 0
 		m.jobsDetailIndex = -1
 		return m, nil, true
@@ -374,14 +377,14 @@ func (m model) handleViewToggleKeys(key string) (model, tea.Cmd, bool) {
 	case "w":
 		// Toggle waves view (dependency-order waves from backlog)
 		if m.mode == ModeWaves {
-			m.transitionTo(ModeTasks)
+			m.mode = ModeTasks
 			m.cursor = 0
 			m.waveDetailLevel = -1
 			return m, nil, true
 		}
 
 		if m.mode == ModeTasks && len(m.tasks) > 0 {
-			m.transitionTo(ModeWaves)
+			m.mode = ModeWaves
 			m.waveDetailLevel = -1
 			m.waveCursor = 0
 			// Compute waves
@@ -405,49 +408,18 @@ func (m model) handleViewToggleKeys(key string) (model, tea.Cmd, bool) {
 		// Toggle between tasks and config view
 		switch m.mode {
 		case ModeTasks:
-			m.transitionTo(ModeConfig)
+			m.mode = ModeConfig
 			m.configCursor = 0
 		case ModeConfig:
-			m.transitionTo(ModeTasks)
+			m.mode = ModeTasks
 			m.cursor = 0
 			m.configSaveMessage = ""
 		case ModeHandoffs:
-			m.transitionTo(ModeTasks)
+			m.mode = ModeTasks
 			m.cursor = 0
 		case ModeWaves, ModeJobs:
-			m.transitionTo(ModeTasks)
+			m.mode = ModeTasks
 			m.cursor = 0
-		}
-		return m, nil, true
-
-	case "L":
-		// Toggle bubble/list rendering mode (for testing/development)
-		if m.mode == ModeTasks {
-			m.useBubbleList = !m.useBubbleList
-			if m.useBubbleList {
-				m.syncTaskComponents()
-			}
-		}
-		return m, nil, true
-
-	case "T":
-		// Toggle bubble/table rendering mode (sprintboard view)
-		if m.mode == ModeTasks {
-			m.useBubbleTable = !m.useBubbleTable
-			if m.useBubbleTable {
-				m.syncTaskComponents()
-			}
-		}
-		return m, nil, true
-
-	case "ctrl+p":
-		// Toggle command palette
-		m.showCommandPalette = !m.showCommandPalette
-		if m.showCommandPalette {
-			m.commandPalette.Focus()
-		} else {
-			m.commandPalette.Blur()
-			m.commandPalette.SetValue("")
 		}
 		return m, nil, true
 	}

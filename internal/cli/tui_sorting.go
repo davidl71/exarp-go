@@ -3,16 +3,12 @@
 package cli
 
 import (
-	"context"
-	"fmt"
 	"sort"
 	"strings"
-	"time"
 
 	"github.com/davidl71/exarp-go/internal/database"
 	"github.com/davidl71/exarp-go/internal/models"
 	"github.com/davidl71/exarp-go/internal/tools"
-	"github.com/davidl71/exarp-go/internal/vector"
 )
 
 // sortTasksBy sorts tasks in place by order (id|status|priority|updated) and direction.
@@ -413,82 +409,22 @@ func (m model) realIndexAt(cursorPos int) int {
 	return vis[cursorPos]
 }
 
-// computeFilteredIndices returns indices of m.tasks that match m.searchQuery.
-// When Ollama is available it tries semantic (vector) search with a 200ms timeout,
-// falling back to case-insensitive substring matching on timeout or unavailability.
+// computeFilteredIndices returns indices of m.tasks that match m.searchQuery (case-insensitive).
 func (m model) computeFilteredIndices() []int {
-	q := strings.TrimSpace(m.searchQuery)
+	q := strings.TrimSpace(strings.ToLower(m.searchQuery))
 	if q == "" {
 		return nil
 	}
 
-	// Try semantic search first.
-	if results, ok := m.semanticFilteredIndices(q); ok {
-		return results
-	}
-
-	// Substring fallback.
-	qLower := strings.ToLower(q)
 	var out []int
+
 	for i, t := range m.tasks {
-		if taskMatchesSearch(t, qLower) {
+		if taskMatchesSearch(t, q) {
 			out = append(out, i)
 		}
 	}
+
 	return out
-}
-
-// semanticFilteredIndices runs a vector search over all tasks and returns ranked
-// indices. Returns (nil, false) when Ollama is unreachable or the call times out.
-func (m model) semanticFilteredIndices(query string) ([]int, bool) {
-	store, err := vector.NewOllamaStore("", "")
-	if err != nil || !store.Available() {
-		return nil, false
-	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), 200*time.Millisecond)
-	defer cancel()
-
-	docs := make([]vector.Document, 0, len(m.tasks))
-	for i, t := range m.tasks {
-		if t == nil {
-			continue
-		}
-		docs = append(docs, vector.Document{
-			ID:   fmt.Sprintf("%d", i),
-			Text: t.Content + " " + t.LongDescription + " " + strings.Join(t.Tags, " "),
-		})
-	}
-
-	if err := store.AddAll(ctx, docs); err != nil {
-		return nil, false
-	}
-
-	results, err := store.Search(ctx, query, len(docs))
-	if err != nil {
-		return nil, false
-	}
-
-	const minSimilarity = 0.4 // discard low-relevance matches
-	var indices []int
-	for _, r := range results {
-		if r.Similarity < minSimilarity {
-			continue
-		}
-		var idx int
-		if _, scanErr := fmt.Sscanf(r.ID, "%d", &idx); scanErr != nil {
-			continue
-		}
-		if idx >= 0 && idx < len(m.tasks) {
-			indices = append(indices, idx)
-		}
-	}
-
-	if len(indices) == 0 {
-		return nil, false // let text fallback run
-	}
-
-	return indices, true
 }
 
 func taskMatchesSearch(t *database.Todo2Task, q string) bool {

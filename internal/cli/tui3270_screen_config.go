@@ -4,12 +4,13 @@ package cli
 import (
 	"net"
 
+	"github.com/davidl71/exarp-go/internal/config"
 	"github.com/racingmars/go3270"
 )
 
 // configTransaction shows configuration editor.
 func (state *tui3270State) configTransaction(conn net.Conn, devInfo go3270.DevInfo, data any) (go3270.Tx, any, error) {
-	cfg, err := loadConfigForTUI(state.projectRoot)
+	cfg, err := config.LoadConfig(state.projectRoot)
 	if err != nil {
 		// Show error screen instead of failing the connection; user can PF3 back
 		msg := err.Error()
@@ -19,7 +20,7 @@ func (state *tui3270State) configTransaction(conn net.Conn, devInfo go3270.DevIn
 
 		cfgPFRow := t3270PFRow(devInfo)
 		errScreen := go3270.Screen{
-			{Row: 1, Col: 2, Content: "CONFIGURATION", Intense: true, Color: t3270ISPFTitleColor()},
+			{Row: 1, Col: 2, Content: "CONFIGURATION", Intense: true, Color: go3270.Blue},
 			{Row: 3, Col: 2, Content: "Config could not be loaded (protobuf required).", Color: go3270.Red},
 			{Row: 5, Col: 2, Content: "Run: exarp-go config init", Color: go3270.Green},
 			{Row: 6, Col: 2, Content: "  or: exarp-go config convert yaml protobuf", Color: go3270.Green},
@@ -42,7 +43,7 @@ func (state *tui3270State) configTransaction(conn net.Conn, devInfo go3270.DevIn
 
 	cfgPFRow2 := t3270PFRow(devInfo)
 	screen := go3270.Screen{
-		{Row: 1, Col: 2, Content: "CONFIGURATION", Intense: true, Color: t3270ISPFTitleColor()},
+		{Row: 1, Col: 2, Content: "CONFIGURATION", Intense: true, Color: go3270.Blue},
 		{Row: 3, Col: 2, Content: "Configuration sections:", Color: go3270.Green},
 		{Row: 5, Col: 4, Content: "1. Timeouts"},
 		{Row: 6, Col: 4, Content: "2. Thresholds"},

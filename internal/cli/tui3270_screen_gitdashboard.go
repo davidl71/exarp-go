@@ -19,7 +19,7 @@ func (state *tui3270State) gitDashboardTransaction(conn net.Conn, devInfo go3270
 	gContentMax := t3270ContentMaxRow(devInfo)
 
 	screen := go3270.Screen{
-		{Row: 1, Col: 2, Content: "GIT DASHBOARD", Intense: true, Color: t3270ISPFTitleColor()},
+		{Row: 1, Col: 2, Content: "GIT DASHBOARD", Intense: true, Color: go3270.Blue},
 		{Row: gPFRow, Col: 2, Content: "PF1=Help  PF3=Back  PF7/8=Scroll", Color: go3270.Turquoise},
 	}
 

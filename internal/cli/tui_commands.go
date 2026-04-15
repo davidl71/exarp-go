@@ -10,10 +10,11 @@ import (
 	"strings"
 	"time"
 
-	tea "charm.land/bubbletea/v2"
+	tea "github.com/charmbracelet/bubbletea"
 	"github.com/davidl71/exarp-go/internal/config"
 	"github.com/davidl71/exarp-go/internal/framework"
 	"github.com/davidl71/exarp-go/internal/queue"
+	"github.com/davidl71/exarp-go/internal/tools"
 )
 
 func tick() tea.Cmd {
@@ -59,20 +60,50 @@ func createTaskCmd(server framework.MCPServer, name string) tea.Cmd {
 	}
 }
 
-func loadScorecard(server framework.MCPServer, projectRoot string, fullMode bool) tea.Cmd {
+func loadScorecard(projectRoot string, fullMode bool) tea.Cmd {
 	return func() tea.Msg {
 		if projectRoot == "" {
 			return scorecardLoadedMsg{err: fmt.Errorf("no project root")}
 		}
-		if server == nil {
-			return scorecardLoadedMsg{err: fmt.Errorf("no server")}
-		}
+
 		ctx := context.Background()
-		text, recommendations, err := loadScorecardForTUI(ctx, server, projectRoot, fullMode)
-		if err != nil {
-			return scorecardLoadedMsg{err: err}
+
+		var combined strings.Builder
+
+		var recommendations []string
+
+		if tools.IsGoProject() {
+			opts := &tools.ScorecardOptions{FastMode: !fullMode}
+
+			scorecard, err := tools.GenerateGoScorecard(ctx, projectRoot, opts)
+			if err != nil {
+				return scorecardLoadedMsg{err: err}
+			}
+
+			combined.WriteString("=== Go Scorecard ===\n\n")
+			combined.WriteString(tools.FormatGoScorecard(scorecard))
+			recommendations = scorecard.Recommendations
 		}
-		return scorecardLoadedMsg{text: text, recommendations: recommendations}
+
+		overviewText, err := tools.GetOverviewText(ctx, projectRoot)
+		if err != nil {
+			if combined.Len() > 0 {
+				combined.WriteString("\n\n=== Project Overview ===\n\n(overview failed: ")
+				combined.WriteString(err.Error())
+				combined.WriteString(")")
+			} else {
+				return scorecardLoadedMsg{err: err}
+			}
+		} else {
+			if combined.Len() > 0 {
+				combined.WriteString("\n\n")
+			}
+
+			combined.WriteString("=== Project Overview ===\n\n")
+			combined.WriteString(overviewText)
+		}
+
+		return scorecardLoadedMsg{text: combined.String(), recommendations: recommendations}
 	}
 }
 
@@ -130,9 +161,9 @@ func runWavesRefreshTools(server framework.MCPServer) tea.Cmd {
 
 		ctx := context.Background()
 
-		listArgs, _ := json.Marshal(map[string]interface{}{"action": "list", "output_format": "json", "compact": true})
-		if _, err := server.CallTool(ctx, "task_workflow", listArgs); err != nil {
-			return wavesRefreshDoneMsg{err: fmt.Errorf("task_workflow list: %w", err)}
+		syncArgs, _ := json.Marshal(map[string]interface{}{"action": "sync", "sub_action": "list"})
+		if _, err := server.CallTool(ctx, "task_workflow", syncArgs); err != nil {
+			return wavesRefreshDoneMsg{err: fmt.Errorf("task_workflow sync: %w", err)}
 		}
 
 		taArgs, _ := json.Marshal(map[string]interface{}{"action": "parallelization", "output_format": "text"})
@@ -350,7 +381,6 @@ func showConfigSection(section configSection, cfg *config.FullConfig) tea.Cmd {
 			details.WriteString(fmt.Sprintf("  Default Status: %s\n", cfg.Tasks.DefaultStatus))
 			details.WriteString(fmt.Sprintf("  Default Priority: %s\n", cfg.Tasks.DefaultPriority))
 			details.WriteString(fmt.Sprintf("  Stale Threshold: %d hours\n", cfg.Tasks.StaleThresholdHours))
-			details.WriteString(fmt.Sprintf("  Keybinding Actions: %d\n", len(cfg.Tasks.Keybindings)))
 		case "Database":
 			details.WriteString(fmt.Sprintf("  SQLite Path: %s\n", cfg.Database.SQLitePath))
 			details.WriteString(fmt.Sprintf("  Max Connections: %d\n", cfg.Database.MaxConnections))
@@ -374,7 +404,7 @@ func showConfigSection(section configSection, cfg *config.FullConfig) tea.Cmd {
 
 func saveConfig(projectRoot string, cfg *config.FullConfig) tea.Cmd {
 	return func() tea.Msg {
-		if err := saveConfigForTUI(projectRoot, cfg); err != nil {
+		if err := config.WriteConfigToProtobufFile(projectRoot, cfg); err != nil {
 			return configSaveResultMsg{message: fmt.Sprintf("Save failed: %v", err), success: false}
 		}
 		return configSaveResultMsg{message: "Config saved to .exarp/config.pb", success: true}

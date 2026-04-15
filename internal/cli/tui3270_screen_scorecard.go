@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/davidl71/exarp-go/internal/tools"
 	"github.com/racingmars/go3270"
 )
 
@@ -35,39 +36,79 @@ func runRecommendation(projectRoot, rec string) (output string, err error) {
 	return string(out), nil
 }
 
-// scorecardTransaction shows project scorecard via report MCP tool (adapter).
+// scorecardTransaction shows project scorecard (Go scorecard when Go project + project overview).
 // When scorecardFullModeNext is set (e.g. after running a recommendation), uses full checks so coverage is shown.
 func (state *tui3270State) scorecardTransaction(conn net.Conn, devInfo go3270.DevInfo, data any) (go3270.Tx, any, error) {
 	ctx := context.Background()
 
 	scErrPFRow := t3270PFRow(devInfo)
 
+	var combined strings.Builder
+
+	var recommendations []string
+
+	// Use full mode when returning from "Run #" so updated coverage/lint is shown
 	useFullMode := state.scorecardFullModeNext
 	state.scorecardFullModeNext = false
 
 	showLoadingOverlay(conn, devInfo, "Loading scorecard...")
 
-	cols := t3270ScreenCols(devInfo)
-	gc := t3270PanelRuleColor()
+	if tools.IsGoProject() {
+		scorecardOpts := &tools.ScorecardOptions{FastMode: !useFullMode}
 
-	text, recommendations, err := loadScorecardForTUI(ctx, state.server, state.projectRoot, useFullMode)
+		scorecard, err := tools.GenerateGoScorecard(ctx, state.projectRoot, scorecardOpts)
+		if err != nil {
+			errScreen := go3270.Screen{
+				{Row: 2, Col: 2, Content: "SCORECARD", Intense: true, Color: go3270.Blue},
+				{Row: 4, Col: 2, Content: "Error: " + err.Error(), Color: go3270.Red},
+				{Row: scErrPFRow, Col: 2, Content: "PF3=Back", Color: go3270.Turquoise},
+			}
+			screenOpts := go3270.ScreenOpts{Codepage: devInfo.Codepage()}
+
+			if _, showErr := go3270.ShowScreenOpts(errScreen, nil, conn, screenOpts); showErr != nil {
+				return nil, nil, showErr
+			}
+
+			return state.mainMenuTransaction, state, nil
+		}
+
+		recommendations = scorecard.Recommendations
+
+		combined.WriteString("=== Go Scorecard ===\n\n")
+		combined.WriteString(tools.FormatGoScorecard(scorecard))
+	}
+
+	overviewText, err := tools.GetOverviewText(ctx, state.projectRoot)
 	if err != nil {
-		errScreen := go3270.Screen{
-			{Row: 0, Col: 0, Content: t3270ISPFRuleLine(cols, " SCORECARD "), Color: gc},
-			{Row: 1, Col: 2, Content: "SCORECARD", Intense: true, Color: t3270ISPFTitleColor()},
-			{Row: 3, Col: 2, Content: "Error: " + err.Error(), Color: go3270.Red},
-			{Row: scErrPFRow, Col: 2, Content: "PF3=Back", Color: go3270.Turquoise},
-		}
-		screenOpts := go3270.ScreenOpts{Codepage: devInfo.Codepage()}
+		if combined.Len() > 0 {
+			combined.WriteString("\n\n=== Project Overview ===\n\n(overview failed: ")
+			combined.WriteString(err.Error())
+			combined.WriteString(")")
+		} else {
+			errScreen := go3270.Screen{
+				{Row: 2, Col: 2, Content: "SCORECARD", Intense: true, Color: go3270.Blue},
+				{Row: 4, Col: 2, Content: "Error: " + err.Error(), Color: go3270.Red},
+				{Row: scErrPFRow, Col: 2, Content: "PF3=Back", Color: go3270.Turquoise},
+			}
+			screenOpts := go3270.ScreenOpts{Codepage: devInfo.Codepage()}
 
-		if _, showErr := go3270.ShowScreenOpts(errScreen, nil, conn, screenOpts); showErr != nil {
-			return nil, nil, showErr
+			if _, showErr := go3270.ShowScreenOpts(errScreen, nil, conn, screenOpts); showErr != nil {
+				return nil, nil, showErr
+			}
+
+			return state.mainMenuTransaction, state, nil
+		}
+	} else {
+		if combined.Len() > 0 {
+			combined.WriteString("\n\n")
 		}
 
-		return state.mainMenuTransaction, state, nil
+		combined.WriteString("=== Project Overview ===\n\n")
+		combined.WriteString(overviewText)
 	}
 
 	state.scorecardRecs = recommendations
+	text := combined.String()
 	lines := strings.Split(text, "\n")
 	scContentMax := t3270ContentMaxRow(devInfo)
 	maxRows := scContentMax - 2 // Reserve title row and margin
@@ -83,8 +124,7 @@ func (state *tui3270State) scorecardTransaction(conn net.Conn, devInfo go3270.De
 	scPFRow := t3270PFRow(devInfo)
 
 	screen := go3270.Screen{
-		{Row: 0, Col: 0, Content: t3270ISPFRuleLine(cols, " PROJECT SCORECARD "), Color: gc},
-		{Row: 1, Col: 2, Content: "PROJECT SCORECARD", Intense: true, Color: t3270ISPFTitleColor()},
+		{Row: 1, Col: 2, Content: "PROJECT SCORECARD", Intense: true, Color: go3270.Blue},
 		{Row: scPFRow, Col: 2, Content: "PF3=Back to menu", Color: go3270.Turquoise},
 	}
 	if len(state.scorecardRecs) > 0 {
@@ -92,7 +132,7 @@ func (state *tui3270State) scorecardTransaction(conn net.Conn, devInfo go3270.De
 			go3270.Field{Row: scStatusRow, Col: 2, Content: "Run # (1-" + strconv.Itoa(len(state.scorecardRecs)) + "):", Intense: true},
 			go3270.Field{Row: scStatusRow, Col: 24, Write: true, Name: "run_rec", Content: ""},
 		)
-		screen[2] = go3270.Field{Row: scPFRow, Col: 2, Content: "PF3=Back  Enter=Run selected #"}
+		screen[1] = go3270.Field{Row: scPFRow, Col: 2, Content: "PF3=Back  Enter=Run selected #"}
 	}
 
 	for i, line := range lines {
@@ -148,8 +188,7 @@ func (state *tui3270State) scorecardTransaction(conn net.Conn, devInfo go3270.De
 			}
 
 			resultScreen := go3270.Screen{
-				{Row: 0, Col: 0, Content: t3270ISPFRuleLine(cols, " IMPLEMENT RESULT "), Color: gc},
-				{Row: 1, Col: 2, Content: "IMPLEMENT RESULT (#" + runRec + ")", Intense: true, Color: t3270ISPFTitleColor()},
+				{Row: 1, Col: 2, Content: "IMPLEMENT RESULT (#" + runRec + ")", Intense: true, Color: go3270.Blue},
 				{Row: 2, Col: 2, Content: rec, Color: go3270.Green},
 				{Row: scPFRow, Col: 2, Content: "PF3=Back to scorecard", Color: go3270.Turquoise},
 			}

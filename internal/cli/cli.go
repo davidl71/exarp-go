@@ -10,10 +10,8 @@ import (
 	"fmt"
 	"os"
 	"regexp"
-	"runtime"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/davidl71/exarp-go/internal/config"
@@ -142,10 +140,12 @@ func Run() error {
 	case "task":
 		initializeDatabase()
 		setCLIOutputFromParsed(parsed)
+
 		server, err := setupServer()
 		if err != nil {
 			return err
 		}
+
 		return handleTaskCommand(server, parsed)
 	case "tui":
 		initializeDatabase()
@@ -179,8 +179,7 @@ func Run() error {
 		return handleCursorCommand(parsed)
 	case "tui3270":
 		tuiParsed := mcpcli.ParseArgs(os.Args[2:])
-		foreground := tuiParsed.GetBoolFlag("foreground", false) || tuiParsed.GetBoolFlag("f", false)
-		daemon := !foreground
+		daemon := tuiParsed.GetBoolFlag("daemon", false) || tuiParsed.GetBoolFlag("d", false)
 
 		pidFile := tuiParsed.GetFlag("pid-file", "")
 		if pidFile == "" {
@@ -204,34 +203,18 @@ func Run() error {
 
 		initializeDatabase()
 
-		if daemon {
-			detached, derr := tryDetachTUI3270(pidFile)
-			if derr != nil {
-				return derr
-			}
-			if detached {
-				return nil
-			}
-			if runtime.GOOS == "windows" {
-				logInfo(context.Background(), "3270 background detach is not supported on Windows; running server in foreground",
-					"operation", "tui3270")
-			}
-		}
-
 		server, err := setupServer()
 		if err != nil {
 			return err
 		}
 
-		return RunTUI3270(server, status, port)
+		return RunTUI3270(server, status, port, daemon, pidFile)
 	case "queue":
 		initializeDatabase()
 		return handleQueueCommand(parsed)
 	case "worker":
 		initializeDatabase()
 		return handleWorkerCommand(parsed)
-	case "doctor":
-		return RunDoctor()
 	}
 
 	// Flag-based modes (-tool, -list, -test, -i, -completion)
@@ -259,43 +242,17 @@ func runFlagBasedMode() error {
 	CLIOutputOpts.JSON = *jsonOut
 	CLIOutputOpts.Concise = *concise
 
-	// Usage-only: avoid project-root walk, config load, and SQLite open.
-	if *completion == "" && !*listTools && *testTool == "" && *toolName == "" && !*interactive {
-		showUsage()
-		return nil
-	}
+	initializeDatabase()
 
-	// Shell completion and -list only need registered tool metadata, not Todo2/SQLite.
-	needDB := *testTool != "" || *toolName != "" || *interactive
-	var server framework.MCPServer
-	var err error
-	if needDB {
-		var wg sync.WaitGroup
-		wg.Add(2)
-		go func() {
-			defer wg.Done()
-			initializeDatabase()
-		}()
-		go func() {
-			defer wg.Done()
-			var e error
-			server, e = setupServer()
-			err = e
-		}()
-		wg.Wait()
-		if err != nil {
-			return err
+	defer func() {
+		if err := database.Close(); err != nil {
+			logWarn(context.Background(), "Error closing database", "error", err, "operation", "closeDatabase")
 		}
-		defer func() {
-			if cerr := database.Close(); cerr != nil {
-				logWarn(context.Background(), "Error closing database", "error", cerr, "operation", "closeDatabase")
-			}
-		}()
-	} else {
-		server, err = setupServer()
-		if err != nil {
-			return err
-		}
+	}()
+
+	server, err := setupServer()
+	if err != nil {
+		return err
 	}
 
 	switch {
@@ -309,8 +266,10 @@ func runFlagBasedMode() error {
 		return executeTool(server, *toolName, *argsJSON)
 	case *interactive:
 		return runInteractive(server)
+	default:
+		showUsage()
+		return nil
 	}
-	return fmt.Errorf("internal error: flag-based mode exhausted without match")
 }
 
 func isTTYStdout() bool {
@@ -330,8 +289,6 @@ const (
 )
 
 // CLIOutputOpts holds output options for OpenCode/script-friendly CLI (--quiet, --json, --concise).
-// Mutable by design: this is per-process CLI state derived from argv parsing and
-// read by various CLI subcommands during a single invocation.
 var CLIOutputOpts = struct {
 	Quiet   bool
 	JSON    bool
@@ -803,10 +760,9 @@ func showUsage() {
 	_, _ = fmt.Println("TUI Commands:")
 	_, _ = fmt.Println("  tui                 Launch terminal user interface for task management")
 	_, _ = fmt.Println("  tui <status>        Launch TUI filtered by status (e.g., 'Todo', 'In Progress')")
-	_, _ = fmt.Println("  tui3270 [status] [port]  Launch 3270 TUI server (Unix: daemon/background by default)")
-	_, _ = fmt.Println("    --foreground, -f      Stay in foreground; attach logs to this terminal")
-	_, _ = fmt.Println("    --daemon, -d          Explicit background (default on Unix; no-op if already detached)")
-	_, _ = fmt.Println("    --pid-file FILE       PID file path (default: .exarp-go-tui3270.pid under project root)")
+	_, _ = fmt.Println("  tui3270 [status] [port] [--daemon] [--pid-file FILE]  Launch 3270 TUI server")
+	_, _ = fmt.Println("    --daemon, -d          Run in background mode (writes PID file, redirects logs)")
+	_, _ = fmt.Println("    --pid-file FILE       Write PID to FILE (default: .exarp-go-tui3270.pid)")
 	_, _ = fmt.Println()
 	_, _ = fmt.Println("Session:")
 	_, _ = fmt.Println("  session handoffs       View session handoff notes (from previous sessions)")

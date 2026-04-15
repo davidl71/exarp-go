@@ -5,7 +5,7 @@ import (
 	"sort"
 	"strings"
 
-	"charm.land/lipgloss/v2"
+	"github.com/charmbracelet/lipgloss"
 	"github.com/davidl71/exarp-go/internal/models"
 )
 
@@ -37,10 +37,6 @@ func (m *model) clearTransientMessages() {
 }
 
 func truncatePad(s string, width int) string {
-	return fitWidth(s, width)
-}
-
-func fitWidth(s string, width int) string {
 	if width <= 0 {
 		return s
 	}

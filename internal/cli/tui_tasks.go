@@ -1,160 +1,24 @@
-// tui_tasks.go — TUI tasks tab: narrow/medium/wide list rendering + bubble/list and bubble/table integration.
+// tui_tasks.go — TUI tasks tab: narrow/medium/wide list rendering.
 package cli
 
 import (
 	"fmt"
 	"strings"
 
-	"charm.land/bubbles/v2/list"
-	"charm.land/bubbles/v2/table"
 	humanize "github.com/dustin/go-humanize"
-
-	"github.com/davidl71/exarp-go/internal/database"
 )
-
-// defaultTableColumns defines the columns for bubble/table sprintboard view.
-var defaultTableColumns = []table.Column{
-	{Title: "ID", Width: 22},
-	{Title: "Status", Width: 12},
-	{Title: "Priority", Width: 10},
-	{Title: "Description", Width: 38},
-	{Title: "Tags", Width: 18},
-}
-
-// taskItem implements list.Item for bubble/list integration.
-type taskItem struct {
-	task  *database.Todo2Task
-	index int
-}
-
-func (t taskItem) FilterValue() string {
-	return t.task.Content + " " + t.task.Status + " " + t.task.Priority + " " + strings.Join(t.task.Tags, " ")
-}
-
-func (t taskItem) Title() string {
-	return t.task.Content
-}
-
-func (t taskItem) Description() string {
-	return fmt.Sprintf("[%s] %s", t.task.Status, t.task.Priority)
-}
-
-// itemsFromTasks converts database tasks to list items.
-func itemsFromTasks(tasks []*database.Todo2Task) []list.Item {
-	items := make([]list.Item, len(tasks))
-	for i, task := range tasks {
-		items[i] = taskItem{task: task, index: i}
-	}
-	return items
-}
-
-func (m model) visibleTasks() []*database.Todo2Task {
-	vis := m.visibleIndices()
-	if len(vis) == 0 {
-		return nil
-	}
-
-	out := make([]*database.Todo2Task, 0, len(vis))
-	for _, idx := range vis {
-		if idx >= 0 && idx < len(m.tasks) && m.tasks[idx] != nil {
-			out = append(out, m.tasks[idx])
-		}
-	}
-
-	return out
-}
-
-func (m *model) syncTaskComponents() {
-	visible := m.visibleTasks()
-	m.taskList.SetItems(itemsFromTasks(visible))
-	m.taskList.SetFilterText(m.searchQuery)
-	m.taskList.SetSize(m.effectiveWidth()-2, m.effectiveHeight()-10)
-
-	m.taskTable.SetRows(rowsFromTasks(visible))
-	m.taskTable.SetWidth(m.effectiveWidth() - 2)
-	m.taskTable.SetHeight(m.effectiveHeight() - 8)
-
-	if len(visible) == 0 {
-		m.taskTable.SetCursor(0)
-		m.taskList.Select(-1)
-		return
-	}
-
-	if m.cursor >= len(visible) {
-		m.cursor = len(visible) - 1
-	}
-	if m.cursor < 0 {
-		m.cursor = 0
-	}
-
-	m.taskTable.SetCursor(m.cursor)
-	m.taskList.Select(m.cursor)
-}
-
-// viewTasksList renders the task list using bubble/list.
-func (m model) viewTasksList() string {
-	if len(m.visibleTasks()) == 0 {
-		return "\n  No tasks to display\n\n"
-	}
-	m.syncTaskComponents()
-	return m.taskList.View()
-}
-
-// rowsFromTasks converts database tasks to table rows.
-func rowsFromTasks(tasks []*database.Todo2Task) []table.Row {
-	rows := make([]table.Row, len(tasks))
-	for i, task := range tasks {
-		rows[i] = table.Row{
-			task.ID,
-			task.Status,
-			task.Priority,
-			truncatePad(task.Content, 38),
-			truncatePad(strings.Join(task.Tags, ","), 18),
-		}
-	}
-	return rows
-}
-
-// viewTasksTable renders the task list using bubble/table.
-func (m model) viewTasksTable() string {
-	if len(m.visibleTasks()) == 0 {
-		return "\n  No tasks to display\n\n"
-	}
-	m.syncTaskComponents()
-	return m.taskTable.View()
-}
-
-// viewSpinner returns the spinner view with a message.
-func (m model) viewSpinner() string {
-	return "\n  " + m.taskSpinner.View() + " " + m.spinnerMessage + "\n\n"
-}
 
 func (m model) viewTasks() string {
 	if m.loading {
-		return m.viewSpinner()
-	}
-
-	// Command palette overlay
-	if m.showCommandPalette {
-		return m.viewCommandPalette()
+		return "\n  Loading tasks...\n\n"
 	}
 
 	if m.err != nil {
 		return fmt.Sprintf("\n  Error: %v\n\n  Press q to quit.\n\n", m.err)
 	}
 
-	// Use bubble/list if enabled
-	if m.useBubbleList {
-		return m.viewTasksList()
-	}
-
-	// Use bubble/table if enabled
-	if m.useBubbleTable {
-		return m.viewTasksTable()
-	}
-
 	if len(m.tasks) == 0 {
-		return fmt.Sprintf("\n  No tasks found (status: %s)\n\n  Press q to quit, %s to refresh.\n\n", m.status, bindingList(m.bindingsFor(KeyActionRefresh)))
+		return fmt.Sprintf("\n  No tasks found (status: %s)\n\n  Press q to quit, r to refresh.\n\n", m.status)
 	}
 
 	// Calculate available width (account for padding). Use effective dimensions so
@@ -249,13 +113,13 @@ func (m model) viewTasks() string {
 	if m.bulkStatusPrompt {
 		selectedCount := len(m.selected)
 		prompt := fmt.Sprintf("Bulk update %d task(s) - Select status: ", selectedCount)
-		prompt += helpStyle.Render(bindingList(m.bindingsFor(KeyActionStatusDone)))
+		prompt += helpStyle.Render("d")
 		prompt += "=Done "
-		prompt += helpStyle.Render(bindingList(m.bindingsFor(KeyActionStatusInProgress)))
+		prompt += helpStyle.Render("i")
 		prompt += "=In Progress "
-		prompt += helpStyle.Render(bindingList(m.bindingsFor(KeyActionStatusTodo)))
+		prompt += helpStyle.Render("t")
 		prompt += "=Todo "
-		prompt += helpStyle.Render(bindingList(m.bindingsFor(KeyActionStatusReview)))
+		prompt += helpStyle.Render("r")
 		prompt += "=Review "
 		prompt += helpStyle.Render("Esc")
 		prompt += "=Cancel"
@@ -389,9 +253,7 @@ func (m model) renderMediumTaskList(b *strings.Builder, width int) {
 		_, isSelected := m.selected[realIdx]
 
 		cursor := cursorMarkerWide(isCursor, isSelected)
-		// Task IDs should never be truncated; if the column is too narrow, overflow
-		// is preferable to losing the identifier.
-		taskID := task.ID
+		taskID := truncatePad(task.ID, colIDMedium)
 		statusStr := formatStatus(task.Status, colStatus)
 		priFull := formatPriorityFull(task.Priority, colPriority)
 		priShort := formatPriorityShort(task.Priority, colPRI)
@@ -464,9 +326,7 @@ func (m model) renderWideTaskList(b *strings.Builder, width int) {
 		_, isSelected := m.selected[realIdx]
 
 		cursor := cursorMarkerWide(isCursor, isSelected)
-		// Task IDs should never be truncated; if the column is too narrow, overflow
-		// is preferable to losing the identifier.
-		taskID := task.ID
+		taskID := truncatePad(task.ID, wideColID)
 		statusStr := formatStatus(task.Status, wideColStatus)
 		priFull := formatPriorityFull(task.Priority, wideColPriority)
 		priShort := formatPriorityShort(task.Priority, wideColPRI)

@@ -130,7 +130,6 @@ func TestHasCLIFlags(t *testing.T) {
 		want bool
 	}{
 		{"task subcommand", []string{"exarp-go", "task", "list"}, true},
-		{"-cpuprof then task list", []string{"exarp-go", "-cpuprof=/tmp/x.prof", "task", "list"}, true},
 		{"config subcommand", []string{"exarp-go", "config"}, true},
 		{"tui subcommand", []string{"exarp-go", "tui"}, true},
 		{"tui3270 subcommand", []string{"exarp-go", "tui3270"}, true},
@@ -153,11 +152,11 @@ func TestHasCLIFlags(t *testing.T) {
 }
 
 func TestReservedSubcommands(t *testing.T) {
-	if len(ReservedSubcommands) != 10 {
-		t.Errorf("ReservedSubcommands len = %d, want 10", len(ReservedSubcommands))
+	if len(ReservedSubcommands) != 9 {
+		t.Errorf("ReservedSubcommands len = %d, want 9", len(ReservedSubcommands))
 	}
 
-	want := map[string]bool{"task": true, "config": true, "tui": true, "tui3270": true, "lock": true, "session": true, "cursor": true, "queue": true, "worker": true, "doctor": true}
+	want := map[string]bool{"task": true, "config": true, "tui": true, "tui3270": true, "lock": true, "session": true, "cursor": true, "queue": true, "worker": true}
 	for _, s := range ReservedSubcommands {
 		if !want[s] {
 			t.Errorf("ReservedSubcommands contains unexpected %q", s)

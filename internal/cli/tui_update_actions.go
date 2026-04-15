@@ -3,28 +3,15 @@
 package cli
 
 import (
-	tea "charm.land/bubbletea/v2"
+	tea "github.com/charmbracelet/bubbletea"
+	"github.com/davidl71/exarp-go/internal/config"
 )
 
 // handleActionKeys handles action keys (enter, space, e, i, r, x, a, d, u, s, R, U, Q, A, y, m, 0-9, E, L) and default.
 // Returns (model, cmd, true) so the caller always gets a handled result when delegating to this.
 func (m model) handleActionKeys(key string, msg tea.KeyMsg) (model, tea.Cmd, bool) {
-	switch {
-	case m.keyMatches(key, KeyActionDetail):
-		// Enter goes into task detail
-		if m.mode == ModeTasks {
-			vis := m.visibleIndices()
-			if len(vis) > 0 && m.cursor < len(vis) {
-				m.transitionTo(ModeTaskDetail)
-				m.taskDetailTask = m.tasks[m.realIndexAt(m.cursor)]
-				m.syncTaskDetailViewport()
-				m.taskDetailViewport.GotoTop()
-				return m, nil, true
-			}
-		}
-		return m, nil, true
-
-	case key == " " || key == "space": // Space toggles task selection in tasks mode
+	switch key {
+	case "enter", " ", "e", "i":
 		// In handoffs: "i" = start interactive agent with handoff (do not close)
 		if m.mode == ModeHandoffs && msg.String() == "i" && len(m.handoffEntries) > 0 {
 			var h map[string]interface{}
@@ -111,7 +98,7 @@ func (m model) handleActionKeys(key string, msg tea.KeyMsg) (model, tea.Cmd, boo
 			return m, nil, true
 		}
 		if m.mode == ModeHandoffs && m.handoffDetailIndex < 0 && len(m.handoffEntries) > 0 {
-			if msg.String() == " " || msg.String() == "space" {
+			if msg.String() == " " {
 				if _, ok := m.handoffSelected[m.handoffCursor]; ok {
 					delete(m.handoffSelected, m.handoffCursor)
 				} else {
@@ -136,11 +123,11 @@ func (m model) handleActionKeys(key string, msg tea.KeyMsg) (model, tea.Cmd, boo
 
 		return m, nil, true
 
-	case m.keyMatches(key, KeyActionRefresh):
+	case "r":
 		switch m.mode {
 		case ModeConfig:
 			m.configSaveMessage = ""
-			cfg, err := loadConfigForTUI(m.projectRoot)
+			cfg, err := config.LoadConfig(m.projectRoot)
 			if err == nil {
 				m.configData = cfg
 				m.configChanged = false
@@ -148,7 +135,7 @@ func (m model) handleActionKeys(key string, msg tea.KeyMsg) (model, tea.Cmd, boo
 			return m, nil, true
 		case ModeScorecard:
 			m.scorecardLoading = true
-			return m, loadScorecard(m.server, m.projectRoot, false), true
+			return m, loadScorecard(m.projectRoot, false), true
 		case ModeHandoffs:
 			m.handoffLoading = true
 			return m, loadHandoffs(m.server), true
@@ -170,7 +157,7 @@ func (m model) handleActionKeys(key string, msg tea.KeyMsg) (model, tea.Cmd, boo
 			return m, loadTasks(m.server, m.status), true
 		}
 
-	case key == "x":
+	case "x":
 		if m.mode == ModeHandoffs && len(m.handoffEntries) > 0 {
 			ids := handoffIDsFromSelection(m)
 			if len(ids) > 0 {
@@ -179,7 +166,7 @@ func (m model) handleActionKeys(key string, msg tea.KeyMsg) (model, tea.Cmd, boo
 		}
 		return m, nil, true
 
-	case m.keyMatches(key, KeyActionToggleAutoRefresh):
+	case "a":
 		if m.mode == ModeScorecard {
 			return m, nil, true
 		}
@@ -197,7 +184,7 @@ func (m model) handleActionKeys(key string, msg tea.KeyMsg) (model, tea.Cmd, boo
 		}
 		return m, nil, true
 
-	case key == "d":
+	case "d":
 		if m.mode == ModeHandoffs && len(m.handoffEntries) > 0 {
 			ids := handoffIDsFromSelection(m)
 			if len(ids) > 0 {
@@ -206,13 +193,13 @@ func (m model) handleActionKeys(key string, msg tea.KeyMsg) (model, tea.Cmd, boo
 		}
 		return m, nil, true
 
-	case key == "u":
+	case "u":
 		if m.mode == ModeConfig {
 			return m, saveConfig(m.projectRoot, m.configData), true
 		}
 		return m, nil, true
 
-	case m.keyMatches(key, KeyActionCreateTask):
+	case "+":
 		if m.mode == ModeTasks && !m.searchMode && !m.bulkStatusPrompt {
 			m.createMode = true
 			m.createInput = ""
@@ -220,21 +207,29 @@ func (m model) handleActionKeys(key string, msg tea.KeyMsg) (model, tea.Cmd, boo
 		}
 		return m, nil, true
 
-	case key == "s":
+	case "s":
 		if m.mode == ModeScorecard {
 			return m, nil, true
 		}
 		switch m.mode {
+		case ModeTasks:
+			vis := m.visibleIndices()
+			if len(vis) > 0 && m.cursor < len(vis) {
+				m.mode = ModeTaskDetail
+				m.taskDetailTask = m.tasks[m.realIndexAt(m.cursor)]
+				m.taskDetailScrollTop = 0
+				return m, nil, true
+			}
 		case ModeTaskDetail:
-			// s exits task detail back to task list
-			m.transitionTo(ModeTasks)
+			m.mode = ModeTasks
 			m.taskDetailTask = nil
 			return m, nil, true
 		default:
 			return m, saveConfig(m.projectRoot, m.configData), true
 		}
+		return m, nil, true
 
-	case m.keyMatches(key, KeyActionRefresh):
+	case "R":
 		if m.mode == ModeWaves {
 			m.loading = true
 			m.err = nil
@@ -242,7 +237,7 @@ func (m model) handleActionKeys(key string, msg tea.KeyMsg) (model, tea.Cmd, boo
 		}
 		return m, nil, true
 
-	case key == "U":
+	case "U":
 		if m.mode == ModeWaves {
 			m.loading = true
 			m.waveUpdateMsg = ""
@@ -250,7 +245,7 @@ func (m model) handleActionKeys(key string, msg tea.KeyMsg) (model, tea.Cmd, boo
 		}
 		return m, nil, true
 
-	case key == "Q":
+	case "Q":
 		if m.mode == ModeWaves && m.queueEnabled && len(m.waves) > 0 {
 			levels := sortedWaveLevels(m.waves)
 			waveIdx := 0
@@ -273,10 +268,10 @@ func (m model) handleActionKeys(key string, msg tea.KeyMsg) (model, tea.Cmd, boo
 		}
 		return m, nil, true
 
-	case key == "A":
+	case "A":
 		if m.mode == ModeTasks || m.mode == ModeWaves {
 			m.taskAnalysisReturnMode = m.mode
-			m.transitionTo(ModeTaskAnalysis)
+			m.mode = ModeTaskAnalysis
 			m.taskAnalysisLoading = true
 			m.taskAnalysisErr = nil
 			m.taskAnalysisText = ""
@@ -292,7 +287,7 @@ func (m model) handleActionKeys(key string, msg tea.KeyMsg) (model, tea.Cmd, boo
 		}
 		return m, nil, true
 
-	case key == "y":
+	case "y":
 		if m.mode == ModeTaskAnalysis && !m.taskAnalysisLoading && !m.taskAnalysisApproveLoading {
 			m.taskAnalysisApproveLoading = true
 			m.taskAnalysisApproveMsg = ""
@@ -300,7 +295,7 @@ func (m model) handleActionKeys(key string, msg tea.KeyMsg) (model, tea.Cmd, boo
 		}
 		return m, nil, true
 
-	case key == "m":
+	case "m":
 		if m.mode == ModeWaves && m.waveDetailLevel >= 0 && m.waveMoveTaskID == "" {
 			ids := m.waves[m.waveDetailLevel]
 			if len(ids) > 0 && m.waveTaskCursor < len(ids) {
@@ -310,7 +305,7 @@ func (m model) handleActionKeys(key string, msg tea.KeyMsg) (model, tea.Cmd, boo
 		}
 		return m, nil, true
 
-	case key == "0" || key == "1" || key == "2" || key == "3" || key == "4" || key == "5" || key == "6" || key == "7" || key == "8" || key == "9":
+	case "0", "1", "2", "3", "4", "5", "6", "7", "8", "9":
 		if m.mode == ModeWaves && m.waveMoveTaskID != "" {
 			targetLevel := int(msg.String()[0] - '0')
 			levels := sortedWaveLevels(m.waves)
@@ -338,7 +333,7 @@ func (m model) handleActionKeys(key string, msg tea.KeyMsg) (model, tea.Cmd, boo
 		}
 		return m, nil, true
 
-	case key == "E":
+	case "E":
 		m.childAgentMsg = ""
 		if m.mode == ModeTasks {
 			vis := m.visibleIndices()
@@ -395,7 +390,7 @@ func (m model) handleActionKeys(key string, msg tea.KeyMsg) (model, tea.Cmd, boo
 		}
 		return m, nil, true
 
-	case key == "L":
+	case "L":
 		m.childAgentMsg = ""
 		if m.mode == ModeTasks || m.mode == ModeTaskDetail {
 			prompt := PromptForPlan(m.projectRoot)

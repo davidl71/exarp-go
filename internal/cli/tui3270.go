@@ -15,8 +15,8 @@ import (
 	"strings"
 	"syscall"
 
+	"github.com/davidl71/exarp-go/internal/database"
 	"github.com/davidl71/exarp-go/internal/framework"
-	"github.com/davidl71/exarp-go/internal/models"
 	"github.com/davidl71/exarp-go/internal/tools"
 	"github.com/racingmars/go3270"
 )
@@ -33,11 +33,11 @@ type tui3270State struct {
 	projectRoot           string
 	projectName           string
 	status                string
-	tasks                 []*models.Todo2Task
+	tasks                 []*database.Todo2Task
 	cursor                int
 	listOffset            int    // For scrolling in list view
 	mode                  string // "tasks", "taskdetail", "config", "editor"
-	selectedTask          *models.Todo2Task
+	selectedTask          *database.Todo2Task
 	devInfo               go3270.DevInfo
 	command               string           // Command line input
 	filter                string           // Current filter/search term
@@ -65,25 +65,21 @@ func (state *tui3270State) popSession() *tui3270Session {
 	return &s
 }
 
-// RunTUI3270 starts a 3270 TUI server in the foreground. Unix daemon detach is handled in
-// cli dispatch via tryDetachTUI3270 before setupServer.
-func RunTUI3270(server framework.MCPServer, status string, port int) error {
-	// Suppress debug logs when running TUI (interactive UI shouldn't show logs)
-	CLIOutputOpts.Quiet = true
+// RunTUI3270 starts a 3270 TUI server.
+func RunTUI3270(server framework.MCPServer, status string, port int, daemon bool, pidFile string) error {
+	// Daemonize if requested
+	if daemon {
+		return daemonize(pidFile, func() error {
+			return runTUI3270Server(server, status, port)
+		})
+	}
 
+	// Run in foreground
 	return runTUI3270Server(server, status, port)
 }
 
-// runTUI3270Server runs the TCP listener and accept loop.
+// runTUI3270Server runs the actual server (foreground or background).
 func runTUI3270Server(server framework.MCPServer, status string, port int) error {
-	if pf := os.Getenv("EXARP_TUI3270_PIDFILE"); pf != "" {
-		defer func() {
-			if rmErr := os.Remove(pf); rmErr != nil {
-				logWarn(context.Background(), "Failed to remove PID file", "error", rmErr, "operation", "runTUI3270Server", "pid_file", pf)
-			}
-		}()
-	}
-
 	projectRoot, err := tools.FindProjectRoot()
 	projectName := ""
 
@@ -93,11 +89,13 @@ func runTUI3270Server(server framework.MCPServer, status string, port int) error
 		projectName = getProjectName(projectRoot)
 		EnsureConfigAndDatabase(projectRoot)
 
-		defer func() {
-			if err := CloseDatabaseIfOpen(); err != nil {
-				logWarn(context.Background(), "Error closing database", "error", err, "operation", "closeDatabase")
-			}
-		}()
+		if database.DB != nil {
+			defer func() {
+				if err := database.Close(); err != nil {
+					logWarn(context.Background(), "Error closing database", "error", err, "operation", "closeDatabase")
+				}
+			}()
+		}
 	}
 
 	// Listen for tn3270 connections
@@ -154,57 +152,48 @@ func runTUI3270Server(server framework.MCPServer, status string, port int) error
 	}
 }
 
-// resolveTUI3270PIDFile returns an absolute path for the PID file.
-func resolveTUI3270PIDFile(pidFile string) (string, error) {
-	var base string
-
-	if pidFile != "" {
-		base = pidFile
-	} else {
-		projectRoot, err := tools.FindProjectRoot()
-		if err == nil && projectRoot != "" {
-			base = filepath.Join(projectRoot, ".exarp-go-tui3270.pid")
+// daemonize runs the server in the background and writes PID file.
+func daemonize(pidFile string, serverFunc func() error) error {
+	if pidFile == "" {
+		projectRoot, _ := tools.FindProjectRoot()
+		if projectRoot != "" {
+			pidFile = filepath.Join(projectRoot, ".exarp-go-tui3270.pid")
 		} else {
-			wd, werr := os.Getwd()
-			if werr != nil {
-				return "", werr
-			}
-			base = filepath.Join(wd, ".exarp-go-tui3270.pid")
+			pidFile = ".exarp-go-tui3270.pid"
 		}
 	}
 
-	out, err := filepath.Abs(base)
-	if err != nil {
-		return "", err
-	}
-
-	return out, nil
-}
-
-// stripTUI3270DaemonFlags removes daemon/pid-file flags before re-exec so the child does not
-// attempt a second detach.
-func stripTUI3270DaemonFlags(args []string) []string {
-	out := make([]string, 0, len(args))
-
-	for i := 0; i < len(args); i++ {
-		a := args[i]
-
-		switch {
-		case a == "--daemon" || a == "-d":
-			continue
-		case a == "--pid-file" || a == "--pidfile":
-			if i+1 < len(args) && !strings.HasPrefix(args[i+1], "-") {
-				i++
-			}
-			continue
-		case strings.HasPrefix(a, "--pid-file=") || strings.HasPrefix(a, "--pidfile="):
-			continue
-		default:
-			out = append(out, a)
+	// Check if already running
+	if existingPID, err := readPIDFile(pidFile); err == nil {
+		if err := syscall.Kill(existingPID, 0); err == nil {
+			return fmt.Errorf("server already running (PID: %d)", existingPID)
+		}
+		if rmErr := os.Remove(pidFile); rmErr != nil {
+			logWarn(context.Background(), "Failed to remove stale PID file", "error", rmErr, "operation", "daemonize", "pid_file", pidFile)
 		}
 	}
 
-	return out
+	pid := os.Getpid()
+	if err := os.WriteFile(pidFile, []byte(strconv.Itoa(pid)), 0644); err != nil {
+		return fmt.Errorf("failed to write PID file: %w", err)
+	}
+
+	defer func() {
+		if rmErr := os.Remove(pidFile); rmErr != nil {
+			logWarn(context.Background(), "Failed to remove PID file", "error", rmErr, "operation", "daemonize", "pid_file", pidFile)
+		}
+	}()
+
+	logFile := strings.TrimSuffix(pidFile, ".pid") + ".log"
+	_ = logFile // Reserved for future file logging support
+
+	fmt.Printf("3270 TUI server running in background (PID: %d)\n", pid)
+	fmt.Printf("PID file: %s\n", pidFile)
+	fmt.Printf("Log file: %s\n", logFile)
+	fmt.Printf("Connect with: x3270 localhost:3270\n")
+	fmt.Printf("Stop with: kill %d\n", pid)
+
+	return serverFunc()
 }
 
 // readPIDFile reads PID from file.
@@ -241,7 +230,7 @@ func handle3270Connection(conn net.Conn, server framework.MCPServer, status, pro
 		projectRoot: projectRoot,
 		projectName: projectName,
 		status:      status,
-		tasks:       []*models.Todo2Task{},
+		tasks:       []*database.Todo2Task{},
 		cursor:      0,
 		listOffset:  0,
 		mode:        "tasks",
