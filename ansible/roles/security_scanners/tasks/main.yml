@@ -1,0 +1,181 @@
+---
+# Security scanners role - Optional tools for exarp-go multilang security scan (action=scan).
+# Installs: govulncheck (Go), pip-audit (Python), cargo-audit (Rust), Node/npm (npm audit).
+# Requires: common, golang (for go_bin_path / govulncheck).
+
+- name: Load OS-specific variables
+  ansible.builtin.include_vars: "{{ ansible_os_family }}.yml"
+  tags: [security_scanners, optional]
+
+- name: Set user home for pip/npm global installs
+  ansible.builtin.set_fact:
+    _scanner_user_home: "{{ ansible_env.HOME if ansible_connection == 'local' else '/home/' + (project_user | default('vagrant')) }}"
+  tags: [security_scanners, optional]
+
+# --- govulncheck (Go) ---
+- name: Install govulncheck (Go vulnerability scanner)
+  ansible.builtin.command: go install golang.org/x/vuln/cmd/govulncheck@latest
+  environment:
+    PATH: "{{ go_install_path }}/bin:{{ go_bin_path }}:{{ ansible_env.PATH }}"
+    GOPATH: "{{ go_gopath }}"
+  args:
+    creates: "{{ go_bin_path }}/govulncheck"
+  when: "'govulncheck' in security_scanner_tools"
+  register: govulncheck_install
+  failed_when: false
+  changed_when: govulncheck_install.rc == 0
+  tags: [security_scanners, optional]
+
+- name: Verify govulncheck
+  ansible.builtin.command: "{{ go_bin_path }}/govulncheck -h"
+  register: govulncheck_verify
+  changed_when: false
+  failed_when: false
+  when: "'govulncheck' in security_scanner_tools"
+  tags: [security_scanners, optional]
+
+# --- pip-audit (Python) ---
+- name: Install pip and pip-audit (Python dependency scanner)
+  ansible.builtin.package:
+    name: "{{ _python3_pip }}"
+    state: present
+  when:
+    - "'pip_audit' in security_scanner_tools"
+    - ansible_system == "Linux"
+    - _python3_pip | length > 0
+  tags: [security_scanners, optional]
+
+- name: Install pip-audit via pip (Linux)
+  ansible.builtin.pip:
+    name: pip-audit
+    state: present
+    executable: pip3
+  when:
+    - "'pip_audit' in security_scanner_tools"
+    - ansible_system == "Linux"
+  register: pip_audit_linux
+  failed_when: false
+  tags: [security_scanners, optional]
+
+- name: Install pip-audit (macOS Homebrew)
+  community.general.homebrew:
+    name: pip-audit
+    state: present
+  when:
+    - "'pip_audit' in security_scanner_tools"
+    - ansible_system == "Darwin"
+  register: pip_audit_macos
+  failed_when: false
+  tags: [security_scanners, optional]
+
+- name: Verify pip-audit
+  ansible.builtin.command: pip-audit --help
+  register: pip_audit_verify
+  changed_when: false
+  failed_when: false
+  when: "'pip_audit' in security_scanner_tools"
+  tags: [security_scanners, optional]
+
+# --- Node/npm (for npm audit) ---
+- name: Install Node.js (Linux) for npm audit
+  ansible.builtin.package:
+    name: "{{ _node_pkg }}"
+    state: present
+  when:
+    - "'npm' in security_scanner_tools"
+    - ansible_system == "Linux"
+    - _node_pkg | length > 0
+  tags: [security_scanners, optional]
+
+- name: Install Node.js (macOS Homebrew) for npm audit
+  community.general.homebrew:
+    name: "{{ _node_pkg }}"
+    state: present
+  when:
+    - "'npm' in security_scanner_tools"
+    - ansible_system == "Darwin"
+  tags: [security_scanners, optional]
+
+- name: Verify npm
+  ansible.builtin.command: npm --version
+  register: npm_verify
+  changed_when: false
+  failed_when: false
+  when: "'npm' in security_scanner_tools"
+  tags: [security_scanners, optional]
+
+# --- Rust + cargo-audit ---
+- name: Check for cargo
+  ansible.builtin.command: cargo --version
+  register: cargo_check
+  changed_when: false
+  failed_when: false
+  when: "'cargo_audit' in security_scanner_tools"
+  tags: [security_scanners, optional]
+
+- name: Install Rust via rustup (macOS Homebrew)
+  community.general.homebrew:
+    name: rust
+    state: present
+  when:
+    - "'cargo_audit' in security_scanner_tools"
+    - ansible_system == "Darwin"
+    - cargo_check.rc | default(1) != 0
+  register: rust_install_macos
+  failed_when: false
+  tags: [security_scanners, optional]
+
+- name: Install Rust via rustup (Linux)
+  ansible.builtin.shell: |
+    set -e
+    command -v cargo >/dev/null 2>&1 && exit 0
+    curl -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain stable
+    . "${HOME}/.cargo/env"
+    export PATH="${HOME}/.cargo/bin:${PATH}"
+  args:
+    executable: /bin/bash
+    creates: "{{ _scanner_user_home }}/.cargo/bin/cargo"
+  when:
+    - "'cargo_audit' in security_scanner_tools"
+    - ansible_system == "Linux"
+    - cargo_check.rc | default(1) != 0
+  register: rust_install_linux
+  failed_when: false
+  tags: [security_scanners, optional]
+
+- name: Install cargo-audit (Rust)
+  ansible.builtin.shell: |
+    . "${HOME}/.cargo/env" 2>/dev/null || true
+    export PATH="${HOME}/.cargo/bin:{{ go_bin_path }}:{{ ansible_env.PATH }}"
+    cargo install cargo-audit
+  args:
+    executable: /bin/bash
+  when:
+    - "'cargo_audit' in security_scanner_tools"
+    - cargo_check.rc == 0 or (rust_install_macos is defined and rust_install_macos.rc == 0) or (rust_install_linux is defined and rust_install_linux.rc == 0)
+  register: cargo_audit_install
+  failed_when: false
+  changed_when: cargo_audit_install.rc == 0
+  tags: [security_scanners, optional]
+
+- name: Verify cargo-audit
+  ansible.builtin.shell: |
+    . "${HOME}/.cargo/env" 2>/dev/null || true
+    cargo audit --version
+  args:
+    executable: /bin/bash
+  register: cargo_audit_verify
+  changed_when: false
+  failed_when: false
+  when: "'cargo_audit' in security_scanner_tools"
+  tags: [security_scanners, optional]
+
+# --- Summary ---
+- name: Display security scanner tools status
+  ansible.builtin.debug:
+    msg: >-
+      Security scanners (multilang): govulncheck={{ govulncheck_verify.stdout | default('not installed') }};
+      pip-audit={{ pip_audit_verify.stdout | default('not installed') }};
+      npm={{ npm_verify.stdout | default('not installed') }};
+      cargo-audit={{ cargo_audit_verify.stdout | default('not installed') }}
+  tags: [security_scanners, optional, always]

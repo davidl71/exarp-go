@@ -1,0 +1,5 @@
+---
+# macOS (Homebrew) package names for security scanner runtimes
+_node_pkg: node
+_python3_pip: python3  # Homebrew python includes pip
+_rustup_pkg: rustup-init  # or install via rustup.rs script

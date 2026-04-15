@@ -1,0 +1,5 @@
+---
+# Debian/Ubuntu package names for security scanner runtimes
+_node_pkg: nodejs
+_python3_pip: python3-pip
+_rustup_pkg: ""  # install via rustup.rs script

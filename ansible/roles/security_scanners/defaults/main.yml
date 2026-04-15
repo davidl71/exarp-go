@@ -1,0 +1,12 @@
+---
+# Optional multilang security scan tools for exarp-go (security action=scan).
+# When true, installs: govulncheck (Go), pip-audit (Python), cargo-audit (Rust), Node/npm (npm audit).
+# Set install_security_scanners: true in group_vars or -e to enable.
+install_security_scanners: false
+
+# Sub-tools to install (all when install_security_scanners is true; override to subset)
+security_scanner_tools:
+  - govulncheck   # Go: govulncheck ./...
+  - pip_audit     # Python: pip-audit
+  - cargo_audit   # Rust: cargo audit (requires Rust/cargo)
+  - npm           # Node: npm audit (requires Node.js)
