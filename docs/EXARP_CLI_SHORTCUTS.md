@@ -74,7 +74,6 @@ make queue-worker
 
 ## See also
 
-- [EXARP_OPERATOR_CHEATSHEET.md](EXARP_OPERATOR_CHEATSHEET.md) — Task lifecycle, batch `approve`, `new_status` / `dry_run`, MCP vs CLI footguns
 - [ASYNQ_FOLLOWUP_TASKS.md](ASYNQ_FOLLOWUP_TASKS.md) — Queue follow-up task list
 - [.cursor/plans/redis-asynq-and-tui.plan.md](../.cursor/plans/redis-asynq-and-tui.plan.md) — Redis+Asynq plan
 - `make help` — All Makefile targets

@@ -30,7 +30,7 @@ This plan outlines how to coordinate multiple AI agents (AI assistants, speciali
 4. **analyst** - Tractatus Thinking MCP Server (Crew Role: Analyst - structured reasoning and logical decomposition)
 
 **Parallel Research Workflow:**
-- ✅ CodeLlama (Ollama) or FM chain for code analysis
+- ✅ CodeLlama (MLX/Ollama) for code analysis
 - ✅ Context7 for documentation
 - ✅ Tractatus Thinking for logical reasoning
 - ✅ Web search for latest information
@@ -124,7 +124,7 @@ Task dependencies are used to order work and to group tasks into waves for paral
 
 ### 2. Specialized Research Agents
 
-#### CodeLlama (Ollama / local)
+#### CodeLlama (MLX/Ollama)
 **Role:** Code analysis and architecture review  
 **Responsibilities:**
 - Code review and pattern analysis
@@ -133,8 +133,9 @@ Task dependencies are used to order work and to group tasks into waves for paral
 - Code quality analysis
 
 **Invocation:**
-- Via **`text_generate`** (`provider=ollama` / `fm` / `auto`) or **`ollama`** MCP tool
-- Local execution (Apple Silicon when using FM chain)
+- Via MLX MCP tool (`mlx` action)
+- Via Ollama MCP tool (`ollama` action)
+- Local execution (Apple Silicon optimized)
 
 #### Context7 Agent
 **Role:** Documentation and library research  
@@ -617,7 +618,7 @@ Both complete → Continue with dependent tasks
 ## References
 
 - [Parallel Research Workflow](./PARALLEL_RESEARCH_WORKFLOW.md) - Current parallel research implementation
-- [Model-Assisted Workflow](./MODEL_ASSISTED_WORKFLOW.md) - Local LLMs (Ollama, FM chain)
+- [Model-Assisted Workflow](./MODEL_ASSISTED_WORKFLOW.md) - CodeLlama and MLX integration
 - [Migration Status](./MIGRATION_STATUS.md) - Current project state
 - [Todo2 Workflow](../.cursor/rules/todo2.mdc) - Task management system
 

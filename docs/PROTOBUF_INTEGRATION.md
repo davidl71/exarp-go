@@ -1,16 +1,14 @@
 # Protobuf Integration
 
 **Status:** Implemented  
-**Tasks:** T-1768316817909, T-1768317405631, T-1768319001461  
-
-**Canonical doc map:** [PROTOBUF_IMPLEMENTATION_STATUS.md](PROTOBUF_IMPLEMENTATION_STATUS.md) (this file = **where** proto plugs into build, Ansible, and tests).
+**Tasks:** T-1768316817909, T-1768317405631, T-1768319001461
 
 ## Overview
 
 exarp-go uses Protocol Buffers for:
-- **Tool request** parsing (`internal/tools/protobuf_helpers.go`, `WrapHandler` in `handlers_wrap.go`; **mcp-go-core** `request.ParseRequest[T]()` for protobuf/JSON dual decode)
+- **Tool request/response** parsing (task_workflow, task_analysis, etc.)
 - **Config** serialization
-- **Todo2** task metadata (binary/JSON round-trip in DB)
+- **Todo2** task serialization (binary/JSON round-trip)
 
 ## Build Tooling
 

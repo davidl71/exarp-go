@@ -1,57 +1,38 @@
 # Documentation Index
 
-**Last Updated:** 2026-04-05
+**Last Updated:** 2026-01-07
 
 ---
 
 ## Current Documentation
 
-### Preferred Tool Surface
-- Primary entry points: `task_workflow`, `task_analysis`, `task_discovery`, `report`, `health`, `session`, `automation`, `testing`, `lint`, `security`, `git_tools`, `memory`, `memory_maint`, `recommend`, `text_generate`, `workflow_mode`, `tool_catalog`, `generate_config`, `setup_hooks`
-- Specialist tools: backend- or domain-specific helpers such as `ollama`, `cursor_cloud_agent`, `fm_plan_and_execute`, `analyze_alignment`, `check_attribution`
-- Compatibility aliases: `task_execute` -> `task_workflow`, `infer_session_mode` -> `session`, `scan_dependency_security` -> `security`, `context_budget` -> `context`
-- See `TOOL_CONSOLIDATION_ANALYSIS.md` for the current consolidation map and migration guidance
-
 ### Architecture & Design
-- `ARCHITECTURE.md` - High-level package map, data flow, link to modularization map
-- `MODULARIZATION_PACKAGE_MAP.md` - exarp-go vs `mcp-go-core` vs optional MCP server splits (`internal/tools` file clusters)
-- `MODULARIZATION_PHASE1.md` - active extraction steps (cache → core, release order)
-- `CODEBASE_INDEX.md` - File-oriented index (CLI, tools, database, queue)
-- `PERFORMANCE_GUIDE.md` - **Performance hub**: quick-reference table (memory / concurrency / I/O / compiler), link to [goperf.dev common patterns](https://goperf.dev/01-common-patterns/), and index of repo performance docs
-- `research/STABILITY_AND_PERFORMANCE_REMAINING.md` - Inventory of stability/performance follow-ups (queue DB init, tool semaphore, large-repo walks)
 - `FRAMEWORK_AGNOSTIC_DESIGN.md` - Framework-agnostic architecture pattern
 - `DEVWISDOM_GO_LESSONS.md` - Go development best practices and lessons learned
 - `BRIDGE_ANALYSIS.md` - Python bridge architecture and implementation
 - `BRIDGE_ANALYSIS_TABLE.md` - Bridge reference table
 
 ### Cursor & AI
-- `CODEX.md` - Compact Codex/agent quickstart: what to read first, what to ignore, and the preferred verification command
 - `CURSOR_RULES.md` - Cursor rules index and **code/planning tag hints** for Todo2 alignment
 - `OPENCODE_INTEGRATION.md` - Use exarp-go with OpenCode (MCP, CLI, HTTP API)
-- `GO_AI_ECOSYSTEM.md` - AI/LLM backend stack (FM, Ollama, LocalAI, gateway)
+- `GO_AI_ECOSYSTEM.md` - AI/LLM backend stack (FM, Ollama, MLX, LocalAI)
 - `LLM_NATIVE_ABSTRACTION_PATTERNS.md` - LLM abstraction patterns and discovery
 - `research/LLM_ROUTER_AND_ROUTELLM_RESEARCH.md` - radlab llm-router (gateway) and RouteLLM (ML cost routing) research
-- `research/DATA_INTEGRATION_AND_AI_LLM_RESEARCH.md` - awesome-go ELT/ETL frameworks + AI section mapped to tasks, TaskStore, and `text_generate`
-- `research/AWESOME_GO_STRUCTURES_NLP_UTILITIES_RESEARCH.md` - awesome-go queues/NLP/utilities sections (dqueue, bleve, DAGs, caches, tokenizers, templates, …) mapped to exarp-go
 
 ### Active Workflows
-- `EXARP_OPERATOR_CHEATSHEET.md` — Task lifecycle, batch approve (`new_status`, `dry_run`), PROJECT_ROOT, common CLI/MCP footguns
-- TASK_LANES_AND_FILE_OWNERSHIP_PLAN.md - Planning proposal for ownership-aware lanes, file-collision analysis, and safer parallel execution
 - `HANDOFF_VIA_GIT.md` - Hand off so remote gets exarp task list via git (export handoff + task snapshot to tracked docs)
 - `DEV_TEST_AUTOMATION.md` - Development and testing automation
 - `WORKFLOW_USAGE.md` - Workflow usage guide
 - `WORKFLOW_MODE_TOOL_GROUPS.md` - Tool groups enable/disable functionality
 - `WORKFLOW_MODE_TOOL_GROUPS_TEST_RESULTS.md` - Tool groups test results
-- `BACKLOG_PLAN_2026_03_24.md` - Current backlog order after removing llamacpp and cleaning execution-cockpit task state
-- `EXARP_EXECUTION_COCKPIT_GAPS.md` - Real-world execution-state gaps and recommended exarp-go modifications
 - `STREAMLINED_WORKFLOW_SUMMARY.md` - Current workflow summary
 
 ### Current Features
 - `TASK_TOOL_ENRICHMENT_DESIGN.md` - Task tool enrichment (recommended_tools, tag-based enrichment, session prime / task show)
-- `TASK_LANES_AND_FILE_OWNERSHIP_PLAN.md` - Task lanes and file ownership for collision-aware parallelization (Phase 1 complete)
 - `SCORECARD_GO_MODIFICATIONS.md` - Scorecard implementation details
 - `SCORECARD_GO_IMPLEMENTATION.md` - Scorecard feature documentation
 - `MARKDOWN_LINTING_RESEARCH.md` - Markdown linting research
+- `MARKDOWN_LINTING_TEST_RESULTS.md` - Markdown linting test results
 
 ### Index and discoverability
 - `DOCS_AND_CODE_INDEX.md` - Purpose of docs/code index; whether an index helps Cursor and other agents; recommendations
@@ -68,9 +49,10 @@
 ### Analysis & Planning
 - `MULTI_AGENT_PLAN.md` - Multi-agent execution plan
 - `MODEL_ASSISTED_WORKFLOW.md` - Model-assisted workflow design (local LLMs, task breakdown, execution, Phase 6 testing/docs)
-- `MLX_ARCHITECTURE_ANALYSIS.md` - Historical MLX integration analysis (exarp-go no longer registers an `mlx` MCP tool)
+- `MLX_ARCHITECTURE_ANALYSIS.md` - MLX integration analysis
 
 ### Cleanup & Maintenance
+- `DOCUMENTATION_CLEANUP_ANALYSIS.md` - Documentation cleanup analysis
 - `PYTHON_CODE_AUDIT_REPORT.md` - Python code audit results
 
 ---
@@ -107,3 +89,4 @@ When adding new documentation:
 
 **Total Active Docs:** 22 files  
 **Total Archived Docs:** 49 files
+

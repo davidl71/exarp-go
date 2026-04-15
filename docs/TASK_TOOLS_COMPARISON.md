@@ -1,6 +1,6 @@
 # Task Tools Comparison: `task_analysis`, `task_discovery`, `task_workflow`
 
-**Date:** 2026-03-24  
+**Date:** 2026-01-08  
 **Purpose:** Compare the three task-related tools to understand their differences, similarities, and use cases
 
 ---
@@ -9,14 +9,14 @@
 
 | Tool | Primary Purpose | Implementation | Actions |
 |------|----------------|-----------------|---------|
-| **`task_analysis`** | Analyze existing tasks | Native Go | `duplicates`, `tags`, `dependencies`, `execution_plan`, `parallelization` |
-| **`task_discovery`** | Find tasks from code/docs | Native Go | `comments`, `markdown`, `orphans`, `planning_links`, `all` |
-| **`task_workflow`** | Manage task lifecycle and active execution | Native Go | `list`, `create`, `update`, `claim`, `start_run`, `verify`, `add_progress`, `split` |
+| **`task_analysis`** | Analyze existing tasks | Python Bridge | `duplicates`, `tags`, `hierarchy`, `dependencies`, `parallelization` |
+| **`task_discovery`** | Find tasks from code/docs | Python Bridge | `comments`, `markdown`, `orphans`, `all` |
+| **`task_workflow`** | Manage task lifecycle | Python Bridge | `sync`, `approve`, `clarify`, `clarity`, `cleanup` |
 
 **Key Insight:** These three tools work together in a task management workflow:
 1. **Discover** tasks (`task_discovery`) → Find tasks from various sources
 2. **Analyze** tasks (`task_analysis`) → Understand task structure and quality
-3. **Manage** tasks (`task_workflow`) → Handle task lifecycle, active work, and execution evidence
+3. **Manage** tasks (`task_workflow`) → Handle task lifecycle and workflow
 
 ---
 
@@ -26,24 +26,24 @@
 
 #### `task_analysis` Tool
 - **Type:** Analysis tool (read-only analysis)
-- **Implementation:** Native Go
-- **Location:** `internal/tools/task_analysis*.go`
+- **Implementation:** Python Bridge
+- **Location:** `project_management_automation/tools/consolidated_analysis.py`
 - **Actions:** 5 analysis actions
 - **Output:** Analysis reports, recommendations
 
 #### `task_discovery` Tool
 - **Type:** Discovery tool (find/create tasks)
-- **Implementation:** Native Go
-- **Location:** `internal/tools/task_discovery*.go`
+- **Implementation:** Python Bridge
+- **Location:** `project_management_automation/tools/consolidated_analysis.py`
 - **Actions:** 4 discovery actions
 - **Output:** Found tasks, optionally creates tasks
 
 #### `task_workflow` Tool
-- **Type:** Workflow and execution management tool
-- **Implementation:** Native Go
-- **Location:** `internal/tools/task_workflow_native.go`, `internal/tools/task_workflow_crud.go`, `internal/tools/task_workflow_execution.go`
-- **Actions:** CRUD, approval, claim/agent coordination, and execution-cockpit actions
-- **Output:** Task updates, workflow status, execution runs, verification, and partial progress
+- **Type:** Workflow management tool (modify tasks)
+- **Implementation:** Python Bridge
+- **Location:** `project_management_automation/tools/consolidated_workflow.py`
+- **Actions:** 5 workflow actions
+- **Output:** Task updates, workflow status
 
 ---
 
@@ -174,7 +174,7 @@
 4. **`action="clarity"`** - Improve task clarity
    - Analyzes task descriptions
    - Suggests clarity improvements
-   - May use local LLM backends (FM chain / Ollama) for clarity-related helpers where enabled
+   - Uses MLX for task hour estimation
    - Output: Clarity recommendations
 
 5. **`action="cleanup"`** - Clean up stale tasks
@@ -253,12 +253,12 @@
 |------|---------------|------------------|----------|
 | `task_analysis` | Python Bridge | ⚠️ Not migrated | ❌ None (candidate for Apple FM) |
 | `task_discovery` | Python Bridge | ⚠️ Not migrated | ❌ None (candidate for Apple FM) |
-| `task_workflow` | Go-native | ✅ | ✅ Local LLM where clarity/AI actions call `text_generate` / FM chain (no `mlx` tool) |
+| `task_workflow` | Python Bridge | ⚠️ Not migrated | ✅ MLX (clarity action) |
 
 **Migration Opportunities:**
 - All three tools are Python Bridge (could migrate to native Go)
 - `task_analysis` (hierarchy) is a candidate for Apple Foundation Models
-- `task_workflow` (clarity) may call local LLM paths (not the removed `mlx` MCP tool)
+- `task_workflow` (clarity) already uses MLX
 
 ---
 
@@ -429,7 +429,7 @@ Approved 8 tasks:
 |------|----------|-------|---------|
 | `task_analysis` | ❌ None | N/A | **Candidate for Apple FM** (hierarchy classification) |
 | `task_discovery` | ❌ None | N/A | **Candidate for Apple FM** (semantic extraction) |
-| `task_workflow` | ✅ Optional | FM / Ollama / router | Clarity and related AI actions |
+| `task_workflow` | ✅ MLX | MLX | Task hour estimation (clarity action) |
 
 **Potential AI Enhancements:**
 
@@ -456,7 +456,7 @@ Approved 8 tasks:
 | **Modifies Tasks** | ⚠️ Optional | ⚠️ Optional | ✅ Yes |
 | **Creates Tasks** | ❌ No | ✅ Yes | ❌ No |
 | **Implementation** | Python Bridge | Python Bridge | Python Bridge |
-| **AI Usage** | ❌ None | ❌ None | ✅ Optional local LLM (clarity) |
+| **AI Usage** | ❌ None | ❌ None | ✅ MLX (clarity) |
 | **Dry Run** | ✅ Yes | ❌ No | ✅ Yes |
 | **Output Format** | Text/JSON | Text | Text/JSON |
 | **Use Case** | Quality analysis | Task discovery | Lifecycle management |
@@ -488,3 +488,4 @@ The three task tools work together to provide a complete task management solutio
 - **`task_workflow`**: Manage task lifecycle and workflow
 
 All three tools are currently Python Bridge implementations with opportunities for native Go migration and AI enhancement.
+

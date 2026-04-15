@@ -1,6 +1,6 @@
 # Prompt Optimization Template Spec
 
-**Purpose:** Define variable placeholders and output format for prompt optimization templates used with local models (Ollama, FM via `text_generate`).
+**Purpose:** Define variable placeholders and output format for prompt optimization templates used with local models (Ollama, MLX, Apple Foundation Models).
 
 **Reference:** [MODEL_ASSISTED_WORKFLOW.md](MODEL_ASSISTED_WORKFLOW.md) — Prompt Optimizer section
 
@@ -105,7 +105,8 @@ When `{task_type}` is set, apply type-specific guidance:
 ## Model Compatibility
 
 - **Ollama** — JSON mode preferred when supported; otherwise instruct to return structured JSON.
-- **FM chain** (`text_generate` `provider=fm`) — Same pattern; instruct clearly for structured output.
+- **MLX** — Same as Ollama; Phi-3.5, CodeLlama, etc.
+- **Apple FM** — Same pattern; instruct clearly for structured output.
 
 ---
 

@@ -4,8 +4,6 @@
 
 This document describes the 3270 TUI (Terminal User Interface) implementation for exarp-go, inspired by the [go3270](https://github.com/racingmars/go3270) library and implementation patterns from [3270BBS](https://github.com/moshix/3270BBS).
 
-**See also:** [GO_3270_ISPF_GITHUB_CGO_RESEARCH.md](./GO_3270_ISPF_GITHUB_CGO_RESEARCH.md) — survey of Go TN3270 projects on GitHub and notes on CGO vs embedding LSPF (C++).
-
 ## Features
 
 The 3270 TUI provides a classic mainframe-style interface for task management:
@@ -20,8 +18,7 @@ The 3270 TUI provides a classic mainframe-style interface for task management:
 ### Key Components
 
 1. **`tui3270.go`**: Main 3270 TUI implementation
-   - `RunTUI3270()`: Runs the tn3270 server in the current process
-   - **Unix:** default is **daemon mode** (`tryDetachTUI3270`): re-exec with `setsid`, PID file + `.log` next to it, child clears PID on exit via `EXARP_TUI3270_PIDFILE`. Use `--foreground` / `-f` for interactive logs in the terminal.
+   - `RunTUI3270()`: Starts the tn3270 server
    - `handle3270Connection()`: Handles individual client connections
    - Transaction handlers for each screen
 
@@ -44,11 +41,8 @@ The `tui3270State` struct maintains session state:
 ### Starting the Server
 
 ```bash
-# Start on default port 3270 (Unix: detaches to background by default)
+# Start on default port 3270
 exarp-go tui3270
-
-# Stay in foreground (logs in this terminal)
-exarp-go tui3270 --foreground
 
 # Start on custom port
 exarp-go tui3270 "" 2300

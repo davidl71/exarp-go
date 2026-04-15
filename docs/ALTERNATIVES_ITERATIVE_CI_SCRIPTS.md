@@ -461,8 +461,6 @@ Nothing “pulls” from a queue; they **run a single command** on a schedule. e
 
 **Summary:** Use **cron** or **systemd/launchd** when you only need “run exarp-go automation on a schedule”; add a **wrapper script** that reads plan/waves and calls `task_execute` in a loop if you want wave-by-wave execution.
 
-exarp-go also has a native `automation action=schedule|unschedule` path that installs launchd on macOS and systemd user timers on Linux, with SQLite-backed run tracking to skip overlapping automation runs.
-
 ---
 
 ## 6. Recommended mapping to your needs

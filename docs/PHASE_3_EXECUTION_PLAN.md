@@ -5,8 +5,6 @@
 **Goal:** Migrate complex tools with hybrid approach or document Python bridge retention  
 **Progress:** 1/13 tools complete (8%) - `git_tools` ✅
 
-> **Superseded (LLM):** exarp-go no longer exposes an **`mlx`** MCP tool. On-Apple inference uses **`text_generate`** (`provider=fm`) and **Ollama** via **`ollama` / `text_generate`** (`provider=ollama`). Sections below that describe an `mlx` tool are **historical planning** unless updated.
-
 ---
 
 ## Executive Summary

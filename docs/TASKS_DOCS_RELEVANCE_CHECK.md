@@ -19,7 +19,7 @@
 
 | ID | Content |
 |----|--------|
-| T-105 | Document task_workflow review payloads (`approval_request`) |
+| T-105 | Document gotoHuman API/tools |
 | T-134 | Document form fields and usage |
 | T-155 | Documentation updated |
 | T-186 | Document bridge usage |

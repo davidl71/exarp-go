@@ -36,14 +36,14 @@ Configure the ACP agent in your IDE's agent settings to use the exarp-go binary 
 
 - **initialize** – Protocol negotiation
 - **session/new** – Create new conversation session
-- **session/prompt** – Process user prompts using exarp-go's `text_generate` tool (Ollama, FM chain, gateway, etc.)
+- **session/prompt** – Process user prompts using exarp-go's `text_generate` tool (Ollama, Apple FM, MLX, etc.)
 - **session/cancel** – Cancel in-flight prompts
 
 Responses are streamed to the client as agent message chunks.
 
 ## Requirements
 
-- LLM backend: configure Ollama and/or FM chain; `text_generate` supports `fm`, `ollama`, `localai`, `gateway`, `auto` (see `internal/tools/text_generate.go`)
+- LLM backend: Ollama, Apple Foundation Models, or MLX (for `text_generate`)
 - Same environment as normal exarp-go (Todo2, config, etc.)
 
 ## Relationship to MCP

@@ -1,7 +1,7 @@
 # Local AI Implementation Plan
 
 **Tag hints:** `#local-ai` `#implementation` `#planning`  
-**Parent epic:** T-1771164552852 (Local AI task assignment: FM, Ollama)  
+**Parent epic:** T-1771164552852 (Local AI task assignment: MLX, AFM, Ollama)  
 **Status:** Complete — A1, A2, B1, B2, B3, and Phase C done.
 
 ---
@@ -19,7 +19,7 @@
 
 ## 1. Goal
 
-Fully wire **local AI backends** (Apple FM chain, Ollama) into task lifecycle: creation, estimation, summarization, and lightweight “run with AI” execution, with clear CLI and MCP surface and no new LLM integrations—only preference plumbing and verification.
+Fully wire **local AI backends** (Apple FM, Ollama, MLX) into task lifecycle: creation, estimation, summarization, and lightweight “run with AI” execution, with clear CLI and MCP surface and no new LLM integrations—only preference plumbing and verification.
 
 ---
 
@@ -27,13 +27,13 @@ Fully wire **local AI backends** (Apple FM chain, Ollama) into task lifecycle: c
 
 | Area | Status | Notes |
 |------|--------|------|
-| **Task metadata** | Done | `preferred_backend` (fm\|ollama; legacy mlx ignored) stored on create; estimation/summarize/run_with_ai read it |
+| **Task metadata** | Done | `preferred_backend` (fm\|mlx\|ollama) stored on create; estimation/summarize/run_with_ai read it |
 | **task_workflow create** | Done | Accepts `local_ai_backend`, stores as `preferred_backend` |
 | **task_workflow summarize** | Done | `task_id` + optional `local_ai_backend`; uses DefaultReportInsight / text_generate |
 | **task_workflow run_with_ai** | Done | `task_id` + optional `local_ai_backend`, `instruction`; returns implementation guidance |
-| **estimation tool** | Done | Accepts `local_ai_backend`; routes to FM/ollama per param or task metadata |
-| **CLI task create** | Done | `--local-ai-backend fm\|ollama` |
-| **CLI task estimate** | Done | `exarp-go task estimate "Name" --local-ai-backend fm\|ollama` |
+| **estimation tool** | Done | Accepts `local_ai_backend`; routes to FM/ollama/MLX per param or task metadata |
+| **CLI task create** | Done | `--local-ai-backend fm\|mlx\|ollama` |
+| **CLI task estimate** | Done | `exarp-go task estimate "Name" --local-ai-backend fm\|mlx\|ollama` |
 | **CLI task summarize** | Done | `exarp-go task summarize T-xxx [--local-ai-backend]` |
 | **CLI task run-with-ai** | Done | `exarp-go task run-with-ai T-xxx [--backend] [--instruction]` |
 | **Proto EstimationRequest** | Done (A2) | Added `local_ai_backend` to `proto/tools.proto` and `EstimationRequest` in tools.pb.go; estimation reads it via EstimationRequestToParams. Run `make proto` when protoc is available to refresh the full descriptor. |
@@ -60,7 +60,7 @@ All below are under parent **T-1771164552852** and tagged `#local-ai` where appl
 |-------|---------|--------|--------|
 | B1 | T-1771171136408 | CLI: expose local_ai_backend for estimation and create | Ensure `task create --local-ai-backend` is documented and tested; add CLI path for estimation with `--local-ai-backend` (e.g. `exarp-go estimate "Task name" --local-ai-backend ollama` or via task subcommand). |
 | B2 | T-1771171132414 | Local AI: task summarization with preferred backend | Confirm summarize uses task `preferred_backend` when `local_ai_backend` not passed; document in MODEL_ASSISTED_WORKFLOW.md and help; optional: `exarp-go task summarize T-xxx [--local-ai-backend fm]`. |
-| B3 | T-1771171134703 | Local AI: lightweight task execution (run task with local LLM) | Confirm run_with_ai is wired and documented; `exarp-go task run-with-ai T-xxx [--backend fm\|ollama] …`. |
+| B3 | T-1771171134703 | Local AI: lightweight task execution (run task with local LLM) | Confirm run_with_ai is wired and documented; optional: `exarp-go task run-with-ai T-xxx [--backend fm\|ollama\|mlx] [--instruction "..."]` that calls task_workflow run_with_ai. |
 
 ### Phase C — Docs and polish
 
@@ -71,7 +71,7 @@ All below are under parent **T-1771164552852** and tagged `#local-ai` where appl
 
 ## 4. Implementation Notes
 
-- **Backends:** Reuse `text_generate` (`fm`, `ollama`, `auto`, …) and `ollama`. See [.cursor/rules/llm-tools.mdc](.cursor/rules/llm-tools.mdc).
+- **Backends:** Reuse existing tools only: `text_generate` (provider fm\|mlx\|auto), `ollama`, `mlx`, `apple_foundation_models`. See [.cursor/rules/llm-tools.mdc](.cursor/rules/llm-tools.mdc).
 - **Preference order:** Explicit param `local_ai_backend` overrides task `preferred_backend`; if unset, use task value or default chain (e.g. FM → Ollama → stub).
 - **No new LLM integrations:** Only wiring of task context and backend preference into existing tools.
 

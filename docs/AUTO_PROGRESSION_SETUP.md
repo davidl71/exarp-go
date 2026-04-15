@@ -30,18 +30,18 @@ The following 8 research tasks are being executed in parallel:
 
 **Manual Check:**
 ```bash
-cd {{PROJECT_ROOT}}
+cd /Users/davidl/Projects/exarp-go
 python3 scripts/auto_progress_phase2.py
 ```
 
 **Automated Monitoring (recommended):**
 ```bash
 # Check every 5 minutes
-cd {{PROJECT_ROOT}}
+cd /Users/davidl/Projects/exarp-go
 watch -n 300 python3 scripts/auto_progress_phase2.py
 
 # Or add to crontab (check every 10 minutes)
-*/10 * * * * cd {{PROJECT_ROOT}} && python3 scripts/auto_progress_phase2.py >> logs/phase2_progression.log 2>&1
+*/10 * * * * cd /Users/davidl/Projects/exarp-go && python3 scripts/auto_progress_phase2.py >> logs/phase2_progression.log 2>&1
 ```
 
 ### How It Works
@@ -126,7 +126,7 @@ Phase 2 tasks are identified by:
 
 ```bash
 # Check Phase 1 completion
-cd {{PROJECT_ROOT}}
+cd /Users/davidl/Projects/exarp-go
 python3 -c "
 from project_management_automation.utils.todo2_mcp_client import Todo2Client
 from project_management_automation.utils.todo2_utils import is_completed_status
@@ -200,7 +200,7 @@ To enable automatic monitoring, add to crontab:
 crontab -e
 
 # Add line (check every 10 minutes)
-*/10 * * * * cd {{PROJECT_ROOT}} && python3 scripts/auto_progress_phase2.py >> logs/phase2_progression.log 2>&1
+*/10 * * * * cd /Users/davidl/Projects/exarp-go && python3 scripts/auto_progress_phase2.py >> logs/phase2_progression.log 2>&1
 ```
 
 Or use a file watcher to check when tasks are updated:
@@ -211,7 +211,7 @@ brew install fswatch
 
 # Watch Todo2 state file and auto-progress
 fswatch .todo2/state.todo2.json | while read; do
-    cd {{PROJECT_ROOT}}
+    cd /Users/davidl/Projects/exarp-go
     python3 scripts/auto_progress_phase2.py
 done
 ```

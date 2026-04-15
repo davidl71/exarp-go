@@ -150,7 +150,7 @@ if result.Success {
 ### 1. Run Database Migration
 
 ```bash
-cd {{PROJECT_ROOT}}
+cd /Users/davidl/Projects/exarp-go
 make migrate
 ```
 
@@ -214,7 +214,7 @@ Once all code is migrated to Go:
 
 ```bash
 # Test database locking
-cd {{PROJECT_ROOT}}
+cd /Users/davidl/Projects/exarp-go
 go test ./internal/database/... -v -run TestTaskLocking
 
 # Test file locking

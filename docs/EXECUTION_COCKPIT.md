@@ -1,1 +1,0 @@
-{"active_claims":[],"active_runs":[],"agent_role_summary":{"active_claims_by_role":{},"active_runs_by_role":{},"distribution":{},"dominant_role":"","tasks_with_agent_role":0},"delegation_suggestions":null,"orchestration_lanes":[],"summary":{"active_claim_count":0,"active_run_count":0,"stale_run_count":0},"token_estimate":76}

@@ -19,7 +19,7 @@ You can configure Cursor to run MCP server commands via SSH, allowing you to use
       "command": "ssh",
       "args": [
         "davids-mac-mini.tailf62197.ts.net",
-        "{{PROJECT_ROOT}}/bin/exarp-go"
+        "/Users/davidl/Projects/exarp-go/bin/exarp-go"
       ],
       "env": {
         "PROJECT_ROOT": "{{PROJECT_ROOT}}"
@@ -63,7 +63,7 @@ You can configure Cursor to run MCP server commands via SSH, allowing you to use
 
 ### Advantages
 
-- ✅ Use remote resources (GPU, Ollama, Apple FM hosts)
+- ✅ Use remote resources (GPU, MLX, Ollama)
 - ✅ Centralized server management
 - ✅ Leverage remote hardware capabilities
 - ✅ Works with stdio-based MCP servers
@@ -127,7 +127,7 @@ Based on your setup (local Linux machine, remote macOS M4):
 ### Option A: SSH-based Remote MCP Servers (Best for Remote Resources)
 
 **Use when:**
-- You want to leverage remote Ollama or Apple Silicon hosts (macOS M4)
+- You want to leverage remote MLX/Ollama on macOS M4
 - Remote has better hardware/resources
 - You want centralized server management
 
@@ -139,7 +139,7 @@ Based on your setup (local Linux machine, remote macOS M4):
       "command": "ssh",
       "args": [
         "davids-mac-mini.tailf62197.ts.net",
-        "{{PROJECT_ROOT}}/bin/exarp-go"
+        "/Users/davidl/Projects/exarp-go/bin/exarp-go"
       ],
       "env": {
         "PROJECT_ROOT": "{{PROJECT_ROOT}}"
@@ -149,7 +149,7 @@ Based on your setup (local Linux machine, remote macOS M4):
       "command": "ssh",
       "args": [
         "davids-mac-mini.tailf62197.ts.net",
-        "{{PROJECT_ROOT}}/bin/exarp-go"
+        "/Users/davidl/Projects/exarp-go/bin/exarp-go"
       ],
       "env": {
         "PROJECT_ROOT": "{{PROJECT_ROOT}}",
@@ -186,7 +186,7 @@ Based on your setup (local Linux machine, remote macOS M4):
 
 **Use both local and remote:**
 - Local: Fast tools (lint, format, etc.)
-- Remote: Resource-intensive tools (Ollama, large-model inference)
+- Remote: Resource-intensive tools (MLX, Ollama, CodeLlama)
 
 **Configuration:**
 ```json
@@ -201,13 +201,13 @@ Based on your setup (local Linux machine, remote macOS M4):
       "command": "ssh",
       "args": [
         "davids-mac-mini.tailf62197.ts.net",
-        "{{PROJECT_ROOT}}/bin/exarp-go"
+        "/Users/davidl/Projects/exarp-go/bin/exarp-go"
       ],
       "env": {
         "PROJECT_ROOT": "{{PROJECT_ROOT}}",
         "OLLAMA_HOST": "http://localhost:11434"
       },
-      "description": "Remote exarp-go + Ollama (powerful hardware)"
+      "description": "Remote MLX/Ollama tools (powerful hardware)"
     }
   }
 }
@@ -222,7 +222,7 @@ Based on your setup (local Linux machine, remote macOS M4):
 ssh davids-mac-mini.tailf62197.ts.net "echo '✅ SSH working'"
 
 # Test remote binary
-ssh davids-mac-mini.tailf62197.ts.net "{{PROJECT_ROOT}}/bin/exarp-go --help"
+ssh davids-mac-mini.tailf62197.ts.net "/Users/davidl/Projects/exarp-go/bin/exarp-go --help"
 ```
 
 ### Step 2: Configure SSH Keys (if needed)
@@ -249,7 +249,7 @@ Edit `.cursor/mcp.json` in your workspace:
       "command": "ssh",
       "args": [
         "davids-mac-mini.tailf62197.ts.net",
-        "{{PROJECT_ROOT}}/bin/exarp-go"
+        "/Users/davidl/Projects/exarp-go/bin/exarp-go"
       ],
       "env": {
         "PROJECT_ROOT": "{{PROJECT_ROOT}}"
@@ -320,7 +320,7 @@ Edit `.cursor/mcp.json` in your workspace:
 
 ## Examples
 
-### Remote Ollama setup
+### Remote Ollama + MLX Setup
 
 ```json
 {
@@ -329,14 +329,14 @@ Edit `.cursor/mcp.json` in your workspace:
       "command": "ssh",
       "args": [
         "davids-mac-mini.tailf62197.ts.net",
-        "{{PROJECT_ROOT}}/bin/exarp-go"
+        "/Users/davidl/Projects/exarp-go/bin/exarp-go"
       ],
       "env": {
         "PROJECT_ROOT": "{{PROJECT_ROOT}}",
         "PATH": "/opt/homebrew/bin:/usr/local/bin:...",
         "OLLAMA_HOST": "http://localhost:11434"
       },
-      "description": "Remote exarp-go with Ollama (M4)"
+      "description": "Remote exarp-go with Ollama and MLX (M4)"
     }
   }
 }
@@ -349,7 +349,7 @@ Edit `.cursor/mcp.json` in your workspace:
   "mcpServers": {
     "remote-exarp-go": {
       "command": "ssh",
-      "args": ["davids-mac-mini.tailf62197.ts.net", "{{PROJECT_ROOT}}/bin/exarp-go"],
+      "args": ["davids-mac-mini.tailf62197.ts.net", "/Users/davidl/Projects/exarp-go/bin/exarp-go"],
       "description": "Remote exarp-go"
     },
     "remote-advisor": {
@@ -366,3 +366,4 @@ Edit `.cursor/mcp.json` in your workspace:
 - [Cursor Background Agents Documentation](https://docs.cursor.com/en/background-agents)
 - [MCP Protocol Specification](https://modelcontextprotocol.io/)
 - [SSH Configuration Guide](./TAILSCALE_SSH_SETUP.md)
+

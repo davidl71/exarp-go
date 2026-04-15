@@ -22,7 +22,7 @@ All lint-related Make targets in one place.
 |--------|-------------|----------|
 | `make lint-shellcheck` | Run shellcheck on `scripts/*.sh` and `ansible/run-dev-setup.sh` | `shellcheck` |
 | `make lint-yaml` | Run yamllint on `.github` and `ansible` directories | `yamllint` |
-| `make lint-ansible` | Run ansible-lint on playbooks/roles using `ansible/.ansible-lint` (run `make ansible-galaxy` first) | `ansible-lint` |
+| `make lint-ansible` | Run ansible-lint on playbooks/roles (run `make ansible-galaxy` first) | `ansible-lint` |
 
 ## AI Navigability
 
@@ -54,7 +54,3 @@ The GitHub Actions workflow (`.github/workflows/go.yml`) runs:
 - **vet** job: go vet + gofmt check
 - **lint-extras** job: shellcheck + yamllint + ansible-lint
 - **security** job: govulncheck
-
-## Ansible Notes
-
-`make lint-ansible` runs from the `ansible/` directory, so repo-specific ansible-lint behavior lives in [ansible/.ansible-lint](/Users/davidl/Projects/mcp/exarp-go/ansible/.ansible-lint). The config keeps default rules enabled but relaxes bootstrap-heavy patterns such as intentional `command`/`shell` installer tasks and verification commands that do not report changes cleanly.

@@ -47,11 +47,9 @@ The `go-foundationmodels` package requires building a Swift bridge library. This
    ```
 3. **Build exarp-go**:
    ```bash
-   cd {{PROJECT_ROOT}}
+   cd /Users/davidl/Projects/exarp-go
    CGO_ENABLED=1 go build ./cmd/server
    ```
-
-> If you cannot build the Swift bridge or want to temporarily bypass Apple Foundation Models, set `NO_APPLE_FM=1` before running `make build`; the Makefile will skip the `build-swift-bridge` step and build without CGO support so the server still compiles.
 
 ### Alternative: Conditional Compilation
 
@@ -115,7 +113,7 @@ This allows the code to compile on non-Apple platforms without the Swift bridge.
 
 ### Platform Detection Tests
 ```bash
-cd {{PROJECT_ROOT}}
+cd /Users/davidl/Projects/exarp-go
 go test ./internal/platform -v
 ```
 
@@ -164,3 +162,4 @@ go test ./internal/platform -v
 ✅ **Graceful Fallback**: Implemented for unsupported platforms
 
 The integration is **functionally complete** and ready for testing once the Swift bridge is built.
+

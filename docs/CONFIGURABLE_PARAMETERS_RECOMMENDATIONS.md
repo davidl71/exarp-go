@@ -78,7 +78,7 @@ thresholds:
   
   # Estimation
   min_estimation_confidence: 0.7      # Task estimation confidence
-  mlx_weight: 0.3                      # Deprecated: ignored by estimation (proto compat only)
+  mlx_weight: 0.3                      # MLX model weight in estimation
   
   # Automation
   max_parallel_tasks: 10               # Max concurrent tasks
@@ -266,6 +266,7 @@ logging:
 - **Report output format**: `"text"` (default)
 - **Linting linter**: `"auto"` (auto-detect)
 - **Testing framework**: `"auto"` (auto-detect)
+- **MLX model**: `"mlx-community/Phi-3.5-mini-instruct-4bit"`
 - **Ollama model**: `"llama3.2"` (default)
 - **Context summarization level**: `"brief"` (default)
 
@@ -308,8 +309,13 @@ tools:
     coverage_format: "html"            # html | text | json
     verbose: false                     # Verbose test output
   
-  # tools.mlx removed from config schema (protobuf field reserved); use Ollama or text_generate.
-
+  # MLX
+  mlx:
+    default_model: "mlx-community/Phi-3.5-mini-instruct-4bit"
+    default_max_tokens: 512
+    default_temperature: 0.7
+    verbose: false
+  
   # Ollama
   ollama:
     default_model: "llama3.2"
@@ -441,7 +447,7 @@ project:
   features:
     sqlite_enabled: true               # Use SQLite database
     json_fallback: true                # Fallback to JSON if DB unavailable
-    python_bridge: true               # DEPRECATED: never implemented
+    python_bridge: true               # Enable Python bridge
     mcp_servers: []                    # Additional MCP servers to use
   
   # Overrides

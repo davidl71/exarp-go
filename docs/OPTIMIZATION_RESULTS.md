@@ -226,82 +226,13 @@ Performance optimizations have been implemented for three high-priority algorith
 
 ---
 
-## 4. SQLite task CRUD (`task_workflow` hot path)
-
-**Recorded:** 2026-03-30  
-**Code:** `internal/database/tasks_crud.go`, benchmarks in `internal/database/tasks_crud_bench_test.go`, MCP path via `internal/tools/task_workflow_crud.go` + `task_store.go`.
-
-### Context
-
-- With SQLite available, ordinary Todo2 CRUD goes to the database; full SQLite↔JSON sync is **not** required on every create/update/delete.
-- `handleTaskWorkflowUpdate` uses a **fast path** (`canUseBatchUpdate`) → `database.BatchUpdateTaskStatus` when only status/priority change; otherwise per-task `GetTask` + `UpdateTask`.
-- `UpdateTask` uses a transaction but **deletes all tags and dependencies and reinserts** them each time. `GetTask` uses **one** SQL statement with correlated subqueries for tags/deps (`sqlTaskAggJSON` in `tasks_crud.go`); remaining cost is mostly parsing and allocations.
-- **Design note (research):** [gettask-updatetask-churn.md](research/gettask-updatetask-churn.md) (Todo2 T-1774888049604959000).
-
-### Benchmark environment (sample run)
-
-- **OS:** darwin arm64, **CPU:** Apple M4  
-- **Command:** `make crud-bench-reprofile` or `CGO_ENABLED=0 go test -run='^$' -bench='Benchmark(CreateTask|GetTask|UpdateTask|DeleteTask|BatchUpdateTaskStatus_64)' -benchmem -count=5 ./internal/database/`  
-- **Note:** Benchmark task IDs must match `models.IsValidTaskID` (`T-` + digits only). Non-conforming IDs are replaced by `CreateTask`, which invalidates bench setup if the bench uses a fixed string ID for later `Get`/`Delete`.
-
-### Results (representative, ~median of 5 runs)
-
-| Benchmark | ~ns/op | ~B/op | ~allocs/op |
-|-----------|--------|-------|------------|
-| `BenchmarkCreateTask` | ~148k | ~14.8k | 151 |
-| `BenchmarkGetTask` | ~35k | ~17.4k | 221 |
-| `BenchmarkUpdateTask` | ~123k | ~22k | 237 |
-| `BenchmarkDeleteTask` | ~221k | ~37k | 318 |
-| `BenchmarkBatchUpdateTaskStatus_64` | ~1.1M | ~448k | **4632** |
-
-### Findings
-
-1. **Batch status update dominates allocations** — ~4.6k allocs for 64 rows (~72 allocs/task) suggests significant per-iteration overhead (scans, slices, or ORM-style churn). Highest-impact target for `task_workflow` bulk status operations after confirmation via memory profile.
-2. **GetTask / UpdateTask** — Non-trivial allocs per op; likely from JSON aggregation parsing and string handling. SQL is already a single round-trip for `GetTask`; tune parsing/allocs or lazy metadata decode before adding query complexity.
-3. **UpdateTask delete-all + reinsert** — Simple and correct; for large tag/dep sets, diffing inserts/deletes could reduce write churn when MCP callers touch unchanged relations rarely.
-
-### Profile commands (CRUD)
-
-```bash
-cd "$(git rev-parse --show-toplevel)"
-make crud-pprof
-# or manually (binary required for symbol resolution):
-CGO_ENABLED=0 go test -c -o logs/database.test ./internal/database/
-CGO_ENABLED=0 go test -run='^$' \
-  -bench='Benchmark(CreateTask|GetTask|UpdateTask|DeleteTask|BatchUpdateTaskStatus_64)' -benchmem \
-  -cpuprofile=crud_cpu.prof -memprofile=crud_mem.prof ./internal/database/
-go tool pprof -http=:6060 logs/database.test crud_cpu.prof
-go tool pprof -sample_index=alloc_space -http=:6061 logs/database.test crud_mem.prof
-```
-
-### Gap vs `make go-bench`
-
-Current **`make go-bench`** only runs `./internal/tools/...`. Database CRUD benches use **`make crud-bench-reprofile`** / **`make crud-pprof`** (see `docs/PERFORMANCE_GUIDE.md` and `scripts/crud_reprofile_compare.sh`).
-
-### Suggested exarp-go Todo2 follow-ups (created 2026-03-30)
-
-| ID | Focus |
-|----|--------|
-| T-1774888048357799000 | DX: extend `go-bench` to run `internal/database` CRUD benchmarks |
-| T-1774888048738176000 | Performance: reduce allocs in `BatchUpdateTaskStatus` (mem profile first) |
-| T-1774888049604959000 | Research: `GetTask` / `UpdateTask` query consolidation and tag-dep churn |
-
----
-
 ## Benchmark Commands
 
 ### Run All Benchmarks
 ```bash
 make go-bench
 # OR
-CGO_ENABLED=0 go test -run='^$' -bench=. -benchmem -benchtime=3s ./internal/tools/...
-```
-
-### SQLite CRUD benchmarks (`internal/database`)
-```bash
-make crud-bench-reprofile
-# or:
-CGO_ENABLED=0 go test -run='^$' -bench='Benchmark(CreateTask|GetTask|UpdateTask|DeleteTask|BatchUpdateTaskStatus_64)' -benchmem ./internal/database/
+CGO_ENABLED=0 go test -bench=. -benchmem -benchtime=3s ./internal/tools/...
 ```
 
 ### Run Specific Benchmarks
@@ -318,6 +249,6 @@ CGO_ENABLED=0 go test -bench=BenchmarkMedian -benchmem ./internal/tools/
 
 ---
 
-**Last Updated:** 2026-03-30  
+**Last Updated:** 2026-01-09  
 **Next Review:** When adding new optimizations or when performance issues are identified
 

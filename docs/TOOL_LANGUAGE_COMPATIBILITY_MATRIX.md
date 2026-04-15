@@ -16,13 +16,13 @@ The goal is practical compatibility, not implementation language. A tool counts 
 | Tool | Compatibility | Notes |
 |------|---------------|-------|
 | `infer_task_progress` | Language-agnostic | Uses file scanning and task inference across common source extensions. |
-| *(removed)* `mlx` | — | The `mlx` MCP tool was removed; use `ollama` or `text_generate`. |
+| `mlx` | Environment-specific | Depends on Apple Silicon + MLX runtime, not repo language. |
 | `testing` | Partially compatible | `run`, `coverage`, and `validate` are now explicitly documented as Go-project flows; broader framework-aware runners are still not implemented. |
 | `security` | Multi-language | Detects and scans Go, Python, Rust, and Node/TypeScript ecosystems. |
 | `setup_hooks` | Language-agnostic | Repo/workflow setup, not code-language specific. |
 | `estimation` | Language-agnostic | Task estimation and planning support. |
 | `ollama` | Environment-specific | Depends on local Ollama availability. |
-| *(removed)* `llamacpp` | — | Direct GGUF/llama.cpp in exarp-go was removed; use Ollama or `text_generate`. |
+| `llamacpp` | Environment-specific | Depends on local GGUF/llama.cpp setup. |
 | `prompt_tracking` | Language-agnostic | Prompt logging and analysis. |
 | `fm_plan_and_execute` | Language-agnostic | LLM planning/execution workflow. |
 | `generate_config` | Language-agnostic | Config/rules generation; output may target editor/tooling rather than a language. |
@@ -63,7 +63,7 @@ The schema advertises `linter=auto`, and the handler now defaults protobuf and r
 
 Relevant code:
 - `internal/tools/registry_infra.go`
-- `internal/tools/registry_ai.go`
+- `internal/tools/handlers_ai.go`
 
 ### 2. `testing` still exposes a generic surface but remains Go-specific for execution flows
 
@@ -95,8 +95,8 @@ Relevant code:
 Status: fixed in the current working tree.
 
 Current state:
-- runtime handler supports `gateway` (and other registered `text_generate` providers)
-- registry hints, provider enum, and tool-catalog metadata stay aligned with `internal/tools/registry_ai.go`
+- runtime handler supports `gateway` and `llamacpp`
+- registry hints, provider enum, and tool-catalog metadata now advertise both providers consistently
 
 Relevant code:
 - `internal/tools/registry_ai.go`
@@ -108,18 +108,10 @@ Relevant code:
 2. Continue reducing Go-centric narrative in `report` scorecard and adjacent docs.
 3. Keep the compatibility matrix aligned as tool defaults and metadata evolve.
 
-## Status of recent fixes
+## Related tasks
 
-The following compatibility issues have been **resolved** as of commit `44b8649` (2026-03-08):
-
-- ✅ **lint** - Fixed to use `auto` detection by default (no longer Go-biased)
-- ✅ **text_generate** - Provider metadata unified (`fm`, `ollama`, `localai`, `gateway`, `auto`, …)
-- ✅ **report plan** - Output made language-neutral (removed "Go: X files" bias)
-- ✅ **testing validate** - Now explicitly guards against non-Go repos with clear error messages
-
-## Remaining work
-
-See active tasks in `.todo2/` or `exarp-go task list` for:
-- Decision on `testing` tool strategy (Go-only vs multi-language)
-- Scorecard Go-centric narrative audit
-- Ongoing compatibility matrix maintenance
+- `T-1772922963712803000` Fix `lint` default to `auto` for non-Go compatibility
+- `T-1772922963717149000` Fix `testing validate` guard for non-Go repos
+- `T-1772922963721414000` Clarify or generalize `testing` tool behavior for non-Go projects
+- `T-1772922963726602000` Make `report plan` output less Go-centric for non-Go repos
+- `T-1772925878649904000` Align `text_generate` hints and catalog with `gateway`/`llamacpp` support

@@ -12,6 +12,8 @@
 
 **Python fallbacks removed (2026-01-27 / 2026-01-28):** `setup_hooks`, `check_attribution`, `session`, `memory_maint` (4 tools); `memory`, `task_discovery`, `report`, `recommend`, `security`, `testing`, `lint`, `ollama` (8 tools). Bridge no longer routes these; handlers never call `ExecutePythonTool` for them.
 
+**Note:** `server_status` is no longer a tool handler. It was converted to the `stdio://server/status` resource, and the old native helper was removed as dead code.
+
 ---
 
 ## Handler Implementation Status
@@ -22,7 +24,6 @@ These tools have complete native implementations and **never** use the Python br
 
 | Tool | Handler | Native Implementation | Status |
 |------|---------|------------------------|--------|
-| `server_status` | `handleServerStatus` | `handleServerStatusNative` | ✅ Full Native |
 | `tool_catalog` | `handleToolCatalog` | `handleToolCatalogNative` | ✅ Full Native |
 | `workflow_mode` | `handleWorkflowMode` | `handleWorkflowModeNative` | ✅ Full Native |
 | `infer_session_mode` | `handleInferSessionMode` | `handleInferSessionModeNative` | ✅ Full Native |

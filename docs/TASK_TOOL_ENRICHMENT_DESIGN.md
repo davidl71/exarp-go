@@ -134,37 +134,6 @@ Suggested defaults (config or code):
 - Existing metadata keys unchanged.  
 - Session prime and task show remain backward compatible; new field is additive.
 
-### 8. content_hash (task metadata)
-
-Tasks also carry an optional **`content_hash`** in metadata: a SHA-256 hex digest of normalized task content used for deduplication, sync conflict detection, and client-side caching.
-
-**What it is**
-
-- **Key:** `task.Metadata["content_hash"]` (string).
-- **Value:** SHA-256 hex of the normalized concatenation of task `content` and `long_description`. Normalization (see `internal/models/task_hash.go`): trim, lowercase, collapse runs of whitespace.
-- **Computation:** `ContentHash(task)` in `internal/models/task_hash.go`; helpers `SetContentHash`, `EnsureContentHash`, `GetContentHash` manage read/write and backfill when missing.
-
-**Where it is used**
-
-| Use | Location | Purpose |
-|-----|----------|---------|
-| Task store | Create/update paths (e.g. database layer, store adapter) | Set or ensure `content_hash` on save so every task has a stable hash. |
-| Sync / merge | Tasksync, `SyncTodo2Tasks`-style flows | Compare `content_hash` for same task ID in DB vs JSON to detect conflicts before overwrite. |
-| Duplicates | `task_analysis` (e.g. duplicates / execution_plan) | Group by `content_hash` to find exact duplicate candidates without running similarity on identical content. |
-| Client cache (future) | Report/overview, task list with `include_hash` | Return `content_hash` (or short hash) so clients can skip re-fetch when hash unchanged; see [CONTEXT_REDUCTION_OPTIONS.md](CONTEXT_REDUCTION_OPTIONS.md). |
-
-**Benefits**
-
-- **Exact duplicate detection** — Same `content_hash` ⇒ same normalized content; no need for similarity scoring within that group.
-- **Sync conflict detection** — Different hashes for the same task ID in two sources indicate conflicting edits; caller can warn or block overwrite.
-- **Cache efficiency** — Clients can store a hash per task or per list; refetch only when hash changes, reducing context size and round-trips.
-
-**References**
-
-- Design and options: [TASK_CONTENT_HASH_DESIGN.md](TASK_CONTENT_HASH_DESIGN.md).
-- Implementation: `internal/models/task_hash.go` (`ContentHash`, `SetContentHash`, `EnsureContentHash`, `GetContentHash`, `NormalizeForComparison`).
-- Context reduction and future `include_hash`: [CONTEXT_REDUCTION_OPTIONS.md](CONTEXT_REDUCTION_OPTIONS.md), [CONTEXT_REDUCTION_FOLLOWUP_TASKS.md](CONTEXT_REDUCTION_FOLLOWUP_TASKS.md).
-
 ---
 
 ## Tasks (implementation order)
@@ -234,7 +203,7 @@ This tells the AI (or human) that the task benefits from the `report`, `task_wor
 
 ### Canonical tool identifiers
 
-See the [Canonical tool identifiers](#2-canonical-tool-identifiers) table above. Common values: `tractatus_thinking`, `context7`, `task_workflow`, `task_analysis`, `report`, `health`, `ollama`, `text_generate`.
+See the [Canonical tool identifiers](#2-canonical-tool-identifiers) table above. Common values: `tractatus_thinking`, `context7`, `task_workflow`, `task_analysis`, `report`, `health`, `ollama`, `mlx`.
 
 ---
 
@@ -243,4 +212,3 @@ See the [Canonical tool identifiers](#2-canonical-tool-identifiers) table above.
 - Session prime hints: `internal/tools/session.go` (`getHintsForMode`, suggested_next).
 - Task metadata: `internal/database/tasks.go` (SerializeTaskMetadata, DeserializeTaskMetadata, SanitizeMetadataForWrite).
 - MCP config (Tractatus, Context7): `.cursor/rules/mcp-configuration.mdc`, `.cursor/skills/tractatus-decompose/SKILL.md`.
-- content_hash (task metadata): [§8 content_hash](#8-content_hash-task-metadata) above; full design [TASK_CONTENT_HASH_DESIGN.md](TASK_CONTENT_HASH_DESIGN.md); implementation `internal/models/task_hash.go`.

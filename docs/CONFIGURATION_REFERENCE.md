@@ -42,54 +42,6 @@ exarp-go config convert yaml protobuf
 
 ---
 
-## Config Override Files
-
-exarp-go supports layered config overrides. Override files are merged on top of the base config, with later files taking precedence.
-
-### Override File Locations
-
-| File | Priority | Use Case |
-|------|----------|----------|
-| `.exarp/config.pb` | Base | Main config (committed to repo) |
-| `.exarp/config.local.pb` | Override 1 | Local dev overrides (in .gitignore) |
-| `.exarp/config.<feature>.pb` | Override N | Feature-specific overrides |
-
-### Override Behavior
-
-- **Merge strategy:** Override files merge into base config. Top-level keys are replaced, nested keys are deep-merged.
-- **Repeated fields:** Override files replace (not append) repeated fields like tags.
-- **Use .gitignore:** Add `config.local.pb` to `.gitignore` for local-only overrides:
-
-```gitignore
-# Local config overrides (private to this machine)
-.exarp/config.local.pb
-```
-
-### Example Override
-
-To override just the default model for a local environment:
-
-```bash
-# Create override file
-exarp-go config init  # create base first
-cp .exarp/config.pb .exarp/config.local.pb
-
-# Edit config.local.pb to change specific values
-# Only the fields you change will override the base config
-```
-
-### Future: File-based Override Patterns
-
-Planned patterns (not yet implemented):
-
-| Pattern | Example | Description |
-|---------|---------|-------------|
-| Environment-specific | `.exarp/config.dev.pb`, `.exarp/config.prod.pb` | Switch via CLI flag |
-| Branch-based | `.exarp/config.<branch>.pb` | Auto-detect from git branch |
-| Feature flags | `.exarp/config.features.pb` | Toggle experimental features |
-
----
-
 ## Parameter Reference
 
 Values shown are defaults. Durations use Go format (e.g., `30m`, `60s`). Omitted keys inherit defaults.
@@ -133,7 +85,7 @@ Values shown are defaults. Durations use Go format (e.g., `30m`, `60s`). Omitted
 | `min_coverage` | int | `80` | Minimum test coverage % |
 | `min_test_confidence` | float | `0.7` | Test suggestion confidence |
 | `min_estimation_confidence` | float | `0.7` | Task estimation confidence |
-| `mlx_weight` | float | `0.3` | **Deprecated** (ignored in estimation); kept for proto/schema backward compatibility |
+| `mlx_weight` | float | `0.3` | MLX model weight in estimation |
 | `max_parallel_tasks` | int | `10` | Max concurrent tasks (automation) |
 | `max_tasks_per_host` | int | `5` | Max tasks per agent/host |
 | `max_automation_iterations` | int | `10` | Max automation loop iterations |
@@ -170,7 +122,6 @@ Values shown are defaults. Durations use Go format (e.g., `30m`, `60s`). Omitted
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
-| `backend` | string | `"sqlite"` | Database backend: sqlite, mysql, postgres, rqlite |
 | `sqlite_path` | string | `".todo2/todo2.db"` | SQLite database path |
 | `json_fallback_path` | string | `".todo2/state.todo2.json"` | JSON fallback path |
 | `backup_path` | string | `".todo2/backups"` | Backup directory |
@@ -181,23 +132,10 @@ Values shown are defaults. Durations use Go format (e.g., `30m`, `60s`). Omitted
 | `retry_initial_delay` | duration | `100ms` | Initial retry delay |
 | `retry_max_delay` | duration | `5s` | Max retry delay |
 | `retry_multiplier` | float | `2.0` | Retry backoff multiplier |
-| `auto_vacuum` | bool | `true` | SQLite auto vacuum setting exposed in config; explicit `health action=database` maintenance is still the supported operational path |
+| `auto_vacuum` | bool | `true` | SQLite auto vacuum |
 | `wal_mode` | bool | `true` | WAL mode |
-| `checkpoint_interval` | int | `1000` | Checkpoint interval setting exposed in config; manual checkpoint remains available via `health action=database operation=checkpoint` |
+| `checkpoint_interval` | int | `1000` | Checkpoint interval |
 | `backup_retention_days` | int | `30` | Backup retention |
-
----
-
-### cloud
-
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `cloud.enabled` | bool | `false` | Enable cloud TaskStore |
-| `cloud.provider` | string | `"firestore"` | Cloud provider: firestore, dynamodb |
-| `cloud.project_id` | string | `""` | GCP project ID (for Firestore) |
-| `cloud.region` | string | `"us-central1"` | Cloud region |
-| `cloud.collection_name` | string | `"tasks"` | Collection/table name |
-| `cloud.credentials_file` | string | `""` | Path to credentials JSON |
 
 ---
 
@@ -216,8 +154,7 @@ Values shown are defaults. Durations use Go format (e.g., `30m`, `60s`). Omitted
 | `security.file_limits.max_file_size` | int64 | `10485760` | Max file size |
 | `security.file_limits.max_files_per_operation` | int | `1000` | Max files per op |
 | `security.access_control.enabled` | bool | `false` | Enable access control |
-| `security.access_control.default_policy` | string | `"allow"` | Default policy (allow, deny) |
-| `security.access_control.restricted_tools` | []string | `[]` | Tools to restrict (requires default_policy: deny) |
+| `security.access_control.default_policy` | string | `"allow"` | Default policy |
 
 ---
 
@@ -251,10 +188,10 @@ Tool-specific overrides. Each tool has its own sub-section.
 | Section | Key Parameters | Defaults |
 |---------|----------------|----------|
 | `tools.scorecard` | `default_scores`, `include_wisdom`, `output_format` | scores: 50 each, wisdom: true, format: text |
-| `tools.report` | `default_format`, `include_metrics`, `include_recommendations` | format: **json**, metrics: true |
+| `tools.report` | `default_format`, `include_metrics`, `include_recommendations` | format: text, metrics: true |
 | `tools.linting` | `default_linter`, `auto_fix`, `timeout` | linter: auto, fix: false, timeout: 60s |
 | `tools.testing` | `min_coverage`, `coverage_format`, `verbose` | coverage: 80, format: html |
-| ~~`tools.mlx`~~ | *(removed)* | Field **`mlx`** in protobuf `ToolsConfig` is **reserved**; do not use |
+| `tools.mlx` | `default_model`, `default_max_tokens`, `default_temperature` | Phi-3.5-mini, 512, 0.7 |
 | `tools.ollama` | `default_model`, `default_host`, `default_context_size` | llama3.2, localhost:11434, 4096 |
 | `tools.context` | `default_budget`, `tokens_per_char` | 4000, 0.25 |
 
@@ -302,56 +239,9 @@ Tool-specific overrides. Each tool has its own sub-section.
 | `exarp_path` | string | `".exarp"` | Exarp path |
 | `features.sqlite_enabled` | bool | `true` | SQLite enabled |
 | `features.json_fallback` | bool | `true` | JSON fallback |
-| `features.python_bridge` | bool | `true` | ~~Python bridge~~ **DEPRECATED** - never implemented |
+| `features.python_bridge` | bool | `true` | Python bridge |
 | `skip_checks` | []string | `[]` | Skip health checks |
 | `custom_tools` | []string | `[]` | Custom tools |
-| `task_discovery_ignore_paths` | []string | `[]` | Default ignore paths for `task_discovery`; request `ignore_paths` extends this list |
-
----
-
-## Environment Variable Overrides
-
-Some settings can be overridden at runtime via environment variables without touching `.exarp/config.pb`. These take precedence over file config.
-
-| Env Var | Overrides | Description |
-|---------|-----------|-------------|
-| `NO_COLOR` | — | Disable all ANSI color output (Makefile, TUI, git hooks). Follows [no-color.org](https://no-color.org). Set to any non-empty value. |
-| `EXARP_REPORT_FORMAT` | `tools.report.default_format` | Default output format for the `report` tool (`json`, `text`, `markdown`). Default: `json`. |
-| `OLLAMA_DEFAULT_MODEL` | `tools.ollama.default_model` | Ollama model name override. |
-| `OLLAMA_CODE_MODEL` | — | Ollama code-specific model (defaults to `codellama`). |
-
-### NO_COLOR
-
-Setting `NO_COLOR=1` suppresses all ANSI escape codes across:
-- **Makefile** targets (`make build`, `make install`, etc.)
-- **TUI** (Bubbletea/lipgloss styles and go3270 color helpers)
-- **Git hooks** (pre-commit, pre-push, post-merge — exported automatically)
-
-Recommended for AI agents, MCP consumers, CI pipelines, and any non-interactive context. The session `prime` hint also advertises this to connected AI clients.
-
-When `session action=prime` is called with `context_threshold_pct`, exarp-go writes a continuity ledger to `thoughts/ledgers/CONTINUITY_<ts>.md` once the estimated context usage crosses the configured threshold. If `inject_ledger=true`, the newest ledger is returned in the prime response as `latest_ledger`.
-
-```bash
-# One-off
-NO_COLOR=1 make build
-
-# Persistent in shell / MCP server env
-export NO_COLOR=1
-```
-
-### EXARP_REPORT_FORMAT
-
-Controls the default output format when `output_format` is not passed to the `report` tool:
-
-```bash
-# Return compact JSON (default — best for AI/MCP consumers)
-EXARP_REPORT_FORMAT=json exarp-go -tool report -args '{"action":"scorecard"}'
-
-# Return human-readable text (useful for terminal use)
-EXARP_REPORT_FORMAT=text exarp-go -tool report -args '{"action":"scorecard"}'
-```
-
-Alternatively, set `tools.report.default_format` in `.exarp/config.pb`.
 
 ---
 
@@ -376,11 +266,6 @@ version: "1.0"
 project:
   type: library
   language: go
-  task_discovery_ignore_paths:
-    - vendor
-    - third_party
-    - build
-    - web/dev-dist
 
 thresholds:
   min_coverage: 90
@@ -441,38 +326,6 @@ tools:
 memory:
   retention_days: 30
   max_memories: 500
-```
-
----
-
-### AI / MCP Consumer (JSON Output, No Color)
-
-For use when exarp-go is accessed primarily by AI agents or MCP clients. Set `NO_COLOR=1` in the MCP server env and configure JSON as the default report format.
-
-```yaml
-version: "1.0"
-
-tools:
-  report:
-    default_format: json
-    include_metrics: true
-    include_recommendations: true
-```
-
-MCP server config (e.g. `.cursor/mcp.json`):
-
-```json
-{
-  "mcpServers": {
-    "exarp-go": {
-      "command": "/Users/yourname/go/bin/exarp-go",
-      "env": {
-        "PROJECT_ROOT": "/path/to/project",
-        "NO_COLOR": "1"
-      }
-    }
-  }
-}
 ```
 
 ---
@@ -543,4 +396,3 @@ tools:
 - [CONFIGURATION_IMPLEMENTATION_PLAN.md](CONFIGURATION_IMPLEMENTATION_PLAN.md) — Implementation plan
 - [CONFIGURATION_PROTOBUF_INTEGRATION.md](CONFIGURATION_PROTOBUF_INTEGRATION.md) — Protobuf integration
 - [CONFIGURABLE_PARAMETERS_RECOMMENDATIONS.md](CONFIGURABLE_PARAMETERS_RECOMMENDATIONS.md) — Extended recommendations
-- [PLAN_OVERRIDES.md](PLAN_OVERRIDES.md) — Project-specific overrides for `report action=plan` (`.exarp/plan.json`)

@@ -30,20 +30,143 @@ Example configuration files for **Cursor**, **OpenCode**, and project-specific t
 |------|-------------|-------------|
 | [opencode-exarp-go-portable.json](opencode-exarp-go-portable.json) | Global or project: `opencode.json` | **Recommended.** Portable runner: copy `scripts/run_exarp_go.sh` into your project; set `command` and `environment.PROJECT_ROOT` to your project paths. |
 | [opencode-exarp-go.json](opencode-exarp-go.json) | Global: `~/.config/opencode/opencode.json` or project: `opencode.json` | Direct exarp-go binary path; set `environment.PROJECT_ROOT` to the project root. |
-| [opencode-exarp-go-http.json](opencode-exarp-go-http.json) | Global or project: `opencode.json` | MCP Streamable HTTP transport (`-mcp-http :8081`). Run `bin/exarp-go -mcp-http :8081` first. Use when stdio is not available. |
 
 - Set `environment.PROJECT_ROOT` to the project root (or use the portable runner script which derives it).
 - Optional: `timeout` (e.g. `10000` ms) for slow tools like report.
 
 ---
 
-## Claude Code (`.claude/settings.json`)
+## Non-Go quickstarts
 
-| File | Destination | When to use |
-|------|-------------|-------------|
-| [claude-code-settings.json](claude-code-settings.json) | Project: `.claude/settings.json` | Auto-allow all exarp-go MCP tools so Claude Code does not prompt for confirmation on every call. |
+These are the shortest practical setup flows for client repos that are not Go projects.
 
-Copy to `.claude/settings.json` in your project root. Claude Code merges project settings with `~/.claude/settings.json` (global) and `.claude/settings.local.json` (local overrides).
+### JavaScript / TypeScript repo with Cursor
+
+Example client repo:
+
+```text
+my-web-app/
+  .cursor/
+  scripts/
+  package.json
+  src/
+```
+
+Steps:
+
+1. Copy `scripts/run_exarp_go.sh` from the `exarp-go` repo into `my-web-app/scripts/`.
+2. Create `my-web-app/.cursor/mcp.json` from [cursor-mcp-portable.json](cursor-mcp-portable.json).
+3. Restart Cursor or reload MCP.
+
+Resulting config:
+
+```json
+{
+  "mcpServers": {
+    "exarp-go": {
+      "command": "{{PROJECT_ROOT}}/scripts/run_exarp_go.sh",
+      "args": [],
+      "env": {
+        "PROJECT_ROOT": "{{PROJECT_ROOT}}"
+      }
+    }
+  }
+}
+```
+
+Verify from the JavaScript/TypeScript repo:
+
+```bash
+cd /path/to/my-web-app
+PROJECT_ROOT="$PWD" EXARP_GO_VERBOSE=1 ./scripts/run_exarp_go.sh -list
+```
+
+You should see the runner resolve an `exarp-go` binary or repo and print the available tools.
+
+### Python repo with Cursor
+
+Example client repo:
+
+```text
+my-python-service/
+  .cursor/
+  scripts/
+  pyproject.toml
+  app/
+```
+
+Steps:
+
+1. Copy `scripts/run_exarp_go.sh` from the `exarp-go` repo into `my-python-service/scripts/`.
+2. Create `my-python-service/.cursor/mcp.json` from [cursor-mcp-portable.json](cursor-mcp-portable.json).
+3. Restart Cursor or reload MCP.
+
+Use the same config as above:
+
+```json
+{
+  "mcpServers": {
+    "exarp-go": {
+      "command": "{{PROJECT_ROOT}}/scripts/run_exarp_go.sh",
+      "args": [],
+      "env": {
+        "PROJECT_ROOT": "{{PROJECT_ROOT}}"
+      }
+    }
+  }
+}
+```
+
+Verify from the Python repo:
+
+```bash
+cd /path/to/my-python-service
+PROJECT_ROOT="$PWD" EXARP_GO_VERBOSE=1 ./scripts/run_exarp_go.sh -list
+```
+
+The Python repo does not need `go.mod` or any Go sources. The only requirement is that the runner can locate `exarp-go`.
+
+### OpenCode in any non-Go repo
+
+For OpenCode, use [opencode-exarp-go-portable.json](opencode-exarp-go-portable.json), but note the main difference from Cursor:
+
+- `command` must be an absolute path to the runner script
+- `environment.PROJECT_ROOT` must be the absolute path to the client repo
+
+Minimal example:
+
+```json
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "exarp-go": {
+      "type": "local",
+      "command": ["/absolute/path/to/your/project/scripts/run_exarp_go.sh"],
+      "enabled": true,
+      "environment": {
+        "PROJECT_ROOT": "/absolute/path/to/your/project"
+      },
+      "timeout": 10000
+    }
+  }
+}
+```
+
+---
+
+## Verification checklist
+
+After wiring a client repo:
+
+1. Confirm the runner script exists at `scripts/run_exarp_go.sh`.
+2. Confirm the MCP config file lives in the client repo, not in the `exarp-go` repo.
+3. Confirm `PROJECT_ROOT` resolves to the client repo.
+4. Run `PROJECT_ROOT="$PWD" EXARP_GO_VERBOSE=1 ./scripts/run_exarp_go.sh -list` from the client repo.
+5. In Cursor or OpenCode, confirm `exarp-go` appears as a connected MCP server.
+
+If the runner cannot find `exarp-go`, set `EXARP_GO_ROOT=/path/to/exarp-go` explicitly and rerun the debug command.
+
+---
 
 ## Project config (optional)
 
@@ -61,7 +184,5 @@ Copy to `.claude/settings.json` in your project root. Claude Code merges project
 - **Fix existing config:** After global install, run `make fix-mcp-config` (eval only) or `make fix-mcp-config MCP_CONFIG_FLAGS="--cursor-global"` to update Cursor MCP config to use the installed runner. See [PORTABLE_MCP_RUNNER.md](../PORTABLE_MCP_RUNNER.md).
 - **OpenCode:** Prefer [opencode-exarp-go-portable.json](opencode-exarp-go-portable.json) with the portable runner; or [opencode-exarp-go.json](opencode-exarp-go.json) with absolute binary path and `environment.PROJECT_ROOT`. For global install, use path `$(go env GOPATH)/bin/run_exarp_go.sh` and set `PROJECT_ROOT`.
 - **AI agents:** When suggesting config, point users to `docs/examples/` and [PORTABLE_MCP_RUNNER.md](../PORTABLE_MCP_RUNNER.md) for the portable runner.
-
-- **Claude Code allow rules:** Copy [claude-code-settings.json](claude-code-settings.json) to `.claude/settings.json` in your project to auto-allow all exarp-go MCP tools without confirmation prompts.
 
 See also: [PORTABLE_MCP_RUNNER.md](../PORTABLE_MCP_RUNNER.md), [CURSOR_MCP_SETUP.md](../CURSOR_MCP_SETUP.md), [OPENCODE_INTEGRATION.md](../OPENCODE_INTEGRATION.md), [.cursor/rules/mcp-configuration.mdc](../../.cursor/rules/mcp-configuration.mdc).

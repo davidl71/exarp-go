@@ -19,9 +19,9 @@ want it, it belongs in mcp-go-core.
 ## Tasks
 
 - [ ] T-1772056740723802000 — Remove duplicate ratelimit.go, use mcp-go-core version
-- [x] T-1772056739613403000 — Extract TTLCache and FileCache to mcp-go-core/pkg/mcp/cache *(done: core `pkg/mcp/cache`; exarp `internal/cache` re-exports + `GetScorecardCache`)*
-- [x] T-1772056740718615000 — Extract ToolError types to mcp-go-core/pkg/mcp/framework *(done: `ErrToolFailed`, `IsToolFailed`; exarp re-export + `WrapHandler`)*
-- [x] T-1772056740722069000 — Add FormatResultCompact to mcp-go-core/pkg/mcp/response *(done: `FormatResult` + `FormatResultCompact` in core; exarp delegates)*
+- [ ] T-1772056739613403000 — Extract TTLCache and FileCache to mcp-go-core/pkg/mcp/cache
+- [ ] T-1772056740718615000 — Extract ToolError types to mcp-go-core/pkg/mcp/framework
+- [ ] T-1772056740722069000 — Add FormatResultCompact to mcp-go-core/pkg/mcp/response
 - [ ] T-1772056740720274000 — Extract FileLock to mcp-go-core/pkg/mcp/filelock
 
 ## Execution order
@@ -74,7 +74,7 @@ want it, it belongs in mcp-go-core.
 | `internal/models/` | Todo2 protobuf models |
 | `internal/config/` | Exarp-specific config schema |
 | `internal/cli/` | TUI + cursor integration |
-| `internal/tools/llm_backends.go` | FM/Ollama/LocalAI/gateway discovery (`stdio://models`) |
+| `internal/tools/llm_backends.go` | FM/Ollama/MLX orchestration |
 | `GetScorecardCache()` | Uses exarp config |
 | `TaskLock`, `WithGitLock` | .todo2 path specifics |
 | `AddTokenEstimateToResult` | Uses `config.TokensPerChar()` |

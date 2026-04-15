@@ -51,7 +51,7 @@ Update `.cursor/mcp.json` to include PATH:
 {
   "mcpServers": {
     "exarp-go": {
-      "command": "{{PROJECT_ROOT}}/bin/exarp-go",
+      "command": "/Users/davidl/Projects/exarp-go/bin/exarp-go",
       "env": {
         "PROJECT_ROOT": "{{PROJECT_ROOT}}",
         "PATH": "/Users/davidl/go/bin:/Users/davidl/.nvm/versions/node/v20.19.5/bin:{{PATH}}"
@@ -83,6 +83,7 @@ After updating MCP config and restarting Cursor:
 
 ```bash
 # In Cursor chat, test linters:
+@gotoHuman list-forms  # Test gotoHuman
 @exarp-go lint  # Test lint tool
 ```
 
@@ -103,3 +104,4 @@ export PATH="$HOME/go/bin:$HOME/.nvm/versions/node/v20.19.5/bin:$PATH"
 ---
 
 **Last Updated:** 2026-01-07
+

@@ -23,7 +23,7 @@ task status: Review
   → Or: AI calls handleTaskWorkflowUpdate with new_status=Done
 ```
 
-The `handleTaskWorkflowApplyApprovalResult` action updates task status from a human decision (`approved` / `rejected`); the human step is outside exarp-go.
+The `handleTaskWorkflowApplyApprovalResult` action (T-112) adds gotoHuman integration but requires an external service.
 
 ## Proposed Enhancement: In-Process Approval Queue
 
@@ -114,7 +114,7 @@ func (s *ApprovalService) RequestApproval(taskID, content string, timeout time.D
 | Structured approval flow | Adds in-memory state (lost on restart) |
 | Timeout prevents stale reviews | Complexity vs. current manual approach |
 | Works with TUI, CLI, and MCP | Needs persistence for multi-session approvals |
-| Feedback captured automatically | Optional: map `approval_request` payloads to your own review channel |
+| Feedback captured automatically | gotoHuman already provides external approval |
 
 ## Recommendation
 
@@ -122,11 +122,11 @@ func (s *ApprovalService) RequestApproval(taskID, content string, timeout time.D
 
 **Phase 2 (if needed):** Persist pending approvals to SQLite for cross-session survival. Add webhook/notification integration.
 
-**Decision:** Worth implementing as Phase 1 — it enhances the existing Review workflow without requiring external services. Generic `approval_request` payloads remain available for any external review channel.
+**Decision:** Worth implementing as Phase 1 — it enhances the existing Review workflow without requiring external services. The gotoHuman integration (T-111, T-112) remains for external human review.
 
 ## References
 
 - OpenWork approval service: `docs/research/OPENCODE_PLUGIN_PATTERNS.md` §3.1
 - Current approval handlers: `internal/tools/task_workflow_actions.go`
-- Approval payload builder: `internal/tools/approval_request.go`
+- gotoHuman integration: `docs/GOTOHUMAN_API_REFERENCE.md`
 - MCP elicitation: `internal/framework/elicitation.go`

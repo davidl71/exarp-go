@@ -5,286 +5,130 @@
   "llm_semantic_processed": 0,
   "match_existing_only": false,
   "method": "native_go",
-  "output_path": "/Users/davidl/Projects/mcp/exarp-go/docs/TAG_ANALYSIS_RESULT.json",
+  "output_path": "/Users/dlowes/Projects/mcp/exarp-go/docs/TAG_ANALYSIS_RESULT.json",
   "profile_ms": {
     "apply_and_cache": 0,
-    "keyword": 2,
+    "keyword": 0,
     "llm_batch_avg_ms": 0,
     "llm_batch_max_ms": 0,
     "llm_batch_min_ms": 0,
     "llm_batches": 0,
     "llm_total": 0,
-    "load_tasks": 3
+    "load_tasks": 1
   },
   "recommendations": [
     {
       "count": 1,
-      "message": "Tag '#feature-enhancement #protobuf' is only used 1 time(s), consider consolidating",
-      "tag": "#feature-enhancement #protobuf",
+      "message": "Tag 'retry' is only used 1 time(s), consider consolidating",
+      "tag": "retry",
       "type": "consolidate"
     },
     {
       "count": 1,
-      "message": "Tag 'plan_sync' is only used 1 time(s), consider consolidating",
-      "tag": "plan_sync",
+      "message": "Tag 'epic' is only used 1 time(s), consider consolidating",
+      "tag": "epic",
       "type": "consolidate"
     },
     {
       "count": 1,
-      "message": "Tag 'summarization' is only used 1 time(s), consider consolidating",
-      "tag": "summarization",
+      "message": "Tag 'sub-repo' is only used 1 time(s), consider consolidating",
+      "tag": "sub-repo",
       "type": "consolidate"
     },
     {
       "count": 1,
-      "message": "Tag 'benchmark' is only used 1 time(s), consider consolidating",
-      "tag": "benchmark",
+      "message": "Tag 'audit' is only used 1 time(s), consider consolidating",
+      "tag": "audit",
       "type": "consolidate"
     },
     {
       "count": 1,
-      "message": "Tag '#testing-quality #benchmark' is only used 1 time(s), consider consolidating",
-      "tag": "#testing-quality #benchmark",
+      "message": "Tag 'todo2' is only used 1 time(s), consider consolidating",
+      "tag": "todo2",
       "type": "consolidate"
     },
     {
       "count": 1,
-      "message": "Tag 'nocgo' is only used 1 time(s), consider consolidating",
-      "tag": "nocgo",
+      "message": "Tag 'integration' is only used 1 time(s), consider consolidating",
+      "tag": "integration",
       "type": "consolidate"
     },
     {
       "count": 1,
-      "message": "Tag 'plan' is only used 1 time(s), consider consolidating",
-      "tag": "plan",
+      "message": "Tag 'reliability' is only used 1 time(s), consider consolidating",
+      "tag": "reliability",
       "type": "consolidate"
     },
     {
       "count": 1,
-      "message": "Tag 'comparison' is only used 1 time(s), consider consolidating",
-      "tag": "comparison",
+      "message": "Tag 'v2' is only used 1 time(s), consider consolidating",
+      "tag": "v2",
       "type": "consolidate"
     },
     {
       "count": 1,
-      "message": "Tag 'waves' is only used 1 time(s), consider consolidating",
-      "tag": "waves",
+      "message": "Tag 'devwisdom-go' is only used 1 time(s), consider consolidating",
+      "tag": "devwisdom-go",
       "type": "consolidate"
     },
     {
       "count": 1,
-      "message": "Tag 'llamacpp' is only used 1 time(s), consider consolidating",
-      "tag": "llamacpp",
+      "message": "Tag 'context' is only used 1 time(s), consider consolidating",
+      "tag": "context",
       "type": "consolidate"
     },
     {
       "count": 1,
-      "message": "Tag 'scorecard' is only used 1 time(s), consider consolidating",
-      "tag": "scorecard",
+      "message": "Tag 'platform' is only used 1 time(s), consider consolidating",
+      "tag": "platform",
       "type": "consolidate"
     },
     {
       "count": 1,
-      "message": "Tag '#feature-enhancement' is only used 1 time(s), consider consolidating",
-      "tag": "#feature-enhancement",
+      "message": "Tag 'report' is only used 1 time(s), consider consolidating",
+      "tag": "report",
       "type": "consolidate"
     },
     {
       "count": 1,
-      "message": "Tag 'tags' is only used 1 time(s), consider consolidating",
-      "tag": "tags",
+      "message": "Tag 'ci-cd' is only used 1 time(s), consider consolidating",
+      "tag": "ci-cd",
       "type": "consolidate"
     },
     {
       "count": 1,
-      "message": "Tag '#vendor-docs #refactor' is only used 1 time(s), consider consolidating",
-      "tag": "#vendor-docs #refactor",
+      "message": "Tag 'builder' is only used 1 time(s), consider consolidating",
+      "tag": "builder",
       "type": "consolidate"
     },
     {
       "count": 1,
-      "message": "Tag 'health' is only used 1 time(s), consider consolidating",
-      "tag": "health",
+      "message": "Tag 'lint' is only used 1 time(s), consider consolidating",
+      "tag": "lint",
       "type": "consolidate"
     },
     {
       "count": 1,
-      "message": "Tag '#skill #session #feature' is only used 1 time(s), consider consolidating",
-      "tag": "#skill #session #feature",
+      "message": "Tag 'filelock' is only used 1 time(s), consider consolidating",
+      "tag": "filelock",
       "type": "consolidate"
     },
     {
       "count": 1,
-      "message": "Tag 'agent' is only used 1 time(s), consider consolidating",
-      "tag": "agent",
+      "message": "Tag 'response' is only used 1 time(s), consider consolidating",
+      "tag": "response",
       "type": "consolidate"
     },
     {
       "count": 1,
-      "message": "Tag '#testing-quality #protobuf' is only used 1 time(s), consider consolidating",
-      "tag": "#testing-quality #protobuf",
+      "message": "Tag 'errors' is only used 1 time(s), consider consolidating",
+      "tag": "errors",
       "type": "consolidate"
     },
     {
       "count": 1,
-      "message": "Tag 'api' is only used 1 time(s), consider consolidating",
-      "tag": "api",
-      "type": "consolidate"
-    },
-    {
-      "count": 1,
-      "message": "Tag 'mcp-cpp' is only used 1 time(s), consider consolidating",
-      "tag": "mcp-cpp",
-      "type": "consolidate"
-    },
-    {
-      "count": 1,
-      "message": "Tag '#skill #validation #task-analysis' is only used 1 time(s), consider consolidating",
-      "tag": "#skill #validation #task-analysis",
-      "type": "consolidate"
-    },
-    {
-      "count": 1,
-      "message": "Tag 'backend' is only used 1 time(s), consider consolidating",
-      "tag": "backend",
-      "type": "consolidate"
-    },
-    {
-      "count": 1,
-      "message": "Tag 'format' is only used 1 time(s), consider consolidating",
-      "tag": "format",
-      "type": "consolidate"
-    },
-    {
-      "count": 1,
-      "message": "Tag 'localai' is only used 1 time(s), consider consolidating",
-      "tag": "localai",
-      "type": "consolidate"
-    },
-    {
-      "count": 1,
-      "message": "Tag 'memory' is only used 1 time(s), consider consolidating",
-      "tag": "memory",
-      "type": "consolidate"
-    },
-    {
-      "count": 1,
-      "message": "Tag 'handoff' is only used 1 time(s), consider consolidating",
-      "tag": "handoff",
-      "type": "consolidate"
-    },
-    {
-      "count": 1,
-      "message": "Tag '3270' is only used 1 time(s), consider consolidating",
-      "tag": "3270",
-      "type": "consolidate"
-    },
-    {
-      "count": 1,
-      "message": "Tag 'metadata' is only used 1 time(s), consider consolidating",
-      "tag": "metadata",
-      "type": "consolidate"
-    },
-    {
-      "count": 1,
-      "message": "Tag 'validation' is only used 1 time(s), consider consolidating",
-      "tag": "validation",
-      "type": "consolidate"
-    },
-    {
-      "count": 1,
-      "message": "Tag '#skill #cursor #docs' is only used 1 time(s), consider consolidating",
-      "tag": "#skill #cursor #docs",
-      "type": "consolidate"
-    },
-    {
-      "count": 1,
-      "message": "Tag '#vendor-docs #docs' is only used 1 time(s), consider consolidating",
-      "tag": "#vendor-docs #docs",
-      "type": "consolidate"
-    },
-    {
-      "count": 1,
-      "message": "Tag 'project-hygiene' is only used 1 time(s), consider consolidating",
-      "tag": "project-hygiene",
-      "type": "consolidate"
-    },
-    {
-      "count": 1,
-      "message": "Tag 'error-handling' is only used 1 time(s), consider consolidating",
-      "tag": "error-handling",
-      "type": "consolidate"
-    },
-    {
-      "count": 1,
-      "message": "Tag '#feature-enhancement #queue' is only used 1 time(s), consider consolidating",
-      "tag": "#feature-enhancement #queue",
-      "type": "consolidate"
-    },
-    {
-      "count": 1,
-      "message": "Tag '#vendor-docs #ci' is only used 1 time(s), consider consolidating",
-      "tag": "#vendor-docs #ci",
-      "type": "consolidate"
-    },
-    {
-      "count": 1,
-      "message": "Tag 'reporting' is only used 1 time(s), consider consolidating",
-      "tag": "reporting",
-      "type": "consolidate"
-    },
-    {
-      "count": 1,
-      "message": "Tag 'makefile' is only used 1 time(s), consider consolidating",
-      "tag": "makefile",
-      "type": "consolidate"
-    },
-    {
-      "count": 1,
-      "message": "Tag 'duplication' is only used 1 time(s), consider consolidating",
-      "tag": "duplication",
-      "type": "consolidate"
-    },
-    {
-      "count": 1,
-      "message": "Tag 'roots' is only used 1 time(s), consider consolidating",
-      "tag": "roots",
-      "type": "consolidate"
-    },
-    {
-      "count": 1,
-      "message": "Tag 'task-workflow' is only used 1 time(s), consider consolidating",
-      "tag": "task-workflow",
-      "type": "consolidate"
-    },
-    {
-      "count": 1,
-      "message": "Tag '#feature-enhancement #llm' is only used 1 time(s), consider consolidating",
-      "tag": "#feature-enhancement #llm",
-      "type": "consolidate"
-    },
-    {
-      "count": 1,
-      "message": "Tag 'ux' is only used 1 time(s), consider consolidating",
-      "tag": "ux",
-      "type": "consolidate"
-    },
-    {
-      "count": 1,
-      "message": "Tag 'testing-patterns' is only used 1 time(s), consider consolidating",
-      "tag": "testing-patterns",
-      "type": "consolidate"
-    },
-    {
-      "count": 1,
-      "message": "Tag 'positions' is only used 1 time(s), consider consolidating",
-      "tag": "positions",
-      "type": "consolidate"
-    },
-    {
-      "count": 1,
-      "message": "Tag 'task_execute' is only used 1 time(s), consider consolidating",
-      "tag": "task_execute",
+      "message": "Tag 'tech-debt' is only used 1 time(s), consider consolidating",
+      "tag": "tech-debt",
       "type": "consolidate"
     }
   ],
@@ -292,1054 +136,276 @@
   "tag_analysis": {
     "inconsistent_tags": {},
     "tag_frequency": {
-      "#feature-enhancement": 1,
-      "#feature-enhancement #llm": 1,
-      "#feature-enhancement #protobuf": 1,
-      "#feature-enhancement #queue": 1,
-      "#skill #cursor #docs": 1,
-      "#skill #session #feature": 1,
-      "#skill #validation #task-analysis": 1,
-      "#testing-quality #benchmark": 1,
-      "#testing-quality #protobuf": 1,
-      "#vendor-docs #ci": 1,
-      "#vendor-docs #docs": 1,
-      "#vendor-docs #refactor": 1,
-      "3270": 1,
-      "TaskStore": 8,
-      "a-za-z_-": 3,
-      "abstraction": 3,
-      "afm": 6,
-      "agent": 1,
-      "ai": 5,
-      "alignment": 2,
-      "analysis": 4,
-      "ansible": 8,
-      "api": 1,
-      "architecture": 8,
-      "automation": 4,
-      "backend": 1,
-      "batch": 6,
-      "benchmark": 1,
-      "bug": 60,
-      "build": 7,
+      "architecture": 6,
+      "audit": 1,
+      "bug": 2,
+      "builder": 1,
       "cache": 2,
-      "ci": 3,
-      "cleanup": 2,
-      "cli": 35,
-      "code-organization": 2,
-      "comment": 20,
-      "comparison": 1,
-      "compatibility": 2,
-      "config": 40,
-      "conflict": 2,
-      "cursor": 14,
-      "database": 23,
-      "dependencies": 2,
-      "design": 2,
-      "dev-tools": 2,
-      "discovered": 64,
-      "docs": 46,
-      "documentation": 2,
-      "done": 7,
-      "duplication": 1,
-      "ecosystem": 2,
-      "elicitation": 3,
-      "epic": 7,
-      "error-handling": 1,
-      "estimation": 3,
-      "exarp": 2,
-      "exarp-go": 2,
-      "feature": 143,
-      "format": 1,
-      "formid": 5,
-      "git": 5,
-      "git_tools": 2,
-      "go": 3,
-      "handoff": 1,
-      "health": 1,
-      "ibkr": 3,
-      "implementation": 4,
-      "infer_task_progress": 2,
-      "info": 3,
-      "integration": 2,
-      "lint": 7,
-      "linting": 3,
-      "llamacpp": 1,
-      "llm": 10,
-      "local-ai": 7,
-      "localai": 1,
-      "locking": 4,
-      "logging": 4,
-      "makefile": 1,
-      "markdown": 95,
-      "mcp": 83,
-      "mcp-cpp": 1,
-      "memory": 1,
-      "metadata": 1,
-      "migration": 82,
-      "mlx": 4,
-      "model-assisted": 12,
-      "model-assisted-workflow": 5,
-      "model_router": 3,
-      "multi-agent": 3,
-      "nocgo": 1,
-      "ollama": 3,
-      "opencode": 4,
-      "options": 2,
-      "performance": 32,
-      "phase": 10,
-      "phase1": 7,
-      "phase6": 3,
-      "plan": 1,
-      "plan_sync": 1,
-      "planned": 7,
-      "planning": 13,
-      "plugin": 2,
-      "positions": 1,
-      "prime": 3,
-      "project-hygiene": 1,
-      "prompts": 3,
-      "proto": 11,
-      "protobuf": 5,
-      "python": 2,
-      "refactor": 74,
-      "report": 6,
-      "reporting": 1,
-      "research": 5,
-      "researched": 7,
-      "resources": 6,
-      "roots": 1,
-      "scorecard": 1,
-      "security": 8,
-      "session": 13,
-      "slog": 2,
-      "summarization": 1,
-      "tags": 1,
-      "task-workflow": 1,
-      "task_analysis": 6,
-      "task_discovery": 4,
-      "task_execute": 1,
-      "task_workflow": 18,
-      "testing": 156,
-      "testing-patterns": 1,
-      "tool-enrichment": 7,
-      "tools": 6,
-      "tractatus": 2,
-      "tui": 11,
-      "ux": 1,
-      "validation": 1,
-      "vendor": 5,
-      "verification": 2,
-      "warn": 3,
-      "waves": 1,
-      "workflow": 3
+      "ci-cd": 1,
+      "cleanup": 11,
+      "cli": 3,
+      "compatibility": 8,
+      "config": 5,
+      "context": 1,
+      "database": 2,
+      "deadcode": 8,
+      "deferred": 2,
+      "devwisdom-go": 1,
+      "docs": 13,
+      "epic": 1,
+      "errors": 1,
+      "feature": 4,
+      "filelock": 1,
+      "framework": 2,
+      "infra": 3,
+      "integration": 1,
+      "lint": 1,
+      "llm": 2,
+      "mcp": 13,
+      "mcp-go-core": 9,
+      "opencode": 3,
+      "patterns": 3,
+      "performance": 2,
+      "platform": 1,
+      "plugin": 3,
+      "quality": 10,
+      "refactor": 9,
+      "reliability": 1,
+      "report": 1,
+      "research": 2,
+      "response": 1,
+      "retry": 1,
+      "security": 3,
+      "sub-repo": 1,
+      "task-workflow": 3,
+      "tech-debt": 1,
+      "testing": 7,
+      "todo2": 1,
+      "v2": 1,
+      "workflow": 5
     },
     "tag_suggestions": {
       "T-1": [
-        "feature",
-        "testing"
-      ],
-      "T-1768163111562": [
         "docs"
       ],
-      "T-1768163517955": [
-        "docs"
-      ],
-      "T-1768170875007": [
-        "docs"
-      ],
-      "T-1768170876574": [
-        "docs"
-      ],
-      "T-1768170891804": [
-        "docs"
-      ],
-      "T-1768170934965": [
-        "docs"
-      ],
-      "T-1768223765685": [
-        "docs"
-      ],
-      "T-1768249093338": [
-        "docs"
-      ],
-      "T-1768249096750": [
-        "docs"
-      ],
-      "T-1768249100812": [
-        "docs"
-      ],
-      "T-1768251821268": [
-        "docs"
-      ],
-      "T-1768253990892": [
-        "docs"
-      ],
-      "T-1768253994622": [
-        "docs"
-      ],
-      "T-1768312778714": [
-        "docs"
-      ],
-      "T-1768316499661": [
-        "docs"
-      ],
-      "T-1768316808114": [
-        "docs"
-      ],
-      "T-1768316817909": [
-        "docs"
-      ],
-      "T-1768317926149": [
-        "docs"
-      ],
-      "T-1768317926154": [
-        "docs"
-      ],
-      "T-1768317926156": [
-        "docs"
-      ],
-      "T-1768317926157": [
-        "docs"
-      ],
-      "T-1768317926159": [
-        "docs"
-      ],
-      "T-1768317926160": [
-        "docs"
-      ],
-      "T-1768317926162": [
-        "docs"
-      ],
-      "T-1768317926166": [
-        "docs"
-      ],
-      "T-1768317926170": [
-        "docs"
-      ],
-      "T-1768317926176": [
-        "docs"
-      ],
-      "T-1768317926178": [
-        "docs"
-      ],
-      "T-1768317926179": [
-        "docs"
-      ],
-      "T-1768317926186": [
-        "docs"
-      ],
-      "T-1768317926188": [
-        "docs"
-      ],
-      "T-1768317926189": [
-        "docs"
-      ],
-      "T-1768318349855": [
-        "docs"
-      ],
-      "T-1768318471624": [
-        "docs"
-      ],
-      "T-1768320027775": [
-        "docs"
-      ],
-      "T-1768320725711": [
-        "docs"
-      ],
-      "T-1768321828916": [
-        "docs"
-      ],
-      "T-1768322258052": [
-        "docs"
-      ],
-      "T-1768322265701": [
-        "docs"
-      ],
-      "T-1768322272904": [
-        "docs"
-      ],
-      "T-1768325006421": [
-        "docs"
-      ],
-      "T-1768326545827": [
-        "docs"
-      ],
-      "T-1768326823408": [
-        "docs"
-      ],
-      "T-1769531792537": [
-        "docs"
-      ],
-      "T-1769980677401": [
-        "feature"
-      ],
-      "T-1769980679071": [
-        "feature"
-      ],
-      "T-1769981328913": [
-        "cli"
-      ],
-      "T-1769981329793": [
-        "cli"
-      ],
-      "T-1769981330518": [
-        "cli"
-      ],
-      "T-1769981663149": [
-        "cli",
-        "feature"
-      ],
-      "T-1769989280687": [
-        "feature",
-        "docs"
-      ],
-      "T-1769989281559": [
+      "T-1772056718478802000": [
         "bug",
-        "feature",
+        "mcp"
+      ],
+      "T-1772056739613403000": [
+        "mcp"
+      ],
+      "T-1772056740718615000": [
+        "mcp",
+        "bug",
+        "feature"
+      ],
+      "T-1772056740720274000": [
+        "mcp"
+      ],
+      "T-1772056740722069000": [
+        "config",
+        "mcp",
+        "feature"
+      ],
+      "T-1772056740723802000": [
+        "testing",
+        "config",
+        "mcp"
+      ],
+      "T-1772113376012012000": [
+        "bug",
+        "feature"
+      ],
+      "T-1772113376072649000": [
         "testing"
       ],
-      "T-1769989282562": [
-        "feature"
-      ],
-      "T-1769989283751": [
-        "feature",
-        "bug"
-      ],
-      "T-1769989771103": [
-        "feature",
-        "docs"
-      ],
-      "T-1769989772115": [
-        "docs",
-        "feature"
-      ],
-      "T-1769989772815": [
-        "feature",
-        "docs"
-      ],
-      "T-1769989773440": [
-        "docs",
-        "feature"
-      ],
-      "T-1769989774217": [
-        "docs",
-        "feature"
-      ],
-      "T-1769990621386": [
-        "feature"
-      ],
-      "T-1769991219035": [
-        "docs"
-      ],
-      "T-1769992677122": [
-        "config"
-      ],
-      "T-1769992679343": [
-        "feature"
-      ],
-      "T-1770825532617": [
-        "cli",
+      "T-1772113376075430000": [
+        "testing",
+        "config",
         "feature",
         "database"
       ],
-      "T-1770827786553": [
-        "bug",
-        "migration"
-      ],
-      "T-1770827787404": [
-        "migration"
-      ],
-      "T-1770827788204": [
-        "migration"
-      ],
-      "T-1770827788823": [
-        "migration"
-      ],
-      "T-1770827789804": [
-        "migration"
-      ],
-      "T-1770828167906": [
-        "feature"
-      ],
-      "T-1770828211787": [
-        "bug"
-      ],
-      "T-1770829107875": [
-        "docs"
-      ],
-      "T-1770829362471": [
-        "mcp",
-        "docs",
-        "feature"
-      ],
-      "T-1770829363301": [
-        "feature",
-        "docs"
-      ],
-      "T-1770829364114": [
-        "feature"
-      ],
-      "T-1770830680695": [
-        "docs"
-      ],
-      "T-1770830686054": [
-        "docs",
-        "refactor"
-      ],
-      "T-1770830686525": [
-        "docs"
-      ],
-      "T-1770830692099": [
-        "docs",
-        "feature",
-        "testing"
-      ],
-      "T-1770831732740": [
-        "database",
-        "migration"
-      ],
-      "T-1770831733303": [
-        "migration"
-      ],
-      "T-1770831733871": [
-        "migration"
-      ],
-      "T-1770831825325": [
-        "docs",
-        "security",
-        "config"
-      ],
-      "T-1770909568528": [
-        "feature"
-      ],
-      "T-1770911608304": [
-        "feature"
-      ],
-      "T-1771163159640": [
-        "feature"
-      ],
-      "T-1771163160878": [
-        "cli",
-        "feature"
-      ],
-      "T-1771163161969": [
-        "feature",
-        "cli"
-      ],
-      "T-1771163162925": [
-        "feature",
-        "bug"
-      ],
-      "T-1771163163946": [
-        "feature"
-      ],
-      "T-1771163164971": [
-        "docs",
-        "feature"
-      ],
-      "T-1771163165885": [
-        "feature"
-      ],
-      "T-1771163166855": [
-        "feature"
-      ],
-      "T-1771163168560": [
-        "feature"
-      ],
-      "T-1771164528145": [
-        "feature",
-        "docs"
-      ],
-      "T-1771164549623": [
-        "feature",
-        "docs",
-        "cli"
-      ],
-      "T-1771164549862": [
-        "docs",
-        "cli",
-        "feature"
-      ],
-      "T-1771164550717": [
-        "docs",
-        "cli"
-      ],
-      "T-1771164551664": [
-        "feature",
-        "cli",
-        "mcp"
-      ],
-      "T-1771164552852": [
-        "cli",
-        "feature"
-      ],
-      "T-1771171132414": [
-        "feature"
-      ],
-      "T-1771171134703": [
-        "feature"
-      ],
-      "T-1771171136408": [
-        "feature"
-      ],
-      "T-1771171137798": [
-        "cli",
-        "feature"
-      ],
-      "T-1771171139453": [
-        "mcp"
-      ],
-      "T-1771171348644": [
-        "feature",
-        "docs"
-      ],
-      "T-1771171349874": [
-        "docs",
-        "feature"
-      ],
-      "T-1771171357749": [
-        "bug",
-        "feature"
-      ],
-      "T-1771171359038": [
-        "feature",
-        "bug"
-      ],
-      "T-1771171360013": [
-        "feature"
-      ],
-      "T-1771171361363": [
-        "feature"
-      ],
-      "T-1771171362298": [
-        "feature"
-      ],
-      "T-1771171363644": [
-        "feature",
-        "config"
-      ],
-      "T-1771171365898": [
-        "testing"
-      ],
-      "T-1771171366066": [
-        "testing"
-      ],
-      "T-1771171367059": [
-        "testing",
-        "feature"
-      ],
-      "T-1771172293634": [
-        "docs",
-        "feature",
-        "bug"
-      ],
-      "T-1771172717418": [
-        "docs",
-        "feature"
-      ],
-      "T-1771172721983": [
-        "docs"
-      ],
-      "T-1771172723091": [
-        "docs"
-      ],
-      "T-1771172724534": [
-        "docs",
-        "feature"
-      ],
-      "T-1771172725704": [
-        "feature",
-        "docs"
-      ],
-      "T-1771172726662": [
+      "T-1772113376109471000": [
         "config",
-        "mcp"
-      ],
-      "T-1771172735887": [
-        "docs"
-      ],
-      "T-1771172891732": [
-        "refactor"
-      ],
-      "T-1771172893324": [
-        "feature",
-        "cli"
-      ],
-      "T-1771245897653": [
-        "feature",
-        "database",
-        "bug",
-        "testing"
-      ],
-      "T-1771245901197": [
-        "bug",
-        "testing",
-        "database",
-        "refactor"
-      ],
-      "T-1771245903330": [
-        "bug",
-        "testing"
-      ],
-      "T-1771245906548": [
-        "testing",
-        "docs",
         "bug"
       ],
-      "T-1771245909201": [
-        "testing",
-        "docs",
-        "bug"
-      ],
-      "T-1771245912597": [
-        "bug",
-        "testing"
-      ],
-      "T-1771245913605": [
-        "database",
-        "testing",
-        "bug"
-      ],
-      "T-1771245916585": [
-        "cli",
-        "mcp",
-        "bug",
-        "testing"
-      ],
-      "T-1771246233626": [
-        "docs",
-        "feature",
-        "testing"
-      ],
-      "T-1771251877461": [
-        "feature",
-        "refactor"
-      ],
-      "T-1771252268378": [
-        "feature",
-        "docs"
-      ],
-      "T-1771252272139": [
-        "config",
-        "docs",
-        "feature"
-      ],
-      "T-1771252276374": [
-        "feature"
-      ],
-      "T-1771252280227": [
-        "feature",
-        "docs",
-        "cli"
-      ],
-      "T-1771252286533": [
-        "config",
-        "cli",
-        "mcp",
-        "feature",
-        "docs",
-        "bug"
-      ],
-      "T-1771253614690": [
-        "docs",
-        "cli",
-        "feature"
-      ],
-      "T-1771257778074": [
-        "docs",
-        "feature"
-      ],
-      "T-1771278405185": [
-        "feature"
-      ],
-      "T-1771278411878": [
-        "security"
-      ],
-      "T-1771278414077": [
-        "mcp"
-      ],
-      "T-1771279495527": [
-        "cli",
-        "database"
-      ],
-      "T-1771279495528": [
-        "database",
-        "config",
-        "migration"
-      ],
-      "T-1771279495530": [
-        "feature"
-      ],
-      "T-1771279495531": [
-        "feature"
-      ],
-      "T-1771279495535": [
-        "testing"
-      ],
-      "T-1771280369024605000": [
-        "bug",
-        "cli",
-        "database",
-        "security"
-      ],
-      "T-1771353163496878000": [
-        "docs"
-      ],
-      "T-1771353168386164000": [
-        "docs"
-      ],
-      "T-1771353169844112000": [
-        "feature"
-      ],
-      "T-1771353170943219000": [
-        "docs",
-        "config"
-      ],
-      "T-1771354500144133000": [
-        "feature"
-      ],
-      "T-1771355092457125000": [
-        "docs",
-        "config",
-        "mcp",
-        "feature"
-      ],
-      "T-1771355098499809000": [
-        "docs",
-        "feature"
-      ],
-      "T-1771355107420602000": [
-        "feature"
-      ],
-      "T-1771360298493675000": [
-        "bug"
-      ],
-      "T-1771360821141115000": [
-        "mcp",
-        "docs"
-      ],
-      "T-1771360821329803000": [
-        "feature"
-      ],
-      "T-1771360822084869000": [
-        "mcp",
-        "cli",
-        "feature"
-      ],
-      "T-1771360895822062000": [
-        "feature",
-        "cli",
-        "refactor"
-      ],
-      "T-1771360896308433000": [
+      "T-1772113376112151000": [
         "refactor",
         "feature"
       ],
-      "T-1771360897057583000": [
-        "feature",
-        "refactor"
-      ],
-      "T-1771360897632102000": [
-        "cli",
-        "refactor",
-        "mcp"
-      ],
-      "T-1771361056782987000": [
-        "feature"
-      ],
-      "T-1771362279364774000": [
-        "docs",
-        "config"
-      ],
-      "T-1771367215872916000": [
-        "performance"
-      ],
-      "T-1771369913069275000": [
-        "docs",
-        "feature"
-      ],
-      "T-1771424059130668000": [
-        "feature"
-      ],
-      "T-1771424061641133000": [
-        "testing"
-      ],
-      "T-1771424064959428000": [
+      "T-1772129738782801000": [
         "feature",
         "config"
       ],
-      "T-1771424068541934000": [
-        "feature",
-        "docs"
-      ],
-      "T-1771426903372815000": [
-        "feature",
-        "docs",
-        "config"
-      ],
-      "T-1771426909351560000": [
+      "T-1772129743697232000": [
         "feature"
       ],
-      "T-1771426909427604000": [
+      "T-1772129748158487000": [
         "feature"
       ],
-      "T-1771426912215029000": [
-        "testing",
-        "config"
-      ],
-      "T-1771428470773674000": [
-        "security",
-        "feature",
-        "testing"
-      ],
-      "T-1771428476221782000": [
-        "feature",
-        "docs"
-      ],
-      "T-1771431392695147000": [
-        "testing",
+      "T-1772129756972879000": [
         "bug"
       ],
-      "T-1771431400302079000": [
-        "feature",
-        "refactor"
-      ],
-      "T-1771431401371255000": [
-        "docs",
-        "cli"
-      ],
-      "T-1771431470154388000": [
-        "feature",
-        "config",
+      "T-1772131185241023000": [
         "mcp"
       ],
-      "T-1771431471680197000": [
+      "T-1772134717306182000": [
         "feature",
+        "config",
         "docs"
       ],
-      "T-1771431472795713000": [
-        "config",
-        "docs",
-        "feature"
-      ],
-      "T-1771431474062739000": [
-        "docs",
-        "feature",
-        "mcp"
-      ],
-      "T-1771431474294593000": [
+      "T-1772134723803816000": [
         "feature",
         "docs",
+        "bug",
         "cli"
       ],
-      "T-1771431475536107000": [
-        "refactor",
-        "feature"
-      ],
-      "T-1771431476232391000": [
-        "feature"
-      ],
-      "T-1771431879332536000": [
-        "testing"
-      ],
-      "T-1771453722079542000": [
-        "mcp",
-        "feature"
-      ],
-      "T-1771453724538521000": [
+      "T-1772134728403574000": [
         "docs",
-        "feature"
-      ],
-      "T-1771453727448983000": [
-        "feature"
-      ],
-      "T-1771456781612428000": [
-        "feature"
-      ],
-      "T-1771456782344658000": [
-        "feature"
-      ],
-      "T-1771456783140919000": [
-        "testing"
-      ],
-      "T-1771456783942416000": [
-        "security",
-        "feature"
-      ],
-      "T-1771457107137117000": [
-        "feature"
-      ],
-      "T-1771457679905665000": [
-        "feature"
-      ],
-      "T-1771457680959680000": [
-        "feature",
-        "testing",
-        "docs"
-      ],
-      "T-1771457682379908000": [
-        "bug",
-        "feature"
-      ],
-      "T-1771457731564409000": [
-        "docs"
-      ],
-      "T-1771459745874455000": [
-        "bug"
-      ],
-      "T-1771459746925000000": [
-        "docs"
-      ],
-      "T-1771459748745880000": [
-        "refactor",
-        "feature",
-        "bug",
-        "config"
-      ],
-      "T-1771460263062440000": [
-        "config",
-        "feature",
-        "security"
-      ],
-      "T-1771460265620181000": [
-        "feature"
-      ],
-      "T-1771460266378542000": [
-        "feature"
-      ],
-      "T-1771460272225109000": [
-        "feature"
-      ],
-      "T-1771460276135792000": [
-        "feature"
-      ],
-      "T-1771460279379701000": [
-        "feature",
-        "config"
-      ],
-      "T-1771524906950533000": [
-        "feature",
-        "docs"
-      ],
-      "T-1771524908368264000": [
-        "feature"
-      ],
-      "T-1771524912621955000": [
-        "docs"
-      ],
-      "T-1771527440919405000": [
-        "feature",
-        "docs"
-      ],
-      "T-1771527442600554000": [
-        "feature",
-        "testing"
-      ],
-      "T-1771527444192722000": [
-        "feature"
-      ],
-      "T-1771543659626936000": [
-        "testing"
-      ],
-      "T-1771543663481255000": [
-        "cli",
-        "testing"
-      ],
-      "T-1771543664811514000": [
-        "testing",
-        "config"
-      ],
-      "T-1771543666094356000": [
-        "testing",
-        "config",
-        "cli",
         "feature",
         "database"
       ],
-      "T-1771543667742498000": [
-        "docs",
-        "feature",
-        "refactor"
-      ],
-      "T-1771543669306198000": [
-        "feature",
+      "T-1772134733181454000": [
         "docs"
       ],
-      "T-1771543670781451000": [
-        "feature",
-        "bug"
+      "T-1772136648790645000": [
+        "database",
+        "feature"
       ],
-      "T-1771543672166929000": [
+      "T-1772136656476874000": [
+        "bug",
+        "mcp",
+        "testing",
+        "feature"
+      ],
+      "T-1772136660747168000": [
         "feature",
         "docs",
-        "config",
-        "bug"
+        "mcp"
       ],
-      "T-1771543673354872000": [
-        "docs"
-      ],
-      "T-1771543674831113000": [
+      "T-1772136670103125000": [
         "feature",
-        "refactor",
-        "bug"
+        "mcp"
       ],
-      "T-1771748456311992000": [
-        "feature"
-      ],
-      "T-1771748457873834000": [
-        "feature"
-      ],
-      "T-1771748458942322000": [
-        "feature",
-        "bug"
-      ],
-      "T-1771748460125897000": [
-        "feature"
-      ],
-      "T-1771748461437342000": [
-        "feature"
-      ],
-      "T-1772559145947615000": [
-        "testing"
-      ],
-      "T-1772559152772495000": [
-        "config"
-      ],
-      "T-1772559170422095000": [
+      "T-1772136673724719000": [
+        "mcp",
         "cli"
       ],
-      "T-1772958504978125000": [
-        "bug",
-        "security",
+      "T-1772136678618765000": [
+        "docs",
+        "mcp",
         "feature"
       ],
-      "T-1772958892671074000": [
-        "feature",
-        "docs"
+      "T-1772137862028932000": [
+        "feature"
       ],
-      "T-1772959555900984000": [
-        "bug",
-        "cli",
+      "T-1772140735013773000": [
+        "feature"
+      ],
+      "T-1772140737468013000": [
+        "testing",
         "feature",
-        "mcp",
+        "security"
+      ],
+      "T-1772141897342701000": [
+        "feature",
+        "bug"
+      ],
+      "T-1772143560854762000": [
+        "config"
+      ],
+      "T-1772143562014999000": [
+        "docs",
+        "feature"
+      ],
+      "T-1772143563564620000": [
         "config",
-        "docs"
+        "feature"
       ],
-      "T-212": [
-        "security",
-        "migration",
+      "T-1772145574514688000": [
         "refactor"
       ],
-      "T-214": [
+      "T-1772145575571319000": [
+        "feature",
+        "refactor",
+        "config"
+      ],
+      "T-1772145576928133000": [
+        "refactor",
+        "docs"
+      ],
+      "T-1772145580628283000": [
+        "docs",
+        "refactor"
+      ],
+      "T-1772145581512743000": [
+        "refactor"
+      ],
+      "T-1772657325959338000": [
+        "feature"
+      ],
+      "T-1772922477795733000": [
+        "cli"
+      ],
+      "T-1772922494467672000": [
+        "feature"
+      ],
+      "T-1772922494472791000": [
+        "cli",
+        "docs"
+      ],
+      "T-1772922494477029000": [
+        "cli"
+      ],
+      "T-1772923057155654000": [
+        "feature"
+      ],
+      "T-1772923346414451000": [
+        "docs"
+      ],
+      "T-1772927511897314000": [
+        "refactor",
         "testing",
+        "migration"
+      ],
+      "T-1772927511934266000": [
         "bug",
+        "refactor"
+      ],
+      "T-1772927929129701000": [
+        "docs"
+      ],
+      "T-1774272883858613000": [
+        "feature"
+      ],
+      "T-1774272887128328000": [
+        "feature"
+      ],
+      "T-1776030052217943000": [
+        "config"
+      ],
+      "T-3": [
+        "feature"
+      ],
+      "T-5": [
+        "feature"
+      ],
+      "T-6": [
+        "feature",
+        "docs",
+        "testing"
+      ],
+      "T-7": [
+        "docs"
+      ],
+      "T-8": [
         "docs"
       ]
     },
     "unused_tags": null
   },
-  "total_tasks": 473,
+  "total_tasks": 74,
   "use_llm_semantic": false,
   "use_tiny_tag_model": false
 }

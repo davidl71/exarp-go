@@ -10,7 +10,7 @@ Design for routing TUI through MCP tools instead of direct database access. This
 
 ---
 
-## Current Architecture (Historical Problem)
+## Current Architecture (Problem)
 
 ```
 ┌─────────┐     ┌──────────┐     ┌──────────┐
@@ -35,7 +35,7 @@ Design for routing TUI through MCP tools instead of direct database access. This
 
 ---
 
-## Current Target Architecture
+## Proposed Architecture (Solution)
 
 ```
 ┌─────────┐     ┌──────────┐     ┌──────────┐
@@ -62,21 +62,10 @@ Design for routing TUI through MCP tools instead of direct database access. This
 - Consistent behavior guaranteed
 - Easier testing (mock tool layer)
 - Clean separation of concerns
-- Full store reconciliation stays explicit instead of being hidden behind routine CRUD
-- Task execution context can stay small because the prime response can point to lazy task/skill resources instead of embedding all guidance eagerly
-
-## Current Status
-
-The core task CLI has now been deduplicated so `exarp-go task ...` also routes through the canonical `task_workflow` backend. The remaining architectural goal for the TUI is therefore simpler than when this document was written:
-
-- CLI and MCP already share the same task behavior.
-- TUI should do the same through typed MCP helpers.
-- Any remaining direct `database.*` usage in TUI should be treated as a layering leak, not as an acceptable parallel task path.
-- For task-focused views, TUI should prefer `session action=prime` + `suggested_next[].lazy_context` and load `stdio://tasks/{task_id}` / `stdio://agent/skills/{name}` only when the operator opens that task.
 
 ---
 
-## Remaining TUI Database Access
+## Current TUI Database Access
 
 ### Analysis Results
 
@@ -212,37 +201,26 @@ func (m model) loadTasksViaMCP(status string) tea.Cmd {
 }
 ```
 
-### Phase 3: Replace Config Operations ✅
+### Phase 3: Replace Config Operations
 
 **Files:**
 - `tui_config.go` - Config loading/saving
 - `tui.go` - Initial config load
 
-**Done:** Adapter has `loadConfigForTUI`, `saveConfigForTUI`, `getConfigDefaultsForTUI`, `getDefaultTaskKeybindingsForTUI`. TUI and 3270 config paths use them; `config` import removed from TUI call sites where possible.
-
-### Phase 4: Replace Scorecard Operations ✅
+### Phase 4: Replace Scorecard Operations
 
 **Files:**
 - `tui_scorecard.go` - Scorecard generation
-
-**Done:** Report tool scorecard JSON now includes `formatted_text`. Adapter has `loadScorecardForTUI(ctx, server, projectRoot, fullMode)` calling report MCP tool; Bubbletea `loadScorecard` and 3270 `scorecardTransaction` use it. Removed direct `tools.GenerateGoScorecard` / `tools.GetOverviewText` from TUI.
 
 ### Phase 5: Replace Handoff Operations
 
 **Files:**
 - `tui_handoffs.go` - Handoff list/close/approve
 
-### Phase 6: Replace Wave Operations ✅
+### Phase 6: Replace Wave Operations
 
-**Files:** `tui_waves.go`, `tui_mcp_adapter.go` (firstWaveTaskIDs), `tui_update.go`, `tui_update_handlers.go`
-
-**Done:** Wave computation remains with `tools.ComputeWavesForTUI` by design. Routing via `task_analysis` (e.g. `execution_plan`) was considered; we keep ComputeWavesForTUI because it prefers waves from the plan file (`docs/PARALLEL_EXECUTION_PLAN_RESEARCH.md`) when present, while execution_plan does not read that file. TUI already has tasks in memory, so using the tool would duplicate task load and lose plan-file semantics. See comment above `firstWaveTaskIDs` in `tui_mcp_adapter.go`.
-
-### Phase 7: Remove Direct database.* from TUI Entry Files ✅
-
-**Files:** `tui.go`, `tui3270.go`
-
-**Done:** All direct `database.*` references removed from `tui.go` and `tui3270.go`. Task types use `models.Todo2Task` (same type as `database.Todo2Task`). Lifecycle close is routed through `CloseDatabaseIfOpen()` in `tui_mcp_adapter.go`, so TUI no longer references the database package for DB checks or Close. The adapter retains the single dependency on `database` for MCP response parsing and for `CloseDatabaseIfOpen()`.
+**Files:**
+- `tui_waves.go` - Wave computation
 
 ---
 
@@ -375,12 +353,21 @@ func (a *tuiMCPAdapter) GetScorecard(projectRoot string, fullMode bool) (string,
 
 ### Testing Strategy
 
-**Unit tests for adapter:** Implemented in `internal/cli/tui_mcp_adapter_test.go`. A stub `adapterStubServer` implements `framework.MCPServer` and returns predefined JSON from `CallTool`. Tests include:
-
-- **listTasksByStatusViaMCP**: `TestTuiMcpAdapter_ListTasksByStatusViaMCP` (parses task list JSON), `TestTuiMcpAdapter_ListTasksByStatusViaMCP_EmptyList`, `TestTuiMcpAdapter_ListTasksByStatusViaMCP_Error` (CallTool error propagation).
-- **loadScorecardForTUI**: `TestTuiMcpAdapter_LoadScorecardForTUI` (formatted_text path), `TestTuiMcpAdapter_LoadScorecardForTUI_FallbackNoFormattedText` (fallback built from overall_score/blockers/recommendations), `TestTuiMcpAdapter_LoadScorecardForTUI_NilServer` (nil server error).
-
-Run with: `go test ./internal/cli/... -run TuiMcpAdapter -v`.
+**Unit tests for adapter:**
+```go
+func TestTuiMCPAdapter_ListTasks(t *testing.T) {
+    mockServer := &mockMCPServer{
+        response: `{"tasks": [{"id": "T-123", "content": "Test"}]}`,
+    }
+    
+    adapter := &tuiMCPAdapter{server: mockServer, ctx: context.Background()}
+    tasks, err := adapter.ListTasks("Todo")
+    
+    assert.NoError(t, err)
+    assert.Len(t, tasks, 1)
+    assert.Equal(t, "T-123", tasks[0].ID)
+}
+```
 
 **Integration tests:**
 - Test TUI with real MCP server

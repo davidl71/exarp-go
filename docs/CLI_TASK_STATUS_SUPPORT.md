@@ -1,25 +1,15 @@
 # CLI Task Status Support
 
-**Date:** 2026-03-24  
-**Status:** Current Implementation
+**Date:** 2026-01-12  
+**Status:** Current Implementation + Enhancement Proposal
 
 ## Current Support
 
-### ✅ Dedicated `task` Commands
+### ✅ Task Operations via `task_workflow` Tool
 
-The CLI already supports direct task operations without going through raw JSON:
+The CLI supports task status operations through the generic tool execution interface using the `task_workflow` tool.
 
-```bash
-exarp-go task list --status "In Progress"
-exarp-go task show T-123
-exarp-go task update --ids T-123 --new-status Done
-exarp-go task create "Task name" --description "Task description"
-```
-
-### ✅ Advanced Execution Operations via `task_workflow`
-
-The generic tool interface is still the advanced surface for execution-cockpit actions:
-
+**Available via:**
 ```bash
 exarp-go -tool task_workflow -args '<json>'
 ```
@@ -28,37 +18,106 @@ exarp-go -tool task_workflow -args '<json>'
 
 **1. List Tasks by Status**
 ```bash
-exarp-go task list --status "In Progress"
-exarp-go task list --status "Todo"
-exarp-go task list --status "Done"
+# List all "In Progress" tasks
+exarp-go -tool task_workflow -args '{"action":"sync","sub_action":"list","status":"In Progress"}'
+
+# List all "Todo" tasks
+exarp-go -tool task_workflow -args '{"action":"sync","sub_action":"list","status":"Todo"}'
+
+# List all "Done" tasks
+exarp-go -tool task_workflow -args '{"action":"sync","sub_action":"list","status":"Done"}'
 ```
 
 **2. Update Task Status (Batch)**
 ```bash
-exarp-go task update --ids T-1,T-2,T-3 --new-status Done
-exarp-go task update --ids T-123 --new-status "In Progress"
+# Update multiple tasks from "Todo" to "Done"
+exarp-go -tool task_workflow -args '{
+  "action":"approve",
+  "status":"Todo",
+  "new_status":"Done",
+  "task_ids":"[\"T-1\",\"T-2\",\"T-3\"]"
+}'
+
+# Update single task to "In Progress"
+exarp-go -tool task_workflow -args '{
+  "action":"approve",
+  "status":"Todo",
+  "new_status":"In Progress",
+  "task_ids":"[\"T-123\"]"
+}'
 ```
 
 **3. Create New Task**
 ```bash
-exarp-go task create "Task name" --description "Task description" --priority high
+exarp-go -tool task_workflow -args '{
+  "action":"create",
+  "name":"Task name",
+  "long_description":"Task description",
+  "tags":["tag1","tag2"],
+  "priority":"high"
+}'
 ```
 
 **4. Get Task Details**
 ```bash
-exarp-go task show T-123
+# Get specific task by ID
+exarp-go -tool task_workflow -args '{
+  "action":"sync",
+  "sub_action":"list",
+  "task_id":"T-123"
+}'
 ```
 
-**5. Start an Execution Run**
+## Current Limitations
+
+### ❌ No Convenience Commands
+
+The CLI currently requires:
+- Full JSON argument syntax
+- Knowledge of tool names and action parameters
+- Manual JSON escaping in shell
+
+**Example (verbose):**
 ```bash
-exarp-go -tool task_workflow -args '{"action":"start_run","task_id":"T-123","summary":"Implement handlers"}'
+exarp-go -tool task_workflow -args '{"action":"sync","sub_action":"list","status":"In Progress"}'
 ```
 
-**6. Record Verification and Partial Progress**
+**Could be simplified to:**
 ```bash
-exarp-go -tool task_workflow -args '{"action":"verify","task_id":"T-123","run_id":"R-...","kind":"compile","result":"passed","command":"go build ./internal/tools"}'
-exarp-go -tool task_workflow -args '{"action":"add_progress","task_id":"T-123","run_id":"R-...","summary":"Wired handlers","remaining_work":"Update docs"}'
+exarp-go task list --status "In Progress"
+# or
+exarp-go task status "In Progress"
 ```
+
+## Enhancement Proposal
+
+### Add Dedicated Task Commands
+
+**Proposed CLI Structure:**
+```bash
+# Task listing
+exarp-go task list                    # List all tasks
+exarp-go task list --status "Todo"    # List by status
+exarp-go task list --priority "high"  # List by priority
+exarp-go task list --tag "migration"  # List by tag
+
+# Task status operations
+exarp-go task status <task-id>                    # Get task status
+exarp-go task update <task-id> --status "Done"   # Update single task
+exarp-go task update --status "Todo" --new-status "Done" --ids "T-1,T-2"  # Batch update
+
+# Task creation
+exarp-go task create "Task name" --description "Description" --priority "high"
+
+# Task details
+exarp-go task show <task-id>          # Show full task details
+```
+
+### Implementation Approach
+
+**Option 1: Add Subcommands to CLI**
+- Add `task` subcommand parser
+- Map to `task_workflow` tool internally
 - Provide friendly argument parsing
 
 **Option 2: Extend Interactive Mode**

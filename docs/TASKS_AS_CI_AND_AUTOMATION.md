@@ -15,11 +15,10 @@
 | Report overview | Agentic CI: `report` overview |
 | Alignment + duplicates | `make pre-sprint` → `task_analysis duplicates` + `analyze_alignment todo2` |
 | Daily/sprint automation | `automation` tool (daily/nightly/sprint) + `make sprint`, `sprint-start` |
-| Execution cockpit snapshot | `automation` tool (`execution_cockpit`) + `automation action=schedule target_action=execution_cockpit` |
 | Task completion inference | `make check-tasks`, `make update-completed-tasks` |
 | Task sanity (epochs, dup IDs, invalid status, missing deps) | `make task-sanity-check` (task_workflow sanity_check) |
-| Pre-push | Git hook: `health docs` + `analyze_alignment todo2` + `security scan` |
-| Pre-commit | Git hook: build fast-path |
+| Pre-push | Git hook: `analyze_alignment todo2` (no vulnerability scan) |
+| Pre-commit | Git hook: build + health docs (no vulnerability scan) |
 | Before release | Run `make pre-release` for build + govulncheck + security scan |
 
 **Implication:** Any Todo2 item that only says “run alignment” or “run duplicate detection” is already covered; use `make pre-sprint` or the automation tool instead of creating a one-off task.

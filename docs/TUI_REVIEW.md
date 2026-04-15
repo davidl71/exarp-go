@@ -44,20 +44,25 @@ Major code organization improvements completed. See [Section 11: Completed Impro
 
 ---
 
-## 3. Architecture: Current
+## 3. Architecture: Current vs. Recommended
 
-### Data Flow: All Surfaces Through MCP Tools ✅
+### Current: Three Independent Data Paths
+
+```
+MCP Tools ──→ internal/tools handlers ──→ database/config
+CLI       ──→ handleTaskCommand       ──→ database/config
+TUI       ──→ database.GetTask()      ──→ database/config
+TUI3270   ──→ database.GetTask()      ──→ database/config
+```
+
+### Recommended: MCP Tools as Single Capability API
 
 ```
 MCP Tools ──→ internal/tools handlers ──→ database/config
 CLI       ──→ server.CallTool()       ──→ MCP Tools
-TUI       ──→ listTasksViaMCP()      ──→ MCP Tools ──→ database/config
-TUI3270   ──→ listTasksViaMCP()      ──→ MCP Tools ──→ database/config
+TUI       ──→ server.CallTool()       ──→ MCP Tools
+TUI3270   ──→ server.CallTool()       ──→ MCP Tools
 ```
-
-All surfaces now route through MCP tools. Direct database access is limited to:
-- `database.Close()` for cleanup
-- `database.Todo2Task` type definitions
 
 ---
 
@@ -83,23 +88,23 @@ All surfaces now route through MCP tools. Direct database access is limited to:
 
 ## 5. Issues Found
 
-### 5.1 Feature Creep Risk ~~(RESOLVED)~~
-- ~~Both TUIs bypass MCP tools and call `database.*`, `tools.*`, `config.*` directly~~ ✅ **FIXED**: Both TUIs use MCP adapter
-- Bubbletea TUI has features no other surface has (jobs, wave move, queue enqueue) - by design
+### 5.1 Feature Creep Risk
+- Both TUIs bypass MCP tools and call `database.*`, `tools.*`, `config.*` directly
+- Bubbletea TUI has features no other surface has (jobs, wave move, queue enqueue)
 - 3270 TUI reimplements logic independently (editor, recommendation runner)
 
-### 5.2 Code Quality ~~(RESOLVED)~~
-- ~~`tui.go` is 4,582 lines in one file~~ ✅ **FIXED**: Split into multiple files
+### 5.2 Code Quality ~~(PARTIALLY RESOLVED)~~
+- ~~`tui.go` is 4,582 lines in one file~~ ✅ **FIXED**: Split into multiple files (see Section 11)
 - ~~`Update()` is ~1,200 lines of nested mode/key dispatch~~ ✅ **FIXED**: Extracted to handler methods
 - ~~Mode is a bare string with 8+ values~~ ✅ **FIXED**: Added mode constants in `tui_modes.go`
-- ~~No formal state machine for mode transitions~~ ✅ **FIXED**: Added `tui_transitions.go`
-- `model` struct has 50+ fields ("god object") ⚠️ **REMAINING**: Per-view state structs already exist
-- 15+ message types defined inline ⚠️ **FIXED**: Already in separate `tui_messages.go`
+- `model` struct has 50+ fields ("god object") ⚠️ **REMAINING**: See future work
+- 15+ message types defined inline ⚠️ **REMAINING**: Already in separate `tui_messages.go`
 
-### 5.3 Duplication ~~(MOSTLY RESOLVED)~~
-- ~~`truncatePad` (tui.go) and `t3270Pad` (tui3270.go): same algorithm~~ ✅ **FIXED**: Now uses shared `truncatePad`
-- ~~`loadTasksForStatus` in tui3270.go, similar `loadTasks` cmd in tui.go~~ ✅ **FIXED**: Both use shared `listTasksViaMCP()`
-- Child agent menus duplicated between `childAgentMenuTransaction` and `handleCommand` ⚠️ **ACCEPTABLE**: Different UI paradigms
+### 5.3 Duplication
+- `truncatePad` (tui.go) and `t3270Pad` (tui3270.go): same algorithm
+- `recommendationToCommand` and `recommendationToCommand3270`: same mapping
+- `loadTasksForStatus` in tui3270.go, similar `loadTasks` cmd in tui.go
+- Child agent menus duplicated between `childAgentMenuTransaction` and `handleCommand`
 
 ### 5.4 3270-Specific
 - `extractMenuOption`: triple-fallback parsing could produce unexpected matches
@@ -107,10 +112,11 @@ All surfaces now route through MCP tools. Direct database access is limited to:
 - `daemonize`: doesn't truly fork (blocks on `serverFunc()`)
 - Zero test coverage
 
-### 5.5 Missing Abstractions ~~(MOSTLY RESOLVED)~~
-- ~~No shared View interface between modes~~ ✅ **FIXED**: Per-view state structs exist
-- ~~No typed tool-call adapter~~ ✅ **FIXED**: `tui_mcp_adapter.go` provides typed functions
-- ~~No formal state machine for mode transitions~~ ✅ **FIXED**: Added `tui_transitions.go`
+### 5.5 Missing Abstractions
+- No shared View interface between modes
+- No command registry (keybindings and ISPF commands are independent)
+- No typed tool-call adapter (raw JSON everywhere)
+- No formal state machine for mode transitions
 
 ---
 
@@ -194,7 +200,7 @@ All surfaces now route through MCP tools. Direct database access is limited to:
 
 ### 9.3 Magic Strings (No Constants)
 
-Status values (`"Todo"`, `"In Progress"`, `"Done"`, `"Review"`), priority values (`"low"`, `"medium"`, `"high"`), and backend names (`"fm"`, `"ollama"`; legacy `"mlx"` in metadata) are scattered as string literals across 20+ files.
+Status values (`"Todo"`, `"In Progress"`, `"Done"`, `"Review"`), priority values (`"low"`, `"medium"`, `"high"`), and backend names (`"fm"`, `"mlx"`, `"ollama"`) are scattered as string literals across 20+ files.
 
 **Impact:** AI agents propose changes with typos (e.g., `"in_progress"` vs `"In Progress"`) because there's no canonical constant to reference.
 
@@ -307,68 +313,39 @@ See **Section 12: Future Improvements** below for follow-up tasks.
 
 Follow-up tasks have been created in Todo2. See tasks tagged with `tui`:
 
-### High Priority ~~(RESOLVED)~~
-- ~~**T-1771543659626936000**: Extract action handlers into `tui_update_actions.go`~~ ✅
-- ~~**T-1771543663481255000**: Extract sort/filter logic into `tui_update_filters.go`~~ ✅
-- ~~**T-1771543666094356000**: Route TUI through MCP tools instead of direct DB access~~ ✅
-- ~~**T-1771543667742498000**: Add unit tests for keyboard handlers~~ ✅ (catwalk tests added)
+### High Priority
+- **T-1771543659626936000**: Extract action handlers into `tui_update_actions.go`
+- **T-1771543663481255000**: Extract sort/filter logic into `tui_update_filters.go`
+- **T-1771543666094356000**: Route TUI through MCP tools instead of direct DB access
+- **T-1771543667742498000**: Add unit tests for keyboard handlers
 - **T-1771543674831113000**: Improve error handling and user feedback
 
-### Medium Priority ~~(RESOLVED)~~
+### Medium Priority
 - **T-1771543669306198000**: Add 3270 TUI test coverage
-- ~~**T-1771543670781451000**: Deduplicate code between TUI and TUI3270**~~ ✅
-- ~~**T-1771543672166929000**: Create state machine for mode transitions**~~ ✅
+- **T-1771543670781451000**: Deduplicate code between TUI and TUI3270
+- **T-1771543672166929000**: Create state machine for mode transitions
 
 ### Low Priority (Complex)
-- ~~**T-1771543664811514000**: Decompose model struct into per-view state structs**~~ ✅ (already done)
+- **T-1771543664811514000**: Decompose model struct into per-view state structs (1 day, high risk)
 - **T-1771543673354872000**: Add keyboard shortcut customization
 
----
-
-## 13. Bubble Tea v2 Migration (2026-03-12)
-
-Completed migration to Bubble Tea v2:
-
-### Features Implemented
-- **Declarative View API**: `View()` returns `tea.View` instead of `string`
-- **Window Title**: Dynamic title based on mode and project (`exarp-go - project [status]`)
-- **Cursor Control**: Cursor hidden during loading states
-- **Key Handling**: `tea.KeyPressMsg` / `tea.KeyReleaseMsg` handlers
-- **Paste Handling**: `tea.PasteMsg` / `tea.PasteStartMsg` / `tea.PasteEndMsg` handlers
-- **Mouse Support**: `tea.MouseClickMsg` / `tea.MouseWheelMsg` / `tea.MouseMotionMsg` handlers
-- **Synchronized Output**: Mode 2026 enabled by default in v2
-
-### New Components Added
-- **bubble/list**: Task list with fuzzy filtering (`L` key toggle)
-- **bubble/table**: Sprintboard view with sortable columns (`T` key toggle)
-- **bubble/spinner**: Animated loading indicator
-- **bubble/textinput**: Command palette (`Ctrl+P`)
-
-### Dependencies Updated
-- `charm.land/bubbles/v2` (from v0.x)
-- `github.com/knz/catwalk` (for TUI testing)
+See tasks for detailed descriptions, effort estimates, and implementation guidance.
 
 ---
 
-## 14. References
+## 13. References
 
 - `internal/cli/tui_update.go` — Main Update() method (969 lines, down from 1,337)
-- `internal/cli/tui_update_handlers.go` — Keyboard handlers (366 lines)
-- `internal/cli/tui_update_navigation.go` — Navigation logic (122 lines)
-- `internal/cli/tui_modes.go` — Mode & sort constants (25 lines)
+- `internal/cli/tui_update_handlers.go` — Keyboard handlers (366 lines) **NEW**
+- `internal/cli/tui_update_navigation.go` — Navigation logic (122 lines) **NEW**
+- `internal/cli/tui_modes.go` — Mode & sort constants (25 lines) **NEW**
 - `internal/cli/tui_tasks.go` — Tasks view rendering
 - `internal/cli/tui_commands.go` — Async tea.Cmd factories
 - `internal/cli/tui_messages.go` — tea.Msg types
-- `internal/cli/tui_views.go` — Bubble Tea v2 View() with declarative API **NEW**
-- `internal/cli/tui_transitions.go` — Mode state machine **NEW**
-- `internal/cli/tui_palette.go` — Command palette **NEW**
-- `internal/cli/tui_catwalk_test.go` — TUI tests with catwalk **NEW**
 - `internal/cli/tui3270.go` — 3270 TUI (1,841 lines)
 - `internal/cli/child_agent.go` — Shared child agent launcher
 - `internal/cli/tui_test.go` — TUI tests (13 passing)
-- `internal/cli/tui_mcp_adapter.go` — MCP tool adapter (typed functions)
 - `internal/tools/registry.go` — MCP tool registry (24 tools)
 - `docs/ISPF_PATTERNS_RESEARCH.md` — ISPF design patterns
 - `docs/3270_TUI_IMPLEMENTATION.md` — 3270 implementation guide
 - `docs/WORKFLOW_DSL_AND_MESSAGE_BUS.md` — Workflow DSL and message bus alignment
-- `docs/research/TUI_COMPONENTS_BUBBLE_TEA_V2.md` — Bubble Tea v2 research
